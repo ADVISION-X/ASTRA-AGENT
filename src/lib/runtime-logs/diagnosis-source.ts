@@ -26,13 +26,17 @@ const activeJsonlFiles = (root: string, findings: string[]): string[] => {
   return found.sort();
 };
 
-export const parseRuntimeLogSource = (source: string, findings: string[]): Readonly<{
+export const parseRuntimeLogSource = (source: string, findings: string[], maxFiles?: number): Readonly<{
   events: RuntimeLogEventV2[];
   status: { source: string; available: boolean; files: number; events: number };
 }> => {
   let files: string[];
   try {
     files = activeJsonlFiles(source, findings);
+    if (maxFiles !== undefined) {
+      files = files.sort((left, right) => statSync(left).mtimeMs - statSync(right).mtimeMs
+        || left.localeCompare(right)).slice(-maxFiles);
+    }
   } catch {
     files = [];
   }

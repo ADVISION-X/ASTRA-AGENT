@@ -50,14 +50,11 @@ for (const token of [
 assert(sidebar.includes("skillRegistry"), "Sidebar must render from Skill Registry.");
 assert(layout.includes("renderProductionRuntimeWorkspace"), "Main workspace must render the production runtime workspace.");
 assert(workspace.includes('data-skill-workspace="production-runtime"'));
-assert(workspace.includes("appShellProductionPluginSupport"), "Catalog support must be projected from the unique Catalog.");
 assert(workspace.includes("data-production-status"));
-assert(workspace.includes("data-production-atomic-steps"));
-assert(workspace.includes("data-production-atomic-step-rows"));
+assert(workspace.includes("data-production-observation-rows"));
 assert(productionClient.includes("[data-production-status]"));
-assert(productionClient.includes("renderProductionAtomicSteps(payload.atomic_steps)"));
-assert(productionClient.includes("productionAtomicCommandId"));
-assert(productionClient.includes('"/api/production-runtime/status?jobId="'));
+assert(productionClient.includes("renderProductionObservationRows(payload.rows)"));
+assert(productionClient.includes('"/api/production-runtime/operations-snapshot"'));
 for (const forbidden of ["data-production-pause", "data-production-cancel", "data-production-takeover", "data-production-resume"]) {
   assert.equal(workspace.includes(forbidden), false, `Diagnostic Shell must not expose execution control ${forbidden}.`);
 }
@@ -79,4 +76,4 @@ for (const retiredPath of [
 }
 
 process.stdout.write("[ACCEPTANCE][app-shell-ui] PASS\n");
-emitQualityProofObservation({ lawId: "LAW-APP-SHELL-UI-001-V2", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:2","forbidden:3","forbidden:4","forbidden:9","summary"], locator: "acceptance:app-shell-ui:single-shell-layout", observedValue: "single governed App Shell layout, Skill Registry, allowed actions and retired surfaces verified" });
+emitQualityProofObservation({ lawId: "LAW-APP-SHELL-UI-001-V3", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:2","forbidden:3","forbidden:4","forbidden:8","forbidden:9","forbidden:10","forbidden:11","summary"], locator: "acceptance:app-shell-ui:single-shell-layout", observedValue: "single governed App Shell production authority matrix, allowed actions and retired surfaces verified" });

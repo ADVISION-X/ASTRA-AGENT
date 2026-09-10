@@ -22,6 +22,7 @@ import { ProductionExecutor } from "./executor.js";
 import { ProductionRuntimeStore, type StoredProductionTask } from "./store.js";
 import { typedRuntimeTransportFailure } from "./transport-failure.js";
 import { ProductionWorkerSession } from "./worker-session.js";
+import { readProductionOperationsSnapshot } from "./operations-snapshot.js";
 import type { ProductionRuntimeHandle, ProductionRuntimeHealth } from "./runtime-contract.js";
 import {
   flushOutboxWithLog,
@@ -33,7 +34,6 @@ import {
 import { terminalSpanFailure } from "./runtime-logging.js";
 import { readProductionRuntimeStorageInventory } from "./runtime-storage-inventory.js";
 import {
-  diagnoseProductionRuntime,
   refreshLedgerReconciled,
   safeReason,
   type RuntimeState,
@@ -105,8 +105,11 @@ const blockedRuntimeHandle = (
   let stopped = false;
   return {
     readHealth: () => blockedHealth(input, store, error, stopped, controlContractVersion),
-    readTask: (jobId) => store.readTask(jobId),
-    diagnose: (jobId) => diagnoseProductionRuntime(input.dataDir, store, jobId),
+    readOperationsSnapshot: (jobId) => readProductionOperationsSnapshot({
+      dataDir: input.dataDir, store, browser: input.browserAuthority,
+      health: () => blockedHealth(input, store, error, stopped, controlContractVersion),
+      session: null, jobId,
+    }),
     close: async () => {
       if (stopped) return;
       closeBlockedStore(input, store, traceId);
@@ -304,8 +307,10 @@ const createRuntimeHandle = (
   const heartbeat = sessionHeartbeatLoop(state);
   return {
     readHealth: () => readHealth(state),
-    readTask: (jobId) => state.store.readTask(jobId),
-    diagnose: (jobId) => diagnoseProductionRuntime(input.dataDir, state.store, jobId),
+    readOperationsSnapshot: (jobId) => readProductionOperationsSnapshot({
+      dataDir: input.dataDir, store: state.store, browser: input.browserAuthority,
+      health: () => readHealth(state), session: state.session, jobId,
+    }),
     close: () => shutdownRuntime(state, loop, heartbeat),
   };
 };

@@ -139,7 +139,7 @@ Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为�
 
 - Agent Plugin Capability Manifest provider：version 3；authorityArtifact 路径、selector 与 provider spec 只定义 Manifest 的规范字段和 schema。任一 Product Profile/Skill/执行语义变化必须提升对应 `plugin_version` 并重算 canonical catalog hash；只有 Manifest 规范字段或 schema 变化才提升 provider spec version，禁止用旧 Plugin identity/hash 掩盖语义变化；
 - Website Agent Task Result consumer dependency：version 6；
-- Xuanxue AI Production V6 consumer dependency：version 18。
+- Xuanxue AI Production V6 consumer dependency：version 20。V20 的 `NO_ELIGIBLE_JOB.reason_codes` 只消费 Website 闭集 `NO_UNFINISHED_V6_DEMAND | RETRY_NOT_BEFORE_PENDING | ACTIVE_LEASE_PRESENT | CURRENT_NEXT_ACTION_NOT_CLAIM | CONTROL_INTENT_NOT_CLAIMABLE | PERMANENT_AUTHORIZATION_REVOKED | DEVICE_ASSIGNMENT_MISMATCH | CAPABILITY_MISMATCH | MATERIAL_BINDING_UNRESOLVED | CONCURRENT_SELECTION_IN_PROGRESS`；Runtime 只原样记录最后一次 claim receipt。逐 job 的同 attempt 对账与 staged result 入库仅消费 Website `job_next_action_code`，不得从 claim reason 或日志推导 Website 状态和恢复动作。
 
 consumer dependency 的 contract body 只能包含 contractId、version、providerRepo。普通启动只校验本仓最小 dependency，不读取未绑定 Website 工作树；跨仓 participant commit 只属于 RELEASE 证据。
 
@@ -259,7 +259,7 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 每次候选都必须重新证明：
 
 1. 八条 Runtime law、稳定 blueprintId、三份 active contractRef 与 Runtime 唯一 Manifest 的 lawIds 相互一致；Architecture Boundary law 与 Manifest 独立保持其现役一一对应；越界 `ownedPaths` 只在同一候选的一次原子修改中归位，并立即证明无无主、无重叠、无 Runtime manifest-owner-drift。
-2. Website task-result v6、V6 v19 与 AGENT dependency 精确一致，consumer contract body 只有三字段；grant 保留当前 claim 的 capability_manifest_hash 审计事实、增加唯一 `prior_result_rejection|null`，但不含 expected_catalog_hash，accepted attempt 只冻结对应 Plugin identity；device credential 与 enrollment response 不含 control manifest hash，session/grant/fence 的 control_contract_version 逐项同值；只含唯一退役 `control_manifest_hash` 的已 enrollment credential 可由显式离线 normalization 原子删去该字段并保持全部当前字段逐项不变，其它 credential 故障写入增量为零。
+2. Website task-result v6、V6 v20 与 AGENT dependency 精确一致，consumer contract body 只有三字段；grant 保留当前 claim 的 capability_manifest_hash 审计事实与唯一 `prior_result_rejection|null`，NO_ELIGIBLE_JOB 精确闭集 reason_codes 原样进入 Runtime claim receipt 且旧笼统码为零；accepted attempt、device credential、session/grant/fence 边界逐项保持。
 3. route projection 精确为 40 routes、57 parameter types、31 result contracts、2 reservation routes。
 4. base、Bazi primary、review admission receipt 的互斥字段与完整 canonical hash 全部闭合，未闭合时本地 completed 增量为零。
 5. credential 失败类别分别得到稳定脱敏 typed code，且 claim/Provider mutation 增量为零。

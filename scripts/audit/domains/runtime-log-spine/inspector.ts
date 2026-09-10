@@ -17,7 +17,7 @@ import {
   validateStaticInspection,
 } from "../../shared/static-inspection-contract.js";
 
-const LAW_OPERATIONAL = "LAW-RUNTIME-LOG-SPINE-001-V6";
+const LAW_OPERATIONAL = "LAW-RUNTIME-LOG-SPINE-001-V7";
 const LAW_PRIVACY = "LAW-RUNTIME-LOG-SPINE-002-V4";
 const LAW_STRUCTURE = "LAW-RUNTIME-LOG-SPINE-003-V6";
 const SOURCE_EXTENSIONS = new Set([".js", ".mjs", ".mts", ".ts"]);
@@ -196,6 +196,7 @@ const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] =>
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "readonly-authority-resolution",
     "scripts/runtime-logs/inspect.ts", [
       "resolveStoredProductionAuthority", "resolveStoredBrowserMutationAuthority", "authorityResolver",
+      "discoverRuntimeLogScope", "NO_ACTIVE_SCOPE",
     ]);
   return findings;
 };
@@ -205,7 +206,8 @@ const inspectOperationalContract = (context: InspectorContext): InspectorFinding
   requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "diagnosis-output",
     "src/lib/runtime-logs/diagnosis-contract.ts", [
       "DIAGNOSIS_COMPLETE", "DIAGNOSIS_INCOMPLETE", "blockingRoots", "lastSuccessfulActions",
-      "observedEvents", "openSpans", "interruptedSpans", "atomicSteps", "authorityRefs",
+      "observedEvents", "openSpans", "interruptedSpans", "atomicSteps", "authorityRefs", "eventRefs",
+      "firstSeenAt", "lastSeenAt", "count",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "diagnosis-output",
     "src/lib/runtime-logs/diagnosis-authority.ts", ["AUTHORITY_REF_UNVERIFIED", "AUTHORITY_HASH_MISMATCH"]);
@@ -225,7 +227,16 @@ const inspectOperationalContract = (context: InspectorContext): InspectorFinding
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "diagnosis-api",
     "src/app/workbench-production-runtime-routes.ts", [
-      "/api/production-runtime/diagnosis", "diagnoseProductionRuntime",
+      "/api/production-runtime/operations-snapshot", "readProductionOperationsSnapshot",
+    ]);
+  requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "operations-current-facts",
+    "src/lib/local-runtime/production/operations-snapshot.ts", [
+      "runtime_log_sink", "logSinkState", "discoverRuntimeLogScope", "SOURCE_UNAVAILABLE",
+      "DIAGNOSIS_INCOMPLETE",
+    ]);
+  requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "terminal-projection",
+    "src/lib/runtime-logs/sinks.ts", [
+      "shouldProjectRuntimeEvent", "terminalProjectionState", "activeMode === \"TRACE\"",
     ]);
   return findings;
 };
@@ -352,7 +363,7 @@ const inspectStructureContract = (context: InspectorContext): InspectorFinding[]
       "writerLockPath", "flag: \"wx\"", "RUNTIME_LOG_CAPACITY_BLOCKED",
     ]);
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "unique-diagnosis-cli",
-    "scripts/runtime-logs/inspect.ts", ["--job", "--source", "sources", "DIAGNOSIS_COMPLETE"]);
+    "scripts/runtime-logs/inspect.ts", ["--job", "--source", "sources", "DIAGNOSIS_COMPLETE", "AMBIGUOUS_SCOPE"]);
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "browser-authority-reconciliation",
     "src/lib/browser/exact-target/browser-mutation-store.ts", ["reconciliationStates()", "from browser_mutations order by updated_at,command_id"]);
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "strict-reader",
@@ -370,7 +381,7 @@ const CHECKS = {
   [LAW_STRUCTURE]: { "static.ast": "inspectStructureAst", "static.contract": "inspectStructureContract" },
 } as const;
 const CLAUSES = {
-  [LAW_OPERATIONAL]: staticClauses(0, 1, 2, 3, 4, 5, 6, 7),
+  [LAW_OPERATIONAL]: staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9),
   [LAW_PRIVACY]: staticClauses(0, 1, 2, 3),
   [LAW_STRUCTURE]: staticClauses(0, 1, 2, 3, 4, 5, 6, 7),
 } as const;

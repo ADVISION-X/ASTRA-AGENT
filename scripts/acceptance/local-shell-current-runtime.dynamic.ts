@@ -19,7 +19,7 @@ const dynamicClaimContract = (/* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_BEGIN */
   "routes": {
     "LAW-LOCAL-APP-SHELL-001-V6:dynamic.browser": {"claims": {"forbidden:5": [{"path": "/facts/browser_command_surface_count", "operator": "equals", "expected": 0}]}},
     "LAW-LOCAL-APP-SHELL-001-V6:dynamic.service": {"claims": {"forbidden:4": [{"path": "/facts/listener_count", "operator": "equals", "expected": 1}], "forbidden:8": [{"path": "/facts/readiness_component_count", "operator": "gte", "expected": 2}, {"path": "/facts/readiness_components_distinct", "operator": "equals", "expected": true}]}},
-    "LAW-LOCAL-APP-SHELL-003-V3:dynamic.service": {"claims": {"forbidden:0": [{"path": "/facts/readiness_component_count", "operator": "gte", "expected": 2}, {"path": "/facts/readiness_components_distinct", "operator": "equals", "expected": true}]}},
+    "LAW-LOCAL-APP-SHELL-003-V4:dynamic.service": {"claims": {"forbidden:0": [{"path": "/facts/readiness_component_count", "operator": "gte", "expected": 2}, {"path": "/facts/readiness_components_distinct", "operator": "equals", "expected": true}]}},
     "LAW-STARTUP-ENTRYPOINT-001-V4:dynamic.service": {"claims": {"forbidden:5": [{"path": "/facts/production_task_count", "operator": "equals", "expected": 0}, {"path": "/facts/shell_http_available", "operator": "equals", "expected": true}]}},
     "LAW-STARTUP-ENTRYPOINT-002-V4:dynamic.service": {"claims": {"forbidden:0": [{"path": "/facts/foreign_repository_child_process_count", "operator": "equals", "expected": 0}]}}
   }
@@ -217,7 +217,7 @@ const clausesFor = (lawId: string, evidenceMode: string): string[] => Object.key
 ).sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
 const browserClauses = clausesFor("LAW-LOCAL-APP-SHELL-001-V6", "dynamic.browser");
 const shellClauses = clausesFor("LAW-LOCAL-APP-SHELL-001-V6", "dynamic.service");
-const degradedClauses = clausesFor("LAW-LOCAL-APP-SHELL-003-V3", "dynamic.service");
+const degradedClauses = clausesFor("LAW-LOCAL-APP-SHELL-003-V4", "dynamic.service");
 const startupProcessClauses = clausesFor("LAW-STARTUP-ENTRYPOINT-001-V4", "dynamic.service");
 const startupListenerClauses = clausesFor("LAW-STARTUP-ENTRYPOINT-002-V4", "dynamic.service");
 const degradedValue = `${runtimeValue};components=${componentNames.length}`;
@@ -234,7 +234,7 @@ writeReceipt(shellHealthReceiptPath, { clauses: shellClauses, evidenceMode: "dyn
   lawId: "LAW-LOCAL-APP-SHELL-001-V6", observedValue: runtimeValue,
   observation: serviceObservation("local-app-shell") });
 writeReceipt(degradedHealthReceiptPath, { clauses: degradedClauses, evidenceMode: "dynamic.service",
-  lawId: "LAW-LOCAL-APP-SHELL-003-V3", observedValue: degradedValue,
+  lawId: "LAW-LOCAL-APP-SHELL-003-V4", observedValue: degradedValue,
   observation: serviceObservation("local-app-shell-status") });
 writeReceipt(startupProcessReceiptPath, { clauses: startupProcessClauses, evidenceMode: "dynamic.service",
   lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", observedValue: startupProcessValue,
@@ -247,7 +247,7 @@ emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-
   locator: browserReceiptPath, receipt: nativeReceipt(browserReceiptPath), observedValue: browserValue });
 emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-001-V6", evidenceMode: "dynamic.service", clauses: shellClauses,
   locator: shellHealthReceiptPath, receipt: nativeReceipt(shellHealthReceiptPath), observedValue: runtimeValue });
-emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-003-V3", evidenceMode: "dynamic.service", clauses: degradedClauses,
+emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-LOCAL-APP-SHELL-003-V4", evidenceMode: "dynamic.service", clauses: degradedClauses,
   locator: degradedHealthReceiptPath, receipt: nativeReceipt(degradedHealthReceiptPath),
   observedValue: degradedValue });
 emitQualityProofObservation({ passed: true, findings: [], lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "dynamic.service", clauses: startupProcessClauses,

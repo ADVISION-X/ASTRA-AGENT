@@ -65,7 +65,7 @@
     {
       "capabilityDomain": "app-shell-ui",
       "lawIds": [
-        "LAW-APP-SHELL-UI-001-V2",
+        "LAW-APP-SHELL-UI-001-V3",
         "LAW-APP-SHELL-UI-002-V1",
         "LAW-APP-SHELL-UI-003-V3"
       ],
@@ -210,7 +210,7 @@
       "lawIds": [
         "LAW-LOCAL-APP-SHELL-001-V6",
         "LAW-LOCAL-APP-SHELL-002-V3",
-        "LAW-LOCAL-APP-SHELL-003-V3"
+        "LAW-LOCAL-APP-SHELL-003-V4"
       ],
       "manifestPath": "scripts/audit/domains/local-app-shell/manifest.json",
       "observedPaths": [
@@ -238,8 +238,7 @@
         "src/lib/local-runtime/workbench-settings-handle.ts",
         "src/lib/local-runtime/workbench-status-types.ts",
         "src/lib/local-runtime/workbench-status.ts",
-        "src/lib/local-runtime/workbench.ts",
-        "监控大盘实现方案.md"
+        "src/lib/local-runtime/workbench.ts"
       ]
     },
     {
@@ -303,7 +302,7 @@
     {
       "capabilityDomain": "runtime-log-spine",
       "lawIds": [
-        "LAW-RUNTIME-LOG-SPINE-001-V6",
+        "LAW-RUNTIME-LOG-SPINE-001-V7",
         "LAW-RUNTIME-LOG-SPINE-002-V4",
         "LAW-RUNTIME-LOG-SPINE-003-V6"
       ],
@@ -406,7 +405,7 @@
       "dependsOnLawIds": [
         "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V5",
         "LAW-GPT-001-V38",
-        "LAW-RUNTIME-LOG-SPINE-001-V6"
+        "LAW-RUNTIME-LOG-SPINE-001-V7"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -789,19 +788,21 @@
         "不得发生：Shell、Cloud control plane、link、contract、worker session、Browser Authority、Browser Target、Browser lane、claim admission、queue/outbox 或 e2e proof 被合并为单一绿色 ready。",
         "不得发生：Cloud 凭证、Provider 或 Browser 未就绪时隐藏真实 block reason 或使诊断状态页不可用。",
         "不得发生：UI using localStorage, fixture rows, package scanning, or log parsing as production truth.",
+        "不得发生：生产观察入口要求操作员先知道 jobId，或任一状态行缺少 Owner、当前值、reason code、observed_at、typed freshness、authority/evidence ref 与完整性。只有 ttl 事实必须带 fresh_until，durable 与 snapshot 事实不得伪造过期时间；来源不可读、过期或冲突时必须显示 SOURCE_UNAVAILABLE 或 DIAGNOSIS_INCOMPLETE，不得沿用旧绿灯。",
+        "不得发生：生产真实状态矩阵自动 claim、retry、replay、repair、navigate Browser 或改变任务；它只允许在唯一 Workbench 内按首次加载和人工刷新从 Website 当前只读观察、Runtime、Browser、Outbox 与 Runtime Log Spine 的各自现役公开权威生成一次性安全投影；Runtime Log Spine 只能提供历史因果证据，不得被当作当前状态。",
         "不得发生：UI computing AI verdict or product opportunity score.",
         "不得发生：UI 暴露玄学生产状态、诊断、人工介入与恢复之外的业务动作。"
       ],
-      "lawId": "LAW-APP-SHELL-UI-001-V2",
+      "lawId": "LAW-APP-SHELL-UI-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 396,
+        "lineEnd": 398,
         "lineStart": 362,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须由唯一 Workbench Shell 分开展示 Shell、Cloud、合同、session、Browser、claim、outbox 与 E2E 真实状态，任一局部 ready 不得冒充端到端 ready，失败时诊断面仍必须可用。",
-      "supersedesLawId": "LAW-APP-SHELL-UI-001-V1",
+      "summary": "必须由唯一 Workbench Shell 以生产真实状态矩阵分开展示 Website claim、Runtime、合同、session、Browser、execution、Outbox、日志证据与业务入库；每行携 Owner、时间、新鲜度、权威引用和完整性，任何局部 ready、缺源或历史日志都不得冒充当前端到端真相。",
+      "supersedesLawId": "LAW-APP-SHELL-UI-001-V2",
       "tier": "P0"
     },
     {
@@ -827,8 +828,8 @@
       "lawId": "LAW-APP-SHELL-UI-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 427,
-        "lineStart": 398,
+        "lineEnd": 429,
+        "lineStart": 400,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -861,8 +862,8 @@
       "lawId": "LAW-APP-SHELL-UI-003-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 460,
-        "lineStart": 429,
+        "lineEnd": 462,
+        "lineStart": 431,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -908,8 +909,8 @@
       "lawId": "LAW-ARCHITECTURE-BOUNDARY-001-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 508,
-        "lineStart": 464,
+        "lineEnd": 510,
+        "lineStart": 466,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -953,8 +954,8 @@
       "lawId": "LAW-CAPABILITY-GOVERNANCE-001-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 554,
-        "lineStart": 512,
+        "lineEnd": 556,
+        "lineStart": 514,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1112,8 +1113,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 586,
-        "lineStart": 558,
+        "lineEnd": 588,
+        "lineStart": 560,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1142,8 +1143,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 615,
-        "lineStart": 588,
+        "lineEnd": 617,
+        "lineStart": 590,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1171,8 +1172,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 643,
-        "lineStart": 617,
+        "lineEnd": 645,
+        "lineStart": 619,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1249,8 +1250,8 @@
       "lawId": "LAW-GPT-001-V38",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 720,
-        "lineStart": 647,
+        "lineEnd": 722,
+        "lineStart": 649,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1291,8 +1292,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 763,
-        "lineStart": 724,
+        "lineEnd": 765,
+        "lineStart": 726,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1322,8 +1323,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-002-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 793,
-        "lineStart": 765,
+        "lineEnd": 795,
+        "lineStart": 767,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1350,18 +1351,19 @@
       "forbidden": [
         "不得发生：用未标归属的 Cloud state、任务 Worker 或单一绿色 health 合并 Shell、Cloud、Browser、Target、execution 与 claim admission。",
         "不得发生：将 Shell ready 或 Shell degraded 展示为 execution ready、claim eligible 或端到端 ready。",
-        "不得发生：把 Browser 配对、Target 认领、enrollment 或任务创建伪装为状态读取。"
+        "不得发生：把 Browser 配对、Target 认领、enrollment 或任务创建伪装为状态读取。",
+        "不得发生：为生产观察新增 listener、SSE、第二 WebSocket、自动 polling、缓存状态表或第二诊断快照；只允许复用唯一 App Server，在首次加载和人工刷新时读取当前公开权威，单源失败只使相关行不完整且 Shell 诊断继续可用。"
       ],
-      "lawId": "LAW-LOCAL-APP-SHELL-003-V3",
+      "lawId": "LAW-LOCAL-APP-SHELL-003-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 825,
-        "lineStart": 795,
+        "lineEnd": 828,
+        "lineStart": 797,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须使操作员精确使用 AGENT Cloud Worker，并分开显示 Shell、Cloud、Browser、Target、execution 与 claim；依赖失败只阻断 execution/claim。",
-      "supersedesLawId": "LAW-LOCAL-APP-SHELL-003-V2",
+      "summary": "必须使操作员在唯一 App Server 上按需读取当前 AGENT Cloud Worker 状态，并分开显示 Shell、Cloud、Browser、Target、execution 与 claim；不轮询、不改态，依赖失败只阻断对应 execution/claim 行。",
+      "supersedesLawId": "LAW-LOCAL-APP-SHELL-003-V3",
       "tier": "P0"
     },
     {
@@ -1395,8 +1397,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 864,
-        "lineStart": 829,
+        "lineEnd": 867,
+        "lineStart": 832,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1440,8 +1442,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-002-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 906,
-        "lineStart": 866,
+        "lineEnd": 909,
+        "lineStart": 869,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1488,8 +1490,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-003-V26",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 951,
-        "lineStart": 908,
+        "lineEnd": 954,
+        "lineStart": 911,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1543,8 +1545,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V28",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1003,
-        "lineStart": 953,
+        "lineEnd": 1006,
+        "lineStart": 956,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1581,8 +1583,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-005-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1038,
-        "lineStart": 1005,
+        "lineEnd": 1041,
+        "lineStart": 1008,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1616,8 +1618,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V19",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1070,
-        "lineStart": 1040,
+        "lineEnd": 1073,
+        "lineStart": 1043,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1664,18 +1666,20 @@
         "不得发生：日志或诊断器决定业务下一步、重放外部 mutation，或取代 Production Store、Browser WAL、Forensics 与网站业务结果真相。",
         "不得发生：日志写入失败后继续认领新任务或发起新外部 mutation，或已 SENT mutation 因日志故障停止确认与清理。",
         "不得发生：authorityRef 指向无法由诊断器只读重读的临时网络回执、内存对象或一次性会话；Lease、Checkpoint、Outbox 与 Browser mutation 必须逐对象持久化后再引用。",
-        "不得发生：任一必需来源不可读，schema、完整性、因果、新鲜度或权威对账不完整时，仍输出确定首因、完整运行态、READY 或业务成功。"
+        "不得发生：任一必需来源不可读，schema、完整性、因果、新鲜度或权威对账不完整时，仍输出确定首因、完整运行态、READY 或业务成功。",
+        "不得发生：为了降低终端噪声而丢弃、抽样或改写原始 JSONL 事件；完整事件必须先原样持久化，终端默认只投影状态变化、新的独立故障与必要启动/停止边界，重复 heartbeat、空 claim 与相同成功请求不得逐条刷屏。",
+        "不得发生：历史诊断要求先知道 jobId 才能发现故障范围，或在未给 jobId 时静默猜选最近失败。诊断器必须只读、有界发现候选：零项返回 NO_ACTIVE_SCOPE，唯一项才自动选择，多项返回 AMBIGUOUS_SCOPE 与 candidates；相同根因按 responsibleOwner、code、operation、authorityRef、evidenceRef 归并并保留 count、first_seen、last_seen 与 event refs，原始事件仍可下钻。"
       ],
-      "lawId": "LAW-RUNTIME-LOG-SPINE-001-V6",
+      "lawId": "LAW-RUNTIME-LOG-SPINE-001-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1120,
-        "lineStart": 1074,
+        "lineEnd": 1125,
+        "lineStart": 1077,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须保持唯一 Runtime Log Spine 只记录普通 event/span/error 与可读诊断引用；它可以解释失败发生在哪里，但不得保存或推导任务状态、流程位置、恢复结论或业务完成真相。",
-      "supersedesLawId": "LAW-RUNTIME-LOG-SPINE-001-V5",
+      "summary": "必须保持唯一 Runtime Log Spine 全量持久化原始 event/span/error 与可读诊断引用，同时终端只投影状态变化和新独立故障；诊断可自动发现最近运行并归并重复根因，但不得保存或推导任务状态、流程位置、恢复结论或业务完成真相。",
+      "supersedesLawId": "LAW-RUNTIME-LOG-SPINE-001-V6",
       "tier": "P0"
     },
     {
@@ -1715,8 +1719,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1161,
-        "lineStart": 1122,
+        "lineEnd": 1166,
+        "lineStart": 1127,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1768,8 +1772,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-003-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1209,
-        "lineStart": 1163,
+        "lineEnd": 1214,
+        "lineStart": 1168,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1810,8 +1814,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1252,
-        "lineStart": 1213,
+        "lineEnd": 1257,
+        "lineStart": 1218,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1851,8 +1855,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1290,
-        "lineStart": 1254,
+        "lineEnd": 1295,
+        "lineStart": 1259,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1869,7 +1873,7 @@
       "contractRefs": [],
       "dependsOnLawIds": [
         "LAW-ARCHITECTURE-BOUNDARY-001-V5",
-        "LAW-RUNTIME-LOG-SPINE-001-V6"
+        "LAW-RUNTIME-LOG-SPINE-001-V7"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -1888,8 +1892,8 @@
       "lawId": "LAW-SYSTEM-SECURITY-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1328,
-        "lineStart": 1294,
+        "lineEnd": 1333,
+        "lineStart": 1299,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1929,8 +1933,8 @@
       "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1368,
-        "lineStart": 1332,
+        "lineEnd": 1373,
+        "lineStart": 1337,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",

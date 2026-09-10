@@ -3,6 +3,7 @@ import type {
   DiagnosedFailure,
   RuntimeAuthorityResolver,
   RuntimeDiagnosis,
+  RuntimeDiagnosisScope,
 } from "./diagnosis-contract.js";
 import { parseRuntimeLogSource, verifyRuntimeProducerChains } from "./diagnosis-source.js";
 import type {
@@ -13,7 +14,7 @@ import type {
   RuntimeSpanTerminalEvent,
 } from "./runtime-event-contract.js";
 
-export type { RuntimeAuthorityResolver, RuntimeDiagnosis } from "./diagnosis-contract.js";
+export type { RuntimeAuthorityResolver, RuntimeDiagnosis, RuntimeDiagnosisScope } from "./diagnosis-contract.js";
 
 const spanKey = (event: Pick<RuntimeLogEventV2, "producerRunId"> & { spanId: string }): string =>
   `${event.producerRunId}\u0000${event.spanId}`;
@@ -264,6 +265,7 @@ const verifyCrossRepositoryBoundaries = (
 
 const diagnosedFailure = (event: RuntimeSpanTerminalEvent | RuntimeErrorEvent): DiagnosedFailure => ({
   eventId: event.eventId,
+  eventRefs: Object.freeze([event.eventId]),
   operation: event.operation,
   owner: event.owner,
   responsibleOwner: event.failure!.responsibleOwner,
@@ -273,7 +275,34 @@ const diagnosedFailure = (event: RuntimeSpanTerminalEvent | RuntimeErrorEvent): 
   httpStatus: event.failure!.httpStatus ?? null,
   impact: event.failure!.impact,
   causedByEventId: event.failure!.causedByEventId ?? null,
+  authorityRef: event.authorityRef ?? null,
+  evidenceRef: event.evidenceRef ?? null,
+  count: 1,
+  firstSeenAt: event.emittedAt,
+  lastSeenAt: event.emittedAt,
 });
+
+const aggregateFailures = (
+  events: readonly (RuntimeSpanTerminalEvent | RuntimeErrorEvent)[],
+): DiagnosedFailure[] => {
+  const aggregated = new Map<string, DiagnosedFailure>();
+  for (const event of events) {
+    const current = diagnosedFailure(event);
+    const key = [current.responsibleOwner, current.code, current.operation,
+      current.authorityRef ?? "", current.evidenceRef ?? ""].join("\u0000");
+    const prior = aggregated.get(key);
+    aggregated.set(key, prior ? {
+      ...prior, eventId: current.eventId, nativeCause: current.nativeCause ?? prior.nativeCause,
+      eventRefs: Object.freeze([...new Set([...prior.eventRefs, ...current.eventRefs])]),
+      httpStatus: current.httpStatus ?? prior.httpStatus, causedByEventId: current.causedByEventId,
+      count: prior.count + 1, firstSeenAt: prior.firstSeenAt < current.firstSeenAt
+        ? prior.firstSeenAt : current.firstSeenAt,
+      lastSeenAt: prior.lastSeenAt > current.lastSeenAt ? prior.lastSeenAt : current.lastSeenAt,
+    } : current);
+  }
+  return [...aggregated.values()].sort((left, right) => left.firstSeenAt.localeCompare(right.firstSeenAt)
+    || left.responsibleOwner.localeCompare(right.responsibleOwner) || left.code.localeCompare(right.code));
+};
 
 const blockingRoots = (
   failures: readonly (RuntimeSpanTerminalEvent | RuntimeErrorEvent)[],
@@ -351,12 +380,39 @@ export const diagnoseRuntimeLog = (input: Readonly<{
     observedEvents: observedEvents(events),
     openSpans: spans.open,
     interruptedSpans: spans.interrupted,
-    blockingRoots: roots.map(diagnosedFailure),
-    consequentialFailures: failures.filter((event) => event.failure?.impact === "CONSEQUENTIAL").map(diagnosedFailure),
-    cleanupFailures: failures.filter((event) => event.failure?.impact === "CLEANUP").map(diagnosedFailure),
+    blockingRoots: aggregateFailures(roots),
+    consequentialFailures: aggregateFailures(failures.filter((event) => event.failure?.impact === "CONSEQUENTIAL")),
+    cleanupFailures: aggregateFailures(failures.filter((event) => event.failure?.impact === "CLEANUP")),
     atomicSteps: atomicBrowserSteps(events),
     authorityRefs: [...authorityEvents.keys()].sort(),
     warnings,
     findings: [...new Set(findings)],
   };
+};
+
+export const discoverRuntimeLogScope = (input: Readonly<{
+  sources: readonly string[];
+}>): RuntimeDiagnosisScope => {
+  const findings: string[] = [];
+  const parsed = input.sources.map((source) => parseRuntimeLogSource(source, findings, 32));
+  const events = parsed.flatMap((source) => source.events);
+  verifyRuntimeProducerChains(events, findings);
+  const completeness = findings.length === 0 ? "COMPLETE" as const : "DIAGNOSIS_INCOMPLETE" as const;
+  if (parsed.length === 0 || parsed.every((source) => !source.status.available)) {
+    return { status: "SOURCE_UNAVAILABLE", selectedTraceId: null, candidates: [], completeness };
+  }
+  const newestRun = [...new Set(events.map((event) => event.producerRunId))]
+    .map((runId) => ({ runId, latest: events.filter((event) => event.producerRunId === runId)
+      .reduce((latest, event) => latest > event.emittedAt ? latest : event.emittedAt, "") }))
+    .sort((left, right) => right.latest.localeCompare(left.latest))[0]?.runId;
+  const candidates = Object.freeze([...new Set(events.filter((event) => event.producerRunId === newestRun)
+    .flatMap((event) => {
+      const identity = "typedIdentity" in event
+        ? event.typedIdentity as unknown as Record<string, unknown> : {};
+      const jobId = typeof identity.jobId === "string" ? identity.jobId : null;
+      return jobId ? [jobId] : event.traceId.startsWith("producer:") ? [] : [event.traceId];
+    }))].sort().slice(0, 25));
+  if (candidates.length === 0) return { status: "NO_ACTIVE_SCOPE", selectedTraceId: null, candidates, completeness };
+  if (candidates.length === 1) return { status: "SELECTED", selectedTraceId: candidates[0]!, candidates, completeness };
+  return { status: "AMBIGUOUS_SCOPE", selectedTraceId: null, candidates, completeness };
 };

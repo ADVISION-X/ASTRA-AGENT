@@ -21,8 +21,11 @@ import { reconcileBusinessAdmission } from "../../src/lib/local-runtime/producti
 import { permanentAuthorizationRevoked } from
   "../../src/lib/local-runtime/production/runtime-permanent-revocation.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
+import { readProductionOperationsSnapshot } from
+  "../../src/lib/local-runtime/production/operations-snapshot.js";
 import {
-  LeaseRenewReceiptSchema, PriorResultRejectionSchema, parseJsonEnvelope, websiteAgentTaskFromClaim,
+  ClaimBatchReceiptSchema, LeaseRenewReceiptSchema, PriorResultRejectionSchema, parseJsonEnvelope,
+  websiteAgentTaskFromClaim,
 } from "../../src/lib/local-runtime/production/transport-protocol.js";
 import { typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { assertProductionTaskRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
@@ -197,6 +200,70 @@ assert.throws(() => PriorResultRejectionSchema.parse({
   ...revisionRejection,
   reason_codes: ["PUBLIC_KNOWLEDGE_RESEARCH_REJECTED", "PUBLIC_KNOWLEDGE_ARTICLE_REJECTED"],
 }));
+
+const noEligibleReceipt = {
+  schema_version: "xuanxue-ai-claim-batch-receipt.v6",
+  claim_batch_id: "claim-batch:closed-reasons",
+  request_id: "request:closed-reasons",
+  request_payload_hash: HASH_A,
+  outcome: "NO_ELIGIBLE_JOB",
+  jobs: [],
+  server_now: "2026-09-03T00:00:00.000Z",
+  next_claim_after_ms: 3_000,
+  queue_epoch: 1,
+  reason_codes: ["NO_UNFINISHED_V6_DEMAND", "RETRY_NOT_BEFORE_PENDING"],
+} as const;
+assert.deepEqual(ClaimBatchReceiptSchema.parse(noEligibleReceipt).reason_codes,
+  noEligibleReceipt.reason_codes);
+for (const reason_codes of [
+  [],
+  ["GLOBAL_QUEUE_EMPTY_OR_INELIGIBLE"],
+  ["NO_UNFINISHED_V6_DEMAND", "NO_UNFINISHED_V6_DEMAND"],
+  ["RETRY_NOT_BEFORE_PENDING", "NO_UNFINISHED_V6_DEMAND"],
+]) assert.throws(() => ClaimBatchReceiptSchema.parse({ ...noEligibleReceipt, reason_codes }));
+
+const operationsTemporary = await mkdtemp(path.join(tmpdir(), "agent-operations-snapshot-"));
+try {
+  const snapshot = await readProductionOperationsSnapshot({
+    dataDir: operationsTemporary,
+    session: {
+      workerSessionId: "session:observation",
+      async request() {
+        return {
+          schema_version: "xuanxue-ai-worker-observation.v6",
+          observed_at: "2026-09-03T00:00:00.000Z",
+          claim_exclusion_counts: [{ reason_code: "NO_UNFINISHED_V6_DEMAND", count: 1 }],
+          nearest_retry_not_before: null,
+          scope_total: 0,
+          scope_truncated: false,
+          jobs: [],
+        };
+      },
+    } as never,
+    store: {
+      outboxAuthorities: () => [],
+    } as never,
+    browser: {
+      hasBrowserMutationForJob: () => false,
+      hasUnresolvedBrowserMutation: () => false,
+    } as never,
+    health: () => ({
+      shellState: "ready", cloudState: "ready", browserState: "ready", executionState: "ready",
+      claimAdmissionState: "eligible", logSinkState: "ready", browserAuthorityState: "present",
+      browserTargetState: "absent", browserLaneState: "idle", controlContractVersion: 20,
+      catalogHash: HASH_A, activeCount: 0, pendingOutboxCount: 0, lastSuccessfulHeartbeatAt: null,
+      lastErrorCode: null, lastErrorReason: null, checkedAt: "2026-09-03T00:00:00.000Z",
+    }),
+    jobId: undefined,
+  });
+  assert.equal(snapshot.rows.find((entry) => entry.axis === "runtime_log_sink")?.current_value, "ready");
+  assert.equal(snapshot.rows.some((entry) => ["agent_task", "lease_fence", "checkpoint"].includes(entry.axis)), false);
+  assert.equal(snapshot.rows.find((entry) => entry.axis === "runtime_log_evidence")?.completeness,
+    "SOURCE_UNAVAILABLE");
+  assert.equal(snapshot.rows.find((entry) => entry.axis === "outbox")?.freshness.kind, "snapshot");
+} finally {
+  await rm(operationsTemporary, { recursive: true, force: true });
+}
 
 const revisionTemporary = await mkdtemp(path.join(tmpdir(), "agent-result-revision-"));
 try {

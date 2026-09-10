@@ -1,6 +1,6 @@
 ---
 name: agent-flow-boundary-gatekeeper
-description: 审查 AGENT 生产链内部以及 AGENT—Website 跨仓接口的原子职责与唯一 Owner；按双方当前 canonical authority 阻断第二 Owner、第二状态真相和越界恢复。仅用于生产链架构设计、Owner/边界审查，以及会提出或实施生产链代码修改的诊断与重构；不用于纯运行、纯日志、普通页面观察、一般 UI/文案或实际 Product 执行。本 Skill 不定义或执行 Product Flow，也不取代任一仓的法案或 Blueprint。
+description: 审查 AGENT 生产链内部以及 AGENT—Website 跨仓接口的原子职责与唯一 Owner，并以当前需求和系统必要性两层证据裁决结构能否新增或保留；不能证明则禁止新增或在授权片区物理删除。仅用于生产链架构设计、Owner/边界审查，以及会提出或实施生产链代码修改的诊断与重构；不用于纯运行、纯日志、普通页面观察、一般 UI/文案或实际 Product 执行。本 Skill 不定义或执行 Product Flow，也不取代任一仓的法案或 Blueprint。
 ---
 
 # AGENT—Website 原子职责守门
@@ -31,6 +31,30 @@ description: 审查 AGENT 生产链内部以及 AGENT—Website 跨仓接口的�
 - 不提出代码修改的 Browser/DOM 页面观察；
 - 一般 UI、文案或非生产工具修改；
 - 实际 Product 任务执行。
+
+## 第一性存在性门
+
+“生产级”只表示：用满足现役合同的最少部件、最少状态、最少 Owner 和最短调用链，真实完成当前需求，并对已经证实的故障给出明确失败、正确归属和可验证恢复。它不授权扩大需求、预演假设未来，或为了显得完整而增加机制。
+
+在绑定当前 authority 和候选以后、提出方案或施工以前，对本次获授权变更片区内每个拟新增、修改，或因本次方案而继续依赖的结构单元执行存在性审判。结构单元包括抽象、层级、模块、接口、字段、状态、持久化、队列、缓存、重试/恢复路径、配置、兼容/回退路径和证据机制。未被本次变更及其直接替代关系触及的全仓对象不自动进入删除范围；不得以“删除审判”为由扩大施工授权或覆盖用户改动。
+
+每个结构单元必须同时闭合以下两层证据：
+
+1. **当前需求证据**：绑定用户本次明确要求、当前真实 GAP、没有该单元时具体无法完成的结果、当前真实调用方或消费者，以及可观察的验收方式。还必须说明更简单方案为什么不能完成同一要求。
+2. **系统必要性证据**：绑定现役 law、Blueprint、合同或已证实系统不变量，指出唯一 Owner、删除后会在哪条当前调用链或状态真相上发生什么具体错误、哪个真实消费者会受影响，以及用什么 readback、后置条件或测试证明。还必须排除已有 Owner、已有机制或更短路径已经承担同一责任。
+
+两层证据必须分别成立并绑定当前候选。存在本身、代码历史、命名、注释、方案文档、测试仅在该单元存在时通过、行业惯例、“最佳实践”、“更安全”、“更稳定”、“以后可能扩展”、“方便统一”、“生产级”或整洁美观，都不能单独证明该单元不能删除。没有反例、暂未发现问题或口头推测也不构成证据。
+
+对每个单元提出反事实问题：“现在删除它，当前需求和现役系统具体坏在哪里？”优先使用受控删除后的目标验收、真实 consumer/import 图、当前合同和运行 readback；不能安全执行删除试验时，必须明确区分已验证事实与推论，不得把推论写成 PASS。
+
+裁决只有以下动作：
+
+- 两层证据都闭合，且不存在能满足同一要求的更简单完整方案：允许新增或保留；
+- 任一层不能闭合：拟新增单元禁止增加，授权片区内因本次变更触及的现有单元必须物理删除；
+- 应删除对象超出授权路径、属于未获授权的用户改动或无法安全分离：输出 `EXISTENCE_UNPROVEN`，停止对应施工并请求精确授权，不得保留后宣告通过；
+- 更简单方案满足相同当前要求和系统不变量：淘汰复杂方案，并在授权片区内删除它直接替代的旧路径、残留入口和失效消费者。
+
+存在性记录只服务本次审查，不得落成新的 registry、台账、持久化状态、质量入口或第二 verdict。
 
 ## 绑定当前 authority
 
@@ -247,17 +271,23 @@ readback_acceptance:
 forbidden_adjacent_owners:
 canonical_refs_and_candidate_identity:
 allowed_change_paths:
+existence_proof:
+  unit:
+  current_requirement_gap_and_acceptance:
+  system_invariant_owner_and_failure:
+  current_consumers_and_readback:
+  deletion_trial:
+  simpler_complete_alternative:
+  decision: KEEP | ADD | DELETE
 ```
 
-任一字段不能由当前证据闭合，输出 `OWNER_BOUNDARY_UNPROVEN` 并停止对应施工。
+任一职责边界字段不能由当前证据闭合，输出 `OWNER_BOUNDARY_UNPROVEN` 并停止对应施工。任一存在性字段不能由当前证据闭合，输出 `EXISTENCE_UNPROVEN`，按第一性存在性门禁止新增、执行授权内删除或停止越界删除。
 
 只修改合法 Owner 和完成当前任务不可分割的直接关联对象。
 
-新增抽象、共享层、接口、状态或持久化前，必须证明当前必要性、真实消费者和验证方式。整理、统一、未来复用或顺手改进不能构成必要性。
+## 完成后删除式反查
 
-## 完成后反查
-
-检查实际差异、import 图、调用方、消费者、导出和持久化结构，寻找：
+先对实际差异、本次方案继续依赖的现有单元和被直接替代的旧路径重跑存在性审判，证明每个新增与保留单元的两层证据仍然成立；未证明单元不得留在候选中。删除一个单元时同步清除只为它存在的入口、导出、配置、状态、持久化、测试夹具和消费者，不得留下换名包装、空壳或兼容路径。然后检查实际差异、import 图、调用方、消费者、导出和持久化结构，寻找：
 
 - 一个宽泛 Owner 同时拥有业务输入、transport、执行、领域验收或发布中的多项独立决定；
 - Website Domain Sender 持有 Product Flow、Prompt、Child 顺序或 Browser 页面动作；
@@ -279,7 +309,7 @@ allowed_change_paths:
 - 第二任务状态、第二 mutation store、第二恢复结论或第二业务 verdict；
 - Browser FIFO 取得 Product priority、入队资格、新 attempt 或恢复裁决；
 - 事实投影、Facade 或日志取得写状态、调度、恢复或完成权；
-- 无当前真实消费者的新抽象。
+- 无当前真实消费者，或仅由同一待删除链自我引用的结构。
 
 这些词只用于发现候选问题。必须根据其真实决策权、状态和调用方向判断，不得仅凭名称判违。
 
@@ -287,12 +317,14 @@ allowed_change_paths:
 
 只向用户报告：
 
+- 本次明确需求、当前 GAP、授权片区和明确非目标；
 - 双方仓库的候选与 authority 是否闭合；
 - 每项原子责任的完整范围绑定记录；
+- 每个新增、保留或删除单元的两层存在性证据、删除试验和唯一动作；
 - 唯一 Owner 及 canonical 依据；
 - 越界责任、当前错误位置与唯一应迁回位置；
 - 允许修改路径；
 - 每个 consumer 的 readback 和已完成验证；
-- 任何未闭合项及 `CROSS_REPO_AUTHORITY_UNBOUND`、`CANONICAL_OWNER_CONFLICT`、`CANONICAL_CONTRACT_CONFLICT`、`OWNER_BOUNDARY_UNPROVEN` 或 candidate drift。
+- 任何未闭合项及 `CROSS_REPO_AUTHORITY_UNBOUND`、`CANONICAL_OWNER_CONFLICT`、`CANONICAL_CONTRACT_CONFLICT`、`OWNER_BOUNDARY_UNPROVEN`、`EXISTENCE_UNPROVEN` 或 candidate drift。
 
 本 Skill 的结论只是 Owner 边界结论，不是新的 quality PASS、READY、RELEASE 或生产完成结论。

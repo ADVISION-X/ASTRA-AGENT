@@ -5,6 +5,7 @@ export type RuntimeAuthorityResolver = (
 
 export type DiagnosedFailure = Readonly<{
   eventId: string;
+  eventRefs: readonly string[];
   operation: string;
   owner: string;
   responsibleOwner: string;
@@ -14,6 +15,18 @@ export type DiagnosedFailure = Readonly<{
   httpStatus: number | null;
   impact: string;
   causedByEventId: string | null;
+  authorityRef: string | null;
+  evidenceRef: string | null;
+  count: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
+}>;
+
+export type RuntimeDiagnosisScope = Readonly<{
+  status: "SELECTED" | "NO_ACTIVE_SCOPE" | "AMBIGUOUS_SCOPE" | "SOURCE_UNAVAILABLE";
+  selectedTraceId: string | null;
+  candidates: readonly string[];
+  completeness: "COMPLETE" | "DIAGNOSIS_INCOMPLETE";
 }>;
 
 export type RuntimeDiagnosis = Readonly<{

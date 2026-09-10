@@ -31,6 +31,7 @@ const appShellZhCopyEntries = [
   ["Status", "状态"],
   ["Step", "步骤"],
   ["Reason", "原因"],
+  ["Owner", "责任方"],
   ["Evidence", "证据"],
   ["Raw record", "原始记录"],
   ["Runtime Console", "运行控制台"],
@@ -41,6 +42,7 @@ const appShellZhCopyEntries = [
   ["manual_required events appear here.", "需要人工处理的事件显示在这里。"],
   ["failed events appear here.", "失败事件显示在这里。"],
   ["Local-only whole-order status and safe intervention surface.", "仅限本地的整单状态与安全介入界面。"],
+  ["一次读取 Website、AGENT、Browser、Outbox 与日志各自权威；不领取、不重试、不恢复。", "一次读取网站、执行器、浏览器、发件箱与日志各自权威；不领取、不重试、不恢复。"],
 ] as const;
 
 export const appShellZhCopy: Readonly<Record<string, string>> = Object.freeze(

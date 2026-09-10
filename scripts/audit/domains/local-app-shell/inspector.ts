@@ -12,7 +12,7 @@ import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRef
 
 const LAW_SHELL = "LAW-LOCAL-APP-SHELL-001-V6";
 const LAW_BOUNDARY = "LAW-LOCAL-APP-SHELL-002-V3";
-const LAW_STATUS = "LAW-LOCAL-APP-SHELL-003-V3";
+const LAW_STATUS = "LAW-LOCAL-APP-SHELL-003-V4";
 const checkId = "local-app-shell/owner-contract";
 
 const requiredPaths = Object.freeze([
@@ -143,6 +143,7 @@ const inspectShellStatusContract = (
   for (const required of [
     "init", "shutdown", "getHealthReport", "getMissionReadinessReport",
     "readBrowserAuthorityPairingState", "readBrowserExtensionBootstrapState",
+    "readProductionOperationsSnapshot",
   ]) if (!handleFields.has(required)) findings.push(finding(lawId, handlePath,
     `GrassEyeWorkbenchHandle is missing ${required}.`, undefined, "static.contract"));
   const healthFields = new Set(status.getTypeAlias("AiProductionHealthSnapshot")

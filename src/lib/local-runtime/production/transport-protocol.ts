@@ -10,6 +10,19 @@ import {
 const hash = z.string().regex(/^sha256:[a-f0-9]{64}$/u)
   .transform((value): `sha256:${string}` => value as `sha256:${string}`);
 const reasonCode = z.string().min(1).max(512);
+const noEligibleJobReasonCodes = Object.freeze([
+  "NO_UNFINISHED_V6_DEMAND",
+  "RETRY_NOT_BEFORE_PENDING",
+  "ACTIVE_LEASE_PRESENT",
+  "CURRENT_NEXT_ACTION_NOT_CLAIM",
+  "CONTROL_INTENT_NOT_CLAIMABLE",
+  "PERMANENT_AUTHORIZATION_REVOKED",
+  "DEVICE_ASSIGNMENT_MISMATCH",
+  "CAPABILITY_MISMATCH",
+  "MATERIAL_BINDING_UNRESOLVED",
+  "CONCURRENT_SELECTION_IN_PROGRESS",
+] as const);
+const noEligibleJobReasonCode = z.enum(noEligibleJobReasonCodes);
 const resultRevisionReasonCode = z.enum([
   "PUBLIC_KNOWLEDGE_ARTICLE_REJECTED",
   "PUBLIC_KNOWLEDGE_COLLISION_REJECTED",
@@ -171,7 +184,21 @@ export const ClaimBatchReceiptSchema = z.object({
   next_claim_after_ms: z.number().int().min(1_000).max(30_000),
   queue_epoch: z.number().int().nonnegative(),
   reason_codes: z.array(reasonCode).max(32),
-}).strict();
+}).strict().superRefine((receipt, context) => {
+  if (receipt.outcome !== "NO_ELIGIBLE_JOB") return;
+  const parsed = z.array(noEligibleJobReasonCode).min(1).safeParse(receipt.reason_codes);
+  const indexes = receipt.reason_codes.map((code) => noEligibleJobReasonCodes.indexOf(
+    code as (typeof noEligibleJobReasonCodes)[number],
+  ));
+  if (!parsed.success || new Set(receipt.reason_codes).size !== receipt.reason_codes.length
+    || indexes.some((index, position) => position > 0 && indexes[position - 1]! >= index)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "V6_NO_ELIGIBLE_JOB_REASONS_INVALID",
+      path: ["reason_codes"],
+    });
+  }
+});
 
 export const ControlIntentSchema = z.object({
   schema_version: z.literal("xuanxue-ai-control-intent.v6"),

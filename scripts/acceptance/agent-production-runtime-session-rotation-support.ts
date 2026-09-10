@@ -63,7 +63,7 @@ const createSessionFetch = (
   if (url.endsWith("/internal/ai-production/v6/sessions/open")) return successfulJsonResponse({
     session: {
       device_id: "device:atomic-claim", worker_session_id: "worker-session:atomic-claim",
-      worker_session_epoch: 1, control_contract_version: 19,
+      worker_session_epoch: 1, control_contract_version: 20,
     },
     session_credential: credentialFor(1),
   });
@@ -102,7 +102,7 @@ const createSessionFetch = (
     schema_version: "xuanxue-ai-claim-batch-receipt.v6", claim_batch_id: `claim-batch:${claimNumber}`,
     request_id: body.request_id, request_payload_hash: HASH_A, outcome: "NO_ELIGIBLE_JOB", jobs: [],
     server_now: "2026-09-03T00:00:00.000Z", next_claim_after_ms: 3_000, queue_epoch: claimNumber,
-    reason_codes: ["GLOBAL_QUEUE_EMPTY_OR_INELIGIBLE"],
+    reason_codes: ["NO_UNFINISHED_V6_DEMAND"],
   });
 };
 

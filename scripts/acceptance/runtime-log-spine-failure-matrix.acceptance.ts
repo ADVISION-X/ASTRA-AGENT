@@ -119,6 +119,20 @@ const blockingTerminal = requireRuntimeLogWrite(blocking.terminal({
     impact: RuntimeFailureImpact.BLOCKING,
   }),
 }));
+const repeatedBlocking = requireRuntimeLogWrite(causeLogger.startSpan({
+  traceId: causeTrace,
+  operation: "job.checkpoint",
+  typedIdentity: { kind: "checkpoint", jobId: causeTrace, attemptId: "attempt-1", checkpointId: "failure-repeat" },
+}));
+const repeatedBlockingTerminal = requireRuntimeLogWrite(repeatedBlocking.terminal({
+  outcome: "failed",
+  failure: runtimeFailureFromError({
+    error: new Error("CHECKPOINT_STORAGE_FAILED"),
+    code: "CHECKPOINT_STORAGE_FAILED",
+    responsibleOwner: "production-runtime",
+    impact: RuntimeFailureImpact.BLOCKING,
+  }),
+}));
 const cleanup = requireRuntimeLogWrite(causeLogger.startSpan({
   traceId: causeTrace,
   operation: "job.lease-release",
@@ -136,6 +150,9 @@ requireRuntimeLogWrite(cleanup.terminal({
 }));
 const causeDiagnosis = diagnoseRuntimeLog({ sources: [causeRoot], traceId: causeTrace });
 assert.deepEqual(causeDiagnosis.blockingRoots.map((failure) => failure.code), ["CHECKPOINT_STORAGE_FAILED"]);
+assert.equal(causeDiagnosis.blockingRoots[0]?.count, 2);
+assert.deepEqual(causeDiagnosis.blockingRoots[0]?.eventRefs,
+  [blockingTerminal.eventId, repeatedBlockingTerminal.eventId]);
 assert.deepEqual(causeDiagnosis.cleanupFailures.map((failure) => failure.code), ["LEASE_RELEASE_FAILED"]);
 
 const walRoot = mkdtempSync(path.join(tmpdir(), "runtime-log-wal-matrix-"));

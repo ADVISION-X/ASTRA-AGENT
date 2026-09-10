@@ -1,6 +1,6 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { createHash } from "node:crypto";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -9,12 +9,17 @@ import {
   RuntimeFailureKind,
   createRuntimeLogger,
   diagnoseRuntimeLog,
+  discoverRuntimeLogScope,
   redactRuntimeLogRecord,
   requireRuntimeLogWrite,
   runtimeEventIntegrityValid,
   runtimeFailureFromError,
 } from "../../src/lib/runtime-logs/index.js";
-import type { RuntimeLogEventV2 } from "../../src/lib/runtime-logs/runtime-event-contract.js";
+import type { RuntimeLogEventV2, RuntimeSpanTerminalEvent } from "../../src/lib/runtime-logs/runtime-event-contract.js";
+import {
+  resetRuntimeTerminalProjectionForTest,
+  shouldProjectRuntimeEvent,
+} from "../../src/lib/runtime-logs/sinks.js";
 import { BrowserRuntimeLogEmitter } from "../../src/lib/browser/infrastructure/browser-runtime-log-emitter.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
@@ -181,6 +186,32 @@ assert.deepEqual(diagnosis.atomicSteps.map((step) => step.postcondition), ["pass
 assert.equal("currentStates" in diagnosis, false);
 assert.equal("recoveries" in diagnosis, false);
 assert.equal("mutationState" in diagnosis, false);
+assert.equal(diagnosis.blockingRoots[0]?.count, 1);
+assert.deepEqual(diagnosis.blockingRoots[0]?.eventRefs, [diagnosis.blockingRoots[0]?.eventId]);
+assert.equal(diagnosis.blockingRoots[0]?.firstSeenAt, diagnosis.blockingRoots[0]?.lastSeenAt);
+
+const discovered = discoverRuntimeLogScope({ sources: [root] });
+assert.deepEqual(discovered, { status: "SELECTED", selectedTraceId: traceId,
+  candidates: [traceId], completeness: "COMPLETE" });
+assert.deepEqual(discoverRuntimeLogScope({ sources: [path.join(root, "missing")] }), {
+  status: "SOURCE_UNAVAILABLE", selectedTraceId: null, candidates: [], completeness: "DIAGNOSIS_INCOMPLETE",
+});
+const segmentPath = logger.currentSegmentPath()!;
+const corruptedLines = readFileSync(segmentPath, "utf8").trim().split("\n");
+const corrupted = JSON.parse(corruptedLines.at(-1)!) as RuntimeLogEventV2;
+corruptedLines[corruptedLines.length - 1] = JSON.stringify({ ...corrupted, eventHash: digest("corrupt") });
+writeFileSync(segmentPath, `${corruptedLines.join("\n")}\n`, "utf8");
+assert.equal(discoverRuntimeLogScope({ sources: [root] }).completeness, "DIAGNOSIS_INCOMPLETE");
+
+resetRuntimeTerminalProjectionForTest();
+const terminalEvent = events.find((event): event is RuntimeSpanTerminalEvent =>
+  event.kind === "span.terminal" && event.failure?.code === "BROWSER_POSTCONDITION_FAILED")!;
+assert.equal(shouldProjectRuntimeEvent(terminalEvent, "FLOW"), true);
+assert.equal(shouldProjectRuntimeEvent(terminalEvent, "FLOW"), false);
+assert.equal(shouldProjectRuntimeEvent(terminalEvent, "TRACE"), true);
+const changedFailure: RuntimeSpanTerminalEvent = { ...terminalEvent,
+  outcome: "failed", failure: { ...terminalEvent.failure!, code: "BROWSER_TARGET_NOT_INTERACTIVE" } };
+assert.equal(shouldProjectRuntimeEvent(changedFailure, "FLOW"), true);
 
 const redacted = redactRuntimeLogRecord({
   code: "SAFE_CODE",
@@ -234,6 +265,6 @@ if (!capacityWrite.ok) assert.equal(capacityWrite.code, "RUNTIME_LOG_CAPACITY_BL
 assert.equal(capacityLogger.isWritable(), false);
 
 process.stdout.write("runtime log spine V2 acceptance: PASS\n");
-emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-001-V6", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:5","forbidden:6","forbidden:7","summary"], locator: "acceptance:runtime-log:single-spine-golden", observedValue: "single structured spine recorded atomic lifecycle diagnosis authority and capacity facts" });
-emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-001-V6", evidenceMode: "exam.property", clauses: ["forbidden:0","forbidden:1","forbidden:5","forbidden:6","forbidden:7","summary"], locator: "acceptance:runtime-log:lifecycle-property-matrix", observedValue: "integrity redaction writer capacity and authority readability variants rejected unsafe states" });
-emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-001-V6", evidenceMode: "exam.state-machine", clauses: ["forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","summary"], locator: "acceptance:runtime-log:diagnosis-state-machine", observedValue: "started terminal consequential cleanup stale and incomplete diagnosis transitions exercised" });
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-001-V7", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:runtime-log:single-spine-golden", observedValue: "single structured spine recorded full JSONL while terminal projection deduplicated unchanged events" });
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-001-V7", evidenceMode: "exam.property", clauses: ["forbidden:0","forbidden:1","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:runtime-log:lifecycle-property-matrix", observedValue: "integrity redaction writer capacity authority readability scope discovery and projection variants rejected unsafe states" });
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-001-V7", evidenceMode: "exam.state-machine", clauses: ["forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:runtime-log:diagnosis-state-machine", observedValue: "started terminal causal aggregation scope discovery and terminal state-change projection exercised" });

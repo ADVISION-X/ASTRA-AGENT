@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "runtime-log-spine",
   "lawIds": [
-    "LAW-RUNTIME-LOG-SPINE-001-V6",
+    "LAW-RUNTIME-LOG-SPINE-001-V7",
     "LAW-RUNTIME-LOG-SPINE-002-V4",
     "LAW-RUNTIME-LOG-SPINE-003-V6"
   ],
@@ -22,9 +22,9 @@
     {"contractRef":"docs/specs/runtime-log-spine/runtime-log-event-v2.spec.json","from":{"domain":"local-browser-session","repo":"local"},"to":{"domain":"runtime-log-spine","repo":"local"}}
   ],
   "prohibitedDependencyEdges": [
-    {"from":{"domain":"runtime-log-spine","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-RUNTIME-LOG-SPINE-001-V6"},
-    {"from":{"domain":"runtime-log-spine","repo":"local"},"to":{"domain":"gpt","repo":"local"},"lawId":"LAW-RUNTIME-LOG-SPINE-001-V6"},
-    {"from":{"domain":"runtime-log-spine","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"},"lawId":"LAW-RUNTIME-LOG-SPINE-001-V6"}
+    {"from":{"domain":"runtime-log-spine","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-RUNTIME-LOG-SPINE-001-V7"},
+    {"from":{"domain":"runtime-log-spine","repo":"local"},"to":{"domain":"gpt","repo":"local"},"lawId":"LAW-RUNTIME-LOG-SPINE-001-V7"},
+    {"from":{"domain":"runtime-log-spine","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"},"lawId":"LAW-RUNTIME-LOG-SPINE-001-V7"}
   ]
 }
 ```
@@ -39,7 +39,8 @@ production code
   -> redact-before-write
   -> event | span | error
   -> single writer + sequence/hash integrity
-  -> JSONL / stdout
+  -> 完整 JSONL
+  -> 状态变化 / 新独立故障 / 启停边界的低噪声 stdout 投影
 ```
 
 禁止 `STATE` 事件、状态轴、历史事件重放、全局状态 projection、recovery decision、flow position 和第二日志总线。Website 任务表是 `failed/completed` 的唯一状态真相；Browser WAL 是 mutation 真相；Outbox 是发送真相；Forensics 是 proof 真相。
@@ -76,6 +77,8 @@ causedByEventId?
 
 `cloud.claim` terminal 必须使用 `RuntimeLogEventV2` 合同 V3 唯一新增的封闭 `claimDiagnostics` 记录 Website 已返回的 `outcome + claimed_count + reason_codes`。该对象只允许三个字段：outcome 取 `LEASE_GRANTED|NO_ELIGIBLE_JOB|CAPACITY_ZERO|CLAIM_BLOCKED|DRAINING`，claimed_count 为 0..10 整数且 `LEASE_GRANTED` 当且仅当大于零，reason_codes 为最多 32 个 machine code；只有 `operation=cloud.claim` 且已经取得有效 Website receipt 时才允许并必须存在。零任务仍是成功终态，但不得丢失 Website 给出的安全原因；请求在取得 receipt 前失败时不得伪造该对象。它只解释本次 claim，不得成为任务状态、恢复裁决或通用 payload bag。
 
+V6 control contract version 20 下，`NO_ELIGIBLE_JOB.reason_codes` 只允许 Website 发布的精确闭集。Runtime 原样记录和展示，不翻译为本地状态，也不从日志推断下一动作。
+
 ## 3. 隐私与完整性
 
 写入前统一脱敏。凭证、cookie、token、authorization、浏览器 storage、原始 URL/HTML/selector、Prompt、用户输入、附件正文、本地私有路径和 artifact body 不得进入日志。无法证明安全的内容写为 `REDACTED_UNSAFE`。
@@ -97,8 +100,14 @@ Browser mutation 事件必须在 WAL durable write 之后产生，并绑定 `pro
 
 摘要不持久化为第二状态，不从历史日志推演 stepIndex/resumePoint，不把 HTTP 200、进程存活、空队列、Browser paired 或 sink healthy 冒充任务完成。
 
-## 5. 片区删除与验收
+诊断入口未给 jobId 时，必须从现有 JSONL 有界扫描最近 producer run 并只做 scope discovery：零个活动候选返回 `NO_ACTIVE_SCOPE`，唯一候选才自动选择，多个候选返回 `AMBIGUOUS_SCOPE + candidates[]`，不得按 latest 或时间静默猜选。相同 `responsibleOwner + code + operation + authorityRef/evidenceRef` 的重复根因只形成一条投影，并保留 `count + firstSeenAt + lastSeenAt`。给定 jobId 时继续精确限定该 job。两种入口都直接引用原事件，完整 JSONL 不改写、不删减。
+
+## 5. 终端投影
+
+持久化与终端显示严格分离：事件先完整写入唯一 JSONL，之后才决定是否镜像 stdout。默认终端只显示启动/停止边界、状态事实变化和新独立故障；相同 claim outcome/reason、heartbeat 成功及其它无状态变化的重复成功请求不再次输出。任一失败 code、Owner、authority/evidence identity 变化都必须立即可见。该去重只存在于当前进程内的显示投影，不落库、不影响 event sequence/hash，也不改变 TRACE 显式诊断模式。
+
+## 6. 片区删除与验收
 
 必须物理删除 Runtime Log 中的 `STATE` schema、state reducer、state replay、state projection、startup history reconstruction、`recovery_pending`、`review_required`、`parked`、`delivery_pending`、`flowVersion`、`stepIndex`、`resumePoint` 和 `reconcileOnly` 消费。
 
-保留并聚焦验证：唯一 logger、写前脱敏、单写者顺序、hash integrity、span 原子性、cause chain、WAL-before-log、sink failure 行为和普通人读投影。必须增加 Browser 原生 code 不被外层覆盖、跨仓 HTTP Owner/code 保留，以及 `cloud.claim` 的零任务 outcome/count/reason 可见验收；日志测试不得构造或断言第三任务状态。
+保留并聚焦验证：唯一 logger、写前脱敏、单写者顺序、hash integrity、span 原子性、cause chain、WAL-before-log、sink failure 行为和普通人读投影。必须增加 Browser 原生 code 不被外层覆盖、跨仓 HTTP Owner/code 保留、`cloud.claim` 的精确零任务 outcome/count/reason、重复 heartbeat/空 claim 不刷屏、不同故障立即显示、无 jobId 自动发现与根因归并验收；日志测试不得构造或断言第三任务状态。

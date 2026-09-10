@@ -5,8 +5,7 @@ import type {
   WorkbenchPreflightInput,
   WorkbenchPreflightResult,
 } from "./workbench-status-types.js";
-import type { StoredProductionTask } from "./production/store.js";
-import type { RuntimeDiagnosis } from "../runtime-logs/index.js";
+import type { ProductionOperationsSnapshot } from "./production/operations-snapshot.js";
 
 export type GrassEyeWorkbenchHandle = {
   init: () => Promise<void>;
@@ -37,8 +36,7 @@ export type GrassEyeWorkbenchHandle = {
     input: WorkbenchPreflightInput,
   ) => Promise<WorkbenchPreflightResult>;
   getModeInfo: () => unknown;
-  readProductionTaskStatus: (jobId: string) => StoredProductionTask | null;
-  diagnoseProductionRuntime: (jobId: string) => RuntimeDiagnosis;
+  readProductionOperationsSnapshot: (jobId?: string) => Promise<ProductionOperationsSnapshot>;
   getAppRunLimitSettings: () => Promise<AppRunLimitSettings>;
   saveAppRunLimitSettings: (
     input: Pick<AppRunLimitSettings, "defaultMaxRounds" | "defaultMaxMinutes">,

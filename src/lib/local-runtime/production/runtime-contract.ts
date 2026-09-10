@@ -1,6 +1,5 @@
-import type { RuntimeDiagnosis } from "../../runtime-logs/index.js";
+import type { ProductionOperationsSnapshot } from "./operations-snapshot.js";
 import type { ProductionHash } from "./contracts.js";
-import type { ProductionRuntimeStore } from "./store.js";
 
 export interface ProductionRuntimeHealth {
   readonly shellState: "ready";
@@ -25,6 +24,5 @@ export interface ProductionRuntimeHealth {
 export interface ProductionRuntimeHandle {
   readonly close: () => Promise<void>;
   readonly readHealth: () => ProductionRuntimeHealth;
-  readonly readTask: (jobId: string) => ReturnType<ProductionRuntimeStore["readTask"]>;
-  readonly diagnose: (jobId: string) => RuntimeDiagnosis;
+  readonly readOperationsSnapshot: (jobId?: string) => Promise<ProductionOperationsSnapshot>;
 }

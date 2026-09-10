@@ -3,8 +3,8 @@ export type { RuntimeLogger, RuntimeSpanHandle } from "./logger.js";
 export { runtimeFailureFromError, runtimeLogCauseEventId, withRuntimeLogCause } from "./failure.js";
 export { runtimeEventIntegrityValid } from "./integrity.js";
 export { runtimeLogEventShapeValid } from "./schema.js";
-export { diagnoseRuntimeLog } from "./diagnosis.js";
-export type { RuntimeDiagnosis } from "./diagnosis-contract.js";
+export { diagnoseRuntimeLog, discoverRuntimeLogScope } from "./diagnosis.js";
+export type { RuntimeDiagnosis, RuntimeDiagnosisScope } from "./diagnosis-contract.js";
 export { redactRuntimeLogRecord, redactUrlForLog } from "./redaction.js";
 export {
   RuntimeFailureImpact,

@@ -3,10 +3,10 @@ if (!String.raw`
 {
   "schema_version": "producer-dynamic-claim-contract.v1",
   "routes": {
-    "LAW-RUNTIME-LOG-SPINE-001-V6:dynamic.browser": {"claims": {"summary": [{"path": "/facts/runtime_log_browser_span_count", "operator": "gte", "expected": 39}]}},
-    "LAW-RUNTIME-LOG-SPINE-001-V6:dynamic.service": {"claims": {"summary": [{"path": "/facts/runtime_log_event_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_integrity_valid", "operator": "equals", "expected": true}]}},
-    "LAW-RUNTIME-LOG-SPINE-001-V6:dynamic.storage": {"claims": {"forbidden:3": [{"path": "/facts/runtime_log_authority_hash_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_forbidden_task_state_field_count", "operator": "equals", "expected": 0}]}},
-    "LAW-RUNTIME-LOG-SPINE-001-V6:dynamic.recovery": {"claims": {"summary": [{"path": "/facts/runtime_log_forbidden_task_state_field_count", "operator": "equals", "expected": 0}]}},
+    "LAW-RUNTIME-LOG-SPINE-001-V7:dynamic.browser": {"claims": {"summary": [{"path": "/facts/runtime_log_browser_span_count", "operator": "gte", "expected": 39}]}},
+    "LAW-RUNTIME-LOG-SPINE-001-V7:dynamic.service": {"claims": {"summary": [{"path": "/facts/runtime_log_event_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_integrity_valid", "operator": "equals", "expected": true}]}},
+    "LAW-RUNTIME-LOG-SPINE-001-V7:dynamic.storage": {"claims": {"forbidden:3": [{"path": "/facts/runtime_log_authority_hash_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_forbidden_task_state_field_count", "operator": "equals", "expected": 0}]}},
+    "LAW-RUNTIME-LOG-SPINE-001-V7:dynamic.recovery": {"claims": {"summary": [{"path": "/facts/runtime_log_forbidden_task_state_field_count", "operator": "equals", "expected": 0}]}},
     "LAW-RUNTIME-LOG-SPINE-002-V4:dynamic.browser": {"claims": {"forbidden:0": [{"path": "/facts/persisted_sensitive_value_count", "operator": "equals", "expected": 0}]}},
     "LAW-RUNTIME-LOG-SPINE-002-V4:dynamic.storage": {"claims": {"forbidden:0": [{"path": "/facts/runtime_log_sensitive_value_count", "operator": "equals", "expected": 0}]}},
     "LAW-RUNTIME-LOG-SPINE-003-V6:dynamic.browser": {"claims": {"forbidden:4": [{"path": "/facts/runtime_log_mutation_event_count", "operator": "gte", "expected": 39}, {"path": "/facts/runtime_log_forbidden_task_state_field_count", "operator": "equals", "expected": 0}]}},

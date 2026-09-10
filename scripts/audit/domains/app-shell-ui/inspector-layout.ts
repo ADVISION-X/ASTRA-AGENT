@@ -140,15 +140,15 @@ export const inspectAppShellLayout = (
     [paths.layout, sources.layout, "data-workspace-page-nav", "app-shell-ui/workspace-nav"],
     [paths.layout, sources.layout, "data-workspace-surface", "app-shell-ui/workspace-surface"],
     [paths.workspace, sources.workspace, "data-skill-workspace", "app-shell-ui/production-workspace"],
-    [paths.workspace, sources.workspace, "appShellProductionPluginSupport", "app-shell-ui/catalog-projection"],
     [paths.workspace, sources.workspace, "data-production-status", "app-shell-ui/production-status"],
+    [paths.workspace, sources.workspace, "data-production-observation-rows", "app-shell-ui/operations-matrix"],
     [paths.inspector, sources.inspector, "data-app-shell-inspector", "app-shell-ui/right-inspector"],
     [paths.runtime, sources.runtime, "data-runtime-console", "app-shell-ui/runtime-console"],
     [paths.sidebar, sources.sidebar, "data-skill-registry", "app-shell-ui/sidebar-registry"],
     [paths.appShell, sources.appShell, "inspector-collapsed", "app-shell-ui/inspector-closed"],
     [paths.client, sources.client, "openInspector", "app-shell-ui/client-inspector"],
     [paths.client, sources.client, "resetInspector", "app-shell-ui/client-inspector-reset"],
-    [paths.productionClient, sources.productionClient, "/api/production-runtime/status", "app-shell-ui/production-client"],
+    [paths.productionClient, sources.productionClient, "/api/production-runtime/operations-snapshot", "app-shell-ui/production-client"],
   ] as const) {
     requireToken({ findings, lawId, repoPath, sourceFile, token, checkId });
   }

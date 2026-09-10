@@ -2,7 +2,7 @@ import path from "node:path";
 
 import { resolveStoredBrowserMutationAuthority } from "../../src/lib/browser/exact-target/browser-mutation-authority.js";
 import { resolveStoredProductionAuthority } from "../../src/lib/local-runtime/production/store.js";
-import { diagnoseRuntimeLog } from "../../src/lib/runtime-logs/index.js";
+import { diagnoseRuntimeLog, discoverRuntimeLogScope } from "../../src/lib/runtime-logs/index.js";
 
 const args = process.argv.slice(2);
 let jobId: string | null = null;
@@ -14,8 +14,17 @@ for (let index = 0; index < args.length; index += 1) {
   if (key === "--source" && value) { sources.push(value); index += 1; continue; }
   throw new Error(`LOGS_INSPECT_ARGUMENT_INVALID:${key ?? "missing"}`);
 }
-if (!jobId) throw new Error("LOGS_INSPECT_JOB_REQUIRED");
 if (sources.length === 0) throw new Error("LOGS_INSPECT_SOURCE_REQUIRED");
+
+if (!jobId) {
+  const scope = discoverRuntimeLogScope({ sources });
+  if (scope.status !== "SELECTED") {
+    process.stdout.write(`${JSON.stringify(scope, null, 2)}\n`);
+    process.exitCode = scope.status === "NO_ACTIVE_SCOPE" ? 0 : 2;
+  } else {
+    jobId = scope.selectedTraceId;
+  }
+}
 
 const dataDirForSource = (source: string): string | null => {
   let cursor = path.resolve(source);
@@ -27,7 +36,7 @@ const dataDirForSource = (source: string): string | null => {
 };
 const dataDirs = [...new Set(sources.map(dataDirForSource).filter((value): value is string => value !== null))];
 
-const diagnosis = diagnoseRuntimeLog({
+const diagnosis = jobId ? diagnoseRuntimeLog({
   traceId: jobId,
   sources,
   authorityResolver: (authorityRef, authorityHash) => {
@@ -39,6 +48,8 @@ const diagnosis = diagnoseRuntimeLog({
     }
     return "missing";
   },
-});
-process.stdout.write(`${JSON.stringify(diagnosis, null, 2)}\n`);
-process.exitCode = diagnosis.status === "DIAGNOSIS_COMPLETE" ? 0 : 2;
+}) : null;
+if (diagnosis) {
+  process.stdout.write(`${JSON.stringify(diagnosis, null, 2)}\n`);
+  process.exitCode = diagnosis.status === "DIAGNOSIS_COMPLETE" ? 0 : 2;
+}

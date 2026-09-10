@@ -30,6 +30,23 @@ const assertLocalShellRoutes = async (): Promise<void> => {
   });
 };
 
+const assertProductionObservationBoundary = async (): Promise<void> => {
+  await withServer(async ({ rootUrl }) => {
+    const response = await fetch(`${rootUrl}/api/production-runtime/operations-snapshot`, {
+      headers: { Origin: localBaseUrl },
+    });
+    const body = await readJson(response);
+    assert.equal(response.status, 200);
+    assert.equal(body.schema_version, "agent-production-operations-snapshot.v1");
+  });
+  await withServer(async ({ rootUrl }) => {
+    const response = await fetch(`${rootUrl}/api/production-runtime/operations-snapshot`, {
+      headers: { Origin: externalOrigin },
+    });
+    assert.equal(response.status, 403);
+  });
+};
+
 const assertFixedExtensionPairingBoundary = async (): Promise<void> => {
   await withServer(async ({ rootUrl }) => {
     const response = await fetch(`${rootUrl}/api/browser-authority/pairing`, {
@@ -187,6 +204,7 @@ const assertPerSiteHmacBoundary = (): void => {
 };
 
 await assertLocalShellRoutes();
+await assertProductionObservationBoundary();
 await assertFixedExtensionPairingBoundary();
 await assertXuanxueLocalInterventionRetired();
 await assertXuanxueExternalIngressBlocked();

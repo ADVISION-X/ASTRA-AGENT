@@ -1479,7 +1479,7 @@ test("every declared Dynamic mode has one exact producer claim route", () => {
 
 test("a law-authorized summary-only Dynamic claim validates against its exact producer fact", () => {
   const binding = {
-    lawId: "LAW-RUNTIME-LOG-SPINE-001-V6", evidenceMode: "dynamic.browser", clauses: ["summary"],
+    lawId: "LAW-RUNTIME-LOG-SPINE-001-V7", evidenceMode: "dynamic.browser", clauses: ["summary"],
     observedValue: "native-runtime-log", proofRunId: "a".repeat(64), candidate: "b".repeat(40),
     producerScript: "acceptance:runtime-log-spine:real-proof",
   };

@@ -9,6 +9,7 @@ import {
   type ProductionRoutePolicy,
 } from "../../src/lib/local-runtime/production/route-policy.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
+import { WorkerObservationV6Schema } from "../../src/lib/local-runtime/production/worker-observation-client.js";
 
 const HASH = `sha256:${"a".repeat(64)}` as ProductionHash;
 const HASH_B = `sha256:${"b".repeat(64)}` as ProductionHash;
@@ -103,6 +104,15 @@ for (const route of productionRoutePolicies) {
   tested.add(`${route.product_id}\0${route.action_id}`);
 }
 assert.equal(tested.size, 40);
+
+const observation = {
+  schema_version: "xuanxue-ai-worker-observation.v6", observed_at: new Date().toISOString(),
+  claim_exclusion_counts: [{ reason_code: "NO_UNFINISHED_V6_DEMAND", count: 1 }],
+  nearest_retry_not_before: null, scope_total: 0, scope_truncated: false, jobs: [],
+};
+assert.doesNotThrow(() => WorkerObservationV6Schema.parse(observation));
+assert.throws(() => WorkerObservationV6Schema.parse({ ...observation,
+  claim_exclusion_counts: [{ reason_code: "GLOBAL_QUEUE_EMPTY_OR_INELIGIBLE", count: 1 }] }));
 
 const sample = taskFor(productionRoutePolicies[0]!);
 assert.throws(() => assertProductionTaskRoutePolicy({

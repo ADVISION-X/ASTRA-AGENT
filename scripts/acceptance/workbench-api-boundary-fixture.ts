@@ -37,8 +37,13 @@ const createFakeWorkbench = (): FakeWorkbench => {
         releaseBuildId: "build-00000000-0000-4000-8000-000000000000",
       };
     },
-    readProductionTaskStatus() {
-      return null;
+    async readProductionOperationsSnapshot() {
+      return {
+        schema_version: "agent-production-operations-snapshot.v1",
+        observed_at: new Date().toISOString(),
+        scope: { status: "NO_ACTIVE_SCOPE", selected_job_id: null, candidates: [] },
+        rows: [], diagnosis: null,
+      };
     },
   };
   return Object.assign(fake, { apiBoundaryEvents }) as FakeWorkbench;
