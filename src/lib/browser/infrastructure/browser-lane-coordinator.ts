@@ -364,15 +364,19 @@ export class BrowserLaneCoordinator {
   ): BrowserTargetLease {
     const finish = async (
       action: () => Promise<void>,
-      retainedRecovery: LaneRecovery | null = null,
+      retainedRecovery: LaneRecovery | null | (() => LaneRecovery | null) = null,
     ): Promise<void> => {
+      let retained: LaneRecovery | null = null;
       try {
+        retained = typeof retainedRecovery === "function"
+          ? retainedRecovery()
+          : retainedRecovery;
         await action();
       } catch (error) {
         this.resolveBroker().revokeOperatorTargetClaim(lease.target.targetRef);
         throw browserExecutionFailure(new Error("BROWSER_TARGET_LIFECYCLE_UNSETTLED", { cause: error }), "no");
       } finally {
-        if (retainedRecovery) this.quarantine = retainedRecovery;
+        if (retained) this.quarantine = retained;
         else this.refreshQuarantine();
         this.active = false;
         void this.pump();
@@ -380,12 +384,12 @@ export class BrowserLaneCoordinator {
     };
     return {
       ...lease,
-      park: (input) => {
-        const retained = input.mode === "confirmed-source-readback"
+      park: (input) => finish(
+        () => lease.park(input),
+        () => input.mode === "confirmed-source-readback"
           ? this.confirmedProviderRecoveryForLease(binding, lease, acquiredRecovery)
-          : null;
-        return finish(() => lease.park(input), retained);
-      },
+          : null,
+      ),
       close: (input) => finish(async () => {
         try { await lease.close(input); }
         finally {

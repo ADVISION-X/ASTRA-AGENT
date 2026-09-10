@@ -181,7 +181,13 @@ const exerciseSourceOnlyReadback = async (input: ConfirmedReadbackScenario): Pro
     url: "https://chatgpt.com/c/confirmed-readback", title: "forbidden rebuilt navigation",
   }), /BROWSER_RECONCILIATION_SCOPE_INVALID/u,
   "rebuilt source readback must remain observation-only until the exact prompt locator closes");
-  await rebuiltSourceReadback.close({ reason: "rebuilt-extension-source-readback-observed" });
+  await assert.rejects(rebuiltSourceReadback.park({
+    reason: "rebuilt-extension-source-readback-invalid-retention",
+    mode: "confirmed-source-readback",
+  }), /BROWSER_TARGET_LIFECYCLE_UNSETTLED/u,
+  "an invalid retained source identity must fail closed without leaking the active Browser lane");
+  assert.equal(supervisor.readBrowserLaneState(), "idle",
+    "retention validation failure must still release the active Browser lane");
   physicallyPresentTargetRefs.clear();
   brokerState.targetStatus = "claimed";
   leaseIdentities.set("job:confirmed", {

@@ -392,7 +392,8 @@ export class ProductionGptBrowserLifecycle {
           mode: "recovery",
         });
         else {
-          const sourceReadbackPending = this.confirmedProviderSourceReadback !== null;
+          const sourceReadbackPending = error === null
+            && this.confirmedProviderSourceReadback !== null;
           await call.browser.park({
             reason: sourceReadbackPending
               ? "gpt-confirmed-source-readback-pending"

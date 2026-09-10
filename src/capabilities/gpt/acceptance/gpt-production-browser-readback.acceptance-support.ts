@@ -265,6 +265,7 @@ try {
     },
   } as never), false, "a hash match on another Target must fail closed");
   const failureReadbackBindings: BrowserExecutionBinding[] = [];
+  const failureReadbackParks: Array<Readonly<{ reason: string; mode: string }>> = [];
   const failureReadbackLifecycle = new ProductionGptBrowserLifecycle(
     {
       acquireJobBoundTargetLease: async (binding: BrowserExecutionBinding) => {
@@ -273,7 +274,10 @@ try {
           target: { targetRef: failureReadbackAuthorization.sourceTargetRef },
           document: { documentRef: failureReadbackAuthorization.sourceDocumentRef },
           pendingMutationCount: () => 0, requiresMutationRecovery: () => false,
-          park: async () => undefined, close: async () => undefined,
+          park: async (input: Readonly<{ reason: string; mode: string }>) => {
+            failureReadbackParks.push(input);
+          },
+          close: async () => undefined,
         };
       },
     } as never,
@@ -317,7 +321,11 @@ try {
     (error: unknown) => typedExecutionFailure(error)?.code === "BROWSER_RECONCILIATION_SCOPE_INVALID",
     "a locator may upgrade only the same confirmed-submit source authorization",
   );
-  await failureReadbackLifecycle.settle(null);
+  await failureReadbackLifecycle.settle(new Error("GPT_TURN_SUBMISSION_RECONCILIATION_PENDING"));
+  assert.deepEqual(failureReadbackParks, [{
+    reason: "gpt-product-call-failed",
+    mode: "normal-provider-wait",
+  }], "a failed confirmed-submit reconciliation must release the Browser lane for the next queued task");
 
   let allowedReadCount = 0;
   let allowedMediaReadCount = 0;
