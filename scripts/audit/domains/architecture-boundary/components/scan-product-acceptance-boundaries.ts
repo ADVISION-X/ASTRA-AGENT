@@ -15,6 +15,12 @@ const centralPropertyAllowlist = new Set([
   "clauses", "cwd", "encoding", "env", "evidenceMode", "locator", "observedValue",
 ]);
 const gptChildIds = new Set<string>(GPT_CHILD_CAPABILITY_IDS);
+const businessRecoveryDecisionContractNames = new Set([
+  "nextattempt", "nextattemptdecision", "recoveryowner", "resultrevisionrearm",
+  "retryafter", "retryafterseconds", "shouldretry", "stopdemand",
+]);
+const businessRecoveryStructure = /^(?:businessrecovery|crossattempt(?:business)?recovery)(?:adapter|coordinator|graph|helper|manager|planner|queue|scheduler|service|statemachine|store|workflow)$/u;
+const forbiddenRecoveryDependency = /(?:business-recovery|cross-attempt-(?:business-)?recovery)-(?:adapter|coordinator|graph|helper|manager|planner|queue|scheduler|service|state-machine|store|workflow)(?:\.[cm]?[jt]sx?)?$/u;
 
 type FindingContext = Readonly<{
   findings: InspectorFinding[];
@@ -192,5 +198,49 @@ export const inspectProductAcceptanceBoundaries = (input: FindingContext & Reado
     if (shared) inspectCentralBusinessContent({ ...input, filePath, sourceFile,
       strict: filePath === centralAcceptancePath });
     inspectProductAcceptanceIdentity({ ...input, acceptancePluginId, embeddedPluginIds, filePath });
+  }
+};
+
+const declarationName = (node: import("ts-morph").Node): string | undefined => {
+  if (node.isKind(SyntaxKind.ClassDeclaration) || node.isKind(SyntaxKind.FunctionDeclaration)
+    || node.isKind(SyntaxKind.InterfaceDeclaration) || node.isKind(SyntaxKind.TypeAliasDeclaration)
+    || node.isKind(SyntaxKind.MethodDeclaration) || node.isKind(SyntaxKind.PropertyDeclaration)
+    || node.isKind(SyntaxKind.PropertySignature) || node.isKind(SyntaxKind.VariableDeclaration)) {
+    return node.getName();
+  }
+  return undefined;
+};
+
+export const inspectBusinessRecoveryAuthorityBoundaries = (input: FindingContext & Readonly<{
+  inspectedFiles: Set<string>;
+  project: Project;
+}>): void => {
+  for (const sourceFile of listActiveSourceFiles(input.project)) {
+    const filePath = getRepoSourcePath(sourceFile);
+    if (!filePath.startsWith("src/")) continue;
+    input.inspectedFiles.add(filePath);
+    for (const node of sourceFile.getDescendants()) {
+      const name = declarationName(node);
+      if (!name) continue;
+      const normalized = normalizedName(name);
+      if (businessRecoveryStructure.test(normalized)) {
+        push({ ...input, checkId: "architecture/business-recovery-authority-resurrected",
+          evidence: name, filePath,
+          message: `${filePath} resurrects a non-Website cross-attempt business recovery authority as ${name}.` });
+      }
+      if ((filePath.startsWith("src/plugins/") || filePath.startsWith("src/capabilities/gpt/"))
+        && businessRecoveryDecisionContractNames.has(normalized)) {
+        push({ ...input, checkId: "architecture/product-business-recovery-decision-contract",
+          evidence: name, filePath,
+          message: `${filePath} exposes forbidden cross-attempt business recovery decision field ${name}.` });
+      }
+    }
+    for (const declaration of sourceFile.getImportDeclarations()) {
+      const target = declaration.getModuleSpecifierValue();
+      if (!forbiddenRecoveryDependency.test(target)) continue;
+      push({ ...input, checkId: "architecture/business-recovery-authority-dependency",
+        evidence: target, filePath,
+        message: `${filePath} depends on a forbidden cross-attempt business recovery authority module.` });
+    }
   }
 };

@@ -85,7 +85,7 @@
     {
       "capabilityDomain": "architecture-boundary",
       "lawIds": [
-        "LAW-ARCHITECTURE-BOUNDARY-001-V5"
+        "LAW-ARCHITECTURE-BOUNDARY-001-V6"
       ],
       "manifestPath": "scripts/audit/domains/architecture-boundary/manifest.json",
       "observedPaths": [
@@ -238,7 +238,8 @@
         "src/lib/local-runtime/workbench-settings-handle.ts",
         "src/lib/local-runtime/workbench-status-types.ts",
         "src/lib/local-runtime/workbench-status.ts",
-        "src/lib/local-runtime/workbench.ts"
+        "src/lib/local-runtime/workbench.ts",
+        "监控大盘实现方案.md"
       ]
     },
     {
@@ -896,26 +897,27 @@
       "excludes": [],
       "forbidden": [
         "不得发生：一个成熟业务需求由多个 Product Plugin 共同拥有，或一个 Product Plugin 同时承担多个独立业务需求。",
-        "不得发生：Manifest primary Owner 被解释为 Product 运行决策权；architecture-boundary 只 primary-own Product 源码、与生产 import surface 分离的 Product 验收、薄 Mediator 和精确关联项目文档的文件治理、结构检查与变更准入，不得决定 Prompt、模型、Child 顺序、分支、checkpoint、恢复或结果组装，每个 Product Plugin 才是自身唯一 Product runtime authority。",
-        "不得发生：Product Plugin 收到 Website V19 prior_result_rejection 后由 Runtime、GPT、Browser、Website ai-acceptance 或 architecture-boundary 解释领域 reason、选择 Product 步骤、规定 Prompt 内容或编排后续 Flow。SharedExecutionContext 只可把已机械验证的 canonical typed feedback 原样交给命中的原 Product Plugin；null 走原 Flow，非空当前只允许 public-knowledge-article-pipeline + produce_article。architecture-boundary 只验证该既有 Product 自身拥有专属 typed validator、静态语义映射、不同 Prompt/result identity 断言和 Product-local 验收，且其它 Owner 不得取得这些决定；不得在本法案、Architecture Exam、共享 helper、Runtime、GPT 或 Browser 中保存具体 reason 到步骤映射、correction Prompt 正文、Child 顺序或恢复规则。不得另建 correction Plugin/Flow/queue/store，或把 Product 语义提升给任何共享层。",
+        "不得发生：Manifest primary Owner 被解释为 Product 运行决策权；architecture-boundary 只 primary-own Product 源码、与生产 import surface 分离的 Product 验收、薄 Mediator 和精确关联项目文档的文件治理、结构检查与变更准入，不得决定 Prompt、模型、Child 顺序、分支、checkpoint、当前 accepted attempt 内的 Flow 恢复或结果组装，每个 Product Plugin 才是自身当前 accepted-attempt Flow 的唯一 Product runtime authority；该权力绝不包含跨 accepted attempt 的业务恢复裁决。",
+        "不得发生：Product Plugin 收到 Website V20 prior_result_rejection 后由 Runtime、GPT、Browser、Website ai-acceptance 或 architecture-boundary 解释领域 reason、选择 Product 步骤、规定 Prompt 内容或编排后续 Flow。SharedExecutionContext 只可把已机械验证的 canonical typed feedback 原样交给命中的原 Product Plugin；null 走原 Flow，非空当前只允许 public-knowledge-article-pipeline + produce_article。architecture-boundary 只验证该既有 Product 自身拥有专属 typed validator、静态语义映射、不同 Prompt/result identity 断言和 Product-local 验收，且其它 Owner 不得取得这些决定；不得在本法案、Architecture Exam、共享 helper、Runtime、GPT 或 Browser 中保存具体 reason 到步骤映射、correction Prompt 正文、Child 顺序或当前 attempt 的 Flow 恢复规则。不得另建 correction Plugin/Flow/queue/store，或把 Product 语义提升给任何共享层。",
         "不得发生：Mediator 执行业务步骤、浏览器动作或能力私有实现。",
         "不得发生：Plugin 绕过 public capability facade 导入 child runtime、私有协议或基础设施实现。",
         "不得发生：Capability 导入 Plugin、隐藏业务 workflow 或跨能力读取私有 runtime。",
         "不得发生：src/lib、src/types、scripts/startup、scripts/acceptance 或 scripts/audit 越权承担业务编排。",
         "不得发生：public facade 泄漏私有实现类型、浏览器内部协议、selector、coordinate 或 provider 私有对象。",
         "不得发生：Product Plugin 互相导入，或把多个产品的 GPT Child 顺序提升为共享 workflow、共享 executor、registry、bus、DSL 或全局 checkpoint；旧 source root、巨型通用业务 Plugin、第二 mediator、兼容桥、平行入口、fallback 或 adapter 不得保持可达。",
-        "不得发生：Architecture Exam 手写 Product Plugin 或 primary product/action 列表、保存任一 Product 的 Prompt、Child 顺序、checkpoint、分支、恢复规则或 expected result body；中央入口只能从现役 Catalog/Capability Manifest 与 Product 验收目录发现身份、证明一一对应、执行并汇总各 Product 自有测试，且不得建立跨 Product 业务 helper。"
+        "不得发生：Architecture Exam 手写 Product Plugin 或 primary product/action 列表、保存任一 Product 的 Prompt、Child 顺序、checkpoint、分支、当前 attempt 的 Flow 恢复规则或 expected result body；中央入口只能从现役 Catalog/Capability Manifest 与 Product 验收目录发现身份、证明一一对应、执行并汇总各 Product 自有测试，且不得建立跨 Product 业务 helper。",
+        "不得发生：TOMBSTONE-RECOVERY-AUTHORITY-001 被违反。Business Recovery Decision Owner Count 必须恒等于 1，唯一 Owner 是 Website ai-acceptance。AGENT Runtime、Product Plugin、GPT Capability、Browser、Outbox、Runtime Log、Forensics 与 architecture-boundary 均不得决定业务需求是否仍有效或已永久撤权、当前 accepted attempt 是否保留或结束、是否签发下一 accepted attempt、retry_not_before 与有限退避、claim 资格或 result revision rearm，也不得通过 recovery manager、coordinator、planner、workflow、graph、helper、service、fallback、compatibility、legacy、bridge、shadow、adapter、改名、第二 scheduler/store/queue/state machine 或任何同义实现复活该权力。允许且必须保留的仅是 Website 已签发 accepted attempt 内的 Product 静态 Flow/业务步骤与 checkpoint 恢复、GPT 当前 Child 只读探测/结果读回、Browser 同一 exact effect 的 WAL 防重与对账、Outbox 同一 intent 幂等交付、lease/fence，以及 Runtime Log/Forensics 的事实记录；这些机制只能 RUN OR REPORT，不能 CREATE OR DECIDE NEXT ATTEMPT。本 Tombstone 为冻结反复活条款；任何普通需求、修复、优化、测试、迁移、兼容、生成器或单仓变更均不得修改、删除、覆盖、弱化、改名、迁移、重解释或绕过；只有授权人明确点名‘解冻 TOMBSTONE-RECOVERY-AUTHORITY-001’并授权双仓同步替换时才可先解冻。"
       ],
-      "lawId": "LAW-ARCHITECTURE-BOUNDARY-001-V5",
+      "lawId": "LAW-ARCHITECTURE-BOUNDARY-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 510,
+        "lineEnd": 511,
         "lineStart": 466,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须由 architecture-boundary 作为 Product 源码、独立 Product 验收、薄 Mediator 与精确关联项目文档的唯一 Manifest primary Owner，只检查文件治理和结构边界，并使每个 Product Plugin 保持自身唯一 Product runtime authority、经唯一薄 Mediator 路由且只调用产品中性的公共 Capability facade；public-knowledge Product 独占解释 canonical result rejection、选择最早受影响步骤、生成不同 Prompt 并证明新 result hash 不同，Runtime 只作 typed 转交和机械校验。",
-      "supersedesLawId": "LAW-ARCHITECTURE-BOUNDARY-001-V4",
+      "summary": "必须使 Business Recovery Decision Owner Count 恒等于 1：跨 accepted attempt 的业务恢复裁决只属于 Website ai-acceptance，TOMBSTONE-RECOVERY-AUTHORITY-001 禁止 AGENT 各层以任何名字复活第二裁决权；每个 Product Plugin 仍是当前 Website 已签发 accepted attempt 内静态 Flow、Prompt、Child 顺序、checkpoint 恢复与结果组装的唯一 Product runtime authority，经唯一薄 Mediator 路由且只调用产品中性的公共 Capability facade。architecture-boundary 只管理 Product 源码、独立验收、薄 Mediator、精确关联文档与结构边界；Runtime 只作 typed 转交和机械校验。",
+      "supersedesLawId": "LAW-ARCHITECTURE-BOUNDARY-001-V5",
       "tier": "P0"
     },
     {
@@ -927,7 +929,7 @@
       "capabilityDomain": "capability-governance",
       "contractRefs": [],
       "dependsOnLawIds": [
-        "LAW-ARCHITECTURE-BOUNDARY-001-V5"
+        "LAW-ARCHITECTURE-BOUNDARY-001-V6"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -954,8 +956,8 @@
       "lawId": "LAW-CAPABILITY-GOVERNANCE-001-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 556,
-        "lineStart": 514,
+        "lineEnd": 557,
+        "lineStart": 515,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1113,8 +1115,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 588,
-        "lineStart": 560,
+        "lineEnd": 589,
+        "lineStart": 561,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1143,8 +1145,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 617,
-        "lineStart": 590,
+        "lineEnd": 618,
+        "lineStart": 591,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1172,8 +1174,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 645,
-        "lineStart": 619,
+        "lineEnd": 646,
+        "lineStart": 620,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1250,8 +1252,8 @@
       "lawId": "LAW-GPT-001-V38",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 722,
-        "lineStart": 649,
+        "lineEnd": 723,
+        "lineStart": 650,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1292,8 +1294,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 765,
-        "lineStart": 726,
+        "lineEnd": 766,
+        "lineStart": 727,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1323,8 +1325,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-002-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 795,
-        "lineStart": 767,
+        "lineEnd": 796,
+        "lineStart": 768,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1357,8 +1359,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-003-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 828,
-        "lineStart": 797,
+        "lineEnd": 829,
+        "lineStart": 798,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1397,8 +1399,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 867,
-        "lineStart": 832,
+        "lineEnd": 868,
+        "lineStart": 833,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1442,8 +1444,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-002-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 909,
-        "lineStart": 869,
+        "lineEnd": 910,
+        "lineStart": 870,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1490,8 +1492,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-003-V26",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 954,
-        "lineStart": 911,
+        "lineEnd": 955,
+        "lineStart": 912,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1545,8 +1547,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V28",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1006,
-        "lineStart": 956,
+        "lineEnd": 1007,
+        "lineStart": 957,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1583,8 +1585,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-005-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1041,
-        "lineStart": 1008,
+        "lineEnd": 1042,
+        "lineStart": 1009,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1618,8 +1620,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V19",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1073,
-        "lineStart": 1043,
+        "lineEnd": 1074,
+        "lineStart": 1044,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1673,8 +1675,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-001-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1125,
-        "lineStart": 1077,
+        "lineEnd": 1126,
+        "lineStart": 1078,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1719,8 +1721,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1166,
-        "lineStart": 1127,
+        "lineEnd": 1167,
+        "lineStart": 1128,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1772,8 +1774,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-003-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1214,
-        "lineStart": 1168,
+        "lineEnd": 1215,
+        "lineStart": 1169,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1814,8 +1816,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1257,
-        "lineStart": 1218,
+        "lineEnd": 1258,
+        "lineStart": 1219,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1855,8 +1857,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1295,
-        "lineStart": 1259,
+        "lineEnd": 1296,
+        "lineStart": 1260,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1872,7 +1874,7 @@
       "capabilityDomain": "system-security",
       "contractRefs": [],
       "dependsOnLawIds": [
-        "LAW-ARCHITECTURE-BOUNDARY-001-V5",
+        "LAW-ARCHITECTURE-BOUNDARY-001-V6",
         "LAW-RUNTIME-LOG-SPINE-001-V7"
       ],
       "enforcementMode": "composite",
@@ -1892,8 +1894,8 @@
       "lawId": "LAW-SYSTEM-SECURITY-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1333,
-        "lineStart": 1299,
+        "lineEnd": 1334,
+        "lineStart": 1300,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1933,8 +1935,8 @@
       "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1373,
-        "lineStart": 1337,
+        "lineEnd": 1374,
+        "lineStart": 1338,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",

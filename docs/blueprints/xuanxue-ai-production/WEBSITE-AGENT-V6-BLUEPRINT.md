@@ -61,11 +61,15 @@ Website claim + lease/grant/fence
 | Runtime 运行职责 | 只通过 typed interface 消费 | 明确不拥有 |
 |---|---|---|
 | credential read、session、claim、durable accept、attempt、lease/fence | Website control intent、claim/grant/fence、business admission receipt | Website 业务准入、任务创建、领域入库、公开状态 |
-| Runtime 六表、WAL、Outbox、task-local recovery、storage inventory | GPT/Browser/Forensics 的公开 effect/evidence/authority receipt | Product Flow、Prompt、模型、Child 顺序、内容裁决 |
+| Runtime 六表、WAL、Outbox、同一 accepted attempt 的机械重入、storage inventory | GPT/Browser/Forensics 的公开 effect/evidence/authority receipt | Product Flow、Prompt、模型、Child 顺序、内容裁决、跨 accepted attempt 业务恢复裁决 |
 | product-opaque failure、健康与诊断安全投影 | Runtime Log 的单写者接口 | Browser 私有 WAL、Target/Document、Runtime Log 事实正文 |
 | 唯一 Runtime inspector、acceptance 与 Runtime-only proof | 相邻能力权威已签发的 typed receipt，不复制证明正文 | 第二 checker、proof、queue、store、receipt、verdict 或兼容链 |
 
-Manifest primary Owner 只表示路径登记、结构检查与变更准入；Product runtime authority 才表示 Prompt、模型、Child 顺序、分支、checkpoint、恢复与结果组装的决策权。`architecture-boundary` 仍只 primary-own Product 源码、与生产 import surface 分离的 Product 验收、薄 Mediator 与精确关联项目文档；唯一 Catalog composition 和 Product-facing execution contract 是现有薄 Mediator/Product 源码边界的组成文件，不新增 Owner 类别或运行权力。只有该 Catalog composition 可以导入 `src/plugins/<plugin-id>/index.ts`，且它只按 `product_id + action_id + contract version` 完成一次路由；每个 Product Plugin 仍是自身唯一 Product runtime authority。Runtime 对以上两种权力均不得越权。
+Manifest primary Owner 只表示路径登记、结构检查与变更准入；Product runtime authority 只表示当前 Website 已签发 accepted attempt 内 Prompt、模型、Child 顺序、分支、checkpoint、静态 Flow 恢复与结果组装的决策权，不包括跨 accepted attempt 的业务恢复裁决。`architecture-boundary` 仍只 primary-own Product 源码、与生产 import surface 分离的 Product 验收、薄 Mediator 与精确关联项目文档；唯一 Catalog composition 和 Product-facing execution contract 是现有薄 Mediator/Product 源码边界的组成文件，不新增 Owner 类别或运行权力。只有该 Catalog composition 可以导入 `src/plugins/<plugin-id>/index.ts`，且它只按 `product_id + action_id + contract version` 完成一次路由；每个 Product Plugin 仍是自身当前 accepted-attempt Flow 的唯一 Product runtime authority。Runtime 对以上两种权力均不得越权。
+
+跨 accepted attempt 的 `business_recovery_decision_owner_count = 1`，唯一 Owner 是 `Website.ai-acceptance`。`TOMBSTONE-RECOVERY-AUTHORITY-001` 禁止 Runtime、Product、GPT、Browser、Outbox、Runtime Log 或 Forensics 决定业务需求是否继续、attempt 保留/结束、下一 attempt、`retry_not_before`/有限退避、claim 资格或 result revision rearm，也禁止以 recovery manager、planner、workflow、fallback、compatibility、legacy、bridge、shadow、第二 scheduler/store/queue/state machine 或改名同义物复活该权力。保留 Product 当前 attempt 的静态 Flow/checkpoint 恢复、GPT 当前 Child 只读探测/结果读回、Browser 同一 exact effect 的 WAL 防重与对账、Outbox 同一 intent 幂等交付、lease/fence 以及日志取证；它们只能执行或报告 Website 已签发事实。
+
+`TOMBSTONE-RECOVERY-AUTHORITY-001` 自本版起为冻结反复活条款。任何普通需求、修复、优化、测试、迁移、兼容、生成器或单仓变更均不得修改、删除、覆盖、弱化、改名、迁移、重解释或绕过；只有授权人明确点名“解冻 TOMBSTONE-RECOVERY-AUTHORITY-001”并授权双仓同步替换，才可先解冻再施工。
 
 Runtime 对外发布 Agent Plugin Capability Manifest，但不拥有形成该清单的 Product composition。它只从 Mediator 取得冻结、不可变、纯数据的 `plugin_id + plugin_version + skill_hash + checkpoint_schema_version + accepts` 描述，随后在本域校验 Manifest schema/hash 并用于当前 session attestation、claim 资格、授权审计与诊断。整份 Catalog hash 不进入 Website job、request 或 accepted-attempt 永久身份；Runtime 源码不得直接或间接取得 `ProductPlugin` 实例、Product Skill 正文、`parseResult`、`assemblePayload` 或其它 Product 可执行回调；Product Plugin 也不得 import、re-export、dynamic import 或 side-effect import Runtime 私有模块。
 

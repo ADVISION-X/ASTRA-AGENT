@@ -1,5 +1,6 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import { readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -13,10 +14,21 @@ import {
   productionCatalogHash,
 } from "../../src/mediator/product-plugin-catalog.js";
 import { inspectProductAcceptanceBoundaries } from "../audit/domains/architecture-boundary/components/scan-product-acceptance-boundaries.js";
+import { inspectBusinessRecoveryAuthorityBoundaries } from "../audit/domains/architecture-boundary/components/scan-product-acceptance-boundaries.js";
 import { inspectRuntimeBrowserPrivateImports } from "../audit/domains/architecture-boundary/components/scan-plugin-capability-boundaries.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
-const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V5";
+const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V6";
+const lawSource = readFileSync(".github/instructions/agent-rules/功能法案.md", "utf8");
+const activeLaw = [...lawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
+  .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden?: string[] })
+  .find((law) => law.lawId === lawId);
+const frozenTombstone = activeLaw?.forbidden?.find((clause) =>
+  clause.includes("TOMBSTONE-RECOVERY-AUTHORITY-001"));
+assert.equal(createHash("sha256").update(frozenTombstone ?? "").digest("hex"),
+  "1847653c86976e8c949a2b992831f1efaec80dae067ab94be9dce6a2768d3bcb",
+  "the frozen anti-resurrection Tombstone clause must remain byte-exact");
+assert.match(frozenTombstone ?? "", /只有授权人明确点名‘解冻 TOMBSTONE-RECOVERY-AUTHORITY-001’并授权双仓同步替换/u);
 const testDirectory = resolve("scripts/acceptance/product-plugins");
 const catalogIds = productPluginCatalogSnapshot.map((plugin) => plugin.plugin_id).sort();
 const manifestIds = agentPluginCapabilityManifest.plugins.map((plugin) => plugin.plugin_id).sort();
@@ -70,6 +82,27 @@ for (const [checkId, source] of mutants) {
     `${source} must emit ${checkId}`);
 }
 
+const recoveryAuthorityMutants: ReadonlyArray<readonly [string, string, string]> = [
+  ["src/plugins/public-knowledge-article-pipeline/business-recovery-mutant.ts",
+    "architecture/product-business-recovery-decision-contract",
+    "export interface ProductRecoveryResult { shouldRetry: boolean; retryAfterSeconds: number; nextAttempt: string; stopDemand: boolean; }"],
+  ["src/lib/local-runtime/production/business-recovery-mutant.ts",
+    "architecture/business-recovery-authority-resurrected",
+    "export class BusinessRecoveryManager { decideNextAttempt(): string { return 'attempt-2'; } }"],
+  ["src/capabilities/gpt/business-recovery-mutant.ts",
+    "architecture/business-recovery-authority-dependency",
+    "import { decide } from './business-recovery-planner.js'; export const value = decide();"],
+];
+for (const [filePath, checkId, source] of recoveryAuthorityMutants) {
+  const project = new Project({ tsConfigFilePath });
+  project.createSourceFile(resolve(filePath), source);
+  const findings: Parameters<typeof inspectBusinessRecoveryAuthorityBoundaries>[0]["findings"] = [];
+  const inspectedFiles = new Set<string>();
+  inspectBusinessRecoveryAuthorityBoundaries({ findings, inspectedFiles, lawId, project });
+  assert.ok(findings.some((finding) => finding.checkId === checkId),
+    `${filePath} must emit ${checkId}`);
+}
+
 {
   const project = new Project({ tsConfigFilePath });
   const sourceFile = project.createSourceFile(
@@ -91,7 +124,7 @@ process.stdout.write("[ACCEPTANCE][architecture-boundary] PASS\n");
 emitQualityProofObservation({
   lawId,
   evidenceMode: "exam.golden",
-  clauses: ["forbidden:8", "summary"],
+  clauses: ["forbidden:8", "forbidden:9", "summary"],
   locator: "acceptance:architecture-boundary",
-  observedValue: "Catalog and Capability Manifest identities match independent Product acceptances, every Product acceptance passed, and central sequence, fixed-cardinality, variable-name business-content, and unapproved business-field mutants were rejected",
+  observedValue: "The byte-exact frozen Tombstone remained present; Catalog and Capability Manifest identities matched independent Product acceptances; central Product-content mutants and Product, Runtime, and GPT cross-attempt business-recovery authority mutants were rejected while same-attempt mechanisms remained in production",
 });
