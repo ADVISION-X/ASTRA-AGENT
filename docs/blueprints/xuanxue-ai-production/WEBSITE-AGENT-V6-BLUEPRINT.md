@@ -11,10 +11,10 @@
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
     "LAW-AGENT-PRODUCTION-RUNTIME-003-V17",
     "LAW-AGENT-PRODUCTION-RUNTIME-004-V17",
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V15",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V17",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V17",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V18"
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V16",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V18",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V18",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V19"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -135,8 +135,6 @@ Runtime 自身代码保持 production 目录内的直接模块关系。不得新
 
 授权 enrollment 只建立或恢复长期 device identity 与 credential，不签发整份 manifest hash，不因合同升级重建 device。Runtime 只从本仓唯一 active consumer dependency 读取 `control_contract_version`，在 session open 时发送；Website 必须与自身当前 provider contract version 精确比较，并在 session、claim grant 与 execution fence 返回同一版本。版本不相等只产生一次 typed 409 并保持 Execution blocked，不允许定时重试、fallback、第二 reader、自动 enrollment 或旧凭据回退。
 
-已经 enrollment 的唯一 credential 文件若且唯若满足“当前严格 schema 的全部字段 + 唯一退役字段 `control_manifest_hash`”，且退役字段仍是合法 `sha256:` hash，唯一恢复动作是操作者显式执行离线 credential normalization。该动作必须先复用正式 reader 的父目录、文件、owner、权限、symlink、JSON 与 origin 检查，再以原子替换只删除这个退役字段；`device_id`、`device_epoch`、origin、Website-issued `credential` 与其余当前字段值必须逐项保持不变，写后必须重新通过唯一正式 reader 读回。普通启动仍只读并按当前严格 schema 失败关闭；字段缺失、值非法、存在其它额外字段、现场并发变化或权限不合格均不得写入。该动作不 enrollment、不签发或轮换密钥、不创建 backup credential、第二文件、第二 reader、fallback、dual-read/write、兼容桥或自动修复。
-
 ## 4. 跨仓合同与业务完成
 
 Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为：
@@ -222,7 +220,7 @@ Runtime 唯一数据库固定为六表：
 - production_checkpoints；
 - production_leases。
 
-`production_tasks.identity_json` 只保存当前 accepted attempt 的 `plugin_id + plugin_version + skill_hash + checkpoint_schema_version + request_hash`，不保存全局 Catalog hash。既有库中的 task-level `catalog_hash` 只能由显式离线 `production-runtime-catalog-identity-retire` maintenance 在无运行进程且全部前置事实闭合后，于原六表同一事务逐行移除并完整读回；普通启动和 claim 不兼容读取、不自动改库，不新增表、影子字段或第二身份。
+`production_tasks.identity_json` 只保存当前 accepted attempt 的 `plugin_id + plugin_version + skill_hash + checkpoint_schema_version + request_hash`，不保存全局 Catalog hash。普通启动和 claim 只接受这一个五字段身份，不兼容读取、不自动改库，不保留已经完成使命的迁移入口，也不新增表、影子字段或第二身份。
 
 首次安装只有在零张 production_* 表时才可建立当前 schema 并设置 WAL。已有任一表后，普通构造与启动只读验证精确表、列、主键、唯一索引、外键、WAL、integrity_check、foreign_key_check 与数据不变量；不得 ALTER、drop/rebuild、回填、执行 legacy migration、恢复旧调度或删除目录。数据库缺失、不可读、损坏、查询异常、记录缺失与 hash mismatch 必须分别保留，不能统一降格为 missing。
 

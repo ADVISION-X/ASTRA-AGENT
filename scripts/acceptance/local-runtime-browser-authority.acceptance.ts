@@ -41,8 +41,6 @@ assert.equal(
 const dataDir = await mkdtemp(join(tmpdir(), "grasseye-local-runtime-browser-authority-"));
 const assembly = await createWorkbenchAssembly({
   dataDir,
-  baseUrl: "http://127.0.0.1:0",
-  platformTarget: "agent-shell",
 });
 try {
   assert.equal("acquireTargetLease" in assembly.browserAuthority, false, "Local Runtime must expose the Broker, not a cached target lease surface.");

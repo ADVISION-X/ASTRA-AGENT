@@ -36,39 +36,11 @@ type EvidenceProduct = Readonly<{
 
 type EvidenceReport = Readonly<{
   schemaVersion: string;
-  primaryIndex: string;
-  productionRuntimeConsumer: boolean;
-  claimsQualityVerdict: boolean;
   captureStatus: string;
-  productCaptureStatus: string;
   captureMetadata: unknown;
   products: readonly EvidenceProduct[];
-  childIndex: Record<string, unknown>;
   children: readonly Record<string, unknown>[];
 }>;
-
-const stable = (value: unknown): unknown => Array.isArray(value) ? value.map(stable)
-  : value && typeof value === "object"
-    ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable((value as Record<string, unknown>)[key])]))
-    : value;
-
-const derivedChildIndex = (products: readonly EvidenceProduct[]): Record<string, unknown> => {
-  const index: Record<string, unknown[]> = {};
-  for (const product of products) for (const run of product.runs) for (const call of run.calls) {
-    if (!call.pageOperationRequired) continue;
-    (index[call.childId] ??= []).push(stable({
-      productKey: product.productKey,
-      sourceSnapshotId: run.sourceSnapshotId,
-      captureEpoch: run.captureEpoch,
-      productStepId: call.productStepId,
-      actionOrdinal: call.actionOrdinal,
-      traceEntryId: call.traceEntryId,
-      exactCallIdentityHash: call.exactCallIdentityHash,
-      captureComplete: call.captureComplete,
-    }));
-  }
-  return stable(index) as Record<string, unknown>;
-};
 
 const forbiddenRepositoryBindingPaths = (value: unknown, path = "report"): string[] => {
   if (Array.isArray(value)) return value.flatMap((entry, index) =>
@@ -85,15 +57,8 @@ const report = JSON.parse(readFileSync(resolve(
   "docs/项目方案/GPT页面操作子能力实证资料.json",
 ), "utf8")) as EvidenceReport;
 
-assert.equal(report.schemaVersion, "gpt-page-operation-evidence.v6");
-assert.equal(report.primaryIndex, "products");
-assert.equal(report.productionRuntimeConsumer, false);
-assert.equal(report.claimsQualityVerdict, false);
+assert.equal(report.schemaVersion, "gpt-page-operation-evidence.v7");
 assert.equal(report.captureStatus, "NOT_CAPTURED");
-const expectedProductCaptureStatus = report.products.every((product) => product.captureStatus === "CAPTURE_COMPLETE")
-  ? "CAPTURE_COMPLETE" : report.products.some((product) => product.captureStatus !== "NOT_CAPTURED")
-    ? "CAPTURE_PARTIAL" : "NOT_CAPTURED";
-assert.equal(report.productCaptureStatus, expectedProductCaptureStatus);
 assert.equal(report.captureMetadata, null);
 assert.deepEqual(gptPageEvidencePrivacyFailures(report), []);
 assert.deepEqual(forbiddenRepositoryBindingPaths(report), []);
@@ -103,7 +68,6 @@ const expectedProductKeys = productPluginCatalogSnapshot.flatMap((plugin) => plu
 const actualProductKeys = report.products.map((product) => product.productKey).sort();
 assert.deepEqual(actualProductKeys, expectedProductKeys);
 assert.equal(new Set(actualProductKeys).size, actualProductKeys.length);
-assert.deepEqual(report.childIndex, derivedChildIndex(report.products));
 
 const contracted = report.products.filter((product) => product.contractPath !== null);
 const notYetContracted = report.products.filter((product) => product.contractPath === null);

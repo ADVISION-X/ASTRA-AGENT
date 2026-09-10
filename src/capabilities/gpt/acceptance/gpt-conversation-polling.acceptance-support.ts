@@ -1,14 +1,8 @@
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 
-import { throwGptChildFailure } from "../production-child-support.js";
-import { serializeTerminalFailure } from "../../../lib/local-runtime/production/terminal-failure.js";
 import { executionFailure } from "../../../lib/execution-failure.js";
 import {
-  exerciseBrowserDispatchedEvidenceReadback,
-  exerciseBrowserRejectedDispatchedEvidenceReadback,
-  exerciseBrowserRejectedEvidenceReadback,
   exerciseConfirmedProviderReadbackEvidenceLifecycle,
-  exerciseFailedEvidenceReadback,
 } from "./gpt-failure-evidence-readback.acceptance-support.js";
 import {
   coherentObservationPacket,
@@ -16,9 +10,6 @@ import {
   fakeBrowser,
 } from "./gpt-exact-target-browser-fixture.js";
 import {
-  EMPTY_HASH,
-  approvedFile,
-  childConversationUrl,
   conversationIdentityHash,
   conversationFacts,
   conversationUrl,
@@ -27,15 +18,8 @@ import {
   marker,
   promptHash,
   responseFacts,
-  responseHash,
   responseText,
-  sourceInput,
 } from "./gpt-conversation-fixture.js";
-import {
-  GPT_MORE_ACTIONS_BUTTON_LABEL,
-  gptMoreActionsButtonSelector,
-} from "./gpt-page-fixture-selectors.js";
-
 {
   const { execute } = freshHarness();
   const fixture = fakeBrowser((intent) => {

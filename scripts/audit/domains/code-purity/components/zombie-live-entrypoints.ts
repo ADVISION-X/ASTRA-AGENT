@@ -5,6 +5,7 @@ import { resolveFromRepo, toRepoPath } from "../../../shared/paths.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
 
 export type ZombieLiveEntryPoint = {
+  consumerScope: "production" | "verification";
   entryKind: "native-child-process" | "native-config" | "owner-inspector" | "package-script";
   filePath: string;
   reason: string;
@@ -26,6 +27,7 @@ type LiveEntrypointInput = {
 type LiveEntryState = {
   entryFiles: Set<string>;
   liveEntryPoints: ZombieLiveEntryPoint[];
+  productionEntryFiles: Set<string>;
 };
 
 const sourceEntryExtensions = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs"]);
@@ -101,6 +103,16 @@ const readPackageJsonScripts = (): Record<string, string> => {
   return parsed.scripts ?? {};
 };
 
+export const packageEntrypointConsumerScope = (
+  scriptName: string,
+  entryPath: string,
+): "production" | "verification" =>
+  entryPath.startsWith("scripts/acceptance/")
+    || entryPath.startsWith("scripts/audit/")
+    || /^(?:acceptance|audit|quality|test|check|lint)(?::|$)/u.test(scriptName)
+    ? "verification"
+    : "production";
+
 const spawnedDirectoryEntries = (
   sourceFile: GovernedFile,
   governedPathSet: ReadonlySet<string>,
@@ -130,7 +142,12 @@ const addLiveEntry = (
   state: LiveEntryState,
   entry: ZombieLiveEntryPoint,
 ): void => {
-  if (state.entryFiles.has(entry.filePath)) return;
+  if (entry.consumerScope === "production") state.productionEntryFiles.add(entry.filePath);
+  if (state.entryFiles.has(entry.filePath)) {
+    const existing = state.liveEntryPoints.find((candidate) => candidate.filePath === entry.filePath);
+    if (existing && entry.consumerScope === "production") existing.consumerScope = "production";
+    return;
+  }
   state.entryFiles.add(entry.filePath);
   state.liveEntryPoints.push(entry);
 };
@@ -145,6 +162,7 @@ const addPackageEntries = (
       const entryPath = normalizeEntrypointToken(token);
       if (!entryPath || !governedPathSet.has(entryPath)) continue;
       addLiveEntry(state, {
+        consumerScope: packageEntrypointConsumerScope(scriptName, entryPath),
         entryKind: "package-script",
         filePath: entryPath,
         reason: `package.json script ${scriptName}`,
@@ -162,6 +180,7 @@ const addPlanEntries = (
   for (const planEntry of generatedPlan) {
     if (!governedPathSet.has(planEntry.ownerInspectorPath)) continue;
     addLiveEntry(state, {
+      consumerScope: "verification",
       entryKind: "owner-inspector",
       filePath: planEntry.ownerInspectorPath,
       reason: "generated-plan owner inspector dynamic load",
@@ -179,6 +198,7 @@ const addNativeConfigEntries = (state: LiveEntryState, input: LiveEntrypointInpu
     const nativeOwner = nativeConfigSources.find((config) => config.source.includes(runtimeName));
     if (!nativeOwner) continue;
     addLiveEntry(state, {
+      consumerScope: "production",
       entryKind: "native-config",
       filePath: governedFile.repoPath,
       reason: `${nativeOwner.path} references ${runtimeName}`,
@@ -197,6 +217,7 @@ const addSpawnedEntries = (
     if (!sourceFile) continue;
     for (const entryPath of spawnedDirectoryEntries(sourceFile, governedPathSet)) {
       addLiveEntry(state, {
+        consumerScope: state.productionEntryFiles.has(sourcePath) ? "production" : "verification",
         entryKind: "native-child-process",
         filePath: entryPath,
         reason: `${sourcePath} discovers and executes the closed filename suffix`,
@@ -208,7 +229,7 @@ const addSpawnedEntries = (
 
 export const collectZombieLiveEntrypoints = (input: LiveEntrypointInput): LiveEntryState => {
   const governedPathSet = new Set(input.governedFiles.map((governedFile) => governedFile.repoPath));
-  const state: LiveEntryState = { entryFiles: new Set(), liveEntryPoints: [] };
+  const state: LiveEntryState = { entryFiles: new Set(), liveEntryPoints: [], productionEntryFiles: new Set() };
   addPackageEntries(state, governedPathSet, input.packageScripts ?? readPackageJsonScripts());
   addPlanEntries(state, governedPathSet, input.generatedPlan);
   addNativeConfigEntries(state, input);
@@ -217,5 +238,6 @@ export const collectZombieLiveEntrypoints = (input: LiveEntrypointInput): LiveEn
   return {
     entryFiles: state.entryFiles,
     liveEntryPoints: state.liveEntryPoints.sort((left, right) => left.filePath.localeCompare(right.filePath)),
+    productionEntryFiles: state.productionEntryFiles,
   };
 };

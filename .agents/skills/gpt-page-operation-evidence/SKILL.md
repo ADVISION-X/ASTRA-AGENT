@@ -5,7 +5,7 @@ description: 由 Codex 使用 Chrome 插件，按 Product Plugin 的真实生产
 
 # GPT 产品页面实证采集
 
-本 Skill 只做一件事：Codex 拿到 Website 已冻结的真实生产资料，逐行跟随 Product Plugin 的现役流程，用 `chrome:control-chrome` 完成页面操作并收回真实 DOM。报告按 `产品 → Action → 产品步骤 → 调用序号 → Child → DOM` 组织；`childIndex` 只由产品记录反向生成。
+本 Skill 只做一件事：Codex 拿到 Website 已冻结的真实生产资料，逐行跟随 Product Plugin 的现役流程，用 `chrome:control-chrome` 完成页面操作并收回真实 DOM。报告按 `产品 → Action → 产品步骤 → 调用序号 → Child → DOM` 组织；需要按 Child 查询时，现场从产品调用记录计算，不另存反向索引。
 
 唯一链路：
 
@@ -26,7 +26,7 @@ Website 冻结生产任务和资料
 - 禁止合成业务 prompt、合成附件、模拟对话冒充产品覆盖。测试代码可以使用明确标为 test-only 的结构夹具，但测试夹具绝不能进入报告。
 - 不新增第二报告、第二矩阵、第二 selector 系统、DOM 数据库、回放平台、队列、服务或质量裁决。
 - 报告不绑定 Git HEAD、分支、clean 状态或整个工作区摘要。Git 信息不得参与有效性判断。
-- 报告不是生产运行时输入，也不是 `READY`、`RELEASE`、Website 入库或质量结论；固定写 `productionRuntimeConsumer=false`、`claimsQualityVerdict=false`。
+- 报告不是生产运行时输入，也不是 `READY`、`RELEASE`、Website 入库或质量结论；这条边界由 Skill 与质检合同负责，不在每份报告重复保存固定布尔值。
 
 ## 启动后先选模式
 
@@ -182,7 +182,7 @@ node --import tsx .agents/skills/gpt-page-operation-evidence/scripts/report-tool
   --output /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json
 ```
 
-只替换同一产品/Action/sourceSnapshot 的 run；其它产品切片原样保留。即使某旧产品路由已从当前 Catalog 删除，其历史切片也原对象保留并单独显示 stale，不能在目标产品更新时顺带丢失；当前 Catalog 新增路由才追加 `NOT_CAPTURED`。`childIndex` 每次从 `products[].runs[].calls[]` 重建，禁止独立写入。
+只替换同一产品/Action/sourceSnapshot 的 run；其它产品切片原样保留。即使某旧产品路由已从当前 Catalog 删除，其历史切片也原对象保留并单独显示 stale，不能在目标产品更新时顺带丢失；当前 Catalog 新增路由才追加 `NOT_CAPTURED`。Child 反查只能临时遍历 `products[].runs[].calls[]`，不得写入报告。
 
 浏览器、环境、recapture trigger、scene binding、decision receipt、transition receipt 与公共 production source 全部使用精确字段白名单；多一个调试字段、明文 prompt/body/content 也拒绝。合并器会重新计算每个 specimen 和每个 product call 的完整 envelope，并重新建立 `sourceSceneId → traceEntryId` 唯一归属；同一 scene 被两个实际调用复用时，即使装配阶段曾通过，也不得进入报告。
 
@@ -204,7 +204,7 @@ node --import tsx .agents/skills/gpt-page-operation-evidence/scripts/report-tool
 
 把返回的 `PRODUCT:<digest>` 原样传给 `admit`。全产品准入省略 `--step`；它要求完整合法分支和全部页面调用完整。步骤准入只要求该步骤已出现且每个页面调用有完整 DOM，不能拿一个通用 Child 样本顶替。
 
-共享 Child 只能从 `childIndex` 反查受影响的产品调用；`candidate/admit` 强制要求 `--product + --action`，不存在 Child 级第二套准入结论。
+共享 Child 只能从 `products[].runs[].calls[]` 临时反查受影响的产品调用；`candidate/admit` 强制要求 `--product + --action`，不存在 Child 级第二套准入结论。
 
 ## 更新与失效规则
 

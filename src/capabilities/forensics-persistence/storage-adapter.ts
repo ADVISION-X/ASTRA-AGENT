@@ -39,13 +39,10 @@ const buildRecordEnvelope = (
     createdAt: input.createdAt ?? new Date().toISOString(),
   };
 
-  assignOptional(envelope, "sessionId", input.sessionId);
-  assignOptional(envelope, "roundId", input.roundId);
   assignOptional(envelope, "stepId", input.stepId);
   assignOptional(envelope, "capabilityCallId", input.capabilityCallId);
   assignOptional(envelope, "sourceAbilityGroupId", input.sourceCapabilityId);
   assignOptional(envelope, "sourceChildCapabilityId", input.sourceChildCapabilityId);
-  assignOptional(envelope, "parentRefs", input.parentRefs);
   assignOptional(envelope, "artifactRefs", input.artifactRefs);
   assignOptional(envelope, "idempotencyKey", input.idempotencyKey);
 
@@ -62,14 +59,9 @@ const buildArtifactEnvelope = (
     createdAt: new Date().toISOString(),
   };
 
-  assignOptional(artifact, "sessionId", input.sessionId);
-  assignOptional(artifact, "roundId", input.roundId);
   assignOptional(artifact, "capabilityCallId", input.capabilityCallId);
   assignOptional(artifact, "mimeType", input.mimeType);
   assignOptional(artifact, "content", input.content);
-  assignOptional(artifact, "bytesRef", input.bytesRef);
-  assignOptional(artifact, "sourceRef", input.sourceRef);
-  assignOptional(artifact, "parentRefs", input.parentRefs);
   assignOptional(artifact, "idempotencyKey", input.idempotencyKey);
 
   return artifact;

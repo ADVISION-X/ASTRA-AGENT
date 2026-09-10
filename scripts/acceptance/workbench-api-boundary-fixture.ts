@@ -24,12 +24,6 @@ const createFakeWorkbench = (): FakeWorkbench => {
         sourceFingerprint: "acceptance",
       };
     },
-    getModeInfo() {
-      return { platformTarget: "agent-shell" };
-    },
-    readBrowserAuthorityPairingState() {
-      return { authority: "absent", pairingSecret: null };
-    },
     readBrowserExtensionBootstrapState() {
       return {
         authority: "absent",

@@ -5,7 +5,7 @@
   "lawIds": [
     "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V5",
     "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V5",
-    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3"
+    "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V4"
   ],
   "ownedPaths": [
     "scripts/acceptance/forensics-persistence-capability.acceptance.ts",

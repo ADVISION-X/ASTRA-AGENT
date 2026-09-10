@@ -1,11 +1,8 @@
-import type { GrassEyeWorkbenchOptions } from "./contract.js";
 import type { WorkbenchAssembly } from "./workbench-assembly.js";
 import type {
   WorkbenchHealthComponent,
   WorkbenchHealthReport,
   WorkbenchInitializationState,
-  WorkbenchMissionReadinessReport,
-  WorkbenchPreflightResult,
 } from "./workbench-status-types.js";
 
 type WorkbenchStatusAssembly = Readonly<{
@@ -28,9 +25,7 @@ type AiProductionHealthSnapshot = {
   readonly checkedAt: string;
 } | null;
 
-export const runtimeInitializationDisposition = (
-  _failureReason: string | null,
-): Readonly<{ actionableMessage: string; ownerResponsible: string }> => ({
+export const runtimeInitializationDisposition = (): Readonly<{ actionableMessage: string; ownerResponsible: string }> => ({
   actionableMessage: "Inspect the startup terminal failure and repair the named runtime owner before restarting.",
   ownerResponsible: "local-runtime",
 });
@@ -38,7 +33,7 @@ export const runtimeInitializationDisposition = (
 const readRuntimeInitializationComponent = (
   state: WorkbenchInitializationState,
 ): WorkbenchHealthComponent => {
-  const disposition = runtimeInitializationDisposition(state.failureReason);
+  const disposition = runtimeInitializationDisposition();
   return {
     name: "runtimeInitialization",
     ok: state.status === "ready",
@@ -143,59 +138,5 @@ export async function getHealthReport(
     components,
     checkedAt,
     sourceFingerprint: process.env.GRASSEYE_SOURCE_FINGERPRINT ?? "unknown",
-  };
-}
-
-export async function getMissionReadinessReport(
-  assembly: WorkbenchStatusAssembly,
-  _options: GrassEyeWorkbenchOptions,
-): Promise<WorkbenchMissionReadinessReport> {
-  const checkedAt = new Date().toISOString();
-  const components = [readBrowserAuthorityComponent(assembly)];
-  const allReady = components.every((component) => component.ok);
-  return {
-    status: allReady ? "ready" : "not_ready",
-    reason: allReady
-      ? "Browser authority and mission runtime are ready."
-      : components.find((component) => !component.ok)?.detail ?? "Browser authority readiness failed.",
-    components,
-    checkedAt,
-  };
-}
-
-export async function getMissionStartPreflight(
-  assembly: WorkbenchStatusAssembly,
-  _options: GrassEyeWorkbenchOptions,
-  _input: unknown,
-): Promise<WorkbenchPreflightResult> {
-  const component = readBrowserAuthorityComponent(assembly);
-  if (!component.ok) {
-    return {
-      status: "blocked",
-      actionableMessage: component.actionableMessage ?? "Resolve the browser authority failure.",
-      failureReason: component.detail ?? "Browser authority failed.",
-      recommendedAction: "Repair browser infrastructure before starting the mission.",
-      ownerResponsible: component.ownerResponsible ?? "Browser",
-      components: [component],
-    };
-  }
-
-  return {
-    status: "ready",
-    actionableMessage: "Mission can start under the current authenticated browser authority.",
-    failureReason: null,
-    recommendedAction: "Run the governed mission flow.",
-    ownerResponsible: "local-runtime",
-    components: [component],
-  };
-}
-
-export function getModeInfo(options: GrassEyeWorkbenchOptions): unknown {
-  return {
-    platformTarget: options.platformTarget,
-    baseUrl: options.baseUrl,
-    dataDir: options.dataDir ?? null,
-    browserModeMarker: options.browserModeMarker ?? null,
-    browserHeadless: options.browserHeadless ?? false,
   };
 }

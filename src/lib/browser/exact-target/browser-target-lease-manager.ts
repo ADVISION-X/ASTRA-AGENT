@@ -9,7 +9,7 @@ import type { BrowserControlledTarget, BrowserDocumentRef } from "./browser-targ
 import type { BrowserDomIntent } from "./browser-dom-intent.js";
 import type { BrowserFileArtifactGrantV1 } from "./browser-file-artifact-grant.js";
 import type { BrowserExecutionBinding } from "../infrastructure/browser-authority-broker.js";
-import type { BrowserSessionWorkspace, SessionWorkspaceBindingV6 } from "./browser-session-workspace.js";
+import type { BrowserSessionWorkspace } from "./browser-session-workspace.js";
 import type { BrowserOutcomeResolutionReceipt } from "./browser-outcome-resolver.js";
 import { browserExecutionFailure } from "../browser-failure.js";
 export type { SessionWorkspaceBindingV6 } from "./browser-session-workspace.js";

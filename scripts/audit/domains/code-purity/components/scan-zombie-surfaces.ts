@@ -47,6 +47,8 @@ type ZombieGraphState = {
   moduleGraph: ReturnType<typeof buildZombieModuleGraph>;
   namespaceUsage: ReturnType<typeof scanZombieNamespaceUsage>;
   reachability: ReturnType<typeof collectZombieReachableFiles>;
+  productionReachability: ReturnType<typeof collectZombieReachableFiles>;
+  productionNamespaceUsage: ReturnType<typeof scanZombieNamespaceUsage>;
   symbolGraph: ReturnType<typeof buildZombieSymbolGraph>;
   zombieLawId: string;
 };
@@ -69,6 +71,10 @@ const buildZombieGraphState = (
     entryFiles: liveEntryState.entryFiles,
     moduleGraph,
   });
+  const productionReachability = collectZombieReachableFiles({
+    entryFiles: liveEntryState.productionEntryFiles,
+    moduleGraph,
+  });
   return {
     antiEvasionLawId: selectLawId(lawIds, "LAW-CODE-PURITY-001-V6"),
     dynamicImportLawId: selectLawId(lawIds, "LAW-CODE-PURITY-002-V2"),
@@ -78,6 +84,11 @@ const buildZombieGraphState = (
       moduleGraph,
       reachableFiles: reachability.reachableFiles,
     }),
+    productionNamespaceUsage: scanZombieNamespaceUsage({
+      moduleGraph,
+      reachableFiles: productionReachability.reachableFiles,
+    }),
+    productionReachability,
     reachability,
     symbolGraph: buildZombieSymbolGraph(governedFiles),
     zombieLawId: selectLawId(lawIds, "LAW-CODE-PURITY-003-V2"),
@@ -112,7 +123,6 @@ const scanReachableCommentedCode = (
 
 const scanAntiEvasionFindings = (
   collector: ReturnType<typeof createInventoryFindingCollector>,
-  context: InspectorContext,
   governedFiles: readonly GovernedFile[],
   state: ZombieGraphState,
 ): number => {
@@ -146,6 +156,8 @@ export const scanZombieSurfaces = (
     moduleGraph: state.moduleGraph,
     namespaceUsage: state.namespaceUsage,
     reachability: state.reachability,
+    productionReachability: state.productionReachability,
+    productionNamespaceUsage: state.productionNamespaceUsage,
     symbolGraph: state.symbolGraph,
     generatedOwnerInspectorPaths: new Set(context.generatedPlan.map((entry) => entry.ownerInspectorPath)),
   }, state.zombieLawId);
@@ -175,7 +187,7 @@ export const scanZombieSurfaces = (
     governedFiles,
     state.reachability.reachableFiles,
   );
-  const antiEvasionFindingCount = scanAntiEvasionFindings(collector, context, governedFiles, state);
+  const antiEvasionFindingCount = scanAntiEvasionFindings(collector, governedFiles, state);
 
   return {
     findings: collector.findings,

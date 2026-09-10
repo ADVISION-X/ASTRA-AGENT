@@ -141,8 +141,8 @@ const inspectShellStatusContract = (
   const handleFields = new Set(handle.getTypeAlias("GrassEyeWorkbenchHandle")
     ?.getDescendantsOfKind(SyntaxKind.PropertySignature).map((property) => property.getName()) ?? []);
   for (const required of [
-    "init", "shutdown", "getHealthReport", "getMissionReadinessReport",
-    "readBrowserAuthorityPairingState", "readBrowserExtensionBootstrapState",
+    "init", "shutdown", "getHealthReport",
+    "readBrowserExtensionBootstrapState",
     "readProductionOperationsSnapshot",
   ]) if (!handleFields.has(required)) findings.push(finding(lawId, handlePath,
     `GrassEyeWorkbenchHandle is missing ${required}.`, undefined, "static.contract"));

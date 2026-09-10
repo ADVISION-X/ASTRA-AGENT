@@ -303,7 +303,7 @@ import {
   assert.equal(result.proof.browserFact?.mutationOutcome, "confirmed");
   const intent = acceptanceIntentFor(result, input);
   const persistence = createEvidenceHarness();
-  await persistGptChildEvidence({
+  const persisted = await persistGptChildEvidence({
     result,
     intent,
     evidenceStore: persistence.evidenceStore,
@@ -316,7 +316,7 @@ import {
   assert.equal(payload.confirmed_submit_readback_document_hash, null,
     "a D2/+2 transition must never mint its own confirmed-submit readback authorization hash");
   assert.throws(
-    () => throwGptChildFailure(result),
+    () => throwGptChildFailure(result, persisted.evidenceRef),
     (error: unknown) => {
       const receipt = confirmedProviderSubmitReceiptFromError(error);
       const serialized = JSON.stringify(receipt);

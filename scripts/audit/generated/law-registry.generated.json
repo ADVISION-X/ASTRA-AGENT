@@ -7,10 +7,10 @@
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
         "LAW-AGENT-PRODUCTION-RUNTIME-003-V17",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V17",
-        "LAW-AGENT-PRODUCTION-RUNTIME-005-V15",
-        "LAW-AGENT-PRODUCTION-RUNTIME-006-V17",
-        "LAW-AGENT-PRODUCTION-RUNTIME-007-V17",
-        "LAW-AGENT-PRODUCTION-RUNTIME-008-V18"
+        "LAW-AGENT-PRODUCTION-RUNTIME-005-V16",
+        "LAW-AGENT-PRODUCTION-RUNTIME-006-V18",
+        "LAW-AGENT-PRODUCTION-RUNTIME-007-V18",
+        "LAW-AGENT-PRODUCTION-RUNTIME-008-V19"
       ],
       "manifestPath": "scripts/audit/domains/agent-production-runtime/manifest.json",
       "observedPaths": [
@@ -34,7 +34,6 @@
         "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
         "docs/specs/agent-production-runtime/**",
         "scripts/acceptance/agent-production-runtime-browser-failure.acceptance-support.ts",
-        "scripts/acceptance/agent-production-runtime-catalog-identity.acceptance-support.ts",
         "scripts/acceptance/agent-production-runtime-continuation.acceptance.ts",
         "scripts/acceptance/agent-production-runtime-fixtures.ts",
         "scripts/acceptance/agent-production-runtime-gpt-recovery-fixture.ts",
@@ -55,8 +54,6 @@
         "scripts/acceptance/agent-route-contract.acceptance.ts",
         "scripts/audit/domains/agent-production-runtime/**",
         "scripts/generate/sync-website-agent-route-policy-projection.ts",
-        "scripts/maintenance/production-runtime-catalog-identity-retire.ts",
-        "scripts/maintenance/production-runtime-credential-normalize.ts",
         "scripts/maintenance/production-runtime-storage-reconcile.ts",
         "src/lib/execution-failure.ts",
         "src/lib/local-runtime/production/**"
@@ -169,7 +166,7 @@
       "lawIds": [
         "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V5",
         "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V5",
-        "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3"
+        "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V4"
       ],
       "manifestPath": "scripts/audit/domains/forensics-persistence-capability/manifest.json",
       "observedPaths": [],
@@ -225,8 +222,6 @@
         "scripts/audit/domains/local-app-shell/**",
         "src/lib/local-runtime/contract.ts",
         "src/lib/local-runtime/default-data-dir.ts",
-        "src/lib/local-runtime/settings-types.ts",
-        "src/lib/local-runtime/settings.ts",
         "src/lib/local-runtime/workbench-api-boundary-log.ts",
         "src/lib/local-runtime/workbench-assembly.ts",
         "src/lib/local-runtime/workbench-browser-authority-support.ts",
@@ -235,7 +230,6 @@
         "src/lib/local-runtime/workbench-handle.ts",
         "src/lib/local-runtime/workbench-launch-contract.ts",
         "src/lib/local-runtime/workbench-production-runtime-handle.ts",
-        "src/lib/local-runtime/workbench-settings-handle.ts",
         "src/lib/local-runtime/workbench-status-types.ts",
         "src/lib/local-runtime/workbench-status.ts",
         "src/lib/local-runtime/workbench.ts",
@@ -583,7 +577,6 @@
       "appliesTo": [
         "scripts/acceptance/agent-production-runtime-ledger.acceptance.ts",
         "scripts/acceptance/agent-production-runtime-startup.acceptance.ts",
-        "scripts/maintenance/production-runtime-catalog-identity-retire.ts",
         "src/lib/local-runtime/production/runtime-startup.ts",
         "src/lib/local-runtime/production/store-authority-reader.ts",
         "src/lib/local-runtime/production/store-authority-validation.ts",
@@ -613,19 +606,19 @@
       "excludes": [],
       "forbidden": [
         "不得发生：已有任一 production_* 表后，普通 Runtime 构造或启动执行 ALTER、drop/rebuild、回填、legacy migration 或恢复旧调度；只有零张 production_* 表的首次安装可建立当前六表 schema 与 WAL，已有库必须只读验证精确表、列、主键、唯一索引、外键、WAL、integrity_check、foreign_key_check 与数据不变量，不合格必须返回稳定 migration-required 或 corruption code。",
-        "不得发生：普通启动、claim 或 durable accept 为兼容旧 identity_json 静默删除 catalog_hash、双读两种身份或建立第二表。退役 task-level catalog_hash 只能由一次显式离线 maintenance 在无运行进程、SQLite 锁与 schema/数据前置事实闭合后，于同一事务逐行只删除 identity_json.catalog_hash，保持 job、task、request、attempt、Plugin/Skill/checkpoint、failure、continuation、Outbox、lease、artifact 与 receipt 逐项不变，并在提交后用唯一正式 authority reader 完整读回；已完成切换或任一事实多义时不得重复写入。",
+        "不得发生：普通启动、claim 或 durable accept 兼容旧 identity_json、静默改写任务身份、双读两种身份或建立第二表；现役任务身份只接受 plugin_id、plugin_version、skill_hash、checkpoint_schema_version 与 request_hash 五个字段，任何历史额外字段一律失败关闭，不保留已完成迁移的维护入口。",
         "不得发生：authority reader 把数据库缺失、不可读、损坏或查询异常、记录缺失与 hash mismatch 合并为 missing，或 Runtime diagnosis 从 Browser 私有 store fallback 猜测权威；五类结果必须分别保留，无法证明唯一权威时失败关闭且不得启动第二数据库、第二索引、第二 reader 或兼容路径。"
       ],
-      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-005-V15",
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-005-V16",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 229,
+        "lineEnd": 228,
         "lineStart": 185,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须以现役 SQLite 六表、WAL、完整约束与数据不变量作为唯一 Runtime 数据权威，普通构造和启动只读校验并精确区分数据库与 authority 失败；task-level catalog_hash 只允许经一次显式离线 maintenance 原位退役，不得自动迁移或建立兼容身份。",
-      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-005-V14",
+      "summary": "必须以现役 SQLite 六表、WAL、完整约束与五字段任务身份作为唯一 Runtime 数据权威，普通构造和启动只读校验并精确区分数据库与 authority 失败；历史身份不兼容读取，已完成迁移的入口必须物理删除。",
+      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-005-V15",
       "tier": "P0"
     },
     {
@@ -643,7 +636,7 @@
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V47",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V17",
-        "LAW-AGENT-PRODUCTION-RUNTIME-005-V15",
+        "LAW-AGENT-PRODUCTION-RUNTIME-005-V16",
         "LAW-LOCAL-BROWSER-SESSION-004-V28"
       ],
       "enforcementMode": "composite",
@@ -664,16 +657,16 @@
         "不得发生：storage maintenance 在没有本次精确 target 的单独授权，或 exact Website admission/永久撤权、无活动 lease、无待发责任、无未决 continuation、Browser Owner 无未决 effect 任一未闭合时删除任务目录；每个获准 target 删除后必须逐项读回目标目录缺席，并逐项读回数据库、Outbox、receipt、checkpoint、Browser WAL 与其它任务存储保持不变，404、权限不足、事实缺失、hash mismatch、多义或读回失败均保留现场。",
         "不得发生：无主存储或单 task 结构损坏阻断无关 task 的只读诊断，或 Runtime 用全局清空、启动时清理、批量模糊目标、replacement job 或兼容链代替任务局部失败关闭。"
       ],
-      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-006-V17",
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-006-V18",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 274,
-        "lineStart": 231,
+        "lineEnd": 273,
+        "lineStart": 230,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
       "summary": "必须在普通启动只读盘点 task-owned storage，并把任何物理删除限制为另获逐目标授权、全部 Runtime 与 Browser typed 前置事实闭合且删除后逐项 absence 与 preservation 读回的显式维护。",
-      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-006-V16",
+      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-006-V17",
       "tier": "P0"
     },
     {
@@ -689,8 +682,8 @@
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
         "LAW-AGENT-PRODUCTION-RUNTIME-003-V17",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V17",
-        "LAW-AGENT-PRODUCTION-RUNTIME-005-V15",
-        "LAW-AGENT-PRODUCTION-RUNTIME-006-V17"
+        "LAW-AGENT-PRODUCTION-RUNTIME-005-V16",
+        "LAW-AGENT-PRODUCTION-RUNTIME-006-V18"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -706,16 +699,16 @@
         "不得发生：agent-production-runtime 的 Manifest primary-own Product、GPT、Browser、Website、Runtime Log、App Shell、Startup 或历史项目方案，或用 observedPaths 取得文件治理主权；ownedPaths 只登记 Runtime 的 Manifest primary ownership，仅对当前候选已获明确授权的相邻路径，才可在文件拆分完成后由接收域增加路径、Runtime 同时删除越界路径的一次原子修改完成，并立即证明无无主、无重叠与 manifest-owner-drift 为零，不得分阶段修改、建立临时 Manifest 或形成中间质量结论。",
         "不得发生：Runtime inspector 以路径名、字符串包含、文件存在、fixture 数量、历史 report、self-check 或另一份 verdict 产生 PASS；静态证据必须来自 AST、JSON、resolved import、实际 symbol consumer、合同与状态机结果。"
       ],
-      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-007-V17",
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-007-V18",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 313,
-        "lineStart": 276,
+        "lineEnd": 312,
+        "lineStart": 275,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
       "summary": "必须由 agent-production-runtime Manifest 只登记本域 Manifest primary ownership，并由现役静态 inspector 基于真实 AST、JSON、合同、resolved import 与实际 consumer 检查本域，使当前候选获明确授权的相邻路径在唯一一次原子归位后保持无无主、无重叠且不取得相邻域或历史方案主权。",
-      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-007-V16",
+      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-007-V17",
       "tier": "P0"
     },
     {
@@ -733,9 +726,9 @@
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
         "LAW-AGENT-PRODUCTION-RUNTIME-003-V17",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V17",
-        "LAW-AGENT-PRODUCTION-RUNTIME-005-V15",
-        "LAW-AGENT-PRODUCTION-RUNTIME-006-V17",
-        "LAW-AGENT-PRODUCTION-RUNTIME-007-V17"
+        "LAW-AGENT-PRODUCTION-RUNTIME-005-V16",
+        "LAW-AGENT-PRODUCTION-RUNTIME-006-V18",
+        "LAW-AGENT-PRODUCTION-RUNTIME-007-V18"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -755,16 +748,16 @@
         "不得发生：agent-production-runtime 拥有第二 checker、第二 real-proof、第二 receipt、第二候选 hash 或第二 quality verdict；唯一入口必须服从全仓原生 quality:check，CHANGE、READY、RELEASE 证据阶段不得混称，GPT、local-browser-session、runtime-log-spine 与 Runtime proof 必须分别独立启动、只声明自身 lawId 且不得共享 assertion、Website job、Chrome journey、时间线、coordinator、proof bus、scenario 或 adapter，任一动态路由未归位都必须阻断 RELEASE。",
         "不得发生：Runtime 的静态或动态 PASS 被升级为 Website 业务完成、Product/GPT/Browser 已生产接纳、全系统 READY、RELEASE 或 SYSTEM_PROVEN。"
       ],
-      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-008-V18",
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-008-V19",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 359,
-        "lineStart": 315,
+        "lineEnd": 358,
+        "lineStart": 314,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
       "summary": "必须由 agent-production-runtime 在全仓唯一 quality:check 中使用可独立运行的唯一专属 proof 及其同域辅助读取，只证明本域的 service、database、storage、authorization 与 recovery，不复制相邻域证明、不依赖共享旅程、不产生第二裁决或冒充业务完成。",
-      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-008-V17",
+      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-008-V18",
       "tier": "P0"
     },
     {
@@ -797,8 +790,8 @@
       "lawId": "LAW-APP-SHELL-UI-001-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 398,
-        "lineStart": 362,
+        "lineEnd": 397,
+        "lineStart": 361,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -829,8 +822,8 @@
       "lawId": "LAW-APP-SHELL-UI-002-V1",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 429,
-        "lineStart": 400,
+        "lineEnd": 428,
+        "lineStart": 399,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -863,8 +856,8 @@
       "lawId": "LAW-APP-SHELL-UI-003-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 462,
-        "lineStart": 431,
+        "lineEnd": 461,
+        "lineStart": 430,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -911,8 +904,8 @@
       "lawId": "LAW-ARCHITECTURE-BOUNDARY-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 511,
-        "lineStart": 466,
+        "lineEnd": 510,
+        "lineStart": 465,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -956,8 +949,8 @@
       "lawId": "LAW-CAPABILITY-GOVERNANCE-001-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 557,
-        "lineStart": 515,
+        "lineEnd": 556,
+        "lineStart": 514,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1115,8 +1108,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 589,
-        "lineStart": 561,
+        "lineEnd": 588,
+        "lineStart": 560,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1145,8 +1138,8 @@
       "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 618,
-        "lineStart": 591,
+        "lineEnd": 617,
+        "lineStart": 590,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1169,18 +1162,18 @@
       ],
       "excludes": [],
       "forbidden": [
-        "不得发生：以退休业务对象、无 envelope 裸记录、无 integrity metadata 的 artifact 或无删除关系的记录污染 Forensics schema。"
+        "不得发生：以退休业务对象、无 envelope 裸记录、无 integrity metadata 的 artifact、无当前调用方的字段或万能业务枚举污染 Forensics schema。"
       ],
-      "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3",
+      "lawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 646,
-        "lineStart": 620,
+        "lineEnd": 645,
+        "lineStart": 619,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须保持以下不变量：Forensics schema vocabulary must use record envelopes, refs, integrity metadata, export metadata, and deletion relations instead of retired business-domain objects.",
-      "supersedesLawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V2",
+      "summary": "必须保持 Forensics schema 只含当前 evidence/failure 记录、当前 artifact 类型、refs 与 integrity metadata；没有生产调用方的字段、枚举和通用分发入口必须删除。",
+      "supersedesLawId": "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3",
       "tier": "P0"
     },
     {
@@ -1252,8 +1245,8 @@
       "lawId": "LAW-GPT-001-V38",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 723,
-        "lineStart": 650,
+        "lineEnd": 722,
+        "lineStart": 649,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1294,8 +1287,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 766,
-        "lineStart": 727,
+        "lineEnd": 765,
+        "lineStart": 726,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1325,8 +1318,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-002-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 796,
-        "lineStart": 768,
+        "lineEnd": 795,
+        "lineStart": 767,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1359,8 +1352,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-003-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 829,
-        "lineStart": 798,
+        "lineEnd": 828,
+        "lineStart": 797,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1399,8 +1392,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 868,
-        "lineStart": 833,
+        "lineEnd": 867,
+        "lineStart": 832,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1444,8 +1437,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-002-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 910,
-        "lineStart": 870,
+        "lineEnd": 909,
+        "lineStart": 869,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1492,8 +1485,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-003-V26",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 955,
-        "lineStart": 912,
+        "lineEnd": 954,
+        "lineStart": 911,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1547,8 +1540,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V28",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1007,
-        "lineStart": 957,
+        "lineEnd": 1006,
+        "lineStart": 956,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1585,8 +1578,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-005-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1042,
-        "lineStart": 1009,
+        "lineEnd": 1041,
+        "lineStart": 1008,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1620,8 +1613,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V19",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1074,
-        "lineStart": 1044,
+        "lineEnd": 1073,
+        "lineStart": 1043,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1675,8 +1668,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-001-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1126,
-        "lineStart": 1078,
+        "lineEnd": 1125,
+        "lineStart": 1077,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1721,8 +1714,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1167,
-        "lineStart": 1128,
+        "lineEnd": 1166,
+        "lineStart": 1127,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1774,8 +1767,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-003-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1215,
-        "lineStart": 1169,
+        "lineEnd": 1214,
+        "lineStart": 1168,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1816,8 +1809,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1258,
-        "lineStart": 1219,
+        "lineEnd": 1257,
+        "lineStart": 1218,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1857,8 +1850,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1296,
-        "lineStart": 1260,
+        "lineEnd": 1295,
+        "lineStart": 1259,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1894,8 +1887,8 @@
       "lawId": "LAW-SYSTEM-SECURITY-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1334,
-        "lineStart": 1300,
+        "lineEnd": 1333,
+        "lineStart": 1299,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1935,8 +1928,8 @@
       "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1374,
-        "lineStart": 1338,
+        "lineEnd": 1373,
+        "lineStart": 1337,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",

@@ -1,16 +1,12 @@
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 
-import { GPT_CHILD_CAPABILITY_CONTRACTS } from "../contract.js";
+import { GPT_CHILD_CAPABILITY_CONTRACTS, GPT_CHILD_CAPABILITY_IDS } from "../contract.js";
 import { emitQualityProofObservation } from "../../../../scripts/audit/shared/proof-observation.js";
 import {
   GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR,
   GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR,
 } from "./gpt-page-fixture-selectors.js";
-import {
-  GPT_PROFILE_POPUP_SELECTOR,
-  GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
-  GPT_PROFILE_TRIGGER_SELECTOR,
-} from "./gpt-page-fixture-selectors.js";
+import { GPT_PROFILE_TRIGGER_SELECTOR } from "./gpt-page-fixture-selectors.js";
 import {
   coherentObservationPacket,
   EXPECTED_GPT_CHILD_IDS,
@@ -21,10 +17,10 @@ import {
   exerciseFailedEvidenceReadback,
   exercisePreExecutionFailureEvidence,
 } from "./gpt-failure-evidence-readback.acceptance-support.js";
-import { execute, gpt, profile, profileFacts } from "./gpt-exact-target-profile-fixture.js";
+import { execute, profile, profileFacts } from "./gpt-exact-target-profile-fixture.js";
 import "./gpt-reasoning-requirement.acceptance.js";
 
-assert.deepEqual(gpt.listChildCapabilityIds(), EXPECTED_GPT_CHILD_IDS);
+assert.deepEqual(GPT_CHILD_CAPABILITY_IDS, EXPECTED_GPT_CHILD_IDS);
 assert.equal(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).length, 28);
 assertGptExactTargetSourceShape(import.meta.url);
 

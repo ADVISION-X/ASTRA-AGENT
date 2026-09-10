@@ -1,15 +1,10 @@
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { ProductionGptBrowserLifecycle } from "../production-browser-lifecycle.js";
-import {
-  GPT_CROSS_CONVERSATION_POLL_INTERVAL_MS,
-  GptCrossConversationPollCadence,
-  productionGptCrossConversationPollCadence,
-} from "../provider-wait-cross-conversation-cadence.js";
 import type {
   BrowserConfirmedProviderSourceReadbackAuthorization,
   BrowserExecutionBinding,

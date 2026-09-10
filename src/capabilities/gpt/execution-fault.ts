@@ -28,16 +28,21 @@ export type ProductSafeConfirmedProviderSubmitReceipt = Readonly<{
   evidenceHash: `sha256:${string}`;
 }>;
 
-const errorConfirmedSubmitReceipts = new WeakMap<object, ProductSafeConfirmedProviderSubmitReceipt>();
+class ConfirmedProviderSubmitReceiptError extends Error {
+  public override readonly name = "ConfirmedProviderSubmitReceiptError";
+  public constructor(
+    cause: unknown,
+    public readonly confirmedProviderSubmitReceipt: ProductSafeConfirmedProviderSubmitReceipt,
+  ) {
+    super("CONFIRMED_PROVIDER_SUBMIT_RECEIPT", { cause });
+  }
+}
 
 export const carryProductSafeConfirmedProviderSubmitReceipt = (
   error: unknown,
   receipt: ProductSafeConfirmedProviderSubmitReceipt,
 ): unknown => {
-  if (error && typeof error === "object") {
-    errorConfirmedSubmitReceipts.set(error, Object.freeze(receipt));
-  }
-  return error;
+  return new ConfirmedProviderSubmitReceiptError(error, Object.freeze(receipt));
 };
 
 export const confirmedProviderSubmitReceiptFromError = (
@@ -47,8 +52,9 @@ export const confirmedProviderSubmitReceiptFromError = (
   const seen = new Set<object>();
   while (current && typeof current === "object" && !seen.has(current)) {
     seen.add(current);
-    const receipt = errorConfirmedSubmitReceipts.get(current);
-    if (receipt) return receipt;
+    if (current instanceof ConfirmedProviderSubmitReceiptError) {
+      return current.confirmedProviderSubmitReceipt;
+    }
     current = current instanceof Error ? current.cause : undefined;
   }
   return null;

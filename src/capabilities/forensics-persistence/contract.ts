@@ -1,29 +1,26 @@
-import { FORENSICS_PERSISTENCE_ABILITY_GROUP_ID } from "./schema.js";
 import type {
-  ForensicsAbilityInput,
   ForensicsAppendArtifactInput,
   ForensicsAppendRecordInput,
   ForensicsReadRecordRefInput,
   ForensicsReadArtifactRefInput,
-  ForensicsResult,
+  ForensicsAppendRecordResult,
+  ForensicsAppendArtifactResult,
+  ForensicsReadRecordResult,
+  ForensicsReadArtifactResult,
 } from "./schema.js";
 
-type ForensicsPersistenceAbilityGroupId = typeof FORENSICS_PERSISTENCE_ABILITY_GROUP_ID;
-type ForensicsPersistenceAbilityResult = ForensicsResult;
-type ForensicsAppendRecordRequest = Omit<ForensicsAppendRecordInput, "childCapabilityId" | "capabilityCallId"> & {
+type ForensicsAppendRecordRequest = Omit<ForensicsAppendRecordInput, "capabilityCallId"> & {
   correlationId?: string;
 };
-type ForensicsAppendArtifactRequest = Omit<ForensicsAppendArtifactInput, "childCapabilityId" | "capabilityCallId"> & {
+type ForensicsAppendArtifactRequest = Omit<ForensicsAppendArtifactInput, "capabilityCallId"> & {
   correlationId?: string;
 };
 
 interface ForensicsPersistenceAbilityGroup {
-  readonly abilityGroupId: ForensicsPersistenceAbilityGroupId;
-  execute(input: ForensicsAbilityInput): Promise<ForensicsPersistenceAbilityResult>;
-  appendRecord(input: ForensicsAppendRecordRequest): Promise<ForensicsPersistenceAbilityResult>;
-  appendArtifact(input: ForensicsAppendArtifactRequest): Promise<ForensicsPersistenceAbilityResult>;
-  readRecordRef(input: ForensicsReadRecordRefInput): Promise<ForensicsPersistenceAbilityResult>;
-  readArtifactRef(input: ForensicsReadArtifactRefInput): Promise<ForensicsPersistenceAbilityResult>;
+  appendRecord(input: ForensicsAppendRecordRequest): Promise<ForensicsAppendRecordResult>;
+  appendArtifact(input: ForensicsAppendArtifactRequest): Promise<ForensicsAppendArtifactResult>;
+  readRecordRef(input: ForensicsReadRecordRefInput): Promise<ForensicsReadRecordResult>;
+  readArtifactRef(input: ForensicsReadArtifactRefInput): Promise<ForensicsReadArtifactResult>;
   readExactCallEvidence(input: Readonly<{
     missionId: string;
     runId: string;

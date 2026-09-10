@@ -28,20 +28,30 @@ const scanZombieFiles = (
   collector: InventoryFindingCollector,
   moduleGraph: ZombieModuleGraph,
   reachability: ZombieReachability,
+  productionReachability: ZombieReachability,
   zombieLawId: string,
 ): number => {
   let unreachableFileCount = 0;
   for (const governedFile of moduleGraph.filesByPath.values()) {
-    if (reachability.reachableFiles.has(governedFile.repoPath)) {
+    if (reachability.reachableFiles.has(governedFile.repoPath)
+      && (!requiresProductionConsumer(governedFile.repoPath)
+        || productionReachability.reachableFiles.has(governedFile.repoPath))) {
       continue;
     }
+    const verificationOnly = reachability.reachableFiles.has(governedFile.repoPath);
     pushZombieFinding(collector, {
       checkId: "code-purity/zombie-file",
       governedFile,
       lawId: zombieLawId,
-      reason: "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
-      remediation: "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
-      message: `${governedFile.repoPath} is not reachable from any lawful live entry surface and behaves like a zombie file.`,
+      reason: verificationOnly
+        ? "Production implementation is reachable only from acceptance or governance verification roots, which cannot prove a production consumer."
+        : "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
+      remediation: verificationOnly
+        ? "Delete the production implementation or connect it to a real production entrypoint."
+        : "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
+      message: verificationOnly
+        ? `${governedFile.repoPath} is kept alive only by verification code and has no production consumer.`
+        : `${governedFile.repoPath} is not reachable from any lawful live entry surface and behaves like a zombie file.`,
     });
     unreachableFileCount += 1;
   }
@@ -97,6 +107,11 @@ const collectExportReferenceState = (
   };
 };
 
+const requiresProductionConsumer = (filePath: string): boolean =>
+  (filePath.startsWith("src/") && !filePath.includes("/acceptance/"))
+  || filePath.startsWith("scripts/startup/")
+  || filePath.startsWith("scripts/maintenance/");
+
 const buildZombieExportFailure = (
   exportSymbol: ZombieExportSymbol,
   reachableReferences: ReturnType<typeof collectExportReferenceState>["reachableReferences"],
@@ -132,6 +147,8 @@ const scanZombieExportSymbol = (
     governedFile: ZombieModuleGraph["filesByPath"] extends Map<string, infer T> ? T : never;
     namespaceUsage: ZombieNamespaceUsageReport;
     reachability: ZombieReachability;
+    productionReachability: ZombieReachability;
+    productionNamespaceUsage: ZombieNamespaceUsageReport;
     symbolGraph: ZombieSymbolGraph;
     zombieLawId: string;
     generatedOwnerInspectorPaths: ReadonlySet<string>;
@@ -142,7 +159,12 @@ const scanZombieExportSymbol = (
     && input.generatedOwnerInspectorPaths.has(exportSymbol.exportingFile)) {
     return "live";
   }
-  const referenceState = collectExportReferenceState(exportSymbol, input);
+  const productionOnly = requiresProductionConsumer(exportSymbol.exportingFile);
+  const referenceState = collectExportReferenceState(exportSymbol, {
+    namespaceUsage: productionOnly ? input.productionNamespaceUsage : input.namespaceUsage,
+    reachability: productionOnly ? input.productionReachability : input.reachability,
+    symbolGraph: input.symbolGraph,
+  });
   const isLive = exportSymbol.isTypeOnly
     ? referenceState.hasTypeUsage
     : exportSymbol.isRuntimeValue
@@ -177,6 +199,8 @@ const scanZombieExports = (
     moduleGraph: ZombieModuleGraph;
     namespaceUsage: ZombieNamespaceUsageReport;
     reachability: ZombieReachability;
+    productionReachability: ZombieReachability;
+    productionNamespaceUsage: ZombieNamespaceUsageReport;
     symbolGraph: ZombieSymbolGraph;
     generatedOwnerInspectorPaths: ReadonlySet<string>;
   },
@@ -206,6 +230,8 @@ const scanZombieExports = (
           governedFile,
           namespaceUsage: input.namespaceUsage,
           reachability: input.reachability,
+          productionReachability: input.productionReachability,
+          productionNamespaceUsage: input.productionNamespaceUsage,
           symbolGraph: input.symbolGraph,
           zombieLawId,
           generatedOwnerInspectorPaths: input.generatedOwnerInspectorPaths,
@@ -231,12 +257,16 @@ export const scanZombieReferenceSurfaces = (
     moduleGraph: ZombieModuleGraph;
     namespaceUsage: ZombieNamespaceUsageReport;
     reachability: ZombieReachability;
+    productionReachability: ZombieReachability;
+    productionNamespaceUsage: ZombieNamespaceUsageReport;
     symbolGraph: ZombieSymbolGraph;
     generatedOwnerInspectorPaths: ReadonlySet<string>;
   },
   zombieLawId: string,
 ): ZombieReferenceSurfaceSummary => {
-  const unreachableFileCount = scanZombieFiles(collector, input.moduleGraph, input.reachability, zombieLawId);
+  const unreachableFileCount = scanZombieFiles(
+    collector, input.moduleGraph, input.reachability, input.productionReachability, zombieLawId,
+  );
   const exportSummary = scanZombieExports(collector, input, input.antiEvasionLawId, zombieLawId);
   return {
     liveExportCount: exportSummary.liveExportCount,

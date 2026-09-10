@@ -1,8 +1,6 @@
-import type { ForensicsReadRecordRefInput, ForensicsResult } from "../../schema.js";
+import type { ForensicsReadRecordRefInput, ForensicsReadRecordResult } from "../../schema.js";
 import type { ForensicsStoragePort } from "../../storage-port.js";
 import {
-  buildForensicsFailureProof,
-  buildForensicsSuccessProof,
   createForensicsProofTiming,
   resolveForensicsFailureReason,
 } from "../../proof-support.js";
@@ -10,7 +8,7 @@ import {
 export async function executeReadRecordRef(
   input: ForensicsReadRecordRefInput,
   storage: ForensicsStoragePort,
-): Promise<ForensicsResult> {
+): Promise<ForensicsReadRecordResult> {
   const startedAt = new Date().toISOString();
   try {
     const record = await storage.readRecord(input.recordRef);
@@ -19,22 +17,19 @@ export async function executeReadRecordRef(
       status: "success",
       recordRef: input.recordRef,
       record,
-      proof: buildForensicsSuccessProof({
+      proof: {
         childCapabilityId: "read-record-ref",
         recordRef: input.recordRef,
-      }, createForensicsProofTiming(startedAt)),
+        status: "success", ...createForensicsProofTiming(startedAt),
+      },
     };
   } catch (err) {
     const failureReason = resolveForensicsFailureReason(err);
     return {
       status: "failed",
       failureReason,
-      proof: buildForensicsFailureProof(
-        "read-record-ref",
-        failureReason,
-        createForensicsProofTiming(startedAt),
-        { recordRef: input.recordRef },
-      ),
+      proof: { childCapabilityId: "read-record-ref", status: "failed", failureReason,
+        recordRef: input.recordRef, ...createForensicsProofTiming(startedAt) },
     };
   }
 }

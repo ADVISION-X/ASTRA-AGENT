@@ -9,9 +9,9 @@ import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 const LAWS = {
   core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V47", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
   route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V17", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V17",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V15", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V17",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V17",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V18",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V16", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V18",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V18",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V19",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";

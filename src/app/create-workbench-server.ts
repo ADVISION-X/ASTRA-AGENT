@@ -3,9 +3,8 @@ import { URL } from "node:url";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { handleWorkbenchApiBoundary, type WorkbenchApiBoundaryDecision } from "./workbench-api-boundary.js";
-import { readRequestBuffer, writeCorsPreflight, writeJson } from "./workbench-http.js";
+import { writeCorsPreflight, writeJson } from "./workbench-http.js";
 import { renderWorkbenchHomePage } from "./workbench-home-page.js";
-import { readMultipartFormData } from "./workbench-multipart.js";
 import { handleProductionRuntimeRequest } from "./workbench-production-runtime-routes.js";
 import { upgradeWorkbenchBrowserAuthoritySocket } from "./workbench-browser-websocket-upgrade.js";
 
@@ -25,43 +24,17 @@ const setResponseHeaders = (
   }
 };
 
-const readContentType = (request: import("node:http").IncomingMessage): string => {
-  const value = request.headers["content-type"];
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
-};
-
-const readApiBodyPreview = async (
-  request: import("node:http").IncomingMessage,
-  maxBytes = Number.POSITIVE_INFINITY,
-): Promise<unknown> => {
-  const contentType = readContentType(request);
-  if (contentType.startsWith("application/json")) {
-    const raw = (await readRequestBuffer(request, maxBytes)).toString("utf8").trim();
-    return raw ? { json: JSON.parse(raw) } : { json: {} };
-  }
-  if (contentType.startsWith("multipart/form-data")) {
-    const form = await readMultipartFormData(request);
-    return {
-      fields: Object.fromEntries(form.fields.entries()),
-      files: [...form.files.keys()],
-    };
-  }
-  return undefined;
-};
-
 const buildWorkbenchApiBoundaryInput = (input: {
   request: import("node:http").IncomingMessage;
   url: URL;
   baseUrl: string;
   method?: string | undefined;
-  bodyPreview?: unknown;
 }) => ({
   method: input.method ?? input.request.method,
   path: input.url.pathname,
   origin: input.request.headers.origin,
   headers: input.request.headers,
   baseUrl: input.baseUrl,
-  bodyPreview: input.bodyPreview,
 });
 
 const writeBlockedApiBoundaryDecision = (
@@ -70,36 +43,16 @@ const writeBlockedApiBoundaryDecision = (
 ): void => {
   writeJson(response, decision.statusCode, {
     error: decision.error,
-    reason: decision.reason,
   }, decision.corsHeaders);
-};
-
-const readOptionalHeader = (
-  request: import("node:http").IncomingMessage,
-  name: string,
-): string | undefined => {
-  const value = request.headers[name];
-  return Array.isArray(value) ? value[0] : value;
 };
 
 const recordApiBoundaryDecision = (input: {
   decision: Exclude<WorkbenchApiBoundaryDecision, { kind: "not_api_request" }>;
-  request: import("node:http").IncomingMessage;
-  url: URL;
   workbench: GrassEyeWorkbenchHandle;
 }): void => {
-  const routeRule = input.decision.kind === "allowed" ? input.decision.routeRule : undefined;
   input.workbench.recordWorkbenchApiBoundaryEvent({
-    authenticated: readOptionalHeader(input.request, "x-grasseye-signature") !== undefined,
     decision: input.decision.kind === "allowed" ? "allowed" : "blocked",
-    jobOwner: routeRule?.jobOwner,
-    method: input.request.method,
-    originCategory: input.decision.kind === "allowed" ? input.decision.originCategory : "unknown",
-    path: input.url.pathname,
-    reason: input.decision.kind === "allowed" ? "allowed" : input.decision.reason,
-    requestId: readOptionalHeader(input.request, "x-grasseye-request-id"),
-    routePurpose: routeRule?.purpose,
-    sourceSystem: readOptionalHeader(input.request, "x-grasseye-source-system"),
+    reason: input.decision.kind === "allowed" ? "allowed" : input.decision.error,
   });
 };
 
@@ -124,10 +77,6 @@ const handleWorkbenchMetaRequest = async (input: {
 }): Promise<boolean> => {
   if (input.request.method === "GET" && input.url.pathname === "/api/health") {
     writeJson(input.response, 200, await input.workbench.getHealthReport());
-    return true;
-  }
-  if (input.request.method === "GET" && input.url.pathname === "/api/mode") {
-    writeJson(input.response, 200, { mode: input.workbench.getModeInfo() });
     return true;
   }
   if (input.request.method === "GET" && input.url.pathname === "/api/browser-authority/pairing") {
@@ -176,12 +125,12 @@ async function handleRequest(
       : undefined;
     const decision = handleWorkbenchApiBoundary(buildWorkbenchApiBoundaryInput({ request, url, baseUrl, method }));
     if (decision.kind === "allowed") {
-      recordApiBoundaryDecision({ decision, request, url, workbench });
+      recordApiBoundaryDecision({ decision, workbench });
       writeCorsPreflight(response, decision.corsHeaders);
       return;
     }
     if (decision.kind === "blocked") {
-      recordApiBoundaryDecision({ decision, request, url, workbench });
+      recordApiBoundaryDecision({ decision, workbench });
       writeBlockedApiBoundaryDecision(response, decision);
       return;
     }
@@ -195,26 +144,13 @@ async function handleRequest(
 
   const boundaryDecision = handleWorkbenchApiBoundary(buildWorkbenchApiBoundaryInput({ request, url, baseUrl }));
   if (boundaryDecision.kind === "blocked") {
-    recordApiBoundaryDecision({ decision: boundaryDecision, request, url, workbench });
+    recordApiBoundaryDecision({ decision: boundaryDecision, workbench });
     writeBlockedApiBoundaryDecision(response, boundaryDecision);
     return;
   }
   if (boundaryDecision.kind === "allowed") {
-    let allowedDecision = boundaryDecision;
-    if (boundaryDecision.originCategory === "external-website" && request.method !== "GET") {
-      const bodyPreview = await readApiBodyPreview(request, Number.POSITIVE_INFINITY);
-      const bodyDecision = handleWorkbenchApiBoundary(buildWorkbenchApiBoundaryInput({ request, url, baseUrl, bodyPreview }));
-      if (bodyDecision.kind === "blocked") {
-        recordApiBoundaryDecision({ decision: bodyDecision, request, url, workbench });
-        writeBlockedApiBoundaryDecision(response, bodyDecision);
-        return;
-      }
-      if (bodyDecision.kind === "allowed") {
-        allowedDecision = bodyDecision;
-      }
-    }
-    recordApiBoundaryDecision({ decision: allowedDecision, request, url, workbench });
-    setResponseHeaders(response, allowedDecision.corsHeaders);
+    recordApiBoundaryDecision({ decision: boundaryDecision, workbench });
+    setResponseHeaders(response, boundaryDecision.corsHeaders);
     if (await handleKnownWorkbenchApiRequest({ request, response, workbench, url })) {
       return;
     }

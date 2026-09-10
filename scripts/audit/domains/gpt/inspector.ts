@@ -155,9 +155,9 @@ const inspectFacadeAndOwnership = (context: InspectorContext, findings: Inspecto
     if (Node.isMethodSignature(member) || Node.isPropertySignature(member)) return [member.getName()];
     return [];
   }).sort() ?? [];
-  if (JSON.stringify(fields) !== JSON.stringify(["abilityGroupId", "execute", "listChildCapabilityIds", "transport"].sort())) {
+  if (JSON.stringify(fields) !== JSON.stringify(["execute"])) {
     findings.push(finding("gpt/public-facade-shape", CONTRACT_PATH,
-      `GptAbilityGroup may expose only abilityGroupId, transport, listChildCapabilityIds and execute; found ${fields.join(",")}.`));
+      `GptAbilityGroup may expose only execute; found ${fields.join(",")}.`));
   }
   const publicText = `${contract?.getFullText() ?? ""}\n${facade?.getFullText() ?? ""}`;
   for (const token of ["selector:", "coordinate", "tabId", "nativePicker", "fallbackPolicy", "providerKind"]) {
@@ -414,9 +414,6 @@ const inspectGptTypes = (context: InspectorContext, findings: InspectorFinding[]
   const group = contract?.getInterface("GptAbilityGroup");
   const proof = contract?.getInterface("GptChildCapabilityProof");
   const checks = [[group, "execute", (value: string) => value === "Promise<GptChildCapabilityResult<K>>"],
-    [group, "listChildCapabilityIds", (value: string) => value.startsWith("readonly (")
-      && value.includes('"prepare_clean_gpt_chat"') && value.includes('"release_gpt_continuation_lane"')
-      && !value.includes('"recover_gpt_response_checkpoint"')],
     [proof, "evidenceHash", (value: string) => value === "`sha256:${string}`"]] as const;
   for (const [owner, name, valid] of checks) {
     const member = owner?.getMembers().find((candidate) => "getName" in candidate && candidate.getName() === name);

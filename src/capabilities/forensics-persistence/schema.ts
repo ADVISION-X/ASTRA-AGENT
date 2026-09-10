@@ -1,138 +1,17 @@
-import { z } from "zod";
+type ForensicsChildCapabilityId = "append-record" | "append-artifact" | "read-record-ref" | "read-artifact-ref";
+export type ForensicsAppendRecordInput = Readonly<{ missionId: string; runId: string; stepId?: string; capabilityCallId?: string; sourceCapabilityId?: string; sourceChildCapabilityId?: string; recordType: "evidence" | "failure"; recordPayload: Record<string, unknown>; artifactRefs?: string[]; createdAt?: string; idempotencyKey: string }>;
+export type ForensicsAppendArtifactInput = Readonly<{ missionId: string; runId: string; capabilityCallId?: string; artifactType: "ai_raw_output" | "other"; mimeType?: string; content?: string | Uint8Array; idempotencyKey: string }>;
+export type ForensicsReadRecordRefInput = Readonly<{ recordRef: string }>;
+export type ForensicsReadArtifactRefInput = Readonly<{ artifactRef: string }>;
 
-const FORENSICS_PERSISTENCE_ABILITY_GROUP_ID = "forensics-persistence" as const;
+type ProofTiming = Readonly<{ proofId: string; startedAt: string; endedAt: string; durationMs: number }>;
+type FailureProof<K extends ForensicsChildCapabilityId> = ProofTiming & Readonly<{ childCapabilityId: K; status: "failed"; failureReason: string; missionId?: string; runId?: string; recordRef?: string; artifactRef?: string }>;
+type AppendRecordSuccessProof = ProofTiming & Readonly<{ childCapabilityId: "append-record"; status: "success"; missionId: string; runId: string; capabilityCallId?: string | undefined; recordRef: string; storageRef: string; integrityHash: string }>;
+type AppendArtifactSuccessProof = ProofTiming & Readonly<{ childCapabilityId: "append-artifact"; status: "success"; missionId: string; runId: string; capabilityCallId?: string | undefined; artifactRef: string; storageRef: string; integrityHash: string }>;
+type ReadRecordSuccessProof = ProofTiming & Readonly<{ childCapabilityId: "read-record-ref"; status: "success"; recordRef: string }>;
+type ReadArtifactSuccessProof = ProofTiming & Readonly<{ childCapabilityId: "read-artifact-ref"; status: "success"; artifactRef: string; integrityHash: string }>;
 
-const ForensicsChildCapabilityIdSchema = z.enum([
-  "append-record",
-  "append-artifact",
-  "read-record-ref",
-  "read-artifact-ref",
-]);
-
-const ForensicsRecordTypeSchema = z.enum([
-  "ai_result",
-  "ability_result",
-  "observation",
-  "evidence",
-  "visual_evidence",
-  "failure",
-  "mission_event",
-]);
-
-const ForensicsArtifactTypeSchema = z.enum([
-  "screenshot",
-  "coordinate_grid",
-  "ai_raw_output",
-  "ai_json_output",
-  "runtime_log",
-  "other",
-]);
-
-const ForensicsAppendRecordInputSchema = z.object({
-  childCapabilityId: z.literal("append-record"),
-  missionId: z.string().min(1),
-  runId: z.string().min(1),
-  sessionId: z.string().optional(),
-  roundId: z.string().optional(),
-  stepId: z.string().optional(),
-  capabilityCallId: z.string().optional(),
-  sourceCapabilityId: z.string().optional(),
-  sourceChildCapabilityId: z.string().optional(),
-  recordType: ForensicsRecordTypeSchema,
-  recordPayload: z.record(z.string(), z.unknown()),
-  artifactRefs: z.array(z.string()).optional(),
-  parentRefs: z.array(z.string()).optional(),
-  createdAt: z.string().optional(),
-  idempotencyKey: z.string().min(1),
-});
-
-const ForensicsAppendArtifactInputSchema = z.object({
-  childCapabilityId: z.literal("append-artifact"),
-  missionId: z.string().min(1),
-  runId: z.string().min(1),
-  sessionId: z.string().optional(),
-  roundId: z.string().optional(),
-  capabilityCallId: z.string().optional(),
-  artifactType: ForensicsArtifactTypeSchema,
-  mimeType: z.string().optional(),
-  bytesRef: z.string().optional(),
-  content: z.union([z.string(), z.instanceof(Uint8Array)]).optional(),
-  sourceRef: z.string().optional(),
-  parentRefs: z.array(z.string()).optional(),
-  idempotencyKey: z.string().min(1),
-});
-
-const ForensicsReadRecordRefInputSchema = z.object({
-  childCapabilityId: z.literal("read-record-ref"),
-  recordRef: z.string().min(1),
-});
-
-const ForensicsReadArtifactRefInputSchema = z.object({
-  childCapabilityId: z.literal("read-artifact-ref"),
-  artifactRef: z.string().min(1),
-});
-
-const ForensicsAbilityInputSchema = z.discriminatedUnion("childCapabilityId", [
-  ForensicsAppendRecordInputSchema,
-  ForensicsAppendArtifactInputSchema,
-  ForensicsReadRecordRefInputSchema,
-  ForensicsReadArtifactRefInputSchema,
-]);
-
-const ForensicsProofSchema = z.object({
-  proofId: z.string().min(1),
-  abilityGroupId: z.literal("forensics-persistence"),
-  childCapabilityId: ForensicsChildCapabilityIdSchema,
-  missionId: z.string().optional(),
-  runId: z.string().optional(),
-  sessionId: z.string().optional(),
-  roundId: z.string().optional(),
-  capabilityCallId: z.string().optional(),
-  recordRef: z.string().optional(),
-  artifactRef: z.string().optional(),
-  storageRef: z.string().optional(),
-  integrityHash: z.string().optional(),
-  status: z.enum(["success", "failed"]),
-  failureReason: z.string().optional(),
-  startedAt: z.string(),
-  endedAt: z.string(),
-  durationMs: z.number(),
-});
-
-const ForensicsResultSchema = z.object({
-  status: z.enum(["success", "failed", "invalid_input"]),
-  proof: ForensicsProofSchema.optional(),
-  recordRef: z.string().optional(),
-  artifactRef: z.string().optional(),
-  record: z.record(z.string(), z.unknown()).optional(),
-  artifact: z.object({
-    content: z.instanceof(Uint8Array),
-    mimeType: z.string().optional(),
-    integrityHash: z.string(),
-  }).optional(),
-  failureReason: z.string().optional(),
-});
-
-type ForensicsChildCapabilityId = z.infer<typeof ForensicsChildCapabilityIdSchema>;
-type ForensicsProof = z.infer<typeof ForensicsProofSchema>;
-type ForensicsAppendRecordInput = z.infer<typeof ForensicsAppendRecordInputSchema>;
-type ForensicsAppendArtifactInput = z.infer<typeof ForensicsAppendArtifactInputSchema>;
-type ForensicsReadRecordRefInput = z.infer<typeof ForensicsReadRecordRefInputSchema>;
-type ForensicsReadArtifactRefInput = z.infer<typeof ForensicsReadArtifactRefInputSchema>;
-type ForensicsAbilityInput = z.infer<typeof ForensicsAbilityInputSchema>;
-type ForensicsResult = z.infer<typeof ForensicsResultSchema>;
-
-export {
-  FORENSICS_PERSISTENCE_ABILITY_GROUP_ID,
-};
-
-export type {
-  ForensicsChildCapabilityId,
-  ForensicsProof,
-  ForensicsAppendRecordInput,
-  ForensicsAppendArtifactInput,
-  ForensicsReadRecordRefInput,
-  ForensicsReadArtifactRefInput,
-  ForensicsAbilityInput,
-  ForensicsResult,
-};
+export type ForensicsAppendRecordResult = Readonly<{ status: "success"; recordRef: string; proof: AppendRecordSuccessProof }> | Readonly<{ status: "failed"; failureReason: string; proof: FailureProof<"append-record"> }>;
+export type ForensicsAppendArtifactResult = Readonly<{ status: "success"; artifactRef: string; proof: AppendArtifactSuccessProof }> | Readonly<{ status: "failed"; failureReason: string; proof: FailureProof<"append-artifact"> }>;
+export type ForensicsReadRecordResult = Readonly<{ status: "success"; recordRef: string; record: Record<string, unknown>; proof: ReadRecordSuccessProof }> | Readonly<{ status: "failed"; failureReason: string; proof: FailureProof<"read-record-ref"> }>;
+export type ForensicsReadArtifactResult = Readonly<{ status: "success"; artifactRef: string; artifact: Readonly<{ content: Uint8Array; mimeType?: string; integrityHash: string }>; proof: ReadArtifactSuccessProof }> | Readonly<{ status: "failed"; failureReason: string; proof: FailureProof<"read-artifact-ref"> }>;

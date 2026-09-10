@@ -1,4 +1,4 @@
-import { executionFailure, failureCode, typedExecutionFailure } from "../../execution-failure.js";
+import { executionFailure, failureCode } from "../../execution-failure.js";
 import { typedRuntimeTransportFailure } from "./transport-failure.js";
 import { terminalFailureHttpStatus } from "./terminal-failure.js";
 import { hashCanonical, parseTerminalReceipt, parseTerminalReceiptExpectation, type ProductionHash } from "./contracts.js";

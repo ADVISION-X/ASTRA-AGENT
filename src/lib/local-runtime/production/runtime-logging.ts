@@ -14,7 +14,7 @@ import {
   releaseProductionLease,
   type ProductionLeaseRelease,
 } from "./cloud-client.js";
-import { hashCanonical, type ProductionHash } from "./contracts.js";
+import { hashCanonical } from "./contracts.js";
 import type { ClaimedProductionTask } from "./transport-protocol.js";
 import { typedRuntimeTransportFailure } from "./transport-failure.js";
 import {

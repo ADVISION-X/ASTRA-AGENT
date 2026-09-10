@@ -132,31 +132,27 @@ Capture 的 browser/environment/recapture trigger、scene binding、decision rec
 
 每个 page call 的 `pageRequirementSnapshot` 冻结采集当时的页面状态语义，仅用于历史 slice 自身一致性校验，不拥有 Product 步骤或顺序。`inputBindingProof` 必须由该 call 的生产 `inputBinding` 与其 specimens 中符合 Child/状态来源策略的 Chrome pageFacts 机械重算；所有必需角色 MATCHED 才能 complete。每个 call 另有覆盖 snapshot/proof/DOM/verdict/gaps 的 `derivationEnvelopeHash`。报告 stale 后按快照继续重算并检查公共 production source 精确投影、capture context 白名单和全部 envelope；只跳过当前投影相等检查。
 
-## 3. 唯一报告 V6
+## 3. 唯一报告 V7
 
 Canonical 报告仍是 `docs/项目方案/GPT页面操作子能力实证资料.json`：
 
 ```json
 {
-  "schemaVersion": "gpt-page-operation-evidence.v6",
-  "primaryIndex": "products",
-  "productionRuntimeConsumer": false,
-  "claimsQualityVerdict": false,
+  "schemaVersion": "gpt-page-operation-evidence.v7",
   "products": [{
     "productKey": "public_knowledge_article_pipeline/produce_article",
     "contractDigest": "sha256:...",
     "captureStatus": "CAPTURE_PARTIAL",
     "runs": []
-  }],
-  "childIndex": {}
+  }]
 }
 ```
 
 `products` 必须覆盖 production Catalog 的全部路由。没有 Product 合同的路由仍存在，但固定缺口为 `PRODUCT_EVIDENCE_CONTRACT_NOT_IMPLEMENTED`。
 
-`childIndex` 必须机械等于 `products[].runs[].calls[]` 的反向投影。校验器发现独立写入或不一致时返回 `REPORT_CHILD_INDEX_NOT_DERIVED`。
+按 Child 查询时必须临时遍历 `products[].runs[].calls[]`；报告不得保存可由这些调用记录重建的反向索引。
 
-`children` 字段只保留当前 Child 的静态 demand，不保存 collection 或 DOM。所有 DOM 只存在于目标 `products[].runs[].calls[].domEvidence`；capture 阶段的 Child 需求校验也只能从 `productCalls.<traceEntryId>` 派生，mapping 不接受独立 `children` 输入。它没有 Child 级 candidate/admit。旧 v5 capture/report 和所有 synthetic fixture 固定失效，不做双读或迁移桥。
+`children` 字段只保留当前 Child 的静态 demand，不保存 collection 或 DOM。所有 DOM 只存在于目标 `products[].runs[].calls[].domEvidence`；capture 阶段的 Child 需求校验也只能从 `productCalls.<traceEntryId>` 派生，mapping 不接受独立 `children` 输入。它没有 Child 级 candidate/admit。旧 v6 capture/report 和所有 synthetic fixture 固定失效，不做双读或迁移桥。
 
 定向合并只替换所选 `productKey`，未选产品对象原样保留；已从当前 Catalog 删除的历史对象也保留为 stale，当前 Catalog 新路由才追加为 `NOT_CAPTURED`。普通全报告 `validate` 返回 `projectionCurrent` 与 `staleProducts`，但不会因为未选产品或全局投影变化否决目标切片；`validate --require-complete` 才要求全局当前。产品 `candidate/admit` 始终只对所选 Product 做当前来源核对。
 

@@ -7,7 +7,6 @@ import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
 import { observeStaticMode } from "../../shared/static-target-object-inspector.js";
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 import { inspectAgentAuthorityAst } from "./authority-inspection.js";
-import { catalogIdentityMaintenanceFailures } from "./catalog-identity-inspection.js";
 import { inspectAgentContracts } from "./contract-inspection.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 
@@ -16,10 +15,10 @@ const LAWS = {
   credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
   route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V17",
   admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V17",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V15",
-  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V17",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V17",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V18",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V16",
+  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V18",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V18",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V19",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
@@ -39,7 +38,6 @@ const PATHS = {
   authority: `${ROOT}/store-authority-reader.ts`,
   inventory: `${ROOT}/runtime-storage-inventory.ts`,
   maintenance: "scripts/maintenance/production-runtime-storage-reconcile.ts",
-  identityMaintenance: "scripts/maintenance/production-runtime-catalog-identity-retire.ts",
   manifest: "scripts/audit/domains/agent-production-runtime/manifest.json",
   proof: "scripts/acceptance/agent-production-runtime.real-proof.ts",
 } as const;
@@ -127,7 +125,6 @@ export function inspectAgentFilesystem(
   const required = [
     [LAWS.credential, PATHS.credential],
     [LAWS.storage, PATHS.inventory], [LAWS.storage, PATHS.maintenance],
-    [LAWS.database, PATHS.identityMaintenance],
     [LAWS.staticQuality, PATHS.manifest], [LAWS.dynamicProof, PATHS.proof],
   ] as const;
   for (const [lawId, path] of required) if (!existsSync(resolve(context.sealedRoot, path))) {
@@ -397,8 +394,6 @@ export const runtimeManifestOwnershipDrift = (ownedPaths: readonly string[]): st
     || path === "scripts/acceptance/agent-route-contract.acceptance.ts"
     || path === "scripts/audit/domains/agent-production-runtime/**"
     || path === "scripts/generate/sync-website-agent-route-policy-projection.ts"
-    || path === "scripts/maintenance/production-runtime-credential-normalize.ts"
-    || path === "scripts/maintenance/production-runtime-catalog-identity-retire.ts"
     || path === "scripts/maintenance/production-runtime-storage-reconcile.ts"
     || path === "src/lib/execution-failure.ts"
     || path === "src/lib/local-runtime/production/**";
@@ -410,17 +405,6 @@ export function inspectAgentSql(
   findings: InspectorFinding[],
 ): void {
   const store = sourceFor(context, PATHS.store);
-  const identityMaintenanceSource = sourceFor(context, PATHS.identityMaintenance);
-  const identityMaintenance = read(context, PATHS.identityMaintenance).toLowerCase().replace(/\s+/gu, " ");
-  for (const failure of catalogIdentityMaintenanceFailures(identityMaintenanceSource, identityMaintenance)) {
-    const authorityReadback = failure === "authority-readback";
-    findings.push(finding(LAWS.database, "static.sql",
-      authorityReadback ? "agent-production-runtime/catalog-identity-authority-readback"
-        : "agent-production-runtime/catalog-identity-retirement",
-      PATHS.identityMaintenance, authorityReadback
-        ? "Task catalog retirement lacks exact six-table preservation and formal authority-reader readback."
-        : `Task catalog identity retirement is missing ${failure.slice("retirement:".length)}.`));
-  }
   const schemaInitializer = variableDeclaration(store, "productionSchemaSql")?.getInitializer();
   const schemaSql = (Node.isNoSubstitutionTemplateLiteral(schemaInitializer)
     ? schemaInitializer.getLiteralValue() : "").toLowerCase().replace(/\s+/gu, " ");

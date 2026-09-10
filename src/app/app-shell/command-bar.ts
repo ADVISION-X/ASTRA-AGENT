@@ -10,7 +10,6 @@ export const renderCommandBar = (): string => `
   <div class="command-context">
     <span class="status-badge status-running" data-current-skill>${getDefaultSkill().label}</span>
     <span class="status-badge status-completed">health <b data-health-status>-</b></span>
-    <span class="status-badge status-watch">mode <b data-mode-status>-</b></span>
   </div>
   <div class="command-actions" data-locale-toggle-host>
     ${renderLocaleToggle()}

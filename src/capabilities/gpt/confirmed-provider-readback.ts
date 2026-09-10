@@ -17,7 +17,6 @@ import type { ProductionGptBrowserLifecycle } from "./production-browser-lifecyc
 import { confirmedSubmitReadbackDocumentHash } from "./evidence-fact.js";
 import {
   carryProductSafeConfirmedProviderSubmitReceipt,
-  type ProductSafeConfirmedProviderSubmitReceipt,
 } from "./execution-fault.js";
 
 export {

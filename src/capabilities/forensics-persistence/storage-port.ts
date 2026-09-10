@@ -10,7 +10,6 @@ export interface AppendArtifactStorageResult {
   readonly artifactRef: string;
   readonly storageRef: string;
   readonly integrityHash: string;
-  readonly sizeBytes: number;
 }
 
 export interface ForensicsStoragePort {

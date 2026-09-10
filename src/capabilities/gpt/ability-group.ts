@@ -7,10 +7,7 @@ import {
 import { typedBrowserExecutionFailure } from "../../lib/browser/browser-authority-api.js";
 
 import {
-  GPT_ABILITY_GROUP_ID,
   GPT_CHILD_CAPABILITY_CONTRACTS,
-  GPT_CHILD_CAPABILITY_IDS,
-  GPT_TRANSPORT,
   gptExactCallIdentityHash,
   type GptAbilityGroup,
   type GptChildCapabilityId,
@@ -469,9 +466,6 @@ const executeOne = async <K extends GptChildCapabilityId>(
 };
 
 export const createGptAbilityGroup = (): GptAbilityGroup => Object.freeze({
-  abilityGroupId: GPT_ABILITY_GROUP_ID,
-  transport: GPT_TRANSPORT,
-  listChildCapabilityIds: () => GPT_CHILD_CAPABILITY_IDS,
   execute: executeOne,
 });
 

@@ -57,7 +57,6 @@ export const readContinuationCheckpointEvidence = async (input: Readonly<{
   expectedArtifactCount: number;
 }>): Promise<readonly string[]> => {
   const evidence = await input.evidenceStore.readRecordRef({
-    childCapabilityId: "read-record-ref",
     recordRef: input.checkpoint.evidence_ref,
   });
   const stored = evidence.record;

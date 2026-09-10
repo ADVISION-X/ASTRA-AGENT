@@ -11,8 +11,6 @@ import { executionFailure, typedExecutionFailure } from "../../src/lib/execution
 import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
-import { exerciseProductionRuntimeCatalogIdentityRetirement } from
-  "./agent-production-runtime-catalog-identity.acceptance-support.js";
 import { HASH_A, HASH_B, identityFor, recoveryCheckpointBody as baseRecoveryCheckpointBody,
   resultFor, task } from "./agent-production-runtime-fixtures.js";
 import { verifyBrowserFailureStoreContract } from
@@ -461,7 +459,6 @@ try {
   assert.throws(() => resolveStoredProductionAuthority(
     rowIdentityDirectory, `production-task:${rowIdentityTask.job_id}`, HASH_A,
   ), (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_AUTHORITY_STORE_CORRUPT");
-  await exerciseProductionRuntimeCatalogIdentityRetirement(temporary);
   const invariantDirectory = path.join(temporary, "checkpoint-lease-invariants");
   await mkdir(invariantDirectory);
   const invariantStore = new ProductionRuntimeStore(invariantDirectory);
@@ -494,7 +491,7 @@ try {
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V15",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V16",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"],
     locator: `acceptance:agent-production-runtime:sqlite-authority:${evidenceMode}`,

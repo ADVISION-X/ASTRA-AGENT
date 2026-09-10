@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 
-import { browserExecutionFailure } from "../browser-failure.js";
 import { BrowserCommandActor } from "../exact-target/browser-command-actor.js";
 import { BrowserMutationStore, type BrowserMutationReconciliationScope } from "../exact-target/browser-mutation-store.js";
 import { BrowserSessionWorkspace, type SessionWorkspaceBindingV6 } from "../exact-target/browser-session-workspace.js";
@@ -11,7 +10,7 @@ import { BrowserTargetLeaseManager, type BrowserExactTargetAcquisition } from ".
 import type { BrowserProfileConfig } from "../profile/browser-profile-config.js";
 import type { BrowserProfileState } from "../profile/browser-profile-state.js";
 import type { UnpackedExtensionReleaseIdentity } from "../release/unpacked-extension-release-identity.js";
-import { BrowserAuthorityWebSocket, type BrowserAuthorityReady, type BrowserAuthorityTargetClaim,
+import { BrowserAuthorityWebSocket, type BrowserAuthorityTargetClaim,
   type BrowserAuthorityWebSocketOptions } from "../transport/browser-authority-websocket.js";
 import { BrowserCommandAdmissionBudget } from "../transport/browser-command-admission-budget.js";
 import { BrowserTransportActor } from "../transport/transport-actor.js";

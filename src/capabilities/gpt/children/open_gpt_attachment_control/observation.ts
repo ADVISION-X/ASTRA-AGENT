@@ -65,7 +65,6 @@ const projectAttachmentControlState = (
   observation: GptCoherentObservation,
 ): AttachmentControlState => {
   const control = observation.rows.find((row) => row.queryId === "attachment-control")!;
-  const activeMenu = observation.rows.find((row) => row.queryId === "active-menu")!;
   const choice = observation.rows.find((row) => row.queryId === "upload-choice")!;
   return Object.freeze({
     controlRaw: control.rawCount,

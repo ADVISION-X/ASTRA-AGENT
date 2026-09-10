@@ -26,14 +26,12 @@ import type {
   ProductGptCallInput,
   ProductGptFactQuery,
   ProductGptChildResult,
-  ProductGptTools,
 } from "./product-api.js";
 import type { GptHash } from "./contract.js";
 import { persistGptChildEvidence, persistGptPreExecutionFailure } from "./evidence-writer.js";
 import { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
 import { executeProductionGptAtomicCall } from "./production-atomic-call.js";
 import {
-  bindConfirmedProviderSubmitReceipt,
   isPendingExactEvidence,
   productSafeExactGptCallFacts,
   readProductionGptCallFacts,
@@ -59,7 +57,6 @@ import type {
   GptProductionRuntimePort,
 } from "./production-ports.js";
 import {
-  childFailureEventIds,
   throwGptChildFailure,
   type GptProductionExecutionInput as ExecutionInput,
   type ProductGptExecution,
@@ -190,13 +187,12 @@ export class ProductionGptChildTools {
         try { await authorizeConfirmedProviderSourceReadback({ browsers, receipt }); }
         catch (error) { throw carryConfirmedProviderSubmitReceipt(error, receipt); }
       }
-      const safeFacts = productSafeExactGptCallFacts(facts);
-      return receipt ? bindConfirmedProviderSubmitReceipt(safeFacts, {
+      return productSafeExactGptCallFacts(facts, receipt ? {
         exactCallIdentityHash: receipt.sourceExactCallIdentityHash,
         terminalAt: receipt.sourceTerminalAt,
         evidenceRef: receipt.evidenceRef,
         evidenceHash: receipt.evidenceHash,
-      }) : safeFacts;
+      } : null);
     };
     const execute = async <K extends GptChildCapabilityId>(
       call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
@@ -357,7 +353,7 @@ export class ProductionGptChildTools {
     }));
   }
 
-  private terminalize(span: RuntimeSpanHandle, result: GptChildCapabilityResult): void {
+  private terminalize(span: RuntimeSpanHandle, result: GptChildCapabilityResult): string {
     const native = result.failureCause ? Object.assign(new Error(result.failureCause.name), {
       name: result.failureCause.name,
       ...(result.failureCause.code ? { code: result.failureCause.code } : {}),
@@ -376,7 +372,7 @@ export class ProductionGptChildTools {
           impact: RuntimeFailureImpact.BLOCKING,
         }),
       }));
-    childFailureEventIds.set(result, terminal.eventId);
+    return terminal.eventId;
   }
 
   private terminalizeError(span: RuntimeSpanHandle, error: unknown): never {
@@ -501,8 +497,8 @@ export class ProductionGptChildTools {
       return this.terminalizeError(span, error);
     }
     if (!result) return this.terminalizeError(span, executionFailure("failed", "GPT_CHILD_RESULT_MISSING"));
-    this.terminalize(span, result);
-    if (result.status !== "success") throwGptChildFailure(result);
+    const terminalEventId = this.terminalize(span, result);
+    if (result.status !== "success") throwGptChildFailure(result, evidenceRef, terminalEventId);
     return Object.freeze({
       value: result.value as ProductGptChildResult<K>["value"],
       evidenceRef,

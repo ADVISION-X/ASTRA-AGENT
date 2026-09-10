@@ -1,30 +1,22 @@
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { ProductionGptBrowserLifecycle } from "../production-browser-lifecycle.js";
 import {
   GPT_CROSS_CONVERSATION_POLL_INTERVAL_MS,
-  GptCrossConversationPollCadence,
   productionGptCrossConversationPollCadence,
 } from "../provider-wait-cross-conversation-cadence.js";
-import type {
-  BrowserConfirmedProviderSourceReadbackAuthorization,
-  BrowserExecutionBinding,
-} from "../../../lib/browser/browser-authority-api.js";
 import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import { typedExecutionFailure } from "../../../lib/execution-failure.js";
-import { HASH_A, HASH_B, task } from "../../../../scripts/acceptance/agent-production-runtime-fixtures.js";
+import { HASH_A, HASH_B } from "../../../../scripts/acceptance/agent-production-runtime-fixtures.js";
 
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-cross-poll-acceptance-"));
 try {
   const runtimeLogger = createRuntimeLogger({
     producer: "agent-cross-poll-acceptance", owner: "production-runtime", component: "gpt-child", terminalEnabled: false,
     fileSink: { directoryPath: path.join(temporary, "runtime-logs") },
-  });
-  const waitTask = task({
-    jobId: "job:agent-cross-poll-acceptance", productId: "payment_screenshot_observation", actionId: "observe",
   });
   let crossConversationNow = 0;
   const nativePerformanceNow = performance.now.bind(performance);

@@ -7,7 +7,6 @@ import {
 } from "./contracts.js";
 import { ProductionStoreOutbox } from "./store-outbox.js";
 import {
-  json,
   resolveProductionAuthority,
   stateInvariantFailureCount,
   type ProductionOutboxWrite,
@@ -58,7 +57,6 @@ const registerTerminal = (
   projection: LedgerProjection,
   row: LedgerRow,
   jobId: string,
-  task: StoredProductionTask | undefined,
 ): boolean => {
   try {
     const terminal = JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>;
@@ -152,9 +150,7 @@ export class ProductionRuntimeStore extends ProductionStoreOutbox {
     });
   }
 
-  private buildLedgerProjection(
-    tasks: ReadonlyMap<string, StoredProductionTask>,
-  ): LedgerProjection | null {
+  private buildLedgerProjection(): LedgerProjection | null {
     const rows = this.database.prepare(`select kind,path,body_blob,response_json,receipt_hash
       from production_outbox
       where sent_at is not null and response_hash is not null
@@ -167,7 +163,7 @@ export class ProductionRuntimeStore extends ProductionStoreOutbox {
       if (!match?.[1]) return null;
       const jobId = decodeURIComponent(match[1]);
       if (row.kind === "artifact" && !registerArtifact(projection, row, jobId)) return null;
-      if (row.kind === "terminal" && !registerTerminal(projection, row, jobId, tasks.get(jobId))) return null;
+      if (row.kind === "terminal" && !registerTerminal(projection, row, jobId)) return null;
     }
     return projection;
   }
@@ -190,7 +186,7 @@ export class ProductionRuntimeStore extends ProductionStoreOutbox {
     if (outbox.some((authority) => authority.state === "delivered"
       && (!authority.responseHash || (authority.kind === "artifact" && !authority.receiptHash)))) return false;
     if (outbox.some((authority) => !tasks.has(authority.jobId))) return false;
-    const projection = this.buildLedgerProjection(tasks);
+    const projection = this.buildLedgerProjection();
     if (!projection) return false;
     for (const [jobId, task] of tasks) {
       const terminal = projection.terminalByJob.get(jobId);

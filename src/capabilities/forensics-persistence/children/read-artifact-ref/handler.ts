@@ -1,8 +1,6 @@
-import type { ForensicsReadArtifactRefInput, ForensicsResult } from "../../schema.js";
+import type { ForensicsReadArtifactRefInput, ForensicsReadArtifactResult } from "../../schema.js";
 import type { ForensicsStoragePort } from "../../storage-port.js";
 import {
-  buildForensicsFailureProof,
-  buildForensicsSuccessProof,
   createForensicsProofTiming,
   resolveForensicsFailureReason,
 } from "../../proof-support.js";
@@ -10,7 +8,7 @@ import {
 export async function executeReadArtifactRef(
   input: ForensicsReadArtifactRefInput,
   storage: ForensicsStoragePort,
-): Promise<ForensicsResult> {
+): Promise<ForensicsReadArtifactResult> {
   const startedAt = new Date().toISOString();
   try {
     const artifact = await storage.readArtifact(input.artifactRef);
@@ -19,23 +17,20 @@ export async function executeReadArtifactRef(
       status: "success",
       artifactRef: input.artifactRef,
       artifact: { ...artifact, content: new Uint8Array(artifact.content) },
-      proof: buildForensicsSuccessProof({
+      proof: {
         childCapabilityId: "read-artifact-ref",
         artifactRef: input.artifactRef,
         integrityHash: artifact.integrityHash,
-      }, createForensicsProofTiming(startedAt)),
+        status: "success", ...createForensicsProofTiming(startedAt),
+      },
     };
   } catch (error) {
     const failureReason = resolveForensicsFailureReason(error);
     return {
       status: "failed",
       failureReason,
-      proof: buildForensicsFailureProof(
-        "read-artifact-ref",
-        failureReason,
-        createForensicsProofTiming(startedAt),
-        { artifactRef: input.artifactRef },
-      ),
+      proof: { childCapabilityId: "read-artifact-ref", status: "failed", failureReason,
+        artifactRef: input.artifactRef, ...createForensicsProofTiming(startedAt) },
     };
   }
 }

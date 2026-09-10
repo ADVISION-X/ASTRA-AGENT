@@ -1,12 +1,8 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import { createHmac } from "node:crypto";
 
 import {
   GRASSEYE_BROWSER_EXTENSION_ORIGIN,
   GRASSEYE_TOOL_EXTENSION_ID_HEADER,
-  handleWorkbenchApiBoundary,
-  WORKBENCH_API_ROUTE_RULES,
-  type WorkbenchApiRouteRule,
 } from "../../src/app/workbench-api-boundary.js";
 import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
@@ -20,7 +16,7 @@ import {
 
 const assertLocalShellRoutes = async (): Promise<void> => {
   await withServer(async ({ rootUrl }) => {
-    for (const route of ["/api/health", "/api/mode"]) {
+    for (const route of ["/api/health"]) {
       const response = await fetch(`${rootUrl}${route}`, {
         headers: { Origin: localBaseUrl },
       });
@@ -147,72 +143,15 @@ const assertRetiredRoutesAbsent = async (): Promise<void> => {
   });
 };
 
-const assertPerSiteHmacBoundary = (): void => {
-  const rule: WorkbenchApiRouteRule = {
-    method: "POST",
-    pathPattern: "exact",
-    path: "/api/authorized-external-fixture",
-    localUiAllowed: false,
-    externalApiAllowed: true,
-    requiresSiteHmac: true,
-    purpose: "acceptance_external_fixture",
-  };
-  const sourceSystem = "website-alpha";
-  const requestId = "request-001";
-  const secret = "site-alpha-secret-material-32-bytes-minimum";
-  const signature = createHmac("sha256", secret)
-    .update([sourceSystem, requestId, rule.method, rule.path].join("\n"))
-    .digest("hex");
-  const previous = {
-    enabled: process.env.GRASSEYE_EXTERNAL_API_ENABLED,
-    origins: process.env.GRASSEYE_EXTERNAL_ALLOWED_ORIGINS,
-    secrets: process.env.GRASSEYE_EXTERNAL_SITE_HMAC_SECRETS,
-  };
-  process.env.GRASSEYE_EXTERNAL_API_ENABLED = "true";
-  process.env.GRASSEYE_EXTERNAL_ALLOWED_ORIGINS = externalOrigin;
-  process.env.GRASSEYE_EXTERNAL_SITE_HMAC_SECRETS = JSON.stringify({ [sourceSystem]: secret });
-  WORKBENCH_API_ROUTE_RULES.push(rule);
-  try {
-    const decide = (headers: Record<string, string>) => handleWorkbenchApiBoundary({
-      method: rule.method,
-      path: rule.path,
-      origin: externalOrigin,
-      headers,
-      baseUrl: localBaseUrl,
-    });
-    assert.equal(decide({
-      "x-grasseye-source-system": sourceSystem,
-      "x-grasseye-request-id": requestId,
-      "x-grasseye-signature": signature,
-    }).kind, "allowed");
-    for (const headers of [
-      { "x-grasseye-source-system": sourceSystem, "x-grasseye-request-id": requestId },
-      { "x-grasseye-source-system": "website-beta", "x-grasseye-request-id": requestId, "x-grasseye-signature": signature },
-      { "x-grasseye-source-system": sourceSystem, "x-grasseye-request-id": requestId, "x-grasseye-signature": "0".repeat(64) },
-    ]) {
-      const decision = decide(headers);
-      assert.equal(decision.kind, "blocked");
-    }
-  } finally {
-    WORKBENCH_API_ROUTE_RULES.pop();
-    for (const [key, value] of Object.entries({
-      GRASSEYE_EXTERNAL_API_ENABLED: previous.enabled,
-      GRASSEYE_EXTERNAL_ALLOWED_ORIGINS: previous.origins,
-      GRASSEYE_EXTERNAL_SITE_HMAC_SECRETS: previous.secrets,
-    })) value === undefined ? delete process.env[key] : process.env[key] = value;
-  }
-};
-
 await assertLocalShellRoutes();
 await assertProductionObservationBoundary();
 await assertFixedExtensionPairingBoundary();
 await assertXuanxueLocalInterventionRetired();
 await assertXuanxueExternalIngressBlocked();
 await assertRetiredRoutesAbsent();
-assertPerSiteHmacBoundary();
 emitQualityProofObservation({
   lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V6", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","summary"],
-  locator: "acceptance:workbench-api-boundary:per-site-hmac",
-  observedValue: "known external route accepts only its source-bound HMAC and rejects missing foreign or invalid signatures",
+  locator: "acceptance:workbench-api-boundary:no-external-ingress",
+  observedValue: "all Workbench routes are local-only and external origins cannot reach a business ingress",
 });
 process.stdout.write("[ACCEPTANCE] workbench-api-boundary PASS\n");

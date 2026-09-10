@@ -1,5 +1,5 @@
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
-import { createLocalFinding, identifiers, requireIdentifiers, requireSource, sourcePaths, stringLiterals } from "./inspector-support.js";
+import { createLocalFinding, requireIdentifiers, requireSource, sourcePaths, stringLiterals } from "./inspector-support.js";
 
 export const inspectAuthenticatedChannelGuards = (
   context: InspectorContext,

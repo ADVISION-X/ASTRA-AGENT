@@ -43,6 +43,12 @@ export type ProductGptFactQuery<K extends GptChildCapabilityId = GptChildCapabil
 
 export type ExactGptCallFacts = Readonly<{
   exactCallIdentityHash: `sha256:${string}`;
+  confirmedProviderSubmitReceipt?: Readonly<{
+    exactCallIdentityHash: `sha256:${string}`;
+    terminalAt: string;
+    evidenceRef: string;
+    evidenceHash: `sha256:${string}`;
+  }>;
   mutation: Readonly<{
     owner: "browser";
     sourceAttemptId: string;
@@ -60,6 +66,7 @@ export type ExactGptCallFacts = Readonly<{
     evidenceHash: `sha256:${string}`;
     readbackVerified: true;
     artifactRefs: readonly string[];
+    readbackDocumentRefHash?: `sha256:${string}`;
   }> | null;
   continuation: Readonly<{
     owner: "gpt-session-controller";

@@ -1,31 +1,12 @@
 {
-  "schemaVersion": "gpt-page-operation-evidence.v6",
-  "generatedAt": "2026-09-10T05:28:52.037Z",
-  "repository": "AGENT",
-  "projectionRevision": "sha256:223eb31dfaab8ca30fcb807c0b107fe1745e66fcae2904c03239f37249f12f35",
+  "schemaVersion": "gpt-page-operation-evidence.v7",
+  "projectionRevision": "sha256:7794098cb10b53853c491aa19d892459cbaac3fb9ee9464c0a99c6a5e9fda677",
   "captureEpoch": null,
   "matrixBinding": {
     "schemaVersion": "gpt-page-operation-matrix.v4",
     "digest": "sha256:c9d144e93b8e96fef341db445ef07cb3a07a7e6bdac02c4b03eec8d1c1523442"
   },
-  "purpose": "Offline engineering evidence for GPT children that operate a page",
-  "evidenceRole": "stable Chrome page facts plus a cheap current-demand projection that every GPT page Child iteration must consume before editing",
-  "productionRuntimeConsumer": false,
-  "claimsQualityVerdict": false,
   "captureStatus": "NOT_CAPTURED",
-  "productionValue": {
-    "supports": [
-      "product-flow-bound evidence admission",
-      "offline re-projection and deterministic regression from one stable capture epoch"
-    ],
-    "doesNotReplace": [
-      "real GPT task execution when the task requires it",
-      "native quality verdict",
-      "READY",
-      "RELEASE",
-      "Website admission or storage"
-    ]
-  },
   "denominator": {
     "rule": "A child is in scope when it reads, navigates, clicks, types, uploads, waits on, checkpoints, or obtains media from a page. DOM terminology does not define the denominator.",
     "contractChildren": 28,
@@ -78,7 +59,6 @@
     "qimen-professional-answer",
     "qimen-report-followup"
   ],
-  "primaryIndex": "products",
   "products": [
     {
       "actionId": "accuracy_challenge",
@@ -7235,9 +7215,9 @@
             "semanticHash": "sha256:2f3fc53fc8fc5e36d479094e44a38754ca17aabee5c97294860c308bc1d1074d"
           },
           {
-            "contentHash": "sha256:aa108c7d49ab73c2de3cd02c362273d06a551047f3b9d97e44aca2157c502700",
+            "contentHash": "sha256:989a2a36d6ba7732e2290a22bf3e30a92338abc0893db0af1ad591264083a93a",
             "path": "src/plugins/public-knowledge-article-pipeline/seo-submit-readback.ts",
-            "semanticHash": "sha256:e76ff5cc1013d073257823a985d45be99a36bf5ee557429f09004a6f65b891f6"
+            "semanticHash": "sha256:55295ad2790b93873162272b7ad58239557622401f5b9c3c2a719a4a0a406fa0"
           },
           {
             "contentHash": "sha256:76df26f48aa5df5453a56718373afc90a810487ea96590de7c3338ee18a947a0",
@@ -7250,7 +7230,7 @@
             "semanticHash": "sha256:310e4311dc28e400892f2ea6bbe3ab09489d7524784fa4f2e1d3139eacfdf2f7"
           }
         ],
-        "semanticDigest": "sha256:3604634d8103428fe1e0d9ea0efd8b5b82bf782beccdf8d9779f53e49522edcd"
+        "semanticDigest": "sha256:5fc19c1544174c3da9736a00c6fe2569cccb883470c4b257b1aeeeef7ce9ef0d"
       },
       "gaps": [
         "article_synthesis/29/submit_exact_gpt_turn_once:PAGE_EVIDENCE_CONFLICT:STATE_ASSERTION:post-submit-user-turn:related.transitionChain.typedCommand.kind:equals",
@@ -36435,539 +36415,6 @@
       "runs": []
     }
   ],
-  "childIndex": {
-    "checkpoint_gpt_text_response": [
-      {
-        "actionOrdinal": 32,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:7df3bc35a6c82630c380656ebb878df8eb8f5b9e107da839d50b87a91f7cb5eb",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_synthesis",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:7c68446842c5f3bd663191005ba9dd9d8fe39d604dfa908f22b226fab9f1b11e"
-      }
-    ],
-    "close_gpt_execution_profile": [
-      {
-        "actionOrdinal": 7,
-        "captureComplete": false,
-        "captureEpoch": "sha256:d361315b1004aa3fd2608e97fbf3c3de8c3f123026e154456fa934926d2f239b",
-        "exactCallIdentityHash": "sha256:3cacd6430780a5f334eedbeeb2bf3d4bae25e4cfe9fab6329a2eea2edb897cce",
-        "productKey": "localization_static_catalog/produce_locale_catalog",
-        "productStepId": "zh-HK-batch-001:candidate-a",
-        "sourceSnapshotId": "sha256:10c7296b051e9a7d04dbba3db4947a4a4db220ba97fec9129a3828854669ac7a",
-        "traceEntryId": "sha256:fe828cea3a6809d24b6e3b098d8adbe7cf6c5345b4efe7ac4e5cfe321e5ab385"
-      },
-      {
-        "actionOrdinal": 26,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:c5ebcb57deb8408f837cb736b9053e877470f101ce027a006ff58eacde7b6796",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_synthesis",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:8a8ece21623393b4841efc046a1c86d14a73d7c379e6031c013a3edb79cc4afa"
-      },
-      {
-        "actionOrdinal": 42,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:6a8c7a32e8354cc89435bc7451ed9599c9a5115a4f1a49bd6188bc6a3f8f88b2",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:4feec495fd497373ceb5ef995ae8517fdc43b454f80c974081ce389e0e4613c2"
-      },
-      {
-        "actionOrdinal": 42,
-        "captureComplete": false,
-        "captureEpoch": "sha256:9624ae04131cb8da03d914e010bbff7b42c482fb17788d74d63e4c9b72d626bd",
-        "exactCallIdentityHash": "sha256:9a013adf909da597ae3dfb697a01979975ffdffdd9197f6468c7fbbea41e8c0f",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:be3c37404621f7e1ffe9d3166f92cc1d33cb5dac043070f9594e50ed13df3608",
-        "traceEntryId": "sha256:fcfcf492f8e41c5201314245b9ede1519448eef0e0ac709b781612e47d446488"
-      }
-    ],
-    "ensure_gpt_reasoning_requirement": [
-      {
-        "actionOrdinal": 6,
-        "captureComplete": false,
-        "captureEpoch": "sha256:d361315b1004aa3fd2608e97fbf3c3de8c3f123026e154456fa934926d2f239b",
-        "exactCallIdentityHash": "sha256:90dd62fcbb40b9adf22b17c08f56ef71d28e2567e9b4d535870b18b0acd7c407",
-        "productKey": "localization_static_catalog/produce_locale_catalog",
-        "productStepId": "zh-HK-batch-001:candidate-a",
-        "sourceSnapshotId": "sha256:10c7296b051e9a7d04dbba3db4947a4a4db220ba97fec9129a3828854669ac7a",
-        "traceEntryId": "sha256:9d5e149600930763f0c66f2521444d4ee88a87e990dfd3fe64c556e7e5ae8ccf"
-      },
-      {
-        "actionOrdinal": 25,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:3edaf0cab6df4583e55ab56a9d3f65f74e228e22b39ef3d22263f669d123d349",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_synthesis",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:2409893666b95c677b316555bf419ab041682a87975ec919acdd3a9a5380294b"
-      },
-      {
-        "actionOrdinal": 41,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:8c78a8d48c483eec14bc59cf733dd252fc9c9dbc222a2d9aaff44bfa1da41079",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:ab984e5154ff851e7a56c362136001d640142c2ca10d9fb7c34880318735fc6d"
-      },
-      {
-        "actionOrdinal": 41,
-        "captureComplete": false,
-        "captureEpoch": "sha256:9624ae04131cb8da03d914e010bbff7b42c482fb17788d74d63e4c9b72d626bd",
-        "exactCallIdentityHash": "sha256:e014ca5bce4c18927989eca2a3c5ca3244e248ce432f4ba0811912d741e90b24",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:be3c37404621f7e1ffe9d3166f92cc1d33cb5dac043070f9594e50ed13df3608",
-        "traceEntryId": "sha256:559a6a787dd50bd657a9b8c019c29c899d86b13e255c0bef8edbab8279f21836"
-      }
-    ],
-    "focus_exact_gpt_conversation": [
-      {
-        "actionOrdinal": 19,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:7014483238b0321e4e8db5eeccfc4653c23aaba482543336e0d4cd8048a10fa3",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_synthesis",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:093f4e4a46af089b3dce4b73558d0758cd8ae586e8150e78dd8973f2375308ae"
-      },
-      {
-        "actionOrdinal": 35,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:bad12d649f4b5e219d27c1c5362398194e7f92d2a1e637065b6ecf479cf9a950",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:297b834a4c613efb5f2bcc7a4313f9b19efc4438d96443038573185fbe951cd5"
-      },
-      {
-        "actionOrdinal": 35,
-        "captureComplete": false,
-        "captureEpoch": "sha256:9624ae04131cb8da03d914e010bbff7b42c482fb17788d74d63e4c9b72d626bd",
-        "exactCallIdentityHash": "sha256:0ee1bf8c18584c950f3164fb61e8cf02a626ceaf09c894d2968e165d2f0c407a",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:be3c37404621f7e1ffe9d3166f92cc1d33cb5dac043070f9594e50ed13df3608",
-        "traceEntryId": "sha256:989f388fcd764f56fe5d535a83130c7412a1b18187e7368a4ddad19fba8d1b4b"
-      }
-    ],
-    "open_gpt_execution_profile": [
-      {
-        "actionOrdinal": 2,
-        "captureComplete": true,
-        "captureEpoch": "sha256:d361315b1004aa3fd2608e97fbf3c3de8c3f123026e154456fa934926d2f239b",
-        "exactCallIdentityHash": "sha256:cc88748caff88a7d2d56c2fdab22fbf785c3541fccb9b42275c2415e10b3c6d2",
-        "productKey": "localization_static_catalog/produce_locale_catalog",
-        "productStepId": "zh-HK-batch-001:candidate-a",
-        "sourceSnapshotId": "sha256:10c7296b051e9a7d04dbba3db4947a4a4db220ba97fec9129a3828854669ac7a",
-        "traceEntryId": "sha256:5731727ab8930e6451151a87eb7505a2e4e1f0a5cfccaf1cf0301d488eed9f2f"
-      },
-      {
-        "actionOrdinal": 5,
-        "captureComplete": false,
-        "captureEpoch": "sha256:d361315b1004aa3fd2608e97fbf3c3de8c3f123026e154456fa934926d2f239b",
-        "exactCallIdentityHash": "sha256:ca4e740206e64f366259af299b9ce8c418803da6b97891ba3d2f5907f9b1665f",
-        "productKey": "localization_static_catalog/produce_locale_catalog",
-        "productStepId": "zh-HK-batch-001:candidate-a",
-        "sourceSnapshotId": "sha256:10c7296b051e9a7d04dbba3db4947a4a4db220ba97fec9129a3828854669ac7a",
-        "traceEntryId": "sha256:a0e964cee21446a65dff7d4670da605c5337b86d6e79615408874f2318324d11"
-      },
-      {
-        "actionOrdinal": 21,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:953ff578987689dbebfe3cdf022c8667b47f1f740aff483f99128daab3277143",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_synthesis",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:d553e193e97a708839e0566df9d88885b17f40271f9817541e1d9e396ea31ecc"
-      },
-      {
-        "actionOrdinal": 24,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:55a6d7b7c79f04ed3086daeffc348f3dc364dcb57cd1b89e38c8fcd42d58f073",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_synthesis",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:adf9c5a1e29d5fe14fa619deef5fc29e070e223bbf80652cb4a2d79d2f7d17ae"
-      },
-      {
-        "actionOrdinal": 37,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:35f9a6b7a85b0e772596ff031313a72ca2e805683691e703f19ce22719d5ebbe",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:56b9ad7bfa1e6d58f65123751667139f51f0da691bf7f67c26fe7d43d0ce158a"
-      },
-      {
-        "actionOrdinal": 40,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:e733c908f6ebee6db8c4718e7bfae0de6ece98b4c69cc871da2a7cb9cc82a4af",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:89a33d7235f646e54bec02d2dc0b63cdfd73ff2e228824b473627dbcf6248b25"
-      },
-      {
-        "actionOrdinal": 37,
-        "captureComplete": false,
-        "captureEpoch": "sha256:9624ae04131cb8da03d914e010bbff7b42c482fb17788d74d63e4c9b72d626bd",
-        "exactCallIdentityHash": "sha256:daefe0a6a4cb0be113e4ae03cf22bbb98b8fba3db168c9600b592f1be650bcb2",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:be3c37404621f7e1ffe9d3166f92cc1d33cb5dac043070f9594e50ed13df3608",
-        "traceEntryId": "sha256:abba6f3e88ef750ff481751dfca8dcc103a770b3121053e3cb38c7866535cf53"
-      },
-      {
-        "actionOrdinal": 40,
-        "captureComplete": false,
-        "captureEpoch": "sha256:9624ae04131cb8da03d914e010bbff7b42c482fb17788d74d63e4c9b72d626bd",
-        "exactCallIdentityHash": "sha256:807b57824b93eeda8984a0e4a40bd4af2b03e7c59a157bced3720871c3fcb501",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:be3c37404621f7e1ffe9d3166f92cc1d33cb5dac043070f9594e50ed13df3608",
-        "traceEntryId": "sha256:deec3e62eb010317c8b063cd378bd8e4a09e120108b893d8407ea72f92035ce6"
-      }
-    ],
-    "open_gpt_model_selector_v2": [
-      {
-        "actionOrdinal": 3,
-        "captureComplete": false,
-        "captureEpoch": "sha256:d361315b1004aa3fd2608e97fbf3c3de8c3f123026e154456fa934926d2f239b",
-        "exactCallIdentityHash": "sha256:1dc8a5d033c04ee043fe767c155c6aa4a7d94b8f4d7b22dfd08e4f22a17dff52",
-        "productKey": "localization_static_catalog/produce_locale_catalog",
-        "productStepId": "zh-HK-batch-001:candidate-a",
-        "sourceSnapshotId": "sha256:10c7296b051e9a7d04dbba3db4947a4a4db220ba97fec9129a3828854669ac7a",
-        "traceEntryId": "sha256:4f2a2fb9917f7babb16ee52a4a9c72ab543146ffa455001c81f8b70beba19c3a"
-      },
-      {
-        "actionOrdinal": 22,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:6d5e5af100824e413dee3f641f58da97121f2f0a5bf4d6169e580c45b4a1c0f6",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_synthesis",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:2eba6d45e3cb91080c6f49de0095742fede73771cfcd5097c8d191414ca33179"
-      },
-      {
-        "actionOrdinal": 38,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:63fc06b9ddd50cedfc85b827ac73ec0de6127aad5235a10e81215c3e342d3e95",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:15cf0f82183e4c577fc5b9e4b0a3516299bd0e0d10bb8bb8a8d84dc48f60a119"
-      },
-      {
-        "actionOrdinal": 38,
-        "captureComplete": false,
-        "captureEpoch": "sha256:9624ae04131cb8da03d914e010bbff7b42c482fb17788d74d63e4c9b72d626bd",
-        "exactCallIdentityHash": "sha256:d95234f2e49325b5aa21f1dfc9f2e960c6088329c1b312e7bbd77a32551f1b95",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:be3c37404621f7e1ffe9d3166f92cc1d33cb5dac043070f9594e50ed13df3608",
-        "traceEntryId": "sha256:07ae304e2c81883e56c7772539d099de0818fc72dcbc923189fc52dafc91a866"
-      }
-    ],
-    "prepare_clean_gpt_chat": [
-      {
-        "actionOrdinal": 1,
-        "captureComplete": false,
-        "captureEpoch": "sha256:d361315b1004aa3fd2608e97fbf3c3de8c3f123026e154456fa934926d2f239b",
-        "exactCallIdentityHash": "sha256:a1f40c1b05ab8ecf80f32e52a353ec49041c5290b1d810abce377ae163d22770",
-        "productKey": "localization_static_catalog/produce_locale_catalog",
-        "productStepId": "zh-HK-batch-001:candidate-a",
-        "sourceSnapshotId": "sha256:10c7296b051e9a7d04dbba3db4947a4a4db220ba97fec9129a3828854669ac7a",
-        "traceEntryId": "sha256:bf9fec63e6f1a11eee7af84c38e83e02c2ff1bcfb38745ab7599593bf33ca03e"
-      }
-    ],
-    "reconcile_gpt_draft": [
-      {
-        "actionOrdinal": 9,
-        "captureComplete": false,
-        "captureEpoch": "sha256:d361315b1004aa3fd2608e97fbf3c3de8c3f123026e154456fa934926d2f239b",
-        "exactCallIdentityHash": "sha256:1b62c265dbed89d3685b0229dc944ed44d6a537e323e616cf5268afbb23bc2a3",
-        "productKey": "localization_static_catalog/produce_locale_catalog",
-        "productStepId": "zh-HK-batch-001:candidate-a",
-        "sourceSnapshotId": "sha256:10c7296b051e9a7d04dbba3db4947a4a4db220ba97fec9129a3828854669ac7a",
-        "traceEntryId": "sha256:5295163b4ea845aca216ff4af8f1ecc2d361adc0b45a63dbd5e864a8ed8f9a12"
-      },
-      {
-        "actionOrdinal": 28,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:437df96b59e9d3681b6bd41c727dd8030fc1b7236f8785e1e9993016d823f7f1",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_synthesis",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:6af2beacd4b2393249c0da34ed2c0bef2ffbeb6d939b7f82325be746d6dee3fa"
-      },
-      {
-        "actionOrdinal": 44,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:9482dceb825ad268cfac8a6d7502731268b7daea27196a6660347f65cd696728",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:d621d7342344e55bc3f90a614cefbb3ae3a9963d0b6dc26a1f456b21a343b256"
-      },
-      {
-        "actionOrdinal": 44,
-        "captureComplete": false,
-        "captureEpoch": "sha256:9624ae04131cb8da03d914e010bbff7b42c482fb17788d74d63e4c9b72d626bd",
-        "exactCallIdentityHash": "sha256:ac310c836515d78ae1fb3249dd0e6f8bb44f675f0749a70c0387f33831e14833",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:be3c37404621f7e1ffe9d3166f92cc1d33cb5dac043070f9594e50ed13df3608",
-        "traceEntryId": "sha256:aa75796473ba301bf7774a1b65c4309634f7e47e2f2da20a1dcf1360be844625"
-      }
-    ],
-    "reconcile_gpt_turn_submission": [
-      {
-        "actionOrdinal": 30,
-        "captureComplete": false,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:d70b918e7323ee61af11126245c705c45e622c97bb71a9b6cc1588fbed5346d8",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_synthesis",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:44bb5d30b271bde55674ec071ed1c40e16e4d8d7bdaa1ca21733834b7e500d8a"
-      },
-      {
-        "actionOrdinal": 46,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:4257f8ab5011ca3bc75fa8fa30c961fc69bc496f1ea9f507108509260e3e004b",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:9e622af78f10df50f35fb9901dd4543c57f9e9c14471f6744937a88738c184ad"
-      },
-      {
-        "actionOrdinal": 46,
-        "captureComplete": false,
-        "captureEpoch": "sha256:9624ae04131cb8da03d914e010bbff7b42c482fb17788d74d63e4c9b72d626bd",
-        "exactCallIdentityHash": "sha256:dda1e716bc620ec49972dd425929c50e1086910d04f53b4d469ee803a2c11a0a",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:be3c37404621f7e1ffe9d3166f92cc1d33cb5dac043070f9594e50ed13df3608",
-        "traceEntryId": "sha256:12d2c00b0a57f10e757650df99c53e7580173e95dfca5bf5afe23e236702a1b3"
-      }
-    ],
-    "select_exact_gpt_model_v2": [
-      {
-        "actionOrdinal": 4,
-        "captureComplete": false,
-        "captureEpoch": "sha256:d361315b1004aa3fd2608e97fbf3c3de8c3f123026e154456fa934926d2f239b",
-        "exactCallIdentityHash": "sha256:2cbc375a8fa1474d51ddf94fa8b38c3530ac1a6b44bb9050a09ada59be1309a0",
-        "productKey": "localization_static_catalog/produce_locale_catalog",
-        "productStepId": "zh-HK-batch-001:candidate-a",
-        "sourceSnapshotId": "sha256:10c7296b051e9a7d04dbba3db4947a4a4db220ba97fec9129a3828854669ac7a",
-        "traceEntryId": "sha256:981e3a7494cd5ee535070d4f5c810b73e79c97b52a6b253910d3bbbbd7006afe"
-      },
-      {
-        "actionOrdinal": 23,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:292b09ae43554c97430387b5381ae060a0a0314821fc1f5984408f00b20f1f01",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_synthesis",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:6fac6d9aa9c24e74f59fd49af104536677a0e61ebe01e7cecaa9fc58261b7e74"
-      },
-      {
-        "actionOrdinal": 39,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:15861d2f384a7a67822ca5d64b410182ed1f9c29403ea94e156c07fb26f95905",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:a608562259b746d195f50caa4584dde40260ccc9cd81eba70853aeba992cc54d"
-      },
-      {
-        "actionOrdinal": 39,
-        "captureComplete": false,
-        "captureEpoch": "sha256:9624ae04131cb8da03d914e010bbff7b42c482fb17788d74d63e4c9b72d626bd",
-        "exactCallIdentityHash": "sha256:57173d468aeb071e9b338b0cb8ff5714920b28055b9173a47e3e8129e066cc0a",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:be3c37404621f7e1ffe9d3166f92cc1d33cb5dac043070f9594e50ed13df3608",
-        "traceEntryId": "sha256:b3d08af508c0d85f661a2176059ebe45bae2db41cd14548c997d632efd82ddb8"
-      }
-    ],
-    "submit_exact_gpt_turn_once": [
-      {
-        "actionOrdinal": 10,
-        "captureComplete": true,
-        "captureEpoch": "sha256:d361315b1004aa3fd2608e97fbf3c3de8c3f123026e154456fa934926d2f239b",
-        "exactCallIdentityHash": "sha256:852123b23b80d2a017eb17c8d4377de9067257409163cc0ee27b9c74e129b406",
-        "productKey": "localization_static_catalog/produce_locale_catalog",
-        "productStepId": "zh-HK-batch-001:candidate-a",
-        "sourceSnapshotId": "sha256:10c7296b051e9a7d04dbba3db4947a4a4db220ba97fec9129a3828854669ac7a",
-        "traceEntryId": "sha256:de89004dbe21215a4fd0e47314f25e107421a52aab88f3e3975b4f02ae0eb29a"
-      },
-      {
-        "actionOrdinal": 29,
-        "captureComplete": false,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:527d63a03ad9c59f2d3429687d95070f4ea58bbc2501cdd8c07cd8c63252d6ab",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_synthesis",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:21937e16d053cbd0fc12d89de73892798dfa5b308769aa06426692c58aece4c4"
-      },
-      {
-        "actionOrdinal": 45,
-        "captureComplete": false,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:7656685907194c72bdad9cb2f961e0cb1d55f070b5ff360bd00c55ff0ab6ed09",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:3981b5aa8ed623f44911a2514a1c4aaab2c800a08653b6e4534e2aaa271ec81b"
-      },
-      {
-        "actionOrdinal": 45,
-        "captureComplete": false,
-        "captureEpoch": "sha256:9624ae04131cb8da03d914e010bbff7b42c482fb17788d74d63e4c9b72d626bd",
-        "exactCallIdentityHash": "sha256:1da04552f9a9c0873d2a81aa44de776256b09fd3e490d9e46da3a45450008018",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:be3c37404621f7e1ffe9d3166f92cc1d33cb5dac043070f9594e50ed13df3608",
-        "traceEntryId": "sha256:ce2015732dd62a295ba5afa874d0106b2e870eb06d9130ed90ef4e4b9908dbd6"
-      }
-    ],
-    "verify_gpt_conversation_identity": [
-      {
-        "actionOrdinal": 20,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:896828a0f11c7f91d77b4d53110e7eba53049e631dd01c9f4995edb93d17affd",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_synthesis",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:c637f38c2a2d535231a6c05e3249ac1a0b13d458b3d14d8f7b07ee064f10c212"
-      },
-      {
-        "actionOrdinal": 36,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:7b443238b8afd3da88ee404a91f229d5846537c59ee4497e8563797aa87ee2fc",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:8225659f5f1d1017adbe6984c8be151105a9bfd24295da3e8a0468367b66dde6"
-      },
-      {
-        "actionOrdinal": 36,
-        "captureComplete": false,
-        "captureEpoch": "sha256:9624ae04131cb8da03d914e010bbff7b42c482fb17788d74d63e4c9b72d626bd",
-        "exactCallIdentityHash": "sha256:6e8f4d1e5003dbb0e0a10612cd57c5b8c06c23cb545edc28a10f46e829ce50f1",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:be3c37404621f7e1ffe9d3166f92cc1d33cb5dac043070f9594e50ed13df3608",
-        "traceEntryId": "sha256:8489213acd59e6849120dbbe8a80806664949317c68f8fad65fddbbedfcfb9c0"
-      }
-    ],
-    "wait_for_stable_gpt_image": [
-      {
-        "actionOrdinal": 47,
-        "captureComplete": true,
-        "captureEpoch": "sha256:9624ae04131cb8da03d914e010bbff7b42c482fb17788d74d63e4c9b72d626bd",
-        "exactCallIdentityHash": "sha256:c0e55417adacc67e50ce4290372d9e0b53bb330c773b25093f0ade60eae17877",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:be3c37404621f7e1ffe9d3166f92cc1d33cb5dac043070f9594e50ed13df3608",
-        "traceEntryId": "sha256:ef29761648d99bc007e292c1f68a878ab065fe9e9bacc9e2112455faaf886a00"
-      },
-      {
-        "actionOrdinal": 47,
-        "captureComplete": false,
-        "captureEpoch": "sha256:9624ae04131cb8da03d914e010bbff7b42c482fb17788d74d63e4c9b72d626bd",
-        "exactCallIdentityHash": "sha256:c0e55417adacc67e50ce4290372d9e0b53bb330c773b25093f0ade60eae17877",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:be3c37404621f7e1ffe9d3166f92cc1d33cb5dac043070f9594e50ed13df3608",
-        "traceEntryId": "sha256:f1709aab1ab075cf62ccc898cd89e562f1c42ef6c7cad82ff5c3e46f7a539163"
-      }
-    ],
-    "wait_for_stable_gpt_text": [
-      {
-        "actionOrdinal": 31,
-        "captureComplete": false,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:ac709732935388ca395584de40fdc0077f3495d45b347e503445b769a1689098",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_synthesis",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:66947fa803e336ec00d7ea8136839f3fbf6aa09705290f6d3dd89fd3b74c864b"
-      }
-    ],
-    "write_exact_gpt_prompt": [
-      {
-        "actionOrdinal": 8,
-        "captureComplete": false,
-        "captureEpoch": "sha256:d361315b1004aa3fd2608e97fbf3c3de8c3f123026e154456fa934926d2f239b",
-        "exactCallIdentityHash": "sha256:9b750f811f9b2c667c11452df4fd5441f877c7d201bbdef3ba7bb7b167216a9c",
-        "productKey": "localization_static_catalog/produce_locale_catalog",
-        "productStepId": "zh-HK-batch-001:candidate-a",
-        "sourceSnapshotId": "sha256:10c7296b051e9a7d04dbba3db4947a4a4db220ba97fec9129a3828854669ac7a",
-        "traceEntryId": "sha256:63468ce78e9b1e921dd763399115255f0c72655ce553ef376b07754a31ab89cf"
-      },
-      {
-        "actionOrdinal": 27,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:36ee0751452bf0e798fe36111d7fdb51bd9730f70f7553b01e4f239bb9c98eb0",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_synthesis",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:630ec6cbee7e8c636f447ed1b896b9ff045dbab7ce99a74afbad093e2b789337"
-      },
-      {
-        "actionOrdinal": 43,
-        "captureComplete": true,
-        "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
-        "exactCallIdentityHash": "sha256:cf159f31d617f6f063ce0f6039f274c3c6e91391fea32ee5c8141d98425ff164",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:c2718fa6109d5b09b1f6bfe7858c798c34f2f07e010a3c3b574aa41923544f46",
-        "traceEntryId": "sha256:27ecfbeacbb9c901395823da90a6bee3b0de1d0f4ea6f3005db86f91f27b3ae1"
-      },
-      {
-        "actionOrdinal": 43,
-        "captureComplete": false,
-        "captureEpoch": "sha256:9624ae04131cb8da03d914e010bbff7b42c482fb17788d74d63e4c9b72d626bd",
-        "exactCallIdentityHash": "sha256:a9bcec2de886250338dd24744d44a0b8483fa404154c07bdbe01137bf5355141",
-        "productKey": "public_knowledge_article_pipeline/produce_article",
-        "productStepId": "article_image_generation",
-        "sourceSnapshotId": "sha256:be3c37404621f7e1ffe9d3166f92cc1d33cb5dac043070f9594e50ed13df3608",
-        "traceEntryId": "sha256:f4c50eade44836e0ccf95b757bc5a2a838a005d1a7bfc50dcb4a33ecca7b3231"
-      }
-    ]
-  },
-  "productCaptureStatus": "CAPTURE_PARTIAL",
   "captureMetadata": null,
   "children": [
     {
@@ -37035,7 +36482,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            98
+            96
           ]
         },
         {
@@ -37198,7 +36645,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            99
+            97
           ]
         },
         {
@@ -37375,7 +36822,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            92
+            90
           ]
         },
         {
@@ -37615,8 +37062,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:20de63edcfd8816987e8c9ceeb4c74ffcb204db520c9621f07e5b5c65e28d70a",
-        "digest": "sha256:20de63edcfd8816987e8c9ceeb4c74ffcb204db520c9621f07e5b5c65e28d70a",
+        "childCandidateDigest": "sha256:8c13639661de42b1d145bfb0d10784e72d698c7d159bde727548e3cd9521cea0",
+        "digest": "sha256:8c13639661de42b1d145bfb0d10784e72d698c7d159bde727548e3cd9521cea0",
         "facts": [
           {
             "expected": "select the complete approved file set in one batch",
@@ -37846,15 +37293,15 @@
           }
         ],
         "pageDemandDigest": "sha256:7eb2b514bc27bb24541d2b5d1bdefeefeeb1e061c043c866a2c14ce09932114d",
-        "projectionDigest": "sha256:20de63edcfd8816987e8c9ceeb4c74ffcb204db520c9621f07e5b5c65e28d70a",
+        "projectionDigest": "sha256:8c13639661de42b1d145bfb0d10784e72d698c7d159bde727548e3cd9521cea0",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -37862,7 +37309,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [],
@@ -38032,9 +37479,9 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            401,
-            463,
-            493
+            389,
+            451,
+            481
           ]
         },
         {
@@ -38046,8 +37493,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-failure-evidence-readback.acceptance-support.ts",
           "lines": [
-            426,
-            454
+            417,
+            445
           ]
         },
         {
@@ -38088,7 +37535,7 @@
         {
           "path": "src/capabilities/gpt/confirmed-provider-readback.ts",
           "lines": [
-            62
+            61
           ]
         },
         {
@@ -38107,7 +37554,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            78
+            76
           ]
         },
         {
@@ -38265,8 +37712,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:e1ecc7bc61d83bb523049eccb523cf0629a19ebff858b01e558753cf79d30481",
-        "digest": "sha256:e1ecc7bc61d83bb523049eccb523cf0629a19ebff858b01e558753cf79d30481",
+        "childCandidateDigest": "sha256:2d344d37e18bbfb93b0ab24c20e931da6e97cff4e571a8df258a0656e03ed404",
+        "digest": "sha256:2d344d37e18bbfb93b0ab24c20e931da6e97cff4e571a8df258a0656e03ed404",
         "facts": [
           {
             "expected": "visibly save and checkpoint the exact assistant image content",
@@ -38530,15 +37977,15 @@
           }
         ],
         "pageDemandDigest": "sha256:a6be4555b3d5aae62ceb473c536ed95c15238c7523eb0a6913c4693a4df901c5",
-        "projectionDigest": "sha256:e1ecc7bc61d83bb523049eccb523cf0629a19ebff858b01e558753cf79d30481",
+        "projectionDigest": "sha256:2d344d37e18bbfb93b0ab24c20e931da6e97cff4e571a8df258a0656e03ed404",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -38546,7 +37993,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [
@@ -38657,7 +38104,7 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            166
+            154
           ]
         },
         {
@@ -38695,7 +38142,7 @@
         {
           "path": "src/capabilities/gpt/confirmed-provider-readback.ts",
           "lines": [
-            61
+            60
           ]
         },
         {
@@ -38714,7 +38161,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            77
+            75
           ]
         },
         {
@@ -38954,8 +38401,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:7d318fdac4e1da9acaa072bc74876eb85c4b8432ba1c6a28d54e1b578f86e437",
-        "digest": "sha256:7d318fdac4e1da9acaa072bc74876eb85c4b8432ba1c6a28d54e1b578f86e437",
+        "childCandidateDigest": "sha256:0bd8ea6c9e40c6509f9552c7aa151ad17c78c919e97fe8138bcbfb0ec814c89d",
+        "digest": "sha256:0bd8ea6c9e40c6509f9552c7aa151ad17c78c919e97fe8138bcbfb0ec814c89d",
         "facts": [
           {
             "expected": "checkpoint exact assistant outerHTML and deterministic semantic text",
@@ -39189,15 +38636,15 @@
           }
         ],
         "pageDemandDigest": "sha256:ee7a0c1d9e46b0451904b152831294e7bb5a57d29a63f1f4eb1749f3a39c556e",
-        "projectionDigest": "sha256:7d318fdac4e1da9acaa072bc74876eb85c4b8432ba1c6a28d54e1b578f86e437",
+        "projectionDigest": "sha256:0bd8ea6c9e40c6509f9552c7aa151ad17c78c919e97fe8138bcbfb0ec814c89d",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -39205,7 +38652,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [
@@ -39373,7 +38820,7 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts",
           "lines": [
-            87
+            83
           ]
         },
         {
@@ -39400,7 +38847,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            85
+            83
           ]
         },
         {
@@ -39633,8 +39080,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:223f4029755e9925c4e3f8a73bd2d9b774ef9cbe4d8d2b624cd709046ec5cf6d",
-        "digest": "sha256:223f4029755e9925c4e3f8a73bd2d9b774ef9cbe4d8d2b624cd709046ec5cf6d",
+        "childCandidateDigest": "sha256:278338854a6a49a76c4c4dfb7d02b545c440d788860f5a8722c8549719f9b58c",
+        "digest": "sha256:278338854a6a49a76c4c4dfb7d02b545c440d788860f5a8722c8549719f9b58c",
         "facts": [
           {
             "expected": "close the current execution profile popup",
@@ -39854,15 +39301,15 @@
           }
         ],
         "pageDemandDigest": "sha256:703387e4a463566c0b4cb24eeacb45cdf5b915c120dd8c289d34b4cf82b3c2a7",
-        "projectionDigest": "sha256:223f4029755e9925c4e3f8a73bd2d9b774ef9cbe4d8d2b624cd709046ec5cf6d",
+        "projectionDigest": "sha256:278338854a6a49a76c4c4dfb7d02b545c440d788860f5a8722c8549719f9b58c",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -39870,7 +39317,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [],
@@ -40052,7 +39499,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            97
+            95
           ]
         },
         {
@@ -40065,7 +39512,7 @@
         {
           "path": "src/capabilities/gpt/production-child-tools.ts",
           "lines": [
-            216
+            213
           ]
         }
       ],
@@ -40160,8 +39607,8 @@
         {
           "path": "src/capabilities/gpt/ability-group.ts",
           "lines": [
-            210,
-            211
+            207,
+            208
           ]
         },
         {
@@ -40209,7 +39656,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            84
+            82
           ]
         },
         {
@@ -40553,8 +40000,8 @@
             ]
           }
         },
-        "childCandidateDigest": "sha256:ef37f7424fb97d541c18466d2b9c902c1bea840293c3808842f4050752b1ef73",
-        "digest": "sha256:ef37f7424fb97d541c18466d2b9c902c1bea840293c3808842f4050752b1ef73",
+        "childCandidateDigest": "sha256:2513413d43cce0710c22324579e0e9097568d50f271c74fc577b93953caa98d5",
+        "digest": "sha256:2513413d43cce0710c22324579e0e9097568d50f271c74fc577b93953caa98d5",
         "facts": [
           {
             "expected": "resolve and satisfy the Product-frozen reasoning requirement on an approved observed scale",
@@ -40816,15 +40263,15 @@
           }
         ],
         "pageDemandDigest": "sha256:90a0c18ff71176e0a0e00182611e747dfe2d0d8d57a5dd0dd55108c41fde1180",
-        "projectionDigest": "sha256:ef37f7424fb97d541c18466d2b9c902c1bea840293c3808842f4050752b1ef73",
+        "projectionDigest": "sha256:2513413d43cce0710c22324579e0e9097568d50f271c74fc577b93953caa98d5",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -40832,7 +40279,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [],
@@ -40989,15 +40436,15 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-identity.acceptance-support.ts",
           "lines": [
-            191,
-            214,
-            239
+            187,
+            210,
+            235
           ]
         },
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-polling.acceptance-support.ts",
           "lines": [
-            172
+            156
           ]
         },
         {
@@ -41031,7 +40478,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            80
+            78
           ]
         },
         {
@@ -41238,8 +40685,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:8d7522faa20fbc32ff3412078795218ff1ab66b880caf0be1c45f81db344aab7",
-        "digest": "sha256:8d7522faa20fbc32ff3412078795218ff1ab66b880caf0be1c45f81db344aab7",
+        "childCandidateDigest": "sha256:b93e0f19e4db26065f8070faf62478ec9cf490960758a1552002e8ad782e0c84",
+        "digest": "sha256:b93e0f19e4db26065f8070faf62478ec9cf490960758a1552002e8ad782e0c84",
         "facts": [
           {
             "expected": "focus the Product-frozen exact conversation",
@@ -41470,15 +40917,15 @@
           }
         ],
         "pageDemandDigest": "sha256:e2014ee3868c9f45c08b98989956b9058a660a02177b1016b9827e7a15a8b787",
-        "projectionDigest": "sha256:8d7522faa20fbc32ff3412078795218ff1ab66b880caf0be1c45f81db344aab7",
+        "projectionDigest": "sha256:b93e0f19e4db26065f8070faf62478ec9cf490960758a1552002e8ad782e0c84",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -41486,7 +40933,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [
@@ -41618,9 +41065,9 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            73,
-            96,
-            125
+            61,
+            84,
+            113
           ]
         },
         {
@@ -41678,7 +41125,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            94
+            92
           ]
         },
         {
@@ -41853,8 +41300,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:f03957765b8c5e8d0ad47f8f4bbb790030d285c2a9f322bad8a3181dc46eae33",
-        "digest": "sha256:f03957765b8c5e8d0ad47f8f4bbb790030d285c2a9f322bad8a3181dc46eae33",
+        "childCandidateDigest": "sha256:21c4bc4d947d21f2c71293a130f3ca65e7d0660ef93d05d88c85266d61a880c8",
+        "digest": "sha256:21c4bc4d947d21f2c71293a130f3ca65e7d0660ef93d05d88c85266d61a880c8",
         "facts": [
           {
             "expected": "fork once from the already-open exact source-bound destination menu",
@@ -42089,15 +41536,15 @@
           }
         ],
         "pageDemandDigest": "sha256:6341dc2edd92183cba9b060368680c8bba846a71a6e921f0baef2c67b30b4274",
-        "projectionDigest": "sha256:f03957765b8c5e8d0ad47f8f4bbb790030d285c2a9f322bad8a3181dc46eae33",
+        "projectionDigest": "sha256:21c4bc4d947d21f2c71293a130f3ca65e7d0660ef93d05d88c85266d61a880c8",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -42105,7 +41552,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [
@@ -42269,7 +41716,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            86
+            84
           ]
         },
         {
@@ -42503,8 +41950,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:5490c351ca54b629104125104e02297721de25c8ed52c206dc64792f74c8daa3",
-        "digest": "sha256:5490c351ca54b629104125104e02297721de25c8ed52c206dc64792f74c8daa3",
+        "childCandidateDigest": "sha256:8cf33c5222fa9a968360087fa6c1ad35a9d65a8064218f46de8713e81cc6a933",
+        "digest": "sha256:8cf33c5222fa9a968360087fa6c1ad35a9d65a8064218f46de8713e81cc6a933",
         "facts": [
           {
             "expected": "open the exact composer attachment menu",
@@ -42725,15 +42172,15 @@
           }
         ],
         "pageDemandDigest": "sha256:9b2677685742648758814fd03814ba25a7f47ce0950580eef4839f242b91ef66",
-        "projectionDigest": "sha256:5490c351ca54b629104125104e02297721de25c8ed52c206dc64792f74c8daa3",
+        "projectionDigest": "sha256:8cf33c5222fa9a968360087fa6c1ad35a9d65a8064218f46de8713e81cc6a933",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -42741,7 +42188,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [],
@@ -42845,9 +42292,9 @@
                 "semanticHash": "sha256:96ad09a2496df4e3b6444efe593c3554c5395acdd0f5bd1dde81f1646d07b077"
               },
               {
-                "contentHash": "sha256:7aad046567aee0adb299dc841379c68f1965a379a1bdaff6777e97c34d1b035f",
+                "contentHash": "sha256:48427bd11685043a2d07361c5339a29d5db827579c8e29082d17c06e4e8539ae",
                 "path": "src/capabilities/gpt/children/open_gpt_attachment_control/observation.ts",
-                "semanticHash": "sha256:8e42dd20b16e113d014748cc3215df31d5df129811643e1069daeca00f1efbf0"
+                "semanticHash": "sha256:df49613f25ff7ca378afff33793ef36afb1bf7a69bf75e36f688f669e0ed05b5"
               },
               {
                 "contentHash": "sha256:dfd93a8283e730059ec8f31595b164594e8b38bb2d59345f3ba04025b78fbb23",
@@ -42855,7 +42302,7 @@
                 "semanticHash": "sha256:efd588a2c88de73ef2e7898733743806438f4a3406ac1dfc34cc3c73d37fd1de"
               }
             ],
-            "semanticDigest": "sha256:dc7545794b25390e18292c50b187395a4dd73cacb6a0ed6a148be469ee0f5930"
+            "semanticDigest": "sha256:c093c9450d40f0f4ae9b29abda43c9c5f149d15f5726b7716dab1c4e0d7b5fb6"
           }
         }
       }
@@ -42897,8 +42344,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-identity.acceptance-support.ts",
           "lines": [
-            300,
-            346
+            296,
+            342
           ]
         },
         {
@@ -42940,7 +42387,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            90
+            88
           ]
         },
         {
@@ -43105,8 +42552,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:ed117d5141e098277d0a62ecd1b8132fafe53dc36320e78a78ba479b5d59ad88",
-        "digest": "sha256:ed117d5141e098277d0a62ecd1b8132fafe53dc36320e78a78ba479b5d59ad88",
+        "childCandidateDigest": "sha256:3d8ad0d99345d8d1774b46cfd71e684e5c577919411d25c0c7fda92f78f92717",
+        "digest": "sha256:3d8ad0d99345d8d1774b46cfd71e684e5c577919411d25c0c7fda92f78f92717",
         "facts": [
           {
             "expected": "open or confirm the exact source checkpoint actions menu",
@@ -43331,15 +42778,15 @@
           }
         ],
         "pageDemandDigest": "sha256:e6636b2466600048cb3a6cbe4b9753c3caa5952e6038e417887b149dcba615d1",
-        "projectionDigest": "sha256:ed117d5141e098277d0a62ecd1b8132fafe53dc36320e78a78ba479b5d59ad88",
+        "projectionDigest": "sha256:3d8ad0d99345d8d1774b46cfd71e684e5c577919411d25c0c7fda92f78f92717",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -43347,7 +42794,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [
@@ -43471,13 +42918,13 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts",
           "lines": [
+            75,
             79,
-            83,
-            112,
-            139,
-            178,
-            196,
-            221
+            108,
+            135,
+            174,
+            192,
+            217
           ]
         },
         {
@@ -43504,7 +42951,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            81
+            79
           ]
         },
         {
@@ -43750,8 +43197,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:52dae714cacbe1a6ee3852b98f0ab36709d8d2855ccaa50a5ea8740d69d8f27d",
-        "digest": "sha256:52dae714cacbe1a6ee3852b98f0ab36709d8d2855ccaa50a5ea8740d69d8f27d",
+        "childCandidateDigest": "sha256:08f280adb145a1085000eb344d612a4cbf0e4aff4db71e28eae6271878078180",
+        "digest": "sha256:08f280adb145a1085000eb344d612a4cbf0e4aff4db71e28eae6271878078180",
         "facts": [
           {
             "expected": "open the unique execution profile popup",
@@ -43967,15 +43414,15 @@
           }
         ],
         "pageDemandDigest": "sha256:cef7a6efcabe8ee324d0ff38104153b36db7ba2760ea6fb041cb3b307122003e",
-        "projectionDigest": "sha256:52dae714cacbe1a6ee3852b98f0ab36709d8d2855ccaa50a5ea8740d69d8f27d",
+        "projectionDigest": "sha256:08f280adb145a1085000eb344d612a4cbf0e4aff4db71e28eae6271878078180",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -43983,7 +43430,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [],
@@ -44139,13 +43586,13 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            54
+            42
           ]
         },
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-identity.acceptance-support.ts",
           "lines": [
-            326
+            322
           ]
         },
         {
@@ -44187,7 +43634,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            91
+            89
           ]
         },
         {
@@ -44363,8 +43810,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:6d86647113d9b3a301333d23d7c160ba16f39e97a13bb27ca0a6e778ab4b9b1c",
-        "digest": "sha256:6d86647113d9b3a301333d23d7c160ba16f39e97a13bb27ca0a6e778ab4b9b1c",
+        "childCandidateDigest": "sha256:43c4269d8b87443c07b2d86f27fd2b704fa532852ca29478639248c381e479c3",
+        "digest": "sha256:43c4269d8b87443c07b2d86f27fd2b704fa532852ca29478639248c381e479c3",
         "facts": [
           {
             "expected": "open or confirm the exact fork destination menu",
@@ -44604,15 +44051,15 @@
           }
         ],
         "pageDemandDigest": "sha256:f61f172aa0485dd799844698d50cffa1fe17aeda5a7c5690429adb69f4fd6a0f",
-        "projectionDigest": "sha256:6d86647113d9b3a301333d23d7c160ba16f39e97a13bb27ca0a6e778ab4b9b1c",
+        "projectionDigest": "sha256:43c4269d8b87443c07b2d86f27fd2b704fa532852ca29478639248c381e479c3",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -44620,7 +44067,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [
@@ -44743,11 +44190,11 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts",
           "lines": [
-            269,
-            282,
-            295,
-            320,
-            333
+            265,
+            278,
+            291,
+            316,
+            329
           ]
         },
         {
@@ -44785,7 +44232,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            82
+            80
           ]
         },
         {
@@ -45115,8 +44562,8 @@
             ]
           }
         },
-        "childCandidateDigest": "sha256:f2709b9284ce0e11834b085b74336fb621ae0cffc8421f09a01de915d808c1d8",
-        "digest": "sha256:f2709b9284ce0e11834b085b74336fb621ae0cffc8421f09a01de915d808c1d8",
+        "childCandidateDigest": "sha256:899aab75917d40c782d8ffb7eae466622afa0cecaf9fe500c8d611b6552b06e3",
+        "digest": "sha256:899aab75917d40c782d8ffb7eae466622afa0cecaf9fe500c8d611b6552b06e3",
         "facts": [
           {
             "expected": "open the unique advanced model selector",
@@ -45363,15 +44810,15 @@
           }
         ],
         "pageDemandDigest": "sha256:fc2164660807134cb13ff83313d2e1eeac0d1493ee5ba7c4f7a89468fa52f768",
-        "projectionDigest": "sha256:f2709b9284ce0e11834b085b74336fb621ae0cffc8421f09a01de915d808c1d8",
+        "projectionDigest": "sha256:899aab75917d40c782d8ffb7eae466622afa0cecaf9fe500c8d611b6552b06e3",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -45379,7 +44826,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [],
@@ -45561,7 +45008,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            95
+            93
           ]
         },
         {
@@ -45574,13 +45021,13 @@
         {
           "path": "src/capabilities/gpt/production-call-facts.ts",
           "lines": [
-            74
+            65
           ]
         },
         {
           "path": "src/capabilities/gpt/production-child-tools.ts",
           "lines": [
-            215
+            212
           ]
         }
       ],
@@ -45657,18 +45104,18 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-identity.acceptance-support.ts",
           "lines": [
-            54,
-            78,
-            104,
-            129,
-            146,
-            175
+            50,
+            74,
+            100,
+            125,
+            142,
+            171
           ]
         },
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-polling.acceptance-support.ts",
           "lines": [
-            47
+            31
           ]
         },
         {
@@ -45683,18 +45130,15 @@
             195,
             211,
             217,
-            225,
-            262,
-            277,
-            283,
-            291,
-            312,
-            313,
-            335,
-            369,
-            388,
-            406,
-            414
+            259,
+            274,
+            280,
+            306,
+            307,
+            329,
+            379,
+            397,
+            405
           ]
         },
         {
@@ -45723,7 +45167,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            79
+            77
           ]
         },
         {
@@ -45984,8 +45428,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:efc4e6747c99d60479ab852e8a354e857318aac776ef9553ee46104494db8cf6",
-        "digest": "sha256:efc4e6747c99d60479ab852e8a354e857318aac776ef9553ee46104494db8cf6",
+        "childCandidateDigest": "sha256:f80358125d804e86a79d0ae348d22b07fbdb3699cc76fc92a8615061f9e2fd34",
+        "digest": "sha256:f80358125d804e86a79d0ae348d22b07fbdb3699cc76fc92a8615061f9e2fd34",
         "facts": [
           {
             "expected": "prove a fresh chat and clear only an otherwise isolated stale draft",
@@ -46211,15 +45655,15 @@
           }
         ],
         "pageDemandDigest": "sha256:e26bef0ff7e2cc6c8113cc852d97f0cc019ab96e682df808329b3df36f29d809",
-        "projectionDigest": "sha256:efc4e6747c99d60479ab852e8a354e857318aac776ef9553ee46104494db8cf6",
+        "projectionDigest": "sha256:f80358125d804e86a79d0ae348d22b07fbdb3699cc76fc92a8615061f9e2fd34",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -46227,7 +45671,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [],
@@ -46432,7 +45876,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            74
+            72
           ]
         },
         {
@@ -46703,8 +46147,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:1650827e2bc5de275c5b08c12e92aae90dfc28676a7722e81c58bed3b4c15264",
-        "digest": "sha256:1650827e2bc5de275c5b08c12e92aae90dfc28676a7722e81c58bed3b4c15264",
+        "childCandidateDigest": "sha256:252f43af651cf0d7563889cfbce1ce3dfcb2965c5f76be47bd54b727db5fb27b",
+        "digest": "sha256:252f43af651cf0d7563889cfbce1ce3dfcb2965c5f76be47bd54b727db5fb27b",
         "facts": [
           {
             "expected": "prove all and only approved attachments are ready",
@@ -46934,15 +46378,15 @@
           }
         ],
         "pageDemandDigest": "sha256:bde55f302be082f163241caf4b2d14cbe91b62133cd9d300c917a71c1e57fe1b",
-        "projectionDigest": "sha256:1650827e2bc5de275c5b08c12e92aae90dfc28676a7722e81c58bed3b4c15264",
+        "projectionDigest": "sha256:252f43af651cf0d7563889cfbce1ce3dfcb2965c5f76be47bd54b727db5fb27b",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -46950,7 +46394,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [],
@@ -47142,7 +46586,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            75
+            73
           ]
         },
         {
@@ -47369,8 +46813,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:19ebbe62abf56320dddf8576a755c6e265101ce4781765a3c2d35ca0c53bcff9",
-        "digest": "sha256:19ebbe62abf56320dddf8576a755c6e265101ce4781765a3c2d35ca0c53bcff9",
+        "childCandidateDigest": "sha256:9f961c9145aab7f85681840cde28b0feaa7e7acea4a16d60ddfb7006e710ef20",
+        "digest": "sha256:9f961c9145aab7f85681840cde28b0feaa7e7acea4a16d60ddfb7006e710ef20",
         "facts": [
           {
             "expected": "prove composer retains the exact prompt approved attachments and enabled send control",
@@ -47584,15 +47028,15 @@
           }
         ],
         "pageDemandDigest": "sha256:09acfc271b7c0bba98fc8315f27d293b68332c15af01ebafb0f7b40f7edb7814",
-        "projectionDigest": "sha256:19ebbe62abf56320dddf8576a755c6e265101ce4781765a3c2d35ca0c53bcff9",
+        "projectionDigest": "sha256:9f961c9145aab7f85681840cde28b0feaa7e7acea4a16d60ddfb7006e710ef20",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -47600,7 +47044,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [],
@@ -47777,7 +47221,7 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-production-browser-wait.acceptance-support.ts",
           "lines": [
-            75
+            65
           ]
         },
         {
@@ -47823,14 +47267,14 @@
         {
           "path": "src/capabilities/gpt/confirmed-provider-readback.ts",
           "lines": [
-            58,
-            180
+            57,
+            179
           ]
         },
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            76
+            74
           ]
         },
         {
@@ -47855,7 +47299,7 @@
         {
           "path": "src/capabilities/gpt/production-child-tools.ts",
           "lines": [
-            446
+            443
           ]
         }
       ],
@@ -48075,8 +47519,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:62ddebe73ddecca6b4aa2edfebf7d4c293ee8aca506c739285a5e0a3848ae9bd",
-        "digest": "sha256:62ddebe73ddecca6b4aa2edfebf7d4c293ee8aca506c739285a5e0a3848ae9bd",
+        "childCandidateDigest": "sha256:68abf655e3f232a201bcdff97d52c2b146d5963095e575c84362be522c4fd1a2",
+        "digest": "sha256:68abf655e3f232a201bcdff97d52c2b146d5963095e575c84362be522c4fd1a2",
         "facts": [
           {
             "expected": "prove Provider accepted the exact user turn without resubmission",
@@ -48306,15 +47750,15 @@
           }
         ],
         "pageDemandDigest": "sha256:36c7b0182e67e27dddd10b90143ce93f93804ae8febecd2b405ff1d076641746",
-        "projectionDigest": "sha256:62ddebe73ddecca6b4aa2edfebf7d4c293ee8aca506c739285a5e0a3848ae9bd",
+        "projectionDigest": "sha256:68abf655e3f232a201bcdff97d52c2b146d5963095e575c84362be522c4fd1a2",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -48322,7 +47766,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [
@@ -48510,7 +47954,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            100
+            98
           ]
         },
         {
@@ -48672,7 +48116,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            96
+            94
           ]
         },
         {
@@ -48779,9 +48223,9 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts",
           "lines": [
-            369,
-            393,
-            417
+            365,
+            389,
+            413
           ]
         },
         {
@@ -48808,7 +48252,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            83
+            81
           ]
         },
         {
@@ -49139,8 +48583,8 @@
             ]
           }
         },
-        "childCandidateDigest": "sha256:12c967299b45ed6058f3458a0c6fb9950eb71069944103d5c604212a83e5857a",
-        "digest": "sha256:12c967299b45ed6058f3458a0c6fb9950eb71069944103d5c604212a83e5857a",
+        "childCandidateDigest": "sha256:cfc71f76f8b378502604442bd9aa25a636200e855e70cc83a65bede9eb4de99a",
+        "digest": "sha256:cfc71f76f8b378502604442bd9aa25a636200e855e70cc83a65bede9eb4de99a",
         "facts": [
           {
             "expected": "select the exact model and consume the same Browser mutation postcondition packet",
@@ -49391,15 +48835,15 @@
           }
         ],
         "pageDemandDigest": "sha256:c00723dc3cb80a88ab3d172742d31e88f368f2deb72adc1626e60b1e0c5cfa42",
-        "projectionDigest": "sha256:12c967299b45ed6058f3458a0c6fb9950eb71069944103d5c604212a83e5857a",
+        "projectionDigest": "sha256:cfc71f76f8b378502604442bd9aa25a636200e855e70cc83a65bede9eb4de99a",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -49407,7 +48851,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [],
@@ -49564,8 +49008,8 @@
         {
           "path": "src/capabilities/gpt/ability-group.ts",
           "lines": [
-            332,
-            333
+            329,
+            330
           ]
         },
         {
@@ -49595,13 +49039,13 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-production-browser-readback.acceptance-support.ts",
           "lines": [
-            109,
-            180,
-            225,
-            345,
-            410,
-            421,
-            467
+            104,
+            175,
+            220,
+            340,
+            405,
+            416,
+            462
           ]
         },
         {
@@ -49652,10 +49096,10 @@
         {
           "path": "src/capabilities/gpt/confirmed-provider-readback.ts",
           "lines": [
+            103,
             104,
-            105,
-            171,
-            195
+            170,
+            194
           ]
         },
         {
@@ -49668,7 +49112,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            93
+            91
           ]
         },
         {
@@ -49693,7 +49137,7 @@
         {
           "path": "src/capabilities/gpt/production-child-tools.ts",
           "lines": [
-            407
+            404
           ]
         },
         {
@@ -50005,8 +49449,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:f3009c7c3e985fc59b9663eb772334c93d84d006d13381e9a57eaf0fbeeff24b",
-        "digest": "sha256:f3009c7c3e985fc59b9663eb772334c93d84d006d13381e9a57eaf0fbeeff24b",
+        "childCandidateDigest": "sha256:dde1b0594a038efa6617b9b5398fc08b17b3734dc53e47c24e5d163232ff1733",
+        "digest": "sha256:dde1b0594a038efa6617b9b5398fc08b17b3734dc53e47c24e5d163232ff1733",
         "facts": [
           {
             "expected": "submit the exact prompt attachments and turn marker once",
@@ -50242,15 +49686,15 @@
           }
         ],
         "pageDemandDigest": "sha256:6b400fb0ecf840f274703f8749b38d97e5d20156c58e55e4cb839977e0fc4831",
-        "projectionDigest": "sha256:f3009c7c3e985fc59b9663eb772334c93d84d006d13381e9a57eaf0fbeeff24b",
+        "projectionDigest": "sha256:dde1b0594a038efa6617b9b5398fc08b17b3734dc53e47c24e5d163232ff1733",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -50258,7 +49702,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [
@@ -50454,14 +49898,14 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            522,
-            524
+            510,
+            512
           ]
         },
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-identity.acceptance-support.ts",
           "lines": [
-            263
+            259
           ]
         },
         {
@@ -50497,7 +49941,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            73
+            71
           ]
         },
         {
@@ -50674,8 +50118,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:a6c636545f56bec8977ad8c28df206b25abd640b391170608d200386da93f724",
-        "digest": "sha256:a6c636545f56bec8977ad8c28df206b25abd640b391170608d200386da93f724",
+        "childCandidateDigest": "sha256:1951532d455b63b2353681a1da1ca682f8e4ce45a68bf3c4c278bcc28bccd177",
+        "digest": "sha256:1951532d455b63b2353681a1da1ca682f8e4ce45a68bf3c4c278bcc28bccd177",
         "facts": [
           {
             "expected": "prove the current conversation matches the exact canonical identity",
@@ -50889,15 +50333,15 @@
           }
         ],
         "pageDemandDigest": "sha256:7db3f402e7c291ca4c774c5c928c9d20a80c7bb8658f07a5d77c04fe45cc8fdf",
-        "projectionDigest": "sha256:a6c636545f56bec8977ad8c28df206b25abd640b391170608d200386da93f724",
+        "projectionDigest": "sha256:1951532d455b63b2353681a1da1ca682f8e4ce45a68bf3c4c278bcc28bccd177",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -50905,7 +50349,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [
@@ -51038,16 +50482,16 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            360,
-            369
+            348,
+            357
           ]
         },
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-polling.acceptance-support.ts",
           "lines": [
-            207,
-            288,
-            346
+            191,
+            272,
+            330
           ]
         },
         {
@@ -51059,14 +50503,14 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-production-browser-cross-poll.acceptance-support.ts",
           "lines": [
-            96
+            88
           ]
         },
         {
           "path": "src/capabilities/gpt/acceptance/gpt-production-browser-wait.acceptance-support.ts",
           "lines": [
-            93,
-            116
+            83,
+            106
           ]
         },
         {
@@ -51100,13 +50544,13 @@
         {
           "path": "src/capabilities/gpt/confirmed-provider-readback.ts",
           "lines": [
-            60
+            59
           ]
         },
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            89
+            87
           ]
         },
         {
@@ -51280,8 +50724,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:f94a40503f1d50fdab66f1298d3ebec78fa690b85702b65d72035b60e4bd4c80",
-        "digest": "sha256:f94a40503f1d50fdab66f1298d3ebec78fa690b85702b65d72035b60e4bd4c80",
+        "childCandidateDigest": "sha256:c62240cb436fcb2895026e04450c32c771539707754d85782dd5b12b0d00cbfb",
+        "digest": "sha256:c62240cb436fcb2895026e04450c32c771539707754d85782dd5b12b0d00cbfb",
         "facts": [
           {
             "expected": "wait for the exact assistant image to become stable",
@@ -51517,15 +50961,15 @@
           }
         ],
         "pageDemandDigest": "sha256:baa969976ee2d1d0c22f652a418568ca8dee4241952a704ab490782fae4d4d25",
-        "projectionDigest": "sha256:f94a40503f1d50fdab66f1298d3ebec78fa690b85702b65d72035b60e4bd4c80",
+        "projectionDigest": "sha256:c62240cb436fcb2895026e04450c32c771539707754d85782dd5b12b0d00cbfb",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -51533,7 +50977,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [
@@ -51649,25 +51093,25 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            149,
-            156,
-            200,
-            236,
-            265,
-            295
+            137,
+            144,
+            188,
+            224,
+            253,
+            283
           ]
         },
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-polling.acceptance-support.ts",
           "lines": [
-            75,
-            118,
-            146,
-            239,
-            268,
-            311,
-            371,
-            419
+            59,
+            102,
+            130,
+            223,
+            252,
+            295,
+            355,
+            403
           ]
         },
         {
@@ -51679,35 +51123,35 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-production-browser-cross-poll.acceptance-support.ts",
           "lines": [
-            82,
-            137,
-            167,
-            186,
-            208,
-            231
+            74,
+            129,
+            159,
+            178,
+            200,
+            223
           ]
         },
         {
           "path": "src/capabilities/gpt/acceptance/gpt-production-browser-mismatch.acceptance-support.ts",
           "lines": [
-            68
+            59
           ]
         },
         {
           "path": "src/capabilities/gpt/acceptance/gpt-production-browser-readback.acceptance-support.ts",
           "lines": [
-            458,
-            473
+            453,
+            468
           ]
         },
         {
           "path": "src/capabilities/gpt/acceptance/gpt-production-browser-wait.acceptance-support.ts",
           "lines": [
+            69,
+            74,
             79,
-            84,
-            89,
-            114,
-            115
+            104,
+            105
           ]
         },
         {
@@ -51741,13 +51185,13 @@
         {
           "path": "src/capabilities/gpt/confirmed-provider-readback.ts",
           "lines": [
-            59
+            58
           ]
         },
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            88
+            86
           ]
         },
         {
@@ -52042,8 +51486,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:f32c4c7ea0c870a2ff03f745771b5bb48791d704e0eb61701daeb7af147f60aa",
-        "digest": "sha256:f32c4c7ea0c870a2ff03f745771b5bb48791d704e0eb61701daeb7af147f60aa",
+        "childCandidateDigest": "sha256:e0aad54506575f0c25285b8e04a2f04859fd1dce09a60401366e0214f78a6cd4",
+        "digest": "sha256:e0aad54506575f0c25285b8e04a2f04859fd1dce09a60401366e0214f78a6cd4",
         "facts": [
           {
             "expected": "wait for the exact assistant text to become stable across exact canonical navigation or Browser-proven normal reacquire",
@@ -52279,15 +51723,15 @@
           }
         ],
         "pageDemandDigest": "sha256:7ff16d346dce677d0d1d46a28755875b71319b93d50dba701992401265645330",
-        "projectionDigest": "sha256:f32c4c7ea0c870a2ff03f745771b5bb48791d704e0eb61701daeb7af147f60aa",
+        "projectionDigest": "sha256:e0aad54506575f0c25285b8e04a2f04859fd1dce09a60401366e0214f78a6cd4",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -52295,7 +51739,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [
@@ -52480,8 +51924,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-checkpoint.acceptance-support.ts",
           "lines": [
-            525,
-            529
+            513,
+            517
           ]
         },
         {
@@ -52524,7 +51968,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            87
+            85
           ]
         },
         {
@@ -52771,8 +52215,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:4cecf1c5d2dfd4b147bfe8a881c156199388a2f125a408ae8ab8828c220c389a",
-        "digest": "sha256:4cecf1c5d2dfd4b147bfe8a881c156199388a2f125a408ae8ab8828c220c389a",
+        "childCandidateDigest": "sha256:dc8e94444b4edb34a41a1bf5369e19d3086d62af7782001b0b05279ec7e9727b",
+        "digest": "sha256:dc8e94444b4edb34a41a1bf5369e19d3086d62af7782001b0b05279ec7e9727b",
         "facts": [
           {
             "expected": "make the composer retain the exact approved prompt",
@@ -53003,15 +52447,15 @@
           }
         ],
         "pageDemandDigest": "sha256:a1bb290ca7e5198fcc985069468a3445a6e8288b1a7d3266b985b0c1aa6a75b6",
-        "projectionDigest": "sha256:4cecf1c5d2dfd4b147bfe8a881c156199388a2f125a408ae8ab8828c220c389a",
+        "projectionDigest": "sha256:dc8e94444b4edb34a41a1bf5369e19d3086d62af7782001b0b05279ec7e9727b",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
+                "contentHash": "sha256:580cd5c7cb8fa07fb54e55da2993928fc1a1d2d8c64751ef809ab2c6393b9c4e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
+                "semanticHash": "sha256:b70c0017d40c0b2516de5246d6e6fa710a6fc08b138352c90d0856ef0cf30dae"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -53019,7 +52463,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
+            "semanticDigest": "sha256:91cc813f4505b9e7e32c07b1efdd32d2b5b956c7f475a95b03e111fb4ce50747"
           },
           "browser": {
             "files": [],

@@ -10,15 +10,15 @@ if (!String.raw`
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V3:dynamic.service": {"claims": {"forbidden:0": [{"path": "/facts/control_contract_version_exact", "operator": "equals", "expected": true}], "summary": [{"path": "/facts/cleanup_verified", "operator": "equals", "expected": true}]}},
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V3:dynamic.authorization": {"claims": {"forbidden:1": [{"path": "/facts/unbound_lease_fence_job_count", "operator": "equals", "expected": 0}], "forbidden:2": [{"path": "/authorityState", "operator": "equals", "expected": "present"}]}},
     "LAW-AGENT-PRODUCTION-RUNTIME-004-V17:dynamic.service": {"claims": {"forbidden:0": [{"path": "/facts/business_admission_receipt_invalid_count", "operator": "equals", "expected": 0}], "forbidden:1": [{"path": "/facts/runtime_completion_without_admission_count", "operator": "equals", "expected": 0}], "summary": [{"path": "/facts/business_admission_completed_count", "operator": "gte", "expected": 5}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V15:dynamic.database": {"claims": {"forbidden:0": [{"path": "/facts/runtime_schema_exact", "operator": "equals", "expected": true}], "summary": [{"path": "/facts/runtime_schema_exact", "operator": "equals", "expected": true}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V15:dynamic.recovery": {"claims": {"forbidden:1": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V17:dynamic.storage": {"claims": {"forbidden:0": [{"path": "/facts/runtime_orphan_directory_count", "operator": "equals", "expected": 0}], "forbidden:1": [{"path": "/facts/proof_job_pending_outbox_count", "operator": "equals", "expected": 0}], "summary": [{"path": "/facts/runtime_orphan_directory_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V17:dynamic.recovery": {"claims": {"forbidden:2": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V18:dynamic.service": {"claims": {"forbidden:0": [{"path": "/facts/runtime_claims_business_completion", "operator": "equals", "expected": false}], "summary": [{"path": "/facts/cleanup_verified", "operator": "equals", "expected": true}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V18:dynamic.database": {"claims": {"forbidden:0": [{"path": "/facts/runtime_schema_exact", "operator": "equals", "expected": true}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V18:dynamic.storage": {"claims": {"forbidden:0": [{"path": "/facts/runtime_orphan_directory_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V18:dynamic.authorization": {"claims": {"forbidden:1": [{"path": "/facts/unbound_lease_fence_job_count", "operator": "equals", "expected": 0}]}},
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V18:dynamic.recovery": {"claims": {"forbidden:2": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}}
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V16:dynamic.database": {"claims": {"forbidden:0": [{"path": "/facts/runtime_schema_exact", "operator": "equals", "expected": true}], "summary": [{"path": "/facts/runtime_schema_exact", "operator": "equals", "expected": true}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V16:dynamic.recovery": {"claims": {"forbidden:1": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V18:dynamic.storage": {"claims": {"forbidden:0": [{"path": "/facts/runtime_orphan_directory_count", "operator": "equals", "expected": 0}], "forbidden:1": [{"path": "/facts/proof_job_pending_outbox_count", "operator": "equals", "expected": 0}], "summary": [{"path": "/facts/runtime_orphan_directory_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V18:dynamic.recovery": {"claims": {"forbidden:2": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V19:dynamic.service": {"claims": {"forbidden:0": [{"path": "/facts/runtime_claims_business_completion", "operator": "equals", "expected": false}], "summary": [{"path": "/facts/cleanup_verified", "operator": "equals", "expected": true}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V19:dynamic.database": {"claims": {"forbidden:0": [{"path": "/facts/runtime_schema_exact", "operator": "equals", "expected": true}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V19:dynamic.storage": {"claims": {"forbidden:0": [{"path": "/facts/runtime_orphan_directory_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V19:dynamic.authorization": {"claims": {"forbidden:1": [{"path": "/facts/unbound_lease_fence_job_count", "operator": "equals", "expected": 0}]}},
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V19:dynamic.recovery": {"claims": {"forbidden:2": [{"path": "/unresolvedCount", "operator": "equals", "expected": 0}]}}
   }
 }
 /* GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_END */`.includes("GOVERNANCE_DYNAMIC_CLAIM_CONTRACT_END")) {

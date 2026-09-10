@@ -17,7 +17,6 @@ export type AppendArtifactResult = {
   readonly artifactRef: string;
   readonly storageRef: string;
   readonly integrityHash: string;
-  readonly sizeBytes: number;
 };
 
 /**

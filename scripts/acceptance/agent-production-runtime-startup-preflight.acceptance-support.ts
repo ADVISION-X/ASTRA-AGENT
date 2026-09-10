@@ -1,5 +1,5 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import { chmod, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -8,7 +8,6 @@ import { createForensicsPersistenceAbilityGroupFromStorage } from
   "../../src/capabilities/forensics-persistence/index.js";
 import {
   productionCredentialPath,
-  normalizeRetiredProductionCredentialManifestHash,
   readProductionCredential,
 } from "../../src/lib/local-runtime/production/credential.js";
 import { startProductionRuntime } from "../../src/lib/local-runtime/production/runtime.js";
@@ -79,62 +78,6 @@ const assertDependencyProjection = async (): Promise<void> => {
   }
 };
 
-const assertExactRetiredManifestNormalization = async (credentialTemporary: string): Promise<void> => {
-    const obsoleteManifest = path.join(credentialTemporary, "obsolete-manifest");
-    const obsoletePath = await writeCredential(
-      obsoleteManifest,
-      { ...validDeviceCredential, control_manifest_hash: HASH_A },
-    );
-    await expectCredentialCode(obsoleteManifest, "PRODUCTION_CREDENTIAL_SCHEMA_INVALID");
-    const normalized = await normalizeRetiredProductionCredentialManifestHash(obsoleteManifest);
-    assert.deepEqual(normalized, {
-      status: "NORMALIZED",
-      credentialPath: obsoletePath,
-      deviceId: validDeviceCredential.device_id,
-    });
-    assert.deepEqual(await readProductionCredential(obsoleteManifest), validDeviceCredential);
-    const normalizedSource = await readFile(obsoletePath, "utf8");
-    assert.equal(Object.hasOwn(JSON.parse(normalizedSource) as object, "control_manifest_hash"), false);
-    const normalizedMetadata = await stat(obsoletePath);
-    const alreadyCurrent = await normalizeRetiredProductionCredentialManifestHash(obsoleteManifest);
-    assert.equal(alreadyCurrent.status, "CURRENT");
-    assert.equal(await readFile(obsoletePath, "utf8"), normalizedSource);
-    assert.equal((await stat(obsoletePath)).mtimeMs, normalizedMetadata.mtimeMs);
-
-};
-
-const assertNormalizationRejectsNonExactCandidates = async (
-  credentialTemporary: string,
-): Promise<void> => {
-    const invalidLegacy = path.join(credentialTemporary, "invalid-legacy-manifest");
-    const invalidLegacyPath = await writeCredential(invalidLegacy, {
-      ...validDeviceCredential,
-      control_manifest_hash: "invalid",
-    });
-    const invalidLegacySource = await readFile(invalidLegacyPath, "utf8");
-    await assert.rejects(normalizeRetiredProductionCredentialManifestHash(invalidLegacy),
-      (error: unknown) => typedExecutionFailure(error)?.code
-        === "PRODUCTION_CREDENTIAL_NORMALIZATION_NOT_APPLICABLE");
-    assert.equal(await readFile(invalidLegacyPath, "utf8"), invalidLegacySource);
-
-    const secondExtraField = path.join(credentialTemporary, "second-extra-field");
-    const secondExtraPath = await writeCredential(secondExtraField, {
-      ...validDeviceCredential,
-      control_manifest_hash: HASH_A,
-      fallback_credential: "forbidden",
-    });
-    const secondExtraSource = await readFile(secondExtraPath, "utf8");
-    await assert.rejects(normalizeRetiredProductionCredentialManifestHash(secondExtraField),
-      (error: unknown) => typedExecutionFailure(error)?.code
-        === "PRODUCTION_CREDENTIAL_NORMALIZATION_NOT_APPLICABLE");
-    assert.equal(await readFile(secondExtraPath, "utf8"), secondExtraSource);
-};
-
-const assertRetiredManifestNormalization = async (credentialTemporary: string): Promise<void> => {
-  await assertExactRetiredManifestNormalization(credentialTemporary);
-  await assertNormalizationRejectsNonExactCandidates(credentialTemporary);
-};
-
 const assertCredentialFormatFailures = async (credentialTemporary: string): Promise<void> => {
     await expectCredentialCode(path.join(credentialTemporary, "missing-parent"),
       "PRODUCTION_CREDENTIAL_PARENT_MISSING");
@@ -146,7 +89,6 @@ const assertCredentialFormatFailures = async (credentialTemporary: string): Prom
     await writeCredential(malformed, "{");
     await expectCredentialCode(malformed, "PRODUCTION_CREDENTIAL_JSON_INVALID");
   
-    await assertRetiredManifestNormalization(credentialTemporary);
 };
 
 const assertCredentialValueFailures = async (credentialTemporary: string): Promise<void> => {

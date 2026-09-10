@@ -1,8 +1,6 @@
-import type { ForensicsAppendArtifactInput, ForensicsResult } from "../../schema.js";
+import type { ForensicsAppendArtifactInput, ForensicsAppendArtifactResult } from "../../schema.js";
 import type { ForensicsStoragePort } from "../../storage-port.js";
 import {
-  buildForensicsFailureProof,
-  buildForensicsSuccessProof,
   createForensicsProofTiming,
   resolveForensicsFailureReason,
 } from "../../proof-support.js";
@@ -10,39 +8,31 @@ import {
 export async function executeAppendArtifact(
   input: ForensicsAppendArtifactInput,
   storage: ForensicsStoragePort,
-): Promise<ForensicsResult> {
+): Promise<ForensicsAppendArtifactResult> {
   const startedAt = new Date().toISOString();
   try {
     const result = await storage.appendArtifact(input);
     return {
       status: "success",
       artifactRef: result.artifactRef,
-      proof: buildForensicsSuccessProof({
+      proof: {
         childCapabilityId: "append-artifact",
         missionId: input.missionId,
         runId: input.runId,
-        sessionId: input.sessionId,
-        roundId: input.roundId,
         capabilityCallId: input.capabilityCallId,
         artifactRef: result.artifactRef,
         storageRef: result.storageRef,
         integrityHash: result.integrityHash,
-      }, createForensicsProofTiming(startedAt)),
+        status: "success", ...createForensicsProofTiming(startedAt),
+      },
     };
   } catch (err) {
     const failureReason = resolveForensicsFailureReason(err);
     return {
       status: "failed",
       failureReason,
-      proof: buildForensicsFailureProof(
-        "append-artifact",
-        failureReason,
-        createForensicsProofTiming(startedAt),
-        {
-        missionId: input.missionId,
-        runId: input.runId,
-        },
-      ),
+      proof: { childCapabilityId: "append-artifact", status: "failed", failureReason,
+        missionId: input.missionId, runId: input.runId, ...createForensicsProofTiming(startedAt) },
     };
   }
 }

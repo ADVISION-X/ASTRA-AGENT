@@ -14,10 +14,6 @@ import { persistGptEvidenceArtifacts } from "./evidence-artifacts.js";
 import type { GptEvidenceStorePort } from "./production-ports.js";
 import { gptAttachmentProviderDisplayName } from "./schema.js";
 
-const persistedEvidenceRefs = new WeakMap<object, string>();
-export const persistedGptEvidenceRef = (result: GptChildCapabilityResult): string | null =>
-  persistedEvidenceRefs.get(result) ?? null;
-
 const hash = (value: string | Uint8Array): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 const jsonHash = (value: unknown): `sha256:${string}` =>
@@ -177,13 +173,12 @@ export const persistGptChildEvidence = async (input: Readonly<{
   });
   if (appended.status !== "success" || !appended.recordRef) throw executionFailure("failed", "EVIDENCE_APPEND_FAILED");
   const readback = await input.evidenceStore.readRecordRef({
-    childCapabilityId: "read-record-ref", recordRef: appended.recordRef,
+    recordRef: appended.recordRef,
   });
   if (readback.status !== "success" || !readback.record
     || jsonHash(readback.record.payload) !== jsonHash(projection)) {
     throw executionFailure("failed", "EVIDENCE_READBACK_FAILED");
   }
-  persistedEvidenceRefs.set(input.result, appended.recordRef);
   return Object.freeze({ evidenceRef: appended.recordRef, artifactRefs });
 };
 
@@ -227,7 +222,6 @@ export const persistGptPreExecutionFailure = async (input: Readonly<{
     throw executionFailure("failed", "EVIDENCE_APPEND_FAILED");
   }
   const readback = await input.evidenceStore.readRecordRef({
-    childCapabilityId: "read-record-ref",
     recordRef: appended.recordRef,
   });
   if (readback.status !== "success" || !readback.record

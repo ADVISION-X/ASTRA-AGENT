@@ -1,21 +1,14 @@
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
-import { getDefaultPhase04LocalDataDir } from "./default-data-dir.js";
 import { buildApiBoundaryLogHandle } from "./workbench-api-boundary-log.js";
 import { createWorkbenchAssembly, type WorkbenchAssembly } from "./workbench-assembly.js";
 import type { GrassEyeWorkbenchHandle } from "./workbench-handle.js";
-import { buildSettingsHandle } from "./workbench-settings-handle.js";
 import {
   getHealthReport,
-  getMissionReadinessReport,
-  getMissionStartPreflight,
-  getModeInfo,
   runtimeInitializationDisposition,
 } from "./workbench-status.js";
 import type {
   WorkbenchHealthReport,
   WorkbenchInitializationState,
-  WorkbenchMissionReadinessReport,
-  WorkbenchPreflightResult,
 } from "./workbench-status-types.js";
 import { buildProductionRuntimeHandle } from "./workbench-production-runtime-handle.js";
 import { startProductionRuntime, type ProductionRuntimeHandle } from "./production/runtime.js";
@@ -28,7 +21,6 @@ const buildWorkbenchHandle = (
   productionRuntime: ProductionRuntimeHandle,
   getInitializationState: () => WorkbenchInitializationState,
 ): GrassEyeWorkbenchHandle => {
-  const dataDir = assembly.dataDir;
   return {
     init,
     shutdown,
@@ -38,18 +30,11 @@ const buildWorkbenchHandle = (
       getInitializationState(),
       productionRuntime.readHealth(),
     ),
-    getMissionReadinessReport: async () => getMissionReadinessReport(assembly, assembly.options),
-    getMissionStartPreflight: async (input) =>
-      getMissionStartPreflight(assembly, assembly.options, input),
-    getDataDir: () => dataDir,
     acceptBrowserAuthoritySocket: (input) => assembly.browserAuthority.acceptBrowserAuthoritySocket(input),
-    readBrowserAuthorityPairingState: () => assembly.browserAuthority.readOperatorPairingState(),
     readBrowserExtensionBootstrapState: () => ({
       ...assembly.browserAuthority.readOperatorPairingState(),
       releaseBuildId: assembly.browserAuthority.readReleaseBuildId(),
     }),
-    getModeInfo: () => getModeInfo(assembly.options),
-    ...buildSettingsHandle(dataDir),
     ...buildProductionRuntimeHandle(productionRuntime),
   };
 };
@@ -161,13 +146,7 @@ export class GrassEyeWorkbench {
     const fixed = new Map<string | symbol, () => unknown>([
       ["init", () => () => this.init()],
       ["shutdown", () => () => this.shutdown()],
-      ["getDataDir", () => () => this.assembly?.dataDir
-        ?? this.options.dataDir
-        ?? getDefaultPhase04LocalDataDir()],
-      ["getModeInfo", () => () => getModeInfo(this.options)],
       ["getHealthReport", () => () => this.getHealthReport()],
-      ["getMissionReadinessReport", () => () => this.getMissionReadinessReport()],
-      ["getMissionStartPreflight", () => (input: unknown) => this.getMissionStartPreflight(input)],
       ["recordWorkbenchApiBoundaryEvent", () => (input: Parameters<GrassEyeWorkbenchHandle["recordWorkbenchApiBoundaryEvent"]>[0]) => {
         if (!this.assembly) return;
         buildApiBoundaryLogHandle(this.assembly).recordWorkbenchApiBoundaryEvent(input);
@@ -175,10 +154,6 @@ export class GrassEyeWorkbench {
       ["acceptBrowserAuthoritySocket", () => (input: Parameters<GrassEyeWorkbenchHandle["acceptBrowserAuthoritySocket"]>[0]) => {
         if (!this.assembly) throw new Error("BROWSER_AUTHORITY_NOT_INITIALIZED");
         return this.assembly.browserAuthority.acceptBrowserAuthoritySocket(input);
-      }],
-      ["readBrowserAuthorityPairingState", () => () => this.assembly?.browserAuthority.readOperatorPairingState() ?? {
-        authority: "absent" as const,
-        pairingSecret: null,
       }],
       ["readBrowserExtensionBootstrapState", () => () => this.assembly ? {
         ...this.assembly.browserAuthority.readOperatorPairingState(),
@@ -213,7 +188,7 @@ export class GrassEyeWorkbench {
         this.productionRuntime?.readHealth() ?? null,
       );
     }
-    const disposition = runtimeInitializationDisposition(this.initializationState.failureReason);
+    const disposition = runtimeInitializationDisposition();
     const runtimeComponent = {
       name: "runtimeInitialization",
       ok: false,
@@ -235,26 +210,4 @@ export class GrassEyeWorkbench {
     };
   }
 
-  private async getMissionReadinessReport(): Promise<WorkbenchMissionReadinessReport> {
-    if (this.assembly) return getMissionReadinessReport(this.assembly, this.options);
-    return {
-      status: "not_ready",
-      reason: "Browser authority is absent; no browser-dependent business owner has been composed.",
-      components: [authorityAbsentComponent()],
-      checkedAt: new Date().toISOString(),
-    };
-  }
-
-  private async getMissionStartPreflight(input: unknown): Promise<WorkbenchPreflightResult> {
-    if (this.assembly) return getMissionStartPreflight(this.assembly, this.options, input);
-    const component = authorityAbsentComponent();
-    return {
-      status: "blocked",
-      actionableMessage: component.actionableMessage,
-      failureReason: component.detail,
-      recommendedAction: "Complete browser authority initialization before starting a mission.",
-      ownerResponsible: "Browser",
-      components: [component],
-    };
-  }
 }

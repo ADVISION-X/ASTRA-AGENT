@@ -16,6 +16,7 @@ import type { GovernedFile } from "../audit/domains/code-purity/components/code-
 import { scanStructuralAstBudgets } from "../audit/domains/code-purity/components/scan-structural-budgets.js";
 import { scanOwnerBoundaries } from "../audit/domains/code-purity/components/scan-owner-boundaries.js";
 import { scanZombieSurfaces } from "../audit/domains/code-purity/components/scan-zombie-surfaces.js";
+import { packageEntrypointConsumerScope } from "../audit/domains/code-purity/components/zombie-live-entrypoints.js";
 import { createInspectorContextFixture } from "../audit/shared/inspector-context-acceptance-support.js";
 
 type FixtureConfig = { entryScripts: string[] };
@@ -154,6 +155,9 @@ assert.equal(resolveCodePurityOwner("scripts/runtime-logs/inspect.ts"), "runtime
 assert.equal(resolveCodePurityOwner("src/lib/local-runtime/production/catalog.ts"), "agent-production-runtime");
 assert.equal(resolveCodePurityRole("scripts/generate/sync.ts"), "audit-phase");
 assert.equal(resolveCodePurityRole("scripts/runtime-logs/inspect.ts"), "audit-phase");
+assert.equal(packageEntrypointConsumerScope("browser:verify", "scripts/acceptance/browser.acceptance.ts"), "verification");
+assert.equal(packageEntrypointConsumerScope("proof:local-shell-current-runtime", "scripts/audit/local-shell-proof.ts"), "verification");
+assert.equal(packageEntrypointConsumerScope("start", "src/app/server.ts"), "production");
 
 const productionDelete = [{ status: "D", path: "orphan-production.md" }];
 assert.doesNotThrow(() => assertProductionDeleteAuthorization(

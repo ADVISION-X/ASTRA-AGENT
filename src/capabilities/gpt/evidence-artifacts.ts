@@ -7,7 +7,7 @@ import type { GptEvidenceStorePort } from "./production-ports.js";
 
 type EvidenceArtifact = Readonly<{
   suffix: string;
-  artifactType: "ai_raw_output" | "ai_json_output" | "other";
+  artifactType: "ai_raw_output" | "other";
   mimeType: string;
   content: Uint8Array<ArrayBuffer>;
 }>;
@@ -228,7 +228,7 @@ const appendArtifact = async (input: Readonly<{
     throw executionFailure("failed", "EVIDENCE_ARTIFACT_APPEND_FAILED");
   }
   const readback = await input.evidenceStore.readArtifactRef({
-    childCapabilityId: "read-artifact-ref", artifactRef: appended.artifactRef,
+    artifactRef: appended.artifactRef,
   });
   const actual = readback.artifact?.content ? hash(readback.artifact.content) : null;
   if (readback.status !== "success" || actual !== hash(input.artifact.content)) {

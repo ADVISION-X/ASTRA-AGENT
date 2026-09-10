@@ -4,12 +4,9 @@ import {
   type ExactGptContinuationReadback,
   type ExactGptCallFacts,
   type GptContinuationCheckpointInput,
-  type ProductGptAnyCallInput,
   type ProductGptTools,
   type GptProviderContinuation,
 } from "../../../src/capabilities/gpt/index.js";
-import { bindConfirmedProviderSubmitReceipt } from
-  "../../../src/capabilities/gpt/production-call-facts.js";
 import {
   hashCanonical,
   type SharedExecutionContext,
@@ -23,8 +20,6 @@ import { articleOutput, researchOutput } from
 import {
   CONFIRMED_AT,
   HASH,
-  createHarness,
-  seoTask,
   type SeoCall,
   type SeoFailure,
   type SeoHarness,
@@ -105,7 +100,6 @@ const currentCheckpointReadback = (
 };
 
 const outputForCall = (state: SeoHarness, input: SeoCall, decision: "proceed" | "decline"): unknown => {
-  const marker = `[GRASSEYE:${"a".repeat(24)}]`;
   const textAssistantTurnId = input.productStepId === "article_synthesis"
     ? "conversation-turn-4" : "conversation-turn-2";
   const text = input.productStepId === "corpus_research"
@@ -297,7 +291,6 @@ const executeCall = async (
 const readSeoContinuation = (
   state: SeoHarness,
   decision: "proceed" | "decline",
-  attemptId = "attempt-1",
 ): SharedExecutionContext["gpt"]["readContinuationExact"] => async (query) => {
   if (query.lookupKind === "turn_marker") {
     return state.continuationProvider
@@ -364,12 +357,15 @@ const readSeoCallFacts = (
     } : null,
     continuation: null,
   };
-  return stored?.failureCode && stored.mutation ? bindConfirmedProviderSubmitReceipt(facts, {
-    exactCallIdentityHash: HASH,
-    terminalAt: stored.terminalAt!,
-    evidenceRef: stored.evidenceRef,
-    evidenceHash: HASH,
-  }) : facts;
+  return stored?.failureCode && stored.mutation ? {
+    ...facts,
+    confirmedProviderSubmitReceipt: {
+      exactCallIdentityHash: HASH,
+      terminalAt: stored.terminalAt!,
+      evidenceRef: stored.evidenceRef,
+      evidenceHash: HASH,
+    },
+  } : facts;
 };
 
 const completeSeo = (
@@ -402,7 +398,7 @@ export const createContext = (
   gpt: {
     jobId: `job-${state.actionId}`,
     attemptId,
-    readContinuationExact: readSeoContinuation(state, decision, attemptId),
+    readContinuationExact: readSeoContinuation(state, decision),
     readCallFacts: readSeoCallFacts(state, attemptId),
     execute: async (input: SeoExecuteInput) => {
       const result = await executeCall(state, input as SeoCall, decision, failureAt, attemptId);

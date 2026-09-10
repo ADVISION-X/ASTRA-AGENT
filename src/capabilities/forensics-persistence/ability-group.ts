@@ -5,13 +5,14 @@ import { executeReadRecordRef } from "./children/read-record-ref/handler.js";
 import type { ForensicsPersistenceAbilityGroup } from "./contract.js";
 import { createForensicsStorageAdapter } from "./storage-adapter.js";
 import type {
-  ForensicsAbilityInput,
   ForensicsAppendArtifactInput,
+  ForensicsAppendArtifactResult,
   ForensicsAppendRecordInput,
+  ForensicsAppendRecordResult,
+  ForensicsReadArtifactResult,
+  ForensicsReadRecordResult,
   ForensicsReadRecordRefInput,
-  ForensicsResult,
 } from "./schema.js";
-import { FORENSICS_PERSISTENCE_ABILITY_GROUP_ID } from "./schema.js";
 import type { ForensicsStoragePort } from "./storage-port.js";
 import type { GrassEyeStoragePort } from "../../lib/storage/index.js";
 import {
@@ -25,12 +26,12 @@ type AppendableForensicsInput =
   | ForensicsAppendArtifactInput
   | ForensicsAppendRecordInput;
 
-const appendWithLog = async (
+const appendWithLog = async <T extends Readonly<{ status: "success" | "failed"; failureReason?: string }>>(
   runtimeLogger: RuntimeLogger | undefined,
   input: AppendableForensicsInput,
   capabilityLabel: "append-record" | "append-artifact",
-  execute: () => Promise<ForensicsResult>,
-): Promise<ForensicsResult> => {
+  execute: () => Promise<T>,
+): Promise<T> => {
   const span = runtimeLogger ? requireRuntimeLogWrite(runtimeLogger.startSpan({
     traceId: input.missionId,
     owner: "forensics-persistence",
@@ -42,7 +43,7 @@ const appendWithLog = async (
     },
     visibility: "DEBUG",
   })) : undefined;
-  let result: ForensicsResult;
+  let result: T;
   try {
     result = await execute();
   } catch (error) {
@@ -78,7 +79,7 @@ const appendRecordWithLog = async (
   input: ForensicsAppendRecordInput,
   storage: ForensicsStoragePort,
   runtimeLogger?: RuntimeLogger,
-) => {
+): Promise<ForensicsAppendRecordResult> => {
   return appendWithLog(runtimeLogger, input, "append-record", () => executeAppendRecord(input, storage));
 };
 
@@ -86,25 +87,8 @@ const appendArtifactWithLog = async (
   input: ForensicsAppendArtifactInput,
   storage: ForensicsStoragePort,
   runtimeLogger?: RuntimeLogger,
-) => {
+): Promise<ForensicsAppendArtifactResult> => {
   return appendWithLog(runtimeLogger, input, "append-artifact", () => executeAppendArtifact(input, storage));
-};
-
-const executeForensicsChild = (
-  input: ForensicsAbilityInput,
-  storage: ForensicsStoragePort,
-  runtimeLogger?: RuntimeLogger,
-): Promise<ForensicsResult> => {
-  switch (input.childCapabilityId) {
-    case "append-record":
-      return appendRecordWithLog(input, storage, runtimeLogger);
-    case "append-artifact":
-      return appendArtifactWithLog(input, storage, runtimeLogger);
-    case "read-record-ref":
-      return executeReadRecordRef(input, storage);
-    case "read-artifact-ref":
-      return executeReadArtifactRef(input, storage);
-  }
 };
 
 export function createForensicsPersistenceAbilityGroup(
@@ -112,35 +96,27 @@ export function createForensicsPersistenceAbilityGroup(
   runtimeLogger?: RuntimeLogger,
 ): ForensicsPersistenceAbilityGroup {
   return {
-    abilityGroupId: FORENSICS_PERSISTENCE_ABILITY_GROUP_ID,
-
-    async execute(input: ForensicsAbilityInput): Promise<ForensicsResult> {
-      return executeForensicsChild(input, storage, runtimeLogger);
-    },
-
-    async appendRecord(input): Promise<ForensicsResult> {
+    async appendRecord(input): Promise<ForensicsAppendRecordResult> {
       const { correlationId, ...recordInput } = input;
       return appendRecordWithLog({
         ...recordInput,
-        childCapabilityId: "append-record",
         ...(correlationId ? { capabilityCallId: correlationId } : {}),
       }, storage, runtimeLogger);
     },
 
-    async appendArtifact(input): Promise<ForensicsResult> {
+    async appendArtifact(input): Promise<ForensicsAppendArtifactResult> {
       const { correlationId, ...artifactInput } = input;
       return appendArtifactWithLog({
         ...artifactInput,
-        childCapabilityId: "append-artifact",
         ...(correlationId ? { capabilityCallId: correlationId } : {}),
       }, storage, runtimeLogger);
     },
 
-    readRecordRef(input: ForensicsReadRecordRefInput): Promise<ForensicsResult> {
+    readRecordRef(input: ForensicsReadRecordRefInput): Promise<ForensicsReadRecordResult> {
       return executeReadRecordRef(input, storage);
     },
 
-    readArtifactRef(input): Promise<ForensicsResult> {
+    readArtifactRef(input): Promise<ForensicsReadArtifactResult> {
       return executeReadArtifactRef(input, storage);
     },
 

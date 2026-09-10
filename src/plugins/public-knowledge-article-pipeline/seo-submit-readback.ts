@@ -1,6 +1,5 @@
 import {
   confirmedProviderSubmitReceiptFromError,
-  confirmedProviderSubmitReceiptFromFacts,
   type ExactGptCallFacts,
 } from "../../capabilities/gpt/index.js";
 import type { ProductionHash } from "../../mediator/product-plugin-contract.js";
@@ -25,7 +24,7 @@ const postSubmitEvidence = (submit: SeoConfirmedSubmit): Readonly<{
   evidenceRef: string;
   evidenceHash: ProductionHash;
 }> | null => {
-  const carried = confirmedProviderSubmitReceiptFromFacts(submit);
+  const carried = submit.confirmedProviderSubmitReceipt;
   if (carried) return Object.freeze({
     terminalAt: carried.terminalAt,
     evidenceRef: carried.evidenceRef,
@@ -57,7 +56,7 @@ export const preservePostSubmitReadback = (
   submit: SeoConfirmedSubmit | null,
 ): never => {
   const carried = confirmedProviderSubmitReceiptFromError(error)
-    ?? (submit ? confirmedProviderSubmitReceiptFromFacts(submit) : null);
+    ?? submit?.confirmedProviderSubmitReceipt;
   const code = failureCode(error);
   const evidence = carried ?? (submit ? postSubmitEvidence(submit) : null);
   if (!evidence || code.startsWith("GPT_PROVIDER_TERMINAL_")) throw error;

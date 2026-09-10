@@ -10,8 +10,6 @@ import {
   sourceTextForPaths,
   type FindingFactory,
 } from "./gpt-inspection-support.js";
-import { inspectGptAttachmentContract } from "./gpt-attachment-contract-inspection.js";
-
 const ROOT = "src/capabilities/gpt";
 const CONTRACT_PATH = `${ROOT}/contract.ts`;
 const CHILD_TYPES_PATH = `${ROOT}/child-types.ts`;

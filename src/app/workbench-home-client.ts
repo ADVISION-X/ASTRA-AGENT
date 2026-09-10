@@ -103,9 +103,8 @@ const showSkill = (skill) => {
 };
 const refreshShell = async () => {
   try {
-    const [health, mode] = await Promise.all([readJson("/api/health"), readJson("/api/mode")]);
+    const health = await readJson("/api/health");
     setText("[data-health-status]", health.status || "ready");
-    setText("[data-mode-status]", mode.mode?.platformTarget || mode.mode?.mode || "local");
     writeActivity("shell refreshed", "completed");
   } catch (error) {
     writeActivity("shell refresh failed: " + error.message, "failed");

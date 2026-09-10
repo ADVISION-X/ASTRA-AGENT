@@ -14,7 +14,6 @@ import { createWorkbenchGptAbilityGroup } from "./workbench-gpt-support.js";
 import { createWorkbenchEvidenceStore } from "./workbench-evidence-support.js";
 
 export type WorkbenchAssembly = {
-  options: GrassEyeWorkbenchOptions;
   dataDir: string;
   browserAuthority: WorkbenchBrowserAuthority;
   evidenceStore: ReturnType<typeof createWorkbenchEvidenceStore>;
@@ -43,7 +42,6 @@ export async function createWorkbenchAssembly(
   const gptAbilityGroup = createWorkbenchGptAbilityGroup();
 
   return {
-    options,
     dataDir,
     browserAuthority,
     evidenceStore,

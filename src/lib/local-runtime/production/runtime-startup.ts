@@ -199,7 +199,7 @@ const reconcileEvidence = async (
   for (const record of records) {
     if (record.status !== "completed" || !record.result) continue;
     for (const recordRef of record.result.evidence_refs) {
-      const readback = await input.evidenceStore.readRecordRef({ childCapabilityId: "read-record-ref", recordRef });
+      const readback = await input.evidenceStore.readRecordRef({ recordRef });
       if (readback.status !== "success" || !readback.record) complete = false;
     }
   }
@@ -257,7 +257,6 @@ const establishCloudSession = async (
 };
 
 const finishShutdown = (
-  state: RuntimeState,
   span: RuntimeSpanHandle,
   errors: readonly unknown[],
 ): void => {
@@ -296,7 +295,7 @@ const shutdownRuntime = async (
   await state.session.close().catch((error) => errors.push(error));
   state.stopped = true;
   try { state.store.close(); } catch (error) { errors.push(error); }
-  finishShutdown(state, span, errors);
+  finishShutdown(span, errors);
 };
 
 const createRuntimeHandle = (

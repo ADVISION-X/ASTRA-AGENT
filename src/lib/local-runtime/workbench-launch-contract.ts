@@ -6,10 +6,8 @@
  */
 
 import { GrassEyeWorkbench } from "./workbench.js";
-import type { GrassEyeWorkbenchOptions, GrassEyePlatformTarget } from "./contract.js";
+import type { GrassEyeWorkbenchOptions } from "./contract.js";
 import type { GrassEyeWorkbenchHandle } from "./workbench-handle.js";
-
-export type { GrassEyePlatformTarget };
 
 export function createGrassEyeWorkbenchHandle(options: GrassEyeWorkbenchOptions): GrassEyeWorkbenchHandle {
   const workbench = new GrassEyeWorkbench(options);

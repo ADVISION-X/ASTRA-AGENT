@@ -70,7 +70,6 @@ async function runPreStartScripts({ rootDir, npmCommand, preStartScripts, onStdo
 function buildServiceEnv(env) {
   return {
     ...process.env,
-    GRASSEYE_PLATFORM_TARGET: process.env.GRASSEYE_PLATFORM_TARGET ?? "agent-shell",
     ...env,
   };
 }

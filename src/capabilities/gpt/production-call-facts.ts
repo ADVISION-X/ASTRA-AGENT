@@ -17,20 +17,6 @@ import {
 
 export { isPendingExactEvidence } from "./evidence-fact.js";
 
-const confirmedSubmitReceipts = new WeakMap<object, ProductSafeConfirmedProviderSubmitReceipt>();
-
-export const bindConfirmedProviderSubmitReceipt = <T extends ExactGptCallFacts>(
-  facts: T,
-  receipt: ProductSafeConfirmedProviderSubmitReceipt,
-): T => {
-  confirmedSubmitReceipts.set(facts, Object.freeze(receipt));
-  return facts;
-};
-
-export const confirmedProviderSubmitReceiptFromFacts = (
-  facts: ExactGptCallFacts,
-): ProductSafeConfirmedProviderSubmitReceipt | null => confirmedSubmitReceipts.get(facts) ?? null;
-
 export type GptExactCallFactsWithBrowserBinding = Omit<ExactGptCallFacts, "mutation"> & Readonly<{
     mutation: (NonNullable<ExactGptCallFacts["mutation"]> & Readonly<{
     mutationOutcome: "no" | "dispatched" | "confirmed";
@@ -43,9 +29,14 @@ export type GptExactCallFactsWithBrowserBinding = Omit<ExactGptCallFacts, "mutat
   }>) | null;
 }>;
 
-export const productSafeExactGptCallFacts = (facts: GptExactCallFactsWithBrowserBinding): ExactGptCallFacts =>
+export const productSafeExactGptCallFacts = (
+  facts: GptExactCallFactsWithBrowserBinding,
+  confirmedProviderSubmitReceipt: ProductSafeConfirmedProviderSubmitReceipt | null = null,
+): ExactGptCallFacts =>
   Object.freeze({
     ...facts,
+    ...(confirmedProviderSubmitReceipt
+      ? { confirmedProviderSubmitReceipt: Object.freeze(confirmedProviderSubmitReceipt) } : {}),
     evidence: isPendingExactEvidence(facts.evidence) ? null : facts.evidence,
     mutation: facts.mutation ? Object.freeze({
       owner: facts.mutation.owner,

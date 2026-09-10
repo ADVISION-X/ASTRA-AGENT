@@ -149,7 +149,6 @@ const createAppendArtifact = (storageDir: string) =>
         artifactRef,
         storageRef: `forensics://artifacts/${artifactRef}`,
         integrityHash: existing.integrityHash,
-        sizeBytes: existing.sizeBytes,
       };
     }
     const { content: _content, ...meta } = artifact;
@@ -174,7 +173,6 @@ const createAppendArtifact = (storageDir: string) =>
       artifactRef,
       storageRef: `forensics://artifacts/${artifactRef}`,
       integrityHash,
-      sizeBytes: bytes?.byteLength ?? 0,
     };
   };
 

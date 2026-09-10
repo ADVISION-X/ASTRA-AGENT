@@ -18,7 +18,7 @@ const CONTRACT_PATH = "src/capabilities/gpt/contract.ts";
 const GPT_ROOT = "src/capabilities/gpt";
 const PLUGIN_ROOT = "src/plugins";
 const ACTIVE_LAW_PATH = ".github/instructions/agent-rules/功能法案.md";
-const REPORT_SCHEMA = "gpt-page-operation-evidence.v6";
+const REPORT_SCHEMA = "gpt-page-operation-evidence.v7";
 const MATRIX_SCHEMA = "gpt-page-operation-matrix.v4";
 const DEMAND_CONTRACT_FIELDS = Object.freeze([
   "semanticIntent", "inputSchema", "requiredTargetKind", "allowedDocumentTransition",
@@ -376,10 +376,6 @@ const inspectReportEnvelope = (
   if ((report.matrixBinding as { schemaVersion?: unknown } | undefined)?.schemaVersion !== MATRIX_SCHEMA) {
     findings.push(finding("gpt/page-evidence-matrix-binding", REPORT_PATH,
       `The report is not bound to ${MATRIX_SCHEMA}.`));
-  }
-  if (report.productionRuntimeConsumer !== false || report.claimsQualityVerdict !== false) {
-    findings.push(finding("gpt/page-evidence-role-boundary", REPORT_PATH,
-      "The report must remain offline evidence and must not claim a quality verdict."));
   }
   const browser = record(record(report.captureMetadata)?.browser);
   if (report.captureStatus !== "NOT_CAPTURED" && (

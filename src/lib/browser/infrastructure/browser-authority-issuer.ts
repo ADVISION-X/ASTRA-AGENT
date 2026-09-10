@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 import type { BrowserHash } from "../exact-target/browser-target-ref.js";
 import {
@@ -20,7 +20,6 @@ export type BrowserAuthenticationProof = Readonly<{
 }>;
 
 export class BrowserAuthorityIssuer {
-  private readonly issuerKey = randomBytes(32);
   private slot: BrowserAuthoritySlot = { kind: "ABSENT", reasonCode: "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE" };
   private nextEpoch = 1;
   private commandPermitKey: Buffer | null = null;

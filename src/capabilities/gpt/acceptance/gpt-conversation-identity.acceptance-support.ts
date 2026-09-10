@@ -16,16 +16,12 @@ import {
 } from "./gpt-exact-target-browser-fixture.js";
 import {
   EMPTY_HASH,
-  approvedFile,
-  childConversationUrl,
-  conversationIdentityHash,
   conversationFacts,
   conversationUrl,
   freshHarness,
   hash,
   marker,
   promptHash,
-  responseFacts,
   responseHash,
   responseText,
   sourceInput,

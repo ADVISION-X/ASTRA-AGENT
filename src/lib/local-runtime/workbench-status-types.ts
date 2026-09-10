@@ -7,7 +7,7 @@ export type WorkbenchHealthComponent = {
 };
 
 export type WorkbenchHealthReport = {
-  status: "healthy" | "degraded" | "unhealthy";
+  status: "healthy" | "degraded";
   components: WorkbenchHealthComponent[];
   checkedAt: string;
   sourceFingerprint: string;
@@ -16,28 +16,4 @@ export type WorkbenchHealthReport = {
 export type WorkbenchInitializationState = {
   status: "initializing" | "ready" | "failed";
   failureReason: string | null;
-};
-
-export type WorkbenchMissionReadinessReport = {
-  status: "ready" | "not_ready";
-  reason: string;
-  components: WorkbenchHealthComponent[];
-  checkedAt: string;
-};
-
-export type WorkbenchPreflightInput = {
-  requestedPlatformId: string | null;
-  targetProfileRef: string | null;
-  targetUrl: string | null;
-  targetTitle: string | null;
-  userRequirementRef: string | null;
-};
-
-export type WorkbenchPreflightResult = {
-  status: "ready" | "blocked" | "warning";
-  actionableMessage: string;
-  failureReason: string | null;
-  recommendedAction: string;
-  ownerResponsible: string;
-  components: WorkbenchHealthComponent[];
 };

@@ -3,7 +3,6 @@ export {
   createGptAbilityGroup,
   createProductionGptChildTools,
 } from "./ability-group.js";
-export { confirmedProviderSubmitReceiptFromFacts } from "./production-call-facts.js";
 export {
   type GptAbilityGroup,
   type GptApprovedFile,

@@ -237,21 +237,23 @@ const inspectSchemaContract = (
       "Forensics capability and storage envelope schemas must both remain present.", "static.contract");
     return;
   }
-  const declarations = new Set(capability.getVariableDeclarations().map((declaration) => declaration.getName()));
+  const declarations = new Set(capability.getTypeAliases().map((declaration) => declaration.getName()));
   for (const required of [
-    "ForensicsAppendRecordInputSchema", "ForensicsAppendArtifactInputSchema",
-    "ForensicsReadRecordRefInputSchema", "ForensicsProofSchema", "ForensicsResultSchema",
+    "ForensicsAppendRecordInput", "ForensicsAppendArtifactInput",
+    "ForensicsReadRecordRefInput", "ForensicsReadArtifactRefInput",
+    "ForensicsAppendRecordResult", "ForensicsAppendArtifactResult",
+    "ForensicsReadRecordResult", "ForensicsReadArtifactResult",
   ]) if (!declarations.has(required)) pushFinding(findings, lawId, clauseId, capabilityPath,
     "forensics/schema-contract", `Forensics schema contract is missing ${required}.`, "static.contract");
   const storageFields = (name: string): Set<string> => new Set(storage.getTypeAlias(name)
     ?.getDescendantsOfKind(SyntaxKind.PropertySignature).map((property) => property.getName()) ?? []);
   const recordFields = storageFields("RecordEnvelope");
   const artifactFields = storageFields("ArtifactEnvelope");
-  for (const required of ["recordType", "payload", "parentRefs", "artifactRefs", "idempotencyKey", "createdAt"]) {
+  for (const required of ["recordType", "payload", "artifactRefs", "idempotencyKey", "createdAt"]) {
     if (!recordFields.has(required)) pushFinding(findings, lawId, clauseId, storagePath,
       "forensics/record-envelope-contract", `RecordEnvelope is missing ${required}.`, "static.contract");
   }
-  for (const required of ["artifactType", "content", "bytesRef", "sourceRef", "parentRefs", "idempotencyKey", "createdAt"]) {
+  for (const required of ["artifactType", "content", "idempotencyKey", "createdAt"]) {
     if (!artifactFields.has(required)) pushFinding(findings, lawId, clauseId, storagePath,
       "forensics/artifact-envelope-contract", `ArtifactEnvelope is missing ${required}.`, "static.contract");
   }
@@ -350,7 +352,7 @@ const inspectDeterministicRecordIdentity = (
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const evidenceLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V5");
   const schemaBoundaryLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V5");
-  const schemaVocabularyLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3");
+  const schemaVocabularyLaw = selectLawId(context.planEntry.lawIds, "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V4");
   const findings: Finding[] = [];
   const inspectedFiles = new Set<string>();
   const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
@@ -402,6 +404,6 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
     lawResults: [lawResult("LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V5"),
       lawResult("LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V5"),
-      lawResult("LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3")], inspectedFiles: evaluation.inspectedFiles,
+      lawResult("LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V4")], inspectedFiles: evaluation.inspectedFiles,
   });
 };

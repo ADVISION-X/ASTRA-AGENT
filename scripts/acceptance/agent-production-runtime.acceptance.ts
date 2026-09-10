@@ -583,7 +583,7 @@ assert.ok(runtimeConsumerBlock);
 assert.equal(runtimeConsumerBlock[1], expectedRuntimeConsumerBlock);
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V17",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V18",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"],
   locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",

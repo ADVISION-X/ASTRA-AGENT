@@ -13,7 +13,6 @@ type ConfirmedSubmitEvidenceState = Readonly<{
   mutation: "no" | "confirmed" | "dispatched";
 }>;
 
-const readbackDocumentHashes = new WeakMap<object, GptHash>();
 const record = (value: unknown): Readonly<Record<string, unknown>> | null =>
   value && typeof value === "object" && !Array.isArray(value)
     ? value as Readonly<Record<string, unknown>> : null;
@@ -25,7 +24,7 @@ const invalid = (): never => {
 
 export const confirmedSubmitReadbackDocumentHash = (
   value: ExactGptCallFacts["evidence"],
-): GptHash | null => value === null ? null : readbackDocumentHashes.get(value) ?? null;
+): GptHash | null => value?.readbackDocumentRefHash ?? null;
 
 export const confirmedSubmitReadbackDocumentHashFromPayload = (input: Readonly<{
   payload: Readonly<Record<string, unknown>>;
@@ -41,11 +40,6 @@ export const confirmedSubmitReadbackDocumentHashFromPayload = (input: Readonly<{
   if (required ? !hashValue(value) : value !== null) invalid();
   return required ? value as GptHash : null;
 };
-
-export const rememberConfirmedSubmitReadbackDocumentHash = (
-  evidence: NonNullable<ExactGptCallFacts["evidence"]>,
-  documentHash: GptHash,
-): void => { readbackDocumentHashes.set(evidence, documentHash); };
 
 export const carryConfirmedSubmitEvidenceFailure = (
   error: unknown,

@@ -8,59 +8,36 @@ import type {
   StoredGptContinuation,
 } from "./session/gpt-continuation-store-port.js";
 
-type GptEvidenceStoreResult = Readonly<{
-  status: "success" | "failed" | "invalid_input";
-  recordRef?: string | undefined;
-  artifactRef?: string | undefined;
-  record?: Readonly<Record<string, unknown>> | undefined;
-  artifact?: Readonly<{
-    content: Uint8Array<ArrayBuffer>;
-    mimeType?: string | undefined;
-    integrityHash: string;
-  }> | undefined;
-}>;
+type GptAppendRecordResult = Readonly<{ status: "success" | "failed"; recordRef?: string }>;
+type GptAppendArtifactResult = Readonly<{ status: "success" | "failed"; artifactRef?: string }>;
+type GptReadRecordResult = Readonly<{ status: "success" | "failed"; recordRef?: string | undefined; record?: Readonly<Record<string, unknown>> | undefined }>;
+type GptReadArtifactResult = Readonly<{ status: "success" | "failed"; artifactRef?: string | undefined; artifact?: Readonly<{ content: Uint8Array; mimeType?: string; integrityHash: string }> | undefined }>;
 
 export interface GptEvidenceStorePort {
   appendRecord(input: Readonly<{
     missionId: string;
     runId: string;
-    sessionId?: string;
-    roundId?: string;
     stepId?: string;
     sourceCapabilityId?: string;
     sourceChildCapabilityId?: string;
-    recordType: "ai_result" | "ability_result" | "observation" | "evidence"
-      | "visual_evidence" | "failure" | "mission_event";
+    recordType: "evidence" | "failure";
     recordPayload: Record<string, unknown>;
     artifactRefs?: string[];
-    parentRefs?: string[];
     createdAt?: string;
     idempotencyKey: string;
     correlationId?: string;
-  }>): Promise<GptEvidenceStoreResult>;
+  }>): Promise<GptAppendRecordResult>;
   appendArtifact(input: Readonly<{
     missionId: string;
     runId: string;
-    sessionId?: string;
-    roundId?: string;
-    artifactType: "screenshot" | "coordinate_grid" | "ai_raw_output"
-      | "ai_json_output" | "runtime_log" | "other";
+    artifactType: "ai_raw_output" | "other";
     mimeType?: string;
-    bytesRef?: string;
     content?: string | Uint8Array<ArrayBuffer>;
-    sourceRef?: string;
-    parentRefs?: string[];
     idempotencyKey: string;
     correlationId?: string;
-  }>): Promise<GptEvidenceStoreResult>;
-  readRecordRef(input: Readonly<{
-    childCapabilityId: "read-record-ref";
-    recordRef: string;
-  }>): Promise<GptEvidenceStoreResult>;
-  readArtifactRef(input: Readonly<{
-    childCapabilityId: "read-artifact-ref";
-    artifactRef: string;
-  }>): Promise<GptEvidenceStoreResult>;
+  }>): Promise<GptAppendArtifactResult>;
+  readRecordRef(input: Readonly<{ recordRef: string }>): Promise<GptReadRecordResult>;
+  readArtifactRef(input: Readonly<{ artifactRef: string }>): Promise<GptReadArtifactResult>;
   readExactCallEvidence(input: Readonly<{
     missionId: string;
     runId: string;

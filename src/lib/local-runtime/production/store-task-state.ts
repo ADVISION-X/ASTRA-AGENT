@@ -2,7 +2,7 @@ import { executionFailure } from "../../execution-failure.js";
 import type { SerializedExecutionFailure } from "./terminal-failure.js";
 import type { DurablePluginIdentity, WebsiteAgentResult, WebsiteAgentTask } from "./contracts.js";
 import type { PriorResultRejection } from "../../../mediator/product-plugin-contract.js";
-import { WebsiteAgentResultSchema, type ProductionHash } from "./contracts.js";
+import { WebsiteAgentResultSchema } from "./contracts.js";
 import { isRejectedCheckpointSequenceFailure } from "./store-outbox-recovery-proof.js";
 import { ProductionStoreContinuationState } from "./store-continuation-state.js";
 import {

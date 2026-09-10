@@ -4,7 +4,6 @@ import {
   carryProductSafeConfirmedProviderSubmitReceipt,
   gptExecutionFailure,
 } from "./execution-fault.js";
-import { persistedGptEvidenceRef } from "./evidence-writer.js";
 import type { ProductGptTools } from "./product-api.js";
 
 export type GptProductionExecutionInput = Readonly<{
@@ -34,28 +33,28 @@ export type ProductGptExecution = Readonly<{
   settle(error: unknown | null): Promise<void>;
 }>;
 
-export const childFailureEventIds = new WeakMap<object, string>();
-
-export const throwGptChildFailure = (result: GptChildCapabilityResult): never => {
+export const throwGptChildFailure = (
+  result: GptChildCapabilityResult,
+  evidenceRef: string = result.proof.evidenceRef,
+  causeEventId?: string,
+): never => {
   const native = result.failureCause ? Object.assign(new Error(result.failureCause.name), {
     name: result.failureCause.name,
     ...(result.failureCause.code ? { code: result.failureCause.code } : {}),
   }) : undefined;
-  const evidenceRef = persistedGptEvidenceRef(result);
   const browserFact = result.proof.browserFact;
   const error = gptExecutionFailure(result.failureCode ?? "GPT_CHILD_FAILED", {
     mutationOutcome: result.proof.committedMutation,
     evidence: browserFact ? Object.freeze({
       evidenceRef: browserFact.evidenceRef,
       evidenceHash: browserFact.evidenceHash,
-    }) : evidenceRef ? Object.freeze({
+    }) : Object.freeze({
       evidenceRef,
       evidenceHash: result.proof.evidenceHash,
-    }) : null,
+    }),
     browserEffect: result.failureBrowserEffect,
     ...(native ? { cause: native } : {}),
   });
-  const causeEventId = childFailureEventIds.get(result);
   const propagated = causeEventId ? withRuntimeLogCause(error, causeEventId) : error;
   if (result.proof.childCapabilityId === "submit_exact_gpt_turn_once"
     && result.proof.committedMutation === "confirmed"

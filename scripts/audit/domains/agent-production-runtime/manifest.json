@@ -7,16 +7,15 @@
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
     "LAW-AGENT-PRODUCTION-RUNTIME-003-V17",
     "LAW-AGENT-PRODUCTION-RUNTIME-004-V17",
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V15",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V17",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V17",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V18"
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V16",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V18",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V18",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V19"
   ],
   "ownedPaths": [
     "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
     "docs/specs/agent-production-runtime/**",
     "scripts/acceptance/agent-production-runtime-browser-failure.acceptance-support.ts",
-    "scripts/acceptance/agent-production-runtime-catalog-identity.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime-continuation.acceptance.ts",
     "scripts/acceptance/agent-production-runtime-fixtures.ts",
     "scripts/acceptance/agent-production-runtime-gpt-recovery-fixture.ts",
@@ -37,8 +36,6 @@
     "scripts/acceptance/agent-route-contract.acceptance.ts",
     "scripts/audit/domains/agent-production-runtime/**",
     "scripts/generate/sync-website-agent-route-policy-projection.ts",
-    "scripts/maintenance/production-runtime-catalog-identity-retire.ts",
-    "scripts/maintenance/production-runtime-credential-normalize.ts",
     "scripts/maintenance/production-runtime-storage-reconcile.ts",
     "src/lib/execution-failure.ts",
     "src/lib/local-runtime/production/**"

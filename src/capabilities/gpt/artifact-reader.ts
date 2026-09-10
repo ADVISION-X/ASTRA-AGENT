@@ -22,7 +22,7 @@ const readJsonArtifact = async (
   invalidCode: string,
 ): Promise<Readonly<Record<string, unknown>>> => {
   const readback = await evidenceStore.readArtifactRef({
-    childCapabilityId: "read-artifact-ref", artifactRef,
+    artifactRef,
   });
   if (readback.status !== "success" || !readback.artifact?.content
     || readback.artifact.mimeType !== "application/json") {

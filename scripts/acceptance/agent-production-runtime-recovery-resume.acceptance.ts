@@ -180,7 +180,6 @@ try {
     jobId: "job:recovery:post-submit", productId: "payment_screenshot_observation", actionId: "observe",
   });
   const postSubmitOriginalJob = claimTask(postSubmitTask);
-  const postSubmitAttemptId = postSubmitOriginalJob.grant.attempt_id;
   const postSubmitCheckpointBodies: Record<string, unknown>[] = [];
   const postSubmitReleaseBodies: Record<string, unknown>[] = [];
   const qualifiedPostSubmitCode = "GPT_DOCUMENT_TRANSITION_FORBIDDEN:wait_for_stable_gpt_text";

@@ -6,7 +6,6 @@ import {
   buildCapabilityRoot,
   classifyRepoPath,
   isCapabilityFacade,
-  isCapabilityNonFacade,
   isCapabilityPrivateImplementationSection,
 } from "../../shared/repo-path-classifier.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, staticForbiddenClauses, validateStaticInspection } from "../../shared/static-inspection-contract.js";

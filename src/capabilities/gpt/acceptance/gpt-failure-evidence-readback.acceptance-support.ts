@@ -220,9 +220,6 @@ export const exerciseBrowserRejectedEvidenceReadback = async (): Promise<void> =
   const recovered = await executeProductionGptAtomicCall({
     dataDir: "/tmp/gpt-rejected-wal-readback",
     gpt: Object.freeze({
-      abilityGroupId: "gpt" as const,
-      transport: "gpt-web" as const,
-      listChildCapabilityIds: () => Object.freeze(["prepare_clean_gpt_chat" as const]),
       execute: async () => { throw new Error("REJECTED_WAL_MUST_NOT_REPLAY_GPT"); },
     }),
     store: {} as never,
@@ -286,9 +283,6 @@ export const exerciseBrowserRejectedDispatchedEvidenceReadback = async (): Promi
   const recovered = await executeProductionGptAtomicCall({
     dataDir: "/tmp/gpt-rejected-dispatched-wal-readback",
     gpt: Object.freeze({
-      abilityGroupId: "gpt" as const,
-      transport: "gpt-web" as const,
-      listChildCapabilityIds: () => Object.freeze(["prepare_clean_gpt_chat" as const]),
       execute: async () => { throw new Error("REJECTED_DISPATCHED_WAL_MUST_NOT_REPLAY_GPT"); },
     }),
     store: {} as never,
@@ -364,9 +358,6 @@ const assertDispatchedAtomicRecovery = async (
   const atomic = await executeProductionGptAtomicCall({
     dataDir: "/tmp/gpt-dispatched-readback",
     gpt: Object.freeze({
-      abilityGroupId: "gpt" as const,
-      transport: "gpt-web" as const,
-      listChildCapabilityIds: () => Object.freeze(["prepare_clean_gpt_chat" as const]),
       execute: async () => readback as never,
     }),
     store: {} as never,

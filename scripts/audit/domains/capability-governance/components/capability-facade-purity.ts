@@ -2,7 +2,6 @@ import type { ExportDeclaration, SourceFile } from "ts-morph";
 
 import { createFinding } from "../../../shared/finding-utils.js";
 import {
-  buildCapabilityRoot,
   classifyRepoPath,
   isCapabilityPrivateImplementationSection,
 } from "../../../shared/repo-path-classifier.js";

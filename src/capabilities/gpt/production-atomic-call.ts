@@ -48,7 +48,7 @@ const executionContext = (
 export const executeProductionGptAtomicCall = async (
   input: AtomicGptCallInput,
 ): Promise<Readonly<{ result: GptChildCapabilityResult; resolveDispatched: boolean }>> => {
-  const { dataDir, gpt, store, browsers, intent, browserCall, signal } = input;
+  const { gpt, intent, browserCall } = input;
   const browser = browserCall?.facade;
   const context = executionContext(input, browser);
   if (!browser) return { result: await gpt.execute(intent, context), resolveDispatched: false };

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
-import { createLocalFinding, identifiers, requireIdentifiers, requireSource, retiredPaths, sourcePaths, stringLiterals } from "./inspector-support.js";
+import { createLocalFinding, requireIdentifiers, requireSource, retiredPaths, sourcePaths, stringLiterals } from "./inspector-support.js";
 
 export const inspectReleaseAndRetiredPaths = (findings: InspectorFinding[], lawId: string): void => {
   for (const path of retiredPaths) {

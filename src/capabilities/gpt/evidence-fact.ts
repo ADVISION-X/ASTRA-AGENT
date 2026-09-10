@@ -489,11 +489,10 @@ export const readExactGptEvidenceFact = async (input: Readonly<{
     evidenceHash: verified.evidenceHash,
     readbackVerified: true as const,
     artifactRefs: verified.artifactRefs,
+    ...(verified.confirmedSubmitReadbackDocumentHash
+      ? { readbackDocumentRefHash: verified.confirmedSubmitReadbackDocumentHash }
+      : {}),
   });
   if (state.postcondition === "pending" || failedInitialReadbackRemainsPending) pendingEvidence.add(fact);
-  if (verified.confirmedSubmitReadbackDocumentHash) {
-    confirmedSubmitEvidence.rememberConfirmedSubmitReadbackDocumentHash(fact,
-      verified.confirmedSubmitReadbackDocumentHash);
-  }
   return fact;
 };

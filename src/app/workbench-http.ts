@@ -1,8 +1,4 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
-
-type BufferedWorkbenchRequest = IncomingMessage & {
-  workbenchRawBody?: Buffer;
-};
+import type { ServerResponse } from "node:http";
 
 export const writeJson = (
   response: ServerResponse,
@@ -20,26 +16,4 @@ export const writeCorsPreflight = (
 ): void => {
   response.writeHead(204, headers);
   response.end();
-};
-
-export const readRequestBuffer = async (
-  request: IncomingMessage,
-  maxBytes = Number.POSITIVE_INFINITY,
-): Promise<Buffer> => {
-  const bufferedRequest = request as BufferedWorkbenchRequest;
-  if (bufferedRequest.workbenchRawBody) {
-    return bufferedRequest.workbenchRawBody;
-  }
-  const chunks: Buffer[] = [];
-  let total = 0;
-  for await (const chunk of request) {
-    const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    total += bytes.byteLength;
-    if (total > maxBytes) {
-      throw new Error("WORKBENCH_REQUEST_BODY_TOO_LARGE");
-    }
-    chunks.push(bytes);
-  }
-  bufferedRequest.workbenchRawBody = Buffer.concat(chunks);
-  return bufferedRequest.workbenchRawBody;
 };

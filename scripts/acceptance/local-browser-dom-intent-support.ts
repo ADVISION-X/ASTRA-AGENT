@@ -122,7 +122,7 @@ const exerciseComposerReadiness = async (): Promise<void> => {
 
 const exerciseDomFailures = async (): Promise<void> => {
   const runtime = (failure: DomFailure) => ({
-    async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
+    async send(_tabId: number, method: string, _parameters?: Readonly<Record<string, unknown>>) {
       let response: unknown;
       if (method === "DOM.resolveNode") {
         if (failure === "stale") throw new Error("Could not find node with given id");

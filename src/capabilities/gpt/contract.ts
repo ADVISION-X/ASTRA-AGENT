@@ -22,8 +22,6 @@ export type {
   GptTextCheckpointInput,
 } from "./child-types.js";
 
-export const GPT_ABILITY_GROUP_ID = "gpt" as const;
-export const GPT_TRANSPORT = "gpt-web" as const;
 export const GPT_MODEL_SELECTION_VERSION = "gpt-model-selection.v2" as const;
 
 export type GptFailureClassification = "failed";
@@ -246,9 +244,6 @@ export const gptExactCallIdentityHash = (
 ])).digest("hex")}`;
 
 export interface GptAbilityGroup {
-  readonly abilityGroupId: typeof GPT_ABILITY_GROUP_ID;
-  readonly transport: typeof GPT_TRANSPORT;
-  listChildCapabilityIds(): readonly GptChildCapabilityId[];
   execute<K extends GptChildCapabilityId>(
     intent: GptChildCapabilityIntent<K>,
     context: GptExecutionContext,

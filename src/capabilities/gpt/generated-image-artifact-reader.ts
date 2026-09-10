@@ -68,8 +68,8 @@ export const readGeneratedImageArtifacts = async (input: Readonly<{
   receipt: Readonly<Record<string, unknown>>;
 }>): Promise<GeneratedImageCheckpointArtifacts> => {
   const [originalReadback, webpReadback] = await Promise.all([
-    input.evidenceStore.readArtifactRef({ childCapabilityId: "read-artifact-ref", artifactRef: input.artifactRefs[0] }),
-    input.evidenceStore.readArtifactRef({ childCapabilityId: "read-artifact-ref", artifactRef: input.artifactRefs[1] }),
+    input.evidenceStore.readArtifactRef({ artifactRef: input.artifactRefs[0] }),
+    input.evidenceStore.readArtifactRef({ artifactRef: input.artifactRefs[1] }),
   ]);
   const original = originalReadback.artifact?.content;
   const webp = webpReadback.artifact?.content;

@@ -15,7 +15,7 @@ import { captureTimePageRequirementSnapshot, captureTimePageRequirementSnapshotV
   pageEvidenceNotApplicableForTrace, requiredLiveStatesForTrace, stateAssertionFailures,
   transitionEvidenceFailures } from "./trace-page-requirements.mjs";
 
-const REPORT_SCHEMA = "gpt-page-operation-evidence.v6";
+const REPORT_SCHEMA = "gpt-page-operation-evidence.v7";
 const CAPTURE_SCHEMA = "gpt-page-operation-capture.v6";
 const PRODUCTION_SOURCE_SCHEMA = "gpt-page-operation-production-source.v1";
 const MATRIX_SCHEMA = "gpt-page-operation-matrix.v4";
@@ -286,26 +286,6 @@ async function buildProductInventory(repo) {
   const unknown = contracts.filter((entry) => !products.some((product) => product.productKey === entry.productKey));
   if (unknown.length) fail("PRODUCT_EVIDENCE_CONTRACT_ROUTE_UNSUPPORTED", unknown.map((entry) => entry.productKey).join(","));
   return products.sort((left, right) => left.productKey.localeCompare(right.productKey));
-}
-
-function productChildIndex(products) {
-  const index = {};
-  for (const product of products) for (const run of product.runs ?? []) {
-    for (const call of run.calls ?? []) {
-      if (call.pageOperationRequired !== true) continue;
-      (index[call.childId] ??= []).push(stable({
-        productKey: product.productKey,
-        sourceSnapshotId: run.sourceSnapshotId,
-        captureEpoch: run.captureEpoch,
-        productStepId: call.productStepId,
-        actionOrdinal: call.actionOrdinal,
-        traceEntryId: call.traceEntryId,
-        exactCallIdentityHash: call.exactCallIdentityHash,
-        captureComplete: call.captureComplete,
-      }));
-    }
-  }
-  return stable(index);
 }
 
 export function preserveUnselectedProductSlices(currentProducts, priorProducts, selectedProductKey) {
@@ -582,20 +562,10 @@ async function buildInventory(repo, matrixPath) {
   const products = await buildProductInventory(repo);
   return {
     schemaVersion: REPORT_SCHEMA,
-    generatedAt: new Date().toISOString(),
-    repository: "AGENT",
     projectionRevision,
     captureEpoch: null,
     matrixBinding: { schemaVersion: matrix.schemaVersion, digest: sha256(JSON.stringify(stable(matrix))) },
-    purpose: "Offline engineering evidence for GPT children that operate a page",
-    evidenceRole: "stable Chrome page facts plus a cheap current-demand projection that every GPT page Child iteration must consume before editing",
-    productionRuntimeConsumer: false,
-    claimsQualityVerdict: false,
     captureStatus: "NOT_CAPTURED",
-    productionValue: {
-      supports: ["product-flow-bound evidence admission", "offline re-projection and deterministic regression from one stable capture epoch"],
-      doesNotReplace: ["real GPT task execution when the task requires it", "native quality verdict", "READY", "RELEASE", "Website admission or storage"]
-    },
     denominator: {
       rule: matrix.scopeRule,
       contractChildren: ids.length,
@@ -605,10 +575,7 @@ async function buildInventory(repo, matrixPath) {
       nonPageChildIds: denominator.contractNoPageIds
     },
     productConsumers: summarizeConsumers(references.productConsumers, denominator.contractPageIds),
-    primaryIndex: "products",
     products,
-    childIndex: productChildIndex(products),
-    productCaptureStatus: "NOT_CAPTURED",
     captureMetadata: null,
     children
   };
@@ -1882,10 +1849,6 @@ async function mergeProductRun(repo, inventory, matrix, base, capture) {
     const projection = productCaptureProjection({ ...product, runs, gaps: run.gaps });
     return { ...product, runs, ...projection };
   });
-  inventory.productCaptureStatus = inventory.products.every((entry) => entry.captureStatus === "CAPTURE_COMPLETE")
-    ? "CAPTURE_COMPLETE" : inventory.products.some((entry) => entry.captureStatus !== "NOT_CAPTURED")
-      ? "CAPTURE_PARTIAL" : "NOT_CAPTURED";
-  inventory.childIndex = productChildIndex(inventory.products);
 }
 
 async function mergeCapture(repo, matrixPath, capturePath, outputPath, baseReportPath, productId, actionId) {
@@ -1941,10 +1904,6 @@ async function reprojectReport(repo, matrixPath, baseReportPath, outputPath, pro
     const projection = productCaptureProjection({ ...currentProduct, runs: prior.runs, gaps: prior.gaps });
     return { ...currentProduct, runs: prior.runs, ...projection };
   }));
-  inventory.productCaptureStatus = inventory.products.every((entry) => entry.captureStatus === "CAPTURE_COMPLETE")
-    ? "CAPTURE_COMPLETE" : inventory.products.some((entry) => entry.captureStatus !== "NOT_CAPTURED")
-      ? "CAPTURE_PARTIAL" : "NOT_CAPTURED";
-  inventory.childIndex = productChildIndex(inventory.products);
   inventory.captureMetadata = null;
   inventory.captureEpoch = null;
   inventory.captureStatus = "NOT_CAPTURED";
@@ -1954,17 +1913,14 @@ async function reprojectReport(repo, matrixPath, baseReportPath, outputPath, pro
 
 async function validateReport(repo, matrixPath, reportPath, requireComplete) {
   const report = await readJson(reportPath);
-  if (["gpt-page-operation-evidence.v1", "gpt-page-operation-evidence.v2", "gpt-page-operation-evidence.v3", "gpt-page-operation-evidence.v4", "gpt-page-operation-evidence.v5"].includes(report.schemaVersion)) {
+  if (["gpt-page-operation-evidence.v1", "gpt-page-operation-evidence.v2", "gpt-page-operation-evidence.v3", "gpt-page-operation-evidence.v4", "gpt-page-operation-evidence.v5", "gpt-page-operation-evidence.v6"].includes(report.schemaVersion)) {
     fail("REPORT_LEGACY_INVALIDATED");
   }
   if (report.schemaVersion !== REPORT_SCHEMA) fail("REPORT_SCHEMA_INVALID");
-  if (report.productionRuntimeConsumer !== false || report.claimsQualityVerdict !== false) {
-    fail("REPORT_ROLE_BOUNDARY_INVALID");
-  }
   assertNoRepositoryCandidateBinding(report);
   const matrix = await loadMatrix(matrixPath);
   const current = await buildInventory(repo, matrixPath);
-  if (report.primaryIndex !== "products" || !Array.isArray(report.products)
+  if (!Array.isArray(report.products)
     || report.products.length === 0) fail("REPORT_PRODUCT_INDEX_INVALID");
   assertUnique(report.products.map((entry) => entry.productKey), "REPORT_PRODUCT_DUPLICATE");
   const currentProducts = Object.fromEntries(current.products.map((entry) => [entry.productKey, entry]));
@@ -2026,12 +1982,6 @@ async function validateReport(repo, matrixPath, reportPath, requireComplete) {
   const expectedProductCaptureStatus = report.products.every((entry) => entry.captureStatus === "CAPTURE_COMPLETE")
     ? "CAPTURE_COMPLETE" : report.products.some((entry) => entry.captureStatus !== "NOT_CAPTURED")
       ? "CAPTURE_PARTIAL" : "NOT_CAPTURED";
-  if (report.productCaptureStatus !== expectedProductCaptureStatus) {
-    fail("REPORT_PRODUCT_CAPTURE_STATUS_INVALID");
-  }
-  if (JSON.stringify(report.childIndex) !== JSON.stringify(productChildIndex(report.products))) {
-    fail("REPORT_CHILD_INDEX_NOT_DERIVED");
-  }
   const globalProjectionCurrent = JSON.stringify(report.matrixBinding) === JSON.stringify(current.matrixBinding)
     && report.projectionRevision === current.projectionRevision;
   if (!Array.isArray(report.children)
@@ -2075,10 +2025,10 @@ async function validateReport(repo, matrixPath, reportPath, requireComplete) {
   }
   const projectionCurrent = globalProjectionCurrent && staleProducts.length === 0;
   if (requireComplete && !projectionCurrent) fail("REPORT_PROJECTION_STALE", staleProducts.join(",") || "global");
-  if (requireComplete && report.productCaptureStatus !== "CAPTURE_COMPLETE") {
-    fail("REPORT_NOT_COMPLETE", report.productCaptureStatus ?? "missing");
+  if (requireComplete && expectedProductCaptureStatus !== "CAPTURE_COMPLETE") {
+    fail("REPORT_NOT_COMPLETE", expectedProductCaptureStatus);
   }
-  return { valid: true, complete: report.productCaptureStatus === "CAPTURE_COMPLETE",
+  return { valid: true, complete: expectedProductCaptureStatus === "CAPTURE_COMPLETE",
     projectionCurrent, staleProducts };
 }
 
@@ -2111,12 +2061,6 @@ function productEvidenceBrief(report, product, stepId = "") {
     flowOwnerBinding: product.flowOwnerBinding,
     stepScope: stepId || "ALL_PRODUCT_STEPS",
     runs,
-    rules: {
-      productFlowIsPrimary: true,
-      childIndexIsDerived: true,
-      missingDomMustNotBeGuessed: true,
-      claimsQualityVerdict: false,
-    },
   });
 }
 
@@ -2132,8 +2076,7 @@ function productAdmissionCandidate(report, product, stepId = "") {
 async function validateSelectedProduct(repo, matrixPath, reportPath, productId, actionId) {
   const report = await readJson(reportPath);
   if (report.schemaVersion !== REPORT_SCHEMA) fail("REPORT_SCHEMA_INVALID");
-  if (report.productionRuntimeConsumer !== false || report.claimsQualityVerdict !== false
-    || report.primaryIndex !== "products" || !Array.isArray(report.products)) {
+  if (!Array.isArray(report.products)) {
     fail("REPORT_ROLE_BOUNDARY_INVALID");
   }
   assertNoRepositoryCandidateBinding(report);

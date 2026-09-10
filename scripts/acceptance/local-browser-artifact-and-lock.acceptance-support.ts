@@ -76,7 +76,7 @@ const verifyBoundArtifactTamperAndRelease = async (input: Readonly<{
   bound: BoundArtifactFixture;
   stagedFile: string;
 }>): Promise<void> => {
-  const { authorityLease, bindingLease, grant, providerPath, resolver } = input.bound;
+  const { authorityLease, grant, providerPath, resolver } = input.bound;
   assert.deepEqual(await resolver([grant]), [await realpath(providerPath)],
     "Browser must resolve the exact Runtime-owned provider basename through its sole resolver");
   const [sourceIdentity, aliasIdentity] = await Promise.all([lstat(input.stagedFile), lstat(providerPath)]);

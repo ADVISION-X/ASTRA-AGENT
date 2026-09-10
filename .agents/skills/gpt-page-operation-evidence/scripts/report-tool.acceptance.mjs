@@ -254,11 +254,8 @@ async function main() {
   const reportPath = join(directory, "report.json");
   run(["inventory", "--repo", REPO, "--matrix", MATRIX, "--output", reportPath]);
   const report = JSON.parse(await readFile(reportPath, "utf8"));
-  assert.equal(report.schemaVersion, "gpt-page-operation-evidence.v6");
-  assert.equal(report.primaryIndex, "products");
+  assert.equal(report.schemaVersion, "gpt-page-operation-evidence.v7");
   assert.equal(report.products.length, 40);
-  assert.equal(report.productCaptureStatus, "NOT_CAPTURED");
-  assert.equal(report.claimsQualityVerdict, false);
   assert.equal(hasForbiddenBinding(report), false);
   assert.ok(report.products.some((entry) => entry.productKey === "public_knowledge_article_pipeline/produce_article"
     && entry.contractPath?.endsWith("page-evidence-contract.json")));
@@ -274,10 +271,8 @@ async function main() {
   const unrelatedDrift = structuredClone(report);
   unrelatedDrift.projectionRevision = digest;
   unrelatedDrift.matrixBinding = { schemaVersion: "changed-elsewhere", digest };
-  unrelatedDrift.generatedAt = "2099-01-01T00:00:00.000Z";
   unrelatedDrift.products.find((entry) => entry.productKey !== "public_knowledge_article_pipeline/produce_article")
     .gaps = ["UNRELATED_PRODUCT_CHANGED"];
-  unrelatedDrift.childIndex = { unrelated_child: [] };
   const unrelatedDriftPath = join(directory, "unrelated-drift.json");
   await writeFile(unrelatedDriftPath, `${JSON.stringify(unrelatedDrift)}\n`);
   const localCandidate = JSON.parse(run(["candidate", "--repo", REPO, "--matrix", MATRIX,
@@ -307,13 +302,6 @@ async function main() {
   const incomplete = run(["admit", "--repo", REPO, "--matrix", MATRIX, "--report", reportPath,
     "--product", "public_knowledge_article_pipeline", "--action", "produce_article", "--candidate", candidate], 1);
   assert.match(incomplete.stderr, /ADMISSION_PRODUCT_EVIDENCE_INCOMPLETE/u);
-
-  const tampered = structuredClone(report);
-  tampered.childIndex = { fake_child: [] };
-  const tamperedPath = join(directory, "tampered.json");
-  await writeFile(tamperedPath, `${JSON.stringify(tampered)}\n`);
-  assert.match(run(["validate", "--repo", REPO, "--matrix", MATRIX, "--report", tamperedPath], 1).stderr,
-    /REPORT_CHILD_INDEX_NOT_DERIVED/u);
 
   const childSecondTruth = structuredClone(report);
   childSecondTruth.children[0].collection = null;
@@ -352,13 +340,6 @@ async function main() {
   staleProduct.runs = [staleRun];
   staleProduct.captureStatus = "CAPTURE_PARTIAL";
   staleProduct.gaps = staleRun.gaps;
-  staleProductRun.productCaptureStatus = "CAPTURE_PARTIAL";
-  staleProductRun.childIndex = localStable({ prepare_clean_gpt_chat: [{
-    productKey: staleProduct.productKey, sourceSnapshotId: staleRun.sourceSnapshotId, captureEpoch,
-    productStepId: staleRun.calls[0].productStepId, actionOrdinal: staleRun.calls[0].actionOrdinal,
-    traceEntryId: staleRun.calls[0].traceEntryId,
-    exactCallIdentityHash: staleRun.calls[0].exactCallIdentityHash, captureComplete: false,
-  }] });
   const staleProductPath = join(directory, "stale-product-run.json");
   await writeFile(staleProductPath, `${JSON.stringify(staleProductRun)}\n`);
   const staleValidation = JSON.parse(run(["validate", "--repo", REPO, "--matrix", MATRIX,
@@ -389,14 +370,14 @@ async function main() {
   run(["validate", "--repo", REPO, "--matrix", MATRIX, "--report", refreshedPath]);
 
   const legacy = structuredClone(report);
-  legacy.schemaVersion = "gpt-page-operation-evidence.v5";
+  legacy.schemaVersion = "gpt-page-operation-evidence.v6";
   const legacyPath = join(directory, "legacy.json");
   await writeFile(legacyPath, `${JSON.stringify(legacy)}\n`);
   assert.match(run(["validate", "--repo", REPO, "--matrix", MATRIX, "--report", legacyPath], 1).stderr,
     /REPORT_LEGACY_INVALIDATED/u);
 
   process.stdout.write(`${JSON.stringify({ passed: true, products: report.products.length,
-    cases: ["catalog-denominator", "product-primary-index", "head-independent", "derived-child-index",
+    cases: ["catalog-denominator", "product-inventory", "head-independent",
       "public-source-redaction", "product-run-recomputed", "product-admission-fails-closed",
       "product-candidate-locality", "targeted-slice-preserves-unselected-bytes",
       "global-drift-does-not-block-targeted-product", "child-admission-forbidden",
@@ -406,7 +387,7 @@ async function main() {
       "static-child-second-truth-rejected",
       "public-production-plaintext-field-rejected", "stale-product-aggregate-derived",
       "product-local-projection-staleness",
-      "v5-invalidated"] })}\n`);
+      "v6-invalidated"] })}\n`);
 }
 
 main().catch((error) => {

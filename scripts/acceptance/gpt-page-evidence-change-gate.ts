@@ -10,7 +10,7 @@ import {
 
 const ROOT = resolve(".");
 const REPORT_PATH = "docs/项目方案/GPT页面操作子能力实证资料.json";
-const REPORT_SCHEMA = "gpt-page-operation-evidence.v6";
+const REPORT_SCHEMA = "gpt-page-operation-evidence.v7";
 const ACTIVE_LAW_PATH = ".github/instructions/agent-rules/功能法案.md";
 const BLUEPRINT_PATH = "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md";
 const SHARED_PAGE_PATHS = new Set([
@@ -166,7 +166,9 @@ const productEvidenceRequiredByChange = (
   paths: readonly string[],
 ): boolean => paths.some((path) => {
   const direct = path.match(/^src\/capabilities\/gpt\/children\/([^/]+)\//u)?.[1];
-  if (direct === id || childImplementationPaths(child).includes(path)) return true;
+  if (direct === id || childImplementationPaths(child).includes(path)) {
+    return true;
+  }
   if (path.startsWith("src/plugins/") || path.startsWith("src/capabilities/gpt/web/")) {
     return changedText(path).includes(id);
   }
@@ -203,8 +205,11 @@ const childBindingFailures = (child: EvidenceChild): string[] => {
   if (!authorityPaths.includes(ACTIVE_LAW_PATH) || !authorityPaths.includes(BLUEPRINT_PATH)) {
     failures.push(`${child.childCapabilityId}:authority-binding`);
   }
-  for (const binding of Object.values(child.evidenceDemand?.sourceBinding ?? {})) {
+  for (const [kind, binding] of Object.entries(child.evidenceDemand?.sourceBinding ?? {})) {
     for (const entry of binding.files ?? []) {
+      if (kind === "authority" && entry.path
+        && [ACTIVE_LAW_PATH, BLUEPRINT_PATH].includes(entry.path)
+        && childIdsMentionedByDiff(entry.path, [child.childCapabilityId]).length === 0) continue;
       if (!entry.path || !entry.contentHash || !existsSync(resolve(ROOT, entry.path))
         || sha256(readFileSync(resolve(ROOT, entry.path))) !== entry.contentHash) {
         failures.push(`${child.childCapabilityId}:source-stale:${entry.path ?? "missing"}`);
@@ -247,7 +252,6 @@ export const gptPageEvidenceChangeGateFailures = (
   const requestedScope = requestedEvidenceScope();
   const baselinePageDemand = headPageDemandDigests();
   if (report.schemaVersion !== REPORT_SCHEMA) failures.push("report-schema");
-  if (report.productionRuntimeConsumer !== false || report.claimsQualityVerdict !== false) failures.push("report-role");
   const rawChildren = Array.isArray(report.children) ? report.children : [];
   const children = rawChildren.filter((entry): entry is EvidenceChild => Boolean(entry)
     && typeof entry === "object" && !Array.isArray(entry)

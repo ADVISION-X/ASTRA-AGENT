@@ -20,7 +20,7 @@ try {
     idempotencyKey: "record-1",
   });
   assert.equal(record.status, "success");
-  assert.equal(record.proof?.abilityGroupId, "forensics-persistence");
+  if (record.status !== "success") throw new Error("record append failed");
   assert.equal(record.proof?.childCapabilityId, "append-record");
   assert.equal(typeof record.proof?.recordRef, "string");
   assert.equal(typeof record.proof?.integrityHash, "string");
@@ -31,10 +31,11 @@ try {
     recordPayload: { status: "observed" },
     idempotencyKey: "record-1",
   });
+  if (duplicateRecord.status !== "success") throw new Error("duplicate record append failed");
   assert.equal(duplicateRecord.recordRef, record.recordRef);
-  const readback = await group.readRecordRef({ childCapabilityId: "read-record-ref", recordRef: record.recordRef! });
+  const readback = await group.readRecordRef({ recordRef: record.recordRef! });
   assert.equal(readback.status, "success");
-  assert.deepEqual(readback.record?.payload, { status: "observed" });
+  assert.deepEqual(readback.record.payload, { status: "observed" });
   const recordConflict = await group.appendRecord({
     missionId: "mission-1",
     runId: "run-1",
@@ -60,6 +61,7 @@ try {
     },
     idempotencyKey: `gpt-call-evidence:v1:${exactCallIdentityHash}`,
   });
+  if (exactEvidence.status !== "success") throw new Error("exact evidence append failed");
   const exactReadback = await group.readExactCallEvidence({
     missionId: "mission-exact",
     runId: "run-exact",
@@ -86,6 +88,7 @@ try {
     idempotencyKey: "artifact-1",
   });
   assert.equal(artifact.status, "success");
+  if (artifact.status !== "success") throw new Error("artifact append failed");
   assert.equal(artifact.proof?.childCapabilityId, "append-artifact");
   assert.equal(typeof artifact.proof?.artifactRef, "string");
   assert.equal(typeof artifact.proof?.integrityHash, "string");
@@ -96,13 +99,13 @@ try {
     content: "private-body",
     idempotencyKey: "artifact-1",
   });
+  if (duplicateArtifact.status !== "success") throw new Error("duplicate artifact append failed");
   assert.equal(duplicateArtifact.artifactRef, artifact.artifactRef);
   const artifactReadback = await group.readArtifactRef({
-    childCapabilityId: "read-artifact-ref",
     artifactRef: artifact.artifactRef!,
   });
   assert.equal(artifactReadback.status, "success");
-  assert.deepEqual(Buffer.from(artifactReadback.artifact!.content), Buffer.from("private-body"));
+  assert.deepEqual(Buffer.from(artifactReadback.artifact.content), Buffer.from("private-body"));
 
   const crashBytes = Buffer.from([0, 1, 2, 254, 255]);
   const crashArtifactRef = createArtifactRef("artifact\0mission-crash\0run-crash\0artifact-crash");
@@ -116,13 +119,14 @@ try {
     idempotencyKey: "artifact-crash",
   });
   assert.equal(recoveredArtifact.status, "success");
+  if (recoveredArtifact.status !== "success") throw new Error("recovered artifact append failed");
   assert.equal(recoveredArtifact.artifactRef, crashArtifactRef,
     "bytes persisted before an index crash must recover under the same content-bound identity");
   const recoveredReadback = await group.readArtifactRef({
-    childCapabilityId: "read-artifact-ref",
     artifactRef: crashArtifactRef,
   });
-  assert.deepEqual(Buffer.from(recoveredReadback.artifact!.content), crashBytes);
+  if (recoveredReadback.status !== "success") throw new Error(recoveredReadback.failureReason);
+  assert.deepEqual(Buffer.from(recoveredReadback.artifact.content), crashBytes);
 
   const recordLog = await readFile(join(tempRoot, "forensics", "records-run_1.ndjson"), "utf8");
   const artifactLog = await readFile(join(tempRoot, "forensics", "artifacts.ndjson"), "utf8");
@@ -143,4 +147,4 @@ try {
 process.stdout.write("[ACCEPTANCE] forensics-persistence-capability PASS\n");
 emitQualityProofObservation({ lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V5", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:forensics:append-only-record", observedValue: "exact-call record append, deterministic readback, and integrity hash verified" });
 emitQualityProofObservation({ lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V5", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:forensics:artifact-index", observedValue: "exact-call keys bind one record and artifact index without embedding private body" });
-emitQualityProofObservation({ lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V3", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:forensics:storage-owner", observedValue: "ability group persists through sole governed file storage" });
+emitQualityProofObservation({ lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V4", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:forensics:storage-owner", observedValue: "current evidence and artifact vocabulary persists through sole governed file storage without unused generic fields" });
