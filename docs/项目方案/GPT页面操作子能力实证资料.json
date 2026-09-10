@@ -1,8 +1,8 @@
 {
   "schemaVersion": "gpt-page-operation-evidence.v6",
-  "generatedAt": "2026-09-10T03:21:29.575Z",
+  "generatedAt": "2026-09-10T05:28:52.037Z",
   "repository": "AGENT",
-  "projectionRevision": "sha256:cdbca2bb46e9b075e9aaebe614711c9f9c0a3c9071ad81f90efb829ac94bc1ca",
+  "projectionRevision": "sha256:223eb31dfaab8ca30fcb807c0b107fe1745e66fcae2904c03239f37249f12f35",
   "captureEpoch": null,
   "matrixBinding": {
     "schemaVersion": "gpt-page-operation-matrix.v4",
@@ -40990,7 +40990,8 @@
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-identity.acceptance-support.ts",
           "lines": [
             191,
-            214
+            214,
+            239
           ]
         },
         {
@@ -41015,8 +41016,8 @@
         {
           "path": "src/capabilities/gpt/children/focus_exact_gpt_conversation/handler.ts",
           "lines": [
-            14,
-            20
+            23,
+            29
           ]
         },
         {
@@ -41051,8 +41052,8 @@
         {
           "path": "src/capabilities/gpt/children/focus_exact_gpt_conversation/handler.ts",
           "lines": [
-            14,
-            20
+            23,
+            29
           ]
         },
         {
@@ -41237,8 +41238,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:41b54a744be783d3cdc265293c273b00302c8086a875ab3ad895937607ba42b7",
-        "digest": "sha256:41b54a744be783d3cdc265293c273b00302c8086a875ab3ad895937607ba42b7",
+        "childCandidateDigest": "sha256:8d7522faa20fbc32ff3412078795218ff1ab66b880caf0be1c45f81db344aab7",
+        "digest": "sha256:8d7522faa20fbc32ff3412078795218ff1ab66b880caf0be1c45f81db344aab7",
         "facts": [
           {
             "expected": "focus the Product-frozen exact conversation",
@@ -41469,7 +41470,7 @@
           }
         ],
         "pageDemandDigest": "sha256:e2014ee3868c9f45c08b98989956b9058a660a02177b1016b9827e7a15a8b787",
-        "projectionDigest": "sha256:41b54a744be783d3cdc265293c273b00302c8086a875ab3ad895937607ba42b7",
+        "projectionDigest": "sha256:8d7522faa20fbc32ff3412078795218ff1ab66b880caf0be1c45f81db344aab7",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
@@ -41560,9 +41561,9 @@
           "implementation": {
             "files": [
               {
-                "contentHash": "sha256:238979e42454057155ce02910be4e58dd7ebf993e00cca7fdb548d5ce2a44b36",
+                "contentHash": "sha256:1e606b9534e45b7da9a8b9a672e527e19d7c783575780e6f4f2b898d2f6b914b",
                 "path": "src/capabilities/gpt/children/focus_exact_gpt_conversation/handler.ts",
-                "semanticHash": "sha256:8551414d0987a58b6f1a78263bffcfd896629077cef022e2a64c452483018ee3"
+                "semanticHash": "sha256:0f2972304f9cbed4d2c5ee9fca156efc34fb0f1c2c780f92504a1ea37b44607b"
               },
               {
                 "contentHash": "sha256:ca681c3a02e861ec20cb0e70fe3fd7711b8c98167029848d4472c5027c8a2952",
@@ -41575,7 +41576,7 @@
                 "semanticHash": "sha256:f392c7788a9d342cd4e6ae23029330d37dd7833a4f8efa55b07c25bf038d7051"
               }
             ],
-            "semanticDigest": "sha256:755ba6562681a136596bdbe17415f621bc3d8eadb59f6f4a83c271347487e987"
+            "semanticDigest": "sha256:02f1e659e50e21c1f3be6d3c7bc5593a549ee81192dd3275f9c5c0d3f0f5ed11"
           }
         }
       }
@@ -42896,8 +42897,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-identity.acceptance-support.ts",
           "lines": [
-            275,
-            321
+            300,
+            346
           ]
         },
         {
@@ -44144,7 +44145,7 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-identity.acceptance-support.ts",
           "lines": [
-            301
+            326
           ]
         },
         {
@@ -49597,10 +49598,10 @@
             109,
             180,
             225,
-            337,
-            402,
-            413,
-            459
+            345,
+            410,
+            421,
+            467
           ]
         },
         {
@@ -50460,7 +50461,7 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-conversation-identity.acceptance-support.ts",
           "lines": [
-            238
+            263
           ]
         },
         {
@@ -51695,8 +51696,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-production-browser-readback.acceptance-support.ts",
           "lines": [
-            450,
-            465
+            458,
+            473
           ]
         },
         {

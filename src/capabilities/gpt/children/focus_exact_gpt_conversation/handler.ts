@@ -11,6 +11,15 @@ import {
 import { readConversationState } from "./observation.js";
 import { canonicalGptConversationUrl } from "../../web/contracts/target-document.contract.js";
 
+const NAVIGATION_SETTLE_TIMEOUT_MS = 5_000;
+
+const focused = (
+  observed: Awaited<ReturnType<typeof readConversationState>>,
+  expected: string,
+): boolean => observed.currentUrl === expected
+  && observed.composerEligible === 1
+  && observed.matchingTurnCount === 1;
+
 export const focusExactGptConversationHandler: GptChildHandler<"focus_exact_gpt_conversation"> =
   async (intent, context) => {
     requireExactInputKeys(intent, ["canonicalConversationUrl", "expectedPromptHash", "turnMarker"]);
@@ -23,8 +32,7 @@ export const focusExactGptConversationHandler: GptChildHandler<"focus_exact_gpt_
     const browser = requireBrowser(context);
     const readIdentity = () => readConversationState(browser, expectedPromptHash, turnMarker);
     const observed = await readIdentity();
-    if (observed.currentUrl === expected && observed.composerEligible === 1
-      && observed.matchingTurnCount === 1) return success({
+    if (focused(observed, expected)) return success({
       value: { url: expected, state: "already-focused" },
       ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
         browserFact: null, nativeFailureCode: null }),
@@ -36,9 +44,15 @@ export const focusExactGptConversationHandler: GptChildHandler<"focus_exact_gpt_
       throw executionFailure("failed", "GPT_TRANSIENT_WEB_CONVERSATION_NAVIGATION_FORBIDDEN");
     }
     await browser.navigate({ url: expected, title: "focus exact GPT conversation" });
-    const readback = await readIdentity();
-    if (readback.currentUrl !== expected || readback.composerEligible !== 1
-      || readback.matchingTurnCount !== 1) {
+    const deadline = Date.now() + NAVIGATION_SETTLE_TIMEOUT_MS;
+    let readback = await readIdentity();
+    while (!focused(readback, expected) && Date.now() < deadline) {
+      const remaining = deadline - Date.now();
+      if (remaining < 25) break;
+      await browser.wait({ durationMs: Math.max(25, Math.min(500, Math.ceil(remaining / 20))) });
+      readback = await readIdentity();
+    }
+    if (!focused(readback, expected)) {
       throw executionFailure("failed", "GPT_CONVERSATION_NAVIGATION_NOT_YET_CONFIRMED");
     }
     return success({
