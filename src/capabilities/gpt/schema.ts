@@ -3,11 +3,6 @@ import { parse } from "node:path";
 
 import { z } from "zod";
 import { executionFailure } from "../../lib/execution-failure.js";
-import {
-  gptContinuationUsable as continuationUsable,
-  type GptProviderContinuation,
-  type StoredGptContinuation,
-} from "./session/gpt-continuation-store-port.js";
 export const GptReasoningTierSchema = z.enum([
   "fast",
   "medium",
@@ -47,27 +42,8 @@ export type GptReasoningTier = z.infer<typeof GptReasoningTierSchema>;
 export type GptReasoningRequirement = z.infer<typeof GptReasoningRequirementSchema>;
 export type GptExecutionProfile = z.infer<typeof GptExecutionProfileSchema>;
 
-export const gptContinuationUsable = (stored: StoredGptContinuation): boolean =>
-  continuationUsable(stored);
-
 const hashProfile = (profile: Omit<GptExecutionProfile, "profileHash">): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(JSON.stringify(profile)).digest("hex")}`;
-
-export const gptContinuationIdentityHash = (
-  provider: GptProviderContinuation,
-): `sha256:${string}` => {
-  if (!/^sha256:[a-f0-9]{64}$/u.test(provider.prior_prompt_hash)
-    || !/^sha256:[a-f0-9]{64}$/u.test(provider.prior_raw_output_hash)) {
-    throw executionFailure("failed", "GPT_CONTINUATION_PROVIDER_INVALID");
-  }
-  return `sha256:${createHash("sha256").update(JSON.stringify({
-    prior_raw_output_hash: provider.prior_raw_output_hash,
-    prior_prompt_hash: provider.prior_prompt_hash,
-    prior_task_id: provider.prior_task_id,
-    prior_turn_marker: provider.prior_turn_marker,
-    provider_page_url: provider.provider_page_url,
-  })).digest("hex")}`;
-};
 
 export const gptAttachmentProviderDisplayName = (
   displayName: string,

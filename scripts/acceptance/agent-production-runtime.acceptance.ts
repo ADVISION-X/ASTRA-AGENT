@@ -42,7 +42,6 @@ import {
   task,
 } from "./agent-production-runtime-fixtures.js";
 import "./agent-production-runtime-ledger.acceptance.js";
-import "./agent-production-runtime-continuation.acceptance.js";
 import "./agent-production-runtime-proof-boundary.acceptance.js";
 import "./agent-production-runtime-startup.acceptance.js";
 import { exerciseWorkerSessionRotation } from "./agent-production-runtime-session-rotation-support.js";
@@ -386,10 +385,6 @@ const leaseReleaseContractSource = await readFile(
   "utf8",
 );
 const storeSource = await readFile(new URL("../../src/lib/local-runtime/production/store-task-state.ts", import.meta.url), "utf8");
-const continuationStoreSource = await readFile(
-  new URL("../../src/lib/local-runtime/production/store-continuation-state.ts", import.meta.url),
-  "utf8",
-);
 assert.doesNotMatch(runtimeSource, /emitState|stateKey:|currentStates|reconciledFromAuthority/u);
 assert.doesNotMatch(executorSource, /runTurn|ProductionGptExecutor|GPT_TURN_FLOW/u);
 assert.match(executorSource, /gpt: gptExecution\.tools/u);
@@ -409,31 +404,28 @@ exactControlAbort.abort("CONTROL_INTENT:cancel_requested:PUBLIC_KNOWLEDGE_WORK_O
 assert.equal(permanentAuthorizationRevoked(exactControlAbort.signal), true);
 assert.doesNotMatch(deletionSettlement, /AI_PERMANENT_AUTHORIZATION_REVOKED/u);
 assert.match(deletionSettlement, /settlePermanentlyRevokedJob\(job\.job_id/u);
-assert.match(deletionSettlement, /readBrowserReconciliationScope/u);
-assert.match(deletionSettlement, /PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED:READ_ONLY_RECONCILIATION_REQUIRED/u);
 assert.match(deletionSettlement, /const stableRequestId = `aiprelease_/u);
 assert.match(deletionSettlement, /readProductionDeviceJobStatus/u);
 assert.match(deletionSettlement, /receipt\.request_id === stableRequestId/u);
 assert.doesNotMatch(deletionSettlement, /persistAttemptFailure|claimProductionTasks|dispatchWebsiteAgentTask/u);
 assert.match(executorSource, /abort_signal\.aborted[\s\S]{0,220}PRODUCTION_EXECUTION_ABORTED/u);
-assert.match(executorSource, /reconcilePermanentCancellation/u);
+assert.doesNotMatch(executorSource, /reconcilePermanentCancellation/u);
 const deletionControlIndex = heartbeatSource.indexOf('if (receipt.control_intent.intent !== "none")');
 const renewalBudgetIndex = heartbeatSource.indexOf("const relative = Date.parse(receipt.lease_expires_at)");
 assert.ok(deletionControlIndex >= 0 && renewalBudgetIndex > deletionControlIndex,
   "permanent control must stop execution before a non-extended lease is treated as an invalid renewal budget");
 assert.match(leaseReleaseContractSource, /PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED/u);
 assert.match(cloudSource, /stableRequestId/u);
-assert.match(storeSource, /extends ProductionStoreContinuationState/u);
-assert.match(continuationStoreSource, /releaseGptContinuationLanesForJob/u);
+assert.doesNotMatch(storeSource, /Continuation|Checkpoint/u);
 assert.match(reconciliationSource, /V6_DEVICE_JOB_CONTROL_AUTHORITY_INVALID/u);
 assert.match(reconciliationSource, /currentReason\?\.code === "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED"/u);
-assert.match(runtimeLoopsSource, /settleInactivePermanentAuthorizationRevocation/u);
+assert.doesNotMatch(runtimeLoopsSource, /settleInactivePermanentAuthorizationRevocation/u);
 assert.doesNotMatch(runtimeLoopsSource, /BrowserQuarantine|reconcilePermanentlyRevokedTargetLocal/u);
 assert.doesNotMatch(runtimeLoopsSource, /flushOutbox|pendingOutbox\(\)|sendProductionOutboxWrite/u);
 assert.match(storeSource, /endUnsentAttemptWrites/u);
 assert.match(outboxSource, /PRODUCTION_ATTEMPT_ENDED/u);
 assert.match(outboxSource, /settlePermanentlyRevokedJob/u);
-assert.match(outboxSource, /set last_error=\?,next_delivery_at=null where instr\(path,\?\)>0/u);
+assert.match(outboxSource, /set last_error=\? where instr\(path,\?\)>0/u);
 assert.doesNotMatch(outboxSource, /where path like \?/u);
 assert.doesNotMatch(outboxSource, /delete from production_outbox/u);
 const revocationSettlementSource = outboxSource.slice(
@@ -441,9 +433,8 @@ const revocationSettlementSource = outboxSource.slice(
   outboxSource.indexOf("public deliverOutbox"),
 );
 assert.doesNotMatch(revocationSettlementSource, /sent_at\s*=/u);
-assert.match(storeFoundationSource, /last_error not in/u);
-assert.match(storeFoundationSource, /'PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED'/u);
-assert.match(storeFoundationSource, /'WEBSITE_HTTP_409:AI_LEASE_FENCE_STALE'/u);
+assert.match(outboxSource, /sent_at is null and last_error is null/u);
+assert.doesNotMatch(`${storeFoundationSource}\n${outboxSource}`, /next_delivery_at|nextDeliveryAt|pendingOutbox\(/u);
 
 assert.throws(() => parseJsonEnvelope({
   ok: false, error: {
@@ -494,7 +485,7 @@ const runtimeLawSource = await readFile(
 const runtimeLawRecords = [...runtimeLawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
   .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden: string[] });
 const runtimeCoreLaw = runtimeLawRecords.find(
-  (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V49",
+  (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V50",
 );
 assert.ok(runtimeCoreLaw);
 for (const token of [
@@ -505,21 +496,21 @@ for (const token of [
 ]) assert.ok(runtimeCoreLaw.forbidden.some((entry) => entry.includes(token)), token);
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V20",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V21",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"],
   locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
   observedValue: "the unique Runtime ownership inspector accepted the current Runtime-only manifest and rejected injected Mediator and Product ownership mutants",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V49",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V50",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:attempt-recovery-state-machine",
   observedValue: "binary task lifecycle durable accept same-attempt recovery lease outbox and typed cross-owner boundaries exercised",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V49",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V50",
   evidenceMode: "exam.property",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:transport-properties",
@@ -527,7 +518,7 @@ emitQualityProofObservation({
 });
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V19",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V20",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"],
     locator: `acceptance:agent-production-runtime:business-admission:${evidenceMode}`,

@@ -76,19 +76,13 @@ export const exactAssistantTurnReply = (
 });
 
 export const EXPECTED_GPT_CHILD_IDS = Object.freeze([
-  "acquire_gpt_continuation_lane", "advance_gpt_continuation_lane",
   "attach_approved_gpt_files_once", "checkpoint_gpt_generated_image",
-  "complete_exact_gpt_continuation_reservation_once",
   "checkpoint_gpt_text_response", "close_gpt_execution_profile",
   "ensure_gpt_reasoning_requirement",
-  "focus_exact_gpt_conversation", "fork_exact_gpt_conversation_at_checkpoint", "open_gpt_attachment_control",
-  "open_gpt_checkpoint_actions_menu", "open_gpt_fork_destination_menu",
+  "open_gpt_attachment_control",
   "open_gpt_execution_profile", "open_gpt_model_selector_v2",
-  "persist_gpt_continuation", "prepare_clean_gpt_chat", "reserve_exact_gpt_continuation_once",
-  "reconcile_gpt_attachment_set", "reconcile_gpt_draft", "reconcile_gpt_turn_submission",
-  "release_gpt_continuation_lane", "select_exact_gpt_model_v2", "submit_exact_gpt_turn_once",
-  "verify_gpt_conversation_identity", "wait_for_stable_gpt_image",
-  "wait_for_stable_gpt_text", "write_exact_gpt_prompt",
+  "prepare_clean_gpt_chat", "reconcile_gpt_attachment_set",
+  "select_exact_gpt_model_v2", "submit_exact_gpt_turn_once", "write_exact_gpt_prompt",
 ].sort());
 
 type DomResponder = (intent: BrowserDomIntent, callNumber: number) => unknown | Promise<unknown>;

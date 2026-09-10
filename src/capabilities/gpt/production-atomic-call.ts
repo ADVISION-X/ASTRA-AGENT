@@ -8,12 +8,10 @@ import {
 import { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
 import type { ProductionGptBrowserCall } from "./production-browser-lifecycle.js";
 import { executionFailure } from "../../lib/execution-failure.js";
-import type { GptContinuationStorePort } from "./session/gpt-continuation-store-port.js";
 
 type AtomicGptCallInput = Readonly<{
   dataDir: string;
   gpt: GptAbilityGroup;
-  store: GptContinuationStorePort;
   browsers: ProductionGptBrowserLifecycle;
   intent: GptAnyChildCapabilityIntent;
   browserCall: ProductionGptBrowserCall | undefined;
@@ -27,7 +25,6 @@ const executionContext = (
   dataDir: input.dataDir,
   ...(browser ? { browser } : {}),
   signal: input.signal,
-  continuationStore: input.store,
   ...(input.browserCall ? {
     yieldForProviderWait: (durationMs: number) => input.browsers.yieldForProviderWait(
       input.browserCall!, input.intent.productStepId, input.intent.callId,

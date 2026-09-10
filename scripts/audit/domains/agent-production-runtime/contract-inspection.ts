@@ -7,11 +7,11 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V49", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V4",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V19", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V19",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V18", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V20",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V20",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V21",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V50", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V4",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V20", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V20",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V19", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V21",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V21",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V22",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
@@ -36,8 +36,8 @@ const sourceFor = (context: InspectorContext, path: string): SourceFile | undefi
 
 const inspectMinimalDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const [path, version, lawId, checkId] of [
-    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 20,
-      LAWS.route, "agent-production-runtime/v20-dependency"],
+    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 22,
+      LAWS.route, "agent-production-runtime/v22-dependency"],
     ["docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json", 6,
       LAWS.route, "agent-production-runtime/v6-result-dependency"],
   ] as const) {
@@ -62,9 +62,9 @@ const inspectRouteProjection = (context: InspectorContext, findings: InspectorFi
     return Array.isArray(keys) && keys.includes("reusable_base_reservation_ref")
       && keys.includes("reusable_base_reservation_hash");
   }).length;
-  if (routes.length !== 40 || Object.keys(route.parameter_types ?? {}).length !== 57
-    || resultContracts !== 31 || reservations !== 2) findings.push(finding(LAWS.route,
-    "agent-production-runtime/route-denominator", PATHS.routeProjection, "Route projection is not 40/57/31/2."));
+  if (routes.length !== 40 || Object.keys(route.parameter_types ?? {}).length !== 46
+    || resultContracts !== 31 || reservations !== 0) findings.push(finding(LAWS.route,
+    "agent-production-runtime/route-denominator", PATHS.routeProjection, "Route projection is not 40/46/31/0."));
 };
 
 const inspectAdmissionHash = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -95,7 +95,7 @@ const inspectCredentialAndDurableTypes = (context: InspectorContext, findings: I
   const durableIdentity = sourceFor(context, PATHS.contracts)?.getInterface("DurablePluginIdentity");
   const durableIdentityFields = durableIdentity?.getProperties().map((property) => property.getName()).sort() ?? [];
   const expectedDurableIdentityFields = [
-    "checkpoint_schema_version", "plugin_id", "plugin_version", "request_hash", "skill_hash",
+    "plugin_id", "plugin_version", "request_hash", "skill_hash",
   ];
   if (JSON.stringify(durableIdentityFields) !== JSON.stringify(expectedDurableIdentityFields)) {
     findings.push(finding(LAWS.core, "agent-production-runtime/task-identity-contract", PATHS.contracts,
@@ -153,7 +153,7 @@ const inspectStorageAndLawDenominator = (context: InspectorContext, findings: In
   const storageType = sourceFor(context, PATHS.inventory)?.getTypeAlias("ProductionRuntimeStorageInventory");
   const fields = new Set(storageType?.getDescendantsOfKind(SyntaxKind.PropertySignature)
     .map((property) => property.getName()) ?? []);
-  if (!["database_task_count", "outbox_responsibility_count", "pending_outbox_count", "continuation_count",
+  if (!["database_task_count", "outbox_responsibility_count", "pending_outbox_count",
     "active_lease_count", "directory_count", "owned_directory_count", "orphan_directory_count",
     "orphan_bytes", "orphan_job_ids"]
     .every((field) => fields.has(field))) {

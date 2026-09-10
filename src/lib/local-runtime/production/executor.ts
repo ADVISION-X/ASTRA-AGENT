@@ -32,19 +32,14 @@ export interface ProductionExecutionResult {
 
 type ActiveGptExecution = ReturnType<ReturnType<typeof createProductionGptChildTools>["createExecution"]>;
 type GptExecutionLifecycle = {
-  reconcilePermanentCancellation: (() => Promise<void>) | null;
   settle: ((error: unknown | null) => Promise<void>) | null;
 };
 
 const settleGptExecution = async (
   lifecycle: GptExecutionLifecycle,
-  abortSignal: AbortSignal,
   primaryError: unknown,
 ): Promise<void> => {
   try {
-    const cancellationReason = typeof abortSignal.reason === "string" ? abortSignal.reason : "";
-    if (cancellationReason === "CONTROL_INTENT:cancel_requested:PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED"
-      && lifecycle.reconcilePermanentCancellation) await lifecycle.reconcilePermanentCancellation();
     if (lifecycle.settle) await lifecycle.settle(primaryError);
   } catch (settleError) {
     if (primaryError === null) throw settleError;
@@ -63,7 +58,6 @@ const durableIdentityValid = (
   return identity.plugin_id === current.identity.plugin_id
     && identity.plugin_version === current.identity.plugin_version
     && identity.skill_hash === current.identity.skill_hash
-    && identity.checkpoint_schema_version === current.identity.checkpoint_schema_version
     && identity.request_hash === task.request_hash;
 };
 
@@ -152,7 +146,6 @@ const pluginIdentity = (task: WebsiteAgentTask): DurablePluginIdentity => {
     plugin_id: resolved.identity.plugin_id,
     plugin_version: resolved.identity.plugin_version,
     skill_hash: resolved.identity.skill_hash,
-    checkpoint_schema_version: resolved.identity.checkpoint_schema_version,
     request_hash: task.request_hash,
   };
 };
@@ -175,16 +168,7 @@ export class ProductionExecutor {
     this.browserAuthority = input.browserAuthority;
     this.gptChildTools = createProductionGptChildTools(
       input.dataDir, input.sourceHash, input.gpt, input.evidenceStore,
-      input.browserAuthority, {
-        continuationStore: store,
-        continuationReadback: {
-          readGptContinuation: (continuationRef) => store.readGptContinuation(continuationRef),
-          readGptContinuationForOriginJob: (jobId, pluginId, turnMarker) =>
-            store.readGptContinuationForOriginJob(jobId, pluginId, turnMarker),
-          readGptContinuationForFrontier: (frontierRef) => store.readGptContinuationForFrontier(frontierRef),
-          readTaskPluginVersion: (jobId) => store.readTask(jobId)?.identity.plugin_version ?? null,
-        },
-      }, runtimeLogger,
+      input.browserAuthority, runtimeLogger,
     );
     this.runtimeLogger = runtimeLogger;
   }
@@ -227,7 +211,7 @@ export class ProductionExecutor {
       outcome: "failed",
       failure: runtimeFailureFromError({
         error: failure,
-        code: causedByEventId ? "PLUGIN_EXECUTION_FAILED" : failure.code,
+        code: failure.code,
         responsibleOwner: "product-plugin",
         impact: causedByEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
         ...(causedByEventId ? { causedByEventId } : {}),
@@ -268,19 +252,18 @@ export class ProductionExecutor {
     materials: readonly LocalProductionMaterial[];
     lease: ProductionExecutionLease;
     span: RuntimeSpanHandle;
-    complete: (output: ProductPluginOutput, continuationRef: string | null) => Promise<WebsiteAgentResult>;
+    complete: (output: ProductPluginOutput) => Promise<WebsiteAgentResult>;
     uploadGeneratedImage: (artifact: GeneratedImageArtifact) => Promise<GeneratedImageResultReceipt>;
   }>): Promise<WebsiteAgentResult> {
     let completed = false;
     let gptExecution: ActiveGptExecution | null = null;
-    const gptLifecycle: GptExecutionLifecycle = { reconcilePermanentCancellation: null, settle: null };
+    const gptLifecycle: GptExecutionLifecycle = { settle: null };
     let primaryError: unknown = null;
     let result: WebsiteAgentResult;
     try {
       result = await dispatchWebsiteAgentTask(input.task, (authorized) => {
         gptExecution = this.gptChildTools.createExecution({
           jobId: authorized.task.job_id,
-          continuationRef: authorized.task.continuation_ref ?? null,
           ownerRef: authorized.task.business_identity.owner_ref,
           subjectRef: authorized.task.business_identity.subject_ref,
           authorizationRef: authorized.task.business_identity.authorization_ref,
@@ -297,7 +280,6 @@ export class ProductionExecutor {
           abortSignal: input.lease.abort_signal,
           parentSpanId: input.span.spanId,
         });
-        gptLifecycle.reconcilePermanentCancellation = gptExecution.reconcilePermanentCancellation;
         gptLifecycle.settle = gptExecution.settle;
         return {
           materials: input.materials,
@@ -310,7 +292,7 @@ export class ProductionExecutor {
                 ? input.lease.abort_signal.reason : "PRODUCTION_EXECUTION_ABORTED");
             }
             if (completed) throw new Error("PLUGIN_RESULT_ALREADY_COMPLETED");
-            const envelope = await input.complete(output, gptExecution!.continuationRef());
+            const envelope = await input.complete(output);
             completed = true;
             return envelope;
           },
@@ -320,7 +302,7 @@ export class ProductionExecutor {
       primaryError = error;
       throw error;
     } finally {
-      await settleGptExecution(gptLifecycle, input.lease.abort_signal, primaryError);
+      await settleGptExecution(gptLifecycle, primaryError);
     }
     if (!completed) throw new Error("PLUGIN_RESULT_NOT_COMPLETED");
     return result;
@@ -331,7 +313,7 @@ export class ProductionExecutor {
     materials: readonly LocalProductionMaterial[],
     lease: ProductionExecutionLease,
     parentSpanId: string,
-    complete: (output: ProductPluginOutput, continuationRef: string | null) => Promise<WebsiteAgentResult>,
+    complete: (output: ProductPluginOutput) => Promise<WebsiteAgentResult>,
     uploadGeneratedImage: (artifact: GeneratedImageArtifact) => Promise<GeneratedImageResultReceipt>,
   ): Promise<ProductionExecutionResult> {
     const accepted = this.store.readTask(task.job_id);

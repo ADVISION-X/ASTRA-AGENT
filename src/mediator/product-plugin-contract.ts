@@ -1,9 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type {
-  GptProviderContinuation,
-  ProductGptTools,
-} from "../capabilities/gpt/index.js";
+import type { ProductGptTools } from "../capabilities/gpt/index.js";
 
 export type ProductionHash = `sha256:${string}`;
 export type ProductionProductId = string;
@@ -50,7 +47,6 @@ export interface WebsiteAgentTask {
   readonly result_contract_id: "website-agent-result";
   readonly result_contract_version: 1;
   readonly privacy_subject_ref?: string | undefined;
-  readonly continuation_ref?: string | undefined;
   readonly parent_task_ref?: string | undefined;
   readonly parent_result_ref?: string | undefined;
   readonly parent_result_hash?: ProductionHash | undefined;
@@ -81,16 +77,8 @@ export interface ProductCompletionReceipt {
     media_type: string;
     receipt_hash: ProductionHash;
   }>;
-  readonly execution_context_object_receipt?: Readonly<{
-    object_ref: string;
-    sha256: ProductionHash;
-    bytes: number;
-    media_type: "application/json";
-    receipt_hash: ProductionHash;
-  }>;
   readonly evidence_refs: readonly string[];
   readonly execution_receipt_hash: ProductionHash;
-  readonly continuation_ref?: string;
 }
 
 export interface ProductionRoutePolicy {
@@ -107,7 +95,7 @@ export interface ProductionRoutePolicy {
   }>[];
   readonly result_schema_version: string;
   readonly result_contract?: Readonly<Record<string, unknown>> | undefined;
-  readonly relation_kind: "primary" | "continuation" | "review";
+  readonly relation_kind: "primary" | "followup" | "review";
 }
 
 export interface GeneratedImageArtifact {
@@ -136,8 +124,6 @@ export interface GeneratedImageResultReceipt {
 export interface ProductPluginOutput {
   readonly payload: unknown;
   readonly evidence_refs: readonly string[];
-  readonly execution_context?: unknown | undefined;
-  readonly continuation?: GptProviderContinuation | null | undefined;
 }
 
 export interface ProductSkill {
@@ -157,7 +143,6 @@ export interface SharedExecutionContext {
 export interface ProductPlugin {
   readonly pluginId: string;
   readonly pluginVersion: number;
-  readonly checkpointSchemaVersion: number;
   readonly accepts: readonly Readonly<{
     productId: ProductionProductId;
     actionId: ProductionActionId;
@@ -181,33 +166,6 @@ export const hashCanonical = (value: unknown): ProductionHash => {
   };
   return sha256(JSON.stringify(canonical(value)));
 };
-
-export const gptTextContinuationCheckpointInput = (
-  sourceAttemptId: string,
-  checkpoint: Readonly<{
-    assistantTurnId: string;
-    artifactRef: string;
-    rawDomHash: ProductionHash;
-    semanticTextHash: ProductionHash;
-    canonicalConversationUrl: string;
-    promptHash: ProductionHash;
-    turnMarker: string;
-    evidenceRef: string;
-    evidenceHash: ProductionHash;
-  }>,
-) => Object.freeze({
-  checkpointKind: "text" as const,
-  sourceAttemptId,
-  assistantTurnId: checkpoint.assistantTurnId,
-  artifactRef: checkpoint.artifactRef,
-  rawDomHash: checkpoint.rawDomHash,
-  semanticTextHash: checkpoint.semanticTextHash,
-  canonicalConversationUrl: checkpoint.canonicalConversationUrl,
-  promptHash: checkpoint.promptHash,
-  turnMarker: checkpoint.turnMarker,
-  evidenceRef: checkpoint.evidenceRef,
-  evidenceHash: checkpoint.evidenceHash,
-});
 
 type ParsedPluginObject = Readonly<{ start: number; end: number; value: Record<string, unknown> }>;
 const RESULT_HASH = /^sha256:[a-f0-9]{64}$/u;

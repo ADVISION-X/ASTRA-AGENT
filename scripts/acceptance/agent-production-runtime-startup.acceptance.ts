@@ -43,7 +43,7 @@ try {
   });
   store.acceptTask(acceptedTask, {
     plugin_id: "bazi-ai-full-analysis", plugin_version: 1,
-    skill_hash: HASH_B, checkpoint_schema_version: 1, request_hash: acceptedTask.request_hash,
+    skill_hash: HASH_B, request_hash: acceptedTask.request_hash,
   }, "attempt:first-checkpoint-crash");
   assert.equal(reconcileTaskRecord({ store } as never, store.readTask(acceptedTask.job_id)!), true,
     "restart must retire an accepted attempt without requiring a checkpoint");
@@ -58,7 +58,7 @@ try {
   const revokedAttemptId = "attempt:released-permanent-revocation";
   store.acceptTask(revokedTask, {
     plugin_id: "bazi-ai-full-analysis", plugin_version: 1,
-    skill_hash: HASH_B, checkpoint_schema_version: 1, request_hash: revokedTask.request_hash,
+    skill_hash: HASH_B, request_hash: revokedTask.request_hash,
   }, revokedAttemptId);
   store.recordAttemptFailure(revokedTask.job_id, revokedAttemptId,
     serializeTerminalFailure(executionFailure("failed", "PROVIDER_REJECTED")));
@@ -76,13 +76,11 @@ try {
   const ordinaryAttemptId = "attempt:ordinary-absent-lease";
   store.acceptTask(ordinaryFailure, {
     plugin_id: "bazi-ai-full-analysis", plugin_version: 1,
-    skill_hash: HASH_B, checkpoint_schema_version: 1, request_hash: ordinaryFailure.request_hash,
+    skill_hash: HASH_B, request_hash: ordinaryFailure.request_hash,
   }, ordinaryAttemptId);
   store.markExecuting(ordinaryFailure.job_id);
-  store.recordCheckpoint({
-    jobId: ordinaryFailure.job_id, attemptId: ordinaryAttemptId,
-    checkpointId: "attempt_failure", checkpointHash: null, state: "failed",
-  });
+  store.recordAttemptFailure(ordinaryFailure.job_id, ordinaryAttemptId,
+    serializeTerminalFailure(executionFailure("failed", "PROVIDER_REJECTED")));
   store.recordLease({
     jobId: ordinaryFailure.job_id, attemptId: ordinaryAttemptId, leaseVersion: 1,
     fenceHash: HASH_A, state: "absent", expiresAt: null,
@@ -107,25 +105,11 @@ try {
   const corruptDataDirectory = path.join(temporary, "corrupt-continuation");
   await mkdir(corruptDataDirectory, { recursive: true });
   const corruptStore = new ProductionRuntimeStore(corruptDataDirectory);
-  const corruptTask = task({
-    jobId: "job:corrupt-continuation", productId: "bazi_ai_full_analysis", actionId: "produce",
-  });
-  corruptStore.acceptTask(corruptTask, {
-    plugin_id: "bazi-ai-full-analysis", plugin_version: 1,
-    skill_hash: HASH_B, checkpoint_schema_version: 1, request_hash: corruptTask.request_hash,
-  }, "attempt:corrupt-continuation");
   corruptStore.close();
   const corruptDatabase = new Database(path.join(corruptDataDirectory, "production-runtime.sqlite"));
-  corruptDatabase.prepare(`insert into production_continuations(
-    continuation_ref,reservation_kind,reservation_identity_hash,origin_job_id,origin_plugin_version,
-    plugin_id,owner_ref,subject_ref,authorization_ref,frontier_ref,lane_version,created_at
-  ) values(?,?,?,?,?,?,?,?,?,?,?,?)`).run(
-    "continuation:corrupt", "persisted", HASH_B, corruptTask.job_id, 1,
-    "bazi-ai-full-analysis", "owner:1", "subject:1", "authorization:1", HASH_B, 1,
-    new Date().toISOString(),
-  );
+  corruptDatabase.exec("create table production_continuations(forbidden integer not null)");
   corruptDatabase.close();
-  const corruptBlocked = await startProductionRuntime({
+  await assert.rejects(startProductionRuntime({
     dataDir: corruptDataDirectory, sourceHash: HASH_A, gpt: createGptAbilityGroup(),
     evidenceStore: createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(corruptDataDirectory)),
     browserAuthority: browserAuthority as never,
@@ -133,9 +117,7 @@ try {
       producer: "agent-corrupt-data", owner: "production-runtime", component: "startup-integrity",
       terminalEnabled: false, fileSink: { directoryPath: path.join(temporary, "runtime-logs") },
     }),
-  });
-  assert.equal(corruptBlocked.readHealth().lastErrorCode, "PRODUCTION_RUNTIME_DATA_CORRUPT");
-  await corruptBlocked.close();
+  }), /PRODUCTION_SCHEMA_MIGRATION_REQUIRED/u);
 
   const blockedShellDirectory = path.join(temporary, "blocked-shell");
   const crashOrphanDirectory = path.join(blockedShellDirectory, "generated-images", "crash-orphan-mutant");
@@ -207,7 +189,7 @@ try {
   assert.equal(health.cloudState, "contract_blocked");
   assert.equal(health.executionState, "blocked");
   assert.equal(health.claimAdmissionState, "blocked");
-  assert.equal(health.controlContractVersion, 21,
+  assert.equal(health.controlContractVersion, 22,
     "blocked diagnostics must retain only the consumer contract version needed for exact comparison");
   assert.equal(health.lastErrorCode, "AI_SESSION_BINDING_MISMATCH");
   await bindingMismatchRuntime.close();
@@ -360,14 +342,12 @@ try {
   let settleCalls = 0;
   Reflect.set(gptChildTools, "createExecution", () => ({
     tools: {
+      jobId: dispatchFailureTask.job_id,
       attemptId: dispatchAttemptId,
-      readContinuationExact: async () => null,
-      readCallFacts: async () => {
+      execute: async () => {
         throw executionFailure("failed", "PAYMENT_OBSERVATION_PROVIDER_FAILED");
       },
-      execute: async () => { throw new Error("UNREACHABLE_GPT_CHILD_EXECUTION"); },
     },
-    continuationRef: () => null,
     settle: async () => {
       settleCalls += 1;
       throw new Error("BROWSER_TARGET_CLOSE_FAILED");
@@ -420,7 +400,7 @@ try {
     return [failure.code, failure.impact, failure.causedByEventId ?? null];
   }), [
     ["PUBLIC_KNOWLEDGE_TOPIC_MANIFEST_INVALID", RuntimeFailureImpact.BLOCKING, null],
-    ["PLUGIN_EXECUTION_FAILED", RuntimeFailureImpact.CONSEQUENTIAL, childTerminal.eventId],
+    ["GPT_CHILD_FAILED", RuntimeFailureImpact.CONSEQUENTIAL, childTerminal.eventId],
     ["PAYMENT_OBSERVATION_PROVIDER_FAILED", RuntimeFailureImpact.BLOCKING, null],
   ]);
   const cleanupEvents = pluginLogEvents.filter((event) => {
@@ -441,7 +421,7 @@ const runtimeSource = await readFile(
 );
 assert.doesNotMatch(runtimeSource, /handleClaimFailure/u);
 assert.match(runtimeSource, /error instanceof ProductionRuntimeBoundaryError/u);
-assert.match(runtimeSource, /material\.checkpointSeq \+ 1/u);
+assert.doesNotMatch(runtimeSource, /checkpointSeq|latestCheckpoint|\/checkpoints/u);
 assert.match(runtimeSource, /ATTEMPT_ENDED:/u);
 
 for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
@@ -455,7 +435,7 @@ for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V20",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V21",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:storage-inventory:${evidenceMode}`,

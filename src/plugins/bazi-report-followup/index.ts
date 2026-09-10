@@ -2,7 +2,7 @@ import type { ProductPlugin } from "../../mediator/product-plugin-contract.js";
 import { executeOwnedFlow } from "./flow.js";
 
 export const baziReportFollowupPlugin: ProductPlugin = {
-  pluginId: "bazi-report-followup", pluginVersion: 9, checkpointSchemaVersion: 2,
+  pluginId: "bazi-report-followup", pluginVersion: 9,
   accepts: [
     { productId: "bazi_report_followup", actionId: "followup" },
     { productId: "bazi_report_followup", actionId: "accuracy_challenge" },

@@ -1,39 +1,13 @@
-/**
- * storage-port.ts — GrassEyeStoragePort: the single generic storage interface.
- *
- * Only one port is permitted. No ProductRecordStoragePort, CandidateStoragePort,
- * DiscoveryStoragePort, LedgerStoragePort, RuntimeStoragePort, etc.
- */
+import type { ArtifactEnvelope } from "./schema.js";
 
-import type { ArtifactEnvelope, RecordEnvelope } from "./schema.js";
+export type AppendArtifactResult = Readonly<{
+  artifactRef: string;
+  storageRef: string;
+  integrityHash: string;
+}>;
 
-export type AppendRecordResult = {
-  readonly recordRef: string;
-  readonly storageRef: string;
-  readonly integrityHash: string;
-};
-
-export type AppendArtifactResult = {
-  readonly artifactRef: string;
-  readonly storageRef: string;
-  readonly integrityHash: string;
-};
-
-/**
- * GrassEyeStoragePort — append-only minimal storage interface.
- *
- * Responsibilities:
- *   - appendRecord: persist a RecordEnvelope, return recordRef + integrityHash.
- *   - appendArtifact: persist an ArtifactEnvelope, return artifactRef + integrityHash.
- *   - readRecord: retrieve a previously persisted record by recordRef.
- *
- * FORBIDDEN: update, delete, overwrite, replace, mutate any record.
- * FORBIDDEN: business truth reconstruction, mission flow, AI reasoning.
- */
 export interface GrassEyeStoragePort {
-  appendRecord(record: RecordEnvelope): Promise<AppendRecordResult>;
   appendArtifact(artifact: ArtifactEnvelope): Promise<AppendArtifactResult>;
-  readRecord(recordRef: string): Promise<RecordEnvelope | null>;
   readArtifact(artifactRef: string): Promise<Readonly<{
     content: Uint8Array;
     mimeType?: string;

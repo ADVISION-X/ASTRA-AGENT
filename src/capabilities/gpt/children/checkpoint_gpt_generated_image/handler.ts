@@ -1,53 +1,23 @@
 import { createHash } from "node:crypto";
 import sharp from "sharp";
-import { executionFailure } from "../../../../lib/execution-failure.js";
+import { executionFailure, failureCode } from "../../../../lib/execution-failure.js";
 
-import type { GptTextCheckpointInput } from "../../contract.js";
 import {
   declaredFacts,
-  recordInput,
+  numberInput,
   requireBrowser,
-  requireCompletedDownloadBrowserFact,
   requireConfirmedBrowserFact,
   requireExactInputKeys,
   stringInput,
   success,
   type GptChildHandler,
 } from "../../web/child-handler.js";
-import {
-  assistantTurnForPrompt, directPredecessorTextTurn, ensureResponseConversation,
-} from "./page-observation.js";
-import { isGptTurnId, responseHashInput } from "./response-support.js";
+import { assistantTurnForPrompt, ensureResponseConversation } from "./page-observation.js";
+import { responseHashInput } from "./response-support.js";
 import { canonicalGptConversationUrl } from "../../web/contracts/target-document.contract.js";
-
-const HASH = /^sha256:[a-f0-9]{64}$/u;
-const TEXT_CHECKPOINT_KEYS = [
-  "artifactRef", "assistantTurnId", "canonicalConversationUrl", "checkpointKind", "evidenceHash",
-  "evidenceRef", "promptHash", "rawDomHash", "semanticTextHash", "sourceAttemptId", "turnMarker",
-] as const;
 
 const hash = (value: string | Buffer): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
-
-const predecessorInput = (
-  intent: Parameters<GptChildHandler<"checkpoint_gpt_generated_image">>[0],
-): GptTextCheckpointInput => {
-  const checkpoint = recordInput(intent, "predecessorTextCheckpoint");
-  if (Object.keys(checkpoint).sort().join("|") !== [...TEXT_CHECKPOINT_KEYS].sort().join("|")
-    || checkpoint.checkpointKind !== "text"
-    || typeof checkpoint.assistantTurnId !== "string" || !isGptTurnId(checkpoint.assistantTurnId)
-    || typeof checkpoint.canonicalConversationUrl !== "string"
-    || typeof checkpoint.sourceAttemptId !== "string" || checkpoint.sourceAttemptId.length === 0
-    || typeof checkpoint.artifactRef !== "string" || checkpoint.artifactRef.length === 0
-    || typeof checkpoint.evidenceRef !== "string" || checkpoint.evidenceRef.length === 0
-    || typeof checkpoint.turnMarker !== "string" || checkpoint.turnMarker.length === 0
-    || [checkpoint.evidenceHash, checkpoint.promptHash, checkpoint.rawDomHash, checkpoint.semanticTextHash]
-      .some((value) => typeof value !== "string" || !HASH.test(value))) {
-    throw executionFailure("failed", `GPT_CHILD_INPUT_INVALID:${intent.childCapabilityId}:predecessorTextCheckpoint`);
-  }
-  canonicalGptConversationUrl(checkpoint.canonicalConversationUrl);
-  return checkpoint as GptTextCheckpointInput;
-};
 
 const renderGeneratedImage = async (original: Buffer): Promise<Buffer> => {
   const webp = await sharp(original, { failOn: "error", limitInputPixels: 100_000_000 })
@@ -63,42 +33,40 @@ const renderGeneratedImage = async (original: Buffer): Promise<Buffer> => {
 
 export const checkpointGptGeneratedImageHandler:
 GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
-  requireExactInputKeys(intent, ["assistantTurnId", "canonicalConversationUrl", "expectedMediaHash",
-    "expectedPromptHash", "predecessorTextCheckpoint", "turnMarker"]);
-  const assistantTurnId = stringInput(intent, "assistantTurnId");
-  if (!isGptTurnId(assistantTurnId)) {
-    throw executionFailure("failed", "GPT_CHILD_INPUT_INVALID:checkpoint_gpt_generated_image:assistantTurnId");
-  }
+  requireExactInputKeys(intent, ["canonicalConversationUrl", "expectedPromptHash", "probeBudgetMs", "turnMarker"]);
   const conversationUrl = canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
   const expectedPromptHash = responseHashInput(intent, "expectedPromptHash");
-  const expectedMediaHash = responseHashInput(intent, "expectedMediaHash");
   const turnMarker = stringInput(intent, "turnMarker");
-  const predecessorTextCheckpoint = predecessorInput(intent);
-  const assistantOrdinal = Number(/^conversation-turn-([1-9][0-9]*)$/u.exec(assistantTurnId)?.[1]);
-  const predecessorOrdinal = Number(
-    /^conversation-turn-([1-9][0-9]*)$/u.exec(predecessorTextCheckpoint.assistantTurnId)?.[1],
-  );
-  if (predecessorTextCheckpoint.canonicalConversationUrl !== conversationUrl
-    || !Number.isSafeInteger(assistantOrdinal) || !Number.isSafeInteger(predecessorOrdinal)
-    || predecessorOrdinal + 2 !== assistantOrdinal) {
-    throw executionFailure("failed", "GPT_GENERATED_IMAGE_PREDECESSOR_MISMATCH");
+  const probeBudgetMs = numberInput(intent, "probeBudgetMs");
+  if (!Number.isSafeInteger(probeBudgetMs) || probeBudgetMs < 1 || probeBudgetMs > 3_600_000) {
+    throw executionFailure("failed", "GPT_RESPONSE_PROBE_BUDGET_INVALID");
   }
   const browser = requireBrowser(context);
-  const observed = await ensureResponseConversation(browser, conversationUrl);
-  const predecessorTurn = directPredecessorTextTurn(observed, assistantTurnId);
-  if (!predecessorTurn
-    || predecessorTurn.testId !== predecessorTextCheckpoint.assistantTurnId
-    || predecessorTurn.semanticTextHash !== predecessorTextCheckpoint.semanticTextHash) {
-    throw executionFailure("failed", "GPT_GENERATED_IMAGE_PREDECESSOR_MISMATCH");
+  const deadline = Date.now() + probeBudgetMs;
+  let delay = 250;
+  let observed: Awaited<ReturnType<typeof ensureResponseConversation>>;
+  let assistantTurnId: string;
+  let media: Awaited<ReturnType<typeof browser.downloadAuthenticatedMedia>>;
+  for (;;) {
+    observed = await ensureResponseConversation({ browser, canonicalConversationUrl: conversationUrl, context, deadline });
+    const candidate = assistantTurnForPrompt(observed, expectedPromptHash);
+    if (candidate && observed.generatingRaw === 0) {
+      try {
+        media = await browser.downloadAuthenticatedMedia({ assistantTurnId: candidate,
+          semanticMediaId: "gpt-generated-image-main", delivery: "visible-download" });
+        assistantTurnId = candidate;
+        break;
+      } catch (error) {
+        if (failureCode(error) !== "BROWSER_AUTHENTICATED_MEDIA_ABSENT") throw error;
+      }
+    }
+    const remaining = deadline - Date.now();
+    if (remaining < 25) throw executionFailure("failed", "GPT_IMAGE_TIMEOUT");
+    const duration = Math.min(delay, remaining);
+    if (context.yieldForProviderWait) await context.yieldForProviderWait(duration);
+    else await browser.wait({ durationMs: duration });
+    delay = Math.min(5_000, Math.ceil(delay * 1.5));
   }
-  if (assistantTurnForPrompt(observed, expectedPromptHash) !== assistantTurnId
-    || observed.generatingRaw !== 0) {
-    throw executionFailure("failed", "GPT_RESPONSE_CHECKPOINT_MISMATCH");
-  }
-  const media = await browser.downloadAuthenticatedMedia({
-    assistantTurnId, semanticMediaId: "gpt-generated-image-main",
-    delivery: context.mutationMode === "readback" ? "probe" : "visible-download",
-  });
   if (!observed.facts.authorityRefHashes.includes(media.authorityTargetHash)
     || !observed.facts.authorityRefHashes.includes(media.authorityDocumentHash)) {
     throw executionFailure("failed", "GPT_GENERATED_IMAGE_DOCUMENT_MISMATCH");
@@ -107,12 +75,9 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
   if (hash(original) !== media.sha256 || original.byteLength !== media.sizeBytes) {
     throw executionFailure("failed", "GPT_GENERATED_IMAGE_AUTHENTICATED_BYTES_INVALID");
   }
-  if (media.sha256 !== expectedMediaHash) throw executionFailure("failed", "GPT_GENERATED_IMAGE_IDENTITY_DRIFT");
   const webp = await renderGeneratedImage(original);
   const imageHash = hash(webp);
-  const browserFact = context.mutationMode === "readback"
-    ? requireCompletedDownloadBrowserFact(intent, browser)
-    : requireConfirmedBrowserFact(intent, browser);
+  const browserFact = requireConfirmedBrowserFact(intent, browser);
   return success({
     value: { assistantTurnId, semanticMediaId: "gpt-generated-image-main", mediaHash: media.sha256,
       authorityTargetHash: media.authorityTargetHash, authorityDocumentHash: media.authorityDocumentHash,
@@ -122,7 +87,7 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
       originalSha256: media.sha256, originalSizeBytes: original.byteLength,
       originalMediaType: media.mediaType, originalWidth: media.width, originalHeight: media.height,
       bytes: webp.byteLength, mediaType: "image/webp", width: 1200, height: 630,
-      predecessorTextCheckpoint },
+      },
     ...declaredFacts({ ...observed.facts, decision: "ACT",
       factResultIds: Object.freeze([...observed.facts.factResultIds, browserFact.evidenceRef]),
       authorityRefHashes: Object.freeze([...observed.facts.authorityRefHashes, browserFact.evidenceHash]),

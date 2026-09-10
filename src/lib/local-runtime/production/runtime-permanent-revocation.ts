@@ -66,8 +66,7 @@ const releaseRevokedLease = async (input: Readonly<{
 }>): Promise<void> => {
   const release = {
     reasonCode: "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED" as const,
-    receiverCheckpoint: null,
-    confirmedSubmit: null,
+    attemptFailure: null,
   };
   const stableRequestId = `aiprelease_${hashCanonical({
     job_id: input.job.job_id,

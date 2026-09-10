@@ -36,13 +36,9 @@ const assertHarness = (
     assert.deepEqual(state.calls.map((call) => call.actionOrdinal),
       state.calls.map((_call, index) => index + 1));
     assert.deepEqual(output.evidence_refs, state.calls.map((_call, index) => `evidence:${index + 1}`));
-    assert.equal(state.handoffDelays.length, 0,
-      "SEO Product must not schedule fixed sleeps between GPT Children");
   }
   assert.equal(new Set(state.calls.map((call) => call.sessionKey)).size, 1);
   assert.ok(state.calls.every((call) => call.sessionKey.includes(attemptId)));
-  assert.equal(state.handoffDelays.length, 0,
-    "SEO Product must derive handoff readiness from each Child fact, not elapsed time");
   const firstPrompt = state.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt;
   assert.equal(typeof firstPrompt, "string");
   if (actionId === "produce_article") {
@@ -59,7 +55,7 @@ const assertHarness = (
     assert.doesNotMatch(firstPrompt as string, new RegExp(state.providerNames.join("|"), "u"),
       "review prompts must not derive Provider filenames");
   }
-  const files = state.calls.find((call) => call.child === "reconcile_gpt_draft")?.input.files;
+  const files = state.calls.find((call) => call.child === "submit_exact_gpt_turn_once")?.input.files;
   assert.deepEqual(Array.isArray(files)
     ? files.map((file) => (file as { providerDisplayName?: unknown }).providerDisplayName) : null,
   state.providerNames);
@@ -82,7 +78,6 @@ export const exerciseSeoFlow = async (
   return {
     calls: state.calls, completed, firstFailure,
     physicalSubmitDispatches: state.physicalSubmitDispatches,
-    acquiredLaneVersions: state.acquiredLaneVersions,
     generatedImageUploadCalls: state.generatedImageUploadCalls,
   };
 };

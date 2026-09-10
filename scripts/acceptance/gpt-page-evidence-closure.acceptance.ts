@@ -133,7 +133,7 @@ assert.deepEqual(localizationRoute.materialPolicy.requiredRoles, ["static_catalo
 assert.deepEqual(localizationRoute.topology.passOrder, ["candidate-a", "candidate-b", "selector"]);
 
 const pageChildren = report.children.filter((child) => child.pageOperationRequired === true);
-assert.equal(pageChildren.length, 22);
+assert.equal(pageChildren.length, 13);
 for (const child of pageChildren) {
   assert.equal(Object.hasOwn(child, "captureComplete"), false,
     "the static Child demand index must not become a second capture verdict");

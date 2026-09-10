@@ -9,6 +9,6 @@ export const parseProductResult = (task: WebsiteAgentTask, value: unknown, route
     return Object.freeze(output);
   }
   if (output.schema_version !== route.result_schema_version) throw new Error("AGENT_RESULT_SCHEMA_VERSION_INVALID");
-  result.locked(output, task, ["thread_ref", "parent_report_ref", "parent_raw_output_hash"]);
+  result.locked(output, task, ["parent_report_ref", "parent_raw_output_hash"]);
   return Object.freeze(output);
 };

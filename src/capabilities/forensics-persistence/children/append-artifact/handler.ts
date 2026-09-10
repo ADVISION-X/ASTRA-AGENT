@@ -19,7 +19,7 @@ export async function executeAppendArtifact(
         childCapabilityId: "append-artifact",
         missionId: input.missionId,
         runId: input.runId,
-        capabilityCallId: input.capabilityCallId,
+        ...(input.capabilityCallId ? { capabilityCallId: input.capabilityCallId } : {}),
         artifactRef: result.artifactRef,
         storageRef: result.storageRef,
         integrityHash: result.integrityHash,

@@ -10,16 +10,15 @@ import {
   type WebsiteAgentTask,
 } from "../../mediator/product-plugin-contract.js";
 import {
+  productResultValidation,
   type SharedExecutionContext,
 } from "../../mediator/product-plugin-contract.js";
-import type {
-  ExactGptCallFacts,
-  ProductGptAnyCallInput,
-} from "../../capabilities/gpt/index.js";
+import type { ProductGptAnyCallInput, ProductGptChildResult } from "../../capabilities/gpt/index.js";
 import { executionFailure } from "../../lib/execution-failure.js";
+import { parseProductResult } from "./result-contract.js";
 
 export const PLUGIN_ID = "bazi-report-followup";
-export const PRODUCT_INSTRUCTION = "在授权成立的原八字正式报告会话中回答新的冻结问题，保持父报告、人物、命盘候选、证据与会话 lineage。";
+export const PRODUCT_INSTRUCTION = "根据本次已入场的父报告材料回答新的冻结问题，保持父报告、人物、命盘候选与证据边界。";
 const WAIT_TIMEOUT_MS = 3_600_000;
 export const MODEL_PROFILE = buildGptExecutionProfile({
   profileRef: `${PLUGIN_ID}:gpt-5.6-sol-pro-standard`,
@@ -70,27 +69,14 @@ export const markerFor = (task: WebsiteAgentTask): string =>
   }).slice(7, 31)}]`;
 
 export const createOwnedExecution = (task: WebsiteAgentTask, context: SharedExecutionContext) => {
-  const evidenceByOrdinal = new Map<number, string>();
+  const evidenceRefs: string[] = [];
   const sessionKey = `${PLUGIN_ID}:${task.job_id}:${context.gpt.attemptId}`;
-  const recordEvidence = (ordinal: number, evidenceRef: string): void => {
-    const current = evidenceByOrdinal.get(ordinal);
-    if (current && current !== evidenceRef) fail("PRODUCT_EVIDENCE_SEQUENCE_CONFLICT");
-    evidenceByOrdinal.set(ordinal, evidenceRef);
-  };
-  const facts = async (call: FlowCall): Promise<ExactGptCallFacts> => {
-    const result = await context.gpt.readCallFacts(call);
-    if (result.evidence) recordEvidence(call.actionOrdinal, result.evidence.evidenceRef);
-    return result;
-  };
   const execute = async (call: FlowCall) => {
-    await facts(call);
     const result = await context.gpt.execute({ ...call, sessionKey });
-    recordEvidence(call.actionOrdinal, result.evidenceRef);
+    evidenceRefs.push(...result.artifactRefs);
     return result;
   };
-  const evidenceRefs = (): readonly string[] => Object.freeze([...evidenceByOrdinal.entries()]
-    .sort((left, right) => left[0] - right[0]).map((entry) => entry[1]));
-  return Object.freeze({ evidenceRefs, execute, facts });
+  return Object.freeze({ evidenceRefs: () => Object.freeze([...evidenceRefs]), execute });
 };
 
 export const materialFiles = (context: SharedExecutionContext) => context.materials.slice()
@@ -174,9 +160,8 @@ export const applyAttachments = async (
   }
 };
 
-const requireConfirmedSubmit = (facts: ExactGptCallFacts): void => {
-  const mutation = facts.mutation;
-  if (mutation?.owner !== "browser" || mutation.effectScope !== "provider_effect"
+const requireConfirmedSubmit = (mutation: Readonly<{ effectScope: string; outcome: string; terminalAt: string | null }> | null): void => {
+  if (mutation?.effectScope !== "provider_effect"
     || mutation.outcome !== "CONFIRMED" || !mutation.terminalAt) {
     fail("PRODUCT_PROVIDER_EFFECT_TERMINAL_FACT_MISSING");
   }
@@ -189,47 +174,31 @@ export const checkpointSubmittedTurn = async (
   stepId: string,
   marker: string,
   promptHash: ProductionHash,
+  submit: ProductGptChildResult<"submit_exact_gpt_turn_once">,
   ordinals: readonly [number, number, number],
 ): Promise<Checkpoint> => {
-  const submitted = await flow.execute({
-      productStepId: stepId, callId: "submission-reconcile", child: "reconcile_gpt_turn_submission",
-      actionOrdinal: ordinals[0], input: { expectedPromptHash: promptHash, timeoutMs: 60_000, turnMarker: marker },
-    });
-    const submission = objectValue(submitted.value, "PRODUCT_SUBMISSION_INVALID");
-    const canonicalConversationUrl = textValue(
-      submission.canonicalConversationUrl,
-      "PRODUCT_SUBMISSION_INVALID",
-    );
-    const conversationIdentityHash = hashValue(submission.conversationIdentityHash, "PRODUCT_SUBMISSION_INVALID");
-    const stable = objectValue((await flow.execute({
-      productStepId: stepId, callId: "text-wait", child: "wait_for_stable_gpt_text",
-      actionOrdinal: ordinals[1], input: {
-        probeBudgetMs: WAIT_TIMEOUT_MS, canonicalConversationUrl,
-        conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
-      },
-    })).value, "PRODUCT_TEXT_RESPONSE_INVALID");
-    const assistantTurnId = textValue(stable.assistantTurnId, "PRODUCT_TEXT_RESPONSE_INVALID");
-    const responseHash = hashValue(stable.responseHash, "PRODUCT_TEXT_RESPONSE_INVALID");
+  const canonicalConversationUrl = submit.value.canonicalConversationUrl;
     const checkpointCall = {
       productStepId: stepId, callId: "text-checkpoint", child: "checkpoint_gpt_text_response",
-      actionOrdinal: ordinals[2], input: {
-        assistantTurnId, canonicalConversationUrl, expectedPromptHash: promptHash,
-        expectedResponseHash: responseHash, turnMarker: marker,
+      actionOrdinal: ordinals[0], input: {
+        probeBudgetMs: WAIT_TIMEOUT_MS, canonicalConversationUrl,
+        expectedPromptHash: promptHash, turnMarker: marker,
       },
     } as const;
-    const checkpoint = objectValue((await flow.execute(checkpointCall)).value, "PRODUCT_TEXT_CHECKPOINT_INVALID");
-    const checkpointEvidence = (await flow.facts(checkpointCall)).evidence;
-    const refs = checkpointEvidence?.artifactRefs ?? [];
+    const checkpointResult = await flow.execute(checkpointCall);
+    const checkpoint = objectValue(checkpointResult.value, "PRODUCT_TEXT_CHECKPOINT_INVALID");
+    const assistantTurnId = textValue(checkpoint.assistantTurnId, "PRODUCT_TEXT_CHECKPOINT_INVALID");
+    const refs = checkpointResult.artifactRefs;
     const artifactRef = refs[0];
-    if (!checkpointEvidence || refs.length !== 1 || !artifactRef) fail("PRODUCT_TEXT_ARTIFACT_RECEIPT_INVALID");
+    if (refs.length !== 1 || !artifactRef) fail("PRODUCT_TEXT_ARTIFACT_RECEIPT_INVALID");
     return Object.freeze({
       assistantTurnId, artifactRef: artifactRef as string, canonicalConversationUrl, promptHash,
       rawDomHtml: textValue(checkpoint.rawDomHtml, "PRODUCT_TEXT_CHECKPOINT_INVALID"),
       rawDomHash: hashValue(checkpoint.rawDomHash, "PRODUCT_TEXT_CHECKPOINT_INVALID"),
       semanticText: textValue(checkpoint.semanticText, "PRODUCT_TEXT_CHECKPOINT_INVALID"),
       semanticTextHash: hashValue(checkpoint.semanticTextHash, "PRODUCT_TEXT_CHECKPOINT_INVALID"),
-      turnMarker: marker, evidenceRef: checkpointEvidence.evidenceRef,
-      evidenceHash: checkpointEvidence.evidenceHash,
+      turnMarker: marker, evidenceRef: checkpointResult.evidenceRef,
+      evidenceHash: checkpointResult.evidenceHash,
     });
 };
 
@@ -243,14 +212,11 @@ export const submitTurn = async (
 ): Promise<Checkpoint> => {
   const promptHash = sha256(prompt);
   const write = { productStepId: stepId, callId: "prompt-write", child: "write_exact_gpt_prompt", actionOrdinal: ordinals[0], input: { prompt } } as const;
-  const draft = { productStepId: stepId, callId: "draft-reconcile", child: "reconcile_gpt_draft", actionOrdinal: ordinals[1], input: { files, prompt, turnMarker: marker } } as const;
   const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: ordinals[2], input: { files, promptHash, turnMarker: marker } } as const;
   await flow.execute(write);
-  await flow.execute(draft);
-  await flow.execute(submit);
-  const submitFacts = await flow.facts(submit);
-  requireConfirmedSubmit(submitFacts);
-  return checkpointSubmittedTurn(flow, stepId, marker, promptHash,
+  const submitResult = await flow.execute(submit) as ProductGptChildResult<"submit_exact_gpt_turn_once">;
+  requireConfirmedSubmit(submitResult.effectReceipt);
+  return checkpointSubmittedTurn(flow, stepId, marker, promptHash, submitResult,
     [ordinals[3], ordinals[4], ordinals[5]]);
 };
 
@@ -268,3 +234,8 @@ export const runFreshTurn = async (
   await applyAttachments(flow, context, stepId, [8, 9, 10]);
   return submitTurn(flow, stepId, prompt, marker, uploadedFiles(context), [11, 12, 13, 14, 15, 16]);
 };
+
+export const receive = (task: WebsiteAgentTask, checkpoint: Checkpoint, context: SharedExecutionContext) =>
+  parseProductResult(task, productResultValidation.parseJsonObject(
+    checkpoint.semanticText, "PRODUCT_RESULT_JSON_INVALID",
+  ), context.routePolicy);

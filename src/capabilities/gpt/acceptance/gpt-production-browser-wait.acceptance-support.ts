@@ -61,26 +61,23 @@ try {
     "corpus_research",
     "text-wait",
   );
-  lifecycle.announceSubmissionReconciliation(
-    active, "corpus_research", "submission-reconcile", "reconcile_gpt_turn_submission",
-  );
   assert.equal(active.facade.document.documentRef, "document:1");
   await lifecycle.yieldForProviderWait(
-    active, "corpus_research", "text-wait", "wait_for_stable_gpt_text", 25,
+    active, "corpus_research", "text-wait", "checkpoint_gpt_text_response", 25,
   );
   assert.equal(active.facade.document.documentRef, "document:2",
     "the stable Browser facade must point at the newly reacquired Document");
   await lifecycle.yieldForProviderWait(
-    active, "corpus_research", "text-wait", "wait_for_stable_gpt_text", 25,
+    active, "corpus_research", "text-wait", "checkpoint_gpt_text_response", 25,
   );
   assert.equal(active.facade.document.documentRef, "document:3");
   active.providerWaitLog = { ...active.providerWaitLog!, emittedAt: performance.now() - 30_001 };
   await lifecycle.yieldForProviderWait(
-    active, "corpus_research", "text-wait", "wait_for_stable_gpt_text", 25,
+    active, "corpus_research", "text-wait", "checkpoint_gpt_text_response", 25,
   );
   assert.equal(active.facade.document.documentRef, "document:4");
   await lifecycle.yieldForProviderWait(
-    active, "corpus_research", "image-wait", "wait_for_stable_gpt_image", 25,
+    active, "corpus_research", "image-wait", "checkpoint_gpt_generated_image", 25,
   );
   assert.equal(active.facade.document.documentRef, "document:5");
   await lifecycle.settle(null);
@@ -101,15 +98,10 @@ try {
     const identity = event.typedIdentity as Readonly<Record<string, unknown>>;
     return [event.operation, identity.kind, identity.stepId, identity.capabilityCallId];
   }), [
-    ["gpt.child", "gpt-call", "corpus_research", "text-wait:wait_for_stable_gpt_text"],
-    ["gpt.child", "gpt-call", "corpus_research", "text-wait:wait_for_stable_gpt_text"],
-    ["gpt.child", "gpt-call", "corpus_research", "image-wait:wait_for_stable_gpt_image"],
+    ["gpt.child", "gpt-call", "corpus_research", "text-wait:checkpoint_gpt_text_response"],
+    ["gpt.child", "gpt-call", "corpus_research", "text-wait:checkpoint_gpt_text_response"],
+    ["gpt.child", "gpt-call", "corpus_research", "image-wait:checkpoint_gpt_generated_image"],
   ]);
-  const reconciliationEvents = (await readFile(runtimeLogger.currentSegmentPath()!, "utf8")).trim().split("\n")
-    .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>)
-    .filter((event) => event.code === "GPT_SUBMISSION_RECONCILIATION_ACTIVE");
-  assert.equal(reconciliationEvents.length, 1,
-    "submission reconciliation must expose that its bounded read-only polling is active");
 
 } finally {
   await rm(temporary, { recursive: true, force: true });

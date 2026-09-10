@@ -5,7 +5,7 @@ import {
   withRuntimeLogCause,
 } from "../../runtime-logs/index.js";
 import { renewProductionLease } from "./cloud-client.js";
-import { hashCanonical, type ProductionHash } from "./contracts.js";
+import { hashCanonical } from "./contracts.js";
 import type { ProductionExecutionLease } from "./contracts.js";
 import { terminalSpanFailure } from "./runtime-logging.js";
 import {
@@ -76,7 +76,6 @@ export const heartbeatWhileRunning = async <T>(input: Readonly<{
   state: RuntimeState;
   job: ClaimedProductionTask;
   budget: ProductionExecutionLease;
-  checkpointHash: ProductionHash;
   execution: Promise<T>;
   abort: AbortController;
   parentSpanId: string;
@@ -95,7 +94,7 @@ export const heartbeatWhileRunning = async <T>(input: Readonly<{
     }));
     let receipt;
     try {
-      receipt = await renewProductionLease(input.state.session, input.job, input.checkpointHash);
+      receipt = await renewProductionLease(input.state.session, input.job);
       const authority = input.state.store.recordLease(
         leaseAuthority(input.job, "active", receipt.lease_expires_at),
       );

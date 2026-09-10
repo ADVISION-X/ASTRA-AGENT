@@ -5,6 +5,6 @@
  * No business models (ProductRecord, Candidate, Discovery, Ledger, etc.).
  */
 
-export type { RecordEnvelope, ArtifactEnvelope } from "./schema.js";
+export type { ArtifactEnvelope } from "./schema.js";
 export type { GrassEyeStoragePort } from "./storage-port.js";
 export { createGrassEyeFileStorage } from "./file-storage.js";

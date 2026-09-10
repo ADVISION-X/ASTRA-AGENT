@@ -5,7 +5,6 @@ import type { ProductGptTools } from "./product-api.js";
 
 export type GptProductionExecutionInput = Readonly<{
   jobId: string;
-  continuationRef: string | null;
   ownerRef: string;
   subjectRef: string;
   authorizationRef: string;
@@ -25,8 +24,6 @@ export type GptProductionExecutionInput = Readonly<{
 
 export type ProductGptExecution = Readonly<{
   tools: ProductGptTools;
-  continuationRef(): string | null;
-  reconcilePermanentCancellation(): Promise<void>;
   settle(error: unknown | null): Promise<void>;
 }>;
 

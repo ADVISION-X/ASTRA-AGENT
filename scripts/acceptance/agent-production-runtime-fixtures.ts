@@ -1,5 +1,3 @@
-import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-
 import {
   RESULT_CONTRACT_ID,
   RESULT_CONTRACT_VERSION,
@@ -22,10 +20,6 @@ import {
   type ClaimedProductionTask,
 } from "../../src/lib/local-runtime/production/transport-protocol.js";
 import { authorizeWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
-import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
-import { executionFailure } from "../../src/lib/execution-failure.js";
-import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
-import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 
 export const HASH_A = `sha256:${"a".repeat(64)}` as ProductionHash;
 export const HASH_B = `sha256:${"b".repeat(64)}` as ProductionHash;
@@ -82,7 +76,7 @@ export const identityFor = (accepted: WebsiteAgentTask): DurablePluginIdentity =
   return {
     plugin_id: resolved.identity.plugin_id,
     plugin_version: resolved.identity.plugin_version, skill_hash: resolved.identity.skill_hash,
-    checkpoint_schema_version: resolved.identity.checkpoint_schema_version, request_hash: accepted.request_hash,
+    request_hash: accepted.request_hash,
   };
 };
 
@@ -102,14 +96,14 @@ const executionGrant = (
   return {
     ...route, attempt_id: `attempt:${base.job_id}`, device_id: "device:1", device_epoch: 1,
     worker_session_id: "worker:1", worker_session_epoch: 1, lease_token: `lease:${base.job_id}`,
-    lease_version: 1, server_now: "2030-01-01T00:00:00.000Z", accept_by: "2030-01-01T00:01:00.000Z",
+    lease_version: 1, server_now: "2030-01-01T00:00:00.000Z",
     lease_expires_at: "2030-01-01T00:05:00.000Z", renew_after_ms: 20_000,
-    control_contract_version: 21,
+    control_contract_version: 22,
     execution_fence: {
       schema_version: "xuanxue-ai-execution-fence.v6", environment_id: "production", device_id: "device:1",
       device_epoch: 1, worker_session_id: "worker:1", worker_session_epoch: 1, job_id: base.job_id,
       attempt_id: `attempt:${base.job_id}`, lease_version: 1, lease_token_hash: HASH_A,
-      control_contract_version: 21, fence_hash: HASH_B,
+      control_contract_version: 22, fence_hash: HASH_B,
     },
   } as const;
 };
@@ -148,131 +142,3 @@ export const recoveryRemoteStatus = (writeReceipts: readonly unknown[] = []) => 
   business_consumer_error: null,
   write_receipts: writeReceipts,
 });
-
-export const recoveryCheckpointBody = (input: Readonly<{
-  jobId: string;
-  attemptId: string;
-  requestId: string;
-  checkpointSeq: number;
-  checkpointKind: "accepted" | "progress" | "attempt_failure";
-  attemptFailure?: unknown;
-}>) => ({
-  schema_version: "xuanxue-ai-checkpoint.v6",
-  control_protocol_version: "xuanxue-ai-production-v6",
-  request_id: input.requestId,
-  idempotency_key: input.requestId,
-  job_id: input.jobId,
-  worker_session_id: "worker:1",
-  worker_session_epoch: 1,
-  attempt_id: input.attemptId,
-  lease_version: 1,
-  fence_hash: HASH_A,
-  local_order_id: input.jobId,
-  checkpoint_seq: input.checkpointSeq,
-  checkpoint_kind: input.checkpointKind,
-  payload_hash: hashCanonical({
-    job_id: input.jobId,
-    attempt_id: input.attemptId,
-    checkpoint_seq: input.checkpointSeq,
-    checkpoint_kind: input.checkpointKind,
-  }),
-  object_receipts: [],
-  attempt_failure: input.attemptFailure ?? null,
-});
-
-export const recoveryCheckpointReceipt = (
-  body: ReturnType<typeof recoveryCheckpointBody>,
-  acceptedAttemptCount: number,
-) => {
-  const response = {
-    schema_version: "xuanxue-ai-checkpoint-receipt.v6",
-    job_id: body.job_id,
-    checkpoint_seq: body.checkpoint_seq,
-    checkpoint_hash: hashCanonical(body),
-    accepted_at: "2026-08-29T20:19:07.000Z",
-    accepted_attempt_count: acceptedAttemptCount,
-    status: "failed",
-  };
-  return {
-    request_id: body.request_id,
-    write_kind: "checkpoint",
-    payload_hash: hashCanonical(body),
-    response_json: response,
-  } as const;
-};
-
-export const seedRecoveryIncident = async (
-  store: ProductionRuntimeStore,
-  suffix: string,
-  rejectedPairCount = 1,
-) => {
-  const accepted = task({
-    jobId: `job:recovery:${suffix}`, productId: "payment_screenshot_observation", actionId: "observe",
-  });
-  const job = claimTask(accepted);
-  const attemptId = job.grant.attempt_id;
-  store.acceptTask(accepted, identityFor(accepted), attemptId);
-  const falseFailure = serializeTerminalFailure(executionFailure(
-    "failed", "AI_V6_CHECKPOINT_SEQUENCE_INVALID", { cause: new Error("sequence") },
-  ));
-  store.recordAttemptFailure(accepted.job_id, attemptId, falseFailure);
-  const pathname = `/internal/ai-production/v6/jobs/${encodeURIComponent(accepted.job_id)}/checkpoints`;
-  const receipts = [
-    recoveryCheckpointBody({
-      jobId: accepted.job_id, attemptId, requestId: `${suffix}:accepted:1`,
-      checkpointSeq: 1, checkpointKind: "accepted",
-    }),
-    recoveryCheckpointBody({
-      jobId: accepted.job_id, attemptId, requestId: `${suffix}:progress:2`,
-      checkpointSeq: 2, checkpointKind: "progress",
-    }),
-  ].map((body) => {
-    const receipt = recoveryCheckpointReceipt(body, 1);
-    store.enqueue({
-      idempotency_key: body.request_id, kind: "checkpoint", path: pathname,
-      method: "POST", headers: {}, body: JSON.stringify(body),
-    });
-    store.markOutboxSent(body.request_id, receipt.response_json);
-    return receipt;
-  });
-  for (let pair = 1; pair <= rejectedPairCount; pair += 1) {
-    const pairSuffix = rejectedPairCount === 1 ? "" : `:${pair}`;
-    for (const body of [
-      recoveryCheckpointBody({
-        jobId: accepted.job_id, attemptId, requestId: `${suffix}:rejected${pairSuffix}:accepted:1`,
-        checkpointSeq: 1, checkpointKind: "accepted",
-      }),
-      recoveryCheckpointBody({
-        jobId: accepted.job_id, attemptId, requestId: `${suffix}:rejected${pairSuffix}:failure:2`,
-        checkpointSeq: 2, checkpointKind: "attempt_failure", attemptFailure: falseFailure,
-      }),
-    ]) {
-      store.enqueue({
-        idempotency_key: body.request_id, kind: "checkpoint", path: pathname,
-        method: "POST", headers: {}, body: JSON.stringify(body),
-      });
-      await assert.rejects(store.deliverOutbox(body.request_id, async () => {
-        throw runtimeTransportFailure("AI_V6_CHECKPOINT_SEQUENCE_INVALID", 409);
-      }), /AI_V6_CHECKPOINT_SEQUENCE_INVALID/u);
-    }
-  }
-  return { accepted, job, attemptId, falseFailure, pathname, receipts };
-};
-
-export type RecoveryIncident = Awaited<ReturnType<typeof seedRecoveryIncident>>;
-
-export const reclaimedRecoveryJob = (incident: RecoveryIncident) => ({
-  ...incident.job,
-  lease_version: 2,
-  lease_token: `lease:${incident.accepted.job_id}:2`,
-  grant: {
-    ...incident.job.grant,
-    lease_version: 2,
-    lease_token: `lease:${incident.accepted.job_id}:2`,
-    execution_fence: {
-      ...incident.job.grant.execution_fence,
-      lease_version: 2,
-      fence_hash: HASH_B,
-    },
-  },
-}) as RecoveryIncident["job"];

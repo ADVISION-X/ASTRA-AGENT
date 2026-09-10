@@ -14,8 +14,6 @@ const ROOT = "src/capabilities/gpt";
 const CONTRACT_PATH = `${ROOT}/contract.ts`;
 const CHILD_TYPES_PATH = `${ROOT}/child-types.ts`;
 const SCHEMA_PATH = `${ROOT}/schema.ts`;
-const EVIDENCE_WRITER_PATH = `${ROOT}/evidence-writer.ts`;
-const EVIDENCE_FACT_PATH = `${ROOT}/evidence-fact.ts`;
 const CHILDREN_PATH = `${ROOT}/children`;
 const GROUP_PATH = `${ROOT}/ability-group.ts`;
 const HANDLER_REGISTRY_PATH = `${ROOT}/handler-registry.ts`;
@@ -150,8 +148,6 @@ const inspectRequiredChildIds = (
 ): void => {
   for (const required of [
     "open_gpt_model_selector_v2", "select_exact_gpt_model_v2", "ensure_gpt_reasoning_requirement",
-    "reserve_exact_gpt_continuation_once", "complete_exact_gpt_continuation_reservation_once",
-    "open_gpt_fork_destination_menu", "fork_exact_gpt_conversation_at_checkpoint",
   ]) if (!ids.includes(required)) findings.push(finding(
     "gpt/model-selection-v2-required", CONTRACT_PATH, `The public denominator is missing ${required}.`,
   ));
@@ -235,9 +231,9 @@ const inspectChildDenominator = (
   finding: FindingFactory,
 ): string[] => {
   const ids = childIdsFromContract(contract);
-  if (ids.length !== 28 || new Set(ids).size !== 28) findings.push(finding(
+  if (ids.length !== 13 || new Set(ids).size !== 13) findings.push(finding(
     "gpt/exact-child-denominator", CONTRACT_PATH,
-    `GPT_CHILD_CAPABILITY_IDS must derive exactly 28 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
+    `GPT_CHILD_CAPABILITY_IDS must derive exactly 13 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
   ));
   inspectRequiredChildIds(ids, findings, finding);
   if (ids.includes("ensure_exact_gpt_model")) findings.push(finding(
@@ -257,12 +253,10 @@ const inspectChildDenominator = (
   inspectChildDirectories(context, directories, findings, finding);
   inspectHandlerRegistryProjection(context, ids, directories, findings, finding);
   const actualProfiles = profileDenominator(contract);
-  const expectedProfiles = {
-    CONTINUATION_TRANSACTION: 6, DOM_OBSERVATION: 6, PROVIDER_EFFECT_ONCE: 3, TARGET_LOCAL_MUTATION: 13,
-  };
+  const expectedProfiles = { DOM_OBSERVATION: 2, PROVIDER_EFFECT_ONCE: 2, TARGET_LOCAL_MUTATION: 9 };
   if (JSON.stringify(actualProfiles) !== JSON.stringify(expectedProfiles)) findings.push(finding(
     "gpt/exact-child-profile-denominator", CONTRACT_PATH,
-    `GPT Child profiles must be exactly 6/13/3/6; found ${JSON.stringify(actualProfiles)}.`,
+    `GPT Child profiles must be exactly 2/2/9; found ${JSON.stringify(actualProfiles)}.`,
   ));
   return ids;
 };
@@ -337,17 +331,13 @@ const PROFILE_CONSUMERS = new Set([
   "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile",
 ]);
 const CONTRACT_V4_CHILDREN = new Set([
-  "prepare_clean_gpt_chat", "reconcile_gpt_draft",
-  "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "reconcile_gpt_turn_submission",
-  "fork_exact_gpt_conversation_at_checkpoint", "wait_for_stable_gpt_image",
+  "prepare_clean_gpt_chat", "write_exact_gpt_prompt", "checkpoint_gpt_generated_image",
 ]);
 const CONTRACT_V5_CHILDREN = new Set([
-  "focus_exact_gpt_conversation", "wait_for_stable_gpt_text",
+  "submit_exact_gpt_turn_once",
 ]);
 const CONTRACT_V3_CHILDREN = new Set([
-  "verify_gpt_conversation_identity", "checkpoint_gpt_text_response",
-  "checkpoint_gpt_generated_image",
-  "open_gpt_checkpoint_actions_menu",
+  "checkpoint_gpt_text_response",
   ...PROFILE_CONSUMERS, "reconcile_gpt_attachment_set", "open_gpt_attachment_control",
 ]);
 
@@ -358,7 +348,7 @@ const expectedContractVersion = (id: string): string => {
 };
 
 const INPUT_V2_CHILDREN = new Set([
-  ...PROFILE_CONSUMERS, "focus_exact_gpt_conversation", "wait_for_stable_gpt_text", "wait_for_stable_gpt_image",
+  ...PROFILE_CONSUMERS,
 ]);
 
 const inspectProfileSchema = (
@@ -408,22 +398,6 @@ const inspectChildContractVersions = (
   }
 };
 
-const inspectReasoningEvidence = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  finding: FindingFactory,
-): void => {
-  const childTypes = sourceFor(context, CHILD_TYPES_PATH)?.getFullText() ?? "";
-  const writer = sourceFor(context, EVIDENCE_WRITER_PATH)?.getFullText() ?? "";
-  const reader = sourceFor(context, EVIDENCE_FACT_PATH)?.getFullText() ?? "";
-  inspectMissingTokens({ source: `${childTypes}\n${writer}\n${reader}`, required: [
-    "GptReasoningRequirementResult", "reasoningRequirementResult",
-    'schema_version: "agent-gpt-evidence-safe.v2"', "reasoning_requirement_result",
-    'payload.schema_version !== "agent-gpt-evidence-safe.v2"',
-  ], checkId: "gpt/reasoning-evidence-v2", filePath: EVIDENCE_WRITER_PATH,
-  findings, finding, message: (required) => `The single reasoning evidence path is missing ${required}.` });
-};
-
 const inspectProfileVersionCutover = (
   context: InspectorContext,
   contract: SourceFile,
@@ -432,7 +406,6 @@ const inspectProfileVersionCutover = (
 ): void => {
   inspectProfileSchema(context, findings, finding);
   inspectChildContractVersions(contract, findings, finding);
-  inspectReasoningEvidence(context, findings, finding);
 };
 
 const inspectContractShape = (
@@ -443,7 +416,7 @@ const inspectContractShape = (
   const actualFields = contract.getInterface("ChildCapabilityContract")?.getMembers().flatMap((member) =>
     Node.isPropertySignature(member) ? [member.getName()] : []).sort() ?? [];
   const requiredFields = [
-    "actionQualification", "allowedDocumentTransition", "boundedWait", "childCapabilityId",
+    "actionQualification", "boundedWait", "childCapabilityId",
     "contractVersion", "decisions", "evidenceBoundary", "evidenceSchema", "failureClassification",
     "inputSchema", "mutationBudget", "negativePostcondition", "oneObservationOrMutation", "owner",
     "positivePostcondition", "precondition", "profile", "replayPolicy", "requiredTargetKind",
@@ -472,8 +445,8 @@ const inspectContractShape = (
     source.getFilePath().split("\\").join("/").endsWith(`/${CHILD_TYPES_PATH}`));
   for (const mapName of ["GptChildInputMap", "GptChildOutputMap"]) {
     const count = childTypes?.getInterface(mapName)?.getProperties().length ?? 0;
-    if (count !== 28) findings.push(finding(
-      "gpt/exact-child-type-map", CHILD_TYPES_PATH, `${mapName} must define exactly 28 properties; found ${count}.`,
+    if (count !== 13) findings.push(finding(
+      "gpt/exact-child-type-map", CHILD_TYPES_PATH, `${mapName} must define exactly 13 properties; found ${count}.`,
     ));
   }
 };

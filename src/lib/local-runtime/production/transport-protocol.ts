@@ -106,7 +106,6 @@ const ExecutionGrantSchema = z.object({
   lease_token: z.string().min(1),
   lease_version: z.number().int().positive(),
   server_now: z.string().datetime(),
-  accept_by: z.string().datetime(),
   lease_expires_at: z.string().datetime(),
   renew_after_ms: z.literal(20_000),
   control_contract_version: z.number().int().positive(),

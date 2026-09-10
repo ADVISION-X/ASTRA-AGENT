@@ -122,8 +122,7 @@ export class ProductionRuntimeStore extends ProductionStoreOutbox {
 
   public pendingOutboxCount(): number {
     return Number((this.database.prepare(
-      `select count(*) as count from production_outbox where sent_at is null
-        and (last_error is null or next_delivery_at is not null)`,
+      `select count(*) as count from production_outbox where sent_at is null and last_error is null`,
     ).get() as { count: number }).count);
   }
 
@@ -133,7 +132,6 @@ export class ProductionRuntimeStore extends ProductionStoreOutbox {
       const tasks = this.taskAuthorities();
       corrupt = tasks.some((record) => !productionTaskAuthorityValid(record))
         || stateInvariantFailureCount(this.database) !== 0
-        || this.frontierContinuationInvariantFailures().length > 0
         || !this.isLedgerConsistent(new Set());
     } catch { corrupt = true; }
     if (corrupt) throw executionFailure("failed", "PRODUCTION_RUNTIME_DATA_CORRUPT");
@@ -145,7 +143,6 @@ export class ProductionRuntimeStore extends ProductionStoreOutbox {
       task_ids: Object.freeze(this.taskAuthorities().map((record) => record.task.job_id)),
       outbox_responsibility_count: count("select count(*) as count from production_outbox"),
       pending_outbox_count: count("select count(*) as count from production_outbox where sent_at is null"),
-      continuation_count: count("select count(*) as count from production_continuations"),
       active_lease_count: count("select count(*) as count from production_leases where state='active'"),
     });
   }

@@ -4,147 +4,48 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
-import { createForensicsPersistenceAbilityGroupFromStorage } from "../../src/capabilities/forensics-persistence/index.js";
+import { createForensicsPersistenceAbilityGroupFromStorage } from
+  "../../src/capabilities/forensics-persistence/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { createArtifactRef } from "../../src/lib/storage/refs.js";
 
-const tempRoot = await mkdtemp(join(tmpdir(), "grasseye-forensics-acceptance-"));
-
+const tempRoot = await mkdtemp(join(tmpdir(), "grasseye-artifact-acceptance-"));
 try {
   const group = createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(tempRoot));
-  const record = await group.appendRecord({
-    missionId: "mission-1",
-    runId: "run-1",
-    recordType: "evidence",
-    recordPayload: { status: "observed" },
-    idempotencyKey: "record-1",
-  });
-  assert.equal(record.status, "success");
-  if (record.status !== "success") throw new Error("record append failed");
-  assert.equal(record.proof?.childCapabilityId, "append-record");
-  assert.equal(typeof record.proof?.recordRef, "string");
-  assert.equal(typeof record.proof?.integrityHash, "string");
-  const duplicateRecord = await group.appendRecord({
-    missionId: "mission-1",
-    runId: "run-1",
-    recordType: "evidence",
-    recordPayload: { status: "observed" },
-    idempotencyKey: "record-1",
-  });
-  if (duplicateRecord.status !== "success") throw new Error("duplicate record append failed");
-  assert.equal(duplicateRecord.recordRef, record.recordRef);
-  const readback = await group.readRecordRef({ recordRef: record.recordRef! });
-  assert.equal(readback.status, "success");
-  assert.deepEqual(readback.record.payload, { status: "observed" });
-  const recordConflict = await group.appendRecord({
-    missionId: "mission-1",
-    runId: "run-1",
-    recordType: "evidence",
-    recordPayload: { status: "drifted" },
-    idempotencyKey: "record-1",
-  });
-  assert.equal(recordConflict.status, "failed");
-  assert.match(recordConflict.failureReason ?? "", /FORENSICS_IDEMPOTENCY_CONFLICT/u);
-
-  const exactCallIdentityHash = `sha256:${"7".repeat(64)}` as const;
-  const exactEvidence = await group.appendRecord({
-    missionId: "mission-exact",
-    runId: "run-exact",
-    stepId: "step-exact",
-    sourceCapabilityId: "gpt",
-    sourceChildCapabilityId: "submit_exact_gpt_turn_once",
-    recordType: "evidence",
-    recordPayload: {
-      exact_call_identity_hash: exactCallIdentityHash,
-      action_ordinal: 12,
-      source_evidence_hash: `sha256:${"8".repeat(64)}`,
-    },
-    idempotencyKey: `gpt-call-evidence:v1:${exactCallIdentityHash}`,
-  });
-  if (exactEvidence.status !== "success") throw new Error("exact evidence append failed");
-  const exactReadback = await group.readExactCallEvidence({
-    missionId: "mission-exact",
-    runId: "run-exact",
-    exactCallIdentityHash,
-  });
-  assert.equal(exactReadback?.recordRef, exactEvidence.recordRef,
-    "exact call identity must derive and read back the original deterministic recordRef");
-  assert.deepEqual(exactReadback?.record.payload, {
-    exact_call_identity_hash: exactCallIdentityHash,
-    action_ordinal: 12,
-    source_evidence_hash: `sha256:${"8".repeat(64)}`,
-  });
-  assert.equal(await group.readExactCallEvidence({
-    missionId: "mission-exact",
-    runId: "run-exact",
-    exactCallIdentityHash: `sha256:${"9".repeat(64)}`,
-  }), null, "an absent exact call must remain a null fact without creating a record");
-
-  const artifact = await group.appendArtifact({
-    missionId: "mission-1",
-    runId: "run-1",
-    artifactType: "other",
-    content: "private-body",
-    idempotencyKey: "artifact-1",
-  });
-  assert.equal(artifact.status, "success");
-  if (artifact.status !== "success") throw new Error("artifact append failed");
-  assert.equal(artifact.proof?.childCapabilityId, "append-artifact");
-  assert.equal(typeof artifact.proof?.artifactRef, "string");
-  assert.equal(typeof artifact.proof?.integrityHash, "string");
-  const duplicateArtifact = await group.appendArtifact({
-    missionId: "mission-1",
-    runId: "run-1",
-    artifactType: "other",
-    content: "private-body",
-    idempotencyKey: "artifact-1",
-  });
-  if (duplicateArtifact.status !== "success") throw new Error("duplicate artifact append failed");
-  assert.equal(duplicateArtifact.artifactRef, artifact.artifactRef);
-  const artifactReadback = await group.readArtifactRef({
-    artifactRef: artifact.artifactRef!,
-  });
-  assert.equal(artifactReadback.status, "success");
-  assert.deepEqual(Buffer.from(artifactReadback.artifact.content), Buffer.from("private-body"));
+  const input = { missionId: "mission-1", runId: "run-1", artifactType: "ai_raw_output" as const,
+    content: "raw-answer", idempotencyKey: "answer-1" };
+  const artifact = await group.appendArtifact(input);
+  if (artifact.status !== "success") throw new Error(artifact.failureReason);
+  const duplicate = await group.appendArtifact(input);
+  if (duplicate.status !== "success") throw new Error(duplicate.failureReason);
+  assert.equal(duplicate.artifactRef, artifact.artifactRef);
+  const conflict = await group.appendArtifact({ ...input, content: "different" });
+  assert.equal(conflict.status, "failed");
+  const readback = await group.readArtifactRef({ artifactRef: artifact.artifactRef });
+  if (readback.status !== "success") throw new Error(readback.failureReason);
+  assert.equal(Buffer.from(readback.artifact.content).toString("utf8"), "raw-answer");
 
   const crashBytes = Buffer.from([0, 1, 2, 254, 255]);
-  const crashArtifactRef = createArtifactRef("artifact\0mission-crash\0run-crash\0artifact-crash");
+  const crashRef = createArtifactRef("artifact\0mission-crash\0run-crash\0answer-crash");
   await mkdir(join(tempRoot, "forensics", "artifacts"), { recursive: true });
-  await writeFile(join(tempRoot, "forensics", "artifacts", `${crashArtifactRef}.bin`), crashBytes, { flag: "wx", mode: 0o600 });
-  const recoveredArtifact = await group.appendArtifact({
-    missionId: "mission-crash",
-    runId: "run-crash",
-    artifactType: "other",
-    content: crashBytes,
-    idempotencyKey: "artifact-crash",
-  });
-  assert.equal(recoveredArtifact.status, "success");
-  if (recoveredArtifact.status !== "success") throw new Error("recovered artifact append failed");
-  assert.equal(recoveredArtifact.artifactRef, crashArtifactRef,
-    "bytes persisted before an index crash must recover under the same content-bound identity");
-  const recoveredReadback = await group.readArtifactRef({
-    artifactRef: crashArtifactRef,
-  });
-  if (recoveredReadback.status !== "success") throw new Error(recoveredReadback.failureReason);
-  assert.deepEqual(Buffer.from(recoveredReadback.artifact.content), crashBytes);
-
-  const recordLog = await readFile(join(tempRoot, "forensics", "records-run_1.ndjson"), "utf8");
-  const artifactLog = await readFile(join(tempRoot, "forensics", "artifacts.ndjson"), "utf8");
-  assert.match(recordLog, /"integrityHash"/);
-  assert.match(artifactLog, /"integrityHash"/);
-  assert.equal(artifactLog.includes("private-body"), false, "artifact body must not be embedded in the artifact index");
-  assert.equal(
-    await readFile(join(tempRoot, "forensics", "artifacts", `${artifact.artifactRef}.bin`), "utf8"),
-    "private-body",
-  );
-  assert.equal(recordLog.trim().split("\n").length, 1, "idempotent record append must not duplicate the WAL row");
-  assert.equal(artifactLog.trim().split("\n").length, 2,
-    "idempotent append and crash recovery must each own one artifact index row");
+  await writeFile(join(tempRoot, "forensics", "artifacts", `${crashRef}.bin`), crashBytes,
+    { flag: "wx", mode: 0o600 });
+  const recovered = await group.appendArtifact({ missionId: "mission-crash", runId: "run-crash",
+    artifactType: "ai_raw_output", content: crashBytes, idempotencyKey: "answer-crash" });
+  if (recovered.status !== "success") throw new Error(recovered.failureReason);
+  assert.equal(recovered.artifactRef, crashRef);
+  const index = await readFile(join(tempRoot, "forensics", "artifacts.ndjson"), "utf8");
+  assert.equal(index.includes("raw-answer"), false);
+  assert.equal(index.trim().split("\n").length, 2);
+  await assert.rejects(readFile(join(tempRoot, "forensics", "records-run_1.ndjson")));
 } finally {
   await rm(tempRoot, { recursive: true, force: true });
 }
 
 process.stdout.write("[ACCEPTANCE] forensics-persistence-capability PASS\n");
-emitQualityProofObservation({ lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V5", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:forensics:append-only-record", observedValue: "exact-call record append, deterministic readback, and integrity hash verified" });
-emitQualityProofObservation({ lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V5", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:forensics:artifact-index", observedValue: "exact-call keys bind one record and artifact index without embedding private body" });
-emitQualityProofObservation({ lawId: "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V4", evidenceMode: "exam.golden", clauses: ["forbidden:0","summary"], locator: "acceptance:forensics:storage-owner", observedValue: "current evidence and artifact vocabulary persists through sole governed file storage without unused generic fields" });
+for (const lawId of ["LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V6",
+  "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V6", "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V5"]) {
+  emitQualityProofObservation({ lawId, evidenceMode: "exam.golden", clauses: ["forbidden:0", "summary"],
+    locator: "acceptance:forensics:raw-answer-artifact",
+    observedValue: "one idempotent raw answer artifact is appended and read back; record ledger is absent" });
+}

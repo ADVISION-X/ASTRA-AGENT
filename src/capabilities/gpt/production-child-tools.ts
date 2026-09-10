@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import {
   GPT_CHILD_CAPABILITY_CONTRACTS,
   type GptAbilityGroup,
@@ -18,32 +16,16 @@ import {
   type RuntimeSpanHandle,
 } from "../../lib/runtime-logs/index.js";
 import { executionFailure, failureCode, typedExecutionFailure } from "../../lib/execution-failure.js";
-import { gptExecutionFailure } from "./execution-fault.js";
+import { hashCanonical } from "../../lib/local-runtime/production/contracts.js";
 import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
-import type {
-  ExactGptCallFacts,
-  ExactGptContinuationQuery,
-  ProductGptCallInput,
-  ProductGptFactQuery,
-  ProductGptChildResult,
-} from "./product-api.js";
+import type { ProductGptCallInput, ProductGptChildResult } from "./product-api.js";
 import type { GptHash } from "./contract.js";
-import { persistGptChildEvidence, persistGptPreExecutionFailure } from "./evidence-writer.js";
+import { persistGptEvidenceArtifacts } from "./evidence-artifacts.js";
 import { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
 import { executeProductionGptAtomicCall } from "./production-atomic-call.js";
-import {
-  isPendingExactEvidence,
-  productSafeExactGptCallFacts,
-  readProductionGptCallFacts,
-  type GptExactCallFactsWithBrowserBinding,
-} from "./production-call-facts.js";
-import {
-  GptContinuationReadback,
-} from "./continuation-readback.js";
 import type {
   GptEvidenceStorePort,
   GptProductionBrowserAuthority,
-  GptProductionRuntimePort,
 } from "./production-ports.js";
 import {
   throwGptChildFailure,
@@ -53,82 +35,15 @@ import {
 
 export type { ProductGptExecution } from "./production-child-support.js";
 
-const sha256 = (value: string | Uint8Array): GptHash =>
-  `sha256:${createHash("sha256").update(value).digest("hex")}`;
-const hashCanonical = (value: unknown): GptHash => {
-  const canonical = (input: unknown): unknown => {
-    if (Array.isArray(input)) return input.map(canonical);
-    if (input && typeof input === "object") return Object.fromEntries(
-      Object.entries(input as Record<string, unknown>)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, nested]) => [key, canonical(nested)]),
-    );
-    return typeof input === "string" ? input.normalize("NFC") : input;
-  };
-  return sha256(JSON.stringify(canonical(value)));
-};
-
-const throwRejectedMutation = (
-  facts: GptExactCallFactsWithBrowserBinding,
-  intent: GptChildCapabilityIntent,
-): never => {
-  const mutation = facts.mutation;
-  if (!mutation || mutation.outcome !== "REJECTED") {
-    throw executionFailure("failed", "BROWSER_MUTATION_REJECTION_INVALID");
-  }
-  const rejectedFailureCode = mutation.failureCode ?? "BROWSER_POSTCONDITION_FAILED";
-  const nativeFailureCode = mutation.nativeFailureCode;
-  const nativeCause = nativeFailureCode
-    ? Object.assign(new Error(nativeFailureCode), { code: nativeFailureCode }) : undefined;
-  const browserFact = Object.freeze({
-    exactCallIdentityHash: facts.exactCallIdentityHash,
-    childCapabilityId: intent.childCapabilityId,
-    effectScope: mutation.effectScope,
-    browserOutcome: "REJECTED" as const,
-    mutationOutcome: mutation.mutationOutcome,
-    terminalAt: mutation.terminalAt,
-    evidenceRef: mutation.authorityRef,
-    evidenceHash: mutation.authorityHash,
-  });
-  throw gptExecutionFailure(rejectedFailureCode, {
-    mutationOutcome: mutation.mutationOutcome,
-    evidence: Object.freeze({
-      evidenceRef: mutation.authorityRef,
-      evidenceHash: mutation.authorityHash,
-    }),
-    browserEffect: Object.freeze({
-      effectScope: mutation.effectScope,
-      childCapabilityId: intent.childCapabilityId,
-      browserOutcome: "REJECTED",
-    }),
-    proofFacts: Object.freeze({
-      decision: "FAIL_CLOSED",
-      factResultIds: Object.freeze([mutation.authorityRef]),
-      candidateCardinality: Object.freeze({ raw: null, eligible: null }),
-      authorityRefHashes: Object.freeze([mutation.authorityHash]),
-      observationRevisionHash: null,
-      mutationOutcome: mutation.mutationOutcome,
-      browserFact,
-      nativeFailureCode,
-    }),
-    cause: nativeCause,
-  });
-};
-
 export class ProductionGptChildTools {
-  private readonly continuationReadback: GptContinuationReadback;
-
   public constructor(
     private readonly dataDir: string,
     private readonly sourceHash: GptHash,
     private readonly gpt: GptAbilityGroup,
     private readonly evidenceStore: GptEvidenceStorePort,
     private readonly browserAuthority: GptProductionBrowserAuthority,
-    private readonly runtime: GptProductionRuntimePort,
     private readonly runtimeLogger: RuntimeLogger,
-  ) {
-    this.continuationReadback = new GptContinuationReadback(evidenceStore, runtime.continuationReadback);
-  }
+  ) {}
   private browserLifecycle(input: ExecutionInput): ProductionGptBrowserLifecycle {
     return new ProductionGptBrowserLifecycle(
       this.browserAuthority,
@@ -149,56 +64,23 @@ export class ProductionGptChildTools {
       },
     );
   }
-  private readContinuation(input: ExecutionInput, query: ExactGptContinuationQuery) {
-    return this.continuationReadback.readExact({
-      jobId: input.jobId,
-      continuationRef: input.continuationRef,
-      ownerRef: input.ownerRef,
-      subjectRef: input.subjectRef,
-      authorizationRef: input.authorizationRef,
-      pluginId: input.pluginId,
-      pluginVersion: input.pluginVersion,
-    }, query);
-  }
   public createExecution(input: ExecutionInput): ProductGptExecution {
     const browsers = this.browserLifecycle(input);
-    let continuationRef: string | null = input.continuationRef;
-    const observedCalls = new Map<string, ProductGptCallInput & Readonly<{ sessionKey: string }>>();
-    const readCallFacts = async (call: ProductGptFactQuery): Promise<ExactGptCallFacts> => {
-      const facts = await this.readCallFacts(input, call);
-      return productSafeExactGptCallFacts(facts);
-    };
     const execute = async <K extends GptChildCapabilityId>(
       call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
     ): Promise<ProductGptChildResult<K>> => {
       this.assertExecutionActive(input);
-      observedCalls.set(hashCanonical(call), call);
       const result = await this.executeOne(
         input, browsers, call, input.abortSignal,
       );
-      if ((call.child === "persist_gpt_continuation"
-        || call.child === "complete_exact_gpt_continuation_reservation_once") && result.value
-        && typeof result.value === "object" && !Array.isArray(result.value)) {
-        const value = Reflect.get(result.value, "continuationRef");
-        if (value !== null && (typeof value !== "string" || value.length === 0)) {
-          throw executionFailure("failed", "GPT_CONTINUATION_REF_INVALID");
-        }
-        continuationRef = value as string | null;
-      }
       return result as ProductGptChildResult<K>;
     };
     return Object.freeze({
       tools: Object.freeze({
         jobId: input.jobId,
         attemptId: input.attemptId,
-        readContinuationExact: (query: ExactGptContinuationQuery) => this.readContinuation(input, query),
         execute,
-        readCallFacts,
       }),
-      continuationRef: () => continuationRef,
-      reconcilePermanentCancellation: () => this.reconcileObservedCalls(
-        input, browsers, observedCalls, readCallFacts,
-      ),
       settle: (error) => browsers.settle(error),
     });
   }
@@ -209,22 +91,6 @@ export class ProductionGptChildTools {
       ? input.abortSignal.reason : "PRODUCTION_EXECUTION_ABORTED");
   }
 
-  private async reconcileObservedCalls(
-    input: ExecutionInput,
-    browsers: ProductionGptBrowserLifecycle,
-    observedCalls: ReadonlyMap<string, ProductGptCallInput & Readonly<{ sessionKey: string }>>,
-    readCallFacts: (call: ProductGptFactQuery) => Promise<ExactGptCallFacts>,
-  ): Promise<void> {
-    for (const call of observedCalls.values()) {
-      const facts = await readCallFacts(call);
-      if (facts.mutation?.outcome !== "DISPATCHED") continue;
-      const remaining = Math.floor(input.expiresAtMonotonic - performance.now());
-      if (remaining < 1) throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
-      await this.executeOne(
-        input, browsers, call, AbortSignal.timeout(Math.min(20_000, remaining)),
-      );
-    }
-  }
   private intentForAttempt<K extends GptChildCapabilityId>(
     execution: ExecutionInput,
     call: ProductGptCallInput<K>,
@@ -254,22 +120,6 @@ export class ProductionGptChildTools {
   ): GptChildCapabilityIntent<K> {
     return this.intentForAttempt(execution, call, execution.attemptId);
   }
-  private async readCallFacts(
-    execution: ExecutionInput,
-    query: ProductGptFactQuery,
-  ): Promise<GptExactCallFactsWithBrowserBinding> {
-    return this.readIntentFacts(this.intentFor(execution, query));
-  }
-  private async readIntentFacts(
-    intent: GptChildCapabilityIntent,
-  ): Promise<GptExactCallFactsWithBrowserBinding> {
-    return readProductionGptCallFacts({
-      browserAuthority: this.browserAuthority,
-      evidenceStore: this.evidenceStore,
-      store: this.runtime.continuationStore,
-    }, intent as GptAnyChildCapabilityIntent);
-  }
-
   private childSpan(input: ExecutionInput, intent: GptChildCapabilityIntent): RuntimeSpanHandle {
     return requireRuntimeLogWrite(this.runtimeLogger.startSpan({
       traceId: input.jobId,
@@ -335,10 +185,8 @@ export class ProductionGptChildTools {
   private assertProviderTurnBudget(
     execution: ExecutionInput,
     call: ProductGptCallInput,
-    facts: ExactGptCallFacts,
   ): void {
-    if (call.child !== "submit_exact_gpt_turn_once"
-      || facts.mutation !== null || facts.evidence !== null) return;
+    if (call.child !== "submit_exact_gpt_turn_once") return;
     const dispatched = this.browserAuthority.countProviderTurnDispatches(
       execution.jobId,
       execution.attemptId,
@@ -355,29 +203,22 @@ export class ProductionGptChildTools {
     signal: AbortSignal = execution.abortSignal,
   ): Promise<ProductGptChildResult<K>> {
     const intent = this.intentFor(execution, call);
-    const facts = await this.readIntentFacts(intent);
     const contract = GPT_CHILD_CAPABILITY_CONTRACTS[call.child];
     const span = this.childSpan(execution, intent);
     let result: GptChildCapabilityResult | undefined;
     let evidenceRef: string;
     let evidenceHash: GptHash;
+    let artifactRefs: readonly string[] = Object.freeze([]);
     let resolveDispatched = false;
     try {
-      if (facts.mutation?.outcome === "REJECTED") throwRejectedMutation(facts, intent);
       const browserCall = contract.requiredTargetKind === "chatgpt"
         ? await browsers.browserFor(call.sessionKey, call.productStepId, call.callId)
         : undefined;
       const browser = browserCall?.facade;
-      if (browserCall && call.child === "reconcile_gpt_turn_submission") {
-        browsers.announceSubmissionReconciliation(
-          browserCall, call.productStepId, call.callId, call.child,
-        );
-      }
-      this.assertProviderTurnBudget(execution, call, facts);
+      this.assertProviderTurnBudget(execution, call);
       const atomic = await executeProductionGptAtomicCall({
         dataDir: this.dataDir,
         gpt: this.gpt,
-        store: this.runtime.continuationStore,
         browsers,
         intent: intent as GptAnyChildCapabilityIntent,
         browserCall,
@@ -385,43 +226,17 @@ export class ProductionGptChildTools {
       });
       result = atomic.result;
       resolveDispatched = atomic.resolveDispatched;
-      const pendingEvidence = isPendingExactEvidence(facts.evidence);
-      if (facts.evidence && (!pendingEvidence || result.proof.postconditionResult === "pending")) {
-        evidenceRef = facts.evidence.evidenceRef;
-        evidenceHash = facts.evidence.evidenceHash;
-      } else {
-        const persisted = await persistGptChildEvidence({
-          result, intent, evidenceStore: this.evidenceStore,
-          jobId: execution.jobId, attemptId: execution.attemptId,
-          stepId: call.productStepId, exactCallIdentityHash: facts.exactCallIdentityHash,
-          settlesPendingEvidence: pendingEvidence,
-        });
-        evidenceRef = persisted.evidenceRef;
-        evidenceHash = result.proof.evidenceHash;
-      }
+      artifactRefs = await persistGptEvidenceArtifacts({
+        result, intent, evidenceStore: this.evidenceStore,
+        jobId: execution.jobId, attemptId: execution.attemptId,
+        exactCallIdentityHash: gptExactCallIdentityHash(intent),
+      });
+      evidenceRef = artifactRefs[0] ?? result.proof.browserFact?.evidenceRef ?? result.proof.evidenceRef;
+      evidenceHash = result.proof.evidenceHash;
       await this.resolveDispatchedMutation({
         execution, browser, result, evidenceRef, resolveDispatched,
       });
     } catch (error) {
-      if (!result) {
-        try {
-          await persistGptPreExecutionFailure({
-            intent,
-            evidenceStore: this.evidenceStore,
-            jobId: execution.jobId,
-            attemptId: execution.attemptId,
-            stepId: call.productStepId,
-            exactCallIdentityHash: facts.exactCallIdentityHash,
-            error,
-          });
-        } catch (persistenceError) {
-          return this.terminalizeError(span, new AggregateError(
-            [error, persistenceError],
-            "GPT_CHILD_PRE_EXECUTION_EVIDENCE_FAILED",
-            { cause: error },
-          ));
-        }
-      }
       return this.terminalizeError(span, error);
     }
     if (!result) return this.terminalizeError(span, executionFailure("failed", "GPT_CHILD_RESULT_MISSING"));
@@ -431,6 +246,17 @@ export class ProductionGptChildTools {
       value: result.value as ProductGptChildResult<K>["value"],
       evidenceRef,
       evidenceHash,
+      sourceAttemptId: execution.attemptId,
+      exactCallIdentityHash: gptExactCallIdentityHash(intent),
+      artifactRefs,
+      effectReceipt: result.proof.browserFact ? Object.freeze({
+        effectScope: result.proof.browserFact.effectScope,
+        outcome: result.proof.browserFact.browserOutcome,
+        mutationOutcome: result.proof.browserFact.mutationOutcome,
+        terminalAt: result.proof.browserFact.terminalAt,
+        evidenceRef: result.proof.browserFact.evidenceRef,
+        evidenceHash: result.proof.browserFact.evidenceHash,
+      }) : null,
     });
   }
 
@@ -446,8 +272,8 @@ export class ProductionGptChildTools {
       ownerPluginId: input.execution.pluginId,
       outcome: "TERMINAL_SUCCESS",
       mutationOutcome: "dispatched",
-      positiveEvidenceRef: `${input.evidenceRef}#positive-postcondition`,
-      negativeEvidenceRef: `${input.evidenceRef}#negative-postcondition-absent`,
+      positiveEvidenceRef: `${input.result.proof.browserFact?.evidenceRef ?? input.evidenceRef}#positive-postcondition`,
+      negativeEvidenceRef: `${input.result.proof.browserFact?.evidenceRef ?? input.evidenceRef}#negative-postcondition-absent`,
       uniqueTargetRef: input.browser.target.targetRef,
       boundedAt: new Date().toISOString(),
     });

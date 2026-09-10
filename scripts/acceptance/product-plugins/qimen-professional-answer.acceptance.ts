@@ -10,8 +10,7 @@ const initial = [
   "select_exact_gpt_model_v2", "open_gpt_execution_profile", "ensure_gpt_reasoning_requirement",
   "close_gpt_execution_profile",
   "open_gpt_attachment_control", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
-  "write_exact_gpt_prompt", "reconcile_gpt_draft", "submit_exact_gpt_turn_once",
-  "reconcile_gpt_turn_submission", "wait_for_stable_gpt_text", "checkpoint_gpt_text_response",
+  "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "checkpoint_gpt_text_response",
 ] as const;
 
 for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
@@ -30,7 +29,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     covered_candidate_refs: ["candidate:1"], citations: [], uncertainties: [], limitations: [], safety_notes: [],
   };
   const run = await exerciseProductFlow(plugin, { task, output });
-  assert.deepEqual(run.calls.map((call) => call.child), review ? initial : [...initial, "persist_gpt_continuation"]);
+  assert.deepEqual(run.calls.map((call) => call.child), initial);
   assert.match(String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt), /当前 Product Plugin：qimen-professional-answer/u);
   assert.equal(run.physicalSubmitDispatches, 1);
 }

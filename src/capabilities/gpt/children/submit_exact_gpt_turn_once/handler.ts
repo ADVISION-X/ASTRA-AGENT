@@ -12,6 +12,7 @@ import {
 import {
   composerFilesInput,
   composerHashInput,
+  canonicalConversationOrNull,
   exactAttachmentSet,
   readDraftState,
   requireExactComposer,
@@ -42,7 +43,7 @@ export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_tu
     requireExactInputKeys(intent, ["files", "promptHash", "turnMarker"]);
     const files = composerFilesInput(intent);
     const promptHash = composerHashInput(intent, "promptHash");
-    stringInput(intent, "turnMarker");
+    const turnMarker = stringInput(intent, "turnMarker");
     const browser = requireBrowser(context);
     const observed = await readDraftState(browser, "precondition");
     requireExactComposer(observed);
@@ -51,11 +52,7 @@ export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_tu
       throw executionFailure("failed", `GPT_SUBMITTED_TURN_COUNT_${alreadySubmitted.length}`);
     }
     if (alreadySubmitted.length === 1) {
-      return success({
-        value: { promptHash, mutationSent: false },
-        ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
-          browserFact: null, nativeFailureCode: null }),
-      });
+      throw executionFailure("failed", "GPT_TURN_ALREADY_SUBMITTED_OUTSIDE_CALL");
     }
     if (context.mutationMode === "readback") throw executionFailure("failed", "GPT_TURN_SUBMISSION_PENDING");
     if (!submissionReady(observed, promptHash, files)) {
@@ -70,9 +67,15 @@ export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_tu
     if (!submissionComplete(readback, promptHash)) {
       throw executionFailure("failed", "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED");
     }
+    const canonicalConversationUrl = canonicalConversationOrNull(readback.currentUrl);
+    const userTurn = submissionMatch(readback, promptHash)[0];
+    if (!canonicalConversationUrl || !userTurn) {
+      throw executionFailure("failed", "GPT_TURN_SUBMISSION_LOCATOR_MISSING");
+    }
     const browserFact = requireConfirmedBrowserFact(intent, browser);
     return success({
-      value: { promptHash, mutationSent: true },
+      value: { status: "CONFIRMED", promptHash, turnMarker, mutationSent: true,
+        canonicalConversationUrl, userTurnId: userTurn.testId },
       ...declaredFacts({ ...readback.facts, decision: "ACT",
         factResultIds: Object.freeze([...readback.facts.factResultIds, browserFact.evidenceRef]),
         authorityRefHashes: Object.freeze([...readback.facts.authorityRefHashes, browserFact.evidenceHash]),

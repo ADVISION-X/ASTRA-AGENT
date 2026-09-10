@@ -74,7 +74,6 @@ export function captureTimePageRequirementSnapshot(requirement, traceEntry, chil
     childContract: {
       contractVersion: child.contractVersion,
       profile: child.contract.profile,
-      allowedDocumentTransition: child.contract.allowedDocumentTransition,
     },
   });
   return stable({ ...body, derivationDigest: sha256(JSON.stringify(body)) });
@@ -98,12 +97,13 @@ export function captureTimePageRequirementSnapshotValid(snapshot) {
       || new Set(targets).size !== targets.length)
     || Object.values(snapshot.stateAssertions).some((assertions) => !Array.isArray(assertions)
       || assertions.length === 0)
-    || !exactKeys(snapshot.childContract,
-      ["contractVersion", "profile", "allowedDocumentTransition"])
+    || (!exactKeys(snapshot.childContract, ["contractVersion", "profile"])
+      && !exactKeys(snapshot.childContract, ["contractVersion", "profile", "allowedDocumentTransition"]))
     || !Number.isSafeInteger(snapshot.childContract.contractVersion)
     || typeof snapshot.childContract.profile !== "string" || snapshot.childContract.profile.length === 0
-    || typeof snapshot.childContract.allowedDocumentTransition !== "string"
-    || snapshot.childContract.allowedDocumentTransition.length === 0) return false;
+    || (snapshot.childContract.allowedDocumentTransition !== undefined
+      && (typeof snapshot.childContract.allowedDocumentTransition !== "string"
+        || snapshot.childContract.allowedDocumentTransition.length === 0))) return false;
   const { derivationDigest: _ignored, ...body } = snapshot;
   return snapshot.derivationDigest === sha256(JSON.stringify(stable(body)));
 }

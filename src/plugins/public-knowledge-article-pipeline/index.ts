@@ -1,4 +1,3 @@
-import type { GptProviderContinuation } from "../../capabilities/gpt/index.js";
 import type {
   GeneratedImageArtifact,
   ProductPlugin,
@@ -6,25 +5,17 @@ import type {
   WebsiteAgentTask,
 } from "../../mediator/product-plugin-contract.js";
 import {
-  advanceLane,
-  applyExactProfile,
   createSeoExecutor,
-  focusContinuation,
   prepareAttachedTurnPrefix,
-  releaseLane,
+  prepareFreshTurnPrefix,
   submitTextTurn,
 } from "./seo-gpt-calls.js";
 import { generateImage } from "./seo-image-call.js";
 import {
   PLUGIN_ID,
-  continuationTextCheckpoint,
-  continuationProvider,
-  objectValue,
   receiveArticle,
   receiveResearch,
   receptionSidecar,
-  researchFrontierRef,
-  textValue,
   turnMarker,
   type SeoTurnCheckpoint,
 } from "./seo-turn-contract.js";
@@ -40,8 +31,6 @@ import { parseProductResult, parseRouteResult } from "./result-contract.js";
 type SeoFlow = ReturnType<typeof createSeoExecutor>;
 type ResearchTurn = Readonly<{
   checkpoint: SeoTurnCheckpoint;
-  continuationRef: string;
-  provider: GptProviderContinuation;
   result: Readonly<Record<string, unknown>>;
 }>;
 type ArticleTurn = Readonly<{
@@ -67,33 +56,8 @@ const produceResearchTurn = async (
     prompt: researchPrompt(task, marker, context.routePolicy, context.productSkill),
     ordinals: [11, 12, 13, 14, 15, 16],
   });
-  const provider = continuationProvider(task, checkpoint);
-  const currentCheckpoint = continuationTextCheckpoint(context.gpt.attemptId, checkpoint);
-  const { checkpointKind: _checkpointKind, ...originCheckpoint } = currentCheckpoint;
-  const persisted = await flow.execute({
-    sessionKey: "",
-    productStepId: stepId,
-    callId: "continuation-persist",
-    child: "persist_gpt_continuation",
-    actionOrdinal: 17,
-    input: {
-      authorizationRef: task.business_identity.authorization_ref,
-      jobId: task.job_id,
-      ownerRef: task.business_identity.owner_ref,
-      pluginId: PLUGIN_ID,
-      subjectRef: task.business_identity.subject_ref,
-      provider,
-      currentCheckpoint,
-      frontier: { frontierRef: researchFrontierRef(task, context.gpt.attemptId), originCheckpoint },
-    },
-  });
   return Object.freeze({
     checkpoint,
-    continuationRef: textValue(
-      objectValue(persisted.value, "SEO_CONTINUATION_PERSIST_INVALID").continuationRef,
-      "SEO_CONTINUATION_PERSIST_INVALID",
-    ),
-    provider,
     result: receiveResearch(task, context.gpt.attemptId, checkpoint, context.routePolicy),
   });
 };
@@ -102,39 +66,23 @@ const produceArticleTurn = async (
   task: WebsiteAgentTask,
   context: SharedExecutionContext,
   flow: SeoFlow,
-  continuationRef: string,
-  researchProvider: GptProviderContinuation,
+  research: Readonly<Record<string, unknown>>,
 ): Promise<ArticleTurn> => {
   const stepId = "article_synthesis";
-  const lane = await focusContinuation(
-    flow, task, stepId, continuationRef, researchProvider, [18, 19, 20], 34,
-  );
-  let advanced = false;
-  try {
-    await applyExactProfile(flow.execute, stepId, [21, 22, 23, 24, 25, 26]);
+  await prepareFreshTurnPrefix({ flow, stepId });
     const marker = turnMarker(task, stepId);
     const checkpoint = await submitTextTurn({
       flow,
       stepId,
       marker,
       files: [],
-      prompt: articlePrompt(task, marker, context.routePolicy, context.productSkill),
+      prompt: articlePrompt(task, marker, context.routePolicy, context.productSkill, research),
       ordinals: [27, 28, 29, 30, 31, 32],
     });
-    await advanceLane(flow.execute, task, stepId, lane, {
-      canonicalConversationUrl: checkpoint.canonicalConversationUrl,
-      promptHash: checkpoint.promptHash,
-      rawOutputHash: checkpoint.semanticTextHash,
-      turnMarker: checkpoint.turnMarker,
-    }, continuationTextCheckpoint(context.gpt.attemptId, checkpoint), 33);
-    advanced = true;
     return Object.freeze({
       checkpoint,
       result: receiveArticle(task, context.gpt.attemptId, checkpoint, context.routePolicy),
     });
-  } finally {
-    if (!advanced) await releaseLane(flow.execute, task, stepId, lane, 34);
-  }
 };
 
 const completeArticlePackage = async (
@@ -184,20 +132,14 @@ const executeArticleProduction = async (
   if (research.result.decision === "decline") {
     return completeDeclinedResearch(task, context, flow, research.result);
   }
-  const article = await produceArticleTurn(
-    task, context, flow, research.continuationRef, research.provider,
-  );
+  const article = await produceArticleTurn(task, context, flow, research.result);
   const stepId = "article_image_generation";
   const image = await generateImage({
     flow,
     task,
     stepId,
     marker: turnMarker(task, stepId),
-    continuationRef: research.continuationRef,
-    expectedProvider: continuationProvider(task, article.checkpoint),
-    sourceAttemptId: context.gpt.attemptId,
-    predecessorCheckpoint: article.checkpoint,
-    predecessorSourceAttemptId: context.gpt.attemptId,
+    article: article.result,
     productSkill: context.productSkill,
   });
   return completeArticlePackage(task, context, flow, research.result, article.result, image);
@@ -227,7 +169,6 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
 export const publicKnowledgeArticlePipelinePlugin: ProductPlugin = {
   pluginId: PLUGIN_ID,
   pluginVersion: 24,
-  checkpointSchemaVersion: 3,
   accepts: [
     { productId: "public_knowledge_article_pipeline", actionId: "produce_article" },
     { productId: "public_knowledge_article_pipeline", actionId: "accuracy_challenge" },

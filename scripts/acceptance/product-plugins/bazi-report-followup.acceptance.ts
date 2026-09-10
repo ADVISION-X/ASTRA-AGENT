@@ -10,16 +10,14 @@ const reviewSequence = [
   "select_exact_gpt_model_v2", "open_gpt_execution_profile", "ensure_gpt_reasoning_requirement",
   "close_gpt_execution_profile",
   "open_gpt_attachment_control", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
-  "write_exact_gpt_prompt", "reconcile_gpt_draft", "submit_exact_gpt_turn_once",
-  "reconcile_gpt_turn_submission", "wait_for_stable_gpt_text", "checkpoint_gpt_text_response",
+  "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "checkpoint_gpt_text_response",
 ] as const;
 const followupSequence = [
-  "acquire_gpt_continuation_lane", "focus_exact_gpt_conversation", "verify_gpt_conversation_identity",
+  "prepare_clean_gpt_chat",
   "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
   "open_gpt_execution_profile", "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile", "open_gpt_attachment_control",
   "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set", "write_exact_gpt_prompt",
-  "reconcile_gpt_draft", "submit_exact_gpt_turn_once", "reconcile_gpt_turn_submission",
-  "wait_for_stable_gpt_text", "checkpoint_gpt_text_response", "advance_gpt_continuation_lane",
+  "submit_exact_gpt_turn_once", "checkpoint_gpt_text_response",
 ] as const;
 
 for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
@@ -31,18 +29,16 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     : { parameters: {
       analysis_kind: "report_followup", result_schema_version: route.result_schema_version,
       chart_ref: "chart:1", chart_version: "v1", chart_hash: FIXTURE_HASH, user_question: "请继续解释",
-      thread_ref: "continuation:1", parent_report_ref: "report:parent", parent_raw_output_hash: FIXTURE_HASH,
+      parent_report_ref: "report:parent", parent_raw_output_hash: FIXTURE_HASH,
       current_authorization_ref: "authorization:1", owner_scope_hash: FIXTURE_HASH_B,
-      parent_authorization_ref: "authorization:parent", parent_delivery_manifest_id: "manifest:parent",
-      parent_delivery_manifest_hash: FIXTURE_HASH, parent_product_id: "bazi_chart_interpretation",
-      parent_lane_use_grant_hash: FIXTURE_HASH, question_snapshot_ref: "question:1",
+      question_snapshot_ref: "question:1",
       question_snapshot_hash: FIXTURE_HASH,
     } };
   const task = buildProductTask(route, fixture);
   const output = review ? { decision: "no_issue", issues: [] } : {
     schema_version: route.result_schema_version,
     answer_summary: { professional_markdown: "专业层", reader_explanation_markdown: "读者层" },
-    answer_blocks: [{ section: "one" }], thread_ref: task.parameters.thread_ref,
+    answer_blocks: [{ section: "one" }],
     parent_report_ref: task.parameters.parent_report_ref, parent_raw_output_hash: task.parameters.parent_raw_output_hash,
     new_question_snapshot: "question", covered_question_unit_refs: ["question:1"],
     citations: [], uncertainties: [], limitations: [], safety_notes: [],

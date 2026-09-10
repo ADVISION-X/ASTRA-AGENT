@@ -9,7 +9,6 @@ export type ProductionRuntimeStorageInventory = Readonly<{
   database_task_count: number;
   outbox_responsibility_count: number;
   pending_outbox_count: number;
-  continuation_count: number;
   active_lease_count: number;
   directory_count: number;
   owned_directory_count: number;
@@ -21,7 +20,6 @@ export type ProductionRuntimeStorageResponsibilities = Readonly<{
   task_ids: readonly string[];
   outbox_responsibility_count: number;
   pending_outbox_count: number;
-  continuation_count: number;
   active_lease_count: number;
 }>;
 
@@ -66,7 +64,6 @@ export async function readProductionRuntimeStorageInventory(
     database_task_count: responsibilities.task_ids.length,
     outbox_responsibility_count: responsibilities.outbox_responsibility_count,
     pending_outbox_count: responsibilities.pending_outbox_count,
-    continuation_count: responsibilities.continuation_count,
     active_lease_count: responsibilities.active_lease_count,
   };
   let rootMetadata: Stats;

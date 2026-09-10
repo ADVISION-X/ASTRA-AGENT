@@ -14,10 +14,7 @@ import {
   productResultValidation,
   type SharedExecutionContext,
 } from "../../mediator/product-plugin-contract.js";
-import type {
-  ExactGptCallFacts,
-  ProductGptAnyCallInput,
-} from "../../capabilities/gpt/index.js";
+import type { ProductGptAnyCallInput, ProductGptChildResult } from "../../capabilities/gpt/index.js";
 import {
   executionFailure,
   failureCode,
@@ -77,29 +74,14 @@ const markerFor = (task: WebsiteAgentTask, productStepId = task.action_id): stri
   }).slice(7, 31)}]`;
 
 const createOwnedExecution = (task: WebsiteAgentTask, context: SharedExecutionContext, sessionSuffix = "primary") => {
-  const evidenceByCall = new Map<string, Readonly<{ ordinal: number; evidenceRef: string }>>();
+  const evidenceRefs: string[] = [];
   const sessionKey = `${PLUGIN_ID}:${task.job_id}:${context.gpt.attemptId}:${sessionSuffix}`;
-  const recordEvidence = (call: FlowCall, evidenceRef: string): void => {
-    const key = `${call.productStepId}\0${call.callId}\0${call.actionOrdinal}`;
-    const current = evidenceByCall.get(key)?.evidenceRef;
-    if (current && current !== evidenceRef) fail("PRODUCT_EVIDENCE_SEQUENCE_CONFLICT");
-    evidenceByCall.set(key, { ordinal: call.actionOrdinal, evidenceRef });
-  };
-  const facts = async (call: FlowCall): Promise<ExactGptCallFacts> => {
-    const result = await context.gpt.readCallFacts(call);
-    if (result.evidence) recordEvidence(call, result.evidence.evidenceRef);
-    return result;
-  };
   const execute = async (call: FlowCall) => {
-    await facts(call);
     const result = await context.gpt.execute({ ...call, sessionKey });
-    recordEvidence(call, result.evidenceRef);
+    evidenceRefs.push(...result.artifactRefs);
     return result;
   };
-  const evidenceRefs = (): readonly string[] => Object.freeze([...evidenceByCall.entries()]
-    .sort((left, right) => left[1].ordinal - right[1].ordinal || left[0].localeCompare(right[0]))
-    .map((entry) => entry[1].evidenceRef));
-  return Object.freeze({ evidenceRefs, execute, facts });
+  return Object.freeze({ evidenceRefs: () => Object.freeze([...evidenceRefs]), execute });
 };
 
 const materialFiles = (context: SharedExecutionContext) => context.materials.slice()
@@ -149,7 +131,7 @@ const applyProfile = async (
   stepId: string,
   ordinals: readonly [number, number, number, number, number, number],
   profile: GptExecutionProfile = MODEL_PROFILE,
-): Promise<Readonly<{ model: ExactGptCallFacts; reasoning: ExactGptCallFacts }>> => {
+) => {
   const open = { productStepId: stepId, callId: "profile-open", child: "open_gpt_execution_profile", actionOrdinal: ordinals[0], input: { profile } } as const;
   const selector = { productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v2", actionOrdinal: ordinals[1], input: { profile } } as const;
   const model = { productStepId: stepId, callId: "model-select", child: "select_exact_gpt_model_v2", actionOrdinal: ordinals[2], input: { profile } } as const;
@@ -159,14 +141,11 @@ const applyProfile = async (
   const apply = flow.execute;
   await apply(open);
   await apply(selector);
-  await apply(model);
+  const modelResult = await apply(model);
   await apply(reopen);
-  await apply(reasoning);
+  const reasoningResult = await apply(reasoning);
   await apply(close);
-  const modelFacts = await flow.facts(model);
-  const reasoningFacts = await flow.facts(reasoning);
-  if (!modelFacts.evidence || !reasoningFacts.evidence) fail("PRODUCT_MODEL_IDENTITY_EVIDENCE_MISSING");
-  return Object.freeze({ model: modelFacts, reasoning: reasoningFacts });
+  return Object.freeze({ model: modelResult, reasoning: reasoningResult });
 };
 
 const applyAttachments = async (
@@ -187,9 +166,8 @@ const applyAttachments = async (
   }
 };
 
-const requireConfirmedSubmit = (facts: ExactGptCallFacts): void => {
-  const mutation = facts.mutation;
-  if (mutation?.owner !== "browser" || mutation.effectScope !== "provider_effect"
+const requireConfirmedSubmit = (mutation: Readonly<{ effectScope: string; outcome: string; terminalAt: string | null }> | null): void => {
+  if (mutation?.effectScope !== "provider_effect"
     || mutation.outcome !== "CONFIRMED" || !mutation.terminalAt) {
     fail("PRODUCT_PROVIDER_EFFECT_TERMINAL_FACT_MISSING");
   }
@@ -202,37 +180,20 @@ const checkpointSubmittedTurn = async (
   stepId: string,
   marker: string,
   promptHash: ProductionHash,
-  submit: ExactGptCallFacts,
+  submit: ProductGptChildResult<"submit_exact_gpt_turn_once">,
   ordinals: readonly [number, number, number],
 ): Promise<Checkpoint> => {
-  const submitted = await flow.execute({
-      productStepId: stepId, callId: "submission-reconcile", child: "reconcile_gpt_turn_submission",
-      actionOrdinal: ordinals[0], input: { expectedPromptHash: promptHash, timeoutMs: 60_000, turnMarker: marker },
-    });
-    const submission = objectValue(submitted.value, "PRODUCT_SUBMISSION_INVALID");
-    const canonicalConversationUrl = textValue(
-      submission.canonicalConversationUrl,
-      "PRODUCT_SUBMISSION_INVALID",
-    );
-    const conversationIdentityHash = hashValue(submission.conversationIdentityHash, "PRODUCT_SUBMISSION_INVALID");
-    const stable = objectValue((await flow.execute({
-      productStepId: stepId, callId: "text-wait", child: "wait_for_stable_gpt_text",
-      actionOrdinal: ordinals[1], input: {
-        probeBudgetMs: WAIT_TIMEOUT_MS, canonicalConversationUrl,
-        conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: marker,
-      },
-    })).value, "PRODUCT_TEXT_RESPONSE_INVALID");
-    const assistantTurnId = textValue(stable.assistantTurnId, "PRODUCT_TEXT_RESPONSE_INVALID");
-    const responseHash = hashValue(stable.responseHash, "PRODUCT_TEXT_RESPONSE_INVALID");
+  const canonicalConversationUrl = submit.value.canonicalConversationUrl;
     const checkpointCall = {
       productStepId: stepId, callId: "text-checkpoint", child: "checkpoint_gpt_text_response",
-      actionOrdinal: ordinals[2], input: {
-        assistantTurnId, canonicalConversationUrl, expectedPromptHash: promptHash,
-        expectedResponseHash: responseHash, turnMarker: marker,
+      actionOrdinal: ordinals[0], input: {
+        probeBudgetMs: WAIT_TIMEOUT_MS, canonicalConversationUrl,
+        expectedPromptHash: promptHash, turnMarker: marker,
       },
     } as const;
-    const checkpoint = objectValue((await flow.execute(checkpointCall)).value, "PRODUCT_TEXT_CHECKPOINT_INVALID");
-    const refs = (await flow.facts(checkpointCall)).evidence?.artifactRefs ?? [];
+    const checkpointResult = await flow.execute(checkpointCall);
+    const checkpoint = objectValue(checkpointResult.value, "PRODUCT_TEXT_CHECKPOINT_INVALID");
+    const refs = checkpointResult.artifactRefs;
     const artifactRef = refs[0];
     if (refs.length !== 1 || !artifactRef) fail("PRODUCT_TEXT_ARTIFACT_RECEIPT_INVALID");
     return Object.freeze({
@@ -242,9 +203,9 @@ const checkpointSubmittedTurn = async (
       semanticTextHash: hashValue(checkpoint.semanticTextHash, "PRODUCT_TEXT_CHECKPOINT_INVALID"),
       turnMarker: marker,
       submitExactCallIdentityHash: submit.exactCallIdentityHash,
-      submitEvidenceRef: submit.evidence!.evidenceRef,
-      submitEvidenceHash: submit.evidence!.evidenceHash,
-      submitTerminalAt: submit.mutation!.terminalAt!,
+      submitEvidenceRef: submit.evidenceRef,
+      submitEvidenceHash: submit.evidenceHash,
+      submitTerminalAt: submit.effectReceipt!.terminalAt!,
     });
 };
 
@@ -258,14 +219,11 @@ const submitTurn = async (
 ): Promise<Checkpoint> => {
   const promptHash = sha256(prompt);
   const write = { productStepId: stepId, callId: "prompt-write", child: "write_exact_gpt_prompt", actionOrdinal: ordinals[0], input: { prompt } } as const;
-  const draft = { productStepId: stepId, callId: "draft-reconcile", child: "reconcile_gpt_draft", actionOrdinal: ordinals[1], input: { files, prompt, turnMarker: marker } } as const;
   const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: ordinals[2], input: { files, promptHash, turnMarker: marker } } as const;
   await flow.execute(write);
-  await flow.execute(draft);
-  await flow.execute(submit);
-  const submitFacts = await flow.facts(submit);
-  requireConfirmedSubmit(submitFacts);
-  return checkpointSubmittedTurn(flow, stepId, marker, promptHash, submitFacts,
+  const submitResult = await flow.execute(submit) as ProductGptChildResult<"submit_exact_gpt_turn_once">;
+  requireConfirmedSubmit(submitResult.effectReceipt);
+  return checkpointSubmittedTurn(flow, stepId, marker, promptHash, submitResult,
     [ordinals[3], ordinals[4], ordinals[5]]);
 };
 
@@ -330,11 +288,11 @@ throw executionFailure("failed", failureCode(error, "PRODUCT_RESULT_RECEIVER_FAI
     profile_ref: input.profile.profileRef,
     profile_hash: input.profile.profileHash,
     model_selection_call_hash: profileFacts.model.exactCallIdentityHash,
-    model_selection_evidence_ref: profileFacts.model.evidence!.evidenceRef,
-    model_selection_evidence_hash: profileFacts.model.evidence!.evidenceHash,
+    model_selection_evidence_ref: profileFacts.model.evidenceRef,
+    model_selection_evidence_hash: profileFacts.model.evidenceHash,
     reasoning_call_hash: profileFacts.reasoning.exactCallIdentityHash,
-    reasoning_evidence_ref: profileFacts.reasoning.evidence!.evidenceRef,
-    reasoning_evidence_hash: profileFacts.reasoning.evidence!.evidenceHash,
+    reasoning_evidence_ref: profileFacts.reasoning.evidenceRef,
+    reasoning_evidence_hash: profileFacts.reasoning.evidenceHash,
   });
   return Object.freeze({
     value, checkpoint, evidenceRefs: flow.evidenceRefs(), modelIdentityProofJson,

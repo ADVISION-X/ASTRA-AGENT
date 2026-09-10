@@ -17,7 +17,7 @@ if (projection.schema_version !== "website-agent-route-policies.v1"
   || projection.contract_id !== "ai-acceptance.website-agent-task-result"
   || projection.contract_version !== 1
   || !projection.parameter_types
-  || Object.keys(projection.parameter_types).length !== 57
+  || Object.keys(projection.parameter_types).length !== 46
   || projection.routes.length !== 40) {
   throw new Error("PRODUCTION_ROUTE_POLICY_PROJECTION_INVALID");
 }
@@ -31,11 +31,8 @@ export const productionRoutePolicyMap = new Map(
   productionRoutePolicies.map((entry) => [`${entry.product_id}\0${entry.action_id}`, entry] as const),
 );
 const resultContractCount = productionRoutePolicies.filter((entry) => entry.result_contract !== undefined).length;
-const reusableBaseReservationRouteCount = productionRoutePolicies.filter((entry) =>
-  entry.required_parameter_keys.includes("reusable_base_reservation_ref")
-  && entry.required_parameter_keys.includes("reusable_base_reservation_hash")).length;
 if (productionRoutePolicies.length !== 40 || productionRoutePolicyMap.size !== 40
-  || resultContractCount !== 31 || reusableBaseReservationRouteCount !== 2) {
+  || resultContractCount !== 31) {
   throw new Error("PRODUCTION_ROUTE_POLICY_DENOMINATOR_INVALID");
 }
 
@@ -73,13 +70,12 @@ const assertRouteMaterials = (task: WebsiteAgentTask, expected: ProductionRouteP
 
 const assertRouteRelation = (task: WebsiteAgentTask, expected: ProductionRoutePolicy): void => {
   const materials = [...task.material_refs].sort((left, right) => left.ordinal - right.ordinal);
-  const continuationIdentity = [task.continuation_ref, task.parent_task_ref, task.parent_result_ref,
-    task.parent_result_hash];
+  const parentIdentity = [task.parent_task_ref, task.parent_result_ref, task.parent_result_hash];
   const reviewIdentity = [task.subject_task_ref, task.subject_result_ref, task.subject_result_hash,
     task.review_policy];
-  if ((expected.relation_kind === "continuation") !== continuationIdentity.every((value) => value !== undefined)
+  if ((expected.relation_kind === "followup") !== parentIdentity.every((value) => value !== undefined)
     || (expected.relation_kind === "review") !== reviewIdentity.every((value) => value !== undefined)
-    || (expected.relation_kind !== "continuation" && continuationIdentity.some((value) => value !== undefined))
+    || (expected.relation_kind !== "followup" && parentIdentity.some((value) => value !== undefined))
     || (expected.relation_kind !== "review" && reviewIdentity.some((value) => value !== undefined))) {
     throw new Error("AGENT_ROUTE_RELATION_KIND_INVALID");
   }

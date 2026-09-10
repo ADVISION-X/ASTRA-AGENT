@@ -5,18 +5,15 @@ import Database from "better-sqlite3";
 import { executionFailure } from "../../execution-failure.js";
 import type { ProductionHash } from "./contracts.js";
 import {
-  productionCheckpointAuthorityFromRow,
   productionLeaseAuthorityFromRow,
   productionOutboxAuthorityFromRow,
   productionTaskRowValid,
-  type ProductionCheckpointAuthorityRow,
   type ProductionLeaseAuthorityRow,
 } from "./store-authority-validation.js";
 import {
   resolveProductionAuthority,
   storedTaskFromRow,
   type ProductionAuthorityReader,
-  type ProductionCheckpointAuthority,
   type ProductionLeaseAuthority,
   type ProductionOutboxAuthority,
   type ProductionOutboxAuthorityRow,
@@ -26,26 +23,13 @@ import {
 const authorityCorrupt = (): never => { throw new SyntaxError("PRODUCTION_AUTHORITY_ROW_CORRUPT"); };
 
 const readTask = (database: Database.Database, jobId: string) => {
-  const row = database.prepare(`select t.job_id,t.request_hash,t.task_json,t.identity_json,t.status,t.result_json,t.staged_result_json,
-    t.current_attempt_id,t.current_reason,t.updated_at,(select f.failure_json
-      from production_attempt_failures f where f.job_id=t.job_id and f.attempt_id=t.current_attempt_id)
-      as attempt_failure_json from production_tasks t where t.job_id=?`
+  const row = database.prepare(`select t.job_id,t.request_hash,t.task_json,t.identity_json,t.status,t.result_json,
+    t.staged_result_json,t.attempt_failure_json,t.current_attempt_id,t.current_reason,t.updated_at
+    from production_tasks t where t.job_id=?`
   ).get(jobId) as TaskRow | undefined;
   if (!row) return null;
   const record = storedTaskFromRow(row);
   return productionTaskRowValid(row, record) ? record : authorityCorrupt();
-};
-
-const readCheckpoint = (
-  database: Database.Database,
-  jobId: string,
-): ProductionCheckpointAuthority | null => {
-  const row = database.prepare(`select c.job_id,c.attempt_id,c.checkpoint_id,c.checkpoint_hash,c.state,c.updated_at,
-    t.current_attempt_id as task_attempt_id from production_checkpoints c
-    join production_tasks t on t.job_id=c.job_id where c.job_id=?`).get(jobId) as
-    ProductionCheckpointAuthorityRow | undefined;
-  if (!row) return null;
-  return productionCheckpointAuthorityFromRow(row, jobId);
 };
 
 const readLease = (database: Database.Database, jobId: string): ProductionLeaseAuthority | null => {
@@ -62,7 +46,7 @@ const readOutbox = (
   idempotencyKey: string,
 ): ProductionOutboxAuthority | null => {
   const row = database.prepare(`select idempotency_key,kind,path,method,headers_json,body_blob,created_at,
-    sent_at,last_error,response_json,response_hash,receipt_hash,next_delivery_at
+    sent_at,last_error,response_json,response_hash,receipt_hash
     from production_outbox where idempotency_key=?`).get(idempotencyKey) as ProductionOutboxAuthorityRow | undefined;
   if (!row) return null;
   return productionOutboxAuthorityFromRow(row, idempotencyKey);
@@ -70,13 +54,12 @@ const readOutbox = (
 
 const createReader = (database: Database.Database): ProductionAuthorityReader => ({
   readTask: (jobId) => readTask(database, jobId),
-  readCheckpoint: (jobId) => readCheckpoint(database, jobId),
   readLease: (jobId) => readLease(database, jobId),
   readOutboxAuthority: (key) => readOutbox(database, key),
 });
 
 const productionAuthorityRef = (value: string): boolean => [
-  "production-task:", "production-checkpoint:", "production-lease:", "production-outbox:",
+  "production-task:", "production-lease:", "production-outbox:",
 ].some((prefix) => value.startsWith(prefix));
 
 const sqliteCorrupt = (error: unknown): boolean => {

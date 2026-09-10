@@ -385,6 +385,7 @@ export class BrowserAuthorityBroker {
     const targetLease = authorityLease.acquireTargetLease({ target, ownerId });
     return {
       ...targetLease,
+      get document() { return targetLease.document; },
       park: async (input) => {
         await targetLease.park(input);
         await authorityLease.release();

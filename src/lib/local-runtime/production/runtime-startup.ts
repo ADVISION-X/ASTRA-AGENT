@@ -172,25 +172,7 @@ export const reconcileTaskRecord = (
   return true;
 };
 
-const reconcileEvidence = async (
-  input: ProductionRuntimeStartInput,
-  records: readonly StoredProductionTask[],
-): Promise<boolean> => {
-  let complete = true;
-  for (const record of records) {
-    if (record.status !== "completed" || !record.result) continue;
-    for (const recordRef of record.result.evidence_refs) {
-      const readback = await input.evidenceStore.readRecordRef({ recordRef });
-      if (readback.status !== "success" || !readback.record) complete = false;
-    }
-  }
-  return complete;
-};
-
-const reconcileLocalState = async (
-  input: ProductionRuntimeStartInput,
-  state: RuntimeState,
-): Promise<void> => {
+const reconcileLocalState = async (state: RuntimeState): Promise<void> => {
   let complete = true;
   try { state.store.reconcileDeliveredTerminals(); }
   catch (error) {
@@ -200,7 +182,6 @@ const reconcileLocalState = async (
   }
   const records = state.store.taskAuthorities();
   for (const record of records) if (!reconcileTaskRecord(state, record)) complete = false;
-  if (!await reconcileEvidence(input, records)) complete = false;
   state.reconciliationBaselineValid = complete;
   refreshLedgerReconciled(state);
 };
@@ -321,7 +302,7 @@ export const startProductionRuntime = async (
     return blockedRuntimeHandle(input, store, error);
   }
   const state = createRuntimeState(input, store, credential);
-  await reconcileLocalState(input, state);
+  await reconcileLocalState(state);
   const sessionFailure = await establishCloudSession(input, state, startSpan);
   const transportFailure = sessionFailure === null
     ? null : typedRuntimeTransportFailure(sessionFailure);

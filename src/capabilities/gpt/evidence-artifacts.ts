@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 
 import type { GptAbilityGroup, GptChildCapabilityResult } from "./contract.js";
 import { executionFailure } from "../../lib/execution-failure.js";
-import { gptSubmissionLocatorArtifact } from "./artifact-contract.js";
 import type { GptEvidenceStorePort } from "./production-ports.js";
 
 type EvidenceArtifact = Readonly<{
@@ -58,46 +57,12 @@ const assertImageFormat = (row: Readonly<Record<string, unknown>>): void => {
     || row.mediaType !== "image/webp" || row.width !== 1200 || row.height !== 630) invalidImage();
 };
 
-const textCheckpointKeys = [
-  "artifactRef", "assistantTurnId", "canonicalConversationUrl", "checkpointKind",
-  "evidenceHash", "evidenceRef", "promptHash", "rawDomHash", "semanticTextHash",
-  "sourceAttemptId", "turnMarker",
-].sort();
-const textCheckpointStringKeys = [
-  "sourceAttemptId", "assistantTurnId", "artifactRef", "canonicalConversationUrl",
-  "turnMarker", "evidenceRef",
-] as const;
-const textCheckpointHashKeys = [
-  "rawDomHash", "semanticTextHash", "promptHash", "evidenceHash",
-] as const;
-
-const exactTextCheckpointKeys = (checkpoint: Readonly<Record<string, unknown>>): boolean =>
-  Object.keys(checkpoint).sort().join("\0") === textCheckpointKeys.join("\0");
-const textCheckpointStringsValid = (checkpoint: Readonly<Record<string, unknown>>): boolean =>
-  textCheckpointStringKeys.every((key) => typeof checkpoint[key] === "string" && checkpoint[key].length > 0);
-const textCheckpointHashesValid = (checkpoint: Readonly<Record<string, unknown>>): boolean =>
-  textCheckpointHashKeys.every((key) =>
-    typeof checkpoint[key] === "string" && /^sha256:[a-f0-9]{64}$/u.test(checkpoint[key]),
-  );
-
-const predecessorTextCheckpoint = (
-  row: Readonly<Record<string, unknown>>,
-): Readonly<Record<string, unknown>> => {
-  const value = row.predecessorTextCheckpoint;
-  if (!value || typeof value !== "object" || Array.isArray(value)) invalidImage();
-  const checkpoint = value as Readonly<Record<string, unknown>>;
-  if (!exactTextCheckpointKeys(checkpoint) || checkpoint.checkpointKind !== "text"
-    || !textCheckpointStringsValid(checkpoint) || !textCheckpointHashesValid(checkpoint)) invalidImage();
-  return checkpoint;
-};
-
 const generatedImageArtifacts = (value: unknown): EvidenceArtifact[] => {
   const row = imageRecord(value);
   const bytes = imageBytes(row);
   assertImageIdentity(row);
   assertImageAuthority(row);
   assertImageFormat(row);
-  const predecessor = predecessorTextCheckpoint(row);
   const receipt = new TextEncoder().encode(JSON.stringify({
     schemaVersion: "agent-generated-image-receipt.v1",
     assistantTurnId: row.assistantTurnId,
@@ -118,7 +83,6 @@ const generatedImageArtifacts = (value: unknown): EvidenceArtifact[] => {
     mediaType: "image/webp",
     width: 1200,
     height: 630,
-    predecessorTextCheckpoint: predecessor,
   }));
   return [
     { suffix: "original", artifactType: "other", mimeType: "application/octet-stream",
@@ -156,48 +120,6 @@ const observedResponseArtifact = (value: unknown): EvidenceArtifact => {
   };
 };
 
-const submissionLocator = (value: unknown): EvidenceArtifact => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw executionFailure("failed", "GPT_SUBMISSION_LOCATOR_TASK_ARTIFACT_MISSING");
-  }
-  const locator = gptSubmissionLocatorArtifact({ schemaVersion: "agent-gpt-submission-locator.v1", ...value }, hash);
-  if (!locator) throw executionFailure("failed", "GPT_SUBMISSION_LOCATOR_TASK_ARTIFACT_INVALID");
-  return {
-    suffix: "submission-locator", artifactType: "other", mimeType: "application/json",
-    content: new TextEncoder().encode(JSON.stringify({
-      schemaVersion: "agent-gpt-submission-locator.v1", ...locator,
-    })),
-  };
-};
-
-const forkRelation = (value: unknown): EvidenceArtifact => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw executionFailure("failed", "GPT_FORK_RELATION_TASK_ARTIFACT_MISSING");
-  }
-  const row = value as Record<string, unknown>;
-  const fields = [
-    "sourceCanonicalConversationUrl", "sourceAssistantTurnId",
-    "childCanonicalConversationUrl", "sourceToChildRelationHash",
-  ] as const;
-  if (Object.keys(row).sort().join("\0") !== [...fields].sort().join("\0")
-    || typeof row.sourceCanonicalConversationUrl !== "string"
-    || typeof row.childCanonicalConversationUrl !== "string"
-    || row.sourceCanonicalConversationUrl === row.childCanonicalConversationUrl
-    || typeof row.sourceAssistantTurnId !== "string"
-    || !/^conversation-turn-[1-9][0-9]*$/u.test(row.sourceAssistantTurnId)
-    || typeof row.sourceToChildRelationHash !== "string"
-    || !/^sha256:[a-f0-9]{64}$/u.test(row.sourceToChildRelationHash)) {
-    throw executionFailure("failed", "GPT_FORK_RELATION_TASK_ARTIFACT_INVALID");
-  }
-  return {
-    suffix: "fork-relation", artifactType: "other", mimeType: "application/json",
-    content: new TextEncoder().encode(JSON.stringify({
-      schemaVersion: "agent-gpt-fork-relation-artifact.v1",
-      ...row,
-    })),
-  };
-};
-
 const artifactsFor = (
   result: GptChildCapabilityResult,
   intent: Parameters<GptAbilityGroup["execute"]>[0],
@@ -205,8 +127,6 @@ const artifactsFor = (
   if (result.status !== "success") return [];
   if (intent.childCapabilityId === "checkpoint_gpt_generated_image") return generatedImageArtifacts(result.value);
   if (intent.childCapabilityId === "checkpoint_gpt_text_response") return [observedResponseArtifact(result.value)];
-  if (intent.childCapabilityId === "reconcile_gpt_turn_submission") return [submissionLocator(result.value)];
-  if (intent.childCapabilityId === "fork_exact_gpt_conversation_at_checkpoint") return [forkRelation(result.value)];
   return [];
 };
 

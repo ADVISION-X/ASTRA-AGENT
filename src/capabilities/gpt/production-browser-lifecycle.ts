@@ -98,21 +98,6 @@ export class ProductionGptBrowserLifecycle {
     );
   }
 
-  public announceSubmissionReconciliation(
-    active: ProductionGptBrowserCall,
-    productStepId: string,
-    callId: string,
-    childCapabilityId: GptChildCapabilityId,
-  ): void {
-    if (childCapabilityId !== "reconcile_gpt_turn_submission") {
-      throw executionFailure("failed", "GPT_SUBMISSION_RECONCILIATION_CHILD_INVALID");
-    }
-    this.emitWaitLog(
-      active, productStepId, callId, childCapabilityId,
-      "GPT_SUBMISSION_RECONCILIATION_ACTIVE",
-    );
-  }
-
   public async navigateCrossConversationPoll(
     active: ProductionGptBrowserCall,
     productStepId: string,
@@ -121,8 +106,8 @@ export class ProductionGptBrowserLifecycle {
     canonicalConversationUrl: string,
     probeDeadlineAt: number,
   ): Promise<"navigated" | "reobserve" | "deadline"> {
-    if (childCapabilityId !== "wait_for_stable_gpt_text"
-      && childCapabilityId !== "wait_for_stable_gpt_image") {
+    if (childCapabilityId !== "checkpoint_gpt_text_response"
+      && childCapabilityId !== "checkpoint_gpt_generated_image") {
       throw executionFailure("failed", "GPT_CROSS_CONVERSATION_POLL_CHILD_INVALID");
     }
     if (typeof canonicalConversationUrl !== "string" || canonicalConversationUrl.length === 0
@@ -187,7 +172,7 @@ export class ProductionGptBrowserLifecycle {
     productStepId: string,
     callId: string,
     childCapabilityId: GptChildCapabilityId,
-    code: "GPT_PROVIDER_WAIT_ACTIVE" | "GPT_SUBMISSION_RECONCILIATION_ACTIVE",
+    code: "GPT_PROVIDER_WAIT_ACTIVE",
   ): void {
     const callIdentity = `${productStepId}:${callId}:${childCapabilityId}`;
     const emittedAt = performance.now();

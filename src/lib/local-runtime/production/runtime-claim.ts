@@ -19,12 +19,10 @@ import {
   uploadProductionGeneratedImage,
   uploadProductionResult,
 } from "./cloud-client.js";
-import {
-  readProductionDeviceJobStatus,
-} from "./cloud-reconciliation-client.js";
+import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import { productionCatalogHash } from "./catalog.js";
 import { authorizeWebsiteAgentTask } from "../../../mediator/agent-production-route.js";
-import { hashCanonical, type ProductionHash, type WebsiteAgentTask } from "./contracts.js";
+import { hashCanonical, type WebsiteAgentTask } from "./contracts.js";
 import type { ProductionExecutionLease } from "./contracts.js";
 import {
   heartbeatWhileRunning,
@@ -33,7 +31,6 @@ import {
 import type { StoredProductionTask } from "./store.js";
 import { websiteAgentTaskFromClaim, type ClaimedProductionTask } from "./transport-protocol.js";
 import {
-  checkpointWithLog,
   releaseLeaseWithLog,
   runRuntimeSpan,
   runRuntimeSpanSync,
@@ -48,7 +45,6 @@ import {
 } from "./runtime-state.js";
 import {
   permanentAuthorizationRevoked,
-  remotePermanentAuthorizationRevoked,
   settlePermanentAuthorizationRevocation,
 } from "./runtime-permanent-revocation.js";
 import { productionRuntimeTaskPath } from "./runtime-storage-inventory.js";
@@ -79,8 +75,7 @@ const releaseUnacceptedClaim = async (
     {
       reasonCode: failureCode(error).startsWith("V6_DEADLINE_")
         ? "LEASE_SAFETY_BUDGET_EXHAUSTED" : "CAPABILITY_CHANGED_BEFORE_ACCEPT",
-      receiverCheckpoint: null,
-      confirmedSubmit: null,
+      attemptFailure: null,
     },
     causeEventId);
 };
@@ -90,49 +85,20 @@ const persistAttemptFailure = async (
   job: ClaimedProductionTask,
   error: unknown,
   parentSpanId: string,
-  checkpointSeq: number,
 ): Promise<void> => {
   const failure = serializeTerminalFailure(error);
   state.store.recordLease(leaseAuthority(job, "stale", null));
+  state.store.recordAttemptFailure(job.job_id, job.grant.attempt_id, failure);
   try {
-    await checkpointWithLog(
-      state, job, parentSpanId, "attempt_failure", checkpointSeq, failure,
-    );
-  } catch (checkpointError) {
-    if (terminalFailureHttpStatus(checkpointError) === 409
-      && failureCode(checkpointError) === "AI_PERMANENT_AUTHORIZATION_REVOKED") {
-      try {
-        const remote = await readProductionDeviceJobStatus(state.session, job.job_id);
-        state.store.hydrateRemoteOutboxReceipts(job.job_id, remote.write_receipts);
-        if (!remotePermanentAuthorizationRevoked(remote)) {
-          throw executionFailure("failed", "PRODUCTION_REVOCATION_STATUS_MISMATCH");
-        }
-        await settlePermanentAuthorizationRevocation(state, job, error,
-          requireRuntimeLogWrite(state.runtimeLogger.startSpan({
-            traceId: job.job_id, parentSpanId, owner: "production-runtime",
-            component: "production-runtime", operation: "website.v6-request",
-            typedIdentity: jobIdentity(job),
-          })));
-        return;
-      } catch (statusError) {
-        state.store.endUnsentAttemptWrites(job.job_id);
-        state.lastErrorCode = failureCode(statusError, "DEVICE_JOB_STATUS_RECONCILIATION_FAILED");
-        state.lastErrorReason = safeReason(statusError);
-        return;
-      }
-    }
-    state.lastErrorCode = failureCode(checkpointError, "CHECKPOINT_STORAGE_FAILED");
-    state.lastErrorReason = safeReason(checkpointError);
+    await releaseLeaseWithLog(state, job, parentSpanId, {
+      reasonCode: "ATTEMPT_FAILED", attemptFailure: failure,
+    }, runtimeLogCauseEventId(error) ?? parentSpanId);
+  } catch (releaseError) {
+    state.lastErrorCode = failureCode(releaseError, "LEASE_RELEASE_FAILED");
+    state.lastErrorReason = safeReason(releaseError);
     return;
   }
-  state.store.recordAttemptFailure(job.job_id, job.grant.attempt_id, failure);
 };
-
-type ClaimCheckpointCursor = Readonly<{
-  accepted: boolean;
-  checkpointSeq: number;
-  checkpointHash: ProductionHash | null;
-}>;
 
 const assertClaimIdentity = (job: ClaimedProductionTask, task: WebsiteAgentTask): void => {
   if (job.grant.capability_manifest_hash !== productionCatalogHash) {
@@ -167,20 +133,13 @@ const acceptClaim = (
   if (record.status !== "failed") {
     throw new Error("PRODUCTION_TASK_ALREADY_TERMINAL");
   }
-  const cursor: ClaimCheckpointCursor = {
-    accepted: false,
-    checkpointSeq: 0,
-    checkpointHash: null,
-  };
   state.store.recordLease(leaseAuthority(job, "active", job.grant.lease_expires_at));
-  return { task, budget, record, cursor };
+  return { task, budget, record };
 };
 
 const downloadClaimMaterials = async (
   state: RuntimeState,
   job: ClaimedProductionTask,
-  cursor: ClaimCheckpointCursor,
-  acceptance: { durable: "unknown" | "unaccepted" | "accepted" },
   materialDir: string,
   jobSpan: RuntimeSpanHandle,
 ) => {
@@ -189,20 +148,8 @@ const downloadClaimMaterials = async (
     component: "production-materials", operation: "material.download-verify", typedIdentity: jobIdentity(job),
   }));
   return runRuntimeSpan({
-    span, failureCode: "MATERIAL_DOWNLOAD_VERIFY_FAILED", action: async () => {
-      let checkpointSeq = cursor.checkpointSeq;
-      if (!cursor.accepted) {
-        const accepted = await checkpointWithLog(state, job, span.spanId, "accepted", checkpointSeq + 1);
-        checkpointSeq = accepted.checkpointSeq;
-        cursor = { ...cursor, checkpointHash: accepted.checkpointHash };
-        acceptance.durable = "accepted";
-      }
-      const materials = await downloadProductionMaterials(state.session, job, materialDir);
-      const checkpoint = await checkpointWithLog(
-        state, job, span.spanId, "progress", checkpointSeq + 1,
-      );
-      return { checkpoint: checkpoint.checkpointHash, checkpointSeq: checkpoint.checkpointSeq, materials };
-    },
+    span, failureCode: "MATERIAL_DOWNLOAD_VERIFY_FAILED",
+    action: () => downloadProductionMaterials(state.session, job, materialDir),
   });
 };
 
@@ -238,7 +185,6 @@ const executeAndUpload = async (input: Readonly<{
   job: ClaimedProductionTask;
   task: WebsiteAgentTask;
   budget: ProductionExecutionLease;
-  checkpoint: ProductionHash;
   materials: Awaited<ReturnType<typeof downloadProductionMaterials>>;
   identity: StoredProductionTask["identity"];
   abort: AbortController;
@@ -250,9 +196,9 @@ const executeAndUpload = async (input: Readonly<{
   let execution: Awaited<ReturnType<RuntimeState["executor"]["execute"]>>;
   try {
     execution = await heartbeatWhileRunning({
-      state: input.state, job: input.job, budget: input.budget, checkpointHash: input.checkpoint,
+      state: input.state, job: input.job, budget: input.budget,
       execution: input.state.executor.execute(input.task, input.materials, input.budget, input.jobSpan.spanId,
-        async (output, continuationRef) => {
+        async (output) => {
         const span = requireRuntimeLogWrite(input.state.runtimeLogger.startSpan({
           traceId: input.job.job_id, parentSpanId: input.jobSpan.spanId, owner: "production-runtime",
           component: "production-result", operation: "result.upload", typedIdentity: jobIdentity(input.job),
@@ -261,7 +207,7 @@ const executeAndUpload = async (input: Readonly<{
           uploaded = await runRuntimeSpan({
             span, failureCode: "RESULT_UPLOAD_FAILED", action: () => uploadProductionResult({
               session: input.state.session, store: input.state.store, job: input.job,
-              identity: input.identity, output, continuationRef,
+              identity: input.identity, output,
               priorArtifactReceipts: generatedImageReceipts,
             }),
           });
@@ -360,15 +306,14 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
       throw executionFailure("failed", "PRODUCTION_ATTEMPT_AUTHORITY_CONFLICT");
     }
     const claim = acceptClaim(state, job, abort, jobSpan);
+    acceptance.durable = "accepted";
     state.store.markExecuting(job.job_id);
-    const material = await downloadClaimMaterials(
-      state, job, claim.cursor, acceptance, materialDir, jobSpan,
-    );
+    const materials = await downloadClaimMaterials(state, job, materialDir, jobSpan);
     let result: Awaited<ReturnType<typeof executeAndUpload>>;
     try {
       result = await executeAndUpload({
-        state, job, task: claim.task, budget: claim.budget, checkpoint: material.checkpoint,
-        materials: material.materials, identity: claim.record.identity, abort, jobSpan,
+        state, job, task: claim.task, budget: claim.budget,
+        materials, identity: claim.record.identity, abort, jobSpan,
       });
     } catch (error) {
       if (error instanceof ProductionRuntimeBoundaryError) throw error.boundaryCause;
@@ -379,9 +324,7 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
       terminalSpanFailure(
         jobSpan, error, runtimeLogCauseEventId(error), "JOB_EXECUTION_FAILED",
       );
-      await persistAttemptFailure(
-        state, job, error, jobSpan.spanId, material.checkpointSeq + 1,
-      );
+      await persistAttemptFailure(state, job, error, jobSpan.spanId);
       return;
     }
     await completeClaim({ state, job, ...result, materialDir, jobSpan });

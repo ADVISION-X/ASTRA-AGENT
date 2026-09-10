@@ -1,5 +1,4 @@
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
@@ -23,8 +22,6 @@ import { articleOutput, researchOutput } from
 const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "public-knowledge-article-pipeline");
 assert(plugin);
 const produceRoute = productionRoutePolicy("public_knowledge_article_pipeline", "produce_article");
-const hashText = (value: string): `sha256:${string}` =>
-  `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
 const profile = [
   "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
@@ -34,20 +31,12 @@ const attachments = [
   "open_gpt_attachment_control", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
 ] as const;
 const textTurn = [
-  "write_exact_gpt_prompt", "reconcile_gpt_draft", "submit_exact_gpt_turn_once",
-  "reconcile_gpt_turn_submission", "wait_for_stable_gpt_text", "checkpoint_gpt_text_response",
+  "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "checkpoint_gpt_text_response",
 ] as const;
 const initialText = ["prepare_clean_gpt_chat", ...profile, ...attachments, ...textTurn] as const;
-const continuationText = [
-  "acquire_gpt_continuation_lane", "focus_exact_gpt_conversation", "verify_gpt_conversation_identity",
-  ...profile, ...textTurn, "advance_gpt_continuation_lane",
-] as const;
-const continuationImage = [
-  "acquire_gpt_continuation_lane", "focus_exact_gpt_conversation", "verify_gpt_conversation_identity",
-  ...profile, "write_exact_gpt_prompt", "reconcile_gpt_draft", "submit_exact_gpt_turn_once",
-  "reconcile_gpt_turn_submission", "wait_for_stable_gpt_image", "checkpoint_gpt_generated_image",
-  "advance_gpt_continuation_lane",
-] as const;
+const freshText = ["prepare_clean_gpt_chat", ...profile, ...textTurn] as const;
+const freshImage = ["prepare_clean_gpt_chat", ...profile, "write_exact_gpt_prompt",
+  "submit_exact_gpt_turn_once", "checkpoint_gpt_generated_image"] as const;
 
 assert.equal(plugin.pluginVersion, 24);
 const source = readFileSync("src/plugins/public-knowledge-article-pipeline/index.ts", "utf8");
@@ -61,15 +50,8 @@ assert.match(source, /article_image_generation/u);
 assert.match(turnContractSource,
   /hashCanonical\(\{ job_id: task\.job_id, product_step_id: stepId \}\)/u,
   "the Product prompt remains stable while Browser identity adds attempt_id separately");
-const turnMarkerDeclaration = turnContractSource.slice(
-  turnContractSource.indexOf("export const turnMarker"),
-  turnContractSource.indexOf("export const researchFrontierRef"),
-);
-assert.doesNotMatch(turnMarkerDeclaration, /attempt/iu,
+assert.doesNotMatch(turnContractSource, /turnMarker[\s\S]*?attempt/iu,
   "attempt identity belongs to the Browser fence rather than the Product prompt marker");
-assert.match(turnContractSource,
-  /researchFrontierRef[\s\S]*?attempt_id: attemptId/u,
-  "the local continuation frontier must die with its attempt, without changing the Product prompt marker");
 {
   const identityState = createHarness("produce_article");
   const context = createContext(identityState, "proceed");
@@ -93,12 +75,12 @@ assert.equal(parsePublicKnowledgeArticle(JSON.stringify({
 }), produceRoute).schema_version, "public-knowledge-article-output.v3");
 
 const decline = await exerciseSeoFlow(plugin, "produce_article", "decline");
-assert.deepEqual(decline.calls.map((call) => call.child), [...initialText, "persist_gpt_continuation"]);
+assert.deepEqual(decline.calls.map((call) => call.child), initialText);
 assert.equal(decline.calls.some((call) => call.productStepId === "article_synthesis"), false);
 
 const proceed = await exerciseSeoFlow(plugin, "produce_article", "proceed");
 assert.deepEqual(proceed.calls.map((call) => call.child), [
-  ...initialText, "persist_gpt_continuation", ...continuationText, ...continuationImage,
+  ...initialText, ...freshText, ...freshImage,
 ]);
 const reasoningProfileCalls = proceed.calls.filter(
   (call) => call.child === "ensure_gpt_reasoning_requirement",
@@ -124,15 +106,7 @@ assert.match(prompts[0]!, /public-knowledge-research-output\.v3/u);
 assert.match(prompts[1]!, /public-knowledge-article-output\.v3/u);
 assert.match(prompts[2]!, /一张横向文章主图/u);
 assert.doesNotMatch(prompts[2]!, /无文字|无印章|不冒充/u);
-const persistProvider = proceed.calls.find((call) => call.child === "persist_gpt_continuation")?.input.provider;
-assert(persistProvider);
-const verifies = proceed.calls.filter((call) => call.child === "verify_gpt_conversation_identity");
-const advances = proceed.calls.filter((call) => call.child === "advance_gpt_continuation_lane");
-assert.equal(persistProvider.prior_prompt_hash, hashText(prompts[0]!));
-assert.equal(verifies[0]?.input.expectedPromptHash, hashText(prompts[0]!));
-assert.equal(advances[0]?.input.provider.prior_prompt_hash, hashText(prompts[1]!));
-assert.equal(verifies[1]?.input.expectedPromptHash, hashText(prompts[1]!));
-assert.equal(advances[1]?.input.provider.prior_prompt_hash, hashText(prompts[2]!));
+assert.equal(proceed.calls.filter((call) => call.child === "prepare_clean_gpt_chat").length, 3);
 assert.ok((proceed.completed.payload as Readonly<Record<string, unknown>>).image);
 assert.equal(proceed.generatedImageUploadCalls, 1);
 
@@ -174,15 +148,13 @@ assert.equal(attachmentBlocked.physicalSubmitDispatches, 0);
 const promptBlocked = await exerciseSeoPromptWriteFailure(plugin);
 assert.equal(typedExecutionFailure(promptBlocked.failure)?.code, "GPT_PROMPT_WRITE_UNCONFIRMED");
 assert.equal(promptBlocked.calls.at(-1)?.child, "write_exact_gpt_prompt");
-assert.equal(promptBlocked.calls.some((call) => call.child === "reconcile_gpt_draft"), false,
-  "draft reconciliation must not start after exact Prompt readback fails");
 assert.equal(promptBlocked.calls.some((call) => call.child === "submit_exact_gpt_turn_once"), false,
   "submit must not start after exact Prompt readback fails");
 assert.equal(promptBlocked.physicalSubmitDispatches, 0);
 
 await assert.rejects(
   () => exerciseSeoFlow(plugin, "accuracy_challenge", "proceed", {
-    child: "wait_for_stable_gpt_text", code: "GPT_PROVIDER_TERMINAL_DECLINED",
+    child: "checkpoint_gpt_text_response", code: "GPT_PROVIDER_TERMINAL_DECLINED",
   }),
   (error: unknown) => typedExecutionFailure(error)?.code === "GPT_PROVIDER_TERMINAL_DECLINED",
 );

@@ -41,9 +41,10 @@ export const articlePrompt = (
   marker: string,
   route: ProductionRoutePolicy,
   productSkill: SharedExecutionContext["productSkill"],
+  research: Readonly<Record<string, unknown>>,
 ): string =>
   promptEnvelope(task, marker, [
-    "仅依据本 conversation 已 checkpoint 的 public-knowledge-research-output.v3 研究结论写成文章。",
+    `仅依据本次任务已读取的研究结果写成文章：${JSON.stringify(research)}`,
     "不得重新选题、不得引入未在研究中出现的来源或主张；引用 identity 与顺序必须保持一致。",
     `当前回合唯一输出子合同：${JSON.stringify(publicKnowledgeTurnContract(route, "article"))}`,
     "严格返回当前 article 子合同的全部且仅有字段。",
@@ -54,9 +55,10 @@ export const imagePrompt = (
   task: WebsiteAgentTask,
   marker: string,
   productSkill: SharedExecutionContext["productSkill"],
+  article: Readonly<Record<string, unknown>>,
 ): string =>
   promptEnvelope(task, marker, [
-    "仅依据本 conversation 已完成的研究和文章，生成一张横向文章主图。",
+    `仅依据本次任务已读取的文章结果生成一张横向文章主图：${JSON.stringify(article)}`,
     "本轮唯一业务输出是一张可下载的生成图片。",
   ].join("\n"), false, productSkill);
 

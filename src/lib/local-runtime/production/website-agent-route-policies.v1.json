@@ -28,11 +28,6 @@
     "output_contract_ref": "non_empty_string",
     "parent_raw_output_hash": "sha256",
     "owner_scope_hash": "sha256",
-    "parent_authorization_ref": "non_empty_string",
-    "parent_delivery_manifest_hash": "sha256",
-    "parent_delivery_manifest_id": "non_empty_string",
-    "parent_lane_use_grant_hash": "sha256",
-    "parent_product_id": "non_empty_string",
     "parent_report_ref": "non_empty_string",
     "policy_version": "non_empty_string",
     "project_ref": "non_empty_string",
@@ -48,16 +43,10 @@
     "requirement_manifest_ref": "non_empty_string",
     "resource_kind": "localization_resource_kind",
     "result_schema_version": "route_result_schema_version",
-    "reusable_base_semantic_digest": "sha256",
-    "reusable_base_reservation_ref": "non_empty_string",
-    "reusable_base_reservation_hash": "sha256",
-    "reusable_base_candidate": "bazi_reusable_base_candidate",
     "source_resource_id": "non_empty_string",
     "source_sha256": "sha256",
     "source_version": "non_empty_string",
     "target_locale": "target_locale",
-    "stable_base_authorization_ref": "non_empty_string",
-    "thread_ref": "non_empty_string",
     "topic_cluster_registry_version": "non_empty_string",
     "user_question": "non_empty_string"
   },
@@ -73,11 +62,6 @@
         "chart_hash",
         "current_authorization_ref",
         "owner_scope_hash",
-        "stable_base_authorization_ref",
-        "reusable_base_semantic_digest",
-        "reusable_base_reservation_ref",
-        "reusable_base_reservation_hash",
-        "reusable_base_candidate",
         "bazi_pdf_semantic_manifest_ref",
         "bazi_pdf_semantic_manifest_hash"
       ],
@@ -209,11 +193,6 @@
         "user_question",
         "current_authorization_ref",
         "owner_scope_hash",
-        "stable_base_authorization_ref",
-        "reusable_base_semantic_digest",
-        "reusable_base_reservation_ref",
-        "reusable_base_reservation_hash",
-        "reusable_base_candidate",
         "question_snapshot_ref",
         "question_snapshot_hash"
       ],
@@ -344,16 +323,10 @@
         "chart_version",
         "chart_hash",
         "user_question",
-        "thread_ref",
         "parent_report_ref",
         "parent_raw_output_hash",
         "current_authorization_ref",
         "owner_scope_hash",
-        "parent_authorization_ref",
-        "parent_delivery_manifest_id",
-        "parent_delivery_manifest_hash",
-        "parent_product_id",
-        "parent_lane_use_grant_hash",
         "question_snapshot_ref",
         "question_snapshot_hash"
       ],
@@ -387,7 +360,6 @@
           "output_schema_version": "bazi-report-followup-answer-output.v1",
           "exact_top_level_fields": [
             "schema_version",
-            "thread_ref",
             "parent_report_ref",
             "parent_raw_output_hash",
             "new_question_snapshot",
@@ -429,7 +401,7 @@
         "locked_identity_source": "bazi_input_bundle",
         "coverage_denominator_source": "bazi_input_bundle.ordered_question_units"
       },
-      "relation_kind": "continuation"
+      "relation_kind": "followup"
     },
     {
       "product_id": "qimen_professional_answer",
@@ -498,7 +470,7 @@
         }
       ],
       "result_schema_version": "qimen-followup-answer-output.v2",
-      "relation_kind": "continuation"
+      "relation_kind": "followup"
     },
     {
       "product_id": "hehun_ai_analysis",
@@ -539,7 +511,6 @@
       "action_id": "followup",
       "required_parameter_keys": [
         "result_schema_version",
-        "thread_ref",
         "parent_report_ref",
         "parent_raw_output_hash",
         "question_snapshot"
@@ -567,7 +538,7 @@
         }
       ],
       "result_schema_version": "hehun-followup-answer-output.v2",
-      "relation_kind": "continuation"
+      "relation_kind": "followup"
     },
     {
       "product_id": "naming_bazi_analysis_and_naming",

@@ -27,13 +27,6 @@ import {
   typedGptExecutionFailure,
   type GptFailureProofFacts,
 } from "./execution-fault.js";
-import {
-  currentDocument,
-  documentTransitionContext,
-  documentTransitionAllowed,
-  documentTransitionObservable,
-  type CurrentDocument,
-} from "./document-transition-policy.js";
 
 const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -46,9 +39,6 @@ const classify = (error: unknown): Readonly<{
   code: failureCode(error, "GPT_CHILD_UNCLASSIFIED_FAILURE"),
 });
 
-const documentRefHash = (value: string | null): `sha256:${string}` | null =>
-  value === null ? null : hash(value);
-
 type ProofObservation = GptFailureProofFacts & Readonly<{ postconditionResult?: "passed" }>;
 
 type ProofInput<K extends GptChildCapabilityId> = Readonly<{
@@ -56,10 +46,6 @@ type ProofInput<K extends GptChildCapabilityId> = Readonly<{
   context: GptExecutionContext;
   startedAt: string;
   endedAt: string;
-  beforeUrl: string | null;
-  afterUrl: string | null;
-  beforeDocumentRef: string | null;
-  afterDocumentRef: string | null;
   observation?: ProofObservation;
   failureCode?: string;
   nativeFailureCode?: string | null;
@@ -68,15 +54,11 @@ type ProofInput<K extends GptChildCapabilityId> = Readonly<{
 }>;
 
 const proofAuthorities = <K extends GptChildCapabilityId>(input: ProofInput<K>) => {
-  const targetRefHash = input.context.browser ? hash(input.context.browser.target.targetRef) : null;
-  const beforeDocumentRefHash = documentRefHash(input.beforeDocumentRef);
-  const afterDocumentRefHash = documentRefHash(input.afterDocumentRef);
   const authorityRefHashes = Object.freeze(
-    [targetRefHash, beforeDocumentRefHash, afterDocumentRefHash, ...(input.observation?.authorityRefHashes ?? [])]
-      .filter((value, index, values): value is `sha256:${string}` =>
-        value !== null && values.indexOf(value) === index),
+    [...(input.observation?.authorityRefHashes ?? [])]
+      .filter((value, index, values) => values.indexOf(value) === index),
   );
-  return Object.freeze({ targetRefHash, beforeDocumentRefHash, afterDocumentRefHash, authorityRefHashes });
+  return Object.freeze({ authorityRefHashes });
 };
 
 const proofFor = <K extends GptChildCapabilityId>(input: ProofInput<K>): GptChildCapabilityProof => {
@@ -84,7 +66,7 @@ const proofFor = <K extends GptChildCapabilityId>(input: ProofInput<K>): GptChil
   const childStatus = input.failureCode ? "failed" as const : "success" as const;
   const committedMutation = input.committedMutation ?? input.observation?.mutationOutcome ?? "no" as const;
   const postconditionResult = input.postconditionResult ?? input.observation?.postconditionResult ?? "failed" as const;
-  const { targetRefHash, beforeDocumentRefHash, afterDocumentRefHash, authorityRefHashes } = proofAuthorities(input);
+  const { authorityRefHashes } = proofAuthorities(input);
   const candidateCardinality = input.observation?.candidateCardinality
     ?? Object.freeze({ raw: null, eligible: null });
   const unsigned = {
@@ -105,9 +87,6 @@ const proofFor = <K extends GptChildCapabilityId>(input: ProofInput<K>): GptChil
     callId: input.intent.callId,
     inputHash: input.intent.inputHash,
     actionOrdinal: input.intent.actionOrdinal,
-    targetRefHash,
-    beforeDocumentRefHash,
-    afterDocumentRefHash,
     authorityRefHashes,
     factResultIds: input.observation?.factResultIds ?? Object.freeze([
       `gpt-fact-result:${hash(JSON.stringify({
@@ -177,12 +156,8 @@ const failedBrowserFact = <K extends GptChildCapabilityId>(
 const assertObservationIsAtomic = (
   intent: Readonly<{ childCapabilityId: GptChildCapabilityId }>,
   context: GptExecutionContext,
-  before: CurrentDocument,
   observation: GptChildObservation,
 ): void => {
-  if (!documentTransitionAllowed(intent.childCapabilityId, before, currentDocument(context))) {
-    throw executionFailure("failed", `GPT_DOCUMENT_TRANSITION_FORBIDDEN:${intent.childCapabilityId}`);
-  }
   const pendingMutationCount = context.browser?.pendingMutationCount() ?? 0;
   if (observation.mutationOutcome === "confirmed" && pendingMutationCount > 1) {
     throw executionFailure("failed", `GPT_MUTATION_OUTCOME_NOT_UNIQUE:${intent.childCapabilityId}`);
@@ -223,14 +198,10 @@ const successfulExecution = async <K extends GptChildCapabilityId>(input: Readon
   intent: GptChildCapabilityIntent<K>;
   context: GptExecutionContext;
   startedAt: string;
-  before: CurrentDocument;
   observation: GptChildObservation<K>;
 }>): Promise<GptChildCapabilityResult<K>> => {
-  const after = currentDocument(input.context);
   const proof = proofFor({
     intent: input.intent, context: input.context, startedAt: input.startedAt, endedAt: new Date().toISOString(),
-    beforeUrl: input.before.url, afterUrl: after.url,
-    beforeDocumentRef: input.before.ref, afterDocumentRef: after.ref,
     observation: input.observation,
   });
   await input.context.onProof?.(proof);
@@ -337,19 +308,11 @@ const failedExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
   intent: GptChildCapabilityIntent<K>;
   context: GptExecutionContext;
   startedAt: string;
-  before: CurrentDocument;
-  documentBoundary: CurrentDocument;
   observation?: GptChildObservation<K>;
   error: unknown;
 }>): Promise<GptChildCapabilityResult<K>> => {
-  const after = currentDocument(input.context);
   const browser = typedBrowserExecutionFailure(input.error);
-  const failureError = browser
-    ? input.error
-    : documentTransitionObservable(input.documentBoundary, after)
-      && !documentTransitionAllowed(input.intent.childCapabilityId, input.documentBoundary, after)
-        ? executionFailure("failed", `GPT_DOCUMENT_TRANSITION_FORBIDDEN:${input.intent.childCapabilityId}`)
-        : input.error;
+  const failureError = input.error;
   const failure = classify(failureError);
   const nativeCause = executionFailureCause(failureError);
   const gpt = typedGptExecutionFailure(input.error);
@@ -372,8 +335,6 @@ const failedExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
   );
   const proof = proofFor({
     intent: input.intent, context: input.context, startedAt: input.startedAt, endedAt: new Date().toISOString(),
-    beforeUrl: input.before.url, afterUrl: after.url,
-    beforeDocumentRef: input.before.ref, afterDocumentRef: after.ref,
     ...(observation ? { observation } : {}), failureCode: failure.code,
     nativeFailureCode: nativeCause?.code ?? null, committedMutation,
     postconditionResult,
@@ -418,8 +379,6 @@ const executeOne = async <K extends GptChildCapabilityId>(
     throw executionFailure("failed", `GPT_CHILD_NOT_REGISTERED:${intent.childCapabilityId}`);
   }
   const handler = registeredHandler as GptChildHandler<K>;
-  const before = currentDocument(context);
-  const transitions = documentTransitionContext(intent.childCapabilityId, context, before);
   let observation: GptChildObservation<K> | undefined;
   try {
     assertExecutionIdentity(intent);
@@ -427,13 +386,13 @@ const executeOne = async <K extends GptChildCapabilityId>(
     if ((context.browser?.pendingMutationCount() ?? 0) !== 0 && context.mutationMode !== "readback") {
       throw executionFailure("failed", "GPT_PRIOR_BROWSER_MUTATION_UNRESOLVED");
     }
-    const nextObservation = await handler(intent, transitions.handlerContext);
+    const nextObservation = await handler(intent, context);
     observation = nextObservation;
-    assertObservationIsAtomic(intent, context, transitions.boundary(), nextObservation);
-    return await successfulExecution({ intent, context, startedAt, before, observation: nextObservation });
+    assertObservationIsAtomic(intent, context, nextObservation);
+    return await successfulExecution({ intent, context, startedAt, observation: nextObservation });
   } catch (error) {
     return await failedExecution({
-      intent, context, startedAt, before, documentBoundary: transitions.boundary(),
+      intent, context, startedAt,
       ...(observation ? { observation } : {}), error,
     });
   }

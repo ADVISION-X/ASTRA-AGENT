@@ -2,9 +2,9 @@
 
 ## 指令边界
 
-本 Skill 只服务 `bazi_report_followup`：在授权成立的原八字正式报告会话中回答一组新的冻结问题。必须保持原人物、原命盘或候选集、父报告、会话 lineage 与证据边界；不得新开空白分析冒充续接，不得重算命盘或引用其他会话。
+本 Skill 只服务 `bazi_report_followup`：根据本次获准入场的父报告与命盘材料回答一组新的冻结问题。必须保持原人物、原命盘或候选集、父报告与证据边界；不得重算命盘或引用其他任务材料。
 
-父节点只能是已经取得 approved Delivery Manifest 的 `bazi_chart_interpretation` 或 `bazi_ai_full_analysis`。执行前必须同时核对当前付费授权，以及父 task/result/hash、父授权、owner/subject、manifest id/hash 和 continuation；`bazi_report_followup` 永远不能作为父节点，也不得 fresh fallback。当前授权和父授权不得互相冒充。
+父节点只能是已经取得 approved Delivery Manifest 的 `bazi_chart_interpretation` 或 `bazi_ai_full_analysis`。执行前必须同时核对当前付费授权，以及父 task/result/hash、父授权、owner/subject 和 manifest id/hash；`bazi_report_followup` 永远不能作为父节点。每次续问都是 Website 新任务和全新 attempt，不携带 Provider 会话或旧执行位置。当前授权和父授权不得互相冒充。
 
 ## 材料与事实
 

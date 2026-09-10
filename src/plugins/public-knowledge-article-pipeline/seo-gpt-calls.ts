@@ -1,17 +1,10 @@
 import {
   buildGptExecutionProfile,
-  type GptContinuationCheckpointInput,
-  type GptContinuationLane,
-  type GptProviderContinuation,
 } from "../../capabilities/gpt/index.js";
-import type {
-  ProductionHash,
-  WebsiteAgentTask,
-} from "../../mediator/product-plugin-contract.js";
+import type { WebsiteAgentTask } from "../../mediator/product-plugin-contract.js";
 import type {
   SharedExecutionContext,
 } from "../../mediator/product-plugin-contract.js";
-import type { ExactGptCallFacts } from "../../capabilities/gpt/index.js";
 import {
   PLUGIN_ID,
   fail,
@@ -58,54 +51,18 @@ const uploadedAttachmentFiles = (value: unknown, code: string): readonly SeoUplo
   });
 };
 
-const providerValue = (value: unknown): GptProviderContinuation => {
-  const provider = objectValue(value, "SEO_CONTINUATION_PROVIDER_INVALID");
-  return Object.freeze({
-    provider_page_url: textValue(provider.provider_page_url, "SEO_CONTINUATION_PROVIDER_INVALID"),
-    prior_task_id: textValue(provider.prior_task_id, "SEO_CONTINUATION_PROVIDER_INVALID"),
-    prior_prompt_hash: hashValue(provider.prior_prompt_hash, "SEO_CONTINUATION_PROVIDER_INVALID"),
-    prior_raw_output_hash: hashValue(provider.prior_raw_output_hash, "SEO_CONTINUATION_PROVIDER_INVALID"),
-    prior_turn_marker: textValue(provider.prior_turn_marker, "SEO_CONTINUATION_PROVIDER_INVALID"),
-  });
-};
-
-const laneValue = (value: unknown): GptContinuationLane => {
-  const lane = objectValue(value, "SEO_CONTINUATION_LANE_INVALID");
-  if (!Number.isSafeInteger(lane.lane_version)) fail("SEO_CONTINUATION_LANE_INVALID");
-  return Object.freeze({
-    continuation_ref: textValue(lane.continuation_ref, "SEO_CONTINUATION_LANE_INVALID"),
-    lane_version: Number(lane.lane_version),
-    provider: providerValue(lane.provider),
-  });
-};
-
-export const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecutionContext) => {
+ export const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecutionContext) => {
   if (context.gpt.jobId !== task.job_id) fail("SEO_GPT_JOB_IDENTITY_MISMATCH");
   const sessionKey = `${PLUGIN_ID}:${task.job_id}:${context.gpt.attemptId}`;
-  const evidenceByOrdinal = new Map<number, string>();
-  const recordEvidence = (actionOrdinal: number, evidenceRef: string): void => {
-    const current = evidenceByOrdinal.get(actionOrdinal);
-    if (current && current !== evidenceRef) fail("SEO_EVIDENCE_SEQUENCE_CONFLICT");
-    evidenceByOrdinal.set(actionOrdinal, evidenceRef);
-  };
-  const facts = async (input: SeoCall): Promise<ExactGptCallFacts> => {
-    const result = await context.gpt.readCallFacts({ ...input, lookupKind: "current_attempt" });
-    if (result.evidence) recordEvidence(input.actionOrdinal, result.evidence.evidenceRef);
-    return result;
-  };
+  const evidenceRefs: string[] = [];
   const execute: SeoChild = async (input) => {
-    await facts(input as SeoCall);
     const result = await context.gpt.execute({ ...input, sessionKey });
-    recordEvidence(input.actionOrdinal, result.evidenceRef);
+    evidenceRefs.push(...result.artifactRefs);
     return result;
   };
-  const evidenceRefs = (): readonly string[] => Object.freeze(
-    [...evidenceByOrdinal.entries()].sort((left, right) => left[0] - right[0]).map((entry) => entry[1]),
-  );
   return Object.freeze({
-    evidenceRefs,
+    evidenceRefs: () => Object.freeze([...evidenceRefs]),
     execute,
-    facts,
   });
 };
 
@@ -133,98 +90,23 @@ export type SeoTextTurnInput = Readonly<{
   ordinals: readonly [number, number, number, number, number, number];
 }>;
 
-export type SeoReconciledTextSubmission = Readonly<{
-  canonicalConversationUrl: string;
-  conversationIdentityHash: ProductionHash;
-  confirmedSubmit: SeoConfirmedSubmit;
-  promptHash: ProductionHash;
-}>;
-
-export type SeoSubmissionLocator = Readonly<{
-  canonicalConversationUrl: string;
-  conversationIdentityHash: ProductionHash;
-}>;
-
-const submittedConversationLocator = async (
-  input: Readonly<{
-    actionOrdinal: number;
-    flow: ReturnType<typeof createSeoExecutor>;
-    marker: string;
-    promptHash: ProductionHash;
-    stepId: string;
-  }>,
-): Promise<SeoSubmissionLocator> => {
-  const call = {
-    productStepId: input.stepId, callId: "submission-reconcile",
-    child: "reconcile_gpt_turn_submission", actionOrdinal: input.actionOrdinal,
-    input: { expectedPromptHash: input.promptHash, timeoutMs: 60_000, turnMarker: input.marker },
-  } as const;
-  const submitted = await input.flow.execute({ sessionKey: "", ...call });
-  const value = objectValue(submitted.value, "SEO_SUBMISSION_INVALID");
-  return Object.freeze({
-    canonicalConversationUrl: textValue(value.canonicalConversationUrl, "SEO_SUBMISSION_INVALID"),
-    conversationIdentityHash: hashValue(value.conversationIdentityHash, "SEO_SUBMISSION_INVALID"),
-  });
-};
-
-export const reconcileConfirmedSubmissionLocator = async (
-  input: Readonly<{
-    actionOrdinal: number;
-    confirmedSubmit: SeoConfirmedSubmit;
-    flow: ReturnType<typeof createSeoExecutor>;
-    marker: string;
-    promptHash: ProductionHash;
-    stepId: string;
-  }>,
-): Promise<SeoSubmissionLocator> => {
-  return submittedConversationLocator(input);
-};
-
-export const reconcileConfirmedTextSubmission = async (
-  input: SeoTextTurnInput,
-  confirmedSubmit: SeoConfirmedSubmit,
-): Promise<SeoReconciledTextSubmission> => {
-  const promptHash = textHash(input.prompt);
-  const locator = await reconcileConfirmedSubmissionLocator({
-    actionOrdinal: input.ordinals[3],
-    confirmedSubmit,
-    flow: input.flow,
-    marker: input.marker,
-    promptHash,
-    stepId: input.stepId,
-  });
-  return Object.freeze({ ...locator, confirmedSubmit, promptHash });
-};
-
-const checkpointSubmittedTextTurn = async (
+ const checkpointSubmittedTextTurn = async (
   input: SeoTextTurnInput,
   promptHash: `sha256:${string}`,
   canonicalConversationUrl: string,
-  conversationIdentityHash: ProductionHash,
 ): Promise<SeoTurnCheckpoint> => {
-  const stable = await input.flow.execute({
-      sessionKey: "", productStepId: input.stepId, callId: "text-wait",
-      child: "wait_for_stable_gpt_text", actionOrdinal: input.ordinals[4],
-      input: {
-        probeBudgetMs: SEO_PROVIDER_PROBE_BUDGET_MS, canonicalConversationUrl,
-        conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: input.marker,
-      },
-    });
-    const stableValue = objectValue(stable.value, "SEO_TEXT_RESPONSE_INVALID");
-    const assistantTurnId = textValue(stableValue.assistantTurnId, "SEO_TEXT_RESPONSE_INVALID");
-    const responseHash = hashValue(stableValue.responseHash, "SEO_TEXT_RESPONSE_INVALID");
     const checkpointCall = {
       productStepId: input.stepId, callId: "text-checkpoint",
-      child: "checkpoint_gpt_text_response", actionOrdinal: input.ordinals[5],
+      child: "checkpoint_gpt_text_response", actionOrdinal: input.ordinals[4],
       input: {
-        assistantTurnId, canonicalConversationUrl, expectedPromptHash: promptHash,
-        expectedResponseHash: responseHash, turnMarker: input.marker,
+        probeBudgetMs: SEO_PROVIDER_PROBE_BUDGET_MS, canonicalConversationUrl,
+        expectedPromptHash: promptHash, turnMarker: input.marker,
       },
     } as const;
     const checkpoint = await input.flow.execute({ sessionKey: "", ...checkpointCall });
-    const checkpointFacts = await input.flow.facts(checkpointCall);
     const value = objectValue(checkpoint.value, "SEO_TEXT_CHECKPOINT_INVALID");
-    const artifactRefs = checkpointFacts.evidence?.artifactRefs ?? [];
+    const assistantTurnId = textValue(value.assistantTurnId, "SEO_TEXT_CHECKPOINT_INVALID");
+    const artifactRefs = checkpoint.artifactRefs;
     if (artifactRefs.length !== 1 || !artifactRefs[0]) fail("SEO_TEXT_ARTIFACT_RECEIPT_INVALID");
   return Object.freeze({
       assistantTurnId,
@@ -246,21 +128,15 @@ const prepareTextDraft = async (
     productStepId: input.stepId, callId: "prompt-write", child: "write_exact_gpt_prompt",
     actionOrdinal: input.ordinals[0], input: { prompt: input.prompt },
   } as const;
-  const draftReconcile = {
-    productStepId: input.stepId, callId: "draft-reconcile", child: "reconcile_gpt_draft",
-    actionOrdinal: input.ordinals[1], input: { files: input.files, prompt: input.prompt, turnMarker: input.marker },
-  } as const;
   await input.flow.execute({ sessionKey: "", ...promptWrite });
-  await input.flow.execute({ sessionKey: "", ...draftReconcile });
 };
 
 const executeTextSubmit = async (
   input: SeoTextTurnInput,
   turnSubmit: Extract<SeoCall, { child: "submit_exact_gpt_turn_once" }>,
-): Promise<ExactGptCallFacts> => {
+): Promise<SeoConfirmedSubmit> => {
   return executeAndReadConfirmedSubmit({
-    execute: () => input.flow.execute({ sessionKey: "", ...turnSubmit }),
-    readFacts: () => input.flow.facts(turnSubmit),
+    execute: () => input.flow.execute({ sessionKey: "", ...turnSubmit }) as Promise<SeoConfirmedSubmit>,
   });
 };
 
@@ -269,103 +145,16 @@ export const submitTextTurn = async (input: SeoTextTurnInput): Promise<SeoTurnCh
   const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: input.ordinals[2], input: { files: input.files, promptHash, turnMarker: input.marker } } as const;
   await prepareTextDraft(input);
   const confirmedSubmit = await executeTextSubmit(input, turnSubmit);
-  const reconciled = await reconcileConfirmedTextSubmission(input, confirmedSubmit);
-  return checkpointSubmittedTextTurn(
-    input,
-    reconciled.promptHash,
-    reconciled.canonicalConversationUrl,
-    reconciled.conversationIdentityHash,
-  );
+  return checkpointSubmittedTextTurn(input, promptHash, confirmedSubmit.value.canonicalConversationUrl);
 };
 
-export const focusContinuation = async (
-  flow: ReturnType<typeof createSeoExecutor>,
-  task: WebsiteAgentTask,
-  stepId: string,
-  continuationRef: string,
-  expectedProvider: GptProviderContinuation,
-  ordinals: readonly [number, number, number],
-  releaseOrdinal: number,
-): Promise<GptContinuationLane> => {
-  const acquireCall = {
-    productStepId: stepId, callId: "continuation-acquire",
-    child: "acquire_gpt_continuation_lane", actionOrdinal: ordinals[0],
-    input: {
-      authorization: {
-        kind: "row_authorization", currentAuthorizationRef: task.business_identity.authorization_ref,
-      },
-      continuationRef, ownerRef: task.business_identity.owner_ref,
-      subjectRef: task.business_identity.subject_ref,
-    },
-  } as const;
-  const lane = laneValue((await flow.execute({ sessionKey: "", ...acquireCall })).value);
-  let handedOff = false;
-  try {
-    if (lane.continuation_ref !== continuationRef
-      || JSON.stringify(lane.provider) !== JSON.stringify(expectedProvider)) {
-      fail("SEO_CONTINUATION_LANE_DRIFT");
-    }
-    await flow.execute({
-      sessionKey: "", productStepId: stepId, callId: "conversation-focus",
-      child: "focus_exact_gpt_conversation", actionOrdinal: ordinals[1],
-      input: { canonicalConversationUrl: lane.provider.provider_page_url },
-    });
-    await flow.execute({
-      sessionKey: "", productStepId: stepId, callId: "conversation-verify",
-      child: "verify_gpt_conversation_identity", actionOrdinal: ordinals[2],
-      input: {
-        canonicalConversationUrl: lane.provider.provider_page_url,
-        expectedPromptHash: lane.provider.prior_prompt_hash,
-        expectedResponseHash: lane.provider.prior_raw_output_hash,
-        timeoutMs: 60_000,
-        turnMarker: lane.provider.prior_turn_marker,
-      },
-    });
-    handedOff = true;
-    return lane;
-  } finally {
-    if (!handedOff) await releaseLane(flow.execute, task, stepId, lane, releaseOrdinal);
-  }
-};
-
-export const releaseLane = async (
-  execute: SeoChild,
-  task: WebsiteAgentTask,
-  stepId: string,
-  lane: GptContinuationLane,
-  actionOrdinal: number,
-): Promise<void> => {
-  await execute({ sessionKey: "", productStepId: stepId, callId: "continuation-release", child: "release_gpt_continuation_lane", actionOrdinal, input: { jobId: task.job_id, lane } });
-};
-
-export const advanceLane = async (
-  execute: SeoChild,
-  task: WebsiteAgentTask,
-  stepId: string,
-  lane: GptContinuationLane,
-  checkpoint: Readonly<{
-    canonicalConversationUrl: string;
-    promptHash: ProductionHash;
-    rawOutputHash: ProductionHash;
-    turnMarker: string;
-  }>,
-  currentCheckpoint: GptContinuationCheckpointInput,
-  actionOrdinal: number,
-): Promise<void> => {
-  await execute({
-    sessionKey: "", productStepId: stepId, callId: "continuation-advance",
-    child: "advance_gpt_continuation_lane", actionOrdinal,
-    input: {
-      currentCheckpoint, jobId: task.job_id, lane, pluginId: PLUGIN_ID,
-      provider: {
-        provider_page_url: checkpoint.canonicalConversationUrl,
-        prior_task_id: task.job_id,
-        prior_prompt_hash: checkpoint.promptHash,
-        prior_raw_output_hash: checkpoint.rawOutputHash,
-        prior_turn_marker: checkpoint.turnMarker,
-      },
-    },
-  });
+export const prepareFreshTurnPrefix = async (input: Readonly<{
+  flow: ReturnType<typeof createSeoExecutor>;
+  stepId: string;
+}>): Promise<void> => {
+  await input.flow.execute({ sessionKey: "", productStepId: input.stepId, callId: "fresh-chat",
+    child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } });
+  await applyExactProfile(input.flow.execute, input.stepId, [2, 3, 4, 5, 6, 7]);
 };
 
 export const prepareAttachedTurnPrefix = async (input: Readonly<{

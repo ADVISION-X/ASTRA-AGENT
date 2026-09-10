@@ -8,14 +8,9 @@ import {
   type RuntimeDiagnosis,
   type RuntimeLogger,
 } from "../../runtime-logs/index.js";
-import type { ProductionHash } from "./contracts.js";
 import type { ProductionExecutionLease } from "./contracts.js";
 import type { ProductionExecutor } from "./executor.js";
-import type {
-  ProductionCheckpointAuthority,
-  ProductionLeaseAuthority,
-  ProductionRuntimeStore,
-} from "./store.js";
+import type { ProductionLeaseAuthority, ProductionRuntimeStore } from "./store.js";
 import type { ClaimedProductionTask } from "./transport-protocol.js";
 import type { ProductionWorkerSession } from "./worker-session.js";
 
@@ -80,15 +75,6 @@ export const leaseAuthority = (
 ): ProductionLeaseAuthority => ({
   jobId: job.job_id, attemptId: job.grant.attempt_id, leaseVersion: job.grant.lease_version,
   fenceHash: job.grant.execution_fence.fence_hash, state, expiresAt,
-});
-
-export const checkpointAuthority = (
-  job: ClaimedProductionTask,
-  state: ProductionCheckpointAuthority["state"],
-  checkpointId: string | null,
-  checkpointHash: ProductionHash | null,
-): ProductionCheckpointAuthority => ({
-  jobId: job.job_id, attemptId: job.grant.attempt_id, checkpointId, checkpointHash, state,
 });
 
 export const leaseBudget = (

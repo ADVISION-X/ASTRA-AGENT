@@ -71,7 +71,7 @@ try {
     "session:cross-text", "corpus_research", "text-wait",
   );
   assert.equal(await firstCrossLifecycle.navigateCrossConversationPoll(
-    firstCrossActive, "corpus_research", "text-wait", "wait_for_stable_gpt_text",
+    firstCrossActive, "corpus_research", "text-wait", "checkpoint_gpt_text_response",
     "https://chatgpt.com/c/cross-text", Date.now() + 1_000,
   ), "navigated");
   assert.deepEqual(crossConversationNavigations, [{
@@ -85,7 +85,7 @@ try {
     "session:cross-image", "image_generation", "image-wait",
   );
   assert.equal(await secondCrossLifecycle.navigateCrossConversationPoll(
-    secondCrossActive, "image_generation", "image-wait", "wait_for_stable_gpt_image",
+    secondCrossActive, "image_generation", "image-wait", "checkpoint_gpt_generated_image",
     "https://chatgpt.com/c/cross-image", Date.now() + 1_000,
   ), "navigated");
   assert.equal(crossConversationNavigations.length, 2);
@@ -126,7 +126,7 @@ try {
     "session:post-reserve-deadline", "corpus_research", "post-reserve-deadline",
   );
   assert.equal(await postReserveDeadlineLifecycle.navigateCrossConversationPoll(
-    postReserveDeadlineActive, "corpus_research", "post-reserve-deadline", "wait_for_stable_gpt_text",
+    postReserveDeadlineActive, "corpus_research", "post-reserve-deadline", "checkpoint_gpt_text_response",
     "https://chatgpt.com/c/post-reserve-deadline", 100,
   ), "deadline");
   Date.now = nativeDateNow;
@@ -156,7 +156,7 @@ try {
   );
   await assert.rejects(
     () => postReserveAbortLifecycle.navigateCrossConversationPoll(
-      postReserveAbortActive, "corpus_research", "post-reserve-abort", "wait_for_stable_gpt_text",
+      postReserveAbortActive, "corpus_research", "post-reserve-abort", "checkpoint_gpt_text_response",
       "https://chatgpt.com/c/post-reserve-abort", Date.now() + 1_000,
     ),
     (error: unknown) => typedExecutionFailure(error)?.code === "GPT_RESPONSE_WAIT_ABORTED",
@@ -175,7 +175,7 @@ try {
     "session:cross-deadline", "corpus_research", "deadline-wait",
   );
   assert.equal(await deadlineCrossLifecycle.navigateCrossConversationPoll(
-    deadlineCrossActive, "corpus_research", "deadline-wait", "wait_for_stable_gpt_text",
+    deadlineCrossActive, "corpus_research", "deadline-wait", "checkpoint_gpt_text_response",
     "https://chatgpt.com/c/cross-deadline", Date.now() + 25,
   ), "deadline");
   assert.equal(crossConversationAcquisitions, 3,
@@ -197,7 +197,7 @@ try {
   const abortDuringWait = setTimeout(() => abortDuringWaitController.abort(), 0);
   await assert.rejects(
     () => abortDuringWaitLifecycle.navigateCrossConversationPoll(
-      abortDuringWaitActive, "corpus_research", "abort-during-wait", "wait_for_stable_gpt_text",
+      abortDuringWaitActive, "corpus_research", "abort-during-wait", "checkpoint_gpt_text_response",
       "https://chatgpt.com/c/cross-abort-during-wait", Date.now() + 25,
     ),
     (error: unknown) => typedExecutionFailure(error)?.code === "GPT_RESPONSE_WAIT_ABORTED",
@@ -220,7 +220,7 @@ try {
   );
   await assert.rejects(
     () => abortedCrossLifecycle.navigateCrossConversationPoll(
-      abortedCrossActive, "corpus_research", "aborted-wait", "wait_for_stable_gpt_text",
+      abortedCrossActive, "corpus_research", "aborted-wait", "checkpoint_gpt_text_response",
       "https://chatgpt.com/c/cross-aborted", Date.now() + 25,
     ),
     (error: unknown) => typedExecutionFailure(error)?.code === "GPT_RESPONSE_WAIT_ABORTED",

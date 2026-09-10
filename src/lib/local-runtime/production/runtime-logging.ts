@@ -10,15 +10,12 @@ import {
 } from "../../runtime-logs/index.js";
 import { typedExecutionFailure } from "../../execution-failure.js";
 import {
-  checkpointProductionTask,
   releaseProductionLease,
   type ProductionLeaseRelease,
 } from "./cloud-client.js";
-import { hashCanonical } from "./contracts.js";
 import type { ClaimedProductionTask } from "./transport-protocol.js";
 import { typedRuntimeTransportFailure } from "./transport-failure.js";
 import {
-  checkpointAuthority,
   jobIdentity,
   type RuntimeState,
 } from "./runtime-state.js";
@@ -34,7 +31,7 @@ export const terminalSpanFailure = (
   outcome: "failed",
   ...(authority ?? {}),
   failure: runtimeFailureFromError({
-    error, code: causedByEventId ? fallbackCode : typedExecutionFailure(error)?.code ?? fallbackCode,
+    error, code: typedExecutionFailure(error)?.code ?? fallbackCode,
     responsibleOwner: responsibleOwner
       ?? (typedRuntimeTransportFailure(error) ? "website" : "production-runtime"),
     impact: causedByEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
@@ -75,44 +72,6 @@ export const runRuntimeSpanSync = <T>(input: Readonly<{
       input.span, error, runtimeLogCauseEventId(error), input.failureCode,
     );
     throw withRuntimeLogCause(error, event.eventId);
-  }
-};
-
-export const checkpointWithLog = async (
-  state: RuntimeState,
-  job: ClaimedProductionTask,
-  parentSpanId: string,
-  checkpointKind: Parameters<typeof checkpointProductionTask>[3],
-  checkpointSeq: Parameters<typeof checkpointProductionTask>[4],
-  attemptFailure: Parameters<typeof checkpointProductionTask>[5] = null,
-): ReturnType<typeof checkpointProductionTask> => {
-  const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
-    traceId: job.job_id, parentSpanId, owner: "production-runtime", component: "production-checkpoint",
-    operation: "job.checkpoint", typedIdentity: {
-      kind: "checkpoint", jobId: job.job_id, attemptId: job.grant.attempt_id, checkpointId: checkpointKind,
-    },
-  }));
-  try {
-    const receipt = await checkpointProductionTask(
-      state.session, state.store, job, checkpointKind, checkpointSeq, attemptFailure,
-    );
-    const authority = state.store.recordCheckpoint(
-      checkpointAuthority(job, "persisted", checkpointKind, receipt.checkpointHash),
-    );
-    requireRuntimeLogWrite(span.terminal({
-      outcome: "succeeded", authorityRef: `production-checkpoint:${job.job_id}`,
-      authorityHash: hashCanonical(authority),
-    }));
-    return receipt;
-  } catch (error) {
-    const authority = state.store.recordCheckpoint(
-      checkpointAuthority(job, "failed", checkpointKind, null),
-    );
-    const terminal = terminalSpanFailure(span, error, runtimeLogCauseEventId(error),
-      "CHECKPOINT_STORAGE_FAILED", {
-        authorityRef: `production-checkpoint:${job.job_id}`, authorityHash: hashCanonical(authority),
-      });
-    throw withRuntimeLogCause(error, terminal.eventId);
   }
 };
 

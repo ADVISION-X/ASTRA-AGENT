@@ -11,14 +11,14 @@ import { inspectAgentContracts } from "./contract-inspection.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 
 const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V49",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V50",
   credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V4",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V19",
-  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V19",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V18",
-  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V20",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V20",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V21",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V20",
+  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V20",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V19",
+  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V21",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V21",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V22",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
@@ -412,17 +412,14 @@ export function inspectAgentSql(
   const tableShapes = Node.isObjectLiteralExpression(tableShapesInitializer)
     ? tableShapesInitializer
     : tableShapesInitializer?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
-  for (const table of ["production_tasks", "production_attempt_failures", "production_continuations",
-    "production_outbox", "production_checkpoints", "production_leases"]) {
+  for (const table of ["production_tasks", "production_outbox", "production_leases"]) {
     if (!schemaSql.includes(`create table ${table}(`) || !tableShapes?.getProperty(table)) {
       findings.push(finding(LAWS.database, "static.sql", "agent-production-runtime/schema-table",
       PATHS.store, `Exact schema declaration is missing ${table}.`));
     }
   }
   const schemaRequirements = [
-    "check(status in ('failed','completed'))", "check((status='failed'", "reservation_identity_hash text not null unique",
-    "reservation_kind text not null check(reservation_kind in", "frontier_ref text unique",
-    "state text not null check(state in ('none','persisted','failed'))",
+    "check(status in ('failed','completed'))", "check((status='failed'",
     "state text not null check(state in ('absent','active','stale','lost'))", "on delete restrict",
   ];
   if (!schemaRequirements.every((requirement) => schemaSql.includes(requirement))) {
@@ -443,14 +440,12 @@ export function inspectAgentSql(
   const stateInvariant = store?.getVariableDeclaration("stateInvariantFailureCount")
     ?.getInitializer()?.getText().toLowerCase().replace(/\s+/gu, " ") ?? "";
   const authorityInvariants = [
-    "t.current_attempt_id=c.attempt_id",
-    "state='failed' and (checkpoint_id is null or checkpoint_id='' or checkpoint_hash is not null)",
     "t.current_attempt_id=l.attempt_id",
     "l.state!='active' and l.expires_at is not null",
   ];
   if (!authorityInvariants.every((token) => stateInvariant.includes(token))) {
     findings.push(finding(LAWS.database, "static.sql", "agent-production-runtime/data-authority-invariants",
-      PATHS.store, "Startup SQL does not reject invalid checkpoint or lease shape and attempt ownership."));
+      PATHS.store, "Startup SQL does not reject invalid lease shape and attempt ownership."));
   }
 }
 

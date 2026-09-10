@@ -33,18 +33,16 @@ import {
 import {
   GPT_CHILDREN_PATH as CHILDREN_PATH, GPT_CHILD_TYPES_PATH as CHILD_TYPES_PATH, GPT_CONTRACT_PATH as CONTRACT_PATH,
   GPT_CROSS_CONVERSATION_CADENCE_PATH as CROSS_CONVERSATION_CADENCE_PATH,
-  GPT_EVIDENCE_FACT_PATH as EVIDENCE_FACT_PATH, GPT_EVIDENCE_WRITER_PATH as EVIDENCE_WRITER_PATH,
   GPT_FACADE_PATH as FACADE_PATH, GPT_GROUP_PATH as GROUP_PATH,
   GPT_PAGE_EVIDENCE_REPORT_PATH as PAGE_EVIDENCE_REPORT_PATH,
   GPT_PRODUCTION_BROWSER_LIFECYCLE_PATH as PRODUCTION_BROWSER_LIFECYCLE_PATH,
   GPT_PRODUCTION_CHILD_TOOLS_PATH as PRODUCTION_CHILD_TOOLS_PATH,
-  GPT_ROOT as ROOT, GPT_SCHEMA_PATH as SCHEMA_PATH, GPT_SESSION_PATH as SESSION_PATH,
+  GPT_ROOT as ROOT, GPT_SCHEMA_PATH as SCHEMA_PATH,
   gptChildHandlerPath as childHandlerPath,
 } from "./gpt-inspection-core-paths.js";
 import {
   GPT_ATTACHMENT_CONTRACT_PATH as ATTACHMENT_CONTRACT_PATH,
   GPT_ATTACHMENT_HANDLER_PATHS as ATTACHMENT_HANDLER_PATHS,
-  GPT_CONTINUATION_HANDLER_PATHS as CONTINUATION_HANDLER_PATHS,
   GPT_CONVERSATION_HANDLER_PATHS as CONVERSATION_HANDLER_PATHS,
   GPT_EXECUTION_PROFILE_CONTRACT_PATH as EXECUTION_PROFILE_CONTRACT_PATH,
   GPT_EXECUTION_PROFILE_HANDLER_PATHS as EXECUTION_PROFILE_HANDLER_PATHS,
@@ -59,7 +57,7 @@ import {
 import { containsPageMutation, gptPrivateInfrastructureViolations, sourceFor, sourceTextForPaths }
   from "./gpt-inspection-support.js";
 
-const LAW_ID = "LAW-GPT-001-V40";
+const LAW_ID = "LAW-GPT-001-V41";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 16, 19, 23),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 17, 18, 20, 21, 22, 23, 24),
@@ -223,21 +221,6 @@ const inspectAtomicSafety = (context: InspectorContext, findings: InspectorFindi
 };
 
 const inspectUniqueRuntimeChain = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const controllerDir = resolve(context.sealedRoot, ROOT, "session");
-  const controllers = existsSync(controllerDir)
-    ? readdirSync(controllerDir).filter((name) => name.endsWith("session-controller.ts"))
-    : [];
-  if (controllers.length !== 1 || controllers[0] !== "gpt-session-controller.ts") findings.push(finding(
-    "gpt/one-session-controller", SESSION_PATH,
-    `Exactly one GPT Session Controller is allowed; found ${controllers.join(",")}.`,
-  ));
-  const sessionText = sourceFor(context, SESSION_PATH)?.getFullText() ?? "";
-  for (const required of [
-    "continuation_ref", "pluginId", "ownerRef", "subjectRef", "authorizationRef",
-    "gptContinuationIdentityHash", "lane_version", "prior_turn_marker", "prior_prompt_hash",
-  ]) if (!sessionText.includes(required)) findings.push(finding(
-    "gpt/session-binding", SESSION_PATH, `GPT Session Controller is missing ${required}.`,
-  ));
   for (const retired of [
     TURN_EXECUTOR_PATH,
     "src/lib/local-runtime/production/gpt-turn-state.ts",
@@ -275,28 +258,6 @@ const inspectExactCallContract = (context: InspectorContext, findings: Inspector
     "gpt/cooperative-provider-yield-contract", CONTRACT_PATH,
     "GptExecutionContext must expose the Product-neutral cooperative Provider wait yield hook.",
   ));
-};
-
-const inspectContinuationContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const sessionChildren = sourceTextForPaths(context, CONTINUATION_HANDLER_PATHS);
-  for (const required of ["gptExactCallIdentityHash", "gpt-continuation:", "prior_prompt_hash"]) if (!sessionChildren.includes(required)) findings.push(finding(
-    "gpt/deterministic-continuation-ref", childHandlerPath("persist_gpt_continuation"),
-    `Continuation persistence must derive its ref from exact call identity; missing ${required}.`,
-  ));
-  if (sessionChildren.includes("randomUUID")) findings.push(finding(
-    "gpt/random-continuation-ref-retired", childHandlerPath("persist_gpt_continuation"),
-    "Random continuation refs are forbidden after deterministic cutover.",
-  ));
-  const controller = sourceFor(context, SESSION_PATH)?.getFullText() ?? "";
-  for (const required of [
-    "readGptContinuation", "sameProvider", "GPT_CONTINUATION_IDEMPOTENCY_CONFLICT",
-    "GPT_CONTINUATION_ADVANCE_CAS_FAILED", "GPT_CONTINUATION_RELEASE_CAS_FAILED",
-    "readGptContinuationForFrontier", "GPT_CONTINUATION_FRONTIER_CONFLICT",
-    "origin_provider", "origin_checkpoint", "frontier_ref",
-  ]) if (!controller.includes(required)) findings.push(finding(
-    "gpt/continuation-content-idempotency", SESSION_PATH,
-      `Continuation persist/advance/release readback is missing ${required}.`,
-    ));
 };
 
 const inspectModelSelectionContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -359,7 +320,6 @@ const inspectExecutionProfileStateReadContract = (
 
 const inspectIntelligentExecutionContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
   inspectExactCallContract(context, findings);
-  inspectContinuationContract(context, findings);
   inspectProviderWaitContract(context, findings, finding);
 };
 
@@ -379,8 +339,7 @@ const inspectGptContracts = (context: InspectorContext, findings: InspectorFindi
 const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const path of [
     CONTRACT_PATH, FACADE_PATH, GROUP_PATH, SCHEMA_PATH, CHILD_TYPES_PATH,
-    EVIDENCE_WRITER_PATH, EVIDENCE_FACT_PATH, PAGE_EVIDENCE_REPORT_PATH, SESSION_PATH,
-    ...CONTINUATION_HANDLER_PATHS,
+    PAGE_EVIDENCE_REPORT_PATH,
     ...TEXT_RESPONSE_HANDLER_PATHS, ...IMAGE_RESPONSE_HANDLER_PATHS,
     ...CONVERSATION_HANDLER_PATHS,
     RESPONSE_PAGE_PATH,
@@ -397,11 +356,6 @@ const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFind
       `${retired} must remain physically absent after Child private-slice cutover.`,
     ));
   }
-  const controllers = readdirSync(resolve(context.sealedRoot, ROOT, "session"))
-    .filter((name) => name.endsWith("session-controller.ts"));
-  if (JSON.stringify(controllers) !== JSON.stringify(["gpt-session-controller.ts"])) findings.push(finding(
-    "gpt/filesystem-single-session-controller", SESSION_PATH,
-    `Expected one GPT Session Controller; found ${controllers.join(",")}.`));
   const forbidden = context.targetPaths.find((path) => /(?:gemini|claude|gateway|adapter|fallback)/iu.test(path));
   if (forbidden) findings.push(finding("gpt/filesystem-secondary-provider", forbidden,
     `Secondary provider or compatibility path is forbidden: ${forbidden}.`));

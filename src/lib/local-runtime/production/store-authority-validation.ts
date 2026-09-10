@@ -7,7 +7,6 @@ import {
 } from "./contracts.js";
 import {
   isSerializedTerminalFailure,
-  type ProductionCheckpointAuthority,
   type ProductionLeaseAuthority,
   type ProductionOutboxAuthority,
   type ProductionOutboxAuthorityRow,
@@ -22,15 +21,6 @@ export const persistedDate = (value: unknown): value is string =>
   typeof value === "string" && Number.isFinite(Date.parse(value));
 const authorityCorrupt = (): never => { throw new SyntaxError("PRODUCTION_AUTHORITY_ROW_CORRUPT"); };
 
-export type ProductionCheckpointAuthorityRow = Readonly<{
-  job_id: string;
-  task_attempt_id: string;
-  attempt_id: string;
-  checkpoint_id: string | null;
-  checkpoint_hash: ProductionHash | null;
-  state: ProductionCheckpointAuthority["state"];
-  updated_at: string;
-}>;
 export type ProductionLeaseAuthorityRow = Readonly<{
   job_id: string;
   task_attempt_id: string;
@@ -41,25 +31,6 @@ export type ProductionLeaseAuthorityRow = Readonly<{
   expires_at: string | null;
   updated_at: string;
 }>;
-
-export const productionCheckpointAuthorityFromRow = (
-  row: ProductionCheckpointAuthorityRow,
-  expectedJobId: string,
-): ProductionCheckpointAuthority => {
-  const shapeValid = row.state === "none"
-    ? row.checkpoint_id === null && row.checkpoint_hash === null
-    : row.state === "persisted"
-      ? Boolean(row.checkpoint_id) && persistedHash(row.checkpoint_hash)
-      : row.state === "failed" && Boolean(row.checkpoint_id) && row.checkpoint_hash === null;
-  if (row.job_id !== expectedJobId || !row.attempt_id || row.attempt_id !== row.task_attempt_id
-    || !["none", "persisted", "failed"].includes(row.state) || !shapeValid || !persistedDate(row.updated_at)) {
-    return authorityCorrupt();
-  }
-  return Object.freeze({
-    jobId: row.job_id, attemptId: row.attempt_id, checkpointId: row.checkpoint_id,
-    checkpointHash: row.checkpoint_hash, state: row.state,
-  });
-};
 
 export const productionLeaseAuthorityFromRow = (
   row: ProductionLeaseAuthorityRow,
@@ -80,11 +51,10 @@ export const productionLeaseAuthorityFromRow = (
 const durableIdentityValid = (record: StoredProductionTask): boolean => {
   const identity = record.identity;
   return JSON.stringify(Object.keys(identity).sort()) === JSON.stringify([
-    "checkpoint_schema_version", "plugin_id", "plugin_version", "request_hash", "skill_hash",
+    "plugin_id", "plugin_version", "request_hash", "skill_hash",
   ]) && [identity.request_hash, identity.skill_hash].every(persistedHash)
     && typeof identity.plugin_id === "string" && identity.plugin_id.length > 0
     && Number.isSafeInteger(identity.plugin_version) && Number(identity.plugin_version) > 0
-    && Number.isSafeInteger(identity.checkpoint_schema_version) && Number(identity.checkpoint_schema_version) > 0
     && identity.request_hash === record.task.request_hash;
 };
 const resultValid = (record: StoredProductionTask, result: WebsiteAgentResult | null): boolean => !result
@@ -107,11 +77,10 @@ export const productionTaskRowValid = (row: TaskRow, record: StoredProductionTas
 
 const outboxIdentityValid = (row: ProductionOutboxAuthorityRow, expectedKey?: string): boolean =>
   Boolean(row.idempotency_key) && (expectedKey === undefined || row.idempotency_key === expectedKey)
-  && ["checkpoint", "artifact", "terminal"].includes(row.kind) && ["POST", "PUT"].includes(row.method)
+  && ["artifact", "terminal"].includes(row.kind) && ["POST", "PUT"].includes(row.method)
   && Buffer.isBuffer(row.body_blob) && persistedDate(row.created_at);
 const outboxDeliveryValid = (row: ProductionOutboxAuthorityRow): boolean =>
   (row.sent_at === null || persistedDate(row.sent_at))
-  && (row.next_delivery_at === null || persistedDate(row.next_delivery_at))
   && (row.response_hash === null || persistedHash(row.response_hash))
   && (row.receipt_hash === null || persistedHash(row.receipt_hash))
   && (row.sent_at === null) === (row.response_hash === null)
@@ -143,7 +112,7 @@ export const productionOutboxAuthorityFromRow = (
   }
   return Object.freeze({
     idempotencyKey: row.idempotency_key, jobId, kind: row.kind as ProductionOutboxWrite["kind"],
-    state: row.sent_at ? "delivered" : "pending", nextDeliveryAt: row.next_delivery_at,
+    state: row.sent_at ? "delivered" : "pending",
     lastError: row.last_error, responseHash: row.response_hash as ProductionHash | null,
     receiptHash: row.receipt_hash as ProductionHash | null,
   });

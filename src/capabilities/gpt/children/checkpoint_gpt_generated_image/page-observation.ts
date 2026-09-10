@@ -1,5 +1,6 @@
 import { executionFailure } from "../../../../lib/execution-failure.js";
 import type { BrowserTargetLease } from "../../../../lib/browser/browser-authority-api.js";
+import type { GptExecutionContext } from "../../contract.js";
 import {
   projectCoherentObservation, readCoherentObservation, type GptCoherentFactProjection,
 } from "../../web/gpt-dom-observation.js";
@@ -59,17 +60,21 @@ const readResponsePage = async (browser: BrowserTargetLease): Promise<GptRespons
 };
 
 export const ensureResponseConversation = async (
-  browser: BrowserTargetLease,
-  canonicalConversationUrl: string,
+  input: Readonly<{ browser: BrowserTargetLease; canonicalConversationUrl: string;
+    context: GptExecutionContext; deadline: number }>,
 ): Promise<GptResponsePageState> => {
-  const expected = canonicalGptConversationUrl(canonicalConversationUrl);
-  let observed = await readResponsePage(browser);
-  if (observed.currentUrl !== expected) {
-    await browser.navigate({ url: expected, title: "poll exact GPT conversation" });
-    observed = await readResponsePage(browser);
+  const expected = canonicalGptConversationUrl(input.canonicalConversationUrl);
+  for (;;) {
+    if (input.context.signal?.aborted) throw executionFailure("failed", "GPT_IMAGE_WAIT_ABORTED");
+    if (Date.now() >= input.deadline) throw executionFailure("failed", "GPT_IMAGE_TIMEOUT");
+    const observed = await readResponsePage(input.browser);
+    if (observed.currentUrl === expected) return observed;
+    if (!input.context.navigateCrossConversationPoll) {
+      throw executionFailure("failed", "GPT_CROSS_CONVERSATION_POLL_GATE_REQUIRED");
+    }
+    const outcome = await input.context.navigateCrossConversationPoll(expected, input.deadline);
+    if (outcome === "deadline") throw executionFailure("failed", "GPT_IMAGE_TIMEOUT");
   }
-  if (observed.currentUrl !== expected) throw executionFailure("failed", "GPT_CONVERSATION_URL_MISMATCH");
-  return observed;
 };
 
 export const assistantTurnForPrompt = (

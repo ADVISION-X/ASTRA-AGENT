@@ -21,7 +21,7 @@ const ACTIVE_LAW_PATH = ".github/instructions/agent-rules/功能法案.md";
 const REPORT_SCHEMA = "gpt-page-operation-evidence.v7";
 const MATRIX_SCHEMA = "gpt-page-operation-matrix.v4";
 const DEMAND_CONTRACT_FIELDS = Object.freeze([
-  "semanticIntent", "inputSchema", "requiredTargetKind", "allowedDocumentTransition",
+  "semanticIntent", "inputSchema", "requiredTargetKind",
   "profile", "boundedWait", "decisions", "precondition", "actionQualification",
   "mutationBudget", "oneObservationOrMutation", "positivePostcondition",
   "negativePostcondition", "evidenceSchema", "evidenceBoundary", "failureClassification",
@@ -469,9 +469,9 @@ export const inspectGptPageEvidenceClosure = (
   const byId = new Map(children.flatMap((child) => typeof child.childCapabilityId === "string"
     ? [[child.childCapabilityId, child] as const] : []));
   const pageIds = Object.keys(contracts).filter((id) => contracts[id]?.requiredTargetKind !== "none").sort();
-  if (children.length !== Object.keys(contracts).length || pageIds.length !== 22) findings.push(finding(
+  if (children.length !== Object.keys(contracts).length || pageIds.length !== 13) findings.push(finding(
     "gpt/page-evidence-denominator", REPORT_PATH,
-    `Expected ${Object.keys(contracts).length}/22 contract/page records; found ${children.length}/${pageIds.length}.`,
+    `Expected ${Object.keys(contracts).length}/13 contract/page records; found ${children.length}/${pageIds.length}.`,
   ));
 
   const pluginFiles = filesBelow(resolve(context.sealedRoot, PLUGIN_ROOT), [".ts"])

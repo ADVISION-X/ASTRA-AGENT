@@ -266,7 +266,7 @@ export const gptPageEvidenceChangeGateFailures = (
     && typeof entry === "object" && !Array.isArray(entry)
     && typeof (entry as { childCapabilityId?: unknown }).childCapabilityId === "string"
     && (entry as { pageOperationRequired?: unknown }).pageOperationRequired === true);
-  if (children.length !== 22 || new Set(children.map((child) => child.childCapabilityId)).size !== 22) {
+  if (children.length !== 13 || new Set(children.map((child) => child.childCapabilityId)).size !== 13) {
     failures.push("page-child-denominator");
   }
   if (gptPageEvidencePrivacyFailures(report).length > 0) failures.push("privacy");

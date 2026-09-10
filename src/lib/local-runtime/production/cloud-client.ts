@@ -33,7 +33,6 @@ import type {
   ProductPluginOutput,
 } from "../../../mediator/product-plugin-contract.js";
 import { executionFailure } from "../../execution-failure.js";
-import type { SerializedExecutionFailure } from "./terminal-failure.js";
 import { productionCloudFetch } from "./cloud-transport.js";
 import type { ProductionLeaseRelease } from "./lease-release-contract.js";
 import {
@@ -142,73 +141,9 @@ export async function downloadProductionMaterials(
   return Object.freeze(result);
 }
 
-export async function checkpointProductionTask(
-  session: Pick<ProductionWorkerSession, "request" | "workerSessionEpoch" | "workerSessionId">,
-  store: ProductionRuntimeStore,
-  job: ClaimedProductionTask,
-  checkpointKind: "accepted" | "progress" | "attempt_failure",
-  checkpointSeq: number,
-  attemptFailure: SerializedExecutionFailure | null = null,
-): Promise<Readonly<{ checkpointHash: ProductionHash; checkpointSeq: number; requestId: string }>> {
-  if (!Number.isInteger(checkpointSeq) || checkpointSeq < 1) {
-    throw executionFailure("failed", "V6_CHECKPOINT_SEQUENCE_INVALID");
-  }
-  const requestId = `aipcheckpoint_${hashCanonical({
-    job_id: job.job_id,
-    attempt_id: job.grant.attempt_id,
-    lease_version: job.grant.lease_version,
-    checkpoint_seq: checkpointSeq,
-    checkpoint_kind: checkpointKind,
-    attempt_failure: attemptFailure,
-  }).slice(7, 47)}`;
-  const body = {
-    schema_version: "xuanxue-ai-checkpoint.v6",
-    control_protocol_version: "xuanxue-ai-production-v6",
-    request_id: requestId,
-    idempotency_key: requestId,
-    job_id: job.job_id,
-    worker_session_id: session.workerSessionId,
-    worker_session_epoch: session.workerSessionEpoch,
-    attempt_id: job.grant.attempt_id,
-    lease_version: job.grant.lease_version,
-    fence_hash: job.grant.execution_fence.fence_hash,
-    local_order_id: job.job_id,
-    checkpoint_seq: checkpointSeq,
-    checkpoint_kind: checkpointKind,
-    payload_hash: hashCanonical({
-      job_id: job.job_id,
-      attempt_id: job.grant.attempt_id,
-      checkpoint_seq: checkpointSeq,
-      checkpoint_kind: checkpointKind,
-    }),
-    object_receipts: [],
-    attempt_failure: attemptFailure,
-  } as const;
-  const pathname = `/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/checkpoints`;
-  store.enqueue({ idempotency_key: requestId, kind: "checkpoint", path: pathname, method: "POST", headers: fenceHeaders(job), body: JSON.stringify(body) });
-  const response = await store.deliverOutbox(requestId, async (write) => {
-    const received = await session.request(write.path, {
-      method: write.method, headers: write.headers, body: Buffer.from(write.body),
-    }) as Record<string, unknown>;
-    const sentBody = JSON.parse(Buffer.from(write.body).toString("utf8")) as Record<string, unknown>;
-    if (received.job_id !== job.job_id || received.checkpoint_seq !== checkpointSeq
-      || typeof received.checkpoint_hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(received.checkpoint_hash)
-      || received.checkpoint_hash !== hashCanonical(sentBody)) {
-      throw executionFailure("failed", "V6_CHECKPOINT_RECEIPT_INVALID");
-    }
-    return received;
-  });
-  return Object.freeze({
-    checkpointHash: response.checkpoint_hash as ProductionHash,
-    checkpointSeq,
-    requestId,
-  });
-}
-
 export async function renewProductionLease(
   session: ProductionWorkerSession,
   job: ClaimedProductionTask,
-  checkpointHash: ProductionHash | null,
 ) {
   const requestId = `aiprenew_${randomUUID()}`;
   return LeaseRenewReceiptSchema.parse(await session.request(
@@ -227,7 +162,6 @@ export async function renewProductionLease(
         attempt_id: job.grant.attempt_id,
         lease_version: job.grant.lease_version,
         fence_hash: job.grant.execution_fence.fence_hash,
-        checkpoint_hash: checkpointHash,
       }),
     },
   ));
@@ -242,8 +176,7 @@ export async function releaseProductionLease(
   const requestId = stableRequestId ?? `aiprelease_${randomUUID()}`;
   const payload = {
     reason_code: release.reasonCode,
-    receiver_checkpoint: release.receiverCheckpoint,
-    confirmed_submit: release.confirmedSubmit,
+    attempt_failure: release.attemptFailure,
     job_id: job.job_id,
     fence_hash: job.grant.execution_fence.fence_hash,
   };
@@ -263,8 +196,7 @@ export async function releaseProductionLease(
       fence_hash: job.grant.execution_fence.fence_hash,
       payload_hash: hashCanonical(payload),
       reason_code: release.reasonCode,
-      receiver_checkpoint: release.receiverCheckpoint,
-      confirmed_submit: release.confirmedSubmit,
+      attempt_failure: release.attemptFailure,
     }),
   });
   return requestId;
@@ -274,7 +206,7 @@ async function uploadJsonObject(
   session: ProductionWorkerSession,
   store: ProductionRuntimeStore,
   job: ClaimedProductionTask,
-  role: "result_payload" | "result_envelope" | "execution_context",
+  role: "result_payload" | "result_envelope",
   value: unknown,
 ): Promise<UploadedResultReceipt> {
   const bytes = Buffer.from(JSON.stringify(value), "utf8");
@@ -396,14 +328,12 @@ type ProductionResultUploadInput = Readonly<{
   job: ClaimedProductionTask;
   identity: DurablePluginIdentity;
   output: ProductPluginOutput;
-  continuationRef: string | null;
   priorArtifactReceipts?: readonly UploadedResultReceipt[];
 }>;
 
 const buildProductionResultEnvelope = (
   input: ProductionResultUploadInput,
   payloadReceipt: UploadedResultReceipt,
-  executionContextReceipt: UploadedResultReceipt | null,
 ): WebsiteAgentResult => WebsiteAgentResultSchema.parse({
   schema_version: "website-agent-result.v1",
   job_id: input.job.job_id,
@@ -425,23 +355,14 @@ const buildProductionResultEnvelope = (
     media_type: payloadReceipt.media_type,
     receipt_hash: payloadReceipt.receipt_hash,
   },
-  ...(executionContextReceipt ? { execution_context_object_receipt: {
-    object_ref: executionContextReceipt.object_ref,
-    sha256: executionContextReceipt.sha256,
-    bytes: executionContextReceipt.byte_length,
-    media_type: "application/json",
-    receipt_hash: executionContextReceipt.receipt_hash,
-  } } : {}),
   evidence_refs: input.output.evidence_refs,
   execution_receipt_hash: hashCanonical({
     job_id: input.job.job_id,
     attempt_id: input.job.grant.attempt_id,
     durable_identity: input.identity,
     payload_hash: payloadReceipt.sha256,
-    execution_context_receipt_hash: executionContextReceipt?.receipt_hash ?? null,
     evidence_refs: input.output.evidence_refs,
   }),
-  ...(input.continuationRef ? { continuation_ref: input.continuationRef } : {}),
 }) as WebsiteAgentResult;
 
 export async function uploadProductionResult(input: ProductionResultUploadInput): Promise<Readonly<{
@@ -453,11 +374,7 @@ export async function uploadProductionResult(input: ProductionResultUploadInput)
   const payloadReceipt = await uploadJsonObject(
     input.session, input.store, input.job, "result_payload", input.output.payload,
   );
-  const executionContextReceipt = input.output.execution_context === undefined ? null
-    : await uploadJsonObject(
-      input.session, input.store, input.job, "execution_context", input.output.execution_context,
-    );
-  const envelope = buildProductionResultEnvelope(input, payloadReceipt, executionContextReceipt);
+  const envelope = buildProductionResultEnvelope(input, payloadReceipt);
   const envelopeReceipt = await uploadJsonObject(
     input.session, input.store, input.job, "result_envelope", envelope,
   );
@@ -467,7 +384,6 @@ export async function uploadProductionResult(input: ProductionResultUploadInput)
     envelope_receipt: envelopeReceipt,
     artifact_receipts: Object.freeze([
       ...(input.priorArtifactReceipts ?? []),
-      ...(executionContextReceipt ? [executionContextReceipt] : []),
       payloadReceipt, envelopeReceipt,
     ]),
   };

@@ -56,7 +56,7 @@ try {
   );
   await assert.rejects(
     () => mismatchLifecycle.yieldForProviderWait(
-      mismatchActive, "corpus_research", "text-wait", "wait_for_stable_gpt_text", 25,
+      mismatchActive, "corpus_research", "text-wait", "checkpoint_gpt_text_response", 25,
     ),
     (error: unknown) => {
       assert.ok(error instanceof AggregateError);

@@ -140,10 +140,6 @@ const localRows = (input: Readonly<{
     freshness: lease?.state === "active" && lease.expiresAt
       ? { kind: "ttl", fresh_until: lease.expiresAt } : snapshotFreshness,
     authority_ref: `production-lease:${jobId}` }));
-    const checkpoint = input.store.readCheckpoint(jobId);
-    rows.push(row({ axis: "checkpoint", owner: "agent-production-runtime", current_value: checkpoint,
-      reason_code: checkpoint?.state ?? "CHECKPOINT_ABSENT", observed_at: observedAt,
-      freshness: snapshotFreshness, authority_ref: `production-checkpoint:${jobId}` }));
   }
   const outbox = jobId ? input.store.outboxAuthorities().filter((entry) => entry.jobId === jobId) : [];
   rows.push(row({ axis: "outbox", owner: "outbox", current_value: jobId ? outbox : {

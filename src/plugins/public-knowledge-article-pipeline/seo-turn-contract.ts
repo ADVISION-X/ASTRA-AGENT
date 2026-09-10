@@ -2,16 +2,12 @@ import { createHash } from "node:crypto";
 
 import {
   type GptApprovedFile,
-  type GptProviderContinuation,
 } from "../../capabilities/gpt/index.js";
 import {
   hashCanonical,
   type ProductionHash,
   type ProductionRoutePolicy,
   type WebsiteAgentTask,
-} from "../../mediator/product-plugin-contract.js";
-import {
-  gptTextContinuationCheckpointInput,
 } from "../../mediator/product-plugin-contract.js";
 import type {
   ProductGptAnyCallInput,
@@ -122,35 +118,3 @@ export const textHash = (value: string): ProductionHash =>
 
 export const turnMarker = (task: WebsiteAgentTask, stepId: string): string =>
   `[GRASSEYE:${hashCanonical({ job_id: task.job_id, product_step_id: stepId }).slice(7, 31)}]`;
-
-export const researchFrontierRef = (
-  task: WebsiteAgentTask,
-  attemptId: string,
-  resultRevisionReceiptHash: ProductionHash | null = null,
-): ProductionHash => hashCanonical({
-  identity_type: "gpt-continuation-frontier.v1",
-  job_id: task.job_id,
-  attempt_id: attemptId,
-  plugin_id: PLUGIN_ID,
-  owner_ref: task.business_identity.owner_ref,
-  subject_ref: task.business_identity.subject_ref,
-  authorization_ref: task.business_identity.authorization_ref,
-  product_step_id: "corpus_research",
-  result_revision_receipt_hash: resultRevisionReceiptHash,
-});
-
-export const continuationProvider = (
-  task: WebsiteAgentTask,
-  checkpoint: SeoTurnCheckpoint,
-): GptProviderContinuation => Object.freeze({
-  provider_page_url: checkpoint.canonicalConversationUrl,
-  prior_task_id: task.job_id,
-  prior_prompt_hash: checkpoint.promptHash,
-  prior_raw_output_hash: checkpoint.semanticTextHash,
-  prior_turn_marker: checkpoint.turnMarker,
-});
-
-export const continuationTextCheckpoint = (
-  sourceAttemptId: string,
-  checkpoint: SeoTurnCheckpoint,
-) => gptTextContinuationCheckpointInput(sourceAttemptId, checkpoint);

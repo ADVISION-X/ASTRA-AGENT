@@ -42,7 +42,6 @@ export interface ProductPluginIdentity {
   readonly plugin_id: string;
   readonly plugin_version: number;
   readonly skill_hash: ProductionHash;
-  readonly checkpoint_schema_version: number;
 }
 
 export interface ProductPluginCatalogEntry extends ProductPluginIdentity {
@@ -59,9 +58,6 @@ const routeCatalog = new Map<string, ProductPlugin>();
 const skillBytes = new Map<string, Readonly<{ text: string; hash: ProductionHash }>>();
 for (const plugin of productionPluginCatalog) {
   if (plugin.accepts.length < 1) throw new Error(`PLUGIN_ROUTE_EMPTY:${plugin.pluginId}`);
-  if (!Number.isSafeInteger(plugin.checkpointSchemaVersion) || plugin.checkpointSchemaVersion < 1) {
-    throw new Error(`PLUGIN_CHECKPOINT_SCHEMA_VERSION_INVALID:${plugin.pluginId}`);
-  }
   const skillPath = new URL(`../plugins/${plugin.pluginId}/SKILL.md`, import.meta.url);
   const skillText = readFileSync(skillPath, "utf8").normalize("NFC");
   if (!skillText.trim()) throw new Error(`PLUGIN_SKILL_EMPTY:${plugin.pluginId}`);
@@ -78,7 +74,6 @@ export const productPluginCatalogSnapshot: readonly ProductPluginCatalogEntry[] 
     plugin_id: plugin.pluginId,
     plugin_version: plugin.pluginVersion,
     skill_hash: skillBytes.get(plugin.pluginId)!.hash,
-    checkpoint_schema_version: plugin.checkpointSchemaVersion,
     accepts: Object.freeze(plugin.accepts.map((route) => Object.freeze({
       product_id: route.productId,
       action_id: route.actionId,
@@ -106,7 +101,6 @@ export const resolveProductPluginIdentity = (
     plugin_id: plugin.pluginId,
     plugin_version: plugin.pluginVersion,
     skill_hash: skillBytes.get(plugin.pluginId)!.hash,
-    checkpoint_schema_version: plugin.checkpointSchemaVersion,
   });
 };
 

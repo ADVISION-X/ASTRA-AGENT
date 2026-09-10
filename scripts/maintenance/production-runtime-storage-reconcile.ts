@@ -21,7 +21,6 @@ try {
     task_ids: rows.map((row) => row.job_id),
     outbox_responsibility_count: count("select count(*) as count from production_outbox"),
     pending_outbox_count: count("select count(*) as count from production_outbox where sent_at is null"),
-    continuation_count: count("select count(*) as count from production_continuations"),
     active_lease_count: count("select count(*) as count from production_leases where state='active'"),
   });
 } finally {

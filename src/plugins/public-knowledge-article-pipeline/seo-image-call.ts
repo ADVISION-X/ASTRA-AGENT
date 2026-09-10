@@ -1,8 +1,4 @@
-import type {
-  GptContinuationCheckpointInput,
-  GptProviderContinuation,
-  ExactGptCallFacts,
-} from "../../capabilities/gpt/index.js";
+import type { ProductGptChildResult } from "../../capabilities/gpt/index.js";
 import type {
   ProductionHash,
   WebsiteAgentTask,
@@ -12,22 +8,17 @@ import type {
   ProductSkill,
 } from "../../mediator/product-plugin-contract.js";
 import {
-  continuationTextCheckpoint,
   fail,
   hashValue,
   objectValue,
   textHash,
   textValue,
-  type SeoTurnCheckpoint,
 } from "./seo-turn-contract.js";
 import { imagePrompt } from "./seo-turn-prompts.js";
 import {
-  advanceLane,
   applyExactProfile,
   createSeoExecutor,
-  focusContinuation,
-  reconcileConfirmedSubmissionLocator,
-  releaseLane,
+  prepareFreshTurnPrefix,
 } from "./seo-gpt-calls.js";
 import {
   executeAndReadConfirmedSubmit,
@@ -39,11 +30,7 @@ type ImageTurnInput = Readonly<{
   task: WebsiteAgentTask;
   marker: string;
   stepId: string;
-  continuationRef: string;
-  expectedProvider: GptProviderContinuation;
-  sourceAttemptId: string;
-  predecessorCheckpoint: SeoTurnCheckpoint;
-  predecessorSourceAttemptId: string;
+  article: Readonly<Record<string, unknown>>;
   productSkill: ProductSkill;
 }>;
 
@@ -51,16 +38,13 @@ const prepareImageSubmit = async (
   input: ImageTurnInput,
   prompt: string,
   promptHash: ProductionHash,
-): Promise<ExactGptCallFacts> => {
+): Promise<ProductGptChildResult<"submit_exact_gpt_turn_once">> => {
   const promptWrite = { productStepId: input.stepId, callId: "prompt-write", child: "write_exact_gpt_prompt", actionOrdinal: 43, input: { prompt } } as const;
-  const draftReconcile = { productStepId: input.stepId, callId: "draft-reconcile", child: "reconcile_gpt_draft", actionOrdinal: 44, input: { files: [], prompt, turnMarker: input.marker } } as const;
   const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 45, input: { files: [], promptHash, turnMarker: input.marker } } as const;
   await applyExactProfile(input.flow.execute, input.stepId, [37, 38, 39, 40, 41, 42]);
   await input.flow.execute({ sessionKey: "", ...promptWrite });
-  await input.flow.execute({ sessionKey: "", ...draftReconcile });
   return executeAndReadConfirmedSubmit({
-    execute: () => input.flow.execute({ sessionKey: "", ...turnSubmit }),
-    readFacts: () => input.flow.facts(turnSubmit),
+    execute: () => input.flow.execute({ sessionKey: "", ...turnSubmit }) as Promise<ProductGptChildResult<"submit_exact_gpt_turn_once">>,
   });
 };
 
@@ -85,97 +69,39 @@ const checkpointSubmittedImage = async (
   input: ImageTurnInput,
   promptHash: ProductionHash,
   canonicalConversationUrl: string,
-  conversationIdentityHash: ProductionHash,
 ): Promise<Readonly<{
   canonicalConversationUrl: string;
   mediaHash: ProductionHash;
   generated: GeneratedImageArtifact;
-  currentCheckpoint: GptContinuationCheckpointInput;
 }>> => {
-  const stable = await input.flow.execute({
-      sessionKey: "", productStepId: input.stepId, callId: "image-wait",
-      child: "wait_for_stable_gpt_image", actionOrdinal: 47,
-      input: {
-        probeBudgetMs: SEO_PROVIDER_PROBE_BUDGET_MS, canonicalConversationUrl,
-        conversationIdentityHash, expectedPromptHash: promptHash, turnMarker: input.marker,
-      },
-    });
-    const stableValue = objectValue(stable.value, "SEO_IMAGE_RESPONSE_INVALID");
-    const assistantTurnId = textValue(stableValue.assistantTurnId, "SEO_IMAGE_RESPONSE_INVALID");
-    const mediaHash = hashValue(stableValue.mediaHash, "SEO_IMAGE_RESPONSE_INVALID");
     const checkpointCall = {
       sessionKey: "", productStepId: input.stepId, callId: "image-checkpoint",
-      child: "checkpoint_gpt_generated_image", actionOrdinal: 48,
+      child: "checkpoint_gpt_generated_image", actionOrdinal: 47,
       input: {
-        assistantTurnId, canonicalConversationUrl, expectedPromptHash: promptHash,
-        expectedMediaHash: mediaHash,
-        predecessorTextCheckpoint: continuationTextCheckpoint(
-          input.predecessorSourceAttemptId, input.predecessorCheckpoint,
-        ),
-        turnMarker: input.marker,
+        canonicalConversationUrl, expectedPromptHash: promptHash,
+        probeBudgetMs: SEO_PROVIDER_PROBE_BUDGET_MS, turnMarker: input.marker,
       },
     } as const;
     const checkpoint = await input.flow.execute(checkpointCall);
-    const checkpointFacts = await input.flow.facts(checkpointCall);
-    const artifactRefs = checkpointFacts.evidence?.artifactRefs ?? [];
+    const artifactRefs = checkpoint.artifactRefs;
     if (artifactRefs.length !== 3 || !artifactRefs[0] || !artifactRefs[1]) {
       fail("SEO_IMAGE_ARTIFACT_RECEIPT_INVALID");
     }
     const value = objectValue(checkpoint.value, "SEO_IMAGE_ARTIFACT_INVALID");
+    const mediaHash = hashValue(value.mediaHash, "SEO_IMAGE_ARTIFACT_INVALID");
     const originalMediaType = textValue(value.originalMediaType, "SEO_IMAGE_ARTIFACT_INVALID");
     if (!originalMediaType.startsWith("image/")) fail("SEO_IMAGE_ARTIFACT_INVALID");
   return Object.freeze({
       canonicalConversationUrl, mediaHash, generated: imageArtifact(value),
-      currentCheckpoint: Object.freeze({
-        checkpointKind: "generated_image", sourceAttemptId: input.sourceAttemptId,
-        assistantTurnId, canonicalConversationUrl, promptHash, mediaHash, turnMarker: input.marker,
-        originalArtifactRef: artifactRefs[0],
-        originalSha256: hashValue(value.originalSha256, "SEO_IMAGE_ARTIFACT_INVALID"),
-        originalBytes: Number(value.originalSizeBytes),
-        originalMediaType: originalMediaType as `image/${string}`,
-        originalWidth: Number(value.originalWidth), originalHeight: Number(value.originalHeight),
-        webpArtifactRef: artifactRefs[1],
-        webpSha256: hashValue(value.sha256, "SEO_IMAGE_ARTIFACT_INVALID"),
-        webpBytes: Number(value.bytes), mediaType: "image/webp", width: 1200, height: 630,
-        evidenceRef: checkpoint.evidenceRef, evidenceHash: checkpoint.evidenceHash,
-        predecessorTextCheckpoint: continuationTextCheckpoint(
-          input.predecessorSourceAttemptId, input.predecessorCheckpoint,
-        ),
-      }),
   });
 };
 
 export const generateImage = async (input: ImageTurnInput): Promise<GeneratedImageArtifact> => {
-  const prompt = imagePrompt(input.task, input.marker, input.productSkill);
+  await prepareFreshTurnPrefix({ flow: input.flow, stepId: input.stepId });
+  const prompt = imagePrompt(input.task, input.marker, input.productSkill, input.article);
   const promptHash = textHash(prompt);
-  const settleImageSubmit = async () => {
-    const confirmed = await prepareImageSubmit(input, prompt, promptHash);
-    const locator = await reconcileConfirmedSubmissionLocator({
-      actionOrdinal: 46,
-      confirmedSubmit: confirmed,
-      flow: input.flow,
-      marker: input.marker,
-      promptHash,
-      stepId: input.stepId,
-    });
-    return checkpointSubmittedImage(
-      input, promptHash, locator.canonicalConversationUrl, locator.conversationIdentityHash,
-    );
-  };
-  const lane = await focusContinuation(
-    input.flow, input.task, input.stepId, input.continuationRef,
-    input.expectedProvider, [34, 35, 36], 50,
-  );
-  let advanced = false;
-  try {
-    const checkpoint = await settleImageSubmit();
-    await advanceLane(input.flow.execute, input.task, input.stepId, lane, {
-      canonicalConversationUrl: checkpoint.canonicalConversationUrl,
-      promptHash, rawOutputHash: checkpoint.mediaHash, turnMarker: input.marker,
-    }, checkpoint.currentCheckpoint, 49);
-    advanced = true;
-    return checkpoint.generated;
-  } finally {
-    if (!advanced) await releaseLane(input.flow.execute, input.task, input.stepId, lane, 50);
-  }
+  const confirmed = await prepareImageSubmit(input, prompt, promptHash);
+  return (await checkpointSubmittedImage(
+    input, promptHash, confirmed.value.canonicalConversationUrl,
+  )).generated;
 };

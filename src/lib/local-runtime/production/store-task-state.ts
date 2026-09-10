@@ -2,12 +2,10 @@ import { executionFailure } from "../../execution-failure.js";
 import type { SerializedExecutionFailure } from "./terminal-failure.js";
 import type { DurablePluginIdentity, WebsiteAgentResult, WebsiteAgentTask } from "./contracts.js";
 import { WebsiteAgentResultSchema } from "./contracts.js";
-import { ProductionStoreContinuationState } from "./store-continuation-state.js";
+import { ProductionStoreFoundation } from "./store-foundation.js";
 import {
-  productionCheckpointAuthorityFromRow,
   productionLeaseAuthorityFromRow,
   productionTaskRowValid,
-  type ProductionCheckpointAuthorityRow,
   type ProductionLeaseAuthorityRow,
 } from "./store-authority-validation.js";
 import {
@@ -15,7 +13,6 @@ import {
   json,
   now,
   storedTaskFromRow,
-  type ProductionCheckpointAuthority,
   type ProductionLeaseAuthority,
   type StoredProductionTask,
   type TaskRow,
@@ -49,10 +46,10 @@ const taskAuthorityFromRow = (row: TaskRow): StoredProductionTask => {
   return record;
 };
 
-export abstract class ProductionStoreTaskState extends ProductionStoreContinuationState {
+export abstract class ProductionStoreTaskState extends ProductionStoreFoundation {
   public endUnsentAttemptWrites(jobId: string): number {
     const changed = this.database.prepare(`update production_outbox
-      set last_error='ATTEMPT_ENDED',next_delivery_at=null
+      set last_error='ATTEMPT_ENDED'
       where instr(path,?)>0 and sent_at is null`
     ).run(endedJobPathMarker(jobId));
     this.notifyOutbox(null);
@@ -75,13 +72,10 @@ export abstract class ProductionStoreTaskState extends ProductionStoreContinuati
       if (existing.status === "failed") {
         this.database.transaction(() => {
           this.endUnsentAttemptWrites(task.job_id);
-          this.database.prepare(
-            "update production_continuations set lane_owner_job_id=null where lane_owner_job_id=?",
-          ).run(task.job_id);
-          this.database.prepare("delete from production_checkpoints where job_id=?").run(task.job_id);
           this.database.prepare("delete from production_leases where job_id=?").run(task.job_id);
           this.database.prepare(`update production_tasks
-            set identity_json=?,current_attempt_id=?,current_reason='LEASE_GRANTED',staged_result_json=null,updated_at=?
+            set identity_json=?,current_attempt_id=?,current_reason='LEASE_GRANTED',
+              staged_result_json=null,attempt_failure_json=null,updated_at=?
             where job_id=? and status='failed'`).run(json(identity), attemptId, now(), task.job_id);
         })();
         return this.readTask(task.job_id)!;
@@ -100,31 +94,17 @@ export abstract class ProductionStoreTaskState extends ProductionStoreContinuati
 
   public readTask(jobId: string): StoredProductionTask | null {
     const row = this.database.prepare(
-      `select t.job_id,t.request_hash,t.task_json,t.identity_json,t.status,t.result_json,t.staged_result_json,t.current_attempt_id,
-        t.current_reason,t.updated_at,(select f.failure_json from production_attempt_failures f
-          where f.job_id=t.job_id and f.attempt_id=t.current_attempt_id) as attempt_failure_json
+      `select t.job_id,t.request_hash,t.task_json,t.identity_json,t.status,t.result_json,t.staged_result_json,
+        t.attempt_failure_json,t.current_attempt_id,t.current_reason,t.updated_at
        from production_tasks t where t.job_id=?`,
     ).get(jobId) as TaskRow | undefined;
     return row ? taskAuthorityFromRow(row) : null;
   }
 
-  public readGptContinuationExecutionBinding(jobId: string) {
-    const stored = this.readTask(jobId);
-    return stored ? Object.freeze({
-      job_id: jobId,
-      plugin_id: stored.identity.plugin_id,
-      plugin_version: stored.identity.plugin_version,
-      owner_ref: stored.task.business_identity.owner_ref,
-      subject_ref: stored.task.business_identity.subject_ref,
-      authorization_ref: stored.task.business_identity.authorization_ref,
-    }) : null;
-  }
-
   public taskAuthorities(): readonly StoredProductionTask[] {
     const rows = this.database.prepare(
-      `select t.job_id,t.request_hash,t.task_json,t.identity_json,t.status,t.result_json,t.staged_result_json,t.current_attempt_id,
-        t.current_reason,t.updated_at,(select f.failure_json from production_attempt_failures f
-          where f.job_id=t.job_id and f.attempt_id=t.current_attempt_id) as attempt_failure_json
+      `select t.job_id,t.request_hash,t.task_json,t.identity_json,t.status,t.result_json,t.staged_result_json,
+        t.attempt_failure_json,t.current_attempt_id,t.current_reason,t.updated_at
        from production_tasks t order by t.updated_at,t.job_id`,
     ).all() as TaskRow[];
     return rows.map(taskAuthorityFromRow);
@@ -180,10 +160,8 @@ export abstract class ProductionStoreTaskState extends ProductionStoreContinuati
   }
 
   public pendingBusinessAdmissions(): readonly StoredProductionTask[] {
-    const rows = this.database.prepare(`select job_id,request_hash,task_json,identity_json,status,result_json,staged_result_json,
-      current_attempt_id,current_reason,updated_at,(select f.failure_json from production_attempt_failures f
-        where f.job_id=production_tasks.job_id and f.attempt_id=production_tasks.current_attempt_id)
-        as attempt_failure_json from production_tasks
+    const rows = this.database.prepare(`select job_id,request_hash,task_json,identity_json,status,result_json,
+      staged_result_json,attempt_failure_json,current_attempt_id,current_reason,updated_at from production_tasks
       where status='failed' and staged_result_json is not null order by updated_at,job_id`).all() as TaskRow[];
     return rows.map(taskAuthorityFromRow);
   }
@@ -205,43 +183,16 @@ export abstract class ProductionStoreTaskState extends ProductionStoreContinuati
       throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_IDENTITY_MISMATCH");
     }
     const serialized = json(failure);
-    const first = this.database.prepare(`select failure_json from production_attempt_failures
-      where job_id=? and attempt_id=?`
-    ).get(jobId, attemptId) as { failure_json: string } | undefined;
-    if (first && first.failure_json !== serialized) {
+    const first = this.database.prepare("select attempt_failure_json from production_tasks where job_id=?")
+      .get(jobId) as { attempt_failure_json: string | null } | undefined;
+    if (first?.attempt_failure_json && first.attempt_failure_json !== serialized) {
       throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_IMMUTABLE");
     }
-    this.database.transaction(() => {
-      this.database.prepare(`insert into production_attempt_failures(job_id,attempt_id,failure_json,created_at)
-        values(?,?,?,?) on conflict(job_id,attempt_id) do nothing`).run(
-        jobId, attemptId, serialized, now(),
-      );
-      this.database.prepare(`update production_tasks set current_reason=?,updated_at=?
-        where job_id=? and status='failed'`).run(failure.code.slice(0, 1_000), now(), jobId);
-    })();
-  }
-
-  public recordCheckpoint(authority: ProductionCheckpointAuthority): ProductionCheckpointAuthority {
-    const task = this.readTask(authority.jobId);
-    if (!task || task.status !== "failed" || task.current_attempt_id !== authority.attemptId) {
-      throw executionFailure("failed", "PRODUCTION_CHECKPOINT_ATTEMPT_IDENTITY_MISMATCH");
-    }
-    this.database.prepare(`insert into production_checkpoints(
-      job_id,attempt_id,checkpoint_id,checkpoint_hash,state,updated_at
-    ) values(?,?,?,?,?,?) on conflict(job_id) do update set
-      attempt_id=excluded.attempt_id,checkpoint_id=excluded.checkpoint_id,
-      checkpoint_hash=excluded.checkpoint_hash,state=excluded.state,updated_at=excluded.updated_at`).run(
-      authority.jobId, authority.attemptId, authority.checkpointId, authority.checkpointHash, authority.state, now(),
+    this.database.prepare(`update production_tasks
+      set attempt_failure_json=coalesce(attempt_failure_json,?),current_reason=?,updated_at=?
+      where job_id=? and status='failed' and current_attempt_id=?`).run(
+      serialized, failure.code.slice(0, 1_000), now(), jobId, attemptId,
     );
-    return this.readCheckpoint(authority.jobId)!;
-  }
-
-  public readCheckpoint(jobId: string): ProductionCheckpointAuthority | null {
-    const row = this.database.prepare(`select c.job_id,c.attempt_id,c.checkpoint_id,c.checkpoint_hash,c.state,
-      c.updated_at,t.current_attempt_id as task_attempt_id from production_checkpoints c
-      join production_tasks t on t.job_id=c.job_id where c.job_id=?`).get(jobId) as
-      ProductionCheckpointAuthorityRow | undefined;
-    return row ? productionCheckpointAuthorityFromRow(row, jobId) : null;
   }
 
   public recordLease(authority: ProductionLeaseAuthority): ProductionLeaseAuthority {

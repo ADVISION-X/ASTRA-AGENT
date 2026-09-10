@@ -42,7 +42,7 @@ const writeCredential = async (
 
 const responsibilities = (taskIds: readonly string[]) => ({
   task_ids: taskIds, outbox_responsibility_count: 0, pending_outbox_count: 0,
-  continuation_count: 0, active_lease_count: 0,
+  active_lease_count: 0,
 });
 
 const assertDependencyProjection = async (): Promise<void> => {
@@ -56,7 +56,7 @@ const assertDependencyProjection = async (): Promise<void> => {
     await writeFile(dependencyPath, JSON.stringify(dependency), { mode: 0o600 });
     assert.deepEqual(await verifyProductionDependency({
       agentDependencyPath: dependencyPath,
-    }), { status: "READY", version: 21 });
+    }), { status: "READY", version: 22 });
   
     const contract = dependency.contract as Record<string, unknown>;
     await writeFile(dependencyPath, JSON.stringify({

@@ -1,5 +1,4 @@
-import { gptAttachmentProviderDisplayName, type GptContinuationCheckpointInput,
-  type GptProviderContinuation, type ProductGptAnyCallInput } from
+import { gptAttachmentProviderDisplayName, type ProductGptAnyCallInput } from
   "../../../src/capabilities/gpt/index.js";
 import type { ProductPluginOutput, SharedExecutionContext, WebsiteAgentTask } from
   "../../../src/mediator/product-plugin-contract.js";
@@ -7,52 +6,22 @@ import { task } from "../agent-production-runtime-fixtures.js";
 
 export const HASH = `sha256:${"1".repeat(64)}` as const;
 export const CONFIRMED_AT = new Date(Date.now() - 1_000).toISOString();
-
 export type SeoAction = "produce_article" | "accuracy_challenge" | "quality_reflection";
 export type SeoCall = ProductGptAnyCallInput & Readonly<{ sessionKey: string }>;
-export type SeoFailure = Readonly<{
-  child: string;
-  code: string;
-  productStepId?: string;
-  confirmedSubmit?: boolean;
-  locatorFailureCode?: string;
-}>;
-export type SeoFact = Readonly<{
-  attemptId: string;
-  callIdentityHash: string;
-  evidenceRef: string;
-  failureCode: string | null;
-  mutation: boolean;
-  terminalAt: string | null;
-}>;
+export type SeoFailure = Readonly<{ child: string; code: string; productStepId?: string }>;
 export type SeoHarness = {
   actionId: SeoAction;
   calls: SeoCall[];
-  factsByCall: Map<string, SeoFact>;
-  handoffDelays: number[];
   completed: ProductPluginOutput | null;
-  continuationProvider: GptProviderContinuation | null;
-  originProvider: GptProviderContinuation | null;
-  frontierRef: `sha256:${string}` | null;
-  frontierOriginCheckpoint: Omit<Extract<GptContinuationCheckpointInput, { checkpointKind: "text" }>, "checkpointKind"> | null;
-  currentCheckpoint: GptContinuationCheckpointInput | null;
-  completionFailuresRemaining: number;
-  continuationLaneVersion: number;
-  continuationLaneOwned: boolean;
   remainingFailures: number;
-  remainingLocatorFailures: number;
   physicalSubmitDispatches: number;
   generatedImageUploadCalls: number;
-  uploadedImageHashes: Set<string>;
-  acquiredLaneVersions: number[];
   materials: SharedExecutionContext["materials"];
   providerNames: readonly string[];
 };
 
 export const seoTask = (actionId: SeoAction): WebsiteAgentTask => task({
-  jobId: `job-${actionId}`,
-  productId: "public_knowledge_article_pipeline",
-  actionId,
+  jobId: `job-${actionId}`, productId: "public_knowledge_article_pipeline", actionId,
   extra: {
     parameters: { domain_id: "bazi", locale: "zh-CN", ready_corpus_snapshot_hash: HASH },
     ...(actionId === "produce_article" ? {} : {
@@ -81,13 +50,8 @@ const fixtureMaterials = (actionId: SeoAction): SharedExecutionContext["material
 export const createHarness = (actionId: SeoAction, failureAt?: SeoFailure): SeoHarness => {
   const materials = fixtureMaterials(actionId);
   return {
-    actionId, calls: [], factsByCall: new Map(), handoffDelays: [], completed: null,
-    continuationProvider: null, originProvider: null, frontierRef: null,
-    frontierOriginCheckpoint: null, currentCheckpoint: null, completionFailuresRemaining: 0,
-    continuationLaneVersion: 0, continuationLaneOwned: false, remainingFailures: failureAt ? 1 : 0,
-    remainingLocatorFailures: failureAt?.locatorFailureCode ? 1 : 0,
-    physicalSubmitDispatches: 0, generatedImageUploadCalls: 0, uploadedImageHashes: new Set(),
-    acquiredLaneVersions: [], materials,
+    actionId, calls: [], completed: null, remainingFailures: failureAt ? 1 : 0,
+    physicalSubmitDispatches: 0, generatedImageUploadCalls: 0, materials,
     providerNames: materials.map((material) => gptAttachmentProviderDisplayName(
       material.display_name, `job-${actionId}`, material.material_id,
     )),

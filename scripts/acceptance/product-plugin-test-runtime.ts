@@ -7,10 +7,8 @@ import {
   gptAttachmentProviderDisplayName,
   type ProductGptAnyCallInput,
   type ProductGptTools,
-  type GptProviderContinuation,
 } from "../../src/capabilities/gpt/index.js";
 import {
-  hashCanonical,
   sha256,
   type ProductionHash,
   type WebsiteAgentTask,
@@ -18,9 +16,6 @@ import {
   type ProductPluginOutput,
   type SharedExecutionContext,
 } from "../../src/mediator/product-plugin-contract.js";
-import type {
-  ExactGptContinuationReadback,
-} from "../../src/capabilities/gpt/index.js";
 import {
   productionRoutePolicy,
   type ProductionRoutePolicy,
@@ -31,8 +26,6 @@ export const FIXTURE_HASH_B = `sha256:${"b".repeat(64)}` as ProductionHash;
 
 type ProductCall = ProductGptAnyCallInput & Readonly<{ sessionKey: string }>;
 type ProductExecuteInput = Parameters<ProductGptTools["execute"]>[0];
-type ProductFactQuery = Parameters<ProductGptTools["readCallFacts"]>[0];
-type ProductFact = Readonly<{ evidenceRef: string; mutation: boolean }>;
 
 export type ProductTaskFixture = Readonly<{
   parameters: Readonly<Record<string, unknown>>;
@@ -45,7 +38,6 @@ export type ProductFlowFixture = Readonly<{
   output: Readonly<Record<string, unknown>>;
   materialContents?: Readonly<Record<string, unknown>>;
   checkpointOutput?: (call: ProductCall) => Readonly<Record<string, unknown>>;
-  continuationReadback?: ExactGptContinuationReadback;
   expectedSessionCount?: number;
 }>;
 
@@ -92,8 +84,7 @@ export const buildProductTask = (
     result_contract_id: "website-agent-result",
     result_contract_version: 1,
     ...(fixture.privacySubjectRef ? { privacy_subject_ref: fixture.privacySubjectRef } : {}),
-    ...(route.relation_kind === "continuation" ? {
-      continuation_ref: "continuation:1",
+    ...(route.relation_kind === "followup" ? {
       parent_task_ref: "task:parent",
       parent_result_ref: "result:parent",
       parent_result_hash: FIXTURE_HASH,
@@ -108,22 +99,6 @@ export const buildProductTask = (
   return task as WebsiteAgentTask;
 };
 
-const initialProvider = (): GptProviderContinuation => Object.freeze({
-  provider_page_url: "https://chatgpt.com/c/parent",
-  prior_task_id: "task:parent",
-  prior_prompt_hash: FIXTURE_HASH,
-  prior_raw_output_hash: FIXTURE_HASH,
-  prior_turn_marker: `[GRASSEYE:${"b".repeat(24)}]`,
-});
-
-const callKey = (call: Omit<ProductCall, "sessionKey">): string => hashCanonical({
-  productStepId: call.productStepId,
-  callId: call.callId,
-  child: call.child,
-  actionOrdinal: call.actionOrdinal,
-  input: call.input,
-});
-
 const checkpointValue = (
   fixture: ProductFlowFixture,
   call: ProductCall,
@@ -132,19 +107,15 @@ const checkpointValue = (
 type ExecutionValueInput = {
   call: ProductCall;
   fixture: ProductFlowFixture;
-  laneOwned: boolean;
-  provider: GptProviderContinuation | null;
 };
 type ExecutionValue = Readonly<{
-  laneOwned: boolean;
-  provider: GptProviderContinuation | null;
   value: unknown;
 }>;
 
 const attachmentExecutionValue = (input: ExecutionValueInput): ExecutionValue => {
   const callInput = input.call.input as Readonly<Record<string, unknown>>;
   const files = Array.isArray(callInput.files) ? callInput.files : [];
-  return { ...input, value: { files: files.map((entry) => {
+    return { value: { files: files.map((entry) => {
     assert(entry && typeof entry === "object" && !Array.isArray(entry));
     const file = entry as Readonly<Record<string, unknown>>;
     return {
@@ -162,19 +133,17 @@ const attachmentExecutionValue = (input: ExecutionValueInput): ExecutionValue =>
 const observationExecutionValue = (input: ExecutionValueInput): ExecutionValue | null => {
   const { call, fixture } = input;
   if (call.child === "reconcile_gpt_attachment_set") return attachmentExecutionValue(input);
-  if (call.child === "reconcile_gpt_turn_submission") {
-    return { ...input, value: {
+  if (call.child === "submit_exact_gpt_turn_once") {
+    return { value: { status: "CONFIRMED", promptHash: call.input.promptHash,
+      turnMarker: call.input.turnMarker, mutationSent: true,
       canonicalConversationUrl: `https://chatgpt.com/c/${sha256(call.sessionKey).slice(7, 31)}`,
-      conversationIdentityHash: FIXTURE_HASH,
-    } };
-  }
-  if (call.child === "wait_for_stable_gpt_text") {
-    return { ...input, value: { assistantTurnId: "assistant:1", responseHash: FIXTURE_HASH } };
+      userTurnId: "conversation-turn-1" } };
   }
   if (call.child === "checkpoint_gpt_text_response") {
     const output = checkpointValue(fixture, call);
     const semanticText = JSON.stringify(output);
-    return { ...input, value: {
+    return { value: {
+      assistantTurnId: "conversation-turn-2",
       rawDomHtml: `<article>${semanticText}</article>`, rawDomHash: FIXTURE_HASH,
       semanticText, semanticTextHash: FIXTURE_HASH,
     } };
@@ -182,69 +151,14 @@ const observationExecutionValue = (input: ExecutionValueInput): ExecutionValue |
   return null;
 };
 
-const reservationExecutionValue = (input: ExecutionValueInput): ExecutionValue | null => {
-  const { call } = input;
-  if (call.child === "reserve_exact_gpt_continuation_once") {
-    return { ...input, value: {
-      continuationRef: `gpt-continuation:${String(call.input.reservationIdentityHash).slice(7)}`,
-      reservationIdentityHash: call.input.reservationIdentityHash,
-      laneVersion: call.input.laneVersion,
-      reservationFenceHash: call.input.reservationFenceHash,
-      complete: false,
-      opaqueReadGrantHash: null,
-    } };
-  }
-  if (call.child === "complete_exact_gpt_continuation_reservation_once") {
-    return { ...input, provider: call.input.provider as GptProviderContinuation,
-      value: { completionReceiptHash: call.input.completionReceiptHash } };
-  }
-  if (call.child === "fork_exact_gpt_conversation_at_checkpoint") {
-    return { ...input, value: {
-      sourceAssistantTurnId: call.input.sourceAssistantTurnId,
-      sourceCanonicalConversationUrl: call.input.sourceCanonicalConversationUrl,
-      childCanonicalConversationUrl: "https://chatgpt.com/c/formal-child",
-      sourceToChildRelationHash: FIXTURE_HASH,
-    } };
-  }
-  if (call.child === "persist_gpt_continuation") {
-    return { ...input, provider: call.input.provider as GptProviderContinuation,
-      value: { continuationRef: "continuation:created" } };
-  }
-  return null;
-};
-
-const laneExecutionValue = (input: ExecutionValueInput): ExecutionValue => {
-  const { call } = input;
-  if (call.child === "acquire_gpt_continuation_lane") {
-    assert.equal(input.laneOwned, false);
-    return { ...input, laneOwned: true, value: {
-      continuation_ref: call.input.continuationRef, lane_version: 1, provider: input.provider,
-    } };
-  }
-  if (call.child === "advance_gpt_continuation_lane") {
-    assert.equal(input.laneOwned, true);
-    return { ...input, laneOwned: false, provider: call.input.provider as GptProviderContinuation,
-      value: undefined };
-  }
-  if (call.child === "release_gpt_continuation_lane") {
-    return { ...input, laneOwned: false, value: undefined };
-  }
-  return { ...input, value: {} };
-};
-
 const executeValue = (input: ExecutionValueInput): ExecutionValue =>
-  observationExecutionValue(input) ?? reservationExecutionValue(input) ?? laneExecutionValue(input);
+  observationExecutionValue(input) ?? { value: {} };
 
 type ProductRunState = {
   calls: ProductCall[];
   completed: ProductPluginOutput | null;
-  continuationReads: unknown[];
-  factQueries: ProductFactQuery[];
-  facts: Map<string, ProductFact>;
-  laneOwned: boolean;
   physicalSubmitDispatches: number;
   generatedImageUploads: number;
-  provider: GptProviderContinuation | null;
 };
 
 const createMaterials = (root: string, fixture: ProductFlowFixture) =>
@@ -264,44 +178,19 @@ const createGptFixture = (
 ): SharedExecutionContext["gpt"] => ({
   jobId: fixture.task.job_id,
   attemptId: "attempt-1",
-  readContinuationExact: async (query) => {
-    state.continuationReads.push(query);
-    return fixture.continuationReadback ?? null;
-  },
-  readCallFacts: async (call) => {
-    state.factQueries.push(call);
-    const fact = state.facts.get(callKey(call));
-    return {
-      exactCallIdentityHash: FIXTURE_HASH,
-      mutation: fact?.mutation ? {
-        owner: "browser" as const, sourceAttemptId: "attempt-1",
-        effectScope: "provider_effect" as const, outcome: "CONFIRMED" as const,
-        terminalAt: "2020-01-01T00:00:00.000Z", targetRef: "target:fixture",
-        documentRef: "document:fixture", productStepId: call.productStepId,
-        callId: call.callId, childCapabilityId: call.child, actionOrdinal: call.actionOrdinal,
-      } : null,
-      evidence: fact ? {
-        owner: "forensics-persistence" as const, evidenceRef: fact.evidenceRef,
-        evidenceHash: FIXTURE_HASH, readbackVerified: true as const,
-        artifactRefs: call.child === "checkpoint_gpt_text_response" ? ["artifact:checkpoint"] : [],
-      } : null,
-      continuation: null,
-    };
-  },
   execute: async (call: ProductExecuteInput) => {
     const productCall = call as ProductCall;
     state.calls.push(productCall);
-    const key = callKey(productCall);
-    const prior = state.facts.get(key);
-    if (productCall.child === "submit_exact_gpt_turn_once" && !prior) state.physicalSubmitDispatches += 1;
-    const evidenceRef = prior?.evidenceRef ?? `evidence:${state.calls.length}`;
-    state.facts.set(key, { evidenceRef, mutation: productCall.child === "submit_exact_gpt_turn_once" });
-    const outcome = executeValue({
-      call: productCall, fixture, laneOwned: state.laneOwned, provider: state.provider,
-    });
-    state.laneOwned = outcome.laneOwned;
-    state.provider = outcome.provider;
-    return { value: outcome.value, evidenceRef, evidenceHash: FIXTURE_HASH } as never;
+    if (productCall.child === "submit_exact_gpt_turn_once") state.physicalSubmitDispatches += 1;
+    const evidenceRef = `evidence:${state.calls.length}`;
+    const outcome = executeValue({ call: productCall, fixture });
+    return { value: outcome.value, evidenceRef, evidenceHash: FIXTURE_HASH,
+      sourceAttemptId: "attempt-1", exactCallIdentityHash: FIXTURE_HASH,
+      artifactRefs: productCall.child === "checkpoint_gpt_text_response" ? ["artifact:checkpoint"] : [],
+      effectReceipt: productCall.child === "submit_exact_gpt_turn_once" ? {
+        effectScope: "provider_effect", outcome: "CONFIRMED", mutationOutcome: "confirmed",
+        terminalAt: "2020-01-01T00:00:00.000Z", evidenceRef, evidenceHash: FIXTURE_HASH,
+      } : null } as never;
   },
 });
 
@@ -339,25 +228,20 @@ export const exerciseProductFlow = async (
 ): Promise<Readonly<{
   calls: readonly ProductCall[];
   completed: ProductPluginOutput;
-  continuationReads: readonly unknown[];
-  factQueries: readonly ProductFactQuery[];
   physicalSubmitDispatches: number;
   generatedImageUploads: number;
 }>> => {
   const root = mkdtempSync(join(tmpdir(), "grasseye-product-acceptance-"));
   const state: ProductRunState = {
-    calls: [], completed: null, continuationReads: [], factQueries: [], facts: new Map(), laneOwned: false,
+    calls: [], completed: null,
     physicalSubmitDispatches: 0, generatedImageUploads: 0,
-    provider: fixture.task.continuation_ref ? initialProvider() : null,
   };
   try {
     await plugin.execute(fixture.task, createProductContext(root, state, fixture));
     assert(state.completed);
-    assert.equal(state.laneOwned, false, `${plugin.pluginId} must release or advance every continuation lane`);
     assert.equal(new Set(state.calls.map((call) => call.sessionKey)).size, fixture.expectedSessionCount ?? 1);
     assert.ok(state.calls.every((call) => call.sessionKey.includes(plugin.pluginId)));
     return { calls: state.calls, completed: state.completed,
-      continuationReads: state.continuationReads, factQueries: state.factQueries,
       physicalSubmitDispatches: state.physicalSubmitDispatches,
       generatedImageUploads: state.generatedImageUploads };
   } finally {
