@@ -323,26 +323,41 @@ export class ExtensionTargetAuthority {
       throw new Error("BROWSER_TARGET_DISCOVERY_UNAVAILABLE", { cause: error });
     }
     if (candidates.length === 0) throw new Error("BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT");
-    if (candidates.length !== 1
-      || candidates[0]!.type !== "page"
-      || candidates[0]!.attached !== true) {
+    const pageCandidates = candidates.filter((candidate) => candidate.type === "page");
+    if (pageCandidates.length !== 1) {
       throw new Error("BROWSER_EXACT_TARGET_UNAVAILABLE");
     }
+    const candidate = pageCandidates[0]!;
+    let attachedHere = false;
     try {
-      requireGptWebPolicyForUrl(candidates[0]!.url);
-      this.debuggerRuntime.adoptAttached(tabId);
+      requireGptWebPolicyForUrl(candidate.url);
+      if (candidate.attached) {
+        this.debuggerRuntime.adoptAttached(tabId);
+      } else {
+        try { await this.debuggerRuntime.attach(tabId); }
+        catch (error) { throw new Error("BROWSER_DEVTOOLS_CONFLICT", { cause: error }); }
+        attachedHere = true;
+      }
+      this.attachedTabId = tabId;
       const mainFrame = await readExtensionMainFrame(this.debuggerRuntime, tabId);
       requireGptWebPolicyForUrl(mainFrame.url);
       const recovered = this.targets.claimOperatorTarget(tabId);
       if (recovered.targetRef !== targetRef) throw new Error("BROWSER_EXACT_TARGET_UNAVAILABLE");
-      this.attachedTabId = tabId;
       this.parkedLoaderIds.set(targetRef, mainFrame.loaderId);
       return recovered;
     } catch (error) {
-      this.debuggerRuntime.forgetAttached(tabId);
+      if (attachedHere) {
+        try { await this.debuggerRuntime.detach(tabId); }
+        catch (detachError) {
+          throw new AggregateError([error, detachError], "BROWSER_TARGET_DETACH_FAILED");
+        }
+      } else {
+        this.debuggerRuntime.forgetAttached(tabId);
+      }
       this.attachedTabId = null;
       if (error instanceof Error && (error.message === "BROWSER_EXACT_TARGET_UNAVAILABLE"
-        || error.message === "BROWSER_ORIGIN_REJECTED")) throw error;
+        || error.message === "BROWSER_ORIGIN_REJECTED"
+        || error.message === "BROWSER_DEVTOOLS_CONFLICT")) throw error;
       throw new Error("BROWSER_EXACT_TARGET_UNAVAILABLE", { cause: error });
     }
   }

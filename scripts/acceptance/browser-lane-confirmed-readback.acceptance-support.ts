@@ -14,6 +14,7 @@ type ConfirmedReadbackScenario = Readonly<{
   confirmedFailureBinding(): BrowserExecutionBinding;
   leaseIdentities: Map<string, Readonly<{ targetRef: string; documentRef: string }>>;
   targetAcquisitionRequests: Array<string | null>;
+  physicallyPresentTargetRefs: Set<string>;
   brokerState: { targetStatus: "absent" | "claimed" };
   acquisitions: string[];
 }>;
@@ -99,7 +100,7 @@ const exerciseWalOnlyReplacementRejection = async (input: ConfirmedReadbackScena
 
 const exerciseSourceOnlyReadback = async (input: ConfirmedReadbackScenario): Promise<void> => {
   const { supervisor, openSignal, confirmedBinding, confirmedFailureBinding,
-    leaseIdentities, brokerState } = input;
+    leaseIdentities, physicallyPresentTargetRefs, targetAcquisitionRequests, brokerState } = input;
   leaseIdentities.set("job:confirmed", {
     targetRef: "target:confirmed", documentRef: "document:confirmed:1",
   });
@@ -155,6 +156,37 @@ const exerciseSourceOnlyReadback = async (input: ConfirmedReadbackScenario): Pro
   assert.equal(unrelatedResolved, true,
     "the FIFO may resume only after the same confirmed submit has a durable locator");
   await unrelatedLease.close({ reason: "confirmed-source-locator-closed" });
+
+  brokerState.targetStatus = "absent";
+  targetAcquisitionRequests.length = 0;
+  physicallyPresentTargetRefs.add("target:confirmed");
+  leaseIdentities.set("job:confirmed", {
+    targetRef: "target:confirmed", documentRef: "document:confirmed:rebuilt-extension",
+  });
+  const rebuiltSourceReadback = await supervisor.acquireJobBoundTargetLease(
+    confirmedFailureBinding(),
+    "owner:confirmed:rebuilt-extension-source-readback",
+    { signal: openSignal.signal, remainingMs: () => 60_000 },
+  );
+  assert.deepEqual(targetAcquisitionRequests, ["target:confirmed"],
+    "a rebuilt extension must reacquire only the exact confirmed-submit physical Target");
+  const rebuiltObservation = await rebuiltSourceReadback.runAtomicStep({
+    productStepId: "confirmed-step", callId: "submission-reconcile-rebuilt-extension",
+    childCapabilityId: "reconcile_gpt_turn_submission", inputHash: HASH,
+    actionOrdinal: 44, replayPolicy: "observation-only",
+  }, () => rebuiltSourceReadback.executeDomIntent({ kind: "document" }));
+  assert.deepEqual(rebuiltObservation, { observed: true },
+    "a rebuilt extension may observe its newly published Document only on the same exact physical Target");
+  await assert.rejects(rebuiltSourceReadback.navigate({
+    url: "https://chatgpt.com/c/confirmed-readback", title: "forbidden rebuilt navigation",
+  }), /BROWSER_RECONCILIATION_SCOPE_INVALID/u,
+  "rebuilt source readback must remain observation-only until the exact prompt locator closes");
+  await rebuiltSourceReadback.close({ reason: "rebuilt-extension-source-readback-observed" });
+  physicallyPresentTargetRefs.clear();
+  brokerState.targetStatus = "claimed";
+  leaseIdentities.set("job:confirmed", {
+    targetRef: "target:confirmed", documentRef: "document:confirmed:1",
+  });
 };
 
 const exerciseOriginalTargetReadback = async (input: ConfirmedReadbackScenario): Promise<void> => {

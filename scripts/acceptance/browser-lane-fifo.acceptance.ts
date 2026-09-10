@@ -210,12 +210,15 @@ try {
   const lane = Reflect.get(supervisor, "lane") as object;
   const targetAcquirer = Reflect.get(lane, "targetAcquirer") as object;
   const targetAcquisitionRequests: Array<string | null> = [];
+  const physicallyPresentTargetRefs = new Set<string>();
   assert.equal(Reflect.set(targetAcquirer, "acquireJobBoundTarget", async (
     _commandTtlMs: number,
     targetRef: string | null,
   ): Promise<void> => {
     targetAcquisitionRequests.push(targetRef);
-    if (targetRef !== null) throw new Error("BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT");
+    if (targetRef !== null && !physicallyPresentTargetRefs.has(targetRef)) {
+      throw new Error("BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT");
+    }
     brokerState.targetStatus = "claimed";
   }), true);
 
@@ -377,6 +380,7 @@ try {
     confirmedFailureBinding,
     leaseIdentities,
     targetAcquisitionRequests,
+    physicallyPresentTargetRefs,
     brokerState,
     acquisitions,
   });

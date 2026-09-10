@@ -320,6 +320,40 @@ assert.equal(debuggerMethods.filter((method) => method === "Page.bringToFront").
 await rebuiltAuthority.releaseActiveTarget(false);
 mainFrameUrlByTab.delete(3);
 
+debuggerTargets = [{
+  attached: false,
+  id: "debug-target-3",
+  tabId: 3,
+  title: "ChatGPT",
+  type: "page",
+  url: "https://chatgpt.com/c/exact-recovery",
+}, {
+  attached: false,
+  id: "worker-target-3",
+  tabId: 3,
+  title: "ChatGPT worker",
+  type: "worker",
+  url: "https://chatgpt.com/worker.js",
+}];
+mainFrameUrlByTab.set(3, "https://chatgpt.com/c/exact-recovery");
+const detachedRecoveryFrames: typeof targetFrames = [];
+const detachedRecoveryAuthority = new ExtensionTargetAuthority(
+  targetChromeApi,
+  async (kind, body) => { detachedRecoveryFrames.push({ kind, body }); },
+  () => undefined,
+);
+await detachedRecoveryAuthority.acquireJobBoundChatGptTarget(firstTargetRef);
+assert.equal(attachedTabs.filter((tabId) => tabId === 3).length, 2,
+  "a rebuilt MV3 actor must reattach the physically present exact Target when its debugger session was lost");
+assert.equal(detachedRecoveryFrames.at(-1)?.body.targetRef, firstTargetRef,
+  "debugger-session loss must retain the exact physical Target instead of creating a replacement");
+assert.equal(getTargetsCalls, 2,
+  "exact recovery must select the sole top-level page while ignoring same-tab worker targets");
+assert.equal(nextCreatedTabId, 4,
+  "reattaching the exact physical Target must not create another ChatGPT tab");
+await detachedRecoveryAuthority.releaseActiveTarget(false);
+mainFrameUrlByTab.delete(3);
+
 const discoveryFailureAuthority = new ExtensionTargetAuthority(
   targetChromeApi, async () => undefined, () => undefined,
 );

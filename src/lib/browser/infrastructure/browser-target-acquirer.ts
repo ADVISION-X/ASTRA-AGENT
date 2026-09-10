@@ -20,6 +20,7 @@ type LaneState = ReturnType<typeof createBrowserInfrastructureState>;
 export type BrowserTargetAcquisition = Readonly<{
   replacementBinding: ReconciliationBinding | null;
   confirmedProviderTargetReplaced: boolean;
+  recoveredExactTarget: boolean;
 }>;
 
 const replacementKey = (binding: ReconciliationBinding): string => [
@@ -52,14 +53,19 @@ export class BrowserTargetAcquirer {
   ): Promise<BrowserTargetAcquisition> {
     const replacementBinding = waiter.binding.kind === "production-reconciliation" ? waiter.binding : null;
     if (this.resolveBroker().currentOperatorTargetStatus() !== "absent") {
-      return { replacementBinding, confirmedProviderTargetReplaced: false };
+      return { replacementBinding, confirmedProviderTargetReplaced: false, recoveredExactTarget: false };
     }
     const knownTarget = replacementBinding
       ? this.confirmedReadbackReplacementTargets.get(replacementKey(replacementBinding)) ?? null : null;
     const ttl = Math.min(waiter.binding.commandTtlMs, waiter.remainingMs());
+    const requestedTargetRef = knownTarget ?? recovery?.targetRef ?? null;
     try {
-      await this.acquireJobBoundTarget(ttl, knownTarget ?? recovery?.targetRef ?? null);
-      return { replacementBinding, confirmedProviderTargetReplaced: false };
+      await this.acquireJobBoundTarget(ttl, requestedTargetRef);
+      return {
+        replacementBinding,
+        confirmedProviderTargetReplaced: false,
+        recoveredExactTarget: requestedTargetRef !== null,
+      };
     } catch (error) {
       const targetAbsent = error instanceof Error
         && error.message === "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT";
@@ -70,7 +76,7 @@ export class BrowserTargetAcquirer {
         && recovery.effectScope === "provider_effect" && targetAbsent;
       if (!replaceable) throw error;
       await this.acquireJobBoundTarget(Math.min(waiter.binding.commandTtlMs, waiter.remainingMs()), null);
-      return { replacementBinding, confirmedProviderTargetReplaced: true };
+      return { replacementBinding, confirmedProviderTargetReplaced: true, recoveredExactTarget: false };
     }
   }
 
