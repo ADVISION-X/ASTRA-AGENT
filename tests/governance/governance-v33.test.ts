@@ -115,13 +115,21 @@ test('mother specification version identity is fixed to the actual header', () =
   assert.equal(motherSpecIdentityValid(`moved\n${source}`), false);
 });
 
-test('production deletion requires one baseline Owner and current-task authorization', () => {
+test('production deletion requires current-task authorization and rejects ambiguous baseline Owners', () => {
   const registry = buildRegistry();
   const deletion = [{ status: 'D', path: 'scripts/audit/governance.ts' }];
   assert.throws(() => assertProductionDeleteAuthorization(deletion, registry, false),
     (error: unknown) => error instanceof GovernanceError && error.code === 'UNAUTHORIZED_PRODUCTION_DELETE');
   assert.doesNotThrow(() => assertProductionDeleteAuthorization(deletion, registry, true));
-  assert.throws(() => assertProductionDeleteAuthorization([{ status: 'D', path: 'unowned-production.ts' }], registry, true),
+  assert.doesNotThrow(() => assertProductionDeleteAuthorization(
+    [{ status: 'D', path: 'unowned-production.ts' }], registry, true,
+  ));
+  const owner = registry.domains.find((domain) => domain.ownedPaths.includes('scripts/audit/governance.ts'))!;
+  const ambiguous = { ...registry, domains: [
+    ...registry.domains,
+    { ...owner, capabilityDomain: `${owner.capabilityDomain}-duplicate` },
+  ] };
+  assert.throws(() => assertProductionDeleteAuthorization(deletion, ambiguous, true),
     (error: unknown) => error instanceof GovernanceError && error.code === 'UNAUTHORIZED_PRODUCTION_DELETE');
   assert.doesNotThrow(() => assertProductionDeleteAuthorization([{ status: 'D', path: 'tests/deleted.test.ts' }], registry, false));
 });
