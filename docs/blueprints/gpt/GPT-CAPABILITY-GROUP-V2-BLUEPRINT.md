@@ -1,13 +1,13 @@
-# GPT 能力组 V31 施工图
+# GPT 能力组 V32 施工图
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "gpt-capability-group-v31",
+  "blueprintId": "gpt-capability-group-v32",
   "status": "active",
   "owner": "gpt",
   "lawIds": [
-    "LAW-GPT-001-V38"
+    "LAW-GPT-001-V39"
   ],
   "contractRefs": [],
   "dependencyEdges": [
@@ -24,6 +24,8 @@
 `gpt` 只拥有 GPT Provider 的 28 个原子 Child、对应局部合同、Browser Authority 调用、直接后置证明和 typed result：二十二个 Provider 页面语义 Child、六个 continuation transaction Child。十二个 Product Plugin 各自直接拥有 Child 顺序、分支、重复、跳过、Prompt 语义、精确模型、requested reasoning tier、selection policy 和结果组装；模型选择完成后重新确保 execution profile 打开、再执行 Product 冻结的推理要求，也属于每个 Product 自己的显式顺序。
 
 V26 已冻结 28 个 Child 的公开身份、物理隔离与局部合同；V28 已把 `checkpoint_gpt_generated_image` 从静默媒体 checkpoint 收敛为唯一 Browser-owned typed compound mutation：固定点击一次承载已冻结语义主图的可交互图片容器，再点击同一图片查看器内唯一 `button[aria-label='保存']`，并等待 Browser 原生下载完成；两个依赖输入共用一个 exact call、一个 WAL row、一个 terminal receipt 与最终媒体同一性后置。分享菜单不是下载入口。其它 Child 的 mutation 配额不变。该 Child 的直接前驱核验继续收敛到现役 continuation 唯一真相：直接前驱 text checkpoint 保留自己的 turn marker、prompt hash 与 assistant turn，当前图片 turn 必须与它位于同一 canonical conversation 且 assistant turn ordinal 精确相差 2。页面同一次 coherent observation 还必须证明前驱 text assistant turn 的 semantic text hash 与 receipt 相同；不得反向要求前驱 receipt 冒充当前图片 turn。V29 把所有 mutation 的标签交互就绪收敛到 Browser Authority：GPT Child 不接收或选择 tabId，不调用 `tabs.update`，不聚焦窗口，也不建立第二 precondition、WAL 或恢复链。V30 进一步要求现有第三份 `agent-generated-image-receipt.v1`、成功态 Forensics 安全投影与 task-exact completed-result replay 全部绑定并回读同一 Product-safe Browser 下载事实；不新增第四 artifact、Website 字段或第二证据库。V30 继续保留 V25 已冻结的三步 fork 页面接管、`/c/WEB:<opaque>` 瞬时 route 以及 execution profile 的 PRO/PLUS、0..2/0..4 与 exact/exact-or-observed-maximum 语义，不得借本次修改建立通用 compound action 或兼容路径。
+
+V32 将所有 Child 的流转闸门收敛为“一个业务完成判据，加至多一个不可替代安全判据”。这里计算的是能够阻断下游的独立业务事实，不是 DOM 字段数量；把多个独立事实包装成一个布尔值、helper、hash、状态名或 identity 仍按多个判据计算。canonical identity 只有在同一 Owner、同一原子 observation/transaction 产生且下游始终整体消费时才算一个判据。第三个阻断判据必须以当前消费者、删除反例、现役 readback/测试以及无更简单方案四项证明；任一缺失即物理删除，不得迁入相邻 Child、Browser postcondition、Product、测试或兼容链。
 
 ```text
 Product Plugin 的普通 TypeScript Flow
@@ -197,19 +199,19 @@ Child 自身的 bounded-wait 只保留动作闸门之后的真实条件等待和
 
 ### 3.1 页面实证闭环
 
-页面操作分母矩阵唯一位于 `src/capabilities/gpt/page-operation-matrix.json`，归属 GPT Owner，并处于 `LAW-GPT-001-V38` 的 `src/capabilities/gpt/**` 适用范围内。质检只能从密封候选读取该矩阵；不得从工作树外读回、复制第二份矩阵或建立兼容查找路径。
+页面操作分母矩阵唯一位于 `src/capabilities/gpt/page-operation-matrix.json`，归属 GPT Owner，并处于 `LAW-GPT-001-V39` 的 `src/capabilities/gpt/**` 适用范围内。质检只能从密封候选读取该矩阵；不得从工作树外读回、复制第二份矩阵或建立兼容查找路径。
 
 二十二个页面 Child 继续只在各自现有 handler、合同和 Browser typed command 内闭合，不新增 Child、公共 selector registry、第二 observation、第二存储或质量裁决。当前真实页面实证要求以下直接约束：
 
 - `checkpoint_gpt_generated_image` 必须先证明直接前驱 text checkpoint 与当前图片 turn 属于同一 canonical conversation，且前驱 assistant turn ordinal + 2 精确等于当前图片 assistant turn ordinal；同一次 coherent observation 必须同时命中该前驱 assistant turn，并证明它的 semantic text hash 与 receipt 相同。前驱 receipt 的 turn marker、prompt hash、assistant turn 与 source checkpoint identity 必须保持前驱自身原值，严禁要求它们等于当前图片 turn 的 marker、prompt hash 或 assistant turn；字段形状正确、仅 URL 相同或仅 ordinal 相邻都不能代替完整身份闭合。闭合后才允许执行唯一 authenticated-media `delivery=visible-download` compound mutation：媒体 alt 必须精确符合 `已生成图片：<非空 NFC 标题>`；在当前 assistant turn 内点击承载冻结语义媒体的唯一可交互图片容器，证明唯一 `[role='dialog']` 图片查看器的 aria-label 精确等于从媒体 alt 去掉一次固定前缀所得标题，再点击其中唯一 `button[aria-label='保存']`；Browser 必须观察同一主 frame 的唯一原生下载开始与完成事件、相同完成字节数，最后重新取得并证明同一媒体 hash。两次点击只对应一个 exact call、一个 WAL row、一个 terminal receipt；同一 WAL row 持久绑定 0..2 次物理输入、download-guid hash 与完成事实，任一部分失败不得重放。现有第三份 `agent-generated-image-receipt.v1` 必须绑定并回读 exact call identity、Product-safe Browser evidence ref/hash、Browser/mutation outcome、唯一原生下载 guid hash/完成字节事实与媒体 content identity；成功态 safe projection 和 task-exact replay 都必须逐项匹配，不能只在失败态保存 `browser_fact` 或只验证三份文件存在。
 - `checkpoint_gpt_text_response` 的 exact assistant turn 专用 reply 必须携带并核对产生 turn 邻接事实的同一 `observationRevisionHash`；不得把一条列表 observation 与另一 revision 的完整 DOM/semantic reply 拼成 checkpoint。
 - `close_gpt_execution_profile` 必须在关闭前证明当前 trigger 与唯一 popup 的 owner relation，关闭后的同一直接后置必须证明该 popup 缺席、trigger collapsed 且唯一 composer 未被遮挡并可操作；全局 `popup=0` 单独不能成功。
-- `focus_exact_gpt_conversation` 导航或零导航后都必须在同一 fresh coherent packet 中证明 canonical URL、目标 marker、该 marker 的 exact user turn 与 prompt hash；URL 相等不是 conversation identity。
+- `focus_exact_gpt_conversation` 只负责至多一次导航，并以 Browser fresh currentUrl 精确等于 Product 冻结 canonical URL 作为唯一业务完成判据；Target/current Document 未漂移继续由 Browser typed command 保证。它不读取 composer、marker、prompt/response turn，也不在 Browser 2500ms 总闸门后增加固定或条件计时链。完整 conversation identity 只由紧随其后的 `verify_gpt_conversation_identity` 证明。
 - `open_gpt_attachment_control` 必须在唯一 composer form scope 内确认唯一可见附件入口，并只在唯一活动菜单内核对唯一精确“从电脑上传”叶子；不得要求真实页面未保证的 `aria-expanded`、`aria-controls`、`aria-labelledby` 或附件 trigger/menu owner relation。`open_gpt_checkpoint_actions_menu` 必须把第一层菜单及“打开新分支”叶子绑定 exact source-turn trigger；`open_gpt_fork_destination_menu` 必须把第二层菜单及“分支到新聊天”叶子绑定前一层 source-bound 入口。页面全局唯一菜单不能代替后二者的 owner relation。
 - `open_gpt_execution_profile` 必须以同一 coherent packet 证明 trigger 与 popup 的 `aria-labelledby` owner relation；owner 不等时零 mutation 失败。`open_gpt_model_selector_v2` 必须保留 Product 冻结的 `modelDisplayName`，只有 active advanced panel 内该 exact radio 已唯一 hydration 才能成功。
 - `select_exact_gpt_model_v2` 的唯一 Browser mutation reply 必须把动作目标的稳定 identity、exact model name 与动作后的 `aria-checked=true` 绑定，同时保留现役 popup/simple/advanced 收束事实；不得用面板折叠单独冒充模型已选中，也不得补第二次点击或第二次 DOM 读回。
-- `reconcile_gpt_turn_submission` 必须先核对现役 confirmed-submit receipt 的 exact call identity、turn marker 与 prompt hash，再接受同一 coherent packet 中的 exact user turn 和 durable canonical URL；返回的 conversation identity 不能自行补造未核对的 marker。
-- `submit_exact_gpt_turn_once` 的“相同 user turn 已存在”零动作成功分支，除 URL、marker、prompt 与唯一 turn 外，还必须在同一 coherent packet 证明 composer exact empty 且待提交附件为零；残留 draft 或 attachment 必须失败关闭。
+- `reconcile_gpt_turn_submission` 必须先核对现役 confirmed-submit receipt 的 exact call identity、turn marker 与 prompt hash，再以同一 coherent packet 中的 exact user turn + durable canonical URL 组成唯一 submission locator；receipt 匹配是唯一安全判据。composer 或附件清理不得成为 locator 成功门，返回的 conversation identity 不能自行补造未核对的 marker。
+- `submit_exact_gpt_turn_once` 的唯一业务完成判据是 exact rendered prompt 对应 user turn 唯一出现，唯一安全判据是同一 exact provider effect 的 Browser terminal receipt。“相同 user turn 已存在”的零动作分支同样只接受唯一 exact turn 并绝不重提；composer 清空、附件清空、永久 URL、Assistant hydration 或其它页面清理事实只可诊断，不得否认已经发生的提交或制造重做资格。
 - `verify_gpt_conversation_identity` 必须把 canonical URL、marker、exact user prompt、相邻 assistant response 与最终 identity 绑定同一 observation revision；不同 revision 的 turn 列表和完整 assistant 读取不能拼成成功。
 - `wait_for_stable_gpt_text` 与 `wait_for_stable_gpt_image` 的输入必须包含 `reconcile_gpt_turn_submission` 返回的 required `conversationIdentityHash`。每次首次 probe、park/reacquire 与跨 URL 导航后的 fresh probe，都必须用 `canonical URL + turnMarker + observed userTurnId + promptHash` 重算并核对该 identity，再接受紧邻 assistant；只核对 prompt hash 不合格。十二个 Product 调用方必须在同一删除式切换中传递该 required 字段，不保留 optional、默认、旧输入或兼容分支。
 - `reconcile_gpt_attachment_set`、`wait_for_stable_gpt_text` 与 `wait_for_stable_gpt_image` 还必须识别各自真实页面 terminal error，并在同一 coherent packet 中立即 typed fail-close；选择器和机械特征只有取得当前候选的真实 Chrome fresh-DOM 实证后才能冻结。在实证缺失时，这三项不得猜测 selector、不得把超时冒充 terminal，也不得阻断其余已闭合 Child 的施工与验收。

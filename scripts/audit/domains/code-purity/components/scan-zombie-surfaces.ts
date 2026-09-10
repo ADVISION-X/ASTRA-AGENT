@@ -91,7 +91,7 @@ const buildZombieGraphState = (
     productionReachability,
     reachability,
     symbolGraph: buildZombieSymbolGraph(governedFiles),
-    zombieLawId: selectLawId(lawIds, "LAW-CODE-PURITY-003-V2"),
+    zombieLawId: selectLawId(lawIds, "LAW-CODE-PURITY-003-V3"),
   };
 };
 

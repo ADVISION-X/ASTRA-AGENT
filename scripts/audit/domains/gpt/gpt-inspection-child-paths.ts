@@ -37,7 +37,7 @@ export const GPT_CONVERSATION_HANDLER_PATHS = [
   gptChildHandlerPath("prepare_clean_gpt_chat"), gptChildHandlerPath("focus_exact_gpt_conversation"),
   gptChildHandlerPath("verify_gpt_conversation_identity"), gptChildHandlerPath("open_gpt_checkpoint_actions_menu"),
   gptChildHandlerPath("open_gpt_fork_destination_menu"), gptChildHandlerPath("fork_exact_gpt_conversation_at_checkpoint"),
-  ...["prepare_clean_gpt_chat", "focus_exact_gpt_conversation", "verify_gpt_conversation_identity"].flatMap((id) => [
+  ...["prepare_clean_gpt_chat", "verify_gpt_conversation_identity"].flatMap((id) => [
     gptChildFilePath(id, "observation.ts"), gptChildFilePath(id, "selectors.ts"),
   ]),
   ...["open_gpt_checkpoint_actions_menu", "open_gpt_fork_destination_menu", "fork_exact_gpt_conversation_at_checkpoint"].flatMap((id) => [

@@ -9,7 +9,7 @@
   "lawIds": [
     "LAW-CODE-PURITY-001-V6",
     "LAW-CODE-PURITY-002-V2",
-    "LAW-CODE-PURITY-003-V2"
+    "LAW-CODE-PURITY-003-V3"
   ],
   "contractRefs": [],
   "dependencyEdges": [

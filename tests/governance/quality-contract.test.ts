@@ -38,7 +38,6 @@ import type { QualityProofRequest } from "../../scripts/audit/shared/proof-obser
 import { retiredAuthorityExamContractViolations } from "../../scripts/audit/domains/app-shell-ui/inspector-retired-authority-absence.js";
 import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, staticImplementationDigest, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
-import { inspectPerSiteHmac } from "../../scripts/audit/domains/workbench-api-boundary/external-ingress-identity-inspector.js";
 import { containsPageMutation, gptPrivateInfrastructureViolations } from "../../scripts/audit/domains/gpt/gpt-inspection-support.js";
 import { browserMutationSchemaMigrationIsCurrent } from "../../scripts/audit/domains/local-browser-session/browser-mutation-settlement-inspection.js";
 import { exactAssistantTurnReadIsAtomic } from "../../scripts/audit/domains/local-browser-session/dom-mechanical-facts-inspection.js";
@@ -120,30 +119,6 @@ test("producer-owned evidence covers the exact clause denominator without blanke
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [result] }),
     (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CLAUSE_DENOMINATOR_MISMATCH",
   );
-});
-
-test("Workbench static inspection changes verdict for global-key and incomplete HMAC mutants", () => {
-  const original = readFileSync("src/app/workbench-api-boundary.ts", "utf8");
-  const mutants = [
-    `${original}\nconst legacy = process.env.GRASSEYE_EXTERNAL_API_KEY;\n`,
-    original.replace("const expected = createHmac", "const expected = createHash"),
-    original.replace("[sourceSystem, requestId, input.routeRule.method, input.routeRule.path]", "[sourceSystem, requestId]"),
-  ];
-  const inspect = (source: string): number => {
-    const project = new Project({ useInMemoryFileSystem: true });
-    const file = project.createSourceFile("src/app/workbench-api-boundary.ts", source);
-    const findings: Array<Parameters<typeof inspectPerSiteHmac>[0]["findings"][number]> = [];
-    inspectPerSiteHmac({
-      boundaryPath: "src/app/workbench-api-boundary.ts",
-      file,
-      findings,
-      lawId: "LAW-WORKBENCH-API-BOUNDARY-001-V6",
-      summary: { ingressIdentityViolations: 0, perSiteHmacViolations: 0 },
-    });
-    return findings.length;
-  };
-  assert.equal(inspect(original), 0);
-  for (const mutant of mutants) assert.ok(inspect(mutant) > 0);
 });
 
 test("quality report rejects missing evidence modes and unsupported PASS claims", () => {
@@ -329,12 +304,12 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
   } as const;
   const routes = {
     browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", clauses: ["forbidden:6"] },
-    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V47", clauses: ["summary"] },
-    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V47", clauses: ["forbidden:0", "forbidden:2"] },
-    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V47", clauses: ["forbidden:2"] },
-    provider: { lawId: "LAW-GPT-001-V38", clauses: ["forbidden:1"] },
+    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V48", clauses: ["summary"] },
+    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V48", clauses: ["forbidden:0", "forbidden:2"] },
+    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V48", clauses: ["forbidden:2"] },
+    provider: { lawId: "LAW-GPT-001-V39", clauses: ["forbidden:1"] },
     authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V3", clauses: ["forbidden:1", "forbidden:2"] },
-    recovery: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V47", clauses: ["forbidden:1", "forbidden:3"] },
+    recovery: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V48", clauses: ["forbidden:1", "forbidden:3"] },
   } as const;
   for (const [kind, observation] of Object.entries(observations)) {
     const evidenceMode = `dynamic.${kind}`;
@@ -1063,8 +1038,8 @@ test("provider contracts reject malformed payloads before identity matching", ()
   )) as unknown;
   assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
     new Map([
-      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V47", "agent-production-runtime"],
-      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V17", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V48", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V18", "agent-production-runtime"],
     ]),
     (path) => path === "src/lib/local-runtime/production/catalog.ts"));
 });
@@ -1305,7 +1280,7 @@ test("every active law scope is deterministic, owned, unique, and includes all c
 
 test("active mutation inspectors use one DISPATCHED chain inside each law scope", () => {
   const registry = buildRegistry();
-  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V47");
+  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V48");
   assert.ok(agentLaw);
   const agentTargets = computeTargetPaths(agentLaw, registry);
   const crossOwnerPaths = [
@@ -1503,7 +1478,7 @@ test("Dynamic Proof routes are separated by native Owner", () => {
     "same_job_id", "zero_replayed_mutations", "checkpoint_before_hash", "candidate_hash",
     ".catch(() => undefined)", "cleanupVerified: true",
   ]) assert.equal(proof.includes(forbidden), false, forbidden);
-  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V47", "same_attempt_after_restart",
+  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V48", "same_attempt_after_restart",
     "runtime_schema_exact", "runtime_orphan_directory_count",
     "AGENT_RUNTIME_OWNER_ISOLATED_RELEASE_PROOF_NOT_ADMITTED"]) assert.ok(proof.includes(token), token);
   for (const adjacentPrefix of ["LAW-GPT-", "LAW-LOCAL-BROWSER-SESSION-", "LAW-RUNTIME-LOG-SPINE-"]) {

@@ -28,7 +28,7 @@ import type {
 import { resolveFromRepo, toRepoPath } from "../../shared/paths.js";
 
 const domain = "workbench-api-boundary";
-const lawKey = "LAW-WORKBENCH-API-BOUNDARY-001-V6";
+const lawKey = "LAW-WORKBENCH-API-BOUNDARY-001-V7";
 const boundaryPath = "src/app/workbench-api-boundary.ts";
 const serverPath = "src/app/create-workbench-server.ts";
 const websocketUpgradePath = "src/app/workbench-browser-websocket-upgrade.ts";

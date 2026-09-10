@@ -165,13 +165,13 @@
     {
       "childCapabilityId": "reconcile_gpt_turn_submission",
       "scenarioId": "text-main",
-      "coreTargets": ["user-turn", "assistant-generation-boundary", "conversation-root"],
+      "coreTargets": ["user-turn"],
       "requiredLiveStates": ["hydrated-exact-user-turn", "submitted-turn-effect-readback"],
       "liveStateTargets": {
-        "hydrated-exact-user-turn": ["user-turn", "conversation-root"],
-        "submitted-turn-effect-readback": ["user-turn", "assistant-generation-boundary", "conversation-root"]
+        "hydrated-exact-user-turn": ["user-turn"],
+        "submitted-turn-effect-readback": ["user-turn"]
       },
-      "optionalLiveStates": ["generation-started"],
+      "optionalLiveStates": [],
       "childSpecificDerivedStates": ["submitted-turn-missing", "submitted-turn-duplicate", "submitted-turn-text-mismatch", "submission-effect-unknown"],
       "requiredInputRefs": ["production-prompt-contract", "chain-confirmed-submit-receipt"],
       "stateAssertions": {
@@ -273,12 +273,12 @@
     {
       "childCapabilityId": "focus_exact_gpt_conversation",
       "scenarioId": "focus-fork",
-      "coreTargets": ["page-root", "conversation-link-or-route", "conversation-root"],
+      "coreTargets": ["page-root"],
       "requiredLiveStates": ["root-before-navigation", "conversation-after-navigation", "already-focused"],
       "liveStateTargets": {
-        "root-before-navigation": ["page-root", "conversation-link-or-route"],
-        "conversation-after-navigation": ["page-root", "conversation-link-or-route", "conversation-root"],
-        "already-focused": ["page-root", "conversation-link-or-route", "conversation-root"]
+        "root-before-navigation": ["page-root"],
+        "conversation-after-navigation": ["page-root"],
+        "already-focused": ["page-root"]
       },
       "stateAssertions": {
         "root-before-navigation": [
@@ -297,7 +297,7 @@
       },
       "optionalLiveStates": ["navigation-loading"],
       "childSpecificDerivedStates": ["focus-landed-on-wrong-conversation", "focus-route-unavailable", "focus-document-changed-mid-read"],
-      "requiredInputRefs": ["production-task-envelope", "production-prompt-contract"]
+      "requiredInputRefs": ["production-task-envelope"]
     },
     {
       "childCapabilityId": "open_gpt_execution_profile",

@@ -22,7 +22,7 @@ import { createInspectorContextFixture } from "../audit/shared/inspector-context
 type FixtureConfig = { entryScripts: string[] };
 type ExpectedFinding = { checkId: string; fileIncludes?: string; messageIncludes?: string; symbolName?: string };
 
-const LAW_IDS = ["LAW-CODE-PURITY-001-V6", "LAW-CODE-PURITY-002-V2", "LAW-CODE-PURITY-003-V2"];
+const LAW_IDS = ["LAW-CODE-PURITY-001-V6", "LAW-CODE-PURITY-002-V2", "LAW-CODE-PURITY-003-V3"];
 const FIXTURE_ROOT = resolveFromRepo("scripts/acceptance/fixtures/code-purity-zombie-deep");
 const RUNTIME_ROOT = resolveFromRepo("tmp/code-purity-zombie-deep-runtime");
 
@@ -159,6 +159,11 @@ assert.equal(packageEntrypointConsumerScope("browser:verify", "scripts/acceptanc
 assert.equal(packageEntrypointConsumerScope("proof:local-shell-current-runtime", "scripts/audit/local-shell-proof.ts"), "verification");
 assert.equal(packageEntrypointConsumerScope("start", "src/app/server.ts"), "production");
 
+const baseLaw = readFileSync(resolveFromRepo(".github/instructions/agent-rules/基础法案.md"), "utf8");
+assert.match(baseLaw, /FROZEN-EXISTENCE-PROOF-001/u);
+assert.match(baseLaw, /当前需求、当前生产消费者、唯一 primary Owner、删除反事实以及可执行验证/u);
+assert.match(baseLaw, /解冻 FROZEN-EXISTENCE-PROOF-001/u);
+
 const productionDelete = [{ status: "D", path: "orphan-production.md" }];
 assert.doesNotThrow(() => assertProductionDeleteAuthorization(
   productionDelete, { domains: [] } as never, true,
@@ -182,4 +187,4 @@ for (const [caseName, expected] of forbidden) assert.equal(hasFinding(caseName, 
 assert.ok(runCase("zombie-to-zombie-chain").filter((finding) => finding.checkId === "code-purity/zombie-file").length >= 3);
 rmSync(RUNTIME_ROOT, { force: true, recursive: true });
 console.log("code-purity-zombie-deep-acceptance-ok");
-emitQualityProofObservation({ lawId: "LAW-CODE-PURITY-003-V2", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","summary"], locator: "acceptance:code-purity:zombie-mutant-matrix", observedValue: "required zombie mutants rejected and allowed ownership cases retained" });
+emitQualityProofObservation({ lawId: "LAW-CODE-PURITY-003-V3", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","summary"], locator: "acceptance:code-purity:zombie-mutant-matrix", observedValue: "required zombie mutants rejected, verification-only roots excluded, allowed production ownership retained, and the frozen existence proof remained exact" });

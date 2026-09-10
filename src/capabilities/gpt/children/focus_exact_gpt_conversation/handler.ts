@@ -8,31 +8,26 @@ import {
   success,
   type GptChildHandler,
 } from "../../web/child-handler.js";
-import { readConversationState } from "./observation.js";
+import { projectCoherentObservation, readCoherentObservation } from "../../web/gpt-dom-observation.js";
 import { canonicalGptConversationUrl } from "../../web/contracts/target-document.contract.js";
 
-const NAVIGATION_SETTLE_TIMEOUT_MS = 5_000;
-
-const focused = (
-  observed: Awaited<ReturnType<typeof readConversationState>>,
-  expected: string,
-): boolean => observed.currentUrl === expected
-  && observed.composerEligible === 1
-  && observed.matchingTurnCount === 1;
+const readCurrentUrl = async (browser: ReturnType<typeof requireBrowser>) => {
+  const observed = await readCoherentObservation(browser, [
+    { queryId: "document", selector: "html", maxMatches: 1, fields: [] },
+  ]);
+  return Object.freeze({
+    currentUrl: observed.currentUrl,
+    facts: projectCoherentObservation(observed, "document"),
+  });
+};
 
 export const focusExactGptConversationHandler: GptChildHandler<"focus_exact_gpt_conversation"> =
   async (intent, context) => {
-    requireExactInputKeys(intent, ["canonicalConversationUrl", "expectedPromptHash", "turnMarker"]);
+    requireExactInputKeys(intent, ["canonicalConversationUrl"]);
     const expected = canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
-    const expectedPromptHash = stringInput(intent, "expectedPromptHash");
-    if (!/^sha256:[a-f0-9]{64}$/u.test(expectedPromptHash)) {
-      throw executionFailure("failed", "GPT_CHILD_INPUT_INVALID:focus_exact_gpt_conversation:expectedPromptHash");
-    }
-    const turnMarker = stringInput(intent, "turnMarker");
     const browser = requireBrowser(context);
-    const readIdentity = () => readConversationState(browser, expectedPromptHash, turnMarker);
-    const observed = await readIdentity();
-    if (focused(observed, expected)) return success({
+    const observed = await readCurrentUrl(browser);
+    if (observed.currentUrl === expected) return success({
       value: { url: expected, state: "already-focused" },
       ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
         browserFact: null, nativeFailureCode: null }),
@@ -44,15 +39,8 @@ export const focusExactGptConversationHandler: GptChildHandler<"focus_exact_gpt_
       throw executionFailure("failed", "GPT_TRANSIENT_WEB_CONVERSATION_NAVIGATION_FORBIDDEN");
     }
     await browser.navigate({ url: expected, title: "focus exact GPT conversation" });
-    const deadline = Date.now() + NAVIGATION_SETTLE_TIMEOUT_MS;
-    let readback = await readIdentity();
-    while (!focused(readback, expected) && Date.now() < deadline) {
-      const remaining = deadline - Date.now();
-      if (remaining < 25) break;
-      await browser.wait({ durationMs: Math.max(25, Math.min(500, Math.ceil(remaining / 20))) });
-      readback = await readIdentity();
-    }
-    if (!focused(readback, expected)) {
+    const readback = await readCurrentUrl(browser);
+    if (readback.currentUrl !== expected) {
       throw executionFailure("failed", "GPT_CONVERSATION_NAVIGATION_NOT_YET_CONFIRMED");
     }
     return success({

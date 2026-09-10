@@ -406,7 +406,7 @@ const inspectSourceFile = (
 export const inspectCapabilityGovernanceProject = (
   project: InspectorContext["project"],
   includeAuthority: boolean,
-  lawId = "LAW-CAPABILITY-GOVERNANCE-001-V7",
+  lawId = "LAW-CAPABILITY-GOVERNANCE-001-V8",
   observeTypes: () => string = () => observeTypeCheckerRelations(project),
 ): { findings: ReturnType<typeof createFinding>[]; inspectedFiles: string[]; staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] } => {
   const findings: ReturnType<typeof createFinding>[] = [];
@@ -479,7 +479,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     : mode === "static.filesystem" ? ["pushMissingCapabilityFacades"]
       : mode === "static.types" ? ["inspectCapabilityFacadeTypes"]
         : ["collectCapabilityGovernanceScan"];
-  const clauses = (mode: string): string[] => mode === "static.ast" ? staticClauses(0, 1, 3, 5, 6)
+  const clauses = (mode: string): string[] => mode === "static.ast" ? staticClauses(0, 1, 3, 5, 6, 11)
     : mode === "static.dependency" ? staticForbiddenClauses(2, 4)
       : mode === "static.types" ? staticForbiddenClauses(0) : staticForbiddenClauses(3);
   const refs = (mode: string, clauses: string[]) => ({

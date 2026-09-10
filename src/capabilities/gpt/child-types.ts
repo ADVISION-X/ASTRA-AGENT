@@ -178,8 +178,6 @@ export interface GptChildInputMap {
   readonly prepare_clean_gpt_chat: Readonly<{ timeoutMs: number }>;
   readonly focus_exact_gpt_conversation: Readonly<{
     canonicalConversationUrl: string;
-    expectedPromptHash: GptHash;
-    turnMarker: string;
   }>;
   readonly verify_gpt_conversation_identity: GptConversationIdentityInput;
   readonly open_gpt_execution_profile: Readonly<{ profile: GptExecutionProfile }>;

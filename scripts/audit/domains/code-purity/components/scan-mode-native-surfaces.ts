@@ -100,7 +100,7 @@ const configuredEntrypointExists = (root: string, repoPath: string): boolean =>
 export const scanConfiguredEntrypointLiveness = (
   context: InspectorContext, lawIds: readonly string[],
 ): InspectorFinding[] => {
-  const lawId = selectLawId(lawIds, "LAW-CODE-PURITY-003-V2");
+  const lawId = selectLawId(lawIds, "LAW-CODE-PURITY-003-V3");
   return Object.entries(readPackage(context).scripts ?? {}).flatMap(([name, value]) => {
     if (typeof value !== "string") return [finding(lawId, "static.config", "package.json",
       "code-purity/config-entrypoint-type", `Script ${name} has no executable string entrypoint.`)];
@@ -113,7 +113,7 @@ export const scanConfiguredEntrypointLiveness = (
 export const scanJsonRegistryLiveness = (
   context: InspectorContext, lawIds: readonly string[],
 ): InspectorFinding[] => {
-  const lawId = selectLawId(lawIds, "LAW-CODE-PURITY-003-V2");
+  const lawId = selectLawId(lawIds, "LAW-CODE-PURITY-003-V3");
   const scripts = readPackage(context).scripts ?? {};
   const required = new Map([
     ["quality:check", "scripts/audit/governance.ts"],

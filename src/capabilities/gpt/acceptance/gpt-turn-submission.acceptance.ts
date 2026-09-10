@@ -375,10 +375,10 @@ import {
   const result = await execute("submit_exact_gpt_turn_once", fixture.browser, {
     files: [approvedFile], promptHash, turnMarker: marker,
   });
-  assert.equal(result.status, "failed");
-  assert.equal(result.failureCode, "GPT_SUBMIT_EXISTING_TURN_POSTCONDITION_INVALID");
+  assert.equal(result.status, "success", result.failureCode ?? "existing exact user turn was rejected");
+  assert.equal(result.value?.mutationSent, false);
   assert.equal(fixture.physicalMutations(), 0,
-    "an existing matching turn with draft or attachment residue must not be accepted or resubmitted");
+    "an existing exact user turn must not be resubmitted because page cleanup is still pending");
 }
 
 {
@@ -388,7 +388,7 @@ import {
     if (intent.kind === "observe") {
       return coherentObservationPacket(intent, draftFacts({
         composerHash: promptHash,
-        submitted: false,
+        submitted: clicked,
         attachment: !clicked,
       }), "https://chatgpt.com/");
     }
@@ -401,14 +401,31 @@ import {
   });
   const input = Object.freeze({ files: [approvedFile], promptHash, turnMarker: marker });
   const result = await execute("submit_exact_gpt_turn_once", fixture.browser, input);
-  assert.equal(result.status, "failed");
-  assert.equal(result.failureCode, "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED");
+  assert.equal(result.status, "success", result.failureCode ?? "rendered exact user turn was rejected");
+  assert.equal(result.value?.mutationSent, true);
   assert.equal(result.proof.committedMutation, "confirmed");
   assert.equal(result.proof.browserFact?.browserOutcome, "CONFIRMED");
   assert.equal(fixture.waitDurations().length, 0,
     "submit semantic mismatch must not create a second post-mutation wait chain");
   assert.equal(fixture.physicalMutations(), 1,
-    "semantic readback failure must never repeat the Provider submit mutation");
+    "the Provider submit mutation must execute exactly once");
+}
+
+{
+  const { execute } = freshHarness();
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, draftFacts({
+      composerHash: promptHash, submitted: false, attachment: true,
+    }), "https://chatgpt.com/");
+    if (intent.kind === "click") return { postconditionVerified: true };
+    throw new Error(`UNEXPECTED_MISSING_TURN_INTENT:${intent.kind}`);
+  });
+  const input = Object.freeze({ files: [approvedFile], promptHash, turnMarker: marker });
+  const result = await execute("submit_exact_gpt_turn_once", fixture.browser, input);
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED");
+  assert.equal(result.proof.committedMutation, "confirmed");
+  assert.equal(fixture.physicalMutations(), 1, "a missing exact turn must never repeat Provider submit");
   await exerciseConfirmedSubmitFailureEvidenceReadback(result, input);
 }
 

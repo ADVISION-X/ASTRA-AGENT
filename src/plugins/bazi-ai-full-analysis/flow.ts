@@ -185,8 +185,7 @@ const forkBaseCheckpoint = async (
     await flow.execute({
       productStepId: "formal", callId: "focus-base-conversation",
       child: "focus_exact_gpt_conversation", actionOrdinal: 39,
-      input: { canonicalConversationUrl: lane.provider.provider_page_url,
-        expectedPromptHash: base.checkpoint.promptHash, turnMarker: base.checkpoint.turnMarker },
+      input: { canonicalConversationUrl: lane.provider.provider_page_url },
     });
     await flow.execute({
       productStepId: "formal", callId: "verify-base-conversation",
@@ -242,8 +241,7 @@ const prepareFormalChild = async (
   const focusChild = {
     productStepId: "formal", callId: "focus-formal-child",
     child: "focus_exact_gpt_conversation", actionOrdinal: 44,
-    input: { canonicalConversationUrl: childUrl,
-      expectedPromptHash: base.checkpoint.promptHash, turnMarker: base.checkpoint.turnMarker },
+    input: { canonicalConversationUrl: childUrl },
   } as const;
   const verifyChild = {
     productStepId: "formal", callId: "verify-formal-child-source",

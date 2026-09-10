@@ -33,7 +33,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
         "static.json": ["scanOwnerJsonAuthority"],
         "static.yaml": ["scanOwnerYamlAuthority"],
       },
-      "LAW-CODE-PURITY-003-V2": {
+      "LAW-CODE-PURITY-003-V3": {
         "static.ast": ["scanZombieAst"],
         "static.config": ["scanConfiguredEntrypointLiveness"],
         "static.dependency": ["scanZombieDependencies"],
@@ -65,9 +65,9 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
         "static.dependency": staticForbiddenClauses(1, 2, 4, 5), "static.config": staticForbiddenClauses(0, 3),
         "static.json": staticForbiddenClauses(0, 3), "static.yaml": staticForbiddenClauses(0),
       }),
-      lawResult("LAW-CODE-PURITY-003-V2", {
+      lawResult("LAW-CODE-PURITY-003-V3", {
         "static.filesystem": staticForbiddenClauses(0), "static.ast": staticClauses(0),
-        "static.dependency": staticForbiddenClauses(1, 2, 3), "static.config": staticForbiddenClauses(0, 3),
+        "static.dependency": staticForbiddenClauses(1, 2, 3, 4), "static.config": staticForbiddenClauses(0, 3),
         "static.json": staticForbiddenClauses(1, 3),
       }),
     ], inspectedFiles: evaluation.inspectedFiles,

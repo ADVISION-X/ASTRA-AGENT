@@ -37,8 +37,6 @@ const CONVERSATION_PATHS = [
   childHandlerPath("fork_exact_gpt_conversation_at_checkpoint"),
   childFilePath("prepare_clean_gpt_chat", "observation.ts"),
   childFilePath("prepare_clean_gpt_chat", "selectors.ts"),
-  childFilePath("focus_exact_gpt_conversation", "observation.ts"),
-  childFilePath("focus_exact_gpt_conversation", "selectors.ts"),
   childFilePath("verify_gpt_conversation_identity", "observation.ts"),
   childFilePath("verify_gpt_conversation_identity", "selectors.ts"),
   childFilePath("open_gpt_checkpoint_actions_menu", "observation.ts"),

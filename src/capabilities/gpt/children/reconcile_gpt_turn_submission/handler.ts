@@ -12,9 +12,7 @@ import {
 import {
   canonicalConversationOrNull,
   composerHashInput,
-  gptComposerHash,
   readDraftState,
-  requireExactComposer,
   submissionMatch,
 } from "./observation.js";
 import { gptConversationIdentityHash } from "../../web/conversation-identity.js";
@@ -62,13 +60,12 @@ export const reconcileGptTurnSubmissionHandler: GptChildHandler<"reconcile_gpt_t
     do {
       try {
         const observed = await readDraftState(browser);
-        requireExactComposer(observed);
         const matching = submissionMatch(observed, expectedPromptHash);
         if (matching.length > 1) {
           throw executionFailure("failed", `GPT_SUBMITTED_TURN_COUNT_${matching.length}`);
         }
         const canonicalConversationUrl = canonicalConversationOrNull(observed.currentUrl);
-        if (matching.length === 1 && observed.composerHash === gptComposerHash("") && canonicalConversationUrl) {
+        if (matching.length === 1 && canonicalConversationUrl) {
           const userTurnId = matching[0]!.testId;
           return success({
             value: { turnMarker: marker, userTurnId, canonicalConversationUrl, promptHash: expectedPromptHash,

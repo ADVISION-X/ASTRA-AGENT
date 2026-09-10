@@ -7,7 +7,7 @@
   "status": "active",
   "owner": "workbench-api-boundary",
   "lawIds": [
-    "LAW-WORKBENCH-API-BOUNDARY-001-V6"
+    "LAW-WORKBENCH-API-BOUNDARY-001-V7"
   ],
   "contractRefs": [],
   "dependencyEdges": [

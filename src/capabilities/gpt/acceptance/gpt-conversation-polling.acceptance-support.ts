@@ -154,7 +154,7 @@ import {
     throw new Error(`UNEXPECTED_TRANSIENT_FOCUS_INTENT:${intent.kind}`);
   });
   const result = await execute("focus_exact_gpt_conversation", fixture.browser, {
-    canonicalConversationUrl: transientUrl, expectedPromptHash: promptHash, turnMarker: marker,
+    canonicalConversationUrl: transientUrl,
   });
   assert.equal(result.status, "failed");
   assert.equal(result.failureCode, "GPT_TRANSIENT_WEB_CONVERSATION_NAVIGATION_FORBIDDEN");

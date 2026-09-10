@@ -1,5 +1,5 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
@@ -22,6 +22,11 @@ const recoveryCheckpointBody = (input: Parameters<typeof baseRecoveryCheckpointB
   ...baseRecoveryCheckpointBody(input), worker_session_id: "session:recovery", lease_version: 2,
 });
 try {
+  const activeLaw = await readFile(
+    new URL("../../.github/instructions/agent-rules/功能法案.md", import.meta.url), "utf8",
+  );
+  assert.match(activeLaw, /TOMBSTONE-RUNTIME-LEGACY-MIGRATION-001/u);
+  assert.match(activeLaw, /解冻 TOMBSTONE-RUNTIME-LEGACY-MIGRATION-001/u);
   const dataDirectory = path.join(temporary, "binary-store");
   await mkdir(dataDirectory);
   let store = new ProductionRuntimeStore(dataDirectory);
@@ -491,9 +496,9 @@ try {
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V16",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V17",
     evidenceMode,
-    clauses: ["forbidden:0", "forbidden:1", "summary"],
+    clauses: ["forbidden:0", "forbidden:1", "forbidden:3", "summary"],
     locator: `acceptance:agent-production-runtime:sqlite-authority:${evidenceMode}`,
     observedValue: "six-table SQLite authority exact schema and data drift failed closed without automatic migration while verified missing mismatch and corrupt authority states remained distinct",
   });

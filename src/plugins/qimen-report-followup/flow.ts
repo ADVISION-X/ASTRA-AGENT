@@ -359,8 +359,7 @@ const acquireContinuation = async (
     if (lane.continuation_ref !== task.continuation_ref) fail("PRODUCT_CONTINUATION_LANE_DRIFT");
     await flow.execute({
       productStepId: stepId, callId: "conversation-focus", child: "focus_exact_gpt_conversation",
-      actionOrdinal: 2, input: { canonicalConversationUrl: lane.provider.provider_page_url,
-        expectedPromptHash: lane.provider.prior_prompt_hash, turnMarker: lane.provider.prior_turn_marker },
+      actionOrdinal: 2, input: { canonicalConversationUrl: lane.provider.provider_page_url },
     });
     await flow.execute({
       productStepId: stepId, callId: "conversation-verify", child: "verify_gpt_conversation_identity",

@@ -87,14 +87,23 @@ const scopedProductCallFactFailures = (
   factIds: readonly string[],
 ): string[] => {
   const current = candidates.filter((candidate) => productCallCurrentForChild(child, candidate));
-  if (current.length === 0) return ["product-call-current-projection"];
+  const currentFactIds = new Set((Array.isArray(child.evidenceDemand.facts)
+    ? child.evidenceDemand.facts : []).flatMap((fact) => {
+    const value = record(fact)?.factId;
+    return typeof value === "string" ? [value] : [];
+  }));
+  const unknownFacts = factIds.filter((factId) => !currentFactIds.has(factId));
+  if (unknownFacts.length > 0) return unknownFacts.map((factId) => `current-demand-missing:${factId}`);
+  const scoped = current.length > 0 ? current : candidates;
   if (current.some(({ call }) => callHasCompleteDomEvidence(call))) return [];
   const failures: string[] = [];
   for (const factId of factIds) {
-    const observed = current.some(({ run, call }) => {
+    const observed = scoped.some(({ run, call }) => {
       const context = record(run.captureContext)!;
+      const domEvidence = record(call.domEvidence);
+      if (!Array.isArray(context?.sceneManifest) || !Array.isArray(domEvidence?.specimens)) return false;
       const scenes = (context.sceneManifest as unknown[]).flatMap((entry) => record(entry) ? [record(entry)!] : []);
-      const specimens = (record(call.domEvidence)!.specimens as unknown[])
+      const specimens = (domEvidence.specimens as unknown[])
         .flatMap((entry) => record(entry) ? [record(entry)!] : []);
       return specimens.some((specimen) => {
         const scene = scenes.find((entry) => entry.sceneId === specimen.sourceSceneId);

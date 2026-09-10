@@ -185,7 +185,7 @@ await exerciseBrowserDispatchedEvidenceReadback();
     throw new Error(`UNEXPECTED_FOCUS_INTENT:${intent.kind}`);
   });
   const result = await execute("focus_exact_gpt_conversation", fixture.browser, {
-    canonicalConversationUrl: conversationUrl, expectedPromptHash: promptHash, turnMarker: marker,
+    canonicalConversationUrl: conversationUrl,
   });
   assert.equal(result.status, "success", result.failureCode ?? "exact conversation focus failed");
   assert.equal(result.value?.url, conversationUrl);
@@ -194,55 +194,38 @@ await exerciseBrowserDispatchedEvidenceReadback();
 
 {
   const { execute } = freshHarness();
-  let simulatedNow = 0;
   let reads = 0;
   const fixture = fakeBrowser((intent) => {
     if (intent.kind === "observe") {
       reads += 1;
-      return coherentObservationPacket(intent, conversationFacts({ promptHash }), reads < 4
-        ? "https://chatgpt.com/" : conversationUrl);
+      return coherentObservationPacket(intent, {}, "https://chatgpt.com/");
     }
     throw new Error(`UNEXPECTED_SETTLING_FOCUS_INTENT:${intent.kind}`);
-  }, { onWait: (durationMs) => { simulatedNow += durationMs; } });
-  const nativeDateNow = Date.now;
-  Date.now = () => simulatedNow;
-  try {
-    const result = await execute("focus_exact_gpt_conversation", fixture.browser, {
-      canonicalConversationUrl: conversationUrl, expectedPromptHash: promptHash, turnMarker: marker,
-    });
-    assert.equal(result.status, "success", result.failureCode ?? "settling navigation did not converge");
-    assert.equal(reads, 4, "GPT must poll only until the exact conversation identity is stable");
-    assert.ok(simulatedNow > 0 && simulatedNow < 5_000,
-      "the bounded post-navigation observation window must stop as soon as identity is stable");
-    assert.equal(fixture.physicalMutations(), 1, "navigation readback failure must not repeat navigation");
-  } finally {
-    Date.now = nativeDateNow;
-  }
+  });
+  const result = await execute("focus_exact_gpt_conversation", fixture.browser, {
+    canonicalConversationUrl: conversationUrl,
+  });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "GPT_CONVERSATION_NAVIGATION_NOT_YET_CONFIRMED");
+  assert.equal(reads, 2, "focus reads currentUrl once before and once after its only navigation");
+  assert.equal(fixture.waitDurations().length, 0, "focus must not own a second settlement timer");
+  assert.equal(fixture.physicalMutations(), 1, "URL readback failure must never repeat navigation");
 }
 
 {
   const { execute } = freshHarness();
-  let simulatedNow = 0;
   const fixture = fakeBrowser((intent) => {
     if (intent.kind === "observe") {
-      return coherentObservationPacket(intent, conversationFacts({ promptHash }), "https://chatgpt.com/");
+      return coherentObservationPacket(intent, {}, conversationUrl);
     }
-    throw new Error(`UNEXPECTED_NEVER_SETTLING_FOCUS_INTENT:${intent.kind}`);
-  }, { onWait: (durationMs) => { simulatedNow += durationMs; } });
-  const nativeDateNow = Date.now;
-  Date.now = () => simulatedNow;
-  try {
-    const result = await execute("focus_exact_gpt_conversation", fixture.browser, {
-      canonicalConversationUrl: conversationUrl, expectedPromptHash: promptHash, turnMarker: marker,
-    });
-    assert.equal(result.status, "failed");
-    assert.equal(result.failureCode, "GPT_CONVERSATION_NAVIGATION_NOT_YET_CONFIRMED");
-    assert.ok(simulatedNow >= 4_975 && simulatedNow <= 5_000,
-      "an unstable conversation must fail within one minimum wait slice of the bounded deadline");
-    assert.equal(fixture.physicalMutations(), 1, "the bounded observation window must never repeat navigation");
-  } finally {
-    Date.now = nativeDateNow;
-  }
+    throw new Error(`URL_ONLY_FOCUS_MUST_NOT_MUTATE:${intent.kind}`);
+  });
+  const result = await execute("focus_exact_gpt_conversation", fixture.browser, {
+    canonicalConversationUrl: conversationUrl,
+  });
+  assert.equal(result.status, "success", result.failureCode ?? "URL-only focus failed");
+  assert.equal(result.value?.state, "already-focused");
+  assert.equal(fixture.physicalMutations(), 0);
 }
 
 {

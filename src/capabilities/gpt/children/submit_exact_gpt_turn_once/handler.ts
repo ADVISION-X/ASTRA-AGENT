@@ -10,11 +10,9 @@ import {
   type GptChildHandler,
 } from "../../web/child-handler.js";
 import {
-  canonicalConversationOrNull,
   composerFilesInput,
   composerHashInput,
   exactAttachmentSet,
-  gptComposerHash,
   readDraftState,
   requireExactComposer,
   submissionMatch,
@@ -37,10 +35,7 @@ const submissionReady = (
 const submissionComplete = (
   observed: Awaited<ReturnType<typeof readDraftState>>,
   promptHash: `sha256:${string}`,
-): boolean => submissionMatch(observed, promptHash).length === 1
-  && observed.composerHash === gptComposerHash("")
-  && exactAttachmentSet(observed, [])
-  && canonicalConversationOrNull(observed.currentUrl) !== null;
+): boolean => submissionMatch(observed, promptHash).length === 1;
 
 export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_turn_once"> =
   async (intent, context) => {
@@ -56,13 +51,11 @@ export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_tu
       throw executionFailure("failed", `GPT_SUBMITTED_TURN_COUNT_${alreadySubmitted.length}`);
     }
     if (alreadySubmitted.length === 1) {
-      if (canonicalConversationOrNull(observed.currentUrl)
-        && observed.composerHash === gptComposerHash("") && exactAttachmentSet(observed, [])) return success({
+      return success({
         value: { promptHash, mutationSent: false },
         ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
           browserFact: null, nativeFailureCode: null }),
       });
-      throw executionFailure("failed", "GPT_SUBMIT_EXISTING_TURN_POSTCONDITION_INVALID");
     }
     if (context.mutationMode === "readback") throw executionFailure("failed", "GPT_TURN_SUBMISSION_PENDING");
     if (!submissionReady(observed, promptHash, files)) {
@@ -74,7 +67,6 @@ export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_tu
         expectedMatches: observed.userTurns.length + 1, timeoutMs: 5_000 },
     });
     const readback = await readDraftState(browser, "postcondition");
-    requireExactComposer(readback);
     if (!submissionComplete(readback, promptHash)) {
       throw executionFailure("failed", "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED");
     }

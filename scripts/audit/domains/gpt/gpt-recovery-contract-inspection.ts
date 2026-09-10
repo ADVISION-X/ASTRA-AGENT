@@ -27,7 +27,6 @@ const CONVERSATION_PATHS = [
   childHandlerPath("open_gpt_fork_destination_menu"),
   childHandlerPath("fork_exact_gpt_conversation_at_checkpoint"),
   childFilePath("prepare_clean_gpt_chat", "observation.ts"),
-  childFilePath("focus_exact_gpt_conversation", "observation.ts"),
   childFilePath("verify_gpt_conversation_identity", "observation.ts"),
   childFilePath("open_gpt_checkpoint_actions_menu", "observation.ts"),
   childFilePath("open_gpt_fork_destination_menu", "observation.ts"),
@@ -221,21 +220,33 @@ export const inspectGptDirectMutationSettlementContract = (
   findings, finding, message: (required) => `The composer direct Browser-owned fresh read is missing ${required}.` });
   inspectMissing({ source: conversation, required: [
     "const readback = await readConversationState(browser);",
-    "const readback = await readIdentity();",
+    "const readback = await readCurrentUrl(browser);",
+    'queryId: "document", selector: "html", maxMatches: 1, fields: []',
   ], checkId: "gpt/browser-owned-post-action-fresh-read", filePath: CONVERSATION_HANDLER_PATH,
   findings, finding, message: (required) => `The conversation direct Browser-owned fresh read is missing ${required}.` });
   inspectMissing({ source: contract, required: [
     'reconcile_gpt_draft: { childCapabilityId: "reconcile_gpt_draft", contractVersion: 4',
     'reconcile_gpt_draft.input.v1", requiredTargetKind: "chatgpt", allowedDocumentTransition: "forbidden", profile: "DOM_OBSERVATION", boundedWait: false',
     'prepare_clean_gpt_chat: { childCapabilityId: "prepare_clean_gpt_chat", contractVersion: 4',
-    'focus_exact_gpt_conversation: { childCapabilityId: "focus_exact_gpt_conversation", contractVersion: 5',
+    'focus_exact_gpt_conversation: { childCapabilityId: "focus_exact_gpt_conversation", contractVersion: 6',
     'write_exact_gpt_prompt: { childCapabilityId: "write_exact_gpt_prompt", contractVersion: 4',
-    'submit_exact_gpt_turn_once: { childCapabilityId: "submit_exact_gpt_turn_once", contractVersion: 4',
+    'submit_exact_gpt_turn_once: { childCapabilityId: "submit_exact_gpt_turn_once", contractVersion: 5',
+    'reconcile_gpt_turn_submission: { childCapabilityId: "reconcile_gpt_turn_submission", contractVersion: 5',
     "the Browser-owned post-action fresh read proves",
   ], checkId: "gpt/browser-owned-post-action-read-contract", filePath: CONTRACT_PATH,
   findings, finding, message: (required) => `The Browser-owned post-action read contract is missing ${required}.` });
   if (/unsettled for 2500ms|direct-mutation-settlement/gu.test(contract)) findings.push(finding(
     "gpt/browser-owned-post-action-read-contract", CONTRACT_PATH,
     "The GPT contract must not retain the retired Child-owned 2500ms settlement chain.",
+  ));
+  if (/NAVIGATION_SETTLE_TIMEOUT_MS|readConversationState\(browser, expectedPromptHash, turnMarker\)/gu
+    .test(conversation)) findings.push(finding(
+    "gpt/focus-url-only-boundary", childHandlerPath("focus_exact_gpt_conversation"),
+    "Conversation focus must read only currentUrl and must not retain a second semantic settlement chain.",
+  ));
+  if (/GPT_SUBMIT_EXISTING_TURN_POSTCONDITION_INVALID|observed\.composerHash === gptComposerHash\(""\)|exactAttachmentSet\(observed, \[\]\)/gu
+    .test(handler)) findings.push(finding(
+    "gpt/submission-one-primary-one-safety", childHandlerPath("submit_exact_gpt_turn_once"),
+    "Submission recognition must not be blocked by composer or attachment cleanup.",
   ));
 };

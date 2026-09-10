@@ -365,8 +365,7 @@ export const focusContinuation = async (
     await flow.execute({
       sessionKey: "", productStepId: stepId, callId: "conversation-focus",
       child: "focus_exact_gpt_conversation", actionOrdinal: ordinals[1],
-      input: { canonicalConversationUrl: lane.provider.provider_page_url,
-        expectedPromptHash: lane.provider.prior_prompt_hash, turnMarker: lane.provider.prior_turn_marker },
+      input: { canonicalConversationUrl: lane.provider.provider_page_url },
     });
     await flow.execute({
       sessionKey: "", productStepId: stepId, callId: "conversation-verify",
