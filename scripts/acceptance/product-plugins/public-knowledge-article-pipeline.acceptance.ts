@@ -3,8 +3,12 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
-import { typedExecutionFailure } from "../../../src/lib/execution-failure.js";
+import { executionFailure, typedExecutionFailure } from "../../../src/lib/execution-failure.js";
 import { postSubmitReadbackReceipt } from "../../../src/mediator/product-plugin-contract.js";
+import { carryProductSafeConfirmedProviderSubmitReceipt } from
+  "../../../src/capabilities/gpt/execution-fault.js";
+import { executeAndReadConfirmedSubmit } from
+  "../../../src/plugins/public-knowledge-article-pipeline/seo-submit-readback.js";
 import { productionRoutePolicy } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { browserProviderEffectIdentityHash } from
   "../../../src/lib/browser/exact-target/browser-command-postcondition.js";
@@ -32,6 +36,28 @@ assert(plugin);
 const produceRoute = productionRoutePolicy("public_knowledge_article_pipeline", "produce_article");
 const hashText = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
+
+const doubleFailureReceipt = Object.freeze({
+  exactCallIdentityHash: hashText("double-failure-call"),
+  terminalAt: new Date().toISOString(),
+  evidenceRef: "forensics:double-failure-submit",
+  evidenceHash: hashText("double-failure-evidence"),
+});
+await assert.rejects(
+  () => executeAndReadConfirmedSubmit({
+    execute: async () => {
+      throw carryProductSafeConfirmedProviderSubmitReceipt(
+        executionFailure("failed", "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED"),
+        doubleFailureReceipt,
+      );
+    },
+    readFacts: async () => { throw new Error("FORENSICS_READBACK_UNAVAILABLE"); },
+  }),
+  (error: unknown) => typedExecutionFailure(error)?.code
+    === "POST_SUBMIT_READBACK_FAULT:GPT_TURN_SUBMISSION_POSTCONDITION_FAILED"
+    && postSubmitReadbackReceipt(error)?.evidenceRef === doubleFailureReceipt.evidenceRef,
+  "a confirmed submit receipt must survive when execution and the following facts read both fail",
+);
 const profile = [
   "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
   "open_gpt_execution_profile", "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile",
@@ -55,7 +81,7 @@ const continuationImage = [
   "advance_gpt_continuation_lane",
 ] as const;
 
-assert.equal(plugin.pluginVersion, 22);
+assert.equal(plugin.pluginVersion, 23);
 const source = readFileSync("src/plugins/public-knowledge-article-pipeline/index.ts", "utf8");
 const turnContractSource = readFileSync(
   "src/plugins/public-knowledge-article-pipeline/seo-turn-contract.ts", "utf8",
@@ -251,20 +277,21 @@ const directSubmitRecovered = await exerciseSeoFlow(plugin, "produce_article", "
   code: "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED",
   productStepId: "corpus_research",
   confirmedSubmit: true,
+  locatorFailureCode: "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING",
 }, true);
 assert.equal(postSubmitReadbackReceipt(directSubmitRecovered.firstFailure)?.causeCode,
-  "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED");
+  "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING");
 const firstResearchSubmit = directSubmitRecovered.calls.findIndex((call) =>
   call.productStepId === "corpus_research" && call.child === "submit_exact_gpt_turn_once");
 assert.equal(directSubmitRecovered.calls[firstResearchSubmit + 1]?.child,
-  "submit_exact_gpt_turn_once",
-  "the recovered invocation must settle the same confirmed submit evidence without another physical dispatch");
+  "reconcile_gpt_turn_submission",
+  "the first invocation must proceed directly from confirmed submit to locator reconciliation");
 assert.equal(directSubmitRecovered.calls[firstResearchSubmit + 2]?.child,
   "reconcile_gpt_turn_submission",
-  "the settled confirmed submit must proceed directly to its locator reconciliation");
+  "the recovered invocation must resume with locator reconciliation and no prior mutation Child");
 assert.equal(directSubmitRecovered.calls.filter((call) => call.productStepId === "corpus_research"
-  && call.child === "submit_exact_gpt_turn_once").length, 2,
-  "the same accepted attempt may invoke the submit Child once more only for WAL-backed readback settlement");
+  && call.child === "submit_exact_gpt_turn_once").length, 1,
+  "the same accepted attempt must never invoke the submit Child again after Browser confirmation");
 assert.equal(directSubmitRecovered.physicalSubmitDispatches, 3,
   "the recovered research turn plus article and image turns must still dispatch exactly three submits");
 
@@ -273,12 +300,13 @@ const articleSubmitRecovered = await exerciseSeoFlow(plugin, "produce_article", 
   code: "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED",
   productStepId: "article_synthesis",
   confirmedSubmit: true,
+  locatorFailureCode: "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING",
 }, true);
 assert.equal(postSubmitReadbackReceipt(articleSubmitRecovered.firstFailure)?.causeCode,
-  "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED");
+  "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING");
 assert.equal(articleSubmitRecovered.calls.filter((call) => call.productStepId === "article_synthesis"
-  && call.child === "submit_exact_gpt_turn_once").length, 2,
-  "article recovery must settle the same confirmed submit without a second physical dispatch");
+  && call.child === "submit_exact_gpt_turn_once").length, 1,
+  "article recovery must reconcile the confirmed submit without invoking submit again");
 assert.equal(articleSubmitRecovered.physicalSubmitDispatches, 3,
   "research, recovered article and image must still dispatch exactly once each");
 assert.equal(articleSubmitRecovered.generatedImageUploadCalls, 1,
@@ -289,9 +317,10 @@ const imageSubmitRecovered = await exerciseSeoFlow(plugin, "produce_article", "p
   code: "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED",
   productStepId: "article_image_generation",
   confirmedSubmit: true,
+  locatorFailureCode: "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING",
 }, true);
 assert.equal(postSubmitReadbackReceipt(imageSubmitRecovered.firstFailure)?.causeCode,
-  "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED");
+  "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING");
 assert.equal(imageSubmitRecovered.calls.filter((call) => call.productStepId === "article_image_generation"
   && call.child === "submit_exact_gpt_turn_once").length, 1,
   "image recovery must continue from the confirmed submit without executing submit again");
@@ -305,6 +334,7 @@ const imageDomReadRecovered = await exerciseSeoFlow(plugin, "produce_article", "
   code: "BROWSER_DOM_READ_INVALID",
   productStepId: "article_image_generation",
   confirmedSubmit: true,
+  locatorFailureCode: "BROWSER_DOM_READ_INVALID",
 }, true);
 assert.equal(postSubmitReadbackReceipt(imageDomReadRecovered.firstFailure)?.causeCode,
   "BROWSER_DOM_READ_INVALID");

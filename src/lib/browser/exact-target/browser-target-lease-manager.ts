@@ -262,7 +262,7 @@ export class BrowserTargetLeaseManager {
       park: async ({ reason, mode }) => {
         const unresolved = state.pendingMutationCommandIds.length > 0
           || this.commandActor.requiresMutationRecovery(this.executionBinding, input.target.target.targetRef);
-        if ((mode === "normal-provider-wait" && unresolved)
+        if (((mode === "normal-provider-wait" || mode === "confirmed-source-readback") && unresolved)
           || (mode === "recovery" && !unresolved)) {
           throw new Error("BROWSER_PARK_MODE_INVALID");
         }

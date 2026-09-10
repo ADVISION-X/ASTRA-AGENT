@@ -29,6 +29,7 @@ import {
 } from "./seo-turn-contract.js";
 import {
   executeAndReadConfirmedSubmit,
+  isConfirmedProviderSubmit,
   preservePostSubmitReadback,
   SEO_PROVIDER_PROBE_BUDGET_MS,
   type SeoConfirmedSubmit,
@@ -308,7 +309,6 @@ const prepareTextDraft = async (
 const executeTextSubmit = async (
   input: SeoTextTurnInput,
   turnSubmit: Extract<SeoCall, { child: "submit_exact_gpt_turn_once" }>,
-  promptHash: ProductionHash,
 ): Promise<ExactGptCallFacts> => {
   return executeAndReadConfirmedSubmit({
     execute: () => input.flow.execute({ sessionKey: "", ...turnSubmit }),
@@ -319,8 +319,12 @@ const executeTextSubmit = async (
 export const submitTextTurn = async (input: SeoTextTurnInput): Promise<SeoTurnCheckpoint> => {
   const promptHash = textHash(input.prompt);
   const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: input.ordinals[2], input: { files: input.files, promptHash, turnMarker: input.marker } } as const;
-  await prepareTextDraft(input, turnSubmit);
-  const confirmedSubmit = await executeTextSubmit(input, turnSubmit, promptHash);
+  const existingSubmit = await input.flow.facts(turnSubmit);
+  let confirmedSubmit = existingSubmit;
+  if (!isConfirmedProviderSubmit(existingSubmit)) {
+    await prepareTextDraft(input, turnSubmit);
+    confirmedSubmit = await executeTextSubmit(input, turnSubmit);
+  }
   const reconciled = await reconcileConfirmedTextSubmission(input, confirmedSubmit);
   return checkpointSubmittedTextTurn(
     input,

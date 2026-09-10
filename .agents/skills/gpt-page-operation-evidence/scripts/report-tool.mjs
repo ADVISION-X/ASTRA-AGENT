@@ -1996,11 +1996,11 @@ async function validateReport(repo, matrixPath, reportPath, requireComplete) {
         || (run.flowStatus === "OBSERVED_COMPLETE_PATH"
           ? !nonEmptyObject(run.terminalBranchProof) : run.terminalBranchProof !== null)
         || run.productId !== product.productId || run.actionId !== product.actionId
-        || run.pluginId !== product.pluginId || run.pluginVersion !== product.pluginVersion
+        || run.pluginId !== product.pluginId || !Number.isSafeInteger(run.pluginVersion)
         || run.productionSource?.productId !== product.productId
         || run.productionSource?.actionId !== product.actionId
         || run.productionSource?.pluginId !== product.pluginId
-        || run.productionSource?.pluginVersion !== product.pluginVersion
+        || run.productionSource?.pluginVersion !== run.pluginVersion
         || run.productionSource?.sourceKind !== "PRODUCTION_RUNTIME_DURABLE_TASK"
         || run.productionSource?.synthetic !== false) fail("REPORT_PRODUCT_RUN_INVALID", product.productKey);
       if (run.calls.some((call) => !sha256String(call.traceEntryId))

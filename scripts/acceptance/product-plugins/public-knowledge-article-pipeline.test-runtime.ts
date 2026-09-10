@@ -2,11 +2,14 @@ import { governanceAssert as assert } from "../../audit/shared/governance-exam-a
 
 import {
   type ExactGptContinuationReadback,
+  type ExactGptCallFacts,
   type GptContinuationCheckpointInput,
   type ProductGptAnyCallInput,
   type ProductGptTools,
   type GptProviderContinuation,
 } from "../../../src/capabilities/gpt/index.js";
+import { bindConfirmedProviderSubmitReceipt } from
+  "../../../src/capabilities/gpt/production-call-facts.js";
 import {
   hashCanonical,
   type SharedExecutionContext,
@@ -182,9 +185,9 @@ const applyContinuationCall = (state: SeoHarness, input: SeoCall, initial: unkno
 
 const assertSeoCallBoundary = (state: SeoHarness, input: SeoCall): void => {
   if (state.confirmedReadbackAuthorizationByStep.get(input.productStepId) === "source-only") {
-    assert(["submit_exact_gpt_turn_once", "reconcile_gpt_turn_submission",
+    assert(["reconcile_gpt_turn_submission",
       "release_gpt_continuation_lane"].includes(input.child),
-    "source-only confirmed-submit recovery may settle the same submit or locator and release non-Browser ownership");
+    "source-only confirmed-submit recovery may only reconcile the locator and release non-Browser ownership");
   }
   if (input.child === "checkpoint_gpt_generated_image") {
     const predecessor = input.input.predecessorTextCheckpoint;
@@ -274,9 +277,10 @@ const executeCall = async (
   assertSeoCallBoundary(state, input);
   state.calls.push(input);
   throwConfiguredSeoFailure(state, input, failureAt, attemptId);
-  if (failureAt?.locatorFailureCode
+  if (state.remainingLocatorFailures > 0 && failureAt?.locatorFailureCode
     && input.child === "reconcile_gpt_turn_submission"
     && input.productStepId === failureAt.productStepId) {
+    state.remainingLocatorFailures -= 1;
     throw executionFailure("failed", failureAt.locatorFailureCode, {
       metadata: Object.freeze({ mutationOutcome: "no" }),
     });
@@ -343,7 +347,7 @@ const readSeoCallFacts = (
   if (stored?.failureCode && stored.mutation) {
     state.confirmedReadbackAuthorizationByStep.set(input.productStepId, "source-only");
   }
-  return {
+  const facts: ExactGptCallFacts = {
     exactCallIdentityHash: HASH,
     mutation: stored?.mutation ? {
       owner: "browser", sourceAttemptId: stored.attemptId,
@@ -360,6 +364,12 @@ const readSeoCallFacts = (
     } : null,
     continuation: null,
   };
+  return stored?.failureCode && stored.mutation ? bindConfirmedProviderSubmitReceipt(facts, {
+    exactCallIdentityHash: HASH,
+    terminalAt: stored.terminalAt!,
+    evidenceRef: stored.evidenceRef,
+    evidenceHash: HASH,
+  }) : facts;
 };
 
 const completeSeo = (

@@ -20,6 +20,7 @@ import {
   submitTextTurn,
 } from "./seo-gpt-calls.js";
 import { generateImage } from "./seo-image-call.js";
+import { isConfirmedProviderSubmit } from "./seo-submit-readback.js";
 import {
   PLUGIN_ID,
   continuationTextCheckpoint,
@@ -136,10 +137,12 @@ const produceResearchTurn = async (
   const recoveryProvider = recovered?.prior_task_id === task.job_id
     && recovered.prior_turn_marker === marker
     && recovered.prior_prompt_hash === textHash(prompt) ? recovered : undefined;
-  await prepareAttachedTurnPrefix({
-    flow, stepId, files,
-    recoverOnly: Boolean(submitFacts.mutation || submitFacts.evidence),
-  });
+  if (!isConfirmedProviderSubmit(submitFacts)) {
+    await prepareAttachedTurnPrefix({
+      flow, stepId, files,
+      recoverOnly: Boolean(submitFacts.mutation || submitFacts.evidence),
+    });
+  }
   const checkpointInput = {
     ...textTurn,
     ...(recoveryProvider ? { recoveryProvider } : {}),
@@ -229,7 +232,9 @@ const produceArticleTurn = async (
   const recovering = Boolean(submitFacts.mutation || submitFacts.evidence);
   let recoveredTurn: ArticleTurn | null = null;
   if (recovering) {
-    await requireExactProfileEvidence(flow, stepId, [21, 22, 23, 24, 25, 26]);
+    if (!isConfirmedProviderSubmit(submitFacts)) {
+      await requireExactProfileEvidence(flow, stepId, [21, 22, 23, 24, 25, 26]);
+    }
     const checkpoint = await submitTextTurn(textTurn);
     recoveredTurn = Object.freeze({
       checkpoint,
@@ -386,10 +391,12 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
   } as const;
   const submitCall = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 13, input: { files: uploadedFiles, promptHash: textHash(prompt), turnMarker: marker } } as const;
   const submitFacts = await flow.facts(submitCall);
-  await prepareAttachedTurnPrefix({
-    flow, stepId, files,
-    recoverOnly: Boolean(submitFacts.mutation || submitFacts.evidence),
-  });
+  if (!isConfirmedProviderSubmit(submitFacts)) {
+    await prepareAttachedTurnPrefix({
+      flow, stepId, files,
+      recoverOnly: Boolean(submitFacts.mutation || submitFacts.evidence),
+    });
+  }
   const checkpoint = await submitTextTurn(textTurn);
   return context.complete({
     payload: parseRouteResult(task, checkpoint.semanticText, context.routePolicy),
@@ -399,7 +406,7 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
 
 export const publicKnowledgeArticlePipelinePlugin: ProductPlugin = {
   pluginId: PLUGIN_ID,
-  pluginVersion: 22,
+  pluginVersion: 23,
   checkpointSchemaVersion: 2,
   accepts: [
     { productId: "public_knowledge_article_pipeline", actionId: "produce_article" },

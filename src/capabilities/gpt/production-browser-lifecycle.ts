@@ -153,6 +153,7 @@ export class ProductionGptBrowserLifecycle {
     for (const active of this.browsers.values()) {
       active.facade = dynamicConfirmedReadbackFacade(() => active.browser, authorization);
     }
+    this.confirmedProviderSourceReadback = null;
   }
 
   public async browserFor(
@@ -183,6 +184,9 @@ export class ProductionGptBrowserLifecycle {
   private async releaseConfirmedReadbackForOtherProductStep(productStepId: string): Promise<void> {
     const readbackSource = this.confirmedProviderReadback ?? this.confirmedProviderSourceReadback;
     if (!readbackSource || readbackSource.sourceProductStepId === productStepId) return;
+    if (this.confirmedProviderSourceReadback) {
+      throw executionFailure("failed", "BROWSER_CONFIRMED_SOURCE_READBACK_PENDING");
+    }
     for (const [key, active] of this.browsers) {
       await active.browser.park({
         reason: "gpt-confirmed-provider-readback-complete",
@@ -210,6 +214,21 @@ export class ProductionGptBrowserLifecycle {
     this.emitProviderWaitLog(active, productStepId, callId, childCapabilityId);
     await this.yieldAndReacquire(
       active, productStepId, callId, durationMs, "gpt-normal-provider-wait-yield",
+    );
+  }
+
+  public announceSubmissionReconciliation(
+    active: ProductionGptBrowserCall,
+    productStepId: string,
+    callId: string,
+    childCapabilityId: GptChildCapabilityId,
+  ): void {
+    if (childCapabilityId !== "reconcile_gpt_turn_submission") {
+      throw executionFailure("failed", "GPT_SUBMISSION_RECONCILIATION_CHILD_INVALID");
+    }
+    this.emitWaitLog(
+      active, productStepId, callId, childCapabilityId,
+      "GPT_SUBMISSION_RECONCILIATION_ACTIVE",
     );
   }
 
@@ -279,6 +298,16 @@ export class ProductionGptBrowserLifecycle {
     callId: string,
     childCapabilityId: GptChildCapabilityId,
   ): void {
+    this.emitWaitLog(active, productStepId, callId, childCapabilityId, "GPT_PROVIDER_WAIT_ACTIVE");
+  }
+
+  private emitWaitLog(
+    active: ProductionGptBrowserCall,
+    productStepId: string,
+    callId: string,
+    childCapabilityId: GptChildCapabilityId,
+    code: "GPT_PROVIDER_WAIT_ACTIVE" | "GPT_SUBMISSION_RECONCILIATION_ACTIVE",
+  ): void {
     const callIdentity = `${productStepId}:${callId}:${childCapabilityId}`;
     const emittedAt = performance.now();
     if (active.providerWaitLog?.callIdentity !== callIdentity
@@ -288,7 +317,7 @@ export class ProductionGptBrowserLifecycle {
         owner: "gpt",
         component: "gpt-child",
         operation: "gpt.child",
-        code: "GPT_PROVIDER_WAIT_ACTIVE",
+        code,
         typedIdentity: {
           kind: "gpt-call",
           jobId: this.execution.jobId,
@@ -362,10 +391,15 @@ export class ProductionGptBrowserLifecycle {
           reason: "gpt-mutation-reconciliation-required",
           mode: "recovery",
         });
-        else await call.browser.park({
-          reason: error ? "gpt-product-call-failed" : "gpt-product-call-settled",
-          mode: "normal-provider-wait",
-        });
+        else {
+          const sourceReadbackPending = this.confirmedProviderSourceReadback !== null;
+          await call.browser.park({
+            reason: sourceReadbackPending
+              ? "gpt-confirmed-source-readback-pending"
+              : error ? "gpt-product-call-failed" : "gpt-product-call-settled",
+            mode: sourceReadbackPending ? "confirmed-source-readback" : "normal-provider-wait",
+          });
+        }
       } catch (closeError) {
         failures.push(closeError);
       } finally {

@@ -42,6 +42,7 @@ type EvidenceChild = Record<string, unknown> & {
   pageOperationRequired: boolean;
   evidenceDemand: Record<string, unknown> & {
     digest: string;
+    pageDemandDigest?: string;
     sourceBinding: Record<string, { files?: Array<{ path?: string; contentHash?: string }> }>;
   };
 };
@@ -128,15 +129,50 @@ const requestedEvidenceScope = (): EvidenceScope => {
   }
 };
 
-const operationalBoundPaths = (child: EvidenceChild): string[] => Object.entries(child.evidenceDemand.sourceBinding ?? {})
-  .filter(([kind]) => kind !== "authority")
+const operationalBoundPaths = (child: EvidenceChild): string[] => Object.entries(
+  child.evidenceDemand.sourceBinding ?? {},
+)
+  .filter(([kind]) => kind === "implementation" || kind === "browser")
   .flatMap(([, binding]) => binding.files ?? [])
   .flatMap((entry) => typeof entry.path === "string" ? [entry.path] : []);
+
+const childImplementationPaths = (child: EvidenceChild): string[] =>
+  (child.evidenceDemand.sourceBinding?.implementation?.files ?? [])
+    .flatMap((entry) => typeof entry.path === "string" ? [entry.path] : []);
 
 const childIdsMentionedByDiff = (path: string, ids: readonly string[]): string[] => {
   const text = changedText(path);
   return ids.filter((id) => text.includes(id));
 };
+
+const headPageDemandDigests = (): ReadonlyMap<string, string> => {
+  try {
+    const head = JSON.parse(execFileSync("git", ["show", `HEAD:${REPORT_PATH}`], {
+      cwd: ROOT, encoding: "utf8", maxBuffer: 32 * 1024 * 1024,
+    })) as Record<string, unknown>;
+    const children = Array.isArray(head.children) ? head.children : [];
+    return new Map(children.flatMap((entry) => {
+      const child = record(entry);
+      const demand = record(child?.evidenceDemand);
+      return typeof child?.childCapabilityId === "string" && typeof demand?.pageDemandDigest === "string"
+        ? [[child.childCapabilityId, demand.pageDemandDigest] as const] : [];
+    }));
+  } catch { return new Map(); }
+};
+
+const productEvidenceRequiredByChange = (
+  id: string,
+  child: EvidenceChild,
+  paths: readonly string[],
+): boolean => paths.some((path) => {
+  const direct = path.match(/^src\/capabilities\/gpt\/children\/([^/]+)\//u)?.[1];
+  if (direct === id || childImplementationPaths(child).includes(path)) return true;
+  if (path.startsWith("src/plugins/") || path.startsWith("src/capabilities/gpt/web/")) {
+    return changedText(path).includes(id);
+  }
+  return (SHARED_PAGE_PATHS.has(path) || path === ACTIVE_LAW_PATH || path === BLUEPRINT_PATH)
+    && childIdsMentionedByDiff(path, [id]).length === 1;
+});
 
 export const affectedGptPageChildren = (paths: readonly string[], children: readonly EvidenceChild[]): string[] => {
   const ids = children.map((child) => child.childCapabilityId);
@@ -147,7 +183,7 @@ export const affectedGptPageChildren = (paths: readonly string[], children: read
     if (direct && ids.includes(direct)) affected.add(direct);
     for (const child of children) if (operationalBoundPaths(child).includes(path)) affected.add(child.childCapabilityId);
     if (path.startsWith("src/plugins/") || path.startsWith("src/capabilities/gpt/web/")) {
-      const text = `${changedText(path)}\n${existsSync(resolve(ROOT, path)) ? readFileSync(resolve(ROOT, path), "utf8") : ""}`;
+      const text = changedText(path);
       for (const id of ids.filter((id) => text.includes(id))) affected.add(id);
     }
     if (SHARED_PAGE_PATHS.has(path)) {
@@ -183,9 +219,14 @@ const affectedChildFailures = (
   children: readonly EvidenceChild[],
   requestedScope: EvidenceScope,
   report: Record<string, unknown>,
+  paths: readonly string[],
+  baselinePageDemand: ReadonlyMap<string, string>,
 ): string[] => {
   const child = children.find((entry) => entry.childCapabilityId === id);
   if (!child) return [`${id}:not-admitted`];
+  const browserImplementationOnly = !productEvidenceRequiredByChange(id, child, paths);
+  if (browserImplementationOnly
+    && child.evidenceDemand.pageDemandDigest === baselinePageDemand.get(id)) return [];
   const productCalls = productCallsForChild(report, id);
   if (productCalls.length === 0) return [`${id}:product-call-evidence-required`];
   if (productCalls.some((candidate) => productCallCurrentForChild(child, candidate)
@@ -204,6 +245,7 @@ export const gptPageEvidenceChangeGateFailures = (
 ): string[] => {
   const failures: string[] = [];
   const requestedScope = requestedEvidenceScope();
+  const baselinePageDemand = headPageDemandDigests();
   if (report.schemaVersion !== REPORT_SCHEMA) failures.push("report-schema");
   if (report.productionRuntimeConsumer !== false || report.claimsQualityVerdict !== false) failures.push("report-role");
   const rawChildren = Array.isArray(report.children) ? report.children : [];
@@ -216,8 +258,21 @@ export const gptPageEvidenceChangeGateFailures = (
   }
   if (gptPageEvidencePrivacyFailures(report).length > 0) failures.push("privacy");
   const affected = affectedGptPageChildren(paths, children);
+  const browserRoutes = new Map<string, string[]>();
+  for (const child of children) {
+    for (const entry of child.evidenceDemand.sourceBinding?.browser?.files ?? []) {
+      if (!entry.path) continue;
+      browserRoutes.set(entry.path, [...(browserRoutes.get(entry.path) ?? []), child.childCapabilityId]);
+    }
+  }
+  for (const [path, ids] of browserRoutes) {
+    const routed = new Set(affectedGptPageChildren([path], children));
+    if (ids.some((id) => !routed.has(id))) failures.push(`browser-binding-routing:${path}`);
+  }
   for (const child of children) failures.push(...childBindingFailures(child));
-  for (const id of affected) failures.push(...affectedChildFailures(id, children, requestedScope, report));
+  for (const id of affected) failures.push(...affectedChildFailures(
+    id, children, requestedScope, report, paths, baselinePageDemand,
+  ));
   return [...new Set(failures)];
 };
 

@@ -49,7 +49,7 @@ const EXACT_ASSISTANT_TURN_FUNCTION = `async function (spec) {
   const promptRaw = userRaw.length === 1 ? Array.from(userRaw[0].querySelectorAll(
     "[data-testid='collapsible-user-message-content']"
   )) : [];
-  const prompt = promptRaw.length === 1 ? browserCanonicalSemanticText(promptRaw[0]) : "";
+  const prompt = promptRaw.length === 1 ? browserCanonicalGptUserPromptText(promptRaw[0]) : "";
   const selector = '[data-testid="' + assistantTurnId
     + '"]:has([data-message-author-role="assistant"]) [data-message-author-role="assistant"]';
   const raw = Array.from(document.querySelectorAll(selector));

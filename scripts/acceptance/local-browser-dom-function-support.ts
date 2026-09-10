@@ -296,6 +296,36 @@ const exerciseExactUserPromptHash = async (source: string): Promise<void> => {
   assert.notEqual(exactUserTurn?.semanticTextHash, hash(userPrompt),
     "the outer user-turn semantic hash must expose why attachment and controls cannot identify the Prompt");
 
+  const fencedPrompt = "[GRASSEYE:fenced-user-prompt]\n```text\nexact payload\n```\napproved prompt";
+  const fencedCode = new FakeElement("text\nexact payload", {}, {}, {}, "CODE", [
+    new FakeTextNode("text\nexact payload"),
+  ]);
+  const fencedPre = new FakeElement("text\nexact payload", {}, {}, {}, "PRE", [fencedCode]);
+  const fencedWrapper = new FakeElement("text\nexact payload", {}, {}, {}, "DIV", [fencedPre]);
+  const fencedBody = new FakeElement(fencedPrompt, {}, {}, {
+    "data-testid": "collapsible-user-message-content",
+  }, "DIV", [
+    new FakeElement("[GRASSEYE:fenced-user-prompt]", {}, {}, {}, "P", [
+      new FakeTextNode("[GRASSEYE:fenced-user-prompt]"),
+    ]),
+    fencedWrapper,
+    new FakeElement("approved prompt", {}, {}, {}, "P", [new FakeTextNode("approved prompt")]),
+  ]);
+  const fencedTurn = new FakeElement(fencedPrompt, {
+    "[data-testid='collapsible-user-message-content']": [fencedBody],
+    "[data-message-author-role='user']": [fencedBody],
+  }, {}, { "data-testid": "conversation-turn-2" }, "ARTICLE", [fencedBody]);
+  const fencedRoot = new FakeElement("", { ".user-turn": [fencedTurn] });
+  fencedTurn.parentElement = fencedRoot;
+  const fencedResult = await execute(source, {
+    documentElement: fencedRoot, querySelectorAll: () => [], elementFromPoint: () => fencedTurn,
+  }, [{ queryId: "fenced-user-turn", selector: ".user-turn", maxMatches: 1,
+    fields: ["exactGptUserPromptHash"] }]) as Readonly<{
+      queries: readonly Readonly<{ matches: readonly Readonly<{ exactGptUserPromptHash: string }>[] }>[];
+    }>;
+  assert.equal(fencedResult.queries[0]?.matches[0]?.exactGptUserPromptHash, hash(fencedPrompt),
+    "the exact rendered user Prompt must restore ChatGPT's stripped triple-backtick fence");
+
   const shortPrompt = "生成一张与本文主题一致的封面图";
   const shortLeaf = new FakeElement(shortPrompt, {}, {}, { class: "max-w-full whitespace-pre-wrap" }, "DIV", [
     new FakeTextNode(shortPrompt),

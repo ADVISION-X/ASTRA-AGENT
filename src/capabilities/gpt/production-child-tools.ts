@@ -33,6 +33,7 @@ import { persistGptChildEvidence, persistGptPreExecutionFailure } from "./eviden
 import { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
 import { executeProductionGptAtomicCall } from "./production-atomic-call.js";
 import {
+  bindConfirmedProviderSubmitReceipt,
   isPendingExactEvidence,
   productSafeExactGptCallFacts,
   readProductionGptCallFacts,
@@ -189,7 +190,13 @@ export class ProductionGptChildTools {
         try { await authorizeConfirmedProviderSourceReadback({ browsers, receipt }); }
         catch (error) { throw carryConfirmedProviderSubmitReceipt(error, receipt); }
       }
-      return productSafeExactGptCallFacts(facts);
+      const safeFacts = productSafeExactGptCallFacts(facts);
+      return receipt ? bindConfirmedProviderSubmitReceipt(safeFacts, {
+        exactCallIdentityHash: receipt.sourceExactCallIdentityHash,
+        terminalAt: receipt.sourceTerminalAt,
+        evidenceRef: receipt.evidenceRef,
+        evidenceHash: receipt.evidenceHash,
+      }) : safeFacts;
     };
     const execute = async <K extends GptChildCapabilityId>(
       call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
@@ -436,6 +443,11 @@ export class ProductionGptChildTools {
         ? await browsers.browserFor(call.sessionKey, call.productStepId, call.callId)
         : undefined;
       const browser = browserCall?.facade;
+      if (browserCall && call.child === "reconcile_gpt_turn_submission") {
+        browsers.announceSubmissionReconciliation(
+          browserCall, call.productStepId, call.callId, call.child,
+        );
+      }
       this.assertProviderTurnBudget(execution, call, facts);
       const atomic = await executeProductionGptAtomicCall({
         dataDir: this.dataDir,

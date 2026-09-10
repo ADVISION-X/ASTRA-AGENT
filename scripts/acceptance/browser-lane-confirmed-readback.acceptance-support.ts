@@ -98,7 +98,8 @@ const exerciseWalOnlyReplacementRejection = async (input: ConfirmedReadbackScena
 };
 
 const exerciseSourceOnlyReadback = async (input: ConfirmedReadbackScenario): Promise<void> => {
-  const { supervisor, openSignal, confirmedFailureBinding, leaseIdentities, brokerState } = input;
+  const { supervisor, openSignal, confirmedBinding, confirmedFailureBinding,
+    leaseIdentities, brokerState } = input;
   leaseIdentities.set("job:confirmed", {
     targetRef: "target:confirmed", documentRef: "document:confirmed:1",
   });
@@ -131,8 +132,29 @@ const exerciseSourceOnlyReadback = async (input: ConfirmedReadbackScenario): Pro
     clearBeforeType: true, expectedMatches: 1,
   }), /BROWSER_RECONCILIATION_SCOPE_INVALID/u);
   await confirmedFailureReadback.park({
-    reason: "confirmed-failure-readback-source-proven", mode: "normal-provider-wait",
+    reason: "confirmed-failure-readback-source-pending", mode: "confirmed-source-readback",
   });
+  assert.equal(supervisor.readBrowserLaneState(), "blocked",
+    "a confirmed submit without a locator must retain the existing sole Browser lane");
+  let unrelatedResolved = false;
+  const unrelated = supervisor.acquireJobBoundTargetLease(
+    binding("job:confirmed-source-unrelated"),
+    "owner:confirmed-source-unrelated",
+    { signal: openSignal.signal, remainingMs: () => 60_000 },
+  ).then((lease) => { unrelatedResolved = true; return lease; });
+  await Promise.resolve();
+  assert.equal(unrelatedResolved, false,
+    "another job must not navigate the confirmed submit source before locator closure");
+  const locatorClosed = await supervisor.acquireJobBoundTargetLease(
+    confirmedBinding(),
+    "owner:confirmed-source-locator-closed",
+    { signal: openSignal.signal, remainingMs: () => 60_000 },
+  );
+  await locatorClosed.park({ reason: "confirmed-source-locator-closed", mode: "normal-provider-wait" });
+  const unrelatedLease = await unrelated;
+  assert.equal(unrelatedResolved, true,
+    "the FIFO may resume only after the same confirmed submit has a durable locator");
+  await unrelatedLease.close({ reason: "confirmed-source-locator-closed" });
 };
 
 const exerciseOriginalTargetReadback = async (input: ConfirmedReadbackScenario): Promise<void> => {

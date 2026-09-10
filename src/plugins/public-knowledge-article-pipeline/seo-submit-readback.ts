@@ -1,5 +1,6 @@
 import {
   confirmedProviderSubmitReceiptFromError,
+  confirmedProviderSubmitReceiptFromFacts,
   type ExactGptCallFacts,
 } from "../../capabilities/gpt/index.js";
 import type { ProductionHash } from "../../mediator/product-plugin-contract.js";
@@ -17,11 +18,6 @@ type ConfirmedProviderSubmit = ExactGptCallFacts & Readonly<{
     outcome: "CONFIRMED";
     terminalAt: string;
   }>;
-  evidence: NonNullable<ExactGptCallFacts["evidence"]> & Readonly<{
-    evidenceRef: string;
-    evidenceHash: ProductionHash;
-    readbackVerified: true;
-  }>;
 }>;
 
 const postSubmitEvidence = (submit: SeoConfirmedSubmit): Readonly<{
@@ -29,6 +25,12 @@ const postSubmitEvidence = (submit: SeoConfirmedSubmit): Readonly<{
   evidenceRef: string;
   evidenceHash: ProductionHash;
 }> | null => {
+  const carried = confirmedProviderSubmitReceiptFromFacts(submit);
+  if (carried) return Object.freeze({
+    terminalAt: carried.terminalAt,
+    evidenceRef: carried.evidenceRef,
+    evidenceHash: carried.evidenceHash,
+  });
   const factsMatch = [
     submit.mutation?.owner === "browser",
     submit.mutation?.effectScope === "provider_effect",
@@ -54,7 +56,8 @@ export const preservePostSubmitReadback = (
   error: unknown,
   submit: SeoConfirmedSubmit | null,
 ): never => {
-  const carried = confirmedProviderSubmitReceiptFromError(error);
+  const carried = confirmedProviderSubmitReceiptFromError(error)
+    ?? (submit ? confirmedProviderSubmitReceiptFromFacts(submit) : null);
   const code = failureCode(error);
   const evidence = carried ?? (submit ? postSubmitEvidence(submit) : null);
   if (!evidence || code.startsWith("GPT_PROVIDER_TERMINAL_")) throw error;
@@ -75,9 +78,6 @@ export const executeAndReadConfirmedSubmit = async (input: Readonly<{
   try {
     await input.execute();
   } catch (error) {
-    if (confirmedProviderSubmitReceiptFromError(error)) {
-      return preservePostSubmitReadback(error, null);
-    }
     executionError = error;
   }
   let submit: SeoConfirmedSubmit;
@@ -87,9 +87,16 @@ export const executeAndReadConfirmedSubmit = async (input: Readonly<{
     if (confirmedProviderSubmitReceiptFromError(readbackError)) {
       return preservePostSubmitReadback(readbackError, null);
     }
+    if (executionError && confirmedProviderSubmitReceiptFromError(executionError)) {
+      return preservePostSubmitReadback(executionError, null);
+    }
     if (executionError) throw executionError;
     throw readbackError;
   }
-  if (executionError) return preservePostSubmitReadback(executionError, submit);
+  if (executionError) {
+    if (isConfirmedProviderSubmit(submit)
+      && !failureCode(executionError).startsWith("GPT_PROVIDER_TERMINAL_")) return submit;
+    return preservePostSubmitReadback(executionError, submit);
+  }
   return submit;
 };

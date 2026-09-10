@@ -40,6 +40,7 @@ export type SeoHarness = {
   continuationLaneVersion: number;
   continuationLaneOwned: boolean;
   remainingFailures: number;
+  remainingLocatorFailures: number;
   physicalSubmitDispatches: number;
   generatedImageUploadCalls: number;
   uploadedImageHashes: Set<string>;
@@ -85,6 +86,7 @@ export const createHarness = (actionId: SeoAction, failureAt?: SeoFailure): SeoH
     continuationProvider: null, originProvider: null, frontierRef: null,
     frontierOriginCheckpoint: null, currentCheckpoint: null, completionFailuresRemaining: 0,
     continuationLaneVersion: 0, continuationLaneOwned: false, remainingFailures: failureAt ? 1 : 0,
+    remainingLocatorFailures: failureAt?.locatorFailureCode ? 1 : 0,
     physicalSubmitDispatches: 0, generatedImageUploadCalls: 0, uploadedImageHashes: new Set(),
     acquiredLaneVersions: [], confirmedReadbackAuthorizationByStep: new Map(), materials,
     providerNames: materials.map((material) => gptAttachmentProviderDisplayName(

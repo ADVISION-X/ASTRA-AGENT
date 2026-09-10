@@ -64,7 +64,7 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
     if (userRoots.length !== 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
     const promptNodes = Array.from(node.querySelectorAll("${GPT_USER_PROMPT_CONTENT_SELECTOR}"));
     if (promptNodes.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
-    if (promptNodes.length === 1) return canonicalSemanticText(promptNodes[0]);
+    if (promptNodes.length === 1) return browserCanonicalGptUserPromptText(promptNodes[0]);
     const shortPromptNodes = Array.from(userRoots[0].querySelectorAll("${GPT_SHORT_USER_PROMPT_CONTENT_SELECTOR}"))
       .filter((candidate) => candidate instanceof Element
         && Array.from(candidate.childNodes || []).every((child) => child.nodeType !== 1));

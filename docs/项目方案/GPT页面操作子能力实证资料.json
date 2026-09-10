@@ -1,8 +1,8 @@
 {
   "schemaVersion": "gpt-page-operation-evidence.v6",
-  "generatedAt": "2026-09-09T19:53:20.797Z",
+  "generatedAt": "2026-09-10T03:21:29.575Z",
   "repository": "AGENT",
-  "projectionRevision": "sha256:237c42861692747468f13fa2a04ae4184ea9f8734150711288a358c349a8c9d5",
+  "projectionRevision": "sha256:cdbca2bb46e9b075e9aaebe614711c9f9c0a3c9071ad81f90efb829ac94bc1ca",
   "captureEpoch": null,
   "matrixBinding": {
     "schemaVersion": "gpt-page-operation-matrix.v4",
@@ -7146,14 +7146,14 @@
             "semanticHash": "sha256:134db678385987b9d4541f99b4d5d0bc8944cd235141b78956b73cec6001e31f"
           },
           {
-            "contentHash": "sha256:d82d2ba375c8ad585492a4e7c1159ecdc93549738afb560cee7831a3cbcbf1e3",
+            "contentHash": "sha256:b0d33f0a3f0db5b527d7c088a8310a81a8db28cbc265ce836856221c23c4da7f",
             "path": "src/plugins/public-knowledge-article-pipeline/index.ts",
-            "semanticHash": "sha256:2a28ffe433bb4d7290aa01f86ea5dfcca0d8c7047bebef448d4e8efac4c05b1f"
+            "semanticHash": "sha256:a69724d97d17ff66d4ad67fdcf54f9b26ea58e0341b8e248563828960e9f5e11"
           },
           {
-            "contentHash": "sha256:33ec37fb0995206d30b6c947f5f68dbdecd0c8ec435094053709ce88e27d97d1",
+            "contentHash": "sha256:0a7b1861dd024f987504ae98662d0f93b97ddd4877e19e98e9fc01d4f6e21096",
             "path": "src/plugins/public-knowledge-article-pipeline/page-evidence-contract.json",
-            "semanticHash": "sha256:2a6f24917ebf4842ef5e6034c4f953edcfe5699238ecf80965998d08e19e4617"
+            "semanticHash": "sha256:7b74599568b332dddec0adbb00a7ba4376324d8b4ef2d8557cfdd202bde2b231"
           },
           {
             "contentHash": "sha256:03650eba17d64f6cc931f4cbd15f22e2723cadbdf6ac401c77051924e43e587f",
@@ -7161,9 +7161,9 @@
             "semanticHash": "sha256:ca594deb972b69a66472100975c7a5f1e3b71bc93e30194b231ea312ff9be064"
           },
           {
-            "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+            "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
             "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-            "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+            "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
           },
           {
             "contentHash": "sha256:6cfa524c5a85b9c4a2bbff6601f631f2b84fda6d11f3a0db6d5602743f2b9e8e",
@@ -7171,9 +7171,9 @@
             "semanticHash": "sha256:2f3fc53fc8fc5e36d479094e44a38754ca17aabee5c97294860c308bc1d1074d"
           },
           {
-            "contentHash": "sha256:0a3f9556ca052e4da2d8bd2d1106174d7a65dcbf7ba332969f038fd44ffcae30",
+            "contentHash": "sha256:388ef3acb633627b149bad29e4691d7b8fa7eb225ba05b692bf3bfecccb1c194",
             "path": "src/plugins/public-knowledge-article-pipeline/seo-submit-readback.ts",
-            "semanticHash": "sha256:2f89715f283d2cf1c816519b0b7c14e76b6872c135d2b8f196dd0722efc59ddb"
+            "semanticHash": "sha256:044938b3e89e08972246501998d5d650cd007b4d8774786ecf4cc91411974596"
           },
           {
             "contentHash": "sha256:76df26f48aa5df5453a56718373afc90a810487ea96590de7c3338ee18a947a0",
@@ -7186,13 +7186,13 @@
             "semanticHash": "sha256:310e4311dc28e400892f2ea6bbe3ab09489d7524784fa4f2e1d3139eacfdf2f7"
           }
         ],
-        "semanticDigest": "sha256:33c989a55efbddba6c54d42d4dda19b97dbc6691b0c2c5fff65b79e0e79d53af"
+        "semanticDigest": "sha256:3708274b8f875d81f2c2bc0ed13f7d520f7391f60be72d7fa120be4cfdc30d7d"
       },
       "gaps": [
         "PRODUCT_PRODUCTION_CAPTURE_NOT_PRESENT"
       ],
       "pluginId": "public-knowledge-article-pipeline",
-      "pluginVersion": 22,
+      "pluginVersion": 23,
       "productId": "public_knowledge_article_pipeline",
       "productKey": "public_knowledge_article_pipeline/accuracy_challenge",
       "runs": []
@@ -7210,14 +7210,14 @@
             "semanticHash": "sha256:134db678385987b9d4541f99b4d5d0bc8944cd235141b78956b73cec6001e31f"
           },
           {
-            "contentHash": "sha256:d82d2ba375c8ad585492a4e7c1159ecdc93549738afb560cee7831a3cbcbf1e3",
+            "contentHash": "sha256:b0d33f0a3f0db5b527d7c088a8310a81a8db28cbc265ce836856221c23c4da7f",
             "path": "src/plugins/public-knowledge-article-pipeline/index.ts",
-            "semanticHash": "sha256:2a28ffe433bb4d7290aa01f86ea5dfcca0d8c7047bebef448d4e8efac4c05b1f"
+            "semanticHash": "sha256:a69724d97d17ff66d4ad67fdcf54f9b26ea58e0341b8e248563828960e9f5e11"
           },
           {
-            "contentHash": "sha256:33ec37fb0995206d30b6c947f5f68dbdecd0c8ec435094053709ce88e27d97d1",
+            "contentHash": "sha256:0a7b1861dd024f987504ae98662d0f93b97ddd4877e19e98e9fc01d4f6e21096",
             "path": "src/plugins/public-knowledge-article-pipeline/page-evidence-contract.json",
-            "semanticHash": "sha256:2a6f24917ebf4842ef5e6034c4f953edcfe5699238ecf80965998d08e19e4617"
+            "semanticHash": "sha256:7b74599568b332dddec0adbb00a7ba4376324d8b4ef2d8557cfdd202bde2b231"
           },
           {
             "contentHash": "sha256:03650eba17d64f6cc931f4cbd15f22e2723cadbdf6ac401c77051924e43e587f",
@@ -7225,9 +7225,9 @@
             "semanticHash": "sha256:ca594deb972b69a66472100975c7a5f1e3b71bc93e30194b231ea312ff9be064"
           },
           {
-            "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+            "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
             "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-            "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+            "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
           },
           {
             "contentHash": "sha256:6cfa524c5a85b9c4a2bbff6601f631f2b84fda6d11f3a0db6d5602743f2b9e8e",
@@ -7235,9 +7235,9 @@
             "semanticHash": "sha256:2f3fc53fc8fc5e36d479094e44a38754ca17aabee5c97294860c308bc1d1074d"
           },
           {
-            "contentHash": "sha256:0a3f9556ca052e4da2d8bd2d1106174d7a65dcbf7ba332969f038fd44ffcae30",
+            "contentHash": "sha256:aa108c7d49ab73c2de3cd02c362273d06a551047f3b9d97e44aca2157c502700",
             "path": "src/plugins/public-knowledge-article-pipeline/seo-submit-readback.ts",
-            "semanticHash": "sha256:2f89715f283d2cf1c816519b0b7c14e76b6872c135d2b8f196dd0722efc59ddb"
+            "semanticHash": "sha256:e76ff5cc1013d073257823a985d45be99a36bf5ee557429f09004a6f65b891f6"
           },
           {
             "contentHash": "sha256:76df26f48aa5df5453a56718373afc90a810487ea96590de7c3338ee18a947a0",
@@ -7250,7 +7250,7 @@
             "semanticHash": "sha256:310e4311dc28e400892f2ea6bbe3ab09489d7524784fa4f2e1d3139eacfdf2f7"
           }
         ],
-        "semanticDigest": "sha256:33c989a55efbddba6c54d42d4dda19b97dbc6691b0c2c5fff65b79e0e79d53af"
+        "semanticDigest": "sha256:3604634d8103428fe1e0d9ea0efd8b5b82bf782beccdf8d9779f53e49522edcd"
       },
       "gaps": [
         "article_synthesis/29/submit_exact_gpt_turn_once:PAGE_EVIDENCE_CONFLICT:STATE_ASSERTION:post-submit-user-turn:related.transitionChain.typedCommand.kind:equals",
@@ -7289,7 +7289,7 @@
         "article_image_generation/47/wait_for_stable_gpt_image:PAGE_EVIDENCE_GAP:image-generating:scene-not-mapped"
       ],
       "pluginId": "public-knowledge-article-pipeline",
-      "pluginVersion": 21,
+      "pluginVersion": 23,
       "productId": "public_knowledge_article_pipeline",
       "productKey": "public_knowledge_article_pipeline/produce_article",
       "runs": [
@@ -36293,14 +36293,14 @@
             "semanticHash": "sha256:134db678385987b9d4541f99b4d5d0bc8944cd235141b78956b73cec6001e31f"
           },
           {
-            "contentHash": "sha256:d82d2ba375c8ad585492a4e7c1159ecdc93549738afb560cee7831a3cbcbf1e3",
+            "contentHash": "sha256:b0d33f0a3f0db5b527d7c088a8310a81a8db28cbc265ce836856221c23c4da7f",
             "path": "src/plugins/public-knowledge-article-pipeline/index.ts",
-            "semanticHash": "sha256:2a28ffe433bb4d7290aa01f86ea5dfcca0d8c7047bebef448d4e8efac4c05b1f"
+            "semanticHash": "sha256:a69724d97d17ff66d4ad67fdcf54f9b26ea58e0341b8e248563828960e9f5e11"
           },
           {
-            "contentHash": "sha256:33ec37fb0995206d30b6c947f5f68dbdecd0c8ec435094053709ce88e27d97d1",
+            "contentHash": "sha256:0a7b1861dd024f987504ae98662d0f93b97ddd4877e19e98e9fc01d4f6e21096",
             "path": "src/plugins/public-knowledge-article-pipeline/page-evidence-contract.json",
-            "semanticHash": "sha256:2a6f24917ebf4842ef5e6034c4f953edcfe5699238ecf80965998d08e19e4617"
+            "semanticHash": "sha256:7b74599568b332dddec0adbb00a7ba4376324d8b4ef2d8557cfdd202bde2b231"
           },
           {
             "contentHash": "sha256:03650eba17d64f6cc931f4cbd15f22e2723cadbdf6ac401c77051924e43e587f",
@@ -36308,9 +36308,9 @@
             "semanticHash": "sha256:ca594deb972b69a66472100975c7a5f1e3b71bc93e30194b231ea312ff9be064"
           },
           {
-            "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+            "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
             "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-            "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+            "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
           },
           {
             "contentHash": "sha256:6cfa524c5a85b9c4a2bbff6601f631f2b84fda6d11f3a0db6d5602743f2b9e8e",
@@ -36318,9 +36318,9 @@
             "semanticHash": "sha256:2f3fc53fc8fc5e36d479094e44a38754ca17aabee5c97294860c308bc1d1074d"
           },
           {
-            "contentHash": "sha256:0a3f9556ca052e4da2d8bd2d1106174d7a65dcbf7ba332969f038fd44ffcae30",
+            "contentHash": "sha256:388ef3acb633627b149bad29e4691d7b8fa7eb225ba05b692bf3bfecccb1c194",
             "path": "src/plugins/public-knowledge-article-pipeline/seo-submit-readback.ts",
-            "semanticHash": "sha256:2f89715f283d2cf1c816519b0b7c14e76b6872c135d2b8f196dd0722efc59ddb"
+            "semanticHash": "sha256:044938b3e89e08972246501998d5d650cd007b4d8774786ecf4cc91411974596"
           },
           {
             "contentHash": "sha256:76df26f48aa5df5453a56718373afc90a810487ea96590de7c3338ee18a947a0",
@@ -36333,13 +36333,13 @@
             "semanticHash": "sha256:310e4311dc28e400892f2ea6bbe3ab09489d7524784fa4f2e1d3139eacfdf2f7"
           }
         ],
-        "semanticDigest": "sha256:33c989a55efbddba6c54d42d4dda19b97dbc6691b0c2c5fff65b79e0e79d53af"
+        "semanticDigest": "sha256:3708274b8f875d81f2c2bc0ed13f7d520f7391f60be72d7fa120be4cfdc30d7d"
       },
       "gaps": [
         "PRODUCT_PRODUCTION_CAPTURE_NOT_PRESENT"
       ],
       "pluginId": "public-knowledge-article-pipeline",
-      "pluginVersion": 22,
+      "pluginVersion": 23,
       "productId": "public_knowledge_article_pipeline",
       "productKey": "public_knowledge_article_pipeline/quality_reflection",
       "runs": []
@@ -37120,7 +37120,7 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            345
+            349
           ]
         },
         {
@@ -37283,7 +37283,7 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            411
+            415
           ]
         },
         {
@@ -37520,7 +37520,7 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            433
+            437
           ]
         },
         {
@@ -37615,8 +37615,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:eb8c53e5dc0b9d55e3f4030e3c9ffccf83159e1eac5688d36193d661d02f936e",
-        "digest": "sha256:eb8c53e5dc0b9d55e3f4030e3c9ffccf83159e1eac5688d36193d661d02f936e",
+        "childCandidateDigest": "sha256:20de63edcfd8816987e8c9ceeb4c74ffcb204db520c9621f07e5b5c65e28d70a",
+        "digest": "sha256:20de63edcfd8816987e8c9ceeb4c74ffcb204db520c9621f07e5b5c65e28d70a",
         "facts": [
           {
             "expected": "select the complete approved file set in one batch",
@@ -37846,15 +37846,15 @@
           }
         ],
         "pageDemandDigest": "sha256:7eb2b514bc27bb24541d2b5d1bdefeefeeb1e061c043c866a2c14ce09932114d",
-        "projectionDigest": "sha256:eb8c53e5dc0b9d55e3f4030e3c9ffccf83159e1eac5688d36193d661d02f936e",
+        "projectionDigest": "sha256:20de63edcfd8816987e8c9ceeb4c74ffcb204db520c9621f07e5b5c65e28d70a",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -37862,7 +37862,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [],
@@ -37941,9 +37941,9 @@
                 "semanticHash": "sha256:93f687bdb81fe379ff86a3e9ac773bbbbc647eac3ac05bb3abb6dc4e31eca196"
               },
               {
-                "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
               },
               {
                 "contentHash": "sha256:9491107d319d6650efd606e67930f8510f8dbbe2793a179d97697405dcdd8c83",
@@ -37956,7 +37956,7 @@
                 "semanticHash": "sha256:154e7066b591cccf49871655394f878489bfa4a93ea67dfeb3ecf9672fe85cc6"
               }
             ],
-            "semanticDigest": "sha256:3ff2836797b5b91ed8c8c19370b4d4fe37562d2870c0bc08bf0d13f7b067bc08"
+            "semanticDigest": "sha256:b18463eadc6f18eef2e714ff863ca1596354f5d72f1fca3643837f77079f6250"
           },
           "implementation": {
             "files": [
@@ -38171,8 +38171,8 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            39,
-            41
+            40,
+            42
           ]
         },
         {
@@ -38265,8 +38265,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:42ea669b45337f197ad7350a2429e0953a30f865fa99f5c202ee53931c673624",
-        "digest": "sha256:42ea669b45337f197ad7350a2429e0953a30f865fa99f5c202ee53931c673624",
+        "childCandidateDigest": "sha256:e1ecc7bc61d83bb523049eccb523cf0629a19ebff858b01e558753cf79d30481",
+        "digest": "sha256:e1ecc7bc61d83bb523049eccb523cf0629a19ebff858b01e558753cf79d30481",
         "facts": [
           {
             "expected": "visibly save and checkpoint the exact assistant image content",
@@ -38530,15 +38530,15 @@
           }
         ],
         "pageDemandDigest": "sha256:a6be4555b3d5aae62ceb473c536ed95c15238c7523eb0a6913c4693a4df901c5",
-        "projectionDigest": "sha256:42ea669b45337f197ad7350a2429e0953a30f865fa99f5c202ee53931c673624",
+        "projectionDigest": "sha256:e1ecc7bc61d83bb523049eccb523cf0629a19ebff858b01e558753cf79d30481",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -38546,7 +38546,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [
@@ -38556,19 +38556,19 @@
                 "semanticHash": "sha256:75af6e72fcc52d6c1f10441dafdaa1dc9b50d0f646d7125fb6c013745547cebf"
               },
               {
-                "contentHash": "sha256:21add09d09a67180e71c81359d97104cf967f9de2f29477449720ab26f4d2a0e",
+                "contentHash": "sha256:3cfdcc2721268e2fb6479d9bee52ce93f8eaafbcbe0c37c20c6a756d09f04a9f",
                 "path": "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
-                "semanticHash": "sha256:3ff46712427a27c9a26d69f1fdbd4ffcd4ccb3e6e7139cd8b03c0570eb7184ad"
+                "semanticHash": "sha256:02cee851207d81c1b54d8f4777d8e934917b7d1fad65d6221c00eef1ea1d6e73"
               }
             ],
-            "semanticDigest": "sha256:9d62531861b6bbac65db091a9f2a02c02311a4d4387651aff162232a4d8e2de8"
+            "semanticDigest": "sha256:14878ff6139a350104fad20d6f4bff083e9ab742dfff9fbe7758f6dfce1c2974"
           },
           "consumers": {
             "files": [
               {
-                "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
               },
               {
                 "contentHash": "sha256:6cfa524c5a85b9c4a2bbff6601f631f2b84fda6d11f3a0db6d5602743f2b9e8e",
@@ -38576,7 +38576,7 @@
                 "semanticHash": "sha256:2f3fc53fc8fc5e36d479094e44a38754ca17aabee5c97294860c308bc1d1074d"
               }
             ],
-            "semanticDigest": "sha256:df31464dce414dcf0cbfbf272fe6a6b8385eec5b5beff9452a608e2b2ffbe46c"
+            "semanticDigest": "sha256:be6ae4a10d95620702f6946766825540f2460a9e2d2757665cb0d92c252b4e59"
           },
           "implementation": {
             "files": [
@@ -38858,7 +38858,7 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            259
+            260
           ]
         },
         {
@@ -38954,8 +38954,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:db1e2c40e74fd7fe8e724259eca4150c9d85809bf22155529de002094734b8ef",
-        "digest": "sha256:db1e2c40e74fd7fe8e724259eca4150c9d85809bf22155529de002094734b8ef",
+        "childCandidateDigest": "sha256:7d318fdac4e1da9acaa072bc74876eb85c4b8432ba1c6a28d54e1b578f86e437",
+        "digest": "sha256:7d318fdac4e1da9acaa072bc74876eb85c4b8432ba1c6a28d54e1b578f86e437",
         "facts": [
           {
             "expected": "checkpoint exact assistant outerHTML and deterministic semantic text",
@@ -39189,15 +39189,15 @@
           }
         ],
         "pageDemandDigest": "sha256:ee7a0c1d9e46b0451904b152831294e7bb5a57d29a63f1f4eb1749f3a39c556e",
-        "projectionDigest": "sha256:db1e2c40e74fd7fe8e724259eca4150c9d85809bf22155529de002094734b8ef",
+        "projectionDigest": "sha256:7d318fdac4e1da9acaa072bc74876eb85c4b8432ba1c6a28d54e1b578f86e437",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -39205,22 +39205,22 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [
               {
-                "contentHash": "sha256:21add09d09a67180e71c81359d97104cf967f9de2f29477449720ab26f4d2a0e",
+                "contentHash": "sha256:3cfdcc2721268e2fb6479d9bee52ce93f8eaafbcbe0c37c20c6a756d09f04a9f",
                 "path": "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
-                "semanticHash": "sha256:3ff46712427a27c9a26d69f1fdbd4ffcd4ccb3e6e7139cd8b03c0570eb7184ad"
+                "semanticHash": "sha256:02cee851207d81c1b54d8f4777d8e934917b7d1fad65d6221c00eef1ea1d6e73"
               },
               {
-                "contentHash": "sha256:57f365081e29044db3869f798ec94733a5451b2ae1bd6a5ee7e0ca1526c3f09d",
+                "contentHash": "sha256:a045306350fe94afc41939fb6fd1759c2d8b4595a571d4c5a26f29862e106fe0",
                 "path": "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts",
-                "semanticHash": "sha256:1a7023e1679a07b31866a07e3175e18d85e869b0126644e311ed07d18b44b61c"
+                "semanticHash": "sha256:1b42763f8c57f28ee9256ed9552ff4096cd9c888c46a3fd95045a1ef40479396"
               }
             ],
-            "semanticDigest": "sha256:4d1daa88bbcab0a909275a4f485f2f5e2f229ed707bdf8d22813082b207711c0"
+            "semanticDigest": "sha256:a9d51f02673ce9fe61c0a3ee2b008630cd05c3c99a086ff7bac9f6dd627e5c16"
           },
           "consumers": {
             "files": [
@@ -39295,9 +39295,9 @@
                 "semanticHash": "sha256:93f687bdb81fe379ff86a3e9ac773bbbbc647eac3ac05bb3abb6dc4e31eca196"
               },
               {
-                "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
               },
               {
                 "contentHash": "sha256:9491107d319d6650efd606e67930f8510f8dbbe2793a179d97697405dcdd8c83",
@@ -39310,7 +39310,7 @@
                 "semanticHash": "sha256:154e7066b591cccf49871655394f878489bfa4a93ea67dfeb3ecf9672fe85cc6"
               }
             ],
-            "semanticDigest": "sha256:3ff2836797b5b91ed8c8c19370b4d4fe37562d2870c0bc08bf0d13f7b067bc08"
+            "semanticDigest": "sha256:b18463eadc6f18eef2e714ff863ca1596354f5d72f1fca3643837f77079f6250"
           },
           "implementation": {
             "files": [
@@ -39539,8 +39539,8 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            141,
-            154
+            142,
+            155
           ]
         },
         {
@@ -39633,8 +39633,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:b4ba5643e0d9cf4faa8e60a8a1ba9ef572ba9860a2f793e4d84e471f9f2d910d",
-        "digest": "sha256:b4ba5643e0d9cf4faa8e60a8a1ba9ef572ba9860a2f793e4d84e471f9f2d910d",
+        "childCandidateDigest": "sha256:223f4029755e9925c4e3f8a73bd2d9b774ef9cbe4d8d2b624cd709046ec5cf6d",
+        "digest": "sha256:223f4029755e9925c4e3f8a73bd2d9b774ef9cbe4d8d2b624cd709046ec5cf6d",
         "facts": [
           {
             "expected": "close the current execution profile popup",
@@ -39854,15 +39854,15 @@
           }
         ],
         "pageDemandDigest": "sha256:703387e4a463566c0b4cb24eeacb45cdf5b915c120dd8c289d34b4cf82b3c2a7",
-        "projectionDigest": "sha256:b4ba5643e0d9cf4faa8e60a8a1ba9ef572ba9860a2f793e4d84e471f9f2d910d",
+        "projectionDigest": "sha256:223f4029755e9925c4e3f8a73bd2d9b774ef9cbe4d8d2b624cd709046ec5cf6d",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -39870,7 +39870,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [],
@@ -39949,9 +39949,9 @@
                 "semanticHash": "sha256:93f687bdb81fe379ff86a3e9ac773bbbbc647eac3ac05bb3abb6dc4e31eca196"
               },
               {
-                "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
               },
               {
                 "contentHash": "sha256:9491107d319d6650efd606e67930f8510f8dbbe2793a179d97697405dcdd8c83",
@@ -39964,7 +39964,7 @@
                 "semanticHash": "sha256:154e7066b591cccf49871655394f878489bfa4a93ea67dfeb3ecf9672fe85cc6"
               }
             ],
-            "semanticDigest": "sha256:3ff2836797b5b91ed8c8c19370b4d4fe37562d2870c0bc08bf0d13f7b067bc08"
+            "semanticDigest": "sha256:b18463eadc6f18eef2e714ff863ca1596354f5d72f1fca3643837f77079f6250"
           },
           "implementation": {
             "files": [
@@ -40065,7 +40065,7 @@
         {
           "path": "src/capabilities/gpt/production-child-tools.ts",
           "lines": [
-            209
+            216
           ]
         }
       ],
@@ -40354,8 +40354,8 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            140,
-            153
+            141,
+            154
           ]
         },
         {
@@ -40468,9 +40468,9 @@
                     "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
                   },
                   {
-                    "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                    "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                     "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                    "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                    "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
                   }
                 ],
                 "valueHash": "sha256:cc75c8eb7ced593b047bddab27789f113c52e9a4874ae1038f6cb10ab1db03d6"
@@ -40553,8 +40553,8 @@
             ]
           }
         },
-        "childCandidateDigest": "sha256:dd860c518884c52fdda5c2d78e54c01952b668bbf6e25b131539438677a6e70a",
-        "digest": "sha256:dd860c518884c52fdda5c2d78e54c01952b668bbf6e25b131539438677a6e70a",
+        "childCandidateDigest": "sha256:ef37f7424fb97d541c18466d2b9c902c1bea840293c3808842f4050752b1ef73",
+        "digest": "sha256:ef37f7424fb97d541c18466d2b9c902c1bea840293c3808842f4050752b1ef73",
         "facts": [
           {
             "expected": "resolve and satisfy the Product-frozen reasoning requirement on an approved observed scale",
@@ -40816,15 +40816,15 @@
           }
         ],
         "pageDemandDigest": "sha256:90a0c18ff71176e0a0e00182611e747dfe2d0d8d57a5dd0dd55108c41fde1180",
-        "projectionDigest": "sha256:dd860c518884c52fdda5c2d78e54c01952b668bbf6e25b131539438677a6e70a",
+        "projectionDigest": "sha256:ef37f7424fb97d541c18466d2b9c902c1bea840293c3808842f4050752b1ef73",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -40832,7 +40832,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [],
@@ -40911,9 +40911,9 @@
                 "semanticHash": "sha256:93f687bdb81fe379ff86a3e9ac773bbbbc647eac3ac05bb3abb6dc4e31eca196"
               },
               {
-                "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
               },
               {
                 "contentHash": "sha256:9491107d319d6650efd606e67930f8510f8dbbe2793a179d97697405dcdd8c83",
@@ -40926,7 +40926,7 @@
                 "semanticHash": "sha256:154e7066b591cccf49871655394f878489bfa4a93ea67dfeb3ecf9672fe85cc6"
               }
             ],
-            "semanticDigest": "sha256:3ff2836797b5b91ed8c8c19370b4d4fe37562d2870c0bc08bf0d13f7b067bc08"
+            "semanticDigest": "sha256:b18463eadc6f18eef2e714ff863ca1596354f5d72f1fca3643837f77079f6250"
           },
           "implementation": {
             "files": [
@@ -41139,7 +41139,7 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            363
+            367
           ]
         },
         {
@@ -41237,8 +41237,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:cdf2c57cdc6ec16dcbf7f6eea4e1a28fac2a0b88749ad8df777154ebcb58a25b",
-        "digest": "sha256:cdf2c57cdc6ec16dcbf7f6eea4e1a28fac2a0b88749ad8df777154ebcb58a25b",
+        "childCandidateDigest": "sha256:41b54a744be783d3cdc265293c273b00302c8086a875ab3ad895937607ba42b7",
+        "digest": "sha256:41b54a744be783d3cdc265293c273b00302c8086a875ab3ad895937607ba42b7",
         "facts": [
           {
             "expected": "focus the Product-frozen exact conversation",
@@ -41469,15 +41469,15 @@
           }
         ],
         "pageDemandDigest": "sha256:e2014ee3868c9f45c08b98989956b9058a660a02177b1016b9827e7a15a8b787",
-        "projectionDigest": "sha256:cdf2c57cdc6ec16dcbf7f6eea4e1a28fac2a0b88749ad8df777154ebcb58a25b",
+        "projectionDigest": "sha256:41b54a744be783d3cdc265293c273b00302c8086a875ab3ad895937607ba42b7",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -41485,17 +41485,17 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [
               {
-                "contentHash": "sha256:21add09d09a67180e71c81359d97104cf967f9de2f29477449720ab26f4d2a0e",
+                "contentHash": "sha256:3cfdcc2721268e2fb6479d9bee52ce93f8eaafbcbe0c37c20c6a756d09f04a9f",
                 "path": "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
-                "semanticHash": "sha256:3ff46712427a27c9a26d69f1fdbd4ffcd4ccb3e6e7139cd8b03c0570eb7184ad"
+                "semanticHash": "sha256:02cee851207d81c1b54d8f4777d8e934917b7d1fad65d6221c00eef1ea1d6e73"
               }
             ],
-            "semanticDigest": "sha256:a5719c4a75fe4f98463dc614105351492d49a85019a276b526eef8bb2192239e"
+            "semanticDigest": "sha256:64b8fd406cee4d13540c1efa78464cbfe6beafd7692e135b6edf8a72df49990e"
           },
           "consumers": {
             "files": [
@@ -41545,9 +41545,9 @@
                 "semanticHash": "sha256:d1d2fee98e9afac17ce9a89fab23f567577a29df012688ce7b87f205fd656ab3"
               },
               {
-                "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
               },
               {
                 "contentHash": "sha256:46654eaabc58f4e5f0b19418032768135037ac9730a48060a9bbd42731844ac9",
@@ -41555,7 +41555,7 @@
                 "semanticHash": "sha256:154e7066b591cccf49871655394f878489bfa4a93ea67dfeb3ecf9672fe85cc6"
               }
             ],
-            "semanticDigest": "sha256:b7a28f58f66ce66a45fd7c8a107dd02b58da15010f3634e938eba57020f9c680"
+            "semanticDigest": "sha256:cba175c67092131334230fd2b38ace2d5dcae6e1d90fee6f073d9f95fe30fa1d"
           },
           "implementation": {
             "files": [
@@ -41852,8 +41852,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:70b74fe6dbf85040b16dd317a9564815840604c85ff39839c2a043a1820ada92",
-        "digest": "sha256:70b74fe6dbf85040b16dd317a9564815840604c85ff39839c2a043a1820ada92",
+        "childCandidateDigest": "sha256:f03957765b8c5e8d0ad47f8f4bbb790030d285c2a9f322bad8a3181dc46eae33",
+        "digest": "sha256:f03957765b8c5e8d0ad47f8f4bbb790030d285c2a9f322bad8a3181dc46eae33",
         "facts": [
           {
             "expected": "fork once from the already-open exact source-bound destination menu",
@@ -42088,15 +42088,15 @@
           }
         ],
         "pageDemandDigest": "sha256:6341dc2edd92183cba9b060368680c8bba846a71a6e921f0baef2c67b30b4274",
-        "projectionDigest": "sha256:70b74fe6dbf85040b16dd317a9564815840604c85ff39839c2a043a1820ada92",
+        "projectionDigest": "sha256:f03957765b8c5e8d0ad47f8f4bbb790030d285c2a9f322bad8a3181dc46eae33",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -42104,7 +42104,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [
@@ -42114,12 +42114,12 @@
                 "semanticHash": "sha256:094885b3b3125b06771600a6b9fe4436f2b7ffedd378d5a904a2bfc4b20f238f"
               },
               {
-                "contentHash": "sha256:21add09d09a67180e71c81359d97104cf967f9de2f29477449720ab26f4d2a0e",
+                "contentHash": "sha256:3cfdcc2721268e2fb6479d9bee52ce93f8eaafbcbe0c37c20c6a756d09f04a9f",
                 "path": "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
-                "semanticHash": "sha256:3ff46712427a27c9a26d69f1fdbd4ffcd4ccb3e6e7139cd8b03c0570eb7184ad"
+                "semanticHash": "sha256:02cee851207d81c1b54d8f4777d8e934917b7d1fad65d6221c00eef1ea1d6e73"
               }
             ],
-            "semanticDigest": "sha256:c096f1b9c0e614388b10eea71d9ef39afb5ee5defade0b67a237d9bd04c9e694"
+            "semanticDigest": "sha256:e17d62ea59b1fb6b1062c122ea5de2663a479d79cf13406fbadf601514233575"
           },
           "consumers": {
             "files": [
@@ -42407,7 +42407,7 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            432
+            436
           ]
         },
         {
@@ -42502,8 +42502,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:a0b56da4b4aacbabdce7c80e45d42622180173cb724b7a722f15518dcf32e72a",
-        "digest": "sha256:a0b56da4b4aacbabdce7c80e45d42622180173cb724b7a722f15518dcf32e72a",
+        "childCandidateDigest": "sha256:5490c351ca54b629104125104e02297721de25c8ed52c206dc64792f74c8daa3",
+        "digest": "sha256:5490c351ca54b629104125104e02297721de25c8ed52c206dc64792f74c8daa3",
         "facts": [
           {
             "expected": "open the exact composer attachment menu",
@@ -42724,15 +42724,15 @@
           }
         ],
         "pageDemandDigest": "sha256:9b2677685742648758814fd03814ba25a7f47ce0950580eef4839f242b91ef66",
-        "projectionDigest": "sha256:a0b56da4b4aacbabdce7c80e45d42622180173cb724b7a722f15518dcf32e72a",
+        "projectionDigest": "sha256:5490c351ca54b629104125104e02297721de25c8ed52c206dc64792f74c8daa3",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -42740,7 +42740,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [],
@@ -42819,9 +42819,9 @@
                 "semanticHash": "sha256:93f687bdb81fe379ff86a3e9ac773bbbbc647eac3ac05bb3abb6dc4e31eca196"
               },
               {
-                "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
               },
               {
                 "contentHash": "sha256:9491107d319d6650efd606e67930f8510f8dbbe2793a179d97697405dcdd8c83",
@@ -42834,7 +42834,7 @@
                 "semanticHash": "sha256:154e7066b591cccf49871655394f878489bfa4a93ea67dfeb3ecf9672fe85cc6"
               }
             ],
-            "semanticDigest": "sha256:3ff2836797b5b91ed8c8c19370b4d4fe37562d2870c0bc08bf0d13f7b067bc08"
+            "semanticDigest": "sha256:b18463eadc6f18eef2e714ff863ca1596354f5d72f1fca3643837f77079f6250"
           },
           "implementation": {
             "files": [
@@ -43104,8 +43104,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:e1fb0705597066b164d78940084d12c53fc02454103a4086c9234352717d1942",
-        "digest": "sha256:e1fb0705597066b164d78940084d12c53fc02454103a4086c9234352717d1942",
+        "childCandidateDigest": "sha256:ed117d5141e098277d0a62ecd1b8132fafe53dc36320e78a78ba479b5d59ad88",
+        "digest": "sha256:ed117d5141e098277d0a62ecd1b8132fafe53dc36320e78a78ba479b5d59ad88",
         "facts": [
           {
             "expected": "open or confirm the exact source checkpoint actions menu",
@@ -43330,15 +43330,15 @@
           }
         ],
         "pageDemandDigest": "sha256:e6636b2466600048cb3a6cbe4b9753c3caa5952e6038e417887b149dcba615d1",
-        "projectionDigest": "sha256:e1fb0705597066b164d78940084d12c53fc02454103a4086c9234352717d1942",
+        "projectionDigest": "sha256:ed117d5141e098277d0a62ecd1b8132fafe53dc36320e78a78ba479b5d59ad88",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -43346,7 +43346,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [
@@ -43356,12 +43356,12 @@
                 "semanticHash": "sha256:094885b3b3125b06771600a6b9fe4436f2b7ffedd378d5a904a2bfc4b20f238f"
               },
               {
-                "contentHash": "sha256:21add09d09a67180e71c81359d97104cf967f9de2f29477449720ab26f4d2a0e",
+                "contentHash": "sha256:3cfdcc2721268e2fb6479d9bee52ce93f8eaafbcbe0c37c20c6a756d09f04a9f",
                 "path": "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
-                "semanticHash": "sha256:3ff46712427a27c9a26d69f1fdbd4ffcd4ccb3e6e7139cd8b03c0570eb7184ad"
+                "semanticHash": "sha256:02cee851207d81c1b54d8f4777d8e934917b7d1fad65d6221c00eef1ea1d6e73"
               }
             ],
-            "semanticDigest": "sha256:c096f1b9c0e614388b10eea71d9ef39afb5ee5defade0b67a237d9bd04c9e694"
+            "semanticDigest": "sha256:e17d62ea59b1fb6b1062c122ea5de2663a479d79cf13406fbadf601514233575"
           },
           "consumers": {
             "files": [
@@ -43651,10 +43651,10 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            136,
-            139,
-            149,
-            152
+            137,
+            140,
+            150,
+            153
           ]
         },
         {
@@ -43749,8 +43749,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:90cca4e533d3e698e43ed30e0af032b07cfdb02f60887569c7b895a53b3ab0d6",
-        "digest": "sha256:90cca4e533d3e698e43ed30e0af032b07cfdb02f60887569c7b895a53b3ab0d6",
+        "childCandidateDigest": "sha256:52dae714cacbe1a6ee3852b98f0ab36709d8d2855ccaa50a5ea8740d69d8f27d",
+        "digest": "sha256:52dae714cacbe1a6ee3852b98f0ab36709d8d2855ccaa50a5ea8740d69d8f27d",
         "facts": [
           {
             "expected": "open the unique execution profile popup",
@@ -43966,15 +43966,15 @@
           }
         ],
         "pageDemandDigest": "sha256:cef7a6efcabe8ee324d0ff38104153b36db7ba2760ea6fb041cb3b307122003e",
-        "projectionDigest": "sha256:90cca4e533d3e698e43ed30e0af032b07cfdb02f60887569c7b895a53b3ab0d6",
+        "projectionDigest": "sha256:52dae714cacbe1a6ee3852b98f0ab36709d8d2855ccaa50a5ea8740d69d8f27d",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -43982,7 +43982,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [],
@@ -44061,9 +44061,9 @@
                 "semanticHash": "sha256:93f687bdb81fe379ff86a3e9ac773bbbbc647eac3ac05bb3abb6dc4e31eca196"
               },
               {
-                "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
               },
               {
                 "contentHash": "sha256:9491107d319d6650efd606e67930f8510f8dbbe2793a179d97697405dcdd8c83",
@@ -44076,7 +44076,7 @@
                 "semanticHash": "sha256:154e7066b591cccf49871655394f878489bfa4a93ea67dfeb3ecf9672fe85cc6"
               }
             ],
-            "semanticDigest": "sha256:3ff2836797b5b91ed8c8c19370b4d4fe37562d2870c0bc08bf0d13f7b067bc08"
+            "semanticDigest": "sha256:b18463eadc6f18eef2e714ff863ca1596354f5d72f1fca3643837f77079f6250"
           },
           "implementation": {
             "files": [
@@ -44362,8 +44362,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:cdead61b4a1f4ff2c454535d25a6ae7b47d593e7d4ad7c672f613b306adf1da9",
-        "digest": "sha256:cdead61b4a1f4ff2c454535d25a6ae7b47d593e7d4ad7c672f613b306adf1da9",
+        "childCandidateDigest": "sha256:6d86647113d9b3a301333d23d7c160ba16f39e97a13bb27ca0a6e778ab4b9b1c",
+        "digest": "sha256:6d86647113d9b3a301333d23d7c160ba16f39e97a13bb27ca0a6e778ab4b9b1c",
         "facts": [
           {
             "expected": "open or confirm the exact fork destination menu",
@@ -44603,15 +44603,15 @@
           }
         ],
         "pageDemandDigest": "sha256:f61f172aa0485dd799844698d50cffa1fe17aeda5a7c5690429adb69f4fd6a0f",
-        "projectionDigest": "sha256:cdead61b4a1f4ff2c454535d25a6ae7b47d593e7d4ad7c672f613b306adf1da9",
+        "projectionDigest": "sha256:6d86647113d9b3a301333d23d7c160ba16f39e97a13bb27ca0a6e778ab4b9b1c",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -44619,7 +44619,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [
@@ -44629,12 +44629,12 @@
                 "semanticHash": "sha256:094885b3b3125b06771600a6b9fe4436f2b7ffedd378d5a904a2bfc4b20f238f"
               },
               {
-                "contentHash": "sha256:21add09d09a67180e71c81359d97104cf967f9de2f29477449720ab26f4d2a0e",
+                "contentHash": "sha256:3cfdcc2721268e2fb6479d9bee52ce93f8eaafbcbe0c37c20c6a756d09f04a9f",
                 "path": "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
-                "semanticHash": "sha256:3ff46712427a27c9a26d69f1fdbd4ffcd4ccb3e6e7139cd8b03c0570eb7184ad"
+                "semanticHash": "sha256:02cee851207d81c1b54d8f4777d8e934917b7d1fad65d6221c00eef1ea1d6e73"
               }
             ],
-            "semanticDigest": "sha256:c096f1b9c0e614388b10eea71d9ef39afb5ee5defade0b67a237d9bd04c9e694"
+            "semanticDigest": "sha256:e17d62ea59b1fb6b1062c122ea5de2663a479d79cf13406fbadf601514233575"
           },
           "consumers": {
             "files": [
@@ -44923,8 +44923,8 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            137,
-            150
+            138,
+            151
           ]
         },
         {
@@ -45094,9 +45094,9 @@
                     "semanticHash": "sha256:93f687bdb81fe379ff86a3e9ac773bbbbc647eac3ac05bb3abb6dc4e31eca196"
                   },
                   {
-                    "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                    "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                     "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                    "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                    "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
                   },
                   {
                     "contentHash": "sha256:9491107d319d6650efd606e67930f8510f8dbbe2793a179d97697405dcdd8c83",
@@ -45114,8 +45114,8 @@
             ]
           }
         },
-        "childCandidateDigest": "sha256:0ff62b97a35ba01c5efa6d5d40ad1f9611cc3a2616be8171621d085b851432eb",
-        "digest": "sha256:0ff62b97a35ba01c5efa6d5d40ad1f9611cc3a2616be8171621d085b851432eb",
+        "childCandidateDigest": "sha256:f2709b9284ce0e11834b085b74336fb621ae0cffc8421f09a01de915d808c1d8",
+        "digest": "sha256:f2709b9284ce0e11834b085b74336fb621ae0cffc8421f09a01de915d808c1d8",
         "facts": [
           {
             "expected": "open the unique advanced model selector",
@@ -45362,15 +45362,15 @@
           }
         ],
         "pageDemandDigest": "sha256:fc2164660807134cb13ff83313d2e1eeac0d1493ee5ba7c4f7a89468fa52f768",
-        "projectionDigest": "sha256:0ff62b97a35ba01c5efa6d5d40ad1f9611cc3a2616be8171621d085b851432eb",
+        "projectionDigest": "sha256:f2709b9284ce0e11834b085b74336fb621ae0cffc8421f09a01de915d808c1d8",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -45378,7 +45378,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [],
@@ -45457,9 +45457,9 @@
                 "semanticHash": "sha256:93f687bdb81fe379ff86a3e9ac773bbbbc647eac3ac05bb3abb6dc4e31eca196"
               },
               {
-                "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
               },
               {
                 "contentHash": "sha256:9491107d319d6650efd606e67930f8510f8dbbe2793a179d97697405dcdd8c83",
@@ -45472,7 +45472,7 @@
                 "semanticHash": "sha256:154e7066b591cccf49871655394f878489bfa4a93ea67dfeb3ecf9672fe85cc6"
               }
             ],
-            "semanticDigest": "sha256:3ff2836797b5b91ed8c8c19370b4d4fe37562d2870c0bc08bf0d13f7b067bc08"
+            "semanticDigest": "sha256:b18463eadc6f18eef2e714ff863ca1596354f5d72f1fca3643837f77079f6250"
           },
           "implementation": {
             "files": [
@@ -45573,13 +45573,13 @@
         {
           "path": "src/capabilities/gpt/production-call-facts.ts",
           "lines": [
-            59
+            74
           ]
         },
         {
           "path": "src/capabilities/gpt/production-child-tools.ts",
           "lines": [
-            208
+            215
           ]
         }
       ],
@@ -45596,15 +45596,15 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/index.ts",
           "lines": [
-            153
+            156
           ]
         },
         {
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            39,
-            41
+            40,
+            42
           ]
         },
         {
@@ -45878,7 +45878,7 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            431
+            435
           ]
         },
         {
@@ -45983,8 +45983,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:04f95faf74f23b1ffd537047f8452656c5bff7f8cc8e42b72a108e5c3eb135c0",
-        "digest": "sha256:04f95faf74f23b1ffd537047f8452656c5bff7f8cc8e42b72a108e5c3eb135c0",
+        "childCandidateDigest": "sha256:efc4e6747c99d60479ab852e8a354e857318aac776ef9553ee46104494db8cf6",
+        "digest": "sha256:efc4e6747c99d60479ab852e8a354e857318aac776ef9553ee46104494db8cf6",
         "facts": [
           {
             "expected": "prove a fresh chat and clear only an otherwise isolated stale draft",
@@ -46210,15 +46210,15 @@
           }
         ],
         "pageDemandDigest": "sha256:e26bef0ff7e2cc6c8113cc852d97f0cc019ab96e682df808329b3df36f29d809",
-        "projectionDigest": "sha256:04f95faf74f23b1ffd537047f8452656c5bff7f8cc8e42b72a108e5c3eb135c0",
+        "projectionDigest": "sha256:efc4e6747c99d60479ab852e8a354e857318aac776ef9553ee46104494db8cf6",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -46226,7 +46226,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [],
@@ -46315,9 +46315,9 @@
                 "semanticHash": "sha256:93f687bdb81fe379ff86a3e9ac773bbbbc647eac3ac05bb3abb6dc4e31eca196"
               },
               {
-                "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
               },
               {
                 "contentHash": "sha256:9491107d319d6650efd606e67930f8510f8dbbe2793a179d97697405dcdd8c83",
@@ -46330,7 +46330,7 @@
                 "semanticHash": "sha256:154e7066b591cccf49871655394f878489bfa4a93ea67dfeb3ecf9672fe85cc6"
               }
             ],
-            "semanticDigest": "sha256:ed2a9806873741c1c57f1942ba6dd97c5acafc09e653bbf32d78199893cf44a4"
+            "semanticDigest": "sha256:d0c0df3e7db40005fa4ff87360261fd3900801b02792c72347c3316e2b7b3d81"
           },
           "implementation": {
             "files": [
@@ -46572,7 +46572,7 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            434
+            438
           ]
         },
         {
@@ -46702,8 +46702,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:3c1354c14105789fb9897304eaaa623427246c82a5f915530ef9b6b8a15bf589",
-        "digest": "sha256:3c1354c14105789fb9897304eaaa623427246c82a5f915530ef9b6b8a15bf589",
+        "childCandidateDigest": "sha256:1650827e2bc5de275c5b08c12e92aae90dfc28676a7722e81c58bed3b4c15264",
+        "digest": "sha256:1650827e2bc5de275c5b08c12e92aae90dfc28676a7722e81c58bed3b4c15264",
         "facts": [
           {
             "expected": "prove all and only approved attachments are ready",
@@ -46933,15 +46933,15 @@
           }
         ],
         "pageDemandDigest": "sha256:bde55f302be082f163241caf4b2d14cbe91b62133cd9d300c917a71c1e57fe1b",
-        "projectionDigest": "sha256:3c1354c14105789fb9897304eaaa623427246c82a5f915530ef9b6b8a15bf589",
+        "projectionDigest": "sha256:1650827e2bc5de275c5b08c12e92aae90dfc28676a7722e81c58bed3b4c15264",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -46949,7 +46949,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [],
@@ -47028,9 +47028,9 @@
                 "semanticHash": "sha256:93f687bdb81fe379ff86a3e9ac773bbbbc647eac3ac05bb3abb6dc4e31eca196"
               },
               {
-                "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
               },
               {
                 "contentHash": "sha256:9491107d319d6650efd606e67930f8510f8dbbe2793a179d97697405dcdd8c83",
@@ -47043,7 +47043,7 @@
                 "semanticHash": "sha256:154e7066b591cccf49871655394f878489bfa4a93ea67dfeb3ecf9672fe85cc6"
               }
             ],
-            "semanticDigest": "sha256:3ff2836797b5b91ed8c8c19370b4d4fe37562d2870c0bc08bf0d13f7b067bc08"
+            "semanticDigest": "sha256:b18463eadc6f18eef2e714ff863ca1596354f5d72f1fca3643837f77079f6250"
           },
           "implementation": {
             "files": [
@@ -47282,7 +47282,7 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            295
+            296
           ]
         },
         {
@@ -47368,8 +47368,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:57db4e203efbb117680da6bf1f283300be68abf5c3e388ba0fdc0314e88bfe4d",
-        "digest": "sha256:57db4e203efbb117680da6bf1f283300be68abf5c3e388ba0fdc0314e88bfe4d",
+        "childCandidateDigest": "sha256:19ebbe62abf56320dddf8576a755c6e265101ce4781765a3c2d35ca0c53bcff9",
+        "digest": "sha256:19ebbe62abf56320dddf8576a755c6e265101ce4781765a3c2d35ca0c53bcff9",
         "facts": [
           {
             "expected": "prove composer retains the exact prompt approved attachments and enabled send control",
@@ -47583,15 +47583,15 @@
           }
         ],
         "pageDemandDigest": "sha256:09acfc271b7c0bba98fc8315f27d293b68332c15af01ebafb0f7b40f7edb7814",
-        "projectionDigest": "sha256:57db4e203efbb117680da6bf1f283300be68abf5c3e388ba0fdc0314e88bfe4d",
+        "projectionDigest": "sha256:19ebbe62abf56320dddf8576a755c6e265101ce4781765a3c2d35ca0c53bcff9",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -47599,7 +47599,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [],
@@ -47678,9 +47678,9 @@
                 "semanticHash": "sha256:93f687bdb81fe379ff86a3e9ac773bbbbc647eac3ac05bb3abb6dc4e31eca196"
               },
               {
-                "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
               },
               {
                 "contentHash": "sha256:6cfa524c5a85b9c4a2bbff6601f631f2b84fda6d11f3a0db6d5602743f2b9e8e",
@@ -47698,7 +47698,7 @@
                 "semanticHash": "sha256:154e7066b591cccf49871655394f878489bfa4a93ea67dfeb3ecf9672fe85cc6"
               }
             ],
-            "semanticDigest": "sha256:b43b99e0c05156a2d49c095095a5896c61fe6e78ba0376f64d49fd5f96fd4df9"
+            "semanticDigest": "sha256:fd7426d9fd05a585d267dedb70def20d7d3980a1866981d3aad9c29eea430495"
           },
           "implementation": {
             "files": [
@@ -47774,6 +47774,12 @@
           ]
         },
         {
+          "path": "src/capabilities/gpt/acceptance/gpt-production-browser-wait.acceptance-support.ts",
+          "lines": [
+            75
+          ]
+        },
+        {
           "path": "src/capabilities/gpt/acceptance/gpt-turn-submission.acceptance.ts",
           "lines": [
             252,
@@ -47837,6 +47843,18 @@
           "lines": [
             20,
             47
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/production-browser-lifecycle.ts",
+          "lines": [
+            226
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/production-child-tools.ts",
+          "lines": [
+            446
           ]
         }
       ],
@@ -47973,7 +47991,7 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            190
+            191
           ]
         },
         {
@@ -48056,8 +48074,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:aeead6779504bf5cff074cb3259fd50b23699561558209e464bc6aa315ea39d7",
-        "digest": "sha256:aeead6779504bf5cff074cb3259fd50b23699561558209e464bc6aa315ea39d7",
+        "childCandidateDigest": "sha256:62ddebe73ddecca6b4aa2edfebf7d4c293ee8aca506c739285a5e0a3848ae9bd",
+        "digest": "sha256:62ddebe73ddecca6b4aa2edfebf7d4c293ee8aca506c739285a5e0a3848ae9bd",
         "facts": [
           {
             "expected": "prove Provider accepted the exact user turn without resubmission",
@@ -48287,15 +48305,15 @@
           }
         ],
         "pageDemandDigest": "sha256:36c7b0182e67e27dddd10b90143ce93f93804ae8febecd2b405ff1d076641746",
-        "projectionDigest": "sha256:aeead6779504bf5cff074cb3259fd50b23699561558209e464bc6aa315ea39d7",
+        "projectionDigest": "sha256:62ddebe73ddecca6b4aa2edfebf7d4c293ee8aca506c739285a5e0a3848ae9bd",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -48303,17 +48321,17 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [
               {
-                "contentHash": "sha256:21add09d09a67180e71c81359d97104cf967f9de2f29477449720ab26f4d2a0e",
+                "contentHash": "sha256:3cfdcc2721268e2fb6479d9bee52ce93f8eaafbcbe0c37c20c6a756d09f04a9f",
                 "path": "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
-                "semanticHash": "sha256:3ff46712427a27c9a26d69f1fdbd4ffcd4ccb3e6e7139cd8b03c0570eb7184ad"
+                "semanticHash": "sha256:02cee851207d81c1b54d8f4777d8e934917b7d1fad65d6221c00eef1ea1d6e73"
               }
             ],
-            "semanticDigest": "sha256:a5719c4a75fe4f98463dc614105351492d49a85019a276b526eef8bb2192239e"
+            "semanticDigest": "sha256:64b8fd406cee4d13540c1efa78464cbfe6beafd7692e135b6edf8a72df49990e"
           },
           "consumers": {
             "files": [
@@ -48388,9 +48406,9 @@
                 "semanticHash": "sha256:93f687bdb81fe379ff86a3e9ac773bbbbc647eac3ac05bb3abb6dc4e31eca196"
               },
               {
-                "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
               },
               {
                 "contentHash": "sha256:9491107d319d6650efd606e67930f8510f8dbbe2793a179d97697405dcdd8c83",
@@ -48403,7 +48421,7 @@
                 "semanticHash": "sha256:154e7066b591cccf49871655394f878489bfa4a93ea67dfeb3ecf9672fe85cc6"
               }
             ],
-            "semanticDigest": "sha256:3ff2836797b5b91ed8c8c19370b4d4fe37562d2870c0bc08bf0d13f7b067bc08"
+            "semanticDigest": "sha256:b18463eadc6f18eef2e714ff863ca1596354f5d72f1fca3643837f77079f6250"
           },
           "implementation": {
             "files": [
@@ -48576,7 +48594,7 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            392
+            396
           ]
         },
         {
@@ -48928,8 +48946,8 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            138,
-            151
+            139,
+            152
           ]
         },
         {
@@ -49100,9 +49118,9 @@
                     "semanticHash": "sha256:93f687bdb81fe379ff86a3e9ac773bbbbc647eac3ac05bb3abb6dc4e31eca196"
                   },
                   {
-                    "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                    "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                     "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                    "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                    "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
                   },
                   {
                     "contentHash": "sha256:9491107d319d6650efd606e67930f8510f8dbbe2793a179d97697405dcdd8c83",
@@ -49120,8 +49138,8 @@
             ]
           }
         },
-        "childCandidateDigest": "sha256:b3c9dad8f276a5330d11db0474cef7cdd643e543e3b5d885b887d2a26527425f",
-        "digest": "sha256:b3c9dad8f276a5330d11db0474cef7cdd643e543e3b5d885b887d2a26527425f",
+        "childCandidateDigest": "sha256:12c967299b45ed6058f3458a0c6fb9950eb71069944103d5c604212a83e5857a",
+        "digest": "sha256:12c967299b45ed6058f3458a0c6fb9950eb71069944103d5c604212a83e5857a",
         "facts": [
           {
             "expected": "select the exact model and consume the same Browser mutation postcondition packet",
@@ -49372,15 +49390,15 @@
           }
         ],
         "pageDemandDigest": "sha256:c00723dc3cb80a88ab3d172742d31e88f368f2deb72adc1626e60b1e0c5cfa42",
-        "projectionDigest": "sha256:b3c9dad8f276a5330d11db0474cef7cdd643e543e3b5d885b887d2a26527425f",
+        "projectionDigest": "sha256:12c967299b45ed6058f3458a0c6fb9950eb71069944103d5c604212a83e5857a",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -49388,7 +49406,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [],
@@ -49467,9 +49485,9 @@
                 "semanticHash": "sha256:93f687bdb81fe379ff86a3e9ac773bbbbc647eac3ac05bb3abb6dc4e31eca196"
               },
               {
-                "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
               },
               {
                 "contentHash": "sha256:9491107d319d6650efd606e67930f8510f8dbbe2793a179d97697405dcdd8c83",
@@ -49482,7 +49500,7 @@
                 "semanticHash": "sha256:154e7066b591cccf49871655394f878489bfa4a93ea67dfeb3ecf9672fe85cc6"
               }
             ],
-            "semanticDigest": "sha256:3ff2836797b5b91ed8c8c19370b4d4fe37562d2870c0bc08bf0d13f7b067bc08"
+            "semanticDigest": "sha256:b18463eadc6f18eef2e714ff863ca1596354f5d72f1fca3643837f77079f6250"
           },
           "implementation": {
             "files": [
@@ -49674,7 +49692,7 @@
         {
           "path": "src/capabilities/gpt/production-child-tools.ts",
           "lines": [
-            400
+            407
           ]
         },
         {
@@ -49867,16 +49885,16 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/index.ts",
           "lines": [
-            129,
-            227,
-            387
+            130,
+            230,
+            392
           ]
         },
         {
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            310,
+            311,
             321
           ]
         },
@@ -49986,8 +50004,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:1976cee480e9b32f037e28949d377c92723b4ed1abff9b203863611bb84fd1cd",
-        "digest": "sha256:1976cee480e9b32f037e28949d377c92723b4ed1abff9b203863611bb84fd1cd",
+        "childCandidateDigest": "sha256:f3009c7c3e985fc59b9663eb772334c93d84d006d13381e9a57eaf0fbeeff24b",
+        "digest": "sha256:f3009c7c3e985fc59b9663eb772334c93d84d006d13381e9a57eaf0fbeeff24b",
         "facts": [
           {
             "expected": "submit the exact prompt attachments and turn marker once",
@@ -50223,15 +50241,15 @@
           }
         ],
         "pageDemandDigest": "sha256:6b400fb0ecf840f274703f8749b38d97e5d20156c58e55e4cb839977e0fc4831",
-        "projectionDigest": "sha256:1976cee480e9b32f037e28949d377c92723b4ed1abff9b203863611bb84fd1cd",
+        "projectionDigest": "sha256:f3009c7c3e985fc59b9663eb772334c93d84d006d13381e9a57eaf0fbeeff24b",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -50239,17 +50257,17 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [
               {
-                "contentHash": "sha256:21add09d09a67180e71c81359d97104cf967f9de2f29477449720ab26f4d2a0e",
+                "contentHash": "sha256:3cfdcc2721268e2fb6479d9bee52ce93f8eaafbcbe0c37c20c6a756d09f04a9f",
                 "path": "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
-                "semanticHash": "sha256:3ff46712427a27c9a26d69f1fdbd4ffcd4ccb3e6e7139cd8b03c0570eb7184ad"
+                "semanticHash": "sha256:02cee851207d81c1b54d8f4777d8e934917b7d1fad65d6221c00eef1ea1d6e73"
               }
             ],
-            "semanticDigest": "sha256:a5719c4a75fe4f98463dc614105351492d49a85019a276b526eef8bb2192239e"
+            "semanticDigest": "sha256:64b8fd406cee4d13540c1efa78464cbfe6beafd7692e135b6edf8a72df49990e"
           },
           "consumers": {
             "files": [
@@ -50349,14 +50367,14 @@
                 "semanticHash": "sha256:93f687bdb81fe379ff86a3e9ac773bbbbc647eac3ac05bb3abb6dc4e31eca196"
               },
               {
-                "contentHash": "sha256:d82d2ba375c8ad585492a4e7c1159ecdc93549738afb560cee7831a3cbcbf1e3",
+                "contentHash": "sha256:b0d33f0a3f0db5b527d7c088a8310a81a8db28cbc265ce836856221c23c4da7f",
                 "path": "src/plugins/public-knowledge-article-pipeline/index.ts",
-                "semanticHash": "sha256:2a28ffe433bb4d7290aa01f86ea5dfcca0d8c7047bebef448d4e8efac4c05b1f"
+                "semanticHash": "sha256:a69724d97d17ff66d4ad67fdcf54f9b26ea58e0341b8e248563828960e9f5e11"
               },
               {
-                "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
               },
               {
                 "contentHash": "sha256:6cfa524c5a85b9c4a2bbff6601f631f2b84fda6d11f3a0db6d5602743f2b9e8e",
@@ -50374,7 +50392,7 @@
                 "semanticHash": "sha256:154e7066b591cccf49871655394f878489bfa4a93ea67dfeb3ecf9672fe85cc6"
               }
             ],
-            "semanticDigest": "sha256:338e3c1fafb4000014aa36bd73fc6d7295ef073aa9f541056ed5f660294282a2"
+            "semanticDigest": "sha256:3ec7600993c0cf3b2f91ffd4dcd3fa38374705954b06990e4a557f6beb98d8d2"
           },
           "implementation": {
             "files": [
@@ -50583,7 +50601,7 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            369
+            373
           ]
         },
         {
@@ -50655,8 +50673,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:ba16ae8d00bf44bcea2f3185d0e64fb8fdb51a1eaa0a918262416aeb0a7268a3",
-        "digest": "sha256:ba16ae8d00bf44bcea2f3185d0e64fb8fdb51a1eaa0a918262416aeb0a7268a3",
+        "childCandidateDigest": "sha256:a6c636545f56bec8977ad8c28df206b25abd640b391170608d200386da93f724",
+        "digest": "sha256:a6c636545f56bec8977ad8c28df206b25abd640b391170608d200386da93f724",
         "facts": [
           {
             "expected": "prove the current conversation matches the exact canonical identity",
@@ -50870,15 +50888,15 @@
           }
         ],
         "pageDemandDigest": "sha256:7db3f402e7c291ca4c774c5c928c9d20a80c7bb8658f07a5d77c04fe45cc8fdf",
-        "projectionDigest": "sha256:ba16ae8d00bf44bcea2f3185d0e64fb8fdb51a1eaa0a918262416aeb0a7268a3",
+        "projectionDigest": "sha256:a6c636545f56bec8977ad8c28df206b25abd640b391170608d200386da93f724",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -50886,17 +50904,17 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [
               {
-                "contentHash": "sha256:21add09d09a67180e71c81359d97104cf967f9de2f29477449720ab26f4d2a0e",
+                "contentHash": "sha256:3cfdcc2721268e2fb6479d9bee52ce93f8eaafbcbe0c37c20c6a756d09f04a9f",
                 "path": "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
-                "semanticHash": "sha256:3ff46712427a27c9a26d69f1fdbd4ffcd4ccb3e6e7139cd8b03c0570eb7184ad"
+                "semanticHash": "sha256:02cee851207d81c1b54d8f4777d8e934917b7d1fad65d6221c00eef1ea1d6e73"
               }
             ],
-            "semanticDigest": "sha256:a5719c4a75fe4f98463dc614105351492d49a85019a276b526eef8bb2192239e"
+            "semanticDigest": "sha256:64b8fd406cee4d13540c1efa78464cbfe6beafd7692e135b6edf8a72df49990e"
           },
           "consumers": {
             "files": [
@@ -50946,9 +50964,9 @@
                 "semanticHash": "sha256:d1d2fee98e9afac17ce9a89fab23f567577a29df012688ce7b87f205fd656ab3"
               },
               {
-                "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
               },
               {
                 "contentHash": "sha256:46654eaabc58f4e5f0b19418032768135037ac9730a48060a9bbd42731844ac9",
@@ -50956,7 +50974,7 @@
                 "semanticHash": "sha256:154e7066b591cccf49871655394f878489bfa4a93ea67dfeb3ecf9672fe85cc6"
               }
             ],
-            "semanticDigest": "sha256:b7a28f58f66ce66a45fd7c8a107dd02b58da15010f3634e938eba57020f9c680"
+            "semanticDigest": "sha256:cba175c67092131334230fd2b38ace2d5dcae6e1d90fee6f073d9f95fe30fa1d"
           },
           "implementation": {
             "files": [
@@ -51046,8 +51064,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-production-browser-wait.acceptance-support.ts",
           "lines": [
-            90,
-            113
+            93,
+            116
           ]
         },
         {
@@ -51100,7 +51118,7 @@
         {
           "path": "src/capabilities/gpt/production-browser-lifecycle.ts",
           "lines": [
-            225
+            244
           ]
         },
         {
@@ -51138,8 +51156,8 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            39,
-            41
+            40,
+            42
           ]
         },
         {
@@ -51261,8 +51279,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:3356adaa54fc35c09a7433509e337e77137893132280605a617a76db90c12628",
-        "digest": "sha256:3356adaa54fc35c09a7433509e337e77137893132280605a617a76db90c12628",
+        "childCandidateDigest": "sha256:f94a40503f1d50fdab66f1298d3ebec78fa690b85702b65d72035b60e4bd4c80",
+        "digest": "sha256:f94a40503f1d50fdab66f1298d3ebec78fa690b85702b65d72035b60e4bd4c80",
         "facts": [
           {
             "expected": "wait for the exact assistant image to become stable",
@@ -51498,15 +51516,15 @@
           }
         ],
         "pageDemandDigest": "sha256:baa969976ee2d1d0c22f652a418568ca8dee4241952a704ab490782fae4d4d25",
-        "projectionDigest": "sha256:3356adaa54fc35c09a7433509e337e77137893132280605a617a76db90c12628",
+        "projectionDigest": "sha256:f94a40503f1d50fdab66f1298d3ebec78fa690b85702b65d72035b60e4bd4c80",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -51514,7 +51532,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [
@@ -51524,19 +51542,19 @@
                 "semanticHash": "sha256:75af6e72fcc52d6c1f10441dafdaa1dc9b50d0f646d7125fb6c013745547cebf"
               },
               {
-                "contentHash": "sha256:21add09d09a67180e71c81359d97104cf967f9de2f29477449720ab26f4d2a0e",
+                "contentHash": "sha256:3cfdcc2721268e2fb6479d9bee52ce93f8eaafbcbe0c37c20c6a756d09f04a9f",
                 "path": "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
-                "semanticHash": "sha256:3ff46712427a27c9a26d69f1fdbd4ffcd4ccb3e6e7139cd8b03c0570eb7184ad"
+                "semanticHash": "sha256:02cee851207d81c1b54d8f4777d8e934917b7d1fad65d6221c00eef1ea1d6e73"
               }
             ],
-            "semanticDigest": "sha256:9d62531861b6bbac65db091a9f2a02c02311a4d4387651aff162232a4d8e2de8"
+            "semanticDigest": "sha256:14878ff6139a350104fad20d6f4bff083e9ab742dfff9fbe7758f6dfce1c2974"
           },
           "consumers": {
             "files": [
               {
-                "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
               },
               {
                 "contentHash": "sha256:6cfa524c5a85b9c4a2bbff6601f631f2b84fda6d11f3a0db6d5602743f2b9e8e",
@@ -51544,7 +51562,7 @@
                 "semanticHash": "sha256:2f3fc53fc8fc5e36d479094e44a38754ca17aabee5c97294860c308bc1d1074d"
               }
             ],
-            "semanticDigest": "sha256:df31464dce414dcf0cbfbf272fe6a6b8385eec5b5beff9452a608e2b2ffbe46c"
+            "semanticDigest": "sha256:be6ae4a10d95620702f6946766825540f2460a9e2d2757665cb0d92c252b4e59"
           },
           "implementation": {
             "files": [
@@ -51684,11 +51702,11 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-production-browser-wait.acceptance-support.ts",
           "lines": [
-            76,
-            81,
-            86,
-            111,
-            112
+            79,
+            84,
+            89,
+            114,
+            115
           ]
         },
         {
@@ -51747,7 +51765,7 @@
         {
           "path": "src/capabilities/gpt/production-browser-lifecycle.ts",
           "lines": [
-            224
+            243
           ]
         },
         {
@@ -51892,7 +51910,7 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            244
+            245
           ]
         },
         {
@@ -52023,8 +52041,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:c8f4f57acee5723832ed1295a572379b77183ce826aa20df95c486a9bb969e2a",
-        "digest": "sha256:c8f4f57acee5723832ed1295a572379b77183ce826aa20df95c486a9bb969e2a",
+        "childCandidateDigest": "sha256:f32c4c7ea0c870a2ff03f745771b5bb48791d704e0eb61701daeb7af147f60aa",
+        "digest": "sha256:f32c4c7ea0c870a2ff03f745771b5bb48791d704e0eb61701daeb7af147f60aa",
         "facts": [
           {
             "expected": "wait for the exact assistant text to become stable across exact canonical navigation or Browser-proven normal reacquire",
@@ -52260,15 +52278,15 @@
           }
         ],
         "pageDemandDigest": "sha256:7ff16d346dce677d0d1d46a28755875b71319b93d50dba701992401265645330",
-        "projectionDigest": "sha256:c8f4f57acee5723832ed1295a572379b77183ce826aa20df95c486a9bb969e2a",
+        "projectionDigest": "sha256:f32c4c7ea0c870a2ff03f745771b5bb48791d704e0eb61701daeb7af147f60aa",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -52276,22 +52294,22 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [
               {
-                "contentHash": "sha256:21add09d09a67180e71c81359d97104cf967f9de2f29477449720ab26f4d2a0e",
+                "contentHash": "sha256:3cfdcc2721268e2fb6479d9bee52ce93f8eaafbcbe0c37c20c6a756d09f04a9f",
                 "path": "src/lib/browser/chrome-extension/dom-coherent-observation.ts",
-                "semanticHash": "sha256:3ff46712427a27c9a26d69f1fdbd4ffcd4ccb3e6e7139cd8b03c0570eb7184ad"
+                "semanticHash": "sha256:02cee851207d81c1b54d8f4777d8e934917b7d1fad65d6221c00eef1ea1d6e73"
               },
               {
-                "contentHash": "sha256:57f365081e29044db3869f798ec94733a5451b2ae1bd6a5ee7e0ca1526c3f09d",
+                "contentHash": "sha256:a045306350fe94afc41939fb6fd1759c2d8b4595a571d4c5a26f29862e106fe0",
                 "path": "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts",
-                "semanticHash": "sha256:1a7023e1679a07b31866a07e3175e18d85e869b0126644e311ed07d18b44b61c"
+                "semanticHash": "sha256:1b42763f8c57f28ee9256ed9552ff4096cd9c888c46a3fd95045a1ef40479396"
               }
             ],
-            "semanticDigest": "sha256:4d1daa88bbcab0a909275a4f485f2f5e2f229ed707bdf8d22813082b207711c0"
+            "semanticDigest": "sha256:a9d51f02673ce9fe61c0a3ee2b008630cd05c3c99a086ff7bac9f6dd627e5c16"
           },
           "consumers": {
             "files": [
@@ -52366,9 +52384,9 @@
                 "semanticHash": "sha256:93f687bdb81fe379ff86a3e9ac773bbbbc647eac3ac05bb3abb6dc4e31eca196"
               },
               {
-                "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
               },
               {
                 "contentHash": "sha256:9491107d319d6650efd606e67930f8510f8dbbe2793a179d97697405dcdd8c83",
@@ -52381,7 +52399,7 @@
                 "semanticHash": "sha256:154e7066b591cccf49871655394f878489bfa4a93ea67dfeb3ecf9672fe85cc6"
               }
             ],
-            "semanticDigest": "sha256:3ff2836797b5b91ed8c8c19370b4d4fe37562d2870c0bc08bf0d13f7b067bc08"
+            "semanticDigest": "sha256:b18463eadc6f18eef2e714ff863ca1596354f5d72f1fca3643837f77079f6250"
           },
           "implementation": {
             "files": [
@@ -52645,7 +52663,7 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
           "lines": [
-            291
+            292
           ]
         },
         {
@@ -52752,8 +52770,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:511e60f70946fe283ae9566bb47966dabe2deba3e02f911e0e91ad47e19eea1f",
-        "digest": "sha256:511e60f70946fe283ae9566bb47966dabe2deba3e02f911e0e91ad47e19eea1f",
+        "childCandidateDigest": "sha256:4cecf1c5d2dfd4b147bfe8a881c156199388a2f125a408ae8ab8828c220c389a",
+        "digest": "sha256:4cecf1c5d2dfd4b147bfe8a881c156199388a2f125a408ae8ab8828c220c389a",
         "facts": [
           {
             "expected": "make the composer retain the exact approved prompt",
@@ -52984,15 +53002,15 @@
           }
         ],
         "pageDemandDigest": "sha256:a1bb290ca7e5198fcc985069468a3445a6e8288b1a7d3266b985b0c1aa6a75b6",
-        "projectionDigest": "sha256:511e60f70946fe283ae9566bb47966dabe2deba3e02f911e0e91ad47e19eea1f",
+        "projectionDigest": "sha256:4cecf1c5d2dfd4b147bfe8a881c156199388a2f125a408ae8ab8828c220c389a",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9c96efb96aa277ef6234dbbad7cb36526a069286b29f6f4ec36c6f13c8b2a6f4",
+                "contentHash": "sha256:84940a3c07b14d8806aff61da9cfa75b8a294616027f0f581a6684a871e2a2a5",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:e6386d4d6bc8814dc82ed9d748abdc00ffe401fa105be37acb4e9995c0f37b5f"
+                "semanticHash": "sha256:eae61d74895be233c21385bbee7b16e62e4d0e8a304aad0eb906d3c72f2d637a"
               },
               {
                 "contentHash": "sha256:6c6bf9858eb18ec69710c960afcc59dbd4e85d7057791b78aa11ea3afcd9c282",
@@ -53000,7 +53018,7 @@
                 "semanticHash": "sha256:f98208582fbf1e0222252b54f05b10ddb28c07aaf5172ce0b777e4b7055496cb"
               }
             ],
-            "semanticDigest": "sha256:09190d66e2a284630dedc7db45879f6490e33def29e83c88705af5fab2da970b"
+            "semanticDigest": "sha256:596bd4616c3d1de7c1876f6c3dc63d18f9f234733d7c4c0e23b8b609bd1d60a5"
           },
           "browser": {
             "files": [],
@@ -53079,9 +53097,9 @@
                 "semanticHash": "sha256:93f687bdb81fe379ff86a3e9ac773bbbbc647eac3ac05bb3abb6dc4e31eca196"
               },
               {
-                "contentHash": "sha256:445a8fc310875ede4e35ccbad50fd91b6966d3ba08717c7dc6b3c60e917802a1",
+                "contentHash": "sha256:15097d07539354df9a0d8abe05f0b0d133f92c038f4ea520833f3f2621606f77",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts",
-                "semanticHash": "sha256:85abea756365c3ec08e1d52c333364f44658095a58876e21e3507bf2e5de2a71"
+                "semanticHash": "sha256:7f53bc45314f14ea8817075b2ee3f4fc4cc645c5ff2d4cbc75bc437e3eb8e533"
               },
               {
                 "contentHash": "sha256:6cfa524c5a85b9c4a2bbff6601f631f2b84fda6d11f3a0db6d5602743f2b9e8e",
@@ -53099,7 +53117,7 @@
                 "semanticHash": "sha256:154e7066b591cccf49871655394f878489bfa4a93ea67dfeb3ecf9672fe85cc6"
               }
             ],
-            "semanticDigest": "sha256:b43b99e0c05156a2d49c095095a5896c61fe6e78ba0376f64d49fd5f96fd4df9"
+            "semanticDigest": "sha256:fd7426d9fd05a585d267dedb70def20d7d3980a1866981d3aad9c29eea430495"
           },
           "implementation": {
             "files": [

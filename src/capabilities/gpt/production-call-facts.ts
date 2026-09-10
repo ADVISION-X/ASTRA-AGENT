@@ -8,6 +8,7 @@ import type { GptProductionBrowserAuthority } from "./production-ports.js";
 import type {
   ExactGptCallFacts,
 } from "./product-api.js";
+import type { ProductSafeConfirmedProviderSubmitReceipt } from "./execution-fault.js";
 import type { GptContinuationStorePort } from "./session/gpt-continuation-store-port.js";
 import {
   isPendingExactEvidence,
@@ -15,6 +16,20 @@ import {
 } from "./evidence-fact.js";
 
 export { isPendingExactEvidence } from "./evidence-fact.js";
+
+const confirmedSubmitReceipts = new WeakMap<object, ProductSafeConfirmedProviderSubmitReceipt>();
+
+export const bindConfirmedProviderSubmitReceipt = <T extends ExactGptCallFacts>(
+  facts: T,
+  receipt: ProductSafeConfirmedProviderSubmitReceipt,
+): T => {
+  confirmedSubmitReceipts.set(facts, Object.freeze(receipt));
+  return facts;
+};
+
+export const confirmedProviderSubmitReceiptFromFacts = (
+  facts: ExactGptCallFacts,
+): ProductSafeConfirmedProviderSubmitReceipt | null => confirmedSubmitReceipts.get(facts) ?? null;
 
 export type GptExactCallFactsWithBrowserBinding = Omit<ExactGptCallFacts, "mutation"> & Readonly<{
     mutation: (NonNullable<ExactGptCallFacts["mutation"]> & Readonly<{

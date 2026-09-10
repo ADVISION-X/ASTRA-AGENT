@@ -262,7 +262,9 @@ export class BrowserLaneCoordinator {
         }
         throw error;
       }
-      waiter.resolve(this.withLifecycle(admitted.lease, admitted.replacementKey));
+      waiter.resolve(this.withLifecycle(
+        admitted.lease, admitted.replacementKey, waiter.binding, recovery,
+      ));
     } catch (error) {
       const failure = browserExecutionFailure(
         error,
@@ -348,22 +350,36 @@ export class BrowserLaneCoordinator {
     });
   }
 
-  private withLifecycle(lease: BrowserTargetLease, replacementKeyToClear: string | null): BrowserTargetLease {
-    const finish = async (action: () => Promise<void>): Promise<void> => {
+  private withLifecycle(
+    lease: BrowserTargetLease,
+    replacementKeyToClear: string | null,
+    binding: BrowserExecutionBinding,
+    acquiredRecovery: LaneRecovery | null,
+  ): BrowserTargetLease {
+    const finish = async (
+      action: () => Promise<void>,
+      retainedRecovery: LaneRecovery | null = null,
+    ): Promise<void> => {
       try {
         await action();
       } catch (error) {
         this.resolveBroker().revokeOperatorTargetClaim(lease.target.targetRef);
         throw browserExecutionFailure(new Error("BROWSER_TARGET_LIFECYCLE_UNSETTLED", { cause: error }), "no");
       } finally {
-        this.refreshQuarantine();
+        if (retainedRecovery) this.quarantine = retainedRecovery;
+        else this.refreshQuarantine();
         this.active = false;
         void this.pump();
       }
     };
     return {
       ...lease,
-      park: (input) => finish(() => lease.park(input)),
+      park: (input) => {
+        const retained = input.mode === "confirmed-source-readback"
+          ? this.confirmedProviderRecoveryForLease(binding, lease, acquiredRecovery)
+          : null;
+        return finish(() => lease.park(input), retained);
+      },
       close: (input) => finish(async () => {
         try { await lease.close(input); }
         finally {
@@ -371,6 +387,37 @@ export class BrowserLaneCoordinator {
         }
       }),
     };
+  }
+
+  private confirmedProviderRecoveryForLease(
+    binding: BrowserExecutionBinding,
+    lease: BrowserTargetLease,
+    acquiredRecovery: LaneRecovery | null,
+  ): LaneRecovery {
+    const matchesLease = (candidate: LaneRecovery): boolean => candidate.state === "CONFIRMED"
+      && candidate.effectScope === "provider_effect"
+      && candidate.childCapabilityId === "submit_exact_gpt_turn_once"
+      && this.bindingMatchesRecovery(binding, candidate)
+      && candidate.targetRef === lease.target.targetRef
+      && candidate.documentRef === lease.document.documentRef;
+    if (acquiredRecovery && matchesLease(acquiredRecovery)) return acquiredRecovery;
+    const matches = (this.infrastructure.mutationState?.reconciliationStates() ?? [])
+      .filter((entry) => entry.current === "CONFIRMED"
+        && entry.mutation.effectScope === "provider_effect"
+        && entry.mutation.childCapabilityId === "submit_exact_gpt_turn_once"
+        && entry.mutation.jobId === binding.jobId
+        && entry.mutation.attemptId === binding.attemptId
+        && entry.mutation.ownerPluginId === binding.ownerPluginId
+        && entry.mutation.pluginVersion === binding.pluginVersion
+        && entry.mutation.productStepId === binding.productStepId
+        && entry.mutation.targetRef === lease.target.targetRef
+        && entry.mutation.documentRef === lease.document.documentRef);
+    if (matches.length !== 1) throw new Error("BROWSER_CONFIRMED_SOURCE_READBACK_INVALID");
+    const entry = matches[0]!;
+    return Object.freeze({
+      ...entry.mutation,
+      state: "CONFIRMED",
+    });
   }
 
   private bindingMatchesRecovery(binding: BrowserExecutionBinding, recovery: LaneRecovery): boolean {

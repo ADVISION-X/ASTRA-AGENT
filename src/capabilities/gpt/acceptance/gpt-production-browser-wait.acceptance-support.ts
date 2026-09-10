@@ -71,6 +71,9 @@ try {
     "corpus_research",
     "text-wait",
   );
+  lifecycle.announceSubmissionReconciliation(
+    active, "corpus_research", "submission-reconcile", "reconcile_gpt_turn_submission",
+  );
   assert.equal(active.facade.document.documentRef, "document:1");
   await lifecycle.yieldForProviderWait(
     active, "corpus_research", "text-wait", "wait_for_stable_gpt_text", 25,
@@ -112,6 +115,11 @@ try {
     ["gpt.child", "gpt-call", "corpus_research", "text-wait:wait_for_stable_gpt_text"],
     ["gpt.child", "gpt-call", "corpus_research", "image-wait:wait_for_stable_gpt_image"],
   ]);
+  const reconciliationEvents = (await readFile(runtimeLogger.currentSegmentPath()!, "utf8")).trim().split("\n")
+    .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>)
+    .filter((event) => event.code === "GPT_SUBMISSION_RECONCILIATION_ACTIVE");
+  assert.equal(reconciliationEvents.length, 1,
+    "submission reconciliation must expose that its bounded read-only polling is active");
 
 } finally {
   await rm(temporary, { recursive: true, force: true });

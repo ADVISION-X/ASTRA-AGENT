@@ -87,7 +87,7 @@ export type BrowserTargetLease = Readonly<{
   wait(input: Readonly<{ durationMs: number }>): Promise<void>;
   park(input: Readonly<{
     reason: string;
-    mode: "normal-provider-wait" | "recovery";
+    mode: "normal-provider-wait" | "confirmed-source-readback" | "recovery";
   }>): Promise<void>;
   close(input: Readonly<{ reason: string }>): Promise<void>;
   resolvePendingMutation(
