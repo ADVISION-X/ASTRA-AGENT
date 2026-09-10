@@ -194,6 +194,23 @@ const inspectSeparatedStatus = (
   const path = "src/lib/local-runtime/workbench-status.ts";
   const status = sourceAt(project, path);
   if (targetPaths.includes(path) && !status) findings.push(finding(lawId, path, "required local shell authority source is missing."));
+  for (const source of [
+    "src/lib/local-runtime/workbench-handle.ts",
+    "src/lib/local-runtime/workbench-status.ts",
+    "src/lib/local-runtime/workbench.ts",
+  ].map((candidate) => sourceAt(project, candidate)).filter((candidate): candidate is SourceFile => candidate !== undefined)) {
+    const forbiddenCall = source.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) => {
+      const expression = call.getExpression();
+      return (Node.isIdentifier(expression) && expression.getText() === "setInterval")
+        || (Node.isPropertyAccessExpression(expression) && expression.getName() === "addEventListener");
+    });
+    const forbiddenStream = source.getDescendantsOfKind(SyntaxKind.NewExpression).find((expression) =>
+      ["EventSource", "WebSocket"].includes(expression.getExpression().getText()));
+    const forbidden = forbiddenCall ?? forbiddenStream;
+    if (forbidden) findings.push(finding(lawId, sourcePath(source),
+      `Production status observation must remain initial-load or operator-refresh only; found ${forbidden.getText()}.`,
+      forbidden.getStartLineNumber()));
+  }
   if (!status) return;
   const expected = new Map<string, string[]>([
     ["shellState", ["ready", "stopped"]],
@@ -282,7 +299,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     lawResults: [
       lawResult(LAW_SHELL, { "static.ast": staticClauses(4, 7, 8), "static.contract": staticClauses(8) }),
       lawResult(LAW_BOUNDARY, { "static.ast": staticClauses(0) }),
-      lawResult(LAW_STATUS, { "static.ast": staticClauses(0, 1) }),
+      lawResult(LAW_STATUS, { "static.ast": staticClauses(0, 1, 3) }),
     ], inspectedFiles: evaluation.inspectedFiles,
   });
 };

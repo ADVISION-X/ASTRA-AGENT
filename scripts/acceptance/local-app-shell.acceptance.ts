@@ -67,6 +67,14 @@ assert.deepEqual(inspectLocalAppShellProject(fixture()), [], "the current owner 
   owner.replaceWithText(owner.getFullText().replaceAll('shellState: "ready"', 'shellState: "stopped"'));
   assert.ok(checkIds(project).some((message) => message.includes("must keep Shell ready")));
 }
+{
+  const project = fixture();
+  project.getSourceFileOrThrow("src/lib/local-runtime/workbench.ts")
+    .addStatements("setInterval(() => workbench.getHealth(), 1000);");
+  const findings = inspectLocalAppShellProject(project);
+  assert.ok(findings.some((finding) => finding.lawId === "LAW-LOCAL-APP-SHELL-003-V4"
+    && finding.message.includes("operator-refresh only")));
+}
 
 console.log("local-app-shell-acceptance-ok");
 emitQualityProofObservation({ lawId: "LAW-LOCAL-APP-SHELL-001-V6", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:5","forbidden:6","summary"], locator: "acceptance:local-shell:single-owned-shell", observedValue: "single repository-owned Shell health boundary verified" });
