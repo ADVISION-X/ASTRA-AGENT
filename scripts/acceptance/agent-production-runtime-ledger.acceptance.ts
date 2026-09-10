@@ -314,6 +314,24 @@ try {
   assert.equal(resolveStoredProductionAuthority(
     dataDirectory, "production-task:job:not-present", HASH_A,
   ), "missing");
+  const staleFenceDirectory = path.join(temporary, "stale-fence-current");
+  await mkdir(staleFenceDirectory);
+  const staleFenceStore = new ProductionRuntimeStore(staleFenceDirectory);
+  staleFenceStore.enqueue({
+    idempotency_key: "checkpoint:stale-fence", kind: "checkpoint", path: outboxPath,
+    method: "POST", headers: {}, body: '{"staleFence":true}',
+  });
+  const staleFenceDatabase = Reflect.get(staleFenceStore, "database") as Database.Database;
+  staleFenceDatabase.prepare(`update production_outbox set last_error=?,next_delivery_at=null
+    where idempotency_key=?`).run(
+    "WEBSITE_HTTP_409:AI_LEASE_FENCE_STALE", "checkpoint:stale-fence",
+  );
+  staleFenceStore.close();
+  const reopenedStaleFenceStore = new ProductionRuntimeStore(staleFenceDirectory);
+  assert.equal(reopenedStaleFenceStore.readOutboxAuthority("checkpoint:stale-fence")?.lastError,
+    "WEBSITE_HTTP_409:AI_LEASE_FENCE_STALE",
+    "startup must preserve the law-authorized stale-fence checkpoint for same-attempt reauthorization");
+  reopenedStaleFenceStore.close();
   store.enqueue({
     idempotency_key: "checkpoint:legacy-null-schedule", kind: "checkpoint", path: outboxPath,
     method: "POST", headers: {}, body: '{"legacy":true}',

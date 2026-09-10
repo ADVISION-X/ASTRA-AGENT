@@ -489,7 +489,9 @@ const revocationSettlementSource = outboxSource.slice(
   outboxSource.indexOf("public deliverOutbox"),
 );
 assert.doesNotMatch(revocationSettlementSource, /sent_at\s*=/u);
-assert.match(storeFoundationSource, /last_error<>'PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED'/u);
+assert.match(storeFoundationSource, /last_error not in/u);
+assert.match(storeFoundationSource, /'PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED'/u);
+assert.match(storeFoundationSource, /'WEBSITE_HTTP_409:AI_LEASE_FENCE_STALE'/u);
 
 assert.throws(() => parseJsonEnvelope({
   ok: false, error: {

@@ -372,7 +372,10 @@ const initializeOrAssertCurrentSchema = (database: Database.Database): void => {
   }
   const unscheduled = database.prepare(`select count(*) as count from production_outbox
     where sent_at is null and response_hash is null and last_error is not null
-      and next_delivery_at is null and last_error<>'PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED'`
+      and next_delivery_at is null and last_error not in (
+        'PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED',
+        'WEBSITE_HTTP_409:AI_LEASE_FENCE_STALE'
+      )`
   ).get() as { count: number };
   if (Number(unscheduled.count) !== 0) {
     throw executionFailure("failed", "PRODUCTION_DATA_MIGRATION_REQUIRED");
