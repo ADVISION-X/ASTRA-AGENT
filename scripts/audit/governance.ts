@@ -67,7 +67,7 @@ export function assertProductionDeleteAuthorization(
     if (change.status !== 'D' || pathRole(change.path) !== 'PRODUCTION') continue;
     const owners = baselineRegistry.domains.filter((domain) => domain.ownedPaths
       .some((pattern) => ownedPatternMatches(pattern, change.path)));
-    if (owners.length !== 1 || !authorized) fail('UNAUTHORIZED_PRODUCTION_DELETE', change.path);
+    if (owners.length > 1 || !authorized) fail('UNAUTHORIZED_PRODUCTION_DELETE', change.path);
   }
 }
 

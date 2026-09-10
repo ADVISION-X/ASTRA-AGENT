@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { Project } from "ts-morph";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
+import { assertProductionDeleteAuthorization } from "../audit/governance.js";
 
 import { resolveFromRepo, toRepoPath } from "../audit/shared/paths.js";
 import {
@@ -153,6 +154,24 @@ assert.equal(resolveCodePurityOwner("scripts/runtime-logs/inspect.ts"), "runtime
 assert.equal(resolveCodePurityOwner("src/lib/local-runtime/production/catalog.ts"), "agent-production-runtime");
 assert.equal(resolveCodePurityRole("scripts/generate/sync.ts"), "audit-phase");
 assert.equal(resolveCodePurityRole("scripts/runtime-logs/inspect.ts"), "audit-phase");
+
+const productionDelete = [{ status: "D", path: "orphan-production.md" }];
+assert.doesNotThrow(() => assertProductionDeleteAuthorization(
+  productionDelete, { domains: [] } as never, true,
+), "an explicitly authorized orphan must be deletable instead of remaining permanently unowned");
+assert.throws(() => assertProductionDeleteAuthorization(
+  productionDelete, { domains: [] } as never, false,
+), (error: unknown) => (error as { code?: unknown }).code === "UNAUTHORIZED_PRODUCTION_DELETE",
+"an orphan production deletion without explicit authorization must fail closed");
+assert.throws(() => assertProductionDeleteAuthorization(
+  productionDelete,
+  { domains: [
+    { capabilityDomain: "first", ownedPaths: ["orphan-production.md"] },
+    { capabilityDomain: "second", ownedPaths: ["orphan-production.md"] },
+  ] } as never,
+  true,
+), (error: unknown) => (error as { code?: unknown }).code === "UNAUTHORIZED_PRODUCTION_DELETE",
+"explicit authorization must not guess between multiple primary Owners");
 
 for (const [caseName, expected] of required) assert.equal(hasFinding(caseName, expected), true, `${caseName} must emit ${expected.checkId}`);
 for (const [caseName, expected] of forbidden) assert.equal(hasFinding(caseName, expected), false, `${caseName} must not emit ${expected.checkId}`);
