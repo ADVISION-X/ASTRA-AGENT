@@ -197,21 +197,6 @@ export type GptExecutionContext = Readonly<{
   browser?: BrowserTargetLease;
   signal?: AbortSignal;
   continuationStore?: GptContinuationStorePort;
-  confirmedProviderSubmitReceipt?: Readonly<{
-    sourceAttemptId: string;
-    sourceExactCallIdentityHash: `sha256:${string}`;
-    sourceActionOrdinal: number;
-    sourceProductStepId: string;
-    sourceCallId: string;
-    sourceTargetRef: string;
-    sourceDocumentRef: string;
-    readbackDocumentRefHash: `sha256:${string}`;
-    sourceTerminalAt: string;
-    evidenceRef: string;
-    evidenceHash: `sha256:${string}`;
-    promptHash: `sha256:${string}`;
-    turnMarker: string;
-  }>;
   mutationMode?: "normal" | "readback";
   yieldForProviderWait?: (durationMs: number) => Promise<void>;
   navigateCrossConversationPoll?: (

@@ -9,6 +9,7 @@ import {
   fakeBrowser,
 } from "./gpt-exact-target-browser-fixture.js";
 import { browserExecutionFailure } from "../../../lib/browser/browser-authority-api.js";
+import { failureCode } from "../../../lib/execution-failure.js";
 import { executeProductionGptAtomicCall } from "../production-atomic-call.js";
 import { gptExactCallIdentityHash } from "../contract.js";
 import {
@@ -457,7 +458,7 @@ import {
     actionOrdinal: 48,
     input: imageInput,
   });
-  const recovered = await executeProductionGptAtomicCall({
+  await assert.rejects(executeProductionGptAtomicCall({
     dataDir: "/tmp/gpt-image-response-loss",
     gpt: freshHarness().gpt,
     store: {} as never,
@@ -468,15 +469,12 @@ import {
       facade: recoveryFixture.browser,
       providerWaitLog: null,
     },
-    confirmedProviderSubmitReceipt: null,
     signal: new AbortController().signal,
-  });
-  assert.equal(recovered.result.status, "success");
-  assert.equal(recovered.resolveDispatched, true);
+  }), (error: unknown) => failureCode(error) === "GPT_ATOMIC_STEP_ALREADY_ATTEMPTED");
   assert.equal(recoveryFixture.physicalMutations(), 0,
-    "a completed two-input download WAL must recover by readback without clicking image or save again");
-  assert.equal(recoveryFixture.authenticatedMediaDownloads(), 1,
-    "response-loss recovery may probe the unchanged bytes exactly once");
+    "an ended image attempt must never click image or save again");
+  assert.equal(recoveryFixture.authenticatedMediaDownloads(), 0,
+    "an ended image attempt must not read old media bytes");
   const downloadsBeforeMismatch = fixture.authenticatedMediaDownloads();
   const predecessorMismatch = await execute("checkpoint_gpt_generated_image", fixture.browser, {
     assistantTurnId: "conversation-turn-4",

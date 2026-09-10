@@ -26,6 +26,7 @@ export const browserProviderEffectIdentityHash = (
   payloadHash: `sha256:${string}`,
 ): `sha256:${string}` => hashValue([
   permit.jobId,
+  permit.attemptId,
   permit.ownerPluginId,
   permit.pluginVersion,
   permit.productStepId,

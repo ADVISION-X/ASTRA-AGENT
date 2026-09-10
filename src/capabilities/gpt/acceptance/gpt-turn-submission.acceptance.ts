@@ -1,17 +1,12 @@
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 
 import { executionFailure, failureCode } from "../../../lib/execution-failure.js";
-import { confirmedSubmitReadbackDocumentHash, readExactGptEvidenceFact } from "../evidence-fact.js";
+import { readExactGptEvidenceFact } from "../evidence-fact.js";
 import { persistGptChildEvidence } from "../evidence-writer.js";
-import { throwGptChildFailure } from "../production-child-support.js";
-import {
-  confirmedProviderSubmitReceipt,
-  confirmedProviderSubmitReceiptFromError,
-} from "../confirmed-provider-readback.js";
 import {
   acceptanceIntentFor,
   createEvidenceHarness,
-} from "./gpt-confirmed-provider-readback.acceptance-support.js";
+} from "./gpt-evidence-harness.acceptance-support.js";
 import {
   exerciseConfirmedSubmitDocumentEvidence,
   exerciseConfirmedSubmitFailureEvidenceReadback,
@@ -234,134 +229,11 @@ import {
 
   await exerciseConfirmedSubmitDocumentEvidence(submittedResult, submitInput);
 
-  const confirmedProviderSubmitReceipt = Object.freeze({
-    sourceAttemptId: "attempt:gpt-exact-target",
-    sourceExactCallIdentityHash: `sha256:${"a".repeat(64)}` as const,
-    sourceActionOrdinal: 1,
-    sourceProductStepId: "acceptance:gpt-browser-handoff",
-    sourceCallId: "acceptance-call",
-    sourceTargetRef: "target:1",
-    sourceDocumentRef: "document:1",
-    readbackDocumentRefHash: hash("document:1"),
-    sourceTerminalAt: "2026-09-02T00:00:01.000Z",
-    evidenceRef: "evidence:submit",
-    evidenceHash: `sha256:${"b".repeat(64)}` as const,
-    promptHash,
-    turnMarker: marker,
-  });
-  const mismatchedReceipt = await execute("reconcile_gpt_turn_submission", fixture.browser, {
+  const currentAttemptRead = await execute("reconcile_gpt_turn_submission", fixture.browser, {
     expectedPromptHash: promptHash, timeoutMs: 1_000, turnMarker: marker,
-  }, undefined, { confirmedProviderSubmitReceipt: {
-    ...confirmedProviderSubmitReceipt, turnMarker: "[GRASSEYE:wrong-submit]",
-  } });
-  assert.equal(mismatchedReceipt.status, "failed");
-  assert.equal(mismatchedReceipt.failureCode, "GPT_CONFIRMED_SUBMIT_RECEIPT_MISMATCH");
-  const reconciled = await execute("reconcile_gpt_turn_submission", fixture.browser, {
-    expectedPromptHash: promptHash, timeoutMs: 1_000, turnMarker: marker,
-  }, undefined, { confirmedProviderSubmitReceipt });
-  assert.equal(reconciled.status, "success", reconciled.failureCode ?? "submission reconciliation failed");
-  assert.equal(reconciled.value?.canonicalConversationUrl, conversationUrl);
-  assert.equal(fixture.physicalMutations(), 1, "readback must not submit again");
-
-  for (const invalidPermanentLocator of [
-    "https://chatgpt.com/c/WEB:transient-child",
-    `https://chatgpt.com/c/${"a".repeat(257)}`,
-  ]) {
-    const invalidLocatorFixture = fakeBrowser((intent) => {
-      if (intent.kind === "observe") return coherentObservationPacket(intent, draftFacts({
-        composerHash: EMPTY_HASH, submitted: true, attachment: false,
-      }), invalidPermanentLocator);
-      throw new Error(`INVALID_PERMANENT_LOCATOR_MUST_NOT_MUTATE:${intent.kind}`);
-    });
-    const invalidLocator = await execute("reconcile_gpt_turn_submission", invalidLocatorFixture.browser, {
-      expectedPromptHash: promptHash, timeoutMs: 1, turnMarker: marker,
-    }, undefined, { confirmedProviderSubmitReceipt });
-    assert.equal(invalidLocator.status, "failed");
-    assert.equal(invalidLocator.failureCode, "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING");
-    assert.equal(invalidLocatorFixture.physicalMutations(), 0,
-      "a transient or overlong route must never become a permanent conversation locator");
-  }
-}
-
-{
-  const { execute } = freshHarness();
-  const fixture = fakeBrowser((intent) => {
-    if (intent.kind === "observe") {
-      return coherentObservationPacket(intent, draftFacts({
-        composerHash: promptHash, submitted: false, attachment: true,
-      }), "https://chatgpt.com/");
-    }
-    if (intent.kind === "click") return { postconditionVerified: true };
-    throw new Error(`UNEXPECTED_D2_SUBMIT_INTENT:${intent.kind}`);
-  }, { navigationEpochAdvanceOnMutation: 2 });
-  const input = Object.freeze({ files: [approvedFile], promptHash, turnMarker: marker });
-  const result = await execute("submit_exact_gpt_turn_once", fixture.browser, input);
-  assert.equal(result.status, "failed");
-  assert.equal(result.failureCode, "GPT_DOCUMENT_TRANSITION_FORBIDDEN:submit_exact_gpt_turn_once");
-  assert.equal(result.proof.committedMutation, "confirmed");
-  assert.equal(result.proof.browserFact?.browserOutcome, "CONFIRMED");
-  assert.equal(result.proof.browserFact?.mutationOutcome, "confirmed");
-  const intent = acceptanceIntentFor(result, input);
-  const persistence = createEvidenceHarness();
-  const persisted = await persistGptChildEvidence({
-    result,
-    intent,
-    evidenceStore: persistence.evidenceStore,
-    jobId: result.proof.jobId,
-    attemptId: result.proof.attemptId,
-    stepId: result.proof.productStepId,
-    exactCallIdentityHash: result.proof.exactCallIdentityHash,
   });
-  const payload = persistence.stored()!.record.payload as Readonly<Record<string, unknown>>;
-  assert.equal(payload.confirmed_submit_readback_document_hash, null,
-    "a D2/+2 transition must never mint its own confirmed-submit readback authorization hash");
-  assert.throws(
-    () => throwGptChildFailure(result, persisted.evidenceRef),
-    (error: unknown) => {
-      const receipt = confirmedProviderSubmitReceiptFromError(error);
-      const serialized = JSON.stringify(receipt);
-      return failureCode(error) === "GPT_DOCUMENT_TRANSITION_FORBIDDEN:submit_exact_gpt_turn_once"
-        && receipt?.exactCallIdentityHash === result.proof.exactCallIdentityHash
-        && receipt.evidenceRef === persistence.stored()!.recordRef
-        && !serialized.includes("target:1")
-        && !serialized.includes("document:1");
-    },
-    "ProductionGptChildTools failure propagation must retain a Product-safe confirmed-submit receipt",
-  );
-  const evidence = await readExactGptEvidenceFact({
-    evidenceStore: persistence.evidenceStore,
-    intent,
-    exactCallIdentityHash: result.proof.exactCallIdentityHash,
-  });
-  assert.equal(confirmedSubmitReadbackDocumentHash(evidence), null);
-  assert.throws(
-    () => confirmedProviderSubmitReceipt({
-      productStepId: result.proof.productStepId,
-      callId: result.proof.callId,
-      child: "submit_exact_gpt_turn_once",
-      actionOrdinal: result.proof.actionOrdinal,
-      input,
-    }, {
-      exactCallIdentityHash: result.proof.exactCallIdentityHash,
-      mutation: {
-        owner: "browser", sourceAttemptId: result.proof.attemptId,
-        effectScope: "provider_effect", outcome: "CONFIRMED", mutationOutcome: "confirmed",
-        terminalAt: result.proof.browserFact!.terminalAt,
-        productStepId: result.proof.productStepId, callId: result.proof.callId,
-        childCapabilityId: result.proof.childCapabilityId, actionOrdinal: result.proof.actionOrdinal,
-        failureCode: null, nativeFailureCode: null,
-        authorityRef: result.proof.browserFact!.evidenceRef,
-        authorityHash: result.proof.browserFact!.evidenceHash,
-        targetRef: "target:1", documentRef: "document:1",
-      },
-      evidence,
-      continuation: null,
-    }),
-    (error: unknown) => failureCode(error) === "FORENSICS_EXACT_CALL_EVIDENCE_INVALID"
-      && confirmedProviderSubmitReceiptFromError(error)?.exactCallIdentityHash
-        === result.proof.exactCallIdentityHash,
-    "the stored D2 failure must preserve the confirmed effect without ever becoming a D1 receipt",
-  );
+  assert.equal(currentAttemptRead.status, "success");
+  assert.equal(fixture.physicalMutations(), 1, "current page observation must not submit again");
 }
 
 {

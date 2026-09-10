@@ -22,7 +22,7 @@ import { inspectGptContractDenominator } from "./gpt-contract-inspection.js";
 import { inspectGptAttachmentContract } from "./gpt-attachment-contract-inspection.js";
 import { inspectGptPageEvidenceClosure } from "./gpt-page-evidence-closure-inspection.js";
 import {
-  inspectGptBrowserFailureRecoveryContract,
+  inspectGptEndedAttemptContract,
   inspectGptDirectMutationSettlementContract,
 } from "./gpt-recovery-contract-inspection.js";
 import { inspectGptCurrentPageProofs } from "./gpt-page-proof-inspection.js";
@@ -38,7 +38,6 @@ import {
   GPT_PAGE_EVIDENCE_REPORT_PATH as PAGE_EVIDENCE_REPORT_PATH,
   GPT_PRODUCTION_BROWSER_LIFECYCLE_PATH as PRODUCTION_BROWSER_LIFECYCLE_PATH,
   GPT_PRODUCTION_CHILD_TOOLS_PATH as PRODUCTION_CHILD_TOOLS_PATH,
-  GPT_PRODUCTION_CONFIRMED_READBACK_FACADE_PATH as PRODUCTION_CONFIRMED_READBACK_FACADE_PATH,
   GPT_ROOT as ROOT, GPT_SCHEMA_PATH as SCHEMA_PATH, GPT_SESSION_PATH as SESSION_PATH,
   gptChildHandlerPath as childHandlerPath,
 } from "./gpt-inspection-core-paths.js";
@@ -60,7 +59,7 @@ import {
 import { containsPageMutation, gptPrivateInfrastructureViolations, sourceFor, sourceTextForPaths }
   from "./gpt-inspection-support.js";
 
-const LAW_ID = "LAW-GPT-001-V39";
+const LAW_ID = "LAW-GPT-001-V40";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 16, 19, 23),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 17, 18, 20, 21, 22, 23, 24),
@@ -372,7 +371,7 @@ const inspectGptContracts = (context: InspectorContext, findings: InspectorFindi
   inspectIntelligentExecutionContracts(context, findings);
   inspectModelSelectionContract(context, findings);
   inspectExecutionProfileStateReadContract(context, findings);
-  inspectGptBrowserFailureRecoveryContract(context, findings, finding);
+  inspectGptEndedAttemptContract(context, findings, finding);
   inspectGptDirectMutationSettlementContract(context, findings, finding);
   inspectGptPageEvidenceClosure(context, findings, finding);
 };
@@ -388,8 +387,7 @@ const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFind
     ...MODEL_SELECTION_V2_HANDLER_PATHS, MODEL_SELECTION_V2_CONTRACT_PATH,
     ...EXECUTION_PROFILE_HANDLER_PATHS, EXECUTION_PROFILE_CONTRACT_PATH,
     ...ATTACHMENT_HANDLER_PATHS, ATTACHMENT_CONTRACT_PATH,
-    PRODUCTION_CHILD_TOOLS_PATH, PRODUCTION_BROWSER_LIFECYCLE_PATH,
-    PRODUCTION_CONFIRMED_READBACK_FACADE_PATH, CROSS_CONVERSATION_CADENCE_PATH,
+    PRODUCTION_CHILD_TOOLS_PATH, PRODUCTION_BROWSER_LIFECYCLE_PATH, CROSS_CONVERSATION_CADENCE_PATH,
   ])
     if (!existsSync(resolve(context.sealedRoot, path))) findings.push(finding(
       "gpt/filesystem-required-owner-file", path, `${path} is missing.`));

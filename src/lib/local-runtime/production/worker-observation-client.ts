@@ -9,10 +9,7 @@ const claimReason = z.enum([
   "MATERIAL_BINDING_UNRESOLVED", "CONCURRENT_SELECTION_IN_PROGRESS",
 ]);
 const nextAction = z.enum([
-  "CLAIM_AVAILABLE", "WAIT_RETRY_NOT_BEFORE", "LEASE_ACTIVE_UNTIL",
-  "RECONCILE_ACCEPTED_ATTEMPT", "CONSUME_STAGED_RESULT", "RESOLVE_CONTROL_INTENT",
-  "WAIT_MATCHING_DEVICE", "WAIT_MATCHING_CAPABILITY", "REPAIR_MATERIAL_BINDING",
-  "STOPPED_AUTHORIZATION_REVOKED", "NONE_COMPLETED",
+  "ACTIVE_ATTEMPT", "WAIT_NEW_ATTEMPT", "CONSUME_CURRENT_RESULT",
 ]);
 const hash = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
 
@@ -39,14 +36,13 @@ export const WorkerObservationV6Schema = z.object({
     next_action_code: nextAction, next_action_at: z.string().datetime().nullable(),
     authority_ref: z.string().min(1), business_admission_receipt_hash: hash.nullable(),
   }).strict().superRefine((job, context) => {
-    const completed = job.status === "completed" && job.next_action_code === "NONE_COMPLETED"
+    const completed = job.status === "completed" && job.next_action_code === "CONSUME_CURRENT_RESULT"
       && job.current_reason_code === null && job.business_admission_receipt_hash !== null;
-    const failed = job.status === "failed" && job.next_action_code !== "NONE_COMPLETED";
+    const failed = job.status === "failed";
     if (!completed && !failed) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_OBSERVED_JOB_STATE_INVALID" });
     }
-    if (["WAIT_RETRY_NOT_BEFORE", "LEASE_ACTIVE_UNTIL"].includes(job.next_action_code)
-      && job.next_action_at === null) {
+    if (job.next_action_code === "WAIT_NEW_ATTEMPT" && job.next_action_at === null) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_OBSERVED_JOB_TTL_INVALID" });
     }
   })).max(25),

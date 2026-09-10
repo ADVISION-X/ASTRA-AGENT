@@ -12,7 +12,6 @@ import {
 } from "../../mediator/product-plugin-contract.js";
 import {
   gptTextContinuationCheckpointInput,
-  postCheckpointReceiverFault,
 } from "../../mediator/product-plugin-contract.js";
 import type {
   ProductGptAnyCallInput,
@@ -90,11 +89,7 @@ export const receiveResearch = (
       checkpoint.semanticText, route, receptionReceipt(task, attemptId, checkpoint),
     );
   } catch (error) {
-    throw postCheckpointReceiverFault(failureCode(error, "PUBLIC_KNOWLEDGE_RESEARCH_RECEIVER_FAILED"), {
-      artifactRef: checkpoint.artifactRef,
-      rawDomHash: checkpoint.rawDomHash,
-      semanticTextHash: checkpoint.semanticTextHash,
-    });
+throw executionFailure("failed", failureCode(error, "PUBLIC_KNOWLEDGE_RESEARCH_RECEIVER_FAILED"), { cause: error });
   }
 };
 
@@ -109,11 +104,7 @@ export const receiveArticle = (
       checkpoint.semanticText, route, receptionReceipt(task, attemptId, checkpoint),
     );
   } catch (error) {
-    throw postCheckpointReceiverFault(failureCode(error, "PUBLIC_KNOWLEDGE_ARTICLE_RECEIVER_FAILED"), {
-      artifactRef: checkpoint.artifactRef,
-      rawDomHash: checkpoint.rawDomHash,
-      semanticTextHash: checkpoint.semanticTextHash,
-    });
+throw executionFailure("failed", failureCode(error, "PUBLIC_KNOWLEDGE_ARTICLE_RECEIVER_FAILED"), { cause: error });
   }
 };
 
@@ -134,10 +125,12 @@ export const turnMarker = (task: WebsiteAgentTask, stepId: string): string =>
 
 export const researchFrontierRef = (
   task: WebsiteAgentTask,
+  attemptId: string,
   resultRevisionReceiptHash: ProductionHash | null = null,
 ): ProductionHash => hashCanonical({
   identity_type: "gpt-continuation-frontier.v1",
   job_id: task.job_id,
+  attempt_id: attemptId,
   plugin_id: PLUGIN_ID,
   owner_ref: task.business_identity.owner_ref,
   subject_ref: task.business_identity.subject_ref,

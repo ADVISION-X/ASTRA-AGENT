@@ -8,7 +8,6 @@ import type { GptProductionBrowserAuthority } from "./production-ports.js";
 import type {
   ExactGptCallFacts,
 } from "./product-api.js";
-import type { ProductSafeConfirmedProviderSubmitReceipt } from "./execution-fault.js";
 import type { GptContinuationStorePort } from "./session/gpt-continuation-store-port.js";
 import {
   isPendingExactEvidence,
@@ -31,12 +30,9 @@ export type GptExactCallFactsWithBrowserBinding = Omit<ExactGptCallFacts, "mutat
 
 export const productSafeExactGptCallFacts = (
   facts: GptExactCallFactsWithBrowserBinding,
-  confirmedProviderSubmitReceipt: ProductSafeConfirmedProviderSubmitReceipt | null = null,
 ): ExactGptCallFacts =>
   Object.freeze({
     ...facts,
-    ...(confirmedProviderSubmitReceipt
-      ? { confirmedProviderSubmitReceipt: Object.freeze(confirmedProviderSubmitReceipt) } : {}),
     evidence: isPendingExactEvidence(facts.evidence) ? null : facts.evidence,
     mutation: facts.mutation ? Object.freeze({
       owner: facts.mutation.owner,

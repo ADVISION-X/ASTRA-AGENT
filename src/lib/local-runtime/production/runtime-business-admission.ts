@@ -13,6 +13,10 @@ export const reconcileBusinessAdmission = async (
   const remote = await readProductionDeviceJobStatus(state.session, record.task.job_id);
   const admission = remote.business_admission_receipt;
   if (!admission) {
+    if (remote.terminal_status === null) {
+      state.store.discardStagedResult(record.task.job_id, "ATTEMPT_ENDED_RESULT_NOT_ADMITTED");
+      return "pending";
+    }
     state.store.setCurrentReason(
       record.task.job_id,
       remote.business_consumer_error

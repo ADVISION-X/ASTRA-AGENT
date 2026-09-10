@@ -25,7 +25,6 @@ import { ProductionWorkerSession } from "./worker-session.js";
 import { readProductionOperationsSnapshot } from "./operations-snapshot.js";
 import type { ProductionRuntimeHandle, ProductionRuntimeHealth } from "./runtime-contract.js";
 import {
-  flushOutboxWithLog,
   readHealth,
   runtimeState,
   sessionHeartbeatLoop,
@@ -156,39 +155,21 @@ const createRuntimeState = (
   return state;
 };
 
-const acceptedBeforeFirstCheckpoint = (
-  persisted: StoredProductionTask,
-  storedLease: ReturnType<ProductionRuntimeStore["readLease"]>,
-  checkpoint: ReturnType<ProductionRuntimeStore["readCheckpoint"]>,
-): boolean => persisted.status === "failed"
-  && persisted.current_reason === "LEASE_GRANTED"
-  && persisted.attempt_failure === null
-  && persisted.staged_result === null
-  && storedLease === null
-  && checkpoint === null;
-
 export const reconcileTaskRecord = (
   state: RuntimeState,
   persisted: StoredProductionTask,
 ): boolean => {
-  const nonterminal = persisted.status === "failed";
   const storedLease = state.store.readLease(persisted.task.job_id);
-  const lease = storedLease?.state === "active"
-    ? state.store.recordLease({ ...storedLease, state: "stale", expiresAt: null }) : storedLease;
-  const checkpoint = state.store.readCheckpoint(persisted.task.job_id);
-  const remoteRedeliveryPending = state.store.hasUnsentOutbox(persisted.task.job_id);
-  if (acceptedBeforeFirstCheckpoint(persisted, storedLease, checkpoint)) return true;
-  let complete = true;
-  if (lease) {
-    const permanentlyRevokedLeaseReleased = lease.state === "absent"
-      && persisted.current_reason === "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED";
-    if (nonterminal && !remoteRedeliveryPending
-      && lease.state !== "stale" && !permanentlyRevokedLeaseReleased) complete = false;
-  } else if (nonterminal && !remoteRedeliveryPending) {
-    complete = false;
+  if (storedLease?.state === "active") {
+    state.store.recordLease({ ...storedLease, state: "stale", expiresAt: null });
   }
-  if (!checkpoint && nonterminal && !remoteRedeliveryPending) complete = false;
-  return complete;
+  if (persisted.status === "failed") {
+    state.store.endUnsentAttemptWrites(persisted.task.job_id);
+    if (!persisted.staged_result) {
+      state.store.setCurrentReason(persisted.task.job_id, "PROCESS_RESTART_ATTEMPT_ENDED");
+    }
+  }
+  return true;
 };
 
 const reconcileEvidence = async (
@@ -239,7 +220,6 @@ const establishCloudSession = async (
     await state.session.open(boundaryId);
     state.store.reconcileDeliveredTerminals();
     refreshLedgerReconciled(state);
-    await flushOutboxWithLog(state);
     const receipt = await state.session.heartbeat();
     state.lastHeartbeat = receipt.issued_at;
     requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
@@ -291,7 +271,6 @@ const shutdownRuntime = async (
   for (const controller of state.activeAbort.values()) controller.abort("PRODUCTION_RUNTIME_STOPPED");
   await Promise.all([loop, heartbeat]).catch((error) => errors.push(error));
   await Promise.allSettled([...state.active.values()]);
-  await flushOutboxWithLog(state).catch((error) => errors.push(error));
   await state.session.close().catch((error) => errors.push(error));
   state.stopped = true;
   try { state.store.close(); } catch (error) { errors.push(error); }

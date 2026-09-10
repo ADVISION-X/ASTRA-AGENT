@@ -1,11 +1,9 @@
 import {
   ControlIntentSchema,
-  PriorResultRejectionSchema,
   UploadedResultReceiptSchema,
   parseJsonEnvelope,
   type ControlIntent,
 } from "./transport-protocol.js";
-import type { PriorResultRejection } from "../../../mediator/product-plugin-contract.js";
 import {
   hashCanonical,
   parseTerminalReceipt,
@@ -18,10 +16,10 @@ import { executionFailure } from "../../execution-failure.js";
 import { productionCloudFetch } from "./cloud-transport.js";
 
 type RemoteProductionWriteKind =
-  | "checkpoint" | "artifact" | "terminal" | "cancel" | "handover" | "lease_release" | "renew";
+  | "checkpoint" | "artifact" | "terminal" | "cancel" | "lease_release" | "renew";
 
 const remoteProductionWriteKinds = new Set<RemoteProductionWriteKind>([
-  "checkpoint", "artifact", "terminal", "cancel", "handover", "lease_release", "renew",
+  "checkpoint", "artifact", "terminal", "cancel", "lease_release", "renew",
 ]);
 
 export type RemoteProductionWriteReceipt = Readonly<{
@@ -54,7 +52,6 @@ export type RemoteProductionDeviceJobStatus = Readonly<{
   job_id: string;
   status: string;
   current_reason: Readonly<Record<string, unknown>> | null;
-  prior_result_rejection: PriorResultRejection | null;
   control_intent: ControlIntent;
   terminal_status: "completed" | null;
   terminal_payload_hash: ProductionHash | null;
@@ -180,8 +177,6 @@ const deviceStatusAuthorityFieldsValid = (row: Record<string, unknown>): boolean
   && (row.terminal_payload_hash === null || typeof row.terminal_payload_hash === "string")
   && (row.current_reason === null || (typeof row.current_reason === "object"
     && !Array.isArray(row.current_reason)))
-  && (row.prior_result_rejection === null || (typeof row.prior_result_rejection === "object"
-    && !Array.isArray(row.prior_result_rejection)))
   && (row.business_consumer_error === null || typeof row.business_consumer_error === "string")
   && Array.isArray(row.write_receipts);
 
@@ -254,17 +249,10 @@ export async function readProductionDeviceJobStatus(
   const admission = parseBusinessAdmissionReceipt(jobId, row.business_admission_receipt);
   assertBusinessAdmissionAuthority(row, admission, terminalStatus);
   const { controlIntent, currentReason } = parseDeviceControlAuthority(row, jobId);
-  const priorResultRejection = row.prior_result_rejection === null
-    ? null
-    : PriorResultRejectionSchema.parse(row.prior_result_rejection);
-  if (priorResultRejection && priorResultRejection.job_id !== jobId) {
-    throw executionFailure("failed", "V6_PRIOR_RESULT_REJECTION_JOB_MISMATCH");
-  }
   return Object.freeze({
     job_id: jobId,
     status: row.status as string,
     current_reason: currentReason ? Object.freeze({ ...currentReason }) : null,
-    prior_result_rejection: priorResultRejection,
     control_intent: controlIntent,
     terminal_status: terminalStatus,
     terminal_payload_hash: terminalPayloadHash,

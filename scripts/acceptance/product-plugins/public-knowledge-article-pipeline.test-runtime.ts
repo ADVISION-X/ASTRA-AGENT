@@ -13,8 +13,6 @@ import {
 } from "../../../src/mediator/product-plugin-contract.js";
 import { productionRoutePolicy } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { executionFailure } from "../../../src/lib/execution-failure.js";
-import { carryProductSafeConfirmedProviderSubmitReceipt } from
-  "../../../src/capabilities/gpt/execution-fault.js";
 import { articleOutput, researchOutput } from
   "./public-knowledge-article-pipeline-output-fixtures.js";
 import {
@@ -177,12 +175,7 @@ const applyContinuationCall = (state: SeoHarness, input: SeoCall, initial: unkno
   return initial;
 };
 
-const assertSeoCallBoundary = (state: SeoHarness, input: SeoCall): void => {
-  if (state.confirmedReadbackAuthorizationByStep.get(input.productStepId) === "source-only") {
-    assert(["reconcile_gpt_turn_submission",
-      "release_gpt_continuation_lane"].includes(input.child),
-    "source-only confirmed-submit recovery may only reconcile the locator and release non-Browser ownership");
-  }
+const assertSeoCallBoundary = (_state: SeoHarness, input: SeoCall): void => {
   if (input.child === "checkpoint_gpt_generated_image") {
     const predecessor = input.input.predecessorTextCheckpoint;
     assert.equal(predecessor.assistantTurnId, "conversation-turn-4");
@@ -228,7 +221,7 @@ const throwConfiguredSeoFailure = (
     attemptId, callIdentityHash: callIdentityHash(input), evidenceRef,
     failureCode: failureAt.code, mutation: true, terminalAt: CONFIRMED_AT,
   });
-  throw carryProductSafeConfirmedProviderSubmitReceipt(executionFailure("failed", failureAt.code, {
+  throw executionFailure("failed", failureAt.code, {
     metadata: Object.freeze({
       mutationOutcome: "confirmed",
       evidence: Object.freeze({ evidenceRef: "browser-mutation:test", evidenceHash: HASH }),
@@ -237,11 +230,6 @@ const throwConfiguredSeoFailure = (
         browserOutcome: "CONFIRMED",
       }),
     }),
-  }), {
-    exactCallIdentityHash: HASH,
-    terminalAt: CONFIRMED_AT,
-    evidenceRef,
-    evidenceHash: HASH,
   });
 };
 
@@ -280,10 +268,6 @@ const executeCall = async (
     });
   }
   const value = applyContinuationCall(state, input, outputForCall(state, input, decision));
-  if (input.child === "reconcile_gpt_turn_submission"
-    && state.confirmedReadbackAuthorizationByStep.get(input.productStepId) === "source-only") {
-    state.confirmedReadbackAuthorizationByStep.set(input.productStepId, "full");
-  }
   const evidenceRef = recordSuccessfulSeoCall(state, input, attemptId);
   return { value, evidenceRef, evidenceHash: HASH };
 };
@@ -328,18 +312,8 @@ const readSeoCallFacts = (
   state: SeoHarness,
   attemptId: string,
 ): SharedExecutionContext["gpt"]["readCallFacts"] => async (input) => {
-  const lookupKind = input.lookupKind ?? "current_attempt";
   const current = state.factsByCall.get(factKey(attemptId, input));
-  if (lookupKind === "task_exact_effect" && current) {
-    throw executionFailure("failed", "GPT_TASK_EXACT_EFFECT_CURRENT_ATTEMPT_PRESENT");
-  }
-  const stored = lookupKind === "current_attempt"
-    ? current
-    : [...state.factsByCall.values()].filter((fact) =>
-      fact.attemptId !== attemptId && fact.callIdentityHash === callIdentityHash(input))[0];
-  if (stored?.failureCode && stored.mutation) {
-    state.confirmedReadbackAuthorizationByStep.set(input.productStepId, "source-only");
-  }
+  const stored = current;
   const facts: ExactGptCallFacts = {
     exactCallIdentityHash: HASH,
     mutation: stored?.mutation ? {
@@ -389,12 +363,10 @@ export const createContext = (
   decision: "proceed" | "decline",
   failureAt?: SeoFailure,
   attemptId = "attempt-1",
-  priorResultRejection: SharedExecutionContext["priorResultRejection"] = null,
 ): SharedExecutionContext => ({
   materials: state.materials,
   routePolicy: productionRoutePolicy("public_knowledge_article_pipeline", state.actionId),
   productSkill: Object.freeze({ text: "fixture public knowledge skill", hash: HASH }),
-  priorResultRejection,
   gpt: {
     jobId: `job-${state.actionId}`,
     attemptId,

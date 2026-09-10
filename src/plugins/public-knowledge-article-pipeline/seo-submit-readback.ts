@@ -1,101 +1,28 @@
-import {
-  confirmedProviderSubmitReceiptFromError,
-  type ExactGptCallFacts,
-} from "../../capabilities/gpt/index.js";
-import type { ProductionHash } from "../../mediator/product-plugin-contract.js";
-import { postSubmitReadbackFault } from "../../mediator/product-plugin-contract.js";
-import {
-  failureCode,
-} from "../../lib/execution-failure.js";
-export const SEO_PROVIDER_PROBE_BUDGET_MS = 3_600_000;
+import type { ExactGptCallFacts } from "../../capabilities/gpt/index.js";
+import { executionFailure } from "../../lib/execution-failure.js";
 
+export const SEO_PROVIDER_PROBE_BUDGET_MS = 3_600_000;
 export type SeoConfirmedSubmit = ExactGptCallFacts;
 
-type ConfirmedProviderSubmit = ExactGptCallFacts & Readonly<{
-  mutation: NonNullable<ExactGptCallFacts["mutation"]> & Readonly<{
-    effectScope: "provider_effect";
-    outcome: "CONFIRMED";
-    terminalAt: string;
-  }>;
-}>;
-
-const postSubmitEvidence = (submit: SeoConfirmedSubmit): Readonly<{
-  terminalAt: string;
-  evidenceRef: string;
-  evidenceHash: ProductionHash;
-}> | null => {
-  const carried = submit.confirmedProviderSubmitReceipt;
-  if (carried) return Object.freeze({
-    terminalAt: carried.terminalAt,
-    evidenceRef: carried.evidenceRef,
-    evidenceHash: carried.evidenceHash,
-  });
-  const factsMatch = [
-    submit.mutation?.owner === "browser",
-    submit.mutation?.effectScope === "provider_effect",
-    submit.mutation?.outcome === "CONFIRMED",
-    submit.evidence?.owner === "forensics-persistence",
-    submit.evidence?.readbackVerified === true,
-    Boolean(submit.mutation?.terminalAt),
-    Boolean(submit.evidence?.evidenceRef),
-    Boolean(submit.evidence?.evidenceHash),
-  ].every(Boolean);
-  if (!factsMatch) return null;
-  return Object.freeze({
-    terminalAt: submit.mutation!.terminalAt!,
-    evidenceRef: submit.evidence!.evidenceRef,
-    evidenceHash: submit.evidence!.evidenceHash,
-  });
-};
-
-export const isConfirmedProviderSubmit = (submit: SeoConfirmedSubmit | null): submit is ConfirmedProviderSubmit =>
-  Boolean(submit && postSubmitEvidence(submit));
-
-export const preservePostSubmitReadback = (
-  error: unknown,
+export const isConfirmedProviderSubmit = (
   submit: SeoConfirmedSubmit | null,
-): never => {
-  const carried = confirmedProviderSubmitReceiptFromError(error)
-    ?? submit?.confirmedProviderSubmitReceipt;
-  const code = failureCode(error);
-  const evidence = carried ?? (submit ? postSubmitEvidence(submit) : null);
-  if (!evidence || code.startsWith("GPT_PROVIDER_TERMINAL_")) throw error;
-  throw postSubmitReadbackFault(code, {
-    causeCode: code,
-    exactCallIdentityHash: carried?.exactCallIdentityHash ?? submit!.exactCallIdentityHash,
-    terminalAt: evidence.terminalAt,
-    evidenceRef: evidence.evidenceRef,
-    evidenceHash: evidence.evidenceHash,
-  });
-};
+): submit is SeoConfirmedSubmit => Boolean(
+  submit?.mutation?.owner === "browser"
+  && submit.mutation.effectScope === "provider_effect"
+  && submit.mutation.outcome === "CONFIRMED"
+  && submit.mutation.terminalAt
+  && submit.evidence?.owner === "forensics-persistence"
+  && submit.evidence.readbackVerified,
+);
 
 export const executeAndReadConfirmedSubmit = async (input: Readonly<{
   execute(): Promise<unknown>;
   readFacts(): Promise<SeoConfirmedSubmit>;
 }>): Promise<SeoConfirmedSubmit> => {
-  let executionError: unknown = null;
-  try {
-    await input.execute();
-  } catch (error) {
-    executionError = error;
-  }
-  let submit: SeoConfirmedSubmit;
-  try {
-    submit = await input.readFacts();
-  } catch (readbackError) {
-    if (confirmedProviderSubmitReceiptFromError(readbackError)) {
-      return preservePostSubmitReadback(readbackError, null);
-    }
-    if (executionError && confirmedProviderSubmitReceiptFromError(executionError)) {
-      return preservePostSubmitReadback(executionError, null);
-    }
-    if (executionError) throw executionError;
-    throw readbackError;
-  }
-  if (executionError) {
-    if (isConfirmedProviderSubmit(submit)
-      && !failureCode(executionError).startsWith("GPT_PROVIDER_TERMINAL_")) return submit;
-    return preservePostSubmitReadback(executionError, submit);
+  await input.execute();
+  const submit = await input.readFacts();
+  if (!isConfirmedProviderSubmit(submit)) {
+    throw executionFailure("failed", "SEO_PROVIDER_SUBMIT_NOT_CONFIRMED");
   }
   return submit;
 };

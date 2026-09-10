@@ -1,6 +1,7 @@
 import type {
   GptContinuationCheckpointInput,
   GptProviderContinuation,
+  ExactGptCallFacts,
 } from "../../capabilities/gpt/index.js";
 import type {
   ProductionHash,
@@ -9,9 +10,7 @@ import type {
 import type {
   GeneratedImageArtifact,
   ProductSkill,
-  PriorResultRejection,
 } from "../../mediator/product-plugin-contract.js";
-import type { ExactGptCallFacts } from "../../capabilities/gpt/index.js";
 import {
   continuationTextCheckpoint,
   fail,
@@ -19,7 +18,6 @@ import {
   objectValue,
   textHash,
   textValue,
-  type SeoCall,
   type SeoTurnCheckpoint,
 } from "./seo-turn-contract.js";
 import { imagePrompt } from "./seo-turn-prompts.js";
@@ -33,10 +31,7 @@ import {
 } from "./seo-gpt-calls.js";
 import {
   executeAndReadConfirmedSubmit,
-  isConfirmedProviderSubmit,
-  preservePostSubmitReadback,
   SEO_PROVIDER_PROBE_BUDGET_MS,
-  type SeoConfirmedSubmit,
 } from "./seo-submit-readback.js";
 
 type ImageTurnInput = Readonly<{
@@ -50,7 +45,6 @@ type ImageTurnInput = Readonly<{
   predecessorCheckpoint: SeoTurnCheckpoint;
   predecessorSourceAttemptId: string;
   productSkill: ProductSkill;
-  priorResultRejection: PriorResultRejection | null;
 }>;
 
 const prepareImageSubmit = async (
@@ -90,7 +84,6 @@ const imageArtifact = (value: unknown): GeneratedImageArtifact => {
 const checkpointSubmittedImage = async (
   input: ImageTurnInput,
   promptHash: ProductionHash,
-  confirmedSubmit: SeoConfirmedSubmit,
   canonicalConversationUrl: string,
   conversationIdentityHash: ProductionHash,
 ): Promise<Readonly<{
@@ -99,8 +92,7 @@ const checkpointSubmittedImage = async (
   generated: GeneratedImageArtifact;
   currentCheckpoint: GptContinuationCheckpointInput;
 }>> => {
-  try {
-    const stable = await input.flow.execute({
+  const stable = await input.flow.execute({
       sessionKey: "", productStepId: input.stepId, callId: "image-wait",
       child: "wait_for_stable_gpt_image", actionOrdinal: 47,
       input: {
@@ -132,7 +124,7 @@ const checkpointSubmittedImage = async (
     const value = objectValue(checkpoint.value, "SEO_IMAGE_ARTIFACT_INVALID");
     const originalMediaType = textValue(value.originalMediaType, "SEO_IMAGE_ARTIFACT_INVALID");
     if (!originalMediaType.startsWith("image/")) fail("SEO_IMAGE_ARTIFACT_INVALID");
-    return Object.freeze({
+  return Object.freeze({
       canonicalConversationUrl, mediaHash, generated: imageArtifact(value),
       currentCheckpoint: Object.freeze({
         checkpointKind: "generated_image", sourceAttemptId: input.sourceAttemptId,
@@ -150,51 +142,14 @@ const checkpointSubmittedImage = async (
           input.predecessorSourceAttemptId, input.predecessorCheckpoint,
         ),
       }),
-    });
-  } catch (error) {
-    return preservePostSubmitReadback(error, confirmedSubmit);
-  }
-};
-
-type ImageSubmitState = Readonly<{
-  current: ExactGptCallFacts | null;
-  prior: ExactGptCallFacts | null;
-}>;
-
-const readImageSubmitState = async (
-  input: ImageTurnInput,
-  turnSubmit: Extract<SeoCall, { child: "submit_exact_gpt_turn_once" }>,
-): Promise<ImageSubmitState> => {
-  const current = await input.flow.facts(turnSubmit);
-  const prior = current && (current.mutation || current.evidence)
-    ? current : await input.flow.facts(turnSubmit, "task_exact_effect");
-  return Object.freeze({ current, prior });
-};
-
-const confirmedImageSubmit = async (
-  input: ImageTurnInput,
-  prompt: string,
-  promptHash: ProductionHash,
-  state: ImageSubmitState,
-): Promise<SeoConfirmedSubmit> => {
-  if (isConfirmedProviderSubmit(state.current)) return state.current;
-  if (state.current?.mutation?.owner === "browser"
-    && state.current.mutation.effectScope === "provider_effect"
-    && state.current.mutation.outcome === "CONFIRMED"
-    && state.current.mutation.terminalAt) return state.current;
-  if (state.current?.mutation || state.current?.evidence || state.prior?.mutation || state.prior?.evidence) {
-    return fail("SEO_IMAGE_SUBMIT_FACT_UNRESOLVED");
-  }
-  return prepareImageSubmit(input, prompt, promptHash);
+  });
 };
 
 export const generateImage = async (input: ImageTurnInput): Promise<GeneratedImageArtifact> => {
-  const prompt = imagePrompt(input.task, input.marker, input.productSkill, input.priorResultRejection);
+  const prompt = imagePrompt(input.task, input.marker, input.productSkill);
   const promptHash = textHash(prompt);
-  const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 45, input: { files: [], promptHash, turnMarker: input.marker } } as const;
-  const state = await readImageSubmitState(input, turnSubmit);
   const settleImageSubmit = async () => {
-    const confirmed = await confirmedImageSubmit(input, prompt, promptHash, state);
+    const confirmed = await prepareImageSubmit(input, prompt, promptHash);
     const locator = await reconcileConfirmedSubmissionLocator({
       actionOrdinal: 46,
       confirmedSubmit: confirmed,
@@ -204,18 +159,16 @@ export const generateImage = async (input: ImageTurnInput): Promise<GeneratedIma
       stepId: input.stepId,
     });
     return checkpointSubmittedImage(
-      input, promptHash, confirmed, locator.canonicalConversationUrl, locator.conversationIdentityHash,
+      input, promptHash, locator.canonicalConversationUrl, locator.conversationIdentityHash,
     );
   };
-  const recovering = Boolean(state.current && (state.current.mutation || state.current.evidence));
-  const recoveredCheckpoint = recovering ? await settleImageSubmit() : null;
   const lane = await focusContinuation(
     input.flow, input.task, input.stepId, input.continuationRef,
     input.expectedProvider, [34, 35, 36], 50,
   );
   let advanced = false;
   try {
-    const checkpoint = recoveredCheckpoint ?? await settleImageSubmit();
+    const checkpoint = await settleImageSubmit();
     await advanceLane(input.flow.execute, input.task, input.stepId, lane, {
       canonicalConversationUrl: checkpoint.canonicalConversationUrl,
       promptHash, rawOutputHash: checkpoint.mediaHash, turnMarker: input.marker,

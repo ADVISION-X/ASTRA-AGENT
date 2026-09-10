@@ -13,5 +13,4 @@ export const gptChildHandlerPath = (id: string): string => `${GPT_CHILDREN_PATH}
 export const gptChildFilePath = (id: string, file: string): string => `${GPT_CHILDREN_PATH}/${id}/${file}`;
 export const GPT_PRODUCTION_CHILD_TOOLS_PATH = `${GPT_ROOT}/production-child-tools.ts`;
 export const GPT_PRODUCTION_BROWSER_LIFECYCLE_PATH = `${GPT_ROOT}/production-browser-lifecycle.ts`;
-export const GPT_PRODUCTION_CONFIRMED_READBACK_FACADE_PATH = `${GPT_ROOT}/production-confirmed-readback-facade.ts`;
 export const GPT_CROSS_CONVERSATION_CADENCE_PATH = `${GPT_ROOT}/provider-wait-cross-conversation-cadence.ts`;

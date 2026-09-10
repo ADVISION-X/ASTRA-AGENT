@@ -5,10 +5,10 @@
   "lawIds": [
     "LAW-LOCAL-BROWSER-SESSION-001-V4",
     "LAW-LOCAL-BROWSER-SESSION-002-V6",
-    "LAW-LOCAL-BROWSER-SESSION-003-V26",
-    "LAW-LOCAL-BROWSER-SESSION-004-V28",
+    "LAW-LOCAL-BROWSER-SESSION-003-V27",
+    "LAW-LOCAL-BROWSER-SESSION-004-V29",
     "LAW-LOCAL-BROWSER-SESSION-005-V6",
-    "LAW-LOCAL-BROWSER-SESSION-006-V19"
+    "LAW-LOCAL-BROWSER-SESSION-006-V20"
   ],
   "ownedPaths": [
     "artifacts/browser-release/**",
@@ -20,7 +20,6 @@
     "docs/项目方案/生产级子能力稳定性建设规则.md",
     "scripts/acceptance/browser-extension-build.acceptance.ts",
     "scripts/acceptance/browser-extension-release-identity.acceptance.ts",
-    "scripts/acceptance/browser-lane-confirmed-readback.acceptance-support.ts",
     "scripts/acceptance/browser-lane-fifo-support.ts",
     "scripts/acceptance/browser-lane-fifo.acceptance.ts",
     "scripts/acceptance/local-browser-artifact-and-lock.acceptance-support.ts",

@@ -3,7 +3,6 @@ import {
 } from "../../capabilities/gpt/index.js";
 import {
   hashCanonical,
-  sha256,
   type ProductionHash,
   type WebsiteAgentTask,
 } from "../../mediator/product-plugin-contract.js";
@@ -28,7 +27,6 @@ import {
   type OwnedExecution,
 } from "./product-turn.js";
 import {
-  baseFactsFromReadback,
   basePrompt,
   completionHashes,
   reservationValue,
@@ -38,44 +36,6 @@ import {
 
 type ReusableReservation = ReturnType<typeof reservationValue>;
 type BaseAdmission = ReturnType<typeof validateBaseOutput>;
-
-const reusableCandidateGrant = (
-  task: WebsiteAgentTask,
-  identity: ProductionHash,
-): ProductionHash | null => {
-  const candidate = task.parameters.reusable_base_candidate === null
-    ? null : objectValue(task.parameters.reusable_base_candidate, "BAZI_REUSABLE_BASE_CANDIDATE_INVALID");
-  if (candidate && (candidate.reusable_identity_hash !== identity
-    || typeof candidate.source_job_id !== "string" || !candidate.source_job_id)) {
-    fail("BAZI_REUSABLE_BASE_CANDIDATE_INVALID");
-  }
-  return candidate
-    ? hashValue(candidate.opaque_read_grant_hash, "BAZI_REUSABLE_BASE_CANDIDATE_INVALID") : null;
-};
-
-const readReusableBase = async (input: Readonly<{
-  task: WebsiteAgentTask;
-  context: SharedExecutionContext;
-  identity: ProductionHash;
-  baseInput: Record<string, unknown>;
-  grant: ProductionHash | null;
-}>): Promise<BaseFacts | null> => {
-  const existing = await input.context.gpt.readContinuationExact({
-    lookupKind: "frontier_ref",
-    frontierRef: input.identity,
-    authorization: input.grant ? {
-      kind: "current_artifact_read_grant",
-      currentAuthorizationRef: input.task.business_identity.authorization_ref,
-      opaqueReadGrantHash: input.grant,
-    } : {
-      kind: "origin_authorization",
-      originAuthorizationRef: input.task.business_identity.authorization_ref,
-    },
-  });
-  return existing
-    ? baseFactsFromReadback(input.task, input.identity, input.baseInput, existing, input.grant)
-    : null;
-};
 
 const reserveReusableBase = async (
   task: WebsiteAgentTask,
@@ -122,9 +82,9 @@ const prepareBaseConversation = async (
     productStepId: "private-base", callId: input.suffix ? `fresh-chat:${input.suffix}` : "fresh-chat",
     child: "prepare_clean_gpt_chat", actionOrdinal: input.freshOrdinal, input: { timeoutMs: 60_000 },
   });
-  await applyProfile(flow, "private-base", localBaziPrivateBaseTurn.profile, input.profileOrdinals, false);
+  await applyProfile(flow, "private-base", localBaziPrivateBaseTurn.profile, input.profileOrdinals);
   await applyAttachments(
-    flow, context, "private-base", ["bazi_private_base_input"], input.attachmentOrdinals, false,
+    flow, context, "private-base", ["bazi_private_base_input"], input.attachmentOrdinals,
   );
 };
 
@@ -137,22 +97,9 @@ const createBaseCheckpoint = async (input: Readonly<{
   const { context, flow, identity, baseInput } = input;
   const marker = `${localBaziPrivateBaseTurn.markerNamespace}:${identity.slice(7, 31)}`;
   const prompt = basePrompt(marker);
-  const baseSubmit = {
-    productStepId: "private-base", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
-    actionOrdinal: 14, input: {
-      files: uploadedFilesForRoles(context, ["bazi_private_base_input"]),
-      promptHash: sha256(prompt), turnMarker: marker,
-    },
-    effectLookupKind: "task_exact_effect" as const,
-  } as const;
-  const currentSubmit = await flow.facts(baseSubmit);
-  const priorSubmit = !currentSubmit.mutation && !currentSubmit.evidence
-    ? await flow.taskExactFacts(baseSubmit) : null;
-  if (!currentSubmit.mutation && !currentSubmit.evidence && !priorSubmit?.mutation && !priorSubmit?.evidence) {
-    await prepareBaseConversation(flow, context, {
-      freshOrdinal: 2, profileOrdinals: [3, 4, 5, 6, 7, 8], attachmentOrdinals: [9, 10, 11],
-    });
-  }
+  await prepareBaseConversation(flow, context, {
+    freshOrdinal: 2, profileOrdinals: [3, 4, 5, 6, 7, 8], attachmentOrdinals: [9, 10, 11],
+  });
   let checkpoint = await submitTurn(
     flow, "private-base", prompt, marker,
     uploadedFilesForRoles(context, ["bazi_private_base_input"]), [12, 13, 14, 15, 16, 17],
@@ -236,18 +183,21 @@ export const createOrReadBase = async (
   baseInput: Record<string, unknown>,
   identity: ProductionHash,
 ): Promise<BaseFacts> => {
-  const candidateGrant = reusableCandidateGrant(task, identity);
-  const existing = await readReusableBase({ task, context, identity, baseInput, grant: candidateGrant });
-  if (existing) return existing;
-  const { reserve, fenceHash } = await reserveReusableBase(task, flow, baseInput, identity);
-  if (reserve.complete) {
-    const grant = candidateGrant ?? reserve.opaqueReadGrantHash;
-    const recovered = await readReusableBase({ task, context, identity, baseInput, grant });
-    if (!recovered) fail("BAZI_REUSABLE_BASE_READBACK_MISSING");
-    return recovered;
-  }
-  const { checkpoint, admission } = await createBaseCheckpoint({ context, flow, identity, baseInput });
-  return completeReusableBase({ task, flow, identity, reserve, fenceHash, checkpoint, admission });
+  const attemptIdentity = hashCanonical({
+    kind: "bazi-attempt-private-base.v1",
+    input_identity_hash: identity,
+    attempt_id: context.gpt.attemptId,
+  });
+  const { reserve, fenceHash } = await reserveReusableBase(
+    task, flow, baseInput, attemptIdentity,
+  );
+  if (reserve.complete) fail("BAZI_ATTEMPT_BASE_ALREADY_EXECUTED");
+  const { checkpoint, admission } = await createBaseCheckpoint({
+    context, flow, identity: attemptIdentity, baseInput,
+  });
+  return completeReusableBase({
+    task, flow, identity: attemptIdentity, reserve, fenceHash, checkpoint, admission,
+  });
 };
 
 const laneValue = (value: unknown): GptContinuationLane => {

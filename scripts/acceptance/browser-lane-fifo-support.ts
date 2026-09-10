@@ -37,7 +37,7 @@ export const fixtureLease = (
     agentExecutionRefHash: HASH, writerLeaseEpoch: 1, writerFenceHash: HASH,
     target: { targetRef, authorityEpoch: 1, executionBindingHash: HASH }, document,
     async runAtomicStep(_identity, action) { return action(); },
-    readAtomicStepRecovery: () => null, requiresMutationRecovery: () => false,
+    readAtomicStepOutcome: () => null,
     async navigate() { return document; },
     async executeDomIntent() { return { observed: true }; },
     async observeCapability() { return { observed: true }; },

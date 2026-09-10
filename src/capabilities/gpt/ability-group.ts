@@ -24,11 +24,9 @@ import type { GptChildHandler, GptChildObservation } from "./web/child-handler.j
 import { gptChildHandlers } from "./handler-registry.js";
 import { ProductionGptChildTools } from "./production-child-tools.js";
 import {
-  confirmedProviderSubmitReceiptFromError as readConfirmedProviderSubmitReceiptFromError,
   typedGptExecutionFailure,
   type GptFailureProofFacts,
 } from "./execution-fault.js";
-import { confirmedProviderReadbackEvidencePending } from "./confirmed-provider-readback.js";
 import {
   currentDocument,
   documentTransitionContext,
@@ -146,7 +144,7 @@ const failedBrowserFact = <K extends GptChildCapabilityId>(
   const contract = GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId];
   if (!context.browser || contract.replayPolicy === "observation-only"
     || contract.replayPolicy === "transaction-identical-readback") return null;
-  const recovery = context.browser.readAtomicStepRecovery({
+  const recovery = context.browser.readAtomicStepOutcome({
     productStepId: intent.productStepId,
     callId: intent.callId,
     childCapabilityId: intent.childCapabilityId,
@@ -322,37 +320,13 @@ const sessionMutationWasDispatched = (
     && !failureCode.startsWith("GPT_CHILD_INPUT_INVALID:");
 };
 
-const confirmedProviderSubmitRemainsPending = (
-  intent: GptChildCapabilityIntent,
-  observation: ProofObservation | undefined,
-  failureCode: string,
-): boolean => intent.childCapabilityId === "submit_exact_gpt_turn_once"
-  && observation?.browserFact?.childCapabilityId === "submit_exact_gpt_turn_once"
-  && observation.browserFact.effectScope === "provider_effect"
-  && observation.browserFact.browserOutcome === "CONFIRMED"
-  && observation.browserFact.mutationOutcome === "confirmed"
-  && !failureCode.startsWith("GPT_PROVIDER_TERMINAL_");
-
-const confirmedProviderReadbackRemainsPending = (
-  intent: GptChildCapabilityIntent,
-  context: GptExecutionContext,
-  committedMutation: "no" | "dispatched" | "confirmed",
-  failureCode: string,
-): boolean => committedMutation === "no"
-  && confirmedProviderReadbackEvidencePending(context.confirmedProviderSubmitReceipt, intent)
-  && !failureCode.startsWith("GPT_PROVIDER_TERMINAL_");
-
 const failurePostconditionResult = (
-  intent: GptChildCapabilityIntent,
-  context: GptExecutionContext,
+  _intent: GptChildCapabilityIntent,
+  _context: GptExecutionContext,
   observation: ProofObservation | undefined,
   committedMutation: "no" | "dispatched" | "confirmed",
-  failureCode: string,
+  _failureCode: string,
 ): "pending" | "failed" => {
-  if (confirmedProviderSubmitRemainsPending(intent, observation, failureCode)) return "pending";
-  if (confirmedProviderReadbackRemainsPending(
-    intent, context, committedMutation, failureCode,
-  )) return "pending";
   if (observation?.browserFact) {
     return observation.browserFact.browserOutcome === "DISPATCHED" ? "pending" : "failed";
   }
@@ -472,6 +446,3 @@ export const createGptAbilityGroup = (): GptAbilityGroup => Object.freeze({
 export const createProductionGptChildTools = (
   ...input: ConstructorParameters<typeof ProductionGptChildTools>
 ): ProductionGptChildTools => new ProductionGptChildTools(...input);
-
-export const confirmedProviderSubmitReceiptFromError = (error: unknown) =>
-  readConfirmedProviderSubmitReceiptFromError(error);

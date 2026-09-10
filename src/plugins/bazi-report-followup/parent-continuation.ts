@@ -3,16 +3,14 @@ import {
   type GptProviderContinuation,
 } from "../../capabilities/gpt/index.js";
 import {
-  sha256,
   type WebsiteAgentTask,
 } from "../../mediator/product-plugin-contract.js";
 import {
   gptTextContinuationCheckpointInput,
-  postCheckpointReceiverFault,
   productResultValidation,
   type SharedExecutionContext,
 } from "../../mediator/product-plugin-contract.js";
-import { failureCode } from "../../lib/execution-failure.js";
+import { executionFailure, failureCode } from "../../lib/execution-failure.js";
 import { parseProductResult } from "./result-contract.js";
 import {
   PLUGIN_ID,
@@ -133,11 +131,8 @@ export const runContinuationTurn = async (
   marker: string,
 ): Promise<Checkpoint> => {
   const stepId = task.action_id;
-  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 15, input: { files: uploadedFiles(context), promptHash: sha256(prompt), turnMarker: marker } } as const;
-  const existing = await flow.facts(submit);
-  const recoverOnly = Boolean(existing.mutation || existing.evidence);
-  await applyProfile(flow, stepId, [4, 5, 6, 7, 8, 9], recoverOnly);
-  await applyAttachments(flow, context, stepId, [10, 11, 12], recoverOnly);
+  await applyProfile(flow, stepId, [4, 5, 6, 7, 8, 9]);
+  await applyAttachments(flow, context, stepId, [10, 11, 12]);
   return submitTurn(flow, stepId, prompt, marker, uploadedFiles(context), [13, 14, 15, 16, 17, 18]);
 };
 
@@ -157,11 +152,7 @@ export const receive = (task: WebsiteAgentTask, checkpoint: Checkpoint, context:
     );
     return parseProductResult(task, value, context.routePolicy);
   } catch (error) {
-    throw postCheckpointReceiverFault(failureCode(error, "PRODUCT_RESULT_RECEIVER_FAILED"), {
-      artifactRef: checkpoint.artifactRef,
-      rawDomHash: checkpoint.rawDomHash,
-      semanticTextHash: checkpoint.semanticTextHash,
-    });
+throw executionFailure("failed", failureCode(error, "PRODUCT_RESULT_RECEIVER_FAILED"), { cause: error });
   }
 };
 

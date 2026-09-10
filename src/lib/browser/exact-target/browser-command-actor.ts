@@ -30,7 +30,7 @@ import {
 } from "./browser-command-failure.js";
 import {
   BrowserMutationStore,
-  type BrowserAtomicStepRecovery,
+  type BrowserAtomicStepOutcome,
   type BrowserMutationIdentity,
   type BrowserMutationProgress,
 } from "./browser-mutation-store.js";
@@ -303,30 +303,21 @@ export class BrowserCommandActor {
   ) {}
 
   public pendingMutationCommandIds(binding: BrowserExecutionBinding): readonly string[] {
-    return this.mutations.dispatchedForJob({
-      jobId: binding.jobId,
-      ownerPluginId: binding.ownerPluginId,
-    });
-  }
-
-  public requiresMutationRecovery(binding: BrowserExecutionBinding, targetRef: string): boolean {
-    const scope = this.mutations.callRecoveryScope({
+    return this.mutations.dispatchedForBinding({
       jobId: binding.jobId,
       attemptId: binding.attemptId,
-      ownerPluginId: binding.ownerPluginId,
-      pluginVersion: binding.pluginVersion,
-      productStepId: binding.productStepId,
+      leaseVersion: binding.leaseVersion,
+      executionFenceHash: binding.writerFenceHash,
     });
-    return scope?.state === "DISPATCHED" && scope.targetRef === targetRef;
   }
 
-  public readAtomicStepRecovery(
+  public readAtomicStepOutcome(
     binding: BrowserExecutionBinding,
     targetRef: string,
     identity: BrowserAtomicStepIdentity,
-  ): BrowserAtomicStepRecovery | null {
+  ): BrowserAtomicStepOutcome | null {
     if (identity.replayPolicy === "observation-only") return null;
-    return this.mutations.atomicStepRecovery({
+    return this.mutations.readAtomicStepOutcome({
       jobId: binding.jobId,
       attemptId: binding.attemptId,
       ownerPluginId: binding.ownerPluginId,

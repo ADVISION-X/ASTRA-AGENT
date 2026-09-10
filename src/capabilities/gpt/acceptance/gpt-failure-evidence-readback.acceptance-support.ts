@@ -23,9 +23,7 @@ import {
   acceptanceHash as hash,
   acceptanceIntentFor as intentFor,
   createEvidenceHarness as evidenceHarness,
-} from "./gpt-confirmed-provider-readback.acceptance-support.js";
-export { exerciseConfirmedProviderReadbackEvidenceLifecycle } from
-  "./gpt-confirmed-provider-readback.acceptance-support.js";
+} from "./gpt-evidence-harness.acceptance-support.js";
 
 export const exerciseFailedEvidenceReadback = async <K extends GptChildCapabilityId>(
   result: GptChildCapabilityResult<K>,
@@ -129,15 +127,13 @@ export const exerciseConfirmedSubmitFailureEvidenceReadback = async (
     jobId: proof.jobId, attemptId: proof.attemptId,
     stepId: proof.productStepId, exactCallIdentityHash: proof.exactCallIdentityHash,
   });
-  const pending = await readExactGptEvidenceFact({
+  await assert.rejects(() => readExactGptEvidenceFact({
     evidenceStore: persistence.evidenceStore,
     intent,
     exactCallIdentityHash: proof.exactCallIdentityHash,
-  });
-  assert.equal(result.proof.postconditionResult, "pending");
-  assert.equal(isPendingExactEvidence(pending), true);
-  assert.equal(pending?.readbackVerified, true);
-  assert.equal(pending?.evidenceRef, persistence.stored()?.recordRef);
+  }), /GPT_TURN_SUBMISSION_POSTCONDITION_FAILED/u,
+  "a failed attempt must surface its terminal fact and must not mint a resumable readback");
+  assert.equal(result.proof.postconditionResult, "failed");
 };
 
 export const exerciseConfirmedSubmitDocumentEvidence = async (
@@ -217,7 +213,7 @@ export const exerciseBrowserRejectedEvidenceReadback = async (): Promise<void> =
   const intent = intentFor<"prepare_clean_gpt_chat">(
     result, Object.freeze({ timeoutMs: 1_000 }),
   );
-  const recovered = await executeProductionGptAtomicCall({
+  await assert.rejects(executeProductionGptAtomicCall({
     dataDir: "/tmp/gpt-rejected-wal-readback",
     gpt: Object.freeze({
       execute: async () => { throw new Error("REJECTED_WAL_MUST_NOT_REPLAY_GPT"); },
@@ -226,16 +222,8 @@ export const exerciseBrowserRejectedEvidenceReadback = async (): Promise<void> =
     browsers: {} as never,
     intent,
     browserCall: { browser: fixture.browser, facade: fixture.browser, providerWaitLog: null },
-    confirmedProviderSubmitReceipt: null,
     signal: new AbortController().signal,
-  });
-  assert.equal(recovered.result.failureCode, "BROWSER_POSTCONDITION_FAILED");
-  assert.equal(recovered.result.proof.nativeFailureCode, "BROWSER_FILL_RETAINED_VALUE_MISMATCH");
-  let recoveredFailure: unknown = null;
-  try { throwGptChildFailure(recovered.result); }
-  catch (error) { recoveredFailure = error; }
-  assert.deepEqual(serializeTerminalFailure(recoveredFailure), serialized,
-    "a rejected Browser WAL readback must preserve the exact outer and native failure tuple");
+  }), (error: unknown) => failureCode(error) === "GPT_ATOMIC_STEP_ALREADY_ATTEMPTED");
   await exerciseFailedEvidenceReadback(result, Object.freeze({ timeoutMs: 1_000 }), serialized!);
 };
 
@@ -280,7 +268,7 @@ export const exerciseBrowserRejectedDispatchedEvidenceReadback = async (): Promi
   const intent = intentFor<"prepare_clean_gpt_chat">(
     result, Object.freeze({ timeoutMs: 1_000 }),
   );
-  const recovered = await executeProductionGptAtomicCall({
+  await assert.rejects(executeProductionGptAtomicCall({
     dataDir: "/tmp/gpt-rejected-dispatched-wal-readback",
     gpt: Object.freeze({
       execute: async () => { throw new Error("REJECTED_DISPATCHED_WAL_MUST_NOT_REPLAY_GPT"); },
@@ -289,17 +277,8 @@ export const exerciseBrowserRejectedDispatchedEvidenceReadback = async (): Promi
     browsers: {} as never,
     intent,
     browserCall: { browser: fixture.browser, facade: fixture.browser, providerWaitLog: null },
-    confirmedProviderSubmitReceipt: null,
     signal: new AbortController().signal,
-  });
-  assert.equal(recovered.result.failureCode, "BROWSER_CAPABILITY_REJECTED");
-  assert.equal(recovered.result.proof.committedMutation, "dispatched");
-  assert.equal(recovered.result.proof.browserFact?.browserOutcome, "REJECTED");
-  let recoveredFailure: unknown = null;
-  try { throwGptChildFailure(recovered.result); }
-  catch (error) { recoveredFailure = error; }
-  assert.deepEqual(serializeTerminalFailure(recoveredFailure), serialized,
-    "a rejected+dispatched Browser WAL readback must preserve the terminal tuple without replay");
+  }), (error: unknown) => failureCode(error) === "GPT_ATOMIC_STEP_ALREADY_ATTEMPTED");
   await exerciseFailedEvidenceReadback(result, Object.freeze({ timeoutMs: 1_000 }), serialized!);
 };
 
@@ -355,7 +334,7 @@ const assertDispatchedAtomicRecovery = async (
     failureCause: Object.freeze({ name: "Error", code: "GPT_CHAT_ATTACHMENT_PRESENT" }),
     failureBrowserEffect: null,
   }) as CleanChatResult;
-  const atomic = await executeProductionGptAtomicCall({
+  await assert.rejects(executeProductionGptAtomicCall({
     dataDir: "/tmp/gpt-dispatched-readback",
     gpt: Object.freeze({
       execute: async () => readback as never,
@@ -364,24 +343,8 @@ const assertDispatchedAtomicRecovery = async (
     browsers: {} as never,
     intent,
     browserCall: { browser: fixture.browser, facade: fixture.browser, providerWaitLog: null },
-    confirmedProviderSubmitReceipt: null,
     signal: new AbortController().signal,
-  });
-  assert.equal(atomic.result.proof.browserFact?.browserOutcome, "DISPATCHED");
-  assert.equal(atomic.result.proof.postconditionResult, "pending");
-  let replayed: unknown = null;
-  try { throwGptChildFailure(atomic.result); }
-  catch (error) { replayed = error; }
-  assert.deepEqual(serializeTerminalFailure(replayed), {
-    code: "GPT_CHAT_DRAFT_CLEAR_FAILED",
-    mutation_outcome: "dispatched",
-    effect_scope: "target_local",
-    child_capability_id: "prepare_clean_gpt_chat",
-    browser_outcome: "DISPATCHED",
-    evidence_ref: "browser-mutation:acceptance-call",
-    evidence_hash: `sha256:${"9".repeat(64)}`,
-    cause: { name: "Error", code: "GPT_CHAT_ATTACHMENT_PRESENT" },
-  });
+  }), (error: unknown) => failureCode(error) === "GPT_ATOMIC_STEP_ALREADY_ATTEMPTED");
 };
 
 export const exerciseBrowserDispatchedEvidenceReadback = async (): Promise<void> => {

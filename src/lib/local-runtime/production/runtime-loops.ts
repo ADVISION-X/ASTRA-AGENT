@@ -7,16 +7,14 @@ import {
   runtimeLogCauseEventId,
   withRuntimeLogCause,
 } from "../../runtime-logs/index.js";
-import { executionFailure, failureCode } from "../../execution-failure.js";
+import { failureCode } from "../../execution-failure.js";
 import { claimProductionTasks } from "./cloud-client.js";
-import { readProductionDeviceJobStatus, sendProductionOutboxWrite } from "./cloud-reconciliation-client.js";
 import { productionCatalogHash } from "./catalog.js";
 import { hashCanonical } from "./contracts.js";
 import type { ProductionRuntimeHealth } from "./runtime-contract.js";
 import { executeClaim } from "./runtime-claim.js";
 import { reconcileBusinessAdmission } from "./runtime-business-admission.js";
 import { terminalSpanFailure } from "./runtime-logging.js";
-import { settleInactivePermanentAuthorizationRevocation } from "./runtime-permanent-revocation.js";
 import {
   refreshLedgerReconciled,
   safeReason,
@@ -66,98 +64,6 @@ export const readHealth = (state: RuntimeState): ProductionRuntimeHealth => {
     lastSuccessfulHeartbeatAt: state.lastHeartbeat,
     lastErrorCode: state.lastErrorCode, lastErrorReason: state.lastErrorReason, checkedAt: new Date().toISOString(),
   };
-};
-
-const reconcileOutboxJobStatus = async (state: RuntimeState, jobId: string): Promise<boolean> => {
-  const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
-    traceId: jobId, owner: "production-runtime", component: "production-outbox",
-    operation: "website.v6-request",
-    typedIdentity: { kind: "job", jobId },
-  }));
-  try {
-    const remote = await readProductionDeviceJobStatus(state.session, jobId);
-    state.store.hydrateRemoteOutboxReceipts(jobId, remote.write_receipts);
-    const revoked = settleInactivePermanentAuthorizationRevocation(state, jobId, remote);
-    if (!revoked && state.store.hasPermanentAuthorizationRevocationFailure(jobId)) {
-      throw executionFailure("failed", "PRODUCTION_REVOCATION_STATUS_MISMATCH");
-    }
-    requireRuntimeLogWrite(span.terminal({
-      outcome: "succeeded", authorityRef: `website-device-job:${jobId}`,
-      authorityHash: hashCanonical(remote),
-    }));
-    return !revoked;
-  } catch (error) {
-    state.store.deferOutboxReconciliation(jobId, error);
-    terminalSpanFailure(span, error, runtimeLogCauseEventId(error),
-      "DEVICE_JOB_STATUS_RECONCILIATION_FAILED", undefined, "website");
-    return false;
-  }
-};
-
-export const flushOutboxWithLog = async (state: RuntimeState): Promise<void> => {
-  const blockedJobIds = new Set<string>();
-  for (const jobId of state.store.unreconciledOutboxJobIds()) {
-    if (!await reconcileOutboxJobStatus(state, jobId)) blockedJobIds.add(jobId);
-  }
-  for (const write of state.store.pendingOutbox()) {
-    const authority = state.store.readOutboxAuthority(write.idempotency_key)!;
-    if (blockedJobIds.has(authority.jobId)) continue;
-    const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
-      traceId: authority.jobId, owner: "outbox", component: "production-outbox", operation: "outbox.flush",
-      typedIdentity: { kind: "outbox", jobId: authority.jobId, outboxId: authority.idempotencyKey },
-    }));
-    try {
-      await state.store.deliverOutbox(
-        write.idempotency_key, (fresh) => sendProductionOutboxWrite(state.session, fresh),
-      );
-      const delivered = state.store.readOutboxAuthority(write.idempotency_key)!;
-      requireRuntimeLogWrite(span.terminal({
-        outcome: "succeeded", authorityRef: `production-outbox:${delivered.idempotencyKey}`,
-        authorityHash: hashCanonical(delivered),
-      }));
-    } catch (error) {
-      const remoteFailureCode = failureCode(error, "OUTBOX_DELIVERY_FAILED");
-      const failed = state.store.readOutboxAuthority(write.idempotency_key)!;
-      requireRuntimeLogWrite(span.terminal({
-        outcome: "failed", authorityRef: `production-outbox:${failed.idempotencyKey}`,
-        authorityHash: hashCanonical(failed), failure: runtimeFailureFromError({
-          error, code: remoteFailureCode, responsibleOwner: "outbox",
-          impact: RuntimeFailureImpact.BLOCKING,
-        }),
-      }));
-    }
-  }
-};
-
-export const reconcilePermanentlyRevokedBrowserQuarantine = async (
-  state: RuntimeState,
-): Promise<void> => {
-  const candidate = state.browserAuthority.readCurrentTargetLocalReconciliationCandidate();
-  if (!candidate) return;
-  const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
-    traceId: candidate.jobId, owner: "production-runtime", component: "production-runtime",
-    operation: "website.v6-request",
-    typedIdentity: { kind: "job", jobId: candidate.jobId },
-  }));
-  try {
-    const remote = await readProductionDeviceJobStatus(state.session, candidate.jobId);
-    state.store.hydrateRemoteOutboxReceipts(candidate.jobId, remote.write_receipts);
-    const revoked = settleInactivePermanentAuthorizationRevocation(state, candidate.jobId, remote);
-    if (revoked && !state.activeAbort.has(candidate.jobId)) {
-      try {
-        await state.browserAuthority.reconcilePermanentlyRevokedTargetLocal(candidate);
-      } finally {
-        settleInactivePermanentAuthorizationRevocation(state, candidate.jobId, remote);
-      }
-    }
-    requireRuntimeLogWrite(span.terminal({
-      outcome: "succeeded", authorityRef: `website-device-job:${candidate.jobId}`,
-      authorityHash: hashCanonical(remote),
-    }));
-  } catch (error) {
-    terminalSpanFailure(span, error, runtimeLogCauseEventId(error),
-      "BROWSER_REVOCATION_RECONCILIATION_FAILED", undefined, "browser-session");
-  }
 };
 
 const requestClaimBatch = async (state: RuntimeState, available: number) => {
@@ -248,23 +154,17 @@ const reconcilePendingBusinessAdmissions = async (state: RuntimeState): Promise<
 };
 
 const workerIteration = async (state: RuntimeState): Promise<number> => {
-  await flushOutboxWithLog(state);
   await reconcilePendingBusinessAdmissions(state);
   refreshLedgerReconciled(state);
-  const browserReconciliation = reconcilePermanentlyRevokedBrowserQuarantine(state);
-  try {
-    const attestation = await state.session.ensureFreshAttestation();
-    state.lastHeartbeat = attestation.issued_at;
-    const available = Math.min(10 - state.active.size, state.executor.availableCapacity());
-    const eligible = available > 0 && attestation.claim_eligible && state.ledgerReconciled
-      && !state.draining && state.runtimeLogger.isWritable();
-    if (!eligible) return 1_000;
-    const batch = await requestClaimBatch(state, available);
-    launchClaimJobs(state, batch.jobs);
-    return batch.outcome === "LEASE_GRANTED" ? 1_000 : batch.next_claim_after_ms;
-  } finally {
-    await browserReconciliation;
-  }
+  const attestation = await state.session.ensureFreshAttestation();
+  state.lastHeartbeat = attestation.issued_at;
+  const available = Math.min(10 - state.active.size, state.executor.availableCapacity());
+  const eligible = available > 0 && attestation.claim_eligible && state.ledgerReconciled
+    && !state.draining && state.runtimeLogger.isWritable();
+  if (!eligible) return 1_000;
+  const batch = await requestClaimBatch(state, available);
+  launchClaimJobs(state, batch.jobs);
+  return batch.outcome === "LEASE_GRANTED" ? 1_000 : batch.next_claim_after_ms;
 };
 
 export const workerLoop = async (state: RuntimeState): Promise<void> => {

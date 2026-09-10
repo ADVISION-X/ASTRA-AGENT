@@ -1,10 +1,5 @@
-import {
-  postCheckpointReceiverReceipt,
-  postSubmitReadbackReceipt,
-} from "../../../mediator/product-plugin-contract.js";
 import { executionFailure, failureCode } from "../../execution-failure.js";
 import { runtimeLogCauseEventId, type RuntimeSpanHandle } from "../../runtime-logs/index.js";
-import { authorizeWebsiteAgentTask } from "../../../mediator/agent-production-route.js";
 import {
   readProductionDeviceJobStatus,
   type RemoteProductionDeviceJobStatus,
@@ -12,7 +7,7 @@ import {
 import { hashCanonical } from "./contracts.js";
 import { releaseLeaseWithLog, terminalSpanFailure } from "./runtime-logging.js";
 import { leaseAuthority, safeReason, wait, type RuntimeState } from "./runtime-state.js";
-import { websiteAgentTaskFromClaim, type ClaimedProductionTask } from "./transport-protocol.js";
+import { type ClaimedProductionTask } from "./transport-protocol.js";
 
 export const permanentAuthorizationRevoked = (signal: AbortSignal): boolean => {
   const reason = typeof signal.reason === "string" ? signal.reason : "";
@@ -36,15 +31,8 @@ export const settleInactivePermanentAuthorizationRevocation = (
     activeAbort.abort("CONTROL_INTENT:cancel_requested:PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
     return true;
   }
-  const task = state.store.readTask(jobId);
-  if (!task) throw executionFailure("failed", "PRODUCTION_REVOCATION_TASK_AUTHORITY_INVALID");
-  const unresolved = state.browserAuthority.readBrowserReconciliationScope({
-    jobId,
-    ownerPluginId: task.identity.plugin_id,
-  });
-  state.store.settlePermanentlyRevokedJob(jobId, unresolved
-    ? "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED:READ_ONLY_RECONCILIATION_REQUIRED"
-    : "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
+  if (!state.store.readTask(jobId)) throw executionFailure("failed", "PRODUCTION_REVOCATION_TASK_AUTHORITY_INVALID");
+  state.store.settlePermanentlyRevokedJob(jobId, "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
   return true;
 };
 
@@ -76,24 +64,10 @@ const releaseRevokedLease = async (input: Readonly<{
   failureEventId: string;
   error: unknown;
 }>): Promise<void> => {
-  const receiver = postCheckpointReceiverReceipt(input.error);
-  const confirmed = postSubmitReadbackReceipt(input.error);
   const release = {
     reasonCode: "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED" as const,
-    receiverCheckpoint: receiver ? {
-      artifact_ref: receiver.artifactRef,
-      raw_dom_hash: receiver.rawDomHash,
-      semantic_text_hash: receiver.semanticTextHash,
-    } : null,
-    confirmedSubmit: confirmed ? {
-      cause_code: confirmed.causeCode,
-      exact_call_identity_hash: confirmed.exactCallIdentityHash,
-      outcome: confirmed.outcome,
-      terminal_at: confirmed.terminalAt,
-      readback_mutation_outcome: confirmed.readbackMutationOutcome,
-      evidence_ref: confirmed.evidenceRef,
-      evidence_hash: confirmed.evidenceHash,
-    } : null,
+    receiverCheckpoint: null,
+    confirmedSubmit: null,
   };
   const stableRequestId = `aiprelease_${hashCanonical({
     job_id: input.job.job_id,
@@ -132,18 +106,5 @@ export const settlePermanentAuthorizationRevocation = async (
     executionFailure("failed", "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED", { cause: error }),
     runtimeLogCauseEventId(error), "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
   state.store.settlePermanentlyRevokedJob(job.job_id, "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
-  const task = websiteAgentTaskFromClaim(job);
-  const plugin = authorizeWebsiteAgentTask(task).identity;
-  const unresolved = state.browserAuthority.readBrowserReconciliationScope({
-    jobId: job.job_id,
-    ownerPluginId: plugin.plugin_id,
-  });
-  if (unresolved) {
-    state.store.recordLease(leaseAuthority(job, "stale", null));
-    state.store.setCurrentReason(job.job_id,
-      "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED:READ_ONLY_RECONCILIATION_REQUIRED");
-    await wait(Math.max(0, deletionLeaseDeadline(job) - performance.now()), state.abort.signal);
-    return;
-  }
   await releaseRevokedLease({ state, job, jobSpan, error, failureEventId: failureEvent.eventId });
 };

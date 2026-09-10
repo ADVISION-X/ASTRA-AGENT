@@ -30,7 +30,6 @@ import { HASH_A, HASH_B, task, validDeviceCredential } from "./agent-production-
 import { assertProductionStartupPreflight } from
   "./agent-production-runtime-startup-preflight.acceptance-support.js";
 import "./agent-production-runtime-recovery-contract.acceptance.js";
-import "./agent-production-runtime-recovery-resume.acceptance.js";
 
 await assertProductionStartupPreflight();
 
@@ -47,10 +46,11 @@ try {
     skill_hash: HASH_B, checkpoint_schema_version: 1, request_hash: acceptedTask.request_hash,
   }, "attempt:first-checkpoint-crash");
   assert.equal(reconcileTaskRecord({ store } as never, store.readTask(acceptedTask.job_id)!), true,
-    "a durable accept before the first checkpoint must remain task-locally recoverable");
+    "restart must retire an accepted attempt without requiring a checkpoint");
+  assert.equal(store.readTask(acceptedTask.job_id)?.current_reason, "PROCESS_RESTART_ATTEMPT_ENDED");
   store.markExecuting(acceptedTask.job_id);
-  assert.equal(reconcileTaskRecord({ store } as never, store.readTask(acceptedTask.job_id)!), false,
-    "a missing execution checkpoint outside the accept crash window must block reconciliation");
+  assert.equal(reconcileTaskRecord({ store } as never, store.readTask(acceptedTask.job_id)!), true,
+    "an interrupted executing attempt must not block a future fresh attempt");
 
   const revokedTask = task({
     jobId: "job:released-permanent-revocation", productId: "bazi_ai_full_analysis", actionId: "produce",
@@ -67,14 +67,8 @@ try {
     jobId: revokedTask.job_id, attemptId: revokedAttemptId, leaseVersion: 1,
     fenceHash: HASH_A, state: "absent", expiresAt: null,
   });
-  assert.equal(reconcileTaskRecord({ store } as never, store.readTask(revokedTask.job_id)!), false,
-    "a permanent revocation without a checkpoint must remain unreconciled");
-  store.recordCheckpoint({
-    jobId: revokedTask.job_id, attemptId: revokedAttemptId,
-    checkpointId: "attempt_failure", checkpointHash: null, state: "failed",
-  });
   assert.equal(reconcileTaskRecord({ store } as never, store.readTask(revokedTask.job_id)!), true,
-    "a permanently revoked task with a released lease and checkpoint must not block unrelated claims");
+    "a permanently revoked attempt must not require checkpoint recovery");
 
   const ordinaryFailure = task({
     jobId: "job:ordinary-absent-lease", productId: "bazi_ai_full_analysis", actionId: "produce",
@@ -93,8 +87,8 @@ try {
     jobId: ordinaryFailure.job_id, attemptId: ordinaryAttemptId, leaseVersion: 1,
     fenceHash: HASH_A, state: "absent", expiresAt: null,
   });
-  assert.equal(reconcileTaskRecord({ store } as never, store.readTask(ordinaryFailure.job_id)!), false,
-    "an absent lease must remain blocking without exact permanent-revocation authority");
+  assert.equal(reconcileTaskRecord({ store } as never, store.readTask(ordinaryFailure.job_id)!), true,
+    "an ended attempt must not block a future Website-issued attempt");
   store.close();
 } finally {
   await rm(firstCheckpointCrashTemporary, { recursive: true, force: true });
@@ -213,7 +207,7 @@ try {
   assert.equal(health.cloudState, "contract_blocked");
   assert.equal(health.executionState, "blocked");
   assert.equal(health.claimAdmissionState, "blocked");
-  assert.equal(health.controlContractVersion, 20,
+  assert.equal(health.controlContractVersion, 21,
     "blocked diagnostics must retain only the consumer contract version needed for exact comparison");
   assert.equal(health.lastErrorCode, "AI_SESSION_BINDING_MISMATCH");
   await bindingMismatchRuntime.close();
@@ -390,7 +384,6 @@ try {
         execution_fence_hash: HASH_A,
         capability_manifest_hash: HASH_B,
         max_provider_turns: 1,
-        prior_result_rejection: null,
         provider_turns_used: 0,
         expires_at_monotonic: performance.now() + 10_000,
         command_ttl_ms: 1_000,
@@ -449,11 +442,11 @@ const runtimeSource = await readFile(
 assert.doesNotMatch(runtimeSource, /handleClaimFailure/u);
 assert.match(runtimeSource, /error instanceof ProductionRuntimeBoundaryError/u);
 assert.match(runtimeSource, /material\.checkpointSeq \+ 1/u);
-assert.match(runtimeSource, /RUNTIME_RECOVERY_REQUIRED:/u);
+assert.match(runtimeSource, /ATTEMPT_ENDED:/u);
 
 for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V3",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V4",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:credential:${evidenceMode}`,
@@ -462,7 +455,7 @@ for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V19",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V20",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:storage-inventory:${evidenceMode}`,

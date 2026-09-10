@@ -11,10 +11,7 @@ import type {
 import type {
   SharedExecutionContext,
 } from "../../mediator/product-plugin-contract.js";
-import type {
-  ExactGptCallFacts,
-  ProductGptFactQuery,
-} from "../../capabilities/gpt/index.js";
+import type { ExactGptCallFacts } from "../../capabilities/gpt/index.js";
 import {
   PLUGIN_ID,
   fail,
@@ -29,8 +26,6 @@ import {
 } from "./seo-turn-contract.js";
 import {
   executeAndReadConfirmedSubmit,
-  isConfirmedProviderSubmit,
-  preservePostSubmitReadback,
   SEO_PROVIDER_PROBE_BUDGET_MS,
   type SeoConfirmedSubmit,
 } from "./seo-submit-readback.js";
@@ -93,27 +88,16 @@ export const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecuti
     if (current && current !== evidenceRef) fail("SEO_EVIDENCE_SEQUENCE_CONFLICT");
     evidenceByOrdinal.set(actionOrdinal, evidenceRef);
   };
-  const facts = async (
-    input: SeoCall,
-    lookupKind: NonNullable<ProductGptFactQuery["lookupKind"]> = "current_attempt",
-  ): Promise<ExactGptCallFacts> => {
-    try {
-      const result = await context.gpt.readCallFacts({ ...input, lookupKind });
-      if (result.evidence) recordEvidence(input.actionOrdinal, result.evidence.evidenceRef);
-      return result;
-    } catch (error) {
-      return preservePostSubmitReadback(error, null);
-    }
+  const facts = async (input: SeoCall): Promise<ExactGptCallFacts> => {
+    const result = await context.gpt.readCallFacts({ ...input, lookupKind: "current_attempt" });
+    if (result.evidence) recordEvidence(input.actionOrdinal, result.evidence.evidenceRef);
+    return result;
   };
   const execute: SeoChild = async (input) => {
     await facts(input as SeoCall);
     const result = await context.gpt.execute({ ...input, sessionKey });
     recordEvidence(input.actionOrdinal, result.evidenceRef);
     return result;
-  };
-  const requireEvidence = async (input: SeoCall): Promise<void> => {
-    const current = await facts(input);
-    if (!current.evidence) fail("SEO_PROGRESSIVE_PREFIX_EVIDENCE_MISSING");
   };
   const evidenceRefs = (): readonly string[] => Object.freeze(
     [...evidenceByOrdinal.entries()].sort((left, right) => left[0] - right[0]).map((entry) => entry[1]),
@@ -122,8 +106,6 @@ export const createSeoExecutor = (task: WebsiteAgentTask, context: SharedExecuti
     evidenceRefs,
     execute,
     facts,
-    recordRecoveredEvidence: recordEvidence,
-    requireEvidence,
   });
 };
 
@@ -142,19 +124,6 @@ export const applyExactProfile = async (
   await execute({ sessionKey: "", productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[5], input: { profile: MODEL_PROFILE } });
 };
 
-export const requireExactProfileEvidence = async (
-  flow: ReturnType<typeof createSeoExecutor>,
-  stepId: string,
-  ordinals: SeoProfileOrdinals,
-): Promise<void> => {
-  await flow.requireEvidence({ productStepId: stepId, callId: "profile-open", child: "open_gpt_execution_profile", actionOrdinal: ordinals[0], input: { profile: MODEL_PROFILE } });
-  await flow.requireEvidence({ productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v2", actionOrdinal: ordinals[1], input: { profile: MODEL_PROFILE } });
-  await flow.requireEvidence({ productStepId: stepId, callId: "model-select", child: "select_exact_gpt_model_v2", actionOrdinal: ordinals[2], input: { profile: MODEL_PROFILE } });
-  await flow.requireEvidence({ productStepId: stepId, callId: "profile-open-after-model", child: "open_gpt_execution_profile", actionOrdinal: ordinals[3], input: { profile: MODEL_PROFILE } });
-  await flow.requireEvidence({ productStepId: stepId, callId: "reasoning-select", child: "ensure_gpt_reasoning_requirement", actionOrdinal: ordinals[4], input: { profile: MODEL_PROFILE } });
-  await flow.requireEvidence({ productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[5], input: { profile: MODEL_PROFILE } });
-};
-
 export type SeoTextTurnInput = Readonly<{
   flow: ReturnType<typeof createSeoExecutor>;
   stepId: string;
@@ -162,7 +131,6 @@ export type SeoTextTurnInput = Readonly<{
   marker: string;
   files: readonly SeoUploadedAttachment[];
   ordinals: readonly [number, number, number, number, number, number];
-  recoveryProvider?: GptProviderContinuation;
 }>;
 
 export type SeoReconciledTextSubmission = Readonly<{
@@ -209,11 +177,7 @@ export const reconcileConfirmedSubmissionLocator = async (
     stepId: string;
   }>,
 ): Promise<SeoSubmissionLocator> => {
-  try {
-    return await submittedConversationLocator(input);
-  } catch (error) {
-    return preservePostSubmitReadback(error, input.confirmedSubmit);
-  }
+  return submittedConversationLocator(input);
 };
 
 export const reconcileConfirmedTextSubmission = async (
@@ -235,12 +199,10 @@ export const reconcileConfirmedTextSubmission = async (
 const checkpointSubmittedTextTurn = async (
   input: SeoTextTurnInput,
   promptHash: `sha256:${string}`,
-  confirmedSubmit: SeoConfirmedSubmit,
   canonicalConversationUrl: string,
   conversationIdentityHash: ProductionHash,
 ): Promise<SeoTurnCheckpoint> => {
-  try {
-    const stable = await input.flow.execute({
+  const stable = await input.flow.execute({
       sessionKey: "", productStepId: input.stepId, callId: "text-wait",
       child: "wait_for_stable_gpt_text", actionOrdinal: input.ordinals[4],
       input: {
@@ -251,10 +213,6 @@ const checkpointSubmittedTextTurn = async (
     const stableValue = objectValue(stable.value, "SEO_TEXT_RESPONSE_INVALID");
     const assistantTurnId = textValue(stableValue.assistantTurnId, "SEO_TEXT_RESPONSE_INVALID");
     const responseHash = hashValue(stableValue.responseHash, "SEO_TEXT_RESPONSE_INVALID");
-    if (input.recoveryProvider && (promptHash !== input.recoveryProvider.prior_prompt_hash
-      || responseHash !== input.recoveryProvider.prior_raw_output_hash)) {
-      fail("SEO_RECOVERED_RESPONSE_HASH_MISMATCH");
-    }
     const checkpointCall = {
       productStepId: input.stepId, callId: "text-checkpoint",
       child: "checkpoint_gpt_text_response", actionOrdinal: input.ordinals[5],
@@ -268,7 +226,7 @@ const checkpointSubmittedTextTurn = async (
     const value = objectValue(checkpoint.value, "SEO_TEXT_CHECKPOINT_INVALID");
     const artifactRefs = checkpointFacts.evidence?.artifactRefs ?? [];
     if (artifactRefs.length !== 1 || !artifactRefs[0]) fail("SEO_TEXT_ARTIFACT_RECEIPT_INVALID");
-    return Object.freeze({
+  return Object.freeze({
       assistantTurnId,
       rawDomHtml: textValue(value.rawDomHtml, "SEO_TEXT_CHECKPOINT_INVALID"),
       rawDomHash: hashValue(value.rawDomHash, "SEO_TEXT_CHECKPOINT_INVALID"),
@@ -278,15 +236,11 @@ const checkpointSubmittedTextTurn = async (
       evidenceRef: checkpoint.evidenceRef,
       evidenceHash: checkpoint.evidenceHash,
       canonicalConversationUrl, promptHash, turnMarker: input.marker,
-    });
-  } catch (error) {
-    return preservePostSubmitReadback(error, confirmedSubmit);
-  }
+  });
 };
 
 const prepareTextDraft = async (
   input: SeoTextTurnInput,
-  turnSubmit: SeoCall,
 ): Promise<void> => {
   const promptWrite = {
     productStepId: input.stepId, callId: "prompt-write", child: "write_exact_gpt_prompt",
@@ -296,12 +250,6 @@ const prepareTextDraft = async (
     productStepId: input.stepId, callId: "draft-reconcile", child: "reconcile_gpt_draft",
     actionOrdinal: input.ordinals[1], input: { files: input.files, prompt: input.prompt, turnMarker: input.marker },
   } as const;
-  const beforeSubmit = await input.flow.facts(turnSubmit);
-  if (beforeSubmit.mutation || beforeSubmit.evidence) {
-    await input.flow.requireEvidence(promptWrite);
-    await input.flow.requireEvidence(draftReconcile);
-    return;
-  }
   await input.flow.execute({ sessionKey: "", ...promptWrite });
   await input.flow.execute({ sessionKey: "", ...draftReconcile });
 };
@@ -319,17 +267,12 @@ const executeTextSubmit = async (
 export const submitTextTurn = async (input: SeoTextTurnInput): Promise<SeoTurnCheckpoint> => {
   const promptHash = textHash(input.prompt);
   const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: input.ordinals[2], input: { files: input.files, promptHash, turnMarker: input.marker } } as const;
-  const existingSubmit = await input.flow.facts(turnSubmit);
-  let confirmedSubmit = existingSubmit;
-  if (!isConfirmedProviderSubmit(existingSubmit)) {
-    await prepareTextDraft(input, turnSubmit);
-    confirmedSubmit = await executeTextSubmit(input, turnSubmit);
-  }
+  await prepareTextDraft(input);
+  const confirmedSubmit = await executeTextSubmit(input, turnSubmit);
   const reconciled = await reconcileConfirmedTextSubmission(input, confirmedSubmit);
   return checkpointSubmittedTextTurn(
     input,
     reconciled.promptHash,
-    reconciled.confirmedSubmit,
     reconciled.canonicalConversationUrl,
     reconciled.conversationIdentityHash,
   );
@@ -429,20 +372,11 @@ export const prepareAttachedTurnPrefix = async (input: Readonly<{
   flow: ReturnType<typeof createSeoExecutor>;
   stepId: string;
   files: readonly Omit<SeoUploadedAttachment, "providerDisplayName">[];
-  recoverOnly: boolean;
 }>): Promise<void> => {
   const freshChat = { productStepId: input.stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
   const attachmentOpen = { productStepId: input.stepId, callId: "attachment-control-open", child: "open_gpt_attachment_control", actionOrdinal: 8, input: {} } as const;
   const attachmentsAttach = { productStepId: input.stepId, callId: "attachments-attach", child: "attach_approved_gpt_files_once", actionOrdinal: 9, input: { files: input.files } } as const;
   const attachmentsReconcile = { productStepId: input.stepId, callId: "attachments-reconcile", child: "reconcile_gpt_attachment_set", actionOrdinal: 10, input: { files: input.files, timeoutMs: 600_000 } } as const;
-  if (input.recoverOnly) {
-    await input.flow.requireEvidence(freshChat);
-    await requireExactProfileEvidence(input.flow, input.stepId, [2, 3, 4, 5, 6, 7]);
-    await input.flow.requireEvidence(attachmentOpen);
-    await input.flow.requireEvidence(attachmentsAttach);
-    await input.flow.requireEvidence(attachmentsReconcile);
-    return;
-  }
   await input.flow.execute({ sessionKey: "", ...freshChat });
   await applyExactProfile(input.flow.execute, input.stepId, [2, 3, 4, 5, 6, 7]);
   await input.flow.execute({ sessionKey: "", ...attachmentOpen });

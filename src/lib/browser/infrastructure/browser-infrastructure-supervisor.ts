@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 
 import { BrowserCommandActor } from "../exact-target/browser-command-actor.js";
-import { BrowserMutationStore, type BrowserMutationReconciliationScope } from "../exact-target/browser-mutation-store.js";
+import { BrowserMutationStore } from "../exact-target/browser-mutation-store.js";
 import { BrowserSessionWorkspace, type SessionWorkspaceBindingV6 } from "../exact-target/browser-session-workspace.js";
 import { requireGptWebClaimOrigin } from "../exact-target/browser-site-policy-registry.js";
 import type { BrowserTargetLease } from "../exact-target/browser-target-lease.js";
@@ -196,23 +196,11 @@ export class BrowserInfrastructureSupervisor {
 
   public readBrowserLaneState(): "idle" | "busy" | "blocked" { return this.lane.readState(); }
   public readBrowserLaneWaiterCount(): number { return this.lane.waiterCount(); }
-  public readCurrentTargetLocalReconciliationCandidate(): Readonly<{ jobId: string }> | null {
-    return this.lane.readCurrentTargetLocalReconciliationCandidate();
-  }
-  public reconcilePermanentlyRevokedTargetLocal(
-    input: Readonly<{ jobId: string }>,
-  ): Promise<"retained" | "settled"> {
-    return this.lane.reconcilePermanentlyRevokedTargetLocal(input);
-  }
   public hasUnresolvedBrowserMutation(): boolean { return this.lane.hasUnresolvedMutation(); }
   public hasBrowserMutationForJob(jobId: string): boolean { return this.lane.hasMutationForJob(jobId); }
   public countProviderTurnDispatches(jobId: string, attemptId: string): number {
     return this.lane.countProviderTurnDispatches(jobId, attemptId);
   }
-  public readBrowserReconciliationScope(
-    input: Readonly<{ jobId: string; ownerPluginId: string }>,
-  ): BrowserMutationReconciliationScope | null { return this.lane.reconciliationScope(input); }
-
   public readExactCallMutationFact(input: Readonly<{
     jobId: string;
     attemptId: string;

@@ -38,10 +38,6 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   const run = await exerciseProductFlow(plugin, { task, output });
   assert.deepEqual(run.calls.map((call) => call.child), sequence);
   assert.match(String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt), /当前 Product Plugin：localization-production/u);
-  assert.ok(run.calls.filter((call) => call.child === "submit_exact_gpt_turn_once")
-    .every((call) => call.effectLookupKind === "task_exact_effect"));
-  assert.equal(run.factQueries.filter((call) => call.child === "submit_exact_gpt_turn_once"
-    && call.lookupKind === "task_exact_effect").length, 2);
   assert.equal(run.physicalSubmitDispatches, 1);
 }
 
@@ -158,10 +154,6 @@ assert.deepEqual(staticReasoningCalls.map((call) => ({
   },
 ]);
 assert.equal(staticRun.physicalSubmitDispatches, 3);
-assert.ok(staticRun.calls.filter((call) => call.child === "submit_exact_gpt_turn_once")
-  .every((call) => call.effectLookupKind === "task_exact_effect"));
-assert.equal(staticRun.factQueries.filter((call) => call.child === "submit_exact_gpt_turn_once"
-  && call.lookupKind === "task_exact_effect").length, 6);
 const staticPayload = staticRun.completed.payload as Readonly<Record<string, unknown>>;
 assert.equal(staticPayload.schema_version, "localization-static-catalog-result.v1");
 assert.equal(staticPayload.decision, "production_approved");

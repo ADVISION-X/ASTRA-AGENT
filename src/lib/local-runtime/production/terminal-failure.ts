@@ -4,10 +4,6 @@ import {
   failureCode,
 } from "../../execution-failure.js";
 import { typedBrowserExecutionFailure } from "../../browser/browser-authority-api.js";
-import {
-  postCheckpointReceiverReceipt,
-  postSubmitReadbackReceipt,
-} from "../../../mediator/product-plugin-contract.js";
 import { typedRuntimeTransportFailure } from "./transport-failure.js";
 
 export type SerializedExecutionFailure = Readonly<{
@@ -26,12 +22,7 @@ export const serializeTerminalFailure = (
 ): SerializedExecutionFailure => {
   const browser = typedBrowserExecutionFailure(error);
   const metadata = executionFailureMetadata(error);
-  const checkpoint = postCheckpointReceiverReceipt(error);
-  const submit = postSubmitReadbackReceipt(error);
-  const evidence = submit ?? metadata?.evidence ?? (checkpoint ? Object.freeze({
-    evidenceRef: checkpoint.artifactRef,
-    evidenceHash: checkpoint.semanticTextHash,
-  }) : null);
+  const evidence = metadata?.evidence ?? null;
   return Object.freeze({
     code: failureCode(error),
     mutation_outcome: metadata?.mutationOutcome ?? browser?.mutationOutcome ?? "no",

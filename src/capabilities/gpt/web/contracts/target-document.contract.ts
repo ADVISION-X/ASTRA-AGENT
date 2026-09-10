@@ -1,7 +1,4 @@
 import { executionFailure } from "../../../../lib/execution-failure.js";
-import { durableCanonicalGptConversationUrl } from
-  "../../../../lib/browser/infrastructure/browser-confirmed-readback-source.js";
-
 const GPT_ORIGIN = "https://chatgpt.com" as const;
 export const GPT_ROOT_URL = `${GPT_ORIGIN}/` as const;
 export const GPT_CONVERSATION_SEGMENT_MAX_CHARS = 256;
@@ -21,6 +18,8 @@ export const canonicalGptConversationUrl = (value: string): string => {
   }
   return `${url.origin}${url.pathname}`;
 };
+
+export const durableCanonicalGptConversationUrl = canonicalGptConversationUrl;
 
 export const durableGptConversationUrl = (value: string): string => {
   const durable = durableCanonicalGptConversationUrl(value);

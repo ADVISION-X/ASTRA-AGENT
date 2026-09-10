@@ -11,16 +11,12 @@ import { executionFailure, typedExecutionFailure } from "../../src/lib/execution
 import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
-import { HASH_A, HASH_B, identityFor, recoveryCheckpointBody as baseRecoveryCheckpointBody,
-  resultFor, task } from "./agent-production-runtime-fixtures.js";
+import { HASH_A, HASH_B, identityFor, resultFor, task } from "./agent-production-runtime-fixtures.js";
 import { verifyBrowserFailureStoreContract } from
   "./agent-production-runtime-browser-failure.acceptance-support.js";
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-production-ledger-"));
 const columns = (database: Database.Database, table: string): string[] =>
   (database.prepare(`pragma table_info(${table})`).all() as Array<{ name: string }>).map((row) => row.name);
-const recoveryCheckpointBody = (input: Parameters<typeof baseRecoveryCheckpointBody>[0]) => ({
-  ...baseRecoveryCheckpointBody(input), worker_session_id: "session:recovery", lease_version: 2,
-});
 try {
   const activeLaw = await readFile(
     new URL("../../.github/instructions/agent-rules/功能法案.md", import.meta.url), "utf8",
@@ -93,11 +89,9 @@ try {
     "a new attempt must retire the prior attempt's current checkpoint authority atomically");
   assert.equal(store.readLease(binaryTask.job_id), null,
     "a new attempt must retire the prior attempt's current lease authority atomically");
-  assert.deepEqual(store.attemptIdsForTask(binaryTask.job_id), [firstAttempt, secondAttempt],
-    "attempt rotation must preserve immutable prior failure history");
   assert.throws(
     () => store.acceptTask(binaryTask, { ...identity, plugin_version: identity.plugin_version + 1 }, secondAttempt),
-    /PRODUCTION_TASK_IDENTITY_CONFLICT/u,
+    /PRODUCTION_ATTEMPT_ALREADY_ACCEPTED/u,
   );
   const rotationTask = task({ jobId: "job:plugin-rotation", productId: "bazi_ai_full_analysis", actionId: "produce" });
   const rotationIdentity = identityFor(rotationTask);
@@ -109,93 +103,14 @@ try {
     "a Website-issued new attempt must atomically bind the current matching Plugin identity");
   assert.throws(
     () => store.acceptTask(rotationTask, { ...nextRotationIdentity, skill_hash: HASH_A }, "attempt:plugin-rotation:2"),
-    /PRODUCTION_TASK_IDENTITY_CONFLICT/u,
-    "the same accepted attempt must keep its exact Plugin, Skill and checkpoint identity",
+    /PRODUCTION_ATTEMPT_ALREADY_ACCEPTED/u,
+    "the same accepted attempt cannot be reopened even with a changed identity",
   );
-  const falseCheckpointFailure = serializeTerminalFailure(executionFailure(
-    "failed", "AI_V6_CHECKPOINT_SEQUENCE_INVALID", { cause: new Error("sequence") },
-  ));
-  store.recordAttemptFailure(binaryTask.job_id, secondAttempt, falseCheckpointFailure);
-  const recoveryPath = `/internal/ai-production/v6/jobs/${encodeURIComponent(binaryTask.job_id)}/checkpoints`;
-  const remoteReceipts = [
-    recoveryCheckpointBody({
-      jobId: binaryTask.job_id, attemptId: secondAttempt,
-      requestId: "checkpoint:recovery-accepted", checkpointSeq: 1, checkpointKind: "accepted",
-    }),
-    recoveryCheckpointBody({
-      jobId: binaryTask.job_id, attemptId: secondAttempt,
-      requestId: "checkpoint:recovery-progress", checkpointSeq: 2, checkpointKind: "progress",
-    }),
-  ].map((body) => {
-    const response = {
-      job_id: binaryTask.job_id,
-      checkpoint_seq: body.checkpoint_seq,
-      checkpoint_hash: hashCanonical(body),
-      accepted_at: "2026-08-29T20:19:07.000Z",
-      accepted_attempt_count: 2,
-      status: "failed",
-    };
-    store.enqueue({
-      idempotency_key: body.request_id, kind: "checkpoint", path: recoveryPath,
-      method: "POST", headers: {}, body: JSON.stringify(body),
-    });
-    store.markOutboxSent(body.request_id, response);
-    return {
-      request_id: body.request_id,
-      write_kind: "checkpoint",
-      payload_hash: hashCanonical(body),
-      response_json: response,
-    } as const;
-  });
-  for (const body of [
-    recoveryCheckpointBody({
-      jobId: binaryTask.job_id, attemptId: secondAttempt,
-      requestId: "checkpoint:rejected-accepted", checkpointSeq: 1, checkpointKind: "accepted",
-    }),
-    recoveryCheckpointBody({
-      jobId: binaryTask.job_id, attemptId: secondAttempt,
-      requestId: "checkpoint:rejected-failure", checkpointSeq: 2,
-      checkpointKind: "attempt_failure", attemptFailure: falseCheckpointFailure,
-    }),
-  ]) {
-    store.enqueue({
-      idempotency_key: body.request_id, kind: "checkpoint", path: recoveryPath,
-      method: "POST", headers: {}, body: JSON.stringify(body),
-    });
-    await assert.rejects(store.deliverOutbox(body.request_id, async () => {
-      throw runtimeTransportFailure("AI_V6_CHECKPOINT_SEQUENCE_INVALID", 409);
-    }), /AI_V6_CHECKPOINT_SEQUENCE_INVALID/u);
-  }
-  const failureRowsBefore = Number((database.prepare(`select count(*) as count
-    from production_attempt_failures where job_id=? and attempt_id=?`
-  ).get(binaryTask.job_id, secondAttempt) as { count: number }).count);
-  assert.equal(failureRowsBefore, 1);
-  const recoveredPrefix = store.recoverCheckpointPrefix({
-    jobId: binaryTask.job_id,
-    attemptId: secondAttempt,
-    acceptedAttemptCount: 2,
-    receipts: remoteReceipts,
-  });
-  assert.equal(recoveredPrefix.checkpointSeq, 2);
-  assert.equal(recoveredPrefix.checkpointHash, remoteReceipts[1]!.payload_hash);
-  assert.equal(store.readTask(binaryTask.job_id)?.attempt_failure, null);
-  assert.equal(Number((database.prepare(`select count(*) as count from production_attempt_failures
-    where job_id=? and attempt_id=?`).get(binaryTask.job_id, secondAttempt) as { count: number }).count),
-  0, "the exact locally misrecorded failure must be physically removed after receipt proof");
-  assert.deepEqual(store.recoverCheckpointPrefix({
-    jobId: binaryTask.job_id, attemptId: secondAttempt,
-    acceptedAttemptCount: 2, receipts: remoteReceipts,
-  }), recoveredPrefix, "reconciliation is idempotent from the same receipts and Outbox rows");
   const realFailure = serializeTerminalFailure(executionFailure("failed", "BROWSER_POSTCONDITION_FAILED"));
   store.recordAttemptFailure(binaryTask.job_id, secondAttempt, realFailure);
   assert.deepEqual(store.readTask(binaryTask.job_id)?.attempt_failure, realFailure);
-  assert.throws(() => store.recoverCheckpointPrefix({
-    jobId: binaryTask.job_id, attemptId: secondAttempt,
-    acceptedAttemptCount: 2, receipts: remoteReceipts,
-  }), /PRODUCTION_RECOVERY_FAILURE_SHAPE_MISMATCH/u,
-  "a genuine Product failure must never be removed by checkpoint recovery");
-  assert.equal(Number((database.prepare(`select count(*) as count from production_attempt_failures
-    where job_id=? and attempt_id=?`).get(binaryTask.job_id, secondAttempt) as { count: number }).count), 1);
+  assert.throws(() => store.acceptTask(binaryTask, identity, secondAttempt),
+    /PRODUCTION_ATTEMPT_ALREADY_ACCEPTED/u, "a dead attempt must never be accepted again");
   const thirdAttempt = "attempt:binary:3";
   assert.equal(store.acceptTask(binaryTask, identity, thirdAttempt).attempt_failure, null);
   const failedCheckpoint = store.recordCheckpoint({
@@ -243,23 +158,14 @@ try {
     responseHash: null,
     receiptHash: null,
   });
-  assert.ok(store.readOutboxAuthority("checkpoint:deterministic")?.nextDeliveryAt);
+  assert.equal(store.readOutboxAuthority("checkpoint:deterministic")?.nextDeliveryAt, null);
   await assert.rejects(
     store.deliverOutbox("checkpoint:deterministic", async () => { deterministicCalls += 1; return {}; }),
-    /PRODUCTION_OUTBOX_DELIVERY_BACKOFF_ACTIVE/u,
+    /PRODUCTION_OUTBOX_ATTEMPT_ENDED/u,
   );
-  assert.equal(deterministicCalls, 1, "deterministic rejection must preserve the same intent during bounded backoff");
-  assert.equal(store.pendingOutboxCount(), pendingBeforeDeterministic + 1,
-    "deterministic rejection remains pending delivery work");
-  database.prepare("update production_outbox set next_delivery_at=? where idempotency_key=?")
-    .run("2000-01-01T00:00:00.000Z", "checkpoint:deterministic");
-  await store.deliverOutbox("checkpoint:deterministic", async () => {
-    deterministicCalls += 1;
-    return { checkpoint_hash: HASH_A };
-  });
-  assert.equal(deterministicCalls, 2, "the same deterministic intent must resume after finite backoff");
-  assert.equal(store.readOutboxAuthority("checkpoint:deterministic")?.state, "delivered");
-  assert.equal(store.pendingOutboxCount(), pendingBeforeDeterministic);
+  assert.equal(deterministicCalls, 1, "a failed attempt must never deliver the same intent again");
+  assert.equal(store.pendingOutboxCount(), pendingBeforeDeterministic,
+    "the rejected intent remains only as inert audit evidence");
   store.enqueue({
     idempotency_key: "checkpoint:network-unknown", kind: "checkpoint", path: outboxPath,
     method: "POST", headers: {}, body: '{"network":true}',
@@ -268,7 +174,7 @@ try {
     throw executionFailure("failed", "CLOUD_TRANSPORT_UNAVAILABLE");
   }), /CLOUD_TRANSPORT_UNAVAILABLE/u);
   assert.equal(store.readOutboxAuthority("checkpoint:network-unknown")?.state, "pending");
-  assert.ok(store.readOutboxAuthority("checkpoint:network-unknown")?.nextDeliveryAt);
+  assert.equal(store.readOutboxAuthority("checkpoint:network-unknown")?.nextDeliveryAt, null);
   store.enqueue({
     idempotency_key: "checkpoint:server-error", kind: "checkpoint", path: outboxPath,
     method: "POST", headers: {}, body: '{"server":true}',
@@ -277,11 +183,7 @@ try {
     throw runtimeTransportFailure("REMOTE_TEMPORARILY_UNAVAILABLE", 503);
   }), /REMOTE_TEMPORARILY_UNAVAILABLE/u);
   assert.equal(store.readOutboxAuthority("checkpoint:server-error")?.state, "pending");
-  assert.ok(store.readOutboxAuthority("checkpoint:server-error")?.nextDeliveryAt);
-  database.prepare("update production_outbox set next_delivery_at=? where idempotency_key=?")
-    .run("2000-01-01T00:00:00.000Z", "checkpoint:server-error");
-  await store.deliverOutbox("checkpoint:server-error", async () => ({ checkpoint_hash: HASH_A }));
-  assert.equal(store.readOutboxAuthority("checkpoint:server-error")?.state, "delivered");
+  assert.equal(store.readOutboxAuthority("checkpoint:server-error")?.nextDeliveryAt, null);
   store.enqueue({
     idempotency_key: "checkpoint:remote-receipt", kind: "checkpoint", path: outboxPath,
     method: "POST", headers: {}, body: '{"receipt":true}',
@@ -496,7 +398,7 @@ try {
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V17",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V18",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:3", "summary"],
     locator: `acceptance:agent-production-runtime:sqlite-authority:${evidenceMode}`,

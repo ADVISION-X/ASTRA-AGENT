@@ -245,10 +245,8 @@ export class BrowserTargetLeaseManager {
           state.atomicStep = null;
         }
       },
-      readAtomicStepRecovery: (identity) =>
-        this.commandActor.readAtomicStepRecovery(this.executionBinding, input.target.target.targetRef, identity),
-      requiresMutationRecovery: () =>
-        this.commandActor.requiresMutationRecovery(this.executionBinding, input.target.target.targetRef),
+      readAtomicStepOutcome: (identity) =>
+        this.commandActor.readAtomicStepOutcome(this.executionBinding, input.target.target.targetRef, identity),
       navigate: ({ url }) => this.navigate(input, state, command, url),
       executeDomIntent: async (intent: BrowserDomIntent) => command(this.capabilityForIntent(intent), { kind: "dom-intent", intent }),
       observeCapability: async ({ capabilityId }) => command(capabilityId, { kind: "observe", capabilityId }),
@@ -260,10 +258,7 @@ export class BrowserTargetLeaseManager {
       downloadAuthenticatedMedia: (media) => this.downloadAuthenticatedMedia(state, command, media),
       wait: async ({ durationMs }) => { await command("browser.wait.v1", { kind: "wait", durationMs }); },
       park: async ({ reason, mode }) => {
-        const unresolved = state.pendingMutationCommandIds.length > 0
-          || this.commandActor.requiresMutationRecovery(this.executionBinding, input.target.target.targetRef);
-        if (((mode === "normal-provider-wait" || mode === "confirmed-source-readback") && unresolved)
-          || (mode === "recovery" && !unresolved)) {
+        if (mode !== "normal-provider-wait") {
           throw new Error("BROWSER_PARK_MODE_INVALID");
         }
         await command("browser.park-target.v1", { kind: "park-target", reason });

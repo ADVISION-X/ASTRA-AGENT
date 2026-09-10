@@ -66,7 +66,7 @@ export const requireConfirmedBrowserFact = <
   AllowsNo extends boolean = false,
 >(
   intent: GptChildCapabilityIntent<K>,
-  browser: Pick<BrowserTargetLease, "readAtomicStepRecovery">,
+  browser: Pick<BrowserTargetLease, "readAtomicStepOutcome">,
   options: Readonly<{ allowNoMutationOutcome: AllowsNo }> = Object.freeze({
     allowNoMutationOutcome: false as AllowsNo,
   }),
@@ -76,7 +76,7 @@ export const requireConfirmedBrowserFact = <
     || contract.replayPolicy === "transaction-identical-readback") {
     throw executionFailure("failed", "GPT_BROWSER_TERMINAL_FACT_NOT_APPLICABLE");
   }
-  const recovery = browser.readAtomicStepRecovery({
+  const recovery = browser.readAtomicStepOutcome({
     productStepId: intent.productStepId,
     callId: intent.callId,
     childCapabilityId: intent.childCapabilityId,
@@ -106,9 +106,9 @@ export const requireConfirmedBrowserFact = <
 
 export const requireCompletedDownloadBrowserFact = (
   intent: GptChildCapabilityIntent<"checkpoint_gpt_generated_image">,
-  browser: Pick<BrowserTargetLease, "target" | "document" | "readAtomicStepRecovery">,
+  browser: Pick<BrowserTargetLease, "target" | "document" | "readAtomicStepOutcome">,
 ): GptChildBrowserFact => {
-  const recovery = browser.readAtomicStepRecovery({
+  const recovery = browser.readAtomicStepOutcome({
     productStepId: intent.productStepId,
     callId: intent.callId,
     childCapabilityId: intent.childCapabilityId,

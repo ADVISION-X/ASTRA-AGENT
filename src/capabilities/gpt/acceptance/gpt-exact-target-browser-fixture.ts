@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 import type {
   BrowserAtomicStepIdentity,
-  BrowserAtomicStepRecovery,
+  BrowserAtomicStepOutcome,
   BrowserDomIntent,
   BrowserDomObservationQuery,
   BrowserTargetLease,
@@ -94,7 +94,7 @@ export const EXPECTED_GPT_CHILD_IDS = Object.freeze([
 type DomResponder = (intent: BrowserDomIntent, callNumber: number) => unknown | Promise<unknown>;
 type FakeBrowserOptions = Readonly<{
   initialPending?: number;
-  initialRecovery?: BrowserAtomicStepRecovery;
+  initialRecovery?: BrowserAtomicStepOutcome;
   initialUrl?: string;
   navigationEpochAdvanceOnMutation?: number;
   navigationEpochAdvanceOnWait?: number;
@@ -112,7 +112,7 @@ type FakeBrowserState = {
   authenticatedMediaDownloads: number;
   waitDurations: number[];
   atomicIdentity: BrowserAtomicStepIdentity | null;
-  recovery: BrowserAtomicStepRecovery | null;
+  recovery: BrowserAtomicStepOutcome | null;
 };
 
 const markConfirmedMutation = (
@@ -292,8 +292,7 @@ const createFakeBrowserLease = (
     state.atomicIdentity = identity;
     try { return await action(); } finally { state.atomicIdentity = null; }
   },
-  readAtomicStepRecovery: () => state.recovery,
-  requiresMutationRecovery: () => state.pending > 0,
+  readAtomicStepOutcome: () => state.recovery,
   async navigate(navigation: Readonly<{ url: string }>) {
     state.physicalMutations += 1;
     state.url = navigation.url;

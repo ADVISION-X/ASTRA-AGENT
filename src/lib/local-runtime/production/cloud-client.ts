@@ -146,18 +146,13 @@ export async function checkpointProductionTask(
   session: Pick<ProductionWorkerSession, "request" | "workerSessionEpoch" | "workerSessionId">,
   store: ProductionRuntimeStore,
   job: ClaimedProductionTask,
-  checkpointKind: "accepted" | "progress" | "attempt_failure" | "handover_acknowledgement",
+  checkpointKind: "accepted" | "progress" | "attempt_failure",
   checkpointSeq: number,
   attemptFailure: SerializedExecutionFailure | null = null,
 ): Promise<Readonly<{ checkpointHash: ProductionHash; checkpointSeq: number; requestId: string }>> {
   if (!Number.isInteger(checkpointSeq) || checkpointSeq < 1) {
     throw executionFailure("failed", "V6_CHECKPOINT_SEQUENCE_INVALID");
   }
-  const scheduledFailure = store.scheduledCheckpointFailure({
-    jobId: job.job_id, attemptId: job.grant.attempt_id, checkpointSeq,
-    checkpointKind, attemptFailure,
-  });
-  if (scheduledFailure) throw executionFailure("failed", scheduledFailure);
   const requestId = `aipcheckpoint_${hashCanonical({
     job_id: job.job_id,
     attempt_id: job.grant.attempt_id,
@@ -287,7 +282,8 @@ async function uploadJsonObject(
   const requestId = `aipresult_${hashCanonical({
     job_id: job.job_id, attempt_id: job.grant.attempt_id, role, content_hash: contentHash,
   }).slice(7, 47)}`;
-  const artifactId = `airesult_${job.job_id.replace(/[^A-Za-z0-9_-]/gu, "_").slice(-80)}_${role}_${contentHash.slice(-16)}`;
+  const attemptHash = hashCanonical({ attempt_id: job.grant.attempt_id }).slice(7, 23);
+  const artifactId = `airesult_${job.job_id.replace(/[^A-Za-z0-9_-]/gu, "_").slice(-64)}_${attemptHash}_${role}_${contentHash.slice(-16)}`;
   const pathname = `/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/artifacts/${role}/${encodeURIComponent(artifactId)}`;
   const durableHeaders = {
     ...fenceHeaders(job),

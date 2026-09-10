@@ -12,7 +12,7 @@ export type BrowserAtomicStepIdentity = Readonly<{
   replayPolicy: "observation-only" | "target-local-per-generation" | "provider-effect-once";
 }>;
 
-export type BrowserAtomicStepRecovery = Readonly<{
+export type BrowserAtomicStepOutcome = Readonly<{
   state: "dispatched" | "confirmed" | "rejected";
   mutationOutcome: "no" | "dispatched" | "confirmed";
   terminalAt: string | null;
@@ -57,8 +57,7 @@ export type BrowserTargetLease = Readonly<{
     identity: BrowserAtomicStepIdentity,
     action: () => Promise<T>,
   ): Promise<T>;
-  readAtomicStepRecovery(identity: BrowserAtomicStepIdentity): BrowserAtomicStepRecovery | null;
-  requiresMutationRecovery(): boolean;
+  readAtomicStepOutcome(identity: BrowserAtomicStepIdentity): BrowserAtomicStepOutcome | null;
   navigate(input: Readonly<{ url: string; title: string; deadlineMs?: number }>): Promise<BrowserDocumentRef>;
   executeDomIntent(input: BrowserDomIntent): Promise<unknown>;
   observeCapability(input: Readonly<{ capabilityId: BrowserCapabilityId; timeoutMs?: number }>): Promise<unknown>;
@@ -87,7 +86,7 @@ export type BrowserTargetLease = Readonly<{
   wait(input: Readonly<{ durationMs: number }>): Promise<void>;
   park(input: Readonly<{
     reason: string;
-    mode: "normal-provider-wait" | "confirmed-source-readback" | "recovery";
+    mode: "normal-provider-wait";
   }>): Promise<void>;
   close(input: Readonly<{ reason: string }>): Promise<void>;
   resolvePendingMutation(

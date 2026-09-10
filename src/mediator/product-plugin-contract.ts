@@ -4,7 +4,6 @@ import type {
   GptProviderContinuation,
   ProductGptTools,
 } from "../capabilities/gpt/index.js";
-import { TypedExecutionFailure, executionFailure } from "../lib/execution-failure.js";
 
 export type ProductionHash = `sha256:${string}`;
 export type ProductionProductId = string;
@@ -146,27 +145,10 @@ export interface ProductSkill {
   readonly hash: ProductionHash;
 }
 
-export type ResultRevisionRejectionReasonCode =
-  | "PUBLIC_KNOWLEDGE_ARTICLE_REJECTED"
-  | "PUBLIC_KNOWLEDGE_COLLISION_REJECTED"
-  | "PUBLIC_KNOWLEDGE_RESEARCH_DECLINED"
-  | "PUBLIC_KNOWLEDGE_RESEARCH_REJECTED"
-  | "PUBLIC_KNOWLEDGE_RESULT_PACKAGE_REJECTED";
-
-export interface PriorResultRejection {
-  readonly schema_version: "xuanxue-ai-prior-result-rejection.v1";
-  readonly job_id: string;
-  readonly previous_attempt_id: string;
-  readonly previous_result_payload_hash: ProductionHash;
-  readonly reason_codes: readonly ResultRevisionRejectionReasonCode[];
-  readonly receipt_hash: ProductionHash;
-}
-
 export interface SharedExecutionContext {
   readonly materials: readonly LocalProductionMaterial[];
   readonly routePolicy: ProductionRoutePolicy;
   readonly productSkill: ProductSkill;
-  readonly priorResultRejection: PriorResultRejection | null;
   readonly gpt: ProductGptTools;
   readonly uploadGeneratedImage: (artifact: GeneratedImageArtifact) => Promise<GeneratedImageResultReceipt>;
   readonly complete: (output: ProductPluginOutput) => Promise<ProductCompletionReceipt>;
@@ -200,85 +182,6 @@ export const hashCanonical = (value: unknown): ProductionHash => {
   return sha256(JSON.stringify(canonical(value)));
 };
 
-type ProductCheckpointReceipt = Readonly<{
-  artifactRef: string;
-  rawDomHash: ProductionHash;
-  semanticTextHash: ProductionHash;
-}>;
-
-type PostSubmitReadbackReceipt = Readonly<{
-  causeCode: string;
-  exactCallIdentityHash: ProductionHash;
-  outcome: "CONFIRMED";
-  terminalAt: string;
-  readbackMutationOutcome: "no";
-  evidenceRef: string;
-  evidenceHash: ProductionHash;
-}>;
-
-type PostSubmitReadbackReceiptInput = Omit<PostSubmitReadbackReceipt, "outcome" | "readbackMutationOutcome">;
-
-class ProductRuntimeHandoffFault<Receipt> extends TypedExecutionFailure {
-  public override readonly name = "ProductRuntimeHandoffFault";
-  public constructor(code: string, public readonly receipt: Receipt,
-    evidence: Readonly<{ evidenceRef: string; evidenceHash: ProductionHash }>) {
-    super("failed", code, undefined, Object.freeze({ mutationOutcome: "no", evidence }));
-  }
-}
-
-const handoffReceipt = <Receipt>(error: unknown, prefix: string): Receipt | null => {
-  let current = error;
-  const seen = new Set<object>();
-  while (current && typeof current === "object" && !seen.has(current)) {
-    seen.add(current);
-    if (current instanceof ProductRuntimeHandoffFault && current.code.startsWith(prefix)) {
-      return current.receipt as Receipt;
-    }
-    current = current instanceof Error ? current.cause : undefined;
-  }
-  return null;
-};
-
-export const postCheckpointReceiverFault = (
-  code: string,
-  receipt: ProductCheckpointReceipt,
-): TypedExecutionFailure => new ProductRuntimeHandoffFault(
-  `POST_CHECKPOINT_RECEIVER_FAULT:${code}`,
-  Object.freeze({ ...receipt }),
-  Object.freeze({ evidenceRef: receipt.artifactRef, evidenceHash: receipt.semanticTextHash }),
-);
-
-export const postCheckpointReceiverReceipt = (error: unknown): ProductCheckpointReceipt | null =>
-  handoffReceipt(error, "POST_CHECKPOINT_RECEIVER_FAULT:");
-
-const RESULT_HASH = /^sha256:[a-f0-9]{64}$/u;
-const MACHINE_CODE = /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$/u;
-const resultFailure = (code: string): never => { throw executionFailure("failed", code); };
-
-const postSubmitReadbackCauseCode = (code: string): string => {
-  const root = code.split(":", 1)[0] ?? "";
-  return MACHINE_CODE.test(root) ? root : "POST_SUBMIT_READBACK_FAULT";
-};
-
-export const postSubmitReadbackFault = (
-  code: string,
-  input: PostSubmitReadbackReceiptInput,
-): TypedExecutionFailure => {
-  const terminalAt = Date.parse(input.terminalAt);
-  if (input.causeCode !== code || !Number.isFinite(terminalAt)
-    || !RESULT_HASH.test(input.exactCallIdentityHash)
-    || !input.evidenceRef.trim() || !RESULT_HASH.test(input.evidenceHash)) {
-    return executionFailure("failed", code);
-  }
-  const receipt = Object.freeze({ ...input, causeCode: postSubmitReadbackCauseCode(code),
-    outcome: "CONFIRMED" as const,
-    readbackMutationOutcome: "no" as const });
-  return new ProductRuntimeHandoffFault(`POST_SUBMIT_READBACK_FAULT:${code}`, receipt, receipt);
-};
-
-export const postSubmitReadbackReceipt = (error: unknown): PostSubmitReadbackReceipt | null =>
-  handoffReceipt(error, "POST_SUBMIT_READBACK_FAULT:");
-
 export const gptTextContinuationCheckpointInput = (
   sourceAttemptId: string,
   checkpoint: Readonly<{
@@ -307,6 +210,8 @@ export const gptTextContinuationCheckpointInput = (
 });
 
 type ParsedPluginObject = Readonly<{ start: number; end: number; value: Record<string, unknown> }>;
+const RESULT_HASH = /^sha256:[a-f0-9]{64}$/u;
+const resultFailure = (code: string): never => { throw new Error(code); };
 
 const pluginObjectAt = (raw: string, start: number): ParsedPluginObject | null => {
   let depth = 0;

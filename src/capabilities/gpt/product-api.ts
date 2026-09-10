@@ -18,7 +18,6 @@ type ProductGptCallCommon = Readonly<{
   productStepId: string;
   callId: string;
   actionOrdinal: number;
-  effectLookupKind?: "task_exact_effect";
 }>;
 
 type ProductGptAnyCallInputMap = {
@@ -38,17 +37,11 @@ export type ProductGptCallInput<K extends GptChildCapabilityId = GptChildCapabil
 
 export type ProductGptFactQuery<K extends GptChildCapabilityId = GptChildCapabilityId> =
   ProductGptCallInput<K> & Readonly<{
-    lookupKind?: "current_attempt" | "task_exact_effect";
+    lookupKind?: "current_attempt";
   }>;
 
 export type ExactGptCallFacts = Readonly<{
   exactCallIdentityHash: `sha256:${string}`;
-  confirmedProviderSubmitReceipt?: Readonly<{
-    exactCallIdentityHash: `sha256:${string}`;
-    terminalAt: string;
-    evidenceRef: string;
-    evidenceHash: `sha256:${string}`;
-  }>;
   mutation: Readonly<{
     owner: "browser";
     sourceAttemptId: string;

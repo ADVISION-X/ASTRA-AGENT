@@ -1,9 +1,7 @@
 import { executionFailure } from "../../execution-failure.js";
 import type { SerializedExecutionFailure } from "./terminal-failure.js";
 import type { DurablePluginIdentity, WebsiteAgentResult, WebsiteAgentTask } from "./contracts.js";
-import type { PriorResultRejection } from "../../../mediator/product-plugin-contract.js";
 import { WebsiteAgentResultSchema } from "./contracts.js";
-import { isRejectedCheckpointSequenceFailure } from "./store-outbox-recovery-proof.js";
 import { ProductionStoreContinuationState } from "./store-continuation-state.js";
 import {
   productionCheckpointAuthorityFromRow,
@@ -22,6 +20,8 @@ import {
   type StoredProductionTask,
   type TaskRow,
 } from "./store-foundation.js";
+
+const endedJobPathMarker = (jobId: string): string => `/jobs/${encodeURIComponent(jobId)}/`;
 
 const assertResultIdentity = (
   accepted: StoredProductionTask | null,
@@ -50,28 +50,13 @@ const taskAuthorityFromRow = (row: TaskRow): StoredProductionTask => {
 };
 
 export abstract class ProductionStoreTaskState extends ProductionStoreContinuationState {
-  public reconcileRejectedResultRevision(input: Readonly<{
-    rejection: PriorResultRejection;
-    nextAttemptId: string;
-  }>): void {
-    const current = this.readTask(input.rejection.job_id);
-    if (!current || current.status !== "failed") {
-      throw executionFailure("failed", "PRODUCTION_RESULT_REVISION_TASK_MISSING");
-    }
-    if (current.current_attempt_id === input.nextAttemptId && current.staged_result === null) return;
-    if (current.current_attempt_id !== input.rejection.previous_attempt_id
-      || !current.staged_result
-      || current.staged_result.result_payload_hash !== input.rejection.previous_result_payload_hash) {
-      throw executionFailure("failed", "PRODUCTION_RESULT_REVISION_IDENTITY_MISMATCH");
-    }
-    const changed = this.database.prepare(`update production_tasks
-      set staged_result_json=null,current_reason='RESULT_REVISION_REJECTED',updated_at=?
-      where job_id=? and status='failed' and current_attempt_id=? and staged_result_json is not null`).run(
-      now(), input.rejection.job_id, input.rejection.previous_attempt_id,
-    );
-    if (changed.changes !== 1) {
-      throw executionFailure("failed", "PRODUCTION_RESULT_REVISION_RECONCILIATION_CONFLICT");
-    }
+  public endUnsentAttemptWrites(jobId: string): number {
+    const changed = this.database.prepare(`update production_outbox
+      set last_error='ATTEMPT_ENDED',next_delivery_at=null
+      where instr(path,?)>0 and sent_at is null`
+    ).run(endedJobPathMarker(jobId));
+    this.notifyOutbox(null);
+    return changed.changes;
   }
 
   public acceptTask(
@@ -85,23 +70,18 @@ export abstract class ProductionStoreTaskState extends ProductionStoreContinuati
         throw executionFailure("failed", "PRODUCTION_TASK_REQUEST_HASH_CONFLICT");
       }
       if (existing.current_attempt_id === attemptId) {
-        if (json(existing.identity) !== json(identity)) {
-          throw executionFailure("failed", "PRODUCTION_TASK_IDENTITY_CONFLICT");
-        }
-        return existing;
+        throw executionFailure("failed", "PRODUCTION_ATTEMPT_ALREADY_ACCEPTED");
       }
       if (existing.status === "failed") {
-        if (existing.staged_result) throw executionFailure("failed", "PRODUCTION_NEW_ATTEMPT_AFTER_STAGED_RESULT");
-        this.readCheckpoint(task.job_id);
-        this.readLease(task.job_id);
         this.database.transaction(() => {
+          this.endUnsentAttemptWrites(task.job_id);
           this.database.prepare(
             "update production_continuations set lane_owner_job_id=null where lane_owner_job_id=?",
           ).run(task.job_id);
           this.database.prepare("delete from production_checkpoints where job_id=?").run(task.job_id);
           this.database.prepare("delete from production_leases where job_id=?").run(task.job_id);
           this.database.prepare(`update production_tasks
-            set identity_json=?,current_attempt_id=?,current_reason='LEASE_GRANTED',updated_at=?
+            set identity_json=?,current_attempt_id=?,current_reason='LEASE_GRANTED',staged_result_json=null,updated_at=?
             where job_id=? and status='failed'`).run(json(identity), attemptId, now(), task.job_id);
         })();
         return this.readTask(task.job_id)!;
@@ -140,13 +120,6 @@ export abstract class ProductionStoreTaskState extends ProductionStoreContinuati
     }) : null;
   }
 
-  public attemptIdsForTask(jobId: string): readonly string[] {
-    const rows = this.database.prepare(`select attempt_id from production_attempt_failures where job_id=?
-      union select current_attempt_id as attempt_id from production_tasks where job_id=?
-      order by attempt_id`).all(jobId, jobId) as Array<{ attempt_id: string }>;
-    return Object.freeze(rows.map((row) => row.attempt_id));
-  }
-
   public taskAuthorities(): readonly StoredProductionTask[] {
     const rows = this.database.prepare(
       `select t.job_id,t.request_hash,t.task_json,t.identity_json,t.status,t.result_json,t.staged_result_json,t.current_attempt_id,
@@ -180,6 +153,17 @@ export abstract class ProductionStoreTaskState extends ProductionStoreContinuati
     if (changed.changes !== 1) {
       throw executionFailure("failed", "PRODUCTION_STAGED_RESULT_TERMINAL_CONFLICT");
     }
+  }
+
+  public discardStagedResult(jobId: string, reason: string): void {
+    const changed = this.database.prepare(`update production_tasks
+      set staged_result_json=null,current_reason=?,updated_at=?
+      where job_id=? and status='failed' and staged_result_json is not null`
+    ).run(reason, now(), jobId);
+    if (changed.changes !== 1) {
+      throw executionFailure("failed", "PRODUCTION_STAGED_RESULT_NOT_CURRENT");
+    }
+    this.endUnsentAttemptWrites(jobId);
   }
 
   public completeTask(jobId: string, result: WebsiteAgentResult): void {
@@ -235,28 +219,6 @@ export abstract class ProductionStoreTaskState extends ProductionStoreContinuati
       this.database.prepare(`update production_tasks set current_reason=?,updated_at=?
         where job_id=? and status='failed'`).run(failure.code.slice(0, 1_000), now(), jobId);
     })();
-  }
-
-  protected removeRejectedCheckpointFalseFailure(input: Readonly<{
-    jobId: string;
-    attemptId: string;
-    failure: SerializedExecutionFailure;
-  }>): void {
-    if (!isRejectedCheckpointSequenceFailure(input.failure)) {
-      throw executionFailure("failed", "PRODUCTION_RECOVERY_FAILURE_SHAPE_MISMATCH");
-    }
-    const task = this.database.prepare(`select current_attempt_id from production_tasks
-      where job_id=? and status='failed'`).get(input.jobId) as { current_attempt_id: string } | undefined;
-    if (!task || task.current_attempt_id !== input.attemptId) {
-      throw executionFailure("failed", "PRODUCTION_ATTEMPT_AUTHORITY_CONFLICT");
-    }
-    const changed = this.database.prepare(`delete from production_attempt_failures
-      where job_id=? and attempt_id=? and failure_json=?`).run(
-      input.jobId, input.attemptId, json(input.failure),
-    );
-    if (changed.changes !== 1) throw executionFailure("failed", "PRODUCTION_ATTEMPT_AUTHORITY_CONFLICT");
-    this.database.prepare(`update production_tasks set current_reason='REMOTE_CHECKPOINT_PREFIX_RECONCILED',
-      updated_at=? where job_id=? and status='failed'`).run(now(), input.jobId);
   }
 
   public recordCheckpoint(authority: ProductionCheckpointAuthority): ProductionCheckpointAuthority {

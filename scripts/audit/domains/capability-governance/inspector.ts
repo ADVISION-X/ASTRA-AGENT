@@ -406,7 +406,7 @@ const inspectSourceFile = (
 export const inspectCapabilityGovernanceProject = (
   project: InspectorContext["project"],
   includeAuthority: boolean,
-  lawId = "LAW-CAPABILITY-GOVERNANCE-001-V8",
+  lawId = "LAW-CAPABILITY-GOVERNANCE-001-V9",
   observeTypes: () => string = () => observeTypeCheckerRelations(project),
 ): { findings: ReturnType<typeof createFinding>[]; inspectedFiles: string[]; staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] } => {
   const findings: ReturnType<typeof createFinding>[] = [];

@@ -21,45 +21,6 @@ export const gptEvidenceFailureCause = (value: unknown): Error | undefined => {
   return Object.assign(new Error(name), { name, ...(code ? { code } : {}) });
 };
 
-export type ProductSafeConfirmedProviderSubmitReceipt = Readonly<{
-  exactCallIdentityHash: `sha256:${string}`;
-  terminalAt: string;
-  evidenceRef: string;
-  evidenceHash: `sha256:${string}`;
-}>;
-
-class ConfirmedProviderSubmitReceiptError extends Error {
-  public override readonly name = "ConfirmedProviderSubmitReceiptError";
-  public constructor(
-    cause: unknown,
-    public readonly confirmedProviderSubmitReceipt: ProductSafeConfirmedProviderSubmitReceipt,
-  ) {
-    super("CONFIRMED_PROVIDER_SUBMIT_RECEIPT", { cause });
-  }
-}
-
-export const carryProductSafeConfirmedProviderSubmitReceipt = (
-  error: unknown,
-  receipt: ProductSafeConfirmedProviderSubmitReceipt,
-): unknown => {
-  return new ConfirmedProviderSubmitReceiptError(error, Object.freeze(receipt));
-};
-
-export const confirmedProviderSubmitReceiptFromError = (
-  error: unknown,
-): ProductSafeConfirmedProviderSubmitReceipt | null => {
-  let current = error;
-  const seen = new Set<object>();
-  while (current && typeof current === "object" && !seen.has(current)) {
-    seen.add(current);
-    if (current instanceof ConfirmedProviderSubmitReceiptError) {
-      return current.confirmedProviderSubmitReceipt;
-    }
-    current = current instanceof Error ? current.cause : undefined;
-  }
-  return null;
-};
-
 export type GptFailureProofFacts = Readonly<{
   decision: "DONE" | "ACT" | "WAIT" | "FAIL_CLOSED";
   factResultIds: readonly string[];

@@ -7,9 +7,8 @@ import {
 } from "./contract.js";
 import { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
 import type { ProductionGptBrowserCall } from "./production-browser-lifecycle.js";
-import { recoveredGptChildResult } from "./production-browser-recovery-result.js";
+import { executionFailure } from "../../lib/execution-failure.js";
 import type { GptContinuationStorePort } from "./session/gpt-continuation-store-port.js";
-import type { ConfirmedProviderSubmitReceipt } from "./confirmed-provider-readback.js";
 
 type AtomicGptCallInput = Readonly<{
   dataDir: string;
@@ -18,7 +17,6 @@ type AtomicGptCallInput = Readonly<{
   browsers: ProductionGptBrowserLifecycle;
   intent: GptAnyChildCapabilityIntent;
   browserCall: ProductionGptBrowserCall | undefined;
-  confirmedProviderSubmitReceipt: ConfirmedProviderSubmitReceipt | null;
   signal: AbortSignal;
 }>;
 
@@ -30,8 +28,6 @@ const executionContext = (
   ...(browser ? { browser } : {}),
   signal: input.signal,
   continuationStore: input.store,
-  ...(input.confirmedProviderSubmitReceipt
-    ? { confirmedProviderSubmitReceipt: input.confirmedProviderSubmitReceipt } : {}),
   ...(input.browserCall ? {
     yieldForProviderWait: (durationMs: number) => input.browsers.yieldForProviderWait(
       input.browserCall!, input.intent.productStepId, input.intent.callId,
@@ -64,8 +60,8 @@ export const executeProductionGptAtomicCall = async (
     actionOrdinal: intent.actionOrdinal,
     replayPolicy,
   } as const;
-  const recovery = browser.readAtomicStepRecovery(atomicIdentity);
-  if (!recovery) {
+  const priorOutcome = browser.readAtomicStepOutcome(atomicIdentity);
+  if (!priorOutcome) {
     return {
       result: await browser.runAtomicStep(
         atomicIdentity,
@@ -74,40 +70,18 @@ export const executeProductionGptAtomicCall = async (
       resolveDispatched: false,
     };
   }
-  if (recovery.state === "rejected") {
-    return {
-      result: recoveredGptChildResult({
-        intent,
-        browser,
-        readback: null,
-        recovery,
-        state: "rejected",
-      }),
-      resolveDispatched: false,
-    };
-  }
-  const readback = await browser.runAtomicStep(
-    atomicIdentity,
-    () => gpt.execute(intent, { ...context, mutationMode: "readback" }),
-  );
-  if (readback.status !== "success") return {
-    result: recovery.state === "dispatched" ? recoveredGptChildResult({
-      intent,
-      browser,
-      readback,
-      recovery,
-      state: "dispatched",
-    }) : readback,
-    resolveDispatched: false,
-  };
-  return {
-    result: recoveredGptChildResult({
-      intent,
-      browser,
-      readback,
-      recovery,
-      state: "confirmed",
-    }),
-    resolveDispatched: recovery.state === "dispatched",
-  };
+  throw executionFailure("failed", "GPT_ATOMIC_STEP_ALREADY_ATTEMPTED", {
+    metadata: {
+      mutationOutcome: priorOutcome.mutationOutcome,
+      evidence: {
+        evidenceRef: priorOutcome.authorityRef,
+        evidenceHash: priorOutcome.authorityHash,
+      },
+      browserEffect: {
+        effectScope: replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local",
+        childCapabilityId: intent.childCapabilityId,
+        browserOutcome: priorOutcome.state.toUpperCase() as "DISPATCHED" | "CONFIRMED" | "REJECTED",
+      },
+    },
+  });
 };

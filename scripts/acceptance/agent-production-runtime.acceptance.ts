@@ -24,7 +24,7 @@ import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/s
 import { readProductionOperationsSnapshot } from
   "../../src/lib/local-runtime/production/operations-snapshot.js";
 import {
-  ClaimBatchReceiptSchema, LeaseRenewReceiptSchema, PriorResultRejectionSchema, parseJsonEnvelope,
+  ClaimBatchReceiptSchema, LeaseRenewReceiptSchema, parseJsonEnvelope,
   websiteAgentTaskFromClaim,
 } from "../../src/lib/local-runtime/production/transport-protocol.js";
 import { typedExecutionFailure } from "../../src/lib/execution-failure.js";
@@ -146,7 +146,6 @@ const deviceStatusWithAdmission = (
     job_id: jobId,
     status: "completed",
     current_reason: null,
-    prior_result_rejection: null,
     control_intent: {
       schema_version: "xuanxue-ai-control-intent.v6", job_id: jobId,
       control_epoch: 0, intent: "none", reason_code: null,
@@ -187,19 +186,6 @@ for (const receipt of [
     (error: unknown) => typedExecutionFailure(error)?.code === "V6_BUSINESS_ADMISSION_RECEIPT_INVALID",
   );
 }
-
-const revisionRejection = PriorResultRejectionSchema.parse({
-  schema_version: "xuanxue-ai-prior-result-rejection.v1",
-  job_id: productionTask.job_id,
-  previous_attempt_id: "attempt:revision:1",
-  previous_result_payload_hash: HASH_B,
-  reason_codes: ["PUBLIC_KNOWLEDGE_ARTICLE_REJECTED"],
-  receipt_hash: HASH_C,
-});
-assert.throws(() => PriorResultRejectionSchema.parse({
-  ...revisionRejection,
-  reason_codes: ["PUBLIC_KNOWLEDGE_RESEARCH_REJECTED", "PUBLIC_KNOWLEDGE_ARTICLE_REJECTED"],
-}));
 
 const noEligibleReceipt = {
   schema_version: "xuanxue-ai-claim-batch-receipt.v6",
@@ -250,7 +236,7 @@ try {
     health: () => ({
       shellState: "ready", cloudState: "ready", browserState: "ready", executionState: "ready",
       claimAdmissionState: "eligible", logSinkState: "ready", browserAuthorityState: "present",
-      browserTargetState: "absent", browserLaneState: "idle", controlContractVersion: 20,
+      browserTargetState: "absent", browserLaneState: "idle", controlContractVersion: 21,
       catalogHash: HASH_A, activeCount: 0, pendingOutboxCount: 0, lastSuccessfulHeartbeatAt: null,
       lastErrorCode: null, lastErrorReason: null, checkedAt: "2026-09-03T00:00:00.000Z",
     }),
@@ -263,31 +249,6 @@ try {
   assert.equal(snapshot.rows.find((entry) => entry.axis === "outbox")?.freshness.kind, "snapshot");
 } finally {
   await rm(operationsTemporary, { recursive: true, force: true });
-}
-
-const revisionTemporary = await mkdtemp(path.join(tmpdir(), "agent-result-revision-"));
-try {
-  const store = new ProductionRuntimeStore(revisionTemporary);
-  const identity = identityFor(productionTask);
-  const staged = resultFor(productionTask, identity);
-  store.acceptTask(productionTask, identity, revisionRejection.previous_attempt_id);
-  store.stageResult(productionTask.job_id, staged);
-  store.reconcileRejectedResultRevision({ rejection: revisionRejection, nextAttemptId: "attempt:revision:2" });
-  const reconciled = store.readTask(productionTask.job_id)!;
-  assert.equal(reconciled.current_attempt_id, revisionRejection.previous_attempt_id);
-  assert.equal(reconciled.staged_result, null);
-  assert.equal(reconciled.current_reason, "RESULT_REVISION_REJECTED");
-  const next = store.acceptTask(productionTask, identity, "attempt:revision:2");
-  assert.equal(next.current_attempt_id, "attempt:revision:2");
-  store.reconcileRejectedResultRevision({ rejection: revisionRejection, nextAttemptId: "attempt:revision:2" });
-  assert.throws(() => store.reconcileRejectedResultRevision({
-    rejection: { ...revisionRejection, previous_result_payload_hash: HASH_A },
-    nextAttemptId: "attempt:revision:3",
-  }), /PRODUCTION_RESULT_REVISION_IDENTITY_MISMATCH/u);
-  assert.equal(store.isLedgerConsistent(new Set()), true);
-  store.close();
-} finally {
-  await rm(revisionTemporary, { recursive: true, force: true });
 }
 
 const admissionTemporary = await mkdtemp(path.join(tmpdir(), "agent-business-admission-"));
@@ -434,17 +395,9 @@ assert.doesNotMatch(executorSource, /runTurn|ProductionGptExecutor|GPT_TURN_FLOW
 assert.match(executorSource, /gpt: gptExecution\.tools/u);
 
 const executeClaimSource = runtimeSource.slice(runtimeSource.indexOf("export const executeClaim"));
-const acceptClaimIndex = executeClaimSource.indexOf("let claim = acceptClaim");
-const staleCheckpointIndex = executeClaimSource.indexOf("reconcileStaleFenceCheckpoint");
-const prefixRecoveryIndex = executeClaimSource.indexOf("recoverAcceptedClaim");
-assert.ok(acceptClaimIndex >= 0 && staleCheckpointIndex > acceptClaimIndex,
-  "a stale-fence retry must occur only after the current claim is durably accepted and fully authorized");
-assert.ok(prefixRecoveryIndex > staleCheckpointIndex,
-  "checkpoint-prefix recovery must use the result of the serialized stale-fence reconciliation");
-assert.match(outboxSource, /WEBSITE_HTTP_409:AI_LEASE_FENCE_STALE/u);
-assert.match(outboxSource, /typedRuntimeTransportFailure\(error\)/u);
-assert.match(outboxSource, /next_delivery_at=null/u);
-assert.match(outboxSource, /deliverReauthorizedStaleCheckpoint/u);
+assert.match(executeClaimSource, /PRODUCTION_ATTEMPT_ALREADY_ACCEPTED/u);
+assert.doesNotMatch(executeClaimSource, /recoverAcceptedClaim|reconcileStaleFenceCheckpoint/u);
+assert.doesNotMatch(outboxSource, /recoverCheckpointPrefix|deliverReauthorizedStaleCheckpoint/u);
 
 const deletionSettlement = permanentRevocationSource;
 const noControlAbort = new AbortController();
@@ -475,11 +428,10 @@ assert.match(continuationStoreSource, /releaseGptContinuationLanesForJob/u);
 assert.match(reconciliationSource, /V6_DEVICE_JOB_CONTROL_AUTHORITY_INVALID/u);
 assert.match(reconciliationSource, /currentReason\?\.code === "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED"/u);
 assert.match(runtimeLoopsSource, /settleInactivePermanentAuthorizationRevocation/u);
-assert.match(runtimeLoopsSource, /readCurrentTargetLocalReconciliationCandidate/u);
-assert.match(runtimeLoopsSource, /reconcilePermanentlyRevokedTargetLocal/u);
-assert.match(runtimeLoopsSource, /const browserReconciliation = reconcilePermanentlyRevokedBrowserQuarantine\(state\)/u);
-assert.match(runtimeLoopsSource, /deferOutboxReconciliation/u);
-assert.match(runtimeLoopsSource, /blockedJobIds/u);
+assert.doesNotMatch(runtimeLoopsSource, /BrowserQuarantine|reconcilePermanentlyRevokedTargetLocal/u);
+assert.doesNotMatch(runtimeLoopsSource, /flushOutbox|pendingOutbox\(\)|sendProductionOutboxWrite/u);
+assert.match(storeSource, /endUnsentAttemptWrites/u);
+assert.match(outboxSource, /PRODUCTION_ATTEMPT_ENDED/u);
 assert.match(outboxSource, /settlePermanentlyRevokedJob/u);
 assert.match(outboxSource, /set last_error=\?,next_delivery_at=null where instr\(path,\?\)>0/u);
 assert.doesNotMatch(outboxSource, /where path like \?/u);
@@ -539,65 +491,35 @@ assert.deepEqual(runtimeManifestOwnershipDrift([
 const runtimeLawSource = await readFile(
   new URL("../../.github/instructions/agent-rules/功能法案.md", import.meta.url), "utf8",
 );
-const runtimeBlueprint = await readFile(
-  new URL("../../docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md", import.meta.url), "utf8",
-);
 const runtimeLawRecords = [...runtimeLawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
   .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden: string[] });
 const runtimeCoreLaw = runtimeLawRecords.find(
-  (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V48",
+  (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V49",
 );
 assert.ok(runtimeCoreLaw);
-assert.equal(runtimeCoreLaw.forbidden.length, 7);
 for (const token of [
-  "FROZEN-WEBSITE-RESULT-DEMAND-001",
-  "Website ai-acceptance 唯一拥有 public status、业务需求有效性、永久撤权、claim/attempt、V6 current projection、event receipt、rearm/grant 与最终 completed 投影",
-  "Runtime 只能消费现役 claim、control intent、device-job status、grant.prior_result_rejection 与 business admission receipt 的 typed 权威投影",
-  "不得因本地故障",
-  "Website 同时精确证明永久业务撤权时",
-  "不授权 Runtime 盲重放 DISPATCHED/CONFIRMED Provider mutation",
-  "解冻 FROZEN-WEBSITE-RESULT-DEMAND-001",
+  "attempt 失败、进程重启",
+  "新 attempt 读取旧 attempt",
+  "跨 attempt Outbox",
+  "第二 state machine",
 ]) assert.ok(runtimeCoreLaw.forbidden.some((entry) => entry.includes(token)), token);
-const expectedRuntimeConsumerBlock = [
-  "consumes = FROZEN-WEBSITE-RESULT-DEMAND-001",
-  "canonical_owner = Website.ai-acceptance",
-  "semantic_rejection_owner = Website.Domain-Consumer",
-  "status_and_rearm_owner = Website.ai-acceptance",
-  "runtime_may_define_public_status = false",
-  "runtime_may_decide_demand_or_revocation = false",
-  "website_authorized_unfinished_job => runtime_delivery_obligation_active = true",
-  "agent_fault_may_stop_local_delivery_obligation = false",
-  "website_result_revision_rejected => preserve_old_outbox_and_clear_current_staged_projection = true",
-  "new_attempt_after_result_rejection => exact_prior_result_rejection_required = true",
-  "prior_result_rejection_reason_codes_are_nonempty_unique_unicode_codepoint_sorted_closed_enum = true",
-  "new_attempt_after_result_rejection => new_provider_prompt_hash_required = true",
-  "new_attempt_after_result_rejection => new_result_payload_hash_required = true",
-  "website_permanent_business_revocation => new_attempt_after_result_rejection = false",
-  "provider_effect_may_be_blindly_replayed = false",
-  "ordinary_change_may_modify_this_consumer_obligation = false",
-].join("\n");
-const runtimeConsumerBlock = runtimeBlueprint.match(
-  /```text\n(consumes = FROZEN-WEBSITE-RESULT-DEMAND-001[\s\S]*?)\n```/u,
-);
-assert.ok(runtimeConsumerBlock);
-assert.equal(runtimeConsumerBlock[1], expectedRuntimeConsumerBlock);
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V19",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V20",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"],
   locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
   observedValue: "the unique Runtime ownership inspector accepted the current Runtime-only manifest and rejected injected Mediator and Product ownership mutants",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V48",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V49",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:attempt-recovery-state-machine",
   observedValue: "binary task lifecycle durable accept same-attempt recovery lease outbox and typed cross-owner boundaries exercised",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V48",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V49",
   evidenceMode: "exam.property",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:transport-properties",
@@ -605,7 +527,7 @@ emitQualityProofObservation({
 });
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V18",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V19",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"],
     locator: `acceptance:agent-production-runtime:business-admission:${evidenceMode}`,

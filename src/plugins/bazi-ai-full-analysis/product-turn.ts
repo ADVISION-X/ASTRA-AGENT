@@ -12,8 +12,6 @@ import {
   type WebsiteAgentTask,
 } from "../../mediator/product-plugin-contract.js";
 import {
-  postCheckpointReceiverFault,
-  postSubmitReadbackFault,
   productResultValidation,
   type SharedExecutionContext,
 } from "../../mediator/product-plugin-contract.js";
@@ -23,7 +21,6 @@ import type {
 } from "../../capabilities/gpt/index.js";
 import {
   executionFailure,
-  executionFailureMetadata,
   failureCode,
   typedExecutionFailure,
 } from "../../lib/execution-failure.js";
@@ -84,23 +81,15 @@ export const createOwnedExecution = (task: WebsiteAgentTask, context: SharedExec
     if (result.evidence) recordEvidence(call.actionOrdinal, result.evidence.evidenceRef);
     return result;
   };
-  const taskExactFacts = async (call: FlowCall): Promise<ExactGptCallFacts> => {
-    const result = await context.gpt.readCallFacts({ ...call, lookupKind: "task_exact_effect" });
-    if (result.evidence) recordEvidence(call.actionOrdinal, result.evidence.evidenceRef);
-    return result;
-  };
   const execute = async (call: FlowCall) => {
     await facts(call);
     const result = await context.gpt.execute({ ...call, sessionKey });
     recordEvidence(call.actionOrdinal, result.evidenceRef);
     return result;
   };
-  const requireEvidence = async (call: FlowCall): Promise<void> => {
-    if (!(await facts(call)).evidence) fail("PRODUCT_PROGRESSIVE_PREFIX_EVIDENCE_MISSING");
-  };
   const evidenceRefs = (): readonly string[] => Object.freeze([...evidenceByOrdinal.entries()]
     .sort((left, right) => left[0] - right[0]).map((entry) => entry[1]));
-  return Object.freeze({ evidenceRefs, execute, facts, taskExactFacts, requireEvidence });
+  return Object.freeze({ evidenceRefs, execute, facts });
 };
 const materialFiles = (context: SharedExecutionContext) => context.materials.slice()
   .sort((left, right) => left.ordinal - right.ordinal).map((material) => Object.freeze({
@@ -182,7 +171,6 @@ export const applyProfile = async (
   stepId: string,
   profile: typeof MODEL_PROFILE,
   ordinals: readonly [number, number, number, number, number, number],
-  recoverOnly: boolean,
 ): Promise<void> => {
   const open = { productStepId: stepId, callId: "profile-open", child: "open_gpt_execution_profile", actionOrdinal: ordinals[0], input: { profile } } as const;
   const selector = { productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v2", actionOrdinal: ordinals[1], input: { profile } } as const;
@@ -190,13 +178,12 @@ export const applyProfile = async (
   const reopen = { productStepId: stepId, callId: "profile-open-after-model", child: "open_gpt_execution_profile", actionOrdinal: ordinals[3], input: { profile } } as const;
   const reasoning = { productStepId: stepId, callId: "reasoning-select", child: "ensure_gpt_reasoning_requirement", actionOrdinal: ordinals[4], input: { profile } } as const;
   const close = { productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[5], input: { profile } } as const;
-  const apply = recoverOnly ? flow.requireEvidence : flow.execute;
-  await apply(open);
-  await apply(selector);
-  await apply(model);
-  await apply(reopen);
-  await apply(reasoning);
-  await apply(close);
+  await flow.execute(open);
+  await flow.execute(selector);
+  await flow.execute(model);
+  await flow.execute(reopen);
+  await flow.execute(reasoning);
+  await flow.execute(close);
 };
 
 export const applyAttachments = async (
@@ -205,18 +192,11 @@ export const applyAttachments = async (
   stepId: string,
   roles: readonly string[],
   ordinals: readonly [number, number, number],
-  recoverOnly: boolean,
 ): Promise<void> => {
   const files = materialFilesForRoles(context, roles);
   const open = { productStepId: stepId, callId: "attachment-control-open", child: "open_gpt_attachment_control", actionOrdinal: ordinals[0], input: {} } as const;
   const attach = { productStepId: stepId, callId: "attachments-attach", child: "attach_approved_gpt_files_once", actionOrdinal: ordinals[1], input: { files } } as const;
   const reconcile = { productStepId: stepId, callId: "attachments-reconcile", child: "reconcile_gpt_attachment_set", actionOrdinal: ordinals[2], input: { files, timeoutMs: 60_000 } } as const;
-  if (recoverOnly) {
-    await flow.requireEvidence(open);
-    await flow.requireEvidence(attach);
-    await flow.requireEvidence(reconcile);
-    return;
-  }
   await flow.execute(open);
   await flow.execute(attach);
   const actual = objectValue((await flow.execute(reconcile)).value, "PRODUCT_ATTACHMENT_RECONCILIATION_INVALID").files;
@@ -235,22 +215,7 @@ const requireConfirmedSubmit = (facts: ExactGptCallFacts): void => {
   if (!Number.isFinite(confirmedAt)) fail("PRODUCT_PROVIDER_EFFECT_TERMINAL_FACT_MISSING");
 };
 
-const preservePostSubmitReadback = (error: unknown, submit: ExactGptCallFacts): never => {
-  const typed = executionFailureMetadata(error);
-  const code = failureCode(error);
-  if (!typed || typed.mutationOutcome !== "no") throw error;
-  if (submit.mutation?.outcome !== "CONFIRMED" || !submit.mutation.terminalAt
-    || submit.evidence?.owner !== "forensics-persistence" || !submit.evidence.readbackVerified) throw error;
-  throw postSubmitReadbackFault(code, {
-    causeCode: code,
-    exactCallIdentityHash: submit.exactCallIdentityHash,
-    terminalAt: submit.mutation.terminalAt,
-    evidenceRef: submit.evidence.evidenceRef,
-    evidenceHash: submit.evidence.evidenceHash,
-  });
-};
-
-const checkpointSubmittedTurn = async (
+export const checkpointSubmittedTurn = async (
   flow: OwnedExecution,
   stepId: string,
   marker: string,
@@ -260,8 +225,7 @@ const checkpointSubmittedTurn = async (
   callIdSuffix = "",
 ): Promise<Checkpoint> => {
   const callId = (name: string) => callIdSuffix ? `${name}:${callIdSuffix}` : name;
-  try {
-    const submitted = await flow.execute({
+  const submitted = await flow.execute({
       productStepId: stepId, callId: callId("submission-reconcile"), child: "reconcile_gpt_turn_submission",
       actionOrdinal: ordinals[0], input: { expectedPromptHash: promptHash, timeoutMs: 60_000, turnMarker: marker },
     });
@@ -302,9 +266,6 @@ const checkpointSubmittedTurn = async (
       turnMarker: marker, evidenceRef: checkpointEvidence.evidenceRef,
       evidenceHash: checkpointEvidence.evidenceHash,
     });
-  } catch (error) {
-    return preservePostSubmitReadback(error, submit);
-  }
 };
 
 export const submitTurn = async (
@@ -320,18 +281,11 @@ export const submitTurn = async (
   const promptHash = sha256(prompt);
   const write = { productStepId: stepId, callId: callId("prompt-write"), child: "write_exact_gpt_prompt", actionOrdinal: ordinals[0], input: { prompt } } as const;
   const draft = { productStepId: stepId, callId: callId("draft-reconcile"), child: "reconcile_gpt_draft", actionOrdinal: ordinals[1], input: { files, prompt, turnMarker: marker } } as const;
-  const submit = { productStepId: stepId, callId: callId("turn-submit"), child: "submit_exact_gpt_turn_once", actionOrdinal: ordinals[2], input: { files, promptHash, turnMarker: marker }, effectLookupKind: "task_exact_effect" } as const;
-  const current = await flow.facts(submit);
-  const prior = !current.mutation && !current.evidence ? await flow.taskExactFacts(submit) : null;
-  if (current.mutation || current.evidence) {
-    await flow.requireEvidence(write);
-    await flow.requireEvidence(draft);
-  } else if (!prior?.mutation && !prior?.evidence) {
-    await flow.execute(write);
-    await flow.execute(draft);
-  }
+  const submit = { productStepId: stepId, callId: callId("turn-submit"), child: "submit_exact_gpt_turn_once", actionOrdinal: ordinals[2], input: { files, promptHash, turnMarker: marker } } as const;
+  await flow.execute(write);
+  await flow.execute(draft);
   await flow.execute(submit);
-  const submitFacts = prior?.mutation || prior?.evidence ? prior : await flow.facts(submit);
+  const submitFacts = await flow.facts(submit);
   requireConfirmedSubmit(submitFacts);
   return checkpointSubmittedTurn(flow, stepId, marker, promptHash, submitFacts,
     [ordinals[3], ordinals[4], ordinals[5]], callIdSuffix);
@@ -345,18 +299,11 @@ export const runFreshTurn = async (
   marker: string,
 ): Promise<Checkpoint> => {
   const stepId = task.action_id;
-  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 13, input: { files: uploadedFiles(context), promptHash: sha256(prompt), turnMarker: marker }, effectLookupKind: "task_exact_effect" } as const;
-  const existing = await flow.facts(submit);
-  const prior = !existing.mutation && !existing.evidence ? await flow.taskExactFacts(submit) : null;
-  const recoverOnly = Boolean(existing.mutation || existing.evidence);
-  const priorConfirmed = Boolean(prior?.mutation || prior?.evidence);
   const fresh = { productStepId: stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
-  if (priorConfirmed) return submitTurn(flow, stepId, prompt, marker, uploadedFiles(context), [11, 12, 13, 14, 15, 16]);
-  if (recoverOnly) await flow.requireEvidence(fresh);
-  else await flow.execute(fresh);
-  await applyProfile(flow, stepId, MODEL_PROFILE, [2, 3, 4, 5, 6, 7], recoverOnly);
+  await flow.execute(fresh);
+  await applyProfile(flow, stepId, MODEL_PROFILE, [2, 3, 4, 5, 6, 7]);
   await applyAttachments(flow, context, stepId,
-  context.materials.map((material) => material.role), [8, 9, 10], recoverOnly);
+  context.materials.map((material) => material.role), [8, 9, 10]);
   return submitTurn(flow, stepId, prompt, marker, uploadedFiles(context), [11, 12, 13, 14, 15, 16]);
 };
 
@@ -376,11 +323,7 @@ export const receive = (task: WebsiteAgentTask, checkpoint: Checkpoint, context:
     );
     return parseProductResult(task, value, context.routePolicy);
   } catch (error) {
-    throw postCheckpointReceiverFault(failureCode(error, "PRODUCT_RESULT_RECEIVER_FAILED"), {
-      artifactRef: checkpoint.artifactRef,
-      rawDomHash: checkpoint.rawDomHash,
-      semanticTextHash: checkpoint.semanticTextHash,
-    });
+throw executionFailure("failed", failureCode(error, "PRODUCT_RESULT_RECEIVER_FAILED"), { cause: error });
   }
 };
 

@@ -29,7 +29,7 @@ AGENT 只生产研究、文章、配图和证据，不决定发布、URL、canon
 
 ## 结果修订合同（冻结态）
 
-收到唯一 canonical `prior_result_rejection` 时，必须在同一业务 job 内生成新结果，不得把失败当作需求结束。`PUBLIC_KNOWLEDGE_ARTICLE_REJECTED` 从文章步骤重新执行；`PUBLIC_KNOWLEDGE_COLLISION_REJECTED`、`PUBLIC_KNOWLEDGE_RESEARCH_DECLINED`、`PUBLIC_KNOWLEDGE_RESEARCH_REJECTED`、`PUBLIC_KNOWLEDGE_RESULT_PACKAGE_REJECTED` 从研究步骤重新执行，并顺序重做其下游。
+旧 attempt 的拒绝、结果、checkpoint 和会话不得作为新 attempt 的执行输入；新 attempt 必须从研究第一步重新执行。
 
 本次修订涉及的每个 Provider Prompt 都必须包含以下确定性块，字段顺序固定，不得加入 attempt、lease 或 fence：
 

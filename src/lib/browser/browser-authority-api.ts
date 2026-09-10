@@ -1,11 +1,10 @@
 export type {
   BrowserAtomicStepIdentity,
-  BrowserAtomicStepRecovery,
+  BrowserAtomicStepOutcome,
   BrowserTargetLease,
 } from "./exact-target/browser-target-lease.js";
 export type {
   BrowserExactCallMutationFact,
-  BrowserMutationReconciliationScope,
 } from "./exact-target/browser-mutation-store.js";
 export type {
   BrowserDomIntent,
@@ -18,15 +17,11 @@ export type {
 export type { BrowserFileArtifactGrantV1 } from "./exact-target/browser-file-artifact-grant.js";
 export type {
   BrowserExecutionBinding,
-  BrowserConfirmedProviderSourceReadbackAuthorization,
-  BrowserConfirmedProviderReadbackAuthorization,
   BrowserExecutionArtifact,
   BrowserExecutionArtifactBinding,
   BrowserExecutionArtifactLease,
 } from "./infrastructure/browser-authority-broker.js";
 export { BrowserAuthorityBroker } from "./infrastructure/browser-authority-broker.js";
-export { confirmedSourceReadbackDocumentMatches } from
-  "./infrastructure/browser-confirmed-readback-source.js";
 export {
   browserExecutionFailure,
   typedBrowserExecutionFailure,

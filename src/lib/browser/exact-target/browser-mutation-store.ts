@@ -39,25 +39,6 @@ export type BrowserMutationIdentity = Readonly<{
   requestHash: `sha256:${string}`;
   payloadHash: `sha256:${string}`;
 }>;
-export type BrowserMutationRecoveryState = Readonly<{
-  mutation: BrowserMutationIdentity;
-  current: BrowserMutationState;
-  authorityHash: `sha256:${string}`;
-}>;
-export type BrowserMutationReconciliationScope = Readonly<{
-  commandId: string;
-  ownerPluginId: string;
-  jobId: string;
-  targetRef: string;
-  documentRef: string;
-  payloadHash: `sha256:${string}`;
-}>;
-export type BrowserCallRecoveryScope = BrowserMutationReconciliationScope & Readonly<{
-  productStepId: string;
-  callId: string;
-  state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
-  effectScope: "target_local" | "provider_effect";
-}>;
 export type BrowserExactCallMutationFact = Readonly<{
   effectScope: "target_local" | "provider_effect";
   outcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
@@ -79,7 +60,7 @@ export type BrowserExactCallMutationFact = Readonly<{
   identityRevalidated: boolean;
 }>;
 
-export type BrowserAtomicStepRecovery = Readonly<{
+export type BrowserAtomicStepOutcome = Readonly<{
   state: "dispatched" | "confirmed" | "rejected";
   mutationOutcome: BrowserMutationOutcome;
   terminalAt: string | null;
@@ -131,8 +112,9 @@ export class BrowserMutationStore {
       if (input.effectScope === "target_local" && input.logicalMutationId) {
         const existing = this.database.prepare(
           `select command_id from browser_mutations
-           where job_id=? and logical_mutation_id=? and state in ('DISPATCHED','CONFIRMED','REJECTED') limit 1`,
-        ).get(input.jobId, input.logicalMutationId);
+           where job_id=? and attempt_id=? and logical_mutation_id=?
+             and state in ('DISPATCHED','CONFIRMED','REJECTED') limit 1`,
+        ).get(input.jobId, input.attemptId, input.logicalMutationId);
         if (existing) throw new Error("BROWSER_LOGICAL_MUTATION_REPLAY_FORBIDDEN");
       }
       this.database.prepare(
@@ -157,6 +139,7 @@ export class BrowserMutationStore {
   ): boolean {
     return row.logical_mutation_id === input.logicalMutationId
       && row.job_id === input.jobId
+      && row.attempt_id === input.attemptId
       && row.owner_plugin_id === input.ownerPluginId
       && row.plugin_version === input.pluginVersion
       && row.product_step_id === input.productStepId
@@ -174,24 +157,15 @@ export class BrowserMutationStore {
               product_step_id,call_id,child_capability_id,effect_scope,request_hash,payload_hash,
               state,mutation_outcome
        from browser_mutations
-       where job_id=? and logical_mutation_id=?
+       where job_id=? and attempt_id=? and logical_mutation_id=?
          and state in ('PREPARED','DISPATCHED','CONFIRMED','REJECTED')
-       order by attempt_id,command_id`,
-    ).all(input.jobId, input.logicalMutationId) as readonly ProviderEffectHistoryRow[];
+       order by command_id`,
+    ).all(input.jobId, input.attemptId, input.logicalMutationId) as readonly ProviderEffectHistoryRow[];
     if (rows.length === 0) return;
-    const attempts = new Set<string>();
-    for (const row of rows) {
-      if (!this.providerEffectIdentityMatches(row, input) || attempts.has(row.attempt_id)) {
-        throw new Error("BROWSER_PROVIDER_EFFECT_HISTORY_AMBIGUOUS");
-      }
-      attempts.add(row.attempt_id);
+    if (rows.some((row) => !this.providerEffectIdentityMatches(row, input))) {
+      throw new Error("BROWSER_PROVIDER_EFFECT_HISTORY_AMBIGUOUS");
     }
-    if (attempts.has(input.attemptId)) {
-      throw new Error("BROWSER_PROVIDER_EFFECT_REPLAY_FORBIDDEN");
-    }
-    if (rows.some((row) => row.state !== "REJECTED" || row.mutation_outcome !== "no")) {
-      throw new Error("BROWSER_PROVIDER_EFFECT_REPLAY_FORBIDDEN");
-    }
+    throw new Error("BROWSER_PROVIDER_EFFECT_REPLAY_FORBIDDEN");
   }
 
   public markDispatched(commandId: string): void {
@@ -333,14 +307,6 @@ export class BrowserMutationStore {
     return Object.freeze(rows.map((row) => row.command_id));
   }
 
-  public dispatchedForJob(input: Readonly<{ jobId: string; ownerPluginId: string }>): readonly string[] {
-    const rows = this.database.prepare(
-      `select command_id from browser_mutations where job_id=? and owner_plugin_id=?
-       and state='DISPATCHED' order by updated_at,command_id`,
-    ).all(input.jobId, input.ownerPluginId) as readonly { command_id: string }[];
-    return Object.freeze(rows.map((row) => row.command_id));
-  }
-
   public hasMutationForJob(jobId: string): boolean {
     return Boolean(this.database.prepare(
       "select 1 from browser_mutations where job_id=? limit 1",
@@ -354,55 +320,7 @@ export class BrowserMutationStore {
     return Number(row.count);
   }
 
-  public reconciliationScope(input: Readonly<{
-    jobId: string; ownerPluginId: string;
-  }>): BrowserMutationReconciliationScope | null {
-    const rows = this.database.prepare(
-      `select command_id,owner_plugin_id,job_id,target_ref,document_ref,payload_hash
-       from browser_mutations where state='DISPATCHED' and job_id=? and owner_plugin_id=?
-       order by updated_at,command_id limit 2`,
-    ).all(input.jobId, input.ownerPluginId) as ReadonlyArray<{
-      command_id: string; owner_plugin_id: string; job_id: string; target_ref: string;
-      document_ref: string; payload_hash: `sha256:${string}`;
-    }>;
-    if (rows.length === 0) return null;
-    if (rows.length !== 1) throw new Error("BROWSER_RECONCILIATION_SCOPE_AMBIGUOUS");
-    const row = rows[0]!;
-    return Object.freeze({
-      commandId: row.command_id, ownerPluginId: row.owner_plugin_id, jobId: row.job_id,
-      targetRef: row.target_ref, documentRef: row.document_ref, payloadHash: row.payload_hash,
-    });
-  }
-
-  public callRecoveryScope(input: Readonly<{
-    jobId: string; attemptId: string; ownerPluginId: string; pluginVersion: number; productStepId: string;
-  }>): BrowserCallRecoveryScope | null {
-    const rows = this.database.prepare(
-      `select command_id,owner_plugin_id,job_id,product_step_id,call_id,target_ref,document_ref,payload_hash,state,effect_scope
-       from browser_mutations
-       where job_id=? and attempt_id=? and owner_plugin_id=? and plugin_version=? and product_step_id=?
-         and state in ('DISPATCHED','CONFIRMED','REJECTED')
-       order by case when terminal_at is null then updated_at else terminal_at end desc,command_id desc`,
-    ).all(input.jobId, input.attemptId, input.ownerPluginId, input.pluginVersion,
-      input.productStepId) as ReadonlyArray<{
-      command_id: string; owner_plugin_id: string; job_id: string; product_step_id: string; call_id: string;
-      target_ref: string; document_ref: string; payload_hash: `sha256:${string}`;
-      state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
-      effect_scope: "target_local" | "provider_effect";
-    }>;
-    if (rows.length === 0) return null;
-    const targetRefs = new Set(rows.map((row) => row.target_ref));
-    if (targetRefs.size !== 1) throw new Error("BROWSER_RECONCILIATION_SCOPE_AMBIGUOUS");
-    const row = rows[0]!;
-    return Object.freeze({
-      commandId: row.command_id, ownerPluginId: row.owner_plugin_id, jobId: row.job_id,
-      productStepId: row.product_step_id, callId: row.call_id,
-      targetRef: row.target_ref, documentRef: row.document_ref,
-      payloadHash: row.payload_hash, state: row.state, effectScope: row.effect_scope,
-    });
-  }
-
-  public atomicStepRecovery(input: Readonly<{
+  public readAtomicStepOutcome(input: Readonly<{
     jobId: string;
     attemptId: string;
     ownerPluginId: string;
@@ -411,7 +329,7 @@ export class BrowserMutationStore {
     actionOrdinal: number;
     targetRef: string;
     effectScope: "target_local" | "provider_effect";
-  }>): BrowserAtomicStepRecovery | null {
+  }>): BrowserAtomicStepOutcome | null {
     const targetClause = input.effectScope === "target_local" ? "and target_ref=?" : "";
     const parameters = [
       input.jobId, input.attemptId, input.ownerPluginId, input.pluginVersion,
@@ -452,7 +370,7 @@ export class BrowserMutationStore {
     }
     const failure = terminalFailureFields(row.state, row.reason, row.native_cause_code);
     return Object.freeze({
-      state: row.state.toLowerCase() as BrowserAtomicStepRecovery["state"],
+      state: row.state.toLowerCase() as BrowserAtomicStepOutcome["state"],
       mutationOutcome: requireMutationOutcome(row.mutation_outcome),
       terminalAt: row.terminal_at,
       ...failure,
@@ -565,13 +483,11 @@ export class BrowserMutationStore {
     return mutationAuthorityHash(row);
   }
 
-  public reconciliationStates(): readonly BrowserMutationRecoveryState[] {
-    const rows = this.database.prepare(
-      `select ${identityColumns},state from browser_mutations order by updated_at,command_id`,
-    ).all() as MutationRow[];
-    return Object.freeze(rows.map((row) => Object.freeze({
-      mutation: mutationIdentity(row), current: row.state, authorityHash: this.authorityHash(row.command_id),
-    })));
+  public countDispatched(): number {
+    const row = this.database.prepare(
+      "select count(*) as count from browser_mutations where state='DISPATCHED'",
+    ).get() as { count: number };
+    return Number(row.count);
   }
 
   public close(): void { this.database.close(); }

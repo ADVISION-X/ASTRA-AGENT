@@ -298,18 +298,19 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
       grantCount: 1, principalIds: ["fixture-plugin"] },
     recovery: { finalState: "completed", observedStates: ["failed", "completed"],
       facts: {
-        same_attempt_after_restart: true,
+        old_attempt_after_restart_rejected: true,
+        new_attempt_fresh_started: true,
         process_restart_observed: true,
       }, recoveryJobId: "job-1", unresolvedCount: 0 },
   } as const;
   const routes = {
     browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", clauses: ["forbidden:6"] },
-    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V48", clauses: ["summary"] },
-    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V48", clauses: ["forbidden:0", "forbidden:2"] },
-    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V48", clauses: ["forbidden:2"] },
-    provider: { lawId: "LAW-GPT-001-V39", clauses: ["forbidden:1"] },
-    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V3", clauses: ["forbidden:1", "forbidden:2"] },
-    recovery: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V48", clauses: ["forbidden:1", "forbidden:3"] },
+    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V49", clauses: ["summary"] },
+    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V49", clauses: ["forbidden:0", "forbidden:2"] },
+    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V49", clauses: ["forbidden:2"] },
+    provider: { lawId: "LAW-GPT-001-V40", clauses: ["forbidden:1"] },
+    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V4", clauses: ["forbidden:1", "forbidden:2"] },
+    recovery: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V49", clauses: ["forbidden:1", "forbidden:3"] },
   } as const;
   for (const [kind, observation] of Object.entries(observations)) {
     const evidenceMode = `dynamic.${kind}`;
@@ -1038,8 +1039,8 @@ test("provider contracts reject malformed payloads before identity matching", ()
   )) as unknown;
   assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
     new Map([
-      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V48", "agent-production-runtime"],
-      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V18", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V49", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V19", "agent-production-runtime"],
     ]),
     (path) => path === "src/lib/local-runtime/production/catalog.ts"));
 });
@@ -1280,7 +1281,7 @@ test("every active law scope is deterministic, owned, unique, and includes all c
 
 test("active mutation inspectors use one DISPATCHED chain inside each law scope", () => {
   const registry = buildRegistry();
-  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V48");
+  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V49");
   assert.ok(agentLaw);
   const agentTargets = computeTargetPaths(agentLaw, registry);
   const crossOwnerPaths = [
@@ -1312,18 +1313,20 @@ test("active mutation inspectors use one DISPATCHED chain inside each law scope"
     assert.equal(browserInspector.includes(retiredGuard), true, retiredGuard);
   }
   for (const current of [
-    "markDispatched", "markReceiptMissing", "dispatchedForBinding", "readDispatched",
-    "logicalMutationId", "positivePostconditionHash", "callRecoveryScope", "atomicStepRecovery",
-    "inspectJobScopedMutationRecovery", '"DISPATCHED"',
+    "markDispatched", "markReceiptMissing", "dispatchedForBinding", "readAtomicStepOutcome",
+    "logicalMutationId", "positivePostconditionHash", "attemptId", '"DISPATCHED"',
   ]) assert.equal(activeInspectors.includes(current), true, current);
   const browserLane = [
     "src/lib/browser/infrastructure/browser-lane-coordinator.ts",
     "src/lib/browser/infrastructure/browser-target-acquirer.ts",
   ].map((path) => readFileSync(path, "utf8")).join("\n");
-  for (const retired of ["private unsettled", "acquireReconciliation", "reconciliationAllowed"]) {
+  for (const retired of [
+    "private unsettled", "acquireReconciliation", "reconciliationAllowed",
+    "callRecoveryScope", "atomicStepRecovery", "reconciliationScope",
+  ]) {
     assert.equal(browserLane.includes(retired), false, retired);
   }
-  for (const current of ["callRecoveryScope", "expectedTargetRef", "park: (input)"]) {
+  for (const current of ["expectedTargetRef", "park: (input)"]) {
     assert.equal(browserLane.includes(current), true, current);
   }
   const browserStaticInspectors = [
@@ -1478,7 +1481,7 @@ test("Dynamic Proof routes are separated by native Owner", () => {
     "same_job_id", "zero_replayed_mutations", "checkpoint_before_hash", "candidate_hash",
     ".catch(() => undefined)", "cleanupVerified: true",
   ]) assert.equal(proof.includes(forbidden), false, forbidden);
-  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V48", "same_attempt_after_restart",
+  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V49", "old_attempt_after_restart_rejected",
     "runtime_schema_exact", "runtime_orphan_directory_count",
     "AGENT_RUNTIME_OWNER_ISOLATED_RELEASE_PROOF_NOT_ADMITTED"]) assert.ok(proof.includes(token), token);
   for (const adjacentPrefix of ["LAW-GPT-", "LAW-LOCAL-BROWSER-SESSION-", "LAW-RUNTIME-LOG-SPINE-"]) {

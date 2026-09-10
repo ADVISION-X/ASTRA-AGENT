@@ -13,7 +13,6 @@ import type {
   BrowserExecutionArtifactLease,
   BrowserExecutionBinding,
   BrowserExactCallMutationFact,
-  BrowserMutationReconciliationScope,
   BrowserAuthorityBroker,
   BrowserTargetLease,
 } from "../browser/browser-authority-api.js";
@@ -44,10 +43,6 @@ export type WorkbenchBrowserAuthority = Readonly<{
   }>;
   readBrowserLaneState(): "idle" | "busy" | "blocked";
   readBrowserLaneWaiterCount(): number;
-  readCurrentTargetLocalReconciliationCandidate(): Readonly<{ jobId: string }> | null;
-  reconcilePermanentlyRevokedTargetLocal(
-    input: Readonly<{ jobId: string }>,
-  ): Promise<"retained" | "settled">;
   bindExecutionArtifacts(input: Readonly<{
     binding: BrowserExecutionArtifactBinding;
     artifacts: readonly BrowserExecutionArtifact[];
@@ -55,12 +50,6 @@ export type WorkbenchBrowserAuthority = Readonly<{
   hasUnresolvedBrowserMutation(): boolean;
   hasBrowserMutationForJob(jobId: string): boolean;
   countProviderTurnDispatches(jobId: string, attemptId: string): number;
-  readBrowserReconciliationScope(
-    input: Readonly<{
-      jobId: string;
-      ownerPluginId: string;
-    }>,
-  ): BrowserMutationReconciliationScope | null;
   readExactCallMutationFact(input: Readonly<{
     jobId: string;
     attemptId: string;
@@ -147,18 +136,12 @@ export const createWorkbenchBrowserAuthority = async (
     }),
     readBrowserLaneState: () => supervisor.readBrowserLaneState(),
     readBrowserLaneWaiterCount: () => supervisor.readBrowserLaneWaiterCount(),
-    readCurrentTargetLocalReconciliationCandidate: () =>
-      supervisor.readCurrentTargetLocalReconciliationCandidate(),
-    reconcilePermanentlyRevokedTargetLocal: (input) =>
-      supervisor.reconcilePermanentlyRevokedTargetLocal(input),
     bindExecutionArtifacts: (input) => supervisor.bindExecutionArtifacts(input),
     hasUnresolvedBrowserMutation: () =>
       supervisor.hasUnresolvedBrowserMutation(),
     hasBrowserMutationForJob: (jobId) => supervisor.hasBrowserMutationForJob(jobId),
     countProviderTurnDispatches: (jobId, attemptId) =>
       supervisor.countProviderTurnDispatches(jobId, attemptId),
-    readBrowserReconciliationScope: (input) =>
-      supervisor.readBrowserReconciliationScope(input),
     readExactCallMutationFact: (input) => supervisor.readExactCallMutationFact(input),
     acquireJobBoundTargetLease: (binding, ownerId, wait) =>
       supervisor.acquireJobBoundTargetLease(binding, ownerId, wait),

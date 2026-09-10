@@ -176,18 +176,13 @@ const forkBaseCheckpoint = async (
       sourceTurnMarker: base.checkpoint.turnMarker,
       timeoutMs: 60_000,
     },
-    effectLookupKind: "task_exact_effect" as const,
   } as const;
-  const currentFork = await flow.facts(forkCall);
-  const priorFork = !currentFork.mutation && !currentFork.evidence
-    ? await flow.taskExactFacts(forkCall) : null;
-  if (!currentFork.mutation && !currentFork.evidence && !priorFork?.mutation && !priorFork?.evidence) {
-    await flow.execute({
+  await flow.execute({
       productStepId: "formal", callId: "focus-base-conversation",
       child: "focus_exact_gpt_conversation", actionOrdinal: 39,
       input: { canonicalConversationUrl: lane.provider.provider_page_url },
-    });
-    await flow.execute({
+  });
+  await flow.execute({
       productStepId: "formal", callId: "verify-base-conversation",
       child: "verify_gpt_conversation_identity", actionOrdinal: 40,
       input: {
@@ -197,8 +192,8 @@ const forkBaseCheckpoint = async (
         timeoutMs: 60_000,
         turnMarker: base.checkpoint.turnMarker,
       },
-    });
-    await flow.execute({
+  });
+  await flow.execute({
       productStepId: "formal", callId: "open-base-checkpoint-actions",
       child: "open_gpt_checkpoint_actions_menu", actionOrdinal: 41,
       input: {
@@ -209,8 +204,8 @@ const forkBaseCheckpoint = async (
         sourceTurnMarker: base.checkpoint.turnMarker,
         timeoutMs: 60_000,
       },
-    });
-    await flow.execute({
+  });
+  await flow.execute({
       productStepId: "formal", callId: "open-base-fork-destination",
       child: "open_gpt_fork_destination_menu", actionOrdinal: 42,
       input: {
@@ -221,8 +216,7 @@ const forkBaseCheckpoint = async (
         sourceTurnMarker: base.checkpoint.turnMarker,
         timeoutMs: 60_000,
       },
-    });
-  }
+  });
   const fork = objectValue((await flow.execute(forkCall)).value, "BAZI_FORMAL_FORK_INVALID");
   const childUrl = textValue(fork.childCanonicalConversationUrl, "BAZI_FORMAL_FORK_INVALID");
   if (fork.sourceCanonicalConversationUrl !== base.checkpoint.canonicalConversationUrl
@@ -236,7 +230,6 @@ const prepareFormalChild = async (
   context: SharedExecutionContext,
   base: BaseFacts,
   childUrl: string,
-  recoverOnly: boolean,
 ): Promise<void> => {
   const focusChild = {
     productStepId: "formal", callId: "focus-formal-child",
@@ -254,16 +247,11 @@ const prepareFormalChild = async (
       turnMarker: base.checkpoint.turnMarker,
     },
   } as const;
-  if (recoverOnly) {
-    await flow.requireEvidence(focusChild);
-    await flow.requireEvidence(verifyChild);
-  } else {
-    await flow.execute(focusChild);
-    await flow.execute(verifyChild);
-  }
-  await applyProfile(flow, "formal", MODEL_PROFILE, [46, 47, 48, 49, 50, 51], recoverOnly);
+  await flow.execute(focusChild);
+  await flow.execute(verifyChild);
+  await applyProfile(flow, "formal", MODEL_PROFILE, [46, 47, 48, 49, 50, 51]);
   await applyAttachments(
-    flow, context, "formal", ["bazi_formal_input", "result_contract"], [52, 53, 54], recoverOnly,
+    flow, context, "formal", ["bazi_formal_input", "result_contract"], [52, 53, 54],
   );
 };
 
@@ -295,21 +283,7 @@ const runFormalTurn = async (
 ): Promise<Readonly<{ checkpoint: Checkpoint; formalPrompt: string }>> => {
   const marker = markerFor(task);
   const formalPrompt = formalPromptFor(task, context, base, fork, marker);
-  const formalSubmit = {
-    productStepId: "formal", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
-    actionOrdinal: 57, input: {
-      files: uploadedFilesForRoles(context, ["bazi_formal_input", "result_contract"]),
-      promptHash: sha256(formalPrompt), turnMarker: marker,
-    },
-    effectLookupKind: "task_exact_effect" as const,
-  } as const;
-  const currentFormalSubmit = await flow.facts(formalSubmit);
-  const priorFormalSubmit = !currentFormalSubmit.mutation && !currentFormalSubmit.evidence
-    ? await flow.taskExactFacts(formalSubmit) : null;
-  const recoverOnly = Boolean(currentFormalSubmit.mutation || currentFormalSubmit.evidence);
-  if (!Boolean(priorFormalSubmit?.mutation || priorFormalSubmit?.evidence)) {
-    await prepareFormalChild(flow, context, base, childUrl, recoverOnly);
-  }
+  await prepareFormalChild(flow, context, base, childUrl);
   const checkpoint = await submitTurn(
     flow, "formal", formalPrompt, marker,
     uploadedFilesForRoles(context, ["bazi_formal_input", "result_contract"]),

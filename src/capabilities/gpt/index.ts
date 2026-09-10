@@ -1,5 +1,4 @@
 export {
-  confirmedProviderSubmitReceiptFromError,
   createGptAbilityGroup,
   createProductionGptChildTools,
 } from "./ability-group.js";

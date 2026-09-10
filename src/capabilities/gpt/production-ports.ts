@@ -79,5 +79,4 @@ export interface GptContinuationReadbackPort {
 export interface GptProductionRuntimePort {
   readonly continuationStore: GptContinuationStorePort;
   readonly continuationReadback: GptContinuationReadbackPort;
-  attemptIdsForTask(jobId: string): readonly string[];
 }

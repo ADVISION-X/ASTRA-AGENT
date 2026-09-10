@@ -56,7 +56,7 @@ const assertDependencyProjection = async (): Promise<void> => {
     await writeFile(dependencyPath, JSON.stringify(dependency), { mode: 0o600 });
     assert.deepEqual(await verifyProductionDependency({
       agentDependencyPath: dependencyPath,
-    }), { status: "READY", version: 20 });
+    }), { status: "READY", version: 21 });
   
     const contract = dependency.contract as Record<string, unknown>;
     await writeFile(dependencyPath, JSON.stringify({

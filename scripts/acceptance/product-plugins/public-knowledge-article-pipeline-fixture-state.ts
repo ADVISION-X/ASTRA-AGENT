@@ -45,7 +45,6 @@ export type SeoHarness = {
   generatedImageUploadCalls: number;
   uploadedImageHashes: Set<string>;
   acquiredLaneVersions: number[];
-  confirmedReadbackAuthorizationByStep: Map<string, "source-only" | "full">;
   materials: SharedExecutionContext["materials"];
   providerNames: readonly string[];
 };
@@ -88,7 +87,7 @@ export const createHarness = (actionId: SeoAction, failureAt?: SeoFailure): SeoH
     continuationLaneVersion: 0, continuationLaneOwned: false, remainingFailures: failureAt ? 1 : 0,
     remainingLocatorFailures: failureAt?.locatorFailureCode ? 1 : 0,
     physicalSubmitDispatches: 0, generatedImageUploadCalls: 0, uploadedImageHashes: new Set(),
-    acquiredLaneVersions: [], confirmedReadbackAuthorizationByStep: new Map(), materials,
+    acquiredLaneVersions: [], materials,
     providerNames: materials.map((material) => gptAttachmentProviderDisplayName(
       material.display_name, `job-${actionId}`, material.material_id,
     )),

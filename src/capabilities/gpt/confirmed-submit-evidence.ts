@@ -2,7 +2,6 @@ import type {
   GptChildBrowserFact,
   GptChildCapabilityId,
 } from "./contract.js";
-import { carryProductSafeConfirmedProviderSubmitReceipt } from "./execution-fault.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 import type { ExactGptCallFacts } from "./product-api.js";
 
@@ -46,8 +45,8 @@ export const carryConfirmedSubmitEvidenceFailure = (
   intent: Readonly<{ childCapabilityId: GptChildCapabilityId }>,
   state: Readonly<{ mutation: ConfirmedSubmitEvidenceState["mutation"] }>,
   browserFact: GptChildBrowserFact | null,
-  exactCallIdentityHash: GptHash,
-  evidence: Readonly<{ recordRef: string; evidenceHash: GptHash }>,
+  _exactCallIdentityHash: GptHash,
+  _evidence: Readonly<{ recordRef: string; evidenceHash: GptHash }>,
 ): unknown => {
   if (intent.childCapabilityId !== "submit_exact_gpt_turn_once"
     || state.mutation !== "confirmed"
@@ -55,12 +54,7 @@ export const carryConfirmedSubmitEvidenceFailure = (
     || browserFact.browserOutcome !== "CONFIRMED"
     || browserFact.mutationOutcome !== "confirmed"
     || !browserFact.terminalAt) return error;
-  return carryProductSafeConfirmedProviderSubmitReceipt(error, {
-    exactCallIdentityHash,
-    terminalAt: browserFact.terminalAt,
-    evidenceRef: evidence.recordRef,
-    evidenceHash: evidence.evidenceHash,
-  });
+  return error;
 };
 
 export const readConfirmedSubmitDocumentHash = (

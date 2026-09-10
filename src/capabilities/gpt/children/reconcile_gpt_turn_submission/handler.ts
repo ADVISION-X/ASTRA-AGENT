@@ -25,21 +25,6 @@ const timeoutInput = (intent: Parameters<GptChildHandler<"reconcile_gpt_turn_sub
   return value;
 };
 
-const confirmedSubmitMatches = (
-  intent: Parameters<GptChildHandler<"reconcile_gpt_turn_submission">>[0],
-  receipt: NonNullable<Parameters<GptChildHandler<"reconcile_gpt_turn_submission">>[1]["confirmedProviderSubmitReceipt"]>,
-  expectedPromptHash: `sha256:${string}`,
-  marker: string,
-): boolean => receipt.sourceAttemptId === intent.attemptId
-  && receipt.sourceProductStepId === intent.productStepId
-  && receipt.sourceActionOrdinal < intent.actionOrdinal
-  && receipt.promptHash === expectedPromptHash
-  && receipt.turnMarker === marker
-  && /^sha256:[a-f0-9]{64}$/u.test(receipt.sourceExactCallIdentityHash)
-  && /^sha256:[a-f0-9]{64}$/u.test(receipt.evidenceHash)
-  && Boolean(receipt.sourceCallId && receipt.sourceTargetRef && receipt.sourceDocumentRef && receipt.evidenceRef)
-  && !Number.isNaN(Date.parse(receipt.sourceTerminalAt));
-
 const transientReadFailure = (error: unknown): boolean => [
   "BROWSER_DOM_CANDIDATE_MISSING", "BROWSER_DOM_CANDIDATE_AMBIGUOUS",
   "BROWSER_DOM_NODE_STALE", "BROWSER_DOM_READ_INVALID",
@@ -50,10 +35,6 @@ export const reconcileGptTurnSubmissionHandler: GptChildHandler<"reconcile_gpt_t
     requireExactInputKeys(intent, ["expectedPromptHash", "timeoutMs", "turnMarker"]);
     const expectedPromptHash = composerHashInput(intent, "expectedPromptHash");
     const marker = stringInput(intent, "turnMarker");
-    const submitReceipt = context.confirmedProviderSubmitReceipt;
-    if (!submitReceipt || !confirmedSubmitMatches(intent, submitReceipt, expectedPromptHash, marker)) {
-      throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_RECEIPT_MISMATCH");
-    }
     const deadline = Date.now() + timeoutInput(intent);
     const browser = requireBrowser(context);
     let lastTransient: unknown = null;

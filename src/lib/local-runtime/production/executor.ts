@@ -184,7 +184,6 @@ export class ProductionExecutor {
           readGptContinuationForFrontier: (frontierRef) => store.readGptContinuationForFrontier(frontierRef),
           readTaskPluginVersion: (jobId) => store.readTask(jobId)?.identity.plugin_version ?? null,
         },
-        attemptIdsForTask: (jobId) => store.attemptIdsForTask(jobId),
       }, runtimeLogger,
     );
     this.runtimeLogger = runtimeLogger;
@@ -303,7 +302,6 @@ export class ProductionExecutor {
         return {
           materials: input.materials,
           routePolicy: productionRoutePolicy(authorized.task.product_id, authorized.task.action_id),
-          priorResultRejection: input.lease.prior_result_rejection,
           gpt: gptExecution.tools,
           uploadGeneratedImage: input.uploadGeneratedImage,
           complete: async (output) => {

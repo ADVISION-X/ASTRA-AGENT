@@ -47,7 +47,6 @@ export type ProductFlowFixture = Readonly<{
   checkpointOutput?: (call: ProductCall) => Readonly<Record<string, unknown>>;
   continuationReadback?: ExactGptContinuationReadback;
   expectedSessionCount?: number;
-  priorResultRejection?: SharedExecutionContext["priorResultRejection"];
 }>;
 
 const exactKeys = (value: Readonly<Record<string, unknown>>): readonly string[] =>
@@ -314,7 +313,6 @@ const createProductContext = (
   materials: createMaterials(root, fixture),
   routePolicy: productionRoutePolicy(fixture.task.product_id, fixture.task.action_id),
   productSkill: Object.freeze({ text: "fixture product skill", hash: FIXTURE_HASH }),
-  priorResultRejection: fixture.priorResultRejection ?? null,
   gpt: createGptFixture(state, fixture),
   uploadGeneratedImage: async (artifact) => {
     state.generatedImageUploads += 1;

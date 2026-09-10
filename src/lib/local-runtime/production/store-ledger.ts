@@ -62,8 +62,8 @@ const registerTerminal = (
     const terminal = JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>;
     if (terminal.terminal_status !== "completed") return false;
     const expected = parseTerminalReceiptExpectation(terminal);
-    if (expected.job_id !== jobId || !row.response_json) return false;
-    parseTerminalReceipt(JSON.parse(row.response_json) as unknown, expected);
+    if (expected.job_id !== jobId) return false;
+    if (row.response_json) parseTerminalReceipt(JSON.parse(row.response_json) as unknown, expected);
     projection.terminalByJob.set(jobId, terminal);
     return true;
   } catch { return false; }
@@ -153,7 +153,7 @@ export class ProductionRuntimeStore extends ProductionStoreOutbox {
   private buildLedgerProjection(): LedgerProjection | null {
     const rows = this.database.prepare(`select kind,path,body_blob,response_json,receipt_hash
       from production_outbox
-      where sent_at is not null and response_hash is not null
+      where (kind='terminal' or (sent_at is not null and response_hash is not null))
       order by created_at,idempotency_key`).all() as LedgerRow[];
     const projection: LedgerProjection = {
       terminalByJob: new Map(), artifactReceiptsByJob: new Map(),

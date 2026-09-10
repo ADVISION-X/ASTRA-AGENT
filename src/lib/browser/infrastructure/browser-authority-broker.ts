@@ -28,46 +28,9 @@ type BrowserExecutionBindingCore = Readonly<{
   commandTtlMs: number;
 }>;
 
-type BrowserConfirmedProviderReadbackSource = Readonly<{
-  sourceAttemptId: string;
-  sourceExactCallIdentityHash: BrowserHash;
-  sourceActionOrdinal: number;
-  sourceProductStepId: string;
-  sourceCallId: string;
-  sourceChildCapabilityId: "submit_exact_gpt_turn_once";
-  sourceTargetRef: string;
-  sourceDocumentRef: string;
-  readbackDocumentRefHash: BrowserHash;
-  sourceTerminalAt: string;
-  evidenceRef: string;
-  evidenceHash: BrowserHash;
-  promptHash: BrowserHash;
-  turnMarker: string;
+export type BrowserExecutionBinding = BrowserExecutionBindingCore & Readonly<{
+  kind: "local" | "production";
 }>;
-
-export type BrowserConfirmedProviderSourceReadbackAuthorization =
-  BrowserConfirmedProviderReadbackSource & Readonly<{
-    schemaVersion: "browser-confirmed-provider-source-readback.v1";
-  }>;
-
-export type BrowserConfirmedProviderReadbackAuthorization =
-  BrowserConfirmedProviderReadbackSource & Readonly<{
-  schemaVersion: "browser-confirmed-provider-readback.v1";
-  canonicalConversationUrl: string;
-  conversationIdentityHash: BrowserHash;
-}>;
-
-export type BrowserExecutionBinding = BrowserExecutionBindingCore & Readonly<
-  | { kind: "local" | "production" }
-  | {
-    kind: "production-confirmed-source-readback";
-    confirmedProviderSourceReadback: BrowserConfirmedProviderSourceReadbackAuthorization;
-  }
-  | {
-    kind: "production-reconciliation";
-    confirmedProviderReadback: BrowserConfirmedProviderReadbackAuthorization;
-  }
->;
 
 export type BrowserAuthorityStatus =
   | Readonly<{ kind: "UNAVAILABLE"; reasonCode: string }>

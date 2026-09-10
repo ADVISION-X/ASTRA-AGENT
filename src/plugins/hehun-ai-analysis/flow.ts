@@ -12,8 +12,6 @@ import {
 } from "../../mediator/product-plugin-contract.js";
 import {
   gptTextContinuationCheckpointInput,
-  postCheckpointReceiverFault,
-  postSubmitReadbackFault,
   productResultValidation,
   type SharedExecutionContext,
 } from "../../mediator/product-plugin-contract.js";
@@ -21,11 +19,7 @@ import type {
   ExactGptCallFacts,
   ProductGptAnyCallInput,
 } from "../../capabilities/gpt/index.js";
-import {
-  executionFailure,
-  executionFailureMetadata,
-  failureCode,
-} from "../../lib/execution-failure.js";
+import { executionFailure } from "../../lib/execution-failure.js";
 import { parseProductResult } from "./result-contract.js";
 
 const PLUGIN_ID = "hehun-ai-analysis";
@@ -97,12 +91,9 @@ const createOwnedExecution = (task: WebsiteAgentTask, context: SharedExecutionCo
     recordEvidence(call.actionOrdinal, result.evidenceRef);
     return result;
   };
-  const requireEvidence = async (call: FlowCall): Promise<void> => {
-    if (!(await facts(call)).evidence) fail("PRODUCT_PROGRESSIVE_PREFIX_EVIDENCE_MISSING");
-  };
   const evidenceRefs = (): readonly string[] => Object.freeze([...evidenceByOrdinal.entries()]
     .sort((left, right) => left[0] - right[0]).map((entry) => entry[1]));
-  return Object.freeze({ evidenceRefs, execute, facts, requireEvidence });
+  return Object.freeze({ evidenceRefs, execute, facts });
 };
 
 const materialFiles = (context: SharedExecutionContext) => context.materials.slice()
@@ -151,7 +142,6 @@ const applyProfile = async (
   flow: OwnedExecution,
   stepId: string,
   ordinals: readonly [number, number, number, number, number, number],
-  recoverOnly: boolean,
 ): Promise<void> => {
   const open = { productStepId: stepId, callId: "profile-open", child: "open_gpt_execution_profile", actionOrdinal: ordinals[0], input: { profile: MODEL_PROFILE } } as const;
   const selector = { productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v2", actionOrdinal: ordinals[1], input: { profile: MODEL_PROFILE } } as const;
@@ -159,13 +149,12 @@ const applyProfile = async (
   const reopen = { productStepId: stepId, callId: "profile-open-after-model", child: "open_gpt_execution_profile", actionOrdinal: ordinals[3], input: { profile: MODEL_PROFILE } } as const;
   const reasoning = { productStepId: stepId, callId: "reasoning-select", child: "ensure_gpt_reasoning_requirement", actionOrdinal: ordinals[4], input: { profile: MODEL_PROFILE } } as const;
   const close = { productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[5], input: { profile: MODEL_PROFILE } } as const;
-  const apply = recoverOnly ? flow.requireEvidence : flow.execute;
-  await apply(open);
-  await apply(selector);
-  await apply(model);
-  await apply(reopen);
-  await apply(reasoning);
-  await apply(close);
+  await flow.execute(open);
+  await flow.execute(selector);
+  await flow.execute(model);
+  await flow.execute(reopen);
+  await flow.execute(reasoning);
+  await flow.execute(close);
 };
 
 const applyAttachments = async (
@@ -173,18 +162,11 @@ const applyAttachments = async (
   context: SharedExecutionContext,
   stepId: string,
   ordinals: readonly [number, number, number],
-  recoverOnly: boolean,
 ): Promise<void> => {
   const files = materialFiles(context);
   const open = { productStepId: stepId, callId: "attachment-control-open", child: "open_gpt_attachment_control", actionOrdinal: ordinals[0], input: {} } as const;
   const attach = { productStepId: stepId, callId: "attachments-attach", child: "attach_approved_gpt_files_once", actionOrdinal: ordinals[1], input: { files } } as const;
   const reconcile = { productStepId: stepId, callId: "attachments-reconcile", child: "reconcile_gpt_attachment_set", actionOrdinal: ordinals[2], input: { files, timeoutMs: 60_000 } } as const;
-  if (recoverOnly) {
-    await flow.requireEvidence(open);
-    await flow.requireEvidence(attach);
-    await flow.requireEvidence(reconcile);
-    return;
-  }
   await flow.execute(open);
   await flow.execute(attach);
   const actual = objectValue((await flow.execute(reconcile)).value, "PRODUCT_ATTACHMENT_RECONCILIATION_INVALID").files;
@@ -203,33 +185,14 @@ const requireConfirmedSubmit = (facts: ExactGptCallFacts): void => {
   if (!Number.isFinite(confirmedAt)) fail("PRODUCT_PROVIDER_EFFECT_TERMINAL_FACT_MISSING");
 };
 
-const preservePostSubmitReadback = (error: unknown, submit: ExactGptCallFacts): never => {
-  const typed = executionFailureMetadata(error);
-  const code = failureCode(error);
-  const terminal = code === "GPT_RESPONSE_STABILITY_TIMEOUT" || code === "GPT_RESPONSE_WAIT_ABORTED"
-    || code.startsWith("GPT_PROVIDER_TERMINAL_") || code.startsWith("GPT_RATE_LIMIT_");
-  if (!typed || typed.mutationOutcome !== "no" || terminal) throw error;
-  if (submit.mutation?.outcome !== "CONFIRMED" || !submit.mutation.terminalAt
-    || submit.evidence?.owner !== "forensics-persistence" || !submit.evidence.readbackVerified) throw error;
-  throw postSubmitReadbackFault(code, {
-    causeCode: code,
-    exactCallIdentityHash: submit.exactCallIdentityHash,
-    terminalAt: submit.mutation.terminalAt,
-    evidenceRef: submit.evidence.evidenceRef,
-    evidenceHash: submit.evidence.evidenceHash,
-  });
-};
-
 const checkpointSubmittedTurn = async (
   flow: OwnedExecution,
   stepId: string,
   marker: string,
   promptHash: ProductionHash,
-  submit: ExactGptCallFacts,
   ordinals: readonly [number, number, number],
 ): Promise<Checkpoint> => {
-  try {
-    const submitted = await flow.execute({
+  const submitted = await flow.execute({
       productStepId: stepId, callId: "submission-reconcile", child: "reconcile_gpt_turn_submission",
       actionOrdinal: ordinals[0], input: { expectedPromptHash: promptHash, timeoutMs: 60_000, turnMarker: marker },
     });
@@ -268,9 +231,6 @@ const checkpointSubmittedTurn = async (
       turnMarker: marker, evidenceRef: checkpointEvidence.evidenceRef,
       evidenceHash: checkpointEvidence.evidenceHash,
     });
-  } catch (error) {
-    return preservePostSubmitReadback(error, submit);
-  }
 };
 
 const submitTurn = async (
@@ -285,18 +245,12 @@ const submitTurn = async (
   const write = { productStepId: stepId, callId: "prompt-write", child: "write_exact_gpt_prompt", actionOrdinal: ordinals[0], input: { prompt } } as const;
   const draft = { productStepId: stepId, callId: "draft-reconcile", child: "reconcile_gpt_draft", actionOrdinal: ordinals[1], input: { files, prompt, turnMarker: marker } } as const;
   const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: ordinals[2], input: { files, promptHash, turnMarker: marker } } as const;
-  const existing = await flow.facts(submit);
-  if (existing.mutation || existing.evidence) {
-    await flow.requireEvidence(write);
-    await flow.requireEvidence(draft);
-  } else {
-    await flow.execute(write);
-    await flow.execute(draft);
-  }
+  await flow.execute(write);
+  await flow.execute(draft);
   await flow.execute(submit);
   const submitFacts = await flow.facts(submit);
   requireConfirmedSubmit(submitFacts);
-  return checkpointSubmittedTurn(flow, stepId, marker, promptHash, submitFacts,
+  return checkpointSubmittedTurn(flow, stepId, marker, promptHash,
     [ordinals[3], ordinals[4], ordinals[5]]);
 };
 
@@ -308,14 +262,10 @@ const runFreshTurn = async (
   marker: string,
 ): Promise<Checkpoint> => {
   const stepId = task.action_id;
-  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 13, input: { files: uploadedFiles(context), promptHash: sha256(prompt), turnMarker: marker } } as const;
-  const existing = await flow.facts(submit);
-  const recoverOnly = Boolean(existing.mutation || existing.evidence);
   const fresh = { productStepId: stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
-  if (recoverOnly) await flow.requireEvidence(fresh);
-  else await flow.execute(fresh);
-  await applyProfile(flow, stepId, [2, 3, 4, 5, 6, 7], recoverOnly);
-  await applyAttachments(flow, context, stepId, [8, 9, 10], recoverOnly);
+  await flow.execute(fresh);
+  await applyProfile(flow, stepId, [2, 3, 4, 5, 6, 7]);
+  await applyAttachments(flow, context, stepId, [8, 9, 10]);
   return submitTurn(flow, stepId, prompt, marker, uploadedFiles(context), [11, 12, 13, 14, 15, 16]);
 };
 
@@ -329,18 +279,10 @@ const providerFor = (task: WebsiteAgentTask, checkpoint: Checkpoint): GptProvide
   });
 
 const receive = (task: WebsiteAgentTask, checkpoint: Checkpoint, context: SharedExecutionContext): Readonly<Record<string, unknown>> => {
-  try {
-    const value = productResultValidation.parseJsonObject(
-      checkpoint.semanticText, "PRODUCT_RESULT_JSON_INVALID",
-    );
-    return parseProductResult(task, value, context.routePolicy);
-  } catch (error) {
-    throw postCheckpointReceiverFault(failureCode(error, "PRODUCT_RESULT_RECEIVER_FAILED"), {
-      artifactRef: checkpoint.artifactRef,
-      rawDomHash: checkpoint.rawDomHash,
-      semanticTextHash: checkpoint.semanticTextHash,
-    });
-  }
+  const value = productResultValidation.parseJsonObject(
+    checkpoint.semanticText, "PRODUCT_RESULT_JSON_INVALID",
+  );
+  return parseProductResult(task, value, context.routePolicy);
 };
 
 const persistContinuation = async (

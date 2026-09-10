@@ -18,7 +18,7 @@ import { inspectBusinessRecoveryAuthorityBoundaries } from "../audit/domains/arc
 import { inspectRuntimeBrowserPrivateImports } from "../audit/domains/architecture-boundary/components/scan-plugin-capability-boundaries.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
-const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V6";
+const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V7";
 const lawSource = readFileSync(".github/instructions/agent-rules/功能法案.md", "utf8");
 const activeLaw = [...lawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
   .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden?: string[] })

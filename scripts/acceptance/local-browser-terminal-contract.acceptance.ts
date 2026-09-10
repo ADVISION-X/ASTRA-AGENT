@@ -100,7 +100,7 @@ try {
     throw new Error("BROWSER_COMMAND_RECEIPT_MISSING");
   }).execute(responseLossPermit, visibleDownloadCommand), /BROWSER_COMMAND_RECEIPT_MISSING/u);
   assert.equal(actorStore.readState(responseLossPermit.commandId), "DISPATCHED");
-  const responseLossRecovery = actorStore.atomicStepRecovery({
+  const responseLossOutcome = actorStore.readAtomicStepOutcome({
     jobId: responseLossPermit.jobId, attemptId: responseLossPermit.attemptId,
     ownerPluginId: responseLossPermit.ownerPluginId, pluginVersion: responseLossPermit.pluginVersion,
     exactCallIdentityHash: valueHash([
@@ -112,11 +112,11 @@ try {
     effectScope: "target_local",
   });
   assert.deepEqual({
-    state: responseLossRecovery?.state,
-    physicalInputCount: responseLossRecovery?.physicalInputCount,
-    downloadGuidHash: responseLossRecovery?.downloadGuidHash,
-    downloadCompleted: responseLossRecovery?.downloadCompleted,
-    identityRevalidated: responseLossRecovery?.identityRevalidated,
+    state: responseLossOutcome?.state,
+    physicalInputCount: responseLossOutcome?.physicalInputCount,
+    downloadGuidHash: responseLossOutcome?.downloadGuidHash,
+    downloadCompleted: responseLossOutcome?.downloadCompleted,
+    identityRevalidated: responseLossOutcome?.identityRevalidated,
   }, { state: "dispatched", physicalInputCount: 2, downloadGuidHash,
     downloadCompleted: true, identityRevalidated: true },
   "a lost terminal reply must retain the completed two-input fact in the same WAL row without replay");
@@ -208,15 +208,15 @@ try {
   });
   assert.equal(qualificationFact?.failureCode, "BROWSER_DOM_ACTION_NOT_QUALIFIED");
   assert.equal(qualificationFact?.nativeFailureCode, "BROWSER_DOM_ACTION_HIT_TEST_FAILED");
-  const qualificationRecovery = actorStore.atomicStepRecovery({
+  const qualificationOutcome = actorStore.readAtomicStepOutcome({
     jobId: qualificationPermit.jobId, attemptId: qualificationPermit.attemptId,
     ownerPluginId: qualificationPermit.ownerPluginId, pluginVersion: qualificationPermit.pluginVersion,
     exactCallIdentityHash: storedQualificationIdentity.exact_call_identity_hash,
     actionOrdinal: qualificationPermit.actionOrdinal, targetRef: qualificationPermit.targetRef,
     effectScope: "target_local",
   });
-  assert.equal(qualificationRecovery?.failureCode, "BROWSER_DOM_ACTION_NOT_QUALIFIED");
-  assert.equal(qualificationRecovery?.nativeFailureCode, "BROWSER_DOM_ACTION_HIT_TEST_FAILED");
+  assert.equal(qualificationOutcome?.failureCode, "BROWSER_DOM_ACTION_NOT_QUALIFIED");
+  assert.equal(qualificationOutcome?.nativeFailureCode, "BROWSER_DOM_ACTION_HIT_TEST_FAILED");
   actorDatabase.close();
 
   const observationPermit: BrowserCommandPermit = {
@@ -574,7 +574,7 @@ try {
 }
 
 emitQualityProofObservation({
-  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V28",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V29",
   evidenceMode: "exam.golden",
   clauses: [
     "forbidden:0",

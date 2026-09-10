@@ -3,12 +3,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
-import { executionFailure, typedExecutionFailure } from "../../../src/lib/execution-failure.js";
-import { postSubmitReadbackReceipt } from "../../../src/mediator/product-plugin-contract.js";
-import { carryProductSafeConfirmedProviderSubmitReceipt } from
-  "../../../src/capabilities/gpt/execution-fault.js";
-import { executeAndReadConfirmedSubmit } from
-  "../../../src/plugins/public-knowledge-article-pipeline/seo-submit-readback.js";
+import { typedExecutionFailure } from "../../../src/lib/execution-failure.js";
 import { productionRoutePolicy } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { browserProviderEffectIdentityHash } from
   "../../../src/lib/browser/exact-target/browser-command-postcondition.js";
@@ -19,17 +14,11 @@ import {
   exerciseSeoFlow,
   exerciseSeoPromptWriteFailure,
 } from "./public-knowledge-article-pipeline-flow.test-runtime.js";
-import { createContext, withFastHandoffs } from "./public-knowledge-article-pipeline.test-runtime.js";
+import { createContext } from "./public-knowledge-article-pipeline.test-runtime.js";
 import { createHarness, seoTask } from
   "./public-knowledge-article-pipeline-fixture-state.js";
 import { articleOutput, researchOutput } from
   "./public-knowledge-article-pipeline-output-fixtures.js";
-import {
-  exerciseSeoArticleFrontierResume,
-  exerciseSeoConfirmedImageSubmitResume,
-  exerciseSeoFrontierResume,
-  exerciseSeoImageFrontierResume,
-} from "./public-knowledge-article-pipeline-frontier.test-runtime.js";
 
 const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "public-knowledge-article-pipeline");
 assert(plugin);
@@ -37,27 +26,6 @@ const produceRoute = productionRoutePolicy("public_knowledge_article_pipeline", 
 const hashText = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
-const doubleFailureReceipt = Object.freeze({
-  exactCallIdentityHash: hashText("double-failure-call"),
-  terminalAt: new Date().toISOString(),
-  evidenceRef: "forensics:double-failure-submit",
-  evidenceHash: hashText("double-failure-evidence"),
-});
-await assert.rejects(
-  () => executeAndReadConfirmedSubmit({
-    execute: async () => {
-      throw carryProductSafeConfirmedProviderSubmitReceipt(
-        executionFailure("failed", "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED"),
-        doubleFailureReceipt,
-      );
-    },
-    readFacts: async () => { throw new Error("FORENSICS_READBACK_UNAVAILABLE"); },
-  }),
-  (error: unknown) => typedExecutionFailure(error)?.code
-    === "POST_SUBMIT_READBACK_FAULT:GPT_TURN_SUBMISSION_POSTCONDITION_FAILED"
-    && postSubmitReadbackReceipt(error)?.evidenceRef === doubleFailureReceipt.evidenceRef,
-  "a confirmed submit receipt must survive when execution and the following facts read both fail",
-);
 const profile = [
   "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
   "open_gpt_execution_profile", "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile",
@@ -81,7 +49,7 @@ const continuationImage = [
   "advance_gpt_continuation_lane",
 ] as const;
 
-assert.equal(plugin.pluginVersion, 23);
+assert.equal(plugin.pluginVersion, 24);
 const source = readFileSync("src/plugins/public-knowledge-article-pipeline/index.ts", "utf8");
 const turnContractSource = readFileSync(
   "src/plugins/public-knowledge-article-pipeline/seo-turn-contract.ts", "utf8",
@@ -92,18 +60,16 @@ assert.match(source, /article_synthesis/u);
 assert.match(source, /article_image_generation/u);
 assert.match(turnContractSource,
   /hashCanonical\(\{ job_id: task\.job_id, product_step_id: stepId \}\)/u,
-  "one business step must keep the same turn marker when Website changes only attempt_id");
+  "the Product prompt remains stable while Browser identity adds attempt_id separately");
 const turnMarkerDeclaration = turnContractSource.slice(
   turnContractSource.indexOf("export const turnMarker"),
   turnContractSource.indexOf("export const researchFrontierRef"),
 );
 assert.doesNotMatch(turnMarkerDeclaration, /attempt/iu,
-  "attempt identity must not alter Browser provider-effect deduplication input");
-assert.doesNotMatch(
-  readFileSync("src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts", "utf8"),
-  /return input\.recoveryProvider\.provider_page_url/u,
-  "recovery must execute the exact reconcile call so Runtime reads the durable locator artifact",
-);
+  "attempt identity belongs to the Browser fence rather than the Product prompt marker");
+assert.match(turnContractSource,
+  /researchFrontierRef[\s\S]*?attempt_id: attemptId/u,
+  "the local continuation frontier must die with its attempt, without changing the Product prompt marker");
 {
   const identityState = createHarness("produce_article");
   const context = createContext(identityState, "proceed");
@@ -170,64 +136,6 @@ assert.equal(advances[1]?.input.provider.prior_prompt_hash, hashText(prompts[2]!
 assert.ok((proceed.completed.payload as Readonly<Record<string, unknown>>).image);
 assert.equal(proceed.generatedImageUploadCalls, 1);
 
-const articleRevisionState = createHarness("produce_article");
-await withFastHandoffs(articleRevisionState, () => plugin.execute(
-  seoTask("produce_article"), createContext(articleRevisionState, "proceed", undefined, "attempt-1"),
-));
-const articleRevisionCallStart = articleRevisionState.calls.length;
-const articleRejection = Object.freeze({
-  schema_version: "xuanxue-ai-prior-result-rejection.v1" as const,
-  job_id: "job-produce_article",
-  previous_attempt_id: "attempt-1",
-  previous_result_payload_hash: hashText("rejected-article-result"),
-  reason_codes: ["PUBLIC_KNOWLEDGE_ARTICLE_REJECTED"] as const,
-  receipt_hash: hashText("article-rejection-receipt"),
-});
-await withFastHandoffs(articleRevisionState, () => plugin.execute(
-  seoTask("produce_article"),
-  createContext(articleRevisionState, "proceed", undefined, "attempt-2", articleRejection),
-));
-const articleRevisionCalls = articleRevisionState.calls.slice(articleRevisionCallStart);
-assert.equal(articleRevisionCalls.some((call) => call.productStepId === "corpus_research"
-  && call.child === "submit_exact_gpt_turn_once"), false,
-"an article-only rejection must reuse the admitted research and must not submit new research");
-assert.equal(articleRevisionCalls.filter((call) => call.child === "submit_exact_gpt_turn_once").length, 2);
-for (const prompt of articleRevisionCalls.filter((call) => call.child === "write_exact_gpt_prompt")
-  .map((call) => String(call.input.prompt))) {
-  assert.match(prompt, /RESULT_REVISION_CORRECTION_V1/u);
-  assert.match(prompt, new RegExp(articleRejection.previous_result_payload_hash, "u"));
-  assert.match(prompt, new RegExp(articleRejection.receipt_hash, "u"));
-}
-
-const researchRevisionState = createHarness("produce_article");
-const researchRejection = Object.freeze({
-  ...articleRejection,
-  reason_codes: ["PUBLIC_KNOWLEDGE_COLLISION_REJECTED"] as const,
-  receipt_hash: hashText("research-rejection-receipt"),
-});
-await withFastHandoffs(researchRevisionState, () => plugin.execute(
-  seoTask("produce_article"),
-  createContext(researchRevisionState, "proceed", undefined, "attempt-2", researchRejection),
-));
-assert.equal(researchRevisionState.calls.filter((call) => call.child === "submit_exact_gpt_turn_once").length, 3,
-  "research or collision rejection must create one corrected research article and image revision");
-const researchCorrectionPrompt = String(researchRevisionState.calls
-  .filter((call) => call.child === "write_exact_gpt_prompt")
-  .find((call) => call.productStepId === "corpus_research")?.input.prompt);
-assert.match(researchCorrectionPrompt, /RESULT_REVISION_CORRECTION_V1/u);
-assert.match(researchCorrectionPrompt, /PUBLIC_KNOWLEDGE_COLLISION_REJECTED/u);
-assert.match(researchCorrectionPrompt, new RegExp(researchRejection.receipt_hash, "u"));
-
-const invalidRevisionState = createHarness("produce_article");
-await assert.rejects(
-  () => plugin.execute(seoTask("produce_article"), createContext(
-    invalidRevisionState, "proceed", undefined, "attempt-2",
-    { ...articleRejection, job_id: "job-not-owned-by-this-task" },
-  )),
-  (error: unknown) => typedExecutionFailure(error)?.code === "PUBLIC_KNOWLEDGE_RESULT_REVISION_FEEDBACK_INVALID",
-);
-assert.equal(invalidRevisionState.calls.length, 0);
-
 const nextAttempt = await exerciseSeoFlow(
   plugin, "produce_article", "proceed", undefined, false, "attempt-2",
 );
@@ -250,8 +158,8 @@ for (const [index, call] of submits.entries()) {
     childCapabilityId: call.child,
     inputHash: hashCanonical(input),
     } as never, hashCanonical({ child: call.child, input }));
-  assert.equal(identity("attempt-1", call.input), identity("attempt-2", nextCall.input),
-    `submit ${index + 1} must retain one Browser provider-effect identity across attempts`);
+  assert.notEqual(identity("attempt-1", call.input), identity("attempt-2", nextCall.input),
+    `submit ${index + 1} must receive a new Browser provider-effect identity in the new attempt`);
 }
 
 const attachmentBlocked = await exerciseSeoAttachmentReconcileFailure(plugin);
@@ -272,143 +180,11 @@ assert.equal(promptBlocked.calls.some((call) => call.child === "submit_exact_gpt
   "submit must not start after exact Prompt readback fails");
 assert.equal(promptBlocked.physicalSubmitDispatches, 0);
 
-const directSubmitRecovered = await exerciseSeoFlow(plugin, "produce_article", "proceed", {
-  child: "submit_exact_gpt_turn_once",
-  code: "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED",
-  productStepId: "corpus_research",
-  confirmedSubmit: true,
-  locatorFailureCode: "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING",
-}, true);
-assert.equal(postSubmitReadbackReceipt(directSubmitRecovered.firstFailure)?.causeCode,
-  "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING");
-const firstResearchSubmit = directSubmitRecovered.calls.findIndex((call) =>
-  call.productStepId === "corpus_research" && call.child === "submit_exact_gpt_turn_once");
-assert.equal(directSubmitRecovered.calls[firstResearchSubmit + 1]?.child,
-  "reconcile_gpt_turn_submission",
-  "the first invocation must proceed directly from confirmed submit to locator reconciliation");
-assert.equal(directSubmitRecovered.calls[firstResearchSubmit + 2]?.child,
-  "reconcile_gpt_turn_submission",
-  "the recovered invocation must resume with locator reconciliation and no prior mutation Child");
-assert.equal(directSubmitRecovered.calls.filter((call) => call.productStepId === "corpus_research"
-  && call.child === "submit_exact_gpt_turn_once").length, 1,
-  "the same accepted attempt must never invoke the submit Child again after Browser confirmation");
-assert.equal(directSubmitRecovered.physicalSubmitDispatches, 3,
-  "the recovered research turn plus article and image turns must still dispatch exactly three submits");
-
-const articleSubmitRecovered = await exerciseSeoFlow(plugin, "produce_article", "proceed", {
-  child: "submit_exact_gpt_turn_once",
-  code: "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED",
-  productStepId: "article_synthesis",
-  confirmedSubmit: true,
-  locatorFailureCode: "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING",
-}, true);
-assert.equal(postSubmitReadbackReceipt(articleSubmitRecovered.firstFailure)?.causeCode,
-  "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING");
-assert.equal(articleSubmitRecovered.calls.filter((call) => call.productStepId === "article_synthesis"
-  && call.child === "submit_exact_gpt_turn_once").length, 1,
-  "article recovery must reconcile the confirmed submit without invoking submit again");
-assert.equal(articleSubmitRecovered.physicalSubmitDispatches, 3,
-  "research, recovered article and image must still dispatch exactly once each");
-assert.equal(articleSubmitRecovered.generatedImageUploadCalls, 1,
-  "the recovered article turn must continue through image generation and Website upload assembly");
-
-const imageSubmitRecovered = await exerciseSeoFlow(plugin, "produce_article", "proceed", {
-  child: "submit_exact_gpt_turn_once",
-  code: "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED",
-  productStepId: "article_image_generation",
-  confirmedSubmit: true,
-  locatorFailureCode: "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING",
-}, true);
-assert.equal(postSubmitReadbackReceipt(imageSubmitRecovered.firstFailure)?.causeCode,
-  "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING");
-assert.equal(imageSubmitRecovered.calls.filter((call) => call.productStepId === "article_image_generation"
-  && call.child === "submit_exact_gpt_turn_once").length, 1,
-  "image recovery must continue from the confirmed submit without executing submit again");
-assert.equal(imageSubmitRecovered.physicalSubmitDispatches, 3,
-  "research, article and image must still dispatch exactly once each after image recovery");
-assert.equal(imageSubmitRecovered.generatedImageUploadCalls, 1,
-  "the recovered image turn must continue through checkpoint and Website upload assembly");
-
-const imageDomReadRecovered = await exerciseSeoFlow(plugin, "produce_article", "proceed", {
-  child: "submit_exact_gpt_turn_once",
-  code: "BROWSER_DOM_READ_INVALID",
-  productStepId: "article_image_generation",
-  confirmedSubmit: true,
-  locatorFailureCode: "BROWSER_DOM_READ_INVALID",
-}, true);
-assert.equal(postSubmitReadbackReceipt(imageDomReadRecovered.firstFailure)?.causeCode,
-  "BROWSER_DOM_READ_INVALID");
-assert.equal(imageDomReadRecovered.calls.filter((call) => call.productStepId === "article_image_generation"
-  && call.child === "submit_exact_gpt_turn_once").length, 1,
-  "confirmed image submit must survive the production DOM read fault without submitting again");
-assert.equal(imageDomReadRecovered.physicalSubmitDispatches, 3,
-  "the production DOM read fault must not create a fourth physical submit");
-assert.equal(imageDomReadRecovered.generatedImageUploadCalls, 1,
-  "the production DOM read fault must continue through image checkpoint and Website upload assembly");
-
-await assert.rejects(
-  () => exerciseSeoFlow(plugin, "produce_article", "proceed", {
-    child: "submit_exact_gpt_turn_once",
-    code: "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED",
-    productStepId: "corpus_research",
-  }),
-  (error: unknown) => typedExecutionFailure(error)?.code
-    === "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED"
-    && postSubmitReadbackReceipt(error) === null,
-  "a submit failure without exact Browser CONFIRMED metadata must never enter post-submit recovery",
-);
-
-await assert.rejects(
-  () => exerciseSeoFlow(plugin, "produce_article", "proceed", {
-    child: "reconcile_gpt_turn_submission",
-    code: "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING",
-    productStepId: "corpus_research",
-  }),
-  (error: unknown) => typedExecutionFailure(error)?.code
-    === "POST_SUBMIT_READBACK_FAULT:GPT_TURN_SUBMISSION_RECONCILIATION_PENDING"
-    && postSubmitReadbackReceipt(error)?.causeCode === "GPT_TURN_SUBMISSION_RECONCILIATION_PENDING",
-  "a pending locator must preserve the same accepted attempt as post-submit readback work",
-);
-
-const recovered = await exerciseSeoFlow(plugin, "produce_article", "proceed", {
-  child: "checkpoint_gpt_text_response", code: "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE",
-  productStepId: "article_synthesis",
-}, true);
-assert.equal(postSubmitReadbackReceipt(recovered.firstFailure)?.causeCode,
-  "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
-assert.equal(recovered.physicalSubmitDispatches, 3);
-assert.deepEqual(recovered.acquiredLaneVersions, [1, 2, 3]);
-
-const researchFrontier = await exerciseSeoFrontierResume(plugin);
-assert.equal(typedExecutionFailure(researchFrontier.firstFailure)?.code, "BROWSER_POSTCONDITION_FAILED");
-assert.equal(researchFrontier.resumeCalls.some((call) => call.productStepId === "corpus_research"), false);
-const articleFrontier = await exerciseSeoArticleFrontierResume(plugin);
-assert.equal(typedExecutionFailure(articleFrontier.firstFailure)?.code, "BROWSER_POSTCONDITION_FAILED");
-assert.equal(articleFrontier.resumeCalls.some((call) => call.productStepId === "article_synthesis"), false);
-
-for (const readbackCode of [
-  "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", "BROWSER_TARGET_INVALID", "BROWSER_DOCUMENT_INVALID",
-  "BROWSER_DOM_CANDIDATE_MISSING", "BROWSER_DOM_READ_INVALID",
-  "GPT_RESPONSE_STABILITY_TIMEOUT", "GPT_RESPONSE_WAIT_ABORTED",
-  "GPT_RATE_LIMIT_ACTIVE",
-]) {
-  const imageResume = await exerciseSeoConfirmedImageSubmitResume(plugin, readbackCode);
-  assert.equal(typedExecutionFailure(imageResume.firstFailure)?.code,
-    `POST_SUBMIT_READBACK_FAULT:${readbackCode}`);
-  assert.equal(imageResume.resumeCalls.filter(
-    (call) => call.child === "submit_exact_gpt_turn_once",
-  ).length, 0, "same-attempt recovery must continue directly to readback without executing submit again");
-}
-const imageFrontier = await exerciseSeoImageFrontierResume(plugin);
-assert.equal(typedExecutionFailure(imageFrontier.firstFailure)?.code, "WEBSITE_COMPLETION_TEST_FAULT");
-assert.deepEqual(imageFrontier.resumeCalls, []);
-
 await assert.rejects(
   () => exerciseSeoFlow(plugin, "accuracy_challenge", "proceed", {
     child: "wait_for_stable_gpt_text", code: "GPT_PROVIDER_TERMINAL_DECLINED",
   }),
-  (error: unknown) => typedExecutionFailure(error)?.code === "GPT_PROVIDER_TERMINAL_DECLINED"
-    && postSubmitReadbackReceipt(error) === null,
+  (error: unknown) => typedExecutionFailure(error)?.code === "GPT_PROVIDER_TERMINAL_DECLINED",
 );
 for (const action of ["accuracy_challenge", "quality_reflection"] as const) {
   const review = await exerciseSeoFlow(plugin, action);
