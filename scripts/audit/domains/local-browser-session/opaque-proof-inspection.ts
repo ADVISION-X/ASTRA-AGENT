@@ -60,7 +60,7 @@ const inspectAuthenticatedMediaBoundary = (
   const commandDispatchText = `${registeredCommandMethod}\n${commandRuntime.getFullText()}`;
   const mediaRuntimeText = authenticatedMediaRuntime.getFullText();
   const leaseMethod = leaseManager.getClass("BrowserTargetLeaseManager")
-    ?.getMethod("downloadAuthenticatedMedia")?.getText() ?? "";
+    ?.getMethod("readAuthenticatedMedia")?.getText() ?? "";
   for (const required of ["command.kind === \"authenticated-media\"", "executeAuthenticatedMedia("]) {
     if (commandDispatchText.includes(required)) continue;
     findings.push(createLocalFinding({
@@ -95,6 +95,16 @@ const inspectAuthenticatedMediaBoundary = (
       message: `Authenticated media retrieval exposes forbidden caller control ${forbidden}.`,
     }));
   }
+  for (const forbidden of [
+    "visible-download", "captureCompletedDownload", "Browser.setDownloadBehavior",
+    "generatedImageViewerLabel", "button[aria-label='保存']",
+  ]) if (mediaRuntimeText.includes(forbidden) || leaseMethod.includes(forbidden)
+    || commandDispatchText.includes(forbidden)) findings.push(createLocalFinding({
+    checkId: "browser-authority/authenticated-media-boundary",
+    lawId,
+    filePath: targetAuthorityPath,
+    message: `Authenticated media observation retains forbidden download mutation ${forbidden}.`,
+  }));
 };
 
 const inspectClosedInvocationPayloadBoundary = (

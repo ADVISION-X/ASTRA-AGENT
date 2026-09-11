@@ -47,7 +47,7 @@ export const closeGptExecutionProfileHandler: GptChildHandler<"close_gpt_executi
       mutationRecord.postconditionObservation, PROFILE_TOPOLOGY_QUERIES,
     ));
     if (!profileClosedReady(readback)) throw executionFailure("failed", "GPT_EXECUTION_PROFILE_CLOSE_PENDING");
-    const browserFact = requireConfirmedBrowserFact(intent, browser);
+    const browserFact = requireConfirmedBrowserFact(intent, context);
     return success({
       value: { state: "profile-popup-closed" },
       ...declaredFacts({ ...readback.facts, decision: "ACT",

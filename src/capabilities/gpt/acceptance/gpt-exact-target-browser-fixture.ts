@@ -55,18 +55,17 @@ const hashText = (value: string): `sha256:${string}` =>
 export const exactAssistantTurnReply = (
   intent: Extract<BrowserDomIntent, { kind: "readExactAssistantTurn" }>,
   semanticText: string,
-  rawDomHtml = `<section data-testid="${intent.assistantTurnId}"><div data-message-author-role="assistant">${semanticText}</div></section>`,
+  rawDomHtml = `<section data-testid="conversation-turn-4"><div data-message-author-role="assistant">${semanticText}</div></section>`,
 ) => Object.freeze({
   schemaVersion: "grasseye.browser.exact-assistant-turn.v2" as const,
   exactCallIdentityHash: `sha256:${"5".repeat(64)}` as `sha256:${string}`,
   targetRefHash: `sha256:${"2".repeat(64)}` as `sha256:${string}`,
   documentRefHash: `sha256:${"3".repeat(64)}` as `sha256:${string}`,
   observationRevisionHash: `sha256:${"6".repeat(64)}` as `sha256:${string}`,
-  assistantTurnId: intent.assistantTurnId,
+  assistantTurnId: "conversation-turn-4",
   currentUrl: intent.sourceCheckpoint.canonicalConversationUrl,
-  precedingUserTurnId: `conversation-turn-${Number(intent.assistantTurnId.slice("conversation-turn-".length)) - 1}`,
+  precedingUserTurnId: intent.userTurnId,
   precedingPromptHash: intent.sourceCheckpoint.expectedPromptHash,
-  turnMarkerMatched: true as const,
   generatingRaw: 0,
   rawDomHtml,
   rawDomHash: hashText(rawDomHtml),
@@ -92,7 +91,7 @@ type FakeBrowserOptions = Readonly<{
   initialUrl?: string;
   navigationEpochAdvanceOnMutation?: number;
   navigationEpochAdvanceOnWait?: number;
-  authenticatedMedia?: Awaited<ReturnType<BrowserTargetLease["downloadAuthenticatedMedia"]>>;
+  authenticatedMedia?: Awaited<ReturnType<BrowserTargetLease["readAuthenticatedMedia"]>>;
   onAttachFile?: (input: Parameters<BrowserTargetLease["attachFile"]>[0]) => void;
   onWait?: (durationMs: number) => void;
 }>;
@@ -288,7 +287,8 @@ const createFakeBrowserLease = (
     state.atomicIdentity = identity;
     try { return await action(); } finally { state.atomicIdentity = null; }
   },
-  readAtomicStepOutcome: () => state.recovery,
+  readAtomicStepOutcome: (identity) => JSON.stringify(identity) === JSON.stringify(state.atomicIdentity)
+    ? state.recovery : null,
   executeDomIntent: async (intent: BrowserDomIntent) => {
     if (intent.kind !== "selectExactGptConversation") {
       return executeFakeDomIntent(responder, state, intent, options);
@@ -308,13 +308,9 @@ const createFakeBrowserLease = (
     state.physicalMutations += 1;
     markConfirmedMutation(state);
   },
-  async downloadAuthenticatedMedia(input) {
+  async readAuthenticatedMedia(_input) {
     state.authenticatedMediaDownloads += 1;
     if (!options.authenticatedMedia) throw new Error("FIXTURE_AUTHENTICATED_MEDIA_MISSING");
-    if (input.delivery === "visible-download") {
-      state.physicalMutations += 1;
-      markConfirmedMutation(state);
-    }
     return options.authenticatedMedia;
   },
   async wait(input) {

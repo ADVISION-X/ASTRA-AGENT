@@ -1,6 +1,4 @@
-import type { BrowserTargetLease } from "../../../../lib/browser/browser-authority-api.js";
-
-import type { GptChildCapabilityIntent } from "../../contract.js";
+import type { GptChildCapabilityIntent, GptExecutionContext } from "../../contract.js";
 import { gptExecutionFailure } from "../../execution-fault.js";
 import {
   declaredFacts,
@@ -22,11 +20,11 @@ import { GPT_COMPOSER_SELECTOR } from "./selectors.js";
 
 const mismatchFailure = (
   intent: GptChildCapabilityIntent<"write_exact_gpt_prompt">,
-  browser: BrowserTargetLease,
+  context: GptExecutionContext,
   expectedHash: `sha256:${string}`,
   observed: DraftState,
 ) => {
-  const browserFact = requireConfirmedBrowserFact(intent, browser);
+  const browserFact = requireConfirmedBrowserFact(intent, context);
   const observedHash = observed.composerHash ?? "missing";
   return gptExecutionFailure("GPT_PROMPT_WRITE_UNCONFIRMED", {
     mutationOutcome: browserFact.mutationOutcome,
@@ -72,8 +70,8 @@ export const writeExactGptPromptHandler: GptChildHandler<"write_exact_gpt_prompt
     });
     const readback = await readDraftState(browser);
     requireExactComposer(readback);
-    if (readback.composerHash !== promptHash) throw mismatchFailure(intent, browser, promptHash, readback);
-    const browserFact = requireConfirmedBrowserFact(intent, browser);
+    if (readback.composerHash !== promptHash) throw mismatchFailure(intent, context, promptHash, readback);
+    const browserFact = requireConfirmedBrowserFact(intent, context);
     return success({
       value: promptIdentity(prompt),
       ...declaredFacts({ ...readback.facts, decision: "ACT",

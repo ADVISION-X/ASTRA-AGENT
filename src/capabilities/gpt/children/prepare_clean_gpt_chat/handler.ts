@@ -68,7 +68,7 @@ export const prepareCleanGptChatHandler: GptChildHandler<"prepare_clean_gpt_chat
       kind: "fill", selector: GPT_COMPOSER_SELECTOR, approvedText: "",
       clearBeforeType: true, expectedMatches: 1,
     });
-    const browserFact = requireConfirmedBrowserFact(intent, browser, { allowNoMutationOutcome: true });
+    const browserFact = requireConfirmedBrowserFact(intent, context, { allowNoMutationOutcome: true });
     const readback = await readConversationState(browser);
     const proofFacts = declaredFacts({
       ...readback.facts, decision: "ACT", mutationOutcome: browserFact.mutationOutcome,

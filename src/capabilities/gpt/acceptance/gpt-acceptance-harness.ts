@@ -3,11 +3,12 @@ import {
   type GptAbilityGroup,
 } from "../index.js";
 import {
-  GPT_CHILD_CAPABILITY_CONTRACTS,
   type GptChildCapabilityId,
   type GptChildCapabilityIntent,
+  type GptAnyChildCapabilityIntent,
   type GptChildInputMap,
 } from "../contract.js";
+import { productionGptAtomicIdentity } from "../production-atomic-call.js";
 import type { BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import { hashCanonical } from "../../../lib/local-runtime/production/contracts.js";
 
@@ -36,19 +37,15 @@ export const createGptAcceptanceHarness = (scope: string) => {
       actionOrdinal: ordinal,
       input,
     }) as GptChildCapabilityIntent<K>;
+    const browserAtomicIdentity = productionGptAtomicIdentity(
+      intent as GptAnyChildCapabilityIntent,
+      0,
+    );
     const context = {
-      dataDir: "/tmp/gpt-exact-target", browser,
+      dataDir: "/tmp/gpt-exact-target", browser, browserAtomicIdentity,
       ...contextOverrides,
     };
-    return browser.runAtomicStep({
-      productStepId: intent.productStepId,
-      callId: intent.callId,
-      childCapabilityId,
-      inputHash: intent.inputHash,
-      actionOrdinal: intent.actionOrdinal,
-      replayPolicy: GPT_CHILD_CAPABILITY_CONTRACTS[childCapabilityId].replayPolicy as
-        "observation-only" | "target-local-per-generation" | "provider-effect-once",
-    }, () => gpt.execute(intent, context));
+    return browser.runAtomicStep(browserAtomicIdentity, () => gpt.execute(intent, context));
   };
   return Object.freeze({ gpt, execute });
 };

@@ -235,7 +235,7 @@ GptChildHandler<"ensure_gpt_reasoning_requirement"> = async (intent, context) =>
   await executeReasoningMutation({ browser, profile, observed, observedScale, resolution: resolved, currentBefore });
   const readback = await topology(browser);
   const readbackScale = observedReasoningScale(readback);
-  const browserFact = requireConfirmedBrowserFact(intent, browser);
+  const browserFact = requireConfirmedBrowserFact(intent, context);
   if (!profileOpenReady(readback) || readbackScale.min !== observedScale.min
     || readbackScale.max !== observedScale.max || readbackScale.currentBefore !== resolved.value) {
     failReasoningRequirement({

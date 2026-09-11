@@ -69,17 +69,17 @@ export const inspectProviderWaitContract = (
   const responseState = sourceText(context, RESPONSE_STATE);
   const submit = sourceText(context, SUBMIT_HANDLER);
   requireTokens(textHandler, TEXT_HANDLER, [
-    "checkpointGptTextResponseHandler", "probeBudgetMs", "readExactResponseState",
+    "checkpointGptTextResponseHandler", "probeBudgetMs", "userTurnId",
     "readExactAssistantTurn", "semanticText.trim().length > 0", "yieldForProviderProbe",
     'throw executionFailure("failed", "GPT_RESPONSE_TIMEOUT")',
   ], findings, finding);
   requireTokens(imageHandler, IMAGE_HANDLER, [
-    "checkpointGptGeneratedImageHandler", "probeBudgetMs", "readExactResponseState",
-    "downloadAuthenticatedMedia", "yieldForProviderProbe", "requireConfirmedBrowserFact",
+    "checkpointGptGeneratedImageHandler", "probeBudgetMs", "userTurnId",
+    "readAuthenticatedMedia", "yieldForProviderProbe", 'mutationOutcome: "no"', "browserFact: null",
     'throw executionFailure("failed", "GPT_IMAGE_TIMEOUT")',
   ], findings, finding);
   requireTokens(responseState, RESPONSE_STATE, [
-    "adjacentGptAssistantTurnId", "readExactResponseState", "exactGptUserPromptHash",
+    "readExactAssistantTurn", "userTurnId", "precedingUserTurnId",
   ], findings, finding);
   requireTokens(submit, SUBMIT_HANDLER, [
     "submitExactGptTurnOnceHandler", "requireConfirmedBrowserFact", 'status: "CONFIRMED"',
@@ -91,6 +91,13 @@ export const inspectProviderWaitContract = (
   ]) if ([textHandler, responseState, imageHandler, submit].some((source) => source.includes(retired))) {
     findings.push(finding("gpt/retired-provider-step-absent", ROOT,
       `Current provider chain retains retired ${retired}.`));
+  }
+  for (const forbidden of [
+    "adjacentGptAssistantTurnId", "downloadAuthenticatedMedia", "visible-download",
+    "requireConfirmedBrowserFact(intent, browser)",
+  ]) if ([textHandler, responseState, imageHandler].some((source) => source.includes(forbidden))) {
+    findings.push(finding("gpt/retired-provider-step-absent", ROOT,
+      `Current checkpoint chain retains forbidden ${forbidden}.`));
   }
   for (const [path, source] of [[TEXT_HANDLER, textHandler], [IMAGE_HANDLER, imageHandler]] as const) {
     for (const forbidden of ["browser.wait(", "let delay = 250", "Math.min(5_000", "* 1.5"]) {

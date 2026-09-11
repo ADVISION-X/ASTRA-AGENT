@@ -1,5 +1,4 @@
 import type { BrowserGovernedCommand } from "./browser-command-actor.js";
-import { decodeAuthenticatedMediaDispatchedReceipt } from "./browser-authenticated-media-receipt.js";
 import { browserInteractionNativeCauseCode } from "./browser-interaction-native-cause.js";
 
 export type BrowserMutationReceipt = Readonly<{
@@ -79,7 +78,6 @@ const exactKeys = (value: Readonly<Record<string, unknown>>, expected: readonly 
 };
 
 const mutationCommandValid = (command: BrowserGovernedCommand): boolean => command.kind === "file-input"
-  || (command.kind === "authenticated-media" && command.delivery === "visible-download")
   || (command.kind === "dom-intent" && ["click", "hover", "doubleClick", "keypress", "fill"]
     .includes(command.intent.kind));
 
@@ -90,10 +88,6 @@ const qualificationFailureValid = (
 ): failureCode is string => {
   if (typeof failureCode !== "string" || !Number.isSafeInteger(candidateCount)) return false;
   if (failureCode === "BROWSER_TARGET_NOT_INTERACTIVE") return candidateCount === 0;
-  if (command.kind === "authenticated-media" && command.delivery === "visible-download") {
-    return DOM_REJECTION_CODES.has(failureCode)
-      || /^BROWSER_AUTHENTICATED_MEDIA_[A-Z_]+$/u.test(failureCode);
-  }
   if (command.kind === "file-input") return failureCode === "BROWSER_FILE_INPUT_NOT_QUALIFIED"
     || (DOM_REJECTION_CODES.has(failureCode) && failureCode !== "BROWSER_DOM_ACTION_NOT_QUALIFIED");
   return (DOM_REJECTION_CODES.has(failureCode) || outgoingIdentityRejectionCode(failureCode))
@@ -101,15 +95,12 @@ const qualificationFailureValid = (
 };
 
 const qualificationFactsConsistent = (
-  command: BrowserGovernedCommand,
   value: Readonly<Record<string, unknown>>,
 ): boolean => {
   const code = value.failureCode;
   const count = value.candidateCount as number;
   const stage = value.qualificationStage;
   if (stage === "candidate-set") {
-    if (command.kind === "authenticated-media" && command.delivery === "visible-download"
-      && code === "BROWSER_AUTHENTICATED_MEDIA_ALT_INVALID") return count === 1;
     if (code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS"
       || (typeof code === "string" && code.endsWith("_MULTIPLE"))) return count >= 2;
     return count === 0 && code !== "BROWSER_FILE_INPUT_NOT_QUALIFIED"
@@ -388,7 +379,7 @@ const qualificationReceiptValid = (
       : outgoingIdentityRejectionCode(value.failureCode)
         ? value.nativeCauseCode === null
         : domActionabilityNativeCauseValid(command, value.nativeCauseCode))
-  && qualificationFactsConsistent(command, value);
+  && qualificationFactsConsistent(value);
 
 const decodeZeroMutationReceipt = (
   command: BrowserGovernedCommand,
@@ -493,11 +484,6 @@ export const decodeBrowserMutationReceipt = (
 ): BrowserMutationReceipt => {
   if (!mutationCommandValid(command)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   const value = result && typeof result === "object" ? result as Record<string, unknown> : {};
-  if (command.kind === "authenticated-media" && command.delivery === "visible-download") {
-    return value.mutationCount === 0
-      ? decodeZeroMutationReceipt(command, value)
-      : decodeAuthenticatedMediaDispatchedReceipt(value);
-  }
   const mutationCount = value.mutationCount;
   if ((mutationCount !== 0 && mutationCount !== 1) || typeof value.postconditionVerified !== "boolean"
     || (value.zeroActionSatisfied === true && value.qualificationRejected === true)) {

@@ -123,14 +123,8 @@ const failedBrowserFact = <K extends GptChildCapabilityId>(
   const contract = GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId];
   if (!context.browser || contract.replayPolicy === "observation-only"
     || contract.replayPolicy === "transaction-identical-readback") return null;
-  const recovery = context.browser.readAtomicStepOutcome({
-    productStepId: intent.productStepId,
-    callId: intent.callId,
-    childCapabilityId: intent.childCapabilityId,
-    inputHash: intent.inputHash,
-    actionOrdinal: intent.actionOrdinal,
-    replayPolicy: contract.replayPolicy,
-  });
+  const recovery = context.browserAtomicIdentity
+    ? context.browser.readAtomicStepOutcome(context.browserAtomicIdentity) : null;
   if (!recovery) return null;
   const legalPair = recovery.state === "dispatched"
     ? recovery.mutationOutcome === "dispatched"

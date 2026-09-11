@@ -11,14 +11,14 @@ import { inspectAgentContracts } from "./contract-inspection.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 
 const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V51",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V52",
   credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V5",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V21",
-  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V21",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V20",
-  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V22",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V22",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V23",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V22",
+  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V22",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V21",
+  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V23",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V23",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V24",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";

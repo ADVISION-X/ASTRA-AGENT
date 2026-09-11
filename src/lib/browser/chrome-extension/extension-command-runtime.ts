@@ -1,5 +1,4 @@
 import type { BrowserGovernedCommand } from "../exact-target/browser-command-actor.js";
-import type { BrowserMutationProgress } from "../exact-target/browser-mutation-store.js";
 import { executeAuthenticatedMedia } from "./authenticated-media-runtime.js";
 import { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import { executeRegisteredDomIntent } from "./dom-intent-runtime.js";
@@ -11,7 +10,6 @@ type CommandLifecycle = Readonly<{
   assertCurrent(): void;
   closeTarget(): Promise<void>;
   parkTarget(): Promise<void>;
-  onMutationProgress(progress: BrowserMutationProgress): Promise<void>;
 }>;
 
 export const executeRegisteredExtensionCommand = async (
@@ -44,7 +42,7 @@ export const executeRegisteredExtensionCommand = async (
   if (command.kind === "authenticated-media") {
     return executeAuthenticatedMedia(
       debuggerRuntime, target, command.assistantTurnId, command.semanticMediaId,
-      command.delivery, lifecycle.assertCurrent, lifecycle.onMutationProgress,
+      lifecycle.assertCurrent,
     );
   }
   throw new Error("BROWSER_FILE_GRANT_INVALID");

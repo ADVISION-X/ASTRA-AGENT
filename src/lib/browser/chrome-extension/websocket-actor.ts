@@ -1,6 +1,5 @@
 import { canonicalizeBrowserAuthorityValue, decodeBrowserAuthorityFrame, encodeBrowserAuthorityFrame, type BrowserAuthorityFrame } from "../transport/browser-authority-frame-codec.js";
 import type { BrowserGovernedCommand } from "../exact-target/browser-command-actor.js";
-import type { BrowserMutationProgress } from "../exact-target/browser-mutation-store.js";
 import type { BrowserCommandPermit } from "../transport/command-permit.js";
 import { admitExtensionCommand } from "./command-registry.js";
 import { clearExtensionPermitAuthority, setExtensionPermitAuthority } from "./command-permit-validator.js";
@@ -339,9 +338,6 @@ export class ExtensionWebSocketActor {
         command,
         target,
         registeredCommand.mutationClass,
-        async (progress: BrowserMutationProgress) => this.sendEncrypted(socket, "MUTATION_PROGRESS", {
-          requestSequence, permitSequence, replyChannelToken, ...progress,
-        }),
       );
       await this.sendEncrypted(socket, "REPLY", { requestSequence, permitSequence, replyChannelToken, result });
     } catch (error) {
@@ -374,7 +370,7 @@ export class ExtensionWebSocketActor {
     });
   }
 
-  private async sendEncrypted(socket: WebSocket | null, kind: "HEARTBEAT" | "MUTATION_PROGRESS" | "REPLY" | "TARGET_CLAIM" | "TARGET_REVOKE" | "DIAGNOSTIC" | "REVOKE", body: Record<string, unknown>): Promise<void> {
+  private async sendEncrypted(socket: WebSocket | null, kind: "HEARTBEAT" | "REPLY" | "TARGET_CLAIM" | "TARGET_REVOKE" | "DIAGNOSTIC" | "REVOKE", body: Record<string, unknown>): Promise<void> {
     const session = this.session;
     if (!socket || socket !== this.socket || socket.readyState !== WebSocket.OPEN || !session || this.state !== "CONNECTED") return;
     const sequence = session.nextClientSequence;

@@ -11,12 +11,6 @@ import {
 } from "./browser-mutation-authority.js";
 export type BrowserMutationState = "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED" | "FAILED";
 export type BrowserMutationOutcome = "no" | "dispatched" | "confirmed";
-export type BrowserMutationProgress = Readonly<{
-  physicalInputCount: 1 | 2;
-  downloadGuidHash: `sha256:${string}` | null;
-  downloadCompleted: boolean;
-  identityRevalidated: boolean;
-}>;
 export type BrowserMutationIdentity = Readonly<{
   commandId: string;
   logicalMutationId?: `sha256:${string}` | null;
@@ -272,67 +266,6 @@ export class BrowserMutationStore {
 
   public markDispatched(commandId: string): void {
     this.transition(commandId, "PREPARED", "DISPATCHED", "dispatched", null, null, null);
-  }
-
-  public recordAuthenticatedMediaProgress(commandId: string, progress: BrowserMutationProgress): void {
-    const hashValid = progress.downloadGuidHash === null
-      || /^sha256:[a-f0-9]{64}$/u.test(progress.downloadGuidHash);
-    if (!hashValid || (progress.physicalInputCount === 1
-      && (progress.downloadGuidHash !== null || progress.downloadCompleted || progress.identityRevalidated))
-      || (progress.downloadCompleted && progress.downloadGuidHash === null)
-      || (progress.identityRevalidated && !progress.downloadCompleted)) {
-      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    }
-    const current = this.database.prepare(
-      `select physical_input_count,download_guid_hash,download_completed,media_identity_revalidated,
-              child_capability_id,action_id
-       from browser_mutations where command_id=? and state='DISPATCHED'`,
-    ).get(commandId) as Readonly<{
-      physical_input_count: 0 | 1 | 2;
-      download_guid_hash: `sha256:${string}` | null;
-      download_completed: 0 | 1;
-      media_identity_revalidated: 0 | 1;
-      child_capability_id: string;
-      action_id: string;
-    }> | undefined;
-    if (!current || current.child_capability_id !== "checkpoint_gpt_generated_image"
-      || current.action_id !== "browser.authenticated-media.v1"
-      || progress.physicalInputCount < current.physical_input_count
-      || (current.download_guid_hash !== null && progress.downloadGuidHash !== current.download_guid_hash)
-      || (current.download_completed === 1 && !progress.downloadCompleted)
-      || (current.media_identity_revalidated === 1 && !progress.identityRevalidated)) {
-      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    }
-    const result = this.database.prepare(
-      `update browser_mutations set physical_input_count=?,download_guid_hash=coalesce(download_guid_hash,?),
-       download_completed=?,media_identity_revalidated=?,updated_at=?
-       where command_id=? and state='DISPATCHED'`,
-    ).run(progress.physicalInputCount, progress.downloadGuidHash, progress.downloadCompleted ? 1 : 0,
-      progress.identityRevalidated ? 1 : 0,
-      new Date().toISOString(), commandId);
-    if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
-  }
-
-  public assertAuthenticatedMediaCompleted(commandId: string, expectedDownloadGuidHash: unknown): void {
-    const row = this.database.prepare(
-      `select physical_input_count,download_guid_hash,download_completed,media_identity_revalidated
-       from browser_mutations where command_id=? and state='DISPATCHED'
-         and child_capability_id='checkpoint_gpt_generated_image'
-         and action_id='browser.authenticated-media.v1'`,
-    ).get(commandId) as Readonly<{
-      physical_input_count: number;
-      download_guid_hash: string | null;
-      download_completed: number;
-      media_identity_revalidated: number;
-    }> | undefined;
-    if (!row || row.physical_input_count !== 2 || row.download_completed !== 1
-      || row.media_identity_revalidated !== 1
-      || typeof row.download_guid_hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(row.download_guid_hash)) {
-      throw new Error("BROWSER_DOWNLOAD_COMPLETION_UNPROVEN");
-    }
-    if (row.download_guid_hash !== expectedDownloadGuidHash) {
-      throw new Error("BROWSER_DOWNLOAD_IDENTITY_MISMATCH");
-    }
   }
 
   public markReceiptMissing(commandId: string, proofHash: `sha256:${string}` | null = null): void {

@@ -43,9 +43,11 @@ export const productionGptAtomicIdentity = (
 const executionContext = (
   input: AtomicGptCallInput,
   browser: ProductionGptBrowserCall["facade"] | undefined,
+  browserAtomicIdentity?: BrowserAtomicStepIdentity,
 ): GptExecutionContext => ({
   dataDir: input.dataDir,
   ...(browser ? { browser } : {}),
+  ...(browserAtomicIdentity ? { browserAtomicIdentity } : {}),
   signal: input.signal,
   ...(input.browserCall ? {
     yieldForProviderProbe: (canonicalConversationUrl: string, probeDeadlineAt: number) =>
@@ -61,10 +63,12 @@ export const executeProductionGptAtomicCall = async (
 ): Promise<Readonly<{ result: GptChildCapabilityResult; resolveDispatched: boolean }>> => {
   const { gpt, intent, browserCall } = input;
   const browser = browserCall?.facade;
-  const context = executionContext(input, browser);
-  if (!browser) return { result: await gpt.execute(intent, context), resolveDispatched: false };
+  if (!browser) {
+    return { result: await gpt.execute(intent, executionContext(input, browser)), resolveDispatched: false };
+  }
   const replayPolicy = GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId].replayPolicy;
   const atomicIdentity = productionGptAtomicIdentity(intent, input.resultRevision);
+  const context = executionContext(input, browser, atomicIdentity);
   const priorOutcome = browser.readAtomicStepOutcome(atomicIdentity);
   if (!priorOutcome) {
     return {

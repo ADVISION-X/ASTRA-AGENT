@@ -7,9 +7,6 @@ import {
   type GptChildOutputMap,
   type GptExecutionContext,
 } from "../contract.js";
-import type {
-  BrowserTargetLease,
-} from "../../../lib/browser/browser-authority-api.js";
 import { gptExecutionFailure } from "../execution-fault.js";
 import { executionFailure } from "../../../lib/execution-failure.js";
 
@@ -66,7 +63,7 @@ export const requireConfirmedBrowserFact = <
   AllowsNo extends boolean = false,
 >(
   intent: GptChildCapabilityIntent<K>,
-  browser: Pick<BrowserTargetLease, "readAtomicStepOutcome">,
+  context: Pick<GptExecutionContext, "browser" | "browserAtomicIdentity">,
   options: Readonly<{ allowNoMutationOutcome: AllowsNo }> = Object.freeze({
     allowNoMutationOutcome: false as AllowsNo,
   }),
@@ -76,14 +73,8 @@ export const requireConfirmedBrowserFact = <
     || contract.replayPolicy === "transaction-identical-readback") {
     throw executionFailure("failed", "GPT_BROWSER_TERMINAL_FACT_NOT_APPLICABLE");
   }
-  const recovery = browser.readAtomicStepOutcome({
-    productStepId: intent.productStepId,
-    callId: intent.callId,
-    childCapabilityId: intent.childCapabilityId,
-    inputHash: intent.inputHash,
-    actionOrdinal: intent.actionOrdinal,
-    replayPolicy: contract.replayPolicy,
-  });
+  const recovery = context.browser && context.browserAtomicIdentity
+    ? context.browser.readAtomicStepOutcome(context.browserAtomicIdentity) : null;
   const mutationOutcome = recovery?.mutationOutcome;
   if (!recovery || recovery.state !== "confirmed"
     || (mutationOutcome !== "confirmed"
@@ -102,39 +93,6 @@ export const requireConfirmedBrowserFact = <
     evidenceRef: recovery.authorityRef,
     evidenceHash: recovery.authorityHash,
   }) as ConfirmedGptChildBrowserFact<AllowsNo>;
-};
-
-export const requireCompletedDownloadBrowserFact = (
-  intent: GptChildCapabilityIntent<"checkpoint_gpt_generated_image">,
-  browser: Pick<BrowserTargetLease, "target" | "document" | "readAtomicStepOutcome">,
-): GptChildBrowserFact => {
-  const recovery = browser.readAtomicStepOutcome({
-    productStepId: intent.productStepId,
-    callId: intent.callId,
-    childCapabilityId: intent.childCapabilityId,
-    inputHash: intent.inputHash,
-    actionOrdinal: intent.actionOrdinal,
-    replayPolicy: "target-local-per-generation",
-  });
-  if (!recovery || recovery.state !== "dispatched" || recovery.mutationOutcome !== "dispatched"
-    || recovery.physicalInputCount !== 2 || !recovery.downloadCompleted
-    || !recovery.identityRevalidated || recovery.downloadGuidHash === null
-    || recovery.targetRef !== browser.target.targetRef
-    || recovery.documentRef !== browser.document.documentRef) {
-    throw gptExecutionFailure("BROWSER_DOWNLOAD_COMPLETION_UNPROVEN", {
-      mutationOutcome: recovery?.mutationOutcome ?? "no",
-    });
-  }
-  return Object.freeze({
-    exactCallIdentityHash: gptExactCallIdentityHash(intent),
-    childCapabilityId: intent.childCapabilityId,
-    effectScope: "target_local",
-    browserOutcome: "DISPATCHED",
-    mutationOutcome: "dispatched",
-    terminalAt: null,
-    evidenceRef: recovery.authorityRef,
-    evidenceHash: recovery.authorityHash,
-  });
 };
 
 export const requireExactInputKeys = (

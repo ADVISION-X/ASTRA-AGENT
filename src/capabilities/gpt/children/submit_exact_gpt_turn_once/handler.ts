@@ -148,7 +148,7 @@ export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_tu
     if (!canonicalConversationUrl) {
       throw executionFailure("failed", "GPT_SUBMITTED_CONVERSATION_URL_INVALID");
     }
-    const browserFact = requireConfirmedBrowserFact(intent, browser);
+    const browserFact = requireConfirmedBrowserFact(intent, context);
     const facts = projectCoherentObservation(submitted.observation, "submitted-user-turn");
     return success({
       value: { status: "CONFIRMED", promptHash, mutationSent: true,

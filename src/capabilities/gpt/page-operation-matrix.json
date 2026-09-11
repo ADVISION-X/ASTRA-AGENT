@@ -235,40 +235,23 @@
       "scenarioId": "image-main",
       "coreTargets": [
         "assistant-turn",
-        "semantic-media-node",
-        "image-container",
-        "viewer-dialog",
-        "viewer-save-control"
+        "semantic-media-node"
       ],
       "requiredLiveStates": [
-        "exact-media-node",
-        "viewer-open",
         "stable-image-checkpoint"
       ],
       "liveStateTargets": {
-        "exact-media-node": [
-          "assistant-turn",
-          "semantic-media-node",
-          "image-container"
-        ],
-        "viewer-open": [
-          "viewer-dialog",
-          "viewer-save-control"
-        ],
         "stable-image-checkpoint": [
           "assistant-turn",
-          "semantic-media-node",
-          "image-container"
+          "semantic-media-node"
         ]
       },
       "optionalLiveStates": [],
       "childSpecificDerivedStates": [
-        "thumbnail-only",
         "wrong-turn-media",
-        "media-not-stable",
-        "viewer-title-mismatch",
-        "viewer-save-control-missing",
-        "native-download-not-unique",
+        "media-absent-or-not-ready",
+        "multiple-media-content",
+        "authenticated-fetch-failed",
         "original-content-identity-mismatch"
       ],
       "requiredInputRefs": [
@@ -276,34 +259,18 @@
         "chain-confirmed-submit-receipt"
       ],
       "stateAssertions": {
-        "exact-media-node": [
+        "stable-image-checkpoint": [
           {
             "path": "stateFacts.semanticMediaReady",
             "operator": "equals",
             "value": true
           },
           {
-            "path": "core.targets.semantic-media-node",
-            "operator": "present"
-          }
-        ],
-        "viewer-open": [
-          {
-            "path": "core.targets.viewer-dialog",
+            "path": "core.targets.assistant-turn",
             "operator": "present"
           },
           {
-            "path": "core.targets.viewer-save-control",
-            "operator": "present"
-          }
-        ],
-        "stable-image-checkpoint": [
-          {
             "path": "core.targets.semantic-media-node",
-            "operator": "present"
-          },
-          {
-            "path": "core.targets.image-container",
             "operator": "present"
           }
         ]

@@ -606,22 +606,26 @@ export const exerciseCapturedExactAssistantTurnFunction = async (source: string)
   const listItem = new FakeElement("item", {}, {}, {}, "LI", [text("item")]);
   const list = new FakeElement("item", {}, {}, {}, "UL", [listItem]);
   const assistant = new FakeElement("bold item", { "pre code": [] }, {}, {}, "DIV", [paragraph, list]);
-  const selector = '[data-testid="conversation-turn-2"]:has([data-message-author-role="assistant"]) [data-message-author-role="assistant"]';
   const promptText = "approved [GRASSEYE:checkpoint]";
   const prompt = new FakeElement(promptText, {}, {}, {}, "DIV", [text(promptText)]);
   const user = new FakeElement(promptText, {
     "[data-testid='collapsible-user-message-content']": [prompt],
     "[data-message-author-role='user']": [prompt],
-  });
+  }, {}, { "data-testid": "conversation-turn-1" });
+  const assistantOuter = (node: FakeElement) => new FakeElement(node.textContent, {
+    "[data-message-author-role='assistant']": [node],
+  }, {}, { "data-testid": "conversation-turn-2" }, "SECTION", [node]);
   const userSelector = "[data-testid='conversation-turn-1']:has([data-message-author-role='user'])";
-  const input = { kind: "readExactAssistantTurn", assistantTurnId: "conversation-turn-2",
+  const turnsSelector = "[data-testid^='conversation-turn-']";
+  const input = { kind: "readExactAssistantTurn", userTurnId: "conversation-turn-1",
     sourceCheckpoint: { canonicalConversationUrl: "https://chatgpt.com/c/exact",
-      expectedPromptHash: hash(promptText), turnMarker: "[GRASSEYE:checkpoint]" } };
+      expectedPromptHash: hash(promptText) } };
+  const exactAssistant = assistantOuter(assistant);
   let queryCalls = 0;
   const document = {
     querySelectorAll: (value: string) => {
       queryCalls += 1;
-      return value === selector ? [assistant] : value === userSelector ? [user] : [];
+      return value === userSelector ? [user] : value === turnsSelector ? [user, exactAssistant] : [];
     },
     elementFromPoint: () => assistant,
   };
@@ -640,22 +644,26 @@ export const exerciseCapturedExactAssistantTurnFunction = async (source: string)
   assert.equal(observed.currentUrl, "https://chatgpt.com/c/exact");
   assert.equal(observed.nativeStage, "runtime-call-function-on");
   const hidden = new FakeElement("hidden", { "pre code": [] }, { display: "none" }, {}, "DIV", [text("hidden")]);
+  const hiddenAssistant = assistantOuter(hidden);
   const hiddenObserved = await execute(source, {
-    querySelectorAll: (value: string) => value === selector ? [hidden]
-      : value === userSelector ? [user] : [], elementFromPoint: () => null,
+    querySelectorAll: (value: string) => value === userSelector ? [user]
+      : value === turnsSelector ? [user, hiddenAssistant] : [], elementFromPoint: () => null,
   }, input, "https://chatgpt.com/c/exact") as Readonly<{ rawCount: number; eligibleCount: number; rawDomHtml: string }>;
   assert.deepEqual({ rawCount: hiddenObserved.rawCount, eligibleCount: hiddenObserved.eligibleCount,
     rawDomHtml: hiddenObserved.rawDomHtml }, { rawCount: 1, eligibleCount: 0, rawDomHtml: "" });
   const ambiguous = await execute(source, {
-    querySelectorAll: (value: string) => value === selector ? [assistant, assistant]
-      : value === userSelector ? [user] : [], elementFromPoint: () => assistant,
+    querySelectorAll: (value: string) => value === userSelector ? [user]
+      : value === turnsSelector ? [user, new FakeElement("ambiguous", {
+        "[data-message-author-role='assistant']": [assistant, assistant],
+      }, {}, { "data-testid": "conversation-turn-2" })] : [], elementFromPoint: () => assistant,
   }, input, "https://chatgpt.com/c/exact") as Readonly<{ rawCount: number; eligibleCount: number }>;
   assert.deepEqual({ rawCount: ambiguous.rawCount, eligibleCount: ambiguous.eligibleCount },
     { rawCount: 2, eligibleCount: 0 });
   const rich = richSemanticTree();
+  const richAssistant = assistantOuter(rich);
   const richObserved = await execute(source, {
-    querySelectorAll: (value: string) => value === selector ? [rich]
-      : value === userSelector ? [user] : [],
+    querySelectorAll: (value: string) => value === userSelector ? [user]
+      : value === turnsSelector ? [user, richAssistant] : [],
     elementFromPoint: () => rich,
   }, input, "https://chatgpt.com/c/exact") as Readonly<{ semanticText: string }>;
   assert.equal(richObserved.semanticText, RICH_SEMANTIC_TEXT,

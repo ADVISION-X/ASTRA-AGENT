@@ -23,14 +23,11 @@ export const exactAssistantReadIntentValid = (
     canonical = requireCanonicalGptConversationUrl(source?.canonicalConversationUrl ?? "")
       === source?.canonicalConversationUrl;
   } catch { canonical = false; }
-  const ordinal = Number(intent.assistantTurnId.slice("conversation-turn-".length));
-  return /^conversation-turn-[1-9][0-9]*$/u.test(intent.assistantTurnId)
-    && Number.isSafeInteger(ordinal) && ordinal >= 2
+  return /^conversation-turn-[1-9][0-9]*$/u.test(intent.userTurnId)
     && Boolean(source)
-    && Object.keys(source ?? {}).sort().join("|") === "canonicalConversationUrl|expectedPromptHash|turnMarker"
+    && Object.keys(source ?? {}).sort().join("|") === "canonicalConversationUrl|expectedPromptHash"
     && canonical
-    && /^sha256:[a-f0-9]{64}$/u.test(source?.expectedPromptHash ?? "")
-    && isBoundedText(source?.turnMarker, 1_024);
+    && /^sha256:[a-f0-9]{64}$/u.test(source?.expectedPromptHash ?? "");
 };
 
 export const assertSelector = (intent: BrowserDomIntent): void => {

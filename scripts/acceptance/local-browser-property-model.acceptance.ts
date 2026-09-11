@@ -218,7 +218,7 @@ const wireCases: readonly Readonly<{
     rawFragments: ["private-delta"] },
   { capabilityId: "browser.authenticated-media.v1", mutationClass: "observation",
     command: { kind: "authenticated-media", assistantTurnId: "conversation-turn-5",
-      semanticMediaId: "gpt-generated-image-main", delivery: "probe" },
+      semanticMediaId: "gpt-generated-image-main" },
     result: { bytesBase64: "cHJpdmF0ZS1tZWRpYS1lcHNpbG9u" },
     rawFragments: ["cHJpdmF0ZS1tZWRpYS1lcHNpbG9u"] },
 ];
@@ -252,41 +252,6 @@ for (const [index, wireCase] of wireCases.entries()) {
   authority.receive(socket, replyEncoded);
   assert.deepEqual((await replyPromise).result, wireCase.result);
 }
-
-const progressPermit = { ...permitFor(10, "browser.authenticated-media.v1", "mutation"),
-  childCapabilityId: "checkpoint_gpt_generated_image", commandTtlMs: 30_000 };
-const progressCommand = { kind: "authenticated-media" as const,
-  assistantTurnId: "conversation-turn-6", semanticMediaId: "gpt-generated-image-main" as const,
-  delivery: "visible-download" as const };
-const progressValues: unknown[] = [];
-const progressSentBefore = sentFrames.length;
-const progressReply = authority.send(progressPermit, progressCommand, () => undefined,
-  (progress) => { progressValues.push(progress); });
-const progressCommandFrame = decodeBrowserAuthorityFrame(sentFrames[progressSentBefore]!);
-const progressHeader = { protocolVersion: BROWSER_PROTOCOL_REVISION, kind: "MUTATION_PROGRESS" as const,
-  epoch: 1, sequence: clientSequence++, deadline: new Date(Date.now() + 20_000).toISOString() };
-const progressBody = { requestSequence: progressCommandFrame.sequence,
-  permitSequence: progressPermit.sequence, replyChannelToken: progressPermit.replyChannelToken,
-  physicalInputCount: 2, downloadGuidHash: `sha256:${"7".repeat(64)}`,
-  downloadCompleted: true, identityRevalidated: true };
-authority.receive(socket, encodeBrowserAuthorityFrame({ ...progressHeader, body: {
-  encrypted: await extensionEncrypt(
-    directionalKeys.clientToServerKey, "client-to-server", progressHeader, progressBody,
-  ),
-} }));
-const progressReplyHeader = { protocolVersion: BROWSER_PROTOCOL_REVISION, kind: "REPLY" as const,
-  epoch: 1, sequence: clientSequence++, deadline: new Date(Date.now() + 20_000).toISOString() };
-const progressResult = { terminal: "native-download-completed" };
-authority.receive(socket, encodeBrowserAuthorityFrame({ ...progressReplyHeader, body: {
-  encrypted: await extensionEncrypt(directionalKeys.clientToServerKey, "client-to-server",
-    progressReplyHeader, { requestSequence: progressCommandFrame.sequence,
-      permitSequence: progressPermit.sequence, replyChannelToken: progressPermit.replyChannelToken,
-      result: progressResult }),
-} }));
-assert.deepEqual(progressValues, [{ physicalInputCount: 2,
-  downloadGuidHash: `sha256:${"7".repeat(64)}`, downloadCompleted: true, identityRevalidated: true }]);
-assert.deepEqual((await progressReply).result, progressResult,
-  "authenticated mutation progress must not consume or replace the one terminal reply");
 
 const gracePermit = { ...permitFor(20, "browser.dom.click.v1", "mutation"), commandTtlMs: 50 };
 const graceCommand = { kind: "dom-intent" as const, intent: {

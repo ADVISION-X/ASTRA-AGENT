@@ -60,7 +60,7 @@ export const openGptModelSelectorV2Handler: GptChildHandler<"open_gpt_model_sele
     if (!modelSelectorAlreadyOpen(readback)) {
       throw executionFailure("failed", `GPT_MODEL_SELECTION_V2_STATE_INVALID:${modelSelectorTopologyCode(readback)}`);
     }
-    const browserFact = requireConfirmedBrowserFact(intent, browser, { allowNoMutationOutcome: true });
+    const browserFact = requireConfirmedBrowserFact(intent, context, { allowNoMutationOutcome: true });
     const didMutate = browserFact.mutationOutcome === "confirmed";
     return success({
       value: { selectionVersion: GPT_MODEL_SELECTION_VERSION,

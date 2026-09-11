@@ -15,9 +15,9 @@ const successfulObservation = Object.freeze({
   rawCount: 1, eligibleCount: 1,
   rawDomHtml: "<div><strong>complete</strong></div>", semanticText: "**complete**",
   currentUrl: "https://chatgpt.com/c/exact",
+  assistantTurnId: "conversation-turn-2",
   precedingUserTurnId: "conversation-turn-1",
   precedingPromptHash: `sha256:${"6".repeat(64)}`,
-  turnMarkerMatched: true,
   generatingRaw: 0,
   observedAt, nativeCauseCode: null, nativeStage: "runtime-call-function-on",
 });
@@ -49,9 +49,9 @@ const runtimeFor = (
       functionSource = String(parameters?.functionDeclaration ?? "");
       assert.equal(parameters?.objectId, "document-object");
       assert.deepEqual((parameters?.arguments as readonly Readonly<{ value: unknown }>[])?.[0]?.value,
-        { kind: "readExactAssistantTurn", assistantTurnId: "conversation-turn-2",
+        { kind: "readExactAssistantTurn", userTurnId: "conversation-turn-1",
           sourceCheckpoint: { canonicalConversationUrl: "https://chatgpt.com/c/exact",
-            expectedPromptHash: `sha256:${"6".repeat(64)}`, turnMarker: "[GRASSEYE:checkpoint]" } });
+            expectedPromptHash: `sha256:${"6".repeat(64)}` } });
       assert.equal(parameters?.returnByValue, true);
       assert.equal(parameters?.awaitPromise, true);
       return { result: { value: observation } };
@@ -66,9 +66,9 @@ const runtimeFor = (
 const execute = (fixture: ReturnType<typeof runtimeFor>): Promise<unknown> => executeRegisteredDomIntent(
   fixture.runtime,
   target,
-  { kind: "readExactAssistantTurn", assistantTurnId: "conversation-turn-2", sourceCheckpoint: {
+  { kind: "readExactAssistantTurn", userTurnId: "conversation-turn-1", sourceCheckpoint: {
     canonicalConversationUrl: "https://chatgpt.com/c/exact",
-    expectedPromptHash: `sha256:${"6".repeat(64)}`, turnMarker: "[GRASSEYE:checkpoint]",
+    expectedPromptHash: `sha256:${"6".repeat(64)}`,
   } },
   () => undefined,
   "loader-current",
@@ -108,9 +108,9 @@ const exerciseAtomicFailureClosure = async (): Promise<void> => {
   await assert.rejects(executeRegisteredDomIntent(
     runtimeFor(successfulObservation).runtime,
     target,
-    { kind: "readExactAssistantTurn", assistantTurnId: "conversation-turn-2", sourceCheckpoint: {
+    { kind: "readExactAssistantTurn", userTurnId: "conversation-turn-1", sourceCheckpoint: {
       canonicalConversationUrl: "https://chatgpt.com/c/exact",
-      expectedPromptHash: `sha256:${"6".repeat(64)}`, turnMarker: "[GRASSEYE:checkpoint]",
+      expectedPromptHash: `sha256:${"6".repeat(64)}`,
     } },
     () => undefined,
   ), /BROWSER_DOCUMENT_INVALID/u,

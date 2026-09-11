@@ -4,7 +4,7 @@ export const BROWSER_AUTHORITY_PROTOCOL_VERSION = BROWSER_PROTOCOL_REVISION;
 
 export type BrowserAuthorityFrame = Readonly<{
   protocolVersion: typeof BROWSER_AUTHORITY_PROTOCOL_VERSION;
-  kind: "PAIR_HELLO" | "PAIR_CHALLENGE" | "PAIR_PROOF" | "AUTHENTICATED" | "READY" | "HEARTBEAT" | "COMMAND" | "MUTATION_PROGRESS" | "REPLY" | "TARGET_ACQUIRE" | "TARGET_CLAIM" | "TARGET_REVOKE" | "DIAGNOSTIC" | "REVOKE" | "ARTIFACT_CHUNK";
+  kind: "PAIR_HELLO" | "PAIR_CHALLENGE" | "PAIR_PROOF" | "AUTHENTICATED" | "READY" | "HEARTBEAT" | "COMMAND" | "REPLY" | "TARGET_ACQUIRE" | "TARGET_CLAIM" | "TARGET_REVOKE" | "DIAGNOSTIC" | "REVOKE" | "ARTIFACT_CHUNK";
   epoch: number;
   sequence: number;
   deadline: string;
@@ -46,7 +46,7 @@ export function assertBrowserAuthorityFrame(value: unknown): asserts value is Br
   if (!isRecord(value)) throw new Error("BROWSER_AUTH_FRAME_INVALID");
   const { protocolVersion, kind, epoch, sequence, deadline, body } = value;
   if (protocolVersion !== BROWSER_AUTHORITY_PROTOCOL_VERSION
-    || typeof kind !== "string" || !["PAIR_HELLO", "PAIR_CHALLENGE", "PAIR_PROOF", "AUTHENTICATED", "READY", "HEARTBEAT", "COMMAND", "MUTATION_PROGRESS", "REPLY", "TARGET_ACQUIRE", "TARGET_CLAIM", "TARGET_REVOKE", "DIAGNOSTIC", "REVOKE", "ARTIFACT_CHUNK"].includes(kind)
+    || typeof kind !== "string" || !["PAIR_HELLO", "PAIR_CHALLENGE", "PAIR_PROOF", "AUTHENTICATED", "READY", "HEARTBEAT", "COMMAND", "REPLY", "TARGET_ACQUIRE", "TARGET_CLAIM", "TARGET_REVOKE", "DIAGNOSTIC", "REVOKE", "ARTIFACT_CHUNK"].includes(kind)
     || typeof epoch !== "number" || !Number.isSafeInteger(epoch) || epoch < 0
     || typeof sequence !== "number" || !Number.isSafeInteger(sequence) || sequence < 0
     || typeof deadline !== "string" || Number.isNaN(Date.parse(deadline))

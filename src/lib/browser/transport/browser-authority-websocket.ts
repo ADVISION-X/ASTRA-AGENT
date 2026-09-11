@@ -19,7 +19,6 @@ import {
   type BrowserCommandReply,
   type BrowserCommandPort,
 } from "../exact-target/browser-command-actor.js";
-import type { BrowserMutationProgress } from "../exact-target/browser-mutation-store.js";
 import type { BrowserCommandPermit } from "./command-permit.js";
 import {
   authorityRecord,
@@ -76,7 +75,6 @@ type AwaitingReply = Readonly<{
   targetRef: string;
   replyChannelToken: string;
   permitSequence: number;
-  onProgress?: (progress: BrowserMutationProgress) => void;
   resolve: (reply: BrowserCommandReply) => void;
   reject: (error: Error) => void;
   timeout: ReturnType<typeof setTimeout>;
@@ -165,7 +163,6 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     permit: BrowserCommandPermit,
     command: BrowserGovernedCommand,
     onDispatched?: () => void,
-    onProgress?: (progress: BrowserMutationProgress) => void,
   ): Promise<BrowserCommandReply> {
     this.assertLive();
     const active = this.active;
@@ -190,7 +187,6 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
         targetRef: permit.targetRef,
         replyChannelToken: permit.replyChannelToken,
         permitSequence: permit.sequence,
-        ...(onProgress === undefined ? {} : { onProgress }),
         resolve,
         reject,
         timeout,
@@ -354,38 +350,8 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       try { socket.close(1008); } catch { this.options.onDiagnostic("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", { failedOperation: "socket-close" }); }
       return true;
     }
-    if (frame.kind === "MUTATION_PROGRESS") {
-      this.acceptMutationProgress(body);
-      return true;
-    }
     if (frame.kind !== "REPLY") throw new Error("BROWSER_CAPABILITY_REJECTED");
     return false;
-  }
-
-  private acceptMutationProgress(body: Record<string, unknown>): void {
-    const active = this.active;
-    const requestSequence = integerField(body, "requestSequence");
-    const permitSequence = integerField(body, "permitSequence");
-    const replyChannelToken = stringField(body, "replyChannelToken");
-    const reply = active?.replies.get(requestSequence);
-    const downloadGuidHash = body.downloadGuidHash;
-    const physicalInputCount = integerField(body, "physicalInputCount");
-    if (!active || !reply || !reply.onProgress || Object.keys(body).length !== 7
-      || permitSequence !== reply.permitSequence
-      || !compareReplyToken(replyChannelToken, reply.replyChannelToken)
-      || (physicalInputCount !== 1 && physicalInputCount !== 2)
-      || (downloadGuidHash !== null && (typeof downloadGuidHash !== "string"
-        || !/^sha256:[a-f0-9]{64}$/u.test(downloadGuidHash)))
-      || typeof body.downloadCompleted !== "boolean"
-      || typeof body.identityRevalidated !== "boolean") {
-      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    }
-    reply.onProgress({
-      physicalInputCount,
-      downloadGuidHash: downloadGuidHash as `sha256:${string}` | null,
-      downloadCompleted: body.downloadCompleted,
-      identityRevalidated: body.identityRevalidated,
-    });
   }
 
   private acceptReply(body: Record<string, unknown>): void {

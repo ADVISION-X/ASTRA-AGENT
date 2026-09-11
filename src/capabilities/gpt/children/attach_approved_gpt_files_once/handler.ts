@@ -60,7 +60,7 @@ export const attachApprovedGptFilesOnceHandler: GptChildHandler<"attach_approved
         bytes: file.bytes,
       })),
     });
-    const browserFact = requireConfirmedBrowserFact(intent, browser);
+    const browserFact = requireConfirmedBrowserFact(intent, context);
     return success({
       value: { ...attachmentValue(files), mutationSent: true },
       ...declaredFacts({

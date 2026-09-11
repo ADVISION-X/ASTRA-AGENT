@@ -32,7 +32,6 @@ import {
   BrowserMutationStore,
   type BrowserAtomicStepOutcome,
   type BrowserMutationIdentity,
-  type BrowserMutationProgress,
 } from "./browser-mutation-store.js";
 import type { BrowserAtomicStepIdentity } from "./browser-target-lease.js";
 import {
@@ -64,7 +63,6 @@ export type BrowserGovernedCommand =
     kind: "authenticated-media";
     assistantTurnId: string;
     semanticMediaId: "gpt-generated-image-main";
-    delivery: "probe" | "visible-download";
   }>
   | Readonly<{ kind: "wait"; durationMs: number }>
   | Readonly<{ kind: "park-target"; reason: string }>
@@ -75,7 +73,6 @@ export type BrowserCommandPort = Readonly<{
     permit: BrowserCommandPermit,
     command: BrowserGovernedCommand,
     onDispatched?: () => void,
-    onProgress?: (progress: BrowserMutationProgress) => void,
   ): Promise<BrowserCommandReply>;
 }>;
 
@@ -113,7 +110,6 @@ const assertAcceptedCommand = (permit: BrowserCommandPermit, command: BrowserGov
 
 const isMutation = (command: BrowserGovernedCommand): boolean =>
   command.kind === "file-input"
-  || (command.kind === "authenticated-media" && command.delivery === "visible-download")
   || (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "hover"
     || command.intent.kind === "doubleClick" || command.intent.kind === "keypress" || command.intent.kind === "fill"));
 
@@ -174,17 +170,6 @@ const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
       activation: command.activation,
       approvedFiles: command.approvedFiles,
       attached: true,
-    };
-    return Object.freeze({
-      positive: hashValue({ ...positive, result: "passed" }),
-      negative: hashValue({ ...positive, result: "failed" }),
-    });
-  }
-  if (command.kind === "authenticated-media" && command.delivery === "visible-download") {
-    const positive = {
-      kind: command.kind, delivery: command.delivery, assistantTurnId: command.assistantTurnId,
-      semanticMediaId: command.semanticMediaId, imageOpened: true, saveClicked: true,
-      downloadCompleted: true,
     };
     return Object.freeze({
       positive: hashValue({ ...positive, result: "passed" }),
@@ -261,11 +246,10 @@ const exactAssistantTurnIdentityValid = (
   intent: Extract<BrowserDomIntent, { kind: "readExactAssistantTurn" }>,
 ): boolean => {
   const keys = Object.keys(value);
-  const ordinal = Number(intent.assistantTurnId.slice("conversation-turn-".length));
-  return keys.length === 15 && [
+  return keys.length === 14 && [
     "schemaVersion", "targetRefHash", "documentRefHash", "observationRevisionHash",
     "assistantTurnId", "currentUrl", "precedingUserTurnId", "precedingPromptHash",
-    "turnMarkerMatched", "generatingRaw", "rawDomHtml", "rawDomHash", "semanticText",
+    "generatingRaw", "rawDomHtml", "rawDomHash", "semanticText",
     "semanticTextHash", "observedAt",
   ].every((key) => keys.includes(key))
     && value.schemaVersion === "grasseye.browser.exact-assistant-turn.v2"
@@ -273,11 +257,11 @@ const exactAssistantTurnIdentityValid = (
     && value.documentRefHash === hashText(permit.documentRef)
     && typeof value.observationRevisionHash === "string"
     && /^sha256:[a-f0-9]{64}$/u.test(value.observationRevisionHash)
-    && value.assistantTurnId === intent.assistantTurnId
+    && typeof value.assistantTurnId === "string"
+    && /^conversation-turn-[1-9][0-9]*$/u.test(value.assistantTurnId)
     && value.currentUrl === intent.sourceCheckpoint.canonicalConversationUrl
-    && value.precedingUserTurnId === `conversation-turn-${ordinal - 1}`
-    && value.precedingPromptHash === intent.sourceCheckpoint.expectedPromptHash
-    && value.turnMarkerMatched === true;
+    && value.precedingUserTurnId === intent.userTurnId
+    && value.precedingPromptHash === intent.sourceCheckpoint.expectedPromptHash;
 };
 
 const exactAssistantTurnContentValid = (value: Readonly<Record<string, unknown>>): boolean => {
@@ -300,11 +284,10 @@ const exactAssistantTurnValueValid = (
   return value.observationRevisionHash === hashText(canonicalBrowserExactAssistantTurnRevision({
     targetRefHash: value.targetRefHash as `sha256:${string}`,
     documentRefHash: value.documentRefHash as `sha256:${string}`,
-    assistantTurnId: intent.assistantTurnId,
+    assistantTurnId: value.assistantTurnId as string,
     currentUrl: value.currentUrl as string,
     precedingUserTurnId: value.precedingUserTurnId as string,
     precedingPromptHash: value.precedingPromptHash as `sha256:${string}`,
-    turnMarkerMatched: true,
     generatingRaw: value.generatingRaw as number,
     rawDomHash: value.rawDomHash as `sha256:${string}`,
     semanticTextHash: value.semanticTextHash as `sha256:${string}`,
@@ -405,9 +388,6 @@ export class BrowserCommandActor {
           runtimeLogger: this.runtimeLogger, mutation: permit, outcome: "DISPATCHED",
           authorityHash: this.mutations.authorityHash(permit.commandId),
         });
-      } : undefined, mutation ? (progress) => {
-        this.authorityGuard.assertCurrentAuthority(permit);
-        this.mutations.recordAuthenticatedMediaProgress(permit.commandId, progress);
       } : undefined);
       assertMatchingReply(permit, reply);
       state.authenticatedReplyHash = hashValue(reply.result);
@@ -450,12 +430,6 @@ export class BrowserCommandActor {
   ): void {
     if (!state.dispatched) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     const result = decodeBrowserMutationReceipt(command, reply.result);
-    if (command.kind === "authenticated-media" && command.delivery === "visible-download"
-      && result.terminal === "confirmed") {
-      const downloadGuidHash = reply.result && typeof reply.result === "object"
-        ? (reply.result as Readonly<Record<string, unknown>>).downloadGuidHash : null;
-      this.mutations.assertAuthenticatedMediaCompleted(permit.commandId, downloadGuidHash);
-    }
     const replyHash = hashValue(reply.result);
     if (result.terminal === "rejected") {
       this.mutations.markRejected(

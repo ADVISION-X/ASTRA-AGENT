@@ -97,7 +97,6 @@ export type BrowserExactAssistantTurnReplyV2 = Readonly<{
   currentUrl: string;
   precedingUserTurnId: string;
   precedingPromptHash: `sha256:${string}`;
-  turnMarkerMatched: true;
   generatingRaw: number;
   rawDomHtml: string;
   rawDomHash: `sha256:${string}`;
@@ -121,10 +120,9 @@ export type BrowserDomIntent =
   | Readonly<{ kind: "document" }>
   | Readonly<{ kind: "selectExactGptConversation"; canonicalConversationUrl: string }>
   | Readonly<{ kind: "observe"; queries: readonly BrowserDomObservationQuery[] }>
-  | Readonly<{ kind: "readExactAssistantTurn"; assistantTurnId: string; sourceCheckpoint: Readonly<{
+  | Readonly<{ kind: "readExactAssistantTurn"; userTurnId: string; sourceCheckpoint: Readonly<{
     canonicalConversationUrl: string;
     expectedPromptHash: `sha256:${string}`;
-    turnMarker: string;
   }> }>
   | Readonly<{ kind: "inspect"; selector: string; fields: readonly BrowserDomField[]; scope?: BrowserDomReadScope }>
   | Readonly<{

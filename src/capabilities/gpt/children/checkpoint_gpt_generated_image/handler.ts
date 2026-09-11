@@ -6,7 +6,6 @@ import {
   declaredFacts,
   numberInput,
   requireBrowser,
-  requireConfirmedBrowserFact,
   requireExactInputKeys,
   stringInput,
   success,
@@ -18,7 +17,6 @@ import {
 } from "../../web/gpt-dom-observation.js";
 import { responseHashInput } from "./response-support.js";
 import { canonicalGptConversationUrl } from "../../web/contracts/target-document.contract.js";
-import { adjacentGptAssistantTurnId } from "../checkpoint_gpt_text_response/exact-response.js";
 
 const hash = (value: string | Buffer): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -42,7 +40,6 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
   const expectedPromptHash = responseHashInput(intent, "expectedPromptHash");
   const turnMarker = stringInput(intent, "turnMarker");
   const userTurnId = stringInput(intent, "userTurnId");
-  const exactAssistantTurnId = adjacentGptAssistantTurnId(userTurnId);
   const probeBudgetMs = numberInput(intent, "probeBudgetMs");
   if (!Number.isSafeInteger(probeBudgetMs) || probeBudgetMs < 1 || probeBudgetMs > 3_600_000) {
     throw executionFailure("failed", "GPT_RESPONSE_PROBE_BUDGET_INVALID");
@@ -50,24 +47,22 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
   const browser = requireBrowser(context);
   const deadline = Date.now() + probeBudgetMs;
   let observed: Awaited<ReturnType<typeof readExactAssistantTurn>> | null = null;
-  let assistantTurnId: string;
-  let media: Awaited<ReturnType<typeof browser.downloadAuthenticatedMedia>>;
+  let media: Awaited<ReturnType<typeof browser.readAuthenticatedMedia>>;
   await browser.executeDomIntent({ kind: "selectExactGptConversation", canonicalConversationUrl: conversationUrl });
   for (;;) {
     if (Date.now() >= deadline) throw executionFailure("failed", "GPT_IMAGE_TIMEOUT");
     try {
-      observed = await readExactAssistantTurn(browser, exactAssistantTurnId, {
-        canonicalConversationUrl: conversationUrl, expectedPromptHash, turnMarker,
+      observed = await readExactAssistantTurn(browser, userTurnId, {
+        canonicalConversationUrl: conversationUrl, expectedPromptHash,
       });
     } catch (error) {
       if (failureCode(error) !== "BROWSER_DOM_CANDIDATE_MISSING") throw error;
       observed = null;
     }
-    if (observed && observed.generatingRaw === 0) {
+    if (observed) {
       try {
-        media = await browser.downloadAuthenticatedMedia({ assistantTurnId: exactAssistantTurnId,
-          semanticMediaId: "gpt-generated-image-main", delivery: "visible-download" });
-        assistantTurnId = exactAssistantTurnId;
+        media = await browser.readAuthenticatedMedia({ assistantTurnId: observed.assistantTurnId,
+          semanticMediaId: "gpt-generated-image-main" });
         break;
       } catch (error) {
         if (failureCode(error) !== "BROWSER_AUTHENTICATED_MEDIA_ABSENT") throw error;
@@ -92,9 +87,8 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
   }
   const webp = await renderGeneratedImage(original);
   const imageHash = hash(webp);
-  const browserFact = requireConfirmedBrowserFact(intent, browser);
   return success({
-    value: { assistantTurnId, semanticMediaId: "gpt-generated-image-main", mediaHash: media.sha256,
+    value: { assistantTurnId: observed.assistantTurnId, semanticMediaId: "gpt-generated-image-main", mediaHash: media.sha256,
       authorityTargetHash: media.authorityTargetHash, authorityDocumentHash: media.authorityDocumentHash,
       canonicalConversationUrl: conversationUrl, promptHash: expectedPromptHash, turnMarker,
       artifactId: `airesult_${imageHash.slice(7, 39)}`,
@@ -103,9 +97,7 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
       originalMediaType: media.mediaType, originalWidth: media.width, originalHeight: media.height,
       bytes: webp.byteLength, mediaType: "image/webp", width: 1200, height: 630,
       },
-    ...declaredFacts({ ...observedFacts, decision: "ACT",
-      factResultIds: Object.freeze([...observedFacts.factResultIds, browserFact.evidenceRef]),
-      authorityRefHashes: Object.freeze([...observedFacts.authorityRefHashes, browserFact.evidenceHash]),
-      mutationOutcome: browserFact.mutationOutcome, browserFact, nativeFailureCode: null }),
+    ...declaredFacts({ ...observedFacts, decision: "DONE",
+      mutationOutcome: "no", browserFact: null, nativeFailureCode: null }),
   });
 };

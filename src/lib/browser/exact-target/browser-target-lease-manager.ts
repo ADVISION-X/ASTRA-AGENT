@@ -37,7 +37,7 @@ type LeaseCommand = (
   value: Parameters<BrowserCommandActor["execute"]>[1],
 ) => Promise<unknown>;
 
-type AuthenticatedMedia = Awaited<ReturnType<BrowserTargetLease["downloadAuthenticatedMedia"]>>;
+type AuthenticatedMedia = Awaited<ReturnType<BrowserTargetLease["readAuthenticatedMedia"]>>;
 type BrowserArtifactOperations = Readonly<{
   resolveGrantPaths: (grants: readonly BrowserFileArtifactGrantV1[]) => Promise<readonly string[]>;
   issueApprovedArtifactGrants: (
@@ -52,11 +52,9 @@ const authenticatedMediaIdentityValid = (
   input: Readonly<{
     assistantTurnId: string;
     semanticMediaId: "gpt-generated-image-main";
-    delivery: "probe" | "visible-download";
   }>,
 ): boolean => /^conversation-turn-[1-9][0-9]*$/u.test(input.assistantTurnId)
-  && input.semanticMediaId === "gpt-generated-image-main"
-  && (input.delivery === "probe" || input.delivery === "visible-download");
+  && input.semanticMediaId === "gpt-generated-image-main";
 
 const authenticatedMediaBytesValid = (value: Readonly<Record<string, unknown>>): boolean =>
   typeof value.bytesBase64 === "string"
@@ -262,7 +260,7 @@ export class BrowserTargetLeaseManager {
         command, selector, activation,
         await this.artifactOperations.issueApprovedArtifactGrants(approvedArtifacts),
       ),
-      downloadAuthenticatedMedia: (media) => this.downloadAuthenticatedMedia(state, command, media),
+      readAuthenticatedMedia: (media) => this.readAuthenticatedMedia(state, command, media),
       wait: async ({ durationMs }) => { await command("browser.wait.v1", { kind: "wait", durationMs }); },
       park: async ({ reason, mode }) => {
         if (mode !== "normal-provider-wait") {
@@ -323,13 +321,12 @@ export class BrowserTargetLeaseManager {
     });
   }
 
-  private async downloadAuthenticatedMedia(
+  private async readAuthenticatedMedia(
     state: LeaseState,
     command: LeaseCommand,
     input: Readonly<{
       assistantTurnId: string;
       semanticMediaId: "gpt-generated-image-main";
-      delivery: "probe" | "visible-download";
     }>,
   ): Promise<Readonly<{
     authorityTargetHash: `sha256:${string}`;
@@ -350,7 +347,6 @@ export class BrowserTargetLeaseManager {
       kind: "authenticated-media",
       assistantTurnId: input.assistantTurnId,
       semanticMediaId: input.semanticMediaId,
-      delivery: input.delivery,
     });
     const value = parseAuthenticatedMedia(raw);
     if (value.assistantTurnId !== input.assistantTurnId
@@ -442,8 +438,7 @@ export class BrowserTargetLeaseManager {
   private mutationClass(command: Parameters<BrowserCommandActor["execute"]>[1]): BrowserCommandPermit["mutationClass"] {
     if ((command.kind === "dom-intent" && command.intent.kind === "selectExactGptConversation")
       || command.kind === "park-target" || command.kind === "close-target") return "lifecycle";
-    if (command.kind === "file-input"
-      || (command.kind === "authenticated-media" && command.delivery === "visible-download")) return "mutation";
+    if (command.kind === "file-input") return "mutation";
     if (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "hover"
       || command.intent.kind === "doubleClick" || command.intent.kind === "keypress" || command.intent.kind === "fill")) return "mutation";
     return "observation";

@@ -53,7 +53,6 @@ export type GptExactAssistantTurnObservation = Readonly<{
   currentUrl: string;
   precedingUserTurnId: string;
   precedingPromptHash: `sha256:${string}`;
-  turnMarkerMatched: true;
   generatingRaw: number;
   rawDomHtml: string;
   rawDomHash: `sha256:${string}`;
@@ -179,19 +178,17 @@ export const projectCoherentObservation = (
 
 const exactAssistantIdentityValid = (
   value: Readonly<Record<string, unknown>>,
-  assistantTurnId: string,
   sourceCheckpoint: Readonly<{
     canonicalConversationUrl: string;
     expectedPromptHash: `sha256:${string}`;
-    turnMarker: string;
   }>,
-  precedingUserTurnId: string,
+  userTurnId: string,
 ): boolean => value.schemaVersion === "grasseye.browser.exact-assistant-turn.v2"
-  && value.assistantTurnId === assistantTurnId
+  && typeof value.assistantTurnId === "string"
+  && /^conversation-turn-[1-9][0-9]*$/u.test(value.assistantTurnId)
   && value.currentUrl === sourceCheckpoint.canonicalConversationUrl
-  && value.precedingUserTurnId === precedingUserTurnId
-  && value.precedingPromptHash === sourceCheckpoint.expectedPromptHash
-  && value.turnMarkerMatched === true;
+  && value.precedingUserTurnId === userTurnId
+  && value.precedingPromptHash === sourceCheckpoint.expectedPromptHash;
 
 type ExactAssistantContent = Readonly<{
   rawDomHtml: string;
@@ -215,22 +212,19 @@ const exactAssistantContentValid = (
 
 export const readExactAssistantTurn = async (
   browser: Pick<BrowserTargetLease, "executeDomIntent">,
-  assistantTurnId: string,
+  userTurnId: string,
   sourceCheckpoint: Readonly<{
     canonicalConversationUrl: string;
     expectedPromptHash: `sha256:${string}`;
-    turnMarker: string;
   }>,
 ): Promise<GptExactAssistantTurnObservation> => {
-  if (!/^conversation-turn-[1-9][0-9]*$/u.test(assistantTurnId)) {
+  if (!/^conversation-turn-[1-9][0-9]*$/u.test(userTurnId)) {
     throw executionFailure("failed", "GPT_TURN_ID_INVALID");
   }
   const value = record(await browser.executeDomIntent({
-    kind: "readExactAssistantTurn", assistantTurnId, sourceCheckpoint,
+    kind: "readExactAssistantTurn", userTurnId, sourceCheckpoint,
   }));
-  const ordinal = Number(assistantTurnId.slice("conversation-turn-".length));
-  const precedingUserTurnId = `conversation-turn-${ordinal - 1}`;
-  if (!exactAssistantIdentityValid(value, assistantTurnId, sourceCheckpoint, precedingUserTurnId)
+  if (!exactAssistantIdentityValid(value, sourceCheckpoint, userTurnId)
     || !exactAssistantContentValid(value)) {
     throw executionFailure("failed", "GPT_EXACT_ASSISTANT_TURN_RESULT_INVALID");
   }
@@ -239,11 +233,10 @@ export const readExactAssistantTurn = async (
     targetRefHash: value.targetRefHash as `sha256:${string}`,
     documentRefHash: value.documentRefHash as `sha256:${string}`,
     observationRevisionHash: value.observationRevisionHash as `sha256:${string}`,
-    assistantTurnId,
+    assistantTurnId: value.assistantTurnId as string,
     currentUrl: value.currentUrl as string,
-    precedingUserTurnId,
+    precedingUserTurnId: userTurnId,
     precedingPromptHash: value.precedingPromptHash as `sha256:${string}`,
-    turnMarkerMatched: true,
     generatingRaw: value.generatingRaw as number,
     rawDomHtml: value.rawDomHtml,
     rawDomHash: value.rawDomHash as `sha256:${string}`,

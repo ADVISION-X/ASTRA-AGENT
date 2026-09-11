@@ -76,7 +76,7 @@ export const selectExactGptModelV2Handler: GptChildHandler<"select_exact_gpt_mod
         `GPT_MODEL_SELECTION_V2_POSTCONDITION_INVALID:${modelSelectorTopologyCode(restored)}`,
       );
     }
-    const browserFact = requireConfirmedBrowserFact(intent, browser);
+    const browserFact = requireConfirmedBrowserFact(intent, context);
     return success({
       value: { modelDisplayName: profile.modelDisplayName, previousChecked: candidate.ariaChecked,
         selectionVersion: GPT_MODEL_SELECTION_VERSION, state: "exact-model-selected" },

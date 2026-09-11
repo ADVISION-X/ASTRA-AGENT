@@ -64,8 +64,6 @@ export const admitExtensionCommand = async (input: Readonly<{ command: BrowserGo
   const command = resolveCommand(input.command.kind);
   const expectedMutationClass = input.command.kind === "dom-intent"
     && input.command.intent.kind === "selectExactGptConversation" ? "lifecycle"
-    : input.command.kind === "authenticated-media"
-    && input.command.delivery === "visible-download" ? "mutation"
     : input.command.kind === "dom-intent" && (input.command.intent.kind === "click"
     || input.command.intent.kind === "hover" || input.command.intent.kind === "doubleClick"
     || input.command.intent.kind === "keypress" || input.command.intent.kind === "fill")

@@ -50,7 +50,7 @@ export const fixtureLease = (
     async observeCapability() { return { observed: true }; },
     async captureScreenshot() { return { artifactRef: "screenshot:fixture", contentHash: HASH }; },
     async attachFile() {},
-    async downloadAuthenticatedMedia(input) { return {
+    async readAuthenticatedMedia(input) { return {
       authorityTargetHash: HASH, authorityDocumentHash: HASH,
       assistantTurnId: input.assistantTurnId, semanticMediaId: input.semanticMediaId,
       bytesBase64: "AQ==", sha256: HASH, sizeBytes: 1, mediaType: "image/png", width: 1, height: 1,

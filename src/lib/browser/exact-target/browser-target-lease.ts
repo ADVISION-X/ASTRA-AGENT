@@ -73,10 +73,9 @@ export type BrowserTargetLease = Readonly<{
     activation: BrowserFileInputActivation;
     approvedArtifacts: readonly BrowserApprovedArtifactRef[];
   }>): Promise<void>;
-  downloadAuthenticatedMedia(input: Readonly<{
+  readAuthenticatedMedia(input: Readonly<{
     assistantTurnId: string;
     semanticMediaId: "gpt-generated-image-main";
-    delivery: "probe" | "visible-download";
   }>): Promise<Readonly<{
     authorityTargetHash: `sha256:${string}`;
     authorityDocumentHash: `sha256:${string}`;

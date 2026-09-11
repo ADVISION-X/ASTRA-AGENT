@@ -1,14 +1,6 @@
 import type { BrowserTargetLease } from "../../../../lib/browser/browser-authority-api.js";
 import { executionFailure } from "../../../../lib/execution-failure.js";
 
-export const adjacentGptAssistantTurnId = (userTurnId: string): string => {
-  const ordinal = Number(/^conversation-turn-([1-9][0-9]*)$/u.exec(userTurnId)?.[1]);
-  if (!Number.isSafeInteger(ordinal) || ordinal < 1 || ordinal % 2 === 0) {
-    throw executionFailure("failed", "GPT_USER_TURN_ID_INVALID");
-  }
-  return `conversation-turn-${ordinal + 1}`;
-};
-
 export const readCurrentGptDocumentUrl = async (
   browser: Pick<BrowserTargetLease, "executeDomIntent">,
 ): Promise<string> => {

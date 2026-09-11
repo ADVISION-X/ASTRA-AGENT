@@ -42,7 +42,7 @@ export const openGptAttachmentControlHandler: GptChildHandler<"open_gpt_attachme
     const mutationRecord = mutation && typeof mutation === "object" && !Array.isArray(mutation)
       ? mutation as Readonly<Record<string, unknown>> : {};
     const readback = decodeAttachmentControlState(mutationRecord.postconditionObservation);
-    const browserFact = requireConfirmedBrowserFact(intent, browser);
+    const browserFact = requireConfirmedBrowserFact(intent, context);
     if (!attachmentControlReady(readback)) {
       failAttachmentControl("GPT_ATTACHMENT_CONTROL_OPEN_PENDING", readback, browserFact);
     }

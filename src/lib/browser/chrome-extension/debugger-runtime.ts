@@ -31,20 +31,10 @@ const PAGE_READ_METHODS = new Set([
 ]);
 
 const DEVTOOLS_CONTROL_METHODS = new Set([
-  "Browser.setDownloadBehavior",
   "Page.enable",
   "Page.setInterceptFileChooserDialog",
   "Runtime.releaseObject",
 ]);
-
-type PendingDownload = {
-  expectedFrameId: string;
-  expectedSizeBytes: number;
-  guid: string | null;
-  resolveStarted(value: Readonly<{ guid: string }>): void;
-  resolveCompleted(value: Readonly<{ guid: string; totalBytes: number }>): void;
-  reject(error: Error): void;
-};
 
 export type ProviderInputState = {
   started: boolean;
@@ -68,61 +58,11 @@ export class ExtensionDebuggerRuntime {
     backendNodeId: number | null;
     duplicate: boolean;
   }>();
-  private readonly pendingDownloads = new Map<number, PendingDownload>();
 
   public constructor(private readonly chromeApi: ExtensionChromeApi) {
     this.chromeApi.debugger.onEvent.addListener((target, method, parameters) => {
       if (method === "Page.fileChooserOpened") this.consumeFileChooserEvent(target.tabId, parameters);
-      else if (method === "Browser.downloadWillBegin") this.consumeDownloadWillBegin(target.tabId, parameters);
-      else if (method === "Browser.downloadProgress") this.consumeDownloadProgress(target.tabId, parameters);
     });
-  }
-
-  private rejectPendingDownload(tabId: number, code: string): void {
-    const pending = this.pendingDownloads.get(tabId);
-    if (!pending) return;
-    pending.reject(new Error(code));
-  }
-
-  private consumeDownloadWillBegin(
-    tabId: number,
-    parameters?: Readonly<Record<string, unknown>>,
-  ): void {
-    const pending = this.pendingDownloads.get(tabId);
-    if (!pending) return;
-    const guid = parameters?.guid;
-    const frameId = parameters?.frameId;
-    if (typeof guid !== "string" || guid.length === 0 || frameId !== pending.expectedFrameId) {
-      this.rejectPendingDownload(tabId, "BROWSER_DOWNLOAD_IDENTITY_MISMATCH");
-      return;
-    }
-    if (pending.guid !== null) {
-      this.rejectPendingDownload(tabId, "BROWSER_DOWNLOAD_MULTIPLE");
-      return;
-    }
-    pending.guid = guid;
-    pending.resolveStarted(Object.freeze({ guid }));
-  }
-
-  private consumeDownloadProgress(
-    tabId: number,
-    parameters?: Readonly<Record<string, unknown>>,
-  ): void {
-    const pending = this.pendingDownloads.get(tabId);
-    if (!pending || typeof parameters?.guid !== "string" || parameters.guid !== pending.guid) return;
-    if (parameters.state === "canceled") {
-      this.rejectPendingDownload(tabId, "BROWSER_DOWNLOAD_INTERRUPTED");
-      return;
-    }
-    if (parameters.state !== "completed") return;
-    const receivedBytes = parameters.receivedBytes;
-    const totalBytes = parameters.totalBytes;
-    if (!Number.isSafeInteger(receivedBytes) || !Number.isSafeInteger(totalBytes)
-      || receivedBytes !== totalBytes || totalBytes !== pending.expectedSizeBytes) {
-      this.rejectPendingDownload(tabId, "BROWSER_DOWNLOAD_BYTES_MISMATCH");
-      return;
-    }
-    pending.resolveCompleted(Object.freeze({ guid: pending.guid!, totalBytes: totalBytes as number }));
   }
 
   private consumeFileChooserEvent(
@@ -316,58 +256,6 @@ export class ExtensionDebuggerRuntime {
         this.pendingFileChoosers.delete(tabId);
         if (pending.timeout !== null) globalThis.clearTimeout(pending.timeout);
       }
-    }
-  }
-
-  private async readMainFrameId(tabId: number): Promise<string> {
-    const result = await this.send(tabId, "Page.getFrameTree") as Readonly<{
-      frameTree?: Readonly<{ frame?: Readonly<{ id?: unknown }> }>;
-    }>;
-    const frameId = result.frameTree?.frame?.id;
-    if (typeof frameId !== "string" || frameId.length === 0) throw new Error("BROWSER_DOCUMENT_INVALID");
-    return frameId;
-  }
-
-  public async captureCompletedDownload(
-    tabId: number,
-    expectedSizeBytes: number,
-    timeoutMs: number,
-    trigger: () => Promise<void>,
-    onStarted: (value: Readonly<{ guid: string }>) => Promise<void>,
-  ): Promise<Readonly<{ guid: string; totalBytes: number }>> {
-    if (!this.attached.has(tabId)) throw new Error("BROWSER_DEVTOOLS_CONFLICT");
-    if (!Number.isSafeInteger(expectedSizeBytes) || expectedSizeBytes < 1
-      || !Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 20_000
-      || this.pendingDownloads.has(tabId)) throw new Error("BROWSER_BACKPRESSURE");
-    const expectedFrameId = await this.readMainFrameId(tabId);
-    await this.send(tabId, "Browser.setDownloadBehavior", { behavior: "default", eventsEnabled: true });
-    let resolveStarted!: (value: Readonly<{ guid: string }>) => void;
-    let rejectStarted!: (error: Error) => void;
-    let resolveCompleted!: (value: Readonly<{ guid: string; totalBytes: number }>) => void;
-    let rejectCompleted!: (error: Error) => void;
-    const started = new Promise<Readonly<{ guid: string }>>((resolve, reject) => {
-      resolveStarted = resolve; rejectStarted = reject;
-    });
-    const completed = new Promise<Readonly<{ guid: string; totalBytes: number }>>((resolve, reject) => {
-      resolveCompleted = resolve; rejectCompleted = reject;
-    });
-    void completed.catch(() => undefined);
-    this.pendingDownloads.set(tabId, {
-      expectedFrameId, expectedSizeBytes, guid: null, resolveStarted, resolveCompleted,
-      reject: (error) => { rejectStarted(error); rejectCompleted(error); },
-    });
-    let rejectDeadline!: (error: Error) => void;
-    const deadline = new Promise<never>((_resolve, reject) => { rejectDeadline = reject; });
-    const timeout = globalThis.setTimeout(() => {
-      rejectDeadline(new Error("BROWSER_DOWNLOAD_TIMEOUT"));
-    }, timeoutMs);
-    try {
-      const [, start] = await Promise.race([Promise.all([trigger(), started]), deadline]);
-      await onStarted(start);
-      return await Promise.race([completed, deadline]);
-    } finally {
-      globalThis.clearTimeout(timeout);
-      this.pendingDownloads.delete(tabId);
     }
   }
 

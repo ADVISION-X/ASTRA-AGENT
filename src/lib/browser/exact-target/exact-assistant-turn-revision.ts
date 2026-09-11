@@ -7,7 +7,6 @@ export type BrowserExactAssistantTurnRevisionInput = Readonly<{
   currentUrl: string;
   precedingUserTurnId: string;
   precedingPromptHash: `sha256:${string}`;
-  turnMarkerMatched: true;
   generatingRaw: number;
   rawDomHash: `sha256:${string}`;
   semanticTextHash: `sha256:${string}`;
@@ -23,7 +22,6 @@ export const canonicalBrowserExactAssistantTurnRevision = (
     currentUrl: input.currentUrl,
     precedingUserTurnId: input.precedingUserTurnId,
     precedingPromptHash: input.precedingPromptHash,
-    turnMarkerMatched: input.turnMarkerMatched,
     generatingRaw: input.generatingRaw,
     rawDomHash: input.rawDomHash,
     semanticTextHash: input.semanticTextHash,

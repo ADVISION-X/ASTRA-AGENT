@@ -56,8 +56,8 @@ import {
 import { containsPageMutation, gptPrivateInfrastructureViolations, sourceFor, sourceTextForPaths }
   from "./gpt-inspection-support.js";
 
-const LAW_ID = "LAW-GPT-001-V43";
-const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V2";
+const LAW_ID = "LAW-GPT-001-V44";
+const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V3";
 const GPT_BLUEPRINT_PATH = "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 16, 19, 23),
@@ -401,6 +401,8 @@ const inspectFrozenAttemptBoundary = (
   const sources = {
     contract: sourceFor(context, CONTRACT_PATH)?.getFullText() ?? "",
     atomic: sourceFor(context, `${ROOT}/production-atomic-call.ts`)?.getFullText() ?? "",
+    group: sourceFor(context, GROUP_PATH)?.getFullText() ?? "",
+    childHandler: sourceFor(context, `${ROOT}/web/child-handler.ts`)?.getFullText() ?? "",
     productApi: sourceFor(context, `${ROOT}/product-api.ts`)?.getFullText() ?? "",
     seoReadback: sourceFor(context,
       "src/plugins/public-knowledge-article-pipeline/seo-submit-readback.ts")?.getFullText() ?? "",
@@ -419,6 +421,12 @@ const inspectFrozenAttemptBoundary = (
     && /submit_exact_gpt_turn_once:[^\n]+profile: "PROVIDER_EFFECT_ONCE"[^\n]+replayPolicy: "provider-effect-once"/u
       .test(sources.contract)
     && sources.atomic.includes("hashCanonical([resultRevision, intent.inputHash])")
+    && sources.contract.includes("browserAtomicIdentity?: BrowserAtomicStepIdentity")
+    && sources.atomic.includes("executionContext(input, browser, atomicIdentity)")
+    && sources.childHandler.includes("readAtomicStepOutcome(context.browserAtomicIdentity)")
+    && sources.group.includes("readAtomicStepOutcome(context.browserAtomicIdentity)")
+    && !sources.childHandler.includes("inputHash: intent.inputHash")
+    && !sources.group.includes("inputHash: intent.inputHash")
     && sources.productApi.includes("readConfirmedSubmit(")
     && sources.seoFlow.includes("context.gpt.readConfirmedSubmit")
     && sources.seoReadback.indexOf("await input.read()") < sources.seoReadback.indexOf("await input.prepare()")
@@ -427,6 +435,7 @@ const inspectFrozenAttemptBoundary = (
     && sources.submit.includes("latestGptUserTurn: true")
     && sources.submit.includes("GPT_EMPTY_COMPOSER_SELECTOR")
     && sources.blueprint.includes("FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001")
+    && sources.blueprint.includes("FROZEN-GPT-ATOMIC-IDENTITY-ROUNDTRIP-001")
     && !sources.candidate.includes("priorTurns.length > 1")
     && !sources.candidate.includes("querySelectorAll(outgoing.userTurnSelector)")
     && !sources.candidate.includes("baselineOrdinal + 2")

@@ -158,6 +158,29 @@ await exerciseSubmit("gpt-proof-submit-third-turn", [], [],
 
 {
   const fixture = fakeBrowser((intent) => {
+    if (intent.kind !== "click") throw new Error(`UNEXPECTED_FAILED_SUBMIT_INTENT:${intent.kind}`);
+    const queries = intent.postClickObservation!.queries
+      .map(({ expectedEligibleCount: _expected, ...query }) => query);
+    return { postconditionVerified: true,
+      postconditionObservation: coherentObservationPacket({ queries }, {
+        "submitted-user-turn": { rawCount: 1, eligibleCount: 1,
+          matches: [{ testId: "conversation-turn-3", exactGptUserPromptHash: `sha256:${"f".repeat(64)}` }] },
+        "empty-composer": { rawCount: 1, eligibleCount: 1, matches: [{}] },
+      }, conversationUrl) };
+  }, { initialUrl: conversationUrl });
+  const result = await createGptAcceptanceHarness("gpt-proof-submit-failed-readback").execute(
+    "submit_exact_gpt_turn_once", fixture.browser, { files: [], promptHash },
+  );
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "GPT_SUBMITTED_USER_TURN_PROMPT_HASH_MISMATCH");
+  assert.equal(result.proof.committedMutation, "confirmed");
+  assert.equal(result.proof.browserFact?.effectScope, "provider_effect");
+  assert.equal(result.proof.browserFact?.browserOutcome, "CONFIRMED");
+  assert.equal(result.proof.browserFact?.mutationOutcome, "confirmed");
+}
+
+{
+  const fixture = fakeBrowser((intent) => {
     throw new Error(`RECOVERED_SUBMIT_MUST_NOT_TOUCH_BROWSER:${intent.kind}`);
   }, { initialUrl: conversationUrl });
   const terminalPayload = {
@@ -190,7 +213,7 @@ await exerciseSubmit("gpt-proof-submit-third-turn", [], [],
   const assistantTurnId = "conversation-turn-4";
   const fixture = fakeBrowser((intent) => {
     if (intent.kind === "readExactAssistantTurn") {
-      assert.equal(intent.assistantTurnId, assistantTurnId);
+      assert.equal(intent.userTurnId, userTurnId);
       return exactAssistantTurnReply(intent, "exact response");
     }
     throw new Error(`UNEXPECTED_EXACT_CHECKPOINT_INTENT:${intent.kind}`);

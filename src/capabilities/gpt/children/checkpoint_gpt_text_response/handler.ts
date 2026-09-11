@@ -6,7 +6,6 @@ import {
   readExactAssistantTurn,
 } from "../../web/gpt-dom-observation.js";
 import { canonicalGptConversationUrl } from "../../web/contracts/target-document.contract.js";
-import { adjacentGptAssistantTurnId } from "./exact-response.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 
@@ -16,9 +15,8 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
     const conversationUrl = canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
     const expectedPromptHash = stringInput(intent, "expectedPromptHash");
     if (!HASH.test(expectedPromptHash)) throw executionFailure("failed", "GPT_CHILD_INPUT_INVALID:checkpoint_gpt_text_response:expectedPromptHash");
-    const turnMarker = stringInput(intent, "turnMarker");
+    stringInput(intent, "turnMarker");
     const userTurnId = stringInput(intent, "userTurnId");
-    const assistantTurnId = adjacentGptAssistantTurnId(userTurnId);
     const probeBudgetMs = numberInput(intent, "probeBudgetMs");
     if (!Number.isSafeInteger(probeBudgetMs) || probeBudgetMs < 1 || probeBudgetMs > 3_600_000) throw executionFailure("failed", "GPT_RESPONSE_PROBE_BUDGET_INVALID");
     const browser = requireBrowser(context);
@@ -27,8 +25,8 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
     while (Date.now() < deadline) {
       let assistant: Awaited<ReturnType<typeof readExactAssistantTurn>> | null = null;
       try {
-        assistant = await readExactAssistantTurn(browser, assistantTurnId, {
-          canonicalConversationUrl: conversationUrl, expectedPromptHash: expectedPromptHash as `sha256:${string}`, turnMarker,
+        assistant = await readExactAssistantTurn(browser, userTurnId, {
+          canonicalConversationUrl: conversationUrl, expectedPromptHash: expectedPromptHash as `sha256:${string}`,
         });
       } catch (error) {
         if (failureCode(error) !== "BROWSER_DOM_CANDIDATE_MISSING") throw error;
@@ -36,7 +34,7 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
       if (assistant && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0) {
         const facts = projectExactAssistantTurn(assistant);
         return success({
-          value: { assistantTurnId, rawDomHtml: assistant.rawDomHtml, rawDomHash: assistant.rawDomHash,
+          value: { assistantTurnId: assistant.assistantTurnId, rawDomHtml: assistant.rawDomHtml, rawDomHash: assistant.rawDomHash,
             semanticText: assistant.semanticText, semanticTextHash: assistant.semanticTextHash },
           ...declaredFacts({ ...facts, decision: "DONE", mutationOutcome: "no",
             browserFact: null, nativeFailureCode: null }),

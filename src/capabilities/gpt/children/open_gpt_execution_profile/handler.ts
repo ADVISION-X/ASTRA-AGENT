@@ -95,7 +95,7 @@ export const openGptExecutionProfileHandler: GptChildHandler<"open_gpt_execution
       mutationRecord.postconditionObservation,
       PROFILE_TOPOLOGY_QUERIES,
     ));
-    const browserFact = requireConfirmedBrowserFact(intent, browser);
+    const browserFact = requireConfirmedBrowserFact(intent, context);
     if (!profileOpenReady(readback)) {
       failProfileOpen("GPT_EXECUTION_PROFILE_POPUP_INVALID", readback, browserFact);
     }

@@ -12,9 +12,9 @@ type ExactAssistantObservation = Readonly<{
   rawDomHtml: string;
   semanticText: string;
   currentUrl: string;
+  assistantTurnId: string;
   precedingUserTurnId: string;
   precedingPromptHash: string;
-  turnMarkerMatched: boolean;
   generatingRaw: number;
   observedAt: string;
   nativeCauseCode: "NO_LAYOUT_BOX" | null;
@@ -24,8 +24,8 @@ type ExactAssistantObservation = Readonly<{
 const EXACT_ASSISTANT_TURN_FUNCTION = `async function (spec) {
   ${BROWSER_MECHANICAL_FACTS_READER_SOURCE}
   ${BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE}
-  const assistantTurnId = spec.assistantTurnId;
-  if (!/^conversation-turn-[1-9][0-9]*$/.test(assistantTurnId)) throw new Error("BROWSER_DOM_READ_INVALID");
+  const userTurnId = spec.userTurnId;
+  if (!/^conversation-turn-[1-9][0-9]*$/.test(userTurnId)) throw new Error("BROWSER_DOM_READ_INVALID");
   const source = spec.sourceCheckpoint;
   const observedUrl = new URL(location.href);
   const currentUrl = observedUrl.origin + observedUrl.pathname;
@@ -41,34 +41,40 @@ const EXACT_ASSISTANT_TURN_FUNCTION = `async function (spec) {
     return "sha256:" + Array.from(new Uint8Array(digest))
       .map((byte) => byte.toString(16).padStart(2, "0")).join("");
   };
-  const ordinal = Number(assistantTurnId.slice("conversation-turn-".length));
-  const precedingUserTurnId = "conversation-turn-" + (ordinal - 1);
+  const precedingUserTurnId = userTurnId;
   const userRaw = Array.from(document.querySelectorAll(
     "[data-testid='" + precedingUserTurnId + "']:has([data-message-author-role='user'])"
   ));
-  const promptRaw = userRaw.length === 1 ? Array.from(userRaw[0].querySelectorAll(
+  const collapsible = userRaw.length === 1 ? Array.from(userRaw[0].querySelectorAll(
     "[data-testid='collapsible-user-message-content']"
   )) : [];
-  const prompt = promptRaw.length === 1 ? browserCanonicalGptUserPromptText(promptRaw[0]) : "";
-  const selector = '[data-testid="' + assistantTurnId
-    + '"]:has([data-message-author-role="assistant"]) [data-message-author-role="assistant"]';
-  const raw = Array.from(document.querySelectorAll(selector));
+  const shortPrompt = userRaw.length === 1 ? Array.from(userRaw[0].querySelectorAll(
+    ".whitespace-pre-wrap"
+  )).filter((node) => Array.from(node.children || []).length === 0) : [];
+  const promptNode = collapsible.length === 1 && shortPrompt.length === 0 ? collapsible[0]
+    : collapsible.length === 0 && shortPrompt.length === 1 ? shortPrompt[0] : null;
+  const prompt = promptNode ? browserCanonicalGptUserPromptText(promptNode) : "";
+  const turns = Array.from(document.querySelectorAll("[data-testid^='conversation-turn-']"));
+  const userIndex = userRaw.length === 1 ? turns.indexOf(userRaw[0]) : -1;
+  const [, assistantOuter = null] = userIndex >= 0 ? turns.slice(userIndex) : [];
+  const assistantTurnId = assistantOuter?.getAttribute("data-testid") || "";
+  const raw = assistantOuter
+    ? Array.from(assistantOuter.querySelectorAll("[data-message-author-role='assistant']")) : [];
   const observedAt = new Date().toISOString();
-  const precedingPromptHash = promptRaw.length === 1 ? await sha256(prompt) : "";
-  const turnMarkerMatched = promptRaw.length === 1 && prompt.includes(source.turnMarker);
+  const precedingPromptHash = promptNode ? await sha256(prompt) : "";
   const generatingRaw = document.querySelectorAll(
     "#composer-submit-button[data-testid='stop-button']"
   ).length;
   if (raw.length !== 1) return { rawCount: raw.length, eligibleCount: 0,
-    rawDomHtml: "", semanticText: "", currentUrl, precedingUserTurnId, precedingPromptHash,
-    turnMarkerMatched, generatingRaw, observedAt, nativeCauseCode: null,
+    rawDomHtml: "", semanticText: "", currentUrl, assistantTurnId, precedingUserTurnId,
+    precedingPromptHash, generatingRaw, observedAt, nativeCauseCode: null,
     nativeStage: "runtime-call-function-on" };
   const node = raw[0];
   const facts = browserMechanicalFacts(node, false);
   const eligible = facts !== null && facts.visible && !facts.ariaHidden && !facts.inert;
   return { rawCount: 1, eligibleCount: eligible ? 1 : 0,
     rawDomHtml: eligible ? node.outerHTML : "", semanticText: eligible ? browserCanonicalSemanticText(node) : "",
-    currentUrl, precedingUserTurnId, precedingPromptHash, turnMarkerMatched, generatingRaw,
+    currentUrl, assistantTurnId, precedingUserTurnId, precedingPromptHash, generatingRaw,
     observedAt, nativeCauseCode: facts === null ? null : facts.nativeCauseCode,
     nativeStage: "runtime-call-function-on" };
 }`;
@@ -104,9 +110,9 @@ const observationValueShapeValid = (
   typeof observed.rawDomHtml === "string",
   typeof observed.semanticText === "string",
   typeof observed.currentUrl === "string",
+  typeof observed.assistantTurnId === "string",
   typeof observed.precedingUserTurnId === "string",
   typeof observed.precedingPromptHash === "string",
-  typeof observed.turnMarkerMatched === "boolean",
   Number.isSafeInteger(observed.generatingRaw) && (observed.generatingRaw as number) >= 0,
   exactIsoTimestamp(observed.observedAt),
   new Set([null, "NO_LAYOUT_BOX"]).has(observed.nativeCauseCode as string | null),
@@ -116,7 +122,7 @@ const observationValueShapeValid = (
 const decodeObservation = (value: unknown): ExactAssistantObservation => {
   const observed = record(value);
   const keys = ["rawCount", "eligibleCount", "rawDomHtml", "semanticText", "currentUrl",
-    "precedingUserTurnId", "precedingPromptHash", "turnMarkerMatched", "generatingRaw", "observedAt",
+    "assistantTurnId", "precedingUserTurnId", "precedingPromptHash", "generatingRaw", "observedAt",
     "nativeCauseCode", "nativeStage"];
   const rawCount = count(observed.rawCount);
   const eligibleCount = count(observed.eligibleCount);
@@ -132,9 +138,9 @@ const decodeObservation = (value: unknown): ExactAssistantObservation => {
     rawCount, eligibleCount, rawDomHtml,
     semanticText: observed.semanticText as string, observedAt: observed.observedAt as string,
     currentUrl: observed.currentUrl as string,
+    assistantTurnId: observed.assistantTurnId as string,
     precedingUserTurnId: observed.precedingUserTurnId as string,
     precedingPromptHash: observed.precedingPromptHash as string,
-    turnMarkerMatched: observed.turnMarkerMatched as boolean,
     generatingRaw: observed.generatingRaw as number,
     nativeCauseCode: observed.nativeCauseCode as "NO_LAYOUT_BOX" | null,
     nativeStage: "runtime-call-function-on",
@@ -202,11 +208,10 @@ export const executeExactAssistantTurnRead = async (
   const targetRefHash = await sha256Text(target.targetRef);
   const documentRefHash = await sha256Text(target.documentRef);
   const revisionInput = Object.freeze({
-    targetRefHash, documentRefHash, assistantTurnId: intent.assistantTurnId,
+    targetRefHash, documentRefHash, assistantTurnId: observed.assistantTurnId,
     currentUrl: observed.currentUrl,
     precedingUserTurnId: observed.precedingUserTurnId,
     precedingPromptHash: observed.precedingPromptHash as `sha256:${string}`,
-    turnMarkerMatched: observed.turnMarkerMatched as true,
     generatingRaw: observed.generatingRaw, rawDomHash, semanticTextHash,
     observedAt: observed.observedAt,
   });
@@ -218,11 +223,10 @@ export const executeExactAssistantTurnRead = async (
     targetRefHash,
     documentRefHash,
     observationRevisionHash,
-    assistantTurnId: intent.assistantTurnId,
+    assistantTurnId: observed.assistantTurnId,
     currentUrl: observed.currentUrl,
     precedingUserTurnId: observed.precedingUserTurnId,
     precedingPromptHash: observed.precedingPromptHash,
-    turnMarkerMatched: observed.turnMarkerMatched,
     generatingRaw: observed.generatingRaw,
     rawDomHtml: observed.rawDomHtml,
     rawDomHash,
