@@ -26,6 +26,7 @@ export type BrowserAtomicStepOutcome = Readonly<{
   downloadGuidHash: `sha256:${string}` | null;
   downloadCompleted: boolean;
   identityRevalidated: boolean;
+  terminalPayload?: unknown | null;
 }>;
 
 export type BrowserTargetLeaseWait = Readonly<{
@@ -64,7 +65,6 @@ export type BrowserTargetLease = Readonly<{
     action: () => Promise<T>,
   ): Promise<T>;
   readAtomicStepOutcome(identity: BrowserAtomicStepIdentity): BrowserAtomicStepOutcome | null;
-  navigate(input: Readonly<{ url: string; title: string; deadlineMs?: number }>): Promise<BrowserDocumentRef>;
   executeDomIntent(input: BrowserDomIntent): Promise<unknown>;
   observeCapability(input: Readonly<{ capabilityId: BrowserCapabilityId; timeoutMs?: number }>): Promise<unknown>;
   captureScreenshot(input: Readonly<{ regionLabel: string }>): Promise<Readonly<{ artifactRef: string; contentHash: `sha256:${string}` }>>;

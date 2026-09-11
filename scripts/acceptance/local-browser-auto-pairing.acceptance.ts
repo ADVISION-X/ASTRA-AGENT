@@ -29,6 +29,8 @@ let attachFailureTabId: number | null = null;
 let evaluateRuntime: ((expression: string) => Promise<unknown>) | null = null;
 let forkTransitionClick = false;
 let basicPointerClick = false;
+let basicPointerDestinationUrl = "https://chatgpt.com/c/interaction-ready";
+let basicPointerResult: unknown = { x: 5, y: 5 };
 let switchBeforeProviderInput = false;
 let switchAfterProviderInput = false;
 let switchAwayAndBackTabReadCountdown = 0;
@@ -61,7 +63,7 @@ const sendForkTransitionCommand = (
       activeTabId = 99;
       targetTabActivated({ tabId: activeTabId, windowId: 1 });
     }
-    return { result: { value: { x: 5, y: 5 } } };
+    return { result: { value: basicPointerResult } };
   }
   if (method === "Runtime.callFunctionOn") return { result: { value: browserDomFacts() } };
   if (method === "Runtime.releaseObject") return {};
@@ -73,7 +75,7 @@ const sendForkTransitionCommand = (
     targetTabActivated({ tabId: activeTabId, windowId: 1 });
   }
   if (basicPointerClick && !forkTransitionClick && parameters?.type === "mouseReleased") {
-    mainFrameUrlByTab.set(3, "https://chatgpt.com/c/interaction-ready");
+    mainFrameUrlByTab.set(3, basicPointerDestinationUrl);
   }
   if (forkTransitionClick && parameters?.type === "mouseReleased") {
     mainFrameUrlByTab.set(4, "https://chatgpt.com/c/fork-child");
@@ -278,6 +280,36 @@ const discardedReceipt = await targetAuthority.executeRegisteredCommand(
 discardedTabIds.delete(3);
 assert.equal(discardedReceipt.failureCode, "BROWSER_TARGET_NOT_INTERACTIVE");
 assert.equal(discardedReceipt.mutationCount, 0, "a discarded system Tab must fail before physical input");
+const selectionCommand = (canonicalConversationUrl: string) => ({
+  kind: "dom-intent" as const,
+  intent: { kind: "selectExactGptConversation" as const, canonicalConversationUrl },
+});
+const selectionInputBaseline = providerInputMethods.length;
+const selectionNavigateBaseline = debuggerMethods.filter((method) => method === "Page.navigate").length;
+mainFrameUrlByTab.set(3, "https://chatgpt.com/c/sidebar-target?messageId=message-1#tail");
+const alreadySelected = await targetAuthority.executeRegisteredCommand(
+  selectionCommand("https://chatgpt.com/c/sidebar-target"), interactionTarget, "lifecycle",
+) as Readonly<Record<string, unknown>>;
+assert.equal(alreadySelected.documentRef, interactionTarget.documentRef);
+assert.equal(providerInputMethods.length, selectionInputBaseline, "an exact current conversation must require zero clicks");
+basicPointerDestinationUrl = "https://chatgpt.com/c/sidebar-next?messageId=message-2#tail";
+const selected = await targetAuthority.executeRegisteredCommand(
+  selectionCommand("https://chatgpt.com/c/sidebar-next"), interactionTarget, "lifecycle",
+) as Readonly<Record<string, unknown>>;
+assert.notEqual(selected.documentRef, interactionTarget.documentRef);
+assert.equal(providerInputMethods.length, selectionInputBaseline + 3, "selection must perform one pointer click sequence");
+assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length, selectionNavigateBaseline,
+  "conversation selection must never use Page.navigate");
+const selectedTarget = targetAuthority.resolve(String(selected.targetRef), String(selected.documentRef));
+for (const failureCode of ["BROWSER_DOM_CANDIDATE_MISSING", "BROWSER_DOM_CANDIDATE_AMBIGUOUS"]) {
+  basicPointerResult = failureCode;
+  await assert.rejects(targetAuthority.executeRegisteredCommand(
+    selectionCommand("https://chatgpt.com/c/sidebar-absent"), selectedTarget, "lifecycle",
+  ), new RegExp(failureCode));
+}
+assert.equal(providerInputMethods.length, selectionInputBaseline + 3,
+  "missing or ambiguous conversations must fail before physical input");
+basicPointerResult = { x: 5, y: 5 };
 basicPointerClick = false;
 await targetAuthority.parkActiveTarget();
 assert.equal(targetFrames.at(-1)?.kind, "TARGET_REVOKE");

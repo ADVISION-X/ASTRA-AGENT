@@ -11,6 +11,7 @@ const MUTATION_RECEIPT_PATH = "src/lib/browser/exact-target/browser-mutation-rec
 const COHERENT_CANDIDATE_PATH = "src/lib/browser/chrome-extension/dom-coherent-candidate.ts";
 const COHERENT_CANDIDATE_READBACK_PATH = "src/lib/browser/chrome-extension/dom-coherent-candidate-readback.ts";
 const EXACT_ASSISTANT_TURN_PATH = "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts";
+const DOM_FUNCTION_SUPPORT_PATH = "scripts/acceptance/local-browser-dom-function-support.ts";
 
 const finding = (
   findings: InspectorFinding[],
@@ -265,13 +266,13 @@ export const inspectDomMechanicalFacts = (
 ): void => {
   const sources = [domMechanicalFactsPath, domExactEditableTextPath, QUERY_RUNTIME_PATH, INTENT_RUNTIME_PATH,
     domMutationPostconditionPath, domCoherentObservationPath, INTENT_CONTRACT_PATH, COHERENT_CANDIDATE_PATH,
-    COHERENT_CANDIDATE_READBACK_PATH, EXACT_ASSISTANT_TURN_PATH, MUTATION_RECEIPT_PATH]
+    COHERENT_CANDIDATE_READBACK_PATH, EXACT_ASSISTANT_TURN_PATH, MUTATION_RECEIPT_PATH, DOM_FUNCTION_SUPPORT_PATH]
     .map((path) => requireSource(context, findings, lawId, path));
   if (!sources.every((source): source is SourceFile => source !== null)) return;
   const [facts, exactEditable, query, runtime, postcondition, observation, contract, candidate,
-    candidateReadback, exactAssistantTurn, mutationReceipt] = sources as [
+    candidateReadback, exactAssistantTurn, mutationReceipt, domFunctionSupport] = sources as [
       SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile,
-      SourceFile, SourceFile, SourceFile, SourceFile, SourceFile,
+      SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile,
     ];
 
   const readerInitializer = facts.getVariableDeclaration("BROWSER_MECHANICAL_FACTS_READER_SOURCE")?.getInitializer();
@@ -291,6 +292,18 @@ export const inspectDomMechanicalFacts = (
     queryText, observation.getFullText(), contract.getFullText(), findings, lawId,
   );
   const candidateText = `${candidate.getFullText()}\n${candidateReadback.getFullText()}`;
+  requireTokens(candidateText, [
+    String.raw`const providerLabel = (label) => label.replace(/\\(\\d+\\)(?=(?:\\.[^./]+)?$)/u, "");`,
+    "expectedLabels.includes(label) ? label : expectedLabels.includes(providerLabel(label)) ? providerLabel(label) : label",
+    "JSON.stringify(observedLabels) !== JSON.stringify(expectedLabels)",
+  ], findings, lawId, COHERENT_CANDIDATE_PATH,
+  "The frozen Provider numeric duplicate-suffix attachment identity rule is missing");
+  requireTokens(domFunctionSupport.getFullText(), [
+    'new FakeElement("approved(5).pdf"', 'new FakeElement("approved(copy).pdf"',
+    'expectedAttachmentLabels: ["approved.pdf", "approved(5).pdf"]', "expectedAttachmentLabels: []",
+    "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH",
+  ], findings, lawId, DOM_FUNCTION_SUPPORT_PATH,
+  "The frozen attachment identity boundary acceptance is missing");
   inspectExactGptUserPromptProjection(
     observation.getFullText(), contract.getFullText(), candidateText, findings, lawId,
   );

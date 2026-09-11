@@ -46,6 +46,7 @@ type GptResponseCheckpointInput = Readonly<{
   probeBudgetMs: number;
   canonicalConversationUrl: string;
   expectedPromptHash: GptHash;
+  userTurnId: string;
   turnMarker: string;
 }>;
 
@@ -72,6 +73,7 @@ export interface GptChildInputMap {
     canonicalConversationUrl: string;
     expectedPromptHash: GptHash;
     probeBudgetMs: number;
+    userTurnId: string;
     turnMarker: string;
   }>;
 }

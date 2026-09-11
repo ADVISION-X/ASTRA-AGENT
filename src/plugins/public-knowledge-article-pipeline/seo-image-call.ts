@@ -18,7 +18,6 @@ import { imagePrompt } from "./seo-turn-prompts.js";
 import {
   applyExactProfile,
   createSeoExecutor,
-  prepareFreshTurnPrefix,
 } from "./seo-gpt-calls.js";
 import {
   executeAndReadConfirmedSubmit,
@@ -68,18 +67,19 @@ const imageArtifact = (value: unknown): GeneratedImageArtifact => {
 const checkpointSubmittedImage = async (
   input: ImageTurnInput,
   promptHash: ProductionHash,
-  canonicalConversationUrl: string,
+  submit: ProductGptChildResult<"submit_exact_gpt_turn_once">,
 ): Promise<Readonly<{
   canonicalConversationUrl: string;
   mediaHash: ProductionHash;
   generated: GeneratedImageArtifact;
 }>> => {
+    const { canonicalConversationUrl, userTurnId } = submit.value;
     const checkpointCall = {
       sessionKey: "", productStepId: input.stepId, callId: "image-checkpoint",
       child: "checkpoint_gpt_generated_image", actionOrdinal: 47,
       input: {
         canonicalConversationUrl, expectedPromptHash: promptHash,
-        probeBudgetMs: SEO_PROVIDER_PROBE_BUDGET_MS, turnMarker: input.marker,
+        probeBudgetMs: SEO_PROVIDER_PROBE_BUDGET_MS, userTurnId, turnMarker: input.marker,
       },
     } as const;
     const checkpoint = await input.flow.execute(checkpointCall);
@@ -97,11 +97,10 @@ const checkpointSubmittedImage = async (
 };
 
 export const generateImage = async (input: ImageTurnInput): Promise<GeneratedImageArtifact> => {
-  await prepareFreshTurnPrefix({ flow: input.flow, stepId: input.stepId });
   const prompt = imagePrompt(input.task, input.marker, input.productSkill, input.article);
   const promptHash = textHash(prompt);
   const confirmed = await prepareImageSubmit(input, prompt, promptHash);
   return (await checkpointSubmittedImage(
-    input, promptHash, confirmed.value.canonicalConversationUrl,
+    input, promptHash, confirmed,
   )).generated;
 };

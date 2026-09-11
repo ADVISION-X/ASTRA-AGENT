@@ -5,9 +5,9 @@ import type {
   WebsiteAgentTask,
 } from "../../mediator/product-plugin-contract.js";
 import {
+  applyExactProfile,
   createSeoExecutor,
   prepareAttachedTurnPrefix,
-  prepareFreshTurnPrefix,
   submitTextTurn,
 } from "./seo-gpt-calls.js";
 import { generateImage } from "./seo-image-call.js";
@@ -69,20 +69,20 @@ const produceArticleTurn = async (
   research: Readonly<Record<string, unknown>>,
 ): Promise<ArticleTurn> => {
   const stepId = "article_synthesis";
-  await prepareFreshTurnPrefix({ flow, stepId });
-    const marker = turnMarker(task, stepId);
-    const checkpoint = await submitTextTurn({
-      flow,
-      stepId,
-      marker,
-      files: [],
-      prompt: articlePrompt(task, marker, context.routePolicy, context.productSkill, research),
-      ordinals: [27, 28, 29, 30, 31, 32],
-    });
-    return Object.freeze({
-      checkpoint,
-      result: receiveArticle(task, context.gpt.attemptId, checkpoint, context.routePolicy),
-    });
+  await applyExactProfile(flow.execute, stepId, [21, 22, 23, 24, 25, 26]);
+  const marker = turnMarker(task, stepId);
+  const checkpoint = await submitTextTurn({
+    flow,
+    stepId,
+    marker,
+    files: [],
+    prompt: articlePrompt(task, marker, context.routePolicy, context.productSkill, research),
+    ordinals: [27, 28, 29, 30, 31, 32],
+  });
+  return Object.freeze({
+    checkpoint,
+    result: receiveArticle(task, context.gpt.attemptId, checkpoint, context.routePolicy),
+  });
 };
 
 const completeArticlePackage = async (
@@ -168,7 +168,7 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
 
 export const publicKnowledgeArticlePipelinePlugin: ProductPlugin = {
   pluginId: PLUGIN_ID,
-  pluginVersion: 24,
+  pluginVersion: 25,
   accepts: [
     { productId: "public_knowledge_article_pipeline", actionId: "produce_article" },
     { productId: "public_knowledge_article_pipeline", actionId: "accuracy_challenge" },

@@ -32,7 +32,7 @@ const invocationPayloads = [
   { permit: { authorityEpoch: 7, exactCallIdentityHash: "sha256:file" }, command: { kind: "file-input",
     approvedFiles: [{ grantRef: "grant-private", contentHash: `sha256:${"a".repeat(64)}`, maxBytes: 1_024 }],
     resolvedFilePaths: ["/private/tmp/private-upload-gamma.pdf"] } },
-  { permit: { authorityEpoch: 7, exactCallIdentityHash: "sha256:navigate" }, command: { kind: "navigate", url: "https://chatgpt.com/c/private-delta" } },
+  { permit: { authorityEpoch: 7, exactCallIdentityHash: "sha256:select" }, command: { kind: "dom-intent", intent: { kind: "selectExactGptConversation", canonicalConversationUrl: "https://chatgpt.com/c/private-delta" } } },
   { requestSequence: 5, permitSequence: 5, replyChannelToken: "reply:media", result: { bytesBase64: "cHJpdmF0ZS1tZWRpYS1lcHNpbG9u" } },
 ] as const;
 const rawPayloadFragments = [
@@ -212,9 +212,10 @@ const wireCases: readonly Readonly<{
       approvedFiles: [{ grantRef: "grant-private", contentHash: `sha256:${"a".repeat(64)}`, maxBytes: 1_024 }],
       resolvedFilePaths: ["/private/tmp/private-upload-gamma.pdf"] }, result: { attached: true },
     rawFragments: ["private-upload-gamma.pdf"] },
-  { capabilityId: "browser.navigate.v1", mutationClass: "lifecycle",
-    command: { kind: "navigate", url: "https://chatgpt.com/c/private-delta" },
-    result: { navigated: true }, rawFragments: ["private-delta"] },
+  { capabilityId: "browser.dom.click.v1", mutationClass: "lifecycle",
+    command: { kind: "dom-intent", intent: { kind: "selectExactGptConversation", canonicalConversationUrl: "https://chatgpt.com/c/private-delta" } },
+    result: { documentRef: "document:selected", targetRef: "target:selected", navigationEpoch: 2 },
+    rawFragments: ["private-delta"] },
   { capabilityId: "browser.authenticated-media.v1", mutationClass: "observation",
     command: { kind: "authenticated-media", assistantTurnId: "conversation-turn-5",
       semanticMediaId: "gpt-generated-image-main", delivery: "probe" },

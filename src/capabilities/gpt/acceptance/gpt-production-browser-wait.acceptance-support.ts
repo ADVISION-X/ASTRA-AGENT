@@ -17,7 +17,7 @@ try {
     fileSink: { directoryPath: path.join(temporary, "runtime-logs") },
   });
   let acquisitions = 0;
-  let navigations = 0;
+  let selections = 0;
   let parks = 0;
   let closes = 0;
   const acquisitionPurposes: string[] = [];
@@ -29,7 +29,7 @@ try {
     document: { documentRef: `document:${index + 1}` },
     pendingMutationCount: () => 0,
     requiresMutationRecovery: () => false,
-    navigate: async () => { navigations += 1; },
+    executeDomIntent: async () => { selections += 1; },
     park: async (input: Readonly<{
       reason: string; mode: string; startProviderProbeCooldown: boolean;
     }>) => {
@@ -106,8 +106,8 @@ try {
   assert.deepEqual(acquisitionPurposes, [
     "general", "provider-probe", "provider-probe", "provider-probe", "provider-probe",
   ]);
-  assert.equal(navigations, 4,
-    "each qualified Provider probe must navigate before its one fresh DOM observation");
+  assert.equal(selections, 4,
+    "each qualified Provider probe must select the exact sidebar conversation before observation");
   const waitEvents = (await readFile(runtimeLogger.currentSegmentPath()!, "utf8")).trim().split("\n")
     .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>)
     .filter((event) => event.code === "GPT_PROVIDER_WAIT_ACTIVE");

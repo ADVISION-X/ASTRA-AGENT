@@ -13,7 +13,7 @@ import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 type BrowserRecord = Record<string, unknown>;
 
 const pointerActionCode = (value: unknown): value is string => typeof value === "string"
-  && /^BROWSER_DOM_ACTION_(?:NODE_DISCONNECTED|NO_LAYOUT_BOX|NOT_VISIBLE|ARIA_HIDDEN|INERT|DISABLED|ARIA_DISABLED|OUTSIDE_VIEWPORT|POINTER_EVENTS_NONE|HIT_TEST_FAILED)$/u.test(value);
+  && /^BROWSER_DOM_ACTION_(?:NODE_DISCONNECTED|NO_LAYOUT_BOX|NOT_VISIBLE|ARIA_HIDDEN|INERT|DISABLED|ARIA_DISABLED|OUTSIDE_VIEWPORT|POINTER_EVENTS_NONE|HIT_TEST_FAILED|OUTGOING_(?:STRUCTURE|PROMPT_HASH|ATTACHMENT_SET)_MISMATCH)$/u.test(value);
 
 export const coherentCandidateRecord = (value: unknown): BrowserRecord => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -54,7 +54,14 @@ export const coherentPointerFromValue = (value: unknown): BrowserPointerAction =
     || typeof point.y !== "number" || !Number.isFinite(point.y)) {
     throw new Error("BROWSER_DOM_READ_INVALID");
   }
-  return Object.freeze({ x: point.x, y: point.y });
+  const baseline = point.baselineUserTurnId;
+  if (baseline !== undefined && baseline !== null
+    && (typeof baseline !== "string" || !/^conversation-turn-[1-9][0-9]*$/u.test(baseline)
+      || Number(baseline.slice("conversation-turn-".length)) % 2 === 0)) {
+    throw new Error("BROWSER_DOM_READ_INVALID");
+  }
+  return Object.freeze({ x: point.x, y: point.y,
+    ...(baseline === undefined ? {} : { baselineUserTurnId: baseline as string | null }) });
 };
 
 const bindSatisfiedObservation = async (

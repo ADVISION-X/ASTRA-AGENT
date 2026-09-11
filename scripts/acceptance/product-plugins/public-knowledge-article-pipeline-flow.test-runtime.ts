@@ -34,9 +34,9 @@ const assertHarness = (
   assert(output);
   if (!recoverAfterFault) {
     const expectedOrdinals = (stepId: string): readonly number[] => stepId === "article_synthesis"
-      ? [1, 2, 3, 4, 5, 6, 7, 27, 29, 31]
+      ? [21, 22, 23, 24, 25, 26, 27, 29, 31]
       : stepId === "article_image_generation"
-        ? [1, 2, 3, 4, 5, 6, 7, 37, 38, 39, 40, 41, 42, 43, 45, 47]
+        ? [37, 38, 39, 40, 41, 42, 43, 45, 47]
         : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15];
     const callsByStep = new Map<string, SeoCall[]>();
     for (const call of state.calls) callsByStep.set(call.productStepId, [
@@ -55,6 +55,12 @@ const assertHarness = (
   const firstPrompt = state.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt;
   assert.equal(typeof firstPrompt, "string");
   if (actionId === "produce_article") {
+    const checkpoints = state.calls.filter((call) => call.child === "checkpoint_gpt_text_response"
+      || call.child === "checkpoint_gpt_generated_image");
+    assert.deepEqual(checkpoints.map((call) => call.input.userTurnId), checkpoints.map((call) =>
+      `conversation-turn-${call.productStepId === "corpus_research" ? 1
+        : call.productStepId === "article_synthesis" ? 3 : 5}`));
+    assert.equal(new Set(checkpoints.map((call) => call.input.canonicalConversationUrl)).size, 1);
     assert.equal(state.providerNames.length, 1);
     assert.match(firstPrompt as string, /解压并读取本轮唯一 ZIP 附件/u);
     assert.doesNotMatch(firstPrompt as string, new RegExp(state.providerNames[0]!, "u"),

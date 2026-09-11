@@ -97,6 +97,12 @@ const ExecutionGrantSchema = z.object({
   expected_plugin_version: z.number().int().positive(),
   accepted_attempt_count: z.number().int().min(0),
   max_provider_turns: z.number().int().positive(),
+  result_revision: z.number().int().nonnegative(),
+  prior_result_rejection: z.object({
+    receipt_hash: hash,
+    rejected_result_payload_hash: hash,
+    reason_codes: z.array(reasonCode).min(1),
+  }).strict().nullable(),
 }).extend({
   attempt_id: z.string().min(1),
   device_id: z.string().min(1),
@@ -142,6 +148,9 @@ export const ClaimedProductionTaskSchema = WebsiteAgentTaskBaseSchema.extend({
     || grant.execution_fence.lease_version !== grant.lease_version
     || grant.execution_fence.control_contract_version !== grant.control_contract_version) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_CLAIM_TASK_GRANT_MISMATCH" });
+  }
+  if ((grant.result_revision === 0) !== (grant.prior_result_rejection === null)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_RESULT_REVISION_BINDING_INVALID" });
   }
 });
 

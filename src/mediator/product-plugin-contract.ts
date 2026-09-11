@@ -136,6 +136,14 @@ export interface SharedExecutionContext {
   readonly routePolicy: ProductionRoutePolicy;
   readonly productSkill: ProductSkill;
   readonly gpt: ProductGptTools;
+  readonly resultRevision: Readonly<{
+    revision: number;
+    priorRejection: Readonly<{
+      receipt_hash: ProductionHash;
+      rejected_result_payload_hash: ProductionHash;
+      reason_codes: readonly string[];
+    }> | null;
+  }>;
   readonly uploadGeneratedImage: (artifact: GeneratedImageArtifact) => Promise<GeneratedImageResultReceipt>;
   readonly complete: (output: ProductPluginOutput) => Promise<ProductCompletionReceipt>;
 }

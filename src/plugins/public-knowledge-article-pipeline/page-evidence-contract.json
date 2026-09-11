@@ -2,7 +2,7 @@
   "schemaVersion": "product-page-evidence-contract.v1",
   "owner": "public-knowledge-article-pipeline",
   "pluginId": "public-knowledge-article-pipeline",
-  "pluginVersion": 24,
+  "pluginVersion": 25,
   "traceAuthority": {
     "kind": "durable-product-forensics",
     "sequenceOwner": "accepted-production-attempt",

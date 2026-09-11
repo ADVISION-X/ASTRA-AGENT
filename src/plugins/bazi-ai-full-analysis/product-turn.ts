@@ -22,6 +22,11 @@ import {
 } from "../../lib/execution-failure.js";
 import { parseProductResult } from "./result-contract.js";
 import { MODEL_PROFILE, PLUGIN_ID, PRODUCT_INSTRUCTION } from "./product-identity.js";
+import {
+  baziRevisionInstruction,
+  prepareBaziConsultation,
+  type ConsultationBinding,
+} from "../bazi-consultation-turn.js";
 
 const WAIT_TIMEOUT_MS = 3_600_000;
 
@@ -72,7 +77,9 @@ export const createOwnedExecution = (task: WebsiteAgentTask, context: SharedExec
     evidenceRefs.push(...result.artifactRefs);
     return result;
   };
-  return Object.freeze({ evidenceRefs: () => Object.freeze([...evidenceRefs]), execute });
+  return Object.freeze({
+    evidenceRefs: () => Object.freeze([...evidenceRefs]), execute, sessionKey,
+  });
 };
 const materialFiles = (context: SharedExecutionContext) => context.materials.slice()
   .sort((left, right) => left.ordinal - right.ordinal).map((material) => Object.freeze({
@@ -141,6 +148,7 @@ export const promptFor = (
     context.productSkill.text, "", `当前 Product Plugin：${PLUGIN_ID}`, `当前授权动作：${task.action_id}`,
     `当前业务事实：${JSON.stringify(task.parameters)}`, `本轮获准附件：${attachments.join("；")}`,
     instruction,
+    ...baziRevisionInstruction(context),
     ...(routeContract ? [`当前 canonical 输出合同：${JSON.stringify(routeContract)}`] : []),
     "逐一读取本轮全部附件；只有任务合同标记可发出指令的材料才能补充输出格式或产品要求。",
     "严格按 result_contract 附件的当前 schema 返回全部且仅有字段；只返回一个 JSON 对象，不要代码围栏或前后缀。",
@@ -211,7 +219,7 @@ export const checkpointSubmittedTurn = async (
       productStepId: stepId, callId: callId("text-checkpoint"), child: "checkpoint_gpt_text_response",
       actionOrdinal: ordinals[0], input: {
         probeBudgetMs: WAIT_TIMEOUT_MS, canonicalConversationUrl,
-        expectedPromptHash: promptHash, turnMarker: marker,
+        expectedPromptHash: promptHash, userTurnId: submit.value.userTurnId, turnMarker: marker,
       },
     } as const;
     const checkpointResult = await flow.execute(checkpointCall);
@@ -234,12 +242,14 @@ export const checkpointSubmittedTurn = async (
 
 export const submitTurn = async (
   flow: OwnedExecution,
+  context: SharedExecutionContext,
   stepId: string,
   prompt: string,
   marker: string,
   files: readonly GptApprovedFile[],
   ordinals: readonly [number, number, number, number, number, number],
   callIdSuffix = "",
+  continuation?: ConsultationBinding,
 ): Promise<Checkpoint> => {
   const callId = (name: string) => callIdSuffix ? `${name}:${callIdSuffix}` : name;
   const promptHash = sha256(prompt);
@@ -248,24 +258,44 @@ export const submitTurn = async (
   await flow.execute(write);
   const submitResult = await flow.execute(submit) as ProductGptChildResult<"submit_exact_gpt_turn_once">;
   requireConfirmedSubmit(submitResult.effectReceipt);
-  return checkpointSubmittedTurn(flow, stepId, marker, promptHash, submitResult,
+  const submitEvidenceRef = submitResult.effectReceipt!.evidenceRef;
+  const checkpoint = await checkpointSubmittedTurn(flow, stepId, marker, promptHash, submitResult,
     [ordinals[3], ordinals[4], ordinals[5]], callIdSuffix);
+  if (continuation) context.gpt.recordContinuation({ ...continuation, submitEvidenceRef, checkpoint });
+  return checkpoint;
 };
 
-export const runFreshTurn = async (
+export const runConsultationTurn = async (
   task: WebsiteAgentTask,
   context: SharedExecutionContext,
   flow: OwnedExecution,
   prompt: string,
   marker: string,
 ): Promise<Checkpoint> => {
-  const stepId = task.action_id;
-  const fresh = { productStepId: stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
-  await flow.execute(fresh);
-  await applyProfile(flow, stepId, MODEL_PROFILE, [2, 3, 4, 5, 6, 7]);
-  await applyAttachments(flow, context, stepId,
-  context.materials.map((material) => material.role), [8, 9, 10]);
-  return submitTurn(flow, stepId, prompt, marker, uploadedFiles(context), [11, 12, 13, 14, 15, 16]);
+  const continuation = await prepareBaziConsultation(task, context, flow, "followup");
+  await applyProfile(flow, task.action_id, MODEL_PROFILE, [2, 3, 4, 5, 6, 7]);
+  await applyAttachments(flow, context, task.action_id,
+    context.materials.map((material) => material.role), [8, 9, 10]);
+  const checkpoint = await submitTurn(flow, context, task.action_id, prompt, marker,
+    uploadedFiles(context), [11, 12, 13, 14, 15, 16], "",
+    continuation);
+  return checkpoint;
+};
+
+export const runReviewTurn = async (
+  task: WebsiteAgentTask,
+  context: SharedExecutionContext,
+  flow: OwnedExecution,
+  prompt: string,
+  marker: string,
+): Promise<Checkpoint> => {
+  await flow.execute({ productStepId: task.action_id, callId: "fresh-chat",
+    child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } });
+  await applyProfile(flow, task.action_id, MODEL_PROFILE, [2, 3, 4, 5, 6, 7]);
+  await applyAttachments(flow, context, task.action_id,
+    context.materials.map((material) => material.role), [8, 9, 10]);
+  return submitTurn(flow, context, task.action_id, prompt, marker,
+    uploadedFiles(context), [11, 12, 13, 14, 15, 16]);
 };
 
 export const receive = (task: WebsiteAgentTask, checkpoint: Checkpoint, context: SharedExecutionContext): Readonly<Record<string, unknown>> => {

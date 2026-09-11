@@ -8,6 +8,9 @@ import { CONFIRMED_AT, HASH, type SeoCall, type SeoFailure, type SeoHarness } fr
   "./public-knowledge-article-pipeline-fixture-state.js";
 
 type SeoExecuteInput = Parameters<ProductGptTools["execute"]>[0];
+const SEO_CONVERSATION_URL = "https://chatgpt.com/c/seo-flow";
+const userTurnId = (stepId: string): string => `conversation-turn-${
+  stepId === "corpus_research" ? 1 : stepId === "article_synthesis" ? 3 : 5}`;
 
 const outputForCall = (state: SeoHarness, call: SeoCall, decision: "proceed" | "decline"): unknown => {
   if (call.child === "reconcile_gpt_attachment_set") return { files: state.materials.map((material, index) => ({
@@ -16,20 +19,21 @@ const outputForCall = (state: SeoHarness, call: SeoCall, decision: "proceed" | "
   })) };
   if (call.child === "submit_exact_gpt_turn_once") return {
     status: "CONFIRMED", promptHash: call.input.promptHash,
-    mutationSent: true, canonicalConversationUrl: `https://chatgpt.com/c/${call.productStepId}`,
-    userTurnId: "conversation-turn-1",
+    mutationSent: true, canonicalConversationUrl: SEO_CONVERSATION_URL,
+    userTurnId: userTurnId(call.productStepId),
   };
   if (call.child === "checkpoint_gpt_text_response") {
     const payload = call.productStepId === "corpus_research" ? researchOutput(decision)
       : call.productStepId === "article_synthesis" ? articleOutput() : { decision: "no_issue", issues: [] };
     const semanticText = JSON.stringify(payload);
-    return { assistantTurnId: "conversation-turn-2", rawDomHtml: `<article>${semanticText}</article>`,
+    return { assistantTurnId: `conversation-turn-${Number(userTurnId(call.productStepId).slice(18)) + 1}`,
+      rawDomHtml: `<article>${semanticText}</article>`,
       rawDomHash: HASH, semanticText, semanticTextHash: HASH };
   }
   if (call.child === "checkpoint_gpt_generated_image") return {
-    assistantTurnId: "conversation-turn-2", semanticMediaId: "gpt-generated-image-main",
+    assistantTurnId: "conversation-turn-6", semanticMediaId: "gpt-generated-image-main",
     mediaHash: HASH, authorityTargetHash: HASH, authorityDocumentHash: HASH,
-    canonicalConversationUrl: "https://chatgpt.com/c/article_image_generation",
+    canonicalConversationUrl: SEO_CONVERSATION_URL,
     promptHash: HASH, turnMarker: "marker", artifactId: "image-1",
     originalBytes: new Uint8Array([1]), webpBytes: new Uint8Array([1]),
     originalSizeBytes: 1, originalMediaType: "image/png", originalWidth: 1200, originalHeight: 630,
@@ -57,6 +61,8 @@ export const createContext = (
   productSkill: Object.freeze({ text: "fixture public knowledge skill", hash: HASH }),
   gpt: {
     jobId: `job-${state.actionId}`, attemptId,
+    acquireContinuation: async () => { throw new Error("UNREACHABLE_GPT_CONTINUATION"); },
+    recordContinuation: () => { throw new Error("UNREACHABLE_GPT_CONTINUATION"); },
     execute: async (input: SeoExecuteInput) => {
       const call = input as SeoCall;
       assertCallBoundary(call);
@@ -79,6 +85,7 @@ export const createContext = (
         } : null } as never;
     },
   },
+  resultRevision: { revision: 0, priorRejection: null },
   uploadGeneratedImage: async (artifact) => {
     state.generatedImageUploadCalls += 1;
     return { artifact_id: artifact.artifact_id, object_ref: `object:${artifact.artifact_id}`,

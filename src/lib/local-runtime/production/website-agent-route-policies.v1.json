@@ -1,7 +1,7 @@
 {
   "schema_version": "website-agent-route-policies.v1",
   "contract_id": "ai-acceptance.website-agent-task-result",
-  "contract_version": 1,
+  "contract_version": 7,
   "parameter_types": {
     "admitted_identity_catalog_hash": "sha256",
     "analysis_kind": "bazi_analysis_kind",
@@ -15,6 +15,7 @@
     "chart_hash": "sha256",
     "chart_ref": "non_empty_string",
     "chart_version": "non_empty_string",
+    "consultation_root_ref": "non_empty_string",
     "context_package_ref": "non_empty_string",
     "domain_id": "non_empty_string",
     "evidence_ref_catalog": "non_empty_string_array",
@@ -60,22 +61,13 @@
         "chart_ref",
         "chart_version",
         "chart_hash",
+        "consultation_root_ref",
         "current_authorization_ref",
         "owner_scope_hash",
         "bazi_pdf_semantic_manifest_ref",
         "bazi_pdf_semantic_manifest_hash"
       ],
       "material_roles": [
-        {
-          "role": "bazi_private_base_input",
-          "trust_class": "locked_fact",
-          "may_issue_instruction": false,
-          "media_types": [
-            "application/json"
-          ],
-          "storage_class": "private_owner_scoped",
-          "owner_scope_policy": "required"
-        },
         {
           "role": "bazi_formal_input",
           "trust_class": "locked_fact",
@@ -100,42 +92,6 @@
       "result_schema_version": "bazi-chart-interpretation-output.v4",
       "result_contract": {
         "schema_version": "bazi-primary-result-contract.v1",
-        "private_base": {
-          "schema_version": "bazi-base-interpretation-contract-v3",
-          "output_schema_version": "bazi-base-interpretation-output-v2",
-          "exact_top_level_fields": [
-            "schema_version",
-            "interpretation_markdown",
-            "citations",
-            "uncertainties",
-            "index_review_receipts"
-          ],
-          "exact_citation_fields": [
-            "book_id",
-            "locator"
-          ],
-          "exact_uncertainty_fields": [
-            "topic",
-            "status",
-            "detail",
-            "impact"
-          ],
-          "exact_index_review_fields": [
-            "book_id",
-            "index_hash",
-            "macro_entry_count",
-            "navigation_node_count",
-            "semantic_entry_count",
-            "review_status",
-            "applicability_note"
-          ],
-          "forbidden_inputs_and_outputs": [
-            "user_question",
-            "subject_events",
-            "question_specific_answer",
-            "user_deliverable_report"
-          ]
-        },
         "formal": {
           "schema_version": "bazi-chart-interpretation-contract.v4",
           "output_schema_version": "bazi-chart-interpretation-output.v4",
@@ -190,6 +146,7 @@
         "chart_ref",
         "chart_version",
         "chart_hash",
+        "consultation_root_ref",
         "user_question",
         "current_authorization_ref",
         "owner_scope_hash",
@@ -197,16 +154,6 @@
         "question_snapshot_hash"
       ],
       "material_roles": [
-        {
-          "role": "bazi_private_base_input",
-          "trust_class": "locked_fact",
-          "may_issue_instruction": false,
-          "media_types": [
-            "application/json"
-          ],
-          "storage_class": "private_owner_scoped",
-          "owner_scope_policy": "required"
-        },
         {
           "role": "bazi_formal_input",
           "trust_class": "locked_fact",
@@ -231,42 +178,6 @@
       "result_schema_version": "bazi-initial-question-answer-output.v1",
       "result_contract": {
         "schema_version": "bazi-primary-result-contract.v1",
-        "private_base": {
-          "schema_version": "bazi-base-interpretation-contract-v3",
-          "output_schema_version": "bazi-base-interpretation-output-v2",
-          "exact_top_level_fields": [
-            "schema_version",
-            "interpretation_markdown",
-            "citations",
-            "uncertainties",
-            "index_review_receipts"
-          ],
-          "exact_citation_fields": [
-            "book_id",
-            "locator"
-          ],
-          "exact_uncertainty_fields": [
-            "topic",
-            "status",
-            "detail",
-            "impact"
-          ],
-          "exact_index_review_fields": [
-            "book_id",
-            "index_hash",
-            "macro_entry_count",
-            "navigation_node_count",
-            "semantic_entry_count",
-            "review_status",
-            "applicability_note"
-          ],
-          "forbidden_inputs_and_outputs": [
-            "user_question",
-            "subject_events",
-            "question_specific_answer",
-            "user_deliverable_report"
-          ]
-        },
         "formal": {
           "schema_version": "bazi-initial-question-answer-contract.v1",
           "output_schema_version": "bazi-initial-question-answer-output.v1",
@@ -311,7 +222,7 @@
         "locked_identity_source": "bazi_formal_input",
         "coverage_denominator_source": "bazi_formal_input.ordered_question_units"
       },
-      "relation_kind": "primary"
+      "relation_kind": "followup"
     },
     {
       "product_id": "bazi_report_followup",
@@ -322,6 +233,7 @@
         "chart_ref",
         "chart_version",
         "chart_hash",
+        "consultation_root_ref",
         "user_question",
         "parent_report_ref",
         "parent_raw_output_hash",

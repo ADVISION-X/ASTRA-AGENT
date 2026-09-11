@@ -12,6 +12,13 @@ const reviewSequence = [
   "open_gpt_attachment_control", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
   "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "checkpoint_gpt_text_response",
 ] as const;
+const continuationSequence = [
+  "checkpoint_gpt_text_response", "open_gpt_execution_profile", "open_gpt_model_selector_v2",
+  "select_exact_gpt_model_v2", "open_gpt_execution_profile", "ensure_gpt_reasoning_requirement",
+  "close_gpt_execution_profile", "open_gpt_attachment_control", "attach_approved_gpt_files_once",
+  "reconcile_gpt_attachment_set", "write_exact_gpt_prompt", "submit_exact_gpt_turn_once",
+  "checkpoint_gpt_text_response",
+] as const;
 for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   if (route.relation_kind === "review") {
     const review = route.action_id === "accuracy_challenge"
@@ -22,22 +29,11 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     assert.deepEqual(run.calls.map((call) => call.child), reviewSequence);
     continue;
   }
-  const privateContract = route.result_contract?.private_base;
-  assert(privateContract && typeof privateContract === "object" && !Array.isArray(privateContract));
-  const providerVisible = {
-    schema_version: "bazi-private-base-input.v1", owner_scope_hash: FIXTURE_HASH_B,
-    privacy_subject_ref: "privacy-subject:1", stable_base_authorization_ref: "authorization:stable",
-    interpretive_mode: "deep", chart_snapshot: { snapshot_hash: FIXTURE_HASH },
-    preflight: { verdict: "READY", ready_book_set_hash: FIXTURE_HASH },
-    material_lineage: { lineage_hash: FIXTURE_HASH, rule_catalog_hash: FIXTURE_HASH },
-    chart_field_manifest: [{ field_path: "chart.day_master", value_hash: FIXTURE_HASH }],
-    ready_books: [{ book_id: "book:1" }], ready_book_manifest: [{ book_id: "book:1", index_hash: FIXTURE_HASH }],
-    base_output_contract: privateContract,
-  };
   const task = buildProductTask(route, { privacySubjectRef: "privacy-subject:1", parameters: {
     analysis_kind: "ai_full_analysis", result_schema_version: route.result_schema_version,
     chart_ref: "chart:1", chart_version: "v1", chart_hash: FIXTURE_HASH, user_question: "请完整分析",
     current_authorization_ref: "authorization:1", owner_scope_hash: FIXTURE_HASH_B,
+    consultation_root_ref: "source:bazi_chart_interpretation:produce",
     question_snapshot_ref: "question:1", question_snapshot_hash: FIXTURE_HASH,
   } });
   const output = {
@@ -47,9 +43,12 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     covered_question_unit_refs: ["question:1"], citations: [], uncertainties: [], limitations: [], safety_notes: [],
   };
   const run = await exerciseProductFlow(plugin, {
-    task, output, materialContents: { bazi_private_base_input: providerVisible, result_contract: route.result_contract },
+    task, output, materialContents: { bazi_formal_input: { schema_version: "bazi-formal-input.v1" },
+      result_contract: route.result_contract },
   });
   assert.equal(run.physicalSubmitDispatches, 1);
-  assert.deepEqual(run.calls.map((call) => call.child), reviewSequence);
+  assert.equal(run.continuationAcquires[0]?.predecessorSourceTaskRef, task.parent_task_ref);
+  assert.equal(run.continuationRecords[0]?.sourceTaskRef, task.job_id);
+  assert.deepEqual(run.calls.map((call) => call.child), continuationSequence);
 }
 process.stdout.write("[ACCEPTANCE][bazi-ai-full-analysis] PASS\n");

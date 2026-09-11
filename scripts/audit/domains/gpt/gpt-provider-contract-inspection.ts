@@ -5,9 +5,8 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 
 const ROOT = "src/capabilities/gpt";
 const TEXT_HANDLER = `${ROOT}/children/checkpoint_gpt_text_response/handler.ts`;
-const TEXT_PAGE = `${ROOT}/children/checkpoint_gpt_text_response/page-observation.ts`;
 const IMAGE_HANDLER = `${ROOT}/children/checkpoint_gpt_generated_image/handler.ts`;
-const IMAGE_PAGE = `${ROOT}/children/checkpoint_gpt_generated_image/page-observation.ts`;
+const RESPONSE_STATE = `${ROOT}/web/gpt-dom-observation.ts`;
 const SUBMIT_HANDLER = `${ROOT}/children/submit_exact_gpt_turn_once/handler.ts`;
 const LIFECYCLE = `${ROOT}/production-browser-lifecycle.ts`;
 const RETIRED_CADENCE = `${ROOT}/provider-wait-cross-conversation-cadence.ts`;
@@ -49,7 +48,7 @@ export const inspectGptProviderProbeOwnerContract = (
     'childCapabilityId !== "checkpoint_gpt_text_response"',
     'childCapabilityId !== "checkpoint_gpt_generated_image"',
     '"provider-probe", probeDeadlineAt', "startProviderProbeCooldown: true",
-    "navigateExactProviderConversation",
+    "selectExactProviderConversation",
   ], findings, finding);
   for (const forbidden of ["yieldForProviderWait", "waitForDelay", "yieldAndReacquire",
     "productionGptCrossConversationPollCadence"]) if (lifecycle.includes(forbidden)) findings.push(finding(
@@ -66,25 +65,22 @@ export const inspectProviderWaitContract = (
   context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory,
 ): void => {
   const textHandler = sourceText(context, TEXT_HANDLER);
-  const textPage = sourceText(context, TEXT_PAGE);
   const imageHandler = sourceText(context, IMAGE_HANDLER);
-  const imagePage = sourceText(context, IMAGE_PAGE);
+  const responseState = sourceText(context, RESPONSE_STATE);
   const submit = sourceText(context, SUBMIT_HANDLER);
   requireTokens(textHandler, TEXT_HANDLER, [
-    "checkpointGptTextResponseHandler", "probeBudgetMs", "readExactResponsePage",
+    "checkpointGptTextResponseHandler", "probeBudgetMs", "readExactResponseState",
     "readExactAssistantTurn", "semanticText.trim().length > 0", "yieldForProviderProbe",
     'throw executionFailure("failed", "GPT_RESPONSE_TIMEOUT")',
   ], findings, finding);
   requireTokens(imageHandler, IMAGE_HANDLER, [
-    "checkpointGptGeneratedImageHandler", "probeBudgetMs", "ensureResponseConversation",
+    "checkpointGptGeneratedImageHandler", "probeBudgetMs", "readExactResponseState",
     "downloadAuthenticatedMedia", "yieldForProviderProbe", "requireConfirmedBrowserFact",
     'throw executionFailure("failed", "GPT_IMAGE_TIMEOUT")',
   ], findings, finding);
-  for (const [path, source] of [[TEXT_PAGE, textPage], [IMAGE_PAGE, imagePage]] as const) {
-    requireTokens(source, path, [
-      "canonicalGptConversationUrl", "navigateExactProviderConversation", "Date.now() >= input.deadline",
-    ], findings, finding);
-  }
+  requireTokens(responseState, RESPONSE_STATE, [
+    "adjacentGptAssistantTurnId", "readExactResponseState", "exactGptUserPromptHash",
+  ], findings, finding);
   requireTokens(submit, SUBMIT_HANDLER, [
     "submitExactGptTurnOnceHandler", "requireConfirmedBrowserFact", 'status: "CONFIRMED"',
     "canonicalConversationUrl", "userTurnId",
@@ -92,7 +88,7 @@ export const inspectProviderWaitContract = (
   for (const retired of [
     "reconcile_gpt_draft", "reconcile_gpt_turn_submission", "wait_for_stable_gpt_text",
     "wait_for_stable_gpt_image", "fork_exact_gpt_conversation_at_checkpoint",
-  ]) if ([textHandler, textPage, imageHandler, imagePage, submit].some((source) => source.includes(retired))) {
+  ]) if ([textHandler, responseState, imageHandler, submit].some((source) => source.includes(retired))) {
     findings.push(finding("gpt/retired-provider-step-absent", ROOT,
       `Current provider chain retains retired ${retired}.`));
   }

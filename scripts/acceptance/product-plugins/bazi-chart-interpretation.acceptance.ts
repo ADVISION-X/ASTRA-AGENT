@@ -22,22 +22,11 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     assert.deepEqual(run.calls.map((call) => call.child), reviewSequence);
     continue;
   }
-  const privateContract = route.result_contract?.private_base;
-  assert(privateContract && typeof privateContract === "object" && !Array.isArray(privateContract));
-  const providerVisible = {
-    schema_version: "bazi-private-base-input.v1", owner_scope_hash: FIXTURE_HASH_B,
-    privacy_subject_ref: "privacy-subject:1", stable_base_authorization_ref: "authorization:stable",
-    interpretive_mode: "deep", chart_snapshot: { snapshot_hash: FIXTURE_HASH },
-    preflight: { verdict: "READY", ready_book_set_hash: FIXTURE_HASH },
-    material_lineage: { lineage_hash: FIXTURE_HASH, rule_catalog_hash: FIXTURE_HASH },
-    chart_field_manifest: [{ field_path: "chart.day_master", value_hash: FIXTURE_HASH }],
-    ready_books: [{ book_id: "book:1" }], ready_book_manifest: [{ book_id: "book:1", index_hash: FIXTURE_HASH }],
-    base_output_contract: privateContract,
-  };
   const task = buildProductTask(route, { privacySubjectRef: "privacy-subject:1", parameters: {
     analysis_kind: "chart_interpretation", result_schema_version: route.result_schema_version,
     chart_ref: "chart:1", chart_version: "v1", chart_hash: FIXTURE_HASH,
     current_authorization_ref: "authorization:1", owner_scope_hash: FIXTURE_HASH_B,
+    consultation_root_ref: "source:bazi_chart_interpretation:produce",
     bazi_pdf_semantic_manifest_ref: "manifest:1",
     bazi_pdf_semantic_manifest_hash: FIXTURE_HASH,
   } });
@@ -50,9 +39,13 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     covered_semantic_anchor_refs: ["anchor:1"], citations: [], uncertainties: [], limitations: [], safety_notes: [],
   };
   const run = await exerciseProductFlow(plugin, {
-    task, output, materialContents: { bazi_private_base_input: providerVisible, result_contract: route.result_contract },
+    task, output, materialContents: { bazi_formal_input: { schema_version: "bazi-formal-input.v1" },
+      result_contract: route.result_contract },
   });
   assert.equal(run.physicalSubmitDispatches, 1);
+  assert.equal(run.continuationAcquires.length, 0);
+  assert.equal(run.continuationRecords.length, 1);
+  assert.equal(run.continuationRecords[0]?.sourceTaskRef, task.job_id);
   assert.deepEqual(run.calls.map((call) => call.child), reviewSequence);
 }
 process.stdout.write("[ACCEPTANCE][bazi-chart-interpretation] PASS\n");

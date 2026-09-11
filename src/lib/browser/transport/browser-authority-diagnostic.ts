@@ -15,10 +15,10 @@ const CONTROLLED_VALUES: Readonly<Record<string, ReadonlySet<string>>> = {
   runtimeEventType: new Set(["message-handler", "command-handler", "unhandledrejection", "worker-error",
     "liveness-pulse", "job-bound-target-acquisition", "debugger-detach", "tab-remove"]),
   commandStage: new Set(["payload", "command-shape", "command-admission", "target-resolution", "registered-command"]),
-  commandKind: new Set(["navigate", "dom-intent", "observe", "screenshot", "file-input",
+  commandKind: new Set(["dom-intent", "observe", "screenshot", "file-input",
     "authenticated-media", "wait", "park-target", "close-target"]),
   commandIntentKind: new Set(["document", "observe", "readExactAssistantTurn", "inspect", "find", "readText",
-    "readAttribute", "click", "hover", "doubleClick", "keypress", "fill"]),
+    "readAttribute", "selectExactGptConversation", "click", "hover", "doubleClick", "keypress", "fill"]),
   nativeCauseCode: new Set(["CHROME_DEBUGGER_TARGET_CLOSED", "CHROME_DEBUGGER_CANCELED_BY_USER"]),
 };
 

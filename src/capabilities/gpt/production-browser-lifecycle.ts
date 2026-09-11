@@ -140,19 +140,16 @@ export class ProductionGptBrowserLifecycle {
       }
       return "deadline";
     }
-    await active.browser.navigate({
-      url: canonicalConversationUrl,
-      title: "observe exact GPT conversation",
-    });
+    await active.browser.executeDomIntent({ kind: "selectExactGptConversation", canonicalConversationUrl });
     return "reobserve";
   }
 
-  public async navigateExactProviderConversation(
+  public async selectExactProviderConversation(
     active: ProductionGptBrowserCall,
     childCapabilityId: GptChildCapabilityId,
     canonicalConversationUrl: string,
     probeDeadlineAt: number,
-  ): Promise<"navigated" | "deadline"> {
+  ): Promise<"selected" | "deadline"> {
     if (childCapabilityId !== "checkpoint_gpt_text_response"
       && childCapabilityId !== "checkpoint_gpt_generated_image") {
       throw executionFailure("failed", "GPT_PROVIDER_CONVERSATION_CHILD_INVALID");
@@ -169,11 +166,8 @@ export class ProductionGptBrowserLifecycle {
     }
     const remaining = Math.floor(probeDeadlineAt - Date.now());
     if (remaining < 1 || remaining > 3_600_000) return "deadline";
-    await active.browser.navigate({
-      url: canonicalConversationUrl,
-      title: "observe exact GPT conversation",
-    });
-    return "navigated";
+    await active.browser.executeDomIntent({ kind: "selectExactGptConversation", canonicalConversationUrl });
+    return "selected";
   }
 
   private emitProviderWaitLog(

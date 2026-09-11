@@ -93,14 +93,15 @@ export type SeoTextTurnInput = Readonly<{
  const checkpointSubmittedTextTurn = async (
   input: SeoTextTurnInput,
   promptHash: `sha256:${string}`,
-  canonicalConversationUrl: string,
+  submit: SeoConfirmedSubmit,
 ): Promise<SeoTurnCheckpoint> => {
+    const { canonicalConversationUrl, userTurnId } = submit.value;
     const checkpointCall = {
       productStepId: input.stepId, callId: "text-checkpoint",
       child: "checkpoint_gpt_text_response", actionOrdinal: input.ordinals[4],
       input: {
         probeBudgetMs: SEO_PROVIDER_PROBE_BUDGET_MS, canonicalConversationUrl,
-        expectedPromptHash: promptHash, turnMarker: input.marker,
+        expectedPromptHash: promptHash, userTurnId, turnMarker: input.marker,
       },
     } as const;
     const checkpoint = await input.flow.execute({ sessionKey: "", ...checkpointCall });
@@ -145,16 +146,7 @@ export const submitTextTurn = async (input: SeoTextTurnInput): Promise<SeoTurnCh
   const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: input.ordinals[2], input: { files: input.files, promptHash } } as const;
   await prepareTextDraft(input);
   const confirmedSubmit = await executeTextSubmit(input, turnSubmit);
-  return checkpointSubmittedTextTurn(input, promptHash, confirmedSubmit.value.canonicalConversationUrl);
-};
-
-export const prepareFreshTurnPrefix = async (input: Readonly<{
-  flow: ReturnType<typeof createSeoExecutor>;
-  stepId: string;
-}>): Promise<void> => {
-  await input.flow.execute({ sessionKey: "", productStepId: input.stepId, callId: "fresh-chat",
-    child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } });
-  await applyExactProfile(input.flow.execute, input.stepId, [2, 3, 4, 5, 6, 7]);
+  return checkpointSubmittedTextTurn(input, promptHash, confirmedSubmit);
 };
 
 export const prepareAttachedTurnPrefix = async (input: Readonly<{

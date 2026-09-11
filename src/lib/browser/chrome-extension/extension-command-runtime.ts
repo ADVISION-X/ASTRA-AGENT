@@ -10,7 +10,6 @@ import { executeBoundedBrowserWait } from "./extension-target-observation.js";
 type CommandLifecycle = Readonly<{
   assertCurrent(): void;
   closeTarget(): Promise<void>;
-  navigate(url: string): Promise<Record<string, unknown>>;
   parkTarget(): Promise<void>;
   onMutationProgress(progress: BrowserMutationProgress): Promise<void>;
 }>;
@@ -29,7 +28,6 @@ export const executeRegisteredExtensionCommand = async (
     return result;
   }
   if (command.kind === "wait") return executeBoundedBrowserWait(command.durationMs);
-  if (command.kind === "navigate") return lifecycle.navigate(command.url);
   if (command.kind === "park-target") {
     await lifecycle.parkTarget();
     return { parked: true };

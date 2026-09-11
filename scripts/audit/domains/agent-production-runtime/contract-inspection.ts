@@ -7,11 +7,11 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V50", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V4",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V20", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V20",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V19", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V21",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V21",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V22",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V51", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V5",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V21", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V21",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V20", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V22",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V22",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V23",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
@@ -36,10 +36,10 @@ const sourceFor = (context: InspectorContext, path: string): SourceFile | undefi
 
 const inspectMinimalDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const [path, version, lawId, checkId] of [
-    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 22,
-      LAWS.route, "agent-production-runtime/v22-dependency"],
-    ["docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json", 6,
-      LAWS.route, "agent-production-runtime/v6-result-dependency"],
+    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 23,
+      LAWS.route, "agent-production-runtime/v23-dependency"],
+    ["docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json", 7,
+      LAWS.route, "agent-production-runtime/v7-result-dependency"],
   ] as const) {
     const dependency = JSON.parse(read(context, path)) as { version?: unknown; contract?: Record<string, unknown> };
     if (dependency.version !== version || dependency.contract?.version !== version
@@ -62,9 +62,9 @@ const inspectRouteProjection = (context: InspectorContext, findings: InspectorFi
     return Array.isArray(keys) && keys.includes("reusable_base_reservation_ref")
       && keys.includes("reusable_base_reservation_hash");
   }).length;
-  if (routes.length !== 40 || Object.keys(route.parameter_types ?? {}).length !== 46
+  if (routes.length !== 40 || Object.keys(route.parameter_types ?? {}).length !== 47
     || resultContracts !== 31 || reservations !== 0) findings.push(finding(LAWS.route,
-    "agent-production-runtime/route-denominator", PATHS.routeProjection, "Route projection is not 40/46/31/0."));
+    "agent-production-runtime/route-denominator", PATHS.routeProjection, "Route projection is not 40/47/31/0."));
 };
 
 const inspectAdmissionHash = (context: InspectorContext, findings: InspectorFinding[]): void => {

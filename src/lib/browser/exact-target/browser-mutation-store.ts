@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
-import { mkdirSync } from "node:fs";
+import { constants, closeSync, fchmodSync, lstatSync, mkdirSync, openSync, readFileSync, writeFileSync } from "node:fs";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { dirname, join } from "node:path";
 import { mutationIdentity, type MutationRow } from "./browser-mutation-row.js";
 import { ensureCurrentSchema, identityColumns, mutationAuthorityHash } from "./browser-mutation-schema.js";
@@ -74,13 +75,110 @@ export type BrowserAtomicStepOutcome = Readonly<{
   downloadGuidHash: `sha256:${string}` | null;
   downloadCompleted: boolean;
   identityRevalidated: boolean;
+  terminalPayload?: unknown | null;
 }>;
+
+export type BrowserContinuationCheckpoint = Readonly<{
+  canonicalConversationUrl: string;
+  promptHash: `sha256:${string}`;
+  turnMarker: string;
+  assistantTurnId: string;
+  semanticTextHash: `sha256:${string}`;
+}>;
+
+export type BrowserContinuationBinding = Readonly<{
+  sourceTaskRef: string;
+  consultationIdentityHash: `sha256:${string}`;
+}>;
+
+type EncryptedPayload = Readonly<{ nonce: string; ciphertext: string; tag: string }>;
+
+type ProviderRecoveryPayload = Readonly<{
+  terminalPayload: unknown;
+  checkpoint?: BrowserContinuationCheckpoint;
+}>;
+
+const hashValue = (value: unknown): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(JSON.stringify(value)).digest("hex")}`;
+
+const secretKey = (dataDir: string): Buffer => {
+  const directory = join(dataDir, "browser");
+  const file = join(directory, "browser-mutation.key");
+  mkdirSync(directory, { recursive: true, mode: 0o700 });
+  try {
+    const metadata = lstatSync(file);
+    const uid = process.getuid?.();
+    if (!metadata.isFile() || metadata.isSymbolicLink() || (metadata.mode & 0o077) !== 0
+      || (uid !== undefined && metadata.uid !== uid)) throw new Error("BROWSER_MUTATION_KEY_INVALID");
+    const key = readFileSync(file);
+    if (key.byteLength !== 32) throw new Error("BROWSER_MUTATION_KEY_INVALID");
+    return key;
+  } catch (error) {
+    if (!(error && typeof error === "object" && "code" in error && error.code === "ENOENT")) throw error;
+  }
+  const descriptor = openSync(file, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY, 0o600);
+  try {
+    const key = randomBytes(32);
+    writeFileSync(descriptor, key);
+    fchmodSync(descriptor, 0o600);
+    return key;
+  } finally {
+    closeSync(descriptor);
+  }
+};
+
+const encryptPayload = (key: Buffer, aad: string, value: unknown): EncryptedPayload => {
+  const nonce = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key, nonce);
+  cipher.setAAD(Buffer.from(aad, "utf8"));
+  const ciphertext = Buffer.concat([cipher.update(JSON.stringify(value), "utf8"), cipher.final()]);
+  return Object.freeze({
+    nonce: nonce.toString("base64url"),
+    ciphertext: ciphertext.toString("base64url"),
+    tag: cipher.getAuthTag().toString("base64url"),
+  });
+};
+
+const decryptPayload = (key: Buffer, aad: string, encrypted: EncryptedPayload): unknown => {
+  try {
+    const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(encrypted.nonce, "base64url"));
+    decipher.setAAD(Buffer.from(aad, "utf8"));
+    decipher.setAuthTag(Buffer.from(encrypted.tag, "base64url"));
+    return JSON.parse(Buffer.concat([
+      decipher.update(Buffer.from(encrypted.ciphertext, "base64url")), decipher.final(),
+    ]).toString("utf8")) as unknown;
+  } catch {
+    throw new Error("BROWSER_MUTATION_PAYLOAD_INVALID");
+  }
+};
+
+const sealPayload = (key: Buffer, commandId: string, value: ProviderRecoveryPayload): string =>
+  JSON.stringify(encryptPayload(key, `provider:${commandId}`, value));
+
+const unsealPayload = (key: Buffer, commandId: string, value: string): ProviderRecoveryPayload => {
+  let encrypted: unknown;
+  try { encrypted = JSON.parse(value) as unknown; } catch { throw new Error("BROWSER_MUTATION_PAYLOAD_INVALID"); }
+  if (!encrypted || typeof encrypted !== "object" || Array.isArray(encrypted)) {
+    throw new Error("BROWSER_MUTATION_PAYLOAD_INVALID");
+  }
+  const fields = encrypted as Record<string, unknown>;
+  if (typeof fields.nonce !== "string" || typeof fields.ciphertext !== "string"
+    || typeof fields.tag !== "string") throw new Error("BROWSER_MUTATION_PAYLOAD_INVALID");
+  const payload = decryptPayload(key, `provider:${commandId}`, {
+    nonce: fields.nonce, ciphertext: fields.ciphertext, tag: fields.tag,
+  });
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)
+    || !("terminalPayload" in payload)) throw new Error("BROWSER_MUTATION_PAYLOAD_INVALID");
+  return payload as ProviderRecoveryPayload;
+};
 export class BrowserMutationStore {
   private readonly database: Database.Database;
+  private readonly payloadKey: Buffer;
 
   public constructor(dataDir: string) {
     const file = join(dataDir, "browser", "browser-mutations.sqlite");
     mkdirSync(dirname(file), { recursive: true });
+    this.payloadKey = secretKey(dataDir);
     this.database = new Database(file);
     this.database.pragma("journal_mode = WAL");
     this.database.pragma("synchronous = FULL");
@@ -101,9 +199,9 @@ export class BrowserMutationStore {
       if (input.effectScope === "provider_effect") this.assertProviderEffectHistory(input);
       const exact = this.database.prepare(
         `select action_ordinal from browser_mutations
-         where job_id=? and attempt_id=? and owner_plugin_id=? and plugin_version=?
+         where job_id=? and owner_plugin_id=? and plugin_version=?
            and exact_call_identity_hash=? and state in ('DISPATCHED','CONFIRMED','REJECTED') limit 1`,
-      ).get(input.jobId, input.attemptId, input.ownerPluginId, input.pluginVersion,
+      ).get(input.jobId, input.ownerPluginId, input.pluginVersion,
         input.exactCallIdentityHash) as { action_ordinal: number } | undefined;
       if (exact) {
         if (exact.action_ordinal !== input.actionOrdinal) throw new Error("BROWSER_ACTION_SEQUENCE_DRIFT");
@@ -139,7 +237,6 @@ export class BrowserMutationStore {
   ): boolean {
     return row.logical_mutation_id === input.logicalMutationId
       && row.job_id === input.jobId
-      && row.attempt_id === input.attemptId
       && row.owner_plugin_id === input.ownerPluginId
       && row.plugin_version === input.pluginVersion
       && row.product_step_id === input.productStepId
@@ -157,10 +254,10 @@ export class BrowserMutationStore {
               product_step_id,call_id,child_capability_id,effect_scope,request_hash,payload_hash,
               state,mutation_outcome
        from browser_mutations
-       where job_id=? and attempt_id=? and logical_mutation_id=?
+       where job_id=? and logical_mutation_id=?
          and state in ('PREPARED','DISPATCHED','CONFIRMED','REJECTED')
        order by command_id`,
-    ).all(input.jobId, input.attemptId, input.logicalMutationId) as readonly ProviderEffectHistoryRow[];
+    ).all(input.jobId, input.logicalMutationId) as readonly ProviderEffectHistoryRow[];
     if (rows.length === 0) return;
     if (rows.some((row) => !this.providerEffectIdentityMatches(row, input))) {
       throw new Error("BROWSER_PROVIDER_EFFECT_HISTORY_AMBIGUOUS");
@@ -241,9 +338,22 @@ export class BrowserMutationStore {
     if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
   }
 
-  public markConfirmed(commandId: string, proofHash: `sha256:${string}`, mutationOutcome: "no" | "confirmed" = "confirmed"): void {
-    this.transition(commandId, "DISPATCHED", "CONFIRMED", mutationOutcome,
-      "direct-postcondition-passed", null, proofHash);
+  public markConfirmed(
+    commandId: string,
+    proofHash: `sha256:${string}`,
+    mutationOutcome: "no" | "confirmed" = "confirmed",
+    terminalPayload: unknown | null = null,
+  ): void {
+    const sealed = terminalPayload === null ? null
+      : sealPayload(this.payloadKey, commandId, { terminalPayload });
+    const timestamp = new Date().toISOString();
+    const result = this.database.prepare(
+      `update browser_mutations set state='CONFIRMED',mutation_outcome=?,reason='direct-postcondition-passed',
+       native_cause_code=null,proof_hash=?,provider_recovery_payload=?,
+       terminal_at=coalesce(terminal_at,?),updated_at=?
+       where command_id=? and state='DISPATCHED'`,
+    ).run(mutationOutcome, proofHash, sealed, timestamp, timestamp, commandId);
+    if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
   }
 
   public markRejected(
@@ -331,17 +441,20 @@ export class BrowserMutationStore {
     effectScope: "target_local" | "provider_effect";
   }>): BrowserAtomicStepOutcome | null {
     const targetClause = input.effectScope === "target_local" ? "and target_ref=?" : "";
+    const attemptClause = input.effectScope === "target_local" ? "and attempt_id=?" : "";
     const parameters = [
-      input.jobId, input.attemptId, input.ownerPluginId, input.pluginVersion,
+      input.jobId,
+      ...(input.effectScope === "target_local" ? [input.attemptId] : []),
+      input.ownerPluginId, input.pluginVersion,
       input.exactCallIdentityHash, input.effectScope,
       ...(input.effectScope === "target_local" ? [input.targetRef] : []),
     ];
     const rows = this.database.prepare(
       `select command_id,target_ref,document_ref,state,mutation_outcome,reason,native_cause_code,
               terminal_at,action_ordinal,physical_input_count,download_guid_hash,download_completed,
-              media_identity_revalidated
+              media_identity_revalidated,provider_recovery_payload
        from browser_mutations
-       where job_id=? and attempt_id=? and owner_plugin_id=? and plugin_version=?
+         where job_id=? ${attemptClause} and owner_plugin_id=? and plugin_version=?
          and exact_call_identity_hash=? and effect_scope=?
          ${targetClause} and state in ('DISPATCHED','CONFIRMED','REJECTED')
        order by updated_at desc,command_id desc limit 2`,
@@ -359,6 +472,7 @@ export class BrowserMutationStore {
       download_guid_hash: `sha256:${string}` | null;
       download_completed: 0 | 1;
       media_identity_revalidated: 0 | 1;
+      provider_recovery_payload: string | null;
     }>;
     if (rows.length === 0) return null;
     if (rows.length !== 1) throw new Error("BROWSER_RECONCILIATION_SCOPE_AMBIGUOUS");
@@ -369,6 +483,8 @@ export class BrowserMutationStore {
       throw new Error("BROWSER_TERMINAL_AT_INVALID");
     }
     const failure = terminalFailureFields(row.state, row.reason, row.native_cause_code);
+    const recovered = row.provider_recovery_payload === null ? null
+      : unsealPayload(this.payloadKey, row.command_id, row.provider_recovery_payload);
     return Object.freeze({
       state: row.state.toLowerCase() as BrowserAtomicStepOutcome["state"],
       mutationOutcome: requireMutationOutcome(row.mutation_outcome),
@@ -382,6 +498,7 @@ export class BrowserMutationStore {
       downloadGuidHash: row.download_guid_hash,
       downloadCompleted: row.download_completed === 1,
       identityRevalidated: row.media_identity_revalidated === 1,
+      terminalPayload: recovered?.terminalPayload ?? null,
     });
   }
 
@@ -450,6 +567,103 @@ export class BrowserMutationStore {
       downloadCompleted: row.download_completed === 1,
       identityRevalidated: row.media_identity_revalidated === 1,
     });
+  }
+
+  public recordContinuation(
+    authorityRef: string,
+    binding: BrowserContinuationBinding,
+    checkpoint: BrowserContinuationCheckpoint,
+  ): void {
+    const commandId = authorityRef.startsWith("browser-mutation:")
+      ? authorityRef.slice("browser-mutation:".length) : "";
+    if (!commandId || !binding.sourceTaskRef
+      || !/^sha256:[a-f0-9]{64}$/u.test(binding.consultationIdentityHash)
+      || !checkpoint.canonicalConversationUrl || !checkpoint.turnMarker
+      || !/^sha256:[a-f0-9]{64}$/u.test(checkpoint.promptHash)
+      || !/^sha256:[a-f0-9]{64}$/u.test(checkpoint.semanticTextHash)
+      || !/^conversation-turn-[1-9][0-9]*$/u.test(checkpoint.assistantTurnId)) {
+      throw new Error("BROWSER_CONTINUATION_BINDING_INVALID");
+    }
+    const sourceHash = hashValue(binding.sourceTaskRef);
+    const checkpointHash = hashValue(checkpoint);
+    const row = this.database.prepare(
+      `select provider_recovery_payload from browser_mutations where command_id=?
+       and child_capability_id='submit_exact_gpt_turn_once'
+       and effect_scope='provider_effect' and state='CONFIRMED'`,
+    ).get(commandId) as { provider_recovery_payload: string } | undefined;
+    if (!row) throw new Error("BROWSER_CONTINUATION_BINDING_INVALID");
+    const recovered = unsealPayload(this.payloadKey, commandId, row.provider_recovery_payload);
+    if (!recovered.terminalPayload || typeof recovered.terminalPayload !== "object"
+      || Array.isArray(recovered.terminalPayload)) {
+      throw new Error("BROWSER_CONTINUATION_PAYLOAD_INVALID");
+    }
+    const terminal = recovered.terminalPayload as Readonly<Record<string, unknown>>;
+    if (terminal.canonicalConversationUrl !== checkpoint.canonicalConversationUrl
+      || terminal.promptHash !== checkpoint.promptHash) {
+      throw new Error("BROWSER_CONTINUATION_PAYLOAD_INVALID");
+    }
+    const result = this.database.prepare(
+      `update browser_mutations set provider_recovery_payload=?,consultation_identity_hash=?,
+       source_task_ref_hash=?,continuation_checkpoint_hash=?,updated_at=?
+       where command_id=? and child_capability_id='submit_exact_gpt_turn_once'
+         and effect_scope='provider_effect' and state='CONFIRMED'
+         and provider_recovery_payload is not null
+         and ((consultation_identity_hash is null and source_task_ref_hash is null
+           and continuation_checkpoint_hash is null) or (
+           consultation_identity_hash=? and source_task_ref_hash=? and continuation_checkpoint_hash=?))`,
+    ).run(sealPayload(this.payloadKey, commandId, { ...recovered, checkpoint }),
+      binding.consultationIdentityHash, sourceHash, checkpointHash,
+      new Date().toISOString(), commandId,
+      binding.consultationIdentityHash, sourceHash, checkpointHash);
+    if (result.changes !== 1) throw new Error("BROWSER_CONTINUATION_BINDING_INVALID");
+  }
+
+  public readContinuation(input: Readonly<{
+    consultationIdentityHash: `sha256:${string}`;
+    predecessorSourceTaskRef: string;
+  }>): BrowserContinuationCheckpoint {
+    if (!input.predecessorSourceTaskRef
+      || !/^sha256:[a-f0-9]{64}$/u.test(input.consultationIdentityHash)) {
+      throw new Error("BROWSER_CONTINUATION_BINDING_INVALID");
+    }
+    const rows = this.database.prepare(
+      `select command_id,source_task_ref_hash,provider_recovery_payload,continuation_checkpoint_hash
+       from browser_mutations
+       where consultation_identity_hash=?
+         and child_capability_id='submit_exact_gpt_turn_once'
+         and effect_scope='provider_effect' and state='CONFIRMED'
+       order by terminal_at desc,updated_at desc,rowid desc limit 2`,
+    ).all(input.consultationIdentityHash) as readonly Readonly<{
+      command_id: string;
+      source_task_ref_hash: `sha256:${string}`;
+      provider_recovery_payload: string;
+      continuation_checkpoint_hash: `sha256:${string}` | null;
+    }>[];
+    const frontier = rows[0];
+    if (!frontier) throw new Error("BROWSER_CONTINUATION_MISSING");
+    if (!frontier.continuation_checkpoint_hash) throw new Error("BROWSER_CONTINUATION_PAYLOAD_INVALID");
+    if (frontier.source_task_ref_hash !== hashValue(input.predecessorSourceTaskRef)) {
+      throw new Error("BROWSER_CONTINUATION_FRONTIER_MISMATCH");
+    }
+    const checkpoint = unsealPayload(
+      this.payloadKey, frontier.command_id, frontier.provider_recovery_payload,
+    ).checkpoint;
+    if (!checkpoint || typeof checkpoint !== "object" || Array.isArray(checkpoint)) {
+      throw new Error("BROWSER_CONTINUATION_PAYLOAD_INVALID");
+    }
+    const value = checkpoint as BrowserContinuationCheckpoint;
+    if (hashValue(value) !== frontier.continuation_checkpoint_hash) {
+      throw new Error("BROWSER_CONTINUATION_PAYLOAD_INVALID");
+    }
+    if (typeof value.canonicalConversationUrl !== "string" || !value.canonicalConversationUrl
+      || typeof value.turnMarker !== "string" || !value.turnMarker
+      || typeof value.assistantTurnId !== "string"
+      || !/^conversation-turn-[1-9][0-9]*$/u.test(value.assistantTurnId)
+      || typeof value.promptHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(value.promptHash)
+      || typeof value.semanticTextHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(value.semanticTextHash)) {
+      throw new Error("BROWSER_CONTINUATION_PAYLOAD_INVALID");
+    }
+    return Object.freeze(value) as BrowserContinuationCheckpoint;
   }
 
   public readDispatched(commandId: string): BrowserMutationIdentity | null {

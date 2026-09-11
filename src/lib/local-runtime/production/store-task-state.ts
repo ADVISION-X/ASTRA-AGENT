@@ -67,7 +67,19 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
         throw executionFailure("failed", "PRODUCTION_TASK_REQUEST_HASH_CONFLICT");
       }
       if (existing.current_attempt_id === attemptId) {
-        throw executionFailure("failed", "PRODUCTION_ATTEMPT_ALREADY_ACCEPTED");
+        if (existing.status !== "failed"
+          || existing.identity.plugin_id !== identity.plugin_id
+          || existing.identity.plugin_version !== identity.plugin_version
+          || existing.identity.skill_hash !== identity.skill_hash
+          || existing.identity.request_hash !== identity.request_hash) {
+          throw executionFailure("failed", "PRODUCTION_ACCEPTED_ATTEMPT_IDENTITY_CONFLICT");
+        }
+        this.database.prepare(`update production_tasks
+          set current_reason='LEASE_REGRANTED',updated_at=?
+          where job_id=? and status='failed' and current_attempt_id=?`).run(
+          now(), task.job_id, attemptId,
+        );
+        return this.readTask(task.job_id)!;
       }
       if (existing.status === "failed") {
         this.database.transaction(() => {

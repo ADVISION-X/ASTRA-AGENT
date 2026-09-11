@@ -68,6 +68,24 @@ try {
   "a synchronous atomic click postcondition cannot add semantic content hashing");
   assert.throws(() => assertBrowserDomIntent({
     ...coherentClick,
+    postClickObservation: { ...coherentClick.postClickObservation,
+      queries: [{ ...coherentClick.postClickObservation.queries[0]!, fields: ["exactGptUserPromptHash"] }] },
+  } as never), /BROWSER_COMMAND_PERMIT_INVALID/u,
+  "a generic click cannot read a GPT prompt identity in its postcondition");
+  assert.equal(assertBrowserDomIntent({
+    ...coherentClick,
+    preClickExactOutgoingTurn: {
+      composerSelector: "composer", composerFormSelector: "form", attachmentSelector: "attachment",
+      latestUserTurnSelector: coherentClick.postClickObservation.queries[0]!.selector,
+      expectedPromptHash: `sha256:${"a".repeat(64)}`, expectedAttachmentLabels: [],
+    },
+    postClickObservation: { ...coherentClick.postClickObservation,
+      queries: [{ ...coherentClick.postClickObservation.queries[0]!,
+        fields: ["testId", "exactGptUserPromptHash"] }] },
+  }).kind, "click",
+  "the exact outgoing-turn click may return its new rendered prompt hash in the same packet");
+  assert.throws(() => assertBrowserDomIntent({
+    ...coherentClick,
     postClickMatch: { selector: "[data-active='true']", expectedMatches: 1 },
   }), /BROWSER_COMMAND_PERMIT_INVALID/u,
   "a click cannot carry a second postcondition path beside its coherent packet");
@@ -149,7 +167,8 @@ try {
   store.markDispatched("command-1");
   store.markReceiptMissing("command-1");
   store.prepare({
-    commandId: "command-retry", logicalMutationId, exactCallIdentityHash,
+    commandId: "command-retry", logicalMutationId: `sha256:${"c".repeat(64)}`,
+    exactCallIdentityHash: `sha256:${"d".repeat(64)}`,
     ownerPluginId: "fixture-product-plugin", pluginVersion: 1,
     jobId: "job-1", attemptId: "attempt-2", leaseVersion: 2,
     executionFenceHash: hash, targetRef: "target-1", documentRef: "document-1",
@@ -187,17 +206,17 @@ try {
     pluginVersion: 1, exactCallIdentityHash, actionOrdinal: 2,
   }), /BROWSER_ACTION_SEQUENCE_DRIFT/u,
   "actionOrdinal must be checked after exact effect identity lookup and must not create a second mutation");
-  assert.throws(() => store.prepare({
+  assert.doesNotThrow(() => store.prepare({
     commandId: "command-cross-generation", logicalMutationId: `sha256:${"0".repeat(64)}`,
-    exactCallIdentityHash, ownerPluginId: "fixture-product-plugin", pluginVersion: 1,
+    exactCallIdentityHash: `sha256:${"3".repeat(64)}`, ownerPluginId: "fixture-product-plugin", pluginVersion: 1,
     jobId: "job-1", attemptId: "attempt-1", leaseVersion: 2,
     executionFenceHash: hash, targetRef: "target-2", documentRef: "document-2",
     productStepId: "step-1", callId: "call-1", childCapabilityId: "open_gpt_model_selector_v2",
     effectScope: "target_local", actionOrdinal: 1,
     actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
-  }), /BROWSER_EXACT_CALL_REPLAY_FORBIDDEN/u,
-  "verified target-local facts must prevent physical replay in a new Target generation");
+  }), "target-local setup may execute in a new fenced Target generation");
+  store.markFailedBeforeDispatch("command-cross-generation", "FIXTURE_NOT_DISPATCHED");
   store.prepare({
     commandId: "command-new-target", logicalMutationId: `sha256:${"e".repeat(64)}`,
     exactCallIdentityHash: `sha256:${"1".repeat(64)}`,

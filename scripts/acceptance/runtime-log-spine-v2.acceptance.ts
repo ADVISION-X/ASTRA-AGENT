@@ -15,7 +15,8 @@ import {
   runtimeEventIntegrityValid,
   runtimeFailureFromError,
 } from "../../src/lib/runtime-logs/index.js";
-import type { RuntimeLogEventV2, RuntimeSpanTerminalEvent } from "../../src/lib/runtime-logs/runtime-event-contract.js";
+import type { RuntimeLogEventV2, RuntimeSpanFailureEvent, RuntimeSpanTerminalEvent } from
+  "../../src/lib/runtime-logs/runtime-event-contract.js";
 import {
   resetRuntimeTerminalProjectionForTest,
   shouldProjectRuntimeEvent,
@@ -204,8 +205,22 @@ writeFileSync(segmentPath, `${corruptedLines.join("\n")}\n`, "utf8");
 assert.equal(discoverRuntimeLogScope({ sources: [root] }).completeness, "DIAGNOSIS_INCOMPLETE");
 
 resetRuntimeTerminalProjectionForTest();
-const terminalEvent = events.find((event): event is RuntimeSpanTerminalEvent =>
+const terminalEvent = events.find((event): event is RuntimeSpanFailureEvent =>
   event.kind === "span.terminal" && event.failure?.code === "BROWSER_POSTCONDITION_FAILED")!;
+const traceBlockingEvent: RuntimeSpanFailureEvent = {
+  ...terminalEvent,
+  visibility: "TRACE",
+  traceId: "trace-blocking-command",
+};
+assert.equal(shouldProjectRuntimeEvent(traceBlockingEvent, "FLOW"), true,
+  "a first blocking Browser failure must remain visible outside TRACE mode");
+const traceConsequentialEvent: RuntimeSpanFailureEvent = {
+  ...traceBlockingEvent,
+  traceId: "trace-consequential-command",
+  failure: { ...traceBlockingEvent.failure!, impact: RuntimeFailureImpact.CONSEQUENTIAL },
+};
+assert.equal(shouldProjectRuntimeEvent(traceConsequentialEvent, "FLOW"), false,
+  "a consequential TRACE event must not bypass normal terminal visibility");
 assert.equal(shouldProjectRuntimeEvent(terminalEvent, "FLOW"), true);
 assert.equal(shouldProjectRuntimeEvent(terminalEvent, "FLOW"), false);
 assert.equal(shouldProjectRuntimeEvent(terminalEvent, "TRACE"), true);

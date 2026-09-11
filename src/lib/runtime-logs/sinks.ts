@@ -54,7 +54,9 @@ const stateProjection = (event: RuntimeLogEventV2): string => {
 };
 
 export const shouldProjectRuntimeEvent = (event: RuntimeLogEventV2, activeMode: RuntimeLogMode): boolean => {
-  if (!isEventVisibleInMode(event.visibility, activeMode)) return false;
+  const blockingFailure = (event.kind === "error" || event.kind === "span.terminal")
+    && event.failure?.impact === "BLOCKING";
+  if (!blockingFailure && !isEventVisibleInMode(event.visibility, activeMode)) return false;
   if (activeMode === "TRACE") return true;
   const lifecycleBoundary = event.operation === "runtime.start" || event.operation === "runtime.shutdown"
     || (event.kind === "event" && event.code === "PRODUCER_STOPPED");

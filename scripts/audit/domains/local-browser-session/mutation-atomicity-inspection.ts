@@ -119,10 +119,23 @@ export const inspectProviderEffectAttemptGuard = (
   const store = requireSource(context, findings, lawId,
     "src/lib/browser/exact-target/browser-mutation-store.ts");
   if (!postcondition || !store) return;
-  requireTokens(postcondition.getFullText(), ["permit.attemptId", "permit.jobId", "permit.payloadHash"],
-    findings, lawId, postcondition.getFilePath(), "browser-authority/provider-effect-attempt-identity");
-  requireTokens(store.getFullText(), ["row.attempt_id === input.attemptId", "where job_id=? and attempt_id=?"],
-    findings, lawId, store.getFilePath(), "browser-authority/provider-effect-attempt-identity");
+  requireTokens(postcondition.getFullText(), [
+    'permit.replayPolicy === "provider-effect-once" ? []',
+    "permit.jobId", "payloadHash",
+  ], findings, lawId, postcondition.getFilePath(),
+  "browser-authority/provider-effect-cross-attempt-identity");
+  const storeText = store.getFullText();
+  requireTokens(storeText, [
+    "where job_id=? and owner_plugin_id=?", "provider_recovery_payload",
+    "consultation_identity_hash", "source_task_ref_hash", "continuation_checkpoint_hash",
+    "recordContinuation", "readContinuation",
+  ], findings, lawId, store.getFilePath(),
+  "browser-authority/provider-effect-cross-attempt-identity");
+  forbidTokens(storeText, [
+    "provider_effect_identity_hash", "providerEffectIdentityHash",
+    "direct_predecessor_task_ref_hash", "completed_frontier_hash",
+    "persistContinuation", "advanceContinuation",
+  ], findings, lawId, store.getFilePath(), "browser-authority/no-continuation-shadow-state");
 };
 import { Node, SyntaxKind, type Node as MorphNode, type SourceFile } from "ts-morph";
 import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";

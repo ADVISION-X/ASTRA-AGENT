@@ -1,6 +1,5 @@
 import type { BrowserGovernedCommand } from "./browser-command-actor.js";
-import { decodeAuthenticatedMediaDispatchedReceipt } from
-  "./browser-authenticated-media-receipt.js";
+import { decodeAuthenticatedMediaDispatchedReceipt } from "./browser-authenticated-media-receipt.js";
 import { browserInteractionNativeCauseCode } from "./browser-interaction-native-cause.js";
 
 export type BrowserMutationReceipt = Readonly<{
@@ -17,6 +16,9 @@ const DOM_REJECTION_CODES = new Set([
   "BROWSER_DOM_NODE_STALE",
   "BROWSER_DOM_READ_INVALID",
 ]);
+
+const outgoingIdentityRejectionCode = (value: unknown): boolean =>
+  /^BROWSER_DOM_ACTION_OUTGOING_(?:STRUCTURE|PROMPT_HASH|ATTACHMENT_SET)_MISMATCH$/u.test(String(value));
 
 const POSTCONDITION_NATIVE_CAUSES = new Set([
   "BROWSER_DOM_CANDIDATE_MISSING",
@@ -94,7 +96,8 @@ const qualificationFailureValid = (
   }
   if (command.kind === "file-input") return failureCode === "BROWSER_FILE_INPUT_NOT_QUALIFIED"
     || (DOM_REJECTION_CODES.has(failureCode) && failureCode !== "BROWSER_DOM_ACTION_NOT_QUALIFIED");
-  return DOM_REJECTION_CODES.has(failureCode) && failureCode !== "BROWSER_FILE_INPUT_NOT_QUALIFIED";
+  return (DOM_REJECTION_CODES.has(failureCode) || outgoingIdentityRejectionCode(failureCode))
+    && failureCode !== "BROWSER_FILE_INPUT_NOT_QUALIFIED";
 };
 
 const qualificationFactsConsistent = (
@@ -112,8 +115,8 @@ const qualificationFactsConsistent = (
     return count === 0 && code !== "BROWSER_FILE_INPUT_NOT_QUALIFIED"
       && code !== "BROWSER_DOM_ACTION_NOT_QUALIFIED";
   }
-  return stage === "actionability" && count === 1
-    && (code === "BROWSER_DOM_ACTION_NOT_QUALIFIED" || code === "BROWSER_FILE_INPUT_NOT_QUALIFIED");
+  return stage === "actionability" && count === 1 && (code === "BROWSER_DOM_ACTION_NOT_QUALIFIED"
+    || code === "BROWSER_FILE_INPUT_NOT_QUALIFIED" || outgoingIdentityRejectionCode(code));
 };
 
 const domActionKeys = (
@@ -373,7 +376,9 @@ const qualificationReceiptValid = (
       : value.nativeCauseCode === null
     : command.kind === "file-input"
       ? value.nativeCauseCode === null
-      : domActionabilityNativeCauseValid(command, value.nativeCauseCode))
+      : outgoingIdentityRejectionCode(value.failureCode)
+        ? value.nativeCauseCode === null
+        : domActionabilityNativeCauseValid(command, value.nativeCauseCode))
   && qualificationFactsConsistent(command, value);
 
 const decodeZeroMutationReceipt = (

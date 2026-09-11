@@ -18,7 +18,7 @@ import { attribute, describeNode,
   selectorForLocator } from "./dom-query-runtime.js";
 type FindIntent = Extract<BrowserDomIntent, { kind: "find" }>;
 type ValueIntent = Exclude<BrowserDomIntent, {
-  kind: "document" | "observe" | "readExactAssistantTurn" | "find" | "click" | "hover" | "doubleClick" | "keypress";
+  kind: "document" | "selectExactGptConversation" | "observe" | "readExactAssistantTurn" | "find" | "click" | "hover" | "doubleClick" | "keypress";
 }>;
 type CurrentDocumentAssertion = () => void;
 type TargetTransitionPostcondition = () => Promise<void>;
@@ -235,6 +235,7 @@ export const executeRegisteredDomIntent = async (
   targetTransitionPostcondition?: TargetTransitionPostcondition,
 ): Promise<unknown> => {
   assertCurrent();
+  if (intent.kind === "selectExactGptConversation") throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   if (intent.kind === "document" || intent.kind === "observe") {
     return executeDocumentReadIntent(debuggerRuntime, target, intent);
   }

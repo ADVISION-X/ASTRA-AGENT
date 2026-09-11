@@ -3,7 +3,7 @@
   "capabilityDomain": "architecture-boundary",
   "status": "active",
   "lawIds": [
-    "LAW-ARCHITECTURE-BOUNDARY-001-V7"
+    "LAW-ARCHITECTURE-BOUNDARY-001-V8"
   ],
   "ownedPaths": [
     "docs/项目方案/八字栏目技能方案.md",

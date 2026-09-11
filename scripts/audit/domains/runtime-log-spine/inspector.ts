@@ -175,6 +175,7 @@ const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] =>
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "executor-boundaries",
     "src/capabilities/gpt/production-child-tools.ts", [
       "operation: \"gpt.child\"", "parentSpanId", "requireRuntimeLogWrite",
+      "runtimeLogCauseEventId", "RuntimeFailureImpact.CONSEQUENTIAL", "causedByEventId",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "producer-boundaries",
     "src/lib/browser/exact-target/browser-command-runtime-logging.ts", [
@@ -237,6 +238,7 @@ const inspectOperationalContract = (context: InspectorContext): InspectorFinding
   requireTokens(context, findings, LAW_OPERATIONAL, "static.contract", "terminal-projection",
     "src/lib/runtime-logs/sinks.ts", [
       "shouldProjectRuntimeEvent", "terminalProjectionState", "activeMode === \"TRACE\"",
+      "blockingFailure", "event.failure?.impact === \"BLOCKING\"",
     ]);
   return findings;
 };

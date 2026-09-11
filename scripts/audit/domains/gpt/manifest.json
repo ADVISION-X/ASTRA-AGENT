@@ -3,7 +3,7 @@
   "capabilityDomain": "gpt",
   "status": "active",
   "lawIds": [
-    "LAW-GPT-001-V41"
+    "LAW-GPT-001-V42"
   ],
   "ownedPaths": [
     ".agents/skills/gpt-page-operation-evidence/**",

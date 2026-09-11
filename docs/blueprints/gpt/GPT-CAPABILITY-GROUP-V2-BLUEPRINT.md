@@ -1,34 +1,40 @@
-# GPT 能力组 V34 施工图
+# GPT 能力组 V35 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"gpt-capability-group-v34","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V41"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"gpt-capability-group-v35","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V42"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
 ```
 
 ## 唯一 Owner 与职责
 
-GPT 只把 Product 已决定的一次页面动作变成一个 typed result。Product 决定 Prompt、模型、附件、步骤和结果组装；Browser 决定 Target、current Document、FIFO、现实副作用和 WAL 持久状态；Forensics 保存一次可读回的结果 artifact；Runtime 运输结果；Website 裁决业务完成。
+GPT 只把 Product 已决定的 Provider turn 变成 typed result，并唯一拥有 Provider continuation identity、predecessor 与 frontier 的解析准入语义。Product 决定 Prompt、模型、附件、步骤和结果组装；Browser 决定 Target、current Document、FIFO、现实副作用和唯一 WAL 持久 fact；Forensics 保存回答 artifact；Runtime 运输结果；Website 唯一裁决业务恢复与完成。
 
 文本主链固定为：
 
 ```text
-准备页面和附件 -> write_exact_gpt_prompt -> submit_exact_gpt_turn_once
--> checkpoint_gpt_text_response -> Product 无损组装
+BZ05: fresh prepare/attach/write -> submit_exact_gpt_turn_once
+  -> checkpoint_gpt_text_response -> record_gpt_continuation
+
+BZ03/BZ04: acquire_gpt_continuation -> exact sidebar conversation selection/attach/write
+  -> submit_exact_gpt_turn_once -> checkpoint_gpt_text_response
+  -> record_gpt_continuation
 ```
 
-`submit_exact_gpt_turn_once` 在自己的直接后置一次返回 CONFIRMED、canonical conversation URL、精确 user turn 身份和 Browser effect receipt。`checkpoint_gpt_text_response` 合并旧 wait：每次取得 FIFO 后只在 fresh current Document 裁决 pending 或 ready；ready 时由同一 coherent observation 一次取得紧邻 assistant turn 的 observed DOM + semantic text，写入且读回一份 artifact，直接返回 text、hash 与 ref。pending 只释放 FIFO，不是失败。图片 wait 同样并入 `checkpoint_gpt_generated_image`，该 Child 在 ready 时仍以唯一 Browser compound mutation 取得真实 bytes。
+`submit_exact_gpt_turn_once` 在自己的直接后置一次返回 CONFIRMED、canonical conversation URL、精确 user turn 身份和 Browser effect receipt。provider_effect_identity 不含 attempt/process/lease/fence/Target/Document；Browser WAL 已有 CONFIRMED 时该 Child 只读回同一 receipt/URL，绝不再次输入。`checkpoint_gpt_text_response` 每次取得 FIFO 后只在 fresh current Document 裁决 pending 或 ready；ready 时由同一 coherent observation 一次取得紧邻 assistant turn 的 observed DOM + semantic text，写入且读回一份 artifact。pending 只释放 FIFO。
 
-等待只能活在同一存活进程、同一有效 lease/fence 的当前调用栈。释放 FIFO 时不持久化会话或等待位置；再获得 FIFO 后，只用瞬时 canonical URL、marker 和 prompt hash 导航/观察，绝不再提交。进程重启、lease/fence/abort 失效、提交不明或任一 typed 失败都立即结束 attempt，瞬时值丢弃，之后不得再读旧会话。
+Website 对 DISPATCHED/CONFIRMED effect 重新授权时，跨进程只允许从 Browser WAL 精确读回同一 URL/receipt，由 Browser 从 URL 解析 opaque conversation_id：当前 pathname 已精确命中则零点击，否则只在现有页面左侧聊天栏对唯一精确 `/c/<conversation_id>` 链接点击一次，丢弃 query/fragment 后 fresh readback 必须相等，再 wait/observe/read artifact，physical submit 增量为零；零项、多项、不可交互或读回不等直接 typed fail-close，不准 Page.navigate conversation URL、按标题/顺序/时间猜测、搜索、滚动、重试或 URL fallback，也不新增 recovery Child 或状态机。其它失败由 Website 决定是否签发新 attempt/result revision。
+
+八字 consultation identity 精确为 `owner_ref + subject_ref + chart_version + chart_hash + consultation_root_ref`。BZ05 的 root 等于自身 Website task identity，只 fresh 一次；BZ03/BZ04 只可从唯一 Browser WAL 取得同根、Website 声明的 direct predecessor 与上一轮 source task 全等且已经完成的唯一 continuation checkpoint。唯一 Browser FIFO 持有当前 Product session；回答 checkpoint 完成后，AGENT 才把 locator、identity、source task 与 checkpoint 一次写入原 provider-effect 行。缺失、多义、错误 owner/person/chart/root/predecessor 一律 fail closed，不得按 latest/timestamp 猜测，不得 fresh fallback，也不得保存半完成 frontier或在 Browser 复制 Website 的父子关系。
 
 ## 删除边界
 
-以下对象没有独立决定或独立真相，必须物理不存在：`reconcile_gpt_draft`、`reconcile_gpt_turn_submission`、`wait_for_stable_gpt_text`、`wait_for_stable_gpt_image`、双 hash 稳定窗、`readCallFacts`、confirmed-readback、completed-result、独立 submission locator、document transition policy、恢复型 park/reacquire、取消后重跑和任意旧 attempt recovery。不得用改名、Facade、兼容 wrapper、alias、feature flag、dual-read/write、第二 Browser lane、第二 artifact、第二 scheduler 或恢复状态机重新引入它们。
+以下对象必须物理不存在：private base、reusable/derived reservation、semantic read grant、fork、child conversation、独立 submission locator、document transition policy、恢复型 park、取消后自发重跑和通用旧 attempt recovery。只保留 `acquire_gpt_continuation`、`record_gpt_continuation` 两个原子语义，以及 submit Child 内对同 provider effect 的 confirmed receipt readback；其持久事实复用 Browser WAL 同一 effect 行，串行性复用唯一 Browser FIFO，不得用兼容 wrapper、alias、feature flag、dual-read/write、第二 lane/store/scheduler 或状态机扩张。
 
 ## Browser 边界
 
-GPT 只消费 Browser 签发的实时 current Document 和 typed command terminal。Browser 的 Target lease 对外暴露的 `document` 必须是 live getter；包装它时不得用 spread 把 getter 求值成旧快照。每次现实页面副作用仍先经唯一 FIFO、每 effect 一条 WAL、至多一次 dispatch 和 2500ms 后的 fresh postcondition。纯读结果不新建 WAL、队列或恢复权限。
+GPT 只消费 Browser 签发的实时 current Document 和 typed command terminal。Browser 的 Target lease 对外暴露的 `document` 必须是 live getter；包装它时不得用 spread 把 getter 求值成旧快照。Provider/控件 mutation 仍先经唯一 FIFO、每 provider effect 一条权威 WAL、跨 attempt/进程至多一次 physical dispatch 和 2500ms 后的 fresh postcondition；Browser-owned exact conversation selection 只做可逆页面生命周期收敛，当前命中零点击，否则唯一精确点击后同样经过 2500ms 与 fresh currentUrl readback，但不取得 Provider effect 或第二 WAL。纯读结果不新建 WAL、队列或第二恢复权限。
 
 ## 证据、失败与验收
 
-唯一可持久化的 GPT 业务产物是当前 attempt 的结果 artifact；它既是 Product 输入，也是 Runtime result 的证据引用。Browser WAL 只证明物理副作用，不能替代回答 artifact；日志只保存脱敏 ref/hash。任何失败都只产生 typed reason 并结束当前 attempt，不能读取或续跑旧 conversation、DOM、artifact、checkpoint 或 Outbox。
+可持久化的必要事实只有回答 artifact 与 Browser WAL 同一 provider-effect 行中的 confirmed effect、加密 locator、consultation identity hash、source task hash 和完成 checkpoint hash。前者证明回答内容，后者证明物理副作用与八字会话位置；GPT 不新增数据库或 lane 台账，Browser 不保存 Website direct predecessor，日志只保存脱敏 ref/hash，Website 不接收 Provider locator。
 
-验收必须证明：一次 submit 最多一次物理 dispatch；GPT 已回答时只调用一次结果读取并获得同一 artifact 的 readback；旧 Document 绝不会在 Browser 导航后继续暴露；任意失败不会触发旧 attempt 的重读或重发；最终 `Product result -> Runtime Outbox -> Website admission receipt` 才是完成。
+验收必须证明：同一 effect 最多一次物理 dispatch；CONFIRMED 后重启只读回；BZ05 fresh/persist 各一次，BZ03/BZ04 acquire/submit/advance 各一次，同根未完成 turn 阻止后继，concurrent followup 只沿精确 predecessor 串行，private base/reservation/fork/第二 lane/fresh fallback 为零；最终 `Product result -> Runtime Outbox -> Website admission receipt` 才是完成。

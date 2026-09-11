@@ -13,7 +13,7 @@ const reviewSequence = [
   "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "checkpoint_gpt_text_response",
 ] as const;
 const followupSequence = [
-  "prepare_clean_gpt_chat",
+  "checkpoint_gpt_text_response",
   "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
   "open_gpt_execution_profile", "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile", "open_gpt_attachment_control",
   "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set", "write_exact_gpt_prompt",
@@ -31,6 +31,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
       chart_ref: "chart:1", chart_version: "v1", chart_hash: FIXTURE_HASH, user_question: "请继续解释",
       parent_report_ref: "report:parent", parent_raw_output_hash: FIXTURE_HASH,
       current_authorization_ref: "authorization:1", owner_scope_hash: FIXTURE_HASH_B,
+      consultation_root_ref: "source:bazi_chart_interpretation:produce",
       question_snapshot_ref: "question:1",
       question_snapshot_hash: FIXTURE_HASH,
     } };
@@ -47,5 +48,9 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   assert.deepEqual(run.calls.map((call) => call.child), review ? reviewSequence : followupSequence);
   assert.match(String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt), /当前 Product Plugin：bazi-report-followup/u);
   assert.equal(run.physicalSubmitDispatches, 1);
+  if (!review) {
+    assert.equal(run.continuationAcquires[0]?.predecessorSourceTaskRef, task.parent_task_ref);
+    assert.equal(run.continuationRecords[0]?.sourceTaskRef, task.job_id);
+  }
 }
 process.stdout.write("[ACCEPTANCE][bazi-report-followup] PASS\n");

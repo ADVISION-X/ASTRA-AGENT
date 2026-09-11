@@ -22,7 +22,7 @@ import { requireCanonicalGptConversationUrl } from "./browser-site-policy-regist
 export type BrowserDomField = typeof BROWSER_DOM_FIELD_VALUES[number];
 export type BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">;
 export type BrowserDomPostconditionField = Exclude<BrowserDomObservationField,
-  "semanticTextHash" | "exactEditableTextHash" | "exactGptUserPromptHash">;
+  "semanticTextHash" | "exactEditableTextHash">;
 export type BrowserDomReadEligibility = "non-actionable-aria-state";
 
 export type BrowserDomIneligibleReason =
@@ -118,6 +118,7 @@ export type BrowserSemanticLocator = Readonly<{
 
 export type BrowserDomIntent =
   | Readonly<{ kind: "document" }>
+  | Readonly<{ kind: "selectExactGptConversation"; canonicalConversationUrl: string }>
   | Readonly<{ kind: "observe"; queries: readonly BrowserDomObservationQuery[] }>
   | Readonly<{ kind: "readExactAssistantTurn"; assistantTurnId: string; sourceCheckpoint: Readonly<{
     canonicalConversationUrl: string;
@@ -153,6 +154,7 @@ export type BrowserDomIntent =
       composerSelector: string;
       composerFormSelector: string;
       attachmentSelector: string;
+      latestUserTurnSelector: string;
       expectedPromptHash: `sha256:${string}`;
       expectedAttachmentLabels: readonly string[];
     }>;
@@ -249,6 +251,10 @@ export const assertBrowserDomIntent = (intent: BrowserDomIntent): BrowserDomInte
 };
 
 const assertObservationIntent = (intent: BrowserDomIntent): void => {
+  if (intent.kind === "selectExactGptConversation") {
+    try { requireCanonicalGptConversationUrl(intent.canonicalConversationUrl); }
+    catch { throw new Error("BROWSER_COMMAND_PERMIT_INVALID"); }
+  }
   if (intent.kind === "observe") assertObserveIntent(intent);
   if (intent.kind === "readExactAssistantTurn" && !exactAssistantReadIntentValid(intent)) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
@@ -449,6 +455,7 @@ const assertClickTargetTransition = (
 
 const assertClickObservation = (
   observation: Extract<BrowserDomIntent, { kind: "click" }>["postClickObservation"],
+  exactOutgoingTurn: Extract<BrowserDomIntent, { kind: "click" }>["preClickExactOutgoingTurn"],
 ): void => {
   if (!observation) return;
   if (Object.keys(observation).some((key) =>
@@ -459,11 +466,17 @@ const assertClickObservation = (
   for (const query of observation.queries) {
     if ((query.fields as readonly string[]).some((field) =>
       field === "semanticTextHash" || field === "exactEditableTextHash"
-      || field === "exactGptUserPromptHash")
+      || (field === "exactGptUserPromptHash" && exactOutgoingTurn === undefined))
       || !Number.isInteger(query.expectedEligibleCount)
       || query.expectedEligibleCount < 0 || query.expectedEligibleCount > query.maxMatches) {
       throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
     }
+  }
+  if (exactOutgoingTurn !== undefined && (observation.queries.length !== 1
+    || observation.queries[0]!.selector !== exactOutgoingTurn.latestUserTurnSelector
+    || !observation.queries[0]!.fields.includes("testId")
+    || !observation.queries[0]!.fields.includes("exactGptUserPromptHash"))) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
   if (observation.clickedCandidateAttribute !== undefined
     && (Object.keys(observation.clickedCandidateAttribute).sort().join("|") !== "equals|name"
@@ -487,7 +500,7 @@ const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>)
   }
   assertClickAttribute(intent.postClickAttribute);
   assertClickMatch(intent.postClickMatch);
-  assertClickObservation(intent.postClickObservation);
+  assertClickObservation(intent.postClickObservation, intent.preClickExactOutgoingTurn);
   assertClickUrl(intent.postClickUrl);
   assertClickTargetTransition(intent.postClickTargetTransition);
 };
@@ -497,10 +510,11 @@ const assertPreClickExactOutgoingTurn = (
 ): void => {
   if (!value) return;
   if (Object.keys(value).sort().join("|")
-    !== "attachmentSelector|composerFormSelector|composerSelector|expectedAttachmentLabels|expectedPromptHash"
+    !== "attachmentSelector|composerFormSelector|composerSelector|expectedAttachmentLabels|expectedPromptHash|latestUserTurnSelector"
     || !isBoundedText(value.composerSelector, 2_048)
     || !isBoundedText(value.composerFormSelector, 2_048)
     || !isBoundedText(value.attachmentSelector, 2_048)
+    || !isBoundedText(value.latestUserTurnSelector, 2_048)
     || !/^sha256:[a-f0-9]{64}$/u.test(value.expectedPromptHash)
     || !Array.isArray(value.expectedAttachmentLabels)
     || value.expectedAttachmentLabels.some((label) => !isBoundedText(label, 1_024))) {

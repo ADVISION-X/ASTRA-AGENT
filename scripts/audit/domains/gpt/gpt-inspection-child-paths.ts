@@ -1,11 +1,10 @@
 import { GPT_CHILDREN_PATH, GPT_ROOT, gptChildFilePath, gptChildHandlerPath } from "./gpt-inspection-core-paths.js";
 export const GPT_TEXT_RESPONSE_HANDLER_PATHS = [
   gptChildHandlerPath("checkpoint_gpt_text_response"),
-  gptChildFilePath("checkpoint_gpt_text_response", "page-observation.ts"),
   gptChildFilePath("checkpoint_gpt_text_response", "response-support.ts"),
 ] as const;
 export const GPT_IMAGE_RESPONSE_HANDLER_PATHS = [
-  gptChildHandlerPath("checkpoint_gpt_generated_image"), gptChildFilePath("checkpoint_gpt_generated_image", "page-observation.ts"),
+  gptChildHandlerPath("checkpoint_gpt_generated_image"),
   gptChildFilePath("checkpoint_gpt_generated_image", "response-support.ts"), gptChildFilePath("checkpoint_gpt_generated_image", "selectors.ts"),
 ] as const;
 export const GPT_RETIRED_SHARED_SEMANTIC_PATHS = [
@@ -30,7 +29,7 @@ export const GPT_CONVERSATION_HANDLER_PATHS = [
     gptChildFilePath(id, "observation.ts"), gptChildFilePath(id, "selectors.ts"),
   ]),
 ] as const;
-export const GPT_RESPONSE_PAGE_PATH = gptChildFilePath("checkpoint_gpt_text_response", "page-observation.ts");
+export const GPT_RESPONSE_PAGE_PATH = `${GPT_ROOT}/web/gpt-dom-observation.ts`;
 export const GPT_TURN_EXECUTOR_PATH = `${GPT_ROOT}/gpt-turn-executor.ts`;
 export const GPT_MODEL_SELECTION_V2_HANDLER_PATHS = [
   gptChildHandlerPath("open_gpt_model_selector_v2"), gptChildFilePath("open_gpt_model_selector_v2", "observation.ts"),

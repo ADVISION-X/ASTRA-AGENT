@@ -31,8 +31,8 @@ const executionContext = (
       input.browserCall!, input.intent.productStepId, input.intent.callId,
       input.intent.childCapabilityId, canonicalConversationUrl, probeDeadlineAt,
       ),
-    navigateExactProviderConversation: (canonicalConversationUrl: string, probeDeadlineAt: number) =>
-      input.browsers.navigateExactProviderConversation(
+    selectExactProviderConversation: (canonicalConversationUrl: string, probeDeadlineAt: number) =>
+      input.browsers.selectExactProviderConversation(
         input.browserCall!, input.intent.childCapabilityId,
         canonicalConversationUrl, probeDeadlineAt,
       ),
@@ -65,6 +65,25 @@ export const executeProductionGptAtomicCall = async (
         atomicIdentity,
         () => gpt.execute(intent, context),
       ),
+      resolveDispatched: false,
+    };
+  }
+  if (replayPolicy === "provider-effect-once"
+    && intent.childCapabilityId === "submit_exact_gpt_turn_once"
+    && priorOutcome.state === "confirmed"
+    && (priorOutcome.mutationOutcome === "no" || priorOutcome.mutationOutcome === "confirmed")
+    && priorOutcome.terminalAt && priorOutcome.terminalPayload != null) {
+    return {
+      result: await gpt.execute(intent, Object.freeze({
+        ...context,
+        confirmedProviderEffectReadback: Object.freeze({
+          terminalPayload: priorOutcome.terminalPayload,
+          terminalAt: priorOutcome.terminalAt,
+          authorityRef: priorOutcome.authorityRef,
+          authorityHash: priorOutcome.authorityHash,
+          mutationOutcome: priorOutcome.mutationOutcome,
+        }),
+      })),
       resolveDispatched: false,
     };
   }

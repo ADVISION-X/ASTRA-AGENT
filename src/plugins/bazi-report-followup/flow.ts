@@ -1,6 +1,6 @@
 import type { WebsiteAgentTask, SharedExecutionContext } from "../../mediator/product-plugin-contract.js";
 import { executionFailure } from "../../lib/execution-failure.js";
-import { createOwnedExecution, markerFor, promptFor, receive, runFreshTurn } from "./product-turn.js";
+import { createOwnedExecution, markerFor, promptFor, receive, runConsultationTurn, runReviewTurn } from "./product-turn.js";
 
 const validate = (task: WebsiteAgentTask, context: SharedExecutionContext): void => {
   if (task.product_id !== "bazi_report_followup") {
@@ -19,6 +19,7 @@ export const executeOwnedFlow = async (task: WebsiteAgentTask, context: SharedEx
   validate(task, context);
   const flow = createOwnedExecution(task, context);
   const marker = markerFor(task);
-  const checkpoint = await runFreshTurn(task, context, flow, promptFor(task, context, marker), marker);
+  const run = context.routePolicy.relation_kind === "review" ? runReviewTurn : runConsultationTurn;
+  const checkpoint = await run(task, context, flow, promptFor(task, context, marker), marker);
   return context.complete({ payload: receive(task, checkpoint, context), evidence_refs: flow.evidenceRefs() });
 };

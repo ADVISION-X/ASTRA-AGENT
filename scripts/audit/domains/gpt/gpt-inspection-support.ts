@@ -35,7 +35,7 @@ const readOnlyDomIntents = new Set([
 
 const isPageMutationCall = (call: import("ts-morph").CallExpression): boolean => {
   const expression = call.getExpression().getText();
-  if (expression.endsWith(".navigate") || expression.endsWith(".attachFile")) return true;
+  if (expression.endsWith(".attachFile")) return true;
   if (!expression.endsWith(".executeDomIntent")) return false;
   const argument = call.getArguments()[0];
   if (!Node.isObjectLiteralExpression(argument)) return true;

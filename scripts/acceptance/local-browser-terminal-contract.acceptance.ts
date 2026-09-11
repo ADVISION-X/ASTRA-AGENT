@@ -8,6 +8,7 @@ import { canonicalBrowserExactAssistantTurnRevision } from
   "../../src/lib/browser/exact-target/exact-assistant-turn-revision.js";
 import { browserExecutionFailure } from "../../src/lib/browser/browser-failure.js";
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
+import { browserExactCallIdentityHash } from "../../src/lib/browser/exact-target/browser-command-postcondition.js";
 import { canonicalizeBrowserAuthorityValue } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
@@ -15,7 +16,7 @@ import { emitQualityProofObservation } from "../audit/shared/proof-observation.j
 import { verifyBrowserArtifactAndLockContracts } from "./local-browser-artifact-and-lock.acceptance-support.js";
 import { exerciseStrictMutationReceipts } from "./local-browser-mutation-receipt-support.js";
 import { exerciseBrowserDiagnosticContract } from "./local-browser-diagnostic-contract-support.js";
-import { exactHash, exerciseBrowserMutationStore, hash, valueHash } from
+import { exactHash, exerciseBrowserMutationStore, hash } from
   "./local-browser-mutation-store-support.js";
 import { createBrowserActorFactory, createClickCommand, createMatchClickCommand, permit } from "./local-browser-terminal-fixture.js";
 import { permitAuthority, permitExecution } from "./local-browser-terminal-fixture.js";
@@ -103,11 +104,7 @@ try {
   const responseLossOutcome = actorStore.readAtomicStepOutcome({
     jobId: responseLossPermit.jobId, attemptId: responseLossPermit.attemptId,
     ownerPluginId: responseLossPermit.ownerPluginId, pluginVersion: responseLossPermit.pluginVersion,
-    exactCallIdentityHash: valueHash([
-      responseLossPermit.jobId, responseLossPermit.attemptId, responseLossPermit.ownerPluginId,
-      responseLossPermit.pluginVersion, responseLossPermit.productStepId, responseLossPermit.callId,
-      responseLossPermit.childCapabilityId, responseLossPermit.inputHash,
-    ]),
+    exactCallIdentityHash: browserExactCallIdentityHash(responseLossPermit),
     actionOrdinal: responseLossPermit.actionOrdinal, targetRef: responseLossPermit.targetRef,
     effectScope: "target_local",
   });
@@ -176,11 +173,11 @@ try {
       permitSequence: candidate.sequence, result: { candidateCount: 1, identityRevalidated: false,
         mutationCount: 0, postconditionVerified: false, qualificationRejected: true,
         qualificationStage: "actionability",
-        failureCode: "BROWSER_DOM_ACTION_NOT_QUALIFIED",
-        nativeCauseCode: "BROWSER_DOM_ACTION_HIT_TEST_FAILED" } };
+        failureCode: "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH",
+        nativeCauseCode: null } };
   });
   await assert.rejects(qualificationActor.execute(qualificationPermit, clickCommand),
-    /BROWSER_DOM_ACTION_NOT_QUALIFIED/u);
+    /BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH/u);
   assert.equal(actorStore.readState(qualificationPermit.commandId), "REJECTED");
   assert.equal(qualificationActor.mutationOutcome(qualificationPermit.commandId), "no");
   const actorDatabase = new Database(join(actorRoot, "browser", "browser-mutations.sqlite"), { readonly: true });
@@ -194,9 +191,9 @@ try {
   assert.deepEqual(actorDatabase.prepare(
     "select reason,native_cause_code from browser_mutations where command_id=?",
   ).get(qualificationPermit.commandId), {
-    reason: "BROWSER_DOM_ACTION_NOT_QUALIFIED",
-    native_cause_code: "BROWSER_DOM_ACTION_HIT_TEST_FAILED",
-  }, "the unique mutation WAL must retain the outer failure and exact native qualification cause");
+    reason: "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH",
+    native_cause_code: null,
+  }, "the unique mutation WAL must retain the exact pre-click outgoing-turn mismatch");
   const storedQualificationIdentity = actorDatabase.prepare(
     "select exact_call_identity_hash from browser_mutations where command_id=?",
   ).get(qualificationPermit.commandId) as { exact_call_identity_hash: `sha256:${string}` };
@@ -206,8 +203,8 @@ try {
     exactCallIdentityHash: storedQualificationIdentity.exact_call_identity_hash,
     actionOrdinal: qualificationPermit.actionOrdinal,
   });
-  assert.equal(qualificationFact?.failureCode, "BROWSER_DOM_ACTION_NOT_QUALIFIED");
-  assert.equal(qualificationFact?.nativeFailureCode, "BROWSER_DOM_ACTION_HIT_TEST_FAILED");
+  assert.equal(qualificationFact?.failureCode, "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH");
+  assert.equal(qualificationFact?.nativeFailureCode, null);
   const qualificationOutcome = actorStore.readAtomicStepOutcome({
     jobId: qualificationPermit.jobId, attemptId: qualificationPermit.attemptId,
     ownerPluginId: qualificationPermit.ownerPluginId, pluginVersion: qualificationPermit.pluginVersion,
@@ -215,8 +212,8 @@ try {
     actionOrdinal: qualificationPermit.actionOrdinal, targetRef: qualificationPermit.targetRef,
     effectScope: "target_local",
   });
-  assert.equal(qualificationOutcome?.failureCode, "BROWSER_DOM_ACTION_NOT_QUALIFIED");
-  assert.equal(qualificationOutcome?.nativeFailureCode, "BROWSER_DOM_ACTION_HIT_TEST_FAILED");
+  assert.equal(qualificationOutcome?.failureCode, "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH");
+  assert.equal(qualificationOutcome?.nativeFailureCode, null);
   actorDatabase.close();
 
   const observationPermit: BrowserCommandPermit = {
@@ -244,11 +241,7 @@ try {
     permitSequence: candidate.sequence, result: { schemaVersion: "grasseye.browser.dom-observation.v2",
       targetRefHash, documentRefHash, currentUrl, observationRevisionHash, observedAt, queries: observationQueries },
   })).execute(observationPermit, observationCommand) as Readonly<Record<string, unknown>>;
-  assert.equal(observationResult.exactCallIdentityHash, valueHash([
-    observationPermit.jobId, observationPermit.attemptId, observationPermit.ownerPluginId,
-    observationPermit.pluginVersion, observationPermit.productStepId, observationPermit.callId,
-    observationPermit.childCapabilityId, observationPermit.inputHash,
-  ]));
+  assert.equal(observationResult.exactCallIdentityHash, browserExactCallIdentityHash(observationPermit));
   assert.equal(actorStore.readState(observationPermit.commandId), null);
 
   const exactAssistantPermit: BrowserCommandPermit = {
@@ -344,11 +337,8 @@ try {
       } };
   }).execute(coherentClickPermit, coherentClickCommand) as Readonly<Record<string, unknown>>;
   assert.equal((coherentClickResult.postconditionObservation as Readonly<Record<string, unknown>>)
-    .exactCallIdentityHash, valueHash([
-    coherentClickPermit.jobId, coherentClickPermit.attemptId, coherentClickPermit.ownerPluginId,
-    coherentClickPermit.pluginVersion, coherentClickPermit.productStepId, coherentClickPermit.callId,
-    coherentClickPermit.childCapabilityId, coherentClickPermit.inputHash,
-  ]), "the post-click coherent packet must be exact-call bound before WAL confirmation and GPT consumption");
+    .exactCallIdentityHash, browserExactCallIdentityHash(coherentClickPermit),
+  "the post-click coherent packet must be exact-call bound before WAL confirmation and GPT consumption");
   assert.equal((((coherentClickResult.postconditionObservation as Readonly<Record<string, unknown>>)
     .queries as readonly Readonly<Record<string, unknown>>[])[0]?.matches as readonly Readonly<Record<string, unknown>>[])[0]
     ?.ariaExpanded, "true", "the exact-call-bound packet must preserve its permitted mechanical field");

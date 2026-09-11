@@ -10,6 +10,7 @@ import { gptExactCallIdentityHash } from "./contract.js";
 import {
   RuntimeFailureImpact,
   requireRuntimeLogWrite,
+  runtimeLogCauseEventId,
   runtimeFailureFromError,
   withRuntimeLogCause,
   type RuntimeLogger,
@@ -18,7 +19,7 @@ import {
 import { executionFailure, failureCode, typedExecutionFailure } from "../../lib/execution-failure.js";
 import { hashCanonical } from "../../lib/local-runtime/production/contracts.js";
 import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
-import type { ProductGptCallInput, ProductGptChildResult } from "./product-api.js";
+import type { ProductGptCallInput, ProductGptChildResult, ProductGptTools } from "./product-api.js";
 import type { GptHash } from "./contract.js";
 import { persistGptEvidenceArtifacts } from "./evidence-artifacts.js";
 import { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
@@ -80,6 +81,35 @@ export class ProductionGptChildTools {
         jobId: input.jobId,
         attemptId: input.attemptId,
         execute,
+        acquireContinuation: async (
+          resumeInput: Parameters<ProductGptTools["acquireContinuation"]>[0],
+        ) => {
+          this.assertExecutionActive(input);
+          const active = await browsers.browserFor(
+            resumeInput.sessionKey, resumeInput.productStepId, resumeInput.callId,
+          );
+          const checkpoint = this.browserAuthority.readContinuation({
+            consultationIdentityHash: resumeInput.consultationIdentityHash,
+            predecessorSourceTaskRef: resumeInput.predecessorSourceTaskRef,
+          });
+          if (active.browser.pendingMutationCount() > 0) {
+            throw executionFailure("failed", "GPT_PRIOR_BROWSER_MUTATION_UNRESOLVED");
+          }
+          await active.browser.executeDomIntent({
+            kind: "selectExactGptConversation",
+            canonicalConversationUrl: checkpoint.canonicalConversationUrl,
+          });
+          return checkpoint;
+        },
+        recordContinuation: (
+          recordInput: Parameters<ProductGptTools["recordContinuation"]>[0],
+        ) => {
+          this.assertExecutionActive(input);
+          this.browserAuthority.recordContinuation(recordInput.submitEvidenceRef, {
+            sourceTaskRef: recordInput.sourceTaskRef,
+            consultationIdentityHash: recordInput.consultationIdentityHash,
+          }, recordInput.checkpoint);
+        },
       }),
       settle: (error) => browsers.settle(error),
     });
@@ -163,6 +193,7 @@ export class ProductionGptChildTools {
   }
 
   private terminalizeError(span: RuntimeSpanHandle, error: unknown): never {
+    const causedByEventId = runtimeLogCauseEventId(error);
     const failure = typedExecutionFailure(error) ?? executionFailure(
       "failed",
       failureCode(error, "GPT_CHILD_RUNTIME_FAILED"),
@@ -174,7 +205,8 @@ export class ProductionGptChildTools {
         error: failure,
         code: failureCode(failure, "GPT_CHILD_RUNTIME_FAILED"),
         responsibleOwner: "gpt",
-        impact: RuntimeFailureImpact.BLOCKING,
+        impact: causedByEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
+        ...(causedByEventId ? { causedByEventId } : {}),
       }),
     }));
     const propagated = error instanceof AggregateError && error.cause !== undefined

@@ -34,11 +34,11 @@ const textTurn = [
   "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "checkpoint_gpt_text_response",
 ] as const;
 const initialText = ["prepare_clean_gpt_chat", ...profile, ...attachments, ...textTurn] as const;
-const freshText = ["prepare_clean_gpt_chat", ...profile, ...textTurn] as const;
-const freshImage = ["prepare_clean_gpt_chat", ...profile, ...profile, "write_exact_gpt_prompt",
+const continuedText = [...profile, ...textTurn] as const;
+const continuedImage = [...profile, "write_exact_gpt_prompt",
   "submit_exact_gpt_turn_once", "checkpoint_gpt_generated_image"] as const;
 
-assert.equal(plugin.pluginVersion, 24);
+assert.equal(plugin.pluginVersion, 25);
 const source = readFileSync("src/plugins/public-knowledge-article-pipeline/index.ts", "utf8");
 const turnContractSource = readFileSync(
   "src/plugins/public-knowledge-article-pipeline/seo-turn-contract.ts", "utf8",
@@ -81,12 +81,12 @@ assert.equal(decline.calls.some((call) => call.productStepId === "article_synthe
 
 const proceed = await exerciseSeoFlow(plugin, "produce_article", "proceed");
 assert.deepEqual(proceed.calls.map((call) => call.child), [
-  ...initialText, ...freshText, ...freshImage,
+  ...initialText, ...continuedText, ...continuedImage,
 ]);
 const reasoningProfileCalls = proceed.calls.filter(
   (call) => call.child === "ensure_gpt_reasoning_requirement",
 );
-assert.equal(reasoningProfileCalls.length, 4);
+assert.equal(reasoningProfileCalls.length, 3);
 for (const call of reasoningProfileCalls) {
   assert.equal(call.input.profile.profileRef,
     "public-knowledge-article-pipeline:gpt-5.6-sol-high");
@@ -101,13 +101,17 @@ assert.deepEqual([...new Set(proceed.calls.map((call) => call.productStepId))], 
 ]);
 assert.equal(proceed.calls.filter((call) => call.child === "attach_approved_gpt_files_once").length, 1);
 assert.equal(proceed.calls.filter((call) => call.child === "submit_exact_gpt_turn_once").length, 3);
+assert.deepEqual(proceed.calls.filter((call) => call.child === "submit_exact_gpt_turn_once")
+  .map((call) => call.input.files.length), [1, 0, 0]);
 const prompts = proceed.calls.filter((call) => call.child === "write_exact_gpt_prompt")
   .map((call) => String(call.input.prompt));
 assert.match(prompts[0]!, /public-knowledge-research-output\.v3/u);
 assert.match(prompts[1]!, /public-knowledge-article-output\.v3/u);
 assert.match(prompts[2]!, /一张横向文章主图/u);
 assert.doesNotMatch(prompts[2]!, /无文字|无印章|不冒充/u);
-assert.equal(proceed.calls.filter((call) => call.child === "prepare_clean_gpt_chat").length, 3);
+assert.equal(proceed.calls.filter((call) => call.child === "prepare_clean_gpt_chat").length, 1);
+assert.equal(proceed.calls.find((call) => call.child === "prepare_clean_gpt_chat")?.productStepId,
+  "corpus_research");
 assert.ok((proceed.completed.payload as Readonly<Record<string, unknown>>).image);
 assert.equal(proceed.generatedImageUploadCalls, 1);
 
@@ -133,8 +137,8 @@ for (const [index, call] of submits.entries()) {
     childCapabilityId: call.child,
     inputHash: hashCanonical(input),
     } as never, hashCanonical({ child: call.child, input }));
-  assert.notEqual(identity("attempt-1", call.input), identity("attempt-2", nextCall.input),
-    `submit ${index + 1} must receive a new Browser provider-effect identity in the new attempt`);
+  assert.equal(identity("attempt-1", call.input), identity("attempt-2", nextCall.input),
+    `submit ${index + 1} must retain one Browser provider-effect identity across attempts`);
 }
 
 const attachmentBlocked = await exerciseSeoAttachmentReconcileFailure(plugin);

@@ -5,7 +5,7 @@ import type { BrowserCommandActor } from "./browser-command-actor.js";
 import type { BrowserCapabilityId } from "../protocol/generated/browser-protocol.generated.js";
 import type { BrowserCommandPermit, BrowserUnsignedCommandPermit } from "../transport/command-permit.js";
 import type { BrowserApprovedArtifactRef, BrowserTargetLease } from "./browser-target-lease.js";
-import type { BrowserControlledTarget, BrowserDocumentRef } from "./browser-target-ref.js";
+import type { BrowserControlledTarget } from "./browser-target-ref.js";
 import type { BrowserDomIntent } from "./browser-dom-intent.js";
 import type { BrowserFileArtifactGrantV1 } from "./browser-file-artifact-grant.js";
 import type { BrowserExecutionBinding } from "../infrastructure/browser-authority-broker.js";
@@ -247,7 +247,6 @@ export class BrowserTargetLeaseManager {
       },
       readAtomicStepOutcome: (identity) =>
         this.commandActor.readAtomicStepOutcome(this.executionBinding, input.target.target.targetRef, identity),
-      navigate: ({ url }) => this.navigate(input, state, command, url),
       executeDomIntent: async (intent: BrowserDomIntent) => command(this.capabilityForIntent(intent), { kind: "dom-intent", intent }),
       observeCapability: async ({ capabilityId }) => command(capabilityId, { kind: "observe", capabilityId }),
       captureScreenshot: ({ regionLabel }) => this.captureScreenshot(command, regionLabel),
@@ -275,24 +274,6 @@ export class BrowserTargetLeaseManager {
         if (state.pendingMutationCommandIds.length > 0) throw new Error("BROWSER_MUTATION_UNSETTLED");
       },
     };
-  }
-
-  private async navigate(
-    input: BrowserExactTargetAcquisition,
-    state: LeaseState,
-    command: LeaseCommand,
-    url: string,
-  ): Promise<BrowserDocumentRef> {
-    const result = await command("browser.navigate.v1", { kind: "navigate", url });
-    const document = result as BrowserDocumentRef;
-    if (!document || typeof document.documentRef !== "string"
-      || document.targetRef !== input.target.target.targetRef
-      || !Number.isInteger(document.navigationEpoch)
-      || document.navigationEpoch <= state.current.document.navigationEpoch) {
-      throw new Error("BROWSER_DOCUMENT_INVALID");
-    }
-    state.current = { ...state.current, document };
-    return document;
   }
 
   private async captureScreenshot(command: LeaseCommand, regionLabel: string): Promise<Readonly<{
@@ -451,7 +432,8 @@ export class BrowserTargetLeaseManager {
   }
 
   private mutationClass(command: Parameters<BrowserCommandActor["execute"]>[1]): BrowserCommandPermit["mutationClass"] {
-    if (command.kind === "navigate" || command.kind === "park-target" || command.kind === "close-target") return "lifecycle";
+    if ((command.kind === "dom-intent" && command.intent.kind === "selectExactGptConversation")
+      || command.kind === "park-target" || command.kind === "close-target") return "lifecycle";
     if (command.kind === "file-input"
       || (command.kind === "authenticated-media" && command.delivery === "visible-download")) return "mutation";
     if (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "hover"
@@ -468,6 +450,7 @@ export class BrowserTargetLeaseManager {
       find: "browser.dom.find.v1",
       readText: "browser.dom.read-text.v1",
       readAttribute: "browser.dom.read-attribute.v1",
+      selectExactGptConversation: "browser.dom.click.v1",
       click: "browser.dom.click.v1",
       hover: "browser.dom.hover.v1",
       doubleClick: "browser.dom.double-click.v1",

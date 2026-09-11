@@ -48,6 +48,10 @@ const currentTableSql = `
     media_identity_revalidated integer not null default 0 check(media_identity_revalidated in (0,1)),
     reason text,
     native_cause_code text,
+    provider_recovery_payload text,
+    consultation_identity_hash text,
+    source_task_ref_hash text,
+    continuation_checkpoint_hash text,
     terminal_at text,
     updated_at text not null
   )`;
@@ -65,11 +69,16 @@ const createIndexes = (database: Database.Database): void => {
 
 const requiredColumns = [...identityColumns.split(",").map((column) => column.trim()),
   "proof_hash", "state", "mutation_outcome", "physical_input_count", "download_guid_hash",
-  "download_completed", "media_identity_revalidated", "reason", "native_cause_code", "terminal_at", "updated_at"];
+  "download_completed", "media_identity_revalidated", "reason", "native_cause_code",
+  "provider_recovery_payload", "consultation_identity_hash", "source_task_ref_hash",
+  "continuation_checkpoint_hash",
+  "terminal_at", "updated_at"];
 
 const forwardSchemaColumns = new Set([
   "mutation_outcome", "physical_input_count", "download_guid_hash", "download_completed",
   "media_identity_revalidated", "native_cause_code",
+  "provider_recovery_payload", "consultation_identity_hash", "source_task_ref_hash",
+  "continuation_checkpoint_hash",
 ]);
 
 const migrateCurrentColumns = (
@@ -101,6 +110,12 @@ const migrateCurrentColumns = (
     }
     if (missingColumns.has("native_cause_code")) {
       database.exec("alter table browser_mutations add column native_cause_code text");
+    }
+    for (const column of [
+      "provider_recovery_payload", "consultation_identity_hash", "source_task_ref_hash",
+      "continuation_checkpoint_hash",
+    ]) {
+      if (missingColumns.has(column)) database.exec(`alter table browser_mutations add column ${column} text`);
     }
   })();
 };

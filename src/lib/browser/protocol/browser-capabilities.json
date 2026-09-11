@@ -1,7 +1,6 @@
 {
   "revision": 1,
   "capabilities": [
-    "browser.navigate.v1",
     "dom.snapshot.structural.v1",
     "browser.dom.inspect.v1",
     "browser.dom.find.v1",

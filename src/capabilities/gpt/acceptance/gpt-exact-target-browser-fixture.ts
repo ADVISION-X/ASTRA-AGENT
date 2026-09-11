@@ -245,7 +245,9 @@ const executeFakeDomIntent = async (
 ): Promise<unknown> => {
   state.domCalls += 1;
   const mutates = ["click", "hover", "doubleClick", "keypress", "fill"].includes(intent.kind);
-  const value = await responder(intent, state.domCalls);
+  const value = intent.kind === "document"
+    ? { url: state.url, title: "ChatGPT" }
+    : await responder(intent, state.domCalls);
   if (mutates) {
     settleFakeMutation(state, value);
     const advance = options.navigationEpochAdvanceOnMutation ?? 0;
@@ -287,15 +289,18 @@ const createFakeBrowserLease = (
     try { return await action(); } finally { state.atomicIdentity = null; }
   },
   readAtomicStepOutcome: () => state.recovery,
-  async navigate(navigation: Readonly<{ url: string }>) {
-    state.physicalMutations += 1;
-    state.url = navigation.url;
-    state.navigationEpoch += 1;
-    state.documentRef = `document:${state.navigationEpoch}`;
-    markConfirmedMutation(state);
+  executeDomIntent: async (intent: BrowserDomIntent) => {
+    if (intent.kind !== "selectExactGptConversation") {
+      return executeFakeDomIntent(responder, state, intent, options);
+    }
+    if (state.url !== intent.canonicalConversationUrl) {
+      state.physicalMutations += 1;
+      state.url = intent.canonicalConversationUrl;
+      state.navigationEpoch += 1;
+      state.documentRef = `document:${state.navigationEpoch}`;
+    }
     return { documentRef: state.documentRef, targetRef: "target:1", navigationEpoch: state.navigationEpoch };
   },
-  executeDomIntent: (intent: BrowserDomIntent) => executeFakeDomIntent(responder, state, intent, options),
   async observeCapability() { return {}; },
   async captureScreenshot() { return { artifactRef: "screenshot:1", contentHash: `sha256:${"e".repeat(64)}` }; },
   async attachFile(input) {

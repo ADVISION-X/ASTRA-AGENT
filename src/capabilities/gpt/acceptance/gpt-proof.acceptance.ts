@@ -6,7 +6,11 @@ import {
 } from "./gpt-page-fixture-selectors.js";
 import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
 import { approvedFile, conversationUrl, promptHash } from "./gpt-conversation-fixture.js";
-import { coherentObservationPacket, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
+import {
+  coherentObservationPacket,
+  exactAssistantTurnReply,
+  fakeBrowser,
+} from "./gpt-exact-target-browser-fixture.js";
 
 const profile = buildGptExecutionProfile({
   profileRef: "acceptance:proof-profile",
@@ -109,20 +113,28 @@ const exerciseSubmit = async (
   scope: string,
   files: readonly typeof approvedFile[],
   expectedAttachmentLabels: readonly string[],
+  latestUserTurnId: string | null,
+  expectedUserTurnId: string,
 ) => {
   let exactOutgoingTurnChecked = false;
   const fixture = fakeBrowser((intent) => {
     if (intent.kind === "click") {
       assert.equal(intent.preClickExactOutgoingTurn?.expectedPromptHash, promptHash);
       assert.deepEqual(intent.preClickExactOutgoingTurn?.expectedAttachmentLabels, expectedAttachmentLabels);
+      assert.equal(intent.postClickObservation?.queries[0]?.selector,
+        intent.preClickExactOutgoingTurn?.latestUserTurnSelector);
       exactOutgoingTurnChecked = true;
-      return { postconditionVerified: true };
+      const queries = intent.postClickObservation!.queries
+        .map(({ expectedEligibleCount: _expected, ...query }) => query);
+      return { postconditionVerified: true,
+        postconditionObservation: coherentObservationPacket({ queries }, {
+          "submitted-user-turn": { rawCount: 1, eligibleCount: 1,
+            matches: [{ testId: expectedUserTurnId, exactGptUserPromptHash: promptHash }] },
+        }, conversationUrl) };
     }
     if (intent.kind === "observe") return coherentObservationPacket(intent, {
-      "submitted-user-turn": {
-        rawCount: 1, eligibleCount: 1,
-        matches: [{ testId: "conversation-turn-1", exactGptUserPromptHash: promptHash }],
-      },
+      "latest-user-turn": latestUserTurnId === null ? { rawCount: 0, eligibleCount: 0 }
+        : { rawCount: 1, eligibleCount: 1, matches: [{ testId: latestUserTurnId }] },
     }, conversationUrl);
     throw new Error(`UNEXPECTED_SUBMIT_PROOF_INTENT:${intent.kind}`);
   }, { initialUrl: conversationUrl });
@@ -131,9 +143,79 @@ const exerciseSubmit = async (
   );
   assert.equal(result.status, "success", result.failureCode ?? "submit proof failed");
   assert.equal(result.value?.status, "CONFIRMED");
+  assert.equal(result.value?.userTurnId, expectedUserTurnId);
   assert.equal(exactOutgoingTurnChecked, true);
   assert.equal(fixture.physicalMutations(), 1);
 };
 
-await exerciseSubmit("gpt-proof-submit-localization", [], []);
-await exerciseSubmit("gpt-proof-submit-with-attachment", [approvedFile], [approvedFile.providerDisplayName]);
+await exerciseSubmit("gpt-proof-submit-localization", [], [], null, "conversation-turn-1");
+await exerciseSubmit("gpt-proof-submit-with-attachment", [approvedFile],
+  [approvedFile.providerDisplayName], "conversation-turn-1", "conversation-turn-3");
+await exerciseSubmit("gpt-proof-submit-third-turn", [], [],
+  "conversation-turn-3", "conversation-turn-5");
+
+{
+  const fixture = fakeBrowser((intent) => {
+    throw new Error(`RECOVERED_SUBMIT_MUST_NOT_TOUCH_BROWSER:${intent.kind}`);
+  }, { initialUrl: conversationUrl });
+  const terminalPayload = {
+    canonicalConversationUrl: conversationUrl,
+    promptHash,
+    userTurnId: "conversation-turn-3",
+    exactCallIdentityHash: `sha256:${"1".repeat(64)}`,
+    observationRevisionHash: `sha256:${"2".repeat(64)}`,
+    targetRefHash: `sha256:${"3".repeat(64)}`,
+    documentRefHash: `sha256:${"4".repeat(64)}`,
+    rawCount: 1,
+    eligibleCount: 1,
+  };
+  const result = await createGptAcceptanceHarness("gpt-proof-recovered-submit").execute(
+    "submit_exact_gpt_turn_once", fixture.browser, { files: [], promptHash }, {
+      confirmedProviderEffectReadback: {
+        terminalPayload, terminalAt: "2026-09-02T00:00:01.000Z",
+        authorityRef: "browser-mutation:recovered", authorityHash: `sha256:${"9".repeat(64)}`,
+        mutationOutcome: "confirmed",
+      },
+    },
+  );
+  assert.equal(result.status, "success", result.failureCode ?? "recovered submit failed");
+  assert.equal(result.value?.userTurnId, "conversation-turn-3");
+  assert.equal(fixture.physicalMutations(), 0);
+}
+
+{
+  const userTurnId = "conversation-turn-3";
+  const assistantTurnId = "conversation-turn-4";
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "readExactAssistantTurn") {
+      assert.equal(intent.assistantTurnId, assistantTurnId);
+      return exactAssistantTurnReply(intent, "exact response");
+    }
+    throw new Error(`UNEXPECTED_EXACT_CHECKPOINT_INTENT:${intent.kind}`);
+  }, { initialUrl: conversationUrl });
+  const result = await createGptAcceptanceHarness("gpt-proof-exact-checkpoint").execute(
+    "checkpoint_gpt_text_response", fixture.browser,
+    { canonicalConversationUrl: conversationUrl, expectedPromptHash: promptHash,
+      probeBudgetMs: 5_000, userTurnId, turnMarker: "exact" },
+  );
+  assert.equal(result.status, "success", result.failureCode ?? "exact checkpoint failed");
+  assert.equal(result.value?.assistantTurnId, assistantTurnId);
+  assert.equal(result.value?.semanticText, "exact response");
+}
+
+{
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind !== "readExactAssistantTurn") {
+      throw new Error(`UNEXPECTED_HASH_MISMATCH_INTENT:${intent.kind}`);
+    }
+    return { ...exactAssistantTurnReply(intent, "wrong prompt response"),
+      precedingPromptHash: `sha256:${"f".repeat(64)}` };
+  }, { initialUrl: conversationUrl });
+  const result = await createGptAcceptanceHarness("gpt-proof-checkpoint-hash-mismatch").execute(
+    "checkpoint_gpt_text_response", fixture.browser,
+    { canonicalConversationUrl: conversationUrl, expectedPromptHash: promptHash,
+      probeBudgetMs: 5_000, userTurnId: "conversation-turn-3", turnMarker: "exact" },
+  );
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "GPT_EXACT_ASSISTANT_TURN_RESULT_INVALID");
+}

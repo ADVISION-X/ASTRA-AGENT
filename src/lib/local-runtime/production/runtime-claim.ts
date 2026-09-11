@@ -295,10 +295,6 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
     component: "production-runtime", operation: "job.execute", typedIdentity: jobIdentity(job),
   }));
   try {
-    const prior = state.store.readTask(job.job_id);
-    if (prior?.status === "failed" && prior.current_attempt_id === job.grant.attempt_id) {
-      throw executionFailure("failed", "PRODUCTION_ATTEMPT_ALREADY_ACCEPTED");
-    }
     acceptance.durable = "unaccepted";
     const remote = await readProductionDeviceJobStatus(state.session, job.job_id);
     if (remote.status !== "failed" || remote.terminal_status !== null

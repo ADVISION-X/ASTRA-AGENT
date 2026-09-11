@@ -11,7 +11,6 @@ export type RegisteredExtensionCommand = Readonly<{
 
 export class ExtensionCommandRegistry {
   private readonly commands = new Map<ExtensionCommandKind, RegisteredExtensionCommand>([
-    ["navigate", { kind: "navigate", mutationClass: "lifecycle" }],
     ["dom-intent", { kind: "dom-intent", mutationClass: "observation" }],
     ["observe", { kind: "observe", mutationClass: "observation" }],
     ["screenshot", { kind: "screenshot", mutationClass: "observation" }],
@@ -32,7 +31,6 @@ export class ExtensionCommandRegistry {
 const registry = new ExtensionCommandRegistry();
 
 const fixedCapabilityByKind: Partial<Record<ExtensionCommandKind, ExtensionCommandPermit["capabilityId"]>> = {
-  navigate: "browser.navigate.v1",
   observe: "browser.dom.inspect.v1",
   screenshot: "browser.screenshot.v1",
   "file-input": "browser.file-input.v1",
@@ -51,6 +49,7 @@ const domCapabilityByIntent: Record<DomIntentKind, ExtensionCommandPermit["capab
   find: "browser.dom.find.v1",
   readText: "browser.dom.read-text.v1",
   readAttribute: "browser.dom.read-attribute.v1",
+  selectExactGptConversation: "browser.dom.click.v1",
   click: "browser.dom.click.v1",
   hover: "browser.dom.hover.v1",
   doubleClick: "browser.dom.double-click.v1",
@@ -63,7 +62,9 @@ export const resolveCommand = (kind: string): RegisteredExtensionCommand => regi
 export const admitExtensionCommand = async (input: Readonly<{ command: BrowserGovernedCommand; permit: ExtensionCommandPermit }>): Promise<RegisteredExtensionCommand> => {
   if (!isBrowserCapabilityId(input.permit.capabilityId)) throw new Error("BROWSER_CAPABILITY_REJECTED");
   const command = resolveCommand(input.command.kind);
-  const expectedMutationClass = input.command.kind === "authenticated-media"
+  const expectedMutationClass = input.command.kind === "dom-intent"
+    && input.command.intent.kind === "selectExactGptConversation" ? "lifecycle"
+    : input.command.kind === "authenticated-media"
     && input.command.delivery === "visible-download" ? "mutation"
     : input.command.kind === "dom-intent" && (input.command.intent.kind === "click"
     || input.command.intent.kind === "hover" || input.command.intent.kind === "doubleClick"

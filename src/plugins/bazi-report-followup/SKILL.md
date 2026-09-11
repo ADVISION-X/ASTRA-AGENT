@@ -4,7 +4,7 @@
 
 本 Skill 只服务 `bazi_report_followup`：根据本次获准入场的父报告与命盘材料回答一组新的冻结问题。必须保持原人物、原命盘或候选集、父报告与证据边界；不得重算命盘或引用其他任务材料。
 
-父节点只能是已经取得 approved Delivery Manifest 的 `bazi_chart_interpretation` 或 `bazi_ai_full_analysis`。执行前必须同时核对当前付费授权，以及父 task/result/hash、父授权、owner/subject 和 manifest id/hash；`bazi_report_followup` 永远不能作为父节点。每次续问都是 Website 新任务和全新 attempt，不携带 Provider 会话或旧执行位置。当前授权和父授权不得互相冒充。
+父节点只能是同一 consultation root 下已经取得 approved Delivery Manifest 的 `bazi_ai_full_analysis` 或 `bazi_report_followup`。执行前必须同时核对当前付费授权，以及 consultation root、直接前驱 task/result/hash、父授权、owner/subject、命盘版本/hash 和 manifest id/hash。每次续问可以形成新的商业任务与授权结果，但必须续接同一 Provider conversation；不得 fresh、fork、按 latest 猜根或把当前授权与父授权互相冒充。
 
 ## 材料与事实
 

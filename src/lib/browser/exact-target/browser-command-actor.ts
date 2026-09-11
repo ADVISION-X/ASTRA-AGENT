@@ -42,7 +42,6 @@ import {
 import { decodeBrowserMutationReceipt } from "./browser-mutation-receipt.js";
 
 export type BrowserGovernedCommand =
-  | Readonly<{ kind: "navigate"; url: string }>
   | Readonly<{ kind: "dom-intent"; intent: BrowserDomIntent }>
   | Readonly<{ kind: "observe"; capabilityId: import("../protocol/generated/browser-protocol.generated.js").BrowserCapabilityId }>
   | Readonly<{ kind: "screenshot"; regionLabel: string }>
@@ -117,6 +116,51 @@ const isMutation = (command: BrowserGovernedCommand): boolean =>
   || (command.kind === "authenticated-media" && command.delivery === "visible-download")
   || (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "hover"
     || command.intent.kind === "doubleClick" || command.intent.kind === "keypress" || command.intent.kind === "fill"));
+
+const submitRecoveryPayload = (value: unknown): Readonly<Record<string, unknown>> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  const packet = (value as Record<string, unknown>).postconditionObservation;
+  if (!packet || typeof packet !== "object" || Array.isArray(packet)) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  const observation = packet as Record<string, unknown>;
+  const query = Array.isArray(observation.queries) ? observation.queries[0] : undefined;
+  const matches = query && typeof query === "object" && !Array.isArray(query)
+    ? (query as Record<string, unknown>).matches : undefined;
+  const match = query && typeof query === "object" && !Array.isArray(query)
+    && Array.isArray(matches) ? matches[0] : undefined;
+  if (!query || typeof query !== "object" || Array.isArray(query)
+    || !match || typeof match !== "object" || Array.isArray(match)) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  const row = query as Record<string, unknown>;
+  const item = match as Record<string, unknown>;
+  const hashes = ["exactGptUserPromptHash"] as const;
+  const observationHashes = ["exactCallIdentityHash", "observationRevisionHash",
+    "targetRefHash", "documentRefHash"] as const;
+  if (typeof observation.currentUrl !== "string" || observation.currentUrl.length === 0
+    || typeof item.testId !== "string" || !/^conversation-turn-[1-9][0-9]*$/u.test(item.testId)
+    || row.rawCount !== 1 || row.eligibleCount !== 1
+    || hashes.some((key) => typeof item[key] !== "string"
+      || !/^sha256:[a-f0-9]{64}$/u.test(item[key] as string))
+    || observationHashes.some((key) => typeof observation[key] !== "string"
+      || !/^sha256:[a-f0-9]{64}$/u.test(observation[key] as string))) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  return Object.freeze({
+    canonicalConversationUrl: observation.currentUrl,
+    promptHash: item.exactGptUserPromptHash,
+    userTurnId: item.testId,
+    exactCallIdentityHash: observation.exactCallIdentityHash,
+    observationRevisionHash: observation.observationRevisionHash,
+    targetRefHash: observation.targetRefHash,
+    documentRefHash: observation.documentRefHash,
+    rawCount: row.rawCount,
+    eligibleCount: row.eligibleCount,
+  });
+};
 
 const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
   positive: `sha256:${string}`;
@@ -325,7 +369,8 @@ export class BrowserCommandActor {
       pluginVersion: binding.pluginVersion,
       exactCallIdentityHash: hashValue([
         binding.jobId,
-        binding.attemptId,
+        ...(identity.replayPolicy === "provider-effect-once"
+          ? [] : [binding.attemptId, binding.writerFenceHash]),
         binding.ownerPluginId,
         binding.pluginVersion,
         identity.productStepId,
@@ -421,7 +466,13 @@ export class BrowserCommandActor {
         result.nativeCauseCode,
       );
     }
-    else this.mutations.markConfirmed(permit.commandId, replyHash, result.mutationOutcome);
+    else this.mutations.markConfirmed(
+      permit.commandId,
+      replyHash,
+      result.mutationOutcome,
+      permit.childCapabilityId === "submit_exact_gpt_turn_once"
+        ? submitRecoveryPayload(reply.result) : null,
+    );
     emitBrowserMutationEvent({
       runtimeLogger: this.runtimeLogger, mutation: permit,
       outcome: result.terminal === "rejected" ? "REJECTED" : "CONFIRMED",

@@ -40,12 +40,13 @@ export const fixtureLease = (
     get document() { return document; },
     async runAtomicStep(_identity, action) { return action(); },
     readAtomicStepOutcome: () => null,
-    async navigate() {
-      navigationEpoch += 1;
-      document = { documentRef: `${documentRef}:${navigationEpoch}`, targetRef, navigationEpoch };
-      return document;
+    async executeDomIntent(intent) {
+      if (intent.kind === "selectExactGptConversation") {
+        navigationEpoch += 1;
+        document = { documentRef: `${documentRef}:${navigationEpoch}`, targetRef, navigationEpoch };
+      }
+      return { observed: true };
     },
-    async executeDomIntent() { return { observed: true }; },
     async observeCapability() { return { observed: true }; },
     async captureScreenshot() { return { artifactRef: "screenshot:fixture", contentHash: HASH }; },
     async attachFile() {},
@@ -194,10 +195,12 @@ const exerciseProviderProbeGate = async (
     now = 30_000;
     const first = await firstProbe;
     assert.equal(secondResolved, false, "one eligibility instant must release only one Provider probe");
-    const documentBeforeNavigation = first.document.documentRef;
-    await first.navigate({ url: "https://chatgpt.com/c/provider-probe", title: "probe" });
-    assert.notEqual(first.document.documentRef, documentBeforeNavigation,
-      "the FIFO lease wrapper must preserve the live Document getter after navigation");
+    const documentBeforeSelection = first.document.documentRef;
+    await first.executeDomIntent({
+      kind: "selectExactGptConversation", canonicalConversationUrl: "https://chatgpt.com/c/provider-probe",
+    });
+    assert.notEqual(first.document.documentRef, documentBeforeSelection,
+      "the FIFO lease wrapper must preserve the live Document getter after conversation selection");
     await first.close({ reason: "settled" });
 
     now = 60_000;

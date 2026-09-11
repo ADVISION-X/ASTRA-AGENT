@@ -285,6 +285,10 @@ export class ProductionExecutor {
           materials: input.materials,
           routePolicy: productionRoutePolicy(authorized.task.product_id, authorized.task.action_id),
           gpt: gptExecution.tools,
+          resultRevision: {
+            revision: input.lease.result_revision,
+            priorRejection: input.lease.prior_result_rejection,
+          },
           uploadGeneratedImage: input.uploadGeneratedImage,
           complete: async (output) => {
             if (input.lease.abort_signal.aborted) {

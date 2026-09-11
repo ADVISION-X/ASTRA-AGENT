@@ -164,6 +164,12 @@ export interface ProductionExecutionLease {
   readonly execution_fence_hash: ProductionHash;
   readonly capability_manifest_hash: ProductionHash;
   readonly max_provider_turns: number;
+  readonly result_revision: number;
+  readonly prior_result_rejection: Readonly<{
+    receipt_hash: ProductionHash;
+    rejected_result_payload_hash: ProductionHash;
+    reason_codes: readonly string[];
+  }> | null;
   provider_turns_used: number;
   expires_at_monotonic: number;
   command_ttl_ms: number;

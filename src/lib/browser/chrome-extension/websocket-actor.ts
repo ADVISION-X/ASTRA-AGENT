@@ -61,12 +61,8 @@ const commandFrom = (value: unknown): BrowserGovernedCommand => {
   const command = asRecord(value);
   if (!command || typeof command.kind !== "string") throw new Error("BROWSER_CAPABILITY_REJECTED");
   if (![
-    "navigate", "dom-intent", "observe", "screenshot", "file-input", "authenticated-media", "wait", "park-target", "close-target",
+    "dom-intent", "observe", "screenshot", "file-input", "authenticated-media", "wait", "park-target", "close-target",
   ].includes(command.kind)) throw new Error("BROWSER_CAPABILITY_REJECTED");
-  if (command.kind === "navigate"
-    && (Object.keys(command).length !== 2 || typeof command.url !== "string")) {
-    throw new Error("BROWSER_CAPABILITY_REJECTED");
-  }
   return command as BrowserGovernedCommand;
 };
 

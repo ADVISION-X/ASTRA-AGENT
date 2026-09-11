@@ -179,6 +179,46 @@ const exerciseScopedExactCandidate = async (): Promise<void> => {
   await exerciseCapturedCandidateFunction(candidateSource);
 };
 
+const exerciseExactOutgoingMismatchReadback = async (): Promise<void> => {
+  const codes = [
+    "BROWSER_DOM_ACTION_OUTGOING_STRUCTURE_MISMATCH",
+    "BROWSER_DOM_ACTION_OUTGOING_PROMPT_HASH_MISMATCH",
+    "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH",
+  ] as const;
+  for (const [index, failureCode] of codes.entries()) {
+    const physicalEvents: string[] = [];
+    const runtime = { awaitPageReadPermission: noPageReadBarrier, async send(
+      _tabId: number,
+      method: string,
+      parameters?: Readonly<Record<string, unknown>>,
+    ) {
+      if (method === "Runtime.callFunctionOn" && parameters?.returnByValue === true
+        && String(parameters.functionDeclaration).includes("spec.output")) {
+        return { result: { value: failureCode } };
+      }
+      const infrastructure = mutationInfrastructureReply(method, parameters);
+      if (infrastructure !== undefined) return infrastructure;
+      if (method === "Input.dispatchMouseEvent") { physicalEvents.push(method); return {}; }
+      throw new Error(`UNEXPECTED_OUTGOING_MISMATCH_METHOD:${method}`);
+    } } as ExtensionDebuggerRuntime;
+    const result = await executeRegisteredDomIntent(runtime, { tabId: 108 + index } as never, {
+      kind: "click", selector: "button", expectedMatches: 1,
+      preClickExactOutgoingTurn: {
+        composerSelector: "composer", composerFormSelector: "form", attachmentSelector: "attachment",
+        latestUserTurnSelector: "latest-user-turn",
+        expectedPromptHash: `sha256:${"a".repeat(64)}`, expectedAttachmentLabels: [],
+      },
+      postClickMatch: { selector: "submitted", expectedMatches: 1 },
+    }, () => undefined);
+    assert.deepEqual(result, {
+      candidateCount: 1, qualificationStage: "actionability", identityRevalidated: false,
+      mutationCount: 0, postconditionVerified: false, qualificationRejected: true,
+      failureCode, nativeCauseCode: null,
+    });
+    assert.deepEqual(physicalEvents, [], `${failureCode} must reject before physical input`);
+  }
+};
+
 const exerciseNativePointerSequences = async (): Promise<void> => {
   const run = async (intent: PointerClickIntent): Promise<readonly Readonly<Record<string, unknown>>[]> => {
     const events: Readonly<Record<string, unknown>>[] = [];
@@ -323,6 +363,52 @@ const exerciseCoherentClickPostcondition = async (): Promise<void> => {
   assert.equal(rejected.nativeCauseCode, "BROWSER_DOM_CANDIDATE_AMBIGUOUS");
   assert.ok(stuck.coherentCalls() >= 3,
     "an ordinary deadline miss must return the final coherent negative readback instead of DOM_READ_INVALID");
+};
+
+const exerciseExactOutgoingNeverUsesZeroActionPostcondition = async (): Promise<void> => {
+  let pointerEvents = 0;
+  let candidateCalls = 0;
+  const runtime = { awaitPageReadPermission: noPageReadBarrier, async send(
+    _tabId: number,
+    method: string,
+    parameters?: Readonly<Record<string, unknown>>,
+  ) {
+    const source = String(parameters?.functionDeclaration ?? "");
+    if (method === "Runtime.callFunctionOn" && source.includes("spec.output")) {
+      candidateCalls += 1;
+      return { result: { value: { x: 5, y: 5, baselineUserTurnId: "conversation-turn-1" } } };
+    }
+    if (method === "Runtime.callFunctionOn" && source.startsWith("async function (specs)")) {
+      const observation = coherentObservation(true);
+      return { result: { value: { ...observation, queries: [{
+        ...observation.queries[0], queryId: "submitted-user-turn", rawCount: 1, eligibleCount: 1,
+        matches: [{ candidateIndex: 0, testId: "conversation-turn-3",
+          exactGptUserPromptHash: `sha256:${"a".repeat(64)}` }],
+        rejections: [],
+      }] } } };
+    }
+    const infrastructure = mutationInfrastructureReply(method, parameters);
+    if (infrastructure !== undefined) return infrastructure;
+    if (method === "Input.dispatchMouseEvent") { pointerEvents += 1; return {}; }
+    throw new Error(`UNEXPECTED_EXACT_OUTGOING_CLICK_METHOD:${method}`);
+  } } as ExtensionDebuggerRuntime;
+  const result = await executeRegisteredDomIntent(runtime, {
+    tabId: 126, targetRef: "target-126", documentRef: "document-126", navigationEpoch: 1,
+  } as never, {
+    kind: "click", selector: "button", expectedMatches: 1,
+    preClickExactOutgoingTurn: {
+      composerSelector: "composer", composerFormSelector: "form", attachmentSelector: "attachment",
+      latestUserTurnSelector: "latest-user-turn",
+      expectedPromptHash: `sha256:${"a".repeat(64)}`, expectedAttachmentLabels: [],
+    },
+    postClickObservation: { queries: [{ queryId: "submitted-user-turn", selector: "latest-user-turn",
+      maxMatches: 1, fields: ["testId", "exactGptUserPromptHash"], expectedEligibleCount: 1 }],
+    timeoutMs: 10 },
+  }, () => undefined) as Readonly<Record<string, unknown>>;
+  assert.equal(result.postconditionVerified, true);
+  assert.equal(candidateCalls, 1);
+  assert.equal(pointerEvents, 3,
+    "an exact outgoing turn must click once even when a historical DOM state already satisfies the postcondition");
 };
 
 const exerciseRetainedClickedCandidatePostcondition = async (): Promise<void> => {
@@ -491,8 +577,10 @@ export const exerciseDomMutations = async (): Promise<void> => {
   await exerciseContentEditableFill();
   await exerciseFillReadbackRejection();
   await exerciseScopedExactCandidate();
+  await exerciseExactOutgoingMismatchReadback();
   await exerciseNativePointerSequences();
   await exerciseCoherentClickPostcondition();
+  await exerciseExactOutgoingNeverUsesZeroActionPostcondition();
   await exerciseRetainedClickedCandidatePostcondition();
   await exerciseMutationDocumentGuard();
   await exerciseFixedTargetTransitionPostcondition();

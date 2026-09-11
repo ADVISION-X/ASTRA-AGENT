@@ -365,6 +365,8 @@ try {
         capability_manifest_hash: HASH_B,
         max_provider_turns: 1,
         provider_turns_used: 0,
+        result_revision: 0,
+        prior_result_rejection: null,
         expires_at_monotonic: performance.now() + 10_000,
         command_ttl_ms: 1_000,
         abort_signal: new AbortController().signal,

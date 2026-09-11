@@ -43,12 +43,17 @@ const qualificationReceipt = (
   candidateCount: number,
   failureCode: string,
   qualificationStage: QualificationReceipt["qualificationStage"],
-): QualificationReceipt => Object.freeze({
-  candidateCount, qualificationStage, identityRevalidated: false, mutationCount: 0,
-  postconditionVerified: false, qualificationRejected: true,
-  failureCode: qualificationStage === "actionability" ? "BROWSER_DOM_ACTION_NOT_QUALIFIED" : failureCode,
-  nativeCauseCode: qualificationStage === "actionability" ? failureCode : null,
-});
+): QualificationReceipt => {
+  const outgoingMismatch = /^BROWSER_DOM_ACTION_OUTGOING_(?:STRUCTURE|PROMPT_HASH|ATTACHMENT_SET)_MISMATCH$/u
+    .test(failureCode);
+  return Object.freeze({
+    candidateCount, qualificationStage, identityRevalidated: false, mutationCount: 0,
+    postconditionVerified: false, qualificationRejected: true,
+    failureCode: qualificationStage === "actionability" && !outgoingMismatch
+      ? "BROWSER_DOM_ACTION_NOT_QUALIFIED" : failureCode,
+    nativeCauseCode: qualificationStage === "actionability" && !outgoingMismatch ? failureCode : null,
+  });
+};
 
 const qualifiedNode = async (
   readNode: () => Promise<number>,
@@ -232,6 +237,14 @@ const prepareClick = async (
     const point = await pointerAction(runtime, target, intent);
     return "failureCode" in point ? { receipt: point } : { point, retainedNodeId: null };
   }
+  if (intent.preClickExactOutgoingTurn !== undefined) {
+    const point = await pointerAction(runtime, target, intent);
+    if ("failureCode" in point) return { receipt: point };
+    if (!Object.hasOwn(point, "baselineUserTurnId")) {
+      throw new Error("BROWSER_DOM_READ_INVALID");
+    }
+    return { point, retainedNodeId: null };
+  }
   if (intent.postClickObservation?.clickedCandidateAttribute !== undefined) {
     const retained = await retainedPointerAction(runtime, target, intent);
     return "failureCode" in retained
@@ -261,6 +274,7 @@ const clickMutationReceipt = async (
   target: ExtensionExactTarget,
   intent: ClickIntent,
   retainedNodeId: number | null,
+  baselineUserTurnId: string | null | undefined,
   assertCurrent: CurrentDocumentAssertion,
 ): Promise<Readonly<Record<string, unknown>>> => {
   assertCurrent();
@@ -269,18 +283,34 @@ const clickMutationReceipt = async (
     ? attribute(await describeNode(runtime, target.tabId, retainedNodeId), clickedCandidateAttribute.name)
     : null;
   const postcondition = await verifyClickPostcondition(runtime, target, intent);
+  const exactOutgoingVerified = (() => {
+    if (intent.preClickExactOutgoingTurn === undefined) return true;
+    const baselineOrdinal = baselineUserTurnId === null ? -1
+      : typeof baselineUserTurnId === "string"
+        ? Number(baselineUserTurnId.slice("conversation-turn-".length)) : Number.NaN;
+    const expectedUserTurnId = `conversation-turn-${baselineOrdinal + 2}`;
+    const query = postcondition.observation?.observation.queries[0];
+    const match = Array.isArray(query?.matches) ? query.matches[0] : undefined;
+    return Number.isSafeInteger(baselineOrdinal)
+      && baselineOrdinal % 2 !== 0
+      && query?.rawCount === 1
+      && query.eligibleCount === 1
+      && !!match && typeof match === "object" && !Array.isArray(match)
+      && (match as Record<string, unknown>).testId === expectedUserTurnId;
+  })();
   const clickedCandidateAttributeVerified = clickedCandidateAttribute === undefined
     || clickedCandidateAttributeValue === clickedCandidateAttribute.equals;
   return {
     clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
-    postconditionVerified: postcondition.verified && clickedCandidateAttributeVerified,
+    postconditionVerified: postcondition.verified && clickedCandidateAttributeVerified
+      && exactOutgoingVerified,
     ...(clickedCandidateAttribute === undefined ? {} : { clickedCandidateAttributeReadback: {
       name: clickedCandidateAttribute.name, value: clickedCandidateAttributeValue,
       verified: clickedCandidateAttributeVerified,
     } }),
     ...(postcondition.match === undefined ? {} : matchReceiptEvidence(postcondition.match)),
     ...(postcondition.observation === undefined ? {} : observationReceiptEvidence(postcondition.observation)),
-    ...(postcondition.verified && clickedCandidateAttributeVerified
+    ...(postcondition.verified && clickedCandidateAttributeVerified && exactOutgoingVerified
       ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
   };
 };
@@ -296,7 +326,10 @@ export const executeClickIntent = async (
   if ("receipt" in prepared) return prepared.receipt;
   await dispatchPointerClickSequence(runtime, target, prepared.point, [1], assertCurrent);
   if (intent.postClickTargetTransition === undefined) {
-    return clickMutationReceipt(runtime, target, intent, prepared.retainedNodeId, assertCurrent);
+    return clickMutationReceipt(
+      runtime, target, intent, prepared.retainedNodeId,
+      prepared.point.baselineUserTurnId, assertCurrent,
+    );
   }
   await targetTransitionPostcondition!();
   return { clicked: true, candidateCount: 1, identityRevalidated: true,

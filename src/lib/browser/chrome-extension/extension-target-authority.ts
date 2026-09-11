@@ -3,6 +3,7 @@ import type { BrowserMutationProgress } from "../exact-target/browser-mutation-s
 import {
   GPT_WEB_START_URL,
   gptWebClaimOriginForUrl,
+  requireCanonicalGptConversationUrl,
   requireGptWebPolicyForUrl,
 } from "../exact-target/browser-site-policy-registry.js";
 import { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
@@ -215,6 +216,9 @@ export class ExtensionTargetAuthority {
   ): Promise<unknown> {
     const execute = async (): Promise<unknown> => {
       if (command.kind === "dom-intent") {
+        if (command.intent.kind === "selectExactGptConversation") {
+          return this.executeConversationSelection(target, command.intent.canonicalConversationUrl);
+        }
         const assertCurrent = (): void => { this.targets.resolve(target.targetRef, target.documentRef); };
         const forkTransition = command.intent.kind === "click"
           ? command.intent.postClickTargetTransition : undefined;
@@ -244,13 +248,13 @@ export class ExtensionTargetAuthority {
           await this.debuggerRuntime.send(target.tabId, "Page.close");
           await this.releaseActiveTarget();
         },
-        navigate: (url) => this.executeNavigation(target, url),
         parkTarget: () => this.parkActiveTarget(),
         onMutationProgress,
       });
     };
 
-    return mutationClass === "mutation"
+    return mutationClass === "mutation" || (command.kind === "dom-intent"
+      && command.intent.kind === "selectExactGptConversation")
       ? this.interactionReadiness.executeMutation(target, execute)
       : execute();
   }
@@ -440,22 +444,50 @@ export class ExtensionTargetAuthority {
     }
   }
 
-  private async executeNavigation(target: ExtensionExactTarget, url: string): Promise<Record<string, unknown>> {
-    const current = await executeRegisteredDomIntent(
-      this.debuggerRuntime,
-      target,
-      { kind: "document" },
-      () => { this.targets.resolve(target.targetRef, target.documentRef); },
-    ) as Readonly<{ url: string }>;
-    const destination = new URL(url);
-    if (destination.protocol !== "https:" || destination.origin !== new URL(current.url).origin) {
-      throw new Error("BROWSER_ORIGIN_REJECTED");
+  private async executeConversationSelection(
+    target: ExtensionExactTarget,
+    canonicalConversationUrl: string,
+  ): Promise<Record<string, unknown>> {
+    const expected = requireCanonicalGptConversationUrl(canonicalConversationUrl);
+    const assertCurrent = (): void => { this.targets.resolve(target.targetRef, target.documentRef); };
+    const readUrl = async (): Promise<string> => {
+      const state = await executeRegisteredDomIntent(
+        this.debuggerRuntime, target, { kind: "document" }, assertCurrent,
+      ) as Readonly<{ url?: unknown }>;
+      if (typeof state.url !== "string") throw new Error("BROWSER_DOM_READ_INVALID");
+      return state.url;
+    };
+    const normalize = (value: string): string | null => {
+      try {
+        const url = new URL(value);
+        return requireCanonicalGptConversationUrl(`${url.origin}${url.pathname}`);
+      } catch { return null; }
+    };
+    const currentUrl = await readUrl();
+    if (normalize(currentUrl) === expected) {
+      return { targetRef: target.targetRef, documentRef: target.documentRef,
+        navigationEpoch: target.navigationEpoch };
     }
-    await this.debuggerRuntime.send(target.tabId, "Page.navigate", { url });
-    await this.debuggerRuntime.awaitPageReadPermission();
-    const observed = await readExtensionMainFrame(this.debuggerRuntime, target.tabId);
-    const next = await this.publishMainFrameNavigation(observed.url, observed.loaderId);
-    return { targetRef: next.targetRef, documentRef: next.documentRef, navigationEpoch: next.navigationEpoch };
+    const path = new URL(expected).pathname;
+    const selector = [path, `${path}?`, `${path}#`].map((value, index) =>
+      `nav a[href${index === 0 ? "=" : "^="}${JSON.stringify(value)}]`).join(",");
+    const result = await executeRegisteredDomIntent(this.debuggerRuntime, target, {
+      kind: "click", selector, expectedMatches: 1,
+      postClickUrl: { notEquals: currentUrl, timeoutMs: 2_500 },
+    }, assertCurrent) as Readonly<Record<string, unknown>>;
+    if (result.clicked !== true || result.mutationCount !== 1
+      || result.postconditionVerified !== true) {
+      throw new Error(typeof result.failureCode === "string"
+        ? result.failureCode : "BROWSER_POSTCONDITION_FAILED");
+    }
+    if (normalize(await readUrl()) !== expected) throw new Error("BROWSER_POSTCONDITION_FAILED");
+    const next = this.targets.advanceDocument(target.targetRef);
+    this.activeTarget = next;
+    await this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(next, {
+      claimOrigin: gptWebClaimOriginForUrl(expected),
+    }));
+    return { targetRef: next.targetRef, documentRef: next.documentRef,
+      navigationEpoch: next.navigationEpoch };
   }
 
   private async publishMainFrameNavigation(url: string, loaderId: string): Promise<ExtensionExactTarget> {

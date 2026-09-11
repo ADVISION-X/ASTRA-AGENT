@@ -9,7 +9,7 @@ import { HASH_A, HASH_B } from "../../../../scripts/acceptance/agent-production-
 
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-provider-conversation-acceptance-"));
 try {
-  const navigations: Array<Readonly<{ url: string; title: string }>> = [];
+  const selections: string[] = [];
   const lifecycle = new ProductionGptBrowserLifecycle(
     {
       acquireJobBoundTargetLease: async () => ({
@@ -17,8 +17,8 @@ try {
         document: { documentRef: "document:provider-conversation" },
         pendingMutationCount: () => 0,
         requiresMutationRecovery: () => false,
-        navigate: async (input: Readonly<{ url: string; title: string }>) => {
-          navigations.push(input);
+        executeDomIntent: async (intent: Readonly<{ canonicalConversationUrl?: string }>) => {
+          selections.push(intent.canonicalConversationUrl!);
         },
         park: async () => undefined,
         close: async () => undefined,
@@ -42,24 +42,22 @@ try {
   const active = await lifecycle.browserFor(
     "session:provider-conversation", "corpus_research", "text-wait",
   );
-  assert.equal(await lifecycle.navigateExactProviderConversation(
+  assert.equal(await lifecycle.selectExactProviderConversation(
     active, "checkpoint_gpt_text_response",
     "https://chatgpt.com/c/exact", Date.now() + 1_000,
-  ), "navigated");
-  assert.deepEqual(navigations, [{
-    url: "https://chatgpt.com/c/exact", title: "observe exact GPT conversation",
-  }]);
-  assert.equal(await lifecycle.navigateExactProviderConversation(
+  ), "selected");
+  assert.deepEqual(selections, ["https://chatgpt.com/c/exact"]);
+  assert.equal(await lifecycle.selectExactProviderConversation(
     active, "checkpoint_gpt_text_response",
     "https://chatgpt.com/c/exact", Date.now() - 1,
   ), "deadline");
-  assert.equal(navigations.length, 1);
+  assert.equal(selections.length, 1);
   await lifecycle.settle(null);
 
   const nativeDateNow = Date.now;
   let deadlineNow = 0;
   let deadlineAcquisitions = 0;
-  let deadlineNavigations = 0;
+  let deadlineSelections = 0;
   Date.now = () => deadlineNow;
   try {
     const deadlineLifecycle = new ProductionGptBrowserLifecycle(
@@ -72,7 +70,7 @@ try {
             document: { documentRef: `document:deadline-race:${deadlineAcquisitions}` },
             pendingMutationCount: () => 0,
             requiresMutationRecovery: () => false,
-            navigate: async () => { deadlineNavigations += 1; },
+            executeDomIntent: async () => { deadlineSelections += 1; },
             park: async () => undefined,
             close: async () => undefined,
           };
@@ -100,7 +98,7 @@ try {
       deadlineActive, "corpus_research", "deadline-wait", "checkpoint_gpt_text_response",
       "https://chatgpt.com/c/deadline", 100,
     ), "deadline");
-    assert.equal(deadlineNavigations, 0,
+    assert.equal(deadlineSelections, 0,
       "a Product deadline reached during Browser acquisition must stop before touching the page");
     await deadlineLifecycle.settle(null);
   } finally {

@@ -1,4 +1,9 @@
 import { executionFailure } from "../../../../lib/execution-failure.js";
+import { gptExactCallIdentityHash } from "../../contract.js";
+import {
+  decodeCoherentObservationPacket,
+  projectCoherentObservation,
+} from "../../web/gpt-dom-observation.js";
 
 import {
   declaredFacts,
@@ -12,45 +17,139 @@ import {
   composerFilesInput,
   composerHashInput,
   canonicalConversationOrNull,
-  readSubmittedTurnState,
 } from "./observation.js";
 import {
   GPT_ATTACHMENT_ITEM_SELECTOR,
   GPT_COMPOSER_FORM_SELECTOR,
   GPT_COMPOSER_SELECTOR,
+  GPT_LAST_USER_TURN_SELECTOR,
   GPT_SEND_SELECTOR,
-  GPT_SUBMITTED_USER_TURN_SELECTOR,
 } from "./selectors.js";
+
+const submittedTurnObservation = (packet: unknown, selector: string) => {
+  const observation = decodeCoherentObservationPacket(packet, [{
+    queryId: "submitted-user-turn", selector, maxMatches: 1,
+    fields: ["testId" as const, "exactGptUserPromptHash" as const],
+  }]);
+  const row = observation.rows[0]!;
+  const match = row.rawCount === 1 && row.eligibleCount === 1 ? row.matches[0] : undefined;
+  const userTurnId = match?.testId;
+  const observedPromptHash = match?.exactGptUserPromptHash;
+  const ordinal = typeof userTurnId === "string"
+    ? Number(userTurnId.slice("conversation-turn-".length)) : Number.NaN;
+  if (typeof userTurnId !== "string" || !/^conversation-turn-[1-9][0-9]*$/u.test(userTurnId)
+    || !Number.isSafeInteger(ordinal) || ordinal % 2 === 0) {
+    throw executionFailure("failed", "GPT_SUBMITTED_USER_TURN_MISSING");
+  }
+  if (typeof observedPromptHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(observedPromptHash)) {
+    throw executionFailure("failed", "GPT_SUBMITTED_USER_TURN_PROMPT_HASH_INVALID");
+  }
+  return Object.freeze({ observation, userTurnId,
+    promptHash: observedPromptHash as `sha256:${string}` });
+};
+
+const terminalPostconditionPacket = (value: unknown): unknown => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw executionFailure("failed", "GPT_SUBMIT_BROWSER_RECEIPT_INVALID");
+  }
+  return (value as Readonly<Record<string, unknown>>).postconditionObservation;
+};
+
+const recoveredSubmittedTurn = (value: unknown): Readonly<Record<string, unknown>> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw executionFailure("failed", "GPT_SUBMIT_BROWSER_RECEIPT_INVALID");
+  }
+  const row = value as Readonly<Record<string, unknown>>;
+  const hashes = ["promptHash", "exactCallIdentityHash", "observationRevisionHash",
+    "targetRefHash", "documentRefHash"] as const;
+  if (typeof row.canonicalConversationUrl !== "string"
+    || typeof row.userTurnId !== "string"
+    || !/^conversation-turn-[1-9][0-9]*$/u.test(row.userTurnId)
+    || row.rawCount !== 1 || row.eligibleCount !== 1
+    || hashes.some((key) => typeof row[key] !== "string"
+      || !/^sha256:[a-f0-9]{64}$/u.test(row[key] as string))) {
+    throw executionFailure("failed", "GPT_SUBMIT_BROWSER_RECEIPT_INVALID");
+  }
+  return row;
+};
 
 export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_turn_once"> =
   async (intent, context) => {
     requireExactInputKeys(intent, ["files", "promptHash"]);
     const files = composerFilesInput(intent);
     const promptHash = composerHashInput(intent, "promptHash");
+    const recovered = context.confirmedProviderEffectReadback;
+    if (recovered) {
+      const submitted = recoveredSubmittedTurn(recovered.terminalPayload);
+      const canonicalConversationUrl = canonicalConversationOrNull(
+        submitted.canonicalConversationUrl as string,
+      );
+      if (!canonicalConversationUrl) {
+        throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
+      }
+      if (submitted.promptHash !== promptHash) {
+        throw executionFailure("failed", "GPT_SUBMITTED_USER_TURN_PROMPT_HASH_MISMATCH");
+      }
+      const browserFact = Object.freeze({
+        exactCallIdentityHash: gptExactCallIdentityHash(intent),
+        childCapabilityId: intent.childCapabilityId,
+        effectScope: "provider_effect" as const,
+        browserOutcome: "CONFIRMED" as const,
+        mutationOutcome: recovered.mutationOutcome,
+        terminalAt: recovered.terminalAt,
+        evidenceRef: recovered.authorityRef,
+        evidenceHash: recovered.authorityHash,
+      });
+      return success({
+        value: { status: "CONFIRMED", promptHash, mutationSent: true,
+          canonicalConversationUrl, userTurnId: submitted.userTurnId as string },
+        ...declaredFacts({
+          factResultIds: Object.freeze([
+            `gpt-dom-fact:${(submitted.exactCallIdentityHash as string).slice(7)}:${(submitted.observationRevisionHash as string).slice(7)}`,
+          ]),
+          candidateCardinality: Object.freeze({ raw: 1, eligible: 1 }),
+          authorityRefHashes: Object.freeze([
+            submitted.targetRefHash as `sha256:${string}`,
+            submitted.documentRefHash as `sha256:${string}`,
+          ]),
+          observationRevisionHash: submitted.observationRevisionHash as `sha256:${string}`,
+          decision: "DONE", mutationOutcome: "no", browserFact, nativeFailureCode: null,
+        }),
+      });
+    }
     const browser = requireBrowser(context);
-    await browser.executeDomIntent({
+    const submittedSelector = GPT_LAST_USER_TURN_SELECTOR;
+    const mutation = await browser.executeDomIntent({
       kind: "click", selector: GPT_SEND_SELECTOR, expectedMatches: 1,
       preClickExactOutgoingTurn: {
         composerSelector: GPT_COMPOSER_SELECTOR,
         composerFormSelector: GPT_COMPOSER_FORM_SELECTOR,
         attachmentSelector: GPT_ATTACHMENT_ITEM_SELECTOR,
+        latestUserTurnSelector: GPT_LAST_USER_TURN_SELECTOR,
         expectedPromptHash: promptHash,
         expectedAttachmentLabels: Object.freeze(files.map((file) => file.providerDisplayName)),
       },
-      postClickMatch: { selector: GPT_SUBMITTED_USER_TURN_SELECTOR, expectedMatches: 1, timeoutMs: 5_000 },
+      postClickObservation: { queries: [{
+        queryId: "submitted-user-turn", selector: submittedSelector,
+        maxMatches: 1, fields: ["testId", "exactGptUserPromptHash"], expectedEligibleCount: 1,
+      }], timeoutMs: 5_000 },
     });
-    const readback = await readSubmittedTurnState(browser);
-    const canonicalConversationUrl = canonicalConversationOrNull(readback.currentUrl);
-    if (!canonicalConversationUrl || readback.userTurn?.promptHash !== promptHash) {
-      throw executionFailure("failed", "GPT_TURN_SUBMISSION_POSTCONDITION_FAILED");
+    const submitted = submittedTurnObservation(terminalPostconditionPacket(mutation), submittedSelector);
+    if (submitted.promptHash !== promptHash) {
+      throw executionFailure("failed", "GPT_SUBMITTED_USER_TURN_PROMPT_HASH_MISMATCH");
+    }
+    const canonicalConversationUrl = canonicalConversationOrNull(submitted.observation.currentUrl);
+    if (!canonicalConversationUrl) {
+      throw executionFailure("failed", "GPT_SUBMITTED_CONVERSATION_URL_INVALID");
     }
     const browserFact = requireConfirmedBrowserFact(intent, browser);
+    const facts = projectCoherentObservation(submitted.observation, "submitted-user-turn");
     return success({
       value: { status: "CONFIRMED", promptHash, mutationSent: true,
-        canonicalConversationUrl, userTurnId: readback.userTurn.testId },
-      ...declaredFacts({ ...readback.facts, decision: "ACT",
-        factResultIds: Object.freeze([...readback.facts.factResultIds, browserFact.evidenceRef]),
-        authorityRefHashes: Object.freeze([...readback.facts.authorityRefHashes, browserFact.evidenceHash]),
+        canonicalConversationUrl, userTurnId: submitted.userTurnId },
+      ...declaredFacts({ ...facts, decision: "ACT",
+        factResultIds: Object.freeze([...facts.factResultIds, browserFact.evidenceRef]),
+        authorityRefHashes: Object.freeze([...facts.authorityRefHashes, browserFact.evidenceHash]),
         mutationOutcome: "confirmed", browserFact, nativeFailureCode: null }),
     });
   };
