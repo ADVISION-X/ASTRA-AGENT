@@ -1,10 +1,12 @@
-# Local Browser Authority V28 施工图
+# Local Browser Authority V29 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"local-browser-authority-v28","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V30","LAW-LOCAL-BROWSER-SESSION-004-V32","LAW-LOCAL-BROWSER-SESSION-006-V23"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"local-browser-authority-v29","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V30","LAW-LOCAL-BROWSER-SESSION-004-V32","LAW-LOCAL-BROWSER-SESSION-006-V23"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
 ```
 
 Browser 只拥有现实页面资源：一个 system Target、实时 current Document、一条 FIFO、Provider/控件 mutation 的唯一 WAL，以及页面生命周期动作后的 fresh readback。它不理解 Product 步骤、不保存 GPT 回答、不决定 retry，也不拥有 Website task。
+
+`FROZEN-GPT-RESPONSE-NO-PROMPT-REHASH-001` 的 Browser 部分固定：回答读取只用 canonical conversation URL 和 submit 已确认的精确 `userTurnId` 定位其真实紧邻 assistant turn，并把当前 Target/Document、observation revision、回答内容 hash 或媒体 bytes hash 绑定到一次原子 observation。Browser 不得在回答 checkpoint 再读取、解析或 hash 历史 user prompt，不得返回 `precedingPromptHash`，也不得把 Provider 的折叠、展开、截断或重新渲染状态变成回答准入条件。删除或替代本边界必须由用户明确解冻，并同步替换 GPT/Browser 施工图、实现与唯一质检；普通修复或 CI 授权不构成解冻。
 
 `FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001` 的 Browser 部分固定：真正 submit 前除 Product 已批准的“提示词 hash + 精确附件集合”和 Browser 自有的“current Target/Document/fence + 同 effect 尚未现实输入”外，不得再增加任何发送资格。批准附件集合允许为空。历史 user turn、固定 turn 编号或奇偶、按钮标签均不是发送前置条件，点击前不得读取历史 turn 决定发送资格；点击后等待 2500ms，只从 fresh current Document 选取最大有效序号的 user turn，核对批准 prompt hash 与 Composer 已清空。按钮唯一、可见、可交互与 hit-test 仍是 Browser 执行物理点击的内部机械安全，不得上升为 GPT/Product 业务关卡。
 

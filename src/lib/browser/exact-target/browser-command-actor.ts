@@ -6,7 +6,7 @@ import { BrowserCommandAdmissionBudget } from "../transport/browser-command-admi
 import { withRuntimeLogCause, type RuntimeLogger } from "../../runtime-logs/index.js";
 import type {
   BrowserDomIntent,
-  BrowserExactAssistantTurnReplyV2,
+  BrowserExactAssistantTurnReplyV3,
 } from "./browser-dom-intent.js";
 import { assertBrowserDomIntent } from "./browser-dom-intent.js";
 import { canonicalBrowserExactAssistantTurnRevision } from "./exact-assistant-turn-revision.js";
@@ -246,22 +246,21 @@ const exactAssistantTurnIdentityValid = (
   intent: Extract<BrowserDomIntent, { kind: "readExactAssistantTurn" }>,
 ): boolean => {
   const keys = Object.keys(value);
-  return keys.length === 14 && [
+  return keys.length === 13 && [
     "schemaVersion", "targetRefHash", "documentRefHash", "observationRevisionHash",
-    "assistantTurnId", "currentUrl", "precedingUserTurnId", "precedingPromptHash",
+    "assistantTurnId", "currentUrl", "precedingUserTurnId",
     "generatingRaw", "rawDomHtml", "rawDomHash", "semanticText",
     "semanticTextHash", "observedAt",
   ].every((key) => keys.includes(key))
-    && value.schemaVersion === "grasseye.browser.exact-assistant-turn.v2"
+    && value.schemaVersion === "grasseye.browser.exact-assistant-turn.v3"
     && value.targetRefHash === hashText(permit.targetRef)
     && value.documentRefHash === hashText(permit.documentRef)
     && typeof value.observationRevisionHash === "string"
     && /^sha256:[a-f0-9]{64}$/u.test(value.observationRevisionHash)
     && typeof value.assistantTurnId === "string"
     && /^conversation-turn-[1-9][0-9]*$/u.test(value.assistantTurnId)
-    && value.currentUrl === intent.sourceCheckpoint.canonicalConversationUrl
-    && value.precedingUserTurnId === intent.userTurnId
-    && value.precedingPromptHash === intent.sourceCheckpoint.expectedPromptHash;
+    && value.currentUrl === intent.canonicalConversationUrl
+    && value.precedingUserTurnId === intent.userTurnId;
 };
 
 const exactAssistantTurnContentValid = (value: Readonly<Record<string, unknown>>): boolean => {
@@ -287,7 +286,6 @@ const exactAssistantTurnValueValid = (
     assistantTurnId: value.assistantTurnId as string,
     currentUrl: value.currentUrl as string,
     precedingUserTurnId: value.precedingUserTurnId as string,
-    precedingPromptHash: value.precedingPromptHash as `sha256:${string}`,
     generatingRaw: value.generatingRaw as number,
     rawDomHash: value.rawDomHash as `sha256:${string}`,
     semanticTextHash: value.semanticTextHash as `sha256:${string}`,
@@ -308,7 +306,7 @@ const bindExactAssistantTurnReply = (
     return Object.freeze({
       ...value,
       exactCallIdentityHash: browserExactCallIdentityHash(permit),
-    }) as BrowserExactAssistantTurnReplyV2;
+    }) as BrowserExactAssistantTurnReplyV3;
   } catch {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }

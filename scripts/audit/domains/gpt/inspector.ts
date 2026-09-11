@@ -435,6 +435,7 @@ const inspectFrozenAttemptBoundary = (
     && sources.submit.includes("latestGptUserTurn: true")
     && sources.submit.includes("GPT_EMPTY_COMPOSER_SELECTOR")
     && sources.blueprint.includes("FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001")
+    && sources.blueprint.includes("FROZEN-GPT-RESPONSE-NO-PROMPT-REHASH-001")
     && sources.blueprint.includes("FROZEN-GPT-ATOMIC-IDENTITY-ROUNDTRIP-001")
     && !sources.candidate.includes("priorTurns.length > 1")
     && !sources.candidate.includes("querySelectorAll(outgoing.userTurnSelector)")

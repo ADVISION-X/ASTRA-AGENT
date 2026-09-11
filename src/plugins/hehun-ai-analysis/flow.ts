@@ -179,7 +179,7 @@ const checkpointSubmittedTurn = async (
       productStepId: stepId, callId: "text-checkpoint", child: "checkpoint_gpt_text_response",
       actionOrdinal: ordinals[0], input: {
         probeBudgetMs: WAIT_TIMEOUT_MS, canonicalConversationUrl,
-        expectedPromptHash: promptHash, userTurnId: submit.value.userTurnId, turnMarker: marker,
+        userTurnId: submit.value.userTurnId, turnMarker: marker,
       },
     } as const;
     const checkpointResult = await flow.execute(checkpointCall);

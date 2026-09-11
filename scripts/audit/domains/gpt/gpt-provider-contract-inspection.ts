@@ -112,4 +112,11 @@ export const inspectProviderWaitContract = (
   requireTokens(sourceText(context, EXACT_ASSISTANT), EXACT_ASSISTANT, [
     "BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE", "browserCanonicalSemanticText",
   ], findings, finding);
+  for (const forbidden of ["expectedPromptHash", "precedingPromptHash", "responseHashInput"]) {
+    if ([textHandler, imageHandler, responseState, sourceText(context, EXACT_ASSISTANT)]
+      .some((source) => source.includes(forbidden))) findings.push(finding(
+      "gpt/response-prompt-rehash-absent", ROOT,
+      `Response checkpoint chain retains forbidden second prompt identity ${forbidden}.`,
+    ));
+  }
 };

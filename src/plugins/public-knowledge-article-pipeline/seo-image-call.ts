@@ -69,7 +69,6 @@ const imageArtifact = (value: unknown): GeneratedImageArtifact => {
 
 const checkpointSubmittedImage = async (
   input: ImageTurnInput,
-  promptHash: ProductionHash,
   submit: ProductGptChildResult<"submit_exact_gpt_turn_once">,
 ): Promise<Readonly<{
   canonicalConversationUrl: string;
@@ -81,7 +80,7 @@ const checkpointSubmittedImage = async (
       sessionKey: "", productStepId: input.stepId, callId: "image-checkpoint",
       child: "checkpoint_gpt_generated_image", actionOrdinal: 47,
       input: {
-        canonicalConversationUrl, expectedPromptHash: promptHash,
+        canonicalConversationUrl,
         probeBudgetMs: SEO_PROVIDER_PROBE_BUDGET_MS, userTurnId, turnMarker: input.marker,
       },
     } as const;
@@ -103,7 +102,5 @@ export const generateImage = async (input: ImageTurnInput): Promise<GeneratedIma
   const prompt = imagePrompt(input.task, input.marker, input.productSkill, input.article);
   const promptHash = textHash(prompt);
   const confirmed = await prepareImageSubmit(input, prompt, promptHash);
-  return (await checkpointSubmittedImage(
-    input, promptHash, confirmed,
-  )).generated;
+  return (await checkpointSubmittedImage(input, confirmed)).generated;
 };

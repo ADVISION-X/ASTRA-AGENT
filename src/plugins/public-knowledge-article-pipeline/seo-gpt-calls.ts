@@ -101,7 +101,6 @@ export type SeoTextTurnInput = Readonly<{
 
  const checkpointSubmittedTextTurn = async (
   input: SeoTextTurnInput,
-  promptHash: `sha256:${string}`,
   submit: SeoConfirmedSubmit,
 ): Promise<SeoTurnCheckpoint> => {
     const { canonicalConversationUrl, userTurnId } = submit.value;
@@ -110,7 +109,7 @@ export type SeoTextTurnInput = Readonly<{
       child: "checkpoint_gpt_text_response", actionOrdinal: input.ordinals[4],
       input: {
         probeBudgetMs: SEO_PROVIDER_PROBE_BUDGET_MS, canonicalConversationUrl,
-        expectedPromptHash: promptHash, userTurnId, turnMarker: input.marker,
+        userTurnId, turnMarker: input.marker,
       },
     } as const;
     const checkpoint = await input.flow.execute({ sessionKey: "", ...checkpointCall });
@@ -127,7 +126,7 @@ export type SeoTextTurnInput = Readonly<{
       artifactRef: artifactRefs[0],
       evidenceRef: checkpoint.evidenceRef,
       evidenceHash: checkpoint.evidenceHash,
-      canonicalConversationUrl, promptHash, turnMarker: input.marker,
+      canonicalConversationUrl, turnMarker: input.marker,
   });
 };
 
@@ -159,7 +158,7 @@ export const submitTextTurn = async (input: SeoTextTurnInput): Promise<SeoTurnCh
   const promptHash = textHash(input.prompt);
   const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: input.ordinals[2], input: { files: input.files, promptHash } } as const;
   const confirmedSubmit = await executeTextSubmit(input, turnSubmit);
-  return checkpointSubmittedTextTurn(input, promptHash, confirmedSubmit);
+  return checkpointSubmittedTextTurn(input, confirmedSubmit);
 };
 
 export const prepareAttachedTurnPrefix = async (input: Readonly<{

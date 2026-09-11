@@ -17,17 +17,13 @@ export const assertReadScope = (scope: BrowserDomReadScope | undefined): void =>
 export const exactAssistantReadIntentValid = (
   intent: Extract<BrowserDomIntent, { kind: "readExactAssistantTurn" }>,
 ): boolean => {
-  const source = intent.sourceCheckpoint;
   let canonical = false;
   try {
-    canonical = requireCanonicalGptConversationUrl(source?.canonicalConversationUrl ?? "")
-      === source?.canonicalConversationUrl;
+    canonical = requireCanonicalGptConversationUrl(intent.canonicalConversationUrl)
+      === intent.canonicalConversationUrl;
   } catch { canonical = false; }
   return /^conversation-turn-[1-9][0-9]*$/u.test(intent.userTurnId)
-    && Boolean(source)
-    && Object.keys(source ?? {}).sort().join("|") === "canonicalConversationUrl|expectedPromptHash"
-    && canonical
-    && /^sha256:[a-f0-9]{64}$/u.test(source?.expectedPromptHash ?? "");
+    && canonical;
 };
 
 export const assertSelector = (intent: BrowserDomIntent): void => {

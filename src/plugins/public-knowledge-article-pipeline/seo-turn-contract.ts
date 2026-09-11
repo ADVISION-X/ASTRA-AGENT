@@ -38,7 +38,6 @@ export type SeoTurnCheckpoint = Readonly<{
   evidenceRef: string;
   evidenceHash: ProductionHash;
   canonicalConversationUrl: string;
-  promptHash: ProductionHash;
   turnMarker: string;
 }>;
 export type SeoUploadedAttachment = GptApprovedFile;

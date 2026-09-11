@@ -34,7 +34,7 @@ const outputForCall = (state: SeoHarness, call: SeoCall, decision: "proceed" | "
     assistantTurnId: "conversation-turn-6", semanticMediaId: "gpt-generated-image-main",
     mediaHash: HASH, authorityTargetHash: HASH, authorityDocumentHash: HASH,
     canonicalConversationUrl: SEO_CONVERSATION_URL,
-    promptHash: HASH, turnMarker: "marker", artifactId: "image-1",
+    turnMarker: "marker", artifactId: "image-1",
     originalBytes: new Uint8Array([1]), webpBytes: new Uint8Array([1]),
     originalSizeBytes: 1, originalMediaType: "image/png", originalWidth: 1200, originalHeight: 630,
     sha256: HASH, originalSha256: HASH, bytes: 1, mediaType: "image/webp", width: 1200, height: 630,

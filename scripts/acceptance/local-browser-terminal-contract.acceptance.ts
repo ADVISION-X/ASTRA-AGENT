@@ -177,21 +177,17 @@ try {
   const exactAssistantCommand = { kind: "dom-intent" as const, intent: {
     kind: "readExactAssistantTurn" as const,
     userTurnId: "conversation-turn-1",
-    sourceCheckpoint: {
-      canonicalConversationUrl: "https://chatgpt.com/c/exact-assistant",
-      expectedPromptHash: exactHash("prompt"),
-    },
+    canonicalConversationUrl: "https://chatgpt.com/c/exact-assistant",
   } };
   const exactAssistantRawDomHtml = "<div>answer</div>";
   const exactAssistantSemanticText = "answer";
   const exactAssistantReply = {
-    schemaVersion: "grasseye.browser.exact-assistant-turn.v2" as const,
+    schemaVersion: "grasseye.browser.exact-assistant-turn.v3" as const,
     targetRefHash: exactHash(exactAssistantPermit.targetRef),
     documentRefHash: exactHash(exactAssistantPermit.documentRef),
     assistantTurnId: "conversation-turn-2",
-    currentUrl: exactAssistantCommand.intent.sourceCheckpoint.canonicalConversationUrl,
+    currentUrl: exactAssistantCommand.intent.canonicalConversationUrl,
     precedingUserTurnId: "conversation-turn-1",
-    precedingPromptHash: exactAssistantCommand.intent.sourceCheckpoint.expectedPromptHash,
     generatingRaw: 0,
     rawDomHtml: exactAssistantRawDomHtml, rawDomHash: exactHash(exactAssistantRawDomHtml),
     semanticText: exactAssistantSemanticText, semanticTextHash: exactHash(exactAssistantSemanticText),

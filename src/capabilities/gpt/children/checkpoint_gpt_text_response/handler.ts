@@ -7,14 +7,10 @@ import {
 } from "../../web/gpt-dom-observation.js";
 import { canonicalGptConversationUrl } from "../../web/contracts/target-document.contract.js";
 
-const HASH = /^sha256:[a-f0-9]{64}$/u;
-
 export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_text_response"> =
   async (intent, context) => {
-    requireExactInputKeys(intent, ["canonicalConversationUrl", "expectedPromptHash", "probeBudgetMs", "turnMarker", "userTurnId"]);
+    requireExactInputKeys(intent, ["canonicalConversationUrl", "probeBudgetMs", "turnMarker", "userTurnId"]);
     const conversationUrl = canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
-    const expectedPromptHash = stringInput(intent, "expectedPromptHash");
-    if (!HASH.test(expectedPromptHash)) throw executionFailure("failed", "GPT_CHILD_INPUT_INVALID:checkpoint_gpt_text_response:expectedPromptHash");
     stringInput(intent, "turnMarker");
     const userTurnId = stringInput(intent, "userTurnId");
     const probeBudgetMs = numberInput(intent, "probeBudgetMs");
@@ -25,9 +21,7 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
     while (Date.now() < deadline) {
       let assistant: Awaited<ReturnType<typeof readExactAssistantTurn>> | null = null;
       try {
-        assistant = await readExactAssistantTurn(browser, userTurnId, {
-          canonicalConversationUrl: conversationUrl, expectedPromptHash: expectedPromptHash as `sha256:${string}`,
-        });
+        assistant = await readExactAssistantTurn(browser, userTurnId, conversationUrl);
       } catch (error) {
         if (failureCode(error) !== "BROWSER_DOM_CANDIDATE_MISSING") throw error;
       }

@@ -87,8 +87,8 @@ export type BrowserDomObservationPacketV2 = Readonly<{
   }>[];
 }>;
 
-export type BrowserExactAssistantTurnReplyV2 = Readonly<{
-  schemaVersion: "grasseye.browser.exact-assistant-turn.v2";
+export type BrowserExactAssistantTurnReplyV3 = Readonly<{
+  schemaVersion: "grasseye.browser.exact-assistant-turn.v3";
   exactCallIdentityHash: `sha256:${string}`;
   targetRefHash: `sha256:${string}`;
   documentRefHash: `sha256:${string}`;
@@ -96,7 +96,6 @@ export type BrowserExactAssistantTurnReplyV2 = Readonly<{
   assistantTurnId: string;
   currentUrl: string;
   precedingUserTurnId: string;
-  precedingPromptHash: `sha256:${string}`;
   generatingRaw: number;
   rawDomHtml: string;
   rawDomHash: `sha256:${string}`;
@@ -120,10 +119,7 @@ export type BrowserDomIntent =
   | Readonly<{ kind: "document" }>
   | Readonly<{ kind: "selectExactGptConversation"; canonicalConversationUrl: string }>
   | Readonly<{ kind: "observe"; queries: readonly BrowserDomObservationQuery[] }>
-  | Readonly<{ kind: "readExactAssistantTurn"; userTurnId: string; sourceCheckpoint: Readonly<{
-    canonicalConversationUrl: string;
-    expectedPromptHash: `sha256:${string}`;
-  }> }>
+  | Readonly<{ kind: "readExactAssistantTurn"; userTurnId: string; canonicalConversationUrl: string }>
   | Readonly<{ kind: "inspect"; selector: string; fields: readonly BrowserDomField[]; scope?: BrowserDomReadScope }>
   | Readonly<{
     kind: "find";

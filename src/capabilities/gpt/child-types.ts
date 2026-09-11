@@ -45,7 +45,6 @@ export type GptPromptIdentity = Readonly<{
 type GptResponseCheckpointInput = Readonly<{
   probeBudgetMs: number;
   canonicalConversationUrl: string;
-  expectedPromptHash: GptHash;
   userTurnId: string;
   turnMarker: string;
 }>;
@@ -71,7 +70,6 @@ export interface GptChildInputMap {
   readonly checkpoint_gpt_text_response: GptResponseCheckpointInput;
   readonly checkpoint_gpt_generated_image: Readonly<{
     canonicalConversationUrl: string;
-    expectedPromptHash: GptHash;
     probeBudgetMs: number;
     userTurnId: string;
     turnMarker: string;
@@ -130,7 +128,6 @@ export interface GptChildOutputMap {
     authorityTargetHash: GptHash;
     authorityDocumentHash: GptHash;
     canonicalConversationUrl: string;
-    promptHash: GptHash;
     turnMarker: string;
     artifactId: string;
     originalBytes: Uint8Array;

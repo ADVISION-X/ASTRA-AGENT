@@ -15,7 +15,6 @@ import {
   projectExactAssistantTurn,
   readExactAssistantTurn,
 } from "../../web/gpt-dom-observation.js";
-import { responseHashInput } from "./response-support.js";
 import { canonicalGptConversationUrl } from "../../web/contracts/target-document.contract.js";
 
 const hash = (value: string | Buffer): `sha256:${string}` =>
@@ -35,9 +34,8 @@ const renderGeneratedImage = async (original: Buffer): Promise<Buffer> => {
 
 export const checkpointGptGeneratedImageHandler:
 GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
-  requireExactInputKeys(intent, ["canonicalConversationUrl", "expectedPromptHash", "probeBudgetMs", "turnMarker", "userTurnId"]);
+  requireExactInputKeys(intent, ["canonicalConversationUrl", "probeBudgetMs", "turnMarker", "userTurnId"]);
   const conversationUrl = canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
-  const expectedPromptHash = responseHashInput(intent, "expectedPromptHash");
   const turnMarker = stringInput(intent, "turnMarker");
   const userTurnId = stringInput(intent, "userTurnId");
   const probeBudgetMs = numberInput(intent, "probeBudgetMs");
@@ -52,9 +50,7 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
   for (;;) {
     if (Date.now() >= deadline) throw executionFailure("failed", "GPT_IMAGE_TIMEOUT");
     try {
-      observed = await readExactAssistantTurn(browser, userTurnId, {
-        canonicalConversationUrl: conversationUrl, expectedPromptHash,
-      });
+      observed = await readExactAssistantTurn(browser, userTurnId, conversationUrl);
     } catch (error) {
       if (failureCode(error) !== "BROWSER_DOM_CANDIDATE_MISSING") throw error;
       observed = null;
@@ -90,7 +86,7 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
   return success({
     value: { assistantTurnId: observed.assistantTurnId, semanticMediaId: "gpt-generated-image-main", mediaHash: media.sha256,
       authorityTargetHash: media.authorityTargetHash, authorityDocumentHash: media.authorityDocumentHash,
-      canonicalConversationUrl: conversationUrl, promptHash: expectedPromptHash, turnMarker,
+      canonicalConversationUrl: conversationUrl, turnMarker,
       artifactId: `airesult_${imageHash.slice(7, 39)}`,
       originalBytes: new Uint8Array(original), webpBytes: new Uint8Array(webp), sha256: imageHash,
       originalSha256: media.sha256, originalSizeBytes: original.byteLength,

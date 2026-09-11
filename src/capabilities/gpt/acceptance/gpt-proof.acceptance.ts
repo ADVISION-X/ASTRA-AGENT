@@ -220,27 +220,10 @@ await exerciseSubmit("gpt-proof-submit-third-turn", [], [],
   }, { initialUrl: conversationUrl });
   const result = await createGptAcceptanceHarness("gpt-proof-exact-checkpoint").execute(
     "checkpoint_gpt_text_response", fixture.browser,
-    { canonicalConversationUrl: conversationUrl, expectedPromptHash: promptHash,
+    { canonicalConversationUrl: conversationUrl,
       probeBudgetMs: 5_000, userTurnId, turnMarker: "exact" },
   );
   assert.equal(result.status, "success", result.failureCode ?? "exact checkpoint failed");
   assert.equal(result.value?.assistantTurnId, assistantTurnId);
   assert.equal(result.value?.semanticText, "exact response");
-}
-
-{
-  const fixture = fakeBrowser((intent) => {
-    if (intent.kind !== "readExactAssistantTurn") {
-      throw new Error(`UNEXPECTED_HASH_MISMATCH_INTENT:${intent.kind}`);
-    }
-    return { ...exactAssistantTurnReply(intent, "wrong prompt response"),
-      precedingPromptHash: `sha256:${"f".repeat(64)}` };
-  }, { initialUrl: conversationUrl });
-  const result = await createGptAcceptanceHarness("gpt-proof-checkpoint-hash-mismatch").execute(
-    "checkpoint_gpt_text_response", fixture.browser,
-    { canonicalConversationUrl: conversationUrl, expectedPromptHash: promptHash,
-      probeBudgetMs: 5_000, userTurnId: "conversation-turn-3", turnMarker: "exact" },
-  );
-  assert.equal(result.status, "failed");
-  assert.equal(result.failureCode, "GPT_EXACT_ASSISTANT_TURN_RESULT_INVALID");
 }

@@ -207,7 +207,7 @@ const inspectMechanicalContract = (
   requireTokens(contractText, ["rawCount", "eligibleCount", "effectiveOpacity", "scopeRejections", "rejections",
     "nativeCauseCode", "nativeStage", "candidateIndex", "observationIdentityHash",
     "BrowserDomObservationPacketV2", "exactCallIdentityHash", "targetRefHash", "documentRefHash",
-    "currentUrl", "observationRevisionHash", "BrowserExactAssistantTurnReplyV2",
+    "currentUrl", "observationRevisionHash", "BrowserExactAssistantTurnReplyV3",
     'kind: "readExactAssistantTurn"', 'BrowserDomReadEligibility = "non-actionable-aria-state"',
     "readEligibility?: BrowserDomReadEligibility",
     'BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">'], findings, lawId,
@@ -235,7 +235,8 @@ export const exactAssistantTurnReadIsAtomic = (source: import("ts-morph").Source
     "browserMechanicalFacts(node, false)", "rawDomHtml: eligible ? node.outerHTML",
     "semanticText: eligible ? browserCanonicalSemanticText(node)"];
   const forbidden = ["queryCandidateSet", "inspectNode", "DOM.getOuterHTML", "DOM.describeNode",
-    "const ordinal =", "turnMarkerMatched"];
+    "const ordinal =", "turnMarkerMatched", "expectedPromptHash", "precedingPromptHash",
+    "collapsible-user-message-content", ".whitespace-pre-wrap"];
   const exactCounts = [
     (text.match(/Runtime\.callFunctionOn/gu) ?? []).length === 1,
     (observe.match(/mainFrameLoaderId\(runtime, target\.tabId\)/gu) ?? []).length === 2,

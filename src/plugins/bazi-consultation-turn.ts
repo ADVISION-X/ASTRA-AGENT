@@ -74,7 +74,6 @@ const verifyPredecessor = async (
     input: {
       probeBudgetMs: 3_600_000,
       canonicalConversationUrl: predecessor.canonicalConversationUrl,
-      expectedPromptHash: predecessor.promptHash,
       userTurnId: precedingUserTurnId(predecessor.assistantTurnId),
       turnMarker: predecessor.turnMarker,
     },

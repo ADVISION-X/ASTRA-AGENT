@@ -606,11 +606,9 @@ export const exerciseCapturedExactAssistantTurnFunction = async (source: string)
   const listItem = new FakeElement("item", {}, {}, {}, "LI", [text("item")]);
   const list = new FakeElement("item", {}, {}, {}, "UL", [listItem]);
   const assistant = new FakeElement("bold item", { "pre code": [] }, {}, {}, "DIV", [paragraph, list]);
-  const promptText = "approved [GRASSEYE:checkpoint]";
-  const prompt = new FakeElement(promptText, {}, {}, {}, "DIV", [text(promptText)]);
-  const user = new FakeElement(promptText, {
-    "[data-testid='collapsible-user-message-content']": [prompt],
-    "[data-message-author-role='user']": [prompt],
+  const userMessage = new FakeElement("provider-folded-message", {}, {}, {}, "DIV", [text("provider-folded-message")]);
+  const user = new FakeElement("provider-folded-message", {
+    "[data-message-author-role='user']": [userMessage],
   }, {}, { "data-testid": "conversation-turn-1" });
   const assistantOuter = (node: FakeElement) => new FakeElement(node.textContent, {
     "[data-message-author-role='assistant']": [node],
@@ -618,8 +616,7 @@ export const exerciseCapturedExactAssistantTurnFunction = async (source: string)
   const userSelector = "[data-testid='conversation-turn-1']:has([data-message-author-role='user'])";
   const turnsSelector = "[data-testid^='conversation-turn-']";
   const input = { kind: "readExactAssistantTurn", userTurnId: "conversation-turn-1",
-    sourceCheckpoint: { canonicalConversationUrl: "https://chatgpt.com/c/exact",
-      expectedPromptHash: hash(promptText) } };
+    canonicalConversationUrl: "https://chatgpt.com/c/exact" };
   const exactAssistant = assistantOuter(assistant);
   let queryCalls = 0;
   const document = {
@@ -637,6 +634,10 @@ export const exerciseCapturedExactAssistantTurnFunction = async (source: string)
   }>;
   assert.equal(queryCalls, 3,
     "the assistant, exact predecessor, and generating state must share one async Runtime call");
+  assert.equal(source.includes("collapsible-user-message-content"), false,
+    "response read must not parse or hash the already-confirmed user prompt DOM");
+  assert.equal(source.includes("precedingPromptHash"), false,
+    "response read must not create a second prompt identity");
   assert.equal(observed.rawCount, 1);
   assert.equal(observed.eligibleCount, 1);
   assert.match(observed.rawDomHtml, /<strong>bold<\/strong>/u);

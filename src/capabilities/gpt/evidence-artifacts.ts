@@ -46,8 +46,7 @@ const assertImageIdentity = (row: Readonly<Record<string, unknown>>): void => {
 
 const assertImageAuthority = (row: Readonly<Record<string, unknown>>): void => {
   if (typeof row.authorityTargetHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(row.authorityTargetHash)
-    || typeof row.authorityDocumentHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(row.authorityDocumentHash)
-    || typeof row.promptHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(row.promptHash)) invalidImage();
+    || typeof row.authorityDocumentHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(row.authorityDocumentHash)) invalidImage();
 };
 
 const assertImageFormat = (row: Readonly<Record<string, unknown>>): void => {
@@ -64,14 +63,13 @@ const generatedImageArtifacts = (value: unknown): EvidenceArtifact[] => {
   assertImageAuthority(row);
   assertImageFormat(row);
   const receipt = new TextEncoder().encode(JSON.stringify({
-    schemaVersion: "agent-generated-image-receipt.v1",
+    schemaVersion: "agent-generated-image-receipt.v2",
     assistantTurnId: row.assistantTurnId,
     semanticMediaId: row.semanticMediaId,
     mediaHash: row.mediaHash,
     authorityTargetHash: row.authorityTargetHash,
     authorityDocumentHash: row.authorityDocumentHash,
     canonicalConversationUrl: row.canonicalConversationUrl,
-    promptHash: row.promptHash,
     turnMarker: row.turnMarker,
     originalSha256: row.originalSha256,
     originalBytes: row.originalSizeBytes,
