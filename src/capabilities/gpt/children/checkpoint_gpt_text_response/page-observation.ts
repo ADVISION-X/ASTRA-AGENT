@@ -59,8 +59,10 @@ export const readExactResponsePage = async (input: Readonly<{
     if (Date.now() >= input.deadline) throw executionFailure("failed", "GPT_RESPONSE_TIMEOUT");
     const page = await readPage(input.browser);
     if (page.currentUrl === expected) return page;
-    if (!input.context.navigateCrossConversationPoll) throw executionFailure("failed", "GPT_CROSS_CONVERSATION_POLL_GATE_REQUIRED");
-    const outcome = await input.context.navigateCrossConversationPoll(expected, input.deadline);
+    if (!input.context.navigateExactProviderConversation) {
+      throw executionFailure("failed", "GPT_PROVIDER_CONVERSATION_GATE_REQUIRED");
+    }
+    const outcome = await input.context.navigateExactProviderConversation(expected, input.deadline);
     if (outcome === "deadline") throw executionFailure("failed", "GPT_RESPONSE_TIMEOUT");
   }
 };

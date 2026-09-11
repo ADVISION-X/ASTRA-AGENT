@@ -55,9 +55,6 @@ export const selectExactGptModelV2Handler: GptChildHandler<"select_exact_gpt_mod
         `GPT_MODEL_SELECTION_V2_CANDIDATE_INVALID:count=${candidate.count}:checked=${candidate.ariaChecked ?? "missing"}`,
       );
     }
-    if (context.mutationMode === "readback") {
-      throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_SELECTION_PENDING");
-    }
     const mutation = await browser.executeDomIntent({
       kind: "click", selector: GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR,
       expectedTextEquals: profile.modelDisplayName, expectedMatches: 1,

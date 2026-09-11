@@ -1,5 +1,4 @@
 import type { BrowserTargetLease } from "../../../../lib/browser/browser-authority-api.js";
-import { executionFailure } from "../../../../lib/execution-failure.js";
 
 import type { GptChildCapabilityIntent } from "../../contract.js";
 import { gptExecutionFailure } from "../../execution-fault.js";
@@ -67,7 +66,6 @@ export const writeExactGptPromptHandler: GptChildHandler<"write_exact_gpt_prompt
       ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
         browserFact: null, nativeFailureCode: null }),
     });
-    if (context.mutationMode === "readback") throw executionFailure("failed", "GPT_PROMPT_WRITE_PENDING");
     await browser.executeDomIntent({
       kind: "fill", selector: GPT_COMPOSER_SELECTOR, approvedText: prompt,
       clearBeforeType: true, expectedMatches: 1,

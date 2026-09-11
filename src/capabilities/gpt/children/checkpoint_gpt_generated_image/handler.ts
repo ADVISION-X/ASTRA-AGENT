@@ -43,7 +43,6 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
   }
   const browser = requireBrowser(context);
   const deadline = Date.now() + probeBudgetMs;
-  let delay = 250;
   let observed: Awaited<ReturnType<typeof ensureResponseConversation>>;
   let assistantTurnId: string;
   let media: Awaited<ReturnType<typeof browser.downloadAuthenticatedMedia>>;
@@ -60,12 +59,12 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
         if (failureCode(error) !== "BROWSER_AUTHENTICATED_MEDIA_ABSENT") throw error;
       }
     }
-    const remaining = deadline - Date.now();
-    if (remaining < 25) throw executionFailure("failed", "GPT_IMAGE_TIMEOUT");
-    const duration = Math.min(delay, remaining);
-    if (context.yieldForProviderWait) await context.yieldForProviderWait(duration);
-    else await browser.wait({ durationMs: duration });
-    delay = Math.min(5_000, Math.ceil(delay * 1.5));
+    if (!context.yieldForProviderProbe) {
+      throw executionFailure("failed", "GPT_PROVIDER_PROBE_GATE_REQUIRED");
+    }
+    if (await context.yieldForProviderProbe(conversationUrl, deadline) === "deadline") {
+      throw executionFailure("failed", "GPT_IMAGE_TIMEOUT");
+    }
   }
   if (!observed.facts.authorityRefHashes.includes(media.authorityTargetHash)
     || !observed.facts.authorityRefHashes.includes(media.authorityDocumentHash)) {

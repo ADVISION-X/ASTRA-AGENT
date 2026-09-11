@@ -148,6 +148,14 @@ export type BrowserDomIntent =
     expectedTextEquals?: string;
     expectedMatches?: number;
     scope?: BrowserDomReadScope;
+    /** Exact approved GPT turn revalidated in the same DOM call that resolves the click point. */
+    preClickExactOutgoingTurn?: Readonly<{
+      composerSelector: string;
+      composerFormSelector: string;
+      attachmentSelector: string;
+      expectedPromptHash: `sha256:${string}`;
+      expectedAttachmentLabels: readonly string[];
+    }>;
     /** Same-node state that must be true immediately after the one click. */
     postClickAttribute?: Readonly<{
       name: "aria-checked" | "aria-expanded";
@@ -468,6 +476,7 @@ const assertClickObservation = (
 
 const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>): void => {
   assertTargetText(intent);
+  assertPreClickExactOutgoingTurn(intent.preClickExactOutgoingTurn);
   const postconditions = [
     intent.postClickAttribute, intent.postClickMatch, intent.postClickObservation, intent.postClickUrl,
     intent.postClickTargetTransition,
@@ -481,6 +490,22 @@ const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>)
   assertClickObservation(intent.postClickObservation);
   assertClickUrl(intent.postClickUrl);
   assertClickTargetTransition(intent.postClickTargetTransition);
+};
+
+const assertPreClickExactOutgoingTurn = (
+  value: Extract<BrowserDomIntent, { kind: "click" }>["preClickExactOutgoingTurn"],
+): void => {
+  if (!value) return;
+  if (Object.keys(value).sort().join("|")
+    !== "attachmentSelector|composerFormSelector|composerSelector|expectedAttachmentLabels|expectedPromptHash"
+    || !isBoundedText(value.composerSelector, 2_048)
+    || !isBoundedText(value.composerFormSelector, 2_048)
+    || !isBoundedText(value.attachmentSelector, 2_048)
+    || !/^sha256:[a-f0-9]{64}$/u.test(value.expectedPromptHash)
+    || !Array.isArray(value.expectedAttachmentLabels)
+    || value.expectedAttachmentLabels.some((label) => !isBoundedText(label, 1_024))) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  }
 };
 
 const assertHoverIntent = (intent: Extract<BrowserDomIntent, { kind: "hover" }>): void => {

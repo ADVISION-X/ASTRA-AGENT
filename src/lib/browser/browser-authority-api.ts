@@ -2,6 +2,7 @@ export type {
   BrowserAtomicStepIdentity,
   BrowserAtomicStepOutcome,
   BrowserTargetLease,
+  BrowserTargetLeaseWait,
 } from "./exact-target/browser-target-lease.js";
 export type {
   BrowserExactCallMutationFact,

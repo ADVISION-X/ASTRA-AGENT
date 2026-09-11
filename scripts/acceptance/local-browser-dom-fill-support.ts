@@ -44,7 +44,7 @@ const contentEditableReply = (
     return { nodeId: state.candidateReads === 1 ? 7 : 8 };
   }
   if (method === "Runtime.callFunctionOn"
-    && String(parameters?.functionDeclaration ?? "").includes("browserExactEditableText")) {
+    && String(parameters?.functionDeclaration ?? "").includes("browserExactEditableText(this)")) {
     return { result: { value: state.text } };
   }
   if (method === "DOM.querySelectorAll") return { nodeIds: [7] };
@@ -91,7 +91,7 @@ export const exerciseFillReadbackRejection = async (): Promise<void> => {
         : { result: { type: "string", value: "BROWSER_DOM_CANDIDATE_MISSING" } };
     }
     if (method === "Runtime.callFunctionOn"
-      && String(parameters?.functionDeclaration ?? "").includes("browserExactEditableText")) {
+      && String(parameters?.functionDeclaration ?? "").includes("browserExactEditableText(this)")) {
       return { result: { value: "stale" } };
     }
     const infrastructure = mutationInfrastructureReply(method, parameters);

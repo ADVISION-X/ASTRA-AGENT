@@ -20,7 +20,6 @@ export const createGptAcceptanceHarness = (scope: string) => {
     childCapabilityId: K,
     browser: BrowserTargetLease,
     input: GptChildInputMap[K],
-    mutationMode?: "normal" | "readback",
     contextOverrides?: Partial<GptExecutionContext>,
   ) => {
     ordinal += 1;
@@ -39,7 +38,6 @@ export const createGptAcceptanceHarness = (scope: string) => {
     }) as GptChildCapabilityIntent<K>;
     const context = {
       dataDir: "/tmp/gpt-exact-target", browser,
-      ...(mutationMode ? { mutationMode } : {}),
       ...contextOverrides,
     };
     return browser.runAtomicStep({

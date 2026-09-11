@@ -13,6 +13,7 @@ import {
   readCoherentCandidate as read,
 } from "./dom-coherent-candidate-readback.js";
 import { BROWSER_MECHANICAL_FACTS_READER_SOURCE } from "./dom-mechanical-facts.js";
+import { BROWSER_EXACT_EDITABLE_TEXT_READER_SOURCE } from "./dom-exact-editable-text.js";
 import { BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE } from "./dom-semantic-text.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 
@@ -27,6 +28,13 @@ type CandidateRequest = Readonly<{
     responseHash: `sha256:${string}`;
     turnMarker: string;
   }>;
+  exactOutgoingTurn?: Readonly<{
+    composerSelector: string;
+    composerFormSelector: string;
+    attachmentSelector: string;
+    expectedPromptHash: `sha256:${string}`;
+    expectedAttachmentLabels: readonly string[];
+  }>;
 }>;
 export type BrowserPointerAction = Readonly<{ x: number; y: number }>;
 export type BrowserRetainedPointerAction = BrowserPointerAction & Readonly<{ nodeId: number }>;
@@ -38,8 +46,14 @@ export type CoherentObservationPointerPreparation = Readonly<{
   point: BrowserPointerAction;
 }>;
 
-const COHERENT_CANDIDATE_FUNCTION = `function (spec) {
+const COHERENT_CANDIDATE_FUNCTION = `async function (spec) {
   ${BROWSER_MECHANICAL_FACTS_READER_SOURCE}
+  ${BROWSER_EXACT_EDITABLE_TEXT_READER_SOURCE}
+  const sha256 = async (value) => {
+    const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+    return "sha256:" + Array.from(new Uint8Array(digest))
+      .map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  };
   const mechanicallyEligible = (node) => {
     const facts = browserMechanicalFacts(node, false);
     return facts.connected && facts.layout && facts.visible && !facts.ariaHidden && !facts.inert;
@@ -76,6 +90,26 @@ const COHERENT_CANDIDATE_FUNCTION = `function (spec) {
     return "BROWSER_DOM_ACTION_POINTER_EVENTS_NONE";
   }
   if (!facts.hitTest) return "BROWSER_DOM_ACTION_HIT_TEST_FAILED";
+  if (spec.exactOutgoingTurn) {
+    const outgoing = spec.exactOutgoingTurn;
+    const composers = Array.from(document.querySelectorAll(outgoing.composerSelector));
+    const forms = Array.from(document.querySelectorAll(outgoing.composerFormSelector));
+    if (composers.length !== 1 || forms.length !== 1
+      || !forms[0].contains(composers[0]) || !forms[0].contains(candidate)) {
+      return "BROWSER_DOM_ACTION_NOT_QUALIFIED";
+    }
+    const editableText = browserExactEditableText(composers[0]);
+    if (editableText === null || await sha256(editableText) !== outgoing.expectedPromptHash) {
+      return "BROWSER_DOM_ACTION_NOT_QUALIFIED";
+    }
+    const observedLabels = Array.from(forms[0].querySelectorAll(outgoing.attachmentSelector))
+      .map((node) => (node.getAttribute("aria-label") || "").normalize("NFC")).sort();
+    const expectedLabels = outgoing.expectedAttachmentLabels
+      .map((label) => label.normalize("NFC")).sort();
+    if (JSON.stringify(observedLabels) !== JSON.stringify(expectedLabels)) {
+      return "BROWSER_DOM_ACTION_NOT_QUALIFIED";
+    }
+  }
   return {
     x: facts.bounds.x + facts.bounds.width / 2,
     y: facts.bounds.y + facts.bounds.height / 2
@@ -318,7 +352,7 @@ export const resolveCoherentMutationCandidate = async (
     const call = record(await read(() => runtime.send(target.tabId, "Runtime.callFunctionOn", {
       objectId: rootObjectId, functionDeclaration: COHERENT_CANDIDATE_FUNCTION,
       arguments: [{ value: { ...request, output: "node" } }], returnByValue: false,
-      awaitPromise: false, silent: true,
+      awaitPromise: true, silent: true,
     })));
     if (call.exceptionDetails !== undefined) throw new Error("BROWSER_DOM_READ_INVALID");
     const result = record(call.result);
@@ -416,7 +450,7 @@ export const resolveCoherentPointerAction = async (
       functionDeclaration: request.gptSourceCheckpoint === undefined
         ? COHERENT_CANDIDATE_FUNCTION : GPT_FORK_CANDIDATE_FUNCTION,
       arguments: [{ value: { ...request, output: "pointer" } }], returnByValue: true,
-      awaitPromise: request.gptSourceCheckpoint !== undefined, silent: true,
+      awaitPromise: true, silent: true,
     })));
     if (call.exceptionDetails !== undefined) throw new Error("BROWSER_DOM_READ_INVALID");
     const point = pointerFromValue(record(call.result).value);

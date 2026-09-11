@@ -47,9 +47,6 @@ export const openGptModelSelectorV2Handler: GptChildHandler<"open_gpt_model_sele
     if (!modelSelectorOpenable(observed)) {
       throw executionFailure("failed", `GPT_MODEL_SELECTION_V2_STATE_INVALID:${modelSelectorTopologyCode(observed)}`);
     }
-    if (context.mutationMode === "readback") {
-      throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_OPEN_PENDING");
-    }
     const mutation = await browser.executeDomIntent({
       kind: "click", selector: GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR, expectedMatches: 1,
       postClickObservation: OPEN_POSTCONDITION(profile.modelDisplayName),

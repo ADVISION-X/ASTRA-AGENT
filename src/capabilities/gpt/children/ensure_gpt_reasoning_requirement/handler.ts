@@ -232,12 +232,6 @@ GptChildHandler<"ensure_gpt_reasoning_requirement"> = async (intent, context) =>
     ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
       browserFact: null, nativeFailureCode: null }),
   });
-  if (context.mutationMode === "readback") {
-    failReasoningRequirement({
-      code: "GPT_EXECUTION_PROFILE_REASONING_PENDING", profile, topology: observed,
-      observedScale, resolution: resolved, currentValue: currentBefore, includeTopology: false,
-    });
-  }
   await executeReasoningMutation({ browser, profile, observed, observedScale, resolution: resolved, currentBefore });
   const readback = await topology(browser);
   const readbackScale = observedReasoningScale(readback);

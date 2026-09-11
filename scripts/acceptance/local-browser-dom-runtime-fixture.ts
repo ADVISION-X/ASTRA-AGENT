@@ -13,7 +13,7 @@ export const mutationInfrastructureReply = (
   parameters?: Readonly<Record<string, unknown>>,
 ): unknown | undefined => {
   if (method === "Runtime.callFunctionOn"
-    && String(parameters?.functionDeclaration ?? "").includes("browserExactEditableText")) return undefined;
+    && String(parameters?.functionDeclaration ?? "").includes("browserExactEditableText(this)")) return undefined;
   let reply: unknown;
   if (method === "Page.getFrameTree") reply = { frameTree: { frame: { loaderId: "loader-current" } } };
   if (method === "DOM.getDocument") reply = { root: { nodeId: 1 } };

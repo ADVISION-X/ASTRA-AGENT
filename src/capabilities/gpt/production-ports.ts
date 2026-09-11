@@ -2,6 +2,7 @@ import type {
   BrowserExecutionBinding,
   BrowserExactCallMutationFact,
   BrowserTargetLease,
+  BrowserTargetLeaseWait,
 } from "../../lib/browser/browser-authority-api.js";
 
 type GptAppendArtifactResult = Readonly<{ status: "success" | "failed"; artifactRef?: string }>;
@@ -33,6 +34,6 @@ export interface GptProductionBrowserAuthority {
   acquireJobBoundTargetLease(
     binding: BrowserExecutionBinding,
     ownerId: string,
-    wait: Readonly<{ signal: AbortSignal; remainingMs(): number }>,
+    wait: BrowserTargetLeaseWait,
   ): Promise<BrowserTargetLease>;
 }

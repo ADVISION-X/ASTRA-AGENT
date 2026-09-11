@@ -142,7 +142,7 @@ const executeTextSubmit = async (
 
 export const submitTextTurn = async (input: SeoTextTurnInput): Promise<SeoTurnCheckpoint> => {
   const promptHash = textHash(input.prompt);
-  const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: input.ordinals[2], input: { files: input.files, promptHash, turnMarker: input.marker } } as const;
+  const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: input.ordinals[2], input: { files: input.files, promptHash } } as const;
   await prepareTextDraft(input);
   const confirmedSubmit = await executeTextSubmit(input, turnSubmit);
   return checkpointSubmittedTextTurn(input, promptHash, confirmedSubmit.value.canonicalConversationUrl);

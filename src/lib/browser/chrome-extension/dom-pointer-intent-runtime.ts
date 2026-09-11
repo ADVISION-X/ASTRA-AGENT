@@ -95,6 +95,8 @@ const pointerAction = async (
         : {}),
       ...(intent.kind === "click" && intent.postClickTargetTransition !== undefined
         ? { gptSourceCheckpoint: intent.postClickTargetTransition.sourceCheckpoint } : {}),
+      ...(intent.kind === "click" && intent.preClickExactOutgoingTurn !== undefined
+        ? { exactOutgoingTurn: intent.preClickExactOutgoingTurn } : {}),
     });
   } catch (error) {
     const code = error instanceof Error ? error.message : "";
@@ -246,8 +248,10 @@ const prepareClick = async (
       }) }
       : { point: preparation.point, retainedNodeId: null };
   }
-  const preconditionReceipt = await zeroActionIfSatisfied(runtime, target, intent, assertCurrent);
-  if (preconditionReceipt !== null) return { receipt: preconditionReceipt };
+  if (intent.preClickExactOutgoingTurn === undefined) {
+    const preconditionReceipt = await zeroActionIfSatisfied(runtime, target, intent, assertCurrent);
+    if (preconditionReceipt !== null) return { receipt: preconditionReceipt };
+  }
   const point = await pointerAction(runtime, target, intent);
   return "failureCode" in point ? { receipt: point } : { point, retainedNodeId: null };
 };

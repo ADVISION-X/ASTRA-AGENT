@@ -83,24 +83,6 @@ export const responseFacts = (): Readonly<Record<string, Fact>> => ({
   "rate-ack": absent(),
 });
 
-export const draftFacts = (input: Readonly<{
-  composerHash: string;
-  submitted?: boolean;
-  submittedHash?: string;
-  attachment?: boolean;
-  sendDisabled?: boolean;
-}>): Readonly<Record<string, Fact>> => ({
-  composer: exact([{ exactEditableTextHash: input.composerHash }]),
-  send: exact([{ tagName: "BUTTON", disabled: input.sendDisabled ?? false,
-    ariaDisabled: input.sendDisabled ?? false }]),
-  "user-turns": input.submitted || input.submittedHash
-    ? exact([{ testId: "conversation-turn-1", exactGptUserPromptHash: input.submittedHash ?? promptHash }])
-    : absent(),
-  "attachment-items": input.attachment
-    ? exact([{ ariaLabel: approvedFile.providerDisplayName }])
-    : absent(),
-});
-
 export const sourceInput = Object.freeze({
   sourceAssistantTurnId: "conversation-turn-2",
   sourceCanonicalConversationUrl: conversationUrl,

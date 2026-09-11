@@ -5,7 +5,10 @@ import { BrowserCommandActor } from "../exact-target/browser-command-actor.js";
 import { BrowserMutationStore } from "../exact-target/browser-mutation-store.js";
 import { BrowserSessionWorkspace, type SessionWorkspaceBindingV6 } from "../exact-target/browser-session-workspace.js";
 import { requireGptWebClaimOrigin } from "../exact-target/browser-site-policy-registry.js";
-import type { BrowserTargetLease } from "../exact-target/browser-target-lease.js";
+import type {
+  BrowserTargetLease,
+  BrowserTargetLeaseWait,
+} from "../exact-target/browser-target-lease.js";
 import { BrowserTargetLeaseManager, type BrowserExactTargetAcquisition } from "../exact-target/browser-target-lease-manager.js";
 import type { BrowserProfileConfig } from "../profile/browser-profile-config.js";
 import type { BrowserProfileState } from "../profile/browser-profile-state.js";
@@ -191,7 +194,7 @@ export class BrowserInfrastructureSupervisor {
   public acquireJobBoundTargetLease(
     binding: BrowserExecutionBinding,
     ownerId: string,
-    wait: Readonly<{ signal: AbortSignal; remainingMs(): number }>,
+    wait: BrowserTargetLeaseWait,
   ): Promise<BrowserTargetLease> { return this.lane.acquire(binding, ownerId, wait); }
 
   public readBrowserLaneState(): "idle" | "busy" | "blocked" { return this.lane.readState(); }

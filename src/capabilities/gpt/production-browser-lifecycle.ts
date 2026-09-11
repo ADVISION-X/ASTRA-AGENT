@@ -7,16 +7,16 @@ import {
 import type {
   BrowserExecutionBinding,
   BrowserTargetLease,
+  BrowserTargetLeaseWait,
 } from "../../lib/browser/browser-authority-api.js";
 import { requireRuntimeLogWrite, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
-import { executionFailure } from "../../lib/execution-failure.js";
-import { productionGptCrossConversationPollCadence } from "./provider-wait-cross-conversation-cadence.js";
+import { executionFailure, failureCode } from "../../lib/execution-failure.js";
 
 type GptBrowserLeaseAuthority = Readonly<{
   acquireJobBoundTargetLease(
     binding: BrowserExecutionBinding,
     ownerId: string,
-    wait: Readonly<{ signal: AbortSignal; remainingMs(): number }>,
+    wait: BrowserTargetLeaseWait,
   ): Promise<BrowserTargetLease>;
 }>;
 
@@ -63,7 +63,7 @@ export class ProductionGptBrowserLifecycle {
     if (!sessionKey) throw executionFailure("failed", "GPT_SESSION_KEY_REQUIRED");
     const current = this.browsers.get(sessionKey);
     if (current) return current;
-    const browser = await this.acquireBrowserLease(productStepId, callId);
+    const browser = await this.acquireBrowserLease(productStepId, callId, "general", null);
     const active: ProductionGptBrowserCall = {
       browser,
       facade: browser,
@@ -79,40 +79,87 @@ export class ProductionGptBrowserLifecycle {
     return active;
   }
 
-  public async yieldForProviderWait(
-    active: ProductionGptBrowserCall,
-    productStepId: string,
-    callId: string,
-    childCapabilityId: GptChildCapabilityId,
-    durationMs: number,
-  ): Promise<void> {
-    if (!Number.isInteger(durationMs) || durationMs < 25 || durationMs > 5_000) {
-      throw executionFailure("failed", "GPT_PROVIDER_WAIT_SLICE_INVALID");
-    }
-    if (active.browser.pendingMutationCount() > 0) {
-      throw executionFailure("failed", "BROWSER_NORMAL_PROVIDER_WAIT_WITH_PENDING_MUTATION");
-    }
-    this.emitProviderWaitLog(active, productStepId, callId, childCapabilityId);
-    await this.yieldAndReacquire(
-      active, productStepId, callId, durationMs, "gpt-normal-provider-wait-yield",
-    );
-  }
-
-  public async navigateCrossConversationPoll(
+  public async yieldForProviderProbe(
     active: ProductionGptBrowserCall,
     productStepId: string,
     callId: string,
     childCapabilityId: GptChildCapabilityId,
     canonicalConversationUrl: string,
     probeDeadlineAt: number,
-  ): Promise<"navigated" | "reobserve" | "deadline"> {
+  ): Promise<"reobserve" | "deadline"> {
     if (childCapabilityId !== "checkpoint_gpt_text_response"
       && childCapabilityId !== "checkpoint_gpt_generated_image") {
-      throw executionFailure("failed", "GPT_CROSS_CONVERSATION_POLL_CHILD_INVALID");
+      throw executionFailure("failed", "GPT_PROVIDER_PROBE_CHILD_INVALID");
+    }
+    if (!Number.isFinite(probeDeadlineAt)) throw executionFailure("failed", "GPT_PROVIDER_PROBE_DEADLINE_INVALID");
+    if (typeof canonicalConversationUrl !== "string" || canonicalConversationUrl.length === 0) {
+      throw executionFailure("failed", "GPT_PROVIDER_CONVERSATION_INPUT_INVALID");
+    }
+    if (Date.now() >= probeDeadlineAt) return "deadline";
+    if (active.browser.pendingMutationCount() > 0) {
+      throw executionFailure("failed", "BROWSER_NORMAL_PROVIDER_WAIT_WITH_PENDING_MUTATION");
+    }
+    this.emitProviderWaitLog(active, productStepId, callId, childCapabilityId);
+    const targetRef = active.browser.target.targetRef;
+    await active.browser.park({
+      reason: "gpt-provider-probe-yield",
+      mode: "normal-provider-wait",
+      startProviderProbeCooldown: true,
+    });
+    let reacquired: BrowserTargetLease;
+    try {
+      reacquired = await this.acquireBrowserLease(
+        productStepId, callId, "provider-probe", probeDeadlineAt,
+      );
+    } catch (error) {
+      this.forgetParkedBrowser(active);
+      if (failureCode(error) === "V6_DEADLINE_BUDGET_EXHAUSTED"
+        && Date.now() >= probeDeadlineAt) return "deadline";
+      throw error;
+    }
+    if (reacquired.target.targetRef !== targetRef) {
+      const mismatch = executionFailure("failed", "BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
+      this.forgetParkedBrowser(active);
+      try {
+        await reacquired.close({ reason: "gpt-exact-target-reacquire-mismatch" });
+      } catch (cleanupError) {
+        throw new AggregateError([cleanupError], "GPT_BROWSER_LIFECYCLE_FAILED", { cause: mismatch });
+      }
+      throw mismatch;
+    }
+    active.browser = reacquired;
+    if (this.execution.abortSignal.aborted || Date.now() >= probeDeadlineAt) {
+      await active.browser.park({
+        reason: "gpt-provider-probe-deadline",
+        mode: "normal-provider-wait",
+        startProviderProbeCooldown: false,
+      });
+      this.forgetParkedBrowser(active);
+      if (this.execution.abortSignal.aborted) {
+        throw executionFailure("failed", "GPT_RESPONSE_WAIT_ABORTED");
+      }
+      return "deadline";
+    }
+    await active.browser.navigate({
+      url: canonicalConversationUrl,
+      title: "observe exact GPT conversation",
+    });
+    return "reobserve";
+  }
+
+  public async navigateExactProviderConversation(
+    active: ProductionGptBrowserCall,
+    childCapabilityId: GptChildCapabilityId,
+    canonicalConversationUrl: string,
+    probeDeadlineAt: number,
+  ): Promise<"navigated" | "deadline"> {
+    if (childCapabilityId !== "checkpoint_gpt_text_response"
+      && childCapabilityId !== "checkpoint_gpt_generated_image") {
+      throw executionFailure("failed", "GPT_PROVIDER_CONVERSATION_CHILD_INVALID");
     }
     if (typeof canonicalConversationUrl !== "string" || canonicalConversationUrl.length === 0
       || !Number.isFinite(probeDeadlineAt)) {
-      throw executionFailure("failed", "GPT_CROSS_CONVERSATION_POLL_WAIT_INVALID");
+      throw executionFailure("failed", "GPT_PROVIDER_CONVERSATION_INPUT_INVALID");
     }
     if (this.execution.abortSignal.aborted) {
       throw executionFailure("failed", "GPT_RESPONSE_WAIT_ABORTED");
@@ -121,41 +168,12 @@ export class ProductionGptBrowserLifecycle {
       throw executionFailure("failed", "BROWSER_NORMAL_PROVIDER_WAIT_WITH_PENDING_MUTATION");
     }
     const remaining = Math.floor(probeDeadlineAt - Date.now());
-    if (remaining < 25 || remaining > 3_600_000) return "deadline";
-    const eligibility = productionGptCrossConversationPollCadence.reserve(performance.now());
-    if (eligibility.kind === "reserved") {
-      if (this.execution.abortSignal.aborted) {
-        throw executionFailure("failed", "GPT_RESPONSE_WAIT_ABORTED");
-      }
-      if (Date.now() >= probeDeadlineAt) return "deadline";
-      const navigation = (() => {
-        try {
-          return active.browser.navigate({
-            url: canonicalConversationUrl,
-            title: "poll exact GPT conversation",
-          });
-        } finally {
-          productionGptCrossConversationPollCadence.bindDispatch(performance.now());
-        }
-      })();
-      await navigation;
-      return "navigated";
-    }
-    this.emitProviderWaitLog(active, productStepId, callId, childCapabilityId);
-    if (eligibility.durationMs >= remaining) {
-      await this.parkUntilProviderDeadline(
-        active, remaining, "gpt-cross-conversation-poll-wait",
-      );
-      return "deadline";
-    }
-    await this.yieldAndReacquire(
-      active,
-      productStepId,
-      callId,
-      eligibility.durationMs,
-      "gpt-cross-conversation-poll-wait",
-    );
-    return "reobserve";
+    if (remaining < 1 || remaining > 3_600_000) return "deadline";
+    await active.browser.navigate({
+      url: canonicalConversationUrl,
+      title: "observe exact GPT conversation",
+    });
+    return "navigated";
   }
 
   private emitProviderWaitLog(
@@ -198,46 +216,6 @@ export class ProductionGptBrowserLifecycle {
     }
   }
 
-  private async yieldAndReacquire(
-    active: ProductionGptBrowserCall,
-    productStepId: string,
-    callId: string,
-    durationMs: number,
-    reason: "gpt-normal-provider-wait-yield" | "gpt-cross-conversation-poll-wait",
-  ): Promise<void> {
-    const targetRef = active.browser.target.targetRef;
-    await active.browser.park({
-      reason,
-      mode: "normal-provider-wait",
-    });
-    await this.waitForDelay(durationMs);
-    const reacquired = await this.acquireBrowserLease(productStepId, callId);
-    if (reacquired.target.targetRef !== targetRef) {
-      const mismatch = executionFailure("failed", "BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
-      try {
-        await reacquired.close({ reason: "gpt-exact-target-reacquire-mismatch" });
-      } catch (cleanupError) {
-        throw new AggregateError(
-          [cleanupError],
-          "GPT_BROWSER_LIFECYCLE_FAILED",
-          { cause: mismatch },
-        );
-      }
-      throw mismatch;
-    }
-    active.browser = reacquired;
-  }
-
-  private async parkUntilProviderDeadline(
-    active: ProductionGptBrowserCall,
-    durationMs: number,
-    reason: "gpt-cross-conversation-poll-wait",
-  ): Promise<void> {
-    await active.browser.park({ reason, mode: "normal-provider-wait" });
-    this.forgetParkedBrowser(active);
-    await this.waitForDelay(durationMs);
-  }
-
   private forgetParkedBrowser(active: ProductionGptBrowserCall): void {
     for (const [sessionKey, candidate] of this.browsers) {
       if (candidate !== active) continue;
@@ -254,6 +232,7 @@ export class ProductionGptBrowserLifecycle {
         await call.browser.park({
           reason: error ? "gpt-product-call-failed" : "gpt-product-call-settled",
           mode: "normal-provider-wait",
+          startProviderProbeCooldown: false,
         });
       } catch (closeError) {
         failures.push(closeError);
@@ -267,9 +246,15 @@ export class ProductionGptBrowserLifecycle {
   private async acquireBrowserLease(
     productStepId: string,
     callId: string,
+    purpose: BrowserTargetLeaseWait["purpose"],
+    probeDeadlineAt: number | null,
   ): Promise<BrowserTargetLease> {
+    const remainingMs = (): number => Math.min(
+      Math.floor(this.execution.expiresAtMonotonic - performance.now()),
+      probeDeadlineAt === null ? Number.MAX_SAFE_INTEGER : Math.floor(probeDeadlineAt - Date.now()),
+    );
     const currentCommandTtlMs = (): number => {
-      const remaining = Math.floor(this.execution.expiresAtMonotonic - performance.now());
+      const remaining = remainingMs();
       const commandTtlMs = Math.min(this.execution.commandTtlMs, remaining);
       if (commandTtlMs < 1) throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
       return commandTtlMs;
@@ -307,31 +292,8 @@ export class ProductionGptBrowserLifecycle {
     return this.browserAuthority.acquireJobBoundTargetLease(binding,
     `${this.execution.pluginId}:${this.execution.jobId}:${callId}`, {
       signal: this.execution.abortSignal,
-      remainingMs: () => Math.floor(
-        this.execution.expiresAtMonotonic - performance.now(),
-      ),
+      remainingMs,
+      purpose,
     });
-  }
-
-  private async waitForDelay(durationMs: number): Promise<void> {
-    const signal = this.execution.abortSignal;
-    const remaining = Math.floor(this.execution.expiresAtMonotonic - performance.now());
-    if (remaining < 1) throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
-    const delay = Math.min(durationMs, remaining);
-    await new Promise<void>((resolve, reject) => {
-      let settled = false;
-      const finish = (action: () => void): void => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        signal.removeEventListener("abort", onAbort);
-        action();
-      };
-      const onAbort = () => finish(() => reject(executionFailure("failed", "GPT_RESPONSE_WAIT_ABORTED")));
-      const timer = setTimeout(() => finish(resolve), delay);
-      signal.addEventListener("abort", onAbort, { once: true });
-      if (signal.aborted) onAbort();
-    });
-    if (delay < durationMs) throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
   }
 }

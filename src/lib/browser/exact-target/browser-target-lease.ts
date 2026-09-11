@@ -28,6 +28,12 @@ export type BrowserAtomicStepOutcome = Readonly<{
   identityRevalidated: boolean;
 }>;
 
+export type BrowserTargetLeaseWait = Readonly<{
+  signal: AbortSignal;
+  remainingMs(): number;
+  purpose: "general" | "provider-probe";
+}>;
+
 export type BrowserApprovedArtifactRef = Readonly<{
   artifactRef: string;
   providerDisplayName: string;
@@ -87,6 +93,7 @@ export type BrowserTargetLease = Readonly<{
   park(input: Readonly<{
     reason: string;
     mode: "normal-provider-wait";
+    startProviderProbeCooldown: boolean;
   }>): Promise<void>;
   close(input: Readonly<{ reason: string }>): Promise<void>;
   resolvePendingMutation(

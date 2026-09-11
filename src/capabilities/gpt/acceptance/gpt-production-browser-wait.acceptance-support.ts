@@ -17,15 +17,22 @@ try {
     fileSink: { directoryPath: path.join(temporary, "runtime-logs") },
   });
   let acquisitions = 0;
+  let navigations = 0;
   let parks = 0;
   let closes = 0;
-  const parkInputs: Array<Readonly<{ reason: string; mode: string }>> = [];
+  const acquisitionPurposes: string[] = [];
+  const parkInputs: Array<Readonly<{
+    reason: string; mode: string; startProviderProbeCooldown: boolean;
+  }>> = [];
   const browsers = Array.from({ length: 5 }, (_unused, index) => ({
     target: { targetRef: "target:provider-wait" },
     document: { documentRef: `document:${index + 1}` },
     pendingMutationCount: () => 0,
     requiresMutationRecovery: () => false,
-    park: async (input: Readonly<{ reason: string; mode: string }>) => {
+    navigate: async () => { navigations += 1; },
+    park: async (input: Readonly<{
+      reason: string; mode: string; startProviderProbeCooldown: boolean;
+    }>) => {
       parks += 1;
       parkInputs.push(input);
     },
@@ -38,7 +45,8 @@ try {
   });
   const lifecycle = new ProductionGptBrowserLifecycle(
     {
-      acquireJobBoundTargetLease: async () => {
+      acquireJobBoundTargetLease: async (_binding: unknown, _ownerId: unknown, wait: Readonly<{ purpose: string }>) => {
+        acquisitionPurposes.push(wait.purpose);
         const browser = browsers[acquisitions];
         acquisitions += 1;
         if (!browser) throw new Error("UNEXPECTED_BROWSER_ACQUISITION");
@@ -62,22 +70,26 @@ try {
     "text-wait",
   );
   assert.equal(active.facade.document.documentRef, "document:1");
-  await lifecycle.yieldForProviderWait(
-    active, "corpus_research", "text-wait", "checkpoint_gpt_text_response", 25,
+  await lifecycle.yieldForProviderProbe(
+    active, "corpus_research", "text-wait", "checkpoint_gpt_text_response",
+    "https://chatgpt.com/c/provider-wait", Date.now() + 1_000,
   );
   assert.equal(active.facade.document.documentRef, "document:2",
     "the stable Browser facade must point at the newly reacquired Document");
-  await lifecycle.yieldForProviderWait(
-    active, "corpus_research", "text-wait", "checkpoint_gpt_text_response", 25,
+  await lifecycle.yieldForProviderProbe(
+    active, "corpus_research", "text-wait", "checkpoint_gpt_text_response",
+    "https://chatgpt.com/c/provider-wait", Date.now() + 1_000,
   );
   assert.equal(active.facade.document.documentRef, "document:3");
   active.providerWaitLog = { ...active.providerWaitLog!, emittedAt: performance.now() - 30_001 };
-  await lifecycle.yieldForProviderWait(
-    active, "corpus_research", "text-wait", "checkpoint_gpt_text_response", 25,
+  await lifecycle.yieldForProviderProbe(
+    active, "corpus_research", "text-wait", "checkpoint_gpt_text_response",
+    "https://chatgpt.com/c/provider-wait", Date.now() + 1_000,
   );
   assert.equal(active.facade.document.documentRef, "document:4");
-  await lifecycle.yieldForProviderWait(
-    active, "corpus_research", "image-wait", "checkpoint_gpt_generated_image", 25,
+  await lifecycle.yieldForProviderProbe(
+    active, "corpus_research", "image-wait", "checkpoint_gpt_generated_image",
+    "https://chatgpt.com/c/provider-wait", Date.now() + 1_000,
   );
   assert.equal(active.facade.document.documentRef, "document:5");
   await lifecycle.settle(null);
@@ -85,10 +97,17 @@ try {
     "normal completion must park the one reusable production Tab instead of closing it");
   assert.deepEqual(parkInputs, [
     ...Array.from({ length: 4 }, () => ({
-      reason: "gpt-normal-provider-wait-yield", mode: "normal-provider-wait",
+      reason: "gpt-provider-probe-yield", mode: "normal-provider-wait",
+      startProviderProbeCooldown: true,
     })),
-    { reason: "gpt-product-call-settled", mode: "normal-provider-wait" },
+    { reason: "gpt-product-call-settled", mode: "normal-provider-wait",
+      startProviderProbeCooldown: false },
   ]);
+  assert.deepEqual(acquisitionPurposes, [
+    "general", "provider-probe", "provider-probe", "provider-probe", "provider-probe",
+  ]);
+  assert.equal(navigations, 4,
+    "each qualified Provider probe must navigate before its one fresh DOM observation");
   const waitEvents = (await readFile(runtimeLogger.currentSegmentPath()!, "utf8")).trim().split("\n")
     .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>)
     .filter((event) => event.code === "GPT_PROVIDER_WAIT_ACTIVE");

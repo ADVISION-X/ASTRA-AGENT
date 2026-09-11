@@ -82,9 +82,6 @@ export const openGptExecutionProfileHandler: GptChildHandler<"open_gpt_execution
       ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
         browserFact: null, nativeFailureCode: null }),
     });
-    if (context.mutationMode === "readback") {
-      failProfileOpen("GPT_EXECUTION_PROFILE_OPEN_PENDING", observed);
-    }
     if (!profileOpenable(observed)) {
       failProfileOpen("GPT_EXECUTION_PROFILE_OPEN_QUALIFICATION_INVALID", observed);
     }

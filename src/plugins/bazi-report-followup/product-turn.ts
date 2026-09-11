@@ -212,7 +212,7 @@ export const submitTurn = async (
 ): Promise<Checkpoint> => {
   const promptHash = sha256(prompt);
   const write = { productStepId: stepId, callId: "prompt-write", child: "write_exact_gpt_prompt", actionOrdinal: ordinals[0], input: { prompt } } as const;
-  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: ordinals[2], input: { files, promptHash, turnMarker: marker } } as const;
+  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: ordinals[2], input: { files, promptHash } } as const;
   await flow.execute(write);
   const submitResult = await flow.execute(submit) as ProductGptChildResult<"submit_exact_gpt_turn_once">;
   requireConfirmedSubmit(submitResult.effectReceipt);

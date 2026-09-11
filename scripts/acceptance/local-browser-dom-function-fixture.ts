@@ -39,7 +39,9 @@ export class FakeElement {
           : selector === "[aria-disabled='true']" ? this.getAttribute("aria-disabled") === "true" : false;
     return matches ? this : this.parentElement?.closest(selector) ?? null;
   }
-  public contains(element: FakeElement): boolean { return element === this; }
+  public contains(element: FakeElement): boolean {
+    return element === this || this.childNodes.some((child) => child.contains(element));
+  }
 }
 
 export class FakeTextNode extends FakeElement {

@@ -309,20 +309,6 @@ const attachmentFacts = (ready: boolean, pending = false) => ({
   "attachment-pending": { rawCount: pending ? 1 : 0, eligibleCount: pending ? 1 : 0 },
 });
 
-const attachmentFixture = fakeBrowser((intent) => {
-  if (intent.kind === "observe") return coherentObservationPacket(intent, attachmentFacts(true));
-  throw new Error(`UNEXPECTED_ATTACHMENT_READBACK_INTENT:${intent.kind}`);
-});
-const attachmentReadback = await execute("attach_approved_gpt_files_once", attachmentFixture.browser, {
-  files: [approvedAttachment],
-}, "readback");
-assert.equal(attachmentReadback.status, "success", attachmentReadback.failureCode ?? "attachment readback failed");
-assert.equal(attachmentReadback.value?.mutationSent, false);
-assert.equal(attachmentFixture.documentCalls(), 1,
-  "readback must prove the exact attachment set from one coherent observation");
-assert.equal(attachmentFixture.physicalMutations(), 0,
-  "readback must never dispatch or replay an upload");
-
 let attachedInput: unknown = null;
 const attachmentMutationFixture = fakeBrowser((intent) => {
   if (intent.kind === "observe") return coherentObservationPacket(intent, {

@@ -55,8 +55,9 @@ try {
     "text-wait",
   );
   await assert.rejects(
-    () => mismatchLifecycle.yieldForProviderWait(
-      mismatchActive, "corpus_research", "text-wait", "checkpoint_gpt_text_response", 25,
+    () => mismatchLifecycle.yieldForProviderProbe(
+      mismatchActive, "corpus_research", "text-wait", "checkpoint_gpt_text_response",
+      "https://chatgpt.com/c/mismatch", Date.now() + 1_000,
     ),
     (error: unknown) => {
       assert.ok(error instanceof AggregateError);

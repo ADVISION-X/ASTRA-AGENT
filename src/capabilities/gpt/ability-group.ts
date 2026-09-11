@@ -162,14 +162,11 @@ const assertObservationIsAtomic = (
   if (observation.mutationOutcome === "confirmed" && pendingMutationCount > 1) {
     throw executionFailure("failed", `GPT_MUTATION_OUTCOME_NOT_UNIQUE:${intent.childCapabilityId}`);
   }
-  if (observation.mutationOutcome === "dispatched"
-    && (context.mutationMode !== "readback" || pendingMutationCount !== 1)) {
+  if (observation.mutationOutcome === "dispatched") {
     throw executionFailure("failed", `GPT_UNDECLARED_MUTATION:${intent.childCapabilityId}`);
   }
   if (observation.mutationOutcome === "no" && pendingMutationCount !== 0) {
-    if (context.mutationMode !== "readback" || pendingMutationCount !== 1) {
-      throw executionFailure("failed", `GPT_UNDECLARED_MUTATION:${intent.childCapabilityId}`);
-    }
+    throw executionFailure("failed", `GPT_UNDECLARED_MUTATION:${intent.childCapabilityId}`);
   }
 };
 
@@ -383,7 +380,7 @@ const executeOne = async <K extends GptChildCapabilityId>(
   try {
     assertExecutionIdentity(intent);
     if (context.signal?.aborted) throw executionFailure("failed", "GPT_EXECUTION_ABORTED");
-    if ((context.browser?.pendingMutationCount() ?? 0) !== 0 && context.mutationMode !== "readback") {
+    if ((context.browser?.pendingMutationCount() ?? 0) !== 0) {
       throw executionFailure("failed", "GPT_PRIOR_BROWSER_MUTATION_UNRESOLVED");
     }
     const nextObservation = await handler(intent, context);

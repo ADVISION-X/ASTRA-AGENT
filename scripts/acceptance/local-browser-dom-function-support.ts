@@ -1,45 +1,89 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { FakeElement, FakeTextNode, RICH_SEMANTIC_TEXT, execute, hash, richSemanticTree }
   from "./local-browser-dom-function-fixture.js";
-export const exerciseCapturedCandidateFunction = (source: string): void => {
+export const exerciseCapturedCandidateFunction = async (source: string): Promise<void> => {
   const target = new FakeElement("Run", {}, {}, {}, "BUTTON");
   const scope = new FakeElement("Container text is deliberately not equal to Run", { button: [target] });
   target.parentElement = scope;
   const document = { documentElement: scope, querySelectorAll: (selector: string) => selector === "main" ? [scope] : [],
     elementFromPoint: () => target };
-  assert.equal(execute(source, document, {
+  assert.equal(await execute(source, document, {
     selector: "button", scope: { selector: "main" }, text: { value: "Run", exact: true },
   }), target, "scope text must not be mistaken for target exact text");
   const pointerInput = {
     selector: "button", scope: { selector: "main" },
     text: { value: "Run", exact: true }, output: "pointer",
   } as const;
-  assert.equal(JSON.stringify(execute(source, document, pointerInput)), JSON.stringify({ x: 5, y: 5 }),
+  assert.equal(JSON.stringify(await execute(source, document, pointerInput)), JSON.stringify({ x: 5, y: 5 }),
     "the captured function must derive the pointer point from the same unique candidate and hit-test");
   const disabledTarget = new FakeElement("Run", {}, {}, { disabled: "" }, "BUTTON");
   const disabledScope = new FakeElement("scope", { button: [disabledTarget] });
   disabledTarget.parentElement = disabledScope;
-  assert.equal(execute(source, {
+  assert.equal(await execute(source, {
     documentElement: disabledScope, querySelectorAll: () => [disabledScope], elementFromPoint: () => disabledTarget,
   }, pointerInput), "BROWSER_DOM_ACTION_DISABLED");
   const pointerBlocked = new FakeElement("Run", {}, { pointerEvents: "none" }, {}, "BUTTON");
   const blockedScope = new FakeElement("scope", { button: [pointerBlocked] });
   pointerBlocked.parentElement = blockedScope;
-  assert.equal(execute(source, {
+  assert.equal(await execute(source, {
     documentElement: blockedScope, querySelectorAll: () => [blockedScope], elementFromPoint: () => pointerBlocked,
   }, pointerInput), "BROWSER_DOM_ACTION_POINTER_EVENTS_NONE");
   const overlay = new FakeElement("overlay");
-  assert.equal(execute(source, { ...document, elementFromPoint: () => overlay }, pointerInput),
+  assert.equal(await execute(source, { ...document, elementFromPoint: () => overlay }, pointerInput),
     "BROWSER_DOM_ACTION_HIT_TEST_FAILED");
   const excessiveScopes = Array.from({ length: 257 }, () => new FakeElement("scope"));
-  assert.equal(execute(source, { ...document, querySelectorAll: () => excessiveScopes }, {
+  assert.equal(await execute(source, { ...document, querySelectorAll: () => excessiveScopes }, {
     selector: "button", scope: { selector: "main" },
   }), "BROWSER_DOM_READ_INVALID", "257 scope candidates must fail the whole call");
   const excessiveTargets = Array.from({ length: 256 }, () => new FakeElement("Run"));
   const oneScope = new FakeElement("scope", { button: excessiveTargets });
-  assert.equal(execute(source, { ...document, querySelectorAll: () => [oneScope] }, {
+  assert.equal(await execute(source, { ...document, querySelectorAll: () => [oneScope] }, {
     selector: "button", scope: { selector: "main" }, text: { value: "Run", exact: true },
   }), "BROWSER_DOM_READ_INVALID", "scope plus target candidates must share the 256 budget");
+
+  const prompt = "approved prompt";
+  const composer = new FakeElement(prompt, {}, {}, { contenteditable: "true" }, "DIV", [
+    new FakeTextNode(prompt),
+  ]);
+  const attachment = new FakeElement("approved.pdf", {}, {}, { "aria-label": "approved.pdf" });
+  const send = new FakeElement("Send", {}, {}, {}, "BUTTON");
+  const form = new FakeElement(prompt, { attachment: [attachment] }, {}, {}, "FORM", [composer, attachment, send]);
+  const guardedRoot = new FakeElement("root", { button: [send] }, {}, {}, "MAIN", [form]);
+  const guardedDocument = {
+    documentElement: guardedRoot,
+    querySelectorAll: (selector: string) => selector === "composer" ? [composer]
+      : selector === "form" ? [form] : [],
+    elementFromPoint: () => send,
+  };
+  const guardedInput = {
+    selector: "button", output: "pointer",
+    exactOutgoingTurn: {
+      composerSelector: "composer", composerFormSelector: "form", attachmentSelector: "attachment",
+      expectedPromptHash: hash(prompt), expectedAttachmentLabels: ["approved.pdf"],
+    },
+  } as const;
+  assert.equal(JSON.stringify(await execute(source, guardedDocument, guardedInput)), JSON.stringify({ x: 5, y: 5 }),
+    "one exact prompt plus its approved attachment set must authorize the click point");
+  const noAttachmentForm = new FakeElement(prompt, { attachment: [] }, {}, {}, "FORM", [composer, send]);
+  const noAttachmentRoot = new FakeElement("root", { button: [send] }, {}, {}, "MAIN", [noAttachmentForm]);
+  assert.equal(JSON.stringify(await execute(source, {
+    documentElement: noAttachmentRoot,
+    querySelectorAll: (selector: string) => selector === "composer" ? [composer]
+      : selector === "form" ? [noAttachmentForm] : [],
+    elementFromPoint: () => send,
+  }, { ...guardedInput, exactOutgoingTurn: {
+    ...guardedInput.exactOutgoingTurn, expectedAttachmentLabels: [],
+  } })), JSON.stringify({ x: 5, y: 5 }),
+  "a Product that approves zero attachments must still authorize its exact prompt click");
+  assert.equal(await execute(source, guardedDocument, { ...guardedInput, exactOutgoingTurn: {
+    ...guardedInput.exactOutgoingTurn, expectedAttachmentLabels: [],
+  } }), "BROWSER_DOM_ACTION_NOT_QUALIFIED",
+  "an unexpected attachment must reject the one outgoing-turn identity");
+  const unrelatedForm = new FakeElement(prompt, { attachment: [] }, {}, {}, "FORM", [composer]);
+  assert.equal(await execute(source, { ...guardedDocument,
+    querySelectorAll: (selector: string) => selector === "composer" ? [composer]
+      : selector === "form" ? [unrelatedForm] : [] }, guardedInput), "BROWSER_DOM_ACTION_NOT_QUALIFIED",
+  "the send button must belong to the same form as the approved outgoing turn");
 };
 export const exerciseCapturedGptForkCandidateFunction = async (source: string): Promise<void> => {
   const assistantTurnId = "conversation-turn-10";

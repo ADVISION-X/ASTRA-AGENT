@@ -66,7 +66,6 @@ export interface GptChildInputMap {
   readonly submit_exact_gpt_turn_once: Readonly<{
     files: readonly GptApprovedFile[];
     promptHash: GptHash;
-    turnMarker: string;
   }>;
   readonly checkpoint_gpt_text_response: GptResponseCheckpointInput;
   readonly checkpoint_gpt_generated_image: Readonly<{
@@ -111,7 +110,6 @@ export interface GptChildOutputMap {
   readonly submit_exact_gpt_turn_once: Readonly<{
     status: "CONFIRMED";
     promptHash: GptHash;
-    turnMarker: string;
     mutationSent: true;
     canonicalConversationUrl: string;
     userTurnId: string;

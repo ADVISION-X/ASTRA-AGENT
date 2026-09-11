@@ -64,9 +64,6 @@ export const prepareCleanGptChatHandler: GptChildHandler<"prepare_clean_gpt_chat
       }
     } while (Date.now() < deadline);
     if (!draftNeedsClear) throw executionFailure("failed", "GPT_CHAT_HYDRATION_PENDING");
-    if (context.mutationMode === "readback") {
-      throw executionFailure("failed", "GPT_CHAT_DRAFT_CLEAR_PENDING");
-    }
     await browser.executeDomIntent({
       kind: "fill", selector: GPT_COMPOSER_SELECTOR, approvedText: "",
       clearBeforeType: true, expectedMatches: 1,

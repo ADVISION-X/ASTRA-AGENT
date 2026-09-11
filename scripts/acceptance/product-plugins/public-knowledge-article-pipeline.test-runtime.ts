@@ -15,7 +15,7 @@ const outputForCall = (state: SeoHarness, call: SeoCall, decision: "proceed" | "
     providerDisplayName: state.providerNames[index], sha256: HASH, bytes: 1,
   })) };
   if (call.child === "submit_exact_gpt_turn_once") return {
-    status: "CONFIRMED", promptHash: call.input.promptHash, turnMarker: call.input.turnMarker,
+    status: "CONFIRMED", promptHash: call.input.promptHash,
     mutationSent: true, canonicalConversationUrl: `https://chatgpt.com/c/${call.productStepId}`,
     userTurnId: "conversation-turn-1",
   };

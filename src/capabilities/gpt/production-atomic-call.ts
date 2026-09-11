@@ -26,14 +26,15 @@ const executionContext = (
   ...(browser ? { browser } : {}),
   signal: input.signal,
   ...(input.browserCall ? {
-    yieldForProviderWait: (durationMs: number) => input.browsers.yieldForProviderWait(
+    yieldForProviderProbe: (canonicalConversationUrl: string, probeDeadlineAt: number) =>
+      input.browsers.yieldForProviderProbe(
       input.browserCall!, input.intent.productStepId, input.intent.callId,
-      input.intent.childCapabilityId, durationMs,
-    ),
-    navigateCrossConversationPoll: (canonicalConversationUrl: string, probeDeadlineAt: number) =>
-      input.browsers.navigateCrossConversationPoll(
-        input.browserCall!, input.intent.productStepId, input.intent.callId,
-        input.intent.childCapabilityId, canonicalConversationUrl, probeDeadlineAt,
+      input.intent.childCapabilityId, canonicalConversationUrl, probeDeadlineAt,
+      ),
+    navigateExactProviderConversation: (canonicalConversationUrl: string, probeDeadlineAt: number) =>
+      input.browsers.navigateExactProviderConversation(
+        input.browserCall!, input.intent.childCapabilityId,
+        canonicalConversationUrl, probeDeadlineAt,
       ),
   } : {}),
 });

@@ -5,6 +5,7 @@ import {
   GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR,
 } from "./gpt-page-fixture-selectors.js";
 import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
+import { approvedFile, conversationUrl, promptHash } from "./gpt-conversation-fixture.js";
 import { coherentObservationPacket, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
 
 const profile = buildGptExecutionProfile({
@@ -103,3 +104,36 @@ const stableOne = await stableHarnessOne.execute("open_gpt_model_selector_v2", s
 const stableTwo = await stableHarnessTwo.execute("open_gpt_model_selector_v2", stableFixture().browser, { profile });
 assert.equal(stableOne.proof.evidenceHash, stableTwo.proof.evidenceHash,
   "same exact call and same facts must produce one stable proof hash");
+
+const exerciseSubmit = async (
+  scope: string,
+  files: readonly typeof approvedFile[],
+  expectedAttachmentLabels: readonly string[],
+) => {
+  let exactOutgoingTurnChecked = false;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "click") {
+      assert.equal(intent.preClickExactOutgoingTurn?.expectedPromptHash, promptHash);
+      assert.deepEqual(intent.preClickExactOutgoingTurn?.expectedAttachmentLabels, expectedAttachmentLabels);
+      exactOutgoingTurnChecked = true;
+      return { postconditionVerified: true };
+    }
+    if (intent.kind === "observe") return coherentObservationPacket(intent, {
+      "submitted-user-turn": {
+        rawCount: 1, eligibleCount: 1,
+        matches: [{ testId: "conversation-turn-1", exactGptUserPromptHash: promptHash }],
+      },
+    }, conversationUrl);
+    throw new Error(`UNEXPECTED_SUBMIT_PROOF_INTENT:${intent.kind}`);
+  }, { initialUrl: conversationUrl });
+  const result = await createGptAcceptanceHarness(scope).execute(
+    "submit_exact_gpt_turn_once", fixture.browser, { files, promptHash },
+  );
+  assert.equal(result.status, "success", result.failureCode ?? "submit proof failed");
+  assert.equal(result.value?.status, "CONFIRMED");
+  assert.equal(exactOutgoingTurnChecked, true);
+  assert.equal(fixture.physicalMutations(), 1);
+};
+
+await exerciseSubmit("gpt-proof-submit-localization", [], []);
+await exerciseSubmit("gpt-proof-submit-with-attachment", [approvedFile], [approvedFile.providerDisplayName]);

@@ -135,7 +135,7 @@ const observationExecutionValue = (input: ExecutionValueInput): ExecutionValue |
   if (call.child === "reconcile_gpt_attachment_set") return attachmentExecutionValue(input);
   if (call.child === "submit_exact_gpt_turn_once") {
     return { value: { status: "CONFIRMED", promptHash: call.input.promptHash,
-      turnMarker: call.input.turnMarker, mutationSent: true,
+      mutationSent: true,
       canonicalConversationUrl: `https://chatgpt.com/c/${sha256(call.sessionKey).slice(7, 31)}`,
       userTurnId: "conversation-turn-1" } };
   }

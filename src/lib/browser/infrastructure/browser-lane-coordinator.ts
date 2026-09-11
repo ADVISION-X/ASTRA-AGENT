@@ -1,4 +1,7 @@
-import type { BrowserTargetLease } from "../exact-target/browser-target-lease.js";
+import type {
+  BrowserTargetLease,
+  BrowserTargetLeaseWait,
+} from "../exact-target/browser-target-lease.js";
 import type { BrowserExactCallMutationFact } from "../exact-target/browser-mutation-store.js";
 import type { BrowserExecutionBinding } from "./browser-authority-broker.js";
 import { BrowserAuthorityBroker } from "./browser-authority-broker.js";
@@ -12,6 +15,7 @@ import { BrowserTargetAcquirer } from "./browser-target-acquirer.js";
 type LaneWaiter = Readonly<{
   binding: BrowserExecutionBinding;
   ownerId: string;
+  purpose: BrowserTargetLeaseWait["purpose"];
   signal: AbortSignal;
   remainingMs(): number;
   stopWaitingMonitor(): void;
@@ -20,10 +24,13 @@ type LaneWaiter = Readonly<{
 }>;
 type LaneState = ReturnType<typeof createBrowserInfrastructureState>;
 
+export const BROWSER_PROVIDER_PROBE_INTERVAL_MS = 30_000;
+
 export class BrowserLaneCoordinator {
   private readonly queue: LaneWaiter[] = [];
   private readonly targetAcquirer: BrowserTargetAcquirer;
   private active = false;
+  private nextProviderProbeEligibleAt = 0;
 
   public constructor(
     private readonly resolveBroker: () => BrowserAuthorityBroker,
@@ -38,7 +45,7 @@ export class BrowserLaneCoordinator {
   public acquire(
     binding: BrowserExecutionBinding,
     ownerId: string,
-    wait: Readonly<{ signal: AbortSignal; remainingMs(): number }>,
+    wait: BrowserTargetLeaseWait,
   ): Promise<BrowserTargetLease> {
     if (this.queue.length >= 10) return Promise.reject(browserExecutionFailure(new Error("BROWSER_BACKPRESSURE")));
     return new Promise<BrowserTargetLease>((resolve, reject) => {
@@ -51,14 +58,23 @@ export class BrowserLaneCoordinator {
         action(value);
       };
       const waiter: LaneWaiter = {
-        binding, ownerId, signal: wait.signal, remainingMs: wait.remainingMs,
+        binding, ownerId, purpose: wait.purpose,
+        signal: wait.signal, remainingMs: wait.remainingMs,
         stopWaitingMonitor: () => { if (monitor) clearInterval(monitor); monitor = null; },
         resolve: (lease) => finish(resolve, lease), reject: (error) => finish(reject, error),
       };
       this.queue.push(waiter);
-      monitor = setInterval(() => this.expireWaiter(waiter), 100);
+      monitor = setInterval(() => this.monitorWaiter(waiter), 100);
       void this.pump();
     });
+  }
+
+  private monitorWaiter(waiter: LaneWaiter): void {
+    if (!waiter.signal.aborted && waiter.remainingMs() >= 1) {
+      void this.pump();
+      return;
+    }
+    this.expireWaiter(waiter);
   }
 
   private expireWaiter(waiter: LaneWaiter): void {
@@ -101,12 +117,22 @@ export class BrowserLaneCoordinator {
   }
 
   private nextWaiter(): LaneWaiter | null {
-    while (this.queue.length > 0) {
-      const waiter = this.queue.shift()!;
-      if (!waiter.signal.aborted && waiter.remainingMs() >= 1) return waiter;
-      waiter.reject(browserExecutionFailure(new Error(
-        waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED",
-      )));
+    for (let index = 0; index < this.queue.length;) {
+      const waiter = this.queue[index]!;
+      if (waiter.signal.aborted || waiter.remainingMs() < 1) {
+        this.queue.splice(index, 1);
+        waiter.reject(browserExecutionFailure(new Error(
+          waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED",
+        )));
+        continue;
+      }
+      if (waiter.purpose === "provider-probe"
+        && performance.now() < this.nextProviderProbeEligibleAt) {
+        index += 1;
+        continue;
+      }
+      this.queue.splice(index, 1);
+      return waiter;
     }
     return null;
   }
@@ -123,6 +149,9 @@ export class BrowserLaneCoordinator {
         waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED",
       );
       const lease = await this.resolveBroker().acquireOperatorClaimedTargetLease(waiter.binding, waiter.ownerId);
+      if (waiter.purpose === "provider-probe") {
+        this.nextProviderProbeEligibleAt = performance.now() + BROWSER_PROVIDER_PROBE_INTERVAL_MS;
+      }
       waiter.resolve(this.withLifecycle(lease));
     } catch (error) {
       this.active = false;
@@ -142,7 +171,24 @@ export class BrowserLaneCoordinator {
         void this.pump();
       }
     };
-    return { ...lease, park: (input) => finish(() => lease.park(input)), close: (input) => finish(() => lease.close(input)) };
+    const park: BrowserTargetLease["park"] = (input) => finish(async () => {
+        await lease.park(input);
+        if (input.startProviderProbeCooldown) {
+          this.nextProviderProbeEligibleAt = Math.max(
+            this.nextProviderProbeEligibleAt,
+            performance.now() + BROWSER_PROVIDER_PROBE_INTERVAL_MS,
+          );
+        }
+      });
+    const close: BrowserTargetLease["close"] = (input) => finish(() => lease.close(input));
+    return new Proxy(lease, {
+      get(target, property) {
+        if (property === "park") return park;
+        if (property === "close") return close;
+        const value = Reflect.get(target, property, target) as unknown;
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
   }
 
   public resolvePending(targetRef: string): void { this.targetAcquirer.resolvePending(targetRef); }

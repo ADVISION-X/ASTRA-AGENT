@@ -19,7 +19,7 @@ const validSubmitCall: ProductGptCallInput<"submit_exact_gpt_turn_once"> = {
   productStepId: "acceptance-step",
   callId: "submit",
   actionOrdinal: 1,
-  input: { files: [], promptHash: hash, turnMarker: "[GRASSEYE:typed]" },
+  input: { files: [], promptHash: hash },
 };
 const validWriteSuccess: GptChildSuccess<"write_exact_gpt_prompt"> = {
   status: "success",
@@ -31,7 +31,7 @@ const wrongChildInput: GptChildCall<"write_exact_gpt_prompt"> = { child: "write_
 // @ts-expect-error exact input rejects an extra field.
 const extraInputField: GptChildCall<"write_exact_gpt_prompt"> = { child: "write_exact_gpt_prompt", input: { prompt: "approved", timeoutMs: 1 } };
 // @ts-expect-error submit requires the exact attachment set.
-const missingSubmitFiles: ProductGptCallInput<"submit_exact_gpt_turn_once"> = { child: "submit_exact_gpt_turn_once", productStepId: "step", callId: "call", actionOrdinal: 1, input: { promptHash: hash, turnMarker: "[GRASSEYE:typed]" } };
+const missingSubmitFiles: ProductGptCallInput<"submit_exact_gpt_turn_once"> = { child: "submit_exact_gpt_turn_once", productStepId: "step", callId: "call", actionOrdinal: 1, input: { promptHash: hash } };
 // @ts-expect-error handler/public success cannot return another Child's value.
 const wrongWriteOutput: GptChildOutputMap["write_exact_gpt_prompt"] = { state: "profile-popup-open" };
 

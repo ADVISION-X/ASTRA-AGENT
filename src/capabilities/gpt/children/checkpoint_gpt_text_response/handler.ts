@@ -18,7 +18,6 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
     if (!Number.isSafeInteger(probeBudgetMs) || probeBudgetMs < 1 || probeBudgetMs > 3_600_000) throw executionFailure("failed", "GPT_RESPONSE_PROBE_BUDGET_INVALID");
     const browser = requireBrowser(context);
     const deadline = Date.now() + probeBudgetMs;
-    let delay = 250;
     while (Date.now() < deadline) {
       const page = await readExactResponsePage({ browser, canonicalConversationUrl: conversationUrl, context, deadline });
       const assistantTurnId = adjacentAssistantId(page, expectedPromptHash);
@@ -36,12 +35,10 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
           });
         }
       }
-      const remaining = deadline - Date.now();
-      if (remaining < 25) break;
-      const duration = Math.min(delay, remaining);
-      if (context.yieldForProviderWait) await context.yieldForProviderWait(duration);
-      else await browser.wait({ durationMs: duration });
-      delay = Math.min(5_000, Math.ceil(delay * 1.5));
+      if (!context.yieldForProviderProbe) {
+        throw executionFailure("failed", "GPT_PROVIDER_PROBE_GATE_REQUIRED");
+      }
+      if (await context.yieldForProviderProbe(conversationUrl, deadline) === "deadline") break;
     }
     throw executionFailure("failed", "GPT_RESPONSE_TIMEOUT");
   };

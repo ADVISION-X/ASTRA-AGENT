@@ -28,7 +28,7 @@ export const attachApprovedGptFilesOnceHandler: GptChildHandler<"attach_approved
     requireExactInputKeys(intent, ["files"]);
     const files = filesFromIntent(intent);
     const browser = requireBrowser(context);
-    if (files.length === 0 || context.mutationMode === "readback") {
+    if (files.length === 0) {
       const readback = await observeExactAttachmentSet(browser, files);
       return success({
         value: { files: readback.value.files, mutationSent: false },

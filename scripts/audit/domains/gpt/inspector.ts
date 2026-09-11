@@ -27,12 +27,11 @@ import {
 } from "./gpt-recovery-contract-inspection.js";
 import { inspectGptCurrentPageProofs } from "./gpt-page-proof-inspection.js";
 import {
-  inspectGptCrossConversationPollContract,
+  inspectGptProviderProbeOwnerContract,
   inspectProviderWaitContract,
 } from "./gpt-provider-contract-inspection.js";
 import {
   GPT_CHILDREN_PATH as CHILDREN_PATH, GPT_CHILD_TYPES_PATH as CHILD_TYPES_PATH, GPT_CONTRACT_PATH as CONTRACT_PATH,
-  GPT_CROSS_CONVERSATION_CADENCE_PATH as CROSS_CONVERSATION_CADENCE_PATH,
   GPT_FACADE_PATH as FACADE_PATH, GPT_GROUP_PATH as GROUP_PATH,
   GPT_PAGE_EVIDENCE_REPORT_PATH as PAGE_EVIDENCE_REPORT_PATH,
   GPT_PRODUCTION_BROWSER_LIFECYCLE_PATH as PRODUCTION_BROWSER_LIFECYCLE_PATH,
@@ -254,7 +253,7 @@ const inspectExactCallContract = (context: InspectorContext, findings: Inspector
     "gpt/ordinal-separated-from-effect-identity", CONTRACT_PATH,
     "actionOrdinal must remain a Product ordering proof outside the exact effect identity hash.",
   ));
-  if (!contract?.getTypeAlias("GptExecutionContext")?.getFullText().includes("yieldForProviderWait")) findings.push(finding(
+  if (!contract?.getTypeAlias("GptExecutionContext")?.getFullText().includes("yieldForProviderProbe")) findings.push(finding(
     "gpt/cooperative-provider-yield-contract", CONTRACT_PATH,
     "GptExecutionContext must expose the Product-neutral cooperative Provider wait yield hook.",
   ));
@@ -346,7 +345,7 @@ const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFind
     ...MODEL_SELECTION_V2_HANDLER_PATHS, MODEL_SELECTION_V2_CONTRACT_PATH,
     ...EXECUTION_PROFILE_HANDLER_PATHS, EXECUTION_PROFILE_CONTRACT_PATH,
     ...ATTACHMENT_HANDLER_PATHS, ATTACHMENT_CONTRACT_PATH,
-    PRODUCTION_CHILD_TOOLS_PATH, PRODUCTION_BROWSER_LIFECYCLE_PATH, CROSS_CONVERSATION_CADENCE_PATH,
+    PRODUCTION_CHILD_TOOLS_PATH, PRODUCTION_BROWSER_LIFECYCLE_PATH,
   ])
     if (!existsSync(resolve(context.sealedRoot, path))) findings.push(finding(
       "gpt/filesystem-required-owner-file", path, `${path} is missing.`));
@@ -386,7 +385,7 @@ const inspectGptAst = (context: InspectorContext, findings: InspectorFinding[]):
     `GPT must reuse the governed persistence, log and mutation Owners; found ${violation}.`,
   ));
   inspectGptCurrentPageProofs(context, findings);
-  inspectGptCrossConversationPollContract(context, findings, finding);
+  inspectGptProviderProbeOwnerContract(context, findings, finding);
 };
 const inspectGptDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   inspectImportOwnership(context, findings);

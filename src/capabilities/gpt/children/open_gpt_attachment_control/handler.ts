@@ -34,9 +34,6 @@ export const openGptAttachmentControlHandler: GptChildHandler<"open_gpt_attachme
     if (!attachmentControlOpenable(observed)) {
       failAttachmentControl("GPT_ATTACHMENT_CONTROL_QUALIFICATION_INVALID", observed);
     }
-    if (context.mutationMode === "readback") {
-      failAttachmentControl("GPT_ATTACHMENT_CONTROL_OPEN_PENDING", observed);
-    }
     const mutation = await browser.executeDomIntent({
       kind: "click", selector: GPT_ATTACHMENT_CONTROL_SELECTOR, expectedMatches: 1,
       scope: { selector: GPT_COMPOSER_FORM_SELECTOR },

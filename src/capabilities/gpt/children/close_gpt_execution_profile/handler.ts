@@ -37,9 +37,6 @@ export const closeGptExecutionProfileHandler: GptChildHandler<"close_gpt_executi
     if (!profileOpenReady(observed)) {
       throw executionFailure("failed", "GPT_EXECUTION_PROFILE_CLOSE_TRIGGER_INVALID");
     }
-    if (context.mutationMode === "readback") {
-      throw executionFailure("failed", "GPT_EXECUTION_PROFILE_CLOSE_PENDING");
-    }
     const mutation = await browser.executeDomIntent({
       kind: "click", selector: GPT_PROFILE_TRIGGER_SELECTOR, expectedMatches: 1,
       postClickObservation: CLOSE_POSTCONDITION,

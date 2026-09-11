@@ -15,6 +15,7 @@ import type {
   BrowserExactCallMutationFact,
   BrowserAuthorityBroker,
   BrowserTargetLease,
+  BrowserTargetLeaseWait,
 } from "../browser/browser-authority-api.js";
 import { hashExtensionDirectoryV1 } from "../browser/release/extension-directory-hash-v1.js";
 import { readUnpackedExtensionReleaseIdentity } from "../browser/release/unpacked-extension-release-identity.js";
@@ -61,7 +62,7 @@ export type WorkbenchBrowserAuthority = Readonly<{
   acquireJobBoundTargetLease(
     binding: BrowserExecutionBinding,
     ownerId: string,
-    wait: Readonly<{ signal: AbortSignal; remainingMs(): number }>,
+    wait: BrowserTargetLeaseWait,
   ): Promise<BrowserTargetLease>;
   acceptBrowserAuthoritySocket(
     input: Readonly<{

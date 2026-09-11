@@ -176,7 +176,7 @@ const exerciseScopedExactCandidate = async (): Promise<void> => {
     "target exact text must apply only to target candidates");
   assert.match(candidateSource, /scopeRaw\.length \+ raw\.length > 256/u,
     "scope and target candidates must share one whole-call budget");
-  exerciseCapturedCandidateFunction(candidateSource);
+  await exerciseCapturedCandidateFunction(candidateSource);
 };
 
 const exerciseNativePointerSequences = async (): Promise<void> => {
@@ -387,7 +387,7 @@ const guardRuntime = (events: string[], guardState: { current: boolean }): Exten
     }
     guardState.current = false;
     if (method === "Runtime.callFunctionOn"
-      && String(parameters?.functionDeclaration ?? "").includes("browserExactEditableText")) {
+      && String(parameters?.functionDeclaration ?? "").includes("browserExactEditableText(this)")) {
       return { result: { value: events.length === 0 ? "stale" : "approved" } };
     }
     const infrastructure = mutationInfrastructureReply(method, parameters);

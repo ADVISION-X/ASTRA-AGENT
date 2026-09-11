@@ -156,6 +156,7 @@ const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
       break;
     case "click":
       positive = { kind: "click", selector: intent.selector,
+        precondition: intent.preClickExactOutgoingTurn,
         postcondition: intent.postClickAttribute ?? intent.postClickMatch
           ?? intent.postClickObservation ?? intent.postClickUrl ?? intent.postClickTargetTransition };
       break;
