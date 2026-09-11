@@ -5,7 +5,6 @@ import {
   brokerPath,
   createLocalFinding,
   extensionDebuggerRuntimePath,
-  extensionTargetObservationPath,
   requireIdentifiers,
   requireSource,
   sourcePaths,
@@ -212,33 +211,7 @@ const recoveryInspectionIsExact = (source: string): boolean => source.includes("
   && !source.includes("tabs.query")
   && !source.includes("Page.bringToFront");
 
-const inspectForkNormalization = (
-  targetAuthorityText: string,
-  targetObservationText: string,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  const forkNormalizationText = `${targetAuthorityText}\n${targetObservationText}`;
-  for (const required of [
-    "discovered.length > 1", "debuggerRuntime.attach(successor.tabId)",
-    "debuggerRuntime.detach(input.successorTabId)",
-    "next.navigationEpoch !== source.navigationEpoch + 1",
-  ]) if (!forkNormalizationText.includes(required)) findings.push(createLocalFinding({
-    checkId: "browser-authority/gpt-fork-successor-normalization", lawId,
-    filePath: targetAuthorityPath,
-    message: `The one fixed GPT fork successor normalization is missing ${required}.`,
-  }));
-  for (const retired of [
-    "chromeApi.tabs.remove(successor.tabId)",
-    'debuggerRuntime.send(source.tabId, "Page.navigate", { url: childUrl })',
-  ]) if (forkNormalizationText.includes(retired)) findings.push(createLocalFinding({
-    checkId: "browser-authority/gpt-fork-successor-normalization", lawId,
-    filePath: targetAuthorityPath,
-    message: `The retired fork rollback path remains reachable through ${retired}.`,
-  }));
-};
-
-const inspectCanonicalSuccessorPolicy = (
+const inspectCanonicalConversationPolicy = (
   sitePolicyText: string,
   findings: InspectorFinding[],
   lawId: string,
@@ -246,9 +219,9 @@ const inspectCanonicalSuccessorPolicy = (
   for (const required of ["requireCanonicalGptConversationUrl", 'segments[1] === "c"',
     'url.search !== ""', 'url.hash !== ""']) if (!sitePolicyText.includes(required)) {
     findings.push(createLocalFinding({
-      checkId: "browser-authority/gpt-fork-successor-normalization", lawId,
+      checkId: "browser-authority/canonical-gpt-conversation", lawId,
       filePath: sitePolicyPath,
-      message: `The Browser-owned canonical successor policy is missing ${required}.`,
+      message: `The Browser-owned canonical conversation policy is missing ${required}.`,
     }));
   }
 };
@@ -259,7 +232,6 @@ const inspectJobBoundClaimPolicy = (
   lawId: string,
 ): void => {
   const targetAuthority = requireSource(context, findings, lawId, targetAuthorityPath);
-  const targetObservation = requireSource(context, findings, lawId, extensionTargetObservationPath);
   const sitePolicy = requireSource(context, findings, lawId, sitePolicyPath);
   const actor = requireSource(context, findings, lawId, sourcePaths[1]);
   const supervisor = requireSource(context, findings, lawId, sourcePaths[3]);
@@ -267,19 +239,14 @@ const inspectJobBoundClaimPolicy = (
   const leaseManager = requireSource(context, findings, lawId, targetLeaseManagerPath);
   const lane = requireSource(context, findings, lawId, laneCoordinatorPath);
   const targetAcquirer = requireSource(context, findings, lawId, targetAcquirerPath);
-  if (!targetAuthority || !targetObservation || !sitePolicy || !actor || !supervisor || !broker
+  if (!targetAuthority || !sitePolicy || !actor || !supervisor || !broker
     || !leaseManager || !lane || !targetAcquirer) return;
   requireIdentifiers(targetAuthority, [
     "acquireJobBoundChatGptTarget", "createBackgroundTab", "removeTab", "GPT_WEB_START_URL",
     "requireGptWebPolicyForUrl", "waitForCreatedTarget", "navigationPublication",
     "parkActiveTarget", "parkedLoaderIds", "attachedTabId", "singleParkedTargetRef",
-    "normalizeGptForkSuccessor", "discoverGptForkSuccessor", "collectForkCleanupFailures",
-    "baselineTabIds", "publishMainFrameNavigation",
+    "publishMainFrameNavigation",
   ], findings, lawId, "The fixed extension must create, validate and retain exactly one visible system Target for all GPT turns.");
-  requireIdentifiers(targetObservation, [
-    "readDiscoveredTabIds", "requireCanonicalGptConversationUrl", "discoverGptForkSuccessor",
-    "collectForkCleanupFailures", "forkTargetSetSettled", "waitForDiscoveredTabAbsence",
-  ], findings, lawId, "The Browser-owned target observation must close the one final-fork successor transition.");
   requireIdentifiers(supervisor, [
     "requireGptWebClaimOrigin", "establishClaimBoundWorkspace", "pendingJobBoundTargetAcquisition",
     "acquireJobBoundTargetLease",
@@ -297,15 +264,13 @@ const inspectJobBoundClaimPolicy = (
   inspectServerClaimOrder(supervisor.getClass("BrowserInfrastructureSupervisor")?.getMethod("onTargetClaim")?.getText() ?? "", findings, lawId);
   inspectBrokerClaimMonotonicity(broker.getFullText(), findings, lawId);
   const targetAuthorityText = targetAuthority.getFullText();
-  const targetObservationText = targetObservation.getFullText();
   if (!recoveryInspectionIsExact(targetAuthorityText)) findings.push(createLocalFinding({
     checkId: "browser-authority/job-bound-target-claim", lawId, filePath: targetAuthorityPath,
     message: "MV3 recovery may inspect only the exact prior attached tabId and must never scan candidates or foreground a Tab.",
   }));
   inspectDispatchedMutationReleaseGuard(leaseManager, findings, lawId);
   inspectExactChatGptPolicy(sitePolicy, findings, lawId);
-  inspectForkNormalization(targetAuthorityText, targetObservationText, findings, lawId);
-  inspectCanonicalSuccessorPolicy(sitePolicy.getFullText(), findings, lawId);
+  inspectCanonicalConversationPolicy(sitePolicy.getFullText(), findings, lawId);
 };
 
 export const inspectTargetClaimGuards = (

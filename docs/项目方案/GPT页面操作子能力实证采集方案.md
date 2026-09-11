@@ -66,11 +66,10 @@ Skill 报告：候选绑定的离线工程事实，只供迭代消费
 
 只允许使用 `chrome:control-chrome`，并新建、唯一绑定一个 QA 标签页。不得接管用户已有标签页或 AGENT 生产标签页，不得读取 Cookie、storage、密码、token 或既有会话内容。
 
-三个最小场景：
+两个最小场景：
 
 - `text-main`：clean、profile、model、reasoning、附件、prompt、draft、submit、hydration、稳定富文本和 checkpoint；
 - `image-main`：生成中、稳定语义媒体、original content identity 和图片 checkpoint；
-- `focus-fork`：focus、身份、source actions menu、fork destination menu、最终 fork 和父子关系。
 
 每个 required live specimen 必须记录：
 
@@ -122,7 +121,6 @@ Child 修复顺序：
 3. attachment control → attach/reconcile → prompt → draft；
 4. submit → submission reconcile；
 5. text/image wait → text/image checkpoint；
-6. checkpoint actions menu → fork destination menu → final fork。
 
 每个批次完成后必须：
 
@@ -160,7 +158,6 @@ Skill 自验必须通过完整基线，并拒绝：无 trigger 采集、源码�
 - 图片场景已执行三次独立真实提交，其中两次显式选择“创建图片”，最长等待 90 秒；最终均为停止按钮消失、助手回合 0、语义媒体 0、可见错误 0，报告固定记录 `IMAGE_SUBMISSION_WITHOUT_TERMINAL_RECEIPT`，不冒充成功或错误终态；
 - 附件初始三文件集合真实成功；移除 JSON 后重新上传，页面卡片 `aria-label` 变为带 `(1)` 的名称，报告固定记录 `ATTACHMENT_REUPLOAD_PROVIDER_RENAMED`；
 - 已按报告修复 9 个获准入 Child 的真实 selector 偏差：以 `data-message-author-role` 绑定回合，并移除分支菜单项并不存在的 `tabindex/aria-haspopup` 假设；
-- 修复后真实 Chrome 复验的用户回合、助手回合、更多操作、源菜单、打开新分支、目标菜单、分支入口均唯一命中；
 - 修复后 `acceptance:gpt` 通过，原生 `quality:check CHANGE` 返回 `CHANGE_PASS`；
 - `admit --child all` 与 3 个缺口 Child 的全量准入继续失败关闭；两个 checkpoint 按各自已存在的成功 observation 链准入，不再被上游无关错误状态连坐。缺口 Child 只有显式 `--facts` 的已观察范围可准入。
 

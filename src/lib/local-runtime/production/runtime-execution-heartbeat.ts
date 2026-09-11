@@ -5,12 +5,10 @@ import {
   withRuntimeLogCause,
 } from "../../runtime-logs/index.js";
 import { renewProductionLease } from "./cloud-client.js";
-import { hashCanonical } from "./contracts.js";
 import type { ProductionExecutionLease } from "./contracts.js";
 import { terminalSpanFailure } from "./runtime-logging.js";
 import {
   jobIdentity,
-  leaseAuthority,
   safeReason,
   wait,
   type RuntimeState,
@@ -95,19 +93,10 @@ export const heartbeatWhileRunning = async <T>(input: Readonly<{
     let receipt;
     try {
       receipt = await renewProductionLease(input.state.session, input.job);
-      const authority = input.state.store.recordLease(
-        leaseAuthority(input.job, "active", receipt.lease_expires_at),
-      );
-      requireRuntimeLogWrite(span.terminal({
-        outcome: "succeeded", authorityRef: `production-lease:${input.job.job_id}`,
-        authorityHash: hashCanonical(authority),
-      }));
+      requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
     } catch (error) {
-      const authority = input.state.store.recordLease(leaseAuthority(input.job, "stale", null));
       const terminal = terminalSpanFailure(span, error, runtimeLogCauseEventId(error),
-        "LEASE_RENEW_FAILED", {
-          authorityRef: `production-lease:${input.job.job_id}`, authorityHash: hashCanonical(authority),
-        });
+        "LEASE_RENEW_FAILED");
       input.abort.abort("LEASE_RENEW_FAILED");
       await Promise.allSettled([tracker.promise]);
       throw new ProductionRuntimeBoundaryError(withRuntimeLogCause(error, terminal.eventId));

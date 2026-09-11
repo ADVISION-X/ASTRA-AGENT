@@ -93,39 +93,6 @@ try {
     postClickMatch: { selector: "[data-active='true']", expectedMatches: 1 },
   }), /BROWSER_COMMAND_PERMIT_INVALID/u,
   "a click cannot carry a second postcondition path beside its coherent packet");
-  const forkTransitionClick = {
-    kind: "click" as const,
-    selector: "[role='menuitem']",
-    expectedTextEquals: "分支到新聊天",
-    expectedMatches: 1,
-    postClickTargetTransition: {
-      kind: "gpt-fork-successor" as const,
-      sourceCheckpoint: {
-        assistantTurnId: "conversation-turn-10",
-        canonicalConversationUrl: "https://chatgpt.com/c/opaque%20segment",
-        promptHash: `sha256:${"1".repeat(64)}` as const,
-        responseHash: `sha256:${"2".repeat(64)}` as const,
-        turnMarker: "[GRASSEYE:fork]",
-      },
-      timeoutMs: 5_000,
-    },
-  };
-  assert.equal(assertBrowserDomIntent(forkTransitionClick).kind, "click",
-    "fork admission must accept turn 10+ and the current opaque conversation-segment contract");
-  assert.throws(() => assertBrowserDomIntent({
-    ...forkTransitionClick,
-    postClickTargetTransition: { ...forkTransitionClick.postClickTargetTransition,
-      sourceCheckpoint: { ...forkTransitionClick.postClickTargetTransition.sourceCheckpoint,
-        assistantTurnId: "conversation-turn-1" } },
-  }), /BROWSER_COMMAND_PERMIT_INVALID/u,
-  "fork admission must require a preceding user turn");
-  assert.throws(() => assertBrowserDomIntent({
-    ...forkTransitionClick,
-    postClickTargetTransition: { ...forkTransitionClick.postClickTargetTransition,
-      sourceCheckpoint: { ...forkTransitionClick.postClickTargetTransition.sourceCheckpoint,
-        canonicalConversationUrl: "https://chatgpt.com/c/opaque%20segment?drift=1" } },
-  }), /BROWSER_COMMAND_PERMIT_INVALID/u,
-  "fork admission must reject a non-canonical source URL");
   for (const key of ["ArrowLeft", "ArrowRight"] as const) {
     assert.equal(assertBrowserDomIntent({
       kind: "keypress",

@@ -10,7 +10,7 @@ import {
 } from "../../runtime-logs/index.js";
 import type { ProductionExecutionLease } from "./contracts.js";
 import type { ProductionExecutor } from "./executor.js";
-import type { ProductionLeaseAuthority, ProductionRuntimeStore } from "./store.js";
+import type { ProductionRuntimeStore } from "./store.js";
 import type { ClaimedProductionTask } from "./transport-protocol.js";
 import type { ProductionWorkerSession } from "./worker-session.js";
 
@@ -66,15 +66,6 @@ export const jobIdentity = (job: ClaimedProductionTask) => ({
   attemptId: job.grant.attempt_id,
   leaseVersion: job.grant.lease_version,
   fenceHash: job.grant.execution_fence.fence_hash,
-});
-
-export const leaseAuthority = (
-  job: ClaimedProductionTask,
-  state: ProductionLeaseAuthority["state"],
-  expiresAt: string | null,
-): ProductionLeaseAuthority => ({
-  jobId: job.job_id, attemptId: job.grant.attempt_id, leaseVersion: job.grant.lease_version,
-  fenceHash: job.grant.execution_fence.fence_hash, state, expiresAt,
 });
 
 export const leaseBudget = (

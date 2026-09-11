@@ -4,8 +4,7 @@ import type { ExtensionDebuggerRuntime } from
   "../../src/lib/browser/chrome-extension/debugger-runtime.js";
 import { executeRegisteredDomIntent } from
   "../../src/lib/browser/chrome-extension/dom-intent-runtime.js";
-import { exerciseCapturedCandidateFunction, exerciseCapturedCoherentObservationPointerFunction,
-  exerciseCapturedGptForkCandidateFunction } from
+import { exerciseCapturedCandidateFunction, exerciseCapturedCoherentObservationPointerFunction } from
   "./local-browser-dom-function-support.js";
 import { exerciseContentEditableFill, exerciseFillReadbackRejection } from
   "./local-browser-dom-fill-support.js";
@@ -541,56 +540,6 @@ const exerciseMutationDocumentGuard = async (): Promise<void> => {
   }
 };
 
-const exerciseFixedTargetTransitionPostcondition = async (): Promise<void> => {
-  const events: string[] = [];
-  let candidateSource = "";
-  const candidateRequests: Readonly<Record<string, unknown>>[] = [];
-  let awaitedCandidate = false;
-  const runtime = { awaitPageReadPermission: noPageReadBarrier, async send(
-    _tabId: number,
-    method: string,
-    parameters?: Readonly<Record<string, unknown>>,
-  ) {
-    if (method === "Runtime.callFunctionOn" && parameters?.returnByValue === true
-      && String(parameters.functionDeclaration).startsWith("async function (spec)")) {
-      candidateSource = String(parameters.functionDeclaration);
-      const request = (parameters.arguments as readonly Readonly<{ value: Readonly<Record<string, unknown>> }>[])?.[0]?.value;
-      if (request) candidateRequests.push(request);
-      awaitedCandidate = parameters.awaitPromise === true;
-      return { result: { value: { x: 5, y: 5 } } };
-    }
-    const infrastructure = mutationInfrastructureReply(method, parameters);
-    if (infrastructure !== undefined) return infrastructure;
-    if (method === "Input.dispatchMouseEvent") { events.push(String(parameters?.type)); return {}; }
-    throw new Error(`UNEXPECTED_TARGET_TRANSITION_METHOD:${method}`);
-  } } as ExtensionDebuggerRuntime;
-  let transitions = 0;
-  const result = await executeRegisteredDomIntent(runtime, { tabId: 130 } as never, {
-    kind: "click", selector: "[role='menuitem']", expectedTextEquals: "分支到新聊天",
-    expectedMatches: 1,
-    postClickTargetTransition: {
-      kind: "gpt-fork-successor",
-      sourceCheckpoint: {
-        assistantTurnId: "conversation-turn-10",
-        canonicalConversationUrl: "https://chatgpt.com/c/opaque%20segment",
-        promptHash: `sha256:${"6".repeat(64)}`,
-        responseHash: `sha256:${"7".repeat(64)}`,
-        turnMarker: "[GRASSEYE:fork]",
-      },
-      timeoutMs: 5_000,
-    },
-  }, () => undefined, undefined, async () => { transitions += 1; }) as Readonly<Record<string, unknown>>;
-  assert.deepEqual(events, ["mouseMoved", "mousePressed", "mouseReleased"]);
-  assert.equal(awaitedCandidate, true, "the source-bound fork resolver must await its SHA-256 checks");
-  assert.equal(candidateRequests[0]?.output, "pointer");
-  await exerciseCapturedGptForkCandidateFunction(candidateSource);
-  assert.equal(transitions, 1, "the fixed successor normalizer must run once after the one click");
-  assert.deepEqual(result, {
-    clicked: true, candidateCount: 1, identityRevalidated: true,
-    mutationCount: 1, postconditionVerified: true,
-  });
-};
-
 export const exerciseDomMutations = async (): Promise<void> => {
   await exerciseReasoningSlider();
   await exerciseFreshKeypressCandidate();
@@ -603,5 +552,4 @@ export const exerciseDomMutations = async (): Promise<void> => {
   await exerciseExactOutgoingNeverUsesZeroActionPostcondition();
   await exerciseRetainedClickedCandidatePostcondition();
   await exerciseMutationDocumentGuard();
-  await exerciseFixedTargetTransitionPostcondition();
 };

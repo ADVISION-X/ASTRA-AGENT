@@ -61,7 +61,8 @@ export type BrowserGovernedCommand =
   }>
   | Readonly<{
     kind: "authenticated-media";
-    assistantTurnId: string;
+    canonicalConversationUrl: string;
+    userTurnId: string;
     semanticMediaId: "gpt-generated-image-main";
   }>
   | Readonly<{ kind: "wait"; durationMs: number }>
@@ -187,7 +188,7 @@ const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
       positive = { kind: "click", selector: intent.selector,
         precondition: intent.preClickExactOutgoingTurn,
         postcondition: intent.postClickAttribute ?? intent.postClickMatch
-          ?? intent.postClickObservation ?? intent.postClickUrl ?? intent.postClickTargetTransition };
+          ?? intent.postClickObservation ?? intent.postClickUrl };
       break;
     case "hover":
       positive = { kind: "hover", selector: intent.selector, postcondition: intent.postHoverAttribute };

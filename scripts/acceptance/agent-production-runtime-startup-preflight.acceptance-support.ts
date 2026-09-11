@@ -42,7 +42,6 @@ const writeCredential = async (
 
 const responsibilities = (taskIds: readonly string[]) => ({
   task_ids: taskIds, outbox_responsibility_count: 0, pending_outbox_count: 0,
-  active_lease_count: 0,
 });
 
 const assertDependencyProjection = async (): Promise<void> => {

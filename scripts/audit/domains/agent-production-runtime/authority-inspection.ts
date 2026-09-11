@@ -4,8 +4,8 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 
-const DATABASE_LAW = "LAW-AGENT-PRODUCTION-RUNTIME-005-V21";
-const PROOF_LAW = "LAW-AGENT-PRODUCTION-RUNTIME-008-V24";
+const DATABASE_LAW = "LAW-AGENT-PRODUCTION-RUNTIME-005-V22";
+const PROOF_LAW = "LAW-AGENT-PRODUCTION-RUNTIME-008-V25";
 const ROOT = "src/lib/local-runtime/production";
 const PATHS = {
   authority: `${ROOT}/store-authority-reader.ts`, ledger: `${ROOT}/store-ledger.ts`,
@@ -36,19 +36,11 @@ export const inspectAgentAuthorityAst = (
   context: InspectorContext,
   findings: InspectorFinding[],
 ): void => {
-  const taskState = sourceFor(context, PATHS.taskState)?.getClass("ProductionStoreTaskState");
-  const checkpointCalls = callsIn(taskState?.getMethod("readCheckpoint"));
-  const leaseCalls = callsIn(taskState?.getMethod("readLease"));
   const ledgerCalls = callsIn(sourceFor(context, PATHS.ledger)
     ?.getClass("ProductionRuntimeStore")?.getMethod("assertStartupDataIntegrity"));
-  const authorityCalls = callsIn(sourceFor(context, PATHS.authority));
-  if (!checkpointCalls.has("productionCheckpointAuthorityFromRow")
-    || !leaseCalls.has("productionLeaseAuthorityFromRow")
-    || !authorityCalls.has("productionCheckpointAuthorityFromRow")
-    || !authorityCalls.has("productionLeaseAuthorityFromRow")
-    || !ledgerCalls.has("stateInvariantFailureCount")) {
+  if (!ledgerCalls.has("stateInvariantFailureCount")) {
     findings.push(finding(DATABASE_LAW, "agent-production-runtime/authority-invariant-reader", PATHS.taskState,
-      "Runtime readers and startup do not share the exact checkpoint and lease validators."));
+      "Runtime startup does not enforce the canonical task and Outbox data invariants."));
   }
   const outbox = sourceFor(context, PATHS.outbox);
   const outboxSql = preparedSql(outbox);

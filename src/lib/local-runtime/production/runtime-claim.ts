@@ -38,7 +38,6 @@ import {
 } from "./runtime-logging.js";
 import {
   jobIdentity,
-  leaseAuthority,
   leaseBudget,
   safeReason,
   type RuntimeState,
@@ -87,7 +86,6 @@ const persistAttemptFailure = async (
   parentSpanId: string,
 ): Promise<void> => {
   const failure = serializeTerminalFailure(error);
-  state.store.recordLease(leaseAuthority(job, "stale", null));
   state.store.recordAttemptFailure(job.job_id, job.grant.attempt_id, failure);
   try {
     await releaseLeaseWithLog(state, job, parentSpanId, {
@@ -133,7 +131,6 @@ const acceptClaim = (
   if (record.status !== "failed") {
     throw new Error("PRODUCTION_TASK_ALREADY_TERMINAL");
   }
-  state.store.recordLease(leaseAuthority(job, "active", job.grant.lease_expires_at));
   return { task, budget, record };
 };
 
@@ -163,10 +160,9 @@ const handleRuntimeBoundaryFailure = async (input: Readonly<{
 }>): Promise<void> => {
   const current = input.state.store.readTask(input.job.job_id);
   if (current?.status === "failed" && current.current_attempt_id === input.job.grant.attempt_id) {
-    input.state.store.recordLease(leaseAuthority(input.job, "stale", null));
     input.state.store.setCurrentReason(
       input.job.job_id,
-      `ATTEMPT_ENDED:${failureCode(input.error, "PRODUCTION_RUNTIME_BOUNDARY_FAILED")}`,
+      failureCode(input.error, "PRODUCTION_RUNTIME_BOUNDARY_FAILED"),
     );
   }
   if (input.durability !== "unaccepted") return;
@@ -264,7 +260,6 @@ const completeClaim = async (input: Readonly<{
       authorityRef: `production-task:${input.job.job_id}`, authorityHash: hashCanonical(record),
     }),
   });
-  input.state.store.recordLease(leaseAuthority(input.job, "absent", null));
   const record = input.state.store.readTask(input.job.job_id)!;
   const admission = await reconcileBusinessAdmission(input.state, record);
   const current = input.state.store.readTask(input.job.job_id)!;

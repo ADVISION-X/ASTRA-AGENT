@@ -3,22 +3,17 @@ import type { SerializedExecutionFailure } from "./terminal-failure.js";
 import type { DurablePluginIdentity, WebsiteAgentResult, WebsiteAgentTask } from "./contracts.js";
 import { WebsiteAgentResultSchema } from "./contracts.js";
 import { ProductionStoreFoundation } from "./store-foundation.js";
-import {
-  productionLeaseAuthorityFromRow,
-  productionTaskRowValid,
-  type ProductionLeaseAuthorityRow,
-} from "./store-authority-validation.js";
+import { productionTaskRowValid } from "./store-authority-validation.js";
 import {
   isSerializedTerminalFailure,
   json,
   now,
   storedTaskFromRow,
-  type ProductionLeaseAuthority,
   type StoredProductionTask,
   type TaskRow,
 } from "./store-foundation.js";
 
-const endedJobPathMarker = (jobId: string): string => `/jobs/${encodeURIComponent(jobId)}/`;
+const jobPathMarker = (jobId: string): string => `/jobs/${encodeURIComponent(jobId)}/`;
 
 const assertResultIdentity = (
   accepted: StoredProductionTask | null,
@@ -47,11 +42,11 @@ const taskAuthorityFromRow = (row: TaskRow): StoredProductionTask => {
 };
 
 export abstract class ProductionStoreTaskState extends ProductionStoreFoundation {
-  public endUnsentAttemptWrites(jobId: string): number {
+  private supersedeUnsentWritesForWebsiteAttempt(jobId: string): number {
     const changed = this.database.prepare(`update production_outbox
-      set last_error='ATTEMPT_ENDED'
+      set last_error='WEBSITE_ATTEMPT_REPLACED'
       where instr(path,?)>0 and sent_at is null`
-    ).run(endedJobPathMarker(jobId));
+    ).run(jobPathMarker(jobId));
     this.notifyOutbox(null);
     return changed.changes;
   }
@@ -83,8 +78,7 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
       }
       if (existing.status === "failed") {
         this.database.transaction(() => {
-          this.endUnsentAttemptWrites(task.job_id);
-          this.database.prepare("delete from production_leases where job_id=?").run(task.job_id);
+          this.supersedeUnsentWritesForWebsiteAttempt(task.job_id);
           this.database.prepare(`update production_tasks
             set identity_json=?,current_attempt_id=?,current_reason='LEASE_GRANTED',
               staged_result_json=null,attempt_failure_json=null,updated_at=?
@@ -147,17 +141,6 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     }
   }
 
-  public discardStagedResult(jobId: string, reason: string): void {
-    const changed = this.database.prepare(`update production_tasks
-      set staged_result_json=null,current_reason=?,updated_at=?
-      where job_id=? and status='failed' and staged_result_json is not null`
-    ).run(reason, now(), jobId);
-    if (changed.changes !== 1) {
-      throw executionFailure("failed", "PRODUCTION_STAGED_RESULT_NOT_CURRENT");
-    }
-    this.endUnsentAttemptWrites(jobId);
-  }
-
   public completeTask(jobId: string, result: WebsiteAgentResult): void {
     WebsiteAgentResultSchema.parse(result);
     assertResultIdentity(this.readTask(jobId), result);
@@ -205,34 +188,5 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
       where job_id=? and status='failed' and current_attempt_id=?`).run(
       serialized, failure.code.slice(0, 1_000), now(), jobId, attemptId,
     );
-  }
-
-  public recordLease(authority: ProductionLeaseAuthority): ProductionLeaseAuthority {
-    const task = this.readTask(authority.jobId);
-    if (!task || task.status !== "failed" || task.current_attempt_id !== authority.attemptId) {
-      throw executionFailure("failed", "PRODUCTION_LEASE_ATTEMPT_IDENTITY_MISMATCH");
-    }
-    const existing = this.readLease(authority.jobId);
-    if (existing?.attemptId === authority.attemptId && authority.leaseVersion < existing.leaseVersion) {
-      throw executionFailure("failed", "PRODUCTION_LEASE_VERSION_REGRESSION");
-    }
-    this.database.prepare(`insert into production_leases(
-      job_id,attempt_id,lease_version,fence_hash,state,expires_at,updated_at
-    ) values(?,?,?,?,?,?,?) on conflict(job_id) do update set
-      attempt_id=excluded.attempt_id,lease_version=excluded.lease_version,
-      fence_hash=excluded.fence_hash,state=excluded.state,
-      expires_at=excluded.expires_at,updated_at=excluded.updated_at`).run(
-      authority.jobId, authority.attemptId, authority.leaseVersion, authority.fenceHash,
-      authority.state, authority.expiresAt, now(),
-    );
-    return this.readLease(authority.jobId)!;
-  }
-
-  public readLease(jobId: string): ProductionLeaseAuthority | null {
-    const row = this.database.prepare(`select l.job_id,l.attempt_id,l.lease_version,l.fence_hash,l.state,l.expires_at,
-      l.updated_at,t.current_attempt_id as task_attempt_id from production_leases l
-      join production_tasks t on t.job_id=l.job_id where l.job_id=?`).get(jobId) as
-      ProductionLeaseAuthorityRow | undefined;
-    return row ? productionLeaseAuthorityFromRow(row, jobId) : null;
   }
 }

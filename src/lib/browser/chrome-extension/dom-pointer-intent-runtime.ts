@@ -26,7 +26,6 @@ type HoverIntent = Extract<BrowserDomIntent, { kind: "hover" }>;
 type DoubleClickIntent = Extract<BrowserDomIntent, { kind: "doubleClick" }>;
 type KeypressIntent = Extract<BrowserDomIntent, { kind: "keypress" }>;
 type CurrentDocumentAssertion = () => void;
-type TargetTransitionPostcondition = () => Promise<void>;
 
 type QualificationReceipt = Readonly<{
   candidateCount: number;
@@ -98,8 +97,6 @@ const pointerAction = async (
           : intent.expectedText !== undefined
             ? { text: { value: intent.expectedText, exact: false } } : {}
         : {}),
-      ...(intent.kind === "click" && intent.postClickTargetTransition !== undefined
-        ? { gptSourceCheckpoint: intent.postClickTargetTransition.sourceCheckpoint } : {}),
       ...(intent.kind === "click" && intent.preClickExactOutgoingTurn !== undefined
         ? { exactOutgoingTurn: intent.preClickExactOutgoingTurn } : {}),
     });
@@ -230,13 +227,7 @@ const prepareClick = async (
   target: ExtensionExactTarget,
   intent: ClickIntent,
   assertCurrent: CurrentDocumentAssertion,
-  targetTransitionPostcondition?: TargetTransitionPostcondition,
 ): Promise<PreparedClick> => {
-  if (intent.postClickTargetTransition !== undefined) {
-    if (!targetTransitionPostcondition) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-    const point = await pointerAction(runtime, target, intent);
-    return "failureCode" in point ? { receipt: point } : { point, retainedNodeId: null };
-  }
   if (intent.preClickExactOutgoingTurn !== undefined) {
     const point = await pointerAction(runtime, target, intent);
     return "failureCode" in point ? { receipt: point } : { point, retainedNodeId: null };
@@ -299,17 +290,11 @@ export const executeClickIntent = async (
   target: ExtensionExactTarget,
   intent: ClickIntent,
   assertCurrent: CurrentDocumentAssertion,
-  targetTransitionPostcondition?: TargetTransitionPostcondition,
 ): Promise<unknown> => {
-  const prepared = await prepareClick(runtime, target, intent, assertCurrent, targetTransitionPostcondition);
+  const prepared = await prepareClick(runtime, target, intent, assertCurrent);
   if ("receipt" in prepared) return prepared.receipt;
   await dispatchPointerClickSequence(runtime, target, prepared.point, [1], assertCurrent);
-  if (intent.postClickTargetTransition === undefined) {
-    return clickMutationReceipt(runtime, target, intent, prepared.retainedNodeId, assertCurrent);
-  }
-  await targetTransitionPostcondition!();
-  return { clicked: true, candidateCount: 1, identityRevalidated: true,
-    mutationCount: 1, postconditionVerified: true };
+  return clickMutationReceipt(runtime, target, intent, prepared.retainedNodeId, assertCurrent);
 };
 
 export const executeDoubleClickIntent = async (

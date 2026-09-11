@@ -12,6 +12,7 @@ import type { BrowserExecutionBinding } from "../infrastructure/browser-authorit
 import type { BrowserSessionWorkspace } from "./browser-session-workspace.js";
 import type { BrowserOutcomeResolutionReceipt } from "./browser-outcome-resolver.js";
 import { browserExecutionFailure } from "../browser-failure.js";
+import { requireCanonicalGptConversationUrl } from "./browser-site-policy-registry.js";
 export type { SessionWorkspaceBindingV6 } from "./browser-session-workspace.js";
 
 export type BrowserExactTargetAcquisition = Readonly<{
@@ -48,14 +49,6 @@ type BrowserArtifactOperations = Readonly<{
 const hashText = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
-const authenticatedMediaIdentityValid = (
-  input: Readonly<{
-    assistantTurnId: string;
-    semanticMediaId: "gpt-generated-image-main";
-  }>,
-): boolean => /^conversation-turn-[1-9][0-9]*$/u.test(input.assistantTurnId)
-  && input.semanticMediaId === "gpt-generated-image-main";
-
 const authenticatedMediaBytesValid = (value: Readonly<Record<string, unknown>>): boolean =>
   typeof value.bytesBase64 === "string"
   && typeof value.sha256 === "string"
@@ -72,15 +65,12 @@ const authenticatedMediaShapeValid = (value: Readonly<Record<string, unknown>>):
   && /^sha256:[a-f0-9]{64}$/u.test(value.authorityDocumentHash)
   && typeof value.assistantTurnId === "string"
   && /^conversation-turn-[1-9][0-9]*$/u.test(value.assistantTurnId)
+  && typeof value.precedingUserTurnId === "string"
+  && /^conversation-turn-[1-9][0-9]*$/u.test(value.precedingUserTurnId)
+  && typeof value.currentUrl === "string"
   && value.semanticMediaId === "gpt-generated-image-main"
   && typeof value.mediaType === "string"
-  && /^image\/[a-z0-9.+-]+$/u.test(value.mediaType)
-  && typeof value.width === "number"
-  && Number.isSafeInteger(value.width)
-  && value.width >= 1
-  && typeof value.height === "number"
-  && Number.isSafeInteger(value.height)
-  && value.height >= 1;
+  && /^image\/[a-z0-9.+-]+$/u.test(value.mediaType);
 
 const parseAuthenticatedMedia = (raw: unknown): AuthenticatedMedia => {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
@@ -325,31 +315,28 @@ export class BrowserTargetLeaseManager {
     state: LeaseState,
     command: LeaseCommand,
     input: Readonly<{
-      assistantTurnId: string;
+      canonicalConversationUrl: string;
+      userTurnId: string;
       semanticMediaId: "gpt-generated-image-main";
     }>,
-  ): Promise<Readonly<{
-    authorityTargetHash: `sha256:${string}`;
-    authorityDocumentHash: `sha256:${string}`;
-    assistantTurnId: string;
-    semanticMediaId: "gpt-generated-image-main";
-    bytesBase64: string;
-    sha256: `sha256:${string}`;
-    sizeBytes: number;
-    mediaType: `image/${string}`;
-    width: number;
-    height: number;
-  }>> {
-    if (!authenticatedMediaIdentityValid(input)) {
+  ): Promise<AuthenticatedMedia> {
+    try {
+      if (requireCanonicalGptConversationUrl(input.canonicalConversationUrl)
+        !== input.canonicalConversationUrl
+        || !/^conversation-turn-[1-9][0-9]*$/u.test(input.userTurnId)
+        || input.semanticMediaId !== "gpt-generated-image-main") throw new Error();
+    } catch {
       throw new Error("BROWSER_TARGET_INVALID");
     }
     const raw = await command("browser.authenticated-media.v1", {
       kind: "authenticated-media",
-      assistantTurnId: input.assistantTurnId,
+      canonicalConversationUrl: input.canonicalConversationUrl,
+      userTurnId: input.userTurnId,
       semanticMediaId: input.semanticMediaId,
     });
     const value = parseAuthenticatedMedia(raw);
-    if (value.assistantTurnId !== input.assistantTurnId
+    if (value.precedingUserTurnId !== input.userTurnId
+      || value.currentUrl !== input.canonicalConversationUrl
       || value.semanticMediaId !== input.semanticMediaId
       || value.authorityTargetHash !== hashText(state.current.target.targetRef)
       || value.authorityDocumentHash !== hashText(state.current.document.documentRef)) {

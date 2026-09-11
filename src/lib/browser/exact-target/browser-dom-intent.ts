@@ -182,18 +182,6 @@ export type BrowserDomIntent =
       notEquals?: string;
       timeoutMs?: number;
     }>;
-    /** Fixed Browser-owned normalization for the GPT fork page created by this click. */
-    postClickTargetTransition?: Readonly<{
-      kind: "gpt-fork-successor";
-      sourceCheckpoint: Readonly<{
-        assistantTurnId: string;
-        canonicalConversationUrl: string;
-        promptHash: `sha256:${string}`;
-        responseHash: `sha256:${string}`;
-        turnMarker: string;
-      }>;
-      timeoutMs: number;
-    }>;
   }>
   | Readonly<{
     kind: "hover";
@@ -424,30 +412,6 @@ const assertClickUrl = (url: Extract<BrowserDomIntent, { kind: "click" }>["postC
   }
 };
 
-const assertClickTargetTransition = (
-  transition: Extract<BrowserDomIntent, { kind: "click" }>["postClickTargetTransition"],
-): void => {
-  if (!transition) return;
-  const source = transition.sourceCheckpoint;
-  let canonicalSourceUrl = false;
-  try {
-    canonicalSourceUrl = requireCanonicalGptConversationUrl(source?.canonicalConversationUrl ?? "")
-      === source?.canonicalConversationUrl;
-  } catch { canonicalSourceUrl = false; }
-  const assistantOrdinal = Number(source?.assistantTurnId.slice("conversation-turn-".length));
-  if (transition.kind !== "gpt-fork-successor" || timeoutInvalid(transition.timeoutMs)
-    || !source || Object.keys(source).sort().join("|")
-      !== "assistantTurnId|canonicalConversationUrl|promptHash|responseHash|turnMarker"
-    || !/^conversation-turn-[1-9][0-9]*$/u.test(source.assistantTurnId)
-    || !Number.isSafeInteger(assistantOrdinal) || assistantOrdinal < 2
-    || !canonicalSourceUrl
-    || !/^sha256:[a-f0-9]{64}$/u.test(source.promptHash)
-    || !/^sha256:[a-f0-9]{64}$/u.test(source.responseHash)
-    || source.turnMarker.length === 0 || source.turnMarker.length > 1_024) {
-    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-  }
-};
-
 const assertClickObservation = (
   observation: Extract<BrowserDomIntent, { kind: "click" }>["postClickObservation"],
   exactOutgoingTurn: Extract<BrowserDomIntent, { kind: "click" }>["preClickExactOutgoingTurn"],
@@ -490,7 +454,6 @@ const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>)
   assertPreClickExactOutgoingTurn(intent.preClickExactOutgoingTurn);
   const postconditions = [
     intent.postClickAttribute, intent.postClickMatch, intent.postClickObservation, intent.postClickUrl,
-    intent.postClickTargetTransition,
   ]
     .filter((value) => value !== undefined);
   if (postconditions.length !== 1) {
@@ -500,7 +463,6 @@ const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>)
   assertClickMatch(intent.postClickMatch);
   assertClickObservation(intent.postClickObservation, intent.preClickExactOutgoingTurn);
   assertClickUrl(intent.postClickUrl);
-  assertClickTargetTransition(intent.postClickTargetTransition);
 };
 
 const assertPreClickExactOutgoingTurn = (

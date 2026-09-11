@@ -14,16 +14,9 @@ import { executeRegisteredDomIntent } from "./dom-intent-runtime.js";
 import { documentState } from "./dom-query-runtime.js";
 import { ExtensionExactTargetRegistry, type ExtensionExactTarget } from "./exact-target-runtime.js";
 import {
-  collectForkCleanupFailures,
   debuggerDetachFailure,
-  discoverGptForkSuccessor,
   exactAssistantReadLoaderId,
-  forkTransitionComplete,
-  forkTargetSetSettled,
-  readDiscoveredTabIds,
   readExtensionMainFrame,
-  waitForCanonicalGptMainFrame,
-  waitForDiscoveredTabAbsence,
 } from "./extension-target-observation.js";
 import type { ExtensionChromeApi, ExtensionDebugTarget } from "./extension-runtime-types.js";
 
@@ -219,10 +212,6 @@ export class ExtensionTargetAuthority {
           return this.executeConversationSelection(target, command.intent.canonicalConversationUrl);
         }
         const assertCurrent = (): void => { this.targets.resolve(target.targetRef, target.documentRef); };
-        const forkTransition = command.intent.kind === "click"
-          ? command.intent.postClickTargetTransition : undefined;
-        const targetBaseline = forkTransition === undefined
-          ? null : await readDiscoveredTabIds(this.debuggerRuntime);
         const expectedMainFrameLoaderId = exactAssistantReadLoaderId(
           command.intent.kind, target, this.activeTarget, this.activeLoaderId,
         );
@@ -232,13 +221,8 @@ export class ExtensionTargetAuthority {
         const result = await executeRegisteredDomIntent(
           this.debuggerRuntime, target, command.intent, assertCurrent,
           expectedMainFrameLoaderId ?? undefined,
-          forkTransition === undefined || targetBaseline === null ? undefined
-            : () => this.normalizeGptForkSuccessor(target, targetBaseline, forkTransition.timeoutMs),
         );
-        if (forkTransition === undefined) this.targets.resolve(target.targetRef, target.documentRef);
-        else if (!forkTransitionComplete(this.activeTarget, target)) {
-          throw new Error("BROWSER_POSTCONDITION_FAILED");
-        }
+        this.targets.resolve(target.targetRef, target.documentRef);
         return result;
       }
       return executeRegisteredExtensionCommand(this.debuggerRuntime, target, command, {
@@ -380,66 +364,6 @@ export class ExtensionTargetAuthority {
     }
     await this.debuggerRuntime.removeTab(tabId).catch((error) => { cleanupErrors.push(error); });
     if (cleanupErrors.length) throw new AggregateError(cleanupErrors, "BROWSER_TARGET_CLEANUP_FAILED");
-  }
-
-  private async normalizeGptForkSuccessor(
-    source: ExtensionExactTarget,
-    baselineTabIds: ReadonlySet<number>,
-    timeoutMs: number,
-  ): Promise<void> {
-    await this.debuggerRuntime.awaitPageReadPermission();
-    let deadline = Date.now() + timeoutMs;
-    let successor: ExtensionDebugTarget | null = null;
-    let attached = false;
-    let takeoverCommitted = false;
-    try {
-      successor = await discoverGptForkSuccessor(this.debuggerRuntime, baselineTabIds, deadline);
-      if (successor.tabId === undefined) throw new Error("BROWSER_POSTCONDITION_FAILED");
-
-      await this.debuggerRuntime.attach(successor.tabId);
-      attached = true;
-      await this.debuggerRuntime.send(successor.tabId, "Page.enable");
-      const childFrame = await waitForCanonicalGptMainFrame(
-        this.debuggerRuntime, successor.tabId, deadline,
-      );
-
-      const next = this.targets.transferPhysicalTab(
-        source.targetRef, source.documentRef, successor.tabId,
-      );
-      this.activeTarget = next;
-      this.activeLoaderId = childFrame.loaderId;
-      this.attachedTabId = successor.tabId;
-      this.navigationPublication = null;
-      takeoverCommitted = true;
-      await this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(next, {
-        claimOrigin: gptWebClaimOriginForUrl(childFrame.url),
-      }));
-      await this.retireForkSource(source.tabId, successor.tabId, timeoutMs);
-      if (next.targetRef !== source.targetRef || next.tabId !== successor.tabId
-        || next.navigationEpoch !== source.navigationEpoch + 1) {
-        throw new Error("BROWSER_POSTCONDITION_FAILED");
-      }
-    } catch (error) {
-      const cleanupFailures = await collectForkCleanupFailures(
-        this.debuggerRuntime, {
-          attached, sourceTabId: source.tabId, successorTabId: successor?.tabId ?? null,
-          takeoverCommitted,
-        },
-      );
-      if (error instanceof Error && error.message === "BROWSER_TARGET_DISCOVERY_UNAVAILABLE") throw error;
-      throw new AggregateError([error, ...cleanupFailures], "BROWSER_POSTCONDITION_FAILED");
-    }
-  }
-
-  private async retireForkSource(sourceTabId: number, successorTabId: number, timeoutMs: number): Promise<void> {
-    await this.debuggerRuntime.detach(sourceTabId);
-    await this.debuggerRuntime.removeTab(sourceTabId);
-    await this.debuggerRuntime.awaitPageReadPermission();
-    const deadline = Date.now() + timeoutMs;
-    await waitForDiscoveredTabAbsence(this.debuggerRuntime, sourceTabId, deadline);
-    if (!await forkTargetSetSettled(this.debuggerRuntime, sourceTabId, successorTabId)) {
-      throw new Error("BROWSER_POSTCONDITION_FAILED");
-    }
   }
 
   private async executeConversationSelection(

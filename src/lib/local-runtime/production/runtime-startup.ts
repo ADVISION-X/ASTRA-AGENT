@@ -19,7 +19,7 @@ import { productionControlContractVersion } from "./control-contract-dependency.
 import type { ProductionHash } from "./contracts.js";
 import { readProductionCredential } from "./credential.js";
 import { ProductionExecutor } from "./executor.js";
-import { ProductionRuntimeStore, type StoredProductionTask } from "./store.js";
+import { ProductionRuntimeStore } from "./store.js";
 import { typedRuntimeTransportFailure } from "./transport-failure.js";
 import { ProductionWorkerSession } from "./worker-session.js";
 import { readProductionOperationsSnapshot } from "./operations-snapshot.js";
@@ -155,23 +155,6 @@ const createRuntimeState = (
   return state;
 };
 
-export const reconcileTaskRecord = (
-  state: RuntimeState,
-  persisted: StoredProductionTask,
-): boolean => {
-  const storedLease = state.store.readLease(persisted.task.job_id);
-  if (storedLease?.state === "active") {
-    state.store.recordLease({ ...storedLease, state: "stale", expiresAt: null });
-  }
-  if (persisted.status === "failed") {
-    state.store.endUnsentAttemptWrites(persisted.task.job_id);
-    if (!persisted.staged_result) {
-      state.store.setCurrentReason(persisted.task.job_id, "PROCESS_RESTART_ATTEMPT_ENDED");
-    }
-  }
-  return true;
-};
-
 const reconcileLocalState = async (state: RuntimeState): Promise<void> => {
   let complete = true;
   try { state.store.reconcileDeliveredTerminals(); }
@@ -180,8 +163,6 @@ const reconcileLocalState = async (state: RuntimeState): Promise<void> => {
     state.lastErrorCode = failureCode(error, "PRODUCTION_TERMINAL_RECONCILIATION_FAILED");
     state.lastErrorReason = safeReason(error);
   }
-  const records = state.store.taskAuthorities();
-  for (const record of records) if (!reconcileTaskRecord(state, record)) complete = false;
   state.reconciliationBaselineValid = complete;
   refreshLedgerReconciled(state);
 };

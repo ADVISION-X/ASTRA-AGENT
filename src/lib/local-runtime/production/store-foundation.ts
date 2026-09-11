@@ -43,15 +43,6 @@ export interface ProductionOutboxWrite {
   readonly body: string | Uint8Array;
 }
 
-export type ProductionLeaseAuthority = Readonly<{
-  jobId: string;
-  attemptId: string;
-  leaseVersion: number;
-  fenceHash: ProductionHash;
-  state: "absent" | "active" | "stale" | "lost";
-  expiresAt: string | null;
-}>;
-
 export type ProductionOutboxAuthority = Readonly<{
   idempotencyKey: string;
   jobId: string;
@@ -64,7 +55,6 @@ export type ProductionOutboxAuthority = Readonly<{
 
 export type ProductionAuthorityReader = Readonly<{
   readTask: (jobId: string) => StoredProductionTask | null;
-  readLease: (jobId: string) => ProductionLeaseAuthority | null;
   readOutboxAuthority: (idempotencyKey: string) => ProductionOutboxAuthority | null;
 }>;
 
@@ -142,15 +132,9 @@ export const resolveProductionAuthority = (
     const authority = reader.readOutboxAuthority(authorityRef.slice("production-outbox:".length));
     return authority ? verify(authority) : "missing";
   }
-  const prefixes = ["production-task:", "production-lease:"] as const;
-  const prefix = prefixes.find((candidate) => authorityRef.startsWith(candidate));
-  if (!prefix) return "missing";
-  const jobId = authorityRef.slice(prefix.length);
+  if (!authorityRef.startsWith("production-task:")) return "missing";
+  const jobId = authorityRef.slice("production-task:".length);
   if (!jobId) return "missing";
-  if (prefix === "production-lease:") {
-    const authority = reader.readLease(jobId);
-    return authority ? verify(authority) : "missing";
-  }
   const record = reader.readTask(jobId);
   return record ? verify(record) : "missing";
 };
@@ -169,12 +153,6 @@ const productionSchemaSql = `create table production_tasks(
     method text not null, headers_json text not null, body_blob blob not null,
     created_at text not null, sent_at text, last_error text,
     response_json text, response_hash text, receipt_hash text
-  );
-  create table production_leases(
-    job_id text primary key references production_tasks(job_id) on delete restrict,
-    attempt_id text not null, lease_version integer not null, fence_hash text not null,
-    state text not null check(state in ('absent','active','stale','lost')),
-    expires_at text, updated_at text not null
   );`;
 
 const createProductionTables = (database: Database.Database): void => { database.exec(productionSchemaSql); };
@@ -188,7 +166,7 @@ const expectedTableSql = new Map(productionSchemaSql.split(/;\s*(?=create table)
 }));
 
 const executionTables = [
-  "production_steps", "production_outbox", "production_leases", "production_tasks",
+  "production_steps", "production_outbox", "production_tasks",
 ] as const;
 
 const tableShapes = {
@@ -199,19 +177,15 @@ const tableShapes = {
   production_outbox: ["idempotency_key:TEXT:0:1", "kind:TEXT:1:0", "path:TEXT:1:0", "method:TEXT:1:0",
     "headers_json:TEXT:1:0", "body_blob:BLOB:1:0", "created_at:TEXT:1:0", "sent_at:TEXT:0:0",
     "last_error:TEXT:0:0", "response_json:TEXT:0:0", "response_hash:TEXT:0:0", "receipt_hash:TEXT:0:0"],
-  production_leases: ["job_id:TEXT:0:1", "attempt_id:TEXT:1:0", "lease_version:INTEGER:1:0",
-    "fence_hash:TEXT:1:0", "state:TEXT:1:0", "expires_at:TEXT:0:0", "updated_at:TEXT:1:0"],
 } as const;
 
 const expectedIndexes: Readonly<Record<keyof typeof tableShapes, readonly string[]>> = {
   production_tasks: ["1:pk:0:job_id"],
   production_outbox: ["1:pk:0:idempotency_key"],
-  production_leases: ["1:pk:0:job_id"],
 };
 
 const expectedForeignKeys: Readonly<Record<keyof typeof tableShapes, readonly string[]>> = {
   production_tasks: [], production_outbox: [],
-  production_leases: ["production_tasks:job_id:job_id:NO ACTION:RESTRICT:NONE"],
 };
 
 const exactTableShape = (database: Database.Database, table: keyof typeof tableShapes): boolean => {
@@ -260,14 +234,7 @@ export const stateInvariantFailureCount = (database: Database.Database): number 
       or request_hash!=json_extract(task_json,'$.request_hash')
       or request_hash!=json_extract(identity_json,'$.request_hash') or current_attempt_id='')
     +(select count(*) from production_outbox where (response_json is null)!=(response_hash is null)
-      or (response_hash is not null and sent_at is null))
-    +(select count(*) from production_leases l where typeof(l.lease_version)!='integer' or l.lease_version<1
-      or l.attempt_id='' or length(l.fence_hash)!=71 or substr(l.fence_hash,1,7)!='sha256:'
-      or substr(l.fence_hash,8) glob '*[^0-9a-f]*'
-      or not exists(select 1 from production_tasks t
-        where t.job_id=l.job_id and t.current_attempt_id=l.attempt_id)
-      or (l.state='active' and l.expires_at is null)
-      or (l.state!='active' and l.expires_at is not null)) as count`).get() as { count: number };
+      or (response_hash is not null and sent_at is null)) as count`).get() as { count: number };
   return Number(row.count);
 };
 

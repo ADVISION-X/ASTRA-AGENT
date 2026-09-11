@@ -134,68 +134,6 @@ export const exerciseCapturedCandidateFunction = async (source: string): Promise
   "BROWSER_DOM_ACTION_OUTGOING_STRUCTURE_MISMATCH",
   "the send button must belong to the same form as the approved outgoing turn");
 };
-export const exerciseCapturedGptForkCandidateFunction = async (source: string): Promise<void> => {
-  const assistantTurnId = "conversation-turn-10";
-  const userTurnId = "conversation-turn-9";
-  const turnMarker = "[GRASSEYE:fork]";
-  const prompt = `approved ${turnMarker}`;
-  const response = "approved response";
-  const promptNode = new FakeElement(prompt, {}, {}, {}, "DIV", [new FakeTextNode(prompt)]);
-  const responseNode = new FakeElement(response, {}, {}, {}, "DIV", [new FakeTextNode(response)]);
-  const userTurn = new FakeElement(prompt, {
-    "[data-testid='collapsible-user-message-content']": [promptNode],
-    "[data-message-author-role='user']": [promptNode],
-  });
-  const candidate = new FakeElement("分支到新聊天", {}, {}, {}, "BUTTON");
-  const root = new FakeElement("root", { "[role='menuitem']": [candidate] });
-  for (const node of [promptNode, responseNode, userTurn, candidate]) node.parentElement = root;
-  const assistantSelector = `[data-testid='${assistantTurnId}']:has([data-message-author-role='assistant']) [data-message-author-role='assistant']`;
-  const userSelector = `[data-testid='${userTurnId}']:has([data-message-author-role='user'])`;
-  const document = {
-    documentElement: root,
-    querySelectorAll: (selector: string) => selector === assistantSelector ? [responseNode]
-      : selector === userSelector ? [userTurn] : [],
-    elementFromPoint: () => candidate,
-  };
-  const checkpoint = Object.freeze({
-    assistantTurnId,
-    canonicalConversationUrl: "https://chatgpt.com/c/opaque%20segment",
-    promptHash: hash(prompt),
-    responseHash: hash(response),
-    turnMarker,
-  });
-  const input = Object.freeze({
-    selector: "[role='menuitem']",
-    text: { value: "分支到新聊天", exact: true },
-    gptSourceCheckpoint: checkpoint,
-    output: "pointer",
-  });
-  const href = checkpoint.canonicalConversationUrl;
-  assert.equal(JSON.stringify(await execute(source, document, input, href)), JSON.stringify({ x: 5, y: 5 }),
-    "the async fork resolver must validate the exact source checkpoint before returning the pointer");
-  assert.equal(JSON.stringify(await execute(
-    source, document, input, `${href}?query=discarded#fragment`,
-  )), JSON.stringify({ x: 5, y: 5 }),
-  "the fork resolver must physically discard query and fragment before source URL comparison");
-  const rejected = async (overrides: Readonly<Record<string, unknown>>, observedHref: string = href) =>
-    await execute(source, document, {
-      ...input,
-      gptSourceCheckpoint: { ...checkpoint, ...overrides },
-    }, observedHref);
-  assert.equal(await rejected({ assistantTurnId: "conversation-turn-11" }), "BROWSER_DOM_CANDIDATE_MISSING");
-  assert.equal(await rejected({ turnMarker: "[GRASSEYE:wrong]" }), "BROWSER_DOM_CANDIDATE_MISSING");
-  assert.equal(await rejected({ promptHash: `sha256:${"1".repeat(64)}` }), "BROWSER_DOM_CANDIDATE_MISSING");
-  assert.equal(await rejected({ responseHash: `sha256:${"2".repeat(64)}` }), "BROWSER_DOM_CANDIDATE_MISSING");
-  assert.equal(await rejected({}, "https://chatgpt.com/c/another"), "BROWSER_DOM_CANDIDATE_MISSING");
-  assert.equal(await execute(source, {
-    ...document,
-    querySelectorAll: (selector: string) => selector === assistantSelector ? [responseNode] : [],
-  }, input, href), "BROWSER_DOM_CANDIDATE_MISSING",
-  "the matching assistant turn must not authorize a fork without its exact preceding user turn");
-  assert.equal(await execute(source, document, input,
-    "https://user:password@chatgpt.com/c/opaque%20segment"), "BROWSER_DOM_CANDIDATE_MISSING",
-  "the runtime source URL check must reject userinfo exactly like the canonical contract");
-};
 export const exerciseCapturedCoherentObservationPointerFunction = (source: string): void => {
   const reasoning = new FakeElement("", {}, {}, {
     "aria-valuemin": "0", "aria-valuemax": "4", "aria-valuenow": "2",

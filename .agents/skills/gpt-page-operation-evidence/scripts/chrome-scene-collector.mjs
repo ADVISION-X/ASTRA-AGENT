@@ -14,8 +14,6 @@ const DEFAULT_UI_ALLOWLIST = new Set([
   "添加文件等",
   "与 ChatGPT 聊天",
   "从电脑上传",
-  "分支到新聊天",
-  "打开新分支",
   "停止生成",
   "重新生成",
   "复制",

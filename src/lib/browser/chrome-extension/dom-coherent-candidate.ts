@@ -14,20 +14,12 @@ import {
 } from "./dom-coherent-candidate-readback.js";
 import { BROWSER_MECHANICAL_FACTS_READER_SOURCE } from "./dom-mechanical-facts.js";
 import { BROWSER_EXACT_EDITABLE_TEXT_READER_SOURCE } from "./dom-exact-editable-text.js";
-import { BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE } from "./dom-semantic-text.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 
 type CandidateRequest = Readonly<{
   selector: string;
   scope?: BrowserDomReadScope;
   text?: Readonly<{ value: string; exact: boolean }>;
-  gptSourceCheckpoint?: Readonly<{
-    assistantTurnId: string;
-    canonicalConversationUrl: string;
-    promptHash: `sha256:${string}`;
-    responseHash: `sha256:${string}`;
-    turnMarker: string;
-  }>;
   exactOutgoingTurn?: Readonly<{
     composerSelector: string;
     composerFormSelector: string;
@@ -137,49 +129,6 @@ const RETAINED_POINTER_FUNCTION = `function () {
     x: facts.bounds.x + facts.bounds.width / 2,
     y: facts.bounds.y + facts.bounds.height / 2
   };
-}`;
-
-const GPT_FORK_CANDIDATE_FUNCTION = `async function (spec) {
-  ${BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE}
-  const source = spec.gptSourceCheckpoint;
-  if (!source) return "BROWSER_DOM_READ_INVALID";
-  const sha256 = async (value) => {
-    const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-    return "sha256:" + Array.from(new Uint8Array(digest))
-      .map((byte) => byte.toString(16).padStart(2, "0")).join("");
-  };
-  const observedUrl = new URL(location.href);
-  const currentUrl = observedUrl.origin + observedUrl.pathname;
-  if (observedUrl.protocol !== "https:" || observedUrl.origin !== "https://chatgpt.com"
-    || observedUrl.username !== "" || observedUrl.password !== ""
-    || currentUrl !== source.canonicalConversationUrl) return "BROWSER_DOM_CANDIDATE_MISSING";
-  const assistantOrdinal = Number(source.assistantTurnId.slice("conversation-turn-".length));
-  if (!Number.isSafeInteger(assistantOrdinal) || assistantOrdinal < 2) {
-    return "BROWSER_DOM_CANDIDATE_MISSING";
-  }
-  const assistantNodes = Array.from(document.querySelectorAll(
-    "[data-testid='" + source.assistantTurnId
-      + "']:has([data-message-author-role='assistant']) [data-message-author-role='assistant']"
-  ));
-  const userTurnId = "conversation-turn-" + (assistantOrdinal - 1);
-  const userNodes = Array.from(document.querySelectorAll(
-    "[data-testid='" + userTurnId + "']:has([data-message-author-role='user'])"
-  ));
-  if (assistantNodes.length !== 1 || userNodes.length !== 1) {
-    return "BROWSER_DOM_CANDIDATE_MISSING";
-  }
-  const promptNodes = Array.from(userNodes[0].querySelectorAll(
-    "[data-testid='collapsible-user-message-content']"
-  ));
-  if (promptNodes.length !== 1) return "BROWSER_DOM_CANDIDATE_MISSING";
-  const prompt = browserCanonicalSemanticText(promptNodes[0]);
-  const response = browserCanonicalSemanticText(assistantNodes[0]);
-  if (!prompt.includes(source.turnMarker)
-    || await sha256(prompt) !== source.promptHash
-    || await sha256(response) !== source.responseHash) {
-    return "BROWSER_DOM_CANDIDATE_MISSING";
-  }
-  return (${COHERENT_CANDIDATE_FUNCTION})(spec);
 }`;
 
 const COHERENT_OBSERVATION_POINTER_FUNCTION = `function (request) {
@@ -448,8 +397,7 @@ export const resolveCoherentPointerAction = async (
     }
     const call = record(await read(() => runtime.send(target.tabId, "Runtime.callFunctionOn", {
       objectId: rootObjectId,
-      functionDeclaration: request.gptSourceCheckpoint === undefined
-        ? COHERENT_CANDIDATE_FUNCTION : GPT_FORK_CANDIDATE_FUNCTION,
+      functionDeclaration: COHERENT_CANDIDATE_FUNCTION,
       arguments: [{ value: { ...request, output: "pointer" } }], returnByValue: true,
       awaitPromise: true, silent: true,
     })));

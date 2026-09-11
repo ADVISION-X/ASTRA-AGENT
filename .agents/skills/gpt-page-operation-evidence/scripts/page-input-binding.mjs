@@ -27,11 +27,8 @@ const REQUIRED_ROLES = Object.freeze({
   write_exact_gpt_prompt: ["promptHash"],
   wait_for_stable_gpt_text: ["promptHash", "conversationUrlHash", "turnMarkerHash"],
   wait_for_stable_gpt_image: ["promptHash", "conversationUrlHash", "turnMarkerHash"],
-  open_gpt_checkpoint_actions_menu: ["promptHash", "responseHash", "conversationUrlHash", "turnMarkerHash", "assistantTurnIdHash"],
-  open_gpt_fork_destination_menu: ["promptHash", "responseHash", "conversationUrlHash", "turnMarkerHash", "assistantTurnIdHash"],
   attach_approved_gpt_files_once: ["attachmentSetHash"],
   submit_exact_gpt_turn_once: ["promptHash", "attachmentSetHash"],
-  fork_exact_gpt_conversation_at_checkpoint: ["promptHash", "responseHash", "conversationUrlHash", "turnMarkerHash", "assistantTurnIdHash"],
 });
 
 const PROMPT_EVIDENCE_POLICY = Object.freeze({

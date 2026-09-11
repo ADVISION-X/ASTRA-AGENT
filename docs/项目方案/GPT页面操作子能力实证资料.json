@@ -5805,10 +5805,6 @@
             "captureEpoch": "sha256:d361315b1004aa3fd2608e97fbf3c3de8c3f123026e154456fa934926d2f239b",
             "capturedAt": "2026-09-08T15:49:05.982Z",
             "chainInputs": {
-              "chain-checkpoint-actions-menu": {
-                "kind": "MISSING_PRIOR_CHILD_OUTPUT",
-                "sourceChildCapabilityId": "open_gpt_checkpoint_actions_menu"
-              },
               "chain-confirmed-submit-receipt": {
                 "kind": "MISSING_PRIOR_CHILD_OUTPUT",
                 "sourceChildCapabilityId": "submit_exact_gpt_turn_once"
@@ -5816,10 +5812,6 @@
               "chain-conversation-identity": {
                 "kind": "MISSING_PRIOR_CHILD_OUTPUT",
                 "sourceChildCapabilityId": "reconcile_gpt_turn_submission"
-              },
-              "chain-fork-destination-menu": {
-                "kind": "MISSING_PRIOR_CHILD_OUTPUT",
-                "sourceChildCapabilityId": "open_gpt_fork_destination_menu"
               },
               "chain-image-wait": {
                 "kind": "MISSING_PRIOR_CHILD_OUTPUT",
@@ -29901,10 +29893,6 @@
             "captureEpoch": "sha256:cbb4cd1e786e88bccf543127827791d2832ff9cf70d8f047074a36a14f8f5565",
             "capturedAt": "2026-09-08T20:15:18.642Z",
             "chainInputs": {
-              "chain-checkpoint-actions-menu": {
-                "kind": "MISSING_PRIOR_CHILD_OUTPUT",
-                "sourceChildCapabilityId": "open_gpt_checkpoint_actions_menu"
-              },
               "chain-confirmed-submit-receipt": {
                 "kind": "MISSING_PRIOR_CHILD_OUTPUT",
                 "sourceChildCapabilityId": "submit_exact_gpt_turn_once"
@@ -29912,10 +29900,6 @@
               "chain-conversation-identity": {
                 "kind": "MISSING_PRIOR_CHILD_OUTPUT",
                 "sourceChildCapabilityId": "reconcile_gpt_turn_submission"
-              },
-              "chain-fork-destination-menu": {
-                "kind": "MISSING_PRIOR_CHILD_OUTPUT",
-                "sourceChildCapabilityId": "open_gpt_fork_destination_menu"
               },
               "chain-image-wait": {
                 "kind": "MISSING_PRIOR_CHILD_OUTPUT",
@@ -35186,10 +35170,6 @@
             "captureEpoch": "sha256:9624ae04131cb8da03d914e010bbff7b42c482fb17788d74d63e4c9b72d626bd",
             "capturedAt": "2026-09-09T06:44:31.952Z",
             "chainInputs": {
-              "chain-checkpoint-actions-menu": {
-                "kind": "MISSING_PRIOR_CHILD_OUTPUT",
-                "sourceChildCapabilityId": "open_gpt_checkpoint_actions_menu"
-              },
               "chain-confirmed-submit-receipt": {
                 "kind": "MISSING_PRIOR_CHILD_OUTPUT",
                 "sourceChildCapabilityId": "submit_exact_gpt_turn_once"
@@ -35197,10 +35177,6 @@
               "chain-conversation-identity": {
                 "kind": "MISSING_PRIOR_CHILD_OUTPUT",
                 "sourceChildCapabilityId": "reconcile_gpt_turn_submission"
-              },
-              "chain-fork-destination-menu": {
-                "kind": "MISSING_PRIOR_CHILD_OUTPUT",
-                "sourceChildCapabilityId": "open_gpt_fork_destination_menu"
               },
               "chain-image-wait": {
                 "kind": "MISSING_PRIOR_CHILD_OUTPUT",

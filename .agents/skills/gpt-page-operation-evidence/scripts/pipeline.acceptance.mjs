@@ -330,8 +330,6 @@ async function main() {
     node({ "data-message-author-role": "user" }, true, "conversation-turn-3"),
     node({ "data-message-author-role": "assistant" }, false, "conversation-turn-2"),
     node({ "data-message-author-role": "assistant" }, false, "conversation-turn-4"),
-    node({ "aria-label": "更多操作" }, false, "conversation-turn-2"),
-    node({ "aria-label": "更多操作" }, false, "conversation-turn-4"),
   ], pageFacts: {
     userTurnBindings: [{ userTurnIdHash: hash("conversation-turn-1"), promptHash: hash("other-prompt"),
       turnMarkerHashes: [hash("other-marker")] },
@@ -350,9 +348,6 @@ async function main() {
     .node.machineFacts.ownerTurnTestId, "conversation-turn-3");
   assert.equal(candidateEntries("source-turn", multiTurnScene, exactCandidateContext).length, 1);
   assert.equal(candidateEntries("source-turn", multiTurnScene, exactCandidateContext)[0]
-    .node.machineFacts.ownerTurnTestId, "conversation-turn-4");
-  assert.equal(candidateEntries("source-turn-more-actions-control", multiTurnScene, exactCandidateContext).length, 1);
-  assert.equal(candidateEntries("source-turn-more-actions-control", multiTurnScene, exactCandidateContext)[0]
     .node.machineFacts.ownerTurnTestId, "conversation-turn-4");
 
   const imagePromptHash = hash("image prompt");
@@ -375,38 +370,6 @@ async function main() {
     "image assistant section must not require an inner assistant-role node");
   assert.equal(candidateEntries("semantic-media-node", imageOnlyScene, imageCandidateContext).length, 1,
     "semantic media must bind to the prompt-owned outer image section");
-
-  const continuationRoles = ["promptHash", "responseHash", "conversationUrlHash", "turnMarkerHash", "assistantTurnIdHash"];
-  const continuationExpected = { promptHash: hash("source-prompt"), responseHash: hash("source-response"),
-    attachmentLabelHashes: null, attachmentSetHash: null, modelDisplayNameHash: null, reasoningRequirement: null,
-    conversationUrlHash: hash("https://chatgpt.com/c/source"), turnMarkerHash: hash("[GRASSEYE:111111111111111111111111]"),
-    assistantTurnIdHash: hash("conversation-turn-2") };
-  const coherentTurnFacts = { exactComposerHash: null, exactUserPromptHashes: [continuationExpected.promptHash],
-    assistantSemanticTextHashes: [continuationExpected.responseHash], attachmentLabelHashes: [], visibleModelTextHashes: [],
-    reasoningScaleFacts: [], currentConversationUrlHash: continuationExpected.conversationUrlHash,
-    turnMarkerHashes: [continuationExpected.turnMarkerHash], assistantTurnIdHashes: [continuationExpected.assistantTurnIdHash],
-    conversationTurnBindings: [{ assistantTurnIdHash: continuationExpected.assistantTurnIdHash,
-      precedingPromptHash: continuationExpected.promptHash, responseHash: continuationExpected.responseHash,
-      turnMarkerHashes: [continuationExpected.turnMarkerHash] }] };
-  for (const childId of ["open_gpt_checkpoint_actions_menu", "open_gpt_fork_destination_menu",
-    "fork_exact_gpt_conversation_at_checkpoint"]) {
-    const traceEntry = { childId, inputBinding: { schemaVersion: "gpt-page-input-binding.v1",
-      source: "FORENSICS_SAFE_PROJECTION", inputHash: hash(`${childId}:input`), roleHashes: continuationExpected } };
-    const specimen = { evidenceKind: "LIVE_PAGE", sourceSceneId: `${childId}:scene`, stateFacts: coherentTurnFacts };
-    assert.equal(derivePageInputBindingProof(traceEntry, [specimen]).complete, true);
-    for (const role of continuationRoles) {
-      const missing = structuredClone(traceEntry);
-      missing.inputBinding.roleHashes[role] = null;
-      assert.equal(derivePageInputBindingProof(missing, [specimen]).complete, false, `${childId}:${role}:missing`);
-    }
-    const mixedTurn = structuredClone(coherentTurnFacts);
-    mixedTurn.conversationTurnBindings = [{ assistantTurnIdHash: continuationExpected.assistantTurnIdHash,
-      precedingPromptHash: hash("other-prompt"), responseHash: hash("other-response"), turnMarkerHashes: [hash("other-marker")] },
-    { assistantTurnIdHash: hash("conversation-turn-4"), precedingPromptHash: continuationExpected.promptHash,
-      responseHash: continuationExpected.responseHash, turnMarkerHashes: [continuationExpected.turnMarkerHash] }];
-    assert.equal(derivePageInputBindingProof(traceEntry,
-      [{ ...specimen, stateFacts: mixedTurn }]).complete, false, `${childId}:mixed-turn`);
-  }
 
   const promptOnlyRoles = { promptHash, responseHash: null, attachmentLabelHashes: null,
     attachmentSetHash: null, modelDisplayNameHash: null, reasoningRequirement: null,

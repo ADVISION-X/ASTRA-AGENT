@@ -76,31 +76,6 @@ export class ExtensionExactTargetRegistry {
     return next;
   }
 
-  /** Keep one logical Target while a provider-created successor page becomes its physical carrier. */
-  public transferPhysicalTab(
-    targetRef: string,
-    documentRef: string,
-    successorTabId: number,
-  ): ExtensionExactTarget {
-    const current = this.resolve(targetRef, documentRef);
-    if (!Number.isInteger(successorTabId) || successorTabId < 0 || successorTabId === current.tabId) {
-      throw new Error("BROWSER_TARGET_INVALID");
-    }
-    for (const target of this.targets.values()) {
-      if (target.targetRef !== targetRef && target.tabId === successorTabId) {
-        throw new Error("BROWSER_TARGET_INVALID");
-      }
-    }
-    const next: ExtensionExactTarget = {
-      ...current,
-      documentRef: `document-${newRef()}`,
-      tabId: successorTabId,
-      navigationEpoch: current.navigationEpoch + 1,
-    };
-    this.targets.set(targetRef, next);
-    return next;
-  }
-
   public remove(targetRef: string): void {
     this.targets.delete(targetRef);
   }

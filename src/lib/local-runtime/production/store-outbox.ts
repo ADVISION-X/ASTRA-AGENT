@@ -20,7 +20,6 @@ const PERMANENT_REVOCATION_REASON = "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED";
 const PERMANENT_AUTHORIZATION_REVOKED_CODE = "AI_PERMANENT_AUTHORIZATION_REVOKED";
 const STALE_LEASE_FENCE_CODE = "AI_LEASE_FENCE_STALE";
 const STALE_LEASE_FENCE_REMOTE_PROOF = "WEBSITE_HTTP_409:AI_LEASE_FENCE_STALE";
-const ENDED_ATTEMPT_REASON = "ATTEMPT_ENDED";
 const jobPathMarker = (jobId: string): string => `/jobs/${encodeURIComponent(jobId)}/`;
 
 const receiptHashOf = (response: Record<string, unknown>): ProductionHash | null =>
@@ -219,11 +218,8 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
       if (authority.lastError === STALE_LEASE_FENCE_REMOTE_PROOF) {
         throw executionFailure("failed", "PRODUCTION_STALE_FENCE_REAUTHORIZATION_REQUIRED");
       }
-      if (authority.lastError === ENDED_ATTEMPT_REASON) {
-        throw executionFailure("failed", "PRODUCTION_ATTEMPT_ENDED");
-      }
       if (authority.lastError) {
-        throw executionFailure("failed", "PRODUCTION_OUTBOX_ATTEMPT_ENDED");
+        throw executionFailure("failed", authority.lastError);
       }
       try {
         const response = await send(this.readPendingOutboxWrite(idempotencyKey));

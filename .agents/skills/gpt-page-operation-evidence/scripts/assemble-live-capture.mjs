@@ -255,15 +255,6 @@ export function candidateEntries(target, scene, candidateContext = {}) {
     case "file-input": return entries.filter((entry) => entry.node.tag === "input" && attr(entry, "type") === "file"
       && attr(entry, "id") === "upload-files");
     case "submit-control": return entries.filter((entry) => attr(entry, "data-testid") === "send-button");
-    case "source-turn-more-actions-control": return entries.filter((entry) => attr(entry, "aria-label") === "更多操作"
-      && assistantOwnerMatches(entry));
-    case "source-bound-actions-menu": return exactText("打开新分支").length === 1 ? menus.slice(0, 1) : [];
-    case "open-new-fork-entry": return entries.filter((entry) => attr(entry, "role") === "menuitem"
-      && attr(entry, "aria-expanded") !== undefined && attr(entry, "data-state") !== undefined
-      && subtreeTextOf(entry.node) === "打开新分支");
-    case "fork-destination-menu": return exactText("分支到新聊天").length === 1 ? menus.slice(-1) : [];
-    case "branch-to-new-chat-entry": return entries.filter((entry) => attr(entry, "role") === "menuitem"
-      && subtreeTextOf(entry.node) === "分支到新聊天");
     default: return [];
   }
 }

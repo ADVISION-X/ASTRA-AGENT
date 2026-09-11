@@ -6,7 +6,7 @@ import {
 } from "./cloud-reconciliation-client.js";
 import { hashCanonical } from "./contracts.js";
 import { releaseLeaseWithLog, terminalSpanFailure } from "./runtime-logging.js";
-import { leaseAuthority, safeReason, wait, type RuntimeState } from "./runtime-state.js";
+import { safeReason, wait, type RuntimeState } from "./runtime-state.js";
 import { type ClaimedProductionTask } from "./transport-protocol.js";
 
 export const permanentAuthorizationRevoked = (signal: AbortSignal): boolean => {
@@ -79,14 +79,11 @@ const releaseRevokedLease = async (input: Readonly<{
     try {
       await releaseLeaseWithLog(input.state, input.job, input.jobSpan.spanId, release,
         input.failureEventId, stableRequestId);
-      input.state.store.recordLease(leaseAuthority(input.job, "absent", null));
       return;
     } catch (error) {
       if (await releaseReceiptObserved(input.state, input.job, stableRequestId)) {
-        input.state.store.recordLease(leaseAuthority(input.job, "absent", null));
         return;
       }
-      input.state.store.recordLease(leaseAuthority(input.job, "stale", null));
       input.state.lastErrorCode = failureCode(error, "LEASE_RELEASE_FAILED");
       input.state.lastErrorReason = safeReason(error);
       await wait(Math.min(1_000, Math.max(0, deadline - performance.now())), input.state.abort.signal);

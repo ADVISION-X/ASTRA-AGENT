@@ -23,11 +23,11 @@ const columns = (database: Database.Database, table: string): string[] =>
   (database.prepare(`pragma table_info(${table})`).all() as Array<{ name: string }>).map((row) => row.name);
 
 try {
-  const dataDirectory = path.join(temporary, "three-table-store");
+  const dataDirectory = path.join(temporary, "two-table-store");
   await mkdir(dataDirectory);
   const store = new ProductionRuntimeStore(dataDirectory);
   const database = Reflect.get(store, "database") as Database.Database;
-  assert.deepEqual(tableNames(database), ["production_leases", "production_outbox", "production_tasks"]);
+  assert.deepEqual(tableNames(database), ["production_outbox", "production_tasks"]);
   assert.equal(columns(database, "production_tasks").includes("attempt_failure_json"), true);
   assert.equal(tableNames(database).includes("production_attempt_failures"), false);
   assert.equal(tableNames(database).includes("production_checkpoints"), false);
@@ -51,15 +51,10 @@ try {
     serializeTerminalFailure(executionFailure("failed", "DIFFERENT_FAILURE")),
   ), /PRODUCTION_ATTEMPT_FAILURE_IMMUTABLE/u);
 
-  store.recordLease({
-    jobId: accepted.job_id, attemptId: firstAttempt, leaseVersion: 1,
-    fenceHash: HASH_A, state: "stale", expiresAt: null,
-  });
   const secondAttempt = "attempt:three-truths:2";
   const second = store.acceptTask(accepted, identity, secondAttempt);
   assert.equal(second.current_attempt_id, secondAttempt);
   assert.equal(second.attempt_failure, null);
-  assert.equal(store.readLease(accepted.job_id), null);
   assert.equal(store.acceptTask(accepted, identity, secondAttempt).current_reason, "LEASE_REGRANTED");
 
   const artifactKey = "artifact:three-truths";
@@ -106,10 +101,10 @@ try {
 
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V19",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V22",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:3", "summary"],
-    locator: `acceptance:agent-production-runtime:three-table-authority:${evidenceMode}`,
-    observedValue: "three-table SQLite authority stores current task failure inline and rejects checkpoint continuation or failure-ledger schemas",
+    locator: `acceptance:agent-production-runtime:two-table-authority:${evidenceMode}`,
+    observedValue: "two-table SQLite authority stores task state and Outbox only and rejects lease checkpoint continuation or failure-ledger mirrors",
   });
 }

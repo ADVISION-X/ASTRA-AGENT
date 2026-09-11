@@ -21,6 +21,7 @@ type InvocationPayloadSources = Readonly<{
 }>;
 const authenticatedMediaRuntimePath =
   "src/lib/browser/chrome-extension/authenticated-media-runtime.ts";
+const generatedImageCheckpointPath = "src/capabilities/gpt/children/checkpoint_gpt_generated_image/handler.ts";
 const extensionActorPath = "src/lib/browser/chrome-extension/websocket-actor.ts";
 const extensionCryptoPath = "src/lib/browser/chrome-extension/websocket-actor-crypto.ts";
 const commandLoggingPath = "src/lib/browser/exact-target/browser-command-runtime-logging.ts";
@@ -52,6 +53,7 @@ const inspectAuthenticatedMediaBoundary = (
   commandRuntime: RequiredSource,
   authenticatedMediaRuntime: RequiredSource,
   leaseManager: RequiredSource,
+  generatedImageCheckpoint: RequiredSource,
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
@@ -61,6 +63,7 @@ const inspectAuthenticatedMediaBoundary = (
   const mediaRuntimeText = authenticatedMediaRuntime.getFullText();
   const leaseMethod = leaseManager.getClass("BrowserTargetLeaseManager")
     ?.getMethod("readAuthenticatedMedia")?.getText() ?? "";
+  const checkpointText = generatedImageCheckpoint.getFullText();
   for (const required of ["command.kind === \"authenticated-media\"", "executeAuthenticatedMedia("]) {
     if (commandDispatchText.includes(required)) continue;
     findings.push(createLocalFinding({
@@ -70,23 +73,37 @@ const inspectAuthenticatedMediaBoundary = (
       message: `The fixed authenticated media command dispatch is missing ${required}.`,
     }));
   }
-  for (const required of [
-    "Runtime.evaluate", "credentials: \"include\"", "crypto.subtle.digest", "bytesBase64",
-    "gpt-generated-image-main", "assistantTurnId",
-  ]) if (!mediaRuntimeText.includes(required)) findings.push(createLocalFinding({
-    checkId: "browser-authority/authenticated-media-boundary",
-    lawId,
-    filePath: targetAuthorityPath,
-    message: `The fixed authenticated media observation is missing ${required}.`,
-  }));
-  for (const required of [
-    "browser.authenticated-media.v1", "assistantTurnId", "semanticMediaId", "createHash",
-  ]) if (!leaseMethod.includes(required)) findings.push(createLocalFinding({
-    checkId: "browser-authority/authenticated-media-boundary",
-    lawId,
-    filePath: sourcePaths[5],
-    message: `The task-owned authenticated media receiver is missing ${required}.`,
-  }));
+  const requiredBySource = [
+    [targetAuthorityPath, mediaRuntimeText, [
+      "Runtime.evaluate", "credentials: \"include\"", "crypto.subtle.digest", "bytesBase64",
+      "canonicalConversationUrl", "userTurnId", "querySelectorAll(\"img\")",
+      "assistantTurnId", "precedingUserTurnId", "currentUrl",
+    ]],
+    [sourcePaths[5], leaseMethod, ["browser.authenticated-media.v1", "canonicalConversationUrl",
+      "userTurnId", "semanticMediaId", "createHash"]],
+    [generatedImageCheckpointPath, checkpointText,
+      ["browser.readAuthenticatedMedia({ canonicalConversationUrl: conversationUrl, userTurnId"]],
+  ] as const;
+  for (const [filePath, text, requiredTokens] of requiredBySource) for (const required of requiredTokens) {
+    if (!text.includes(required)) findings.push(createLocalFinding({
+      checkId: "browser-authority/authenticated-media-boundary",
+      lawId,
+      filePath,
+      message: `The single authenticated media observation is missing ${required}.`,
+    }));
+  }
+  for (const forbidden of [
+    "readExactAssistantTurn", "projectExactAssistantTurn", "img[alt]", "naturalWidth",
+    "naturalHeight", "getBoundingClientRect", "getComputedStyle", ".complete",
+    "data-message-author-role='assistant'",
+  ]) if (mediaRuntimeText.includes(forbidden) || checkpointText.includes(forbidden)) {
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/authenticated-media-boundary",
+      lawId,
+      filePath: authenticatedMediaRuntimePath,
+      message: `Authenticated media retrieval retains a forbidden second or layout-dependent gate ${forbidden}.`,
+    }));
+  }
   for (const forbidden of ["resourceUrl", "sourceUrl", "cookie", "token", "selector:"]) {
     if (mediaRuntimeText.includes(forbidden) || leaseMethod.includes(forbidden)) findings.push(createLocalFinding({
       checkId: "browser-authority/authenticated-media-boundary",
@@ -187,13 +204,15 @@ export const inspectOpaqueAuthorityBoundary = (
     context, findings, lawId, authenticatedMediaRuntimePath,
   );
   const leaseManager = requireSource(context, findings, lawId, sourcePaths[5]);
+  const generatedImageCheckpoint = requireSource(context, findings, lawId, generatedImageCheckpointPath);
   const extensionActor = requireSource(context, findings, lawId, extensionActorPath);
   const extensionCrypto = requireSource(context, findings, lawId, extensionCryptoPath);
   const commandLogging = requireSource(context, findings, lawId, commandLoggingPath);
   const commandDiagnostic = requireSource(context, findings, lawId, commandDiagnosticPath);
   const frameDiagnostic = requireSource(context, findings, lawId, frameDiagnosticPath);
   if (!transport || !journal || !broker || !supervisor || !targetAuthority || !commandRuntime
-    || !authenticatedMediaRuntime || !leaseManager || !extensionActor || !extensionCrypto
+    || !authenticatedMediaRuntime || !leaseManager || !generatedImageCheckpoint
+    || !extensionActor || !extensionCrypto
     || !commandLogging || !commandDiagnostic || !frameDiagnostic) return;
   requireIdentifiers(broker, ["authorityRefHash", "certificateHash", "channelSessionHash", "artifactRef", "contentHash"], findings, lawId,
     "Public Browser authority and artifact status must expose opaque references and hashes.");
@@ -204,9 +223,8 @@ export const inspectOpaqueAuthorityBoundary = (
     [sourcePaths[7], journal],
     [sourcePaths[3], supervisor],
   ], findings, lawId);
-  inspectAuthenticatedMediaBoundary(
-    targetAuthority, commandRuntime, authenticatedMediaRuntime, leaseManager, findings, lawId,
-  );
+  inspectAuthenticatedMediaBoundary(targetAuthority, commandRuntime, authenticatedMediaRuntime,
+    leaseManager, generatedImageCheckpoint, findings, lawId);
   inspectClosedInvocationPayloadBoundary(
     { transport, extensionActor, extensionCrypto, journal, commandLogging, commandDiagnostic, frameDiagnostic },
     findings, lawId,

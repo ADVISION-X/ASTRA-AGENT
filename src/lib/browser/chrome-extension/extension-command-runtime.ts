@@ -41,7 +41,8 @@ export const executeRegisteredExtensionCommand = async (
   });
   if (command.kind === "authenticated-media") {
     return executeAuthenticatedMedia(
-      debuggerRuntime, target, command.assistantTurnId, command.semanticMediaId,
+      debuggerRuntime, target, command.canonicalConversationUrl, command.userTurnId,
+      command.semanticMediaId,
       lifecycle.assertCurrent,
     );
   }

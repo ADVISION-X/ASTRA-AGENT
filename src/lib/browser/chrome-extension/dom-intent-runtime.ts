@@ -21,7 +21,6 @@ type ValueIntent = Exclude<BrowserDomIntent, {
   kind: "document" | "selectExactGptConversation" | "observe" | "readExactAssistantTurn" | "find" | "click" | "hover" | "doubleClick" | "keypress";
 }>;
 type CurrentDocumentAssertion = () => void;
-type TargetTransitionPostcondition = () => Promise<void>;
 
 /** Executes the finite declarative DOM intent set without a script/eval surface. */
 const executeFindIntent = async (
@@ -232,7 +231,6 @@ export const executeRegisteredDomIntent = async (
   intent: BrowserDomIntent,
   assertCurrent: CurrentDocumentAssertion,
   expectedMainFrameLoaderId?: string,
-  targetTransitionPostcondition?: TargetTransitionPostcondition,
 ): Promise<unknown> => {
   assertCurrent();
   if (intent.kind === "selectExactGptConversation") throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
@@ -247,7 +245,7 @@ export const executeRegisteredDomIntent = async (
   }
   if (intent.kind === "find") return executeFindIntent(debuggerRuntime, target, intent);
   if (intent.kind === "click") {
-    return executeClickIntent(debuggerRuntime, target, intent, assertCurrent, targetTransitionPostcondition);
+    return executeClickIntent(debuggerRuntime, target, intent, assertCurrent);
   }
   if (intent.kind === "hover") return executeHoverIntent(debuggerRuntime, target, intent, assertCurrent);
   if (intent.kind === "doubleClick") return executeDoubleClickIntent(debuggerRuntime, target, intent, assertCurrent);

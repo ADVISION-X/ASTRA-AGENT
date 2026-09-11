@@ -2,6 +2,7 @@ import { governanceAssert as assert } from "../audit/shared/governance-exam-asse
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { Project } from "ts-morph";
 
 import {
   agentPluginCapabilityManifest, productionCatalogHash,
@@ -30,7 +31,10 @@ import {
 import { typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { assertProductionTaskRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
-import { runtimeManifestOwnershipDrift } from "../audit/domains/agent-production-runtime/inspector.js";
+import {
+  inspectAgentProductionRuntime,
+  runtimeManifestOwnershipDrift,
+} from "../audit/domains/agent-production-runtime/inspector.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import {
   HASH_A,
@@ -157,6 +161,24 @@ const deviceStatusWithAdmission = (
     write_receipts: [],
   }),
 }) as never;
+const deviceStatusWithoutAdmission = (jobId: string) => ({
+  request: async () => ({
+    schema_version: "xuanxue-ai-device-job-status.v6",
+    job_id: jobId,
+    status: "failed",
+    current_reason: null,
+    control_intent: {
+      schema_version: "xuanxue-ai-control-intent.v6", job_id: jobId,
+      control_epoch: 0, intent: "none", reason_code: null,
+    },
+    terminal_status: null,
+    terminal_payload_hash: null,
+    business_admission_receipt: null,
+    business_consumer_error: null,
+    accepted_attempt_count: 1,
+    write_receipts: [],
+  }),
+}) as never;
 const admissionVariants = [
   admissionReceipt(),
   admissionReceipt({
@@ -274,6 +296,20 @@ try {
     } as never, store.readTask(accepted.job_id)!), "completed");
     assert.equal(store.readTask(accepted.job_id)?.status, "completed");
   }
+  const pending = task({ jobId: "job:admission:pending",
+    productId: productionTask.product_id, actionId: productionTask.action_id,
+    materialRefs: productionTask.material_refs,
+    extra: { parameters: productionTask.parameters } });
+  const pendingIdentity = identityFor(pending);
+  const pendingResult = resultFor(pending, pendingIdentity);
+  store.acceptTask(pending, pendingIdentity, "attempt:pending");
+  store.stageResult(pending.job_id, pendingResult);
+  assert.equal(await reconcileBusinessAdmission({
+    store, session: deviceStatusWithoutAdmission(pending.job_id),
+  } as never, store.readTask(pending.job_id)!), "pending");
+  assert.deepEqual(store.readTask(pending.job_id)?.staged_result, pendingResult,
+    "absence of Website admission must preserve the staged result and await Website authority");
+  assert.equal(store.readTask(pending.job_id)?.current_reason, "BUSINESS_ADMISSION_PENDING");
   store.close();
 } finally {
   await rm(admissionTemporary, { recursive: true, force: true });
@@ -361,6 +397,12 @@ assert.equal(claimed.status, "failed");
 assert.equal(claimed.grant.accepted_attempt_count, 1);
 
 const runtimeSource = await readFile(new URL("../../src/lib/local-runtime/production/runtime-claim.ts", import.meta.url), "utf8");
+const runtimeStartupSource = await readFile(
+  new URL("../../src/lib/local-runtime/production/runtime-startup.ts", import.meta.url), "utf8",
+);
+const businessAdmissionSource = await readFile(
+  new URL("../../src/lib/local-runtime/production/runtime-business-admission.ts", import.meta.url), "utf8",
+);
 const permanentRevocationSource = await readFile(
   new URL("../../src/lib/local-runtime/production/runtime-permanent-revocation.ts", import.meta.url),
   "utf8",
@@ -393,6 +435,10 @@ const executeClaimSource = runtimeSource.slice(runtimeSource.indexOf("export con
 assert.match(storeSource, /attempt_failure_json=null,current_reason='LEASE_REGRANTED'/u);
 assert.doesNotMatch(executeClaimSource, /recoverAcceptedClaim|reconcileStaleFenceCheckpoint/u);
 assert.doesNotMatch(outboxSource, /recoverCheckpointPrefix|deliverReauthorizedStaleCheckpoint/u);
+assert.doesNotMatch(runtimeStartupSource, /PROCESS_RESTART_ATTEMPT_ENDED|endUnsentAttemptWrites/u);
+assert.doesNotMatch(runtimeSource, /ATTEMPT_ENDED:/u);
+assert.doesNotMatch(businessAdmissionSource, /discardStagedResult|ATTEMPT_ENDED/u);
+assert.doesNotMatch(storeSource, /discardStagedResult/u);
 
 const deletionSettlement = permanentRevocationSource;
 const noControlAbort = new AbortController();
@@ -422,8 +468,41 @@ assert.match(reconciliationSource, /currentReason\?\.code === "PUBLIC_KNOWLEDGE_
 assert.doesNotMatch(runtimeLoopsSource, /settleInactivePermanentAuthorizationRevocation/u);
 assert.doesNotMatch(runtimeLoopsSource, /BrowserQuarantine|reconcilePermanentlyRevokedTargetLocal/u);
 assert.doesNotMatch(runtimeLoopsSource, /flushOutbox|pendingOutbox\(\)|sendProductionOutboxWrite/u);
-assert.match(storeSource, /endUnsentAttemptWrites/u);
-assert.match(outboxSource, /PRODUCTION_ATTEMPT_ENDED/u);
+assert.match(storeSource, /supersedeUnsentWritesForWebsiteAttempt/u);
+assert.match(storeSource, /WEBSITE_ATTEMPT_REPLACED/u);
+assert.doesNotMatch(`${storeSource}\n${outboxSource}`, /ATTEMPT_ENDED|PRODUCTION_OUTBOX_ATTEMPT_ENDED/u);
+assert.match(outboxSource, /executionFailure\("failed", authority\.lastError\)/u);
+
+{
+  const project = new Project({ tsConfigFilePath: path.resolve("tsconfig.json") });
+  const outbox = project.getSourceFileOrThrow(path.resolve(
+    "src/lib/local-runtime/production/store-outbox.ts",
+  ));
+  outbox.replaceWithText(outbox.getFullText().replace(
+    'executionFailure("failed", authority.lastError)',
+    'executionFailure("failed", "PRODUCTION_OUTBOX_ATTEMPT_ENDED")',
+  ));
+  const findings: Parameters<typeof inspectAgentProductionRuntime>[1] = [];
+  inspectAgentProductionRuntime({
+    project,
+    sealedRoot: path.resolve("."),
+    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V52",
+    targetSet: { queryRef: "acceptance:runtime-lifecycle-mutant", count: 1 },
+    targetPaths: [],
+    lawRequirements: [],
+    planEntry: {
+      capabilityDomain: "agent-production-runtime",
+      manifestPath: "scripts/audit/domains/agent-production-runtime/manifest.json",
+      ownerInspectorPath: "scripts/audit/domains/agent-production-runtime/inspector.ts",
+      executionGroup: "domain",
+      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V52"],
+    },
+    generatedPlan: [],
+  }, findings);
+  assert.ok(findings.some((finding) =>
+    finding.checkId === "agent-production-runtime/no-local-business-lifecycle-adjudication"),
+  "an Outbox mutant that converts a delivery fact into attempt-ended must fail closed");
+}
 assert.match(outboxSource, /settlePermanentlyRevokedJob/u);
 assert.match(outboxSource, /set last_error=\? where instr\(path,\?\)>0/u);
 assert.doesNotMatch(outboxSource, /where path like \?/u);
@@ -496,7 +575,7 @@ for (const token of [
 ]) assert.ok(runtimeCoreLaw.forbidden.some((entry) => entry.includes(token)), token);
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V23",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V24",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"],
   locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",

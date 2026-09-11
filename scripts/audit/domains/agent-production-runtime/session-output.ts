@@ -45,25 +45,25 @@ const LAW_MODE_CLAUSES: Readonly<Record<string, Readonly<Partial<Record<Evidence
     "static.types": staticForbiddenClauses(0),
     "static.contract": staticClauses(0, 1),
   },
-  "LAW-AGENT-PRODUCTION-RUNTIME-005-V21": {
+  "LAW-AGENT-PRODUCTION-RUNTIME-005-V22": {
     "static.ast": staticForbiddenClauses(1, 3),
     "static.types": staticForbiddenClauses(1),
     "static.sql": staticClauses(0, 2),
   },
-  "LAW-AGENT-PRODUCTION-RUNTIME-006-V23": {
+  "LAW-AGENT-PRODUCTION-RUNTIME-006-V24": {
     "static.filesystem": staticForbiddenClauses(0),
     "static.ast": staticForbiddenClauses(0, 1, 2),
     "static.types": staticForbiddenClauses(0),
     "static.contract": staticClauses(0),
   },
-  "LAW-AGENT-PRODUCTION-RUNTIME-007-V23": {
+  "LAW-AGENT-PRODUCTION-RUNTIME-007-V24": {
     "static.filesystem": staticForbiddenClauses(0),
     "static.ast": staticForbiddenClauses(1),
     "static.types": staticForbiddenClauses(1),
     "static.contract": staticForbiddenClauses(1),
     "static.dependency": staticClauses(0),
   },
-  "LAW-AGENT-PRODUCTION-RUNTIME-008-V24": {
+  "LAW-AGENT-PRODUCTION-RUNTIME-008-V25": {
     "static.filesystem": staticForbiddenClauses(0),
     "static.ast": staticForbiddenClauses(0),
     "static.contract": staticForbiddenClauses(0, 1, 2),

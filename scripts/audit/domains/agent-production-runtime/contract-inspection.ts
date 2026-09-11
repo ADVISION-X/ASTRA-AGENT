@@ -9,9 +9,9 @@ import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 const LAWS = {
   core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V52", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V5",
   route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V22", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V22",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V21", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V23",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V23",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V24",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V22", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V24",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V24",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V25",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
@@ -154,7 +154,7 @@ const inspectStorageAndLawDenominator = (context: InspectorContext, findings: In
   const fields = new Set(storageType?.getDescendantsOfKind(SyntaxKind.PropertySignature)
     .map((property) => property.getName()) ?? []);
   if (!["database_task_count", "outbox_responsibility_count", "pending_outbox_count",
-    "active_lease_count", "directory_count", "owned_directory_count", "orphan_directory_count",
+    "directory_count", "owned_directory_count", "orphan_directory_count",
     "orphan_bytes", "orphan_job_ids"]
     .every((field) => fields.has(field))) {
     findings.push(finding(LAWS.storage, "agent-production-runtime/storage-contract", PATHS.inventory,

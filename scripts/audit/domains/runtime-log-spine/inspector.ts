@@ -188,7 +188,7 @@ const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] =>
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "durable-state-authorities",
     "src/lib/local-runtime/production/store-foundation.ts", [
-      "production_checkpoints", "production_leases", "failure_json", "production-outbox:",
+      "production_steps", "production_checkpoints", "failure_json", "production-outbox:",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "durable-state-authorities",
     "src/lib/local-runtime/production/store-authority-reader.ts", [

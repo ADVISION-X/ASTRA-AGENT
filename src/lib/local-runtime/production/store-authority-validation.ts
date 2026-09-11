@@ -7,7 +7,6 @@ import {
 } from "./contracts.js";
 import {
   isSerializedTerminalFailure,
-  type ProductionLeaseAuthority,
   type ProductionOutboxAuthority,
   type ProductionOutboxAuthorityRow,
   type ProductionOutboxWrite,
@@ -20,33 +19,6 @@ export const persistedHash = (value: unknown): value is ProductionHash =>
 export const persistedDate = (value: unknown): value is string =>
   typeof value === "string" && Number.isFinite(Date.parse(value));
 const authorityCorrupt = (): never => { throw new SyntaxError("PRODUCTION_AUTHORITY_ROW_CORRUPT"); };
-
-export type ProductionLeaseAuthorityRow = Readonly<{
-  job_id: string;
-  task_attempt_id: string;
-  attempt_id: string;
-  lease_version: number;
-  fence_hash: ProductionHash;
-  state: ProductionLeaseAuthority["state"];
-  expires_at: string | null;
-  updated_at: string;
-}>;
-
-export const productionLeaseAuthorityFromRow = (
-  row: ProductionLeaseAuthorityRow,
-  expectedJobId: string,
-): ProductionLeaseAuthority => {
-  if (row.job_id !== expectedJobId || !row.attempt_id || row.attempt_id !== row.task_attempt_id
-    || !Number.isSafeInteger(row.lease_version) || row.lease_version < 1 || !persistedHash(row.fence_hash)
-    || !["absent", "active", "stale", "lost"].includes(row.state) || !persistedDate(row.updated_at)
-    || (row.state === "active" ? !persistedDate(row.expires_at) : row.expires_at !== null)) {
-    return authorityCorrupt();
-  }
-  return Object.freeze({
-    jobId: row.job_id, attemptId: row.attempt_id, leaseVersion: row.lease_version,
-    fenceHash: row.fence_hash, state: row.state, expiresAt: row.expires_at,
-  });
-};
 
 const durableIdentityValid = (record: StoredProductionTask): boolean => {
   const identity = record.identity;

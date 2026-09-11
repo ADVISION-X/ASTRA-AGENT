@@ -8,7 +8,6 @@ import { exerciseAuthenticatedMedia } from "./local-browser-authenticated-media-
 import { exerciseLocalBrowserDomIntent } from "./local-browser-dom-intent-support.js";
 import { emitLocalBrowserAutoPairingProofs } from "./local-browser-proof-support.js";
 import { browserDomFacts } from "./local-browser-dom-runtime-fixture.js";
-import { exerciseForkFailureChildSurvival } from "./local-browser-fork-failure-support.js";
 import { exerciseAutomaticPairing } from "./local-browser-auto-pairing-support.js";
 
 type TabActivatedListener = Parameters<ExtensionChromeApi["tabs"]["onActivated"]["addListener"]>[0];
@@ -27,7 +26,6 @@ let getTargetsFailure: Error | null = null;
 let frameTreeFailureTabId: number | null = null;
 let attachFailureTabId: number | null = null;
 let evaluateRuntime: ((expression: string) => Promise<unknown>) | null = null;
-let forkTransitionClick = false;
 let basicPointerClick = false;
 let basicPointerDestinationUrl = "https://chatgpt.com/c/interaction-ready";
 let basicPointerResult: unknown = { x: 5, y: 5 };
@@ -50,11 +48,11 @@ const targetFrames: Array<Readonly<{ kind: "TARGET_CLAIM" | "TARGET_REVOKE"; bod
 const targetFailures: Array<Readonly<Record<string, unknown>>> = [];
 const targetFailureOrder: string[] = [];
 
-const sendForkTransitionCommand = (
+const sendPointerCommand = (
   method: string,
   parameters: Readonly<Record<string, unknown>> | undefined,
 ): Readonly<Record<string, unknown>> | null => {
-  if (!forkTransitionClick && !basicPointerClick) return null;
+  if (!basicPointerClick) return null;
   if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
   if (method === "DOM.resolveNode") return { object: { objectId: "candidate-root" } };
   if (method === "Runtime.callFunctionOn" && String(parameters?.functionDeclaration ?? "").includes("spec.output")) {
@@ -74,16 +72,8 @@ const sendForkTransitionCommand = (
     activeTabId = 99;
     targetTabActivated({ tabId: activeTabId, windowId: 1 });
   }
-  if (basicPointerClick && !forkTransitionClick && parameters?.type === "mouseReleased") {
+  if (parameters?.type === "mouseReleased") {
     mainFrameUrlByTab.set(3, basicPointerDestinationUrl);
-  }
-  if (forkTransitionClick && parameters?.type === "mouseReleased") {
-    mainFrameUrlByTab.set(4, "https://chatgpt.com/c/fork-child");
-    debuggerTargets = [
-      ...debuggerTargets.filter((candidate) => candidate.tabId !== 4),
-      { attached: false, id: "debug-target-4", tabId: 4, title: "Fork child",
-        type: "page", url: "https://chatgpt.com/c/fork-child" },
-    ];
   }
   return {};
 };
@@ -92,8 +82,8 @@ const sendTargetChromeCommand: ExtensionChromeApi["debugger"]["sendCommand"] = a
   { tabId }, method, parameters,
 ) => {
   debuggerMethods.push(method);
-  const forkResult = sendForkTransitionCommand(method, parameters);
-  if (forkResult) return forkResult;
+  const pointerResult = sendPointerCommand(method, parameters);
+  if (pointerResult) return pointerResult;
   if (method === "Runtime.evaluate" && evaluateRuntime) {
     return { result: { value: await evaluateRuntime(String(parameters?.expression)) } };
   }
@@ -173,9 +163,6 @@ const targetChromeApi: ExtensionChromeApi = {
 };
 
 
-for (const stage of ["child-attach", "child-frame", "claim", "source-detach", "source-remove"] as const) {
-  await exerciseForkFailureChildSurvival(stage);
-}
 const targetAuthority = new ExtensionTargetAuthority(
   targetChromeApi,
   async (kind, body) => { targetFrames.push({ kind, body }); if (kind === "TARGET_REVOKE") targetFailureOrder.push(kind); },
@@ -443,49 +430,8 @@ assert.notEqual(targetFrames.at(-1)?.body.documentRef, firstDocumentRef,
   "a fresh job must publish a new Document instead of inheriting residual composer attachments");
 assert.equal(targetFrames.at(-1)?.body.claimOrigin, "https://chatgpt.com",
   "the debugger-owned main frame may publish only the exact admitted origin");
-const beforeForkClaim = targetFrames.at(-1)!;
-const beforeForkNavigateCount = debuggerMethods.filter((method) => method === "Page.navigate").length;
-forkTransitionClick = true;
-const forkTarget = targetAuthority.resolve(
-  String(beforeForkClaim.body.targetRef), String(beforeForkClaim.body.documentRef),
-);
-const forkReceipt = await targetAuthority.executeRegisteredCommand({
-  kind: "dom-intent",
-  intent: {
-    kind: "click", selector: "[role='menuitem'][tabindex='0']", expectedTextEquals: "分支到新聊天",
-    expectedMatches: 1,
-    postClickTargetTransition: {
-      kind: "gpt-fork-successor",
-      sourceCheckpoint: {
-        assistantTurnId: "conversation-turn-2",
-        canonicalConversationUrl: "https://chatgpt.com/c/exact-recovery",
-        promptHash: `sha256:${"6".repeat(64)}`,
-        responseHash: `sha256:${"7".repeat(64)}`,
-        turnMarker: "[GRASSEYE:fork]",
-      },
-      timeoutMs: 5_000,
-    },
-  },
-}, forkTarget, "mutation") as Readonly<Record<string, unknown>>;
-forkTransitionClick = false;
-assert.equal(forkReceipt.postconditionVerified, true);
-assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length,
-  beforeForkNavigateCount, "fork takeover must not navigate the source production tab");
-assert.ok((attachedTabs as readonly number[]).includes(4)
-  && !(detachedTabs as readonly number[]).includes(4)
-  && !(removedTabs as readonly number[]).includes(4),
-  "the verified fork child must remain attached as the one production page");
-assert.ok((detachedTabs as readonly number[]).includes(3)
-  && (removedTabs as readonly number[]).includes(3),
-  "the superseded source page must be detached and removed");
-assert.equal(targetFrames.at(-1)?.body.targetRef, beforeForkClaim.body.targetRef,
-  "fork normalization must retain the original targetRef");
-assert.equal(Number(targetFrames.at(-1)?.body.navigationEpoch), Number(beforeForkClaim.body.navigationEpoch) + 1,
-  "fork normalization must publish exactly one successor Document");
-assert.deepEqual(debuggerTargets.map((candidate) => candidate.tabId), [4],
-  "fork normalization must retain only the successor production tab before replying");
 targetFailureOrder.length = 0;
-debuggerDetach({ tabId: 4 }, "target_closed");
+debuggerDetach({ tabId: 3 }, "target_closed");
 await new Promise<void>((resolve) => globalThis.setTimeout(resolve, 0));
 assert.deepEqual(targetFailureOrder, ["DIAGNOSTIC", "TARGET_REVOKE"]);
 assert.deepEqual(targetFailures.at(-1), {

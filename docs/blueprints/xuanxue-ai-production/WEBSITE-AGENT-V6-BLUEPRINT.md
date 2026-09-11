@@ -1,9 +1,9 @@
-# production-runtime 生产级施工图 V32
+# production-runtime 生产级施工图 V34
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v33",
+  "blueprintId": "agent-production-runtime-v34",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
@@ -11,10 +11,10 @@
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V5",
     "LAW-AGENT-PRODUCTION-RUNTIME-003-V22",
     "LAW-AGENT-PRODUCTION-RUNTIME-004-V22",
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V21",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V23",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V23",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V24"
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V22",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V24",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V24",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V25"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json",
@@ -200,17 +200,16 @@ AGENT 不建立通用 checkpoint 或第二恢复状态机。Browser 唯一 WAL �
 
 ## 6. SQLite 与 task-owned storage
 
-Runtime 唯一数据库只保留三表：
+Runtime 唯一数据库只保留两表：
 
 - production_tasks；
-- production_outbox；
-- production_leases。
+- production_outbox。
 
 `production_tasks.identity_json` 只保存当前 accepted attempt 的 `plugin_id + plugin_version + skill_hash + request_hash`，不保存 Catalog hash、checkpoint schema 或执行位置。GPT consultation 不新增 Runtime 表；唯一 Browser WAL 只在回答 checkpoint 完成后，于同一 provider-effect 行一次保存 consultation identity hash、source task hash、加密 canonical conversation URL 与 checkpoint hash，下一轮用 Website 声明的 direct predecessor 匹配该 source task。唯一 Browser FIFO 串行化 Product session。不复制 Website 父子关系，不保存半完成 frontier、private base、reservation、fork、业务恢复决定或 Product workflow。
 
-首次安装只有在零张 production_* 表时才可建立当前三表 schema 并设置 WAL。已有任一表后，普通构造与启动只读验证精确表、列、主键、唯一索引、外键、WAL、integrity_check、foreign_key_check 与数据不变量。Runtime 不因本次施工新增表或迁移入口；Browser WAL 只做自身现役 schema 的单向扩展且不保留旧新双读写。数据库缺失、不可读、损坏、查询异常、记录缺失与 hash mismatch 必须分别保留。
+首次安装只有在零张 production_* 表时才可建立当前两表 schema 并设置 WAL。已有任一表后，普通构造与启动只读验证精确表、列、主键、唯一索引、外键、WAL、integrity_check、foreign_key_check 与数据不变量。`production_leases` 与任何 Website lease/fence 镜像必须物理不存在；Runtime 只消费当前 Website grant/renew，并以进程内单调预算停止过期执行。Runtime 不因本次施工新增表或迁移入口；Browser WAL 只做自身现役 schema 的单向扩展且不保留旧新双读写。数据库缺失、不可读、损坏、查询异常、记录缺失与 hash mismatch 必须分别保留。
 
-普通启动对 Runtime DB、Outbox、lease 和 task-owned plugin directory 做唯一 read-only inventory。输出稳定的目录总数、owned 数、orphan 数与 orphan bytes；读取失败、结构多义或 orphan 存在时阻断新 claim，但不自动移动、修复或删除，不建立目录台账、隐藏 tombstone、第二索引、第二表、maintenance worker 或删除协议。
+普通启动对 Runtime DB、Outbox 和 task-owned plugin directory 做唯一 read-only inventory。输出稳定的目录总数、owned 数、orphan 数与 orphan bytes；读取失败、结构多义或 orphan 存在时阻断新 claim，但不复制 Website lease/fence，不自动移动、修复或删除，不建立目录台账、隐藏 tombstone、第二索引、第二表、maintenance worker 或删除协议。
 
 物理删除不是普通启动职责。每一次删除都必须另获针对本次精确 target 的明确授权，并在执行前逐项读回：
 
@@ -250,7 +249,7 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 4. base、Bazi primary、review admission receipt 的互斥字段与完整 canonical hash 全部闭合，未闭合时本地 completed 增量为零。
 5. credential 失败类别分别得到稳定脱敏 typed code，且 claim/Provider mutation 增量为零。
 6. Runtime-owned source 对 Product Plugin 的 direct/re-export/dynamic/side-effect import 为零；Product source 对 Runtime 私有 production module 的 import 为零；唯一 architecture-owned Catalog 与 Runtime Manifest publisher 只以冻结纯数据 snapshot 连接，provider v3 Manifest 的全部规范字段精确一致，当前 Plugin identity/version 与 canonical catalog hash 忠实反映全部 Product Profile/Skill/执行语义，startup、Runtime inspector 不包含 Product frontier、reconstruction、Prompt、Child 顺序或 Product reason 特判。
-7. Runtime 三表、精确列/主键/唯一索引/外键、WAL、integrity_check、foreign_key_check 和数据不变量可重复读回；`production_gpt_consultations` 与旧 `production_continuations` 均不存在；Browser WAL 同一 effect 行只含 consultation identity hash、source task hash、加密 locator 与完成 checkpoint hash，private base、reservation、fork、第二 lane 与 Product checkpoint 消费者为零；Runtime 普通启动迁移与删除增量为零。
+7. Runtime 两表、精确列/主键/唯一索引/外键、WAL、integrity_check、foreign_key_check 和数据不变量可重复读回；`production_leases`、`production_gpt_consultations` 与旧 `production_continuations` 均不存在；Browser WAL 同一 effect 行只含执行 fence、consultation identity hash、source task hash、加密 locator 与完成 checkpoint hash，private base、reservation、fork、第二 lane 与 Product checkpoint 消费者为零；Runtime 普通启动迁移与删除增量为零。
 8. authority 数据库缺失、不可读、损坏/查询异常、记录缺失、hash mismatch 分别可观察并失败关闭。
 9. storage inventory 在未变数据上重复得到同一目录/字节分母；dry-run 写入、移动与删除增量为零。
 10. 任一物理删除都存在本次精确 target 的单独授权、全部前置事实和删除后逐 target absence/preservation readback。

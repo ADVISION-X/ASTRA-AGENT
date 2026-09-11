@@ -134,12 +134,6 @@ const localRows = (input: Readonly<{
     } : null, reason_code: task?.current_reason ?? "LOCAL_TASK_ABSENT",
     observed_at: task?.updated_at ?? observedAt, freshness: snapshotFreshness,
     authority_ref: `production-task:${jobId}` }));
-    const lease = input.store.readLease(jobId);
-    rows.push(row({ axis: "lease_fence", owner: "agent-production-runtime", current_value: lease,
-    reason_code: lease?.state ?? "LEASE_ABSENT", observed_at: observedAt,
-    freshness: lease?.state === "active" && lease.expiresAt
-      ? { kind: "ttl", fresh_until: lease.expiresAt } : snapshotFreshness,
-    authority_ref: `production-lease:${jobId}` }));
   }
   const outbox = jobId ? input.store.outboxAuthorities().filter((entry) => entry.jobId === jobId) : [];
   rows.push(row({ axis: "outbox", owner: "outbox", current_value: jobId ? outbox : {

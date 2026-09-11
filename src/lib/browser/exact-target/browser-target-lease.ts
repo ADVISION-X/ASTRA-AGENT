@@ -74,19 +74,20 @@ export type BrowserTargetLease = Readonly<{
     approvedArtifacts: readonly BrowserApprovedArtifactRef[];
   }>): Promise<void>;
   readAuthenticatedMedia(input: Readonly<{
-    assistantTurnId: string;
+    canonicalConversationUrl: string;
+    userTurnId: string;
     semanticMediaId: "gpt-generated-image-main";
   }>): Promise<Readonly<{
     authorityTargetHash: `sha256:${string}`;
     authorityDocumentHash: `sha256:${string}`;
     assistantTurnId: string;
+    precedingUserTurnId: string;
+    currentUrl: string;
     semanticMediaId: "gpt-generated-image-main";
     bytesBase64: string;
     sha256: `sha256:${string}`;
     sizeBytes: number;
     mediaType: `image/${string}`;
-    width: number;
-    height: number;
   }>>;
   wait(input: Readonly<{ durationMs: number }>): Promise<void>;
   park(input: Readonly<{

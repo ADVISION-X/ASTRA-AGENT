@@ -52,8 +52,9 @@ export const fixtureLease = (
     async attachFile() {},
     async readAuthenticatedMedia(input) { return {
       authorityTargetHash: HASH, authorityDocumentHash: HASH,
-      assistantTurnId: input.assistantTurnId, semanticMediaId: input.semanticMediaId,
-      bytesBase64: "AQ==", sha256: HASH, sizeBytes: 1, mediaType: "image/png", width: 1, height: 1,
+      assistantTurnId: "conversation-turn-2", precedingUserTurnId: input.userTurnId,
+      currentUrl: input.canonicalConversationUrl, semanticMediaId: input.semanticMediaId,
+      bytesBase64: "AQ==", sha256: HASH, sizeBytes: 1, mediaType: "image/png",
     }; },
     async wait() {}, async park() {}, close,
     async resolvePendingMutation() { return 0; },

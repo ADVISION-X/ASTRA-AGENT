@@ -52,7 +52,6 @@ master_verdict: NOT_OWNED
 | C-01：26/27 分母不一致 | Browser 不维护 Child 名单，只引用总工单 27 | CLOSED |
 | C-02：旧 law/Blueprint/commit | 重绑 Browser 003 V20 / 004 V19 / 006 V14、GPT V23、Browser Blueprint V13、GPT Blueprint V15、Runtime Blueprint V18 与施工 baseline | CLOSED |
 | C-03：两个工单互相越界施工 | 本工单只施工 Browser Owner，子能力由另一任务施工 | CLOSED |
-| C-04：fork 单/双 Child | 服从现役两 Child；Browser 只提供单动作原语 | CLOSED_FOR_BROWSER |
 | C-05：第二状态和错误词典 | 删除旧设计，复用现役 outcome/cause/WAL | CLOSED |
 | C-06：REJECTED 一律算动作 | 按资格拒绝与动作后失败分开 | CLOSED_IN_IMPLEMENTATION |
 | C-07：layout/semantic/actionability 混合 | 字段已拆分，并返回固定、不泄密的候选淘汰原因 | CLOSED_IN_IMPLEMENTATION |

@@ -65,7 +65,6 @@ Browser 只拥有页面机械能力，不拥有任何 Child 的语义合同。
 | C-01 | 旧 Browser 文档仍按 26 个 Child | 退役旧分母；只引用总工单的 27，Browser 不维护第二名单 |
 | C-02 | 旧工单绑定过期 law、Blueprint 与 Git baseline | 绑定现役 Browser 003 V20 / 004 V19 / 006 V14、GPT V23、Browser Blueprint V13、GPT Blueprint V15、Runtime Blueprint V18 和本次施工基线 |
 | C-03 | Browser 工单和子能力工单互相越界施工 | 按 Owner 分开施工；Browser 工单只建设 Browser，最终仍只有一个 quality verdict |
-| C-04 | fork 仍按一个 Child 或未决接口描述 | 采用现役两 Child 裁定；Browser 只执行两条互相独立的 typed mutation |
 | C-05 | 旧方案另造 Browser 公开状态、错误码和调度字段 | 全部取消；复用现役 typed cause、Browser outcome、WAL 和 Runtime 状态 |
 | C-06 | 旧工单把所有 REJECTED 都解释成动作已发生 | 资格拒绝为 `REJECTED + mutation_outcome=no`；动作后失败保留真实输入事实 |
 | C-07 | `aria-hidden`、`inert` 被混进 layout/visible | 拆成机械渲染事实、语义隐藏事实和动作资格事实 |

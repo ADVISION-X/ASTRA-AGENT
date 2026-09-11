@@ -143,7 +143,6 @@ export class ProductionRuntimeStore extends ProductionStoreOutbox {
       task_ids: Object.freeze(this.taskAuthorities().map((record) => record.task.job_id)),
       outbox_responsibility_count: count("select count(*) as count from production_outbox"),
       pending_outbox_count: count("select count(*) as count from production_outbox where sent_at is null"),
-      active_lease_count: count("select count(*) as count from production_leases where state='active'"),
     });
   }
 

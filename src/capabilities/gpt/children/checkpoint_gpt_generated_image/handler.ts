@@ -11,16 +11,17 @@ import {
   success,
   type GptChildHandler,
 } from "../../web/child-handler.js";
-import {
-  projectExactAssistantTurn,
-  readExactAssistantTurn,
-} from "../../web/gpt-dom-observation.js";
 import { canonicalGptConversationUrl } from "../../web/contracts/target-document.contract.js";
 
 const hash = (value: string | Buffer): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
-const renderGeneratedImage = async (original: Buffer): Promise<Buffer> => {
+const renderGeneratedImage = async (original: Buffer) => {
+  const originalMetadata = await sharp(original, { failOn: "error", limitInputPixels: 100_000_000 }).metadata();
+  if (!Number.isSafeInteger(originalMetadata.width) || !Number.isSafeInteger(originalMetadata.height)
+    || (originalMetadata.width ?? 0) < 1 || (originalMetadata.height ?? 0) < 1) {
+    throw executionFailure("failed", "GPT_GENERATED_IMAGE_MECHANICAL_IDENTITY_INVALID");
+  }
   const webp = await sharp(original, { failOn: "error", limitInputPixels: 100_000_000 })
     .rotate().resize(1200, 630, { fit: "cover", position: "centre" })
     .webp({ quality: 90, effort: 6 }).toBuffer();
@@ -29,7 +30,7 @@ const renderGeneratedImage = async (original: Buffer): Promise<Buffer> => {
     || metadata.exif || metadata.icc || metadata.iptc || metadata.xmp) {
     throw executionFailure("failed", "GPT_GENERATED_IMAGE_MECHANICAL_IDENTITY_INVALID");
   }
-  return webp;
+  return { webp, originalWidth: originalMetadata.width!, originalHeight: originalMetadata.height! };
 };
 
 export const checkpointGptGeneratedImageHandler:
@@ -44,25 +45,18 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
   }
   const browser = requireBrowser(context);
   const deadline = Date.now() + probeBudgetMs;
-  let observed: Awaited<ReturnType<typeof readExactAssistantTurn>> | null = null;
   let media: Awaited<ReturnType<typeof browser.readAuthenticatedMedia>>;
   await browser.executeDomIntent({ kind: "selectExactGptConversation", canonicalConversationUrl: conversationUrl });
   for (;;) {
     if (Date.now() >= deadline) throw executionFailure("failed", "GPT_IMAGE_TIMEOUT");
     try {
-      observed = await readExactAssistantTurn(browser, userTurnId, conversationUrl);
+      media = await browser.readAuthenticatedMedia({ canonicalConversationUrl: conversationUrl, userTurnId,
+        semanticMediaId: "gpt-generated-image-main" });
+      break;
     } catch (error) {
-      if (failureCode(error) !== "BROWSER_DOM_CANDIDATE_MISSING") throw error;
-      observed = null;
-    }
-    if (observed) {
-      try {
-        media = await browser.readAuthenticatedMedia({ assistantTurnId: observed.assistantTurnId,
-          semanticMediaId: "gpt-generated-image-main" });
-        break;
-      } catch (error) {
-        if (failureCode(error) !== "BROWSER_AUTHENTICATED_MEDIA_ABSENT") throw error;
-      }
+      const code = failureCode(error);
+      if (code !== "BROWSER_AUTHENTICATED_MEDIA_USER_TURN_ABSENT"
+        && code !== "BROWSER_AUTHENTICATED_MEDIA_IMAGE_SOURCE_ABSENT") throw error;
     }
     if (!context.yieldForProviderProbe) {
       throw executionFailure("failed", "GPT_PROVIDER_PROBE_GATE_REQUIRED");
@@ -71,29 +65,34 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
       throw executionFailure("failed", "GPT_IMAGE_TIMEOUT");
     }
   }
-  if (!observed) throw executionFailure("failed", "GPT_IMAGE_TIMEOUT");
-  const observedFacts = projectExactAssistantTurn(observed);
-  if (!observedFacts.authorityRefHashes.includes(media.authorityTargetHash)
-    || !observedFacts.authorityRefHashes.includes(media.authorityDocumentHash)) {
-    throw executionFailure("failed", "GPT_GENERATED_IMAGE_DOCUMENT_MISMATCH");
-  }
   const original = Buffer.from(media.bytesBase64, "base64");
   if (hash(original) !== media.sha256 || original.byteLength !== media.sizeBytes) {
     throw executionFailure("failed", "GPT_GENERATED_IMAGE_AUTHENTICATED_BYTES_INVALID");
   }
-  const webp = await renderGeneratedImage(original);
+  let rendered: Awaited<ReturnType<typeof renderGeneratedImage>>;
+  try {
+    rendered = await renderGeneratedImage(original);
+  } catch (error) {
+    if (failureCode(error) !== "UNKNOWN_FAILURE") throw error;
+    throw executionFailure("failed", "GPT_GENERATED_IMAGE_DECODE_INVALID", { cause: error });
+  }
+  const { webp } = rendered;
   const imageHash = hash(webp);
   return success({
-    value: { assistantTurnId: observed.assistantTurnId, semanticMediaId: "gpt-generated-image-main", mediaHash: media.sha256,
+    value: { assistantTurnId: media.assistantTurnId, semanticMediaId: "gpt-generated-image-main", mediaHash: media.sha256,
       authorityTargetHash: media.authorityTargetHash, authorityDocumentHash: media.authorityDocumentHash,
       canonicalConversationUrl: conversationUrl, turnMarker,
       artifactId: `airesult_${imageHash.slice(7, 39)}`,
       originalBytes: new Uint8Array(original), webpBytes: new Uint8Array(webp), sha256: imageHash,
       originalSha256: media.sha256, originalSizeBytes: original.byteLength,
-      originalMediaType: media.mediaType, originalWidth: media.width, originalHeight: media.height,
+      originalMediaType: media.mediaType, originalWidth: rendered.originalWidth,
+      originalHeight: rendered.originalHeight,
       bytes: webp.byteLength, mediaType: "image/webp", width: 1200, height: 630,
       },
-    ...declaredFacts({ ...observedFacts, decision: "DONE",
+    ...declaredFacts({ decision: "DONE", factResultIds: Object.freeze([media.sha256]),
+      candidateCardinality: Object.freeze({ raw: 1, eligible: 1 }),
+      authorityRefHashes: Object.freeze([media.authorityTargetHash, media.authorityDocumentHash]),
+      observationRevisionHash: null,
       mutationOutcome: "no", browserFact: null, nativeFailureCode: null }),
   });
 };

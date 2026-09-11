@@ -9,7 +9,6 @@ import { createForensicsPersistenceAbilityGroupFromStorage } from "../../src/cap
 import { ProductionExecutor } from "../../src/lib/local-runtime/production/executor.js";
 import { terminalSpanFailure } from "../../src/lib/local-runtime/production/runtime-logging.js";
 import { startProductionRuntime } from "../../src/lib/local-runtime/production/runtime.js";
-import { reconcileTaskRecord } from "../../src/lib/local-runtime/production/runtime-startup.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import {
   RuntimeFailureImpact,
@@ -45,12 +44,20 @@ try {
     plugin_id: "bazi-ai-full-analysis", plugin_version: 1,
     skill_hash: HASH_B, request_hash: acceptedTask.request_hash,
   }, "attempt:first-checkpoint-crash");
-  assert.equal(reconcileTaskRecord({ store } as never, store.readTask(acceptedTask.job_id)!), true,
-    "restart must retire an accepted attempt without requiring a checkpoint");
-  assert.equal(store.readTask(acceptedTask.job_id)?.current_reason, "PROCESS_RESTART_ATTEMPT_ENDED");
+  const pendingWriteId = "restart-preserves-current-attempt-write";
+  store.enqueue({
+    idempotency_key: pendingWriteId,
+    kind: "artifact",
+    path: `/internal/ai-production/v6/jobs/${acceptedTask.job_id}/artifacts/result`,
+    method: "PUT",
+    headers: {},
+    body: Buffer.from("result"),
+  });
+  assert.equal(store.readTask(acceptedTask.job_id)?.current_reason, "LEASE_GRANTED");
+  assert.equal(store.readOutboxAuthority(pendingWriteId)?.state, "pending",
+    "restart must preserve an unsent current-attempt write until Website authority decides its fate");
   store.markExecuting(acceptedTask.job_id);
-  assert.equal(reconcileTaskRecord({ store } as never, store.readTask(acceptedTask.job_id)!), true,
-    "an interrupted executing attempt must not block a future fresh attempt");
+  assert.equal(store.readTask(acceptedTask.job_id)?.current_reason, "EXECUTING");
 
   const revokedTask = task({
     jobId: "job:released-permanent-revocation", productId: "bazi_ai_full_analysis", actionId: "produce",
@@ -63,12 +70,8 @@ try {
   store.recordAttemptFailure(revokedTask.job_id, revokedAttemptId,
     serializeTerminalFailure(executionFailure("failed", "PROVIDER_REJECTED")));
   store.settlePermanentlyRevokedJob(revokedTask.job_id, "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
-  store.recordLease({
-    jobId: revokedTask.job_id, attemptId: revokedAttemptId, leaseVersion: 1,
-    fenceHash: HASH_A, state: "absent", expiresAt: null,
-  });
-  assert.equal(reconcileTaskRecord({ store } as never, store.readTask(revokedTask.job_id)!), true,
-    "a permanently revoked attempt must not require checkpoint recovery");
+  assert.equal(store.readTask(revokedTask.job_id)?.current_reason,
+    "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
 
   const ordinaryFailure = task({
     jobId: "job:ordinary-absent-lease", productId: "bazi_ai_full_analysis", actionId: "produce",
@@ -81,12 +84,7 @@ try {
   store.markExecuting(ordinaryFailure.job_id);
   store.recordAttemptFailure(ordinaryFailure.job_id, ordinaryAttemptId,
     serializeTerminalFailure(executionFailure("failed", "PROVIDER_REJECTED")));
-  store.recordLease({
-    jobId: ordinaryFailure.job_id, attemptId: ordinaryAttemptId, leaseVersion: 1,
-    fenceHash: HASH_A, state: "absent", expiresAt: null,
-  });
-  assert.equal(reconcileTaskRecord({ store } as never, store.readTask(ordinaryFailure.job_id)!), true,
-    "an ended attempt must not block a future Website-issued attempt");
+  assert.equal(store.readTask(ordinaryFailure.job_id)?.current_reason, "PROVIDER_REJECTED");
   store.close();
 } finally {
   await rm(firstCheckpointCrashTemporary, { recursive: true, force: true });
@@ -424,11 +422,11 @@ const runtimeSource = await readFile(
 assert.doesNotMatch(runtimeSource, /handleClaimFailure/u);
 assert.match(runtimeSource, /error instanceof ProductionRuntimeBoundaryError/u);
 assert.doesNotMatch(runtimeSource, /checkpointSeq|latestCheckpoint|\/checkpoints/u);
-assert.match(runtimeSource, /ATTEMPT_ENDED:/u);
+assert.doesNotMatch(runtimeSource, /ATTEMPT_ENDED:/u);
 
 for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V4",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V5",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:credential:${evidenceMode}`,
@@ -437,7 +435,7 @@ for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V21",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V24",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:storage-inventory:${evidenceMode}`,

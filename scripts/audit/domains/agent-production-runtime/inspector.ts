@@ -15,10 +15,10 @@ const LAWS = {
   credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V5",
   route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V22",
   admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V22",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V21",
-  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V23",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V23",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V24",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V22",
+  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V24",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V24",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V25",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
@@ -26,6 +26,9 @@ const PATHS = {
   startup: `${ROOT}/runtime-startup.ts`,
   runtimeState: `${ROOT}/runtime-state.ts`,
   runtimeClaim: `${ROOT}/runtime-claim.ts`,
+  businessAdmission: `${ROOT}/runtime-business-admission.ts`,
+  taskState: `${ROOT}/store-task-state.ts`,
+  outbox: `${ROOT}/store-outbox.ts`,
   credential: `${ROOT}/credential.ts`,
   contracts: `${ROOT}/contracts.ts`,
   routePolicy: `${ROOT}/route-policy.ts`,
@@ -142,6 +145,9 @@ const inspectCoreAst = (context: InspectorContext, findings: InspectorFinding[])
   const startup = sourceFor(context, PATHS.startup);
   const state = sourceFor(context, PATHS.runtimeState);
   const claim = sourceFor(context, PATHS.runtimeClaim);
+  const businessAdmission = sourceFor(context, PATHS.businessAdmission);
+  const taskState = sourceFor(context, PATHS.taskState);
+  const outbox = sourceFor(context, PATHS.outbox);
   const startupTokens = stringLiterals(startup);
   for (const token of ["GPT_CONTINUATION_CURRENT_CHECKPOINT_MISSING", "GPT_CONTINUATION_FRONTIER_INVALID"]) {
     if (startupTokens.has(token)) findings.push(finding(LAWS.core, "static.ast",
@@ -163,6 +169,34 @@ const inspectCoreAst = (context: InspectorContext, findings: InspectorFinding[])
     declaration.getNamedImports().some((entry) => entry.getName() === "rm"))) {
     findings.push(finding(LAWS.storage, "static.ast", "agent-production-runtime/no-automatic-storage-delete",
       PATHS.runtimeClaim, "Business admission still triggers automatic task storage deletion."));
+  }
+  const startupReconciliation = startup?.getFunction("reconcileTaskRecord");
+  const startupReconciliationCalls = new Set(startupReconciliation?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .map((call) => call.getExpression().getText()) ?? []);
+  const boundaryFailure = variableDeclaration(claim, "handleRuntimeBoundaryFailure")?.getInitializer();
+  const admissionCalls = new Set(businessAdmission?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .map((call) => call.getExpression().getText()) ?? []);
+  const taskStateClass = taskState?.getClass("ProductionStoreTaskState");
+  const websiteAttemptSupersession = taskStateClass?.getMethod("supersedeUnsentWritesForWebsiteAttempt");
+  const websiteAttemptSupersessionCalls = taskStateClass?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((call) => call.getExpression().getText() === "this.supersedeUnsentWritesForWebsiteAttempt") ?? [];
+  const deliverOutbox = outbox?.getClass("ProductionStoreOutbox")?.getMethod("deliverOutbox");
+  const forbiddenLifecycleVerdict = `${taskState?.getFullText() ?? ""}\n${outbox?.getFullText() ?? ""}`;
+  if (startupReconciliationCalls.has("state.store.endUnsentAttemptWrites")
+    || startupReconciliationCalls.has("state.store.setCurrentReason")
+    || startupReconciliation?.getText().includes("PROCESS_RESTART_ATTEMPT_ENDED")
+    || boundaryFailure?.getText().includes("ATTEMPT_ENDED")
+    || admissionCalls.has("state.store.discardStagedResult")
+    || admissionCalls.has("state.store.endUnsentAttemptWrites")
+    || taskStateClass?.getMethod("discardStagedResult")
+    || /ATTEMPT_ENDED|PRODUCTION_OUTBOX_ATTEMPT_ENDED/u.test(forbiddenLifecycleVerdict)
+    || !websiteAttemptSupersession?.hasModifier(SyntaxKind.PrivateKeyword)
+    || websiteAttemptSupersessionCalls.length !== 1
+    || websiteAttemptSupersessionCalls[0]?.getFirstAncestorByKind(SyntaxKind.MethodDeclaration)?.getName() !== "acceptTask"
+    || !deliverOutbox?.getText().includes('executionFailure("failed", authority.lastError)')) {
+    findings.push(finding(LAWS.core, "static.ast",
+      "agent-production-runtime/no-local-business-lifecycle-adjudication", PATHS.runtimeClaim,
+      "Runtime still converts restart, local failure, or absent Website admission into an ended-attempt decision."));
   }
 };
 
@@ -412,7 +446,7 @@ export function inspectAgentSql(
   const tableShapes = Node.isObjectLiteralExpression(tableShapesInitializer)
     ? tableShapesInitializer
     : tableShapesInitializer?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
-  for (const table of ["production_tasks", "production_outbox", "production_leases"]) {
+  for (const table of ["production_tasks", "production_outbox"]) {
     if (!schemaSql.includes(`create table ${table}(`) || !tableShapes?.getProperty(table)) {
       findings.push(finding(LAWS.database, "static.sql", "agent-production-runtime/schema-table",
       PATHS.store, `Exact schema declaration is missing ${table}.`));
@@ -420,7 +454,6 @@ export function inspectAgentSql(
   }
   const schemaRequirements = [
     "check(status in ('failed','completed'))", "check((status='failed'",
-    "state text not null check(state in ('absent','active','stale','lost'))", "on delete restrict",
   ];
   if (!schemaRequirements.every((requirement) => schemaSql.includes(requirement))) {
     findings.push(finding(LAWS.database, "static.sql", "agent-production-runtime/schema-constraints",
@@ -439,13 +472,10 @@ export function inspectAgentSql(
   }
   const stateInvariant = store?.getVariableDeclaration("stateInvariantFailureCount")
     ?.getInitializer()?.getText().toLowerCase().replace(/\s+/gu, " ") ?? "";
-  const authorityInvariants = [
-    "t.current_attempt_id=l.attempt_id",
-    "l.state!='active' and l.expires_at is not null",
-  ];
+  const authorityInvariants = ["current_attempt_id=''", "response_hash is not null and sent_at is null"];
   if (!authorityInvariants.every((token) => stateInvariant.includes(token))) {
     findings.push(finding(LAWS.database, "static.sql", "agent-production-runtime/data-authority-invariants",
-      PATHS.store, "Startup SQL does not reject invalid lease shape and attempt ownership."));
+      PATHS.store, "Startup SQL does not reject invalid task identity or Outbox receipt state."));
   }
 }
 

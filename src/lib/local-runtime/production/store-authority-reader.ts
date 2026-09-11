@@ -4,17 +4,11 @@ import Database from "better-sqlite3";
 
 import { executionFailure } from "../../execution-failure.js";
 import type { ProductionHash } from "./contracts.js";
-import {
-  productionLeaseAuthorityFromRow,
-  productionOutboxAuthorityFromRow,
-  productionTaskRowValid,
-  type ProductionLeaseAuthorityRow,
-} from "./store-authority-validation.js";
+import { productionOutboxAuthorityFromRow, productionTaskRowValid } from "./store-authority-validation.js";
 import {
   resolveProductionAuthority,
   storedTaskFromRow,
   type ProductionAuthorityReader,
-  type ProductionLeaseAuthority,
   type ProductionOutboxAuthority,
   type ProductionOutboxAuthorityRow,
   type TaskRow,
@@ -32,15 +26,6 @@ const readTask = (database: Database.Database, jobId: string) => {
   return productionTaskRowValid(row, record) ? record : authorityCorrupt();
 };
 
-const readLease = (database: Database.Database, jobId: string): ProductionLeaseAuthority | null => {
-  const row = database.prepare(`select l.job_id,l.attempt_id,l.lease_version,l.fence_hash,l.state,l.expires_at,
-    l.updated_at,t.current_attempt_id as task_attempt_id from production_leases l
-    join production_tasks t on t.job_id=l.job_id where l.job_id=?`).get(jobId) as
-    ProductionLeaseAuthorityRow | undefined;
-  if (!row) return null;
-  return productionLeaseAuthorityFromRow(row, jobId);
-};
-
 const readOutbox = (
   database: Database.Database,
   idempotencyKey: string,
@@ -54,12 +39,11 @@ const readOutbox = (
 
 const createReader = (database: Database.Database): ProductionAuthorityReader => ({
   readTask: (jobId) => readTask(database, jobId),
-  readLease: (jobId) => readLease(database, jobId),
   readOutboxAuthority: (key) => readOutbox(database, key),
 });
 
 const productionAuthorityRef = (value: string): boolean => [
-  "production-task:", "production-lease:", "production-outbox:",
+  "production-task:", "production-outbox:",
 ].some((prefix) => value.startsWith(prefix));
 
 const sqliteCorrupt = (error: unknown): boolean => {
