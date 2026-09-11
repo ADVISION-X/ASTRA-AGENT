@@ -47,6 +47,7 @@ export type ProviderEffectHistoryRow = Readonly<{
   payload_hash: `sha256:${string}`;
   state: "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED";
   mutation_outcome: BrowserMutationOutcome | null;
+  physical_input_count: 0 | 1 | 2;
 }>;
 
 export const resolveStoredBrowserMutationAuthority = (

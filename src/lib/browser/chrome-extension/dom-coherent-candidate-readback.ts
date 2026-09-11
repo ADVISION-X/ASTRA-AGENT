@@ -54,14 +54,7 @@ export const coherentPointerFromValue = (value: unknown): BrowserPointerAction =
     || typeof point.y !== "number" || !Number.isFinite(point.y)) {
     throw new Error("BROWSER_DOM_READ_INVALID");
   }
-  const baseline = point.baselineUserTurnId;
-  if (baseline !== undefined && baseline !== null
-    && (typeof baseline !== "string" || !/^conversation-turn-[1-9][0-9]*$/u.test(baseline)
-      || Number(baseline.slice("conversation-turn-".length)) % 2 === 0)) {
-    throw new Error("BROWSER_DOM_READ_INVALID");
-  }
-  return Object.freeze({ x: point.x, y: point.y,
-    ...(baseline === undefined ? {} : { baselineUserTurnId: baseline as string | null }) });
+  return Object.freeze({ x: point.x, y: point.y });
 };
 
 const bindSatisfiedObservation = async (

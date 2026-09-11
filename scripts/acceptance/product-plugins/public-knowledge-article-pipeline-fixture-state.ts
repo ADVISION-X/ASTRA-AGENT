@@ -15,6 +15,8 @@ export type SeoHarness = {
   completed: ProductPluginOutput | null;
   remainingFailures: number;
   physicalSubmitDispatches: number;
+  submitReadbackQueries: SeoCall[];
+  confirmedSubmitSteps: Set<string>;
   generatedImageUploadCalls: number;
   materials: SharedExecutionContext["materials"];
   providerNames: readonly string[];
@@ -51,7 +53,8 @@ export const createHarness = (actionId: SeoAction, failureAt?: SeoFailure): SeoH
   const materials = fixtureMaterials(actionId);
   return {
     actionId, calls: [], completed: null, remainingFailures: failureAt ? 1 : 0,
-    physicalSubmitDispatches: 0, generatedImageUploadCalls: 0, materials,
+    physicalSubmitDispatches: 0, submitReadbackQueries: [], confirmedSubmitSteps: new Set(),
+    generatedImageUploadCalls: 0, materials,
     providerNames: materials.map((material) => gptAttachmentProviderDisplayName(
       material.display_name, `job-${actionId}`, material.material_id,
     )),

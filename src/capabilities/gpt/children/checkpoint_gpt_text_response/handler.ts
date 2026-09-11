@@ -6,7 +6,7 @@ import {
   readExactAssistantTurn,
 } from "../../web/gpt-dom-observation.js";
 import { canonicalGptConversationUrl } from "../../web/contracts/target-document.contract.js";
-import { adjacentGptAssistantTurnId, readCurrentGptDocumentUrl } from "./exact-response.js";
+import { adjacentGptAssistantTurnId } from "./exact-response.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 
@@ -23,14 +23,8 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
     if (!Number.isSafeInteger(probeBudgetMs) || probeBudgetMs < 1 || probeBudgetMs > 3_600_000) throw executionFailure("failed", "GPT_RESPONSE_PROBE_BUDGET_INVALID");
     const browser = requireBrowser(context);
     const deadline = Date.now() + probeBudgetMs;
+    await browser.executeDomIntent({ kind: "selectExactGptConversation", canonicalConversationUrl: conversationUrl });
     while (Date.now() < deadline) {
-      if (await readCurrentGptDocumentUrl(browser) !== conversationUrl) {
-        if (!context.selectExactProviderConversation) {
-          throw executionFailure("failed", "GPT_PROVIDER_CONVERSATION_GATE_REQUIRED");
-        }
-        if (await context.selectExactProviderConversation(conversationUrl, deadline) === "deadline") break;
-        continue;
-      }
       let assistant: Awaited<ReturnType<typeof readExactAssistantTurn>> | null = null;
       try {
         assistant = await readExactAssistantTurn(browser, assistantTurnId, {

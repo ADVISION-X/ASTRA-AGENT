@@ -23,7 +23,7 @@ import type { ProductGptCallInput, ProductGptChildResult, ProductGptTools } from
 import type { GptHash } from "./contract.js";
 import { persistGptEvidenceArtifacts } from "./evidence-artifacts.js";
 import { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
-import { executeProductionGptAtomicCall } from "./production-atomic-call.js";
+import { executeProductionGptAtomicCall, productionGptAtomicIdentity } from "./production-atomic-call.js";
 import type {
   GptEvidenceStorePort,
   GptProductionBrowserAuthority,
@@ -81,6 +81,21 @@ export class ProductionGptChildTools {
         jobId: input.jobId,
         attemptId: input.attemptId,
         execute,
+        readConfirmedSubmit: async (
+          call: ProductGptCallInput<"submit_exact_gpt_turn_once"> & Readonly<{ sessionKey: string }>,
+        ): Promise<ProductGptChildResult<"submit_exact_gpt_turn_once"> | null> => {
+          this.assertExecutionActive(input);
+          const intent = this.intentFor(input, call);
+          const active = await browsers.browserFor(call.sessionKey, call.productStepId, call.callId);
+          if (!active.facade.readAtomicStepOutcome(productionGptAtomicIdentity(
+            intent as GptAnyChildCapabilityIntent, input.resultRevision,
+          ))) {
+            return null;
+          }
+          return this.executeOne<"submit_exact_gpt_turn_once">(
+            input, browsers, call, input.abortSignal, true,
+          );
+        },
         acquireContinuation: async (
           resumeInput: Parameters<ProductGptTools["acquireContinuation"]>[0],
         ) => {
@@ -233,6 +248,7 @@ export class ProductionGptChildTools {
     browsers: ProductionGptBrowserLifecycle,
     call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
     signal: AbortSignal = execution.abortSignal,
+    priorEffectKnown = false,
   ): Promise<ProductGptChildResult<K>> {
     const intent = this.intentFor(execution, call);
     const contract = GPT_CHILD_CAPABILITY_CONTRACTS[call.child];
@@ -247,7 +263,7 @@ export class ProductionGptChildTools {
         ? await browsers.browserFor(call.sessionKey, call.productStepId, call.callId)
         : undefined;
       const browser = browserCall?.facade;
-      this.assertProviderTurnBudget(execution, call);
+      if (!priorEffectKnown) this.assertProviderTurnBudget(execution, call);
       const atomic = await executeProductionGptAtomicCall({
         dataDir: this.dataDir,
         gpt: this.gpt,
@@ -255,6 +271,7 @@ export class ProductionGptChildTools {
         intent: intent as GptAnyChildCapabilityIntent,
         browserCall,
         signal,
+        resultRevision: execution.resultRevision,
       });
       result = atomic.result;
       resolveDispatched = atomic.resolveDispatched;

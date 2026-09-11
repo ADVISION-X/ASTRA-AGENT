@@ -7,6 +7,7 @@ import { productionRoutePolicy } from "../../../src/lib/local-runtime/production
 import { browserProviderEffectIdentityHash } from
   "../../../src/lib/browser/exact-target/browser-command-postcondition.js";
 import { hashCanonical } from "../../../src/mediator/product-plugin-contract.js";
+import { GPT_CHILD_CAPABILITY_CONTRACTS } from "../../../src/capabilities/gpt/contract.js";
 import { parsePublicKnowledgeArticle, parsePublicKnowledgeResearch } from "../../../src/plugins/public-knowledge-article-pipeline/result-contract.js";
 import {
   exerciseSeoAttachmentReconcileFailure,
@@ -39,6 +40,10 @@ const continuedImage = [...profile, "write_exact_gpt_prompt",
   "submit_exact_gpt_turn_once", "checkpoint_gpt_generated_image"] as const;
 
 assert.equal(plugin.pluginVersion, 25);
+assert.equal(GPT_CHILD_CAPABILITY_CONTRACTS.attach_approved_gpt_files_once.replayPolicy,
+  "target-local-per-generation", "attachment upload is attempt/current-Document preparation");
+assert.equal(GPT_CHILD_CAPABILITY_CONTRACTS.submit_exact_gpt_turn_once.replayPolicy,
+  "provider-effect-once", "only submit is a cross-attempt Provider effect");
 const source = readFileSync("src/plugins/public-knowledge-article-pipeline/index.ts", "utf8");
 const turnContractSource = readFileSync(
   "src/plugins/public-knowledge-article-pipeline/seo-turn-contract.ts", "utf8",
@@ -126,7 +131,9 @@ assert.deepEqual(nextAttemptSubmits.map((call) => call.input), submits.map((call
   "the complete submit input, including Prompt marker and attachment names, must be byte-stable across attempts");
 for (const [index, call] of submits.entries()) {
   const nextCall = nextAttemptSubmits[index]!;
-  const identity = (attemptId: string, input: typeof call.input): `sha256:${string}` =>
+  const identity = (attemptId: string, revision: number, input: typeof call.input): `sha256:${string}` => {
+    const requestHash = hashCanonical([revision, hashCanonical(input)]);
+    return (
     browserProviderEffectIdentityHash({
     jobId: "job-produce_article",
     attemptId,
@@ -135,10 +142,13 @@ for (const [index, call] of submits.entries()) {
     productStepId: call.productStepId,
     callId: call.callId,
     childCapabilityId: call.child,
-    inputHash: hashCanonical(input),
-    } as never, hashCanonical({ child: call.child, input }));
-  assert.equal(identity("attempt-1", call.input), identity("attempt-2", nextCall.input),
+    inputHash: requestHash,
+    } as never, hashCanonical({ child: call.child, input })));
+  };
+  assert.equal(identity("attempt-1", 0, call.input), identity("attempt-2", 0, nextCall.input),
     `submit ${index + 1} must retain one Browser provider-effect identity across attempts`);
+  assert.notEqual(identity("attempt-1", 0, call.input), identity("attempt-2", 1, nextCall.input),
+    `submit ${index + 1} must receive a new identity only for a new result revision`);
 }
 
 const attachmentBlocked = await exerciseSeoAttachmentReconcileFailure(plugin);
@@ -156,6 +166,26 @@ assert.equal(promptBlocked.calls.at(-1)?.child, "write_exact_gpt_prompt");
 assert.equal(promptBlocked.calls.some((call) => call.child === "submit_exact_gpt_turn_once"), false,
   "submit must not start after exact Prompt readback fails");
 assert.equal(promptBlocked.physicalSubmitDispatches, 0);
+assert.equal(promptBlocked.calls.filter((call) => call.child === "attach_approved_gpt_files_once").length, 1,
+  "the old attempt must have performed its own attachment preparation before the pre-submit failure");
+assert.equal(nextAttempt.calls.filter((call) => call.child === "attach_approved_gpt_files_once").length, 1,
+  "a new attempt for the same job must upload the approved attachment again");
+
+{
+  const recovered = createHarness("produce_article");
+  recovered.confirmedSubmitSteps = new Set([
+    "corpus_research", "article_synthesis", "article_image_generation",
+  ]);
+  await plugin.execute(seoTask("produce_article"), createContext(recovered, "proceed"));
+  assert.deepEqual(recovered.submitReadbackQueries.map((call) => call.productStepId), [
+    "corpus_research", "article_synthesis", "article_image_generation",
+  ]);
+  assert.deepEqual(recovered.calls.map((call) => call.child), [
+    "checkpoint_gpt_text_response", "checkpoint_gpt_text_response", "checkpoint_gpt_generated_image",
+  ], "confirmed submit readback must skip fresh, profile, attachment, prompt and submit actions");
+  assert.equal(recovered.physicalSubmitDispatches, 0);
+  assert(recovered.completed, "zero-input confirmed readback must still assemble one Product result");
+}
 
 await assert.rejects(
   () => exerciseSeoFlow(plugin, "accuracy_challenge", "proceed", {

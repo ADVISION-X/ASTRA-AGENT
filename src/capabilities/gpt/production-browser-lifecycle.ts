@@ -144,32 +144,6 @@ export class ProductionGptBrowserLifecycle {
     return "reobserve";
   }
 
-  public async selectExactProviderConversation(
-    active: ProductionGptBrowserCall,
-    childCapabilityId: GptChildCapabilityId,
-    canonicalConversationUrl: string,
-    probeDeadlineAt: number,
-  ): Promise<"selected" | "deadline"> {
-    if (childCapabilityId !== "checkpoint_gpt_text_response"
-      && childCapabilityId !== "checkpoint_gpt_generated_image") {
-      throw executionFailure("failed", "GPT_PROVIDER_CONVERSATION_CHILD_INVALID");
-    }
-    if (typeof canonicalConversationUrl !== "string" || canonicalConversationUrl.length === 0
-      || !Number.isFinite(probeDeadlineAt)) {
-      throw executionFailure("failed", "GPT_PROVIDER_CONVERSATION_INPUT_INVALID");
-    }
-    if (this.execution.abortSignal.aborted) {
-      throw executionFailure("failed", "GPT_RESPONSE_WAIT_ABORTED");
-    }
-    if (active.browser.pendingMutationCount() > 0) {
-      throw executionFailure("failed", "BROWSER_NORMAL_PROVIDER_WAIT_WITH_PENDING_MUTATION");
-    }
-    const remaining = Math.floor(probeDeadlineAt - Date.now());
-    if (remaining < 1 || remaining > 3_600_000) return "deadline";
-    await active.browser.executeDomIntent({ kind: "selectExactGptConversation", canonicalConversationUrl });
-    return "selected";
-  }
-
   private emitProviderWaitLog(
     active: ProductionGptBrowserCall,
     productStepId: string,

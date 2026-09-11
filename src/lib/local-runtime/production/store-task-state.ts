@@ -75,7 +75,7 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
           throw executionFailure("failed", "PRODUCTION_ACCEPTED_ATTEMPT_IDENTITY_CONFLICT");
         }
         this.database.prepare(`update production_tasks
-          set current_reason='LEASE_REGRANTED',updated_at=?
+          set attempt_failure_json=null,current_reason='LEASE_REGRANTED',updated_at=?
           where job_id=? and status='failed' and current_attempt_id=?`).run(
           now(), task.job_id, attemptId,
         );

@@ -36,6 +36,16 @@ const waitForNextBoundedObservation = async (deadline: number): Promise<void> =>
   await new Promise<void>((resolve) => globalThis.setTimeout(resolve, Math.min(50, remaining)));
 };
 
+const exactOutgoingTurnVerified = (
+  observation: Awaited<ReturnType<typeof executeCoherentObservation>>,
+  expected: NonNullable<ClickIntent["preClickExactOutgoingTurn"]>,
+): boolean => {
+  const matches = observation.queries[0]?.matches;
+  const match = Array.isArray(matches) ? matches[0] : undefined;
+  if (!match || typeof match !== "object" || Array.isArray(match)) return false;
+  return (match as Readonly<Record<string, unknown>>).exactGptUserPromptHash === expected.expectedPromptHash;
+};
+
 export const matchReceiptEvidence = (readback: MatchReadback): Readonly<Record<string, unknown>> => ({
   postconditionRawCount: readback.rawCount,
   postconditionEligibleCount: readback.eligibleCount,
@@ -112,6 +122,7 @@ const waitForObservation = async (
   target: ExtensionExactTarget,
   postcondition: NonNullable<ClickIntent["postClickObservation"]>,
   timeoutMs?: number,
+  exactOutgoing?: NonNullable<ClickIntent["preClickExactOutgoingTurn"]>,
 ): Promise<ObservationReadback> => {
   const timeout = timeoutMs ?? postcondition.timeoutMs ?? 1;
   await runtime.awaitPageReadPermission();
@@ -122,11 +133,14 @@ const waitForObservation = async (
     const queries = observation.queries as BrowserDomObservationPacketV2["queries"];
     const mismatchIndex = queries.findIndex((query, index) =>
       query.eligibleCount !== postcondition.queries[index]!.expectedEligibleCount);
-    const verified = mismatchIndex === -1;
-    const mismatch = verified ? undefined : queries[mismatchIndex];
-    const expected = verified ? undefined : postcondition.queries[mismatchIndex]!.expectedEligibleCount;
+    const verified = mismatchIndex === -1
+      && (exactOutgoing === undefined || exactOutgoingTurnVerified(observation, exactOutgoing));
+    const evidenceIndex = mismatchIndex === -1 ? 0 : mismatchIndex;
+    const mismatch = verified ? undefined : queries[evidenceIndex];
+    const expected = verified ? undefined : postcondition.queries[evidenceIndex]!.expectedEligibleCount;
     const firstRejection = mismatch?.rejections[0]?.reasons[0];
-    const nativeCauseCode = verified ? null
+    const nativeCauseCode = verified ? null : exactOutgoing !== undefined
+      ? "BROWSER_DOM_CANDIDATE_MISSING" as const
       : mismatch!.eligibleCount > expected! ? "BROWSER_DOM_CANDIDATE_AMBIGUOUS" as const
         : firstRejection ?? "BROWSER_DOM_CANDIDATE_MISSING";
     const readback = Object.freeze({ verified, observation, nativeCauseCode });
@@ -205,7 +219,8 @@ export const verifyClickPostcondition = async (
       verified: match.verified, match,
     }))
     : intent.postClickObservation !== undefined
-      ? waitForObservation(runtime, target, intent.postClickObservation, timeoutMs).then((observation) => ({
+      ? waitForObservation(runtime, target, intent.postClickObservation, timeoutMs,
+        intent.preClickExactOutgoingTurn).then((observation) => ({
         verified: observation.verified, observation,
       }))
       : { verified: await waitForUrl(runtime, target, intent.postClickUrl!, timeoutMs) };

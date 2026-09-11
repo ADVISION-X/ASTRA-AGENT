@@ -197,10 +197,13 @@ export class BrowserMutationStore {
     }
     this.database.transaction(() => {
       if (input.effectScope === "provider_effect") this.assertProviderEffectHistory(input);
+      const reusableNoInput = input.effectScope === "provider_effect"
+        ? "and not (state='REJECTED' and mutation_outcome='no' and physical_input_count=0)" : "";
       const exact = this.database.prepare(
         `select action_ordinal from browser_mutations
          where job_id=? and owner_plugin_id=? and plugin_version=?
-           and exact_call_identity_hash=? and state in ('DISPATCHED','CONFIRMED','REJECTED') limit 1`,
+           and exact_call_identity_hash=? and state in ('DISPATCHED','CONFIRMED','REJECTED')
+           ${reusableNoInput} limit 1`,
       ).get(input.jobId, input.ownerPluginId, input.pluginVersion,
         input.exactCallIdentityHash) as { action_ordinal: number } | undefined;
       if (exact) {
@@ -252,13 +255,15 @@ export class BrowserMutationStore {
     const rows = this.database.prepare(
       `select logical_mutation_id,owner_plugin_id,plugin_version,job_id,attempt_id,
               product_step_id,call_id,child_capability_id,effect_scope,request_hash,payload_hash,
-              state,mutation_outcome
+              state,mutation_outcome,physical_input_count
        from browser_mutations
        where job_id=? and logical_mutation_id=?
          and state in ('PREPARED','DISPATCHED','CONFIRMED','REJECTED')
        order by command_id`,
     ).all(input.jobId, input.logicalMutationId) as readonly ProviderEffectHistoryRow[];
-    if (rows.length === 0) return;
+    if (rows.length === 0 || rows.every((row) => row.state === "REJECTED"
+      && row.mutation_outcome === "no" && row.physical_input_count === 0
+      && row.attempt_id !== input.attemptId)) return;
     if (rows.some((row) => !this.providerEffectIdentityMatches(row, input))) {
       throw new Error("BROWSER_PROVIDER_EFFECT_HISTORY_AMBIGUOUS");
     }
@@ -442,12 +447,16 @@ export class BrowserMutationStore {
   }>): BrowserAtomicStepOutcome | null {
     const targetClause = input.effectScope === "target_local" ? "and target_ref=?" : "";
     const attemptClause = input.effectScope === "target_local" ? "and attempt_id=?" : "";
+    const reusableNoInputClause = input.effectScope === "provider_effect"
+      ? "and not (state='REJECTED' and mutation_outcome='no' and physical_input_count=0 and attempt_id<>?)"
+      : "";
     const parameters = [
       input.jobId,
       ...(input.effectScope === "target_local" ? [input.attemptId] : []),
       input.ownerPluginId, input.pluginVersion,
       input.exactCallIdentityHash, input.effectScope,
       ...(input.effectScope === "target_local" ? [input.targetRef] : []),
+      ...(input.effectScope === "provider_effect" ? [input.attemptId] : []),
     ];
     const rows = this.database.prepare(
       `select command_id,target_ref,document_ref,state,mutation_outcome,reason,native_cause_code,
@@ -456,7 +465,7 @@ export class BrowserMutationStore {
        from browser_mutations
          where job_id=? ${attemptClause} and owner_plugin_id=? and plugin_version=?
          and exact_call_identity_hash=? and effect_scope=?
-         ${targetClause} and state in ('DISPATCHED','CONFIRMED','REJECTED')
+         ${targetClause} and state in ('DISPATCHED','CONFIRMED','REJECTED') ${reusableNoInputClause}
        order by updated_at desc,command_id desc limit 2`,
     ).all(...parameters) as ReadonlyArray<{
       command_id: string;

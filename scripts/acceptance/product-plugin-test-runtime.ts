@@ -180,6 +180,7 @@ const createGptFixture = (
 ): SharedExecutionContext["gpt"] => ({
   jobId: fixture.task.job_id,
   attemptId: "attempt-1",
+  readConfirmedSubmit: async () => null,
   acquireContinuation: async (input) => {
     state.continuationAcquires.push(input);
     return Object.freeze({

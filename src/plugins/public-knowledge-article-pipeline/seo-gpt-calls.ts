@@ -60,9 +60,17 @@ const uploadedAttachmentFiles = (value: unknown, code: string): readonly SeoUplo
     evidenceRefs.push(...result.artifactRefs);
     return result;
   };
+  const readConfirmedSubmit = async (
+    input: Extract<SeoCall, { child: "submit_exact_gpt_turn_once" }>,
+  ): Promise<SeoConfirmedSubmit | null> => {
+    const result = await context.gpt.readConfirmedSubmit({ ...input, sessionKey });
+    if (result) evidenceRefs.push(...result.artifactRefs);
+    return result;
+  };
   return Object.freeze({
     evidenceRefs: () => Object.freeze([...evidenceRefs]),
     execute,
+    readConfirmedSubmit,
   });
 };
 
@@ -88,6 +96,7 @@ export type SeoTextTurnInput = Readonly<{
   marker: string;
   files: readonly SeoUploadedAttachment[];
   ordinals: readonly [number, number, number, number, number, number];
+  prepare(): Promise<void>;
 }>;
 
  const checkpointSubmittedTextTurn = async (
@@ -137,6 +146,11 @@ const executeTextSubmit = async (
   turnSubmit: Extract<SeoCall, { child: "submit_exact_gpt_turn_once" }>,
 ): Promise<SeoConfirmedSubmit> => {
   return executeAndReadConfirmedSubmit({
+    read: () => input.flow.readConfirmedSubmit(turnSubmit),
+    prepare: async () => {
+      await input.prepare();
+      await prepareTextDraft(input);
+    },
     execute: () => input.flow.execute({ sessionKey: "", ...turnSubmit }) as Promise<SeoConfirmedSubmit>,
   });
 };
@@ -144,7 +158,6 @@ const executeTextSubmit = async (
 export const submitTextTurn = async (input: SeoTextTurnInput): Promise<SeoTurnCheckpoint> => {
   const promptHash = textHash(input.prompt);
   const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: input.ordinals[2], input: { files: input.files, promptHash } } as const;
-  await prepareTextDraft(input);
   const confirmedSubmit = await executeTextSubmit(input, turnSubmit);
   return checkpointSubmittedTextTurn(input, promptHash, confirmedSubmit);
 };

@@ -50,6 +50,19 @@ try {
   store.prepare(first);
   store.markDispatched(first.commandId);
   store.markConfirmed(first.commandId, hash("terminal-proof"), "confirmed", terminalPayload);
+  const attachmentPreparation = (attemptId: string, generation: number): BrowserMutationIdentity => ({
+    ...identity(attemptId), commandId: `attachment:${attemptId}`,
+    logicalMutationId: hash(`attachment:${attemptId}:${generation}`),
+    exactCallIdentityHash: hash(`attachment-call:${attemptId}:${generation}`),
+    childCapabilityId: "attach_approved_gpt_files_once", effectScope: "target_local",
+  });
+  const firstAttachment = attachmentPreparation("attempt:1", 1);
+  store.prepare(firstAttachment);
+  store.markDispatched(firstAttachment.commandId);
+  store.markConfirmed(firstAttachment.commandId, hash("attachment-1"), "confirmed", null);
+  const secondAttachment = attachmentPreparation("attempt:2", 2);
+  assert.doesNotThrow(() => store.prepare(secondAttachment),
+    "a different attempt must receive its own target-local attachment preparation");
   assert.throws(() => store.prepare({ ...first, commandId: "command:attempt:1:again" }),
     /BROWSER_PROVIDER_EFFECT_REPLAY_FORBIDDEN|BROWSER_EXACT_CALL_REPLAY_FORBIDDEN/u,
     "one provider effect may dispatch only once inside an attempt");
@@ -110,6 +123,28 @@ try {
   }), /BROWSER_CONTINUATION_BINDING_INVALID/u, "a completed checkpoint cannot be rebound");
   assert.doesNotThrow(() => restarted.prepare(identity("attempt:2", 1)),
     "a Website-authorized new result revision receives a new provider effect");
+  const rejectedNoInput = identity("attempt:1", 2);
+  restarted.prepare(rejectedNoInput);
+  restarted.markDispatched(rejectedNoInput.commandId);
+  restarted.markRejected(rejectedNoInput.commandId, hash("no-input"), "no", "BROWSER_DOM_READ_INVALID");
+  const noInputOutcome = (attemptId: string) => restarted.readAtomicStepOutcome({
+    jobId: rejectedNoInput.jobId, attemptId, ownerPluginId: rejectedNoInput.ownerPluginId,
+    pluginVersion: rejectedNoInput.pluginVersion,
+    exactCallIdentityHash: rejectedNoInput.exactCallIdentityHash,
+    actionOrdinal: rejectedNoInput.actionOrdinal, targetRef: `target:${attemptId}`,
+    effectScope: "provider_effect",
+  });
+  assert.equal(noInputOutcome("attempt:1")?.mutationOutcome, "no",
+    "the same attempt must retain its no-input rejection instead of self-retrying");
+  assert.equal(noInputOutcome("attempt:2"), null,
+    "a Website-authorized new attempt must not be blocked by an older zero-input rejection");
+  const retriedNoInput = identity("attempt:2", 2);
+  assert.doesNotThrow(() => restarted.prepare(retriedNoInput),
+    "the new attempt may prepare the same provider effect after proven zero physical input");
+  restarted.markDispatched(retriedNoInput.commandId);
+  restarted.markConfirmed(retriedNoInput.commandId, hash("retried-terminal"), "confirmed", terminalPayload);
+  assert.equal(noInputOutcome("attempt:3")?.state, "confirmed",
+    "a consumed provider effect must block every later attempt");
   restarted.close();
 } finally {
   await rm(root, { recursive: true, force: true });

@@ -76,12 +76,16 @@ try {
     ...coherentClick,
     preClickExactOutgoingTurn: {
       composerSelector: "composer", composerFormSelector: "form", attachmentSelector: "attachment",
-      latestUserTurnSelector: coherentClick.postClickObservation.queries[0]!.selector,
+      userTurnSelector: coherentClick.postClickObservation.queries[0]!.selector,
       expectedPromptHash: `sha256:${"a".repeat(64)}`, expectedAttachmentLabels: [],
     },
     postClickObservation: { ...coherentClick.postClickObservation,
       queries: [{ ...coherentClick.postClickObservation.queries[0]!,
-        fields: ["testId", "exactGptUserPromptHash"] }] },
+        fields: ["testId", "exactGptUserPromptHash"], latestGptUserTurn: true }, {
+        queryId: "empty-composer",
+        selector: "composer[contenteditable='true']:has(> p[data-empty-paragraph='true'] > br.ProseMirror-trailingBreak)",
+        maxMatches: 1, fields: [], expectedEligibleCount: 1,
+      }] },
   }).kind, "click",
   "the exact outgoing-turn click may return its new rendered prompt hash in the same packet");
   assert.throws(() => assertBrowserDomIntent({

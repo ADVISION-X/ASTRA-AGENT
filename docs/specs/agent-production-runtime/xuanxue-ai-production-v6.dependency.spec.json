@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "specId": "agent-production-runtime.xuanxue-ai-production-v6-dependency",
   "status": "active",
-  "version": 23,
+  "version": 24,
   "owner": "agent-production-runtime",
   "lawIds": [
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V51",
@@ -13,6 +13,6 @@
   "contract": {
     "contractId": "ai-acceptance.xuanxue-ai-production-v6",
     "providerRepo": "ADVISION-X/xuanxue-web",
-    "version": 23
+    "version": 24
   }
 }

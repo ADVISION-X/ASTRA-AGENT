@@ -158,6 +158,12 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
       node, candidateIndex, facts: browserMechanicalFacts(node, false)
     }));
   };
+  const latestGptUserTurn = (nodes) => nodes.reduce((latest, node) => {
+    const match = /^conversation-turn-([1-9][0-9]*)$/.exec(node.getAttribute("data-testid") || "");
+    if (!match) return latest;
+    const ordinal = Number(match[1]);
+    return latest === null || ordinal > latest.ordinal ? { node, ordinal } : latest;
+  }, null)?.node;
   const observeQuery = async (spec) => {
     const scopeRaw = spec.scope ? Array.from(document.querySelectorAll(spec.scope.selector)) : [document.documentElement];
     const scopeObserved = observeNodes(scopeRaw);
@@ -170,7 +176,11 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
       rawCount: 0, eligibleCount: 0, matches: [], scopeRejections, rejections: [], nativeCauseCode: null,
       nativeCauseCount: 0, nativeStage: "runtime-call-function-on"
     };
-    const raw = Array.from(scopeEligible[0].node.querySelectorAll(spec.selector));
+    const queried = Array.from(scopeEligible[0].node.querySelectorAll(spec.selector));
+    const latest = spec.latestGptUserTurn === true ? latestGptUserTurn(queried) : null;
+    const raw = spec.latestGptUserTurn === true ? latest ? [latest] : [] : queried;
+    observedCandidateCount += queried.length - raw.length;
+    if (observedCandidateCount > 256) throw new Error("BROWSER_DOM_READ_INVALID");
     const observed = observeNodes(raw);
     const eligible = observed.filter(({ node, facts }) => eligibilityReasons(node, facts, spec, true).length === 0);
     const noLayoutCount = observed.filter(({ facts }) => facts.nativeCauseCode === "NO_LAYOUT_BOX").length;

@@ -5,7 +5,7 @@ import type { BrowserCommandActor } from "./browser-command-actor.js";
 import type { BrowserCapabilityId } from "../protocol/generated/browser-protocol.generated.js";
 import type { BrowserCommandPermit, BrowserUnsignedCommandPermit } from "../transport/command-permit.js";
 import type { BrowserApprovedArtifactRef, BrowserTargetLease } from "./browser-target-lease.js";
-import type { BrowserControlledTarget } from "./browser-target-ref.js";
+import type { BrowserControlledTarget, BrowserDocumentRef } from "./browser-target-ref.js";
 import type { BrowserDomIntent } from "./browser-dom-intent.js";
 import type { BrowserFileArtifactGrantV1 } from "./browser-file-artifact-grant.js";
 import type { BrowserExecutionBinding } from "../infrastructure/browser-authority-broker.js";
@@ -142,10 +142,11 @@ export class BrowserTargetLeaseManager {
   ): void {
     if (state.closed) throw new Error("BROWSER_TARGET_INVALID");
     if (state.commandInFlight) throw new Error("BROWSER_BACKPRESSURE");
-    if (this.mutationClass(value) === "mutation" && state.pendingMutationCommandIds.length > 0) {
+    const mutationClass = this.mutationClass(value);
+    if (mutationClass !== "observation" && state.pendingMutationCommandIds.length > 0) {
       throw new Error("BROWSER_MUTATION_UNSETTLED");
     }
-    if (this.mutationClass(value) === "mutation" && state.atomicStep === null) {
+    if (mutationClass === "mutation" && state.atomicStep === null) {
       throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_REQUIRED");
     }
   }
@@ -197,6 +198,13 @@ export class BrowserTargetLeaseManager {
       state.commandInFlight = true;
       try {
         const result = await this.commandActor.execute(permit, value);
+        if (value.kind === "dom-intent" && value.intent.kind === "selectExactGptConversation") {
+          const document = result as BrowserDocumentRef | null;
+          if (typeof document?.documentRef !== "string" || document.targetRef !== state.current.target.targetRef
+            || !Number.isInteger(document.navigationEpoch)
+            || document.navigationEpoch < state.current.document.navigationEpoch) throw new Error("BROWSER_DOCUMENT_INVALID");
+          state.current = { ...state.current, document };
+        }
         return result;
       } catch (error) {
         const mutationOutcome = this.commandActor.mutationOutcome(permit.commandId);

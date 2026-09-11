@@ -10,6 +10,7 @@ export type GptProductionExecutionInput = Readonly<{
   authorizationRef: string;
   pluginId: string;
   pluginVersion: number;
+  resultRevision: number;
   attemptId: string;
   deviceId: string;
   leaseVersion: number;

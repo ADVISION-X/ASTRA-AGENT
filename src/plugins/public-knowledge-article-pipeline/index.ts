@@ -47,7 +47,6 @@ const produceResearchTurn = async (
   const uploadedFiles = expectedUploadedFiles(files, context.gpt.jobId);
   const stepId = "corpus_research";
   const marker = turnMarker(task, stepId);
-  await prepareAttachedTurnPrefix({ flow, stepId, files });
   const checkpoint = await submitTextTurn({
     flow,
     stepId,
@@ -55,6 +54,7 @@ const produceResearchTurn = async (
     files: uploadedFiles,
     prompt: researchPrompt(task, marker, context.routePolicy, context.productSkill),
     ordinals: [11, 12, 13, 14, 15, 16],
+    prepare: () => prepareAttachedTurnPrefix({ flow, stepId, files }),
   });
   return Object.freeze({
     checkpoint,
@@ -69,7 +69,6 @@ const produceArticleTurn = async (
   research: Readonly<Record<string, unknown>>,
 ): Promise<ArticleTurn> => {
   const stepId = "article_synthesis";
-  await applyExactProfile(flow.execute, stepId, [21, 22, 23, 24, 25, 26]);
   const marker = turnMarker(task, stepId);
   const checkpoint = await submitTextTurn({
     flow,
@@ -78,6 +77,7 @@ const produceArticleTurn = async (
     files: [],
     prompt: articlePrompt(task, marker, context.routePolicy, context.productSkill, research),
     ordinals: [27, 28, 29, 30, 31, 32],
+    prepare: () => applyExactProfile(flow.execute, stepId, [21, 22, 23, 24, 25, 26]),
   });
   return Object.freeze({
     checkpoint,
@@ -151,7 +151,6 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
   const marker = turnMarker(task, stepId);
   const files = attachmentFiles(context);
   const uploadedFiles = expectedUploadedFiles(files, context.gpt.jobId);
-  await prepareAttachedTurnPrefix({ flow, stepId, files });
   const checkpoint = await submitTextTurn({
     flow,
     stepId,
@@ -159,6 +158,7 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
     files: uploadedFiles,
     prompt: reviewPrompt(task, marker, context.productSkill),
     ordinals: [11, 12, 13, 14, 15, 16],
+    prepare: () => prepareAttachedTurnPrefix({ flow, stepId, files }),
   });
   return context.complete({
     payload: parseRouteResult(task, checkpoint.semanticText, context.routePolicy),

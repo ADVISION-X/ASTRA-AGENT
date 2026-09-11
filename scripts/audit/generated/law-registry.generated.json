@@ -175,7 +175,8 @@
     {
       "capabilityDomain": "gpt",
       "lawIds": [
-        "LAW-GPT-001-V42"
+        "LAW-GPT-001-V43",
+        "LAW-GPT-002-V2"
       ],
       "manifestPath": "scripts/audit/domains/gpt/manifest.json",
       "observedPaths": [
@@ -393,7 +394,7 @@
       ],
       "dependsOnLawIds": [
         "LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V6",
-        "LAW-GPT-001-V42",
+        "LAW-GPT-001-V43",
         "LAW-RUNTIME-LOG-SPINE-001-V7"
       ],
       "enforcementMode": "composite",
@@ -1209,11 +1210,11 @@
         "不得发生：private base、reusable/derived reservation、semantic read grant、fork、child conversation、第二 continuation store、第二 lane 台账或其改名包装。八字只保留 acquire_gpt_continuation 与 record_gpt_continuation 两个原子语义；唯一 Browser FIFO 持有本次 Product session，Browser WAL 只在回答 checkpoint 完成后把 consultation identity、source task、加密 conversation locator 与 checkpoint 一次写入同一 provider-effect 行，下一轮以 Website direct predecessor 匹配该 source task；Browser 不复制 Website 父子关系，不得保存半完成 frontier。",
         "不得发生：submit_exact_gpt_turn_once 的直接后置未一次返回 CONFIRMED、canonical conversation URL、精确 user turn 身份与 Browser effect receipt，或 Provider effect identity 因 attempt、进程、lease、fence、Target、Document 改变。Browser 已有 CONFIRMED 时该 Child 只能读回同一 receipt/URL，物理 submit 增量必须为零。",
         "不得发生：一次 submit 后由多个 Child、Product Facade 或 Runtime 重复读取回答；唯一 checkpoint_gpt_text_response 每次只在 fresh current Document 上裁决 pending 或 ready，ready 时必须由同一 coherent observation 一次取得 DOM 与 semantic text，并在一个 artifact 写入/readback 中返回 text、hash 与 ref。",
-        "不得发生：Website 未授权就跨进程读取旧 effect，或 confirmed-effect readback 修改 Prompt、附件、模型、conversation、turn marker、effect identity，或发送任何 Provider 输入。合法 readback 只能从 Browser WAL 精确取得同一 CONFIRMED receipt/URL，由 Browser 按 `/c/<conversation_id>` 在现有页面左侧聊天栏精确选择后 wait/observe/read artifact；当前已是目标 conversation 时零点击，零项、多项、不可交互或选择后 currentUrl 不等均 typed fail-close，且不得以 Page.navigate、标题/顺序/时间猜测、搜索、滚动、重试或 URL fallback 建立第二恢复路径；仍 pending 时返回 typed pending，不创建第二恢复状态机。",
+        "不得发生：FROZEN-GPT-CONVERSATION-LOCATOR-EFFECT-SEPARATION-001 被违反。conversation_id 只负责在现有 GPT 页面定位可逆的页面 conversation，provider_effect_identity 只负责证明同一 Provider submit 现实副作用至多一次；二者不得互相替代、合并为一个身份或从页面定位推导提交资格。Website 未授权就跨进程读取旧 effect，或 confirmed-effect readback 修改 Prompt、附件、模型、conversation、turn marker、effect identity，或发送任何 Provider 输入。合法 readback 只能从 Browser WAL 精确取得同一 CONFIRMED receipt/URL，由 Browser 按 `/c/<conversation_id>` 在现有页面左侧聊天栏精确选择后 wait/observe/read artifact；当前已是目标 conversation 时零点击，零项、多项、不可交互或选择后 currentUrl 不等均 typed fail-close，且不得以 Page.navigate、标题/顺序/时间猜测、搜索、滚动、自动展开、重试或 URL fallback 建立第二恢复路径；仍 pending 时返回 typed pending，不创建第二恢复状态机。",
         "不得发生：Browser lease 的实时 document 经 spread、缓存、复制或 wrapper 变成页面会话切换前快照；左侧聊天选择使 current conversation 变化后，consumer 必须读到新的 current Document。",
-        "不得发生：绕过一条 Browser FIFO、同一 provider effect 的跨 attempt WAL、至多一次 physical dispatch、2500ms 后 fresh postcondition 或当前 fence；纯读结果不得创建第二 WAL、queue、timer、artifact、scheduler 或恢复 Owner。"
+        "不得发生：绕过一条 Browser FIFO、同一 provider effect 的跨 attempt WAL、至多一次 physical dispatch、2500ms 后 fresh postcondition 或当前 fence；纯读结果不得创建第二 WAL、queue、timer、artifact、scheduler 或恢复 Owner。改变或删除 FROZEN-GPT-CONVERSATION-LOCATOR-EFFECT-SEPARATION-001 必须由用户在未来任务中明确解冻，并在现役法案、施工图、实现与唯一质检中完成同候选替换验收；普通实现、修复或 CI 授权不构成解冻。"
       ],
-      "lawId": "LAW-GPT-001-V42",
+      "lawId": "LAW-GPT-001-V43",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 675,
@@ -1221,8 +1222,55 @@
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须使 GPT 文本闭环按 provider effect 至多一次物理提交、一次结果 artifact 读取；八字由 BZ05 在唯一 Browser WAL effect 行记录 consultation continuation，BZ03/BZ04 通过唯一 Browser FIFO 串行 acquire/record，未完成 turn 阻止后继，CONFIRMED 后跨进程只能零 Provider 输入读回，且 private base、reservation、fork、第二 lane 与 fresh fallback 物理缺席。",
-      "supersedesLawId": "LAW-GPT-001-V41",
+      "summary": "必须冻结 conversation_id 只定位现有页面左侧聊天、provider_effect_identity 只保证 Provider submit 至多一次且二者绝不合并；GPT 文本闭环只读一次结果 artifact，八字由 BZ05 在唯一 Browser WAL effect 行记录 consultation continuation，BZ03/BZ04 通过唯一 Browser FIFO 串行 acquire/record，CONFIRMED 后跨进程只能零 Provider 输入读回，且 private base、reservation、fork、第二 lane 与 fresh fallback 物理缺席。",
+      "supersedesLawId": "LAW-GPT-001-V42",
+      "tier": "P0"
+    },
+    {
+      "appliesTo": [
+        ".github/instructions/agent-rules/功能法案.md",
+        "docs/blueprints/gpt/**",
+        "docs/blueprints/local-browser-session/**",
+        "docs/blueprints/xuanxue-ai-production/**",
+        "src/capabilities/gpt/**",
+        "src/lib/browser/**",
+        "src/plugins/public-knowledge-article-pipeline/**"
+      ],
+      "capabilityDomain": "gpt",
+      "contractRefs": [
+        "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md"
+      ],
+      "dependsOnLawIds": [
+        "LAW-GPT-001-V43",
+        "LAW-LOCAL-BROWSER-SESSION-004-V31"
+      ],
+      "enforcementMode": "composite",
+      "evidenceModes": [
+        "static.ast",
+        "static.contract",
+        "exam.property",
+        "exam.state-machine"
+      ],
+      "excludes": [
+        "src/capabilities/gpt/acceptance/**"
+      ],
+      "forbidden": [
+        "不得发生：FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT-001 被违反。同一 job 在 Website 明确 mutation_outcome=no 后取得不同 attempt 时，fresh conversation、Provider profile/model、菜单、附件上传、Composer 写入与其它提交前准备必须按新 attempt 的现役 Target/current Document 重新执行；这些动作只能是 target-local-per-generation，旧 attempt 的准备事实不得阻断、代替或读回新 attempt 的准备。Product 批准附件集合允许为空，实际集合只须与本轮批准集合精确相等。",
+        "不得发生：FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001 被违反。真正 submit 前只能有两个不可扩张的确认：GPT/Browser 同一原子点击内确认当前 Composer 提示词 hash 与 Product 批准值相等且当前附件集合与批准集合相等；Browser 唯一 WAL 确认当前 Target/Document/fence 有效且同一 provider effect 尚未发生现实输入。附件批准集合允许为空，Provider 仅追加的最终纯数字括号后缀按冻结附件规则归一。历史聊天、既有 user turn、固定 turn 编号或奇偶、按钮标签及 Browser 内部可操作性检查不得成为新增业务前置关卡；历史 turn 只允许作为点击后的本次新增消息证明，不得在点击前拒绝提交。",
+        "不得发生：除 submit_exact_gpt_turn_once 外的 GPT Child、准备动作或控件 mutation 被标记为 provider-effect-once；只有真正造成 Provider turn 的 submit 是跨 attempt 稳定的现实副作用。同一 result_revision 的 submit request_hash 必须绑定 result_revision 与 Child 原始 input hash，并与 payload hash 共同形成现役唯一 provider_effect_identity；attempt、进程、lease、fence、Target 与 Document 不得进入该身份。Website 明确签发的新 result_revision 必须产生不同 request_hash；仅更换 attempt 不得产生不同 submit effect。",
+        "不得发生：同一 submit effect 已由 Browser WAL 证明 CONFIRMED 后，Product 仍先执行 fresh、profile/model、菜单、附件上传、Composer 写入或第二 submit，再读取旧结果。Product 必须在任何准备动作之前按精确 submit identity 查询现役唯一 WAL；命中 CONFIRMED 时只走现役零 Provider 输入 readback 与 artifact 收敛，未命中才执行本 attempt 的准备和一次提交。DISPATCHED、mutation_outcome=dispatched/confirmed 的 REJECTED、缺失、多义或身份不等必须保留原 typed fact并失败关闭；只有 REJECTED + mutation_outcome=no + physical_input_count=0 明确证明现实输入未发生时，Website 新 attempt 才可在同一 WAL/effect identity 下重新准备并首次发送，AGENT 不得自行重试。",
+        "不得发生：为实现本冻结边界新增 continuation/checkpoint/stageIndex/resumePoint、第二 WAL、第二 Browser lane、第二 Outbox、恢复表、恢复队列、恢复 Owner、兼容桥、feature flag、dual-read/write 或跨 attempt 半成品输入。改变或删除 FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT-001 必须由用户在未来任务中明确解冻，并以双仓同步法案、施工图、合同与质检替换验收。"
+      ],
+      "lawId": "LAW-GPT-002-V2",
+      "schemaVersion": 2,
+      "source": {
+        "lineEnd": 701,
+        "lineStart": 677,
+        "path": ".github/instructions/agent-rules/功能法案.md"
+      },
+      "status": "active",
+      "summary": "必须冻结 GPT submit 仅有待发送内容身份与 Browser 未现实发送两项前置确认；准备动作按 attempt/current Document 重建，明确零输入不消耗同一 submit effect，现实输入后跨 attempt 至多一次，且不得新增第二恢复结构。",
+      "supersedesLawId": "LAW-GPT-002-V1",
       "tier": "P0"
     },
     {
@@ -1258,8 +1306,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 718,
-        "lineStart": 679,
+        "lineEnd": 744,
+        "lineStart": 705,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1289,8 +1337,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-002-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 748,
-        "lineStart": 720,
+        "lineEnd": 774,
+        "lineStart": 746,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1323,8 +1371,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-003-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 781,
-        "lineStart": 750,
+        "lineEnd": 807,
+        "lineStart": 776,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1363,8 +1411,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 820,
-        "lineStart": 785,
+        "lineEnd": 846,
+        "lineStart": 811,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1406,8 +1454,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-002-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 862,
-        "lineStart": 822,
+        "lineEnd": 888,
+        "lineStart": 848,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1455,8 +1503,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-003-V29",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 908,
-        "lineStart": 864,
+        "lineEnd": 934,
+        "lineStart": 890,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1510,8 +1558,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V31",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 960,
-        "lineStart": 910,
+        "lineEnd": 986,
+        "lineStart": 936,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1546,8 +1594,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-005-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 995,
-        "lineStart": 962,
+        "lineEnd": 1021,
+        "lineStart": 988,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1581,8 +1629,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V22",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1027,
-        "lineStart": 997,
+        "lineEnd": 1053,
+        "lineStart": 1023,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1636,8 +1684,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-001-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1079,
-        "lineStart": 1031,
+        "lineEnd": 1105,
+        "lineStart": 1057,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1682,8 +1730,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1120,
-        "lineStart": 1081,
+        "lineEnd": 1146,
+        "lineStart": 1107,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1735,8 +1783,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-003-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1168,
-        "lineStart": 1122,
+        "lineEnd": 1194,
+        "lineStart": 1148,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1777,8 +1825,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1211,
-        "lineStart": 1172,
+        "lineEnd": 1237,
+        "lineStart": 1198,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1818,8 +1866,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1249,
-        "lineStart": 1213,
+        "lineEnd": 1275,
+        "lineStart": 1239,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1855,8 +1903,8 @@
       "lawId": "LAW-SYSTEM-SECURITY-001-V8",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1287,
-        "lineStart": 1253,
+        "lineEnd": 1313,
+        "lineStart": 1279,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1897,8 +1945,8 @@
       "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1328,
-        "lineStart": 1291,
+        "lineEnd": 1354,
+        "lineStart": 1317,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",

@@ -205,7 +205,7 @@ const exerciseExactOutgoingMismatchReadback = async (): Promise<void> => {
       kind: "click", selector: "button", expectedMatches: 1,
       preClickExactOutgoingTurn: {
         composerSelector: "composer", composerFormSelector: "form", attachmentSelector: "attachment",
-        latestUserTurnSelector: "latest-user-turn",
+        userTurnSelector: "user-turn",
         expectedPromptHash: `sha256:${"a".repeat(64)}`, expectedAttachmentLabels: [],
       },
       postClickMatch: { selector: "submitted", expectedMatches: 1 },
@@ -368,6 +368,7 @@ const exerciseCoherentClickPostcondition = async (): Promise<void> => {
 const exerciseExactOutgoingNeverUsesZeroActionPostcondition = async (): Promise<void> => {
   let pointerEvents = 0;
   let candidateCalls = 0;
+  let emptyComposerEligible = 1;
   const runtime = { awaitPageReadPermission: noPageReadBarrier, async send(
     _tabId: number,
     method: string,
@@ -376,15 +377,20 @@ const exerciseExactOutgoingNeverUsesZeroActionPostcondition = async (): Promise<
     const source = String(parameters?.functionDeclaration ?? "");
     if (method === "Runtime.callFunctionOn" && source.includes("spec.output")) {
       candidateCalls += 1;
-      return { result: { value: { x: 5, y: 5, baselineUserTurnId: "conversation-turn-1" } } };
+      return { result: { value: { x: 5, y: 5 } } };
     }
     if (method === "Runtime.callFunctionOn" && source.startsWith("async function (specs)")) {
       const observation = coherentObservation(true);
       return { result: { value: { ...observation, queries: [{
         ...observation.queries[0], queryId: "submitted-user-turn", rawCount: 1, eligibleCount: 1,
-        matches: [{ candidateIndex: 0, testId: "conversation-turn-3",
+        matches: [{ candidateIndex: 0, testId: "conversation-turn-7",
           exactGptUserPromptHash: `sha256:${"a".repeat(64)}` }],
         rejections: [],
+      }, {
+        ...observation.queries[0], queryId: "empty-composer", rawCount: 1,
+        eligibleCount: emptyComposerEligible,
+        matches: emptyComposerEligible === 1 ? [{ candidateIndex: 0 }] : [],
+        rejections: emptyComposerEligible === 1 ? [] : [{ index: 0, reasons: ["TEXT_MISMATCH"] }],
       }] } } };
     }
     const infrastructure = mutationInfrastructureReply(method, parameters);
@@ -392,23 +398,37 @@ const exerciseExactOutgoingNeverUsesZeroActionPostcondition = async (): Promise<
     if (method === "Input.dispatchMouseEvent") { pointerEvents += 1; return {}; }
     throw new Error(`UNEXPECTED_EXACT_OUTGOING_CLICK_METHOD:${method}`);
   } } as ExtensionDebuggerRuntime;
-  const result = await executeRegisteredDomIntent(runtime, {
+  const target = {
     tabId: 126, targetRef: "target-126", documentRef: "document-126", navigationEpoch: 1,
-  } as never, {
+  } as never;
+  const intent: PointerClickIntent = {
     kind: "click", selector: "button", expectedMatches: 1,
     preClickExactOutgoingTurn: {
       composerSelector: "composer", composerFormSelector: "form", attachmentSelector: "attachment",
-      latestUserTurnSelector: "latest-user-turn",
+      userTurnSelector: "user-turn",
       expectedPromptHash: `sha256:${"a".repeat(64)}`, expectedAttachmentLabels: [],
     },
-    postClickObservation: { queries: [{ queryId: "submitted-user-turn", selector: "latest-user-turn",
-      maxMatches: 1, fields: ["testId", "exactGptUserPromptHash"], expectedEligibleCount: 1 }],
+    postClickObservation: { queries: [{ queryId: "submitted-user-turn", selector: "user-turn",
+      maxMatches: 1, fields: ["testId", "exactGptUserPromptHash"], expectedEligibleCount: 1,
+      latestGptUserTurn: true }, { queryId: "empty-composer",
+      selector: "composer[contenteditable='true']:has(> p[data-empty-paragraph='true'] > br.ProseMirror-trailingBreak)",
+      maxMatches: 1, fields: [], expectedEligibleCount: 1 }],
     timeoutMs: 10 },
-  }, () => undefined) as Readonly<Record<string, unknown>>;
+  };
+  const result = await executeRegisteredDomIntent(runtime, target, intent,
+    () => undefined) as Readonly<Record<string, unknown>>;
   assert.equal(result.postconditionVerified, true);
   assert.equal(candidateCalls, 1);
   assert.equal(pointerEvents, 3,
     "an exact outgoing turn must click once even when a historical DOM state already satisfies the postcondition");
+  emptyComposerEligible = 0;
+  const rejected = await executeRegisteredDomIntent(runtime, target, {
+    ...intent, postClickObservation: {
+      queries: intent.postClickObservation!.queries, timeoutMs: 1,
+    },
+  }, () => undefined) as Readonly<Record<string, unknown>>;
+  assert.equal(rejected.postconditionVerified, false,
+    "a matching latest user turn cannot confirm submission while the Composer remains populated");
 };
 
 const exerciseRetainedClickedCandidatePostcondition = async (): Promise<void> => {

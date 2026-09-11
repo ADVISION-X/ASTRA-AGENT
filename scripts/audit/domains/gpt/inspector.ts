@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
@@ -56,7 +56,9 @@ import {
 import { containsPageMutation, gptPrivateInfrastructureViolations, sourceFor, sourceTextForPaths }
   from "./gpt-inspection-support.js";
 
-const LAW_ID = "LAW-GPT-001-V42";
+const LAW_ID = "LAW-GPT-001-V43";
+const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V2";
+const GPT_BLUEPRINT_PATH = "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 16, 19, 23),
   "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 17, 18, 20, 21, 22, 23, 24),
@@ -392,6 +394,53 @@ const inspectGptDependencies = (context: InspectorContext, findings: InspectorFi
   inspectAcyclicCapabilityGraph(context, findings);
 };
 
+const inspectFrozenAttemptBoundary = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+): void => {
+  const sources = {
+    contract: sourceFor(context, CONTRACT_PATH)?.getFullText() ?? "",
+    atomic: sourceFor(context, `${ROOT}/production-atomic-call.ts`)?.getFullText() ?? "",
+    productApi: sourceFor(context, `${ROOT}/product-api.ts`)?.getFullText() ?? "",
+    seoReadback: sourceFor(context,
+      "src/plugins/public-knowledge-article-pipeline/seo-submit-readback.ts")?.getFullText() ?? "",
+    seoFlow: sourceFor(context,
+      "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts")?.getFullText() ?? "",
+    submit: sourceFor(context,
+      `${ROOT}/children/submit_exact_gpt_turn_once/handler.ts`)?.getFullText() ?? "",
+    candidate: sourceFor(context,
+      "src/lib/browser/chrome-extension/dom-coherent-candidate.ts")?.getFullText() ?? "",
+    store: sourceFor(context,
+      "src/lib/browser/exact-target/browser-mutation-store.ts")?.getFullText() ?? "",
+    blueprint: readFileSync(resolve(context.sealedRoot, GPT_BLUEPRINT_PATH), "utf8"),
+  };
+  const valid = /attach_approved_gpt_files_once:[^\n]+profile: "TARGET_LOCAL_MUTATION"[^\n]+replayPolicy: "target-local-per-generation"/u
+    .test(sources.contract)
+    && /submit_exact_gpt_turn_once:[^\n]+profile: "PROVIDER_EFFECT_ONCE"[^\n]+replayPolicy: "provider-effect-once"/u
+      .test(sources.contract)
+    && sources.atomic.includes("hashCanonical([resultRevision, intent.inputHash])")
+    && sources.productApi.includes("readConfirmedSubmit(")
+    && sources.seoFlow.includes("context.gpt.readConfirmedSubmit")
+    && sources.seoReadback.indexOf("await input.read()") < sources.seoReadback.indexOf("await input.prepare()")
+    && sources.seoReadback.indexOf("await input.prepare()") < sources.seoReadback.indexOf("await input.execute()")
+    && sources.submit.includes("userTurnSelector: GPT_USER_TURN_SELECTOR")
+    && sources.submit.includes("latestGptUserTurn: true")
+    && sources.submit.includes("GPT_EMPTY_COMPOSER_SELECTOR")
+    && sources.blueprint.includes("FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001")
+    && !sources.candidate.includes("priorTurns.length > 1")
+    && !sources.candidate.includes("querySelectorAll(outgoing.userTurnSelector)")
+    && !sources.candidate.includes("baselineOrdinal + 2")
+    && sources.store.includes("row.attempt_id !== input.attemptId");
+  if (!valid) findings.push(createFinding({
+    evidenceMode: "static.contract",
+    lawId: FROZEN_ATTEMPT_LAW_ID,
+    clauseId: `${FROZEN_ATTEMPT_LAW_ID.toLowerCase()}-requirement`,
+    checkId: "gpt/frozen-job-attempt-provider-effect",
+    filePath: CONTRACT_PATH,
+    message: "Frozen attempt-local preparation and cross-attempt submit boundary is incomplete.",
+  }));
+};
+
 const evaluate = (context: InspectorContext): InspectorEvaluation => {
   const findings: InspectorFinding[] = [];
   const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
@@ -411,6 +460,10 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
   recordStaticCheck({ check: "inspectGptDependencies", findings, implementation: inspectGptDependencies,
     lawIds: [LAW_ID], receipts: staticCheckReceipts,
     run: () => inspectGptDependencies(context, findings) });
+  recordStaticCheck({ check: "inspectFrozenAttemptBoundary", findings,
+    implementation: inspectFrozenAttemptBoundary, lawIds: [FROZEN_ATTEMPT_LAW_ID],
+    receipts: staticCheckReceipts,
+    run: () => inspectFrozenAttemptBoundary(context, findings) });
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
@@ -438,10 +491,23 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
       checks(evidenceMode),
     ),
   }));
+  const frozenChecks = ["inspectFrozenAttemptBoundary"];
+  const frozenAssertions = (["static.ast", "static.contract"] as const).map((evidenceMode) => ({
+    clauses: evidenceMode === "static.ast" ? staticClauses(0, 2, 3) : staticClauses(1),
+    evidenceMode,
+    passed: producerModePassed(evaluation.staticCheckReceipts, FROZEN_ATTEMPT_LAW_ID, frozenChecks),
+    refs: staticEvidenceRefs(context, FROZEN_ATTEMPT_LAW_ID, evidenceMode,
+      evidenceMode === "static.ast" ? staticClauses(0, 2, 3) : staticClauses(1),
+      evaluation.staticCheckReceipts, frozenChecks),
+  }));
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain,
     reportedLawIds: evaluation.reportedLawIds,
-    lawResults: [{ lawId: LAW_ID, assertions, findings: evaluation.findings }],
+    lawResults: [
+      { lawId: LAW_ID, assertions, findings: evaluation.findings.filter((item) => item.lawId === LAW_ID) },
+      { lawId: FROZEN_ATTEMPT_LAW_ID, assertions: frozenAssertions,
+        findings: evaluation.findings.filter((item) => item.lawId === FROZEN_ATTEMPT_LAW_ID) },
+    ],
     inspectedFiles: evaluation.inspectedFiles,
   });
 };

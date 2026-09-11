@@ -18,8 +18,7 @@ import {
 } from "../../web/gpt-dom-observation.js";
 import { responseHashInput } from "./response-support.js";
 import { canonicalGptConversationUrl } from "../../web/contracts/target-document.contract.js";
-import { adjacentGptAssistantTurnId, readCurrentGptDocumentUrl } from
-  "../checkpoint_gpt_text_response/exact-response.js";
+import { adjacentGptAssistantTurnId } from "../checkpoint_gpt_text_response/exact-response.js";
 
 const hash = (value: string | Buffer): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -53,16 +52,9 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
   let observed: Awaited<ReturnType<typeof readExactAssistantTurn>> | null = null;
   let assistantTurnId: string;
   let media: Awaited<ReturnType<typeof browser.downloadAuthenticatedMedia>>;
+  await browser.executeDomIntent({ kind: "selectExactGptConversation", canonicalConversationUrl: conversationUrl });
   for (;;) {
-    if (await readCurrentGptDocumentUrl(browser) !== conversationUrl) {
-      if (!context.selectExactProviderConversation) {
-        throw executionFailure("failed", "GPT_PROVIDER_CONVERSATION_GATE_REQUIRED");
-      }
-      if (await context.selectExactProviderConversation(conversationUrl, deadline) === "deadline") {
-        throw executionFailure("failed", "GPT_IMAGE_TIMEOUT");
-      }
-      continue;
-    }
+    if (Date.now() >= deadline) throw executionFailure("failed", "GPT_IMAGE_TIMEOUT");
     try {
       observed = await readExactAssistantTurn(browser, exactAssistantTurnId, {
         canonicalConversationUrl: conversationUrl, expectedPromptHash, turnMarker,

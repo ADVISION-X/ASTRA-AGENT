@@ -23,11 +23,10 @@ try {
     "attempt:1",
     serializeTerminalFailure(executionFailure("failed", "PRODUCT_EXECUTION_FAILED")),
   );
-  assert.throws(
-    () => store.acceptTask(job, identity, "attempt:1"),
-    /PRODUCTION_ATTEMPT_ALREADY_ACCEPTED/u,
-    "a dead attempt must never be resumed",
-  );
+  const regranted = store.acceptTask(job, identity, "attempt:1");
+  assert.equal(regranted.current_reason, "LEASE_REGRANTED");
+  assert.equal(regranted.attempt_failure, null,
+    "Website regrant of the same accepted attempt must permit zero-submit result convergence");
   const fresh = store.acceptTask(job, identity, "attempt:2");
   assert.equal(fresh.current_attempt_id, "attempt:2");
   assert.equal(fresh.attempt_failure, null);

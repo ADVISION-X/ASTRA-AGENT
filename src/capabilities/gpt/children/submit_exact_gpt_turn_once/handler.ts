@@ -22,23 +22,25 @@ import {
   GPT_ATTACHMENT_ITEM_SELECTOR,
   GPT_COMPOSER_FORM_SELECTOR,
   GPT_COMPOSER_SELECTOR,
-  GPT_LAST_USER_TURN_SELECTOR,
+  GPT_EMPTY_COMPOSER_SELECTOR,
   GPT_SEND_SELECTOR,
+  GPT_USER_TURN_SELECTOR,
 } from "./selectors.js";
 
 const submittedTurnObservation = (packet: unknown, selector: string) => {
   const observation = decodeCoherentObservationPacket(packet, [{
     queryId: "submitted-user-turn", selector, maxMatches: 1,
-    fields: ["testId" as const, "exactGptUserPromptHash" as const],
+    fields: ["testId" as const, "exactGptUserPromptHash" as const], latestGptUserTurn: true,
+  }, {
+    queryId: "empty-composer", selector: GPT_EMPTY_COMPOSER_SELECTOR,
+    maxMatches: 1, fields: [],
   }]);
   const row = observation.rows[0]!;
   const match = row.rawCount === 1 && row.eligibleCount === 1 ? row.matches[0] : undefined;
   const userTurnId = match?.testId;
   const observedPromptHash = match?.exactGptUserPromptHash;
-  const ordinal = typeof userTurnId === "string"
-    ? Number(userTurnId.slice("conversation-turn-".length)) : Number.NaN;
   if (typeof userTurnId !== "string" || !/^conversation-turn-[1-9][0-9]*$/u.test(userTurnId)
-    || !Number.isSafeInteger(ordinal) || ordinal % 2 === 0) {
+  ) {
     throw executionFailure("failed", "GPT_SUBMITTED_USER_TURN_MISSING");
   }
   if (typeof observedPromptHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(observedPromptHash)) {
@@ -118,20 +120,24 @@ export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_tu
       });
     }
     const browser = requireBrowser(context);
-    const submittedSelector = GPT_LAST_USER_TURN_SELECTOR;
+    const submittedSelector = GPT_USER_TURN_SELECTOR;
     const mutation = await browser.executeDomIntent({
       kind: "click", selector: GPT_SEND_SELECTOR, expectedMatches: 1,
       preClickExactOutgoingTurn: {
         composerSelector: GPT_COMPOSER_SELECTOR,
         composerFormSelector: GPT_COMPOSER_FORM_SELECTOR,
         attachmentSelector: GPT_ATTACHMENT_ITEM_SELECTOR,
-        latestUserTurnSelector: GPT_LAST_USER_TURN_SELECTOR,
+        userTurnSelector: GPT_USER_TURN_SELECTOR,
         expectedPromptHash: promptHash,
         expectedAttachmentLabels: Object.freeze(files.map((file) => file.providerDisplayName)),
       },
       postClickObservation: { queries: [{
         queryId: "submitted-user-turn", selector: submittedSelector,
         maxMatches: 1, fields: ["testId", "exactGptUserPromptHash"], expectedEligibleCount: 1,
+        latestGptUserTurn: true,
+      }, {
+        queryId: "empty-composer", selector: GPT_EMPTY_COMPOSER_SELECTOR,
+        maxMatches: 1, fields: [], expectedEligibleCount: 1,
       }], timeoutMs: 5_000 },
     });
     const submitted = submittedTurnObservation(terminalPostconditionPacket(mutation), submittedSelector);

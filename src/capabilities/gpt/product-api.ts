@@ -50,6 +50,9 @@ export interface ProductGptTools {
   execute<K extends GptChildCapabilityId>(
     input: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
   ): Promise<ProductGptChildResult<K>>;
+  readConfirmedSubmit(
+    input: ProductGptCallInput<"submit_exact_gpt_turn_once"> & Readonly<{ sessionKey: string }>,
+  ): Promise<ProductGptChildResult<"submit_exact_gpt_turn_once"> | null>;
   acquireContinuation(input: Readonly<{
     sessionKey: string;
     productStepId: string;

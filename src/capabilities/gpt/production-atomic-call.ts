@@ -8,6 +8,8 @@ import {
 import { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
 import type { ProductionGptBrowserCall } from "./production-browser-lifecycle.js";
 import { executionFailure } from "../../lib/execution-failure.js";
+import { hashCanonical } from "../../lib/local-runtime/production/contracts.js";
+import type { BrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
 
 type AtomicGptCallInput = Readonly<{
   dataDir: string;
@@ -16,7 +18,27 @@ type AtomicGptCallInput = Readonly<{
   intent: GptAnyChildCapabilityIntent;
   browserCall: ProductionGptBrowserCall | undefined;
   signal: AbortSignal;
+  resultRevision: number;
 }>;
+
+export const productionGptAtomicIdentity = (
+  intent: GptAnyChildCapabilityIntent,
+  resultRevision: number,
+): BrowserAtomicStepIdentity => {
+  const replayPolicy = GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId].replayPolicy;
+  if (replayPolicy === "transaction-identical-readback") {
+    throw new Error("GPT_TRANSACTION_CHILD_CANNOT_ACQUIRE_BROWSER");
+  }
+  return Object.freeze({
+    productStepId: intent.productStepId,
+    callId: intent.callId,
+    childCapabilityId: intent.childCapabilityId,
+    inputHash: replayPolicy === "provider-effect-once"
+      ? hashCanonical([resultRevision, intent.inputHash]) : intent.inputHash,
+    actionOrdinal: intent.actionOrdinal,
+    replayPolicy,
+  });
+};
 
 const executionContext = (
   input: AtomicGptCallInput,
@@ -31,11 +53,6 @@ const executionContext = (
       input.browserCall!, input.intent.productStepId, input.intent.callId,
       input.intent.childCapabilityId, canonicalConversationUrl, probeDeadlineAt,
       ),
-    selectExactProviderConversation: (canonicalConversationUrl: string, probeDeadlineAt: number) =>
-      input.browsers.selectExactProviderConversation(
-        input.browserCall!, input.intent.childCapabilityId,
-        canonicalConversationUrl, probeDeadlineAt,
-      ),
   } : {}),
 });
 
@@ -47,17 +64,7 @@ export const executeProductionGptAtomicCall = async (
   const context = executionContext(input, browser);
   if (!browser) return { result: await gpt.execute(intent, context), resolveDispatched: false };
   const replayPolicy = GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId].replayPolicy;
-  if (replayPolicy === "transaction-identical-readback") {
-    throw new Error("GPT_TRANSACTION_CHILD_CANNOT_ACQUIRE_BROWSER");
-  }
-  const atomicIdentity = {
-    productStepId: intent.productStepId,
-    callId: intent.callId,
-    childCapabilityId: intent.childCapabilityId,
-    inputHash: intent.inputHash,
-    actionOrdinal: intent.actionOrdinal,
-    replayPolicy,
-  } as const;
+  const atomicIdentity = productionGptAtomicIdentity(intent, input.resultRevision);
   const priorOutcome = browser.readAtomicStepOutcome(atomicIdentity);
   if (!priorOutcome) {
     return {

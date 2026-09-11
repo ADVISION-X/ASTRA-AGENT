@@ -269,6 +269,7 @@ export class ProductionExecutor {
           authorizationRef: authorized.task.business_identity.authorization_ref,
           pluginId: authorized.identity.plugin_id,
           pluginVersion: authorized.identity.plugin_version,
+          resultRevision: input.lease.result_revision,
           attemptId: input.lease.attempt_id,
           deviceId: input.lease.device_id,
           leaseVersion: input.lease.lease_version,

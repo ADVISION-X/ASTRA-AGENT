@@ -60,8 +60,7 @@ try {
   assert.equal(second.current_attempt_id, secondAttempt);
   assert.equal(second.attempt_failure, null);
   assert.equal(store.readLease(accepted.job_id), null);
-  assert.throws(() => store.acceptTask(accepted, identity, secondAttempt),
-    /PRODUCTION_ATTEMPT_ALREADY_ACCEPTED/u);
+  assert.equal(store.acceptTask(accepted, identity, secondAttempt).current_reason, "LEASE_REGRANTED");
 
   const artifactKey = "artifact:three-truths";
   store.enqueue({

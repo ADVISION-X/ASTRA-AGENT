@@ -9,51 +9,6 @@ import { HASH_A, HASH_B } from "../../../../scripts/acceptance/agent-production-
 
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-provider-conversation-acceptance-"));
 try {
-  const selections: string[] = [];
-  const lifecycle = new ProductionGptBrowserLifecycle(
-    {
-      acquireJobBoundTargetLease: async () => ({
-        target: { targetRef: "target:provider-conversation" },
-        document: { documentRef: "document:provider-conversation" },
-        pendingMutationCount: () => 0,
-        requiresMutationRecovery: () => false,
-        executeDomIntent: async (intent: Readonly<{ canonicalConversationUrl?: string }>) => {
-          selections.push(intent.canonicalConversationUrl!);
-        },
-        park: async () => undefined,
-        close: async () => undefined,
-      }),
-    } as never,
-    createRuntimeLogger({
-      producer: "agent-provider-conversation-acceptance", owner: "production-runtime",
-      component: "gpt-child", terminalEnabled: false,
-      fileSink: { directoryPath: path.join(temporary, "runtime-logs") },
-    }),
-    HASH_A,
-    {
-      jobId: "job:provider-conversation", attemptId: "attempt:provider-conversation",
-      pluginId: "payment-screenshot-observation", pluginVersion: 1,
-      deviceId: "device:1", leaseVersion: 1,
-      executionFenceHash: HASH_A, capabilityManifestHash: HASH_B,
-      expiresAtMonotonic: performance.now() + 10_000, commandTtlMs: 1_000,
-      abortSignal: new AbortController().signal,
-    },
-  );
-  const active = await lifecycle.browserFor(
-    "session:provider-conversation", "corpus_research", "text-wait",
-  );
-  assert.equal(await lifecycle.selectExactProviderConversation(
-    active, "checkpoint_gpt_text_response",
-    "https://chatgpt.com/c/exact", Date.now() + 1_000,
-  ), "selected");
-  assert.deepEqual(selections, ["https://chatgpt.com/c/exact"]);
-  assert.equal(await lifecycle.selectExactProviderConversation(
-    active, "checkpoint_gpt_text_response",
-    "https://chatgpt.com/c/exact", Date.now() - 1,
-  ), "deadline");
-  assert.equal(selections.length, 1);
-  await lifecycle.settle(null);
-
   const nativeDateNow = Date.now;
   let deadlineNow = 0;
   let deadlineAcquisitions = 0;

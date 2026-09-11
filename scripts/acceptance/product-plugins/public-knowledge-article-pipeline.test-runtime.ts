@@ -61,6 +61,18 @@ export const createContext = (
   productSkill: Object.freeze({ text: "fixture public knowledge skill", hash: HASH }),
   gpt: {
     jobId: `job-${state.actionId}`, attemptId,
+    readConfirmedSubmit: async (input) => {
+      const call = input as SeoCall;
+      state.submitReadbackQueries.push(call);
+      if (!state.confirmedSubmitSteps.has(call.productStepId)) return null;
+      const evidenceRef = `evidence:readback:${call.productStepId}`;
+      return { value: outputForCall(state, call, decision), evidenceRef, evidenceHash: HASH,
+        sourceAttemptId: attemptId, exactCallIdentityHash: HASH, artifactRefs: [],
+        effectReceipt: {
+          effectScope: "provider_effect", outcome: "CONFIRMED", mutationOutcome: "confirmed",
+          terminalAt: CONFIRMED_AT, evidenceRef, evidenceHash: HASH,
+        } } as never;
+    },
     acquireContinuation: async () => { throw new Error("UNREACHABLE_GPT_CONTINUATION"); },
     recordContinuation: () => { throw new Error("UNREACHABLE_GPT_CONTINUATION"); },
     execute: async (input: SeoExecuteInput) => {

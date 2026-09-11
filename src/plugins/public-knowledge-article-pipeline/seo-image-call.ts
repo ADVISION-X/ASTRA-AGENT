@@ -40,9 +40,12 @@ const prepareImageSubmit = async (
 ): Promise<ProductGptChildResult<"submit_exact_gpt_turn_once">> => {
   const promptWrite = { productStepId: input.stepId, callId: "prompt-write", child: "write_exact_gpt_prompt", actionOrdinal: 43, input: { prompt } } as const;
   const turnSubmit = { productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 45, input: { files: [], promptHash } } as const;
-  await applyExactProfile(input.flow.execute, input.stepId, [37, 38, 39, 40, 41, 42]);
-  await input.flow.execute({ sessionKey: "", ...promptWrite });
   return executeAndReadConfirmedSubmit({
+    read: () => input.flow.readConfirmedSubmit(turnSubmit),
+    prepare: async () => {
+      await applyExactProfile(input.flow.execute, input.stepId, [37, 38, 39, 40, 41, 42]);
+      await input.flow.execute({ sessionKey: "", ...promptWrite });
+    },
     execute: () => input.flow.execute({ sessionKey: "", ...turnSubmit }) as Promise<ProductGptChildResult<"submit_exact_gpt_turn_once">>,
   });
 };

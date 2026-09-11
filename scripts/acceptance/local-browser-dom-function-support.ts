@@ -59,12 +59,12 @@ export const exerciseCapturedCandidateFunction = async (source: string): Promise
     selector: "button", output: "pointer",
     exactOutgoingTurn: {
       composerSelector: "composer", composerFormSelector: "form", attachmentSelector: "attachment",
-      latestUserTurnSelector: "latest-user-turn",
+      userTurnSelector: "user-turn",
       expectedPromptHash: hash(prompt), expectedAttachmentLabels: ["approved.pdf"],
     },
   } as const;
   assert.equal(JSON.stringify(await execute(source, guardedDocument, guardedInput)),
-    JSON.stringify({ x: 5, y: 5, baselineUserTurnId: null }),
+    JSON.stringify({ x: 5, y: 5 }),
     "one exact prompt plus its approved attachment set must authorize the click point");
   const retriedAttachment = new FakeElement("approved(5).pdf", {}, {}, { "aria-label": "approved(5).pdf" });
   const retriedForm = new FakeElement(prompt, { attachment: [retriedAttachment] }, {}, {},
@@ -74,7 +74,7 @@ export const exerciseCapturedCandidateFunction = async (source: string): Promise
     querySelectorAll: (selector: string) => selector === "composer" ? [composer]
       : selector === "form" ? [retriedForm] : [],
     elementFromPoint: () => send,
-  }, guardedInput)), JSON.stringify({ x: 5, y: 5, baselineUserTurnId: null }),
+  }, guardedInput)), JSON.stringify({ x: 5, y: 5 }),
   "a Provider-only final numeric duplicate suffix must preserve the approved attachment identity");
   const twoApprovedForm = new FakeElement(prompt, { attachment: [attachment, retriedAttachment] }, {}, {},
     "FORM", [composer, attachment, retriedAttachment, send]);
@@ -84,7 +84,7 @@ export const exerciseCapturedCandidateFunction = async (source: string): Promise
       : selector === "form" ? [twoApprovedForm] : [], elementFromPoint: () => send,
   }, { ...guardedInput, exactOutgoingTurn: { ...guardedInput.exactOutgoingTurn,
     expectedAttachmentLabels: ["approved.pdf", "approved(5).pdf"] } })),
-  JSON.stringify({ x: 5, y: 5, baselineUserTurnId: null }),
+  JSON.stringify({ x: 5, y: 5 }),
   "an explicitly approved numeric-parenthetical name must win before Provider suffix normalization");
   const renamedAttachment = new FakeElement("approved(copy).pdf", {}, {}, {
     "aria-label": "approved(copy).pdf",
@@ -106,8 +106,19 @@ export const exerciseCapturedCandidateFunction = async (source: string): Promise
     elementFromPoint: () => send,
   }, { ...guardedInput, exactOutgoingTurn: {
     ...guardedInput.exactOutgoingTurn, expectedAttachmentLabels: [],
-  } })), JSON.stringify({ x: 5, y: 5, baselineUserTurnId: null }),
+  } })), JSON.stringify({ x: 5, y: 5 }),
   "a Product that approves zero attachments must still authorize its exact prompt click");
+  const historicalTurns = [1, 7, 3].map((ordinal) => new FakeElement("turn", {}, {}, {
+    "data-testid": `conversation-turn-${ordinal}`,
+  }));
+  const malformedTurn = new FakeElement("turn", {}, {}, { "data-testid": "conversation-turn-bad" });
+  assert.equal(JSON.stringify(await execute(source, {
+    ...guardedDocument,
+    querySelectorAll: (selector: string) => selector === "composer" ? [composer]
+      : selector === "form" ? [form] : selector === "user-turn"
+        ? [...historicalTurns, malformedTurn] : [],
+  }, guardedInput)), JSON.stringify({ x: 5, y: 5 }),
+  "multiple or malformed historical turns must not reject an otherwise authorized click");
   assert.equal(await execute(source, guardedDocument, { ...guardedInput, exactOutgoingTurn: {
     ...guardedInput.exactOutgoingTurn, expectedAttachmentLabels: [],
   } }), "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH",

@@ -10,6 +10,7 @@ import type {
 } from "../contract.js";
 import { hashCanonical } from "../../../lib/local-runtime/production/contracts.js";
 import { EXPECTED_GPT_CHILD_IDS } from "./gpt-exact-target-browser-fixture.js";
+import { productionGptAtomicIdentity } from "../production-atomic-call.js";
 
 const gpt = createGptAbilityGroup();
 
@@ -57,3 +58,17 @@ for (const childCapabilityId of EXPECTED_GPT_CHILD_IDS as readonly GptChildCapab
     await invalidResult(childCapabilityId, {}, "missing-field");
   }
 }
+
+const submitInput = { files: [], promptHash: hashCanonical("prompt") } as const;
+const submitIntent = Object.freeze({
+  childCapabilityId: "submit_exact_gpt_turn_once", executionId: "submit-identity",
+  jobId: "job:submit-identity", attemptId: "attempt:1", pluginId: "acceptance-product",
+  pluginVersion: 1, productStepId: "step", callId: "submit", inputHash: hashCanonical(submitInput),
+  actionOrdinal: 1, input: submitInput,
+}) as GptChildCapabilityIntent<"submit_exact_gpt_turn_once">;
+assert.equal(productionGptAtomicIdentity(submitIntent, 0).inputHash,
+  productionGptAtomicIdentity({ ...submitIntent, attemptId: "attempt:2" }, 0).inputHash,
+  "changing only attempt must retain the Provider submit request hash");
+assert.notEqual(productionGptAtomicIdentity(submitIntent, 0).inputHash,
+  productionGptAtomicIdentity(submitIntent, 1).inputHash,
+  "a Website-authorized result revision must create a different Provider submit request hash");

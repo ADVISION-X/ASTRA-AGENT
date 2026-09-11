@@ -262,8 +262,17 @@ const observationPostconditionEvidenceValid = (
   const rows = (packet.queries as readonly unknown[]).map((candidate, index) =>
     coherentRowResult(candidate, postcondition.queries[index]!));
   const rowsValid = rows.every((row) => row.valid);
-  const expectedCause = rows.find((row) => row.cause !== null)?.cause ?? null;
-  const verified = expectedCause === null;
+  const ordinaryCause = rows.find((row) => row.cause !== null)?.cause ?? null;
+  const exactOutgoing = command.intent.preClickExactOutgoingTurn;
+  const firstQuery = (packet.queries as readonly Readonly<Record<string, unknown>>[])[0];
+  const firstMatch = Array.isArray(firstQuery?.matches) ? firstQuery.matches[0] : undefined;
+  const match = firstMatch && typeof firstMatch === "object" && !Array.isArray(firstMatch)
+    ? firstMatch as Readonly<Record<string, unknown>> : null;
+  const exactVerified = exactOutgoing === undefined
+    || match?.exactGptUserPromptHash === exactOutgoing.expectedPromptHash;
+  const verified = ordinaryCause === null && exactVerified;
+  const expectedCause = exactOutgoing !== undefined && !exactVerified
+    ? "BROWSER_DOM_CANDIDATE_MISSING" : ordinaryCause;
   return rowsValid && value.postconditionVerified === verified
     && (verified ? value.nativeCauseCode === undefined : value.nativeCauseCode === expectedCause);
 };

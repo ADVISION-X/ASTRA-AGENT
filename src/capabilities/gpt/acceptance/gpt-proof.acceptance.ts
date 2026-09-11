@@ -122,7 +122,8 @@ const exerciseSubmit = async (
       assert.equal(intent.preClickExactOutgoingTurn?.expectedPromptHash, promptHash);
       assert.deepEqual(intent.preClickExactOutgoingTurn?.expectedAttachmentLabels, expectedAttachmentLabels);
       assert.equal(intent.postClickObservation?.queries[0]?.selector,
-        intent.preClickExactOutgoingTurn?.latestUserTurnSelector);
+        intent.preClickExactOutgoingTurn?.userTurnSelector);
+      assert.equal(intent.postClickObservation?.queries[0]?.latestGptUserTurn, true);
       exactOutgoingTurnChecked = true;
       const queries = intent.postClickObservation!.queries
         .map(({ expectedEligibleCount: _expected, ...query }) => query);
@@ -130,6 +131,7 @@ const exerciseSubmit = async (
         postconditionObservation: coherentObservationPacket({ queries }, {
           "submitted-user-turn": { rawCount: 1, eligibleCount: 1,
             matches: [{ testId: expectedUserTurnId, exactGptUserPromptHash: promptHash }] },
+          "empty-composer": { rawCount: 1, eligibleCount: 1, matches: [{}] },
         }, conversationUrl) };
     }
     if (intent.kind === "observe") return coherentObservationPacket(intent, {
@@ -150,9 +152,9 @@ const exerciseSubmit = async (
 
 await exerciseSubmit("gpt-proof-submit-localization", [], [], null, "conversation-turn-1");
 await exerciseSubmit("gpt-proof-submit-with-attachment", [approvedFile],
-  [approvedFile.providerDisplayName], "conversation-turn-1", "conversation-turn-3");
+  [approvedFile.providerDisplayName], "conversation-turn-1", "conversation-turn-7");
 await exerciseSubmit("gpt-proof-submit-third-turn", [], [],
-  "conversation-turn-3", "conversation-turn-5");
+  "conversation-turn-7", "conversation-turn-12");
 
 {
   const fixture = fakeBrowser((intent) => {

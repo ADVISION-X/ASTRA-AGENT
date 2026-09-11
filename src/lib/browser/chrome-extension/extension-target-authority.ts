@@ -12,6 +12,7 @@ import { executeRegisteredExtensionCommand } from "./extension-command-runtime.j
 import { ExtensionCreatedTarget, type TargetFailureReporter } from "./extension-created-target.js";
 import { ExtensionInteractionReadiness } from "./extension-interaction-readiness.js";
 import { executeRegisteredDomIntent } from "./dom-intent-runtime.js";
+import { documentState } from "./dom-query-runtime.js";
 import { ExtensionExactTargetRegistry, type ExtensionExactTarget } from "./exact-target-runtime.js";
 import {
   collectForkCleanupFailures,
@@ -450,44 +451,23 @@ export class ExtensionTargetAuthority {
   ): Promise<Record<string, unknown>> {
     const expected = requireCanonicalGptConversationUrl(canonicalConversationUrl);
     const assertCurrent = (): void => { this.targets.resolve(target.targetRef, target.documentRef); };
-    const readUrl = async (): Promise<string> => {
-      const state = await executeRegisteredDomIntent(
-        this.debuggerRuntime, target, { kind: "document" }, assertCurrent,
-      ) as Readonly<{ url?: unknown }>;
-      if (typeof state.url !== "string") throw new Error("BROWSER_DOM_READ_INVALID");
-      return state.url;
-    };
-    const normalize = (value: string): string | null => {
-      try {
-        const url = new URL(value);
-        return requireCanonicalGptConversationUrl(`${url.origin}${url.pathname}`);
-      } catch { return null; }
-    };
-    const currentUrl = await readUrl();
-    if (normalize(currentUrl) === expected) {
-      return { targetRef: target.targetRef, documentRef: target.documentRef,
-        navigationEpoch: target.navigationEpoch };
-    }
+    const withoutSuffix = (value: string): string => { const url = new URL(value); return `${url.origin}${url.pathname}`; };
+    const currentUrl = (await documentState(this.debuggerRuntime, target.tabId)).url;
+    if (withoutSuffix(currentUrl) === expected) return { targetRef: target.targetRef,
+      documentRef: target.documentRef, navigationEpoch: target.navigationEpoch };
     const path = new URL(expected).pathname;
-    const selector = [path, `${path}?`, `${path}#`].map((value, index) =>
-      `nav a[href${index === 0 ? "=" : "^="}${JSON.stringify(value)}]`).join(",");
+    const selector = `nav a[href=${JSON.stringify(path)}],nav a[href^=${JSON.stringify(`${path}?`)}],nav a[href^=${JSON.stringify(`${path}#`)}]`;
     const result = await executeRegisteredDomIntent(this.debuggerRuntime, target, {
-      kind: "click", selector, expectedMatches: 1,
-      postClickUrl: { notEquals: currentUrl, timeoutMs: 2_500 },
+      kind: "click", selector, expectedMatches: 1, postClickUrl: { notEquals: currentUrl, timeoutMs: 2_500 },
     }, assertCurrent) as Readonly<Record<string, unknown>>;
-    if (result.clicked !== true || result.mutationCount !== 1
-      || result.postconditionVerified !== true) {
-      throw new Error(typeof result.failureCode === "string"
-        ? result.failureCode : "BROWSER_POSTCONDITION_FAILED");
-    }
-    if (normalize(await readUrl()) !== expected) throw new Error("BROWSER_POSTCONDITION_FAILED");
+    if (typeof result.failureCode === "string" || result.clicked !== true || result.mutationCount !== 1
+      || result.postconditionVerified !== true) throw new Error(typeof result.failureCode === "string" ? result.failureCode : "BROWSER_POSTCONDITION_FAILED");
+    assertCurrent();
+    if (withoutSuffix((await documentState(this.debuggerRuntime, target.tabId)).url) !== expected) throw new Error("BROWSER_POSTCONDITION_FAILED");
     const next = this.targets.advanceDocument(target.targetRef);
     this.activeTarget = next;
-    await this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(next, {
-      claimOrigin: gptWebClaimOriginForUrl(expected),
-    }));
-    return { targetRef: next.targetRef, documentRef: next.documentRef,
-      navigationEpoch: next.navigationEpoch };
+    await this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(next, { claimOrigin: gptWebClaimOriginForUrl(expected) }));
+    return { targetRef: next.targetRef, documentRef: next.documentRef, navigationEpoch: next.navigationEpoch };
   }
 
   private async publishMainFrameNavigation(url: string, loaderId: string): Promise<ExtensionExactTarget> {

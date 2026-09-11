@@ -48,7 +48,7 @@ export const inspectGptProviderProbeOwnerContract = (
     'childCapabilityId !== "checkpoint_gpt_text_response"',
     'childCapabilityId !== "checkpoint_gpt_generated_image"',
     '"provider-probe", probeDeadlineAt', "startProviderProbeCooldown: true",
-    "selectExactProviderConversation",
+    "selectExactGptConversation",
   ], findings, finding);
   for (const forbidden of ["yieldForProviderWait", "waitForDelay", "yieldAndReacquire",
     "productionGptCrossConversationPollCadence"]) if (lifecycle.includes(forbidden)) findings.push(finding(

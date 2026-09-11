@@ -13,9 +13,17 @@ export const isConfirmedProviderSubmit = (
 );
 
 export const executeAndReadConfirmedSubmit = async (input: Readonly<{
+  read(): Promise<SeoConfirmedSubmit | null>;
+  prepare(): Promise<void>;
   execute(): Promise<SeoConfirmedSubmit>;
 }>): Promise<SeoConfirmedSubmit> => {
-  const submit = await input.execute();
+  const prior = await input.read();
+  if (prior) return requireConfirmedProviderSubmit(prior);
+  await input.prepare();
+  return requireConfirmedProviderSubmit(await input.execute());
+};
+
+const requireConfirmedProviderSubmit = (submit: SeoConfirmedSubmit): SeoConfirmedSubmit => {
   if (!isConfirmedProviderSubmit(submit)) {
     throw executionFailure("failed", "SEO_PROVIDER_SUBMIT_NOT_CONFIRMED");
   }

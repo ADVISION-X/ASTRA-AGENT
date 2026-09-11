@@ -3,7 +3,7 @@
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v32",
+  "blueprintId": "agent-production-runtime-v33",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
@@ -245,7 +245,7 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 每次候选都必须重新证明：
 
 1. 八条 Runtime law、稳定 blueprintId、三份 active contractRef 与 Runtime 唯一 Manifest 的 lawIds 相互一致；Architecture Boundary law 与 Manifest 独立保持其现役一一对应；越界 `ownedPaths` 只在同一候选的一次原子修改中归位，并立即证明无无主、无重叠、无 Runtime manifest-owner-drift。
-2. Website task-result v7、V6 v23 与 AGENT dependency 精确一致；grant 不携带 Provider locator/checkpoint，只绑定当前 task/attempt/lease/fence；八字仅携带 consultation_root_ref 与 direct parent，明确新 result revision 才可携带 hash-bound rejection。
+2. Website task-result v7、V6 v24 与 AGENT dependency 精确一致；grant 不携带 Provider locator/checkpoint，只绑定当前 task/attempt/lease/fence；八字仅携带 consultation_root_ref 与 direct parent，明确新 result revision 才可携带 hash-bound rejection。
 3. route projection 精确为 40 routes、47 parameter types、31 result contracts、0 reservation routes；bazi_private_base_input 与 result_contract.private_base 为零。
 4. base、Bazi primary、review admission receipt 的互斥字段与完整 canonical hash 全部闭合，未闭合时本地 completed 增量为零。
 5. credential 失败类别分别得到稳定脱敏 typed code，且 claim/Provider mutation 增量为零。
@@ -254,7 +254,7 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 8. authority 数据库缺失、不可读、损坏/查询异常、记录缺失、hash mismatch 分别可观察并失败关闭。
 9. storage inventory 在未变数据上重复得到同一目录/字节分母；dry-run 写入、移动与删除增量为零。
 10. 任一物理删除都存在本次精确 target 的单独授权、全部前置事实和删除后逐 target absence/preservation readback。
-11. durable accept 后进程重启必须由 Website 决策：mutation_outcome=no 可新 attempt；DISPATCHED/CONFIRMED 必须保留同一 effect 且 submit 增量为零，只能重建精确 Target 后读回。附件与其它 mutation 同样服从 effect identity，不得因新 attempt 重复。
+11. durable accept 后进程重启必须由 Website 决策：mutation_outcome=no 可新 attempt；新 attempt 必须在现役 Target/current Document 重建 fresh/profile/model/menu/附件/Composer 等 target-local 准备，批准附件集合允许为空。只有 submit 是跨 attempt 稳定的 provider effect；DISPATCHED/CONFIRMED 必须保留同一 effect 且 submit 增量为零，并在任何准备动作前按精确 WAL 事实进入只读结果收敛。submit request hash 绑定现有 result revision 与 Child input hash；仅换 attempt 不变，新 result revision 必须变化。
 12. 当前完整结果只按 `job_id + attempt_id + result_hash` 经唯一 Outbox 幂等交付；回复不明先查询 Website staging、领域入库与 admission receipt，不重做 Provider，第二 Outbox 或 delivery flusher 为零。
 13. 失败、失联、lease 失效、结果不明和领域拒绝均只产生 typed facts；Website 唯一选择未发送后的新 attempt、同 effect 只读收敛或明确拒绝后的新 result revision。旧 fence 的 renew、artifact、result、terminal、completion 全部被拒绝。
 14. 单 task 损坏不污染其它 task，结构不合格或 orphan storage 阻断新 claim。

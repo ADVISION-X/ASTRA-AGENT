@@ -51,6 +51,7 @@ export type BrowserDomObservationQuery = Readonly<{
   textContains?: string;
   textEquals?: string;
   exactGptUserPromptContains?: string;
+  latestGptUserTurn?: true;
 }>;
 
 export type BrowserDomPostconditionQuery = Omit<
@@ -154,7 +155,7 @@ export type BrowserDomIntent =
       composerSelector: string;
       composerFormSelector: string;
       attachmentSelector: string;
-      latestUserTurnSelector: string;
+      userTurnSelector: string;
       expectedPromptHash: `sha256:${string}`;
       expectedAttachmentLabels: readonly string[];
     }>;
@@ -251,10 +252,9 @@ export const assertBrowserDomIntent = (intent: BrowserDomIntent): BrowserDomInte
 };
 
 const assertObservationIntent = (intent: BrowserDomIntent): void => {
-  if (intent.kind === "selectExactGptConversation") {
-    try { requireCanonicalGptConversationUrl(intent.canonicalConversationUrl); }
-    catch { throw new Error("BROWSER_COMMAND_PERMIT_INVALID"); }
-  }
+  if (intent.kind === "selectExactGptConversation") try {
+    requireCanonicalGptConversationUrl(intent.canonicalConversationUrl);
+  } catch { throw new Error("BROWSER_COMMAND_PERMIT_INVALID"); }
   if (intent.kind === "observe") assertObserveIntent(intent);
   if (intent.kind === "readExactAssistantTurn" && !exactAssistantReadIntentValid(intent)) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
@@ -273,7 +273,7 @@ const OBSERVATION_QUERY_KEYS = new Set([
 ]);
 const POSTCONDITION_QUERY_KEYS = new Set([
   "queryId", "selector", "maxMatches", "fields", "readEligibility", "scope", "textContains", "textEquals",
-  "expectedEligibleCount",
+  "expectedEligibleCount", "latestGptUserTurn",
 ]);
 
 const assertReadEligibility = (value: BrowserDomReadEligibility | undefined): void => {
@@ -296,6 +296,7 @@ const assertObservationQueries = (
       || Object.keys(query).some((key) => !allowedKeys.has(key))
       || !isBoundedText(query.queryId, 128) || queryIds.has(query.queryId)
       || !isBoundedText(query.selector, 2_048)
+      || (query.latestGptUserTurn !== undefined && query.latestGptUserTurn !== true)
       || !Number.isInteger(query.maxMatches) || query.maxMatches < 1 || query.maxMatches > 20) {
       throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
     }
@@ -472,10 +473,13 @@ const assertClickObservation = (
       throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
     }
   }
-  if (exactOutgoingTurn !== undefined && (observation.queries.length !== 1
-    || observation.queries[0]!.selector !== exactOutgoingTurn.latestUserTurnSelector
+  if (exactOutgoingTurn !== undefined && (observation.queries.length !== 2
+    || observation.queries[0]!.selector !== exactOutgoingTurn.userTurnSelector
+    || observation.queries[0]!.latestGptUserTurn !== true
     || !observation.queries[0]!.fields.includes("testId")
-    || !observation.queries[0]!.fields.includes("exactGptUserPromptHash"))) {
+    || !observation.queries[0]!.fields.includes("exactGptUserPromptHash")
+    || observation.queries[1]!.selector !== `${exactOutgoingTurn.composerSelector}[contenteditable='true']:has(> p[data-empty-paragraph='true'] > br.ProseMirror-trailingBreak)`
+    || observation.queries[1]!.fields.length !== 0)) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
   if (observation.clickedCandidateAttribute !== undefined
@@ -510,11 +514,11 @@ const assertPreClickExactOutgoingTurn = (
 ): void => {
   if (!value) return;
   if (Object.keys(value).sort().join("|")
-    !== "attachmentSelector|composerFormSelector|composerSelector|expectedAttachmentLabels|expectedPromptHash|latestUserTurnSelector"
+    !== "attachmentSelector|composerFormSelector|composerSelector|expectedAttachmentLabels|expectedPromptHash|userTurnSelector"
     || !isBoundedText(value.composerSelector, 2_048)
     || !isBoundedText(value.composerFormSelector, 2_048)
     || !isBoundedText(value.attachmentSelector, 2_048)
-    || !isBoundedText(value.latestUserTurnSelector, 2_048)
+    || !isBoundedText(value.userTurnSelector, 2_048)
     || !/^sha256:[a-f0-9]{64}$/u.test(value.expectedPromptHash)
     || !Array.isArray(value.expectedAttachmentLabels)
     || value.expectedAttachmentLabels.some((label) => !isBoundedText(label, 1_024))) {

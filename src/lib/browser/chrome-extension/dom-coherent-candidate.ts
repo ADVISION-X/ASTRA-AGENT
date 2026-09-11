@@ -32,16 +32,12 @@ type CandidateRequest = Readonly<{
     composerSelector: string;
     composerFormSelector: string;
     attachmentSelector: string;
-    latestUserTurnSelector: string;
+    userTurnSelector: string;
     expectedPromptHash: `sha256:${string}`;
     expectedAttachmentLabels: readonly string[];
   }>;
 }>;
-export type BrowserPointerAction = Readonly<{
-  x: number;
-  y: number;
-  baselineUserTurnId?: string | null;
-}>;
+export type BrowserPointerAction = Readonly<{ x: number; y: number }>;
 export type BrowserRetainedPointerAction = BrowserPointerAction & Readonly<{ nodeId: number }>;
 export type CoherentObservationPointerPreparation = Readonly<{
   kind: "postcondition";
@@ -114,25 +110,6 @@ const COHERENT_CANDIDATE_FUNCTION = `async function (spec) {
     if (JSON.stringify(observedLabels) !== JSON.stringify(expectedLabels)) {
       return "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH";
     }
-    const priorTurns = Array.from(document.querySelectorAll(outgoing.latestUserTurnSelector));
-    if (priorTurns.length > 1) return "BROWSER_DOM_READ_INVALID";
-    const baselineUserTurnId = priorTurns.length === 0 ? null
-      : priorTurns[0].getAttribute("data-testid");
-    if (baselineUserTurnId !== null
-      && !/^conversation-turn-[1-9][0-9]*$/.test(baselineUserTurnId)) {
-      return "BROWSER_DOM_READ_INVALID";
-    }
-    const baselineOrdinal = baselineUserTurnId === null ? -1
-      : Number(baselineUserTurnId.slice("conversation-turn-".length));
-    if (baselineUserTurnId !== null
-      && (!Number.isSafeInteger(baselineOrdinal) || baselineOrdinal % 2 === 0)) {
-      return "BROWSER_DOM_READ_INVALID";
-    }
-    return {
-      x: facts.bounds.x + facts.bounds.width / 2,
-      y: facts.bounds.y + facts.bounds.height / 2,
-      baselineUserTurnId
-    };
   }
   return {
     x: facts.bounds.x + facts.bounds.width / 2,
