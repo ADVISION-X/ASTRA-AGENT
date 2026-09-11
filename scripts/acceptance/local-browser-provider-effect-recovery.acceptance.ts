@@ -1,4 +1,5 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
+import Database from "better-sqlite3";
 import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -8,6 +9,7 @@ import {
   BrowserMutationStore,
   type BrowserMutationIdentity,
 } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
+import { ensureCurrentSchema } from "../../src/lib/browser/exact-target/browser-mutation-schema.js";
 
 const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -37,6 +39,17 @@ const identity = (attemptId: string, revision = 0): BrowserMutationIdentity => O
 
 const root = await mkdtemp(path.join(tmpdir(), "browser-attempt-fence-"));
 try {
+  for (const forbiddenColumn of [
+    "consultation_identity_hash", "source_task_ref_hash", "continuation_checkpoint_hash",
+  ]) {
+    const forbiddenSchema = new Database(path.join(root, `${forbiddenColumn}.sqlite`));
+    ensureCurrentSchema(forbiddenSchema);
+    forbiddenSchema.exec(`alter table browser_mutations add column ${forbiddenColumn} text`);
+    assert.throws(() => ensureCurrentSchema(forbiddenSchema), /BROWSER_REPAIR_REQUIRED/u,
+      `Browser startup must reject a WAL that retains ${forbiddenColumn}`);
+    forbiddenSchema.close();
+  }
+
   const store = new BrowserMutationStore(root);
   const first = identity("attempt:1");
   const terminalPayload = {
@@ -78,49 +91,16 @@ try {
   });
   assert.equal(recovered?.state, "confirmed");
   assert.deepEqual(recovered?.terminalPayload, terminalPayload);
-  store.recordContinuation(`browser-mutation:${first.commandId}`, {
-    sourceTaskRef: "task:bz05",
-    consultationIdentityHash: hash("consultation-identity"),
-  }, {
-    canonicalConversationUrl: "https://chatgpt.com/c/consultation-1",
-    promptHash: hash("prompt"), turnMarker: "[GRASSEYE:root]",
-    assistantTurnId: "conversation-turn-2", semanticTextHash: hash("response"),
-  });
-  assert.doesNotThrow(() => store.recordContinuation(`browser-mutation:${first.commandId}`, {
-    sourceTaskRef: "task:bz05",
-    consultationIdentityHash: hash("consultation-identity"),
-  }, {
-    canonicalConversationUrl: "https://chatgpt.com/c/consultation-1",
-    promptHash: hash("prompt"), turnMarker: "[GRASSEYE:root]",
-    assistantTurnId: "conversation-turn-2", semanticTextHash: hash("response"),
-  }));
   store.close();
 
   const restarted = new BrowserMutationStore(root);
-  assert.deepEqual(restarted.readContinuation({
-    consultationIdentityHash: hash("consultation-identity"),
-    predecessorSourceTaskRef: "task:bz05",
-  }), {
-    canonicalConversationUrl: "https://chatgpt.com/c/consultation-1",
-    promptHash: hash("prompt"), turnMarker: "[GRASSEYE:root]",
-    assistantTurnId: "conversation-turn-2", semanticTextHash: hash("response"),
+  const restartedOutcome = restarted.readAtomicStepOutcome({
+    jobId: second.jobId, attemptId: second.attemptId, ownerPluginId: second.ownerPluginId,
+    pluginVersion: second.pluginVersion, exactCallIdentityHash: second.exactCallIdentityHash,
+    actionOrdinal: second.actionOrdinal, targetRef: second.targetRef, effectScope: "provider_effect",
   });
-  assert.throws(() => restarted.readContinuation({
-    consultationIdentityHash: hash("wrong-consultation"),
-    predecessorSourceTaskRef: "task:bz05",
-  }), /BROWSER_CONTINUATION_MISSING/u, "wrong consultation identity fails closed");
-  assert.throws(() => restarted.readContinuation({
-    consultationIdentityHash: hash("consultation-identity"),
-    predecessorSourceTaskRef: "task:wrong-predecessor",
-  }), /BROWSER_CONTINUATION_FRONTIER_MISMATCH/u, "wrong direct predecessor fails closed");
-  assert.throws(() => restarted.recordContinuation(`browser-mutation:${first.commandId}`, {
-    sourceTaskRef: "task:other",
-    consultationIdentityHash: hash("consultation-identity"),
-  }, {
-    canonicalConversationUrl: "https://chatgpt.com/c/consultation-1",
-    promptHash: hash("prompt"), turnMarker: "[GRASSEYE:root]",
-    assistantTurnId: "conversation-turn-2", semanticTextHash: hash("response"),
-  }), /BROWSER_CONTINUATION_BINDING_INVALID/u, "a completed checkpoint cannot be rebound");
+  assert.deepEqual(restartedOutcome?.terminalPayload, terminalPayload,
+    "confirmed submit payload survives Browser restart for the same effect readback");
   assert.doesNotThrow(() => restarted.prepare(identity("attempt:2", 1)),
     "a Website-authorized new result revision receives a new provider effect");
   const rejectedNoInput = identity("attempt:1", 2);

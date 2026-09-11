@@ -23,7 +23,7 @@ const appendArtifactWithLog = async (input: ForensicsAppendArtifactInput,
     if (span) requireRuntimeLogWrite(result.status === "success"
       ? span.terminal({ outcome: "succeeded" })
       : span.terminal({ outcome: "failed", failure: runtimeFailureFromError({
-        error: new Error(result.failureReason), code: "FORENSICS_ARTIFACT_APPEND_FAILED",
+        error: new Error(result.failureReason), code: result.failureReason,
         responsibleOwner: "forensics-persistence", impact: RuntimeFailureImpact.BLOCKING,
       }) }));
     return result;

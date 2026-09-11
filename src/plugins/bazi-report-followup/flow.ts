@@ -1,6 +1,7 @@
 import type { WebsiteAgentTask, SharedExecutionContext } from "../../mediator/product-plugin-contract.js";
 import { executionFailure } from "../../lib/execution-failure.js";
-import { createOwnedExecution, markerFor, promptFor, receive, runConsultationTurn, runReviewTurn } from "./product-turn.js";
+import { requireBaziParentReportMaterial } from "../bazi-parent-report-material.js";
+import { createOwnedExecution, markerFor, promptFor, receive, runTurn } from "./product-turn.js";
 
 const validate = (task: WebsiteAgentTask, context: SharedExecutionContext): void => {
   if (task.product_id !== "bazi_report_followup") {
@@ -13,13 +14,13 @@ const validate = (task: WebsiteAgentTask, context: SharedExecutionContext): void
     || roles.join("\0") !== ["bazi_input_bundle", "result_contract"].join("\0")) {
     throw executionFailure("failed", "PRODUCT_FOLLOWUP_CONTRACT_INVALID");
   }
+  requireBaziParentReportMaterial(task, context, "bazi_input_bundle");
 };
 
 export const executeOwnedFlow = async (task: WebsiteAgentTask, context: SharedExecutionContext) => {
   validate(task, context);
   const flow = createOwnedExecution(task, context);
   const marker = markerFor(task);
-  const run = context.routePolicy.relation_kind === "review" ? runReviewTurn : runConsultationTurn;
-  const checkpoint = await run(task, context, flow, promptFor(task, context, marker), marker);
+  const checkpoint = await runTurn(task, context, flow, promptFor(task, context, marker), marker);
   return context.complete({ payload: receive(task, checkpoint, context), evidence_refs: flow.evidenceRefs() });
 };

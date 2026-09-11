@@ -19,7 +19,7 @@ import {
 import { executionFailure, failureCode, typedExecutionFailure } from "../../lib/execution-failure.js";
 import { hashCanonical } from "../../lib/local-runtime/production/contracts.js";
 import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
-import type { ProductGptCallInput, ProductGptChildResult, ProductGptTools } from "./product-api.js";
+import type { ProductGptCallInput, ProductGptChildResult } from "./product-api.js";
 import type { GptHash } from "./contract.js";
 import { persistGptEvidenceArtifacts } from "./evidence-artifacts.js";
 import { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
@@ -95,35 +95,6 @@ export class ProductionGptChildTools {
           return this.executeOne<"submit_exact_gpt_turn_once">(
             input, browsers, call, input.abortSignal, true,
           );
-        },
-        acquireContinuation: async (
-          resumeInput: Parameters<ProductGptTools["acquireContinuation"]>[0],
-        ) => {
-          this.assertExecutionActive(input);
-          const active = await browsers.browserFor(
-            resumeInput.sessionKey, resumeInput.productStepId, resumeInput.callId,
-          );
-          const checkpoint = this.browserAuthority.readContinuation({
-            consultationIdentityHash: resumeInput.consultationIdentityHash,
-            predecessorSourceTaskRef: resumeInput.predecessorSourceTaskRef,
-          });
-          if (active.browser.pendingMutationCount() > 0) {
-            throw executionFailure("failed", "GPT_PRIOR_BROWSER_MUTATION_UNRESOLVED");
-          }
-          await active.browser.executeDomIntent({
-            kind: "selectExactGptConversation",
-            canonicalConversationUrl: checkpoint.canonicalConversationUrl,
-          });
-          return checkpoint;
-        },
-        recordContinuation: (
-          recordInput: Parameters<ProductGptTools["recordContinuation"]>[0],
-        ) => {
-          this.assertExecutionActive(input);
-          this.browserAuthority.recordContinuation(recordInput.submitEvidenceRef, {
-            sourceTaskRef: recordInput.sourceTaskRef,
-            consultationIdentityHash: recordInput.consultationIdentityHash,
-          }, recordInput.checkpoint);
         },
       }),
       settle: (error) => browsers.settle(error),

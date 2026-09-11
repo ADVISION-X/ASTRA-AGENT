@@ -5,8 +5,6 @@ export type {
   BrowserTargetLeaseWait,
 } from "./exact-target/browser-target-lease.js";
 export type {
-  BrowserContinuationBinding,
-  BrowserContinuationCheckpoint,
   BrowserExactCallMutationFact,
 } from "./exact-target/browser-mutation-store.js";
 export type {

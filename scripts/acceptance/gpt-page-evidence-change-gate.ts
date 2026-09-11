@@ -169,20 +169,11 @@ const headPageDemandDigests = (): ReadonlyMap<string, string> => {
   } catch { return new Map(); }
 };
 
-const productEvidenceRequiredByChange = (
-  id: string,
-  child: EvidenceChild,
-  paths: readonly string[],
+const childImplementationChanged = (
+  id: string, child: EvidenceChild, paths: readonly string[],
 ): boolean => paths.some((path) => {
   const direct = path.match(/^src\/capabilities\/gpt\/children\/([^/]+)\//u)?.[1];
-  if (direct === id || childImplementationPaths(child).includes(path)) {
-    return true;
-  }
-  if (path.startsWith("src/plugins/") || path.startsWith("src/capabilities/gpt/web/")) {
-    return changedText(path).includes(id);
-  }
-  return (SHARED_PAGE_PATHS.has(path) || path === ACTIVE_LAW_PATH || path === BLUEPRINT_PATH)
-    && childIdsMentionedByDiff(path, [id]).length === 1;
+  return direct === id || childImplementationPaths(child).includes(path);
 });
 
 export const affectedGptPageChildren = (paths: readonly string[], children: readonly EvidenceChild[]): string[] => {
@@ -238,8 +229,7 @@ const affectedChildFailures = (
 ): string[] => {
   const child = children.find((entry) => entry.childCapabilityId === id);
   if (!child) return [`${id}:not-admitted`];
-  const browserImplementationOnly = !productEvidenceRequiredByChange(id, child, paths);
-  if (browserImplementationOnly
+  if (!childImplementationChanged(id, child, paths)
     && child.evidenceDemand.pageDemandDigest === baselinePageDemand.get(id)) return [];
   const productCalls = productCallsForChild(report, id);
   if (productCalls.length === 0) return [`${id}:product-call-evidence-required`];

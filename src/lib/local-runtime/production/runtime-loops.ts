@@ -128,24 +128,12 @@ const reconcilePendingBusinessAdmissions = async (state: RuntimeState): Promise<
       typedIdentity: { kind: "job", jobId: task.task.job_id },
     }));
     try {
-      const outcome = await reconcileBusinessAdmission(state, task);
+      await reconcileBusinessAdmission(state, task);
       const current = state.store.readTask(task.task.job_id)!;
-      if (outcome === "completed") {
-        requireRuntimeLogWrite(span.terminal({
-          outcome: "succeeded", authorityRef: `production-task:${task.task.job_id}`,
-          authorityHash: hashCanonical(current),
-        }));
-      } else {
-        requireRuntimeLogWrite(span.terminal({
-          outcome: "failed", authorityRef: `production-task:${task.task.job_id}`,
-          authorityHash: hashCanonical(current), failure: runtimeFailureFromError({
-            error: new Error(current.current_reason ?? "BUSINESS_ADMISSION_PENDING"),
-            code: current.current_reason?.split(":")[0] ?? "BUSINESS_ADMISSION_PENDING",
-            responsibleOwner: "website",
-            impact: RuntimeFailureImpact.BLOCKING,
-          }),
-        }));
-      }
+      requireRuntimeLogWrite(span.terminal({
+        outcome: "succeeded", authorityRef: `production-task:${task.task.job_id}`,
+        authorityHash: hashCanonical(current),
+      }));
     } catch (error) {
       terminalSpanFailure(span, error, runtimeLogCauseEventId(error),
         "BUSINESS_ADMISSION_RECONCILIATION_FAILED");

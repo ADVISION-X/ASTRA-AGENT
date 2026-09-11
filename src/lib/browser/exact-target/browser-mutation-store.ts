@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import { constants, closeSync, fchmodSync, lstatSync, mkdirSync, openSync, readFileSync, writeFileSync } from "node:fs";
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { dirname, join } from "node:path";
 import { mutationIdentity, type MutationRow } from "./browser-mutation-row.js";
 import { ensureCurrentSchema, identityColumns, mutationAuthorityHash } from "./browser-mutation-schema.js";
@@ -72,28 +72,11 @@ export type BrowserAtomicStepOutcome = Readonly<{
   terminalPayload?: unknown | null;
 }>;
 
-export type BrowserContinuationCheckpoint = Readonly<{
-  canonicalConversationUrl: string;
-  promptHash: `sha256:${string}`;
-  turnMarker: string;
-  assistantTurnId: string;
-  semanticTextHash: `sha256:${string}`;
-}>;
-
-export type BrowserContinuationBinding = Readonly<{
-  sourceTaskRef: string;
-  consultationIdentityHash: `sha256:${string}`;
-}>;
-
 type EncryptedPayload = Readonly<{ nonce: string; ciphertext: string; tag: string }>;
 
 type ProviderRecoveryPayload = Readonly<{
   terminalPayload: unknown;
-  checkpoint?: BrowserContinuationCheckpoint;
 }>;
-
-const hashValue = (value: unknown): `sha256:${string}` =>
-  `sha256:${createHash("sha256").update(JSON.stringify(value)).digest("hex")}`;
 
 const secretKey = (dataDir: string): Buffer => {
   const directory = join(dataDir, "browser");
@@ -509,103 +492,6 @@ export class BrowserMutationStore {
       downloadCompleted: row.download_completed === 1,
       identityRevalidated: row.media_identity_revalidated === 1,
     });
-  }
-
-  public recordContinuation(
-    authorityRef: string,
-    binding: BrowserContinuationBinding,
-    checkpoint: BrowserContinuationCheckpoint,
-  ): void {
-    const commandId = authorityRef.startsWith("browser-mutation:")
-      ? authorityRef.slice("browser-mutation:".length) : "";
-    if (!commandId || !binding.sourceTaskRef
-      || !/^sha256:[a-f0-9]{64}$/u.test(binding.consultationIdentityHash)
-      || !checkpoint.canonicalConversationUrl || !checkpoint.turnMarker
-      || !/^sha256:[a-f0-9]{64}$/u.test(checkpoint.promptHash)
-      || !/^sha256:[a-f0-9]{64}$/u.test(checkpoint.semanticTextHash)
-      || !/^conversation-turn-[1-9][0-9]*$/u.test(checkpoint.assistantTurnId)) {
-      throw new Error("BROWSER_CONTINUATION_BINDING_INVALID");
-    }
-    const sourceHash = hashValue(binding.sourceTaskRef);
-    const checkpointHash = hashValue(checkpoint);
-    const row = this.database.prepare(
-      `select provider_recovery_payload from browser_mutations where command_id=?
-       and child_capability_id='submit_exact_gpt_turn_once'
-       and effect_scope='provider_effect' and state='CONFIRMED'`,
-    ).get(commandId) as { provider_recovery_payload: string } | undefined;
-    if (!row) throw new Error("BROWSER_CONTINUATION_BINDING_INVALID");
-    const recovered = unsealPayload(this.payloadKey, commandId, row.provider_recovery_payload);
-    if (!recovered.terminalPayload || typeof recovered.terminalPayload !== "object"
-      || Array.isArray(recovered.terminalPayload)) {
-      throw new Error("BROWSER_CONTINUATION_PAYLOAD_INVALID");
-    }
-    const terminal = recovered.terminalPayload as Readonly<Record<string, unknown>>;
-    if (terminal.canonicalConversationUrl !== checkpoint.canonicalConversationUrl
-      || terminal.promptHash !== checkpoint.promptHash) {
-      throw new Error("BROWSER_CONTINUATION_PAYLOAD_INVALID");
-    }
-    const result = this.database.prepare(
-      `update browser_mutations set provider_recovery_payload=?,consultation_identity_hash=?,
-       source_task_ref_hash=?,continuation_checkpoint_hash=?,updated_at=?
-       where command_id=? and child_capability_id='submit_exact_gpt_turn_once'
-         and effect_scope='provider_effect' and state='CONFIRMED'
-         and provider_recovery_payload is not null
-         and ((consultation_identity_hash is null and source_task_ref_hash is null
-           and continuation_checkpoint_hash is null) or (
-           consultation_identity_hash=? and source_task_ref_hash=? and continuation_checkpoint_hash=?))`,
-    ).run(sealPayload(this.payloadKey, commandId, { ...recovered, checkpoint }),
-      binding.consultationIdentityHash, sourceHash, checkpointHash,
-      new Date().toISOString(), commandId,
-      binding.consultationIdentityHash, sourceHash, checkpointHash);
-    if (result.changes !== 1) throw new Error("BROWSER_CONTINUATION_BINDING_INVALID");
-  }
-
-  public readContinuation(input: Readonly<{
-    consultationIdentityHash: `sha256:${string}`;
-    predecessorSourceTaskRef: string;
-  }>): BrowserContinuationCheckpoint {
-    if (!input.predecessorSourceTaskRef
-      || !/^sha256:[a-f0-9]{64}$/u.test(input.consultationIdentityHash)) {
-      throw new Error("BROWSER_CONTINUATION_BINDING_INVALID");
-    }
-    const rows = this.database.prepare(
-      `select command_id,source_task_ref_hash,provider_recovery_payload,continuation_checkpoint_hash
-       from browser_mutations
-       where consultation_identity_hash=?
-         and child_capability_id='submit_exact_gpt_turn_once'
-         and effect_scope='provider_effect' and state='CONFIRMED'
-       order by terminal_at desc,updated_at desc,rowid desc limit 2`,
-    ).all(input.consultationIdentityHash) as readonly Readonly<{
-      command_id: string;
-      source_task_ref_hash: `sha256:${string}`;
-      provider_recovery_payload: string;
-      continuation_checkpoint_hash: `sha256:${string}` | null;
-    }>[];
-    const frontier = rows[0];
-    if (!frontier) throw new Error("BROWSER_CONTINUATION_MISSING");
-    if (!frontier.continuation_checkpoint_hash) throw new Error("BROWSER_CONTINUATION_PAYLOAD_INVALID");
-    if (frontier.source_task_ref_hash !== hashValue(input.predecessorSourceTaskRef)) {
-      throw new Error("BROWSER_CONTINUATION_FRONTIER_MISMATCH");
-    }
-    const checkpoint = unsealPayload(
-      this.payloadKey, frontier.command_id, frontier.provider_recovery_payload,
-    ).checkpoint;
-    if (!checkpoint || typeof checkpoint !== "object" || Array.isArray(checkpoint)) {
-      throw new Error("BROWSER_CONTINUATION_PAYLOAD_INVALID");
-    }
-    const value = checkpoint as BrowserContinuationCheckpoint;
-    if (hashValue(value) !== frontier.continuation_checkpoint_hash) {
-      throw new Error("BROWSER_CONTINUATION_PAYLOAD_INVALID");
-    }
-    if (typeof value.canonicalConversationUrl !== "string" || !value.canonicalConversationUrl
-      || typeof value.turnMarker !== "string" || !value.turnMarker
-      || typeof value.assistantTurnId !== "string"
-      || !/^conversation-turn-[1-9][0-9]*$/u.test(value.assistantTurnId)
-      || typeof value.promptHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(value.promptHash)
-      || typeof value.semanticTextHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(value.semanticTextHash)) {
-      throw new Error("BROWSER_CONTINUATION_PAYLOAD_INVALID");
-    }
-    return Object.freeze(value) as BrowserContinuationCheckpoint;
   }
 
   public readDispatched(commandId: string): BrowserMutationIdentity | null {

@@ -53,29 +53,4 @@ export interface ProductGptTools {
   readConfirmedSubmit(
     input: ProductGptCallInput<"submit_exact_gpt_turn_once"> & Readonly<{ sessionKey: string }>,
   ): Promise<ProductGptChildResult<"submit_exact_gpt_turn_once"> | null>;
-  acquireContinuation(input: Readonly<{
-    sessionKey: string;
-    productStepId: string;
-    callId: string;
-    consultationIdentityHash: `sha256:${string}`;
-    predecessorSourceTaskRef: string;
-  }>): Promise<Readonly<{
-    canonicalConversationUrl: string;
-    promptHash: `sha256:${string}`;
-    turnMarker: string;
-    assistantTurnId: string;
-    semanticTextHash: `sha256:${string}`;
-  }>>;
-  recordContinuation(input: Readonly<{
-    submitEvidenceRef: string;
-    sourceTaskRef: string;
-    consultationIdentityHash: `sha256:${string}`;
-    checkpoint: Readonly<{
-      canonicalConversationUrl: string;
-      promptHash: `sha256:${string}`;
-      turnMarker: string;
-      assistantTurnId: string;
-      semanticTextHash: `sha256:${string}`;
-    }>;
-  }>): void;
 }

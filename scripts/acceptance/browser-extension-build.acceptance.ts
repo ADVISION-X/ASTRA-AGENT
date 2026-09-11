@@ -39,6 +39,8 @@ assert.match(worker, /#upload-files/u, "The file-input executor must remain pinn
 assert.match(worker, /browser\.authenticated-media\.v1/u, "The registered authenticated media observation must remain on the one encrypted Browser chain.");
 assert.match(worker, /gpt-generated-image-main/u, "Authenticated media retrieval must remain pinned to the fixed generated-image semantic identity.");
 assert.match(worker, /Runtime\.evaluate/u, "The fixed authenticated media observation must execute inside the signed-in exact page session.");
+assert.match(worker, /MutationObserver/u,
+  "Authenticated media retrieval must wait for source hydration inside its one bounded observation.");
 assert.equal("externally_connectable" in manifest, false, "The MV3 manifest cannot retain page relay connectivity.");
 assert.equal("storage" in manifest, false, "Automatic pairing and reload must remain memory-only.");
 assert.deepEqual(manifest.permissions, ["debugger", "alarms"], "The fixed extension must not retain active-tab authority.");

@@ -1,7 +1,5 @@
 import type {
   BrowserExecutionBinding,
-  BrowserContinuationBinding,
-  BrowserContinuationCheckpoint,
   BrowserExactCallMutationFact,
   BrowserTargetLease,
   BrowserTargetLeaseWait,
@@ -24,15 +22,6 @@ export interface GptEvidenceStorePort {
 }
 
 export interface GptProductionBrowserAuthority {
-  recordContinuation(
-    authorityRef: string,
-    binding: BrowserContinuationBinding,
-    checkpoint: BrowserContinuationCheckpoint,
-  ): void;
-  readContinuation(input: Readonly<{
-    consultationIdentityHash: `sha256:${string}`;
-    predecessorSourceTaskRef: string;
-  }>): BrowserContinuationCheckpoint;
   readExactCallMutationFact(input: Readonly<{
     jobId: string;
     attemptId: string;

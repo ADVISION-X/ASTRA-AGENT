@@ -11,7 +11,7 @@ import { resolveStoredProductionAuthority } from
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
-import { HASH_A, HASH_B, identityFor, task } from "./agent-production-runtime-fixtures.js";
+import { HASH_A, HASH_B, identityFor, resultFor, task } from "./agent-production-runtime-fixtures.js";
 import { verifyBrowserFailureStoreContract } from
   "./agent-production-runtime-browser-failure.acceptance-support.js";
 
@@ -69,6 +69,18 @@ try {
   assert.equal(store.pendingOutboxCount(), 1);
   store.markOutboxSent(artifactKey, { receipt_hash: HASH_B });
   assert.equal(store.pendingOutboxCount(), 0);
+  const taskJson = database.prepare("select task_json from production_tasks where job_id=?")
+    .pluck().get(accepted.job_id) as string;
+  database.prepare("update production_tasks set task_json='{' where job_id=?").run(accepted.job_id);
+  assert.throws(() => store.assertStartupDataIntegrity(),
+    (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_TASK_AUTHORITY_CORRUPT");
+  database.prepare("update production_tasks set task_json=? where job_id=?").run(taskJson, accepted.job_id);
+  const sentAt = database.prepare("select sent_at from production_outbox where idempotency_key=?")
+    .pluck().get(artifactKey) as string;
+  database.prepare("update production_outbox set sent_at=null where idempotency_key=?").run(artifactKey);
+  assert.throws(() => store.assertStartupDataIntegrity(),
+    (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_STATE_INVARIANT_INVALID");
+  database.prepare("update production_outbox set sent_at=? where idempotency_key=?").run(sentAt, artifactKey);
   const outboxAuthority = store.readOutboxAuthority(artifactKey)!;
   assert.equal(resolveStoredProductionAuthority(
     dataDirectory, `production-outbox:${artifactKey}`, hashCanonical(outboxAuthority),
@@ -80,6 +92,35 @@ try {
   assert.equal(resolveStoredProductionAuthority(
     dataDirectory, `production-task:${accepted.job_id}`, HASH_A,
   ), "mismatch");
+  const staged = { ...resultFor(accepted, identity), evidence_refs: [`art-${"a".repeat(64)}`] };
+  store.stageResult(accepted.job_id, staged);
+  store.enqueue({ idempotency_key: "artifact:envelope", kind: "artifact",
+    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(accepted.job_id)}/artifacts/envelope`,
+    method: "PUT", headers: {}, body: Buffer.from("envelope") });
+  store.markOutboxSent("artifact:envelope", { receipt_hash: HASH_A });
+  const terminalKey = "terminal:three-truths";
+  const terminal = { schema_version: "xuanxue-ai-terminal-cas.v6", job_id: accepted.job_id,
+    terminal_status: "completed", payload_hash: hashCanonical(staged), failure: null,
+    worker_session_id: "session:ledger", worker_session_epoch: 1,
+    result_object_receipts: [HASH_A, HASH_B] };
+  store.enqueue({ idempotency_key: terminalKey, kind: "terminal",
+    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(accepted.job_id)}/terminal`,
+    method: "POST", headers: {}, body: JSON.stringify(terminal) });
+  assert.doesNotThrow(() => store.assertStartupDataIntegrity(),
+    "forensics art-* evidence refs must not be reinterpreted as Website receipt hashes");
+  database.prepare("update production_outbox set path='invalid' where idempotency_key=?").run(terminalKey);
+  assert.throws(() => store.assertStartupDataIntegrity(),
+    (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_LEDGER_INVARIANT_INVALID");
+  database.prepare("update production_outbox set path=? where idempotency_key=?")
+    .run(`/internal/ai-production/v6/jobs/${encodeURIComponent(accepted.job_id)}/terminal`, terminalKey);
+  database.prepare("update production_outbox set body_blob=? where idempotency_key=?")
+    .run(Buffer.from(JSON.stringify({ ...terminal, result_object_receipts: [HASH_A, hashCanonical("missing")] })), terminalKey);
+  assert.throws(() => store.assertStartupDataIntegrity(),
+    (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_LEDGER_INVARIANT_INVALID");
+  database.prepare("update production_outbox set body_blob=? where idempotency_key=?")
+    .run(Buffer.from(JSON.stringify({ ...terminal, payload_hash: HASH_A })), terminalKey);
+  assert.throws(() => store.assertStartupDataIntegrity(),
+    (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_LEDGER_INVARIANT_INVALID");
   store.close();
 
   const legacyDirectory = path.join(temporary, "legacy");
@@ -101,7 +142,7 @@ try {
 
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V22",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V23",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:3", "summary"],
     locator: `acceptance:agent-production-runtime:two-table-authority:${evidenceMode}`,

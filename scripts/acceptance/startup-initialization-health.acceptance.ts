@@ -333,6 +333,7 @@ const verifyStartupFailureClosesExactSteps = async (): Promise<void> => {
   const runId = "startup-failure-acceptance";
   try {
     const logs = createStartupLogHelpers({ runId, dataDir });
+    logs.logStartupShellReady();
     logs.startStartupStep("update_preflight_check");
     logs.startStartupStep("dependency_update");
     logs.failOpenStartupSteps(new Error("DEPENDENCY_UPDATE_FAILED"));
@@ -348,6 +349,8 @@ const verifyStartupFailureClosesExactSteps = async (): Promise<void> => {
     assert.equal(diagnosis.blockingRoots[0]?.code, "STARTUP_DEPENDENCY_UPDATE_FAILED");
     assert.equal(diagnosis.consequentialFailures.length, 1);
     assert.equal(diagnosis.consequentialFailures[0]?.causedByEventId, diagnosis.blockingRoots[0]?.eventId);
+    assert.equal(diagnosis.observedEvents.some((event) => event.code === "STARTUP_SHELL_READY"), true);
+    assert.equal(diagnosis.observedEvents.some((event) => event.code === "STARTUP_READY"), false);
   } finally {
     await rm(dataDir, { recursive: true, force: true });
   }

@@ -7,9 +7,7 @@ import {
 } from "../../execution-failure.js";
 import { serializeTerminalFailure, terminalFailureHttpStatus } from "./terminal-failure.js";
 import {
-  RuntimeFailureImpact,
   requireRuntimeLogWrite,
-  runtimeFailureFromError,
   runtimeLogCauseEventId,
   type RuntimeSpanHandle,
 } from "../../runtime-logs/index.js";
@@ -261,23 +259,11 @@ const completeClaim = async (input: Readonly<{
     }),
   });
   const record = input.state.store.readTask(input.job.job_id)!;
-  const admission = await reconcileBusinessAdmission(input.state, record);
+  await reconcileBusinessAdmission(input.state, record);
   const current = input.state.store.readTask(input.job.job_id)!;
-  if (admission === "completed") {
-    requireRuntimeLogWrite(input.jobSpan.terminal({
-      outcome: "succeeded", authorityRef: `production-task:${input.job.job_id}`,
-      authorityHash: hashCanonical(current),
-    }));
-    return;
-  }
   requireRuntimeLogWrite(input.jobSpan.terminal({
-    outcome: "failed", authorityRef: `production-task:${input.job.job_id}`,
-    authorityHash: hashCanonical(current), failure: runtimeFailureFromError({
-      error: new Error(current.current_reason ?? "BUSINESS_ADMISSION_PENDING"),
-      code: current.current_reason?.split(":")[0] ?? "BUSINESS_ADMISSION_PENDING",
-      responsibleOwner: "website",
-      impact: RuntimeFailureImpact.BLOCKING,
-    }),
+    outcome: "succeeded", authorityRef: `production-task:${input.job.job_id}`,
+    authorityHash: hashCanonical(current),
   }));
 };
 

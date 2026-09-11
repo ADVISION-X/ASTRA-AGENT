@@ -22,11 +22,7 @@ import {
 } from "../../lib/execution-failure.js";
 import { parseProductResult } from "./result-contract.js";
 import { MODEL_PROFILE, PLUGIN_ID, PRODUCT_INSTRUCTION } from "./product-identity.js";
-import {
-  baziRevisionInstruction,
-  prepareBaziConsultation,
-  type ConsultationBinding,
-} from "../bazi-consultation-turn.js";
+import { baziRevisionInstruction } from "../bazi-revision-instruction.js";
 
 const WAIT_TIMEOUT_MS = 3_600_000;
 
@@ -245,14 +241,12 @@ export const checkpointSubmittedTurn = async (
 
 export const submitTurn = async (
   flow: OwnedExecution,
-  context: SharedExecutionContext,
   stepId: string,
   prompt: string,
   marker: string,
   files: readonly GptApprovedFile[],
   ordinals: readonly [number, number, number, number, number, number],
   callIdSuffix = "",
-  continuation?: ConsultationBinding,
 ): Promise<Checkpoint> => {
   const callId = (name: string) => callIdSuffix ? `${name}:${callIdSuffix}` : name;
   const promptHash = sha256(prompt);
@@ -261,32 +255,11 @@ export const submitTurn = async (
   await flow.execute(write);
   const submitResult = await flow.execute(submit) as ProductGptChildResult<"submit_exact_gpt_turn_once">;
   requireConfirmedSubmit(submitResult.effectReceipt);
-  const submitEvidenceRef = submitResult.effectReceipt!.evidenceRef;
-  const checkpoint = await checkpointSubmittedTurn(flow, stepId, marker, promptHash, submitResult,
+  return checkpointSubmittedTurn(flow, stepId, marker, promptHash, submitResult,
     [ordinals[3], ordinals[4], ordinals[5]], callIdSuffix);
-  if (continuation) context.gpt.recordContinuation({ ...continuation, submitEvidenceRef, checkpoint });
-  return checkpoint;
 };
 
-export const runConsultationTurn = async (
-  task: WebsiteAgentTask,
-  context: SharedExecutionContext,
-  flow: OwnedExecution,
-  prompt: string,
-  marker: string,
-): Promise<Checkpoint> => {
-  const continuation = await prepareBaziConsultation(task, context, flow, "root");
-  await applyProfile(flow, task.action_id, MODEL_PROFILE, [2, 3, 4, 5, 6, 7]);
-  await applyAttachments(flow, context, task.action_id,
-    context.materials.map((material) => material.role), [8, 9, 10]);
-  const checkpoint = await submitTurn(
-    flow, context, task.action_id, prompt, marker, uploadedFiles(context), [11, 12, 13, 14, 15, 16],
-    "", continuation,
-  );
-  return checkpoint;
-};
-
-export const runReviewTurn = async (
+export const runTurn = async (
   task: WebsiteAgentTask,
   context: SharedExecutionContext,
   flow: OwnedExecution,
@@ -298,7 +271,7 @@ export const runReviewTurn = async (
   await applyProfile(flow, task.action_id, MODEL_PROFILE, [2, 3, 4, 5, 6, 7]);
   await applyAttachments(flow, context, task.action_id,
     context.materials.map((material) => material.role), [8, 9, 10]);
-  return submitTurn(flow, context, task.action_id, prompt, marker,
+  return submitTurn(flow, task.action_id, prompt, marker,
     uploadedFiles(context), [11, 12, 13, 14, 15, 16]);
 };
 

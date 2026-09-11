@@ -2,11 +2,7 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 
 import { BrowserCommandActor } from "../exact-target/browser-command-actor.js";
-import {
-  BrowserMutationStore,
-  type BrowserContinuationBinding,
-  type BrowserContinuationCheckpoint,
-} from "../exact-target/browser-mutation-store.js";
+import { BrowserMutationStore } from "../exact-target/browser-mutation-store.js";
 import { BrowserSessionWorkspace, type SessionWorkspaceBindingV6 } from "../exact-target/browser-session-workspace.js";
 import { requireGptWebClaimOrigin } from "../exact-target/browser-site-policy-registry.js";
 import type {
@@ -216,22 +212,6 @@ export class BrowserInfrastructureSupervisor {
     exactCallIdentityHash: `sha256:${string}`;
     actionOrdinal: number;
   }>) { return this.lane.readExactCallMutationFact(input); }
-  public recordContinuation(
-    authorityRef: string,
-    binding: BrowserContinuationBinding,
-    checkpoint: BrowserContinuationCheckpoint,
-  ): void {
-    if (!this.state.mutationState) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
-    this.state.mutationState.recordContinuation(authorityRef, binding, checkpoint);
-  }
-  public readContinuation(input: Readonly<{
-    consultationIdentityHash: `sha256:${string}`;
-    predecessorSourceTaskRef: string;
-  }>): BrowserContinuationCheckpoint {
-    if (!this.state.mutationState) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
-    return this.state.mutationState.readContinuation(input);
-  }
-
   public health(): BrowserHealthSnapshot {
     const state = this.transport.currentState();
     const current = this.issuer.current();

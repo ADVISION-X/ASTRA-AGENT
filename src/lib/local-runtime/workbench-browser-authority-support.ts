@@ -12,8 +12,6 @@ import type {
   BrowserExecutionArtifactBinding,
   BrowserExecutionArtifactLease,
   BrowserExecutionBinding,
-  BrowserContinuationBinding,
-  BrowserContinuationCheckpoint,
   BrowserExactCallMutationFact,
   BrowserAuthorityBroker,
   BrowserTargetLease,
@@ -61,15 +59,6 @@ export type WorkbenchBrowserAuthority = Readonly<{
     exactCallIdentityHash: `sha256:${string}`;
     actionOrdinal: number;
   }>): BrowserExactCallMutationFact | null;
-  recordContinuation(
-    authorityRef: string,
-    binding: BrowserContinuationBinding,
-    checkpoint: BrowserContinuationCheckpoint,
-  ): void;
-  readContinuation(input: Readonly<{
-    consultationIdentityHash: `sha256:${string}`;
-    predecessorSourceTaskRef: string;
-  }>): BrowserContinuationCheckpoint;
   acquireJobBoundTargetLease(
     binding: BrowserExecutionBinding,
     ownerId: string,
@@ -155,9 +144,6 @@ export const createWorkbenchBrowserAuthority = async (
     countProviderTurnDispatches: (jobId, attemptId) =>
       supervisor.countProviderTurnDispatches(jobId, attemptId),
     readExactCallMutationFact: (input) => supervisor.readExactCallMutationFact(input),
-    recordContinuation: (authorityRef, binding, checkpoint) =>
-      supervisor.recordContinuation(authorityRef, binding, checkpoint),
-    readContinuation: (input) => supervisor.readContinuation(input),
     acquireJobBoundTargetLease: (binding, ownerId, wait) =>
       supervisor.acquireJobBoundTargetLease(binding, ownerId, wait),
     acceptBrowserAuthoritySocket: (socket) => ({

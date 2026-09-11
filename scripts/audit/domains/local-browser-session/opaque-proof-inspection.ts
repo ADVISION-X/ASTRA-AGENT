@@ -77,7 +77,8 @@ const inspectAuthenticatedMediaBoundary = (
     [targetAuthorityPath, mediaRuntimeText, [
       "Runtime.evaluate", "credentials: \"include\"", "crypto.subtle.digest", "bytesBase64",
       "canonicalConversationUrl", "userTurnId", "querySelectorAll(\"img\")",
-      "assistantTurnId", "precedingUserTurnId", "currentUrl",
+      "assistantTurnId", "precedingUserTurnId", "currentUrl", "MutationObserver",
+      "attributeFilter: [\"src\", \"srcset\"]", "AUTHENTICATED_MEDIA_SOURCE_WAIT_MS = 5_000",
     ]],
     [sourcePaths[5], leaseMethod, ["browser.authenticated-media.v1", "canonicalConversationUrl",
       "userTurnId", "semanticMediaId", "createHash"]],

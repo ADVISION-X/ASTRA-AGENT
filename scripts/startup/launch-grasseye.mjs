@@ -34,7 +34,7 @@ const {
   completeStartupStep,
   failOpenStartupSteps,
   failStartupStep,
-  logStartupReady,
+  logStartupShellReady,
   logStartupStopped,
   relayServiceStdoutLine,
   relayServiceStderrLine,
@@ -182,7 +182,7 @@ async function performLaunch(flags, root, onServiceStarted) {
   onServiceStarted(serviceHandle);
   await verifyAppHealth();
   await openReadyPage(flags);
-  logStartupReady();
+  logStartupShellReady();
   return serviceHandle;
 }
 

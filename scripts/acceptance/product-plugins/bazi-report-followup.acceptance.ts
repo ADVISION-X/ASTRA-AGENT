@@ -12,14 +12,6 @@ const reviewSequence = [
   "open_gpt_attachment_control", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
   "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "checkpoint_gpt_text_response",
 ] as const;
-const followupSequence = [
-  "checkpoint_gpt_text_response",
-  "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
-  "open_gpt_execution_profile", "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile", "open_gpt_attachment_control",
-  "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set", "write_exact_gpt_prompt",
-  "submit_exact_gpt_turn_once", "checkpoint_gpt_text_response",
-] as const;
-
 for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   const review = route.relation_kind === "review";
   const fixture = review
@@ -44,13 +36,23 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     new_question_snapshot: "question", covered_question_unit_refs: ["question:1"],
     citations: [], uncertainties: [], limitations: [], safety_notes: [],
   };
-  const run = await exerciseProductFlow(plugin, { task, output });
-  assert.deepEqual(run.calls.map((call) => call.child), review ? reviewSequence : followupSequence);
+  const run = await exerciseProductFlow(plugin, {
+    task,
+    output,
+    ...(!review ? { materialContents: {
+      bazi_input_bundle: {
+        schema_version: "bazi-ai-input-bundle-v6",
+        parent_report: {
+          parent_report_ref: task.parameters.parent_report_ref,
+          parent_raw_output_hash: task.parent_result_hash,
+          parent_terminal_output: { schema_version: "bazi-initial-question-answer-output.v1" },
+        },
+      },
+      result_contract: route.result_contract,
+    } } : {}),
+  });
+  assert.deepEqual(run.calls.map((call) => call.child), reviewSequence);
   assert.match(String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt), /当前 Product Plugin：bazi-report-followup/u);
   assert.equal(run.physicalSubmitDispatches, 1);
-  if (!review) {
-    assert.equal(run.continuationAcquires[0]?.predecessorSourceTaskRef, task.parent_task_ref);
-    assert.equal(run.continuationRecords[0]?.sourceTaskRef, task.job_id);
-  }
 }
 process.stdout.write("[ACCEPTANCE][bazi-report-followup] PASS\n");

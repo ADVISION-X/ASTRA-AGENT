@@ -156,8 +156,6 @@ const executeValue = (input: ExecutionValueInput): ExecutionValue =>
 
 type ProductRunState = {
   calls: ProductCall[];
-  continuationAcquires: Parameters<ProductGptTools["acquireContinuation"]>[0][];
-  continuationRecords: Parameters<ProductGptTools["recordContinuation"]>[0][];
   completed: ProductPluginOutput | null;
   physicalSubmitDispatches: number;
   generatedImageUploads: number;
@@ -181,17 +179,6 @@ const createGptFixture = (
   jobId: fixture.task.job_id,
   attemptId: "attempt-1",
   readConfirmedSubmit: async () => null,
-  acquireContinuation: async (input) => {
-    state.continuationAcquires.push(input);
-    return Object.freeze({
-      canonicalConversationUrl: "https://chatgpt.com/c/fixture-continuation",
-      promptHash: FIXTURE_HASH,
-      turnMarker: "[GRASSEYE:fixture-predecessor]",
-      assistantTurnId: "conversation-turn-2",
-      semanticTextHash: FIXTURE_HASH,
-    });
-  },
-  recordContinuation: (input) => { state.continuationRecords.push(input); },
   execute: async (call: ProductExecuteInput) => {
     const productCall = call as ProductCall;
     state.calls.push(productCall);
@@ -242,15 +229,13 @@ export const exerciseProductFlow = async (
   fixture: ProductFlowFixture,
 ): Promise<Readonly<{
   calls: readonly ProductCall[];
-  continuationAcquires: readonly Parameters<ProductGptTools["acquireContinuation"]>[0][];
-  continuationRecords: readonly Parameters<ProductGptTools["recordContinuation"]>[0][];
   completed: ProductPluginOutput;
   physicalSubmitDispatches: number;
   generatedImageUploads: number;
 }>> => {
   const root = mkdtempSync(join(tmpdir(), "grasseye-product-acceptance-"));
   const state: ProductRunState = {
-    calls: [], continuationAcquires: [], continuationRecords: [], completed: null,
+    calls: [], completed: null,
     physicalSubmitDispatches: 0, generatedImageUploads: 0,
   };
   try {
@@ -258,8 +243,7 @@ export const exerciseProductFlow = async (
     assert(state.completed);
     assert.equal(new Set(state.calls.map((call) => call.sessionKey)).size, fixture.expectedSessionCount ?? 1);
     assert.ok(state.calls.every((call) => call.sessionKey.includes(plugin.pluginId)));
-    return { calls: state.calls, continuationAcquires: state.continuationAcquires,
-      continuationRecords: state.continuationRecords, completed: state.completed,
+    return { calls: state.calls, completed: state.completed,
       physicalSubmitDispatches: state.physicalSubmitDispatches,
       generatedImageUploads: state.generatedImageUploads };
   } finally {

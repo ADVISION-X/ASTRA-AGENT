@@ -9,7 +9,7 @@
 ## 材料与事实
 
 - 必须逐项读取并核对全部锁定命盘材料、完整 READY 语料身份，以及 Website canonical Bazi PDF semantic manifest 的全部 ordered anchors；本产品只读取该 semantic manifest，不接收或复制 BZ02 chart PDF。
-- 本产品是同一人物、同一锁定命盘的唯一八字咨询根。首次正式解读在一条 fresh Provider conversation 中完成；取得正式结果后只把该会话的完成 frontier 交给 AGENT 的唯一 continuation 权威持久化。不得创建 private base、fork、隔离 child 或第二会话。
+- 本产品是同一人物、同一锁定命盘的八字咨询根。每次获准执行都从全新的 Provider conversation 完成当前正式结果；不得创建 private base、fork、隔离 child 或跨任务会话状态。
 - 严格区分锁定盘面事实、系统类型化基线、古籍原文、既往 AI 内容、当前解释和现实外部事实。
 - 系统给出的身强弱、格局、用神、喜忌等基线可以被解释、限定或提出有证据的异议，但不得被当前回答改写成新的系统事实。
 - 面对有界候选集，分别说明跨候选稳定结论、候选专属结论、差异和仍无法确认的事项；不得把最佳拟合意见冒充已确认时辰。

@@ -27,6 +27,7 @@ import {
 } from "./gpt-recovery-contract-inspection.js";
 import { inspectGptCurrentPageProofs } from "./gpt-page-proof-inspection.js";
 import {
+  inspectGptCrossTaskStateAbsence,
   inspectGptProviderProbeOwnerContract,
   inspectProviderWaitContract,
 } from "./gpt-provider-contract-inspection.js";
@@ -56,8 +57,8 @@ import {
 import { containsPageMutation, gptPrivateInfrastructureViolations, sourceFor, sourceTextForPaths }
   from "./gpt-inspection-support.js";
 
-const LAW_ID = "LAW-GPT-001-V44";
-const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V3";
+const LAW_ID = "LAW-GPT-001-V45";
+const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V4";
 const GPT_BLUEPRINT_PATH = "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 16, 19, 23),
@@ -335,6 +336,7 @@ const inspectGptContracts = (context: InspectorContext, findings: InspectorFindi
   inspectGptEndedAttemptContract(context, findings, finding);
   inspectGptDirectMutationSettlementContract(context, findings, finding);
   inspectGptPageEvidenceClosure(context, findings, finding);
+  inspectGptCrossTaskStateAbsence(context, findings, finding);
 };
 
 const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {

@@ -42,8 +42,15 @@ const runtime = (input: Readonly<{
   rejectFetch?: boolean;
   responseStatus?: number;
   fetchCount?: { value: number };
-}>): Runtime => async (expression) => runInNewContext(expression, {
-  document: { querySelectorAll: () => input.turns },
+  turnsAfterObserve?: readonly TestTurn[];
+  observationCount?: { value: number };
+}>): Runtime => {
+  let currentTurns = input.turns;
+  return async (expression) => runInNewContext(expression, {
+  document: {
+    documentElement: {},
+    querySelectorAll: () => currentTurns,
+  },
   location: { href: input.currentUrl ?? command.canonicalConversationUrl },
   URL,
   fetch: async (source: string) => {
@@ -56,8 +63,22 @@ const runtime = (input: Readonly<{
   },
   crypto: webcrypto,
   btoa: (value: string) => Buffer.from(value, "binary").toString("base64"),
+  MutationObserver: class {
+    public constructor(private readonly callback: () => void) {}
+    public observe() {
+      if (input.observationCount) input.observationCount.value += 1;
+      if (input.turnsAfterObserve) {
+        currentTurns = input.turnsAfterObserve;
+        queueMicrotask(this.callback);
+      }
+    }
+    public disconnect() {}
+  },
+  setTimeout: (callback: () => void) => { queueMicrotask(callback); return 1; },
+  clearTimeout: () => undefined,
   Uint8Array, String, Map, Error,
-});
+  });
+};
 
 export const exerciseAuthenticatedMedia = async (input: Readonly<{
   authority: Pick<ExtensionTargetAuthority, "executeRegisteredCommand" | "resolve">;
@@ -81,6 +102,20 @@ export const exerciseAuthenticatedMedia = async (input: Readonly<{
     `sha256:${createHash("sha256").update(input.targetRef).digest("hex")}`);
   assert.equal(authenticated.authorityDocumentHash,
     `sha256:${createHash("sha256").update(input.documentRef).digest("hex")}`);
+
+  const observationCount = { value: 0 };
+  input.setRuntime(runtime({
+    turns: [user(), response([])],
+    turnsAfterObserve: [user(), response([first])],
+    observationCount,
+    bytes,
+  }));
+  const hydrated = await input.authority.executeRegisteredCommand(
+    command, authority, "observation",
+  ) as Record<string, unknown>;
+  assert.equal(hydrated.assistantTurnId, "conversation-turn-6");
+  assert.equal(observationCount.value, 1,
+    "authenticated media must wait on source hydration inside the same Browser observation");
 
   input.setRuntime(runtime({
     turns: [user(), response([first, second])],

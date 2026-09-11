@@ -410,6 +410,8 @@ const permanentRevocationSource = await readFile(
 const runtimeLoopsSource = await readFile(
   new URL("../../src/lib/local-runtime/production/runtime-loops.ts", import.meta.url), "utf8",
 );
+assert.doesNotMatch(runtimeSource, /outcome: "failed"[\s\S]{0,300}BUSINESS_ADMISSION_PENDING/u);
+assert.doesNotMatch(runtimeLoopsSource, /outcome: "failed"[\s\S]{0,300}BUSINESS_ADMISSION_PENDING/u);
 const outboxSource = await readFile(
   new URL("../../src/lib/local-runtime/production/store-outbox.ts", import.meta.url), "utf8",
 );
@@ -486,7 +488,7 @@ assert.match(outboxSource, /executionFailure\("failed", authority\.lastError\)/u
   inspectAgentProductionRuntime({
     project,
     sealedRoot: path.resolve("."),
-    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V52",
+    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V53",
     targetSet: { queryRef: "acceptance:runtime-lifecycle-mutant", count: 1 },
     targetPaths: [],
     lawRequirements: [],
@@ -495,7 +497,7 @@ assert.match(outboxSource, /executionFailure\("failed", authority\.lastError\)/u
       manifestPath: "scripts/audit/domains/agent-production-runtime/manifest.json",
       ownerInspectorPath: "scripts/audit/domains/agent-production-runtime/inspector.ts",
       executionGroup: "domain",
-      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V52"],
+      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V53"],
     },
     generatedPlan: [],
   }, findings);
@@ -564,7 +566,7 @@ const runtimeLawSource = await readFile(
 const runtimeLawRecords = [...runtimeLawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
   .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden: string[] });
 const runtimeCoreLaw = runtimeLawRecords.find(
-  (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V52",
+  (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V53",
 );
 assert.ok(runtimeCoreLaw);
 for (const token of [
@@ -575,21 +577,21 @@ for (const token of [
 ]) assert.ok(runtimeCoreLaw.forbidden.some((entry) => entry.includes(token)), token);
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V24",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V25",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"],
   locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
   observedValue: "the unique Runtime ownership inspector accepted the current Runtime-only manifest and rejected injected Mediator and Product ownership mutants",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V52",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V53",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:attempt-recovery-state-machine",
   observedValue: "binary task lifecycle durable accept same-attempt recovery lease outbox and typed cross-owner boundaries exercised",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V52",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V53",
   evidenceMode: "exam.property",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:transport-properties",
@@ -597,7 +599,7 @@ emitQualityProofObservation({
 });
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V22",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V23",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"],
     locator: `acceptance:agent-production-runtime:business-admission:${evidenceMode}`,

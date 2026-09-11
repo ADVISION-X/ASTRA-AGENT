@@ -118,7 +118,13 @@ export const inspectProviderEffectAttemptGuard = (
     "src/lib/browser/exact-target/browser-command-postcondition.ts");
   const store = requireSource(context, findings, lawId,
     "src/lib/browser/exact-target/browser-mutation-store.ts");
-  if (!postcondition || !store) return;
+  const schema = requireSource(context, findings, lawId,
+    "src/lib/browser/exact-target/browser-mutation-schema.ts");
+  const supervisor = requireSource(context, findings, lawId,
+    "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts");
+  const authorityApi = requireSource(context, findings, lawId,
+    "src/lib/browser/browser-authority-api.ts");
+  if (!postcondition || !store || !schema || !supervisor || !authorityApi) return;
   requireTokens(postcondition.getFullText(), [
     'permit.replayPolicy === "provider-effect-once" ? []',
     "permit.jobId", "payloadHash",
@@ -127,15 +133,33 @@ export const inspectProviderEffectAttemptGuard = (
   const storeText = store.getFullText();
   requireTokens(storeText, [
     "where job_id=? and owner_plugin_id=?", "provider_recovery_payload",
-    "consultation_identity_hash", "source_task_ref_hash", "continuation_checkpoint_hash",
-    "recordContinuation", "readContinuation",
   ], findings, lawId, store.getFilePath(),
   "browser-authority/provider-effect-cross-attempt-identity");
-  forbidTokens(storeText, [
+  const browserAuthorityText = [store, supervisor, authorityApi]
+    .map((source) => source.getFullText()).join("\n");
+  forbidTokens(browserAuthorityText, [
     "provider_effect_identity_hash", "providerEffectIdentityHash",
     "direct_predecessor_task_ref_hash", "completed_frontier_hash",
-    "persistContinuation", "advanceContinuation",
-  ], findings, lawId, store.getFilePath(), "browser-authority/no-continuation-shadow-state");
+    "persistContinuation", "advanceContinuation", "recordContinuation", "readContinuation",
+    "consultation_identity_hash", "source_task_ref_hash", "continuation_checkpoint_hash",
+    "BrowserContinuationCheckpoint", "BrowserContinuationBinding",
+  ], findings, lawId, [store, supervisor, authorityApi]
+    .map((source) => source.getFilePath()).join(","), "browser-authority/no-continuation-shadow-state");
+  const schemaText = schema.getFullText();
+  requireTokens(schemaText, [
+    "forbiddenContinuationColumns", "BROWSER_REPAIR_REQUIRED",
+    "forbiddenContinuationColumns.has(column)",
+  ], findings, lawId, schema.getFilePath(), "browser-authority/reject-continuation-schema");
+  for (const column of [
+    "consultation_identity_hash", "source_task_ref_hash", "continuation_checkpoint_hash",
+  ]) {
+    const occurrences = schemaText.split(column).length - 1;
+    if (occurrences !== 1) findings.push(createLocalFinding({
+      checkId: "browser-authority/reject-continuation-schema", lawId,
+      filePath: schema.getFilePath(),
+      message: `${column} must appear exactly once, only in the rejected-column set.`,
+    }));
+  }
 };
 import { Node, SyntaxKind, type Node as MorphNode, type SourceFile } from "ts-morph";
 import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";

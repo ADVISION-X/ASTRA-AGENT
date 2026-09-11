@@ -43,9 +43,6 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
       result_contract: route.result_contract },
   });
   assert.equal(run.physicalSubmitDispatches, 1);
-  assert.equal(run.continuationAcquires.length, 0);
-  assert.equal(run.continuationRecords.length, 1);
-  assert.equal(run.continuationRecords[0]?.sourceTaskRef, task.job_id);
   assert.deepEqual(run.calls.map((call) => call.child), reviewSequence);
 }
 process.stdout.write("[ACCEPTANCE][bazi-chart-interpretation] PASS\n");

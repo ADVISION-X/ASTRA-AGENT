@@ -47,7 +47,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   run("inspectArtifactOnlyContracts", () => {
     const source = REQUIRED.map((path) => text(context, path)).join("\n");
     for (const required of ["appendArtifact", "readArtifact", "FORENSICS_IDEMPOTENCY_CONFLICT",
-      "integrityHash", "ai_raw_output"]) if (!source.includes(required)) findings.push(createFinding({
+      "code: result.failureReason", "integrityHash", "ai_raw_output"]) if (!source.includes(required)) findings.push(createFinding({
       evidenceMode: "static.contract", lawId: LAWS[1], clauseId: `${LAWS[1].toLowerCase()}-requirement`,
       checkId: "forensics/artifact-contract-required", filePath: REQUIRED[0], message: `Missing ${required}.`,
     }));

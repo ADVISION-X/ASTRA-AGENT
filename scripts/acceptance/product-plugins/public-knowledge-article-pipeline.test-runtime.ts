@@ -73,8 +73,6 @@ export const createContext = (
           terminalAt: CONFIRMED_AT, evidenceRef, evidenceHash: HASH,
         } } as never;
     },
-    acquireContinuation: async () => { throw new Error("UNREACHABLE_GPT_CONTINUATION"); },
-    recordContinuation: () => { throw new Error("UNREACHABLE_GPT_CONTINUATION"); },
     execute: async (input: SeoExecuteInput) => {
       const call = input as SeoCall;
       assertCallBoundary(call);

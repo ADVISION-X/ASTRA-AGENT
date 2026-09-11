@@ -62,7 +62,9 @@ export const gptPrivateInfrastructureViolations = (source: SourceFile): string[]
   if (privateInfrastructurePath.test(leaf)) violations.push(`path:${leaf}`);
   for (const declaration of source.getImportDeclarations()) {
     const target = declaration.getModuleSpecifierValue();
-    if (privateInfrastructureImports.has(target)) violations.push(`import:${target}`);
+    if (privateInfrastructureImports.has(target)) {
+      violations.push(`import:${target}`);
+    }
   }
   const names = [
     ...source.getClasses().flatMap((entry) => entry.getName() ?? []),

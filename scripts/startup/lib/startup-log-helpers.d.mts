@@ -9,7 +9,7 @@ export function createStartupLogHelpers(input: Readonly<{
   completeStartupStep: (stepId: string) => void;
   failOpenStartupSteps: (error: unknown) => readonly StartupStepTerminal[];
   failStartupStep: (stepId: string, error: unknown) => StartupStepTerminal;
-  logStartupReady: () => void;
+  logStartupShellReady: () => void;
   logStartupStopped: () => void;
   relayServiceStdoutLine: (line: string) => void;
   relayServiceStderrLine: (line: string) => void;

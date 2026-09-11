@@ -13,6 +13,9 @@ const RETIRED_CADENCE = `${ROOT}/provider-wait-cross-conversation-cadence.ts`;
 const BROWSER_LANE = "src/lib/browser/infrastructure/browser-lane-coordinator.ts";
 const SEMANTIC_TEXT = "src/lib/browser/chrome-extension/dom-semantic-text.ts";
 const EXACT_ASSISTANT = "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts";
+const PRODUCTION_CHILD_TOOLS = `${ROOT}/production-child-tools.ts`;
+const PRODUCTION_PORTS = `${ROOT}/production-ports.ts`;
+const PRODUCT_API = `${ROOT}/product-api.ts`;
 
 type FindingFactory = (checkId: string, filePath: string, message: string) => InspectorFinding;
 const sourceText = (context: InspectorContext, path: string): string =>
@@ -117,6 +120,23 @@ export const inspectProviderWaitContract = (
       .some((source) => source.includes(forbidden))) findings.push(finding(
       "gpt/response-prompt-rehash-absent", ROOT,
       `Response checkpoint chain retains forbidden second prompt identity ${forbidden}.`,
+    ));
+  }
+};
+
+export const inspectGptCrossTaskStateAbsence = (
+  context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory,
+): void => {
+  const tools = sourceText(context, PRODUCTION_CHILD_TOOLS);
+  const ports = sourceText(context, PRODUCTION_PORTS);
+  const api = sourceText(context, PRODUCT_API);
+  for (const forbidden of [
+    "acquireContinuation", "recordContinuation", "GptContinuationStore", "gpt_continuations",
+    "consultationIdentityHash", "predecessorSourceTaskRef", "readConfirmedProviderLocator",
+  ]) {
+    if ([tools, ports, api].some((source) => source.includes(forbidden))) findings.push(finding(
+      "gpt/no-cross-task-provider-state", ROOT,
+      `GPT production surface retains forbidden cross-task Provider state ${forbidden}.`,
     ));
   }
 };

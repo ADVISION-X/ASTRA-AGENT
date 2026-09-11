@@ -16,11 +16,7 @@ import {
 import type { ProductGptAnyCallInput, ProductGptChildResult } from "../../capabilities/gpt/index.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 import { parseProductResult } from "./result-contract.js";
-import {
-  baziRevisionInstruction,
-  prepareBaziConsultation,
-  type ConsultationBinding,
-} from "../bazi-consultation-turn.js";
+import { baziRevisionInstruction } from "../bazi-revision-instruction.js";
 
 export const PLUGIN_ID = "bazi-report-followup";
 export const PRODUCT_INSTRUCTION = "根据本次已入场的父报告材料回答新的冻结问题，保持父报告、人物、命盘候选与证据边界。";
@@ -212,13 +208,11 @@ export const checkpointSubmittedTurn = async (
 
 export const submitTurn = async (
   flow: OwnedExecution,
-  context: SharedExecutionContext,
   stepId: string,
   prompt: string,
   marker: string,
   files: readonly GptApprovedFile[],
   ordinals: readonly [number, number, number, number, number, number],
-  continuation?: ConsultationBinding,
 ): Promise<Checkpoint> => {
   const promptHash = sha256(prompt);
   const write = { productStepId: stepId, callId: "prompt-write", child: "write_exact_gpt_prompt", actionOrdinal: ordinals[0], input: { prompt } } as const;
@@ -226,30 +220,11 @@ export const submitTurn = async (
   await flow.execute(write);
   const submitResult = await flow.execute(submit) as ProductGptChildResult<"submit_exact_gpt_turn_once">;
   requireConfirmedSubmit(submitResult.effectReceipt);
-  const submitEvidenceRef = submitResult.effectReceipt!.evidenceRef;
-  const checkpoint = await checkpointSubmittedTurn(flow, stepId, marker, promptHash, submitResult,
+  return checkpointSubmittedTurn(flow, stepId, marker, promptHash, submitResult,
     [ordinals[3], ordinals[4], ordinals[5]]);
-  if (continuation) context.gpt.recordContinuation({ ...continuation, submitEvidenceRef, checkpoint });
-  return checkpoint;
 };
 
-export const runConsultationTurn = async (
-  task: WebsiteAgentTask,
-  context: SharedExecutionContext,
-  flow: OwnedExecution,
-  prompt: string,
-  marker: string,
-): Promise<Checkpoint> => {
-  const continuation = await prepareBaziConsultation(task, context, flow, "followup");
-  await applyProfile(flow, task.action_id, [2, 3, 4, 5, 6, 7]);
-  await applyAttachments(flow, context, task.action_id, [8, 9, 10]);
-  const checkpoint = await submitTurn(flow, context, task.action_id, prompt, marker,
-    uploadedFiles(context), [11, 12, 13, 14, 15, 16],
-    continuation);
-  return checkpoint;
-};
-
-export const runReviewTurn = async (
+export const runTurn = async (
   task: WebsiteAgentTask,
   context: SharedExecutionContext,
   flow: OwnedExecution,
@@ -260,7 +235,7 @@ export const runReviewTurn = async (
     child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } });
   await applyProfile(flow, task.action_id, [2, 3, 4, 5, 6, 7]);
   await applyAttachments(flow, context, task.action_id, [8, 9, 10]);
-  return submitTurn(flow, context, task.action_id, prompt, marker,
+  return submitTurn(flow, task.action_id, prompt, marker,
     uploadedFiles(context), [11, 12, 13, 14, 15, 16]);
 };
 

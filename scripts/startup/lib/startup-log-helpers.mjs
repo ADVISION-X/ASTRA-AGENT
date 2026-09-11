@@ -108,13 +108,13 @@ export function createStartupLogHelpers({ runId, dataDir }) {
   const spans = createSpanLogHelpers(runtimeLogger, traceId);
   const relays = createServiceRelays(runtimeLogger, spans.fail);
 
-  const logStartupReady = () => {
+  const logStartupShellReady = () => {
     if (readyLogged || stoppedLogged) return;
     requireRuntimeLogWrite(runtimeLogger.emitEvent({
       traceId,
       operation: "runtime.start",
       typedIdentity: startupIdentity,
-      code: "STARTUP_READY",
+      code: "STARTUP_SHELL_READY",
     }));
     readyLogged = true;
   };
@@ -136,7 +136,7 @@ export function createStartupLogHelpers({ runId, dataDir }) {
     completeStartupStep: spans.pass,
     failOpenStartupSteps: spans.failOpen,
     failStartupStep: spans.fail,
-    logStartupReady,
+    logStartupShellReady,
     logStartupStopped,
     relayServiceStdoutLine: relays.stdout,
     relayServiceStderrLine: relays.stderr,

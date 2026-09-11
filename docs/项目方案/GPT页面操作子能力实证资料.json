@@ -1,6 +1,6 @@
 {
   "schemaVersion": "gpt-page-operation-evidence.v7",
-  "projectionRevision": "sha256:f686c29540961c073b01a71c1f4c0e178bcbd0947844a8eef8031e588be6824e",
+  "projectionRevision": "sha256:6d363abf5d07af817d247d4e1e0473979842a4e10c60ba6aa02f131151b27092",
   "captureEpoch": null,
   "matrixBinding": {
     "schemaVersion": "gpt-page-operation-matrix.v4",
@@ -32,7 +32,6 @@
   "productConsumers": [
     "bazi-ai-full-analysis",
     "bazi-chart-interpretation",
-    "bazi-consultation-turn.ts",
     "bazi-report-followup",
     "hehun-ai-analysis",
     "hehun-report-followup",
@@ -36500,7 +36499,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            188
+            184
           ]
         },
         {
@@ -36515,14 +36514,14 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            191
+            187
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            161
+            157
           ]
         },
         {
@@ -36678,8 +36677,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:85ed79ebaf335cc1944a57a838dc181138ad71c955b5f42efa3379c52bfb1851",
-        "digest": "sha256:85ed79ebaf335cc1944a57a838dc181138ad71c955b5f42efa3379c52bfb1851",
+        "childCandidateDigest": "sha256:a611fa851fb660ed6426775a57b3db138bb8b369f129b8e8f37d925d0214ff9e",
+        "digest": "sha256:a611fa851fb660ed6426775a57b3db138bb8b369f129b8e8f37d925d0214ff9e",
         "facts": [
           {
             "expected": "select the complete approved file set in one batch",
@@ -36899,23 +36898,23 @@
           }
         ],
         "pageDemandDigest": "sha256:19420349b101aab568c91dc79066baa800334431826d8586bf44442e53478585",
-        "projectionDigest": "sha256:85ed79ebaf335cc1944a57a838dc181138ad71c955b5f42efa3379c52bfb1851",
+        "projectionDigest": "sha256:a611fa851fb660ed6426775a57b3db138bb8b369f129b8e8f37d925d0214ff9e",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:a66bb8a2732a60ebf437392c800a9451b97b4778cf5619fa126618e647284091",
+                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:620290a49b3963c11104890a8bd682284d0af9af074bd066ec29d2d7f8718d22"
+                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
               },
               {
-                "contentHash": "sha256:87e19dd3075c5b117a377f8d7f771c89c4745ed1f49b22d5170b44028d67169b",
+                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:4119023ceccf47325327d53a89f2f7c972ea20549a2af081fdd92402ba7bf785"
+                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
               }
             ],
-            "semanticDigest": "sha256:5a641a41ed88453c47f8f4b056f9b9ae6b946aedc8f47cda3f0b51dd68a4e621"
+            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
           },
           "browser": {
             "files": [],
@@ -36924,14 +36923,14 @@
           "consumers": {
             "files": [
               {
-                "contentHash": "sha256:f29d1b2ad2a362dd3617fa012cd11b28f84725e64c4fb071883cb939daeae200",
+                "contentHash": "sha256:601816369da294fed740c2985ef8a8baeaa7f5f8cecac50c939a1c0a49111703",
                 "path": "src/plugins/bazi-ai-full-analysis/product-identity.ts",
-                "semanticHash": "sha256:b052294ad44d2470d577c084c1c34c6514ade43637ed08522ee3f1c03f5b22bc"
+                "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:57dd3bc1405668246dd96ff0ae21564f665e58bdda5eebc3ca8f919d34bb0de8",
+                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:b449cd575d827a74e9264a8588260122483d4968a90a01b1db45f1bad0883da8"
+                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -36939,14 +36938,14 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:0fb731fe6eaf1871fe6df469d2bf194e63ac8276ed8bef76d6a5fc6031fdd2dc",
+                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:510bba6ffdacb434547b41f668a85e12f9994404fd16a29da4aae88cc11908d6"
+                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
               },
               {
-                "contentHash": "sha256:4b7a7c349a75533373cb32868f2198dcb592756d56b884569f06f5eda89e7586",
+                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:5c857cdf46af0fb644dfa8e1d2b909942015c07207bf45855e4ac44646509d36"
+                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
               },
               {
                 "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
@@ -36999,7 +36998,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:516a6bca61c4acd826aa7c2b127f3b6b87522fd3f7f9d341ae678fd415ba1c77"
+            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
           },
           "implementation": {
             "files": [
@@ -37084,7 +37083,7 @@
         {
           "path": "src/capabilities/gpt/children/checkpoint_gpt_generated_image/handler.ts",
           "lines": [
-            36
+            37
           ]
         },
         {
@@ -37121,7 +37120,7 @@
         {
           "path": "src/capabilities/gpt/children/checkpoint_gpt_generated_image/handler.ts",
           "lines": [
-            36
+            37
           ]
         },
         {
@@ -37194,8 +37193,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:1d159700a8948e6591d7f6e6c63bac6985f26a4f8bf58b500a0aa5e9528e3632",
-        "digest": "sha256:1d159700a8948e6591d7f6e6c63bac6985f26a4f8bf58b500a0aa5e9528e3632",
+        "childCandidateDigest": "sha256:6ff3fd758f078d1e61aa8699843d762046539cb6d1d5eb0d342088d27e334380",
+        "digest": "sha256:6ff3fd758f078d1e61aa8699843d762046539cb6d1d5eb0d342088d27e334380",
         "facts": [
           {
             "expected": "checkpoint the exact assistant image content",
@@ -37409,30 +37408,30 @@
           }
         ],
         "pageDemandDigest": "sha256:7249941ae0b406db07282133ed1ff296e33aaff9815c6c1bcef10dbb537a3294",
-        "projectionDigest": "sha256:1d159700a8948e6591d7f6e6c63bac6985f26a4f8bf58b500a0aa5e9528e3632",
+        "projectionDigest": "sha256:6ff3fd758f078d1e61aa8699843d762046539cb6d1d5eb0d342088d27e334380",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:a66bb8a2732a60ebf437392c800a9451b97b4778cf5619fa126618e647284091",
+                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:620290a49b3963c11104890a8bd682284d0af9af074bd066ec29d2d7f8718d22"
+                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
               },
               {
-                "contentHash": "sha256:87e19dd3075c5b117a377f8d7f771c89c4745ed1f49b22d5170b44028d67169b",
+                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:4119023ceccf47325327d53a89f2f7c972ea20549a2af081fdd92402ba7bf785"
+                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
               }
             ],
-            "semanticDigest": "sha256:5a641a41ed88453c47f8f4b056f9b9ae6b946aedc8f47cda3f0b51dd68a4e621"
+            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
           },
           "browser": {
             "files": [
               {
-                "contentHash": "sha256:865125d83d765a3b021e8d6a158491f4ca3d0092b60b37d131d84355b206d8a8",
+                "contentHash": "sha256:691fa9425ea849e53a0b8fa58bcbb65c252c85b9ca45be67e97a0e2bdd7db477",
                 "path": "src/lib/browser/chrome-extension/authenticated-media-runtime.ts",
-                "semanticHash": "sha256:df6ddaf10e36151a1d548c0e974c6bd184384712f7e1fa4bfee985ed7868ea71"
+                "semanticHash": "sha256:04ce94f9887410c170723a2e4ed76ebcfa926b43335a79f22ae20a4b5f2b6a3c"
               },
               {
                 "contentHash": "sha256:07cb8aaefa8342877f9f70fc31b7e5184107ade0b254b3d4783482327743ec84",
@@ -37440,7 +37439,7 @@
                 "semanticHash": "sha256:2781cac110a86388459c016fb82acb4f01fd891254d804923630e40f39d2d0a3"
               }
             ],
-            "semanticDigest": "sha256:319729fe7445e54505abb466410024fd021b7d0eed7cfee8e15f8976aec92c93"
+            "semanticDigest": "sha256:94309037e7b505cfe647e5a4a4e0b343639bd02041f511f0ae4448ae19cdc2ac"
           },
           "consumers": {
             "files": [
@@ -37460,9 +37459,9 @@
           "implementation": {
             "files": [
               {
-                "contentHash": "sha256:985768f058651bfecfe889821e1dc0f47bcec4c4a5a258e4f92a2a047f3541f4",
+                "contentHash": "sha256:369c5377ee8d5953910a1357751d2e52a304a9f130823b6eaccb4cc9044275db",
                 "path": "src/capabilities/gpt/children/checkpoint_gpt_generated_image/handler.ts",
-                "semanticHash": "sha256:3307590d3fdc0404520ebd1204d2f0acb308dc2a4b8c7ac0623d5f993bcec0a1"
+                "semanticHash": "sha256:92828a3e69f654379c2ccf0f9f23596723398620db263d416c370db1bba22991"
               },
               {
                 "contentHash": "sha256:015d250e42afa26840edad0308cac860eae87d0e01ac8a8cefe2f71dfa178e30",
@@ -37470,7 +37469,7 @@
                 "semanticHash": "sha256:bde55f6e0ae3bdf99f7185d38048a26a52b4099140476ea126130c8175fa007f"
               }
             ],
-            "semanticDigest": "sha256:73a555b85af70bbb7cab340d3397d3dccc15c7d56fd7a1f14a0107a487b8cee9"
+            "semanticDigest": "sha256:f8f554ff43fe834cbb5f9ccc02d4ceb2ac57bb804fa2d5f39b0056109f076da6"
           }
         }
       }
@@ -37609,7 +37608,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            219
+            215
           ]
         },
         {
@@ -37624,21 +37623,14 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            222
-          ]
-        },
-        {
-          "consumer": "bazi-consultation-turn.ts",
-          "path": "src/plugins/bazi-consultation-turn.ts",
-          "lines": [
-            72
+            218
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            190
+            186
           ]
         },
         {
@@ -37795,8 +37787,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:b2bdbf799d5b194c8f1ac1b7d00b2a7ea6a6b020f8f2ed365b132635bb785c9b",
-        "digest": "sha256:b2bdbf799d5b194c8f1ac1b7d00b2a7ea6a6b020f8f2ed365b132635bb785c9b",
+        "childCandidateDigest": "sha256:f053ef084a4f38aa2b7ff54ac0f5ae7afac956bfb93484b6b4992a37087fb935",
+        "digest": "sha256:f053ef084a4f38aa2b7ff54ac0f5ae7afac956bfb93484b6b4992a37087fb935",
         "facts": [
           {
             "expected": "checkpoint exact assistant outerHTML and deterministic semantic text",
@@ -38020,23 +38012,23 @@
           }
         ],
         "pageDemandDigest": "sha256:f731a239fffe0cfbf5abd6869420737db2fc020246c3005f82ba41c09f55bb90",
-        "projectionDigest": "sha256:b2bdbf799d5b194c8f1ac1b7d00b2a7ea6a6b020f8f2ed365b132635bb785c9b",
+        "projectionDigest": "sha256:f053ef084a4f38aa2b7ff54ac0f5ae7afac956bfb93484b6b4992a37087fb935",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:a66bb8a2732a60ebf437392c800a9451b97b4778cf5619fa126618e647284091",
+                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:620290a49b3963c11104890a8bd682284d0af9af074bd066ec29d2d7f8718d22"
+                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
               },
               {
-                "contentHash": "sha256:87e19dd3075c5b117a377f8d7f771c89c4745ed1f49b22d5170b44028d67169b",
+                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:4119023ceccf47325327d53a89f2f7c972ea20549a2af081fdd92402ba7bf785"
+                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
               }
             ],
-            "semanticDigest": "sha256:5a641a41ed88453c47f8f4b056f9b9ae6b946aedc8f47cda3f0b51dd68a4e621"
+            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
           },
           "browser": {
             "files": [
@@ -38056,14 +38048,14 @@
           "consumers": {
             "files": [
               {
-                "contentHash": "sha256:f29d1b2ad2a362dd3617fa012cd11b28f84725e64c4fb071883cb939daeae200",
+                "contentHash": "sha256:601816369da294fed740c2985ef8a8baeaa7f5f8cecac50c939a1c0a49111703",
                 "path": "src/plugins/bazi-ai-full-analysis/product-identity.ts",
-                "semanticHash": "sha256:b052294ad44d2470d577c084c1c34c6514ade43637ed08522ee3f1c03f5b22bc"
+                "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:57dd3bc1405668246dd96ff0ae21564f665e58bdda5eebc3ca8f919d34bb0de8",
+                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:b449cd575d827a74e9264a8588260122483d4968a90a01b1db45f1bad0883da8"
+                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -38071,19 +38063,14 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:0fb731fe6eaf1871fe6df469d2bf194e63ac8276ed8bef76d6a5fc6031fdd2dc",
+                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:510bba6ffdacb434547b41f668a85e12f9994404fd16a29da4aae88cc11908d6"
+                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
               },
               {
-                "contentHash": "sha256:eb1c2cd82003f79bbfdea962f58007dcc18962495e4d0c2bef8a1cd0c56528cc",
-                "path": "src/plugins/bazi-consultation-turn.ts",
-                "semanticHash": "sha256:200a3b99efd03ea541480079f1291bc5e997c1adf2158a752449a70a034d7b34"
-              },
-              {
-                "contentHash": "sha256:4b7a7c349a75533373cb32868f2198dcb592756d56b884569f06f5eda89e7586",
+                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:5c857cdf46af0fb644dfa8e1d2b909942015c07207bf45855e4ac44646509d36"
+                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
               },
               {
                 "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
@@ -38136,7 +38123,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:a8c297047de2ee8a4e0284fca1e77113af2e62215ec0bfa76101f9a492d5e8e2"
+            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
           },
           "implementation": {
             "files": [
@@ -38265,7 +38252,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            170
+            166
           ]
         },
         {
@@ -38280,14 +38267,14 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            173
+            169
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            144
+            140
           ]
         },
         {
@@ -38441,8 +38428,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:4975a12f2457209e4ebde222137b1c1e287db2e6fe372944fb606439a7c02c54",
-        "digest": "sha256:4975a12f2457209e4ebde222137b1c1e287db2e6fe372944fb606439a7c02c54",
+        "childCandidateDigest": "sha256:cfa26f825576d0c1a9da667477a1beb20d7bf1b78f9971bac301fa591581d424",
+        "digest": "sha256:cfa26f825576d0c1a9da667477a1beb20d7bf1b78f9971bac301fa591581d424",
         "facts": [
           {
             "expected": "close the current execution profile popup",
@@ -38652,23 +38639,23 @@
           }
         ],
         "pageDemandDigest": "sha256:0af0ab6d5fff2bb4a23727ad59b0e4887237c0f460c86780942da497c68e7560",
-        "projectionDigest": "sha256:4975a12f2457209e4ebde222137b1c1e287db2e6fe372944fb606439a7c02c54",
+        "projectionDigest": "sha256:cfa26f825576d0c1a9da667477a1beb20d7bf1b78f9971bac301fa591581d424",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:a66bb8a2732a60ebf437392c800a9451b97b4778cf5619fa126618e647284091",
+                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:620290a49b3963c11104890a8bd682284d0af9af074bd066ec29d2d7f8718d22"
+                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
               },
               {
-                "contentHash": "sha256:87e19dd3075c5b117a377f8d7f771c89c4745ed1f49b22d5170b44028d67169b",
+                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:4119023ceccf47325327d53a89f2f7c972ea20549a2af081fdd92402ba7bf785"
+                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
               }
             ],
-            "semanticDigest": "sha256:5a641a41ed88453c47f8f4b056f9b9ae6b946aedc8f47cda3f0b51dd68a4e621"
+            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
           },
           "browser": {
             "files": [],
@@ -38677,14 +38664,14 @@
           "consumers": {
             "files": [
               {
-                "contentHash": "sha256:f29d1b2ad2a362dd3617fa012cd11b28f84725e64c4fb071883cb939daeae200",
+                "contentHash": "sha256:601816369da294fed740c2985ef8a8baeaa7f5f8cecac50c939a1c0a49111703",
                 "path": "src/plugins/bazi-ai-full-analysis/product-identity.ts",
-                "semanticHash": "sha256:b052294ad44d2470d577c084c1c34c6514ade43637ed08522ee3f1c03f5b22bc"
+                "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:57dd3bc1405668246dd96ff0ae21564f665e58bdda5eebc3ca8f919d34bb0de8",
+                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:b449cd575d827a74e9264a8588260122483d4968a90a01b1db45f1bad0883da8"
+                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -38692,14 +38679,14 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:0fb731fe6eaf1871fe6df469d2bf194e63ac8276ed8bef76d6a5fc6031fdd2dc",
+                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:510bba6ffdacb434547b41f668a85e12f9994404fd16a29da4aae88cc11908d6"
+                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
               },
               {
-                "contentHash": "sha256:4b7a7c349a75533373cb32868f2198dcb592756d56b884569f06f5eda89e7586",
+                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:5c857cdf46af0fb644dfa8e1d2b909942015c07207bf45855e4ac44646509d36"
+                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
               },
               {
                 "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
@@ -38752,7 +38739,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:516a6bca61c4acd826aa7c2b127f3b6b87522fd3f7f9d341ae678fd415ba1c77"
+            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
           },
           "implementation": {
             "files": [
@@ -38902,7 +38889,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            169
+            165
           ]
         },
         {
@@ -38917,14 +38904,14 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            172
+            168
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            143
+            139
           ]
         },
         {
@@ -39108,9 +39095,9 @@
               {
                 "sourceBindings": [
                   {
-                    "contentHash": "sha256:f29d1b2ad2a362dd3617fa012cd11b28f84725e64c4fb071883cb939daeae200",
+                    "contentHash": "sha256:601816369da294fed740c2985ef8a8baeaa7f5f8cecac50c939a1c0a49111703",
                     "path": "src/plugins/bazi-ai-full-analysis/product-identity.ts",
-                    "semanticHash": "sha256:b052294ad44d2470d577c084c1c34c6514ade43637ed08522ee3f1c03f5b22bc"
+                    "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
                   },
                   {
                     "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -39118,9 +39105,9 @@
                     "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
                   },
                   {
-                    "contentHash": "sha256:4b7a7c349a75533373cb32868f2198dcb592756d56b884569f06f5eda89e7586",
+                    "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
                     "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                    "semanticHash": "sha256:5c857cdf46af0fb644dfa8e1d2b909942015c07207bf45855e4ac44646509d36"
+                    "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
                   },
                   {
                     "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
@@ -39173,8 +39160,8 @@
             ]
           }
         },
-        "childCandidateDigest": "sha256:e56b23a008f74f86feb58e4752d356cbd05680352a2c54d48ced87ac276bc2d1",
-        "digest": "sha256:e56b23a008f74f86feb58e4752d356cbd05680352a2c54d48ced87ac276bc2d1",
+        "childCandidateDigest": "sha256:9855aebac53946fa32a2a8344164e00072e7b02e6837747d8e7738d944a3c971",
+        "digest": "sha256:9855aebac53946fa32a2a8344164e00072e7b02e6837747d8e7738d944a3c971",
         "facts": [
           {
             "expected": "resolve and satisfy the Product-frozen reasoning requirement on an approved observed scale",
@@ -39424,23 +39411,23 @@
           }
         ],
         "pageDemandDigest": "sha256:152860363fcb7fbdf8074cd800941c0a9632d035d82444d079d1b50a229e9e11",
-        "projectionDigest": "sha256:e56b23a008f74f86feb58e4752d356cbd05680352a2c54d48ced87ac276bc2d1",
+        "projectionDigest": "sha256:9855aebac53946fa32a2a8344164e00072e7b02e6837747d8e7738d944a3c971",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:a66bb8a2732a60ebf437392c800a9451b97b4778cf5619fa126618e647284091",
+                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:620290a49b3963c11104890a8bd682284d0af9af074bd066ec29d2d7f8718d22"
+                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
               },
               {
-                "contentHash": "sha256:87e19dd3075c5b117a377f8d7f771c89c4745ed1f49b22d5170b44028d67169b",
+                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:4119023ceccf47325327d53a89f2f7c972ea20549a2af081fdd92402ba7bf785"
+                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
               }
             ],
-            "semanticDigest": "sha256:5a641a41ed88453c47f8f4b056f9b9ae6b946aedc8f47cda3f0b51dd68a4e621"
+            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
           },
           "browser": {
             "files": [],
@@ -39449,14 +39436,14 @@
           "consumers": {
             "files": [
               {
-                "contentHash": "sha256:f29d1b2ad2a362dd3617fa012cd11b28f84725e64c4fb071883cb939daeae200",
+                "contentHash": "sha256:601816369da294fed740c2985ef8a8baeaa7f5f8cecac50c939a1c0a49111703",
                 "path": "src/plugins/bazi-ai-full-analysis/product-identity.ts",
-                "semanticHash": "sha256:b052294ad44d2470d577c084c1c34c6514ade43637ed08522ee3f1c03f5b22bc"
+                "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:57dd3bc1405668246dd96ff0ae21564f665e58bdda5eebc3ca8f919d34bb0de8",
+                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:b449cd575d827a74e9264a8588260122483d4968a90a01b1db45f1bad0883da8"
+                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -39464,14 +39451,14 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:0fb731fe6eaf1871fe6df469d2bf194e63ac8276ed8bef76d6a5fc6031fdd2dc",
+                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:510bba6ffdacb434547b41f668a85e12f9994404fd16a29da4aae88cc11908d6"
+                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
               },
               {
-                "contentHash": "sha256:4b7a7c349a75533373cb32868f2198dcb592756d56b884569f06f5eda89e7586",
+                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:5c857cdf46af0fb644dfa8e1d2b909942015c07207bf45855e4ac44646509d36"
+                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
               },
               {
                 "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
@@ -39524,7 +39511,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:516a6bca61c4acd826aa7c2b127f3b6b87522fd3f7f9d341ae678fd415ba1c77"
+            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
           },
           "implementation": {
             "files": [
@@ -39672,7 +39659,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            187
+            183
           ]
         },
         {
@@ -39687,14 +39674,14 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            190
+            186
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            160
+            156
           ]
         },
         {
@@ -39850,8 +39837,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:e8b2447622dc75ed70e5b1415eb2e1f19808e5471216315d0db4e9f72e36f125",
-        "digest": "sha256:e8b2447622dc75ed70e5b1415eb2e1f19808e5471216315d0db4e9f72e36f125",
+        "childCandidateDigest": "sha256:8ee4b05f3cd96ad0208264827bb8945bb54a888b58a3ec31bd31afc6b7d7bb85",
+        "digest": "sha256:8ee4b05f3cd96ad0208264827bb8945bb54a888b58a3ec31bd31afc6b7d7bb85",
         "facts": [
           {
             "expected": "open the exact composer attachment menu",
@@ -40062,23 +40049,23 @@
           }
         ],
         "pageDemandDigest": "sha256:a75a02088305c6884a4959dfc6110a072659cda600c8db7dcefe2357b827d97f",
-        "projectionDigest": "sha256:e8b2447622dc75ed70e5b1415eb2e1f19808e5471216315d0db4e9f72e36f125",
+        "projectionDigest": "sha256:8ee4b05f3cd96ad0208264827bb8945bb54a888b58a3ec31bd31afc6b7d7bb85",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:a66bb8a2732a60ebf437392c800a9451b97b4778cf5619fa126618e647284091",
+                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:620290a49b3963c11104890a8bd682284d0af9af074bd066ec29d2d7f8718d22"
+                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
               },
               {
-                "contentHash": "sha256:87e19dd3075c5b117a377f8d7f771c89c4745ed1f49b22d5170b44028d67169b",
+                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:4119023ceccf47325327d53a89f2f7c972ea20549a2af081fdd92402ba7bf785"
+                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
               }
             ],
-            "semanticDigest": "sha256:5a641a41ed88453c47f8f4b056f9b9ae6b946aedc8f47cda3f0b51dd68a4e621"
+            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
           },
           "browser": {
             "files": [],
@@ -40087,14 +40074,14 @@
           "consumers": {
             "files": [
               {
-                "contentHash": "sha256:f29d1b2ad2a362dd3617fa012cd11b28f84725e64c4fb071883cb939daeae200",
+                "contentHash": "sha256:601816369da294fed740c2985ef8a8baeaa7f5f8cecac50c939a1c0a49111703",
                 "path": "src/plugins/bazi-ai-full-analysis/product-identity.ts",
-                "semanticHash": "sha256:b052294ad44d2470d577c084c1c34c6514ade43637ed08522ee3f1c03f5b22bc"
+                "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:57dd3bc1405668246dd96ff0ae21564f665e58bdda5eebc3ca8f919d34bb0de8",
+                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:b449cd575d827a74e9264a8588260122483d4968a90a01b1db45f1bad0883da8"
+                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -40102,14 +40089,14 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:0fb731fe6eaf1871fe6df469d2bf194e63ac8276ed8bef76d6a5fc6031fdd2dc",
+                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:510bba6ffdacb434547b41f668a85e12f9994404fd16a29da4aae88cc11908d6"
+                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
               },
               {
-                "contentHash": "sha256:4b7a7c349a75533373cb32868f2198dcb592756d56b884569f06f5eda89e7586",
+                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:5c857cdf46af0fb644dfa8e1d2b909942015c07207bf45855e4ac44646509d36"
+                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
               },
               {
                 "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
@@ -40162,7 +40149,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:516a6bca61c4acd826aa7c2b127f3b6b87522fd3f7f9d341ae678fd415ba1c77"
+            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
           },
           "implementation": {
             "files": [
@@ -40303,8 +40290,8 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            165,
-            168
+            161,
+            164
           ]
         },
         {
@@ -40319,16 +40306,16 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            168,
-            171
+            164,
+            167
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            139,
-            142
+            135,
+            138
           ]
         },
         {
@@ -40491,8 +40478,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:a9a097e0f782c47e8a4512876f912b49b90acefd62a467a963c74181969736f3",
-        "digest": "sha256:a9a097e0f782c47e8a4512876f912b49b90acefd62a467a963c74181969736f3",
+        "childCandidateDigest": "sha256:49ca78176e68873676d2a08e1d949f1e32a5eddb75e8af9be412340f1c38e749",
+        "digest": "sha256:49ca78176e68873676d2a08e1d949f1e32a5eddb75e8af9be412340f1c38e749",
         "facts": [
           {
             "expected": "open the unique execution profile popup",
@@ -40698,23 +40685,23 @@
           }
         ],
         "pageDemandDigest": "sha256:dd3da20be6c5b3a70db0efec9d4c6aedcff16149f3f6e0349c6a8e9d284728d6",
-        "projectionDigest": "sha256:a9a097e0f782c47e8a4512876f912b49b90acefd62a467a963c74181969736f3",
+        "projectionDigest": "sha256:49ca78176e68873676d2a08e1d949f1e32a5eddb75e8af9be412340f1c38e749",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:a66bb8a2732a60ebf437392c800a9451b97b4778cf5619fa126618e647284091",
+                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:620290a49b3963c11104890a8bd682284d0af9af074bd066ec29d2d7f8718d22"
+                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
               },
               {
-                "contentHash": "sha256:87e19dd3075c5b117a377f8d7f771c89c4745ed1f49b22d5170b44028d67169b",
+                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:4119023ceccf47325327d53a89f2f7c972ea20549a2af081fdd92402ba7bf785"
+                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
               }
             ],
-            "semanticDigest": "sha256:5a641a41ed88453c47f8f4b056f9b9ae6b946aedc8f47cda3f0b51dd68a4e621"
+            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
           },
           "browser": {
             "files": [],
@@ -40723,14 +40710,14 @@
           "consumers": {
             "files": [
               {
-                "contentHash": "sha256:f29d1b2ad2a362dd3617fa012cd11b28f84725e64c4fb071883cb939daeae200",
+                "contentHash": "sha256:601816369da294fed740c2985ef8a8baeaa7f5f8cecac50c939a1c0a49111703",
                 "path": "src/plugins/bazi-ai-full-analysis/product-identity.ts",
-                "semanticHash": "sha256:b052294ad44d2470d577c084c1c34c6514ade43637ed08522ee3f1c03f5b22bc"
+                "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:57dd3bc1405668246dd96ff0ae21564f665e58bdda5eebc3ca8f919d34bb0de8",
+                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:b449cd575d827a74e9264a8588260122483d4968a90a01b1db45f1bad0883da8"
+                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -40738,14 +40725,14 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:0fb731fe6eaf1871fe6df469d2bf194e63ac8276ed8bef76d6a5fc6031fdd2dc",
+                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:510bba6ffdacb434547b41f668a85e12f9994404fd16a29da4aae88cc11908d6"
+                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
               },
               {
-                "contentHash": "sha256:4b7a7c349a75533373cb32868f2198dcb592756d56b884569f06f5eda89e7586",
+                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:5c857cdf46af0fb644dfa8e1d2b909942015c07207bf45855e4ac44646509d36"
+                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
               },
               {
                 "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
@@ -40798,7 +40785,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:516a6bca61c4acd826aa7c2b127f3b6b87522fd3f7f9d341ae678fd415ba1c77"
+            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
           },
           "implementation": {
             "files": [
@@ -40947,7 +40934,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            166
+            162
           ]
         },
         {
@@ -40962,14 +40949,14 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            169
+            165
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            140
+            136
           ]
         },
         {
@@ -41130,9 +41117,9 @@
               {
                 "sourceBindings": [
                   {
-                    "contentHash": "sha256:f29d1b2ad2a362dd3617fa012cd11b28f84725e64c4fb071883cb939daeae200",
+                    "contentHash": "sha256:601816369da294fed740c2985ef8a8baeaa7f5f8cecac50c939a1c0a49111703",
                     "path": "src/plugins/bazi-ai-full-analysis/product-identity.ts",
-                    "semanticHash": "sha256:b052294ad44d2470d577c084c1c34c6514ade43637ed08522ee3f1c03f5b22bc"
+                    "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
                   },
                   {
                     "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -41140,9 +41127,9 @@
                     "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
                   },
                   {
-                    "contentHash": "sha256:4b7a7c349a75533373cb32868f2198dcb592756d56b884569f06f5eda89e7586",
+                    "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
                     "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                    "semanticHash": "sha256:5c857cdf46af0fb644dfa8e1d2b909942015c07207bf45855e4ac44646509d36"
+                    "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
                   },
                   {
                     "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
@@ -41210,8 +41197,8 @@
             ]
           }
         },
-        "childCandidateDigest": "sha256:7eaf832515221e9fb7c0c7c084b15f95a52db1e5bf949b1773660a02ecf0c804",
-        "digest": "sha256:7eaf832515221e9fb7c0c7c084b15f95a52db1e5bf949b1773660a02ecf0c804",
+        "childCandidateDigest": "sha256:5cbbaeab6bbf633d80491ba3f39f8c2097bacd7293a57373c46b18daf9f31942",
+        "digest": "sha256:5cbbaeab6bbf633d80491ba3f39f8c2097bacd7293a57373c46b18daf9f31942",
         "facts": [
           {
             "expected": "open the unique advanced model selector",
@@ -41446,23 +41433,23 @@
           }
         ],
         "pageDemandDigest": "sha256:dcb5efe73b1e2a9a3e2de2653e5ed55a5c1ff9b0b4f9257d9cdfa34459fe325c",
-        "projectionDigest": "sha256:7eaf832515221e9fb7c0c7c084b15f95a52db1e5bf949b1773660a02ecf0c804",
+        "projectionDigest": "sha256:5cbbaeab6bbf633d80491ba3f39f8c2097bacd7293a57373c46b18daf9f31942",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:a66bb8a2732a60ebf437392c800a9451b97b4778cf5619fa126618e647284091",
+                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:620290a49b3963c11104890a8bd682284d0af9af074bd066ec29d2d7f8718d22"
+                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
               },
               {
-                "contentHash": "sha256:87e19dd3075c5b117a377f8d7f771c89c4745ed1f49b22d5170b44028d67169b",
+                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:4119023ceccf47325327d53a89f2f7c972ea20549a2af081fdd92402ba7bf785"
+                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
               }
             ],
-            "semanticDigest": "sha256:5a641a41ed88453c47f8f4b056f9b9ae6b946aedc8f47cda3f0b51dd68a4e621"
+            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
           },
           "browser": {
             "files": [],
@@ -41471,14 +41458,14 @@
           "consumers": {
             "files": [
               {
-                "contentHash": "sha256:f29d1b2ad2a362dd3617fa012cd11b28f84725e64c4fb071883cb939daeae200",
+                "contentHash": "sha256:601816369da294fed740c2985ef8a8baeaa7f5f8cecac50c939a1c0a49111703",
                 "path": "src/plugins/bazi-ai-full-analysis/product-identity.ts",
-                "semanticHash": "sha256:b052294ad44d2470d577c084c1c34c6514ade43637ed08522ee3f1c03f5b22bc"
+                "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:57dd3bc1405668246dd96ff0ae21564f665e58bdda5eebc3ca8f919d34bb0de8",
+                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:b449cd575d827a74e9264a8588260122483d4968a90a01b1db45f1bad0883da8"
+                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -41486,14 +41473,14 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:0fb731fe6eaf1871fe6df469d2bf194e63ac8276ed8bef76d6a5fc6031fdd2dc",
+                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:510bba6ffdacb434547b41f668a85e12f9994404fd16a29da4aae88cc11908d6"
+                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
               },
               {
-                "contentHash": "sha256:4b7a7c349a75533373cb32868f2198dcb592756d56b884569f06f5eda89e7586",
+                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:5c857cdf46af0fb644dfa8e1d2b909942015c07207bf45855e4ac44646509d36"
+                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
               },
               {
                 "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
@@ -41546,7 +41533,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:516a6bca61c4acd826aa7c2b127f3b6b87522fd3f7f9d341ae678fd415ba1c77"
+            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
           },
           "implementation": {
             "files": [
@@ -41679,7 +41666,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            293
+            267
           ]
         },
         {
@@ -41694,21 +41681,14 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            297
-          ]
-        },
-        {
-          "consumer": "bazi-consultation-turn.ts",
-          "path": "src/plugins/bazi-consultation-turn.ts",
-          "lines": [
-            101
+            270
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            260
+            235
           ]
         },
         {
@@ -41875,8 +41855,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:26ecda280e7f054a4eeee2e1b6d662a32c8b66ffe04707e625cc8f13cbc98ebb",
-        "digest": "sha256:26ecda280e7f054a4eeee2e1b6d662a32c8b66ffe04707e625cc8f13cbc98ebb",
+        "childCandidateDigest": "sha256:9e2863c618ce1b09295a3f5ba0dbcdf775f48c62ca1e3eb604c0ee43577a8321",
+        "digest": "sha256:9e2863c618ce1b09295a3f5ba0dbcdf775f48c62ca1e3eb604c0ee43577a8321",
         "facts": [
           {
             "expected": "prove a fresh chat and clear only an otherwise isolated stale draft",
@@ -42092,23 +42072,23 @@
           }
         ],
         "pageDemandDigest": "sha256:c98ae6b367598e3e64fe5adc5ac396b319791054f263f941180399c937aec523",
-        "projectionDigest": "sha256:26ecda280e7f054a4eeee2e1b6d662a32c8b66ffe04707e625cc8f13cbc98ebb",
+        "projectionDigest": "sha256:9e2863c618ce1b09295a3f5ba0dbcdf775f48c62ca1e3eb604c0ee43577a8321",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:a66bb8a2732a60ebf437392c800a9451b97b4778cf5619fa126618e647284091",
+                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:620290a49b3963c11104890a8bd682284d0af9af074bd066ec29d2d7f8718d22"
+                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
               },
               {
-                "contentHash": "sha256:87e19dd3075c5b117a377f8d7f771c89c4745ed1f49b22d5170b44028d67169b",
+                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:4119023ceccf47325327d53a89f2f7c972ea20549a2af081fdd92402ba7bf785"
+                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
               }
             ],
-            "semanticDigest": "sha256:5a641a41ed88453c47f8f4b056f9b9ae6b946aedc8f47cda3f0b51dd68a4e621"
+            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
           },
           "browser": {
             "files": [],
@@ -42117,14 +42097,14 @@
           "consumers": {
             "files": [
               {
-                "contentHash": "sha256:f29d1b2ad2a362dd3617fa012cd11b28f84725e64c4fb071883cb939daeae200",
+                "contentHash": "sha256:601816369da294fed740c2985ef8a8baeaa7f5f8cecac50c939a1c0a49111703",
                 "path": "src/plugins/bazi-ai-full-analysis/product-identity.ts",
-                "semanticHash": "sha256:b052294ad44d2470d577c084c1c34c6514ade43637ed08522ee3f1c03f5b22bc"
+                "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:57dd3bc1405668246dd96ff0ae21564f665e58bdda5eebc3ca8f919d34bb0de8",
+                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:b449cd575d827a74e9264a8588260122483d4968a90a01b1db45f1bad0883da8"
+                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -42132,19 +42112,14 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:0fb731fe6eaf1871fe6df469d2bf194e63ac8276ed8bef76d6a5fc6031fdd2dc",
+                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:510bba6ffdacb434547b41f668a85e12f9994404fd16a29da4aae88cc11908d6"
+                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
               },
               {
-                "contentHash": "sha256:eb1c2cd82003f79bbfdea962f58007dcc18962495e4d0c2bef8a1cd0c56528cc",
-                "path": "src/plugins/bazi-consultation-turn.ts",
-                "semanticHash": "sha256:200a3b99efd03ea541480079f1291bc5e997c1adf2158a752449a70a034d7b34"
-              },
-              {
-                "contentHash": "sha256:4b7a7c349a75533373cb32868f2198dcb592756d56b884569f06f5eda89e7586",
+                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:5c857cdf46af0fb644dfa8e1d2b909942015c07207bf45855e4ac44646509d36"
+                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
               },
               {
                 "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
@@ -42197,7 +42172,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:a8c297047de2ee8a4e0284fca1e77113af2e62215ec0bfa76101f9a492d5e8e2"
+            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
           },
           "implementation": {
             "files": [
@@ -42339,7 +42314,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            189
+            185
           ]
         },
         {
@@ -42354,14 +42329,14 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            192
+            188
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            162
+            158
           ]
         },
         {
@@ -42552,8 +42527,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:c73dc94a73323a9206c576245eadf54c0f720e3fe040203c46197f1b821485b7",
-        "digest": "sha256:c73dc94a73323a9206c576245eadf54c0f720e3fe040203c46197f1b821485b7",
+        "childCandidateDigest": "sha256:5e52867956fa0dbb956e841ba461656362cf7e582b1aa6858d34cc34085ec0f2",
+        "digest": "sha256:5e52867956fa0dbb956e841ba461656362cf7e582b1aa6858d34cc34085ec0f2",
         "facts": [
           {
             "expected": "prove all and only approved attachments are ready",
@@ -42773,23 +42748,23 @@
           }
         ],
         "pageDemandDigest": "sha256:9aff285fd7b4a547482298be2e69e4170ebfe11d138bf06306bb0d3fc874e27f",
-        "projectionDigest": "sha256:c73dc94a73323a9206c576245eadf54c0f720e3fe040203c46197f1b821485b7",
+        "projectionDigest": "sha256:5e52867956fa0dbb956e841ba461656362cf7e582b1aa6858d34cc34085ec0f2",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:a66bb8a2732a60ebf437392c800a9451b97b4778cf5619fa126618e647284091",
+                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:620290a49b3963c11104890a8bd682284d0af9af074bd066ec29d2d7f8718d22"
+                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
               },
               {
-                "contentHash": "sha256:87e19dd3075c5b117a377f8d7f771c89c4745ed1f49b22d5170b44028d67169b",
+                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:4119023ceccf47325327d53a89f2f7c972ea20549a2af081fdd92402ba7bf785"
+                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
               }
             ],
-            "semanticDigest": "sha256:5a641a41ed88453c47f8f4b056f9b9ae6b946aedc8f47cda3f0b51dd68a4e621"
+            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
           },
           "browser": {
             "files": [],
@@ -42798,14 +42773,14 @@
           "consumers": {
             "files": [
               {
-                "contentHash": "sha256:f29d1b2ad2a362dd3617fa012cd11b28f84725e64c4fb071883cb939daeae200",
+                "contentHash": "sha256:601816369da294fed740c2985ef8a8baeaa7f5f8cecac50c939a1c0a49111703",
                 "path": "src/plugins/bazi-ai-full-analysis/product-identity.ts",
-                "semanticHash": "sha256:b052294ad44d2470d577c084c1c34c6514ade43637ed08522ee3f1c03f5b22bc"
+                "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:57dd3bc1405668246dd96ff0ae21564f665e58bdda5eebc3ca8f919d34bb0de8",
+                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:b449cd575d827a74e9264a8588260122483d4968a90a01b1db45f1bad0883da8"
+                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -42813,14 +42788,14 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:0fb731fe6eaf1871fe6df469d2bf194e63ac8276ed8bef76d6a5fc6031fdd2dc",
+                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:510bba6ffdacb434547b41f668a85e12f9994404fd16a29da4aae88cc11908d6"
+                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
               },
               {
-                "contentHash": "sha256:4b7a7c349a75533373cb32868f2198dcb592756d56b884569f06f5eda89e7586",
+                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:5c857cdf46af0fb644dfa8e1d2b909942015c07207bf45855e4ac44646509d36"
+                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
               },
               {
                 "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
@@ -42873,7 +42848,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:516a6bca61c4acd826aa7c2b127f3b6b87522fd3f7f9d341ae678fd415ba1c77"
+            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
           },
           "implementation": {
             "files": [
@@ -43008,7 +42983,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            167
+            163
           ]
         },
         {
@@ -43023,14 +42998,14 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            170
+            166
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            141
+            137
           ]
         },
         {
@@ -43192,9 +43167,9 @@
               {
                 "sourceBindings": [
                   {
-                    "contentHash": "sha256:f29d1b2ad2a362dd3617fa012cd11b28f84725e64c4fb071883cb939daeae200",
+                    "contentHash": "sha256:601816369da294fed740c2985ef8a8baeaa7f5f8cecac50c939a1c0a49111703",
                     "path": "src/plugins/bazi-ai-full-analysis/product-identity.ts",
-                    "semanticHash": "sha256:b052294ad44d2470d577c084c1c34c6514ade43637ed08522ee3f1c03f5b22bc"
+                    "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
                   },
                   {
                     "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -43202,9 +43177,9 @@
                     "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
                   },
                   {
-                    "contentHash": "sha256:4b7a7c349a75533373cb32868f2198dcb592756d56b884569f06f5eda89e7586",
+                    "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
                     "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                    "semanticHash": "sha256:5c857cdf46af0fb644dfa8e1d2b909942015c07207bf45855e4ac44646509d36"
+                    "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
                   },
                   {
                     "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
@@ -43272,8 +43247,8 @@
             ]
           }
         },
-        "childCandidateDigest": "sha256:31a947e97c4fe3a08d5a90862d28c9308805fd8e1ea863aadb946e4a5f6ce4bd",
-        "digest": "sha256:31a947e97c4fe3a08d5a90862d28c9308805fd8e1ea863aadb946e4a5f6ce4bd",
+        "childCandidateDigest": "sha256:46d66364507c04734bbe7f3b7de1a4245ac4ec7f522911d2c2769d2229697f6a",
+        "digest": "sha256:46d66364507c04734bbe7f3b7de1a4245ac4ec7f522911d2c2769d2229697f6a",
         "facts": [
           {
             "expected": "select the exact model and consume the same Browser mutation postcondition packet",
@@ -43512,23 +43487,23 @@
           }
         ],
         "pageDemandDigest": "sha256:7f2359cc465ddda30c3fa6d67241235d53fe368d7c1e4abd9d998e4cc963b2e8",
-        "projectionDigest": "sha256:31a947e97c4fe3a08d5a90862d28c9308805fd8e1ea863aadb946e4a5f6ce4bd",
+        "projectionDigest": "sha256:46d66364507c04734bbe7f3b7de1a4245ac4ec7f522911d2c2769d2229697f6a",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:a66bb8a2732a60ebf437392c800a9451b97b4778cf5619fa126618e647284091",
+                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:620290a49b3963c11104890a8bd682284d0af9af074bd066ec29d2d7f8718d22"
+                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
               },
               {
-                "contentHash": "sha256:87e19dd3075c5b117a377f8d7f771c89c4745ed1f49b22d5170b44028d67169b",
+                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:4119023ceccf47325327d53a89f2f7c972ea20549a2af081fdd92402ba7bf785"
+                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
               }
             ],
-            "semanticDigest": "sha256:5a641a41ed88453c47f8f4b056f9b9ae6b946aedc8f47cda3f0b51dd68a4e621"
+            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
           },
           "browser": {
             "files": [],
@@ -43537,14 +43512,14 @@
           "consumers": {
             "files": [
               {
-                "contentHash": "sha256:f29d1b2ad2a362dd3617fa012cd11b28f84725e64c4fb071883cb939daeae200",
+                "contentHash": "sha256:601816369da294fed740c2985ef8a8baeaa7f5f8cecac50c939a1c0a49111703",
                 "path": "src/plugins/bazi-ai-full-analysis/product-identity.ts",
-                "semanticHash": "sha256:b052294ad44d2470d577c084c1c34c6514ade43637ed08522ee3f1c03f5b22bc"
+                "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:57dd3bc1405668246dd96ff0ae21564f665e58bdda5eebc3ca8f919d34bb0de8",
+                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:b449cd575d827a74e9264a8588260122483d4968a90a01b1db45f1bad0883da8"
+                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -43552,14 +43527,14 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:0fb731fe6eaf1871fe6df469d2bf194e63ac8276ed8bef76d6a5fc6031fdd2dc",
+                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:510bba6ffdacb434547b41f668a85e12f9994404fd16a29da4aae88cc11908d6"
+                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
               },
               {
-                "contentHash": "sha256:4b7a7c349a75533373cb32868f2198dcb592756d56b884569f06f5eda89e7586",
+                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:5c857cdf46af0fb644dfa8e1d2b909942015c07207bf45855e4ac44646509d36"
+                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
               },
               {
                 "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
@@ -43612,7 +43587,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:516a6bca61c4acd826aa7c2b127f3b6b87522fd3f7f9d341ae678fd415ba1c77"
+            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
           },
           "implementation": {
             "files": [
@@ -43754,7 +43729,7 @@
             85,
             86,
             95,
-            236
+            207
           ]
         }
       ],
@@ -43790,9 +43765,9 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            212,
-            257,
-            259
+            208,
+            251,
+            253
           ]
         },
         {
@@ -43807,18 +43782,18 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            215,
-            260,
-            262
+            211,
+            254,
+            256
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            185,
-            225,
-            227
+            181,
+            219,
+            221
           ]
         },
         {
@@ -44011,8 +43986,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:8fe152c6d216382e0920585a28052267acbd334b083bd740bb7fd16279b5a71c",
-        "digest": "sha256:8fe152c6d216382e0920585a28052267acbd334b083bd740bb7fd16279b5a71c",
+        "childCandidateDigest": "sha256:6d439b6d2f59e158752f9f7d689c1aa05348064ecbb3caf5d1278353af6bc949",
+        "digest": "sha256:6d439b6d2f59e158752f9f7d689c1aa05348064ecbb3caf5d1278353af6bc949",
         "facts": [
           {
             "expected": "submit the exact approved outgoing turn once",
@@ -44236,23 +44211,23 @@
           }
         ],
         "pageDemandDigest": "sha256:1db57f27a966f65eeebbd239b45618c8c46c47fe1975fddd7cd06eab6e5a2865",
-        "projectionDigest": "sha256:8fe152c6d216382e0920585a28052267acbd334b083bd740bb7fd16279b5a71c",
+        "projectionDigest": "sha256:6d439b6d2f59e158752f9f7d689c1aa05348064ecbb3caf5d1278353af6bc949",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:a66bb8a2732a60ebf437392c800a9451b97b4778cf5619fa126618e647284091",
+                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:620290a49b3963c11104890a8bd682284d0af9af074bd066ec29d2d7f8718d22"
+                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
               },
               {
-                "contentHash": "sha256:87e19dd3075c5b117a377f8d7f771c89c4745ed1f49b22d5170b44028d67169b",
+                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:4119023ceccf47325327d53a89f2f7c972ea20549a2af081fdd92402ba7bf785"
+                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
               }
             ],
-            "semanticDigest": "sha256:5a641a41ed88453c47f8f4b056f9b9ae6b946aedc8f47cda3f0b51dd68a4e621"
+            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
           },
           "browser": {
             "files": [
@@ -44267,14 +44242,14 @@
           "consumers": {
             "files": [
               {
-                "contentHash": "sha256:f29d1b2ad2a362dd3617fa012cd11b28f84725e64c4fb071883cb939daeae200",
+                "contentHash": "sha256:601816369da294fed740c2985ef8a8baeaa7f5f8cecac50c939a1c0a49111703",
                 "path": "src/plugins/bazi-ai-full-analysis/product-identity.ts",
-                "semanticHash": "sha256:b052294ad44d2470d577c084c1c34c6514ade43637ed08522ee3f1c03f5b22bc"
+                "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:57dd3bc1405668246dd96ff0ae21564f665e58bdda5eebc3ca8f919d34bb0de8",
+                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:b449cd575d827a74e9264a8588260122483d4968a90a01b1db45f1bad0883da8"
+                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -44282,14 +44257,14 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:0fb731fe6eaf1871fe6df469d2bf194e63ac8276ed8bef76d6a5fc6031fdd2dc",
+                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:510bba6ffdacb434547b41f668a85e12f9994404fd16a29da4aae88cc11908d6"
+                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
               },
               {
-                "contentHash": "sha256:4b7a7c349a75533373cb32868f2198dcb592756d56b884569f06f5eda89e7586",
+                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:5c857cdf46af0fb644dfa8e1d2b909942015c07207bf45855e4ac44646509d36"
+                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
               },
               {
                 "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
@@ -44352,7 +44327,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:beb167b76ff7380b487b3d12f8db6e51f0dd2370ce31a59893a4804c3eff0e54"
+            "semanticDigest": "sha256:fad4dece6f1122157e53b8844066b0d8c8b15c742d9947723976bba50302aa75"
           },
           "implementation": {
             "files": [
@@ -44495,7 +44470,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            256
+            250
           ]
         },
         {
@@ -44510,14 +44485,14 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            259
+            253
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            224
+            218
           ]
         },
         {
@@ -44685,8 +44660,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:e4a57a9800a63bc7ed426b09868528298f05f99e69d222e50ff5a2130e5f2cd2",
-        "digest": "sha256:e4a57a9800a63bc7ed426b09868528298f05f99e69d222e50ff5a2130e5f2cd2",
+        "childCandidateDigest": "sha256:8f9732de7ea8cfa555c2cc4d4f13813a4b1ed4824d89de580ac918de794c7733",
+        "digest": "sha256:8f9732de7ea8cfa555c2cc4d4f13813a4b1ed4824d89de580ac918de794c7733",
         "facts": [
           {
             "expected": "make the composer retain the exact approved prompt",
@@ -44907,23 +44882,23 @@
           }
         ],
         "pageDemandDigest": "sha256:893a55331737054aa2ae419ff7e0c67b508ebad1ffc44cb7f820003ded395165",
-        "projectionDigest": "sha256:e4a57a9800a63bc7ed426b09868528298f05f99e69d222e50ff5a2130e5f2cd2",
+        "projectionDigest": "sha256:8f9732de7ea8cfa555c2cc4d4f13813a4b1ed4824d89de580ac918de794c7733",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:a66bb8a2732a60ebf437392c800a9451b97b4778cf5619fa126618e647284091",
+                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:620290a49b3963c11104890a8bd682284d0af9af074bd066ec29d2d7f8718d22"
+                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
               },
               {
-                "contentHash": "sha256:87e19dd3075c5b117a377f8d7f771c89c4745ed1f49b22d5170b44028d67169b",
+                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:4119023ceccf47325327d53a89f2f7c972ea20549a2af081fdd92402ba7bf785"
+                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
               }
             ],
-            "semanticDigest": "sha256:5a641a41ed88453c47f8f4b056f9b9ae6b946aedc8f47cda3f0b51dd68a4e621"
+            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
           },
           "browser": {
             "files": [],
@@ -44932,14 +44907,14 @@
           "consumers": {
             "files": [
               {
-                "contentHash": "sha256:f29d1b2ad2a362dd3617fa012cd11b28f84725e64c4fb071883cb939daeae200",
+                "contentHash": "sha256:601816369da294fed740c2985ef8a8baeaa7f5f8cecac50c939a1c0a49111703",
                 "path": "src/plugins/bazi-ai-full-analysis/product-identity.ts",
-                "semanticHash": "sha256:b052294ad44d2470d577c084c1c34c6514ade43637ed08522ee3f1c03f5b22bc"
+                "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:57dd3bc1405668246dd96ff0ae21564f665e58bdda5eebc3ca8f919d34bb0de8",
+                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:b449cd575d827a74e9264a8588260122483d4968a90a01b1db45f1bad0883da8"
+                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -44947,14 +44922,14 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:0fb731fe6eaf1871fe6df469d2bf194e63ac8276ed8bef76d6a5fc6031fdd2dc",
+                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:510bba6ffdacb434547b41f668a85e12f9994404fd16a29da4aae88cc11908d6"
+                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
               },
               {
-                "contentHash": "sha256:4b7a7c349a75533373cb32868f2198dcb592756d56b884569f06f5eda89e7586",
+                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:5c857cdf46af0fb644dfa8e1d2b909942015c07207bf45855e4ac44646509d36"
+                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
               },
               {
                 "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
@@ -45012,7 +44987,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:37ebe8f5cb4f67b5186d67c478e9b66b29c668a1f395900ea3636029b6b7e1df"
+            "semanticDigest": "sha256:d5110dad3ff9c32751c9e6d7c62aa88869451614addac814a5c7d7dd70ccf97e"
           },
           "implementation": {
             "files": [

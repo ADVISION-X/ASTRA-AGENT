@@ -12,13 +12,6 @@ const reviewSequence = [
   "open_gpt_attachment_control", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
   "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "checkpoint_gpt_text_response",
 ] as const;
-const continuationSequence = [
-  "checkpoint_gpt_text_response", "open_gpt_execution_profile", "open_gpt_model_selector_v2",
-  "select_exact_gpt_model_v2", "open_gpt_execution_profile", "ensure_gpt_reasoning_requirement",
-  "close_gpt_execution_profile", "open_gpt_attachment_control", "attach_approved_gpt_files_once",
-  "reconcile_gpt_attachment_set", "write_exact_gpt_prompt", "submit_exact_gpt_turn_once",
-  "checkpoint_gpt_text_response",
-] as const;
 for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   if (route.relation_kind === "review") {
     const review = route.action_id === "accuracy_challenge"
@@ -43,12 +36,16 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     covered_question_unit_refs: ["question:1"], citations: [], uncertainties: [], limitations: [], safety_notes: [],
   };
   const run = await exerciseProductFlow(plugin, {
-    task, output, materialContents: { bazi_formal_input: { schema_version: "bazi-formal-input.v1" },
+    task, output, materialContents: { bazi_formal_input: {
+      schema_version: "bazi-formal-input.v1",
+      parent_report: {
+        parent_report_ref: "report:parent", parent_raw_output_hash: task.parent_result_hash,
+        parent_terminal_output: { schema_version: "bazi-chart-interpretation-output.v4" },
+      },
+    },
       result_contract: route.result_contract },
   });
   assert.equal(run.physicalSubmitDispatches, 1);
-  assert.equal(run.continuationAcquires[0]?.predecessorSourceTaskRef, task.parent_task_ref);
-  assert.equal(run.continuationRecords[0]?.sourceTaskRef, task.job_id);
-  assert.deepEqual(run.calls.map((call) => call.child), continuationSequence);
+  assert.deepEqual(run.calls.map((call) => call.child), reviewSequence);
 }
 process.stdout.write("[ACCEPTANCE][bazi-ai-full-analysis] PASS\n");

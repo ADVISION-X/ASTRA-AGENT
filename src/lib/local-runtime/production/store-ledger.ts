@@ -1,4 +1,4 @@
-import { executionFailure } from "../../execution-failure.js";
+import { executionFailure, typedExecutionFailure } from "../../execution-failure.js";
 import {
   hashCanonical,
   parseTerminalReceipt,
@@ -12,7 +12,6 @@ import {
   type ProductionOutboxWrite,
   type StoredProductionTask,
 } from "./store-foundation.js";
-import { productionTaskAuthorityValid } from "./store-authority-validation.js";
 import type { ProductionRuntimeStorageResponsibilities } from "./runtime-storage-inventory.js";
 
 type TerminalRow = Readonly<{ body_blob: Buffer; response_json: string | null }>;
@@ -77,8 +76,7 @@ const completionPayloadConsistent = (
   const jobId = task.task.job_id;
   const result = task.status === "completed" ? task.result : task.staged_result;
   if (!result || terminal.payload_hash !== hashCanonical(result)
-    || result.evidence_refs.length === 0
-    || result.evidence_refs.some((ref) => !/^rec-[a-f0-9]{64}$/u.test(ref))) return false;
+    || result.evidence_refs.length === 0) return false;
   const terminalReceipts = terminal.result_object_receipts;
   return Array.isArray(terminalReceipts)
     && terminalReceipts.length >= 2 && terminalReceipts.length <= 4
@@ -127,14 +125,16 @@ export class ProductionRuntimeStore extends ProductionStoreOutbox {
   }
 
   public assertStartupDataIntegrity(): void {
-    let corrupt = false;
+    let code = "PRODUCTION_TASK_AUTHORITY_CORRUPT";
     try {
-      const tasks = this.taskAuthorities();
-      corrupt = tasks.some((record) => !productionTaskAuthorityValid(record))
-        || stateInvariantFailureCount(this.database) !== 0
-        || !this.isLedgerConsistent(new Set());
-    } catch { corrupt = true; }
-    if (corrupt) throw executionFailure("failed", "PRODUCTION_RUNTIME_DATA_CORRUPT");
+      this.taskAuthorities();
+      code = "PRODUCTION_STATE_INVARIANT_INVALID";
+      if (stateInvariantFailureCount(this.database) !== 0) throw executionFailure("failed", code);
+      code = "PRODUCTION_LEDGER_INVARIANT_INVALID";
+      if (!this.isLedgerConsistent(new Set())) throw executionFailure("failed", code);
+    } catch (cause) {
+      throw typedExecutionFailure(cause) ?? executionFailure("failed", code, { cause });
+    }
   }
 
   public storageResponsibilities(): ProductionRuntimeStorageResponsibilities {
