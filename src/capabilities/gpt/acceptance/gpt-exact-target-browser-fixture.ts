@@ -115,6 +115,8 @@ const markConfirmedMutation = (
   state.recovery = Object.freeze({
     state: "confirmed",
     mutationOutcome,
+    providerEffectIdentityHash: state.atomicIdentity.replayPolicy === "provider-effect-once"
+      ? `sha256:${"8".repeat(64)}` : null,
     terminalAt: "2026-09-02T00:00:01.000Z",
     failureCode: null,
     nativeFailureCode: null,
@@ -139,6 +141,8 @@ const markRejectedMutation = (
   state.recovery = Object.freeze({
     state: "rejected",
     mutationOutcome,
+    providerEffectIdentityHash: state.atomicIdentity.replayPolicy === "provider-effect-once"
+      ? `sha256:${"8".repeat(64)}` : null,
     terminalAt: "2026-09-02T00:00:01.000Z",
     failureCode,
     nativeFailureCode,
@@ -158,6 +162,8 @@ const markDispatchedMutation = (state: FakeBrowserState): void => {
   state.recovery = Object.freeze({
     state: "dispatched",
     mutationOutcome: "dispatched",
+    providerEffectIdentityHash: state.atomicIdentity.replayPolicy === "provider-effect-once"
+      ? `sha256:${"8".repeat(64)}` : null,
     terminalAt: null,
     failureCode: null,
     nativeFailureCode: null,
@@ -186,6 +192,8 @@ const throwFakeMutationFailure = (
       ? "provider_effect" : "target_local",
     childCapabilityId: state.atomicIdentity?.childCapabilityId ?? "unknown",
     browserOutcome,
+    providerEffectIdentityHash: state.atomicIdentity?.replayPolicy === "provider-effect-once"
+      ? `sha256:${"8".repeat(64)}` : null,
   });
 };
 

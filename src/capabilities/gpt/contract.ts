@@ -31,6 +31,7 @@ type GptChildDecision = "DONE" | "ACT" | "WAIT" | "FAIL_CLOSED";
 
 export type GptChildBrowserFact = Readonly<{
   exactCallIdentityHash: `sha256:${string}`;
+  providerEffectIdentityHash: `sha256:${string}` | null;
   childCapabilityId: GptChildCapabilityId;
   effectScope: "target_local" | "provider_effect";
   browserOutcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
@@ -152,6 +153,7 @@ type GptChildResultCommon = Readonly<{
     effectScope: "target_local" | "provider_effect";
     childCapabilityId: string;
     browserOutcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
+    providerEffectIdentityHash?: `sha256:${string}` | null;
   }> | null;
 }>;
 
@@ -183,6 +185,7 @@ export type GptExecutionContext = Readonly<{
     terminalAt: string;
     authorityRef: string;
     authorityHash: `sha256:${string}`;
+    providerEffectIdentityHash: `sha256:${string}`;
     mutationOutcome: "no" | "confirmed";
   }>;
   onProof?: (proof: GptChildCapabilityProof) => Promise<void>;

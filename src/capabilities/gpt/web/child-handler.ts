@@ -85,6 +85,7 @@ export const requireConfirmedBrowserFact = <
   }
   return Object.freeze({
     exactCallIdentityHash: gptExactCallIdentityHash(intent),
+    providerEffectIdentityHash: recovery.providerEffectIdentityHash,
     childCapabilityId: intent.childCapabilityId,
     effectScope: contract.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local",
     browserOutcome: "CONFIRMED",

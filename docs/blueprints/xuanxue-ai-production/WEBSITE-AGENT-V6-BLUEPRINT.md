@@ -140,8 +140,8 @@ Runtime 自身代码保持 production 目录内的直接模块关系。不得新
 Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为：
 
 - Agent Route Capability Manifest provider：version 4；只发布 current session 支持的 `product_id + action_id + task_contract_version + result_contract_version`；Product Profile、Skill、Prompt、Flow、实现名称、版本和 hash 均不得对外发布或参与任务身份；
-- Website Agent Task Result consumer dependency：version 7；
-- Xuanxue AI Production V6 consumer dependency：version 25。Runtime 只消费 Website 当前授权、有限 `retry_not_before`、三个 next action、typed effect outcome 与 admission receipt；不得自行推导业务恢复。
+- Website Agent Task Result consumer dependency：version 8；
+- Xuanxue AI Production V6 consumer dependency：version 26。Runtime 只消费 Website 当前授权、有限 `retry_not_before`、三个 next action、包含 `provider_effect_identity_hash` 的 typed effect outcome 与 admission receipt；不得自行推导业务恢复。
 
 consumer dependency 的 contract body 只能包含 contractId、version、providerRepo。普通启动只校验本仓最小 dependency，不读取未绑定 Website 工作树；跨仓 participant commit 只属于 RELEASE 证据。
 
@@ -241,7 +241,7 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 每次候选都必须重新证明：
 
 1. 八条 Runtime law、稳定 blueprintId、三份 active contractRef 与 Runtime 唯一 Manifest 的 lawIds 相互一致；Architecture Boundary law 与 Manifest 独立保持其现役一一对应；越界 `ownedPaths` 只在同一候选的一次原子修改中归位，并立即证明无无主、无重叠、无 Runtime manifest-owner-drift。
-2. Website task-result v8、V6 v25 与 AGENT dependency 精确一致；grant 不携带 Provider locator/checkpoint 或 Product Plugin 身份，只绑定当前 task/attempt/lease/fence；八字仅携带 consultation_root_ref 与 direct parent，明确新 result revision 才可携带 hash-bound rejection。
+2. Website task-result v8、V6 v26 与 AGENT dependency 精确一致；grant 不携带 Provider locator/checkpoint 或 Product Plugin 身份，只绑定当前 task/attempt/lease/fence；attempt failure 必须运输 Browser 已持有的 `provider_effect_identity_hash`。`RESULT_SETTLED_UNUSABLE + CONFIRMED + confirmed + effect hash + evidence + settled result hash` 只允许 Website 拒绝该结果并签发新 result revision；effect hash 与 settled result hash 不得互相冒充。其它 DISPATCHED/CONFIRMED 只允许同 accepted attempt 零提交读回。八字仅携带 consultation_root_ref 与 direct parent，明确新 result revision 才可携带 hash-bound rejection。
 3. route projection 精确为 40 routes、47 parameter types、31 result contracts、0 reservation routes；bazi_private_base_input 与 result_contract.private_base 为零。
 4. base、Bazi primary、review admission receipt 的互斥字段与完整 canonical hash 全部闭合，未闭合时本地 completed 增量为零。
 5. credential 失败类别分别得到稳定脱敏 typed code，且 claim/Provider mutation 增量为零。

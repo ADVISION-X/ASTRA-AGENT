@@ -5,7 +5,10 @@ import {
   failureCode,
   typedExecutionFailure,
 } from "../../execution-failure.js";
-import { serializeTerminalFailure, terminalFailureHttpStatus } from "./terminal-failure.js";
+import {
+  serializeTerminalFailureTransport,
+  terminalFailureHttpStatus,
+} from "./terminal-failure.js";
 import {
   requireRuntimeLogWrite,
   runtimeLogCauseEventId,
@@ -81,8 +84,13 @@ const persistAttemptFailure = async (
   error: unknown,
   parentSpanId: string,
 ): Promise<void> => {
-  const failure = serializeTerminalFailure(error);
-  state.store.recordAttemptFailure(job.job_id, job.grant.attempt_id, failure);
+  const failure = serializeTerminalFailureTransport(error);
+  const {
+    provider_effect_identity_hash: _effectTransportOnly,
+    settled_result_payload_hash: _resultTransportOnly,
+    ...localFailure
+  } = failure;
+  state.store.recordAttemptFailure(job.job_id, job.grant.attempt_id, localFailure);
   try {
     await releaseLeaseWithLog(state, job, parentSpanId, {
       reasonCode: "ATTEMPT_FAILED", attemptFailure: failure,

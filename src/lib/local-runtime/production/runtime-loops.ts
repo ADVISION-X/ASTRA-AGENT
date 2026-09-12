@@ -151,8 +151,9 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
   const attestation = await state.session.ensureFreshAttestation();
   state.lastHeartbeat = attestation.issued_at;
   const available = Math.min(10 - state.active.size, state.executor.availableCapacity());
+  const browser = state.browserAuthority.readProductionRuntimeState();
   const eligible = available > 0 && attestation.claim_eligible && state.ledgerReconciled
-    && !state.draining && state.runtimeLogger.isWritable();
+    && browser.browserAuthorityState === "present" && !state.draining && state.runtimeLogger.isWritable();
   if (!eligible) return 1_000;
   const batch = await requestClaimBatch(state, available);
   launchClaimJobs(state, batch.jobs);

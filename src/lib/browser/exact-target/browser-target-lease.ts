@@ -16,6 +16,7 @@ export type BrowserAtomicStepIdentity = Readonly<{
 export type BrowserAtomicStepOutcome = Readonly<{
   state: "dispatched" | "confirmed" | "rejected";
   mutationOutcome: "no" | "dispatched" | "confirmed";
+  providerEffectIdentityHash: `sha256:${string}` | null;
   terminalAt: string | null;
   failureCode: string | null;
   nativeFailureCode: string | null;
@@ -34,6 +35,7 @@ export type BrowserTargetLeaseWait = Readonly<{
   signal: AbortSignal;
   remainingMs(): number;
   purpose: "general" | "provider-probe";
+  expectedTargetRef?: string;
 }>;
 
 export type BrowserApprovedArtifactRef = Readonly<{

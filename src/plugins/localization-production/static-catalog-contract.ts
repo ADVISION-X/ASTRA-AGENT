@@ -79,26 +79,9 @@ export interface CandidatePayload {
 
 export interface CandidateReceipt {
   readonly role: CandidateRole;
-  readonly producer_ref: string;
-  readonly provider_ref: "gpt-web-chat";
-  readonly model_family_ref: "gpt-5.6";
-  readonly model_revision_ref: string;
-  readonly provider_job_id: string;
-  readonly provider_execution_id: string;
-  readonly provider_lease_id: string;
-  readonly model_identity_proof_json: string;
-  readonly model_identity_proof_hash: ProductionHash;
-  readonly reasoning_effort: "xhigh" | "high";
-  readonly conversation_ref: string;
-  readonly started_at: string;
-  readonly completed_at: string;
   readonly context_bundle_hash: ProductionHash;
-  readonly request_json: string;
-  readonly request_hash: ProductionHash;
   readonly payload_json: string;
   readonly payload_hash: ProductionHash;
-  readonly provider_transcript_jsonl: string;
-  readonly provider_transcript_hash: ProductionHash;
 }
 
 export interface BlindMappingItem {
@@ -170,19 +153,14 @@ function templateParameterNames(value: string): readonly string[] {
     .sort();
 }
 
-function machineTokens(value: string): readonly string[] {
-  return [...value.matchAll(/(?:\{[A-Za-z0-9_.-]+\}|https?:\/\/[^\s<]+|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|\d+(?:\.\d+)?%|<\/?[A-Za-z][^>]*>)/gu)]
-    .map((match) => match[0]!.replace(/lang="[^"]+"/gu, "lang=\"<locale>\"")).sort();
+function protectedOccurrenceCount(value: string, token: string): number {
+  return token ? value.split(token).length - 1 : 0;
 }
 
-function punctuationText(value: string): string {
-  return value.replace(/(?:\{[A-Za-z0-9_.-]+\}|https?:\/\/[^\s<]+|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|\d+(?:\.\d+)?%|<\/?[A-Za-z][^>]*>)/gu, "");
-}
-
-function assertPunctuation(locale: TargetLocale, value: string): void {
+function assertPunctuation(locale: TargetLocale, value: string, protectedTokens: readonly string[]): void {
   if (!TARGET_LOCALES.has(locale) || !["zh-HK", "zh-TW", "ja-JP"].includes(locale)) return;
   const cjk = "\\p{Script=Han}\\p{Script=Hiragana}\\p{Script=Katakana}";
-  const text = punctuationText(value);
+  const text = protectedTokens.reduce((current, token) => current.split(token).join(""), value);
   if (/\.\.\./u.test(text) || new RegExp(`[${cjk}][,;!?](?=[${cjk}]|$)`, "u").test(text)) {
     fail("LOCALIZATION_STATIC_CANDIDATE_PUNCTUATION_INVALID");
   }
@@ -191,15 +169,15 @@ function assertPunctuation(locale: TargetLocale, value: string): void {
 function assertCandidateText(context: ContextItem, locale: TargetLocale, text: string): void {
   const schema = [...context.parameter_schema].sort();
   if (!sameStrings(templateParameterNames(text), schema)
-    || !sameStrings(machineTokens(text), machineTokens(context.source_text))
-    || context.protected_tokens.some((token) => !text.includes(token))) {
+    || context.protected_tokens.some((token) =>
+      protectedOccurrenceCount(text, token) !== protectedOccurrenceCount(context.source_text, token))) {
     fail("LOCALIZATION_STATIC_CANDIDATE_MECHANICS_INVALID");
   }
   if (context.max_graphemes !== null
     && [...new Intl.Segmenter(locale, { granularity: "grapheme" }).segment(text)].length > context.max_graphemes) {
     fail("LOCALIZATION_STATIC_CANDIDATE_LENGTH_INVALID");
   }
-  assertPunctuation(locale, text);
+  assertPunctuation(locale, text, context.protected_tokens);
 }
 
 export function parseContext(cohort: StaticCohort, input: StaticCatalogInput): ContextBundle {

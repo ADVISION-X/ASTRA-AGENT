@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import {
   type GptChildCapabilityId,
+  type GptChildBrowserFact,
   type GptHash,
 } from "./contract.js";
 import type {
@@ -10,7 +11,7 @@ import type {
   BrowserTargetLeaseWait,
 } from "../../lib/browser/browser-authority-api.js";
 import { requireRuntimeLogWrite, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
-import { executionFailure, failureCode } from "../../lib/execution-failure.js";
+import { executionFailure, failureCode, typedExecutionFailure } from "../../lib/execution-failure.js";
 
 type GptBrowserLeaseAuthority = Readonly<{
   acquireJobBoundTargetLease(
@@ -40,6 +41,8 @@ export type ProductionGptBrowserCall = {
   browser: BrowserTargetLease;
   facade: BrowserTargetLease;
   providerWaitLog: Readonly<{ callIdentity: string; emittedAt: number }> | null;
+  confirmedProviderEffect: GptChildBrowserFact | null;
+  settledResultPayloadHash: GptHash | null;
 };
 
 const PROVIDER_WAIT_LOG_INTERVAL_MS = 30_000;
@@ -67,6 +70,8 @@ export class ProductionGptBrowserLifecycle {
       browser,
       facade: browser,
       providerWaitLog: null,
+      confirmedProviderEffect: null,
+      settledResultPayloadHash: null,
     };
     active.facade = new Proxy(browser, {
       get: (_target, property) => {
@@ -76,6 +81,42 @@ export class ProductionGptBrowserLifecycle {
     });
     this.browsers.set(sessionKey, active);
     return active;
+  }
+
+  public recordConfirmedProviderEffect(
+    active: ProductionGptBrowserCall,
+    effect: GptChildBrowserFact,
+  ): void {
+    for (const call of this.browsers.values()) {
+      call.confirmedProviderEffect = null;
+      call.settledResultPayloadHash = null;
+    }
+    active.confirmedProviderEffect = effect;
+  }
+
+  public recordSettledResult(active: ProductionGptBrowserCall, payloadHash: GptHash): void {
+    if (!active.confirmedProviderEffect) {
+      throw executionFailure("failed", "GPT_SETTLED_PROVIDER_EFFECT_MISSING");
+    }
+    active.settledResultPayloadHash = payloadHash;
+  }
+
+  public decorateSettledResultFailure(error: unknown): unknown {
+    if (typedExecutionFailure(error)) return error;
+    const settled = [...this.browsers.values()].filter((call) =>
+      call.confirmedProviderEffect && call.settledResultPayloadHash);
+    if (settled.length !== 1) return error;
+    const call = settled[0]!;
+    const effect = call.confirmedProviderEffect!;
+    return executionFailure("failed", "RESULT_SETTLED_UNUSABLE", {
+      cause: error,
+      metadata: {
+        mutationOutcome: "confirmed",
+        evidence: { evidenceRef: effect.evidenceRef, evidenceHash: effect.evidenceHash },
+        browserEffect: effect,
+        settledResultPayloadHash: call.settledResultPayloadHash!,
+      },
+    });
   }
 
   public async yieldForProviderProbe(
@@ -108,7 +149,7 @@ export class ProductionGptBrowserLifecycle {
     let reacquired: BrowserTargetLease;
     try {
       reacquired = await this.acquireBrowserLease(
-        productStepId, callId, "provider-probe", probeDeadlineAt,
+        productStepId, callId, "provider-probe", probeDeadlineAt, targetRef,
       );
     } catch (error) {
       this.forgetParkedBrowser(active);
@@ -213,6 +254,7 @@ export class ProductionGptBrowserLifecycle {
     callId: string,
     purpose: BrowserTargetLeaseWait["purpose"],
     probeDeadlineAt: number | null,
+    expectedTargetRef?: string,
   ): Promise<BrowserTargetLease> {
     const remainingMs = (): number => Math.min(
       Math.floor(this.execution.expiresAtMonotonic - performance.now()),
@@ -257,6 +299,7 @@ export class ProductionGptBrowserLifecycle {
       signal: this.execution.abortSignal,
       remainingMs,
       purpose,
+      ...(expectedTargetRef ? { expectedTargetRef } : {}),
     });
   }
 }

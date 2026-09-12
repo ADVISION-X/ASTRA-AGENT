@@ -94,6 +94,7 @@ export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_tu
       }
       const browserFact = Object.freeze({
         exactCallIdentityHash: gptExactCallIdentityHash(intent),
+        providerEffectIdentityHash: recovered.providerEffectIdentityHash,
         childCapabilityId: intent.childCapabilityId,
         effectScope: "provider_effect" as const,
         browserOutcome: "CONFIRMED" as const,

@@ -5,6 +5,7 @@ export type BrowserEffectFailureFacts = Readonly<{
   effectScope: "target_local" | "provider_effect";
   childCapabilityId: string;
   browserOutcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
+  providerEffectIdentityHash?: `sha256:${string}` | null;
 }>;
 
 export class BrowserExecutionFailure extends TypedExecutionFailure {

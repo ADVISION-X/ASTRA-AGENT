@@ -32,6 +32,7 @@ export interface ProductionExecutionResult {
 
 type ActiveGptExecution = ReturnType<ReturnType<typeof createProductionGptChildTools>["createExecution"]>;
 type GptExecutionLifecycle = {
+  decorateFailure: ((error: unknown) => unknown) | null;
   settle: ((error: unknown | null) => Promise<void>) | null;
 };
 
@@ -246,7 +247,7 @@ export class ProductionExecutor {
   }>): Promise<WebsiteAgentResult> {
     let completed = false;
     let gptExecution: ActiveGptExecution | null = null;
-    const gptLifecycle: GptExecutionLifecycle = { settle: null };
+    const gptLifecycle: GptExecutionLifecycle = { decorateFailure: null, settle: null };
     let primaryError: unknown = null;
     let result: WebsiteAgentResult;
     try {
@@ -268,6 +269,7 @@ export class ProductionExecutor {
           abortSignal: input.lease.abort_signal,
           parentSpanId: input.span.spanId,
         });
+        gptLifecycle.decorateFailure = gptExecution.decorateSettledResultFailure;
         gptLifecycle.settle = gptExecution.settle;
         return {
           materials: input.materials,
@@ -291,8 +293,8 @@ export class ProductionExecutor {
         };
       });
     } catch (error) {
-      primaryError = error;
-      throw error;
+      primaryError = gptLifecycle.decorateFailure?.(error) ?? error;
+      throw primaryError;
     } finally {
       await settleGptExecution(gptLifecycle, primaryError);
     }

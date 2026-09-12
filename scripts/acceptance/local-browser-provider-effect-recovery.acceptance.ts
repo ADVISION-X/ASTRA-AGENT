@@ -102,6 +102,7 @@ try {
     actionOrdinal: second.actionOrdinal, targetRef: second.targetRef, effectScope: "provider_effect",
   });
   assert.equal(recovered?.state, "confirmed");
+  assert.equal(recovered?.providerEffectIdentityHash, first.logicalMutationId);
   assert.deepEqual(recovered?.terminalPayload, terminalPayload);
   store.close();
 
@@ -112,6 +113,8 @@ try {
   });
   assert.deepEqual(restartedOutcome?.terminalPayload, terminalPayload,
     "confirmed submit payload survives Browser restart for the same effect readback");
+  assert.equal(restartedOutcome?.providerEffectIdentityHash, first.logicalMutationId,
+    "the public typed outcome carries the Browser-owned provider effect identity");
   assert.doesNotThrow(() => restarted.prepare(identity("attempt:2", 1)),
     "a Website-authorized new result revision receives a new provider effect");
   const rejectedNoInput = identity("attempt:1", 2);

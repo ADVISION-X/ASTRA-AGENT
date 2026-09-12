@@ -1,7 +1,7 @@
 {
   "schema_version": "website-agent-route-policies.v1",
   "contract_id": "ai-acceptance.website-agent-task-result",
-  "contract_version": 7,
+  "contract_version": 8,
   "parameter_types": {
     "admitted_identity_catalog_hash": "sha256",
     "analysis_kind": "bazi_analysis_kind",
@@ -619,36 +619,22 @@
             "schema_version",
             "decision",
             "topic_manifest",
-            "editorial_intent",
-            "catalog_comparison_note",
             "research_markdown",
             "citations",
-            "uncertainties",
-            "research_claim_units",
-            "closest_existing_article_ids",
-            "relation_assertions",
-            "novelty_basis"
+            "research_claim_units"
           ],
           "field_types": {
             "string": [
               "schema_version",
               "decision",
-              "editorial_intent",
-              "catalog_comparison_note",
-              "research_markdown",
-              "novelty_basis"
+              "research_markdown"
             ],
             "object": [
               "topic_manifest"
             ],
             "object_array": [
               "citations",
-              "uncertainties",
-              "research_claim_units",
-              "relation_assertions"
-            ],
-            "string_array": [
-              "closest_existing_article_ids"
+              "research_claim_units"
             ]
           },
           "required_nonempty_when_proceed": [
@@ -656,8 +642,6 @@
             "topic_manifest.answer_scope",
             "topic_manifest.excluded_scope",
             "topic_manifest.primary_cluster_id",
-            "editorial_intent",
-            "catalog_comparison_note",
             "research_markdown",
             "citations",
             "research_claim_units"
@@ -670,16 +654,6 @@
             "proceed": "contract_complete_research_from_current_archive",
             "decline": "contract_complete_research_cannot_be_produced_from_current_archive"
           },
-          "novelty_basis_values": [
-            "independent_question",
-            "narrower_condition",
-            "broader_scope",
-            "new_relationship",
-            "new_source_conflict",
-            "new_method_boundary",
-            "new_source_exegesis",
-            "not_applicable"
-          ],
           "topic_manifest": {
             "exact_fields": [
               "primary_question",
@@ -689,8 +663,7 @@
               "secondary_cluster_ids",
               "reader_level",
               "concept_keys",
-              "relation_keys",
-              "method_scope"
+              "relation_keys"
             ],
             "field_types": {
               "string": [
@@ -703,8 +676,7 @@
               "string_array": [
                 "secondary_cluster_ids",
                 "concept_keys",
-                "relation_keys",
-                "method_scope"
+                "relation_keys"
               ]
             },
             "reader_level_values": [
@@ -719,17 +691,10 @@
             "citation_book_and_locator_from_current_archive": true,
             "every_citation_referenced_by_a_claim": true,
             "claim_ids_unique": true,
-            "uncertainty_ids_unique": true,
-            "claim_citation_refs_exist": true,
-            "claim_uncertainty_refs_exist": true,
-            "closest_article_ids_unique_and_from_current_archive": true,
-            "relation_targets_are_closest_article_ids": true,
-            "relation_supporting_claim_ids_nonempty": true,
-            "relation_supporting_claim_ids_exist_and_are_citation_bound": true
+            "claim_citation_refs_exist": true
           },
           "claim_support": {
             "boundary_claim_may_omit_supporting_citations": true,
-            "uncertainty_claim_may_reference_open_or_conflicting_uncertainties_without_citation": true,
             "all_other_claims_require_supporting_citations": true
           },
           "citation": {
@@ -759,35 +724,6 @@
             "citation_id_example": "S1",
             "citation_reference_example": "S1"
           },
-          "uncertainty": {
-            "exact_fields": [
-              "uncertainty_id",
-              "topic",
-              "status",
-              "detail",
-              "impact"
-            ],
-            "field_types": {
-              "string": [
-                "uncertainty_id",
-                "topic",
-                "status",
-                "detail",
-                "impact"
-              ]
-            },
-            "status_values": [
-              "resolved",
-              "open",
-              "conflicting"
-            ],
-            "required_nonempty": [
-              "uncertainty_id",
-              "topic",
-              "detail",
-              "impact"
-            ]
-          },
           "claim": {
             "exact_fields": [
               "claim_id",
@@ -796,8 +732,7 @@
               "conditions",
               "exceptions",
               "supporting_citations",
-              "counter_citations",
-              "uncertainty_refs"
+              "counter_citations"
             ],
             "field_types": {
               "string": [
@@ -809,8 +744,7 @@
                 "conditions",
                 "exceptions",
                 "supporting_citations",
-                "counter_citations",
-                "uncertainty_refs"
+                "counter_citations"
               ]
             },
             "required_nonempty": [
@@ -829,32 +763,6 @@
               "uncertainty",
               "source_exegesis"
             ]
-          },
-          "relation": {
-            "exact_fields": [
-              "target_article_id",
-              "relation_kind",
-              "supporting_claim_ids"
-            ],
-            "field_types": {
-              "string": [
-                "target_article_id",
-                "relation_kind"
-              ],
-              "string_array": [
-                "supporting_claim_ids"
-              ]
-            },
-            "relation_kind_values": [
-              "prerequisite",
-              "broader_question",
-              "narrower_question",
-              "contrast",
-              "exception",
-              "source_disagreement",
-              "method_alternative",
-              "common_error"
-            ]
           }
         },
         "article": {
@@ -864,8 +772,6 @@
             "title",
             "editor_note",
             "article_markdown",
-            "citations",
-            "claim_coverage",
             "safety_notes"
           ],
           "field_types": {
@@ -875,10 +781,6 @@
               "editor_note",
               "article_markdown"
             ],
-            "object_array": [
-              "citations",
-              "claim_coverage"
-            ],
             "string_array": [
               "safety_notes"
             ]
@@ -886,29 +788,8 @@
           "required_nonempty": [
             "title",
             "editor_note",
-            "article_markdown",
-            "citations"
+            "article_markdown"
           ],
-          "claim_coverage": {
-            "exact_fields": [
-              "claim_id",
-              "status",
-              "reason_if_omitted"
-            ],
-            "field_types": {
-              "string": [
-                "claim_id",
-                "status"
-              ],
-              "string_or_null": [
-                "reason_if_omitted"
-              ]
-            },
-            "status_values": [
-              "addressed",
-              "intentionally_omitted"
-            ]
-          },
           "article_markdown_format": {
             "nonempty": true,
             "body_only": true,
@@ -942,11 +823,8 @@
             ]
           },
           "field_relations": {
-            "citation_identity_and_order_equal_research": true,
-            "citation_markers_follow_citations_first_occurrence_order": true,
-            "every_citation_has_marker": true,
-            "every_citation_marker_references_citation": true,
-            "claim_coverage_ids_equal_research_claim_ids": true
+            "every_research_citation_has_article_marker": true,
+            "every_article_citation_marker_references_research_citation": true
           },
           "citation_id_example": "S1",
           "citation_marker_example": "[S1]",
@@ -1058,6 +936,29 @@
         }
       ],
       "result_schema_version": "terminal-localization-model-output.v1",
+      "result_contract": {
+        "contract_version": 2,
+        "schema_version": "localization-provider-output-request.v1",
+        "output_kind": "primary",
+        "requested_fields": [
+          "schema_version",
+          "action_id",
+          "source_resource_id",
+          "source_version",
+          "source_sha256",
+          "target_locale",
+          "localized_structured_payload"
+        ],
+        "locked_fields": [
+          "action_id",
+          "source_resource_id",
+          "source_version",
+          "source_sha256",
+          "target_locale"
+        ],
+        "issue_requested_fields": [],
+        "unknown_field_policy": "preserve"
+      },
       "relation_kind": "primary"
     },
     {
@@ -1114,6 +1015,29 @@
         }
       ],
       "result_schema_version": "terminal-localization-model-output.v1",
+      "result_contract": {
+        "contract_version": 2,
+        "schema_version": "localization-provider-output-request.v1",
+        "output_kind": "primary",
+        "requested_fields": [
+          "schema_version",
+          "action_id",
+          "source_resource_id",
+          "source_version",
+          "source_sha256",
+          "target_locale",
+          "localized_structured_payload"
+        ],
+        "locked_fields": [
+          "action_id",
+          "source_resource_id",
+          "source_version",
+          "source_sha256",
+          "target_locale"
+        ],
+        "issue_requested_fields": [],
+        "unknown_field_policy": "preserve"
+      },
       "relation_kind": "primary"
     },
     {
@@ -1139,8 +1063,9 @@
           "owner_scope_policy": "forbidden"
         }
       ],
-      "result_schema_version": "localization-static-catalog-result.v1",
+      "result_schema_version": "localization-static-catalog-result.v2",
       "result_contract": {
+        "contract_version": 2,
         "exact_fields": [
           "schema_version",
           "action_id",
@@ -1150,12 +1075,12 @@
           "target_locale",
           "policy_version",
           "message_count",
-          "cohort_results",
           "selected_messages",
           "selected_catalog_hash",
           "decision"
         ],
-        "cohort_contract": "target-language-review-evidence.v1",
+        "evidence_transport": "website-agent-result.evidence_refs",
+        "internal_cohort_topology": "agent_private",
         "candidate_set_admission": "all-five-locales"
       },
       "relation_kind": "primary"
@@ -2775,6 +2700,7 @@
       "result_schema_version": "website-agent-review-output.v1",
       "relation_kind": "review",
       "result_contract": {
+        "contract_version": 2,
         "schema_version": "website-agent-review-output-contract.v1",
         "output_schema_version": "website-agent-review-output.v1",
         "exact_top_level_fields": [
@@ -2853,6 +2779,7 @@
       "result_schema_version": "website-agent-review-output.v1",
       "relation_kind": "review",
       "result_contract": {
+        "contract_version": 2,
         "schema_version": "website-agent-review-output-contract.v1",
         "output_schema_version": "website-agent-review-output.v1",
         "exact_top_level_fields": [
@@ -2930,6 +2857,7 @@
       "result_schema_version": "website-agent-review-output.v1",
       "relation_kind": "review",
       "result_contract": {
+        "contract_version": 2,
         "schema_version": "website-agent-review-output-contract.v1",
         "output_schema_version": "website-agent-review-output.v1",
         "exact_top_level_fields": [
@@ -3008,6 +2936,7 @@
       "result_schema_version": "website-agent-review-output.v1",
       "relation_kind": "review",
       "result_contract": {
+        "contract_version": 2,
         "schema_version": "website-agent-review-output-contract.v1",
         "output_schema_version": "website-agent-review-output.v1",
         "exact_top_level_fields": [

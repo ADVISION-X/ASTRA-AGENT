@@ -5,7 +5,11 @@ import type { createBrowserInfrastructureState } from "./browser-infrastructure-
 import { BrowserAuthorityWebSocket } from "../transport/browser-authority-websocket.js";
 import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS } from "../protocol/generated/browser-protocol.generated.js";
 
-type TargetWaiter = Readonly<{ binding: BrowserExecutionBinding; remainingMs(): number }>;
+type TargetWaiter = Readonly<{
+  binding: BrowserExecutionBinding;
+  expectedTargetRef: string | null;
+  remainingMs(): number;
+}>;
 type LaneState = ReturnType<typeof createBrowserInfrastructureState>;
 
 export class BrowserTargetAcquirer {
@@ -20,10 +24,12 @@ export class BrowserTargetAcquirer {
 
   public async ensureAvailableTarget(waiter: TargetWaiter): Promise<void> {
     if (this.resolveBroker().currentOperatorTargetStatus() !== "absent") return;
-    await this.acquireJobBoundTarget(Math.min(waiter.binding.commandTtlMs, waiter.remainingMs()));
+    await this.acquireJobBoundTarget(
+      Math.min(waiter.binding.commandTtlMs, waiter.remainingMs()), waiter.expectedTargetRef,
+    );
   }
 
-  private async acquireJobBoundTarget(commandTtlMs: number): Promise<void> {
+  private async acquireJobBoundTarget(commandTtlMs: number, expectedTargetRef: string | null): Promise<void> {
     const current = this.issuer.current();
     if (current.kind === "ABSENT") throw new Error(current.reasonCode);
     if (!Number.isInteger(commandTtlMs) || commandTtlMs < 1 || commandTtlMs > 3_600_000) {
@@ -39,21 +45,25 @@ export class BrowserTargetAcquirer {
       }, deadlineMs);
       this.infrastructure.pendingJobBoundTargetAcquisition = {
         authorityEpoch: current.authority.authorityEpoch,
-        expectedTargetRef: null,
+        expectedTargetRef,
         resolve,
         reject,
         timeout,
       };
-      try { this.websocket.requestPreauthorizedTargetAcquisition(); }
+      try { this.websocket.requestPreauthorizedTargetAcquisition(expectedTargetRef ?? undefined); }
       catch (error) {
         this.rejectPending(error instanceof Error ? error.message : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
       }
     });
   }
 
-  public resolvePending(_targetRef: string): void {
+  public resolvePending(targetRef: string): void {
     const pending = this.infrastructure.pendingJobBoundTargetAcquisition;
     if (!pending) return;
+    if (pending.expectedTargetRef !== null && pending.expectedTargetRef !== targetRef) {
+      this.rejectPending("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
+      return;
+    }
     this.infrastructure.pendingJobBoundTargetAcquisition = null;
     clearTimeout(pending.timeout);
     pending.resolve();

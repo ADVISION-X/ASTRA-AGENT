@@ -17,7 +17,6 @@ import {
 import type { ProductGptAnyCallInput, ProductGptChildResult } from "../../capabilities/gpt/index.js";
 import {
   executionFailure,
-  failureCode,
 } from "../../lib/execution-failure.js";
 import { parseProductResult } from "./result-contract.js";
 
@@ -81,7 +80,14 @@ const createOwnedExecution = (task: WebsiteAgentTask, context: SharedExecutionCo
     evidenceRefs.push(...result.artifactRefs);
     return result;
   };
-  return Object.freeze({ evidenceRefs: () => Object.freeze([...evidenceRefs]), execute });
+  const readConfirmedSubmit = async (
+    call: Extract<FlowCall, Readonly<{ child: "submit_exact_gpt_turn_once" }>>,
+  ) => {
+    const result = await context.gpt.readConfirmedSubmit({ ...call, sessionKey });
+    if (result) evidenceRefs.push(...result.artifactRefs);
+    return result;
+  };
+  return Object.freeze({ evidenceRefs: () => Object.freeze([...evidenceRefs]), execute, readConfirmedSubmit });
 };
 
 const materialFiles = (context: SharedExecutionContext) => context.materials.slice()
@@ -102,11 +108,17 @@ const uploadedFiles = (context: SharedExecutionContext) => materialFiles(context
     bytes: file.bytes,
   }));
 
+const resultRevisionFact = (context: SharedExecutionContext): string =>
+  `Website 结果修订事实：${JSON.stringify(context.resultRevision)}`;
+
 const promptFor = (
   task: WebsiteAgentTask,
   context: SharedExecutionContext,
   marker: string,
 ): string => {
+  const resultContract = objectValue(
+    context.routePolicy.result_contract, "LOCALIZATION_ROUTE_RESULT_CONTRACT_MISSING",
+  );
   const attachments = context.materials.slice().sort((left, right) => left.ordinal - right.ordinal)
     .map((material) => `${material.role}=${gptAttachmentProviderDisplayName(
       material.display_name, context.gpt.jobId, material.material_id,
@@ -117,11 +129,12 @@ const promptFor = (
       ? "只复核当前 subject result 的表达、完整性、合同摩擦与质量风险，返回可核验 finding；不得生成第二份正式结果。"
       : PRODUCT_INSTRUCTION;
   return [
-    context.productSkill.text, "", `当前 Product Plugin：${PLUGIN_ID}`, `当前授权动作：${task.action_id}`,
+    context.productSkill.text, "", `当前授权动作：${task.action_id}`,
     `当前业务事实：${JSON.stringify(task.parameters)}`, `本轮获准附件：${attachments.join("；")}`,
+    resultRevisionFact(context),
     instruction,
     "逐一读取本轮全部附件；只有任务合同标记可发出指令的材料才能补充输出格式或产品要求。",
-    "严格按 result_contract 附件的当前 schema 返回全部且仅有字段；只返回一个 JSON 对象，不要代码围栏或前后缀。",
+    `严格按以下 Website route result_contract 返回一个 JSON 对象，不要代码围栏或前后缀：${JSON.stringify(resultContract)}`,
     `把此不可变标记原样保留在本次用户消息中，不要写入 JSON 结果：${marker}`,
   ].join("\n");
 };
@@ -141,11 +154,10 @@ const applyProfile = async (
   const apply = flow.execute;
   await apply(open);
   await apply(selector);
-  const modelResult = await apply(model);
+  await apply(model);
   await apply(reopen);
-  const reasoningResult = await apply(reasoning);
+  await apply(reasoning);
   await apply(close);
-  return Object.freeze({ model: modelResult, reasoning: reasoningResult });
 };
 
 const applyAttachments = async (
@@ -235,19 +247,27 @@ const runFreshTurn = async (
   marker: string,
 ): Promise<Checkpoint> => {
   const stepId = task.action_id;
+  const files = uploadedFiles(context);
+  const promptHash = sha256(prompt);
+  const confirmed = await flow.readConfirmedSubmit({
+    productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once",
+    actionOrdinal: 13, input: { files, promptHash },
+  });
+  if (confirmed) {
+    requireConfirmedSubmit(confirmed.effectReceipt);
+    return checkpointSubmittedTurn(flow, stepId, marker, promptHash, confirmed, [14, 15, 16]);
+  }
   const fresh = { productStepId: stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
   await flow.execute(fresh);
   await applyProfile(flow, stepId, [2, 3, 4, 5, 6, 7]);
   await applyAttachments(flow, context, stepId, [8, 9, 10]);
-  return submitTurn(flow, stepId, prompt, marker, uploadedFiles(context), [11, 12, 13, 14, 15, 16]);
+  return submitTurn(flow, stepId, prompt, marker, files, [11, 12, 13, 14, 15, 16]);
 };
 
 export interface IsolatedLocalizationJsonTurn {
   readonly value: Readonly<Record<string, unknown>>;
   readonly checkpoint: LocalizationGptCheckpoint;
   readonly evidenceRefs: readonly string[];
-  readonly modelIdentityProofJson: string;
-  readonly modelIdentityProofHash: ProductionHash;
 }
 
 export const executeIsolatedLocalizationJsonTurn = async (
@@ -264,51 +284,47 @@ export const executeIsolatedLocalizationJsonTurn = async (
   const flow = createOwnedExecution(task, context, input.sessionSuffix);
   const marker = markerFor(task, input.stepId);
   const prompt = [input.prompt,
+    resultRevisionFact(context),
     `把此不可变标记原样保留在本次用户消息中，不要写入 JSON 结果：${marker}`].join("\n");
+  const promptHash = sha256(prompt);
+  const confirmed = await flow.readConfirmedSubmit({
+    productStepId: input.stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once",
+    actionOrdinal: 10, input: { files: [], promptHash },
+  });
+  if (confirmed) {
+    requireConfirmedSubmit(confirmed.effectReceipt);
+    const checkpoint = await checkpointSubmittedTurn(
+      flow, input.stepId, marker, promptHash, confirmed, [11, 12, 13],
+    );
+    return isolatedResult(flow, checkpoint);
+  }
   const fresh = {
     productStepId: input.stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat",
     actionOrdinal: 1, input: { timeoutMs: 60_000 },
   } as const;
   await flow.execute(fresh);
-  const profileFacts = await applyProfile(flow, input.stepId, [2, 3, 4, 5, 6, 7], input.profile);
+  await applyProfile(flow, input.stepId, [2, 3, 4, 5, 6, 7], input.profile);
   const checkpoint = await submitTurn(flow, input.stepId, prompt, marker, [], [8, 9, 10, 11, 12, 13]);
-  let value: Readonly<Record<string, unknown>>;
-  try {
-    value = productResultValidation.parseJsonObject(
-      checkpoint.semanticText, "PRODUCT_RESULT_JSON_INVALID",
-    );
-  } catch (error) {
-throw executionFailure("failed", failureCode(error, "PRODUCT_RESULT_RECEIVER_FAILED"), { cause: error });
-  }
-  const modelIdentityProofJson = JSON.stringify({
-    proof_status: "verified",
-    model_display_name: input.profile.modelDisplayName,
-    model_family: input.profile.modelFamily,
-    reasoning_effort: input.reasoningEffort,
-    profile_ref: input.profile.profileRef,
-    profile_hash: input.profile.profileHash,
-    model_selection_call_hash: profileFacts.model.exactCallIdentityHash,
-    model_selection_evidence_ref: profileFacts.model.evidenceRef,
-    model_selection_evidence_hash: profileFacts.model.evidenceHash,
-    reasoning_call_hash: profileFacts.reasoning.exactCallIdentityHash,
-    reasoning_evidence_ref: profileFacts.reasoning.evidenceRef,
-    reasoning_evidence_hash: profileFacts.reasoning.evidenceHash,
-  });
+  return isolatedResult(flow, checkpoint);
+};
+
+const isolatedResult = (
+  flow: OwnedExecution,
+  checkpoint: Checkpoint,
+): IsolatedLocalizationJsonTurn => {
+  const value = productResultValidation.parseJsonObject(
+    checkpoint.semanticText, "PRODUCT_RESULT_JSON_INVALID",
+  );
   return Object.freeze({
-    value, checkpoint, evidenceRefs: flow.evidenceRefs(), modelIdentityProofJson,
-    modelIdentityProofHash: sha256(modelIdentityProofJson),
+    value, checkpoint, evidenceRefs: flow.evidenceRefs(),
   });
 };
 
 const receive = (task: WebsiteAgentTask, checkpoint: Checkpoint, context: SharedExecutionContext): Readonly<Record<string, unknown>> => {
-  try {
-    const value = productResultValidation.parseJsonObject(
-      checkpoint.semanticText, "PRODUCT_RESULT_JSON_INVALID",
-    );
-    return parseProductResult(task, value, context.routePolicy);
-  } catch (error) {
-throw executionFailure("failed", failureCode(error, "PRODUCT_RESULT_RECEIVER_FAILED"), { cause: error });
-  }
+  const value = productResultValidation.parseJsonObject(
+    checkpoint.semanticText, "PRODUCT_RESULT_JSON_INVALID",
+  );
+  return parseProductResult(task, value, context.routePolicy);
 };
 
 export const executeOwnedFlow = async (

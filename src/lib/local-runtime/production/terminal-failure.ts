@@ -17,13 +17,18 @@ export type SerializedExecutionFailure = Readonly<{
   cause: Readonly<{ name: string; code: string | null }> | null;
 }>;
 
+export type SerializedTerminalFailure = SerializedExecutionFailure & Readonly<{
+  provider_effect_identity_hash: `sha256:${string}` | null;
+  settled_result_payload_hash: `sha256:${string}` | null;
+}>;
+
 export const serializeTerminalFailure = (
   error: unknown,
 ): SerializedExecutionFailure => {
   const browser = typedBrowserExecutionFailure(error);
   const metadata = executionFailureMetadata(error);
   const evidence = metadata?.evidence ?? null;
-  return Object.freeze({
+  const failure: SerializedExecutionFailure = Object.freeze({
     code: failureCode(error),
     mutation_outcome: metadata?.mutationOutcome ?? browser?.mutationOutcome ?? "no",
     effect_scope: metadata?.browserEffect?.effectScope ?? browser?.browserEffect?.effectScope ?? null,
@@ -33,6 +38,20 @@ export const serializeTerminalFailure = (
     evidence_ref: evidence?.evidenceRef ?? null,
     evidence_hash: evidence?.evidenceHash ?? null,
     cause: executionFailureCause(error),
+  });
+  return failure;
+};
+
+export const serializeTerminalFailureTransport = (
+  error: unknown,
+): SerializedTerminalFailure => {
+  const metadata = executionFailureMetadata(error);
+  const browser = typedBrowserExecutionFailure(error);
+  return Object.freeze({
+    ...serializeTerminalFailure(error),
+    provider_effect_identity_hash: metadata?.browserEffect?.providerEffectIdentityHash
+      ?? browser?.browserEffect?.providerEffectIdentityHash ?? null,
+    settled_result_payload_hash: metadata?.settledResultPayloadHash ?? null,
   });
 };
 

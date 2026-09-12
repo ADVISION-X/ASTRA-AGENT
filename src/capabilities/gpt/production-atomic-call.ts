@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import {
   GPT_CHILD_CAPABILITY_CONTRACTS,
   type GptAbilityGroup,
@@ -33,7 +35,9 @@ export const productionGptAtomicIdentity = (
     productStepId: intent.productStepId,
     callId: intent.callId,
     childCapabilityId: intent.childCapabilityId,
-    inputHash: intent.inputHash,
+    inputHash: replayPolicy === "provider-effect-once"
+      ? `sha256:${createHash("sha256").update(JSON.stringify([resultRevision, intent.inputHash])).digest("hex")}`
+      : intent.inputHash,
     actionOrdinal: intent.actionOrdinal,
     replayPolicy,
   });
@@ -82,6 +86,7 @@ export const executeProductionGptAtomicCall = async (
     && intent.childCapabilityId === "submit_exact_gpt_turn_once"
     && priorOutcome.state === "confirmed"
     && (priorOutcome.mutationOutcome === "no" || priorOutcome.mutationOutcome === "confirmed")
+    && priorOutcome.providerEffectIdentityHash
     && priorOutcome.terminalAt && priorOutcome.terminalPayload != null) {
     return {
       result: await gpt.execute(intent, Object.freeze({
@@ -91,6 +96,7 @@ export const executeProductionGptAtomicCall = async (
           terminalAt: priorOutcome.terminalAt,
           authorityRef: priorOutcome.authorityRef,
           authorityHash: priorOutcome.authorityHash,
+          providerEffectIdentityHash: priorOutcome.providerEffectIdentityHash,
           mutationOutcome: priorOutcome.mutationOutcome,
         }),
       })),
@@ -108,6 +114,7 @@ export const executeProductionGptAtomicCall = async (
         effectScope: replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local",
         childCapabilityId: intent.childCapabilityId,
         browserOutcome: priorOutcome.state.toUpperCase() as "DISPATCHED" | "CONFIRMED" | "REJECTED",
+        providerEffectIdentityHash: priorOutcome.providerEffectIdentityHash,
       },
     },
   });

@@ -19,46 +19,43 @@
     {
       "productId": "localization_report_translation",
       "actionId": "report_translation",
-      "materialPolicy": { "kind": "exact-task-material-set", "requiredRoles": [] },
+      "materialPolicy": { "kind": "exact-task-material-set", "requiredRoles": ["source_content", "terminology", "locale_policy", "render_policy"] },
       "topology": { "kind": "single-task-action-stage" }
     },
     {
       "productId": "localization_report_translation",
       "actionId": "accuracy_challenge",
-      "materialPolicy": { "kind": "exact-task-material-set", "requiredRoles": [] },
+      "materialPolicy": { "kind": "exact-task-material-set", "requiredRoles": ["subject_result", "review_context"] },
       "topology": { "kind": "single-task-action-stage" }
     },
     {
       "productId": "localization_report_translation",
       "actionId": "quality_reflection",
-      "materialPolicy": { "kind": "exact-task-material-set", "requiredRoles": [] },
+      "materialPolicy": { "kind": "exact-task-material-set", "requiredRoles": ["subject_result", "review_context"] },
       "topology": { "kind": "single-task-action-stage" }
     },
     {
       "productId": "localization_article_translation",
       "actionId": "article_translation",
-      "materialPolicy": { "kind": "exact-task-material-set", "requiredRoles": [] },
+      "materialPolicy": { "kind": "exact-task-material-set", "requiredRoles": ["source_content", "terminology", "locale_policy", "render_policy"] },
       "topology": { "kind": "single-task-action-stage" }
     },
     {
       "productId": "localization_article_translation",
       "actionId": "accuracy_challenge",
-      "materialPolicy": { "kind": "exact-task-material-set", "requiredRoles": [] },
+      "materialPolicy": { "kind": "exact-task-material-set", "requiredRoles": ["subject_result", "review_context"] },
       "topology": { "kind": "single-task-action-stage" }
     },
     {
       "productId": "localization_article_translation",
       "actionId": "quality_reflection",
-      "materialPolicy": { "kind": "exact-task-material-set", "requiredRoles": [] },
+      "materialPolicy": { "kind": "exact-task-material-set", "requiredRoles": ["subject_result", "review_context"] },
       "topology": { "kind": "single-task-action-stage" }
     },
     {
       "productId": "localization_static_catalog",
       "actionId": "produce_locale_catalog",
-      "materialPolicy": {
-        "kind": "exact-task-material-set",
-        "requiredRoles": ["static_catalog_input"]
-      },
+      "materialPolicy": { "kind": "exact-task-material-set", "requiredRoles": ["static_catalog_input"] },
       "topology": {
         "kind": "material-declared-cohort-triplet",
         "cohortArrayField": "context_bundles",

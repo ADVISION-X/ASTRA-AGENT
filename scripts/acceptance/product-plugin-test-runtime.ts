@@ -39,6 +39,7 @@ export type ProductFlowFixture = Readonly<{
   materialContents?: Readonly<Record<string, unknown>>;
   checkpointOutput?: (call: ProductCall) => Readonly<Record<string, unknown>>;
   expectedSessionCount?: number;
+  resultRevision?: SharedExecutionContext["resultRevision"];
 }>;
 
 const exactKeys = (value: Readonly<Record<string, unknown>>): readonly string[] =>
@@ -191,6 +192,7 @@ const createGptFixture = (
       effectReceipt: productCall.child === "submit_exact_gpt_turn_once" ? {
         effectScope: "provider_effect", outcome: "CONFIRMED", mutationOutcome: "confirmed",
         terminalAt: "2020-01-01T00:00:00.000Z", evidenceRef, evidenceHash: FIXTURE_HASH,
+        providerEffectIdentityHash: FIXTURE_HASH,
       } : null } as never;
   },
 });
@@ -204,7 +206,7 @@ const createProductContext = (
   routePolicy: productionRoutePolicy(fixture.task.product_id, fixture.task.action_id),
   productSkill: Object.freeze({ text: "fixture product skill", hash: FIXTURE_HASH }),
   gpt: createGptFixture(state, fixture),
-  resultRevision: { revision: 0, priorRejection: null },
+  resultRevision: fixture.resultRevision ?? { revision: 0, priorRejection: null },
   uploadGeneratedImage: async (artifact) => {
     state.generatedImageUploads += 1;
     return Object.freeze({

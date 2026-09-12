@@ -136,6 +136,7 @@ const failedBrowserFact = <K extends GptChildCapabilityId>(
     : recovery.state === "rejected" ? "REJECTED" as const : "DISPATCHED" as const;
   return Object.freeze({
     exactCallIdentityHash: gptExactCallIdentityHash(intent),
+    providerEffectIdentityHash: recovery.providerEffectIdentityHash,
     childCapabilityId: intent.childCapabilityId,
     effectScope: contract.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local",
     browserOutcome,
@@ -262,6 +263,7 @@ const failureEffect = <K extends GptChildCapabilityId>(
     effectScope: source.effectScope,
     childCapabilityId: source.childCapabilityId,
     browserOutcome: source.browserOutcome,
+    providerEffectIdentityHash: source.providerEffectIdentityHash ?? null,
   }) : null;
 };
 

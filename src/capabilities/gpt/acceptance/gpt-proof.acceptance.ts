@@ -199,6 +199,7 @@ await exerciseSubmit("gpt-proof-submit-third-turn", [], [],
       confirmedProviderEffectReadback: {
         terminalPayload, terminalAt: "2026-09-02T00:00:01.000Z",
         authorityRef: "browser-mutation:recovered", authorityHash: `sha256:${"9".repeat(64)}`,
+        providerEffectIdentityHash: `sha256:${"8".repeat(64)}`,
         mutationOutcome: "confirmed",
       },
     },

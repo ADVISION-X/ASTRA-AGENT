@@ -22,8 +22,12 @@ import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api
 import type { ProductGptCallInput, ProductGptChildResult } from "./product-api.js";
 import type { GptHash } from "./contract.js";
 import { persistGptEvidenceArtifacts } from "./evidence-artifacts.js";
-import { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
+import {
+  ProductionGptBrowserLifecycle,
+  type ProductionGptBrowserCall,
+} from "./production-browser-lifecycle.js";
 import { executeProductionGptAtomicCall, productionGptAtomicIdentity } from "./production-atomic-call.js";
+import { gptExecutionFailure } from "./execution-fault.js";
 import type {
   GptEvidenceStorePort,
   GptProductionBrowserAuthority,
@@ -96,6 +100,7 @@ export class ProductionGptChildTools {
           );
         },
       }),
+      decorateSettledResultFailure: (error) => browsers.decorateSettledResultFailure(error),
       settle: (error) => browsers.settle(error),
     });
   }
@@ -174,13 +179,26 @@ export class ProductionGptChildTools {
     return terminal.eventId;
   }
 
-  private terminalizeError(span: RuntimeSpanHandle, error: unknown): never {
+  private terminalizeError(
+    span: RuntimeSpanHandle,
+    error: unknown,
+    confirmedProviderEffect?: ProductionGptBrowserCall["confirmedProviderEffect"],
+  ): never {
     const causedByEventId = runtimeLogCauseEventId(error);
-    const failure = typedExecutionFailure(error) ?? executionFailure(
+    const original = typedExecutionFailure(error) ?? executionFailure(
       "failed",
       failureCode(error, "GPT_CHILD_RUNTIME_FAILED"),
       { cause: error },
     );
+    const failure = confirmedProviderEffect ? gptExecutionFailure(original.code, {
+      mutationOutcome: "confirmed",
+      evidence: {
+        evidenceRef: confirmedProviderEffect.evidenceRef,
+        evidenceHash: confirmedProviderEffect.evidenceHash,
+      },
+      browserEffect: confirmedProviderEffect,
+      cause: original,
+    }) : original;
     const terminal = requireRuntimeLogWrite(span.terminal({
       outcome: "failed",
       failure: runtimeFailureFromError({
@@ -225,8 +243,11 @@ export class ProductionGptChildTools {
     let evidenceHash: GptHash;
     let artifactRefs: readonly string[] = Object.freeze([]);
     let resolveDispatched = false;
+    let browserCall: Awaited<ReturnType<ProductionGptBrowserLifecycle["browserFor"]>> | undefined;
+    const readsConfirmedEffect = call.child === "checkpoint_gpt_text_response"
+      || call.child === "checkpoint_gpt_generated_image";
     try {
-      const browserCall = contract.requiredTargetKind === "chatgpt"
+      browserCall = contract.requiredTargetKind === "chatgpt"
         ? await browsers.browserFor(call.sessionKey, call.productStepId, call.callId)
         : undefined;
       const browser = browserCall?.facade;
@@ -241,6 +262,14 @@ export class ProductionGptChildTools {
         resultRevision: execution.resultRevision,
       });
       result = atomic.result;
+      const effect = result.proof.browserFact;
+      if (call.child === "submit_exact_gpt_turn_once" && result.status === "success") {
+        if (effect?.effectScope !== "provider_effect" || effect.browserOutcome !== "CONFIRMED"
+          || !effect.providerEffectIdentityHash) {
+          throw executionFailure("failed", "GPT_PROVIDER_EFFECT_IDENTITY_MISSING");
+        }
+        browsers.recordConfirmedProviderEffect(browserCall!, effect);
+      }
       resolveDispatched = atomic.resolveDispatched;
       artifactRefs = await persistGptEvidenceArtifacts({
         result, intent, evidenceStore: this.evidenceStore,
@@ -253,11 +282,27 @@ export class ProductionGptChildTools {
         execution, browser, result, evidenceRef, resolveDispatched,
       });
     } catch (error) {
-      return this.terminalizeError(span, error);
+      return this.terminalizeError(
+        span, error, readsConfirmedEffect ? browserCall?.confirmedProviderEffect : null,
+      );
     }
     if (!result) return this.terminalizeError(span, executionFailure("failed", "GPT_CHILD_RESULT_MISSING"));
     const terminalEventId = this.terminalize(span, result);
-    if (result.status !== "success") throwGptChildFailure(result, evidenceRef, terminalEventId);
+    if (result.status !== "success") {
+      throwGptChildFailure(
+        result, evidenceRef, terminalEventId,
+        readsConfirmedEffect ? browserCall?.confirmedProviderEffect : null,
+      );
+    }
+    if (readsConfirmedEffect && browserCall) {
+      const value = result.value as unknown as Readonly<Record<string, unknown>>;
+      const payloadHash = call.child === "checkpoint_gpt_text_response"
+        ? value.semanticTextHash : value.sha256;
+      if (typeof payloadHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(payloadHash)) {
+        throw executionFailure("failed", "GPT_SETTLED_RESULT_PAYLOAD_HASH_INVALID");
+      }
+      browsers.recordSettledResult(browserCall, payloadHash as GptHash);
+    }
     return Object.freeze({
       value: result.value as ProductGptChildResult<K>["value"],
       evidenceRef,
@@ -267,6 +312,7 @@ export class ProductionGptChildTools {
       artifactRefs,
       effectReceipt: result.proof.browserFact ? Object.freeze({
         effectScope: result.proof.browserFact.effectScope,
+        providerEffectIdentityHash: result.proof.browserFact.providerEffectIdentityHash,
         outcome: result.proof.browserFact.browserOutcome,
         mutationOutcome: result.proof.browserFact.mutationOutcome,
         terminalAt: result.proof.browserFact.terminalAt,

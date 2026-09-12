@@ -87,7 +87,7 @@ const wrongTypeResearch = parsePublicKnowledgeResearch(JSON.stringify({
 assert.equal((wrongTypeResearch.topic_manifest as Record<string, unknown>).secondary_cluster_ids, "one",
   "AGENT must preserve a Provider field-type error for the Website owner to judge");
 assert.equal(parsePublicKnowledgeArticle(JSON.stringify({
-  ...articleOutput(), claim_coverage: [{ claim_id: "CL1", status: "addressed", reason_if_omitted: "must-be-null" }],
+  ...articleOutput(),
 }), produceRoute).schema_version, "public-knowledge-article-output.v3");
 
 const decline = await exerciseSeoFlow(plugin, "produce_article", "decline");
@@ -135,8 +135,8 @@ assert.match(prompts[0]!, /"claim_support":\{"boundary_claim_may_omit_supporting
 assert.match(prompts[0]!, /"field_types":\{"string":\["schema_version","decision"/u);
 assert.match(prompts[0]!, /"citation_token":\{"outer_brackets":"optional_single_pair"/u);
 assert.match(prompts[1]!, /"article_markdown_format":\{"nonempty":true,"body_only":true,"repeat_title":false,"allowed_heading_levels":\[2,3\]/u);
-assert.match(prompts[1]!, /"required_nonempty":\["title","editor_note","article_markdown","citations"\]/u);
-assert.match(prompts[1]!, /"field_relations":\{"citation_identity_and_order_equal_research":true/u);
+assert.match(prompts[1]!, /"required_nonempty":\["title","editor_note","article_markdown"\]/u);
+assert.match(prompts[1]!, /"field_relations":\{"every_research_citation_has_article_marker":true/u);
 assert.match(prompts[1]!, /"citation_marker_token":\{"format":"\[citation_reference\]"/u);
 for (const hidden of ["analysis_method", "reasoning_policy", "viewpoint_policy", "evidence_interpretation", "image_creative_policy", "forbidden_body_phrases"]) assert.doesNotMatch(`${prompts[0]}\n${prompts[1]}`, new RegExp(`"${hidden}"`, "u"));
 assert.doesNotMatch(prompts.join("\n"), /# 公开知识文章生产|严格区分古籍原文|用简体中文一次讲清|不得宿命绝对化|不得重新选题/u,

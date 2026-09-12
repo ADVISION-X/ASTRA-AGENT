@@ -14,6 +14,7 @@ export type ProductGptChildResult<K extends GptChildCapabilityId = GptChildCapab
     artifactRefs: readonly string[];
     effectReceipt: Readonly<{
       effectScope: "target_local" | "provider_effect";
+      providerEffectIdentityHash: `sha256:${string}` | null;
       outcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
       mutationOutcome: "no" | "dispatched" | "confirmed";
       terminalAt: string | null;

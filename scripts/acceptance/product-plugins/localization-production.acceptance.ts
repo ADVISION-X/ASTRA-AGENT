@@ -34,9 +34,20 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     source_sha256: task.parameters.source_sha256, target_locale: task.parameters.target_locale,
     localized_structured_payload: { title: "localized" },
   };
-  const run = await exerciseProductFlow(plugin, { task, output });
+  const resultRevision = !review && route.product_id === "localization_report_translation"
+    ? { revision: 1, priorRejection: {
+        receipt_hash: FIXTURE_HASH, rejected_result_payload_hash: FIXTURE_HASH,
+        reason_codes: ["RESULT_SETTLED_UNUSABLE"],
+      } } as const
+    : undefined;
+  const run = await exerciseProductFlow(plugin, { task, output,
+    ...(resultRevision ? { resultRevision } : {}) });
   assert.deepEqual(run.calls.map((call) => call.child), sequence);
-  assert.match(String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt), /当前 Product Plugin：localization-production/u);
+  const prompt = String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt);
+  assert.doesNotMatch(prompt, /Product Plugin|result_contract attachment/u);
+  assert.match(prompt, /Website route result_contract/u);
+  assert.match(prompt, /Website 结果修订事实/u);
+  if (resultRevision) assert.match(prompt, /RESULT_SETTLED_UNUSABLE/u);
   assert.equal(run.physicalSubmitDispatches, 1);
 }
 
@@ -102,7 +113,7 @@ const staticTask = buildProductTask(staticRoute, { parameters: {
   source_version: staticInput.source_version,
   source_sha256: staticInput.source_sha256,
   policy_version: staticInput.policy_version,
-  result_schema_version: "localization-static-catalog-result.v1",
+  result_schema_version: "localization-static-catalog-result.v2",
 } });
 const staticRun = await exerciseProductFlow(plugin, {
   task: staticTask,
@@ -154,8 +165,9 @@ assert.deepEqual(staticReasoningCalls.map((call) => ({
 ]);
 assert.equal(staticRun.physicalSubmitDispatches, 3);
 const staticPayload = staticRun.completed.payload as Readonly<Record<string, unknown>>;
-assert.equal(staticPayload.schema_version, "localization-static-catalog-result.v1");
+assert.equal(staticPayload.schema_version, "localization-static-catalog-result.v2");
 assert.equal(staticPayload.decision, "production_approved");
+assert.equal(Object.hasOwn(staticPayload, "cohort_results"), false);
 assert.equal(staticPayload.selected_catalog_hash,
   hashCanonical([{ message_id: "fixture.hello", text: "<style>@page{size:A4}</style> Hello {name}", finding_codes: [] }]));
 process.stdout.write("[ACCEPTANCE][localization-production] PASS\n");

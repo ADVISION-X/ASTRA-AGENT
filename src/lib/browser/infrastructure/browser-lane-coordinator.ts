@@ -16,6 +16,7 @@ type LaneWaiter = Readonly<{
   binding: BrowserExecutionBinding;
   ownerId: string;
   purpose: BrowserTargetLeaseWait["purpose"];
+  expectedTargetRef: string | null;
   signal: AbortSignal;
   remainingMs(): number;
   stopWaitingMonitor(): void;
@@ -59,6 +60,7 @@ export class BrowserLaneCoordinator {
       };
       const waiter: LaneWaiter = {
         binding, ownerId, purpose: wait.purpose,
+        expectedTargetRef: wait.expectedTargetRef ?? null,
         signal: wait.signal, remainingMs: wait.remainingMs,
         stopWaitingMonitor: () => { if (monitor) clearInterval(monitor); monitor = null; },
         resolve: (lease) => finish(resolve, lease), reject: (error) => finish(reject, error),

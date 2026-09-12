@@ -10,7 +10,6 @@ import {
 } from "../../mediator/product-plugin-contract.js";
 import {
   executeIsolatedLocalizationJsonTurn,
-  type IsolatedLocalizationJsonTurn,
 } from "./flow.js";
 import {
   fail,
@@ -29,8 +28,6 @@ import {
   type StaticCatalogInput,
   type StaticCohort,
 } from "./static-catalog-contract.js";
-
-const REVIEW_AUTHORITY_REF = "APEX-LOCALIZATION-009-V5";
 
 const candidateAProfile = buildGptExecutionProfile({
   profileRef: "localization-production:static-catalog:candidate-a:pro-standard",
@@ -68,45 +65,16 @@ const selectorProfile = buildGptExecutionProfile({
   acceptanceVersion: "v1",
 });
 
-function transcript(turn: IsolatedLocalizationJsonTurn, payloadJson: string): string {
-  return [
-    JSON.stringify({ type: "thread.started", thread_id: turn.checkpoint.canonicalConversationUrl }),
-    JSON.stringify({ type: "item.completed", item: { type: "agent_message", text: payloadJson } }),
-  ].join("\n");
-}
-
 function candidateReceipt(input: Readonly<{
   role: CandidateRole;
-  reasoningEffort: "xhigh" | "high";
-  requestJson: string;
   contextHash: ProductionHash;
   payloadJson: string;
-  turn: IsolatedLocalizationJsonTurn;
-  batchId: string;
 }>): CandidateReceipt {
-  const providerTranscript = transcript(input.turn, input.payloadJson);
   return Object.freeze({
     role: input.role,
-    producer_ref: `localization-production:${input.batchId}:${input.role}:${input.turn.checkpoint.submitExactCallIdentityHash}`,
-    provider_ref: "gpt-web-chat",
-    model_family_ref: "gpt-5.6",
-    model_revision_ref: `GPT-5.6 Sol:${input.reasoningEffort}`,
-    provider_job_id: input.turn.checkpoint.canonicalConversationUrl,
-    provider_execution_id: input.turn.checkpoint.submitExactCallIdentityHash,
-    provider_lease_id: input.turn.checkpoint.submitEvidenceRef,
-    model_identity_proof_json: input.turn.modelIdentityProofJson,
-    model_identity_proof_hash: input.turn.modelIdentityProofHash,
-    reasoning_effort: input.reasoningEffort,
-    conversation_ref: input.turn.checkpoint.canonicalConversationUrl,
-    started_at: input.turn.checkpoint.submitTerminalAt,
-    completed_at: input.turn.checkpoint.submitTerminalAt,
     context_bundle_hash: input.contextHash,
-    request_json: input.requestJson,
-    request_hash: sha256(input.requestJson),
     payload_json: input.payloadJson,
     payload_hash: sha256(input.payloadJson),
-    provider_transcript_jsonl: providerTranscript,
-    provider_transcript_hash: sha256(providerTranscript),
   });
 }
 
@@ -153,7 +121,6 @@ function selectorPrompt(context: SharedExecutionContext, selectorInputJson: stri
 }
 
 type CohortResult = Readonly<{
-  evidence: Readonly<Record<string, unknown>>;
   selected: readonly CandidateItem[];
   evidenceRefs: readonly string[];
   blocked: boolean;
@@ -162,7 +129,7 @@ type CohortResult = Readonly<{
 type CandidateRun = Readonly<{
   candidate: CandidatePayload;
   receipt: CandidateReceipt;
-  turn: IsolatedLocalizationJsonTurn;
+  evidenceRefs: readonly string[];
 }>;
 
 async function executeCandidate(input: Readonly<{
@@ -185,10 +152,9 @@ async function executeCandidate(input: Readonly<{
   const candidate = parseCandidate(turn.value, input.context, input.cohort.context_bundle_hash);
   const payloadJson = JSON.stringify(candidate);
   const receipt = candidateReceipt({
-    role: input.role, reasoningEffort, requestJson: input.requestJson,
-    contextHash: input.cohort.context_bundle_hash, payloadJson, turn, batchId: input.cohort.batch_id,
+    role: input.role, contextHash: input.cohort.context_bundle_hash, payloadJson,
   });
-  return Object.freeze({ candidate, receipt, turn });
+  return Object.freeze({ candidate, receipt, evidenceRefs: turn.evidenceRefs });
 }
 
 type SelectorChoice = ReturnType<typeof parseSelector>["selections"][number];
@@ -280,7 +246,6 @@ async function executeCohort(task: WebsiteAgentTask, execution: SharedExecutionC
   const candidateA = await executeCandidate({ task, execution, context, cohort, requestJson, role: "candidate_a" });
   const candidateB = await executeCandidate({ task, execution, context, cohort, requestJson, role: "candidate_b" });
   const mapping = blindMapping(task, context, candidateA.receipt, candidateB.receipt);
-  const mappingJson = JSON.stringify(mapping);
   const receipts = { candidate_a: candidateA.receipt, candidate_b: candidateB.receipt } as const;
   const frozenSelectorInput = selectorInputJson(context, cohort, mapping, receipts);
   const selectorTurn = await executeIsolatedLocalizationJsonTurn(task, execution, {
@@ -288,7 +253,6 @@ async function executeCohort(task: WebsiteAgentTask, execution: SharedExecutionC
     prompt: selectorPrompt(execution, frozenSelectorInput), profile: selectorProfile, reasoningEffort: "high",
   });
   const selectorOutput = parseSelector(selectorTurn.value, context, mapping);
-  const selectorOutputJson = JSON.stringify(selectorOutput);
   const formalSelections = selectorOutput.selections.map((choice, index) => formalizeSelection({
     choice, index, candidateA: candidateA.candidate, candidateB: candidateB.candidate, mapping,
   }));
@@ -298,52 +262,8 @@ async function executeCohort(task: WebsiteAgentTask, execution: SharedExecutionC
     context_bundle_hash: cohort.context_bundle_hash,
     items: Object.freeze(formalSelections.map((item) => item.selected)),
   });
-  const selectedJson = JSON.stringify(selectedPayload);
-  const selectorTranscript = transcript(selectorTurn, selectorOutputJson);
-  const selectorBase = {
-    selector_ref: `localization-production:${cohort.batch_id}:selector:${selectorTurn.checkpoint.submitExactCallIdentityHash}`,
-    provider_ref: "gpt-web-chat",
-    model_family_ref: "gpt-5.6",
-    model_revision_ref: "GPT-5.6 Sol:high",
-    provider_job_id: selectorTurn.checkpoint.canonicalConversationUrl,
-    provider_execution_id: selectorTurn.checkpoint.submitExactCallIdentityHash,
-    provider_lease_id: selectorTurn.checkpoint.submitEvidenceRef,
-    model_identity_proof_json: selectorTurn.modelIdentityProofJson,
-    model_identity_proof_hash: selectorTurn.modelIdentityProofHash,
-    reasoning_effort: "high",
-    conversation_ref: selectorTurn.checkpoint.canonicalConversationUrl,
-    started_at: selectorTurn.checkpoint.submitTerminalAt,
-    completed_at: selectorTurn.checkpoint.submitTerminalAt,
-    first_pass_input_json: frozenSelectorInput,
-    first_pass_input_hash: sha256(frozenSelectorInput),
-    first_pass_payload_json: selectorOutputJson,
-    first_pass_payload_hash: sha256(selectorOutputJson),
-    first_pass_order: mapping.first_pass_candidates.map((item) => item.candidate_role),
-    selections: formalSelections.map((item) => item.choice),
-    first_pass_blind_selections: selectorOutput.selections.map((item) => ({ message_id: item.message_id, selection: item.selection })),
-    first_pass_provider_transcript_jsonl: selectorTranscript,
-    first_pass_provider_transcript_hash: sha256(selectorTranscript),
-  };
-  const selector = Object.freeze({ ...selectorBase, receipt_hash: sha256(JSON.stringify(selectorBase)) });
-  const evidence = Object.freeze({
-    schema_version: "target-language-review-evidence.v1",
-    locale: context.locale,
-    review_mode: "ai_independent_dual_candidate_selector",
-    human_linguistic_review: false,
-    review_authority_ref: REVIEW_AUTHORITY_REF,
-    context_bundle_json: cohort.context_bundle_json,
-    context_bundle_hash: cohort.context_bundle_hash,
-    candidate_a: candidateA.receipt,
-    candidate_b: candidateB.receipt,
-    blind_mapping_json: mappingJson,
-    blind_mapping_hash: sha256(mappingJson),
-    selector,
-    selected_catalog_json: selectedJson,
-    selected_catalog_hash: sha256(selectedJson),
-    decision: blocked ? "blocked" : "production_approved",
-  });
-  return Object.freeze({ evidence, selected: selectedPayload.items,
-    evidenceRefs: Object.freeze([...candidateA.turn.evidenceRefs, ...candidateB.turn.evidenceRefs, ...selectorTurn.evidenceRefs]),
+  return Object.freeze({ selected: selectedPayload.items,
+    evidenceRefs: Object.freeze([...candidateA.evidenceRefs, ...candidateB.evidenceRefs, ...selectorTurn.evidenceRefs]),
     blocked });
 }
 
@@ -363,7 +283,7 @@ export const executeStaticCatalogFlow = async (
   for (const cohort of input.context_bundles) results.push(await executeCohort(task, context, input, cohort));
   const selectedMessages = Object.freeze(results.flatMap((result) => result.selected));
   const payload = Object.freeze({
-    schema_version: "localization-static-catalog-result.v1",
+    schema_version: "localization-static-catalog-result.v2",
     action_id: "localization_static_catalog",
     source_resource_id: input.source_resource_id,
     source_version: input.source_version,
@@ -371,7 +291,6 @@ export const executeStaticCatalogFlow = async (
     target_locale: input.target_locale,
     policy_version: input.policy_version,
     message_count: selectedMessages.length,
-    cohort_results: Object.freeze(results.map((result) => result.evidence)),
     selected_messages: selectedMessages,
     selected_catalog_hash: hashCanonical(selectedMessages),
     decision: results.some((result) => result.blocked) ? "blocked" : "production_approved",

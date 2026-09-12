@@ -57,6 +57,7 @@ export type BrowserExactCallMutationFact = Readonly<{
 export type BrowserAtomicStepOutcome = Readonly<{
   state: "dispatched" | "confirmed" | "rejected";
   mutationOutcome: BrowserMutationOutcome;
+  providerEffectIdentityHash: `sha256:${string}` | null;
   terminalAt: string | null;
   failureCode: string | null;
   nativeFailureCode: string | null;
@@ -375,7 +376,7 @@ export class BrowserMutationStore {
       ...(input.effectScope === "provider_effect" ? [input.attemptId] : []),
     ];
     const rows = this.database.prepare(
-      `select command_id,target_ref,document_ref,state,mutation_outcome,reason,native_cause_code,
+      `select command_id,logical_mutation_id,target_ref,document_ref,state,mutation_outcome,reason,native_cause_code,
               terminal_at,action_ordinal,physical_input_count,download_guid_hash,download_completed,
               media_identity_revalidated,provider_recovery_payload
        from browser_mutations
@@ -384,6 +385,7 @@ export class BrowserMutationStore {
        order by updated_at desc,command_id desc limit 2`,
     ).all(...parameters) as ReadonlyArray<{
       command_id: string;
+      logical_mutation_id: `sha256:${string}` | null;
       target_ref: string;
       document_ref: string;
       state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
@@ -406,12 +408,17 @@ export class BrowserMutationStore {
     if (row.state !== "DISPATCHED" && (!row.terminal_at || !Number.isFinite(Date.parse(row.terminal_at)))) {
       throw new Error("BROWSER_TERMINAL_AT_INVALID");
     }
+    if (input.effectScope === "provider_effect" && !row.logical_mutation_id) {
+      throw new Error("BROWSER_PROVIDER_EFFECT_IDENTITY_MISSING");
+    }
     const failure = terminalFailureFields(row.state, row.reason, row.native_cause_code);
     const recovered = row.provider_recovery_payload === null ? null
       : unsealPayload(this.payloadKey, row.command_id, row.provider_recovery_payload);
     return Object.freeze({
       state: row.state.toLowerCase() as BrowserAtomicStepOutcome["state"],
       mutationOutcome: requireMutationOutcome(row.mutation_outcome),
+      providerEffectIdentityHash: input.effectScope === "provider_effect"
+        ? row.logical_mutation_id : null,
       terminalAt: row.terminal_at,
       ...failure,
       authorityRef: `browser-mutation:${row.command_id}`,

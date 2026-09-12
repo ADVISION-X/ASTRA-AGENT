@@ -1,4 +1,4 @@
-import type { GptChildCapabilityResult, GptHash } from "./contract.js";
+import type { GptChildBrowserFact, GptChildCapabilityResult, GptHash } from "./contract.js";
 import { withRuntimeLogCause } from "../../lib/runtime-logs/index.js";
 import { gptExecutionFailure } from "./execution-fault.js";
 import type { ProductGptTools } from "./product-api.js";
@@ -23,6 +23,7 @@ export type GptProductionExecutionInput = Readonly<{
 
 export type ProductGptExecution = Readonly<{
   tools: ProductGptTools;
+  decorateSettledResultFailure(error: unknown): unknown;
   settle(error: unknown | null): Promise<void>;
 }>;
 
@@ -30,12 +31,13 @@ export const throwGptChildFailure = (
   result: GptChildCapabilityResult,
   evidenceRef: string = result.proof.evidenceRef,
   causeEventId?: string,
+  confirmedProviderEffect?: GptChildBrowserFact | null,
 ): never => {
   const native = result.failureCause ? Object.assign(new Error(result.failureCause.name), {
     name: result.failureCause.name,
     ...(result.failureCause.code ? { code: result.failureCause.code } : {}),
   }) : undefined;
-  const browserFact = result.proof.browserFact;
+  const browserFact = result.proof.browserFact ?? confirmedProviderEffect ?? null;
   const error = gptExecutionFailure(result.failureCode ?? "GPT_CHILD_FAILED", {
     mutationOutcome: result.proof.committedMutation,
     evidence: browserFact ? Object.freeze({
@@ -45,7 +47,7 @@ export const throwGptChildFailure = (
       evidenceRef,
       evidenceHash: result.proof.evidenceHash,
     }),
-    browserEffect: result.failureBrowserEffect,
+    browserEffect: result.failureBrowserEffect ?? confirmedProviderEffect ?? null,
     ...(native ? { cause: native } : {}),
   });
   const propagated = causeEventId ? withRuntimeLogCause(error, causeEventId) : error;

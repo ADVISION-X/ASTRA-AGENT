@@ -63,8 +63,8 @@ const inspectRouteProjection = (context: InspectorContext, findings: InspectorFi
       && keys.includes("reusable_base_reservation_hash");
   }).length;
   if (routes.length !== 40 || Object.keys(route.parameter_types ?? {}).length !== 47
-    || resultContracts !== 31 || reservations !== 0) findings.push(finding(LAWS.route,
-    "agent-production-runtime/route-denominator", PATHS.routeProjection, "Route projection is not 40/47/31/0."));
+    || resultContracts !== 33 || reservations !== 0) findings.push(finding(LAWS.route,
+    "agent-production-runtime/route-denominator", PATHS.routeProjection, "Route projection is not 40/47/33/0."));
 };
 
 const inspectAdmissionHash = (context: InspectorContext, findings: InspectorFinding[]): void => {
