@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import {
   GPT_CHILD_CAPABILITY_CONTRACTS,
   type GptAbilityGroup,
@@ -11,6 +9,7 @@ import { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js
 import type { ProductionGptBrowserCall } from "./production-browser-lifecycle.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 import type { BrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
+import { hashCanonical } from "../../lib/local-runtime/production/contracts.js";
 
 type AtomicGptCallInput = Readonly<{
   dataDir: string;
@@ -36,7 +35,7 @@ export const productionGptAtomicIdentity = (
     callId: intent.callId,
     childCapabilityId: intent.childCapabilityId,
     inputHash: replayPolicy === "provider-effect-once"
-      ? `sha256:${createHash("sha256").update(JSON.stringify([resultRevision, intent.inputHash])).digest("hex")}`
+      ? hashCanonical([resultRevision, intent.inputHash])
       : intent.inputHash,
     actionOrdinal: intent.actionOrdinal,
     replayPolicy,

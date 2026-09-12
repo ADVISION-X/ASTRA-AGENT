@@ -136,6 +136,28 @@ export const bindBrowserCommandObservationPacket = (
 };
 
 const BROWSER_TERMINAL_REPLY_MARGIN_MS = 4_000;
+export const BROWSER_POST_SUBMIT_QUIET_MS = 40_000;
+
+export const browserPostSubmitQuietRemainingMs = (
+  latestTerminalAt: string | null,
+  now = Date.now(),
+): number => {
+  if (latestTerminalAt === null) return 0;
+  const terminalAt = Date.parse(latestTerminalAt);
+  if (!Number.isFinite(terminalAt)) throw new Error("BROWSER_TERMINAL_AT_INVALID");
+  return Math.max(0, Math.min(BROWSER_POST_SUBMIT_QUIET_MS,
+    BROWSER_POST_SUBMIT_QUIET_MS - (now - terminalAt)));
+};
+
+export const awaitBrowserPostSubmitQuiet = async (
+  readLatestTerminalAt: () => string | null,
+): Promise<void> => {
+  while (true) {
+    const remaining = browserPostSubmitQuietRemainingMs(readLatestTerminalAt());
+    if (remaining === 0) return;
+    await new Promise<void>((resolve) => globalThis.setTimeout(resolve, remaining));
+  }
+};
 
 const declaredPostconditionTimeoutMs = (command: BrowserGovernedCommand): number | null => {
   if (command.kind !== "dom-intent") return null;

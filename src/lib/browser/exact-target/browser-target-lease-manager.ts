@@ -159,32 +159,34 @@ export class BrowserTargetLeaseManager {
   ): LeaseCommand {
     return async (capabilityId, value) => {
       this.assertCommandAdmission(state, value);
-      state.current = this.currentCommandTarget(input, state);
-      const sequence = ++state.sequence;
-      const step = state.atomicStep ?? {
-        productStepId: "browser-lifecycle",
-        callId: `lifecycle:${sequence}`,
-        childCapabilityId: capabilityId,
-        inputHash: hashText(this.executionBinding.executionRef),
-        actionOrdinal: sequence,
-        replayPolicy: "observation-only" as const,
-      };
-      const permit = this.permit({
-        leaseRef,
-        sequence,
-        targetRef: input.target.target.targetRef,
-        documentRef: state.current.document.documentRef,
-        productStepId: step.productStepId,
-        callId: step.callId,
-        childCapabilityId: step.childCapabilityId,
-        inputHash: step.inputHash,
-        replayPolicy: step.replayPolicy,
-        actionOrdinal: step.actionOrdinal,
-        capabilityId,
-        mutationClass: this.mutationClass(value),
-      });
       state.commandInFlight = true;
+      let permit: BrowserCommandPermit | null = null;
       try {
+        await this.commandActor.awaitPostSubmitQuiet();
+        state.current = this.currentCommandTarget(input, state);
+        const sequence = ++state.sequence;
+        const step = state.atomicStep ?? {
+          productStepId: "browser-lifecycle",
+          callId: `lifecycle:${sequence}`,
+          childCapabilityId: capabilityId,
+          inputHash: hashText(this.executionBinding.executionRef),
+          actionOrdinal: sequence,
+          replayPolicy: "observation-only" as const,
+        };
+        permit = this.permit({
+          leaseRef,
+          sequence,
+          targetRef: input.target.target.targetRef,
+          documentRef: state.current.document.documentRef,
+          productStepId: step.productStepId,
+          callId: step.callId,
+          childCapabilityId: step.childCapabilityId,
+          inputHash: step.inputHash,
+          replayPolicy: step.replayPolicy,
+          actionOrdinal: step.actionOrdinal,
+          capabilityId,
+          mutationClass: this.mutationClass(value),
+        });
         const result = await this.commandActor.execute(permit, value);
         if (value.kind === "dom-intent" && value.intent.kind === "selectExactGptConversation") {
           const document = result as BrowserDocumentRef | null;
@@ -195,6 +197,7 @@ export class BrowserTargetLeaseManager {
         }
         return result;
       } catch (error) {
+        if (!permit) throw browserExecutionFailure(error);
         const mutationOutcome = this.commandActor.mutationOutcome(permit.commandId);
         const browserOutcome = this.commandActor.browserOutcome(permit.commandId);
         if (browserOutcome === "DISPATCHED") state.pendingMutationCommandIds.push(permit.commandId);

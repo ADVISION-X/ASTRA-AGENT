@@ -11,6 +11,7 @@ import type {
 import { assertBrowserDomIntent } from "./browser-dom-intent.js";
 import { canonicalBrowserExactAssistantTurnRevision } from "./exact-assistant-turn-revision.js";
 import {
+  awaitBrowserPostSubmitQuiet,
   assertBrowserCommandTerminalReplyMargin,
   bindBrowserCommandObservationPacket,
   browserExactCallIdentityHash,
@@ -335,6 +336,10 @@ export class BrowserCommandActor {
       leaseVersion: binding.leaseVersion,
       executionFenceHash: binding.writerFenceHash,
     });
+  }
+
+  public awaitPostSubmitQuiet(): Promise<void> {
+    return awaitBrowserPostSubmitQuiet(() => this.mutations.latestProviderInputTerminalAt());
   }
 
   public readAtomicStepOutcome(

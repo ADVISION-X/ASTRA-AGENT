@@ -1,9 +1,9 @@
-# production-runtime 生产级施工图 V36
+# production-runtime 生产级施工图 V37
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v36",
+  "blueprintId": "agent-production-runtime-v37",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
@@ -155,7 +155,7 @@ consumer dependency 的 contract body 只能包含 contractId、version、provid
 
 未知、缺失、额外、重复、顺序漂移或语义不等一律失败关闭。新增的唯一固定 catalog route 是 `localization_static_catalog + produce_locale_catalog`，仍由现有 `localization-production` Product Plugin 私有执行，不新增 Plugin、Runtime、队列、公开 candidate/selector action 或第二恢复链。不得手写 route allowlist、第二支持表、compatibility、alias、fallback、bridge 或 shadow projection。
 
-`FROZEN-PUBLIC-KNOWLEDGE-PROVIDER-FORMAT-ONLY-001` 固定：Public Knowledge 的 Provider 可见输出格式只来自 Website 唯一 canonical `result_contract` 的机械投影，Product 只把当前 research/article 子合同原样写进 exact Prompt。该合同只约束交付结构、字段类型、枚举、引用 identity/marker 关系与 Markdown 语法，不得规定选题结论、分析方法、推理过程、观点立场、证据解释或图片创意；Product Skill 正文不得注入 Provider Prompt，AGENT 不得复制、扩写或另建格式/质量 validator，不得重塑 Provider 输出字段类型或追加第二 reception sidecar。改变或删除本冻结边界，必须由用户在未来任务中明确解冻并同步替换双仓施工图、合同、实现与唯一质检。
+`FROZEN-PUBLIC-KNOWLEDGE-PROVIDER-FORMAT-ONLY-001` 固定：Public Knowledge 的 Provider 可见输出格式只来自 Website 唯一 canonical `result_contract` 的机械投影，Product 只把当前 research/article 子合同原样写进 exact Prompt。research 顶层只要求 `schema_version,decision,topic_manifest,research_markdown,citations,research_claim_units` 六字段，article 顶层只要求 `schema_version,title,editor_note,article_markdown,safety_notes` 五字段；Provider 多余字段由 Website 唯一 parser 丢弃，不得拒收。该合同只约束交付结构、字段类型、枚举、引用 identity/marker 关系与 Markdown 语法，不得规定选题结论、分析方法、推理过程、观点立场、证据解释或图片创意；Product Skill 正文不得注入 Provider Prompt，AGENT 不得复制、扩写或另建格式/质量 validator，不得重塑 Provider 输出字段类型或追加第二 reception sidecar。改变或删除本冻结边界，必须由用户在未来任务中明确解冻并同步替换双仓施工图、合同、实现与唯一质检。
 
 Website 在签发任务前唯一判断业务参数值是否合法。Runtime 先把 product_id/action_id 解析为有界字符串，再按 current route projection 与 Route Capability Manifest 精确解析；grant 不再冻结或比较任何 Product Plugin 身份。除此之外 Runtime 只校验 authenticated session/claim/grant/fence、task wire/schema/hash、当前 contract/projection/control contract version，以及 route/key/material/relation/result-contract 与当前 projection 的机械一致性；不得保存 `bazi_analysis_kind`、locale、localization resource kind、Product package/version 或 Bazi reusable candidate 的业务白名单，不得按 action 名推导 review/continuation，不得维护 `routeProducesGeneratedImage`、手写 Product/Action 支持表或硬编码 primary 数量。Product Plugin 通过 Product-facing execution contract 取得当前 task、materials、当前 Website route policy 与 GPT public facade，只校验完成自身执行所必需的局部 artifact、Skill 与 result 组装前置，不复判 Website 业务资格，也不读取 Runtime 私有 transport、store、lease、Outbox 或 recovery 模块。
 
@@ -195,6 +195,8 @@ Website 签发 attempt + lease + fence
 执行失败后 Runtime 只报告 typed outcome，Website 唯一裁决：明确未发送则有限退避后签发新 attempt；DISPATCHED/CONFIRMED 则保留同一 accepted attempt，换 lease/fence 也只能读回同一 effect；结果已取得但明确拒绝时可签发新 result revision。新 revision 使用新的 request/payload identity，并从 Website 本轮重新下发的完整业务材料在 clean GPT chat 执行。
 
 Browser provider effect identity 不含 Product Plugin 或 `attempt_id`，固定由 `job_id + result_revision + product_step_id + call_id + child_id + request_hash + payload_hash` 组成。AGENT 内部实现、attempt、进程、lease、fence、Target、Document 变化不得制造新 effect；同一 identity 的 physical dispatch 总数至多一。每次 mutation 与 Website 写请求仍校验当前 fence，旧 fence 的迟到写请求全部拒绝。
+
+`FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001` 冻结：Runtime 只有在 Browser Authority 为 PRESENT 时才领取新任务；submit 后轮询释放唯一 Browser FIFO，但重领必须携带 park 前原 system Target 的精确 `targetRef`，不得走通用 acquisition 或 GPT 首页导航。唯一 Browser WAL 的 `logical_mutation_id` 直接作为公开 `provider_effect_identity_hash`，Runtime 只运输 typed fact且不得读取 Browser 私有 SQLite。回答稳定后使用独立的 settled result payload hash；只有 `RESULT_SETTLED_UNUSABLE + CONFIRMED + confirmed + effect hash + evidence + settled result hash` 完整一致，Website 才能拒绝该结果并签发新 revision，其他现实输入只能在同一 accepted attempt 零 submit 收敛。不得增加第二 WAL、queue、store、Owner、状态机、兼容桥或 fallback。改变或删除本冻结边界必须由用户在未来任务中明确解冻，并同步替换双仓法案、施工图、合同、实现与唯一质检；普通开发、修复、重构、CI 或 RELEASE 授权均不构成解冻。
 
 AGENT 不建立通用 checkpoint、跨任务 Provider session state 或第二恢复状态机。Browser 唯一 WAL 的同一 provider-effect 行只提供 at-most-once 与同-effect confirmed readback 所需加密 locator；Runtime 唯一 Outbox 只幂等交付同一 result。Website 以自身 staging、领域入库与 admission receipt 为准，已完整 staging 的结果继续由 Domain Consumer 入库，不回退 AGENT。
 

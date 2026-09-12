@@ -535,6 +535,18 @@ export class BrowserMutationStore {
     return Number(row.count);
   }
 
+  public latestProviderInputTerminalAt(): string | null {
+    const row = this.database.prepare(
+      `select terminal_at from browser_mutations
+       where effect_scope='provider_effect' and terminal_at is not null
+         and (state='CONFIRMED' or (state='REJECTED' and mutation_outcome in ('dispatched','confirmed')))
+       order by terminal_at desc,command_id desc limit 1`,
+    ).get() as { terminal_at: string } | undefined;
+    if (!row) return null;
+    if (!Number.isFinite(Date.parse(row.terminal_at))) throw new Error("BROWSER_TERMINAL_AT_INVALID");
+    return row.terminal_at;
+  }
+
   public close(): void { this.database.close(); }
 
   private transition(commandId: string, from: BrowserMutationState, to: BrowserMutationState,

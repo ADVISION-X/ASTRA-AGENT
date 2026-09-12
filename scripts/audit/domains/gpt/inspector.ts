@@ -58,7 +58,7 @@ import { containsPageMutation, gptPrivateInfrastructureViolations, sourceFor, so
   from "./gpt-inspection-support.js";
 
 const LAW_ID = "LAW-GPT-001-V45";
-const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V4";
+const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V5";
 const GPT_BLUEPRINT_PATH = "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 16, 19, 23),
@@ -418,6 +418,13 @@ const inspectFrozenAttemptBoundary = (
       "src/lib/browser/chrome-extension/dom-coherent-candidate.ts")?.getFullText() ?? "",
     store: sourceFor(context,
       "src/lib/browser/exact-target/browser-mutation-store.ts")?.getFullText() ?? "",
+    lifecycle: sourceFor(context, `${ROOT}/production-browser-lifecycle.ts`)?.getFullText() ?? "",
+    targetAcquirer: sourceFor(context,
+      "src/lib/browser/infrastructure/browser-target-acquirer.ts")?.getFullText() ?? "",
+    runtimeClaim: sourceFor(context,
+      "src/lib/local-runtime/production/runtime-claim.ts")?.getFullText() ?? "",
+    terminalFailure: sourceFor(context,
+      "src/lib/local-runtime/production/terminal-failure.ts")?.getFullText() ?? "",
     blueprint: readFileSync(resolve(context.sealedRoot, GPT_BLUEPRINT_PATH), "utf8"),
   };
   const valid = /attach_approved_gpt_files_once:[^\n]+profile: "TARGET_LOCAL_MUTATION"[^\n]+replayPolicy: "target-local-per-generation"/u
@@ -441,6 +448,12 @@ const inspectFrozenAttemptBoundary = (
     && sources.blueprint.includes("FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001")
     && sources.blueprint.includes("FROZEN-GPT-RESPONSE-NO-PROMPT-REHASH-001")
     && sources.blueprint.includes("FROZEN-GPT-ATOMIC-IDENTITY-ROUNDTRIP-001")
+    && sources.blueprint.includes("FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001")
+    && sources.lifecycle.includes("targetRef,\n      )")
+    && sources.targetAcquirer.includes("requestPreauthorizedTargetAcquisition(expectedTargetRef ?? undefined)")
+    && sources.store.includes("providerEffectIdentityHash: input.effectScope === \"provider_effect\"")
+    && !sources.runtimeClaim.includes("browser-mutation-authority")
+    && sources.terminalFailure.includes("settled_result_payload_hash")
     && !sources.candidate.includes("priorTurns.length > 1")
     && !sources.candidate.includes("querySelectorAll(outgoing.userTurnSelector)")
     && !sources.candidate.includes("baselineOrdinal + 2")
@@ -507,11 +520,11 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   }));
   const frozenChecks = ["inspectFrozenAttemptBoundary"];
   const frozenAssertions = (["static.ast", "static.contract"] as const).map((evidenceMode) => ({
-    clauses: evidenceMode === "static.ast" ? staticClauses(0, 2, 3) : staticClauses(1),
+    clauses: evidenceMode === "static.ast" ? staticClauses(0, 2, 3, 4) : staticClauses(1, 5),
     evidenceMode,
     passed: producerModePassed(evaluation.staticCheckReceipts, FROZEN_ATTEMPT_LAW_ID, frozenChecks),
     refs: staticEvidenceRefs(context, FROZEN_ATTEMPT_LAW_ID, evidenceMode,
-      evidenceMode === "static.ast" ? staticClauses(0, 2, 3) : staticClauses(1),
+      evidenceMode === "static.ast" ? staticClauses(0, 2, 3, 4) : staticClauses(1, 5),
       evaluation.staticCheckReceipts, frozenChecks),
   }));
   return validateStaticInspection(context, {

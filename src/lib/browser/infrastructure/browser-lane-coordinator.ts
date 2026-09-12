@@ -11,6 +11,7 @@ import { BrowserAuthorityWebSocket } from "../transport/browser-authority-websoc
 import { browserExecutionFailure } from "../browser-failure.js";
 import type { RuntimeLogger } from "../../runtime-logs/index.js";
 import { BrowserTargetAcquirer } from "./browser-target-acquirer.js";
+import { awaitBrowserPostSubmitQuiet } from "../exact-target/browser-command-postcondition.js";
 
 type LaneWaiter = Readonly<{
   binding: BrowserExecutionBinding;
@@ -147,6 +148,10 @@ export class BrowserLaneCoordinator {
     waiter.stopWaitingMonitor();
     this.active = true;
     try {
+      const mutations = this.infrastructure.mutationState;
+      if (mutations) {
+        await awaitBrowserPostSubmitQuiet(() => mutations.latestProviderInputTerminalAt());
+      }
       await this.targetAcquirer.ensureAvailableTarget(waiter);
       if (waiter.signal.aborted || waiter.remainingMs() < 1) throw new Error(
         waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED",

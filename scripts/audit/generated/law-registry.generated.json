@@ -176,7 +176,7 @@
       "capabilityDomain": "gpt",
       "lawIds": [
         "LAW-GPT-001-V45",
-        "LAW-GPT-002-V4"
+        "LAW-GPT-002-V5"
       ],
       "manifestPath": "scripts/audit/domains/gpt/manifest.json",
       "observedPaths": [
@@ -1259,18 +1259,19 @@
         "不得发生：FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001 被违反。真正 submit 前只能有两个不可扩张的确认：GPT/Browser 同一原子点击内确认当前 Composer 提示词 hash 与 Product 批准值相等且当前附件集合与批准集合相等；Browser 唯一 WAL 确认当前 Target/Document/fence 有效且同一 provider effect 尚未发生现实输入。附件批准集合允许为空，Provider 仅追加的最终纯数字括号后缀按冻结附件规则归一。历史聊天、既有 user turn、固定 turn 编号或奇偶、按钮标签及 Browser 内部可操作性检查不得成为新增业务前置关卡；历史 turn 只允许作为点击后的本次新增消息证明，不得在点击前拒绝提交。",
         "不得发生：除 submit_exact_gpt_turn_once 外的 GPT Child、准备动作或控件 mutation 被标记为 provider-effect-once；只有真正造成 Provider turn 的 submit 是跨 attempt 稳定的现实副作用。唯一 provider_effect_identity 固定为 [job_id, result_revision, product_step_id, call_id, child_id, request_hash, payload_hash]；Product Plugin 名称、版本、Skill hash、attempt、进程、lease、fence、Target 与 Document 均不得进入该身份。同一 result_revision 的 submit request_hash 必须绑定 result_revision 与 Child 原始 input hash；Website 明确签发的新 result_revision 必须改变身份，仅更换 attempt 不得改变 submit effect。",
         "不得发生：同一 submit effect 已由 Browser WAL 证明 CONFIRMED 后，Product 仍先执行 fresh、profile/model、菜单、附件上传、Composer 写入或第二 submit，再读取旧结果。Product 必须在任何准备动作之前按精确 submit identity 查询现役唯一 WAL；命中 CONFIRMED 时只走现役零 Provider 输入 readback 与 artifact 收敛，未命中才执行本 attempt 的准备和一次提交。DISPATCHED、mutation_outcome=dispatched/confirmed 的 REJECTED、缺失、多义或身份不等必须保留原 typed fact并失败关闭；只有 REJECTED + mutation_outcome=no + physical_input_count=0 明确证明现实输入未发生时，Website 新 attempt 才可在同一 WAL/effect identity 下重新准备并首次发送，AGENT 不得自行重试。",
-        "不得发生：为实现本冻结边界在 GPT、Browser 或 Runtime 新增 continuation/checkpoint/stageIndex/resumePoint、continuation store、第二 WAL、第二 Browser lane、第二 Outbox、恢复表、恢复队列、恢复 Owner、兼容桥、feature flag、dual-read/write 或跨 attempt 半成品输入。改变或删除 FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT-001 必须由用户在未来任务中明确解冻，并以双仓同步法案、施工图、合同与质检替换验收。"
+        "不得发生：为实现本冻结边界在 GPT、Browser 或 Runtime 新增 continuation/checkpoint/stageIndex/resumePoint、continuation store、第二 WAL、第二 Browser lane、第二 Outbox、恢复表、恢复队列、恢复 Owner、兼容桥、feature flag、dual-read/write 或跨 attempt 半成品输入。改变或删除 FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT-001 必须由用户在未来任务中明确解冻，并以双仓同步法案、施工图、合同与质检替换验收。",
+        "不得发生：FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001 被违反。Provider submit 已确认后的回答轮询每次只能释放现役唯一 FIFO，并携带原 system Target 的精确 targetRef 重领同一物理标签；不得走无 targetRef 的通用 acquisition、固定 start URL/首页导航、其它 Target、搜索、滚动、自动展开、重试或 fallback，目标缺失、多义、身份漂移必须 typed fail-close。Provider effect identity 只能是 Browser WAL 既有 logical_mutation_id 的公开 typed 投影，Runtime 不得查询 Browser 私有 WAL；回答稳定后必须另以内容 hash 标识结果。只有 RESULT_SETTLED_UNUSABLE 同时绑定 CONFIRMED、confirmed、同一 effect hash/evidence 与独立 settled result hash 时，Website 才可拒绝该结果并签发新 result_revision；其它 DISPATCHED/CONFIRMED 只能保持同一 accepted attempt 零 submit 收敛。改变或删除本冻结边界，必须由用户在未来任务中明确解冻，并同步替换双仓法案、施工图、合同、实现与唯一质检；普通开发、修复、重构、CI 或 RELEASE 授权均不构成解冻。"
       ],
-      "lawId": "LAW-GPT-002-V4",
+      "lawId": "LAW-GPT-002-V5",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 742,
+        "lineEnd": 743,
         "lineStart": 700,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须冻结 GPT submit 仅有待发送内容身份与 Browser 未现实发送两项前置确认；准备动作按 attempt/current Document 重建，明确零输入不消耗同一 submit effect，现实输入后跨 attempt 至多一次，且不得新增第二恢复结构。",
-      "supersedesLawId": "LAW-GPT-002-V3",
+      "summary": "必须冻结 GPT submit 仅有两项前置确认、Provider 轮询只重领原 targetRef 且绝不回首页、Browser WAL effect hash 与 settled result hash 分离；只有 Website 明确拒绝结果才可产生新 revision，其余现实输入只能零提交收敛。",
+      "supersedesLawId": "LAW-GPT-002-V4",
       "tier": "P0"
     },
     {
@@ -1306,8 +1307,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-001-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 785,
-        "lineStart": 746,
+        "lineEnd": 786,
+        "lineStart": 747,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1337,8 +1338,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-002-V3",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 815,
-        "lineStart": 787,
+        "lineEnd": 816,
+        "lineStart": 788,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1371,8 +1372,8 @@
       "lawId": "LAW-LOCAL-APP-SHELL-003-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 848,
-        "lineStart": 817,
+        "lineEnd": 849,
+        "lineStart": 818,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1411,8 +1412,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 887,
-        "lineStart": 852,
+        "lineEnd": 888,
+        "lineStart": 853,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1454,8 +1455,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-002-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 929,
-        "lineStart": 889,
+        "lineEnd": 930,
+        "lineStart": 890,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1503,8 +1504,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-003-V31",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 975,
-        "lineStart": 931,
+        "lineEnd": 976,
+        "lineStart": 932,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1558,8 +1559,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V33",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1027,
-        "lineStart": 977,
+        "lineEnd": 1028,
+        "lineStart": 978,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1594,8 +1595,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-005-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1062,
-        "lineStart": 1029,
+        "lineEnd": 1063,
+        "lineStart": 1030,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1629,8 +1630,8 @@
       "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V24",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1094,
-        "lineStart": 1064,
+        "lineEnd": 1095,
+        "lineStart": 1065,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1684,8 +1685,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-001-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1146,
-        "lineStart": 1098,
+        "lineEnd": 1147,
+        "lineStart": 1099,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1730,8 +1731,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1187,
-        "lineStart": 1148,
+        "lineEnd": 1188,
+        "lineStart": 1149,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1783,8 +1784,8 @@
       "lawId": "LAW-RUNTIME-LOG-SPINE-003-V6",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1235,
-        "lineStart": 1189,
+        "lineEnd": 1236,
+        "lineStart": 1190,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1825,8 +1826,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-001-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1278,
-        "lineStart": 1239,
+        "lineEnd": 1279,
+        "lineStart": 1240,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1866,8 +1867,8 @@
       "lawId": "LAW-STARTUP-ENTRYPOINT-002-V4",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1316,
-        "lineStart": 1280,
+        "lineEnd": 1317,
+        "lineStart": 1281,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1903,8 +1904,8 @@
       "lawId": "LAW-SYSTEM-SECURITY-001-V9",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1354,
-        "lineStart": 1320,
+        "lineEnd": 1355,
+        "lineStart": 1321,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
@@ -1945,8 +1946,8 @@
       "lawId": "LAW-WORKBENCH-API-BOUNDARY-001-V7",
       "schemaVersion": 2,
       "source": {
-        "lineEnd": 1395,
-        "lineStart": 1358,
+        "lineEnd": 1396,
+        "lineStart": 1359,
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
