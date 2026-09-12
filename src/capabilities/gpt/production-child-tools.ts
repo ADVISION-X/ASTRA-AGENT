@@ -292,7 +292,7 @@ export class ProductionGptChildTools {
           || typeof submitted.userTurnId !== "string") {
           throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
         }
-        browsers.recordConfirmedProviderEffect(
+        await browsers.recordConfirmedProviderEffect(
           browserCall!, effect,
           productionGptAtomicIdentity(intent as GptAnyChildCapabilityIntent, execution.resultRevision),
           submitted.canonicalConversationUrl,

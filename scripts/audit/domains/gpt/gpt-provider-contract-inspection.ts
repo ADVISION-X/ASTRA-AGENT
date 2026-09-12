@@ -34,9 +34,13 @@ export const inspectGptProviderProbeOwnerContract = (
   const lane = sourceText(context, BROWSER_LANE);
   const lifecycle = sourceText(context, LIFECYCLE);
   requireTokens(lane, BROWSER_LANE, [
-    "BROWSER_PROVIDER_PROBE_INTERVAL_MS = 30_000", "private nextProviderProbeEligibleAt = 0",
-    'waiter.purpose === "provider-probe"', "startProviderProbeCooldown", "new Proxy(lease",
+    "private readonly queue: LaneWaiter[] = []", "new Proxy(lease",
   ], findings, finding);
+  for (const forbidden of ["provider-probe", "nextProviderProbeEligibleAt", "startProviderProbeCooldown",
+    "waiter.purpose"]) if (lane.includes(forbidden)) findings.push(finding(
+      "gpt/no-browser-poll-scheduler", BROWSER_LANE,
+      `Browser FIFO retains retired normal-poll scheduling state ${forbidden}.`,
+    ));
   if (lane.includes("...lease")) findings.push(finding(
     "gpt/live-browser-document", BROWSER_LANE,
     "Browser FIFO wrapper must not snapshot the lease's live Document getter.",
@@ -50,11 +54,14 @@ export const inspectGptProviderProbeOwnerContract = (
   requireTokens(lifecycle, LIFECYCLE, [
     'childCapabilityId !== "checkpoint_gpt_text_response"',
     'childCapabilityId !== "checkpoint_gpt_generated_image"',
-    '"provider-probe", probeDeadlineAt', "startProviderProbeCooldown: true",
-    "selectExactGptConversation",
+    "PROVIDER_OBSERVATION_INTERVAL_MS = 30_000", "waitForProviderObservation",
+    "active.browser.readAtomicStepOutcome(confirmed.submitIdentity)",
+    'recoverySelectionRequired: targetMode === "confirmed-readback"',
+    "selectExactGptConversation", "setTimeout",
   ], findings, finding);
-  for (const forbidden of ["yieldForProviderWait", "waitForDelay", "yieldAndReacquire",
-    "productionGptCrossConversationPollCadence"]) if (lifecycle.includes(forbidden)) findings.push(finding(
+  for (const forbidden of ["yieldForProviderProbe", "yieldForProviderWait", "waitForDelay",
+    "yieldAndReacquire", "productionGptCrossConversationPollCadence", '"provider-probe"',
+    "startProviderProbeCooldown", "await active.browser.park({"]) if (lifecycle.includes(forbidden)) findings.push(finding(
     "gpt/no-second-wait-scheduler", LIFECYCLE, `GPT lifecycle retains forbidden ${forbidden}.`,
   ));
   for (const retired of ["wait_for_stable_gpt_text", "wait_for_stable_gpt_image", "overdueRecoveryProbe"]) {
@@ -73,12 +80,12 @@ export const inspectProviderWaitContract = (
   const submit = sourceText(context, SUBMIT_HANDLER);
   requireTokens(textHandler, TEXT_HANDLER, [
     "checkpointGptTextResponseHandler", "probeBudgetMs", "userTurnId",
-    "readExactAssistantTurn", "semanticText.trim().length > 0", "yieldForProviderProbe",
+    "readExactAssistantTurn", "semanticText.trim().length > 0", "waitForProviderObservation",
     'throw executionFailure("failed", "GPT_RESPONSE_TIMEOUT")',
   ], findings, finding);
   requireTokens(imageHandler, IMAGE_HANDLER, [
     "checkpointGptGeneratedImageHandler", "probeBudgetMs", "userTurnId",
-    "readAuthenticatedMedia", "yieldForProviderProbe", 'mutationOutcome: "no"', "browserFact: null",
+    "readAuthenticatedMedia", "waitForProviderObservation", 'mutationOutcome: "no"', "browserFact: null",
     'throw executionFailure("failed", "GPT_IMAGE_TIMEOUT")',
   ], findings, finding);
   requireTokens(responseState, RESPONSE_STATE, [
@@ -103,7 +110,8 @@ export const inspectProviderWaitContract = (
       `Current checkpoint chain retains forbidden ${forbidden}.`));
   }
   for (const [path, source] of [[TEXT_HANDLER, textHandler], [IMAGE_HANDLER, imageHandler]] as const) {
-    for (const forbidden of ["browser.wait(", "let delay = 250", "Math.min(5_000", "* 1.5"]) {
+    for (const forbidden of ["browser.wait(", "selectExactGptConversation", "let delay = 250",
+      "Math.min(5_000", "* 1.5"]) {
       if (source.includes(forbidden)) findings.push(finding(
         "gpt/no-child-poll-clock", path, `Checkpoint Child retains forbidden ${forbidden}.`,
       ));

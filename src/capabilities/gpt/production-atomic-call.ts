@@ -52,10 +52,10 @@ const executionContext = (
   ...(browserAtomicIdentity ? { browserAtomicIdentity } : {}),
   signal: input.signal,
   ...(input.browserCall ? {
-    yieldForProviderProbe: (canonicalConversationUrl: string, probeDeadlineAt: number) =>
-      input.browsers.yieldForProviderProbe(
+    waitForProviderObservation: (probeDeadlineAt: number) =>
+      input.browsers.waitForProviderObservation(
       input.browserCall!, input.intent.productStepId, input.intent.callId,
-      input.intent.childCapabilityId, canonicalConversationUrl, probeDeadlineAt,
+      input.intent.childCapabilityId, probeDeadlineAt,
       ),
   } : {}),
 });

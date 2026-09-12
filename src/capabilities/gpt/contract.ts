@@ -176,9 +176,8 @@ export type GptExecutionContext = Readonly<{
   browser?: BrowserTargetLease;
   browserAtomicIdentity?: BrowserAtomicStepIdentity;
   signal?: AbortSignal;
-  yieldForProviderProbe?: (
-    canonicalConversationUrl: string,
-    probeDeadlineAt: number,
+  waitForProviderObservation?: (
+    observationDeadlineAt: number,
   ) => Promise<"reobserve" | "deadline">;
   confirmedProviderEffectReadback?: Readonly<{
     terminalPayload: unknown;

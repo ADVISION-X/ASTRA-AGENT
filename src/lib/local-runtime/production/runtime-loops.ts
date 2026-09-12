@@ -23,6 +23,11 @@ import {
   type RuntimeState,
 } from "./runtime-state.js";
 
+export const businessInFlightCount = (state: RuntimeState): number => new Set([
+  ...state.active.keys(),
+  ...state.store.pendingBusinessAdmissions().map((row) => row.task.job_id),
+]).size;
+
 export const runtimeState = async (state: RuntimeState) => {
   refreshLedgerReconciled(state);
   const browser = state.browserAuthority.readProductionRuntimeState();
@@ -30,7 +35,7 @@ export const runtimeState = async (state: RuntimeState) => {
   const lane: "blocked" | "busy" | "idle" = browser.browserAuthorityState !== "present"
     ? "blocked" : observedLane;
   return {
-    business_in_flight: state.active.size,
+    business_in_flight: businessInFlightCount(state),
     browser_action_in_flight: observedLane === "busy" ? 1 as const : 0 as const,
     browser_authority_state: browser.browserAuthorityState,
     browser_target_state: browser.browserTargetState,
@@ -152,7 +157,7 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
   const attestation = await state.session.ensureFreshAttestation();
   state.lastHeartbeat = attestation.issued_at;
   const available = Math.min(
-    PRODUCTION_BUSINESS_CAPACITY_TOTAL - state.active.size,
+    PRODUCTION_BUSINESS_CAPACITY_TOTAL - businessInFlightCount(state),
     state.executor.availableCapacity(),
   );
   const browser = state.browserAuthority.readProductionRuntimeState();

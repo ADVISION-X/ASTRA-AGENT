@@ -7,12 +7,8 @@ const actor = readFileSync("src/lib/browser/exact-target/browser-command-actor.t
 
 assert.match(lane, /private readonly queue: LaneWaiter\[\] = \[\]/u,
   "Browser lane must remain one process-level queue");
-assert.match(lane, /BROWSER_PROVIDER_PROBE_INTERVAL_MS = 30_000/u,
-  "Browser FIFO must own the one shared 30-second Provider probe gate");
-assert.match(lane, /waiter\.purpose === "provider-probe"/u,
-  "only Provider page probes may be held by the shared qualification gate");
-assert.doesNotMatch(lane, /providerProbeQueue|providerWaitQueue/u,
-  "Provider probes must not create a second queue");
+assert.doesNotMatch(lane, /provider.?probe|nextProviderProbeEligibleAt|waiter\.purpose/iu,
+  "normal Provider waiting must not enter Browser FIFO scheduling");
 assert.doesNotMatch(lane, /\.\.\.lease/u,
   "Browser FIFO wrappers must preserve the lease's live Document getter");
 assert.doesNotMatch(lane, /quarantine|Recovery|recoveryFor|reconciliation/u,

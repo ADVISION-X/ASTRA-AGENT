@@ -26,6 +26,7 @@ import {
   reconcileBusinessAdmission,
   websiteJobAbsent,
 } from "../../src/lib/local-runtime/production/runtime-business-admission.js";
+import { businessInFlightCount } from "../../src/lib/local-runtime/production/runtime-loops.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { readProductionOperationsSnapshot } from
   "../../src/lib/local-runtime/production/operations-snapshot.js";
@@ -60,9 +61,9 @@ const successfulJsonResponse = (data: unknown): Response => new Response(
 );
 
 assert.equal(hashCanonical(agentRouteCapabilityManifest.routes), productionCatalogHash);
-assert.equal(PRODUCTION_BUSINESS_CAPACITY_TOTAL, 3);
+assert.equal(PRODUCTION_BUSINESS_CAPACITY_TOTAL, 1);
 await assert.rejects(
-  claimProductionTasks({} as never, 4),
+  claimProductionTasks({} as never, 2),
   /V6_CLAIM_LIMIT_INVALID/u,
 );
 
@@ -322,6 +323,10 @@ try {
   assert.deepEqual(store.readTask(pending.job_id)?.staged_result, pendingResult,
     "absence of Website admission must preserve the staged result and await Website authority");
   assert.equal(store.readTask(pending.job_id)?.current_reason, "BUSINESS_ADMISSION_PENDING");
+  assert.equal(businessInFlightCount({ active: new Map(), store } as never), 1,
+    "an admission-pending job must retain the only business slot after execution settles");
+  assert.equal(businessInFlightCount({ active: new Map([[pending.job_id, Promise.resolve()]]), store } as never), 1,
+    "active and admission-pending views of the same job must count once");
   assert.equal(await reconcileBusinessAdmission({
     store, session: deviceStatusWithoutAdmission(pending.job_id, true), activeAbort: new Map(),
   } as never, store.readTask(pending.job_id)!), "pending");
@@ -503,7 +508,7 @@ assert.match(outboxSource, /executionFailure\("failed", authority\.lastError\)/u
   inspectAgentProductionRuntime({
     project,
     sealedRoot: path.resolve("."),
-    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V54",
+    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V55",
     targetSet: { queryRef: "acceptance:runtime-lifecycle-mutant", count: 1 },
     targetPaths: [],
     lawRequirements: [],
@@ -512,7 +517,7 @@ assert.match(outboxSource, /executionFailure\("failed", authority\.lastError\)/u
       manifestPath: "scripts/audit/domains/agent-production-runtime/manifest.json",
       ownerInspectorPath: "scripts/audit/domains/agent-production-runtime/inspector.ts",
       executionGroup: "domain",
-      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V54"],
+      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V55"],
     },
     generatedPlan: [],
   }, findings);
@@ -574,7 +579,7 @@ const runtimeLawSource = await readFile(
 const runtimeLawRecords = [...runtimeLawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
   .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden: string[] });
 const runtimeCoreLaw = runtimeLawRecords.find(
-  (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V54",
+  (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V55",
 );
 assert.ok(runtimeCoreLaw);
 for (const token of [
@@ -585,21 +590,21 @@ for (const token of [
 ]) assert.ok(runtimeCoreLaw.forbidden.some((entry) => entry.includes(token)), token);
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V27",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V28",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"],
   locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
   observedValue: "the unique Runtime ownership inspector accepted the current Runtime-only manifest and rejected injected Mediator and Product ownership mutants",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V54",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V55",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:attempt-recovery-state-machine",
   observedValue: "binary task lifecycle durable accept same-attempt recovery lease outbox and typed cross-owner boundaries exercised",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V54",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V55",
   evidenceMode: "exam.property",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:transport-properties",
@@ -607,7 +612,7 @@ emitQualityProofObservation({
 });
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V25",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V26",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"],
     locator: `acceptance:agent-production-runtime:business-admission:${evidenceMode}`,

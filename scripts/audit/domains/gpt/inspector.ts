@@ -57,8 +57,8 @@ import {
 import { containsPageMutation, gptPrivateInfrastructureViolations, sourceFor, sourceTextForPaths }
   from "./gpt-inspection-support.js";
 
-const LAW_ID = "LAW-GPT-001-V46";
-const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V6";
+const LAW_ID = "LAW-GPT-001-V47";
+const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V7";
 const GPT_BLUEPRINT_PATH = "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 16, 19, 23),
@@ -256,7 +256,7 @@ const inspectExactCallContract = (context: InspectorContext, findings: Inspector
     "gpt/ordinal-separated-from-effect-identity", CONTRACT_PATH,
     "actionOrdinal must remain a Product ordering proof outside the exact effect identity hash.",
   ));
-  if (!contract?.getTypeAlias("GptExecutionContext")?.getFullText().includes("yieldForProviderProbe")) findings.push(finding(
+  if (!contract?.getTypeAlias("GptExecutionContext")?.getFullText().includes("waitForProviderObservation")) findings.push(finding(
     "gpt/cooperative-provider-yield-contract", CONTRACT_PATH,
     "GptExecutionContext must expose the Product-neutral cooperative Provider wait yield hook.",
   ));
@@ -428,8 +428,6 @@ const inspectFrozenAttemptBoundary = (
     blueprint: readFileSync(resolve(context.sealedRoot, GPT_BLUEPRINT_PATH), "utf8"),
   };
   const probeWalRead = sources.lifecycle.indexOf("active.browser.readAtomicStepOutcome(confirmed.submitIdentity)");
-  const probePark = sources.lifecycle.indexOf("await active.browser.park({");
-  const probeReacquire = sources.lifecycle.indexOf('"provider-probe", probeDeadlineAt, "confirmed-readback"');
   const valid = /attach_approved_gpt_files_once:[^\n]+profile: "TARGET_LOCAL_MUTATION"[^\n]+replayPolicy: "target-local-per-generation"/u
     .test(sources.contract)
     && /submit_exact_gpt_turn_once:[^\n]+profile: "PROVIDER_EFFECT_ONCE"[^\n]+replayPolicy: "provider-effect-once"/u
@@ -453,8 +451,12 @@ const inspectFrozenAttemptBoundary = (
     && sources.blueprint.includes("FROZEN-GPT-ATOMIC-IDENTITY-ROUNDTRIP-001")
     && sources.blueprint.includes("FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001")
     && sources.lifecycle.includes('"confirmed-readback"')
-    && probeWalRead >= 0 && probeWalRead < probePark && probePark < probeReacquire
-    && sources.lifecycle.includes("canonicalConversationUrl: confirmed.canonicalConversationUrl")
+    && probeWalRead >= 0
+    && sources.lifecycle.includes("PROVIDER_OBSERVATION_INTERVAL_MS = 30_000")
+    && sources.lifecycle.includes("recoverySelectionRequired: targetMode === \"confirmed-readback\"")
+    && !sources.lifecycle.includes("await active.browser.park({")
+    && !sources.lifecycle.includes('"provider-probe"')
+    && !sources.lifecycle.includes("startProviderProbeCooldown")
     && !sources.lifecycle.includes("BROWSER_RECONCILIATION_IDENTITY_MISMATCH")
     && sources.targetAcquirer.includes("requestPreauthorizedTargetAcquisition(targetMode)")
     && !sources.targetAcquirer.includes("expectedTargetRef")

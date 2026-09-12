@@ -34,7 +34,6 @@ export type BrowserAtomicStepOutcome = Readonly<{
 export type BrowserTargetLeaseWait = Readonly<{
   signal: AbortSignal;
   remainingMs(): number;
-  purpose: "general" | "provider-probe";
   targetMode: "fresh" | "confirmed-readback";
 }>;
 
@@ -96,7 +95,6 @@ export type BrowserTargetLease = Readonly<{
   park(input: Readonly<{
     reason: string;
     mode: "normal-provider-wait";
-    startProviderProbeCooldown: boolean;
   }>): Promise<void>;
   close(input: Readonly<{ reason: string }>): Promise<void>;
   resolvePendingMutation(

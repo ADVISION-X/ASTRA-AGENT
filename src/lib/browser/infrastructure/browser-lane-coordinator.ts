@@ -16,7 +16,6 @@ import { awaitBrowserPostSubmitQuiet } from "../exact-target/browser-command-pos
 type LaneWaiter = Readonly<{
   binding: BrowserExecutionBinding;
   ownerId: string;
-  purpose: BrowserTargetLeaseWait["purpose"];
   targetMode: BrowserTargetLeaseWait["targetMode"];
   signal: AbortSignal;
   remainingMs(): number;
@@ -26,13 +25,10 @@ type LaneWaiter = Readonly<{
 }>;
 type LaneState = ReturnType<typeof createBrowserInfrastructureState>;
 
-export const BROWSER_PROVIDER_PROBE_INTERVAL_MS = 30_000;
-
 export class BrowserLaneCoordinator {
   private readonly queue: LaneWaiter[] = [];
   private readonly targetAcquirer: BrowserTargetAcquirer;
   private active = false;
-  private nextProviderProbeEligibleAt = 0;
 
   public constructor(
     private readonly resolveBroker: () => BrowserAuthorityBroker,
@@ -60,7 +56,7 @@ export class BrowserLaneCoordinator {
         action(value);
       };
       const waiter: LaneWaiter = {
-        binding, ownerId, purpose: wait.purpose,
+        binding, ownerId,
         targetMode: wait.targetMode,
         signal: wait.signal, remainingMs: wait.remainingMs,
         stopWaitingMonitor: () => { if (monitor) clearInterval(monitor); monitor = null; },
@@ -130,11 +126,6 @@ export class BrowserLaneCoordinator {
         )));
         continue;
       }
-      if (waiter.purpose === "provider-probe"
-        && performance.now() < this.nextProviderProbeEligibleAt) {
-        index += 1;
-        continue;
-      }
       this.queue.splice(index, 1);
       return waiter;
     }
@@ -157,9 +148,6 @@ export class BrowserLaneCoordinator {
         waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED",
       );
       const lease = await this.resolveBroker().acquireOperatorClaimedTargetLease(waiter.binding, waiter.ownerId);
-      if (waiter.purpose === "provider-probe") {
-        this.nextProviderProbeEligibleAt = performance.now() + BROWSER_PROVIDER_PROBE_INTERVAL_MS;
-      }
       waiter.resolve(this.withLifecycle(lease));
     } catch (error) {
       this.active = false;
@@ -179,15 +167,7 @@ export class BrowserLaneCoordinator {
         void this.pump();
       }
     };
-    const park: BrowserTargetLease["park"] = (input) => finish(async () => {
-        await lease.park(input);
-        if (input.startProviderProbeCooldown) {
-          this.nextProviderProbeEligibleAt = Math.max(
-            this.nextProviderProbeEligibleAt,
-            performance.now() + BROWSER_PROVIDER_PROBE_INTERVAL_MS,
-          );
-        }
-      });
+    const park: BrowserTargetLease["park"] = (input) => finish(() => lease.park(input));
     const close: BrowserTargetLease["close"] = (input) => finish(() => lease.close(input));
     return new Proxy(lease, {
       get(target, property) {

@@ -12,7 +12,7 @@ import type {
   BrowserTargetLeaseWait,
 } from "../../lib/browser/browser-authority-api.js";
 import { requireRuntimeLogWrite, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
-import { executionFailure, failureCode, typedExecutionFailure } from "../../lib/execution-failure.js";
+import { executionFailure, typedExecutionFailure } from "../../lib/execution-failure.js";
 
 type GptBrowserLeaseAuthority = Readonly<{
   acquireJobBoundTargetLease(
@@ -48,9 +48,10 @@ export type ProductionGptBrowserCall = {
     userTurnId: string;
   }>) | null;
   settledResultPayloadHash: GptHash | null;
+  recoverySelectionRequired: boolean;
 };
 
-const PROVIDER_WAIT_LOG_INTERVAL_MS = 30_000;
+export const PROVIDER_OBSERVATION_INTERVAL_MS = 30_000;
 
 export class ProductionGptBrowserLifecycle {
   private readonly browsers = new Map<string, ProductionGptBrowserCall>();
@@ -71,15 +72,14 @@ export class ProductionGptBrowserLifecycle {
     if (!sessionKey) throw executionFailure("failed", "GPT_SESSION_KEY_REQUIRED");
     const current = this.browsers.get(sessionKey);
     if (current) return current;
-    const browser = await this.acquireBrowserLease(
-      productStepId, callId, "general", null, targetMode,
-    );
+    const browser = await this.acquireBrowserLease(productStepId, callId, null, targetMode);
     const active: ProductionGptBrowserCall = {
       browser,
       facade: browser,
       providerWaitLog: null,
       confirmedProviderEffect: null,
       settledResultPayloadHash: null,
+      recoverySelectionRequired: targetMode === "confirmed-readback",
     };
     active.facade = new Proxy(browser, {
       get: (_target, property) => {
@@ -91,13 +91,13 @@ export class ProductionGptBrowserLifecycle {
     return active;
   }
 
-  public recordConfirmedProviderEffect(
+  public async recordConfirmedProviderEffect(
     active: ProductionGptBrowserCall,
     effect: GptChildBrowserFact,
     submitIdentity: BrowserAtomicStepIdentity,
     canonicalConversationUrl: string,
     userTurnId: string,
-  ): void {
+  ): Promise<void> {
     for (const call of this.browsers.values()) {
       call.confirmedProviderEffect = null;
       call.settledResultPayloadHash = null;
@@ -105,6 +105,12 @@ export class ProductionGptBrowserLifecycle {
     active.confirmedProviderEffect = Object.freeze({
       ...effect, submitIdentity, canonicalConversationUrl, userTurnId,
     });
+    if (active.recoverySelectionRequired) {
+      await active.browser.executeDomIntent({
+        kind: "selectExactGptConversation", canonicalConversationUrl,
+      });
+      active.recoverySelectionRequired = false;
+    }
   }
 
   public recordSettledResult(active: ProductionGptBrowserCall, payloadHash: GptHash): void {
@@ -132,23 +138,19 @@ export class ProductionGptBrowserLifecycle {
     });
   }
 
-  public async yieldForProviderProbe(
+  public async waitForProviderObservation(
     active: ProductionGptBrowserCall,
     productStepId: string,
     callId: string,
     childCapabilityId: GptChildCapabilityId,
-    canonicalConversationUrl: string,
-    probeDeadlineAt: number,
+    observationDeadlineAt: number,
   ): Promise<"reobserve" | "deadline"> {
     if (childCapabilityId !== "checkpoint_gpt_text_response"
       && childCapabilityId !== "checkpoint_gpt_generated_image") {
       throw executionFailure("failed", "GPT_PROVIDER_PROBE_CHILD_INVALID");
     }
-    if (!Number.isFinite(probeDeadlineAt)) throw executionFailure("failed", "GPT_PROVIDER_PROBE_DEADLINE_INVALID");
-    if (typeof canonicalConversationUrl !== "string" || canonicalConversationUrl.length === 0) {
-      throw executionFailure("failed", "GPT_PROVIDER_CONVERSATION_INPUT_INVALID");
-    }
-    if (Date.now() >= probeDeadlineAt) return "deadline";
+    if (!Number.isFinite(observationDeadlineAt)) throw executionFailure("failed", "GPT_PROVIDER_OBSERVATION_DEADLINE_INVALID");
+    if (Date.now() >= observationDeadlineAt) return "deadline";
     if (active.browser.pendingMutationCount() > 0) {
       throw executionFailure("failed", "BROWSER_NORMAL_PROVIDER_WAIT_WITH_PENDING_MUTATION");
     }
@@ -157,8 +159,7 @@ export class ProductionGptBrowserLifecycle {
       ? active.browser.readAtomicStepOutcome(confirmed.submitIdentity)
       : null;
     const payload = prior?.terminalPayload;
-    if (!confirmed || canonicalConversationUrl !== confirmed.canonicalConversationUrl
-      || prior?.state !== "confirmed"
+    if (!confirmed || prior?.state !== "confirmed"
       || prior.providerEffectIdentityHash !== confirmed.providerEffectIdentityHash
       || prior.mutationOutcome !== confirmed.mutationOutcome
       || !payload || typeof payload !== "object" || Array.isArray(payload)
@@ -168,39 +169,32 @@ export class ProductionGptBrowserLifecycle {
       throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
     }
     this.emitProviderWaitLog(active, productStepId, callId, childCapabilityId);
-    await active.browser.park({
-      reason: "gpt-provider-probe-yield",
-      mode: "normal-provider-wait",
-      startProviderProbeCooldown: true,
-    });
-    let reacquired: BrowserTargetLease;
-    try {
-      reacquired = await this.acquireBrowserLease(
-        productStepId, callId, "provider-probe", probeDeadlineAt, "confirmed-readback",
-      );
-    } catch (error) {
-      this.forgetParkedBrowser(active);
-      if (failureCode(error) === "V6_DEADLINE_BUDGET_EXHAUSTED"
-        && Date.now() >= probeDeadlineAt) return "deadline";
-      throw error;
+    const providerRemaining = Math.floor(observationDeadlineAt - Date.now());
+    const executionRemaining = Math.floor(
+      this.execution.expiresAtMonotonic - performance.now(),
+    );
+    if (executionRemaining < 1) {
+      throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
     }
-    active.browser = reacquired;
-    if (this.execution.abortSignal.aborted || Date.now() >= probeDeadlineAt) {
-      await active.browser.park({
-        reason: "gpt-provider-probe-deadline",
-        mode: "normal-provider-wait",
-        startProviderProbeCooldown: false,
-      });
-      this.forgetParkedBrowser(active);
-      if (this.execution.abortSignal.aborted) {
-        throw executionFailure("failed", "GPT_RESPONSE_WAIT_ABORTED");
-      }
-      return "deadline";
-    }
-    await active.browser.executeDomIntent({
-      kind: "selectExactGptConversation",
-      canonicalConversationUrl: confirmed.canonicalConversationUrl,
+    const waitMs = Math.min(
+      PROVIDER_OBSERVATION_INTERVAL_MS, providerRemaining, executionRemaining,
+    );
+    await new Promise<void>((resolve, reject) => {
+      const aborted = () => {
+        clearTimeout(timer);
+        reject(executionFailure("failed", "GPT_RESPONSE_WAIT_ABORTED"));
+      };
+      const timer = setTimeout(() => {
+        this.execution.abortSignal.removeEventListener("abort", aborted);
+        resolve();
+      }, waitMs);
+      this.execution.abortSignal.addEventListener("abort", aborted, { once: true });
+      if (this.execution.abortSignal.aborted) aborted();
     });
+    if (providerRemaining <= waitMs && providerRemaining <= executionRemaining) return "deadline";
+    if (executionRemaining <= waitMs) {
+      throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
+    }
     return "reobserve";
   }
 
@@ -223,7 +217,7 @@ export class ProductionGptBrowserLifecycle {
     const callIdentity = `${productStepId}:${callId}:${childCapabilityId}`;
     const emittedAt = performance.now();
     if (active.providerWaitLog?.callIdentity !== callIdentity
-      || emittedAt - active.providerWaitLog.emittedAt >= PROVIDER_WAIT_LOG_INTERVAL_MS) {
+      || emittedAt - active.providerWaitLog.emittedAt >= PROVIDER_OBSERVATION_INTERVAL_MS) {
       requireRuntimeLogWrite(this.runtimeLogger.emitEvent({
         traceId: this.execution.jobId,
         owner: "gpt",
@@ -242,15 +236,6 @@ export class ProductionGptBrowserLifecycle {
     }
   }
 
-  private forgetParkedBrowser(active: ProductionGptBrowserCall): void {
-    for (const [sessionKey, candidate] of this.browsers) {
-      if (candidate !== active) continue;
-      this.browsers.delete(sessionKey);
-      return;
-    }
-    throw executionFailure("failed", "GPT_PARKED_BROWSER_CALL_MISSING");
-  }
-
   public async settle(error: unknown | null): Promise<void> {
     const failures: unknown[] = [];
     for (const [key, call] of this.browsers) {
@@ -258,7 +243,6 @@ export class ProductionGptBrowserLifecycle {
         await call.browser.park({
           reason: error ? "gpt-product-call-failed" : "gpt-product-call-settled",
           mode: "normal-provider-wait",
-          startProviderProbeCooldown: false,
         });
       } catch (closeError) {
         failures.push(closeError);
@@ -272,7 +256,6 @@ export class ProductionGptBrowserLifecycle {
   private async acquireBrowserLease(
     productStepId: string,
     callId: string,
-    purpose: BrowserTargetLeaseWait["purpose"],
     probeDeadlineAt: number | null,
     targetMode: BrowserTargetLeaseWait["targetMode"],
   ): Promise<BrowserTargetLease> {
@@ -318,7 +301,6 @@ export class ProductionGptBrowserLifecycle {
     `${this.execution.jobId}:${callId}`, {
       signal: this.execution.abortSignal,
       remainingMs,
-      purpose,
       targetMode,
     });
   }
