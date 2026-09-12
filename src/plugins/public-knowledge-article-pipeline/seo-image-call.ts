@@ -3,10 +3,7 @@ import type {
   ProductionHash,
   WebsiteAgentTask,
 } from "../../mediator/product-plugin-contract.js";
-import type {
-  GeneratedImageArtifact,
-  ProductSkill,
-} from "../../mediator/product-plugin-contract.js";
+import type { GeneratedImageArtifact } from "../../mediator/product-plugin-contract.js";
 import {
   fail,
   hashValue,
@@ -30,7 +27,6 @@ type ImageTurnInput = Readonly<{
   marker: string;
   stepId: string;
   article: Readonly<Record<string, unknown>>;
-  productSkill: ProductSkill;
 }>;
 
 const prepareImageSubmit = async (
@@ -99,7 +95,7 @@ const checkpointSubmittedImage = async (
 };
 
 export const generateImage = async (input: ImageTurnInput): Promise<GeneratedImageArtifact> => {
-  const prompt = imagePrompt(input.task, input.marker, input.productSkill, input.article);
+  const prompt = imagePrompt(input.task, input.marker, input.article);
   const promptHash = textHash(prompt);
   const confirmed = await prepareImageSubmit(input, prompt, promptHash);
   return (await checkpointSubmittedImage(input, confirmed)).generated;

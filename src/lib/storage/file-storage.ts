@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync } from "node:fs";
-import { appendFile, readFile, writeFile } from "node:fs/promises";
+import { appendFile, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { stableJsonHash } from "./hash.js";
@@ -68,6 +68,24 @@ const appendArtifact = async (storageDir: string, artifact: ArtifactEnvelope): P
   return { artifactRef, storageRef: `forensics://artifacts/${artifactRef}`, integrityHash };
 };
 
+const deleteArtifactsForMission = async (storageDir: string, missionId: string): Promise<void> => {
+  if (!missionId || /[\0]/u.test(missionId)) throw new Error("FORENSICS_MISSION_ID_INVALID");
+  const stored = await readIndex(storageDir);
+  const owned = stored.filter((artifact) => artifact.missionId === missionId);
+  if (owned.length === 0) return;
+  for (const artifact of owned) {
+    assertIntegrity(artifact);
+    await rm(join(storageDir, "artifacts", `${artifact.artifactRef}.bin`), { force: true });
+  }
+  const retained = stored.filter((artifact) => artifact.missionId !== missionId);
+  const indexPath = join(storageDir, "artifacts.ndjson");
+  if (retained.length === 0) {
+    await rm(indexPath, { force: true });
+  } else {
+    await writeFile(indexPath, `${retained.map((artifact) => JSON.stringify(artifact)).join("\n")}\n`, "utf8");
+  }
+};
+
 export function createGrassEyeFileStorage(dataDir: string): GrassEyeStoragePort {
   const storageDir = join(dataDir, "forensics");
   let serialized = Promise.resolve();
@@ -78,6 +96,7 @@ export function createGrassEyeFileStorage(dataDir: string): GrassEyeStoragePort 
   };
   return {
     appendArtifact: (artifact) => serialize(() => appendArtifact(storageDir, artifact)),
+    deleteArtifactsForMission: (missionId) => serialize(() => deleteArtifactsForMission(storageDir, missionId)),
     readArtifact: (artifactRef) => serialize(async () => {
       const stored = (await readIndex(storageDir)).find((item) => item.artifactRef === artifactRef);
       if (!stored) return null;

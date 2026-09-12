@@ -125,7 +125,6 @@ try {
   ).get(qualificationPermit.commandId) as { exact_call_identity_hash: `sha256:${string}` };
   const qualificationFact = actorStore.readExactCallMutationFact({
     jobId: qualificationPermit.jobId, attemptId: qualificationPermit.attemptId,
-    ownerPluginId: qualificationPermit.ownerPluginId, pluginVersion: qualificationPermit.pluginVersion,
     exactCallIdentityHash: storedQualificationIdentity.exact_call_identity_hash,
     actionOrdinal: qualificationPermit.actionOrdinal,
   });
@@ -133,7 +132,6 @@ try {
   assert.equal(qualificationFact?.nativeFailureCode, null);
   const qualificationOutcome = actorStore.readAtomicStepOutcome({
     jobId: qualificationPermit.jobId, attemptId: qualificationPermit.attemptId,
-    ownerPluginId: qualificationPermit.ownerPluginId, pluginVersion: qualificationPermit.pluginVersion,
     exactCallIdentityHash: storedQualificationIdentity.exact_call_identity_hash,
     actionOrdinal: qualificationPermit.actionOrdinal, targetRef: qualificationPermit.targetRef,
     effectScope: "target_local",

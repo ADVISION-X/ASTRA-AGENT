@@ -201,14 +201,13 @@ export class BrowserInfrastructureSupervisor {
   public readBrowserLaneWaiterCount(): number { return this.lane.waiterCount(); }
   public hasUnresolvedBrowserMutation(): boolean { return this.lane.hasUnresolvedMutation(); }
   public hasBrowserMutationForJob(jobId: string): boolean { return this.lane.hasMutationForJob(jobId); }
+  public purgeBrowserJob(jobId: string): void { this.lane.purgeJob(jobId); }
   public countProviderTurnDispatches(jobId: string, attemptId: string): number {
     return this.lane.countProviderTurnDispatches(jobId, attemptId);
   }
   public readExactCallMutationFact(input: Readonly<{
     jobId: string;
     attemptId: string;
-    ownerPluginId: string;
-    pluginVersion: number;
     exactCallIdentityHash: `sha256:${string}`;
     actionOrdinal: number;
   }>) { return this.lane.readExactCallMutationFact(input); }

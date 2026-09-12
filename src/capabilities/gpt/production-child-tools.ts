@@ -53,8 +53,7 @@ export class ProductionGptChildTools {
       {
         jobId: input.jobId,
         attemptId: input.attemptId,
-        pluginId: input.pluginId,
-        pluginVersion: input.pluginVersion,
+        resultRevision: input.resultRevision,
         deviceId: input.deviceId,
         leaseVersion: input.leaseVersion,
         executionFenceHash: input.executionFenceHash,
@@ -116,8 +115,7 @@ export class ProductionGptChildTools {
     const identity = {
       jobId: execution.jobId,
       attemptId,
-      pluginId: execution.pluginId,
-      pluginVersion: execution.pluginVersion,
+      resultRevision: execution.resultRevision,
       productStepId: call.productStepId,
       callId: call.callId,
       childCapabilityId: call.child,
@@ -148,8 +146,6 @@ export class ProductionGptChildTools {
         kind: "gpt-call",
         jobId: input.jobId,
         attemptId: input.attemptId,
-        pluginId: input.pluginId,
-        pluginVersion: input.pluginVersion,
         stepId: intent.productStepId,
         capabilityCallId: `${intent.callId}:${intent.childCapabilityId}`,
       },
@@ -289,7 +285,6 @@ export class ProductionGptChildTools {
   }>): Promise<void> {
     if (!input.resolveDispatched || !input.browser || input.result.status !== "success") return;
     await input.browser.resolvePendingMutation({ schemaVersion: "grasseye.browser.outcome-resolution.v1",
-      ownerPluginId: input.execution.pluginId,
       outcome: "TERMINAL_SUCCESS",
       mutationOutcome: "dispatched",
       positiveEvidenceRef: `${input.result.proof.browserFact?.evidenceRef ?? input.evidenceRef}#positive-postcondition`,

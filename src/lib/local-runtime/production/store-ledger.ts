@@ -14,7 +14,6 @@ import {
 } from "./store-foundation.js";
 import type { ProductionRuntimeStorageResponsibilities } from "./runtime-storage-inventory.js";
 
-type TerminalRow = Readonly<{ body_blob: Buffer; response_json: string | null }>;
 type LedgerRow = Readonly<{
   kind: ProductionOutboxWrite["kind"];
   path: string;
@@ -26,22 +25,6 @@ type LedgerRow = Readonly<{
 type LedgerProjection = {
   terminalByJob: Map<string, Record<string, unknown>>;
   artifactReceiptsByJob: Map<string, ProductionHash[]>;
-};
-
-const parsePersistedReceipt = (value: string | null): unknown => {
-  try { return value ? JSON.parse(value) as unknown : null; }
-  catch (cause) {
-    throw executionFailure("failed", "PRODUCTION_TERMINAL_RECEIPT_PERSISTED_INVALID", { cause });
-  }
-};
-
-const terminalAlreadyMatches = (
-  task: StoredProductionTask,
-  receipt: ReturnType<typeof parseTerminalReceipt>,
-): boolean => {
-  const result = task.status === "completed" ? task.result : task.staged_result;
-  return Boolean(result) && receipt.terminal_status === "completed"
-    && receipt.failure === null && hashCanonical(result) === receipt.payload_hash;
 };
 
 const registerArtifact = (projection: LedgerProjection, row: LedgerRow, jobId: string): boolean => {
@@ -87,30 +70,6 @@ const completionPayloadConsistent = (
 };
 
 export class ProductionRuntimeStore extends ProductionStoreOutbox {
-  private reconcileTerminalRow(row: TerminalRow): boolean {
-    const request = JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>;
-    const rawReceipt = parsePersistedReceipt(row.response_json);
-    if (request.terminal_status !== "completed") return false;
-    const receipt = parseTerminalReceipt(rawReceipt, parseTerminalReceiptExpectation(request));
-    const task = this.readTask(receipt.job_id);
-    if (!task) throw executionFailure("failed", "PRODUCTION_TERMINAL_TASK_MISSING");
-    if (!terminalAlreadyMatches(task, receipt)) {
-      if (!task.staged_result || receipt.payload_hash !== hashCanonical(task.staged_result)) {
-      throw executionFailure("failed", "PRODUCTION_TERMINAL_OUTBOX_RESULT_MISSING");
-      }
-    }
-    return false;
-  }
-
-  public reconcileDeliveredTerminals(): number {
-    const rows = this.database.prepare(`select body_blob,response_json from production_outbox
-      where kind='terminal' and sent_at is not null and response_hash is not null
-      order by created_at,idempotency_key`).all() as TerminalRow[];
-    let reconciled = 0;
-    for (const row of rows) if (this.reconcileTerminalRow(row)) reconciled += 1;
-    return reconciled;
-  }
-
   public resolveAuthority(
     authorityRef: string,
     authorityHash: ProductionHash,

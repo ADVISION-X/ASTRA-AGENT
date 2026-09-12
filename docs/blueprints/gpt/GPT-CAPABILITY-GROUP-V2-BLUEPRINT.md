@@ -1,7 +1,7 @@
-# GPT 能力组 V39 施工图
+# GPT 能力组 V40 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"gpt-capability-group-v39","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V45","LAW-GPT-002-V4"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"gpt-capability-group-v40","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V45","LAW-GPT-002-V4"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
 ```
 
 ## 唯一 Owner 与职责
@@ -25,7 +25,11 @@ BZ03/BZ04 的本轮附件必须包含 Website 已入库、与 consultation root 
 
 `FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001` 固定真正 submit 前只能确认两件事。第一，当前 Composer 提示词 hash 与 Product 批准值相等，当前附件集合与批准集合相等；批准集合可以为空，Provider 自动追加的最终纯数字括号后缀按冻结附件规则归一。第二，Browser 当前 Target/Document/fence 有效，且唯一 WAL 证明同一 provider effect 尚未发生现实输入。历史聊天、既有 user turn、固定 turn 编号或奇偶、按钮标签以及 Browser 内部可操作性检查均不得成为新增业务前置关卡，也不得在点击前读取历史 turn 来决定发送资格。点击后等待 2500ms，再从 fresh current Document 只取最大有效序号的 user turn，确认其 prompt hash 等于批准值且 Composer 已清空；这是发送后的直接证明，不是第三个前置条件。改变或删除本冻结边界，必须由用户在未来任务中明确解冻，并同步替换施工图、实现与唯一质检；普通修复或 CI 授权不构成解冻。
 
-`FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT-001` 固定两类事实：fresh/profile/model/menu/附件/Composer 都是 attempt + current Document 范围内的 target-local 准备，同一 job 的新 attempt 必须重做，批准附件集合可以是空；只有 `submit_exact_gpt_turn_once` 是跨 attempt 的 provider effect。同一 result revision 的 submit request hash 绑定 `result_revision + Child input hash`，仅换 attempt 不变，更换 Website 已授权的 result revision 才变化。任何 Product 在准备前先查询该精确 submit effect；WAL 已 CONFIRMED 时直接零输入读回，未命中才准备并提交。`REJECTED + mutation_outcome=no + physical_input_count=0` 明确不消耗 effect，只有 Website 新 attempt 可在同一 WAL/effect identity 下重新准备；DISPATCHED 或任何已发生/不明现实输入仍禁止重发。不得把旧 attempt 的附件上传、草稿或页面状态当作新 attempt 的成功事实。
+`FROZEN-GPT-SUBMIT-ACTIONABILITY-WAIT-001` 固定：上述两项前置事实已经成立后，发送按钮暂时 `disabled/aria-disabled` 只表示 Browser 页面尚未就绪，不得由 GPT 立即裁成业务失败。Browser 必须在同一次 submit 原子调用和现有 5000ms 有界期限内等待同一精确按钮恢复可操作，恢复后只点击一次；期满仍不可操作则返回原生 typed no-mutation、`physical_input_count=0`。该等待不读取历史聊天、不新增第三前置条件、Child、timer Owner、队列、WAL、状态或重试链。
+
+`FROZEN-GPT-MODEL-SELECTOR-SEMANTIC-MINIMUM-001` 固定：打开模型选择器只证明精确批准的 `modelDisplayName` 选项已出现。目标选项已经出现时零点击完成；否则只允许点击唯一“选择模型”入口一次，并在现有有界后置读取中等待该目标选项出现。随后选择 Child 只允许点击该唯一精确选项，并由同次 Browser mutation 对保留的被点击节点直接证明 `aria-checked=true`；菜单关闭只以该精确选项不再出现在当前可选集合中证明。popup、simple/advanced panel、`data-active`、`inert`、旧面板形态及其它菜单外壳拓扑不得成为准入或后置条件；失败只报告目标选项缺失、多义、入口不可用、选项未选中或菜单未关闭的原生 typed fact。Browser 对被点击入口和选项的唯一性、可操作性继续属于物理输入内部机械安全，不得被删除，也不得升级为 Product/GPT 的菜单拓扑关卡。
+
+`FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT-001` 已按本次明确解冻替换并重新冻结：fresh/profile/model/menu/附件/Composer 都是 attempt + current Document 范围内的 target-local 准备，同一 job 的新 attempt 必须重做，批准附件集合可以是空；只有 `submit_exact_gpt_turn_once` 是跨 attempt 的 provider effect。唯一身份固定为 `job_id + result_revision + product_step_id + call_id + child_id + request_hash + payload_hash`，Product Plugin 名称、版本、Skill hash、attempt 与 Browser 私有身份均不得进入。同一 result revision 的 submit request hash 绑定 `result_revision + Child input hash`，仅换 attempt或 AGENT 内部实现不变，更换 Website 已授权的 result revision 才变化。任何 Product 在准备前先查询该精确 submit effect；WAL 已 CONFIRMED 时直接零输入读回，未命中才准备并提交。`REJECTED + mutation_outcome=no + physical_input_count=0` 明确不消耗 effect，只有 Website 新 attempt 可在同一 WAL/effect identity 下重新准备；DISPATCHED 或任何已发生/不明现实输入仍禁止重发。不得把旧 attempt 的附件上传、草稿或页面状态当作新 attempt 的成功事实。
 
 `FROZEN-GPT-ATOMIC-IDENTITY-ROUNDTRIP-001` 固定同一次 Browser 原子调用只能由 GPT production boundary 构造一份不可变 `BrowserAtomicStepIdentity`，并把该同一身份用于 WAL 查询、`runAtomicStep`、Child 成功终态回读与 Child 失败事实回读；跨进程 confirmed submit readback 也只能复用这一 canonical 构造。Child 不得再以原始 `intent.inputHash` 手工拼接第二份 WAL 查询身份，测试 Browser 必须按传入身份精确命中，禁止无视身份返回任意 recovery。否则 Browser 已 CONFIRMED 的现实发送会被 GPT 错判为未发生。改变或删除本冻结边界，必须由用户在未来任务中明确解冻，并同步替换施工图、实现与唯一质检；普通修复或 CI 授权不构成解冻。
 

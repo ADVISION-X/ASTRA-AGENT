@@ -8,6 +8,7 @@ export interface AppendArtifactStorageResult {
 
 export interface ForensicsStoragePort {
   appendArtifact(input: ForensicsAppendArtifactInput): Promise<AppendArtifactStorageResult>;
+  deleteArtifactsForMission(missionId: string): Promise<void>;
   readArtifact(artifactRef: string): Promise<Readonly<{
     content: Uint8Array;
     mimeType?: string;

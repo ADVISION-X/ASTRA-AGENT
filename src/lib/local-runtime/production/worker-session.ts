@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { executionFailure } from "../../execution-failure.js";
 
-import { agentPluginCapabilityManifest } from "./catalog.js";
+import { agentRouteCapabilityManifest } from "./catalog.js";
 import type { ProductionHash } from "./contracts.js";
 import { productionControlContractVersion } from "./control-contract-dependency.js";
 import {
@@ -118,7 +118,7 @@ export class ProductionWorkerSession {
         browser_lane_state: state.browser_lane_state,
         drain_state: state.drain_state,
         ledger_reconciled: state.ledger_reconciled,
-        capability_manifest: agentPluginCapabilityManifest,
+        capability_manifest: agentRouteCapabilityManifest,
       }),
     }) as { attestation_receipt?: unknown; session_credential?: unknown };
     const receipt = RuntimeAttestationReceiptSchema.parse(data.attestation_receipt);

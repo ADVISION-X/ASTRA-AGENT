@@ -8,6 +8,7 @@ export type AppendArtifactResult = Readonly<{
 
 export interface GrassEyeStoragePort {
   appendArtifact(artifact: ArtifactEnvelope): Promise<AppendArtifactResult>;
+  deleteArtifactsForMission(missionId: string): Promise<void>;
   readArtifact(artifactRef: string): Promise<Readonly<{
     content: Uint8Array;
     mimeType?: string;

@@ -3,7 +3,7 @@ import { governanceAssert as assert } from "../../../../scripts/audit/shared/gov
 import { buildGptExecutionProfile } from "../index.js";
 import {
   GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR,
-} from "./gpt-page-fixture-selectors.js";
+} from "../children/open_gpt_model_selector_v2/selectors.js";
 import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
 import { approvedFile, conversationUrl, promptHash } from "./gpt-conversation-fixture.js";
 import {
@@ -45,8 +45,8 @@ const doneFixture = fakeBrowser((intent) => {
 const done = await doneHarness.execute("open_gpt_model_selector_v2", doneFixture.browser, { profile });
 assert.equal(done.status, "success", done.failureCode ?? "DONE proof failed");
 assert.equal(done.proof.internalDecisionCode, "DONE");
-assert.deepEqual(done.proof.candidateCardinality, { raw: 2, eligible: 0 },
-  "GPT semantic DONE must not require the retained entry DOM nodes to be physically absent");
+assert.deepEqual(done.proof.candidateCardinality, { raw: 1, eligible: 1 },
+  "GPT semantic DONE is proved only by the exact target model option");
 assert.equal(done.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
 assert.equal(done.proof.committedMutation, "no");
 assert.equal(done.proof.browserFact, null);

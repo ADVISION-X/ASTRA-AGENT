@@ -3,14 +3,13 @@ import Database from "better-sqlite3";
 
 import { executionFailure, typedExecutionFailure } from "../../execution-failure.js";
 import type { SerializedExecutionFailure } from "./terminal-failure.js";
-import type { DurablePluginIdentity, WebsiteAgentResult, WebsiteAgentTask } from "./contracts.js";
+import type { WebsiteAgentResult, WebsiteAgentTask } from "./contracts.js";
 import { hashCanonical, type ProductionHash } from "./contracts.js";
 
 export type ProductionTaskStatus = "failed" | "completed";
 
 export interface StoredProductionTask {
   readonly task: WebsiteAgentTask;
-  readonly identity: DurablePluginIdentity;
   readonly status: ProductionTaskStatus;
   readonly result: WebsiteAgentResult | null;
   readonly staged_result: WebsiteAgentResult | null;
@@ -24,7 +23,6 @@ export type TaskRow = {
   job_id: string;
   request_hash: string;
   task_json: string;
-  identity_json: string;
   status: ProductionTaskStatus;
   result_json: string | null;
   staged_result_json: string | null;
@@ -110,7 +108,6 @@ export const isSerializedTerminalFailure = (value: unknown): value is Serialized
 
 export const storedTaskFromRow = (row: TaskRow): StoredProductionTask => ({
   task: JSON.parse(row.task_json) as WebsiteAgentTask,
-  identity: JSON.parse(row.identity_json) as DurablePluginIdentity,
   status: row.status,
   result: row.result_json ? JSON.parse(row.result_json) as WebsiteAgentResult : null,
   staged_result: row.staged_result_json ? JSON.parse(row.staged_result_json) as WebsiteAgentResult : null,
@@ -141,7 +138,7 @@ export const resolveProductionAuthority = (
 
 const productionSchemaSql = `create table production_tasks(
     job_id text primary key, request_hash text not null, task_json text not null,
-    identity_json text not null, status text not null check(status in ('failed','completed')),
+    status text not null check(status in ('failed','completed')),
     result_json text, staged_result_json text, attempt_failure_json text,
     current_attempt_id text not null, current_reason text,
     created_at text not null, updated_at text not null,
@@ -171,7 +168,7 @@ const executionTables = [
 
 const tableShapes = {
   production_tasks: ["job_id:TEXT:0:1", "request_hash:TEXT:1:0", "task_json:TEXT:1:0",
-    "identity_json:TEXT:1:0", "status:TEXT:1:0", "result_json:TEXT:0:0", "staged_result_json:TEXT:0:0",
+    "status:TEXT:1:0", "result_json:TEXT:0:0", "staged_result_json:TEXT:0:0",
     "attempt_failure_json:TEXT:0:0", "current_attempt_id:TEXT:1:0", "current_reason:TEXT:0:0",
     "created_at:TEXT:1:0", "updated_at:TEXT:1:0"],
   production_outbox: ["idempotency_key:TEXT:0:1", "kind:TEXT:1:0", "path:TEXT:1:0", "method:TEXT:1:0",
@@ -220,7 +217,7 @@ const currentSchemaPresent = (database: Database.Database): boolean =>
   && (database.pragma("foreign_key_check") as unknown[]).length === 0;
 
 const invalidJsonCount = (database: Database.Database): number => Number((database.prepare(`select
-  (select count(*) from production_tasks where not json_valid(task_json) or not json_valid(identity_json)
+  (select count(*) from production_tasks where not json_valid(task_json)
     or (result_json is not null and not json_valid(result_json))
     or (staged_result_json is not null and not json_valid(staged_result_json))
     or (attempt_failure_json is not null and not json_valid(attempt_failure_json)))
@@ -231,8 +228,7 @@ const invalidJsonCount = (database: Database.Database): number => Number((databa
 export const stateInvariantFailureCount = (database: Database.Database): number => {
   const row = database.prepare(`select
     (select count(*) from production_tasks where job_id!=json_extract(task_json,'$.job_id')
-      or request_hash!=json_extract(task_json,'$.request_hash')
-      or request_hash!=json_extract(identity_json,'$.request_hash') or current_attempt_id='')
+      or request_hash!=json_extract(task_json,'$.request_hash') or current_attempt_id='')
     +(select count(*) from production_outbox where (response_json is null)!=(response_hash is null)
       or (response_hash is not null and sent_at is null)) as count`).get() as { count: number };
   return Number(row.count);

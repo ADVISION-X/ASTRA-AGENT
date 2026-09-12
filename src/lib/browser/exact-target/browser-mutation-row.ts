@@ -4,9 +4,8 @@ export type MutationRow = Readonly<{
   command_id: string;
   logical_mutation_id: `sha256:${string}` | null;
   exact_call_identity_hash: `sha256:${string}`;
-  owner_plugin_id: string;
-  plugin_version: number;
   job_id: string;
+  result_revision: number;
   attempt_id: string;
   lease_version: number;
   execution_fence_hash: `sha256:${string}`;
@@ -31,9 +30,8 @@ export const mutationIdentity = (row: MutationRow): BrowserMutationIdentity => (
   commandId: row.command_id,
   logicalMutationId: row.logical_mutation_id,
   exactCallIdentityHash: row.exact_call_identity_hash,
-  ownerPluginId: row.owner_plugin_id,
-  pluginVersion: row.plugin_version,
   jobId: row.job_id,
+  resultRevision: row.result_revision,
   attemptId: row.attempt_id,
   leaseVersion: row.lease_version,
   executionFenceHash: row.execution_fence_hash,

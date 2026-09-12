@@ -3,6 +3,7 @@ import path from "node:path";
 import {
   createRuntimeLogger,
   requireRuntimeLogWrite,
+  runtimeFailureFromError,
   type RuntimeLogger,
 } from "../runtime-logs/index.js";
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
@@ -31,9 +32,16 @@ export async function createWorkbenchAssembly(
     browserAuthority = await createWorkbenchBrowserAuthority(dataDir, runtimeLogger);
   } catch (error) {
     const traceId = `producer:${runtimeLogger.producerRunId}`;
-    requireRuntimeLogWrite(runtimeLogger.emitEvent({
-      traceId, operation: "runtime.shutdown", code: "PRODUCER_STOPPED",
+    const message = error instanceof Error ? error.message : String(error);
+    const code = /^[A-Z][A-Z0-9_]*(?::|$)/u.test(message)
+      ? message.split(":", 1)[0] ?? "WORKBENCH_ASSEMBLY_FAILED"
+      : "WORKBENCH_ASSEMBLY_FAILED";
+    requireRuntimeLogWrite(runtimeLogger.emitError({
+      traceId, operation: "runtime.start",
       typedIdentity: { kind: "producer", producerId: runtimeLogger.producerRunId },
+      failure: runtimeFailureFromError({
+        error, code, responsibleOwner: code.startsWith("BROWSER_") ? "browser-session" : "app-shell",
+      }),
     }));
     throw error;
   }

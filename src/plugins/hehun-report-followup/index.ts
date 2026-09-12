@@ -2,7 +2,7 @@ import type { ProductPlugin } from "../../mediator/product-plugin-contract.js";
 import { executeOwnedFlow } from "./flow.js";
 
 export const hehunReportFollowupPlugin: ProductPlugin = {
-  pluginId: "hehun-report-followup", pluginVersion: 8,
+  pluginId: "hehun-report-followup",
   accepts: [
     { productId: "hehun_report_followup", actionId: "followup" },
     { productId: "hehun_report_followup", actionId: "accuracy_challenge" },

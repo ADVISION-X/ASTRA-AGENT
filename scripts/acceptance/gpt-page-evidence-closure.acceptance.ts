@@ -8,7 +8,7 @@ import {
   gptPageEvidencePrivacyFailures,
   scopedGptPageEvidenceFactFailures,
 } from "../audit/domains/gpt/gpt-page-evidence-capture-inspection.js";
-import { productPluginCatalogSnapshot } from "../../src/mediator/product-plugin-catalog.js";
+import { productRouteCatalogSnapshot } from "../../src/mediator/product-plugin-catalog.js";
 
 type EvidenceProduct = Readonly<{
   productKey: string;
@@ -63,8 +63,8 @@ assert.equal(report.captureMetadata, null);
 assert.deepEqual(gptPageEvidencePrivacyFailures(report), []);
 assert.deepEqual(forbiddenRepositoryBindingPaths(report), []);
 
-const expectedProductKeys = productPluginCatalogSnapshot.flatMap((plugin) => plugin.accepts.map((route) =>
-  `${route.product_id}/${route.action_id}`)).sort();
+const expectedProductKeys = productRouteCatalogSnapshot.map((route) =>
+  `${route.product_id}/${route.action_id}`).sort();
 const actualProductKeys = report.products.map((product) => product.productKey).sort();
 assert.deepEqual(actualProductKeys, expectedProductKeys);
 assert.equal(new Set(actualProductKeys).size, actualProductKeys.length);

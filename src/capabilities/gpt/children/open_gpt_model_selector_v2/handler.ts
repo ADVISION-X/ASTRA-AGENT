@@ -16,19 +16,18 @@ import {
 } from "./selectors.js";
 import { profileFromIntent } from "../../web/execution-profile-input.js";
 import {
-  modelSelectorTopologyQueries,
-  modelSelectorAlreadyOpen,
+  modelChoiceQuery,
   modelSelectorOpenable,
-  modelSelectorTopologyCode,
-  projectModelSelectorTopology,
-  readModelSelectorTopology,
+  modelSelectorReady,
+  modelSelectorStateCode,
+  projectModelSelectorState,
+  readModelSelectorState,
 } from "./observation.js";
 
 const OPEN_POSTCONDITION = (modelDisplayName: string) => Object.freeze({
-  queries: Object.freeze(modelSelectorTopologyQueries(modelDisplayName).map((query) => Object.freeze({
-    ...query, expectedEligibleCount: query.queryId === "popup" || query.queryId === "advanced-panel"
-      || query.queryId === "model-choice" ? 1 : 0,
-  }))) as readonly BrowserDomPostconditionQuery[],
+  queries: Object.freeze([Object.freeze({
+    ...modelChoiceQuery(modelDisplayName), expectedEligibleCount: 1,
+  })]) as readonly BrowserDomPostconditionQuery[],
   timeoutMs: 5_000,
 });
 
@@ -37,15 +36,14 @@ export const openGptModelSelectorV2Handler: GptChildHandler<"open_gpt_model_sele
     requireExactInputKeys(intent, ["profile"]);
     const profile = profileFromIntent(intent);
     const browser = requireBrowser(context);
-    const queries = modelSelectorTopologyQueries(profile.modelDisplayName);
-    const observed = await readModelSelectorTopology(browser, profile.modelDisplayName);
-    if (modelSelectorAlreadyOpen(observed)) return success({
+    const observed = await readModelSelectorState(browser, profile.modelDisplayName);
+    if (modelSelectorReady(observed)) return success({
       value: { selectionVersion: GPT_MODEL_SELECTION_VERSION, state: "model-selector-open" },
       ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
         browserFact: null, nativeFailureCode: null }),
     });
     if (!modelSelectorOpenable(observed)) {
-      throw executionFailure("failed", `GPT_MODEL_SELECTION_V2_STATE_INVALID:${modelSelectorTopologyCode(observed)}`);
+      throw executionFailure("failed", `GPT_MODEL_SELECTION_V2_STATE_INVALID:${modelSelectorStateCode(observed)}`);
     }
     const mutation = await browser.executeDomIntent({
       kind: "click", selector: GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR, expectedMatches: 1,
@@ -53,12 +51,12 @@ export const openGptModelSelectorV2Handler: GptChildHandler<"open_gpt_model_sele
     });
     const mutationRecord = mutation && typeof mutation === "object" && !Array.isArray(mutation)
       ? mutation as Readonly<Record<string, unknown>> : {};
-    const readback = projectModelSelectorTopology(decodeCoherentObservationPacket(
+    const readback = projectModelSelectorState(decodeCoherentObservationPacket(
       mutationRecord.postconditionObservation,
-      queries,
+      OPEN_POSTCONDITION(profile.modelDisplayName).queries,
     ));
-    if (!modelSelectorAlreadyOpen(readback)) {
-      throw executionFailure("failed", `GPT_MODEL_SELECTION_V2_STATE_INVALID:${modelSelectorTopologyCode(readback)}`);
+    if (!modelSelectorReady(readback)) {
+      throw executionFailure("failed", `GPT_MODEL_SELECTION_V2_STATE_INVALID:${modelSelectorStateCode(readback)}`);
     }
     const browserFact = requireConfirmedBrowserFact(intent, context, { allowNoMutationOutcome: true });
     const didMutate = browserFact.mutationOutcome === "confirmed";

@@ -391,9 +391,8 @@ export class BrowserTargetLeaseManager {
       contractManifestHash: this.executionBinding.contractManifestHash,
     };
     const executionPermit = {
-      ownerPluginId: this.executionBinding.ownerPluginId,
-      pluginVersion: this.executionBinding.pluginVersion,
       jobId: this.executionBinding.jobId,
+      resultRevision: this.executionBinding.resultRevision,
       attemptId: this.executionBinding.attemptId,
       deviceId: this.executionBinding.deviceId,
       leaseVersion: this.executionBinding.leaseVersion,

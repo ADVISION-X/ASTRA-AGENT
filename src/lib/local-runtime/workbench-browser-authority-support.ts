@@ -54,11 +54,10 @@ export type WorkbenchBrowserAuthority = Readonly<{
   readExactCallMutationFact(input: Readonly<{
     jobId: string;
     attemptId: string;
-    ownerPluginId: string;
-    pluginVersion: number;
     exactCallIdentityHash: `sha256:${string}`;
     actionOrdinal: number;
   }>): BrowserExactCallMutationFact | null;
+  purgeBrowserJob(jobId: string): void;
   acquireJobBoundTargetLease(
     binding: BrowserExecutionBinding,
     ownerId: string,
@@ -144,6 +143,7 @@ export const createWorkbenchBrowserAuthority = async (
     countProviderTurnDispatches: (jobId, attemptId) =>
       supervisor.countProviderTurnDispatches(jobId, attemptId),
     readExactCallMutationFact: (input) => supervisor.readExactCallMutationFact(input),
+    purgeBrowserJob: (jobId) => supervisor.purgeBrowserJob(jobId),
     acquireJobBoundTargetLease: (binding, ownerId, wait) =>
       supervisor.acquireJobBoundTargetLease(binding, ownerId, wait),
     acceptBrowserAuthoritySocket: (socket) => ({

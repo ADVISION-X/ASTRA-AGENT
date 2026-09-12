@@ -8,10 +8,7 @@ const promptEnvelope = (
   task: WebsiteAgentTask,
   marker: string,
   instruction: string,
-  includeCommonKernel: boolean,
-  productSkill: SharedExecutionContext["productSkill"],
 ): string => [
-  ...(includeCommonKernel ? [productSkill.text, ""] : []),
   `当前授权动作：${task.action_id}`,
   `当前业务事实：${JSON.stringify(task.action_id === "produce_article"
     ? { domain_id: task.parameters.domain_id, locale: task.parameters.locale }
@@ -24,48 +21,43 @@ export const researchPrompt = (
   task: WebsiteAgentTask,
   marker: string,
   route: ProductionRoutePolicy,
-  productSkill: SharedExecutionContext["productSkill"],
 ): string => promptEnvelope(task, marker, [
     "解压并读取本轮唯一 ZIP 附件。",
     "读取 ZIP 内全部资料文件：每本古籍独立目录中的原文.md 与索引.json 必须按同一书籍目录配对，现役文章目录与主题聚类 JSON 也必须读取；不得遗漏任何文件。",
     "ZIP 只包含资料；当前回合的唯一输出要求以本 Prompt 中的 research 子合同为准。",
-    "从冻结 READY 语料与现役文章目录中研究一个可公开、可引用、可核验、且不存在实质重复的问题。",
-    "材料不足或没有实质新意时必须 decision=decline；否则 decision=proceed。",
+    "输出子合同只约束交付格式与字段关系，不限制你的选题、分析、推理、观点或证据解释。",
     `当前回合唯一输出子合同：${JSON.stringify(publicKnowledgeTurnContract(route, "research"))}`,
     "严格返回当前 research 子合同的全部且仅有字段；本回合不得返回 article package。",
     "只返回严格 JSON 对象，不要代码围栏，不要解释性前后缀。",
-  ].join("\n"), true, productSkill);
+  ].join("\n"));
 
 export const articlePrompt = (
   task: WebsiteAgentTask,
   marker: string,
   route: ProductionRoutePolicy,
-  productSkill: SharedExecutionContext["productSkill"],
   research: Readonly<Record<string, unknown>>,
 ): string =>
   promptEnvelope(task, marker, [
     `仅依据本次任务已读取的研究结果写成文章：${JSON.stringify(research)}`,
-    "不得重新选题、不得引入未在研究中出现的来源或主张；引用 identity 与顺序必须保持一致。",
+    "输出子合同只约束交付格式与字段关系，不限制你的分析、推理、观点或证据解释。",
     `当前回合唯一输出子合同：${JSON.stringify(publicKnowledgeTurnContract(route, "article"))}`,
     "严格返回当前 article 子合同的全部且仅有字段。",
     "只返回严格 JSON 对象，不要代码围栏，不要解释性前后缀。",
-  ].join("\n"), false, productSkill);
+  ].join("\n"));
 
 export const imagePrompt = (
   task: WebsiteAgentTask,
   marker: string,
-  productSkill: SharedExecutionContext["productSkill"],
   article: Readonly<Record<string, unknown>>,
 ): string =>
   promptEnvelope(task, marker, [
     `仅依据本次任务已读取的文章结果生成一张横向文章主图：${JSON.stringify(article)}`,
     "本轮唯一业务输出是一张可下载的生成图片。",
-  ].join("\n"), false, productSkill);
+  ].join("\n"));
 
 export const reviewPrompt = (
   task: WebsiteAgentTask,
   marker: string,
-  productSkill: SharedExecutionContext["productSkill"],
 ): string => promptEnvelope(task, marker, [
   "读取且只读取本轮两个附件。",
   task.action_id === "accuracy_challenge"
@@ -73,7 +65,7 @@ export const reviewPrompt = (
     : "只检查独立性、表达、读者价值、合同摩擦与质量风险；不得改写文章或替 Website 裁决。",
   "严格返回 website-agent-review-output.v1：仅含 decision 与 issues；decision 只能是 no_issue 或 issues。",
   "只返回严格 JSON 对象，不要代码围栏，不要解释性前后缀。",
-].join("\n"), true, productSkill);
+].join("\n"));
 
 export const attachmentFiles = (context: SharedExecutionContext) => context.materials
   .slice().sort((left, right) => left.ordinal - right.ordinal).map((material) => Object.freeze({

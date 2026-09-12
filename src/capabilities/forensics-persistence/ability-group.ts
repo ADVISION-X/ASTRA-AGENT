@@ -44,6 +44,7 @@ export function createForensicsPersistenceAbilityGroup(storage: ForensicsStorage
       return appendArtifactWithLog({ ...artifact,
         ...(correlationId ? { capabilityCallId: correlationId } : {}) }, storage, runtimeLogger);
     },
+    deleteArtifactsForMission: (missionId) => storage.deleteArtifactsForMission(missionId),
     readArtifactRef: (input) => executeReadArtifactRef(input, storage),
   };
 }

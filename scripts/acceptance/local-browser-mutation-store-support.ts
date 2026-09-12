@@ -10,9 +10,8 @@ export const valueHash = (value: unknown): `sha256:${string}` => exactHash(JSON.
 const identity = (commandId: string, attemptId: string) => ({
   commandId,
   exactCallIdentityHash: exactHash(`${attemptId}:${commandId}`),
-  ownerPluginId: "fixture-product-plugin",
-  pluginVersion: 1,
   jobId: "job-1",
+  resultRevision: 0,
   attemptId,
   leaseVersion: 1,
   executionFenceHash: hash,

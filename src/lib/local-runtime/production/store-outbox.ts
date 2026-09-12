@@ -16,8 +16,6 @@ import {
   type ProductionOutboxWrite,
 } from "./store-foundation.js";
 
-const PERMANENT_REVOCATION_REASON = "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED";
-const PERMANENT_AUTHORIZATION_REVOKED_CODE = "AI_PERMANENT_AUTHORIZATION_REVOKED";
 const STALE_LEASE_FENCE_CODE = "AI_LEASE_FENCE_STALE";
 const STALE_LEASE_FENCE_REMOTE_PROOF = "WEBSITE_HTTP_409:AI_LEASE_FENCE_STALE";
 const jobPathMarker = (jobId: string): string => `/jobs/${encodeURIComponent(jobId)}/`;
@@ -180,31 +178,6 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
       throw new Error("PRODUCTION_OUTBOX_INTENT_MISSING");
     }
     this.notifyOutbox(this.readOutboxAuthority(idempotencyKey));
-  }
-
-  public hasPermanentAuthorizationRevocationFailure(jobId: string): boolean {
-    return Boolean(this.database.prepare(`select 1 from production_outbox
-      where instr(path,?)>0 and sent_at is null and response_hash is null and last_error=? limit 1`
-    ).get(jobPathMarker(jobId), PERMANENT_AUTHORIZATION_REVOKED_CODE));
-  }
-
-  public settlePermanentlyRevokedJob(jobId: string, currentReason: string): number {
-    const transaction = this.database.transaction(() => {
-      const task = this.readTask(jobId);
-      if (!task || task.status !== "failed") {
-        throw executionFailure("failed", "PRODUCTION_REVOCATION_TASK_AUTHORITY_INVALID");
-      }
-      const changed = this.database.prepare(`update production_outbox
-        set last_error=? where instr(path,?)>0
-          and sent_at is null and response_hash is null`
-      ).run(PERMANENT_REVOCATION_REASON, jobPathMarker(jobId));
-      this.database.prepare(`update production_tasks set current_reason=?,updated_at=?
-        where job_id=? and status='failed'`).run(currentReason, now(), jobId);
-      return changed.changes;
-    });
-    const changed = transaction();
-    this.notifyOutbox(this.outboxAuthorities().find((row) => row.jobId === jobId) ?? null);
-    return changed;
   }
 
   public deliverOutbox<T>(

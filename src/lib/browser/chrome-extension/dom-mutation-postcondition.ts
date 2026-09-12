@@ -30,7 +30,7 @@ export type ObservationReadback = Readonly<{
     | "BROWSER_DOM_CANDIDATE_AMBIGUOUS" | null;
 }>;
 
-const waitForNextBoundedObservation = async (deadline: number): Promise<void> => {
+export const waitForNextBoundedObservation = async (deadline: number): Promise<void> => {
   const remaining = deadline - Date.now();
   if (remaining <= 0) return;
   await new Promise<void>((resolve) => globalThis.setTimeout(resolve, Math.min(50, remaining)));

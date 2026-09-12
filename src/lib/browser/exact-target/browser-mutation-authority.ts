@@ -35,9 +35,8 @@ export const terminalFailureFields = (
 
 export type ProviderEffectHistoryRow = Readonly<{
   logical_mutation_id: `sha256:${string}` | null;
-  owner_plugin_id: string;
-  plugin_version: number;
   job_id: string;
+  result_revision: number;
   attempt_id: string;
   product_step_id: string;
   call_id: string;

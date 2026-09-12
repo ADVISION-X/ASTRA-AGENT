@@ -128,7 +128,11 @@ const reconcilePendingBusinessAdmissions = async (state: RuntimeState): Promise<
       typedIdentity: { kind: "job", jobId: task.task.job_id },
     }));
     try {
-      await reconcileBusinessAdmission(state, task);
+      const outcome = await reconcileBusinessAdmission(state, task);
+      if (outcome === "deleted") {
+        requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
+        continue;
+      }
       const current = state.store.readTask(task.task.job_id)!;
       requireRuntimeLogWrite(span.terminal({
         outcome: "succeeded", authorityRef: `production-task:${task.task.job_id}`,

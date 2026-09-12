@@ -49,8 +49,6 @@ const scenarios: readonly Scenario[] = [
       attemptId: "attempt-1",
       leaseVersion: 1,
       fenceHash: digest("fence"),
-      pluginId: "plugin",
-      pluginVersion: 1,
       commandId: "command-browser",
       capabilityCallId: "browser.dom.click.v1",
       pluginStepId: "step-browser",

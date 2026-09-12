@@ -168,8 +168,8 @@ assert.equal(readyBody.commandPermitKey, commandPermitKey);
 const permitAuthority = Object.freeze({
   authorityRef: "authority-wire-proof", authorityEpoch: 1, certificateHash: hash,
   channelSessionHash: hash, executionBindingHash: hash, writerFenceHash: hash,
-  candidateHash: hash, contractManifestHash: hash, ownerPluginId: "wire-proof", pluginVersion: 1,
-  jobId: "job-wire-proof", attemptId: "attempt-wire-proof", deviceId: "device-wire-proof",
+  candidateHash: hash, contractManifestHash: hash,
+  jobId: "job-wire-proof", resultRevision: 0, attemptId: "attempt-wire-proof", deviceId: "device-wire-proof",
   leaseVersion: 1, localOrderId: "order-wire-proof", targetLeaseRef: "lease-wire-proof",
 });
 

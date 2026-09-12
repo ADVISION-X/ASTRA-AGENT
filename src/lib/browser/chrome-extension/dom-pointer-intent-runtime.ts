@@ -15,6 +15,7 @@ import {
   verifyClickPostcondition,
   waitForInteractionAttribute,
   waitForMatch,
+  waitForNextBoundedObservation,
   zeroActionMatchReceipt,
   zeroActionObservationReceipt,
 } from "./dom-mutation-postcondition.js";
@@ -229,8 +230,20 @@ const prepareClick = async (
   assertCurrent: CurrentDocumentAssertion,
 ): Promise<PreparedClick> => {
   if (intent.preClickExactOutgoingTurn !== undefined) {
-    const point = await pointerAction(runtime, target, intent);
-    return "failureCode" in point ? { receipt: point } : { point, retainedNodeId: null };
+    const deadline = Date.now() + (intent.postClickObservation?.timeoutMs
+      ?? intent.postClickMatch?.timeoutMs ?? intent.postClickAttribute?.timeoutMs
+      ?? intent.postClickUrl?.timeoutMs ?? 1);
+    while (true) {
+      assertCurrent();
+      const point = await pointerAction(runtime, target, intent);
+      if (!("failureCode" in point)) return { point, retainedNodeId: null };
+      if (![
+        "BROWSER_DOM_ACTION_DISABLED", "BROWSER_DOM_ACTION_ARIA_DISABLED",
+      ].includes(point.nativeCauseCode ?? point.failureCode) || Date.now() >= deadline) {
+        return { receipt: point };
+      }
+      await waitForNextBoundedObservation(deadline);
+    }
   }
   if (intent.postClickObservation?.clickedCandidateAttribute !== undefined) {
     const retained = await retainedPointerAction(runtime, target, intent);

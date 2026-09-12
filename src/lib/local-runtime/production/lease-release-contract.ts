@@ -6,10 +6,6 @@ export type ProductionLeaseRelease =
     attemptFailure: null;
   }>
   | Readonly<{
-    reasonCode: "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED";
-    attemptFailure: null;
-  }>
-  | Readonly<{
     reasonCode: "ATTEMPT_FAILED";
     attemptFailure: SerializedExecutionFailure;
   }>;

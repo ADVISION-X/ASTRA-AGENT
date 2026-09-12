@@ -2,7 +2,7 @@ import type { ProductPlugin } from "../../mediator/product-plugin-contract.js";
 import { executeOwnedFlow } from "./flow.js";
 
 export const paymentScreenshotObservationPlugin: ProductPlugin = {
-  pluginId: "payment-screenshot-observation", pluginVersion: 8,
+  pluginId: "payment-screenshot-observation",
   accepts: [
     { productId: "payment_screenshot_observation", actionId: "observe" },
     { productId: "payment_screenshot_observation", actionId: "accuracy_challenge" },

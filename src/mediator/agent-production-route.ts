@@ -1,7 +1,6 @@
 import {
+  assertProductRouteSupported,
   dispatchProductPlugin,
-  resolveProductPluginIdentity,
-  type ProductPluginIdentity,
 } from "./product-plugin-catalog.js";
 import type {
   ProductCompletionReceipt,
@@ -11,15 +10,11 @@ import type {
 
 export interface AuthorizedWebsiteAgentTask {
   readonly task: WebsiteAgentTask;
-  readonly identity: ProductPluginIdentity;
 }
 
 export const authorizeWebsiteAgentTask = (task: WebsiteAgentTask): AuthorizedWebsiteAgentTask => {
-  const identity = resolveProductPluginIdentity(task.product_id, task.action_id);
-  return Object.freeze({
-    task,
-    identity,
-  });
+  assertProductRouteSupported(task.product_id, task.action_id);
+  return Object.freeze({ task });
 };
 
 export const dispatchWebsiteAgentTask = async (

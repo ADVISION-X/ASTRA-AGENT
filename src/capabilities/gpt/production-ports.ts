@@ -25,8 +25,6 @@ export interface GptProductionBrowserAuthority {
   readExactCallMutationFact(input: Readonly<{
     jobId: string;
     attemptId: string;
-    ownerPluginId: string;
-    pluginVersion: number;
     exactCallIdentityHash: `sha256:${string}`;
     actionOrdinal: number;
   }>): BrowserExactCallMutationFact | null;

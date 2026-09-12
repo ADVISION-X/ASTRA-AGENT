@@ -5,9 +5,9 @@ import path from "node:path";
 import { Project } from "ts-morph";
 
 import {
-  agentPluginCapabilityManifest, productionCatalogHash,
+  agentRouteCapabilityManifest, productionCatalogHash,
 } from "../../src/lib/local-runtime/production/catalog.js";
-import { resolveProductPluginIdentity } from "../../src/mediator/product-plugin-catalog.js";
+import { assertProductRouteSupported } from "../../src/mediator/product-plugin-catalog.js";
 import {
   uploadProductionGeneratedImage,
 } from "../../src/lib/local-runtime/production/cloud-client.js";
@@ -18,9 +18,11 @@ import {
   hashCanonical,
   sha256,
 } from "../../src/lib/local-runtime/production/contracts.js";
-import { reconcileBusinessAdmission } from "../../src/lib/local-runtime/production/runtime-business-admission.js";
-import { permanentAuthorizationRevoked } from
-  "../../src/lib/local-runtime/production/runtime-permanent-revocation.js";
+import {
+  purgeDeletedJob,
+  reconcileBusinessAdmission,
+  websiteJobAbsent,
+} from "../../src/lib/local-runtime/production/runtime-business-admission.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { readProductionOperationsSnapshot } from
   "../../src/lib/local-runtime/production/operations-snapshot.js";
@@ -28,7 +30,7 @@ import {
   ClaimBatchReceiptSchema, LeaseRenewReceiptSchema, parseJsonEnvelope,
   websiteAgentTaskFromClaim,
 } from "../../src/lib/local-runtime/production/transport-protocol.js";
-import { typedExecutionFailure } from "../../src/lib/execution-failure.js";
+import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { assertProductionTaskRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
 import {
@@ -41,7 +43,6 @@ import {
   HASH_B,
   HASH_C,
   claimTask,
-  identityFor,
   resultFor,
   task,
 } from "./agent-production-runtime-fixtures.js";
@@ -55,7 +56,7 @@ const successfulJsonResponse = (data: unknown): Response => new Response(
   { status: 200, headers: { "content-type": "application/json" } },
 );
 
-assert.equal(hashCanonical(agentPluginCapabilityManifest.plugins), productionCatalogHash);
+assert.equal(hashCanonical(agentRouteCapabilityManifest.routes), productionCatalogHash);
 
 const productionTask = task({
   jobId: "job:payment", productId: "payment_screenshot_observation", actionId: "observe",
@@ -87,8 +88,8 @@ const reviewTask = task({
   },
 });
 
-assert.equal(authorizeWebsiteAgentTask(productionTask).identity.plugin_id, "payment-screenshot-observation");
-assert.equal(authorizeWebsiteAgentTask(reviewTask).identity.plugin_id, "payment-screenshot-observation");
+assert.equal(authorizeWebsiteAgentTask(productionTask).task, productionTask);
+assert.equal(authorizeWebsiteAgentTask(reviewTask).task, reviewTask);
 assert.throws(() => WebsiteAgentTaskSchema.parse({ ...productionTask, plugin_id: "forbidden" }), /unrecognized_keys/u);
 assert.throws(() => WebsiteAgentTaskSchema.parse({
   ...productionTask, material_refs: [{ ...productionTask.material_refs[0]!, may_issue_instruction: true }],
@@ -104,7 +105,7 @@ assert.throws(() => assertProductionTaskRoutePolicy(task({
   },
 })), /AGENT_REVIEW_SUBJECT_MATERIAL_INVALID/u);
 assert.throws(
-  () => resolveProductPluginIdentity("bazi_basic_chart" as never, "produce" as never),
+  () => assertProductRouteSupported("bazi_basic_chart" as never, "produce" as never),
   /PLUGIN_ROUTE_UNSUPPORTED/u,
 );
 
@@ -161,15 +162,16 @@ const deviceStatusWithAdmission = (
     write_receipts: [],
   }),
 }) as never;
-const deviceStatusWithoutAdmission = (jobId: string) => ({
+const deviceStatusWithoutAdmission = (jobId: string, deleted = false) => ({
   request: async () => ({
     schema_version: "xuanxue-ai-device-job-status.v6",
     job_id: jobId,
     status: "failed",
-    current_reason: null,
+    current_reason: deleted ? { code: "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED" } : null,
     control_intent: {
       schema_version: "xuanxue-ai-control-intent.v6", job_id: jobId,
-      control_epoch: 0, intent: "none", reason_code: null,
+      control_epoch: deleted ? 1 : 0, intent: deleted ? "cancel_requested" : "none",
+      reason_code: deleted ? "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED" : null,
     },
     terminal_status: null,
     terminal_payload_hash: null,
@@ -179,6 +181,10 @@ const deviceStatusWithoutAdmission = (jobId: string) => ({
     write_receipts: [],
   }),
 }) as never;
+assert.equal(websiteJobAbsent(executionFailure("failed", "AI_V6_DEVICE_JOB_NOT_FOUND")), true,
+  "a Website device-status 404 must authorize physical cleanup of the local job tree");
+assert.equal(websiteJobAbsent(executionFailure("failed", "CLOUD_TRANSPORT_UNAVAILABLE")), false,
+  "transport failure must never be mistaken for Website job absence");
 const admissionVariants = [
   admissionReceipt(),
   admissionReceipt({
@@ -280,9 +286,8 @@ try {
       productId: productionTask.product_id, actionId: productionTask.action_id,
       materialRefs: productionTask.material_refs,
       extra: { parameters: productionTask.parameters } });
-    const identity = identityFor(accepted);
-    const staged = resultFor(accepted, identity);
-    store.acceptTask(accepted, identity, `attempt:${kind}`);
+    const staged = resultFor(accepted);
+    store.acceptTask(accepted, `attempt:${kind}`);
     store.stageResult(accepted.job_id, staged);
     const typedReceipt = admissionReceiptFor(accepted.job_id, staged.result_payload_hash,
       kind === "bazi" ? {
@@ -300,9 +305,8 @@ try {
     productId: productionTask.product_id, actionId: productionTask.action_id,
     materialRefs: productionTask.material_refs,
     extra: { parameters: productionTask.parameters } });
-  const pendingIdentity = identityFor(pending);
-  const pendingResult = resultFor(pending, pendingIdentity);
-  store.acceptTask(pending, pendingIdentity, "attempt:pending");
+  const pendingResult = resultFor(pending);
+  store.acceptTask(pending, "attempt:pending");
   store.stageResult(pending.job_id, pendingResult);
   assert.equal(await reconcileBusinessAdmission({
     store, session: deviceStatusWithoutAdmission(pending.job_id),
@@ -310,6 +314,38 @@ try {
   assert.deepEqual(store.readTask(pending.job_id)?.staged_result, pendingResult,
     "absence of Website admission must preserve the staged result and await Website authority");
   assert.equal(store.readTask(pending.job_id)?.current_reason, "BUSINESS_ADMISSION_PENDING");
+  assert.equal(await reconcileBusinessAdmission({
+    store, session: deviceStatusWithoutAdmission(pending.job_id, true), activeAbort: new Map(),
+  } as never, store.readTask(pending.job_id)!), "pending");
+  assert.equal(store.readTask(pending.job_id)?.current_reason, "BUSINESS_ADMISSION_PENDING",
+    "cancel_requested is not physical Website absence and cannot authorize local deletion");
+  let browserPurges = 0, evidencePurges = 0;
+  await purgeDeletedJob({ store, dataDir: admissionTemporary,
+    browserAuthority: { purgeBrowserJob: () => { browserPurges += 1; } },
+    evidenceStore: { deleteArtifactsForMission: async () => { evidencePurges += 1; } },
+  } as never, pending.job_id);
+  assert.equal(store.readTask(pending.job_id), null);
+  assert.equal(browserPurges, 1);
+  assert.equal(evidencePurges, 1);
+  assert.equal(store.pendingBusinessAdmissions().some((row) => row.task.job_id === pending.job_id), false,
+    "physical Website absence must remove the existing task and stop admission polling");
+  const retryable = task({ jobId: "job:admission:purge-retry",
+    productId: productionTask.product_id, actionId: productionTask.action_id,
+    materialRefs: productionTask.material_refs,
+    extra: { parameters: productionTask.parameters } });
+  store.acceptTask(retryable, "attempt:purge-retry");
+  store.stageResult(retryable.job_id, resultFor(retryable));
+  await assert.rejects(purgeDeletedJob({ store, dataDir: admissionTemporary,
+    browserAuthority: { purgeBrowserJob: () => undefined },
+    evidenceStore: { deleteArtifactsForMission: async () => { throw new Error("FORENSICS_PURGE_FAILED"); } },
+  } as never, retryable.job_id), /PRODUCTION_JOB_PURGE_FAILED/u);
+  assert.notEqual(store.readTask(retryable.job_id), null,
+    "a partial purge must retain the task authority so the same deletion can retry");
+  await purgeDeletedJob({ store, dataDir: admissionTemporary,
+    browserAuthority: { purgeBrowserJob: () => undefined },
+    evidenceStore: { deleteArtifactsForMission: async () => undefined },
+  } as never, retryable.job_id);
+  assert.equal(store.readTask(retryable.job_id), null);
   store.close();
 } finally {
   await rm(admissionTemporary, { recursive: true, force: true });
@@ -403,10 +439,6 @@ const runtimeStartupSource = await readFile(
 const businessAdmissionSource = await readFile(
   new URL("../../src/lib/local-runtime/production/runtime-business-admission.ts", import.meta.url), "utf8",
 );
-const permanentRevocationSource = await readFile(
-  new URL("../../src/lib/local-runtime/production/runtime-permanent-revocation.ts", import.meta.url),
-  "utf8",
-);
 const runtimeLoopsSource = await readFile(
   new URL("../../src/lib/local-runtime/production/runtime-loops.ts", import.meta.url), "utf8",
 );
@@ -422,12 +454,6 @@ const reconciliationSource = await readFile(
   new URL("../../src/lib/local-runtime/production/cloud-reconciliation-client.ts", import.meta.url), "utf8",
 );
 const executorSource = await readFile(new URL("../../src/lib/local-runtime/production/executor.ts", import.meta.url), "utf8");
-const heartbeatSource = await readFile(new URL("../../src/lib/local-runtime/production/runtime-execution-heartbeat.ts", import.meta.url), "utf8");
-const cloudSource = await readFile(new URL("../../src/lib/local-runtime/production/cloud-client.ts", import.meta.url), "utf8");
-const leaseReleaseContractSource = await readFile(
-  new URL("../../src/lib/local-runtime/production/lease-release-contract.ts", import.meta.url),
-  "utf8",
-);
 const storeSource = await readFile(new URL("../../src/lib/local-runtime/production/store-task-state.ts", import.meta.url), "utf8");
 assert.doesNotMatch(runtimeSource, /emitState|stateKey:|currentStates|reconciledFromAuthority/u);
 assert.doesNotMatch(executorSource, /runTurn|ProductionGptExecutor|GPT_TURN_FLOW/u);
@@ -442,32 +468,13 @@ assert.doesNotMatch(runtimeSource, /ATTEMPT_ENDED:/u);
 assert.doesNotMatch(businessAdmissionSource, /discardStagedResult|ATTEMPT_ENDED/u);
 assert.doesNotMatch(storeSource, /discardStagedResult/u);
 
-const deletionSettlement = permanentRevocationSource;
-const noControlAbort = new AbortController();
-assert.equal(permanentAuthorizationRevoked(
-  noControlAbort.signal,
-), false, "a transport error code cannot mint a Website permanent-revocation fact");
-const exactControlAbort = new AbortController();
-exactControlAbort.abort("CONTROL_INTENT:cancel_requested:PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
-assert.equal(permanentAuthorizationRevoked(exactControlAbort.signal), true);
-assert.doesNotMatch(deletionSettlement, /AI_PERMANENT_AUTHORIZATION_REVOKED/u);
-assert.match(deletionSettlement, /settlePermanentlyRevokedJob\(job\.job_id/u);
-assert.match(deletionSettlement, /const stableRequestId = `aiprelease_/u);
-assert.match(deletionSettlement, /readProductionDeviceJobStatus/u);
-assert.match(deletionSettlement, /receipt\.request_id === stableRequestId/u);
-assert.doesNotMatch(deletionSettlement, /persistAttemptFailure|claimProductionTasks|dispatchWebsiteAgentTask/u);
 assert.match(executorSource, /abort_signal\.aborted[\s\S]{0,220}PRODUCTION_EXECUTION_ABORTED/u);
 assert.doesNotMatch(executorSource, /reconcilePermanentCancellation/u);
-const deletionControlIndex = heartbeatSource.indexOf('if (receipt.control_intent.intent !== "none")');
-const renewalBudgetIndex = heartbeatSource.indexOf("const relative = Date.parse(receipt.lease_expires_at)");
-assert.ok(deletionControlIndex >= 0 && renewalBudgetIndex > deletionControlIndex,
-  "permanent control must stop execution before a non-extended lease is treated as an invalid renewal budget");
-assert.match(leaseReleaseContractSource, /PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED/u);
-assert.match(cloudSource, /stableRequestId/u);
 assert.doesNotMatch(storeSource, /Continuation|Checkpoint/u);
 assert.match(reconciliationSource, /V6_DEVICE_JOB_CONTROL_AUTHORITY_INVALID/u);
-assert.match(reconciliationSource, /currentReason\?\.code === "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED"/u);
-assert.doesNotMatch(runtimeLoopsSource, /settleInactivePermanentAuthorizationRevocation/u);
+assert.match(businessAdmissionSource, /websiteJobAbsent/u);
+assert.match(businessAdmissionSource, /purgeDeletedJob/u);
+assert.match(runtimeSource, /purgeDeletedJob/u);
 assert.doesNotMatch(runtimeLoopsSource, /BrowserQuarantine|reconcilePermanentlyRevokedTargetLocal/u);
 assert.doesNotMatch(runtimeLoopsSource, /flushOutbox|pendingOutbox\(\)|sendProductionOutboxWrite/u);
 assert.match(storeSource, /supersedeUnsentWritesForWebsiteAttempt/u);
@@ -505,15 +512,8 @@ assert.match(outboxSource, /executionFailure\("failed", authority\.lastError\)/u
     finding.checkId === "agent-production-runtime/no-local-business-lifecycle-adjudication"),
   "an Outbox mutant that converts a delivery fact into attempt-ended must fail closed");
 }
-assert.match(outboxSource, /settlePermanentlyRevokedJob/u);
-assert.match(outboxSource, /set last_error=\? where instr\(path,\?\)>0/u);
-assert.doesNotMatch(outboxSource, /where path like \?/u);
-assert.doesNotMatch(outboxSource, /delete from production_outbox/u);
-const revocationSettlementSource = outboxSource.slice(
-  outboxSource.indexOf("public settlePermanentlyRevokedJob"),
-  outboxSource.indexOf("public deliverOutbox"),
-);
-assert.doesNotMatch(revocationSettlementSource, /sent_at\s*=/u);
+assert.match(storeSource, /purgeJob\(jobId: string\)/u);
+assert.match(storeSource, /delete from production_outbox/u);
 assert.match(outboxSource, /sent_at is null and last_error is null/u);
 assert.doesNotMatch(`${storeFoundationSource}\n${outboxSource}`, /next_delivery_at|nextDeliveryAt|pendingOutbox\(/u);
 

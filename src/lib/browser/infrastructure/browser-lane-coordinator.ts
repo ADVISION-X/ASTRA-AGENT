@@ -105,12 +105,13 @@ export class BrowserLaneCoordinator {
   public hasMutationForJob(jobId: string): boolean {
     return this.infrastructure.mutationState?.hasMutationForJob(jobId) ?? false;
   }
+  public purgeJob(jobId: string): void { this.infrastructure.mutationState?.purgeJob(jobId); }
   public countProviderTurnDispatches(jobId: string, attemptId: string): number {
     return this.infrastructure.mutationState?.countProviderTurnDispatches(jobId, attemptId) ?? 0;
   }
   public observeCurrentTargetClaim(_input: Readonly<{ targetRef: string; documentRef: string }>): void {}
   public readExactCallMutationFact(input: Readonly<{
-    jobId: string; attemptId: string; ownerPluginId: string; pluginVersion: number;
+    jobId: string; attemptId: string;
     exactCallIdentityHash: `sha256:${string}`; actionOrdinal: number;
   }>): BrowserExactCallMutationFact | null {
     return this.infrastructure.mutationState?.readExactCallMutationFact(input) ?? null;

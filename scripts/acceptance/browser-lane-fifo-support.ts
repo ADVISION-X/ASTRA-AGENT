@@ -14,7 +14,7 @@ export const binding = (
   productStepId = "fixture-step",
   callId = "fixture-call",
 ): BrowserExecutionBinding => ({
-  kind: "production", ownerPluginId: "plugin", pluginVersion: 1, jobId,
+  kind: "production", jobId, resultRevision: 0,
   productStepId, callId, attemptId: `attempt:${jobId}`, deviceId: "device:1",
   leaseVersion: 1, localOrderId: jobId, contractManifestHash: HASH,
   executionRef: `execution:${jobId}`, jobRefHash: HASH, executionRefHash: HASH,
@@ -34,7 +34,7 @@ export const fixtureLease = (
   let document = { documentRef, targetRef, navigationEpoch } as const;
   return {
     leaseRef: `lease:${entry.jobId}`, authorityRef: "authority:fixture", authorityEpoch: 1,
-    executionBindingHash: HASH, ownerId: entry.ownerPluginId, agentJobRefHash: HASH,
+    executionBindingHash: HASH, ownerId: entry.jobId, agentJobRefHash: HASH,
     agentExecutionRefHash: HASH, writerLeaseEpoch: 1, writerFenceHash: HASH,
     target: { targetRef, authorityEpoch: 1, executionBindingHash: HASH },
     get document() { return document; },

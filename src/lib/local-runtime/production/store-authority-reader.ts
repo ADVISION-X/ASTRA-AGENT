@@ -17,7 +17,7 @@ import {
 const authorityCorrupt = (): never => { throw new SyntaxError("PRODUCTION_AUTHORITY_ROW_CORRUPT"); };
 
 const readTask = (database: Database.Database, jobId: string) => {
-  const row = database.prepare(`select t.job_id,t.request_hash,t.task_json,t.identity_json,t.status,t.result_json,
+  const row = database.prepare(`select t.job_id,t.request_hash,t.task_json,t.status,t.result_json,
     t.staged_result_json,t.attempt_failure_json,t.current_attempt_id,t.current_reason,t.updated_at
     from production_tasks t where t.job_id=?`
   ).get(jobId) as TaskRow | undefined;

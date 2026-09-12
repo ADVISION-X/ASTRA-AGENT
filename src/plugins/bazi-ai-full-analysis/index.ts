@@ -2,7 +2,7 @@ import type { ProductPlugin } from "../../mediator/product-plugin-contract.js";
 import { executeOwnedFlow } from "./flow.js";
 
 export const baziAiFullAnalysisPlugin: ProductPlugin = {
-  pluginId: "bazi-ai-full-analysis", pluginVersion: 9,
+  pluginId: "bazi-ai-full-analysis",
   accepts: [
     { productId: "bazi_ai_full_analysis", actionId: "produce" },
     { productId: "bazi_ai_full_analysis", actionId: "accuracy_challenge" },

@@ -439,7 +439,7 @@
       "scenarioId": "text-main",
       "coreTargets": [
         "model-selector-trigger",
-        "model-selector-panel"
+        "model-option"
       ],
       "requiredLiveStates": [
         "model-selector-openable",
@@ -451,19 +451,17 @@
           "model-selector-trigger"
         ],
         "model-selector-open": [
-          "model-selector-panel"
+          "model-option"
         ],
         "model-selector-already-open": [
-          "model-selector-panel"
+          "model-option"
         ]
       },
-      "optionalLiveStates": [
-        "advanced-model-group-open"
-      ],
+      "optionalLiveStates": [],
       "childSpecificDerivedStates": [
-        "selector-panel-not-owned-by-trigger",
         "selector-did-not-open",
-        "model-list-not-hydrated"
+        "target-model-missing",
+        "target-model-ambiguous"
       ],
       "requiredInputRefs": [
         "authorized-model-id"
@@ -483,9 +481,8 @@
         ],
         "model-selector-open": [
           {
-            "path": "core.attributes.role",
-            "operator": "equals",
-            "value": "menu"
+            "path": "core.targets.model-option",
+            "operator": "present"
           },
           {
             "path": "stateFacts.capturePhase",
@@ -495,9 +492,8 @@
         ],
         "model-selector-already-open": [
           {
-            "path": "core.attributes.role",
-            "operator": "equals",
-            "value": "menu"
+            "path": "core.targets.model-option",
+            "operator": "present"
           },
           {
             "path": "stateFacts.capturePhase",
@@ -511,8 +507,7 @@
       "childCapabilityId": "select_exact_gpt_model_v2",
       "scenarioId": "text-main",
       "coreTargets": [
-        "model-option",
-        "model-selector-trigger"
+        "model-option"
       ],
       "requiredLiveStates": [
         "target-model-actionable-unchecked",
@@ -524,7 +519,7 @@
           "model-option"
         ],
         "model-panel-closed-after-selection": [
-          "model-selector-trigger"
+          "model-option"
         ],
         "model-selection-postcondition": [
           "model-option"
@@ -557,9 +552,8 @@
         ],
         "model-panel-closed-after-selection": [
           {
-            "path": "core.attributes.aria-expanded",
-            "operator": "equals",
-            "value": "false"
+            "path": "core.targets.model-option",
+            "operator": "absent"
           },
           {
             "path": "stateFacts.capturePhase",

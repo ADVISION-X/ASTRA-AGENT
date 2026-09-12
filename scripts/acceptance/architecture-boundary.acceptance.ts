@@ -7,10 +7,11 @@ import { spawnSync } from "node:child_process";
 import { Project } from "ts-morph";
 
 import {
-  agentPluginCapabilityManifest,
+  agentRouteCapabilityManifest,
 } from "../../src/lib/local-runtime/production/catalog.js";
 import {
-  productPluginCatalogSnapshot,
+  productRouteCatalogSnapshot,
+  productionPluginCatalog,
   productionCatalogHash,
 } from "../../src/mediator/product-plugin-catalog.js";
 import { inspectProductAcceptanceBoundaries } from "../audit/domains/architecture-boundary/components/scan-product-acceptance-boundaries.js";
@@ -30,23 +31,19 @@ assert.equal(createHash("sha256").update(frozenTombstone ?? "").digest("hex"),
   "the frozen anti-resurrection Tombstone clause must remain byte-exact");
 assert.match(frozenTombstone ?? "", /本 Tombstone 只有授权人再次明确解冻并授权双仓同步替换时可变更/u);
 const testDirectory = resolve("scripts/acceptance/product-plugins");
-const catalogIds = productPluginCatalogSnapshot.map((plugin) => plugin.plugin_id).sort();
-const manifestIds = agentPluginCapabilityManifest.plugins.map((plugin) => plugin.plugin_id).sort();
+const catalogIds = productionPluginCatalog.map((plugin) => plugin.pluginId).sort();
 const testIds = readdirSync(testDirectory)
   .filter((name) => name.endsWith(".acceptance.ts"))
   .map((name) => name.slice(0, -".acceptance.ts".length))
   .sort();
 
 assert(catalogIds.length > 0, "the current Catalog must publish at least one Product Plugin");
-assert.deepEqual(manifestIds, catalogIds,
-  "the current Capability Manifest and Catalog must publish the same Plugin identities");
-assert.equal(agentPluginCapabilityManifest.catalog_hash, productionCatalogHash);
-assert.equal(agentPluginCapabilityManifest.plugins.length, productPluginCatalogSnapshot.length);
-for (const [index, plugin] of productPluginCatalogSnapshot.entries()) {
-  const published = agentPluginCapabilityManifest.plugins[index]!;
-  assert.equal(published.plugin_id, plugin.plugin_id);
-  assert.equal(published.plugin_version, plugin.plugin_version);
-  assert.deepEqual(published.accepts, plugin.accepts);
+assert.equal(agentRouteCapabilityManifest.route_hash, productionCatalogHash);
+assert.equal(agentRouteCapabilityManifest.routes.length, productRouteCatalogSnapshot.length);
+for (const [index, route] of productRouteCatalogSnapshot.entries()) {
+  const published = agentRouteCapabilityManifest.routes[index]!;
+  assert.equal(published.product_id, route.product_id);
+  assert.equal(published.action_id, route.action_id);
   assert.equal(published.task_contract_version, 1);
   assert.equal(published.result_contract_version, 1);
 }

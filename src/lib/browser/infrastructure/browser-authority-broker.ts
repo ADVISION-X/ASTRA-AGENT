@@ -9,9 +9,8 @@ import type { BrowserControlledTarget, BrowserHash } from "../exact-target/brows
 import { hashBrowserAuthorityCertificate } from "./browser-authority-certificate.js";
 
 type BrowserExecutionBindingCore = Readonly<{
-  ownerPluginId: string;
-  pluginVersion: number;
   jobId: string;
+  resultRevision: number;
   productStepId: string;
   callId: string;
   attemptId: string;
@@ -50,9 +49,8 @@ export type AuthenticatedBrowserAuthorityLease = Readonly<{
 }>;
 
 export type BrowserExecutionArtifactBinding = Readonly<{
-  ownerPluginId: string;
-  pluginVersion: number;
   jobId: string;
+  resultRevision: number;
   attemptId: string;
   deviceId: string;
   leaseVersion: number;
@@ -145,9 +143,8 @@ const createFileArtifactGrantIssuer = (context: FileArtifactGrantIssuerInput) =>
 };
 
 const artifactBindingKey = (binding: BrowserExecutionArtifactBinding): string => JSON.stringify([
-  binding.ownerPluginId,
-  binding.pluginVersion,
   binding.jobId,
+  binding.resultRevision,
   binding.attemptId,
   binding.deviceId,
   binding.leaseVersion,
@@ -155,9 +152,8 @@ const artifactBindingKey = (binding: BrowserExecutionArtifactBinding): string =>
 ]);
 
 const executionArtifactBinding = (binding: BrowserExecutionBinding): BrowserExecutionArtifactBinding => ({
-  ownerPluginId: binding.ownerPluginId,
-  pluginVersion: binding.pluginVersion,
   jobId: binding.jobId,
+  resultRevision: binding.resultRevision,
   attemptId: binding.attemptId,
   deviceId: binding.deviceId,
   leaseVersion: binding.leaseVersion,
@@ -165,8 +161,8 @@ const executionArtifactBinding = (binding: BrowserExecutionBinding): BrowserExec
 });
 
 const assertArtifactBindingInput = (input: ArtifactBindingInput): void => {
-  if (!input.binding.ownerPluginId || !Number.isInteger(input.binding.pluginVersion)
-    || input.binding.pluginVersion < 1 || !input.binding.jobId || !input.binding.attemptId
+  if (!input.binding.jobId || !Number.isInteger(input.binding.resultRevision) || input.binding.resultRevision < 0
+    || !input.binding.attemptId
     || !input.binding.deviceId || !Number.isInteger(input.binding.leaseVersion)
     || input.binding.leaseVersion < 1 || !/^sha256:[a-f0-9]{64}$/u.test(input.binding.writerFenceHash)
     || input.artifacts.length > MAX_EXECUTION_ARTIFACTS) {

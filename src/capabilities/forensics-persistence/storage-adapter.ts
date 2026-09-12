@@ -17,6 +17,7 @@ export function createForensicsStorageAdapter(storage: GrassEyeStoragePort): For
   return {
     appendArtifact: (input): Promise<AppendArtifactStorageResult> =>
       storage.appendArtifact(buildArtifactEnvelope(input)),
+    deleteArtifactsForMission: (missionId) => storage.deleteArtifactsForMission(missionId),
     readArtifact: (artifactRef) => storage.readArtifact(artifactRef),
   };
 }

@@ -1,6 +1,7 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
+import Database from "better-sqlite3";
 import { readFile } from "node:fs/promises";
-import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -15,6 +16,7 @@ import { clearPortListeners } from "../startup/lib/process-control.mjs";
 import { waitForWorkbenchHealth } from "../startup/lib/service-readiness.mjs";
 import { createStartupLogHelpers } from "../startup/lib/startup-log-helpers.mjs";
 import { diagnoseRuntimeLog } from "../../src/lib/runtime-logs/index.js";
+import { createWorkbenchAssembly } from "../../src/lib/local-runtime/workbench-assembly.js";
 
 const waitForChildReady = (child: ChildProcess): Promise<void> => new Promise((resolve, reject) => {
   let output = "";
@@ -356,6 +358,27 @@ const verifyStartupFailureClosesExactSteps = async (): Promise<void> => {
   }
 };
 
+const verifyBrowserInitializationFailureIsTyped = async (): Promise<void> => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), "grasseye-browser-startup-failure-"));
+  try {
+    const browserDir = path.join(dataDir, "browser");
+    await mkdir(browserDir, { recursive: true });
+    const database = new Database(path.join(browserDir, "browser-mutations.sqlite"));
+    database.exec("create table browser_mutations(unknown_column text)");
+    database.close();
+    await assert.rejects(createWorkbenchAssembly({ dataDir }), /BROWSER_REPAIR_REQUIRED/u);
+    const logDir = path.join(dataDir, "runtime-logs", "agent");
+    const files = await readdir(logDir);
+    const output = (await Promise.all(files.map((file) => readFile(path.join(logDir, file), "utf8")))).join("\n");
+    assert.match(output, /"code":"BROWSER_REPAIR_REQUIRED"/u,
+      "the startup log must expose the exact blocking Browser owner failure");
+    assert.doesNotMatch(output, /"code":"PRODUCER_STOPPED"/u,
+      "a live diagnostic Shell must not misreport Browser initialization failure as producer shutdown");
+  } finally {
+    await rm(dataDir, { recursive: true, force: true });
+  }
+};
+
 export async function runStartupInitializationHealthAcceptance(): Promise<void> {
   await verifyNodeRuntimeContract();
   await verifySingleLocalEnvironmentInjection();
@@ -364,6 +387,7 @@ export async function runStartupInitializationHealthAcceptance(): Promise<void> 
   await verifyStartupEntrypointAcceptsDiagnosticShell();
   await verifyUnpackedWebSocketPreflight();
   await verifyStartupFailureClosesExactSteps();
+  await verifyBrowserInitializationFailureIsTyped();
   await verifyRepositoryOwnedPortCleanup();
 }
 

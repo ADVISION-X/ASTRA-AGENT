@@ -218,6 +218,38 @@ const exerciseExactOutgoingMismatchReadback = async (): Promise<void> => {
   }
 };
 
+const exerciseExactOutgoingActionabilityWait = async (): Promise<void> => {
+  const run = async (readyAt:number,timeoutMs:number) => {let qualifications=0;const physicalEvents:string[]=[];
+    const runtime={awaitPageReadPermission:noPageReadBarrier,async send(_tabId:number,method:string,
+      parameters?:Readonly<Record<string,unknown>>){if(method==="Runtime.callFunctionOn"
+      &&parameters?.returnByValue===true&&String(parameters.functionDeclaration).includes("spec.output")){
+        qualifications+=1;return{result:{value:qualifications<readyAt
+          ?"BROWSER_DOM_ACTION_ARIA_DISABLED":{x:5,y:5}}};}
+      const infrastructure=mutationInfrastructureReply(method,parameters);
+      if(infrastructure!==undefined)return infrastructure;
+      if(method==="DOM.querySelectorAll")return{nodeIds:parameters?.selector==="submitted"
+        &&physicalEvents.length>0?[7]:[]};
+      if(method==="Input.dispatchMouseEvent"){physicalEvents.push(method);return{};}
+      throw new Error(`UNEXPECTED_OUTGOING_WAIT_METHOD:${method}`);}} as ExtensionDebuggerRuntime;
+    const result=await executeRegisteredDomIntent(runtime,{tabId:120} as never,{
+      kind:"click",selector:"button",expectedMatches:1,preClickExactOutgoingTurn:{
+        composerSelector:"composer",composerFormSelector:"form",attachmentSelector:"attachment",
+        userTurnSelector:"user-turn",expectedPromptHash:`sha256:${"a".repeat(64)}`,expectedAttachmentLabels:[]},
+      postClickMatch:{selector:"submitted",expectedMatches:1,timeoutMs}},()=>undefined) as Readonly<Record<string,unknown>>;
+    return{result,qualifications,physicalEvents};};
+  const delayed = await run(3, 200);
+  assert.equal(delayed.qualifications, 3);
+  assert.equal(delayed.result.postconditionVerified, true);
+  assert.deepEqual(delayed.physicalEvents,
+    ["Input.dispatchMouseEvent", "Input.dispatchMouseEvent", "Input.dispatchMouseEvent"],
+    "a transient disabled send button must recover inside one command and click exactly once");
+  const stuck = await run(Number.POSITIVE_INFINITY, 5);
+  assert.equal(stuck.result.nativeCauseCode, "BROWSER_DOM_ACTION_ARIA_DISABLED");
+  assert.equal(stuck.result.mutationCount, 0);
+  assert.deepEqual(stuck.physicalEvents, [],
+    "a send button that stays disabled must time out with zero physical input");
+};
+
 const exerciseNativePointerSequences = async (): Promise<void> => {
   const run = async (intent: PointerClickIntent): Promise<readonly Readonly<Record<string, unknown>>[]> => {
     const events: Readonly<Record<string, unknown>>[] = [];
@@ -547,6 +579,7 @@ export const exerciseDomMutations = async (): Promise<void> => {
   await exerciseFillReadbackRejection();
   await exerciseScopedExactCandidate();
   await exerciseExactOutgoingMismatchReadback();
+  await exerciseExactOutgoingActionabilityWait();
   await exerciseNativePointerSequences();
   await exerciseCoherentClickPostcondition();
   await exerciseExactOutgoingNeverUsesZeroActionPostcondition();

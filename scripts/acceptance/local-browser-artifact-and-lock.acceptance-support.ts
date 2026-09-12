@@ -173,7 +173,7 @@ const verifyExecutionScopedArtifactBinding = async (): Promise<void> => {
   if (currentAuthority.kind === "ABSENT") throw new Error("BROWSER_AUTHENTICATION_INCOMPLETE");
   assert.equal(status.certificateHash, hashBrowserAuthorityCertificate(currentAuthority.authority));
   const binding: BrowserExecutionBinding = {
-    kind: "production", ownerPluginId: "artifact-proof", pluginVersion: 1, jobId: "artifact-job",
+    kind: "production", jobId: "artifact-job", resultRevision: 0,
     productStepId: "artifact-step", callId: "artifact-call", attemptId: "artifact-attempt",
     deviceId: "artifact-device", leaseVersion: 1, localOrderId: "artifact-order",
     contractManifestHash: approvedHash, executionRef: "artifact-execution", jobRefHash: approvedHash,

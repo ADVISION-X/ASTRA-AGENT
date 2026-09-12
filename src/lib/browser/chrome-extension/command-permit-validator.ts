@@ -13,9 +13,8 @@ export type ExtensionCommandPermit = Readonly<{
   writerFenceHash: BrowserHash;
   candidateHash: BrowserHash;
   contractManifestHash: BrowserHash;
-  ownerPluginId: string;
-  pluginVersion: number;
   jobId: string;
+  resultRevision: number;
   attemptId: string;
   deviceId: string;
   leaseVersion: number;
@@ -71,7 +70,6 @@ const hasRequiredPermitReferences = (permit: ExtensionCommandPermit): boolean =>
   permit.commandId,
   permit.replyChannelToken,
   permit.workspaceRef,
-  permit.ownerPluginId,
   permit.jobId,
   permit.attemptId,
   permit.deviceId,
@@ -85,8 +83,8 @@ const hasValidPermitNumbers = (permit: ExtensionCommandPermit): boolean => permi
   && permit.actionOrdinal >= 1
   && Number.isInteger(permit.leaseVersion)
   && permit.leaseVersion >= 1
-  && Number.isInteger(permit.pluginVersion)
-  && permit.pluginVersion >= 1
+  && Number.isInteger(permit.resultRevision)
+  && permit.resultRevision >= 0
   && Number.isInteger(permit.commandTtlMs)
   && permit.commandTtlMs >= 1
   && permit.commandTtlMs <= 3_600_000;

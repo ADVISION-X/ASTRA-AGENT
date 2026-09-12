@@ -2,72 +2,6 @@ import type { ProductionRoutePolicy, WebsiteAgentTask } from "../../mediator/pro
 import { productResultValidation as result } from "../../mediator/product-plugin-contract.js";
 
 type ContractObject = Readonly<Record<string, unknown>>;
-export type PublicKnowledgeReceptionReceipt = Readonly<{
-  jobId: string;
-  attemptId: string;
-  turnMarker: string;
-  assistantTurnId: string;
-  artifactRef: string;
-  rawDomHash: string;
-  semanticTextHash: string;
-}>;
-
-type NormalizationStep = Readonly<{
-  path: string;
-  from: "string" | "string[]" | "object";
-  to: "string" | "string[]" | "object[]";
-}>;
-
-export type PublicKnowledgeReceptionTrace = Readonly<{
-  schema_version: "agent-lossless-normalization.v1";
-  job_id: string | null;
-  attempt_id: string | null;
-  turn_marker: string | null;
-  assistant_turn_id: string | null;
-  artifact_ref: string | null;
-  raw_dom_hash: string | null;
-  semantic_text_hash: string | null;
-  transformations: readonly NormalizationStep[];
-}>;
-
-const receptionByOutput = new WeakMap<object, PublicKnowledgeReceptionTrace>();
-
-const RESEARCH_STRING_ARRAY_PATHS = new Set([
-  "topic_manifest.secondary_cluster_ids",
-  "topic_manifest.concept_keys",
-  "topic_manifest.relation_keys",
-  "topic_manifest.method_scope",
-  "closest_existing_article_ids",
-  "research_claim_units.*.conditions",
-  "research_claim_units.*.exceptions",
-  "research_claim_units.*.supporting_citations",
-  "research_claim_units.*.counter_citations",
-  "research_claim_units.*.uncertainty_refs",
-  "relation_assertions.*.supporting_claim_ids",
-]);
-
-const RESEARCH_OBJECT_ARRAY_PATHS = new Set([
-  "citations", "uncertainties", "research_claim_units", "relation_assertions",
-]);
-
-const RESEARCH_STRING_PATHS = new Set([
-  "schema_version", "decision", "editorial_intent", "catalog_comparison_note", "research_markdown",
-  "novelty_basis", "topic_manifest.primary_question", "topic_manifest.answer_scope",
-  "topic_manifest.excluded_scope", "topic_manifest.primary_cluster_id", "topic_manifest.reader_level",
-  "citations.*.citation_id", "citations.*.book_id", "citations.*.locator",
-  "uncertainties.*.uncertainty_id", "uncertainties.*.topic", "uncertainties.*.status",
-  "uncertainties.*.detail", "uncertainties.*.impact", "research_claim_units.*.claim_id",
-  "research_claim_units.*.claim_kind", "research_claim_units.*.summary",
-  "relation_assertions.*.target_article_id", "relation_assertions.*.relation_kind",
-]);
-
-const ARTICLE_STRING_ARRAY_PATHS = new Set(["safety_notes"]);
-const ARTICLE_OBJECT_ARRAY_PATHS = new Set(["citations", "claim_coverage"]);
-const ARTICLE_STRING_PATHS = new Set([
-  "schema_version", "title", "editor_note", "article_markdown",
-  "citations.*.citation_id", "citations.*.book_id", "citations.*.locator",
-  "claim_coverage.*.claim_id", "claim_coverage.*.status", "claim_coverage.*.reason_if_omitted",
-]);
 
 const contractObject = (value: unknown, code: string): ContractObject => result.object(value, code);
 const contractText = (contract: ContractObject, key: string, code: string): string =>
@@ -95,80 +29,12 @@ export const publicKnowledgeTurnContract = (
   publicKnowledgeResultContract(route), turn, "PUBLIC_KNOWLEDGE_TURN_CONTRACT_MISSING",
 );
 
-const normalizeTurn = (
-  input: Readonly<Record<string, unknown>>,
-  receipt: PublicKnowledgeReceptionReceipt | undefined,
-  stringArrayPaths: ReadonlySet<string>,
-  objectArrayPaths: ReadonlySet<string>,
-  stringPaths: ReadonlySet<string>,
-): Readonly<Record<string, unknown>> => {
-  const transformations: NormalizationStep[] = [];
-  const visit = (value: unknown, actualPath: string, schemaPath: string): unknown => {
-    let normalized = value;
-    if (stringArrayPaths.has(schemaPath) && typeof normalized === "string") {
-      normalized = [normalized];
-      transformations.push({ path: actualPath, from: "string", to: "string[]" });
-    } else if (objectArrayPaths.has(schemaPath)
-      && normalized !== null && typeof normalized === "object" && !Array.isArray(normalized)) {
-      normalized = [normalized];
-      transformations.push({ path: actualPath, from: "object", to: "object[]" });
-    } else if (stringPaths.has(schemaPath) && Array.isArray(normalized)
-      && normalized.length === 1 && typeof normalized[0] === "string") {
-      normalized = normalized[0];
-      transformations.push({ path: actualPath, from: "string[]", to: "string" });
-    }
-    if (Array.isArray(normalized)) {
-      return normalized.map((item, index) => visit(
-        item, `${actualPath}[${index}]`, schemaPath ? `${schemaPath}.*` : "*",
-      ));
-    }
-    if (normalized !== null && typeof normalized === "object") {
-      return Object.fromEntries(Object.entries(normalized as Record<string, unknown>).map(([key, item]) => [
-        key,
-        visit(item, actualPath ? `${actualPath}.${key}` : key, schemaPath ? `${schemaPath}.${key}` : key),
-      ]));
-    }
-    return normalized;
-  };
-  const normalized = Object.freeze(visit(input, "", "") as Record<string, unknown>);
-  receptionByOutput.set(normalized, Object.freeze({
-    schema_version: "agent-lossless-normalization.v1",
-    job_id: receipt?.jobId ?? null,
-    attempt_id: receipt?.attemptId ?? null,
-    turn_marker: receipt?.turnMarker ?? null,
-    assistant_turn_id: receipt?.assistantTurnId ?? null,
-    artifact_ref: receipt?.artifactRef ?? null,
-    raw_dom_hash: receipt?.rawDomHash ?? null,
-    semantic_text_hash: receipt?.semanticTextHash ?? null,
-    transformations: Object.freeze(transformations),
-  }));
-  return normalized;
-};
-
-export const publicKnowledgeReceptionOf = (
-  output: Readonly<Record<string, unknown>>,
-): PublicKnowledgeReceptionTrace => receptionByOutput.get(output) ?? Object.freeze({
-  schema_version: "agent-lossless-normalization.v1",
-  job_id: null,
-  attempt_id: null,
-  turn_marker: null,
-  assistant_turn_id: null,
-  artifact_ref: null,
-  raw_dom_hash: null,
-  semantic_text_hash: null,
-  transformations: Object.freeze([]),
-  });
-
 export const parsePublicKnowledgeResearch = (
   raw: string,
   route: ProductionRoutePolicy,
-  receipt?: PublicKnowledgeReceptionReceipt,
 ): Readonly<Record<string, unknown>> => {
   const contract = publicKnowledgeTurnContract(route, "research");
-  const output = normalizeTurn(
-    result.parseJsonObject(raw, "PUBLIC_KNOWLEDGE_RESEARCH"), receipt,
-    RESEARCH_STRING_ARRAY_PATHS, RESEARCH_OBJECT_ARRAY_PATHS, RESEARCH_STRING_PATHS,
-  );
+  const output = Object.freeze(result.parseJsonObject(raw, "PUBLIC_KNOWLEDGE_RESEARCH"));
   if (output.schema_version !== contractText(contract, "schema_version", "PUBLIC_KNOWLEDGE_RESEARCH_CONTRACT_INVALID")
     || !contractValues(contract, "decision_values", "PUBLIC_KNOWLEDGE_RESEARCH_CONTRACT_INVALID")
       .includes(String(output.decision))) {
@@ -180,13 +46,9 @@ export const parsePublicKnowledgeResearch = (
 export const parsePublicKnowledgeArticle = (
   raw: string,
   route: ProductionRoutePolicy,
-  receipt?: PublicKnowledgeReceptionReceipt,
 ): Readonly<Record<string, unknown>> => {
   const contract = publicKnowledgeTurnContract(route, "article");
-  const output = normalizeTurn(
-    result.parseJsonObject(raw, "PUBLIC_KNOWLEDGE_ARTICLE"), receipt,
-    ARTICLE_STRING_ARRAY_PATHS, ARTICLE_OBJECT_ARRAY_PATHS, ARTICLE_STRING_PATHS,
-  );
+  const output = Object.freeze(result.parseJsonObject(raw, "PUBLIC_KNOWLEDGE_ARTICLE"));
   if (output.schema_version !== contractText(contract, "schema_version", "PUBLIC_KNOWLEDGE_ARTICLE_CONTRACT_INVALID")) {
     result.fail("PUBLIC_KNOWLEDGE_ARTICLE_INVALID");
   }

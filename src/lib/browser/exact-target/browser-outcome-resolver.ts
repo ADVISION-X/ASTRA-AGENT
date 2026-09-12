@@ -1,6 +1,5 @@
 export type BrowserOutcomeResolutionReceipt = Readonly<{
   schemaVersion: "grasseye.browser.outcome-resolution.v1";
-  ownerPluginId: string;
   commandId: string;
   outcome: "TERMINAL_SUCCESS" | "TERMINAL_FAILURE";
   mutationOutcome: "dispatched";
@@ -11,12 +10,10 @@ export type BrowserOutcomeResolutionReceipt = Readonly<{
 }>;
 
 /** The owning plugin may submit fresh read-only facts; Browser alone validates and settles its WAL. */
-export const assertOwningPluginReconciliationEvidence = (
+export const assertBrowserReconciliationEvidence = (
   receipt: BrowserOutcomeResolutionReceipt,
-  ownerPluginId: string,
 ): void => {
   if (receipt.schemaVersion !== "grasseye.browser.outcome-resolution.v1"
-    || receipt.ownerPluginId !== ownerPluginId
     || receipt.commandId.length === 0
     || receipt.mutationOutcome !== "dispatched"
     || receipt.positiveEvidenceRef.length === 0

@@ -11,7 +11,7 @@ import { resolveStoredProductionAuthority } from
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
-import { HASH_A, HASH_B, identityFor, resultFor, task } from "./agent-production-runtime-fixtures.js";
+import { HASH_A, HASH_B, resultFor, task } from "./agent-production-runtime-fixtures.js";
 import { verifyBrowserFailureStoreContract } from
   "./agent-production-runtime-browser-failure.acceptance-support.js";
 
@@ -36,9 +36,8 @@ try {
   const accepted = task({
     jobId: "job:three-truths", productId: "payment_screenshot_observation", actionId: "observe",
   });
-  const identity = identityFor(accepted);
   const firstAttempt = "attempt:three-truths:1";
-  store.acceptTask(accepted, identity, firstAttempt);
+  store.acceptTask(accepted, firstAttempt);
   store.markExecuting(accepted.job_id);
   const firstFailure = serializeTerminalFailure(executionFailure("failed", "PROVIDER_REJECTED"));
   store.recordAttemptFailure(accepted.job_id, firstAttempt, firstFailure);
@@ -52,10 +51,10 @@ try {
   ), /PRODUCTION_ATTEMPT_FAILURE_IMMUTABLE/u);
 
   const secondAttempt = "attempt:three-truths:2";
-  const second = store.acceptTask(accepted, identity, secondAttempt);
+  const second = store.acceptTask(accepted, secondAttempt);
   assert.equal(second.current_attempt_id, secondAttempt);
   assert.equal(second.attempt_failure, null);
-  assert.equal(store.acceptTask(accepted, identity, secondAttempt).current_reason, "LEASE_REGRANTED");
+  assert.equal(store.acceptTask(accepted, secondAttempt).current_reason, "LEASE_REGRANTED");
 
   const artifactKey = "artifact:three-truths";
   store.enqueue({
@@ -92,7 +91,7 @@ try {
   assert.equal(resolveStoredProductionAuthority(
     dataDirectory, `production-task:${accepted.job_id}`, HASH_A,
   ), "mismatch");
-  const staged = { ...resultFor(accepted, identity), evidence_refs: [`art-${"a".repeat(64)}`] };
+  const staged = { ...resultFor(accepted), evidence_refs: [`art-${"a".repeat(64)}`] };
   store.stageResult(accepted.job_id, staged);
   store.enqueue({ idempotency_key: "artifact:envelope", kind: "artifact",
     path: `/internal/ai-production/v6/jobs/${encodeURIComponent(accepted.job_id)}/artifacts/envelope`,

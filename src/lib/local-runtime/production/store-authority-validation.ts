@@ -20,32 +20,22 @@ export const persistedDate = (value: unknown): value is string =>
   typeof value === "string" && Number.isFinite(Date.parse(value));
 const authorityCorrupt = (): never => { throw new SyntaxError("PRODUCTION_AUTHORITY_ROW_CORRUPT"); };
 
-const durableIdentityValid = (record: StoredProductionTask): boolean => {
-  const identity = record.identity;
-  return JSON.stringify(Object.keys(identity).sort()) === JSON.stringify([
-    "plugin_id", "plugin_version", "request_hash", "skill_hash",
-  ]) && [identity.request_hash, identity.skill_hash].every(persistedHash)
-    && typeof identity.plugin_id === "string" && identity.plugin_id.length > 0
-    && Number.isSafeInteger(identity.plugin_version) && Number(identity.plugin_version) > 0
-    && identity.request_hash === record.task.request_hash;
-};
 const resultValid = (record: StoredProductionTask, result: WebsiteAgentResult | null): boolean => !result
   || (WebsiteAgentResultSchema.safeParse(result).success && result.job_id === record.task.job_id
     && result.source_task_id === record.task.source_task_id && result.product_id === record.task.product_id
-    && result.action_id === record.task.action_id && result.plugin_id === record.identity.plugin_id
-    && result.plugin_version === record.identity.plugin_version);
+    && result.action_id === record.task.action_id);
 const taskStateValid = (record: StoredProductionTask): boolean => record.status === "completed"
   ? Boolean(record.result) && record.staged_result === null && record.current_reason === null
   : record.result === null && record.current_reason !== null;
 
 export const productionTaskAuthorityValid = (record: StoredProductionTask): boolean =>
-  WebsiteAgentTaskSchema.safeParse(record.task).success && durableIdentityValid(record)
+  WebsiteAgentTaskSchema.safeParse(record.task).success
   && resultValid(record, record.result) && resultValid(record, record.staged_result) && taskStateValid(record)
   && record.current_attempt_id.length > 0 && persistedDate(record.updated_at)
   && (record.attempt_failure === null || isSerializedTerminalFailure(record.attempt_failure));
 export const productionTaskRowValid = (row: TaskRow, record: StoredProductionTask): boolean =>
   row.job_id === record.task.job_id && row.request_hash === record.task.request_hash
-  && row.request_hash === record.identity.request_hash && productionTaskAuthorityValid(record);
+  && productionTaskAuthorityValid(record);
 
 const outboxIdentityValid = (row: ProductionOutboxAuthorityRow, expectedKey?: string): boolean =>
   Boolean(row.idempotency_key) && (expectedKey === undefined || row.idempotency_key === expectedKey)

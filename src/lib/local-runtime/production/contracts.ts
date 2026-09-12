@@ -184,8 +184,6 @@ export interface WebsiteAgentResult {
   readonly source_task_id: string;
   readonly product_id: ProductionProductId;
   readonly action_id: ProductionActionId;
-  readonly plugin_id: string;
-  readonly plugin_version: number;
   readonly result_contract_id: typeof RESULT_CONTRACT_ID;
   readonly result_contract_version: typeof RESULT_CONTRACT_VERSION;
   readonly result_payload_ref: string;
@@ -209,8 +207,6 @@ export const WebsiteAgentResultSchema = z.object({
   source_task_id: z.string().min(1).max(240),
   product_id: ProductionProductIdSchema,
   action_id: ProductionActionIdSchema,
-  plugin_id: z.string().min(1).max(160),
-  plugin_version: z.number().int().positive(),
   result_contract_id: z.literal(RESULT_CONTRACT_ID),
   result_contract_version: z.literal(RESULT_CONTRACT_VERSION),
   result_payload_ref: z.string().min(1).max(1_000),
@@ -228,52 +224,35 @@ export const WebsiteAgentResultSchema = z.object({
   execution_receipt_hash: hashSchema,
 }).strict();
 
-export interface DurablePluginIdentity {
-  readonly plugin_id: string;
-  readonly plugin_version: number;
-  readonly skill_hash: ProductionHash;
-  readonly request_hash: ProductionHash;
-}
-
-export interface AgentPluginCapabilityManifest {
-  readonly schema_version: "agent-plugin-capability-manifest.v1";
-  readonly catalog_hash: ProductionHash;
-  readonly plugins: readonly Readonly<{
-    plugin_id: string;
-    plugin_version: number;
-    accepts: readonly Readonly<{
-      product_id: ProductionProductId;
-      action_id: ProductionActionId;
-    }>[];
+export interface AgentRouteCapabilityManifest {
+  readonly schema_version: "agent-route-capability-manifest.v1";
+  readonly route_hash: ProductionHash;
+  readonly routes: readonly Readonly<{
+    product_id: ProductionProductId;
+    action_id: ProductionActionId;
     task_contract_version: typeof TASK_CONTRACT_VERSION;
     result_contract_version: typeof RESULT_CONTRACT_VERSION;
   }>[];
 }
 
-export const AgentPluginCapabilityManifestSchema = z.object({
-  schema_version: z.literal("agent-plugin-capability-manifest.v1"),
-  catalog_hash: hashSchema,
-  plugins: z.array(z.object({
-    plugin_id: z.string().min(1).max(160),
-    plugin_version: z.number().int().positive(),
-    accepts: z.array(z.object({
-      product_id: ProductionProductIdSchema,
-      action_id: ProductionActionIdSchema,
-    }).strict()).min(1),
+export const AgentRouteCapabilityManifestSchema = z.object({
+  schema_version: z.literal("agent-route-capability-manifest.v1"),
+  route_hash: hashSchema,
+  routes: z.array(z.object({
+    product_id: ProductionProductIdSchema,
+    action_id: ProductionActionIdSchema,
     task_contract_version: z.literal(TASK_CONTRACT_VERSION),
     result_contract_version: z.literal(RESULT_CONTRACT_VERSION),
-  }).strict()).length(12),
+  }).strict()).length(40),
 }).strict().superRefine((manifest, context) => {
-  if (hashCanonical(manifest.plugins) !== manifest.catalog_hash) {
+  if (hashCanonical(manifest.routes) !== manifest.route_hash) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "AGENT_CAPABILITY_MANIFEST_HASH_MISMATCH" });
   }
-  const pluginIds = new Set(manifest.plugins.map((plugin) => plugin.plugin_id));
-  const routes = manifest.plugins.flatMap((plugin) => plugin.accepts
-    .map((accept) => `${accept.product_id}\0${accept.action_id}`));
-  if (pluginIds.size !== manifest.plugins.length || new Set(routes).size !== routes.length) {
+  const routes = manifest.routes.map((route) => `${route.product_id}\0${route.action_id}`);
+  if (new Set(routes).size !== routes.length) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "AGENT_CAPABILITY_MANIFEST_IDENTITY_DUPLICATE" });
   }
-  if (routes.length !== 40) {
+  if (manifest.routes.length !== 40) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "AGENT_CAPABILITY_ROUTE_DENOMINATOR_INVALID" });
   }
 });

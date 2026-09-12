@@ -35,7 +35,7 @@ import {
 } from "./browser-mutation-store.js";
 import type { BrowserAtomicStepIdentity } from "./browser-target-lease.js";
 import {
-  assertOwningPluginReconciliationEvidence,
+  assertBrowserReconciliationEvidence,
   type BrowserOutcomeResolutionReceipt,
 } from "./browser-outcome-resolver.js";
 import { decodeBrowserMutationReceipt } from "./browser-mutation-receipt.js";
@@ -220,9 +220,8 @@ const mutationIdentity = (permit: BrowserCommandPermit, command: BrowserGoverned
       ? browserProviderEffectIdentityHash(permit, payloadHash)
       : hashValue([callIdentityHash, permit.targetRef]),
     exactCallIdentityHash: callIdentityHash,
-    ownerPluginId: permit.ownerPluginId,
-    pluginVersion: permit.pluginVersion,
     jobId: permit.jobId,
+    resultRevision: permit.resultRevision,
     attemptId: permit.attemptId,
     leaseVersion: permit.leaseVersion,
     executionFenceHash: permit.writerFenceHash,
@@ -347,14 +346,11 @@ export class BrowserCommandActor {
     return this.mutations.readAtomicStepOutcome({
       jobId: binding.jobId,
       attemptId: binding.attemptId,
-      ownerPluginId: binding.ownerPluginId,
-      pluginVersion: binding.pluginVersion,
       exactCallIdentityHash: hashValue([
         binding.jobId,
+        binding.resultRevision,
         ...(identity.replayPolicy === "provider-effect-once"
           ? [] : [binding.attemptId, binding.writerFenceHash]),
-        binding.ownerPluginId,
-        binding.pluginVersion,
         identity.productStepId,
         identity.callId,
         identity.childCapabilityId,
@@ -497,12 +493,11 @@ export class BrowserCommandActor {
   public async resolveDispatchedMutation(receipt: BrowserOutcomeResolutionReceipt): Promise<void> {
     const entry = this.mutations.readDispatched(receipt.commandId);
     if (!entry) throw new Error("BROWSER_MUTATION_UNSETTLED");
-    assertOwningPluginReconciliationEvidence(receipt, entry.ownerPluginId);
+    assertBrowserReconciliationEvidence(receipt);
     if (receipt.uniqueTargetRef !== entry.targetRef) throw new Error("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
     const state = receipt.outcome === "TERMINAL_SUCCESS" ? "CONFIRMED" : "REJECTED";
     this.mutations.resolve({
       commandId: receipt.commandId,
-      ownerPluginId: receipt.ownerPluginId,
       targetRef: receipt.uniqueTargetRef,
       state,
       mutationOutcome: receipt.mutationOutcome,

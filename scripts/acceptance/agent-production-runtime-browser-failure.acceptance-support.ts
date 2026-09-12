@@ -1,7 +1,7 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 
 import type { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
-import { HASH_A, identityFor, task } from "./agent-production-runtime-fixtures.js";
+import { HASH_A, task } from "./agent-production-runtime-fixtures.js";
 
 export const verifyBrowserFailureStoreContract = (store: ProductionRuntimeStore): void => {
   const legalPairs = Object.freeze([
@@ -19,7 +19,7 @@ export const verifyBrowserFailureStoreContract = (store: ProductionRuntimeStore)
       actionId: "observe",
     });
     const attemptId = `attempt:browser-failure-pair:${index}`;
-    store.acceptTask(browserTask, identityFor(browserTask), attemptId);
+    store.acceptTask(browserTask, attemptId);
     const failure = Object.freeze({
       code: "BROWSER_POSTCONDITION_FAILED",
       mutation_outcome: pair.mutation_outcome,
@@ -40,7 +40,7 @@ export const verifyBrowserFailureStoreContract = (store: ProductionRuntimeStore)
     actionId: "observe",
   });
   const incompleteAttempt = "attempt:browser-failure-incomplete-evidence";
-  store.acceptTask(incompleteTask, identityFor(incompleteTask), incompleteAttempt);
+  store.acceptTask(incompleteTask, incompleteAttempt);
   assert.throws(() => store.recordAttemptFailure(incompleteTask.job_id, incompleteAttempt, {
     code: "BROWSER_POSTCONDITION_FAILED",
     mutation_outcome: "no",

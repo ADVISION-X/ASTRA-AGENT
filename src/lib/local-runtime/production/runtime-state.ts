@@ -1,6 +1,7 @@
 import path from "node:path";
 
 import type { GptAbilityGroup } from "../../../capabilities/gpt/index.js";
+import type { ForensicsPersistenceAbilityGroup } from "../../../capabilities/forensics-persistence/index.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
 import { executionFailure } from "../../execution-failure.js";
 import {
@@ -23,6 +24,7 @@ export type RuntimeState = {
   readonly session: ProductionWorkerSession;
   readonly browserAuthority: WorkbenchBrowserAuthority;
   readonly gpt: GptAbilityGroup;
+  readonly evidenceStore: ForensicsPersistenceAbilityGroup;
   readonly dataDir: string;
   readonly runtimeLogger: RuntimeLogger;
   draining: boolean;
@@ -31,7 +33,6 @@ export type RuntimeState = {
   lastErrorReason: string | null;
   stopped: boolean;
   ledgerReconciled: boolean;
-  reconciliationBaselineValid: boolean;
 };
 
 export const diagnoseProductionRuntime = (
@@ -45,8 +46,7 @@ export const diagnoseProductionRuntime = (
 });
 
 export const refreshLedgerReconciled = (state: RuntimeState): void => {
-  state.ledgerReconciled = state.reconciliationBaselineValid
-    && state.store.isLedgerConsistent(new Set(state.active.keys()));
+  state.ledgerReconciled = state.store.isLedgerConsistent(new Set(state.active.keys()));
 };
 
 export const wait = async (milliseconds: number, signal: AbortSignal): Promise<void> => {

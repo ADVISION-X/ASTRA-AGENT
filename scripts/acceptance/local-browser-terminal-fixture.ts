@@ -29,7 +29,7 @@ export const permitAuthority = (commandId: string) => ({
 });
 
 export const permitExecution = (commandId: string) => ({
-  ownerPluginId: "fixture-product-plugin", pluginVersion: 1, jobId: `job:${commandId}`,
+  jobId: `job:${commandId}`, resultRevision: 0,
   attemptId: "attempt-actor", deviceId: "device-1", leaseVersion: 1,
   localOrderId: `order:${commandId}`, targetLeaseRef: "lease-1", targetRef: "target-1",
   documentRef: "document-1", productStepId: "report_translation:candidate_a",

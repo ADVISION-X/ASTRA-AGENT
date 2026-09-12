@@ -19,7 +19,6 @@ import {
   parseTerminalReceipt,
   parseTerminalReceiptExpectation,
   sha256,
-  type DurablePluginIdentity,
   type LocalProductionMaterial,
   type ProductionHash,
   type TerminalReceipt,
@@ -326,7 +325,6 @@ type ProductionResultUploadInput = Readonly<{
   session: ProductionWorkerSession;
   store: ProductionRuntimeStore;
   job: ClaimedProductionTask;
-  identity: DurablePluginIdentity;
   output: ProductPluginOutput;
   priorArtifactReceipts?: readonly UploadedResultReceipt[];
 }>;
@@ -340,8 +338,6 @@ const buildProductionResultEnvelope = (
   source_task_id: input.job.source_task_id,
   product_id: input.job.product_id,
   action_id: input.job.action_id,
-  plugin_id: input.identity.plugin_id,
-  plugin_version: input.identity.plugin_version,
   result_contract_id: RESULT_CONTRACT_ID,
   result_contract_version: RESULT_CONTRACT_VERSION,
   result_payload_ref: payloadReceipt.object_ref,
@@ -359,7 +355,9 @@ const buildProductionResultEnvelope = (
   execution_receipt_hash: hashCanonical({
     job_id: input.job.job_id,
     attempt_id: input.job.grant.attempt_id,
-    durable_identity: input.identity,
+    request_hash: input.job.request_hash,
+    product_id: input.job.product_id,
+    action_id: input.job.action_id,
     payload_hash: payloadReceipt.sha256,
     evidence_refs: input.output.evidence_refs,
   }),

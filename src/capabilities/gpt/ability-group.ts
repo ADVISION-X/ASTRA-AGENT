@@ -81,8 +81,7 @@ const proofFor = <K extends GptChildCapabilityId>(input: ProofInput<K>): GptChil
     executionId: input.intent.executionId,
     jobId: input.intent.jobId,
     attemptId: input.intent.attemptId,
-    pluginId: input.intent.pluginId,
-    pluginVersion: input.intent.pluginVersion,
+    resultRevision: input.intent.resultRevision,
     productStepId: input.intent.productStepId,
     callId: input.intent.callId,
     inputHash: input.intent.inputHash,
@@ -344,15 +343,14 @@ const assertExecutionIdentity = (intent: Readonly<{
   executionId: string;
   jobId: string;
   attemptId: string;
-  pluginId: string;
-  pluginVersion: number;
+  resultRevision: number;
   productStepId: string;
   callId: string;
   inputHash: `sha256:${string}`;
   actionOrdinal: number;
 }>): void => {
-  if (!intent.executionId || !intent.jobId || !intent.attemptId || !intent.pluginId
-    || !Number.isSafeInteger(intent.pluginVersion) || intent.pluginVersion < 1
+  if (!intent.executionId || !intent.jobId || !intent.attemptId
+    || !Number.isSafeInteger(intent.resultRevision) || intent.resultRevision < 0
     || !intent.productStepId || !intent.callId
     || !Number.isSafeInteger(intent.actionOrdinal) || intent.actionOrdinal < 1
     || !/^sha256:[a-f0-9]{64}$/u.test(intent.inputHash)) {

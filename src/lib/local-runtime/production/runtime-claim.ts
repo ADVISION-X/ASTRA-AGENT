@@ -19,14 +19,12 @@ import {
 } from "./cloud-client.js";
 import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import { productionCatalogHash } from "./catalog.js";
-import { authorizeWebsiteAgentTask } from "../../../mediator/agent-production-route.js";
 import { hashCanonical, type WebsiteAgentTask } from "./contracts.js";
 import type { ProductionExecutionLease } from "./contracts.js";
 import {
   heartbeatWhileRunning,
   ProductionRuntimeBoundaryError,
 } from "./runtime-execution-heartbeat.js";
-import type { StoredProductionTask } from "./store.js";
 import { websiteAgentTaskFromClaim, type ClaimedProductionTask } from "./transport-protocol.js";
 import {
   releaseLeaseWithLog,
@@ -41,9 +39,9 @@ import {
   type RuntimeState,
 } from "./runtime-state.js";
 import {
-  permanentAuthorizationRevoked,
-  settlePermanentAuthorizationRevocation,
-} from "./runtime-permanent-revocation.js";
+  purgeDeletedJob,
+  websiteJobAbsent,
+} from "./runtime-business-admission.js";
 import { productionRuntimeTaskPath } from "./runtime-storage-inventory.js";
 import { reconcileBusinessAdmission } from "./runtime-business-admission.js";
 
@@ -54,7 +52,7 @@ const isResultTransportBoundary = (error: unknown): boolean => {
   return code === "CLOUD_TRANSPORT_UNAVAILABLE"
     || code === "PRODUCTION_OUTBOX_DELIVERY_BACKOFF_ACTIVE"
     || code === "AI_LEASE_FENCE_STALE" || code === "AI_V6_LEASE_RACE"
-    || code === "AI_V6_JOB_NOT_FOUND"
+    || websiteJobAbsent(error)
     || code.startsWith("PRODUCTION_REMOTE_RECEIPT_")
     || code.startsWith("PRODUCTION_OUTBOX_")
     || (httpStatus !== null && httpStatus >= 500);
@@ -96,14 +94,9 @@ const persistAttemptFailure = async (
   }
 };
 
-const assertClaimIdentity = (job: ClaimedProductionTask, task: WebsiteAgentTask): void => {
+const assertClaimIdentity = (job: ClaimedProductionTask): void => {
   if (job.grant.capability_manifest_hash !== productionCatalogHash) {
     throw executionFailure("failed", "CAPABILITY_MANIFEST_CHANGED_BEFORE_ACCEPT");
-  }
-  const plugin = authorizeWebsiteAgentTask(task).identity;
-  if (job.grant.expected_plugin_id !== plugin.plugin_id
-    || job.grant.expected_plugin_version !== plugin.plugin_version) {
-    throw executionFailure("failed", "CLAIMED_PLUGIN_IDENTITY_MISMATCH");
   }
 };
 
@@ -114,7 +107,7 @@ const acceptClaim = (
   jobSpan: RuntimeSpanHandle,
 ) => {
   const task = websiteAgentTaskFromClaim(job);
-  assertClaimIdentity(job, task);
+  assertClaimIdentity(job);
   const budget = leaseBudget(job, abort);
   const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
     traceId: job.job_id, parentSpanId: jobSpan.spanId, owner: "production-runtime",
@@ -180,7 +173,6 @@ const executeAndUpload = async (input: Readonly<{
   task: WebsiteAgentTask;
   budget: ProductionExecutionLease;
   materials: Awaited<ReturnType<typeof downloadProductionMaterials>>;
-  identity: StoredProductionTask["identity"];
   abort: AbortController;
   jobSpan: RuntimeSpanHandle;
 }>) => {
@@ -201,7 +193,7 @@ const executeAndUpload = async (input: Readonly<{
           uploaded = await runRuntimeSpan({
             span, failureCode: "RESULT_UPLOAD_FAILED", action: () => uploadProductionResult({
               session: input.state.session, store: input.state.store, job: input.job,
-              identity: input.identity, output,
+              output,
               priorArtifactReceipts: generatedImageReceipts,
             }),
           });
@@ -277,7 +269,15 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
   }));
   try {
     acceptance.durable = "unaccepted";
-    const remote = await readProductionDeviceJobStatus(state.session, job.job_id);
+    let remote: Awaited<ReturnType<typeof readProductionDeviceJobStatus>>;
+    try {
+      remote = await readProductionDeviceJobStatus(state.session, job.job_id);
+    } catch (error) {
+      if (!websiteJobAbsent(error)) throw error;
+      await purgeDeletedJob(state, job.job_id);
+      requireRuntimeLogWrite(jobSpan.terminal({ outcome: "succeeded" }));
+      return;
+    }
     if (remote.status !== "failed" || remote.terminal_status !== null
       || remote.accepted_attempt_count !== job.grant.accepted_attempt_count) {
       throw executionFailure("failed", "PRODUCTION_ATTEMPT_AUTHORITY_CONFLICT");
@@ -290,12 +290,13 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
     try {
       result = await executeAndUpload({
         state, job, task: claim.task, budget: claim.budget,
-        materials, identity: claim.record.identity, abort, jobSpan,
+        materials, abort, jobSpan,
       });
     } catch (error) {
       if (error instanceof ProductionRuntimeBoundaryError) throw error.boundaryCause;
-      if (permanentAuthorizationRevoked(abort.signal)) {
-        await settlePermanentAuthorizationRevocation(state, job, error, jobSpan);
+      if (websiteJobAbsent(error)) {
+        await purgeDeletedJob(state, job.job_id);
+        requireRuntimeLogWrite(jobSpan.terminal({ outcome: "succeeded" }));
         return;
       }
       terminalSpanFailure(
@@ -306,6 +307,15 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
     }
     await completeClaim({ state, job, ...result, materialDir, jobSpan });
   } catch (error) {
+    if (websiteJobAbsent(error)) {
+      try {
+        await purgeDeletedJob(state, job.job_id);
+        requireRuntimeLogWrite(jobSpan.terminal({ outcome: "succeeded" }));
+        return;
+      } catch (purgeError) {
+        error = purgeError;
+      }
+    }
     const failureEvent = terminalSpanFailure(
       jobSpan, error, runtimeLogCauseEventId(error), "JOB_RUNTIME_BOUNDARY_FAILED",
     );

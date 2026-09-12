@@ -11,5 +11,6 @@ type ForensicsAppendArtifactRequest = Omit<ForensicsAppendArtifactInput, "capabi
 
 export interface ForensicsPersistenceAbilityGroup {
   appendArtifact(input: ForensicsAppendArtifactRequest): Promise<ForensicsAppendArtifactResult>;
+  deleteArtifactsForMission(missionId: string): Promise<void>;
   readArtifactRef(input: ForensicsReadArtifactRefInput): Promise<ForensicsReadArtifactResult>;
 }

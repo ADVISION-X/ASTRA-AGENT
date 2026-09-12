@@ -592,6 +592,18 @@
             "article",
             "image"
           ],
+          "field_types": {
+            "string": [
+              "schema_version"
+            ],
+            "object": [
+              "research"
+            ],
+            "object_or_null": [
+              "article",
+              "image"
+            ]
+          },
           "decline_requires_null": [
             "article",
             "image"
@@ -617,10 +629,47 @@
             "relation_assertions",
             "novelty_basis"
           ],
+          "field_types": {
+            "string": [
+              "schema_version",
+              "decision",
+              "editorial_intent",
+              "catalog_comparison_note",
+              "research_markdown",
+              "novelty_basis"
+            ],
+            "object": [
+              "topic_manifest"
+            ],
+            "object_array": [
+              "citations",
+              "uncertainties",
+              "research_claim_units",
+              "relation_assertions"
+            ],
+            "string_array": [
+              "closest_existing_article_ids"
+            ]
+          },
+          "required_nonempty_when_proceed": [
+            "topic_manifest.primary_question",
+            "topic_manifest.answer_scope",
+            "topic_manifest.excluded_scope",
+            "topic_manifest.primary_cluster_id",
+            "editorial_intent",
+            "catalog_comparison_note",
+            "research_markdown",
+            "citations",
+            "research_claim_units"
+          ],
           "decision_values": [
             "proceed",
             "decline"
           ],
+          "decision_semantics": {
+            "proceed": "contract_complete_research_from_current_archive",
+            "decline": "contract_complete_research_cannot_be_produced_from_current_archive"
+          },
           "novelty_basis_values": [
             "independent_question",
             "narrower_condition",
@@ -643,18 +692,72 @@
               "relation_keys",
               "method_scope"
             ],
+            "field_types": {
+              "string": [
+                "primary_question",
+                "answer_scope",
+                "excluded_scope",
+                "primary_cluster_id",
+                "reader_level"
+              ],
+              "string_array": [
+                "secondary_cluster_ids",
+                "concept_keys",
+                "relation_keys",
+                "method_scope"
+              ]
+            },
             "reader_level_values": [
               "introductory",
               "intermediate",
               "advanced"
             ]
           },
+          "field_relations": {
+            "cluster_ids_unique_and_from_current_domain_archive": true,
+            "citation_ids_unique": true,
+            "citation_book_and_locator_from_current_archive": true,
+            "every_citation_referenced_by_a_claim": true,
+            "claim_ids_unique": true,
+            "uncertainty_ids_unique": true,
+            "claim_citation_refs_exist": true,
+            "claim_uncertainty_refs_exist": true,
+            "closest_article_ids_unique_and_from_current_archive": true,
+            "relation_targets_are_closest_article_ids": true,
+            "relation_supporting_claim_ids_nonempty": true,
+            "relation_supporting_claim_ids_exist_and_are_citation_bound": true
+          },
+          "claim_support": {
+            "boundary_claim_may_omit_supporting_citations": true,
+            "uncertainty_claim_may_reference_open_or_conflicting_uncertainties_without_citation": true,
+            "all_other_claims_require_supporting_citations": true
+          },
           "citation": {
             "exact_fields": [
               "citation_id",
               "book_id",
               "locator"
-            ]
+            ],
+            "field_types": {
+              "string": [
+                "citation_id",
+                "book_id",
+                "locator"
+              ]
+            },
+            "required_nonempty": [
+              "citation_id",
+              "book_id",
+              "locator"
+            ],
+            "citation_token": {
+              "outer_brackets": "optional_single_pair",
+              "inner_brackets": "forbidden",
+              "line_breaks": "forbidden"
+            },
+            "citation_reference_token_uses_same_rules": true,
+            "citation_id_example": "S1",
+            "citation_reference_example": "S1"
           },
           "uncertainty": {
             "exact_fields": [
@@ -664,10 +767,25 @@
               "detail",
               "impact"
             ],
+            "field_types": {
+              "string": [
+                "uncertainty_id",
+                "topic",
+                "status",
+                "detail",
+                "impact"
+              ]
+            },
             "status_values": [
               "resolved",
               "open",
               "conflicting"
+            ],
+            "required_nonempty": [
+              "uncertainty_id",
+              "topic",
+              "detail",
+              "impact"
             ]
           },
           "claim": {
@@ -680,6 +798,23 @@
               "supporting_citations",
               "counter_citations",
               "uncertainty_refs"
+            ],
+            "field_types": {
+              "string": [
+                "claim_id",
+                "claim_kind",
+                "summary"
+              ],
+              "string_array": [
+                "conditions",
+                "exceptions",
+                "supporting_citations",
+                "counter_citations",
+                "uncertainty_refs"
+              ]
+            },
+            "required_nonempty": [
+              "claim_id"
             ],
             "claim_kind_values": [
               "definition",
@@ -701,6 +836,15 @@
               "relation_kind",
               "supporting_claim_ids"
             ],
+            "field_types": {
+              "string": [
+                "target_article_id",
+                "relation_kind"
+              ],
+              "string_array": [
+                "supporting_claim_ids"
+              ]
+            },
             "relation_kind_values": [
               "prerequisite",
               "broader_question",
@@ -724,16 +868,93 @@
             "claim_coverage",
             "safety_notes"
           ],
+          "field_types": {
+            "string": [
+              "schema_version",
+              "title",
+              "editor_note",
+              "article_markdown"
+            ],
+            "object_array": [
+              "citations",
+              "claim_coverage"
+            ],
+            "string_array": [
+              "safety_notes"
+            ]
+          },
+          "required_nonempty": [
+            "title",
+            "editor_note",
+            "article_markdown",
+            "citations"
+          ],
           "claim_coverage": {
             "exact_fields": [
               "claim_id",
               "status",
               "reason_if_omitted"
             ],
+            "field_types": {
+              "string": [
+                "claim_id",
+                "status"
+              ],
+              "string_or_null": [
+                "reason_if_omitted"
+              ]
+            },
             "status_values": [
               "addressed",
               "intentionally_omitted"
             ]
+          },
+          "article_markdown_format": {
+            "nonempty": true,
+            "body_only": true,
+            "repeat_title": false,
+            "allowed_heading_levels": [
+              2,
+              3
+            ],
+            "allowed_block_types": [
+              "paragraph",
+              "heading",
+              "blockquote",
+              "unordered_list",
+              "ordered_list"
+            ],
+            "allowed_inline_types": [
+              "text",
+              "strong",
+              "emphasis",
+              "citation"
+            ],
+            "balanced_inline_emphasis": true,
+            "forbidden_syntax": [
+              "html",
+              "url",
+              "markdown_link",
+              "level_1_heading",
+              "code_fence",
+              "template_braces",
+              "replacement_character"
+            ]
+          },
+          "field_relations": {
+            "citation_identity_and_order_equal_research": true,
+            "citation_markers_follow_citations_first_occurrence_order": true,
+            "every_citation_has_marker": true,
+            "every_citation_marker_references_citation": true,
+            "claim_coverage_ids_equal_research_claim_ids": true
+          },
+          "citation_id_example": "S1",
+          "citation_marker_example": "[S1]",
+          "citation_marker_token": {
+            "format": "[citation_reference]",
+            "outer_brackets": "required_single_pair",
+            "inner_brackets": "forbidden",
+            "line_breaks": "forbidden"
           }
         },
         "image": {
@@ -749,6 +970,33 @@
             "width",
             "height"
           ],
+          "field_types": {
+            "string": [
+              "schema_version",
+              "artifact_id",
+              "object_ref",
+              "sha256",
+              "receipt_hash",
+              "mime_type"
+            ],
+            "integer": [
+              "bytes",
+              "width",
+              "height"
+            ]
+          },
+          "required_nonempty": [
+            "artifact_id",
+            "object_ref"
+          ],
+          "hash_fields": [
+            "sha256",
+            "receipt_hash"
+          ],
+          "hash_format": "sha256_lowercase_hex_64",
+          "integer_minimums": {
+            "bytes": 1
+          },
           "mime_type": "image/webp",
           "width": 1200,
           "height": 630

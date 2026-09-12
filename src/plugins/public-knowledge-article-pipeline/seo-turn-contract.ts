@@ -20,8 +20,6 @@ import {
 import {
   parsePublicKnowledgeArticle,
   parsePublicKnowledgeResearch,
-  publicKnowledgeReceptionOf,
-  type PublicKnowledgeReceptionReceipt,
 } from "./result-contract.js";
 
 export const PLUGIN_ID = "public-knowledge-article-pipeline";
@@ -59,58 +57,27 @@ export const hashValue = (value: unknown, code: string): ProductionHash => {
   return value as ProductionHash;
 };
 
-const receptionReceipt = (
-  task: WebsiteAgentTask,
-  attemptId: string,
-  checkpoint: SeoTurnCheckpoint,
-): PublicKnowledgeReceptionReceipt => Object.freeze({
-  jobId: task.job_id,
-  attemptId,
-  turnMarker: checkpoint.turnMarker,
-  assistantTurnId: checkpoint.assistantTurnId,
-  artifactRef: checkpoint.artifactRef,
-  rawDomHash: checkpoint.rawDomHash,
-  semanticTextHash: checkpoint.semanticTextHash,
-});
-
 export const receiveResearch = (
-  task: WebsiteAgentTask,
-  attemptId: string,
   checkpoint: SeoTurnCheckpoint,
   route: ProductionRoutePolicy,
 ): Readonly<Record<string, unknown>> => {
   try {
-    return parsePublicKnowledgeResearch(
-      checkpoint.semanticText, route, receptionReceipt(task, attemptId, checkpoint),
-    );
+    return parsePublicKnowledgeResearch(checkpoint.semanticText, route);
   } catch (error) {
 throw executionFailure("failed", failureCode(error, "PUBLIC_KNOWLEDGE_RESEARCH_RECEIVER_FAILED"), { cause: error });
   }
 };
 
 export const receiveArticle = (
-  task: WebsiteAgentTask,
-  attemptId: string,
   checkpoint: SeoTurnCheckpoint,
   route: ProductionRoutePolicy,
 ): Readonly<Record<string, unknown>> => {
   try {
-    return parsePublicKnowledgeArticle(
-      checkpoint.semanticText, route, receptionReceipt(task, attemptId, checkpoint),
-    );
+    return parsePublicKnowledgeArticle(checkpoint.semanticText, route);
   } catch (error) {
 throw executionFailure("failed", failureCode(error, "PUBLIC_KNOWLEDGE_ARTICLE_RECEIVER_FAILED"), { cause: error });
   }
 };
-
-export const receptionSidecar = (
-  research: Readonly<Record<string, unknown>>,
-  article: Readonly<Record<string, unknown>> | null,
-) => Object.freeze({
-  schema_version: "agent-public-knowledge-reception.v1",
-  research: publicKnowledgeReceptionOf(research),
-  article: article ? publicKnowledgeReceptionOf(article) : null,
-});
 
 export const textHash = (value: string): ProductionHash =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;

@@ -8,7 +8,6 @@ import {
 import { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
 import type { ProductionGptBrowserCall } from "./production-browser-lifecycle.js";
 import { executionFailure } from "../../lib/execution-failure.js";
-import { hashCanonical } from "../../lib/local-runtime/production/contracts.js";
 import type { BrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
 
 type AtomicGptCallInput = Readonly<{
@@ -30,11 +29,11 @@ export const productionGptAtomicIdentity = (
     throw new Error("GPT_TRANSACTION_CHILD_CANNOT_ACQUIRE_BROWSER");
   }
   return Object.freeze({
+    resultRevision,
     productStepId: intent.productStepId,
     callId: intent.callId,
     childCapabilityId: intent.childCapabilityId,
-    inputHash: replayPolicy === "provider-effect-once"
-      ? hashCanonical([resultRevision, intent.inputHash]) : intent.inputHash,
+    inputHash: intent.inputHash,
     actionOrdinal: intent.actionOrdinal,
     replayPolicy,
   });

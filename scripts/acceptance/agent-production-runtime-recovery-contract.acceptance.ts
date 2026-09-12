@@ -6,7 +6,7 @@ import path from "node:path";
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
-import { identityFor, task } from "./agent-production-runtime-fixtures.js";
+import { task } from "./agent-production-runtime-fixtures.js";
 
 const directory = await mkdtemp(path.join(tmpdir(), "agent-fresh-attempt-"));
 try {
@@ -16,8 +16,7 @@ try {
     productId: "payment_screenshot_observation",
     actionId: "observe",
   });
-  const identity = identityFor(job);
-  store.acceptTask(job, identity, "attempt:1");
+  store.acceptTask(job, "attempt:1");
   store.recordAttemptFailure(
     job.job_id,
     "attempt:1",
@@ -44,11 +43,11 @@ try {
     }),
     (error: unknown) => typedExecutionFailure(error)?.code === "CLOUD_TRANSPORT_UNAVAILABLE",
   );
-  const regranted = store.acceptTask(job, identity, "attempt:1");
+  const regranted = store.acceptTask(job, "attempt:1");
   assert.equal(regranted.current_reason, "LEASE_REGRANTED");
   assert.equal(regranted.attempt_failure, null,
     "Website regrant of the same accepted attempt must permit zero-submit result convergence");
-  const fresh = store.acceptTask(job, identity, "attempt:2");
+  const fresh = store.acceptTask(job, "attempt:2");
   assert.equal(fresh.current_attempt_id, "attempt:2");
   assert.equal(fresh.attempt_failure, null);
   assert.equal(fresh.staged_result, null);

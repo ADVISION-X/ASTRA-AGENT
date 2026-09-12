@@ -14,19 +14,16 @@ import { decodeCoherentObservationPacket } from "../../web/gpt-dom-observation.j
 import { GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR } from "./selectors.js";
 import { profileFromIntent } from "../../web/execution-profile-input.js";
 import {
-  MODEL_SELECTOR_TOPOLOGY_QUERIES,
-  modelSelectorAlreadyOpen,
-  modelSelectorOpenable,
-  modelSelectorTopologyCode,
-  projectModelSelectorTopology,
-  readModelSelectorTopology,
+  modelChoiceQuery,
+  projectModelChoiceState,
+  readModelChoiceState,
 } from "./observation.js";
 
-const SELECTION_POSTCONDITION = Object.freeze({
-  queries: Object.freeze(MODEL_SELECTOR_TOPOLOGY_QUERIES.map((query) => Object.freeze({
-    ...query,
-    expectedEligibleCount: query.queryId === "advanced-panel" ? 0 : 1,
-  }))) as readonly BrowserDomPostconditionQuery[],
+const SELECTION_POSTCONDITION = (modelDisplayName: string) => Object.freeze({
+  queries: Object.freeze([Object.freeze({
+    ...modelChoiceQuery(modelDisplayName),
+    expectedEligibleCount: 0,
+  })]) as readonly BrowserDomPostconditionQuery[],
   timeoutMs: 5_000,
   clickedCandidateAttribute: Object.freeze({ name: "aria-checked", equals: "true" }),
 });
@@ -44,11 +41,7 @@ export const selectExactGptModelV2Handler: GptChildHandler<"select_exact_gpt_mod
     requireExactInputKeys(intent, ["profile"]);
     const profile = profileFromIntent(intent);
     const browser = requireBrowser(context);
-    const observed = await readModelSelectorTopology(browser, profile.modelDisplayName);
-    if (!modelSelectorAlreadyOpen(observed)) {
-      throw executionFailure("failed", `GPT_MODEL_SELECTION_V2_STATE_INVALID:${modelSelectorTopologyCode(observed)}`);
-    }
-    const candidate = observed.modelChoice ?? Object.freeze({ count: 0, ariaChecked: null });
+    const candidate = await readModelChoiceState(browser, profile.modelDisplayName);
     if (candidate.count !== 1 || (candidate.ariaChecked !== "true" && candidate.ariaChecked !== "false")) {
       throw executionFailure(
         "failed",
@@ -58,7 +51,7 @@ export const selectExactGptModelV2Handler: GptChildHandler<"select_exact_gpt_mod
     const mutation = await browser.executeDomIntent({
       kind: "click", selector: GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR,
       expectedTextEquals: profile.modelDisplayName, expectedMatches: 1,
-      postClickObservation: SELECTION_POSTCONDITION,
+      postClickObservation: SELECTION_POSTCONDITION(profile.modelDisplayName),
     });
     const mutationRecord = mutation && typeof mutation === "object" && !Array.isArray(mutation)
       ? mutation as Readonly<Record<string, unknown>> : {};
@@ -66,14 +59,14 @@ export const selectExactGptModelV2Handler: GptChildHandler<"select_exact_gpt_mod
     if (!selectedReadbackValid(selectedReadback)) {
       throw executionFailure("failed", "GPT_MODEL_SELECTION_V2_SELECTED_FACT_INVALID");
     }
-    const restored = projectModelSelectorTopology(decodeCoherentObservationPacket(
+    const closed = projectModelChoiceState(decodeCoherentObservationPacket(
       mutationRecord.postconditionObservation,
-      MODEL_SELECTOR_TOPOLOGY_QUERIES,
+      [modelChoiceQuery(profile.modelDisplayName)],
     ));
-    if (!modelSelectorOpenable(restored)) {
+    if (closed.count !== 0) {
       throw executionFailure(
         "failed",
-        `GPT_MODEL_SELECTION_V2_POSTCONDITION_INVALID:${modelSelectorTopologyCode(restored)}`,
+        `GPT_MODEL_SELECTION_V2_POSTCONDITION_INVALID:count=${closed.count}`,
       );
     }
     const browserFact = requireConfirmedBrowserFact(intent, context);
@@ -81,9 +74,9 @@ export const selectExactGptModelV2Handler: GptChildHandler<"select_exact_gpt_mod
       value: { modelDisplayName: profile.modelDisplayName, previousChecked: candidate.ariaChecked,
         selectionVersion: GPT_MODEL_SELECTION_VERSION, state: "exact-model-selected" },
       ...declaredFacts({
-        ...restored.facts, decision: "ACT",
-        factResultIds: Object.freeze([...restored.facts.factResultIds, browserFact.evidenceRef]),
-        authorityRefHashes: Object.freeze([...restored.facts.authorityRefHashes, browserFact.evidenceHash]),
+        ...candidate.facts, decision: "ACT",
+        factResultIds: Object.freeze([...candidate.facts.factResultIds, browserFact.evidenceRef]),
+        authorityRefHashes: Object.freeze([...candidate.facts.authorityRefHashes, browserFact.evidenceHash]),
         mutationOutcome: "confirmed", browserFact, nativeFailureCode: null,
       }),
     });

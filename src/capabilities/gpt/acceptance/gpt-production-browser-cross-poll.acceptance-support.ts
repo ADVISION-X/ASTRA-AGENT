@@ -39,7 +39,7 @@ try {
       HASH_A,
       {
         jobId: "job:provider-deadline", attemptId: "attempt:provider-deadline",
-        pluginId: "payment-screenshot-observation", pluginVersion: 1,
+        resultRevision: 0,
         deviceId: "device:1", leaseVersion: 1,
         executionFenceHash: HASH_A, capabilityManifestHash: HASH_B,
         expiresAtMonotonic: performance.now() + 10_000, commandTtlMs: 1_000,

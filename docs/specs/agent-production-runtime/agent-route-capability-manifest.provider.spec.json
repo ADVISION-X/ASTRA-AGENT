@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "specId": "agent-production-runtime.agent-plugin-capability-manifest-provider",
+  "specId": "agent-production-runtime.agent-route-capability-manifest-provider",
   "status": "active",
-  "version": 3,
+  "version": 4,
   "owner": "agent-production-runtime",
   "lawIds": [
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V53",
@@ -10,13 +10,13 @@
   ],
   "specKind": "cross-repo-contract",
   "contract": {
-    "contractId": "agent-production-runtime.plugin-capability-manifest",
-    "version": 3,
+    "contractId": "agent-production-runtime.route-capability-manifest",
+    "version": 4,
     "providerRepo": "ADVISION-X/AGENT",
     "providerDomain": "agent-production-runtime",
     "authorityArtifact": {
       "path": "src/lib/local-runtime/production/catalog.ts",
-      "selector": "agentPluginCapabilityManifest"
+      "selector": "agentRouteCapabilityManifest"
     }
   }
 }

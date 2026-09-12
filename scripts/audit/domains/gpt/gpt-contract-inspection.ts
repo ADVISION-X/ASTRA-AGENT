@@ -268,25 +268,24 @@ const inspectProfileContracts = (
 ): void => {
   const modelContract = sourceFor(context, MODEL_CONTRACT_PATH)?.getFullText() ?? "";
   inspectMissingTokens({ source: modelContract, required: [
-    "GPT_PROFILE_POPUP_SELECTOR", "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR",
-    "[data-active='true']:not([inert])", "GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR",
-    "GPT_MODEL_SELECTION_V2_ENTRY_INNER_SELECTOR", "GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_INNER_SELECTOR",
-    "[aria-expanded='false'][aria-hidden='false']",
+    "GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR", "[role='menuitemradio']",
   ], checkId: "gpt/model-selection-v2-visible-contract", filePath: MODEL_CONTRACT_PATH,
   findings, finding, message: (required) => `Model selection V2 contract is missing ${required}.` });
   const modelHandler = sourceTextForPaths(context, MODEL_HANDLER_PATHS);
   inspectMissingTokens({ source: modelHandler, required: [
-    "openGptModelSelectorV2Handler", "selectExactGptModelV2Handler", "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR",
-    "GPT_PROFILE_SIMPLE_PANEL_SELECTOR", "SELECTION_POSTCONDITION",
-    "modelSelectorAlreadyOpen", "modelSelectorOpenable", "value.entry === 0", "value.simplePanel === 0",
-    "value.advancedPanel === 1", "postClickObservation: OPEN_POSTCONDITION",
+    "openGptModelSelectorV2Handler", "selectExactGptModelV2Handler", "SELECTION_POSTCONDITION",
+    "readModelChoiceState", "clickedCandidateAttribute", "selectedReadbackValid",
+    "postClickObservation: OPEN_POSTCONDITION",
     "postClickObservation: SELECTION_POSTCONDITION", "mutationRecord.postconditionObservation",
-    "expectedEligibleCount", "decodeCoherentObservationPacket", "scope: { selector: GPT_PROFILE_POPUP_SELECTOR }",
+    "expectedEligibleCount", "decodeCoherentObservationPacket", "modelChoiceQuery",
   ], checkId: "gpt/model-selection-v2-handler", filePath: MODEL_HANDLER_PATH,
   findings, finding, message: (required) => `Model selection V2 handler is missing ${required}.` });
   for (const retired of [
     "GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR", "expandedEntry",
     "GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR", "postClickMatch: {",
+    "GPT_PROFILE_POPUP_SELECTOR", "GPT_PROFILE_SIMPLE_PANEL_SELECTOR",
+    "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR", "modelSelectorTopology",
+    "simplePanel", "advancedPanel",
   ]) {
     if (modelContract.includes(retired) || modelHandler.includes(retired)) findings.push(finding(
       "gpt/model-selection-v2-expanded-state-retired", MODEL_HANDLER_PATH,

@@ -7,6 +7,7 @@ import Database from "better-sqlite3";
 import { createGptAbilityGroup } from "../../src/capabilities/gpt/index.js";
 import { createForensicsPersistenceAbilityGroupFromStorage } from "../../src/capabilities/forensics-persistence/index.js";
 import { ProductionExecutor } from "../../src/lib/local-runtime/production/executor.js";
+import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { terminalSpanFailure } from "../../src/lib/local-runtime/production/runtime-logging.js";
 import { startProductionRuntime } from "../../src/lib/local-runtime/production/runtime.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
@@ -25,7 +26,8 @@ import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/
 import { serializeTerminalFailure } from
   "../../src/lib/local-runtime/production/terminal-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
-import { HASH_A, HASH_B, task, validDeviceCredential } from "./agent-production-runtime-fixtures.js";
+import { HASH_A, HASH_B, resultFor, task, validDeviceCredential } from
+  "./agent-production-runtime-fixtures.js";
 import { assertProductionStartupPreflight } from
   "./agent-production-runtime-startup-preflight.acceptance-support.js";
 import "./agent-production-runtime-recovery-contract.acceptance.js";
@@ -40,10 +42,7 @@ try {
   const acceptedTask = task({
     jobId: "job:first-checkpoint-crash", productId: "bazi_ai_full_analysis", actionId: "produce",
   });
-  store.acceptTask(acceptedTask, {
-    plugin_id: "bazi-ai-full-analysis", plugin_version: 1,
-    skill_hash: HASH_B, request_hash: acceptedTask.request_hash,
-  }, "attempt:first-checkpoint-crash");
+  store.acceptTask(acceptedTask, "attempt:first-checkpoint-crash");
   const pendingWriteId = "restart-preserves-current-attempt-write";
   store.enqueue({
     idempotency_key: pendingWriteId,
@@ -59,28 +58,11 @@ try {
   store.markExecuting(acceptedTask.job_id);
   assert.equal(store.readTask(acceptedTask.job_id)?.current_reason, "EXECUTING");
 
-  const revokedTask = task({
-    jobId: "job:released-permanent-revocation", productId: "bazi_ai_full_analysis", actionId: "produce",
-  });
-  const revokedAttemptId = "attempt:released-permanent-revocation";
-  store.acceptTask(revokedTask, {
-    plugin_id: "bazi-ai-full-analysis", plugin_version: 1,
-    skill_hash: HASH_B, request_hash: revokedTask.request_hash,
-  }, revokedAttemptId);
-  store.recordAttemptFailure(revokedTask.job_id, revokedAttemptId,
-    serializeTerminalFailure(executionFailure("failed", "PROVIDER_REJECTED")));
-  store.settlePermanentlyRevokedJob(revokedTask.job_id, "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
-  assert.equal(store.readTask(revokedTask.job_id)?.current_reason,
-    "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED");
-
   const ordinaryFailure = task({
     jobId: "job:ordinary-absent-lease", productId: "bazi_ai_full_analysis", actionId: "produce",
   });
   const ordinaryAttemptId = "attempt:ordinary-absent-lease";
-  store.acceptTask(ordinaryFailure, {
-    plugin_id: "bazi-ai-full-analysis", plugin_version: 1,
-    skill_hash: HASH_B, request_hash: ordinaryFailure.request_hash,
-  }, ordinaryAttemptId);
+  store.acceptTask(ordinaryFailure, ordinaryAttemptId);
   store.markExecuting(ordinaryFailure.job_id);
   store.recordAttemptFailure(ordinaryFailure.job_id, ordinaryAttemptId,
     serializeTerminalFailure(executionFailure("failed", "PROVIDER_REJECTED")));
@@ -166,6 +148,40 @@ try {
     }), { status: 409, headers: { "content-type": "application/json" } });
   }) as typeof globalThis.fetch;
   const dataDir = path.join(bindingMismatchTemporary, "runtime");
+  await mkdir(dataDir);
+  const historyStore = new ProductionRuntimeStore(dataDir);
+  const historyTask = task({ jobId: "job:historical-terminal-new-attempt",
+    productId: "payment_screenshot_observation", actionId: "observe" });
+  historyStore.acceptTask(historyTask, "attempt:historical-terminal");
+  const historicalResult = { ...resultFor(historyTask),
+    evidence_refs: [`art-${"a".repeat(64)}`] };
+  historyStore.stageResult(historyTask.job_id, historicalResult);
+  for (const [key, receipt] of [["payload", HASH_A], ["envelope", HASH_B]] as const) {
+    historyStore.enqueue({ idempotency_key: `artifact:historical-terminal:${key}`, kind: "artifact",
+      path: `/internal/ai-production/v6/jobs/${historyTask.job_id}/artifacts/${key}`,
+      method: "PUT", headers: {}, body: Buffer.from(key) });
+    historyStore.markOutboxSent(`artifact:historical-terminal:${key}`, { receipt_hash: receipt });
+  }
+  const historicalPayloadHash = hashCanonical(historicalResult);
+  historyStore.enqueue({ idempotency_key: "terminal:historical-terminal", kind: "terminal",
+    path: `/internal/ai-production/v6/jobs/${historyTask.job_id}/terminal`,
+    method: "POST", headers: {}, body: JSON.stringify({
+      schema_version: "xuanxue-ai-terminal-cas.v6", job_id: historyTask.job_id,
+      terminal_status: "completed", payload_hash: historicalPayloadHash, failure: null,
+      worker_session_id: "session:historical-terminal",
+      worker_session_epoch: 1,
+      result_object_receipts: [HASH_A, HASH_B],
+    }) });
+  historyStore.markOutboxSent("terminal:historical-terminal", {
+    schema_version: "xuanxue-ai-terminal-receipt.v6", job_id: historyTask.job_id,
+    terminal_status: "completed", payload_hash: historicalPayloadHash, failure: null,
+    first_terminal: true, device_id: "device:historical-terminal", device_epoch: 1,
+    worker_session_id: "session:historical-terminal",
+    worker_session_epoch: 1,
+    runtime_attestation_receipt_hash: HASH_A,
+  });
+  historyStore.acceptTask(historyTask, "attempt:website-authorized-next");
+  historyStore.close();
   bindingMismatchRuntime = await startProductionRuntime({
     dataDir,
     sourceHash: HASH_A,
@@ -187,7 +203,7 @@ try {
   assert.equal(health.cloudState, "contract_blocked");
   assert.equal(health.executionState, "blocked");
   assert.equal(health.claimAdmissionState, "blocked");
-  assert.equal(health.controlContractVersion, 24,
+  assert.equal(health.controlContractVersion, 25,
     "blocked diagnostics must retain only the consumer contract version needed for exact comparison");
   assert.equal(health.lastErrorCode, "AI_SESSION_BINDING_MISMATCH");
   await bindingMismatchRuntime.close();
@@ -288,7 +304,7 @@ try {
     operation: "gpt.child",
     typedIdentity: {
       kind: "gpt-call", jobId: "job:plugin-failure-code", attemptId: "attempt:plugin-failure-code",
-      pluginId: "public-knowledge-article-pipeline", pluginVersion: 1, stepId: "corpus_research",
+      stepId: "corpus_research",
       capabilityCallId: "call:corpus_research",
     },
   }));

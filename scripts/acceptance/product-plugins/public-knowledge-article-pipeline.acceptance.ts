@@ -8,7 +8,7 @@ import { browserProviderEffectIdentityHash } from
   "../../../src/lib/browser/exact-target/browser-command-postcondition.js";
 import { hashCanonical } from "../../../src/mediator/product-plugin-contract.js";
 import { GPT_CHILD_CAPABILITY_CONTRACTS } from "../../../src/capabilities/gpt/contract.js";
-import { parsePublicKnowledgeArticle, parsePublicKnowledgeResearch } from "../../../src/plugins/public-knowledge-article-pipeline/result-contract.js";
+import { parsePublicKnowledgeArticle, parsePublicKnowledgeResearch, publicKnowledgeTurnContract } from "../../../src/plugins/public-knowledge-article-pipeline/result-contract.js";
 import {
   exerciseSeoAttachmentReconcileFailure,
   exerciseSeoFlow,
@@ -39,16 +39,20 @@ const continuedText = [...profile, ...textTurn] as const;
 const continuedImage = [...profile, "write_exact_gpt_prompt",
   "submit_exact_gpt_turn_once", "checkpoint_gpt_generated_image"] as const;
 
-assert.equal(plugin.pluginVersion, 25);
 assert.equal(GPT_CHILD_CAPABILITY_CONTRACTS.attach_approved_gpt_files_once.replayPolicy,
   "target-local-per-generation", "attachment upload is attempt/current-Document preparation");
 assert.equal(GPT_CHILD_CAPABILITY_CONTRACTS.submit_exact_gpt_turn_once.replayPolicy,
   "provider-effect-once", "only submit is a cross-attempt Provider effect");
 const source = readFileSync("src/plugins/public-knowledge-article-pipeline/index.ts", "utf8");
+const resultContractSource = readFileSync(
+  "src/plugins/public-knowledge-article-pipeline/result-contract.ts", "utf8",
+);
 const turnContractSource = readFileSync(
   "src/plugins/public-knowledge-article-pipeline/seo-turn-contract.ts", "utf8",
 );
 assert.doesNotMatch(source, /PRODUCT_FLOW_NOT_IMPLEMENTED:|throw new Error/u);
+assert.doesNotMatch(`${source}\n${resultContractSource}`, /_agent_reception|lossless-normalization|normalizeTurn|RESEARCH_STRING_ARRAY_PATHS/u,
+  "AGENT must not reshape Provider output or append a second reception contract");
 assert.match(source, /corpus_research/u);
 assert.match(source, /article_synthesis/u);
 assert.match(source, /article_image_generation/u);
@@ -76,6 +80,12 @@ assert.doesNotMatch(turnMarkerSource, /attempt/iu,
 assert.equal(parsePublicKnowledgeResearch(JSON.stringify({
   ...researchOutput("proceed"), topic_manifest: { primary_question: "incomplete" },
 }), produceRoute).schema_version, "public-knowledge-research-output.v3");
+const wrongTypeResearch = parsePublicKnowledgeResearch(JSON.stringify({
+  ...researchOutput("proceed"),
+  topic_manifest: { ...researchOutput("proceed").topic_manifest, secondary_cluster_ids: "one" },
+}), produceRoute);
+assert.equal((wrongTypeResearch.topic_manifest as Record<string, unknown>).secondary_cluster_ids, "one",
+  "AGENT must preserve a Provider field-type error for the Website owner to judge");
 assert.equal(parsePublicKnowledgeArticle(JSON.stringify({
   ...articleOutput(), claim_coverage: [{ claim_id: "CL1", status: "addressed", reason_if_omitted: "must-be-null" }],
 }), produceRoute).schema_version, "public-knowledge-article-output.v3");
@@ -110,14 +120,36 @@ assert.deepEqual(proceed.calls.filter((call) => call.child === "submit_exact_gpt
   .map((call) => call.input.files.length), [1, 0, 0]);
 const prompts = proceed.calls.filter((call) => call.child === "write_exact_gpt_prompt")
   .map((call) => String(call.input.prompt));
+const promptContract = (prompt: string) => prompt.split("\n")
+  .find((line) => line.startsWith("当前回合唯一输出子合同："))
+  ?.slice("当前回合唯一输出子合同：".length);
+assert.equal(promptContract(prompts[0]!), JSON.stringify(publicKnowledgeTurnContract(produceRoute, "research")));
+assert.equal(promptContract(prompts[1]!), JSON.stringify(publicKnowledgeTurnContract(produceRoute, "article")));
 assert.match(prompts[0]!, /public-knowledge-research-output\.v3/u);
 assert.match(prompts[1]!, /public-knowledge-article-output\.v3/u);
+assert.match(prompts[0]!, /输出子合同只约束交付格式与字段关系，不限制你的选题、分析、推理、观点或证据解释/u);
+assert.match(prompts[1]!, /输出子合同只约束交付格式与字段关系，不限制你的分析、推理、观点或证据解释/u);
+assert.match(prompts[0]!, /"field_relations":\{"cluster_ids_unique_and_from_current_domain_archive":true/u);
+assert.match(prompts[0]!, /"required_nonempty_when_proceed":\["topic_manifest\.primary_question"/u);
+assert.match(prompts[0]!, /"claim_support":\{"boundary_claim_may_omit_supporting_citations":true/u);
+assert.match(prompts[0]!, /"field_types":\{"string":\["schema_version","decision"/u);
+assert.match(prompts[0]!, /"citation_token":\{"outer_brackets":"optional_single_pair"/u);
+assert.match(prompts[1]!, /"article_markdown_format":\{"nonempty":true,"body_only":true,"repeat_title":false,"allowed_heading_levels":\[2,3\]/u);
+assert.match(prompts[1]!, /"required_nonempty":\["title","editor_note","article_markdown","citations"\]/u);
+assert.match(prompts[1]!, /"field_relations":\{"citation_identity_and_order_equal_research":true/u);
+assert.match(prompts[1]!, /"citation_marker_token":\{"format":"\[citation_reference\]"/u);
+for (const hidden of ["analysis_method", "reasoning_policy", "viewpoint_policy", "evidence_interpretation", "image_creative_policy", "forbidden_body_phrases"]) assert.doesNotMatch(`${prompts[0]}\n${prompts[1]}`, new RegExp(`"${hidden}"`, "u"));
+assert.doesNotMatch(prompts.join("\n"), /# 公开知识文章生产|严格区分古籍原文|用简体中文一次讲清|不得宿命绝对化|不得重新选题/u,
+  "Provider Prompt must not inject Product Skill analysis or expression policy");
 assert.match(prompts[2]!, /一张横向文章主图/u);
 assert.doesNotMatch(prompts[2]!, /无文字|无印章|不冒充/u);
 assert.equal(proceed.calls.filter((call) => call.child === "prepare_clean_gpt_chat").length, 1);
 assert.equal(proceed.calls.find((call) => call.child === "prepare_clean_gpt_chat")?.productStepId,
   "corpus_research");
 assert.ok((proceed.completed.payload as Readonly<Record<string, unknown>>).image);
+assert.deepEqual(Object.keys(proceed.completed.payload as Readonly<Record<string, unknown>>).sort(),
+  ["article", "image", "research", "schema_version"],
+  "the delivered package must contain only the Website canonical fields");
 assert.equal(proceed.generatedImageUploadCalls, 1);
 
 const nextAttempt = await exerciseSeoFlow(
@@ -137,8 +169,7 @@ for (const [index, call] of submits.entries()) {
     browserProviderEffectIdentityHash({
     jobId: "job-produce_article",
     attemptId,
-    ownerPluginId: plugin.pluginId,
-    pluginVersion: plugin.pluginVersion,
+    resultRevision: revision,
     productStepId: call.productStepId,
     callId: call.callId,
     childCapabilityId: call.child,

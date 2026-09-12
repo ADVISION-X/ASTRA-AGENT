@@ -62,8 +62,6 @@ export interface ProductCompletionReceipt {
   readonly source_task_id: string;
   readonly product_id: ProductionProductId;
   readonly action_id: ProductionActionId;
-  readonly plugin_id: string;
-  readonly plugin_version: number;
   readonly result_contract_id: "website-agent-result";
   readonly result_contract_version: 1;
   readonly result_payload_ref: string;
@@ -150,7 +148,6 @@ export interface SharedExecutionContext {
 
 export interface ProductPlugin {
   readonly pluginId: string;
-  readonly pluginVersion: number;
   readonly accepts: readonly Readonly<{
     productId: ProductionProductId;
     actionId: ProductionActionId;

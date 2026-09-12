@@ -18,8 +18,9 @@ export const browserExactCallIdentityHash = (
   permit: BrowserCommandPermit,
 ): `sha256:${string}` => hashValue([
   permit.jobId,
+  permit.resultRevision,
   ...(permit.replayPolicy === "provider-effect-once" ? [] : [permit.attemptId, permit.writerFenceHash]),
-  permit.ownerPluginId, permit.pluginVersion, permit.productStepId,
+  permit.productStepId,
   permit.callId, permit.childCapabilityId, permit.inputHash,
 ]);
 
@@ -28,8 +29,7 @@ export const browserProviderEffectIdentityHash = (
   payloadHash: `sha256:${string}`,
 ): `sha256:${string}` => hashValue([
   permit.jobId,
-  permit.ownerPluginId,
-  permit.pluginVersion,
+  permit.resultRevision,
   permit.productStepId,
   permit.callId,
   permit.childCapabilityId,

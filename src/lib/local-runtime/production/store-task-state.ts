@@ -1,6 +1,6 @@
 import { executionFailure } from "../../execution-failure.js";
 import type { SerializedExecutionFailure } from "./terminal-failure.js";
-import type { DurablePluginIdentity, WebsiteAgentResult, WebsiteAgentTask } from "./contracts.js";
+import type { WebsiteAgentResult, WebsiteAgentTask } from "./contracts.js";
 import { WebsiteAgentResultSchema } from "./contracts.js";
 import { ProductionStoreFoundation } from "./store-foundation.js";
 import { productionTaskRowValid } from "./store-authority-validation.js";
@@ -22,9 +22,7 @@ const assertResultIdentity = (
   if (!accepted || result.job_id !== accepted.task.job_id
     || result.source_task_id !== accepted.task.source_task_id
     || result.product_id !== accepted.task.product_id
-    || result.action_id !== accepted.task.action_id
-    || result.plugin_id !== accepted.identity.plugin_id
-    || result.plugin_version !== accepted.identity.plugin_version) {
+    || result.action_id !== accepted.task.action_id) {
     throw executionFailure("failed", "PRODUCTION_RESULT_DURABLE_IDENTITY_MISMATCH");
   }
 };
@@ -53,7 +51,6 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
 
   public acceptTask(
     task: WebsiteAgentTask,
-    identity: DurablePluginIdentity,
     attemptId: string,
   ): StoredProductionTask {
     const existing = this.readTask(task.job_id);
@@ -62,11 +59,7 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
         throw executionFailure("failed", "PRODUCTION_TASK_REQUEST_HASH_CONFLICT");
       }
       if (existing.current_attempt_id === attemptId) {
-        if (existing.status !== "failed"
-          || existing.identity.plugin_id !== identity.plugin_id
-          || existing.identity.plugin_version !== identity.plugin_version
-          || existing.identity.skill_hash !== identity.skill_hash
-          || existing.identity.request_hash !== identity.request_hash) {
+        if (existing.status !== "failed") {
           throw executionFailure("failed", "PRODUCTION_ACCEPTED_ATTEMPT_IDENTITY_CONFLICT");
         }
         this.database.prepare(`update production_tasks
@@ -80,9 +73,9 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
         this.database.transaction(() => {
           this.supersedeUnsentWritesForWebsiteAttempt(task.job_id);
           this.database.prepare(`update production_tasks
-            set identity_json=?,current_attempt_id=?,current_reason='LEASE_GRANTED',
+            set current_attempt_id=?,current_reason='LEASE_GRANTED',
               staged_result_json=null,attempt_failure_json=null,updated_at=?
-            where job_id=? and status='failed'`).run(json(identity), attemptId, now(), task.job_id);
+            where job_id=? and status='failed'`).run(attemptId, now(), task.job_id);
         })();
         return this.readTask(task.job_id)!;
       }
@@ -90,9 +83,9 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     }
     const timestamp = now();
     this.database.prepare(`insert into production_tasks(
-      job_id,request_hash,task_json,identity_json,status,current_attempt_id,current_reason,created_at,updated_at
-    ) values(?,?,?,?,?,?,?,?,?)`).run(
-      task.job_id, task.request_hash, json(task), json(identity), "failed", attemptId,
+      job_id,request_hash,task_json,status,current_attempt_id,current_reason,created_at,updated_at
+    ) values(?,?,?,?,?,?,?,?)`).run(
+      task.job_id, task.request_hash, json(task), "failed", attemptId,
       "LEASE_GRANTED", timestamp, timestamp,
     );
     return this.readTask(task.job_id)!;
@@ -100,7 +93,7 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
 
   public readTask(jobId: string): StoredProductionTask | null {
     const row = this.database.prepare(
-      `select t.job_id,t.request_hash,t.task_json,t.identity_json,t.status,t.result_json,t.staged_result_json,
+      `select t.job_id,t.request_hash,t.task_json,t.status,t.result_json,t.staged_result_json,
         t.attempt_failure_json,t.current_attempt_id,t.current_reason,t.updated_at
        from production_tasks t where t.job_id=?`,
     ).get(jobId) as TaskRow | undefined;
@@ -109,7 +102,7 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
 
   public taskAuthorities(): readonly StoredProductionTask[] {
     const rows = this.database.prepare(
-      `select t.job_id,t.request_hash,t.task_json,t.identity_json,t.status,t.result_json,t.staged_result_json,
+      `select t.job_id,t.request_hash,t.task_json,t.status,t.result_json,t.staged_result_json,
         t.attempt_failure_json,t.current_attempt_id,t.current_reason,t.updated_at
        from production_tasks t order by t.updated_at,t.job_id`,
     ).all() as TaskRow[];
@@ -155,10 +148,29 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
   }
 
   public pendingBusinessAdmissions(): readonly StoredProductionTask[] {
-    const rows = this.database.prepare(`select job_id,request_hash,task_json,identity_json,status,result_json,
+    const rows = this.database.prepare(`select job_id,request_hash,task_json,status,result_json,
       staged_result_json,attempt_failure_json,current_attempt_id,current_reason,updated_at from production_tasks
-      where status='failed' and staged_result_json is not null order by updated_at,job_id`).all() as TaskRow[];
+      where status='failed' and staged_result_json is not null
+      order by updated_at,job_id`).all() as TaskRow[];
     return rows.map(taskAuthorityFromRow);
+  }
+
+  public async purgeJob(jobId: string): Promise<void> {
+    if (!jobId || /[\0]/u.test(jobId)) {
+      throw executionFailure("failed", "PRODUCTION_STORAGE_JOB_ID_INVALID");
+    }
+    await this.outboxDeliveryTail.catch(() => undefined);
+    const transaction = this.database.transaction(() => {
+      this.database.prepare("delete from production_outbox where instr(path,?)>0")
+        .run(jobPathMarker(jobId));
+      this.database.prepare("delete from production_tasks where job_id=?").run(jobId);
+    });
+    transaction();
+    if (this.readTask(jobId) || this.database.prepare(
+      "select 1 from production_outbox where instr(path,?)>0 limit 1",
+    ).get(jobPathMarker(jobId))) {
+      throw executionFailure("failed", "PRODUCTION_JOB_PURGE_INCOMPLETE");
+    }
   }
 
   public setCurrentReason(jobId: string, reason: string): void {

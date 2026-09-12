@@ -17,9 +17,8 @@ const identity = (attemptId: string, revision = 0): BrowserMutationIdentity => O
   commandId: `command:${attemptId}:${revision}`,
   logicalMutationId: hash(`provider-effect:${revision}`),
   exactCallIdentityHash: hash(`exact-call:${revision}`),
-  ownerPluginId: "acceptance-product",
-  pluginVersion: 1,
   jobId: "job:fresh-attempt",
+  resultRevision: revision,
   attemptId,
   leaseVersion: attemptId === "attempt:1" ? 1 : 2,
   executionFenceHash: hash(`fence:${attemptId}`),
@@ -41,6 +40,7 @@ const root = await mkdtemp(path.join(tmpdir(), "browser-attempt-fence-"));
 try {
   for (const forbiddenColumn of [
     "consultation_identity_hash", "source_task_ref_hash", "continuation_checkpoint_hash",
+    "owner_plugin_id", "plugin_version",
   ]) {
     const forbiddenSchema = new Database(path.join(root, `${forbiddenColumn}.sqlite`));
     ensureCurrentSchema(forbiddenSchema);
@@ -49,8 +49,21 @@ try {
       `Browser startup must reject a WAL that retains ${forbiddenColumn}`);
     forbiddenSchema.close();
   }
+  const incompleteSchema = new Database(path.join(root, "incomplete.sqlite"));
+  ensureCurrentSchema(incompleteSchema);
+  incompleteSchema.exec("alter table browser_mutations drop column mutation_outcome");
+  assert.throws(() => ensureCurrentSchema(incompleteSchema), /BROWSER_REPAIR_REQUIRED/u,
+    "Browser startup must reject an incomplete WAL instead of migrating it");
+  incompleteSchema.close();
 
   const store = new BrowserMutationStore(root);
+  const schema = new Database(path.join(root, "browser", "browser-mutations.sqlite"), { readonly: true });
+  const columns = (schema.prepare("pragma table_info(browser_mutations)").all() as Array<{ name: string }>)
+    .map((column) => column.name);
+  assert.equal(columns.includes("result_revision"), true);
+  assert.equal(columns.includes("owner_plugin_id") || columns.includes("plugin_version"), false,
+    "Browser WAL identity must not retain internal Product plugin fields");
+  schema.close();
   const first = identity("attempt:1");
   const terminalPayload = {
     canonicalConversationUrl: "https://chatgpt.com/c/consultation-1",
@@ -85,8 +98,7 @@ try {
     /BROWSER_PROVIDER_EFFECT_REPLAY_FORBIDDEN|BROWSER_EXACT_CALL_REPLAY_FORBIDDEN/u,
     "the same provider effect remains single-submit across attempts");
   const recovered = store.readAtomicStepOutcome({
-    jobId: second.jobId, attemptId: second.attemptId, ownerPluginId: second.ownerPluginId,
-    pluginVersion: second.pluginVersion, exactCallIdentityHash: second.exactCallIdentityHash,
+    jobId: second.jobId, attemptId: second.attemptId, exactCallIdentityHash: second.exactCallIdentityHash,
     actionOrdinal: second.actionOrdinal, targetRef: second.targetRef, effectScope: "provider_effect",
   });
   assert.equal(recovered?.state, "confirmed");
@@ -95,8 +107,7 @@ try {
 
   const restarted = new BrowserMutationStore(root);
   const restartedOutcome = restarted.readAtomicStepOutcome({
-    jobId: second.jobId, attemptId: second.attemptId, ownerPluginId: second.ownerPluginId,
-    pluginVersion: second.pluginVersion, exactCallIdentityHash: second.exactCallIdentityHash,
+    jobId: second.jobId, attemptId: second.attemptId, exactCallIdentityHash: second.exactCallIdentityHash,
     actionOrdinal: second.actionOrdinal, targetRef: second.targetRef, effectScope: "provider_effect",
   });
   assert.deepEqual(restartedOutcome?.terminalPayload, terminalPayload,
@@ -108,8 +119,7 @@ try {
   restarted.markDispatched(rejectedNoInput.commandId);
   restarted.markRejected(rejectedNoInput.commandId, hash("no-input"), "no", "BROWSER_DOM_READ_INVALID");
   const noInputOutcome = (attemptId: string) => restarted.readAtomicStepOutcome({
-    jobId: rejectedNoInput.jobId, attemptId, ownerPluginId: rejectedNoInput.ownerPluginId,
-    pluginVersion: rejectedNoInput.pluginVersion,
+    jobId: rejectedNoInput.jobId, attemptId,
     exactCallIdentityHash: rejectedNoInput.exactCallIdentityHash,
     actionOrdinal: rejectedNoInput.actionOrdinal, targetRef: `target:${attemptId}`,
     effectScope: "provider_effect",

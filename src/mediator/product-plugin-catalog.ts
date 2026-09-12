@@ -38,17 +38,9 @@ export const productionPluginCatalog = Object.freeze([
   paymentScreenshotObservationPlugin,
 ] as const satisfies readonly ProductPlugin[]);
 
-export interface ProductPluginIdentity {
-  readonly plugin_id: string;
-  readonly plugin_version: number;
-  readonly skill_hash: ProductionHash;
-}
-
-export interface ProductPluginCatalogEntry extends ProductPluginIdentity {
-  readonly accepts: readonly Readonly<{
-    product_id: ProductionProductId;
-    action_id: ProductionActionId;
-  }>[];
+export interface ProductRouteCatalogEntry {
+  readonly product_id: ProductionProductId;
+  readonly action_id: ProductionActionId;
 }
 
 const routeKey = (productId: ProductionProductId, actionId: ProductionActionId): string =>
@@ -69,39 +61,28 @@ for (const plugin of productionPluginCatalog) {
   }
 }
 
-export const productPluginCatalogSnapshot: readonly ProductPluginCatalogEntry[] = Object.freeze(
-  productionPluginCatalog.map((plugin) => Object.freeze({
-    plugin_id: plugin.pluginId,
-    plugin_version: plugin.pluginVersion,
-    skill_hash: skillBytes.get(plugin.pluginId)!.hash,
-    accepts: Object.freeze(plugin.accepts.map((route) => Object.freeze({
-      product_id: route.productId,
-      action_id: route.actionId,
-    }))),
-  })),
+export const productRouteCatalogSnapshot: readonly ProductRouteCatalogEntry[] = Object.freeze(
+  productionPluginCatalog.flatMap((plugin) => plugin.accepts.map((route) => Object.freeze({
+    product_id: route.productId,
+    action_id: route.actionId,
+  }))),
 );
 
-const manifestProjection = productPluginCatalogSnapshot.map((plugin) => ({
-  plugin_id: plugin.plugin_id,
-  plugin_version: plugin.plugin_version,
-  accepts: plugin.accepts,
+const manifestProjection = productRouteCatalogSnapshot.map((route) => ({
+  product_id: route.product_id,
+  action_id: route.action_id,
   task_contract_version: 1,
   result_contract_version: 1,
 }));
 
 export const productionCatalogHash = hashCanonical(manifestProjection);
 
-export const resolveProductPluginIdentity = (
+export const assertProductRouteSupported = (
   productId: ProductionProductId,
   actionId: ProductionActionId,
-): ProductPluginIdentity => {
+): void => {
   const plugin = routeCatalog.get(routeKey(productId, actionId));
   if (!plugin) throw new Error(`PLUGIN_ROUTE_UNSUPPORTED:${productId}:${actionId}`);
-  return Object.freeze({
-    plugin_id: plugin.pluginId,
-    plugin_version: plugin.pluginVersion,
-    skill_hash: skillBytes.get(plugin.pluginId)!.hash,
-  });
 };
 
 export const dispatchProductPlugin = (

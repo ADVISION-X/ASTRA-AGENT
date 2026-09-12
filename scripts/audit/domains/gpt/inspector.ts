@@ -269,10 +269,10 @@ const inspectModelSelectionContract = (context: InspectorContext, findings: Insp
     "selector: GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR",
     "expectedTextEquals: profile.modelDisplayName",
     "postClickObservation: SELECTION_POSTCONDITION",
-    "mutationRecord.postconditionObservation", "modelSelectorOpenable(restored)",
-    "value.entry === 0", "value.simplePanel === 0", "value.advancedPanel === 1",
+    "mutationRecord.postconditionObservation", "readModelChoiceState",
+    "clickedCandidateAttribute", "selectedReadbackValid",
     "postClickObservation: OPEN_POSTCONDITION",
-    "expectedEligibleCount", "decodeCoherentObservationPacket", "scope: { selector: GPT_PROFILE_POPUP_SELECTOR }",
+    "expectedEligibleCount", "decodeCoherentObservationPacket", "modelChoiceQuery",
   ]) if (!handler.includes(required)) findings.push(finding(
     "gpt/model-selection-exact-radio", childHandlerPath("select_exact_gpt_model_v2"),
     `Exact model selection is missing ${required}.`,
@@ -280,6 +280,9 @@ const inspectModelSelectionContract = (context: InspectorContext, findings: Insp
   for (const retired of [
     "GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR", "expandedEntry",
     "GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR", "postClickMatch: {",
+    "GPT_PROFILE_POPUP_SELECTOR", "GPT_PROFILE_SIMPLE_PANEL_SELECTOR",
+    "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR", "modelSelectorTopology",
+    "simplePanel", "advancedPanel",
   ]) {
     if (handler.includes(retired) || contract.includes(retired)) findings.push(finding(
       "gpt/model-selection-expanded-entry-retired", childHandlerPath("select_exact_gpt_model_v2"),
@@ -287,8 +290,7 @@ const inspectModelSelectionContract = (context: InspectorContext, findings: Insp
     ));
   }
   for (const required of [
-    "GPT_MODEL_SELECTION_V2_ENTRY_INNER_SELECTOR", "GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_INNER_SELECTOR",
-    "[aria-expanded='false'][aria-hidden='false']", "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR",
+    "GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR", "[role='menuitemradio']",
   ]) if (!contract.includes(required)) findings.push(finding(
     "gpt/model-selection-direct-postcondition", MODEL_SELECTION_V2_CONTRACT_PATH,
     `The model selection contract is missing ${required}.`,

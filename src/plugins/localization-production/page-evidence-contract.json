@@ -2,7 +2,6 @@
   "schemaVersion": "product-page-evidence-contract.v1",
   "owner": "localization-production",
   "pluginId": "localization-production",
-  "pluginVersion": 14,
   "traceAuthority": {
     "kind": "durable-product-forensics",
     "sequenceOwner": "accepted-production-attempt",

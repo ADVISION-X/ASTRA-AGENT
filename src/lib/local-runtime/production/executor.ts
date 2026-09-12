@@ -19,7 +19,7 @@ import type {
   ProductPluginOutput,
 } from "../../../mediator/product-plugin-contract.js";
 import type {
-  DurablePluginIdentity, LocalProductionMaterial, ProductionExecutionLease, ProductionHash,
+  LocalProductionMaterial, ProductionExecutionLease, ProductionHash,
   WebsiteAgentResult, WebsiteAgentTask,
 } from "./contracts.js";
 import { assertProductionTaskRoutePolicy, productionRoutePolicy } from "./route-policy.js";
@@ -53,12 +53,10 @@ const durableIdentityValid = (
   accepted: StoredProductionTask,
   task: WebsiteAgentTask,
 ): boolean => {
-  const current = authorizeWebsiteAgentTask(task);
-  const identity = accepted.identity;
-  return identity.plugin_id === current.identity.plugin_id
-    && identity.plugin_version === current.identity.plugin_version
-    && identity.skill_hash === current.identity.skill_hash
-    && identity.request_hash === task.request_hash;
+  authorizeWebsiteAgentTask(task);
+  return accepted.task.request_hash === task.request_hash
+    && accepted.task.product_id === task.product_id
+    && accepted.task.action_id === task.action_id;
 };
 
 const errno = (error: unknown): string | null =>
@@ -140,16 +138,6 @@ const productionMaterialBrowserArtifact = (material: LocalProductionMaterial) =>
   });
 };
 
-const pluginIdentity = (task: WebsiteAgentTask): DurablePluginIdentity => {
-  const resolved = authorizeWebsiteAgentTask(task);
-  return {
-    plugin_id: resolved.identity.plugin_id,
-    plugin_version: resolved.identity.plugin_version,
-    skill_hash: resolved.identity.skill_hash,
-    request_hash: task.request_hash,
-  };
-};
-
 export class ProductionExecutor {
   private readonly gptChildTools: ReturnType<typeof createProductionGptChildTools>;
   private readonly browserAuthority: WorkbenchBrowserAuthority;
@@ -179,7 +167,8 @@ export class ProductionExecutor {
 
   public accept(task: WebsiteAgentTask, attemptId: string): StoredProductionTask {
     assertProductionTaskRoutePolicy(task);
-    return this.store.acceptTask(task, pluginIdentity(task), attemptId);
+    authorizeWebsiteAgentTask(task);
+    return this.store.acceptTask(task, attemptId);
   }
 
   private startPluginSpan(
@@ -267,8 +256,6 @@ export class ProductionExecutor {
           ownerRef: authorized.task.business_identity.owner_ref,
           subjectRef: authorized.task.business_identity.subject_ref,
           authorizationRef: authorized.task.business_identity.authorization_ref,
-          pluginId: authorized.identity.plugin_id,
-          pluginVersion: authorized.identity.plugin_version,
           resultRevision: input.lease.result_revision,
           attemptId: input.lease.attempt_id,
           deviceId: input.lease.device_id,
@@ -328,14 +315,13 @@ export class ProductionExecutor {
     if (!durableIdentityValid(accepted, task)) {
       throw executionFailure("failed", "PRODUCTION_PLUGIN_DURABLE_IDENTITY_MISMATCH");
     }
-    const span = this.startPluginSpan(task, lease, parentSpanId, accepted.identity.plugin_id);
+    const span = this.startPluginSpan(task, lease, parentSpanId, task.product_id);
     let browserArtifactLease: Awaited<ReturnType<WorkbenchBrowserAuthority["bindExecutionArtifacts"]>> | null = null;
     try {
       browserArtifactLease = await this.browserAuthority.bindExecutionArtifacts({
         binding: {
-          ownerPluginId: accepted.identity.plugin_id,
-          pluginVersion: accepted.identity.plugin_version,
           jobId: task.job_id,
+          resultRevision: lease.result_revision,
           attemptId: lease.attempt_id,
           deviceId: lease.device_id,
           leaseVersion: lease.lease_version,
@@ -367,7 +353,7 @@ export class ProductionExecutor {
       }
       return this.terminalizePluginFailure(span, failure, {
         attemptId: lease.attempt_id,
-        pluginId: accepted.identity.plugin_id,
+        pluginId: task.product_id,
       });
     }
   }

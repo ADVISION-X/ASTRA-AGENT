@@ -24,8 +24,7 @@ const invalidResult = async (
     executionId: `acceptance:gpt-input-denominator:${childCapabilityId}:${suffix}`,
     jobId: "job:gpt-input-denominator",
     attemptId: "attempt:gpt-input-denominator",
-    pluginId: "acceptance-product",
-    pluginVersion: 1,
+    resultRevision: 0,
     productStepId: "gpt-input-denominator",
     callId: `invalid-${suffix}`,
     inputHash: hashCanonical(input),
@@ -62,8 +61,8 @@ for (const childCapabilityId of EXPECTED_GPT_CHILD_IDS as readonly GptChildCapab
 const submitInput = { files: [], promptHash: hashCanonical("prompt") } as const;
 const submitIntent = Object.freeze({
   childCapabilityId: "submit_exact_gpt_turn_once", executionId: "submit-identity",
-  jobId: "job:submit-identity", attemptId: "attempt:1", pluginId: "acceptance-product",
-  pluginVersion: 1, productStepId: "step", callId: "submit", inputHash: hashCanonical(submitInput),
+  jobId: "job:submit-identity", attemptId: "attempt:1", resultRevision: 0,
+  productStepId: "step", callId: "submit", inputHash: hashCanonical(submitInput),
   actionOrdinal: 1, input: submitInput,
 }) as GptChildCapabilityIntent<"submit_exact_gpt_turn_once">;
 assert.equal(productionGptAtomicIdentity(submitIntent, 0).inputHash,

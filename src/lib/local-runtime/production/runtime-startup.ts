@@ -145,26 +145,14 @@ const createRuntimeState = (
   });
   const state: RuntimeState = {
     abort: new AbortController(), active: new Map(), activeAbort: new Map(), store, executor, session,
-    browserAuthority: input.browserAuthority, gpt: input.gpt, dataDir: input.dataDir,
+    browserAuthority: input.browserAuthority, gpt: input.gpt, evidenceStore: input.evidenceStore,
+    dataDir: input.dataDir,
     runtimeLogger: input.runtimeLogger, draining: false, lastHeartbeat: null,
     lastErrorCode: null, lastErrorReason: null, stopped: false, ledgerReconciled: false,
-    reconciliationBaselineValid: false,
   };
   stateRef = state;
   store.setOutboxObserver(() => refreshLedgerReconciled(state));
   return state;
-};
-
-const reconcileLocalState = async (state: RuntimeState): Promise<void> => {
-  let complete = true;
-  try { state.store.reconcileDeliveredTerminals(); }
-  catch (error) {
-    complete = false;
-    state.lastErrorCode = failureCode(error, "PRODUCTION_TERMINAL_RECONCILIATION_FAILED");
-    state.lastErrorReason = safeReason(error);
-  }
-  state.reconciliationBaselineValid = complete;
-  refreshLedgerReconciled(state);
 };
 
 const establishCloudSession = async (
@@ -180,7 +168,6 @@ const establishCloudSession = async (
   }));
   try {
     await state.session.open(boundaryId);
-    state.store.reconcileDeliveredTerminals();
     refreshLedgerReconciled(state);
     const receipt = await state.session.heartbeat();
     state.lastHeartbeat = receipt.issued_at;
@@ -283,7 +270,6 @@ export const startProductionRuntime = async (
     return blockedRuntimeHandle(input, store, error);
   }
   const state = createRuntimeState(input, store, credential);
-  await reconcileLocalState(state);
   const sessionFailure = await establishCloudSession(input, state, startSpan);
   const transportFailure = sessionFailure === null
     ? null : typedRuntimeTransportFailure(sessionFailure);

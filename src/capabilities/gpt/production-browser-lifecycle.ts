@@ -23,8 +23,7 @@ type GptBrowserLeaseAuthority = Readonly<{
 export type GptBrowserExecutionInput = Readonly<{
   jobId: string;
   attemptId: string;
-  pluginId: string;
-  pluginVersion: number;
+  resultRevision: number;
   deviceId: string;
   leaseVersion: number;
   executionFenceHash: GptHash;
@@ -174,8 +173,6 @@ export class ProductionGptBrowserLifecycle {
           kind: "gpt-call",
           jobId: this.execution.jobId,
           attemptId: this.execution.attemptId,
-          pluginId: this.execution.pluginId,
-          pluginVersion: this.execution.pluginVersion,
           stepId: productStepId,
           capabilityCallId: `${callId}:${childCapabilityId}`,
         },
@@ -231,17 +228,15 @@ export class ProductionGptBrowserLifecycle {
     const executionRef = [
       this.execution.jobId,
       this.execution.attemptId,
-      this.execution.pluginId,
-      this.execution.pluginVersion,
+      this.execution.resultRevision,
       productStepId,
       callId,
       "fresh",
     ].join(":");
     const binding = {
       kind: "production" as const,
-      ownerPluginId: this.execution.pluginId,
-      pluginVersion: this.execution.pluginVersion,
       jobId: this.execution.jobId,
+      resultRevision: this.execution.resultRevision,
       productStepId,
       callId,
       attemptId: this.execution.attemptId,
@@ -258,7 +253,7 @@ export class ProductionGptBrowserLifecycle {
       get commandTtlMs() { return currentCommandTtlMs(); },
     };
     return this.browserAuthority.acquireJobBoundTargetLease(binding,
-    `${this.execution.pluginId}:${this.execution.jobId}:${callId}`, {
+    `${this.execution.jobId}:${callId}`, {
       signal: this.execution.abortSignal,
       remainingMs,
       purpose,

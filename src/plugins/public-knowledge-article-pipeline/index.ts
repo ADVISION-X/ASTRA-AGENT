@@ -15,7 +15,6 @@ import {
   PLUGIN_ID,
   receiveArticle,
   receiveResearch,
-  receptionSidecar,
   turnMarker,
   type SeoTurnCheckpoint,
 } from "./seo-turn-contract.js";
@@ -52,13 +51,13 @@ const produceResearchTurn = async (
     stepId,
     marker,
     files: uploadedFiles,
-    prompt: researchPrompt(task, marker, context.routePolicy, context.productSkill),
+    prompt: researchPrompt(task, marker, context.routePolicy),
     ordinals: [11, 12, 13, 14, 15, 16],
     prepare: () => prepareAttachedTurnPrefix({ flow, stepId, files }),
   });
   return Object.freeze({
     checkpoint,
-    result: receiveResearch(task, context.gpt.attemptId, checkpoint, context.routePolicy),
+    result: receiveResearch(checkpoint, context.routePolicy),
   });
 };
 
@@ -75,13 +74,13 @@ const produceArticleTurn = async (
     stepId,
     marker,
     files: [],
-    prompt: articlePrompt(task, marker, context.routePolicy, context.productSkill, research),
+    prompt: articlePrompt(task, marker, context.routePolicy, research),
     ordinals: [27, 28, 29, 30, 31, 32],
     prepare: () => applyExactProfile(flow.execute, stepId, [21, 22, 23, 24, 25, 26]),
   });
   return Object.freeze({
     checkpoint,
-    result: receiveArticle(task, context.gpt.attemptId, checkpoint, context.routePolicy),
+    result: receiveArticle(checkpoint, context.routePolicy),
   });
 };
 
@@ -99,7 +98,6 @@ const completeArticlePackage = async (
     research,
     article,
     image: Object.freeze({ schema_version: "public-knowledge-agent-hero-image.v1", ...receipt }),
-    _agent_reception: receptionSidecar(research, article),
   });
   return context.complete({
     payload: parseProductResult(task, payload, context.routePolicy, "final"),
@@ -118,7 +116,6 @@ const completeDeclinedResearch = (
     research,
     article: null,
     image: null,
-    _agent_reception: receptionSidecar(research, null),
   }, context.routePolicy, "final"),
   evidence_refs: flow.evidenceRefs(),
 });
@@ -140,7 +137,6 @@ const executeArticleProduction = async (
     stepId,
     marker: turnMarker(task, stepId),
     article: article.result,
-    productSkill: context.productSkill,
   });
   return completeArticlePackage(task, context, flow, research.result, article.result, image);
 };
@@ -156,7 +152,7 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
     stepId,
     marker,
     files: uploadedFiles,
-    prompt: reviewPrompt(task, marker, context.productSkill),
+    prompt: reviewPrompt(task, marker),
     ordinals: [11, 12, 13, 14, 15, 16],
     prepare: () => prepareAttachedTurnPrefix({ flow, stepId, files }),
   });
@@ -168,7 +164,6 @@ const executeReview = async (task: WebsiteAgentTask, context: SharedExecutionCon
 
 export const publicKnowledgeArticlePipelinePlugin: ProductPlugin = {
   pluginId: PLUGIN_ID,
-  pluginVersion: 25,
   accepts: [
     { productId: "public_knowledge_article_pipeline", actionId: "produce_article" },
     { productId: "public_knowledge_article_pipeline", actionId: "accuracy_challenge" },

@@ -4,6 +4,7 @@ import type { BrowserCapabilityId } from "../protocol/generated/browser-protocol
 import type { BrowserOutcomeResolutionReceipt } from "./browser-outcome-resolver.js";
 
 export type BrowserAtomicStepIdentity = Readonly<{
+  resultRevision: number;
   productStepId: string;
   callId: string;
   childCapabilityId: string;

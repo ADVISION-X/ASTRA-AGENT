@@ -15,9 +15,8 @@ export type BrowserMutationIdentity = Readonly<{
   commandId: string;
   logicalMutationId?: `sha256:${string}` | null;
   exactCallIdentityHash: `sha256:${string}`;
-  ownerPluginId: string;
-  pluginVersion: number;
   jobId: string;
+  resultRevision: number;
   attemptId: string;
   leaseVersion: number;
   executionFenceHash: `sha256:${string}`;
@@ -166,7 +165,7 @@ export class BrowserMutationStore {
   }
 
   public prepare(input: BrowserMutationIdentity): void {
-    if (!input.exactCallIdentityHash || !Number.isInteger(input.pluginVersion) || input.pluginVersion < 1
+    if (!input.exactCallIdentityHash
       || !input.productStepId || !input.callId || !input.childCapabilityId
       || !Number.isInteger(input.actionOrdinal) || input.actionOrdinal < 1
       || !input.positivePostconditionHash || !input.negativePostconditionHash) {
@@ -178,11 +177,9 @@ export class BrowserMutationStore {
         ? "and not (state='REJECTED' and mutation_outcome='no' and physical_input_count=0)" : "";
       const exact = this.database.prepare(
         `select action_ordinal from browser_mutations
-         where job_id=? and owner_plugin_id=? and plugin_version=?
-           and exact_call_identity_hash=? and state in ('DISPATCHED','CONFIRMED','REJECTED')
+         where job_id=? and exact_call_identity_hash=? and state in ('DISPATCHED','CONFIRMED','REJECTED')
            ${reusableNoInput} limit 1`,
-      ).get(input.jobId, input.ownerPluginId, input.pluginVersion,
-        input.exactCallIdentityHash) as { action_ordinal: number } | undefined;
+      ).get(input.jobId, input.exactCallIdentityHash) as { action_ordinal: number } | undefined;
       if (exact) {
         if (exact.action_ordinal !== input.actionOrdinal) throw new Error("BROWSER_ACTION_SEQUENCE_DRIFT");
         throw new Error("BROWSER_EXACT_CALL_REPLAY_FORBIDDEN");
@@ -198,10 +195,10 @@ export class BrowserMutationStore {
       this.database.prepare(
         `insert into browser_mutations(
           ${identityColumns},state,mutation_outcome,terminal_at,updated_at
-        ) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'PREPARED','no',null,?)`,
+        ) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'PREPARED','no',null,?)`,
       ).run(
         input.commandId, input.logicalMutationId ?? null, input.exactCallIdentityHash,
-        input.ownerPluginId, input.pluginVersion, input.jobId, input.attemptId,
+        input.jobId, input.resultRevision, input.attemptId,
         input.leaseVersion, input.executionFenceHash, input.productStepId,
         input.callId, input.childCapabilityId, input.effectScope,
         input.actionOrdinal, input.targetRef, input.documentRef,
@@ -217,8 +214,7 @@ export class BrowserMutationStore {
   ): boolean {
     return row.logical_mutation_id === input.logicalMutationId
       && row.job_id === input.jobId
-      && row.owner_plugin_id === input.ownerPluginId
-      && row.plugin_version === input.pluginVersion
+      && row.result_revision === input.resultRevision
       && row.product_step_id === input.productStepId
       && row.call_id === input.callId
       && row.child_capability_id === input.childCapabilityId
@@ -230,7 +226,7 @@ export class BrowserMutationStore {
   private assertProviderEffectHistory(input: BrowserMutationIdentity): void {
     if (!input.logicalMutationId) throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_REQUIRED");
     const rows = this.database.prepare(
-      `select logical_mutation_id,owner_plugin_id,plugin_version,job_id,attempt_id,
+      `select logical_mutation_id,job_id,result_revision,attempt_id,
               product_step_id,call_id,child_capability_id,effect_scope,request_hash,payload_hash,
               state,mutation_outcome,physical_input_count
        from browser_mutations
@@ -311,7 +307,6 @@ export class BrowserMutationStore {
 
   public resolve(input: Readonly<{
     commandId: string;
-    ownerPluginId: string;
     targetRef: string;
     state: "CONFIRMED" | "REJECTED";
     mutationOutcome: "dispatched";
@@ -321,10 +316,10 @@ export class BrowserMutationStore {
     const result = this.database.prepare(
       `update browser_mutations set state=?,mutation_outcome=?,proof_hash=?,reason=?,native_cause_code=null,
        terminal_at=coalesce(terminal_at,?),updated_at=?
-       where command_id=? and owner_plugin_id=? and target_ref=? and state='DISPATCHED'`,
+       where command_id=? and target_ref=? and state='DISPATCHED'`,
     ).run(input.state, input.mutationOutcome, input.proofHash,
-      `browser-validated-plugin-evidence:${input.ownerPluginId}`,
-      terminalAt, terminalAt, input.commandId, input.ownerPluginId, input.targetRef);
+      "browser-validated-evidence",
+      terminalAt, terminalAt, input.commandId, input.targetRef);
     if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
   }
 
@@ -344,6 +339,14 @@ export class BrowserMutationStore {
     ).get(jobId));
   }
 
+  public purgeJob(jobId: string): void {
+    if (!jobId || /[\0]/u.test(jobId)) throw new Error("BROWSER_JOB_ID_INVALID");
+    this.database.transaction(() => {
+      this.database.prepare("delete from browser_mutations where job_id=?").run(jobId);
+    })();
+    if (this.hasMutationForJob(jobId)) throw new Error("BROWSER_JOB_PURGE_INCOMPLETE");
+  }
+
   public countProviderTurnDispatches(jobId: string, attemptId: string): number {
     const row = this.database.prepare(`select count(*) as count from browser_mutations
       where job_id=? and attempt_id=? and child_capability_id='submit_exact_gpt_turn_once'
@@ -354,8 +357,6 @@ export class BrowserMutationStore {
   public readAtomicStepOutcome(input: Readonly<{
     jobId: string;
     attemptId: string;
-    ownerPluginId: string;
-    pluginVersion: number;
     exactCallIdentityHash: `sha256:${string}`;
     actionOrdinal: number;
     targetRef: string;
@@ -369,7 +370,6 @@ export class BrowserMutationStore {
     const parameters = [
       input.jobId,
       ...(input.effectScope === "target_local" ? [input.attemptId] : []),
-      input.ownerPluginId, input.pluginVersion,
       input.exactCallIdentityHash, input.effectScope,
       ...(input.effectScope === "target_local" ? [input.targetRef] : []),
       ...(input.effectScope === "provider_effect" ? [input.attemptId] : []),
@@ -379,8 +379,7 @@ export class BrowserMutationStore {
               terminal_at,action_ordinal,physical_input_count,download_guid_hash,download_completed,
               media_identity_revalidated,provider_recovery_payload
        from browser_mutations
-         where job_id=? ${attemptClause} and owner_plugin_id=? and plugin_version=?
-         and exact_call_identity_hash=? and effect_scope=?
+         where job_id=? ${attemptClause} and exact_call_identity_hash=? and effect_scope=?
          ${targetClause} and state in ('DISPATCHED','CONFIRMED','REJECTED') ${reusableNoInputClause}
        order by updated_at desc,command_id desc limit 2`,
     ).all(...parameters) as ReadonlyArray<{
@@ -430,8 +429,6 @@ export class BrowserMutationStore {
   public readExactCallMutationFact(input: Readonly<{
     jobId: string;
     attemptId: string;
-    ownerPluginId: string;
-    pluginVersion: number;
     exactCallIdentityHash: `sha256:${string}`;
     actionOrdinal: number;
   }>): BrowserExactCallMutationFact | null {
@@ -441,11 +438,10 @@ export class BrowserMutationStore {
               child_capability_id,action_ordinal,physical_input_count,download_guid_hash,download_completed,
               media_identity_revalidated
        from browser_mutations
-       where job_id=? and attempt_id=? and owner_plugin_id=? and plugin_version=?
-         and exact_call_identity_hash=? and state in ('DISPATCHED','CONFIRMED','REJECTED')
+       where job_id=? and attempt_id=? and exact_call_identity_hash=?
+         and state in ('DISPATCHED','CONFIRMED','REJECTED')
        order by updated_at desc,command_id desc limit 2`,
-    ).all(input.jobId, input.attemptId, input.ownerPluginId, input.pluginVersion,
-      input.exactCallIdentityHash) as ReadonlyArray<{
+    ).all(input.jobId, input.attemptId, input.exactCallIdentityHash) as ReadonlyArray<{
       command_id: string;
       effect_scope: "target_local" | "provider_effect";
       state: "DISPATCHED" | "CONFIRMED" | "REJECTED";

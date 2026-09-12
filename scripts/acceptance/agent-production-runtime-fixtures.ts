@@ -6,7 +6,6 @@ import {
   WebsiteAgentResultSchema,
   WebsiteAgentTaskSchema,
   hashCanonical,
-  type DurablePluginIdentity,
   type ProductionActionId,
   type ProductionHash,
   type ProductionProductId,
@@ -14,7 +13,6 @@ import {
   type WebsiteAgentTask,
 } from "../../src/lib/local-runtime/production/contracts.js";
 import { productionCatalogHash } from "../../src/lib/local-runtime/production/catalog.js";
-import { resolveProductPluginIdentity } from "../../src/mediator/product-plugin-catalog.js";
 import {
   ClaimedProductionTaskSchema,
   type ClaimedProductionTask,
@@ -59,11 +57,9 @@ export const task = (input: Readonly<{
 
 export const resultFor = (
   accepted: WebsiteAgentTask,
-  identity: DurablePluginIdentity,
 ): WebsiteAgentResult => WebsiteAgentResultSchema.parse({
   schema_version: "website-agent-result.v1", job_id: accepted.job_id, source_task_id: accepted.source_task_id,
-  product_id: accepted.product_id, action_id: accepted.action_id, plugin_id: identity.plugin_id,
-  plugin_version: identity.plugin_version, result_contract_id: RESULT_CONTRACT_ID,
+  product_id: accepted.product_id, action_id: accepted.action_id, result_contract_id: RESULT_CONTRACT_ID,
   result_contract_version: RESULT_CONTRACT_VERSION, result_payload_ref: `object:${accepted.job_id}`,
   result_payload_hash: HASH_B, result_payload_bytes: 2, result_payload_media_type: "application/json",
   result_object_receipt: { object_ref: `object:${accepted.job_id}`, sha256: HASH_B, bytes: 2,
@@ -71,26 +67,13 @@ export const resultFor = (
   evidence_refs: ["evidence:provider"], execution_receipt_hash: HASH_A,
 }) as WebsiteAgentResult;
 
-export const identityFor = (accepted: WebsiteAgentTask): DurablePluginIdentity => {
-  const resolved = authorizeWebsiteAgentTask(accepted);
-  return {
-    plugin_id: resolved.identity.plugin_id,
-    plugin_version: resolved.identity.plugin_version, skill_hash: resolved.identity.skill_hash,
-    request_hash: accepted.request_hash,
-  };
-};
-
-const executionGrant = (
-  base: WebsiteAgentTask,
-  plugin: Readonly<{ pluginId: string; pluginVersion: number }>,
-) => {
+const executionGrant = (base: WebsiteAgentTask) => {
   const route = {
     schema_version: "xuanxue-ai-cloud-execution-grant.v6", control_protocol_version: "xuanxue-ai-production-v6",
     claim_batch_id: `claim:${base.job_id}`, job_id: base.job_id, source_task_id: base.source_task_id,
     request_hash: base.request_hash, task_contract_id: TASK_CONTRACT_ID, task_contract_version: TASK_CONTRACT_VERSION,
     result_contract_id: RESULT_CONTRACT_ID, result_contract_version: RESULT_CONTRACT_VERSION,
     capability_manifest_hash: productionCatalogHash,
-    expected_plugin_id: plugin.pluginId, expected_plugin_version: plugin.pluginVersion,
     accepted_attempt_count: 1, max_provider_turns: 8,
     result_revision: 0, prior_result_rejection: null,
   } as const;
@@ -99,24 +82,23 @@ const executionGrant = (
     worker_session_id: "worker:1", worker_session_epoch: 1, lease_token: `lease:${base.job_id}`,
     lease_version: 1, server_now: "2030-01-01T00:00:00.000Z",
     lease_expires_at: "2030-01-01T00:05:00.000Z", renew_after_ms: 20_000,
-    control_contract_version: 24,
+    control_contract_version: 25,
     execution_fence: {
       schema_version: "xuanxue-ai-execution-fence.v6", environment_id: "production", device_id: "device:1",
       device_epoch: 1, worker_session_id: "worker:1", worker_session_epoch: 1, job_id: base.job_id,
       attempt_id: `attempt:${base.job_id}`, lease_version: 1, lease_token_hash: HASH_A,
-      control_contract_version: 24, fence_hash: HASH_B,
+      control_contract_version: 25, fence_hash: HASH_B,
     },
   } as const;
 };
 
 export const claimTask = (base: WebsiteAgentTask): ClaimedProductionTask => {
-  const identity = resolveProductPluginIdentity(base.product_id, base.action_id);
-  const plugin = { pluginId: identity.plugin_id, pluginVersion: identity.plugin_version };
+  authorizeWebsiteAgentTask(base);
   return ClaimedProductionTaskSchema.parse({
     ...base, status: "failed", current_reason: "LEASE_GRANTED", lease_owner: "device:1",
     lease_expires_at: "2030-01-01T00:05:00.000Z",
     lease_token: `lease:${base.job_id}`, lease_version: 1,
-    grant: executionGrant(base, plugin),
+    grant: executionGrant(base),
   });
 };
 

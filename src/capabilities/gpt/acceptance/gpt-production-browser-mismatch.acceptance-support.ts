@@ -42,7 +42,7 @@ try {
     HASH_A,
     {
       jobId: waitTask.job_id, attemptId: "attempt:provider-wait-mismatch",
-      pluginId: "payment-screenshot-observation", pluginVersion: 1,
+      resultRevision: 0,
       deviceId: "device:1", leaseVersion: 1,
       executionFenceHash: HASH_A, capabilityManifestHash: HASH_B,
       expiresAtMonotonic: performance.now() + 10_000, commandTtlMs: 1_000,
