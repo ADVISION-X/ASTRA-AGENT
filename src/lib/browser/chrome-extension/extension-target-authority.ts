@@ -11,7 +11,6 @@ import { executeRegisteredExtensionCommand } from "./extension-command-runtime.j
 import { ExtensionCreatedTarget, type TargetFailureReporter } from "./extension-created-target.js";
 import { ExtensionInteractionReadiness } from "./extension-interaction-readiness.js";
 import { executeRegisteredDomIntent } from "./dom-intent-runtime.js";
-import { documentState } from "./dom-query-runtime.js";
 import { ExtensionExactTargetRegistry, type ExtensionExactTarget } from "./exact-target-runtime.js";
 import {
   debuggerDetachFailure,
@@ -129,11 +128,17 @@ export class ExtensionTargetAuthority {
     await this.send("TARGET_REVOKE", { targetRef: input.targetRef });
   }
 
-  public async acquireJobBoundChatGptTarget(targetRef?: string): Promise<void> {
+  public async acquireJobBoundChatGptTarget(
+    targetMode: "fresh" | "confirmed-readback",
+  ): Promise<void> {
+    if (targetMode !== "fresh" && targetMode !== "confirmed-readback") {
+      throw new Error("BROWSER_TARGET_INVALID");
+    }
     if (this.activeTarget || this.createdTarget.isPending()) throw new Error("BROWSER_TARGET_INVALID");
-    if (targetRef) return this.reacquireParkedTarget(targetRef);
     const parkedTargetRef = this.singleParkedTargetRef();
-    if (parkedTargetRef) return this.reacquireParkedTarget(parkedTargetRef, true);
+    if (parkedTargetRef) {
+      return this.reacquireParkedTarget(parkedTargetRef, targetMode === "fresh");
+    }
     const candidate = await this.createProductionCandidate();
     if (candidate.tabId === undefined) throw new Error("BROWSER_TARGET_INVALID");
     try {
@@ -235,8 +240,7 @@ export class ExtensionTargetAuthority {
       });
     };
 
-    return mutationClass === "mutation" || (command.kind === "dom-intent"
-      && command.intent.kind === "selectExactGptConversation")
+    return mutationClass === "mutation"
       ? this.interactionReadiness.executeMutation(target, execute)
       : execute();
   }
@@ -249,7 +253,7 @@ export class ExtensionTargetAuthority {
 
   private async reacquireParkedTarget(targetRef: string, resetToStart = false): Promise<void> {
     const priorLoaderId = this.parkedLoaderIds.get(targetRef) ?? null;
-    const parked = await this.readOrRecoverExactTarget(targetRef);
+    const parked = this.targets.read(targetRef);
     const attachedHere = this.attachedTabId !== parked.tabId;
     if (attachedHere) {
       await this.debuggerRuntime.attach(parked.tabId);
@@ -292,62 +296,6 @@ export class ExtensionTargetAuthority {
     }
   }
 
-  private async readOrRecoverExactTarget(targetRef: string): Promise<ExtensionExactTarget> {
-    try {
-      return this.targets.read(targetRef);
-    } catch (error) {
-      if (!(error instanceof Error) || error.message !== "BROWSER_TARGET_INVALID") throw error;
-    }
-    const match = /^target-tab-(0|[1-9][0-9]*)$/u.exec(targetRef);
-    const tabId = match ? Number(match[1]) : Number.NaN;
-    if (!Number.isSafeInteger(tabId)) throw new Error("BROWSER_EXACT_TARGET_UNAVAILABLE");
-    let candidates: readonly ExtensionDebugTarget[];
-    try {
-      candidates = (await this.debuggerRuntime.readTargets()).filter((candidate) =>
-        candidate.tabId === tabId);
-    } catch (error) {
-      throw new Error("BROWSER_TARGET_DISCOVERY_UNAVAILABLE", { cause: error });
-    }
-    if (candidates.length === 0) throw new Error("BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT");
-    const pageCandidates = candidates.filter((candidate) => candidate.type === "page");
-    if (pageCandidates.length !== 1) {
-      throw new Error("BROWSER_EXACT_TARGET_UNAVAILABLE");
-    }
-    const candidate = pageCandidates[0]!;
-    let attachedHere = false;
-    try {
-      requireGptWebPolicyForUrl(candidate.url);
-      if (candidate.attached) {
-        this.debuggerRuntime.adoptAttached(tabId);
-      } else {
-        try { await this.debuggerRuntime.attach(tabId); }
-        catch (error) { throw new Error("BROWSER_DEVTOOLS_CONFLICT", { cause: error }); }
-        attachedHere = true;
-      }
-      this.attachedTabId = tabId;
-      const mainFrame = await readExtensionMainFrame(this.debuggerRuntime, tabId);
-      requireGptWebPolicyForUrl(mainFrame.url);
-      const recovered = this.targets.claimOperatorTarget(tabId);
-      if (recovered.targetRef !== targetRef) throw new Error("BROWSER_EXACT_TARGET_UNAVAILABLE");
-      this.parkedLoaderIds.set(targetRef, mainFrame.loaderId);
-      return recovered;
-    } catch (error) {
-      if (attachedHere) {
-        try { await this.debuggerRuntime.detach(tabId); }
-        catch (detachError) {
-          throw new AggregateError([error, detachError], "BROWSER_TARGET_DETACH_FAILED");
-        }
-      } else {
-        this.debuggerRuntime.forgetAttached(tabId);
-      }
-      this.attachedTabId = null;
-      if (error instanceof Error && (error.message === "BROWSER_EXACT_TARGET_UNAVAILABLE"
-        || error.message === "BROWSER_ORIGIN_REJECTED"
-        || error.message === "BROWSER_DEVTOOLS_CONFLICT")) throw error;
-      throw new Error("BROWSER_EXACT_TARGET_UNAVAILABLE", { cause: error });
-    }
-  }
-
   private singleParkedTargetRef(): string | null {
     if (this.parkedLoaderIds.size === 0) return null;
     if (this.parkedLoaderIds.size !== 1) throw new Error("BROWSER_TARGET_INVALID");
@@ -371,23 +319,18 @@ export class ExtensionTargetAuthority {
     canonicalConversationUrl: string,
   ): Promise<Record<string, unknown>> {
     const expected = requireCanonicalGptConversationUrl(canonicalConversationUrl);
-    const assertCurrent = (): void => { this.targets.resolve(target.targetRef, target.documentRef); };
-    const withoutSuffix = (value: string): string => { const url = new URL(value); return `${url.origin}${url.pathname}`; };
-    const currentUrl = (await documentState(this.debuggerRuntime, target.tabId)).url;
-    if (withoutSuffix(currentUrl) === expected) return { targetRef: target.targetRef,
+    this.targets.resolve(target.targetRef, target.documentRef);
+    const currentFrame = await readExtensionMainFrame(this.debuggerRuntime, target.tabId);
+    requireGptWebPolicyForUrl(currentFrame.url);
+    const current = new URL(currentFrame.url);
+    if (`${current.origin}${current.pathname}` === expected) return { targetRef: target.targetRef,
       documentRef: target.documentRef, navigationEpoch: target.navigationEpoch };
-    const path = new URL(expected).pathname;
-    const selector = `nav a[href=${JSON.stringify(path)}],nav a[href^=${JSON.stringify(`${path}?`)}],nav a[href^=${JSON.stringify(`${path}#`)}]`;
-    const result = await executeRegisteredDomIntent(this.debuggerRuntime, target, {
-      kind: "click", selector, expectedMatches: 1, postClickUrl: { notEquals: currentUrl, timeoutMs: 2_500 },
-    }, assertCurrent) as Readonly<Record<string, unknown>>;
-    if (typeof result.failureCode === "string" || result.clicked !== true || result.mutationCount !== 1
-      || result.postconditionVerified !== true) throw new Error(typeof result.failureCode === "string" ? result.failureCode : "BROWSER_POSTCONDITION_FAILED");
-    assertCurrent();
-    if (withoutSuffix((await documentState(this.debuggerRuntime, target.tabId)).url) !== expected) throw new Error("BROWSER_POSTCONDITION_FAILED");
-    const next = this.targets.advanceDocument(target.targetRef);
-    this.activeTarget = next;
-    await this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(next, { claimOrigin: gptWebClaimOriginForUrl(expected) }));
+    await this.debuggerRuntime.send(target.tabId, "Page.navigate", { url: expected });
+    const mainFrame = await readExtensionMainFrame(this.debuggerRuntime, target.tabId);
+    if (requireCanonicalGptConversationUrl(mainFrame.url) !== expected) {
+      throw new Error("BROWSER_POSTCONDITION_FAILED");
+    }
+    const next = await this.publishMainFrameNavigation(mainFrame.url, mainFrame.loaderId);
     return { targetRef: next.targetRef, documentRef: next.documentRef, navigationEpoch: next.navigationEpoch };
   }
 

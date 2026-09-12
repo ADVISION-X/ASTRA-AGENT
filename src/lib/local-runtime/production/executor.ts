@@ -22,6 +22,7 @@ import type {
   LocalProductionMaterial, ProductionExecutionLease, ProductionHash,
   WebsiteAgentResult, WebsiteAgentTask,
 } from "./contracts.js";
+import { PRODUCTION_BUSINESS_CAPACITY_TOTAL } from "./control-contract-dependency.js";
 import { assertProductionTaskRoutePolicy, productionRoutePolicy } from "./route-policy.js";
 import { ProductionRuntimeStore, type StoredProductionTask } from "./store.js";
 
@@ -164,7 +165,7 @@ export class ProductionExecutor {
 
   private readonly runtimeLogger: RuntimeLogger;
 
-  public availableCapacity(): number { return 10; }
+  public availableCapacity(): number { return PRODUCTION_BUSINESS_CAPACITY_TOTAL; }
 
   public accept(task: WebsiteAgentTask, attemptId: string): StoredProductionTask {
     assertProductionTaskRoutePolicy(task);

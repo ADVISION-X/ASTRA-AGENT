@@ -300,16 +300,14 @@ export class ExtensionWebSocketActor {
       throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     }
     const request = await decrypt(session.serverToClientKey, "server-to-client", frame);
-    const targetRef = request.targetRef === undefined
-      ? undefined
-      : typeof request.targetRef === "string" && request.targetRef.length > 0
-        ? request.targetRef
-        : (() => { throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID"); })();
-    if (Object.keys(request).some((key) => key !== "targetRef")) {
+    const targetMode = request.targetMode === "fresh" || request.targetMode === "confirmed-readback"
+      ? request.targetMode
+      : (() => { throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID"); })();
+    if (Object.keys(request).some((key) => key !== "targetMode")) {
       throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     }
     try {
-      await this.targetAuthority.acquireJobBoundChatGptTarget(targetRef);
+      await this.targetAuthority.acquireJobBoundChatGptTarget(targetMode);
     } catch (error) {
       this.reportRuntimeFailure(error, "job-bound-target-acquisition");
     }

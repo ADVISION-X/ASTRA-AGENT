@@ -10,6 +10,7 @@ import {
 import { failureCode } from "../../execution-failure.js";
 import { claimProductionTasks } from "./cloud-client.js";
 import { productionCatalogHash } from "./catalog.js";
+import { PRODUCTION_BUSINESS_CAPACITY_TOTAL } from "./control-contract-dependency.js";
 import { hashCanonical } from "./contracts.js";
 import type { ProductionRuntimeHealth } from "./runtime-contract.js";
 import { executeClaim } from "./runtime-claim.js";
@@ -150,7 +151,10 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
   refreshLedgerReconciled(state);
   const attestation = await state.session.ensureFreshAttestation();
   state.lastHeartbeat = attestation.issued_at;
-  const available = Math.min(10 - state.active.size, state.executor.availableCapacity());
+  const available = Math.min(
+    PRODUCTION_BUSINESS_CAPACITY_TOTAL - state.active.size,
+    state.executor.availableCapacity(),
+  );
   const browser = state.browserAuthority.readProductionRuntimeState();
   const eligible = available > 0 && attestation.claim_eligible && state.ledgerReconciled
     && browser.browserAuthorityState === "present" && !state.draining && state.runtimeLogger.isWritable();

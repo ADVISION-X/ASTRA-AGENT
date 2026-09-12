@@ -3,7 +3,10 @@ import { executionFailure } from "../../execution-failure.js";
 
 import { agentRouteCapabilityManifest } from "./catalog.js";
 import type { ProductionHash } from "./contracts.js";
-import { productionControlContractVersion } from "./control-contract-dependency.js";
+import {
+  PRODUCTION_BUSINESS_CAPACITY_TOTAL,
+  productionControlContractVersion,
+} from "./control-contract-dependency.js";
 import {
   RuntimeAttestationReceiptSchema,
   WorkerSessionCredentialSchema,
@@ -109,7 +112,7 @@ export class ProductionWorkerSession {
         attestation_seq: next,
         worker_session_id: this.workerSessionId,
         worker_session_epoch: this.workerSessionEpoch,
-        business_capacity_total: 10,
+        business_capacity_total: PRODUCTION_BUSINESS_CAPACITY_TOTAL,
         business_in_flight: state.business_in_flight,
         browser_action_capacity_total: 1,
         browser_action_in_flight: state.browser_action_in_flight,

@@ -23,21 +23,34 @@ try {
   let selections = 0;
   let parks = 0;
   let closes = 0;
+  const order: string[] = [];
   const acquisitionPurposes: string[] = [];
-  const acquisitionTargetRefs: Array<string | undefined> = [];
+  const acquisitionModes: string[] = [];
   const parkInputs: Array<Readonly<{
     reason: string; mode: string; startProviderProbeCooldown: boolean;
   }>> = [];
   const browsers = Array.from({ length: 5 }, (_unused, index) => ({
-    target: { targetRef: "target:provider-wait" },
+    target: { targetRef: `target:provider-wait:${index + 1}` },
     document: { documentRef: `document:${index + 1}` },
     pendingMutationCount: () => 0,
     requiresMutationRecovery: () => false,
-    executeDomIntent: async () => { selections += 1; },
+    readAtomicStepOutcome: () => {
+      order.push(`wal:${index + 1}`);
+      return {
+        state: "confirmed", mutationOutcome: "confirmed",
+        providerEffectIdentityHash: `sha256:${"8".repeat(64)}`,
+        terminalPayload: {
+          canonicalConversationUrl: "https://chatgpt.com/c/provider-wait",
+          userTurnId: "conversation-turn-1",
+        },
+      };
+    },
+    executeDomIntent: async () => { selections += 1; order.push(`select:${index + 1}`); },
     park: async (input: Readonly<{
       reason: string; mode: string; startProviderProbeCooldown: boolean;
     }>) => {
       parks += 1;
+      order.push(`park:${index + 1}`);
       parkInputs.push(input);
     },
     close: async () => { closes += 1; },
@@ -50,10 +63,11 @@ try {
   const lifecycle = new ProductionGptBrowserLifecycle(
     {
       acquireJobBoundTargetLease: async (_binding: unknown, _ownerId: unknown, wait: Readonly<{
-        purpose: string; expectedTargetRef?: string;
+        purpose: string; targetMode: string;
       }>) => {
+        order.push(`acquire:${acquisitions + 1}`);
         acquisitionPurposes.push(wait.purpose);
-        acquisitionTargetRefs.push(wait.expectedTargetRef);
+        acquisitionModes.push(wait.targetMode);
         const browser = browsers[acquisitions];
         acquisitions += 1;
         if (!browser) throw new Error("UNEXPECTED_BROWSER_ACQUISITION");
@@ -77,6 +91,29 @@ try {
     "text-wait",
   );
   assert.equal(active.facade.document.documentRef, "document:1");
+  await assert.rejects(
+    lifecycle.yieldForProviderProbe(
+      active, "corpus_research", "text-wait", "checkpoint_gpt_text_response",
+      "https://chatgpt.com/c/provider-wait", Date.now() + 1_000,
+    ),
+    /GPT_CONFIRMED_SUBMIT_READBACK_INVALID/u,
+    "Provider polling must be impossible before the submit effect is confirmed in Browser WAL",
+  );
+  assert.deepEqual([acquisitions, parks], [1, 0],
+    "an unconfirmed probe must fail before parking or acquiring a Browser Target");
+  const providerEffectIdentityHash = `sha256:${"8".repeat(64)}` as const;
+  lifecycle.recordConfirmedProviderEffect(active, {
+    exactCallIdentityHash: `sha256:${"6".repeat(64)}`,
+    providerEffectIdentityHash,
+    childCapabilityId: "submit_exact_gpt_turn_once", effectScope: "provider_effect",
+    browserOutcome: "CONFIRMED", mutationOutcome: "confirmed",
+    terminalAt: "2026-09-12T00:00:00.000Z", evidenceRef: "browser-mutation:submit",
+    evidenceHash: `sha256:${"5".repeat(64)}`,
+  }, {
+    resultRevision: 0, productStepId: "corpus_research", callId: "turn-submit",
+    childCapabilityId: "submit_exact_gpt_turn_once", inputHash: HASH_A,
+    actionOrdinal: 1, replayPolicy: "provider-effect-once",
+  }, "https://chatgpt.com/c/provider-wait", "conversation-turn-1");
   await lifecycle.yieldForProviderProbe(
     active, "corpus_research", "text-wait", "checkpoint_gpt_text_response",
     "https://chatgpt.com/c/provider-wait", Date.now() + 1_000,
@@ -99,15 +136,6 @@ try {
     "https://chatgpt.com/c/provider-wait", Date.now() + 1_000,
   );
   assert.equal(active.facade.document.documentRef, "document:5");
-  const providerEffectIdentityHash = `sha256:${"8".repeat(64)}` as const;
-  lifecycle.recordConfirmedProviderEffect(active, {
-    exactCallIdentityHash: `sha256:${"6".repeat(64)}`,
-    providerEffectIdentityHash,
-    childCapabilityId: "submit_exact_gpt_turn_once", effectScope: "provider_effect",
-    browserOutcome: "CONFIRMED", mutationOutcome: "confirmed",
-    terminalAt: "2026-09-12T00:00:00.000Z", evidenceRef: "browser-mutation:submit",
-    evidenceHash: `sha256:${"5".repeat(64)}`,
-  });
   lifecycle.recordSettledResult(active, HASH_B);
   assert.deepEqual(
     serializeTerminalFailureTransport(lifecycle.decorateSettledResultFailure(
@@ -139,11 +167,19 @@ try {
   assert.deepEqual(acquisitionPurposes, [
     "general", "provider-probe", "provider-probe", "provider-probe", "provider-probe",
   ]);
-  assert.deepEqual(acquisitionTargetRefs, [undefined,
-    ...Array.from({ length: 4 }, () => "target:provider-wait")],
-  "Provider probes must reacquire the exact parked target instead of resetting the generic target");
+  assert.deepEqual(acquisitionModes, ["fresh",
+    ...Array.from({ length: 4 }, () => "confirmed-readback")],
+  "Provider probes must acquire the current system Target without resetting to the GPT root");
   assert.equal(selections, 4,
-    "each qualified Provider probe must select the exact sidebar conversation before observation");
+    "each qualified Provider probe must converge on the exact canonical conversation URL before observation");
+  assert.deepEqual(order, [
+    "acquire:1",
+    "wal:1", "park:1", "acquire:2", "select:2",
+    "wal:2", "park:2", "acquire:3", "select:3",
+    "wal:3", "park:3", "acquire:4", "select:4",
+    "wal:4", "park:4", "acquire:5", "select:5",
+    "park:5",
+  ], "every Provider probe must prove the same WAL effect before releasing FIFO and reacquiring");
   const waitEvents = (await readFile(runtimeLogger.currentSegmentPath()!, "utf8")).trim().split("\n")
     .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>)
     .filter((event) => event.code === "GPT_PROVIDER_WAIT_ACTIVE");

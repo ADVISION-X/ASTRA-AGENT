@@ -4,10 +4,11 @@ import { BrowserAuthorityIssuer } from "./browser-authority-issuer.js";
 import type { createBrowserInfrastructureState } from "./browser-infrastructure-state.js";
 import { BrowserAuthorityWebSocket } from "../transport/browser-authority-websocket.js";
 import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS } from "../protocol/generated/browser-protocol.generated.js";
+import type { BrowserTargetLeaseWait } from "../exact-target/browser-target-lease.js";
 
 type TargetWaiter = Readonly<{
   binding: BrowserExecutionBinding;
-  expectedTargetRef: string | null;
+  targetMode: BrowserTargetLeaseWait["targetMode"];
   remainingMs(): number;
 }>;
 type LaneState = ReturnType<typeof createBrowserInfrastructureState>;
@@ -25,11 +26,14 @@ export class BrowserTargetAcquirer {
   public async ensureAvailableTarget(waiter: TargetWaiter): Promise<void> {
     if (this.resolveBroker().currentOperatorTargetStatus() !== "absent") return;
     await this.acquireJobBoundTarget(
-      Math.min(waiter.binding.commandTtlMs, waiter.remainingMs()), waiter.expectedTargetRef,
+      Math.min(waiter.binding.commandTtlMs, waiter.remainingMs()), waiter.targetMode,
     );
   }
 
-  private async acquireJobBoundTarget(commandTtlMs: number, expectedTargetRef: string | null): Promise<void> {
+  private async acquireJobBoundTarget(
+    commandTtlMs: number,
+    targetMode: BrowserTargetLeaseWait["targetMode"],
+  ): Promise<void> {
     const current = this.issuer.current();
     if (current.kind === "ABSENT") throw new Error(current.reasonCode);
     if (!Number.isInteger(commandTtlMs) || commandTtlMs < 1 || commandTtlMs > 3_600_000) {
@@ -45,25 +49,20 @@ export class BrowserTargetAcquirer {
       }, deadlineMs);
       this.infrastructure.pendingJobBoundTargetAcquisition = {
         authorityEpoch: current.authority.authorityEpoch,
-        expectedTargetRef,
         resolve,
         reject,
         timeout,
       };
-      try { this.websocket.requestPreauthorizedTargetAcquisition(expectedTargetRef ?? undefined); }
+      try { this.websocket.requestPreauthorizedTargetAcquisition(targetMode); }
       catch (error) {
         this.rejectPending(error instanceof Error ? error.message : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
       }
     });
   }
 
-  public resolvePending(targetRef: string): void {
+  public resolvePending(_targetRef: string): void {
     const pending = this.infrastructure.pendingJobBoundTargetAcquisition;
     if (!pending) return;
-    if (pending.expectedTargetRef !== null && pending.expectedTargetRef !== targetRef) {
-      this.rejectPending("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
-      return;
-    }
     this.infrastructure.pendingJobBoundTargetAcquisition = null;
     clearTimeout(pending.timeout);
     pending.resolve();

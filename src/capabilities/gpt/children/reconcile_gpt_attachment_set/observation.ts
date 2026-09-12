@@ -209,14 +209,22 @@ const attachmentUploadTimeout = (state: AttachmentSetState, expectedCount: numbe
     state,
   );
 
+const ATTACHMENT_OBSERVATION_INTERVALS_MS = [
+  2_000, 3_000, 5_000, 7_000, 9_000, 11_000,
+] as const;
+
 const waitForNextAttachmentObservation = async (
   browser: ReturnType<typeof requireBrowser>,
   deadline: number,
+  waitOrdinal: number,
 ): Promise<void> => {
   const remaining = deadline - Date.now();
   if (remaining <= 0) return;
+  const scheduled = ATTACHMENT_OBSERVATION_INTERVALS_MS[
+    Math.min(waitOrdinal, ATTACHMENT_OBSERVATION_INTERVALS_MS.length - 1)
+  ]!;
   await browser.wait({
-    durationMs: Math.min(remaining, Math.max(1, Math.min(500, Math.ceil(remaining / 20)))),
+    durationMs: Math.min(remaining, scheduled),
   });
 };
 
@@ -228,6 +236,7 @@ export const waitForUploadedAttachmentSet = async (
 ) => {
   if (files.length === 0) return observeExactAttachmentSet(browser, files);
   const deadline = Date.now() + timeoutMs;
+  let waitOrdinal = 0;
   let last: AttachmentSetState = Object.freeze({
     composerRawCount: 0, composerEligibleCount: 0,
     itemRawCount: 0, itemEligibleCount: 0,
@@ -244,7 +253,8 @@ export const waitForUploadedAttachmentSet = async (
     } catch (error) {
       if (failureCode(error) !== "BROWSER_DOM_NODE_STALE") throw error;
       if (deadline <= Date.now()) attachmentUploadTimeout(last, files.length);
-      await waitForNextAttachmentObservation(browser, deadline);
+      await waitForNextAttachmentObservation(browser, deadline, waitOrdinal);
+      waitOrdinal += 1;
       continue;
     }
     const { expectedLabels, missing, unexpected } = attachmentSetDifference(files, last.observedLabels);
@@ -259,6 +269,7 @@ export const waitForUploadedAttachmentSet = async (
       });
     }
     if (deadline <= Date.now()) attachmentUploadTimeout(last, files.length);
-    await waitForNextAttachmentObservation(browser, deadline);
+    await waitForNextAttachmentObservation(browser, deadline, waitOrdinal);
+    waitOrdinal += 1;
   }
 };

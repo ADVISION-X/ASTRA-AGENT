@@ -1,6 +1,6 @@
 {
   "schemaVersion": "gpt-page-operation-evidence.v7",
-  "projectionRevision": "sha256:f40d54a9dc2e7aa12ffac2eca5a5ecfc84f2f88da39503016c7f3aa63f1560a7",
+  "projectionRevision": "sha256:73432d1b50b81ded9fa8b0ab08fb46ca28ef858aa787b4822211dae4a0cb6282",
   "captureEpoch": null,
   "matrixBinding": {
     "schemaVersion": "gpt-page-operation-matrix.v4",
@@ -7161,24 +7161,24 @@
       "flowOwnerBinding": {
         "files": [
           {
-            "contentHash": "sha256:cda008d87d3b59168330c9347cc2a9e04a789b57371f3580cd06a8a65679aea7",
+            "contentHash": "sha256:0f2c8ef86bff1dbc459b6d5b7575d465fc78e842e8040517d949602ab8be1073",
             "path": "src/plugins/public-knowledge-article-pipeline/SKILL.md",
-            "semanticHash": "sha256:f3288a920bc7055998f7f7599ab3d8514dfa49d0f66da424dd77fcf7481a7757"
+            "semanticHash": "sha256:3f4ee66c43c2045a247af5eeb963604ba9725103c8e7bf4e11bb06f2046f1d8a"
           },
           {
-            "contentHash": "sha256:223008badfe81842906d96983efda125f530298f5ae8314bc62c1028075b7d0c",
+            "contentHash": "sha256:698ee6c5bcf89c7399a2b08ca8f6c704b5edcb136e8b84f662301df24e8f2166",
             "path": "src/plugins/public-knowledge-article-pipeline/index.ts",
-            "semanticHash": "sha256:a7f66f19993472e8163ee704bba1de66977a31673a153c2c6b983015d947777f"
+            "semanticHash": "sha256:9ae1162cc48d9598edab59f1083e9188cc2aa86593e54788fd2f3eb51e28fb5e"
           },
           {
-            "contentHash": "sha256:af834507f90db79628e6f059cb7f5afa1ec60ad110703acaa0aaa58d050ef080",
+            "contentHash": "sha256:bccfdff01d35e2095d28ef27610cd88491778e169d6a4e8f12f59205988d4db4",
             "path": "src/plugins/public-knowledge-article-pipeline/page-evidence-contract.json",
-            "semanticHash": "sha256:bc6c1fd1b40e059bb55dbfc663ff308c41ffca4b8337eb98e628ab6833ad24ca"
+            "semanticHash": "sha256:24b36744fd1f597cc39efaad07947ea8bb05a3f886223030681614e50540e193"
           },
           {
-            "contentHash": "sha256:03650eba17d64f6cc931f4cbd15f22e2723cadbdf6ac401c77051924e43e587f",
+            "contentHash": "sha256:d8ce5fce5ee8eec74af1fefbd3a88f4f32b4a7c0e49e7fd6ddc798d3922552a8",
             "path": "src/plugins/public-knowledge-article-pipeline/result-contract.ts",
-            "semanticHash": "sha256:ca594deb972b69a66472100975c7a5f1e3b71bc93e30194b231ea312ff9be064"
+            "semanticHash": "sha256:2e1e8bbbb28c29df18aa23ef59463bc738c7994e32c4c90b4cdac91090b61554"
           },
           {
             "contentHash": "sha256:c98c3ce22757a147e178758100bd6788ce55fe31d0ab7a10d1eae1e07fbc6371",
@@ -7186,9 +7186,9 @@
             "semanticHash": "sha256:5f3d49f9dc1913605fa650e0786daae03258d26bed95143c0ee37a3104b8a97d"
           },
           {
-            "contentHash": "sha256:95e332a6094d4d94efb97f4af5a5a7923915161debf261319700aeb3f3c88ffd",
+            "contentHash": "sha256:a85ed8c05d6983afbe3be6977938ce22cbf06dee3e130676ca1005986a05afcd",
             "path": "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts",
-            "semanticHash": "sha256:fc0c0a69c8f2fca4a60ab56d291c7b1da63f050c6cde966cccaa596da7a4b941"
+            "semanticHash": "sha256:c9d063c1d9d9ac1a0ac683f3992bc4cf8e08f5cd9dbf9e10a67d814b08117685"
           },
           {
             "contentHash": "sha256:d2d9adeab6057578395b6f8858a74f1ab1452730382ef36ffdf3591f0e06ff63",
@@ -7196,17 +7196,17 @@
             "semanticHash": "sha256:5d81044ac043e7443e892caade97b2d62f8b5d33bfd7e3cc1254100d4877d432"
           },
           {
-            "contentHash": "sha256:8a9ea0e18699eb1a8f9df3ce975fc1e625a2fdda40465e2e91f4c5725d3d5777",
+            "contentHash": "sha256:b443810a7d05b41b2e74396e549219f20b30a380d76f2c3a7cd6901eaa8a8f1d",
             "path": "src/plugins/public-knowledge-article-pipeline/seo-turn-contract.ts",
-            "semanticHash": "sha256:f84998c3814eb9c133b43b6e58adc51ffa19999021a851cb81b8e935e7cf1973"
+            "semanticHash": "sha256:54d5eab7e4a3f0f15c69748ae81314dc209b8efeaaae79dfb309630d312e4f1e"
           },
           {
-            "contentHash": "sha256:7e0456b66205f375b9911f10db922c1ed20782c27ba5455a13383253bca1cbcb",
+            "contentHash": "sha256:d7fa60597444d3642f2701268439b0ead86445d3b35da2b3c5ca8bc78a5ebfac",
             "path": "src/plugins/public-knowledge-article-pipeline/seo-turn-prompts.ts",
-            "semanticHash": "sha256:093741dbfb9a0d965701b7712b8b81928b0be5131aa5e54f5331c8f99f1d82e0"
+            "semanticHash": "sha256:86a86db02647216db935c417e2f6c1e78506454b6a5e05ed19d33090eb654097"
           }
         ],
-        "semanticDigest": "sha256:a5ef663eb6b7cfb91fb15bcb36a92ec27d0b19bdf2dcc4d3d3f46318e7da9769"
+        "semanticDigest": "sha256:d02a7b6e6ec8f3e8e466a42051fae063dbe0a9a70ad333a86f2ae53b19207785"
       },
       "gaps": [
         "article_synthesis/29/submit_exact_gpt_turn_once:PAGE_EVIDENCE_CONFLICT:STATE_ASSERTION:post-submit-user-turn:related.transitionChain.typedCommand.kind:equals",
@@ -7245,7 +7245,7 @@
         "article_image_generation/47/wait_for_stable_gpt_image:PAGE_EVIDENCE_GAP:image-generating:scene-not-mapped"
       ],
       "pluginId": "public-knowledge-article-pipeline",
-      "pluginVersion": 25,
+      "pluginVersion": 0,
       "productId": "public_knowledge_article_pipeline",
       "productKey": "public_knowledge_article_pipeline/produce_article",
       "runs": [
@@ -36499,7 +36499,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            184
+            191
           ]
         },
         {
@@ -36514,28 +36514,28 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            187
+            195
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            157
+            164
           ]
         },
         {
           "consumer": "hehun-ai-analysis",
           "path": "src/plugins/hehun-ai-analysis/flow.ts",
           "lines": [
-            150
+            156
           ]
         },
         {
           "consumer": "hehun-report-followup",
           "path": "src/plugins/hehun-report-followup/flow.ts",
           "lines": [
-            153
+            159
           ]
         },
         {
@@ -36561,21 +36561,21 @@
           "consumer": "naming-bazi-analysis-and-naming",
           "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
           "lines": [
-            147
+            153
           ]
         },
         {
           "consumer": "naming-from-existing-bazi-report",
           "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
           "lines": [
-            147
+            153
           ]
         },
         {
           "consumer": "payment-screenshot-observation",
           "path": "src/plugins/payment-screenshot-observation/flow.ts",
           "lines": [
-            147
+            153
           ]
         },
         {
@@ -36589,14 +36589,14 @@
           "consumer": "qimen-professional-answer",
           "path": "src/plugins/qimen-professional-answer/flow.ts",
           "lines": [
-            150
+            157
           ]
         },
         {
           "consumer": "qimen-report-followup",
           "path": "src/plugins/qimen-report-followup/flow.ts",
           "lines": [
-            153
+            160
           ]
         }
       ],
@@ -36677,8 +36677,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:056dcfea6795a9d8c162e59aa5055c16d26d464751d5d9f9deb8e1c19475b92d",
-        "digest": "sha256:056dcfea6795a9d8c162e59aa5055c16d26d464751d5d9f9deb8e1c19475b92d",
+        "childCandidateDigest": "sha256:6cd9910575faa5933ce48db2bcad31bc4dded54f95b571aee9dbc91e8f036849",
+        "digest": "sha256:6cd9910575faa5933ce48db2bcad31bc4dded54f95b571aee9dbc91e8f036849",
         "facts": [
           {
             "expected": "select the complete approved file set in one batch",
@@ -36898,23 +36898,23 @@
           }
         ],
         "pageDemandDigest": "sha256:19420349b101aab568c91dc79066baa800334431826d8586bf44442e53478585",
-        "projectionDigest": "sha256:056dcfea6795a9d8c162e59aa5055c16d26d464751d5d9f9deb8e1c19475b92d",
+        "projectionDigest": "sha256:6cd9910575faa5933ce48db2bcad31bc4dded54f95b571aee9dbc91e8f036849",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
+                "contentHash": "sha256:8e1b5e46b7a256c25d3586daed3adcd5c50475ac8d8b79b91bf3365fdb035472",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
+                "semanticHash": "sha256:466f84304f3cd1213fd3470368fd3b1ce25415fa7ef1ed8ad56b0c0b47c3a187"
               },
               {
-                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
+                "contentHash": "sha256:2674b19207bb031eb18de320515771dedb2a237bc0a4cf579a9adbf28f7c9807",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
+                "semanticHash": "sha256:5b880347f7b4a49791f67f0e33c740563adde7d3b70e0e7a38fd88d0044e3060"
               }
             ],
-            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
+            "semanticDigest": "sha256:0fd09182bb49b30ad45cee63b7d709bd87c5e85a55125d157c836b946da129e2"
           },
           "browser": {
             "files": [],
@@ -36928,9 +36928,9 @@
                 "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
+                "contentHash": "sha256:50cf65def0d81a5ebaa7e4fe24f741a7de9eb83f748c3b7fac3102b8ed65d953",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
+                "semanticHash": "sha256:2286adfcd8ac136550909bbd18fa617f09b47a05f3d835f56cc7f2f723bf90a6"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -36938,24 +36938,24 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
+                "contentHash": "sha256:03a12d55de125589226aabfeb10433ede4f6d2ab566ccd3498cea983f27bc365",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
+                "semanticHash": "sha256:c8bd8aa29c8ba879728e856f8381302257f2feb6532be0a100bf358c46ae0740"
               },
               {
-                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
+                "contentHash": "sha256:ca2a4f4e20437c8bc139ee1889fe2331eae600d87030ce3f0d8717ed1e12e3ac",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
+                "semanticHash": "sha256:8ae9278e57191dd6d8182d9bb9b6e76fb3bc5a7f17eb67158f0cc13297909ec9"
               },
               {
-                "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
+                "contentHash": "sha256:a25293e2f8750a4195fb437db0a2feddd45960e4d4802fca161db2dc2970bf07",
                 "path": "src/plugins/hehun-ai-analysis/flow.ts",
-                "semanticHash": "sha256:e243630b87151e9ea07f21967862e16d298e23dbfdb6b77794a1cbe689be5f51"
+                "semanticHash": "sha256:13016a3cbc5ec640514ea0ed9b293cb75b0b4b132dae3e91fe3a19dd1c9be240"
               },
               {
-                "contentHash": "sha256:50a434c337a55d19fd56f37ba51ff73c81634945be052297828bee3934bd0857",
+                "contentHash": "sha256:0c656587b626432c829f883d6ee602a45923086d0ab314c4917f1cc53ef65389",
                 "path": "src/plugins/hehun-report-followup/flow.ts",
-                "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
+                "semanticHash": "sha256:ff80be5bbe21d4bf3940e975866082692ba73eeafe0d9a06929f49c5cae42d93"
               },
               {
                 "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
@@ -36968,19 +36968,19 @@
                 "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
-                "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
+                "contentHash": "sha256:60b4a1761360dc540b0e71131d56ef40ab5cf696aa04f55d582d42ece41e9d97",
                 "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
-                "semanticHash": "sha256:c798409afd48fdc65438541453210b0e3afa046e1c7e62ea92c0236b88ff877a"
+                "semanticHash": "sha256:88262d3612b2f6ce958d540efe52bd231b51ab148da53297ab6386dc1e53e6ca"
               },
               {
-                "contentHash": "sha256:d09d07ad4f2e5daacb5ee465185a56fba705d5e977b7da61d38afb130aff1cca",
+                "contentHash": "sha256:508c20177cc0698116e471bb4777c2ae06e2aa5c3b03c3b8be361f65ca402bab",
                 "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
-                "semanticHash": "sha256:0adea8336d1c7e0ff6f13843ec8fb961b8f8631eceb892cd9960813b802af305"
+                "semanticHash": "sha256:2adbe9903cfcfb7ee4521630d036821b388936cae2cd00702841ebd3f2a591ca"
               },
               {
-                "contentHash": "sha256:315f4d29bed0df1a36e64ecad6ce8c8899c4bd4e7522b8742f253d7785d0ffdd",
+                "contentHash": "sha256:354e43fb2ffbecaeddd6ba24f96ab1a625f4eff60dc14317941205466d8020b6",
                 "path": "src/plugins/payment-screenshot-observation/flow.ts",
-                "semanticHash": "sha256:c6c68cdb833048cd2724c88d8b4711fce4058d274c319fa24d1a733a2e43d43a"
+                "semanticHash": "sha256:528249371ea182e06aa85a15ef79a2be8160a728ee1edeac72ae199921984121"
               },
               {
                 "contentHash": "sha256:c98c3ce22757a147e178758100bd6788ce55fe31d0ab7a10d1eae1e07fbc6371",
@@ -36988,17 +36988,17 @@
                 "semanticHash": "sha256:5f3d49f9dc1913605fa650e0786daae03258d26bed95143c0ee37a3104b8a97d"
               },
               {
-                "contentHash": "sha256:f0b8c567b7a09b0c143751bebd2fa4b6715f635221d5f969d4c635d3463f382b",
+                "contentHash": "sha256:db1ddf19566899d7645a51fa6242df802c7ea1845a21c70e2ace649681516521",
                 "path": "src/plugins/qimen-professional-answer/flow.ts",
-                "semanticHash": "sha256:69c7792b9df5bfc76921df1a84ec13fdc3c843dc462e672305f5723c5562b33a"
+                "semanticHash": "sha256:e977b89ab787ceddfa5e1732f15f9a93a3463b3fd7fa3fda14c4e90bf3e2e978"
               },
               {
-                "contentHash": "sha256:4de3048e90ad49336bba8f4afbdae00d46d4f18665e2a30aa3327dd5f24e9590",
+                "contentHash": "sha256:37e8707b1e5fee0555a3ec583fd19da0e1e63a5bbc786e79b0e00b69d2c7119c",
                 "path": "src/plugins/qimen-report-followup/flow.ts",
-                "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
+                "semanticHash": "sha256:1d8c9e667d924a08cddbd6131f6a632534c9296bca869116c2eae4e5fdf0e9c3"
               }
             ],
-            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
+            "semanticDigest": "sha256:ec50f26af8577854f2815db51e4eaf88452aa53ec69cec6b208bbce71425b56e"
           },
           "implementation": {
             "files": [
@@ -37112,13 +37112,13 @@
         {
           "path": "src/capabilities/gpt/production-browser-lifecycle.ts",
           "lines": [
-            131
+            134
           ]
         },
         {
           "path": "src/capabilities/gpt/production-child-tools.ts",
           "lines": [
-            248
+            267
           ]
         }
       ],
@@ -37199,8 +37199,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:022d34c6b5c59de62638c89f31d3df2114d3ee25e27e0e4c1bfa58602ab6e84c",
-        "digest": "sha256:022d34c6b5c59de62638c89f31d3df2114d3ee25e27e0e4c1bfa58602ab6e84c",
+        "childCandidateDigest": "sha256:676fff168a8dfd86b79609bc58e28e75f2f3f3ba71522192fd93cda08806c27a",
+        "digest": "sha256:676fff168a8dfd86b79609bc58e28e75f2f3f3ba71522192fd93cda08806c27a",
         "facts": [
           {
             "expected": "checkpoint the exact assistant image content",
@@ -37414,23 +37414,23 @@
           }
         ],
         "pageDemandDigest": "sha256:7249941ae0b406db07282133ed1ff296e33aaff9815c6c1bcef10dbb537a3294",
-        "projectionDigest": "sha256:022d34c6b5c59de62638c89f31d3df2114d3ee25e27e0e4c1bfa58602ab6e84c",
+        "projectionDigest": "sha256:676fff168a8dfd86b79609bc58e28e75f2f3f3ba71522192fd93cda08806c27a",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
+                "contentHash": "sha256:8e1b5e46b7a256c25d3586daed3adcd5c50475ac8d8b79b91bf3365fdb035472",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
+                "semanticHash": "sha256:466f84304f3cd1213fd3470368fd3b1ce25415fa7ef1ed8ad56b0c0b47c3a187"
               },
               {
-                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
+                "contentHash": "sha256:2674b19207bb031eb18de320515771dedb2a237bc0a4cf579a9adbf28f7c9807",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
+                "semanticHash": "sha256:5b880347f7b4a49791f67f0e33c740563adde7d3b70e0e7a38fd88d0044e3060"
               }
             ],
-            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
+            "semanticDigest": "sha256:0fd09182bb49b30ad45cee63b7d709bd87c5e85a55125d157c836b946da129e2"
           },
           "browser": {
             "files": [
@@ -37527,7 +37527,7 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-production-browser-mismatch.acceptance-support.ts",
           "lines": [
-            59
+            57
           ]
         },
         {
@@ -37585,14 +37585,14 @@
         {
           "path": "src/capabilities/gpt/production-browser-lifecycle.ts",
           "lines": [
-            130
+            133
           ]
         },
         {
           "path": "src/capabilities/gpt/production-child-tools.ts",
           "lines": [
-            247,
-            299
+            266,
+            318
           ]
         }
       ],
@@ -37621,7 +37621,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            215
+            222
           ]
         },
         {
@@ -37636,28 +37636,28 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            218
+            226
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            186
+            193
           ]
         },
         {
           "consumer": "hehun-ai-analysis",
           "path": "src/plugins/hehun-ai-analysis/flow.ts",
           "lines": [
-            179
+            185
           ]
         },
         {
           "consumer": "hehun-report-followup",
           "path": "src/plugins/hehun-report-followup/flow.ts",
           "lines": [
-            182
+            188
           ]
         },
         {
@@ -37683,21 +37683,21 @@
           "consumer": "naming-bazi-analysis-and-naming",
           "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
           "lines": [
-            176
+            182
           ]
         },
         {
           "consumer": "naming-from-existing-bazi-report",
           "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
           "lines": [
-            176
+            182
           ]
         },
         {
           "consumer": "payment-screenshot-observation",
           "path": "src/plugins/payment-screenshot-observation/flow.ts",
           "lines": [
-            176
+            182
           ]
         },
         {
@@ -37711,14 +37711,14 @@
           "consumer": "qimen-professional-answer",
           "path": "src/plugins/qimen-professional-answer/flow.ts",
           "lines": [
-            179
+            186
           ]
         },
         {
           "consumer": "qimen-report-followup",
           "path": "src/plugins/qimen-report-followup/flow.ts",
           "lines": [
-            182
+            189
           ]
         }
       ],
@@ -37800,8 +37800,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:2d848e28090da992eb98f95bf005a893aced32a2981748a5b213203e484de455",
-        "digest": "sha256:2d848e28090da992eb98f95bf005a893aced32a2981748a5b213203e484de455",
+        "childCandidateDigest": "sha256:05959bc841c133bbd0d0fe03dd5fab18b38ee6db9d68d0f8378d9c082123c413",
+        "digest": "sha256:05959bc841c133bbd0d0fe03dd5fab18b38ee6db9d68d0f8378d9c082123c413",
         "facts": [
           {
             "expected": "checkpoint exact assistant outerHTML and deterministic semantic text",
@@ -38025,23 +38025,23 @@
           }
         ],
         "pageDemandDigest": "sha256:f731a239fffe0cfbf5abd6869420737db2fc020246c3005f82ba41c09f55bb90",
-        "projectionDigest": "sha256:2d848e28090da992eb98f95bf005a893aced32a2981748a5b213203e484de455",
+        "projectionDigest": "sha256:05959bc841c133bbd0d0fe03dd5fab18b38ee6db9d68d0f8378d9c082123c413",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
+                "contentHash": "sha256:8e1b5e46b7a256c25d3586daed3adcd5c50475ac8d8b79b91bf3365fdb035472",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
+                "semanticHash": "sha256:466f84304f3cd1213fd3470368fd3b1ce25415fa7ef1ed8ad56b0c0b47c3a187"
               },
               {
-                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
+                "contentHash": "sha256:2674b19207bb031eb18de320515771dedb2a237bc0a4cf579a9adbf28f7c9807",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
+                "semanticHash": "sha256:5b880347f7b4a49791f67f0e33c740563adde7d3b70e0e7a38fd88d0044e3060"
               }
             ],
-            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
+            "semanticDigest": "sha256:0fd09182bb49b30ad45cee63b7d709bd87c5e85a55125d157c836b946da129e2"
           },
           "browser": {
             "files": [
@@ -38066,9 +38066,9 @@
                 "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
+                "contentHash": "sha256:50cf65def0d81a5ebaa7e4fe24f741a7de9eb83f748c3b7fac3102b8ed65d953",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
+                "semanticHash": "sha256:2286adfcd8ac136550909bbd18fa617f09b47a05f3d835f56cc7f2f723bf90a6"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -38076,24 +38076,24 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
+                "contentHash": "sha256:03a12d55de125589226aabfeb10433ede4f6d2ab566ccd3498cea983f27bc365",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
+                "semanticHash": "sha256:c8bd8aa29c8ba879728e856f8381302257f2feb6532be0a100bf358c46ae0740"
               },
               {
-                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
+                "contentHash": "sha256:ca2a4f4e20437c8bc139ee1889fe2331eae600d87030ce3f0d8717ed1e12e3ac",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
+                "semanticHash": "sha256:8ae9278e57191dd6d8182d9bb9b6e76fb3bc5a7f17eb67158f0cc13297909ec9"
               },
               {
-                "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
+                "contentHash": "sha256:a25293e2f8750a4195fb437db0a2feddd45960e4d4802fca161db2dc2970bf07",
                 "path": "src/plugins/hehun-ai-analysis/flow.ts",
-                "semanticHash": "sha256:e243630b87151e9ea07f21967862e16d298e23dbfdb6b77794a1cbe689be5f51"
+                "semanticHash": "sha256:13016a3cbc5ec640514ea0ed9b293cb75b0b4b132dae3e91fe3a19dd1c9be240"
               },
               {
-                "contentHash": "sha256:50a434c337a55d19fd56f37ba51ff73c81634945be052297828bee3934bd0857",
+                "contentHash": "sha256:0c656587b626432c829f883d6ee602a45923086d0ab314c4917f1cc53ef65389",
                 "path": "src/plugins/hehun-report-followup/flow.ts",
-                "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
+                "semanticHash": "sha256:ff80be5bbe21d4bf3940e975866082692ba73eeafe0d9a06929f49c5cae42d93"
               },
               {
                 "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
@@ -38106,19 +38106,19 @@
                 "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
-                "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
+                "contentHash": "sha256:60b4a1761360dc540b0e71131d56ef40ab5cf696aa04f55d582d42ece41e9d97",
                 "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
-                "semanticHash": "sha256:c798409afd48fdc65438541453210b0e3afa046e1c7e62ea92c0236b88ff877a"
+                "semanticHash": "sha256:88262d3612b2f6ce958d540efe52bd231b51ab148da53297ab6386dc1e53e6ca"
               },
               {
-                "contentHash": "sha256:d09d07ad4f2e5daacb5ee465185a56fba705d5e977b7da61d38afb130aff1cca",
+                "contentHash": "sha256:508c20177cc0698116e471bb4777c2ae06e2aa5c3b03c3b8be361f65ca402bab",
                 "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
-                "semanticHash": "sha256:0adea8336d1c7e0ff6f13843ec8fb961b8f8631eceb892cd9960813b802af305"
+                "semanticHash": "sha256:2adbe9903cfcfb7ee4521630d036821b388936cae2cd00702841ebd3f2a591ca"
               },
               {
-                "contentHash": "sha256:315f4d29bed0df1a36e64ecad6ce8c8899c4bd4e7522b8742f253d7785d0ffdd",
+                "contentHash": "sha256:354e43fb2ffbecaeddd6ba24f96ab1a625f4eff60dc14317941205466d8020b6",
                 "path": "src/plugins/payment-screenshot-observation/flow.ts",
-                "semanticHash": "sha256:c6c68cdb833048cd2724c88d8b4711fce4058d274c319fa24d1a733a2e43d43a"
+                "semanticHash": "sha256:528249371ea182e06aa85a15ef79a2be8160a728ee1edeac72ae199921984121"
               },
               {
                 "contentHash": "sha256:c98c3ce22757a147e178758100bd6788ce55fe31d0ab7a10d1eae1e07fbc6371",
@@ -38126,17 +38126,17 @@
                 "semanticHash": "sha256:5f3d49f9dc1913605fa650e0786daae03258d26bed95143c0ee37a3104b8a97d"
               },
               {
-                "contentHash": "sha256:f0b8c567b7a09b0c143751bebd2fa4b6715f635221d5f969d4c635d3463f382b",
+                "contentHash": "sha256:db1ddf19566899d7645a51fa6242df802c7ea1845a21c70e2ace649681516521",
                 "path": "src/plugins/qimen-professional-answer/flow.ts",
-                "semanticHash": "sha256:69c7792b9df5bfc76921df1a84ec13fdc3c843dc462e672305f5723c5562b33a"
+                "semanticHash": "sha256:e977b89ab787ceddfa5e1732f15f9a93a3463b3fd7fa3fda14c4e90bf3e2e978"
               },
               {
-                "contentHash": "sha256:4de3048e90ad49336bba8f4afbdae00d46d4f18665e2a30aa3327dd5f24e9590",
+                "contentHash": "sha256:37e8707b1e5fee0555a3ec583fd19da0e1e63a5bbc786e79b0e00b69d2c7119c",
                 "path": "src/plugins/qimen-report-followup/flow.ts",
-                "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
+                "semanticHash": "sha256:1d8c9e667d924a08cddbd6131f6a632534c9296bca869116c2eae4e5fdf0e9c3"
               }
             ],
-            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
+            "semanticDigest": "sha256:ec50f26af8577854f2815db51e4eaf88452aa53ec69cec6b208bbce71425b56e"
           },
           "implementation": {
             "files": [
@@ -38198,7 +38198,7 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts",
           "lines": [
-            85
+            164
           ]
         },
         {
@@ -38265,7 +38265,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            166
+            173
           ]
         },
         {
@@ -38280,28 +38280,28 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            169
+            177
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            140
+            147
           ]
         },
         {
           "consumer": "hehun-ai-analysis",
           "path": "src/plugins/hehun-ai-analysis/flow.ts",
           "lines": [
-            133
+            139
           ]
         },
         {
           "consumer": "hehun-report-followup",
           "path": "src/plugins/hehun-report-followup/flow.ts",
           "lines": [
-            136
+            142
           ]
         },
         {
@@ -38327,21 +38327,21 @@
           "consumer": "naming-bazi-analysis-and-naming",
           "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
           "lines": [
-            130
+            136
           ]
         },
         {
           "consumer": "naming-from-existing-bazi-report",
           "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
           "lines": [
-            130
+            136
           ]
         },
         {
           "consumer": "payment-screenshot-observation",
           "path": "src/plugins/payment-screenshot-observation/flow.ts",
           "lines": [
-            130
+            136
           ]
         },
         {
@@ -38355,14 +38355,14 @@
           "consumer": "qimen-professional-answer",
           "path": "src/plugins/qimen-professional-answer/flow.ts",
           "lines": [
-            133
+            140
           ]
         },
         {
           "consumer": "qimen-report-followup",
           "path": "src/plugins/qimen-report-followup/flow.ts",
           "lines": [
-            136
+            143
           ]
         }
       ],
@@ -38441,8 +38441,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:4acbbe36055dcfd2b994752069f3fce3c32196bcda470a650f4ec0c5286caa46",
-        "digest": "sha256:4acbbe36055dcfd2b994752069f3fce3c32196bcda470a650f4ec0c5286caa46",
+        "childCandidateDigest": "sha256:41e6b4bafd56a112b4284cb0f6680d9cdda37641b33eadeeba7fa01983799d98",
+        "digest": "sha256:41e6b4bafd56a112b4284cb0f6680d9cdda37641b33eadeeba7fa01983799d98",
         "facts": [
           {
             "expected": "close the current execution profile popup",
@@ -38652,23 +38652,23 @@
           }
         ],
         "pageDemandDigest": "sha256:0af0ab6d5fff2bb4a23727ad59b0e4887237c0f460c86780942da497c68e7560",
-        "projectionDigest": "sha256:4acbbe36055dcfd2b994752069f3fce3c32196bcda470a650f4ec0c5286caa46",
+        "projectionDigest": "sha256:41e6b4bafd56a112b4284cb0f6680d9cdda37641b33eadeeba7fa01983799d98",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
+                "contentHash": "sha256:8e1b5e46b7a256c25d3586daed3adcd5c50475ac8d8b79b91bf3365fdb035472",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
+                "semanticHash": "sha256:466f84304f3cd1213fd3470368fd3b1ce25415fa7ef1ed8ad56b0c0b47c3a187"
               },
               {
-                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
+                "contentHash": "sha256:2674b19207bb031eb18de320515771dedb2a237bc0a4cf579a9adbf28f7c9807",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
+                "semanticHash": "sha256:5b880347f7b4a49791f67f0e33c740563adde7d3b70e0e7a38fd88d0044e3060"
               }
             ],
-            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
+            "semanticDigest": "sha256:0fd09182bb49b30ad45cee63b7d709bd87c5e85a55125d157c836b946da129e2"
           },
           "browser": {
             "files": [],
@@ -38682,9 +38682,9 @@
                 "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
+                "contentHash": "sha256:50cf65def0d81a5ebaa7e4fe24f741a7de9eb83f748c3b7fac3102b8ed65d953",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
+                "semanticHash": "sha256:2286adfcd8ac136550909bbd18fa617f09b47a05f3d835f56cc7f2f723bf90a6"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -38692,24 +38692,24 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
+                "contentHash": "sha256:03a12d55de125589226aabfeb10433ede4f6d2ab566ccd3498cea983f27bc365",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
+                "semanticHash": "sha256:c8bd8aa29c8ba879728e856f8381302257f2feb6532be0a100bf358c46ae0740"
               },
               {
-                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
+                "contentHash": "sha256:ca2a4f4e20437c8bc139ee1889fe2331eae600d87030ce3f0d8717ed1e12e3ac",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
+                "semanticHash": "sha256:8ae9278e57191dd6d8182d9bb9b6e76fb3bc5a7f17eb67158f0cc13297909ec9"
               },
               {
-                "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
+                "contentHash": "sha256:a25293e2f8750a4195fb437db0a2feddd45960e4d4802fca161db2dc2970bf07",
                 "path": "src/plugins/hehun-ai-analysis/flow.ts",
-                "semanticHash": "sha256:e243630b87151e9ea07f21967862e16d298e23dbfdb6b77794a1cbe689be5f51"
+                "semanticHash": "sha256:13016a3cbc5ec640514ea0ed9b293cb75b0b4b132dae3e91fe3a19dd1c9be240"
               },
               {
-                "contentHash": "sha256:50a434c337a55d19fd56f37ba51ff73c81634945be052297828bee3934bd0857",
+                "contentHash": "sha256:0c656587b626432c829f883d6ee602a45923086d0ab314c4917f1cc53ef65389",
                 "path": "src/plugins/hehun-report-followup/flow.ts",
-                "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
+                "semanticHash": "sha256:ff80be5bbe21d4bf3940e975866082692ba73eeafe0d9a06929f49c5cae42d93"
               },
               {
                 "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
@@ -38722,19 +38722,19 @@
                 "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
-                "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
+                "contentHash": "sha256:60b4a1761360dc540b0e71131d56ef40ab5cf696aa04f55d582d42ece41e9d97",
                 "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
-                "semanticHash": "sha256:c798409afd48fdc65438541453210b0e3afa046e1c7e62ea92c0236b88ff877a"
+                "semanticHash": "sha256:88262d3612b2f6ce958d540efe52bd231b51ab148da53297ab6386dc1e53e6ca"
               },
               {
-                "contentHash": "sha256:d09d07ad4f2e5daacb5ee465185a56fba705d5e977b7da61d38afb130aff1cca",
+                "contentHash": "sha256:508c20177cc0698116e471bb4777c2ae06e2aa5c3b03c3b8be361f65ca402bab",
                 "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
-                "semanticHash": "sha256:0adea8336d1c7e0ff6f13843ec8fb961b8f8631eceb892cd9960813b802af305"
+                "semanticHash": "sha256:2adbe9903cfcfb7ee4521630d036821b388936cae2cd00702841ebd3f2a591ca"
               },
               {
-                "contentHash": "sha256:315f4d29bed0df1a36e64ecad6ce8c8899c4bd4e7522b8742f253d7785d0ffdd",
+                "contentHash": "sha256:354e43fb2ffbecaeddd6ba24f96ab1a625f4eff60dc14317941205466d8020b6",
                 "path": "src/plugins/payment-screenshot-observation/flow.ts",
-                "semanticHash": "sha256:c6c68cdb833048cd2724c88d8b4711fce4058d274c319fa24d1a733a2e43d43a"
+                "semanticHash": "sha256:528249371ea182e06aa85a15ef79a2be8160a728ee1edeac72ae199921984121"
               },
               {
                 "contentHash": "sha256:c98c3ce22757a147e178758100bd6788ce55fe31d0ab7a10d1eae1e07fbc6371",
@@ -38742,17 +38742,17 @@
                 "semanticHash": "sha256:5f3d49f9dc1913605fa650e0786daae03258d26bed95143c0ee37a3104b8a97d"
               },
               {
-                "contentHash": "sha256:f0b8c567b7a09b0c143751bebd2fa4b6715f635221d5f969d4c635d3463f382b",
+                "contentHash": "sha256:db1ddf19566899d7645a51fa6242df802c7ea1845a21c70e2ace649681516521",
                 "path": "src/plugins/qimen-professional-answer/flow.ts",
-                "semanticHash": "sha256:69c7792b9df5bfc76921df1a84ec13fdc3c843dc462e672305f5723c5562b33a"
+                "semanticHash": "sha256:e977b89ab787ceddfa5e1732f15f9a93a3463b3fd7fa3fda14c4e90bf3e2e978"
               },
               {
-                "contentHash": "sha256:4de3048e90ad49336bba8f4afbdae00d46d4f18665e2a30aa3327dd5f24e9590",
+                "contentHash": "sha256:37e8707b1e5fee0555a3ec583fd19da0e1e63a5bbc786e79b0e00b69d2c7119c",
                 "path": "src/plugins/qimen-report-followup/flow.ts",
-                "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
+                "semanticHash": "sha256:1d8c9e667d924a08cddbd6131f6a632534c9296bca869116c2eae4e5fdf0e9c3"
               }
             ],
-            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
+            "semanticDigest": "sha256:ec50f26af8577854f2815db51e4eaf88452aa53ec69cec6b208bbce71425b56e"
           },
           "implementation": {
             "files": [
@@ -38902,7 +38902,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            165
+            172
           ]
         },
         {
@@ -38917,28 +38917,28 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            168
+            176
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            139
+            146
           ]
         },
         {
           "consumer": "hehun-ai-analysis",
           "path": "src/plugins/hehun-ai-analysis/flow.ts",
           "lines": [
-            132
+            138
           ]
         },
         {
           "consumer": "hehun-report-followup",
           "path": "src/plugins/hehun-report-followup/flow.ts",
           "lines": [
-            135
+            141
           ]
         },
         {
@@ -38964,21 +38964,21 @@
           "consumer": "naming-bazi-analysis-and-naming",
           "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
           "lines": [
-            129
+            135
           ]
         },
         {
           "consumer": "naming-from-existing-bazi-report",
           "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
           "lines": [
-            129
+            135
           ]
         },
         {
           "consumer": "payment-screenshot-observation",
           "path": "src/plugins/payment-screenshot-observation/flow.ts",
           "lines": [
-            129
+            135
           ]
         },
         {
@@ -38992,14 +38992,14 @@
           "consumer": "qimen-professional-answer",
           "path": "src/plugins/qimen-professional-answer/flow.ts",
           "lines": [
-            132
+            139
           ]
         },
         {
           "consumer": "qimen-report-followup",
           "path": "src/plugins/qimen-report-followup/flow.ts",
           "lines": [
-            135
+            142
           ]
         }
       ],
@@ -39118,19 +39118,19 @@
                     "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
                   },
                   {
-                    "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
+                    "contentHash": "sha256:ca2a4f4e20437c8bc139ee1889fe2331eae600d87030ce3f0d8717ed1e12e3ac",
                     "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                    "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
+                    "semanticHash": "sha256:8ae9278e57191dd6d8182d9bb9b6e76fb3bc5a7f17eb67158f0cc13297909ec9"
                   },
                   {
-                    "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
+                    "contentHash": "sha256:a25293e2f8750a4195fb437db0a2feddd45960e4d4802fca161db2dc2970bf07",
                     "path": "src/plugins/hehun-ai-analysis/flow.ts",
-                    "semanticHash": "sha256:e243630b87151e9ea07f21967862e16d298e23dbfdb6b77794a1cbe689be5f51"
+                    "semanticHash": "sha256:13016a3cbc5ec640514ea0ed9b293cb75b0b4b132dae3e91fe3a19dd1c9be240"
                   },
                   {
-                    "contentHash": "sha256:50a434c337a55d19fd56f37ba51ff73c81634945be052297828bee3934bd0857",
+                    "contentHash": "sha256:0c656587b626432c829f883d6ee602a45923086d0ab314c4917f1cc53ef65389",
                     "path": "src/plugins/hehun-report-followup/flow.ts",
-                    "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
+                    "semanticHash": "sha256:ff80be5bbe21d4bf3940e975866082692ba73eeafe0d9a06929f49c5cae42d93"
                   },
                   {
                     "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
@@ -39143,29 +39143,29 @@
                     "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
                   },
                   {
-                    "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
+                    "contentHash": "sha256:60b4a1761360dc540b0e71131d56ef40ab5cf696aa04f55d582d42ece41e9d97",
                     "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
-                    "semanticHash": "sha256:c798409afd48fdc65438541453210b0e3afa046e1c7e62ea92c0236b88ff877a"
+                    "semanticHash": "sha256:88262d3612b2f6ce958d540efe52bd231b51ab148da53297ab6386dc1e53e6ca"
                   },
                   {
-                    "contentHash": "sha256:d09d07ad4f2e5daacb5ee465185a56fba705d5e977b7da61d38afb130aff1cca",
+                    "contentHash": "sha256:508c20177cc0698116e471bb4777c2ae06e2aa5c3b03c3b8be361f65ca402bab",
                     "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
-                    "semanticHash": "sha256:0adea8336d1c7e0ff6f13843ec8fb961b8f8631eceb892cd9960813b802af305"
+                    "semanticHash": "sha256:2adbe9903cfcfb7ee4521630d036821b388936cae2cd00702841ebd3f2a591ca"
                   },
                   {
-                    "contentHash": "sha256:315f4d29bed0df1a36e64ecad6ce8c8899c4bd4e7522b8742f253d7785d0ffdd",
+                    "contentHash": "sha256:354e43fb2ffbecaeddd6ba24f96ab1a625f4eff60dc14317941205466d8020b6",
                     "path": "src/plugins/payment-screenshot-observation/flow.ts",
-                    "semanticHash": "sha256:c6c68cdb833048cd2724c88d8b4711fce4058d274c319fa24d1a733a2e43d43a"
+                    "semanticHash": "sha256:528249371ea182e06aa85a15ef79a2be8160a728ee1edeac72ae199921984121"
                   },
                   {
-                    "contentHash": "sha256:f0b8c567b7a09b0c143751bebd2fa4b6715f635221d5f969d4c635d3463f382b",
+                    "contentHash": "sha256:db1ddf19566899d7645a51fa6242df802c7ea1845a21c70e2ace649681516521",
                     "path": "src/plugins/qimen-professional-answer/flow.ts",
-                    "semanticHash": "sha256:69c7792b9df5bfc76921df1a84ec13fdc3c843dc462e672305f5723c5562b33a"
+                    "semanticHash": "sha256:e977b89ab787ceddfa5e1732f15f9a93a3463b3fd7fa3fda14c4e90bf3e2e978"
                   },
                   {
-                    "contentHash": "sha256:4de3048e90ad49336bba8f4afbdae00d46d4f18665e2a30aa3327dd5f24e9590",
+                    "contentHash": "sha256:37e8707b1e5fee0555a3ec583fd19da0e1e63a5bbc786e79b0e00b69d2c7119c",
                     "path": "src/plugins/qimen-report-followup/flow.ts",
-                    "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
+                    "semanticHash": "sha256:1d8c9e667d924a08cddbd6131f6a632534c9296bca869116c2eae4e5fdf0e9c3"
                   }
                 ],
                 "valueHash": "sha256:d8e5fb8e04b46ba059f8b94f33528f1a0eb35bc7fb76ccfbdf97e2c2cd17a785"
@@ -39173,8 +39173,8 @@
             ]
           }
         },
-        "childCandidateDigest": "sha256:88529ca42e71a3c17b8323834664f31f2f2ecc633f3fa3deea3439a9f1e5e966",
-        "digest": "sha256:88529ca42e71a3c17b8323834664f31f2f2ecc633f3fa3deea3439a9f1e5e966",
+        "childCandidateDigest": "sha256:de4e87c696c8546a57b963c17653d3e20dbee9ad5a7ede7831537593921f908e",
+        "digest": "sha256:de4e87c696c8546a57b963c17653d3e20dbee9ad5a7ede7831537593921f908e",
         "facts": [
           {
             "expected": "resolve and satisfy the Product-frozen reasoning requirement on an approved observed scale",
@@ -39424,23 +39424,23 @@
           }
         ],
         "pageDemandDigest": "sha256:152860363fcb7fbdf8074cd800941c0a9632d035d82444d079d1b50a229e9e11",
-        "projectionDigest": "sha256:88529ca42e71a3c17b8323834664f31f2f2ecc633f3fa3deea3439a9f1e5e966",
+        "projectionDigest": "sha256:de4e87c696c8546a57b963c17653d3e20dbee9ad5a7ede7831537593921f908e",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
+                "contentHash": "sha256:8e1b5e46b7a256c25d3586daed3adcd5c50475ac8d8b79b91bf3365fdb035472",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
+                "semanticHash": "sha256:466f84304f3cd1213fd3470368fd3b1ce25415fa7ef1ed8ad56b0c0b47c3a187"
               },
               {
-                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
+                "contentHash": "sha256:2674b19207bb031eb18de320515771dedb2a237bc0a4cf579a9adbf28f7c9807",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
+                "semanticHash": "sha256:5b880347f7b4a49791f67f0e33c740563adde7d3b70e0e7a38fd88d0044e3060"
               }
             ],
-            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
+            "semanticDigest": "sha256:0fd09182bb49b30ad45cee63b7d709bd87c5e85a55125d157c836b946da129e2"
           },
           "browser": {
             "files": [],
@@ -39454,9 +39454,9 @@
                 "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
+                "contentHash": "sha256:50cf65def0d81a5ebaa7e4fe24f741a7de9eb83f748c3b7fac3102b8ed65d953",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
+                "semanticHash": "sha256:2286adfcd8ac136550909bbd18fa617f09b47a05f3d835f56cc7f2f723bf90a6"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -39464,24 +39464,24 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
+                "contentHash": "sha256:03a12d55de125589226aabfeb10433ede4f6d2ab566ccd3498cea983f27bc365",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
+                "semanticHash": "sha256:c8bd8aa29c8ba879728e856f8381302257f2feb6532be0a100bf358c46ae0740"
               },
               {
-                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
+                "contentHash": "sha256:ca2a4f4e20437c8bc139ee1889fe2331eae600d87030ce3f0d8717ed1e12e3ac",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
+                "semanticHash": "sha256:8ae9278e57191dd6d8182d9bb9b6e76fb3bc5a7f17eb67158f0cc13297909ec9"
               },
               {
-                "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
+                "contentHash": "sha256:a25293e2f8750a4195fb437db0a2feddd45960e4d4802fca161db2dc2970bf07",
                 "path": "src/plugins/hehun-ai-analysis/flow.ts",
-                "semanticHash": "sha256:e243630b87151e9ea07f21967862e16d298e23dbfdb6b77794a1cbe689be5f51"
+                "semanticHash": "sha256:13016a3cbc5ec640514ea0ed9b293cb75b0b4b132dae3e91fe3a19dd1c9be240"
               },
               {
-                "contentHash": "sha256:50a434c337a55d19fd56f37ba51ff73c81634945be052297828bee3934bd0857",
+                "contentHash": "sha256:0c656587b626432c829f883d6ee602a45923086d0ab314c4917f1cc53ef65389",
                 "path": "src/plugins/hehun-report-followup/flow.ts",
-                "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
+                "semanticHash": "sha256:ff80be5bbe21d4bf3940e975866082692ba73eeafe0d9a06929f49c5cae42d93"
               },
               {
                 "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
@@ -39494,19 +39494,19 @@
                 "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
-                "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
+                "contentHash": "sha256:60b4a1761360dc540b0e71131d56ef40ab5cf696aa04f55d582d42ece41e9d97",
                 "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
-                "semanticHash": "sha256:c798409afd48fdc65438541453210b0e3afa046e1c7e62ea92c0236b88ff877a"
+                "semanticHash": "sha256:88262d3612b2f6ce958d540efe52bd231b51ab148da53297ab6386dc1e53e6ca"
               },
               {
-                "contentHash": "sha256:d09d07ad4f2e5daacb5ee465185a56fba705d5e977b7da61d38afb130aff1cca",
+                "contentHash": "sha256:508c20177cc0698116e471bb4777c2ae06e2aa5c3b03c3b8be361f65ca402bab",
                 "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
-                "semanticHash": "sha256:0adea8336d1c7e0ff6f13843ec8fb961b8f8631eceb892cd9960813b802af305"
+                "semanticHash": "sha256:2adbe9903cfcfb7ee4521630d036821b388936cae2cd00702841ebd3f2a591ca"
               },
               {
-                "contentHash": "sha256:315f4d29bed0df1a36e64ecad6ce8c8899c4bd4e7522b8742f253d7785d0ffdd",
+                "contentHash": "sha256:354e43fb2ffbecaeddd6ba24f96ab1a625f4eff60dc14317941205466d8020b6",
                 "path": "src/plugins/payment-screenshot-observation/flow.ts",
-                "semanticHash": "sha256:c6c68cdb833048cd2724c88d8b4711fce4058d274c319fa24d1a733a2e43d43a"
+                "semanticHash": "sha256:528249371ea182e06aa85a15ef79a2be8160a728ee1edeac72ae199921984121"
               },
               {
                 "contentHash": "sha256:c98c3ce22757a147e178758100bd6788ce55fe31d0ab7a10d1eae1e07fbc6371",
@@ -39514,17 +39514,17 @@
                 "semanticHash": "sha256:5f3d49f9dc1913605fa650e0786daae03258d26bed95143c0ee37a3104b8a97d"
               },
               {
-                "contentHash": "sha256:f0b8c567b7a09b0c143751bebd2fa4b6715f635221d5f969d4c635d3463f382b",
+                "contentHash": "sha256:db1ddf19566899d7645a51fa6242df802c7ea1845a21c70e2ace649681516521",
                 "path": "src/plugins/qimen-professional-answer/flow.ts",
-                "semanticHash": "sha256:69c7792b9df5bfc76921df1a84ec13fdc3c843dc462e672305f5723c5562b33a"
+                "semanticHash": "sha256:e977b89ab787ceddfa5e1732f15f9a93a3463b3fd7fa3fda14c4e90bf3e2e978"
               },
               {
-                "contentHash": "sha256:4de3048e90ad49336bba8f4afbdae00d46d4f18665e2a30aa3327dd5f24e9590",
+                "contentHash": "sha256:37e8707b1e5fee0555a3ec583fd19da0e1e63a5bbc786e79b0e00b69d2c7119c",
                 "path": "src/plugins/qimen-report-followup/flow.ts",
-                "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
+                "semanticHash": "sha256:1d8c9e667d924a08cddbd6131f6a632534c9296bca869116c2eae4e5fdf0e9c3"
               }
             ],
-            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
+            "semanticDigest": "sha256:ec50f26af8577854f2815db51e4eaf88452aa53ec69cec6b208bbce71425b56e"
           },
           "implementation": {
             "files": [
@@ -39672,7 +39672,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            183
+            190
           ]
         },
         {
@@ -39687,28 +39687,28 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            186
+            194
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            156
+            163
           ]
         },
         {
           "consumer": "hehun-ai-analysis",
           "path": "src/plugins/hehun-ai-analysis/flow.ts",
           "lines": [
-            149
+            155
           ]
         },
         {
           "consumer": "hehun-report-followup",
           "path": "src/plugins/hehun-report-followup/flow.ts",
           "lines": [
-            152
+            158
           ]
         },
         {
@@ -39734,21 +39734,21 @@
           "consumer": "naming-bazi-analysis-and-naming",
           "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
           "lines": [
-            146
+            152
           ]
         },
         {
           "consumer": "naming-from-existing-bazi-report",
           "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
           "lines": [
-            146
+            152
           ]
         },
         {
           "consumer": "payment-screenshot-observation",
           "path": "src/plugins/payment-screenshot-observation/flow.ts",
           "lines": [
-            146
+            152
           ]
         },
         {
@@ -39762,14 +39762,14 @@
           "consumer": "qimen-professional-answer",
           "path": "src/plugins/qimen-professional-answer/flow.ts",
           "lines": [
-            149
+            156
           ]
         },
         {
           "consumer": "qimen-report-followup",
           "path": "src/plugins/qimen-report-followup/flow.ts",
           "lines": [
-            152
+            159
           ]
         }
       ],
@@ -39850,8 +39850,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:80066bb29f4a3722fbe6acdd38903569ecb0f03791e5347b0ed34287d35b52f1",
-        "digest": "sha256:80066bb29f4a3722fbe6acdd38903569ecb0f03791e5347b0ed34287d35b52f1",
+        "childCandidateDigest": "sha256:7d2eedb9fb3760a5da560e8cad00567b67336a478f29d69cddf558e40e3277ee",
+        "digest": "sha256:7d2eedb9fb3760a5da560e8cad00567b67336a478f29d69cddf558e40e3277ee",
         "facts": [
           {
             "expected": "open the exact composer attachment menu",
@@ -40062,23 +40062,23 @@
           }
         ],
         "pageDemandDigest": "sha256:a75a02088305c6884a4959dfc6110a072659cda600c8db7dcefe2357b827d97f",
-        "projectionDigest": "sha256:80066bb29f4a3722fbe6acdd38903569ecb0f03791e5347b0ed34287d35b52f1",
+        "projectionDigest": "sha256:7d2eedb9fb3760a5da560e8cad00567b67336a478f29d69cddf558e40e3277ee",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
+                "contentHash": "sha256:8e1b5e46b7a256c25d3586daed3adcd5c50475ac8d8b79b91bf3365fdb035472",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
+                "semanticHash": "sha256:466f84304f3cd1213fd3470368fd3b1ce25415fa7ef1ed8ad56b0c0b47c3a187"
               },
               {
-                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
+                "contentHash": "sha256:2674b19207bb031eb18de320515771dedb2a237bc0a4cf579a9adbf28f7c9807",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
+                "semanticHash": "sha256:5b880347f7b4a49791f67f0e33c740563adde7d3b70e0e7a38fd88d0044e3060"
               }
             ],
-            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
+            "semanticDigest": "sha256:0fd09182bb49b30ad45cee63b7d709bd87c5e85a55125d157c836b946da129e2"
           },
           "browser": {
             "files": [],
@@ -40092,9 +40092,9 @@
                 "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
+                "contentHash": "sha256:50cf65def0d81a5ebaa7e4fe24f741a7de9eb83f748c3b7fac3102b8ed65d953",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
+                "semanticHash": "sha256:2286adfcd8ac136550909bbd18fa617f09b47a05f3d835f56cc7f2f723bf90a6"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -40102,24 +40102,24 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
+                "contentHash": "sha256:03a12d55de125589226aabfeb10433ede4f6d2ab566ccd3498cea983f27bc365",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
+                "semanticHash": "sha256:c8bd8aa29c8ba879728e856f8381302257f2feb6532be0a100bf358c46ae0740"
               },
               {
-                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
+                "contentHash": "sha256:ca2a4f4e20437c8bc139ee1889fe2331eae600d87030ce3f0d8717ed1e12e3ac",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
+                "semanticHash": "sha256:8ae9278e57191dd6d8182d9bb9b6e76fb3bc5a7f17eb67158f0cc13297909ec9"
               },
               {
-                "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
+                "contentHash": "sha256:a25293e2f8750a4195fb437db0a2feddd45960e4d4802fca161db2dc2970bf07",
                 "path": "src/plugins/hehun-ai-analysis/flow.ts",
-                "semanticHash": "sha256:e243630b87151e9ea07f21967862e16d298e23dbfdb6b77794a1cbe689be5f51"
+                "semanticHash": "sha256:13016a3cbc5ec640514ea0ed9b293cb75b0b4b132dae3e91fe3a19dd1c9be240"
               },
               {
-                "contentHash": "sha256:50a434c337a55d19fd56f37ba51ff73c81634945be052297828bee3934bd0857",
+                "contentHash": "sha256:0c656587b626432c829f883d6ee602a45923086d0ab314c4917f1cc53ef65389",
                 "path": "src/plugins/hehun-report-followup/flow.ts",
-                "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
+                "semanticHash": "sha256:ff80be5bbe21d4bf3940e975866082692ba73eeafe0d9a06929f49c5cae42d93"
               },
               {
                 "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
@@ -40132,19 +40132,19 @@
                 "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
-                "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
+                "contentHash": "sha256:60b4a1761360dc540b0e71131d56ef40ab5cf696aa04f55d582d42ece41e9d97",
                 "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
-                "semanticHash": "sha256:c798409afd48fdc65438541453210b0e3afa046e1c7e62ea92c0236b88ff877a"
+                "semanticHash": "sha256:88262d3612b2f6ce958d540efe52bd231b51ab148da53297ab6386dc1e53e6ca"
               },
               {
-                "contentHash": "sha256:d09d07ad4f2e5daacb5ee465185a56fba705d5e977b7da61d38afb130aff1cca",
+                "contentHash": "sha256:508c20177cc0698116e471bb4777c2ae06e2aa5c3b03c3b8be361f65ca402bab",
                 "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
-                "semanticHash": "sha256:0adea8336d1c7e0ff6f13843ec8fb961b8f8631eceb892cd9960813b802af305"
+                "semanticHash": "sha256:2adbe9903cfcfb7ee4521630d036821b388936cae2cd00702841ebd3f2a591ca"
               },
               {
-                "contentHash": "sha256:315f4d29bed0df1a36e64ecad6ce8c8899c4bd4e7522b8742f253d7785d0ffdd",
+                "contentHash": "sha256:354e43fb2ffbecaeddd6ba24f96ab1a625f4eff60dc14317941205466d8020b6",
                 "path": "src/plugins/payment-screenshot-observation/flow.ts",
-                "semanticHash": "sha256:c6c68cdb833048cd2724c88d8b4711fce4058d274c319fa24d1a733a2e43d43a"
+                "semanticHash": "sha256:528249371ea182e06aa85a15ef79a2be8160a728ee1edeac72ae199921984121"
               },
               {
                 "contentHash": "sha256:c98c3ce22757a147e178758100bd6788ce55fe31d0ab7a10d1eae1e07fbc6371",
@@ -40152,17 +40152,17 @@
                 "semanticHash": "sha256:5f3d49f9dc1913605fa650e0786daae03258d26bed95143c0ee37a3104b8a97d"
               },
               {
-                "contentHash": "sha256:f0b8c567b7a09b0c143751bebd2fa4b6715f635221d5f969d4c635d3463f382b",
+                "contentHash": "sha256:db1ddf19566899d7645a51fa6242df802c7ea1845a21c70e2ace649681516521",
                 "path": "src/plugins/qimen-professional-answer/flow.ts",
-                "semanticHash": "sha256:69c7792b9df5bfc76921df1a84ec13fdc3c843dc462e672305f5723c5562b33a"
+                "semanticHash": "sha256:e977b89ab787ceddfa5e1732f15f9a93a3463b3fd7fa3fda14c4e90bf3e2e978"
               },
               {
-                "contentHash": "sha256:4de3048e90ad49336bba8f4afbdae00d46d4f18665e2a30aa3327dd5f24e9590",
+                "contentHash": "sha256:37e8707b1e5fee0555a3ec583fd19da0e1e63a5bbc786e79b0e00b69d2c7119c",
                 "path": "src/plugins/qimen-report-followup/flow.ts",
-                "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
+                "semanticHash": "sha256:1d8c9e667d924a08cddbd6131f6a632534c9296bca869116c2eae4e5fdf0e9c3"
               }
             ],
-            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
+            "semanticDigest": "sha256:ec50f26af8577854f2815db51e4eaf88452aa53ec69cec6b208bbce71425b56e"
           },
           "implementation": {
             "files": [
@@ -40230,13 +40230,13 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts",
           "lines": [
-            77,
-            81,
-            110,
-            137,
-            176,
-            194,
-            219
+            156,
+            160,
+            189,
+            216,
+            255,
+            273,
+            298
           ]
         },
         {
@@ -40303,8 +40303,8 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            161,
-            164
+            168,
+            171
           ]
         },
         {
@@ -40319,32 +40319,32 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            164,
-            167
+            172,
+            175
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            135,
-            138
+            142,
+            145
           ]
         },
         {
           "consumer": "hehun-ai-analysis",
           "path": "src/plugins/hehun-ai-analysis/flow.ts",
           "lines": [
-            128,
-            131
+            134,
+            137
           ]
         },
         {
           "consumer": "hehun-report-followup",
           "path": "src/plugins/hehun-report-followup/flow.ts",
           "lines": [
-            131,
-            134
+            137,
+            140
           ]
         },
         {
@@ -40371,24 +40371,24 @@
           "consumer": "naming-bazi-analysis-and-naming",
           "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
           "lines": [
-            125,
-            128
+            131,
+            134
           ]
         },
         {
           "consumer": "naming-from-existing-bazi-report",
           "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
           "lines": [
-            125,
-            128
+            131,
+            134
           ]
         },
         {
           "consumer": "payment-screenshot-observation",
           "path": "src/plugins/payment-screenshot-observation/flow.ts",
           "lines": [
-            125,
-            128
+            131,
+            134
           ]
         },
         {
@@ -40403,16 +40403,16 @@
           "consumer": "qimen-professional-answer",
           "path": "src/plugins/qimen-professional-answer/flow.ts",
           "lines": [
-            128,
-            131
+            135,
+            138
           ]
         },
         {
           "consumer": "qimen-report-followup",
           "path": "src/plugins/qimen-report-followup/flow.ts",
           "lines": [
-            131,
-            134
+            138,
+            141
           ]
         }
       ],
@@ -40491,8 +40491,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:5e53e9ff70677e74b1694e721bedf84baf5ad4bf07f691ed47c0ae0c06c6e40c",
-        "digest": "sha256:5e53e9ff70677e74b1694e721bedf84baf5ad4bf07f691ed47c0ae0c06c6e40c",
+        "childCandidateDigest": "sha256:1dd632b772d2858fccd610527d19af2768379e08c9906afa4a3e47bd5cef095e",
+        "digest": "sha256:1dd632b772d2858fccd610527d19af2768379e08c9906afa4a3e47bd5cef095e",
         "facts": [
           {
             "expected": "open the unique execution profile popup",
@@ -40698,23 +40698,23 @@
           }
         ],
         "pageDemandDigest": "sha256:dd3da20be6c5b3a70db0efec9d4c6aedcff16149f3f6e0349c6a8e9d284728d6",
-        "projectionDigest": "sha256:5e53e9ff70677e74b1694e721bedf84baf5ad4bf07f691ed47c0ae0c06c6e40c",
+        "projectionDigest": "sha256:1dd632b772d2858fccd610527d19af2768379e08c9906afa4a3e47bd5cef095e",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
+                "contentHash": "sha256:8e1b5e46b7a256c25d3586daed3adcd5c50475ac8d8b79b91bf3365fdb035472",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
+                "semanticHash": "sha256:466f84304f3cd1213fd3470368fd3b1ce25415fa7ef1ed8ad56b0c0b47c3a187"
               },
               {
-                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
+                "contentHash": "sha256:2674b19207bb031eb18de320515771dedb2a237bc0a4cf579a9adbf28f7c9807",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
+                "semanticHash": "sha256:5b880347f7b4a49791f67f0e33c740563adde7d3b70e0e7a38fd88d0044e3060"
               }
             ],
-            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
+            "semanticDigest": "sha256:0fd09182bb49b30ad45cee63b7d709bd87c5e85a55125d157c836b946da129e2"
           },
           "browser": {
             "files": [],
@@ -40728,9 +40728,9 @@
                 "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
+                "contentHash": "sha256:50cf65def0d81a5ebaa7e4fe24f741a7de9eb83f748c3b7fac3102b8ed65d953",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
+                "semanticHash": "sha256:2286adfcd8ac136550909bbd18fa617f09b47a05f3d835f56cc7f2f723bf90a6"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -40738,24 +40738,24 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
+                "contentHash": "sha256:03a12d55de125589226aabfeb10433ede4f6d2ab566ccd3498cea983f27bc365",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
+                "semanticHash": "sha256:c8bd8aa29c8ba879728e856f8381302257f2feb6532be0a100bf358c46ae0740"
               },
               {
-                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
+                "contentHash": "sha256:ca2a4f4e20437c8bc139ee1889fe2331eae600d87030ce3f0d8717ed1e12e3ac",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
+                "semanticHash": "sha256:8ae9278e57191dd6d8182d9bb9b6e76fb3bc5a7f17eb67158f0cc13297909ec9"
               },
               {
-                "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
+                "contentHash": "sha256:a25293e2f8750a4195fb437db0a2feddd45960e4d4802fca161db2dc2970bf07",
                 "path": "src/plugins/hehun-ai-analysis/flow.ts",
-                "semanticHash": "sha256:e243630b87151e9ea07f21967862e16d298e23dbfdb6b77794a1cbe689be5f51"
+                "semanticHash": "sha256:13016a3cbc5ec640514ea0ed9b293cb75b0b4b132dae3e91fe3a19dd1c9be240"
               },
               {
-                "contentHash": "sha256:50a434c337a55d19fd56f37ba51ff73c81634945be052297828bee3934bd0857",
+                "contentHash": "sha256:0c656587b626432c829f883d6ee602a45923086d0ab314c4917f1cc53ef65389",
                 "path": "src/plugins/hehun-report-followup/flow.ts",
-                "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
+                "semanticHash": "sha256:ff80be5bbe21d4bf3940e975866082692ba73eeafe0d9a06929f49c5cae42d93"
               },
               {
                 "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
@@ -40768,19 +40768,19 @@
                 "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
-                "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
+                "contentHash": "sha256:60b4a1761360dc540b0e71131d56ef40ab5cf696aa04f55d582d42ece41e9d97",
                 "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
-                "semanticHash": "sha256:c798409afd48fdc65438541453210b0e3afa046e1c7e62ea92c0236b88ff877a"
+                "semanticHash": "sha256:88262d3612b2f6ce958d540efe52bd231b51ab148da53297ab6386dc1e53e6ca"
               },
               {
-                "contentHash": "sha256:d09d07ad4f2e5daacb5ee465185a56fba705d5e977b7da61d38afb130aff1cca",
+                "contentHash": "sha256:508c20177cc0698116e471bb4777c2ae06e2aa5c3b03c3b8be361f65ca402bab",
                 "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
-                "semanticHash": "sha256:0adea8336d1c7e0ff6f13843ec8fb961b8f8631eceb892cd9960813b802af305"
+                "semanticHash": "sha256:2adbe9903cfcfb7ee4521630d036821b388936cae2cd00702841ebd3f2a591ca"
               },
               {
-                "contentHash": "sha256:315f4d29bed0df1a36e64ecad6ce8c8899c4bd4e7522b8742f253d7785d0ffdd",
+                "contentHash": "sha256:354e43fb2ffbecaeddd6ba24f96ab1a625f4eff60dc14317941205466d8020b6",
                 "path": "src/plugins/payment-screenshot-observation/flow.ts",
-                "semanticHash": "sha256:c6c68cdb833048cd2724c88d8b4711fce4058d274c319fa24d1a733a2e43d43a"
+                "semanticHash": "sha256:528249371ea182e06aa85a15ef79a2be8160a728ee1edeac72ae199921984121"
               },
               {
                 "contentHash": "sha256:c98c3ce22757a147e178758100bd6788ce55fe31d0ab7a10d1eae1e07fbc6371",
@@ -40788,17 +40788,17 @@
                 "semanticHash": "sha256:5f3d49f9dc1913605fa650e0786daae03258d26bed95143c0ee37a3104b8a97d"
               },
               {
-                "contentHash": "sha256:f0b8c567b7a09b0c143751bebd2fa4b6715f635221d5f969d4c635d3463f382b",
+                "contentHash": "sha256:db1ddf19566899d7645a51fa6242df802c7ea1845a21c70e2ace649681516521",
                 "path": "src/plugins/qimen-professional-answer/flow.ts",
-                "semanticHash": "sha256:69c7792b9df5bfc76921df1a84ec13fdc3c843dc462e672305f5723c5562b33a"
+                "semanticHash": "sha256:e977b89ab787ceddfa5e1732f15f9a93a3463b3fd7fa3fda14c4e90bf3e2e978"
               },
               {
-                "contentHash": "sha256:4de3048e90ad49336bba8f4afbdae00d46d4f18665e2a30aa3327dd5f24e9590",
+                "contentHash": "sha256:37e8707b1e5fee0555a3ec583fd19da0e1e63a5bbc786e79b0e00b69d2c7119c",
                 "path": "src/plugins/qimen-report-followup/flow.ts",
-                "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
+                "semanticHash": "sha256:1d8c9e667d924a08cddbd6131f6a632534c9296bca869116c2eae4e5fdf0e9c3"
               }
             ],
-            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
+            "semanticDigest": "sha256:ec50f26af8577854f2815db51e4eaf88452aa53ec69cec6b208bbce71425b56e"
           },
           "implementation": {
             "files": [
@@ -40866,11 +40866,11 @@
           "path": "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts",
           "lines": [
             7,
-            266,
-            279,
-            292,
-            317,
-            330
+            345,
+            358,
+            371,
+            396,
+            409
           ]
         },
         {
@@ -40949,7 +40949,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            162
+            169
           ]
         },
         {
@@ -40964,28 +40964,28 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            165
+            173
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            136
+            143
           ]
         },
         {
           "consumer": "hehun-ai-analysis",
           "path": "src/plugins/hehun-ai-analysis/flow.ts",
           "lines": [
-            129
+            135
           ]
         },
         {
           "consumer": "hehun-report-followup",
           "path": "src/plugins/hehun-report-followup/flow.ts",
           "lines": [
-            132
+            138
           ]
         },
         {
@@ -41011,21 +41011,21 @@
           "consumer": "naming-bazi-analysis-and-naming",
           "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
           "lines": [
-            126
+            132
           ]
         },
         {
           "consumer": "naming-from-existing-bazi-report",
           "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
           "lines": [
-            126
+            132
           ]
         },
         {
           "consumer": "payment-screenshot-observation",
           "path": "src/plugins/payment-screenshot-observation/flow.ts",
           "lines": [
-            126
+            132
           ]
         },
         {
@@ -41039,14 +41039,14 @@
           "consumer": "qimen-professional-answer",
           "path": "src/plugins/qimen-professional-answer/flow.ts",
           "lines": [
-            129
+            136
           ]
         },
         {
           "consumer": "qimen-report-followup",
           "path": "src/plugins/qimen-report-followup/flow.ts",
           "lines": [
-            132
+            139
           ]
         }
       ],
@@ -41138,19 +41138,19 @@
                     "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
                   },
                   {
-                    "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
+                    "contentHash": "sha256:ca2a4f4e20437c8bc139ee1889fe2331eae600d87030ce3f0d8717ed1e12e3ac",
                     "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                    "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
+                    "semanticHash": "sha256:8ae9278e57191dd6d8182d9bb9b6e76fb3bc5a7f17eb67158f0cc13297909ec9"
                   },
                   {
-                    "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
+                    "contentHash": "sha256:a25293e2f8750a4195fb437db0a2feddd45960e4d4802fca161db2dc2970bf07",
                     "path": "src/plugins/hehun-ai-analysis/flow.ts",
-                    "semanticHash": "sha256:e243630b87151e9ea07f21967862e16d298e23dbfdb6b77794a1cbe689be5f51"
+                    "semanticHash": "sha256:13016a3cbc5ec640514ea0ed9b293cb75b0b4b132dae3e91fe3a19dd1c9be240"
                   },
                   {
-                    "contentHash": "sha256:50a434c337a55d19fd56f37ba51ff73c81634945be052297828bee3934bd0857",
+                    "contentHash": "sha256:0c656587b626432c829f883d6ee602a45923086d0ab314c4917f1cc53ef65389",
                     "path": "src/plugins/hehun-report-followup/flow.ts",
-                    "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
+                    "semanticHash": "sha256:ff80be5bbe21d4bf3940e975866082692ba73eeafe0d9a06929f49c5cae42d93"
                   },
                   {
                     "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
@@ -41173,19 +41173,19 @@
                     "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
                   },
                   {
-                    "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
+                    "contentHash": "sha256:60b4a1761360dc540b0e71131d56ef40ab5cf696aa04f55d582d42ece41e9d97",
                     "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
-                    "semanticHash": "sha256:c798409afd48fdc65438541453210b0e3afa046e1c7e62ea92c0236b88ff877a"
+                    "semanticHash": "sha256:88262d3612b2f6ce958d540efe52bd231b51ab148da53297ab6386dc1e53e6ca"
                   },
                   {
-                    "contentHash": "sha256:d09d07ad4f2e5daacb5ee465185a56fba705d5e977b7da61d38afb130aff1cca",
+                    "contentHash": "sha256:508c20177cc0698116e471bb4777c2ae06e2aa5c3b03c3b8be361f65ca402bab",
                     "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
-                    "semanticHash": "sha256:0adea8336d1c7e0ff6f13843ec8fb961b8f8631eceb892cd9960813b802af305"
+                    "semanticHash": "sha256:2adbe9903cfcfb7ee4521630d036821b388936cae2cd00702841ebd3f2a591ca"
                   },
                   {
-                    "contentHash": "sha256:315f4d29bed0df1a36e64ecad6ce8c8899c4bd4e7522b8742f253d7785d0ffdd",
+                    "contentHash": "sha256:354e43fb2ffbecaeddd6ba24f96ab1a625f4eff60dc14317941205466d8020b6",
                     "path": "src/plugins/payment-screenshot-observation/flow.ts",
-                    "semanticHash": "sha256:c6c68cdb833048cd2724c88d8b4711fce4058d274c319fa24d1a733a2e43d43a"
+                    "semanticHash": "sha256:528249371ea182e06aa85a15ef79a2be8160a728ee1edeac72ae199921984121"
                   },
                   {
                     "contentHash": "sha256:c98c3ce22757a147e178758100bd6788ce55fe31d0ab7a10d1eae1e07fbc6371",
@@ -41193,14 +41193,14 @@
                     "semanticHash": "sha256:5f3d49f9dc1913605fa650e0786daae03258d26bed95143c0ee37a3104b8a97d"
                   },
                   {
-                    "contentHash": "sha256:f0b8c567b7a09b0c143751bebd2fa4b6715f635221d5f969d4c635d3463f382b",
+                    "contentHash": "sha256:db1ddf19566899d7645a51fa6242df802c7ea1845a21c70e2ace649681516521",
                     "path": "src/plugins/qimen-professional-answer/flow.ts",
-                    "semanticHash": "sha256:69c7792b9df5bfc76921df1a84ec13fdc3c843dc462e672305f5723c5562b33a"
+                    "semanticHash": "sha256:e977b89ab787ceddfa5e1732f15f9a93a3463b3fd7fa3fda14c4e90bf3e2e978"
                   },
                   {
-                    "contentHash": "sha256:4de3048e90ad49336bba8f4afbdae00d46d4f18665e2a30aa3327dd5f24e9590",
+                    "contentHash": "sha256:37e8707b1e5fee0555a3ec583fd19da0e1e63a5bbc786e79b0e00b69d2c7119c",
                     "path": "src/plugins/qimen-report-followup/flow.ts",
-                    "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
+                    "semanticHash": "sha256:1d8c9e667d924a08cddbd6131f6a632534c9296bca869116c2eae4e5fdf0e9c3"
                   }
                 ],
                 "valueHash": "sha256:4c15583ff6e2f48548ba79daccc43f1e793e382db4ccf3998adadf82e4c7cda8"
@@ -41208,8 +41208,8 @@
             ]
           }
         },
-        "childCandidateDigest": "sha256:0859c553b84ff7bb889c94f302578cd8a3f9206f6e288304de21d2e7577f6d8d",
-        "digest": "sha256:0859c553b84ff7bb889c94f302578cd8a3f9206f6e288304de21d2e7577f6d8d",
+        "childCandidateDigest": "sha256:c102fa1293e71dbaad5078c8b8ba37054e6c79e78a62195b482fe6508bbd1113",
+        "digest": "sha256:c102fa1293e71dbaad5078c8b8ba37054e6c79e78a62195b482fe6508bbd1113",
         "facts": [
           {
             "expected": "make the exact approved model option available",
@@ -41444,23 +41444,23 @@
           }
         ],
         "pageDemandDigest": "sha256:c67005205b63acd132b2c9cb6e8300b3de94cf9cb94a7a6f853c09a97afe72a4",
-        "projectionDigest": "sha256:0859c553b84ff7bb889c94f302578cd8a3f9206f6e288304de21d2e7577f6d8d",
+        "projectionDigest": "sha256:c102fa1293e71dbaad5078c8b8ba37054e6c79e78a62195b482fe6508bbd1113",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
+                "contentHash": "sha256:8e1b5e46b7a256c25d3586daed3adcd5c50475ac8d8b79b91bf3365fdb035472",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
+                "semanticHash": "sha256:466f84304f3cd1213fd3470368fd3b1ce25415fa7ef1ed8ad56b0c0b47c3a187"
               },
               {
-                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
+                "contentHash": "sha256:2674b19207bb031eb18de320515771dedb2a237bc0a4cf579a9adbf28f7c9807",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
+                "semanticHash": "sha256:5b880347f7b4a49791f67f0e33c740563adde7d3b70e0e7a38fd88d0044e3060"
               }
             ],
-            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
+            "semanticDigest": "sha256:0fd09182bb49b30ad45cee63b7d709bd87c5e85a55125d157c836b946da129e2"
           },
           "browser": {
             "files": [],
@@ -41474,9 +41474,9 @@
                 "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
+                "contentHash": "sha256:50cf65def0d81a5ebaa7e4fe24f741a7de9eb83f748c3b7fac3102b8ed65d953",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
+                "semanticHash": "sha256:2286adfcd8ac136550909bbd18fa617f09b47a05f3d835f56cc7f2f723bf90a6"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -41484,24 +41484,24 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
+                "contentHash": "sha256:03a12d55de125589226aabfeb10433ede4f6d2ab566ccd3498cea983f27bc365",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
+                "semanticHash": "sha256:c8bd8aa29c8ba879728e856f8381302257f2feb6532be0a100bf358c46ae0740"
               },
               {
-                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
+                "contentHash": "sha256:ca2a4f4e20437c8bc139ee1889fe2331eae600d87030ce3f0d8717ed1e12e3ac",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
+                "semanticHash": "sha256:8ae9278e57191dd6d8182d9bb9b6e76fb3bc5a7f17eb67158f0cc13297909ec9"
               },
               {
-                "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
+                "contentHash": "sha256:a25293e2f8750a4195fb437db0a2feddd45960e4d4802fca161db2dc2970bf07",
                 "path": "src/plugins/hehun-ai-analysis/flow.ts",
-                "semanticHash": "sha256:e243630b87151e9ea07f21967862e16d298e23dbfdb6b77794a1cbe689be5f51"
+                "semanticHash": "sha256:13016a3cbc5ec640514ea0ed9b293cb75b0b4b132dae3e91fe3a19dd1c9be240"
               },
               {
-                "contentHash": "sha256:50a434c337a55d19fd56f37ba51ff73c81634945be052297828bee3934bd0857",
+                "contentHash": "sha256:0c656587b626432c829f883d6ee602a45923086d0ab314c4917f1cc53ef65389",
                 "path": "src/plugins/hehun-report-followup/flow.ts",
-                "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
+                "semanticHash": "sha256:ff80be5bbe21d4bf3940e975866082692ba73eeafe0d9a06929f49c5cae42d93"
               },
               {
                 "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
@@ -41514,19 +41514,19 @@
                 "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
-                "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
+                "contentHash": "sha256:60b4a1761360dc540b0e71131d56ef40ab5cf696aa04f55d582d42ece41e9d97",
                 "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
-                "semanticHash": "sha256:c798409afd48fdc65438541453210b0e3afa046e1c7e62ea92c0236b88ff877a"
+                "semanticHash": "sha256:88262d3612b2f6ce958d540efe52bd231b51ab148da53297ab6386dc1e53e6ca"
               },
               {
-                "contentHash": "sha256:d09d07ad4f2e5daacb5ee465185a56fba705d5e977b7da61d38afb130aff1cca",
+                "contentHash": "sha256:508c20177cc0698116e471bb4777c2ae06e2aa5c3b03c3b8be361f65ca402bab",
                 "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
-                "semanticHash": "sha256:0adea8336d1c7e0ff6f13843ec8fb961b8f8631eceb892cd9960813b802af305"
+                "semanticHash": "sha256:2adbe9903cfcfb7ee4521630d036821b388936cae2cd00702841ebd3f2a591ca"
               },
               {
-                "contentHash": "sha256:315f4d29bed0df1a36e64ecad6ce8c8899c4bd4e7522b8742f253d7785d0ffdd",
+                "contentHash": "sha256:354e43fb2ffbecaeddd6ba24f96ab1a625f4eff60dc14317941205466d8020b6",
                 "path": "src/plugins/payment-screenshot-observation/flow.ts",
-                "semanticHash": "sha256:c6c68cdb833048cd2724c88d8b4711fce4058d274c319fa24d1a733a2e43d43a"
+                "semanticHash": "sha256:528249371ea182e06aa85a15ef79a2be8160a728ee1edeac72ae199921984121"
               },
               {
                 "contentHash": "sha256:c98c3ce22757a147e178758100bd6788ce55fe31d0ab7a10d1eae1e07fbc6371",
@@ -41534,17 +41534,17 @@
                 "semanticHash": "sha256:5f3d49f9dc1913605fa650e0786daae03258d26bed95143c0ee37a3104b8a97d"
               },
               {
-                "contentHash": "sha256:f0b8c567b7a09b0c143751bebd2fa4b6715f635221d5f969d4c635d3463f382b",
+                "contentHash": "sha256:db1ddf19566899d7645a51fa6242df802c7ea1845a21c70e2ace649681516521",
                 "path": "src/plugins/qimen-professional-answer/flow.ts",
-                "semanticHash": "sha256:69c7792b9df5bfc76921df1a84ec13fdc3c843dc462e672305f5723c5562b33a"
+                "semanticHash": "sha256:e977b89ab787ceddfa5e1732f15f9a93a3463b3fd7fa3fda14c4e90bf3e2e978"
               },
               {
-                "contentHash": "sha256:4de3048e90ad49336bba8f4afbdae00d46d4f18665e2a30aa3327dd5f24e9590",
+                "contentHash": "sha256:37e8707b1e5fee0555a3ec583fd19da0e1e63a5bbc786e79b0e00b69d2c7119c",
                 "path": "src/plugins/qimen-report-followup/flow.ts",
-                "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
+                "semanticHash": "sha256:1d8c9e667d924a08cddbd6131f6a632534c9296bca869116c2eae4e5fdf0e9c3"
               }
             ],
-            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
+            "semanticDigest": "sha256:ec50f26af8577854f2815db51e4eaf88452aa53ec69cec6b208bbce71425b56e"
           },
           "implementation": {
             "files": [
@@ -41610,6 +41610,15 @@
           ]
         },
         {
+          "path": "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts",
+          "lines": [
+            18,
+            56,
+            79,
+            100
+          ]
+        },
+        {
           "path": "src/capabilities/gpt/child-types.ts",
           "lines": [
             53,
@@ -41619,7 +41628,7 @@
         {
           "path": "src/capabilities/gpt/children/prepare_clean_gpt_chat/handler.ts",
           "lines": [
-            42
+            74
           ]
         },
         {
@@ -41650,7 +41659,7 @@
         {
           "path": "src/capabilities/gpt/children/prepare_clean_gpt_chat/handler.ts",
           "lines": [
-            42
+            74
           ]
         },
         {
@@ -41677,7 +41686,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            267
+            285
           ]
         },
         {
@@ -41692,28 +41701,28 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            270
+            289
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            235
+            253
           ]
         },
         {
           "consumer": "hehun-ai-analysis",
           "path": "src/plugins/hehun-ai-analysis/flow.ts",
           "lines": [
-            227
+            222
           ]
         },
         {
           "consumer": "hehun-report-followup",
           "path": "src/plugins/hehun-report-followup/flow.ts",
           "lines": [
-            230
+            225
           ]
         },
         {
@@ -41740,21 +41749,21 @@
           "consumer": "naming-bazi-analysis-and-naming",
           "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
           "lines": [
-            222
+            217
           ]
         },
         {
           "consumer": "naming-from-existing-bazi-report",
           "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
           "lines": [
-            222
+            217
           ]
         },
         {
           "consumer": "payment-screenshot-observation",
           "path": "src/plugins/payment-screenshot-observation/flow.ts",
           "lines": [
-            222
+            217
           ]
         },
         {
@@ -41768,14 +41777,14 @@
           "consumer": "qimen-professional-answer",
           "path": "src/plugins/qimen-professional-answer/flow.ts",
           "lines": [
-            227
+            244
           ]
         },
         {
           "consumer": "qimen-report-followup",
           "path": "src/plugins/qimen-report-followup/flow.ts",
           "lines": [
-            230
+            247
           ]
         }
       ],
@@ -41866,8 +41875,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:228cba504a0b0f8c123e1c8f5d276da153e8bde1ad8e1c6bd867b7e809534057",
-        "digest": "sha256:228cba504a0b0f8c123e1c8f5d276da153e8bde1ad8e1c6bd867b7e809534057",
+        "childCandidateDigest": "sha256:6459fc9449d228d45b17fec50dae9db1ead36957ae0e6faf8dc12c74b3f1eba7",
+        "digest": "sha256:6459fc9449d228d45b17fec50dae9db1ead36957ae0e6faf8dc12c74b3f1eba7",
         "facts": [
           {
             "expected": "prove a fresh chat and clear only an otherwise isolated stale draft",
@@ -42083,23 +42092,23 @@
           }
         ],
         "pageDemandDigest": "sha256:c98ae6b367598e3e64fe5adc5ac396b319791054f263f941180399c937aec523",
-        "projectionDigest": "sha256:228cba504a0b0f8c123e1c8f5d276da153e8bde1ad8e1c6bd867b7e809534057",
+        "projectionDigest": "sha256:6459fc9449d228d45b17fec50dae9db1ead36957ae0e6faf8dc12c74b3f1eba7",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
+                "contentHash": "sha256:8e1b5e46b7a256c25d3586daed3adcd5c50475ac8d8b79b91bf3365fdb035472",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
+                "semanticHash": "sha256:466f84304f3cd1213fd3470368fd3b1ce25415fa7ef1ed8ad56b0c0b47c3a187"
               },
               {
-                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
+                "contentHash": "sha256:2674b19207bb031eb18de320515771dedb2a237bc0a4cf579a9adbf28f7c9807",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
+                "semanticHash": "sha256:5b880347f7b4a49791f67f0e33c740563adde7d3b70e0e7a38fd88d0044e3060"
               }
             ],
-            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
+            "semanticDigest": "sha256:0fd09182bb49b30ad45cee63b7d709bd87c5e85a55125d157c836b946da129e2"
           },
           "browser": {
             "files": [],
@@ -42113,9 +42122,9 @@
                 "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
+                "contentHash": "sha256:50cf65def0d81a5ebaa7e4fe24f741a7de9eb83f748c3b7fac3102b8ed65d953",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
+                "semanticHash": "sha256:2286adfcd8ac136550909bbd18fa617f09b47a05f3d835f56cc7f2f723bf90a6"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -42123,24 +42132,24 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
+                "contentHash": "sha256:03a12d55de125589226aabfeb10433ede4f6d2ab566ccd3498cea983f27bc365",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
+                "semanticHash": "sha256:c8bd8aa29c8ba879728e856f8381302257f2feb6532be0a100bf358c46ae0740"
               },
               {
-                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
+                "contentHash": "sha256:ca2a4f4e20437c8bc139ee1889fe2331eae600d87030ce3f0d8717ed1e12e3ac",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
+                "semanticHash": "sha256:8ae9278e57191dd6d8182d9bb9b6e76fb3bc5a7f17eb67158f0cc13297909ec9"
               },
               {
-                "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
+                "contentHash": "sha256:a25293e2f8750a4195fb437db0a2feddd45960e4d4802fca161db2dc2970bf07",
                 "path": "src/plugins/hehun-ai-analysis/flow.ts",
-                "semanticHash": "sha256:e243630b87151e9ea07f21967862e16d298e23dbfdb6b77794a1cbe689be5f51"
+                "semanticHash": "sha256:13016a3cbc5ec640514ea0ed9b293cb75b0b4b132dae3e91fe3a19dd1c9be240"
               },
               {
-                "contentHash": "sha256:50a434c337a55d19fd56f37ba51ff73c81634945be052297828bee3934bd0857",
+                "contentHash": "sha256:0c656587b626432c829f883d6ee602a45923086d0ab314c4917f1cc53ef65389",
                 "path": "src/plugins/hehun-report-followup/flow.ts",
-                "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
+                "semanticHash": "sha256:ff80be5bbe21d4bf3940e975866082692ba73eeafe0d9a06929f49c5cae42d93"
               },
               {
                 "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
@@ -42153,19 +42162,19 @@
                 "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
-                "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
+                "contentHash": "sha256:60b4a1761360dc540b0e71131d56ef40ab5cf696aa04f55d582d42ece41e9d97",
                 "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
-                "semanticHash": "sha256:c798409afd48fdc65438541453210b0e3afa046e1c7e62ea92c0236b88ff877a"
+                "semanticHash": "sha256:88262d3612b2f6ce958d540efe52bd231b51ab148da53297ab6386dc1e53e6ca"
               },
               {
-                "contentHash": "sha256:d09d07ad4f2e5daacb5ee465185a56fba705d5e977b7da61d38afb130aff1cca",
+                "contentHash": "sha256:508c20177cc0698116e471bb4777c2ae06e2aa5c3b03c3b8be361f65ca402bab",
                 "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
-                "semanticHash": "sha256:0adea8336d1c7e0ff6f13843ec8fb961b8f8631eceb892cd9960813b802af305"
+                "semanticHash": "sha256:2adbe9903cfcfb7ee4521630d036821b388936cae2cd00702841ebd3f2a591ca"
               },
               {
-                "contentHash": "sha256:315f4d29bed0df1a36e64ecad6ce8c8899c4bd4e7522b8742f253d7785d0ffdd",
+                "contentHash": "sha256:354e43fb2ffbecaeddd6ba24f96ab1a625f4eff60dc14317941205466d8020b6",
                 "path": "src/plugins/payment-screenshot-observation/flow.ts",
-                "semanticHash": "sha256:c6c68cdb833048cd2724c88d8b4711fce4058d274c319fa24d1a733a2e43d43a"
+                "semanticHash": "sha256:528249371ea182e06aa85a15ef79a2be8160a728ee1edeac72ae199921984121"
               },
               {
                 "contentHash": "sha256:c98c3ce22757a147e178758100bd6788ce55fe31d0ab7a10d1eae1e07fbc6371",
@@ -42173,24 +42182,24 @@
                 "semanticHash": "sha256:5f3d49f9dc1913605fa650e0786daae03258d26bed95143c0ee37a3104b8a97d"
               },
               {
-                "contentHash": "sha256:f0b8c567b7a09b0c143751bebd2fa4b6715f635221d5f969d4c635d3463f382b",
+                "contentHash": "sha256:db1ddf19566899d7645a51fa6242df802c7ea1845a21c70e2ace649681516521",
                 "path": "src/plugins/qimen-professional-answer/flow.ts",
-                "semanticHash": "sha256:69c7792b9df5bfc76921df1a84ec13fdc3c843dc462e672305f5723c5562b33a"
+                "semanticHash": "sha256:e977b89ab787ceddfa5e1732f15f9a93a3463b3fd7fa3fda14c4e90bf3e2e978"
               },
               {
-                "contentHash": "sha256:4de3048e90ad49336bba8f4afbdae00d46d4f18665e2a30aa3327dd5f24e9590",
+                "contentHash": "sha256:37e8707b1e5fee0555a3ec583fd19da0e1e63a5bbc786e79b0e00b69d2c7119c",
                 "path": "src/plugins/qimen-report-followup/flow.ts",
-                "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
+                "semanticHash": "sha256:1d8c9e667d924a08cddbd6131f6a632534c9296bca869116c2eae4e5fdf0e9c3"
               }
             ],
-            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
+            "semanticDigest": "sha256:ec50f26af8577854f2815db51e4eaf88452aa53ec69cec6b208bbce71425b56e"
           },
           "implementation": {
             "files": [
               {
-                "contentHash": "sha256:3d3493372a7e57c308bbf779671c76bcab4874d3e521ac1bae3084569b502c2b",
+                "contentHash": "sha256:db984c6ea8da8a364001685326887936389899b016fda7c7a36ad48dd7812516",
                 "path": "src/capabilities/gpt/children/prepare_clean_gpt_chat/handler.ts",
-                "semanticHash": "sha256:e12168ccaf32e7d4157d2a8f331f032a0383ecb7159753a01c2f30aef1d7fb1c"
+                "semanticHash": "sha256:cd7d5f5f9ca030606c33236ac55c97a3f6dfafbe876ecb155ec35bd041d6e16c"
               },
               {
                 "contentHash": "sha256:89a91885934a89a345bbc64e036c67be96480c9832fc81cf988e3d15778a13e6",
@@ -42203,7 +42212,7 @@
                 "semanticHash": "sha256:147ad0184051fb5cfa8c61c95a9e702c068ac7d80bcdf5a7b6f83a5a8d5d5d94"
               }
             ],
-            "semanticDigest": "sha256:039d9c3195952c5196b601b3719aa6f3023dbc62b534716336a5b5560089d011"
+            "semanticDigest": "sha256:c002af4511fcc7e31c96b073a190460fbae27a1361a3f487ed9df016d569b0cf"
           }
         }
       }
@@ -42245,10 +42254,10 @@
           "path": "src/capabilities/gpt/acceptance/gpt-attachment.acceptance.ts",
           "lines": [
             373,
-            400,
-            419,
-            437,
-            454
+            401,
+            420,
+            440,
+            460
           ]
         },
         {
@@ -42325,7 +42334,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            185
+            192
           ]
         },
         {
@@ -42340,28 +42349,28 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            188
+            196
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            158
+            165
           ]
         },
         {
           "consumer": "hehun-ai-analysis",
           "path": "src/plugins/hehun-ai-analysis/flow.ts",
           "lines": [
-            151
+            157
           ]
         },
         {
           "consumer": "hehun-report-followup",
           "path": "src/plugins/hehun-report-followup/flow.ts",
           "lines": [
-            154
+            160
           ]
         },
         {
@@ -42387,21 +42396,21 @@
           "consumer": "naming-bazi-analysis-and-naming",
           "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
           "lines": [
-            148
+            154
           ]
         },
         {
           "consumer": "naming-from-existing-bazi-report",
           "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
           "lines": [
-            148
+            154
           ]
         },
         {
           "consumer": "payment-screenshot-observation",
           "path": "src/plugins/payment-screenshot-observation/flow.ts",
           "lines": [
-            148
+            154
           ]
         },
         {
@@ -42415,14 +42424,14 @@
           "consumer": "qimen-professional-answer",
           "path": "src/plugins/qimen-professional-answer/flow.ts",
           "lines": [
-            151
+            158
           ]
         },
         {
           "consumer": "qimen-report-followup",
           "path": "src/plugins/qimen-report-followup/flow.ts",
           "lines": [
-            154
+            161
           ]
         }
       ],
@@ -42538,8 +42547,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:bd6da03d2d1883a3f76623ec770f16baeadd4d34b7c59567b6d7396877b779a5",
-        "digest": "sha256:bd6da03d2d1883a3f76623ec770f16baeadd4d34b7c59567b6d7396877b779a5",
+        "childCandidateDigest": "sha256:abfdedb459459f1cfe2c81196f8cf44a7f7996d908652c78c935536becffc098",
+        "digest": "sha256:abfdedb459459f1cfe2c81196f8cf44a7f7996d908652c78c935536becffc098",
         "facts": [
           {
             "expected": "prove all and only approved attachments are ready",
@@ -42759,23 +42768,23 @@
           }
         ],
         "pageDemandDigest": "sha256:9aff285fd7b4a547482298be2e69e4170ebfe11d138bf06306bb0d3fc874e27f",
-        "projectionDigest": "sha256:bd6da03d2d1883a3f76623ec770f16baeadd4d34b7c59567b6d7396877b779a5",
+        "projectionDigest": "sha256:abfdedb459459f1cfe2c81196f8cf44a7f7996d908652c78c935536becffc098",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
+                "contentHash": "sha256:8e1b5e46b7a256c25d3586daed3adcd5c50475ac8d8b79b91bf3365fdb035472",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
+                "semanticHash": "sha256:466f84304f3cd1213fd3470368fd3b1ce25415fa7ef1ed8ad56b0c0b47c3a187"
               },
               {
-                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
+                "contentHash": "sha256:2674b19207bb031eb18de320515771dedb2a237bc0a4cf579a9adbf28f7c9807",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
+                "semanticHash": "sha256:5b880347f7b4a49791f67f0e33c740563adde7d3b70e0e7a38fd88d0044e3060"
               }
             ],
-            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
+            "semanticDigest": "sha256:0fd09182bb49b30ad45cee63b7d709bd87c5e85a55125d157c836b946da129e2"
           },
           "browser": {
             "files": [],
@@ -42789,9 +42798,9 @@
                 "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
+                "contentHash": "sha256:50cf65def0d81a5ebaa7e4fe24f741a7de9eb83f748c3b7fac3102b8ed65d953",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
+                "semanticHash": "sha256:2286adfcd8ac136550909bbd18fa617f09b47a05f3d835f56cc7f2f723bf90a6"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -42799,24 +42808,24 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
+                "contentHash": "sha256:03a12d55de125589226aabfeb10433ede4f6d2ab566ccd3498cea983f27bc365",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
+                "semanticHash": "sha256:c8bd8aa29c8ba879728e856f8381302257f2feb6532be0a100bf358c46ae0740"
               },
               {
-                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
+                "contentHash": "sha256:ca2a4f4e20437c8bc139ee1889fe2331eae600d87030ce3f0d8717ed1e12e3ac",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
+                "semanticHash": "sha256:8ae9278e57191dd6d8182d9bb9b6e76fb3bc5a7f17eb67158f0cc13297909ec9"
               },
               {
-                "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
+                "contentHash": "sha256:a25293e2f8750a4195fb437db0a2feddd45960e4d4802fca161db2dc2970bf07",
                 "path": "src/plugins/hehun-ai-analysis/flow.ts",
-                "semanticHash": "sha256:e243630b87151e9ea07f21967862e16d298e23dbfdb6b77794a1cbe689be5f51"
+                "semanticHash": "sha256:13016a3cbc5ec640514ea0ed9b293cb75b0b4b132dae3e91fe3a19dd1c9be240"
               },
               {
-                "contentHash": "sha256:50a434c337a55d19fd56f37ba51ff73c81634945be052297828bee3934bd0857",
+                "contentHash": "sha256:0c656587b626432c829f883d6ee602a45923086d0ab314c4917f1cc53ef65389",
                 "path": "src/plugins/hehun-report-followup/flow.ts",
-                "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
+                "semanticHash": "sha256:ff80be5bbe21d4bf3940e975866082692ba73eeafe0d9a06929f49c5cae42d93"
               },
               {
                 "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
@@ -42829,19 +42838,19 @@
                 "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
-                "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
+                "contentHash": "sha256:60b4a1761360dc540b0e71131d56ef40ab5cf696aa04f55d582d42ece41e9d97",
                 "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
-                "semanticHash": "sha256:c798409afd48fdc65438541453210b0e3afa046e1c7e62ea92c0236b88ff877a"
+                "semanticHash": "sha256:88262d3612b2f6ce958d540efe52bd231b51ab148da53297ab6386dc1e53e6ca"
               },
               {
-                "contentHash": "sha256:d09d07ad4f2e5daacb5ee465185a56fba705d5e977b7da61d38afb130aff1cca",
+                "contentHash": "sha256:508c20177cc0698116e471bb4777c2ae06e2aa5c3b03c3b8be361f65ca402bab",
                 "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
-                "semanticHash": "sha256:0adea8336d1c7e0ff6f13843ec8fb961b8f8631eceb892cd9960813b802af305"
+                "semanticHash": "sha256:2adbe9903cfcfb7ee4521630d036821b388936cae2cd00702841ebd3f2a591ca"
               },
               {
-                "contentHash": "sha256:315f4d29bed0df1a36e64ecad6ce8c8899c4bd4e7522b8742f253d7785d0ffdd",
+                "contentHash": "sha256:354e43fb2ffbecaeddd6ba24f96ab1a625f4eff60dc14317941205466d8020b6",
                 "path": "src/plugins/payment-screenshot-observation/flow.ts",
-                "semanticHash": "sha256:c6c68cdb833048cd2724c88d8b4711fce4058d274c319fa24d1a733a2e43d43a"
+                "semanticHash": "sha256:528249371ea182e06aa85a15ef79a2be8160a728ee1edeac72ae199921984121"
               },
               {
                 "contentHash": "sha256:c98c3ce22757a147e178758100bd6788ce55fe31d0ab7a10d1eae1e07fbc6371",
@@ -42849,17 +42858,17 @@
                 "semanticHash": "sha256:5f3d49f9dc1913605fa650e0786daae03258d26bed95143c0ee37a3104b8a97d"
               },
               {
-                "contentHash": "sha256:f0b8c567b7a09b0c143751bebd2fa4b6715f635221d5f969d4c635d3463f382b",
+                "contentHash": "sha256:db1ddf19566899d7645a51fa6242df802c7ea1845a21c70e2ace649681516521",
                 "path": "src/plugins/qimen-professional-answer/flow.ts",
-                "semanticHash": "sha256:69c7792b9df5bfc76921df1a84ec13fdc3c843dc462e672305f5723c5562b33a"
+                "semanticHash": "sha256:e977b89ab787ceddfa5e1732f15f9a93a3463b3fd7fa3fda14c4e90bf3e2e978"
               },
               {
-                "contentHash": "sha256:4de3048e90ad49336bba8f4afbdae00d46d4f18665e2a30aa3327dd5f24e9590",
+                "contentHash": "sha256:37e8707b1e5fee0555a3ec583fd19da0e1e63a5bbc786e79b0e00b69d2c7119c",
                 "path": "src/plugins/qimen-report-followup/flow.ts",
-                "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
+                "semanticHash": "sha256:1d8c9e667d924a08cddbd6131f6a632534c9296bca869116c2eae4e5fdf0e9c3"
               }
             ],
-            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
+            "semanticDigest": "sha256:ec50f26af8577854f2815db51e4eaf88452aa53ec69cec6b208bbce71425b56e"
           },
           "implementation": {
             "files": [
@@ -42869,9 +42878,9 @@
                 "semanticHash": "sha256:2586ca086e95e639a795409203b967b7c0a839fb9aa7242b9b0ae96e79353de6"
               },
               {
-                "contentHash": "sha256:7b080f2d32274f45e567db3d43c177976eb0d2d7f89173512b09ee69c51aee96",
+                "contentHash": "sha256:1032d283e95a775e4bfef1b312e95377e9b30db82272126a4d665906af2baee9",
                 "path": "src/capabilities/gpt/children/reconcile_gpt_attachment_set/observation.ts",
-                "semanticHash": "sha256:27dff0ec6a9dac0e01f0f9569f9b24f20db7007df72bb12191c597b51048a19e"
+                "semanticHash": "sha256:75edd8f90828f5d587cfc9b20be848844743449da74087b995ab26d304b2ec5e"
               },
               {
                 "contentHash": "sha256:60c590dd60ac06c355c285b6d60dc55a3bcdebb83eddd94553a7bccf79715b46",
@@ -42879,7 +42888,7 @@
                 "semanticHash": "sha256:e863f8e8cd1d55422aaaa9e7d15673da0ecca6042d1404250f550ee3b731d2a0"
               }
             ],
-            "semanticDigest": "sha256:f1de6c441b6d47f21643410e9eaa27409108ebe60763ef4054e2d683392a91f8"
+            "semanticDigest": "sha256:6ede159ac04a700f1cede37d02f550c8c2310ae3ae5c81cdf71e33b2a60c7325"
           }
         }
       }
@@ -42926,8 +42935,8 @@
           "path": "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts",
           "lines": [
             10,
-            366,
-            390
+            445,
+            469
           ]
         },
         {
@@ -42994,7 +43003,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            163
+            170
           ]
         },
         {
@@ -43009,28 +43018,28 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            166
+            174
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            137
+            144
           ]
         },
         {
           "consumer": "hehun-ai-analysis",
           "path": "src/plugins/hehun-ai-analysis/flow.ts",
           "lines": [
-            130
+            136
           ]
         },
         {
           "consumer": "hehun-report-followup",
           "path": "src/plugins/hehun-report-followup/flow.ts",
           "lines": [
-            133
+            139
           ]
         },
         {
@@ -43056,21 +43065,21 @@
           "consumer": "naming-bazi-analysis-and-naming",
           "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
           "lines": [
-            127
+            133
           ]
         },
         {
           "consumer": "naming-from-existing-bazi-report",
           "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
           "lines": [
-            127
+            133
           ]
         },
         {
           "consumer": "payment-screenshot-observation",
           "path": "src/plugins/payment-screenshot-observation/flow.ts",
           "lines": [
-            127
+            133
           ]
         },
         {
@@ -43084,14 +43093,14 @@
           "consumer": "qimen-professional-answer",
           "path": "src/plugins/qimen-professional-answer/flow.ts",
           "lines": [
-            130
+            137
           ]
         },
         {
           "consumer": "qimen-report-followup",
           "path": "src/plugins/qimen-report-followup/flow.ts",
           "lines": [
-            133
+            140
           ]
         }
       ],
@@ -43186,19 +43195,19 @@
                     "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
                   },
                   {
-                    "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
+                    "contentHash": "sha256:ca2a4f4e20437c8bc139ee1889fe2331eae600d87030ce3f0d8717ed1e12e3ac",
                     "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                    "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
+                    "semanticHash": "sha256:8ae9278e57191dd6d8182d9bb9b6e76fb3bc5a7f17eb67158f0cc13297909ec9"
                   },
                   {
-                    "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
+                    "contentHash": "sha256:a25293e2f8750a4195fb437db0a2feddd45960e4d4802fca161db2dc2970bf07",
                     "path": "src/plugins/hehun-ai-analysis/flow.ts",
-                    "semanticHash": "sha256:e243630b87151e9ea07f21967862e16d298e23dbfdb6b77794a1cbe689be5f51"
+                    "semanticHash": "sha256:13016a3cbc5ec640514ea0ed9b293cb75b0b4b132dae3e91fe3a19dd1c9be240"
                   },
                   {
-                    "contentHash": "sha256:50a434c337a55d19fd56f37ba51ff73c81634945be052297828bee3934bd0857",
+                    "contentHash": "sha256:0c656587b626432c829f883d6ee602a45923086d0ab314c4917f1cc53ef65389",
                     "path": "src/plugins/hehun-report-followup/flow.ts",
-                    "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
+                    "semanticHash": "sha256:ff80be5bbe21d4bf3940e975866082692ba73eeafe0d9a06929f49c5cae42d93"
                   },
                   {
                     "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
@@ -43221,19 +43230,19 @@
                     "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
                   },
                   {
-                    "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
+                    "contentHash": "sha256:60b4a1761360dc540b0e71131d56ef40ab5cf696aa04f55d582d42ece41e9d97",
                     "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
-                    "semanticHash": "sha256:c798409afd48fdc65438541453210b0e3afa046e1c7e62ea92c0236b88ff877a"
+                    "semanticHash": "sha256:88262d3612b2f6ce958d540efe52bd231b51ab148da53297ab6386dc1e53e6ca"
                   },
                   {
-                    "contentHash": "sha256:d09d07ad4f2e5daacb5ee465185a56fba705d5e977b7da61d38afb130aff1cca",
+                    "contentHash": "sha256:508c20177cc0698116e471bb4777c2ae06e2aa5c3b03c3b8be361f65ca402bab",
                     "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
-                    "semanticHash": "sha256:0adea8336d1c7e0ff6f13843ec8fb961b8f8631eceb892cd9960813b802af305"
+                    "semanticHash": "sha256:2adbe9903cfcfb7ee4521630d036821b388936cae2cd00702841ebd3f2a591ca"
                   },
                   {
-                    "contentHash": "sha256:315f4d29bed0df1a36e64ecad6ce8c8899c4bd4e7522b8742f253d7785d0ffdd",
+                    "contentHash": "sha256:354e43fb2ffbecaeddd6ba24f96ab1a625f4eff60dc14317941205466d8020b6",
                     "path": "src/plugins/payment-screenshot-observation/flow.ts",
-                    "semanticHash": "sha256:c6c68cdb833048cd2724c88d8b4711fce4058d274c319fa24d1a733a2e43d43a"
+                    "semanticHash": "sha256:528249371ea182e06aa85a15ef79a2be8160a728ee1edeac72ae199921984121"
                   },
                   {
                     "contentHash": "sha256:c98c3ce22757a147e178758100bd6788ce55fe31d0ab7a10d1eae1e07fbc6371",
@@ -43241,14 +43250,14 @@
                     "semanticHash": "sha256:5f3d49f9dc1913605fa650e0786daae03258d26bed95143c0ee37a3104b8a97d"
                   },
                   {
-                    "contentHash": "sha256:f0b8c567b7a09b0c143751bebd2fa4b6715f635221d5f969d4c635d3463f382b",
+                    "contentHash": "sha256:db1ddf19566899d7645a51fa6242df802c7ea1845a21c70e2ace649681516521",
                     "path": "src/plugins/qimen-professional-answer/flow.ts",
-                    "semanticHash": "sha256:69c7792b9df5bfc76921df1a84ec13fdc3c843dc462e672305f5723c5562b33a"
+                    "semanticHash": "sha256:e977b89ab787ceddfa5e1732f15f9a93a3463b3fd7fa3fda14c4e90bf3e2e978"
                   },
                   {
-                    "contentHash": "sha256:4de3048e90ad49336bba8f4afbdae00d46d4f18665e2a30aa3327dd5f24e9590",
+                    "contentHash": "sha256:37e8707b1e5fee0555a3ec583fd19da0e1e63a5bbc786e79b0e00b69d2c7119c",
                     "path": "src/plugins/qimen-report-followup/flow.ts",
-                    "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
+                    "semanticHash": "sha256:1d8c9e667d924a08cddbd6131f6a632534c9296bca869116c2eae4e5fdf0e9c3"
                   }
                 ],
                 "valueHash": "sha256:4c15583ff6e2f48548ba79daccc43f1e793e382db4ccf3998adadf82e4c7cda8"
@@ -43256,8 +43265,8 @@
             ]
           }
         },
-        "childCandidateDigest": "sha256:9c8fc80cefb180411fdfaf15082befd270e1bcf0eda92bae6e5901dd76420c73",
-        "digest": "sha256:9c8fc80cefb180411fdfaf15082befd270e1bcf0eda92bae6e5901dd76420c73",
+        "childCandidateDigest": "sha256:3074050c54c690436e20cd2bb839519c21baed061a73332e493184e6d2e0c1ad",
+        "digest": "sha256:3074050c54c690436e20cd2bb839519c21baed061a73332e493184e6d2e0c1ad",
         "facts": [
           {
             "expected": "select the unique exact approved model option",
@@ -43491,23 +43500,23 @@
           }
         ],
         "pageDemandDigest": "sha256:d23922d62f67d0108f6eeef125f6703c5c684265a5add42d3d8c6b95f9b0b384",
-        "projectionDigest": "sha256:9c8fc80cefb180411fdfaf15082befd270e1bcf0eda92bae6e5901dd76420c73",
+        "projectionDigest": "sha256:3074050c54c690436e20cd2bb839519c21baed061a73332e493184e6d2e0c1ad",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
+                "contentHash": "sha256:8e1b5e46b7a256c25d3586daed3adcd5c50475ac8d8b79b91bf3365fdb035472",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
+                "semanticHash": "sha256:466f84304f3cd1213fd3470368fd3b1ce25415fa7ef1ed8ad56b0c0b47c3a187"
               },
               {
-                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
+                "contentHash": "sha256:2674b19207bb031eb18de320515771dedb2a237bc0a4cf579a9adbf28f7c9807",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
+                "semanticHash": "sha256:5b880347f7b4a49791f67f0e33c740563adde7d3b70e0e7a38fd88d0044e3060"
               }
             ],
-            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
+            "semanticDigest": "sha256:0fd09182bb49b30ad45cee63b7d709bd87c5e85a55125d157c836b946da129e2"
           },
           "browser": {
             "files": [],
@@ -43521,9 +43530,9 @@
                 "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
+                "contentHash": "sha256:50cf65def0d81a5ebaa7e4fe24f741a7de9eb83f748c3b7fac3102b8ed65d953",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
+                "semanticHash": "sha256:2286adfcd8ac136550909bbd18fa617f09b47a05f3d835f56cc7f2f723bf90a6"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -43531,24 +43540,24 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
+                "contentHash": "sha256:03a12d55de125589226aabfeb10433ede4f6d2ab566ccd3498cea983f27bc365",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
+                "semanticHash": "sha256:c8bd8aa29c8ba879728e856f8381302257f2feb6532be0a100bf358c46ae0740"
               },
               {
-                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
+                "contentHash": "sha256:ca2a4f4e20437c8bc139ee1889fe2331eae600d87030ce3f0d8717ed1e12e3ac",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
+                "semanticHash": "sha256:8ae9278e57191dd6d8182d9bb9b6e76fb3bc5a7f17eb67158f0cc13297909ec9"
               },
               {
-                "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
+                "contentHash": "sha256:a25293e2f8750a4195fb437db0a2feddd45960e4d4802fca161db2dc2970bf07",
                 "path": "src/plugins/hehun-ai-analysis/flow.ts",
-                "semanticHash": "sha256:e243630b87151e9ea07f21967862e16d298e23dbfdb6b77794a1cbe689be5f51"
+                "semanticHash": "sha256:13016a3cbc5ec640514ea0ed9b293cb75b0b4b132dae3e91fe3a19dd1c9be240"
               },
               {
-                "contentHash": "sha256:50a434c337a55d19fd56f37ba51ff73c81634945be052297828bee3934bd0857",
+                "contentHash": "sha256:0c656587b626432c829f883d6ee602a45923086d0ab314c4917f1cc53ef65389",
                 "path": "src/plugins/hehun-report-followup/flow.ts",
-                "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
+                "semanticHash": "sha256:ff80be5bbe21d4bf3940e975866082692ba73eeafe0d9a06929f49c5cae42d93"
               },
               {
                 "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
@@ -43561,19 +43570,19 @@
                 "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
-                "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
+                "contentHash": "sha256:60b4a1761360dc540b0e71131d56ef40ab5cf696aa04f55d582d42ece41e9d97",
                 "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
-                "semanticHash": "sha256:c798409afd48fdc65438541453210b0e3afa046e1c7e62ea92c0236b88ff877a"
+                "semanticHash": "sha256:88262d3612b2f6ce958d540efe52bd231b51ab148da53297ab6386dc1e53e6ca"
               },
               {
-                "contentHash": "sha256:d09d07ad4f2e5daacb5ee465185a56fba705d5e977b7da61d38afb130aff1cca",
+                "contentHash": "sha256:508c20177cc0698116e471bb4777c2ae06e2aa5c3b03c3b8be361f65ca402bab",
                 "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
-                "semanticHash": "sha256:0adea8336d1c7e0ff6f13843ec8fb961b8f8631eceb892cd9960813b802af305"
+                "semanticHash": "sha256:2adbe9903cfcfb7ee4521630d036821b388936cae2cd00702841ebd3f2a591ca"
               },
               {
-                "contentHash": "sha256:315f4d29bed0df1a36e64ecad6ce8c8899c4bd4e7522b8742f253d7785d0ffdd",
+                "contentHash": "sha256:354e43fb2ffbecaeddd6ba24f96ab1a625f4eff60dc14317941205466d8020b6",
                 "path": "src/plugins/payment-screenshot-observation/flow.ts",
-                "semanticHash": "sha256:c6c68cdb833048cd2724c88d8b4711fce4058d274c319fa24d1a733a2e43d43a"
+                "semanticHash": "sha256:528249371ea182e06aa85a15ef79a2be8160a728ee1edeac72ae199921984121"
               },
               {
                 "contentHash": "sha256:c98c3ce22757a147e178758100bd6788ce55fe31d0ab7a10d1eae1e07fbc6371",
@@ -43581,17 +43590,17 @@
                 "semanticHash": "sha256:5f3d49f9dc1913605fa650e0786daae03258d26bed95143c0ee37a3104b8a97d"
               },
               {
-                "contentHash": "sha256:f0b8c567b7a09b0c143751bebd2fa4b6715f635221d5f969d4c635d3463f382b",
+                "contentHash": "sha256:db1ddf19566899d7645a51fa6242df802c7ea1845a21c70e2ace649681516521",
                 "path": "src/plugins/qimen-professional-answer/flow.ts",
-                "semanticHash": "sha256:69c7792b9df5bfc76921df1a84ec13fdc3c843dc462e672305f5723c5562b33a"
+                "semanticHash": "sha256:e977b89ab787ceddfa5e1732f15f9a93a3463b3fd7fa3fda14c4e90bf3e2e978"
               },
               {
-                "contentHash": "sha256:4de3048e90ad49336bba8f4afbdae00d46d4f18665e2a30aa3327dd5f24e9590",
+                "contentHash": "sha256:37e8707b1e5fee0555a3ec583fd19da0e1e63a5bbc786e79b0e00b69d2c7119c",
                 "path": "src/plugins/qimen-report-followup/flow.ts",
-                "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
+                "semanticHash": "sha256:1d8c9e667d924a08cddbd6131f6a632534c9296bca869116c2eae4e5fdf0e9c3"
               }
             ],
-            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
+            "semanticDigest": "sha256:ec50f26af8577854f2815db51e4eaf88452aa53ec69cec6b208bbce71425b56e"
           },
           "implementation": {
             "files": [
@@ -43743,11 +43752,11 @@
         {
           "path": "src/capabilities/gpt/production-child-tools.ts",
           "lines": [
-            88,
-            89,
-            98,
-            221,
-            266
+            91,
+            92,
+            117,
+            240,
+            285
           ]
         }
       ],
@@ -43783,9 +43792,11 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            208,
-            251,
-            253
+            77,
+            215,
+            258,
+            260,
+            277
           ]
         },
         {
@@ -43800,36 +43811,42 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            211,
-            254,
-            256
+            77,
+            219,
+            262,
+            264,
+            281
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            181,
-            219,
-            221
+            81,
+            188,
+            226,
+            228,
+            245
           ]
         },
         {
           "consumer": "hehun-ai-analysis",
           "path": "src/plugins/hehun-ai-analysis/flow.ts",
           "lines": [
-            174,
-            211,
-            213
+            78,
+            180,
+            218,
+            228
           ]
         },
         {
           "consumer": "hehun-report-followup",
           "path": "src/plugins/hehun-report-followup/flow.ts",
           "lines": [
-            177,
-            214,
-            216
+            81,
+            183,
+            221,
+            231
           ]
         },
         {
@@ -43860,27 +43877,30 @@
           "consumer": "naming-bazi-analysis-and-naming",
           "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
           "lines": [
-            171,
-            206,
-            208
+            75,
+            177,
+            213,
+            223
           ]
         },
         {
           "consumer": "naming-from-existing-bazi-report",
           "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
           "lines": [
-            171,
-            206,
-            208
+            75,
+            177,
+            213,
+            223
           ]
         },
         {
           "consumer": "payment-screenshot-observation",
           "path": "src/plugins/payment-screenshot-observation/flow.ts",
           "lines": [
-            171,
-            206,
-            208
+            75,
+            177,
+            213,
+            223
           ]
         },
         {
@@ -43913,18 +43933,22 @@
           "consumer": "qimen-professional-answer",
           "path": "src/plugins/qimen-professional-answer/flow.ts",
           "lines": [
-            174,
-            211,
-            213
+            79,
+            181,
+            218,
+            220,
+            237
           ]
         },
         {
           "consumer": "qimen-report-followup",
           "path": "src/plugins/qimen-report-followup/flow.ts",
           "lines": [
-            177,
-            214,
-            216
+            82,
+            184,
+            221,
+            223,
+            240
           ]
         }
       ],
@@ -44007,8 +44031,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:0a5b50c399e867a170fe95eb7718b5b46ad6beac9f0f92b3192e75da9a6a3293",
-        "digest": "sha256:0a5b50c399e867a170fe95eb7718b5b46ad6beac9f0f92b3192e75da9a6a3293",
+        "childCandidateDigest": "sha256:6153762a5091d07e72845348fb0af373d59896ca3defb7ea7db8cdb3f046cd4d",
+        "digest": "sha256:6153762a5091d07e72845348fb0af373d59896ca3defb7ea7db8cdb3f046cd4d",
         "facts": [
           {
             "expected": "submit the exact approved outgoing turn once",
@@ -44232,23 +44256,23 @@
           }
         ],
         "pageDemandDigest": "sha256:1db57f27a966f65eeebbd239b45618c8c46c47fe1975fddd7cd06eab6e5a2865",
-        "projectionDigest": "sha256:0a5b50c399e867a170fe95eb7718b5b46ad6beac9f0f92b3192e75da9a6a3293",
+        "projectionDigest": "sha256:6153762a5091d07e72845348fb0af373d59896ca3defb7ea7db8cdb3f046cd4d",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
+                "contentHash": "sha256:8e1b5e46b7a256c25d3586daed3adcd5c50475ac8d8b79b91bf3365fdb035472",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
+                "semanticHash": "sha256:466f84304f3cd1213fd3470368fd3b1ce25415fa7ef1ed8ad56b0c0b47c3a187"
               },
               {
-                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
+                "contentHash": "sha256:2674b19207bb031eb18de320515771dedb2a237bc0a4cf579a9adbf28f7c9807",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
+                "semanticHash": "sha256:5b880347f7b4a49791f67f0e33c740563adde7d3b70e0e7a38fd88d0044e3060"
               }
             ],
-            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
+            "semanticDigest": "sha256:0fd09182bb49b30ad45cee63b7d709bd87c5e85a55125d157c836b946da129e2"
           },
           "browser": {
             "files": [
@@ -44268,9 +44292,9 @@
                 "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
+                "contentHash": "sha256:50cf65def0d81a5ebaa7e4fe24f741a7de9eb83f748c3b7fac3102b8ed65d953",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
+                "semanticHash": "sha256:2286adfcd8ac136550909bbd18fa617f09b47a05f3d835f56cc7f2f723bf90a6"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -44278,24 +44302,24 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
+                "contentHash": "sha256:03a12d55de125589226aabfeb10433ede4f6d2ab566ccd3498cea983f27bc365",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
+                "semanticHash": "sha256:c8bd8aa29c8ba879728e856f8381302257f2feb6532be0a100bf358c46ae0740"
               },
               {
-                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
+                "contentHash": "sha256:ca2a4f4e20437c8bc139ee1889fe2331eae600d87030ce3f0d8717ed1e12e3ac",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
+                "semanticHash": "sha256:8ae9278e57191dd6d8182d9bb9b6e76fb3bc5a7f17eb67158f0cc13297909ec9"
               },
               {
-                "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
+                "contentHash": "sha256:a25293e2f8750a4195fb437db0a2feddd45960e4d4802fca161db2dc2970bf07",
                 "path": "src/plugins/hehun-ai-analysis/flow.ts",
-                "semanticHash": "sha256:e243630b87151e9ea07f21967862e16d298e23dbfdb6b77794a1cbe689be5f51"
+                "semanticHash": "sha256:13016a3cbc5ec640514ea0ed9b293cb75b0b4b132dae3e91fe3a19dd1c9be240"
               },
               {
-                "contentHash": "sha256:50a434c337a55d19fd56f37ba51ff73c81634945be052297828bee3934bd0857",
+                "contentHash": "sha256:0c656587b626432c829f883d6ee602a45923086d0ab314c4917f1cc53ef65389",
                 "path": "src/plugins/hehun-report-followup/flow.ts",
-                "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
+                "semanticHash": "sha256:ff80be5bbe21d4bf3940e975866082692ba73eeafe0d9a06929f49c5cae42d93"
               },
               {
                 "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
@@ -44308,19 +44332,19 @@
                 "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
-                "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
+                "contentHash": "sha256:60b4a1761360dc540b0e71131d56ef40ab5cf696aa04f55d582d42ece41e9d97",
                 "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
-                "semanticHash": "sha256:c798409afd48fdc65438541453210b0e3afa046e1c7e62ea92c0236b88ff877a"
+                "semanticHash": "sha256:88262d3612b2f6ce958d540efe52bd231b51ab148da53297ab6386dc1e53e6ca"
               },
               {
-                "contentHash": "sha256:d09d07ad4f2e5daacb5ee465185a56fba705d5e977b7da61d38afb130aff1cca",
+                "contentHash": "sha256:508c20177cc0698116e471bb4777c2ae06e2aa5c3b03c3b8be361f65ca402bab",
                 "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
-                "semanticHash": "sha256:0adea8336d1c7e0ff6f13843ec8fb961b8f8631eceb892cd9960813b802af305"
+                "semanticHash": "sha256:2adbe9903cfcfb7ee4521630d036821b388936cae2cd00702841ebd3f2a591ca"
               },
               {
-                "contentHash": "sha256:315f4d29bed0df1a36e64ecad6ce8c8899c4bd4e7522b8742f253d7785d0ffdd",
+                "contentHash": "sha256:354e43fb2ffbecaeddd6ba24f96ab1a625f4eff60dc14317941205466d8020b6",
                 "path": "src/plugins/payment-screenshot-observation/flow.ts",
-                "semanticHash": "sha256:c6c68cdb833048cd2724c88d8b4711fce4058d274c319fa24d1a733a2e43d43a"
+                "semanticHash": "sha256:528249371ea182e06aa85a15ef79a2be8160a728ee1edeac72ae199921984121"
               },
               {
                 "contentHash": "sha256:c98c3ce22757a147e178758100bd6788ce55fe31d0ab7a10d1eae1e07fbc6371",
@@ -44338,17 +44362,17 @@
                 "semanticHash": "sha256:5d81044ac043e7443e892caade97b2d62f8b5d33bfd7e3cc1254100d4877d432"
               },
               {
-                "contentHash": "sha256:f0b8c567b7a09b0c143751bebd2fa4b6715f635221d5f969d4c635d3463f382b",
+                "contentHash": "sha256:db1ddf19566899d7645a51fa6242df802c7ea1845a21c70e2ace649681516521",
                 "path": "src/plugins/qimen-professional-answer/flow.ts",
-                "semanticHash": "sha256:69c7792b9df5bfc76921df1a84ec13fdc3c843dc462e672305f5723c5562b33a"
+                "semanticHash": "sha256:e977b89ab787ceddfa5e1732f15f9a93a3463b3fd7fa3fda14c4e90bf3e2e978"
               },
               {
-                "contentHash": "sha256:4de3048e90ad49336bba8f4afbdae00d46d4f18665e2a30aa3327dd5f24e9590",
+                "contentHash": "sha256:37e8707b1e5fee0555a3ec583fd19da0e1e63a5bbc786e79b0e00b69d2c7119c",
                 "path": "src/plugins/qimen-report-followup/flow.ts",
-                "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
+                "semanticHash": "sha256:1d8c9e667d924a08cddbd6131f6a632534c9296bca869116c2eae4e5fdf0e9c3"
               }
             ],
-            "semanticDigest": "sha256:b9b61af4c7159272baa275bf003974b8503aff4a64391eac01b1bf09af7fd678"
+            "semanticDigest": "sha256:fe437d7e392e4084d6ec6f2ba3b03f8d6c7679e19e01667e3a7e0b8e87fdc633"
           },
           "implementation": {
             "files": [
@@ -44491,7 +44515,7 @@
           "consumer": "bazi-ai-full-analysis",
           "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
           "lines": [
-            250
+            257
           ]
         },
         {
@@ -44506,28 +44530,28 @@
           "consumer": "bazi-chart-interpretation",
           "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
           "lines": [
-            253
+            261
           ]
         },
         {
           "consumer": "bazi-report-followup",
           "path": "src/plugins/bazi-report-followup/product-turn.ts",
           "lines": [
-            218
+            225
           ]
         },
         {
           "consumer": "hehun-ai-analysis",
           "path": "src/plugins/hehun-ai-analysis/flow.ts",
           "lines": [
-            210
+            227
           ]
         },
         {
           "consumer": "hehun-report-followup",
           "path": "src/plugins/hehun-report-followup/flow.ts",
           "lines": [
-            213
+            230
           ]
         },
         {
@@ -44553,21 +44577,21 @@
           "consumer": "naming-bazi-analysis-and-naming",
           "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
           "lines": [
-            205
+            222
           ]
         },
         {
           "consumer": "naming-from-existing-bazi-report",
           "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
           "lines": [
-            205
+            222
           ]
         },
         {
           "consumer": "payment-screenshot-observation",
           "path": "src/plugins/payment-screenshot-observation/flow.ts",
           "lines": [
-            205
+            222
           ]
         },
         {
@@ -44588,14 +44612,14 @@
           "consumer": "qimen-professional-answer",
           "path": "src/plugins/qimen-professional-answer/flow.ts",
           "lines": [
-            210
+            217
           ]
         },
         {
           "consumer": "qimen-report-followup",
           "path": "src/plugins/qimen-report-followup/flow.ts",
           "lines": [
-            213
+            220
           ]
         }
       ],
@@ -44681,8 +44705,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:bd21cdd0a27734a800a5a1b74433a08477821668e43823eb3e1a33a3844b7b3c",
-        "digest": "sha256:bd21cdd0a27734a800a5a1b74433a08477821668e43823eb3e1a33a3844b7b3c",
+        "childCandidateDigest": "sha256:c2f316dc1eac7c21219d5c087c48fc1eff17b93dd731dd387c8873d4f46d1610",
+        "digest": "sha256:c2f316dc1eac7c21219d5c087c48fc1eff17b93dd731dd387c8873d4f46d1610",
         "facts": [
           {
             "expected": "make the composer retain the exact approved prompt",
@@ -44903,23 +44927,23 @@
           }
         ],
         "pageDemandDigest": "sha256:893a55331737054aa2ae419ff7e0c67b508ebad1ffc44cb7f820003ded395165",
-        "projectionDigest": "sha256:bd21cdd0a27734a800a5a1b74433a08477821668e43823eb3e1a33a3844b7b3c",
+        "projectionDigest": "sha256:c2f316dc1eac7c21219d5c087c48fc1eff17b93dd731dd387c8873d4f46d1610",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
+                "contentHash": "sha256:8e1b5e46b7a256c25d3586daed3adcd5c50475ac8d8b79b91bf3365fdb035472",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
+                "semanticHash": "sha256:466f84304f3cd1213fd3470368fd3b1ce25415fa7ef1ed8ad56b0c0b47c3a187"
               },
               {
-                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
+                "contentHash": "sha256:2674b19207bb031eb18de320515771dedb2a237bc0a4cf579a9adbf28f7c9807",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
+                "semanticHash": "sha256:5b880347f7b4a49791f67f0e33c740563adde7d3b70e0e7a38fd88d0044e3060"
               }
             ],
-            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
+            "semanticDigest": "sha256:0fd09182bb49b30ad45cee63b7d709bd87c5e85a55125d157c836b946da129e2"
           },
           "browser": {
             "files": [],
@@ -44933,9 +44957,9 @@
                 "semanticHash": "sha256:675bda0e56fe01016167e540de7f4b24c2764b8d09e3509f234ee6f60401239f"
               },
               {
-                "contentHash": "sha256:eb784347b9edecae92f314a9af8c93ac4e4acdd687cac586d4f37aef4dc07bae",
+                "contentHash": "sha256:50cf65def0d81a5ebaa7e4fe24f741a7de9eb83f748c3b7fac3102b8ed65d953",
                 "path": "src/plugins/bazi-ai-full-analysis/product-turn.ts",
-                "semanticHash": "sha256:72e667c4961ceb658984af0e860d93c233cd479cad47c5a7f9012c828e616e15"
+                "semanticHash": "sha256:2286adfcd8ac136550909bbd18fa617f09b47a05f3d835f56cc7f2f723bf90a6"
               },
               {
                 "contentHash": "sha256:712646a93c709195ccaf515027d584b49ee084c5a5f22af11d3f0372255c3ef9",
@@ -44943,24 +44967,24 @@
                 "semanticHash": "sha256:923eee759158e3d60d86316df66805a3497b376dbafd0e3686e25887df608361"
               },
               {
-                "contentHash": "sha256:4a05c503ac891271ef6522dbc81d4058ad2cbc8edbc7ac742f4e6fb32c57c0db",
+                "contentHash": "sha256:03a12d55de125589226aabfeb10433ede4f6d2ab566ccd3498cea983f27bc365",
                 "path": "src/plugins/bazi-chart-interpretation/product-turn.ts",
-                "semanticHash": "sha256:8bf17bcdb338c0b9f02936e45280987c15d672df11f6018ea2eee15c5d60a9b0"
+                "semanticHash": "sha256:c8bd8aa29c8ba879728e856f8381302257f2feb6532be0a100bf358c46ae0740"
               },
               {
-                "contentHash": "sha256:60bbcab625455d44771ddd2204b8897cfbe8ef0f9b58ef90f08614bd4cf5876e",
+                "contentHash": "sha256:ca2a4f4e20437c8bc139ee1889fe2331eae600d87030ce3f0d8717ed1e12e3ac",
                 "path": "src/plugins/bazi-report-followup/product-turn.ts",
-                "semanticHash": "sha256:dad0db6632590cb25700574db5861008d7f5587631c53432d6b03c3e6b2e13da"
+                "semanticHash": "sha256:8ae9278e57191dd6d8182d9bb9b6e76fb3bc5a7f17eb67158f0cc13297909ec9"
               },
               {
-                "contentHash": "sha256:62a51a758306dbdb4c4eef5a67eb3d57db19368e21c6d334f8de8b6815222e45",
+                "contentHash": "sha256:a25293e2f8750a4195fb437db0a2feddd45960e4d4802fca161db2dc2970bf07",
                 "path": "src/plugins/hehun-ai-analysis/flow.ts",
-                "semanticHash": "sha256:e243630b87151e9ea07f21967862e16d298e23dbfdb6b77794a1cbe689be5f51"
+                "semanticHash": "sha256:13016a3cbc5ec640514ea0ed9b293cb75b0b4b132dae3e91fe3a19dd1c9be240"
               },
               {
-                "contentHash": "sha256:50a434c337a55d19fd56f37ba51ff73c81634945be052297828bee3934bd0857",
+                "contentHash": "sha256:0c656587b626432c829f883d6ee602a45923086d0ab314c4917f1cc53ef65389",
                 "path": "src/plugins/hehun-report-followup/flow.ts",
-                "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
+                "semanticHash": "sha256:ff80be5bbe21d4bf3940e975866082692ba73eeafe0d9a06929f49c5cae42d93"
               },
               {
                 "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
@@ -44973,19 +44997,19 @@
                 "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
-                "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
+                "contentHash": "sha256:60b4a1761360dc540b0e71131d56ef40ab5cf696aa04f55d582d42ece41e9d97",
                 "path": "src/plugins/naming-bazi-analysis-and-naming/flow.ts",
-                "semanticHash": "sha256:c798409afd48fdc65438541453210b0e3afa046e1c7e62ea92c0236b88ff877a"
+                "semanticHash": "sha256:88262d3612b2f6ce958d540efe52bd231b51ab148da53297ab6386dc1e53e6ca"
               },
               {
-                "contentHash": "sha256:d09d07ad4f2e5daacb5ee465185a56fba705d5e977b7da61d38afb130aff1cca",
+                "contentHash": "sha256:508c20177cc0698116e471bb4777c2ae06e2aa5c3b03c3b8be361f65ca402bab",
                 "path": "src/plugins/naming-from-existing-bazi-report/flow.ts",
-                "semanticHash": "sha256:0adea8336d1c7e0ff6f13843ec8fb961b8f8631eceb892cd9960813b802af305"
+                "semanticHash": "sha256:2adbe9903cfcfb7ee4521630d036821b388936cae2cd00702841ebd3f2a591ca"
               },
               {
-                "contentHash": "sha256:315f4d29bed0df1a36e64ecad6ce8c8899c4bd4e7522b8742f253d7785d0ffdd",
+                "contentHash": "sha256:354e43fb2ffbecaeddd6ba24f96ab1a625f4eff60dc14317941205466d8020b6",
                 "path": "src/plugins/payment-screenshot-observation/flow.ts",
-                "semanticHash": "sha256:c6c68cdb833048cd2724c88d8b4711fce4058d274c319fa24d1a733a2e43d43a"
+                "semanticHash": "sha256:528249371ea182e06aa85a15ef79a2be8160a728ee1edeac72ae199921984121"
               },
               {
                 "contentHash": "sha256:c98c3ce22757a147e178758100bd6788ce55fe31d0ab7a10d1eae1e07fbc6371",
@@ -44998,17 +45022,17 @@
                 "semanticHash": "sha256:c9d063c1d9d9ac1a0ac683f3992bc4cf8e08f5cd9dbf9e10a67d814b08117685"
               },
               {
-                "contentHash": "sha256:f0b8c567b7a09b0c143751bebd2fa4b6715f635221d5f969d4c635d3463f382b",
+                "contentHash": "sha256:db1ddf19566899d7645a51fa6242df802c7ea1845a21c70e2ace649681516521",
                 "path": "src/plugins/qimen-professional-answer/flow.ts",
-                "semanticHash": "sha256:69c7792b9df5bfc76921df1a84ec13fdc3c843dc462e672305f5723c5562b33a"
+                "semanticHash": "sha256:e977b89ab787ceddfa5e1732f15f9a93a3463b3fd7fa3fda14c4e90bf3e2e978"
               },
               {
-                "contentHash": "sha256:4de3048e90ad49336bba8f4afbdae00d46d4f18665e2a30aa3327dd5f24e9590",
+                "contentHash": "sha256:37e8707b1e5fee0555a3ec583fd19da0e1e63a5bbc786e79b0e00b69d2c7119c",
                 "path": "src/plugins/qimen-report-followup/flow.ts",
-                "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
+                "semanticHash": "sha256:1d8c9e667d924a08cddbd6131f6a632534c9296bca869116c2eae4e5fdf0e9c3"
               }
             ],
-            "semanticDigest": "sha256:ba1fc3f1a5b72c26c059fa1c7329852a29d73db35723a8cd684f47316f8ce190"
+            "semanticDigest": "sha256:13c8f15e86714e1b95b98a5e8d0add4f14db3d597552fdb225df43f2d6659b62"
           },
           "implementation": {
             "files": [

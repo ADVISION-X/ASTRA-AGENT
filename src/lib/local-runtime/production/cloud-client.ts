@@ -24,6 +24,7 @@ import {
   type TerminalReceipt,
   type WebsiteAgentResult,
 } from "./contracts.js";
+import { PRODUCTION_BUSINESS_CAPACITY_TOTAL } from "./control-contract-dependency.js";
 import { ProductionWorkerSession } from "./worker-session.js";
 import { ProductionRuntimeStore } from "./store.js";
 import type {
@@ -67,7 +68,9 @@ export async function claimProductionTasks(
   next_claim_after_ms: number;
   reason_codes: readonly string[];
 }>> {
-  if (!Number.isInteger(limit) || limit < 1 || limit > 10) throw new Error("V6_CLAIM_LIMIT_INVALID");
+  if (!Number.isInteger(limit) || limit < 1 || limit > PRODUCTION_BUSINESS_CAPACITY_TOTAL) {
+    throw new Error("V6_CLAIM_LIMIT_INVALID");
+  }
   const receipt = ClaimBatchReceiptSchema.parse(await session.requestClaim(requestId, limit));
   if (receipt.request_id !== requestId) throw executionFailure("failed", "V6_CLAIM_RECEIPT_MISMATCH");
   const jobs = receipt.jobs.map((raw) => ClaimedProductionTaskSchema.parse(raw));

@@ -5,7 +5,6 @@ import path from "node:path";
 
 import { ProductionGptBrowserLifecycle } from "../production-browser-lifecycle.js";
 import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
-import { typedExecutionFailure } from "../../../lib/execution-failure.js";
 import { HASH_A, HASH_B, task } from "../../../../scripts/acceptance/agent-production-runtime-fixtures.js";
 
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-mismatch-acceptance-"));
@@ -17,18 +16,31 @@ try {
   const waitTask = task({
     jobId: "job:agent-mismatch-acceptance", productId: "payment_screenshot_observation", actionId: "observe",
   });
-  const cleanupError = new Error("TEST_REACQUIRED_TARGET_CLOSE_FAILED");
+  let selections = 0;
+  const providerEffectIdentityHash = `sha256:${"8".repeat(64)}` as const;
+  const submitIdentity = {
+    resultRevision: 0, productStepId: "corpus_research", callId: "turn-submit",
+    childCapabilityId: "submit_exact_gpt_turn_once", inputHash: HASH_A,
+    actionOrdinal: 1, replayPolicy: "provider-effect-once" as const,
+  };
   const originalBrowser = {
     target: { targetRef: "target:provider-wait:original" },
     pendingMutationCount: () => 0,
     requiresMutationRecovery: () => false,
+    readAtomicStepOutcome: () => ({
+      state: "confirmed", mutationOutcome: "confirmed", providerEffectIdentityHash,
+      terminalPayload: {
+        canonicalConversationUrl: "https://chatgpt.com/c/mismatch",
+        userTurnId: "conversation-turn-1",
+      },
+    }),
+    executeDomIntent: async () => { selections += 1; },
     park: async () => undefined,
     close: async () => undefined,
   };
   const mismatchedBrowser = {
     ...originalBrowser,
     target: { targetRef: "target:provider-wait:mismatched" },
-    close: async () => { throw cleanupError; },
   };
   let mismatchAcquisitions = 0;
   const mismatchLifecycle = new ProductionGptBrowserLifecycle(
@@ -54,27 +66,31 @@ try {
     "corpus_research",
     "text-wait",
   );
-  await assert.rejects(
-    () => mismatchLifecycle.yieldForProviderProbe(
-      mismatchActive, "corpus_research", "text-wait", "checkpoint_gpt_text_response",
-      "https://chatgpt.com/c/mismatch", Date.now() + 1_000,
-    ),
-    (error: unknown) => {
-      assert.ok(error instanceof AggregateError);
-      assert.equal(typedExecutionFailure(error)?.code, "BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
-      assert.deepEqual(error.errors, [cleanupError]);
-      return true;
-    },
-  );
+  mismatchLifecycle.recordConfirmedProviderEffect(mismatchActive, {
+    exactCallIdentityHash: `sha256:${"6".repeat(64)}`,
+    providerEffectIdentityHash,
+    childCapabilityId: "submit_exact_gpt_turn_once", effectScope: "provider_effect",
+    browserOutcome: "CONFIRMED", mutationOutcome: "confirmed",
+    terminalAt: "2026-09-12T00:00:00.000Z", evidenceRef: "browser-mutation:submit",
+    evidenceHash: `sha256:${"5".repeat(64)}`,
+  }, submitIdentity, "https://chatgpt.com/c/mismatch", "conversation-turn-1");
+  assert.equal(await mismatchLifecycle.yieldForProviderProbe(
+    mismatchActive, "corpus_research", "text-wait", "checkpoint_gpt_text_response",
+    "https://chatgpt.com/c/mismatch", Date.now() + 1_000,
+  ), "reobserve");
+  assert.equal(mismatchActive.browser.target.targetRef, "target:provider-wait:mismatched",
+    "confirmed readback must accept a replacement system Target");
+  assert.equal(selections, 1,
+    "the canonical conversation URL, not historical Target identity, must locate readback");
   await mismatchLifecycle.settle(null);
 
-  let recoveryExpectedTargetRef: string | undefined;
+  let recoveryTargetMode: string | undefined;
   const recoveryLifecycle = new ProductionGptBrowserLifecycle(
     {
       acquireJobBoundTargetLease: async (_binding: unknown, _ownerId: unknown, wait: Readonly<{
-        expectedTargetRef?: string;
+        targetMode: string;
       }>) => {
-        recoveryExpectedTargetRef = wait.expectedTargetRef;
+        recoveryTargetMode = wait.targetMode;
         return {
           target: { targetRef: "target:confirmed-submit" },
           pendingMutationCount: () => 0,
@@ -95,10 +111,10 @@ try {
     },
   );
   await recoveryLifecycle.browserFor(
-    "session:confirmed-submit-recovery", "observe", "turn-submit", "target:confirmed-submit",
+    "session:confirmed-submit-recovery", "observe", "turn-submit", "confirmed-readback",
   );
-  assert.equal(recoveryExpectedTargetRef, "target:confirmed-submit",
-    "confirmed-submit recovery must reacquire the exact parked Target without a root reset");
+  assert.equal(recoveryTargetMode, "confirmed-readback",
+    "confirmed-submit recovery must acquire the current system Target without a root reset");
   await recoveryLifecycle.settle(null);
 } finally {
   await rm(temporary, { recursive: true, force: true });

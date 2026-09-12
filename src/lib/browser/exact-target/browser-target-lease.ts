@@ -35,7 +35,7 @@ export type BrowserTargetLeaseWait = Readonly<{
   signal: AbortSignal;
   remainingMs(): number;
   purpose: "general" | "provider-probe";
-  expectedTargetRef?: string;
+  targetMode: "fresh" | "confirmed-readback";
 }>;
 
 export type BrowserApprovedArtifactRef = Readonly<{

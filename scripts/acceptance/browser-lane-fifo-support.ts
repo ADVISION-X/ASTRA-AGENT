@@ -68,11 +68,11 @@ const exerciseBasicFifo = async (
   signal: AbortSignal,
 ): Promise<void> => {
   const first = await supervisor.acquireJobBoundTargetLease(
-    binding("job:1"), "owner:1", { signal, remainingMs: () => 60_000, purpose: "general" },
+    binding("job:1"), "owner:1", { signal, remainingMs: () => 60_000, purpose: "general", targetMode: "fresh" },
   );
   let secondResolved = false;
   const secondPromise = supervisor.acquireJobBoundTargetLease(
-    binding("job:2"), "owner:2", { signal, remainingMs: () => 60_000, purpose: "general" },
+    binding("job:2"), "owner:2", { signal, remainingMs: () => 60_000, purpose: "general", targetMode: "fresh" },
   ).then((lease) => {
     secondResolved = true;
     return lease;
@@ -93,18 +93,18 @@ const exerciseAbortAndDeadline = async (
   signal: AbortSignal,
 ): Promise<void> => {
   const active = await supervisor.acquireJobBoundTargetLease(
-    binding("job:active"), "owner:active", { signal, remainingMs: () => 60_000, purpose: "general" },
+    binding("job:active"), "owner:active", { signal, remainingMs: () => 60_000, purpose: "general", targetMode: "fresh" },
   );
   const aborted = new AbortController();
   const abortedPromise = supervisor.acquireJobBoundTargetLease(
     binding("job:aborted"), "owner:aborted",
-    { signal: aborted.signal, remainingMs: () => 60_000, purpose: "general" },
+    { signal: aborted.signal, remainingMs: () => 60_000, purpose: "general", targetMode: "fresh" },
   );
   aborted.abort();
   await assert.rejects(abortedPromise, /BROWSER_WAIT_ABORTED/u);
   let remaining = 60_000;
   const expiredPromise = supervisor.acquireJobBoundTargetLease(
-    binding("job:expired"), "owner:expired", { signal, remainingMs: () => remaining, purpose: "general" },
+    binding("job:expired"), "owner:expired", { signal, remainingMs: () => remaining, purpose: "general", targetMode: "fresh" },
   );
   remaining = 0;
   await assert.rejects(expiredPromise, /V6_DEADLINE_BUDGET_EXHAUSTED/u);
@@ -117,18 +117,18 @@ const exerciseBackpressureAndLifecycle = async (
 ): Promise<void> => {
   const boundedActive = await supervisor.acquireJobBoundTargetLease(
     binding("job:bounded-active"), "owner:bounded-active",
-    { signal, remainingMs: () => 60_000, purpose: "general" },
+    { signal, remainingMs: () => 60_000, purpose: "general", targetMode: "fresh" },
   );
   const waitingControllers = Array.from({ length: 10 }, () => new AbortController());
   const waiting = waitingControllers.map((controller, index) => supervisor.acquireJobBoundTargetLease(
     binding(`job:waiting-${index}`), `owner:waiting-${index}`,
-    { signal: controller.signal, remainingMs: () => 60_000, purpose: "general" },
+    { signal: controller.signal, remainingMs: () => 60_000, purpose: "general", targetMode: "fresh" },
   ));
   assert.equal(supervisor.readBrowserLaneWaiterCount(), 10);
   await assert.rejects(
     supervisor.acquireJobBoundTargetLease(
       binding("job:overflow"), "owner:overflow",
-      { signal, remainingMs: () => 60_000, purpose: "general" },
+      { signal, remainingMs: () => 60_000, purpose: "general", targetMode: "fresh" },
     ),
     (error) => {
       const failure = typedBrowserExecutionFailure(error);
@@ -145,13 +145,13 @@ const exerciseBackpressureAndLifecycle = async (
 
   const unsettled = await supervisor.acquireJobBoundTargetLease(
     binding("job:unsettled"), "owner:unsettled",
-    { signal, remainingMs: () => 60_000, purpose: "general" },
+    { signal, remainingMs: () => 60_000, purpose: "general", targetMode: "fresh" },
   );
   await assert.rejects(unsettled.close({ reason: "unsettled" }), /BROWSER_TARGET_LIFECYCLE_UNSETTLED/u);
   assert.equal(supervisor.readBrowserLaneState(), "idle");
   const afterLifecycleFault = await supervisor.acquireJobBoundTargetLease(
     binding("job:after-lifecycle-fault"), "owner:after-lifecycle-fault",
-    { signal, remainingMs: () => 60_000, purpose: "general" },
+    { signal, remainingMs: () => 60_000, purpose: "general", targetMode: "fresh" },
   );
   await afterLifecycleFault.close({ reason: "settled" });
   assert.equal(supervisor.readBrowserLaneState(), "idle",
@@ -169,7 +169,7 @@ const exerciseProviderProbeGate = async (
   try {
     const active = await supervisor.acquireJobBoundTargetLease(
       binding("job:provider-pending"), "owner:provider-pending",
-      { signal, remainingMs: () => 60_000, purpose: "general" },
+      { signal, remainingMs: () => 60_000, purpose: "general", targetMode: "fresh" },
     );
     await active.park({
       reason: "provider-pending", mode: "normal-provider-wait",
@@ -179,15 +179,15 @@ const exerciseProviderProbeGate = async (
     let secondResolved = false;
     const firstProbe = supervisor.acquireJobBoundTargetLease(
       binding("job:provider-probe"), "owner:provider-probe",
-      { signal, remainingMs: () => 60_000, purpose: "provider-probe" },
+      { signal, remainingMs: () => 60_000, purpose: "provider-probe", targetMode: "confirmed-readback" },
     ).then((lease) => { firstResolved = true; return lease; });
     const secondProbe = supervisor.acquireJobBoundTargetLease(
       binding("job:second-provider-probe"), "owner:second-provider-probe",
-      { signal, remainingMs: () => 60_000, purpose: "provider-probe" },
+      { signal, remainingMs: () => 60_000, purpose: "provider-probe", targetMode: "confirmed-readback" },
     ).then((lease) => { secondResolved = true; return lease; });
     const general = await supervisor.acquireJobBoundTargetLease(
       binding("job:general-behind-probe"), "owner:general-behind-probe",
-      { signal, remainingMs: () => 60_000, purpose: "general" },
+      { signal, remainingMs: () => 60_000, purpose: "general", targetMode: "fresh" },
     );
     assert.equal(firstResolved || secondResolved, false,
       "different jobs must share the same process-level Provider probe eligibility time");
@@ -213,7 +213,7 @@ const exerciseProviderProbeGate = async (
     let thirdResolved = false;
     const thirdProbe = supervisor.acquireJobBoundTargetLease(
       binding("job:third-provider-probe"), "owner:third-provider-probe",
-      { signal, remainingMs: () => 60_000, purpose: "provider-probe" },
+      { signal, remainingMs: () => 60_000, purpose: "provider-probe", targetMode: "confirmed-readback" },
     ).then((lease) => { thirdResolved = true; return lease; });
     now = 89_999;
     await Promise.resolve();

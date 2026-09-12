@@ -1,7 +1,7 @@
-# GPT 能力组 V41 施工图
+# GPT 能力组 V42 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"gpt-capability-group-v41","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V45","LAW-GPT-002-V5"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"gpt-capability-group-v42","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V46","LAW-GPT-002-V6"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
 ```
 
 ## 唯一 Owner 与职责
@@ -33,9 +33,9 @@ BZ03/BZ04 的本轮附件必须包含 Website 已入库、与 consultation root 
 
 `FROZEN-GPT-ATOMIC-IDENTITY-ROUNDTRIP-001` 固定同一次 Browser 原子调用只能由 GPT production boundary 构造一份不可变 `BrowserAtomicStepIdentity`，并把该同一身份用于 WAL 查询、`runAtomicStep`、Child 成功终态回读与 Child 失败事实回读；跨进程 confirmed submit readback 也只能复用这一 canonical 构造。Child 不得再以原始 `intent.inputHash` 手工拼接第二份 WAL 查询身份，测试 Browser 必须按传入身份精确命中，禁止无视身份返回任意 recovery。否则 Browser 已 CONFIRMED 的现实发送会被 GPT 错判为未发生。改变或删除本冻结边界，必须由用户在未来任务中明确解冻，并同步替换施工图、实现与唯一质检；普通修复或 CI 授权不构成解冻。
 
-`FROZEN-GPT-CONVERSATION-LOCATOR-EFFECT-SEPARATION-001` 固定：conversation_id 只定位现有页面 conversation，provider_effect_identity 只证明 Provider submit 现实副作用至多一次，二者绝不合并或互相授予权限。Website 对 DISPATCHED/CONFIRMED effect 重新授权时，跨进程只允许从 Browser WAL 精确读回同一 URL/receipt，由 Browser 从 URL 解析 opaque conversation_id：当前 pathname 已精确命中则零点击，否则只在现有页面左侧聊天栏对唯一精确 `/c/<conversation_id>` 链接点击一次，丢弃 query/fragment 后 fresh readback 必须相等，再 wait/observe/read artifact，physical submit 增量为零；零项、多项、不可交互或读回不等直接 typed fail-close，不准 Page.navigate conversation URL、按标题/顺序/时间猜测、搜索、滚动、自动展开、重试或 URL fallback，也不新增 recovery Child 或状态机。其它失败由 Website 决定是否签发新 attempt/result revision。该冻结边界只有用户在未来任务中明确解冻，并同步替换法案、施工图、实现与唯一质检后才可改变；普通施工或 CI 授权不是解冻。
+`FROZEN-GPT-CONVERSATION-LOCATOR-EFFECT-SEPARATION-001` 已按本次明确解冻替换并重新冻结：canonical conversation URL 是“去哪里读”的唯一权威，provider_effect_identity 是“是否已经发送”的唯一权威，二者绝不合并或互相授予权限。Website 对 DISPATCHED/CONFIRMED effect 重新授权时，跨进程只允许先从 Browser WAL 精确读回同一 receipt、URL 与 userTurnId，再以 `confirmed-readback` 取得当前唯一 system Target；当前 URL 已精确命中时零导航，否则只执行一次 Browser-owned `Page.navigate` 到该精确 URL，经过唯一 2500ms 总闸门后 fresh readback 必须相等，再 wait/observe/read artifact，physical submit 增量为零。历史 targetRef 不得成为业务资格；不得点击侧栏、按标题/顺序/时间猜测、搜索、滚动、自动展开、重试或 fallback，也不新增 recovery Child 或状态机。其它失败由 Website 决定是否签发新 attempt/result revision。未来改变仍须用户明确解冻并同步替换法案、施工图、实现与唯一质检。
 
-`FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001` 固定：submit 已确认后的 Provider 回答轮询只能 park 当前 FIFO，再把原 system Target 的精确 `targetRef` 传到底层 `TARGET_ACQUIRE` 并重领同一物理标签；该路径不得调用无 `targetRef` 的通用 acquisition、固定 start URL/首页导航、其它 Target、搜索、滚动、自动展开、blind retry 或 fallback，缺失、多义、标签关闭和身份漂移直接 typed fail-close。Browser WAL 的 `logical_mutation_id` 是唯一 `provider_effect_identity_hash`，GPT 与 Runtime 只运输其公开 typed fact，Runtime 不得查询 Browser 私有存储。checkpoint 稳定后另以 `semanticTextHash` 或媒体 `sha256` 标识结果；只有下游明确证明该 settled result 不可用，AGENT 才报告绑定同一 effect/evidence 与独立 result hash 的 `RESULT_SETTLED_UNUSABLE`，并且只有 Website 可以拒绝该结果、签发新 `result_revision`。普通错误、DISPATCHED/CONFIRMED、进程/attempt/lease/fence/Target/Document 变化都不得制造第二 submit。改变或删除本边界必须由用户在未来任务中明确解冻，并同步替换双仓法案、施工图、合同、实现与唯一质检；其它授权均不构成解冻。
+`FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001` 已按本次明确解冻替换并重新冻结：submit 已确认后的 Provider 回答轮询 park 并释放当前 FIFO，重领前先查同一 Browser WAL effect，再用 `confirmed-readback` 取得当前唯一 system Target；历史 `targetRef` 不再进入 TARGET_ACQUIRE，不比较旧新 Target，也不扫描旧标签。当前 system Target 缺失时，既有 acquisition 可创建一个新的 inactive system Target；该模式绝不先回固定 start URL/首页，而是同 URL 零导航、不同 URL 一次精确 `Page.navigate` 后 fresh readback。不得侧栏点击、搜索、滚动、自动展开、blind retry 或 fallback。Browser WAL 的 `logical_mutation_id` 是唯一 `provider_effect_identity_hash`，checkpoint 稳定后另以 `semanticTextHash` 或媒体 `sha256` 标识结果；只有 Website 可拒绝 settled result 并签发新 `result_revision`。普通错误、DISPATCHED/CONFIRMED、进程/attempt/lease/fence/Target/Document 变化都不得制造第二 submit。未来修改仍须用户明确解冻并同步替换双仓法案、施工图、合同、实现与唯一质检。
 
 八字 consultation root 与 direct predecessor 只属于 Website 业务关系。Website 在新任务签发前验证 owner/person/chart/root/predecessor、父授权、父 Delivery Manifest 与已入库父结果，并把完整父报告作为本轮 locked-fact material 下发；缺失、多义或身份不等一律 fail closed。GPT、Browser、Runtime 不复制该父子关系，也不保存或查询跨任务 Provider continuation。
 
@@ -45,7 +45,7 @@ BZ03/BZ04 的本轮附件必须包含 Website 已入库、与 consultation root 
 
 ## Browser 边界
 
-GPT 只消费 Browser 签发的实时 current Document 和 typed command terminal。Browser 的 Target lease 对外暴露的 `document` 必须是 live getter；包装它时不得用 spread 把 getter 求值成旧快照。Provider/控件 mutation 仍先经唯一 FIFO、每 provider effect 一条权威 WAL、跨 attempt/进程至多一次 physical dispatch 和 2500ms 后的 fresh postcondition；Browser-owned exact conversation selection 只做可逆页面生命周期收敛，当前命中零点击，否则唯一精确点击后同样经过 2500ms 与 fresh currentUrl readback，但不取得 Provider effect 或第二 WAL。纯读结果不新建 WAL、队列或第二恢复权限。
+GPT 只消费 Browser 签发的实时 current Document 和 typed command terminal。Browser 的 Target lease 对外暴露的 `document` 必须是 live getter；包装它时不得用 spread 把 getter 求值成旧快照。Provider/控件 mutation 仍先经唯一 FIFO、每 provider effect 一条权威 WAL、跨 attempt/进程至多一次 physical dispatch 和 2500ms 后的 fresh postcondition；Browser-owned canonical URL 导航只做可逆页面生命周期收敛，当前命中零导航，否则唯一一次精确 Page.navigate 后同样经过 2500ms 与 fresh currentUrl readback，但不取得 Provider effect 或第二 WAL。纯读结果不新建 WAL、队列或第二恢复权限。
 
 ## 证据、失败与验收
 

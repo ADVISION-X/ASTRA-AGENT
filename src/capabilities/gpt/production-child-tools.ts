@@ -111,7 +111,7 @@ export class ProductionGptChildTools {
             throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
           }
           const active = await browsers.browserFor(
-            call.sessionKey, call.productStepId, call.callId, prior.targetRef,
+            call.sessionKey, call.productStepId, call.callId, "confirmed-readback",
           );
           if (!active.facade.readAtomicStepOutcome(atomicIdentity)) return null;
           return this.executeOne<"submit_exact_gpt_turn_once">(
@@ -287,7 +287,17 @@ export class ProductionGptChildTools {
           || !effect.providerEffectIdentityHash) {
           throw executionFailure("failed", "GPT_PROVIDER_EFFECT_IDENTITY_MISSING");
         }
-        browsers.recordConfirmedProviderEffect(browserCall!, effect);
+        const submitted = result.value as Readonly<Record<string, unknown>>;
+        if (typeof submitted.canonicalConversationUrl !== "string"
+          || typeof submitted.userTurnId !== "string") {
+          throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
+        }
+        browsers.recordConfirmedProviderEffect(
+          browserCall!, effect,
+          productionGptAtomicIdentity(intent as GptAnyChildCapabilityIntent, execution.resultRevision),
+          submitted.canonicalConversationUrl,
+          submitted.userTurnId,
+        );
       }
       resolveDispatched = atomic.resolveDispatched;
       artifactRefs = await persistGptEvidenceArtifacts({

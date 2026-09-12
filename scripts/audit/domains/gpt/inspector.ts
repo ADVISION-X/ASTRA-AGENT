@@ -57,8 +57,8 @@ import {
 import { containsPageMutation, gptPrivateInfrastructureViolations, sourceFor, sourceTextForPaths }
   from "./gpt-inspection-support.js";
 
-const LAW_ID = "LAW-GPT-001-V45";
-const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V5";
+const LAW_ID = "LAW-GPT-001-V46";
+const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V6";
 const GPT_BLUEPRINT_PATH = "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 16, 19, 23),
@@ -427,6 +427,9 @@ const inspectFrozenAttemptBoundary = (
       "src/lib/local-runtime/production/terminal-failure.ts")?.getFullText() ?? "",
     blueprint: readFileSync(resolve(context.sealedRoot, GPT_BLUEPRINT_PATH), "utf8"),
   };
+  const probeWalRead = sources.lifecycle.indexOf("active.browser.readAtomicStepOutcome(confirmed.submitIdentity)");
+  const probePark = sources.lifecycle.indexOf("await active.browser.park({");
+  const probeReacquire = sources.lifecycle.indexOf('"provider-probe", probeDeadlineAt, "confirmed-readback"');
   const valid = /attach_approved_gpt_files_once:[^\n]+profile: "TARGET_LOCAL_MUTATION"[^\n]+replayPolicy: "target-local-per-generation"/u
     .test(sources.contract)
     && /submit_exact_gpt_turn_once:[^\n]+profile: "PROVIDER_EFFECT_ONCE"[^\n]+replayPolicy: "provider-effect-once"/u
@@ -449,8 +452,12 @@ const inspectFrozenAttemptBoundary = (
     && sources.blueprint.includes("FROZEN-GPT-RESPONSE-NO-PROMPT-REHASH-001")
     && sources.blueprint.includes("FROZEN-GPT-ATOMIC-IDENTITY-ROUNDTRIP-001")
     && sources.blueprint.includes("FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001")
-    && sources.lifecycle.includes("targetRef,\n      )")
-    && sources.targetAcquirer.includes("requestPreauthorizedTargetAcquisition(expectedTargetRef ?? undefined)")
+    && sources.lifecycle.includes('"confirmed-readback"')
+    && probeWalRead >= 0 && probeWalRead < probePark && probePark < probeReacquire
+    && sources.lifecycle.includes("canonicalConversationUrl: confirmed.canonicalConversationUrl")
+    && !sources.lifecycle.includes("BROWSER_RECONCILIATION_IDENTITY_MISMATCH")
+    && sources.targetAcquirer.includes("requestPreauthorizedTargetAcquisition(targetMode)")
+    && !sources.targetAcquirer.includes("expectedTargetRef")
     && sources.store.includes("providerEffectIdentityHash: input.effectScope === \"provider_effect\"")
     && !sources.runtimeClaim.includes("browser-mutation-authority")
     && sources.terminalFailure.includes("settled_result_payload_hash")

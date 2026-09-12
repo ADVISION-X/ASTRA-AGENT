@@ -25,6 +25,14 @@ try {
             document: { documentRef: `document:deadline-race:${deadlineAcquisitions}` },
             pendingMutationCount: () => 0,
             requiresMutationRecovery: () => false,
+            readAtomicStepOutcome: () => ({
+              state: "confirmed", mutationOutcome: "confirmed",
+              providerEffectIdentityHash: `sha256:${"8".repeat(64)}`,
+              terminalPayload: {
+                canonicalConversationUrl: "https://chatgpt.com/c/deadline",
+                userTurnId: "conversation-turn-1",
+              },
+            }),
             executeDomIntent: async () => { deadlineSelections += 1; },
             park: async () => undefined,
             close: async () => undefined,
@@ -49,6 +57,18 @@ try {
     const deadlineActive = await deadlineLifecycle.browserFor(
       "session:provider-deadline", "corpus_research", "deadline-wait",
     );
+    deadlineLifecycle.recordConfirmedProviderEffect(deadlineActive, {
+      exactCallIdentityHash: `sha256:${"6".repeat(64)}`,
+      providerEffectIdentityHash: `sha256:${"8".repeat(64)}`,
+      childCapabilityId: "submit_exact_gpt_turn_once", effectScope: "provider_effect",
+      browserOutcome: "CONFIRMED", mutationOutcome: "confirmed",
+      terminalAt: "2026-09-12T00:00:00.000Z", evidenceRef: "browser-mutation:submit",
+      evidenceHash: `sha256:${"5".repeat(64)}`,
+    }, {
+      resultRevision: 0, productStepId: "corpus_research", callId: "turn-submit",
+      childCapabilityId: "submit_exact_gpt_turn_once", inputHash: HASH_A,
+      actionOrdinal: 1, replayPolicy: "provider-effect-once",
+    }, "https://chatgpt.com/c/deadline", "conversation-turn-1");
     assert.equal(await deadlineLifecycle.yieldForProviderProbe(
       deadlineActive, "corpus_research", "deadline-wait", "checkpoint_gpt_text_response",
       "https://chatgpt.com/c/deadline", 100,

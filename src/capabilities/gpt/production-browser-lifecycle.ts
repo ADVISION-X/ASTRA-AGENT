@@ -6,6 +6,7 @@ import {
   type GptHash,
 } from "./contract.js";
 import type {
+  BrowserAtomicStepIdentity,
   BrowserExecutionBinding,
   BrowserTargetLease,
   BrowserTargetLeaseWait,
@@ -41,7 +42,11 @@ export type ProductionGptBrowserCall = {
   browser: BrowserTargetLease;
   facade: BrowserTargetLease;
   providerWaitLog: Readonly<{ callIdentity: string; emittedAt: number }> | null;
-  confirmedProviderEffect: GptChildBrowserFact | null;
+  confirmedProviderEffect: (GptChildBrowserFact & Readonly<{
+    submitIdentity: BrowserAtomicStepIdentity;
+    canonicalConversationUrl: string;
+    userTurnId: string;
+  }>) | null;
   settledResultPayloadHash: GptHash | null;
 };
 
@@ -61,13 +66,13 @@ export class ProductionGptBrowserLifecycle {
     sessionKey: string,
     productStepId: string,
     callId: string,
-    expectedTargetRef?: string,
+    targetMode: BrowserTargetLeaseWait["targetMode"] = "fresh",
   ): Promise<ProductionGptBrowserCall> {
     if (!sessionKey) throw executionFailure("failed", "GPT_SESSION_KEY_REQUIRED");
     const current = this.browsers.get(sessionKey);
     if (current) return current;
     const browser = await this.acquireBrowserLease(
-      productStepId, callId, "general", null, expectedTargetRef,
+      productStepId, callId, "general", null, targetMode,
     );
     const active: ProductionGptBrowserCall = {
       browser,
@@ -89,12 +94,17 @@ export class ProductionGptBrowserLifecycle {
   public recordConfirmedProviderEffect(
     active: ProductionGptBrowserCall,
     effect: GptChildBrowserFact,
+    submitIdentity: BrowserAtomicStepIdentity,
+    canonicalConversationUrl: string,
+    userTurnId: string,
   ): void {
     for (const call of this.browsers.values()) {
       call.confirmedProviderEffect = null;
       call.settledResultPayloadHash = null;
     }
-    active.confirmedProviderEffect = effect;
+    active.confirmedProviderEffect = Object.freeze({
+      ...effect, submitIdentity, canonicalConversationUrl, userTurnId,
+    });
   }
 
   public recordSettledResult(active: ProductionGptBrowserCall, payloadHash: GptHash): void {
@@ -142,8 +152,22 @@ export class ProductionGptBrowserLifecycle {
     if (active.browser.pendingMutationCount() > 0) {
       throw executionFailure("failed", "BROWSER_NORMAL_PROVIDER_WAIT_WITH_PENDING_MUTATION");
     }
+    const confirmed = active.confirmedProviderEffect;
+    const prior = confirmed
+      ? active.browser.readAtomicStepOutcome(confirmed.submitIdentity)
+      : null;
+    const payload = prior?.terminalPayload;
+    if (!confirmed || canonicalConversationUrl !== confirmed.canonicalConversationUrl
+      || prior?.state !== "confirmed"
+      || prior.providerEffectIdentityHash !== confirmed.providerEffectIdentityHash
+      || prior.mutationOutcome !== confirmed.mutationOutcome
+      || !payload || typeof payload !== "object" || Array.isArray(payload)
+      || (payload as Readonly<Record<string, unknown>>).canonicalConversationUrl
+        !== confirmed.canonicalConversationUrl
+      || (payload as Readonly<Record<string, unknown>>).userTurnId !== confirmed.userTurnId) {
+      throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
+    }
     this.emitProviderWaitLog(active, productStepId, callId, childCapabilityId);
-    const targetRef = active.browser.target.targetRef;
     await active.browser.park({
       reason: "gpt-provider-probe-yield",
       mode: "normal-provider-wait",
@@ -152,23 +176,13 @@ export class ProductionGptBrowserLifecycle {
     let reacquired: BrowserTargetLease;
     try {
       reacquired = await this.acquireBrowserLease(
-        productStepId, callId, "provider-probe", probeDeadlineAt, targetRef,
+        productStepId, callId, "provider-probe", probeDeadlineAt, "confirmed-readback",
       );
     } catch (error) {
       this.forgetParkedBrowser(active);
       if (failureCode(error) === "V6_DEADLINE_BUDGET_EXHAUSTED"
         && Date.now() >= probeDeadlineAt) return "deadline";
       throw error;
-    }
-    if (reacquired.target.targetRef !== targetRef) {
-      const mismatch = executionFailure("failed", "BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
-      this.forgetParkedBrowser(active);
-      try {
-        await reacquired.close({ reason: "gpt-exact-target-reacquire-mismatch" });
-      } catch (cleanupError) {
-        throw new AggregateError([cleanupError], "GPT_BROWSER_LIFECYCLE_FAILED", { cause: mismatch });
-      }
-      throw mismatch;
     }
     active.browser = reacquired;
     if (this.execution.abortSignal.aborted || Date.now() >= probeDeadlineAt) {
@@ -183,7 +197,10 @@ export class ProductionGptBrowserLifecycle {
       }
       return "deadline";
     }
-    await active.browser.executeDomIntent({ kind: "selectExactGptConversation", canonicalConversationUrl });
+    await active.browser.executeDomIntent({
+      kind: "selectExactGptConversation",
+      canonicalConversationUrl: confirmed.canonicalConversationUrl,
+    });
     return "reobserve";
   }
 
@@ -257,7 +274,7 @@ export class ProductionGptBrowserLifecycle {
     callId: string,
     purpose: BrowserTargetLeaseWait["purpose"],
     probeDeadlineAt: number | null,
-    expectedTargetRef?: string,
+    targetMode: BrowserTargetLeaseWait["targetMode"],
   ): Promise<BrowserTargetLease> {
     const remainingMs = (): number => Math.min(
       Math.floor(this.execution.expiresAtMonotonic - performance.now()),
@@ -276,7 +293,7 @@ export class ProductionGptBrowserLifecycle {
       this.execution.resultRevision,
       productStepId,
       callId,
-      "fresh",
+      targetMode,
     ].join(":");
     const binding = {
       kind: "production" as const,
@@ -302,7 +319,7 @@ export class ProductionGptBrowserLifecycle {
       signal: this.execution.abortSignal,
       remainingMs,
       purpose,
-      ...(expectedTargetRef ? { expectedTargetRef } : {}),
+      targetMode,
     });
   }
 }

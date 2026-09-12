@@ -371,12 +371,13 @@ const uploadingFixture = fakeBrowser((intent) => {
   throw new Error(`UNEXPECTED_ATTACHMENT_UPLOAD_INTENT:${intent.kind}`);
 });
 const uploaded = await execute("reconcile_gpt_attachment_set", uploadingFixture.browser, {
-  files: [approvedAttachment], timeoutMs: 2_000,
+  files: [approvedAttachment], timeoutMs: 10_000,
 });
 assert.equal(uploaded.status, "success", uploaded.failureCode ?? "uploaded attachment reconciliation failed");
 assert.equal(uploaded.value?.files[0]?.providerDisplayName, providerAttachmentName("甲.pdf", "artifact:1"));
 assert.equal(uploadObservations, 3, "card plus zero spinner must wait until the Provider pending action clears");
-assert.equal(uploadingFixture.waitDurations().length, 2, "busy attachment state must wait only between fresh observations");
+assert.deepEqual(uploadingFixture.waitDurations(), [2_000, 3_000],
+  "busy attachment checks must start with the exact 2s then 3s cadence");
 assert.equal(uploadingFixture.physicalMutations(), 0, "attachment reconciliation must remain read-only");
 assert.equal(uploaded.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
 assert.deepEqual(uploaded.proof.candidateCardinality, { raw: 1, eligible: 1 });
@@ -422,6 +423,8 @@ const recoveredStaleAttachment = await execute("reconcile_gpt_attachment_set", s
 assert.equal(recoveredStaleAttachment.status, "success",
   recoveredStaleAttachment.failureCode ?? "stale attachment observation did not recover");
 assert.equal(staleReadyReads, 2, "stale attachment nodes must be discarded and queried fresh");
+assert.deepEqual(staleAttachmentFixture.waitDurations(), [2_000],
+  "a stale observation must consume the current cadence interval before a fresh read");
 assert.equal(staleAttachmentFixture.physicalMutations(), 0, "stale attachment recovery must remain read-only");
 
 let simulatedNow = 0;
@@ -438,7 +441,10 @@ try {
     files: [approvedAttachment], timeoutMs: 70_000,
   });
   assert.equal(delayedUpload.status, "success", delayedUpload.failureCode ?? "delayed attachment upload failed");
-  assert.ok(simulatedNow >= 61_000, "upload completion must be observed after the retired 60s ceiling");
+  assert.equal(simulatedNow, 70_000, "upload completion must be observed on the next scheduled check");
+  assert.deepEqual(delayedUploadFixture.waitDurations(), [
+    2_000, 3_000, 5_000, 7_000, 9_000, 11_000, 11_000, 11_000, 11_000,
+  ], "attachment checks must use 2/3/5/7/9/11 seconds then retain the 11s ceiling");
 } finally {
   Date.now = nativeDateNow;
 }
@@ -458,6 +464,8 @@ try {
   assert.ok(uploadTimedOut.failureCode?.startsWith("GPT_ATTACHMENT_UPLOAD_TIMEOUT:cards=1:uploading=0:pending=1:expected=1:"));
   assert.equal(uploadTimedOut.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
   assert.equal(uploadTimeoutNow, 1_000, "attachment reconciliation must stop at the exact Product deadline");
+  assert.deepEqual(uploadTimeoutFixture.waitDurations(), [1_000],
+    "the final cadence interval must be clipped to the remaining Product deadline");
   assert.equal(uploadTimeoutFixture.physicalMutations(), 0,
     "timed-out reconciliation must never mutate the page");
 } finally {

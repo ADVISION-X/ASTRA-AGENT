@@ -1,20 +1,20 @@
-# production-runtime 生产级施工图 V37
+# production-runtime 生产级施工图 V38
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v37",
+  "blueprintId": "agent-production-runtime-v38",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V53",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V54",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V6",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V24",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V24",
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V23",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V26",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V26",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V27"
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V25",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V25",
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V24",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V27",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V27",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V28"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-route-capability-manifest.provider.spec.json",
@@ -35,9 +35,9 @@
     {"contractRef":null,"from":{"domain":"startup-entrypoint","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"}}
   ],
   "prohibitedDependencyEdges": [
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V53","to":{"domain":"app-shell-ui","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V53","to":{"domain":"local-app-shell","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V53","to":{"domain":"startup-entrypoint","repo":"local"}}
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V54","to":{"domain":"app-shell-ui","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V54","to":{"domain":"local-app-shell","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V54","to":{"domain":"startup-entrypoint","repo":"local"}}
   ]
 }
 ```
@@ -141,7 +141,7 @@ Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为�
 
 - Agent Route Capability Manifest provider：version 4；只发布 current session 支持的 `product_id + action_id + task_contract_version + result_contract_version`；Product Profile、Skill、Prompt、Flow、实现名称、版本和 hash 均不得对外发布或参与任务身份；
 - Website Agent Task Result consumer dependency：version 9；
-- Xuanxue AI Production V6 consumer dependency：version 27。Runtime 只消费 Website 当前授权、有限 `retry_not_before`、三个 next action、包含 `provider_effect_identity_hash` 的 typed effect outcome 与 admission receipt；不得自行推导业务恢复。
+- Xuanxue AI Production V6 consumer dependency：version 28。Runtime 唯一业务容量常量为 3，心跳、剩余领取、执行器与 claim 上限共同消费它；Browser action capacity 仍为 1。Runtime 只消费 Website 当前授权、有限 `retry_not_before`、三个 next action、包含 `provider_effect_identity_hash` 的 typed effect outcome 与 admission receipt；不得自行推导业务恢复。
 
 consumer dependency 的 contract body 只能包含 contractId、version、providerRepo。普通启动只校验本仓最小 dependency，不读取未绑定 Website 工作树；跨仓 participant commit 只属于 RELEASE 证据。
 
@@ -198,7 +198,7 @@ Website 签发 attempt + lease + fence
 
 Browser provider effect identity 不含 Product Plugin 或 `attempt_id`，固定由 `job_id + result_revision + product_step_id + call_id + child_id + request_hash + payload_hash` 组成。AGENT 内部实现、attempt、进程、lease、fence、Target、Document 变化不得制造新 effect；同一 identity 的 physical dispatch 总数至多一。每次 mutation 与 Website 写请求仍校验当前 fence，旧 fence 的迟到写请求全部拒绝。
 
-`FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001` 冻结：Runtime 只有在 Browser Authority 为 PRESENT 时才领取新任务；submit 后轮询释放唯一 Browser FIFO，但重领必须携带 park 前原 system Target 的精确 `targetRef`，不得走通用 acquisition 或 GPT 首页导航。唯一 Browser WAL 的 `logical_mutation_id` 直接作为公开 `provider_effect_identity_hash`，Runtime 只运输 typed fact且不得读取 Browser 私有 SQLite。回答稳定后使用独立的 settled result payload hash；只有 `RESULT_SETTLED_UNUSABLE + CONFIRMED + confirmed + effect hash + evidence + settled result hash` 完整一致，Website 才能拒绝该结果并签发新 revision，其他现实输入只能在同一 accepted attempt 零 submit 收敛。不得增加第二 WAL、queue、store、Owner、状态机、兼容桥或 fallback。改变或删除本冻结边界必须由用户在未来任务中明确解冻，并同步替换双仓法案、施工图、合同、实现与唯一质检；普通开发、修复、重构、CI 或 RELEASE 授权均不构成解冻。
+`FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001` 已按本次明确解冻替换并重新冻结：Runtime 只有在 Browser Authority 为 PRESENT 时才领取新任务；submit 后轮询释放唯一 Browser FIFO，重领前先查同一 WAL effect，再以 `confirmed-readback` 取得当前唯一 system Target。历史 targetRef 不进入重领请求、不决定读取资格；该模式不得回 GPT 首页，只按 WAL 的 canonical URL 零次或一次精确导航并 fresh readback。唯一 Browser WAL 的 `logical_mutation_id` 仍直接作为公开 `provider_effect_identity_hash`，Runtime 只运输 typed fact且不得读取 Browser 私有 SQLite。回答稳定后使用独立 settled result payload hash；只有 `RESULT_SETTLED_UNUSABLE + CONFIRMED + confirmed + effect hash + evidence + settled result hash` 完整一致，Website 才能拒绝该结果并签发新 revision，其他现实输入只能在同一 accepted attempt 零 submit 收敛。不得增加第二 WAL、queue、store、Owner、状态机、兼容桥或 fallback。未来改变仍须用户明确解冻并同步替换双仓法案、施工图、合同、实现与唯一质检。
 
 lease release 只使用一个由 `job_id + attempt_id + lease_version + payload_hash` 确定性生成的 `request_id`；不得再复制 `idempotency_key`。同一 attempt 的同 effect readback 失败只允许 Website 记录首条失败事实，后续 release 只验证相同 `provider_effect_identity_hash` 并释放当前 lease，不以新的墙钟时间制造第二失败身份。
 
@@ -265,4 +265,4 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 17. Runtime proof 只声明本域四种 dynamic mode；GPT、Browser、Runtime Log 的原生 proof 均可独立运行，Runtime 相邻 proof assertion 为零，任何未解耦 route 都阻断 RELEASE。
 18. Runtime CHANGE/READY 不替 Website、Product、GPT、Browser 宣称业务完成；最终业务完成仍以 Website admission/storage 为准。
 19. 各域现有唯一 inspector、acceptance 与适用 proof 分别覆盖本域 active law 的 summary、全部 forbidden 与全部 evidenceModes；Owner-bound import mutant 必须证明 Runtime→Plugin、Plugin→Runtime private 与旧 Catalog 豁免都会失败关闭，全部被替代路径的生产消费清零，不新增第二 checker、proof 或 verdict。
-19. 五个并发真实业务任务必须逐个取得唯一 Browser lane 时间片；每项只保留 `页面动作 -> 一次结果 artifact -> Product result` 的必要事实。无饥饿、Provider submit 无重复，且每个任务最终以 Website 自身的 business admission receipt 与持久化读回作为完成证据。八字另须证明 BZ05/BZ03/BZ04 每个业务任务均 fresh，BZ03/BZ04 精确消费本轮 Website 父报告材料，跨任务 continuation/controller/store/frontier/CAS、fork 与 private base 为零。
+19. 三个并发业务席位下，五个排队真实业务任务必须逐个取得唯一 Browser lane 时间片；每项只保留 `页面动作 -> 一次结果 artifact -> Product result` 的必要事实。无饥饿、Provider submit 无重复，且每个任务最终以 Website 自身的 business admission receipt 与持久化读回作为完成证据。八字另须证明 BZ05/BZ03/BZ04 每个业务任务均 fresh，BZ03/BZ04 精确消费本轮 Website 父报告材料，跨任务 continuation/controller/store/frontier/CAS、fork 与 private base 为零。

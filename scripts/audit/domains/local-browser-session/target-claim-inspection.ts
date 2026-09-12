@@ -204,10 +204,14 @@ const inspectExactChatGptPolicy = (source: ReturnType<typeof requireSource>, fin
   }));
 };
 
-const recoveryInspectionIsExact = (source: string): boolean => source.includes("debuggerRuntime.readTargets()")
-  && source.includes("candidate.tabId === tabId")
-  && (source.includes('candidate.type === "page"') || source.includes('candidates[0]!.type !== "page"'))
-  && (source.includes("candidate.attached === true") || source.includes("candidates[0]!.attached !== true"))
+const recoveryUsesCurrentTargetAndCanonicalUrl = (source: string): boolean =>
+  source.includes('targetMode: "fresh" | "confirmed-readback"')
+  && source.includes('targetMode === "fresh"')
+  && source.includes('"Page.navigate", { url: expected }')
+  && source.includes("publishMainFrameNavigation(mainFrame.url, mainFrame.loaderId)")
+  && !source.includes("readOrRecoverExactTarget")
+  && !source.includes("debuggerRuntime.readTargets()")
+  && !source.includes("nav a[href")
   && !source.includes("tabs.query")
   && !source.includes("Page.bringToFront");
 
@@ -256,17 +260,17 @@ const inspectJobBoundClaimPolicy = (
     "The sole Browser lane must delegate target acquisition to its one private target acquirer.");
   requireIdentifiers(targetAcquirer, [
     "acquireJobBoundTarget", "requestPreauthorizedTargetAcquisition", "pendingJobBoundTargetAcquisition",
-    "expectedTargetRef", "resolvePending", "rejectPending",
-  ], findings, lawId, "The target acquirer must bind acquisition to the current queued job and exact recovery target.");
+    "targetMode", "resolvePending", "rejectPending",
+  ], findings, lawId, "The target acquirer must bind acquisition to the current queued job and explicit fresh/readback mode.");
   requireIdentifiers(broker, ["current", "targetRef", "navigationEpoch"], findings, lawId,
     "The sole Broker must reject target replacement and non-monotonic Document claims.");
   inspectJobBoundClaimOrder(actor, findings, lawId);
   inspectServerClaimOrder(supervisor.getClass("BrowserInfrastructureSupervisor")?.getMethod("onTargetClaim")?.getText() ?? "", findings, lawId);
   inspectBrokerClaimMonotonicity(broker.getFullText(), findings, lawId);
   const targetAuthorityText = targetAuthority.getFullText();
-  if (!recoveryInspectionIsExact(targetAuthorityText)) findings.push(createLocalFinding({
+  if (!recoveryUsesCurrentTargetAndCanonicalUrl(targetAuthorityText)) findings.push(createLocalFinding({
     checkId: "browser-authority/job-bound-target-claim", lawId, filePath: targetAuthorityPath,
-    message: "MV3 recovery may inspect only the exact prior attached tabId and must never scan candidates or foreground a Tab.",
+    message: "Confirmed readback must use the current system Target and one exact canonical URL navigation without scanning historical Targets or foregrounding the Tab.",
   }));
   inspectDispatchedMutationReleaseGuard(leaseManager, findings, lawId);
   inspectExactChatGptPolicy(sitePolicy, findings, lawId);

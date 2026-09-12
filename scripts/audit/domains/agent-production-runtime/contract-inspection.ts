@@ -7,17 +7,19 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V53", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V6",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V24", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V24",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V23", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V26",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V26",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V27",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V54", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V6",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V25", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V25",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V24", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V27",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V27",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V28",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
 const PATHS = {
   admission: `${ROOT}/cloud-reconciliation-client.ts`, inventory: `${ROOT}/runtime-storage-inventory.ts`,
   cloudClient: `${ROOT}/cloud-client.ts`, workerSession: `${ROOT}/worker-session.ts`,
+  controlDependency: `${ROOT}/control-contract-dependency.ts`, executor: `${ROOT}/executor.ts`,
+  runtimeLoops: `${ROOT}/runtime-loops.ts`,
   manifest: "scripts/audit/domains/agent-production-runtime/manifest.json",
   proof: "scripts/acceptance/agent-production-runtime.real-proof.ts",
   routeProjection: `${ROOT}/website-agent-route-policies.v1.json`, store: `${ROOT}/store-foundation.ts`,
@@ -36,8 +38,8 @@ const sourceFor = (context: InspectorContext, path: string): SourceFile | undefi
 
 const inspectMinimalDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const [path, version, lawId, checkId] of [
-    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 27,
-      LAWS.route, "agent-production-runtime/v27-dependency"],
+    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 28,
+      LAWS.route, "agent-production-runtime/v28-dependency"],
     ["docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json", 9,
       LAWS.route, "agent-production-runtime/v9-result-dependency"],
   ] as const) {
@@ -145,6 +147,24 @@ const inspectSessionClaimAtomicity = (context: InspectorContext, findings: Inspe
     "Heartbeat rotation and claim are not closed by the one ProductionWorkerSession authority turn."));
 };
 
+const inspectBusinessCapacity = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const dependency = read(context, PATHS.controlDependency);
+  const workerSession = read(context, PATHS.workerSession);
+  const runtimeLoops = read(context, PATHS.runtimeLoops);
+  const executor = read(context, PATHS.executor);
+  const cloudClient = read(context, PATHS.cloudClient);
+  const oneCapacityOwner = dependency.includes("PRODUCTION_BUSINESS_CAPACITY_TOTAL = 3 as const")
+    && workerSession.includes("business_capacity_total: PRODUCTION_BUSINESS_CAPACITY_TOTAL")
+    && runtimeLoops.includes("PRODUCTION_BUSINESS_CAPACITY_TOTAL - state.active.size")
+    && executor.includes("return PRODUCTION_BUSINESS_CAPACITY_TOTAL")
+    && cloudClient.includes("limit > PRODUCTION_BUSINESS_CAPACITY_TOTAL")
+    && ![workerSession, runtimeLoops, executor, cloudClient]
+      .some((source) => /(?:business_capacity_total:\s*10|Math\.min\(10\s*-|return\s+10|limit\s*>\s*10)/u.test(source));
+  if (!oneCapacityOwner) findings.push(finding(LAWS.route,
+    "agent-production-runtime/business-capacity-three", PATHS.controlDependency,
+    "Runtime heartbeat, remaining claim capacity, executor and claim limit must consume the one capacity-3 constant."));
+};
+
 const inspectStorageAndLawDenominator = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const storageType = sourceFor(context, PATHS.inventory)?.getTypeAlias("ProductionRuntimeStorageInventory");
   const fields = new Set(storageType?.getDescendantsOfKind(SyntaxKind.PropertySignature)
@@ -185,6 +205,7 @@ export const inspectAgentContracts = (context: InspectorContext, findings: Inspe
   inspectAdmissionHash(context, findings);
   inspectCredentialAndDurableTypes(context, findings);
   inspectSessionClaimAtomicity(context, findings);
+  inspectBusinessCapacity(context, findings);
   inspectStorageAndLawDenominator(context, findings);
   inspectDynamicRoutes(findings);
 };
