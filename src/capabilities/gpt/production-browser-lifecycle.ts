@@ -61,11 +61,14 @@ export class ProductionGptBrowserLifecycle {
     sessionKey: string,
     productStepId: string,
     callId: string,
+    expectedTargetRef?: string,
   ): Promise<ProductionGptBrowserCall> {
     if (!sessionKey) throw executionFailure("failed", "GPT_SESSION_KEY_REQUIRED");
     const current = this.browsers.get(sessionKey);
     if (current) return current;
-    const browser = await this.acquireBrowserLease(productStepId, callId, "general", null);
+    const browser = await this.acquireBrowserLease(
+      productStepId, callId, "general", null, expectedTargetRef,
+    );
     const active: ProductionGptBrowserCall = {
       browser,
       facade: browser,

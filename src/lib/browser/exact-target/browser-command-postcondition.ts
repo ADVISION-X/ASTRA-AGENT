@@ -14,8 +14,12 @@ const hashValue = (value: unknown): `sha256:${string}` =>
 const hashText = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
+type BrowserExactCallIdentityInput = Pick<BrowserCommandPermit,
+  "jobId" | "attemptId" | "resultRevision" | "writerFenceHash" | "productStepId"
+  | "callId" | "childCapabilityId" | "inputHash" | "replayPolicy">;
+
 export const browserExactCallIdentityHash = (
-  permit: BrowserCommandPermit,
+  permit: BrowserExactCallIdentityInput,
 ): `sha256:${string}` => hashValue([
   permit.jobId,
   permit.resultRevision,

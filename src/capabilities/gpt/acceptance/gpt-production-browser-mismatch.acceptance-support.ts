@@ -67,6 +67,39 @@ try {
     },
   );
   await mismatchLifecycle.settle(null);
+
+  let recoveryExpectedTargetRef: string | undefined;
+  const recoveryLifecycle = new ProductionGptBrowserLifecycle(
+    {
+      acquireJobBoundTargetLease: async (_binding: unknown, _ownerId: unknown, wait: Readonly<{
+        expectedTargetRef?: string;
+      }>) => {
+        recoveryExpectedTargetRef = wait.expectedTargetRef;
+        return {
+          target: { targetRef: "target:confirmed-submit" },
+          pendingMutationCount: () => 0,
+          park: async () => undefined,
+          close: async () => undefined,
+        };
+      },
+    } as never,
+    runtimeLogger,
+    HASH_A,
+    {
+      jobId: waitTask.job_id, attemptId: "attempt:confirmed-submit-recovery",
+      resultRevision: 0,
+      deviceId: "device:1", leaseVersion: 1,
+      executionFenceHash: HASH_A, capabilityManifestHash: HASH_B,
+      expiresAtMonotonic: performance.now() + 10_000, commandTtlMs: 1_000,
+      abortSignal: new AbortController().signal,
+    },
+  );
+  await recoveryLifecycle.browserFor(
+    "session:confirmed-submit-recovery", "observe", "turn-submit", "target:confirmed-submit",
+  );
+  assert.equal(recoveryExpectedTargetRef, "target:confirmed-submit",
+    "confirmed-submit recovery must reacquire the exact parked Target without a root reset");
+  await recoveryLifecycle.settle(null);
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }

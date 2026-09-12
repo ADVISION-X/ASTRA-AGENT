@@ -7,6 +7,7 @@ export type {
 export type {
   BrowserExactCallMutationFact,
 } from "./exact-target/browser-mutation-store.js";
+export { browserExactCallIdentityHash } from "./exact-target/browser-command-postcondition.js";
 export type {
   BrowserDomIntent,
   BrowserDomObservationField,

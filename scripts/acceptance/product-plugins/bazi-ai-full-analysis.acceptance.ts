@@ -1,7 +1,7 @@
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
 import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
 import { productionRoutePolicies } from "../../../src/lib/local-runtime/production/route-policy.js";
-import { buildProductTask, exerciseProductFlow, FIXTURE_HASH, FIXTURE_HASH_B, routesForPlugin } from "../product-plugin-test-runtime.js";
+import { buildProductTask, exerciseConfirmedSubmitRecovery, exerciseProductFlow, FIXTURE_HASH, FIXTURE_HASH_B, routesForPlugin } from "../product-plugin-test-runtime.js";
 
 const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "bazi-ai-full-analysis");
 assert(plugin);
@@ -18,7 +18,9 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
       ? { parameters: { challenge_id: "challenge:1", question_text: "复核八字问答" }, reviewPolicy: "manual-accuracy-challenge.v1" as const }
       : { parameters: { reflection_plan_id: "reflection:1", reflection_contract_version: "scheduled-quality-reflection.v1", evidence_ref_catalog: ["receipt:1"] }, reviewPolicy: "scheduled-quality-reflection.v1" as const };
     const task = buildProductTask(route, review);
-    const run = await exerciseProductFlow(plugin, { task, output: { decision: "no_issue", issues: [] } });
+    const flowFixture = { task, output: { decision: "no_issue", issues: [] } };
+    const run = await exerciseProductFlow(plugin, flowFixture);
+    await exerciseConfirmedSubmitRecovery(plugin, flowFixture);
     assert.deepEqual(run.calls.map((call) => call.child), reviewSequence);
     continue;
   }
@@ -35,7 +37,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     answer_blocks: [{ section: "one" }], question_snapshot: "question",
     covered_question_unit_refs: ["question:1"], citations: [], uncertainties: [], limitations: [], safety_notes: [],
   };
-  const run = await exerciseProductFlow(plugin, {
+  const flowFixture = {
     task, output, materialContents: { bazi_formal_input: {
       schema_version: "bazi-formal-input.v1",
       parent_report: {
@@ -44,7 +46,9 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
       },
     },
       result_contract: route.result_contract },
-  });
+  };
+  const run = await exerciseProductFlow(plugin, flowFixture);
+  await exerciseConfirmedSubmitRecovery(plugin, flowFixture);
   assert.equal(run.physicalSubmitDispatches, 1);
   assert.deepEqual(run.calls.map((call) => call.child), reviewSequence);
 }

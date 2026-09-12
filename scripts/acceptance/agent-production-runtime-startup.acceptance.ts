@@ -358,6 +358,9 @@ try {
     tools: {
       jobId: dispatchFailureTask.job_id,
       attemptId: dispatchAttemptId,
+      readConfirmedSubmit: async () => {
+        throw executionFailure("failed", "PAYMENT_OBSERVATION_PROVIDER_FAILED");
+      },
       execute: async () => {
         throw executionFailure("failed", "PAYMENT_OBSERVATION_PROVIDER_FAILED");
       },

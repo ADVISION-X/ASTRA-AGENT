@@ -75,7 +75,14 @@ const createOwnedExecution = (task: WebsiteAgentTask, context: SharedExecutionCo
     evidenceRefs.push(...result.artifactRefs);
     return result;
   };
-  return Object.freeze({ evidenceRefs: () => Object.freeze([...evidenceRefs]), execute });
+  const readConfirmedSubmit = async (
+    call: Extract<FlowCall, { child: "submit_exact_gpt_turn_once" }>,
+  ) => {
+    const result = await context.gpt.readConfirmedSubmit({ ...call, sessionKey });
+    if (result) evidenceRefs.push(...result.artifactRefs);
+    return result;
+  };
+  return Object.freeze({ evidenceRefs: () => Object.freeze([...evidenceRefs]), execute, readConfirmedSubmit });
 };
 
 const materialFiles = (context: SharedExecutionContext) => context.materials.slice()
@@ -224,11 +231,21 @@ const runFreshTurn = async (
   marker: string,
 ): Promise<Checkpoint> => {
   const stepId = task.action_id;
+  const files = uploadedFiles(context);
+  const promptHash = sha256(prompt);
+  const submit = { productStepId: stepId, callId: "turn-submit",
+    child: "submit_exact_gpt_turn_once", actionOrdinal: 13,
+    input: { files, promptHash } } as const;
+  const confirmed = await flow.readConfirmedSubmit(submit);
+  if (confirmed) {
+    requireConfirmedSubmit(confirmed.effectReceipt);
+    return checkpointSubmittedTurn(flow, stepId, marker, promptHash, confirmed, [14, 15, 16]);
+  }
   const fresh = { productStepId: stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
   await flow.execute(fresh);
   await applyProfile(flow, stepId, [2, 3, 4, 5, 6, 7]);
   await applyAttachments(flow, context, stepId, [8, 9, 10]);
-  return submitTurn(flow, stepId, prompt, marker, uploadedFiles(context), [11, 12, 13, 14, 15, 16]);
+  return submitTurn(flow, stepId, prompt, marker, files, [11, 12, 13, 14, 15, 16]);
 };
 
  const receive = (task: WebsiteAgentTask, checkpoint: Checkpoint, context: SharedExecutionContext): Readonly<Record<string, unknown>> => {

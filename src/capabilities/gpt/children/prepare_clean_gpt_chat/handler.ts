@@ -24,6 +24,38 @@ const freshChatTopology = (state: ConversationState): boolean => state.composerR
   && state.attachmentsRaw === 0 && state.generatingRaw === 0
   && isGptRootUrl(state.currentUrl);
 
+const HYDRATION_BACKOFF_MS = [5_000, 10_000, 15_000, 30_000] as const;
+
+const terminalFreshChatFailureCode = (state: ConversationState): string | null => {
+  const failure = [
+    [state.generatingRaw !== 0, "GPT_CHAT_GENERATION_PRESENT"],
+    [state.attachmentsRaw !== 0, "GPT_CHAT_ATTACHMENT_PRESENT"],
+    [state.userRaw !== 0, "GPT_CHAT_PRIOR_USER_TURN_PRESENT"],
+    [state.assistantRaw !== 0, "GPT_CHAT_PRIOR_ASSISTANT_TURN_PRESENT"],
+    [!isGptRootUrl(state.currentUrl), "GPT_CHAT_ROOT_URL_CHANGED"],
+    [state.composerRaw > 1, "GPT_CHAT_COMPOSER_AMBIGUOUS"],
+  ] as const;
+  return failure.find(([matches]) => matches)?.[1] ?? null;
+};
+
+const waitForCleanableChat = async (
+  browser: ReturnType<typeof requireBrowser>,
+  deadline: number,
+): Promise<ConversationState> => {
+  for (const delayMs of [0, ...HYDRATION_BACKOFF_MS]) {
+    if (delayMs > 0) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) break;
+      await browser.wait({ durationMs: Math.min(delayMs, remaining) });
+    }
+    const observed = await readConversationState(browser);
+    const failureCode = terminalFreshChatFailureCode(observed);
+    if (failureCode) throw executionFailure("failed", failureCode);
+    if (freshChatTopology(observed)) return observed;
+  }
+  throw executionFailure("failed", "GPT_CHAT_HYDRATION_PENDING");
+};
+
 const freshChatFailureCode = (state: ConversationState): string => {
   const failure = [
     [!isGptRootUrl(state.currentUrl), "GPT_CHAT_ROOT_URL_CHANGED"],
@@ -44,26 +76,13 @@ export const prepareCleanGptChatHandler: GptChildHandler<"prepare_clean_gpt_chat
     requireExactInputKeys(intent, ["timeoutMs"]);
     const deadline = Date.now() + timeoutInput(intent);
     const browser = requireBrowser(context);
-    let draftNeedsClear = false;
-    do {
-      const observed = await readConversationState(browser);
-      const freshTopology = freshChatTopology(observed);
-      if (freshTopology && observed.composerHash === hashConversationValue("")) return success({
-        value: { composer: 1, turns: 0, attachments: 0, generating: 0,
-          draftEmpty: true, staleDraftCleared: false },
-        ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
-          browserFact: null, nativeFailureCode: null }),
-      });
-      if (freshTopology) {
-        draftNeedsClear = true;
-        break;
-      }
-      const remaining = deadline - Date.now();
-      if (remaining > 0) {
-        await browser.wait({ durationMs: Math.max(25, Math.min(500, Math.ceil(remaining / 20))) });
-      }
-    } while (Date.now() < deadline);
-    if (!draftNeedsClear) throw executionFailure("failed", "GPT_CHAT_HYDRATION_PENDING");
+    const observed = await waitForCleanableChat(browser, deadline);
+    if (observed.composerHash === hashConversationValue("")) return success({
+      value: { composer: 1, turns: 0, attachments: 0, generating: 0,
+        draftEmpty: true, staleDraftCleared: false },
+      ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
+        browserFact: null, nativeFailureCode: null }),
+    });
     await browser.executeDomIntent({
       kind: "fill", selector: GPT_COMPOSER_SELECTOR, approvedText: "",
       clearBeforeType: true, expectedMatches: 1,

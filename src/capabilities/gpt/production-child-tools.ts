@@ -18,7 +18,10 @@ import {
 } from "../../lib/runtime-logs/index.js";
 import { executionFailure, failureCode, typedExecutionFailure } from "../../lib/execution-failure.js";
 import { hashCanonical } from "../../lib/local-runtime/production/contracts.js";
-import type { BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
+import {
+  browserExactCallIdentityHash,
+  type BrowserTargetLease,
+} from "../../lib/browser/browser-authority-api.js";
 import type { ProductGptCallInput, ProductGptChildResult } from "./product-api.js";
 import type { GptHash } from "./contract.js";
 import { persistGptEvidenceArtifacts } from "./evidence-artifacts.js";
@@ -89,12 +92,28 @@ export class ProductionGptChildTools {
         ): Promise<ProductGptChildResult<"submit_exact_gpt_turn_once"> | null> => {
           this.assertExecutionActive(input);
           const intent = this.intentFor(input, call);
-          const active = await browsers.browserFor(call.sessionKey, call.productStepId, call.callId);
-          if (!active.facade.readAtomicStepOutcome(productionGptAtomicIdentity(
+          const atomicIdentity = productionGptAtomicIdentity(
             intent as GptAnyChildCapabilityIntent, input.resultRevision,
-          ))) {
-            return null;
+          );
+          const exactCallIdentityHash = browserExactCallIdentityHash({
+            jobId: input.jobId, attemptId: input.attemptId,
+            writerFenceHash: input.executionFenceHash,
+            ...atomicIdentity,
+          });
+          const prior = this.browserAuthority.readExactCallMutationFact({
+            jobId: input.jobId, attemptId: input.attemptId,
+            exactCallIdentityHash, actionOrdinal: call.actionOrdinal,
+          });
+          if (!prior) return null;
+          if (prior.effectScope !== "provider_effect"
+            || prior.productStepId !== call.productStepId || prior.callId !== call.callId
+            || prior.childCapabilityId !== call.child) {
+            throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
           }
+          const active = await browsers.browserFor(
+            call.sessionKey, call.productStepId, call.callId, prior.targetRef,
+          );
+          if (!active.facade.readAtomicStepOutcome(atomicIdentity)) return null;
           return this.executeOne<"submit_exact_gpt_turn_once">(
             input, browsers, call, input.abortSignal, true,
           );

@@ -1,7 +1,7 @@
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
 import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
 import { productionRoutePolicies } from "../../../src/lib/local-runtime/production/route-policy.js";
-import { buildProductTask, exerciseProductFlow, FIXTURE_HASH, routesForPlugin } from "../product-plugin-test-runtime.js";
+import { buildProductTask, exerciseConfirmedSubmitRecovery, exerciseProductFlow, FIXTURE_HASH, routesForPlugin } from "../product-plugin-test-runtime.js";
 
 const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "hehun-ai-analysis");
 assert(plugin);
@@ -29,6 +29,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     covered_question_unit_refs: ["question:1"], citations: [], uncertainties: [], limitations: [], safety_notes: [],
   };
   const run = await exerciseProductFlow(plugin, { task, output });
+  await exerciseConfirmedSubmitRecovery(plugin, { task, output });
   assert.deepEqual(run.calls.map((call) => call.child), initial);
   assert.match(String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt), /当前 Product Plugin：hehun-ai-analysis/u);
   assert.equal(run.physicalSubmitDispatches, 1);

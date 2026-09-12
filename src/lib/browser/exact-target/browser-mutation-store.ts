@@ -445,10 +445,12 @@ export class BrowserMutationStore {
               child_capability_id,action_ordinal,physical_input_count,download_guid_hash,download_completed,
               media_identity_revalidated
        from browser_mutations
-       where job_id=? and attempt_id=? and exact_call_identity_hash=?
+       where job_id=? and exact_call_identity_hash=?
          and state in ('DISPATCHED','CONFIRMED','REJECTED')
+         and not (effect_scope='provider_effect' and state='REJECTED'
+           and mutation_outcome='no' and physical_input_count=0 and attempt_id<>?)
        order by updated_at desc,command_id desc limit 2`,
-    ).all(input.jobId, input.attemptId, input.exactCallIdentityHash) as ReadonlyArray<{
+    ).all(input.jobId, input.exactCallIdentityHash, input.attemptId) as ReadonlyArray<{
       command_id: string;
       effect_scope: "target_local" | "provider_effect";
       state: "DISPATCHED" | "CONFIRMED" | "REJECTED";

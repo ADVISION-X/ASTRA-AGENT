@@ -38,6 +38,7 @@ export type ProductFlowFixture = Readonly<{
   output: Readonly<Record<string, unknown>>;
   materialContents?: Readonly<Record<string, unknown>>;
   checkpointOutput?: (call: ProductCall) => Readonly<Record<string, unknown>>;
+  confirmedSubmit?: boolean;
   expectedSessionCount?: number;
   resultRevision?: SharedExecutionContext["resultRevision"];
 }>;
@@ -157,9 +158,26 @@ const executeValue = (input: ExecutionValueInput): ExecutionValue =>
 
 type ProductRunState = {
   calls: ProductCall[];
+  confirmedSubmitReads: ProductCall[];
   completed: ProductPluginOutput | null;
   physicalSubmitDispatches: number;
   generatedImageUploads: number;
+};
+
+const productGptResult = (
+  call: ProductCall,
+  fixture: ProductFlowFixture,
+  evidenceRef: string,
+) => {
+  const outcome = executeValue({ call, fixture });
+  return { value: outcome.value, evidenceRef, evidenceHash: FIXTURE_HASH,
+    sourceAttemptId: "attempt-1", exactCallIdentityHash: FIXTURE_HASH,
+    artifactRefs: call.child === "checkpoint_gpt_text_response" ? ["artifact:checkpoint"] : [],
+    effectReceipt: call.child === "submit_exact_gpt_turn_once" ? {
+      effectScope: "provider_effect", outcome: "CONFIRMED", mutationOutcome: "confirmed",
+      terminalAt: "2020-01-01T00:00:00.000Z", evidenceRef, evidenceHash: FIXTURE_HASH,
+      providerEffectIdentityHash: FIXTURE_HASH,
+    } : null } as never;
 };
 
 const createMaterials = (root: string, fixture: ProductFlowFixture) =>
@@ -179,21 +197,18 @@ const createGptFixture = (
 ): SharedExecutionContext["gpt"] => ({
   jobId: fixture.task.job_id,
   attemptId: "attempt-1",
-  readConfirmedSubmit: async () => null,
+  readConfirmedSubmit: async (call) => {
+    const productCall = call as ProductCall;
+    state.confirmedSubmitReads.push(productCall);
+    return fixture.confirmedSubmit
+      ? productGptResult(productCall, fixture, "evidence:confirmed-submit") : null;
+  },
   execute: async (call: ProductExecuteInput) => {
     const productCall = call as ProductCall;
     state.calls.push(productCall);
     if (productCall.child === "submit_exact_gpt_turn_once") state.physicalSubmitDispatches += 1;
     const evidenceRef = `evidence:${state.calls.length}`;
-    const outcome = executeValue({ call: productCall, fixture });
-    return { value: outcome.value, evidenceRef, evidenceHash: FIXTURE_HASH,
-      sourceAttemptId: "attempt-1", exactCallIdentityHash: FIXTURE_HASH,
-      artifactRefs: productCall.child === "checkpoint_gpt_text_response" ? ["artifact:checkpoint"] : [],
-      effectReceipt: productCall.child === "submit_exact_gpt_turn_once" ? {
-        effectScope: "provider_effect", outcome: "CONFIRMED", mutationOutcome: "confirmed",
-        terminalAt: "2020-01-01T00:00:00.000Z", evidenceRef, evidenceHash: FIXTURE_HASH,
-        providerEffectIdentityHash: FIXTURE_HASH,
-      } : null } as never;
+    return productGptResult(productCall, fixture, evidenceRef);
   },
 });
 
@@ -231,13 +246,14 @@ export const exerciseProductFlow = async (
   fixture: ProductFlowFixture,
 ): Promise<Readonly<{
   calls: readonly ProductCall[];
+  confirmedSubmitReads: readonly ProductCall[];
   completed: ProductPluginOutput;
   physicalSubmitDispatches: number;
   generatedImageUploads: number;
 }>> => {
   const root = mkdtempSync(join(tmpdir(), "grasseye-product-acceptance-"));
   const state: ProductRunState = {
-    calls: [], completed: null,
+    calls: [], confirmedSubmitReads: [], completed: null,
     physicalSubmitDispatches: 0, generatedImageUploads: 0,
   };
   try {
@@ -245,12 +261,30 @@ export const exerciseProductFlow = async (
     assert(state.completed);
     assert.equal(new Set(state.calls.map((call) => call.sessionKey)).size, fixture.expectedSessionCount ?? 1);
     assert.ok(state.calls.every((call) => call.sessionKey.includes(plugin.pluginId)));
-    return { calls: state.calls, completed: state.completed,
+    return { calls: state.calls, confirmedSubmitReads: state.confirmedSubmitReads,
+      completed: state.completed,
       physicalSubmitDispatches: state.physicalSubmitDispatches,
       generatedImageUploads: state.generatedImageUploads };
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+};
+
+export const exerciseConfirmedSubmitRecovery = async (
+  plugin: ProductPlugin,
+  fixture: ProductFlowFixture,
+): Promise<void> => {
+  const baseline = await exerciseProductFlow(plugin, fixture);
+  const run = await exerciseProductFlow(plugin, { ...fixture, confirmedSubmit: true });
+  assert.equal(run.confirmedSubmitReads.length, 1,
+    `${plugin.pluginId} must read the exact submit identity once before page preparation`);
+  assert.deepEqual(run.confirmedSubmitReads[0],
+    baseline.calls.find((call) => call.child === "submit_exact_gpt_turn_once"),
+    `${plugin.pluginId} recovery must query the exact identity used by physical submit`);
+  assert.deepEqual(run.calls.map((call) => call.child), ["checkpoint_gpt_text_response"],
+    `${plugin.pluginId} must continue with zero-input readback after a confirmed submit`);
+  assert.equal(run.physicalSubmitDispatches, 0,
+    `${plugin.pluginId} must not physically submit again after a confirmed submit`);
 };
 
 export const routesForPlugin = (

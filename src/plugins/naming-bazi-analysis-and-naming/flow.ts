@@ -1,7 +1,6 @@
 import {
   buildGptExecutionProfile,
   gptAttachmentProviderDisplayName,
-  type GptApprovedFile,
 } from "../../capabilities/gpt/index.js";
 import {
   hashCanonical,
@@ -72,7 +71,14 @@ const createOwnedExecution = (task: WebsiteAgentTask, context: SharedExecutionCo
     evidenceRefs.push(...result.artifactRefs);
     return result;
   };
-  return Object.freeze({ evidenceRefs: () => Object.freeze([...evidenceRefs]), execute });
+  const readConfirmedSubmit = async (
+    call: Extract<FlowCall, { child: "submit_exact_gpt_turn_once" }>,
+  ) => {
+    const result = await context.gpt.readConfirmedSubmit({ ...call, sessionKey });
+    if (result) evidenceRefs.push(...result.artifactRefs);
+    return result;
+  };
+  return Object.freeze({ evidenceRefs: () => Object.freeze([...evidenceRefs]), execute, readConfirmedSubmit });
 };
 
 const materialFiles = (context: SharedExecutionContext) => context.materials.slice()
@@ -193,24 +199,6 @@ const checkpointSubmittedTurn = async (
     });
 };
 
-const submitTurn = async (
-  flow: OwnedExecution,
-  stepId: string,
-  prompt: string,
-  marker: string,
-  files: readonly GptApprovedFile[],
-  ordinals: readonly [number, number, number, number, number, number],
-): Promise<Checkpoint> => {
-  const promptHash = sha256(prompt);
-  const write = { productStepId: stepId, callId: "prompt-write", child: "write_exact_gpt_prompt", actionOrdinal: ordinals[0], input: { prompt } } as const;
-  const submit = { productStepId: stepId, callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: ordinals[2], input: { files, promptHash } } as const;
-  await flow.execute(write);
-  const submitResult = await flow.execute(submit) as ProductGptChildResult<"submit_exact_gpt_turn_once">;
-  requireConfirmedSubmit(submitResult.effectReceipt);
-  return checkpointSubmittedTurn(flow, stepId, marker, promptHash, submitResult,
-    [ordinals[3], ordinals[4], ordinals[5]]);
-};
-
 const runFreshTurn = async (
   task: WebsiteAgentTask,
   context: SharedExecutionContext,
@@ -219,11 +207,23 @@ const runFreshTurn = async (
   marker: string,
 ): Promise<Checkpoint> => {
   const stepId = task.action_id;
-  const fresh = { productStepId: stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
-  await flow.execute(fresh);
-  await applyProfile(flow, stepId, [2, 3, 4, 5, 6, 7]);
-  await applyAttachments(flow, context, stepId, [8, 9, 10]);
-  return submitTurn(flow, stepId, prompt, marker, uploadedFiles(context), [11, 12, 13, 14, 15, 16]);
+  const files = uploadedFiles(context);
+  const promptHash = sha256(prompt);
+  const submit = { productStepId: stepId, callId: "turn-submit",
+    child: "submit_exact_gpt_turn_once", actionOrdinal: 13,
+    input: { files, promptHash } } as const;
+  let submitResult = await flow.readConfirmedSubmit(submit);
+  if (!submitResult) {
+    const fresh = { productStepId: stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
+    await flow.execute(fresh);
+    await applyProfile(flow, stepId, [2, 3, 4, 5, 6, 7]);
+    await applyAttachments(flow, context, stepId, [8, 9, 10]);
+    await flow.execute({ productStepId: stepId, callId: "prompt-write",
+      child: "write_exact_gpt_prompt", actionOrdinal: 11, input: { prompt } });
+    submitResult = await flow.execute(submit) as ProductGptChildResult<"submit_exact_gpt_turn_once">;
+  }
+  requireConfirmedSubmit(submitResult.effectReceipt);
+  return checkpointSubmittedTurn(flow, stepId, marker, promptHash, submitResult, [14, 15, 16]);
 };
 
 const receive = (task: WebsiteAgentTask, checkpoint: Checkpoint, context: SharedExecutionContext): Readonly<Record<string, unknown>> => {

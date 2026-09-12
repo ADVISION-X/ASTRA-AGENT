@@ -15,6 +15,7 @@ import {
   fakeBrowser,
 } from "./gpt-exact-target-browser-fixture.js";
 import { assertGptExactTargetSourceShape } from "./gpt-exact-target-source-support.js";
+import { hashConversationValue } from "../children/prepare_clean_gpt_chat/observation.js";
 import {
   exerciseFailedEvidenceReadback,
   exercisePreExecutionFailureEvidence,
@@ -25,6 +26,84 @@ import "./gpt-reasoning-requirement.acceptance.js";
 assert.deepEqual(GPT_CHILD_CAPABILITY_IDS, EXPECTED_GPT_CHILD_IDS);
 assert.equal(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).length, 13);
 assertGptExactTargetSourceShape(import.meta.url);
+
+const conversationFacts = (
+  draft: string | null,
+  overrides: Readonly<Record<string, number>> = {},
+) => ({
+  composer: { rawCount: draft === null ? 0 : 1, eligibleCount: draft === null ? 0 : 1,
+    matches: draft === null ? [] : [{ exactEditableTextHash: hashConversationValue(draft) }] },
+  "user-turns": { rawCount: overrides.user ?? 0, eligibleCount: overrides.user ?? 0 },
+  "assistant-turns": { rawCount: overrides.assistant ?? 0, eligibleCount: overrides.assistant ?? 0 },
+  attachments: { rawCount: overrides.attachments ?? 0, eligibleCount: overrides.attachments ?? 0 },
+  generating: { rawCount: overrides.generating ?? 0, eligibleCount: overrides.generating ?? 0 },
+});
+
+{
+  let simulatedNow = 0;
+  let observations = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      observations += 1;
+      return coherentObservationPacket(intent,
+        conversationFacts(observations < 3 ? null : ""));
+    }
+    throw new Error(`PREPARE_HYDRATION_MUST_NOT_ACT:${intent.kind}`);
+  }, { onWait: (durationMs) => { simulatedNow += durationMs; } });
+  const nativeDateNow = Date.now;
+  Date.now = () => simulatedNow;
+  try {
+    const result = await execute("prepare_clean_gpt_chat", fixture.browser, { timeoutMs: 60_000 });
+    assert.equal(result.status, "success", result.failureCode ?? "prepare hydration failed");
+    assert.equal(observations, 3);
+    assert.deepEqual(fixture.waitDurations(), [5_000, 10_000],
+      "prepare hydration must begin at five seconds and progressively slow down");
+    assert.equal(fixture.physicalMutations(), 0);
+  } finally {
+    Date.now = nativeDateNow;
+  }
+}
+
+for (const [field, failureCode] of [
+  ["user", "GPT_CHAT_PRIOR_USER_TURN_PRESENT"],
+  ["assistant", "GPT_CHAT_PRIOR_ASSISTANT_TURN_PRESENT"],
+  ["attachments", "GPT_CHAT_ATTACHMENT_PRESENT"],
+  ["generating", "GPT_CHAT_GENERATION_PRESENT"],
+] as const) {
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      return coherentObservationPacket(intent, conversationFacts("", { [field]: 1 }));
+    }
+    throw new Error(`DIRTY_CHAT_MUST_NOT_ACT:${field}:${intent.kind}`);
+  });
+  const result = await execute("prepare_clean_gpt_chat", fixture.browser, { timeoutMs: 60_000 });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, failureCode);
+  assert.deepEqual(fixture.waitDurations(), [], `${field} must fail on the first observation`);
+  assert.equal(fixture.physicalMutations(), 0);
+}
+
+{
+  let cleared = false;
+  let observations = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      observations += 1;
+      return coherentObservationPacket(intent, conversationFacts(cleared ? "" : "stale draft"));
+    }
+    if (intent.kind === "fill") {
+      cleared = true;
+      return {};
+    }
+    throw new Error(`UNEXPECTED_DRAFT_CLEAR_INTENT:${intent.kind}`);
+  });
+  const result = await execute("prepare_clean_gpt_chat", fixture.browser, { timeoutMs: 60_000 });
+  assert.equal(result.status, "success", result.failureCode ?? "draft clear failed");
+  assert.equal(result.value?.staleDraftCleared, true);
+  assert.equal(observations, 2, "an isolated stale draft must be cleared once and reread once");
+  assert.deepEqual(fixture.waitDurations(), []);
+  assert.equal(fixture.physicalMutations(), 1);
+}
 
 let profileOpen = false;
 let profileHydrated = false;

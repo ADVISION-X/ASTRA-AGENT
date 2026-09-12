@@ -1,7 +1,7 @@
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
 import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
 import { productionRoutePolicies } from "../../../src/lib/local-runtime/production/route-policy.js";
-import { buildProductTask, exerciseProductFlow, FIXTURE_HASH, FIXTURE_HASH_B, routesForPlugin } from "../product-plugin-test-runtime.js";
+import { buildProductTask, exerciseConfirmedSubmitRecovery, exerciseProductFlow, FIXTURE_HASH, FIXTURE_HASH_B, routesForPlugin } from "../product-plugin-test-runtime.js";
 
 const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "naming-bazi-analysis-and-naming");
 assert(plugin);
@@ -49,6 +49,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     },
   };
   const run = await exerciseProductFlow(plugin, { task, output });
+  await exerciseConfirmedSubmitRecovery(plugin, { task, output });
   assert.deepEqual(run.calls.map((call) => call.child), sequence);
   assert.match(String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt), /当前 Product Plugin：naming-bazi-analysis-and-naming/u);
   assert.equal(run.physicalSubmitDispatches, 1);

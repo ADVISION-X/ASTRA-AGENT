@@ -166,6 +166,10 @@ try {
   assert.equal(rejectedFact?.failureCode, "BROWSER_POSTCONDITION_FAILED");
   assert.equal(rejectedFact?.nativeFailureCode, null);
   assert.match(rejectedFact?.authorityHash ?? "", /^sha256:[a-f0-9]{64}$/u);
+  assert.equal(store.readExactCallMutationFact({
+    jobId: "job-1", attemptId: "attempt-2", exactCallIdentityHash, actionOrdinal: 1,
+  })?.authorityRef, rejectedFact?.authorityRef,
+  "exact effect lookup must be owned by its durable call identity rather than an ambient attempt");
   assert.throws(() => store.readExactCallMutationFact({
     jobId: "job-1", attemptId: "attempt-1", exactCallIdentityHash, actionOrdinal: 2,
   }), /BROWSER_ACTION_SEQUENCE_DRIFT/u,
@@ -181,6 +185,40 @@ try {
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
   }), "target-local setup may execute in a new fenced Target generation");
   store.markFailedBeforeDispatch("command-cross-generation", "FIXTURE_NOT_DISPATCHED");
+  const reusableProviderExactHash = `sha256:${"6".repeat(64)}` as const;
+  const reusableProviderLogicalHash = `sha256:${"7".repeat(64)}` as const;
+  store.prepare({
+    commandId: "command-provider-no-input-rejected", logicalMutationId: reusableProviderLogicalHash,
+    exactCallIdentityHash: reusableProviderExactHash,
+    jobId: "job-1", resultRevision: 0, attemptId: "attempt-1", leaseVersion: 1,
+    executionFenceHash: hash, targetRef: "target-old", documentRef: "document-old",
+    productStepId: "step-provider-retry", callId: "call-provider-retry",
+    childCapabilityId: "submit_exact_gpt_turn_once", effectScope: "provider_effect", actionOrdinal: 13,
+    actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
+    negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
+  });
+  store.markDispatched("command-provider-no-input-rejected");
+  store.markRejected("command-provider-no-input-rejected", hash, "no");
+  assert.equal(store.readExactCallMutationFact({
+    jobId: "job-1", attemptId: "attempt-2",
+    exactCallIdentityHash: reusableProviderExactHash, actionOrdinal: 13,
+  }), null, "a prior-attempt provider rejection with zero physical input must not bind retry to its old Target");
+  assert.doesNotThrow(() => store.prepare({
+    commandId: "command-provider-retry-after-no-input", logicalMutationId: reusableProviderLogicalHash,
+    exactCallIdentityHash: reusableProviderExactHash,
+    jobId: "job-1", resultRevision: 0, attemptId: "attempt-2", leaseVersion: 2,
+    executionFenceHash: hash, targetRef: "target-new", documentRef: "document-new",
+    productStepId: "step-provider-retry", callId: "call-provider-retry",
+    childCapabilityId: "submit_exact_gpt_turn_once", effectScope: "provider_effect", actionOrdinal: 13,
+    actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
+    negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
+  }), "a prior-attempt provider rejection with zero physical input must permit one fresh retry");
+  store.markDispatched("command-provider-retry-after-no-input");
+  store.markConfirmed("command-provider-retry-after-no-input", hash);
+  assert.equal(store.readExactCallMutationFact({
+    jobId: "job-1", attemptId: "attempt-2",
+    exactCallIdentityHash: reusableProviderExactHash, actionOrdinal: 13,
+  })?.outcome, "CONFIRMED", "retry readback must ignore the obsolete no-input rejection");
   store.prepare({
     commandId: "command-new-target", logicalMutationId: `sha256:${"e".repeat(64)}`,
     exactCallIdentityHash: `sha256:${"1".repeat(64)}`,
