@@ -170,15 +170,20 @@ export async function releaseProductionLease(
   session: ProductionWorkerSession,
   job: ClaimedProductionTask,
   release: ProductionLeaseRelease,
-  stableRequestId?: string,
 ): Promise<string> {
-  const requestId = stableRequestId ?? `aiprelease_${randomUUID()}`;
   const payload = {
     reason_code: release.reasonCode,
     attempt_failure: release.attemptFailure,
     job_id: job.job_id,
     fence_hash: job.grant.execution_fence.fence_hash,
   };
+  const payloadHash = hashCanonical(payload);
+  const requestId = `aiprelease_${hashCanonical({
+    job_id: job.job_id,
+    attempt_id: job.grant.attempt_id,
+    lease_version: job.grant.lease_version,
+    payload_hash: payloadHash,
+  }).slice(7, 47)}`;
   await session.request(`/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/lease-release`, {
     method: "POST",
     headers: fenceHeaders(job),
@@ -186,14 +191,13 @@ export async function releaseProductionLease(
       schema_version: "xuanxue-ai-lease-release.v6",
       control_protocol_version: "xuanxue-ai-production-v6",
       request_id: requestId,
-      idempotency_key: requestId,
       job_id: job.job_id,
       worker_session_id: session.workerSessionId,
       worker_session_epoch: session.workerSessionEpoch,
       attempt_id: job.grant.attempt_id,
       lease_version: job.grant.lease_version,
       fence_hash: job.grant.execution_fence.fence_hash,
-      payload_hash: hashCanonical(payload),
+      payload_hash: payloadHash,
       reason_code: release.reasonCode,
       attempt_failure: release.attemptFailure,
     }),

@@ -1,7 +1,7 @@
 {
   "schema_version": "website-agent-route-policies.v1",
   "contract_id": "ai-acceptance.website-agent-task-result",
-  "contract_version": 8,
+  "contract_version": 9,
   "parameter_types": {
     "admitted_identity_catalog_hash": "sha256",
     "analysis_kind": "bazi_analysis_kind",
@@ -42,7 +42,6 @@
     "report_id": "non_empty_string",
     "requirement_manifest_hash": "sha256",
     "requirement_manifest_ref": "non_empty_string",
-    "resource_kind": "localization_resource_kind",
     "result_schema_version": "route_result_schema_version",
     "source_resource_id": "non_empty_string",
     "source_sha256": "sha256",
@@ -887,7 +886,6 @@
       "action_id": "report_translation",
       "required_parameter_keys": [
         "target_locale",
-        "resource_kind",
         "source_resource_id",
         "source_version",
         "source_sha256",
@@ -966,7 +964,6 @@
       "action_id": "article_translation",
       "required_parameter_keys": [
         "target_locale",
-        "resource_kind",
         "source_resource_id",
         "source_version",
         "source_sha256",

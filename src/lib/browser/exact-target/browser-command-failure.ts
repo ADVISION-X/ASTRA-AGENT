@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { withRuntimeLogCause, type RuntimeLogger } from "../../runtime-logs/index.js";
 import type { BrowserCommandPermit } from "../transport/command-permit.js";
 import {
+  completeBrowserCommandSpan,
   emitBrowserMutationEvent,
   failBrowserCommandSpan,
   startBrowserCommandSpan,
@@ -99,19 +100,29 @@ const recordUnsettledMutation = (input: FailureInput, code: string): void => {
 
 export const failBrowserCommandExecution = (input: FailureInput): never => {
   if (input.state.terminalized) throw input.error;
+  const code = causalBrowserFailureCode(input.error);
+  if (!input.mutation && (input.permit.childCapabilityId === "checkpoint_gpt_text_response"
+    ? code === "BROWSER_DOM_CANDIDATE_MISSING"
+    : input.permit.childCapabilityId === "checkpoint_gpt_generated_image"
+      && ["BROWSER_AUTHENTICATED_MEDIA_USER_TURN_ABSENT",
+        "BROWSER_AUTHENTICATED_MEDIA_IMAGE_SOURCE_ABSENT"].includes(code))) {
+    completeBrowserCommandSpan({ span: input.commandSpan });
+    input.state.terminalized = true;
+    throw input.error;
+  }
   if (input.terminalReply !== null) return rejectAuthenticatedTerminalReply(input, input.terminalReply);
   if (input.mutation && input.state.dispatched && input.state.authenticatedReplyHash !== null) {
     return rejectAuthenticatedResult(input);
   }
-  const code = input.mutation && input.state.dispatched
-    ? "BROWSER_COMMAND_RECEIPT_MISSING" : causalBrowserFailureCode(input.error);
-  recordUnsettledMutation(input, code);
+  const failureCode = input.mutation && input.state.dispatched
+    ? "BROWSER_COMMAND_RECEIPT_MISSING" : code;
+  recordUnsettledMutation(input, failureCode);
   const failureEvent = failBrowserCommandSpan({
     span: input.commandSpan, permit: input.permit,
     proofHash: input.mutation && input.state.prepared
-      ? input.mutations.authorityHash(input.permit.commandId) : hashBrowserCommandValue(code),
-    failureCode: code, error: input.error,
+      ? input.mutations.authorityHash(input.permit.commandId) : hashBrowserCommandValue(failureCode),
+    failureCode, error: input.error,
     pendingReceipt: input.mutation && input.state.dispatched,
   });
-  throw withRuntimeLogCause(new Error(code, { cause: input.error }), failureEvent.eventId);
+  throw withRuntimeLogCause(new Error(failureCode, { cause: input.error }), failureEvent.eventId);
 };

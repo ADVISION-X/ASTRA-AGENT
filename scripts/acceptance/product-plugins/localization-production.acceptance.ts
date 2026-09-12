@@ -23,7 +23,6 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
       : { parameters: { reflection_plan_id: "reflection:1", reflection_contract_version: "scheduled-quality-reflection.v1", evidence_ref_catalog: ["receipt:1"] }, reviewPolicy: "scheduled-quality-reflection.v1" as const }
     : { parameters: {
       target_locale: "en-US",
-      resource_kind: route.product_id === "localization_report_translation" ? "report" : "article",
       source_resource_id: "resource:1", source_version: "v1", source_sha256: FIXTURE_HASH,
       policy_version: "localization-policy.v1",
     } };

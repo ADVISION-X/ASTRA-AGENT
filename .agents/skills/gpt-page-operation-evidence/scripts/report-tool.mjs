@@ -224,7 +224,7 @@ async function buildProductInventory(repo) {
     if (!(await isFile(path))) continue;
     const contract = await readJson(path);
     if (contract.schemaVersion !== "product-page-evidence-contract.v1"
-      || contract.owner !== contract.pluginId || !Number.isSafeInteger(contract.pluginVersion)
+      || contract.owner !== contract.pluginId
       || contract.traceAuthority?.kind !== "durable-product-forensics"
       || contract.traceAuthority?.sequenceOwner !== "accepted-production-attempt"
       || contract.traceAuthority?.currentFlowSourcesRole !== "projection-only"
@@ -246,7 +246,6 @@ async function buildProductInventory(repo) {
         productId: route.productId,
         actionId: route.actionId,
         pluginId: contract.pluginId,
-        pluginVersion: contract.pluginVersion,
         contractPath,
         contractDigest: sha256(JSON.stringify(stable(route))),
         flowOwnerBinding: ownerBinding,
@@ -258,22 +257,22 @@ async function buildProductInventory(repo) {
   }
   assertUnique(contracts.map((entry) => entry.productKey), "PRODUCT_EVIDENCE_ROUTE_DUPLICATE");
   const catalogModule = await import(pathToFileURL(join(repo, "src/mediator/product-plugin-catalog.ts")).href);
-  const catalog = catalogModule.productPluginCatalogSnapshot;
+  const catalog = catalogModule.productionPluginCatalog;
   if (!Array.isArray(catalog) || catalog.length === 0) fail("PRODUCT_CATALOG_INVALID");
   const byKey = Object.fromEntries(contracts.map((entry) => [entry.productKey, entry]));
   const products = [];
   for (const plugin of catalog) for (const route of plugin.accepts ?? []) {
-    const productKey = `${route.product_id}/${route.action_id}`;
+    const productKey = `${route.productId}/${route.actionId}`;
     const declared = byKey[productKey];
-    if (declared && (declared.pluginId !== plugin.plugin_id || declared.pluginVersion !== plugin.plugin_version)) {
+    if (declared && declared.pluginId !== plugin.pluginId) {
       fail("PRODUCT_EVIDENCE_CONTRACT_IDENTITY_MISMATCH", productKey);
     }
-    products.push(declared ?? stable({
+    products.push(declared ? stable({ ...declared, pluginVersion: 0 }) : stable({
       productKey,
-      productId: route.product_id,
-      actionId: route.action_id,
-      pluginId: plugin.plugin_id,
-      pluginVersion: plugin.plugin_version,
+      productId: route.productId,
+      actionId: route.actionId,
+      pluginId: plugin.pluginId,
+      pluginVersion: 0,
       contractPath: null,
       contractDigest: null,
       flowOwnerBinding: null,
@@ -1940,7 +1939,7 @@ async function validateReport(repo, matrixPath, reportPath, requireComplete) {
     const runMatricesCurrent = product.runs.every((run) =>
       run.captureContext?.matrixDigest === current.matrixBinding?.digest);
     const stale = !expected || product.productId !== expected.productId || product.actionId !== expected.actionId
-      || product.pluginId !== expected.pluginId || product.pluginVersion !== expected.pluginVersion
+      || product.pluginId !== expected.pluginId
       || product.contractDigest !== expected.contractDigest
       || JSON.stringify(product.flowOwnerBinding) !== currentBinding || !runSourcesCurrent || !runMatricesCurrent;
     if (stale) staleProducts.push(product.productKey);

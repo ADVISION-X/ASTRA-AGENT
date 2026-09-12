@@ -48,7 +48,7 @@ const EXACT_ASSISTANT_TURN_FUNCTION = `async function (spec) {
   const generatingRaw = document.querySelectorAll(
     "#composer-submit-button[data-testid='stop-button']"
   ).length;
-  if (raw.length !== 1) return { rawCount: raw.length, eligibleCount: 0,
+  if (generatingRaw !== 0 || raw.length !== 1) return { rawCount: raw.length, eligibleCount: 0,
     rawDomHtml: "", semanticText: "", currentUrl, assistantTurnId, precedingUserTurnId,
     generatingRaw, observedAt, nativeCauseCode: null,
     nativeStage: "runtime-call-function-on" };

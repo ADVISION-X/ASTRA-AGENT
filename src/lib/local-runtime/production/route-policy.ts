@@ -7,7 +7,7 @@ export type { ProductionRoutePolicy } from "../../../mediator/product-plugin-con
 type RoutePolicyProjection = Readonly<{
   schema_version: "website-agent-route-policies.v1";
   contract_id: "ai-acceptance.website-agent-task-result";
-  contract_version: 8;
+  contract_version: 9;
   parameter_types: Readonly<Record<string, string>>;
   routes: readonly ProductionRoutePolicy[];
 }>;
@@ -15,9 +15,9 @@ type RoutePolicyProjection = Readonly<{
 const projection = routePolicyArtifact as RoutePolicyProjection;
 if (projection.schema_version !== "website-agent-route-policies.v1"
   || projection.contract_id !== "ai-acceptance.website-agent-task-result"
-  || projection.contract_version !== 8
+  || projection.contract_version !== 9
   || !projection.parameter_types
-  || Object.keys(projection.parameter_types).length !== 47
+  || Object.keys(projection.parameter_types).length !== 46
   || projection.routes.length !== 40) {
   throw new Error("PRODUCTION_ROUTE_POLICY_PROJECTION_INVALID");
 }

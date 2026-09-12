@@ -9,12 +9,12 @@
   "lawIds": [
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V53",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V6",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V23",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V23",
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V24",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V24",
     "LAW-AGENT-PRODUCTION-RUNTIME-005-V23",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V25",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V25",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V26"
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V26",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V26",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V27"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-route-capability-manifest.provider.spec.json",
@@ -140,16 +140,16 @@ Runtime 自身代码保持 production 目录内的直接模块关系。不得新
 Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为：
 
 - Agent Route Capability Manifest provider：version 4；只发布 current session 支持的 `product_id + action_id + task_contract_version + result_contract_version`；Product Profile、Skill、Prompt、Flow、实现名称、版本和 hash 均不得对外发布或参与任务身份；
-- Website Agent Task Result consumer dependency：version 8；
-- Xuanxue AI Production V6 consumer dependency：version 26。Runtime 只消费 Website 当前授权、有限 `retry_not_before`、三个 next action、包含 `provider_effect_identity_hash` 的 typed effect outcome 与 admission receipt；不得自行推导业务恢复。
+- Website Agent Task Result consumer dependency：version 9；
+- Xuanxue AI Production V6 consumer dependency：version 27。Runtime 只消费 Website 当前授权、有限 `retry_not_before`、三个 next action、包含 `provider_effect_identity_hash` 的 typed effect outcome 与 admission receipt；不得自行推导业务恢复。
 
 consumer dependency 的 contract body 只能包含 contractId、version、providerRepo。普通启动只校验本仓最小 dependency，不读取未绑定 Website 工作树；跨仓 participant commit 只属于 RELEASE 证据。
 
 唯一 route projection generator 必须机械得到并逐项校验：
 
 - 40 routes；
-- 47 parameter types；
-- 31 result contracts；
+- 46 parameter types；
+- 33 result contracts；
 - 0 条 reservation route；
 - 每条 route 的 parameters、materials、relations、result_contract 与 Website provider 语义完全一致。
 
@@ -158,6 +158,8 @@ consumer dependency 的 contract body 只能包含 contractId、version、provid
 `FROZEN-PUBLIC-KNOWLEDGE-PROVIDER-FORMAT-ONLY-001` 固定：Public Knowledge 的 Provider 可见输出格式只来自 Website 唯一 canonical `result_contract` 的机械投影，Product 只把当前 research/article 子合同原样写进 exact Prompt。research 顶层只要求 `schema_version,decision,topic_manifest,research_markdown,citations,research_claim_units` 六字段，article 顶层只要求 `schema_version,title,editor_note,article_markdown,safety_notes` 五字段；Provider 多余字段由 Website 唯一 parser 丢弃，不得拒收。该合同只约束交付结构、字段类型、枚举、引用 identity/marker 关系与 Markdown 语法，不得规定选题结论、分析方法、推理过程、观点立场、证据解释或图片创意；Product Skill 正文不得注入 Provider Prompt，AGENT 不得复制、扩写或另建格式/质量 validator，不得重塑 Provider 输出字段类型或追加第二 reception sidecar。改变或删除本冻结边界，必须由用户在未来任务中明确解冻并同步替换双仓施工图、合同、实现与唯一质检。
 
 Website 在签发任务前唯一判断业务参数值是否合法。Runtime 先把 product_id/action_id 解析为有界字符串，再按 current route projection 与 Route Capability Manifest 精确解析；grant 不再冻结或比较任何 Product Plugin 身份。除此之外 Runtime 只校验 authenticated session/claim/grant/fence、task wire/schema/hash、当前 contract/projection/control contract version，以及 route/key/material/relation/result-contract 与当前 projection 的机械一致性；不得保存 `bazi_analysis_kind`、locale、localization resource kind、Product package/version 或 Bazi reusable candidate 的业务白名单，不得按 action 名推导 review/continuation，不得维护 `routeProducesGeneratedImage`、手写 Product/Action 支持表或硬编码 primary 数量。Product Plugin 通过 Product-facing execution contract 取得当前 task、materials、当前 Website route policy 与 GPT public facade，只校验完成自身执行所必需的局部 artifact、Skill 与 result 组装前置，不复判 Website 业务资格，也不读取 Runtime 私有 transport、store、lease、Outbox 或 recovery 模块。
+
+本地化 task 不再跨仓携带 `resource_kind`；`localization_report_translation + report_translation` 与 `localization_article_translation + article_translation` 已是唯一业务类型身份。Website 内部领域 `resource_kind` 继续由 Website 自己消费，不投影给 AGENT，也不建立 alias、映射或兼容字段。
 
 Website business admission receipt 只有三种互斥结构：
 
@@ -197,6 +199,8 @@ Website 签发 attempt + lease + fence
 Browser provider effect identity 不含 Product Plugin 或 `attempt_id`，固定由 `job_id + result_revision + product_step_id + call_id + child_id + request_hash + payload_hash` 组成。AGENT 内部实现、attempt、进程、lease、fence、Target、Document 变化不得制造新 effect；同一 identity 的 physical dispatch 总数至多一。每次 mutation 与 Website 写请求仍校验当前 fence，旧 fence 的迟到写请求全部拒绝。
 
 `FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001` 冻结：Runtime 只有在 Browser Authority 为 PRESENT 时才领取新任务；submit 后轮询释放唯一 Browser FIFO，但重领必须携带 park 前原 system Target 的精确 `targetRef`，不得走通用 acquisition 或 GPT 首页导航。唯一 Browser WAL 的 `logical_mutation_id` 直接作为公开 `provider_effect_identity_hash`，Runtime 只运输 typed fact且不得读取 Browser 私有 SQLite。回答稳定后使用独立的 settled result payload hash；只有 `RESULT_SETTLED_UNUSABLE + CONFIRMED + confirmed + effect hash + evidence + settled result hash` 完整一致，Website 才能拒绝该结果并签发新 revision，其他现实输入只能在同一 accepted attempt 零 submit 收敛。不得增加第二 WAL、queue、store、Owner、状态机、兼容桥或 fallback。改变或删除本冻结边界必须由用户在未来任务中明确解冻，并同步替换双仓法案、施工图、合同、实现与唯一质检；普通开发、修复、重构、CI 或 RELEASE 授权均不构成解冻。
+
+lease release 只使用一个由 `job_id + attempt_id + lease_version + payload_hash` 确定性生成的 `request_id`；不得再复制 `idempotency_key`。同一 attempt 的同 effect readback 失败只允许 Website 记录首条失败事实，后续 release 只验证相同 `provider_effect_identity_hash` 并释放当前 lease，不以新的墙钟时间制造第二失败身份。
 
 AGENT 不建立通用 checkpoint、跨任务 Provider session state 或第二恢复状态机。Browser 唯一 WAL 的同一 provider-effect 行只提供 at-most-once 与同-effect confirmed readback 所需加密 locator；Runtime 唯一 Outbox 只幂等交付同一 result。Website 以自身 staging、领域入库与 admission receipt 为准，已完整 staging 的结果继续由 Domain Consumer 入库，不回退 AGENT。
 
@@ -243,8 +247,8 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 每次候选都必须重新证明：
 
 1. 八条 Runtime law、稳定 blueprintId、三份 active contractRef 与 Runtime 唯一 Manifest 的 lawIds 相互一致；Architecture Boundary law 与 Manifest 独立保持其现役一一对应；越界 `ownedPaths` 只在同一候选的一次原子修改中归位，并立即证明无无主、无重叠、无 Runtime manifest-owner-drift。
-2. Website task-result v8、V6 v26 与 AGENT dependency 精确一致；grant 不携带 Provider locator/checkpoint 或 Product Plugin 身份，只绑定当前 task/attempt/lease/fence；attempt failure 必须运输 Browser 已持有的 `provider_effect_identity_hash`。`RESULT_SETTLED_UNUSABLE + CONFIRMED + confirmed + effect hash + evidence + settled result hash` 只允许 Website 拒绝该结果并签发新 result revision；effect hash 与 settled result hash 不得互相冒充。其它 DISPATCHED/CONFIRMED 只允许同 accepted attempt 零提交读回。八字仅携带 consultation_root_ref 与 direct parent，明确新 result revision 才可携带 hash-bound rejection。
-3. route projection 精确为 40 routes、47 parameter types、31 result contracts、0 reservation routes；bazi_private_base_input 与 result_contract.private_base 为零。
+2. Website task-result v9、V6 v27 与 AGENT dependency 精确一致；grant 不携带 Provider locator/checkpoint 或 Product Plugin 身份，只绑定当前 task/attempt/lease/fence；attempt failure 必须运输 Browser 已持有的 `provider_effect_identity_hash`。`RESULT_SETTLED_UNUSABLE + CONFIRMED + confirmed + effect hash + evidence + settled result hash` 只允许 Website 拒绝该结果并签发新 result revision；effect hash 与 settled result hash 不得互相冒充。其它 DISPATCHED/CONFIRMED 只允许同 accepted attempt 零提交读回。八字仅携带 consultation_root_ref 与 direct parent，明确新 result revision 才可携带 hash-bound rejection。
+3. route projection 精确为 40 routes、46 parameter types、33 result contracts、0 reservation routes；bazi_private_base_input 与 result_contract.private_base 为零。
 4. base、Bazi primary、review admission receipt 的互斥字段与完整 canonical hash 全部闭合，未闭合时本地 completed 增量为零。
 5. credential 失败类别分别得到稳定脱敏 typed code，且 claim/Provider mutation 增量为零。
 6. Runtime-owned source 对 Product Plugin 的 direct/re-export/dynamic/side-effect import 为零；Product source 对 Runtime 私有 production module 的 import 为零；唯一 architecture-owned Catalog 与 Runtime Manifest publisher 只以冻结纯数据 route snapshot 连接，provider v4 Route Capability Manifest 只含 product/action 与 task/result contract version，跨仓及持久身份的 Product Plugin 名称、版本、Skill hash 字段为零。

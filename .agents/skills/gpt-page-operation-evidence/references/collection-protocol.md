@@ -21,11 +21,11 @@
 `production-source.mjs` 必须只读打开 production runtime DB、材料目录、forensics records 和 Browser mutation DB。它要求：
 
 1. task 行与 task JSON 的 job/request hash 一致；
-2. accepted Plugin identity 与 task request hash 一致；
+2. accepted Product/Action identity 与 task request hash 一致；
 3. `material_refs` ordinal 从 0 连续且不重复；
 4. 材料目录没有缺文件、多文件或子目录；
 5. display name、role、bytes、sha256 与磁盘字节一致；
-6. Product 合同 plugin/version/route 与 accepted attempt 一致；
+6. Product 合同的 Product/Action/route 与当前 Catalog 一致；
 7. trace 每行属于同一 job/attempt/plugin，Child 与 payload 身份一致；
 8. trace 每一步的 step/Child/ordinal/exact call identity 与 forensics 完整性成立，且每条实际记录有唯一 `traceEntryId`；
 9. Browser receipt 若存在，必须与同一 exact call 的 step/Child/ordinal 一致；语义 `callId` 只取自回执，无回执时为 `null`；

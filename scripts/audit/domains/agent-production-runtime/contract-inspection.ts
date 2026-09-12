@@ -8,10 +8,10 @@ import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 const LAWS = {
   core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V53", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V6",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V23", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V23",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V23", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V25",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V25",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V26",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V24", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V24",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V23", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V26",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V26",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V27",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
@@ -36,10 +36,10 @@ const sourceFor = (context: InspectorContext, path: string): SourceFile | undefi
 
 const inspectMinimalDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const [path, version, lawId, checkId] of [
-    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 24,
-      LAWS.route, "agent-production-runtime/v23-dependency"],
-    ["docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json", 7,
-      LAWS.route, "agent-production-runtime/v7-result-dependency"],
+    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 27,
+      LAWS.route, "agent-production-runtime/v27-dependency"],
+    ["docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json", 9,
+      LAWS.route, "agent-production-runtime/v9-result-dependency"],
   ] as const) {
     const dependency = JSON.parse(read(context, path)) as { version?: unknown; contract?: Record<string, unknown> };
     if (dependency.version !== version || dependency.contract?.version !== version
@@ -62,9 +62,9 @@ const inspectRouteProjection = (context: InspectorContext, findings: InspectorFi
     return Array.isArray(keys) && keys.includes("reusable_base_reservation_ref")
       && keys.includes("reusable_base_reservation_hash");
   }).length;
-  if (routes.length !== 40 || Object.keys(route.parameter_types ?? {}).length !== 47
+  if (routes.length !== 40 || Object.keys(route.parameter_types ?? {}).length !== 46
     || resultContracts !== 33 || reservations !== 0) findings.push(finding(LAWS.route,
-    "agent-production-runtime/route-denominator", PATHS.routeProjection, "Route projection is not 40/47/33/0."));
+    "agent-production-runtime/route-denominator", PATHS.routeProjection, "Route projection is not 40/46/33/0."));
 };
 
 const inspectAdmissionHash = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -92,15 +92,11 @@ const inspectCredentialAndDurableTypes = (context: InspectorContext, findings: I
     findings.push(finding(LAWS.credential, "agent-production-runtime/credential-contract", credentialPath,
       "DeviceCredentialSchema still persists the Website manifest hash."));
   }
-  const durableIdentity = sourceFor(context, PATHS.contracts)?.getInterface("DurablePluginIdentity");
-  const durableIdentityFields = durableIdentity?.getProperties().map((property) => property.getName()).sort() ?? [];
-  const expectedDurableIdentityFields = [
-    "plugin_id", "plugin_version", "request_hash", "skill_hash",
-  ];
-  if (JSON.stringify(durableIdentityFields) !== JSON.stringify(expectedDurableIdentityFields)) {
-    findings.push(finding(LAWS.core, "agent-production-runtime/task-identity-contract", PATHS.contracts,
-      "Durable task identity is not the exact five-field task and Plugin identity contract."));
-  }
+  const release = sourceFor(context, PATHS.cloudClient)?.getFunction("releaseProductionLease")?.getText() ?? "";
+  if (!release.includes("payload_hash: payloadHash") || !release.includes("const requestId = `aiprelease_${hashCanonical({")
+    || release.includes("idempotency_key")) findings.push(finding(LAWS.route,
+    "agent-production-runtime/lease-release-identity", PATHS.cloudClient,
+    "Lease release must use one deterministic request_id without a duplicate idempotency_key."));
   const grantSchema = sourceFor(context, PATHS.transport)
     ?.getVariableDeclaration("ExecutionGrantSchema")?.getInitializer();
   const grantObject = grantSchema?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);

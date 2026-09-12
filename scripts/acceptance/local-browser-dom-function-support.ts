@@ -582,6 +582,20 @@ export const exerciseCapturedExactAssistantTurnFunction = async (source: string)
   assert.equal(observed.semanticText, "**bold**\n- item\n");
   assert.equal(observed.currentUrl, "https://chatgpt.com/c/exact");
   assert.equal(observed.nativeStage, "runtime-call-function-on");
+  const generatingObserved = await execute(source, { ...document,
+    querySelectorAll: (value: string) => value === "#composer-submit-button[data-testid='stop-button']"
+      ? [assistant] : document.querySelectorAll(value),
+  }, input, "https://chatgpt.com/c/exact") as Readonly<{
+    rawCount: number; eligibleCount: number; rawDomHtml: string; semanticText: string; generatingRaw: number;
+  }>;
+  assert.deepEqual({
+    rawCount: generatingObserved.rawCount,
+    eligibleCount: generatingObserved.eligibleCount,
+    rawDomHtml: generatingObserved.rawDomHtml,
+    semanticText: generatingObserved.semanticText,
+    generatingRaw: generatingObserved.generatingRaw,
+  }, { rawCount: 1, eligibleCount: 0, rawDomHtml: "", semanticText: "", generatingRaw: 1 },
+  "generation must short-circuit before assistant visibility, HTML, or semantic-text reads");
   const hidden = new FakeElement("hidden", { "pre code": [] }, { display: "none" }, {}, "DIV", [text("hidden")]);
   const hiddenAssistant = assistantOuter(hidden);
   const hiddenObserved = await execute(source, {

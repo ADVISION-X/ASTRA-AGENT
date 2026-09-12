@@ -73,10 +73,10 @@ node .agents/skills/gpt-page-operation-evidence/scripts/production-source.mjs \
 只有同时满足以下条件才可打开 Chrome：
 
 - `sourceKind=PRODUCTION_RUNTIME_DURABLE_TASK`、`synthetic=false`；
-- task 的 `job_id/request_hash/product/action/plugin/version` 相互一致；
+- task 的 `job_id/request_hash/product/action` 相互一致；
 - material 目录与 task `material_refs` 文件集合完全相等；
 - 每个文件名、role、ordinal、bytes 和 sha256 精确相等；
-- 目标 Product 的 `page-evidence-contract.json` 与当前 Plugin 身份一致；
+- 目标 Product 的 `page-evidence-contract.json` 与当前 Product 路由一致；
 - forensics trace 每一行都属于同一 job/attempt/plugin，Child、ordinal、exact call identity 与完整性哈希一致；
 - 每条新生产 forensics 必须带该调用的 `input_hash` 与安全 `page_input_role_hashes`。后者只含 prompt/response、附件显示名集合、模型、推理要求、会话 URL、turn marker 和 assistant turn identity 的哈希或非敏感枚举；不得保存正文；
 - 已接受生产 attempt 的 durable forensics 是历史实际调用顺序的唯一真相；当前 Product 合同和源码只说明“今天的流程投影”，不得反向淘汰旧 attempt 的真实 trace；

@@ -1,10 +1,10 @@
 {
   "schemaVersion": "gpt-page-operation-evidence.v7",
-  "projectionRevision": "sha256:6d363abf5d07af817d247d4e1e0473979842a4e10c60ba6aa02f131151b27092",
+  "projectionRevision": "sha256:f40d54a9dc2e7aa12ffac2eca5a5ecfc84f2f88da39503016c7f3aa63f1560a7",
   "captureEpoch": null,
   "matrixBinding": {
     "schemaVersion": "gpt-page-operation-matrix.v4",
-    "digest": "sha256:bc0cfe91aa9a2733e887f10b86607a8c88830b2126fe17286e636567d5c343c6"
+    "digest": "sha256:047ee142b54ac7f6855f2af60bfc3742edf8a25bff18d6414dcd89f0ff5a4641"
   },
   "captureStatus": "NOT_CAPTURED",
   "denominator": {
@@ -542,7 +542,7 @@
     {
       "actionId": "report_translation",
       "captureStatus": "NOT_CAPTURED",
-      "contractDigest": "sha256:088d8c54e23e9061dcd4cee5ed7a6db4101bc9356882cbf3f4381e533d23545d",
+      "contractDigest": "sha256:ae7ad319b19688ec4edc5b612fc1739008281c5e9b3fd74a17f114efb35bb0a0",
       "contractPath": "src/plugins/localization-production/page-evidence-contract.json",
       "flowOwnerBinding": {
         "files": [
@@ -552,43 +552,43 @@
             "semanticHash": "sha256:50d4496f4c16caed0222a21e16e9c9bbe6b72c4c677963226fb75ffdef68f976"
           },
           {
-            "contentHash": "sha256:1a7d74101b2aa030fc0eb3f74796a784f1d1b1f2125deb998563e1abe8742cde",
+            "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
             "path": "src/plugins/localization-production/flow.ts",
-            "semanticHash": "sha256:16897f7d042becebaf29cd84afaae9b312bc1ed3ebe74d2ea0b980e875fe3534"
+            "semanticHash": "sha256:74ae34e16609e290ec036b1b84feb0a011013befcc0b615c61091a0825eaf104"
           },
           {
-            "contentHash": "sha256:2e969b517f17e8e727c642ae91990ff3d78b79be0b270ce9c1208803420773cf",
+            "contentHash": "sha256:d8dcc8b2956f7f978967ef0a995de9a1c6afc36a27270c608c66b8a7cbcd0aed",
             "path": "src/plugins/localization-production/index.ts",
-            "semanticHash": "sha256:f435e531f3fc29088925e1e02543bc406455a2a4162f1190c450d1e8f8660376"
+            "semanticHash": "sha256:b94c60358937229bcfa6b23747586f18f079c8ef50149dbf6a4febf493c9159d"
           },
           {
-            "contentHash": "sha256:149ecbdabd4e2463604be0b13b3911f9fe1e92f8e7ab67de0dbea592904d6915",
+            "contentHash": "sha256:17bcf80f2694fe96c90f08ee1589f7ba20e652ed4d0381a92eaa9140cda0f6c1",
             "path": "src/plugins/localization-production/page-evidence-contract.json",
-            "semanticHash": "sha256:598ff8a6e97e74502005f1b7bc3098f0d108cfd9b87e0fb4c811ba98a7099bf2"
+            "semanticHash": "sha256:0d279201988a0c668b6f5c89ad39fb490d23229de68e8dcf365a6f102c556953"
           },
           {
-            "contentHash": "sha256:10d99d1181ffa4008512bd783c5495f4a5b187fde824f8488b3c9de9bb2e65eb",
+            "contentHash": "sha256:36895775cf7fe4cbe5c13ff49230fbb190eaab4dbde4aafe26b2a3487098624b",
             "path": "src/plugins/localization-production/result-contract.ts",
-            "semanticHash": "sha256:b7ca6f969c54e485e8d7dd62fd58aa5914dec7b1eaaa9bbb9cba163b3da9e05e"
+            "semanticHash": "sha256:62d0450a9475f8cdd6e8b71a4f8ca6025ebfc7ac756a866efdc41dbd5fb775cb"
           },
           {
-            "contentHash": "sha256:84a9fc48203a49f08980d949c0703436a6e4a8acc9db051df67bd2019abca03f",
+            "contentHash": "sha256:2e3ce612689cd582d9f5ae3e66d1d756b79ed22052cd30a1cf1700c2fe044a21",
             "path": "src/plugins/localization-production/static-catalog-contract.ts",
-            "semanticHash": "sha256:bd68eb76ae22f644370fb3b81d37450f44228a254bfd443eba600eee9cd6b8d3"
+            "semanticHash": "sha256:84a9ef1ab52ab8eaac59162c52837690a16998f0ccf38a3ceea8a3e658a13780"
           },
           {
-            "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+            "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
             "path": "src/plugins/localization-production/static-catalog-flow.ts",
-            "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+            "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
           }
         ],
-        "semanticDigest": "sha256:8841e341578b4f7ebd7d9b2e664f6d4d52fc086e1cd10f2d37d9f2490c445156"
+        "semanticDigest": "sha256:f349b90d09f9e0b672a33b4a0da1d5dffed888f588dd7b864abd00bbf60c6ea2"
       },
       "gaps": [
         "PRODUCT_PRODUCTION_CAPTURE_NOT_PRESENT"
       ],
       "pluginId": "localization-production",
-      "pluginVersion": 14,
+      "pluginVersion": 0,
       "productId": "localization_report_translation",
       "productKey": "localization_report_translation/report_translation",
       "runs": []
@@ -36453,7 +36453,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            79
+            80
           ]
         },
         {
@@ -36542,19 +36542,19 @@
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/flow.ts",
           "lines": [
-            159
+            171
           ]
         },
         {
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/static-catalog-flow.ts",
           "lines": [
-            38,
-            40,
-            52,
-            54,
-            63,
-            65
+            35,
+            37,
+            49,
+            51,
+            60,
+            62
           ]
         },
         {
@@ -36677,8 +36677,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:a611fa851fb660ed6426775a57b3db138bb8b369f129b8e8f37d925d0214ff9e",
-        "digest": "sha256:a611fa851fb660ed6426775a57b3db138bb8b369f129b8e8f37d925d0214ff9e",
+        "childCandidateDigest": "sha256:056dcfea6795a9d8c162e59aa5055c16d26d464751d5d9f9deb8e1c19475b92d",
+        "digest": "sha256:056dcfea6795a9d8c162e59aa5055c16d26d464751d5d9f9deb8e1c19475b92d",
         "facts": [
           {
             "expected": "select the complete approved file set in one batch",
@@ -36898,23 +36898,23 @@
           }
         ],
         "pageDemandDigest": "sha256:19420349b101aab568c91dc79066baa800334431826d8586bf44442e53478585",
-        "projectionDigest": "sha256:a611fa851fb660ed6426775a57b3db138bb8b369f129b8e8f37d925d0214ff9e",
+        "projectionDigest": "sha256:056dcfea6795a9d8c162e59aa5055c16d26d464751d5d9f9deb8e1c19475b92d",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
+                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
+                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
               },
               {
-                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
+                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
+                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
               }
             ],
-            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
+            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
           },
           "browser": {
             "files": [],
@@ -36958,14 +36958,14 @@
                 "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
               },
               {
-                "contentHash": "sha256:96dd7ff38f46de575084bb6a6f37d481d97addeaf6779beb7a09cd4e26fdb9fc",
+                "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
                 "path": "src/plugins/localization-production/flow.ts",
-                "semanticHash": "sha256:a6ee6d20817afdbe51c598435636105e874831f6906963d1010399fe05c4cfb1"
+                "semanticHash": "sha256:74ae34e16609e290ec036b1b84feb0a011013befcc0b615c61091a0825eaf104"
               },
               {
-                "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                 "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
                 "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
@@ -36998,7 +36998,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
+            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
           },
           "implementation": {
             "files": [
@@ -37069,8 +37069,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-production-browser-wait.acceptance-support.ts",
           "lines": [
-            91,
-            122
+            98,
+            158
           ]
         },
         {
@@ -37093,7 +37093,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            70
+            71
           ]
         },
         {
@@ -37112,7 +37112,13 @@
         {
           "path": "src/capabilities/gpt/production-browser-lifecycle.ts",
           "lines": [
-            91
+            131
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/production-child-tools.ts",
+          "lines": [
+            248
           ]
         }
       ],
@@ -37141,7 +37147,7 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts",
           "lines": [
-            81
+            77
           ]
         }
       ],
@@ -37193,8 +37199,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:6ff3fd758f078d1e61aa8699843d762046539cb6d1d5eb0d342088d27e334380",
-        "digest": "sha256:6ff3fd758f078d1e61aa8699843d762046539cb6d1d5eb0d342088d27e334380",
+        "childCandidateDigest": "sha256:022d34c6b5c59de62638c89f31d3df2114d3ee25e27e0e4c1bfa58602ab6e84c",
+        "digest": "sha256:022d34c6b5c59de62638c89f31d3df2114d3ee25e27e0e4c1bfa58602ab6e84c",
         "facts": [
           {
             "expected": "checkpoint the exact assistant image content",
@@ -37408,23 +37414,23 @@
           }
         ],
         "pageDemandDigest": "sha256:7249941ae0b406db07282133ed1ff296e33aaff9815c6c1bcef10dbb537a3294",
-        "projectionDigest": "sha256:6ff3fd758f078d1e61aa8699843d762046539cb6d1d5eb0d342088d27e334380",
+        "projectionDigest": "sha256:022d34c6b5c59de62638c89f31d3df2114d3ee25e27e0e4c1bfa58602ab6e84c",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
+                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
+                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
               },
               {
-                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
+                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
+                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
               }
             ],
-            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
+            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
           },
           "browser": {
             "files": [
@@ -37449,12 +37455,12 @@
                 "semanticHash": "sha256:5f3d49f9dc1913605fa650e0786daae03258d26bed95143c0ee37a3104b8a97d"
               },
               {
-                "contentHash": "sha256:95e332a6094d4d94efb97f4af5a5a7923915161debf261319700aeb3f3c88ffd",
+                "contentHash": "sha256:a85ed8c05d6983afbe3be6977938ce22cbf06dee3e130676ca1005986a05afcd",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts",
-                "semanticHash": "sha256:fc0c0a69c8f2fca4a60ab56d291c7b1da63f050c6cde966cccaa596da7a4b941"
+                "semanticHash": "sha256:c9d063c1d9d9ac1a0ac683f3992bc4cf8e08f5cd9dbf9e10a67d814b08117685"
               }
             ],
-            "semanticDigest": "sha256:44b3b9b60d7bf86483408898ac1324aa5911c6b5310580142456e4941041f75d"
+            "semanticDigest": "sha256:863972e277b2602e7ec25ab92304645a6041286cdebc8086c0da651891b53764"
           },
           "implementation": {
             "files": [
@@ -37527,17 +37533,17 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-production-browser-wait.acceptance-support.ts",
           "lines": [
-            74,
-            80,
-            86,
-            120,
-            121
+            81,
+            87,
+            93,
+            156,
+            157
           ]
         },
         {
           "path": "src/capabilities/gpt/acceptance/gpt-proof.acceptance.ts",
           "lines": [
-            222
+            223
           ]
         },
         {
@@ -37560,7 +37566,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            69
+            70
           ]
         },
         {
@@ -37579,7 +37585,14 @@
         {
           "path": "src/capabilities/gpt/production-browser-lifecycle.ts",
           "lines": [
-            90
+            130
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/production-child-tools.ts",
+          "lines": [
+            247,
+            299
           ]
         }
       ],
@@ -37651,19 +37664,19 @@
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/flow.ts",
           "lines": [
-            188
+            200
           ]
         },
         {
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/static-catalog-flow.ts",
           "lines": [
-            38,
-            40,
-            52,
-            54,
-            63,
-            65
+            35,
+            37,
+            49,
+            51,
+            60,
+            62
           ]
         },
         {
@@ -37787,8 +37800,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:f053ef084a4f38aa2b7ff54ac0f5ae7afac956bfb93484b6b4992a37087fb935",
-        "digest": "sha256:f053ef084a4f38aa2b7ff54ac0f5ae7afac956bfb93484b6b4992a37087fb935",
+        "childCandidateDigest": "sha256:2d848e28090da992eb98f95bf005a893aced32a2981748a5b213203e484de455",
+        "digest": "sha256:2d848e28090da992eb98f95bf005a893aced32a2981748a5b213203e484de455",
         "facts": [
           {
             "expected": "checkpoint exact assistant outerHTML and deterministic semantic text",
@@ -38012,23 +38025,23 @@
           }
         ],
         "pageDemandDigest": "sha256:f731a239fffe0cfbf5abd6869420737db2fc020246c3005f82ba41c09f55bb90",
-        "projectionDigest": "sha256:f053ef084a4f38aa2b7ff54ac0f5ae7afac956bfb93484b6b4992a37087fb935",
+        "projectionDigest": "sha256:2d848e28090da992eb98f95bf005a893aced32a2981748a5b213203e484de455",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
+                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
+                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
               },
               {
-                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
+                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
+                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
               }
             ],
-            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
+            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
           },
           "browser": {
             "files": [
@@ -38038,12 +38051,12 @@
                 "semanticHash": "sha256:2781cac110a86388459c016fb82acb4f01fd891254d804923630e40f39d2d0a3"
               },
               {
-                "contentHash": "sha256:0ae62fd8a1132456e7e0c5b2b3a663897fb84a7837ab4ef21749f96fcc99106b",
+                "contentHash": "sha256:cbadfd8ad272653a15574744827f49facbd108f1a1541afbd283db040fb2b9fe",
                 "path": "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts",
-                "semanticHash": "sha256:1a4fbb95cea41e0bcf5b6bca2fecb6b4e1eba90cb588599f40b68cd7a0a97e3a"
+                "semanticHash": "sha256:c7823a9fd24d9683e84d9c0750fff50f049b97ec771a26de113b146e1f9013bd"
               }
             ],
-            "semanticDigest": "sha256:72c0b6ab0d257e6d2722d608fa379833b0d66ce62dd208253ecace34da9b1fe1"
+            "semanticDigest": "sha256:eefdcbc8781f6212baa0f5b3f6a81aa9b2d3335da5a2592719f300ad7d1659a1"
           },
           "consumers": {
             "files": [
@@ -38083,14 +38096,14 @@
                 "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
               },
               {
-                "contentHash": "sha256:96dd7ff38f46de575084bb6a6f37d481d97addeaf6779beb7a09cd4e26fdb9fc",
+                "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
                 "path": "src/plugins/localization-production/flow.ts",
-                "semanticHash": "sha256:a6ee6d20817afdbe51c598435636105e874831f6906963d1010399fe05c4cfb1"
+                "semanticHash": "sha256:74ae34e16609e290ec036b1b84feb0a011013befcc0b615c61091a0825eaf104"
               },
               {
-                "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                 "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
                 "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
@@ -38123,7 +38136,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
+            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
           },
           "implementation": {
             "files": [
@@ -38185,7 +38198,7 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts",
           "lines": [
-            83
+            85
           ]
         },
         {
@@ -38212,7 +38225,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            76
+            77
           ]
         },
         {
@@ -38295,19 +38308,19 @@
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/flow.ts",
           "lines": [
-            140
+            153
           ]
         },
         {
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/static-catalog-flow.ts",
           "lines": [
-            38,
-            40,
-            52,
-            54,
-            63,
-            65
+            35,
+            37,
+            49,
+            51,
+            60,
+            62
           ]
         },
         {
@@ -38428,8 +38441,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:cfa26f825576d0c1a9da667477a1beb20d7bf1b78f9971bac301fa591581d424",
-        "digest": "sha256:cfa26f825576d0c1a9da667477a1beb20d7bf1b78f9971bac301fa591581d424",
+        "childCandidateDigest": "sha256:4acbbe36055dcfd2b994752069f3fce3c32196bcda470a650f4ec0c5286caa46",
+        "digest": "sha256:4acbbe36055dcfd2b994752069f3fce3c32196bcda470a650f4ec0c5286caa46",
         "facts": [
           {
             "expected": "close the current execution profile popup",
@@ -38639,23 +38652,23 @@
           }
         ],
         "pageDemandDigest": "sha256:0af0ab6d5fff2bb4a23727ad59b0e4887237c0f460c86780942da497c68e7560",
-        "projectionDigest": "sha256:cfa26f825576d0c1a9da667477a1beb20d7bf1b78f9971bac301fa591581d424",
+        "projectionDigest": "sha256:4acbbe36055dcfd2b994752069f3fce3c32196bcda470a650f4ec0c5286caa46",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
+                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
+                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
               },
               {
-                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
+                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
+                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
               }
             ],
-            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
+            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
           },
           "browser": {
             "files": [],
@@ -38699,14 +38712,14 @@
                 "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
               },
               {
-                "contentHash": "sha256:96dd7ff38f46de575084bb6a6f37d481d97addeaf6779beb7a09cd4e26fdb9fc",
+                "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
                 "path": "src/plugins/localization-production/flow.ts",
-                "semanticHash": "sha256:a6ee6d20817afdbe51c598435636105e874831f6906963d1010399fe05c4cfb1"
+                "semanticHash": "sha256:74ae34e16609e290ec036b1b84feb0a011013befcc0b615c61091a0825eaf104"
               },
               {
-                "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                 "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
                 "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
@@ -38739,7 +38752,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
+            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
           },
           "implementation": {
             "files": [
@@ -38813,8 +38826,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-failure-evidence-readback.acceptance-support.ts",
           "lines": [
-            21,
-            22
+            24,
+            25
           ]
         },
         {
@@ -38849,7 +38862,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            75
+            76
           ]
         },
         {
@@ -38932,19 +38945,19 @@
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/flow.ts",
           "lines": [
-            139
+            152
           ]
         },
         {
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/static-catalog-flow.ts",
           "lines": [
-            38,
-            40,
-            52,
-            54,
-            63,
-            65
+            35,
+            37,
+            49,
+            51,
+            60,
+            62
           ]
         },
         {
@@ -39075,14 +39088,14 @@
               {
                 "sourceBindings": [
                   {
-                    "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                    "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                     "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                    "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                    "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
                   },
                   {
-                    "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                    "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                     "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                    "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                    "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
                   },
                   {
                     "contentHash": "sha256:c98c3ce22757a147e178758100bd6788ce55fe31d0ab7a10d1eae1e07fbc6371",
@@ -39120,14 +39133,14 @@
                     "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
                   },
                   {
-                    "contentHash": "sha256:96dd7ff38f46de575084bb6a6f37d481d97addeaf6779beb7a09cd4e26fdb9fc",
+                    "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
                     "path": "src/plugins/localization-production/flow.ts",
-                    "semanticHash": "sha256:a6ee6d20817afdbe51c598435636105e874831f6906963d1010399fe05c4cfb1"
+                    "semanticHash": "sha256:74ae34e16609e290ec036b1b84feb0a011013befcc0b615c61091a0825eaf104"
                   },
                   {
-                    "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                    "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                     "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                    "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                    "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
                   },
                   {
                     "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
@@ -39160,8 +39173,8 @@
             ]
           }
         },
-        "childCandidateDigest": "sha256:9855aebac53946fa32a2a8344164e00072e7b02e6837747d8e7738d944a3c971",
-        "digest": "sha256:9855aebac53946fa32a2a8344164e00072e7b02e6837747d8e7738d944a3c971",
+        "childCandidateDigest": "sha256:88529ca42e71a3c17b8323834664f31f2f2ecc633f3fa3deea3439a9f1e5e966",
+        "digest": "sha256:88529ca42e71a3c17b8323834664f31f2f2ecc633f3fa3deea3439a9f1e5e966",
         "facts": [
           {
             "expected": "resolve and satisfy the Product-frozen reasoning requirement on an approved observed scale",
@@ -39411,23 +39424,23 @@
           }
         ],
         "pageDemandDigest": "sha256:152860363fcb7fbdf8074cd800941c0a9632d035d82444d079d1b50a229e9e11",
-        "projectionDigest": "sha256:9855aebac53946fa32a2a8344164e00072e7b02e6837747d8e7738d944a3c971",
+        "projectionDigest": "sha256:88529ca42e71a3c17b8323834664f31f2f2ecc633f3fa3deea3439a9f1e5e966",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
+                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
+                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
               },
               {
-                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
+                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
+                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
               }
             ],
-            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
+            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
           },
           "browser": {
             "files": [],
@@ -39471,14 +39484,14 @@
                 "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
               },
               {
-                "contentHash": "sha256:96dd7ff38f46de575084bb6a6f37d481d97addeaf6779beb7a09cd4e26fdb9fc",
+                "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
                 "path": "src/plugins/localization-production/flow.ts",
-                "semanticHash": "sha256:a6ee6d20817afdbe51c598435636105e874831f6906963d1010399fe05c4cfb1"
+                "semanticHash": "sha256:74ae34e16609e290ec036b1b84feb0a011013befcc0b615c61091a0825eaf104"
               },
               {
-                "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                 "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
                 "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
@@ -39511,7 +39524,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
+            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
           },
           "implementation": {
             "files": [
@@ -39586,7 +39599,7 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-child-input-denominator.acceptance.ts",
           "lines": [
-            57
+            56
           ]
         },
         {
@@ -39619,7 +39632,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            77
+            78
           ]
         },
         {
@@ -39702,19 +39715,19 @@
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/flow.ts",
           "lines": [
-            158
+            170
           ]
         },
         {
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/static-catalog-flow.ts",
           "lines": [
-            38,
-            40,
-            52,
-            54,
-            63,
-            65
+            35,
+            37,
+            49,
+            51,
+            60,
+            62
           ]
         },
         {
@@ -39837,8 +39850,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:8ee4b05f3cd96ad0208264827bb8945bb54a888b58a3ec31bd31afc6b7d7bb85",
-        "digest": "sha256:8ee4b05f3cd96ad0208264827bb8945bb54a888b58a3ec31bd31afc6b7d7bb85",
+        "childCandidateDigest": "sha256:80066bb29f4a3722fbe6acdd38903569ecb0f03791e5347b0ed34287d35b52f1",
+        "digest": "sha256:80066bb29f4a3722fbe6acdd38903569ecb0f03791e5347b0ed34287d35b52f1",
         "facts": [
           {
             "expected": "open the exact composer attachment menu",
@@ -40049,23 +40062,23 @@
           }
         ],
         "pageDemandDigest": "sha256:a75a02088305c6884a4959dfc6110a072659cda600c8db7dcefe2357b827d97f",
-        "projectionDigest": "sha256:8ee4b05f3cd96ad0208264827bb8945bb54a888b58a3ec31bd31afc6b7d7bb85",
+        "projectionDigest": "sha256:80066bb29f4a3722fbe6acdd38903569ecb0f03791e5347b0ed34287d35b52f1",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
+                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
+                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
               },
               {
-                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
+                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
+                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
               }
             ],
-            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
+            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
           },
           "browser": {
             "files": [],
@@ -40109,14 +40122,14 @@
                 "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
               },
               {
-                "contentHash": "sha256:96dd7ff38f46de575084bb6a6f37d481d97addeaf6779beb7a09cd4e26fdb9fc",
+                "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
                 "path": "src/plugins/localization-production/flow.ts",
-                "semanticHash": "sha256:a6ee6d20817afdbe51c598435636105e874831f6906963d1010399fe05c4cfb1"
+                "semanticHash": "sha256:74ae34e16609e290ec036b1b84feb0a011013befcc0b615c61091a0825eaf104"
               },
               {
-                "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                 "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
                 "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
@@ -40149,7 +40162,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
+            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
           },
           "implementation": {
             "files": [
@@ -40217,13 +40230,13 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts",
           "lines": [
-            75,
-            79,
-            108,
-            135,
-            174,
-            192,
-            217
+            77,
+            81,
+            110,
+            137,
+            176,
+            194,
+            219
           ]
         },
         {
@@ -40250,7 +40263,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            72
+            73
           ]
         },
         {
@@ -40338,20 +40351,20 @@
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/flow.ts",
           "lines": [
-            135,
-            138
+            148,
+            151
           ]
         },
         {
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/static-catalog-flow.ts",
           "lines": [
-            38,
-            40,
-            52,
-            54,
-            63,
-            65
+            35,
+            37,
+            49,
+            51,
+            60,
+            62
           ]
         },
         {
@@ -40478,8 +40491,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:49ca78176e68873676d2a08e1d949f1e32a5eddb75e8af9be412340f1c38e749",
-        "digest": "sha256:49ca78176e68873676d2a08e1d949f1e32a5eddb75e8af9be412340f1c38e749",
+        "childCandidateDigest": "sha256:5e53e9ff70677e74b1694e721bedf84baf5ad4bf07f691ed47c0ae0c06c6e40c",
+        "digest": "sha256:5e53e9ff70677e74b1694e721bedf84baf5ad4bf07f691ed47c0ae0c06c6e40c",
         "facts": [
           {
             "expected": "open the unique execution profile popup",
@@ -40685,23 +40698,23 @@
           }
         ],
         "pageDemandDigest": "sha256:dd3da20be6c5b3a70db0efec9d4c6aedcff16149f3f6e0349c6a8e9d284728d6",
-        "projectionDigest": "sha256:49ca78176e68873676d2a08e1d949f1e32a5eddb75e8af9be412340f1c38e749",
+        "projectionDigest": "sha256:5e53e9ff70677e74b1694e721bedf84baf5ad4bf07f691ed47c0ae0c06c6e40c",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
+                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
+                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
               },
               {
-                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
+                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
+                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
               }
             ],
-            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
+            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
           },
           "browser": {
             "files": [],
@@ -40745,14 +40758,14 @@
                 "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
               },
               {
-                "contentHash": "sha256:96dd7ff38f46de575084bb6a6f37d481d97addeaf6779beb7a09cd4e26fdb9fc",
+                "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
                 "path": "src/plugins/localization-production/flow.ts",
-                "semanticHash": "sha256:a6ee6d20817afdbe51c598435636105e874831f6906963d1010399fe05c4cfb1"
+                "semanticHash": "sha256:74ae34e16609e290ec036b1b84feb0a011013befcc0b615c61091a0825eaf104"
               },
               {
-                "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                 "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
                 "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
@@ -40785,7 +40798,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
+            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
           },
           "implementation": {
             "files": [
@@ -40812,14 +40825,14 @@
     },
     {
       "childCapabilityId": "open_gpt_model_selector_v2",
-      "contractVersion": 3,
+      "contractVersion": 4,
       "pageOperationRequired": true,
       "inclusionBasis": "requiredTargetKind is not none and the isolated Child implementation requires Browser page authority",
       "contract": {
-        "actionQualification": "OPENABLE topology only",
-        "boundedWait": false,
+        "actionQualification": "unique model-selector entry only",
+        "boundedWait": true,
         "childCapabilityId": "open_gpt_model_selector_v2",
-        "contractVersion": 3,
+        "contractVersion": 4,
         "decisions": [
           "DONE",
           "ACT",
@@ -40832,15 +40845,15 @@
         ],
         "inputSchema": "gpt.open_gpt_model_selector_v2.input.v2",
         "mutationBudget": "zero-or-one-browser-input",
-        "negativePostcondition": "target model unavailable transition legacy or any other topology and failed direct readback fail closed",
+        "negativePostcondition": "target model absent or ambiguous and unavailable entry fail closed",
         "oneObservationOrMutation": "at-most-one-mutation",
         "owner": "gpt",
-        "positivePostcondition": "stable ALREADY_OPEN topology has zero entry zero simple one active advanced panel and one exact target model radio",
-        "precondition": "one coherent popup entry simple and advanced topology with the exact execution-profile model display name",
+        "positivePostcondition": "one exact target model option is present",
+        "precondition": "the exact approved model option is present or one unique model-selector entry is openable",
         "profile": "TARGET_LOCAL_MUTATION",
         "replayPolicy": "target-local-per-generation",
         "requiredTargetKind": "chatgpt",
-        "semanticIntent": "open the unique advanced model selector"
+        "semanticIntent": "make the exact approved model option available"
       },
       "sourceReferences": [
         {
@@ -40852,16 +40865,18 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts",
           "lines": [
-            265,
-            278,
-            291,
-            316,
-            329
+            7,
+            266,
+            279,
+            292,
+            317,
+            330
           ]
         },
         {
           "path": "src/capabilities/gpt/acceptance/gpt-proof.acceptance.ts",
           "lines": [
+            6,
             45,
             67,
             73,
@@ -40880,7 +40895,7 @@
         {
           "path": "src/capabilities/gpt/children/open_gpt_model_selector_v2/handler.ts",
           "lines": [
-            35
+            34
           ]
         },
         {
@@ -40894,7 +40909,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            73
+            74
           ]
         },
         {
@@ -40909,7 +40924,7 @@
         {
           "path": "src/capabilities/gpt/children/open_gpt_model_selector_v2/handler.ts",
           "lines": [
-            35
+            34
           ]
         },
         {
@@ -40977,19 +40992,19 @@
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/flow.ts",
           "lines": [
-            136
+            149
           ]
         },
         {
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/static-catalog-flow.ts",
           "lines": [
-            38,
-            40,
-            52,
-            54,
-            63,
-            65
+            35,
+            37,
+            49,
+            51,
+            60,
+            62
           ]
         },
         {
@@ -41040,7 +41055,7 @@
         "scenarioId": "text-main",
         "coreTargets": [
           "model-selector-trigger",
-          "model-selector-panel"
+          "model-option"
         ],
         "requiredLiveStates": [
           "model-selector-openable",
@@ -41052,19 +41067,17 @@
             "model-selector-trigger"
           ],
           "model-selector-open": [
-            "model-selector-panel"
+            "model-option"
           ],
           "model-selector-already-open": [
-            "model-selector-panel"
+            "model-option"
           ]
         },
-        "optionalLiveStates": [
-          "advanced-model-group-open"
-        ],
+        "optionalLiveStates": [],
         "childSpecificDerivedStates": [
-          "selector-panel-not-owned-by-trigger",
           "selector-did-not-open",
-          "model-list-not-hydrated"
+          "target-model-missing",
+          "target-model-ambiguous"
         ],
         "requiredInputRefs": [
           "authorized-model-id"
@@ -41084,9 +41097,8 @@
           ],
           "model-selector-open": [
             {
-              "path": "core.attributes.role",
-              "operator": "equals",
-              "value": "menu"
+              "path": "core.targets.model-option",
+              "operator": "present"
             },
             {
               "path": "stateFacts.capturePhase",
@@ -41096,9 +41108,8 @@
           ],
           "model-selector-already-open": [
             {
-              "path": "core.attributes.role",
-              "operator": "equals",
-              "value": "menu"
+              "path": "core.targets.model-option",
+              "operator": "present"
             },
             {
               "path": "stateFacts.capturePhase",
@@ -41142,24 +41153,24 @@
                     "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
                   },
                   {
-                    "contentHash": "sha256:96dd7ff38f46de575084bb6a6f37d481d97addeaf6779beb7a09cd4e26fdb9fc",
+                    "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
                     "path": "src/plugins/localization-production/flow.ts",
-                    "semanticHash": "sha256:a6ee6d20817afdbe51c598435636105e874831f6906963d1010399fe05c4cfb1"
+                    "semanticHash": "sha256:74ae34e16609e290ec036b1b84feb0a011013befcc0b615c61091a0825eaf104"
                   },
                   {
-                    "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                    "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                     "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                    "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                    "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
                   },
                   {
-                    "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                    "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                     "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                    "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                    "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
                   },
                   {
-                    "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                    "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                     "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                    "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                    "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
                   },
                   {
                     "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
@@ -41197,11 +41208,11 @@
             ]
           }
         },
-        "childCandidateDigest": "sha256:5cbbaeab6bbf633d80491ba3f39f8c2097bacd7293a57373c46b18daf9f31942",
-        "digest": "sha256:5cbbaeab6bbf633d80491ba3f39f8c2097bacd7293a57373c46b18daf9f31942",
+        "childCandidateDigest": "sha256:0859c553b84ff7bb889c94f302578cd8a3f9206f6e288304de21d2e7577f6d8d",
+        "digest": "sha256:0859c553b84ff7bb889c94f302578cd8a3f9206f6e288304de21d2e7577f6d8d",
         "facts": [
           {
-            "expected": "open the unique advanced model selector",
+            "expected": "make the exact approved model option available",
             "factId": "contract:semanticIntent",
             "kind": "CONTRACT"
           },
@@ -41221,7 +41232,7 @@
             "kind": "CONTRACT"
           },
           {
-            "expected": false,
+            "expected": true,
             "factId": "contract:boundedWait",
             "kind": "CONTRACT"
           },
@@ -41235,12 +41246,12 @@
             "kind": "CONTRACT"
           },
           {
-            "expected": "one coherent popup entry simple and advanced topology with the exact execution-profile model display name",
+            "expected": "the exact approved model option is present or one unique model-selector entry is openable",
             "factId": "contract:precondition",
             "kind": "CONTRACT"
           },
           {
-            "expected": "OPENABLE topology only",
+            "expected": "unique model-selector entry only",
             "factId": "contract:actionQualification",
             "kind": "CONTRACT"
           },
@@ -41255,12 +41266,12 @@
             "kind": "CONTRACT"
           },
           {
-            "expected": "stable ALREADY_OPEN topology has zero entry zero simple one active advanced panel and one exact target model radio",
+            "expected": "one exact target model option is present",
             "factId": "contract:positivePostcondition",
             "kind": "CONTRACT"
           },
           {
-            "expected": "target model unavailable transition legacy or any other topology and failed direct readback fail closed",
+            "expected": "target model absent or ambiguous and unavailable entry fail closed",
             "factId": "contract:negativePostcondition",
             "kind": "CONTRACT"
           },
@@ -41292,8 +41303,8 @@
             "kind": "PAGE_TARGET"
           },
           {
-            "expected": "model-selector-panel",
-            "factId": "target:model-selector-panel",
+            "expected": "model-option",
+            "factId": "target:model-option",
             "kind": "PAGE_TARGET"
           },
           {
@@ -41352,18 +41363,18 @@
             "kind": "DERIVED_FIXTURE_STATE"
           },
           {
-            "expected": "selector-panel-not-owned-by-trigger",
-            "factId": "derived-state:selector-panel-not-owned-by-trigger",
-            "kind": "DERIVED_FIXTURE_STATE"
-          },
-          {
             "expected": "selector-did-not-open",
             "factId": "derived-state:selector-did-not-open",
             "kind": "DERIVED_FIXTURE_STATE"
           },
           {
-            "expected": "model-list-not-hydrated",
-            "factId": "derived-state:model-list-not-hydrated",
+            "expected": "target-model-missing",
+            "factId": "derived-state:target-model-missing",
+            "kind": "DERIVED_FIXTURE_STATE"
+          },
+          {
+            "expected": "target-model-ambiguous",
+            "factId": "derived-state:target-model-ambiguous",
             "kind": "DERIVED_FIXTURE_STATE"
           },
           {
@@ -41432,24 +41443,24 @@
             "kind": "AUTHORITY_SOURCE"
           }
         ],
-        "pageDemandDigest": "sha256:dcb5efe73b1e2a9a3e2de2653e5ed55a5c1ff9b0b4f9257d9cdfa34459fe325c",
-        "projectionDigest": "sha256:5cbbaeab6bbf633d80491ba3f39f8c2097bacd7293a57373c46b18daf9f31942",
+        "pageDemandDigest": "sha256:c67005205b63acd132b2c9cb6e8300b3de94cf9cb94a7a6f853c09a97afe72a4",
+        "projectionDigest": "sha256:0859c553b84ff7bb889c94f302578cd8a3f9206f6e288304de21d2e7577f6d8d",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
+                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
+                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
               },
               {
-                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
+                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
+                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
               }
             ],
-            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
+            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
           },
           "browser": {
             "files": [],
@@ -41493,14 +41504,14 @@
                 "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
               },
               {
-                "contentHash": "sha256:96dd7ff38f46de575084bb6a6f37d481d97addeaf6779beb7a09cd4e26fdb9fc",
+                "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
                 "path": "src/plugins/localization-production/flow.ts",
-                "semanticHash": "sha256:a6ee6d20817afdbe51c598435636105e874831f6906963d1010399fe05c4cfb1"
+                "semanticHash": "sha256:74ae34e16609e290ec036b1b84feb0a011013befcc0b615c61091a0825eaf104"
               },
               {
-                "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                 "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
                 "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
@@ -41533,27 +41544,27 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
+            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
           },
           "implementation": {
             "files": [
               {
-                "contentHash": "sha256:6fd855f8f72a8270f5ed76a6bec8d7d886573daf00228cf22b8b92110bf8892d",
+                "contentHash": "sha256:126cccae964f2d922b7c9f3b9d9d9992073f64eb08d872b962ab1819e96b5884",
                 "path": "src/capabilities/gpt/children/open_gpt_model_selector_v2/handler.ts",
-                "semanticHash": "sha256:2840bcec46175b51fcb8ba6561dd1748d5bac86872e897ff658144d22ecc7500"
+                "semanticHash": "sha256:d2577568936a39122dd28169fba63f1c2e7ef08a6f43de017cc8e11c47768674"
               },
               {
-                "contentHash": "sha256:6a9fbf7715fa0f5cdb026bea459d2a8f7221fc9e3c6dbb0cd0176908ec1c9532",
+                "contentHash": "sha256:b1a7bbbcce8cb1460a0f922136393b96078d5039eb55ec85b644c454b94009d4",
                 "path": "src/capabilities/gpt/children/open_gpt_model_selector_v2/observation.ts",
-                "semanticHash": "sha256:0504dad5a66b90c790876740ce3313f62241fb197df899ea1335bd99453cbd49"
+                "semanticHash": "sha256:822edbc2dcb4a4836cc8dc0e0ec21e455beaae7779cf00a9f82288b1aa927e9b"
               },
               {
-                "contentHash": "sha256:4ad29521a448188ddf020ce28fb829b9f63d4f123a24aafffaf819dcd7979c00",
+                "contentHash": "sha256:c02113487cec61c5c69dfbe27bda658e3e25d695fee0e50aadd51c0a90cc33ac",
                 "path": "src/capabilities/gpt/children/open_gpt_model_selector_v2/selectors.ts",
-                "semanticHash": "sha256:52e3d72ccd1b455453de45aa60ed5d9a7a0057bbdf4130423519365610d607b0"
+                "semanticHash": "sha256:7dea58953012d8600365d18334ced2e792b817c7c87c3d5d39c1e78b68b949f4"
               }
             ],
-            "semanticDigest": "sha256:36655247973ce0754511c7f1ec38a0477707997a0de00c5dd2740a012fb70dfc"
+            "semanticDigest": "sha256:5eaa46e6e258ec038774635989af5b5a7c5e2ec9ac398baf67cbcab459f63661"
           }
         }
       }
@@ -41624,7 +41635,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            71
+            72
           ]
         },
         {
@@ -41709,20 +41720,20 @@
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/flow.ts",
           "lines": [
-            238,
-            269
+            260,
+            302
           ]
         },
         {
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/static-catalog-flow.ts",
           "lines": [
-            38,
-            40,
-            52,
-            54,
-            63,
-            65
+            35,
+            37,
+            49,
+            51,
+            60,
+            62
           ]
         },
         {
@@ -41855,8 +41866,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:9e2863c618ce1b09295a3f5ba0dbcdf775f48c62ca1e3eb604c0ee43577a8321",
-        "digest": "sha256:9e2863c618ce1b09295a3f5ba0dbcdf775f48c62ca1e3eb604c0ee43577a8321",
+        "childCandidateDigest": "sha256:228cba504a0b0f8c123e1c8f5d276da153e8bde1ad8e1c6bd867b7e809534057",
+        "digest": "sha256:228cba504a0b0f8c123e1c8f5d276da153e8bde1ad8e1c6bd867b7e809534057",
         "facts": [
           {
             "expected": "prove a fresh chat and clear only an otherwise isolated stale draft",
@@ -42072,23 +42083,23 @@
           }
         ],
         "pageDemandDigest": "sha256:c98ae6b367598e3e64fe5adc5ac396b319791054f263f941180399c937aec523",
-        "projectionDigest": "sha256:9e2863c618ce1b09295a3f5ba0dbcdf775f48c62ca1e3eb604c0ee43577a8321",
+        "projectionDigest": "sha256:228cba504a0b0f8c123e1c8f5d276da153e8bde1ad8e1c6bd867b7e809534057",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
+                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
+                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
               },
               {
-                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
+                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
+                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
               }
             ],
-            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
+            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
           },
           "browser": {
             "files": [],
@@ -42132,14 +42143,14 @@
                 "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
               },
               {
-                "contentHash": "sha256:96dd7ff38f46de575084bb6a6f37d481d97addeaf6779beb7a09cd4e26fdb9fc",
+                "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
                 "path": "src/plugins/localization-production/flow.ts",
-                "semanticHash": "sha256:a6ee6d20817afdbe51c598435636105e874831f6906963d1010399fe05c4cfb1"
+                "semanticHash": "sha256:74ae34e16609e290ec036b1b84feb0a011013befcc0b615c61091a0825eaf104"
               },
               {
-                "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                 "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
                 "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
@@ -42172,7 +42183,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
+            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
           },
           "implementation": {
             "files": [
@@ -42272,7 +42283,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            68
+            69
           ]
         },
         {
@@ -42357,19 +42368,19 @@
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/flow.ts",
           "lines": [
-            160
+            172
           ]
         },
         {
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/static-catalog-flow.ts",
           "lines": [
-            38,
-            40,
-            52,
-            54,
-            63,
-            65
+            35,
+            37,
+            49,
+            51,
+            60,
+            62
           ]
         },
         {
@@ -42527,8 +42538,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:5e52867956fa0dbb956e841ba461656362cf7e582b1aa6858d34cc34085ec0f2",
-        "digest": "sha256:5e52867956fa0dbb956e841ba461656362cf7e582b1aa6858d34cc34085ec0f2",
+        "childCandidateDigest": "sha256:bd6da03d2d1883a3f76623ec770f16baeadd4d34b7c59567b6d7396877b779a5",
+        "digest": "sha256:bd6da03d2d1883a3f76623ec770f16baeadd4d34b7c59567b6d7396877b779a5",
         "facts": [
           {
             "expected": "prove all and only approved attachments are ready",
@@ -42748,23 +42759,23 @@
           }
         ],
         "pageDemandDigest": "sha256:9aff285fd7b4a547482298be2e69e4170ebfe11d138bf06306bb0d3fc874e27f",
-        "projectionDigest": "sha256:5e52867956fa0dbb956e841ba461656362cf7e582b1aa6858d34cc34085ec0f2",
+        "projectionDigest": "sha256:bd6da03d2d1883a3f76623ec770f16baeadd4d34b7c59567b6d7396877b779a5",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
+                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
+                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
               },
               {
-                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
+                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
+                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
               }
             ],
-            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
+            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
           },
           "browser": {
             "files": [],
@@ -42808,14 +42819,14 @@
                 "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
               },
               {
-                "contentHash": "sha256:96dd7ff38f46de575084bb6a6f37d481d97addeaf6779beb7a09cd4e26fdb9fc",
+                "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
                 "path": "src/plugins/localization-production/flow.ts",
-                "semanticHash": "sha256:a6ee6d20817afdbe51c598435636105e874831f6906963d1010399fe05c4cfb1"
+                "semanticHash": "sha256:74ae34e16609e290ec036b1b84feb0a011013befcc0b615c61091a0825eaf104"
               },
               {
-                "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                 "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
                 "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
@@ -42848,7 +42859,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
+            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
           },
           "implementation": {
             "files": [
@@ -42875,14 +42886,14 @@
     },
     {
       "childCapabilityId": "select_exact_gpt_model_v2",
-      "contractVersion": 3,
+      "contractVersion": 4,
       "pageOperationRequired": true,
       "inclusionBasis": "requiredTargetKind is not none and the isolated Child implementation requires Browser page authority",
       "contract": {
-        "actionQualification": "the unique radio is qualified whether checked true or false",
-        "boundedWait": false,
+        "actionQualification": "the unique exact target model option only",
+        "boundedWait": true,
         "childCapabilityId": "select_exact_gpt_model_v2",
-        "contractVersion": 3,
+        "contractVersion": 4,
         "decisions": [
           "ACT",
           "FAIL_CLOSED"
@@ -42894,15 +42905,15 @@
         ],
         "inputSchema": "gpt.select_exact_gpt_model_v2.input.v2",
         "mutationBudget": "exactly-one-browser-input",
-        "negativePostcondition": "radio ambiguity invalid checked state unselected clicked radio or incomplete same-packet postcondition fails closed",
+        "negativePostcondition": "target option ambiguity invalid checked state unselected clicked option or selector remaining open fails closed",
         "oneObservationOrMutation": "at-most-one-mutation",
         "owner": "gpt",
-        "positivePostcondition": "same mutation packet proves the exact clicked radio aria-checked true plus popup retained entry collapsed simple active advanced absent",
-        "precondition": "v2 execution profile ALREADY_OPEN topology and one exact radio with boolean checked state",
+        "positivePostcondition": "the retained exact clicked option proves aria-checked true and the selector closes",
+        "precondition": "one exact target model option exists with a boolean selected state",
         "profile": "TARGET_LOCAL_MUTATION",
         "replayPolicy": "target-local-per-generation",
         "requiredTargetKind": "chatgpt",
-        "semanticIntent": "select the exact model and consume the same Browser mutation postcondition packet"
+        "semanticIntent": "select the unique exact approved model option"
       },
       "sourceReferences": [
         {
@@ -42914,9 +42925,9 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts",
           "lines": [
-            365,
-            389,
-            413
+            10,
+            366,
+            390
           ]
         },
         {
@@ -42929,7 +42940,7 @@
         {
           "path": "src/capabilities/gpt/children/select_exact_gpt_model_v2/handler.ts",
           "lines": [
-            42
+            39
           ]
         },
         {
@@ -42943,7 +42954,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            74
+            75
           ]
         },
         {
@@ -42958,7 +42969,7 @@
         {
           "path": "src/capabilities/gpt/children/select_exact_gpt_model_v2/handler.ts",
           "lines": [
-            42
+            39
           ]
         },
         {
@@ -43026,19 +43037,19 @@
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/flow.ts",
           "lines": [
-            137
+            150
           ]
         },
         {
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/static-catalog-flow.ts",
           "lines": [
-            38,
-            40,
-            52,
-            54,
-            63,
-            65
+            35,
+            37,
+            49,
+            51,
+            60,
+            62
           ]
         },
         {
@@ -43088,8 +43099,7 @@
         "childCapabilityId": "select_exact_gpt_model_v2",
         "scenarioId": "text-main",
         "coreTargets": [
-          "model-option",
-          "model-selector-trigger"
+          "model-option"
         ],
         "requiredLiveStates": [
           "target-model-actionable-unchecked",
@@ -43101,7 +43111,7 @@
             "model-option"
           ],
           "model-panel-closed-after-selection": [
-            "model-selector-trigger"
+            "model-option"
           ],
           "model-selection-postcondition": [
             "model-option"
@@ -43134,9 +43144,8 @@
           ],
           "model-panel-closed-after-selection": [
             {
-              "path": "core.attributes.aria-expanded",
-              "operator": "equals",
-              "value": "false"
+              "path": "core.targets.model-option",
+              "operator": "absent"
             },
             {
               "path": "stateFacts.capturePhase",
@@ -43192,24 +43201,24 @@
                     "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
                   },
                   {
-                    "contentHash": "sha256:96dd7ff38f46de575084bb6a6f37d481d97addeaf6779beb7a09cd4e26fdb9fc",
+                    "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
                     "path": "src/plugins/localization-production/flow.ts",
-                    "semanticHash": "sha256:a6ee6d20817afdbe51c598435636105e874831f6906963d1010399fe05c4cfb1"
+                    "semanticHash": "sha256:74ae34e16609e290ec036b1b84feb0a011013befcc0b615c61091a0825eaf104"
                   },
                   {
-                    "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                    "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                     "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                    "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                    "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
                   },
                   {
-                    "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                    "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                     "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                    "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                    "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
                   },
                   {
-                    "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                    "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                     "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                    "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                    "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
                   },
                   {
                     "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
@@ -43247,11 +43256,11 @@
             ]
           }
         },
-        "childCandidateDigest": "sha256:46d66364507c04734bbe7f3b7de1a4245ac4ec7f522911d2c2769d2229697f6a",
-        "digest": "sha256:46d66364507c04734bbe7f3b7de1a4245ac4ec7f522911d2c2769d2229697f6a",
+        "childCandidateDigest": "sha256:9c8fc80cefb180411fdfaf15082befd270e1bcf0eda92bae6e5901dd76420c73",
+        "digest": "sha256:9c8fc80cefb180411fdfaf15082befd270e1bcf0eda92bae6e5901dd76420c73",
         "facts": [
           {
-            "expected": "select the exact model and consume the same Browser mutation postcondition packet",
+            "expected": "select the unique exact approved model option",
             "factId": "contract:semanticIntent",
             "kind": "CONTRACT"
           },
@@ -43271,7 +43280,7 @@
             "kind": "CONTRACT"
           },
           {
-            "expected": false,
+            "expected": true,
             "factId": "contract:boundedWait",
             "kind": "CONTRACT"
           },
@@ -43284,12 +43293,12 @@
             "kind": "CONTRACT"
           },
           {
-            "expected": "v2 execution profile ALREADY_OPEN topology and one exact radio with boolean checked state",
+            "expected": "one exact target model option exists with a boolean selected state",
             "factId": "contract:precondition",
             "kind": "CONTRACT"
           },
           {
-            "expected": "the unique radio is qualified whether checked true or false",
+            "expected": "the unique exact target model option only",
             "factId": "contract:actionQualification",
             "kind": "CONTRACT"
           },
@@ -43304,12 +43313,12 @@
             "kind": "CONTRACT"
           },
           {
-            "expected": "same mutation packet proves the exact clicked radio aria-checked true plus popup retained entry collapsed simple active advanced absent",
+            "expected": "the retained exact clicked option proves aria-checked true and the selector closes",
             "factId": "contract:positivePostcondition",
             "kind": "CONTRACT"
           },
           {
-            "expected": "radio ambiguity invalid checked state unselected clicked radio or incomplete same-packet postcondition fails closed",
+            "expected": "target option ambiguity invalid checked state unselected clicked option or selector remaining open fails closed",
             "factId": "contract:negativePostcondition",
             "kind": "CONTRACT"
           },
@@ -43338,11 +43347,6 @@
           {
             "expected": "model-option",
             "factId": "target:model-option",
-            "kind": "PAGE_TARGET"
-          },
-          {
-            "expected": "model-selector-trigger",
-            "factId": "target:model-selector-trigger",
             "kind": "PAGE_TARGET"
           },
           {
@@ -43486,24 +43490,24 @@
             "kind": "AUTHORITY_SOURCE"
           }
         ],
-        "pageDemandDigest": "sha256:7f2359cc465ddda30c3fa6d67241235d53fe368d7c1e4abd9d998e4cc963b2e8",
-        "projectionDigest": "sha256:46d66364507c04734bbe7f3b7de1a4245ac4ec7f522911d2c2769d2229697f6a",
+        "pageDemandDigest": "sha256:d23922d62f67d0108f6eeef125f6703c5c684265a5add42d3d8c6b95f9b0b384",
+        "projectionDigest": "sha256:9c8fc80cefb180411fdfaf15082befd270e1bcf0eda92bae6e5901dd76420c73",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
+                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
+                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
               },
               {
-                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
+                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
+                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
               }
             ],
-            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
+            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
           },
           "browser": {
             "files": [],
@@ -43547,14 +43551,14 @@
                 "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
               },
               {
-                "contentHash": "sha256:96dd7ff38f46de575084bb6a6f37d481d97addeaf6779beb7a09cd4e26fdb9fc",
+                "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
                 "path": "src/plugins/localization-production/flow.ts",
-                "semanticHash": "sha256:a6ee6d20817afdbe51c598435636105e874831f6906963d1010399fe05c4cfb1"
+                "semanticHash": "sha256:74ae34e16609e290ec036b1b84feb0a011013befcc0b615c61091a0825eaf104"
               },
               {
-                "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                 "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
                 "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
@@ -43587,27 +43591,27 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:d7daab7af5a019b3b9c371fcfdaf64d6d3b1108024986ab50ca3c132294b2b6a"
+            "semanticDigest": "sha256:171fa3ca609e7b2be66fd6f3a41ae39577b4e29afd7eaa14a3b94dff87bb38cf"
           },
           "implementation": {
             "files": [
               {
-                "contentHash": "sha256:6416df6d86a924a23840b6b7ea151d9693c9a43997bc522b7c3a10b7e773e19b",
+                "contentHash": "sha256:410f08844c8961fb63c7713289c7cfcf00bee1f28e407a8484272bfbcf89b0e5",
                 "path": "src/capabilities/gpt/children/select_exact_gpt_model_v2/handler.ts",
-                "semanticHash": "sha256:4cb439ca2fb98a9c2b9fab65197795826ea4c39e153fd25dbb60ff6c3aad4997"
+                "semanticHash": "sha256:32523f34881f953fec2b5686d7af3edb2d11793d9392248e92e69e964600861c"
               },
               {
-                "contentHash": "sha256:faa13ffb4410c25988cdf6a6c7782064ba43ff3ad7d42076640a4f6a36a21006",
+                "contentHash": "sha256:608eed0981e054989b44ffd41541a3463af8d2af117cc70b7222a51f5841a08e",
                 "path": "src/capabilities/gpt/children/select_exact_gpt_model_v2/observation.ts",
-                "semanticHash": "sha256:46b3a11a59fa9e2e2ff0c5137a3d0d53012e0c6ad0c01e13e8861aff5ad7d5ca"
+                "semanticHash": "sha256:7d3346f8accc2a1c1e81c47b4ec5d6e67354593c7537601f8472184d1a008712"
               },
               {
-                "contentHash": "sha256:1e1c5f243de448e90eda4e02e5d039976085c024bc5e91cded863daa548803b7",
+                "contentHash": "sha256:2b78da2647d8aab530e8cafc7308dadb963c2540672cbc5316975de6c6b0a23d",
                 "path": "src/capabilities/gpt/children/select_exact_gpt_model_v2/selectors.ts",
-                "semanticHash": "sha256:d4946c6bffff09c5164e46a940582e6c2418378ba534e5f1cf8483b4bdae0e06"
+                "semanticHash": "sha256:2b78da2647d8aab530e8cafc7308dadb963c2540672cbc5316975de6c6b0a23d"
               }
             ],
-            "semanticDigest": "sha256:d054ad4fb3810729f581da998731552e8fe887f569fab7117f2ff6fec4fbd8f5"
+            "semanticDigest": "sha256:770bfeb0142a8ea200426edb10cd93dd7661a0693851925bc7677836eda6fe7a"
           }
         }
       }
@@ -43647,8 +43651,8 @@
         {
           "path": "src/capabilities/gpt/acceptance/gpt-child-input-denominator.acceptance.ts",
           "lines": [
-            64,
-            68
+            63,
+            67
           ]
         },
         {
@@ -43663,6 +43667,19 @@
           "path": "src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts",
           "lines": [
             83
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-failure-evidence-readback.acceptance-support.ts",
+          "lines": [
+            49
+          ]
+        },
+        {
+          "path": "src/capabilities/gpt/acceptance/gpt-production-browser-wait.acceptance-support.ts",
+          "lines": [
+            106,
+            118
           ]
         },
         {
@@ -43700,7 +43717,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            80
+            81
           ]
         },
         {
@@ -43713,23 +43730,24 @@
         {
           "path": "src/capabilities/gpt/product-api.ts",
           "lines": [
-            54,
-            55
+            55,
+            56
           ]
         },
         {
           "path": "src/capabilities/gpt/production-atomic-call.ts",
           "lines": [
-            83
+            85
           ]
         },
         {
           "path": "src/capabilities/gpt/production-child-tools.ts",
           "lines": [
-            85,
-            86,
-            95,
-            207
+            88,
+            89,
+            98,
+            221,
+            266
           ]
         }
       ],
@@ -43818,21 +43836,24 @@
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/flow.ts",
           "lines": [
-            183,
-            222,
-            224
+            84,
+            195,
+            234,
+            236,
+            253,
+            291
           ]
         },
         {
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/static-catalog-flow.ts",
           "lines": [
-            38,
-            40,
-            52,
-            54,
-            63,
-            65
+            35,
+            37,
+            49,
+            51,
+            60,
+            62
           ]
         },
         {
@@ -43875,10 +43896,10 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts",
           "lines": [
-            40,
-            42,
-            49,
-            72
+            36,
+            38,
+            45,
+            68
           ]
         },
         {
@@ -43986,8 +44007,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:6d439b6d2f59e158752f9f7d689c1aa05348064ecbb3caf5d1278353af6bc949",
-        "digest": "sha256:6d439b6d2f59e158752f9f7d689c1aa05348064ecbb3caf5d1278353af6bc949",
+        "childCandidateDigest": "sha256:0a5b50c399e867a170fe95eb7718b5b46ad6beac9f0f92b3192e75da9a6a3293",
+        "digest": "sha256:0a5b50c399e867a170fe95eb7718b5b46ad6beac9f0f92b3192e75da9a6a3293",
         "facts": [
           {
             "expected": "submit the exact approved outgoing turn once",
@@ -44211,23 +44232,23 @@
           }
         ],
         "pageDemandDigest": "sha256:1db57f27a966f65eeebbd239b45618c8c46c47fe1975fddd7cd06eab6e5a2865",
-        "projectionDigest": "sha256:6d439b6d2f59e158752f9f7d689c1aa05348064ecbb3caf5d1278353af6bc949",
+        "projectionDigest": "sha256:0a5b50c399e867a170fe95eb7718b5b46ad6beac9f0f92b3192e75da9a6a3293",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
+                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
+                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
               },
               {
-                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
+                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
+                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
               }
             ],
-            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
+            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
           },
           "browser": {
             "files": [
@@ -44277,14 +44298,14 @@
                 "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
               },
               {
-                "contentHash": "sha256:96dd7ff38f46de575084bb6a6f37d481d97addeaf6779beb7a09cd4e26fdb9fc",
+                "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
                 "path": "src/plugins/localization-production/flow.ts",
-                "semanticHash": "sha256:a6ee6d20817afdbe51c598435636105e874831f6906963d1010399fe05c4cfb1"
+                "semanticHash": "sha256:74ae34e16609e290ec036b1b84feb0a011013befcc0b615c61091a0825eaf104"
               },
               {
-                "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                 "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
                 "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
@@ -44307,9 +44328,9 @@
                 "semanticHash": "sha256:5f3d49f9dc1913605fa650e0786daae03258d26bed95143c0ee37a3104b8a97d"
               },
               {
-                "contentHash": "sha256:95e332a6094d4d94efb97f4af5a5a7923915161debf261319700aeb3f3c88ffd",
+                "contentHash": "sha256:a85ed8c05d6983afbe3be6977938ce22cbf06dee3e130676ca1005986a05afcd",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts",
-                "semanticHash": "sha256:fc0c0a69c8f2fca4a60ab56d291c7b1da63f050c6cde966cccaa596da7a4b941"
+                "semanticHash": "sha256:c9d063c1d9d9ac1a0ac683f3992bc4cf8e08f5cd9dbf9e10a67d814b08117685"
               },
               {
                 "contentHash": "sha256:d2d9adeab6057578395b6f8858a74f1ab1452730382ef36ffdf3591f0e06ff63",
@@ -44327,14 +44348,14 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:fad4dece6f1122157e53b8844066b0d8c8b15c742d9947723976bba50302aa75"
+            "semanticDigest": "sha256:b9b61af4c7159272baa275bf003974b8503aff4a64391eac01b1bf09af7fd678"
           },
           "implementation": {
             "files": [
               {
-                "contentHash": "sha256:bdc446ef0087f9cbba22c9a2f5af1378baaf62ac33658a7585848095a75d4446",
+                "contentHash": "sha256:6268559bdfbaf93c8a4c9e276f48ac86250b5569c4d1f6378263265586ee8d64",
                 "path": "src/capabilities/gpt/children/submit_exact_gpt_turn_once/handler.ts",
-                "semanticHash": "sha256:49cbaccb5bb67b3921c41eff4d984898de810ec2a992d56514a3cb0b64f7f2c1"
+                "semanticHash": "sha256:a14b2315ecc05ee901d206d3ec79a7ce053f02ce1547a0756d45de76069e16d6"
               },
               {
                 "contentHash": "sha256:d1d61ead22b61d9c83a3cd7047cdbb3e98831b24e1e2d9ed7e0163e8ae36e891",
@@ -44347,7 +44368,7 @@
                 "semanticHash": "sha256:67c9c8a8805c81c5a626ba66a2c628763962dba012689cd87b326a0effa90709"
               }
             ],
-            "semanticDigest": "sha256:c03fbdf1f46c6a960081a40c09e3bd7098fcf44c590ee54b4834bedeb25a2c1e"
+            "semanticDigest": "sha256:ed0c30063de450052ca092f9359caf2d99367e485920690e8dd0833abed09594"
           }
         }
       }
@@ -44429,7 +44450,7 @@
         {
           "path": "src/capabilities/gpt/contract.ts",
           "lines": [
-            78
+            79
           ]
         },
         {
@@ -44513,19 +44534,19 @@
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/flow.ts",
           "lines": [
-            221
+            233
           ]
         },
         {
           "consumer": "localization-production",
           "path": "src/plugins/localization-production/static-catalog-flow.ts",
           "lines": [
-            38,
-            40,
-            52,
-            54,
-            63,
-            65
+            35,
+            37,
+            49,
+            51,
+            60,
+            62
           ]
         },
         {
@@ -44560,7 +44581,7 @@
           "consumer": "public-knowledge-article-pipeline",
           "path": "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts",
           "lines": [
-            41
+            37
           ]
         },
         {
@@ -44660,8 +44681,8 @@
       },
       "evidenceDemand": {
         "authorizedInputRequirements": {},
-        "childCandidateDigest": "sha256:8f9732de7ea8cfa555c2cc4d4f13813a4b1ed4824d89de580ac918de794c7733",
-        "digest": "sha256:8f9732de7ea8cfa555c2cc4d4f13813a4b1ed4824d89de580ac918de794c7733",
+        "childCandidateDigest": "sha256:bd21cdd0a27734a800a5a1b74433a08477821668e43823eb3e1a33a3844b7b3c",
+        "digest": "sha256:bd21cdd0a27734a800a5a1b74433a08477821668e43823eb3e1a33a3844b7b3c",
         "facts": [
           {
             "expected": "make the composer retain the exact approved prompt",
@@ -44882,23 +44903,23 @@
           }
         ],
         "pageDemandDigest": "sha256:893a55331737054aa2ae419ff7e0c67b508ebad1ffc44cb7f820003ded395165",
-        "projectionDigest": "sha256:8f9732de7ea8cfa555c2cc4d4f13813a4b1ed4824d89de580ac918de794c7733",
+        "projectionDigest": "sha256:bd21cdd0a27734a800a5a1b74433a08477821668e43823eb3e1a33a3844b7b3c",
         "schemaVersion": "gpt-page-operation-demand.v2",
         "sourceBinding": {
           "authority": {
             "files": [
               {
-                "contentHash": "sha256:db4197967895c70e7fcf62da426f9a51237a93b636fa802529d64d4a86fa5ff9",
+                "contentHash": "sha256:9cacabebddf33bfc5f1297688264e6e42888ca10c95bd52ce08fb4320296f80e",
                 "path": ".github/instructions/agent-rules/功能法案.md",
-                "semanticHash": "sha256:fb957f6c88125aebefb9808ac15c6ec86b8b1a562ef3718ff516b09296168523"
+                "semanticHash": "sha256:4c407df385161b3d6894bb631a035b18bba12723e6638c154e9ee920d3c5c454"
               },
               {
-                "contentHash": "sha256:6bf08b70ea5af05f9eb5ba9aaa3afb1d47c2c6d60ccbaa0d64ceca1bde53cdb0",
+                "contentHash": "sha256:cf17d2dc6c1f81cc73f16c42994bb5494578ad6d93f25dd0d353478dc88d421e",
                 "path": "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
-                "semanticHash": "sha256:ce76cd0e5177281aa5a6107287e142c471f9f5f3e5a13f314381ee5861b15c51"
+                "semanticHash": "sha256:c17bde704c0e3573b9b58a4d884527f6aa3c5d2aa5b43c618ed56356104a554d"
               }
             ],
-            "semanticDigest": "sha256:65c68a9900fa591055566ae4aa9feedc9d8f5ecb35be441fd7bcfc83a05415c3"
+            "semanticDigest": "sha256:9902bcabaf74845392474a4a9e27c87eba6b5022472ecac02d59f8e569c971ab"
           },
           "browser": {
             "files": [],
@@ -44942,14 +44963,14 @@
                 "semanticHash": "sha256:e69b6ecb25189f9ebf2c2780e5e14bb7bf2a8dd07e032ccf7030d1237d6abbde"
               },
               {
-                "contentHash": "sha256:96dd7ff38f46de575084bb6a6f37d481d97addeaf6779beb7a09cd4e26fdb9fc",
+                "contentHash": "sha256:710728f3b44f3a6671049fe54c4c3b0406bc0aeb9bd42f7374b6e3cf3f547e48",
                 "path": "src/plugins/localization-production/flow.ts",
-                "semanticHash": "sha256:a6ee6d20817afdbe51c598435636105e874831f6906963d1010399fe05c4cfb1"
+                "semanticHash": "sha256:74ae34e16609e290ec036b1b84feb0a011013befcc0b615c61091a0825eaf104"
               },
               {
-                "contentHash": "sha256:7edb7960ccda93c49daae92d832271f844a60fdf8cd588378ab2c288bfccec53",
+                "contentHash": "sha256:5d71caaa8995f1c390a35e8a26255eb746782309dbb1711a4c27d7fa29570f6f",
                 "path": "src/plugins/localization-production/static-catalog-flow.ts",
-                "semanticHash": "sha256:046ac012520d2caba40e18a4f4417156e69c3941178916d8e70a17ef5842cba6"
+                "semanticHash": "sha256:46338a345852bd1ba41f29391826617eb14f2cb6183fcb5615a51cfd8194b7fd"
               },
               {
                 "contentHash": "sha256:453de85f5d03307f4342a234c173999c5ca58e36ee60d675a45873d9ee59f669",
@@ -44972,9 +44993,9 @@
                 "semanticHash": "sha256:5f3d49f9dc1913605fa650e0786daae03258d26bed95143c0ee37a3104b8a97d"
               },
               {
-                "contentHash": "sha256:95e332a6094d4d94efb97f4af5a5a7923915161debf261319700aeb3f3c88ffd",
+                "contentHash": "sha256:a85ed8c05d6983afbe3be6977938ce22cbf06dee3e130676ca1005986a05afcd",
                 "path": "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts",
-                "semanticHash": "sha256:fc0c0a69c8f2fca4a60ab56d291c7b1da63f050c6cde966cccaa596da7a4b941"
+                "semanticHash": "sha256:c9d063c1d9d9ac1a0ac683f3992bc4cf8e08f5cd9dbf9e10a67d814b08117685"
               },
               {
                 "contentHash": "sha256:f0b8c567b7a09b0c143751bebd2fa4b6715f635221d5f969d4c635d3463f382b",
@@ -44987,7 +45008,7 @@
                 "semanticHash": "sha256:b3a0801351d91f9d76e5cd8adb82a0fc641f73fd61db532fcd0db8581fe42809"
               }
             ],
-            "semanticDigest": "sha256:d5110dad3ff9c32751c9e6d7c62aa88869451614addac814a5c7d7dd70ccf97e"
+            "semanticDigest": "sha256:ba1fc3f1a5b72c26c059fa1c7329852a29d73db35723a8cd684f47316f8ce190"
           },
           "implementation": {
             "files": [

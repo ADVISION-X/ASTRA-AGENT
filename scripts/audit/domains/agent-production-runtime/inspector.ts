@@ -13,12 +13,12 @@ import { buildAgentProductionSessionOutput } from "./session-output.js";
 const LAWS = {
   core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V53",
   credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V6",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V23",
-  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V23",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V24",
+  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V24",
   database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V23",
-  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V25",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V25",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V26",
+  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V26",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V26",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V27",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
@@ -219,8 +219,8 @@ const inspectCredentialAst = (context: InspectorContext, findings: InspectorFind
 const inspectContractAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const generator = sourceFor(context, PATHS.routeGenerator);
   if (generator?.getVariableDeclaration("resultContractRoutes")
-    || !hasNumericInequality(generator, "resultContractCount", 31)
-    || !hasNumericInequality(generator, "reusableBaseReservationRouteCount", 2)) {
+    || !hasNumericInequality(generator, "resultContractCount", 33)
+    || !hasNumericInequality(generator, "reusableBaseReservationRouteCount", 0)) {
     findings.push(finding(LAWS.route, "static.ast", "agent-production-runtime/provider-derived-route-contract",
       PATHS.routeGenerator, "Route generator retains a route allowlist or misses current provider denominators."));
   }
