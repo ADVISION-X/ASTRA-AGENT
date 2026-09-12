@@ -130,8 +130,8 @@ export class ExtensionDebuggerRuntime {
     throw new Error("BROWSER_UNREGISTERED_DEVTOOLS_METHOD");
   }
 
-  public async createBackgroundTab(url: string): Promise<Readonly<{ id?: number }>> {
-    try { return await this.executePageAction(() => this.chromeApi.tabs.create({ active: false, url })); }
+  public async createProductionTab(url: string): Promise<Readonly<{ id?: number }>> {
+    try { return await this.executePageAction(() => this.chromeApi.tabs.create({ active: true, url })); }
     catch (error) {
       await this.awaitPageReadPermission();
       throw error;

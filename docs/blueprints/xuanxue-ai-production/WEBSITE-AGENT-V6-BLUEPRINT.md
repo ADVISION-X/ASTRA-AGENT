@@ -1,20 +1,20 @@
-# production-runtime 生产级施工图 V39
+# production-runtime 生产级施工图 V40
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v39",
+  "blueprintId": "agent-production-runtime-v40",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V55",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V56",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V6",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V26",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V26",
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V25",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V28",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V28",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V29"
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V27",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V27",
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V26",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V29",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V29",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V30"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-route-capability-manifest.provider.spec.json",
@@ -35,9 +35,9 @@
     {"contractRef":null,"from":{"domain":"startup-entrypoint","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"}}
   ],
   "prohibitedDependencyEdges": [
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V55","to":{"domain":"app-shell-ui","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V55","to":{"domain":"local-app-shell","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V55","to":{"domain":"startup-entrypoint","repo":"local"}}
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V56","to":{"domain":"app-shell-ui","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V56","to":{"domain":"local-app-shell","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V56","to":{"domain":"startup-entrypoint","repo":"local"}}
   ]
 }
 ```

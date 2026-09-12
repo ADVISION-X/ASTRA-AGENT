@@ -153,7 +153,7 @@ const inspectUniversalPostActionReadGate = (
     '"Input.insertText"',
     '"Page.close"',
     '"Page.navigate"',
-    "createBackgroundTab",
+    "createProductionTab",
     "removeTab",
     "readTab",
     "readTargets",
@@ -162,7 +162,7 @@ const inspectUniversalPostActionReadGate = (
   requireText(`${authority}\n${createdTarget}\n${observation}\n${sources.postcondition.getFullText()}`, [
     "awaitPageReadPermission",
     "readTargets()",
-    "createBackgroundTab",
+    "createProductionTab",
     "removeTab",
     "startCreatedTargetDeadlineAfterBarrier",
     "await this.createdTarget.rejectPendingCreatedTarget",

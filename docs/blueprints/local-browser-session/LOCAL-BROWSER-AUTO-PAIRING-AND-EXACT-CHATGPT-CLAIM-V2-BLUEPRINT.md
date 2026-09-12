@@ -1,10 +1,12 @@
-# Local Browser Authority V33 施工图
+# Local Browser Authority V34 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"local-browser-authority-v33","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V33","LAW-LOCAL-BROWSER-SESSION-004-V35","LAW-LOCAL-BROWSER-SESSION-006-V26"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"local-browser-authority-v34","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V34","LAW-LOCAL-BROWSER-SESSION-004-V36","LAW-LOCAL-BROWSER-SESSION-006-V27"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
 ```
 
 Browser 只拥有现实页面资源：一个 system Target、实时 current Document、一条 FIFO、Provider/控件 mutation 的唯一 WAL，以及页面生命周期动作后的 fresh readback。它不理解 Product 步骤、不保存 GPT 回答、不决定 retry，也不拥有 Website task。
+
+首次业务需要 Browser 时，固定扩展只创建一个 `active:true` 的 visible、system-owned ChatGPT production Tab；物理 Tab 丢失时只补建一个并同样 `active:true`。该动作只把 system Tab 选为所在 Chrome 窗口的当前 Tab，不调用 `windows.update({focused:true})` 或 `Page.bringToFront`，不认领、关闭或改写任何操作者 Tab。后续任务复用该唯一 Tab；纯观察不得循环抢回，Provider 物理输入前仍由现役唯一交互就绪闸门精确选中并重验 system Tab。后台隐藏执行不再是生产承诺，不得以硬点、盲重试、备用通道或第二 Tab 重新引入。
 
 `FROZEN-GPT-RESPONSE-NO-PROMPT-REHASH-001` 的 Browser 部分固定：回答读取只用 canonical conversation URL 和 submit 已确认的精确 `userTurnId` 定位其真实紧邻 assistant turn，并把当前 Target/Document、observation revision、回答内容 hash 或媒体 bytes hash 绑定到一次原子 observation。Browser 不得在回答 checkpoint 再读取、解析或 hash 历史 user prompt，不得返回 `precedingPromptHash`，也不得把 Provider 的折叠、展开、截断或重新渲染状态变成回答准入条件。删除或替代本边界必须由用户明确解冻，并同步替换 GPT/Browser 施工图、实现与唯一质检；普通修复或 CI 授权不构成解冻。
 

@@ -57,8 +57,8 @@ import {
 import { containsPageMutation, gptPrivateInfrastructureViolations, sourceFor, sourceTextForPaths }
   from "./gpt-inspection-support.js";
 
-const LAW_ID = "LAW-GPT-001-V47";
-const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V7";
+const LAW_ID = "LAW-GPT-001-V48";
+const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V8";
 const GPT_BLUEPRINT_PATH = "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 16, 19, 23),

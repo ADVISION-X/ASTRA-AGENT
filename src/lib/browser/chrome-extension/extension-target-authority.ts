@@ -246,7 +246,7 @@ export class ExtensionTargetAuthority {
   }
 
   private async createProductionCandidate(): Promise<ExtensionDebugTarget> {
-    const created = await this.debuggerRuntime.createBackgroundTab(GPT_WEB_START_URL);
+    const created = await this.debuggerRuntime.createProductionTab(GPT_WEB_START_URL);
     if (!Number.isInteger(created.id)) throw new Error("BROWSER_TARGET_INVALID");
     return this.createdTarget.waitForCreatedTarget(created.id!);
   }

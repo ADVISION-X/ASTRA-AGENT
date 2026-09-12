@@ -88,7 +88,7 @@ const exerciseMutationMethod = async (method: string): Promise<void> => {
 
 const exerciseTabCreation = async (): Promise<void> => {
   const harness = createGateHarness();
-  await harness.runtime.createBackgroundTab("https://chatgpt.com/");
+  await harness.runtime.createProductionTab("https://chatgpt.com/");
   const freshTab = harness.runtime.readTab(706);
   await after2499();
   assert.equal(harness.tabReadCount(), 0, "tabs.create must gate the first fresh tabs.get read");

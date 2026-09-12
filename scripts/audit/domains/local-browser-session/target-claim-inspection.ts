@@ -236,6 +236,7 @@ const inspectJobBoundClaimPolicy = (
   lawId: string,
 ): void => {
   const targetAuthority = requireSource(context, findings, lawId, targetAuthorityPath);
+  const debuggerRuntime = requireSource(context, findings, lawId, extensionDebuggerRuntimePath);
   const sitePolicy = requireSource(context, findings, lawId, sitePolicyPath);
   const actor = requireSource(context, findings, lawId, sourcePaths[1]);
   const supervisor = requireSource(context, findings, lawId, sourcePaths[3]);
@@ -243,14 +244,24 @@ const inspectJobBoundClaimPolicy = (
   const leaseManager = requireSource(context, findings, lawId, targetLeaseManagerPath);
   const lane = requireSource(context, findings, lawId, laneCoordinatorPath);
   const targetAcquirer = requireSource(context, findings, lawId, targetAcquirerPath);
-  if (!targetAuthority || !sitePolicy || !actor || !supervisor || !broker
+  if (!targetAuthority || !debuggerRuntime || !sitePolicy || !actor || !supervisor || !broker
     || !leaseManager || !lane || !targetAcquirer) return;
   requireIdentifiers(targetAuthority, [
-    "acquireJobBoundChatGptTarget", "createBackgroundTab", "removeTab", "GPT_WEB_START_URL",
+    "acquireJobBoundChatGptTarget", "createProductionTab", "removeTab", "GPT_WEB_START_URL",
     "requireGptWebPolicyForUrl", "waitForCreatedTarget", "navigationPublication",
     "parkActiveTarget", "parkedLoaderIds", "attachedTabId", "singleParkedTargetRef",
     "publishMainFrameNavigation",
   ], findings, lawId, "The fixed extension must create, validate and retain exactly one visible system Target for all GPT turns.");
+  const productionTabCreation = debuggerRuntime.getClass("ExtensionDebuggerRuntime")
+    ?.getMethod("createProductionTab")?.getText() ?? "";
+  if (!productionTabCreation.includes("this.chromeApi.tabs.create({ active: true, url })")
+    || productionTabCreation.includes("active: false")
+    || debuggerRuntime.getFullText().includes("createBackgroundTab")) findings.push(createLocalFinding({
+    checkId: "browser-authority/job-bound-target-claim",
+    lawId,
+    filePath: extensionDebuggerRuntimePath,
+    message: "The sole production Tab creation path must select the new system Tab with active=true and physically delete the background-tab contract.",
+  }));
   requireIdentifiers(supervisor, [
     "requireGptWebClaimOrigin", "establishClaimBoundWorkspace", "pendingJobBoundTargetAcquisition",
     "acquireJobBoundTargetLease",

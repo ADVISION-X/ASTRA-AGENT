@@ -15,7 +15,7 @@ type TabUpdatedListener = Parameters<ExtensionChromeApi["tabs"]["onUpdated"]["ad
 type DebuggerDetachListener = Parameters<ExtensionChromeApi["debugger"]["onDetach"]["addListener"]>[0];
 const chromeApi = await exerciseAutomaticPairing();
 
-let createdTab: Readonly<{ active: false; url: string }> | null = null;
+let createdTab: Readonly<{ active: true; url: string }> | null = null;
 let debuggerEvent: Parameters<ExtensionChromeApi["debugger"]["onEvent"]["addListener"]>[0] | null = null;
 let debuggerDetach: DebuggerDetachListener = () => { throw new Error("debugger detach listener was not installed"); };
 let targetTabUpdated: TabUpdatedListener = () => { throw new Error("target tab listener was not installed"); };
@@ -120,7 +120,10 @@ const targetChromeApi: ExtensionChromeApi = {
   tabs: {
     create: async (input) => {
       createdTab = input;
-      return { id: nextCreatedTabId++ };
+      const id = nextCreatedTabId++;
+      activeTabId = id;
+      targetTabActivated({ tabId: id, windowId: 1 });
+      return { id };
     },
     get: async (tabId) => {
       if (switchAwayAndBackTabReadCountdown > 0) {
@@ -166,7 +169,8 @@ targetTabUpdated(3, { status: "complete" }, { id: 3, url: "https://chatgpt.com/"
 await firstAcquisition;
 assert.deepEqual(attachedTabs, [3]);
 assert.equal(getTargetsCalls, 0, "job acquisition must not enumerate or reuse operator ChatGPT tabs");
-assert.deepEqual(createdTab, { active: false, url: "https://chatgpt.com/" });
+assert.deepEqual(createdTab, { active: true, url: "https://chatgpt.com/" });
+assert.equal(activeTabId, 3, "the first production Tab must be selected in its existing Chrome window");
 assert.equal(targetFrames[0]?.kind, "TARGET_CLAIM");
 assert.deepEqual(Object.keys(targetFrames[0]?.body ?? {}).sort(),
   ["claimOrigin", "documentRef", "navigationEpoch", "targetRef"],
@@ -196,7 +200,11 @@ const firstInteractiveReceipt = await targetAuthority.executeRegisteredCommand(
   simpleClick, interactionTarget, "mutation",
 ) as Readonly<Record<string, unknown>>;
 assert.equal(firstInteractiveReceipt.postconditionVerified, true);
-assert.deepEqual(activatedTabs, [3], "the first inactive mutation must activate only the exact system Tab once");
+assert.deepEqual(activatedTabs, [], "the first mutation must reuse the production Tab selected at creation");
+activeTabId = 99;
+targetTabActivated({ tabId: 99, windowId: 1 });
+await targetAuthority.executeRegisteredCommand(simpleClick, interactionTarget, "mutation");
+assert.deepEqual(activatedTabs, [3], "a mutation after the user switches away must reselect only the exact system Tab");
 await targetAuthority.executeRegisteredCommand(simpleClick, interactionTarget, "mutation");
 assert.deepEqual(activatedTabs, [3], "an already-active system Tab must not call tabs.update again");
 
@@ -283,7 +291,7 @@ assert.deepEqual(attachedTabs, [3],
 assert.equal(nextCreatedTabId, 4);
 assert.equal(targetFrames.at(-1)?.body.targetRef, firstTargetRef);
 assert.equal(debuggerMethods.filter((method) => method === "Page.bringToFront").length, 0,
-  "initial claim and confirmed readback must never foreground the single production Tab");
+  "initial claim and confirmed readback must never call Page.bringToFront");
 await targetAuthority.releaseActiveTarget(false);
 assert.deepEqual(detachedTabs, [], "socket suspension must preserve the one production debugger session");
 
@@ -330,9 +338,10 @@ assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").leng
   navigationCountBeforeReadbackReplacement + 1,
   "a confirmed readback replacement must navigate exactly once from root to the WAL conversation URL");
 assert.equal(activatedTabs.length, activationCountBeforeReadbackReplacement,
-  "confirmed readback acquisition and canonical navigation must not activate the replacement Tab");
-assert.deepEqual(createdTab, { active: false, url: "https://chatgpt.com/" },
-  "replacement acquisition must remain inactive and must not touch an operator tab");
+  "active replacement creation and canonical navigation must not add a tabs.update activation");
+assert.deepEqual(createdTab, { active: true, url: "https://chatgpt.com/" },
+  "replacement acquisition must select only its new system Tab");
+assert.equal(activeTabId, 4, "the replacement system Tab must be selected in its existing Chrome window");
 assert.equal(nextCreatedTabId, 5, "physical loss must create exactly one replacement production Tab");
 debuggerDetach({ tabId: 4 }, "canceled_by_user");
 await new Promise<void>((resolve) => globalThis.setTimeout(resolve, 0));
@@ -377,6 +386,8 @@ assert.throws(() => broker.registerOperatorTargetClaim({ ...initialClaim, target
   "an authenticated connection must not replace its claimed target without revoke");
 assert.throws(() => broker.registerOperatorTargetClaim({ ...initialClaim, documentRef: "document-4", navigationEpoch: 3 }), /BROWSER_TARGET_INVALID/u,
   "Document claims must advance by exactly one navigation epoch");
+assert.equal(activatedTabs.includes(99), false, "the interaction gate must never activate an operator Tab");
+assert.equal(removedTabs.includes(99), false, "the production owner must never remove an operator Tab");
 
 process.stdout.write("LOCAL_BROWSER_AUTO_PAIRING_AND_EXACT_CHATGPT_CLAIM_ACCEPTANCE_PASS\n");
 emitLocalBrowserAutoPairingProofs();

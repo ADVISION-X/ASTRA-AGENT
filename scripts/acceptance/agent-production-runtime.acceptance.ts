@@ -508,7 +508,7 @@ assert.match(outboxSource, /executionFailure\("failed", authority\.lastError\)/u
   inspectAgentProductionRuntime({
     project,
     sealedRoot: path.resolve("."),
-    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V55",
+    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V56",
     targetSet: { queryRef: "acceptance:runtime-lifecycle-mutant", count: 1 },
     targetPaths: [],
     lawRequirements: [],
@@ -517,7 +517,7 @@ assert.match(outboxSource, /executionFailure\("failed", authority\.lastError\)/u
       manifestPath: "scripts/audit/domains/agent-production-runtime/manifest.json",
       ownerInspectorPath: "scripts/audit/domains/agent-production-runtime/inspector.ts",
       executionGroup: "domain",
-      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V55"],
+      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V56"],
     },
     generatedPlan: [],
   }, findings);
@@ -579,7 +579,7 @@ const runtimeLawSource = await readFile(
 const runtimeLawRecords = [...runtimeLawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
   .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden: string[] });
 const runtimeCoreLaw = runtimeLawRecords.find(
-  (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V55",
+  (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V56",
 );
 assert.ok(runtimeCoreLaw);
 for (const token of [
@@ -590,21 +590,21 @@ for (const token of [
 ]) assert.ok(runtimeCoreLaw.forbidden.some((entry) => entry.includes(token)), token);
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V28",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V29",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"],
   locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
   observedValue: "the unique Runtime ownership inspector accepted the current Runtime-only manifest and rejected injected Mediator and Product ownership mutants",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V55",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V56",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:attempt-recovery-state-machine",
   observedValue: "binary task lifecycle durable accept same-attempt recovery lease outbox and typed cross-owner boundaries exercised",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V55",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V56",
   evidenceMode: "exam.property",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:transport-properties",
@@ -612,7 +612,7 @@ emitQualityProofObservation({
 });
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V26",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V27",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"],
     locator: `acceptance:agent-production-runtime:business-admission:${evidenceMode}`,

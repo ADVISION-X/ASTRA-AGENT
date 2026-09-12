@@ -46,7 +46,7 @@ export type ExtensionChromeApi = Readonly<{
     }>;
   }>;
   tabs: Readonly<{
-    create(createProperties: Readonly<{ active: false; url: string }>): Promise<Readonly<{ id?: number }>>;
+    create(createProperties: Readonly<{ active: true; url: string }>): Promise<Readonly<{ id?: number }>>;
     get(tabId: number): Promise<ExtensionTab>;
     remove(tabId: number): Promise<void>;
     update(tabId: number, updateProperties: Readonly<{ active: true }>): Promise<ExtensionTab>;

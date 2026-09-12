@@ -64,7 +64,7 @@ assert.match(worker, /releaseBuildId/u, "Automatic reload must compare the AGENT
 assert.match(worker, /TARGET_ACQUIRE/u, "The authenticated channel must retain the sole job-bound target acquisition frame.");
 assert.match(worker, /acquireJobBoundChatGptTarget/u, "The job-bound frame must trigger the fixed extension's exact ChatGPT claim.");
 assert.match(worker, /tabs\.create/u, "The fixed extension must create the one governed production Tab without activeTab permission.");
-assert.match(worker, /active:\s*false/u, "The one governed production Tab must be created without changing the operator's active Tab.");
+assert.match(worker, /active:\s*true/u, "The one governed production Tab must be selected when it is first created or replaced.");
 assert.match(worker, /tabs\.update/u, "The mutation-only interaction gate must be able to activate the exact system Tab.");
 assert.match(worker, /onActivated/u, "The mutation-only interaction gate must recheck the active-tab generation before Provider input.");
 assert.match(worker, /BROWSER_TARGET_NOT_INTERACTIVE/u, "The interaction gate must fail closed when the system Tab is no longer active.");
