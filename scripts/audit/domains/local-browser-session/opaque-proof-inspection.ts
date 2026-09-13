@@ -101,7 +101,7 @@ const inspectAuthenticatedMediaBoundary = (
     }));
   }
   for (const forbidden of ["resourceUrl", "sourceUrl", "cookie", "token", "selector:"]) {
-    if (mediaRuntimeText.includes(forbidden) || leaseMethod.includes(forbidden)) findings.push(createLocalFinding({
+    if ([mediaRuntimeText, leaseMethod].some((text) => text.includes(forbidden))) findings.push(createLocalFinding({
       checkId: "browser-authority/authenticated-media-boundary",
       lawId,
       filePath: targetAuthorityPath,
@@ -111,8 +111,8 @@ const inspectAuthenticatedMediaBoundary = (
   for (const forbidden of [
     "visible-download", "captureCompletedDownload", "Browser.setDownloadBehavior",
     "generatedImageViewerLabel", "button[aria-label='保存']",
-  ]) if (mediaRuntimeText.includes(forbidden) || leaseMethod.includes(forbidden)
-    || commandDispatchText.includes(forbidden)) findings.push(createLocalFinding({
+  ]) if ([mediaRuntimeText, leaseMethod, commandDispatchText]
+    .some((text) => text.includes(forbidden))) findings.push(createLocalFinding({
     checkId: "browser-authority/authenticated-media-boundary",
     lawId,
     filePath: targetAuthorityPath,

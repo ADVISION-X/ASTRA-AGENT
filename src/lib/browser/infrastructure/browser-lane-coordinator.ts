@@ -2,7 +2,7 @@ import type {
   BrowserTargetLease,
   BrowserTargetLeaseWait,
 } from "../exact-target/browser-target-lease.js";
-import type { BrowserExactCallMutationFact } from "../exact-target/browser-mutation-store.js";
+import type { BrowserExactCallMutationFact } from "../exact-target/browser-mutation-types.js";
 import type { BrowserExecutionBinding } from "./browser-authority-broker.js";
 import { BrowserAuthorityBroker } from "./browser-authority-broker.js";
 import { BrowserAuthorityIssuer } from "./browser-authority-issuer.js";

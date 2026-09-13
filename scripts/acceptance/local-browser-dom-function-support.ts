@@ -1,139 +1,6 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { FakeElement, FakeTextNode, RICH_SEMANTIC_TEXT, execute, hash, richSemanticTree }
   from "./local-browser-dom-function-fixture.js";
-export const exerciseCapturedCandidateFunction = async (source: string): Promise<void> => {
-  const target = new FakeElement("Run", {}, {}, {}, "BUTTON");
-  const scope = new FakeElement("Container text is deliberately not equal to Run", { button: [target] });
-  target.parentElement = scope;
-  const document = { documentElement: scope, querySelectorAll: (selector: string) => selector === "main" ? [scope] : [],
-    elementFromPoint: () => target };
-  assert.equal(await execute(source, document, {
-    selector: "button", scope: { selector: "main" }, text: { value: "Run", exact: true },
-  }), target, "scope text must not be mistaken for target exact text");
-  const pointerInput = {
-    selector: "button", scope: { selector: "main" },
-    text: { value: "Run", exact: true }, output: "pointer",
-  } as const;
-  assert.equal(JSON.stringify(await execute(source, document, pointerInput)), JSON.stringify({ x: 5, y: 5 }),
-    "the captured function must derive the pointer point from the same unique candidate and hit-test");
-  const disabledTarget = new FakeElement("Run", {}, {}, { disabled: "" }, "BUTTON");
-  const disabledScope = new FakeElement("scope", { button: [disabledTarget] });
-  disabledTarget.parentElement = disabledScope;
-  assert.equal(await execute(source, {
-    documentElement: disabledScope, querySelectorAll: () => [disabledScope], elementFromPoint: () => disabledTarget,
-  }, pointerInput), "BROWSER_DOM_ACTION_DISABLED");
-  const pointerBlocked = new FakeElement("Run", {}, { pointerEvents: "none" }, {}, "BUTTON");
-  const blockedScope = new FakeElement("scope", { button: [pointerBlocked] });
-  pointerBlocked.parentElement = blockedScope;
-  assert.equal(await execute(source, {
-    documentElement: blockedScope, querySelectorAll: () => [blockedScope], elementFromPoint: () => pointerBlocked,
-  }, pointerInput), "BROWSER_DOM_ACTION_POINTER_EVENTS_NONE");
-  const overlay = new FakeElement("overlay");
-  assert.equal(await execute(source, { ...document, elementFromPoint: () => overlay }, pointerInput),
-    "BROWSER_DOM_ACTION_HIT_TEST_FAILED");
-  const excessiveScopes = Array.from({ length: 257 }, () => new FakeElement("scope"));
-  assert.equal(await execute(source, { ...document, querySelectorAll: () => excessiveScopes }, {
-    selector: "button", scope: { selector: "main" },
-  }), "BROWSER_DOM_READ_INVALID", "257 scope candidates must fail the whole call");
-  const excessiveTargets = Array.from({ length: 256 }, () => new FakeElement("Run"));
-  const oneScope = new FakeElement("scope", { button: excessiveTargets });
-  assert.equal(await execute(source, { ...document, querySelectorAll: () => [oneScope] }, {
-    selector: "button", scope: { selector: "main" }, text: { value: "Run", exact: true },
-  }), "BROWSER_DOM_READ_INVALID", "scope plus target candidates must share the 256 budget");
-
-  const prompt = "approved prompt";
-  const composer = new FakeElement(prompt, {}, {}, { contenteditable: "true" }, "DIV", [
-    new FakeTextNode(prompt),
-  ]);
-  const attachment = new FakeElement("approved.pdf", {}, {}, { "aria-label": "approved.pdf" });
-  const send = new FakeElement("Send", {}, {}, {}, "BUTTON");
-  const form = new FakeElement(prompt, { attachment: [attachment] }, {}, {}, "FORM", [composer, attachment, send]);
-  const guardedRoot = new FakeElement("root", { button: [send] }, {}, {}, "MAIN", [form]);
-  const guardedDocument = {
-    documentElement: guardedRoot,
-    querySelectorAll: (selector: string) => selector === "composer" ? [composer]
-      : selector === "form" ? [form] : [],
-    elementFromPoint: () => send,
-  };
-  const guardedInput = {
-    selector: "button", output: "pointer",
-    exactOutgoingTurn: {
-      composerSelector: "composer", composerFormSelector: "form", attachmentSelector: "attachment",
-      userTurnSelector: "user-turn",
-      expectedPromptHash: hash(prompt), expectedAttachmentLabels: ["approved.pdf"],
-    },
-  } as const;
-  assert.equal(JSON.stringify(await execute(source, guardedDocument, guardedInput)),
-    JSON.stringify({ x: 5, y: 5 }),
-    "one exact prompt plus its approved attachment set must authorize the click point");
-  const retriedAttachment = new FakeElement("approved(5).pdf", {}, {}, { "aria-label": "approved(5).pdf" });
-  const retriedForm = new FakeElement(prompt, { attachment: [retriedAttachment] }, {}, {},
-    "FORM", [composer, retriedAttachment, send]);
-  assert.equal(JSON.stringify(await execute(source, {
-    documentElement: new FakeElement("root", { button: [send] }, {}, {}, "MAIN", [retriedForm]),
-    querySelectorAll: (selector: string) => selector === "composer" ? [composer]
-      : selector === "form" ? [retriedForm] : [],
-    elementFromPoint: () => send,
-  }, guardedInput)), JSON.stringify({ x: 5, y: 5 }),
-  "a Provider-only final numeric duplicate suffix must preserve the approved attachment identity");
-  const twoApprovedForm = new FakeElement(prompt, { attachment: [attachment, retriedAttachment] }, {}, {},
-    "FORM", [composer, attachment, retriedAttachment, send]);
-  assert.equal(JSON.stringify(await execute(source, {
-    documentElement: new FakeElement("root", { button: [send] }, {}, {}, "MAIN", [twoApprovedForm]),
-    querySelectorAll: (selector: string) => selector === "composer" ? [composer]
-      : selector === "form" ? [twoApprovedForm] : [], elementFromPoint: () => send,
-  }, { ...guardedInput, exactOutgoingTurn: { ...guardedInput.exactOutgoingTurn,
-    expectedAttachmentLabels: ["approved.pdf", "approved(5).pdf"] } })),
-  JSON.stringify({ x: 5, y: 5 }),
-  "an explicitly approved numeric-parenthetical name must win before Provider suffix normalization");
-  const renamedAttachment = new FakeElement("approved(copy).pdf", {}, {}, {
-    "aria-label": "approved(copy).pdf",
-  });
-  const renamedForm = new FakeElement(prompt, { attachment: [renamedAttachment] }, {}, {},
-    "FORM", [composer, renamedAttachment, send]);
-  assert.equal(await execute(source, {
-    documentElement: new FakeElement("root", { button: [send] }, {}, {}, "MAIN", [renamedForm]),
-    querySelectorAll: (selector: string) => selector === "composer" ? [composer]
-      : selector === "form" ? [renamedForm] : [], elementFromPoint: () => send,
-  }, guardedInput), "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH",
-  "a non-numeric parenthetical rename must not weaken exact attachment identity");
-  const noAttachmentForm = new FakeElement(prompt, { attachment: [] }, {}, {}, "FORM", [composer, send]);
-  const noAttachmentRoot = new FakeElement("root", { button: [send] }, {}, {}, "MAIN", [noAttachmentForm]);
-  assert.equal(JSON.stringify(await execute(source, {
-    documentElement: noAttachmentRoot,
-    querySelectorAll: (selector: string) => selector === "composer" ? [composer]
-      : selector === "form" ? [noAttachmentForm] : [],
-    elementFromPoint: () => send,
-  }, { ...guardedInput, exactOutgoingTurn: {
-    ...guardedInput.exactOutgoingTurn, expectedAttachmentLabels: [],
-  } })), JSON.stringify({ x: 5, y: 5 }),
-  "a Product that approves zero attachments must still authorize its exact prompt click");
-  const historicalTurns = [1, 7, 3].map((ordinal) => new FakeElement("turn", {}, {}, {
-    "data-testid": `conversation-turn-${ordinal}`,
-  }));
-  const malformedTurn = new FakeElement("turn", {}, {}, { "data-testid": "conversation-turn-bad" });
-  assert.equal(JSON.stringify(await execute(source, {
-    ...guardedDocument,
-    querySelectorAll: (selector: string) => selector === "composer" ? [composer]
-      : selector === "form" ? [form] : selector === "user-turn"
-        ? [...historicalTurns, malformedTurn] : [],
-  }, guardedInput)), JSON.stringify({ x: 5, y: 5 }),
-  "multiple or malformed historical turns must not reject an otherwise authorized click");
-  assert.equal(await execute(source, guardedDocument, { ...guardedInput, exactOutgoingTurn: {
-    ...guardedInput.exactOutgoingTurn, expectedAttachmentLabels: [],
-  } }), "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH",
-  "an unexpected attachment must reject the one outgoing-turn identity");
-  assert.equal(await execute(source, guardedDocument, { ...guardedInput, exactOutgoingTurn: {
-    ...guardedInput.exactOutgoingTurn, expectedPromptHash: hash("different prompt"),
-  } }), "BROWSER_DOM_ACTION_OUTGOING_PROMPT_HASH_MISMATCH",
-  "a different prompt hash must expose the exact outgoing-turn mismatch");
-  const unrelatedForm = new FakeElement(prompt, { attachment: [] }, {}, {}, "FORM", [composer]);
-  assert.equal(await execute(source, { ...guardedDocument,
-    querySelectorAll: (selector: string) => selector === "composer" ? [composer]
-      : selector === "form" ? [unrelatedForm] : [] }, guardedInput),
-  "BROWSER_DOM_ACTION_OUTGOING_STRUCTURE_MISMATCH",
-  "the send button must belong to the same form as the approved outgoing turn");
-};
 export const exerciseCapturedCoherentObservationPointerFunction = (source: string): void => {
   const reasoning = new FakeElement("", {}, {}, {
     "aria-valuemin": "0", "aria-valuemax": "4", "aria-valuenow": "2",
@@ -298,7 +165,7 @@ const userPromptFixture = () => {
   return { userPrompt, promptBody };
 };
 
-const exerciseExactUserPromptHash = async (source: string): Promise<void> => {
+const exerciseMarkedUserPromptHash = async (source: string): Promise<void> => {
   const { userPrompt, promptBody } = userPromptFixture();
   const attachmentCard = new FakeElement("公开知识生产资料.zip 文件", {}, {}, {}, "DIV", [
     new FakeTextNode("公开知识生产资料.zip 文件"),
@@ -326,7 +193,9 @@ const exerciseExactUserPromptHash = async (source: string): Promise<void> => {
     "the exact GPT user Prompt hash must include only the unique rendered Prompt body");
   assert.notEqual(exactUserTurn?.semanticTextHash, hash(userPrompt),
     "the outer user-turn semantic hash must expose why attachment and controls cannot identify the Prompt");
+};
 
+const exerciseFencedUserPromptHash = async (source: string): Promise<void> => {
   const fencedPrompt = "[GRASSEYE:fenced-user-prompt]\n```text\nexact payload\n```\napproved prompt";
   const fencedCode = new FakeElement("text\nexact payload", {}, {}, {}, "CODE", [
     new FakeTextNode("text\nexact payload"),
@@ -356,7 +225,9 @@ const exerciseExactUserPromptHash = async (source: string): Promise<void> => {
     }>;
   assert.equal(fencedResult.queries[0]?.matches[0]?.exactGptUserPromptHash, hash(fencedPrompt),
     "the exact rendered user Prompt must restore ChatGPT's stripped triple-backtick fence");
+};
 
+const exerciseShortUserPromptHash = async (source: string): Promise<void> => {
   const shortPrompt = "生成一张与本文主题一致的封面图";
   const shortLeaf = new FakeElement(shortPrompt, {}, {}, { class: "max-w-full whitespace-pre-wrap" }, "DIV", [
     new FakeTextNode(shortPrompt),
@@ -378,6 +249,12 @@ const exerciseExactUserPromptHash = async (source: string): Promise<void> => {
     }>;
   assert.equal(shortResult.queries[0]?.matches[0]?.exactGptUserPromptHash, hash(shortPrompt),
     "a real short Prompt must bind the unique uncollapsed whitespace-pre-wrap leaf");
+};
+
+const exerciseExactUserPromptHash = async (source: string): Promise<void> => {
+  await exerciseMarkedUserPromptHash(source);
+  await exerciseFencedUserPromptHash(source);
+  await exerciseShortUserPromptHash(source);
 };
 
 const exerciseRejectedUserPromptHashes = async (source: string): Promise<void> => {
@@ -534,91 +411,4 @@ export const exerciseCapturedObservationFunction = async (source: string): Promi
   await exerciseUserPromptHashes(source);
   await exerciseAssistantSemanticTextHash(source);
   await exerciseInvalidObservationUrls(source, observationDocument);
-};
-
-export const exerciseCapturedExactAssistantTurnFunction = async (source: string): Promise<void> => {
-  const text = (value: string) => new FakeTextNode(value);
-  const paragraph = new FakeElement("bold", {}, {}, {}, "P", [
-    new FakeElement("bold", {}, {}, {}, "STRONG", [text("bold")]),
-  ]);
-  const listItem = new FakeElement("item", {}, {}, {}, "LI", [text("item")]);
-  const list = new FakeElement("item", {}, {}, {}, "UL", [listItem]);
-  const assistant = new FakeElement("bold item", { "pre code": [] }, {}, {}, "DIV", [paragraph, list]);
-  const userMessage = new FakeElement("provider-folded-message", {}, {}, {}, "DIV", [text("provider-folded-message")]);
-  const user = new FakeElement("provider-folded-message", {
-    "[data-message-author-role='user']": [userMessage],
-  }, {}, { "data-testid": "conversation-turn-1" });
-  const assistantOuter = (node: FakeElement) => new FakeElement(node.textContent, {
-    "[data-message-author-role='assistant']": [node],
-  }, {}, { "data-testid": "conversation-turn-2" }, "SECTION", [node]);
-  const userSelector = "[data-testid='conversation-turn-1']:has([data-message-author-role='user'])";
-  const turnsSelector = "[data-testid^='conversation-turn-']";
-  const input = { kind: "readExactAssistantTurn", userTurnId: "conversation-turn-1",
-    canonicalConversationUrl: "https://chatgpt.com/c/exact" };
-  const exactAssistant = assistantOuter(assistant);
-  let queryCalls = 0;
-  const document = {
-    querySelectorAll: (value: string) => {
-      queryCalls += 1;
-      return value === userSelector ? [user] : value === turnsSelector ? [user, exactAssistant] : [];
-    },
-    elementFromPoint: () => assistant,
-  };
-  const observed = await execute(
-    source, document, input, "https://chatgpt.com/c/exact?query=discarded#fragment",
-  ) as Readonly<{
-    rawCount: number; eligibleCount: number; rawDomHtml: string; semanticText: string;
-    currentUrl: string; nativeStage: string;
-  }>;
-  assert.equal(queryCalls, 3,
-    "the assistant, exact predecessor, and generating state must share one async Runtime call");
-  assert.equal(source.includes("collapsible-user-message-content"), false,
-    "response read must not parse or hash the already-confirmed user prompt DOM");
-  assert.equal(source.includes("precedingPromptHash"), false,
-    "response read must not create a second prompt identity");
-  assert.equal(observed.rawCount, 1);
-  assert.equal(observed.eligibleCount, 1);
-  assert.match(observed.rawDomHtml, /<strong>bold<\/strong>/u);
-  assert.equal(observed.semanticText, "**bold**\n- item\n");
-  assert.equal(observed.currentUrl, "https://chatgpt.com/c/exact");
-  assert.equal(observed.nativeStage, "runtime-call-function-on");
-  const generatingObserved = await execute(source, { ...document,
-    querySelectorAll: (value: string) => value === "#composer-submit-button[data-testid='stop-button']"
-      ? [assistant] : document.querySelectorAll(value),
-  }, input, "https://chatgpt.com/c/exact") as Readonly<{
-    rawCount: number; eligibleCount: number; rawDomHtml: string; semanticText: string; generatingRaw: number;
-  }>;
-  assert.deepEqual({
-    rawCount: generatingObserved.rawCount,
-    eligibleCount: generatingObserved.eligibleCount,
-    rawDomHtml: generatingObserved.rawDomHtml,
-    semanticText: generatingObserved.semanticText,
-    generatingRaw: generatingObserved.generatingRaw,
-  }, { rawCount: 1, eligibleCount: 0, rawDomHtml: "", semanticText: "", generatingRaw: 1 },
-  "generation must short-circuit before assistant visibility, HTML, or semantic-text reads");
-  const hidden = new FakeElement("hidden", { "pre code": [] }, { display: "none" }, {}, "DIV", [text("hidden")]);
-  const hiddenAssistant = assistantOuter(hidden);
-  const hiddenObserved = await execute(source, {
-    querySelectorAll: (value: string) => value === userSelector ? [user]
-      : value === turnsSelector ? [user, hiddenAssistant] : [], elementFromPoint: () => null,
-  }, input, "https://chatgpt.com/c/exact") as Readonly<{ rawCount: number; eligibleCount: number; rawDomHtml: string }>;
-  assert.deepEqual({ rawCount: hiddenObserved.rawCount, eligibleCount: hiddenObserved.eligibleCount,
-    rawDomHtml: hiddenObserved.rawDomHtml }, { rawCount: 1, eligibleCount: 0, rawDomHtml: "" });
-  const ambiguous = await execute(source, {
-    querySelectorAll: (value: string) => value === userSelector ? [user]
-      : value === turnsSelector ? [user, new FakeElement("ambiguous", {
-        "[data-message-author-role='assistant']": [assistant, assistant],
-      }, {}, { "data-testid": "conversation-turn-2" })] : [], elementFromPoint: () => assistant,
-  }, input, "https://chatgpt.com/c/exact") as Readonly<{ rawCount: number; eligibleCount: number }>;
-  assert.deepEqual({ rawCount: ambiguous.rawCount, eligibleCount: ambiguous.eligibleCount },
-    { rawCount: 2, eligibleCount: 0 });
-  const rich = richSemanticTree();
-  const richAssistant = assistantOuter(rich);
-  const richObserved = await execute(source, {
-    querySelectorAll: (value: string) => value === userSelector ? [user]
-      : value === turnsSelector ? [user, richAssistant] : [],
-    elementFromPoint: () => rich,
-  }, input, "https://chatgpt.com/c/exact") as Readonly<{ semanticText: string }>;
-  assert.equal(richObserved.semanticText, RICH_SEMANTIC_TEXT,
-    "exact assistant read must preserve headings, prose, lists, inline code, the code block, and trailing prose");
 };

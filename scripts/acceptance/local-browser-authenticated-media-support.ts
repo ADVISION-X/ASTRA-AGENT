@@ -80,16 +80,20 @@ const runtime = (input: Readonly<{
   });
 };
 
-export const exerciseAuthenticatedMedia = async (input: Readonly<{
+type MediaExerciseInput = Readonly<{
   authority: Pick<ExtensionTargetAuthority, "executeRegisteredCommand" | "resolve">;
   targetRef: string;
   documentRef: string;
   setRuntime(value: Runtime | null): void;
-}>): Promise<void> => {
-  const authority = input.authority.resolve(input.targetRef, input.documentRef);
-  const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
-  const first = new TestImage(`${GPT_WEB_ORIGIN}/content/a`);
-  const second = new TestImage(`${GPT_WEB_ORIGIN}/content/b`);
+}>;
+
+const exerciseMediaSuccess = async (
+  input: MediaExerciseInput,
+  authority: ReturnType<MediaExerciseInput["authority"]["resolve"]>,
+  bytes: Uint8Array,
+  first: TestImage,
+  second: TestImage,
+): Promise<void> => {
   input.setRuntime(runtime({ turns: [user(), response([first, second])], bytes }));
   const authenticated = await input.authority.executeRegisteredCommand(
     command, authority, "observation",
@@ -102,34 +106,31 @@ export const exerciseAuthenticatedMedia = async (input: Readonly<{
     `sha256:${createHash("sha256").update(input.targetRef).digest("hex")}`);
   assert.equal(authenticated.authorityDocumentHash,
     `sha256:${createHash("sha256").update(input.documentRef).digest("hex")}`);
-
   const observationCount = { value: 0 };
-  input.setRuntime(runtime({
-    turns: [user(), response([])],
-    turnsAfterObserve: [user(), response([first])],
-    observationCount,
-    bytes,
-  }));
+  input.setRuntime(runtime({ turns: [user(), response([])],
+    turnsAfterObserve: [user(), response([first])], observationCount, bytes }));
   const hydrated = await input.authority.executeRegisteredCommand(
     command, authority, "observation",
   ) as Record<string, unknown>;
   assert.equal(hydrated.assistantTurnId, "conversation-turn-6");
   assert.equal(observationCount.value, 1,
     "authenticated media must wait on source hydration inside the same Browser observation");
+};
 
-  input.setRuntime(runtime({
-    turns: [user(), response([first, second])],
-    bytesForSource: (source) => source.endsWith("/a") ? bytes : new Uint8Array([1, 2, 3, 4]),
-  }));
+const exerciseMediaFailures = async (
+  input: MediaExerciseInput,
+  authority: ReturnType<MediaExerciseInput["authority"]["resolve"]>,
+  bytes: Uint8Array,
+  first: TestImage,
+  second: TestImage,
+): Promise<void> => {
+  input.setRuntime(runtime({ turns: [user(), response([first, second])],
+    bytesForSource: (source) => source.endsWith("/a") ? bytes : new Uint8Array([1, 2, 3, 4]) }));
   await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"),
     /BROWSER_AUTHENTICATED_MEDIA_CONTENT_MULTIPLE/u);
-
   const afterNextUser = new TestTurn("conversation-turn-8", false, [first]);
-  for (const turns of [
-    [] as readonly TestTurn[],
-    [user(), response([])],
-    [user(), new TestTurn("conversation-turn-7", true), afterNextUser],
-  ]) {
+  for (const turns of [[] as readonly TestTurn[], [user(), response([])],
+    [user(), new TestTurn("conversation-turn-7", true), afterNextUser]]) {
     input.setRuntime(runtime({ turns }));
     await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"),
       /BROWSER_AUTHENTICATED_MEDIA_(?:USER_TURN|IMAGE_SOURCE)_ABSENT/u);
@@ -140,30 +141,45 @@ export const exerciseAuthenticatedMedia = async (input: Readonly<{
   input.setRuntime(runtime({ turns: [user(), response([first])], currentUrl: `${GPT_WEB_ORIGIN}/c/wrong` }));
   await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"),
     /BROWSER_AUTHENTICATED_MEDIA_WRONG_DOCUMENT/u);
+};
 
+const exerciseMediaFetchFailures = async (
+  input: MediaExerciseInput,
+  authority: ReturnType<MediaExerciseInput["authority"]["resolve"]>,
+  bytes: Uint8Array,
+  first: TestImage,
+): Promise<void> => {
   const fetchCount = { value: 0 };
   const duplicate = new TestImage(`${GPT_WEB_ORIGIN}/content/same`);
   input.setRuntime(runtime({ turns: [user(), response([duplicate, duplicate])], bytes, fetchCount }));
   await input.authority.executeRegisteredCommand(command, authority, "observation");
   assert.equal(fetchCount.value, 1, "the same authenticated resource URL must be fetched once");
-
-  input.setRuntime(runtime({ turns: [user(), response([first])], rejectFetch: true }));
-  await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"),
-    /BROWSER_AUTHENTICATED_MEDIA_FETCH_FAILED/u);
-  input.setRuntime(runtime({ turns: [user(), response([first])], responseStatus: 403 }));
-  await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"),
-    /BROWSER_AUTHENTICATED_MEDIA_FETCH_REJECTED/u);
+  for (const failure of [
+    { input: { rejectFetch: true }, expected: /BROWSER_AUTHENTICATED_MEDIA_FETCH_FAILED/u },
+    { input: { responseStatus: 403 }, expected: /BROWSER_AUTHENTICATED_MEDIA_FETCH_REJECTED/u },
+  ]) {
+    input.setRuntime(runtime({ turns: [user(), response([first])], ...failure.input }));
+    await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"), failure.expected);
+  }
   for (const invalid of [
     { bytes, mediaType: "text/plain", failure: /BROWSER_AUTHENTICATED_MEDIA_TYPE_INVALID/u },
-    { bytes: new Uint8Array(0), mediaType: "image/png",
-      failure: /BROWSER_AUTHENTICATED_MEDIA_BYTES_EMPTY/u },
+    { bytes: new Uint8Array(0), mediaType: "image/png", failure: /BROWSER_AUTHENTICATED_MEDIA_BYTES_EMPTY/u },
     { bytes: new Uint8Array(25 * 1024 * 1024 + 1), mediaType: "image/png",
       failure: /BROWSER_AUTHENTICATED_MEDIA_BYTES_TOO_LARGE/u },
   ]) {
     input.setRuntime(runtime({ turns: [user(), response([first])],
       bytes: invalid.bytes, mediaType: invalid.mediaType }));
-    await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"),
-      invalid.failure);
+    await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"), invalid.failure);
   }
+};
+
+export const exerciseAuthenticatedMedia = async (input: MediaExerciseInput): Promise<void> => {
+  const authority = input.authority.resolve(input.targetRef, input.documentRef);
+  const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+  const first = new TestImage(`${GPT_WEB_ORIGIN}/content/a`);
+  const second = new TestImage(`${GPT_WEB_ORIGIN}/content/b`);
+  await exerciseMediaSuccess(input, authority, bytes, first, second);
+  await exerciseMediaFailures(input, authority, bytes, first, second);
+  await exerciseMediaFetchFailures(input, authority, bytes, first);
   input.setRuntime(null);
 };

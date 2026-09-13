@@ -1,4 +1,4 @@
-import type { BrowserMutationIdentity, BrowserMutationState } from "./browser-mutation-store.js";
+import type { BrowserMutationIdentity, BrowserMutationState } from "./browser-mutation-types.js";
 
 export type MutationRow = Readonly<{
   command_id: string;

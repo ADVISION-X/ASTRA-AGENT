@@ -9,7 +9,7 @@ import {
 import type {
   RuntimeBrowserCommandIdentity,
 } from "../../runtime-logs/runtime-identity-contract.js";
-import type { BrowserMutationIdentity } from "./browser-mutation-store.js";
+import type { BrowserMutationIdentity } from "./browser-mutation-types.js";
 import type { BrowserCommandPermit } from "../transport/command-permit.js";
 
 const identityFor = (permit: BrowserCommandPermit): RuntimeBrowserCommandIdentity => ({

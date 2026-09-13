@@ -61,6 +61,73 @@ const confirmedSubmitEffect = (
     evidenceRef: prior.authorityRef, evidenceHash: prior.authorityHash });
 };
 
+const recordConfirmedSubmission = async (
+  call: ProductGptCallInput,
+  result: GptChildCapabilityResult,
+  intent: GptAnyChildCapabilityIntent,
+  execution: ExecutionInput,
+  browsers: ProductionGptBrowserLifecycle,
+  browserCall: ProductionGptBrowserCall | undefined,
+): Promise<void> => {
+  if (call.child !== "submit_exact_gpt_turn_once" || result.status !== "success") return;
+  const effect = result.proof.browserFact;
+  if (effect?.effectScope !== "provider_effect" || effect.browserOutcome !== "CONFIRMED"
+    || !effect.providerEffectIdentityHash) {
+    throw executionFailure("failed", "GPT_PROVIDER_EFFECT_IDENTITY_MISSING");
+  }
+  const submitted = result.value as Readonly<Record<string, unknown>>;
+  if (typeof submitted.canonicalConversationUrl !== "string" || typeof submitted.userTurnId !== "string") {
+    throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
+  }
+  if (!browserCall) throw executionFailure("failed", "GPT_BROWSER_REQUIRED");
+  await browsers.recordConfirmedProviderEffect(
+    browserCall, effect, productionGptAtomicIdentity(intent, execution.resultRevision),
+    submitted.canonicalConversationUrl, submitted.userTurnId,
+  );
+};
+
+const recordSettledProviderResult = (
+  call: ProductGptCallInput,
+  result: GptChildCapabilityResult,
+  browsers: ProductionGptBrowserLifecycle,
+  browserCall: ProductionGptBrowserCall | undefined,
+): void => {
+  const readsConfirmedEffect = call.child === "checkpoint_gpt_text_response"
+    || call.child === "checkpoint_gpt_generated_image";
+  if (!readsConfirmedEffect || !browserCall || result.status !== "success") return;
+  const value = result.value as Readonly<Record<string, unknown>>;
+  const payloadHash = call.child === "checkpoint_gpt_text_response" ? value.semanticTextHash : value.sha256;
+  if (typeof payloadHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(payloadHash)) {
+    throw executionFailure("failed", "GPT_SETTLED_RESULT_PAYLOAD_HASH_INVALID");
+  }
+  browsers.recordSettledResult(browserCall, payloadHash as GptHash);
+};
+
+const productChildResult = <K extends GptChildCapabilityId>(input: Readonly<{
+  execution: ExecutionInput;
+  intent: GptChildCapabilityIntent<K>;
+  result: Extract<GptChildCapabilityResult, { status: "success" }>;
+  evidenceRef: string;
+  evidenceHash: GptHash;
+  artifactRefs: readonly string[];
+}>): ProductGptChildResult<K> => Object.freeze({
+  value: input.result.value as ProductGptChildResult<K>["value"],
+  evidenceRef: input.evidenceRef,
+  evidenceHash: input.evidenceHash,
+  sourceAttemptId: input.execution.attemptId,
+  exactCallIdentityHash: gptExactCallIdentityHash(input.intent),
+  artifactRefs: input.artifactRefs,
+  effectReceipt: input.result.proof.browserFact ? Object.freeze({
+    effectScope: input.result.proof.browserFact.effectScope,
+    providerEffectIdentityHash: input.result.proof.browserFact.providerEffectIdentityHash,
+    outcome: input.result.proof.browserFact.browserOutcome,
+    mutationOutcome: input.result.proof.browserFact.mutationOutcome,
+    terminalAt: input.result.proof.browserFact.terminalAt,
+    evidenceRef: input.result.proof.browserFact.evidenceRef,
+    evidenceHash: input.result.proof.browserFact.evidenceHash,
+  }) : null,
+});
+
 export class ProductionGptChildTools {
   public constructor(
     private readonly dataDir: string,
@@ -307,24 +374,8 @@ export class ProductionGptChildTools {
         resultRevision: execution.resultRevision,
       });
       result = atomic.result;
-      const effect = result.proof.browserFact;
-      if (call.child === "submit_exact_gpt_turn_once" && result.status === "success") {
-        if (effect?.effectScope !== "provider_effect" || effect.browserOutcome !== "CONFIRMED"
-          || !effect.providerEffectIdentityHash) {
-          throw executionFailure("failed", "GPT_PROVIDER_EFFECT_IDENTITY_MISSING");
-        }
-        const submitted = result.value as Readonly<Record<string, unknown>>;
-        if (typeof submitted.canonicalConversationUrl !== "string"
-          || typeof submitted.userTurnId !== "string") {
-          throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
-        }
-        await browsers.recordConfirmedProviderEffect(
-          browserCall!, effect,
-          productionGptAtomicIdentity(intent as GptAnyChildCapabilityIntent, execution.resultRevision),
-          submitted.canonicalConversationUrl,
-          submitted.userTurnId,
-        );
-      }
+      await recordConfirmedSubmission(call, result, intent as GptAnyChildCapabilityIntent,
+        execution, browsers, browserCall);
       resolveDispatched = atomic.resolveDispatched;
       artifactRefs = await persistGptEvidenceArtifacts({
         result, intent, evidenceStore: this.evidenceStore,
@@ -349,32 +400,9 @@ export class ProductionGptChildTools {
         readsConfirmedEffect ? browserCall?.confirmedProviderEffect : null,
       );
     }
-    if (readsConfirmedEffect && browserCall) {
-      const value = result.value as Readonly<Record<string, unknown>>;
-      const payloadHash = call.child === "checkpoint_gpt_text_response"
-        ? value.semanticTextHash : value.sha256;
-      if (typeof payloadHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(payloadHash)) {
-        throw executionFailure("failed", "GPT_SETTLED_RESULT_PAYLOAD_HASH_INVALID");
-      }
-      browsers.recordSettledResult(browserCall, payloadHash as GptHash);
-    }
-    return Object.freeze({
-      value: result.value as ProductGptChildResult<K>["value"],
-      evidenceRef,
-      evidenceHash,
-      sourceAttemptId: execution.attemptId,
-      exactCallIdentityHash: gptExactCallIdentityHash(intent),
-      artifactRefs,
-      effectReceipt: result.proof.browserFact ? Object.freeze({
-        effectScope: result.proof.browserFact.effectScope,
-        providerEffectIdentityHash: result.proof.browserFact.providerEffectIdentityHash,
-        outcome: result.proof.browserFact.browserOutcome,
-        mutationOutcome: result.proof.browserFact.mutationOutcome,
-        terminalAt: result.proof.browserFact.terminalAt,
-        evidenceRef: result.proof.browserFact.evidenceRef,
-        evidenceHash: result.proof.browserFact.evidenceHash,
-      }) : null,
-    });
+    const successful = result as Extract<GptChildCapabilityResult, { status: "success" }>;
+    recordSettledProviderResult(call, successful, browsers, browserCall);
+    return productChildResult({ execution, intent, result: successful, evidenceRef, evidenceHash, artifactRefs });
   }
 
   private async resolveDispatchedMutation(input: Readonly<{

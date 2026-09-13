@@ -31,15 +31,15 @@ import {
 } from "./browser-command-failure.js";
 import {
   BrowserMutationStore,
-  type BrowserAtomicStepOutcome,
-  type BrowserMutationIdentity,
 } from "./browser-mutation-store.js";
+import type { BrowserAtomicStepOutcome, BrowserMutationIdentity } from "./browser-mutation-types.js";
 import type { BrowserAtomicStepIdentity } from "./browser-target-lease.js";
 import {
   assertBrowserReconciliationEvidence,
   type BrowserOutcomeResolutionReceipt,
 } from "./browser-outcome-resolver.js";
 import { decodeBrowserMutationReceipt } from "./browser-mutation-receipt.js";
+import { submitRecoveryPayload } from "./browser-submit-recovery-payload.js";
 
 export type BrowserGovernedCommand =
   | Readonly<{ kind: "dom-intent"; intent: BrowserDomIntent }>
@@ -114,51 +114,6 @@ const isMutation = (command: BrowserGovernedCommand): boolean =>
   command.kind === "file-input"
   || (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "hover"
     || command.intent.kind === "doubleClick" || command.intent.kind === "keypress" || command.intent.kind === "fill"));
-
-const submitRecoveryPayload = (value: unknown): Readonly<Record<string, unknown>> => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
-  const packet = (value as Record<string, unknown>).postconditionObservation;
-  if (!packet || typeof packet !== "object" || Array.isArray(packet)) {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
-  const observation = packet as Record<string, unknown>;
-  const query = Array.isArray(observation.queries) ? observation.queries[0] : undefined;
-  const matches = query && typeof query === "object" && !Array.isArray(query)
-    ? (query as Record<string, unknown>).matches : undefined;
-  const match = query && typeof query === "object" && !Array.isArray(query)
-    && Array.isArray(matches) ? matches[0] : undefined;
-  if (!query || typeof query !== "object" || Array.isArray(query)
-    || !match || typeof match !== "object" || Array.isArray(match)) {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
-  const row = query as Record<string, unknown>;
-  const item = match as Record<string, unknown>;
-  const hashes = ["exactGptUserPromptHash"] as const;
-  const observationHashes = ["exactCallIdentityHash", "observationRevisionHash",
-    "targetRefHash", "documentRefHash"] as const;
-  if (typeof observation.currentUrl !== "string" || observation.currentUrl.length === 0
-    || typeof item.testId !== "string" || !/^conversation-turn-[1-9][0-9]*$/u.test(item.testId)
-    || row.rawCount !== 1 || row.eligibleCount !== 1
-    || hashes.some((key) => typeof item[key] !== "string"
-      || !/^sha256:[a-f0-9]{64}$/u.test(item[key] as string))
-    || observationHashes.some((key) => typeof observation[key] !== "string"
-      || !/^sha256:[a-f0-9]{64}$/u.test(observation[key] as string))) {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
-  return Object.freeze({
-    canonicalConversationUrl: observation.currentUrl,
-    promptHash: item.exactGptUserPromptHash,
-    userTurnId: item.testId,
-    exactCallIdentityHash: observation.exactCallIdentityHash,
-    observationRevisionHash: observation.observationRevisionHash,
-    targetRefHash: observation.targetRefHash,
-    documentRefHash: observation.documentRefHash,
-    rawCount: row.rawCount,
-    eligibleCount: row.eligibleCount,
-  });
-};
 
 const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
   positive: `sha256:${string}`;

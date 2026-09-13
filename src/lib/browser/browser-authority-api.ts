@@ -6,7 +6,7 @@ export type {
 } from "./exact-target/browser-target-lease.js";
 export type {
   BrowserExactCallMutationFact,
-} from "./exact-target/browser-mutation-store.js";
+} from "./exact-target/browser-mutation-types.js";
 export { browserExactCallIdentityHash } from "./exact-target/browser-command-postcondition.js";
 export type {
   BrowserDomIntent,

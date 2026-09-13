@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
@@ -25,6 +25,7 @@ import {
   inspectGptDirectMutationSettlementContract,
 } from "./gpt-recovery-contract-inspection.js";
 import { inspectGptCurrentPageProofs } from "./gpt-page-proof-inspection.js";
+import { inspectFrozenAttemptBoundary } from "./gpt-frozen-attempt-inspection.js";
 import {
   inspectGptCrossTaskStateAbsence,
   inspectGptProviderProbeOwnerContract,
@@ -57,7 +58,6 @@ import { containsPageMutation, gptPrivateInfrastructureViolations, sourceFor, so
 
 const LAW_ID = "LAW-GPT-001-V48";
 const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V9";
-const GPT_BLUEPRINT_PATH = "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 2, 4, 7),
   "static.ast": staticClauses(0, 2, 3, 4, 5, 6, 7),
@@ -84,9 +84,6 @@ const finding = (checkId: string, filePath: string, message: string, line?: numb
 
 const repoPath = (context: InspectorContext, source: SourceFile): string =>
   source.getFilePath().slice(resolve(context.sealedRoot).length + 1).split("\\").join("/");
-const sealedSource = (context: InspectorContext, path: string): string =>
-  readFileSync(resolve(context.sealedRoot, path), "utf8");
-
 const inspectImportOwnership = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const source of context.project.getSourceFiles()) {
     const path = repoPath(context, source);
@@ -397,85 +394,6 @@ const inspectGptAst = (context: InspectorContext, findings: InspectorFinding[]):
 const inspectGptDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   inspectImportOwnership(context, findings);
   inspectAcyclicCapabilityGraph(context, findings);
-};
-
-const inspectFrozenAttemptBoundary = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  evidenceMode: "static.ast" | "static.contract",
-): void => {
-  const sources = {
-    contract: sealedSource(context, CONTRACT_PATH),
-    atomic: sealedSource(context, `${ROOT}/production-atomic-call.ts`),
-    group: sealedSource(context, GROUP_PATH),
-    childHandler: sealedSource(context, `${ROOT}/web/child-handler.ts`),
-    productApi: sealedSource(context, `${ROOT}/product-api.ts`),
-    seoReadback: sealedSource(context, "src/plugins/public-knowledge-article-pipeline/seo-submit-readback.ts"),
-    seoFlow: sealedSource(context, "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts"),
-    submit: sealedSource(context, `${ROOT}/children/submit_exact_gpt_turn_once/handler.ts`),
-    candidate: sealedSource(context, "src/lib/browser/chrome-extension/dom-coherent-candidate.ts"),
-    attachmentSchema: sealedSource(context, `${ROOT}/schema.ts`),
-    attachmentReconciliation: sealedSource(
-      context, `${ROOT}/children/reconcile_gpt_attachment_set/observation.ts`,
-    ),
-    store: sealedSource(context, "src/lib/browser/exact-target/browser-mutation-store.ts"),
-    lifecycle: sealedSource(context, `${ROOT}/production-browser-lifecycle.ts`),
-    targetAcquirer: sealedSource(context, "src/lib/browser/infrastructure/browser-target-acquirer.ts"),
-    blueprint: sealedSource(context, GPT_BLUEPRINT_PATH),
-    browserBlueprint: sealedSource(context,
-      "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md"),
-  };
-  const probeWalRead = sources.lifecycle.indexOf("active.browser.readAtomicStepOutcome(confirmed.submitIdentity)");
-  const valid = /attach_approved_gpt_files_once:[^\n]+profile: "TARGET_LOCAL_MUTATION"[^\n]+replayPolicy: "target-local-per-generation"/u
-    .test(sources.contract)
-    && /submit_exact_gpt_turn_once:[^\n]+profile: "PROVIDER_EFFECT_ONCE"[^\n]+replayPolicy: "provider-effect-once"/u
-      .test(sources.contract)
-    && sources.atomic.includes("gptCanonicalHash([resultRevision, intent.inputHash])")
-    && sources.contract.includes("browserAtomicIdentity?: BrowserAtomicStepIdentity")
-    && sources.atomic.includes("executionContext(input, browser, atomicIdentity)")
-    && sources.childHandler.includes("readAtomicStepOutcome(context.browserAtomicIdentity)")
-    && sources.group.includes("readAtomicStepOutcome(context.browserAtomicIdentity)")
-    && !sources.childHandler.includes("inputHash: intent.inputHash")
-    && !sources.group.includes("inputHash: intent.inputHash")
-    && sources.productApi.includes("readConfirmedSubmit(")
-    && sources.seoFlow.includes("context.gpt.readConfirmedSubmit")
-    && sources.seoReadback.indexOf("await input.read()") < sources.seoReadback.indexOf("await input.prepare()")
-    && sources.seoReadback.indexOf("await input.prepare()") < sources.seoReadback.indexOf("await input.execute()")
-    && sources.submit.includes("userTurnSelector: GPT_USER_TURN_SELECTOR")
-    && sources.submit.includes("latestGptUserTurn: true")
-    && sources.submit.includes("GPT_EMPTY_COMPOSER_SELECTOR")
-    && sources.blueprint.includes("FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001")
-    && sources.blueprint.includes("FROZEN-GPT-ATTACHMENT-PROVIDER-DUPLICATE-SUFFIX-001")
-    && sources.browserBlueprint.includes("FROZEN-GPT-ATTACHMENT-PROVIDER-DUPLICATE-SUFFIX-001")
-    && sources.attachmentSchema.includes("normalizeGptProviderAttachmentLabel")
-    && sources.attachmentReconciliation.includes("normalizeGptProviderAttachmentLabel(label, expectedLabels)")
-    && sources.candidate.includes("expectedLabels.includes(providerLabel(label))")
-    && sources.blueprint.includes("FROZEN-GPT-RESPONSE-NO-PROMPT-REHASH-001")
-    && sources.blueprint.includes("FROZEN-GPT-ATOMIC-IDENTITY-ROUNDTRIP-001")
-    && sources.blueprint.includes("FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001")
-    && sources.lifecycle.includes('"confirmed-readback"')
-    && probeWalRead >= 0
-    && sources.lifecycle.includes("PROVIDER_OBSERVATION_INTERVAL_MS = 30_000")
-    && sources.lifecycle.includes("recoverySelectionRequired: targetMode === \"confirmed-readback\"")
-    && !sources.lifecycle.includes("await active.browser.park({")
-    && !sources.lifecycle.includes('"provider-probe"')
-    && !sources.lifecycle.includes("startProviderProbeCooldown")
-    && !sources.lifecycle.includes("BROWSER_RECONCILIATION_IDENTITY_MISMATCH")
-    && sources.targetAcquirer.includes("requestPreauthorizedTargetAcquisition(targetMode)")
-    && !sources.targetAcquirer.includes("expectedTargetRef")
-    && sources.store.includes("providerEffectIdentityHash: input.effectScope === \"provider_effect\"")
-    && !sources.candidate.includes("priorTurns.length > 1")
-    && !sources.candidate.includes("querySelectorAll(outgoing.userTurnSelector)")
-    && !sources.candidate.includes("baselineOrdinal + 2")
-    && sources.store.includes("row.attempt_id !== input.attemptId");
-  if (!valid) findings.push(createFinding({
-    evidenceMode,
-    lawId: FROZEN_ATTEMPT_LAW_ID,
-    clauseId: `${FROZEN_ATTEMPT_LAW_ID.toLowerCase()}-requirement`,
-    checkId: "gpt/frozen-job-attempt-provider-effect",
-    filePath: CONTRACT_PATH,
-    message: "Frozen attempt-local preparation and cross-attempt submit boundary is incomplete.",
-  }));
 };
 
 const inspectFrozenAttemptAst = (context: InspectorContext, findings: InspectorFinding[]): void => {

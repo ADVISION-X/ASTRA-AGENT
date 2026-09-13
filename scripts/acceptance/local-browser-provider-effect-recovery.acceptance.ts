@@ -7,8 +7,8 @@ import path from "node:path";
 
 import {
   BrowserMutationStore,
-  type BrowserMutationIdentity,
 } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
+import type { BrowserMutationIdentity } from "../../src/lib/browser/exact-target/browser-mutation-types.js";
 import { ensureCurrentSchema } from "../../src/lib/browser/exact-target/browser-mutation-schema.js";
 
 const hash = (value: string): `sha256:${string}` =>

@@ -127,6 +127,46 @@ const inspectAttachmentHandler = (
     findings, finding, message: (required) => `GPT attachment artifact boundary is missing ${required}.` });
 };
 
+const inspectAttachmentIdentityContract = (
+  context: InspectorContext,
+  findings: InspectorFinding[],
+  finding: FindingFactory,
+): void => {
+  const attachmentIdentitySource = [
+    sourceFor(context, SCHEMA_PATH)?.getFullText() ?? "",
+    sourceFor(context, childFilePath("attach_approved_gpt_files_once", "attachment-observation.ts"))
+      ?.getFullText() ?? "",
+    sourceFor(context, childFilePath("reconcile_gpt_attachment_set", "observation.ts"))
+      ?.getFullText() ?? "",
+    sourceFor(context, PRODUCT_API_PATH)?.getFullText() ?? "",
+  ].join("\n");
+  inspectMissingTokens({ source: attachmentIdentitySource, required: [
+    "jobId: string", "businessFileToken", "`${jobId}\\u0000${artifactRef}`",
+    "intent.jobId", "readonly jobId: string",
+  ], checkId: "gpt/attachment-job-stable-provider-name", filePath: SCHEMA_PATH,
+  findings, finding,
+  message: (required) => `GPT attachment Provider name is missing job-stable identity token ${required}.` });
+  if (attachmentIdentitySource.includes("`${attemptId}\\u0000${artifactRef}`")) findings.push(finding(
+    "gpt/attachment-job-stable-provider-name", SCHEMA_PATH,
+    "GPT attachment Provider name must not vary with attempt identity.",
+  ));
+  const attachmentSchema = sourceFor(context, SCHEMA_PATH)?.getFullText() ?? "";
+  inspectMissingTokens({ source: attachmentSchema, required: [
+    "normalizeGptProviderAttachmentLabel", "expectedLabels.includes(normalized)",
+    ".replace(/\\(\\d+\\)(?=(?:\\.[^./]+)?$)/u, \"\")",
+    "expectedLabels.includes(withoutProviderDuplicateSuffix)",
+  ], checkId: "gpt/provider-duplicate-suffix-normalization", filePath: SCHEMA_PATH,
+  findings, finding,
+  message: (required) => `GPT attachment Provider duplicate-suffix normalization is missing ${required}.` });
+  const reconciliation = sourceFor(context, ATTACHMENT_SETTLEMENT_OBSERVATION_PATH)?.getFullText() ?? "";
+  inspectMissingTokens({ source: reconciliation, required: [
+    "normalizeGptProviderAttachmentLabel", "normalizedObservedLabels",
+    "new Set(normalizedObservedLabels).size !== normalizedObservedLabels.length",
+  ], checkId: "gpt/provider-duplicate-suffix-reconciliation",
+  filePath: ATTACHMENT_SETTLEMENT_OBSERVATION_PATH, findings, finding,
+  message: (required) => `GPT attachment reconciliation is missing Provider suffix rule ${required}.` });
+};
+
 export const inspectGptAttachmentContract = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -168,39 +208,5 @@ export const inspectGptAttachmentContract = (
       "Browser public attachment contract still requires a physical-path registration/grant step outside GPT artifactRef input.",
     ));
   }
-  const attachmentIdentitySource = [
-    sourceFor(context, SCHEMA_PATH)?.getFullText() ?? "",
-    sourceFor(context, childFilePath("attach_approved_gpt_files_once", "attachment-observation.ts"))
-      ?.getFullText() ?? "",
-    sourceFor(context, childFilePath("reconcile_gpt_attachment_set", "observation.ts"))
-      ?.getFullText() ?? "",
-    sourceFor(context, PRODUCT_API_PATH)?.getFullText() ?? "",
-  ].join("\n");
-  inspectMissingTokens({ source: attachmentIdentitySource, required: [
-    "jobId: string", "businessFileToken", "`${jobId}\\u0000${artifactRef}`",
-    "intent.jobId", "readonly jobId: string",
-  ], checkId: "gpt/attachment-job-stable-provider-name", filePath: SCHEMA_PATH,
-  findings, finding,
-  message: (required) => `GPT attachment Provider name is missing job-stable identity token ${required}.` });
-  if (attachmentIdentitySource.includes("`${attemptId}\\u0000${artifactRef}`")) findings.push(finding(
-    "gpt/attachment-job-stable-provider-name", SCHEMA_PATH,
-    "GPT attachment Provider name must not vary with attempt identity.",
-  ));
-  const attachmentSchema = sourceFor(context, SCHEMA_PATH)?.getFullText() ?? "";
-  inspectMissingTokens({ source: attachmentSchema, required: [
-    "normalizeGptProviderAttachmentLabel", "expectedLabels.includes(normalized)",
-    ".replace(/\\(\\d+\\)(?=(?:\\.[^./]+)?$)/u, \"\")",
-    "expectedLabels.includes(withoutProviderDuplicateSuffix)",
-  ], checkId: "gpt/provider-duplicate-suffix-normalization", filePath: SCHEMA_PATH,
-  findings, finding,
-  message: (required) => `GPT attachment Provider duplicate-suffix normalization is missing ${required}.` });
-  const attachmentReconciliation = sourceFor(context,
-    ATTACHMENT_SETTLEMENT_OBSERVATION_PATH)?.getFullText() ?? "";
-  inspectMissingTokens({ source: attachmentReconciliation, required: [
-    "normalizeGptProviderAttachmentLabel", "normalizedObservedLabels",
-    "new Set(normalizedObservedLabels).size !== normalizedObservedLabels.length",
-  ], checkId: "gpt/provider-duplicate-suffix-reconciliation",
-  filePath: ATTACHMENT_SETTLEMENT_OBSERVATION_PATH,
-  findings, finding,
-  message: (required) => `GPT attachment reconciliation is missing Provider suffix rule ${required}.` });
+  inspectAttachmentIdentityContract(context, findings, finding);
 };

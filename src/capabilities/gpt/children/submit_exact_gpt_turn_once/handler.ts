@@ -75,51 +75,58 @@ const recoveredSubmittedTurn = (value: unknown): Readonly<Record<string, unknown
   return row;
 };
 
+type SubmitHandler = GptChildHandler<"submit_exact_gpt_turn_once">;
+type SubmitIntent = Parameters<SubmitHandler>[0];
+type SubmitContext = Parameters<SubmitHandler>[1];
+
+const recoveredSubmitResult = (
+  intent: SubmitIntent,
+  context: SubmitContext,
+  promptHash: `sha256:${string}`,
+) => {
+  const recovered = context.confirmedProviderEffectReadback!;
+  const submitted = recoveredSubmittedTurn(recovered.terminalPayload);
+  const canonicalConversationUrl = canonicalConversationOrNull(submitted.canonicalConversationUrl as string);
+  if (!canonicalConversationUrl) throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
+  if (submitted.promptHash !== promptHash) {
+    throw executionFailure("failed", "GPT_SUBMITTED_USER_TURN_PROMPT_HASH_MISMATCH");
+  }
+  const browserFact = Object.freeze({
+    exactCallIdentityHash: gptExactCallIdentityHash(intent),
+    providerEffectIdentityHash: recovered.providerEffectIdentityHash,
+    childCapabilityId: intent.childCapabilityId,
+    effectScope: "provider_effect" as const,
+    browserOutcome: "CONFIRMED" as const,
+    mutationOutcome: recovered.mutationOutcome,
+    terminalAt: recovered.terminalAt,
+    evidenceRef: recovered.authorityRef,
+    evidenceHash: recovered.authorityHash,
+  });
+  return success({
+    value: { status: "CONFIRMED" as const, promptHash, mutationSent: true as const,
+      canonicalConversationUrl, userTurnId: submitted.userTurnId as string },
+    ...declaredFacts({
+      factResultIds: Object.freeze([
+        `gpt-dom-fact:${(submitted.exactCallIdentityHash as string).slice(7)}:${(submitted.observationRevisionHash as string).slice(7)}`,
+      ]),
+      candidateCardinality: Object.freeze({ raw: 1, eligible: 1 }),
+      authorityRefHashes: Object.freeze([
+        submitted.targetRefHash as `sha256:${string}`,
+        submitted.documentRefHash as `sha256:${string}`,
+      ]),
+      observationRevisionHash: submitted.observationRevisionHash as `sha256:${string}`,
+      decision: "DONE", mutationOutcome: "no", browserFact, nativeFailureCode: null,
+    }),
+  });
+};
+
 export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_turn_once"> =
   async (intent, context) => {
     requireExactInputKeys(intent, ["files", "promptHash"]);
     const files = composerFilesInput(intent);
     const promptHash = composerHashInput(intent, "promptHash");
     const recovered = context.confirmedProviderEffectReadback;
-    if (recovered) {
-      const submitted = recoveredSubmittedTurn(recovered.terminalPayload);
-      const canonicalConversationUrl = canonicalConversationOrNull(
-        submitted.canonicalConversationUrl as string,
-      );
-      if (!canonicalConversationUrl) {
-        throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
-      }
-      if (submitted.promptHash !== promptHash) {
-        throw executionFailure("failed", "GPT_SUBMITTED_USER_TURN_PROMPT_HASH_MISMATCH");
-      }
-      const browserFact = Object.freeze({
-        exactCallIdentityHash: gptExactCallIdentityHash(intent),
-        providerEffectIdentityHash: recovered.providerEffectIdentityHash,
-        childCapabilityId: intent.childCapabilityId,
-        effectScope: "provider_effect" as const,
-        browserOutcome: "CONFIRMED" as const,
-        mutationOutcome: recovered.mutationOutcome,
-        terminalAt: recovered.terminalAt,
-        evidenceRef: recovered.authorityRef,
-        evidenceHash: recovered.authorityHash,
-      });
-      return success({
-        value: { status: "CONFIRMED", promptHash, mutationSent: true,
-          canonicalConversationUrl, userTurnId: submitted.userTurnId as string },
-        ...declaredFacts({
-          factResultIds: Object.freeze([
-            `gpt-dom-fact:${(submitted.exactCallIdentityHash as string).slice(7)}:${(submitted.observationRevisionHash as string).slice(7)}`,
-          ]),
-          candidateCardinality: Object.freeze({ raw: 1, eligible: 1 }),
-          authorityRefHashes: Object.freeze([
-            submitted.targetRefHash as `sha256:${string}`,
-            submitted.documentRefHash as `sha256:${string}`,
-          ]),
-          observationRevisionHash: submitted.observationRevisionHash as `sha256:${string}`,
-          decision: "DONE", mutationOutcome: "no", browserFact, nativeFailureCode: null,
-        }),
-      });
-    }
+    if (recovered) return recoveredSubmitResult(intent, context, promptHash);
     const browser = requireBrowser(context);
     const submittedSelector = GPT_USER_TURN_SELECTOR;
     const mutation = await browser.executeDomIntent({

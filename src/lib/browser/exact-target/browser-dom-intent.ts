@@ -264,6 +264,19 @@ const assertReadEligibility = (value: BrowserDomReadEligibility | undefined): vo
   }
 };
 
+const invalidObservationQueryShape = (
+  query: BrowserDomObservationQuery,
+  allowedKeys: ReadonlySet<string>,
+  queryIds: ReadonlySet<string>,
+): boolean => !query || typeof query !== "object" || Array.isArray(query)
+  || Object.keys(query).some((key) => !allowedKeys.has(key))
+  || !isBoundedText(query.queryId, 128) || queryIds.has(query.queryId)
+  || !isBoundedText(query.selector, 2_048);
+
+const invalidObservationQueryBounds = (query: BrowserDomObservationQuery): boolean =>
+  (query.latestGptUserTurn !== undefined && query.latestGptUserTurn !== true)
+  || !Number.isInteger(query.maxMatches) || query.maxMatches < 1 || query.maxMatches > 20;
+
 const assertObservationQueries = (
   queries: readonly BrowserDomObservationQuery[],
   allowedKeys: ReadonlySet<string>,
@@ -274,12 +287,8 @@ const assertObservationQueries = (
   const queryIds = new Set<string>();
   let observationCells = 0;
   for (const query of queries) {
-    if (!query || typeof query !== "object" || Array.isArray(query)
-      || Object.keys(query).some((key) => !allowedKeys.has(key))
-      || !isBoundedText(query.queryId, 128) || queryIds.has(query.queryId)
-      || !isBoundedText(query.selector, 2_048)
-      || (query.latestGptUserTurn !== undefined && query.latestGptUserTurn !== true)
-      || !Number.isInteger(query.maxMatches) || query.maxMatches < 1 || query.maxMatches > 20) {
+    if (invalidObservationQueryShape(query, allowedKeys, queryIds)
+      || invalidObservationQueryBounds(query)) {
       throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
     }
     queryIds.add(query.queryId);
@@ -291,6 +300,32 @@ const assertObservationQueries = (
   }
   if (observationCells > 256) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
 };
+
+const invalidPostObservationQuery = (
+  query: NonNullable<Extract<BrowserDomIntent, { kind: "click" }>["postClickObservation"]>["queries"][number],
+  exactOutgoingTurn: Extract<BrowserDomIntent, { kind: "click" }>["preClickExactOutgoingTurn"],
+): boolean => (query.fields as readonly string[]).some((field) =>
+  field === "semanticTextHash" || field === "exactEditableTextHash"
+  || (field === "exactGptUserPromptHash" && exactOutgoingTurn === undefined))
+  || !Number.isInteger(query.expectedEligibleCount)
+  || query.expectedEligibleCount < 0 || query.expectedEligibleCount > query.maxMatches;
+
+const invalidExactOutgoingObservation = (
+  observation: NonNullable<Extract<BrowserDomIntent, { kind: "click" }>["postClickObservation"]>,
+  exactOutgoingTurn: NonNullable<Extract<BrowserDomIntent, { kind: "click" }>["preClickExactOutgoingTurn"]>,
+): boolean => observation.queries.length !== 2
+  || observation.queries[0]!.selector !== exactOutgoingTurn.userTurnSelector
+  || observation.queries[0]!.latestGptUserTurn !== true
+  || !observation.queries[0]!.fields.includes("testId")
+  || !observation.queries[0]!.fields.includes("exactGptUserPromptHash")
+  || observation.queries[1]!.selector !== `${exactOutgoingTurn.composerSelector}[contenteditable='true']:has(> p[data-empty-paragraph='true'] > br.ProseMirror-trailingBreak)`
+  || observation.queries[1]!.fields.length !== 0;
+
+const invalidClickedCandidateAttribute = (
+  attribute: NonNullable<Extract<BrowserDomIntent, { kind: "click" }>["postClickObservation"]>["clickedCandidateAttribute"],
+): boolean => attribute !== undefined && (
+  Object.keys(attribute).sort().join("|") !== "equals|name"
+  || attribute.name !== "aria-checked" || attribute.equals !== "true");
 
 const assertObserveIntent = (intent: Extract<BrowserDomIntent, { kind: "observe" }>): void =>
   assertObservationQueries(intent.queries, OBSERVATION_QUERY_KEYS);
@@ -423,27 +458,15 @@ const assertClickObservation = (
   }
   assertObservationQueries(observation.queries, POSTCONDITION_QUERY_KEYS);
   for (const query of observation.queries) {
-    if ((query.fields as readonly string[]).some((field) =>
-      field === "semanticTextHash" || field === "exactEditableTextHash"
-      || (field === "exactGptUserPromptHash" && exactOutgoingTurn === undefined))
-      || !Number.isInteger(query.expectedEligibleCount)
-      || query.expectedEligibleCount < 0 || query.expectedEligibleCount > query.maxMatches) {
+    if (invalidPostObservationQuery(query, exactOutgoingTurn)) {
       throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
     }
   }
-  if (exactOutgoingTurn !== undefined && (observation.queries.length !== 2
-    || observation.queries[0]!.selector !== exactOutgoingTurn.userTurnSelector
-    || observation.queries[0]!.latestGptUserTurn !== true
-    || !observation.queries[0]!.fields.includes("testId")
-    || !observation.queries[0]!.fields.includes("exactGptUserPromptHash")
-    || observation.queries[1]!.selector !== `${exactOutgoingTurn.composerSelector}[contenteditable='true']:has(> p[data-empty-paragraph='true'] > br.ProseMirror-trailingBreak)`
-    || observation.queries[1]!.fields.length !== 0)) {
+  if (exactOutgoingTurn !== undefined
+    && invalidExactOutgoingObservation(observation, exactOutgoingTurn)) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
-  if (observation.clickedCandidateAttribute !== undefined
-    && (Object.keys(observation.clickedCandidateAttribute).sort().join("|") !== "equals|name"
-      || observation.clickedCandidateAttribute.name !== "aria-checked"
-      || observation.clickedCandidateAttribute.equals !== "true")) {
+  if (invalidClickedCandidateAttribute(observation.clickedCandidateAttribute)) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
   if (timeoutInvalid(observation.timeoutMs)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");

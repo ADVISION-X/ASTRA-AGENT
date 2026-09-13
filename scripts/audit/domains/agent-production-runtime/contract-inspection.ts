@@ -84,46 +84,61 @@ const inspectAdmissionHash = (context: InspectorContext, findings: InspectorFind
     "Admission receipt union is not bound to its complete canonical hash."));
 };
 
-const inspectCredentialAndDurableTypes = (context: InspectorContext, findings: InspectorFinding[]): void => {
+const inspectCredentialSchema = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const credentialPath = `${ROOT}/transport-protocol.ts`;
-  const credentialSchema = sourceFor(context, credentialPath)
+  const schema = sourceFor(context, credentialPath)
     ?.getVariableDeclaration("DeviceCredentialSchema")?.getInitializer();
-  const credentialObject = credentialSchema?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
-  const manifestProperty = credentialObject?.getProperty("control_manifest_hash");
-  if (manifestProperty) {
-    findings.push(finding(LAWS.credential, "agent-production-runtime/credential-contract", credentialPath,
-      "DeviceCredentialSchema still persists the Website manifest hash."));
-  }
+  const manifestProperty = schema?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression)
+    ?.getProperty("control_manifest_hash");
+  if (manifestProperty) findings.push(finding(LAWS.credential,
+    "agent-production-runtime/credential-contract", credentialPath,
+    "DeviceCredentialSchema still persists the Website manifest hash."));
+};
+
+const inspectLeaseReleaseIdentity = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const release = sourceFor(context, PATHS.cloudClient)?.getFunction("releaseProductionLease")?.getText() ?? "";
-  if (!release.includes("payload_hash: payloadHash") || !release.includes("const requestId = `aiprelease_${hashCanonical({")
-    || release.includes("idempotency_key")) findings.push(finding(LAWS.route,
+  const missingPayload = !release.includes("payload_hash: payloadHash");
+  const missingRequest = !release.includes("const requestId = `aiprelease_${hashCanonical({");
+  if (missingPayload || missingRequest || release.includes("idempotency_key")) findings.push(finding(LAWS.route,
     "agent-production-runtime/lease-release-identity", PATHS.cloudClient,
     "Lease release must use one deterministic request_id without a duplicate idempotency_key."));
-  const grantSchema = sourceFor(context, PATHS.transport)
+};
+
+const inspectGrantSchema = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const schema = sourceFor(context, PATHS.transport)
     ?.getVariableDeclaration("ExecutionGrantSchema")?.getInitializer();
-  const grantObject = grantSchema?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
-  if (!grantObject?.getProperty("capability_manifest_hash") || grantObject.getProperty("expected_catalog_hash")) {
+  const object = schema?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
+  if (!object?.getProperty("capability_manifest_hash") || object.getProperty("expected_catalog_hash")) {
     findings.push(finding(LAWS.route, "agent-production-runtime/grant-catalog-boundary", PATHS.transport,
       "Execution grant must attest the current capability manifest without freezing its catalog hash into the task."));
   }
+};
+
+const inspectDurableState = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const taskState = read(context, PATHS.taskState);
-  if (!taskState.includes("existing.current_attempt_id === attemptId")
-    || !taskState.includes("current_attempt_id=?,current_reason='LEASE_GRANTED'")
-    || taskState.includes("identity_json") || taskState.includes("identity.catalog_hash")) {
+  const attemptRotationCurrent = taskState.includes("existing.current_attempt_id === attemptId")
+    && taskState.includes("current_attempt_id=?,current_reason='LEASE_GRANTED'");
+  if (!attemptRotationCurrent || taskState.includes("identity_json") || taskState.includes("identity.catalog_hash")) {
     findings.push(finding(LAWS.core, "agent-production-runtime/attempt-identity-rotation", PATHS.taskState,
       "Task state does not strictly resume one attempt and atomically rebind a failed task on a new attempt."));
   }
   const store = sourceFor(context, PATHS.store);
   const taskFields = store?.getInterface("StoredProductionTask")?.getProperties().map((item) => item.getName()) ?? [];
   const outboxFields = store?.getInterface("ProductionOutboxWrite")?.getProperties().map((item) => item.getName()) ?? [];
-  if (!["task", "status", "result", "staged_result", "attempt_failure", "current_attempt_id",
-    "current_reason", "updated_at"].every((key) => taskFields.includes(key))
-    || taskFields.includes("identity")
-    || !["idempotency_key", "kind", "path", "method", "headers", "body"]
-      .every((key) => outboxFields.includes(key))) {
-    findings.push(finding(LAWS.core, "agent-production-runtime/durable-contract", PATHS.store,
-      "Runtime durable task and Outbox contracts are incomplete."));
-  }
+  const taskShape = ["task", "status", "result", "staged_result", "attempt_failure", "current_attempt_id",
+    "current_reason", "updated_at"].every((key) => taskFields.includes(key));
+  const outboxShape = ["idempotency_key", "kind", "path", "method", "headers", "body"]
+    .every((key) => outboxFields.includes(key));
+  if (!taskShape || taskFields.includes("identity") || !outboxShape) findings.push(finding(LAWS.core,
+    "agent-production-runtime/durable-contract", PATHS.store,
+    "Runtime durable task and Outbox contracts are incomplete."));
+};
+
+const inspectCredentialAndDurableTypes = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  inspectCredentialSchema(context, findings);
+  inspectLeaseReleaseIdentity(context, findings);
+  inspectGrantSchema(context, findings);
+  inspectDurableState(context, findings);
 };
 
 const inspectSessionClaimAtomicity = (context: InspectorContext, findings: InspectorFinding[]): void => {

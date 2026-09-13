@@ -4,8 +4,13 @@ import type { ExtensionDebuggerRuntime } from
   "../../src/lib/browser/chrome-extension/debugger-runtime.js";
 import { executeRegisteredDomIntent } from
   "../../src/lib/browser/chrome-extension/dom-intent-runtime.js";
-import { exerciseCapturedExactAssistantTurnFunction } from
-  "./local-browser-dom-function-support.js";
+import {
+  FakeElement,
+  FakeTextNode,
+  RICH_SEMANTIC_TEXT,
+  execute as executeCaptured,
+  richSemanticTree,
+} from "./local-browser-dom-function-fixture.js";
 
 const target = Object.freeze({
   tabId: 111, targetRef: "target-111", documentRef: "document-11", navigationEpoch: 11,
@@ -20,6 +25,7 @@ const successfulObservation = Object.freeze({
   generatingRaw: 0,
   observedAt, nativeCauseCode: null, nativeStage: "runtime-call-function-on",
 });
+export const exactConversationFixtureUrl = successfulObservation.currentUrl;
 
 const runtimeFor = (
   observation: Readonly<Record<string, unknown>>,
@@ -69,6 +75,111 @@ const execute = (fixture: ReturnType<typeof runtimeFor>): Promise<unknown> => ex
   () => undefined,
   "loader-current",
 );
+
+const capturedAssistantFixture = () => {
+  const text = (value: string) => new FakeTextNode(value);
+  const paragraph = new FakeElement("bold", {}, {}, {}, "P", [
+    new FakeElement("bold", {}, {}, {}, "STRONG", [text("bold")]),
+  ]);
+  const list = new FakeElement("item", {}, {}, {}, "UL", [
+    new FakeElement("item", {}, {}, {}, "LI", [text("item")]),
+  ]);
+  const assistant = new FakeElement("bold item", { "pre code": [] }, {}, {}, "DIV", [paragraph, list]);
+  const userMessage = new FakeElement("provider-folded-message", {}, {}, {}, "DIV", [text("provider-folded-message")]);
+  const user = new FakeElement("provider-folded-message", {
+    "[data-message-author-role='user']": [userMessage],
+  }, {}, { "data-testid": "conversation-turn-1" });
+  const assistantOuter = (node: FakeElement) => new FakeElement(node.textContent, {
+    "[data-message-author-role='assistant']": [node],
+  }, {}, { "data-testid": "conversation-turn-2" }, "SECTION", [node]);
+  const userSelector = "[data-testid='conversation-turn-1']:has([data-message-author-role='user'])";
+  const turnsSelector = "[data-testid^='conversation-turn-']";
+  const input = { kind: "readExactAssistantTurn", userTurnId: "conversation-turn-1",
+    canonicalConversationUrl: exactConversationFixtureUrl };
+  const exactAssistant = assistantOuter(assistant);
+  let queryCalls = 0;
+  const document = {
+    querySelectorAll: (value: string) => {
+      queryCalls += 1;
+      return value === userSelector ? [user] : value === turnsSelector ? [user, exactAssistant] : [];
+    },
+    elementFromPoint: () => assistant,
+  };
+  return { assistant, assistantOuter, document, input, queryCalls: () => queryCalls,
+    text, turnsSelector, user, userSelector };
+};
+
+const exerciseCapturedAssistantBaseline = async (
+  source: string,
+  fixture: ReturnType<typeof capturedAssistantFixture>,
+): Promise<void> => {
+  const observed = await executeCaptured(
+    source, fixture.document, fixture.input, `${exactConversationFixtureUrl}?query=discarded#fragment`,
+  ) as Readonly<{ rawCount: number; eligibleCount: number; rawDomHtml: string; semanticText: string;
+    currentUrl: string; nativeStage: string }>;
+  assert.equal(fixture.queryCalls(), 3,
+    "the assistant, exact predecessor, and generating state must share one async Runtime call");
+  assert.equal(source.includes("collapsible-user-message-content"), false,
+    "response read must not parse or hash the already-confirmed user prompt DOM");
+  assert.equal(source.includes("precedingPromptHash"), false,
+    "response read must not create a second prompt identity");
+  assert.equal(observed.rawCount, 1);
+  assert.equal(observed.eligibleCount, 1);
+  assert.match(observed.rawDomHtml, /<strong>bold<\/strong>/u);
+  assert.equal(observed.semanticText, "**bold**\n- item\n");
+  assert.equal(observed.currentUrl, exactConversationFixtureUrl);
+  assert.equal(observed.nativeStage, "runtime-call-function-on");
+  const generatingObserved = await executeCaptured(source, { ...fixture.document,
+    querySelectorAll: (value: string) => value === "#composer-submit-button[data-testid='stop-button']"
+      ? [fixture.assistant] : fixture.document.querySelectorAll(value),
+  }, fixture.input, exactConversationFixtureUrl) as Readonly<{
+    rawCount: number; eligibleCount: number; rawDomHtml: string; semanticText: string; generatingRaw: number;
+  }>;
+  assert.deepEqual({ rawCount: generatingObserved.rawCount, eligibleCount: generatingObserved.eligibleCount,
+    rawDomHtml: generatingObserved.rawDomHtml, semanticText: generatingObserved.semanticText,
+    generatingRaw: generatingObserved.generatingRaw },
+  { rawCount: 1, eligibleCount: 0, rawDomHtml: "", semanticText: "", generatingRaw: 1 },
+  "generation must short-circuit before assistant visibility, HTML, or semantic-text reads");
+};
+
+const exerciseCapturedAssistantRejections = async (
+  source: string,
+  fixture: ReturnType<typeof capturedAssistantFixture>,
+): Promise<void> => {
+  const hidden = new FakeElement("hidden", { "pre code": [] }, { display: "none" }, {}, "DIV", [fixture.text("hidden")]);
+  const hiddenObserved = await executeCaptured(source, {
+    querySelectorAll: (value: string) => value === fixture.userSelector ? [fixture.user]
+      : value === fixture.turnsSelector ? [fixture.user, fixture.assistantOuter(hidden)] : [],
+    elementFromPoint: () => null,
+  }, fixture.input, exactConversationFixtureUrl) as Readonly<{
+    rawCount: number; eligibleCount: number; rawDomHtml: string;
+  }>;
+  assert.deepEqual({ rawCount: hiddenObserved.rawCount, eligibleCount: hiddenObserved.eligibleCount,
+    rawDomHtml: hiddenObserved.rawDomHtml }, { rawCount: 1, eligibleCount: 0, rawDomHtml: "" });
+  const ambiguous = await executeCaptured(source, {
+    querySelectorAll: (value: string) => value === fixture.userSelector ? [fixture.user]
+      : value === fixture.turnsSelector ? [fixture.user, new FakeElement("ambiguous", {
+        "[data-message-author-role='assistant']": [fixture.assistant, fixture.assistant],
+      }, {}, { "data-testid": "conversation-turn-2" })] : [],
+    elementFromPoint: () => fixture.assistant,
+  }, fixture.input, exactConversationFixtureUrl) as Readonly<{ rawCount: number; eligibleCount: number }>;
+  assert.deepEqual({ rawCount: ambiguous.rawCount, eligibleCount: ambiguous.eligibleCount },
+    { rawCount: 2, eligibleCount: 0 });
+  const rich = richSemanticTree();
+  const richObserved = await executeCaptured(source, {
+    querySelectorAll: (value: string) => value === fixture.userSelector ? [fixture.user]
+      : value === fixture.turnsSelector ? [fixture.user, fixture.assistantOuter(rich)] : [],
+    elementFromPoint: () => rich,
+  }, fixture.input, exactConversationFixtureUrl) as Readonly<{ semanticText: string }>;
+  assert.equal(richObserved.semanticText, RICH_SEMANTIC_TEXT,
+    "exact assistant read must preserve headings, prose, lists, inline code, the code block, and trailing prose");
+};
+
+const exerciseCapturedExactAssistantTurnFunction = async (source: string): Promise<void> => {
+  const fixture = capturedAssistantFixture();
+  await exerciseCapturedAssistantBaseline(source, fixture);
+  await exerciseCapturedAssistantRejections(source, fixture);
+};
 
 const exerciseSingleAtomicRead = async (): Promise<void> => {
   const fixture = runtimeFor(successfulObservation);

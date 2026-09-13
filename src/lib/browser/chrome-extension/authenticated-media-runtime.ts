@@ -118,16 +118,26 @@ export const executeAuthenticatedMedia = async (
     authorityDocumentHash: await sha256Text(target.documentRef),
     semanticMediaId,
   };
-  if (typeof media.authorityTargetHash !== "string" || typeof media.authorityDocumentHash !== "string"
-    || typeof media.assistantTurnId !== "string" || typeof media.precedingUserTurnId !== "string"
-    || typeof media.currentUrl !== "string" || typeof media.bytesBase64 !== "string"
-    || typeof media.sha256 !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(media.sha256)
-    || typeof media.sizeBytes !== "number" || !Number.isSafeInteger(media.sizeBytes)
-    || media.sizeBytes < 1 || media.sizeBytes > 25 * 1024 * 1024
-    || typeof media.mediaType !== "string" || !/^image\/[a-z0-9.+-]+$/u.test(media.mediaType)
-    || !/^conversation-turn-[1-9][0-9]*$/u.test(media.assistantTurnId)
-    || !/^conversation-turn-[1-9][0-9]*$/u.test(media.precedingUserTurnId)) {
+  if (!validMediaAuthority(media) || !validMediaPayload(media) || !validMediaTurns(media)) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
   return media as AuthenticatedMediaValue;
 };
+
+const validMediaAuthority = (media: Record<string, unknown>): boolean =>
+  typeof media.authorityTargetHash === "string"
+  && typeof media.authorityDocumentHash === "string"
+  && typeof media.currentUrl === "string";
+
+const validMediaPayload = (media: Record<string, unknown>): boolean =>
+  typeof media.bytesBase64 === "string"
+  && typeof media.sha256 === "string" && /^sha256:[a-f0-9]{64}$/u.test(media.sha256)
+  && typeof media.sizeBytes === "number" && Number.isSafeInteger(media.sizeBytes)
+  && media.sizeBytes >= 1 && media.sizeBytes <= 25 * 1024 * 1024
+  && typeof media.mediaType === "string" && /^image\/[a-z0-9.+-]+$/u.test(media.mediaType);
+
+const validMediaTurns = (media: Record<string, unknown>): boolean =>
+  typeof media.assistantTurnId === "string"
+  && typeof media.precedingUserTurnId === "string"
+  && /^conversation-turn-[1-9][0-9]*$/u.test(media.assistantTurnId)
+  && /^conversation-turn-[1-9][0-9]*$/u.test(media.precedingUserTurnId);

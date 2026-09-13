@@ -53,6 +53,21 @@ export type ProductionGptBrowserCall = {
 
 export const PROVIDER_OBSERVATION_INTERVAL_MS = 30_000;
 
+const assertConfirmedProviderReadback = (active: ProductionGptBrowserCall): void => {
+  const confirmed = active.confirmedProviderEffect;
+  const prior = confirmed ? active.browser.readAtomicStepOutcome(confirmed.submitIdentity) : null;
+  const payload = prior?.terminalPayload;
+  const record = payload && typeof payload === "object" && !Array.isArray(payload)
+    ? payload as Readonly<Record<string, unknown>> : null;
+  const identityMatches = prior?.providerEffectIdentityHash === confirmed?.providerEffectIdentityHash
+    && prior?.mutationOutcome === confirmed?.mutationOutcome;
+  const payloadMatches = record?.canonicalConversationUrl === confirmed?.canonicalConversationUrl
+    && record?.userTurnId === confirmed?.userTurnId;
+  if (!confirmed || prior?.state !== "confirmed" || !identityMatches || !payloadMatches) {
+    throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
+  }
+};
+
 export class ProductionGptBrowserLifecycle {
   private activeBrowser: Readonly<{ sessionKey: string; call: ProductionGptBrowserCall }> | null = null;
 
@@ -154,20 +169,7 @@ export class ProductionGptBrowserLifecycle {
     if (active.browser.pendingMutationCount() > 0) {
       throw executionFailure("failed", "BROWSER_NORMAL_PROVIDER_WAIT_WITH_PENDING_MUTATION");
     }
-    const confirmed = active.confirmedProviderEffect;
-    const prior = confirmed
-      ? active.browser.readAtomicStepOutcome(confirmed.submitIdentity)
-      : null;
-    const payload = prior?.terminalPayload;
-    if (!confirmed || prior?.state !== "confirmed"
-      || prior.providerEffectIdentityHash !== confirmed.providerEffectIdentityHash
-      || prior.mutationOutcome !== confirmed.mutationOutcome
-      || !payload || typeof payload !== "object" || Array.isArray(payload)
-      || (payload as Readonly<Record<string, unknown>>).canonicalConversationUrl
-        !== confirmed.canonicalConversationUrl
-      || (payload as Readonly<Record<string, unknown>>).userTurnId !== confirmed.userTurnId) {
-      throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
-    }
+    assertConfirmedProviderReadback(active);
     this.emitProviderWaitLog(active, productStepId, callId, childCapabilityId);
     const providerRemaining = Math.floor(observationDeadlineAt - Date.now());
     const executionRemaining = Math.floor(

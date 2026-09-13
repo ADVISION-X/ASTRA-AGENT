@@ -244,8 +244,9 @@ const inspectSeparatedStatus = (
   const ownerPath = "src/lib/local-runtime/production/runtime-startup.ts";
   const owner = sourceAt(project, ownerPath);
   const ownerText = owner?.getFullText() ?? "";
-  if (!ownerText.includes('shellState: "ready"') || !ownerText.includes('executionState: "blocked"')
-    || !ownerText.includes('claimAdmissionState: "blocked"')) {
+  const ownerStates = ['shellState: "ready"', 'executionState: "blocked"',
+    'claimAdmissionState: "blocked"'];
+  if (!ownerStates.every((state) => ownerText.includes(state))) {
     findings.push(finding(lawId, ownerPath, "Cloud/provider startup failure must keep Shell ready while execution and claim admission fail closed."));
   }
 };

@@ -9,69 +9,14 @@ import {
   terminalFailureFields,
   type ProviderEffectHistoryRow,
 } from "./browser-mutation-authority.js";
-export type BrowserMutationState = "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED" | "FAILED";
-export type BrowserMutationOutcome = "no" | "dispatched" | "confirmed";
-export type BrowserMutationIdentity = Readonly<{
-  commandId: string;
-  logicalMutationId?: `sha256:${string}` | null;
-  exactCallIdentityHash: `sha256:${string}`;
-  jobId: string;
-  resultRevision: number;
-  attemptId: string;
-  leaseVersion: number;
-  executionFenceHash: `sha256:${string}`;
-  productStepId: string;
-  callId: string;
-  childCapabilityId: string;
-  effectScope: "target_local" | "provider_effect";
-  actionOrdinal: number;
-  targetRef: string;
-  documentRef: string;
-  actionId: string;
-  positivePostconditionHash: `sha256:${string}`;
-  negativePostconditionHash: `sha256:${string}`;
-  requestHash: `sha256:${string}`;
-  payloadHash: `sha256:${string}`;
-}>;
-export type BrowserExactCallMutationFact = Readonly<{
-  effectScope: "target_local" | "provider_effect";
-  providerEffectIdentityHash: `sha256:${string}` | null;
-  outcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
-  mutationOutcome: BrowserMutationOutcome;
-  terminalAt: string | null;
-  failureCode: string | null;
-  nativeFailureCode: string | null;
-  authorityRef: string;
-  authorityHash: `sha256:${string}`;
-  targetRef: string;
-  documentRef: string;
-  productStepId: string;
-  callId: string;
-  childCapabilityId: string;
-  actionOrdinal: number;
-  physicalInputCount: 0 | 1 | 2;
-  downloadGuidHash: `sha256:${string}` | null;
-  downloadCompleted: boolean;
-  identityRevalidated: boolean;
-}>;
-
-export type BrowserAtomicStepOutcome = Readonly<{
-  state: "dispatched" | "confirmed" | "rejected";
-  mutationOutcome: BrowserMutationOutcome;
-  providerEffectIdentityHash: `sha256:${string}` | null;
-  terminalAt: string | null;
-  failureCode: string | null;
-  nativeFailureCode: string | null;
-  authorityRef: string;
-  authorityHash: `sha256:${string}`;
-  targetRef: string;
-  documentRef: string;
-  physicalInputCount: 0 | 1 | 2;
-  downloadGuidHash: `sha256:${string}` | null;
-  downloadCompleted: boolean;
-  identityRevalidated: boolean;
-  terminalPayload?: unknown | null;
-}>;
+import type {
+  AtomicStepRow,
+  BrowserAtomicStepOutcome,
+  BrowserExactCallMutationFact,
+  BrowserMutationIdentity,
+  BrowserMutationOutcome,
+  BrowserMutationState,
+} from "./browser-mutation-types.js";
 
 type EncryptedPayload = Readonly<{ nonce: string; ciphertext: string; tag: string }>;
 
@@ -363,43 +308,23 @@ export class BrowserMutationStore {
     targetRef: string;
     effectScope: "target_local" | "provider_effect";
   }>): BrowserAtomicStepOutcome | null {
-    const targetClause = input.effectScope === "target_local" ? "and target_ref=?" : "";
-    const attemptClause = input.effectScope === "target_local" ? "and attempt_id=?" : "";
-    const reusableNoInputClause = input.effectScope === "provider_effect"
-      ? "and not (state='REJECTED' and mutation_outcome='no' and physical_input_count=0 and attempt_id<>?)"
-      : "";
-    const parameters = [
-      input.jobId,
-      ...(input.effectScope === "target_local" ? [input.attemptId] : []),
-      input.exactCallIdentityHash, input.effectScope,
-      ...(input.effectScope === "target_local" ? [input.targetRef] : []),
-      ...(input.effectScope === "provider_effect" ? [input.attemptId] : []),
-    ];
+    const clauses = {
+      target_local: { target: "and target_ref=?", attempt: "and attempt_id=?", reusable: "",
+        parameters: [input.jobId, input.attemptId, input.exactCallIdentityHash,
+          input.effectScope, input.targetRef] },
+      provider_effect: { target: "", attempt: "",
+        reusable: "and not (state='REJECTED' and mutation_outcome='no' and physical_input_count=0 and attempt_id<>?)",
+        parameters: [input.jobId, input.exactCallIdentityHash, input.effectScope, input.attemptId] },
+    }[input.effectScope];
     const rows = this.database.prepare(
       `select command_id,logical_mutation_id,target_ref,document_ref,state,mutation_outcome,reason,native_cause_code,
               terminal_at,action_ordinal,physical_input_count,download_guid_hash,download_completed,
               media_identity_revalidated,provider_recovery_payload
        from browser_mutations
-         where job_id=? ${attemptClause} and exact_call_identity_hash=? and effect_scope=?
-         ${targetClause} and state in ('DISPATCHED','CONFIRMED','REJECTED') ${reusableNoInputClause}
+         where job_id=? ${clauses.attempt} and exact_call_identity_hash=? and effect_scope=?
+         ${clauses.target} and state in ('DISPATCHED','CONFIRMED','REJECTED') ${clauses.reusable}
        order by updated_at desc,command_id desc limit 2`,
-    ).all(...parameters) as ReadonlyArray<{
-      command_id: string;
-      logical_mutation_id: `sha256:${string}` | null;
-      target_ref: string;
-      document_ref: string;
-      state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
-      mutation_outcome: BrowserMutationOutcome | null;
-      reason: string | null;
-      native_cause_code: string | null;
-      terminal_at: string | null;
-      action_ordinal: number;
-      physical_input_count: 0 | 1 | 2;
-      download_guid_hash: `sha256:${string}` | null;
-      download_completed: 0 | 1;
-      media_identity_revalidated: 0 | 1;
-      provider_recovery_payload: string | null;
-    }>;
+    ).all(...clauses.parameters) as readonly AtomicStepRow[];
     if (rows.length === 0) return null;
     if (rows.length !== 1) throw new Error("BROWSER_RECONCILIATION_SCOPE_AMBIGUOUS");
     const row = rows[0]!;
@@ -417,8 +342,8 @@ export class BrowserMutationStore {
     return Object.freeze({
       state: row.state.toLowerCase() as BrowserAtomicStepOutcome["state"],
       mutationOutcome: requireMutationOutcome(row.mutation_outcome),
-      providerEffectIdentityHash: input.effectScope === "provider_effect"
-        ? row.logical_mutation_id : null,
+      providerEffectIdentityHash: { target_local: null,
+        provider_effect: row.logical_mutation_id }[input.effectScope],
       terminalAt: row.terminal_at,
       ...failure,
       authorityRef: `browser-mutation:${row.command_id}`,

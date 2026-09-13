@@ -9,7 +9,6 @@ import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 import { inspectAgentAuthorityAst } from "./authority-inspection.js";
 import { inspectAgentContracts } from "./contract-inspection.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
-
 const LAWS = {
   core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V56",
   credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V6",
@@ -44,7 +43,6 @@ const PATHS = {
   manifest: "scripts/audit/domains/agent-production-runtime/manifest.json",
   proof: "scripts/acceptance/agent-production-runtime.real-proof.ts",
 } as const;
-
 type StaticMode = "static.ast" | "static.contract" | "static.dependency"
   | "static.filesystem" | "static.sql" | "static.types";
 const finding = (
@@ -182,18 +180,21 @@ const inspectCoreAst = (context: InspectorContext, findings: InspectorFinding[])
     .filter((call) => call.getExpression().getText() === "this.supersedeUnsentWritesForWebsiteAttempt") ?? [];
   const deliverOutbox = outbox?.getClass("ProductionStoreOutbox")?.getMethod("deliverOutbox");
   const forbiddenLifecycleVerdict = `${taskState?.getFullText() ?? ""}\n${outbox?.getFullText() ?? ""}`;
-  if (startupReconciliationCalls.has("state.store.endUnsentAttemptWrites")
-    || startupReconciliationCalls.has("state.store.setCurrentReason")
-    || startupReconciliation?.getText().includes("PROCESS_RESTART_ATTEMPT_ENDED")
-    || boundaryFailure?.getText().includes("ATTEMPT_ENDED")
-    || admissionCalls.has("state.store.discardStagedResult")
-    || admissionCalls.has("state.store.endUnsentAttemptWrites")
-    || taskStateClass?.getMethod("discardStagedResult")
-    || /ATTEMPT_ENDED|PRODUCTION_OUTBOX_ATTEMPT_ENDED/u.test(forbiddenLifecycleVerdict)
-    || !websiteAttemptSupersession?.hasModifier(SyntaxKind.PrivateKeyword)
-    || websiteAttemptSupersessionCalls.length !== 1
-    || websiteAttemptSupersessionCalls[0]?.getFirstAncestorByKind(SyntaxKind.MethodDeclaration)?.getName() !== "acceptTask"
-    || !deliverOutbox?.getText().includes('executionFailure("failed", authority.lastError)')) {
+  const lifecycleViolations = [
+    startupReconciliationCalls.has("state.store.endUnsentAttemptWrites"),
+    startupReconciliationCalls.has("state.store.setCurrentReason"),
+    startupReconciliation?.getText().includes("PROCESS_RESTART_ATTEMPT_ENDED"),
+    boundaryFailure?.getText().includes("ATTEMPT_ENDED"),
+    admissionCalls.has("state.store.discardStagedResult"),
+    admissionCalls.has("state.store.endUnsentAttemptWrites"),
+    Boolean(taskStateClass?.getMethod("discardStagedResult")),
+    /ATTEMPT_ENDED|PRODUCTION_OUTBOX_ATTEMPT_ENDED/u.test(forbiddenLifecycleVerdict),
+    !websiteAttemptSupersession?.hasModifier(SyntaxKind.PrivateKeyword),
+    websiteAttemptSupersessionCalls.length !== 1,
+    websiteAttemptSupersessionCalls[0]?.getFirstAncestorByKind(SyntaxKind.MethodDeclaration)?.getName() !== "acceptTask",
+    !deliverOutbox?.getText().includes('executionFailure("failed", authority.lastError)'),
+  ];
+  if (lifecycleViolations.some(Boolean)) {
     findings.push(finding(LAWS.core, "static.ast",
       "agent-production-runtime/no-local-business-lifecycle-adjudication", PATHS.runtimeClaim,
       "Runtime still converts restart, local failure, or absent Website admission into an ended-attempt decision."));
@@ -446,9 +447,7 @@ export function inspectAgentSql(
       PATHS.store, `Exact schema declaration is missing ${table}.`));
     }
   }
-  const schemaRequirements = [
-    "check(status in ('failed','completed'))", "check((status='failed'",
-  ];
+  const schemaRequirements = ["check(status in ('failed','completed'))", "check((status='failed'"];
   if (!schemaRequirements.every((requirement) => schemaSql.includes(requirement))) {
     findings.push(finding(LAWS.database, "static.sql", "agent-production-runtime/schema-constraints",
       PATHS.store, "Runtime schema declaration does not contain the exact state, uniqueness and FK constraints."));
@@ -464,15 +463,14 @@ export function inspectAgentSql(
     findings.push(finding(LAWS.database, "static.sql", "agent-production-runtime/schema-data-readback",
       PATHS.store, "Runtime schema or persisted-data readback is not wired into startup validation."));
   }
-  const stateInvariant = store?.getVariableDeclaration("stateInvariantFailureCount")
-    ?.getInitializer()?.getText().toLowerCase().replace(/\s+/gu, " ") ?? "";
+  const stateInvariant = store?.getVariableDeclaration("stateInvariantFailureCount")?.getInitializer()
+    ?.getText().toLowerCase().replace(/\s+/gu, " ") ?? "";
   const authorityInvariants = ["current_attempt_id=''", "response_hash is not null and sent_at is null"];
   if (!authorityInvariants.every((token) => stateInvariant.includes(token))) {
     findings.push(finding(LAWS.database, "static.sql", "agent-production-runtime/data-authority-invariants",
       PATHS.store, "Startup SQL does not reject invalid task identity or Outbox receipt state."));
   }
 }
-
 const evaluate = (context: InspectorContext): InspectorEvaluation => {
   const findings: InspectorFinding[] = [];
   const receipts: InspectorEvaluation["staticCheckReceipts"] = [];

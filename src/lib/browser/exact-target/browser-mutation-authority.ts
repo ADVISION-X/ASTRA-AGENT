@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 import { identityColumns, mutationAuthorityHash } from "./browser-mutation-schema.js";
-import type { BrowserMutationOutcome } from "./browser-mutation-store.js";
+import type { BrowserMutationOutcome } from "./browser-mutation-types.js";
 
 export const requireMutationOutcome = (
   value: BrowserMutationOutcome | null,

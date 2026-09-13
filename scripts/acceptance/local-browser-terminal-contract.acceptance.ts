@@ -21,6 +21,7 @@ import { exactHash, exerciseBrowserMutationStore, hash } from
 import { createBrowserActorFactory, createClickCommand, createMatchClickCommand, permit } from "./local-browser-terminal-fixture.js";
 import { permitAuthority, permitExecution } from "./local-browser-terminal-fixture.js";
 import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
+import { exerciseActorRejections } from "./local-browser-terminal-rejection-support.js";
 const root = await mkdtemp(join(tmpdir(), "browser-mutation-state-"));
 try {
   exerciseBrowserMutationStore(root);
@@ -59,90 +60,7 @@ try {
   }).execute(zeroActionPermit, clickCommand);
   assert.equal(actorStore.readState(zeroActionPermit.commandId), "CONFIRMED");
   assert.equal(actorStore.readMutationOutcome(zeroActionPermit.commandId), "no");
-  const notInteractivePermit = permit("actor-target-not-interactive");
-  await assert.rejects(actorFor(async (candidate, _command, onDispatched) => {
-    onDispatched?.();
-    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
-      permitSequence: candidate.sequence, result: {
-        candidateCount: 0, identityRevalidated: false, mutationCount: 0,
-        postconditionVerified: false, qualificationRejected: true,
-        qualificationStage: "candidate-set", failureCode: "BROWSER_TARGET_NOT_INTERACTIVE",
-        nativeCauseCode: null,
-      } };
-  }).execute(notInteractivePermit, clickCommand), /BROWSER_TARGET_NOT_INTERACTIVE/u);
-  assert.equal(actorStore.readState(notInteractivePermit.commandId), "REJECTED");
-  assert.equal(actorStore.readMutationOutcome(notInteractivePermit.commandId), "no",
-    "an interaction-ready rejection before Provider input must settle the one WAL row with no mutation");
-  const fillReadbackPermit: BrowserCommandPermit = {
-    ...permit("actor-fill-readback-rejected"),
-    capabilityId: "browser.dom.fill.v1",
-    childCapabilityId: "prepare_clean_gpt_chat",
-  };
-  const fillCommand = { kind: "dom-intent" as const, intent: {
-    kind: "fill" as const, selector: "#prompt-textarea", approvedText: "",
-    clearBeforeType: true, expectedMatches: 1,
-  } };
-  const fillReadbackActor = actorFor(async (candidate, _command, onDispatched) => {
-    onDispatched?.();
-    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
-      permitSequence: candidate.sequence, result: {
-        filled: true, candidateCount: 0, identityRevalidated: false,
-        mutationCount: 1, retainedValueVerified: false, postconditionVerified: false,
-        failureCode: "BROWSER_POSTCONDITION_FAILED",
-        nativeCauseCode: "BROWSER_DOM_CANDIDATE_MISSING",
-      } };
-  });
-  let fillReadbackError: unknown = null;
-  try { await fillReadbackActor.execute(fillReadbackPermit, fillCommand); }
-  catch (error) { fillReadbackError = error; }
-  assert.match(String(fillReadbackError), /BROWSER_POSTCONDITION_FAILED/u);
-  assert.equal(serializeTerminalFailure(fillReadbackError).cause?.code, "BROWSER_DOM_CANDIDATE_MISSING");
-  assert.equal(serializeTerminalFailure(new Error("RESULT_SETTLED_UNUSABLE", {
-    cause: new Error("AGENT_RESULT_SCHEMA_VERSION_INVALID"),
-  })).cause?.code, "AGENT_RESULT_SCHEMA_VERSION_INVALID",
-  "a settled unusable result must retain its atomic parser failure code");
-  assert.equal(actorStore.readState(fillReadbackPermit.commandId), "REJECTED");
-  assert.equal(fillReadbackActor.mutationOutcome(fillReadbackPermit.commandId), "confirmed");
-  const qualificationPermit = permit("actor-qualification-rejected");
-  const qualificationActor = actorFor(async (candidate, _command, onDispatched) => {
-    onDispatched?.();
-    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
-      permitSequence: candidate.sequence, result: { candidateCount: 1, identityRevalidated: false,
-        mutationCount: 0, postconditionVerified: false, qualificationRejected: true,
-        qualificationStage: "actionability",
-        failureCode: "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH",
-        nativeCauseCode: null } };
-  });
-  await assert.rejects(qualificationActor.execute(qualificationPermit, clickCommand),
-    /BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH/u);
-  assert.equal(actorStore.readState(qualificationPermit.commandId), "REJECTED");
-  assert.equal(qualificationActor.mutationOutcome(qualificationPermit.commandId), "no");
-  const actorDatabase = new Database(join(actorRoot, "browser", "browser-mutations.sqlite"), { readonly: true });
-  assert.deepEqual(actorDatabase.prepare(
-    "select reason,native_cause_code from browser_mutations where command_id=?",
-  ).get(qualificationPermit.commandId), {
-    reason: "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH",
-    native_cause_code: null,
-  }, "the unique mutation WAL must retain the exact pre-click outgoing-turn mismatch");
-  const storedQualificationIdentity = actorDatabase.prepare(
-    "select exact_call_identity_hash from browser_mutations where command_id=?",
-  ).get(qualificationPermit.commandId) as { exact_call_identity_hash: `sha256:${string}` };
-  const qualificationFact = actorStore.readExactCallMutationFact({
-    jobId: qualificationPermit.jobId, attemptId: qualificationPermit.attemptId,
-    exactCallIdentityHash: storedQualificationIdentity.exact_call_identity_hash,
-    actionOrdinal: qualificationPermit.actionOrdinal,
-  });
-  assert.equal(qualificationFact?.failureCode, "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH");
-  assert.equal(qualificationFact?.nativeFailureCode, null);
-  const qualificationOutcome = actorStore.readAtomicStepOutcome({
-    jobId: qualificationPermit.jobId, attemptId: qualificationPermit.attemptId,
-    exactCallIdentityHash: storedQualificationIdentity.exact_call_identity_hash,
-    actionOrdinal: qualificationPermit.actionOrdinal, targetRef: qualificationPermit.targetRef,
-    effectScope: "target_local",
-  });
-  assert.equal(qualificationOutcome?.failureCode, "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH");
-  assert.equal(qualificationOutcome?.nativeFailureCode, null);
-  actorDatabase.close();
+  await exerciseActorRejections(actorRoot, actorFor, actorStore, clickCommand);
 
   const observationPermit: BrowserCommandPermit = {
     ...permit("actor-observation"), capabilityId: "browser.dom.inspect.v1",

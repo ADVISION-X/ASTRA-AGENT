@@ -63,6 +63,8 @@ const unavailableWebsiteRow = (observedAt: string, reason: string): OperationsOb
   observed_at: observedAt, authority_ref: "website:worker-observation-v6", completeness: "SOURCE_UNAVAILABLE",
 });
 
+const reasonUnless = (condition: boolean, code: string): string | null => condition ? null : code;
+
 const websiteRows = (observation: WorkerObservationV6, selectedJobId: string | null): OperationsObservationRow[] => {
   const job = observation.jobs.find((candidate) => candidate.job_id === selectedJobId);
   const rows: OperationsObservationRow[] = [row({
@@ -100,8 +102,8 @@ const localRows = (input: Readonly<{
   const { health, observedAt, jobId } = input;
   const rows = [
     row({ axis: "contract", owner: "agent-production-runtime", current_value: health.controlContractVersion,
-      reason_code: health.controlContractVersion === productionControlContractVersion
-        ? null : "CONTROL_CONTRACT_VERSION_MISMATCH",
+      reason_code: reasonUnless(health.controlContractVersion === productionControlContractVersion,
+        "CONTROL_CONTRACT_VERSION_MISMATCH"),
       observed_at: observedAt, authority_ref: "agent:v6-control-contract-dependency" }),
     row({ axis: "runtime_session", owner: "agent-production-runtime", current_value: health.cloudState,
       reason_code: health.lastErrorCode, observed_at: observedAt,
@@ -113,16 +115,16 @@ const localRows = (input: Readonly<{
       active_count: health.activeCount }, reason_code: health.lastErrorCode, observed_at: observedAt,
       authority_ref: "agent:production-runtime-health" }),
     row({ axis: "runtime_log_sink", owner: "runtime-logs", current_value: health.logSinkState,
-      reason_code: health.logSinkState === "ready" ? null : "RUNTIME_LOG_SINK_UNAVAILABLE",
+      reason_code: reasonUnless(health.logSinkState === "ready", "RUNTIME_LOG_SINK_UNAVAILABLE"),
       observed_at: observedAt, authority_ref: "agent:production-runtime-health" }),
     row({ axis: "browser_authority", owner: "browser-session", current_value: health.browserAuthorityState,
-      reason_code: health.browserAuthorityState === "present" ? null : "BROWSER_AUTHORITY_ABSENT",
+      reason_code: reasonUnless(health.browserAuthorityState === "present", "BROWSER_AUTHORITY_ABSENT"),
       observed_at: observedAt, authority_ref: "browser:authority" }),
     row({ axis: "browser_target", owner: "browser-session", current_value: health.browserTargetState,
-      reason_code: health.browserTargetState === "claimed" ? null : "BROWSER_TARGET_ABSENT",
+      reason_code: reasonUnless(health.browserTargetState === "claimed", "BROWSER_TARGET_ABSENT"),
       observed_at: observedAt, authority_ref: "browser:target" }),
     row({ axis: "browser_lane", owner: "browser-session", current_value: health.browserLaneState,
-      reason_code: health.browserLaneState === "blocked" ? "BROWSER_LANE_BLOCKED" : null,
+      reason_code: reasonUnless(health.browserLaneState !== "blocked", "BROWSER_LANE_BLOCKED"),
       observed_at: observedAt, authority_ref: "browser:lane" }),
   ];
   if (jobId) {
@@ -150,24 +152,49 @@ const localRows = (input: Readonly<{
   return rows;
 };
 
+const observeWebsite = async (
+  session: ProductionWorkerSession | null,
+  jobId: string | undefined,
+): Promise<Readonly<{ observation: WorkerObservationV6 | null; error: string | null }>> => {
+  try {
+    if (!session) throw new Error("PRODUCTION_SESSION_NOT_OPEN");
+    return { observation: await readWorkerObservationV6(session, jobId), error: null };
+  } catch (error) {
+    return { observation: null,
+      error: (error instanceof Error ? error.message : String(error)).replace(/\s+/gu, " ").slice(0, 512) };
+  }
+};
+
+const runtimeLogEvidenceRow = (
+  observedAt: string,
+  diagnosis: RuntimeDiagnosis | null,
+  discovered: ReturnType<typeof discoverRuntimeLogScope> | null,
+): OperationsObservationRow => {
+  const unavailable = discovered?.status === "SOURCE_UNAVAILABLE";
+  const reason = diagnosis?.blockingRoots[0]?.code
+    ?? (unavailable ? "SOURCE_UNAVAILABLE" : discovered?.status === "AMBIGUOUS_SCOPE" ? "AMBIGUOUS_SCOPE" : null);
+  const completeness = diagnosis?.status === "DIAGNOSIS_COMPLETE" ? "COMPLETE"
+    : diagnosis?.status ?? (unavailable ? "SOURCE_UNAVAILABLE"
+      : discovered?.completeness ?? "DIAGNOSIS_INCOMPLETE");
+  return row({ axis: "runtime_log_evidence", owner: "runtime-logs",
+    current_value: diagnosis?.blockingRoots ?? discovered,
+    reason_code: reason, observed_at: observedAt, freshness: durableFreshness,
+    authority_ref: "runtime-log-spine", evidence_ref: diagnosis?.blockingRoots[0]?.eventId ?? null,
+    completeness });
+};
+
 export const readProductionOperationsSnapshot = async (input: Readonly<{
   dataDir: string; store: ProductionRuntimeStore; browser: WorkbenchBrowserAuthority;
   health: () => ProductionRuntimeHealth; session: ProductionWorkerSession | null; jobId: string | undefined;
 }>): Promise<ProductionOperationsSnapshot> => {
   const observedAt = new Date().toISOString();
-  let observation: WorkerObservationV6 | null = null;
-  let websiteError: string | null = null;
-  try {
-    if (!input.session) throw new Error("PRODUCTION_SESSION_NOT_OPEN");
-    observation = await readWorkerObservationV6(input.session, input.jobId);
-  } catch (error) {
-    websiteError = (error instanceof Error ? error.message : String(error)).replace(/\s+/gu, " ").slice(0, 512);
-  }
+  const website = await observeWebsite(input.session, input.jobId);
+  const { observation } = website;
   const scope = observation ? websiteScope(observation, input.jobId) : Object.freeze({
     status: "SOURCE_UNAVAILABLE" as const, selected_job_id: null, candidates: Object.freeze([] as string[]),
   });
   const rows = observation ? websiteRows(observation, scope.selected_job_id)
-    : [unavailableWebsiteRow(observedAt, websiteError ?? "SOURCE_UNAVAILABLE")];
+    : [unavailableWebsiteRow(observedAt, website.error ?? "SOURCE_UNAVAILABLE")];
   rows.push(...localRows({ observedAt, health: input.health(), store: input.store,
     browser: input.browser, jobId: scope.selected_job_id }));
   const logSources = [path.join(input.dataDir, "runtime-logs")];
@@ -176,15 +203,7 @@ export const readProductionOperationsSnapshot = async (input: Readonly<{
     authorityResolver: (authorityRef, authorityHash) => input.store.resolveAuthority(authorityRef, authorityHash),
   }) : null;
   const discoveredLogScope = diagnosis ? null : discoverRuntimeLogScope({ sources: logSources });
-  rows.push(row({ axis: "runtime_log_evidence", owner: "runtime-logs",
-    current_value: diagnosis?.blockingRoots ?? discoveredLogScope,
-    reason_code: diagnosis?.blockingRoots[0]?.code ?? (discoveredLogScope?.status === "SOURCE_UNAVAILABLE"
-      ? "SOURCE_UNAVAILABLE" : discoveredLogScope?.status === "AMBIGUOUS_SCOPE" ? "AMBIGUOUS_SCOPE" : null),
-    observed_at: observedAt, freshness: durableFreshness, authority_ref: "runtime-log-spine",
-    evidence_ref: diagnosis?.blockingRoots[0]?.eventId ?? null,
-    completeness: diagnosis?.status === "DIAGNOSIS_COMPLETE" ? "COMPLETE"
-      : diagnosis?.status ?? (discoveredLogScope?.status === "SOURCE_UNAVAILABLE" ? "SOURCE_UNAVAILABLE"
-        : discoveredLogScope?.completeness ?? "DIAGNOSIS_INCOMPLETE") }));
+  rows.push(runtimeLogEvidenceRow(observedAt, diagnosis, discoveredLogScope));
   return Object.freeze({ schema_version: "agent-production-operations-snapshot.v1", observed_at: observedAt,
     scope, rows: Object.freeze(rows), diagnosis });
 };

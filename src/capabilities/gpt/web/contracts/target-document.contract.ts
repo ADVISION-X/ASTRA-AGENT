@@ -19,6 +19,4 @@ export const canonicalGptConversationUrl = (value: string): string => {
   return `${url.origin}${url.pathname}`;
 };
 
-export const durableCanonicalGptConversationUrl = canonicalGptConversationUrl;
-
 export const isGptRootUrl = (value: string): value is typeof GPT_ROOT_URL => value === GPT_ROOT_URL;

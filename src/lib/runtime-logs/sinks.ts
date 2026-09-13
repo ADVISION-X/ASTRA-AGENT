@@ -33,17 +33,27 @@ const projectionIdentity = (event: RuntimeLogEventV2): string => {
   return stable.length > 0 ? stable.join("|") : String(event.typedIdentity.kind);
 };
 
+const errorProjection = (event: RuntimeLogEventV2): string | null => {
+  if (event.kind !== "error") return null;
+  return JSON.stringify({ failure: event.failure.code,
+    owner: event.failure.responsibleOwner, authorityRef: event.authorityRef ?? null,
+    authorityHash: event.authorityHash ?? null, evidenceRef: event.evidenceRef ?? null,
+    evidenceHash: event.evidenceHash ?? null, nativeCause: event.failure.nativeCause ?? null,
+    httpStatus: event.failure.httpStatus ?? null });
+};
+
+const terminalFailureProjection = (event: RuntimeLogEventV2): string | null => {
+  if (event.kind !== "span.terminal" || !event.failure) return null;
+  return JSON.stringify({ failure: event.failure.code,
+    owner: event.failure.responsibleOwner, authorityRef: event.authorityRef ?? null,
+    authorityHash: event.authorityHash ?? null, evidenceRef: event.evidenceRef ?? null,
+    evidenceHash: event.evidenceHash ?? null, nativeCause: event.failure.nativeCause ?? null,
+    httpStatus: event.failure.httpStatus ?? null });
+};
+
 const stateProjection = (event: RuntimeLogEventV2): string => {
-  if (event.kind === "error") return JSON.stringify({ failure: event.failure.code,
-    owner: event.failure.responsibleOwner, authorityRef: event.authorityRef ?? null,
-    authorityHash: event.authorityHash ?? null, evidenceRef: event.evidenceRef ?? null,
-    evidenceHash: event.evidenceHash ?? null, nativeCause: event.failure.nativeCause ?? null,
-    httpStatus: event.failure.httpStatus ?? null });
-  if (event.kind === "span.terminal" && event.failure) return JSON.stringify({ failure: event.failure.code,
-    owner: event.failure.responsibleOwner, authorityRef: event.authorityRef ?? null,
-    authorityHash: event.authorityHash ?? null, evidenceRef: event.evidenceRef ?? null,
-    evidenceHash: event.evidenceHash ?? null, nativeCause: event.failure.nativeCause ?? null,
-    httpStatus: event.failure.httpStatus ?? null });
+  const failure = errorProjection(event) ?? terminalFailureProjection(event);
+  if (failure !== null) return failure;
   if (event.kind === "span.terminal" && event.claimDiagnostics) {
     return JSON.stringify(event.claimDiagnostics);
   }

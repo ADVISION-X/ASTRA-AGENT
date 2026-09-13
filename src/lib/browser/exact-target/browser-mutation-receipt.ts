@@ -239,28 +239,47 @@ const coherentRowShapeValid = (
   && (row.eligibleCount as number) <= (row.rawCount as number)
   && Array.isArray(row.rejections);
 
+const postconditionPacket = (
+  command: BrowserGovernedCommand,
+  value: Readonly<Record<string, unknown>>,
+) => {
+  if (command.kind !== "dom-intent" || command.intent.kind !== "click") return null;
+  if (command.intent.postClickObservation === undefined) return null;
+  const packet = value.postconditionObservation;
+  if (!packet || typeof packet !== "object" || Array.isArray(packet)) return null;
+  return { postcondition: command.intent.postClickObservation,
+    packet: packet as Readonly<Record<string, unknown>> };
+};
+
+const exactOutgoingPostconditionVerified = (
+  command: BrowserGovernedCommand,
+  packet: Readonly<Record<string, unknown>>,
+): boolean => {
+  if (command.kind !== "dom-intent" || command.intent.kind !== "click") return false;
+  const exactOutgoing = command.intent.preClickExactOutgoingTurn;
+  if (exactOutgoing === undefined) return true;
+  const firstQuery = (packet.queries as readonly Readonly<Record<string, unknown>>[])[0];
+  const firstMatch = Array.isArray(firstQuery?.matches) ? firstQuery.matches[0] : undefined;
+  const match = firstMatch && typeof firstMatch === "object" && !Array.isArray(firstMatch)
+    ? firstMatch as Readonly<Record<string, unknown>> : null;
+  return match?.exactGptUserPromptHash === exactOutgoing.expectedPromptHash;
+};
+
 const observationPostconditionEvidenceValid = (
   command: BrowserGovernedCommand,
   value: Readonly<Record<string, unknown>>,
 ): boolean => {
-  if (command.kind !== "dom-intent" || command.intent.kind !== "click"
-    || command.intent.postClickObservation === undefined
-    || !value.postconditionObservation || typeof value.postconditionObservation !== "object"
-    || Array.isArray(value.postconditionObservation)) return false;
-  const postcondition = command.intent.postClickObservation;
-  const packet = value.postconditionObservation as Readonly<Record<string, unknown>>;
+  const observed = postconditionPacket(command, value);
+  if (!observed) return false;
+  const { postcondition, packet } = observed;
   if (!coherentPacketHeaderValid(packet, postcondition.queries.length)) return false;
   const rows = (packet.queries as readonly unknown[]).map((candidate, index) =>
     coherentRowResult(candidate, postcondition.queries[index]!));
   const rowsValid = rows.every((row) => row.valid);
   const ordinaryCause = rows.find((row) => row.cause !== null)?.cause ?? null;
-  const exactOutgoing = command.intent.preClickExactOutgoingTurn;
-  const firstQuery = (packet.queries as readonly Readonly<Record<string, unknown>>[])[0];
-  const firstMatch = Array.isArray(firstQuery?.matches) ? firstQuery.matches[0] : undefined;
-  const match = firstMatch && typeof firstMatch === "object" && !Array.isArray(firstMatch)
-    ? firstMatch as Readonly<Record<string, unknown>> : null;
-  const exactVerified = exactOutgoing === undefined
-    || match?.exactGptUserPromptHash === exactOutgoing.expectedPromptHash;
+  const exactOutgoing = command.kind === "dom-intent" && command.intent.kind === "click"
+    ? command.intent.preClickExactOutgoingTurn : undefined;
+  const exactVerified = exactOutgoingPostconditionVerified(command, packet);
   const verified = ordinaryCause === null && exactVerified;
   const expectedCause = exactOutgoing !== undefined && !exactVerified
     ? "BROWSER_DOM_CANDIDATE_MISSING" : ordinaryCause;
