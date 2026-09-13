@@ -1,6 +1,6 @@
 ---
 name: agent-flow-boundary-gatekeeper
-description: 审查 AGENT 生产链内部以及 AGENT—Website 跨仓接口的原子职责与唯一 Owner，并以当前需求和系统必要性两层证据裁决结构能否新增或保留；不能证明则禁止新增或在授权片区物理删除。仅用于生产链架构设计、Owner/边界审查，以及会提出或实施生产链代码修改的诊断与重构；不用于纯运行、纯日志、普通页面观察、一般 UI/文案或实际 Product 执行。本 Skill 不定义或执行 Product Flow，也不取代任一仓的法案或 Blueprint。
+description: 审查 AGENT 生产链内部以及 AGENT—Website 跨仓接口的原子职责、唯一 Owner 与端到端闭环，并以当前需求和系统必要性两层证据裁决结构能否新增或保留；不能证明则禁止新增或在授权片区物理删除。仅用于生产链架构设计、Owner/边界审查，以及会提出或实施生产链代码修改的诊断与重构；不用于纯运行、纯日志、普通页面观察、一般 UI/文案或实际 Product 执行。本 Skill 不定义或执行 Product Flow，也不取代任一仓的法案或 Blueprint。
 ---
 
 # AGENT—Website 原子职责守门
@@ -172,6 +172,28 @@ Browser Authority 对象包括：
 
 一个 Product 业务要求可以包含多个有序 Child，但只要其唯一决定仍是“如何完成这一项成熟业务要求”、唯一结果仍由同一 Product Plugin 组装，它就是一项原子业务责任；不得因为内部多步骤就把 Product Flow 拆到 Runtime、GPT 或 Browser。
 
+## 方案级端到端闭环门
+
+本 Skill 一旦用于制定生产链方案、跨仓接口方案、生产故障修复方案或施工方案，不能在原子责任分别正确后停止。提出方案或施工以前，必须从现役 authority 和当前真实调用链重建本次受影响的唯一端到端闭环，证明每项上游责任的权威输出都由下游唯一消费者按合同接收，直到当前需求的权威业务终点。
+
+闭环范围从本次变化所依赖的最后一个权威输入开始，沿全部受影响的真实 consumer 追到业务终点；不得跳过中间 Owner，也不得扩大到不受本次变化影响的 Product、route 或业务域。对 AGENT—Website 结果链，业务终点至少包含 Website Domain Consumer 对同一结果的幂等领域存储及其 admission receipt；Website public completion、AGENT local completion、发布或履约是否以及按什么顺序进入终点，必须逐业务域读取现役 Website authority，不得由本 Skill 猜测。
+
+闭环中的每一项责任必须引用本次已经闭合的原子责任记录。每两个相邻责任之间形成一条可独立证伪的 handoff，并同时证明：
+
+1. producer 的 authoritative output 或 persisted truth 真实存在；
+2. consumer 是当前活动调用链中的真实消费者；
+3. consumer 所需的 schema、version、字段、基数、关系、状态和 receipt 条件与 producer 输出精确相等；
+4. `job_id`、`request_hash`、accepted attempt、effect identity、result revision、payload hash 和 admission receipt 等身份按各自现役合同连续绑定，且不得互相冒充；
+5. consumer 有独立 readback 或后置条件证明接受，日志、发送动作、HTTP 成功、Provider terminal、Outbox delivered 或 staging 不得替代后续 Owner 的接受；
+6. 拒绝、失败或结果未知由唯一 Owner 产生 typed fact 并写入其权威位置；
+7. 恢复 Owner、恢复输入和重新接回原主链的位置明确，已发送或结果未知的外部动作在 receipt、WAL 或权威后置条件读回以前不得重放。
+
+只审查现役合同、代码和真实 typed outcome 已存在的成功、失败与结果未知分支，不得为了“完整”发明假设分支、统一恢复图、第二状态机或额外持久化。Product Flow、业务完成标准或恢复政策在 authority 中缺失时，报告缺口并停止，不得由本 Skill 补写。
+
+若原子责任各自可闭合，但任一 handoff、身份连续性、失败归属、恢复回接或业务终点不能闭合，输出 `END_TO_END_CLOSURE_UNPROVEN`，停止把当前内容称为完整方案，并停止对应施工。报告必须先指出第一处直接断裂、责任 Owner、权威错误位置与下游后果，再列出其余已证实的独立断裂；不得把下游报错冒充第一故障。
+
+`END_TO_END_CLOSURE_UNPROVEN` 只是本次审查的失败关闭 finding。闭环全部有证据时只表示可以继续进入仓库原生施工和质量流程，不得产生 `CLOSURE_PASS`、第二 report、第二 verdict、READY、RELEASE 或生产完成结论。闭环记录只存在于本次回答，不得落成 registry、台账、配置、运行状态或持久化结构。
+
 ## Website 侧原子职责基线
 
 以下基线只用于检查定位，最终仍须以本次绑定的 Website canonical source 和实际合同为准。
@@ -279,15 +301,34 @@ existence_proof:
   deletion_trial:
   simpler_complete_alternative:
   decision: KEEP | ADD | DELETE
+
+end_to_end_closure:
+  demand_source:
+  authoritative_business_terminal:
+  affected_chain:
+  identity_spine:
+  handoffs:
+    - producer_responsibility:
+      authoritative_output_or_truth:
+      identity_and_contract_binding:
+      consumer_responsibility:
+      consumer_acceptance_readback:
+      rejection_failure_or_unknown_fact:
+      failure_owner_and_location:
+      recovery_owner_and_reentry:
+      duplicate_or_omission_prevention:
+      current_evidence:
+  success_terminal_readback:
+  uncovered_handoffs:
 ```
 
-任一职责边界字段不能由当前证据闭合，输出 `OWNER_BOUNDARY_UNPROVEN` 并停止对应施工。任一存在性字段不能由当前证据闭合，输出 `EXISTENCE_UNPROVEN`，按第一性存在性门禁止新增、执行授权内删除或停止越界删除。
+每份方案只形成一份 `end_to_end_closure`，其 handoffs 引用前面的原子责任，不复制或改写各 Owner 的 Flow。任一职责边界字段不能由当前证据闭合，输出 `OWNER_BOUNDARY_UNPROVEN` 并停止对应施工。任一存在性字段不能由当前证据闭合，输出 `EXISTENCE_UNPROVEN`，按第一性存在性门禁止新增、执行授权内删除或停止越界删除。任一闭环字段、受影响责任或 handoff 不能闭合，输出 `END_TO_END_CLOSURE_UNPROVEN` 并停止对应施工。
 
 只修改合法 Owner 和完成当前任务不可分割的直接关联对象。
 
 ## 完成后删除式反查
 
-先对实际差异、本次方案继续依赖的现有单元和被直接替代的旧路径重跑存在性审判，证明每个新增与保留单元的两层证据仍然成立；未证明单元不得留在候选中。删除一个单元时同步清除只为它存在的入口、导出、配置、状态、持久化、测试夹具和消费者，不得留下换名包装、空壳或兼容路径。然后检查实际差异、import 图、调用方、消费者、导出和持久化结构，寻找：
+先对实际差异、本次方案继续依赖的现有单元和被直接替代的旧路径重跑存在性审判，证明每个新增与保留单元的两层证据仍然成立；未证明单元不得留在候选中。再按实际差异重建受影响闭环，逐条重验 handoff、身份连续性、成功终点、失败/结果未知归属和恢复回接；修改后新出现的断裂必须输出 `END_TO_END_CLOSURE_UNPROVEN`，不得以局部测试通过保留候选。删除一个单元时同步清除只为它存在的入口、导出、配置、状态、持久化、测试夹具和消费者，不得留下换名包装、空壳或兼容路径。然后检查实际差异、import 图、调用方、消费者、导出和持久化结构，寻找：
 
 - 一个宽泛 Owner 同时拥有业务输入、transport、执行、领域验收或发布中的多项独立决定；
 - Website Domain Sender 持有 Product Flow、Prompt、Child 顺序或 Browser 页面动作；
@@ -319,12 +360,14 @@ existence_proof:
 
 - 本次明确需求、当前 GAP、授权片区和明确非目标；
 - 双方仓库的候选与 authority 是否闭合；
+- 本次受影响的端到端闭环、权威业务终点、身份主线和每条 handoff 的 producer/consumer/readback；
 - 每项原子责任的完整范围绑定记录；
 - 每个新增、保留或删除单元的两层存在性证据、删除试验和唯一动作；
 - 唯一 Owner 及 canonical 依据；
+- 第一处直接断裂、责任 Owner、权威错误位置、下游后果，以及其余已证实的独立断裂；
 - 越界责任、当前错误位置与唯一应迁回位置；
 - 允许修改路径；
 - 每个 consumer 的 readback 和已完成验证；
-- 任何未闭合项及 `CROSS_REPO_AUTHORITY_UNBOUND`、`CANONICAL_OWNER_CONFLICT`、`CANONICAL_CONTRACT_CONFLICT`、`OWNER_BOUNDARY_UNPROVEN`、`EXISTENCE_UNPROVEN` 或 candidate drift。
+- 任何未闭合项及 `CROSS_REPO_AUTHORITY_UNBOUND`、`CANONICAL_OWNER_CONFLICT`、`CANONICAL_CONTRACT_CONFLICT`、`OWNER_BOUNDARY_UNPROVEN`、`EXISTENCE_UNPROVEN`、`END_TO_END_CLOSURE_UNPROVEN` 或 candidate drift。
 
 本 Skill 的结论只是 Owner 边界结论，不是新的 quality PASS、READY、RELEASE 或生产完成结论。
