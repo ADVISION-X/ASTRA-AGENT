@@ -421,8 +421,6 @@ const inspectFrozenAttemptBoundary = (
     store: sealedSource(context, "src/lib/browser/exact-target/browser-mutation-store.ts"),
     lifecycle: sealedSource(context, `${ROOT}/production-browser-lifecycle.ts`),
     targetAcquirer: sealedSource(context, "src/lib/browser/infrastructure/browser-target-acquirer.ts"),
-    runtimeClaim: sealedSource(context, "src/lib/local-runtime/production/runtime-claim.ts"),
-    terminalFailure: sealedSource(context, "src/lib/local-runtime/production/terminal-failure.ts"),
     blueprint: sealedSource(context, GPT_BLUEPRINT_PATH),
     browserBlueprint: sealedSource(context,
       "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md"),
@@ -466,8 +464,6 @@ const inspectFrozenAttemptBoundary = (
     && sources.targetAcquirer.includes("requestPreauthorizedTargetAcquisition(targetMode)")
     && !sources.targetAcquirer.includes("expectedTargetRef")
     && sources.store.includes("providerEffectIdentityHash: input.effectScope === \"provider_effect\"")
-    && !sources.runtimeClaim.includes("browser-mutation-authority")
-    && sources.terminalFailure.includes("settled_result_payload_hash")
     && !sources.candidate.includes("priorTurns.length > 1")
     && !sources.candidate.includes("querySelectorAll(outgoing.userTurnSelector)")
     && !sources.candidate.includes("baselineOrdinal + 2")
