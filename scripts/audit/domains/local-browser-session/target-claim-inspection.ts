@@ -208,7 +208,7 @@ const recoveryUsesCurrentTargetAndCanonicalUrl = (source: string): boolean =>
   source.includes('targetMode: "fresh" | "confirmed-readback"')
   && source.includes('targetMode === "fresh"')
   && source.includes('"Page.navigate", { url: expected }')
-  && source.includes("publishMainFrameNavigation(mainFrame.url, mainFrame.loaderId)")
+  && source.includes("publishMainFrameNavigation(mainFrame.url, mainFrame.loaderId, true)")
   && !source.includes("readOrRecoverExactTarget")
   && !source.includes("debuggerRuntime.readTargets()")
   && !source.includes("nav a[href")

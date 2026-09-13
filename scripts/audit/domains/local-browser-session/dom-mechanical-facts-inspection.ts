@@ -179,7 +179,7 @@ const inspectExactGptUserPromptProjection = (
 ): void => {
   requireTokens(observationText, [
     "GPT_TURN_TEST_ID", "GPT_USER_PROMPT_CONTENT_SELECTOR", "exactGptUserPromptText",
-    'node.querySelectorAll("[data-message-author-role=\'user\']").length !== 1', "promptNodes.length !== 1",
+    "userRoots.length === 0", "userRoots.length !== 1", "promptNodes.length > 1",
     'field === "exactGptUserPromptHash"', "sha256(exactGptUserPromptText(node))",
   ], findings, lawId, domCoherentObservationPath,
   "The exact GPT user Prompt hash projection is missing");

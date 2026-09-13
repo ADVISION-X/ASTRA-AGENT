@@ -86,7 +86,7 @@ const inspectRegistryRequirements = (
 ): void => {
   for (const required of [
     "admitExtensionCommand", "executeRegisteredCommand", "BrowserMutationStore", "requestHash",
-    "payloadHash", "proofHash", "exactCallIdentityHash", "pluginVersion", "terminalAt",
+    "payloadHash", "proofHash", "exactCallIdentityHash", "terminalAt",
     "readExactCallMutationFact", "logicalMutationId", "productStepId", "callId", "childCapabilityId",
     "inputHash", "effectScope", "actionOrdinal", "positivePostconditionHash",
     "negativePostconditionHash", "PREPARED", "DISPATCHED", "REJECTED",

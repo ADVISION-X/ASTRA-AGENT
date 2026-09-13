@@ -97,7 +97,6 @@ export const inspectDisposableAttemptBoundary = (
     "src/lib/browser/infrastructure/browser-target-acquirer.ts",
     "src/lib/browser/infrastructure/browser-authority-broker.ts",
     "src/lib/browser/exact-target/browser-mutation-store.ts",
-    "src/capabilities/gpt/production-browser-lifecycle.ts",
   ];
   const sources = paths.map((path) => requireSource(context, findings, lawId, path));
   if (sources.some((source) => !source)) return;
@@ -107,59 +106,45 @@ export const inspectDisposableAttemptBoundary = (
     "confirmedProviderSourceReadback", "this.quarantine", "mode: \"recovery\""],
   findings, lawId, paths.join(","), "browser-authority/no-old-attempt-recovery");
   const lane = sources[0]!.getFullText();
-  requireTokens(lane, ["this.queue.shift()"], findings, lawId, paths[0]!,
+  requireTokens(lane, ["const waiter = this.queue[index]!", "this.queue.splice(index, 1)", "return waiter"], findings, lawId, paths[0]!,
     "browser-authority/single-fifo");
 };
 
 export const inspectProviderEffectAttemptGuard = (
   context: InspectorContext, findings: InspectorFinding[], lawId: string,
 ): void => {
-  const postcondition = requireSource(context, findings, lawId,
-    "src/lib/browser/exact-target/browser-command-postcondition.ts");
-  const store = requireSource(context, findings, lawId,
-    "src/lib/browser/exact-target/browser-mutation-store.ts");
-  const schema = requireSource(context, findings, lawId,
-    "src/lib/browser/exact-target/browser-mutation-schema.ts");
-  const supervisor = requireSource(context, findings, lawId,
-    "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts");
-  const authorityApi = requireSource(context, findings, lawId,
-    "src/lib/browser/browser-authority-api.ts");
-  if (!postcondition || !store || !schema || !supervisor || !authorityApi) return;
+  const postconditionPath = "src/lib/browser/exact-target/browser-command-postcondition.ts";
+  const storePath = "src/lib/browser/exact-target/browser-mutation-store.ts";
+  const schemaPath = "src/lib/browser/exact-target/browser-mutation-schema.ts";
+  const postcondition = requireSource(context, findings, lawId, postconditionPath);
+  const store = requireSource(context, findings, lawId, storePath);
+  const schema = requireSource(context, findings, lawId, schemaPath);
+  if (!postcondition || !store || !schema) return;
   requireTokens(postcondition.getFullText(), [
     'permit.replayPolicy === "provider-effect-once" ? []',
-    "permit.jobId", "payloadHash",
-  ], findings, lawId, postcondition.getFilePath(),
+    "browserProviderEffectIdentityHash", "permit.jobId", "permit.resultRevision",
+    "permit.productStepId", "permit.callId", "permit.childCapabilityId", "permit.inputHash",
+    "payloadHash",
+  ], findings, lawId, postconditionPath,
   "browser-authority/provider-effect-cross-attempt-identity");
   const storeText = store.getFullText();
   requireTokens(storeText, [
-    "where job_id=? and owner_plugin_id=?", "provider_recovery_payload",
-  ], findings, lawId, store.getFilePath(),
+    'if (input.effectScope === "provider_effect") this.assertProviderEffectHistory(input)',
+    "providerEffectIdentityMatches", "assertProviderEffectHistory",
+    "where job_id=? and result_revision=? and product_step_id=? and call_id=? and child_capability_id=? and effect_scope='provider_effect'",
+    "row.state === \"REJECTED\" && row.mutation_outcome === \"no\"",
+    "row.physical_input_count === 0 && row.attempt_id !== input.attemptId",
+    "BROWSER_PROVIDER_EFFECT_IDENTITY_DRIFT", "BROWSER_PROVIDER_EFFECT_REPLAY_FORBIDDEN",
+  ], findings, lawId, storePath,
   "browser-authority/provider-effect-cross-attempt-identity");
-  const browserAuthorityText = [store, supervisor, authorityApi]
-    .map((source) => source.getFullText()).join("\n");
-  forbidTokens(browserAuthorityText, [
-    "provider_effect_identity_hash", "providerEffectIdentityHash",
+  forbidTokens(`${storeText}\n${schema.getFullText()}`, [
+    "owner_plugin_id", "plugin_version", "pluginVersion",
     "direct_predecessor_task_ref_hash", "completed_frontier_hash",
     "persistContinuation", "advanceContinuation", "recordContinuation", "readContinuation",
     "consultation_identity_hash", "source_task_ref_hash", "continuation_checkpoint_hash",
     "BrowserContinuationCheckpoint", "BrowserContinuationBinding",
-  ], findings, lawId, [store, supervisor, authorityApi]
-    .map((source) => source.getFilePath()).join(","), "browser-authority/no-continuation-shadow-state");
-  const schemaText = schema.getFullText();
-  requireTokens(schemaText, [
-    "forbiddenContinuationColumns", "BROWSER_REPAIR_REQUIRED",
-    "forbiddenContinuationColumns.has(column)",
-  ], findings, lawId, schema.getFilePath(), "browser-authority/reject-continuation-schema");
-  for (const column of [
-    "consultation_identity_hash", "source_task_ref_hash", "continuation_checkpoint_hash",
-  ]) {
-    const occurrences = schemaText.split(column).length - 1;
-    if (occurrences !== 1) findings.push(createLocalFinding({
-      checkId: "browser-authority/reject-continuation-schema", lawId,
-      filePath: schema.getFilePath(),
-      message: `${column} must appear exactly once, only in the rejected-column set.`,
-    }));
-  }
+  ], findings, lawId, `${storePath},${schemaPath}`,
+  "browser-authority/no-provider-effect-shadow-state");
 };
 import { Node, SyntaxKind, type Node as MorphNode, type SourceFile } from "ts-morph";
 import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";

@@ -165,7 +165,6 @@ const inspectUniversalPostActionReadGate = (
   ], findings, lawId, extensionDebuggerRuntimePath);
   requireText(`${authority}\n${createdTarget}\n${observation}\n${sources.postcondition.getFullText()}`, [
     "awaitPageReadPermission",
-    "readTargets()",
     "createProductionTab",
     "removeTab",
     "startCreatedTargetDeadlineAfterBarrier",
