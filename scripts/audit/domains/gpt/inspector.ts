@@ -397,6 +397,7 @@ const inspectGptDependencies = (context: InspectorContext, findings: InspectorFi
 const inspectFrozenAttemptBoundary = (
   context: InspectorContext,
   findings: InspectorFinding[],
+  evidenceMode: "static.ast" | "static.contract",
 ): void => {
   const sources = {
     contract: sourceFor(context, CONTRACT_PATH)?.getFullText() ?? "",
@@ -474,13 +475,21 @@ const inspectFrozenAttemptBoundary = (
     && !sources.candidate.includes("baselineOrdinal + 2")
     && sources.store.includes("row.attempt_id !== input.attemptId");
   if (!valid) findings.push(createFinding({
-    evidenceMode: "static.contract",
+    evidenceMode,
     lawId: FROZEN_ATTEMPT_LAW_ID,
     clauseId: `${FROZEN_ATTEMPT_LAW_ID.toLowerCase()}-requirement`,
     checkId: "gpt/frozen-job-attempt-provider-effect",
     filePath: CONTRACT_PATH,
     message: "Frozen attempt-local preparation and cross-attempt submit boundary is incomplete.",
   }));
+};
+
+const inspectFrozenAttemptAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  inspectFrozenAttemptBoundary(context, findings, "static.ast");
+};
+
+const inspectFrozenAttemptContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  inspectFrozenAttemptBoundary(context, findings, "static.contract");
 };
 
 const evaluate = (context: InspectorContext): InspectorEvaluation => {
@@ -502,10 +511,14 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
   recordStaticCheck({ check: "inspectGptDependencies", findings, implementation: inspectGptDependencies,
     lawIds: [LAW_ID], receipts: staticCheckReceipts,
     run: () => inspectGptDependencies(context, findings) });
-  recordStaticCheck({ check: "inspectFrozenAttemptBoundary", findings,
-    implementation: inspectFrozenAttemptBoundary, lawIds: [FROZEN_ATTEMPT_LAW_ID],
+  recordStaticCheck({ check: "inspectFrozenAttemptAst", findings,
+    implementation: inspectFrozenAttemptAst, lawIds: [FROZEN_ATTEMPT_LAW_ID],
     receipts: staticCheckReceipts,
-    run: () => inspectFrozenAttemptBoundary(context, findings) });
+    run: () => inspectFrozenAttemptAst(context, findings) });
+  recordStaticCheck({ check: "inspectFrozenAttemptContract", findings,
+    implementation: inspectFrozenAttemptContract, lawIds: [FROZEN_ATTEMPT_LAW_ID],
+    receipts: staticCheckReceipts,
+    run: () => inspectFrozenAttemptContract(context, findings) });
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
@@ -533,14 +546,15 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
       checks(evidenceMode),
     ),
   }));
-  const frozenChecks = ["inspectFrozenAttemptBoundary"];
   const frozenAssertions = (["static.ast", "static.contract"] as const).map((evidenceMode) => ({
     clauses: evidenceMode === "static.ast" ? staticClauses(0, 2, 3, 4) : staticClauses(1, 5, 6),
     evidenceMode,
-    passed: producerModePassed(evaluation.staticCheckReceipts, FROZEN_ATTEMPT_LAW_ID, frozenChecks),
+    passed: producerModePassed(evaluation.staticCheckReceipts, FROZEN_ATTEMPT_LAW_ID,
+      evidenceMode === "static.ast" ? ["inspectFrozenAttemptAst"] : ["inspectFrozenAttemptContract"]),
     refs: staticEvidenceRefs(context, FROZEN_ATTEMPT_LAW_ID, evidenceMode,
       evidenceMode === "static.ast" ? staticClauses(0, 2, 3, 4) : staticClauses(1, 5, 6),
-      evaluation.staticCheckReceipts, frozenChecks),
+      evaluation.staticCheckReceipts,
+      evidenceMode === "static.ast" ? ["inspectFrozenAttemptAst"] : ["inspectFrozenAttemptContract"]),
   }));
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain,
