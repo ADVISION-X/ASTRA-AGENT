@@ -1,5 +1,5 @@
 import type { ForensicsAppendArtifactInput, ForensicsAppendArtifactResult } from "../../schema.js";
-import type { ForensicsStoragePort } from "../../storage-port.js";
+import type { ArtifactEnvelope, GrassEyeStoragePort } from "../../../../lib/storage/index.js";
 import {
   createForensicsProofTiming,
   resolveForensicsFailureReason,
@@ -7,11 +7,17 @@ import {
 
 export async function executeAppendArtifact(
   input: ForensicsAppendArtifactInput,
-  storage: ForensicsStoragePort,
+  storage: GrassEyeStoragePort,
 ): Promise<ForensicsAppendArtifactResult> {
   const startedAt = new Date().toISOString();
   try {
-    const result = await storage.appendArtifact(input);
+    const envelope: ArtifactEnvelope = { artifactType: input.artifactType,
+      missionId: input.missionId, runId: input.runId,
+      ...(input.capabilityCallId ? { capabilityCallId: input.capabilityCallId } : {}),
+      ...(input.mimeType ? { mimeType: input.mimeType } : {}),
+      ...(input.content === undefined ? {} : { content: input.content }),
+      idempotencyKey: input.idempotencyKey, createdAt: new Date().toISOString() };
+    const result = await storage.appendArtifact(envelope);
     return {
       status: "success",
       artifactRef: result.artifactRef,

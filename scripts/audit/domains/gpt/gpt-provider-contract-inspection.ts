@@ -17,6 +17,7 @@ const EXACT_ASSISTANT = "src/lib/browser/chrome-extension/dom-exact-assistant-tu
 const PRODUCTION_CHILD_TOOLS = `${ROOT}/production-child-tools.ts`;
 const PRODUCTION_PORTS = `${ROOT}/production-ports.ts`;
 const PRODUCT_API = `${ROOT}/product-api.ts`;
+const EVIDENCE_ARTIFACTS = `${ROOT}/evidence-artifacts.ts`;
 
 type FindingFactory = (checkId: string, filePath: string, message: string) => InspectorFinding;
 const sourceText = (context: InspectorContext, path: string): string =>
@@ -91,6 +92,8 @@ export const inspectProviderWaitContract = (
   const imageHandler = sourceText(context, IMAGE_HANDLER);
   const responseState = sourceText(context, RESPONSE_STATE);
   const submit = sourceText(context, SUBMIT_HANDLER);
+  const tools = sourceText(context, PRODUCTION_CHILD_TOOLS);
+  const artifacts = sourceText(context, EVIDENCE_ARTIFACTS);
   requireTokens(textHandler, TEXT_HANDLER, [
     "checkpointGptTextResponseHandler", "probeBudgetMs", "userTurnId",
     "readExactAssistantTurn", "semanticText.trim().length > 0", "waitForProviderObservation",
@@ -108,6 +111,16 @@ export const inspectProviderWaitContract = (
     "submitExactGptTurnOnceHandler", "requireConfirmedBrowserFact", 'status: "CONFIRMED"',
     "canonicalConversationUrl", "userTurnId",
   ], findings, finding);
+  requireTokens(artifacts, EVIDENCE_ARTIFACTS, [
+    "readPersistedGptTextResponse", "FORENSICS_ARTIFACT_NOT_FOUND",
+    "GPT_TEXT_TASK_ARTIFACT_INVALID", "observedResponseArtifact(row)",
+  ], findings, finding);
+  const persistedRead = tools.indexOf("readPersistedGptTextResponse(");
+  const browserObservation = tools.indexOf("executeProductionGptAtomicCall({");
+  if (persistedRead < 0 || browserObservation < 0 || persistedRead > browserObservation) {
+    findings.push(finding("gpt/persisted-checkpoint-before-browser", PRODUCTION_CHILD_TOOLS,
+      "A valid exact-call text artifact must be read before any checkpoint Browser observation."));
+  }
   for (const retired of [
     "reconcile_gpt_draft", "reconcile_gpt_turn_submission", "wait_for_stable_gpt_text",
     "wait_for_stable_gpt_image", "fork_exact_gpt_conversation_at_checkpoint",

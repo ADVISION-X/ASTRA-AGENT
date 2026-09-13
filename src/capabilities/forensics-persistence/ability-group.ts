@@ -1,15 +1,13 @@
 import { executeAppendArtifact } from "./children/append-artifact/handler.js";
-import { executeReadArtifactRef } from "./children/read-artifact-ref/handler.js";
+import { executeReadArtifact } from "./children/read-artifact/handler.js";
 import type { ForensicsPersistenceAbilityGroup } from "./contract.js";
-import { createForensicsStorageAdapter } from "./storage-adapter.js";
 import type { ForensicsAppendArtifactInput, ForensicsAppendArtifactResult } from "./schema.js";
-import type { ForensicsStoragePort } from "./storage-port.js";
 import type { GrassEyeStoragePort } from "../../lib/storage/index.js";
 import { RuntimeFailureImpact, requireRuntimeLogWrite, runtimeFailureFromError,
   type RuntimeLogger } from "../../lib/runtime-logs/index.js";
 
 const appendArtifactWithLog = async (input: ForensicsAppendArtifactInput,
-  storage: ForensicsStoragePort, runtimeLogger?: RuntimeLogger): Promise<ForensicsAppendArtifactResult> => {
+  storage: GrassEyeStoragePort, runtimeLogger?: RuntimeLogger): Promise<ForensicsAppendArtifactResult> => {
   const span = runtimeLogger ? requireRuntimeLogWrite(runtimeLogger.startSpan({
     traceId: input.missionId,
     owner: "forensics-persistence",
@@ -36,7 +34,7 @@ const appendArtifactWithLog = async (input: ForensicsAppendArtifactInput,
   }
 };
 
-export function createForensicsPersistenceAbilityGroup(storage: ForensicsStoragePort,
+export function createForensicsPersistenceAbilityGroupFromStorage(storage: GrassEyeStoragePort,
   runtimeLogger?: RuntimeLogger): ForensicsPersistenceAbilityGroup {
   return {
     appendArtifact: async (input) => {
@@ -45,11 +43,6 @@ export function createForensicsPersistenceAbilityGroup(storage: ForensicsStorage
         ...(correlationId ? { capabilityCallId: correlationId } : {}) }, storage, runtimeLogger);
     },
     deleteArtifactsForMission: (missionId) => storage.deleteArtifactsForMission(missionId),
-    readArtifactRef: (input) => executeReadArtifactRef(input, storage),
+    readArtifact: (input) => executeReadArtifact(input, storage),
   };
-}
-
-export function createForensicsPersistenceAbilityGroupFromStorage(storage: GrassEyeStoragePort,
-  runtimeLogger?: RuntimeLogger): ForensicsPersistenceAbilityGroup {
-  return createForensicsPersistenceAbilityGroup(createForensicsStorageAdapter(storage), runtimeLogger);
 }

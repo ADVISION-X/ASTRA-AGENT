@@ -26,7 +26,7 @@ import {
 } from "../../lib/browser/browser-authority-api.js";
 import type { ProductGptCallInput, ProductGptChildResult } from "./product-api.js";
 import type { GptHash } from "./contract.js";
-import { persistGptEvidenceArtifacts } from "./evidence-artifacts.js";
+import { persistGptEvidenceArtifacts, readPersistedGptTextResponse } from "./evidence-artifacts.js";
 import {
   ProductionGptBrowserLifecycle,
   type ProductionGptBrowserCall,
@@ -88,15 +88,15 @@ const recordConfirmedSubmission = async (
 
 const recordSettledProviderResult = (
   call: ProductGptCallInput,
-  result: GptChildCapabilityResult,
+  value: unknown,
   browsers: ProductionGptBrowserLifecycle,
   browserCall: ProductionGptBrowserCall | undefined,
 ): void => {
   const readsConfirmedEffect = call.child === "checkpoint_gpt_text_response"
     || call.child === "checkpoint_gpt_generated_image";
-  if (!readsConfirmedEffect || !browserCall || result.status !== "success") return;
-  const value = result.value as Readonly<Record<string, unknown>>;
-  const payloadHash = call.child === "checkpoint_gpt_text_response" ? value.semanticTextHash : value.sha256;
+  if (!readsConfirmedEffect || !browserCall) return;
+  const row = value as Readonly<Record<string, unknown>>;
+  const payloadHash = call.child === "checkpoint_gpt_text_response" ? row.semanticTextHash : row.sha256;
   if (typeof payloadHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(payloadHash)) {
     throw executionFailure("failed", "GPT_SETTLED_RESULT_PAYLOAD_HASH_INVALID");
   }
@@ -106,25 +106,26 @@ const recordSettledProviderResult = (
 const productChildResult = <K extends GptChildCapabilityId>(input: Readonly<{
   execution: ExecutionInput;
   intent: GptChildCapabilityIntent<K>;
-  result: Extract<GptChildCapabilityResult, { status: "success" }>;
+  value: unknown;
+  browserFact: GptChildBrowserFact | null;
   evidenceRef: string;
   evidenceHash: GptHash;
   artifactRefs: readonly string[];
 }>): ProductGptChildResult<K> => Object.freeze({
-  value: input.result.value as ProductGptChildResult<K>["value"],
+  value: input.value as ProductGptChildResult<K>["value"],
   evidenceRef: input.evidenceRef,
   evidenceHash: input.evidenceHash,
   sourceAttemptId: input.execution.attemptId,
   exactCallIdentityHash: gptExactCallIdentityHash(input.intent),
   artifactRefs: input.artifactRefs,
-  effectReceipt: input.result.proof.browserFact ? Object.freeze({
-    effectScope: input.result.proof.browserFact.effectScope,
-    providerEffectIdentityHash: input.result.proof.browserFact.providerEffectIdentityHash,
-    outcome: input.result.proof.browserFact.browserOutcome,
-    mutationOutcome: input.result.proof.browserFact.mutationOutcome,
-    terminalAt: input.result.proof.browserFact.terminalAt,
-    evidenceRef: input.result.proof.browserFact.evidenceRef,
-    evidenceHash: input.result.proof.browserFact.evidenceHash,
+  effectReceipt: input.browserFact ? Object.freeze({
+    effectScope: input.browserFact.effectScope,
+    providerEffectIdentityHash: input.browserFact.providerEffectIdentityHash,
+    outcome: input.browserFact.browserOutcome,
+    mutationOutcome: input.browserFact.mutationOutcome,
+    terminalAt: input.browserFact.terminalAt,
+    evidenceRef: input.browserFact.evidenceRef,
+    evidenceHash: input.browserFact.evidenceHash,
   }) : null,
 });
 
@@ -340,11 +341,9 @@ export class ProductionGptChildTools {
     }
   }
 
-  private async executeOne<K extends GptChildCapabilityId>(
-    execution: ExecutionInput,
+  private async executeOne<K extends GptChildCapabilityId>(execution: ExecutionInput,
     browsers: ProductionGptBrowserLifecycle,
-    call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
-    signal: AbortSignal = execution.abortSignal,
+    call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>, signal: AbortSignal = execution.abortSignal,
     priorEffectKnown = false,
   ): Promise<ProductGptChildResult<K>> {
     const intent = this.intentFor(execution, call);
@@ -362,6 +361,18 @@ export class ProductionGptChildTools {
       browserCall = contract.requiredTargetKind === "chatgpt"
         ? await browsers.browserFor(call.sessionKey, call.productStepId, call.callId)
         : undefined;
+      if (call.child === "checkpoint_gpt_text_response" && browserCall?.confirmedProviderEffect) {
+        const recovered = await readPersistedGptTextResponse({ evidenceStore: this.evidenceStore,
+          jobId: execution.jobId, attemptId: execution.attemptId,
+          exactCallIdentityHash: gptExactCallIdentityHash(intent) });
+        if (recovered) {
+          recordSettledProviderResult(call, recovered.value, browsers, browserCall);
+          requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
+          return productChildResult({ execution, intent, value: recovered.value, browserFact: null,
+            evidenceRef: recovered.artifactRef, evidenceHash: recovered.integrityHash,
+            artifactRefs: Object.freeze([recovered.artifactRef]) });
+        }
+      }
       const browser = browserCall?.facade;
       if (!priorEffectKnown) this.assertProviderTurnBudget(execution, call);
       const atomic = await executeProductionGptAtomicCall({
@@ -401,8 +412,9 @@ export class ProductionGptChildTools {
       );
     }
     const successful = result as Extract<GptChildCapabilityResult, { status: "success" }>;
-    recordSettledProviderResult(call, successful, browsers, browserCall);
-    return productChildResult({ execution, intent, result: successful, evidenceRef, evidenceHash, artifactRefs });
+    recordSettledProviderResult(call, successful.value, browsers, browserCall);
+    return productChildResult({ execution, intent, value: successful.value,
+      browserFact: successful.proof.browserFact, evidenceRef, evidenceHash, artifactRefs });
   }
 
   private async resolveDispatchedMutation(input: Readonly<{

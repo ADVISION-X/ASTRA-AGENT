@@ -2,6 +2,7 @@ import { emitQualityProofObservation } from "../../../../scripts/audit/shared/pr
 
 await import("./gpt-production-browser-wait.acceptance-support.js");
 await import("./gpt-production-browser-mismatch.acceptance-support.js");
+await import("./gpt-production-artifact-recovery.acceptance-support.js");
 
 emitQualityProofObservation({
   lawId: "LAW-GPT-002-V9", evidenceMode: "exam.property",

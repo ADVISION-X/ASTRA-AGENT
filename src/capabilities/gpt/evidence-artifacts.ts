@@ -10,6 +10,8 @@ type EvidenceArtifact = Readonly<{
   mimeType: string;
   content: Uint8Array<ArrayBuffer>;
 }>;
+type TextResponse = Extract<GptChildCapabilityResult<"checkpoint_gpt_text_response">,
+  { status: "success" }>["value"];
 
 const hash = (value: string | Uint8Array): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -118,6 +120,41 @@ const observedResponseArtifact = (value: unknown): EvidenceArtifact => {
   };
 };
 
+const artifactKey = (exactCallIdentityHash: `sha256:${string}`, suffix: string): string =>
+  `gpt-call-artifact:v1:${exactCallIdentityHash}:${suffix}`;
+
+export const readPersistedGptTextResponse = async (input: Readonly<{
+  evidenceStore: GptEvidenceStorePort;
+  jobId: string;
+  attemptId: string;
+  exactCallIdentityHash: `sha256:${string}`;
+}>): Promise<Readonly<{ artifactRef: string; integrityHash: `sha256:${string}`;
+  value: TextResponse }> | null> => {
+  const read = await input.evidenceStore.readArtifact({ missionId: input.jobId,
+    runId: input.attemptId, idempotencyKey: artifactKey(input.exactCallIdentityHash, "observed-response") });
+  if (read.status !== "success") {
+    if (read.failureReason === "FORENSICS_ARTIFACT_NOT_FOUND") return null;
+    throw executionFailure("failed", "EVIDENCE_ARTIFACT_READBACK_FAILED");
+  }
+  if (!read.artifactRef || read.artifact?.mimeType !== "application/json"
+    || !/^sha256:[a-f0-9]{64}$/u.test(read.artifact.integrityHash)) {
+    throw executionFailure("failed", "EVIDENCE_ARTIFACT_READBACK_FAILED");
+  }
+  let row: unknown;
+  try { row = JSON.parse(new TextDecoder().decode(read.artifact.content)); }
+  catch { throw executionFailure("failed", "GPT_TEXT_TASK_ARTIFACT_INVALID"); }
+  if (!row || typeof row !== "object" || Array.isArray(row)
+    || Object.keys(row).sort().join("|") !== "assistantTurnId|rawDomHash|rawDomHtml|schemaVersion|semanticText|semanticTextHash"
+    || (row as Record<string, unknown>).schemaVersion !== "agent-observed-response-artifact.v1") {
+    throw executionFailure("failed", "GPT_TEXT_TASK_ARTIFACT_INVALID");
+  }
+  observedResponseArtifact(row);
+  const { schemaVersion: _schemaVersion, ...response } = row as Record<string, unknown>;
+  return Object.freeze({ artifactRef: read.artifactRef,
+    integrityHash: read.artifact.integrityHash as `sha256:${string}`,
+    value: Object.freeze(response) as TextResponse });
+};
+
 const artifactsFor = (
   result: GptChildCapabilityResult,
   intent: Parameters<GptAbilityGroup["execute"]>[0],
@@ -140,16 +177,14 @@ const appendArtifact = async (input: Readonly<{
     missionId: input.jobId, runId: input.attemptId, correlationId: input.executionId,
     artifactType: input.artifact.artifactType, mimeType: input.artifact.mimeType,
     content: input.artifact.content,
-    idempotencyKey: `gpt-call-artifact:v1:${input.exactCallIdentityHash}:${input.artifact.suffix}`,
+    idempotencyKey: artifactKey(input.exactCallIdentityHash, input.artifact.suffix),
   });
   if (appended.status !== "success" || !appended.artifactRef) {
     throw executionFailure("failed", "EVIDENCE_ARTIFACT_APPEND_FAILED");
   }
-  const readback = await input.evidenceStore.readArtifactRef({
-    artifactRef: appended.artifactRef,
-  });
-  const actual = readback.artifact?.content ? hash(readback.artifact.content) : null;
-  if (readback.status !== "success" || actual !== hash(input.artifact.content)) {
+  const readback = await input.evidenceStore.readArtifact({ missionId: input.jobId,
+    runId: input.attemptId, idempotencyKey: artifactKey(input.exactCallIdentityHash, input.artifact.suffix) });
+  if (readback.status !== "success" || hash(readback.artifact.content) !== hash(input.artifact.content)) {
     throw executionFailure("failed", "EVIDENCE_ARTIFACT_READBACK_FAILED");
   }
   return appended.artifactRef;

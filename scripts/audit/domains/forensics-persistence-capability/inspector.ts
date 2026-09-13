@@ -14,15 +14,16 @@ const REQUIRED = [
   "src/capabilities/forensics-persistence/contract.ts",
   "src/capabilities/forensics-persistence/ability-group.ts",
   "src/capabilities/forensics-persistence/schema.ts",
-  "src/capabilities/forensics-persistence/storage-adapter.ts",
-  "src/capabilities/forensics-persistence/storage-port.ts",
   "src/capabilities/forensics-persistence/children/append-artifact/handler.ts",
-  "src/capabilities/forensics-persistence/children/read-artifact-ref/handler.ts",
+  "src/capabilities/forensics-persistence/children/read-artifact/handler.ts",
   "src/lib/storage/file-storage.ts", "src/lib/storage/storage-port.ts", "src/lib/storage/schema.ts",
 ] as const;
 const RETIRED = [
   "src/capabilities/forensics-persistence/children/append-record/handler.ts",
   "src/capabilities/forensics-persistence/children/read-record-ref/handler.ts",
+  "src/capabilities/forensics-persistence/children/read-artifact-ref/handler.ts",
+  "src/capabilities/forensics-persistence/storage-adapter.ts",
+  "src/capabilities/forensics-persistence/storage-port.ts",
 ] as const;
 const text = (context: InspectorContext, path: string): string =>
   context.project.getSourceFile(resolve(context.sealedRoot, path))?.getFullText() ?? "";
@@ -47,7 +48,8 @@ const inspectArtifactOnlyContracts = (
 ): void => {
   const source = REQUIRED.map((path) => text(context, path)).join("\n");
   for (const required of ["appendArtifact", "readArtifact", "FORENSICS_IDEMPOTENCY_CONFLICT",
-    "code: result.failureReason", "integrityHash", "ai_raw_output"]) if (!source.includes(required)) findings.push(
+    "code: result.failureReason", "integrityHash", "ai_raw_output", "idempotencyKey",
+    "FORENSICS_ARTIFACT_NOT_FOUND"]) if (!source.includes(required)) findings.push(
     createFinding({
       evidenceMode: "static.contract", lawId: LAWS[1], clauseId: `${LAWS[1].toLowerCase()}-requirement`,
       checkId: "forensics/artifact-contract-required", filePath: REQUIRED[0], message: `Missing ${required}.`,

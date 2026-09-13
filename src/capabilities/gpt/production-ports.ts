@@ -4,22 +4,10 @@ import type {
   BrowserTargetLease,
   BrowserTargetLeaseWait,
 } from "../../lib/browser/browser-authority-api.js";
+import type { ForensicsPersistenceAbilityGroup } from "../forensics-persistence/index.js";
 
-type GptAppendArtifactResult = Readonly<{ status: "success" | "failed"; artifactRef?: string }>;
-type GptReadArtifactResult = Readonly<{ status: "success" | "failed"; artifactRef?: string | undefined; artifact?: Readonly<{ content: Uint8Array; mimeType?: string; integrityHash: string }> | undefined }>;
-
-export interface GptEvidenceStorePort {
-  appendArtifact(input: Readonly<{
-    missionId: string;
-    runId: string;
-    artifactType: "ai_raw_output" | "other";
-    mimeType?: string;
-    content?: string | Uint8Array<ArrayBuffer>;
-    idempotencyKey: string;
-    correlationId?: string;
-  }>): Promise<GptAppendArtifactResult>;
-  readArtifactRef(input: Readonly<{ artifactRef: string }>): Promise<GptReadArtifactResult>;
-}
+export type GptEvidenceStorePort = Pick<ForensicsPersistenceAbilityGroup,
+  "appendArtifact" | "readArtifact">;
 
 export interface GptProductionBrowserAuthority {
   readExactCallMutationFact(input: Readonly<{

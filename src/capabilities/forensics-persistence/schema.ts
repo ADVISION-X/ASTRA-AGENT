@@ -7,10 +7,14 @@ export type ForensicsAppendArtifactInput = Readonly<{
   content?: string | Uint8Array;
   idempotencyKey: string;
 }>;
-export type ForensicsReadArtifactRefInput = Readonly<{ artifactRef: string }>;
+export type ForensicsReadArtifactInput = Readonly<{
+  missionId: string;
+  runId: string;
+  idempotencyKey: string;
+}>;
 
 type ProofTiming = Readonly<{ proofId: string; startedAt: string; endedAt: string; durationMs: number }>;
-type FailureProof<K extends "append-artifact" | "read-artifact-ref"> = ProofTiming & Readonly<{
+type FailureProof<K extends "append-artifact" | "read-artifact"> = ProofTiming & Readonly<{
   childCapabilityId: K;
   status: "failed";
   failureReason: string;
@@ -29,7 +33,7 @@ type AppendArtifactSuccessProof = ProofTiming & Readonly<{
   integrityHash: string;
 }>;
 type ReadArtifactSuccessProof = ProofTiming & Readonly<{
-  childCapabilityId: "read-artifact-ref";
+  childCapabilityId: "read-artifact";
   status: "success";
   artifactRef: string;
   integrityHash: string;
@@ -44,4 +48,4 @@ export type ForensicsReadArtifactResult =
     mimeType?: string;
     integrityHash: string;
   }>; proof: ReadArtifactSuccessProof }>
-  | Readonly<{ status: "failed"; failureReason: string; proof: FailureProof<"read-artifact-ref"> }>;
+  | Readonly<{ status: "failed"; failureReason: string; proof: FailureProof<"read-artifact"> }>;

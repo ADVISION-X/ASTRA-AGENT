@@ -22,7 +22,8 @@ try {
   const conflict = await group.appendArtifact({ ...input, content: "different" });
   assert.equal(conflict.status, "failed");
   assert.equal(conflict.failureReason, "FORENSICS_IDEMPOTENCY_CONFLICT");
-  const readback = await group.readArtifactRef({ artifactRef: artifact.artifactRef });
+  const readback = await group.readArtifact({ missionId: input.missionId, runId: input.runId,
+    idempotencyKey: input.idempotencyKey });
   if (readback.status !== "success") throw new Error(readback.failureReason);
   assert.equal(Buffer.from(readback.artifact.content).toString("utf8"), "raw-answer");
 
