@@ -29,6 +29,11 @@ import {
   type StaticCohort,
 } from "./static-catalog-contract.js";
 
+const PUBLIC_VALUE_FINDING_CODES = Object.freeze([
+  "PUBLIC_VALUE_SOURCE_ROLE_LOST", "PUBLIC_VALUE_FACT_CERTAINTY_CHANGED", "PUBLIC_VALUE_EVIDENCE_ROLE_LOST",
+  "PUBLIC_VALUE_PRESENT_USE_LOST", "PUBLIC_VALUE_TOOL_ROLE_PROMOTED",
+]);
+
 const candidateAProfile = buildGptExecutionProfile({
   profileRef: "localization-production:static-catalog:candidate-a:pro-standard",
   accountCapabilityRef: "openai-chatgpt:gpt-5.6-sol",
@@ -82,6 +87,8 @@ function candidatePrompt(context: SharedExecutionContext, role: CandidateRole, r
   return [context.productSkill.text, "", `当前职责：${role === "candidate_a" ? "独立候选 A" : "独立候选 B"}。`,
     "只处理下面同一份冻结请求。不得读取或猜测另一候选；不得发布、写仓库或改变源文事实。",
     "逐条生成目标 locale 的自然固定网页文案。保留全部占位符、URL、邮箱、数字百分比、标签、专名与风险强度。",
+    "同时保留原典或可信来源的根位、确定事实与解释的边界、可见核验依据、当代用户问题及行动；工具只能保持源文批准的披露位置，不得升格为品牌或价值证明。",
+    `触犯核心价值约束时使用对应稳定 finding_codes：${PUBLIC_VALUE_FINDING_CODES.join("、")}。`,
     "无法安全保真时仍返回机械合法文本，并在 finding_codes 写入稳定问题码；不得省略消息。",
     "冻结请求 JSON：", requestJson,
     "只返回一个 JSON 对象：schema_version=target-language-candidate.v1、locale、context_bundle_hash、items。",
@@ -113,7 +120,7 @@ function blindMapping(task: WebsiteAgentTask, context: ContextBundle, a: Candida
 
 function selectorPrompt(context: SharedExecutionContext, selectorInputJson: string): string {
   return [context.productSkill.text, "", "当前职责：独立盲选器。候选身份已隐藏。不得推断生产者，不得重写任何候选文案。",
-    "逐条选择更忠实、自然且满足上下文机械合同的 blind_label；字节完全相同可选 identical；不能安全选择则 blocked。",
+    "逐条选择更忠实、自然且完整保留来源、事实边界、核验依据、当代用途与工具从属位置的 blind_label；字节完全相同可选 identical；不能安全选择则 blocked。",
     `reason_code 必须严格按 selection 使用此唯一映射：${JSON.stringify(SELECTOR_REASON_CODES)}；blind_label 代表输入中的任一 blind_label。`,
     "冻结盲选输入 JSON：", selectorInputJson,
     "只返回一个 JSON 对象：schema_version=target-language-selector-output.v1、locale、pass=first、selections。",
@@ -206,6 +213,7 @@ function candidateRequestJson(context: ContextBundle, cohort: StaticCohort): str
     context_bundle_json: cohort.context_bundle_json,
     context_bundle_hash: cohort.context_bundle_hash,
     requirements: ["preserve-meaning-and-action", "preserve-typed-placeholders-and-protected-tokens",
+      "preserve-source-fact-evidence-and-present-use", "never-promote-tools-to-public-value",
       "obey-expression-terminology-format-policies", "return-complete-denominator", "record-blocking-findings"],
   });
 }

@@ -2,7 +2,7 @@ import { governanceAssert as assert } from "../../audit/shared/governance-exam-a
 import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
 import { productionRoutePolicies } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { hashCanonical, sha256 } from "../../../src/mediator/product-plugin-contract.js";
-import { parseSelector, SELECTOR_REASON_CODES } from "../../../src/plugins/localization-production/static-catalog-contract.js";
+import { parseInput, parseSelector, SELECTOR_REASON_CODES } from "../../../src/plugins/localization-production/static-catalog-contract.js";
 import { buildProductTask, exerciseProductFlow, FIXTURE_HASH, routesForPlugin } from "../product-plugin-test-runtime.js";
 
 const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "localization-production");
@@ -50,8 +50,11 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     assert.match(prompt, /"output_schema_version":"terminal-localization-model-output\.v2"/u);
     assert.doesNotMatch(prompt, /localization-provider-output-request|"requested_fields":\[[^\]]*"action_id"/u);
     assert.equal(Object.hasOwn(run.completed.payload as object, "action_id"), false);
+    assert.match(prompt, /可信来源.*确定事实.*核验依据.*当代用户问题/u);
   }
   assert.match(prompt, /Website 结果修订事实/u);
+  assert.match(prompt, /Website 当前授权依据/u);
+  assert.match(prompt, new RegExp(task.business_identity.authorization_ref, "u"));
   if (resultRevision) assert.match(prompt, /RESULT_SETTLED_UNUSABLE/u);
   assert.equal(run.physicalSubmitDispatches, 1);
 }
@@ -60,7 +63,7 @@ const staticRoute = productionRoutePolicies.find((route) => route.product_id ===
   && route.action_id === "produce_locale_catalog");
 assert(staticRoute);
 const contextBundle = {
-  schema_version: "target-language-context-bundle.v1",
+  schema_version: "target-language-context-bundle.v2",
   message_syntax: "typed-placeholder-v1",
   review_kind: "target_language_translation",
   locale: "en-US",
@@ -73,6 +76,18 @@ const contextBundle = {
   terminology_json: "{}",
   format_policy_hash: sha256("fixture-format-policy"),
   format_policy_source: "fixture-format-policy",
+  public_value_binding: {
+    schema_version: "target-language-public-value-binding.v1",
+    authority_refs: ["LAW-PROJECT-GOVERNANCE-010-V1", "LAW-USER-VALUE-INTERFACE-001-V4"],
+    authority_hashes: [
+      "sha256:79f430599798e5bb10d73dd70cd32dfa1b4254709a99f32c363e82b06679fbd3",
+      "sha256:b9e9f7f3af6fc703577c07906e1c096bb091995d29f3356af44b976258b0d6f1",
+    ],
+    canonical_approval_ref: `content/zh-CN/locales/messages.json#production-approved-${FIXTURE_HASH}`,
+    source_owner_refs: ["fixture"],
+    visible_evidence_refs: ["fixture:surface"],
+    tool_role: "not_present",
+  },
   message_items: [{
     message_id: "fixture.hello",
     semantic_owner: "fixture",
@@ -107,7 +122,7 @@ const staticInput = {
   source_resource_id: "website-fixed-copy-catalog",
   source_version: "fixture-v1",
   source_sha256: FIXTURE_HASH,
-  policy_version: "target-language-review-v3-20260816",
+  policy_version: "target-language-review-v4-20260914",
   expected_message_count: 1,
   context_bundles: [{ batch_id: contextBundle.batch_id, context_bundle_json: contextBundleJson,
     context_bundle_hash: contextBundleHash, message_count: 1 }],
@@ -120,6 +135,24 @@ const staticTask = buildProductTask(staticRoute, { parameters: {
   policy_version: staticInput.policy_version,
   result_schema_version: "localization-static-catalog-result.v2",
 } });
+const missingBindingContext = { ...contextBundle } as Record<string, unknown>;
+delete missingBindingContext.public_value_binding;
+const missingBindingJson = JSON.stringify(missingBindingContext);
+assert.throws(() => parseInput({ ...staticInput, context_bundles: [{ batch_id: contextBundle.batch_id,
+  context_bundle_json: missingBindingJson, context_bundle_hash: sha256(missingBindingJson), message_count: 1 }] }, staticTask),
+/LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING/u);
+const alteredBindingContext = JSON.parse(contextBundleJson) as { public_value_binding: { authority_hashes: string[] } };
+alteredBindingContext.public_value_binding.authority_hashes[0] = FIXTURE_HASH;
+const alteredBindingJson = JSON.stringify(alteredBindingContext);
+assert.throws(() => parseInput({ ...staticInput, context_bundles: [{ batch_id: contextBundle.batch_id,
+  context_bundle_json: alteredBindingJson, context_bundle_hash: sha256(alteredBindingJson), message_count: 1 }] }, staticTask),
+/LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING/u);
+const missingUseContext = JSON.parse(contextBundleJson) as { message_items: Array<Record<string, unknown>> };
+delete missingUseContext.message_items[0]!.user_action;
+const missingUseJson = JSON.stringify(missingUseContext);
+assert.throws(() => parseInput({ ...staticInput, context_bundles: [{ batch_id: contextBundle.batch_id,
+  context_bundle_json: missingUseJson, context_bundle_hash: sha256(missingUseJson), message_count: 1 }] }, staticTask),
+/LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING/u);
 const staticRun = await exerciseProductFlow(plugin, {
   task: staticTask,
   materialContents: { static_catalog_input: staticInput },
@@ -172,6 +205,10 @@ assert.equal(staticRun.physicalSubmitDispatches, 3);
 const selectorWrite = staticRun.calls.find((call) => call.child === "write_exact_gpt_prompt" && call.productStepId.endsWith(":selector"));
 assert(selectorWrite?.child === "write_exact_gpt_prompt");
 assert.match(String(selectorWrite.input.prompt), new RegExp(JSON.stringify(SELECTOR_REASON_CODES).replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"));
+assert.match(String(selectorWrite.input.prompt), /来源、事实边界、核验依据、当代用途与工具从属位置/u);
+const candidateWrite = staticRun.calls.find((call) => call.child === "write_exact_gpt_prompt" && call.productStepId.endsWith(":candidate-a"));
+assert(candidateWrite?.child === "write_exact_gpt_prompt");
+assert.match(String(candidateWrite.input.prompt), /PUBLIC_VALUE_SOURCE_ROLE_LOST.*PUBLIC_VALUE_TOOL_ROLE_PROMOTED/u);
 assert.throws(() => parseSelector({ schema_version: "target-language-selector-output.v1", locale: "en-US", pass: "first",
   selections: [{ message_id: "fixture.hello", selection: "option_1", reason_code: "fidelity" }] }, contextBundle as never,
 { first_pass_candidates: [{ blind_label: "option_1" }, { blind_label: "option_2" }] } as never), /LOCALIZATION_STATIC_SELECTOR_SELECTION_INVALID/u);

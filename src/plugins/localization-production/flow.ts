@@ -21,7 +21,7 @@ import {
 import { parseProductResult } from "./result-contract.js";
 
 const PLUGIN_ID = "localization-production";
-const PRODUCT_INSTRUCTION = "忠实本地化当前授权源内容，保持事实、数字、专名、链接、占位符、层级、证据与风险强度，不改写业务结论。";
+const PRODUCT_INSTRUCTION = "忠实本地化当前授权源内容，保持可信来源、确定事实与解释的边界、核验依据、当代用户问题和行动，以及数字、专名、链接、占位符、层级与风险强度；工具不得被升格为品牌主体或价值证明，不改写业务结论。";
 const WAIT_TIMEOUT_MS = 3_600_000;
 const MODEL_PROFILE = buildGptExecutionProfile({
   profileRef: `${PLUGIN_ID}:gpt-5.6-sol-pro-standard`,
@@ -130,6 +130,7 @@ const promptFor = (
       : PRODUCT_INSTRUCTION;
   return [
     context.productSkill.text, "", `当前授权动作：${task.action_id}`,
+    `Website 当前授权依据：${task.business_identity.authorization_ref}`,
     `当前业务事实：${JSON.stringify(task.parameters)}`, `本轮获准附件：${attachments.join("；")}`,
     resultRevisionFact(context),
     instruction,
