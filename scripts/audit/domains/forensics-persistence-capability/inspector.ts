@@ -27,35 +27,49 @@ const RETIRED = [
 const text = (context: InspectorContext, path: string): string =>
   context.project.getSourceFile(resolve(context.sealedRoot, path))?.getFullText() ?? "";
 
+const inspectArtifactOnlyFiles = (
+  context: InspectorContext,
+  findings: InspectorEvaluation["findings"],
+): void => {
+  for (const path of REQUIRED) if (!existsSync(resolve(context.sealedRoot, path))) findings.push(createFinding({
+    evidenceMode: "static.ast", lawId: LAWS[0], clauseId: `${LAWS[0].toLowerCase()}-requirement`,
+    checkId: "forensics/artifact-file-required", filePath: path, message: "Required artifact file is absent.",
+  }));
+  for (const path of RETIRED) if (existsSync(resolve(context.sealedRoot, path))) findings.push(createFinding({
+    evidenceMode: "static.ast", lawId: LAWS[0], clauseId: `${LAWS[0].toLowerCase()}-requirement`,
+    checkId: "forensics/record-ledger-retired", filePath: path, message: "Record ledger file remains.",
+  }));
+};
+
+const inspectArtifactOnlyContracts = (
+  context: InspectorContext,
+  findings: InspectorEvaluation["findings"],
+): void => {
+  const source = REQUIRED.map((path) => text(context, path)).join("\n");
+  for (const required of ["appendArtifact", "readArtifact", "FORENSICS_IDEMPOTENCY_CONFLICT",
+    "code: result.failureReason", "integrityHash", "ai_raw_output"]) if (!source.includes(required)) findings.push(
+    createFinding({
+      evidenceMode: "static.contract", lawId: LAWS[1], clauseId: `${LAWS[1].toLowerCase()}-requirement`,
+      checkId: "forensics/artifact-contract-required", filePath: REQUIRED[0], message: `Missing ${required}.`,
+    }),
+  );
+  for (const forbidden of ["appendRecord", "readRecord", "RecordEnvelope", "gpt-call-evidence:v1"])
+    if (source.includes(forbidden)) findings.push(createFinding({
+      evidenceMode: "static.contract", lawId: LAWS[2], clauseId: `${LAWS[2].toLowerCase()}-requirement`,
+      checkId: "forensics/record-contract-retired", filePath: REQUIRED[0], message: `Retired ${forbidden} remains.`,
+    }));
+};
+
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const findings: InspectorEvaluation["findings"] = [];
   const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
-  const run = (check: string, action: () => void): void => recordStaticCheck({
-    check, findings, implementation: inspectDomainEvaluation, lawIds: [...LAWS],
-    receipts: staticCheckReceipts, run: action,
+  recordStaticCheck({
+    check: "inspectArtifactOnlyFiles", findings, implementation: inspectArtifactOnlyFiles, lawIds: [...LAWS],
+    receipts: staticCheckReceipts, run: () => inspectArtifactOnlyFiles(context, findings),
   });
-  run("inspectArtifactOnlyFiles", () => {
-    for (const path of REQUIRED) if (!existsSync(resolve(context.sealedRoot, path))) findings.push(createFinding({
-      evidenceMode: "static.ast", lawId: LAWS[0], clauseId: `${LAWS[0].toLowerCase()}-requirement`,
-      checkId: "forensics/artifact-file-required", filePath: path, message: "Required artifact file is absent.",
-    }));
-    for (const path of RETIRED) if (existsSync(resolve(context.sealedRoot, path))) findings.push(createFinding({
-      evidenceMode: "static.ast", lawId: LAWS[0], clauseId: `${LAWS[0].toLowerCase()}-requirement`,
-      checkId: "forensics/record-ledger-retired", filePath: path, message: "Record ledger file remains.",
-    }));
-  });
-  run("inspectArtifactOnlyContracts", () => {
-    const source = REQUIRED.map((path) => text(context, path)).join("\n");
-    for (const required of ["appendArtifact", "readArtifact", "FORENSICS_IDEMPOTENCY_CONFLICT",
-      "code: result.failureReason", "integrityHash", "ai_raw_output"]) if (!source.includes(required)) findings.push(createFinding({
-      evidenceMode: "static.contract", lawId: LAWS[1], clauseId: `${LAWS[1].toLowerCase()}-requirement`,
-      checkId: "forensics/artifact-contract-required", filePath: REQUIRED[0], message: `Missing ${required}.`,
-    }));
-    for (const forbidden of ["appendRecord", "readRecord", "RecordEnvelope", "gpt-call-evidence:v1"])
-      if (source.includes(forbidden)) findings.push(createFinding({
-        evidenceMode: "static.contract", lawId: LAWS[2], clauseId: `${LAWS[2].toLowerCase()}-requirement`,
-        checkId: "forensics/record-contract-retired", filePath: REQUIRED[0], message: `Retired ${forbidden} remains.`,
-      }));
+  recordStaticCheck({
+    check: "inspectArtifactOnlyContracts", findings, implementation: inspectArtifactOnlyContracts, lawIds: [...LAWS],
+    receipts: staticCheckReceipts, run: () => inspectArtifactOnlyContracts(context, findings),
   });
   return { capabilityDomain: context.planEntry.capabilityDomain, reportedLawIds: context.planEntry.lawIds,
     findings, inspectedFiles: [...context.targetPaths], staticCheckReceipts };

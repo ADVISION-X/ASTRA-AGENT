@@ -59,11 +59,11 @@ const LAW_ID = "LAW-GPT-001-V48";
 const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V9";
 const GPT_BLUEPRINT_PATH = "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md";
 const MODE_CLAUSES = {
-  "static.filesystem": staticForbiddenClauses(1, 16, 19, 23),
-  "static.ast": staticClauses(0, 3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 17, 18, 20, 21, 22, 23, 24),
-  "static.types": staticForbiddenClauses(3, 4, 18, 20, 21, 22),
-  "static.contract": staticForbiddenClauses(2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 22, 25),
-  "static.dependency": staticForbiddenClauses(0, 1, 2, 5, 19, 20, 21, 22, 23),
+  "static.filesystem": staticForbiddenClauses(1, 2, 4, 7),
+  "static.ast": staticClauses(0, 2, 3, 4, 5, 6, 7),
+  "static.types": staticForbiddenClauses(0, 3, 4),
+  "static.contract": staticForbiddenClauses(0, 1, 2, 3, 4, 5, 6, 7),
+  "static.dependency": staticForbiddenClauses(0, 2, 7),
 } as const;
 const MODE_CHECKS = {
   "static.filesystem": ["inspectGptFilesystem"], "static.ast": ["inspectGptAst"],
