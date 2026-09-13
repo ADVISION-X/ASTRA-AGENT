@@ -437,7 +437,7 @@ const inspectFrozenAttemptBoundary = (
     .test(sources.contract)
     && /submit_exact_gpt_turn_once:[^\n]+profile: "PROVIDER_EFFECT_ONCE"[^\n]+replayPolicy: "provider-effect-once"/u
       .test(sources.contract)
-    && sources.atomic.includes("hashCanonical([resultRevision, intent.inputHash])")
+    && sources.atomic.includes("gptCanonicalHash([resultRevision, intent.inputHash])")
     && sources.contract.includes("browserAtomicIdentity?: BrowserAtomicStepIdentity")
     && sources.atomic.includes("executionContext(input, browser, atomicIdentity)")
     && sources.childHandler.includes("readAtomicStepOutcome(context.browserAtomicIdentity)")

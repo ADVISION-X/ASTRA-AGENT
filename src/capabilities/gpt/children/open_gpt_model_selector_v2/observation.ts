@@ -20,7 +20,7 @@ type ModelSelectorState = Readonly<{
   facts: GptCoherentFactProjection;
 }>;
 
-export const modelSelectorQueries = (
+const modelSelectorQueries = (
   modelDisplayName: string,
 ): readonly BrowserDomObservationQuery[] => Object.freeze([
   { queryId: "openable-entry", selector: GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR,

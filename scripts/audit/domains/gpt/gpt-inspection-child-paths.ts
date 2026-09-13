@@ -4,7 +4,6 @@ export const GPT_TEXT_RESPONSE_HANDLER_PATHS = [
 ] as const;
 export const GPT_IMAGE_RESPONSE_HANDLER_PATHS = [
   gptChildHandlerPath("checkpoint_gpt_generated_image"),
-  gptChildFilePath("checkpoint_gpt_generated_image", "selectors.ts"),
 ] as const;
 export const GPT_RETIRED_SHARED_SEMANTIC_PATHS = [
   `${GPT_CHILDREN_PATH}/page-handler-exports.ts`, `${GPT_CHILDREN_PATH}/continuation-handler-exports.ts`,
