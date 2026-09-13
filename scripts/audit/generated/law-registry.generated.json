@@ -181,6 +181,8 @@
       "manifestPath": "scripts/audit/domains/gpt/manifest.json",
       "observedPaths": [
         ".github/instructions/agent-rules/功能法案.md",
+        "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md",
+        "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
         "src/lib/browser/**",
         "src/lib/local-runtime/production/**",
         "src/lib/runtime-logs/**",

@@ -291,7 +291,7 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
     storage: { confirmedCount: 1, mutationCount: 1, storageEngine: "sqlite-wal",
       facts: { proof_job_pending_outbox_count: 0 }, storagePath: "/tmp/fixture.sqlite", unresolvedCount: 0 },
     provider: { catalogHash: "sha256:fixture", pluginIds: ["fixture-plugin"],
-      facts: { ended_attempt_replay_count: 0, provider_count: 1 },
+      facts: { ended_attempt_replay_count: 0, physical_submit_count: 1, provider_count: 1 },
       providerName: "ChatGPT", terminalReceiptCount: 39 },
     authorization: { authorityState: "present", fenceHashes: ["sha256:fixture"],
       facts: { unbound_lease_fence_job_count: 0 },
@@ -303,11 +303,11 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
   } as const;
   const routes = {
     browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", clauses: ["forbidden:6"] },
-    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V50", clauses: ["summary"] },
-    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V50", clauses: ["forbidden:0", "forbidden:2"] },
-    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V50", clauses: ["forbidden:2"] },
-    provider: { lawId: "LAW-GPT-001-V41", clauses: ["forbidden:0", "forbidden:7"] },
-    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V4", clauses: ["forbidden:1", "forbidden:2"] },
+    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V56", clauses: ["summary"] },
+    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V56", clauses: ["forbidden:0", "forbidden:2"] },
+    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V56", clauses: ["forbidden:2"] },
+    provider: { lawId: "LAW-GPT-001-V48", clauses: ["forbidden:0", "forbidden:3", "forbidden:7"] },
+    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V6", clauses: ["forbidden:1", "forbidden:2"] },
     recovery: { lawId: "LAW-RUNTIME-LOG-SPINE-001-V7", clauses: ["summary"] },
   } as const;
   for (const [kind, observation] of Object.entries(observations)) {
@@ -1034,12 +1034,12 @@ test("provider contracts reject malformed payloads before identity matching", ()
     (error: unknown) => error instanceof GovernanceError && error.code === "EXTERNAL_SURFACE_AUTHORITY_MISSING",
   );
   const current = JSON.parse(readFileSync(
-    "docs/specs/agent-production-runtime/agent-plugin-capability-manifest.provider.spec.json", "utf8",
+    "docs/specs/agent-production-runtime/agent-route-capability-manifest.provider.spec.json", "utf8",
   )) as unknown;
   assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
     new Map([
-      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V50", "agent-production-runtime"],
-      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V20", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V56", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V27", "agent-production-runtime"],
     ]),
     (path) => path === "src/lib/local-runtime/production/catalog.ts"));
 });
@@ -1280,7 +1280,7 @@ test("every active law scope is deterministic, owned, unique, and includes all c
 
 test("active mutation inspectors use one DISPATCHED chain inside each law scope", () => {
   const registry = buildRegistry();
-  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V50");
+  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V56");
   assert.ok(agentLaw);
   const agentTargets = computeTargetPaths(agentLaw, registry);
   const crossOwnerPaths = [
@@ -1313,7 +1313,7 @@ test("active mutation inspectors use one DISPATCHED chain inside each law scope"
   }
   for (const current of [
     "markDispatched", "markReceiptMissing", "dispatchedForBinding", "readAtomicStepOutcome",
-    "logicalMutationId", "positivePostconditionHash", "attemptId", '"DISPATCHED"',
+    "logicalMutationId", "positivePostconditionHash", "attempt_id=?", '"DISPATCHED"',
   ]) assert.equal(activeInspectors.includes(current), true, current);
   const browserLane = [
     "src/lib/browser/infrastructure/browser-lane-coordinator.ts",
@@ -1325,7 +1325,9 @@ test("active mutation inspectors use one DISPATCHED chain inside each law scope"
   ]) {
     assert.equal(browserLane.includes(retired), false, retired);
   }
-  for (const current of ["expectedTargetRef", "park: (input)"]) {
+  for (const current of [
+    "targetMode", "ensureAvailableTarget(waiter)", 'const park: BrowserTargetLease["park"]',
+  ]) {
     assert.equal(browserLane.includes(current), true, current);
   }
   const browserStaticInspectors = [
@@ -1392,10 +1394,10 @@ test("Browser inspectors kill WAL rebuild and split exact-assistant DOM reads", 
   const schema = readFileSync(schemaPath, "utf8");
   assert.equal(browserMutationSchemaMigrationIsCurrent(inspectSource(schemaPath, schema)), true);
   for (const mutant of [
-    schema.replace("alter table browser_mutations add column mutation_outcome", "drop table browser_mutations"),
-    schema.replace("update browser_mutations set mutation_outcome=case", "select mutation_outcome from browser_mutations"),
-    schema.replace("when state='DISPATCHED' then 'dispatched'", "when state='DISPATCHED' then 'confirmed'"),
-    schema.replace("where mutation_outcome is null", "where mutation_outcome is not null"),
+    schema.replace("mutation_outcome text check(mutation_outcome in ('no','dispatched','confirmed'))", "mutation_outcome text"),
+    schema.replace("native_cause_code text", "native_failure_text text"),
+    schema.replace('"provider_recovery_payload",', '"provider_recovery_alias",'),
+    schema.replace("columns.length !== requiredColumns.length", "columns.length === requiredColumns.length"),
   ]) assert.equal(browserMutationSchemaMigrationIsCurrent(inspectSource(schemaPath, mutant)), false);
 
   const exactPath = "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts";
@@ -1403,7 +1405,8 @@ test("Browser inspectors kill WAL rebuild and split exact-assistant DOM reads", 
   assert.equal(exactAssistantTurnReadIsAtomic(inspectSource(exactPath, exact)), true);
   for (const mutant of [
     exact.replace("${BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE}", ""),
-    exact.replace("document.querySelectorAll(selector)", "document.querySelector(selector)"),
+    exact.replace("document.querySelectorAll(\"[data-testid^='conversation-turn-']\")",
+      "document.querySelector(\"[data-testid^='conversation-turn-']\")"),
     exact.replace("browserMechanicalFacts(node, false)", "null"),
     exact.replace("browserCanonicalSemanticText(node)", 'node.textContent ?? ""'),
     exact.replace("loaderAfter !== expectedMainFrameLoaderId", "loaderAfter === expectedMainFrameLoaderId"),
@@ -1481,7 +1484,7 @@ test("Dynamic Proof routes are separated by native Owner", () => {
     ".catch(() => undefined)", "cleanupVerified: true", "dynamic.recovery",
     "old_attempt_after_restart_rejected", "new_attempt_fresh_started",
   ]) assert.equal(proof.includes(forbidden), false, forbidden);
-  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V50", "runtime_schema_exact", "runtime_orphan_directory_count",
+  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V56", "runtime_schema_exact", "runtime_orphan_directory_count",
     "AGENT_RUNTIME_OWNER_ISOLATED_RELEASE_PROOF_NOT_ADMITTED"]) assert.ok(proof.includes(token), token);
   for (const adjacentPrefix of ["LAW-GPT-", "LAW-LOCAL-BROWSER-SESSION-", "LAW-RUNTIME-LOG-SPINE-"]) {
     assert.equal(proof.includes(adjacentPrefix), false, adjacentPrefix);

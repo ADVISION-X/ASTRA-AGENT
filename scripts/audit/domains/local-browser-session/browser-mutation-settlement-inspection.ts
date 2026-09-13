@@ -51,17 +51,21 @@ type SettlementSource = NonNullable<ReturnType<typeof requireSource>>;
 
 export const browserMutationSchemaMigrationIsCurrent = (schema: SourceFile): boolean => {
   const text = schema.getFullText().toLowerCase();
-  const migration = schema.getVariableDeclaration("migrateCurrentColumns")
+  const table = schema.getVariableDeclaration("currentTableSql")
+    ?.getInitializer()?.getText().toLowerCase() ?? "";
+  const columns = schema.getVariableDeclaration("requiredColumns")
     ?.getInitializer()?.getText().toLowerCase() ?? "";
   const admission = schema.getVariableDeclaration("ensureCurrentSchema")?.getInitializer()?.getText() ?? "";
-  return migration.includes("alter table browser_mutations add column mutation_outcome")
-    && migration.includes("alter table browser_mutations add column native_cause_code")
-    && migration.includes("update browser_mutations set mutation_outcome=case")
-    && migration.includes("when state in ('prepared','failed') then 'no'")
-    && migration.includes("when state='dispatched' then 'dispatched'")
-    && migration.includes("else 'confirmed' end where mutation_outcome is null")
-    && admission.includes("forwardSchemaColumns")
+  return table.includes("mutation_outcome text check(mutation_outcome in ('no','dispatched','confirmed'))")
+    && table.includes("native_cause_code text")
+    && table.includes("provider_recovery_payload text")
+    && columns.includes('"mutation_outcome"')
+    && columns.includes('"native_cause_code"')
+    && columns.includes('"provider_recovery_payload"')
+    && admission.includes("columns.length !== requiredColumns.length")
+    && admission.includes("requiredColumns.some((column) => !columns.includes(column))")
     && admission.includes('throw new Error("BROWSER_REPAIR_REQUIRED")')
+    && !text.includes("alter table browser_mutations")
     && !text.includes("drop table browser_mutations")
     && !text.includes("browser_mutation_schema_rebuild_requires_empty_store");
 };
