@@ -97,6 +97,15 @@ try {
   assert.throws(() => store.prepare(second),
     /BROWSER_PROVIDER_EFFECT_REPLAY_FORBIDDEN|BROWSER_EXACT_CALL_REPLAY_FORBIDDEN/u,
     "the same provider effect remains single-submit across attempts");
+  assert.throws(() => store.prepare({
+    ...second,
+    commandId: "command:attempt:2:drift",
+    logicalMutationId: hash("provider-effect:drift"),
+    exactCallIdentityHash: hash("exact-call:drift"),
+    requestHash: hash("request:drift"),
+    payloadHash: hash("payload:drift"),
+  }), /BROWSER_PROVIDER_EFFECT_IDENTITY_DRIFT/u,
+  "one result revision cannot hide a second submit behind request or payload drift");
   const recovered = store.readAtomicStepOutcome({
     jobId: second.jobId, attemptId: second.attemptId, exactCallIdentityHash: second.exactCallIdentityHash,
     actionOrdinal: second.actionOrdinal, targetRef: second.targetRef, effectScope: "provider_effect",
@@ -132,6 +141,14 @@ try {
   assert.equal(noInputOutcome("attempt:2"), null,
     "a Website-authorized new attempt must not be blocked by an older zero-input rejection");
   const retriedNoInput = identity("attempt:2", 2);
+  assert.throws(() => restarted.prepare({
+    ...retriedNoInput,
+    commandId: "command:attempt:2:no-input-drift",
+    logicalMutationId: hash("provider-effect:no-input-drift"),
+    requestHash: hash("request:no-input-drift"),
+    payloadHash: hash("payload:no-input-drift"),
+  }), /BROWSER_PROVIDER_EFFECT_IDENTITY_DRIFT/u,
+  "zero physical input permits a new attempt, not a different effect identity");
   assert.doesNotThrow(() => restarted.prepare(retriedNoInput),
     "the new attempt may prepare the same provider effect after proven zero physical input");
   restarted.markDispatched(retriedNoInput.commandId);

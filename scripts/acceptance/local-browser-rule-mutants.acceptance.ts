@@ -161,6 +161,8 @@ try {
     jobId: "job-1", attemptId: "attempt-1", exactCallIdentityHash, actionOrdinal: 1,
   });
   assert.equal(rejectedFact?.outcome, "REJECTED");
+  assert.equal(rejectedFact?.providerEffectIdentityHash, null,
+    "target-local facts must not claim a Provider-effect identity");
   assert.equal(typeof rejectedFact?.terminalAt, "string");
   assert.equal(rejectedFact?.authorityRef, "browser-mutation:command-1");
   assert.equal(rejectedFact?.failureCode, "BROWSER_POSTCONDITION_FAILED");
@@ -215,10 +217,14 @@ try {
   }), "a prior-attempt provider rejection with zero physical input must permit one fresh retry");
   store.markDispatched("command-provider-retry-after-no-input");
   store.markConfirmed("command-provider-retry-after-no-input", hash);
-  assert.equal(store.readExactCallMutationFact({
+  const confirmedProviderFact = store.readExactCallMutationFact({
     jobId: "job-1", attemptId: "attempt-2",
     exactCallIdentityHash: reusableProviderExactHash, actionOrdinal: 13,
-  })?.outcome, "CONFIRMED", "retry readback must ignore the obsolete no-input rejection");
+  });
+  assert.equal(confirmedProviderFact?.outcome, "CONFIRMED",
+    "retry readback must ignore the obsolete no-input rejection");
+  assert.equal(confirmedProviderFact?.providerEffectIdentityHash, reusableProviderLogicalHash,
+    "confirmed Provider-effect readback must retain its durable effect identity");
   store.prepare({
     commandId: "command-new-target", logicalMutationId: `sha256:${"e".repeat(64)}`,
     exactCallIdentityHash: `sha256:${"1".repeat(64)}`,

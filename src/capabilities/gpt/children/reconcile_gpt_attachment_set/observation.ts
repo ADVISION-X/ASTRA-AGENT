@@ -2,7 +2,10 @@ import { executionFailure, failureCode } from "../../../../lib/execution-failure
 
 import type { GptChildCapabilityIntent } from "../../contract.js";
 import { gptExecutionFailure } from "../../execution-fault.js";
-import { gptAttachmentProviderDisplayName } from "../../schema.js";
+import {
+  gptAttachmentProviderDisplayName,
+  normalizeGptProviderAttachmentLabel,
+} from "../../schema.js";
 import {
   arrayInput,
   declaredFacts,
@@ -135,9 +138,11 @@ const attachmentSetDifference = (
   observedLabels: readonly string[],
 ) => {
   const expectedLabels = files.map((file) => file.providerDisplayName);
-  const missing = expectedLabels.filter((label) => !observedLabels.includes(label));
-  const unexpected = observedLabels.filter((label) => !expectedLabels.includes(label));
-  return Object.freeze({ expectedLabels, missing, unexpected });
+  const normalizedObservedLabels = observedLabels.map((label) =>
+    normalizeGptProviderAttachmentLabel(label, expectedLabels));
+  const missing = expectedLabels.filter((label) => !normalizedObservedLabels.includes(label));
+  const unexpected = normalizedObservedLabels.filter((label) => !expectedLabels.includes(label));
+  return Object.freeze({ expectedLabels, normalizedObservedLabels, missing, unexpected });
 };
 
 const attachmentValue = (files: readonly ApprovedFile[]) => ({
@@ -154,11 +159,12 @@ const observeExactAttachmentSet = async (
   if (observed.composerRawCount !== 1 || observed.composerEligibleCount !== 1) {
     failAttachmentSet("GPT_ATTACHMENT_COMPOSER_INVALID", observed);
   }
-  const { expectedLabels, missing, unexpected } = attachmentSetDifference(files, observed.observedLabels);
+  const { expectedLabels, normalizedObservedLabels, missing, unexpected } =
+    attachmentSetDifference(files, observed.observedLabels);
   if (observed.itemRawCount !== expectedLabels.length
     || observed.itemEligibleCount !== expectedLabels.length
     || observed.observedLabels.length !== expectedLabels.length
-    || new Set(observed.observedLabels).size !== observed.observedLabels.length
+    || new Set(normalizedObservedLabels).size !== normalizedObservedLabels.length
     || missing.length > 0 || unexpected.length > 0) {
     failAttachmentSet("GPT_ATTACHMENT_SET_MISMATCH", observed);
   }
@@ -187,6 +193,7 @@ const attachmentSetReady = (
 const assertAttachmentObservationValid = (
   state: AttachmentSetState,
   expectedLabels: readonly string[],
+  normalizedObservedLabels: readonly string[],
   unexpected: readonly string[],
 ): void => {
   if (state.composerRawCount > 1 || state.composerEligibleCount > 1
@@ -195,7 +202,7 @@ const assertAttachmentObservationValid = (
   }
   if (state.itemRawCount > expectedLabels.length
     || state.itemEligibleCount > expectedLabels.length
-    || new Set(state.observedLabels).size !== state.observedLabels.length
+    || new Set(normalizedObservedLabels).size !== normalizedObservedLabels.length
     || unexpected.length > 0) failAttachmentSet("GPT_ATTACHMENT_SET_MISMATCH", state);
   if (state.uploadingCount > state.itemEligibleCount || state.pendingActionCount > state.itemEligibleCount) {
     failAttachmentSet("GPT_ATTACHMENT_VISIBILITY_COUNT_INVALID", state);
@@ -257,8 +264,9 @@ export const waitForUploadedAttachmentSet = async (
       waitOrdinal += 1;
       continue;
     }
-    const { expectedLabels, missing, unexpected } = attachmentSetDifference(files, last.observedLabels);
-    assertAttachmentObservationValid(last, expectedLabels, unexpected);
+    const { expectedLabels, normalizedObservedLabels, missing, unexpected } =
+      attachmentSetDifference(files, last.observedLabels);
+    assertAttachmentObservationValid(last, expectedLabels, normalizedObservedLabels, unexpected);
     if (attachmentSetReady(last, expectedLabels.length, missing.length)) {
       return success({
         value: attachmentValue(files),

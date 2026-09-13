@@ -339,9 +339,18 @@ export class ExtensionWebSocketActor {
       );
       await this.sendEncrypted(socket, "REPLY", { requestSequence, permitSequence, replyChannelToken, result });
     } catch (error) {
-      const commandErrorCode = errorCode(error);
+      let commandError = error;
+      try {
+        await this.targetAuthority.retireInvalidCommandTarget(
+          error,
+          command?.kind === "dom-intent" ? command.intent.kind : null,
+        );
+      } catch (cleanupError) {
+        commandError = new Error(errorCode(error), { cause: cleanupError });
+      }
+      const commandErrorCode = errorCode(commandError);
       await this.sendEncrypted(socket, "DIAGNOSTIC", extensionCommandDiagnostic({
-        error,
+        error: commandError,
         failedFrameSequence: requestSequence,
         commandStage,
         commandKind: command?.kind ?? null,

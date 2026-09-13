@@ -1,7 +1,8 @@
 {
-  "schemaVersion": "product-page-evidence-contract.v1",
-  "owner": "localization-production",
-  "pluginId": "localization-production",
+  "schemaVersion": "gpt-page-operation-product-projection.v1",
+  "owner": "gpt-page-operation-evidence",
+  "sourcePluginId": "localization-production",
+  "sourcePluginVersion": 1,
   "traceAuthority": {
     "kind": "durable-product-forensics",
     "sequenceOwner": "accepted-production-attempt",

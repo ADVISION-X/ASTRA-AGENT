@@ -70,4 +70,5 @@ export const exerciseBrowserDiagnosticContract = (): void => {
   assert.equal((rejected[0]?.cause as { code?: string } | undefined)?.code,
     "CHROME_DEBUGGER_CANCELED_BY_USER",
     "a Target detach must reject the in-flight exact command with its native cause");
+
 };

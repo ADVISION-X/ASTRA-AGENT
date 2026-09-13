@@ -2,6 +2,7 @@ import {
   GPT_CHILD_CAPABILITY_CONTRACTS,
   type GptAbilityGroup,
   type GptAnyChildCapabilityIntent,
+  type GptChildBrowserFact,
   type GptChildCapabilityId,
   type GptChildCapabilityIntent,
   type GptChildCapabilityResult,
@@ -20,6 +21,7 @@ import { executionFailure, failureCode, typedExecutionFailure } from "../../lib/
 import { hashCanonical } from "../../lib/local-runtime/production/contracts.js";
 import {
   browserExactCallIdentityHash,
+  type BrowserExactCallMutationFact,
   type BrowserTargetLease,
 } from "../../lib/browser/browser-authority-api.js";
 import type { ProductGptCallInput, ProductGptChildResult } from "./product-api.js";
@@ -42,6 +44,22 @@ import {
 } from "./production-child-support.js";
 
 export type { ProductGptExecution } from "./production-child-support.js";
+
+const confirmedSubmitEffect = (
+  prior: BrowserExactCallMutationFact,
+  exactCallIdentityHash: GptHash,
+  childCapabilityId: "submit_exact_gpt_turn_once",
+): GptChildBrowserFact => {
+  if (prior.effectScope !== "provider_effect" || prior.outcome !== "CONFIRMED"
+    || prior.mutationOutcome !== "confirmed"
+    || !prior.providerEffectIdentityHash || !prior.terminalAt) {
+    throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
+  }
+  return Object.freeze({ exactCallIdentityHash, providerEffectIdentityHash: prior.providerEffectIdentityHash,
+    childCapabilityId, effectScope: "provider_effect", browserOutcome: "CONFIRMED",
+    mutationOutcome: "confirmed", terminalAt: prior.terminalAt,
+    evidenceRef: prior.authorityRef, evidenceHash: prior.authorityHash });
+};
 
 export class ProductionGptChildTools {
   public constructor(
@@ -105,18 +123,26 @@ export class ProductionGptChildTools {
             exactCallIdentityHash, actionOrdinal: call.actionOrdinal,
           });
           if (!prior) return null;
-          if (prior.effectScope !== "provider_effect"
-            || prior.productStepId !== call.productStepId || prior.callId !== call.callId
+          if (prior.productStepId !== call.productStepId || prior.callId !== call.callId
             || prior.childCapabilityId !== call.child) {
             throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
           }
-          const active = await browsers.browserFor(
-            call.sessionKey, call.productStepId, call.callId, "confirmed-readback",
-          );
-          if (!active.facade.readAtomicStepOutcome(atomicIdentity)) return null;
-          return this.executeOne<"submit_exact_gpt_turn_once">(
-            input, browsers, call, input.abortSignal, true,
-          );
+          const effect = confirmedSubmitEffect(prior, exactCallIdentityHash, call.child);
+          try {
+            const active = await browsers.browserFor(
+              call.sessionKey, call.productStepId, call.callId, "confirmed-readback",
+            );
+            if (!active.facade.readAtomicStepOutcome(atomicIdentity)) return null;
+            return await this.executeOne<"submit_exact_gpt_turn_once">(
+              input, browsers, call, input.abortSignal, true,
+            );
+          } catch (error) {
+            throw gptExecutionFailure(failureCode(error, "GPT_CONFIRMED_SUBMIT_READBACK_FAILED"), {
+              mutationOutcome: "confirmed", evidence: {
+                evidenceRef: effect.evidenceRef, evidenceHash: effect.evidenceHash,
+              }, browserEffect: effect, cause: error,
+            });
+          }
         },
       }),
       decorateSettledResultFailure: (error) => browsers.decorateSettledResultFailure(error),

@@ -260,7 +260,7 @@ const exactAssistantTurnIdentityValid = (
     && /^sha256:[a-f0-9]{64}$/u.test(value.observationRevisionHash)
     && typeof value.assistantTurnId === "string"
     && /^conversation-turn-[1-9][0-9]*$/u.test(value.assistantTurnId)
-    && value.currentUrl === intent.canonicalConversationUrl
+    && typeof value.currentUrl === "string"
     && value.precedingUserTurnId === intent.userTurnId;
 };
 

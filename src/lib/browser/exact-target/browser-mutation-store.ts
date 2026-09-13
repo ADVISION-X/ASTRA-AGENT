@@ -35,6 +35,7 @@ export type BrowserMutationIdentity = Readonly<{
 }>;
 export type BrowserExactCallMutationFact = Readonly<{
   effectScope: "target_local" | "provider_effect";
+  providerEffectIdentityHash: `sha256:${string}` | null;
   outcome: "DISPATCHED" | "CONFIRMED" | "REJECTED";
   mutationOutcome: BrowserMutationOutcome;
   terminalAt: string | null;
@@ -231,16 +232,15 @@ export class BrowserMutationStore {
               product_step_id,call_id,child_capability_id,effect_scope,request_hash,payload_hash,
               state,mutation_outcome,physical_input_count
        from browser_mutations
-       where job_id=? and logical_mutation_id=?
+       where job_id=? and result_revision=? and product_step_id=? and call_id=? and child_capability_id=? and effect_scope='provider_effect'
          and state in ('PREPARED','DISPATCHED','CONFIRMED','REJECTED')
        order by command_id`,
-    ).all(input.jobId, input.logicalMutationId) as readonly ProviderEffectHistoryRow[];
-    if (rows.length === 0 || rows.every((row) => row.state === "REJECTED"
-      && row.mutation_outcome === "no" && row.physical_input_count === 0
-      && row.attempt_id !== input.attemptId)) return;
-    if (rows.some((row) => !this.providerEffectIdentityMatches(row, input))) {
-      throw new Error("BROWSER_PROVIDER_EFFECT_HISTORY_AMBIGUOUS");
-    }
+    ).all(input.jobId, input.resultRevision, input.productStepId, input.callId,
+      input.childCapabilityId) as readonly ProviderEffectHistoryRow[];
+    if (rows.length === 0) return;
+    if (rows.some((row) => !this.providerEffectIdentityMatches(row, input))) throw new Error("BROWSER_PROVIDER_EFFECT_IDENTITY_DRIFT");
+    if (rows.every((row) => row.state === "REJECTED" && row.mutation_outcome === "no"
+      && row.physical_input_count === 0 && row.attempt_id !== input.attemptId)) return;
     throw new Error("BROWSER_PROVIDER_EFFECT_REPLAY_FORBIDDEN");
   }
 
@@ -440,7 +440,7 @@ export class BrowserMutationStore {
     actionOrdinal: number;
   }>): BrowserExactCallMutationFact | null {
     const rows = this.database.prepare(
-      `select command_id,effect_scope,state,mutation_outcome,reason,native_cause_code,terminal_at,
+      `select command_id,effect_scope,logical_mutation_id,state,mutation_outcome,reason,native_cause_code,terminal_at,
               target_ref,document_ref,product_step_id,call_id,
               child_capability_id,action_ordinal,physical_input_count,download_guid_hash,download_completed,
               media_identity_revalidated
@@ -453,6 +453,7 @@ export class BrowserMutationStore {
     ).all(input.jobId, input.exactCallIdentityHash, input.attemptId) as ReadonlyArray<{
       command_id: string;
       effect_scope: "target_local" | "provider_effect";
+      logical_mutation_id: `sha256:${string}`;
       state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
       mutation_outcome: BrowserMutationOutcome | null;
       reason: string | null;
@@ -480,6 +481,7 @@ export class BrowserMutationStore {
     const failure = terminalFailureFields(row.state, row.reason, row.native_cause_code);
     return Object.freeze({
       effectScope: row.effect_scope,
+      providerEffectIdentityHash: row.effect_scope === "provider_effect" ? row.logical_mutation_id : null,
       outcome: row.state,
       mutationOutcome: requireMutationOutcome(row.mutation_outcome),
       terminalAt: row.terminal_at,

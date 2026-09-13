@@ -1,7 +1,7 @@
 interface:
   display_name: "GPT 产品流程页面实证"
   short_description: "逐调用核对生产输入并采集真实 Chrome DOM"
-  default_prompt: "$gpt-page-operation-evidence 由 Codex 使用 Chrome 插件，拿 Website 冻结的生产同源完整资料，按目标 Product Plugin 的实际 trace 逐调用采集真实 DOM；必须把同一 traceEntryId 的生产 prompt、附件、profile、continuation 安全哈希与页面实际哈希机械核对，再定向更新唯一产品实证报告。禁止合成业务资料、自动代跑 Product 或绑定 Git HEAD。"
+  default_prompt: "$gpt-page-operation-evidence 由 Codex 使用 Chrome 插件，拿 Website 冻结的生产同源完整资料，按目标 Product Plugin 的实际 trace 逐调用采集真实 DOM；必须把同一 traceEntryId 的生产 prompt、附件、profile、continuation 安全哈希与页面实际哈希机械核对，再定向更新唯一产品实证报告。它只是工具，不参与生产质检或发布门禁。禁止合成业务资料、自动代跑 Product 或绑定 Git HEAD。"
 
 policy:
   allow_implicit_invocation: true

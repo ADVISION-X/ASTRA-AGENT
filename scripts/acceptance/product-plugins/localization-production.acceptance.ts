@@ -28,7 +28,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     } };
   const task = buildProductTask(route, fixture);
   const output = review ? { decision: "no_issue", issues: [] } : {
-    schema_version: route.result_schema_version, action_id: route.product_id,
+    schema_version: route.result_schema_version,
     source_resource_id: task.parameters.source_resource_id, source_version: task.parameters.source_version,
     source_sha256: task.parameters.source_sha256, target_locale: task.parameters.target_locale,
     localized_structured_payload: { title: "localized" },
@@ -45,6 +45,11 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   const prompt = String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt);
   assert.doesNotMatch(prompt, /Product Plugin|result_contract attachment/u);
   assert.match(prompt, /Website route result_contract/u);
+  if (!review) {
+    assert.match(prompt, /"output_schema_version":"terminal-localization-model-output\.v2"/u);
+    assert.doesNotMatch(prompt, /localization-provider-output-request|"requested_fields":\[[^\]]*"action_id"/u);
+    assert.equal(Object.hasOwn(run.completed.payload as object, "action_id"), false);
+  }
   assert.match(prompt, /Website 结果修订事实/u);
   if (resultRevision) assert.match(prompt, /RESULT_SETTLED_UNUSABLE/u);
   assert.equal(run.physicalSubmitDispatches, 1);

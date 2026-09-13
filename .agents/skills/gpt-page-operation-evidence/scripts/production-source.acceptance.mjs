@@ -73,19 +73,23 @@ async function fixture() {
   const material = Buffer.from("test-only-byte-exact-material", "utf8");
   const materialSha = hash(material);
   const materialName = "production-input.bin";
-  const contractDir = join(repo, "src/plugins", pluginId);
+  const productDir = join(repo, "src/plugins", pluginId);
+  const contractDir = join(repo,
+    ".agents/skills/gpt-page-operation-evidence/references/product-flow-projections");
   const childDir = join(repo, "src/capabilities/gpt/children/prepare_clean_gpt_chat");
   await mkdir(contractDir, { recursive: true });
+  await mkdir(productDir, { recursive: true });
   await mkdir(childDir, { recursive: true });
   await mkdir(join(taskRoot, jobId, "materials"), { recursive: true });
   await mkdir(forensicsRoot, { recursive: true });
-  await writeFile(join(contractDir, "SKILL.md"), "production owner\n");
-  await writeFile(join(contractDir, "index.ts"), "export const flow = true;\n");
+  await writeFile(join(productDir, "SKILL.md"), "production owner\n");
+  await writeFile(join(productDir, "index.ts"), "export const flow = true;\n");
   await writeFile(join(childDir, "handler.ts"), "export const child = true;\n");
   await mkdir(join(repo, "src/capabilities/gpt"), { recursive: true });
   await writeFile(join(repo, "src/capabilities/gpt/contract.ts"), "export const contract = true;\n");
   const contract = {
-    schemaVersion: "product-page-evidence-contract.v1", owner: pluginId, pluginId, pluginVersion: 1,
+    schemaVersion: "gpt-page-operation-product-projection.v1", owner: "gpt-page-operation-evidence",
+    sourcePluginId: pluginId, sourcePluginVersion: 1,
     traceAuthority: { kind: "durable-product-forensics", sequenceOwner: "accepted-production-attempt",
       currentFlowSourcesRole: "projection-only" },
     flowOwnerSources: [`src/plugins/${pluginId}/SKILL.md`, `src/plugins/${pluginId}/index.ts`],
@@ -93,7 +97,7 @@ async function fixture() {
       materialPolicy: { kind: "exact-task-material-set", requiredRoles: ["source"] },
       topology: { kind: "single-task-action-stage" } }],
   };
-  const contractPath = join(contractDir, "page-evidence-contract.json");
+  const contractPath = join(contractDir, `${pluginId}.json`);
   await writeFile(contractPath, `${JSON.stringify(contract)}\n`);
   await writeFile(join(taskRoot, jobId, "materials", materialName), material);
   const requestHash = hash("request");

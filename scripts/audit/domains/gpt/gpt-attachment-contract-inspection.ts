@@ -23,6 +23,8 @@ const ATTACHMENT_HANDLER_PATHS = [
 ] as const;
 const ATTACHMENT_CONTRACT_PATH = childFilePath("attach_approved_gpt_files_once", "selectors.ts");
 const ATTACHMENT_SETTLEMENT_CONTRACT_PATH = childFilePath("reconcile_gpt_attachment_set", "selectors.ts");
+const ATTACHMENT_SETTLEMENT_OBSERVATION_PATH =
+  childFilePath("reconcile_gpt_attachment_set", "observation.ts");
 const BROWSER_TARGET_LEASE_PATH = "src/lib/browser/exact-target/browser-target-lease.ts";
 const inspectAttachmentSelectors = (
   contract: SourceFile | undefined,
@@ -184,4 +186,21 @@ export const inspectGptAttachmentContract = (
     "gpt/attachment-job-stable-provider-name", SCHEMA_PATH,
     "GPT attachment Provider name must not vary with attempt identity.",
   ));
+  const attachmentSchema = sourceFor(context, SCHEMA_PATH)?.getFullText() ?? "";
+  inspectMissingTokens({ source: attachmentSchema, required: [
+    "normalizeGptProviderAttachmentLabel", "expectedLabels.includes(normalized)",
+    ".replace(/\\(\\d+\\)(?=(?:\\.[^./]+)?$)/u, \"\")",
+    "expectedLabels.includes(withoutProviderDuplicateSuffix)",
+  ], checkId: "gpt/provider-duplicate-suffix-normalization", filePath: SCHEMA_PATH,
+  findings, finding,
+  message: (required) => `GPT attachment Provider duplicate-suffix normalization is missing ${required}.` });
+  const attachmentReconciliation = sourceFor(context,
+    ATTACHMENT_SETTLEMENT_OBSERVATION_PATH)?.getFullText() ?? "";
+  inspectMissingTokens({ source: attachmentReconciliation, required: [
+    "normalizeGptProviderAttachmentLabel", "normalizedObservedLabels",
+    "new Set(normalizedObservedLabels).size !== normalizedObservedLabels.length",
+  ], checkId: "gpt/provider-duplicate-suffix-reconciliation",
+  filePath: ATTACHMENT_SETTLEMENT_OBSERVATION_PATH,
+  findings, finding,
+  message: (required) => `GPT attachment reconciliation is missing Provider suffix rule ${required}.` });
 };

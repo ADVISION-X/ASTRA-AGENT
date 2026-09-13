@@ -1,7 +1,7 @@
-# GPT 能力组 V44 施工图
+# GPT 能力组 V45 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"gpt-capability-group-v44","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V48","LAW-GPT-002-V8"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"gpt-capability-group-v45","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V48","LAW-GPT-002-V9"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
 ```
 
 ## 唯一 Owner 与职责
@@ -23,7 +23,9 @@ BZ03/BZ04 的本轮附件必须包含 Website 已入库、与 consultation root 
 
 `FROZEN-GPT-IMAGE-SOURCE-EVENT-WAIT-001` 已按本次授权解冻替换并重新冻结：图片 checkpoint 不得按 fixed sleep 猜测图片已经生成。Browser authenticated-media observation 必须在 canonical conversation URL 与精确 `userTurnId` 之后、下一个 user turn 之前的范围内先直接检查非空 `currentSrc/src`；尚未出现时，只能在同一次调用期 observation 内以一个 `MutationObserver` 监听节点加入及 `src/srcset` 变化，单次最多等待 5000ms，出现即在同一次已登录页面调用中 fetch 原始 bytes 并按内容 hash 去重。单次期满仍无 source 只返回现有 typed pending；正常轮询继续持有同一 FIFO lease/Target/Document，等待 30 秒后 fresh observe，不得 park、重领或导航，总期限只复用现有 `probeBudgetMs`。不得等待 assistant role、预览/分享/下载控件、`img[alt]`、图片完成标志、布局、可见性、宽高或固定 turn 编号；不得新增 wait Child、持久 timer、队列、WAL、状态机或下载链。未来改变仍须用户明确解冻并同步替换 GPT/Browser 法案、施工图、实现与唯一质检。
 
-`FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001` 固定真正 submit 前只能确认两件事。第一，当前 Composer 提示词 hash 与 Product 批准值相等，当前附件集合与批准集合相等；批准集合可以为空，Provider 自动追加的最终纯数字括号后缀按冻结附件规则归一。第二，Browser 当前 Target/Document/fence 有效，且唯一 WAL 证明同一 provider effect 尚未发生现实输入。历史聊天、既有 user turn、固定 turn 编号或奇偶、按钮标签以及 Browser 内部可操作性检查均不得成为新增业务前置关卡，也不得在点击前读取历史 turn 来决定发送资格。点击后等待 2500ms，再从 fresh current Document 只取最大有效序号的 user turn，确认其 prompt hash 等于批准值且 Composer 已清空；这是发送后的直接证明，不是第三个前置条件。改变或删除本冻结边界，必须由用户在未来任务中明确解冻，并同步替换施工图、实现与唯一质检；普通修复或 CI 授权不构成解冻。
+`FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001` 固定真正 submit 前只能确认两件事。第一，当前 Composer 提示词 hash 与 Product 批准值相等，当前附件集合按 `FROZEN-GPT-ATTACHMENT-PROVIDER-DUPLICATE-SUFFIX-001` 与批准集合相等。第二，Browser 当前 Target/Document/fence 有效，且唯一 WAL 证明同一 provider effect 尚未发生现实输入。历史聊天、既有 user turn、固定 turn 编号或奇偶、按钮标签以及 Browser 内部可操作性检查均不得成为新增业务前置关卡，也不得在点击前读取历史 turn 来决定发送资格。点击后等待 2500ms，再从 fresh current Document 只取最大有效序号的 user turn，确认其 prompt hash 等于批准值且 Composer 已清空；这是发送后的直接证明，不是第三个前置条件。改变或删除本冻结边界，必须由用户在未来任务中明确解冻，并同步替换施工图、实现与唯一质检；普通修复或 CI 授权不构成解冻。
+
+`FROZEN-GPT-ATTACHMENT-PROVIDER-DUPLICATE-SUFFIX-001` 固定：Product 批准附件集合是唯一语义权威并允许为空。非空时，每个 Provider 可见名称先做 NFC，再让精确批准名称优先；只有精确未命中时，才允许删除最后扩展名前、无扩展名则文件名末尾恰好一个无空格 `(<纯十进制数字>)`，且删除后必须精确命中批准名称，才视为同一附件。GPT 的上传后附件对账与 Browser 的最终 submit guard 必须使用这一条语义；附件数量、基础名、扩展名、非数字括号、空格括号和其它改名仍失败关闭。不得出现 substring、模糊匹配、宽正则、第二附件身份、兼容分支或因 Provider 后缀误判而重传。改变、删除、改名、弱化、扩张或绕过本边界，只有用户明确原文“解冻 FROZEN-GPT-ATTACHMENT-PROVIDER-DUPLICATE-SUFFIX-001”并同步替换现役法案、GPT/Browser 施工图、实现与唯一质检后才允许；普通修复、代码迭代、CI 授权、Provider UI 变化或单仓变更均不构成解冻。
 
 `FROZEN-GPT-SUBMIT-ACTIONABILITY-WAIT-001` 固定：上述两项前置事实已经成立后，发送按钮暂时 `disabled/aria-disabled` 只表示 Browser 页面尚未就绪，不得由 GPT 立即裁成业务失败。Browser 必须在同一次 submit 原子调用和现有 5000ms 有界期限内等待同一精确按钮恢复可操作，恢复后只点击一次；期满仍不可操作则返回原生 typed no-mutation、`physical_input_count=0`。该等待不读取历史聊天、不新增第三前置条件、Child、timer Owner、队列、WAL、状态或重试链。
 

@@ -97,6 +97,10 @@ try {
   catch (error) { fillReadbackError = error; }
   assert.match(String(fillReadbackError), /BROWSER_POSTCONDITION_FAILED/u);
   assert.equal(serializeTerminalFailure(fillReadbackError).cause?.code, "BROWSER_DOM_CANDIDATE_MISSING");
+  assert.equal(serializeTerminalFailure(new Error("RESULT_SETTLED_UNUSABLE", {
+    cause: new Error("AGENT_RESULT_SCHEMA_VERSION_INVALID"),
+  })).cause?.code, "AGENT_RESULT_SCHEMA_VERSION_INVALID",
+  "a settled unusable result must retain its atomic parser failure code");
   assert.equal(actorStore.readState(fillReadbackPermit.commandId), "REJECTED");
   assert.equal(fillReadbackActor.mutationOutcome(fillReadbackPermit.commandId), "confirmed");
   const qualificationPermit = permit("actor-qualification-rejected");
@@ -231,7 +235,7 @@ try {
     targetRefHash: exactHash(exactAssistantPermit.targetRef),
     documentRefHash: exactHash(exactAssistantPermit.documentRef),
     assistantTurnId: "conversation-turn-2",
-    currentUrl: exactAssistantCommand.intent.canonicalConversationUrl,
+    currentUrl: "https://chatgpt.com/c/provider-canonicalized-after-submit",
     precedingUserTurnId: "conversation-turn-1",
     generatingRaw: 0,
     rawDomHtml: exactAssistantRawDomHtml, rawDomHash: exactHash(exactAssistantRawDomHtml),

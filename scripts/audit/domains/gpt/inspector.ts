@@ -20,7 +20,6 @@ import {
 import { observeStaticMode } from "../../shared/static-target-object-inspector.js";
 import { inspectGptContractDenominator } from "./gpt-contract-inspection.js";
 import { inspectGptAttachmentContract } from "./gpt-attachment-contract-inspection.js";
-import { inspectGptPageEvidenceClosure } from "./gpt-page-evidence-closure-inspection.js";
 import {
   inspectGptEndedAttemptContract,
   inspectGptDirectMutationSettlementContract,
@@ -34,7 +33,6 @@ import {
 import {
   GPT_CHILDREN_PATH as CHILDREN_PATH, GPT_CHILD_TYPES_PATH as CHILD_TYPES_PATH, GPT_CONTRACT_PATH as CONTRACT_PATH,
   GPT_FACADE_PATH as FACADE_PATH, GPT_GROUP_PATH as GROUP_PATH,
-  GPT_PAGE_EVIDENCE_REPORT_PATH as PAGE_EVIDENCE_REPORT_PATH,
   GPT_PRODUCTION_BROWSER_LIFECYCLE_PATH as PRODUCTION_BROWSER_LIFECYCLE_PATH,
   GPT_PRODUCTION_CHILD_TOOLS_PATH as PRODUCTION_CHILD_TOOLS_PATH,
   GPT_ROOT as ROOT, GPT_SCHEMA_PATH as SCHEMA_PATH,
@@ -58,7 +56,7 @@ import { containsPageMutation, gptPrivateInfrastructureViolations, sourceFor, so
   from "./gpt-inspection-support.js";
 
 const LAW_ID = "LAW-GPT-001-V48";
-const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V8";
+const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V9";
 const GPT_BLUEPRINT_PATH = "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 16, 19, 23),
@@ -337,14 +335,12 @@ const inspectGptContracts = (context: InspectorContext, findings: InspectorFindi
   inspectExecutionProfileStateReadContract(context, findings);
   inspectGptEndedAttemptContract(context, findings, finding);
   inspectGptDirectMutationSettlementContract(context, findings, finding);
-  inspectGptPageEvidenceClosure(context, findings, finding);
   inspectGptCrossTaskStateAbsence(context, findings, finding);
 };
 
 const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const path of [
     CONTRACT_PATH, FACADE_PATH, GROUP_PATH, SCHEMA_PATH, CHILD_TYPES_PATH,
-    PAGE_EVIDENCE_REPORT_PATH,
     ...TEXT_RESPONSE_HANDLER_PATHS, ...IMAGE_RESPONSE_HANDLER_PATHS,
     ...CONVERSATION_HANDLER_PATHS,
     RESPONSE_PAGE_PATH,
@@ -416,6 +412,9 @@ const inspectFrozenAttemptBoundary = (
       `${ROOT}/children/submit_exact_gpt_turn_once/handler.ts`)?.getFullText() ?? "",
     candidate: sourceFor(context,
       "src/lib/browser/chrome-extension/dom-coherent-candidate.ts")?.getFullText() ?? "",
+    attachmentSchema: sourceFor(context, `${ROOT}/schema.ts`)?.getFullText() ?? "",
+    attachmentReconciliation: sourceFor(context,
+      `${ROOT}/children/reconcile_gpt_attachment_set/observation.ts`)?.getFullText() ?? "",
     store: sourceFor(context,
       "src/lib/browser/exact-target/browser-mutation-store.ts")?.getFullText() ?? "",
     lifecycle: sourceFor(context, `${ROOT}/production-browser-lifecycle.ts`)?.getFullText() ?? "",
@@ -426,6 +425,8 @@ const inspectFrozenAttemptBoundary = (
     terminalFailure: sourceFor(context,
       "src/lib/local-runtime/production/terminal-failure.ts")?.getFullText() ?? "",
     blueprint: readFileSync(resolve(context.sealedRoot, GPT_BLUEPRINT_PATH), "utf8"),
+    browserBlueprint: readFileSync(resolve(context.sealedRoot,
+      "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md"), "utf8"),
   };
   const probeWalRead = sources.lifecycle.indexOf("active.browser.readAtomicStepOutcome(confirmed.submitIdentity)");
   const valid = /attach_approved_gpt_files_once:[^\n]+profile: "TARGET_LOCAL_MUTATION"[^\n]+replayPolicy: "target-local-per-generation"/u
@@ -447,6 +448,11 @@ const inspectFrozenAttemptBoundary = (
     && sources.submit.includes("latestGptUserTurn: true")
     && sources.submit.includes("GPT_EMPTY_COMPOSER_SELECTOR")
     && sources.blueprint.includes("FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001")
+    && sources.blueprint.includes("FROZEN-GPT-ATTACHMENT-PROVIDER-DUPLICATE-SUFFIX-001")
+    && sources.browserBlueprint.includes("FROZEN-GPT-ATTACHMENT-PROVIDER-DUPLICATE-SUFFIX-001")
+    && sources.attachmentSchema.includes("normalizeGptProviderAttachmentLabel")
+    && sources.attachmentReconciliation.includes("normalizeGptProviderAttachmentLabel(label, expectedLabels)")
+    && sources.candidate.includes("expectedLabels.includes(providerLabel(label))")
     && sources.blueprint.includes("FROZEN-GPT-RESPONSE-NO-PROMPT-REHASH-001")
     && sources.blueprint.includes("FROZEN-GPT-ATOMIC-IDENTITY-ROUNDTRIP-001")
     && sources.blueprint.includes("FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001")
@@ -529,11 +535,11 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   }));
   const frozenChecks = ["inspectFrozenAttemptBoundary"];
   const frozenAssertions = (["static.ast", "static.contract"] as const).map((evidenceMode) => ({
-    clauses: evidenceMode === "static.ast" ? staticClauses(0, 2, 3, 4) : staticClauses(1, 5),
+    clauses: evidenceMode === "static.ast" ? staticClauses(0, 2, 3, 4) : staticClauses(1, 5, 6),
     evidenceMode,
     passed: producerModePassed(evaluation.staticCheckReceipts, FROZEN_ATTEMPT_LAW_ID, frozenChecks),
     refs: staticEvidenceRefs(context, FROZEN_ATTEMPT_LAW_ID, evidenceMode,
-      evidenceMode === "static.ast" ? staticClauses(0, 2, 3, 4) : staticClauses(1, 5),
+      evidenceMode === "static.ast" ? staticClauses(0, 2, 3, 4) : staticClauses(1, 5, 6),
       evaluation.staticCheckReceipts, frozenChecks),
   }));
   return validateStaticInspection(context, {

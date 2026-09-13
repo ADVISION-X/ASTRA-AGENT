@@ -54,7 +54,7 @@ export type ProductionGptBrowserCall = {
 export const PROVIDER_OBSERVATION_INTERVAL_MS = 30_000;
 
 export class ProductionGptBrowserLifecycle {
-  private readonly browsers = new Map<string, ProductionGptBrowserCall>();
+  private activeBrowser: Readonly<{ sessionKey: string; call: ProductionGptBrowserCall }> | null = null;
 
   public constructor(
     private readonly browserAuthority: GptBrowserLeaseAuthority,
@@ -70,8 +70,14 @@ export class ProductionGptBrowserLifecycle {
     targetMode: BrowserTargetLeaseWait["targetMode"] = "fresh",
   ): Promise<ProductionGptBrowserCall> {
     if (!sessionKey) throw executionFailure("failed", "GPT_SESSION_KEY_REQUIRED");
-    const current = this.browsers.get(sessionKey);
-    if (current) return current;
+    if (this.activeBrowser?.sessionKey === sessionKey) return this.activeBrowser.call;
+    const previous = this.activeBrowser?.call;
+    if (previous) {
+      if (!previous.confirmedProviderEffect || !previous.settledResultPayloadHash) {
+        throw executionFailure("failed", "GPT_BROWSER_SESSION_TRANSITION_UNSETTLED");
+      }
+      await this.parkActive("gpt-provider-turn-settled");
+    }
     const browser = await this.acquireBrowserLease(productStepId, callId, null, targetMode);
     const active: ProductionGptBrowserCall = {
       browser,
@@ -87,7 +93,7 @@ export class ProductionGptBrowserLifecycle {
         return typeof value === "function" ? value.bind(active.browser) : value;
       },
     });
-    this.browsers.set(sessionKey, active);
+    this.activeBrowser = Object.freeze({ sessionKey, call: active });
     return active;
   }
 
@@ -98,13 +104,8 @@ export class ProductionGptBrowserLifecycle {
     canonicalConversationUrl: string,
     userTurnId: string,
   ): Promise<void> {
-    for (const call of this.browsers.values()) {
-      call.confirmedProviderEffect = null;
-      call.settledResultPayloadHash = null;
-    }
-    active.confirmedProviderEffect = Object.freeze({
-      ...effect, submitIdentity, canonicalConversationUrl, userTurnId,
-    });
+    active.confirmedProviderEffect = Object.freeze({ ...effect, submitIdentity,
+      canonicalConversationUrl, userTurnId });
     if (active.recoverySelectionRequired) {
       await active.browser.executeDomIntent({
         kind: "selectExactGptConversation", canonicalConversationUrl,
@@ -121,14 +122,13 @@ export class ProductionGptBrowserLifecycle {
   }
 
   public decorateSettledResultFailure(error: unknown): unknown {
-    if (typedExecutionFailure(error)) return error;
-    const settled = [...this.browsers.values()].filter((call) =>
-      call.confirmedProviderEffect && call.settledResultPayloadHash);
-    if (settled.length !== 1) return error;
-    const call = settled[0]!;
+    const typed = typedExecutionFailure(error);
+    if (typed?.code === "RESULT_SETTLED_UNUSABLE") return error;
+    const call = this.activeBrowser?.call;
+    if (!call?.confirmedProviderEffect || !call.settledResultPayloadHash) return error;
     const effect = call.confirmedProviderEffect!;
     return executionFailure("failed", "RESULT_SETTLED_UNUSABLE", {
-      cause: error,
+      cause: typed ? new Error(typed.code) : error,
       metadata: {
         mutationOutcome: "confirmed",
         evidence: { evidenceRef: effect.evidenceRef, evidenceHash: effect.evidenceHash },
@@ -237,20 +237,21 @@ export class ProductionGptBrowserLifecycle {
   }
 
   public async settle(error: unknown | null): Promise<void> {
-    const failures: unknown[] = [];
-    for (const [key, call] of this.browsers) {
-      try {
-        await call.browser.park({
-          reason: error ? "gpt-product-call-failed" : "gpt-product-call-settled",
-          mode: "normal-provider-wait",
-        });
-      } catch (closeError) {
-        failures.push(closeError);
-      } finally {
-        this.browsers.delete(key);
-      }
+    try {
+      await this.parkActive(error ? "gpt-product-call-failed" : "gpt-product-call-settled");
+    } catch (closeError) {
+      throw new AggregateError([closeError], "GPT_BROWSER_LIFECYCLE_FAILED");
     }
-    if (failures.length > 0) throw new AggregateError(failures, "GPT_BROWSER_LIFECYCLE_FAILED");
+  }
+
+  private async parkActive(reason: string): Promise<void> {
+    const active = this.activeBrowser?.call;
+    if (!active) return;
+    try {
+      await active.browser.park({ reason, mode: "normal-provider-wait" });
+    } finally {
+      this.activeBrowser = null;
+    }
   }
 
   private async acquireBrowserLease(

@@ -1,7 +1,7 @@
-# Local Browser Authority V34 施工图
+# Local Browser Authority V35 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"local-browser-authority-v34","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V34","LAW-LOCAL-BROWSER-SESSION-004-V36","LAW-LOCAL-BROWSER-SESSION-006-V27"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"local-browser-authority-v35","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V34","LAW-LOCAL-BROWSER-SESSION-004-V36","LAW-LOCAL-BROWSER-SESSION-006-V27"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
 ```
 
 Browser 只拥有现实页面资源：一个 system Target、实时 current Document、一条 FIFO、Provider/控件 mutation 的唯一 WAL，以及页面生命周期动作后的 fresh readback。它不理解 Product 步骤、不保存 GPT 回答、不决定 retry，也不拥有 Website task。
@@ -22,7 +22,7 @@ Browser 只拥有现实页面资源：一个 system Target、实时 current Docu
 
 Browser mutation 的唯一规则不变：先写 WAL，再至多 dispatch 一次，最后一次输入后等待 2500ms，从 fresh current Document 做直接后置读回。GPT 只有真正提交属于 provider-effect scope；fresh/profile/model/menu/附件/Composer 等准备属于 target-local scope，身份包含 attempt 与当前 Target/Document generation，旧 attempt 不得阻断新 attempt 重建准备。provider_effect_identity 精确为 `job_id + result_revision + product_step_id + call_id + child_id + request_hash + payload_hash`，不含 Product Plugin 名称/版本/Skill hash、attempt/process/lease/fence/Target/Document；同一 effect 跨进程物理 dispatch 总数至多一。WAL 为 CONFIRMED submit 加密保存同包清洗的 canonical conversation URL 与精确 userTurnId；URL 只负责“去哪里读”，effect identity 只负责“是否已经发送”。confirmed readback 先查询 WAL，再取得当前唯一 system Target；当前 URL 命中时零导航，否则只执行一次 Browser-owned `Page.navigate` 到该 URL，2500ms 后 fresh readback 必须相等。历史 targetRef、侧栏点击、标题/顺序/时间猜测、搜索、滚动、自动展开、重试与 fallback 均不参与。该导航不写第二 WAL、不取得 provider effect identity。纯 observation 和结果读取不建立第二 WAL、lane、timer 或队列。
 
-冻结附件身份规则：Product 批准的附件集合允许为空；非空时，Browser Owner 在同一个点击原子动作内读取当前 Composer 附件显示名并保持集合精确相等。唯一允许的 Provider 展示改写，是在一个批准文件名的最后扩展名前（无扩展名则在文件名末尾）追加恰好一个无空格 `(<纯十进制数字>)`；Browser 只在删除该后缀后精确命中批准名时，将它视为同一附件。附件数量、基础名、扩展名、非数字括号和其它改名仍必须精确不变。禁止恢复原始展示名硬比对而误杀重试，禁止 substring、模糊匹配、宽正则、第二附件身份或兼容分支；本不变量必须由现役 Browser inspector 与真实注入函数验收共同失败关闭，删除或替代必须使唯一 `quality:check` 失败。
+`FROZEN-GPT-ATTACHMENT-PROVIDER-DUPLICATE-SUFFIX-001` 的 Browser 部分固定：Product 批准附件集合是唯一语义权威并允许为空；Browser 只在同一个点击原子动作内机械执行 GPT 冻结语义。每个 Provider 可见名称先做 NFC 后让精确批准名称优先；只有精确未命中时，才允许删除最后扩展名前、无扩展名则文件名末尾恰好一个无空格 `(<纯十进制数字>)`，且删除后必须精确命中批准名称，才视为同一附件。附件数量、基础名、扩展名、非数字括号、空格括号和其它改名仍失败关闭。禁止恢复原始展示名硬比对而误杀重试，禁止 substring、模糊匹配、宽正则、第二附件身份或兼容分支；现役 Browser inspector 与真实注入函数正反验收必须共同失败关闭。改变、删除、改名、弱化、扩张或绕过本边界，只有用户明确原文“解冻 FROZEN-GPT-ATTACHMENT-PROVIDER-DUPLICATE-SUFFIX-001”并同步替换现役法案、GPT/Browser 施工图、实现与唯一质检后才允许；普通修复、代码迭代、CI 授权、Provider UI 变化或单仓变更均不构成解冻。
 
 已确认提交、回答尚未出现时，正常轮询必须继续持有 FIFO、同一 lease/Target/Document，等待 30 秒后只做 fresh observation。只有进程重启、Target 真正丢失或同等恢复现场，Website 再次授权同一 accepted attempt 后，Browser 才按同一 provider_effect_identity 从唯一 WAL 读回 canonical URL 与 userTurnId，以 `confirmed-readback` 取得当前唯一 system Target，再按该 URL 零次或一次精确导航后 fresh observation；不得跨业务任务使用该 URL，不得再次写 Prompt、附件或提交。该恢复路径 physical submit delta=0，不建立 park object、第二状态、逐任务时钟或第二调度。
 

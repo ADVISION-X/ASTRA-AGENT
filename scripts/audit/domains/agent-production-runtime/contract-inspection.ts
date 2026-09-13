@@ -38,7 +38,7 @@ const sourceFor = (context: InspectorContext, path: string): SourceFile | undefi
 
 const inspectMinimalDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const [path, version, lawId, checkId] of [
-    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 29,
+    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 31,
       LAWS.route, "agent-production-runtime/v28-dependency"],
     ["docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json", 9,
       LAWS.route, "agent-production-runtime/v9-result-dependency"],

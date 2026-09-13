@@ -30,6 +30,7 @@ let switchBeforeProviderInput = false;
 let switchAfterProviderInput = false;
 let switchAwayAndBackTabReadCountdown = 0;
 let navigateSerial = 0;
+let emitFrameNavigationDuringNextNavigate = false;
 let activeTabId = 99;
 let targetTabActivated: TabActivatedListener = () => { throw new Error("target activation listener was not installed"); };
 const activatedTabs: number[] = [];
@@ -93,6 +94,10 @@ const sendTargetChromeCommand: ExtensionChromeApi["debugger"]["sendCommand"] = a
     navigateSerial += 1;
     const loaderId = `loader-${tabId}-navigate-${navigateSerial}`;
     mainFrameLoaderByTab.set(tabId, loaderId);
+    if (emitFrameNavigationDuringNextNavigate) {
+      emitFrameNavigationDuringNextNavigate = false;
+      debuggerEvent?.({ tabId }, "Page.frameNavigated");
+    }
     return { loaderId };
   }
   return method === "Page.getFrameTree"
@@ -278,9 +283,13 @@ assert.equal(providerInputMethods.length, selectionBaseline[0], "conversation na
 assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length, selectionBaseline[1] + 1,
   "a different conversation must use one exact direct navigation");
 const selectedTarget = targetAuthority.resolve(String(selected.targetRef), String(selected.documentRef));
+const framesBeforeAtomicSelection = targetFrames.length;
+emitFrameNavigationDuringNextNavigate = true;
 await selectConversation("https://chatgpt.com/c/sidebar-absent", selectedTarget);
 assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length, selectionBaseline[1] + 2,
   "each different authoritative URL must produce exactly one direct navigation");
+assert.deepEqual(targetFrames.slice(framesBeforeAtomicSelection).map((frame) => frame.kind), ["TARGET_CLAIM"],
+  "the Page.frameNavigated event must join the same navigation publication without revoke or duplicate claim");
 basicPointerClick = false;
 await targetAuthority.parkActiveTarget();
 assert.equal(targetFrames.at(-1)?.kind, "TARGET_REVOKE");
@@ -386,8 +395,8 @@ assert.throws(() => broker.registerOperatorTargetClaim({ ...initialClaim, target
   "an authenticated connection must not replace its claimed target without revoke");
 assert.throws(() => broker.registerOperatorTargetClaim({ ...initialClaim, documentRef: "document-4", navigationEpoch: 3 }), /BROWSER_TARGET_INVALID/u,
   "Document claims must advance by exactly one navigation epoch");
-assert.equal(activatedTabs.includes(99), false, "the interaction gate must never activate an operator Tab");
-assert.equal(removedTabs.includes(99), false, "the production owner must never remove an operator Tab");
+assert.equal(new Set<number>(activatedTabs).has(99), false, "the interaction gate must never activate an operator Tab");
+assert.equal(new Set<number>(removedTabs).has(99), false, "the production owner must never remove an operator Tab");
 
 process.stdout.write("LOCAL_BROWSER_AUTO_PAIRING_AND_EXACT_CHATGPT_CLAIM_ACCEPTANCE_PASS\n");
 emitLocalBrowserAutoPairingProofs();

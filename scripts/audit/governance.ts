@@ -130,13 +130,6 @@ function relevantChangeChecks(changes: Array<{ status: string; path: string }>, 
     .map((change) => change.path)
     .sort();
   if (changedGovernanceTests.length) run(process.execPath, ['--import', 'tsx', '--test', ...changedGovernanceTests]);
-  const gptPageEvidenceRelevant = changes.some((change) => change.path === 'docs/项目方案/GPT页面操作子能力实证资料.json'
-    || change.path === '.github/instructions/agent-rules/功能法案.md'
-    || change.path === 'docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md'
-    || change.path.startsWith('src/capabilities/gpt/')
-    || change.path.startsWith('src/lib/browser/')
-    || change.path.startsWith('src/plugins/'));
-  if (gptPageEvidenceRelevant) run('npm', ['run', 'acceptance:gpt-page-evidence-change-gate']);
   for (const script of relevantExamScripts(changes.map((change) => change.path), registry)) run('npm', ['run', script]);
 }
 

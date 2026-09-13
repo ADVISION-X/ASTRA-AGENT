@@ -26,23 +26,24 @@ Website 冻结生产任务和资料
 - 禁止合成业务 prompt、合成附件、模拟对话冒充产品覆盖。测试代码可以使用明确标为 test-only 的结构夹具，但测试夹具绝不能进入报告。
 - 不新增第二报告、第二矩阵、第二 selector 系统、DOM 数据库、回放平台、队列、服务或质量裁决。
 - 报告不绑定 Git HEAD、分支、clean 状态或整个工作区摘要。Git 信息不得参与有效性判断。
-- 报告不是生产运行时输入，也不是 `READY`、`RELEASE`、Website 入库或质量结论；这条边界由 Skill 与质检合同负责，不在每份报告重复保存固定布尔值。
+- 报告、矩阵、产品流程投影及本 Skill 的任何脚本都只是工具资料。生产运行时、domain inspector、`quality:check`、`CHANGE`、`READY`、`RELEASE`、Website 入库和生产发布不得读取或调用它们；报告缺失、陈旧、局部或失败只能让本工具失败，不能阻塞系统迭代。
+- Skill 只消费现有生产资料。生产代码不为本工具新增字段、日志、台账、hook 或兼容路径；证据不够时报告缺口，不能反向要求生产链适配工具。
 
 ## 启动后先选模式
 
 1. `inventory-only`：只盘点产品路由、采集合同、页面 Child 和缺口；不打开 Chrome。
 2. `collect-product`：用户明确要求采集或刷新某个产品。最小范围是完整 `productId + actionId`；静态本地化还必须包含一个 locale 的全部 cohort 及 A/B/盲选三轮。
-3. `offline-iterate`：故障修复前按产品或具体步骤读取报告并执行 `candidate → admit`；不打开 Chrome。
-4. `feedback-update`：代码或合同变化后只做离线重投影、目标测试和唯一 `quality:check`；缺 DOM 就报告精确缺口，不自动采集。
+3. `evidence-review`：按产品或具体步骤读取报告；`candidate → admit` 只是工具内部的防串包校验，不产生生产准入或质量结论。
+4. `tool-update`：本 Skill 的矩阵、投影或脚本变化后，只做离线重投影和本 Skill 自验；缺 DOM 就报告精确缺口，不自动采集，也不触发仓库质量门禁。
 
 ## 强制入口
 
 开始时读取：
 
-- `src/capabilities/gpt/page-operation-matrix.json`
+- 本目录 `references/page-operation-matrix.json`
 - `docs/项目方案/GPT页面操作子能力实证资料.json`
 - 本目录 `references/evidence-schema.md` 与 `references/collection-protocol.md`
-- 目标 Product 的 `SKILL.md`、`page-evidence-contract.json` 和合同列出的 `flowOwnerSources`
+- 目标 Product 的现役 `SKILL.md`、源码，以及本目录 `references/product-flow-projections/<plugin>.json`
 - 当前 GPT 法案、GPT Blueprint 和 `src/capabilities/gpt/contract.ts`
 
 先盘点。报告会列出生产 Catalog 的全部路由；目前 SEO 与本地化有精确采集合同，其余产品必须明确显示 `PRODUCT_EVIDENCE_CONTRACT_NOT_IMPLEMENTED`，不得从通用 Child 场景推断为已覆盖。
@@ -50,7 +51,7 @@ Website 冻结生产任务和资料
 ```bash
 node --import tsx .agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs inventory \
   --repo /Users/nexgen/Documents/AGENT \
-  --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
+  --matrix /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/references/page-operation-matrix.json \
   --read-only
 ```
 
@@ -76,9 +77,9 @@ node .agents/skills/gpt-page-operation-evidence/scripts/production-source.mjs \
 - task 的 `job_id/request_hash/product/action` 相互一致；
 - material 目录与 task `material_refs` 文件集合完全相等；
 - 每个文件名、role、ordinal、bytes 和 sha256 精确相等；
-- 目标 Product 的 `page-evidence-contract.json` 与当前 Product 路由一致；
+- 本 Skill 的产品流程投影与当前 Product 路由一致；投影不属于 Product 生产合同；
 - forensics trace 每一行都属于同一 job/attempt/plugin，Child、ordinal、exact call identity 与完整性哈希一致；
-- 每条新生产 forensics 必须带该调用的 `input_hash` 与安全 `page_input_role_hashes`。后者只含 prompt/response、附件显示名集合、模型、推理要求、会话 URL、turn marker 和 assistant turn identity 的哈希或非敏感枚举；不得保存正文；
+- 本工具只消费生产链已经拥有的 `input_hash` 与安全 `page_input_role_hashes`；缺失时标记输入绑定缺口，不得要求生产链为采集工具补字段。存在时，后者只允许含 prompt/response、附件显示名集合、模型、推理要求、会话 URL、turn marker 和 assistant turn identity 的哈希或非敏感枚举；不得保存正文；
 - 已接受生产 attempt 的 durable forensics 是历史实际调用顺序的唯一真相；当前 Product 合同和源码只说明“今天的流程投影”，不得反向淘汰旧 attempt 的真实 trace；
 - Browser receipt 存在时，它的 step/Child/ordinal 必须与同一 exact call 一致，`callId` 只从该真实回执取得；没有回执时写 `null`，不得从手写表补造；
 - Browser receipt 的 `request_hash` 与 forensics `input_hash` 必须相等。旧历史记录若只有 Browser request hash，只能标为 `BROWSER_MUTATION_RECEIPT_ONLY`；没有逐角色输入哈希时不得反推 prompt、附件、profile 或 continuation，也不得成为完整采集；
@@ -124,7 +125,11 @@ PAGE_EVIDENCE_GAP:<productStepId>/<ordinal>/<childId>:product-call-scene-map-mis
 
 不得借用另一个步骤、产品或旧 synthetic scene 填满。
 
-## SEO 精确流程
+## 工具内产品流程投影
+
+以下 SEO 与本地化规则只是本 Skill 用来解释当前生产资料的可删除投影，不是生产合同。它们失效时只更新或删除本目录投影，不修改生产流程；无法证明时输出缺口。
+
+### SEO
 
 `public_knowledge_article_pipeline/produce_article` 的真实输入至少包含 Website task envelope 和唯一 `ready_corpus_archive`；ZIP 的内部语料、索引、语义目录、主题集群及结果合同由 Product 现役校验负责，Skill 不另造精简包。
 
@@ -139,7 +144,7 @@ Codex 按 Product trace 复刻：
 
 任一阶段真实失败时，产品流程合法终止为 `terminalBranch=production-failure`。若截至失败点的每个实际页面调用 DOM 都已采全，该 run 可标记 `CAPTURE_COMPLETE`；含义仅是故障现场完整，绝不等于 SEO 生产成功。
 
-## 本地化精确流程
+### 本地化
 
 报告/文章本地化及 challenge/reflection：使用 Website task 声明的完整材料集合，新对话，准确 profile/model/reasoning，全部附件精确核对，真实 Product prompt，draft/submit/readback/stable text/checkpoint，最后由 Product 结果合同解析。
 
@@ -161,7 +166,7 @@ Browser 命令返回不等于页面动作成功。transition receipt 必须带�
 ```bash
 node .agents/skills/gpt-page-operation-evidence/scripts/assemble-live-capture.mjs \
   --inventory /absolute/outside-repo/inventory.json \
-  --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
+  --matrix /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/references/page-operation-matrix.json \
   --scenes /absolute/outside-repo/scenes.json \
   --mapping /absolute/outside-repo/product-scene-map.json \
   --production-source /absolute/outside-repo/production-source.json \
@@ -174,7 +179,7 @@ node .agents/skills/gpt-page-operation-evidence/scripts/assemble-live-capture.mj
 ```bash
 node --import tsx .agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs merge \
   --repo /Users/nexgen/Documents/AGENT \
-  --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
+  --matrix /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/references/page-operation-matrix.json \
   --capture /absolute/outside-repo/capture.json \
   --base-report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
   --product exact_product_id \
@@ -188,21 +193,21 @@ node --import tsx .agents/skills/gpt-page-operation-evidence/scripts/report-tool
 
 报告中的历史产品即使已经从当前 Catalog 删除、Product 源码或页面矩阵已经变化，也必须继续执行自身一致性校验：每个 call 固定采集当时的 states/targets/assertions/required input roles/Child transition contract，并用该快照重算 production source/trace/input binding、capture context、scene/specimen/call envelope、scene 唯一归属和 captureComplete。今天的矩阵只决定 projection stale，不能用新规则淘汰历史，也不能借 stale 绕过篡改检查。
 
-## 故障回看与准入
+## 故障回看与工具内防串包
 
 SEO 或本地化故障优先按产品步骤取证：
 
 ```bash
 node --import tsx .agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs candidate \
   --repo /Users/nexgen/Documents/AGENT \
-  --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
+  --matrix /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/references/page-operation-matrix.json \
   --report /Users/nexgen/Documents/AGENT/docs/项目方案/GPT页面操作子能力实证资料.json \
   --product public_knowledge_article_pipeline \
   --action produce_article \
   --step corpus_research
 ```
 
-把返回的 `PRODUCT:<digest>` 原样传给 `admit`。全产品准入省略 `--step`；它要求完整合法分支和全部页面调用完整。步骤准入只要求该步骤已出现且每个页面调用有完整 DOM，不能拿一个通用 Child 样本顶替。
+把返回的 `PRODUCT:<digest>` 原样传给 `admit`。这里的 `admit` 仅确认同一次工具查询没有串包。全产品查询省略 `--step`；它要求完整合法分支和全部页面调用完整。步骤查询只要求该步骤已出现且每个页面调用有完整 DOM，不能拿一个通用 Child 样本顶替。任何结果都不是生产准入或质量裁决。
 
 共享 Child 只能从 `products[].runs[].calls[]` 临时反查受影响的产品调用；`candidate/admit` 强制要求 `--product + --action`，不存在 Child 级第二套准入结论。
 
@@ -231,11 +236,11 @@ python3 /Users/nexgen/.codex/skills/.system/skill-creator/scripts/quick_validate
   /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence
 node --import tsx .agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs inventory \
   --repo /Users/nexgen/Documents/AGENT \
-  --matrix /Users/nexgen/Documents/AGENT/src/capabilities/gpt/page-operation-matrix.json \
+  --matrix /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/references/page-operation-matrix.json \
   --read-only
 node .agents/skills/gpt-page-operation-evidence/scripts/production-source.acceptance.mjs
 node .agents/skills/gpt-page-operation-evidence/scripts/report-tool.acceptance.mjs
 node .agents/skills/gpt-page-operation-evidence/scripts/pipeline.acceptance.mjs
 ```
 
-最后运行目标仓唯一 `quality:check -- CHANGE`。这些检查都不打开 Chrome；真实采集只由用户明确要求后，Codex 使用 Chrome 插件执行。
+这些检查只验证工具本身，不接入目标仓 `quality:check`。它们都不打开 Chrome；真实采集只由用户明确要求后，Codex 使用 Chrome 插件执行。

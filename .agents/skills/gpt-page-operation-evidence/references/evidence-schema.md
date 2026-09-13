@@ -156,13 +156,13 @@ Canonical 报告仍是 `docs/项目方案/GPT页面操作子能力实证资料.j
 
 定向合并只替换所选 `productKey`，未选产品对象原样保留；已从当前 Catalog 删除的历史对象也保留为 stale，当前 Catalog 新路由才追加为 `NOT_CAPTURED`。普通全报告 `validate` 返回 `projectionCurrent` 与 `staleProducts`，但不会因为未选产品或全局投影变化否决目标切片；`validate --require-complete` 才要求全局当前。产品 `candidate/admit` 始终只对所选 Product 做当前来源核对。
 
-## 4. 产品准入
+## 4. 产品查询防串包
 
-产品 candidate 绑定：产品路由、目标 Product 合同与源码、step scope、sourceSnapshotId、flowContractDigest、captureEpoch 和实际 evidence brief hash。它不绑定全局 `projectionRevision`、其它产品或 HEAD。
+产品 candidate 绑定：产品路由、目标 Product 投影与源码、step scope、sourceSnapshotId、flowContractDigest、captureEpoch 和实际 evidence brief hash。它不绑定全局 `projectionRevision`、其它产品或 HEAD。
 
 - 无 `--step`：要求至少一个完整合法 Product run，且每个页面调用完整。
 - 有 `--step`：要求该步骤实际出现，且该步骤的所有页面调用完整。
 - Product flow source 改变：`ADMISSION_PRODUCT_PROJECTION_STALE`。
 - 缺调用 DOM：`ADMISSION_PRODUCT_EVIDENCE_INCOMPLETE`。
 
-准入只证明报告事实可供本次代码判断使用，不产生质量结论。
+`admit` 只证明 candidate 属于同一次工具查询，不产生生产准入、质量或发布结论。

@@ -72,6 +72,7 @@ export const executionFailureCause = (
     current = current instanceof Error ? current.cause : undefined;
   }
   if (!deepest) return null;
-  const code = "code" in deepest && typeof deepest.code === "string" ? deepest.code : null;
+  const code = "code" in deepest && typeof deepest.code === "string" ? deepest.code
+    : deepest.message !== typed?.code && /^[A-Z][A-Z0-9_]+$/u.test(deepest.message) ? deepest.message : null;
   return Object.freeze({ name: deepest.name || "Error", code });
 };

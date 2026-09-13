@@ -61,6 +61,18 @@ export const gptAttachmentProviderDisplayName = (
   return `${parsed.name}-${businessFileToken}${parsed.ext}`.normalize("NFC");
 };
 
+export const normalizeGptProviderAttachmentLabel = (
+  observedLabel: string,
+  expectedLabels: readonly string[],
+): string => {
+  const normalized = observedLabel.normalize("NFC");
+  if (expectedLabels.includes(normalized)) return normalized;
+  const withoutProviderDuplicateSuffix = normalized.replace(/\(\d+\)(?=(?:\.[^./]+)?$)/u, "");
+  return expectedLabels.includes(withoutProviderDuplicateSuffix)
+    ? withoutProviderDuplicateSuffix
+    : normalized;
+};
+
 export const buildGptExecutionProfile = (input: Readonly<{
   profileRef: string;
   accountCapabilityRef: string;

@@ -4,7 +4,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { ProductionGptBrowserLifecycle } from "../production-browser-lifecycle.js";
+import { ProductionGptChildTools } from "../production-child-tools.js";
 import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
+import { serializeTerminalFailureTransport } from
+  "../../../lib/local-runtime/production/terminal-failure.js";
+import { executionFailure } from "../../../lib/execution-failure.js";
 import { HASH_A, HASH_B } from "../../../../scripts/acceptance/agent-production-runtime-fixtures.js";
 
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-confirmed-recovery-"));
@@ -60,6 +64,47 @@ try {
   assert.deepEqual([targetMode, acquisitions, selections], ["confirmed-readback", 1, 1],
     "confirmed-effect recovery may acquire once and select the exact canonical URL once");
   await lifecycle.settle(null);
+
+  const providerEffectIdentityHash = `sha256:${"8".repeat(64)}` as const;
+  const failingTools = new ProductionGptChildTools(
+    temporary, HASH_A, {} as never, {} as never, {
+      readExactCallMutationFact: () => ({
+        effectScope: "provider_effect", providerEffectIdentityHash, outcome: "CONFIRMED",
+        mutationOutcome: "confirmed", terminalAt: "2026-09-12T00:00:00.000Z",
+        failureCode: null, nativeFailureCode: null, authorityRef: "browser-mutation:submit",
+        authorityHash: HASH_B, targetRef: "target:old", documentRef: "document:old",
+        productStepId: "observe", callId: "turn-submit",
+        childCapabilityId: "submit_exact_gpt_turn_once", actionOrdinal: 1,
+        physicalInputCount: 0, downloadGuidHash: null, downloadCompleted: false,
+        identityRevalidated: false,
+      }),
+      acquireJobBoundTargetLease: async () => {
+        throw executionFailure("failed", "BROWSER_ORIGIN_REJECTED");
+      },
+    } as never, createRuntimeLogger({
+      producer: "agent-confirmed-origin-rejection-acceptance", owner: "production-runtime",
+      component: "gpt-child", terminalEnabled: false,
+      fileSink: { directoryPath: path.join(temporary, "runtime-logs-origin") },
+    }),
+  ).createExecution({
+    jobId: "job:confirmed-recovery", attemptId: "attempt:confirmed-recovery", resultRevision: 0,
+    ownerRef: "owner:1", subjectRef: "subject:1", authorizationRef: "authorization:1",
+    deviceId: "device:1", leaseVersion: 1, executionFenceHash: HASH_A,
+    capabilityManifestHash: HASH_B, expiresAtMonotonic: performance.now() + 10_000,
+    commandTtlMs: 1_000, abortSignal: new AbortController().signal, parentSpanId: "parent",
+    maxProviderTurns: 1,
+  });
+  let recoveryFailure: unknown = null;
+  try {
+    await failingTools.tools.readConfirmedSubmit({ sessionKey: "session:failed-origin",
+      productStepId: "observe", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
+      actionOrdinal: 1, input: {} as never });
+  } catch (error) { recoveryFailure = error; }
+  const serialized = serializeTerminalFailureTransport(recoveryFailure);
+  assert.equal(serialized.code, "BROWSER_ORIGIN_REJECTED");
+  assert.equal(serialized.mutation_outcome, "confirmed");
+  assert.equal(serialized.provider_effect_identity_hash, providerEffectIdentityHash,
+    "confirmed-effect Browser acquisition failure must retain the original effect identity");
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }

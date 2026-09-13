@@ -19,6 +19,7 @@ const REPORT_SCHEMA = "gpt-page-operation-evidence.v7";
 const CAPTURE_SCHEMA = "gpt-page-operation-capture.v6";
 const PRODUCTION_SOURCE_SCHEMA = "gpt-page-operation-production-source.v1";
 const MATRIX_SCHEMA = "gpt-page-operation-matrix.v4";
+const PRODUCT_PROJECTION_SCHEMA = "gpt-page-operation-product-projection.v1";
 const CANONICAL_REPORT = "docs/项目方案/GPT页面操作子能力实证资料.json";
 const DEMAND_CONTRACT_FIELDS = Object.freeze([
   "semanticIntent", "inputSchema", "requiredTargetKind",
@@ -216,15 +217,17 @@ function validProductRouteContract(route) {
 }
 
 async function buildProductInventory(repo) {
-  const pluginRoot = join(repo, "src/plugins");
+  const projectionRoot = join(repo,
+    ".agents/skills/gpt-page-operation-evidence/references/product-flow-projections");
   const contracts = [];
-  for (const entry of await readdir(pluginRoot, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
-    const path = join(pluginRoot, entry.name, "page-evidence-contract.json");
-    if (!(await isFile(path))) continue;
+  for (const entry of await readdir(projectionRoot, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith(".json")) continue;
+    const path = join(projectionRoot, entry.name);
     const contract = await readJson(path);
-    if (contract.schemaVersion !== "product-page-evidence-contract.v1"
-      || contract.owner !== contract.pluginId
+    if (contract.schemaVersion !== PRODUCT_PROJECTION_SCHEMA
+      || contract.owner !== "gpt-page-operation-evidence"
+      || !nonEmptyString(contract.sourcePluginId)
+      || !Number.isSafeInteger(contract.sourcePluginVersion)
       || contract.traceAuthority?.kind !== "durable-product-forensics"
       || contract.traceAuthority?.sequenceOwner !== "accepted-production-attempt"
       || contract.traceAuthority?.currentFlowSourcesRole !== "projection-only"
@@ -245,7 +248,7 @@ async function buildProductInventory(repo) {
         productKey: `${route.productId}/${route.actionId}`,
         productId: route.productId,
         actionId: route.actionId,
-        pluginId: contract.pluginId,
+        pluginId: contract.sourcePluginId,
         contractPath,
         contractDigest: sha256(JSON.stringify(stable(route))),
         flowOwnerBinding: ownerBinding,

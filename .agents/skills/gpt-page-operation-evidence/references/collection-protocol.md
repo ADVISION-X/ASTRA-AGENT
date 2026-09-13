@@ -8,11 +8,11 @@
 
 `chrome-scene-collector.mjs` 是唯一例外，但它不是 CLI 或自动任务：只能由当前 Codex 在 `chrome:control-chrome` 已建立的交互会话中导入；Codex 每明确执行一个 Child 调用，才让它记录该次 pre/command/post。它不得读取 `process.argv`，不得拥有 `main`、产品循环、任务选择、调度或后台入口。
 
-## 2. 产品范围准入
+## 2. 产品范围绑定
 
 每轮必须明确：`productId`、`actionId`、生产 `jobId`、实际 `attemptId`。静态本地化还必须明确 `target_locale`，其最小范围是该 locale 的全部 cohort。
 
-目标 Product 必须拥有 `src/plugins/<plugin>/page-evidence-contract.json`。合同由 Product 自己维护，只声明资料规则、阶段拓扑和现役 flow source；它不复制 Child 调用序列，也不执行流程。已接受生产 attempt 的真实调用顺序只由 durable forensics trace 证明。`exactCallIdentityHash` 绑定调用身份，但不能单独冒充页面输入证明；每条新 forensics 还要保存 `input_hash` 和安全 `page_input_role_hashes`，供 Chrome DOM 做逐角色相等校验。当前合同与历史 trace 不同，只能标成投影漂移，不能宣布历史事实无效。
+本 Skill 在 `references/product-flow-projections/<plugin>.json` 保存自己的可删除流程投影。投影由本 Skill 维护，只声明资料规则、阶段拓扑和要读取的现役 flow source；Product 生产目录不拥有、不读取也不为它适配。已接受生产 attempt 的真实调用顺序只由现有 durable forensics trace 证明。`exactCallIdentityHash` 绑定调用身份，但不能单独冒充页面输入证明；现有 forensics 若有 `input_hash` 和安全 `page_input_role_hashes`，工具可用它们与 Chrome DOM 做逐角色相等校验，缺失则报告工具缺口。当前投影与历史 trace 不同，只能标成投影漂移，不能宣布历史事实无效。
 
 仓库内不允许出现第二份 Product 路由注册表。报告的全部产品分母来自现役 `productPluginCatalogSnapshot`；缺合同的路由只能显示 `PRODUCT_EVIDENCE_CONTRACT_NOT_IMPLEMENTED`。
 
@@ -25,7 +25,7 @@
 3. `material_refs` ordinal 从 0 连续且不重复；
 4. 材料目录没有缺文件、多文件或子目录；
 5. display name、role、bytes、sha256 与磁盘字节一致；
-6. Product 合同的 Product/Action/route 与当前 Catalog 一致；
+6. 本 Skill 的产品流程投影与当前 Catalog 一致；
 7. trace 每行属于同一 job/attempt/plugin，Child 与 payload 身份一致；
 8. trace 每一步的 step/Child/ordinal/exact call identity 与 forensics 完整性成立，且每条实际记录有唯一 `traceEntryId`；
 9. Browser receipt 若存在，必须与同一 exact call 的 step/Child/ordinal 一致；语义 `callId` 只取自回执，无回执时为 `null`；
@@ -107,7 +107,7 @@ scene metadata、decision/transition receipt 与公共 production source 只接�
 
 ## 7. 完成与缺口
 
-完整产品要求：真实资料准入通过；durable task 已到真实完成或失败终点；trace 中每个实际页面 Child 调用都有独立且完整的 pre/command/post 证据；本地化静态目录按材料声明的全部 cohort 留有 A/B/selector 实际 trace。
+完整产品资料要求：真实资料核对通过；durable task 已到真实完成或失败终点；trace 中每个实际页面 Child 调用都有独立且完整的 pre/command/post 证据；本地化静态目录按材料声明的全部 cohort 留有 A/B/selector 实际 trace。
 
 真实生产失败是一个合法终点，固定记录 `terminalBranch=production-failure`，不能伪装成成功。如果失败前实际发生的每个页面调用都有完整 DOM，该失败 run 可以是 `CAPTURE_COMPLETE`；这只表示“故障现场采全”，不表示产品成功。只有实际调用缺 DOM 或 trace 尚未到合法终点时才是 `CAPTURE_PARTIAL`。缺口使用准确坐标：
 
@@ -123,6 +123,6 @@ PAGE_EVIDENCE_GAP:<product>/<action>/<step>/<ordinal>/<child>:<missing-field>
 
 用户可只要求一个 Product/Action。Codex仍从该 Action 的合法入口开始，完整走到真实合法终点或真实失败点。合并时只替换同一产品切片；其它产品整个 slice 原样保留，包括已从当前 Catalog 删除的历史产品切片；当前 Catalog 新增路由才追加 `NOT_CAPTURED`。普通 `validate` 校验报告自身结构并返回 `projectionCurrent/staleProducts`，全局或其它 Product 漂移不阻止目标 slice 落盘；`candidate/admit` 只对所选 Product 严格核对当前来源。只有 `validate --require-complete` 才要求全局投影也为当前。页面需求变化但旧 DOM 足够时只离线 refresh，不开 Chrome。
 
-产品级 candidate/admit 只校验目标 Product 的当前合同、实际 source binding、run 推导和 DOM。全局投影或其它 Product 漂移不得改变该 candidate；共享 Child 只保留派生反向索引，不拥有独立准入通道。
+产品级 candidate/admit 只做工具内部的同次查询防串包，校验目标 Product 的当前投影、实际 source binding、run 推导和 DOM。全局投影或其它 Product 漂移不得改变该 candidate；共享 Child 只保留派生反向索引，不拥有独立查询通道。它不产生生产准入、质量或发布结论。
 
 无论产品是否 stale，`validate` 都按每个 call 落盘的 capture-time states/targets/assertions/required input roles/Child transition contract 重算该历史 slice，并继续校验 production source/trace/input binding、capture context 精确白名单、scene/specimen/call envelope、scene 跨调用唯一性和 `captureComplete`。Product 或矩阵变化只暂停“与当前投影一致”的检查，不能用今天的规则改判历史，也不能放过落盘后的篡改。

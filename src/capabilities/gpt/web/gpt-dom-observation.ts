@@ -177,12 +177,11 @@ export const projectCoherentObservation = (
 
 const exactAssistantIdentityValid = (
   value: Readonly<Record<string, unknown>>,
-  canonicalConversationUrl: string,
   userTurnId: string,
 ): boolean => value.schemaVersion === "grasseye.browser.exact-assistant-turn.v3"
   && typeof value.assistantTurnId === "string"
   && /^conversation-turn-[1-9][0-9]*$/u.test(value.assistantTurnId)
-  && value.currentUrl === canonicalConversationUrl
+  && typeof value.currentUrl === "string"
   && value.precedingUserTurnId === userTurnId;
 
 type ExactAssistantContent = Readonly<{
@@ -216,7 +215,7 @@ export const readExactAssistantTurn = async (
   const value = record(await browser.executeDomIntent({
     kind: "readExactAssistantTurn", userTurnId, canonicalConversationUrl,
   }));
-  if (!exactAssistantIdentityValid(value, canonicalConversationUrl, userTurnId)
+  if (!exactAssistantIdentityValid(value, userTurnId)
     || !exactAssistantContentValid(value)) {
     throw executionFailure("failed", "GPT_EXACT_ASSISTANT_TURN_RESULT_INVALID");
   }

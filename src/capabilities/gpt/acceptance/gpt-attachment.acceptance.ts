@@ -1,7 +1,10 @@
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 
 import { executionFailure } from "../../../lib/execution-failure.js";
-import { gptAttachmentProviderDisplayName } from "../schema.js";
+import {
+  gptAttachmentProviderDisplayName,
+  normalizeGptProviderAttachmentLabel,
+} from "../schema.js";
 import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
 import { coherentObservationPacket, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
 import { providerAttachmentName } from "./gpt-exact-target-source-support.js";
@@ -26,6 +29,26 @@ assert.notEqual(
   gptAttachmentProviderDisplayName("甲.pdf", "job:gpt-exact-target", "artifact:1"),
   gptAttachmentProviderDisplayName("甲.pdf", "job:another", "artifact:1"),
   "different jobs must not share an attachment Provider filename",
+);
+assert.equal(
+  normalizeGptProviderAttachmentLabel("approved(5).pdf", ["approved.pdf"]),
+  "approved.pdf",
+  "one Provider-only final numeric duplicate suffix must preserve approved attachment identity",
+);
+assert.equal(
+  normalizeGptProviderAttachmentLabel("approved(5)", ["approved"]),
+  "approved",
+  "the same final numeric suffix rule must apply to an attachment without an extension",
+);
+assert.equal(
+  normalizeGptProviderAttachmentLabel("approved(5).pdf", ["approved.pdf", "approved(5).pdf"]),
+  "approved(5).pdf",
+  "an explicitly approved numeric-parenthetical name must win before Provider suffix normalization",
+);
+assert.equal(
+  normalizeGptProviderAttachmentLabel("approved(copy).pdf", ["approved.pdf"]),
+  "approved(copy).pdf",
+  "a non-numeric parenthetical rename must remain unexpected",
 );
 
 const hiddenPopoverRejections = Object.freeze(Array.from({ length: 22 }, (_, index) => Object.freeze({
@@ -299,11 +322,15 @@ for (const driftField of ["targetRefHash", "documentRefHash"] as const) {
   }
 }
 
-const attachmentFacts = (ready: boolean, pending = false) => ({
+const attachmentFacts = (
+  ready: boolean,
+  pending = false,
+  observedLabel = providerAttachmentName("甲.pdf", "artifact:1"),
+) => ({
   "attachment-composer": { rawCount: 1, eligibleCount: 1 },
   "attachment-items": {
     rawCount: 1, eligibleCount: 1,
-    matches: [{ ariaLabel: providerAttachmentName("甲.pdf", "artifact:1") }],
+    matches: [{ ariaLabel: observedLabel }],
   },
   "attachment-uploading": { rawCount: ready ? 0 : 1, eligibleCount: ready ? 0 : 1 },
   "attachment-pending": { rawCount: pending ? 1 : 0, eligibleCount: pending ? 1 : 0 },
@@ -381,6 +408,41 @@ assert.deepEqual(uploadingFixture.waitDurations(), [2_000, 3_000],
 assert.equal(uploadingFixture.physicalMutations(), 0, "attachment reconciliation must remain read-only");
 assert.equal(uploaded.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
 assert.deepEqual(uploaded.proof.candidateCardinality, { raw: 1, eligible: 1 });
+
+const approvedProviderName = providerAttachmentName("甲.pdf", "artifact:1");
+const providerSuffixedName = approvedProviderName.replace(/(?=\.[^./]+$)/u, "(2)");
+const providerSuffixFixture = fakeBrowser((intent) => {
+  if (intent.kind === "observe") {
+    return coherentObservationPacket(intent, attachmentFacts(true, false, providerSuffixedName));
+  }
+  throw new Error(`PROVIDER_SUFFIX_RECONCILIATION_MUST_NOT_ACT:${intent.kind}`);
+});
+const providerSuffixReconciled = await execute(
+  "reconcile_gpt_attachment_set",
+  providerSuffixFixture.browser,
+  { files: [approvedAttachment], timeoutMs: 1_000 },
+);
+assert.equal(providerSuffixReconciled.status, "success",
+  providerSuffixReconciled.failureCode ?? "Provider duplicate suffix was not normalized");
+assert.equal(providerSuffixFixture.physicalMutations(), 0,
+  "Provider suffix normalization must remain a read-only comparison");
+
+const providerRenameFixture = fakeBrowser((intent) => {
+  if (intent.kind === "observe") {
+    return coherentObservationPacket(intent,
+      attachmentFacts(true, false, approvedProviderName.replace(/(?=\.[^./]+$)/u, "(copy)")));
+  }
+  throw new Error(`PROVIDER_RENAME_RECONCILIATION_MUST_NOT_ACT:${intent.kind}`);
+});
+const providerRenameRejected = await execute(
+  "reconcile_gpt_attachment_set",
+  providerRenameFixture.browser,
+  { files: [approvedAttachment], timeoutMs: 1_000 },
+);
+assert.equal(providerRenameRejected.status, "failed");
+assert.ok(providerRenameRejected.failureCode?.startsWith("GPT_ATTACHMENT_SET_MISMATCH:"),
+  "non-numeric Provider renames must still fail closed");
+assert.equal(providerRenameFixture.physicalMutations(), 0);
 
 let noLayoutCardReads = 0;
 const noLayoutAttachmentFixture = fakeBrowser((intent) => {

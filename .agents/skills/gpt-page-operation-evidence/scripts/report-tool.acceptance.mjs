@@ -13,7 +13,7 @@ import { captureTimePageRequirementSnapshot } from "./trace-page-requirements.mj
 
 const TOOL = resolve(new URL("./report-tool.mjs", import.meta.url).pathname);
 const REPO = resolve(new URL("../../../../", import.meta.url).pathname);
-const MATRIX = join(REPO, "src/capabilities/gpt/page-operation-matrix.json");
+const MATRIX = join(REPO, ".agents/skills/gpt-page-operation-evidence/references/page-operation-matrix.json");
 const localStable = (value) => Array.isArray(value) ? value.map(localStable)
   : value && typeof value === "object"
     ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, localStable(value[key])])) : value;
@@ -85,7 +85,10 @@ async function main() {
     taskStatus: "completed", taskReason: "private failure reason", taskBinding: rawTaskBinding,
     materials: rawMaterials, materialSetHash: localHash(JSON.stringify(localStable(rawMaterials))),
     sourceSnapshotId: localHash(JSON.stringify(localStable({ taskBinding: rawTaskBinding, materials: rawMaterials }))),
-    pageEvidenceContract: { path: "src/plugins/private/page-evidence-contract.json", sha256: localHash("contract") },
+    pageEvidenceContract: {
+      path: ".agents/skills/gpt-page-operation-evidence/references/product-flow-projections/private.json",
+      sha256: localHash("contract"),
+    },
     flowContractBinding: { files: [{ path: "src/plugins/private/index.ts", sha256: localHash("flow") }],
       digest: localHash("binding") }, flowContractDigest: localHash("flow-contract"),
     flowStatus: "OBSERVED_COMPLETE_PATH", terminalBranch: "task-action-complete",
@@ -258,9 +261,9 @@ async function main() {
   assert.equal(report.products.length, 40);
   assert.equal(hasForbiddenBinding(report), false);
   assert.ok(report.products.some((entry) => entry.productKey === "public_knowledge_article_pipeline/produce_article"
-    && entry.contractPath?.endsWith("page-evidence-contract.json")));
+    && entry.contractPath?.endsWith("product-flow-projections/public-knowledge-article-pipeline.json")));
   assert.ok(report.products.some((entry) => entry.productKey === "localization_static_catalog/produce_locale_catalog"
-    && entry.contractPath?.endsWith("page-evidence-contract.json")));
+    && entry.contractPath?.endsWith("product-flow-projections/localization-production.json")));
   assert.ok(report.products.some((entry) => entry.gaps.includes("PRODUCT_EVIDENCE_CONTRACT_NOT_IMPLEMENTED")));
   run(["validate", "--repo", REPO, "--matrix", MATRIX, "--report", reportPath]);
 

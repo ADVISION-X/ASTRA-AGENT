@@ -5,7 +5,6 @@ export const GPT_GROUP_PATH = `${GPT_ROOT}/ability-group.ts`;
 export const GPT_SCHEMA_PATH = `${GPT_ROOT}/schema.ts`;
 export const GPT_CHILD_TYPES_PATH = `${GPT_ROOT}/child-types.ts`;
 export const GPT_EVIDENCE_FACT_PATH = `${GPT_ROOT}/evidence-fact.ts`;
-export const GPT_PAGE_EVIDENCE_REPORT_PATH = "docs/项目方案/GPT页面操作子能力实证资料.json";
 export const GPT_SESSION_PATH = `${GPT_ROOT}/session/gpt-session-controller.ts`;
 export const GPT_CHILDREN_PATH = `${GPT_ROOT}/children`;
 export const gptChildHandlerPath = (id: string): string => `${GPT_CHILDREN_PATH}/${id}/handler.ts`;

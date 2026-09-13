@@ -215,7 +215,8 @@ await exerciseSubmit("gpt-proof-submit-third-turn", [], [],
   const fixture = fakeBrowser((intent) => {
     if (intent.kind === "readExactAssistantTurn") {
       assert.equal(intent.userTurnId, userTurnId);
-      return exactAssistantTurnReply(intent, "exact response");
+      return { ...exactAssistantTurnReply(intent, "exact response"),
+        currentUrl: "https://chatgpt.com/c/provider-canonicalized-after-submit" };
     }
     throw new Error(`UNEXPECTED_EXACT_CHECKPOINT_INTENT:${intent.kind}`);
   }, { initialUrl: conversationUrl });

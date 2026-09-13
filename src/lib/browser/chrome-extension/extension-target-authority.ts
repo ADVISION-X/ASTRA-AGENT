@@ -33,7 +33,7 @@ export class ExtensionTargetAuthority {
   private attachedTabId: number | null = null;
   private readonly createdTarget: ExtensionCreatedTarget;
   private readonly interactionReadiness: ExtensionInteractionReadiness;
-  private navigationPublication: Readonly<{ loaderId: string; promise: Promise<void> }> | null = null;
+  private navigationPublication: Promise<void> | null = null;
 
   public constructor(
     private readonly chromeApi: ExtensionChromeApi,
@@ -96,6 +96,7 @@ export class ExtensionTargetAuthority {
   ): Promise<void> {
     await this.debuggerRuntime.awaitPageReadPermission();
     if (this.activeTarget?.tabId !== tabId) return;
+    if (this.navigationPublication) return void await this.navigationPublication;
     const frame = await readExtensionMainFrame(this.debuggerRuntime, tabId);
     await this.publishMainFrameNavigation(frame.url, frame.loaderId);
   }
@@ -245,6 +246,18 @@ export class ExtensionTargetAuthority {
       : execute();
   }
 
+  public async retireInvalidCommandTarget(
+    error: unknown,
+    intentKind: string | null,
+  ): Promise<void> {
+    const reasonCode = error instanceof Error ? error.message : "";
+    if (!["BROWSER_DOCUMENT_INVALID", "BROWSER_ORIGIN_REJECTED", "BROWSER_TARGET_INVALID"]
+      .includes(reasonCode)
+      && !(reasonCode === "BROWSER_POSTCONDITION_FAILED"
+        && intentKind === "selectExactGptConversation")) return;
+    await this.releaseActiveTarget();
+  }
+
   private async createProductionCandidate(): Promise<ExtensionDebugTarget> {
     const created = await this.debuggerRuntime.createProductionTab(GPT_WEB_START_URL);
     if (!Number.isInteger(created.id)) throw new Error("BROWSER_TARGET_INVALID");
@@ -325,23 +338,40 @@ export class ExtensionTargetAuthority {
     const current = new URL(currentFrame.url);
     if (`${current.origin}${current.pathname}` === expected) return { targetRef: target.targetRef,
       documentRef: target.documentRef, navigationEpoch: target.navigationEpoch };
-    await this.debuggerRuntime.send(target.tabId, "Page.navigate", { url: expected });
-    const mainFrame = await readExtensionMainFrame(this.debuggerRuntime, target.tabId);
-    if (requireCanonicalGptConversationUrl(mainFrame.url) !== expected) {
-      throw new Error("BROWSER_POSTCONDITION_FAILED");
+    if (this.navigationPublication) throw new Error("BROWSER_TARGET_INVALID");
+    let releasePublication!: () => void;
+    const publication = new Promise<void>((resolve) => { releasePublication = resolve; });
+    this.navigationPublication = publication;
+    try {
+      await this.debuggerRuntime.send(target.tabId, "Page.navigate", { url: expected });
+      const mainFrame = await readExtensionMainFrame(this.debuggerRuntime, target.tabId);
+      if (requireCanonicalGptConversationUrl(mainFrame.url) !== expected) {
+        throw new Error("BROWSER_POSTCONDITION_FAILED");
+      }
+      const next = await this.publishMainFrameNavigation(mainFrame.url, mainFrame.loaderId, true);
+      return { targetRef: next.targetRef, documentRef: next.documentRef,
+        navigationEpoch: next.navigationEpoch };
+    } finally {
+      releasePublication();
+      if (this.navigationPublication === publication) this.navigationPublication = null;
     }
-    const next = await this.publishMainFrameNavigation(mainFrame.url, mainFrame.loaderId);
-    return { targetRef: next.targetRef, documentRef: next.documentRef, navigationEpoch: next.navigationEpoch };
   }
 
-  private async publishMainFrameNavigation(url: string, loaderId: string): Promise<ExtensionExactTarget> {
+  private async publishMainFrameNavigation(
+    url: string,
+    loaderId: string,
+    ownsPublication = false,
+  ): Promise<ExtensionExactTarget> {
     await this.debuggerRuntime.awaitPageReadPermission();
+    if (this.navigationPublication && !ownsPublication) {
+      await this.navigationPublication;
+      const published = this.activeTarget;
+      if (!published) throw new Error("BROWSER_TARGET_INVALID");
+      return published;
+    }
     const current = this.activeTarget;
     if (!current) throw new Error("BROWSER_TARGET_INVALID");
-    if (loaderId === this.activeLoaderId) {
-      if (this.navigationPublication?.loaderId === loaderId) await this.navigationPublication.promise;
-      return this.activeTarget ?? current;
-    }
+    if (loaderId === this.activeLoaderId) return current;
     try {
       requireGptWebPolicyForUrl(url);
     } catch (error) {
@@ -354,10 +384,7 @@ export class ExtensionTargetAuthority {
     const promise = this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(next, {
       claimOrigin: gptWebClaimOriginForUrl(url),
     }));
-    this.navigationPublication = { loaderId, promise };
-    try { await promise; } finally {
-      if (this.navigationPublication?.promise === promise) this.navigationPublication = null;
-    }
+    await promise;
     return next;
   }
 

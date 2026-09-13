@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { pageInputBindingValid } from "./page-input-binding.mjs";
 
 const SCHEMA = "gpt-page-operation-production-source.v1";
-const CONTRACT_SCHEMA = "product-page-evidence-contract.v1";
+const PROJECTION_SCHEMA = "gpt-page-operation-product-projection.v1";
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const SAFE_SEGMENT = /^[A-Za-z0-9_-]+$/u;
 
@@ -460,10 +460,13 @@ async function main() {
     || identity.request_hash !== row.request_hash || typeof identity.plugin_id !== "string"
     || !SAFE_SEGMENT.test(identity.plugin_id)
     || !Number.isSafeInteger(identity.plugin_version)) fail("PRODUCT_TASK_IDENTITY_MISMATCH", jobId);
-  const contractPath = join(repo, "src/plugins", identity.plugin_id, "page-evidence-contract.json");
+  const contractPath = join(repo,
+    ".agents/skills/gpt-page-operation-evidence/references/product-flow-projections",
+    `${identity.plugin_id}.json`);
   const contract = await json(contractPath, "PRODUCT_FLOW_CONTRACT_INVALID");
-  if (contract.schemaVersion !== CONTRACT_SCHEMA || contract.pluginId !== identity.plugin_id
-    || contract.pluginVersion !== identity.plugin_version || contract.owner !== identity.plugin_id
+  if (contract.schemaVersion !== PROJECTION_SCHEMA || contract.sourcePluginId !== identity.plugin_id
+    || contract.sourcePluginVersion !== identity.plugin_version
+    || contract.owner !== "gpt-page-operation-evidence"
     || contract.traceAuthority?.kind !== "durable-product-forensics"
     || contract.traceAuthority?.sequenceOwner !== "accepted-production-attempt"
     || contract.traceAuthority?.currentFlowSourcesRole !== "projection-only"

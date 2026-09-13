@@ -1,9 +1,9 @@
-# production-runtime 生产级施工图 V40
+# production-runtime 生产级施工图 V42
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v40",
+  "blueprintId": "agent-production-runtime-v42",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
@@ -142,7 +142,7 @@ Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为�
 
 - Agent Route Capability Manifest provider：version 4；只发布 current session 支持的 `product_id + action_id + task_contract_version + result_contract_version`；Product Profile、Skill、Prompt、Flow、实现名称、版本和 hash 均不得对外发布或参与任务身份；
 - Website Agent Task Result consumer dependency：version 9；
-- Xuanxue AI Production V6 consumer dependency：version 29。Runtime 唯一业务容量常量为 1，心跳、剩余领取、执行器与 claim 上限共同消费它；当前 active execution 与已有 staged result 但尚无 Website admission receipt 的同一 job 合并占用这一个席位，Browser action capacity 仍为 1。Runtime 只消费 Website 当前授权、有限 `retry_not_before`、三个 next action、包含 `provider_effect_identity_hash` 的 typed effect outcome 与 admission receipt；不得自行推导业务恢复。
+- Xuanxue AI Production V6 consumer dependency：version 31。Runtime 唯一业务容量常量为 1，心跳、剩余领取、执行器与 claim 上限共同消费它；当前 active execution 与已有 staged result 但尚无 Website admission receipt 的同一 job 合并占用这一个席位，Browser action capacity 仍为 1。Runtime 只消费 Website 当前授权、有限 `retry_not_before`、三个 next action、包含 `provider_effect_identity_hash` 的 typed effect outcome 与 admission receipt；不得自行推导业务恢复。
 
 consumer dependency 的 contract body 只能包含 contractId、version、providerRepo。普通启动只校验本仓最小 dependency，不读取未绑定 Website 工作树；跨仓 participant commit 只属于 RELEASE 证据。
 
@@ -161,6 +161,8 @@ consumer dependency 的 contract body 只能包含 contractId、version、provid
 Website 在签发任务前唯一判断业务参数值是否合法。Runtime 先把 product_id/action_id 解析为有界字符串，再按 current route projection 与 Route Capability Manifest 精确解析；grant 不再冻结或比较任何 Product Plugin 身份。除此之外 Runtime 只校验 authenticated session/claim/grant/fence、task wire/schema/hash、当前 contract/projection/control contract version，以及 route/key/material/relation/result-contract 与当前 projection 的机械一致性；不得保存 `bazi_analysis_kind`、locale、localization resource kind、Product package/version 或 Bazi reusable candidate 的业务白名单，不得按 action 名推导 review/continuation，不得维护 `routeProducesGeneratedImage`、手写 Product/Action 支持表或硬编码 primary 数量。Product Plugin 通过 Product-facing execution contract 取得当前 task、materials、当前 Website route policy 与 GPT public facade，只校验完成自身执行所必需的局部 artifact、Skill 与 result 组装前置，不复判 Website 业务资格，也不读取 Runtime 私有 transport、store、lease、Outbox 或 recovery 模块。
 
 本地化 task 不再跨仓携带 `resource_kind`；`localization_report_translation + report_translation` 与 `localization_article_translation + article_translation` 已是唯一业务类型身份。Website 内部领域 `resource_kind` 继续由 Website 自己消费，不投影给 AGENT，也不建立 alias、映射或兼容字段。
+
+动态本地化 primary route 的 Provider payload 只使用 `terminal-localization-model-output.v2` 一份输出 schema，并只包含 `schema_version + source_resource_id + source_version + source_sha256 + target_locale + localized_structured_payload`。route 的 `product_id + action_id` 已由 task/result envelope 唯一携带，payload 禁止重复 `action_id`；Website `result_contract` 只以 `contract_version=3 + output_schema_version=terminal-localization-model-output.v2` 公开该格式，Product 原样写入 Prompt，AGENT 只机械核公开 schema 与 locked source/locale，Website staging 不复制本地化领域裁决，最终语义校验与 admission receipt 仍只属于 Website localization Domain Consumer。不保留 v1/v2 双读、fallback、compatibility、alias 或第二 parser。
 
 Website business admission receipt 只有三种互斥结构：
 
@@ -205,7 +207,7 @@ lease release 只使用一个由 `job_id + attempt_id + lease_version + payload_
 
 AGENT 不建立通用 checkpoint、跨任务 Provider session state 或第二恢复状态机。Browser 唯一 WAL 的同一 provider-effect 行只提供 at-most-once 与同-effect confirmed readback 所需加密 locator；Runtime 唯一 Outbox 只幂等交付同一 result。Website 以自身 staging、领域入库与 admission receipt 为准，已完整 staging 的结果继续由 Domain Consumer 入库，不回退 AGENT。
 
-`FROZEN-WORK-ORDER-HARD-DELETE-001` 冻结：管理员删除意味着 Website 业务需求不存在。Website 按 exact Work Order 物理删除其全部数据库行与私有对象，不保留 tombstone、cancel、archive、receipt 或在途 admission；AGENT 对已接受 job 的 Website absence 按 exact job_id 清除本地 task、Outbox、材料、结果、Browser WAL 与 Forensics artifact，停止所有轮询、交付和外部结果复用。已真实发送到外部 Provider 的消息及 Provider 自有日志、备份不在本系统可保证删除范围，但不得再读取、接纳或入库。只有授权人再次明确解冻并同步替换双仓法案、施工图、合同、实现与质检，才可改变本边界。
+`FROZEN-WORK-ORDER-UNFINISHED-PURGE-001` 冻结：管理员清除只撤销 exact Work Order 中没有有效 Website 领域 admission receipt 的未完成 job。Website 必须暂停并保留 Work Order 与全部完成闭包，物理删除未完成 job/run 及其独占记录和私有对象；AGENT 对自身已接受 job 的 Website absence 按 exact job_id 清除本地 task、Outbox、材料、结果、Browser WAL 与 Forensics artifact，停止该 job 的轮询、交付和外部结果复用，不得影响其它 job。已真实发送到 Provider 的消息及 Provider 自有日志、备份不在本系统可保证删除范围。只有授权人再次明确解冻并同步替换双仓施工图、合同、实现与质检，才可改变本边界；AGENT 现役法案无需修改，因为其 exact Website-absence 清算职责保持不变。
 
 付款、发布、删除、发货与正式业务记录修改不得放在可废弃 attempt 内；它们只在 Website 最终领域事务中按 `job_id` 幂等执行。禁止 recovery manager、planner、workflow、recovery queue、fallback、compatibility、legacy、bridge、shadow、第二 scheduler/store/state machine。
 

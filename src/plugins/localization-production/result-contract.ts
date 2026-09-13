@@ -14,7 +14,6 @@ export const parseProductResult = (task: WebsiteAgentTask, value: unknown, route
     return Object.freeze({ ...output, issues: Object.freeze([...issues]) });
   }
   if (output.schema_version !== route.result_schema_version) throw new Error("AGENT_RESULT_SCHEMA_VERSION_INVALID");
-  if (output.action_id !== task.product_id) throw new Error("LOCALIZATION_ACTION_ID_INVALID");
   result.locked(output, task, ["source_resource_id", "source_version", "source_sha256", "target_locale"]);
   result.object(output.localized_structured_payload, "LOCALIZATION_RESULT_PAYLOAD_REQUIRED");
   return Object.freeze(output);

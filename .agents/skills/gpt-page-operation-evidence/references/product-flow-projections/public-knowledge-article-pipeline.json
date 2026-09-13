@@ -1,7 +1,8 @@
 {
-  "schemaVersion": "product-page-evidence-contract.v1",
-  "owner": "public-knowledge-article-pipeline",
-  "pluginId": "public-knowledge-article-pipeline",
+  "schemaVersion": "gpt-page-operation-product-projection.v1",
+  "owner": "gpt-page-operation-evidence",
+  "sourcePluginId": "public-knowledge-article-pipeline",
+  "sourcePluginVersion": 1,
   "traceAuthority": {
     "kind": "durable-product-forensics",
     "sequenceOwner": "accepted-production-attempt",
