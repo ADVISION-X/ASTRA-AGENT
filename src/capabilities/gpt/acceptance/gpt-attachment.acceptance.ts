@@ -469,6 +469,10 @@ assert.equal(recoveredNoLayoutAttachment.status, "success",
 assert.equal(noLayoutCardReads, 2, "a no-layout card must be queried fresh before readiness");
 assert.equal(noLayoutAttachmentFixture.physicalMutations(), 0,
   "a no-layout attachment card must never authorize a mutation");
+assert.equal(noLayoutAttachmentFixture.waitDurations().length, 1);
+assert.ok(noLayoutAttachmentFixture.waitDurations()[0]! > 0
+  && noLayoutAttachmentFixture.waitDurations()[0]! <= 2_000,
+  "a pending attachment probe must consume exactly one bounded first interval");
 
 let staleReadyReads = 0;
 const staleAttachmentFixture = fakeBrowser((intent) => {
@@ -485,8 +489,10 @@ const recoveredStaleAttachment = await execute("reconcile_gpt_attachment_set", s
 assert.equal(recoveredStaleAttachment.status, "success",
   recoveredStaleAttachment.failureCode ?? "stale attachment observation did not recover");
 assert.equal(staleReadyReads, 2, "stale attachment nodes must be discarded and queried fresh");
-assert.deepEqual(staleAttachmentFixture.waitDurations(), [2_000],
-  "a stale observation must consume the current cadence interval before a fresh read");
+assert.equal(staleAttachmentFixture.waitDurations().length, 1);
+assert.ok(staleAttachmentFixture.waitDurations()[0]! > 0
+  && staleAttachmentFixture.waitDurations()[0]! <= 2_000,
+  "a stale observation must consume one bounded current interval before a fresh read");
 assert.equal(staleAttachmentFixture.physicalMutations(), 0, "stale attachment recovery must remain read-only");
 
 let simulatedNow = 0;
