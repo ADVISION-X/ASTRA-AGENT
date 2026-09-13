@@ -7,12 +7,10 @@ import { executionFailure } from "../../lib/execution-failure.js";
 
 const TARGET_LOCALES = new Set(["zh-HK", "zh-TW", "en-US", "ja-JP", "ko-KR"]);
 const HASH = /^sha256:[a-f0-9]{64}$/u;
-const SELECTION_REASONS = new Set([
-  "meaning-and-action-preserved",
-  "candidate-quality-preferred",
-  "identical-byte-match",
-  "blocking-finding",
-]);
+export const SELECTOR_REASON_CODES = Object.freeze({
+  blind_label: Object.freeze(["meaning-and-action-preserved", "candidate-quality-preferred"]), identical: Object.freeze(["identical-byte-match"]),
+  blocked: Object.freeze(["blocking-finding"]),
+} as const);
 
 type TargetLocale = "zh-HK" | "zh-TW" | "en-US" | "ja-JP" | "ko-KR";
 export type CandidateRole = "candidate_a" | "candidate_b";
@@ -98,17 +96,16 @@ export interface BlindMapping {
   readonly nonce_ref: string;
 }
 
-export interface SelectorOutputItem {
-  readonly message_id: string;
-  readonly selection: string;
-  readonly reason_code: string;
-}
-
 export interface SelectorOutput {
   readonly schema_version: "target-language-selector-output.v1";
   readonly locale: TargetLocale;
   readonly pass: "first";
-  readonly selections: readonly SelectorOutputItem[];
+  readonly selections: readonly Readonly<{ message_id: string; selection: string; reason_code: string }>[];
+}
+
+export function selectorReasonAllowed(selection: string, reason: string, labels: ReadonlySet<string>): boolean {
+  const kind = labels.has(selection) ? "blind_label" : selection === "identical" || selection === "blocked" ? selection : null;
+  return kind !== null && SELECTOR_REASON_CODES[kind].some((code) => code === reason);
 }
 
 export function fail(code: string): never {
@@ -314,8 +311,7 @@ export function parseSelector(value: Readonly<Record<string, unknown>>, context:
     exact(item, ["message_id", "selection", "reason_code"], "LOCALIZATION_STATIC_SELECTOR_ITEM_FIELDS_INVALID");
     const selection = stringValue(item.selection, "LOCALIZATION_STATIC_SELECTOR_SELECTION_INVALID");
     const reason = stringValue(item.reason_code, "LOCALIZATION_STATIC_SELECTOR_REASON_INVALID");
-    if ((!labels.has(selection) && selection !== "identical" && selection !== "blocked")
-      || !SELECTION_REASONS.has(reason)) fail("LOCALIZATION_STATIC_SELECTOR_SELECTION_INVALID");
+    if (!selectorReasonAllowed(selection, reason, labels)) fail("LOCALIZATION_STATIC_SELECTOR_SELECTION_INVALID");
     return { message_id: stringValue(item.message_id, "LOCALIZATION_STATIC_SELECTOR_ITEM_INVALID"),
       selection, reason_code: reason };
   });

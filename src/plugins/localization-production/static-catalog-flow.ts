@@ -16,7 +16,7 @@ import {
   parseCandidate,
   parseInput,
   parseContext,
-  parseSelector,
+  parseSelector, SELECTOR_REASON_CODES, selectorReasonAllowed,
   sameStrings,
   type BlindMapping,
   type CandidateItem,
@@ -114,6 +114,7 @@ function blindMapping(task: WebsiteAgentTask, context: ContextBundle, a: Candida
 function selectorPrompt(context: SharedExecutionContext, selectorInputJson: string): string {
   return [context.productSkill.text, "", "当前职责：独立盲选器。候选身份已隐藏。不得推断生产者，不得重写任何候选文案。",
     "逐条选择更忠实、自然且满足上下文机械合同的 blind_label；字节完全相同可选 identical；不能安全选择则 blocked。",
+    `reason_code 必须严格按 selection 使用此唯一映射：${JSON.stringify(SELECTOR_REASON_CODES)}；blind_label 代表输入中的任一 blind_label。`,
     "冻结盲选输入 JSON：", selectorInputJson,
     "只返回一个 JSON 对象：schema_version=target-language-selector-output.v1、locale、pass=first、selections。",
     "selections 必须与上下文消息同顺序同数量；每项只能有 message_id、selection、reason_code。不要代码围栏。",
@@ -165,22 +166,12 @@ function resolveFormalSelection(
   b: CandidateItem,
   mapping: BlindMapping,
 ): FormalSelection {
-  if (choice.selection === "identical") {
-    if (a.text !== b.text || choice.reason_code !== "identical-byte-match") {
-      fail("LOCALIZATION_STATIC_SELECTOR_IDENTICAL_INVALID");
-    }
-    return "identical";
-  }
-  if (choice.selection === "blocked") {
-    if (choice.reason_code !== "blocking-finding") fail("LOCALIZATION_STATIC_SELECTOR_BLOCK_INVALID");
-    return "blocked";
-  }
-  const mapped = mapping.first_pass_candidates
-    .find((item) => item.blind_label === choice.selection)?.candidate_role;
-  if (!mapped || !["meaning-and-action-preserved", "candidate-quality-preferred"].includes(choice.reason_code)) {
-    fail("LOCALIZATION_STATIC_SELECTOR_CHOICE_INVALID");
-  }
-  return mapped;
+  const labels = new Set(mapping.first_pass_candidates.map((item) => item.blind_label));
+  if (!selectorReasonAllowed(choice.selection, choice.reason_code, labels)) fail("LOCALIZATION_STATIC_SELECTOR_CHOICE_INVALID");
+  if (choice.selection === "identical" && a.text !== b.text) fail("LOCALIZATION_STATIC_SELECTOR_IDENTICAL_INVALID");
+  if (choice.selection === "identical" || choice.selection === "blocked") return choice.selection;
+  return mapping.first_pass_candidates.find((item) => item.blind_label === choice.selection)?.candidate_role
+    ?? fail("LOCALIZATION_STATIC_SELECTOR_CHOICE_INVALID");
 }
 
 function formalizeSelection(input: Readonly<{

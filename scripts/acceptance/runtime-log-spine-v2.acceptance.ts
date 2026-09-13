@@ -243,9 +243,12 @@ const browserFailureLogger = createRuntimeLogger({
   fileSink: { directoryPath: browserFailureRoot },
 });
 new BrowserRuntimeLogEmitter(browserFailureLogger, () => 7)
+  .failure("BROWSER_DOM_CANDIDATE_MISSING", "command-handler");
+new BrowserRuntimeLogEmitter(browserFailureLogger, () => 7)
   .failure("BROWSER_DEVTOOLS_CONFLICT", "extension-runtime", "CHROME_DEBUGGER_CANCELED_BY_USER");
 const browserFailureEvents = readFileSync(browserFailureLogger.currentSegmentPath()!, "utf8").trim().split("\n")
   .map((line) => JSON.parse(line) as RuntimeLogEventV2);
+assert.equal(browserFailureEvents.length, 2, "command-handler diagnostic must not duplicate the command failure");
 const browserFailureTerminal = browserFailureEvents.find((event) => event.kind === "span.terminal");
 assert.equal(browserFailureTerminal?.kind, "span.terminal");
 assert.equal(browserFailureTerminal?.kind === "span.terminal"

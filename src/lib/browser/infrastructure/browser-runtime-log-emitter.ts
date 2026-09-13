@@ -10,6 +10,7 @@ export class BrowserRuntimeLogEmitter {
   ) {}
 
   public failure(reasonCode: string, subjectId: string, nativeCauseCode?: string): void {
+    if (subjectId === "command-handler") return;
     const span = requireRuntimeLogWrite(this.logger.startSpan({
       traceId: `browser-session:${this.connectionGeneration()}`, owner: "browser-session",
       component: "browser-infrastructure", operation: "browser.infrastructure",

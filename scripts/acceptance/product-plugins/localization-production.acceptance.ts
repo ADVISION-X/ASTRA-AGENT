@@ -2,6 +2,7 @@ import { governanceAssert as assert } from "../../audit/shared/governance-exam-a
 import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
 import { productionRoutePolicies } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { hashCanonical, sha256 } from "../../../src/mediator/product-plugin-contract.js";
+import { parseSelector, SELECTOR_REASON_CODES } from "../../../src/plugins/localization-production/static-catalog-contract.js";
 import { buildProductTask, exerciseProductFlow, FIXTURE_HASH, routesForPlugin } from "../product-plugin-test-runtime.js";
 
 const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "localization-production");
@@ -168,6 +169,12 @@ assert.deepEqual(staticReasoningCalls.map((call) => ({
   },
 ]);
 assert.equal(staticRun.physicalSubmitDispatches, 3);
+const selectorWrite = staticRun.calls.find((call) => call.child === "write_exact_gpt_prompt" && call.productStepId.endsWith(":selector"));
+assert(selectorWrite?.child === "write_exact_gpt_prompt");
+assert.match(String(selectorWrite.input.prompt), new RegExp(JSON.stringify(SELECTOR_REASON_CODES).replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"));
+assert.throws(() => parseSelector({ schema_version: "target-language-selector-output.v1", locale: "en-US", pass: "first",
+  selections: [{ message_id: "fixture.hello", selection: "option_1", reason_code: "fidelity" }] }, contextBundle as never,
+{ first_pass_candidates: [{ blind_label: "option_1" }, { blind_label: "option_2" }] } as never), /LOCALIZATION_STATIC_SELECTOR_SELECTION_INVALID/u);
 const staticPayload = staticRun.completed.payload as Readonly<Record<string, unknown>>;
 assert.equal(staticPayload.schema_version, "localization-static-catalog-result.v2");
 assert.equal(staticPayload.decision, "production_approved");
