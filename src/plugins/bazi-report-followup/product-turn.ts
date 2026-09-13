@@ -16,7 +16,11 @@ import {
 import type { ProductGptAnyCallInput, ProductGptChildResult } from "../../capabilities/gpt/index.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 import { parseProductResult } from "./result-contract.js";
-import { baziRevisionInstruction } from "../bazi-revision-instruction.js";
+
+const baziRevisionInstruction = (context: SharedExecutionContext): readonly string[] =>
+  context.resultRevision.revision === 0 ? [] : Object.freeze([
+    `Website 已授权结果修订 ${context.resultRevision.revision}；只修正该拒绝回执指出的问题：${JSON.stringify(context.resultRevision.priorRejection)}`,
+  ]);
 
 export const PLUGIN_ID = "bazi-report-followup";
 export const PRODUCT_INSTRUCTION = "根据本次已入场的父报告材料回答新的冻结问题，保持父报告、人物、命盘候选与证据边界。";

@@ -19,6 +19,7 @@ try {
   let acquisitions = 0;
   let selections = 0;
   let parks = 0;
+  let closes = 0;
   const lifecycleEvents: string[] = [];
   const providerEffectIdentityHash = `sha256:${"8".repeat(64)}` as const;
   const browser = {
@@ -34,7 +35,7 @@ try {
     }),
     executeDomIntent: async () => { selections += 1; },
     park: async () => { parks += 1; lifecycleEvents.push("park"); },
-    close: async () => undefined,
+    close: async () => { closes += 1; lifecycleEvents.push("close"); },
   };
   const lifecycle = new ProductionGptBrowserLifecycle(
     { acquireJobBoundTargetLease: async () => {
@@ -95,15 +96,15 @@ try {
   assert.equal(await lifecycle.browserFor(
     "session:next", "research-next", "text-next",
   ), next, "the same logical Provider turn must reuse its one active Browser lease");
-  assert.deepEqual([acquisitions, selections, parks], [2, 0, 1],
-    "a settled turn must park exactly once before the next turn acquires fresh Browser authority");
-  assert.deepEqual(lifecycleEvents, ["acquire", "park", "acquire"],
+  assert.deepEqual([acquisitions, selections, parks, closes], [2, 0, 0, 1],
+    "a settled turn must close exactly once before the next turn acquires fresh Browser authority");
+  assert.deepEqual(lifecycleEvents, ["acquire", "close", "acquire"],
     "the next Provider turn must acquire only after the settled prior turn releases Browser");
   const nextFailure = new Error("NEXT_PROVIDER_TURN_FAILED");
   assert.equal(lifecycle.decorateSettledResultFailure(nextFailure), nextFailure,
     "the prior settled result must not classify failures from the newly active Provider turn");
   await lifecycle.settle(null);
-  assert.deepEqual([acquisitions, selections, parks], [2, 0, 2],
+  assert.deepEqual([acquisitions, selections, parks, closes], [2, 0, 0, 2],
     "product settlement must release only the currently active Browser lease");
   const waitEvents = (await readFile(runtimeLogger.currentSegmentPath()!, "utf8")).trim().split("\n")
     .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>)

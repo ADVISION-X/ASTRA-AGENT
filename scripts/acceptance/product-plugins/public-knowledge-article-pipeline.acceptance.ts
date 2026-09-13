@@ -7,7 +7,7 @@ import { productionRoutePolicy } from "../../../src/lib/local-runtime/production
 import { browserProviderEffectIdentityHash } from
   "../../../src/lib/browser/exact-target/browser-command-postcondition.js";
 import { hashCanonical } from "../../../src/mediator/product-plugin-contract.js";
-import { GPT_CHILD_CAPABILITY_CONTRACTS } from "../../../src/capabilities/gpt/contract.js";
+import { GPT_CHILD_CAPABILITY_CONTRACTS } from "../../../src/capabilities/gpt/index.js";
 import { parsePublicKnowledgeArticle, parsePublicKnowledgeResearch, publicKnowledgeTurnContract } from "../../../src/plugins/public-knowledge-article-pipeline/result-contract.js";
 import {
   exerciseSeoAttachmentReconcileFailure,

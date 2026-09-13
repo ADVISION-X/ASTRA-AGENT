@@ -159,7 +159,7 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     if (!jobId || /[\0]/u.test(jobId)) {
       throw executionFailure("failed", "PRODUCTION_STORAGE_JOB_ID_INVALID");
     }
-    await this.outboxDeliveryTail.catch(() => undefined);
+    await this.outboxDeliveryTail;
     const transaction = this.database.transaction(() => {
       this.database.prepare("delete from production_outbox where instr(path,?)>0")
         .run(jobPathMarker(jobId));

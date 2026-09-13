@@ -89,6 +89,9 @@ export const GPT_CHILD_CAPABILITY_IDS = Object.freeze(
 export const GPT_CHILD_CAPABILITY_CONTRACTS: Readonly<Record<GptChildCapabilityId, ChildCapabilityContract>> =
   Object.freeze(GPT_CHILD_CONTRACTS);
 
+export const gptCanonicalHash = (value: unknown): `sha256:${string}` =>
+  `sha256:${createHash("sha256").update(JSON.stringify(value)).digest("hex")}`;
+
 type GptChildExecutionIdentity = Readonly<{
   executionId: string;
   jobId: string;

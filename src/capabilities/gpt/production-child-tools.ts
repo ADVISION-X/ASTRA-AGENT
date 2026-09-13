@@ -8,6 +8,7 @@ import {
   type GptChildCapabilityResult,
 } from "./contract.js";
 import { gptExactCallIdentityHash } from "./contract.js";
+import { gptCanonicalHash } from "./contract.js";
 import {
   RuntimeFailureImpact,
   requireRuntimeLogWrite,
@@ -18,7 +19,6 @@ import {
   type RuntimeSpanHandle,
 } from "../../lib/runtime-logs/index.js";
 import { executionFailure, failureCode, typedExecutionFailure } from "../../lib/execution-failure.js";
-import { hashCanonical } from "../../lib/local-runtime/production/contracts.js";
 import {
   browserExactCallIdentityHash,
   type BrowserExactCallMutationFact,
@@ -161,7 +161,7 @@ export class ProductionGptChildTools {
     call: ProductGptCallInput<K>,
     attemptId: string,
   ): GptChildCapabilityIntent<K> {
-    const inputHash = hashCanonical(call.input);
+    const inputHash = gptCanonicalHash(call.input);
     const identity = {
       jobId: execution.jobId,
       attemptId,

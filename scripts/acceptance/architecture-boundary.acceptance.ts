@@ -10,7 +10,7 @@ import {
   agentRouteCapabilityManifest,
 } from "../../src/lib/local-runtime/production/catalog.js";
 import {
-  productRouteCatalogSnapshot,
+  productPluginCatalogSnapshot,
   productionPluginCatalog,
   productionCatalogHash,
 } from "../../src/mediator/product-plugin-catalog.js";
@@ -39,8 +39,8 @@ const testIds = readdirSync(testDirectory)
 
 assert(catalogIds.length > 0, "the current Catalog must publish at least one Product Plugin");
 assert.equal(agentRouteCapabilityManifest.route_hash, productionCatalogHash);
-assert.equal(agentRouteCapabilityManifest.routes.length, productRouteCatalogSnapshot.length);
-for (const [index, route] of productRouteCatalogSnapshot.entries()) {
+assert.equal(agentRouteCapabilityManifest.routes.length, productPluginCatalogSnapshot.length);
+for (const [index, route] of productPluginCatalogSnapshot.entries()) {
   const published = agentRouteCapabilityManifest.routes[index]!;
   assert.equal(published.product_id, route.product_id);
   assert.equal(published.action_id, route.action_id);
@@ -79,7 +79,7 @@ for (const [checkId, source] of mutants) {
     `${source} must emit ${checkId}`);
 }
 
-const recoveryAuthorityMutants: ReadonlyArray<readonly [string, string, string]> = [
+const authorityBoundaryCases: ReadonlyArray<readonly [string, string, string]> = [
   ["src/plugins/public-knowledge-article-pipeline/business-recovery-mutant.ts",
     "architecture/product-business-recovery-decision-contract",
     "export interface ProductRecoveryResult { shouldRetry: boolean; retryAfterSeconds: number; nextAttempt: string; stopDemand: boolean; }"],
@@ -90,7 +90,7 @@ const recoveryAuthorityMutants: ReadonlyArray<readonly [string, string, string]>
     "architecture/business-recovery-authority-dependency",
     "import { decide } from './business-recovery-planner.js'; export const value = decide();"],
 ];
-for (const [filePath, checkId, source] of recoveryAuthorityMutants) {
+for (const [filePath, checkId, source] of authorityBoundaryCases) {
   const project = new Project({ tsConfigFilePath });
   project.createSourceFile(resolve(filePath), source);
   const findings: Parameters<typeof inspectBusinessRecoveryAuthorityBoundaries>[0]["findings"] = [];

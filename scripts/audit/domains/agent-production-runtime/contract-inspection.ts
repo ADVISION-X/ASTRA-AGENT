@@ -108,16 +108,19 @@ const inspectCredentialAndDurableTypes = (context: InspectorContext, findings: I
   }
   const taskState = read(context, PATHS.taskState);
   if (!taskState.includes("existing.current_attempt_id === attemptId")
-    || !taskState.includes("set identity_json=?,current_attempt_id=?")
-    || taskState.includes("identity.catalog_hash")) {
+    || !taskState.includes("current_attempt_id=?,current_reason='ATTEMPT_ACCEPTED'")
+    || taskState.includes("identity_json") || taskState.includes("identity.catalog_hash")) {
     findings.push(finding(LAWS.core, "agent-production-runtime/attempt-identity-rotation", PATHS.taskState,
       "Task state does not strictly resume one attempt and atomically rebind a failed task on a new attempt."));
   }
   const store = sourceFor(context, PATHS.store);
   const taskFields = store?.getInterface("StoredProductionTask")?.getProperties().map((item) => item.getName()) ?? [];
   const outboxFields = store?.getInterface("ProductionOutboxWrite")?.getProperties().map((item) => item.getName()) ?? [];
-  if (!["task", "identity", "status", "current_attempt_id", "current_reason"].every((key) => taskFields.includes(key))
-    || !["idempotency_key", "kind", "path", "body"].every((key) => outboxFields.includes(key))) {
+  if (!["task", "status", "result", "staged_result", "attempt_failure", "current_attempt_id",
+    "current_reason", "updated_at"].every((key) => taskFields.includes(key))
+    || taskFields.includes("identity")
+    || !["idempotency_key", "kind", "path", "method", "headers", "body"]
+      .every((key) => outboxFields.includes(key))) {
     findings.push(finding(LAWS.core, "agent-production-runtime/durable-contract", PATHS.store,
       "Runtime durable task and Outbox contracts are incomplete."));
   }

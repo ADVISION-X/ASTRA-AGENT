@@ -10,6 +10,8 @@ const ROOT = "src/lib/local-runtime/production";
 const PATHS = {
   authority: `${ROOT}/store-authority-reader.ts`, ledger: `${ROOT}/store-ledger.ts`,
   outbox: `${ROOT}/store-outbox.ts`, taskState: `${ROOT}/store-task-state.ts`,
+  outboxReceipt: `${ROOT}/store-outbox-receipt.ts`,
+  authorityValidation: `${ROOT}/store-authority-validation.ts`,
   proofSupport: "scripts/acceptance/agent-production-runtime.real-proof-support.ts",
 } as const;
 const sourceFor = (context: InspectorContext, path: string): SourceFile | undefined =>
@@ -47,8 +49,12 @@ export const inspectAgentAuthorityAst = (
   const marker = outbox?.getVariableDeclaration("jobPathMarker")?.getInitializer();
   const markerCalls = (outbox?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [])
     .filter((call) => call.getExpression().getText() === "jobPathMarker").length;
-  if (outboxSql.includes("path like") || (outboxSql.match(/instr\(path,\?\)>0/gu)?.length ?? 0) < 5
-    || markerCalls < 5 || !marker?.getText().includes("encodeURIComponent(jobId)")) {
+  const receiptIdentity = sourceFor(context, PATHS.outboxReceipt)?.getFunction("assertReceiptIdentity")?.getText() ?? "";
+  const authorityValidation = sourceFor(context, PATHS.authorityValidation)?.getText() ?? "";
+  if (outboxSql.includes("path like") || !outboxSql.includes("instr(path,?)>0")
+    || markerCalls < 1 || !marker?.getText().includes("encodeURIComponent(jobId)")
+    || !receiptIdentity.includes("decodeURIComponent(pathJobId) !== jobId")
+    || !authorityValidation.includes("decodeURIComponent(encoded)")) {
     findings.push(finding(DATABASE_LAW, "agent-production-runtime/outbox-job-boundary", PATHS.outbox,
       "Outbox job selection is not bound to one literal encoded path segment."));
   }

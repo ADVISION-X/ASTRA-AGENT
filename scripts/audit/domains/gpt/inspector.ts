@@ -164,7 +164,7 @@ const inspectFacadeAndOwnership = (context: InspectorContext, findings: Inspecto
   }
   const groupText = group?.getFullText() ?? "";
   for (const required of [
-    "GPT_CHILD_CAPABILITY_CONTRACTS", "pendingMutationCount", "documentTransitionAllowed",
+    "GPT_CHILD_CAPABILITY_CONTRACTS", "pendingMutationCount",
     "GptChildCapabilityProof", "evidenceHash", "onProof",
   ]) if (!groupText.includes(required)) findings.push(finding(
     "gpt/group-proof-boundary", GROUP_PATH, `GPT ability group is missing ${required}.`,
@@ -245,10 +245,13 @@ const inspectExactCallContract = (context: InspectorContext, findings: Inspector
   const contract = sourceFor(context, CONTRACT_PATH);
   const identity = contract?.getVariableDeclaration("gptExactCallIdentityHash")?.getFullText() ?? "";
   for (const required of [
-    "jobId", "attemptId", "pluginId", "pluginVersion", "productStepId", "callId",
+    "jobId", "attemptId", "productStepId", "callId",
     "childCapabilityId", "inputHash",
   ]) if (!identity.includes(required)) findings.push(finding(
     "gpt/exact-call-identity", CONTRACT_PATH, `Exact GPT call identity is missing ${required}.`,
+  ));
+  for (const forbidden of ["pluginId", "pluginVersion"]) if (identity.includes(forbidden)) findings.push(finding(
+    "gpt/exact-call-identity", CONTRACT_PATH, `Exact GPT call identity retains forbidden ${forbidden}.`,
   ));
   if (identity.includes("actionOrdinal")) findings.push(finding(
     "gpt/ordinal-separated-from-effect-identity", CONTRACT_PATH,

@@ -22,7 +22,11 @@ import {
 } from "../../lib/execution-failure.js";
 import { parseProductResult } from "./result-contract.js";
 import { MODEL_PROFILE, PLUGIN_ID, PRODUCT_INSTRUCTION } from "./product-identity.js";
-import { baziRevisionInstruction } from "../bazi-revision-instruction.js";
+
+const baziRevisionInstruction = (context: SharedExecutionContext): readonly string[] =>
+  context.resultRevision.revision === 0 ? [] : Object.freeze([
+    `Website 已授权结果修订 ${context.resultRevision.revision}；只修正该拒绝回执指出的问题：${JSON.stringify(context.resultRevision.priorRejection)}`,
+  ]);
 
 const WAIT_TIMEOUT_MS = 3_600_000;
 

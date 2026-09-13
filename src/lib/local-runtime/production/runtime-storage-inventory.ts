@@ -1,5 +1,5 @@
 import type { Dirent, Stats } from "node:fs";
-import { lstat, readdir, rm } from "node:fs/promises";
+import { lstat, readdir } from "node:fs/promises";
 import path from "node:path";
 
 import { executionFailure } from "../../execution-failure.js";
@@ -28,25 +28,6 @@ export function productionRuntimeTaskPath(dataDir: string, jobId: string): strin
     throw executionFailure("failed", "PRODUCTION_STORAGE_JOB_ID_INVALID");
   }
   return path.join(productionRuntimeTaskRoot(dataDir), jobId);
-}
-
-export async function purgeProductionRuntimeTask(dataDir: string, jobId: string): Promise<void> {
-  const taskPath = productionRuntimeTaskPath(dataDir, jobId);
-  let metadata: Stats;
-  try { metadata = await lstat(taskPath); }
-  catch (error) {
-    if (nativeCode(error) === "ENOENT") return;
-    return storageFailure("PRODUCTION_STORAGE_PURGE_UNREADABLE", error);
-  }
-  if (metadata.isSymbolicLink() || !metadata.isDirectory()) {
-    return storageFailure("PRODUCTION_STORAGE_PURGE_STRUCTURE_INVALID");
-  }
-  try { await rm(taskPath, { recursive: true, force: false }); }
-  catch (error) { return storageFailure("PRODUCTION_STORAGE_PURGE_FAILED", error); }
-  try { await lstat(taskPath); return storageFailure("PRODUCTION_STORAGE_PURGE_INCOMPLETE"); }
-  catch (error) {
-    if (nativeCode(error) !== "ENOENT") return storageFailure("PRODUCTION_STORAGE_PURGE_INCOMPLETE", error);
-  }
 }
 
 const nativeCode = (error: unknown): string | null =>

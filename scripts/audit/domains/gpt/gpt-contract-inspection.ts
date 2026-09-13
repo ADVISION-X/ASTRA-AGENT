@@ -253,10 +253,10 @@ const inspectChildDenominator = (
   inspectChildDirectories(context, directories, findings, finding);
   inspectHandlerRegistryProjection(context, ids, directories, findings, finding);
   const actualProfiles = profileDenominator(contract);
-  const expectedProfiles = { DOM_OBSERVATION: 2, PROVIDER_EFFECT_ONCE: 2, TARGET_LOCAL_MUTATION: 9 };
+  const expectedProfiles = { DOM_OBSERVATION: 3, PROVIDER_EFFECT_ONCE: 1, TARGET_LOCAL_MUTATION: 9 };
   if (JSON.stringify(actualProfiles) !== JSON.stringify(expectedProfiles)) findings.push(finding(
     "gpt/exact-child-profile-denominator", CONTRACT_PATH,
-    `GPT Child profiles must be exactly 2/2/9; found ${JSON.stringify(actualProfiles)}.`,
+    `GPT Child profiles must be exactly 3/1/9; found ${JSON.stringify(actualProfiles)}.`,
   ));
   return ids;
 };
@@ -329,26 +329,26 @@ const PROFILE_CONSUMERS = new Set([
   "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
   "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile",
 ]);
+const CONTRACT_V6_CHILDREN = new Set(["checkpoint_gpt_generated_image", "submit_exact_gpt_turn_once"]);
+const CONTRACT_V5_CHILDREN = new Set(["checkpoint_gpt_text_response"]);
 const CONTRACT_V4_CHILDREN = new Set([
-  "prepare_clean_gpt_chat", "write_exact_gpt_prompt", "checkpoint_gpt_generated_image",
-]);
-const CONTRACT_V5_CHILDREN = new Set([
-  "submit_exact_gpt_turn_once",
+  "prepare_clean_gpt_chat", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2", "write_exact_gpt_prompt",
 ]);
 const CONTRACT_V3_CHILDREN = new Set([
-  "checkpoint_gpt_text_response",
   ...PROFILE_CONSUMERS, "reconcile_gpt_attachment_set", "open_gpt_attachment_control",
 ]);
 
 const expectedContractVersion = (id: string): string => {
+  if (CONTRACT_V6_CHILDREN.has(id)) return "6";
   if (CONTRACT_V5_CHILDREN.has(id)) return "5";
   if (CONTRACT_V4_CHILDREN.has(id)) return "4";
   return CONTRACT_V3_CHILDREN.has(id) ? "3" : "2";
 };
 
 const INPUT_V2_CHILDREN = new Set([
-  ...PROFILE_CONSUMERS,
+  ...PROFILE_CONSUMERS, "submit_exact_gpt_turn_once",
 ]);
+const INPUT_V3_CHILDREN = new Set(["checkpoint_gpt_text_response", "checkpoint_gpt_generated_image"]);
 
 const inspectProfileSchema = (
   context: InspectorContext,
@@ -388,10 +388,11 @@ const inspectChildContractVersions = (
     const versionText = Node.isPropertyAssignment(version) ? version.getInitializer()?.getText() : null;
     const inputText = Node.isPropertyAssignment(inputSchema) ? inputSchema.getInitializer()?.getText() : null;
     const expectedVersion = expectedContractVersion(id);
-    const expectedInputSuffix = INPUT_V2_CHILDREN.has(id) ? ".input.v2\"" : ".input.v1\"";
+    const expectedInputVersion = INPUT_V3_CHILDREN.has(id) ? "v3" : INPUT_V2_CHILDREN.has(id) ? "v2" : "v1";
+    const expectedInputSuffix = `.input.${expectedInputVersion}\"`;
     if (versionText !== expectedVersion || !inputText?.endsWith(expectedInputSuffix)) findings.push(finding(
       "gpt/profile-v2-contract-cutover", CONTRACT_PATH,
-      `${id} must use contract/input ${expectedVersion}/${INPUT_V2_CHILDREN.has(id) ? "v2" : "v1"}; found ${versionText}/${inputText}.`,
+      `${id} must use contract/input ${expectedVersion}/${expectedInputVersion}; found ${versionText}/${inputText}.`,
       property.getStartLineNumber(),
     ));
   }
@@ -427,9 +428,8 @@ const inspectContractShape = (
   ));
   for (const proofField of [
     "schemaVersion", "childCapabilityId", "childContractVersion", "childStatus", "childReasonCode",
-    "exactCallIdentityHash", "internalDecisionCode", "executionId", "jobId", "attemptId", "pluginId",
-    "pluginVersion", "productStepId", "callId", "inputHash", "actionOrdinal", "targetRefHash",
-    "beforeDocumentRefHash", "afterDocumentRefHash", "authorityRefHashes", "factResultIds",
+    "exactCallIdentityHash", "internalDecisionCode", "executionId", "jobId", "attemptId",
+    "productStepId", "callId", "inputHash", "actionOrdinal", "authorityRefHashes", "factResultIds",
     "candidateCardinality", "observationRevisionHash", "committedMutation", "postconditionResult",
     "browserFact", "nativeFailureCode", "startedAt", "endedAt", "evidenceRef", "evidenceHash",
   ]) if (!contract.getInterface("GptChildCapabilityProof")?.getProperty(proofField)) findings.push(finding(

@@ -61,14 +61,14 @@ for (const plugin of productionPluginCatalog) {
   }
 }
 
-export const productRouteCatalogSnapshot: readonly ProductRouteCatalogEntry[] = Object.freeze(
+export const productPluginCatalogSnapshot: readonly ProductRouteCatalogEntry[] = Object.freeze(
   productionPluginCatalog.flatMap((plugin) => plugin.accepts.map((route) => Object.freeze({
     product_id: route.productId,
     action_id: route.actionId,
   }))),
 );
 
-const manifestProjection = productRouteCatalogSnapshot.map((route) => ({
+const manifestProjection = productPluginCatalogSnapshot.map((route) => ({
   product_id: route.product_id,
   action_id: route.action_id,
   task_contract_version: 1,

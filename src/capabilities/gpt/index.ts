@@ -3,6 +3,7 @@ export {
   createProductionGptChildTools,
 } from "./ability-group.js";
 export {
+  GPT_CHILD_CAPABILITY_CONTRACTS,
   type GptAbilityGroup,
   type GptApprovedFile,
 } from "./contract.js";

@@ -1,10 +1,38 @@
+import type { Stats } from "node:fs";
+import { lstat, rm } from "node:fs/promises";
+
 import { executionFailure } from "../../execution-failure.js";
 import { failureCode } from "../../execution-failure.js";
 import { hashCanonical } from "./contracts.js";
 import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import type { RuntimeState } from "./runtime-state.js";
 import type { StoredProductionTask } from "./store.js";
-import { purgeProductionRuntimeTask } from "./runtime-storage-inventory.js";
+import { productionRuntimeTaskPath } from "./runtime-storage-inventory.js";
+
+const nativeCode = (error: unknown): string | null =>
+  error && typeof error === "object" && "code" in error && typeof error.code === "string"
+    ? error.code : null;
+
+const purgeProductionRuntimeTask = async (dataDir: string, jobId: string): Promise<void> => {
+  const taskPath = productionRuntimeTaskPath(dataDir, jobId);
+  let metadata: Stats;
+  try { metadata = await lstat(taskPath); }
+  catch (error) {
+    if (nativeCode(error) === "ENOENT") return;
+    throw executionFailure("failed", "PRODUCTION_STORAGE_PURGE_UNREADABLE", { cause: error });
+  }
+  if (metadata.isSymbolicLink() || !metadata.isDirectory()) {
+    throw executionFailure("failed", "PRODUCTION_STORAGE_PURGE_STRUCTURE_INVALID");
+  }
+  try { await rm(taskPath, { recursive: true, force: false }); }
+  catch (error) { throw executionFailure("failed", "PRODUCTION_STORAGE_PURGE_FAILED", { cause: error }); }
+  try {
+    await lstat(taskPath);
+    throw executionFailure("failed", "PRODUCTION_STORAGE_PURGE_INCOMPLETE");
+  } catch (error) {
+    if (nativeCode(error) !== "ENOENT") throw error;
+  }
+};
 
 export const websiteJobAbsent = (error: unknown): boolean => {
   const code = failureCode(error, "");

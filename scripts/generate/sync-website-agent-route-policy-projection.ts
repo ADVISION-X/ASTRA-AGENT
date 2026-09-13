@@ -32,6 +32,7 @@ if (artifact.schema_version !== "website-agent-route-policies.v1"
 const identities = new Set<string>();
 const usedParameters = new Set<string>();
 let resultContractCount = 0;
+let reusableBaseReservationRouteCount = 0;
 for (const route of artifact.routes) {
   const routeKeys = ["product_id", "action_id", "required_parameter_keys",
     "material_roles", "result_schema_version", "relation_kind",
@@ -46,6 +47,10 @@ for (const route of artifact.routes) {
     throw new Error("WEBSITE_AGENT_ROUTE_POLICY_RESULT_CONTRACT_INVALID");
   }
   if (isRecord(route.result_contract)) resultContractCount += 1;
+  if (route.required_parameter_keys.includes("reusable_base_reservation_ref")
+    || route.required_parameter_keys.includes("reusable_base_reservation_hash")) {
+    reusableBaseReservationRouteCount += 1;
+  }
   if (identities.has(identity)) throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_DUPLICATE");
   identities.add(identity);
   for (const key of route.required_parameter_keys) {
@@ -63,6 +68,7 @@ for (const route of artifact.routes) {
 }
 if (identities.size !== 40 || Object.keys(artifact.parameter_types).length !== 46
   || resultContractCount !== 33
+  || reusableBaseReservationRouteCount !== 0
   || JSON.stringify([...usedParameters].sort()) !== JSON.stringify(Object.keys(artifact.parameter_types).sort())) {
   throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_DENOMINATOR_INVALID");
 }

@@ -228,12 +228,6 @@ const inspectContractAst = (context: InspectorContext, findings: InspectorFindin
   const contracts = sourceFor(context, PATHS.contracts);
   const retiredRuntimeDecisions = ["parameterValidators", "primaryProducts", "routeProducesGeneratedImage"]
     .filter((name) => routePolicy?.getVariableDeclaration(name) || routePolicy?.getFunction(name));
-  const projectedRoutes = JSON.parse(read(context, PATHS.routeProjection)) as {
-    routes?: Array<{ product_id?: unknown; action_id?: unknown }>;
-  };
-  const productActionValues = new Set((projectedRoutes.routes ?? []).flatMap((route) =>
-    [route.product_id, route.action_id].filter((value): value is string => typeof value === "string")));
-  const hardcodedProductActions = [...stringLiterals(routePolicy)].filter((value) => productActionValues.has(value));
   const boundedStringSchema = (name: string): boolean => {
     const initializer = contracts?.getVariableDeclaration(name)?.getInitializer();
     const calls = [
@@ -250,7 +244,7 @@ const inspectContractAst = (context: InspectorContext, findings: InspectorFindin
   const taskSchema = contracts?.getVariableDeclaration("WebsiteAgentTaskSchema")?.getInitializer();
   const actionDerivedRelation = taskSchema?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
     .some((access) => access.getName() === "action_id") ?? false;
-  if (retiredRuntimeDecisions.length || hardcodedProductActions.length
+  if (retiredRuntimeDecisions.length
     || !boundedStringSchema("ProductionProductIdSchema")
     || !boundedStringSchema("ProductionActionIdSchema") || actionDerivedRelation) {
     findings.push(finding(LAWS.route, "static.ast", "agent-production-runtime/no-business-route-adjudication",

@@ -4,12 +4,12 @@ import {
   type GptAnyChildCapabilityIntent,
   type GptChildCapabilityResult,
   type GptExecutionContext,
+  gptCanonicalHash,
 } from "./contract.js";
 import { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
 import type { ProductionGptBrowserCall } from "./production-browser-lifecycle.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 import type { BrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
-import { hashCanonical } from "../../lib/local-runtime/production/contracts.js";
 
 type AtomicGptCallInput = Readonly<{
   dataDir: string;
@@ -35,7 +35,7 @@ export const productionGptAtomicIdentity = (
     callId: intent.callId,
     childCapabilityId: intent.childCapabilityId,
     inputHash: replayPolicy === "provider-effect-once"
-      ? hashCanonical([resultRevision, intent.inputHash])
+      ? gptCanonicalHash([resultRevision, intent.inputHash])
       : intent.inputHash,
     actionOrdinal: intent.actionOrdinal,
     replayPolicy,
