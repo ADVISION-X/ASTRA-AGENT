@@ -2,7 +2,7 @@ import { buildGptExecutionProfile } from "../index.js";
 import { coherentObservationPacket } from "./gpt-exact-target-browser-fixture.js";
 import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
 
-export const { gpt, execute } = createGptAcceptanceHarness("gpt-exact-target");
+export const { execute } = createGptAcceptanceHarness("gpt-exact-target");
 
 export const profile = buildGptExecutionProfile({
   profileRef: "acceptance:gpt-profile",

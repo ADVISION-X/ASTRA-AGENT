@@ -188,21 +188,6 @@ export const dispatchPointerClickSequence = async (
   }
 };
 
-/** Browser-owned mechanical click used only inside a larger typed compound mutation. */
-export const executeRequiredCompoundClick = async (
-  runtime: ExtensionDebuggerRuntime,
-  target: ExtensionExactTarget,
-  intent: Pick<ClickIntent, "kind" | "selector" | "expectedText" | "expectedTextEquals" | "scope">,
-  assertCurrent: CurrentDocumentAssertion,
-): Promise<Readonly<Record<string, unknown>>> => {
-  const point = await pointerAction(runtime, target, intent as ClickIntent);
-  if ("failureCode" in point) return point;
-  await dispatchPointerClickSequence(runtime, target, point, [1], assertCurrent);
-  assertCurrent();
-  return Object.freeze({ clicked: true, candidateCount: 1, identityRevalidated: true,
-    mutationCount: 1, postconditionVerified: true });
-};
-
 const zeroActionIfSatisfied = async (
   runtime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,

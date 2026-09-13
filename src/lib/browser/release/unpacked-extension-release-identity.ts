@@ -2,7 +2,6 @@ import { readFile } from "node:fs/promises";
 
 import type { ExtensionDirectoryHashV1 } from "./extension-directory-hash-v1.js";
 
-export const GRASSEYE_UNPACKED_EXTENSION_DIRECTORY = ".grasseye-local/browser-build/extension";
 export const GRASSEYE_UNPACKED_EXTENSION_ID = "emkmbecadncngofidjgocmifhbonifgm";
 
 export type UnpackedExtensionReleaseIdentity = Readonly<{

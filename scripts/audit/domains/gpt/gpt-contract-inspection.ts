@@ -233,7 +233,7 @@ const inspectChildDenominator = (
   const ids = childIdsFromContract(contract);
   if (ids.length !== 13 || new Set(ids).size !== 13) findings.push(finding(
     "gpt/exact-child-denominator", CONTRACT_PATH,
-    `GPT_CHILD_CAPABILITY_IDS must derive exactly 13 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
+    `GPT_CHILD_CONTRACTS must define exactly 13 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
   ));
   inspectRequiredChildIds(ids, findings, finding);
   if (ids.includes("ensure_exact_gpt_model")) findings.push(finding(
@@ -244,10 +244,10 @@ const inspectChildDenominator = (
     "gpt/reasoning-requirement-v2-retired", CONTRACT_PATH,
     "The retired exact-only reasoning Child must not remain production-reachable.",
   ));
-  const denominator = contract.getVariableDeclaration("GPT_CHILD_CAPABILITY_IDS")?.getInitializer()?.getText() ?? "";
-  if (!denominator.includes("Object.keys(GPT_CHILD_CONTRACTS)")) findings.push(finding(
+  const denominator = contract.getVariableDeclaration("GPT_CHILD_CAPABILITY_CONTRACTS")?.getInitializer()?.getText() ?? "";
+  if (!denominator.includes("Object.freeze(GPT_CHILD_CONTRACTS)")) findings.push(finding(
     "gpt/denominator-derived-once", CONTRACT_PATH,
-    "GPT_CHILD_CAPABILITY_IDS must derive only from the unique GPT_CHILD_CONTRACTS registry.",
+    "The public Child contract projection must derive only from the unique GPT_CHILD_CONTRACTS registry.",
   ));
   const directories = childDirectoryIds(context);
   inspectChildDirectories(context, directories, findings, finding);

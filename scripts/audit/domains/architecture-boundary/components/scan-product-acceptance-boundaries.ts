@@ -1,6 +1,6 @@
 import { SyntaxKind, type Project, type SourceFile } from "ts-morph";
 
-import { GPT_CHILD_CAPABILITY_IDS } from "../../../../../src/capabilities/gpt/contract.js";
+import { GPT_CHILD_CAPABILITY_CONTRACTS } from "../../../../../src/capabilities/gpt/contract.js";
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../../shared/source-files.js";
@@ -14,7 +14,7 @@ const productAcceptancePrefix = "scripts/acceptance/product-plugins/";
 const centralPropertyAllowlist = new Set([
   "clauses", "cwd", "encoding", "env", "evidenceMode", "locator", "observedValue",
 ]);
-const gptChildIds = new Set<string>(GPT_CHILD_CAPABILITY_IDS);
+const gptChildIds = new Set<string>(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS));
 const businessRecoveryDecisionContractNames = new Set([
   "nextattempt", "nextattemptdecision", "recoveryowner", "resultrevisionrearm",
   "retryafter", "retryafterseconds", "shouldretry", "stopdemand",

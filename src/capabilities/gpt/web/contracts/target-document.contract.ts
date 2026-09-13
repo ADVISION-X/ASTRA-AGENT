@@ -21,10 +21,4 @@ export const canonicalGptConversationUrl = (value: string): string => {
 
 export const durableCanonicalGptConversationUrl = canonicalGptConversationUrl;
 
-export const durableGptConversationUrl = (value: string): string => {
-  const durable = durableCanonicalGptConversationUrl(value);
-  if (!durable) throw executionFailure("failed", "GPT_DURABLE_CONVERSATION_URL_INVALID");
-  return durable;
-};
-
 export const isGptRootUrl = (value: string): value is typeof GPT_ROOT_URL => value === GPT_ROOT_URL;

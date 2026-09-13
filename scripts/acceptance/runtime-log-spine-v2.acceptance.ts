@@ -17,10 +17,7 @@ import {
 } from "../../src/lib/runtime-logs/index.js";
 import type { RuntimeLogEventV2, RuntimeSpanFailureEvent, RuntimeSpanTerminalEvent } from
   "../../src/lib/runtime-logs/runtime-event-contract.js";
-import {
-  resetRuntimeTerminalProjectionForTest,
-  shouldProjectRuntimeEvent,
-} from "../../src/lib/runtime-logs/sinks.js";
+import { shouldProjectRuntimeEvent } from "../../src/lib/runtime-logs/sinks.js";
 import { BrowserRuntimeLogEmitter } from "../../src/lib/browser/infrastructure/browser-runtime-log-emitter.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
@@ -202,11 +199,11 @@ corruptedLines[corruptedLines.length - 1] = JSON.stringify({ ...corrupted, event
 writeFileSync(segmentPath, `${corruptedLines.join("\n")}\n`, "utf8");
 assert.equal(discoverRuntimeLogScope({ sources: [root] }).completeness, "DIAGNOSIS_INCOMPLETE");
 
-resetRuntimeTerminalProjectionForTest();
 const terminalEvent = events.find((event): event is RuntimeSpanFailureEvent =>
   event.kind === "span.terminal" && event.failure?.code === "BROWSER_POSTCONDITION_FAILED")!;
 const traceBlockingEvent: RuntimeSpanFailureEvent = {
   ...terminalEvent,
+  producerRunId: "runtime-log-projection-acceptance",
   visibility: "TRACE",
   traceId: "trace-blocking-command",
 };

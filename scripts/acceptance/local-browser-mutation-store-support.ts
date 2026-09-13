@@ -5,8 +5,6 @@ import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser
 export const hash = `sha256:${"a".repeat(64)}` as const;
 export const exactHash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
-export const valueHash = (value: unknown): `sha256:${string}` => exactHash(JSON.stringify(value));
-
 const identity = (commandId: string, attemptId: string) => ({
   commandId,
   exactCallIdentityHash: exactHash(`${attemptId}:${commandId}`),

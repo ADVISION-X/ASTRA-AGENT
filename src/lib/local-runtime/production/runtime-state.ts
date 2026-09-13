@@ -1,14 +1,8 @@
-import path from "node:path";
-
 import type { GptAbilityGroup } from "../../../capabilities/gpt/index.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../../capabilities/forensics-persistence/index.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
 import { executionFailure } from "../../execution-failure.js";
-import {
-  diagnoseRuntimeLog,
-  type RuntimeDiagnosis,
-  type RuntimeLogger,
-} from "../../runtime-logs/index.js";
+import type { RuntimeLogger } from "../../runtime-logs/index.js";
 import type { ProductionExecutionLease } from "./contracts.js";
 import type { ProductionExecutor } from "./executor.js";
 import type { ProductionRuntimeStore } from "./store.js";
@@ -34,16 +28,6 @@ export type RuntimeState = {
   stopped: boolean;
   ledgerReconciled: boolean;
 };
-
-export const diagnoseProductionRuntime = (
-  dataDir: string,
-  store: ProductionRuntimeStore,
-  jobId: string,
-): RuntimeDiagnosis => diagnoseRuntimeLog({
-  sources: [path.join(dataDir, "runtime-logs")],
-  traceId: jobId,
-  authorityResolver: (authorityRef, authorityHash) => store.resolveAuthority(authorityRef, authorityHash),
-});
 
 export const refreshLedgerReconciled = (state: RuntimeState): void => {
   state.ledgerReconciled = state.store.isLedgerConsistent(new Set(state.active.keys()));

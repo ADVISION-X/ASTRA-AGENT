@@ -156,11 +156,11 @@ const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] =>
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
     "src/lib/local-runtime/production/runtime-logging.ts", [
-      "operation: \"job.checkpoint\"", "operation: \"job.lease-release\"", "requireRuntimeLogWrite",
+      "operation: \"job.lease-release\"", "requireRuntimeLogWrite",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
     "src/lib/local-runtime/production/runtime-loops.ts", [
-      "operation: \"cloud.claim\"", "operation: \"outbox.flush\"", "state.runtimeLogger.isWritable()",
+      "operation: \"cloud.claim\"", "operation: \"website.result-consume\"", "state.runtimeLogger.isWritable()",
       "requireRuntimeLogWrite", "responsibleOwner: \"website\"",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
@@ -188,7 +188,7 @@ const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] =>
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "durable-state-authorities",
     "src/lib/local-runtime/production/store-foundation.ts", [
-      "production_steps", "production_checkpoints", "failure_json", "production-outbox:",
+      "production_tasks", "production_outbox", "attempt_failure_json", "production-outbox:",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "durable-state-authorities",
     "src/lib/local-runtime/production/store-authority-reader.ts", [
@@ -365,9 +365,11 @@ const inspectStructureContract = (context: InspectorContext): InspectorFinding[]
       "writerLockPath", "flag: \"wx\"", "RUNTIME_LOG_CAPACITY_BLOCKED",
     ]);
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "unique-diagnosis-cli",
-    "scripts/runtime-logs/inspect.ts", ["--job", "--source", "sources", "DIAGNOSIS_COMPLETE", "AMBIGUOUS_SCOPE"]);
+    "scripts/runtime-logs/inspect.ts", ["--job", "--source", "sources", "DIAGNOSIS_COMPLETE", "scope.status !== \"SELECTED\""]);
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "browser-authority-reconciliation",
-    "src/lib/browser/exact-target/browser-mutation-store.ts", ["reconciliationStates()", "from browser_mutations order by updated_at,command_id"]);
+    "src/lib/browser/exact-target/browser-mutation-store.ts", [
+      "dispatchedForBinding", "and state='DISPATCHED' order by updated_at,command_id",
+    ]);
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "strict-reader",
     "src/lib/runtime-logs/schema.ts", ["exactKeys", "runtimeLogEventShapeValid", "failureValid"]);
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "active-source-layout",

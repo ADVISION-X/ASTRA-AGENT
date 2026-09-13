@@ -1,19 +1,13 @@
 import {
   ControlIntentSchema,
-  UploadedResultReceiptSchema,
-  parseJsonEnvelope,
   type ControlIntent,
 } from "./transport-protocol.js";
 import {
   hashCanonical,
-  parseTerminalReceipt,
-  parseTerminalReceiptExpectation,
   type ProductionHash,
 } from "./contracts.js";
 import { ProductionWorkerSession } from "./worker-session.js";
-import type { ProductionOutboxWrite } from "./store.js";
 import { executionFailure } from "../../execution-failure.js";
-import { productionCloudFetch } from "./cloud-transport.js";
 
 type RemoteProductionWriteKind =
   | "checkpoint" | "artifact" | "terminal" | "cancel" | "lease_release" | "renew";
@@ -262,26 +256,3 @@ export async function readProductionDeviceJobStatus(
     write_receipts: Object.freeze((row.write_receipts as unknown[]).map(parseRemoteWriteReceipt)),
   });
 }
-
-export const sendProductionOutboxWrite = async (
-  session: ProductionWorkerSession,
-  write: ProductionOutboxWrite,
-): Promise<unknown> => {
-  if (write.kind === "artifact") {
-    const response = await productionCloudFetch(`${session.device.server_base_url.replace(/\/+$/u, "")}${write.path}`, {
-      method: write.method,
-      headers: await session.authorizationHeaders(write.headers),
-      body: Buffer.from(write.body),
-      signal: AbortSignal.timeout(120_000),
-    });
-    return UploadedResultReceiptSchema.parse(parseJsonEnvelope(await response.json() as unknown, response.status));
-  }
-  const response = await session.request(write.path, {
-    method: write.method,
-    headers: write.headers,
-    body: typeof write.body === "string" ? write.body : Buffer.from(write.body).toString("utf8"),
-  });
-  if (write.kind !== "terminal") return response;
-  const body = typeof write.body === "string" ? write.body : Buffer.from(write.body).toString("utf8");
-  return parseTerminalReceipt(response, parseTerminalReceiptExpectation(body));
-};

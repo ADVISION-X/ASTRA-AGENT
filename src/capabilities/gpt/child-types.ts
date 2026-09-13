@@ -24,7 +24,7 @@ export type GptReasoningRequirementResult = Readonly<{
   gptPostcondition: "passed" | "failed" | "pending";
 }>;
 
-export type GptApprovedFileInput = Readonly<{
+type GptApprovedFileInput = Readonly<{
   artifactRef: string;
   displayName: string;
   sha256: GptHash;
@@ -35,7 +35,7 @@ export type GptApprovedFile = GptApprovedFileInput & Readonly<{
   providerDisplayName: string;
 }>;
 
-export type GptPromptIdentity = Readonly<{
+type GptPromptIdentity = Readonly<{
   length: number;
   prefix: string;
   suffix: string;
@@ -146,13 +146,3 @@ export interface GptChildOutputMap {
 }
 
 export type GptChildCapabilityId = keyof GptChildInputMap & keyof GptChildOutputMap;
-
-export type GptChildCall<K extends GptChildCapabilityId> = Readonly<{
-  child: K;
-  input: GptChildInputMap[K];
-}>;
-
-export type GptChildSuccess<K extends GptChildCapabilityId> = Readonly<{
-  status: "success";
-  value: GptChildOutputMap[K];
-}>;

@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-
 import {
   gptAttachmentProviderDisplayName,
   type GptApprovedFile,
@@ -18,7 +16,6 @@ import type { ProductGptAnyCallInput, ProductGptChildResult } from "../../capabi
 import {
   executionFailure,
   failureCode,
-  typedExecutionFailure,
 } from "../../lib/execution-failure.js";
 import { parseProductResult } from "./result-contract.js";
 import { MODEL_PROFILE, PLUGIN_ID, PRODUCT_INSTRUCTION } from "./product-identity.js";
@@ -59,10 +56,6 @@ export const textValue = (value: unknown, code: string): string => {
 export const hashValue = (value: unknown, code: string): ProductionHash => {
   if (typeof value !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(value)) fail(code);
   return value as ProductionHash;
-};
-export const integerValue = (value: unknown, code: string): number => {
-  if (!Number.isSafeInteger(value) || Number(value) < 1) fail(code);
-  return Number(value);
 };
 export const markerFor = (task: WebsiteAgentTask): string =>
   `[GRASSEYE:${hashCanonical({
@@ -123,18 +116,6 @@ export const uploadedFilesForRoles = (context: SharedExecutionContext, roles: re
     sha256: file.sha256,
     bytes: file.bytes,
   }));
-
-export const materialJson = (context: SharedExecutionContext, role: string): Record<string, unknown> => {
-  const material = context.materials.filter((item) => item.role === role);
-  if (material.length !== 1 || !material[0]) fail(`PRODUCT_MATERIAL_REQUIRED:${role}`);
-  try {
-    const value = JSON.parse(readFileSync(material[0].local_path, "utf8")) as unknown;
-    return objectValue(value, `PRODUCT_MATERIAL_JSON_INVALID:${role}`);
-  } catch (error) {
-    if (typedExecutionFailure(error)) throw error;
-    throw executionFailure("failed", `PRODUCT_MATERIAL_JSON_INVALID:${role}`, { cause: error });
-  }
-};
 
 export const promptFor = (
   task: WebsiteAgentTask,

@@ -1,56 +1,6 @@
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
 import { createLocalFinding, requireSource, sourcePaths } from "./inspector-support.js";
 
-const isMethodCall = (node: MorphNode, ownerPath: string, method: string): boolean => {
-  if (!Node.isCallExpression(node) || node.getArguments().length !== 0) return false;
-  const expression = node.getExpression();
-  return Node.isPropertyAccessExpression(expression) && expression.getName() === method
-    && astExpressionPath(expression.getExpression()) === ownerPath;
-};
-
-const exactComparisonIsStrict = (matcher: MorphNode): boolean => {
-  const loop = matcher.getDescendantsOfKind(SyntaxKind.ForOfStatement).find((statement) => {
-    const expression = statement.getExpression();
-    return Node.isCallExpression(expression) && expression.getArguments().length === 0
-      && astExpressionPath(expression.getExpression()) === "rawNodeIds.entries";
-  });
-  const loopBody = loop?.getStatement();
-  if (!Node.isBlock(loopBody)) return false;
-  const textGuard = loopBody.getStatements().find((statement) =>
-    Node.isIfStatement(statement) && astIdentifierName(statement.getExpression()) === "text");
-  const textBody = Node.isIfStatement(textGuard) ? textGuard.getThenStatement() : undefined;
-  if (!Node.isBlock(textBody)) return false;
-  const actual = textBody.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
-    .find((declaration) => declaration.getName() === "actual")?.getInitializer();
-  if (!Node.isAwaitExpression(actual)) return false;
-  const nodeTextCall = actual.getExpression();
-  if (!Node.isCallExpression(nodeTextCall) || astExpressionPath(nodeTextCall.getExpression()) !== "nodeText"
-    || astIdentifierName(nodeTextCall.getArguments()[2]) !== "nodeId") return false;
-  const matched = textBody.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
-    .find((declaration) => declaration.getName() === "matched")?.getInitializer();
-  if (!Node.isConditionalExpression(matched) || astExpressionPath(matched.getCondition()) !== "text.exact") return false;
-  const exact = matched.getWhenTrue();
-  const contains = matched.getWhenFalse();
-  if (!Node.isBinaryExpression(exact) || exact.getOperatorToken().getKind() !== SyntaxKind.EqualsEqualsEqualsToken
-    || !isMethodCall(exact.getLeft(), "actual", "trim") || !isMethodCall(exact.getRight(), "text.value", "trim")
-    || !Node.isCallExpression(contains) || astExpressionPath(contains.getExpression()) !== "actual.includes"
-    || astExpressionPath(contains.getArguments()[0]!) !== "text.value") return false;
-  const mismatch = textBody.getStatements().find((statement) => Node.isIfStatement(statement)
-    && statement.getExpression().getText() === "!matched");
-  const rejection = loopBody.getStatements().find((statement) => Node.isIfStatement(statement)
-    && statement.getExpression().getText() === "reasons.length > 0");
-  const rejectionBody = Node.isIfStatement(rejection) ? rejection.getThenStatement() : undefined;
-  return Node.isIfStatement(mismatch)
-    && mismatch.getThenStatement().getText() === 'reasons.push("TEXT_MISMATCH");'
-    && Node.isBlock(rejectionBody)
-    && rejectionBody.getStatements().some((statement) => Node.isContinueStatement(statement));
-};
-
-export const exactTextMatcherIsStrict = (domRuntime: SourceFile): boolean => {
-  const matcher = domRuntime.getVariableDeclaration("queryCandidateSet")?.getInitializer();
-  return matcher !== undefined && exactComparisonIsStrict(matcher);
-};
-
 const requireTokens = (
   text: string,
   tokens: readonly string[],
@@ -146,5 +96,3 @@ export const inspectProviderEffectAttemptGuard = (
   ], findings, lawId, `${storePath},${schemaPath}`,
   "browser-authority/no-provider-effect-shadow-state");
 };
-import { Node, SyntaxKind, type Node as MorphNode, type SourceFile } from "ts-morph";
-import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";

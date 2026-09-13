@@ -49,7 +49,8 @@ export const inspectAgentAuthorityAst = (
   const marker = outbox?.getVariableDeclaration("jobPathMarker")?.getInitializer();
   const markerCalls = (outbox?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [])
     .filter((call) => call.getExpression().getText() === "jobPathMarker").length;
-  const receiptIdentity = sourceFor(context, PATHS.outboxReceipt)?.getFunction("assertReceiptIdentity")?.getText() ?? "";
+  const receiptIdentity = sourceFor(context, PATHS.outboxReceipt)
+    ?.getVariableDeclaration("assertReceiptIdentity")?.getText() ?? "";
   const authorityValidation = sourceFor(context, PATHS.authorityValidation)?.getText() ?? "";
   if (outboxSql.includes("path like") || !outboxSql.includes("instr(path,?)>0")
     || markerCalls < 1 || !marker?.getText().includes("encodeURIComponent(jobId)")

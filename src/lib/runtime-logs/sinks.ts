@@ -26,10 +26,11 @@ const MAX_TERMINAL_PROJECTION_KEYS = 4_096;
 
 const projectionIdentity = (event: RuntimeLogEventV2): string => {
   if (!("typedIdentity" in event)) return event.traceId;
-  const identity = event.typedIdentity as unknown as Record<string, unknown>;
+  const identity = Object.entries(event.typedIdentity);
   const stable = ["jobId", "attemptId", "outboxId", "commandId", "producerId"]
-    .flatMap((key) => typeof identity[key] === "string" ? [`${key}:${String(identity[key])}`] : []);
-  return stable.length > 0 ? stable.join("|") : String(identity.kind);
+    .flatMap((key) => identity.flatMap(([field, value]) =>
+      field === key && typeof value === "string" ? [`${key}:${value}`] : []));
+  return stable.length > 0 ? stable.join("|") : String(event.typedIdentity.kind);
 };
 
 const stateProjection = (event: RuntimeLogEventV2): string => {
@@ -71,8 +72,6 @@ export const shouldProjectRuntimeEvent = (event: RuntimeLogEventV2, activeMode: 
   return lifecycleBoundary || event.kind === "error"
     || event.kind === "event" || event.kind === "span.terminal";
 };
-
-export const resetRuntimeTerminalProjectionForTest = (): void => terminalProjectionState.clear();
 
 const DEFAULT_MAX_TOTAL_BYTES = 2 * 1024 * 1024 * 1024;
 const SEGMENTS_PER_CAPACITY = 16;

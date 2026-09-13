@@ -101,27 +101,3 @@ export const claimTask = (base: WebsiteAgentTask): ClaimedProductionTask => {
     grant: executionGrant(base),
   });
 };
-
-export const recoveryRemoteStatus = (writeReceipts: readonly unknown[] = []) => ({
-  schema_version: "xuanxue-ai-device-job-status.v6",
-  job_id: "job:recovery-parser",
-  status: "failed",
-  current_reason: { code: "LEASE_GRANTED" },
-  control_intent: {
-    schema_version: "xuanxue-ai-control-intent.v6",
-    job_id: "job:recovery-parser",
-    intent: "none",
-    control_epoch: 0,
-    reason_code: null,
-  },
-  attempt_failure: null,
-  accepted_attempt_count: 7,
-  terminal_status: null,
-  terminal_payload_hash: null,
-  terminal_failure: null,
-  terminalized_at: null,
-  terminal_receipt: null,
-  business_admission_receipt: null,
-  business_consumer_error: null,
-  write_receipts: writeReceipts,
-});

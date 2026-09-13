@@ -1,6 +1,6 @@
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 
-import { GPT_CHILD_CAPABILITY_CONTRACTS, GPT_CHILD_CAPABILITY_IDS } from "../contract.js";
+import { GPT_CHILD_CAPABILITY_CONTRACTS } from "../contract.js";
 import {
   GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR as GPT_MODEL_SELECTOR_OPEN_ENTRY,
 } from "../children/open_gpt_model_selector_v2/selectors.js";
@@ -22,7 +22,7 @@ import {
 import { execute, profile, profileFacts } from "./gpt-exact-target-profile-fixture.js";
 import "./gpt-reasoning-requirement.acceptance.js";
 
-assert.deepEqual(GPT_CHILD_CAPABILITY_IDS, EXPECTED_GPT_CHILD_IDS);
+assert.deepEqual(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).sort(), EXPECTED_GPT_CHILD_IDS);
 assert.equal(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).length, 13);
 assertGptExactTargetSourceShape(import.meta.url);
 

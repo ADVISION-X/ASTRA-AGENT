@@ -54,7 +54,6 @@ export const readWorkerObservationV6 = async (
   session: ProductionWorkerSession,
   jobId?: string,
 ): Promise<WorkerObservationV6> => {
-  void session.workerSessionId;
   const query = jobId ? `?jobId=${encodeURIComponent(jobId)}` : "";
   return WorkerObservationV6Schema.parse(await session.request(
     `/internal/ai-production/v6/worker-observation${query}`,

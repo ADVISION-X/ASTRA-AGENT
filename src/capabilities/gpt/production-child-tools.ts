@@ -350,7 +350,7 @@ export class ProductionGptChildTools {
       );
     }
     if (readsConfirmedEffect && browserCall) {
-      const value = result.value as unknown as Readonly<Record<string, unknown>>;
+      const value = result.value as Readonly<Record<string, unknown>>;
       const payloadHash = call.child === "checkpoint_gpt_text_response"
         ? value.semanticTextHash : value.sha256;
       if (typeof payloadHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(payloadHash)) {

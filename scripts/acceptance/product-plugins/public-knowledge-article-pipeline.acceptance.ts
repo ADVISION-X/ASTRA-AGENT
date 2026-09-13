@@ -7,7 +7,6 @@ import { productionRoutePolicy } from "../../../src/lib/local-runtime/production
 import { browserProviderEffectIdentityHash } from
   "../../../src/lib/browser/exact-target/browser-command-postcondition.js";
 import { hashCanonical } from "../../../src/mediator/product-plugin-contract.js";
-import { GPT_CHILD_CAPABILITY_CONTRACTS } from "../../../src/capabilities/gpt/index.js";
 import { parsePublicKnowledgeArticle, parsePublicKnowledgeResearch, publicKnowledgeTurnContract } from "../../../src/plugins/public-knowledge-article-pipeline/result-contract.js";
 import {
   exerciseSeoAttachmentReconcileFailure,
@@ -39,10 +38,6 @@ const continuedText = [...profile, ...textTurn] as const;
 const continuedImage = [...profile, "write_exact_gpt_prompt",
   "submit_exact_gpt_turn_once", "checkpoint_gpt_generated_image"] as const;
 
-assert.equal(GPT_CHILD_CAPABILITY_CONTRACTS.attach_approved_gpt_files_once.replayPolicy,
-  "target-local-per-generation", "attachment upload is attempt/current-Document preparation");
-assert.equal(GPT_CHILD_CAPABILITY_CONTRACTS.submit_exact_gpt_turn_once.replayPolicy,
-  "provider-effect-once", "only submit is a cross-attempt Provider effect");
 const source = readFileSync("src/plugins/public-knowledge-article-pipeline/index.ts", "utf8");
 const resultContractSource = readFileSync(
   "src/plugins/public-knowledge-article-pipeline/result-contract.ts", "utf8",

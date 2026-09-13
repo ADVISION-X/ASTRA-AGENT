@@ -84,6 +84,8 @@ const finding = (checkId: string, filePath: string, message: string, line?: numb
 
 const repoPath = (context: InspectorContext, source: SourceFile): string =>
   source.getFilePath().slice(resolve(context.sealedRoot).length + 1).split("\\").join("/");
+const sealedSource = (context: InspectorContext, path: string): string =>
+  readFileSync(resolve(context.sealedRoot, path), "utf8");
 
 const inspectImportOwnership = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const source of context.project.getSourceFiles()) {
@@ -403,34 +405,27 @@ const inspectFrozenAttemptBoundary = (
   evidenceMode: "static.ast" | "static.contract",
 ): void => {
   const sources = {
-    contract: sourceFor(context, CONTRACT_PATH)?.getFullText() ?? "",
-    atomic: sourceFor(context, `${ROOT}/production-atomic-call.ts`)?.getFullText() ?? "",
-    group: sourceFor(context, GROUP_PATH)?.getFullText() ?? "",
-    childHandler: sourceFor(context, `${ROOT}/web/child-handler.ts`)?.getFullText() ?? "",
-    productApi: sourceFor(context, `${ROOT}/product-api.ts`)?.getFullText() ?? "",
-    seoReadback: sourceFor(context,
-      "src/plugins/public-knowledge-article-pipeline/seo-submit-readback.ts")?.getFullText() ?? "",
-    seoFlow: sourceFor(context,
-      "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts")?.getFullText() ?? "",
-    submit: sourceFor(context,
-      `${ROOT}/children/submit_exact_gpt_turn_once/handler.ts`)?.getFullText() ?? "",
-    candidate: sourceFor(context,
-      "src/lib/browser/chrome-extension/dom-coherent-candidate.ts")?.getFullText() ?? "",
-    attachmentSchema: sourceFor(context, `${ROOT}/schema.ts`)?.getFullText() ?? "",
-    attachmentReconciliation: sourceFor(context,
-      `${ROOT}/children/reconcile_gpt_attachment_set/observation.ts`)?.getFullText() ?? "",
-    store: sourceFor(context,
-      "src/lib/browser/exact-target/browser-mutation-store.ts")?.getFullText() ?? "",
-    lifecycle: sourceFor(context, `${ROOT}/production-browser-lifecycle.ts`)?.getFullText() ?? "",
-    targetAcquirer: sourceFor(context,
-      "src/lib/browser/infrastructure/browser-target-acquirer.ts")?.getFullText() ?? "",
-    runtimeClaim: sourceFor(context,
-      "src/lib/local-runtime/production/runtime-claim.ts")?.getFullText() ?? "",
-    terminalFailure: sourceFor(context,
-      "src/lib/local-runtime/production/terminal-failure.ts")?.getFullText() ?? "",
-    blueprint: readFileSync(resolve(context.sealedRoot, GPT_BLUEPRINT_PATH), "utf8"),
-    browserBlueprint: readFileSync(resolve(context.sealedRoot,
-      "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md"), "utf8"),
+    contract: sealedSource(context, CONTRACT_PATH),
+    atomic: sealedSource(context, `${ROOT}/production-atomic-call.ts`),
+    group: sealedSource(context, GROUP_PATH),
+    childHandler: sealedSource(context, `${ROOT}/web/child-handler.ts`),
+    productApi: sealedSource(context, `${ROOT}/product-api.ts`),
+    seoReadback: sealedSource(context, "src/plugins/public-knowledge-article-pipeline/seo-submit-readback.ts"),
+    seoFlow: sealedSource(context, "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts"),
+    submit: sealedSource(context, `${ROOT}/children/submit_exact_gpt_turn_once/handler.ts`),
+    candidate: sealedSource(context, "src/lib/browser/chrome-extension/dom-coherent-candidate.ts"),
+    attachmentSchema: sealedSource(context, `${ROOT}/schema.ts`),
+    attachmentReconciliation: sealedSource(
+      context, `${ROOT}/children/reconcile_gpt_attachment_set/observation.ts`,
+    ),
+    store: sealedSource(context, "src/lib/browser/exact-target/browser-mutation-store.ts"),
+    lifecycle: sealedSource(context, `${ROOT}/production-browser-lifecycle.ts`),
+    targetAcquirer: sealedSource(context, "src/lib/browser/infrastructure/browser-target-acquirer.ts"),
+    runtimeClaim: sealedSource(context, "src/lib/local-runtime/production/runtime-claim.ts"),
+    terminalFailure: sealedSource(context, "src/lib/local-runtime/production/terminal-failure.ts"),
+    blueprint: sealedSource(context, GPT_BLUEPRINT_PATH),
+    browserBlueprint: sealedSource(context,
+      "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md"),
   };
   const probeWalRead = sources.lifecycle.indexOf("active.browser.readAtomicStepOutcome(confirmed.submitIdentity)");
   const valid = /attach_approved_gpt_files_once:[^\n]+profile: "TARGET_LOCAL_MUTATION"[^\n]+replayPolicy: "target-local-per-generation"/u

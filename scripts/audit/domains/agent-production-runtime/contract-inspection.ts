@@ -108,7 +108,7 @@ const inspectCredentialAndDurableTypes = (context: InspectorContext, findings: I
   }
   const taskState = read(context, PATHS.taskState);
   if (!taskState.includes("existing.current_attempt_id === attemptId")
-    || !taskState.includes("current_attempt_id=?,current_reason='ATTEMPT_ACCEPTED'")
+    || !taskState.includes("current_attempt_id=?,current_reason='LEASE_GRANTED'")
     || taskState.includes("identity_json") || taskState.includes("identity.catalog_hash")) {
     findings.push(finding(LAWS.core, "agent-production-runtime/attempt-identity-rotation", PATHS.taskState,
       "Task state does not strictly resume one attempt and atomically rebind a failed task on a new attempt."));

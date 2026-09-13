@@ -1,4 +1,4 @@
-export const GPT_MORE_ACTIONS_BUTTON_LABEL = "更多操作";
+const GPT_MORE_ACTIONS_BUTTON_LABEL = "更多操作";
 export const gptMoreActionsButtonSelector = (assistantTurnId: string): string =>
   `[data-testid="${assistantTurnId}"]:has([data-message-author-role='assistant']) button[aria-label='${GPT_MORE_ACTIONS_BUTTON_LABEL}']`;
 
@@ -30,9 +30,9 @@ export const reasoningTierUiValue = Object.freeze({
   pro_standard: 4,
 });
 
-export const GPT_MODEL_SELECTION_V2_ENTRY_INNER_SELECTOR =
+const GPT_MODEL_SELECTION_V2_ENTRY_INNER_SELECTOR =
   "[role='menuitem'][aria-label='选择模型']";
-export const GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_INNER_SELECTOR =
+const GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_INNER_SELECTOR =
   `${GPT_MODEL_SELECTION_V2_ENTRY_INNER_SELECTOR}[aria-expanded='false'][aria-hidden='false']`;
 export const GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR =
   `${GPT_PROFILE_POPUP_SELECTOR} ${GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_INNER_SELECTOR}`;

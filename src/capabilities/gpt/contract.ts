@@ -13,11 +13,9 @@ import type {
 
 export type {
   GptApprovedFile,
-  GptChildCall,
   GptChildCapabilityId,
   GptChildInputMap,
   GptChildOutputMap,
-  GptChildSuccess,
   GptHash,
   GptReasoningRequirementResult,
 } from "./child-types.js";
@@ -83,9 +81,6 @@ const GPT_CHILD_CONTRACTS = {
   [K in GptChildCapabilityId]: ChildCapabilityContract & Readonly<{ childCapabilityId: K }>;
 }>;
 
-export const GPT_CHILD_CAPABILITY_IDS = Object.freeze(
-  (Object.keys(GPT_CHILD_CONTRACTS) as GptChildCapabilityId[]).sort((left, right) => left.localeCompare(right)),
-);
 export const GPT_CHILD_CAPABILITY_CONTRACTS: Readonly<Record<GptChildCapabilityId, ChildCapabilityContract>> =
   Object.freeze(GPT_CHILD_CONTRACTS);
 

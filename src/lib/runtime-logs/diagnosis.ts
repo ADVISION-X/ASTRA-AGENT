@@ -407,9 +407,8 @@ export const discoverRuntimeLogScope = (input: Readonly<{
     .sort((left, right) => right.latest.localeCompare(left.latest))[0]?.runId;
   const candidates = Object.freeze([...new Set(events.filter((event) => event.producerRunId === newestRun)
     .flatMap((event) => {
-      const identity = "typedIdentity" in event
-        ? event.typedIdentity as unknown as Record<string, unknown> : {};
-      const jobId = typeof identity.jobId === "string" ? identity.jobId : null;
+      const jobId = "typedIdentity" in event && "jobId" in event.typedIdentity
+        && typeof event.typedIdentity.jobId === "string" ? event.typedIdentity.jobId : null;
       return jobId ? [jobId] : event.traceId.startsWith("producer:") ? [] : [event.traceId];
     }))].sort().slice(0, 25));
   if (candidates.length === 0) return { status: "NO_ACTIVE_SCOPE", selectedTraceId: null, candidates, completeness };
