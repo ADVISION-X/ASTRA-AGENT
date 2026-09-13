@@ -265,23 +265,16 @@ export function parseContext(cohort: StaticCohort, input: StaticCatalogInput): C
     "batch_id", "expression_policy_hash", "expression_policy_json", "terminology_hash", "terminology_json",
     "format_policy_hash", "format_policy_source", "public_value_binding", "message_items"],
   "LOCALIZATION_STATIC_CONTEXT_FIELDS_INVALID");
-  if (raw.schema_version !== "target-language-context-bundle.v2"
-    || raw.message_syntax !== "typed-placeholder-v1"
-    || raw.review_kind !== "target_language_translation"
-    || raw.locale !== input.target_locale
-    || raw.source_locale !== "zh-CN"
-    || raw.source_catalog_hash !== input.source_sha256
-    || raw.batch_id !== cohort.batch_id
-    || !Array.isArray(raw.message_items)
-    || raw.message_items.length !== cohort.message_count
-    || raw.message_items.length < 1) {
-    fail("LOCALIZATION_STATIC_CONTEXT_IDENTITY_INVALID");
-  }
+  const rawItems = Array.isArray(raw.message_items) ? raw.message_items : [];
+  if (![raw.schema_version === "target-language-context-bundle.v2", raw.message_syntax === "typed-placeholder-v1",
+    raw.review_kind === "target_language_translation", raw.locale === input.target_locale, raw.source_locale === "zh-CN",
+    raw.source_catalog_hash === input.source_sha256, raw.batch_id === cohort.batch_id,
+    rawItems.length === cohort.message_count, rawItems.length > 0].every(Boolean)) fail("LOCALIZATION_STATIC_CONTEXT_IDENTITY_INVALID");
   for (const pair of [[raw.expression_policy_json, raw.expression_policy_hash],
     [raw.terminology_json, raw.terminology_hash], [raw.format_policy_source, raw.format_policy_hash]] as const) {
     if (typeof pair[0] !== "string" || sha256(pair[0]) !== pair[1]) fail("LOCALIZATION_STATIC_POLICY_HASH_INVALID");
   }
-  const items = raw.message_items.map(parseContextItem);
+  const items = rawItems.map(parseContextItem);
   const ids = items.map((item) => item.message_id);
   if (new Set(ids).size !== ids.length) fail("LOCALIZATION_STATIC_MESSAGE_ID_INVALID");
   const sourceCatalogHash=hashValue(raw.source_catalog_hash, "LOCALIZATION_STATIC_SOURCE_HASH_INVALID");
