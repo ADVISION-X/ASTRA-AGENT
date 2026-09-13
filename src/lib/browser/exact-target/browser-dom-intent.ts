@@ -7,7 +7,6 @@ const BROWSER_DOM_FIELD_VALUES = [
   "computedDisplay", "computedVisibility", "computedOpacity", "effectiveOpacity", "hidden", "ariaHidden",
   "inert", "disabled", "ariaDisabled",
 ] as const;
-
 import {
   assertFindIntent,
   assertOptionalRange,
@@ -18,29 +17,17 @@ import {
   isBoundedText,
 } from "./browser-dom-read-intent.js";
 import { requireCanonicalGptConversationUrl } from "./browser-site-policy-registry.js";
-
 export type BrowserDomField = typeof BROWSER_DOM_FIELD_VALUES[number];
 export type BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">;
 export type BrowserDomPostconditionField = Exclude<BrowserDomObservationField,
   "semanticTextHash" | "exactEditableTextHash">;
 export type BrowserDomReadEligibility = "non-actionable-aria-state";
-
 export type BrowserDomIneligibleReason =
-  | "DISCONNECTED"
-  | "NO_LAYOUT_BOX"
-  | "DISPLAY_HIDDEN"
-  | "VISIBILITY_HIDDEN"
-  | "OPACITY_HIDDEN"
-  | "HTML_HIDDEN"
-  | "ARIA_HIDDEN"
-  | "INERT"
-  | "TEXT_MISMATCH";
-
+  | "DISCONNECTED" | "NO_LAYOUT_BOX" | "DISPLAY_HIDDEN" | "VISIBILITY_HIDDEN"
+  | "OPACITY_HIDDEN" | "HTML_HIDDEN" | "ARIA_HIDDEN" | "INERT" | "TEXT_MISMATCH";
 export type BrowserDomIneligibleCandidate = Readonly<{
-  index: number;
-  reasons: readonly BrowserDomIneligibleReason[];
+  index: number; reasons: readonly BrowserDomIneligibleReason[];
 }>;
-
 export type BrowserDomObservationQuery = Readonly<{
   queryId: string;
   selector: string;
@@ -53,7 +40,6 @@ export type BrowserDomObservationQuery = Readonly<{
   exactGptUserPromptContains?: string;
   latestGptUserTurn?: true;
 }>;
-
 export type BrowserDomPostconditionQuery = Omit<
   BrowserDomObservationQuery, "fields" | "exactGptUserPromptContains"
 > & Readonly<{
@@ -104,15 +90,9 @@ export type BrowserExactAssistantTurnReplyV3 = Readonly<{
   observedAt: string;
 }>;
 
-export type BrowserDomReadScope = Readonly<{
-  selector: string;
-}>;
-
+export type BrowserDomReadScope = Readonly<{ selector: string }>;
 export type BrowserSemanticLocator = Readonly<{
-  role?: string;
-  name?: string;
-  testId?: string;
-  label?: string;
+  role?: string; name?: string; testId?: string; label?: string;
 }>;
 
 export type BrowserDomIntent =

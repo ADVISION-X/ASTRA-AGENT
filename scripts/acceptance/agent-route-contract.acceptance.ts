@@ -10,6 +10,7 @@ import {
 } from "../../src/lib/local-runtime/production/route-policy.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { WorkerObservationV6Schema } from "../../src/lib/local-runtime/production/worker-observation-client.js";
+import { assertProductRouteSupported } from "../../src/mediator/product-plugin-catalog.js";
 
 const HASH = `sha256:${"a".repeat(64)}` as ProductionHash;
 const HASH_B = `sha256:${"b".repeat(64)}` as ProductionHash;
@@ -100,6 +101,10 @@ for (const route of productionRoutePolicies) {
   tested.add(`${route.product_id}\0${route.action_id}`);
 }
 assert.equal(tested.size, 40);
+assert.throws(
+  () => assertProductRouteSupported("bazi_basic_chart" as never, "produce" as never),
+  /PLUGIN_ROUTE_UNSUPPORTED/u,
+);
 
 const observation = {
   schema_version: "xuanxue-ai-worker-observation.v6", observed_at: new Date().toISOString(),

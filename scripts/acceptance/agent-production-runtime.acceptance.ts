@@ -6,7 +6,6 @@ import path from "node:path";
 import {
   agentRouteCapabilityManifest, productionCatalogHash,
 } from "../../src/lib/local-runtime/production/catalog.js";
-import { assertProductRouteSupported } from "../../src/mediator/product-plugin-catalog.js";
 import {
   claimProductionTasks,
   uploadProductionGeneratedImage,
@@ -108,11 +107,6 @@ assert.throws(() => assertProductionTaskRoutePolicy(task({
     review_policy: "manual-accuracy-challenge.v1",
   },
 })), /AGENT_REVIEW_SUBJECT_MATERIAL_INVALID/u);
-assert.throws(
-  () => assertProductRouteSupported("bazi_basic_chart" as never, "produce" as never),
-  /PLUGIN_ROUTE_UNSUPPORTED/u,
-);
-
 const renewal = LeaseRenewReceiptSchema.parse({
   schema_version: "xuanxue-ai-lease-renew-receipt.v6", job_id: "job:control-epoch",
   server_now: "2026-08-28T18:00:00.000Z", lease_expires_at: "2026-08-28T18:01:30.000Z",

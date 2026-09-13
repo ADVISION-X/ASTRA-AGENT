@@ -43,8 +43,7 @@ const PATHS = {
   manifest: "scripts/audit/domains/agent-production-runtime/manifest.json",
   proof: "scripts/acceptance/agent-production-runtime.real-proof.ts",
 } as const;
-type StaticMode = "static.ast" | "static.contract" | "static.dependency"
-  | "static.filesystem" | "static.sql" | "static.types";
+type StaticMode = "static.ast" | "static.contract" | "static.dependency" | "static.filesystem" | "static.sql" | "static.types";
 const finding = (
   lawId: string,
   evidenceMode: StaticMode,

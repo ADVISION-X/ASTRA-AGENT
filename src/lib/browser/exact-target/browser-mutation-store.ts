@@ -342,10 +342,11 @@ export class BrowserMutationStore {
     return Object.freeze({
       state: row.state.toLowerCase() as BrowserAtomicStepOutcome["state"],
       mutationOutcome: requireMutationOutcome(row.mutation_outcome),
-      providerEffectIdentityHash: { target_local: null,
-        provider_effect: row.logical_mutation_id }[input.effectScope],
+      providerEffectIdentityHash: input.effectScope === "provider_effect"
+        ? row.logical_mutation_id : null,
       terminalAt: row.terminal_at,
-      ...failure,
+      failureCode: failure.failureCode,
+      nativeFailureCode: failure.nativeFailureCode,
       authorityRef: `browser-mutation:${row.command_id}`,
       authorityHash: this.authorityHash(row.command_id),
       targetRef: row.target_ref,
