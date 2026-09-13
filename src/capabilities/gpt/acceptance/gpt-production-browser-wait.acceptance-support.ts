@@ -19,13 +19,13 @@ try {
   let acquisitions = 0;
   let selections = 0;
   let parks = 0;
-  let closes = 0;
+  let pendingMutations = 0;
   const lifecycleEvents: string[] = [];
   const providerEffectIdentityHash = `sha256:${"8".repeat(64)}` as const;
   const browser = {
     target: { targetRef: "target:provider-wait" },
     document: { documentRef: "document:provider-wait" },
-    pendingMutationCount: () => 0,
+    pendingMutationCount: () => pendingMutations,
     readAtomicStepOutcome: () => ({
       state: "confirmed", mutationOutcome: "confirmed", providerEffectIdentityHash,
       terminalPayload: {
@@ -35,7 +35,6 @@ try {
     }),
     executeDomIntent: async () => { selections += 1; },
     park: async () => { parks += 1; lifecycleEvents.push("park"); },
-    close: async () => { closes += 1; lifecycleEvents.push("close"); },
   };
   const lifecycle = new ProductionGptBrowserLifecycle(
     { acquireJobBoundTargetLease: async () => {
@@ -96,16 +95,28 @@ try {
   assert.equal(await lifecycle.browserFor(
     "session:next", "research-next", "text-next",
   ), next, "the same logical Provider turn must reuse its one active Browser lease");
-  assert.deepEqual([acquisitions, selections, parks, closes], [2, 0, 0, 1],
-    "a settled turn must close exactly once before the next turn acquires fresh Browser authority");
-  assert.deepEqual(lifecycleEvents, ["acquire", "close", "acquire"],
+  assert.deepEqual([acquisitions, selections, parks], [2, 0, 1],
+    "a settled turn must park exactly once before the next turn acquires fresh Browser authority");
+  assert.deepEqual(lifecycleEvents, ["acquire", "park", "acquire"],
     "the next Provider turn must acquire only after the settled prior turn releases Browser");
   const nextFailure = new Error("NEXT_PROVIDER_TURN_FAILED");
   assert.equal(lifecycle.decorateSettledResultFailure(nextFailure), nextFailure,
     "the prior settled result must not classify failures from the newly active Provider turn");
+  await lifecycle.settle(nextFailure);
+  assert.deepEqual([acquisitions, selections, parks], [2, 0, 2],
+    "failed product settlement must park the active lease without closing the system Tab");
+  await lifecycle.browserFor("session:final", "research-final", "text-final");
   await lifecycle.settle(null);
-  assert.deepEqual([acquisitions, selections, parks, closes], [2, 0, 0, 2],
-    "product settlement must release only the currently active Browser lease");
+  assert.deepEqual([acquisitions, selections, parks], [3, 0, 3],
+    "successful product settlement must park the active lease without closing the system Tab");
+  assert.deepEqual(lifecycleEvents,
+    ["acquire", "park", "acquire", "park", "acquire", "park"],
+    "every Product terminal handoff must preserve the same reusable system Tab");
+  await lifecycle.browserFor("session:unresolved", "research-unresolved", "text-unresolved");
+  pendingMutations = 1;
+  await assert.rejects(lifecycle.settle(new Error("UNRESOLVED_BROWSER_EFFECT")), /GPT_BROWSER_LIFECYCLE_FAILED/u);
+  assert.deepEqual([acquisitions, parks], [4, 3],
+    "unresolved DISPATCHED must retain the Browser lane and system Tab instead of parking or closing it");
   const waitEvents = (await readFile(runtimeLogger.currentSegmentPath()!, "utf8")).trim().split("\n")
     .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>)
     .filter((event) => event.code === "GPT_PROVIDER_WAIT_ACTIVE");

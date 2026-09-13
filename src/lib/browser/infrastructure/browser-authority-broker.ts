@@ -386,10 +386,6 @@ export class BrowserAuthorityBroker {
         await targetLease.park(input);
         await authorityLease.release();
       },
-      close: async (input) => {
-        await targetLease.close(input);
-        await authorityLease.release();
-      },
     };
   }
 

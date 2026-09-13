@@ -159,20 +159,16 @@ export class BrowserLaneCoordinator {
   private withLifecycle(lease: BrowserTargetLease): BrowserTargetLease {
     const finish = async (action: () => Promise<void>): Promise<void> => {
       try { await action(); }
-      catch (error) {
-        this.resolveBroker().revokeOperatorTargetClaim(lease.target.targetRef);
-        throw browserExecutionFailure(new Error("BROWSER_TARGET_LIFECYCLE_UNSETTLED", { cause: error }));
-      } finally {
-        this.active = false;
-        void this.pump();
-      }
+      catch (error) { throw browserExecutionFailure(
+        new Error("BROWSER_TARGET_LIFECYCLE_UNSETTLED", { cause: error }),
+      ); }
+      this.active = false;
+      void this.pump();
     };
     const park: BrowserTargetLease["park"] = (input) => finish(() => lease.park(input));
-    const close: BrowserTargetLease["close"] = (input) => finish(() => lease.close(input));
     return new Proxy(lease, {
       get(target, property) {
         if (property === "park") return park;
-        if (property === "close") return close;
         const value = Reflect.get(target, property, target) as unknown;
         return typeof value === "function" ? value.bind(target) : value;
       },

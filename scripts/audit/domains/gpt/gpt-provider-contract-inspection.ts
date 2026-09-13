@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { SyntaxKind } from "ts-morph";
 
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 
@@ -58,11 +59,23 @@ export const inspectGptProviderProbeOwnerContract = (
     "active.browser.readAtomicStepOutcome(confirmed.submitIdentity)",
     'recoverySelectionRequired: targetMode === "confirmed-readback"',
     "selectExactGptConversation", "setTimeout",
+    'mode: "product-call-settlement"',
   ], findings, finding);
   for (const forbidden of ["yieldForProviderProbe", "yieldForProviderWait", "waitForDelay",
     "yieldAndReacquire", "productionGptCrossConversationPollCadence", '"provider-probe"',
-    "startProviderProbeCooldown", "await active.browser.park({"]) if (lifecycle.includes(forbidden)) findings.push(finding(
+    "startProviderProbeCooldown"]) if (lifecycle.includes(forbidden)) findings.push(finding(
     "gpt/no-second-wait-scheduler", LIFECYCLE, `GPT lifecycle retains forbidden ${forbidden}.`,
+  ));
+  const lifecycleClass = context.project.getSourceFile(resolve(context.sealedRoot, LIFECYCLE))
+    ?.getClass("ProductionGptBrowserLifecycle");
+  const parkActive = lifecycleClass?.getMethod("parkActive");
+  const parkCalls = lifecycleClass?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((call) => call.getExpression().getText() === "active.browser.park") ?? [];
+  if (parkCalls.length !== 1 || !parkActive?.getText().includes("active.browser.pendingMutationCount() > 0")
+    || !parkActive.getText().includes('mode: "product-call-settlement"')
+    || !lifecycleClass?.getMethod("settle")?.getText().includes("this.parkActive(")) findings.push(finding(
+    "gpt/no-browser-poll-scheduler", LIFECYCLE,
+    "The sole Browser park must be structurally owned by guarded Product settlement.",
   ));
   for (const retired of ["wait_for_stable_gpt_text", "wait_for_stable_gpt_image", "overdueRecoveryProbe"]) {
     if (lifecycle.includes(retired)) findings.push(finding(

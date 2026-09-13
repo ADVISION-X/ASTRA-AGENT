@@ -67,8 +67,7 @@ export type BrowserGovernedCommand =
     semanticMediaId: "gpt-generated-image-main";
   }>
   | Readonly<{ kind: "wait"; durationMs: number }>
-  | Readonly<{ kind: "park-target"; reason: string }>
-  | Readonly<{ kind: "close-target"; reason: string }>;
+  | Readonly<{ kind: "park-target"; reason: string }>;
 
 export type BrowserCommandPort = Readonly<{
   send(

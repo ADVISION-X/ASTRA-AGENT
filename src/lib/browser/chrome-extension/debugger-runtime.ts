@@ -13,7 +13,6 @@ const PAGE_MUTATION_METHODS = new Set([
   "Input.dispatchKeyEvent",
   "Input.dispatchMouseEvent",
   "Input.insertText",
-  "Page.close",
   "Page.navigate",
 ]);
 

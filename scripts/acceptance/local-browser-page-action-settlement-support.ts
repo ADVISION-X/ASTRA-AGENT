@@ -7,7 +7,7 @@ import type { ExtensionChromeApi } from
 
 const mutationMethods = [
   "DOM.focus", "DOM.setFileInputFiles", "Input.dispatchKeyEvent",
-  "Input.dispatchMouseEvent", "Input.insertText", "Page.close", "Page.navigate",
+  "Input.dispatchMouseEvent", "Input.insertText", "Page.navigate",
 ] as const;
 
 const after2499 = (): Promise<void> =>

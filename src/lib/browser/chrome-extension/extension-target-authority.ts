@@ -233,10 +233,6 @@ export class ExtensionTargetAuthority {
       }
       return executeRegisteredExtensionCommand(this.debuggerRuntime, target, command, {
         assertCurrent: () => { this.targets.resolve(target.targetRef, target.documentRef); },
-        closeTarget: async () => {
-          await this.debuggerRuntime.send(target.tabId, "Page.close");
-          await this.releaseActiveTarget();
-        },
         parkTarget: () => this.parkActiveTarget(),
       });
     };

@@ -60,7 +60,7 @@ const commandFrom = (value: unknown): BrowserGovernedCommand => {
   const command = asRecord(value);
   if (!command || typeof command.kind !== "string") throw new Error("BROWSER_CAPABILITY_REJECTED");
   if (![
-    "dom-intent", "observe", "screenshot", "file-input", "authenticated-media", "wait", "park-target", "close-target",
+    "dom-intent", "observe", "screenshot", "file-input", "authenticated-media", "wait", "park-target",
   ].includes(command.kind)) throw new Error("BROWSER_CAPABILITY_REJECTED");
   return command as BrowserGovernedCommand;
 };

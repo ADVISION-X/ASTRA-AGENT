@@ -155,7 +155,6 @@ const inspectUniversalPostActionReadGate = (
     '"Input.dispatchKeyEvent"',
     '"Input.dispatchMouseEvent"',
     '"Input.insertText"',
-    '"Page.close"',
     '"Page.navigate"',
     "createProductionTab",
     "removeTab",

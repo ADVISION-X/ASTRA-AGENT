@@ -8,7 +8,6 @@ import { executeBoundedBrowserWait } from "./extension-target-observation.js";
 
 type CommandLifecycle = Readonly<{
   assertCurrent(): void;
-  closeTarget(): Promise<void>;
   parkTarget(): Promise<void>;
 }>;
 
@@ -29,10 +28,6 @@ export const executeRegisteredExtensionCommand = async (
   if (command.kind === "park-target") {
     await lifecycle.parkTarget();
     return { parked: true };
-  }
-  if (command.kind === "close-target") {
-    await lifecycle.closeTarget();
-    return { closed: true };
   }
   if (command.kind === "file-input") return executeExtensionFileInput({
     runtime: debuggerRuntime, target, assertCurrent: lifecycle.assertCurrent,

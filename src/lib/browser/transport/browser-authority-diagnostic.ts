@@ -16,7 +16,7 @@ const CONTROLLED_VALUES: Readonly<Record<string, ReadonlySet<string>>> = {
     "liveness-pulse", "job-bound-target-acquisition", "debugger-detach", "tab-remove"]),
   commandStage: new Set(["payload", "command-shape", "command-admission", "target-resolution", "registered-command"]),
   commandKind: new Set(["dom-intent", "observe", "screenshot", "file-input",
-    "authenticated-media", "wait", "park-target", "close-target"]),
+    "authenticated-media", "wait", "park-target"]),
   commandIntentKind: new Set(["document", "observe", "readExactAssistantTurn", "inspect", "find", "readText",
     "readAttribute", "selectExactGptConversation", "click", "hover", "doubleClick", "keypress", "fill"]),
   nativeCauseCode: new Set(["CHROME_DEBUGGER_TARGET_CLOSED", "CHROME_DEBUGGER_CANCELED_BY_USER"]),

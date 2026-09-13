@@ -91,7 +91,7 @@ export class ProductionGptBrowserLifecycle {
       if (!previous.confirmedProviderEffect || !previous.settledResultPayloadHash) {
         throw executionFailure("failed", "GPT_BROWSER_SESSION_TRANSITION_UNSETTLED");
       }
-      await this.closeActive("gpt-provider-turn-settled");
+      await this.parkActive("gpt-provider-turn-settled");
     }
     const browser = await this.acquireBrowserLease(productStepId, callId, null, targetMode);
     const active: ProductionGptBrowserCall = {
@@ -240,20 +240,18 @@ export class ProductionGptBrowserLifecycle {
 
   public async settle(error: unknown | null): Promise<void> {
     try {
-      await this.closeActive(error ? "gpt-product-call-failed" : "gpt-product-call-settled");
-    } catch (closeError) {
-      throw new AggregateError([closeError], "GPT_BROWSER_LIFECYCLE_FAILED");
+      await this.parkActive(error ? "gpt-product-call-failed" : "gpt-product-call-settled");
+    } catch (parkError) {
+      throw new AggregateError([parkError], "GPT_BROWSER_LIFECYCLE_FAILED");
     }
   }
 
-  private async closeActive(reason: string): Promise<void> {
+  private async parkActive(reason: string): Promise<void> {
     const active = this.activeBrowser?.call;
     if (!active) return;
-    try {
-      await active.browser.close({ reason });
-    } finally {
-      this.activeBrowser = null;
-    }
+    if (active.browser.pendingMutationCount() > 0) throw new Error("BROWSER_MUTATION_UNSETTLED");
+    await active.browser.park({ reason, mode: "product-call-settlement" });
+    this.activeBrowser = null;
   }
 
   private async acquireBrowserLease(

@@ -50,7 +50,6 @@ const lifecycleChecks = (sources: Readonly<Record<string, string>>): boolean[] =
     probeWalRead >= 0,
     sources.lifecycle!.includes("PROVIDER_OBSERVATION_INTERVAL_MS = 30_000"),
     sources.lifecycle!.includes("recoverySelectionRequired: targetMode === \"confirmed-readback\""),
-    !sources.lifecycle!.includes("await active.browser.park({"),
     !sources.lifecycle!.includes('"provider-probe"'),
     !sources.lifecycle!.includes("startProviderProbeCooldown"),
     !sources.lifecycle!.includes("BROWSER_RECONCILIATION_IDENTITY_MISMATCH"),

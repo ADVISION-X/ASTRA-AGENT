@@ -256,22 +256,14 @@ export class BrowserTargetLeaseManager {
       readAuthenticatedMedia: (media) => this.readAuthenticatedMedia(state, command, media),
       wait: async ({ durationMs }) => { await command("browser.wait.v1", { kind: "wait", durationMs }); },
       park: async ({ reason, mode }) => {
-        if (mode !== "normal-provider-wait") {
+        if (mode !== "product-call-settlement") {
           throw new Error("BROWSER_PARK_MODE_INVALID");
         }
         await command("browser.park-target.v1", { kind: "park-target", reason });
         state.closed = true;
       },
-      close: async ({ reason }) => {
-        if (state.pendingMutationCommandIds.length > 0) throw new Error("BROWSER_MUTATION_UNSETTLED");
-        await command("browser.close-target.v1", { kind: "close-target", reason });
-        state.closed = true;
-      },
       resolvePendingMutation: (receipt) => this.resolvePendingMutation(state, receipt),
       pendingMutationCount: () => state.pendingMutationCommandIds.length,
-      assertNoPendingMutations: () => {
-        if (state.pendingMutationCommandIds.length > 0) throw new Error("BROWSER_MUTATION_UNSETTLED");
-      },
     };
   }
 
@@ -426,7 +418,7 @@ export class BrowserTargetLeaseManager {
 
   private mutationClass(command: Parameters<BrowserCommandActor["execute"]>[1]): BrowserCommandPermit["mutationClass"] {
     if ((command.kind === "dom-intent" && command.intent.kind === "selectExactGptConversation")
-      || command.kind === "park-target" || command.kind === "close-target") return "lifecycle";
+      || command.kind === "park-target") return "lifecycle";
     if (command.kind === "file-input") return "mutation";
     if (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "hover"
       || command.intent.kind === "doubleClick" || command.intent.kind === "keypress" || command.intent.kind === "fill")) return "mutation";

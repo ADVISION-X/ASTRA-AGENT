@@ -94,12 +94,10 @@ export type BrowserTargetLease = Readonly<{
   wait(input: Readonly<{ durationMs: number }>): Promise<void>;
   park(input: Readonly<{
     reason: string;
-    mode: "normal-provider-wait";
+    mode: "product-call-settlement";
   }>): Promise<void>;
-  close(input: Readonly<{ reason: string }>): Promise<void>;
   resolvePendingMutation(
     input: Omit<BrowserOutcomeResolutionReceipt, "commandId">,
   ): Promise<number>;
   pendingMutationCount(): number;
-  assertNoPendingMutations(): void;
 }>;

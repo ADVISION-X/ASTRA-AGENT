@@ -185,22 +185,29 @@ const inspectBrokerClaimMonotonicity = (brokerText: string, findings: InspectorF
   }));
 };
 
-const inspectDispatchedMutationReleaseGuard = (
+const inspectNonDestructiveTargetRelease = (
+  context: InspectorContext,
   leaseManager: ReturnType<typeof requireSource>,
+  lane: ReturnType<typeof requireSource>,
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
   const method = leaseManager?.getClass("BrowserTargetLeaseManager")?.getMethod("createTargetLease")?.getText() ?? "";
-  const closeAt = method.indexOf("close: async");
-  const guardAt = method.indexOf("state.pendingMutationCommandIds.length > 0", closeAt);
-  const physicalCloseAt = method.indexOf('command("browser.close-target.v1"', closeAt);
+  const lifecycle = lane?.getClass("BrowserLaneCoordinator")?.getMethod("withLifecycle")?.getText() ?? "";
+  const destructiveClose = context.project.getSourceFiles().some((source) =>
+    source.getFilePath().includes("/src/lib/browser/")
+    && stringLiterals(source).some((literal) => literal === "Page.close" || literal === "browser.close-target.v1"));
   const parkAt = method.indexOf("park: async");
+  const settlementModeAt = method.indexOf('mode !== "product-call-settlement"', parkAt);
   const physicalParkAt = method.indexOf('command("browser.park-target.v1"', parkAt);
-  if (parkAt >= 0 && physicalParkAt > parkAt
-    && closeAt >= 0 && guardAt > closeAt && physicalCloseAt > guardAt) return;
+  if (parkAt >= 0 && settlementModeAt > parkAt && physicalParkAt > settlementModeAt
+    && method.includes("pendingMutationCount: () => state.pendingMutationCommandIds.length")
+    && !method.includes("close: async") && !destructiveClose
+    && lifecycle.indexOf("this.active = false") > lifecycle.indexOf("await action()")
+    && !lifecycle.includes("finally") && !lifecycle.includes("revokeOperatorTargetClaim")) return;
   findings.push(createLocalFinding({
     checkId: "browser-authority/dispatched-mutation-target-release", lawId, filePath: targetLeaseManagerPath,
-    message: "The Browser Owner must park a recovery Target while rejecting physical close for unresolved DISPATCHED mutations.",
+    message: "Only successful Product settlement may park and release the reusable system Target; unresolved lifecycle effects must retain lane isolation with no close surface.",
   }));
 };
 
@@ -296,7 +303,7 @@ const inspectJobBoundClaimPolicy = (
     checkId: "browser-authority/job-bound-target-claim", lawId, filePath: targetAuthorityPath,
     message: "Confirmed readback must use the current system Target and one exact canonical URL navigation without scanning historical Targets or foregrounding the Tab.",
   }));
-  inspectDispatchedMutationReleaseGuard(leaseManager, findings, lawId);
+  inspectNonDestructiveTargetRelease(context, leaseManager, lane, findings, lawId);
   inspectExactChatGptPolicy(sitePolicy, findings, lawId);
   inspectCanonicalConversationPolicy(sitePolicy.getFullText(), findings, lawId);
 };

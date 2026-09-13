@@ -18,7 +18,6 @@ export class ExtensionCommandRegistry {
     ["authenticated-media", { kind: "authenticated-media", mutationClass: "observation" }],
     ["wait", { kind: "wait", mutationClass: "observation" }],
     ["park-target", { kind: "park-target", mutationClass: "lifecycle" }],
-    ["close-target", { kind: "close-target", mutationClass: "lifecycle" }],
   ]);
 
   public resolveCommand(kind: string): RegisteredExtensionCommand {
@@ -37,7 +36,6 @@ const fixedCapabilityByKind: Partial<Record<ExtensionCommandKind, ExtensionComma
   "authenticated-media": "browser.authenticated-media.v1",
   wait: "browser.wait.v1",
   "park-target": "browser.park-target.v1",
-  "close-target": "browser.close-target.v1",
 };
 
 type DomIntentKind = Extract<BrowserGovernedCommand, { kind: "dom-intent" }>["intent"]["kind"];

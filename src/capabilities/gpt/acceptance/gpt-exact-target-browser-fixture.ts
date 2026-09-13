@@ -330,16 +330,12 @@ const createFakeBrowserLease = (
     }
   },
   async park() { state.physicalMutations += 1; },
-  async close() { state.physicalMutations += 1; },
   async resolvePendingMutation() {
     if (state.pending !== 1) throw new Error("BROWSER_MUTATION_UNSETTLED");
     state.pending = 0;
     return 1;
   },
   pendingMutationCount: () => state.pending,
-  assertNoPendingMutations() {
-    if (state.pending !== 0) throw new Error("BROWSER_MUTATION_UNSETTLED");
-  },
 });
 
 export const fakeBrowser = (responder: DomResponder, input: FakeBrowserOptions = {}) => {

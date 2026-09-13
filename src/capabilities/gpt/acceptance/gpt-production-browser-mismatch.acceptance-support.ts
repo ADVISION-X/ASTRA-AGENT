@@ -29,7 +29,6 @@ try {
           executeDomIntent: async () => { selections += 1; },
           pendingMutationCount: () => 0,
           park: async () => undefined,
-          close: async () => undefined,
         };
       },
     } as never,
