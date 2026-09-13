@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFil
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import test from "node:test";
-import { Project } from "ts-morph";
+import { Node, Project, SyntaxKind, type Node as MorphNode, type SourceFile } from "ts-morph";
 
 import { assertProjectionEqual, blueprintValid, buildRegistry, parseLawSource } from "../../scripts/audit/governance-authority.js";
 import { assertBlueprintMarkdownContractAuthority } from "../../scripts/audit/governance-json.js";
@@ -41,9 +41,56 @@ import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRef
 import { containsPageMutation, gptPrivateInfrastructureViolations } from "../../scripts/audit/domains/gpt/gpt-inspection-support.js";
 import { browserMutationSchemaMigrationIsCurrent } from "../../scripts/audit/domains/local-browser-session/browser-mutation-settlement-inspection.js";
 import { exactAssistantTurnReadIsAtomic } from "../../scripts/audit/domains/local-browser-session/dom-mechanical-facts-inspection.js";
-import { exactTextMatcherIsStrict } from "../../scripts/audit/domains/local-browser-session/mutation-atomicity-inspection.js";
 import { requireSource } from "../../scripts/audit/domains/local-browser-session/inspector-support.js";
 import { redactHashWriteOrderIsExact } from "../../scripts/audit/domains/runtime-log-spine/inspector.js";
+import { astExpressionPath, astIdentifierName } from "../../scripts/audit/shared/ast-node-identity.js";
+
+const zeroArgumentMethodCall = (node: MorphNode, ownerPath: string, method: string): boolean => {
+  if (!Node.isCallExpression(node) || node.getArguments().length !== 0) return false;
+  const expression = node.getExpression();
+  return Node.isPropertyAccessExpression(expression) && expression.getName() === method
+    && astExpressionPath(expression.getExpression()) === ownerPath;
+};
+
+const exactTextMatcherIsStrict = (domRuntime: SourceFile): boolean => {
+  const matcher = domRuntime.getVariableDeclaration("queryCandidateSet")?.getInitializer();
+  const loop = matcher?.getDescendantsOfKind(SyntaxKind.ForOfStatement).find((statement) => {
+    const expression = statement.getExpression();
+    return Node.isCallExpression(expression) && expression.getArguments().length === 0
+      && astExpressionPath(expression.getExpression()) === "rawNodeIds.entries";
+  });
+  const loopBody = loop?.getStatement();
+  if (!Node.isBlock(loopBody)) return false;
+  const textGuard = loopBody.getStatements().find((statement) =>
+    Node.isIfStatement(statement) && astIdentifierName(statement.getExpression()) === "text");
+  const textBody = Node.isIfStatement(textGuard) ? textGuard.getThenStatement() : undefined;
+  if (!Node.isBlock(textBody)) return false;
+  const actual = textBody.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+    .find((declaration) => declaration.getName() === "actual")?.getInitializer();
+  const matched = textBody.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+    .find((declaration) => declaration.getName() === "matched")?.getInitializer();
+  if (!Node.isAwaitExpression(actual) || !Node.isConditionalExpression(matched)
+    || astExpressionPath(matched.getCondition()) !== "text.exact") return false;
+  const nodeTextCall = actual.getExpression();
+  const exact = matched.getWhenTrue();
+  const contains = matched.getWhenFalse();
+  if (!Node.isCallExpression(nodeTextCall) || astExpressionPath(nodeTextCall.getExpression()) !== "nodeText"
+    || astIdentifierName(nodeTextCall.getArguments()[2]) !== "nodeId"
+    || !Node.isBinaryExpression(exact) || exact.getOperatorToken().getKind() !== SyntaxKind.EqualsEqualsEqualsToken
+    || !zeroArgumentMethodCall(exact.getLeft(), "actual", "trim")
+    || !zeroArgumentMethodCall(exact.getRight(), "text.value", "trim")
+    || !Node.isCallExpression(contains) || astExpressionPath(contains.getExpression()) !== "actual.includes"
+    || astExpressionPath(contains.getArguments()[0]!) !== "text.value") return false;
+  const mismatch = textBody.getStatements().find((statement) => Node.isIfStatement(statement)
+    && statement.getExpression().getText() === "!matched");
+  const rejection = loopBody.getStatements().find((statement) => Node.isIfStatement(statement)
+    && statement.getExpression().getText() === "reasons.length > 0");
+  const rejectionBody = Node.isIfStatement(rejection) ? rejection.getThenStatement() : undefined;
+  return Node.isIfStatement(mismatch)
+    && mismatch.getThenStatement().getText() === 'reasons.push("TEXT_MISMATCH");'
+    && Node.isBlock(rejectionBody)
+    && rejectionBody.getStatements().some((statement) => Node.isContinueStatement(statement));
+};
 
 const fixtureLaw = (): Law => ({
   schemaVersion: 2,
