@@ -1,12 +1,9 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
-import { createForensicsPersistenceAbilityGroupFromStorage } from
-  "../../forensics-persistence/index.js";
-import { createGrassEyeFileStorage } from "../../../lib/storage/index.js";
 import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import { failureCode } from "../../../lib/execution-failure.js";
 import { createGptAbilityGroup } from "../index.js";
@@ -15,7 +12,7 @@ import { ProductionGptChildTools } from "../production-child-tools.js";
 import { exactAssistantTurnReply } from "./gpt-exact-target-browser-fixture.js";
 import type { BrowserDomIntent } from "../../../lib/browser/browser-authority-api.js";
 
-const hash = (value: string): `sha256:${string}` =>
+const hash = (value: string | Uint8Array): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 const HASH_A = `sha256:${"a".repeat(64)}` as const;
 const HASH_B = `sha256:${"b".repeat(64)}` as const;
@@ -35,16 +32,40 @@ const semanticText = "saved response";
 const persistedContent = JSON.stringify({ schemaVersion: "agent-observed-response-artifact.v1",
   assistantTurnId: "conversation-turn-2", rawDomHtml, rawDomHash: hash(rawDomHtml),
   semanticText, semanticTextHash: hash(semanticText) });
+const persistedArtifactKey = `gpt-call-artifact:v1:${checkpointExactCallIdentityHash}:observed-response`;
+const persistedArtifactRef = "artifact:persisted-response";
 
 const temporary = await mkdtemp(join(tmpdir(), "gpt-artifact-recovery-"));
 try {
-  const evidenceStore = createForensicsPersistenceAbilityGroupFromStorage(
-    createGrassEyeFileStorage(temporary),
-  );
-  const appended = await evidenceStore.appendArtifact({ missionId: jobId, runId: attemptId,
-    artifactType: "ai_raw_output", mimeType: "application/json", content: persistedContent,
-    idempotencyKey: `gpt-call-artifact:v1:${checkpointExactCallIdentityHash}:observed-response` });
-  if (appended.status !== "success") throw new Error(appended.failureReason);
+  const artifacts = new Map<string, Readonly<{ artifactRef: string; content: Uint8Array }>>([
+    [persistedArtifactKey, { artifactRef: persistedArtifactRef,
+      content: new TextEncoder().encode(persistedContent) }],
+  ]);
+  const corruptArtifacts = new Set<string>();
+  let artifactAppends = 0;
+  const evidenceStore = {
+    appendArtifact: async (input: Readonly<{ idempotencyKey: string;
+      content?: string | Uint8Array }>) => {
+      if (artifacts.has(input.idempotencyKey)) return { status: "failed" as const,
+        failureReason: "FORENSICS_IDEMPOTENCY_CONFLICT" };
+      const content = typeof input.content === "string" ? new TextEncoder().encode(input.content)
+        : input.content ?? new Uint8Array();
+      const artifactRef = `artifact:${hash(input.idempotencyKey)}`;
+      artifacts.set(input.idempotencyKey, { artifactRef, content });
+      artifactAppends += 1;
+      return { status: "success" as const, artifactRef };
+    },
+    readArtifact: async (input: Readonly<{ idempotencyKey: string }>) => {
+      const artifact = artifacts.get(input.idempotencyKey);
+      if (!artifact) return { status: "failed" as const,
+        failureReason: "FORENSICS_ARTIFACT_NOT_FOUND" };
+      if (corruptArtifacts.has(input.idempotencyKey)) return { status: "failed" as const,
+        failureReason: "FORENSICS_ARTIFACT_INTEGRITY_MISMATCH" };
+      return { status: "success" as const, artifactRef: artifact.artifactRef,
+        artifact: { content: artifact.content, mimeType: "application/json",
+          integrityHash: hash(artifact.content) } };
+    },
+  };
 
   let checkpointBrowserReads = 0;
   let checkpointPageObservations = 0;
@@ -101,25 +122,22 @@ try {
   assert.equal(recoveredSubmit?.value.userTurnId, "conversation-turn-1");
   const recovered = await execution.tools.execute(checkpointCall);
   assert.equal(recovered.value.semanticText, semanticText);
-  assert.equal(recovered.artifactRefs[0], appended.artifactRef);
+  assert.equal(recovered.artifactRefs[0], persistedArtifactRef);
   assert.deepEqual([exactConversationSelections, checkpointBrowserReads, checkpointPageObservations], [1, 0, 0],
     "valid persisted checkpoint must add zero Browser page observations");
 
   const missing = await execution.tools.execute({ ...checkpointCall,
     callId: "text-checkpoint-missing", actionOrdinal: 3 });
   assert.equal(missing.value.semanticText, "first observed response");
-  assert.notEqual(missing.artifactRefs[0], appended.artifactRef);
+  assert.notEqual(missing.artifactRefs[0], persistedArtifactRef);
   assert.deepEqual([checkpointBrowserReads, checkpointPageObservations], [1, 1],
     "missing checkpoint artifact must perform one first Browser observation and append it");
-  const indexPath = join(temporary, "forensics", "artifacts.ndjson");
-  const artifactCountBeforeCorruption = (await readFile(indexPath, "utf8")).trim().split("\n").length;
-  const artifactPath = join(temporary, "forensics", "artifacts", `${appended.artifactRef}.bin`);
-  await writeFile(artifactPath, Buffer.from("corrupt", "utf8"));
+  assert.equal(artifactAppends, 1);
+  corruptArtifacts.add(persistedArtifactKey);
   await assert.rejects(execution.tools.execute(checkpointCall), (error: unknown) =>
     failureCode(error) === "EVIDENCE_ARTIFACT_READBACK_FAILED");
   assert.equal(checkpointPageObservations, 1, "corrupt persisted checkpoint must fail before Browser observation");
-  assert.equal((await readFile(indexPath, "utf8")).trim().split("\n").length,
-    artifactCountBeforeCorruption, "recovery must not append an overwrite artifact");
+  assert.equal(artifactAppends, 1, "recovery must not append an overwrite artifact");
   await execution.settle(null);
 } finally {
   await rm(temporary, { recursive: true, force: true });
