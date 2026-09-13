@@ -1,7 +1,6 @@
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 
 import { GPT_CHILD_CAPABILITY_CONTRACTS, GPT_CHILD_CAPABILITY_IDS } from "../contract.js";
-import { emitQualityProofObservation } from "../../../../scripts/audit/shared/proof-observation.js";
 import {
   GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR as GPT_MODEL_SELECTOR_OPEN_ENTRY,
 } from "../children/open_gpt_model_selector_v2/selectors.js";
@@ -472,18 +471,4 @@ for (const checked of ["true", "false"] as const) {
   assert.equal(fixture.physicalMutations(), 1);
 }
 
-emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V39",
-  evidenceMode: "exam.golden",
-  clauses: ["forbidden:12", "forbidden:25", "forbidden:3", "forbidden:4", "forbidden:5", "summary"],
-  locator: "acceptance:gpt-exact-target:coherent-ready-subset",
-  observedValue: "coherent profile model and numeric reasoning Children prove same-revision DONE or one confirmed mutation",
-});
-emitQualityProofObservation({
-  lawId: "LAW-GPT-001-V39",
-  evidenceMode: "exam.property",
-  clauses: ["forbidden:12", "forbidden:18", "forbidden:19", "forbidden:25", "forbidden:6", "summary"],
-  locator: "acceptance:gpt-exact-target:browser-handoff",
-  observedValue: "Browser coherent numeric fields drive one exact reasoning mutation followed by zero-mutation readback",
-});
 await exercisePreExecutionFailureEvidence();
