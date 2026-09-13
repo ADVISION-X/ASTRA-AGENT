@@ -39,6 +39,7 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
   run("inspectBrowserMutationSettlement", [mutationLawId], inspectBrowserMutationSettlement, () => inspectBrowserMutationSettlement(context, findings, mutationLawId));
   run("inspectDisposableAttemptBoundary", [mutationLawId], inspectDisposableAttemptBoundary, () => inspectDisposableAttemptBoundary(context, findings, mutationLawId));
   run("inspectProviderEffectAttemptGuard", [mutationLawId], inspectProviderEffectAttemptGuard, () => inspectProviderEffectAttemptGuard(context, findings, mutationLawId));
+  run("inspectProviderEffectAttemptGuard", [claimLawId], inspectProviderEffectAttemptGuard, () => inspectProviderEffectAttemptGuard(context, findings, claimLawId));
   run("inspectAuthenticatedChannelGuards", [channelLawId], inspectAuthenticatedChannelGuards, () => inspectAuthenticatedChannelGuards(context, findings, channelLawId));
   run("inspectAutomaticPairingAndReload", [channelLawId, claimLawId, releaseLawId], inspectAutomaticPairingAndReload, () => inspectAutomaticPairingAndReload(context, findings, channelLawId, claimLawId, releaseLawId));
   run("inspectTargetClaimGuards", [claimLawId], inspectTargetClaimGuards, () => inspectTargetClaimGuards(context, findings, claimLawId));
@@ -67,7 +68,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const astChecks = (lawId: string): string[] => ({
     "LAW-LOCAL-BROWSER-SESSION-001-V4": ["inspectSessionCore"],
     "LAW-LOCAL-BROWSER-SESSION-002-V6": ["inspectAuthenticatedChannelGuards", "inspectAutomaticPairingAndReload"],
-    "LAW-LOCAL-BROWSER-SESSION-003-V34": ["inspectAutomaticPairingAndReload", "inspectTargetClaimGuards", "inspectInteractionReadiness"],
+    "LAW-LOCAL-BROWSER-SESSION-003-V34": ["inspectAutomaticPairingAndReload", "inspectTargetClaimGuards", "inspectInteractionReadiness", "inspectProviderEffectAttemptGuard"],
     "LAW-LOCAL-BROWSER-SESSION-004-V36": ["inspectAtomicIfAndThenBoundary", "inspectDomMechanicalFacts", "inspectBrowserMutationSettlement", "inspectDisposableAttemptBoundary", "inspectProviderEffectAttemptGuard", "inspectRegistryAndMutationBoundary", "inspectInteractionReadiness"],
     "LAW-LOCAL-BROWSER-SESSION-005-V6": ["inspectAutomaticPairingAndReload", "inspectReleaseAndRetiredPaths"],
     "LAW-LOCAL-BROWSER-SESSION-006-V27": ["inspectDomMechanicalFacts", "inspectOpaqueAuthorityBoundary", "inspectTargetClaimGuards"],
@@ -104,7 +105,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     lawResults: [
       lawResult("LAW-LOCAL-BROWSER-SESSION-001-V4", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)),
       lawResult("LAW-LOCAL-BROWSER-SESSION-002-V6", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)),
-      lawResult("LAW-LOCAL-BROWSER-SESSION-003-V34", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)),
+      lawResult("LAW-LOCAL-BROWSER-SESSION-003-V34", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17)),
       lawResult("LAW-LOCAL-BROWSER-SESSION-004-V36", staticClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20), false),
       lawResult("LAW-LOCAL-BROWSER-SESSION-005-V6", staticClauses(0, 1, 2, 3, 4, 5, 6)),
       lawResult("LAW-LOCAL-BROWSER-SESSION-006-V27", staticClauses(0, 1, 2, 3, 4)),
