@@ -117,7 +117,6 @@ const hasNumericInequality = (
     || (Node.isIdentifier(right) && right.getText() === identifier
       && Node.isNumericLiteral(left) && Number(left.getLiteralValue()) === value);
 });
-
 export function inspectAgentFilesystem(
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -137,7 +136,6 @@ export function inspectAgentFilesystem(
       "agent-production-runtime/manifest-shape", PATHS.manifest, "Runtime Manifest ownedPaths is invalid."));
   }
 }
-
 const inspectCoreAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const startup = sourceFor(context, PATHS.startup);
   const state = sourceFor(context, PATHS.runtimeState);
@@ -175,8 +173,10 @@ const inspectCoreAst = (context: InspectorContext, findings: InspectorFinding[])
     .map((call) => call.getExpression().getText()) ?? []);
   const taskStateClass = taskState?.getClass("ProductionStoreTaskState");
   const websiteAttemptSupersession = taskStateClass?.getMethod("supersedeUnsentWritesForWebsiteAttempt");
-  const websiteAttemptSupersessionCalls = taskStateClass?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .filter((call) => call.getExpression().getText() === "this.supersedeUnsentWritesForWebsiteAttempt") ?? [];
+  const websiteAttemptRelease = taskStateClass?.getMethod("releaseAttemptForWebsiteDecision");
+  const supersessionOwners = (taskStateClass?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((call) => call.getExpression().getText() === "this.supersedeUnsentWritesForWebsiteAttempt") ?? [])
+    .map((call) => call.getFirstAncestorByKind(SyntaxKind.MethodDeclaration)?.getName());
   const deliverOutbox = outbox?.getClass("ProductionStoreOutbox")?.getMethod("deliverOutbox");
   const forbiddenLifecycleVerdict = `${taskState?.getFullText() ?? ""}\n${outbox?.getFullText() ?? ""}`;
   const lifecycleViolations = [
@@ -189,8 +189,11 @@ const inspectCoreAst = (context: InspectorContext, findings: InspectorFinding[])
     Boolean(taskStateClass?.getMethod("discardStagedResult")),
     /ATTEMPT_ENDED|PRODUCTION_OUTBOX_ATTEMPT_ENDED/u.test(forbiddenLifecycleVerdict),
     !websiteAttemptSupersession?.hasModifier(SyntaxKind.PrivateKeyword),
-    websiteAttemptSupersessionCalls.length !== 1,
-    websiteAttemptSupersessionCalls[0]?.getFirstAncestorByKind(SyntaxKind.MethodDeclaration)?.getName() !== "acceptTask",
+    supersessionOwners.length !== 2,
+    supersessionOwners.sort().join(",") !== "acceptTask,releaseAttemptForWebsiteDecision",
+    !websiteAttemptRelease?.getText().includes("current_attempt_id !== attemptId"),
+    ![businessAdmission?.getText(), variableDeclaration(claim, "persistAttemptFailure")?.getInitializer()?.getText()].every(
+      (source) => ['remote.next_action_code === "WAIT_NEW_ATTEMPT"', "state.store.releaseAttemptForWebsiteDecision("].every((token) => source?.includes(token))),
     !deliverOutbox?.getText().includes('executionFailure("failed", authority.lastError)'),
   ];
   if (lifecycleViolations.some(Boolean)) {
@@ -199,7 +202,6 @@ const inspectCoreAst = (context: InspectorContext, findings: InspectorFinding[])
       "Runtime still converts restart, local failure, or absent Website admission into an ended-attempt decision."));
   }
 };
-
 const inspectCredentialAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const credential = sourceFor(context, PATHS.credential);
   const failureCodes = new Set([
@@ -215,7 +217,6 @@ const inspectCredentialAst = (context: InspectorContext, findings: InspectorFind
     "agent-production-runtime/credential-failure-code", PATHS.credential,
     `Credential reader is missing typed failure ${code}.`));
 };
-
 const inspectContractAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const generator = sourceFor(context, PATHS.routeGenerator);
   if (generator?.getVariableDeclaration("resultContractRoutes")
@@ -257,7 +258,6 @@ const inspectContractAst = (context: InspectorContext, findings: InspectorFindin
       PATHS.admission, `Admission parser is missing ${field}.`));
   }
 };
-
 const inspectDatabaseAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const store = sourceFor(context, PATHS.store);
   const sqlCalls = [...calledLiteralSources(store, "prepare"), ...calledLiteralSources(store, "pragma")];

@@ -3,7 +3,7 @@ import { governanceAssert as assert } from "../audit/shared/governance-exam-asse
 import { parseBrowserAuthorityDiagnostic } from
   "../../src/lib/browser/transport/browser-authority-diagnostic.js";
 import { parseBrowserAuthorityTargetClaim } from
-  "../../src/lib/browser/transport/browser-authority-websocket.js";
+  "../../src/lib/browser/transport/browser-authority-frame-payload.js";
 import { BrowserAuthorityWebSocket } from
   "../../src/lib/browser/transport/browser-authority-websocket.js";
 

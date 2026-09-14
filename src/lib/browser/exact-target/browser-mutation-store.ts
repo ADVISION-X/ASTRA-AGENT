@@ -482,9 +482,7 @@ export class BrowserMutationStore {
     if (!Number.isFinite(Date.parse(row.terminal_at))) throw new Error("BROWSER_TERMINAL_AT_INVALID");
     return row.terminal_at;
   }
-
   public close(): void { this.database.close(); }
-
   private transition(commandId: string, from: BrowserMutationState, to: BrowserMutationState,
     mutationOutcome: BrowserMutationOutcome, reason: string | null, nativeCauseCode: string | null,
     proofHash: `sha256:${string}` | null): void {

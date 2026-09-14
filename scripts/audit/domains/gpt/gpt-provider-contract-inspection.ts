@@ -59,7 +59,7 @@ export const inspectGptProviderProbeOwnerContract = (
     "PROVIDER_OBSERVATION_INTERVAL_MS = 30_000", "waitForProviderObservation",
     "active.browser.readAtomicStepOutcome(confirmed.submitIdentity)",
     'recoverySelectionRequired: targetMode === "confirmed-readback"',
-    "selectExactGptConversation", "setTimeout",
+    "selectExactGptConversation", '"bound-observation"', "eligibleAt",
     'mode: "product-call-settlement"',
   ], findings, finding);
   for (const forbidden of ["yieldForProviderProbe", "yieldForProviderWait", "waitForDelay",
@@ -72,11 +72,15 @@ export const inspectGptProviderProbeOwnerContract = (
   const parkActive = lifecycleClass?.getMethod("parkActive");
   const parkCalls = lifecycleClass?.getDescendantsOfKind(SyntaxKind.CallExpression)
     .filter((call) => call.getExpression().getText() === "active.browser.park") ?? [];
-  if (parkCalls.length !== 1 || !parkActive?.getText().includes("active.browser.pendingMutationCount() > 0")
-    || !parkActive.getText().includes('mode: "product-call-settlement"')
+  if (parkCalls.length !== 2
+    || !parkActive?.getText().includes('mode: "product-call-settlement"')
+    || !lifecycleClass?.getMethod("waitForProviderObservation")?.getText()
+      .includes("active.browser.pendingMutationCount() > 0")
+    || !lifecycleClass?.getMethod("waitForProviderObservation")?.getText()
+      .includes('"bound-observation", eligibleAt')
     || !lifecycleClass?.getMethod("settle")?.getText().includes("this.parkActive(")) findings.push(finding(
     "gpt/no-browser-poll-scheduler", LIFECYCLE,
-    "The sole Browser park must be structurally owned by guarded Product settlement.",
+    "Provider pending and Product settlement must park through the sole Browser lane, with Browser-owned observation eligibility.",
   ));
   for (const retired of ["wait_for_stable_gpt_text", "wait_for_stable_gpt_image", "overdueRecoveryProbe"]) {
     if (lifecycle.includes(retired)) findings.push(finding(

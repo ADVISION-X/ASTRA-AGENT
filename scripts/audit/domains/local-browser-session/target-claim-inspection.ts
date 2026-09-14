@@ -20,6 +20,7 @@ const targetLeaseManagerPath = "src/lib/browser/exact-target/browser-target-leas
 const targetLeasePath = "src/lib/browser/exact-target/browser-target-lease.ts";
 const laneCoordinatorPath = "src/lib/browser/infrastructure/browser-lane-coordinator.ts";
 const targetAcquirerPath = "src/lib/browser/infrastructure/browser-target-acquirer.ts";
+const framePayloadPath = "src/lib/browser/transport/browser-authority-frame-payload.ts";
 
 const interactionReadinessFinding = (
   findings: InspectorFinding[],
@@ -206,17 +207,22 @@ const inspectNonDestructiveTargetRelease = (
   const parkAt = method.indexOf("park: async");
   const settlementModeAt = method.indexOf('mode !== "product-call-settlement"', parkAt);
   const physicalParkAt = method.indexOf('command("browser.park-target.v1"', parkAt);
-  if (parkAt >= 0 && settlementModeAt > parkAt && physicalParkAt > settlementModeAt
-    && method.includes("pendingMutationCount: () => state.pendingMutationCommandIds.length")
-    && !method.includes("close: async") && !destructiveClose
-    && admission.includes('value.kind !== "park-target"')
-    && lifecycle.includes("finally")
-    && lifecycle.indexOf("this.active = false") > lifecycle.indexOf("finally")
-    && laneText.includes("mutationBlocked && !exactPermanentCleanup")
-    && laneText.includes("hasUnresolvedMutationForJob(waiter.jobId)")
-    && laneText.includes('waiter.releaseAuthority === "website-permanent-revocation"')
-    && laneText.includes('waiter.releaseAuthority === "website-admin-deletion"')
-    && !lifecycle.includes("revokeOperatorTargetClaim")) return;
+  const requiredReleaseFacts = [
+    "pendingMutationCount: () => state.pendingMutationCommandIds.length",
+  ].every((token) => method.includes(token));
+  const forbiddenReleaseFacts = ["close: async"].some((token) => method.includes(token));
+  const requiredLaneFacts = [
+    "mutationBlocked && !exactPermanentCleanup",
+    "hasUnresolvedMutationForJob(waiter.jobId)",
+    'waiter.releaseAuthority === "website-permanent-revocation"',
+    'waiter.releaseAuthority === "website-admin-deletion"',
+  ].every((token) => laneText.includes(token));
+  const lifecycleSettles = lifecycle.includes("finally")
+    && lifecycle.indexOf("this.active = false") > lifecycle.indexOf("finally");
+  if ([parkAt >= 0, settlementModeAt > parkAt, physicalParkAt > settlementModeAt,
+    requiredReleaseFacts, !forbiddenReleaseFacts, !destructiveClose,
+    admission.includes('value.kind !== "park-target"'), lifecycleSettles,
+    requiredLaneFacts, !lifecycle.includes("revokeOperatorTargetClaim")].every(Boolean)) return;
   findings.push(createLocalFinding({
     checkId: "browser-authority/dispatched-mutation-target-release", lawId, filePath: targetLeaseManagerPath,
     message: "The one lane must permit only zero-input park plus exact Website-authorized release through unresolved DISPATCHED, while retaining fail-closed lifecycle cleanup.",
@@ -279,57 +285,61 @@ const inspectJobBoundClaimPolicy = (
   const leaseContract = requireSource(context, findings, lawId, targetLeasePath);
   const lane = requireSource(context, findings, lawId, laneCoordinatorPath);
   const targetAcquirer = requireSource(context, findings, lawId, targetAcquirerPath);
-  if (!targetAuthority || !debuggerRuntime || !sitePolicy || !actor || !supervisor || !broker
-    || !leaseManager || !leaseContract || !lane || !targetAcquirer) return;
-  requireIdentifiers(targetAuthority, [
+  if (![targetAuthority, debuggerRuntime, sitePolicy, actor, supervisor, broker,
+    leaseManager, leaseContract, lane, targetAcquirer].every(Boolean)) return;
+  requireIdentifiers(targetAuthority!, [
     "acquireJobBoundChatGptTarget", "createProductionTab", "removeTab", "GPT_WEB_START_URL",
     "requireGptWebPolicyForUrl", "waitForCreatedTarget", "navigationPublication",
     "parkActiveTarget", "releaseJobBoundChatGptTarget", "findByJobRefHash", "jobRefHash",
     "publishMainFrameNavigation", "activateTab",
   ], findings, lawId, "The fixed extension must create, validate, retain and release one exact system Target per active GPT job.");
-  const productionTabCreation = debuggerRuntime.getClass("ExtensionDebuggerRuntime")
+  const productionTabCreation = debuggerRuntime!.getClass("ExtensionDebuggerRuntime")
     ?.getMethod("createProductionTab")?.getText() ?? "";
-  if (!productionTabCreation.includes("this.chromeApi.tabs.create({ active: true, url })")
-    || productionTabCreation.includes("active: false")
-    || debuggerRuntime.getFullText().includes("createBackgroundTab")) findings.push(createLocalFinding({
+  const productionTabContract = [
+    productionTabCreation.includes("this.chromeApi.tabs.create({ active: true, url })"),
+    !productionTabCreation.includes("active: false"),
+    !debuggerRuntime!.getFullText().includes("createBackgroundTab"),
+  ].every(Boolean);
+  if (!productionTabContract) findings.push(createLocalFinding({
     checkId: "browser-authority/job-bound-target-claim",
     lawId,
     filePath: extensionDebuggerRuntimePath,
     message: "The sole production Tab creation path must select the new system Tab with active=true and physically delete the background-tab contract.",
   }));
-  requireIdentifiers(supervisor, [
+  requireIdentifiers(supervisor!, [
     "requireGptWebClaimOrigin", "establishClaimBoundWorkspace", "pendingJobBoundTargetAcquisition",
     "acquireJobBoundTargetLease",
   ], findings, lawId,
   "The server must bind initial Target acquisition to one current job request before establishing Session Workspace.");
-  requireIdentifiers(lane, ["BrowserTargetAcquirer", "targetAcquirer", "ensureAvailableTarget"], findings, lawId,
+  requireIdentifiers(lane!, ["BrowserTargetAcquirer", "targetAcquirer", "ensureAvailableTarget"], findings, lawId,
     "The sole Browser lane must delegate target acquisition to its one private target acquirer.");
-  if (leaseContract.getFullText().includes("requestKind")
-    || !lane.getFullText().includes('requestKind: wait.targetMode === "fresh"')) {
+  const requestClassificationPrivate = !leaseContract!.getFullText().includes("requestKind")
+    && lane!.getFullText().includes('requestKind: wait.targetMode === "fresh"');
+  if (!requestClassificationPrivate) {
     findings.push(createLocalFinding({
       checkId: "browser-authority/job-bound-target-claim", lawId, filePath: targetLeasePath,
       message: "The public lease wait contract must not expose requestKind; the Browser lane must derive it from the governed target mode.",
     }));
   }
-  requireIdentifiers(targetAcquirer, [
+  requireIdentifiers(targetAcquirer!, [
     "acquireJobBoundTarget", "requestPreauthorizedTargetAcquisition", "pendingJobBoundTargetAcquisition",
     "releaseJobBoundTarget", "requestPreauthorizedTargetRelease", "targetMode", "jobRefHash",
     "currentOperatorTargetJobRefHash", "resolvePending", "rejectPending",
   ], findings, lawId, "The target acquirer must bind acquire/release to the current queued job and explicit fresh/observation/readback mode.");
-  requireIdentifiers(broker, ["current", "targetRef", "navigationEpoch", "jobRefHash",
+  requireIdentifiers(broker!, ["current", "targetRef", "navigationEpoch", "jobRefHash",
     "currentOperatorTargetJobRefHash"], findings, lawId,
     "The sole Broker must reject cross-job target reuse, target replacement and non-monotonic Document claims.");
-  inspectJobBoundClaimOrder(actor, findings, lawId);
-  inspectServerClaimOrder(supervisor.getClass("BrowserInfrastructureSupervisor")?.getMethod("onTargetClaim")?.getText() ?? "", findings, lawId);
-  inspectBrokerClaimMonotonicity(broker.getFullText(), findings, lawId);
-  const targetAuthorityText = targetAuthority.getFullText();
+  inspectJobBoundClaimOrder(actor!, findings, lawId);
+  inspectServerClaimOrder(supervisor!.getClass("BrowserInfrastructureSupervisor")?.getMethod("onTargetClaim")?.getText() ?? "", findings, lawId);
+  inspectBrokerClaimMonotonicity(broker!.getFullText(), findings, lawId);
+  const targetAuthorityText = targetAuthority!.getFullText();
   if (!recoveryUsesCurrentTargetAndCanonicalUrl(targetAuthorityText)) findings.push(createLocalFinding({
     checkId: "browser-authority/job-bound-target-claim", lawId, filePath: targetAuthorityPath,
     message: "Confirmed readback must use the current system Target and one exact canonical URL navigation without scanning historical Targets or foregrounding the Tab.",
   }));
-  inspectNonDestructiveTargetRelease(context, leaseManager, lane, findings, lawId);
-  inspectExactChatGptPolicy(sitePolicy, findings, lawId);
-  inspectCanonicalConversationPolicy(sitePolicy.getFullText(), findings, lawId);
+  inspectNonDestructiveTargetRelease(context, leaseManager!, lane!, findings, lawId);
+  inspectExactChatGptPolicy(sitePolicy!, findings, lawId);
+  inspectCanonicalConversationPolicy(sitePolicy!.getFullText(), findings, lawId);
 };
 
 export const inspectTargetClaimGuards = (
@@ -338,11 +348,14 @@ export const inspectTargetClaimGuards = (
   lawId: string,
 ): void => {
   const channel = requireSource(context, findings, lawId, sourcePaths[0]);
+  const framePayload = requireSource(context, findings, lawId, framePayloadPath);
   const actor = requireSource(context, findings, lawId, sourcePaths[1]);
   const awaiter = requireSource(context, findings, lawId, targetClaimAwaiterPath);
-  if (!channel || !actor || !awaiter) return;
-  requireIdentifiers(channel, ["sendTargetClaimAcknowledgement", "parseBrowserAuthorityTargetClaim", "nonNegativeIntegerField"], findings, lawId,
+  if (!channel || !framePayload || !actor || !awaiter) return;
+  requireIdentifiers(channel, ["sendTargetClaimAcknowledgement", "parseBrowserAuthorityTargetClaim"], findings, lawId,
     "Workbench target admission must accept epoch zero and return one encrypted acknowledgement.");
+  requireIdentifiers(framePayload, ["parseBrowserAuthorityTargetClaim", "nonNegativeIntegerField"], findings, lawId,
+    "The Target claim payload owner must validate the complete exact wire identity.");
   requireIdentifiers(actor, ["TargetClaimAwaiter", "targetClaims", "sendTargetFrame", "acceptTargetClaimAcknowledgement"], findings, lawId,
     "The extension actor must route target claims through the one acknowledgement awaiter.");
   requireIdentifiers(actor, ["acceptTargetAcquire", "acquireJobBoundChatGptTarget"], findings, lawId,
@@ -353,7 +366,7 @@ export const inspectTargetClaimGuards = (
   }));
   requireIdentifiers(awaiter, ["TargetClaimAwaiter", "begin", "accept", "fail"], findings, lawId,
     "The extension must not report target success before the Workbench acknowledgement.");
-  const parseClaim = channel.getVariableDeclaration("parseBrowserAuthorityTargetClaim");
+  const parseClaim = framePayload.getVariableDeclaration("parseBrowserAuthorityTargetClaim");
   const parseClaimText = parseClaim?.getText() ?? "";
   for (const required of [
     'stringField(body, "claimOrigin")', "requireGptWebClaimOrigin(claimOrigin)",
@@ -361,14 +374,14 @@ export const inspectTargetClaimGuards = (
   ]) if (!parseClaimText.includes(required)) findings.push(createLocalFinding({
     checkId: "browser-authority/target-claim-origin-only",
     lawId,
-    filePath: sourcePaths[0],
+    filePath: framePayloadPath,
     message: `TARGET_CLAIM must carry exact claimOrigin only; missing ${required}.`,
   }));
   if (/stringField\(body,\s*["'](?:url|currentUrl)["']\)/u.test(parseClaimText)) {
     findings.push(createLocalFinding({
       checkId: "browser-authority/target-claim-origin-only",
       lawId,
-      filePath: sourcePaths[0],
+      filePath: framePayloadPath,
       message: "TARGET_CLAIM must not carry current or canonical conversation URL.",
     }));
   }

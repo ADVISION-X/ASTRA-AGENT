@@ -127,7 +127,7 @@ const binding = (character: string) => ({
 const wait = (targetMode: "fresh" | "bound-observation", signal: AbortSignal,
   eligibleAt = Date.now()) => ({ targetMode, signal, eligibleAt, remainingMs: () => 5_000 });
 const createBehaviorLane = (events: string[], unresolved = 0) => {
-  const instance = Object.create(BrowserLaneCoordinator.prototype) as Record<string, unknown>;
+  const instance = Object.create(BrowserLaneCoordinator.prototype);
   const targetAcquirer = {
     ensureAvailableTarget: async (waiter: { targetMode: string }) => {
       events.push(`ensure:${waiter.targetMode}`);
@@ -152,7 +152,7 @@ const createBehaviorLane = (events: string[], unresolved = 0) => {
       }),
     }),
   });
-  return instance as unknown as BrowserLaneCoordinator;
+  return instance as BrowserLaneCoordinator;
 };
 
 const fifoEvents: string[] = [];

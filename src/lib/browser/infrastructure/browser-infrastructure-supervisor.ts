@@ -13,9 +13,10 @@ import { BrowserTargetLeaseManager, type BrowserExactTargetAcquisition } from ".
 import type { BrowserProfileConfig } from "../profile/browser-profile-config.js";
 import type { BrowserProfileState } from "../profile/browser-profile-state.js";
 import type { UnpackedExtensionReleaseIdentity } from "../release/unpacked-extension-release-identity.js";
-import { BrowserAuthorityWebSocket, type BrowserAuthorityTargetClaim,
-  type BrowserAuthorityTargetRevoke,
-  type BrowserAuthorityWebSocketOptions } from "../transport/browser-authority-websocket.js";
+import type { BrowserAuthorityTargetClaim, BrowserAuthorityTargetRevoke } from
+  "../transport/browser-authority-frame-payload.js";
+import { BrowserAuthorityWebSocket, type BrowserAuthorityWebSocketOptions } from
+  "../transport/browser-authority-websocket.js";
 import { BrowserCommandAdmissionBudget } from "../transport/browser-command-admission-budget.js";
 import { BrowserTransportActor } from "../transport/transport-actor.js";
 import type { RuntimeLogger } from "../../runtime-logs/index.js";

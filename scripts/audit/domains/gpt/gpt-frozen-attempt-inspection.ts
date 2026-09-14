@@ -53,7 +53,7 @@ const lifecycleChecks = (sources: Readonly<Record<string, string>>): boolean[] =
     !sources.lifecycle!.includes('"provider-probe"'),
     !sources.lifecycle!.includes("startProviderProbeCooldown"),
     !sources.lifecycle!.includes("BROWSER_RECONCILIATION_IDENTITY_MISMATCH"),
-    sources.targetAcquirer!.includes("requestPreauthorizedTargetAcquisition(targetMode)"),
+    sources.targetAcquirer!.includes("requestPreauthorizedTargetAcquisition(targetMode, jobRefHash)"),
     !sources.targetAcquirer!.includes("expectedTargetRef"),
     sources.store!.includes("providerEffectIdentityHash: input.effectScope === \"provider_effect\""),
     !sources.candidate!.includes("priorTurns.length > 1"),

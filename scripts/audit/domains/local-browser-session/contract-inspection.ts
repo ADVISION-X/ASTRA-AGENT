@@ -58,7 +58,7 @@ export const inspectTargetClaimContract = (
   context: InspectorContext, findings: InspectorFinding[], lawId: string,
 ): void => {
   requireExactType({ context, findings, lawId,
-    filePath: "src/lib/browser/transport/browser-authority-websocket.ts", typeName: "BrowserAuthorityTargetClaim",
+    filePath: "src/lib/browser/transport/browser-authority-frame-payload.ts", typeName: "BrowserAuthorityTargetClaim",
     expected: ["claimOrigin", "documentRef", "jobRefHash", "navigationEpoch", "targetRef"] });
   requireExactType({ context, findings, lawId,
     filePath: "src/lib/browser/exact-target/browser-session-workspace.ts", typeName: "SessionWorkspaceBindingV6",
@@ -79,7 +79,7 @@ export const inspectOpaqueAuthorityContract = (
   context: InspectorContext, findings: InspectorFinding[], lawId: string,
 ): void => {
   requireExactType({ context, findings, lawId,
-    filePath: "src/lib/browser/transport/browser-authority-websocket.ts", typeName: "BrowserAuthorityTargetClaim",
+    filePath: "src/lib/browser/transport/browser-authority-frame-payload.ts", typeName: "BrowserAuthorityTargetClaim",
     expected: ["claimOrigin", "documentRef", "jobRefHash", "navigationEpoch", "targetRef"] });
   const filePath = "src/lib/browser/infrastructure/browser-authority-certificate.ts";
   const source = sourceAt(context, filePath);

@@ -68,6 +68,36 @@ const commandFrom = (value: unknown): BrowserGovernedCommand => {
 const canAttemptAutomaticPairing = (state: SocketState): boolean =>
   state !== "CONNECTING" && state !== "PAIRING" && state !== "CONNECTED";
 
+type TargetOperation = Readonly<{
+  action: "release";
+  jobRefHash: `sha256:${string}`;
+}> | Readonly<{
+  action: "acquire";
+  jobRefHash: `sha256:${string}`;
+  targetMode: "fresh" | "bound-observation" | "confirmed-readback";
+}>;
+
+const hasExactKeys = (value: Readonly<Record<string, unknown>>, keys: readonly string[]): boolean =>
+  Object.keys(value).length === keys.length && Object.keys(value).every((key) => keys.includes(key));
+
+const targetOperationFrom = (request: Readonly<Record<string, unknown>>): TargetOperation => {
+  const jobRefHash = typeof request.jobRefHash === "string" && /^sha256:[a-f0-9]{64}$/u.test(request.jobRefHash)
+    ? request.jobRefHash as `sha256:${string}`
+    : (() => { throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID"); })();
+  if (request.action === "release") {
+    if (!hasExactKeys(request, ["action", "jobRefHash"])) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    return { action: "release", jobRefHash };
+  }
+  const targetMode = request.targetMode;
+  const validMode = targetMode === "fresh" || targetMode === "bound-observation"
+    || targetMode === "confirmed-readback";
+  if (request.action !== "acquire" || !validMode
+    || !hasExactKeys(request, ["action", "targetMode", "jobRefHash"])) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  return { action: "acquire", jobRefHash, targetMode };
+};
+
 /** The extension actor is the sole socket owner; every authentication discontinuity requires a fresh automatic pairing. */
 export class ExtensionWebSocketActor {
   private socket: WebSocket | null = null;
@@ -300,30 +330,16 @@ export class ExtensionWebSocketActor {
       throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     }
     const request = await decrypt(session.serverToClientKey, "server-to-client", frame);
-    const action = request.action;
-    const jobRefHash = typeof request.jobRefHash === "string" && /^sha256:[a-f0-9]{64}$/u.test(request.jobRefHash)
-      ? request.jobRefHash as `sha256:${string}`
-      : (() => { throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID"); })();
-    if (action === "release") {
-      if (Object.keys(request).length !== 2
-        || Object.keys(request).some((key) => !["action", "jobRefHash"].includes(key))) {
-        throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-      }
-      try { await this.targetAuthority.releaseJobBoundChatGptTarget(jobRefHash); }
+    const operation = targetOperationFrom(request);
+    if (operation.action === "release") {
+      try { await this.targetAuthority.releaseJobBoundChatGptTarget(operation.jobRefHash); }
       catch (error) { this.reportRuntimeFailure(error, "job-bound-target-acquisition"); }
       return;
     }
-    if (action !== "acquire") throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    const targetMode = request.targetMode === "fresh" || request.targetMode === "bound-observation"
-      || request.targetMode === "confirmed-readback"
-      ? request.targetMode
-      : (() => { throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID"); })();
-    if (Object.keys(request).length !== 3
-      || Object.keys(request).some((key) => !["action", "targetMode", "jobRefHash"].includes(key))) {
-      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    }
     try {
-      await this.targetAuthority.acquireJobBoundChatGptTarget(targetMode, jobRefHash);
+      await this.targetAuthority.acquireJobBoundChatGptTarget(
+        operation.targetMode, operation.jobRefHash,
+      );
     } catch (error) {
       this.reportRuntimeFailure(error, "job-bound-target-acquisition");
     }

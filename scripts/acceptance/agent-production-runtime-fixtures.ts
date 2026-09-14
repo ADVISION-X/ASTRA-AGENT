@@ -22,6 +22,64 @@ import { authorizeWebsiteAgentTask } from "../../src/mediator/agent-production-r
 export const HASH_A = `sha256:${"a".repeat(64)}` as ProductionHash;
 export const HASH_B = `sha256:${"b".repeat(64)}` as ProductionHash;
 export const HASH_C = `sha256:${"c".repeat(64)}` as ProductionHash;
+export const ADMISSION_JOB_ID = "job:business-admission";
+
+export const admissionReceiptFor = (
+  jobId: string,
+  resultPayloadHash: string,
+  extra: Readonly<Record<string, unknown>> = {},
+) => {
+  const authority = {
+    job_id: jobId,
+    result_payload_hash: resultPayloadHash,
+    ...extra,
+    consumer_ref: "business-result-consumer.v1",
+    outcome: "completed" as const,
+  };
+  return {
+    schema_version: "xuanxue-ai-business-admission-receipt.v6",
+    ...authority,
+    consumption_hash: hashCanonical(authority),
+    consumed_at: "2026-09-03T00:00:00.000Z",
+  };
+};
+
+export const admissionReceipt = (extra: Readonly<Record<string, unknown>> = {}) =>
+  admissionReceiptFor(ADMISSION_JOB_ID, HASH_A, extra);
+
+export const deviceStatusWithAdmission = (
+  receipt: unknown,
+  jobId = ADMISSION_JOB_ID,
+  terminalPayloadHash: string = HASH_B,
+) => ({
+  request: async () => ({
+    schema_version: "xuanxue-ai-device-job-status.v6", job_id: jobId, status: "completed",
+    current_reason: null,
+    control_intent: { schema_version: "xuanxue-ai-control-intent.v6", job_id: jobId,
+      control_epoch: 0, intent: "none", reason_code: null },
+    next_action_code: "CONSUME_CURRENT_RESULT", terminal_status: "completed",
+    terminal_payload_hash: terminalPayloadHash, business_admission_receipt: receipt,
+    business_consumer_error: null, accepted_attempt_count: 1, write_receipts: [],
+  }),
+}) as never;
+
+export const deviceStatusWithoutAdmission = (
+  jobId: string,
+  deleted = false,
+  nextAction: "ACTIVE_ATTEMPT" | "WAIT_NEW_ATTEMPT" = "ACTIVE_ATTEMPT",
+  reasonCode: string | null = deleted ? "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED" : null,
+) => ({
+  request: async () => ({
+    schema_version: "xuanxue-ai-device-job-status.v6", job_id: jobId, status: "failed",
+    current_reason: reasonCode ? { code: reasonCode } : null,
+    control_intent: { schema_version: "xuanxue-ai-control-intent.v6", job_id: jobId,
+      control_epoch: deleted ? 1 : 0, intent: deleted ? "cancel_requested" : "none",
+      reason_code: deleted ? "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED" : null },
+    next_action_code: nextAction, terminal_status: null, terminal_payload_hash: null,
+    business_admission_receipt: null, business_consumer_error: null,
+    accepted_attempt_count: 1, write_receipts: [],
+  }),
+}) as never;
 
 export const validDeviceCredential = {
   protocol_version: "xuanxue-ai-production-v6",
