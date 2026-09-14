@@ -43,6 +43,20 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   const run = await exerciseProductFlow(plugin, { task, output,
     ...(resultRevision ? { resultRevision } : {}) });
   assert.deepEqual(run.calls.map((call) => call.child), sequence);
+  const reasoningCall = run.calls.find((call) => call.child === "ensure_gpt_reasoning_requirement");
+  assert(reasoningCall?.child === "ensure_gpt_reasoning_requirement");
+  const articleTranslation = route.product_id === "localization_article_translation"
+    && route.action_id === "article_translation";
+  assert.deepEqual({
+    profileRef: reasoningCall.input.profile.profileRef,
+    reasoningRequirement: reasoningCall.input.profile.reasoningRequirement,
+  }, articleTranslation ? {
+    profileRef: "localization-production:article-translation:gpt-5.6-sol-extra-high",
+    reasoningRequirement: { selectionPolicy: "exact", requestedTier: "extra_high" },
+  } : {
+    profileRef: "localization-production:gpt-5.6-sol-pro-standard",
+    reasoningRequirement: { selectionPolicy: "exact-or-observed-maximum", requestedTier: "pro_standard" },
+  });
   const prompt = String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt);
   assert.doesNotMatch(prompt, /Product Plugin|result_contract attachment/u);
   assert.match(prompt, /Website route result_contract/u);

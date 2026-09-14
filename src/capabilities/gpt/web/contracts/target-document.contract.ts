@@ -13,7 +13,8 @@ export const canonicalGptConversationUrl = (value: string): string => {
   if (url.protocol !== "https:" || url.origin !== GPT_ORIGIN
     || url.username !== "" || url.password !== ""
     || url.search !== "" || url.hash !== ""
-    || segment.length < 1 || segment.length > GPT_CONVERSATION_SEGMENT_MAX_CHARS) {
+    || segment.length > GPT_CONVERSATION_SEGMENT_MAX_CHARS
+    || !/^[A-Za-z0-9_-]+$/u.test(segment)) {
     throw executionFailure("failed", "GPT_CONVERSATION_URL_INVALID");
   }
   return `${url.origin}${url.pathname}`;

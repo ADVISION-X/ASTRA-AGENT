@@ -1,3 +1,5 @@
+import { requireCanonicalGptConversationUrl } from "./browser-site-policy-registry.js";
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
@@ -34,8 +36,9 @@ const recoveryRowsValid = (
 export const submitRecoveryPayload = (value: unknown): Readonly<Record<string, unknown>> => {
   const { observation, row, item } = exactRecoveryRows(value);
   if (!recoveryRowsValid(observation, row, item)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  const canonicalConversationUrl = requireCanonicalGptConversationUrl(observation.currentUrl as string);
   return Object.freeze({
-    canonicalConversationUrl: observation.currentUrl,
+    canonicalConversationUrl,
     promptHash: item.exactGptUserPromptHash,
     userTurnId: item.testId,
     exactCallIdentityHash: observation.exactCallIdentityHash,

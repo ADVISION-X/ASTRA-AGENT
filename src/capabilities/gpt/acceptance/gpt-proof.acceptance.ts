@@ -207,6 +207,23 @@ await exerciseSubmit("gpt-proof-submit-third-turn", [], [],
   assert.equal(result.status, "success", result.failureCode ?? "recovered submit failed");
   assert.equal(result.value?.userTurnId, "conversation-turn-3");
   assert.equal(fixture.physicalMutations(), 0);
+
+  const temporaryRoute = await createGptAcceptanceHarness("gpt-proof-recovered-temporary-route").execute(
+    "submit_exact_gpt_turn_once", fixture.browser, { files: [], promptHash }, {
+      confirmedProviderEffectReadback: {
+        terminalPayload: { ...terminalPayload,
+          canonicalConversationUrl: "https://chatgpt.com/c/WEB:temporary-client-route" },
+        terminalAt: "2026-09-02T00:00:01.000Z",
+        authorityRef: "browser-mutation:temporary-route", authorityHash: `sha256:${"9".repeat(64)}`,
+        providerEffectIdentityHash: `sha256:${"8".repeat(64)}`,
+        mutationOutcome: "confirmed",
+      },
+    },
+  );
+  assert.equal(temporaryRoute.status, "failed");
+  assert.equal(temporaryRoute.failureCode, "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
+  assert.equal(fixture.physicalMutations(), 0,
+    "a historical temporary route must fail before Browser navigation or Provider replay");
 }
 
 {

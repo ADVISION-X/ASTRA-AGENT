@@ -10,6 +10,8 @@ import {
 } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
 import type { BrowserMutationIdentity } from "../../src/lib/browser/exact-target/browser-mutation-types.js";
 import { ensureCurrentSchema } from "../../src/lib/browser/exact-target/browser-mutation-schema.js";
+import { submitRecoveryPayload } from
+  "../../src/lib/browser/exact-target/browser-submit-recovery-payload.js";
 
 const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -35,6 +37,22 @@ const identity = (attemptId: string, revision = 0): BrowserMutationIdentity => O
   requestHash: hash(`request:${revision}`),
   payloadHash: hash(`payload:${revision}`),
 });
+
+const submitTerminalReply = (currentUrl: string) => ({ postconditionObservation: {
+  currentUrl,
+  exactCallIdentityHash: hash("exact-call"), observationRevisionHash: hash("observation"),
+  targetRefHash: hash("target"), documentRefHash: hash("document"),
+  queries: [{ rawCount: 1, eligibleCount: 1, matches: [{ testId: "conversation-turn-1",
+    exactGptUserPromptHash: hash("prompt") }] }],
+} });
+
+assert.equal(submitRecoveryPayload(submitTerminalReply(
+  "https://chatgpt.com/c/durable-provider-route",
+)).canonicalConversationUrl, "https://chatgpt.com/c/durable-provider-route");
+assert.throws(() => submitRecoveryPayload(submitTerminalReply(
+  "https://chatgpt.com/c/WEB:temporary-client-route",
+)), /BROWSER_ORIGIN_REJECTED/u,
+"Browser WAL must reject a temporary client route before persisting confirmed recovery data");
 
 const root = await mkdtemp(path.join(tmpdir(), "browser-attempt-fence-"));
 try {

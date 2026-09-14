@@ -36,6 +36,16 @@ const MODEL_PROFILE = buildGptExecutionProfile({
   acceptanceRef: `${PLUGIN_ID}:production`,
   acceptanceVersion: "v1",
 });
+const ARTICLE_TRANSLATION_MODEL_PROFILE = buildGptExecutionProfile({
+  profileRef: `${PLUGIN_ID}:article-translation:gpt-5.6-sol-extra-high`,
+  accountCapabilityRef: "openai-chatgpt:gpt-5.6-sol",
+  modelDisplayName: "GPT-5.6 Sol",
+  modelFamily: "gpt-5.6",
+  reasoningRequirement: { selectionPolicy: "exact", requestedTier: "extra_high" },
+  executorIdentityRef: PLUGIN_ID,
+  acceptanceRef: `${PLUGIN_ID}:production`,
+  acceptanceVersion: "v1",
+});
 
 type FlowCall = ProductGptAnyCallInput;
 export type LocalizationGptCheckpoint = Readonly<{
@@ -144,7 +154,7 @@ const applyProfile = async (
   flow: OwnedExecution,
   stepId: string,
   ordinals: readonly [number, number, number, number, number, number],
-  profile: GptExecutionProfile = MODEL_PROFILE,
+  profile: GptExecutionProfile,
 ) => {
   const open = { productStepId: stepId, callId: "profile-open", child: "open_gpt_execution_profile", actionOrdinal: ordinals[0], input: { profile } } as const;
   const selector = { productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v2", actionOrdinal: ordinals[1], input: { profile } } as const;
@@ -248,6 +258,8 @@ const runFreshTurn = async (
   marker: string,
 ): Promise<Checkpoint> => {
   const stepId = task.action_id;
+  const profile = task.product_id === "localization_article_translation" && stepId === "article_translation"
+    ? ARTICLE_TRANSLATION_MODEL_PROFILE : MODEL_PROFILE;
   const files = uploadedFiles(context);
   const promptHash = sha256(prompt);
   const confirmed = await flow.readConfirmedSubmit({
@@ -260,7 +272,7 @@ const runFreshTurn = async (
   }
   const fresh = { productStepId: stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
   await flow.execute(fresh);
-  await applyProfile(flow, stepId, [2, 3, 4, 5, 6, 7]);
+  await applyProfile(flow, stepId, [2, 3, 4, 5, 6, 7], profile);
   await applyAttachments(flow, context, stepId, [8, 9, 10]);
   return submitTurn(flow, stepId, prompt, marker, files, [11, 12, 13, 14, 15, 16]);
 };

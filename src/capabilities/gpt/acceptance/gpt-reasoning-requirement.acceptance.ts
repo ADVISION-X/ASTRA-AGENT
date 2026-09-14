@@ -16,7 +16,7 @@ import {
   exerciseReasoningEvidenceReadback,
 } from "./gpt-failure-evidence-readback.acceptance-support.js";
 
-const exactReasoningProfile = (requestedTier: "high" | "pro_standard") => buildGptExecutionProfile({
+const exactReasoningProfile = (requestedTier: "high" | "extra_high" | "pro_standard") => buildGptExecutionProfile({
   profileRef: `acceptance:gpt-profile:${requestedTier}`,
   accountCapabilityRef: "acceptance:account-capability",
   modelDisplayName: "GPT-5.6 Sol",
@@ -111,26 +111,40 @@ for (const maximum of [2, 4]) {
 }
 
 {
-  const exactPro = exactReasoningProfile("pro_standard");
-  const { result, fixture } = await runReasoning({ executionProfile: exactPro, maximum: 2, current: 1 });
+  const exactExtraHigh = exactReasoningProfile("extra_high");
+  const { result, fixture, keypresses } = await runReasoning({
+    executionProfile: exactExtraHigh, maximum: 4, current: 2,
+  });
+  assert.equal(result.status, "success");
+  assert.deepEqual(result.reasoningRequirementResult, {
+    requestedTier: "extra_high", requestedValue: 3, selectionPolicy: "exact",
+    observedScale: { min: 0, max: 4, currentBefore: 2 },
+    resolvedTier: "extra_high", resolvedValue: 3, degraded: false, currentValue: 3,
+    mutationOutcome: "confirmed", browserOutcome: "CONFIRMED", gptPostcondition: "passed",
+  });
+  assert.equal(keypresses, 1);
+  assert.equal(fixture.physicalMutations(), 1);
+}
+
+for (const unavailable of [
+  Object.freeze({ tier: "extra_high" as const, requestedValue: 3 }),
+  Object.freeze({ tier: "pro_standard" as const, requestedValue: 4 }),
+]) {
+  const exactProfile = exactReasoningProfile(unavailable.tier);
+  const { result, fixture } = await runReasoning({ executionProfile: exactProfile, maximum: 2, current: 1 });
   assert.equal(result.status, "failed");
   assert.equal(result.failureCode, "GPT_REASONING_TIER_UNAVAILABLE");
   assert.deepEqual(result.reasoningRequirementResult, {
-    requestedTier: "pro_standard", requestedValue: 4, selectionPolicy: "exact",
+    requestedTier: unavailable.tier, requestedValue: unavailable.requestedValue, selectionPolicy: "exact",
     observedScale: { min: 0, max: 2, currentBefore: 1 },
     resolvedTier: null, resolvedValue: null, degraded: false, currentValue: 1,
     mutationOutcome: "no", browserOutcome: null, gptPostcondition: "failed",
   });
   assert.equal(fixture.physicalMutations(), 0);
-  await exerciseFailedEvidenceReadback(result, Object.freeze({ profile: exactPro }), {
-    code: "GPT_REASONING_TIER_UNAVAILABLE",
-    mutation_outcome: "no",
-    effect_scope: null,
-    child_capability_id: null,
-    browser_outcome: null,
-    evidence_ref: "record:gpt-failed-readback",
-    evidence_hash: result.proof.evidenceHash,
-    cause: null,
+  await exerciseFailedEvidenceReadback(result, Object.freeze({ profile: exactProfile }), {
+    code: "GPT_REASONING_TIER_UNAVAILABLE", mutation_outcome: "no", effect_scope: null,
+    child_capability_id: null, browser_outcome: null, evidence_ref: "record:gpt-failed-readback",
+    evidence_hash: result.proof.evidenceHash, cause: null,
   });
 }
 

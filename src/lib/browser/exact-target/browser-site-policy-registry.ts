@@ -60,7 +60,7 @@ export const requireCanonicalGptConversationUrl = (value: string): string => {
     ? segments[2]! : "";
   if (url.protocol !== "https:" || url.origin !== GPT_WEB_ORIGIN
     || url.username !== "" || url.password !== "" || url.search !== "" || url.hash !== ""
-    || segment.length < 1 || segment.length > 256) {
+    || segment.length > 256 || !/^[A-Za-z0-9_-]+$/u.test(segment)) {
     throw new Error("BROWSER_ORIGIN_REJECTED");
   }
   return `${url.origin}${url.pathname}`;

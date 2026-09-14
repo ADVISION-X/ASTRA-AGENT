@@ -9,6 +9,8 @@ import { executeCoherentObservation } from "./dom-coherent-observation.js";
 import { attribute, describeNode, documentState, queryAll, queryCandidateSet,
   queryVisibleTextMatches } from "./dom-query-runtime.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
+import { requireCanonicalGptConversationUrl } from
+  "../exact-target/browser-site-policy-registry.js";
 
 type ClickIntent = Extract<BrowserDomIntent, { kind: "click" }>;
 type HoverIntent = Extract<BrowserDomIntent, { kind: "hover" }>;
@@ -43,7 +45,10 @@ const exactOutgoingTurnVerified = (
   const matches = observation.queries[0]?.matches;
   const match = Array.isArray(matches) ? matches[0] : undefined;
   if (!match || typeof match !== "object" || Array.isArray(match)) return false;
-  return (match as Readonly<Record<string, unknown>>).exactGptUserPromptHash === expected.expectedPromptHash;
+  try { return (match as Readonly<Record<string, unknown>>).exactGptUserPromptHash
+    === expected.expectedPromptHash
+    && requireCanonicalGptConversationUrl(observation.currentUrl) === observation.currentUrl; }
+  catch { return false; }
 };
 
 export const matchReceiptEvidence = (readback: MatchReadback): Readonly<Record<string, unknown>> => ({

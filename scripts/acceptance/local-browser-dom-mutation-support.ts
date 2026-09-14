@@ -252,8 +252,8 @@ const exerciseExactOutgoingActionabilityWait = async (): Promise<void> => {
     "a send button that stays disabled must time out with zero physical input");
 };
 
-const coherentObservation = (open: boolean) => ({
-  currentUrl: "https://chatgpt.com/", observedAt: "2026-09-04T00:00:00.000Z",
+const coherentObservation = (open: boolean, currentUrl = "https://chatgpt.com/") => ({
+  currentUrl, observedAt: "2026-09-04T00:00:00.000Z",
   queries: [
     { queryId: "entry", scopeRawCount: 1, scopeEligibleCount: 1, rawCount: 1,
       eligibleCount: open ? 0 : 1, matches: open ? [] : [{ candidateIndex: 0 }],
@@ -270,6 +270,7 @@ const coherentObservation = (open: boolean) => ({
 const exerciseExactOutgoingNeverUsesZeroActionPostcondition = async (): Promise<void> => {
   let pointerEvents = 0;
   let candidateCalls = 0;
+  let postconditionCalls = 0;
   let emptyComposerEligible = 1;
   const runtime = { awaitPageReadPermission: noPageReadBarrier, async send(
     _tabId: number,
@@ -282,7 +283,10 @@ const exerciseExactOutgoingNeverUsesZeroActionPostcondition = async (): Promise<
       return { result: { value: { x: 5, y: 5 } } };
     }
     if (method === "Runtime.callFunctionOn" && source.startsWith("async function (specs)")) {
-      const observation = coherentObservation(true);
+      postconditionCalls += 1;
+      const observation = coherentObservation(true, postconditionCalls === 1
+        ? "https://chatgpt.com/c/WEB:temporary-client-route"
+        : "https://chatgpt.com/c/durable-provider-route");
       return { result: { value: { ...observation, queries: [{
         ...observation.queries[0], queryId: "submitted-user-turn", rawCount: 1, eligibleCount: 1,
         matches: [{ candidateIndex: 0, testId: "conversation-turn-7",
@@ -315,12 +319,16 @@ const exerciseExactOutgoingNeverUsesZeroActionPostcondition = async (): Promise<
       latestGptUserTurn: true }, { queryId: "empty-composer",
       selector: "composer[contenteditable='true']:has(> p[data-empty-paragraph='true'] > br.ProseMirror-trailingBreak)",
       maxMatches: 1, fields: [], expectedEligibleCount: 1 }],
-    timeoutMs: 10 },
+    timeoutMs: 100 },
   };
   const result = await executeRegisteredDomIntent(runtime, target, intent,
     () => undefined) as Readonly<Record<string, unknown>>;
   assert.equal(result.postconditionVerified, true);
   assert.equal(candidateCalls, 1);
+  assert.equal(postconditionCalls, 2,
+    "submit must keep the same bounded postcondition open until the temporary WEB route becomes durable");
+  assert.equal((result.postconditionObservation as Readonly<Record<string, unknown>>).currentUrl,
+    "https://chatgpt.com/c/durable-provider-route");
   assert.equal(pointerEvents, 3,
     "an exact outgoing turn must click once even when a historical DOM state already satisfies the postcondition");
   emptyComposerEligible = 0;
