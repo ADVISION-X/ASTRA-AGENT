@@ -40,12 +40,22 @@ export type BrowserAtomicStepOutcome = Readonly<{
   terminalPayload?: unknown | null;
 }>;
 
-export type BrowserTargetLeaseWait = Readonly<{
+type BrowserTargetLeaseWaitBase = Readonly<{
   signal: AbortSignal;
   remainingMs(): number;
-  targetMode: "fresh" | "bound-observation" | "confirmed-readback";
   eligibleAt: number;
 }>;
+
+export type BrowserTargetLeaseWait = BrowserTargetLeaseWaitBase & (
+  | Readonly<{
+    targetMode: "fresh" | "bound-observation" | "confirmed-readback";
+    parentJobId?: never;
+  }>
+  | Readonly<{
+    targetMode: "authorized-continuation";
+    parentJobId: string;
+  }>
+);
 
 export type BrowserTargetReleaseAuthority =
   | "business-admitted"

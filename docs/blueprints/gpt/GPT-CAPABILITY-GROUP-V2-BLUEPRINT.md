@@ -1,12 +1,12 @@
-# GPT 能力组 V48 施工图
+# GPT 能力组 V49 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"gpt-capability-group-v48","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V51","LAW-GPT-002-V12"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"gpt-capability-group-v49","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V52","LAW-GPT-002-V13"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
 ```
 
 ## 唯一 Owner 与职责
 
-GPT 只把 Product 已决定的当前 Provider turn 变成 typed result，不拥有跨任务 Provider conversation、continuation identity、predecessor、frontier 或持久状态。Product 决定 Prompt、模型、附件、步骤和结果组装；Website Bazi sender 提供已入库且精确绑定的父报告材料；Browser 决定 Target、current Document、FIFO、现实副作用和唯一 WAL 持久 fact；Forensics 保存回答 artifact；Runtime 运输结果；Website 唯一裁决业务恢复与完成。
+GPT 只把 Product 已决定的当前 Provider turn 变成 typed result，不拥有跨任务 Provider conversation、continuation identity、predecessor、frontier 或持久状态。Product 决定 Prompt、模型、附件、步骤和结果组装；Website Bazi sender 提供已入库且精确绑定的父报告材料，Website文章本地化sender为五个locale逐一签发同文章严格direct parent；Browser决定Target、current Document、FIFO、现实副作用和唯一WAL持久fact；Forensics保存回答artifact；Runtime运输结果；Website唯一裁决业务恢复与完成。
 
 文本主链固定为：
 
@@ -15,7 +15,16 @@ BZ05/BZ03/BZ04: fresh prepare/attach/write
   -> submit_exact_gpt_turn_once -> checkpoint_gpt_text_response
 
 BZ03/BZ04 的本轮附件必须包含 Website 已入库、与 consultation root 及 direct predecessor 精确绑定的完整父报告；不得读取或选择历史 Provider conversation。
+
+SEO article localization: Website route relation=provider_continuation
+  -> zh-HK parent = 同一文章已领域接纳的 zh-CN produce_article job
+  -> zh-TW/en-US/ja-JP/ko-KR parent = 同一文章严格前序 locale job
+  -> Browser 从 exact parent job 唯一 CONFIRMED WAL effect 取 canonical URL
+  -> 为当前 job 建立独占 Target并精确导航
+  -> 当前 translation turn submit/checkpoint
 ```
+
+这条链不把父回答作为翻译源：五次翻译始终消费Website下发的同一份zh-CN canonical article material。GPT只消费route-authorized parent task ref并交给Browser acquisition，不接触父URL、父Target、父userTurnId或父回答；任何父身份缺失、多义、非严格前序或非同一文章都在Provider输入前失败关闭。
 
 `submit_exact_gpt_turn_once` 在自己的直接后置一次返回 CONFIRMED、canonical conversation URL、精确 user turn 身份和 Browser effect receipt。provider_effect_identity 不含 attempt/process/lease/fence/Target/Document；Browser WAL 已有 CONFIRMED 时该 Child 只读回同一 receipt/URL，绝不再次输入。`checkpoint_gpt_text_response` 正常轮询保留 exact job 与其独占 system Target 的双向唯一绑定，但 pending 立即释放 Browser lease 与唯一物理 lane。GPT Child 只计算下一次 observation 的最早资格时间并立即调用现役 Browser typed 入口，不创建或等待 timer；请求进入唯一 FIFO 后，由 BrowserLaneCoordinator 以 waiter `eligibleAt`、一个全局 `observationNotBefore` 和一个 wake timer 作为唯一计时 Owner。具备资格后只取得并激活精确绑定 Tab、重验实时 current Document、fresh observe 一次；pending 再释放，正常轮询 `Page.navigate=0`。ready 时由同一 coherent observation 一次取得紧邻 assistant turn 的 observed DOM + semantic text，写入且读回一份 artifact。同一 attempt、exact call 的该 artifact 已存在且完整性成立时，必须先按现役 idempotency identity 精确读回并直接返回，Browser 页面 observation 增量为零；仅 artifact 不存在时才允许首次观察并 append，已存在但内容或完整性不成立时 typed fail-close，绝不覆盖。
 
@@ -41,13 +50,13 @@ BZ03/BZ04 的本轮附件必须包含 Website 已入库、与 consultation root 
 
 `FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001` 已按本次授权精准解冻替换并重新冻结：submit 已确认后的正常 Provider 回答轮询保留 job—system Target 独占绑定；40 秒静默后 observation 请求立即进入唯一 FIFO，BrowserLaneCoordinator是唯一计时 Owner并保证全设备相邻真实 Provider observation 至少 60 秒、总频率不随 N 增长。请求具备资格后取得并激活精确绑定 Tab、重验 current Document、fresh observe一次；pending释放 lease/lane并重新排队，正常轮询不得重选 canonical URL或导航。只有进程重启、绑定 Target真正丢失或同等恢复现场，才先查同一 Browser WAL effect，再用 `confirmed-readback` 为该 job取得精确 system Target；绝不先回首页，同 URL零导航，不同 URL最多一次精确 `Page.navigate`后 fresh readback。Browser WAL 的 `logical_mutation_id` 是唯一 `provider_effect_identity_hash`，checkpoint稳定后另以 `semanticTextHash` 或媒体 `sha256` 标识结果；只有 Website可拒绝 settled result并签发新 `result_revision`。普通错误、DISPATCHED/CONFIRMED、进程/attempt/lease/fence/Target/Document变化都不得制造第二 submit。
 
-八字 consultation root 与 direct predecessor 只属于 Website 业务关系。Website 在新任务签发前验证 owner/person/chart/root/predecessor、父授权、父 Delivery Manifest 与已入库父结果，并把完整父报告作为本轮 locked-fact material 下发；缺失、多义或身份不等一律 fail closed。GPT、Browser、Runtime 不复制该父子关系，也不保存或查询跨任务 Provider continuation。
+八字 consultation root 与 direct predecessor 只属于 Website 业务关系。Website 在新任务签发前验证 owner/person/chart/root/predecessor、父授权、父 Delivery Manifest 与已入库父结果，并把完整父报告作为本轮 locked-fact material 下发；缺失、多义或身份不等一律 fail closed。八字仍逐任务fresh。SEO文章本地化的provider_continuation同样只属于Website业务关系；GPT与Runtime不复制父子关系，Browser只按当前授权从父job唯一WAL瞬时读取canonical URL，不保存业务continuation。
 
 动态本地化 Product 的现役单次提示词必须把 Website 下发的 locale policy 转成一份穷尽式自检清单：所有可翻译 JSON pointer 均使用目标语言，所有 safety pointer 在完成翻译的同时保留原义与约束，所有 protected pointer 保持逐值不变，并在只输出一个完整 JSON object 前逐项自检。该清单只提高首次 Provider 输出通过唯一 Website 领域 validator 的概率，不在 AGENT 增设语义 validator、第二 GPT 回合、修复提示或兼容结果路径。
 
 ## 删除边界
 
-以下对象必须物理不存在：private base、reusable/derived reservation、semantic read grant、fork、child conversation、跨任务 continuation API、GPT Session Controller、continuation identity/store/row/frontier/CAS、独立 submission locator、document transition policy、恢复型 park、取消后自发重跑和通用旧 attempt recovery。只保留 submit Child 内对同一 provider effect 的 confirmed receipt readback；不得用兼容 wrapper、alias、feature flag、dual-read/write、第二 lane/store/scheduler 或状态机扩张。
+以下对象必须物理不存在：private base、reusable/derived reservation、semantic read grant、fork、child conversation、GPT Session Controller、continuation identity/store/row/frontier/CAS、独立 submission locator、document transition policy、恢复型 park、取消后自发重跑和通用旧 attempt recovery。只保留submit Child内对同一provider effect的confirmed receipt readback，以及Browser按Website provider_continuation从exact parent job唯一CONFIRMED WAL effect读取canonical URL的产品中性Target acquisition；不得用兼容wrapper、alias、feature flag、dual-read/write、第二lane/store/scheduler或状态机扩张。
 
 ## Browser 边界
 
@@ -63,4 +72,4 @@ Child 只向 Browser 发出一个封闭四字段 `renameExactGptConversation` ty
 
 可持久化的必要事实只有回答 artifact，以及 Browser WAL 同一 provider-effect 行中的 confirmed effect 与加密 locator。两者分别证明回答内容和同一物理副作用/页面 locator；GPT 不保存跨任务会话状态，Browser 不保存 Website direct predecessor，日志只保存脱敏 ref/hash，Website 不接收 Provider locator。
 
-验收必须证明：同一 effect 最多一次物理 dispatch；CONFIRMED 后重启只读回；BZ05/BZ03/BZ04 每个业务任务都 fresh/submit/checkpoint 各一次；BZ03/BZ04 本轮材料携带 Website 已验真的完整父报告；跨任务 continuation API/controller/store/frontier/CAS、private base/reservation/fork/第二 lane 为零；最终 `Product result -> Runtime Outbox -> Website admission receipt` 才是完成。
+验收必须证明：同一 effect 最多一次物理 dispatch；CONFIRMED 后重启只读回；BZ05/BZ03/BZ04 每个业务任务都 fresh/submit/checkpoint 各一次；BZ03/BZ04 本轮材料携带 Website 已验真的完整父报告；同一SEO文章的zh-CN生成与五个翻译job按严格direct parent全部进入同一canonical conversation URL，每个job仍独占Target且各自submit/checkpoint一次，翻译source hash始终等于zh-CN canonical；交错A/B文章时各自六个job URL组内唯一且两组URL不同，交换parent必须在Provider submit前失败且输入增量为零；continuation API/controller/store/frontier/CAS、private base/reservation/fork/第二lane为零；最终`Product result -> Runtime Outbox -> Website admission receipt`才是完成。

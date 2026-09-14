@@ -117,16 +117,22 @@ export class ExtensionTargetAuthority {
   }
 
   public async acquireJobBoundChatGptTarget(
-    targetMode: "fresh" | "bound-observation" | "confirmed-readback",
+    targetMode: "fresh" | "bound-observation" | "confirmed-readback" | "authorized-continuation",
     jobRefHash: `sha256:${string}`,
+    parentConversationUrl?: string,
   ): Promise<void> {
-    if (!["fresh", "bound-observation", "confirmed-readback"].includes(targetMode)
-      || !/^sha256:[a-f0-9]{64}$/u.test(jobRefHash)) {
+    const continuationUrl = targetMode === "authorized-continuation"
+      ? requireCanonicalGptConversationUrl(parentConversationUrl ?? "") : undefined;
+    if (!["fresh", "bound-observation", "confirmed-readback", "authorized-continuation"].includes(targetMode)
+      || !/^sha256:[a-f0-9]{64}$/u.test(jobRefHash)
+      || (targetMode !== "authorized-continuation" && parentConversationUrl !== undefined)) {
       throw new Error("BROWSER_TARGET_INVALID");
     }
     if (this.activeTarget || this.createdTarget.isPending()) throw new Error("BROWSER_TARGET_INVALID");
     const bound = this.targets.findByJobRefHash(jobRefHash);
-    if (bound) return this.reacquireParkedTarget(bound.targetRef, targetMode === "fresh");
+    if (bound) return this.reacquireParkedTarget(
+      bound.targetRef, targetMode === "fresh", continuationUrl,
+    );
     if (targetMode === "bound-observation") throw new Error("BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT");
     const candidate = await this.createProductionCandidate();
     if (candidate.tabId === undefined) throw new Error("BROWSER_TARGET_INVALID");
@@ -141,8 +147,15 @@ export class ExtensionTargetAuthority {
     }
     try {
       await this.debuggerRuntime.send(candidate.tabId, "Page.enable");
-      const mainFrame = await readExtensionMainFrame(this.debuggerRuntime, candidate.tabId);
+      let mainFrame = await readExtensionMainFrame(this.debuggerRuntime, candidate.tabId);
       requireGptWebPolicyForUrl(mainFrame.url);
+      if (continuationUrl) {
+        await this.debuggerRuntime.send(candidate.tabId, "Page.navigate", { url: continuationUrl });
+        mainFrame = await readExtensionMainFrame(this.debuggerRuntime, candidate.tabId);
+        if (requireCanonicalGptConversationUrl(mainFrame.url) !== continuationUrl) {
+          throw new Error("BROWSER_POSTCONDITION_FAILED");
+        }
+      }
       const target = this.targets.claimOperatorTarget(candidate.tabId, jobRefHash, mainFrame.loaderId);
       this.activeTarget = target;
       await this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(target, {
@@ -272,7 +285,11 @@ export class ExtensionTargetAuthority {
     return this.createdTarget.waitForCreatedTarget(created.id!);
   }
 
-  private async reacquireParkedTarget(targetRef: string, resetToStart = false): Promise<void> {
+  private async reacquireParkedTarget(
+    targetRef: string,
+    resetToStart = false,
+    continuationUrl?: string,
+  ): Promise<void> {
     const parked = this.targets.read(targetRef);
     await this.debuggerRuntime.attach(parked.tabId);
     try {
@@ -290,6 +307,10 @@ export class ExtensionTargetAuthority {
       }
       let mainFrame = await readExtensionMainFrame(this.debuggerRuntime, parked.tabId);
       requireGptWebPolicyForUrl(mainFrame.url);
+      if (continuationUrl
+        && requireCanonicalGptConversationUrl(mainFrame.url) !== continuationUrl) {
+        throw new Error("BROWSER_POSTCONDITION_FAILED");
+      }
       if (resetToStart) {
         await this.debuggerRuntime.send(
           parked.tabId, "Page.navigate", { url: GPT_WEB_START_URL },

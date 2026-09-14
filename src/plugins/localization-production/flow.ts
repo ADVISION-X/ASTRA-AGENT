@@ -274,8 +274,10 @@ const runFreshTurn = async (
     requireConfirmedSubmit(confirmed.effectReceipt);
     return checkpointSubmittedTurn(flow, stepId, marker, promptHash, confirmed, [14, 15, 16]);
   }
-  const fresh = { productStepId: stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
-  await flow.execute(fresh);
+  if (context.routePolicy.relation_kind !== "provider_continuation") {
+    const fresh = { productStepId: stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
+    await flow.execute(fresh);
+  }
   await applyProfile(flow, stepId, [2, 3, 4, 5, 6, 7], profile);
   await applyAttachments(flow, context, stepId, [8, 9, 10]);
   return submitTurn(flow, stepId, prompt, marker, files, [11, 12, 13, 14, 15, 16]);

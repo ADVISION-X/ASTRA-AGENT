@@ -129,8 +129,9 @@ const wait = (targetMode: "fresh" | "bound-observation", signal: AbortSignal,
 const createBehaviorLane = (events: string[], unresolved = 0) => {
   const instance = Object.create(BrowserLaneCoordinator.prototype);
   const targetAcquirer = {
-    ensureAvailableTarget: async (waiter: { targetMode: string }) => {
-      events.push(`ensure:${waiter.targetMode}`);
+    ensureAvailableTarget: async (waiter: { targetMode: string }, parentConversationUrl?: string) => {
+      events.push(parentConversationUrl
+        ? `ensure:${waiter.targetMode}:${parentConversationUrl}` : `ensure:${waiter.targetMode}`);
     },
     releaseJobBoundTarget: async (_remainingMs: number, jobRefHash: string) => {
       events.push(`release:${jobRefHash}`);
@@ -144,6 +145,10 @@ const createBehaviorLane = (events: string[], unresolved = 0) => {
       countDispatched: () => unresolved,
       hasUnresolvedMutationForJob: (jobId: string) => unresolved > 0 && jobId === "job-a",
       latestProviderInputTerminalAt: () => null,
+      readUniqueConfirmedConversationUrl: (parentJobId: string) => {
+        events.push(`wal:${parentJobId}`);
+        return `https://chatgpt.com/c/${parentJobId.replaceAll(":", "-")}`;
+      },
     } },
     resolveBroker: () => ({
       acquireOperatorClaimedTargetLease: async (exactBinding: { jobId: string }) => ({
@@ -170,6 +175,28 @@ assert.deepEqual(fifoEvents.slice(0, 3), ["ensure:fresh", "park:job-b", "ensure:
 await firstObserved.park({ reason: "observation-finished", mode: "product-call-settlement" });
 assert.ok(Number(Reflect.get(fifoLane, "observationNotBefore")) >= Date.now() + 59_000,
   "one completed observation must advance the single global cadence by 60 seconds");
+
+const continuationEvents: string[] = [];
+const continuationLane = createBehaviorLane(continuationEvents);
+const continuationLease = await continuationLane.acquire(binding("z") as never, "owner-z", {
+  targetMode: "authorized-continuation",
+  parentJobId: "job:article:A",
+  signal: new AbortController().signal,
+  eligibleAt: Date.now(),
+  remainingMs: () => 5_000,
+});
+assert.deepEqual(continuationEvents.slice(0, 2), [
+  "wal:job:article:A",
+  "ensure:authorized-continuation:https://chatgpt.com/c/job-article-A",
+], "the Browser owner must resolve the exact parent WAL before requesting a current-job Target");
+await continuationLease.park({ reason: "continuation-finished", mode: "product-call-settlement" });
+await assert.rejects(createBehaviorLane([]).acquire(binding("a") as never, "owner-a", {
+  targetMode: "authorized-continuation",
+  parentJobId: "job-a",
+  signal: new AbortController().signal,
+  eligibleAt: Date.now(),
+  remainingMs: () => 5_000,
+}), /BROWSER_PARENT_JOB_SELF_REFERENCE/u);
 
 const secondObservationController = new AbortController();
 const secondObservation = fifoLane.acquire(binding("c") as never, "owner-c",

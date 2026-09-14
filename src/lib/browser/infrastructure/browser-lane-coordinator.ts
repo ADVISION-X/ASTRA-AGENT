@@ -30,6 +30,7 @@ type AcquireLaneWaiter = LaneWaiterBase & Readonly<{
   binding: BrowserExecutionBinding;
   ownerId: string;
   targetMode: BrowserTargetLeaseWait["targetMode"];
+  parentJobId?: string;
   requestKind: "interaction" | "provider-observation";
 }>;
 type ReleaseLaneWaiter = LaneWaiterBase & Readonly<{
@@ -79,7 +80,9 @@ export class BrowserLaneCoordinator {
       const waiter: AcquireLaneWaiter = {
         kind: "acquire", binding, ownerId, jobRefHash: binding.jobRefHash,
         targetMode: wait.targetMode,
-        requestKind: wait.targetMode === "fresh" ? "interaction" : "provider-observation",
+        ...(wait.targetMode === "authorized-continuation" ? { parentJobId: wait.parentJobId } : {}),
+        requestKind: wait.targetMode === "fresh" || wait.targetMode === "authorized-continuation"
+          ? "interaction" : "provider-observation",
         eligibleAt: wait.eligibleAt,
         signal: wait.signal, remainingMs: wait.remainingMs,
         stopAbortMonitor: () => wait.signal.removeEventListener("abort", abort),
@@ -236,7 +239,15 @@ export class BrowserLaneCoordinator {
         void this.pump();
         return;
       }
-      await this.targetAcquirer.ensureAvailableTarget(waiter);
+      let parentConversationUrl: string | undefined;
+      if (waiter.targetMode === "authorized-continuation") {
+        if (waiter.parentJobId === waiter.binding.jobId) {
+          throw new Error("BROWSER_PARENT_JOB_SELF_REFERENCE");
+        }
+        parentConversationUrl = mutations?.readUniqueConfirmedConversationUrl(waiter.parentJobId!);
+        if (!parentConversationUrl) throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_MISSING");
+      }
+      await this.targetAcquirer.ensureAvailableTarget(waiter, parentConversationUrl);
       if (waiter.signal.aborted || waiter.remainingMs() < 1) throw new Error(
         waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED",
       );

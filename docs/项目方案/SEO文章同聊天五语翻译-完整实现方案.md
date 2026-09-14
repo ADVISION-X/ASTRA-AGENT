@@ -2,14 +2,14 @@
 
 ## 0. 方案状态与授权边界
 
-- 状态：`设计阻断`
+- 状态：`CHANGE_PASS / READY_PENDING`（2026-09-15 已完成双仓现役法案/施工图对齐、主 Codex 两轮代码前审计、双仓实现与原生 CHANGE；独立只读审计完成度/准确度均为 98%、无阻断 finding；不代表 READY 或 RELEASE）
 - 需求 Owner：AGENT 的 GPT/Browser 生产执行链；Website 继续独占文章本地化需求、顺序、业务接纳、持久化与公开版本真相。
 - 唯一方案路径：`/Users/nexgen/Documents/AGENT/docs/项目方案/SEO文章同聊天五语翻译-完整实现方案.md`
-- 当前授权：仅设计并写入本方案。没有生产代码、法案、施工图、数据库、服务、Browser 操作、质量 PASS、READY 或 RELEASE 授权。
-- 阻断原因：现役双仓冻结权威明确要求每个业务任务使用 fresh GPT chat，并要求跨任务 Provider conversation/continuation API 与状态物理不存在。本需求必须精准替换这些条款；用户本轮已授权设计，但尚未明确解冻和授权双仓同步替换冻结条款。
-- 解阻所需唯一授权：用户明确同意“解冻并同步替换仅与 `public_knowledge_article_pipeline/produce_article -> localization_article_translation/article_translation` 五语派生链直接冲突的双仓现役冻结条款；其它产品仍保持 fresh chat 与零跨任务 continuation”。
+- 当前授权：用户已明确授权按本方案迭代双仓法案、施工图、代码、质检与必要数据库操作，并要求法案非必要不扩张、无兼容桥/第二链、成功入库才完成；`ci-full-governance` Skill保持冻结。
+- 解阻事实：双仓母本、现役law corpus与blueprint已由主Codex诚实遍历；只精准替换`public_knowledge_article_pipeline/produce_article -> localization_article_translation/article_translation`五语链的绝对fresh禁令，其它产品仍fresh且零跨任务continuation状态。
+- 代码前门：双仓`audit:build`与`audit:projection:check`均已从新权威重建并通过；两轮主Codex审计均为100%，达到并超过98%门槛。
 
-`可施工` 只会在上述授权取得、两个 scoped candidate 重新绑定且本文件命中的用户 dirty overlay 可安全合并后成立；它仍不代表代码完成或生产发布。
+当前候选已达到进入 READY 的门槛；只有 clean commit 上的原生 READY、母本第79节独立核销与 RELEASE 全部闭合后，才能升级结论，且真实五语 Website admission/readback 仍是业务完成终点。
 
 ## 1. 需求、业务终点与语义澄清
 
@@ -63,10 +63,10 @@
 
 | 仓库 | realpath | branch | HEAD | tracking ref | 状态 |
 | --- | --- | --- | --- | --- | --- |
-| AGENT | `/Users/nexgen/Documents/AGENT` | `main` | `406211abf3aa1bebfbcca6b8004946ddecf03057` | `origin/main` 同值 | dirty；相关 GPT/Browser/law/blueprint 路径含用户的聊天自动重命名施工 overlay |
+| AGENT | `/Users/nexgen/Documents/AGENT` | `main` | `2479b2002c808c3433aae6eabff460eea30bd4f8` | `origin/main` 同值 | 本工单开始前仅有不相关的 `GPT频率限制排空冷却-完整实现方案.md` 用户改动；本工单不覆盖该文件 |
 | Website | `/Users/nexgen/Documents/xuanxue-web` | `main` | `53648354d60a266b67bc745ce14fd26d6810f9fd` | `origin/main` 同值 | clean |
 
-AGENT dirty overlay 属于用户，不能覆盖、回退、移动或假定已完成。它与本方案共享 `功能法案.md`、三份 blueprint、GPT lifecycle、Browser mutation/extension 与 acceptance 面；未来施工必须在原 checkout 上重新绑定这些路径并原位合并，不能从当前 HEAD 另起一份忽略 overlay 的实现。本方案文件不进入 source candidate；文档 hash 在写入后的交付回执中单独记录。
+AGENT既有dirty overlay属于用户，不能覆盖、回退、移动或假定已完成。代码施工必须在当前checkout继续，并持续证明不相关的`GPT频率限制排空冷却-完整实现方案.md`未被本工单改写。本方案文件随授权状态原位更新，不创建竞争版本。
 
 ### 3.2 关键文件内容绑定
 
@@ -395,4 +395,4 @@ Browser/Provider 页面成功、AGENT result settled、HTTP 2xx、Outbox 到达�
 - 旧全量 sender、article fresh-chat 路径、双 relation 接受、URL fallback 和第二 store 均物理为零；
 - 两仓 candidate、dirty overlay、law registry、route projection 与唯一 quality verdict 都在执行时重新绑定。
 
-未来施工开始前必须先把本文件状态从 `设计阻断` 原位更新为 `可施工`，记录新授权、两仓新 scoped candidate 和 dirty overlay 裁决；不得创建 `v2/final/修订版` 竞争方案。若用户改变 locale 顺序、允许范围、历史欠账处理或任务边界，必须重开本文件受影响部分，而不是边施工边猜测。
+本文件已在施工开始前原位更新为`可施工`并记录授权、双仓candidate与dirty overlay裁决；不得创建`v2/final/修订版`竞争方案。若用户改变locale顺序、允许范围、历史欠账处理或任务边界，必须重开本文件受影响部分，而不是边施工边猜测。

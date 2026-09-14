@@ -93,7 +93,7 @@ export interface ProductionRoutePolicy {
   }>[];
   readonly result_schema_version: string;
   readonly result_contract?: Readonly<Record<string, unknown>> | undefined;
-  readonly relation_kind: "primary" | "followup" | "review";
+  readonly relation_kind: "primary" | "followup" | "provider_continuation" | "review";
 }
 
 export interface GeneratedImageArtifact {

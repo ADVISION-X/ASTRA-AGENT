@@ -86,7 +86,7 @@ export const buildProductTask = (
     result_contract_id: "website-agent-result",
     result_contract_version: 1,
     ...(fixture.privacySubjectRef ? { privacy_subject_ref: fixture.privacySubjectRef } : {}),
-    ...(route.relation_kind === "followup" ? {
+    ...(route.relation_kind === "followup" || route.relation_kind === "provider_continuation" ? {
       parent_task_ref: "task:parent",
       parent_result_ref: "result:parent",
       parent_result_hash: FIXTURE_HASH,

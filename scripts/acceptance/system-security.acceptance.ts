@@ -33,4 +33,4 @@ assert.ok(inspect("src/final-action.ts", "export const decide = (aiResponse: str
   .some((finding) => finding.checkId === "system-security/ai-irreversible-final-action"));
 
 console.log("system-security-acceptance-ok");
-emitQualityProofObservation({ lawId: "LAW-SYSTEM-SECURITY-001-V9", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","summary"], locator: "acceptance:system-security:attack-mutants", observedValue: "sensitive-flow type-forgery cloud-control extension-owner-bypass AI-final-action and unsafe-fallback mutants rejected" });
+emitQualityProofObservation({ lawId: "LAW-SYSTEM-SECURITY-001-V10", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","summary"], locator: "acceptance:system-security:attack-mutants", observedValue: "sensitive-flow type-forgery cloud-control extension-owner-bypass AI-final-action and unsafe-fallback mutants rejected" });

@@ -1,7 +1,7 @@
 {
   "schema_version": "website-agent-route-policies.v1",
   "contract_id": "ai-acceptance.website-agent-task-result",
-  "contract_version": 10,
+  "contract_version": 11,
   "parameter_types": {
     "admitted_identity_catalog_hash": "sha256",
     "analysis_kind": "bazi_analysis_kind",
@@ -1027,7 +1027,7 @@
         ],
         "unknown_field_policy": "preserve"
       },
-      "relation_kind": "primary"
+      "relation_kind": "provider_continuation"
     },
     {
       "product_id": "localization_static_catalog",

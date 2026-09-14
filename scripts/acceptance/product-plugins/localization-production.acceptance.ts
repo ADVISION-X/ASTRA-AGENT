@@ -42,11 +42,12 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     : undefined;
   const run = await exerciseProductFlow(plugin, { task, output,
     ...(resultRevision ? { resultRevision } : {}) });
-  assert.deepEqual(run.calls.map((call) => call.child), sequence);
-  const reasoningCall = run.calls.find((call) => call.child === "ensure_gpt_reasoning_requirement");
-  assert(reasoningCall?.child === "ensure_gpt_reasoning_requirement");
   const articleTranslation = route.product_id === "localization_article_translation"
     && route.action_id === "article_translation";
+  assert.deepEqual(run.calls.map((call) => call.child),
+    articleTranslation ? sequence.slice(1) : sequence);
+  const reasoningCall = run.calls.find((call) => call.child === "ensure_gpt_reasoning_requirement");
+  assert(reasoningCall?.child === "ensure_gpt_reasoning_requirement");
   assert.deepEqual({
     profileRef: reasoningCall.input.profile.profileRef,
     reasoningRequirement: reasoningCall.input.profile.reasoningRequirement,

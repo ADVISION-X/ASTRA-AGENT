@@ -34,6 +34,7 @@ export type GptBrowserExecutionInput = Readonly<{
   expiresAtMonotonic: number;
   commandTtlMs: number;
   abortSignal: AbortSignal;
+  providerContinuationParentJobId?: string;
 }>;
 
 const sha256 = (value: string): GptHash =>
@@ -96,7 +97,8 @@ export class ProductionGptBrowserLifecycle {
     productStepId: string,
     callId: string,
   ): Promise<ProductionGptBrowserCall> {
-    return this.browserForMode(sessionKey, productStepId, callId, "fresh");
+    return this.browserForMode(sessionKey, productStepId, callId,
+      this.execution.providerContinuationParentJobId ? "authorized-continuation" : "fresh");
   }
 
   public async browserForConfirmedReadback(
@@ -111,7 +113,7 @@ export class ProductionGptBrowserLifecycle {
     sessionKey: string,
     productStepId: string,
     callId: string,
-    targetMode: "fresh" | "confirmed-readback",
+    targetMode: "fresh" | "authorized-continuation" | "confirmed-readback",
   ): Promise<ProductionGptBrowserCall> {
     if (!sessionKey) throw executionFailure("failed", "GPT_SESSION_KEY_REQUIRED");
     if (this.activeBrowser?.sessionKey === sessionKey) return this.activeBrowser.call;
@@ -375,12 +377,19 @@ export class ProductionGptBrowserLifecycle {
       candidateHash: this.sourceHash,
       get commandTtlMs() { return currentCommandTtlMs(); },
     };
-    return this.browserAuthority.acquireJobBoundTargetLease(binding,
-    `${this.execution.jobId}:${callId}`, {
+    const wait = {
       signal: this.execution.abortSignal,
       remainingMs,
-      targetMode,
       eligibleAt,
+    };
+    return this.browserAuthority.acquireJobBoundTargetLease(binding,
+    `${this.execution.jobId}:${callId}`, targetMode === "authorized-continuation" ? {
+      ...wait,
+      targetMode,
+      parentJobId: this.execution.providerContinuationParentJobId!,
+    } : {
+      ...wait,
+      targetMode,
     });
   }
 }

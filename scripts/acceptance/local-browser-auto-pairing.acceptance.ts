@@ -443,6 +443,53 @@ await targetAuthority.parkActiveTarget();
 await targetAuthority.releaseJobBoundChatGptTarget(rotationHashes[1]!);
 await targetAuthority.releaseJobBoundChatGptTarget(rotationHashes[2]!);
 
+const continuationHash = `sha256:${"e".repeat(64)}` as const;
+const continuationUrl = "https://chatgpt.com/c/article-a";
+const continuationTabId = nextCreatedTabId;
+const continuationNavigationBaseline = debuggerMethods
+  .filter((method) => method === "Page.navigate").length;
+const continuationFrameBaseline = targetFrames.length;
+const continuationAcquisition = targetAuthority.acquireJobBoundChatGptTarget(
+  "authorized-continuation", continuationHash, continuationUrl,
+);
+await Promise.resolve();
+targetTabUpdated(continuationTabId, { status: "complete" }, {
+  id: continuationTabId, url: "https://chatgpt.com/", title: "ChatGPT",
+});
+await continuationAcquisition;
+assert.equal(mainFrameUrlByTab.get(continuationTabId), continuationUrl,
+  "authorized continuation must navigate the new current-job Target to the exact parent WAL URL");
+assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length,
+  continuationNavigationBaseline + 1,
+  "authorized continuation must navigate exactly once before publishing its Target claim");
+assert.equal(targetFrames.length, continuationFrameBaseline + 1);
+assert.equal(targetFrames.at(-1)?.kind, "TARGET_CLAIM");
+assert.deepEqual(Object.keys(targetFrames.at(-1)?.body ?? {}).sort(),
+  ["claimOrigin", "documentRef", "jobRefHash", "navigationEpoch", "targetRef"],
+  "the parent conversation URL must remain absent from Target claim transport");
+await targetAuthority.parkActiveTarget();
+const parkedContinuationNavigationBaseline = debuggerMethods
+  .filter((method) => method === "Page.navigate").length;
+await targetAuthority.acquireJobBoundChatGptTarget(
+  "authorized-continuation", continuationHash, continuationUrl,
+);
+assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length,
+  parkedContinuationNavigationBaseline,
+  "a parked current-job Target must be revalidated without re-navigation");
+await targetAuthority.parkActiveTarget();
+mainFrameUrlByTab.set(continuationTabId, "https://chatgpt.com/c/article-b");
+await assert.rejects(
+  targetAuthority.acquireJobBoundChatGptTarget(
+    "authorized-continuation", continuationHash, continuationUrl,
+  ),
+  /BROWSER_POSTCONDITION_FAILED/u,
+  "a parked Target from article B must fail before article A can claim it",
+);
+assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length,
+  parkedContinuationNavigationBaseline,
+  "mismatched parked continuation must fail without navigation");
+await targetAuthority.releaseJobBoundChatGptTarget(continuationHash);
+
 const issuer = new BrowserAuthorityIssuer();
 Reflect.set(issuer, "slot", { kind: "PRESENT", authority: { authorityEpoch: 7, authorityRef: "authority-7" } });
 const broker = new BrowserAuthorityBroker(

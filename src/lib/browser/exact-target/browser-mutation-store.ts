@@ -18,6 +18,7 @@ import type {
   BrowserPhysicalInputCount,
   BrowserMutationState,
 } from "./browser-mutation-types.js";
+import { requireCanonicalGptConversationUrl } from "./browser-site-policy-registry.js";
 
 type EncryptedPayload = Readonly<{ nonce: string; ciphertext: string; tag: string }>;
 
@@ -307,6 +308,46 @@ export class BrowserMutationStore {
       where job_id=? and attempt_id=? and child_capability_id='submit_exact_gpt_turn_once'
         and state in ('DISPATCHED','CONFIRMED','REJECTED')`).get(jobId, attemptId) as { count: number };
     return Number(row.count);
+  }
+
+  public readUniqueConfirmedConversationUrl(parentJobId: string): string {
+    if (!parentJobId || /[\0]/u.test(parentJobId)) throw new Error("BROWSER_PARENT_JOB_ID_INVALID");
+    if (this.hasUnresolvedMutationForJob(parentJobId)) {
+      throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_UNSETTLED");
+    }
+    const rows = this.database.prepare(
+      `select command_id,provider_recovery_payload from browser_mutations
+       where job_id=? and effect_scope='provider_effect'
+         and child_capability_id='submit_exact_gpt_turn_once'
+         and state='CONFIRMED'
+       order by command_id`,
+    ).all(parentJobId) as readonly Readonly<{
+      command_id: string;
+      provider_recovery_payload: string | null;
+    }>[];
+    const urls = new Set(rows.map((row) => {
+      if (row.provider_recovery_payload === null) {
+        throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID");
+      }
+      const payload = unsealPayload(
+        this.payloadKey, row.command_id, row.provider_recovery_payload,
+      ).terminalPayload;
+      const canonicalConversationUrl = payload && typeof payload === "object" && !Array.isArray(payload)
+        ? (payload as Record<string, unknown>).canonicalConversationUrl : undefined;
+      if (!payload || typeof payload !== "object" || Array.isArray(payload)
+        || typeof canonicalConversationUrl !== "string") {
+        throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID");
+      }
+      try {
+        return requireCanonicalGptConversationUrl(canonicalConversationUrl);
+      } catch {
+        throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID");
+      }
+    }));
+    if (urls.size !== 1) throw new Error(rows.length === 0
+      ? "BROWSER_PARENT_PROVIDER_EFFECT_MISSING"
+      : "BROWSER_PARENT_PROVIDER_EFFECT_AMBIGUOUS");
+    return [...urls][0]!;
   }
 
   public readAtomicStepOutcome(input: Readonly<{

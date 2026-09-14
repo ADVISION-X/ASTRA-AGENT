@@ -253,6 +253,9 @@ export class ProductionExecutor {
     let result: WebsiteAgentResult;
     try {
       result = await dispatchWebsiteAgentTask(input.task, (authorized) => {
+        const routePolicy = productionRoutePolicy(
+          authorized.task.product_id, authorized.task.action_id,
+        );
         gptExecution = this.gptChildTools.createExecution({
           jobId: authorized.task.job_id,
           productId: authorized.task.product_id,
@@ -270,12 +273,15 @@ export class ProductionExecutor {
           get commandTtlMs() { return input.lease.command_ttl_ms; },
           abortSignal: input.lease.abort_signal,
           parentSpanId: input.span.spanId,
+          ...(routePolicy.relation_kind === "provider_continuation" ? {
+            providerContinuationParentJobId: authorized.task.parent_task_ref!,
+          } : {}),
         });
         gptLifecycle.decorateFailure = gptExecution.decorateSettledResultFailure;
         gptLifecycle.settle = gptExecution.settle;
         return {
           materials: input.materials,
-          routePolicy: productionRoutePolicy(authorized.task.product_id, authorized.task.action_id),
+          routePolicy,
           gpt: gptExecution.tools,
           resultRevision: {
             revision: input.lease.result_revision,

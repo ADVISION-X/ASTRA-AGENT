@@ -19,7 +19,7 @@ import { inspectBusinessRecoveryAuthorityBoundaries } from "../audit/domains/arc
 import { inspectRuntimeBrowserPrivateImports } from "../audit/domains/architecture-boundary/components/scan-plugin-capability-boundaries.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
-const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V9";
+const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V10";
 const lawSource = readFileSync(".github/instructions/agent-rules/功能法案.md", "utf8");
 const activeLaw = [...lawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
   .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden?: string[] })
@@ -27,7 +27,7 @@ const activeLaw = [...lawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
 const frozenTombstone = activeLaw?.forbidden?.find((clause) =>
   clause.includes("TOMBSTONE-RECOVERY-AUTHORITY-001"));
 assert.equal(createHash("sha256").update(frozenTombstone ?? "").digest("hex"),
-  "0bc100c1ad5144a73ed085d7560c72552a80b3ff465dee18ca4d26fd84d199f9",
+  "5a3c8cb63975473e562fde4ed984c6156ef3679c1b01f733bd2bdd2a0c09eb43",
   "the frozen anti-resurrection Tombstone clause must remain byte-exact");
 assert.match(frozenTombstone ?? "", /本 Tombstone 只有授权人再次明确解冻并授权双仓同步替换时可变更/u);
 const testDirectory = resolve("scripts/acceptance/product-plugins");

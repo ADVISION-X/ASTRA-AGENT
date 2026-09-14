@@ -74,7 +74,8 @@ type TargetOperation = Readonly<{
 }> | Readonly<{
   action: "acquire";
   jobRefHash: `sha256:${string}`;
-  targetMode: "fresh" | "bound-observation" | "confirmed-readback";
+  targetMode: "fresh" | "bound-observation" | "confirmed-readback" | "authorized-continuation";
+  parentConversationUrl?: string;
 }>;
 
 const hasExactKeys = (value: Readonly<Record<string, unknown>>, keys: readonly string[]): boolean =>
@@ -90,12 +91,16 @@ const targetOperationFrom = (request: Readonly<Record<string, unknown>>): Target
   }
   const targetMode = request.targetMode;
   const validMode = targetMode === "fresh" || targetMode === "bound-observation"
-    || targetMode === "confirmed-readback";
+    || targetMode === "confirmed-readback" || targetMode === "authorized-continuation";
+  const continuation = targetMode === "authorized-continuation";
   if (request.action !== "acquire" || !validMode
-    || !hasExactKeys(request, ["action", "targetMode", "jobRefHash"])) {
+    || typeof request.parentConversationUrl !== (continuation ? "string" : "undefined")
+    || !hasExactKeys(request, ["action", "targetMode", "jobRefHash",
+      ...(continuation ? ["parentConversationUrl"] : [])])) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
-  return { action: "acquire", jobRefHash, targetMode };
+  return { action: "acquire", jobRefHash, targetMode,
+    ...(continuation ? { parentConversationUrl: request.parentConversationUrl as string } : {}) };
 };
 
 /** The extension actor is the sole socket owner; every authentication discontinuity requires a fresh automatic pairing. */
@@ -338,7 +343,7 @@ export class ExtensionWebSocketActor {
     }
     try {
       await this.targetAuthority.acquireJobBoundChatGptTarget(
-        operation.targetMode, operation.jobRefHash,
+        operation.targetMode, operation.jobRefHash, operation.parentConversationUrl,
       );
     } catch (error) {
       this.reportRuntimeFailure(error, "job-bound-target-acquisition");

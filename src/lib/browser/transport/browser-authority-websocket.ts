@@ -204,9 +204,13 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
   }
 
   public requestPreauthorizedTargetAcquisition(
-    targetMode: "fresh" | "bound-observation" | "confirmed-readback",
+    targetMode: "fresh" | "bound-observation" | "confirmed-readback" | "authorized-continuation",
     jobRefHash: `sha256:${string}`,
+    parentConversationUrl?: string,
   ): void {
+    if ((targetMode === "authorized-continuation") !== (typeof parentConversationUrl === "string")) {
+      throw new Error("BROWSER_TARGET_INVALID");
+    }
     this.assertLive();
     const active = this.active;
     if (!active) throw new Error("BROWSER_LIVENESS_EXPIRED");
@@ -216,7 +220,8 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       "TARGET_ACQUIRE",
       sequence,
       new Date(Date.now() + COMMAND_DEADLINE_MS).toISOString(),
-      { action: "acquire", targetMode, jobRefHash },
+      { action: "acquire", targetMode, jobRefHash,
+        ...(targetMode === "authorized-continuation" ? { parentConversationUrl } : {}) },
     );
     this.active = { ...active, nextServerSequence: sequence + 1 };
     try {

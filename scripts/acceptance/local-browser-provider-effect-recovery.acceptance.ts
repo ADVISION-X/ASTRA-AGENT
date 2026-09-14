@@ -131,6 +131,50 @@ try {
   assert.equal(recovered?.state, "confirmed");
   assert.equal(recovered?.providerEffectIdentityHash, first.logicalMutationId);
   assert.deepEqual(recovered?.terminalPayload, terminalPayload);
+  assert.equal(store.readUniqueConfirmedConversationUrl(first.jobId),
+    terminalPayload.canonicalConversationUrl,
+    "an exact parent job must resolve only its own confirmed conversation URL");
+  const continuationIdentity = (
+    jobId: string,
+    suffix: string,
+  ): BrowserMutationIdentity => ({
+    ...identity(`attempt:${suffix}`),
+    commandId: `continuation:${jobId}:${suffix}`,
+    logicalMutationId: hash(`continuation-effect:${jobId}:${suffix}`),
+    exactCallIdentityHash: hash(`continuation-call:${jobId}:${suffix}`),
+    jobId,
+    productStepId: `continuation-step:${suffix}`,
+    callId: `continuation-submit:${suffix}`,
+    requestHash: hash(`continuation-request:${jobId}:${suffix}`),
+    payloadHash: hash(`continuation-payload:${jobId}:${suffix}`),
+  });
+  const confirmContinuation = (jobId: string, suffix: string, canonicalConversationUrl: string | null) => {
+    const mutation = continuationIdentity(jobId, suffix);
+    store.prepare(mutation);
+    store.markDispatched(mutation.commandId);
+    store.markConfirmed(mutation.commandId, hash(`continuation-proof:${jobId}:${suffix}`),
+      "confirmed", canonicalConversationUrl ? { ...terminalPayload, canonicalConversationUrl } : null);
+  };
+  confirmContinuation("job:article:A", "a1", "https://chatgpt.com/c/article-A");
+  confirmContinuation("job:article:A", "a2", "https://chatgpt.com/c/article-A");
+  confirmContinuation("job:article:B", "b1", "https://chatgpt.com/c/article-B");
+  assert.equal(store.readUniqueConfirmedConversationUrl("job:article:A"),
+    "https://chatgpt.com/c/article-A");
+  assert.equal(store.readUniqueConfirmedConversationUrl("job:article:B"),
+    "https://chatgpt.com/c/article-B",
+    "interleaved article jobs must never borrow another parent's URL");
+  confirmContinuation("job:article:ambiguous", "c1", "https://chatgpt.com/c/article-C1");
+  confirmContinuation("job:article:ambiguous", "c2", "https://chatgpt.com/c/article-C2");
+  assert.throws(() => store.readUniqueConfirmedConversationUrl("job:article:ambiguous"),
+    /BROWSER_PARENT_PROVIDER_EFFECT_AMBIGUOUS/u);
+  confirmContinuation("job:article:missing-payload", "d1", null);
+  assert.throws(() => store.readUniqueConfirmedConversationUrl("job:article:missing-payload"),
+    /BROWSER_PARENT_PROVIDER_EFFECT_INVALID/u);
+  const unresolvedParent = continuationIdentity("job:article:unresolved", "e1");
+  store.prepare(unresolvedParent);
+  store.markDispatched(unresolvedParent.commandId);
+  assert.throws(() => store.readUniqueConfirmedConversationUrl("job:article:unresolved"),
+    /BROWSER_PARENT_PROVIDER_EFFECT_UNSETTLED/u);
   store.close();
 
   const restarted = new BrowserMutationStore(root);

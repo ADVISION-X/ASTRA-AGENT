@@ -23,13 +23,21 @@ export class BrowserTargetAcquirer {
 
   public reset(): void {}
 
-  public async ensureAvailableTarget(waiter: TargetWaiter): Promise<void> {
+  public async ensureAvailableTarget(
+    waiter: TargetWaiter,
+    parentConversationUrl?: string,
+  ): Promise<void> {
     const currentJobRefHash = this.resolveBroker().currentOperatorTargetJobRefHash();
-    if (currentJobRefHash === waiter.binding.jobRefHash) return;
+    if (currentJobRefHash === waiter.binding.jobRefHash) {
+      if (waiter.targetMode === "authorized-continuation") {
+        throw new Error("BROWSER_TARGET_INVALID");
+      }
+      return;
+    }
     if (currentJobRefHash !== null) throw new Error("BROWSER_TARGET_INVALID");
     await this.acquireJobBoundTarget(
       Math.min(waiter.binding.commandTtlMs, waiter.remainingMs()), waiter.targetMode,
-      waiter.binding.jobRefHash,
+      waiter.binding.jobRefHash, parentConversationUrl,
     );
   }
 
@@ -37,9 +45,12 @@ export class BrowserTargetAcquirer {
     commandTtlMs: number,
     targetMode: BrowserTargetLeaseWait["targetMode"],
     jobRefHash: `sha256:${string}`,
+    parentConversationUrl?: string,
   ): Promise<void> {
     await this.awaitTargetOperation(commandTtlMs, "acquire", jobRefHash, () => {
-      this.websocket.requestPreauthorizedTargetAcquisition(targetMode, jobRefHash);
+      this.websocket.requestPreauthorizedTargetAcquisition(
+        targetMode, jobRefHash, parentConversationUrl,
+      );
     });
   }
 

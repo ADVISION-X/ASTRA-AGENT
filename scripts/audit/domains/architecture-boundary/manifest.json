@@ -3,7 +3,7 @@
   "capabilityDomain": "architecture-boundary",
   "status": "active",
   "lawIds": [
-    "LAW-ARCHITECTURE-BOUNDARY-001-V9"
+    "LAW-ARCHITECTURE-BOUNDARY-001-V10"
   ],
   "ownedPaths": [
     "docs/项目方案/GPT稳定会话地址恢复-完整实现方案.md",
