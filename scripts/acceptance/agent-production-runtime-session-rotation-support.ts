@@ -5,6 +5,7 @@ import { DeviceCredentialSchema } from
   "../../src/lib/local-runtime/production/transport-protocol.js";
 import { ProductionWorkerSession } from
   "../../src/lib/local-runtime/production/worker-session.js";
+import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { HASH_A, HASH_B, HASH_C } from "./agent-production-runtime-fixtures.js";
 
 const deferred = () => {
@@ -53,6 +54,7 @@ type RotationState = {
   claimCount: number;
   observedClaimHashes: string[];
   observedClaimTokens: string[];
+  tamperClaimHash: boolean;
 };
 
 const createSessionFetch = (
@@ -63,7 +65,7 @@ const createSessionFetch = (
   if (url.endsWith("/internal/ai-production/v6/sessions/open")) return successfulJsonResponse({
     session: {
       device_id: "device:atomic-claim", worker_session_id: "worker-session:atomic-claim",
-      worker_session_epoch: 1, control_contract_version: 31,
+      worker_session_epoch: 1, control_contract_version: 32,
     },
     session_credential: credentialFor(1),
   });
@@ -100,7 +102,9 @@ const createSessionFetch = (
   }
   return successfulJsonResponse({
     schema_version: "xuanxue-ai-claim-batch-receipt.v6", claim_batch_id: `claim-batch:${claimNumber}`,
-    request_id: body.request_id, request_payload_hash: HASH_A, outcome: "NO_ELIGIBLE_JOB", jobs: [],
+    request_id: body.request_id,
+    request_payload_hash: state.tamperClaimHash ? HASH_A : hashCanonical(body),
+    outcome: "NO_ELIGIBLE_JOB", jobs: [],
     server_now: "2026-09-03T00:00:00.000Z", next_claim_after_ms: 3_000, queue_epoch: claimNumber,
     reason_codes: ["NO_UNFINISHED_V6_DEMAND"],
   });
@@ -171,6 +175,7 @@ const exerciseHeartbeatAfterClaim = async (
 export const exerciseWorkerSessionRotation = async (): Promise<void> => {
   const state: RotationState = {
     heartbeatCount: 0, claimCount: 0, observedClaimHashes: [], observedClaimTokens: [],
+    tamperClaimHash: false,
   };
   const signals: RotationSignals = {
     heartbeatRotationEntered: deferred(), heartbeatRotationRelease: deferred(),
@@ -189,11 +194,17 @@ export const exerciseWorkerSessionRotation = async (): Promise<void> => {
       enrolled_at: "2026-09-03T00:00:00.000Z",
     });
     const session = new ProductionWorkerSession(device, async () => ({
-      business_in_flight: 0, browser_action_in_flight: 0, browser_authority_state: "present",
+      agent_attested_in_flight: 0, browser_action_in_flight: 0, browser_authority_state: "present",
       browser_target_state: "absent", browser_lane_state: "idle", drain_state: "open",
       ledger_reconciled: true,
     }), HASH_B, "worker-instance:atomic-claim");
     await exerciseClaimOrdering(session, state, signals);
+    state.tamperClaimHash = true;
+    await assert.rejects(
+      claimProductionTasks(session, 1, "claim:payload-hash-mismatch"),
+      /V6_CLAIM_RECEIPT_MISMATCH/u,
+      "a receipt for a different canonical claim request must fail closed",
+    );
   } finally {
     Date.now = originalDateNow;
     globalThis.fetch = originalFetch;

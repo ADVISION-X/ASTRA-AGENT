@@ -17,6 +17,7 @@ const interactionReadinessPath =
   "src/lib/browser/chrome-extension/extension-interaction-readiness.ts";
 const sitePolicyPath = "src/lib/browser/exact-target/browser-site-policy-registry.ts";
 const targetLeaseManagerPath = "src/lib/browser/exact-target/browser-target-lease-manager.ts";
+const targetLeasePath = "src/lib/browser/exact-target/browser-target-lease.ts";
 const laneCoordinatorPath = "src/lib/browser/infrastructure/browser-lane-coordinator.ts";
 const targetAcquirerPath = "src/lib/browser/infrastructure/browser-target-acquirer.ts";
 
@@ -178,10 +179,12 @@ const inspectServerClaimOrder = (serverClaim: string, findings: InspectorFinding
 
 const inspectBrokerClaimMonotonicity = (brokerText: string, findings: InspectorFinding[], lawId: string): void => {
   if (brokerText.includes("current.targetRef !== claim.targetRef")
+    && brokerText.includes("current.jobRefHash !== claim.jobRefHash")
+    && brokerText.includes("claim.jobRefHash !== binding.jobRefHash")
     && brokerText.includes("claim.navigationEpoch !== current.navigationEpoch + 1")) return;
   findings.push(createLocalFinding({
     checkId: "browser-authority/job-bound-target-claim", lawId, filePath: brokerPath,
-    message: "The Broker must reject target replacement and non-monotonic Document claims on one authority epoch.",
+    message: "The Broker must reject cross-job target reuse, target replacement and non-monotonic Document claims on one authority epoch.",
   }));
 };
 
@@ -193,7 +196,10 @@ const inspectNonDestructiveTargetRelease = (
   lawId: string,
 ): void => {
   const method = leaseManager?.getClass("BrowserTargetLeaseManager")?.getMethod("createTargetLease")?.getText() ?? "";
+  const admission = leaseManager?.getClass("BrowserTargetLeaseManager")
+    ?.getMethod("assertCommandAdmission")?.getText() ?? "";
   const lifecycle = lane?.getClass("BrowserLaneCoordinator")?.getMethod("withLifecycle")?.getText() ?? "";
+  const laneText = lane?.getFullText() ?? "";
   const destructiveClose = context.project.getSourceFiles().some((source) =>
     source.getFilePath().includes("/src/lib/browser/")
     && stringLiterals(source).some((literal) => literal === "Page.close" || literal === "browser.close-target.v1"));
@@ -203,11 +209,17 @@ const inspectNonDestructiveTargetRelease = (
   if (parkAt >= 0 && settlementModeAt > parkAt && physicalParkAt > settlementModeAt
     && method.includes("pendingMutationCount: () => state.pendingMutationCommandIds.length")
     && !method.includes("close: async") && !destructiveClose
-    && lifecycle.indexOf("this.active = false") > lifecycle.indexOf("await action()")
-    && !lifecycle.includes("finally") && !lifecycle.includes("revokeOperatorTargetClaim")) return;
+    && admission.includes('value.kind !== "park-target"')
+    && lifecycle.includes("finally")
+    && lifecycle.indexOf("this.active = false") > lifecycle.indexOf("finally")
+    && laneText.includes("mutationBlocked && !exactPermanentCleanup")
+    && laneText.includes("hasUnresolvedMutationForJob(waiter.jobId)")
+    && laneText.includes('waiter.releaseAuthority === "website-permanent-revocation"')
+    && laneText.includes('waiter.releaseAuthority === "website-admin-deletion"')
+    && !lifecycle.includes("revokeOperatorTargetClaim")) return;
   findings.push(createLocalFinding({
     checkId: "browser-authority/dispatched-mutation-target-release", lawId, filePath: targetLeaseManagerPath,
-    message: "Only successful Product settlement may park and release the reusable system Target; unresolved lifecycle effects must retain lane isolation with no close surface.",
+    message: "The one lane must permit only zero-input park plus exact Website-authorized release through unresolved DISPATCHED, while retaining fail-closed lifecycle cleanup.",
   }));
 };
 
@@ -225,8 +237,10 @@ const inspectExactChatGptPolicy = (source: ReturnType<typeof requireSource>, fin
 };
 
 const recoveryUsesCurrentTargetAndCanonicalUrl = (source: string): boolean =>
-  source.includes('targetMode: "fresh" | "confirmed-readback"')
+  source.includes('targetMode: "fresh" | "bound-observation" | "confirmed-readback"')
   && source.includes('targetMode === "fresh"')
+  && source.includes('findByJobRefHash(jobRefHash)')
+  && source.includes('activateTab(parked.tabId)')
   && source.includes('"Page.navigate", { url: expected }')
   && source.includes("publishMainFrameNavigation(mainFrame.url, mainFrame.loaderId, true)")
   && !source.includes("readOrRecoverExactTarget")
@@ -262,16 +276,17 @@ const inspectJobBoundClaimPolicy = (
   const supervisor = requireSource(context, findings, lawId, sourcePaths[3]);
   const broker = requireSource(context, findings, lawId, brokerPath);
   const leaseManager = requireSource(context, findings, lawId, targetLeaseManagerPath);
+  const leaseContract = requireSource(context, findings, lawId, targetLeasePath);
   const lane = requireSource(context, findings, lawId, laneCoordinatorPath);
   const targetAcquirer = requireSource(context, findings, lawId, targetAcquirerPath);
   if (!targetAuthority || !debuggerRuntime || !sitePolicy || !actor || !supervisor || !broker
-    || !leaseManager || !lane || !targetAcquirer) return;
+    || !leaseManager || !leaseContract || !lane || !targetAcquirer) return;
   requireIdentifiers(targetAuthority, [
     "acquireJobBoundChatGptTarget", "createProductionTab", "removeTab", "GPT_WEB_START_URL",
     "requireGptWebPolicyForUrl", "waitForCreatedTarget", "navigationPublication",
-    "parkActiveTarget", "parkedLoaderIds", "attachedTabId", "singleParkedTargetRef",
-    "publishMainFrameNavigation",
-  ], findings, lawId, "The fixed extension must create, validate and retain exactly one visible system Target for all GPT turns.");
+    "parkActiveTarget", "releaseJobBoundChatGptTarget", "findByJobRefHash", "jobRefHash",
+    "publishMainFrameNavigation", "activateTab",
+  ], findings, lawId, "The fixed extension must create, validate, retain and release one exact system Target per active GPT job.");
   const productionTabCreation = debuggerRuntime.getClass("ExtensionDebuggerRuntime")
     ?.getMethod("createProductionTab")?.getText() ?? "";
   if (!productionTabCreation.includes("this.chromeApi.tabs.create({ active: true, url })")
@@ -289,12 +304,21 @@ const inspectJobBoundClaimPolicy = (
   "The server must bind initial Target acquisition to one current job request before establishing Session Workspace.");
   requireIdentifiers(lane, ["BrowserTargetAcquirer", "targetAcquirer", "ensureAvailableTarget"], findings, lawId,
     "The sole Browser lane must delegate target acquisition to its one private target acquirer.");
+  if (leaseContract.getFullText().includes("requestKind")
+    || !lane.getFullText().includes('requestKind: wait.targetMode === "fresh"')) {
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/job-bound-target-claim", lawId, filePath: targetLeasePath,
+      message: "The public lease wait contract must not expose requestKind; the Browser lane must derive it from the governed target mode.",
+    }));
+  }
   requireIdentifiers(targetAcquirer, [
     "acquireJobBoundTarget", "requestPreauthorizedTargetAcquisition", "pendingJobBoundTargetAcquisition",
-    "targetMode", "resolvePending", "rejectPending",
-  ], findings, lawId, "The target acquirer must bind acquisition to the current queued job and explicit fresh/readback mode.");
-  requireIdentifiers(broker, ["current", "targetRef", "navigationEpoch"], findings, lawId,
-    "The sole Broker must reject target replacement and non-monotonic Document claims.");
+    "releaseJobBoundTarget", "requestPreauthorizedTargetRelease", "targetMode", "jobRefHash",
+    "currentOperatorTargetJobRefHash", "resolvePending", "rejectPending",
+  ], findings, lawId, "The target acquirer must bind acquire/release to the current queued job and explicit fresh/observation/readback mode.");
+  requireIdentifiers(broker, ["current", "targetRef", "navigationEpoch", "jobRefHash",
+    "currentOperatorTargetJobRefHash"], findings, lawId,
+    "The sole Broker must reject cross-job target reuse, target replacement and non-monotonic Document claims.");
   inspectJobBoundClaimOrder(actor, findings, lawId);
   inspectServerClaimOrder(supervisor.getClass("BrowserInfrastructureSupervisor")?.getMethod("onTargetClaim")?.getText() ?? "", findings, lawId);
   inspectBrokerClaimMonotonicity(broker.getFullText(), findings, lawId);
@@ -333,7 +357,7 @@ export const inspectTargetClaimGuards = (
   const parseClaimText = parseClaim?.getText() ?? "";
   for (const required of [
     'stringField(body, "claimOrigin")', "requireGptWebClaimOrigin(claimOrigin)",
-    '["targetRef", "documentRef", "navigationEpoch", "claimOrigin"]',
+    '["targetRef", "documentRef", "navigationEpoch", "claimOrigin", "jobRefHash"]',
   ]) if (!parseClaimText.includes(required)) findings.push(createLocalFinding({
     checkId: "browser-authority/target-claim-origin-only",
     lawId,

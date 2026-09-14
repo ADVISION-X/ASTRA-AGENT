@@ -5,6 +5,7 @@ import { browserCommandErrorCode, decrypt } from "./websocket-actor-crypto.js";
 type TargetClaimCompletion = Readonly<{
   targetRef: string;
   documentRef: string;
+  jobRefHash: `sha256:${string}`;
   resolve(): void;
   reject(error: Error): void;
   timeout: ReturnType<typeof globalThis.setTimeout>;
@@ -13,7 +14,12 @@ type TargetClaimCompletion = Readonly<{
 export class TargetClaimAwaiter {
   private completion: TargetClaimCompletion | null = null;
 
-  public begin(input: { targetRef: string; documentRef: string; send(): Promise<void> }): Promise<void> {
+  public begin(input: {
+    targetRef: string;
+    documentRef: string;
+    jobRefHash: `sha256:${string}`;
+    send(): Promise<void>;
+  }): Promise<void> {
     if (this.completion) throw new Error("BROWSER_PAIRING_IN_PROGRESS");
     return new Promise<void>((resolve, reject) => {
       const timeout = globalThis.setTimeout(() => {
@@ -26,7 +32,8 @@ export class TargetClaimAwaiter {
 
   public accept(body: Record<string, unknown>): void {
     const completion = this.completion;
-    if (!completion || body.targetRef !== completion.targetRef || body.documentRef !== completion.documentRef) {
+    if (!completion || body.targetRef !== completion.targetRef || body.documentRef !== completion.documentRef
+      || body.jobRefHash !== completion.jobRefHash || Object.keys(body).length !== 3) {
       throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     }
     this.completion = null;

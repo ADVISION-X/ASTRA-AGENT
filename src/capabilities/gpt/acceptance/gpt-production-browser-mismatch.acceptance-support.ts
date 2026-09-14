@@ -45,8 +45,8 @@ try {
       commandTtlMs: 1_000, abortSignal: new AbortController().signal,
     },
   );
-  const active = await lifecycle.browserFor(
-    "session:confirmed-recovery", "observe", "turn-submit", "confirmed-readback",
+  const active = await lifecycle.browserForConfirmedReadback(
+    "session:confirmed-recovery", "observe", "turn-submit",
   );
   await lifecycle.recordConfirmedProviderEffect(active, {
     exactCallIdentityHash: `sha256:${"6".repeat(64)}`,
@@ -60,7 +60,8 @@ try {
     childCapabilityId: "submit_exact_gpt_turn_once", inputHash: HASH_A,
     actionOrdinal: 1, replayPolicy: "provider-effect-once",
   }, "https://chatgpt.com/c/confirmed-recovery", "conversation-turn-1");
-  assert.deepEqual([targetMode, acquisitions, selections], ["confirmed-readback", 1, 1],
+  assert.deepEqual([targetMode, acquisitions, selections],
+    ["confirmed-readback", 1, 1],
     "confirmed-effect recovery may acquire once and select the exact canonical URL once");
   await lifecycle.settle(null);
 

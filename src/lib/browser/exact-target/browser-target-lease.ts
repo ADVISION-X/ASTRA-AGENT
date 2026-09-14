@@ -34,8 +34,16 @@ export type BrowserAtomicStepOutcome = Readonly<{
 export type BrowserTargetLeaseWait = Readonly<{
   signal: AbortSignal;
   remainingMs(): number;
-  targetMode: "fresh" | "confirmed-readback";
+  targetMode: "fresh" | "bound-observation" | "confirmed-readback";
+  eligibleAt: number;
 }>;
+
+export type BrowserTargetReleaseAuthority =
+  | "business-admitted"
+  | "wait-new-attempt"
+  | "attempt-replaced"
+  | "website-permanent-revocation"
+  | "website-admin-deletion";
 
 export type BrowserApprovedArtifactRef = Readonly<{
   artifactRef: string;

@@ -163,7 +163,8 @@ const runFileInputScenario = async (input: FileInputScenario) => {
   const runtime = createScenarioRuntime(input, state);
   const result = await executeExtensionFileInput({
     runtime,
-    target: { tabId: 108, targetRef: "target-108", documentRef: "document-8", navigationEpoch: 8 },
+    target: { tabId: 108, targetRef: "target-108", documentRef: "document-8", navigationEpoch: 8,
+      jobRefHash: `sha256:${"a".repeat(64)}` as const, loaderId: "loader-current" },
     assertCurrent: () => {
       state.targetChecks += 1;
       if (input.driftBeforeDispatch && state.targetChecks === 3) throw new Error("BROWSER_DOCUMENT_INVALID");

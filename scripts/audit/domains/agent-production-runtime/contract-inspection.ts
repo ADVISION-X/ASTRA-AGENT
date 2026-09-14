@@ -7,11 +7,11 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V56", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V6",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V27", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V27",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V26", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V29",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V29",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V30",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V57", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V6",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V28", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V28",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V27", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V30",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V30",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V31",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
@@ -171,18 +171,20 @@ const inspectBusinessCapacity = (context: InspectorContext, findings: InspectorF
   const runtimeLoops = read(context, PATHS.runtimeLoops);
   const executor = read(context, PATHS.executor);
   const cloudClient = read(context, PATHS.cloudClient);
-  const oneCapacityOwner = dependency.includes("PRODUCTION_BUSINESS_CAPACITY_TOTAL = 1 as const")
-    && workerSession.includes("business_capacity_total: PRODUCTION_BUSINESS_CAPACITY_TOTAL")
-    && runtimeLoops.includes("PRODUCTION_BUSINESS_CAPACITY_TOTAL - businessInFlightCount(state)")
+  const oneCapacityOwner = dependency.includes("PRODUCTION_BUSINESS_CAPACITY_MAX = 4 as const")
+    && workerSession.includes("agent_attested_in_flight: state.agent_attested_in_flight")
+    && !workerSession.includes("business_capacity_total")
+    && runtimeLoops.includes("PRODUCTION_BUSINESS_CAPACITY_MAX - businessInFlightCount(state)")
     && runtimeLoops.includes("state.store.pendingBusinessAdmissions()")
-    && runtimeLoops.includes("business_in_flight: businessInFlightCount(state)")
-    && executor.includes("return PRODUCTION_BUSINESS_CAPACITY_TOTAL")
-    && cloudClient.includes("limit > PRODUCTION_BUSINESS_CAPACITY_TOTAL")
+    && runtimeLoops.includes("inFlightJobIds.has(job.job_id)")
+    && runtimeLoops.includes("agent_attested_in_flight: businessInFlightCount(state)")
+    && executor.includes("return PRODUCTION_BUSINESS_CAPACITY_MAX")
+    && cloudClient.includes("limit > PRODUCTION_BUSINESS_CAPACITY_MAX")
     && ![workerSession, runtimeLoops, executor, cloudClient]
       .some((source) => /(?:business_capacity_total:\s*10|Math\.min\(10\s*-|return\s+10|limit\s*>\s*10)/u.test(source));
   if (!oneCapacityOwner) findings.push(finding(LAWS.route,
-    "agent-production-runtime/business-capacity-one", PATHS.controlDependency,
-    "Runtime heartbeat, active plus admission-pending union, executor and claim limit must consume the one capacity-1 constant."));
+    "agent-production-runtime/business-capacity-max", PATHS.controlDependency,
+    "Runtime must expose only the protocol maximum and attest its local active plus admission-pending union without owning the Website device N."));
 };
 
 const inspectStorageAndLawDenominator = (context: InspectorContext, findings: InspectorFinding[]): void => {

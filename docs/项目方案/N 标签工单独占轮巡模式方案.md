@@ -2,10 +2,10 @@
 document_type: project_scheme
 scheme_id: N_TAB_EXCLUSIVE_ROTATION
 scheme_name: N 标签工单独占轮巡模式
-status: candidate
+status: implemented_ready_candidate
 created_at: 2026-09-13
-implementation_status: BLOCKED
-test_status: NOT_RUN
+implementation_status: CODE_QUALITY_COMPLETE
+test_status: DUAL_REPOSITORY_CHANGE_PASS
 release_status: NOT_RELEASED
 ---
 
@@ -13,15 +13,15 @@ release_status: NOT_RELEASED
 
 ## 0. 文档身份与当前裁决
 
-本文件是一份待授权施工的项目候选方案，不是 active law、Blueprint、跨仓合同、运行时配置或第二质量结论。它不能覆盖现役冻结法案；正式施工前必须由授权人明确解冻并同步替换命中的双仓 active law、Blueprint、跨仓合同、实现和唯一质检。
+本文件是授权施工的唯一项目方案，不是 active law、Blueprint、跨仓合同、运行时配置或第二质量结论。授权人已明确解冻本次命中的冻结轮询边界；施工必须在同一双仓候选中同步替换 active law、Blueprint、跨仓合同、实现和唯一质检，替换完成后立即重新冻结。
 
 当前裁决：
 
 ```text
-方案：CONDITIONAL GO
-施工：BLOCKED
-实现：NOT_IMPLEMENTED
-测试：NOT_RUN
+方案：AUTHORIZED GO
+施工：IMPLEMENTED
+实现：CODE_QUALITY_COMPLETE
+测试：DUAL_REPOSITORY_CHANGE_PASS
 发布：NOT_RELEASED
 ```
 
@@ -261,20 +261,20 @@ browser_action_in_flight in {0, 1}
 相邻 Provider observation 最小间隔：30 秒
 ```
 
-每个 GPT wait Child 只拥有本工单下一次何时具备检查资格。`nextCheckAt` 为调用期瞬时数据，到期前不进入 Browser FIFO；同一工单任意时刻最多有一个 pending observation 请求。
+GPT wait Child 只计算本工单下一次 observation 的最早资格时间，并立即调用现役 Browser observation typed 入口；它不创建、持有或等待 per-job timer。同一工单任意时刻最多有一个 pending observation 请求。
 
-Browser lane 只拥有系统级机械限速：真实页面 observation 的总频率不得随 N 增长。现役唯一 FIFO 的 waiter 增加 `requestKind` 和瞬时 `eligibleAt`，全局只增加一个非持久 `observationNotBefore` 标量：
+Browser lane 只拥有系统级机械限速：真实页面 observation 的总频率不得随 N 增长。现役唯一 FIFO 的 waiter 只接收目标模式和瞬时 `eligibleAt`，由 local-browser-session 从目标模式内部派生私有 `requestKind`；全局只增加一个非持久 `observationNotBefore` 标量：
 
 1. 普通 mutation、恢复和清理请求的 `eligibleAt=now`；
-2. Provider observation 的实时资格为 `max(waiter.eligibleAt, observationNotBefore)`；
+2. Provider observation waiter 的 `eligibleAt` 等于 GPT Child 提供的本次最早资格时间，其实时资格为 `max(waiter.eligibleAt, observationNotBefore)`；
 3. coordinator 只从同一个 FIFO 中取“当前已具备资格且入队序号最早”的请求，未到全局时间的 observation 不得把 `active` 置为 true、不得激活 Tab、不得读取 DOM，也不得堵住后续已具备资格的 submit/准备/清理；
 4. 如果当前没有已具备资格的请求，只允许一个 coordinator wake-up timer 等待最早资格点，不得为每个 Tab 建 timer；
 5. observation 终止后以真实 `observedAt/terminalAt` 推进 `observationNotBefore`；失败、abort 或断连必须释放 active lane；
 6. 一旦旧 observation 到达全局资格点，它按原入队序号参与 FIFO，不得被后来的已具备资格请求长期饿死。
 
-`requestKind` 必须由 local-browser-session 根据受治理的 Browser 操作生成，GPT/Product调用方不得自报或改写，否则可伪装成普通mutation绕过全局observation门。
+`requestKind` 必须是 local-browser-session 的私有派生事实，公开 lease wait 合同不得暴露该字段；GPT/Product调用方不得自报或改写，否则可伪装成普通mutation绕过全局observation门。
 
-这仍是一条 FIFO、一个 lane、一个 timer 和一个限速标量，不是第二 queue、中央 Scheduler 或持久状态机。
+BrowserLaneCoordinator 是唯一计时等待 Owner；这仍是一条 FIFO、一个 lane、一个 timer 和一个限速标量，不是第二 queue、中央 Scheduler 或持久状态机。
 
 只有在 N=3、A/B/C 均 pending、均已具备资格、按 A/B/C 顺序进入 FIFO 且没有其它页面动作的控制场景中，才会看到：
 
@@ -360,15 +360,15 @@ physical submit <= 1
 候选接口：
 
 ```http
-PUT /api/commercial/platform/ai-acceptance/devices/:deviceId/business-capacity
+PUT /api/commercial/platform/ai-acceptance/devices/:deviceId/capacity
 ```
 
 精确请求：
 
 ```json
 {
-  "expected_business_capacity_total": 3,
-  "business_capacity_total": 4
+  "expected_max_in_flight": 3,
+  "max_in_flight": 4
 }
 ```
 
@@ -381,7 +381,7 @@ PUT /api/commercial/platform/ai-acceptance/devices/:deviceId/business-capacity
 5. 用 expected old value 做 CAS；
 6. 只写 `ai_production_devices.max_in_flight`；
 7. 写后读回 exact row；
-8. 复用现役 audit；
+8. 在同一数据库事务内复用现役 `commercial_audit_events`，审计失败则容量更新一并回滚；
 9. 同值 PUT 返回幂等成功；
 10. 回复不明时客户端先 GET 精确读回，不自动重发。
 
@@ -488,7 +488,7 @@ Claim 固定顺序：
 必要新增或改造仅限进程内：
 
 - 在现役 `ExtensionExactTargetRegistry` 条目中增加 `jobRefHash` 独占绑定；
-- 现役唯一 FIFO waiter 增加 `requestKind/eligibleAt`；
+- 现役唯一 FIFO waiter 增加 `eligibleAt`，`requestKind` 只在 Browser lane 内由目标模式派生；
 - 一个全局 observation not-before 时间点。
 
 targetRef、tabId、current Document 和 navigation epoch 继续复用现役字段；不得另建 loader map、Document map、Tab 状态投影或 Browser N 投影。这些对象不得持久化，也不得进入 Website。
@@ -575,7 +575,7 @@ authority epoch 切换后失去 ownership 证明的旧页面不进入这个计�
 | 4 -> 3 且四单在途 | 新 claim=0，四单继续 | 杀第四单或关其 Tab |
 | N 更新回复不明 | exact GET 读回 | 自动重复写 |
 
-单 Tab 故障隔离不是无条件的。任一工单存在现实输入结果不明的 `DISPATCHED` 时，唯一 Browser 物理车道必须整体阻断；其它工单只可继续不需要 Browser 的本地或 Website 收敛工作。不得为维持 B/C 页面执行新增第二 lane、bypass 或重放。
+单 Tab 故障隔离不是无条件的。任一工单存在现实输入结果不明的 `DISPATCHED` 时，唯一 Browser 物理车道必须阻断全部 acquisition；其它工单只可继续不需要 Browser 的本地或 Website 收敛工作。唯一例外是 Website 已持久永久撤权或管理员删除 exact job 后的清理：同一 lane 必须先将该 job 的 active claim 零输入 park并保留原 WAL，再按 exact `jobRefHash` 删除且只删除该 system Tab。不得为维持 B/C 页面执行新增第二 lane、bypass 或重放。
 
 故障矩阵所有行共同遵守唯一终止链：
 
@@ -755,7 +755,7 @@ Website 决定读回前，当前业务席位和绑定不得释放：
 - GPT wait Child及对应acceptance/inspector；
 - Browser lane的global observation gate。
 
-动作：pending后保留绑定但释放lease；nextCheckAt到期才进入现役唯一FIFO；同一FIFO以一个global not-before限制真实observation且未到期waiter不占lane、不堵eligible mutation；一次lease只读一次，pending重新排尾；保留40秒静默和生成期轻量观察。
+动作：pending后保留绑定但释放lease；GPT Child计算最早资格时间后立即把请求交给现役唯一FIFO且不自行等待；BrowserLaneCoordinator以waiter eligibleAt和一个global not-before作为唯一计时Owner，未到期waiter不占lane、不堵eligible mutation；一次lease只读一次，pending重新排尾；保留40秒静默和生成期轻量观察。
 
 验收：受控条件下A/B/C/A；普通条件只验eligible FIFO、无插队、无饥饿；相邻observation至少30秒；未到期observe的Tab activation、DOM read和browser_action_in_flight增量均为0，后续eligible mutation仍可执行；总频率不随N增加；无第二timer service/scheduler/queue。
 
@@ -968,10 +968,26 @@ AND 双仓均为clean Git commit
 | 最小回归 | 对“单Tab故障不影响其它工单”和N=1等价承诺过宽；Website领域主链被预防性列为修改面 | unresolved DISPATCHED仍阻断唯一lane；冻结ONE BY ONE真实基线逐项对比；Website领域主链只读回归 |
 | 验收清晰 | N=64无Provider证据；Gate未归位唯一quality；告警、崩溃和吞吐口径不完整 | 首版生产上限4；Gate A-E进入唯一dynamic proof；连续警告/lifecycle证据；固定批次、计时和20%吞吐阈值 |
 
-终稿裁决保持：
+终稿裁决更新为：
 
 ```text
-方案架构：CONDITIONAL GO
-生产代码施工：BLOCKED，等待授权人明确解冻并重新绑定双仓authority
+方案架构：AUTHORIZED GO
+生产代码施工：IMPLEMENTED
+双仓 CHANGE：PASS
+独立施工审计：PASS（完成率99%，准确率99%，P0=0，P1=0）
+clean commit READY：必须在本文件进入候选 commit 后由双仓原生 quality:check 裁决
 真实安全与效率：NOT_PROVEN，必须由Gate A-E裁决
 ```
+
+## 18. 本轮施工闭环记录
+
+截至本方案进入候选 commit 前，本轮已完成：
+
+1. 双仓 active law、Blueprint、跨仓 V6 provider/consumer contract 与唯一生成投影同步替换，并按授权重新冻结；Browser law 的版本链为已提交 V36 -> 本候选 V37，不存在中间 V37 后再建 V38 的事实；
+2. Website 已形成唯一动态 N Owner、1..4 安全上限、新设备默认1、管理端行锁 CAS/同事务审计/readback、claim 锁内持久容量裁决与 recoverable/new 分流；
+3. AGENT 已形成动态多工单在途、admission-pending 占槽、每 job 独占 Target、唯一 Browser FIFO、唯一 wake timer、全局30秒 Provider observation节拍、正常轮询零导航和 confirmed-effect 零submit读回；
+4. unresolved `DISPATCHED` 的唯一 cleanup 例外已精确绑定同一 job 的 Website永久撤权或管理员删除；普通 admission、普通 WAIT、attempt replacement、其它 job清理与全部 acquisition 均继续阻断；
+5. Browser release 的 authority映射、same-job WAL门、active claim零输入 park、FIFO、预授权 WebSocket、exact jobRefHash ack、Extension精确删Tab及删A不伤B均有现役行为验收；无消费者的幽灵验收文件声明已删除，没有新增空文件或第二链路；
+6. 双仓原生 `quality:check CHANGE` 已分别输出 `CHANGE_PASS`；三名最终只读审计员均达到不低于95%的门槛，最终Browser安全审计与双仓交叉审计均为99%/99%、P0/P1为0。
+
+本轮没有执行生产 migration、没有修改生产设备当前 N、没有把 N 硬编码为3、没有运行真实 Gate A-E，也没有取得 RELEASE。后续必须先在双仓 clean commit 上分别通过原生 READY，再按第14节从 N=1 逐级执行真实 Gate A-E；只有全部真实证据和双仓 RELEASE 同时通过后，才允许把生产当前 N 设置为3。

@@ -51,7 +51,7 @@ export type BrowserAuthorityWebSocketOptions = Readonly<{
     commandPermitKey: string;
   }>): BrowserAuthorityReady;
   onTargetClaim(input: BrowserAuthorityTargetClaim): void;
-  onTargetRevoke(targetRef: string): void;
+  onTargetRevoke(input: BrowserAuthorityTargetRevoke): void;
   onDiagnostic(reasonCode: string, refs: Readonly<Record<string, string>>): void;
   onRevoked(reasonCode: string, refs?: Readonly<Record<string, string>>): void;
 }>;
@@ -69,6 +69,16 @@ export type BrowserAuthorityTargetClaim = Readonly<{
   documentRef: string;
   navigationEpoch: number;
   claimOrigin: "https://chatgpt.com";
+  jobRefHash: `sha256:${string}`;
+}>;
+export type BrowserAuthorityTargetRevoke = Readonly<{
+  targetRef: string;
+  jobRefHash?: never;
+  releaseOutcome?: never;
+}> | Readonly<{
+  targetRef: string | null;
+  jobRefHash: `sha256:${string}`;
+  releaseOutcome: "released" | "absent";
 }>;
 
 type AwaitingReply = Readonly<{
@@ -206,7 +216,10 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     });
   }
 
-  public requestPreauthorizedTargetAcquisition(targetMode: "fresh" | "confirmed-readback"): void {
+  public requestPreauthorizedTargetAcquisition(
+    targetMode: "fresh" | "bound-observation" | "confirmed-readback",
+    jobRefHash: `sha256:${string}`,
+  ): void {
     this.assertLive();
     const active = this.active;
     if (!active) throw new Error("BROWSER_LIVENESS_EXPIRED");
@@ -216,12 +229,32 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       "TARGET_ACQUIRE",
       sequence,
       new Date(Date.now() + COMMAND_DEADLINE_MS).toISOString(),
-      { targetMode },
+      { action: "acquire", targetMode, jobRefHash },
     );
     this.active = { ...active, nextServerSequence: sequence + 1 };
     try {
       active.socket.send(encodeBrowserAuthorityFrame(frame));
     } catch {
+      this.revoke(active.socket, "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
+      throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
+    }
+  }
+
+  public requestPreauthorizedTargetRelease(jobRefHash: `sha256:${string}`): void {
+    this.assertLive();
+    const active = this.active;
+    if (!active) throw new Error("BROWSER_LIVENESS_EXPIRED");
+    const sequence = active.nextServerSequence;
+    const frame = this.encryptedFrame(
+      active,
+      "TARGET_ACQUIRE",
+      sequence,
+      new Date(Date.now() + COMMAND_DEADLINE_MS).toISOString(),
+      { action: "release", jobRefHash },
+    );
+    this.active = { ...active, nextServerSequence: sequence + 1 };
+    try { active.socket.send(encodeBrowserAuthorityFrame(frame)); }
+    catch {
       this.revoke(active.socket, "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
       throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
     }
@@ -336,7 +369,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       return true;
     }
     if (frame.kind === "TARGET_REVOKE") {
-      this.options.onTargetRevoke(stringField(body, "targetRef"));
+      this.options.onTargetRevoke(parseBrowserAuthorityTargetRevoke(body));
       return true;
     }
     if (frame.kind === "DIAGNOSTIC") {
@@ -427,7 +460,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       "TARGET_CLAIM",
       sequence,
       new Date(Date.now() + COMMAND_DEADLINE_MS).toISOString(),
-      { targetRef: claim.targetRef, documentRef: claim.documentRef },
+      { targetRef: claim.targetRef, documentRef: claim.documentRef, jobRefHash: claim.jobRefHash },
     );
     this.active = { ...active, nextServerSequence: sequence + 1 };
     socket.send(encodeBrowserAuthorityFrame(frame));
@@ -491,9 +524,29 @@ export const parseBrowserAuthorityTargetClaim = (body: Readonly<Record<string, u
   const documentRef = stringField(body, "documentRef");
   const navigationEpoch = nonNegativeIntegerField(body, "navigationEpoch");
   const claimOrigin = stringField(body, "claimOrigin");
-  if (Object.keys(body).length !== 4
-    || Object.keys(body).some((key) => !["targetRef", "documentRef", "navigationEpoch", "claimOrigin"].includes(key))) {
+  const jobRefHash = stringField(body, "jobRefHash");
+  if (!/^sha256:[a-f0-9]{64}$/u.test(jobRefHash) || Object.keys(body).length !== 5
+    || Object.keys(body).some((key) => !["targetRef", "documentRef", "navigationEpoch", "claimOrigin", "jobRefHash"].includes(key))) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
-  return { targetRef, documentRef, navigationEpoch, claimOrigin: requireGptWebClaimOrigin(claimOrigin) };
+  return { targetRef, documentRef, navigationEpoch, claimOrigin: requireGptWebClaimOrigin(claimOrigin),
+    jobRefHash: jobRefHash as `sha256:${string}` };
+};
+
+export const parseBrowserAuthorityTargetRevoke = (
+  body: Readonly<Record<string, unknown>>,
+): BrowserAuthorityTargetRevoke => {
+  if (Object.keys(body).length === 1) return { targetRef: stringField(body, "targetRef") };
+  const targetRef = body.targetRef;
+  const jobRefHash = body.jobRefHash;
+  const releaseOutcome = body.releaseOutcome;
+  if (Object.keys(body).length !== 3
+    || (targetRef !== null && (typeof targetRef !== "string" || targetRef.length === 0))
+    || typeof jobRefHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(jobRefHash)
+    || (releaseOutcome !== "released" && releaseOutcome !== "absent")
+    || (releaseOutcome === "released") !== (typeof targetRef === "string")) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  return { targetRef: targetRef as string | null, jobRefHash: jobRefHash as `sha256:${string}`,
+    releaseOutcome };
 };

@@ -21,6 +21,15 @@ const executeRegisteredDomIntent = (
   assertCurrent: () => void = () => undefined,
 ): Promise<unknown> => executeDomIntent(runtime, target, intent, assertCurrent);
 
+const exactTestTarget = (documentRef: string, navigationEpoch: number) => ({
+  tabId: 105,
+  targetRef: "target-105",
+  documentRef,
+  navigationEpoch,
+  jobRefHash: `sha256:${"a".repeat(64)}` as const,
+  loaderId: "loader-a",
+});
+
 const mechanicalFacts = (overrides: Readonly<Record<string, unknown>> = {}) => ({
   connected: true, layout: true, visible: true,
   computedDisplay: "block", computedVisibility: "visible", computedOpacity: "1", effectiveOpacity: "1",
@@ -326,18 +335,16 @@ const exerciseCoherentObservationFailures = async (
     } } };
     return runtime.send(tabId, method, parameters);
   } } as ExtensionDebuggerRuntime;
-  await assert.rejects(executeRegisteredDomIntent(malformed, {
-    tabId: 105, targetRef: "target-105", documentRef: "document-9", navigationEpoch: 9,
-  }, command), /BROWSER_DOM_READ_INVALID/u);
+  await assert.rejects(executeRegisteredDomIntent(malformed,
+    exactTestTarget("document-9", 9), command), /BROWSER_DOM_READ_INVALID/u);
   const missingReasons = { ...runtime, async send(tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
     if (method === "Runtime.callFunctionOn") return { result: { value: {
       observedAt, queries: [rows[0], { ...rows[1], rejections: [] }],
     } } };
     return runtime.send(tabId, method, parameters);
   } } as ExtensionDebuggerRuntime;
-  await assert.rejects(executeRegisteredDomIntent(missingReasons, {
-    tabId: 105, targetRef: "target-105", documentRef: "document-9", navigationEpoch: 9,
-  }, command), /BROWSER_DOM_READ_INVALID/u);
+  await assert.rejects(executeRegisteredDomIntent(missingReasons,
+    exactTestTarget("document-9", 9), command), /BROWSER_DOM_READ_INVALID/u);
   const overBudgetScopes = Array.from({ length: 251 }, (_, index) => ({
     index: index + 1, reasons: ["NO_LAYOUT_BOX"] as const,
   }));
@@ -347,9 +354,8 @@ const exerciseCoherentObservationFailures = async (
     } } };
     return runtime.send(tabId, method, parameters);
   } } as ExtensionDebuggerRuntime;
-  await assert.rejects(executeRegisteredDomIntent(overBudget, {
-    tabId: 105, targetRef: "target-105", documentRef: "document-9", navigationEpoch: 9,
-  }, command), /BROWSER_DOM_READ_INVALID/u,
+  await assert.rejects(executeRegisteredDomIntent(overBudget,
+    exactTestTarget("document-9", 9), command), /BROWSER_DOM_READ_INVALID/u,
   "the receiver must independently reject an observation whose whole-call candidate budget exceeds 256");
   for (const invalidMatches of [
     [{ candidateIndex: 4, role: "button", visible: true },
@@ -366,9 +372,8 @@ const exerciseCoherentObservationFailures = async (
         return runtime.send(tabId, method, parameters);
       },
     } as ExtensionDebuggerRuntime;
-    await assert.rejects(executeRegisteredDomIntent(invalidIdentity, {
-      tabId: 105, targetRef: "target-105", documentRef: "document-9", navigationEpoch: 9,
-    }, command), /BROWSER_DOM_READ_INVALID/u,
+    await assert.rejects(executeRegisteredDomIntent(invalidIdentity,
+      exactTestTarget("document-9", 9), command), /BROWSER_DOM_READ_INVALID/u,
     "duplicate or eligible/rejected candidate indices must fail the whole observation");
   }
   let changedLoaderReads = 0;
@@ -383,9 +388,8 @@ const exerciseCoherentObservationFailures = async (
     if (method === "Runtime.releaseObject") return {};
     throw new Error(`UNEXPECTED_CHANGED_DOCUMENT_METHOD:${method}`);
   } } as ExtensionDebuggerRuntime;
-  await assert.rejects(executeRegisteredDomIntent(changedDocument, {
-    tabId: 105, targetRef: "target-105", documentRef: "document-10", navigationEpoch: 10,
-  }, command), /BROWSER_DOCUMENT_INVALID/u);
+  await assert.rejects(executeRegisteredDomIntent(changedDocument,
+    exactTestTarget("document-10", 10), command), /BROWSER_DOCUMENT_INVALID/u);
 };
 
 const exerciseCoherentObservation = async (): Promise<void> => {
@@ -436,9 +440,8 @@ const exerciseCoherentObservation = async (): Promise<void> => {
     throw new Error(`UNEXPECTED_COHERENT_OBSERVATION_METHOD:${method}`);
   } } as ExtensionDebuggerRuntime;
   const command = { kind: "observe" as const, queries };
-  const packet = await executeRegisteredDomIntent(runtime, {
-    tabId: 105, targetRef: "target-105", documentRef: "document-9", navigationEpoch: 9,
-  }, command) as Readonly<Record<string, unknown>>;
+  const packet = await executeRegisteredDomIntent(runtime,
+    exactTestTarget("document-9", 9), command) as Readonly<Record<string, unknown>>;
   assert.equal(coherentCalls, 1, "all query specs must execute in one Runtime.callFunctionOn");
   await exerciseCapturedObservationFunction(observationSource);
   assert.equal(loaderReads, 2, "the exact main-frame loader must remain unchanged around the one DOM call");

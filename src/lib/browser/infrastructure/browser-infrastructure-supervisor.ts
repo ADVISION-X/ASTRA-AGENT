@@ -14,6 +14,7 @@ import type { BrowserProfileConfig } from "../profile/browser-profile-config.js"
 import type { BrowserProfileState } from "../profile/browser-profile-state.js";
 import type { UnpackedExtensionReleaseIdentity } from "../release/unpacked-extension-release-identity.js";
 import { BrowserAuthorityWebSocket, type BrowserAuthorityTargetClaim,
+  type BrowserAuthorityTargetRevoke,
   type BrowserAuthorityWebSocketOptions } from "../transport/browser-authority-websocket.js";
 import { BrowserCommandAdmissionBudget } from "../transport/browser-command-admission-budget.js";
 import { BrowserTransportActor } from "../transport/transport-actor.js";
@@ -76,7 +77,7 @@ export class BrowserInfrastructureSupervisor {
         releaseIdentity: this.options.releaseIdentity,
       }),
       onTargetClaim: (input) => this.onTargetClaim(input),
-      onTargetRevoke: (targetRef) => this.broker.revokeOperatorTargetClaim(targetRef),
+      onTargetRevoke: (input) => this.onTargetRevoke(input),
       onDiagnostic: (reasonCode, refs) => this.onDiagnostic(reasonCode, refs),
       onRevoked: (reasonCode, refs) => this.onRevoked(reasonCode, refs),
     };
@@ -97,10 +98,18 @@ export class BrowserInfrastructureSupervisor {
     requireGptWebClaimOrigin(input.claimOrigin);
     const initialClaim = this.broker.currentOperatorTargetStatus() === "absent";
     if (initialClaim && !this.state.pendingJobBoundTargetAcquisition) throw new Error("BROWSER_TARGET_INVALID");
+    if (initialClaim && this.state.pendingJobBoundTargetAcquisition?.jobRefHash !== input.jobRefHash) {
+      throw new Error("BROWSER_TARGET_INVALID");
+    }
     this.establishClaimBoundWorkspace();
     this.broker.registerOperatorTargetClaim({ authorityEpoch: currentAuthorityEpoch(this.issuer), ...input });
     this.lane.observeCurrentTargetClaim(input);
-    if (initialClaim) this.lane.resolvePending(input.targetRef);
+    if (initialClaim) this.lane.resolvePending("acquire", input.jobRefHash);
+  }
+
+  private onTargetRevoke(input: BrowserAuthorityTargetRevoke): void {
+    if (input.targetRef !== null) this.broker.revokeOperatorTargetClaim(input.targetRef);
+    if (input.releaseOutcome) this.lane.resolvePending("release", input.jobRefHash);
   }
 
   private onDiagnostic(reasonCode: string, refs: Readonly<Record<string, string>>): void {
@@ -196,6 +205,14 @@ export class BrowserInfrastructureSupervisor {
     ownerId: string,
     wait: BrowserTargetLeaseWait,
   ): Promise<BrowserTargetLease> { return this.lane.acquire(binding, ownerId, wait); }
+
+  public releaseJobBoundTarget(
+    jobId: string,
+    releaseAuthority: import("../exact-target/browser-target-lease.js").BrowserTargetReleaseAuthority,
+    signal: AbortSignal,
+  ): Promise<void> {
+    return this.lane.releaseJobBoundTarget(jobId, releaseAuthority, signal);
+  }
 
   public readBrowserLaneState(): "idle" | "busy" | "blocked" { return this.lane.readState(); }
   public readBrowserLaneWaiterCount(): number { return this.lane.waiterCount(); }

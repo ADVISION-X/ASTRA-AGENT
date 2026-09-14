@@ -114,6 +114,19 @@ const observation = {
 assert.doesNotThrow(() => WorkerObservationV6Schema.parse(observation));
 assert.throws(() => WorkerObservationV6Schema.parse({ ...observation,
   claim_exclusion_counts: [{ reason_code: "GLOBAL_QUEUE_EMPTY_OR_INELIGIBLE", count: 1 }] }));
+const privacyClosedJob = {
+  job_id: "job-privacy-closed", product_id: "public_knowledge_article_pipeline",
+  action_id: "produce_article", status: "failed", current_reason_code: "PRIVACY_SUBJECT_CLOSED",
+  accepted_attempt_count: 1, attempt_id: null, next_action_code: "WAIT_NEW_ATTEMPT",
+  next_action_at: "9999-12-31T23:59:59.999Z", authority_ref: "ai_production_job_runtime:job-privacy-closed",
+  business_admission_receipt_hash: null,
+} as const;
+assert.doesNotThrow(() => WorkerObservationV6Schema.parse({
+  ...observation, scope_total: 1, jobs: [privacyClosedJob],
+}), "a permanent privacy decision must remain parseable so Runtime can release the exact Tab");
+assert.throws(() => WorkerObservationV6Schema.parse({
+  ...observation, scope_total: 1, jobs: [{ ...privacyClosedJob, next_action_at: null }],
+}), /V6_OBSERVED_JOB_TTL_INVALID/u);
 
 const sample = taskFor(productionRoutePolicies[0]!);
 assert.throws(() => assertProductionTaskRoutePolicy({
@@ -124,7 +137,7 @@ assert.throws(() => assertProductionTaskRoutePolicy({
 process.stdout.write("[ACCEPTANCE][agent-route-contract] PASS 40/46/33/0\n");
 for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V27",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V28",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:route-contract:${evidenceMode}`,

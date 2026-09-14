@@ -131,7 +131,8 @@ export class BrowserTargetLeaseManager {
     if (state.closed) throw new Error("BROWSER_TARGET_INVALID");
     if (state.commandInFlight) throw new Error("BROWSER_BACKPRESSURE");
     const mutationClass = this.mutationClass(value);
-    if (mutationClass !== "observation" && state.pendingMutationCommandIds.length > 0) {
+    if (mutationClass !== "observation" && value.kind !== "park-target"
+      && state.pendingMutationCommandIds.length > 0) {
       throw new Error("BROWSER_MUTATION_UNSETTLED");
     }
     if (mutationClass === "mutation" && state.atomicStep === null) {

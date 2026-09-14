@@ -3,6 +3,7 @@ export type {
   BrowserAtomicStepOutcome,
   BrowserTargetLease,
   BrowserTargetLeaseWait,
+  BrowserTargetReleaseAuthority,
 } from "./exact-target/browser-target-lease.js";
 export type {
   BrowserExactCallMutationFact,

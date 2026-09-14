@@ -88,6 +88,17 @@ export class ExtensionInteractionReadiness {
     }
   }
 
+  public async executeObservation(
+    target: ExtensionExactTarget,
+    execute: () => Promise<unknown>,
+  ): Promise<unknown> {
+    const interactionLease = await this.ensureInteractionReady(target);
+    return this.debuggerRuntime.withPageReadGuard(
+      () => this.assertInteractionReady(interactionLease),
+      execute,
+    );
+  }
+
   private requireInteractiveTab(tab: ExtensionTab, target: ExtensionExactTarget): number {
     if (tab.id !== target.tabId || !Number.isSafeInteger(tab.windowId)
       || tab.active !== true || tab.discarded !== false || tab.status !== "complete") {

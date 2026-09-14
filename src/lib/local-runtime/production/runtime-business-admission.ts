@@ -43,6 +43,9 @@ export const websiteJobAbsent = (error: unknown): boolean => {
 
 export const purgeDeletedJob = async (state: RuntimeState, jobId: string): Promise<void> => {
   try {
+    await state.browserAuthority.releaseJobBoundTarget(
+      jobId, "website-admin-deletion", state.abort.signal,
+    );
     state.browserAuthority.purgeBrowserJob(jobId);
     await state.evidenceStore.deleteArtifactsForMission(jobId);
     await purgeProductionRuntimeTask(state.dataDir, jobId);
@@ -68,6 +71,19 @@ export const reconcileBusinessAdmission = async (
   }
   const admission = remote.business_admission_receipt;
   if (!admission) {
+    if (remote.next_action_code === "WAIT_NEW_ATTEMPT") {
+      await state.browserAuthority.releaseJobBoundTarget(
+        record.task.job_id,
+        remote.current_reason?.code === "PRIVACY_SUBJECT_CLOSED"
+          ? "website-permanent-revocation"
+          : "wait-new-attempt",
+        state.abort.signal,
+      );
+      state.store.releaseAttemptForWebsiteDecision(
+        record.task.job_id, record.current_attempt_id,
+      );
+      return "pending";
+    }
     state.store.setCurrentReason(
       record.task.job_id,
       remote.business_consumer_error
@@ -80,6 +96,9 @@ export const reconcileBusinessAdmission = async (
     || admission.result_payload_hash !== staged.result_payload_hash) {
     throw executionFailure("failed", "BUSINESS_ADMISSION_RESULT_HASH_MISMATCH");
   }
+  await state.browserAuthority.releaseJobBoundTarget(
+    record.task.job_id, "business-admitted", state.abort.signal,
+  );
   state.store.completeTask(record.task.job_id, staged);
   return "completed";
 };

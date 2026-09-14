@@ -196,6 +196,7 @@ export type BrowserOperatorTargetClaim = Readonly<{
   documentRef: string;
   navigationEpoch: number;
   claimOrigin: "https://chatgpt.com";
+  jobRefHash: BrowserHash;
 }>;
 
 type GrantedPathEntry = Readonly<{
@@ -338,6 +339,11 @@ export class BrowserAuthorityBroker {
       ? "claimed" : "absent";
   }
 
+  public currentOperatorTargetJobRefHash(): BrowserHash | null {
+    return this.currentOperatorTargetStatus() === "claimed"
+      ? this.operatorTargetClaim?.jobRefHash ?? null : null;
+  }
+
   /** The extension is the only source of an operator's exact target claim. */
   public registerOperatorTargetClaim(claim: BrowserOperatorTargetClaim): void {
     const slot = this.issuer.current();
@@ -347,6 +353,7 @@ export class BrowserAuthorityBroker {
     const current = this.operatorTargetClaim;
     if (current?.authorityEpoch === claim.authorityEpoch
       && (current.targetRef !== claim.targetRef
+        || current.jobRefHash !== claim.jobRefHash
         || claim.navigationEpoch !== current.navigationEpoch + 1)) {
       throw new Error("BROWSER_TARGET_INVALID");
     }
@@ -364,7 +371,8 @@ export class BrowserAuthorityBroker {
     binding: BrowserExecutionBinding,
   ): BrowserControlledTarget | null {
     const claim = this.operatorTargetClaim;
-    return claim && claim.authorityEpoch === authorityEpoch ? controlledTargetForClaim(claim, binding) : null;
+    return claim && claim.authorityEpoch === authorityEpoch && claim.jobRefHash === binding.jobRefHash
+      ? controlledTargetForClaim(claim, binding) : null;
   }
 
   public async acquireOperatorClaimedTargetLease(
@@ -373,7 +381,8 @@ export class BrowserAuthorityBroker {
   ): Promise<BrowserTargetLease> {
     const claim = this.operatorTargetClaim;
     const slot = this.issuer.current();
-    if (!claim || slot.kind === "ABSENT" || claim.authorityEpoch !== slot.authority.authorityEpoch) {
+    if (!claim || slot.kind === "ABSENT" || claim.authorityEpoch !== slot.authority.authorityEpoch
+      || claim.jobRefHash !== binding.jobRefHash) {
       throw new Error("BROWSER_TARGET_INVALID");
     }
     const target = controlledTargetForClaim(claim, binding);

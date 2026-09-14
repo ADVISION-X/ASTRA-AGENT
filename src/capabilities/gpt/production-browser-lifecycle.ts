@@ -82,7 +82,23 @@ export class ProductionGptBrowserLifecycle {
     sessionKey: string,
     productStepId: string,
     callId: string,
-    targetMode: BrowserTargetLeaseWait["targetMode"] = "fresh",
+  ): Promise<ProductionGptBrowserCall> {
+    return this.browserForMode(sessionKey, productStepId, callId, "fresh");
+  }
+
+  public async browserForConfirmedReadback(
+    sessionKey: string,
+    productStepId: string,
+    callId: string,
+  ): Promise<ProductionGptBrowserCall> {
+    return this.browserForMode(sessionKey, productStepId, callId, "confirmed-readback");
+  }
+
+  private async browserForMode(
+    sessionKey: string,
+    productStepId: string,
+    callId: string,
+    targetMode: "fresh" | "confirmed-readback",
   ): Promise<ProductionGptBrowserCall> {
     if (!sessionKey) throw executionFailure("failed", "GPT_SESSION_KEY_REQUIRED");
     if (this.activeBrowser?.sessionKey === sessionKey) return this.activeBrowser.call;
@@ -93,7 +109,9 @@ export class ProductionGptBrowserLifecycle {
       }
       await this.parkActive("gpt-provider-turn-settled");
     }
-    const browser = await this.acquireBrowserLease(productStepId, callId, null, targetMode);
+    const browser = await this.acquireBrowserLease(
+      productStepId, callId, null, targetMode, Date.now(),
+    );
     const active: ProductionGptBrowserCall = {
       browser,
       facade: browser,
@@ -171,33 +189,21 @@ export class ProductionGptBrowserLifecycle {
     }
     assertConfirmedProviderReadback(active);
     this.emitProviderWaitLog(active, productStepId, callId, childCapabilityId);
-    const providerRemaining = Math.floor(observationDeadlineAt - Date.now());
-    const executionRemaining = Math.floor(
-      this.execution.expiresAtMonotonic - performance.now(),
-    );
-    if (executionRemaining < 1) {
-      throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
-    }
-    const waitMs = Math.min(
-      PROVIDER_OBSERVATION_INTERVAL_MS, providerRemaining, executionRemaining,
-    );
-    await new Promise<void>((resolve, reject) => {
-      const aborted = () => {
-        clearTimeout(timer);
-        reject(executionFailure("failed", "GPT_RESPONSE_WAIT_ABORTED"));
-      };
-      const timer = setTimeout(() => {
-        this.execution.abortSignal.removeEventListener("abort", aborted);
-        resolve();
-      }, waitMs);
-      this.execution.abortSignal.addEventListener("abort", aborted, { once: true });
-      if (this.execution.abortSignal.aborted) aborted();
+    const eligibleAt = Math.min(Date.now() + PROVIDER_OBSERVATION_INTERVAL_MS, observationDeadlineAt);
+    await active.browser.park({
+      reason: "gpt-provider-observation-wait",
+      mode: "product-call-settlement",
     });
-    if (providerRemaining <= waitMs && providerRemaining <= executionRemaining) return "deadline";
-    if (executionRemaining <= waitMs) {
-      throw executionFailure("failed", "V6_DEADLINE_BUDGET_EXHAUSTED");
+    try {
+      active.browser = await this.acquireBrowserLease(
+        productStepId, callId, observationDeadlineAt, "bound-observation", eligibleAt,
+      );
+      return "reobserve";
+    } catch (error) {
+      if (this.activeBrowser?.call === active) this.activeBrowser = null;
+      if (Date.now() >= observationDeadlineAt) return "deadline";
+      throw error;
     }
-    return "reobserve";
   }
 
   private emitProviderWaitLog(
@@ -249,7 +255,6 @@ export class ProductionGptBrowserLifecycle {
   private async parkActive(reason: string): Promise<void> {
     const active = this.activeBrowser?.call;
     if (!active) return;
-    if (active.browser.pendingMutationCount() > 0) throw new Error("BROWSER_MUTATION_UNSETTLED");
     await active.browser.park({ reason, mode: "product-call-settlement" });
     this.activeBrowser = null;
   }
@@ -259,6 +264,7 @@ export class ProductionGptBrowserLifecycle {
     callId: string,
     probeDeadlineAt: number | null,
     targetMode: BrowserTargetLeaseWait["targetMode"],
+    eligibleAt: number,
   ): Promise<BrowserTargetLease> {
     const remainingMs = (): number => Math.min(
       Math.floor(this.execution.expiresAtMonotonic - performance.now()),
@@ -303,6 +309,7 @@ export class ProductionGptBrowserLifecycle {
       signal: this.execution.abortSignal,
       remainingMs,
       targetMode,
+      eligibleAt,
     });
   }
 }

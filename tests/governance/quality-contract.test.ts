@@ -330,7 +330,19 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
     browser: { browserVersion: "Chromium 1", endpoint: "https://example.test/", pageTitle: "Fixture",
       facts: { authority_present: true, extension_worker_count: 1 }, sessionFacts: { exactTarget: true } },
     service: { cleanupVerified: true, components: ["fixture"], endpoint: "http://127.0.0.1:4173",
-      facts: { cleanup_verified: true, workbench_stopped: true },
+      facts: {
+        cleanup_verified: true,
+        workbench_stopped: true,
+        gate_a_through_e_completed: true,
+        gate_a_n1_baseline_completed: true,
+        gate_a_n1_regression_invalid_count: 0,
+        gate_a_n1_new_claim_before_admission_count: 0,
+        gate_a_n1_physical_submit_over_one_count: 0,
+        gate_b_n2_canary_completed: true,
+        gate_b_n2_post_submit_40s_page_command_count: 0,
+        gate_b_n2_cross_job_close_impact_count: 0,
+        exact_candidate_binding_valid: true,
+      },
       processId: 4173, serviceName: "fixture", sourceFingerprint: "sha256:fixture", status: "healthy" },
     database: { databaseEngine: "sqlite", databasePath: "/tmp/fixture.sqlite",
       facts: { frozen_identity_invalid_count: 0, unscheduled_outbox_count: 0 },
@@ -338,7 +350,17 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
     storage: { confirmedCount: 1, mutationCount: 1, storageEngine: "sqlite-wal",
       facts: { proof_job_pending_outbox_count: 0 }, storagePath: "/tmp/fixture.sqlite", unresolvedCount: 0 },
     provider: { catalogHash: "sha256:fixture", pluginIds: ["fixture-plugin"],
-      facts: { ended_attempt_replay_count: 0, physical_submit_count: 1, provider_count: 1 },
+      facts: {
+        ended_attempt_replay_count: 0,
+        physical_submit_count: 1,
+        provider_count: 1,
+        provider_warning_count: 0,
+        gate_a_n1_provider_warning_count: 0,
+        gate_a_n1_warning_coverage_complete: true,
+        gate_b_n2_provider_warning_count: 0,
+        gate_b_n2_warning_coverage_complete: true,
+        provider_warning_coverage_complete: true,
+      },
       providerName: "ChatGPT", terminalReceiptCount: 39 },
     authorization: { authorityState: "present", fenceHashes: ["sha256:fixture"],
       facts: { unbound_lease_fence_job_count: 0 },
@@ -350,10 +372,10 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
   } as const;
   const routes = {
     browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", clauses: ["forbidden:6"] },
-    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V56", clauses: ["summary"] },
-    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V56", clauses: ["forbidden:0", "forbidden:2"] },
-    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V56", clauses: ["forbidden:2"] },
-    provider: { lawId: "LAW-GPT-001-V48", clauses: ["forbidden:0", "forbidden:3", "forbidden:7"] },
+    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V57", clauses: ["summary"] },
+    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V57", clauses: ["forbidden:0", "forbidden:2"] },
+    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V57", clauses: ["forbidden:2"] },
+    provider: { lawId: "LAW-GPT-001-V49", clauses: ["forbidden:0", "forbidden:3", "forbidden:7"] },
     authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V6", clauses: ["forbidden:1", "forbidden:2"] },
     recovery: { lawId: "LAW-RUNTIME-LOG-SPINE-001-V7", clauses: ["summary"] },
   } as const;
@@ -1085,8 +1107,8 @@ test("provider contracts reject malformed payloads before identity matching", ()
   )) as unknown;
   assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
     new Map([
-      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V56", "agent-production-runtime"],
-      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V27", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V57", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V28", "agent-production-runtime"],
     ]),
     (path) => path === "src/lib/local-runtime/production/catalog.ts"));
 });
@@ -1327,7 +1349,7 @@ test("every active law scope is deterministic, owned, unique, and includes all c
 
 test("active mutation inspectors use one DISPATCHED chain inside each law scope", () => {
   const registry = buildRegistry();
-  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V56");
+  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V57");
   assert.ok(agentLaw);
   const agentTargets = computeTargetPaths(agentLaw, registry);
   const crossOwnerPaths = [
@@ -1531,7 +1553,7 @@ test("Dynamic Proof routes are separated by native Owner", () => {
     ".catch(() => undefined)", "cleanupVerified: true", "dynamic.recovery",
     "old_attempt_after_restart_rejected", "new_attempt_fresh_started",
   ]) assert.equal(proof.includes(forbidden), false, forbidden);
-  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V56", "runtime_schema_exact", "runtime_orphan_directory_count",
+  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V57", "runtime_schema_exact", "runtime_orphan_directory_count",
     "AGENT_RUNTIME_OWNER_ISOLATED_RELEASE_PROOF_NOT_ADMITTED"]) assert.ok(proof.includes(token), token);
   for (const adjacentPrefix of ["LAW-GPT-", "LAW-LOCAL-BROWSER-SESSION-", "LAW-RUNTIME-LOG-SPINE-"]) {
     assert.equal(proof.includes(adjacentPrefix), false, adjacentPrefix);

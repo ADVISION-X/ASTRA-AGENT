@@ -10,7 +10,7 @@ import {
 import { failureCode } from "../../execution-failure.js";
 import { claimProductionTasks } from "./cloud-client.js";
 import { productionCatalogHash } from "./catalog.js";
-import { PRODUCTION_BUSINESS_CAPACITY_TOTAL } from "./control-contract-dependency.js";
+import { PRODUCTION_BUSINESS_CAPACITY_MAX } from "./control-contract-dependency.js";
 import { hashCanonical } from "./contracts.js";
 import type { ProductionRuntimeHealth } from "./runtime-contract.js";
 import { executeClaim } from "./runtime-claim.js";
@@ -35,7 +35,7 @@ export const runtimeState = async (state: RuntimeState) => {
   const lane: "blocked" | "busy" | "idle" = browser.browserAuthorityState !== "present"
     ? "blocked" : observedLane;
   return {
-    business_in_flight: businessInFlightCount(state),
+    agent_attested_in_flight: businessInFlightCount(state),
     browser_action_in_flight: observedLane === "busy" ? 1 as const : 0 as const,
     browser_authority_state: browser.browserAuthorityState,
     browser_target_state: browser.browserTargetState,
@@ -109,8 +109,17 @@ const launchClaimJobs = (
   state: RuntimeState,
   jobs: Awaited<ReturnType<typeof claimProductionTasks>>["jobs"],
 ): void => {
-  for (const job of [...jobs].sort((left, right) => left.job_id.localeCompare(right.job_id))) {
-    if (state.active.has(job.job_id)) continue;
+  const uniqueJobIds = new Set(jobs.map((job) => job.job_id));
+  const inFlightJobIds = new Set([
+    ...state.active.keys(),
+    ...state.store.pendingBusinessAdmissions().map((row) => row.task.job_id),
+  ]);
+  if (jobs.length > PRODUCTION_BUSINESS_CAPACITY_MAX || uniqueJobIds.size !== jobs.length
+    || jobs.some((job) => inFlightJobIds.has(job.job_id))
+    || businessInFlightCount(state) + jobs.length > PRODUCTION_BUSINESS_CAPACITY_MAX) {
+    throw new Error("V6_CLAIM_BATCH_INVALID");
+  }
+  for (const job of jobs) {
     const abort = new AbortController();
     state.activeAbort.set(job.job_id, abort);
     const tracked = executeClaim(state, job).catch((error) => {
@@ -157,7 +166,7 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
   const attestation = await state.session.ensureFreshAttestation();
   state.lastHeartbeat = attestation.issued_at;
   const available = Math.min(
-    PRODUCTION_BUSINESS_CAPACITY_TOTAL - businessInFlightCount(state),
+    PRODUCTION_BUSINESS_CAPACITY_MAX - businessInFlightCount(state),
     state.executor.availableCapacity(),
   );
   const browser = state.browserAuthority.readProductionRuntimeState();

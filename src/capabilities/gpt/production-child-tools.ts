@@ -197,8 +197,8 @@ export class ProductionGptChildTools {
           }
           const effect = confirmedSubmitEffect(prior, exactCallIdentityHash, call.child);
           try {
-            const active = await browsers.browserFor(
-              call.sessionKey, call.productStepId, call.callId, "confirmed-readback",
+            const active = await browsers.browserForConfirmedReadback(
+              call.sessionKey, call.productStepId, call.callId,
             );
             if (!active.facade.readAtomicStepOutcome(atomicIdentity)) return null;
             return await this.executeOne<"submit_exact_gpt_turn_once">(

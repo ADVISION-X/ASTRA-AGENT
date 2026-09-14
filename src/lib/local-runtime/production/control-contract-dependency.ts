@@ -24,4 +24,4 @@ export const parseProductionControlDependency = (value: unknown) =>
 export const productionControlContractVersion =
   parseProductionControlDependency(dependencyArtifact).contract.version;
 
-export const PRODUCTION_BUSINESS_CAPACITY_TOTAL = 1 as const;
+export const PRODUCTION_BUSINESS_CAPACITY_MAX = 4 as const;

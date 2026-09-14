@@ -3,6 +3,8 @@ import type { BrowserSessionWorkspace } from "../exact-target/browser-session-wo
 
 export type PendingJobBoundTargetAcquisition = Readonly<{
   authorityEpoch: number;
+  action: "acquire" | "release";
+  jobRefHash: `sha256:${string}`;
   resolve(): void;
   reject(error: Error): void;
   timeout: ReturnType<typeof setTimeout>;

@@ -147,6 +147,23 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     }
   }
 
+  public releaseAttemptForWebsiteDecision(jobId: string, attemptId: string): void {
+    const transaction = this.database.transaction(() => {
+      const current = this.readTask(jobId);
+      if (!current || current.status !== "failed" || current.current_attempt_id !== attemptId) {
+        throw executionFailure("failed", "PRODUCTION_ATTEMPT_RELEASE_IDENTITY_MISMATCH");
+      }
+      this.supersedeUnsentWritesForWebsiteAttempt(jobId);
+      const changed = this.database.prepare(`update production_tasks
+        set staged_result_json=null,current_reason='WAIT_NEW_ATTEMPT',updated_at=?
+        where job_id=? and status='failed' and current_attempt_id=?`).run(now(), jobId, attemptId);
+      if (changed.changes !== 1) {
+        throw executionFailure("failed", "PRODUCTION_ATTEMPT_RELEASE_FAILED");
+      }
+    });
+    transaction();
+  }
+
   public pendingBusinessAdmissions(): readonly StoredProductionTask[] {
     const rows = this.database.prepare(`select job_id,request_hash,task_json,status,result_json,
       staged_result_json,attempt_failure_json,current_attempt_id,current_reason,updated_at from production_tasks

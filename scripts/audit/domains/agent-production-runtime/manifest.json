@@ -3,14 +3,14 @@
   "capabilityDomain": "agent-production-runtime",
   "status": "active",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V56",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V57",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V6",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V27",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V27",
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V26",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V29",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V29",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V30"
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V28",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V28",
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V27",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V30",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V30",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V31"
   ],
   "ownedPaths": [
     "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
@@ -18,7 +18,6 @@
     "scripts/acceptance/agent-production-runtime-browser-failure.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime-fixtures.ts",
     "scripts/acceptance/agent-production-runtime-ledger.acceptance.ts",
-    "scripts/acceptance/agent-production-runtime-permanent-revocation-support.ts",
     "scripts/acceptance/agent-production-runtime-proof-boundary.acceptance.ts",
     "scripts/acceptance/agent-production-runtime-recovery-boundary.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime-recovery-contract.acceptance.ts",

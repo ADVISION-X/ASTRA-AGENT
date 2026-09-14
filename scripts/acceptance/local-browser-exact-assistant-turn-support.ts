@@ -14,6 +14,7 @@ import {
 
 const target = Object.freeze({
   tabId: 111, targetRef: "target-111", documentRef: "document-11", navigationEpoch: 11,
+  jobRefHash: `sha256:${"a".repeat(64)}` as const, loaderId: "loader-current",
 });
 const observedAt = "2026-09-04T00:00:00.000Z";
 const successfulObservation = Object.freeze({

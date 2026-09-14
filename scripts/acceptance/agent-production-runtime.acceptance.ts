@@ -10,7 +10,7 @@ import {
   claimProductionTasks,
   uploadProductionGeneratedImage,
 } from "../../src/lib/local-runtime/production/cloud-client.js";
-import { PRODUCTION_BUSINESS_CAPACITY_TOTAL } from
+import { PRODUCTION_BUSINESS_CAPACITY_MAX } from
   "../../src/lib/local-runtime/production/control-contract-dependency.js";
 import { readProductionDeviceJobStatus } from
   "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
@@ -55,9 +55,9 @@ const successfulJsonResponse = (data: unknown): Response => new Response(
   { status: 200, headers: { "content-type": "application/json" } },
 );
 assert.equal(hashCanonical(agentRouteCapabilityManifest.routes), productionCatalogHash);
-assert.equal(PRODUCTION_BUSINESS_CAPACITY_TOTAL, 1);
+assert.equal(PRODUCTION_BUSINESS_CAPACITY_MAX, 4);
 await assert.rejects(
-  claimProductionTasks({} as never, 2),
+  claimProductionTasks({} as never, 5),
   /V6_CLAIM_LIMIT_INVALID/u,
 );
 
@@ -152,6 +152,7 @@ const deviceStatusWithAdmission = (
       schema_version: "xuanxue-ai-control-intent.v6", job_id: jobId,
       control_epoch: 0, intent: "none", reason_code: null,
     },
+    next_action_code: "CONSUME_CURRENT_RESULT",
     terminal_status: "completed",
     terminal_payload_hash: terminalPayloadHash,
     business_admission_receipt: receipt,
@@ -160,17 +161,23 @@ const deviceStatusWithAdmission = (
     write_receipts: [],
   }),
 }) as never;
-const deviceStatusWithoutAdmission = (jobId: string, deleted = false) => ({
+const deviceStatusWithoutAdmission = (
+  jobId: string,
+  deleted = false,
+  nextAction: "ACTIVE_ATTEMPT" | "WAIT_NEW_ATTEMPT" = "ACTIVE_ATTEMPT",
+  reasonCode: string | null = deleted ? "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED" : null,
+) => ({
   request: async () => ({
     schema_version: "xuanxue-ai-device-job-status.v6",
     job_id: jobId,
     status: "failed",
-    current_reason: deleted ? { code: "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED" } : null,
+    current_reason: reasonCode ? { code: reasonCode } : null,
     control_intent: {
       schema_version: "xuanxue-ai-control-intent.v6", job_id: jobId,
       control_epoch: deleted ? 1 : 0, intent: deleted ? "cancel_requested" : "none",
       reason_code: deleted ? "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED" : null,
     },
+    next_action_code: nextAction,
     terminal_status: null,
     terminal_payload_hash: null,
     business_admission_receipt: null,
@@ -296,6 +303,8 @@ try {
     assert.equal(await reconcileBusinessAdmission({
       store,
       session: deviceStatusWithAdmission(typedReceipt, accepted.job_id, hashCanonical(staged)),
+      browserAuthority: { releaseJobBoundTarget: async () => undefined },
+      abort: new AbortController(),
     } as never, store.readTask(accepted.job_id)!), "completed");
     assert.equal(store.readTask(accepted.job_id)?.status, "completed");
   }
@@ -316,19 +325,67 @@ try {
     "an admission-pending job must retain the only business slot after execution settles");
   assert.equal(businessInFlightCount({ active: new Map([[pending.job_id, Promise.resolve()]]), store } as never), 1,
     "active and admission-pending views of the same job must count once");
+  const waitNew = task({ jobId: "job:admission:wait-new",
+    productId: productionTask.product_id, actionId: productionTask.action_id,
+    materialRefs: productionTask.material_refs,
+    extra: { parameters: productionTask.parameters } });
+  store.acceptTask(waitNew, "attempt:wait-new");
+  store.stageResult(waitNew.job_id, resultFor(waitNew));
+  let releasedWaitNewTarget = 0;
+  let waitNewReleaseAuthority = "";
+  assert.equal(await reconcileBusinessAdmission({
+    store,
+    session: deviceStatusWithoutAdmission(waitNew.job_id, false, "WAIT_NEW_ATTEMPT"),
+    browserAuthority: { releaseJobBoundTarget: async (_jobId: string, authority: string) => {
+      releasedWaitNewTarget += 1;
+      waitNewReleaseAuthority = authority;
+    } },
+    abort: new AbortController(),
+  } as never, store.readTask(waitNew.job_id)!), "pending");
+  assert.equal(releasedWaitNewTarget, 1);
+  assert.equal(waitNewReleaseAuthority, "wait-new-attempt",
+    "ordinary WAIT_NEW_ATTEMPT must not acquire the permanent cleanup exception");
+  assert.equal(store.readTask(waitNew.job_id)?.staged_result, null,
+    "Website WAIT_NEW_ATTEMPT must release only the old local admission-pending attempt");
+  assert.equal(store.readTask(waitNew.job_id)?.current_reason, "WAIT_NEW_ATTEMPT");
+  const privacyClosed = task({ jobId: "job:admission:privacy-closed",
+    productId: productionTask.product_id, actionId: productionTask.action_id,
+    materialRefs: productionTask.material_refs,
+    extra: { parameters: productionTask.parameters } });
+  store.acceptTask(privacyClosed, "attempt:privacy-closed");
+  store.stageResult(privacyClosed.job_id, resultFor(privacyClosed));
+  let privacyReleaseAuthority = "";
+  assert.equal(await reconcileBusinessAdmission({
+    store,
+    session: deviceStatusWithoutAdmission(
+      privacyClosed.job_id, false, "WAIT_NEW_ATTEMPT", "PRIVACY_SUBJECT_CLOSED",
+    ),
+    browserAuthority: { releaseJobBoundTarget: async (_jobId: string, authority: string) => {
+      privacyReleaseAuthority = authority;
+    } },
+    abort: new AbortController(),
+  } as never, store.readTask(privacyClosed.job_id)!), "pending");
+  assert.equal(privacyReleaseAuthority, "website-permanent-revocation",
+    "only Website's persisted permanent privacy decision may acquire the revocation exception");
   assert.equal(await reconcileBusinessAdmission({
     store, session: deviceStatusWithoutAdmission(pending.job_id, true), activeAbort: new Map(),
   } as never, store.readTask(pending.job_id)!), "pending");
   assert.equal(store.readTask(pending.job_id)?.current_reason, "BUSINESS_ADMISSION_PENDING",
     "cancel_requested is not physical Website absence and cannot authorize local deletion");
-  let browserPurges = 0, evidencePurges = 0;
+  let browserPurges = 0, evidencePurges = 0, deletionReleaseAuthority = "";
   await purgeDeletedJob({ store, dataDir: admissionTemporary,
-    browserAuthority: { purgeBrowserJob: () => { browserPurges += 1; } },
+    abort: new AbortController(),
+    browserAuthority: { releaseJobBoundTarget: async (_jobId: string, authority: string) => {
+      deletionReleaseAuthority = authority;
+    },
+      purgeBrowserJob: () => { browserPurges += 1; } },
     evidenceStore: { deleteArtifactsForMission: async () => { evidencePurges += 1; } },
   } as never, pending.job_id);
   assert.equal(store.readTask(pending.job_id), null);
   assert.equal(browserPurges, 1);
   assert.equal(evidencePurges, 1);
+  assert.equal(deletionReleaseAuthority, "website-admin-deletion",
+    "Website 404 deletion must use the only exact admin-deletion release authority");
   assert.equal(store.pendingBusinessAdmissions().some((row) => row.task.job_id === pending.job_id), false,
     "physical Website absence must remove the existing task and stop admission polling");
   const retryable = task({ jobId: "job:admission:purge-retry",
@@ -338,13 +395,17 @@ try {
   store.acceptTask(retryable, "attempt:purge-retry");
   store.stageResult(retryable.job_id, resultFor(retryable));
   await assert.rejects(purgeDeletedJob({ store, dataDir: admissionTemporary,
-    browserAuthority: { purgeBrowserJob: () => undefined },
+    abort: new AbortController(),
+    browserAuthority: { releaseJobBoundTarget: async () => undefined,
+      purgeBrowserJob: () => undefined },
     evidenceStore: { deleteArtifactsForMission: async () => { throw new Error("FORENSICS_PURGE_FAILED"); } },
   } as never, retryable.job_id), /PRODUCTION_JOB_PURGE_FAILED/u);
   assert.notEqual(store.readTask(retryable.job_id), null,
     "a partial purge must retain the task authority so the same deletion can retry");
   await purgeDeletedJob({ store, dataDir: admissionTemporary,
-    browserAuthority: { purgeBrowserJob: () => undefined },
+    abort: new AbortController(),
+    browserAuthority: { releaseJobBoundTarget: async () => undefined,
+      purgeBrowserJob: () => undefined },
     evidenceStore: { deleteArtifactsForMission: async () => undefined },
   } as never, retryable.job_id);
   assert.equal(store.readTask(retryable.job_id), null);
@@ -463,21 +524,21 @@ await exerciseWorkerSessionRotation();
 
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V29",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V30",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"],
   locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
   observedValue: "the unique Runtime ownership inspector accepted the current Runtime-only manifest and rejected injected Mediator and Product ownership mutants",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V56",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V57",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:attempt-recovery-state-machine",
   observedValue: "binary task lifecycle durable accept same-attempt recovery lease outbox and typed cross-owner boundaries exercised",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V56",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V57",
   evidenceMode: "exam.property",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:transport-properties",
@@ -485,7 +546,7 @@ emitQualityProofObservation({
 });
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V27",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V28",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"],
     locator: `acceptance:agent-production-runtime:business-admission:${evidenceMode}`,

@@ -50,6 +50,7 @@ export class ExtensionDebuggerRuntime {
   private inFlightPageActions = 0;
   private pageReadNotBefore = 0;
   private providerInputGuard: ProviderInputGuard | null = null;
+  private pageReadGuard: (() => void) | null = null;
   private readonly pendingFileChoosers = new Map<number, {
     resolve(value: Readonly<{ backendNodeId: number }>): void;
     reject(error: Error): void;
@@ -121,6 +122,7 @@ export class ExtensionDebuggerRuntime {
     }
     if (PAGE_READ_METHODS.has(method)) {
       await this.awaitPageReadPermission();
+      this.pageReadGuard?.();
       return this.chromeApi.debugger.sendCommand(target(tabId), method, parameters);
     }
     if (DEVTOOLS_CONTROL_METHODS.has(method)) {
@@ -157,6 +159,19 @@ export class ExtensionDebuggerRuntime {
       return await action();
     } finally {
       this.providerInputGuard = null;
+    }
+  }
+
+  public async withPageReadGuard<T>(
+    assertInteractive: () => void,
+    action: () => Promise<T>,
+  ): Promise<T> {
+    if (this.pageReadGuard !== null) throw new Error("BROWSER_BACKPRESSURE");
+    this.pageReadGuard = assertInteractive;
+    try {
+      return await action();
+    } finally {
+      this.pageReadGuard = null;
     }
   }
 

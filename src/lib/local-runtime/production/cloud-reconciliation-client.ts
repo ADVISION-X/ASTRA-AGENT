@@ -47,6 +47,7 @@ export type RemoteProductionDeviceJobStatus = Readonly<{
   status: string;
   current_reason: Readonly<Record<string, unknown>> | null;
   control_intent: ControlIntent;
+  next_action_code: "ACTIVE_ATTEMPT" | "WAIT_NEW_ATTEMPT" | "CONSUME_CURRENT_RESULT";
   terminal_status: "completed" | null;
   terminal_payload_hash: ProductionHash | null;
   business_admission_receipt: BusinessAdmissionReceipt | null;
@@ -172,6 +173,9 @@ const deviceStatusAuthorityFieldsValid = (row: Record<string, unknown>): boolean
   && (row.current_reason === null || (typeof row.current_reason === "object"
     && !Array.isArray(row.current_reason)))
   && (row.business_consumer_error === null || typeof row.business_consumer_error === "string")
+  && ["ACTIVE_ATTEMPT", "WAIT_NEW_ATTEMPT", "CONSUME_CURRENT_RESULT"].includes(
+    row.next_action_code as string,
+  )
   && Array.isArray(row.write_receipts);
 
 const deviceStatusAttemptAuthorityValid = (row: Record<string, unknown>): boolean =>
@@ -248,6 +252,7 @@ export async function readProductionDeviceJobStatus(
     status: row.status as string,
     current_reason: currentReason ? Object.freeze({ ...currentReason }) : null,
     control_intent: controlIntent,
+    next_action_code: row.next_action_code as RemoteProductionDeviceJobStatus["next_action_code"],
     terminal_status: terminalStatus,
     terminal_payload_hash: terminalPayloadHash,
     business_admission_receipt: admission,

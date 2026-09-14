@@ -24,15 +24,42 @@ export class BrowserTargetAcquirer {
   public reset(): void {}
 
   public async ensureAvailableTarget(waiter: TargetWaiter): Promise<void> {
-    if (this.resolveBroker().currentOperatorTargetStatus() !== "absent") return;
+    const currentJobRefHash = this.resolveBroker().currentOperatorTargetJobRefHash();
+    if (currentJobRefHash === waiter.binding.jobRefHash) return;
+    if (currentJobRefHash !== null) throw new Error("BROWSER_TARGET_INVALID");
     await this.acquireJobBoundTarget(
       Math.min(waiter.binding.commandTtlMs, waiter.remainingMs()), waiter.targetMode,
+      waiter.binding.jobRefHash,
     );
   }
 
   private async acquireJobBoundTarget(
     commandTtlMs: number,
     targetMode: BrowserTargetLeaseWait["targetMode"],
+    jobRefHash: `sha256:${string}`,
+  ): Promise<void> {
+    await this.awaitTargetOperation(commandTtlMs, "acquire", jobRefHash, () => {
+      this.websocket.requestPreauthorizedTargetAcquisition(targetMode, jobRefHash);
+    });
+  }
+
+  public async releaseJobBoundTarget(
+    commandTtlMs: number,
+    jobRefHash: `sha256:${string}`,
+  ): Promise<void> {
+    if (this.resolveBroker().currentOperatorTargetJobRefHash() !== null) {
+      throw new Error("BROWSER_TARGET_INVALID");
+    }
+    await this.awaitTargetOperation(commandTtlMs, "release", jobRefHash, () => {
+      this.websocket.requestPreauthorizedTargetRelease(jobRefHash);
+    });
+  }
+
+  private async awaitTargetOperation(
+    commandTtlMs: number,
+    action: "acquire" | "release",
+    jobRefHash: `sha256:${string}`,
+    dispatch: () => void,
   ): Promise<void> {
     const current = this.issuer.current();
     if (current.kind === "ABSENT") throw new Error(current.reasonCode);
@@ -43,26 +70,32 @@ export class BrowserTargetAcquirer {
     const deadlineMs = Math.min(commandTtlMs, BROWSER_COMMAND_DEFAULT_DEADLINE_MS);
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
-        if (this.infrastructure.pendingJobBoundTargetAcquisition?.authorityEpoch !== current.authority.authorityEpoch) return;
+        const pending = this.infrastructure.pendingJobBoundTargetAcquisition;
+        if (pending?.authorityEpoch !== current.authority.authorityEpoch
+          || pending.action !== action || pending.jobRefHash !== jobRefHash) return;
         this.infrastructure.pendingJobBoundTargetAcquisition = null;
         reject(new Error("BROWSER_TARGET_ACQUISITION_TIMEOUT"));
       }, deadlineMs);
       this.infrastructure.pendingJobBoundTargetAcquisition = {
         authorityEpoch: current.authority.authorityEpoch,
+        action,
+        jobRefHash,
         resolve,
         reject,
         timeout,
       };
-      try { this.websocket.requestPreauthorizedTargetAcquisition(targetMode); }
+      try { dispatch(); }
       catch (error) {
         this.rejectPending(error instanceof Error ? error.message : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
       }
     });
   }
 
-  public resolvePending(_targetRef: string): void {
+  public resolvePending(action: "acquire" | "release", jobRefHash: string): void {
     const pending = this.infrastructure.pendingJobBoundTargetAcquisition;
-    if (!pending) return;
+    if (!pending || pending.action !== action || pending.jobRefHash !== jobRefHash) {
+      throw new Error("BROWSER_TARGET_INVALID");
+    }
     this.infrastructure.pendingJobBoundTargetAcquisition = null;
     clearTimeout(pending.timeout);
     pending.resolve();

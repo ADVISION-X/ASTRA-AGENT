@@ -8,14 +8,15 @@ import { BrowserAuthorityWebSocket } from
   "../../src/lib/browser/transport/browser-authority-websocket.js";
 
 export const exerciseBrowserDiagnosticContract = (): void => {
+  const jobRefHash = `sha256:${"a".repeat(64)}` as const;
   assert.deepEqual(parseBrowserAuthorityTargetClaim({
     targetRef: "target-tab-7", documentRef: "document-7", navigationEpoch: 0,
-    claimOrigin: "https://chatgpt.com",
+    claimOrigin: "https://chatgpt.com", jobRefHash,
   }), { targetRef: "target-tab-7", documentRef: "document-7", navigationEpoch: 0,
-    claimOrigin: "https://chatgpt.com" });
+    claimOrigin: "https://chatgpt.com", jobRefHash });
   assert.throws(() => parseBrowserAuthorityTargetClaim({
     targetRef: "target-tab-7", documentRef: "document-7", navigationEpoch: 0,
-    claimOrigin: "https://chatgpt.com", title: "must-not-cross-wire",
+    claimOrigin: "https://chatgpt.com", jobRefHash, title: "must-not-cross-wire",
   }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
   "page title is not an admitted Target claim wire field");
 

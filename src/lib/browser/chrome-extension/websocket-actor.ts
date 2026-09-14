@@ -300,14 +300,30 @@ export class ExtensionWebSocketActor {
       throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     }
     const request = await decrypt(session.serverToClientKey, "server-to-client", frame);
-    const targetMode = request.targetMode === "fresh" || request.targetMode === "confirmed-readback"
+    const action = request.action;
+    const jobRefHash = typeof request.jobRefHash === "string" && /^sha256:[a-f0-9]{64}$/u.test(request.jobRefHash)
+      ? request.jobRefHash as `sha256:${string}`
+      : (() => { throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID"); })();
+    if (action === "release") {
+      if (Object.keys(request).length !== 2
+        || Object.keys(request).some((key) => !["action", "jobRefHash"].includes(key))) {
+        throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+      }
+      try { await this.targetAuthority.releaseJobBoundChatGptTarget(jobRefHash); }
+      catch (error) { this.reportRuntimeFailure(error, "job-bound-target-acquisition"); }
+      return;
+    }
+    if (action !== "acquire") throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    const targetMode = request.targetMode === "fresh" || request.targetMode === "bound-observation"
+      || request.targetMode === "confirmed-readback"
       ? request.targetMode
       : (() => { throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID"); })();
-    if (Object.keys(request).some((key) => key !== "targetMode")) {
+    if (Object.keys(request).length !== 3
+      || Object.keys(request).some((key) => !["action", "targetMode", "jobRefHash"].includes(key))) {
       throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     }
     try {
-      await this.targetAuthority.acquireJobBoundChatGptTarget(targetMode);
+      await this.targetAuthority.acquireJobBoundChatGptTarget(targetMode, jobRefHash);
     } catch (error) {
       this.reportRuntimeFailure(error, "job-bound-target-acquisition");
     }
@@ -369,10 +385,13 @@ export class ExtensionWebSocketActor {
     if (kind === "TARGET_REVOKE") return this.sendEncrypted(this.socket, kind, body);
     const targetRef = typeof body.targetRef === "string" ? body.targetRef : null;
     const documentRef = typeof body.documentRef === "string" ? body.documentRef : null;
-    if (!targetRef || !documentRef) throw new Error("BROWSER_TARGET_INVALID");
+    const jobRefHash = typeof body.jobRefHash === "string" && /^sha256:[a-f0-9]{64}$/u.test(body.jobRefHash)
+      ? body.jobRefHash as `sha256:${string}` : null;
+    if (!targetRef || !documentRef || !jobRefHash) throw new Error("BROWSER_TARGET_INVALID");
     return this.targetClaims.begin({
       targetRef,
       documentRef,
+      jobRefHash,
       send: () => this.sendEncrypted(this.socket, kind, body),
     });
   }

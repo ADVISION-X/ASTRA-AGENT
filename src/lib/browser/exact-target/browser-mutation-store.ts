@@ -285,6 +285,12 @@ export class BrowserMutationStore {
     ).get(jobId));
   }
 
+  public hasUnresolvedMutationForJob(jobId: string): boolean {
+    return Boolean(this.database.prepare(
+      "select 1 from browser_mutations where job_id=? and state='DISPATCHED' limit 1",
+    ).get(jobId));
+  }
+
   public purgeJob(jobId: string): void {
     if (!jobId || /[\0]/u.test(jobId)) throw new Error("BROWSER_JOB_ID_INVALID");
     this.database.transaction(() => {

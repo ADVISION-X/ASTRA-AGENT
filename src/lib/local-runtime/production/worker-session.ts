@@ -2,13 +2,11 @@ import { randomUUID } from "node:crypto";
 import { executionFailure } from "../../execution-failure.js";
 
 import { agentRouteCapabilityManifest } from "./catalog.js";
-import type { ProductionHash } from "./contracts.js";
-import {
-  PRODUCTION_BUSINESS_CAPACITY_TOTAL,
-  productionControlContractVersion,
-} from "./control-contract-dependency.js";
+import { hashCanonical, type ProductionHash } from "./contracts.js";
+import { productionControlContractVersion } from "./control-contract-dependency.js";
 import {
   RuntimeAttestationReceiptSchema,
+  ClaimBatchReceiptSchema,
   WorkerSessionCredentialSchema,
   parseJsonEnvelope,
   type DeviceCredential,
@@ -16,7 +14,7 @@ import {
   type WorkerSessionCredential,
 } from "./transport-protocol.js";
 export interface ProductionRuntimeState {
-  readonly business_in_flight: number;
+  readonly agent_attested_in_flight: number;
   readonly browser_action_in_flight: 0 | 1;
   readonly browser_authority_state: "present" | "absent";
   readonly browser_target_state: "claimed" | "absent";
@@ -112,8 +110,7 @@ export class ProductionWorkerSession {
         attestation_seq: next,
         worker_session_id: this.workerSessionId,
         worker_session_epoch: this.workerSessionEpoch,
-        business_capacity_total: PRODUCTION_BUSINESS_CAPACITY_TOTAL,
-        business_in_flight: state.business_in_flight,
+        agent_attested_in_flight: state.agent_attested_in_flight,
         browser_action_capacity_total: 1,
         browser_action_in_flight: state.browser_action_in_flight,
         browser_authority_state: state.browser_authority_state,
@@ -151,18 +148,24 @@ export class ProductionWorkerSession {
   public async requestClaim(requestId: string, requestedLimit: number): Promise<unknown> {
     return this.runSessionAuthorityTurn(async () => {
       const attestation = await this.freshAttestationInTurn(CLAIM_ATTESTATION_MIN_VALIDITY_MS);
-      return this.request("/internal/ai-production/v6/jobs/claim", {
+      const claimRequest = {
+        schema_version: "xuanxue-ai-claim-request.v6",
+        control_protocol_version: "xuanxue-ai-production-v6",
+        request_id: requestId,
+        worker_session_id: this.workerSessionId,
+        worker_session_epoch: this.workerSessionEpoch,
+        requested_new_limit: requestedLimit,
+        runtime_attestation_receipt_hash: attestation.receipt_hash,
+      } as const;
+      const receipt = ClaimBatchReceiptSchema.parse(await this.request(
+        "/internal/ai-production/v6/jobs/claim", {
         method: "POST",
-        body: JSON.stringify({
-          schema_version: "xuanxue-ai-claim-request.v6",
-          control_protocol_version: "xuanxue-ai-production-v6",
-          request_id: requestId,
-          worker_session_id: this.workerSessionId,
-          worker_session_epoch: this.workerSessionEpoch,
-          requested_limit: requestedLimit,
-          runtime_attestation_receipt_hash: attestation.receipt_hash,
-        }),
-      });
+        body: JSON.stringify(claimRequest),
+      }));
+      if (receipt.request_payload_hash !== hashCanonical(claimRequest)) {
+        throw executionFailure("failed", "V6_CLAIM_RECEIPT_MISMATCH");
+      }
+      return receipt;
     });
   }
 

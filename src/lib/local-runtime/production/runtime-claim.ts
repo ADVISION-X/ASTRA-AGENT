@@ -100,6 +100,22 @@ const persistAttemptFailure = async (
     state.lastErrorReason = safeReason(releaseError);
     return;
   }
+  try {
+    const remote = await readProductionDeviceJobStatus(state.session, job.job_id);
+    if (remote.next_action_code === "WAIT_NEW_ATTEMPT") {
+      await state.browserAuthority.releaseJobBoundTarget(
+        job.job_id,
+        remote.current_reason?.code === "PRIVACY_SUBJECT_CLOSED"
+          ? "website-permanent-revocation"
+          : "wait-new-attempt",
+        state.abort.signal,
+      );
+      state.store.releaseAttemptForWebsiteDecision(job.job_id, job.grant.attempt_id);
+    }
+  } catch (readbackError) {
+    state.lastErrorCode = failureCode(readbackError, "ATTEMPT_RELEASE_READBACK_FAILED");
+    state.lastErrorReason = safeReason(readbackError);
+  }
 };
 
 const assertClaimIdentity = (job: ClaimedProductionTask): void => {
@@ -289,6 +305,12 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
     if (remote.status !== "failed" || remote.terminal_status !== null
       || remote.accepted_attempt_count !== job.grant.accepted_attempt_count) {
       throw executionFailure("failed", "PRODUCTION_ATTEMPT_AUTHORITY_CONFLICT");
+    }
+    const prior = state.store.readTask(job.job_id);
+    if (prior?.status === "failed" && prior.current_attempt_id !== job.grant.attempt_id) {
+      await state.browserAuthority.releaseJobBoundTarget(
+        job.job_id, "attempt-replaced", abort.signal,
+      );
     }
     const claim = acceptClaim(state, job, abort, jobSpan);
     acceptance.durable = "accepted";

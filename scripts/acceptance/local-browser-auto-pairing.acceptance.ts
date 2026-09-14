@@ -22,6 +22,7 @@ let targetTabUpdated: TabUpdatedListener = () => { throw new Error("target tab l
 let nextCreatedTabId = 3;
 let getTargetsCalls = 0;
 let attachFailureTabId: number | null = null;
+let removeFailureTabId: number | null = null;
 let evaluateRuntime: ((expression: string) => Promise<unknown>) | null = null;
 let basicPointerClick = false;
 let basicPointerDestinationUrl = "https://chatgpt.com/c/interaction-ready";
@@ -144,6 +145,10 @@ const targetChromeApi: ExtensionChromeApi = {
         status: "complete", title: "ChatGPT", windowId: 1 };
     },
     remove: async (tabId) => {
+      if (tabId === removeFailureTabId) {
+        removeFailureTabId = null;
+        throw new Error("ambiguous exact tab removal");
+      }
       removedTabs.push(tabId);
     },
     update: async (tabId) => {
@@ -166,8 +171,9 @@ const targetAuthority = new ExtensionTargetAuthority(
   async (kind, body) => { targetFrames.push({ kind, body }); if (kind === "TARGET_REVOKE") targetFailureOrder.push(kind); },
   (failure) => { targetFailures.push(failure); targetFailureOrder.push("DIAGNOSTIC"); },
 );
+const jobRefHash = `sha256:${"a".repeat(64)}` as const;
 targetAuthority.start();
-const firstAcquisition = targetAuthority.acquireJobBoundChatGptTarget("fresh");
+const firstAcquisition = targetAuthority.acquireJobBoundChatGptTarget("fresh", jobRefHash);
 await Promise.resolve();
 assert.deepEqual(attachedTabs, [], "the task-owned tab must not attach before Chrome reports page completion");
 targetTabUpdated(3, { status: "complete" }, { id: 3, url: "https://chatgpt.com/", title: "ChatGPT" });
@@ -178,7 +184,7 @@ assert.deepEqual(createdTab, { active: true, url: "https://chatgpt.com/" });
 assert.equal(activeTabId, 3, "the first production Tab must be selected in its existing Chrome window");
 assert.equal(targetFrames[0]?.kind, "TARGET_CLAIM");
 assert.deepEqual(Object.keys(targetFrames[0]?.body ?? {}).sort(),
-  ["claimOrigin", "documentRef", "navigationEpoch", "targetRef"],
+  ["claimOrigin", "documentRef", "jobRefHash", "navigationEpoch", "targetRef"],
   "the Target claim wire must not contain a full page URL");
 assert.equal(targetFrames[0]?.body.claimOrigin, "https://chatgpt.com");
 const firstTargetRef = String(targetFrames[0]?.body.targetRef);
@@ -191,6 +197,13 @@ await exerciseAuthenticatedMedia({
 });
 assert.deepEqual(activatedTabs, [], "authenticated-media probe must not activate the production Tab");
 const interactionTarget = targetAuthority.resolve(firstTargetRef, firstDocumentRef);
+activeTabId = 99;
+targetTabActivated({ tabId: 99, windowId: 1 });
+await targetAuthority.executeRegisteredCommand(
+  { kind: "wait", durationMs: 1 }, interactionTarget, "observation",
+);
+assert.deepEqual(activatedTabs, [3],
+  "an observation must reselect and revalidate its exact system Tab immediately before reading");
 const simpleClick = {
   kind: "dom-intent" as const,
   intent: {
@@ -205,13 +218,13 @@ const firstInteractiveReceipt = await targetAuthority.executeRegisteredCommand(
   simpleClick, interactionTarget, "mutation",
 ) as Readonly<Record<string, unknown>>;
 assert.equal(firstInteractiveReceipt.postconditionVerified, true);
-assert.deepEqual(activatedTabs, [], "the first mutation must reuse the production Tab selected at creation");
+assert.deepEqual(activatedTabs, [3], "the first mutation must reuse the Tab selected by the observation gate");
 activeTabId = 99;
 targetTabActivated({ tabId: 99, windowId: 1 });
 await targetAuthority.executeRegisteredCommand(simpleClick, interactionTarget, "mutation");
-assert.deepEqual(activatedTabs, [3], "a mutation after the user switches away must reselect only the exact system Tab");
+assert.deepEqual(activatedTabs, [3, 3], "a mutation after the user switches away must reselect only the exact system Tab");
 await targetAuthority.executeRegisteredCommand(simpleClick, interactionTarget, "mutation");
-assert.deepEqual(activatedTabs, [3], "an already-active system Tab must not call tabs.update again");
+assert.deepEqual(activatedTabs, [3, 3], "an already-active system Tab must not call tabs.update again");
 
 const providerInputsBeforeOriginRejection = providerInputMethods.length;
 const acceptedInteractionOrigin = mainFrameUrlByTab.get(3);
@@ -291,10 +304,17 @@ assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").leng
 assert.deepEqual(targetFrames.slice(framesBeforeAtomicSelection).map((frame) => frame.kind), ["TARGET_CLAIM"],
   "the Page.frameNavigated event must join the same navigation publication without revoke or duplicate claim");
 basicPointerClick = false;
+const removedBeforeInvalidDocument = removedTabs.length;
+await targetAuthority.retireInvalidCommandTarget(new Error("BROWSER_DOCUMENT_INVALID"), null);
+assert.equal(removedTabs.length, removedBeforeInvalidDocument,
+  "a Document failure before Website decision must park without orphaning the system Tab");
+await targetAuthority.acquireJobBoundChatGptTarget("bound-observation", jobRefHash);
+assert.equal(targetFrames.at(-1)?.body.targetRef, firstTargetRef,
+  "the exact binding must survive a Document failure for Website-authorized later release");
 await targetAuthority.parkActiveTarget();
 assert.equal(targetFrames.at(-1)?.kind, "TARGET_REVOKE");
 assert.deepEqual(detachedTabs, [], "logical park must keep the one debugger session alive across local restarts");
-await targetAuthority.acquireJobBoundChatGptTarget("confirmed-readback");
+await targetAuthority.acquireJobBoundChatGptTarget("confirmed-readback", jobRefHash);
 assert.deepEqual(attachedTabs, [3],
   "confirmed readback may reuse the current system Tab without historical Target identity");
 assert.equal(nextCreatedTabId, 4);
@@ -307,7 +327,7 @@ assert.deepEqual(detachedTabs, [], "socket suspension must preserve the one prod
 await exerciseLocalBrowserDomIntent();
 
 const navigateBeforeFreshReuse = debuggerMethods.filter((method) => method === "Page.navigate").length;
-const secondAcquisition = targetAuthority.acquireJobBoundChatGptTarget("fresh");
+const secondAcquisition = targetAuthority.acquireJobBoundChatGptTarget("fresh", jobRefHash);
 await Promise.resolve();
 await secondAcquisition;
 assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length, navigateBeforeFreshReuse + 1,
@@ -332,7 +352,7 @@ assert.deepEqual(targetFailures.at(-1), {
 const activationCountBeforeReadbackReplacement = activatedTabs.length;
 const navigationCountBeforeReadbackReplacement = debuggerMethods
   .filter((method) => method === "Page.navigate").length;
-const replacementAcquisition = targetAuthority.acquireJobBoundChatGptTarget("confirmed-readback");
+const replacementAcquisition = targetAuthority.acquireJobBoundChatGptTarget("confirmed-readback", jobRefHash);
 await Promise.resolve();
 targetTabUpdated(4, { status: "complete" }, { id: 4, url: "https://chatgpt.com/", title: "ChatGPT" });
 await replacementAcquisition;
@@ -360,7 +380,7 @@ assert.deepEqual(targetFailures.at(-1), {
   nativeCauseCode: "CHROME_DEBUGGER_CANCELED_BY_USER",
 });
 
-const rejectedOrigin = targetAuthority.acquireJobBoundChatGptTarget("fresh");
+const rejectedOrigin = targetAuthority.acquireJobBoundChatGptTarget("fresh", jobRefHash);
 await Promise.resolve();
 mainFrameUrlByTab.set(5, "https://example.com/");
 targetTabUpdated(5, { status: "complete" }, { id: 5, url: "https://example.com/", title: "Wrong Origin" });
@@ -369,7 +389,7 @@ assert.equal(Number(attachedTabs.at(-1)), 5, "origin verification may attach onl
 assert.ok(removedTabs.includes(5), "a rejected task-owned page must be removed");
 
 attachFailureTabId = 6;
-const debuggerConflict = targetAuthority.acquireJobBoundChatGptTarget("fresh");
+const debuggerConflict = targetAuthority.acquireJobBoundChatGptTarget("fresh", jobRefHash);
 await Promise.resolve();
 targetTabUpdated(6, { status: "complete" }, { id: 6, url: "https://chatgpt.com/", title: "ChatGPT" });
 await assert.rejects(debuggerConflict, /BROWSER_DEVTOOLS_CONFLICT/u,
@@ -377,6 +397,51 @@ await assert.rejects(debuggerConflict, /BROWSER_DEVTOOLS_CONFLICT/u,
 assert.ok(removedTabs.includes(6), "a conflicted task-owned page must be removed");
 attachFailureTabId = null;
 assert.ok(debuggerEvent, "the exact target owner must observe main-frame navigation");
+
+const rotationHashes = ["b", "c", "d"].map(
+  (value) => `sha256:${value.repeat(64)}` as `sha256:${string}`,
+);
+const rotationTargetRefs: string[] = [];
+for (const [index, hash] of rotationHashes.entries()) {
+  const acquisition = targetAuthority.acquireJobBoundChatGptTarget("fresh", hash);
+  await Promise.resolve();
+  const tabId = 7 + index;
+  targetTabUpdated(tabId, { status: "complete" }, {
+    id: tabId, url: "https://chatgpt.com/", title: "ChatGPT",
+  });
+  await acquisition;
+  rotationTargetRefs.push(String(targetFrames.at(-1)?.body.targetRef));
+  await targetAuthority.parkActiveTarget();
+}
+const navigationBeforeRotation = debuggerMethods.filter((method) => method === "Page.navigate").length;
+for (const index of [0, 1, 2, 0]) {
+  await targetAuthority.acquireJobBoundChatGptTarget(
+    "bound-observation", rotationHashes[index]!,
+  );
+  assert.equal(targetFrames.at(-1)?.body.targetRef, rotationTargetRefs[index]);
+  await targetAuthority.parkActiveTarget();
+}
+assert.deepEqual(activatedTabs.slice(-4), [7, 8, 9, 7],
+  "three job-owned Tabs must rotate A/B/C/A through exact Chrome activation");
+assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length,
+  navigationBeforeRotation, "normal bound observation must switch Tabs with zero navigation");
+removeFailureTabId = 7;
+await assert.rejects(
+  targetAuthority.releaseJobBoundChatGptTarget(rotationHashes[0]!),
+  /BROWSER_TARGET_CLEANUP_FAILED/u,
+  "an unproven tab removal must retain the exact binding for a governed retry",
+);
+await targetAuthority.acquireJobBoundChatGptTarget("bound-observation", rotationHashes[0]!);
+assert.equal(targetFrames.at(-1)?.body.targetRef, rotationTargetRefs[0]);
+await targetAuthority.parkActiveTarget();
+await targetAuthority.releaseJobBoundChatGptTarget(rotationHashes[0]!);
+assert.equal(removedTabs.at(-1), 7, "business closure must remove only the exact job-owned Tab");
+await targetAuthority.acquireJobBoundChatGptTarget("bound-observation", rotationHashes[1]!);
+assert.equal(targetFrames.at(-1)?.body.targetRef, rotationTargetRefs[1],
+  "closing job A must preserve job B's exact bound Tab");
+await targetAuthority.parkActiveTarget();
+await targetAuthority.releaseJobBoundChatGptTarget(rotationHashes[1]!);
+await targetAuthority.releaseJobBoundChatGptTarget(rotationHashes[2]!);
 
 const issuer = new BrowserAuthorityIssuer();
 Reflect.set(issuer, "slot", { kind: "PRESENT", authority: { authorityEpoch: 7, authorityRef: "authority-7" } });
@@ -387,7 +452,7 @@ const broker = new BrowserAuthorityBroker(
 );
 const initialClaim = {
   authorityEpoch: 7, targetRef: "target-1", documentRef: "document-1", navigationEpoch: 0,
-  claimOrigin: "https://chatgpt.com",
+  claimOrigin: "https://chatgpt.com", jobRefHash: rotationHashes[0]!,
 } as const;
 broker.registerOperatorTargetClaim(initialClaim);
 broker.registerOperatorTargetClaim({ ...initialClaim, documentRef: "document-2", navigationEpoch: 1 });
@@ -395,6 +460,13 @@ assert.throws(() => broker.registerOperatorTargetClaim({ ...initialClaim, target
   "an authenticated connection must not replace its claimed target without revoke");
 assert.throws(() => broker.registerOperatorTargetClaim({ ...initialClaim, documentRef: "document-4", navigationEpoch: 3 }), /BROWSER_TARGET_INVALID/u,
   "Document claims must advance by exactly one navigation epoch");
+assert.throws(() => broker.registerOperatorTargetClaim({
+  ...initialClaim, documentRef: "document-3", navigationEpoch: 2, jobRefHash: rotationHashes[1]!,
+}), /BROWSER_TARGET_INVALID/u, "a live claim may never change its exact job identity");
+await assert.rejects(broker.acquireOperatorClaimedTargetLease({
+  jobRefHash: rotationHashes[1]!,
+} as never, "wrong-job"), /BROWSER_TARGET_INVALID/u,
+"an old claimed Tab must never be wrapped as a lease for a different job");
 assert.equal(new Set<number>(activatedTabs).has(99), false, "the interaction gate must never activate an operator Tab");
 assert.equal(new Set<number>(removedTabs).has(99), false, "the production owner must never remove an operator Tab");
 

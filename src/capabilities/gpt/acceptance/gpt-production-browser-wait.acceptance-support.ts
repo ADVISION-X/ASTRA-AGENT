@@ -21,6 +21,7 @@ try {
   let parks = 0;
   let pendingMutations = 0;
   const lifecycleEvents: string[] = [];
+  const observationWaits: Array<Readonly<{ targetMode: string; eligibleAt: number }>> = [];
   const providerEffectIdentityHash = `sha256:${"8".repeat(64)}` as const;
   const browser = {
     target: { targetRef: "target:provider-wait" },
@@ -37,7 +38,9 @@ try {
     park: async () => { parks += 1; lifecycleEvents.push("park"); },
   };
   const lifecycle = new ProductionGptBrowserLifecycle(
-    { acquireJobBoundTargetLease: async () => {
+    { acquireJobBoundTargetLease: async (_binding: unknown, _ownerId: string, _wait: {
+      targetMode: string; eligibleAt: number;
+    }) => {
       acquisitions += 1; lifecycleEvents.push("acquire"); return browser;
     } } as never,
     runtimeLogger, HASH_A,
@@ -66,16 +69,32 @@ try {
     childCapabilityId: "submit_exact_gpt_turn_once", inputHash: HASH_A,
     actionOrdinal: 1, replayPolicy: "provider-effect-once",
   }, "https://chatgpt.com/c/provider-wait", "conversation-turn-1");
+  const observationStartedAt = Date.now();
+  const originalAcquire = (lifecycle as never as { browserAuthority: {
+    acquireJobBoundTargetLease: (...args: unknown[]) => Promise<typeof browser>;
+  } }).browserAuthority.acquireJobBoundTargetLease;
+  (lifecycle as never as { browserAuthority: {
+    acquireJobBoundTargetLease: (...args: unknown[]) => Promise<typeof browser>;
+  } }).browserAuthority.acquireJobBoundTargetLease = async (...args: unknown[]) => {
+    const wait = args[2] as { targetMode: string; eligibleAt: number };
+    observationWaits.push({
+      targetMode: wait.targetMode, eligibleAt: wait.eligibleAt,
+    });
+    return originalAcquire(...args);
+  };
   assert.equal(await lifecycle.waitForProviderObservation(
-    active, "research", "text-wait", "checkpoint_gpt_text_response", Date.now() + 5,
-  ), "deadline");
-  assert.deepEqual([acquisitions, selections, parks], [1, 0, 0],
-    "normal pending must retain the same lease, Target and Document without navigation");
+    active, "research", "text-wait", "checkpoint_gpt_text_response", Date.now() + 5_000,
+  ), "reobserve");
+  assert.deepEqual([acquisitions, selections, parks], [2, 0, 1],
+    "normal pending must park immediately and reacquire its exact Target through the one lane");
+  assert.equal(observationWaits.at(-1)?.targetMode, "bound-observation");
+  assert.ok((observationWaits.at(-1)?.eligibleAt ?? 0) > observationStartedAt,
+    "the Child must submit a future eligibility time instead of owning a local timer");
   await assert.rejects(
     lifecycle.browserFor("session:next", "research-next", "text-next"),
     /GPT_BROWSER_SESSION_TRANSITION_UNSETTLED/u,
   );
-  assert.deepEqual([acquisitions, selections, parks], [1, 0, 0],
+  assert.deepEqual([acquisitions, selections, parks], [2, 0, 1],
     "a later Provider turn must not acquire Browser while the current result is unsettled");
   lifecycle.recordSettledResult(active, HASH_B);
   const settledFailure = serializeTerminalFailure(
@@ -95,28 +114,28 @@ try {
   assert.equal(await lifecycle.browserFor(
     "session:next", "research-next", "text-next",
   ), next, "the same logical Provider turn must reuse its one active Browser lease");
-  assert.deepEqual([acquisitions, selections, parks], [2, 0, 1],
+  assert.deepEqual([acquisitions, selections, parks], [3, 0, 2],
     "a settled turn must park exactly once before the next turn acquires fresh Browser authority");
-  assert.deepEqual(lifecycleEvents, ["acquire", "park", "acquire"],
+  assert.deepEqual(lifecycleEvents, ["acquire", "park", "acquire", "park", "acquire"],
     "the next Provider turn must acquire only after the settled prior turn releases Browser");
   const nextFailure = new Error("NEXT_PROVIDER_TURN_FAILED");
   assert.equal(lifecycle.decorateSettledResultFailure(nextFailure), nextFailure,
     "the prior settled result must not classify failures from the newly active Provider turn");
   await lifecycle.settle(nextFailure);
-  assert.deepEqual([acquisitions, selections, parks], [2, 0, 2],
+  assert.deepEqual([acquisitions, selections, parks], [3, 0, 3],
     "failed product settlement must park the active lease without closing the system Tab");
   await lifecycle.browserFor("session:final", "research-final", "text-final");
   await lifecycle.settle(null);
-  assert.deepEqual([acquisitions, selections, parks], [3, 0, 3],
+  assert.deepEqual([acquisitions, selections, parks], [4, 0, 4],
     "successful product settlement must park the active lease without closing the system Tab");
   assert.deepEqual(lifecycleEvents,
-    ["acquire", "park", "acquire", "park", "acquire", "park"],
+    ["acquire", "park", "acquire", "park", "acquire", "park", "acquire", "park"],
     "every Product terminal handoff must preserve the same reusable system Tab");
   await lifecycle.browserFor("session:unresolved", "research-unresolved", "text-unresolved");
   pendingMutations = 1;
-  await assert.rejects(lifecycle.settle(new Error("UNRESOLVED_BROWSER_EFFECT")), /GPT_BROWSER_LIFECYCLE_FAILED/u);
-  assert.deepEqual([acquisitions, parks], [4, 3],
-    "unresolved DISPATCHED must retain the Browser lane and system Tab instead of parking or closing it");
+  await lifecycle.settle(new Error("UNRESOLVED_BROWSER_EFFECT"));
+  assert.deepEqual([acquisitions, parks], [5, 5],
+    "unresolved DISPATCHED must permit zero-input park while WAL continues blocking every acquisition");
   const waitEvents = (await readFile(runtimeLogger.currentSegmentPath()!, "utf8")).trim().split("\n")
     .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>)
     .filter((event) => event.code === "GPT_PROVIDER_WAIT_ACTIVE");

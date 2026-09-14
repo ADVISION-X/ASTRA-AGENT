@@ -15,6 +15,7 @@ import type {
   BrowserExactCallMutationFact,
   BrowserAuthorityBroker,
   BrowserTargetLease,
+  BrowserTargetReleaseAuthority,
   BrowserTargetLeaseWait,
 } from "../browser/browser-authority-api.js";
 import { hashExtensionDirectoryV1 } from "../browser/release/extension-directory-hash-v1.js";
@@ -58,6 +59,11 @@ export type WorkbenchBrowserAuthority = Readonly<{
     actionOrdinal: number;
   }>): BrowserExactCallMutationFact | null;
   purgeBrowserJob(jobId: string): void;
+  releaseJobBoundTarget(
+    jobId: string,
+    releaseAuthority: BrowserTargetReleaseAuthority,
+    signal: AbortSignal,
+  ): Promise<void>;
   acquireJobBoundTargetLease(
     binding: BrowserExecutionBinding,
     ownerId: string,
@@ -144,6 +150,8 @@ export const createWorkbenchBrowserAuthority = async (
       supervisor.countProviderTurnDispatches(jobId, attemptId),
     readExactCallMutationFact: (input) => supervisor.readExactCallMutationFact(input),
     purgeBrowserJob: (jobId) => supervisor.purgeBrowserJob(jobId),
+    releaseJobBoundTarget: (jobId, releaseAuthority, signal) =>
+      supervisor.releaseJobBoundTarget(jobId, releaseAuthority, signal),
     acquireJobBoundTargetLease: (binding, ownerId, wait) =>
       supervisor.acquireJobBoundTargetLease(binding, ownerId, wait),
     acceptBrowserAuthoritySocket: (socket) => ({
