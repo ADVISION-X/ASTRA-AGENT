@@ -141,7 +141,7 @@ Runtime 自身代码保持 production 目录内的直接模块关系。不得新
 Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为：
 
 - Agent Route Capability Manifest provider：version 4；只发布 current session 支持的 `product_id + action_id + task_contract_version + result_contract_version`；Product Profile、Skill、Prompt、Flow、实现名称、版本和 hash 均不得对外发布或参与任务身份；
-- Website Agent Task Result consumer dependency：version 9；
+- Website Agent Task Result consumer dependency：version 10；固定 catalog route 逐 locale 接纳，五 locale 齐备只在 Website 仓库发布边界验证；v9 不保留兼容读取。
 - Xuanxue AI Production V6 consumer dependency：version 31。Runtime 唯一业务容量常量为 1，心跳、剩余领取、执行器与 claim 上限共同消费它；当前 active execution 与已有 staged result 但尚无 Website admission receipt 的同一 job 合并占用这一个席位，Browser action capacity 仍为 1。Runtime 只消费 Website 当前授权、有限 `retry_not_before`、三个 next action、包含 `provider_effect_identity_hash` 的 typed effect outcome 与 admission receipt；不得自行推导业务恢复。
 
 consumer dependency 的 contract body 只能包含 contractId、version、providerRepo。普通启动只校验本仓最小 dependency，不读取未绑定 Website 工作树；跨仓 participant commit 只属于 RELEASE 证据。
