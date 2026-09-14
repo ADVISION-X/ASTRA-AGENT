@@ -4,7 +4,11 @@ import { hashBrowserAuthorityCertificate } from "../infrastructure/browser-autho
 import type { BrowserCommandActor } from "./browser-command-actor.js";
 import type { BrowserCapabilityId } from "../protocol/generated/browser-protocol.generated.js";
 import type { BrowserCommandPermit, BrowserUnsignedCommandPermit } from "../transport/command-permit.js";
-import type { BrowserApprovedArtifactRef, BrowserTargetLease } from "./browser-target-lease.js";
+import {
+  assertBrowserAtomicStepIdentity,
+  type BrowserApprovedArtifactRef,
+  type BrowserTargetLease,
+} from "./browser-target-lease.js";
 import type { BrowserControlledTarget, BrowserDocumentRef } from "./browser-target-ref.js";
 import type { BrowserDomIntent } from "./browser-dom-intent.js";
 import type { BrowserFileArtifactGrantV1 } from "./browser-file-artifact-grant.js";
@@ -232,10 +236,8 @@ export class BrowserTargetLeaseManager {
       target: input.target.target,
       get document() { return state.current.document; },
       runAtomicStep: async (identity, action) => {
-        if (!identity.productStepId || !identity.callId || !identity.childCapabilityId
-          || !/^sha256:[a-f0-9]{64}$/u.test(identity.inputHash)
-          || !Number.isInteger(identity.actionOrdinal) || identity.actionOrdinal < 1
-          || state.atomicStep !== null) {
+        assertBrowserAtomicStepIdentity(identity);
+        if (state.atomicStep !== null) {
           throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_INVALID");
         }
         state.atomicStep = Object.freeze({ ...identity });

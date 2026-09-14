@@ -160,9 +160,16 @@ const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] =>
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
     "src/lib/local-runtime/production/runtime-loops.ts", [
-      "operation: \"cloud.claim\"", "operation: \"website.result-consume\"", "state.runtimeLogger.isWritable()",
+      "operation: \"cloud.claim\"", "operation: \"website.v6-request\"",
+      "component: \"production-admission-readback\"", "state.runtimeLogger.isWritable()",
       "requireRuntimeLogWrite", "responsibleOwner: \"website\"",
     ]);
+  const runtimeLoops = read(context, "src/lib/local-runtime/production/runtime-loops.ts");
+  if (runtimeLoops.includes('operation: "website.result-consume"')) findings.push(finding(
+    LAW_OPERATIONAL, "static.ast", "production-boundaries",
+    "src/lib/local-runtime/production/runtime-loops.ts",
+    "AGENT admission readback must not claim Website business-result consumption ownership.",
+  ));
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
     "src/lib/local-runtime/production/runtime-startup.ts", [
       "operation: \"cloud.session-open\"", "operation: \"runtime.start\"", "operation: \"runtime.shutdown\"",

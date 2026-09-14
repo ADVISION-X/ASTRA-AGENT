@@ -94,6 +94,12 @@ export const exerciseProductionRuntimeSourceBoundaries = async (): Promise<void>
     ]);
   assert.doesNotMatch(runtimeSource, /outcome: "failed"[\s\S]{0,300}BUSINESS_ADMISSION_PENDING/u);
   assert.doesNotMatch(runtimeLoopsSource, /outcome: "failed"[\s\S]{0,300}BUSINESS_ADMISSION_PENDING/u);
+  assert.match(runtimeLoopsSource,
+    /component: "production-admission-readback"[\s\S]{0,120}operation: "website\.v6-request"/u);
+  assert.doesNotMatch(runtimeLoopsSource,
+    /operation: "website\.result-consume"[\s\S]{0,900}reconcileBusinessAdmission/u);
+  assert.match(runtimeLoopsSource,
+    /span\.terminal\(outcome === "completed"[\s\S]{0,260}: \{ outcome: "succeeded" \}\)/u);
   assert.doesNotMatch(runtimeSource, /emitState|stateKey:|currentStates|reconciledFromAuthority/u);
   assert.doesNotMatch(executorSource, /runTurn|ProductionGptExecutor|GPT_TURN_FLOW/u);
   assert.match(executorSource, /gpt: gptExecution\.tools/u);

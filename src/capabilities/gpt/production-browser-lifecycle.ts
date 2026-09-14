@@ -11,6 +11,7 @@ import type {
   BrowserTargetLease,
   BrowserTargetLeaseWait,
 } from "../../lib/browser/browser-authority-api.js";
+import { assertBrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
 import { requireRuntimeLogWrite, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { executionFailure, typedExecutionFailure } from "../../lib/execution-failure.js";
 
@@ -135,6 +136,7 @@ export class ProductionGptBrowserLifecycle {
       get: (_target, property) => {
         if (property === "runAtomicStep") {
           return async <T>(identity: BrowserAtomicStepIdentity, action: () => Promise<T>): Promise<T> => {
+            assertBrowserAtomicStepIdentity(identity);
             if (atomicIdentity !== null) throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_INVALID");
             atomicIdentity = Object.freeze({ ...identity });
             try {

@@ -1277,19 +1277,19 @@ N仍由Website动态下发，当前数据库值=3
 
 本节是第19节之后的唯一现役故障修复方案，旧章节作为 N-TAB 建设与历史证据保留；若旧章节的“未跑起”、“未入库”等阶段性描述与本节冲突，当前裁决以本节为准。
 
-本次只授权制定生产级方案，不授权改代码、改数据库、重启服务、操作 Browser、重放工单或清理现场。施工时必须从下列基线重新绑定；任一 HEAD、active law、Owner 或目标文件 hash 变化，先停止并精确更新本节，不得凭旧方案盲施工。
+本节最初形成于只授权制定方案的阶段；授权人随后已明确授权法案、施工图、代码、质检与必要数据库操作，并要求直接在专门提供的双仓本地 `main` 施工。当前系统已由授权人启动，因此本轮只允许完成代码、文档、静态/本地质检、clean READY 与推送；禁止 Codex 重启、部署、操作 Browser、重放工单或改变数据库，RELEASE 与真实 N=3 动态证明留待授权人另行启动。施工时必须从当前基线重新绑定；任一 HEAD、active law、Owner 或目标文件 hash 变化，先停止并精确更新本节，不得凭旧方案盲施工。
 
 | 对象 | 本轮只读绑定 |
 |---|---|
-| AGENT | `/Users/nexgen/Documents/AGENT`，`main@0bf4a1468e8d42e447499d920a403c87f58e1379`，`origin/main` 同值，工作树 dirty |
-| Website | `/Users/nexgen/Documents/xuanxue-web`，`main@f67c9f56dd13354d51bb195991270f033e7590e8`，`origin/main` 同值，工作树 dirty |
+| AGENT | `/Users/nexgen/Documents/AGENT`，施工只允许绑定本地主仓库 clean `main` 的当前 HEAD；禁止新建分支或工作树 |
+| Website | `/Users/nexgen/Documents/xuanxue-web`，施工只允许绑定本地主仓库 clean `main` 的当前 HEAD；禁止新建分支或工作树 |
 | AGENT active law | `LAW-GPT-002-V11`、`LAW-LOCAL-BROWSER-SESSION-003-V36`、`LAW-RUNTIME-LOG-SPINE-001-V7` |
 | Website active law | `LAW-LOCALIZATION-013-V11`、`LAW-LOCALIZATION-017-V1`、`LAW-LOCALIZATION-019-V6` 及 Website Runtime Log 现役条款 |
 | AGENT 日志 | `/Users/nexgen/.codex/attachments/63512112-6f05-431b-9349-fc9c82a94b3b/pasted-text.txt` |
 | Website 日志 | `/Users/nexgen/.codex/attachments/fc524c49-491d-406b-b136-08e8c282f4a8/pasted-text.txt` |
 | Browser 原始日志 | `/Users/nexgen/Documents/AGENT/.grasseye-local/runtime-logs/agent/af41d729-5741-4784-9d89-31bf6bdd498d-0001.jsonl` |
 
-施工前必须在独立干净分支工作树内重绑双仓 candidate，不允许在当前 dirty main 上叠加修复。当前 dirty 只是真实现场，不是可发布 candidate；本节也不宣称 CHANGE、READY 或 RELEASE。
+施工前必须在授权人专门提供的双仓本地 `main` 上重绑 candidate，确认进入施工前 clean，随后直接在该 `main` 完成实现、提交与质检。禁止新建分支或工作树；施工期间的授权内未提交差异属于当前 candidate，但在 clean commit 与原生 READY 通过前不得宣称 READY 或 RELEASE。
 
 ### 20.2 经数据库纠正后的真实分母
 
@@ -1391,17 +1391,17 @@ Website queued
 施工动作：
 
 1. 在 `structured-edition-validator.ts` 文件内收敛一个 `StructuredEditionValidationError`，只包含闭集 `code`、可选 `jsonPointer`、可选 `safetyObligation`；所有现役验证分支保持原顺序与原判定，仅把字符串异常改为结构化异常。
-2. 关闭代码至少覆盖 `STRUCTURE_OR_FACT_CHANGED`、`PROTECTED_FIELD_CHANGED`、`SAFETY_FIELD_EMPTY`、`SAFETY_FIELD_WEAKENED`、`SAFETY_FIELD_NOT_TRANSLATED`、`SAFETY_FIELD_TRUNCATED`、`JSON_POINTER_MISSING/INVALID` 及 pointer policy 错误；不得把未知 Error message 当作可信 code。
+2. 关闭代码至少覆盖 `STRUCTURE_OR_FACT_CHANGED`、`PROTECTED_FIELD_CHANGED`、`SAFETY_FIELD_EMPTY`、`SAFETY_FIELD_WEAKENED`、`SAFETY_FIELD_NOT_TRANSLATED`、`SAFETY_FIELD_TRUNCATED`、`JSON_POINTER_MISSING/INVALID` 及 pointer policy 错误；不得把未知 Error message 当作可信 code。不得为提高测试覆盖率改变现役验证顺序或首因优先级：受保护字段漂移当前先命中 `STRUCTURE_OR_FACT_CHANGED`，仍保持该判定。
 3. `localization-completion-worker.ts` 继续以 `LOCALIZATION_STRUCTURED_EDITION_SEMANTIC_INVALID` 作为对外 failure code，同时从 typed cause 提取安全 diagnostic；无 typed cause 时失败关闭为既有总括码，不猜 pointer。
 4. 在现有 `localization_jobs.failure_ledger` 条目中增写 `native_error_code`、`json_pointer`、`safety_obligation`（无值则省略或 null）；不新增表、列、migration 或诊断台账。
 5. 现有 `result_revision_rejected_v1` 的 `domain_rejection` 保留 outer `failure_code`，`reason_codes` 按固定顺序写入 `[outerCode,nativeCode]`，并携带同一安全 diagnostic；不把 source/result 文本写入事件或 Runtime Log。
 6. `appendAiProductionEvent` 在现有 insert 后以 `idempotency_key + job_id` 读回真实 `event_id/evidence_hash`，并校验 hash 与当前预期一致；首写与幂等重放都返回同一已持久事件身份。既有调用者可忽略返回值，禁止再建 receipt store。
-7. Website 对被拒绝的 `website.result-consume` 终端日志仍是 `outcome=failed`、outer failure code 仍是总括码，`nativeCause` 使用闭集 native code；同时绑定 `authorityRef=ai_production_job_events:<eventId>` 和对应 `authorityHash`。指针不直接写入公共日志，由既有 Website authority reader 按 authorityRef 回读事件。
+7. Website 对被拒绝的 `website.result-consume` 终端日志仍是 `outcome=failed`、outer failure code 仍是总括码，`nativeCause` 使用闭集 native code；同时绑定 `authorityRef=ai_production_job_events:<eventId>` 和对应 `authorityHash`。指针不直接写入公共日志；既有 Website authority reader 只核验该事件的持久 hash，操作员需要定位 pointer 时按日志中的 eventId 查询同一事件 `event_json`，不得把 hash 核验误写成 pointer 读取。
 
 验收：
 
 - 最小固定 fixture 复现“一个 safety pointer 保留源语言”，验证 outer/native/pointer 分别正确；
-- 同一 rejection 幂等重放不生成第二 event，authorityRef/hash 可由现役 reader 读回；
+- 同一 rejection 幂等重放不生成第二 event，authorityRef/hash 可由现役 reader 核验，pointer 可按同一 eventId 从 `event_json` 读回；
 - 对应真实样例的诊断回读必须精确得到 `LOCALIZATION_SAFETY_FIELD_NOT_TRANSLATED` 和 `/excluded_scope/segments/2/text`；
 - Website 验证通过路径的 receipt、artifact、binding、publication 与 business consumption 零差异；
 - 任何日志、fixture 或 event 不得包含真实文章原文、Provider 原始回答或凭证。
@@ -1484,7 +1484,7 @@ Website queued
 
 静态/单元/接口层必须至少包含：
 
-1. validator 每个闭集 native code 的类型、pointer 与 obligation 映射；
+1. validator 每个闭集 native code 的类型、pointer 与 obligation 结构，以及每个现役可达分支的行为映射；受保护字段漂移按现役优先级验证为 `STRUCTURE_OR_FACT_CHANGED`，不得虚构不可达分支 PASS；
 2. completion worker 在 outer code 不变的前提下保留 native diagnostic；
 3. failure ledger 与 rejection event 同一 diagnostic/hash，幂等重放只有一条 event；
 4. Website rejection Runtime Log authorityRef/hash 可读回，原文不进日志；
@@ -1506,7 +1506,7 @@ Website queued
 ### 20.6 双仓施工与发布顺序
 
 ```text
-S0 双仓干净分支重绑HEAD/active law/目标hash
+S0 双仓本地clean main重绑HEAD/active law/目标hash，禁止新建分支或工作树
 -> S1 仅更新三份现役Blueprint，法案/contract/migration差异=0
 -> S2 Website NTAB-R01 + 现役质检
 -> S3 AGENT NTAB-R02/R03/R04 + 现役质检
@@ -1522,6 +1522,8 @@ S0 双仓干净分支重绑HEAD/active law/目标hash
 发布顺序存在当前必要性：Website 先发布可使任何过渡期拒绝立即具备原生诊断，其变更不依赖 AGENT 新合同；AGENT 后发布只改自身 Browser 身份与日志/prompt。这是单主链的有序切换，不是兼容桥，不需要 feature flag 或 dual-read/write。
 
 本轮不清空数据库，不删除47个排队工单，不重置3个在途工单，不降 N=1。若 draining 后仍存在 unknown/dispatched Provider effect，必须按现役同身份 receipt/readback 收口，禁止为赶发布强制终止或重提交。
+
+本次施工批次止于 S4 后的双仓 clean READY 与主仓推送；S5-S10 属于后续发布批次，当前运行中的系统不得由 Codex 重启或部署，也不得把 READY 宣称为 RELEASE。
 
 ### 20.7 分层验收与失败关闭
 
@@ -1560,7 +1562,7 @@ S0 双仓干净分支重绑HEAD/active law/目标hash
 ### 20.9 回滚与现场保护
 
 1. 实施前继续使用双仓 `checkpoint/one-by-one-pre-ntab-20260914` 作为已存在的灾备参考，但它只是 rollback reference，不是当前 READY/RELEASE 证据。
-2. 代码回滚仅撤销本节目标文件的 candidate commit，不在 dirty main 上 hard reset，不覆盖用户改动。
+2. 代码回滚仅以可审计的新提交精准反做本节目标文件，不对 `main` hard reset，不覆盖用户改动。
 3. Website 变更无 migration，无 schema rollback；新 event JSON 字段是现有事件的安全诊断，不作物理删除，否则会破坏已发生事实。
 4. 回滚不删除工单、artifact、publication 或 failure ledger，不重提交 Provider effect；未知 effect 仍先 checkpoint/receipt/postcondition readback。
 5. 回滚后 N 仍由 Website 唯一动态配置且保持3，不以降 N 作为恢复手段。

@@ -13,6 +13,14 @@ export type BrowserAtomicStepIdentity = Readonly<{
   replayPolicy: "observation-only" | "target-local-per-generation" | "provider-effect-once";
 }>;
 
+export function assertBrowserAtomicStepIdentity(identity: BrowserAtomicStepIdentity): void {
+  if (!identity.productStepId || !identity.callId || !identity.childCapabilityId
+    || !/^sha256:[a-f0-9]{64}$/u.test(identity.inputHash)
+    || !Number.isInteger(identity.actionOrdinal) || identity.actionOrdinal < 1) {
+    throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_INVALID");
+  }
+}
+
 export type BrowserAtomicStepOutcome = Readonly<{
   state: "dispatched" | "confirmed" | "rejected";
   mutationOutcome: "no" | "dispatched" | "confirmed";

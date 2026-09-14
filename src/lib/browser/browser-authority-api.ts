@@ -1,3 +1,4 @@
+export { assertBrowserAtomicStepIdentity } from "./exact-target/browser-target-lease.js";
 export type {
   BrowserAtomicStepIdentity,
   BrowserAtomicStepOutcome,

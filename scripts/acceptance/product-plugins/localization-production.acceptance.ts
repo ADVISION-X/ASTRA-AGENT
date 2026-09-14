@@ -65,6 +65,10 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     assert.doesNotMatch(prompt, /localization-provider-output-request|"requested_fields":\[[^\]]*"action_id"/u);
     assert.equal(Object.hasOwn(run.completed.payload as object, "action_id"), false);
     assert.match(prompt, /可信来源.*确定事实.*核验依据.*当代用户问题/u);
+    for (const requirement of [
+      "translatable_json_pointers", "safety_json_pointers", "protected_json_pointers",
+      "target_locale", "JSON 结构和事实不得变化", "只返回一个完整 JSON 对象",
+    ]) assert.match(prompt, new RegExp(requirement, "u"));
   }
   assert.match(prompt, /Website 结果修订事实/u);
   assert.match(prompt, /Website 当前授权依据/u);

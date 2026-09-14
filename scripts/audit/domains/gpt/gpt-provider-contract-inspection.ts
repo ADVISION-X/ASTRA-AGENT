@@ -70,13 +70,16 @@ export const inspectGptProviderProbeOwnerContract = (
   const lifecycleClass = context.project.getSourceFile(resolve(context.sealedRoot, LIFECYCLE))
     ?.getClass("ProductionGptBrowserLifecycle");
   const parkActive = lifecycleClass?.getMethod("parkActive");
-  const parkCalls = lifecycleClass?.getDescendantsOfKind(SyntaxKind.CallExpression)
+  const waitForObservation = lifecycleClass?.getMethod("waitForProviderObservation");
+  const observationParkCalls = waitForObservation?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((call) => call.getExpression().getText() === "active.facade.park") ?? [];
+  const settlementParkCalls = parkActive?.getDescendantsOfKind(SyntaxKind.CallExpression)
     .filter((call) => call.getExpression().getText() === "active.browser.park") ?? [];
-  if (parkCalls.length !== 2
+  if (observationParkCalls.length !== 1 || settlementParkCalls.length !== 1
     || !parkActive?.getText().includes('mode: "product-call-settlement"')
-    || !lifecycleClass?.getMethod("waitForProviderObservation")?.getText()
+    || !waitForObservation?.getText()
       .includes("active.browser.pendingMutationCount() > 0")
-    || !lifecycleClass?.getMethod("waitForProviderObservation")?.getText()
+    || !waitForObservation?.getText()
       .includes('"bound-observation", eligibleAt')
     || !lifecycleClass?.getMethod("settle")?.getText().includes("this.parkActive(")) findings.push(finding(
     "gpt/no-browser-poll-scheduler", LIFECYCLE,
