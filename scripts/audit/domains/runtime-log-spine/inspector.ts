@@ -151,23 +151,19 @@ const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] =>
       "requireRuntimeLogWrite",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
-    "src/lib/local-runtime/production/runtime-execution-heartbeat.ts", [
-      "operation: \"job.lease-renew\"", "requireRuntimeLogWrite",
-    ]);
-  requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
-    "src/lib/local-runtime/production/runtime-logging.ts", [
-      "operation: \"job.lease-release\"", "requireRuntimeLogWrite",
-    ]);
+    "src/lib/local-runtime/production/runtime-execution-heartbeat.ts",
+    ["operation: \"job.lease-renew\"", "requireRuntimeLogWrite"]);
+  requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries", "src/lib/local-runtime/production/runtime-logging.ts",
+    ["operation: \"job.lease-release\"", "requireRuntimeLogWrite"]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
     "src/lib/local-runtime/production/runtime-loops.ts", [
       "operation: \"cloud.claim\"", "operation: \"website.v6-request\"",
-      "component: \"production-admission-readback\"", "state.runtimeLogger.isWritable()",
-      "requireRuntimeLogWrite", "responsibleOwner: \"website\"",
+      "component: \"production-admission-readback\"", "state.runtimeLogger.isWritable()", "requireRuntimeLogWrite",
+      "responsibleOwner: \"website\"",
     ]);
-  const runtimeLoops = read(context, "src/lib/local-runtime/production/runtime-loops.ts");
-  if (runtimeLoops.includes('operation: "website.result-consume"')) findings.push(finding(
-    LAW_OPERATIONAL, "static.ast", "production-boundaries",
-    "src/lib/local-runtime/production/runtime-loops.ts",
+  if (read(context, "src/lib/local-runtime/production/runtime-loops.ts")
+    .includes('operation: "website.result-consume"')) findings.push(finding(
+    LAW_OPERATIONAL, "static.ast", "production-boundaries", "src/lib/local-runtime/production/runtime-loops.ts",
     "AGENT admission readback must not claim Website business-result consumption ownership.",
   ));
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
