@@ -138,8 +138,8 @@ const launchClaimJobs = (
 const reconcilePendingBusinessAdmissions = async (state: RuntimeState): Promise<void> => {
   for (const task of state.store.pendingBusinessAdmissions()) {
     const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
-      traceId: task.task.job_id, owner: "production-runtime", component: "production-runtime",
-      operation: "website.result-consume",
+      traceId: task.task.job_id, owner: "production-runtime", component: "production-admission-readback",
+      operation: "website.v6-request",
       typedIdentity: { kind: "job", jobId: task.task.job_id },
     }));
     try {
@@ -149,10 +149,10 @@ const reconcilePendingBusinessAdmissions = async (state: RuntimeState): Promise<
         continue;
       }
       const current = state.store.readTask(task.task.job_id)!;
-      requireRuntimeLogWrite(span.terminal({
+      requireRuntimeLogWrite(span.terminal(outcome === "completed" ? {
         outcome: "succeeded", authorityRef: `production-task:${task.task.job_id}`,
         authorityHash: hashCanonical(current),
-      }));
+      } : { outcome: "succeeded" }));
     } catch (error) {
       terminalSpanFailure(span, error, runtimeLogCauseEventId(error),
         "BUSINESS_ADMISSION_RECONCILIATION_FAILED");
