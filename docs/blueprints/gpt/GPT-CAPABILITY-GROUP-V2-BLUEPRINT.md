@@ -1,7 +1,7 @@
-# GPT 能力组 V46 施工图
+# GPT 能力组 V47 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"gpt-capability-group-v46","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V49","LAW-GPT-002-V10"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"gpt-capability-group-v47","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V50","LAW-GPT-002-V11"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
 ```
 
 ## 唯一 Owner 与职责
@@ -37,7 +37,7 @@ BZ03/BZ04 的本轮附件必须包含 Website 已入库、与 consultation root 
 
 `FROZEN-GPT-CONVERSATION-LOCATOR-EFFECT-SEPARATION-001` 已按本次授权精准解冻替换并重新冻结：canonical conversation URL 是真实恢复现场“去哪里读”的唯一权威，provider_effect_identity 是“是否已经发送”的唯一权威，二者绝不合并或互相授予权限。正常轮询只使用 job 的进程内独占 Target 绑定，pending 释放 lease/lane，下一次经唯一 FIFO激活精确 Tab并 fresh observe一次，不读取 WAL locator、不重选 URL、不导航。只有进程重启、绑定 Target 真正丢失或同等恢复现场，Website 对 DISPATCHED/CONFIRMED effect 重新授权后，才可先从 Browser WAL 精确读回同一 receipt、URL 与 userTurnId，再以 `confirmed-readback` 为该 job取得精确 system Target；当前 URL 已命中时零导航，否则只执行一次 Browser-owned `Page.navigate`，经过 2500ms 总闸门后 fresh readback 必须相等，physical submit 增量为零。侧栏、标题/顺序/时间猜测、搜索、滚动、自动展开、重试与 fallback 均不得参与。
 
-`FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001` 已按本次授权精准解冻替换并重新冻结：submit 已确认后的正常 Provider 回答轮询保留 job—system Target 独占绑定；40 秒静默后 observation 请求立即进入唯一 FIFO，BrowserLaneCoordinator是唯一计时 Owner并保证全设备相邻真实 Provider observation 至少 30 秒。请求具备资格后取得并激活精确绑定 Tab、重验 current Document、fresh observe一次；pending释放 lease/lane并重新排队，正常轮询不得重选 canonical URL或导航。只有进程重启、绑定 Target真正丢失或同等恢复现场，才先查同一 Browser WAL effect，再用 `confirmed-readback` 为该 job取得精确 system Target；绝不先回首页，同 URL零导航，不同 URL最多一次精确 `Page.navigate`后 fresh readback。Browser WAL 的 `logical_mutation_id` 是唯一 `provider_effect_identity_hash`，checkpoint稳定后另以 `semanticTextHash` 或媒体 `sha256` 标识结果；只有 Website可拒绝 settled result并签发新 `result_revision`。普通错误、DISPATCHED/CONFIRMED、进程/attempt/lease/fence/Target/Document变化都不得制造第二 submit。
+`FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001` 已按本次授权精准解冻替换并重新冻结：submit 已确认后的正常 Provider 回答轮询保留 job—system Target 独占绑定；40 秒静默后 observation 请求立即进入唯一 FIFO，BrowserLaneCoordinator是唯一计时 Owner并保证全设备相邻真实 Provider observation 至少 60 秒、总频率不随 N 增长。请求具备资格后取得并激活精确绑定 Tab、重验 current Document、fresh observe一次；pending释放 lease/lane并重新排队，正常轮询不得重选 canonical URL或导航。只有进程重启、绑定 Target真正丢失或同等恢复现场，才先查同一 Browser WAL effect，再用 `confirmed-readback` 为该 job取得精确 system Target；绝不先回首页，同 URL零导航，不同 URL最多一次精确 `Page.navigate`后 fresh readback。Browser WAL 的 `logical_mutation_id` 是唯一 `provider_effect_identity_hash`，checkpoint稳定后另以 `semanticTextHash` 或媒体 `sha256` 标识结果；只有 Website可拒绝 settled result并签发新 `result_revision`。普通错误、DISPATCHED/CONFIRMED、进程/attempt/lease/fence/Target/Document变化都不得制造第二 submit。
 
 八字 consultation root 与 direct predecessor 只属于 Website 业务关系。Website 在新任务签发前验证 owner/person/chart/root/predecessor、父授权、父 Delivery Manifest 与已入库父结果，并把完整父报告作为本轮 locked-fact material 下发；缺失、多义或身份不等一律 fail closed。GPT、Browser、Runtime 不复制该父子关系，也不保存或查询跨任务 Provider continuation。
 

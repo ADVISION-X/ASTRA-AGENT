@@ -263,7 +263,7 @@ export class BrowserLaneCoordinator {
         );
       } finally {
         if (requestKind === "provider-observation") {
-          this.observationNotBefore = Date.now() + 30_000;
+          this.observationNotBefore = Date.now() + 60_000;
         }
         this.active = false;
         this.activeJobRefHash = null;

@@ -51,7 +51,7 @@ export type ProductionGptBrowserCall = {
   recoverySelectionRequired: boolean;
 };
 
-export const PROVIDER_OBSERVATION_INTERVAL_MS = 30_000;
+export const PROVIDER_OBSERVATION_INTERVAL_MS = 60_000;
 
 const assertConfirmedProviderReadback = (active: ProductionGptBrowserCall): void => {
   const confirmed = active.confirmedProviderEffect;

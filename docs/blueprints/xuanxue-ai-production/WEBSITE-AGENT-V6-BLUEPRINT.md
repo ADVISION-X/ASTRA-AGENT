@@ -1,20 +1,20 @@
-# production-runtime 生产级施工图 V43
+# production-runtime 生产级施工图 V45
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v43",
+  "blueprintId": "agent-production-runtime-v45",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V57",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V58",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V6",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V28",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V28",
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V27",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V30",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V30",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V31"
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V29",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V29",
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V28",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V31",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V31",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V32"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-route-capability-manifest.provider.spec.json",
@@ -35,9 +35,9 @@
     {"contractRef":null,"from":{"domain":"startup-entrypoint","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"}}
   ],
   "prohibitedDependencyEdges": [
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V57","to":{"domain":"app-shell-ui","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V57","to":{"domain":"local-app-shell","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V57","to":{"domain":"startup-entrypoint","repo":"local"}}
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V58","to":{"domain":"app-shell-ui","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V58","to":{"domain":"local-app-shell","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V58","to":{"domain":"startup-entrypoint","repo":"local"}}
   ]
 }
 ```
@@ -201,13 +201,13 @@ Website 签发 attempt + lease + fence
 
 Browser provider effect identity 不含 Product Plugin 或 `attempt_id`，固定由 `job_id + result_revision + product_step_id + call_id + child_id + request_hash + payload_hash` 组成。AGENT 内部实现、attempt、进程、lease、fence、Target、Document 变化不得制造新 effect；同一 identity 的 physical dispatch 总数至多一。每次 mutation 与 Website 写请求仍校验当前 fence，旧 fence 的迟到写请求全部拒绝。
 
-`FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001` 已按本次授权精准解冻替换并重新冻结：Runtime只有在 Browser Authority为 PRESENT时才提出不超过合同安全上限、本地可用 executor与去重在途余量的有界 claim，Website才按当前设备 N签发新 grant。每个获 grant且需要 GPT的 job由 Browser懒建一个独占 system Target；submit后正常轮询保留绑定但 pending释放唯一 Browser lease/lane，GPT Child只计算最早资格时间，observation立即进入唯一 FIFO，由 BrowserLaneCoordinator作为唯一计时 Owner保证全局 30秒 observation节拍。具备资格后只激活该 job精确绑定 Tab、重验 current Document并 fresh observe一次，正常轮询 Page.navigate=0。只有进程重启、绑定 Target真正丢失或同等恢复现场，才先查同一 WAL effect，再以 `confirmed-readback`为该 job取得精确 system Target；不得回 GPT首页，只按 WAL canonical URL零次或最多一次精确导航并 fresh readback。唯一 Browser WAL的 `logical_mutation_id`仍直接作为公开 `provider_effect_identity_hash`，Runtime只运输 typed fact且不得读取 Browser私有 SQLite。回答稳定后使用独立 settled result payload hash；只有 `RESULT_SETTLED_UNUSABLE + CONFIRMED + confirmed + effect hash + evidence + settled result hash`完整一致，Website才能拒绝该结果并签发新 revision，其他现实输入只能在同一 accepted attempt零 submit收敛。不得增加第二 WAL、queue、store、Owner、状态机、兼容桥或 fallback。
+`FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001` 已按本次授权精准解冻替换并重新冻结：Runtime只有在 Browser Authority为 PRESENT时才提出不超过合同安全上限、本地可用 executor与去重在途余量的有界 claim，Website才按当前设备 N签发新 grant。每个获 grant且需要 GPT的 job由 Browser懒建一个独占 system Target；submit后正常轮询保留绑定但 pending释放唯一 Browser lease/lane，GPT Child只计算最早资格时间，observation立即进入唯一 FIFO，由 BrowserLaneCoordinator作为唯一计时 Owner保证全局至少 60秒 observation节拍且总频率不随 N增长。具备资格后只激活该 job精确绑定 Tab、重验 current Document并 fresh observe一次，正常轮询 Page.navigate=0。只有进程重启、绑定 Target真正丢失或同等恢复现场，才先查同一 WAL effect，再以 `confirmed-readback`为该 job取得精确 system Target；不得回 GPT首页，只按 WAL canonical URL零次或最多一次精确导航并 fresh readback。唯一 Browser WAL的 `logical_mutation_id`仍直接作为公开 `provider_effect_identity_hash`，Runtime只运输 typed fact且不得读取 Browser私有 SQLite。回答稳定后使用独立 settled result payload hash；只有 `RESULT_SETTLED_UNUSABLE + CONFIRMED + confirmed + effect hash + evidence + settled result hash`完整一致，Website才能拒绝该结果并签发新 revision，其他现实输入只能在同一 accepted attempt零 submit收敛。不得增加第二 WAL、queue、store、Owner、状态机、兼容桥或 fallback。
 
 lease release 只使用一个由 `job_id + attempt_id + lease_version + payload_hash` 确定性生成的 `request_id`；不得再复制 `idempotency_key`。同一 attempt 的同 effect readback 失败只允许 Website 记录首条失败事实，后续 release 只验证相同 `provider_effect_identity_hash` 并释放当前 lease，不以新的墙钟时间制造第二失败身份。
 
 AGENT 不建立通用 checkpoint、跨任务 Provider session state 或第二恢复状态机。Browser 唯一 WAL 的同一 provider-effect 行只提供 at-most-once 与同-effect confirmed readback 所需加密 locator；Runtime 唯一 Outbox 只幂等交付同一 result。Website 以自身 staging、领域入库与 admission receipt 为准，已完整 staging 的结果继续由 Domain Consumer 入库，不回退 AGENT。
 
-`FROZEN-WORK-ORDER-UNFINISHED-PURGE-001` 冻结：管理员清除只撤销 exact Work Order 中没有有效 Website 领域 admission receipt 的未完成 job。Website 必须暂停并保留 Work Order 与全部完成闭包，物理删除未完成 job/run 及其独占记录和私有对象；AGENT 对自身已接受 job 的 Website absence 按 exact job_id 清除本地 task、Outbox、材料、结果、Browser WAL 与 Forensics artifact，停止该 job 的轮询、交付和外部结果复用，不得影响其它 job。已真实发送到 Provider 的消息及 Provider 自有日志、备份不在本系统可保证删除范围。只有授权人再次明确解冻并同步替换双仓施工图、合同、实现与质检，才可改变本边界；AGENT 现役法案无需修改，因为其 exact Website-absence 清算职责保持不变。
+`FROZEN-WORK-ORDER-UNFINISHED-PURGE-001` 已按本次明确授权精确解冻、替换并重新冻结：管理员清除只撤销 exact Work Order 中没有有效 Website 领域 admission receipt 的未完成 job。唯一删除请求只携确认时的 `completed_count + unfinished_count`；Website 在现役锁序内、任何写入或对象删除前按 receipt 四元组重算，任一漂移稳定返回 409 且删除增量为零。计数一致时，Website 先暂停 Work Order，保留全部完成闭包并物理删除未完成 job/run 及其独占记录和私有对象；有效完成量为零时同事务物理删除空 Work Order 根，有效完成量大于零时只保留 paused Work Order 根与完成闭包。明确回复的回执必须匹配确认计数；回复不明时，只能由匹配确认计数的 exact Website 终态读回自行闭合，禁止因回执丢失而重发。AGENT 对自身已接受 job 的 Website absence 仍只按 exact job_id 清除本地 task、Outbox、材料、结果、Browser WAL 与 Forensics artifact，停止该 job 的轮询、交付和外部结果复用，不得影响其它 job。已真实发送到 Provider 的消息及 Provider 自有日志、备份不在本系统可保证删除范围。未来改变仍须授权人明确解冻并同步替换双仓法案、施工图、合同、实现与唯一质检；AGENT 现役法案无需修改，因为其 exact Website-absence 清算职责保持不变。
 
 付款、发布、删除、发货与正式业务记录修改不得放在可废弃 attempt 内；它们只在 Website 最终领域事务中按 `job_id` 幂等执行。禁止 recovery manager、planner、workflow、recovery queue、fallback、compatibility、legacy、bridge、shadow、第二 scheduler/store/state machine。
 
@@ -258,7 +258,7 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 7. Runtime 两表、精确列/主键/唯一索引/外键、WAL、integrity_check、foreign_key_check 和数据不变量可重复读回；`production_leases`、`production_gpt_consultations`、旧 `production_continuations` 与任何 GPT continuation store 均不存在；Browser WAL 不含 consultation identity、source task、continuation checkpoint 或 frontier，只保留执行 fence、effect terminal 与同-effect加密 locator；private base、reservation、fork、第二 lane/store 与 Product checkpoint 消费者为零；Runtime 普通启动迁移与删除增量为零。
 8. authority 数据库缺失、不可读、损坏/查询异常、记录缺失、hash mismatch 分别可观察并失败关闭。
 9. storage inventory 在未变数据上重复得到同一目录/字节分母；dry-run 写入、移动与删除增量为零。
-10. Website Work Order 管理员删除必须按 exact identity 无条件物理清除本系统持有的全部关联行与私有对象；AGENT 对已接受 job 的 Website absence 必须清除本地 task/Outbox/material/result/Browser WAL/Forensics，并逐 target 证明缺席和其它 job 保持不变。
+10. Website Work Order 管理员清除必须先保护领域 admission receipt 精确闭合的完成成果，物理清除全部未完成子图；完成量为零时 Work Order 根同事务缺席，完成量大于零时只保留 paused Work Order 与完成闭包。AGENT 对已接受 job 的 Website absence 必须清除本地 task/Outbox/material/result/Browser WAL/Forensics，并逐 target 证明缺席和其它 job 保持不变。
 11. durable accept 后进程重启必须由 Website 决策：mutation_outcome=no 可新 attempt；新 attempt 必须在现役 Target/current Document 重建 fresh/profile/model/menu/附件/Composer 等 target-local 准备，批准附件集合允许为空。只有 submit 是跨 attempt 稳定的 provider effect；DISPATCHED/CONFIRMED 必须保留同一 effect 且 submit 增量为零，并在任何准备动作前按精确 WAL 事实进入只读结果收敛。submit request hash 绑定现有 result revision 与 Child input hash；仅换 attempt 不变，新 result revision 必须变化。
 12. 当前完整结果只按 `job_id + attempt_id + result_hash` 经唯一 Outbox 幂等交付；回复不明先查询 Website staging、领域入库与 admission receipt，不重做 Provider，第二 Outbox 或 delivery flusher 为零。
 13. 失败、失联、lease 失效、结果不明和领域拒绝均只产生 typed facts；Website 唯一选择未发送后的新 attempt、同 effect 只读收敛或明确拒绝后的新 result revision。旧 fence 的 renew、artifact、result、terminal、completion 全部被拒绝。
@@ -268,4 +268,4 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 17. Runtime proof 只声明本域四种 dynamic mode；GPT、Browser、Runtime Log 的原生 proof 均可独立运行，Runtime 相邻 proof assertion 为零，任何未解耦 route 都阻断 RELEASE。
 18. Runtime CHANGE/READY 不替 Website、Product、GPT、Browser 宣称业务完成；最终业务完成仍以 Website admission/storage 为准。
 19. 各域现有唯一 inspector、acceptance 与适用 proof 分别覆盖本域 active law 的 summary、全部 forbidden 与全部 evidenceModes；Owner-bound import mutant 必须证明 Runtime→Plugin、Plugin→Runtime private 与旧 Catalog 豁免都会失败关闭，全部被替代路径的生产消费清零，不新增第二 checker、proof 或 verdict。
-20. N=1..4下去重业务在途数不得超过 Website当前设备配置；每个 active execution或 admission pending job各占一个席位，只有 Website admission receipt已读回，或 Website已持久决定 WAIT_NEW_ATTEMPT、永久撤权或删除后才释放该 job执行闭环；ACTIVE_ATTEMPT regrant不新增席位，CONSUME_CURRENT_RESULT继续占原席位，缩容不终止既有执行。任意时刻 Browser物理 lane与 active claim至多一个，相邻 Provider observation至少30秒且总频率不随 N增长。八字另须证明 BZ05/BZ03/BZ04每个业务任务均 fresh，BZ03/BZ04精确消费本轮 Website父报告材料，跨任务 continuation/controller/store/frontier/CAS、fork与 private base为零。
+20. N=1..4下去重业务在途数不得超过 Website当前设备配置；每个 active execution或 admission pending job各占一个席位，只有 Website admission receipt已读回，或 Website已持久决定 WAIT_NEW_ATTEMPT、永久撤权或删除后才释放该 job执行闭环；ACTIVE_ATTEMPT regrant不新增席位，CONSUME_CURRENT_RESULT继续占原席位，缩容不终止既有执行。任意时刻 Browser物理 lane与 active claim至多一个，相邻 Provider observation至少60秒且总频率不随 N增长。八字另须证明 BZ05/BZ03/BZ04每个业务任务均 fresh，BZ03/BZ04精确消费本轮 Website父报告材料，跨任务 continuation/controller/store/frontier/CAS、fork与 private base为零。

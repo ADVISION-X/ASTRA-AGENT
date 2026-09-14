@@ -5,7 +5,7 @@ import { SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 
-const LAW_ID = "LAW-GPT-001-V49";
+const LAW_ID = "LAW-GPT-001-V50";
 const ROOT = "src/capabilities/gpt";
 const OBSERVATION_PATH = `${ROOT}/web/gpt-dom-observation.ts`;
 const LEGACY_FACT_READERS = new Set([

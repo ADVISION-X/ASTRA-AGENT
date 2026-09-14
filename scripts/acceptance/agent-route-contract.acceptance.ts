@@ -137,7 +137,7 @@ assert.throws(() => assertProductionTaskRoutePolicy({
 process.stdout.write("[ACCEPTANCE][agent-route-contract] PASS 40/46/33/0\n");
 for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V28",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V29",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:route-contract:${evidenceMode}`,

@@ -168,8 +168,8 @@ const firstObserved = await firstObservation;
 assert.deepEqual(fifoEvents.slice(0, 3), ["ensure:fresh", "park:job-b", "ensure:bound-observation"],
   "an ineligible observation must not block a later eligible interaction, then must regain FIFO priority");
 await firstObserved.park({ reason: "observation-finished", mode: "product-call-settlement" });
-assert.ok(Number(Reflect.get(fifoLane, "observationNotBefore")) >= Date.now() + 29_000,
-  "one completed observation must advance the single global cadence by 30 seconds");
+assert.ok(Number(Reflect.get(fifoLane, "observationNotBefore")) >= Date.now() + 59_000,
+  "one completed observation must advance the single global cadence by 60 seconds");
 
 const secondObservationController = new AbortController();
 const secondObservation = fifoLane.acquire(binding("c") as never, "owner-c",
@@ -179,7 +179,7 @@ const secondMutation = await fifoLane.acquire(binding("d") as never, "owner-d",
   wait("fresh", new AbortController().signal));
 await secondMutation.park({ reason: "later-mutation-finished", mode: "product-call-settlement" });
 assert.equal(fifoEvents.at(-2), "ensure:fresh",
-  "a 30-second observation cadence must not block a later ready mutation");
+  "a 60-second observation cadence must not block a later ready mutation");
 secondObservationController.abort();
 assert.match(String(await observedRejection), /BROWSER_WAIT_ABORTED/u);
 

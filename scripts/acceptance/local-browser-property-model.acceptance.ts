@@ -386,4 +386,4 @@ try {
   await rm(chainRoot, { recursive: true, force: true });
 }
 console.log("LOCAL_BROWSER_PROPERTY_MODEL_ACCEPTANCE_PASS");
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V37", evidenceMode: "exam.property", clauses: ["forbidden:0","forbidden:1","forbidden:9","summary"], locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 authenticated frame sequences round-trip exactly; encrypted invocation payloads remain complete and one-shot mutation replies never replay" });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V38", evidenceMode: "exam.property", clauses: ["forbidden:0","forbidden:1","forbidden:9","summary"], locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 authenticated frame sequences round-trip exactly; encrypted invocation payloads remain complete and one-shot mutation replies never replay" });

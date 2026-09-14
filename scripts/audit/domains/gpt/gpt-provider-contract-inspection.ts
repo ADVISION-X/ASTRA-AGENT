@@ -56,7 +56,7 @@ export const inspectGptProviderProbeOwnerContract = (
   requireTokens(lifecycle, LIFECYCLE, [
     'childCapabilityId !== "checkpoint_gpt_text_response"',
     'childCapabilityId !== "checkpoint_gpt_generated_image"',
-    "PROVIDER_OBSERVATION_INTERVAL_MS = 30_000", "waitForProviderObservation",
+    "PROVIDER_OBSERVATION_INTERVAL_MS = 60_000", "waitForProviderObservation",
     "active.browser.readAtomicStepOutcome(confirmed.submitIdentity)",
     'recoverySelectionRequired: targetMode === "confirmed-readback"',
     "selectExactGptConversation", '"bound-observation"', "eligibleAt",

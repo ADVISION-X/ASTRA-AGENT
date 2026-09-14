@@ -2,10 +2,11 @@
 document_type: project_scheme
 scheme_id: N_TAB_EXCLUSIVE_ROTATION
 scheme_name: N 标签工单独占轮巡模式
-status: implemented_ready_candidate
+status: ready
 created_at: 2026-09-13
-implementation_status: CODE_QUALITY_COMPLETE
-test_status: DUAL_REPOSITORY_CHANGE_PASS
+updated_at: 2026-09-14
+implementation_status: NTAB_BASE_IMPLEMENTED_CURRENT_INCIDENT_CLOSURE_DESIGN_ONLY
+test_status: INCIDENT_EVIDENCE_BOUND_REPAIR_NOT_RUN
 release_status: NOT_RELEASED
 ---
 
@@ -13,19 +14,21 @@ release_status: NOT_RELEASED
 
 ## 0. 文档身份与当前裁决
 
-本文件是授权施工的唯一项目方案，不是 active law、Blueprint、跨仓合同、运行时配置或第二质量结论。授权人已明确解冻本次命中的冻结轮询边界；施工必须在同一双仓候选中同步替换 active law、Blueprint、跨仓合同、实现和唯一质检，替换完成后立即重新冻结。
+本文件是授权施工的唯一项目方案，不是 active law、Blueprint、跨仓合同、运行时配置或第二质量结论。原 N-TAB 建设已经完成双仓代码合并；2026-09-14 首次 N=3 真实翻译运行证明了领取、约60秒全局轮巡与 Website 入库主链已跑起来，同时暴露出 Browser 跨轮巡原子身份丢失、Website 原生拒绝原因被包装吞掉、AGENT 读回日志 Owner/成功语义失真及首轮翻译逐字段自检不足四个缺口。本文件继续原位承接唯一修复方案，不新建 V2、补丁方案或第二实施文档。
 
 当前裁决：
 
 ```text
-方案：AUTHORIZED GO
-施工：IMPLEMENTED
-实现：CODE_QUALITY_COMPLETE
-测试：DUAL_REPOSITORY_CHANGE_PASS
+方案：可施工
+N-TAB基础实现：已合并至双仓 main
+生产配置：N=3 已生效
+当前真实运行：N=3、约60秒全局 observation 已出现；54个新工单中4个已完成 Website 入库发布，3个执行中，47个排队，终态失败0
+本次闭环修复：只完成生产方案与根因绑定，代码、数据库、服务与 Browser 均未按第20节改动
+本次修复测试：NOT_RUN
 发布：NOT_RELEASED
 ```
 
-方案本身可控，但首次建设不是简单改一个数字。当前实现把业务容量、当前执行工单、Browser Target、GPT 等待和质检都冻结为 ONE BY ONE；首次动态化必须完成一次双仓合同升级、前向迁移、Runtime 改造、Browser 多 Target 改造和真实 Provider 分级验收。首个 RELEASE 只承诺经过真实 GPT 证明的 `1 <= N <= 4`；在这个范围内，`3 -> 4` 是后台一次修改，无需改代码、迁移或重启。将来要把生产上限提高到 5 或更大，必须先在新候选中完成目标高水位的真实 GPT 证明，再提高同一个合同安全上限，不能把“数据库能存”冒充“Provider 已安全”。
+原架构仍然有效：Website 唯一拥有动态 N，每工单独占一个 Tab，全部现实页面动作共用一条 Browser lane。本轮不回退该架构，不把 N 降为1调试，也不新增队列、状态库、恢复链、语义验证器或兼容桥。已入库的4个工单证明 Provider→AGENT→Website→领域持久化主链可用；日文工单首次被拒绝、第二次同工单新 Attempt 成功，又证明现役 Website 拒绝与重授权主链已闭合。本次只修复可观测性、原子身份与首次输出完整性，继续保持 N=3 和全局至少60秒 observation 硬门。首个 RELEASE 仍只承诺经过真实 GPT 证明的 `1 <= N <= 4`；在这个范围内，`3 -> 4` 才能是后台一次修改。
 
 ## 1. 模式定义
 
@@ -258,7 +261,7 @@ browser_action_in_flight in {0, 1}
 
 ```text
 提交后全局静默：40 秒
-相邻 Provider observation 最小间隔：30 秒
+相邻 Provider observation 最小间隔：60 秒
 ```
 
 GPT wait Child 只计算本工单下一次 observation 的最早资格时间，并立即调用现役 Browser observation typed 入口；它不创建、持有或等待 per-job timer。同一工单任意时刻最多有一个 pending observation 请求。
@@ -280,15 +283,15 @@ BrowserLaneCoordinator 是唯一计时等待 Owner；这仍是一条 FIFO、一�
 
 ```text
 A observe
->= 30 秒
+>= 60 秒
 B observe
->= 30 秒
+>= 60 秒
 C observe
->= 30 秒
+>= 60 秒
 A observe
 ```
 
-`A -> B -> C -> A` 只是受控示例，不是固定轮转合同。普通运行只要求“已具备资格请求按原入队序号、无插队、无饥饿”。没有其它页面动作时，同一 Tab 两次 observation 间隔的理论下界约为 `N * 30 秒`；它不是平均时延保证。整台设备的页面读取频率仍最多约一次/30秒。
+`A -> B -> C -> A` 只是受控示例，不是固定轮转合同。普通运行只要求“已具备资格请求按原入队序号、无插队、无饥饿”。没有其它页面动作时，同一 Tab 两次 observation 间隔的理论下界约为 `N * 60 秒`；它不是平均时延保证。整台设备的页面读取频率仍最多约一次/60秒。
 
 ### 5.6 正常轮询只能切 Tab
 
@@ -550,7 +553,7 @@ authority epoch 切换后失去 ownership 证明的旧页面不进入这个计�
 3. 40秒门结束后，observation pending 立即 park 该Target并释放当前 Browser lease，绑定仍存在；
 4. GPT wait Child记录本工单下一次临时 `nextCheckAt`；
 5. 本工单到期后才进入唯一 FIFO；未满足全局 `observationNotBefore` 的 waiter 不取得 active lane，也不阻塞其它已具备资格请求；
-6. 同一 FIFO 的资格选择保证相邻真实 observation 至少30秒；
+6. 同一 FIFO 的资格选择保证相邻真实 observation 至少60秒；
 7. 取得 lane 后只激活绑定 Tab、fresh observe一次；
 8. pending立即释放，ready才读取完整结果；
 9. 生成状态必须保留轻量观察，禁止提取完整 `outerHTML` 和 semantic text；
@@ -631,7 +634,7 @@ Website 决定读回前，当前业务席位和绑定不得释放：
 
 动作：
 
-- 在改造前冻结一轮现役 ONE BY ONE 真实基线：固定相同任务、模型、附件、物理命令、Target/Document变化、WAL effect、40/30秒节拍和Website最终存储读回；
+- 在改造前冻结一轮现役 ONE BY ONE 真实基线：固定相同任务、模型、附件、物理命令、Target/Document变化、WAL effect、40/60秒节拍和Website最终存储读回；
 - 明确解冻容量1、唯一 production Tab、正常等待持续独占 FIFO/lease 和 `FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001`；
 - 同一候选替换 AGENT Runtime、GPT、Browser 和 Website ai-acceptance 命中法案；
 - 同步替换三份 AGENT Blueprint、Website AI Acceptance Blueprint 和跨仓合同声明；
@@ -757,7 +760,7 @@ Website 决定读回前，当前业务席位和绑定不得释放：
 
 动作：pending后保留绑定但释放lease；GPT Child计算最早资格时间后立即把请求交给现役唯一FIFO且不自行等待；BrowserLaneCoordinator以waiter eligibleAt和一个global not-before作为唯一计时Owner，未到期waiter不占lane、不堵eligible mutation；一次lease只读一次，pending重新排尾；保留40秒静默和生成期轻量观察。
 
-验收：受控条件下A/B/C/A；普通条件只验eligible FIFO、无插队、无饥饿；相邻observation至少30秒；未到期observe的Tab activation、DOM read和browser_action_in_flight增量均为0，后续eligible mutation仍可执行；总频率不随N增加；无第二timer service/scheduler/queue。
+验收：受控条件下A/B/C/A；普通条件只验eligible FIFO、无插队、无饥饿；相邻observation至少60秒；未到期observe的Tab activation、DOM read和browser_action_in_flight增量均为0，后续eligible mutation仍可执行；总频率不随N增加；无第二timer service/scheduler/queue。
 
 ### WO-07：业务闭环释放与故障恢复
 
@@ -794,7 +797,7 @@ Website 决定读回前，当前业务席位和绑定不得释放：
 | 单Browser lane | 所有现实动作最大并发1 | 只有submit并发为1 | 阻断Browser放行 |
 | pending释放车道 | A绑定仍在；等待期active lease/claim=0；40秒门后B可获同一lane | 只看到A最终ready | 阻断Browser放行 |
 | observation不堵lane | 未到全局时间的observe不激活、不读DOM、不占active；后续eligible mutation可执行 | 最终轮巡顺序 | NO-GO |
-| 全局轮询 | 相邻真实observation至少30秒 | 每Tab自己30秒 | 判定会N倍放大，NO-GO |
+| 全局轮询 | 相邻真实observation至少60秒 | 每Tab自己60秒 | 判定会N倍放大，NO-GO |
 | 正常切Tab | exact Tab激活后current Document fresh | 缓存document或URL命中 | 失败关闭当前job |
 | 正常零导航 | pending轮询Page.navigate/reload/侧栏/搜索均为0 | 最终URL正确 | NO-GO |
 | submit至多一次 | WAL+真实physical input count | Product调用次数 | NO-GO |
@@ -832,43 +835,45 @@ Gate A-E 的真实事实必须接入命中 active law 的唯一 dynamic-proof ro
 
 GPT安全观察从该Gate首次submit前开始，到最后一个工单Website storage readback结束。real-proof在每个Target上于首个submit前安装只读、事件驱动的页面警告采集，并复用正常coherent observation的数据包；它不得增加轮询、点击、输入、导航或额外DOM读取。任一可见“操作频繁”、rate-limit、usage-limit提示记录为结构化warning fact并保留文字hash/截图证据；Chrome的tab crash、Target crash、debugger detach沿现役lifecycle事件线采集。采集器中断或时间线存在未覆盖区间，整轮FAIL；AGENT日志、fixture和“肉眼没看到”不能证明为零。
 
-### Gate A：N=1回归
+### Gate A：N=3干净现场直接启动
 
 必须证明：
 
-- 使用WO-00冻结的同任务、模型、附件与计时口径逐项对比现役ONE BY ONE；
-- 新实现允许等待期内部park/reacquire，但不得增加Provider输入、Page.navigate、reload、错误Target激活或提前释放业务席位；同一Tab已经active时activation update增量必须为0；
-- physical submit至多1；
+- Website唯一动态配置读回为3，AGENT本地不存在N副本，启动与领取过程中不经过N=1或N=2；
+- 使用WO-00冻结的三份同类型任务、模型、附件与计时口径，Website一次最多签发3个grant；
+- 三个工单分别取得一个system-owned独占Tab，绑定双向唯一，用户Tab变化为0；
+- 唯一Browser lane依次处理三个Tab，Browser action in-flight最大值为1；
+- 每个工单physical submit至多1；
 - normal Page.navigate为0；
-- admission receipt前下一新job claim为0；
+- 三个业务席位均闭合前第四个新job grant为0；
 - 无GPT频繁操作提示、页面崩溃或debugger conflict。
 
-旧real-proof中“normal poll park/reacquire=0”和“永不发生observation Tab activation”的ONE BY ONE实现断言必须被逐条替换：N=1仍不允许无意义activation；N>1只允许激活当前job精确绑定Target；所有N仍要求normal Page.navigate=0、active物理Target最大1、错绑输入为0。
+旧real-proof中“normal poll park/reacquire=0”和“永不发生observation Tab activation”的ONE BY ONE实现断言必须被逐条替换：N>1只允许激活当前job精确绑定Target；所有N仍要求normal Page.navigate=0、active物理Target最大1、错绑输入为0。N=1只保留为后续兼容与性能对照样本，不再作为本轮调试前置台阶。
 
-### Gate B：N=2安全金丝雀
+### Gate B：N=3逐槽ONE BY ONE等价性
 
 必须使用真实Chrome和真实GPT：
 
-- 两个独立Tab同时生成；
+- 三个独立Tab可同时生成，但每个Tab内部始终只跑一个工单直至Website入库；
 - Browser action in-flight最大值为1；
-- 两个Target不共享；
-- 相邻Provider observation至少30秒；
+- 三个Target不共享；
+- 相邻Provider observation至少60秒；
 - submit后40秒页面命令增量为0；
 - 没有unresolved DISPATCHED时，任一Tab关闭只影响自身工单；
 - 无频繁操作提示、Tab crash或debugger conflict。
 
-出现一次Provider频繁操作提示或页面崩溃，立即 `NO-GO`，不得尝试N=3。
+出现一次Provider频繁操作提示、错误Target输入或页面崩溃，立即 `NO-GO`；保持N=3、停止新claim并修复同一断点，不以降N掩盖并发缺陷。
 
-### Gate C：N=3价值证明
+### Gate C：N=3端到端价值证明
 
-运行前冻结成对批次、任务身份、模型、附件、顺序和统计口径。N=1与N=3各至少三轮，每轮不少于六个相同类型工单；计时从Website发出该轮首个lease开始，到该轮最后一个领域存储commit结束，慢单和失败单全部计入，不得看完结果再改阈值。
+先直接完成N=3功能闭环：至少三轮，每轮不少于六个相同类型工单；计时从Website发出该轮首个lease开始，到该轮最后一个领域存储commit结束，慢单和失败单全部计入，不得看完结果再改阈值。
 
 - 三轮均无错投、重复submit、普通URL导航、Provider警告或Tab crash；
 - 每个工单均读回Website admission receipt；
-- N=3的`admitted jobs/hour`三轮中位数至少比N=1提高20%，且最终admission成功率不得下降；
-- Browser现实动作节拍不比N=1的现役安全门更激进。
+- 三轮N=3最终admission成功率不得低于冻结ONE BY ONE基线；
+- Browser现实动作节拍不比现役ONE BY ONE安全门更激进。
 
-如果安全但最终入库吞吐没有提升，判定无建设价值，不放行。
+N=3闭环稳定后，Gate E再制作N=1性能对照；最终`admitted jobs/hour`三轮中位数至少比N=1提高20%。安全成立但吞吐未提升，判定无建设价值，不放行任意N调节。
 
 ### Gate D：N=3崩溃与隔离恢复
 
@@ -883,14 +888,17 @@ GPT安全观察从该Gate首次submit前开始，到最后一个工单Website st
 
 任一错误Target、全局Target误清、猜Tab、重复输入、existing-job漏恢复或其它job identity变化，立即NO-GO。
 
-### Gate E：动态3 -> 4 -> 3与N=4安全高水位
+### Gate E：后置N变量承压与动态3 -> 4 -> 3
 
 必须证明：
 
+- 只在N=3功能、异常恢复和真实入库全部通过后，才制作N=1、N=2、N=4对照与承压；N=1不是调试或修复前置；
+- N=1与N=3使用冻结的成对批次、任务身份、模型、附件、顺序和统计口径，各至少三轮且每轮不少于六个相同类型工单；
+- N=3的`admitted jobs/hour`三轮中位数至少比N=1提高20%，最终admission成功率不得下降；
 - 管理页只修改一次N；
 - 无代码变更、发版、migration、re-enrollment或Runtime重启；
 - 3 -> 4在下一笔claim中最多补1单，无需等待heartbeat；
-- 四个独占Tab可同时处于生成等待，但Browser lane、40秒静默和30秒observation总频率仍满足全部硬边界；
+- 四个独占Tab可同时处于生成等待，但Browser lane、40秒静默和60秒observation总频率仍满足全部硬边界；
 - N=4全程GPT warning、Tab crash和debugger detach均为0，每单均有Website storage readback；
 - 4 -> 3且四单在途时不取消任何工单，新claim=0；
 - 第一单闭合后剩3单，仍不补；
@@ -898,7 +906,7 @@ GPT安全观察从该Gate首次submit前开始，到最后一个工单Website st
 - 每个闭环工单只关闭自己的system Tab，不保留空闲Tab池、不操作用户Tab；
 - Browser lane最大并发始终为1。
 
-Gate E通过后，首个RELEASE才取得`1..4`的生产安全结论。N=5或更大仍被同一合同安全上限拒绝，直到新候选完成目标高水位真实Gate并替换该上限。
+Gate E通过后，首个RELEASE才取得`1..4`的生产安全结论。N=5或更大仍被同一合同安全上限拒绝，直到新候选完成目标高水位真实Gate并替换该上限。任何后置承压失败都回到同一个故障修复，不把N=3自动降成1作为运行兜底。
 
 ## 15. 发布顺序
 
@@ -915,11 +923,11 @@ Gate E通过后，首个RELEASE才取得`1..4`的生产安全结论。N=5或更�
 -> GPT全局轮巡
 -> 业务闭环与故障恢复
 -> 双仓原生CHANGE/READY
--> N=1真实回归
--> N=2金丝雀
--> N=3价值证明
+-> 清空并读回本轮测试批次跨仓残留
+-> 动态N=3直接启动
+-> N=3逐槽ONE BY ONE等价性与价值证明
 -> N=3崩溃恢复
--> 3->4->3与N=4安全高水位证明
+-> 后置N=1/2/4承压、性能对照与3->4->3高水位证明
 -> RELEASE
 ```
 
@@ -930,10 +938,10 @@ Gate E通过后，首个RELEASE才取得`1..4`的生产安全结论。N=5或更�
 3. Website应用前向migration并发布新contract；
 4. 旧AGENT因contract version不等失败关闭；
 5. 发布匹配的AGENT consumer；
-6. 新session先以N=1启动；
-7. Gate A通过后升N=2；
-8. Gate B通过后升N=3；
-9. Gate C、D、E全部通过且双仓RELEASE通过后，才可正式把N=3作为生产配置，并开放1..4的一键调整。
+6. 读回同一设备Website唯一`max_in_flight=3`，新session直接按动态N=3启动；
+7. Gate A—D全部在N=3完成，不经过N=1或N=2调试；
+8. N=3稳定闭环后执行Gate E的其它N承压与性能对照；
+9. Gate A—E全部通过且双仓RELEASE通过后，才开放1..4的一键调整。
 
 ## 16. 施工准入与完成公式
 
@@ -971,12 +979,12 @@ AND 双仓均为clean Git commit
 终稿裁决更新为：
 
 ```text
-方案架构：AUTHORIZED GO
-生产代码施工：IMPLEMENTED
-双仓 CHANGE：PASS
-独立施工审计：PASS（完成率99%，准确率99%，P0=0，P1=0）
-clean commit READY：必须在本文件进入候选 commit 后由双仓原生 quality:check 裁决
-真实安全与效率：NOT_PROVEN，必须由Gate A-E裁决
+原方案架构：AUTHORIZED GO
+原 N-TAB 生产代码：已合并
+原双仓 CHANGE：PASS
+原独立施工审计：PASS（完成率99%，准确率99%，P0=0，P1=0）
+2026-09-14 日志修复：F1/F2/F3 已按本节精确实施，聚焦单元与静态检查已通过；本次 CHANGE、READY 与 Gate A-E 尚未运行
+真实安全与效率：NOT_PROVEN，仍必须由 Gate A-E 裁决
 ```
 
 ## 18. 本轮施工闭环记录
@@ -990,4 +998,591 @@ clean commit READY：必须在本文件进入候选 commit 后由双仓原生 qu
 5. Browser release 的 authority映射、same-job WAL门、active claim零输入 park、FIFO、预授权 WebSocket、exact jobRefHash ack、Extension精确删Tab及删A不伤B均有现役行为验收；无消费者的幽灵验收文件声明已删除，没有新增空文件或第二链路；
 6. 双仓原生 `quality:check CHANGE` 已分别输出 `CHANGE_PASS`；三名最终只读审计员均达到不低于95%的门槛，最终Browser安全审计与双仓交叉审计均为99%/99%、P0/P1为0。
 
-本轮没有执行生产 migration、没有修改生产设备当前 N、没有把 N 硬编码为3、没有运行真实 Gate A-E，也没有取得 RELEASE。后续必须先在双仓 clean commit 上分别通过原生 READY，再按第14节从 N=1 逐级执行真实 Gate A-E；只有全部真实证据和双仓 RELEASE 同时通过后，才允许把生产当前 N 设置为3。
+上述记录是原建设候选的历史事实。此后生产已应用 `0137_ai_production_dynamic_n_tab_capacity.sql`，设备 `aipdev_709b550b2decd50644df15ed15cfaf12` 的唯一 `max_in_flight` 已经通过现役 CAS 从 1 调整为 3；本次启动日志证明 Website 一次签发 3 个 grant，AGENT 完成 3 个 durable accept、3 份材料校验和 3 次 lease renew。实际操作跳过了原定 N=1、N=2 逐级 Gate，Gate A-E 仍未完成，因此仍是 `NOT_RELEASED`，不得把局部容量生效写成 N-TAB 生产闭环已经通过。
+
+## 19. 2026-09-14 首次 N=3 启动问题修复闭环（按测试清场与直接 N=3 校正版）
+
+### 19.1 本轮边界、候选与证据绑定
+
+本节只处理 2026-09-14 首次 N=3 启动暴露的问题，是第 1—18 节原架构的精确修复，不改变模式定义。
+
+| 对象 | 当前绑定 |
+|---|---|
+| AGENT 仓 | `main@0bf4a1468e8d42e447499d920a403c87f58e1379`，tracking 同 HEAD |
+| Website 仓 | `main@f67c9f56dd13354d51bb195991270f033e7590e8`，tracking 同 HEAD |
+| AGENT dirty state | 本方案文件是本轮授权差异；未获本方案授权的 untracked `docs/项目方案/GPT聊天自动重命名-完整实现方案.md` 必须原样保留 |
+| Website dirty state | 本轮仅允许两份现役 Blueprint、F2/F3 三个生产文件及其现役 inspector/test；并发出现的 untracked `docs/项目方案/SEO生产工单清理与完成分栏-完整实现方案.md` 属于其它工作，必须排除本候选并原样保留 |
+| Website 启动日志 | `/Users/nexgen/.codex/attachments/8e14c4b8-9b1d-47d1-a663-22f0ab834e10/pasted-text.txt`，SHA-256 `d5d3c80320c27bb2e8a2cbbeef0d2bbb1a202abff021ff0c87c5faf8f1fd0ad7` |
+| AGENT 启动日志 | `/Users/nexgen/.codex/attachments/200238c4-7262-4a16-82f6-13f097a1fb61/pasted-text.txt`，SHA-256 `b126dc4c33ac1c9116f34c75fe20497499301db04242cb8b4761b47d5ddbe191` |
+| 回归节点 | 双仓 annotated tag `checkpoint/one-by-one-pre-ntab-20260914`；它只用于恢复，不是 READY/RELEASE 证明 |
+
+本轮方案已进入实施候选：两份现役 Blueprint 已精准固化 F2/F3；Website F2/F3 代码与现役 inspector/test 已修改；数据库先删除已证明无后代、无 AI job、无 Provider effect 的 exact F1 孤立根，最终审计前又按第19.9节冻结分母并精确删除全部58个未完成/旧策略测试 AI 工单图。公开知识 Worker 仅为防止清场期间自动重建而停止，其它 Website 服务、Browser、生产配置和发布均未由本轮变更。
+
+本节接受授权人的最新裁决并覆盖本节此前版本：
+
+1. 当前 `LOCALIZATION_AI_JOB_BINDING_CONFLICT` 来自测试期间一次不完整删除留下的异常数据组合；不得为这组测试残留修改长期产品合同、禁止正常重建或增加 tombstone/replacement/兼容分支；
+2. 宁可把本轮测试数据及其跨仓残留精确清空，再用全新业务身份重建；
+3. 设备唯一动态 N 保持为3，不硬编码，也不先降到1或2调试；
+4. 其它 N 只在 N=3 功能闭环稳定后作为承压、性能对照和动态调节验收，不是本轮修复阶梯。
+
+### 19.2 证据裁决：三个问题与一个待证明面
+
+| 编号 | 证据 | 裁决 | 首个直接断点 | 唯一 Owner |
+|---|---|---|---|---|
+| F1 | Website 日志 210—212及此前管理员删除事实 | 确认测试数据污染，不裁决为长期代码缺陷 | 旧 AI 子工单被删除，但 `localization_jobs` 根被保留为 `cancelled + ai_production_job_id=null`；sender随后命中这组非自然测试状态并在绑定门失败 | 本轮测试清场；不改 Website localization 产品语义 |
+| F2 | Website 日志 212、215 | 确认事实表达错误 | Worker 单轮业务失败被外层写成 `runtime.start` failed，同时 `start.sh` 仅凭进程存活 10 秒显示 `active`，使人无法从启动输出区分“进程存活”与“本轮业务成功” | Website system-security + public-knowledge worker |
+| F3 | Website 日志 270—411 共 16 次；AGENT 日志 20 | 确认日志语义错误 | Website 把持久且合法的 `CAPACITY_ZERO` 回执归类为 failed/BLOCKING；AGENT 对同一回执正确记录为 succeeded | Website ai-acceptance/runtime-log consumer |
+| E1 | AGENT 日志 16—26 | 局部 PASS | N=3 已一次领取并 durable accept 三工单，材料和 lease 正常 | Website capacity + AGENT runtime |
+| G1 | 两份日志均没有对应证据 | 未证明，不是已确认代码故障 | 尚未证明三个独占 GPT Tab、唯一 lane 轮巡、前台激活后 fresh readback、Provider 结果、Website admission/storage | 后续 Gate A-E |
+
+F1 的事实链固定为：
+
+```text
+管理员物理删除旧 ai_production_job
+-> 同一 localization_jobs 根记录按授权保留为 cancelled + ai_production_job_id=null
+-> 自动 sender 后续再次处理同一翻译身份
+-> createLocalizationJob 命中仍存在的 cancelled 根
+-> bindLocalizationAiProductionJob 拒绝把 cancelled 根重新绑定
+-> LOCALIZATION_AI_JOB_BINDING_CONFLICT
+-> 事务整体回滚，没有形成可用新工单
+```
+
+`bindLocalizationAiProductionJob` 的不可变保护仍然正确，必须保留。真正要删除的是这次测试批次的完整旧数据，而不是删除保护、把 cancelled 改回 queued、让 sender 永久忽略该身份，或建立 replacement job。清场结束后必须由新工单、新 localization 根和新 AI job 正常重建。
+
+### 19.3 首次故障修复的四维对齐裁决
+
+本小节只记录F1/F2/F3首次修复当时的边界；随后授权的60秒全局observation节拍以19.10为准，并精准替代本小节中“法案零变化、AGENT Browser源码零变化、仅两份Blueprint变化”的旧候选限制。
+
+| 维度 | 现役权威 | 本轮裁决 |
+|---|---|---|
+| 法案 | Website `LAW-AI-ACCEPTANCE-003-V8`、`004-V23`、`012-V25`；`LAW-LOCALIZATION-013-V11`、`016-V1`、`019-V6`；`LAW-PUBLIC-KNOWLEDGE-CONTENT-005-V25`；`LAW-SYSTEM-SECURITY-009-V7`、`017-V4`；AGENT Runtime Log、Browser 与生产 Runtime 现役法案 | 保留唯一身份、不可变绑定、局部 ready 不冒充端到端 ready、零任务 claim 合法终态和 unresolved effect 失败关闭；不新增“异常数据永久禁止重建”规则 |
+| 施工图 | Website `SYSTEM-BLUEPRINT.md`、AI Acceptance、System Security Startup；AGENT V6、Runtime Log Spine、Local Browser Authority | 不新增施工图；仅在现役 AI Acceptance 与 System Security Startup 两份 Blueprint 精准固化 CAPACITY_ZERO、30秒退避、`job.execute` 与 `process_alive` 实施语义，其余 Blueprint 零变化 |
+| 代码 | Website claim repository、public-knowledge server、`start.sh`；AGENT现役 runtime/Browser 路径只读回归 | localization sender、AGENT claim/cleanup与Browser WAL不因本次测试残留修改；长期代码仅修复F2/F3的日志真实性和满载节拍 |
+| 质检 | Website `pnpm quality:check`；AGENT `npm run quality:check`；各自现役 inspector/acceptance；Gate A-E | 补足直接缺口的正反例，再由双仓唯一原生质量命令裁决；静态 PASS 不替代真实 Gate |
+
+若施工时发现必须改变跨仓字段、数据库 schema、法案语义或冻结 Browser submit/readback 语义，立即停止。本方案未授权这些扩张，必须回到方案层重新裁决。
+
+### 19.4 终态合同
+
+修复后的唯一主链必须是：
+
+```text
+Website进入现役draining，设备动态N仍为3
+-> 冻结本轮测试分母，停止新claim但不改变N
+-> 证明每一项都是本轮测试数据且没有需保留的Website admission/storage
+-> 用现役Website未完成工单删除Owner删除有归属的测试图
+-> 对孤立的测试 localization 根执行一次精确事务删除
+-> Website exact job读回404
+-> Browser Authority present时由AGENT现役website-admin-deletion purge逐job清除
+-> exact system Tab、Browser WAL、task、outbox、task-dir、evidence全部读回为空
+-> 新建全新测试工单和全新业务身份
+-> Website恢复active，动态N仍为3
+-> 一次最多签发3个grant，直接进入三Tab单lane真实闭环
+
+Website claim 回执
+-> LEASE_GRANTED / NO_ELIGIBLE_JOB / CAPACITY_ZERO / DRAINING：请求已取得合法持久回执，span succeeded
+-> CLAIM_BLOCKED：span failed
+-> CAPACITY_ZERO 下一次请求最早 30 秒，仍使用现有 next_claim_after_ms
+
+Website 启动输出
+-> Core ready 只证明 Core
+-> Domain Worker process_alive 只证明进程仍存活
+-> 单轮业务失败使用 job.execute/error 事实，不写成 runtime.start failed
+-> Worker 继续使用现役 loop/backoff，不因一个领域任务失败退出，也不伪报该轮成功
+```
+
+这里的“Tab 在前”仍沿用现役 Browser 合同：每次动作由唯一 lane 调用 `chrome.tabs.update(tabId,{active:true})`，随后重读同一 tab/window、active、discarded、load、Target 与 current Document。它只保证该 system Tab 是其 Chrome 窗口当前 Tab，不抢夺 macOS 前台应用或操作者窗口焦点。
+
+### 19.5 原子工单
+
+#### IR-00｜保持 N=3 的测试冻结与事实快照
+
+目标：在清场和代码施工前停止新增现场，但不通过降N掩盖问题。
+
+动作：
+
+1. 只读记录双仓 HEAD/tracking/dirty、设备行当前 N、当前 Website 未闭合业务集合、AGENT task/outbox、Browser WAL 和 system Tab 绑定；
+2. 读回设备 `aipdev_709b550b2decd50644df15ed15cfaf12.max_in_flight=3`，整个清场、修复和重启过程禁止改成1或2；
+3. 使用现役 Website `draining`/停止新claim控制面冻结领取；它只冻结入口，不修改N，不取消当前在途；
+4. 对每个 `DISPATCHED` 保存 exact job/attempt/effect/command 与 Website 当前状态读回；
+5. 首轮已知测试候选至少包含旧根 `localization_c86a73e2-4b4d-4754-b04e-3704fb5d6ffe`、已删除旧job `aiprod_1a7a73ad-1a74-4123-8d71-e78e81ca51a9`，以及本次三job `aiprod_89f3fa23-5b10-4c5b-96c5-46d4e77c18a1`、`aiprod_51f4367e-a819-4db3-b647-225dfaf38aae`、`aiprod_b3f21ddf-200c-4b53-ba2a-b069b5869d34`；它们只是查询种子，不是最终分母，必须从Website外键图与AGENT持久层向两侧闭包。
+
+验收：N读回始终为3；draining后没有新grant；测试分母清单包含每个Website row/object与AGENT本地责任的 exact identity、来源关系、保留/删除裁决。任何身份不明、非测试数据、已admitted业务或unknown external effect均停止删除。
+
+#### IR-01｜本轮测试数据跨仓精确清场
+
+Owner：长期生产仍只有 Website 现役管理员删除路径与 AGENT 现役 `purgeDeletedJob`。本轮另有一个仅存在于已授权操作时段的“一次性测试数据库清场责任”：它只处理不属于 public-knowledge work-order 可达闭包、又已由完整数据库分母证明无 admission/有效 Provider effect 的 localization 测试图；不落代码、接口、表、脚本或常驻命令，执行结束即消失，因此不形成第三条生产清理链。
+
+动作：
+
+1. 先生成“删除集合”和“保留集合”。删除集合只允许包含本轮测试工单、其unfinished runs/articles、四个候选job对应的AI/localization后代、私有材料/输出对象、AGENT task/outbox/task-dir/evidence、Browser WAL及exact system Tab；保留集合至少包含设备与`max_in_flight=3`、用户/凭证、migration/contract、其它工单、所有非测试与已admitted业务；
+2. 若数据库只读证明全部可变业务行均属于本轮测试，仍按现役Owner逐图删除并读回，不执行`DROP DATABASE`、`TRUNCATE`、schema重建或migration回退；若存在任一非测试或已admitted数据，立即收敛为exact测试图，不扩大删除；
+3. Website进入draining后，先用现役未完成工单删除接口处理能由work order闭包证明的测试图；每个调用必须读回以下唯一合法终态之一：有效完成量为零时 exact Work Order root 物理缺席，有效完成量大于零时 `status=paused && completed_count>0 && unfinished_count=0`；两种终态都必须同时证明 purged job/article 不存在并保留接口声明的 admitted 项；
+4. 对无法由现役work-order图触达、但已由第1步证明为本轮 localization 测试残留的图，使用上述一次性测试数据库清场责任和同一数据库连接单事务处理。允许的形态只有两类：`cancelled + ai_production_job_id is null` 的孤立根，或 exact localization 根、绑定 AI job、runtime、binding attempt 组成且 `business_consumed_at is null` 的完整未完成图。事务必须锁 exact 分母及后代、开启现役 owner-scoped 删除 gate，再次断言 admission/storage 引用为0；若曾 accepted，还必须由 AGENT WAL/outbox 证明 Provider submit 为0；旧策略结果只允许其 output 全部已是 orphaned。删除 exact AI job/root 后依赖现役外键级联清除后代，影响行数不等于冻结值则整事务回滚；该许可只适用于本次测试清场，不能成为可复用生产命令；
+5. 删除私有对象前先证明未被保留集合共享；对象删除失败则数据库事务失败关闭，不留下“数据库已删、对象未删”的半清场；
+6. Website逐个读回测试job为404后，保持Browser Extension/Authority在线，让AGENT现役`website-admin-deletion`路径按exact job执行：关闭且只关闭其system Tab，purge per-job Browser WAL、evidence、task directory、task/outbox；不直接擦除整个SQLite或整个Browser profile；
+7. 若某job存在unresolved `DISPATCHED`，仍不得重放；只有Website exact 404后才允许上述零submit purge。Browser不可用、404不成立或本地责任读回不全时停止清场并保留现场；
+8. 清场完成后再次做跨仓闭包读回，旧job、旧localization根、旧system Tab和六类本地责任必须全部为0，保留集合hash不得变化。
+
+验收：
+
+- 删除集合Website row/object均为0，AGENT task/outbox/task-dir/evidence/WAL和exact system Tab均为0；
+- 保留集合row count、identity hash、admission receipt与对象引用逐项不变；
+- 设备N仍为3，migration/contract/schema数量变化为0；
+- 整个清场provider submit增量为0；
+- 清场后用全新工单身份运行自动sender，能够创建全新localization根与AI job，证明“正常重建”没有被代码禁止。
+
+#### IR-02｜统一 CAPACITY_ZERO 日志语义并降低满载空转
+
+Owner：Website ai-acceptance/runtime-log consumer。
+
+目标文件：
+
+- `services/api/src/ai-production/job-claim-repository.ts`
+- 对应 AI Acceptance 与 Runtime Log acceptance/inspector
+
+动作：
+
+1. 在已经取得合法持久 receipt 的五种 outcome 中，仅 `CLAIM_BLOCKED` 记录 failed；`CAPACITY_ZERO` 与 `DRAINING` 和 AGENT 一致记录 succeeded，同时保留 authorityRef/authorityHash 与持久 receipt；事务、传输、合同等未取得合法 receipt 的异常仍按原生失败记录；
+2. `CAPACITY_ZERO.next_claim_after_ms` 从 5000 调整为现有合同允许的 30000；不把当前 N 下发给 AGENT，不新增推送、缓存或第二调度；
+3. 不删除原始回执和 reason code，诊断仍可看到 `BUSINESS_CAPACITY_EXHAUSTED`。
+
+验收：五种 outcome 逐项测试；CAPACITY_ZERO 必须是 `jobs=[]`、`reason_codes=[BUSINESS_CAPACITY_EXHAUSTED]`、`next_claim_after_ms=30000`、Website/AGENT 两端 terminal 均 succeeded；CLAIM_BLOCKED 仍 failed/BLOCKING；30 秒内同一满载设备不出现第二次 claim。
+
+#### IR-03｜把 Worker 进程存活与业务轮次结果分开
+
+Owner：Website system-security + public-knowledge worker。
+
+目标文件：
+
+- `start.sh`
+- `services/api/src/public-knowledge-worker-server.ts`
+- `tests/production/production-runtime.test.ts`
+- System Security 与 Public Knowledge 现役 inspector
+
+动作：
+
+1. `start.sh` 的十秒监督状态改名为 `process_alive`，输出明确写明“只证明进程存活，不证明业务轮次成功”；
+2. public-knowledge 外层 cycle catch 不再创建 `runtime.start` span；使用现有 RuntimeLogEventV2 的 `job.execute` error 事实暴露同一原生 code；
+3. 保留现役 loop/backoff 和 Worker 进程，不因单任务失败整进程退出，不新增 readiness socket/file/table 或日志 reducer。
+
+验收：注入 localization sender 失败时，进程仍存活并按现役 loop 退避；日志只有 inner `website.task-create` 作为首个直接失败，outer 记录为同 code 的 cycle 后果且 operation 不是 runtime.start；启动输出不得出现该 Worker `active/ready/业务成功`，只能出现 `process_alive`。
+
+#### IR-04｜静态质量与删除门
+
+动作：
+
+1. 更新现役 inspector/acceptance，不新建第二质量入口；
+2. 检查 source/test 净变化，新增每一行必须只有IR-02或IR-03的直接消费者；Website localization sender和AGENT生产/Browser源码净变化必须为0；
+3. 搜索并拒绝 replacement job、second queue、second WAL、second readiness、compatibility、fallback、shadow、dual read/write；
+4. 双仓分别运行唯一原生 `quality:check CHANGE`，形成 clean commit 后再运行 READY。
+
+验收：双仓 CHANGE_PASS；clean candidate-bound READY_PASS；P0/P1=0；未授权文件无差异；法案、跨仓 contract、migration 数量变化均为0；Blueprint 只允许上述两份现役文件的精准固化，不得新增文件或扩大语义。
+
+#### IR-05｜全新测试批次直接 N=3 闭环
+
+固定顺序：
+
+```text
+IR-00 保持N=3并进入draining
+-> IR-01精确清空本轮测试图与跨仓残留
+-> 读回删除集合=0、保留集合不变、provider submit增量=0
+-> Website IR-02/03 clean candidate 发布
+-> 双仓原生CHANGE/READY
+-> 新建全新测试工单，不复用旧job/localization/run身份
+-> 恢复active并读回设备动态N=3
+-> Gate A：N=3干净现场直接启动
+-> Gate B：N=3逐槽ONE BY ONE等价性
+-> Gate C/D：N=3端到端价值与崩溃恢复
+-> Gate E：后置N=1/2/4承压、性能对照与3->4->3
+-> 双仓 RELEASE
+```
+
+任何阶段出现 unknown Provider effect、同一 effect submit 增量大于0、第三方Tab被操作、正常轮询导航、Website admission缺失、旧job任一本地责任残留或Worker又把业务错误写成启动失败，立即停止新claim并保持N=3配置不变；不得自动降N、不得用N=1绕过故障。
+
+### 19.6 删除反事实与复杂度上限
+
+| 拟变更 | 当前必要性 | 真实消费者 | 删除后会失败的验收 |
+|---|---|---|---|
+| 一次性测试清场步骤 | 关闭F1测试数据污染 | 本轮N=3测试 | 删除集合全空、保留集合不变、全新身份可正常重建 |
+| CAPACITY_ZERO 成功语义 + 30 秒 backoff | 关闭 F3 与 5 秒空转 | Website/AGENT claim loop | 五 outcome 对齐、30 秒无第二 claim |
+| `process_alive` 文案与 cycle error operation | 关闭 F2 | 操作员、Runtime Log 诊断 | 失败轮次不再伪装 runtime.start |
+
+明确禁止新增：sender“禁止重建”分支、AGENT常驻pre-claim清理机制、数据库migration、删除台账、tombstone、replacement job、第二状态、第二queue/outbox/WAL、每job timer、额外Worker、readiness文件/socket、跨仓回调、当前N的AGENT副本、自动降N、兼容桥和旁路恢复命令。
+
+### 19.7 完成公式
+
+本次修复只有同时满足以下条件才可从 `可施工` 改为完成：
+
+```text
+F1通过一次性测试清场关闭，Website localization与AGENT生产/Browser源码净变化为0
+AND F2/F3对应代码与现役质检全部PASS
+AND CAPACITY_ZERO 两端均为 succeeded 且 30 秒内零重复 claim
+AND 删除集合Website/AGENT/Browser责任全部读回为空且保留集合hash不变
+AND 清场期间新claim数为0、provider submit增量为0
+AND 全新测试工单能创建全新localization根和AI job
+AND 设备唯一动态N从清场前到重启后始终读回为3
+AND Gate A-E 使用同候选、真实 Chrome/GPT 与 Website admission/storage 证据通过
+AND 双仓原生 clean READY + RELEASE 通过
+AND 法案/contract/migration 新增或修改数为0，Blueprint新增数为0且修改集合精确等于现役AI Acceptance与System Security Startup两份
+AND 第二链路数量为 0
+```
+
+### 19.8 回滚
+
+代码回滚只能回到双仓各自的 `checkpoint/one-by-one-pre-ntab-20260914` 派生恢复分支，先读回 annotated tag 对象与仓库归属；禁止在当前 dirty 主工作树上 hard reset。数据库 `0137` 不回滚，设备动态N保持3。测试数据删除是经精确分母与读回确认的不可逆操作，不能靠Git回滚恢复；因此执行前必须保存删除/保留清单与对象hash，但不得把备份恢复成第二生产链。任何unknown/dispatched effect先按同一身份读回，绝不因代码回滚重新提交。
+
+### 19.9 本轮实施与数据库清场证据
+
+本节记录已经发生的实施事实，不替代 CHANGE、READY、RELEASE 或 Gate A-E：
+
+1. Website F2/F3 生产修改只在既定三个 Owner 文件内发生；两个只为测试暴露的 `claimReceipt*` export 经存在证明审计后已物理删除，策略恢复为 Owner 文件内联实现，没有新增生产 API、模块、表、状态、队列或兼容路径；
+2. 聚焦命令使用 Node 24.19.0 执行三份现役测试，共 `88/88` PASS、exit code 0；它只证明代码行为/静态接线，不冒充真实30秒零二次 claim、sender 故障注入或 Browser/GPT 动态证据；该结果早于19.10的60秒节拍修改，不能作为当前候选CHANGE/READY；
+3. 首个 F1 孤立根 `localization_c86a73e2-4b4d-4754-b04e-3704fb5d6ffe` 已在 serializable 单事务中按 exact identity 删除，影响根行1，删除前 localization artifact/attempt/AI job/Provider effect 均为0，删除后根计数为0；
+4. 最终审计刷新现场后，先停止唯一公开知识 Worker，冻结出53个 `queued + terminal_status is null + business_consumed_at is null` 的翻译工单图。其中3个 accepted 工单的 AGENT Browser WAL、pending outbox、Website failure/output/admission/localization artifact 均为0，另外50个从未 accepted；单事务删除53个 AI job、53个 localization 根及53条一对一 `LOCALIZATION_AGENT_TASK_BOUND` 子记录，影响数均与冻结分母一致；
+5. 另外5个 `public-knowledge-terminal-localization.v1` cancelled 旧策略图仍满足现役 claim SQL 的候选外形，若保留会污染下次启动；四个从未 accepted，一个历史结果已经 policy-v2 cutover 拒绝且仅余2条 orphaned output row，五者均无 admission、无本地 task/WAL、无当前 attempt。单事务删除5个 AI job、5个 localization 根、5条绑定子记录及2条 orphaned output row；
+6. AGENT 本地使用现役 Store、Browser WAL 与 Forensics 实现逐项精确清除4条 failed 责任：三个本次 N=3 工单和 Website 已404的旧冲突工单；删除4个 task row、4个 task directory与旧工单的1组 Browser WAL，pending outbox始终为0，24条 completed task 的身份hash不变；
+7. 最终双侧读回：Website localization 只剩 `completed=11`，AI runtime只剩 `completed + terminal_status=completed + business_consumed_at!=null` 共24条，未消费/可领取外形为0；AGENT只剩 `completed=24`、pending outbox=0，上述4个工单的 Browser WAL与task directory均为0；设备 `aipdev_709b550b2decd50644df15ed15cfaf12` 仍为 `active + max_in_flight=3`；清场 Provider submit 增量为0。当前没有 AGENT production runtime 进程，因此没有现役 authority epoch 或仍可消费的内存 Target 绑定；三个新 accepted 工单从未形成 Browser WAL。物理 Chrome system Tab 是否仍残留未在本轮数据库授权内检查，明确保持 `NOT_RUN`，不得把数据库归零表述成 exact system Tab 已关闭；
+8. 公开知识 Worker 保持停止，避免审计期间把合法 released article 队列立即重建。授权人下次启动系统时，现役 sender 应从已发布文章重新创建全新 localization/AI job 身份，并直接由动态N=3领取；这次重建与真实三Tab执行仍是 NOT_RUN，必须由启动后的 Gate A-E 证明。
+
+### 19.10 全局 Provider observation 节拍收紧为60秒
+
+本节是授权人针对浏览器负重提出的最新精准调整，并替代本文件此前所有面向当前候选的30秒observation值；19.9以前保留的30秒只可作为历史构建或`CAPACITY_ZERO` claim backoff事实，绝不得解释为当前Tab轮询节拍。
+
+唯一实现闭环固定为：
+
+```text
+N仍由Website动态下发，当前数据库值=3
+-> 每个已获grant工单仍独占一个system Tab
+-> GPT Child只给出本工单eligibleAt，不建timer
+-> observation waiter立即进入同一Browser FIFO
+-> BrowserLaneCoordinator唯一global observationNotBefore=上一真实observation终止时间+60秒
+-> 到期后只激活exact bound Tab并fresh observe一次
+-> pending再次释放lane，继续排队
+```
+
+实施边界：
+
+1. 精准修订并重新冻结`LAW-GPT-002-V11`与`LAW-LOCAL-BROWSER-SESSION-003-V36`，只把全设备相邻真实Provider observation收紧到不少于60秒、总频率不随N增长；后者引发的active law依赖版本传播只机械更新现役引用与版本链，不改变下游Runtime义务。不改变N Owner、Tab Owner、Browser lane、40秒submit静默、2500ms页面动作闸门、30秒Tab释放超时或Website `CAPACITY_ZERO` 30秒claim backoff；
+2. AGENT只修改现役`PROVIDER_OBSERVATION_INTERVAL_MS`与BrowserLaneCoordinator唯一`observationNotBefore`推进值为`60_000`，不增加环境变量、数据库列、配置副本、每Tab timer、第二queue、第二lane或兼容分支；
+3. GPT、Local Browser、跨仓Runtime与Website AI Acceptance现役Blueprint同步写明60秒；唯一静态inspector、行为acceptance和真实proof阈值同步收紧为`>=60000ms`；
+4. 受控N=3肉眼顺序仍可见`A -> B -> C -> A`，但相邻两次真实页面observation至少相隔60秒；没有其它页面动作时，同一Tab两次观察的理论下界约180秒。mutation、submit、关闭等已具备资格动作仍可穿过尚未到期的observation waiter，不被60秒读频门堵死；
+5. 本次不重新启动Worker、不创建新工单、不操作Chrome，也不重建已清空数据库；当前数据库最终读回与N=3保持19.9事实，真实三Tab/60秒/GPT压力验证继续由授权人启动后的Gate A-E完成。
+
+当前候选验收必须同时满足：静态源码只存在GPT请求资格与Browser全局硬门两处现役60秒值，零配置副本与第三计时Owner；行为验收证明完成一次observation后全局not-before至少推进59秒且不会阻塞后续eligible mutation；动态proof要求相邻真实Provider observation `>=60000ms`；双仓CHANGE与clean READY重新通过；三名只读审计P0/P1为0。任何现役30秒Provider observation残留、按Tab各自60秒导致总频率随N增长、第二timer/queue/lane或把claim backoff误改为60秒均为失败关闭。
+
+## 20. 2026-09-14 首次真实翻译闭环修复
+
+### 20.1 本节身份、权限与基线
+
+本节是第19节之后的唯一现役故障修复方案，旧章节作为 N-TAB 建设与历史证据保留；若旧章节的“未跑起”、“未入库”等阶段性描述与本节冲突，当前裁决以本节为准。
+
+本次只授权制定生产级方案，不授权改代码、改数据库、重启服务、操作 Browser、重放工单或清理现场。施工时必须从下列基线重新绑定；任一 HEAD、active law、Owner 或目标文件 hash 变化，先停止并精确更新本节，不得凭旧方案盲施工。
+
+| 对象 | 本轮只读绑定 |
+|---|---|
+| AGENT | `/Users/nexgen/Documents/AGENT`，`main@0bf4a1468e8d42e447499d920a403c87f58e1379`，`origin/main` 同值，工作树 dirty |
+| Website | `/Users/nexgen/Documents/xuanxue-web`，`main@f67c9f56dd13354d51bb195991270f033e7590e8`，`origin/main` 同值，工作树 dirty |
+| AGENT active law | `LAW-GPT-002-V11`、`LAW-LOCAL-BROWSER-SESSION-003-V36`、`LAW-RUNTIME-LOG-SPINE-001-V7` |
+| Website active law | `LAW-LOCALIZATION-013-V11`、`LAW-LOCALIZATION-017-V1`、`LAW-LOCALIZATION-019-V6` 及 Website Runtime Log 现役条款 |
+| AGENT 日志 | `/Users/nexgen/.codex/attachments/63512112-6f05-431b-9349-fc9c82a94b3b/pasted-text.txt` |
+| Website 日志 | `/Users/nexgen/.codex/attachments/fc524c49-491d-406b-b136-08e8c282f4a8/pasted-text.txt` |
+| Browser 原始日志 | `/Users/nexgen/Documents/AGENT/.grasseye-local/runtime-logs/agent/af41d729-5741-4784-9d89-31bf6bdd498d-0001.jsonl` |
+
+施工前必须在独立干净分支工作树内重绑双仓 candidate，不允许在当前 dirty main 上叠加修复。当前 dirty 只是真实现场，不是可发布 candidate；本节也不宣称 CHANGE、READY 或 RELEASE。
+
+### 20.2 经数据库纠正后的真实分母
+
+2026-09-14 17:26:27（Asia/Dubai）的只读快照必须作为本次故障分母，不得再把日志截止时的“没有证据”写成“入库失败”：
+
+| 类别 | 数量 | 当前结论 |
+|---|---:|---|
+| Website 已入库并发布 | 4 | 真实完成 |
+| AGENT/Provider 执行中 | 3 | 未闭合，但非失败 |
+| 等待首次执行 | 47 | 排队，非失败 |
+| Provider 已完成但等待 Website 入库 | 0 | 无积压 |
+| 明确终态失败 | 0 | 无 |
+
+已完成的4个工单均同时具备 `localization_jobs.state=completed`、AI runtime/terminal completed、`business_consumption_hash`、本地化 artifact、文章翻译绑定、released publication 与公开页 payload。其中日文 `ja-JP` 的 `aiprod_660cee11...` 第一个 Attempt 被 Website 拒绝，第二个 Attempt 在同一业务工单上成功入库。这一事实同时证明：
+
+1. N=3 没有使入库主链整体失效；
+2. Website 严格验证、拒绝当前 result revision、释放 Attempt 与同 job 新 Attempt 重试的现役单主链已经工作；
+3. 修复目标是降低首轮不合格率并让首个直接拒绝可诊断，不是禁止 Website 拒绝、强行标记成功或删除重试机制。
+
+### 20.3 四个第一直接断点
+
+#### R1｜Website 原生语义拒绝被总括码吞掉
+
+对 `aiprod_660cee11...` 首次被拒 result 与对应 source 使用现役 `validateStructuredEdition` 重放的精确结果是：
+
+```text
+LOCALIZATION_SAFETY_FIELD_NOT_TRANSLATED:/excluded_scope/segments/2/text
+```
+
+这证明本次不是结构或保护事实被改写，而是一个被 `safety_json_pointers` 覆盖的字符串仍保留源语言。`structured-edition-validator.ts` 已产生精确原生原因，但 `localization-completion-worker.ts` 把所有验证异常统一包装为 `LOCALIZATION_STRUCTURED_EDITION_SEMANTIC_INVALID`；现有 `failure_ledger`、`result_revision_rejected_v1` 和 Runtime Log 因此无法指向首个失败 pointer。
+
+#### R2｜60秒 park/reacquire 后丢失 GPT Child 原子身份
+
+三次 `BROWSER_DOM_CANDIDATE_MISSING` 的原始 started span 均显示：
+
+```text
+pluginStepId=browser-lifecycle
+childCapabilityId=browser.dom.inspect.v1
+```
+
+但真实上层 Child 是 `checkpoint_gpt_text_response`。首次 observation 进入 `runAtomicStep` 时身份只保存在当时的物理 `BrowserTargetLease.state.atomicStep`；`waitForProviderObservation` park 旧 lease 并重领新 lease 后，新 lease 的 `atomicStep=null`，导致新命令回退到低层 Browser 身份。`browser-command-failure.ts` 现有的精确特例只在 `childCapabilityId=checkpoint_gpt_text_response` 时把“assistant 还未出现”终结为 Browser 命令成功；身份丢失后特例不生效，遂产生 `failed + BLOCKING` 红色噪声。
+
+因此不得将 `BROWSER_DOM_CANDIDATE_MISSING` 全局白名单化；普通 inspect、错误 Document 或其他 Child 的候选缺失仍可能是真故障。唯一正解是保留同一 GPT Child 身份跨越它内部的多次 lease 更换。
+
+#### R3｜AGENT 用 Website Owner 的 operation 名表达本地读回
+
+`runtime-loops.ts` 中 AGENT 只向 Website 发起 V6 状态读回，但 span operation 命名为 `website.result-consume`，并在 HTTP/合同读回成功后统一写 `outcome=succeeded`。当 Website 真实业务消费已拒绝并返回 `WAIT_NEW_ATTEMPT` 时，这条日志表达的实际只是“AGENT 成功读到待新 Attempt 决定”，却在肉眼上像“Website 已成功消费”。
+
+这是 Owner/命名错位，不是需要增加新 outcome enum。Website 仍是唯一可写 `website.result-consume` 的 Owner；AGENT 应复用现役 `website.v6-request` 表达同一 V6 GET 读回边界。
+
+#### R4｜翻译 Prompt 没有把 Website pointer policy 显式写成穷尽检查清单
+
+现役 prompt 已要求保留风险强度，但没有明确要求 Provider 将 `locale_policy.validation_policy.translatable_json_pointers` 当作穷尽列表，也没有在返回前逐项核对 `safety_json_pointers` 已全部翻译且安全义务未减弱。这能解释为什么整体 JSON 可解析，却遗留一个安全字段。
+
+本缺口只授权收紧现役单次 prompt，不授权在 AGENT 新建语义验证器、第二 Provider 轮次、自动修复 Child 或新的 staging 链。最终语义裁决仍唯一属于 Website。
+
+### 20.4 四维合同与唯一 Owner
+
+| 维度 | 输入 | 决定/写入 Owner | 唯一输出 | 下游消费者 |
+|---|---|---|---|---|
+| 业务调度 | Website 动态 `max_in_flight=3` | Website AI Acceptance | V6 grant/status/revision receipt | AGENT production runtime |
+| GPT Child 执行 | job/attempt/step/call/action/input hash | `ProductionGptBrowserLifecycle` 中的单 call facade | 跨 park/reacquire 不变的 `BrowserAtomicStepIdentity` | Browser command permit/log/WAL |
+| Browser 现实操作 | exact system Tab + atomic identity | 现役 Browser lane/lease manager | 唯一命令终态 | GPT Child |
+| 翻译输出 | source + route contract + validation policy | AGENT localization Product Flow | 一份 terminal JSON | Website localization consumer |
+| 语义裁决 | source/result/pointer policy | Website `validateStructuredEdition` | validation receipt 或精确 native rejection | Website localization completion |
+| 拒绝持久化 | outer code + native diagnostic | Website 同一 business-consumption transaction | failure ledger + `result_revision_rejected_v1` | 同 job 新 Attempt 与操作员诊断 |
+| Website 消费日志 | 真实业务事务 | Website | `website.result-consume` | 运维/质检 |
+| AGENT 状态读回日志 | Website V6 GET reply | AGENT | `website.v6-request` | 运维/本地 task 对账 |
+
+关键状态转移不变：
+
+```text
+Website queued
+-> V6 grant / AGENT accepted
+-> GPT submit at-most-once
+-> 60秒全局 observation 轮巡
+-> terminal result upload
+-> Website validate
+   -> PASS: artifact + binding + publication + business_consumption_hash 同事务闭合
+   -> REJECT: 记录outer/native/pointer receipt -> orphan当前artifact -> 同job新Attempt
+-> AGENT只读回Website终态并收口本地task
+```
+
+### 20.5 施工工单
+
+#### NTAB-R01｜Website 保留结构化原生拒绝
+
+目标：在不改变任何验证规则、不记录业务原文的前提下，使操作员能从持久回执确定第一失败代码和 JSON pointer。
+
+目标文件：
+
+- `packages/ai-contracts/src/production-control/structured-edition-validator.ts`；
+- `services/api/src/localization/localization-completion-worker.ts`；
+- `services/api/src/localization/localization-job-repository.ts`；
+- `services/api/src/ai-production/business-result-consumer.ts`；
+- `services/api/src/ai-production/job-repository-core.ts`；
+- 对应现役 localization、provider-submission-boundary 与 Runtime Log 测试。
+
+施工动作：
+
+1. 在 `structured-edition-validator.ts` 文件内收敛一个 `StructuredEditionValidationError`，只包含闭集 `code`、可选 `jsonPointer`、可选 `safetyObligation`；所有现役验证分支保持原顺序与原判定，仅把字符串异常改为结构化异常。
+2. 关闭代码至少覆盖 `STRUCTURE_OR_FACT_CHANGED`、`PROTECTED_FIELD_CHANGED`、`SAFETY_FIELD_EMPTY`、`SAFETY_FIELD_WEAKENED`、`SAFETY_FIELD_NOT_TRANSLATED`、`SAFETY_FIELD_TRUNCATED`、`JSON_POINTER_MISSING/INVALID` 及 pointer policy 错误；不得把未知 Error message 当作可信 code。
+3. `localization-completion-worker.ts` 继续以 `LOCALIZATION_STRUCTURED_EDITION_SEMANTIC_INVALID` 作为对外 failure code，同时从 typed cause 提取安全 diagnostic；无 typed cause 时失败关闭为既有总括码，不猜 pointer。
+4. 在现有 `localization_jobs.failure_ledger` 条目中增写 `native_error_code`、`json_pointer`、`safety_obligation`（无值则省略或 null）；不新增表、列、migration 或诊断台账。
+5. 现有 `result_revision_rejected_v1` 的 `domain_rejection` 保留 outer `failure_code`，`reason_codes` 按固定顺序写入 `[outerCode,nativeCode]`，并携带同一安全 diagnostic；不把 source/result 文本写入事件或 Runtime Log。
+6. `appendAiProductionEvent` 在现有 insert 后以 `idempotency_key + job_id` 读回真实 `event_id/evidence_hash`，并校验 hash 与当前预期一致；首写与幂等重放都返回同一已持久事件身份。既有调用者可忽略返回值，禁止再建 receipt store。
+7. Website 对被拒绝的 `website.result-consume` 终端日志仍是 `outcome=failed`、outer failure code 仍是总括码，`nativeCause` 使用闭集 native code；同时绑定 `authorityRef=ai_production_job_events:<eventId>` 和对应 `authorityHash`。指针不直接写入公共日志，由既有 Website authority reader 按 authorityRef 回读事件。
+
+验收：
+
+- 最小固定 fixture 复现“一个 safety pointer 保留源语言”，验证 outer/native/pointer 分别正确；
+- 同一 rejection 幂等重放不生成第二 event，authorityRef/hash 可由现役 reader 读回；
+- 对应真实样例的诊断回读必须精确得到 `LOCALIZATION_SAFETY_FIELD_NOT_TRANSLATED` 和 `/excluded_scope/segments/2/text`；
+- Website 验证通过路径的 receipt、artifact、binding、publication 与 business consumption 零差异；
+- 任何日志、fixture 或 event 不得包含真实文章原文、Provider 原始回答或凭证。
+
+#### NTAB-R02｜原子 Child 身份跨 Browser lease 更换保真
+
+目标：一个 GPT Child 调用即使内部经历多次 `park -> reacquire -> fresh observe`，每条 Browser command permit 仍使用同一上层 atomic identity。
+
+目标文件：
+
+- `src/capabilities/gpt/production-browser-lifecycle.ts`；
+- `src/capabilities/gpt/production-atomic-call.ts`（仅在现有接线需精确调整时）；
+- `src/lib/browser/exact-target/browser-target-lease-manager.ts` 与 `browser-command-failure.ts`（原则上只加回归验收，不改宽故障规则）；
+- 现役 GPT lifecycle、Browser terminal contract 与 N-TAB 验收。
+
+施工动作：
+
+1. 由 `ProductionGptBrowserLifecycle` 内已存在的稳定 `facade` 拥有当前 call-scoped `BrowserAtomicStepIdentity`，而不再让身份仅附着在某一次物理 lease。
+2. `facade.runAtomicStep(identity, action)` 在整个 Child action 前设置身份，在 `finally` 中唯一清除；嵌套调用、空身份或并行原子步骤继续失败关闭。
+3. facade 在每次发出观察/变异命令时，先读取当前 `active.browser`；如果存在 call-scoped identity，则通过当前物理 lease 的 `runAtomicStep(identity, command)` 执行该命令。这使新 lease 生成的 permit 继承 `productStepId/callId/childCapabilityId/inputHash/actionOrdinal`，但不把 identity 持久到 DB、WAL 新表或第二 registry。
+4. lifecycle 自身的 park/acquire、settle 与 confirmed-effect readback 仍使用已存在的 Owner；不复制 Target 绑定，不增加第二 lane、timer、queue 或对话 URL 找回链。
+5. 保留 `browser-command-failure.ts` 的现役精确特例：只有 `checkpoint_gpt_text_response + non-mutation + BROWSER_DOM_CANDIDATE_MISSING` 才将 Browser command span 终结为 succeeded，然后原异常由 Child handler 捕获并进入 `GPT_PROVIDER_WAIT_ACTIVE`。其他 Child、DOM 歧义、Document 错误和变异故障仍为 failed/BLOCKING。
+
+验收：
+
+- 一个 text checkpoint 经历至少两次 park/reacquire 后，所有 Browser started span 仍是 `pluginStepId=article_translation`、`childCapabilityId=checkpoint_gpt_text_response` 且 call/input/action 全部一致；
+- assistant 仍生成时，Browser command terminal 为 succeeded，GPT 上层仅出现受节流的 `GPT_PROVIDER_WAIT_ACTIVE`，零 `BROWSER_DOM_CANDIDATE_MISSING failed/BLOCKING`；
+- 将同一候选缺失注入普通 `browser.dom.inspect.v1` 或变异 Child 时必须仍 failed/BLOCKING；
+- 生成图像 checkpoint 经 lease 更换后同样保留它自己的 Child identity；
+- 全局 observation 仍相邻 `>=60000ms`，且 `browser_action_in_flight` 最大为1。
+
+#### NTAB-R03｜日志 operation 回归真实 Owner
+
+目标：让“succeeded”只修饰该 span 真实执行的边界，不再把 AGENT 状态读回冒充 Website 业务消费。
+
+目标文件：
+
+- `src/lib/local-runtime/production/runtime-loops.ts`；
+- `src/lib/local-runtime/production/runtime-business-admission.ts`（仅确保现有 completed/pending/deleted 决定未被扭曲）；
+- 现役 Runtime Log 接线与行为验收。
+
+施工动作：
+
+1. AGENT `reconcilePendingBusinessAdmissions` 的 operation 从 `website.result-consume` 物理删除，复用现役 `website.v6-request`；component 收紧为 `production-admission-readback`。不增加 RuntimeLog enum、schema 或跨仓 contract。
+2. span `outcome=succeeded` 仅表示 V6 GET/响应验证/本地读回正常。`pending` 或 `WAIT_NEW_ATTEMPT` 不提升为业务完成，也不伪造失败；业务结果必须由 Website reply 的受控 reason/receipt 或 Website 自身 `website.result-consume` 日志表达。
+3. 只在 Website 已返回可校验 completed receipt、AGENT 已原子收口本地 task 时绑定本地 `production-task:<jobId>` authority。pending/wait-new 不使用本地 task hash 暗示领域完成。
+4. 真实 HTTP、合同、存储或读回失败继续以 native cause failed/BLOCKING，不为了消灭红色日志而降级。
+
+验收：AGENT 原始日志中 `operation=website.result-consume` 计数必须为0；Website 仍是该 operation 的唯一生产者；拒绝工单的完整事件顺序是 `Website result-consume failed -> AGENT website.v6-request succeeded -> 同job新Attempt`，任一 succeeded 都不能被解读为已入库。
+
+#### NTAB-R04｜收紧现役单轮翻译 Prompt
+
+目标文件：`src/plugins/localization-production/flow.ts` 及现役 Product Flow/Prompt 验收。
+
+施工动作：只对 `article_translation` 与 `report_translation` 的现役 `PRODUCT_INSTRUCTION` 增加以下不可分割要求：
+
+1. `locale_policy.validation_policy.translatable_json_pointers` 是本轮必须逐项完成的穷尽清单；
+2. 每个 translatable pointer 指向的字符串必须使用 target locale；
+3. 每个 safety pointer 必须翻译且保留源字段全部不保证、不代替专业建议、不确定性、范围限制与风险披露义务；
+4. 每个 protected pointer 原值必须精确不变；
+5. 返回唯一 JSON 前，在同一次推理内逐 pointer 自检，不输出自检过程。
+
+禁止动作：不加第二 GPT turn，不加 AGENT 预验证器，不用 prompt 覆写 Website route contract，不在 accuracy/quality review Child 新增翻译职责。
+
+验收：静态测试证明两个主翻译 Action 含完整指针要求，其他 Action 不变；真实 N=3 新批次中 Website 仍独立执行同一 validator，不得用 prompt 自检代替 admission receipt。
+
+#### NTAB-R05｜Blueprint 精确固化与法案不变门
+
+现役 active law 已要求 exact child identity、原生原因保留、低噪声 Runtime Log、Website 唯一语义验收和同 job 新 Attempt，本次是实现回归法案，不需要修改 active law、registry、跨仓 V6 contract 或 DB schema。
+
+仅允许将实施细节写回以下现役 Blueprint，不新建文件：
+
+- AGENT `docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md`：固化 call facade 跨 lease 保留 atomic identity 及 prompt pointer 自检；
+- AGENT `docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md`：固化 Browser permit 继承 exact Child 身份；
+- Website `docs/blueprints/domains/ai-acceptance/AI-ACCEPTANCE-BLUEPRINT.md`：固化 outer/native/pointer rejection receipt 与 authority readback。
+
+若施工发现 active law 存在真实相反义务，必须立即停止代码施工并向授权人申请精确法案修订；不得以“实施细节”名义绕过冻结条款。
+
+#### NTAB-R06｜质检与真实 N=3 动态证明
+
+静态/单元/接口层必须至少包含：
+
+1. validator 每个闭集 native code 的类型、pointer 与 obligation 映射；
+2. completion worker 在 outer code 不变的前提下保留 native diagnostic；
+3. failure ledger 与 rejection event 同一 diagnostic/hash，幂等重放只有一条 event；
+4. Website rejection Runtime Log authorityRef/hash 可读回，原文不进日志；
+5. text/image checkpoint 跨至少两次 lease 更换仍保留 exact Child identity；
+6. pending assistant 与真 Browser 故障两类注入的终态严格分开；
+7. AGENT 零 `website.result-consume`，Website 仍唯一产生者；
+8. 两个主翻译 Action 的 pointer 穷尽自检 prompt，且无第二轮次/验证器。
+
+真实 N=3 动态 proof 必须在同一双仓 clean candidate、同一 Website 配置 `N=3`、真实 Chrome/GPT 与全新测试工单上执行，禁止重用已发布的4个结果冒充新 candidate 证明。必须同时证明：
+
+- 动态 N 读回恒为3，至少3个同时在途工单各自绑定不同 exact system Tab；
+- 每次 observation 前的 exact target activation 回读为 active/current，零 URL/侧栏/搜索导航，零第三方 Tab 动作；
+- 相邻真实 Provider observation `>=60000ms`，轮巡顺序在资格相同时可见 `A -> B -> C -> A`，总频率不随 N 增长；
+- `browser_action_in_flight <= 1`，零并行现实页面动作，零 Chrome crash、Debugger detach、频繁操作提示；
+- 生成中无 Browser failed/BLOCKING 候选噪声；注入真故障时仍失败关闭并且不重提交 unknown effect；
+- 至少一个通过样例完成 Website admission + domain durable readback；至少一个受控拒绝 fixture 在不暴露原文的前提下从 authority event 读回 outer/native/pointer，然后同 job 新 Attempt 成功；
+- 吞吐对照以每小时 Website 真实 admission + durable storage 计数为分子，不使用 Provider terminal、AGENT upload 或 HTTP 2xx 代替。
+
+### 20.6 双仓施工与发布顺序
+
+```text
+S0 双仓干净分支重绑HEAD/active law/目标hash
+-> S1 仅更新三份现役Blueprint，法案/contract/migration差异=0
+-> S2 Website NTAB-R01 + 现役质检
+-> S3 AGENT NTAB-R02/R03/R04 + 现役质检
+-> S4 分别形成clean commit，锁定双仓candidate pair
+-> S5 Website先发布，读回健康、schema无变更、现有工单无丢失
+-> S6 AGENT进入draining，停止新claim
+-> S7 等待active=0、pending admission=0、browser action=0、unknown/dispatched effect=0
+-> S8 部署/重启AGENT candidate，读回Website唯一N=3
+-> S9 执行全新N=3动态proof
+-> S10 双仓唯一quality:check CHANGE -> clean READY -> RELEASE
+```
+
+发布顺序存在当前必要性：Website 先发布可使任何过渡期拒绝立即具备原生诊断，其变更不依赖 AGENT 新合同；AGENT 后发布只改自身 Browser 身份与日志/prompt。这是单主链的有序切换，不是兼容桥，不需要 feature flag 或 dual-read/write。
+
+本轮不清空数据库，不删除47个排队工单，不重置3个在途工单，不降 N=1。若 draining 后仍存在 unknown/dispatched Provider effect，必须按现役同身份 receipt/readback 收口，禁止为赶发布强制终止或重提交。
+
+### 20.7 分层验收与失败关闭
+
+| 层级 | PASS 证据 | 明确不能代表 |
+|---|---|---|
+| 类型/单元 | typed diagnostic、facade identity、prompt 与 operation 断言通过 | 不代表真 Browser/Website |
+| 接口/持久化 | rejection event/failure ledger/hash 幂等可读回 | 不代表公开页已发布 |
+| CHANGE | 双仓唯一 `quality:check CHANGE` PASS | 不代表 READY |
+| READY | clean candidate-bound `quality:check READY` PASS，P0/P1=0 | 不代表 RELEASE |
+| 动态 N=3 | 真实 Chrome/GPT/60秒/单 lane/exact Tab 证据 | 不代表 Website 入库 |
+| 业务闭环 | 同 job/result 的 Website admission receipt + 领域表持久读回 + released payload | 不得由 HTTP 2xx 或 AGENT succeeded 代替 |
+| RELEASE | active law 要求的全部 dynamic proof 同 candidate 通过 | 不代表未来 N>4 已承压 |
+
+任一下列情况立即失败关闭：
+
+- 修复通过放宽/跳过 Website validator 才让结果入库；
+- 修复通过全局吞掉 `BROWSER_DOM_CANDIDATE_MISSING` 才消除红错；
+- 新增 AGENT 语义验证器、第二 GPT turn、第二重试链、第二 receipt store 或新 DB migration；
+- AGENT 仍产生 `website.result-consume`，或 pending/wait-new 仍被渲染为业务成功；
+- exact pointer 只出现在终端文字而没有持久 authorityRef/hash，或日志泄露业务原文；
+- 继续用 dirty candidate、旧报告 commit 或不同 candidate 的日志宣称 READY/RELEASE；
+- 为调试自动降 N、清空排队、删除已入库结果或重放 unknown effect。
+
+### 20.8 删除反事实与复杂度上限
+
+| 拟保留的变更 | 当前必要性 | 真实消费者 | 删除后必然失败 |
+|---|---|---|---|
+| typed validator error | 保留首个直接原因 | completion worker | 只剩总括码，无法指向 pointer |
+| 现有 rejection event 的 diagnostic/hash 读回 | 把诊断绑定持久事实 | Runtime Log authority reader/新 Attempt | 日志只有瞬时文本，不可核验 |
+| call facade atomic identity | 跨 lease 保留上层 Child | Browser permit/故障分类 | pending 继续误报 BLOCKING |
+| AGENT operation 改回 `website.v6-request` | 区分读回与业务消费 Owner | 运维/对账 | succeeded 继续被误解为入库 |
+| pointer 穷尽 prompt | 减少可预防的首轮拒绝 | Provider 单次生成 | 同类遗漏无直接预防 |
+
+除上表五个变更类别外，默认删除所有新增抽象、类、文件、状态、开关、配置、队列、重试、持久化结构与兼容分支。允许的 typed error 必须收在现役 validator 文件，call identity 必须收在现役 lifecycle facade，不得因为“未来可复用”拆新模块。
+
+### 20.9 回滚与现场保护
+
+1. 实施前继续使用双仓 `checkpoint/one-by-one-pre-ntab-20260914` 作为已存在的灾备参考，但它只是 rollback reference，不是当前 READY/RELEASE 证据。
+2. 代码回滚仅撤销本节目标文件的 candidate commit，不在 dirty main 上 hard reset，不覆盖用户改动。
+3. Website 变更无 migration，无 schema rollback；新 event JSON 字段是现有事件的安全诊断，不作物理删除，否则会破坏已发生事实。
+4. 回滚不删除工单、artifact、publication 或 failure ledger，不重提交 Provider effect；未知 effect 仍先 checkpoint/receipt/postcondition readback。
+5. 回滚后 N 仍由 Website 唯一动态配置且保持3，不以降 N 作为恢复手段。
+
+### 20.10 完成公式
+
+本次修复只有同时满足下式，才能将文档头的 implementation/test/release 改为完成：
+
+```text
+双仓clean candidate与active law重绑通过
+AND active law/registry/跨仓contract/DB migration差异=0
+AND Website保留outer + native + pointer且authorityRef/hash可读回
+AND Browser跨lease保留exact Child identity
+AND pending assistant零failed/BLOCKING，真Browser故障仍失败关闭
+AND AGENT产生website.result-consume数=0
+AND 翻译prompt穷尽覆盖translatable/protected/safety pointers
+AND N始终=3、全局observation>=60000ms、browser_action_in_flight<=1
+AND 全新通过样例完成Website admission + durable storage/readback
+AND 受控拒绝样例可诊断且同job新Attempt闭合
+AND 双仓唯一quality:check CHANGE/clean READY/RELEASE均绑定同一candidate pair
+AND P0/P1=0
+AND 第二validator/queue/WAL/receipt store/retry chain/compatibility path数=0
+```
+
+仅完成方案、单元测试、HTTP 2xx、Provider terminal、AGENT upload、日志变绿或已有4个历史成功样例，均不满足本式。
