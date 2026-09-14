@@ -1,56 +1,263 @@
-# GPT 稳定会话地址恢复完整实现方案
+# GPT 已确认副作用断网恢复完整实现方案
 
-## 需求、终点与范围
+## 1. 需求、终点与范围
 
-需求 Owner 为 AGENT。目标是让一次 GPT submit 只有在取得可跨进程恢复的稳定 `/c/<opaque>` 地址后才写入唯一 Browser WAL；进程重启只能按该地址零提交读回，临时 `/c/WEB:<opaque>` 永远不得成为 canonical locator。成功终点是新 submit 的 WAL recovery payload 含稳定地址，重启恢复的 Provider submit 增量为零且能继续读取同一 turn。
+需求 Owner 为 AGENT 与 Website 的既有生产链。目标不是增加一个“自动重试器”，而是修正一次已经存在的恢复裁决：GPT 物理 submit 已由 Browser WAL 确认为 `CONFIRMED` 后，即使断网导致当前页面变成错误页或 Document 失效，AGENT 也必须把既有 Provider effect 的真实 `mutation_outcome=confirmed` 运输给 Website；Website 保留同一 accepted attempt，网络恢复后只授权零 submit 读回同一 effect。
 
-只修改 AGENT 的 GPT submit、Browser canonical URL 校验、同一 postcondition 等待和既有验收。Website、数据库合同、Product Prompt、模型档位、法案正文、Browser 协议、第二恢复链均不在范围内。当前 candidate 为 `main@8358b046c0e26a72deafead008bba712ec9d46e7`；本地化模型档位的既有 dirty overlay 与本方案无关，必须保留。
-
-## 输入证据与四维对齐
-
-- 事故 WAL 的 confirmed recovery payload 保存了 `https://chatgpt.com/c/WEB:763bb062-cc31-4986-8839-6c63c5f23d36`；重启后恢复导航报 `BROWSER_ORIGIN_REJECTED`，随后结算报 `GPT_BROWSER_LIFECYCLE_FAILED`。
-- 重启前同一 attempt 已完成模型、极高推理档位、附件、Prompt 与一次 submit，因此模型档位不是首错。
-- `LAW-GPT-001-V48` 的 `FROZEN-GPT-CONVERSATION-LOCATOR-EFFECT-SEPARATION-001` 要求 WAL 保存能定位同一 confirmed effect 的 canonical URL；无需解冻法案。
-- `GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md` 与 `LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md` 已规定 confirmed readback 只按 WAL canonical URL 零次或一次导航，不得搜索、猜测或重发；无需修改施工图。
-- 当前实现第一次直接断裂在 submit postcondition：DOM 查询与 Prompt hash 一旦满足便接受当时的 `currentUrl`，而 GPT 与 Browser 两份 URL validator 仅检查 `/c/` 后非空，错误接受包含冒号的 `WEB:` 临时 segment；Browser recovery payload 又原样持久化该值。
-- 唯一原生质量入口仍为 `npm run quality:check`；聚焦验收使用现有 `acceptance:gpt` 与 `acceptance:local-browser-terminal`，不建立第二 verdict。
-
-## Identity spine 与有限闭环
+完整成功终点为：
 
 ```text
-job/result_revision/provider_effect_identity
-→ submit Browser WAL PREPARED/DISPATCHED
-→ 页面出现精确新 user turn + Composer 为空
-→ 同一现有 postcondition 继续等待 currentUrl 从临时 WEB segment 落定为稳定 segment
-→ Browser WAL CONFIRMED 并保存稳定 URL + userTurnId
-→ 进程重启按同一 WAL receipt 取得 system Target
-→ URL 相同零导航，不同最多一次精确导航
-→ 同一 userTurnId 回答读取
+唯一 Provider submit CONFIRMED
+→ 断网/错误 Document 导致回答暂时不可读
+→ AGENT 释放当前 lease，但运输 confirmed effect 真相
+→ Website 保留同一 attempt 并持久化 PROVIDER_EFFECT_READBACK_PENDING
+→ 网络恢复后重新签发同一 accepted attempt
+→ AGENT 在任何 Product 准备前读取 Browser WAL
+→ URL 相同则零导航，不同则最多一次 canonical URL 精确导航
+→ Provider physical submit 增量为 0
+→ 读取同一 userTurnId 的结果
+→ Website admission receipt 与领域持久化 readback 成功
 ```
 
-分支只有三条：稳定地址在既有期限内出现则 CONFIRMED；期限内仍为临时地址则保持现实 mutation 已发生的 rejected/typed failure，绝不重发；历史 WAL 已含临时地址时在导航前拒绝该 locator，诚实失败并释放正常可结算的 lease，Website 只能以新 result revision 决定后续执行。
+本方案只修改两处既有 Owner 内的错误表达与既有质检：AGENT 的 GPT failure 事实组装、Website V6 failure facts 交叉字段断言，以及它们已有的测试。冻结法案、施工图、协议版本、数据库结构、重试节奏、Browser 命令、Product Prompt、模型档位和业务入库链均不修改。
 
-## 唯一施工链
+## 2. 基线与变动保护
 
-1. Browser 与 GPT 各自在现有 Owner 内把 canonical conversation segment 收窄为 `[A-Za-z0-9_-]+`，拒绝 `WEB:`，不新增共享全局合同。
-2. submit 的现有 coherent postcondition 在 `preClickExactOutgoingTurn` 场景中，同时要求当前 URL 已通过 Browser canonical validator；临时 URL 只使同一次有界 postcondition 继续观察，不产生第二 Child、timer、WAL 或轮询器。
-3. Browser WAL recovery payload 写入前再次使用 Browser canonical validator，防止任何调用方绕过 postcondition污染持久事实。
-4. GPT fresh submit 与 confirmed readback 均使用收窄后的 GPT validator；历史坏 WAL 在任何导航前失败，避免再次把 system TAB 拉回首页并破坏 Document。
-5. 在现有 Browser DOM mutation、Browser terminal 与 GPT proof 验收中加入临时 URL 负例、临时到稳定的单次等待正例、历史坏 recovery 零 Browser 动作负例。
+- AGENT：`/Users/nexgen/Documents/AGENT`，`main@8a3c4030460c9b944eafb7cb9136eeec01611112`，工作树 clean。
+- Website：`/Users/nexgen/Documents/xuanxue-web`，`main@b60753948dd836e5e758e6174da92b14574e6458`，工作树 clean。
+- 本文件是该恢复域唯一现役实施方案；不创建第二份断网恢复方案。
+- 前一阶段已完成 canonical GPT 会话地址收敛：临时 `/c/WEB:<opaque>` 不得写入 WAL，恢复只使用稳定 `/c/<opaque>`。该能力是本方案的既有输入，不重复建设。
+- 若施工前任一仓 HEAD 或 dirty 状态变化，必须重新绑定差异、法案、施工图和事故证据，禁止直接沿用本 candidate。
 
-## 删除审判
+## 3. 事故事实与第一直接断点
 
-- 保留两份 Owner 内 validator：Browser 必须独立保护物理导航和 WAL，GPT 必须独立保护 Child 输入/输出；删除任一份都会让其 Owner 接受未经本域验证的 locator。
-- 保留现有有界 postcondition：它已有真实消费者、期限和一次点击语义；删除会重新产生“submit 已发生但稳定 locator 尚未取得”的缺口。
-- 不新增稳定器 Child、恢复状态机、后台修复器、侧栏搜索、历史记录扫描、fallback、数据库字段或兼容桥。这些结构都无法证明比复用现有 postcondition 更短。
-- 不修改模型档位；运行证据已证明它成功，不属于故障链。
+### 3.1 已确认的真实顺序
 
-## 验收、停止与回退
+本次断网事故对应本地化文章工单：
 
-- `/c/WEB:<opaque>` 在 Browser 与 GPT canonical validator 中均失败；普通稳定 `/c/<opaque>` 继续通过。
-- submit 第一次观察到临时 URL 时不确认、不重复点击；同一 command 后续观察到稳定 URL时只产生一次 physical submit 并保存稳定 recovery payload。
-- recovery payload 无法持久化临时 URL；历史坏 payload 在 `Page.navigate` 前失败。
-- confirmed recovery 的 physical submit delta 为零；稳定 URL 精确恢复后读取同一 `userTurnId`。
-- `acceptance:gpt`、`acceptance:local-browser-terminal` 和唯一 `quality:check CHANGE` 必须通过；这些只构成代码候选证据，不冒充真实 Chrome、READY、RELEASE 或 Website 入库。
-- 若现役 fixture 证明合法 Provider segment 必须包含冒号，停止施工并回到法案/合同裁决，不放宽为 fallback。
-- 回退仅撤销本方案直接修改；不得触碰既有本地化模型 dirty overlay。历史错误 WAL 不覆盖、不改写；由 Website 新 result revision 或管理员清除未完成任务决定后续。
+```text
+job_id       = aiprod_a69843fb-ae73-4b55-8a51-e13990f6c353
+attempt_id   = 77c3d042-9ac5-4cd7-a677-0f8cee22f9fa
+target_locale= zh-HK
+```
+
+时间线：
+
+1. `02:05:53.868`：AGENT durable accept 成功。
+2. `02:05:54.810`：资料下载成功。
+3. GPT submit 的 Browser WAL 完成 `PREPARED → DISPATCHED → CONFIRMED`；`02:06:30.630` 已确认唯一物理提交，证据为 `browser-mutation:181450de-1607-42c4-840b-24c253247f30`。
+4. `02:07:10` 至 `02:19:42`：同一 Provider 回答按既有 30 秒节奏等待。
+5. Website 侧从 `02:11:14` 起出现网络 `ENOTFOUND`；这不是新的 Provider 授权。
+6. `02:20:01`：Browser 报 `BROWSER_ORIGIN_REJECTED`。
+7. `02:20:12`：回答 checkpoint 报 `BROWSER_DOCUMENT_INVALID`，随后当前 lease 正常释放。
+
+所以第一现实事实不是“没有提交”，而是：
+
+> Provider submit 已确认，断网只破坏了后续读回现场。
+
+### 3.2 数据库中的错误终态
+
+Website 最终收到并持久化了以下互相矛盾的 failure facts：
+
+```text
+effect_scope                  = provider_effect
+browser_outcome               = CONFIRMED
+provider_effect_identity_hash = sha256:acb87...
+mutation_outcome              = no
+```
+
+`effect_scope=provider_effect + browser_outcome=CONFIRMED + provider_effect_identity_hash` 已证明现实 Provider effect 存在；`mutation_outcome=no` 却声称没有现实 mutation。Website 恢复 Owner 只能依据 `mutation_outcome` 裁决，因此它结束并清空了旧 attempt，按有限退避授权新 attempt，没有进入同 effect 零 submit 读回。
+
+### 3.3 第一直接代码断点
+
+第一直接断点位于 AGENT 的 `throwGptChildFailure`：
+
+```ts
+const browserFact = result.proof.browserFact ?? confirmedProviderEffect ?? null;
+mutationOutcome: result.proof.committedMutation,
+browserEffect: result.failureBrowserEffect ?? confirmedProviderEffect ?? null,
+```
+
+回答 checkpoint 本身是观察动作，所以当前 Child 的 `committedMutation` 合法地为 `no`；但调用方同时传入了先前 submit 的 `confirmedProviderEffect`。现实现保留了 confirmed effect 的 identity/evidence，却错误地采用当前观察 Child 的 `no` 作为整个 attempt failure 的 mutation truth。
+
+因此真正缺失的不是恢复功能，而是一次字段优先级：
+
+```text
+存在 confirmedProviderEffect
+→ terminal failure 的 mutationOutcome 必须来自 confirmedProviderEffect
+不存在 confirmedProviderEffect
+→ 才使用当前失败 Child 的 committedMutation
+```
+
+Website 的第二道缺口位于 V6 写入断言：当前 validator 对所有 effect scope 均接受 `browser_outcome=CONFIRMED + mutation_outcome=no`。这使 AGENT 的矛盾事实没有在跨仓入口失败关闭。
+
+## 4. 法案、施工图与 Owner 鉴权
+
+现役冻结法案和施工图已经完整规定本次行为，无需修改：
+
+- Website `ai-acceptance` 是唯一业务恢复 Owner。
+- `mutation_outcome=no`：结束旧 attempt，有限退避后才可签发新 attempt。
+- `DISPATCHED/CONFIRMED`：必须保留同一 accepted attempt，只授权同 effect 零 submit 读回。
+- AGENT 在 confirmed readback 时必须先于任何 Product 准备查询唯一 Browser WAL。
+- 进程重启、Target 丢失或同等恢复现场，可按 WAL canonical URL 使用当前 system Target；URL 不同最多一次 Browser-owned 精确导航。
+- Website 不接收 Provider URL、Target、Document、checkpoint 或执行位置；AGENT 不自行取得恢复资格。
+
+责任边界：
+
+| 事实/动作 | 唯一 Owner | 本次职责 |
+| --- | --- | --- |
+| Browser 物理 submit 与 WAL terminal fact | Browser | 继续提供既有 CONFIRMED 事实，不修改 |
+| GPT Child failure 事实组装 | AGENT GPT production support | 不得让后续观察 Child 的 `no` 覆盖既有 confirmed Provider effect |
+| 跨仓 failure facts 合法性 | Website V6 contract assertion | 拒绝 provider effect 的 `CONFIRMED + no` 矛盾组合 |
+| 新 attempt 或同 effect readback 裁决 | Website ai-acceptance | 继续只按合法 mutation truth 走既有两分支 |
+| 同 effect 零 submit 恢复 | AGENT GPT/Browser | 继续复用现有 WAL/canonical URL 路径，不新增恢复器 |
+| 最终业务完成 | Website Domain Consumer | admission receipt 与领域 readback，未改变 |
+
+结论：本轮不解冻、不新增、不改写法案或施工图。修改法案反而会把一个实现违约误写成新制度。
+
+## 5. Identity spine 与有限状态拓扑
+
+唯一身份链：
+
+```text
+job_id
++ result_revision
++ attempt_id
++ exact_call_identity_hash
++ provider_effect_identity_hash
++ Browser WAL logical_mutation_id
++ canonical conversation URL
++ userTurnId
+```
+
+事故后的合法状态只有三类：
+
+```text
+A. submit 前失败
+   mutation_outcome=no
+   → Website 结束旧 attempt
+   → 需求仍有效时按有限退避签发新 attempt
+
+B. submit 已 DISPATCHED/CONFIRMED，但结果尚未稳定读回
+   mutation_outcome=dispatched/confirmed
+   → Website 保留同一 accepted attempt
+   → 仅授权同 effect readback
+   → Provider submit 增量必须为 0
+
+C. 结果已稳定取得并完成 Website admission
+   → admission receipt + durable domain readback
+   → completed
+```
+
+断网不引入第四类状态。它只可能让 A 继续走 fresh attempt，或让 B 暂时失败后再次读回同一 effect。
+
+## 6. 唯一施工链
+
+### Work Order A：AGENT 修正 terminal failure 的 effect truth
+
+Owner：`src/capabilities/gpt/production-child-support.ts`。
+
+在现有 `throwGptChildFailure` 内原位修正字段选择：
+
+```text
+confirmedProviderEffect 存在
+→ mutationOutcome = confirmedProviderEffect.mutationOutcome
+→ browserEffect/evidence/identity 均来自同一 confirmed fact
+
+confirmedProviderEffect 不存在
+→ 保持当前失败 Child 的 committedMutation 与本域 evidence
+```
+
+不得增加新 helper、状态、异常类型、恢复分支或 transport 字段。现有 terminal serializer 只负责忠实运输，无需修改。
+
+在现有 `gpt-failure-evidence-readback.acceptance-support.ts` 用已经存在的 post-submit checkpoint fixture 增加精确断言：
+
+- `effect_scope === "provider_effect"`；
+- `browser_outcome === "CONFIRMED"`；
+- `mutation_outcome === "confirmed"`；
+- `provider_effect_identity_hash` 保持原值；
+- submit 前 failure 仍为 `mutation_outcome=no`。
+
+### Work Order B：Website 拒绝不可能的跨字段组合
+
+Owner：`packages/ai-contracts/src/production-control/v6-write-assertions.ts`。
+
+在现有 `validFailureFacts` 内收紧交叉字段关系：
+
+```text
+effect_scope=provider_effect + browser_outcome=CONFIRMED
+→ mutation_outcome 只能为 confirmed
+
+effect_scope=target_local + browser_outcome=CONFIRMED
+→ 保留现役允许的 target-local 语义
+```
+
+这是对冻结 V6 既有语义的失败关闭，不新增 wire 字段、不升级 protocol、不建 v7。若原生治理证明同版本不能收紧不可能状态，则停止施工并交回授权人裁决，禁止私建兼容版本。
+
+在现有 `tests/exam/ai-production-v6-contract.test.ts` 增加负例：普通非 `RESULT_SETTLED_UNUSABLE` 的 `provider_effect + CONFIRMED + mutation_outcome=no` 必须被 `assertLeaseReleaseV6` 拒绝。现有 `RESULT_SETTLED_UNUSABLE` 精确 confirmed 规则继续保持。
+
+### Work Order C：双仓原生静态验收
+
+按依赖顺序执行：
+
+1. AGENT 聚焦 GPT acceptance。
+2. Website V6 contract Exam。
+3. 两仓各自唯一 `npm run quality:check` 的 CHANGE/READY 流程。
+4. 使用原生 clean Git commit 绑定各自 candidate；READY 不冒充 RELEASE。
+
+任一原生检查发现法案投影、合同或 candidate 漂移，必须围绕同一 finding 修复或停止，不得绕过检查器。
+
+### Work Order D：真实断网恢复 Dynamic Proof
+
+真实 Chrome、GPT、Website 和数据库必须完成一次受控证明：
+
+1. 新工单完成唯一 GPT submit，记录 WAL `CONFIRMED`、effect hash、canonical URL 和 userTurnId。
+2. 在 Provider wait 期间制造真实断网或等价错误 Document。
+3. AGENT failure transport 必须为 `provider_effect + CONFIRMED + mutation_outcome=confirmed`。
+4. Website 数据库必须保留原 `attempt_id`，current reason 为 `PROVIDER_EFFECT_READBACK_PENDING`；不得清空 accepted attempt，不得授权新 effect。
+5. 网络恢复后 Website 重新签发同一 accepted attempt。
+6. AGENT 在任何 fresh/profile/model/附件/Composer 动作前读取精确 WAL。
+7. URL 相同零导航；URL 不同最多一次导航到同一 canonical URL。
+8. Browser/Provider physical submit 增量为 0，读取同一 userTurnId 的稳定回答。
+9. 同一结果完成 Outbox、Website admission receipt、领域持久化 readback。
+10. 另做一个 submit 前资料下载 503 对照：必须保持 `mutation_outcome=no`，允许 Website 以后签发 fresh attempt，Provider 动作增量为 0。
+
+只有第 9 项完成才证明业务闭环；静态测试、WAL CONFIRMED、恢复授权或 HTTP 200 均不是入库完成。
+
+## 7. 删除审判与不过度设计边界
+
+必须保留：
+
+- Browser WAL：它是现实副作用是否发生的唯一机械真相；删除后无法证明能否重发。
+- `confirmedProviderEffect`：它把后续读回失败绑定到先前已确认 submit；删除会重现本次误判。
+- Website 的 `sameEffectReadback`：它是冻结法案指定的唯一跨进程零 submit 恢复消费者。
+- Website V6 写入断言：它是阻止矛盾事实污染恢复裁决的跨仓边界。
+- canonical URL 与 userTurnId：它们是零提交读回同一现实 effect 的必要定位事实。
+
+必须拒绝或删除任何施工中出现的下列结构：
+
+- 网络监听器、在线状态台账、连接守护进程；
+- AGENT 自主 retry manager、第二退避器、第二队列或第二恢复状态机；
+- checkpoint 覆盖、旧 attempt 洗白、Prompt 重发、页面搜索或聊天猜测；
+- Website 下发 Provider URL/Target/Document；
+- dual-read/write、fallback、兼容桥、新数据库字段或迁移；
+- 为本事故修改模型档位、Prompt、附件流程或业务入库逻辑；
+- 为历史测试工单改写 failure evidence。
+
+这些结构均没有独立消费者；现有 WAL、Website recovery decision 和 canonical readback 已覆盖全部必要状态。本次生产代码应只替换错误表达，代码总量持平或净减少。
+
+## 8. 为什么刚刚没有自动恢复
+
+精确答案是：
+
+> 自动恢复链存在，而且同一时段另一个“资料下载 503、尚未 submit”的 zh-TW 工单已经自动重领并在网络恢复后下载成功。失败的只是“Provider submit 已确认、随后断网”的分支。AGENT 把后续 checkpoint 的局部 `no` 错当成整个 attempt 的 mutation truth；Website 据此合法但错误地结束旧 attempt，所以没有机会签发同 effect 零 submit恢复。
+
+这不是增加更多自恢复能力可以解决的问题。增加重试会在错误事实下放大重复 Provider 成本。最小完整修复是让既有恢复链拿到正确事实，并让 Website 拒绝未来同类矛盾事实。
+
+## 9. 停止、历史数据与回退
+
+- 当前 zh-HK 事故 attempt 已被 Website 按错误但已持久化的 `mutation_outcome=no` 结束，不能靠新代码原地复活；其原 failure evidence 不覆盖、不改写。
+- 本轮只设计，不授权清理或改写数据库。测试工单若需删除，应另行按精确 job_id 授权执行。
+- 若 Dynamic Proof 出现 Provider 第二次 physical submit、attempt_id 变化、canonical identity 不一致或 Website admission 缺失，立即停止，不得称为恢复成功。
+- 回退只撤销本方案直接产生的双仓代码与质检差异，不触碰运行日志、Browser WAL、数据库事故记录或无关提交。
+- 若 AGENT 修正后 Website 仍不能保留同 accepted attempt，先检查运输事实和原生 V6 admission；禁止新增旁路恢复。
