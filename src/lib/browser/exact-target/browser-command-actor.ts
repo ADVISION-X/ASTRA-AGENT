@@ -112,7 +112,8 @@ const assertAcceptedCommand = (permit: BrowserCommandPermit, command: BrowserGov
 const isMutation = (command: BrowserGovernedCommand): boolean =>
   command.kind === "file-input"
   || (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "hover"
-    || command.intent.kind === "doubleClick" || command.intent.kind === "keypress" || command.intent.kind === "fill"));
+    || command.intent.kind === "doubleClick" || command.intent.kind === "keypress" || command.intent.kind === "fill"
+    || command.intent.kind === "renameExactGptConversation"));
 
 const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
   positive: `sha256:${string}`;
@@ -136,6 +137,10 @@ const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
   const intent = command.intent;
   let positive: Readonly<Record<string, unknown>>;
   switch (intent.kind) {
+    case "renameExactGptConversation":
+      positive = { kind: intent.kind, canonicalConversationUrl: intent.canonicalConversationUrl,
+        targetTitle: intent.targetTitle };
+      break;
     case "fill":
       positive = { kind: "fill", selector: intent.selector, retainedValueHash: hashValue(intent.approvedText) };
       break;
@@ -355,7 +360,7 @@ export class BrowserCommandActor {
       state.terminalized = true;
       return result;
     } catch (error) {
-      this.failExecution(permit, commandSpan, mutation, state, error);
+      this.failExecution(permit, command, commandSpan, mutation, state, error);
     } finally {
       if (state.budgetEntered) this.budget.leave();
     }
@@ -392,6 +397,7 @@ export class BrowserCommandActor {
         result.mutationOutcome,
         result.failureCode ?? "BROWSER_POSTCONDITION_FAILED",
         result.nativeCauseCode,
+        result.physicalInputCount,
       );
     }
     else this.mutations.markConfirmed(
@@ -400,6 +406,7 @@ export class BrowserCommandActor {
       result.mutationOutcome,
       permit.childCapabilityId === "submit_exact_gpt_turn_once"
         ? submitRecoveryPayload(reply.result) : null,
+      result.physicalInputCount,
     );
     emitBrowserMutationEvent({
       runtimeLogger: this.runtimeLogger, mutation: permit,
@@ -420,6 +427,7 @@ export class BrowserCommandActor {
 
   private failExecution(
     permit: BrowserCommandPermit,
+    command: BrowserGovernedCommand,
     commandSpan: ReturnType<typeof startBrowserCommandSpan>,
     mutation: boolean,
     state: BrowserCommandExecutionState,
@@ -431,7 +439,7 @@ export class BrowserCommandActor {
       && error.permitSequence === permit.sequence
         ? error : null;
     return failBrowserCommandExecution({
-      permit, commandSpan, mutation, state, error, terminalReply,
+      permit, command, commandSpan, mutation, state, error, terminalReply,
       mutations: this.mutations, runtimeLogger: this.runtimeLogger,
     });
   }

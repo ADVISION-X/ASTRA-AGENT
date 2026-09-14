@@ -111,6 +111,7 @@ try {
     evidenceStore, authority as never, createRuntimeLogger({ producer: "gpt-artifact-recovery",
       owner: "production-runtime", component: "gpt-child", terminalEnabled: false,
       fileSink: { directoryPath: join(temporary, "runtime-logs") } })).createExecution({ jobId,
+    productId: "public_knowledge_article_pipeline",
     attemptId, resultRevision: 0, ownerRef: "owner:1", subjectRef: "subject:1",
     authorizationRef: "authorization:1", deviceId: "device:1", leaseVersion: 1,
     executionFenceHash: HASH_A, capabilityManifestHash: HASH_B,

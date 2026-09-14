@@ -98,6 +98,12 @@ export type BrowserSemanticLocator = Readonly<{
 export type BrowserDomIntent =
   | Readonly<{ kind: "document" }>
   | Readonly<{ kind: "selectExactGptConversation"; canonicalConversationUrl: string }>
+  | Readonly<{
+    kind: "renameExactGptConversation";
+    canonicalConversationUrl: string;
+    targetTitle: string;
+    timeoutMs: number;
+  }>
   | Readonly<{ kind: "observe"; queries: readonly BrowserDomObservationQuery[] }>
   | Readonly<{ kind: "readExactAssistantTurn"; userTurnId: string; canonicalConversationUrl: string }>
   | Readonly<{ kind: "inspect"; selector: string; fields: readonly BrowserDomField[]; scope?: BrowserDomReadScope }>
@@ -217,6 +223,25 @@ const assertObservationIntent = (intent: BrowserDomIntent): void => {
   if (intent.kind === "selectExactGptConversation") try {
     requireCanonicalGptConversationUrl(intent.canonicalConversationUrl);
   } catch { throw new Error("BROWSER_COMMAND_PERMIT_INVALID"); }
+  if (intent.kind === "renameExactGptConversation") {
+    const exactKeys = new Set([
+      "kind", "canonicalConversationUrl", "targetTitle", "timeoutMs",
+    ]);
+    let canonical = false;
+    try {
+      canonical = requireCanonicalGptConversationUrl(intent.canonicalConversationUrl)
+        === intent.canonicalConversationUrl;
+    } catch { canonical = false; }
+    if (Object.keys(intent).length !== exactKeys.size
+      || Object.keys(intent).some((key) => !exactKeys.has(key))
+      || !canonical || intent.targetTitle !== intent.targetTitle.normalize("NFC")
+      || intent.targetTitle.trim() !== intent.targetTitle
+      || [...intent.targetTitle].length < 1 || [...intent.targetTitle].length > 128
+      || /[\u0000-\u001f\u007f]/u.test(intent.targetTitle)
+      || !Number.isInteger(intent.timeoutMs) || intent.timeoutMs < 1 || intent.timeoutMs > 2_500) {
+      throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    }
+  }
   if (intent.kind === "observe") assertObserveIntent(intent);
   if (intent.kind === "readExactAssistantTurn" && !exactAssistantReadIntentValid(intent)) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");

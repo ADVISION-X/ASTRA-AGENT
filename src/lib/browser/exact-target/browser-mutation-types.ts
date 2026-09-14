@@ -1,5 +1,6 @@
 export type BrowserMutationState = "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED" | "FAILED";
 export type BrowserMutationOutcome = "no" | "dispatched" | "confirmed";
+export type BrowserPhysicalInputCount = 0 | 1 | 2 | 3 | 4;
 
 export type BrowserMutationIdentity = Readonly<{
   commandId: string;
@@ -40,7 +41,7 @@ export type BrowserExactCallMutationFact = Readonly<{
   callId: string;
   childCapabilityId: string;
   actionOrdinal: number;
-  physicalInputCount: 0 | 1 | 2;
+  physicalInputCount: BrowserPhysicalInputCount;
   downloadGuidHash: `sha256:${string}` | null;
   downloadCompleted: boolean;
   identityRevalidated: boolean;
@@ -57,7 +58,7 @@ export type BrowserAtomicStepOutcome = Readonly<{
   authorityHash: `sha256:${string}`;
   targetRef: string;
   documentRef: string;
-  physicalInputCount: 0 | 1 | 2;
+  physicalInputCount: BrowserPhysicalInputCount;
   downloadGuidHash: `sha256:${string}` | null;
   downloadCompleted: boolean;
   identityRevalidated: boolean;
@@ -75,7 +76,7 @@ export type AtomicStepRow = Readonly<{
   native_cause_code: string | null;
   terminal_at: string | null;
   action_ordinal: number;
-  physical_input_count: 0 | 1 | 2;
+  physical_input_count: BrowserPhysicalInputCount;
   download_guid_hash: `sha256:${string}` | null;
   download_completed: 0 | 1;
   media_identity_revalidated: 0 | 1;

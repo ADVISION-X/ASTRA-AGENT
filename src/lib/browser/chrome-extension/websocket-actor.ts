@@ -357,6 +357,19 @@ export class ExtensionWebSocketActor {
     let command: BrowserGovernedCommand | null = null;
     try {
       if (!permit) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+      const deadline = Date.parse(frame.deadline);
+      if (!Number.isFinite(deadline) || new Date(deadline).toISOString() !== frame.deadline) {
+        throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+      }
+      const commandSessionKey = session.serverToClientKey;
+      const assertCommandActive = (): void => {
+        if (socket !== this.socket || !this.commandReady
+          || this.session?.serverToClientKey !== commandSessionKey) {
+          throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
+        }
+        if (Date.now() >= deadline) throw new Error("BROWSER_COMMAND_PERMIT_EXPIRED");
+      };
+      assertCommandActive();
       commandStage = "command-shape";
       command = commandFrom(payload.command);
       commandStage = "command-admission";
@@ -368,7 +381,10 @@ export class ExtensionWebSocketActor {
         command,
         target,
         registeredCommand.mutationClass,
+        assertCommandActive,
       );
+      if (!(command.kind === "dom-intent"
+        && command.intent.kind === "renameExactGptConversation")) assertCommandActive();
       await this.sendEncrypted(socket, "REPLY", { requestSequence, permitSequence, replyChannelToken, result });
     } catch (error) {
       let commandError = error;

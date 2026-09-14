@@ -41,7 +41,7 @@ const currentTableSql = `
     proof_hash text,
     state text not null check(state in ('PREPARED','DISPATCHED','CONFIRMED','REJECTED','FAILED')),
     mutation_outcome text check(mutation_outcome in ('no','dispatched','confirmed')),
-    physical_input_count integer not null default 0 check(physical_input_count between 0 and 2),
+    physical_input_count integer not null default 0 check(physical_input_count between 0 and 4),
     download_guid_hash text,
     download_completed integer not null default 0 check(download_completed in (0,1)),
     media_identity_revalidated integer not null default 0 check(media_identity_revalidated in (0,1)),
@@ -74,6 +74,49 @@ const requiredIndexes = new Set([
   "browser_mutations_exact_call_identity",
 ]);
 
+const normalizedSql = (value: string): string => value
+  .toLocaleLowerCase("en-US").replaceAll(/\s+/gu, " ").trim();
+
+const physicalInputConstraint = (sql: string | undefined): 2 | 4 | null => {
+  if (!sql) return null;
+  const normalized = normalizedSql(sql);
+  if (normalized.includes("check(physical_input_count between 0 and 4)")) return 4;
+  if (normalized.includes("check(physical_input_count between 0 and 2)")) return 2;
+  return null;
+};
+
+const currentColumnsAndIndexes = (database: Database.Database): boolean => {
+  const columns = (database.prepare("pragma table_info(browser_mutations)").all() as Array<{ name: string }>)
+    .map((column) => column.name);
+  if (columns.length !== requiredColumns.length
+    || requiredColumns.some((column) => !columns.includes(column))) return false;
+  const indexes = new Set((database.prepare(
+    "select name from sqlite_master where type='index' and tbl_name='browser_mutations' and name not like 'sqlite_autoindex_%'",
+  ).all() as Array<{ name: string }>).map((index) => index.name));
+  return indexes.size === requiredIndexes.size
+    && [...requiredIndexes].every((index) => indexes.has(index));
+};
+
+const migratePhysicalInputConstraint = (database: Database.Database): void => {
+  const migrationTable = "browser_mutations_physical_input_v2";
+  const exists = database.prepare(
+    "select 1 from sqlite_master where type='table' and name=?",
+  ).get(migrationTable);
+  if (exists) throw new Error("BROWSER_REPAIR_REQUIRED");
+  database.transaction(() => {
+    for (const index of requiredIndexes) database.exec(`drop index ${index}`);
+    database.exec(`alter table browser_mutations rename to ${migrationTable}`);
+    database.exec(currentTableSql);
+    database.exec(`insert into browser_mutations(${requiredColumns.join(",")})
+      select ${requiredColumns.join(",")} from ${migrationTable}`);
+    const before = database.prepare(`select count(*) as count from ${migrationTable}`).get() as { count: number };
+    const after = database.prepare("select count(*) as count from browser_mutations").get() as { count: number };
+    if (before.count !== after.count) throw new Error("BROWSER_REPAIR_REQUIRED");
+    database.exec(`drop table ${migrationTable}`);
+    createIndexes(database);
+  })();
+};
+
 export const ensureCurrentSchema = (database: Database.Database): void => {
   const table = database.prepare(
     "select sql from sqlite_master where type='table' and name='browser_mutations'",
@@ -83,17 +126,9 @@ export const ensureCurrentSchema = (database: Database.Database): void => {
     createIndexes(database);
     return;
   }
-  const columns = (database.prepare("pragma table_info(browser_mutations)").all() as Array<{ name: string }>)
-    .map((column) => column.name);
-  if (columns.length !== requiredColumns.length
-    || requiredColumns.some((column) => !columns.includes(column))) {
-    throw new Error("BROWSER_REPAIR_REQUIRED");
-  }
-  const indexes = new Set((database.prepare(
-    "select name from sqlite_master where type='index' and tbl_name='browser_mutations' and name not like 'sqlite_autoindex_%'",
-  ).all() as Array<{ name: string }>).map((index) => index.name));
-  if (indexes.size !== requiredIndexes.size
-    || [...requiredIndexes].some((index) => !indexes.has(index))) {
-    throw new Error("BROWSER_REPAIR_REQUIRED");
-  }
+  if (!currentColumnsAndIndexes(database)) throw new Error("BROWSER_REPAIR_REQUIRED");
+  const constraint = physicalInputConstraint(table.sql);
+  if (constraint === 2) migratePhysicalInputConstraint(database);
+  else if (constraint !== 4) throw new Error("BROWSER_REPAIR_REQUIRED");
+  if (!currentColumnsAndIndexes(database)) throw new Error("BROWSER_REPAIR_REQUIRED");
 };

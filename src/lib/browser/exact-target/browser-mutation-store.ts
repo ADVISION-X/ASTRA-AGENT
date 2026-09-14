@@ -15,6 +15,7 @@ import type {
   BrowserExactCallMutationFact,
   BrowserMutationIdentity,
   BrowserMutationOutcome,
+  BrowserPhysicalInputCount,
   BrowserMutationState,
 } from "./browser-mutation-types.js";
 
@@ -206,16 +207,17 @@ export class BrowserMutationStore {
     proofHash: `sha256:${string}`,
     mutationOutcome: "no" | "confirmed" = "confirmed",
     terminalPayload: unknown | null = null,
+    physicalInputCount: BrowserPhysicalInputCount = 0,
   ): void {
     const sealed = terminalPayload === null ? null
       : sealPayload(this.payloadKey, commandId, { terminalPayload });
     const timestamp = new Date().toISOString();
     const result = this.database.prepare(
       `update browser_mutations set state='CONFIRMED',mutation_outcome=?,reason='direct-postcondition-passed',
-       native_cause_code=null,proof_hash=?,provider_recovery_payload=?,
+       native_cause_code=null,proof_hash=?,provider_recovery_payload=?,physical_input_count=?,
        terminal_at=coalesce(terminal_at,?),updated_at=?
        where command_id=? and state='DISPATCHED'`,
-    ).run(mutationOutcome, proofHash, sealed, timestamp, timestamp, commandId);
+    ).run(mutationOutcome, proofHash, sealed, physicalInputCount, timestamp, timestamp, commandId);
     if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
   }
 
@@ -225,9 +227,10 @@ export class BrowserMutationStore {
     mutationOutcome: BrowserMutationOutcome = "confirmed",
     reason = "BROWSER_POSTCONDITION_FAILED",
     nativeCauseCode: string | null = null,
+    physicalInputCount: BrowserPhysicalInputCount = 0,
   ): void {
     this.transition(commandId, "DISPATCHED", "REJECTED", mutationOutcome,
-      reason, nativeCauseCode, proofHash);
+      reason, nativeCauseCode, proofHash, physicalInputCount);
   }
 
   public markFailedBeforeDispatch(commandId: string, reason: string): void {
@@ -397,7 +400,7 @@ export class BrowserMutationStore {
       call_id: string;
       child_capability_id: string;
       action_ordinal: number;
-      physical_input_count: 0 | 1 | 2;
+      physical_input_count: BrowserPhysicalInputCount;
       download_guid_hash: `sha256:${string}` | null;
       download_completed: 0 | 1;
       media_identity_revalidated: 0 | 1;
@@ -485,14 +488,14 @@ export class BrowserMutationStore {
   public close(): void { this.database.close(); }
   private transition(commandId: string, from: BrowserMutationState, to: BrowserMutationState,
     mutationOutcome: BrowserMutationOutcome, reason: string | null, nativeCauseCode: string | null,
-    proofHash: `sha256:${string}` | null): void {
+    proofHash: `sha256:${string}` | null, physicalInputCount: BrowserPhysicalInputCount = 0): void {
     const timestamp = new Date().toISOString();
     const result = this.database.prepare(
-      `update browser_mutations set state=?,mutation_outcome=?,reason=?,native_cause_code=?,proof_hash=?,
+      `update browser_mutations set state=?,mutation_outcome=?,reason=?,native_cause_code=?,proof_hash=?,physical_input_count=?,
        terminal_at=case when ? in ('CONFIRMED','REJECTED') then coalesce(terminal_at,?) else terminal_at end,
        updated_at=?
        where command_id=? and state=?`,
-    ).run(to, mutationOutcome, reason, nativeCauseCode, proofHash,
+    ).run(to, mutationOutcome, reason, nativeCauseCode, proofHash, physicalInputCount,
       to, timestamp, timestamp, commandId, from);
     if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
   }

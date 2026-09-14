@@ -171,16 +171,22 @@ export const dispatchPointerClickSequence = async (
   point: BrowserPointerAction,
   clickCounts: readonly (1 | 2)[],
   assertCurrent: CurrentDocumentAssertion,
+  onPhysicalInput?: () => void,
 ): Promise<void> => {
   assertCurrent();
   await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", {
     type: "mouseMoved", x: point.x, y: point.y, button: "none", buttons: 0,
   });
+  let inputObserved = false;
   for (const clickCount of clickCounts) {
     assertCurrent();
     await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", {
       type: "mousePressed", x: point.x, y: point.y, button: "left", buttons: 1, clickCount,
     });
+    if (!inputObserved) {
+      inputObserved = true;
+      onPhysicalInput?.();
+    }
     assertCurrent();
     await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", {
       type: "mouseReleased", x: point.x, y: point.y, button: "left", buttons: 0, clickCount,
@@ -295,10 +301,13 @@ export const executeClickIntent = async (
   target: ExtensionExactTarget,
   intent: ClickIntent,
   assertCurrent: CurrentDocumentAssertion,
+  onPhysicalInput?: () => void,
 ): Promise<unknown> => {
   const prepared = await prepareClick(runtime, target, intent, assertCurrent);
   if ("receipt" in prepared) return prepared.receipt;
-  await dispatchPointerClickSequence(runtime, target, prepared.point, [1], assertCurrent);
+  await dispatchPointerClickSequence(
+    runtime, target, prepared.point, [1], assertCurrent, onPhysicalInput,
+  );
   return clickMutationReceipt(runtime, target, intent, prepared.retainedNodeId, assertCurrent);
 };
 
@@ -325,6 +334,7 @@ export const executeKeypressIntent = async (
   target: ExtensionExactTarget,
   intent: KeypressIntent,
   assertCurrent: CurrentDocumentAssertion,
+  onPhysicalInput?: () => void,
 ): Promise<unknown> => {
   const precondition = await waitForMatch(runtime, target, intent.postKeypressMatch, 0);
   if (precondition.verified) return zeroActionMatchReceipt(assertCurrent, precondition);
@@ -344,6 +354,7 @@ export const executeKeypressIntent = async (
   for (let index = 0; index < (intent.repeat ?? 1); index += 1) {
     assertCurrent();
     await runtime.send(target.tabId, "Input.dispatchKeyEvent", { type: "rawKeyDown", ...keyEvent });
+    if (index === 0) onPhysicalInput?.();
     assertCurrent();
     await runtime.send(target.tabId, "Input.dispatchKeyEvent", { type: "keyUp", ...keyEvent });
   }

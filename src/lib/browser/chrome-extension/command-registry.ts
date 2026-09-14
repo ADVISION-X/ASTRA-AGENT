@@ -48,6 +48,7 @@ const domCapabilityByIntent: Record<DomIntentKind, ExtensionCommandPermit["capab
   readText: "browser.dom.read-text.v1",
   readAttribute: "browser.dom.read-attribute.v1",
   selectExactGptConversation: "browser.dom.click.v1",
+  renameExactGptConversation: "browser.dom.click.v1",
   click: "browser.dom.click.v1",
   hover: "browser.dom.hover.v1",
   doubleClick: "browser.dom.double-click.v1",
@@ -63,6 +64,7 @@ export const admitExtensionCommand = async (input: Readonly<{ command: BrowserGo
   const expectedMutationClass = input.command.kind === "dom-intent"
     && input.command.intent.kind === "selectExactGptConversation" ? "lifecycle"
     : input.command.kind === "dom-intent" && (input.command.intent.kind === "click"
+    || input.command.intent.kind === "renameExactGptConversation"
     || input.command.intent.kind === "hover" || input.command.intent.kind === "doubleClick"
     || input.command.intent.kind === "keypress" || input.command.intent.kind === "fill")
     ? "mutation"

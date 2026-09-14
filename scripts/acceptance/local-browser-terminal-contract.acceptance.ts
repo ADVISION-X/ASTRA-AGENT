@@ -22,9 +22,11 @@ import { createBrowserActorFactory, createClickCommand, createMatchClickCommand,
 import { permitAuthority, permitExecution } from "./local-browser-terminal-fixture.js";
 import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
 import { exerciseActorRejections } from "./local-browser-terminal-rejection-support.js";
+import { exerciseSettledConversationRename } from "./local-browser-settled-rename-support.js";
 const root = await mkdtemp(join(tmpdir(), "browser-mutation-state-"));
 try {
   exerciseBrowserMutationStore(root);
+  await exerciseSettledConversationRename(root);
   const actorRoot = join(root, "actor");
   const actorStore = new BrowserMutationStore(actorRoot);
   const actorLogger = createRuntimeLogger({
@@ -453,7 +455,7 @@ try {
 }
 
 emitQualityProofObservation({
-  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V38",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V39",
   evidenceMode: "exam.golden",
   clauses: [
     "forbidden:0",

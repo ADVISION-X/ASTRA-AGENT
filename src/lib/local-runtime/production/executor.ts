@@ -255,6 +255,7 @@ export class ProductionExecutor {
       result = await dispatchWebsiteAgentTask(input.task, (authorized) => {
         gptExecution = this.gptChildTools.createExecution({
           jobId: authorized.task.job_id,
+          productId: authorized.task.product_id,
           ownerRef: authorized.task.business_identity.owner_ref,
           subjectRef: authorized.task.business_identity.subject_ref,
           authorizationRef: authorized.task.business_identity.authorization_ref,

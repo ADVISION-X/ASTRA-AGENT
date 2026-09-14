@@ -63,6 +63,7 @@ const exerciseFileAndQualificationReceipts = (): void => {
     postconditionVerified: true };
   assert.deepEqual(decodeBrowserMutationReceipt(fileCommand, fileSuccess), {
     terminal: "confirmed", mutationOutcome: "confirmed", failureCode: null, nativeCauseCode: null,
+    physicalInputCount: 1,
   });
   for (const forged of [
     { ...fileSuccess, resolvedFilePaths: ["/secret.txt"] },
@@ -83,7 +84,8 @@ const exerciseFileAndQualificationReceipts = (): void => {
   assert.deepEqual(decodeBrowserMutationReceipt(clickCommand, {
     ...interactionFailure, nativeCauseCode: "BROWSER_ORIGIN_REJECTED",
   }), { terminal: "rejected", mutationOutcome: "no",
-    failureCode: "BROWSER_TARGET_NOT_INTERACTIVE", nativeCauseCode: "BROWSER_ORIGIN_REJECTED" });
+    failureCode: "BROWSER_TARGET_NOT_INTERACTIVE", nativeCauseCode: "BROWSER_ORIGIN_REJECTED",
+    physicalInputCount: 0 });
   for (const nativeCauseCode of ["BROWSER_DEVTOOLS_CONFLICT", "raw uncontrolled cause"]) {
     assert.throws(() => decodeBrowserMutationReceipt(clickCommand, {
       ...interactionFailure, nativeCauseCode,
@@ -96,7 +98,8 @@ const exerciseFileAndQualificationReceipts = (): void => {
       ? "BROWSER_DOM_ACTION_HIT_TEST_FAILED" as const : "BROWSER_DOM_CANDIDATE_MISSING" as const;
     assert.deepEqual(decodeBrowserMutationReceipt(command, {
     ...crossKindFailure, failureCode, nativeCauseCode,
-  }), { terminal: "rejected", mutationOutcome: "no", failureCode, nativeCauseCode },
+  }), { terminal: "rejected", mutationOutcome: "no", failureCode, nativeCauseCode,
+    physicalInputCount: 0 },
   "pointer, keyboard, and fill actionability may truthfully reject one locked candidate with zero input");
   }
   for (const command of [keypressCommand, fillCommand] as const) assert.throws(() =>
@@ -109,7 +112,8 @@ const exerciseFileAndQualificationReceipts = (): void => {
     ...crossKindFailure, candidateCount: 0, qualificationStage: "candidate-set",
     failureCode: "BROWSER_DOM_CANDIDATE_MISSING", nativeCauseCode: null,
   }), { terminal: "rejected", mutationOutcome: "no",
-    failureCode: "BROWSER_DOM_CANDIDATE_MISSING", nativeCauseCode: null });
+    failureCode: "BROWSER_DOM_CANDIDATE_MISSING", nativeCauseCode: null,
+    physicalInputCount: 0 });
   assert.throws(() => decodeBrowserMutationReceipt(clickCommand, {
     ...crossKindFailure, qualificationStage: "candidate-set", failureCode: "BROWSER_DOM_CANDIDATE_MISSING",
   }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
@@ -124,7 +128,7 @@ const exerciseFreshReadbackReceipts = (): void => {
   };
   assert.deepEqual(decodeBrowserMutationReceipt(fillCommand, fillReadbackFailure), {
     terminal: "rejected", mutationOutcome: "confirmed", failureCode: "BROWSER_POSTCONDITION_FAILED",
-    nativeCauseCode: "BROWSER_DOM_CANDIDATE_MISSING",
+    nativeCauseCode: "BROWSER_DOM_CANDIDATE_MISSING", physicalInputCount: 1,
   });
   for (const forged of [
     { ...fillReadbackFailure, nativeCauseCode: undefined },
@@ -135,13 +139,15 @@ const exerciseFreshReadbackReceipts = (): void => {
   assert.deepEqual(decodeBrowserMutationReceipt(clickCommand, {
     clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
     postconditionVerified: true, ...visibleMatchEvidence,
-  }), { terminal: "confirmed", mutationOutcome: "confirmed", failureCode: null, nativeCauseCode: null });
+  }), { terminal: "confirmed", mutationOutcome: "confirmed", failureCode: null, nativeCauseCode: null,
+    physicalInputCount: 1 });
   const coherentSuccess = {
     clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
     postconditionVerified: true, postconditionObservation: observationPacket(1),
   };
   assert.deepEqual(decodeBrowserMutationReceipt(observationClickCommand, coherentSuccess), {
     terminal: "confirmed", mutationOutcome: "confirmed", failureCode: null, nativeCauseCode: null,
+    physicalInputCount: 1,
   }, "coherent postconditions must compare eligible cardinality without requiring raw DOM absence");
   const selectedCandidateSuccess = {
     ...coherentSuccess,
@@ -149,6 +155,7 @@ const exerciseFreshReadbackReceipts = (): void => {
   };
   assert.deepEqual(decodeBrowserMutationReceipt(selectedCandidateCommand, selectedCandidateSuccess), {
     terminal: "confirmed", mutationOutcome: "confirmed", failureCode: null, nativeCauseCode: null,
+    physicalInputCount: 1,
   }, "the exact selected-candidate attribute readback is part of the successful click receipt");
   assert.throws(() => decodeBrowserMutationReceipt(selectedCandidateCommand, {
     ...selectedCandidateSuccess,
@@ -161,7 +168,7 @@ const exerciseFreshReadbackReceipts = (): void => {
   };
   assert.deepEqual(decodeBrowserMutationReceipt(observationClickCommand, coherentFailure), {
     terminal: "rejected", mutationOutcome: "confirmed", failureCode: "BROWSER_POSTCONDITION_FAILED",
-    nativeCauseCode: "BROWSER_DOM_CANDIDATE_MISSING",
+    nativeCauseCode: "BROWSER_DOM_CANDIDATE_MISSING", physicalInputCount: 1,
   });
   assert.throws(() => decodeBrowserMutationReceipt(observationClickCommand, {
     ...coherentFailure, nativeCauseCode: "BROWSER_DOM_CANDIDATE_AMBIGUOUS",
@@ -179,6 +186,7 @@ const exercisePostconditionEvidenceReceipts = (): void => {
   assert.deepEqual(decodeBrowserMutationReceipt(clickCommand, ariaHiddenPostconditionFailure), {
     terminal: "rejected", mutationOutcome: "confirmed",
     failureCode: "BROWSER_POSTCONDITION_FAILED", nativeCauseCode: "ARIA_HIDDEN",
+    physicalInputCount: 1,
   }, "a failed match must retain raw and eligible counts plus the exact ARIA_HIDDEN cause");
   for (const forged of [
     { ...ariaHiddenPostconditionFailure, postconditionRejections: [] },

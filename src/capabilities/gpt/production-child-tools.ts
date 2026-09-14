@@ -6,6 +6,7 @@ import {
   type GptChildCapabilityId,
   type GptChildCapabilityIntent,
   type GptChildCapabilityResult,
+  type ProductGptChildCapabilityId,
 } from "./contract.js";
 import { gptExactCallIdentityHash } from "./contract.js";
 import { gptCanonicalHash } from "./contract.js";
@@ -45,6 +46,8 @@ import {
 
 export type { ProductGptExecution } from "./production-child-support.js";
 
+const RENAME_CLEANUP_MINIMUM_BUDGET_MS = 15_000;
+
 const confirmedSubmitEffect = (
   prior: BrowserExactCallMutationFact,
   exactCallIdentityHash: GptHash,
@@ -62,7 +65,7 @@ const confirmedSubmitEffect = (
 };
 
 const recordConfirmedSubmission = async (
-  call: ProductGptCallInput,
+  call: ProductGptCallInput<GptChildCapabilityId>,
   result: GptChildCapabilityResult,
   intent: GptAnyChildCapabilityIntent,
   execution: ExecutionInput,
@@ -87,7 +90,7 @@ const recordConfirmedSubmission = async (
 };
 
 const recordSettledProviderResult = (
-  call: ProductGptCallInput,
+  call: ProductGptCallInput<GptChildCapabilityId>,
   value: unknown,
   browsers: ProductionGptBrowserLifecycle,
   browserCall: ProductionGptBrowserCall | undefined,
@@ -159,10 +162,11 @@ export class ProductionGptChildTools {
   }
   public createExecution(input: ExecutionInput): ProductGptExecution {
     const browsers = this.browserLifecycle(input);
-    const execute = async <K extends GptChildCapabilityId>(
+    const execute = async <K extends ProductGptChildCapabilityId>(
       call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
     ): Promise<ProductGptChildResult<K>> => {
       this.assertExecutionActive(input);
+      await this.runSettledConversationCleanup(input, browsers, call.sessionKey);
       const result = await this.executeOne(
         input, browsers, call, input.abortSignal,
       );
@@ -177,6 +181,7 @@ export class ProductionGptChildTools {
           call: ProductGptCallInput<"submit_exact_gpt_turn_once"> & Readonly<{ sessionKey: string }>,
         ): Promise<ProductGptChildResult<"submit_exact_gpt_turn_once"> | null> => {
           this.assertExecutionActive(input);
+          await this.runSettledConversationCleanup(input, browsers, call.sessionKey);
           const intent = this.intentFor(input, call);
           const atomicIdentity = productionGptAtomicIdentity(
             intent as GptAnyChildCapabilityIntent, input.resultRevision,
@@ -214,8 +219,52 @@ export class ProductionGptChildTools {
         },
       }),
       decorateSettledResultFailure: (error) => browsers.decorateSettledResultFailure(error),
-      settle: (error) => browsers.settle(error),
+      settle: (error) => this.settleExecution(input, browsers, error),
     });
+  }
+
+  private async settleExecution(
+    input: ExecutionInput,
+    browsers: ProductionGptBrowserLifecycle,
+    error: unknown | null,
+  ): Promise<void> {
+    await this.runSettledConversationCleanup(input, browsers);
+    await browsers.settle(error);
+  }
+
+  private async runSettledConversationCleanup(
+    input: ExecutionInput,
+    browsers: ProductionGptBrowserLifecycle,
+    nextSessionKey?: string,
+  ): Promise<void> {
+    let cleanup: ReturnType<ProductionGptBrowserLifecycle["takeSettledConversationCleanup"]> = null;
+    try {
+      cleanup = browsers.takeSettledConversationCleanup(nextSessionKey);
+      const remaining = Math.floor(input.expiresAtMonotonic - performance.now());
+      if (cleanup && !input.abortSignal.aborted
+        && remaining >= RENAME_CLEANUP_MINIMUM_BUDGET_MS
+        && input.commandTtlMs >= RENAME_CLEANUP_MINIMUM_BUDGET_MS) {
+        await this.executeOne(input, browsers, {
+          child: "rename_settled_gpt_conversation",
+          sessionKey: cleanup.sessionKey,
+          productStepId: "gpt-settled-conversation-cleanup",
+          callId: "rename-current-conversation",
+          actionOrdinal: 1,
+          input: {
+            canonicalConversationUrl: cleanup.canonicalConversationUrl,
+            jobId: input.jobId,
+            productId: input.productId,
+            terminalAt: cleanup.terminalAt,
+            timeoutMs: 2500,
+          },
+        }, input.abortSignal, false, RuntimeFailureImpact.CLEANUP);
+      }
+    } catch (error) {
+      if (cleanup && failureCode(error, "") === "BROWSER_COMMAND_RECEIPT_MISSING") {
+        browsers.recordSettledRenameTransportRevocation(cleanup.sessionKey);
+      }
+      // Settled-title cleanup is deliberately non-authoritative and cannot replace park.
+    }
   }
 
   private assertExecutionActive(input: ExecutionInput): void {
@@ -270,7 +319,11 @@ export class ProductionGptChildTools {
     }));
   }
 
-  private terminalize(span: RuntimeSpanHandle, result: GptChildCapabilityResult): string {
+  private terminalize(
+    span: RuntimeSpanHandle,
+    result: GptChildCapabilityResult,
+    failureImpact: RuntimeFailureImpact = RuntimeFailureImpact.BLOCKING,
+  ): string {
     const native = result.failureCause ? Object.assign(new Error(result.failureCause.name), {
       name: result.failureCause.name,
       ...(result.failureCause.code ? { code: result.failureCause.code } : {}),
@@ -286,7 +339,7 @@ export class ProductionGptChildTools {
           error: failure,
           code: result.failureCode ?? "GPT_CHILD_FAILED",
           responsibleOwner: "gpt",
-          impact: RuntimeFailureImpact.BLOCKING,
+          impact: failureImpact,
         }),
       }));
     return terminal.eventId;
@@ -296,6 +349,7 @@ export class ProductionGptChildTools {
     span: RuntimeSpanHandle,
     error: unknown,
     confirmedProviderEffect?: ProductionGptBrowserCall["confirmedProviderEffect"],
+    failureImpact: RuntimeFailureImpact = RuntimeFailureImpact.BLOCKING,
   ): never {
     const causedByEventId = runtimeLogCauseEventId(error);
     const original = typedExecutionFailure(error) ?? executionFailure(
@@ -318,7 +372,9 @@ export class ProductionGptChildTools {
         error: failure,
         code: failureCode(failure, "GPT_CHILD_RUNTIME_FAILED"),
         responsibleOwner: "gpt",
-        impact: causedByEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
+        impact: failureImpact === RuntimeFailureImpact.CLEANUP
+          ? RuntimeFailureImpact.CLEANUP
+          : causedByEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
         ...(causedByEventId ? { causedByEventId } : {}),
       }),
     }));
@@ -329,7 +385,7 @@ export class ProductionGptChildTools {
 
   private assertProviderTurnBudget(
     execution: ExecutionInput,
-    call: ProductGptCallInput,
+    call: ProductGptCallInput<GptChildCapabilityId>,
   ): void {
     if (call.child !== "submit_exact_gpt_turn_once") return;
     const dispatched = this.browserAuthority.countProviderTurnDispatches(
@@ -345,6 +401,7 @@ export class ProductionGptChildTools {
     browsers: ProductionGptBrowserLifecycle,
     call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>, signal: AbortSignal = execution.abortSignal,
     priorEffectKnown = false,
+    failureImpact: RuntimeFailureImpact = RuntimeFailureImpact.BLOCKING,
   ): Promise<ProductGptChildResult<K>> {
     const intent = this.intentFor(execution, call);
     const contract = GPT_CHILD_CAPABILITY_CONTRACTS[call.child];
@@ -400,11 +457,13 @@ export class ProductionGptChildTools {
       });
     } catch (error) {
       return this.terminalizeError(
-        span, error, readsConfirmedEffect ? browserCall?.confirmedProviderEffect : null,
+        span, error, readsConfirmedEffect ? browserCall?.confirmedProviderEffect : null, failureImpact,
       );
     }
-    if (!result) return this.terminalizeError(span, executionFailure("failed", "GPT_CHILD_RESULT_MISSING"));
-    const terminalEventId = this.terminalize(span, result);
+    if (!result) return this.terminalizeError(
+      span, executionFailure("failed", "GPT_CHILD_RESULT_MISSING"), undefined, failureImpact,
+    );
+    const terminalEventId = this.terminalize(span, result, failureImpact);
     if (result.status !== "success") {
       throwGptChildFailure(
         result, evidenceRef, terminalEventId,

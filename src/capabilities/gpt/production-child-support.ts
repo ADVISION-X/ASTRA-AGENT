@@ -5,6 +5,7 @@ import type { ProductGptTools } from "./product-api.js";
 
 export type GptProductionExecutionInput = Readonly<{
   jobId: string;
+  productId: string;
   ownerRef: string;
   subjectRef: string;
   authorizationRef: string;

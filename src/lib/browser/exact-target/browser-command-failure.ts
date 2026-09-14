@@ -8,6 +8,7 @@ import {
   startBrowserCommandSpan,
 } from "./browser-command-runtime-logging.js";
 import type { BrowserMutationStore } from "./browser-mutation-store.js";
+import type { BrowserGovernedCommand } from "./browser-command-actor.js";
 
 export type BrowserCommandExecutionState = {
   authenticatedReplyHash: `sha256:${string}` | null;
@@ -37,6 +38,7 @@ const causalBrowserFailureCode = (error: unknown): string =>
     ? error.message : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE";
 
 type FailureInput = Readonly<{
+  command: BrowserGovernedCommand;
   commandSpan: ReturnType<typeof startBrowserCommandSpan>;
   error: unknown;
   mutation: boolean;
@@ -98,6 +100,19 @@ const recordUnsettledMutation = (input: FailureInput, code: string): void => {
   });
 };
 
+const rejectMissingRenameReply = (input: FailureInput): never => {
+  const failureCode = "BROWSER_COMMAND_RECEIPT_MISSING";
+  input.mutations.markRejected(
+    input.permit.commandId,
+    hashBrowserCommandValue(failureCode),
+    "dispatched",
+    failureCode,
+    null,
+    0,
+  );
+  return emitRejected(input, failureCode);
+};
+
 export const failBrowserCommandExecution = (input: FailureInput): never => {
   if (input.state.terminalized) throw input.error;
   const code = causalBrowserFailureCode(input.error);
@@ -113,6 +128,13 @@ export const failBrowserCommandExecution = (input: FailureInput): never => {
   if (input.terminalReply !== null) return rejectAuthenticatedTerminalReply(input, input.terminalReply);
   if (input.mutation && input.state.dispatched && input.state.authenticatedReplyHash !== null) {
     return rejectAuthenticatedResult(input);
+  }
+  if (input.mutation && input.state.dispatched
+    && input.permit.childCapabilityId === "rename_settled_gpt_conversation"
+    && input.permit.replayPolicy === "target-local-per-generation"
+    && input.command.kind === "dom-intent"
+    && input.command.intent.kind === "renameExactGptConversation") {
+    return rejectMissingRenameReply(input);
   }
   const failureCode = input.mutation && input.state.dispatched
     ? "BROWSER_COMMAND_RECEIPT_MISSING" : code;

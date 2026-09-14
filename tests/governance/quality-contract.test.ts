@@ -360,6 +360,7 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
         gate_b_n2_provider_warning_count: 0,
         gate_b_n2_warning_coverage_complete: true,
         provider_warning_coverage_complete: true,
+        settled_conversation_rename_provider_input_count: 0,
       },
       providerName: "ChatGPT", terminalReceiptCount: 39 },
     authorization: { authorityState: "present", fenceHashes: ["sha256:fixture"],
@@ -372,10 +373,10 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
   } as const;
   const routes = {
     browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", clauses: ["forbidden:6"] },
-    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V58", clauses: ["summary"] },
-    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V58", clauses: ["forbidden:0", "forbidden:2"] },
-    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V58", clauses: ["forbidden:2"] },
-    provider: { lawId: "LAW-GPT-001-V50", clauses: ["forbidden:0", "forbidden:3", "forbidden:7"] },
+    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V59", clauses: ["summary"] },
+    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V59", clauses: ["forbidden:0", "forbidden:2"] },
+    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V59", clauses: ["forbidden:2"] },
+    provider: { lawId: "LAW-GPT-001-V51", clauses: ["forbidden:0", "forbidden:3", "forbidden:7", "forbidden:8"] },
     authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V6", clauses: ["forbidden:1", "forbidden:2"] },
     recovery: { lawId: "LAW-RUNTIME-LOG-SPINE-001-V7", clauses: ["summary"] },
   } as const;
@@ -1107,8 +1108,8 @@ test("provider contracts reject malformed payloads before identity matching", ()
   )) as unknown;
   assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
     new Map([
-      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V58", "agent-production-runtime"],
-      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V29", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V59", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V30", "agent-production-runtime"],
     ]),
     (path) => path === "src/lib/local-runtime/production/catalog.ts"));
 });
@@ -1349,7 +1350,7 @@ test("every active law scope is deterministic, owned, unique, and includes all c
 
 test("active mutation inspectors use one DISPATCHED chain inside each law scope", () => {
   const registry = buildRegistry();
-  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V58");
+  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V59");
   assert.ok(agentLaw);
   const agentTargets = computeTargetPaths(agentLaw, registry);
   const crossOwnerPaths = [
@@ -1454,7 +1455,7 @@ test("active Browser and Runtime Log inspectors reject semantic decoys", () => {
   assert.equal(redactHashWriteOrderIsExact(inspectSource(loggerPath, redactionDecoy)), false);
 });
 
-test("Browser inspectors kill WAL rebuild and split exact-assistant DOM reads", () => {
+test("Browser inspectors admit only the exact row-preserving WAL constraint migration and atomic assistant reads", () => {
   const inspectSource = (path: string, source: string) => {
     const project = new Project({ useInMemoryFileSystem: true });
     return project.createSourceFile(path, source);
@@ -1467,6 +1468,10 @@ test("Browser inspectors kill WAL rebuild and split exact-assistant DOM reads", 
     schema.replace("native_cause_code text", "native_failure_text text"),
     schema.replace('"provider_recovery_payload",', '"provider_recovery_alias",'),
     schema.replace("columns.length !== requiredColumns.length", "columns.length === requiredColumns.length"),
+    schema.replace("check(physical_input_count between 0 and 4)", "check(physical_input_count between 0 and 9)"),
+    schema.replace("database.transaction(() =>", "(() =>"),
+    schema.replace("before.count !== after.count", "before.count === after.count"),
+    schema.replace("drop table ${migrationTable}", "drop table browser_mutations"),
   ]) assert.equal(browserMutationSchemaMigrationIsCurrent(inspectSource(schemaPath, mutant)), false);
 
   const exactPath = "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts";
@@ -1553,7 +1558,7 @@ test("Dynamic Proof routes are separated by native Owner", () => {
     ".catch(() => undefined)", "cleanupVerified: true", "dynamic.recovery",
     "old_attempt_after_restart_rejected", "new_attempt_fresh_started",
   ]) assert.equal(proof.includes(forbidden), false, forbidden);
-  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V58", "runtime_schema_exact", "runtime_orphan_directory_count",
+  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V59", "runtime_schema_exact", "runtime_orphan_directory_count",
     "AGENT_RUNTIME_OWNER_ISOLATED_RELEASE_PROOF_NOT_ADMITTED"]) assert.ok(proof.includes(token), token);
   for (const adjacentPrefix of ["LAW-GPT-", "LAW-LOCAL-BROWSER-SESSION-", "LAW-RUNTIME-LOG-SPINE-"]) {
     assert.equal(proof.includes(adjacentPrefix), false, adjacentPrefix);

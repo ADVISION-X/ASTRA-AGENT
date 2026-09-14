@@ -2,6 +2,7 @@ import type { BrowserDomIntent } from "./browser-dom-intent.js";
 import type { BrowserDocumentRef, BrowserTargetRef } from "./browser-target-ref.js";
 import type { BrowserCapabilityId } from "../protocol/generated/browser-protocol.generated.js";
 import type { BrowserOutcomeResolutionReceipt } from "./browser-outcome-resolver.js";
+import type { BrowserPhysicalInputCount } from "./browser-mutation-types.js";
 
 export type BrowserAtomicStepIdentity = Readonly<{
   resultRevision: number;
@@ -32,7 +33,7 @@ export type BrowserAtomicStepOutcome = Readonly<{
   authorityHash: `sha256:${string}`;
   targetRef: string;
   documentRef: string;
-  physicalInputCount: 0 | 1 | 2;
+  physicalInputCount: BrowserPhysicalInputCount;
   downloadGuidHash: `sha256:${string}` | null;
   downloadCompleted: boolean;
   identityRevalidated: boolean;

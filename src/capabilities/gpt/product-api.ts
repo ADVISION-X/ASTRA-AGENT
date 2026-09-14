@@ -2,9 +2,10 @@ import type {
   GptChildCapabilityId,
   GptChildInputMap,
   GptChildOutputMap,
+  ProductGptChildCapabilityId,
 } from "./contract.js";
 
-export type ProductGptChildResult<K extends GptChildCapabilityId = GptChildCapabilityId> =
+export type ProductGptChildResult<K extends GptChildCapabilityId = ProductGptChildCapabilityId> =
   Readonly<{
     value: GptChildOutputMap[K];
     evidenceRef: string;
@@ -31,15 +32,15 @@ type ProductGptCallCommon = Readonly<{
 }>;
 
 type ProductGptAnyCallInputMap = {
-  readonly [K in GptChildCapabilityId]: ProductGptCallCommon & Readonly<{
+  readonly [K in ProductGptChildCapabilityId]: ProductGptCallCommon & Readonly<{
     child: K;
     input: GptChildInputMap[K];
   }>;
 };
 
-export type ProductGptAnyCallInput = ProductGptAnyCallInputMap[GptChildCapabilityId];
+export type ProductGptAnyCallInput = ProductGptAnyCallInputMap[ProductGptChildCapabilityId];
 
-export type ProductGptCallInput<K extends GptChildCapabilityId = GptChildCapabilityId> =
+export type ProductGptCallInput<K extends GptChildCapabilityId = ProductGptChildCapabilityId> =
   ProductGptCallCommon & Readonly<{
     child: K;
     input: GptChildInputMap[K];
@@ -48,7 +49,7 @@ export type ProductGptCallInput<K extends GptChildCapabilityId = GptChildCapabil
 export interface ProductGptTools {
   readonly jobId: string;
   readonly attemptId: string;
-  execute<K extends GptChildCapabilityId>(
+  execute<K extends ProductGptChildCapabilityId>(
     input: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
   ): Promise<ProductGptChildResult<K>>;
   readConfirmedSubmit(

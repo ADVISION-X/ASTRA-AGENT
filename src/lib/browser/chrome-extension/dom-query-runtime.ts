@@ -198,9 +198,14 @@ export const describeNode = async (runtime: ExtensionDebuggerRuntime, tabId: num
 
 export const nodeText = async (runtime: ExtensionDebuggerRuntime, tabId: number, nodeId: number): Promise<string> => {
   const node = await describeNodeTree(runtime, tabId, nodeId);
-  return attribute(node, "contenteditable") === "true"
-    ? readExactEditableText(runtime, tabId, nodeId)
-    : collectNodeText(node);
+  if (attribute(node, "contenteditable") === "true") {
+    return readExactEditableText(runtime, tabId, nodeId);
+  }
+  const name = typeof node.nodeName === "string" ? node.nodeName.toUpperCase() : "";
+  if (name === "INPUT" || name === "TEXTAREA") {
+    return (await readMechanicalFacts(runtime, tabId, nodeId)).value;
+  }
+  return collectNodeText(node);
 };
 
 const describeNodeTree = async (

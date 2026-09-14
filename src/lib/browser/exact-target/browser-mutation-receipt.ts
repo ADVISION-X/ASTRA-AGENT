@@ -6,6 +6,7 @@ export type BrowserMutationReceipt = Readonly<{
   mutationOutcome: "no" | "confirmed";
   failureCode: string | null;
   nativeCauseCode: string | null;
+  physicalInputCount: 0 | 1 | 2 | 3 | 4;
 }>;
 
 const DOM_REJECTION_CODES = new Set([
@@ -58,7 +59,8 @@ const exactKeys = (value: Readonly<Record<string, unknown>>, expected: readonly 
 };
 
 const mutationCommandValid = (command: BrowserGovernedCommand): boolean => command.kind === "file-input"
-  || (command.kind === "dom-intent" && ["click", "hover", "doubleClick", "keypress", "fill"]
+  || (command.kind === "dom-intent" && ["click", "hover", "doubleClick", "keypress", "fill",
+    "renameExactGptConversation"]
     .includes(command.intent.kind));
 
 const qualificationFailureValid = (
@@ -385,12 +387,14 @@ const decodeZeroMutationReceipt = (
   value: Readonly<Record<string, unknown>>,
 ): BrowserMutationReceipt => {
   if (zeroActionReceiptValid(command, value)) {
-    return Object.freeze({ terminal: "confirmed", mutationOutcome: "no", failureCode: null, nativeCauseCode: null });
+    return Object.freeze({ terminal: "confirmed", mutationOutcome: "no", failureCode: null,
+      nativeCauseCode: null, physicalInputCount: 0 });
   }
   if (qualificationReceiptValid(command, value)) {
     return Object.freeze({
       terminal: "rejected", mutationOutcome: "no", failureCode: value.failureCode,
       nativeCauseCode: value.nativeCauseCode as string | null,
+      physicalInputCount: 0,
     });
   }
   throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
@@ -474,6 +478,49 @@ const decodeDispatchedMutationReceipt = (
     failureCode: value.postconditionVerified ? null : "BROWSER_POSTCONDITION_FAILED",
     nativeCauseCode: hasDispatchedPostconditionRejection(rejection)
       ? String(value.nativeCauseCode) : null,
+    physicalInputCount: 1,
+  });
+};
+
+const decodeConversationRenameReceipt = (
+  value: Readonly<Record<string, unknown>>,
+): BrowserMutationReceipt => {
+  const successKeys = [
+    "renameState", "candidateCount", "identityRevalidated", "mutationCount",
+    "postconditionVerified",
+  ];
+  const failureKeys = [...successKeys, "failureCode", "nativeCauseCode"];
+  if (!exactKeys(value, value.renameState === "failed" ? failureKeys : successKeys)) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  const count = value.mutationCount;
+  if (!Number.isSafeInteger(count) || (count as number) < 0 || (count as number) > 4
+    || typeof value.postconditionVerified !== "boolean"
+    || !Number.isSafeInteger(value.candidateCount) || (value.candidateCount as number) < 0
+    || (value.candidateCount as number) > 2 || typeof value.identityRevalidated !== "boolean") {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  const physicalInputCount = count as 0 | 1 | 2 | 3 | 4;
+  const success = value.postconditionVerified === true
+    && ((physicalInputCount === 0 && value.renameState === "already-exact")
+      || (physicalInputCount === 4 && value.renameState === "renamed"))
+    && value.identityRevalidated === true && value.candidateCount === 1;
+  if (success) return Object.freeze({
+    terminal: "confirmed", mutationOutcome: physicalInputCount === 0 ? "no" : "confirmed",
+    failureCode: null, nativeCauseCode: null, physicalInputCount,
+  });
+  if (value.renameState !== "failed" || typeof value.failureCode !== "string"
+    || !/^BROWSER_[A-Z0-9_]+$/u.test(value.failureCode)
+    || (value.nativeCauseCode !== null && (typeof value.nativeCauseCode !== "string"
+      || !/^BROWSER_[A-Z0-9_]+$/u.test(value.nativeCauseCode)))) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  return Object.freeze({
+    terminal: "rejected",
+    mutationOutcome: physicalInputCount === 0 ? "no" : "confirmed",
+    failureCode: value.failureCode,
+    nativeCauseCode: value.nativeCauseCode as string | null,
+    physicalInputCount,
   });
 };
 
@@ -483,6 +530,9 @@ export const decodeBrowserMutationReceipt = (
 ): BrowserMutationReceipt => {
   if (!mutationCommandValid(command)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   const value = result && typeof result === "object" ? result as Record<string, unknown> : {};
+  if (command.kind === "dom-intent" && command.intent.kind === "renameExactGptConversation") {
+    return decodeConversationRenameReceipt(value);
+  }
   const mutationCount = value.mutationCount;
   if ((mutationCount !== 0 && mutationCount !== 1) || typeof value.postconditionVerified !== "boolean"
     || (value.zeroActionSatisfied === true && value.qualificationRejected === true)) {

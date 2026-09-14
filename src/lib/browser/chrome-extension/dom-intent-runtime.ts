@@ -18,7 +18,7 @@ import { attribute, describeNode,
   selectorForLocator } from "./dom-query-runtime.js";
 type FindIntent = Extract<BrowserDomIntent, { kind: "find" }>;
 type ValueIntent = Exclude<BrowserDomIntent, {
-  kind: "document" | "selectExactGptConversation" | "observe" | "readExactAssistantTurn" | "find" | "click" | "hover" | "doubleClick" | "keypress";
+  kind: "document" | "selectExactGptConversation" | "renameExactGptConversation" | "observe" | "readExactAssistantTurn" | "find" | "click" | "hover" | "doubleClick" | "keypress";
 }>;
 type CurrentDocumentAssertion = () => void;
 
@@ -127,11 +127,13 @@ const clearFocusedInput = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
   tabId: number,
   assertCurrent: CurrentDocumentAssertion,
+  onPhysicalInput?: () => void,
 ): Promise<void> => {
   assertCurrent();
   await debuggerRuntime.send(tabId, "Input.dispatchKeyEvent", {
     type: "rawKeyDown", key: "a", code: "KeyA", commands: ["selectAll"],
   });
+  onPhysicalInput?.();
   assertCurrent();
   await debuggerRuntime.send(tabId, "Input.dispatchKeyEvent", { type: "keyUp", key: "a", code: "KeyA" });
   assertCurrent();
@@ -162,6 +164,7 @@ const executeValueIntent = async (
   target: ExtensionExactTarget,
   intent: ValueIntent,
   assertCurrent: CurrentDocumentAssertion,
+  onPhysicalInput?: () => void,
 ): Promise<unknown> => {
   if (intent.kind !== "fill") return executeReadValueIntent(debuggerRuntime, target, intent);
   const node = await qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent));
@@ -177,9 +180,18 @@ const executeValueIntent = async (
   }
   assertCurrent();
   await debuggerRuntime.send(target.tabId, "DOM.focus", { nodeId: node.nodeId });
-  if (intent.clearBeforeType) await clearFocusedInput(debuggerRuntime, target.tabId, assertCurrent);
+  let inputObserved = false;
+  const markInput = (): void => {
+    if (inputObserved) return;
+    inputObserved = true;
+    onPhysicalInput?.();
+  };
+  if (intent.clearBeforeType) {
+    await clearFocusedInput(debuggerRuntime, target.tabId, assertCurrent, markInput);
+  }
   assertCurrent();
   await debuggerRuntime.send(target.tabId, "Input.insertText", { text: intent.approvedText });
+  markInput();
   assertCurrent();
   const readbackNode = await qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent));
   if ("receipt" in readbackNode) return {
@@ -217,6 +229,14 @@ const executeValueIntent = async (
     ...(postconditionVerified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
   };
 };
+
+export const executeFillIntent = (
+  debuggerRuntime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  intent: Extract<BrowserDomIntent, { kind: "fill" }>,
+  assertCurrent: CurrentDocumentAssertion,
+  onPhysicalInput?: () => void,
+): Promise<unknown> => executeValueIntent(debuggerRuntime, target, intent, assertCurrent, onPhysicalInput);
 const executeDocumentReadIntent = (
   debuggerRuntime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
@@ -234,6 +254,10 @@ export const executeRegisteredDomIntent = async (
 ): Promise<unknown> => {
   assertCurrent();
   if (intent.kind === "selectExactGptConversation") throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  if (intent.kind === "renameExactGptConversation") {
+    const { executeGptConversationRename } = await import("./gpt-conversation-rename-runtime.js");
+    return executeGptConversationRename(debuggerRuntime, target, intent, assertCurrent);
+  }
   if (intent.kind === "document" || intent.kind === "observe") {
     return executeDocumentReadIntent(debuggerRuntime, target, intent);
   }

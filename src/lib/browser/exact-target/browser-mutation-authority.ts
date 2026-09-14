@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 import { identityColumns, mutationAuthorityHash } from "./browser-mutation-schema.js";
-import type { BrowserMutationOutcome } from "./browser-mutation-types.js";
+import type { BrowserMutationOutcome, BrowserPhysicalInputCount } from "./browser-mutation-types.js";
 
 export const requireMutationOutcome = (
   value: BrowserMutationOutcome | null,
@@ -46,7 +46,7 @@ export type ProviderEffectHistoryRow = Readonly<{
   payload_hash: `sha256:${string}`;
   state: "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED";
   mutation_outcome: BrowserMutationOutcome | null;
-  physical_input_count: 0 | 1 | 2;
+  physical_input_count: BrowserPhysicalInputCount;
 }>;
 
 export const resolveStoredBrowserMutationAuthority = (

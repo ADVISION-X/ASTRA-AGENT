@@ -7,6 +7,7 @@ import { openGptAttachmentControlHandler } from "./children/open_gpt_attachment_
 import { openGptExecutionProfileHandler } from "./children/open_gpt_execution_profile/handler.js";
 import { openGptModelSelectorV2Handler } from "./children/open_gpt_model_selector_v2/handler.js";
 import { prepareCleanGptChatHandler } from "./children/prepare_clean_gpt_chat/handler.js";
+import { renameSettledGptConversationHandler } from "./children/rename_settled_gpt_conversation/handler.js";
 import { reconcileGptAttachmentSetHandler } from "./children/reconcile_gpt_attachment_set/handler.js";
 import { selectExactGptModelV2Handler } from "./children/select_exact_gpt_model_v2/handler.js";
 import { submitExactGptTurnOnceHandler } from "./children/submit_exact_gpt_turn_once/handler.js";
@@ -28,4 +29,5 @@ export const gptChildHandlers = Object.freeze({
   submit_exact_gpt_turn_once: submitExactGptTurnOnceHandler,
   checkpoint_gpt_text_response: checkpointGptTextResponseHandler,
   checkpoint_gpt_generated_image: checkpointGptGeneratedImageHandler,
+  rename_settled_gpt_conversation: renameSettledGptConversationHandler,
 } satisfies { readonly [K in GptChildCapabilityId]: GptChildHandler<K> });

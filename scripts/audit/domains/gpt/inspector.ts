@@ -56,14 +56,14 @@ import {
 import { containsPageMutation, gptPrivateInfrastructureViolations, sourceFor, sourceTextForPaths }
   from "./gpt-inspection-support.js";
 
-const LAW_ID = "LAW-GPT-001-V50";
-const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V11";
+const LAW_ID = "LAW-GPT-001-V51";
+const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V12";
 const MODE_CLAUSES = {
-  "static.filesystem": staticForbiddenClauses(1, 2, 4, 7),
-  "static.ast": staticClauses(0, 2, 3, 4, 5, 6, 7),
+  "static.filesystem": staticForbiddenClauses(1, 2, 4, 7, 8),
+  "static.ast": staticClauses(0, 2, 3, 4, 5, 6, 7, 8),
   "static.types": staticForbiddenClauses(0, 3, 4),
-  "static.contract": staticForbiddenClauses(0, 1, 2, 3, 4, 5, 6, 7),
-  "static.dependency": staticForbiddenClauses(0, 2, 7),
+  "static.contract": staticForbiddenClauses(0, 1, 2, 3, 4, 5, 6, 7, 8),
+  "static.dependency": staticForbiddenClauses(0, 2, 7, 8),
 } as const;
 const MODE_CHECKS = {
   "static.filesystem": ["inspectGptFilesystem"], "static.ast": ["inspectGptAst"],

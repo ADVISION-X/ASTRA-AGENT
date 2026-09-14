@@ -211,13 +211,18 @@ export class ExtensionTargetAuthority {
     command: BrowserGovernedCommand,
     target: ExtensionExactTarget,
     mutationClass: RegisteredExtensionCommand["mutationClass"],
+    assertCommandActive: () => void = () => undefined,
   ): Promise<unknown> {
     const execute = async (): Promise<unknown> => {
+      assertCommandActive();
       if (command.kind === "dom-intent") {
         if (command.intent.kind === "selectExactGptConversation") {
           return this.executeConversationSelection(target, command.intent.canonicalConversationUrl);
         }
-        const assertCurrent = (): void => { this.targets.resolve(target.targetRef, target.documentRef); };
+        const assertCurrent = (): void => {
+          assertCommandActive();
+          this.targets.resolve(target.targetRef, target.documentRef);
+        };
         const expectedMainFrameLoaderId = exactAssistantReadLoaderId(
           command.intent.kind, target, this.activeTarget, this.activeTarget?.loaderId ?? null,
         );
@@ -228,11 +233,15 @@ export class ExtensionTargetAuthority {
           this.debuggerRuntime, target, command.intent, assertCurrent,
           expectedMainFrameLoaderId ?? undefined,
         );
-        this.targets.resolve(target.targetRef, target.documentRef);
+        if (command.intent.kind === "renameExactGptConversation") return result;
+        assertCurrent();
         return result;
       }
       return executeRegisteredExtensionCommand(this.debuggerRuntime, target, command, {
-        assertCurrent: () => { this.targets.resolve(target.targetRef, target.documentRef); },
+        assertCurrent: () => {
+          assertCommandActive();
+          this.targets.resolve(target.targetRef, target.documentRef);
+        },
         parkTarget: () => this.parkActiveTarget(),
       });
     };

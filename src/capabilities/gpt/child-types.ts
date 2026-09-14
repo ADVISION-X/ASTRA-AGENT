@@ -74,6 +74,13 @@ export interface GptChildInputMap {
     userTurnId: string;
     turnMarker: string;
   }>;
+  readonly rename_settled_gpt_conversation: Readonly<{
+    canonicalConversationUrl: string;
+    jobId: string;
+    productId: string;
+    terminalAt: string;
+    timeoutMs: 2500;
+  }>;
 }
 
 export interface GptChildOutputMap {
@@ -143,6 +150,15 @@ export interface GptChildOutputMap {
     width: 1200;
     height: 630;
   }>;
+  readonly rename_settled_gpt_conversation: Readonly<{
+    state: "already-exact" | "renamed";
+    targetTitle: string;
+    physicalInputCount: 0 | 4;
+  }>;
 }
 
 export type GptChildCapabilityId = keyof GptChildInputMap & keyof GptChildOutputMap;
+export type ProductGptChildCapabilityId = Exclude<
+  GptChildCapabilityId,
+  "rename_settled_gpt_conversation"
+>;

@@ -88,6 +88,7 @@ try {
     }),
   ).createExecution({
     jobId: "job:confirmed-recovery", attemptId: "attempt:confirmed-recovery", resultRevision: 0,
+    productId: "public_knowledge_article_pipeline",
     ownerRef: "owner:1", subjectRef: "subject:1", authorizationRef: "authorization:1",
     deviceId: "device:1", leaseVersion: 1, executionFenceHash: HASH_A,
     capabilityManifestHash: HASH_B, expiresAtMonotonic: performance.now() + 10_000,

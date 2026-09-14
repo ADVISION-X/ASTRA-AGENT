@@ -14,6 +14,7 @@ const DOM_CONTRACT_PATH = "src/lib/browser/exact-target/browser-dom-intent.ts";
 const OUTCOME_RESOLVER_PATH = "src/lib/browser/exact-target/browser-outcome-resolver.ts";
 const MUTATION_RECEIPT_PATH = "src/lib/browser/exact-target/browser-mutation-receipt.ts";
 const COMMAND_FAILURE_PATH = "src/lib/browser/exact-target/browser-command-failure.ts";
+const RENAME_RUNTIME_PATH = "src/lib/browser/chrome-extension/gpt-conversation-rename-runtime.ts";
 
 const requireText = (
   text: string,
@@ -56,16 +57,31 @@ export const browserMutationSchemaMigrationIsCurrent = (schema: SourceFile): boo
   const columns = schema.getVariableDeclaration("requiredColumns")
     ?.getInitializer()?.getText().toLowerCase() ?? "";
   const admission = schema.getVariableDeclaration("ensureCurrentSchema")?.getInitializer()?.getText() ?? "";
+  const shape = schema.getVariableDeclaration("currentColumnsAndIndexes")
+    ?.getInitializer()?.getText() ?? "";
+  const migration = schema.getVariableDeclaration("migratePhysicalInputConstraint")
+    ?.getInitializer()?.getText() ?? "";
   return table.includes("mutation_outcome text check(mutation_outcome in ('no','dispatched','confirmed'))")
+    && table.includes("check(physical_input_count between 0 and 4)")
     && table.includes("native_cause_code text")
     && table.includes("provider_recovery_payload text")
     && columns.includes('"mutation_outcome"')
     && columns.includes('"native_cause_code"')
     && columns.includes('"provider_recovery_payload"')
-    && admission.includes("columns.length !== requiredColumns.length")
-    && admission.includes("requiredColumns.some((column) => !columns.includes(column))")
+    && shape.includes("columns.length !== requiredColumns.length")
+    && shape.includes("requiredColumns.some((column) => !columns.includes(column))")
+    && shape.includes("indexes.size === requiredIndexes.size")
+    && shape.includes("[...requiredIndexes].every((index) => indexes.has(index))")
+    && text.includes('if (constraint === 2) migratephysicalinputconstraint(database)')
+    && text.includes('else if (constraint !== 4) throw new error("browser_repair_required")')
+    && migration.includes("database.transaction")
+    && migration.includes("alter table browser_mutations rename to ${migrationTable}")
+    && migration.includes("insert into browser_mutations(${requiredColumns.join(\",\")})")
+    && migration.includes("before.count !== after.count")
+    && migration.includes("drop table ${migrationTable}")
+    && migration.includes("createIndexes(database)")
     && admission.includes('throw new Error("BROWSER_REPAIR_REQUIRED")')
-    && !text.includes("alter table browser_mutations")
+    && !text.includes("alter table browser_mutations add")
     && !text.includes("drop table browser_mutations")
     && !text.includes("browser_mutation_schema_rebuild_requires_empty_store");
 };
@@ -82,6 +98,7 @@ type SettlementSources = Readonly<{
   mutationReceipt: SettlementSource;
   postcondition: SettlementSource;
   pointerRuntime: SettlementSource;
+  renameRuntime: SettlementSource;
   resolver: SettlementSource;
   runtime: SettlementSource;
   schema: SettlementSource;
@@ -89,6 +106,7 @@ type SettlementSources = Readonly<{
   transport: SettlementSource;
   targetAuthority: SettlementSource;
   targetObservation: SettlementSource;
+  extensionActor: SettlementSource;
 }>;
 
 const requireSettlementSources = (
@@ -101,6 +119,7 @@ const requireSettlementSources = (
   const schema = requireSource(context, findings, lawId, browserMutationSchemaPath);
   const runtime = requireSource(context, findings, lawId, DOM_RUNTIME_PATH);
   const pointerRuntime = requireSource(context, findings, lawId, domPointerIntentRuntimePath);
+  const renameRuntime = requireSource(context, findings, lawId, RENAME_RUNTIME_PATH);
   const postcondition = requireSource(context, findings, lawId, domMutationPostconditionPath);
   const contract = requireSource(context, findings, lawId, DOM_CONTRACT_PATH);
   const resolver = requireSource(context, findings, lawId, OUTCOME_RESOLVER_PATH);
@@ -116,16 +135,18 @@ const requireSettlementSources = (
   const createdTarget = requireSource(context, findings, lawId, extensionCreatedTargetPath);
   const targetAuthority = requireSource(context, findings, lawId, targetAuthorityPath);
   const targetObservation = requireSource(context, findings, lawId, extensionTargetObservationPath);
-  const required = [actor, store, schema, runtime, pointerRuntime, postcondition, contract, resolver,
+  const extensionActor = requireSource(context, findings, lawId, sourcePaths[1]);
+  const required = [actor, store, schema, runtime, pointerRuntime, renameRuntime, postcondition, contract, resolver,
     fileInput, failure, mutationReceipt, transport, commandPostcondition, manager,
-    debuggerRuntime, createdTarget, targetAuthority, targetObservation];
+    debuggerRuntime, createdTarget, targetAuthority, targetObservation, extensionActor];
   if (required.some((source) => source === null)) return null;
   return { actor: actor!, commandPostcondition: commandPostcondition!, contract: contract!,
     createdTarget: createdTarget!,
     debuggerRuntime: debuggerRuntime!,
     failure: failure!, fileInput: fileInput!, manager: manager!, mutationReceipt: mutationReceipt!, postcondition: postcondition!,
-    pointerRuntime: pointerRuntime!, resolver: resolver!, runtime: runtime!, schema: schema!,
+    pointerRuntime: pointerRuntime!, renameRuntime: renameRuntime!, resolver: resolver!, runtime: runtime!, schema: schema!,
     store: store!, targetAuthority: targetAuthority!, targetObservation: targetObservation!,
+    extensionActor: extensionActor!,
     transport: transport! };
 };
 
@@ -282,7 +303,7 @@ const inspectMutationPersistence = (
   ], findings, lawId, sourcePaths[6]);
   if (!browserMutationSchemaMigrationIsCurrent(sources.schema)) findings.push(createLocalFinding({
     checkId: "browser-authority/mutation-settlement", lawId, filePath: browserMutationSchemaPath,
-    message: "The Browser WAL must forward-migrate the two current fields in place and must never rebuild the table.",
+    message: "The Browser WAL must preserve rows while transactionally replacing only the old 0..2 physical-input constraint with 0..4.",
   }));
   if (sources.store.getFullText().includes("legacyMutationOutcome")) findings.push(createLocalFinding({
     checkId: "browser-authority/mutation-settlement", lawId, filePath: sourcePaths[7],
@@ -303,7 +324,44 @@ const inspectMutationExecution = (
   ], findings, lawId, domMutationPostconditionPath);
   requireText(sources.contract.getFullText(), [
     "intent.expectedMatches !== undefined && intent.expectedMatches !== 1",
+    'intent.kind === "renameExactGptConversation"', "requireCanonicalGptConversationUrl",
+    "intent.targetTitle.normalize(\"NFC\")", "intent.timeoutMs > 2500", "exactKeys",
+    "Object.keys(intent).length !== exactKeys.size", "!exactKeys.has(key)",
   ], findings, lawId, DOM_CONTRACT_PATH);
+  requireText(sources.renameRuntime.getFullText(), [
+    "executeGptConversationRename", "[data-sidebar-item='true']", "data-conversation-options-trigger",
+    "input[aria-label='聊天标题'][name='title-editor']", "executeClickIntent", "executeFillIntent",
+    "executeKeypressIntent", "currentTitle === intent.targetTitle", "physicalInputCount",
+    "mutationCount: 4", "postconditionVerified: true",
+  ], findings, lawId, RENAME_RUNTIME_PATH);
+  requireText(sources.extensionActor.getFullText(), [
+    "Date.parse(frame.deadline)", "assertCommandActive", "Date.now() >= deadline",
+    "socket !== this.socket", "this.session?.serverToClientKey !== commandSessionKey",
+    "command.intent.kind === \"renameExactGptConversation\"",
+  ], findings, lawId, sourcePaths[1]);
+  requireText(sources.targetAuthority.getFullText(), [
+    "assertCommandActive", "const assertCurrent", "assertCommandActive();",
+    "command.intent.kind === \"renameExactGptConversation\"", "return result",
+  ], findings, lawId, targetAuthorityPath);
+  for (const forbidden of ["Page.navigate", "setTimeout(", "executeScript", "while ("]) {
+    if (!sources.renameRuntime.getFullText().includes(forbidden)) continue;
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/settled-conversation-rename", lawId,
+      filePath: RENAME_RUNTIME_PATH,
+      message: `The settled rename runtime retains forbidden second-path token ${forbidden}.`,
+    }));
+  }
+  requireText(sources.mutationReceipt.getFullText(), [
+    '"renameExactGptConversation"', "decodeConversationRenameReceipt", "physicalInputCount === 4",
+    "physicalInputCount,", "renameState === \"already-exact\"", "exactKeys(value",
+  ], findings, lawId, MUTATION_RECEIPT_PATH);
+  requireText(sources.failure.getFullText(), [
+    'input.permit.childCapabilityId === "rename_settled_gpt_conversation"',
+    'input.command.intent.kind === "renameExactGptConversation"',
+    'const failureCode = "BROWSER_COMMAND_RECEIPT_MISSING"',
+    "rejectMissingRenameReply", "input.mutations.markRejected(", '"dispatched",',
+    "failureCode,\n    null,\n    0,",
+  ], findings, lawId, COMMAND_FAILURE_PATH);
   requireText(sources.resolver.getFullText(), [
     "mutationOutcome: \"dispatched\"", "receipt.mutationOutcome !== \"dispatched\"",
   ], findings, lawId, OUTCOME_RESOLVER_PATH);

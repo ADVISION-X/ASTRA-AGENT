@@ -49,6 +49,8 @@ export type ProductionGptBrowserCall = {
     userTurnId: string;
   }>) | null;
   settledResultPayloadHash: GptHash | null;
+  settledConversationRenameTaken: boolean;
+  settledRenameTransportRevoked: boolean;
   recoverySelectionRequired: boolean;
 };
 
@@ -129,6 +131,8 @@ export class ProductionGptBrowserLifecycle {
       providerWaitLog: null,
       confirmedProviderEffect: null,
       settledResultPayloadHash: null,
+      settledConversationRenameTaken: false,
+      settledRenameTransportRevoked: false,
       recoverySelectionRequired: targetMode === "confirmed-readback",
     };
     let atomicIdentity: BrowserAtomicStepIdentity | null = null;
@@ -184,6 +188,32 @@ export class ProductionGptBrowserLifecycle {
       throw executionFailure("failed", "GPT_SETTLED_PROVIDER_EFFECT_MISSING");
     }
     active.settledResultPayloadHash = payloadHash;
+  }
+
+  public takeSettledConversationCleanup(nextSessionKey?: string): Readonly<{
+    sessionKey: string;
+    canonicalConversationUrl: string;
+    terminalAt: string;
+  }> | null {
+    const active = this.activeBrowser;
+    const confirmed = active?.call.confirmedProviderEffect;
+    if (!active || active.call.settledConversationRenameTaken
+      || (nextSessionKey !== undefined && active.sessionKey === nextSessionKey)
+      || !confirmed?.terminalAt || !active.call.settledResultPayloadHash) return null;
+    active.call.settledConversationRenameTaken = true;
+    return Object.freeze({
+      sessionKey: active.sessionKey,
+      canonicalConversationUrl: confirmed.canonicalConversationUrl,
+      terminalAt: confirmed.terminalAt,
+    });
+  }
+
+  public recordSettledRenameTransportRevocation(sessionKey: string): void {
+    const active = this.activeBrowser;
+    if (!active || active.sessionKey !== sessionKey
+      || !active.call.settledConversationRenameTaken
+      || active.call.browser.pendingMutationCount() !== 0) return;
+    active.call.settledRenameTransportRevoked = true;
   }
 
   public decorateSettledResultFailure(error: unknown): unknown {
@@ -285,10 +315,19 @@ export class ProductionGptBrowserLifecycle {
   }
 
   private async parkActive(reason: string): Promise<void> {
-    const active = this.activeBrowser?.call;
-    if (!active) return;
-    await active.browser.park({ reason, mode: "product-call-settlement" });
-    this.activeBrowser = null;
+    const current = this.activeBrowser;
+    if (!current) return;
+    let released = false;
+    try {
+      await current.call.browser.park({ reason, mode: "product-call-settlement" });
+      released = true;
+    } catch (error) {
+      if (!current.call.settledRenameTransportRevoked
+        || current.call.browser.pendingMutationCount() !== 0) throw error;
+      released = true;
+    } finally {
+      if (released) this.activeBrowser = null;
+    }
   }
 
   private async acquireBrowserLease(

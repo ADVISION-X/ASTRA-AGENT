@@ -1,7 +1,7 @@
-# GPT 能力组 V47 施工图
+# GPT 能力组 V48 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"gpt-capability-group-v47","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V50","LAW-GPT-002-V11"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"gpt-capability-group-v48","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V51","LAW-GPT-002-V12"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
 ```
 
 ## 唯一 Owner 与职责
@@ -52,6 +52,12 @@ BZ03/BZ04 的本轮附件必须包含 Website 已入库、与 consultation root 
 ## Browser 边界
 
 GPT 只消费 Browser 签发的实时 current Document 和 typed command terminal。Browser 的 Target lease 对外暴露的 `document` 必须是 live getter；包装它时不得用 spread 把 getter 求值成旧快照。Provider/控件 mutation 仍先经唯一 FIFO、每 provider effect 一条权威 WAL、跨 attempt/进程至多一次 physical dispatch 和 2500ms 后的 fresh postcondition；Browser-owned canonical URL 导航只做可逆页面生命周期收敛，当前命中零导航，否则唯一一次精确 Page.navigate 后同样经过 2500ms 与 fresh currentUrl readback，但不取得 Provider effect 或第二 WAL。纯读结果不新建 WAL、队列或第二恢复权限。
+
+## Settled conversation 标题清理
+
+`rename_settled_gpt_conversation` 是唯一内部 cleanup Child。它只在 active call 已同时绑定 confirmed Provider effect 与 settled result hash后，于该 conversation 因 session 切换或 Product 终结而进入原 lifecycle park 前由 lifecycle 原子取走一次；取走后即使预算跳过、Child/park/后续 Product 失败或 finally 重入也不得再次尝试。Product GPT facade 明确排除该 Child，任何 `src/plugins/**` flow 调用数必须为零。Child 从当前 task 的 `jobId + productId` 与 confirmed effect `terminalAt` 唯一投影 `MMDD·项目短名·aiprod_<UUID首段八位>`，其中日期按 `Asia/Dubai`，14 个现役 product_id 必须穷尽且无 fallback。
+
+Child 只向 Browser 发出一个封闭四字段 `renameExactGptConversation` typed intent，由 Browser 在同一 current lease、同一 WAL command 与不可穿插原子调用内机械执行零或四个物理输入并 fresh readback。deadline/channel 状态在每个下一物理输入前重验；deadline 后的 terminal grace 必须返回已发生的 1..4 累计 receipt，socket 真正失联的 missing reply 才以 unknown 0 终结。extension socket-close 已释放 current target时，原 park 仍执行一次本地 lane 收口但不得让必然的 liveness error 覆盖 Product 结果。标题是非权威显示索引，禁止参与 Target/conversation 选择、提交、恢复、重试、result revision、Product result、Outbox 或 Website admission。任何 invalid、missing、ambiguous、stale、timeout、transport unknown、预算不足、proof/log failure 都只以 `impact=CLEANUP` 终结；不得增加历史回扫、持久重试、queue、table、worker、ledger、fallback、兼容桥或第二 Browser lane。
 
 ## 证据、失败与验收
 
