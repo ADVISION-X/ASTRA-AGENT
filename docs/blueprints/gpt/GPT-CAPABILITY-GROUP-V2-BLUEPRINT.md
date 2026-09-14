@@ -35,11 +35,15 @@ BZ03/BZ04 的本轮附件必须包含 Website 已入库、与 consultation root 
 
 `FROZEN-GPT-ATOMIC-IDENTITY-ROUNDTRIP-001` 固定同一次 Browser 原子调用只能由 GPT production boundary 构造一份不可变 `BrowserAtomicStepIdentity`，并把该同一身份用于 WAL 查询、`runAtomicStep`、Child 成功终态回读与 Child 失败事实回读；跨进程 confirmed submit readback 也只能复用这一 canonical 构造。Child 不得再以原始 `intent.inputHash` 手工拼接第二份 WAL 查询身份，测试 Browser 必须按传入身份精确命中，禁止无视身份返回任意 recovery。否则 Browser 已 CONFIRMED 的现实发送会被 GPT 错判为未发生。改变或删除本冻结边界，必须由用户在未来任务中明确解冻，并同步替换施工图、实现与唯一质检；普通修复或 CI 授权不构成解冻。
 
+跨 lease 的实现细节固定由现役 production Browser call facade 持有上述唯一原子身份：一次 Child 调用开始时登记 identity，pending park 后重新取得物理 lease 时，对新 lease 上的每个 Browser command 重新进入同一 `runAtomicStep(identity)`，Child 终态后清除。物理 lease 自身的临时 `atomicStep` 不得成为跨 lease 身份 Owner；不得为此新增 identity store、恢复对象、队列、兼容 wrapper 或第二调用链。文本与图片等待都必须证明重新取得 lease 后的失败事实仍归属原 Child；只有该 Child 已声明的 typed pending 可继续等待，其它 Browser 失败保持原生阻断。
+
 `FROZEN-GPT-CONVERSATION-LOCATOR-EFFECT-SEPARATION-001` 已按本次授权精准解冻替换并重新冻结：canonical conversation URL 是真实恢复现场“去哪里读”的唯一权威，provider_effect_identity 是“是否已经发送”的唯一权威，二者绝不合并或互相授予权限。正常轮询只使用 job 的进程内独占 Target 绑定，pending 释放 lease/lane，下一次经唯一 FIFO激活精确 Tab并 fresh observe一次，不读取 WAL locator、不重选 URL、不导航。只有进程重启、绑定 Target 真正丢失或同等恢复现场，Website 对 DISPATCHED/CONFIRMED effect 重新授权后，才可先从 Browser WAL 精确读回同一 receipt、URL 与 userTurnId，再以 `confirmed-readback` 为该 job取得精确 system Target；当前 URL 已命中时零导航，否则只执行一次 Browser-owned `Page.navigate`，经过 2500ms 总闸门后 fresh readback 必须相等，physical submit 增量为零。侧栏、标题/顺序/时间猜测、搜索、滚动、自动展开、重试与 fallback 均不得参与。
 
 `FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001` 已按本次授权精准解冻替换并重新冻结：submit 已确认后的正常 Provider 回答轮询保留 job—system Target 独占绑定；40 秒静默后 observation 请求立即进入唯一 FIFO，BrowserLaneCoordinator是唯一计时 Owner并保证全设备相邻真实 Provider observation 至少 60 秒、总频率不随 N 增长。请求具备资格后取得并激活精确绑定 Tab、重验 current Document、fresh observe一次；pending释放 lease/lane并重新排队，正常轮询不得重选 canonical URL或导航。只有进程重启、绑定 Target真正丢失或同等恢复现场，才先查同一 Browser WAL effect，再用 `confirmed-readback` 为该 job取得精确 system Target；绝不先回首页，同 URL零导航，不同 URL最多一次精确 `Page.navigate`后 fresh readback。Browser WAL 的 `logical_mutation_id` 是唯一 `provider_effect_identity_hash`，checkpoint稳定后另以 `semanticTextHash` 或媒体 `sha256` 标识结果；只有 Website可拒绝 settled result并签发新 `result_revision`。普通错误、DISPATCHED/CONFIRMED、进程/attempt/lease/fence/Target/Document变化都不得制造第二 submit。
 
 八字 consultation root 与 direct predecessor 只属于 Website 业务关系。Website 在新任务签发前验证 owner/person/chart/root/predecessor、父授权、父 Delivery Manifest 与已入库父结果，并把完整父报告作为本轮 locked-fact material 下发；缺失、多义或身份不等一律 fail closed。GPT、Browser、Runtime 不复制该父子关系，也不保存或查询跨任务 Provider continuation。
+
+动态本地化 Product 的现役单次提示词必须把 Website 下发的 locale policy 转成一份穷尽式自检清单：所有可翻译 JSON pointer 均使用目标语言，所有 safety pointer 在完成翻译的同时保留原义与约束，所有 protected pointer 保持逐值不变，并在只输出一个完整 JSON object 前逐项自检。该清单只提高首次 Provider 输出通过唯一 Website 领域 validator 的概率，不在 AGENT 增设语义 validator、第二 GPT 回合、修复提示或兼容结果路径。
 
 ## 删除边界
 

@@ -21,7 +21,11 @@ import {
 import { parseProductResult } from "./result-contract.js";
 
 const PLUGIN_ID = "localization-production";
-const PRODUCT_INSTRUCTION = "忠实本地化当前授权源内容，保持可信来源、确定事实与解释的边界、核验依据、当代用户问题和行动，以及数字、专名、链接、占位符、层级与风险强度；工具不得被升格为品牌主体或价值证明，不改写业务结论。";
+const PRODUCT_INSTRUCTION = [
+  "忠实本地化当前授权源内容，保持可信来源、确定事实与解释的边界、核验依据、当代用户问题和行动，以及数字、专名、链接、占位符、层级与风险强度；工具不得被升格为品牌主体或价值证明，不改写业务结论。",
+  "必须读取 locale_policy 附件中的 field_policy，并在输出前逐项自检：translatable_json_pointers 中每个字符串均已使用 target_locale；safety_json_pointers 中每个字符串既已翻译又完整保留原有否定、限制、不确定性、专业替代边界与风险义务；protected_json_pointers 中每个值与 source_content 逐值完全相同；除这些准许翻译的字符串外，JSON 结构和事实不得变化。",
+  "完成上述穷尽检查后，只返回一个完整 JSON 对象；不要输出修订说明、代码围栏、第二候选或遗漏字段。",
+].join("\n");
 const WAIT_TIMEOUT_MS = 3_600_000;
 const MODEL_PROFILE = buildGptExecutionProfile({
   profileRef: `${PLUGIN_ID}:gpt-5.6-sol-pro-standard`,

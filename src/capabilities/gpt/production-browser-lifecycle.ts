@@ -53,6 +53,16 @@ export type ProductionGptBrowserCall = {
 
 export const PROVIDER_OBSERVATION_INTERVAL_MS = 60_000;
 
+const ATOMIC_BROWSER_COMMANDS = new Set<PropertyKey>([
+  "executeDomIntent",
+  "observeCapability",
+  "captureScreenshot",
+  "attachFile",
+  "readAuthenticatedMedia",
+  "wait",
+  "park",
+]);
+
 const assertConfirmedProviderReadback = (active: ProductionGptBrowserCall): void => {
   const confirmed = active.confirmedProviderEffect;
   const prior = confirmed ? active.browser.readAtomicStepOutcome(confirmed.submitIdentity) : null;
@@ -120,10 +130,30 @@ export class ProductionGptBrowserLifecycle {
       settledResultPayloadHash: null,
       recoverySelectionRequired: targetMode === "confirmed-readback",
     };
+    let atomicIdentity: BrowserAtomicStepIdentity | null = null;
     active.facade = new Proxy(browser, {
       get: (_target, property) => {
-        const value = Reflect.get(active.browser, property, active.browser) as unknown;
-        return typeof value === "function" ? value.bind(active.browser) : value;
+        if (property === "runAtomicStep") {
+          return async <T>(identity: BrowserAtomicStepIdentity, action: () => Promise<T>): Promise<T> => {
+            if (atomicIdentity !== null) throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_INVALID");
+            atomicIdentity = Object.freeze({ ...identity });
+            try {
+              return await action();
+            } finally {
+              atomicIdentity = null;
+            }
+          };
+        }
+        const current = active.browser;
+        const value = Reflect.get(current, property, current) as unknown;
+        if (typeof value !== "function") return value;
+        const bound = value.bind(current) as (...args: unknown[]) => unknown;
+        if (!ATOMIC_BROWSER_COMMANDS.has(property) || atomicIdentity === null) return bound;
+        const identity = atomicIdentity;
+        return (...args: unknown[]) => current.runAtomicStep(
+          identity,
+          async () => bound(...args),
+        );
       },
     });
     this.activeBrowser = Object.freeze({ sessionKey, call: active });
@@ -190,7 +220,7 @@ export class ProductionGptBrowserLifecycle {
     assertConfirmedProviderReadback(active);
     this.emitProviderWaitLog(active, productStepId, callId, childCapabilityId);
     const eligibleAt = Math.min(Date.now() + PROVIDER_OBSERVATION_INTERVAL_MS, observationDeadlineAt);
-    await active.browser.park({
+    await active.facade.park({
       reason: "gpt-provider-observation-wait",
       mode: "product-call-settlement",
     });
