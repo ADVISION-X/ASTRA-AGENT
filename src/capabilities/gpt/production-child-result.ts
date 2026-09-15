@@ -12,19 +12,20 @@ import type {
 import { productionGptAtomicIdentity } from "./production-atomic-call.js";
 import type { GptProductionExecutionInput as ExecutionInput } from "./production-child-support.js";
 
-export const confirmedSubmitEffect = (
+export const submitEffect = (
   prior: BrowserExactCallMutationFact,
   exactCallIdentityHash: GptHash,
   childCapabilityId: "submit_exact_gpt_turn_once",
 ): GptChildBrowserFact => {
-  if (prior.effectScope !== "provider_effect" || prior.outcome !== "CONFIRMED"
-    || prior.mutationOutcome !== "confirmed"
-    || !prior.providerEffectIdentityHash || !prior.terminalAt) {
+  const confirmed = prior.outcome === "CONFIRMED" && prior.mutationOutcome === "confirmed" && prior.terminalAt;
+  const dispatched = prior.outcome === "DISPATCHED" && prior.mutationOutcome === "dispatched" && !prior.terminalAt;
+  if (prior.effectScope !== "provider_effect" || (!confirmed && !dispatched)
+    || !prior.providerEffectIdentityHash) {
     throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
   }
   return Object.freeze({ exactCallIdentityHash, providerEffectIdentityHash: prior.providerEffectIdentityHash,
-    childCapabilityId, effectScope: "provider_effect", browserOutcome: "CONFIRMED",
-    mutationOutcome: "confirmed", terminalAt: prior.terminalAt,
+    childCapabilityId, effectScope: "provider_effect", browserOutcome: prior.outcome,
+    mutationOutcome: prior.mutationOutcome, terminalAt: prior.terminalAt,
     evidenceRef: prior.authorityRef, evidenceHash: prior.authorityHash });
 };
 

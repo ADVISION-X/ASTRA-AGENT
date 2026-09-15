@@ -15,22 +15,28 @@ type AtomicReadbackInput = Readonly<{
   browser: BrowserTargetLease;
   priorOutcome: BrowserAtomicStepOutcome;
 }>;
-type AtomicReadbackResult = Readonly<{
-  result: GptChildCapabilityResult;
-  resolveDispatched: false;
-}>;
+const dispatchedProviderEffectReadback = async (
+  input: AtomicReadbackInput,
+): Promise<GptChildCapabilityResult | null> => {
+  if (input.intent.childCapabilityId !== "submit_exact_gpt_turn_once"
+    || input.priorOutcome.state !== "dispatched"
+    || input.priorOutcome.mutationOutcome !== "dispatched"
+    || !input.priorOutcome.providerEffectIdentityHash || input.priorOutcome.terminalAt !== null) return null;
+  return await input.gpt.execute(input.intent, Object.freeze({
+    ...input.context, dispatchedProviderEffectReadback: input.priorOutcome,
+  }));
+};
 
 const confirmedProviderEffectReadback = async (
   input: AtomicReadbackInput,
-): Promise<AtomicReadbackResult | null> => {
+): Promise<GptChildCapabilityResult | null> => {
   const { intent, priorOutcome } = input;
   if (intent.childCapabilityId !== "submit_exact_gpt_turn_once"
     || priorOutcome.state !== "confirmed"
     || (priorOutcome.mutationOutcome !== "no" && priorOutcome.mutationOutcome !== "confirmed")
     || !priorOutcome.providerEffectIdentityHash || !priorOutcome.terminalAt
     || priorOutcome.terminalPayload == null) return null;
-  return {
-    result: await input.gpt.execute(intent, Object.freeze({
+  return await input.gpt.execute(intent, Object.freeze({
       ...input.context,
       confirmedProviderEffectReadback: Object.freeze({
         terminalPayload: priorOutcome.terminalPayload, terminalAt: priorOutcome.terminalAt,
@@ -38,29 +44,24 @@ const confirmedProviderEffectReadback = async (
         providerEffectIdentityHash: priorOutcome.providerEffectIdentityHash,
         mutationOutcome: priorOutcome.mutationOutcome,
       }),
-    })),
-    resolveDispatched: false,
-  };
+    }));
 };
 
 const confirmedAcknowledgementReadback = async (
   input: AtomicReadbackInput,
-): Promise<AtomicReadbackResult | null> => {
+): Promise<GptChildCapabilityResult | null> => {
   const { intent, priorOutcome } = input;
   if (intent.childCapabilityId !== "acknowledge_known_gpt_rate_limit"
     || priorOutcome.state !== "confirmed" || priorOutcome.mutationOutcome !== "confirmed"
     || priorOutcome.physicalInputCount !== 1 || !priorOutcome.terminalPayload
     || typeof priorOutcome.terminalPayload !== "object"
     || Array.isArray(priorOutcome.terminalPayload)) return null;
-  return {
-    result: await input.gpt.execute(intent, Object.freeze({
+  return await input.gpt.execute(intent, Object.freeze({
       ...input.context,
       confirmedRateLimitAcknowledgementReadback: Object.freeze({
         terminalPayload: priorOutcome.terminalPayload,
       }),
-    })),
-    resolveDispatched: false,
-  };
+    }));
 };
 
 const clearanceFact = (
@@ -95,7 +96,7 @@ const clearanceReadbackValid = (
 
 const absentAcknowledgementReadback = async (
   input: AtomicReadbackInput,
-): Promise<AtomicReadbackResult | null> => {
+): Promise<GptChildCapabilityResult | null> => {
   if (input.intent.childCapabilityId !== "acknowledge_known_gpt_rate_limit") return null;
   const raw = await input.browser.executeDomIntent({
     kind: "readKnownGptRateLimitClearance",
@@ -107,18 +108,16 @@ const absentAcknowledgementReadback = async (
     throw executionFailure("failed", "GPT_RATE_LIMIT_CLEARANCE_READBACK_INVALID");
   }
   const browserFact = clearanceFact(input.intent, raw as Readonly<Record<string, unknown>>);
-  return {
-    result: await input.gpt.execute(input.intent, Object.freeze({
+  return await input.gpt.execute(input.intent, Object.freeze({
       ...input.context,
       confirmedRateLimitAcknowledgementReadback: Object.freeze({ terminalPayload: raw, browserFact }),
-    })),
-    resolveDispatched: false,
-  };
+    }));
 };
 
 export const readPriorAtomicOutcome = async (
   input: AtomicReadbackInput,
-): Promise<AtomicReadbackResult | null> =>
-  await confirmedProviderEffectReadback(input)
+): Promise<GptChildCapabilityResult | null> =>
+  await dispatchedProviderEffectReadback(input)
+  ?? await confirmedProviderEffectReadback(input)
   ?? await confirmedAcknowledgementReadback(input)
   ?? await absentAcknowledgementReadback(input);

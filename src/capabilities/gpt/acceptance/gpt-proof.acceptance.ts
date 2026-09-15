@@ -237,10 +237,10 @@ for (const priorState of ["rejected", "dispatched"] as const) {
     dataDir: "/tmp/gpt-exact-target", gpt: harness.gpt, browsers: {} as never,
     intent, browserCall, signal: new AbortController().signal, resultRevision: 0,
   });
-  assert.equal(recovered.result.status, "success",
-    recovered.result.failureCode ?? `${priorState} ACK clearance recovery failed`);
-  assert.equal(Reflect.get(recovered.result.value ?? {}, "clearance"), "confirmed_absent");
-  assert.equal(recovered.result.proof.browserFact?.mutationOutcome, "no");
+  assert.equal(recovered.status, "success",
+    recovered.failureCode ?? `${priorState} ACK clearance recovery failed`);
+  assert.equal(Reflect.get(recovered.value ?? {}, "clearance"), "confirmed_absent");
+  assert.equal(recovered.proof.browserFact?.mutationOutcome, "no");
   assert.equal(fixture.physicalMutations(), 0,
     `${priorState} ACK recovery must never replay a physical acknowledgement input`);
 }
@@ -290,6 +290,41 @@ for (const priorState of ["rejected", "dispatched"] as const) {
   assert.equal(temporaryRoute.failureCode, "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
   assert.equal(fixture.physicalMutations(), 0,
     "a historical temporary route must fail before Browser navigation or Provider replay");
+}
+
+for (const promptMatches of [true, false]) {
+  const dispatched = {
+    state: "dispatched" as const, mutationOutcome: "dispatched" as const,
+    providerEffectIdentityHash: `sha256:${"8".repeat(64)}` as const, terminalAt: null,
+    failureCode: null, nativeFailureCode: null, authorityRef: "browser-mutation:dispatched-submit",
+    authorityHash: `sha256:${"9".repeat(64)}` as const, targetRef: "target:1",
+    documentRef: "document:1", physicalInputCount: 0 as const, downloadGuidHash: null,
+    downloadCompleted: false, identityRevalidated: false,
+  };
+  const fixture = fakeBrowser((intent) => {
+    assert.equal(intent.kind, "observe", "DISPATCHED submit recovery must be observation-only");
+    return coherentObservationPacket({ queries: intent.kind === "observe" ? intent.queries : [] }, {
+      "submitted-user-turn": { rawCount: 1, eligibleCount: 1, matches: [{
+        testId: "conversation-turn-9", exactGptUserPromptHash: promptMatches
+          ? promptHash : `sha256:${"f".repeat(64)}`,
+      }] }, "empty-composer": { rawCount: 1, eligibleCount: 1, matches: [{}] },
+    }, conversationUrl);
+  }, { initialRecovery: dispatched, initialPending: 1, exposeInitialRecoveryOutsideAtomic: true });
+  const harness = createGptAcceptanceHarness(`gpt-proof-dispatched-submit-${promptMatches}`);
+  const intent = harness.buildIntent("submit_exact_gpt_turn_once", { files: [], promptHash });
+  const browserCall: ProductionGptBrowserCall = { browser: fixture.browser, facade: fixture.browser,
+    providerWaitLog: null, confirmedProviderEffect: null, settledResultPayloadHash: null,
+    settledConversationRenameTaken: false, settledRenameTransportRevoked: false,
+    recoverySelectionRequired: false };
+  const recovered = await executeProductionGptAtomicCall({ dataDir: "/tmp/gpt-exact-target",
+    gpt: harness.gpt, browsers: {} as never, intent, browserCall,
+    signal: new AbortController().signal, resultRevision: 0 });
+  assert.equal(recovered.status, promptMatches ? "success" : "failed",
+    recovered.failureCode ?? "DISPATCHED submit readback returned the wrong status");
+  assert.equal(recovered.proof.committedMutation, promptMatches ? "confirmed" : "dispatched");
+  assert.equal(recovered.proof.browserFact?.providerEffectIdentityHash,
+    dispatched.providerEffectIdentityHash);
+  assert.equal(fixture.physicalMutations(), 0, "DISPATCHED submit readback must never resend");
 }
 
 {

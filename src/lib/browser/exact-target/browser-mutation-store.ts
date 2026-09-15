@@ -1,4 +1,5 @@
 import Database from "better-sqlite3";
+import { createHash } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { mutationIdentity, type MutationRow } from "./browser-mutation-row.js";
@@ -165,29 +166,31 @@ export class BrowserMutationStore {
       reason, nativeCauseCode: null, proofHash: null });
   }
 
-  public markTargetLocalDocumentAbsent(input: Readonly<{
-    commandId: string;
-    targetRef: string;
-    documentRef: string;
-    proofHash: `sha256:${string}`;
-  }>): void {
-    const timestamp = new Date().toISOString();
-    const result = this.database.prepare(
-      `update browser_mutations set state='REJECTED',mutation_outcome='dispatched',proof_hash=?,
-       reason='BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT',native_cause_code=null,
-       terminal_at=coalesce(terminal_at,?),updated_at=?
-       where command_id=? and target_ref=? and document_ref=? and effect_scope='target_local'
-         and state='DISPATCHED'`,
-    ).run(input.proofHash, timestamp, timestamp, input.commandId, input.targetRef, input.documentRef);
-    if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
+  public settleRetiredTargetLocal(input: Readonly<{ jobId: string; attemptId: string; writerFenceHash: string }>): BrowserMutationIdentity {
+    return this.database.transaction(() => {
+      const rows = this.database.prepare(`select ${identityColumns},state from browser_mutations
+        where state='DISPATCHED' order by updated_at,command_id limit 2`).all() as readonly MutationRow[];
+      const row = rows.length === 1 && rows[0]!.job_id === input.jobId ? rows[0]! : null;
+      if (!row) throw new Error("BROWSER_MUTATION_UNSETTLED");
+      if (row.effect_scope === "provider_effect" && row.attempt_id === input.attemptId) return mutationIdentity(row);
+      if (row.effect_scope === "provider_effect") throw new Error("BROWSER_MUTATION_UNSETTLED");
+      if (row.execution_fence_hash === input.writerFenceHash) throw new Error("BROWSER_MUTATION_UNSETTLED");
+      const identity = mutationIdentity(row);
+      const proofHash = `sha256:${createHash("sha256").update(JSON.stringify([identity.commandId,
+        identity.executionFenceHash, input.writerFenceHash])).digest("hex")}` as const;
+      this.resolve({ commandId: identity.commandId, targetRef: identity.targetRef, state: "REJECTED",
+        mutationOutcome: "dispatched", proofHash, reason: "BROWSER_TARGET_LOCAL_EXECUTION_RETIRED" });
+      return identity;
+    })();
   }
 
   public resolve(input: Readonly<{
     commandId: string;
     targetRef: string;
     state: "CONFIRMED" | "REJECTED";
-    mutationOutcome: "dispatched";
+    mutationOutcome: "dispatched" | "confirmed";
     proofHash: `sha256:${string}`;
+    reason?: string;
   }>): void {
     const terminalAt = new Date().toISOString();
     const result = this.database.prepare(
@@ -195,7 +198,7 @@ export class BrowserMutationStore {
        terminal_at=coalesce(terminal_at,?),updated_at=?
        where command_id=? and target_ref=? and state='DISPATCHED'`,
     ).run(input.state, input.mutationOutcome, input.proofHash,
-      "browser-validated-evidence",
+      input.reason ?? "browser-validated-evidence",
       terminalAt, terminalAt, input.commandId, input.targetRef);
     if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
   }
@@ -204,8 +207,8 @@ export class BrowserMutationStore {
     jobId: string; attemptId: string; leaseVersion: number; executionFenceHash: string;
   }>): readonly string[] {
     const rows = this.database.prepare(
-      `select command_id from browser_mutations where job_id=? and attempt_id=? and lease_version=?
-       and execution_fence_hash=? and state='DISPATCHED' order by updated_at,command_id`,
+      `select command_id from browser_mutations where job_id=? and attempt_id=? and state='DISPATCHED'
+       and (effect_scope='provider_effect' or (lease_version=? and execution_fence_hash=?)) order by updated_at,command_id`,
     ).all(input.jobId, input.attemptId, input.leaseVersion, input.executionFenceHash) as readonly { command_id: string }[];
     return Object.freeze(rows.map((row) => row.command_id));
   }

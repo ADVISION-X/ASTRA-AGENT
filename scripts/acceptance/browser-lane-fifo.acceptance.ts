@@ -5,6 +5,9 @@ import { BrowserLaneCoordinator } from
   "../../src/lib/browser/infrastructure/browser-lane-coordinator.js";
 import { BrowserTargetAcquirer } from
   "../../src/lib/browser/infrastructure/browser-target-acquirer.js";
+import { BrowserTargetLeaseManager } from
+  "../../src/lib/browser/exact-target/browser-target-lease-manager.js";
+import { typedBrowserExecutionFailure } from "../../src/lib/browser/browser-failure.js";
 
 const lane = readFileSync("src/lib/browser/infrastructure/browser-lane-coordinator.ts", "utf8");
 const leaseContract = readFileSync("src/lib/browser/exact-target/browser-target-lease.ts", "utf8");
@@ -23,10 +26,12 @@ assert.doesNotMatch(leaseContract, /requestKind/u,
   "GPT and Product callers must not be able to self-report Browser request classification");
 assert.doesNotMatch(lane, /setInterval|providerProbeQueue|observationQueue|releaseQueue/u,
   "the Browser lane must not grow per-Tab timers or a second queue");
-assert.match(lane, /mutationBlocked && !exactPermanentCleanup/u,
-  "unresolved DISPATCHED must block every operation except exact permanent cleanup");
-assert.match(lane, /hasUnresolvedMutationForJob\(waiter\.jobId\)/u,
-  "the cleanup exception must bind the exact job's unresolved DISPATCHED row");
+assert.match(lane, /mutationBlocked && !this\.mayCrossUnresolved\(waiter\)/u,
+  "unresolved DISPATCHED must stay behind the one scope-aware lane gate");
+assert.match(lane, /settleRetiredTargetLocal\(waiter\.binding\)/u,
+  "same-job target-local closure must settle the old WAL row before acquisition");
+assert.ok(lane.indexOf("settleRetiredTargetLocal(waiter.binding)")
+  < lane.indexOf("ensureAvailableTarget(waiter, parentConversationUrl)"));
 assert.match(lane, /website-permanent-revocation/u);
 assert.match(lane, /website-admin-deletion/u);
 assert.match(lane, /releaseJobBoundTarget/u,
@@ -37,8 +42,11 @@ assert.doesNotMatch(lane, /quarantine|Recovery|recoveryFor|reconciliation/u,
   "Browser lane must not recover or quarantine an old attempt");
 assert.match(store, /where job_id=\? and attempt_id=\?/u,
   "Browser mutation lookup must bind the current attempt");
-assert.doesNotMatch(store, /atomicStepRecovery|callRecoveryScope|reconciliationScope/u,
-  "Browser store must expose no recovery consumer");
+assert.match(store, /rows\.length === 1 && rows\[0\]!\.job_id === input\.jobId/u,
+  "same-job closure must fail closed on zero, multiple, or cross-job unresolved rows");
+assert.match(store, /row\.execution_fence_hash === input\.writerFenceHash/u,
+  "the current execution fence must never retire its own unresolved mutation");
+assert.match(store, /BROWSER_TARGET_LOCAL_EXECUTION_RETIRED/u);
 assert.match(actor, /dispatchedForBinding/u,
   "pending mutations must be scoped to the current binding");
 assert.doesNotMatch(actor, /dispatchedForJob/u,
@@ -67,6 +75,7 @@ const releaseHash = `sha256:${"b".repeat(64)}` as const;
 const blockedLane = Object.create(BrowserLaneCoordinator.prototype) as Record<string, unknown>;
 const blockedAcquire = {
   kind: "acquire", jobRefHash: `sha256:${"c".repeat(64)}`,
+  binding: { kind: "production", jobId: "job-a" },
   requestKind: "interaction", targetMode: "fresh", eligibleAt: Date.now(),
   signal: new AbortController().signal, remainingMs: () => 10_000,
   stopAbortMonitor: () => undefined, complete: () => undefined, reject: () => undefined,
@@ -116,6 +125,12 @@ assert.deepEqual([selectedPrivacy.kind, selectedPrivacy.jobRefHash],
 assert.equal((blockedLane.queue as unknown[]).length, 5,
   "acquire, admission, WAIT, attempt replacement, and another job's deletion must remain blocked");
 
+const sameJobAcquire = { ...blockedAcquire, binding: { kind: "production", jobId: "job-b" } };
+const localSameJobAcquire = { ...blockedAcquire, binding: { kind: "local", jobId: "job-b" } };
+Object.assign(blockedLane, { queue: [localSameJobAcquire, sameJobAcquire] });
+assert.equal((blockedLane.nextWaiter as () => unknown).call(blockedLane), sameJobAcquire,
+  "only the current production binding for the exact job may enter same-lane closure");
+
 const hash = (character: string) => `sha256:${character.repeat(64)}` as const;
 const binding = (character: string) => ({
   jobId: `job-${character}`, resultRevision: 0, attemptId: `attempt-${character}`,
@@ -145,6 +160,8 @@ const createBehaviorLane = (events: string[], unresolved = 0) => {
     infrastructure: { mutationState: {
       countDispatched: () => unresolved,
       hasUnresolvedMutationForJob: (jobId: string) => unresolved > 0 && jobId === "job-a",
+      settleRetiredTargetLocal: () => ({ effectScope: "provider_effect",
+        childCapabilityId: "submit_exact_gpt_turn_once", logicalMutationId: hash("9") }),
       latestProviderInputTerminalAt: () => null,
       readUniqueConfirmedConversationUrl: (parentJobId: string, parentProductStepId: string) => {
         assert.equal(parentProductStepId, "article-step");
@@ -161,6 +178,23 @@ const createBehaviorLane = (events: string[], unresolved = 0) => {
   });
   return instance as BrowserLaneCoordinator;
 };
+
+const providerUnknown = await createBehaviorLane([], 1).acquire(binding("a") as never, "owner-a",
+  wait("fresh", new AbortController().signal)).catch((error: unknown) => error);
+const providerFailure = typedBrowserExecutionFailure(providerUnknown);
+assert.equal(providerFailure?.mutationOutcome, "dispatched");
+assert.deepEqual(providerFailure?.browserEffect, { effectScope: "provider_effect",
+  childCapabilityId: "submit_exact_gpt_turn_once", browserOutcome: "DISPATCHED",
+  providerEffectIdentityHash: hash("9") }, "unknown Provider effect must never serialize as no");
+
+const readOnlyManager = Object.create(BrowserTargetLeaseManager.prototype) as Record<string, unknown>;
+const pendingProvider = { closed: false, commandInFlight: false, pendingMutationCommandIds: ["provider"],
+  atomicStep: { replayPolicy: "provider-effect-once" } };
+assert.doesNotThrow(() => (readOnlyManager.assertCommandAdmission as Function).call(readOnlyManager,
+  pendingProvider, { kind: "dom-intent", intent: { kind: "observe" } }));
+assert.throws(() => (readOnlyManager.assertCommandAdmission as Function).call(readOnlyManager,
+  pendingProvider, { kind: "dom-intent", intent: { kind: "click" } }), /BROWSER_MUTATION_UNSETTLED/u,
+"a Provider readback lease with pending WAL must reject every mutation command");
 
 const fifoEvents: string[] = [];
 const fifoLane = createBehaviorLane(fifoEvents);

@@ -386,7 +386,10 @@ const executeOne = async <K extends GptChildCapabilityId>(
   try {
     assertExecutionIdentity(intent);
     if (context.signal?.aborted) throw executionFailure("failed", "GPT_EXECUTION_ABORTED");
-    if ((context.browser?.pendingMutationCount() ?? 0) !== 0) {
+    const pendingMutationCount = context.browser?.pendingMutationCount() ?? 0;
+    const readsDispatchedProviderEffect = context.dispatchedProviderEffectReadback
+      && pendingMutationCount === 1;
+    if (pendingMutationCount !== 0 && !readsDispatchedProviderEffect) {
       throw executionFailure("failed", "GPT_PRIOR_BROWSER_MUTATION_UNRESOLVED");
     }
     const nextObservation = await handler(intent, context);

@@ -253,8 +253,9 @@ const inspectNonDestructiveTargetRelease = (
   ].every((token) => method.includes(token));
   const forbiddenReleaseFacts = ["close: async"].some((token) => method.includes(token));
   const requiredLaneFacts = [
-    "mutationBlocked && !exactPermanentCleanup",
-    "hasUnresolvedMutationForJob(waiter.jobId)",
+    "mutationBlocked && !this.mayCrossUnresolved(waiter)",
+    "settleRetiredTargetLocal(waiter.binding)",
+    'waiter.binding.kind === "production"',
     'waiter.releaseAuthority === "website-permanent-revocation"',
     'waiter.releaseAuthority === "website-admin-deletion"',
   ].every((token) => laneText.includes(token));
@@ -266,7 +267,7 @@ const inspectNonDestructiveTargetRelease = (
     requiredLaneFacts, !lifecycle.includes("revokeOperatorTargetClaim")].every(Boolean)) return;
   findings.push(createLocalFinding({
     checkId: "browser-authority/dispatched-mutation-target-release", lawId, filePath: targetLeaseManagerPath,
-    message: "The one lane must permit only zero-input park plus exact Website-authorized release through unresolved DISPATCHED, while retaining fail-closed lifecycle cleanup.",
+    message: "The one lane must permit only exact same-job production closure or Website-authorized deletion through unresolved DISPATCHED.",
   }));
 };
 

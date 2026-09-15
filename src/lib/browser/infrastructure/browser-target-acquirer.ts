@@ -21,8 +21,6 @@ export class BrowserTargetAcquirer {
     private readonly infrastructure: LaneState,
   ) {}
 
-  public reset(): void {}
-
   public async ensureAvailableTarget(
     waiter: TargetWaiter,
     parentConversationUrl?: string,

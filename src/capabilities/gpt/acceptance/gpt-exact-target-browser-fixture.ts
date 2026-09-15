@@ -338,6 +338,8 @@ const createFakeBrowserLease = (
   async resolvePendingMutation() {
     if (state.pending !== 1) throw new Error("BROWSER_MUTATION_UNSETTLED");
     state.pending = 0;
+    if (state.recovery) state.recovery = Object.freeze({ ...state.recovery,
+      state: "confirmed", mutationOutcome: "confirmed", terminalAt: new Date().toISOString() });
     return 1;
   },
   pendingMutationCount: () => state.pending,

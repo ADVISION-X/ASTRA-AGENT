@@ -306,7 +306,8 @@ const inspectMutationPersistence = (
     "BrowserMutationOutcome", "mutationOutcome", "mutation_outcome", "readMutationOutcome",
     "requireMutationOutcome", "mutationOutcome: requireMutationOutcome(row.mutation_outcome)", "terminal_at=case when",
     "native_cause_code", "nativeCauseCode", "terminalFailureFields", "nativeFailureCode",
-    "markTargetLocalDocumentAbsent", "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT",
+    "settleRetiredTargetLocal", "BROWSER_TARGET_LOCAL_EXECUTION_RETIRED",
+    "rows.length === 1", "row.execution_fence_hash === input.writerFenceHash",
   ], findings, lawId, sourcePaths[7]);
   requireText(actorText, [
     "result.nativeCauseCode",

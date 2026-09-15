@@ -24,10 +24,7 @@ type AtomicGptCallInput = Readonly<{
   rateLimitAckDispatchNotAfter?: number;
 }>;
 
-export type ProductionGptAtomicCallResult = Readonly<{
-  result: GptChildCapabilityResult;
-  resolveDispatched: boolean;
-}>;
+export type ProductionGptAtomicCallResult = GptChildCapabilityResult;
 
 export const productionGptAtomicIdentity = (
   intent: GptAnyChildCapabilityIntent,
@@ -78,20 +75,14 @@ export const executeProductionGptAtomicCall = async (
   const { gpt, intent, browserCall } = input;
   const browser = browserCall?.facade;
   if (!browser) {
-    return { result: await gpt.execute(intent, executionContext(input, browser)), resolveDispatched: false };
+    return await gpt.execute(intent, executionContext(input, browser));
   }
   const replayPolicy = GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId].replayPolicy;
   const atomicIdentity = productionGptAtomicIdentity(intent, input.resultRevision);
   const context = executionContext(input, browser, atomicIdentity);
   const priorOutcome = browser.readAtomicStepOutcome(atomicIdentity);
   if (!priorOutcome) {
-    return {
-      result: await browser.runAtomicStep(
-        atomicIdentity,
-        () => gpt.execute(intent, context),
-      ),
-      resolveDispatched: false,
-    };
+    return await browser.runAtomicStep(atomicIdentity, () => gpt.execute(intent, context));
   }
   const readback = await readPriorAtomicOutcome({ gpt, intent, context, browser, priorOutcome });
   if (readback) return readback;

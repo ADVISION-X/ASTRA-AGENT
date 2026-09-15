@@ -14,6 +14,7 @@ import { browserExecutionFailure } from "../browser-failure.js";
 import type { RuntimeLogger } from "../../runtime-logs/index.js";
 import { BrowserTargetAcquirer } from "./browser-target-acquirer.js";
 import { awaitBrowserPostSubmitQuiet } from "../exact-target/browser-command-postcondition.js";
+import { emitBrowserMutationEvent } from "../exact-target/browser-command-runtime-logging.js";
 
 type LaneWaiterBase = Readonly<{
   kind: "acquire" | "release";
@@ -54,7 +55,7 @@ export class BrowserLaneCoordinator {
     websocket: BrowserAuthorityWebSocket,
     issuer: BrowserAuthorityIssuer,
     private readonly infrastructure: LaneState,
-    _runtimeLogger: RuntimeLogger,
+    private readonly runtimeLogger: RuntimeLogger,
   ) {
     this.targetAcquirer = new BrowserTargetAcquirer(resolveBroker, websocket, issuer, infrastructure);
   }
@@ -149,20 +150,12 @@ export class BrowserLaneCoordinator {
       this.rejectPending(reasonCode);
       for (const waiter of this.queue.splice(0)) waiter.reject(browserExecutionFailure(new Error(reasonCode)));
     }
-    this.targetAcquirer.reset();
     this.active = false;
     this.activeJobRefHash = null;
     void this.pump();
   }
-  public hasUnresolvedMutation(): boolean {
-    return (this.infrastructure.mutationState?.countDispatched() ?? 0) > 0;
-  }
-  public hasMutationForJob(jobId: string): boolean {
-    return this.infrastructure.mutationState?.hasMutationForJob(jobId) ?? false;
-  }
-  public hasUnresolvedMutationForJob(jobId: string): boolean {
-    return this.infrastructure.mutationState?.hasUnresolvedMutationForJob(jobId) ?? false;
-  }
+  public hasUnresolvedMutation(): boolean { return (this.infrastructure.mutationState?.countDispatched() ?? 0) > 0; }
+  public hasMutationForJob(jobId: string): boolean { return this.infrastructure.mutationState?.hasMutationForJob(jobId) ?? false; }
   public purgeJob(jobId: string): void { this.infrastructure.mutationState?.purgeJob(jobId); }
   public countProviderTurnDispatches(jobId: string, attemptId: string): number {
     return this.infrastructure.mutationState?.countProviderTurnDispatches(jobId, attemptId) ?? 0;
@@ -181,6 +174,13 @@ export class BrowserLaneCoordinator {
     return this.infrastructure.mutationState?.readExactCallMutationFact(input) ?? null;
   }
 
+  private mayCrossUnresolved(waiter: LaneWaiter): boolean {
+    const jobId = waiter.kind === "release" ? waiter.jobId : waiter.binding.jobId;
+    return Boolean(this.infrastructure.mutationState?.hasUnresolvedMutationForJob(jobId)) && (waiter.kind === "acquire"
+      ? waiter.binding.kind === "production" : waiter.releaseAuthority === "website-permanent-revocation"
+        || waiter.releaseAuthority === "website-admin-deletion");
+  }
+
   private nextWaiter(): LaneWaiter | null {
     const mutationBlocked = this.hasUnresolvedMutation();
     const now = Date.now();
@@ -193,11 +193,7 @@ export class BrowserLaneCoordinator {
         )));
         continue;
       }
-      const exactPermanentCleanup = waiter.kind === "release"
-        && (waiter.releaseAuthority === "website-permanent-revocation"
-          || waiter.releaseAuthority === "website-admin-deletion")
-        && this.hasUnresolvedMutationForJob(waiter.jobId);
-      if (mutationBlocked && !exactPermanentCleanup) {
+      if (mutationBlocked && !this.mayCrossUnresolved(waiter)) {
         index += 1;
         continue;
       }
@@ -238,6 +234,19 @@ export class BrowserLaneCoordinator {
         this.activeJobRefHash = null;
         void this.pump();
         return;
+      }
+      if (waiter.signal.aborted || waiter.remainingMs() < 1) throw new Error(
+        waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED",
+      );
+      if (mutations && this.hasUnresolvedMutation()) {
+        const mutation = mutations.settleRetiredTargetLocal(waiter.binding);
+        if (mutation.effectScope === "provider_effect" && waiter.targetMode !== "bound-observation") {
+          throw browserExecutionFailure(new Error("PROVIDER_EFFECT_OUTCOME_UNPROVEN"), "dispatched", {
+            effectScope: "provider_effect", childCapabilityId: mutation.childCapabilityId,
+            browserOutcome: "DISPATCHED", providerEffectIdentityHash: mutation.logicalMutationId ?? null });
+        }
+        if (mutation.effectScope === "target_local") emitBrowserMutationEvent({ runtimeLogger: this.runtimeLogger, mutation, outcome: "REJECTED",
+          authorityHash: mutations.authorityHash(mutation.commandId) });
       }
       let parentConversationUrl: string | undefined;
       if (waiter.targetMode === "authorized-continuation") {
@@ -304,11 +313,7 @@ export class BrowserLaneCoordinator {
     const mutationBlocked = this.hasUnresolvedMutation();
     let nextAt = Number.POSITIVE_INFINITY;
     for (const waiter of this.queue) {
-      const exactPermanentCleanup = waiter.kind === "release"
-        && (waiter.releaseAuthority === "website-permanent-revocation"
-          || waiter.releaseAuthority === "website-admin-deletion")
-        && this.hasUnresolvedMutationForJob(waiter.jobId);
-      const eligibility = mutationBlocked && !exactPermanentCleanup
+      const eligibility = mutationBlocked && !this.mayCrossUnresolved(waiter)
         ? now + Math.max(0, waiter.remainingMs())
         : waiter.kind === "acquire" && waiter.requestKind === "provider-observation"
           ? Math.max(waiter.eligibleAt, this.observationNotBefore)

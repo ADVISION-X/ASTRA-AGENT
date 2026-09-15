@@ -2,7 +2,7 @@ export type BrowserOutcomeResolutionReceipt = Readonly<{
   schemaVersion: "grasseye.browser.outcome-resolution.v1";
   commandId: string;
   outcome: "TERMINAL_SUCCESS" | "TERMINAL_FAILURE";
-  mutationOutcome: "dispatched";
+  mutationOutcome: "dispatched" | "confirmed";
   positiveEvidenceRef: string;
   negativeEvidenceRef: string;
   uniqueTargetRef: string;
@@ -15,7 +15,8 @@ export const assertBrowserReconciliationEvidence = (
 ): void => {
   if (receipt.schemaVersion !== "grasseye.browser.outcome-resolution.v1"
     || receipt.commandId.length === 0
-    || receipt.mutationOutcome !== "dispatched"
+    || (receipt.mutationOutcome !== "dispatched" && receipt.mutationOutcome !== "confirmed")
+    || (receipt.mutationOutcome === "confirmed" && receipt.outcome !== "TERMINAL_SUCCESS")
     || receipt.positiveEvidenceRef.length === 0
     || receipt.negativeEvidenceRef.length === 0
     || receipt.positiveEvidenceRef === receipt.negativeEvidenceRef

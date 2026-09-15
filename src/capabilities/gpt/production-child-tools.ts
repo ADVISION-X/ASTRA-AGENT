@@ -19,10 +19,7 @@ import {
   type RuntimeSpanHandle,
 } from "../../lib/runtime-logs/index.js";
 import { executionFailure, failureCode, typedExecutionFailure } from "../../lib/execution-failure.js";
-import {
-  browserExactCallIdentityHash,
-  type BrowserTargetLease,
-} from "../../lib/browser/browser-authority-api.js";
+import { browserExactCallIdentityHash } from "../../lib/browser/browser-authority-api.js";
 import type { ProductGptCallInput, ProductGptChildResult } from "./product-api.js";
 import type { GptHash } from "./contract.js";
 import { persistGptEvidenceArtifacts } from "./evidence-artifacts.js";
@@ -33,7 +30,7 @@ import {
 import { productionGptAtomicIdentity } from "./production-atomic-call.js";
 import { gptExecutionFailure } from "./execution-fault.js";
 import {
-  confirmedSubmitEffect, productChildResult, recordConfirmedSubmission, recordSettledProviderResult,
+  productChildResult, recordConfirmedSubmission, recordSettledProviderResult, submitEffect,
 } from "./production-child-result.js";
 import {
   acquireProductionBrowserCall, recoverPersistedTextCheckpoint, runProductionAtomicPhase,
@@ -128,18 +125,22 @@ export class ProductionGptChildTools {
             || prior.childCapabilityId !== call.child) {
             throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
           }
-          const effect = confirmedSubmitEffect(prior, exactCallIdentityHash, call.child);
+          const effect = submitEffect(prior, exactCallIdentityHash, call.child);
           try {
-            const active = await browsers.browserForConfirmedReadback(
+            const active = await (prior.outcome === "CONFIRMED"
+              ? browsers.browserForConfirmedReadback(
+                call.sessionKey, call.productStepId, call.callId)
+              : browsers.browserForRateLimitRecovery(
               call.sessionKey, call.productStepId, call.callId,
-            );
+              ));
             if (!active.facade.readAtomicStepOutcome(atomicIdentity)) return null;
             return await this.executeOne<"submit_exact_gpt_turn_once">(
               input, browsers, call, input.abortSignal, true,
             );
           } catch (error) {
-            throw gptExecutionFailure(failureCode(error, "GPT_CONFIRMED_SUBMIT_READBACK_FAILED"), {
-              mutationOutcome: "confirmed", evidence: {
+            throw gptExecutionFailure(failureCode(error, prior.outcome === "CONFIRMED"
+              ? "GPT_CONFIRMED_SUBMIT_READBACK_FAILED" : "PROVIDER_EFFECT_OUTCOME_UNPROVEN"), {
+              mutationOutcome: effect.mutationOutcome, evidence: {
                 evidenceRef: effect.evidenceRef, evidenceHash: effect.evidenceHash,
               }, browserEffect: effect, cause: error,
             });
@@ -397,7 +398,6 @@ export class ProductionGptChildTools {
     let evidenceRef: string;
     let evidenceHash: GptHash;
     let artifactRefs: readonly string[] = Object.freeze([]);
-    let resolveDispatched = false;
     let browserCall: Awaited<ReturnType<ProductionGptBrowserLifecycle["browserFor"]>> | undefined;
     const readsConfirmedEffect = call.child === "checkpoint_gpt_text_response"
       || call.child === "checkpoint_gpt_generated_image";
@@ -407,14 +407,12 @@ export class ProductionGptChildTools {
       const recovered = await recoverPersistedTextCheckpoint({ evidenceStore: this.evidenceStore,
         execution, intent, call, browsers, browserCall, span });
       if (recovered) return recovered;
-      const browser = browserCall?.facade;
       if (!priorEffectKnown) this.assertProviderTurnBudget(execution, call);
-      const atomic = await runProductionAtomicPhase({ dataDir: this.dataDir, gpt: this.gpt,
+      result = await runProductionAtomicPhase({ dataDir: this.dataDir, gpt: this.gpt,
         browsers, intent: intent as GptAnyChildCapabilityIntent, browserCall, signal,
         resultRevision: execution.resultRevision, childCapabilityId: call.child,
         assertProviderInputAllowed: () => this.providerRateLimitControl.assertProviderSubmitAllowed(),
         ...(rateLimitAckDispatchNotAfter === undefined ? {} : { rateLimitAckDispatchNotAfter }) });
-      result = atomic.result;
       if (result.status !== "success" && result.failureCode === "BROWSER_KNOWN_GPT_RATE_LIMIT"
         && call.child !== "acknowledge_known_gpt_rate_limit") {
         await closeKnownProviderRateLimit({
@@ -428,7 +426,6 @@ export class ProductionGptChildTools {
       }
       await recordConfirmedSubmission(call, result, intent as GptAnyChildCapabilityIntent,
         execution, browsers, browserCall);
-      resolveDispatched = atomic.resolveDispatched;
       artifactRefs = await persistGptEvidenceArtifacts({
         result, intent, evidenceStore: this.evidenceStore,
         jobId: execution.jobId, attemptId: execution.attemptId,
@@ -436,9 +433,6 @@ export class ProductionGptChildTools {
       });
       evidenceRef = artifactRefs[0] ?? result.proof.browserFact?.evidenceRef ?? result.proof.evidenceRef;
       evidenceHash = result.proof.evidenceHash;
-      await this.resolveDispatchedMutation({
-        execution, browser, result, evidenceRef, resolveDispatched,
-      });
     } catch (error) {
       return this.terminalizeError(
         span, error, readsConfirmedEffect ? browserCall?.confirmedProviderEffect : null, failureImpact,
@@ -460,21 +454,4 @@ export class ProductionGptChildTools {
       browserFact: successful.proof.browserFact, evidenceRef, evidenceHash, artifactRefs });
   }
 
-  private async resolveDispatchedMutation(input: Readonly<{
-    execution: ExecutionInput;
-    browser: BrowserTargetLease | undefined;
-    result: GptChildCapabilityResult;
-    evidenceRef: string;
-    resolveDispatched: boolean;
-  }>): Promise<void> {
-    if (!input.resolveDispatched || !input.browser || input.result.status !== "success") return;
-    await input.browser.resolvePendingMutation({ schemaVersion: "grasseye.browser.outcome-resolution.v1",
-      outcome: "TERMINAL_SUCCESS",
-      mutationOutcome: "dispatched",
-      positiveEvidenceRef: `${input.result.proof.browserFact?.evidenceRef ?? input.evidenceRef}#positive-postcondition`,
-      negativeEvidenceRef: `${input.result.proof.browserFact?.evidenceRef ?? input.evidenceRef}#negative-postcondition-absent`,
-      uniqueTargetRef: input.browser.target.targetRef,
-      boundedAt: new Date().toISOString(),
-    });
-  }
 }
