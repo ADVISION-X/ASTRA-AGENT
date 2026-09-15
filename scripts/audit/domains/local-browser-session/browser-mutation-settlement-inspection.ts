@@ -11,6 +11,7 @@ import { browserCommandPostconditionPath, browserMutationSchemaPath, createLocal
 
 const DOM_RUNTIME_PATH = "src/lib/browser/chrome-extension/dom-intent-runtime.ts";
 const DOM_CONTRACT_PATH = "src/lib/browser/exact-target/browser-dom-intent.ts";
+const SPECIAL_DOM_CONTRACT_PATH = "src/lib/browser/exact-target/browser-dom-special-intent.ts";
 const OUTCOME_RESOLVER_PATH = "src/lib/browser/exact-target/browser-outcome-resolver.ts";
 const MUTATION_RECEIPT_PATH = "src/lib/browser/exact-target/browser-mutation-receipt.ts";
 const SPECIAL_MUTATION_RECEIPT_PATH =
@@ -90,6 +91,7 @@ type SettlementSources = Readonly<{
   actor: SettlementSource;
   commandPostcondition: SettlementSource;
   contract: SettlementSource;
+  specialContract: SettlementSource;
   createdTarget: SettlementSource;
   debuggerRuntime: SettlementSource;
   fileInput: SettlementSource;
@@ -123,6 +125,7 @@ const requireSettlementSources = (
   const renameRuntime = requireSource(context, findings, lawId, RENAME_RUNTIME_PATH);
   const postcondition = requireSource(context, findings, lawId, domMutationPostconditionPath);
   const contract = requireSource(context, findings, lawId, DOM_CONTRACT_PATH);
+  const specialContract = requireSource(context, findings, lawId, SPECIAL_DOM_CONTRACT_PATH);
   const resolver = requireSource(context, findings, lawId, OUTCOME_RESOLVER_PATH);
   const fileInput = requireSource(context, findings, lawId, extensionFileInputPath);
   const failure = requireSource(context, findings, lawId, COMMAND_FAILURE_PATH);
@@ -140,11 +143,13 @@ const requireSettlementSources = (
   const targetAuthority = requireSource(context, findings, lawId, targetAuthorityPath);
   const targetObservation = requireSource(context, findings, lawId, extensionTargetObservationPath);
   const extensionActor = requireSource(context, findings, lawId, sourcePaths[1]);
-  const required = [actor, store, schema, runtime, pointerRuntime, renameRuntime, postcondition, contract, resolver,
+  const required = [actor, store, schema, runtime, pointerRuntime, renameRuntime, postcondition,
+    contract, specialContract, resolver,
     fileInput, failure, mutationReceipt, specialMutationReceipt, transport, commandPostcondition, manager,
     debuggerRuntime, createdTarget, targetAuthority, targetObservation, extensionActor];
   if (required.some((source) => source === null)) return null;
   return { actor: actor!, commandPostcondition: commandPostcondition!, contract: contract!,
+    specialContract: specialContract!,
     createdTarget: createdTarget!,
     debuggerRuntime: debuggerRuntime!,
     failure: failure!, fileInput: fileInput!, manager: manager!, mutationReceipt: mutationReceipt!,
@@ -327,7 +332,7 @@ const inspectMutationExecution = (
     "candidate-set", "actionability",
     "mutationCount: 0", "identityRevalidated: false", "postconditionVerified: false",
   ], findings, lawId, domMutationPostconditionPath);
-  requireText(sources.contract.getFullText(), [
+  requireText(`${sources.contract.getFullText()}\n${sources.specialContract.getFullText()}`, [
     "intent.expectedMatches !== undefined && intent.expectedMatches !== 1",
     'intent.kind === "renameExactGptConversation"', "requireCanonicalGptConversationUrl",
     "intent.targetTitle.normalize(\"NFC\")", "intent.timeoutMs !== 10_000", "exactKeys",

@@ -15,6 +15,7 @@ const BROWSER_LANE = "src/lib/browser/infrastructure/browser-lane-coordinator.ts
 const SEMANTIC_TEXT = "src/lib/browser/chrome-extension/dom-semantic-text.ts";
 const EXACT_ASSISTANT = "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts";
 const PRODUCTION_CHILD_TOOLS = `${ROOT}/production-child-tools.ts`;
+const PRODUCTION_CALL_PREPARATION = `${ROOT}/production-call-preparation.ts`;
 const PRODUCTION_PORTS = `${ROOT}/production-ports.ts`;
 const PRODUCT_API = `${ROOT}/product-api.ts`;
 const EVIDENCE_ARTIFACTS = `${ROOT}/evidence-artifacts.ts`;
@@ -102,6 +103,7 @@ export const inspectProviderWaitContract = (
   const responseState = sourceText(context, RESPONSE_STATE);
   const submit = sourceText(context, SUBMIT_HANDLER);
   const tools = sourceText(context, PRODUCTION_CHILD_TOOLS);
+  const preparation = sourceText(context, PRODUCTION_CALL_PREPARATION);
   const artifacts = sourceText(context, EVIDENCE_ARTIFACTS);
   requireTokens(textHandler, TEXT_HANDLER, [
     "checkpointGptTextResponseHandler", "probeBudgetMs", "userTurnId",
@@ -124,9 +126,11 @@ export const inspectProviderWaitContract = (
     "readPersistedGptTextResponse", "FORENSICS_ARTIFACT_NOT_FOUND",
     "GPT_TEXT_TASK_ARTIFACT_INVALID", "observedResponseArtifact(row)",
   ], findings, finding);
-  const persistedRead = tools.indexOf("readPersistedGptTextResponse(");
-  const browserObservation = tools.indexOf("executeProductionGptAtomicCall({");
-  if (persistedRead < 0 || browserObservation < 0 || persistedRead > browserObservation) {
+  const recoveryCall = tools.indexOf("recoverPersistedTextCheckpoint(");
+  const browserObservation = tools.indexOf("runProductionAtomicPhase(");
+  const ownsPersistedRead = preparation.includes("readPersistedGptTextResponse({");
+  if (!ownsPersistedRead || recoveryCall < 0 || browserObservation < 0
+    || recoveryCall > browserObservation) {
     findings.push(finding("gpt/persisted-checkpoint-before-browser", PRODUCTION_CHILD_TOOLS,
       "A valid exact-call text artifact must be read before any checkpoint Browser observation."));
   }
