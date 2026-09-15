@@ -95,6 +95,21 @@ try {
   assert.equal(resolveStoredProductionAuthority(
     dataDirectory, `production-task:${accepted.job_id}`, HASH_A,
   ), "mismatch");
+  const cleanProviderControl = new ProviderRateLimitControl(store, {
+    device: { device_id: "device-1" },
+  } as never);
+  cleanProviderControl.observeWebsiteAuthority({
+    serverNow: "2030-01-01T00:00:00.000Z", reasonCodes: [],
+  });
+  assert.doesNotThrow(() => cleanProviderControl.assertProviderSubmitAllowed(),
+    "normal Website authority must keep submit open when no provider cooldown history exists");
+  cleanProviderControl.observeWebsiteAuthority({
+    serverNow: "2030-01-01T00:00:01.000Z",
+    reasonCodes: ["PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE"],
+  });
+  assert.throws(() => cleanProviderControl.assertProviderSubmitAllowed(),
+    /PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE/u,
+    "an active Website cooldown reason must close submit even without local incident history");
   const cooldownKey = "aipcooldown_0123456789abcdef0123456789abcdef01234567";
   store.enqueue({
     idempotency_key: cooldownKey,

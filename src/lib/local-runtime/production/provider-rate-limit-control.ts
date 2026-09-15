@@ -37,12 +37,17 @@ export class ProviderRateLimitControl implements ProviderRateLimitControlPort {
     serverNow: string;
     reasonCodes: readonly string[];
   }>): void {
+    const cooldownActive = input.reasonCodes.includes("PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE");
+    if (!this.store.hasProviderCooldownHistory()) {
+      this.submitGateOpen = !cooldownActive;
+      return;
+    }
     const latestIncidentServerNow = this.store.latestProviderCooldownServerNow();
-    if (this.store.hasProviderCooldownHistory() && latestIncidentServerNow === null) return;
+    if (latestIncidentServerNow === null) return;
     if (latestIncidentServerNow
       && Date.parse(input.serverNow) < Date.parse(latestIncidentServerNow)) return;
     this.submitGateOpen = this.store.latestProviderCooldownClearance() === "confirmed_absent"
-      && !input.reasonCodes.includes("PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE");
+      && !cooldownActive;
   }
 
   public pendingIncidents(): readonly ProviderRateLimitIncidentInput[] {
