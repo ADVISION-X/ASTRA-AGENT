@@ -1,9 +1,9 @@
-# production-runtime 生产级施工图 V51
+# production-runtime 生产级施工图 V52
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v51",
+  "blueprintId": "agent-production-runtime-v52",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
@@ -203,7 +203,7 @@ Website 签发 attempt + lease + fence
 
 Browser provider effect identity 不含 Product Plugin 或 `attempt_id`，固定由 `job_id + result_revision + product_step_id + call_id + child_id + request_hash + payload_hash` 组成。AGENT 内部实现、attempt、进程、lease、fence、Target、Document 变化不得制造新 effect；同一 identity 的 physical dispatch 总数至多一。每次 mutation 与 Website 写请求仍校验当前 fence，旧 fence 的迟到写请求全部拒绝。
 
-`FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001` 已按本次授权精准解冻替换并重新冻结：Runtime只有在 Browser Authority为 PRESENT时才提出不超过合同安全上限、本地可用 executor与去重在途余量的有界 claim，Website才按当前设备 N签发新 grant。每个获 grant且需要 GPT的 job由 Browser懒建一个独占 system Target；submit后正常轮询保留绑定但 pending释放唯一 Browser lease/lane，GPT Child只计算最早资格时间，observation立即进入唯一 FIFO，由 BrowserLaneCoordinator作为唯一计时 Owner保证全局至少 60秒 observation节拍且总频率不随 N增长。具备资格后只激活该 job精确绑定 Tab、重验 current Document并 fresh observe一次，正常轮询 Page.navigate=0。只有进程重启、绑定 Target真正丢失或同等恢复现场，才先查同一 WAL effect，再以 `confirmed-readback`为该 job取得精确 system Target；不得回 GPT首页，只按 WAL canonical URL零次或最多一次精确导航并 fresh readback。唯一 Browser WAL的 `logical_mutation_id`仍直接作为公开 `provider_effect_identity_hash`，Runtime只运输 typed fact且不得读取 Browser私有 SQLite。回答稳定后使用独立 settled result payload hash；只有 `RESULT_SETTLED_UNUSABLE + CONFIRMED + confirmed + effect hash + evidence + settled result hash`完整一致，Website才能拒绝该结果并签发新 revision，其他现实输入只能在同一 accepted attempt零 submit收敛。不得增加第二 WAL、queue、store、Owner、状态机、兼容桥或 fallback。
+`FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001` 已按本次授权精准解冻替换并重新冻结：Runtime只有在 Browser Authority为 PRESENT时才提出不超过合同安全上限、本地可用 executor与去重在途余量的有界 claim，Website才按当前设备 N签发新 grant。每个获 grant且需要 GPT的 job由 Browser懒建一个独占 system Target；submit后正常轮询保留绑定，第一次及后续observation前都释放唯一Browser lease/lane并立即进入唯一FIFO；GPT Child只计算至少70秒的最早资格，剩余deadline不足70秒时不重新acquisition，BrowserLaneCoordinator作为唯一计时Owner在每次真实observation终结时只抽取一次70—90秒全局间隔；随机值不按job、Tab、Product或Child生成和保存，真实相邻Provider observation至少70秒且总频率不随N增长。具备资格后只激活该 job精确绑定 Tab、重验 current Document并 fresh observe一次，正常轮询 Page.navigate=0。只有进程重启、绑定 Target真正丢失或同等恢复现场，才先查同一 WAL effect，再以 `confirmed-readback`为该 job取得精确 system Target；不得回 GPT首页，只按 WAL canonical URL零次或最多一次精确导航并 fresh readback。唯一 Browser WAL的 `logical_mutation_id`仍直接作为公开 `provider_effect_identity_hash`，Runtime只运输 typed fact且不得读取 Browser私有 SQLite。回答稳定后使用独立 settled result payload hash；只有 `RESULT_SETTLED_UNUSABLE + CONFIRMED + confirmed + effect hash + evidence + settled result hash`完整一致，Website才能拒绝该结果并签发新 revision，其他现实输入只能在同一 accepted attempt零 submit收敛。不得增加第二 WAL、queue、store、Owner、状态机、兼容桥或 fallback。
 
 lease release 只使用一个由 `job_id + attempt_id + lease_version + payload_hash` 确定性生成的 `request_id`；不得再复制 `idempotency_key`。同一 attempt 的同 effect readback 失败只允许 Website 记录首条失败事实，后续 release 只验证相同 `provider_effect_identity_hash` 并释放当前 lease，不以新的墙钟时间制造第二失败身份。
 
@@ -270,4 +270,4 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 17. Runtime proof 只声明本域四种 dynamic mode；GPT、Browser、Runtime Log 的原生 proof 均可独立运行，Runtime 相邻 proof assertion 为零，任何未解耦 route 都阻断 RELEASE。
 18. Runtime CHANGE/READY 不替 Website、Product、GPT、Browser 宣称业务完成；最终业务完成仍以 Website admission/storage 为准。
 19. 各域现有唯一 inspector、acceptance 与适用 proof 分别覆盖本域 active law 的 summary、全部 forbidden 与全部 evidenceModes；Owner-bound import mutant 必须证明 Runtime→Plugin、Plugin→Runtime private 与旧 Catalog 豁免都会失败关闭，全部被替代路径的生产消费清零，不新增第二 checker、proof 或 verdict。
-20. N=1..4下去重业务在途数不得超过 Website当前设备配置；每个 active execution或 admission pending job各占一个席位，只有 Website admission receipt已读回，或 Website已持久决定 WAIT_NEW_ATTEMPT、永久撤权或删除后才释放该 job执行闭环；ACTIVE_ATTEMPT regrant不新增席位，CONSUME_CURRENT_RESULT继续占原席位，缩容不终止既有执行。任意时刻 Browser物理 lane与 active claim至多一个，相邻 Provider observation至少60秒且总频率不随 N增长。八字另须证明 BZ05/BZ03/BZ04每个业务任务均 fresh且精确消费本轮Website父报告材料；同一SEO文章六个task按direct parent共享一个canonical conversation URL；固定catalog每个cohort-role的五个locale task也按direct parent共享一个URL，只有zh-HK链首fresh，且五个task/result/admission仍独立。交换parent或product step须在Provider输入前失败。continuation controller/store/frontier/CAS、fork与private base为零。
+20. N=1..4下去重业务在途数不得超过 Website当前设备配置；每个 active execution或 admission pending job各占一个席位，只有 Website admission receipt已读回，或 Website已持久决定 WAIT_NEW_ATTEMPT、永久撤权或删除后才释放该 job执行闭环；ACTIVE_ATTEMPT regrant不新增席位，CONSUME_CURRENT_RESULT继续占原席位，缩容不终止既有执行。任意时刻 Browser物理 lane与 active claim至多一个；每轮抽样计划值位于70—90秒，真实相邻Provider observation至少70秒且总频率不随N增长。八字另须证明 BZ05/BZ03/BZ04每个业务任务均 fresh且精确消费本轮Website父报告材料；同一SEO文章六个task按direct parent共享一个canonical conversation URL；固定catalog每个cohort-role的五个locale task也按direct parent共享一个URL，只有zh-HK链首fresh，且五个task/result/admission仍独立。交换parent或product step须在Provider输入前失败。continuation controller/store/frontier/CAS、fork与private base为零。

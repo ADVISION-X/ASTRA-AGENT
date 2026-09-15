@@ -41,6 +41,8 @@ type ReleaseLaneWaiter = LaneWaiterBase & Readonly<{
 }>;
 type LaneWaiter = AcquireLaneWaiter | ReleaseLaneWaiter;
 type LaneState = ReturnType<typeof createBrowserInfrastructureState>;
+const PROVIDER_OBSERVATION_MIN_INTERVAL_MS = 70_000;
+const PROVIDER_OBSERVATION_RANDOM_SPAN_MS = 20_001;
 
 export class BrowserLaneCoordinator {
   private readonly queue: LaneWaiter[] = [];
@@ -286,7 +288,8 @@ export class BrowserLaneCoordinator {
         );
       } finally {
         if (requestKind === "provider-observation") {
-          this.observationNotBefore = Date.now() + 60_000;
+          this.observationNotBefore = Date.now() + PROVIDER_OBSERVATION_MIN_INTERVAL_MS
+            + Math.floor(Math.random() * PROVIDER_OBSERVATION_RANDOM_SPAN_MS);
         }
         this.active = false;
         this.activeJobRefHash = null;

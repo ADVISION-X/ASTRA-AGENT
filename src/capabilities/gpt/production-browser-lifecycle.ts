@@ -47,7 +47,7 @@ export type ProductionGptBrowserCall = {
   recoverySelectionRequired: boolean;
 };
 
-export const PROVIDER_OBSERVATION_INTERVAL_MS = 60_000;
+export const PROVIDER_OBSERVATION_MIN_INTERVAL_MS = 70_000;
 
 const ATOMIC_BROWSER_COMMANDS = new Set<PropertyKey>([
   "executeDomIntent",
@@ -252,8 +252,9 @@ export class ProductionGptBrowserLifecycle {
       throw executionFailure("failed", "BROWSER_NORMAL_PROVIDER_WAIT_WITH_PENDING_MUTATION");
     }
     assertConfirmedProviderReadback(active);
+    const eligibleAt = Date.now() + PROVIDER_OBSERVATION_MIN_INTERVAL_MS;
+    if (eligibleAt > observationDeadlineAt) return "deadline";
     this.emitProviderWaitLog(active, productStepId, callId, childCapabilityId);
-    const eligibleAt = Math.min(Date.now() + PROVIDER_OBSERVATION_INTERVAL_MS, observationDeadlineAt);
     await active.facade.park({
       reason: "gpt-provider-observation-wait",
       mode: "product-call-settlement",
@@ -289,7 +290,7 @@ export class ProductionGptBrowserLifecycle {
     const callIdentity = `${productStepId}:${callId}:${childCapabilityId}`;
     const emittedAt = performance.now();
     if (active.providerWaitLog?.callIdentity !== callIdentity
-      || emittedAt - active.providerWaitLog.emittedAt >= PROVIDER_OBSERVATION_INTERVAL_MS) {
+      || emittedAt - active.providerWaitLog.emittedAt >= PROVIDER_OBSERVATION_MIN_INTERVAL_MS) {
       requireRuntimeLogWrite(this.runtimeLogger.emitEvent({
         traceId: this.execution.jobId,
         owner: "gpt",

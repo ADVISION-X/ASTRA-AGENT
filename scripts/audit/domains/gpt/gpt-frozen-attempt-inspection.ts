@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 
-const LAW_ID = "LAW-GPT-002-V16";
+const LAW_ID = "LAW-GPT-002-V17";
 const ROOT = "src/capabilities/gpt";
 const read = (context: InspectorContext, path: string): string =>
   readFileSync(resolve(context.sealedRoot, path), "utf8");
@@ -52,7 +52,7 @@ const lifecycleChecks = (sources: Readonly<Record<string, string>>): boolean[] =
   return [
     sources.lifecycle!.includes('"confirmed-readback"'),
     probeWalRead >= 0,
-    sources.lifecycle!.includes("PROVIDER_OBSERVATION_INTERVAL_MS = 60_000"),
+    sources.lifecycle!.includes("PROVIDER_OBSERVATION_MIN_INTERVAL_MS = 70_000"),
     sources.lifecycle!.includes("recoverySelectionRequired: targetMode === \"confirmed-readback\""),
     !sources.lifecycle!.includes('"provider-probe"'),
     !sources.lifecycle!.includes("startProviderProbeCooldown"),

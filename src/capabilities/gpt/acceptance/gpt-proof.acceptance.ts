@@ -391,12 +391,20 @@ for (const promptMatches of [true, false]) {
     }
     throw new Error(`UNEXPECTED_EXACT_CHECKPOINT_INTENT:${intent.kind}`);
   }, { initialUrl: conversationUrl });
+  let providerObservationGateCount = 0;
   const result = await createGptAcceptanceHarness("gpt-proof-exact-checkpoint").execute(
     "checkpoint_gpt_text_response", fixture.browser,
     { canonicalConversationUrl: conversationUrl,
-      probeBudgetMs: 5_000, userTurnId, turnMarker: "exact" },
+      probeBudgetMs: 200_000, userTurnId, turnMarker: "exact" }, {
+      waitForProviderObservation: async () => {
+        providerObservationGateCount += 1;
+        return "reobserve";
+      },
+    },
   );
   assert.equal(result.status, "success", result.failureCode ?? "exact checkpoint failed");
+  assert.equal(providerObservationGateCount, 1,
+    "the first exact checkpoint must pass through the Provider observation gate");
   assert.equal(result.value?.assistantTurnId, assistantTurnId);
   assert.equal(result.value?.semanticText, "exact response");
 }

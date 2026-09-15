@@ -20,7 +20,7 @@ const jobId = "job:artifact-recovery";
 const attemptId = "attempt:artifact-recovery";
 const sessionKey = "session:artifact-recovery";
 const conversationUrl = "https://chatgpt.com/c/artifact-recovery";
-const checkpointInput = { canonicalConversationUrl: conversationUrl, probeBudgetMs: 5_000,
+const checkpointInput = { canonicalConversationUrl: conversationUrl, probeBudgetMs: 200_000,
   userTurnId: "conversation-turn-1", turnMarker: "artifact-recovery" } as const;
 const checkpointCall = { sessionKey, productStepId: "research", callId: "text-checkpoint",
   child: "checkpoint_gpt_text_response", actionOrdinal: 2, input: checkpointInput } as const;

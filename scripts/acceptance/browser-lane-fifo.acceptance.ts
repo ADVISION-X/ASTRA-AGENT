@@ -20,6 +20,15 @@ assert.match(lane, /private wakeTimer:/u,
   "the one Browser lane must own exactly one wake timer");
 assert.match(lane, /private observationNotBefore = 0/u,
   "the one Browser lane must own the global Provider observation cadence");
+assert.match(lane, /PROVIDER_OBSERVATION_MIN_INTERVAL_MS = 70_000/u,
+  "the global Provider observation cadence must start at 70 seconds");
+assert.match(lane, /PROVIDER_OBSERVATION_RANDOM_SPAN_MS = 20_001/u,
+  "the global Provider observation cadence must include every millisecond through 90 seconds");
+assert.match(lane,
+  /Math\.floor\(Math\.random\(\) \* PROVIDER_OBSERVATION_RANDOM_SPAN_MS\)/u,
+  "Browser must sample the global 70-90 second interval once per completed observation");
+assert.equal(lane.match(/Math\.random/gu)?.length, 1,
+  "the one Browser lane must remain the sole random cadence sampler");
 assert.match(lane, /waiter\.requestKind === "provider-observation"/u,
   "Browser-owned Provider observation requests must re-enter the same paced FIFO");
 assert.doesNotMatch(leaseContract, /requestKind/u,
@@ -211,9 +220,12 @@ await firstMutation.park({ reason: "mutation-finished", mode: "product-call-sett
 const firstObserved = await firstObservation;
 assert.deepEqual(fifoEvents.slice(0, 3), ["ensure:fresh", "park:job-b", "ensure:bound-observation"],
   "an ineligible observation must not block a later eligible interaction, then must regain FIFO priority");
+const cadenceStartedAt = Date.now();
 await firstObserved.park({ reason: "observation-finished", mode: "product-call-settlement" });
-assert.ok(Number(Reflect.get(fifoLane, "observationNotBefore")) >= Date.now() + 59_000,
-  "one completed observation must advance the single global cadence by 60 seconds");
+const sampledObservationInterval = Number(Reflect.get(fifoLane, "observationNotBefore"))
+  - cadenceStartedAt;
+assert.ok(sampledObservationInterval >= 70_000 && sampledObservationInterval <= 90_050,
+  "one completed observation must sample one global cadence between 70 and 90 seconds");
 
 const continuationEvents: string[] = [];
 const continuationLane = createBehaviorLane(continuationEvents);

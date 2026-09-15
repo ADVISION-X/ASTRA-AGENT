@@ -59,7 +59,7 @@ closure_pending
 
 - 不在 AGENT、Browser、环境变量、session 或 heartbeat 复制当前 N；自动 N−1 和 6 小时后恢复 N0 都只能由 Website 在 `ai_production_devices.max_in_flight` 的同一 Owner 行上原子执行。
 - 不停止工单创建者写入 queued demand；“停止发送新工单”精确指 Website 不再向设备签发无关新 `job_id` 的 lease/grant。事故 cohort 的原 job 同 attempt/effect 零 submit 恢复授权不属于新工单。
-- 不把所有名为 `*Ms` 的协议期限、HTTP deadline、lease、heartbeat 或内部计时机械改写成秒单位；本需求约束的是 ChatGPT 页面访问频率。现役 2 秒附件观察、2.5 秒 action→read settlement、5 秒以上 hydration、40 秒提交后静默门和全设备至少 60 秒 Provider observation 均不降低；任何 deadline 剩余不足 1.5 秒时直接以最后一次事实超时关闭，不为“赶 deadline”补一次亚 1.5 秒 DOM 尾读。
+- 不把所有名为 `*Ms` 的协议期限、HTTP deadline、lease、heartbeat 或内部计时机械改写成秒单位；本需求约束的是 ChatGPT 页面访问频率。现役 2 秒附件观察、2.5 秒 action→read settlement、5 秒以上 hydration、40 秒提交后静默门和Browser每轮一次抽取的70—90秒全局Provider observation间隔均不降低；任何 deadline 剩余不足 1.5 秒时直接以最后一次事实超时关闭，不为“赶 deadline”补一次亚 1.5 秒 DOM 尾读。
 - “秒点”从第一次合规 DOM 观察完成时计算，不虚构页面出现到系统尚未观察之间的时间保证，也不把唯一紧急 ack 扩张成普通 DOM 高频例外。
 - 不增加第二 Browser lane、第二 scheduler、第二 retry policy、第二 Outbox、第二冷却表、产品私有暂停机制、Product 可调用的确认能力或人工点击 fallback。唯一内部 ack Child 只为把一次物理点击绑定到 Browser WAL/replay identity，不能被 Product Flow 调用。
 - 不把普通网络中断、登录失败、usage limit 或未知弹窗误判成该已知限频弹窗。
@@ -90,7 +90,7 @@ closure_pending
 
 - `src/lib/browser/chrome-extension/dom-mutation-postcondition.ts:35-38` 与 `dom-intent-runtime.ts:68-71` 的循环等待上限为 50ms；一个 5 秒 postcondition 理论上可触发约 101 轮逻辑重观测。这是当前最明确的亚 1.5 秒高频入口。
 - `open_gpt_execution_profile/handler.ts:51-66` 与 `open_gpt_attachment_control/observation.ts:150-165` 在 5 秒 hydration 内使用 25–250ms 自适应等待；理论上可产生数十次重读，必须退出。
-- `reconcile_gpt_attachment_set/observation.ts:219-235` 正常序列从 2 秒起；`prepare_clean_gpt_chat/handler.ts:27-50` 从 5 秒起；`production-browser-lifecycle.ts` 的 Provider observation 为全局至少 60 秒；这些已高于 1.5 秒，但 deadline 尾部仍不得用 `min(remaining, scheduled)` 制造小于 1.5 秒的最后一次重读。
+- `reconcile_gpt_attachment_set/observation.ts:219-235` 正常序列从 2 秒起；`prepare_clean_gpt_chat/handler.ts:27-50` 从 5 秒起；`production-browser-lifecycle.ts` 只给出Provider observation至少70秒的最早资格，Browser再按每轮一次抽取的70—90秒全局间隔裁决；这些已高于 1.5 秒，但 deadline 尾部仍不得用 `min(remaining, scheduled)` 制造小于 1.5 秒的最后一次重读。
 - `debugger-runtime.ts:8,199-220` 已在页面 action 后等待 2.5 秒才允许 read；`browser-command-postcondition.ts:142-163` 已在 Provider submit 后静默 40 秒。两者保留，且 1.5 秒新门不能覆盖或缩短更长的现役门。
 - Browser heartbeat 20 秒、Website lease renew/session heartbeat/claim 等控制流不读取 ChatGPT DOM，不属于页面交互节拍；为它们改单位不会降低 Provider 压力，反而会破坏 lease 和收尾，所以明确排除。
 
@@ -164,7 +164,7 @@ closure_pending
 |---|---|---|---|
 | 法案系统 | 两仓 HEAD/base law 可读，但当前相关 active-law、spec、Manifest、registry 正由并行 writer 共同漂移，尚无可绑定的最终 major 集合 | 未授权 GPT 对该弹窗做目标内确认；未定义全账号页面访问至少 1.5 秒、Provider 冷却、自动 N−1、N=1 稳定 6 小时复原和“冷却不杀任何在途任务”；当前 candidate 也未冻结 | 等并行 writer 形成 clean commit 后重新枚举精确 active majors；再取得用户独立 law-amendment 授权，精确替换相关 major 并重建唯一 registry |
 | 施工图 | 一 job 一 system Tab、一 Browser lane、Website 独占当前 N/attempt/admission、正常回答同 effect 读回 | `N 标签`方案把限频列为 NO-GO 且明确禁止自动降 N；与本次新需求直接冲突，没有生产处置主链 | 在现役 GPT、Browser、V6 和 AI-acceptance 蓝图各自 Owner 段落补同一合同，并同步替换 N 标签方案的冲突断言，不新建竞争蓝图 |
-| 代码 | Browser action→read 已有 2.5 秒、Provider observation 60 秒，但 postcondition 仍以 50ms、两个 hydration 以 25–250ms 重读；Runtime `state.draining` 会在 shutdown abort 全部 active job；Website 当前 N 只在 device row，draining 能挡 claim | 没有全账号 1.5 秒页面访问门、全路径弹窗 DOM fact、原子确认、持久通知、Provider 冷却门、自动 N−1/N0 恢复；现有 shutdown drain 不能复用 | 复用 Browser lane/现有等待 Owner 收口节拍；Browser 中央 preflight 增已知 blocker fact，checkpoint 只是消费者；现有 Outbox 增一种写；Website exact device row 同时拥有当前 N 与最小惩罚事实；claim 同事务拒绝新 grant，全局 control singleton 零修改 |
+| 代码 | Browser action→read 已有 2.5 秒、Provider observation由唯一Browser lane每轮抽取70—90秒，但 postcondition 仍以 50ms、两个 hydration 以 25–250ms 重读；Runtime `state.draining` 会在 shutdown abort 全部 active job；Website 当前 N 只在 device row，draining 能挡 claim | 没有全账号 1.5 秒页面访问门、全路径弹窗 DOM fact、原子确认、持久通知、Provider 冷却门、自动 N−1/N0 恢复；现有 shutdown drain 不能复用 | 复用 Browser lane/现有等待 Owner 收口节拍；Browser 中央 preflight 增已知 blocker fact，checkpoint 只是消费者；现有 Outbox 增一种写；Website exact device row 同时拥有当前 N 与最小惩罚事实；claim 同事务拒绝新 grant，全局 control singleton 零修改 |
 | 质检 | 两仓各有唯一 `quality:check`，现有 GPT/Browser/Runtime/AI acceptance 与 real proof | 没有 1.5 秒全局页面访问证据、DOM、阶梯、N−1/6小时复原、并发、崩溃恢复、全部在途任务入库分母 | 扩展现有 domain inspector/acceptance/dynamic proof；不建专属第二质检入口 |
 
 **第一直接断裂分为同一事故链的两个相邻入口：** Browser/GPT 已经允许 50ms 与 25–250ms 的 ChatGPT DOM 重观测，缺少全账号至少 1.5 秒的频率门；当 Provider 已弹出限频 dialog 后，`gpt-dom-observation.ts` 和 `checkpoint_gpt_text_response` 又只把页面解释成“回答 pending/settled”，没有 typed fact、一次确认或通知 Website claim/N Owner 的合法路径。前者使过密访问风险真实存在，后者使事故发生后页面阻塞与继续签发无法闭环。日志不能证明前者是唯一网络根因，但代码足以证明两处合同 GAP 都必须修。
@@ -250,7 +250,7 @@ ordinary_chatgpt_page_access
 
 - “逻辑 observation”是一次 typed Browser intent 取得 coherent fact 的完整调用；其中为保证同一快照而执行的 `DOM.getDocument/query/describe/Runtime.callFunctionOn` 等 primitives 不是新的轮询周期，不在它们之间插入 1.5 秒破坏一致性。一次 fill 内为完成同一文本输入所需的 focus/clear/insert primitives 也算一个逻辑 mutation；菜单点击、菜单项点击、fill、Enter 等彼此仍是不同逻辑访问，不能借 compound command 绕过 1.5 秒。
 - 跨 job、跨 Tab、跨 Product 共用同一 `chatgptPageAccessNotBefore`，不能每个 Child 各自计时。Browser/extension 重启后的第一次普通页面访问也先等待 1.5 秒，因而 crash 不能清空节拍。
-- 若更长门同时存在，实际准入取最大值：`max(1.5秒全局门, 2.5秒 action→read, 40秒 post-submit quiet, 60秒 Provider observation, 具体业务 backoff)`。
+- 若更长门同时存在，实际准入取最大值：`max(1.5秒全局门, 2.5秒 action→read, 40秒 post-submit quiet, Browser本轮70—90秒Provider observation间隔, 具体业务 backoff)`。
 - deadline 剩余不足 1.5 秒时不再读取 DOM；直接以最后一次 observation 形成 typed timeout。禁止用 `Math.min(remaining, interval)` 在 deadline 尾部补 1–1499ms 的最后一读。
 - 协议字段可以继续用整数毫秒表达，避免无价值的跨层单位迁移；质检裁决的是实际相邻页面周期 `elapsed>=1500ms`，不是变量名是否含 `Ms`。
 
@@ -263,7 +263,7 @@ ordinary_chatgpt_page_access
 | attachment-control hydration | 25–250ms | 同上 |
 | attachment upload settlement | 2/3/5/7/9/11秒 | 保留序列；任何缩短的 deadline 尾部不触发亚 1.5 秒读 |
 | clean-chat hydration | 5/10/15/30秒 | 保留序列；尾部规则同上 |
-| Provider response checkpoint | 全局至少 60秒 | 保留，不被 1.5 秒门缩短 |
+| Provider response checkpoint | Browser每轮一次抽取70—90秒全局间隔；真实相邻观察至少70秒 | 保留，不被1.5秒门缩短 |
 | action→read settlement | 2.5秒 | 保留；ack 后也适用 |
 
 ### 6.2 精确识别
@@ -440,7 +440,7 @@ ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab swit
 - ack DISPATCHED 后 crash：WAL readback，不二次点击。
 - observation complete → click dispatch：每个受控样本 `<=1000ms`。
 - 除上述唯一 detection→ack 例外，跨 job、Tab、Product、普通读/动作、重命名以及 extension restart 的相邻逻辑页面访问全部 `>=1500ms`；deadline 剩余 1–1499ms 时 observation 增量为 0。
-- 更长节拍不退化：action→read `>=2500ms`、post-submit quiet `>=40000ms`、Provider observation `>=60000ms`。
+- 更长节拍不退化：action→read `>=2500ms`、post-submit quiet `>=40000ms`、Provider每轮抽样计划值位于`70000..90000ms`且真实相邻observation `>=70000ms`。
 
 ### 9.3 Runtime/Website 状态性质
 

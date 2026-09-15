@@ -117,17 +117,24 @@ try {
     childCapabilityId: "checkpoint_gpt_text_response", inputHash: HASH_A,
     actionOrdinal: 2, replayPolicy: "observation-only" as const,
   };
+  const shortDeadlineAcquisitions = acquisitions;
+  const shortDeadlineParks = parks;
+  assert.equal(await lifecycle.waitForProviderObservation(
+    active, "research", "text-wait", "checkpoint_gpt_text_response", Date.now() + 5_000,
+  ), "deadline");
+  assert.deepEqual([acquisitions, parks], [shortDeadlineAcquisitions, shortDeadlineParks],
+    "a deadline below the 70-second minimum must not park or reacquire Browser");
   await assert.rejects(active.facade.runAtomicStep({
     ...checkpointIdentity, productStepId: "",
   }, async () => undefined), /BROWSER_ATOMIC_STEP_IDENTITY_INVALID/u);
   await active.facade.runAtomicStep(checkpointIdentity, async () => {
     await active.facade.observeCapability({ capabilityId: "browser.dom.inspect.v1" });
     assert.equal(await lifecycle.waitForProviderObservation(
-      active, "research", "text-wait", "checkpoint_gpt_text_response", Date.now() + 5_000,
+      active, "research", "text-wait", "checkpoint_gpt_text_response", Date.now() + 200_000,
     ), "reobserve");
     await active.facade.observeCapability({ capabilityId: "browser.dom.inspect.v1" });
     assert.equal(await lifecycle.waitForProviderObservation(
-      active, "research", "text-wait", "checkpoint_gpt_text_response", Date.now() + 5_000,
+      active, "research", "text-wait", "checkpoint_gpt_text_response", Date.now() + 200_000,
     ), "reobserve");
     await active.facade.observeCapability({ capabilityId: "browser.dom.inspect.v1" });
   });
@@ -148,14 +155,14 @@ try {
       userTurnId: "conversation-turn-1", semanticMediaId: "gpt-generated-image-main",
     });
     assert.equal(await lifecycle.waitForProviderObservation(
-      active, "research", "image-wait", "checkpoint_gpt_generated_image", Date.now() + 5_000,
+      active, "research", "image-wait", "checkpoint_gpt_generated_image", Date.now() + 200_000,
     ), "reobserve");
     await active.facade.readAuthenticatedMedia({
       canonicalConversationUrl: "https://chatgpt.com/c/provider-wait",
       userTurnId: "conversation-turn-1", semanticMediaId: "gpt-generated-image-main",
     });
     assert.equal(await lifecycle.waitForProviderObservation(
-      active, "research", "image-wait", "checkpoint_gpt_generated_image", Date.now() + 5_000,
+      active, "research", "image-wait", "checkpoint_gpt_generated_image", Date.now() + 200_000,
     ), "reobserve");
     await active.facade.readAuthenticatedMedia({
       canonicalConversationUrl: "https://chatgpt.com/c/provider-wait",
@@ -169,8 +176,8 @@ try {
   assert.deepEqual([acquisitions, selections, parks], [5, 0, 4],
     "normal pending must park immediately and reacquire its exact Target through the one lane");
   assert.equal(observationWaits.at(-1)?.targetMode, "bound-observation");
-  assert.ok((observationWaits.at(-1)?.eligibleAt ?? 0) > observationStartedAt,
-    "the Child must submit a future eligibility time instead of owning a local timer");
+  assert.ok((observationWaits.at(-1)?.eligibleAt ?? 0) >= observationStartedAt + 69_000,
+    "the Child must submit eligibility at least 70 seconds ahead instead of owning a local timer");
   await assert.rejects(
     lifecycle.browserFor("session:next", "research-next", "text-next"),
     /GPT_BROWSER_SESSION_TRANSITION_UNSETTLED/u,

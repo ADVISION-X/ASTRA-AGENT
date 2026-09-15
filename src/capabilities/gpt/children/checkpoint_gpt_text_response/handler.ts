@@ -18,6 +18,10 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
     const browser = requireBrowser(context);
     const deadline = Date.now() + probeBudgetMs;
     while (Date.now() < deadline) {
+      if (!context.waitForProviderObservation) {
+        throw executionFailure("failed", "GPT_PROVIDER_OBSERVATION_GATE_REQUIRED");
+      }
+      if (await context.waitForProviderObservation(deadline) === "deadline") break;
       let assistant: Awaited<ReturnType<typeof readExactAssistantTurn>> | null = null;
       try {
         assistant = await readExactAssistantTurn(browser, userTurnId, conversationUrl);
@@ -33,10 +37,6 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
             browserFact: null, nativeFailureCode: null }),
         });
       }
-      if (!context.waitForProviderObservation) {
-        throw executionFailure("failed", "GPT_PROVIDER_OBSERVATION_GATE_REQUIRED");
-      }
-      if (await context.waitForProviderObservation(deadline) === "deadline") break;
     }
     throw executionFailure("failed", "GPT_RESPONSE_TIMEOUT");
   };

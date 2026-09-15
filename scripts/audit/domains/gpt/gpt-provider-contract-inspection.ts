@@ -39,6 +39,9 @@ export const inspectGptProviderProbeOwnerContract = (
   const lifecycle = sourceText(context, LIFECYCLE);
   requireTokens(lane, BROWSER_LANE, [
     "private readonly queue: LaneWaiter[] = []", "new Proxy(lease", "waiter.binding.productStepId",
+    "PROVIDER_OBSERVATION_MIN_INTERVAL_MS = 70_000",
+    "PROVIDER_OBSERVATION_RANDOM_SPAN_MS = 20_001",
+    "Math.floor(Math.random() * PROVIDER_OBSERVATION_RANDOM_SPAN_MS)",
   ], findings, finding);
   for (const forbidden of ["provider-probe", "nextProviderProbeEligibleAt", "startProviderProbeCooldown",
     "waiter.purpose"]) if (lane.includes(forbidden)) findings.push(finding(
@@ -58,12 +61,18 @@ export const inspectGptProviderProbeOwnerContract = (
   requireTokens(lifecycle, LIFECYCLE, [
     'childCapabilityId !== "checkpoint_gpt_text_response"',
     'childCapabilityId !== "checkpoint_gpt_generated_image"',
-    "PROVIDER_OBSERVATION_INTERVAL_MS = 60_000", "waitForProviderObservation",
+    "PROVIDER_OBSERVATION_MIN_INTERVAL_MS = 70_000", "waitForProviderObservation",
+    "const eligibleAt = Date.now() + PROVIDER_OBSERVATION_MIN_INTERVAL_MS",
+    'if (eligibleAt > observationDeadlineAt) return "deadline"',
     "active.browser.readAtomicStepOutcome(confirmed.submitIdentity)",
     'recoverySelectionRequired: targetMode === "confirmed-readback"',
     "selectExactGptConversation", '"bound-observation"', "eligibleAt",
     'mode: "product-call-settlement"',
   ], findings, finding);
+  if (lifecycle.includes("Math.random")) findings.push(finding(
+    "gpt/no-second-wait-scheduler", LIFECYCLE,
+    "GPT must not sample a per-Child Provider observation interval.",
+  ));
   requireTokens(sourceText(context, BROWSER_MUTATION_STORE), BROWSER_MUTATION_STORE, [
     "readUniqueConfirmedConversationUrl(parentJobId: string, parentAttemptId: string,",
     "job_id=? and attempt_id=? and product_step_id=?", "product_step_id=? and call_id='turn-submit'",
@@ -121,6 +130,15 @@ export const inspectProviderWaitContract = (
     "readAuthenticatedMedia", "waitForProviderObservation", 'mutationOutcome: "no"', "browserFact: null",
     'throw executionFailure("failed", "GPT_IMAGE_TIMEOUT")',
   ], findings, finding);
+  const textGate = textHandler.indexOf("await context.waitForProviderObservation(deadline)");
+  const textObservation = textHandler.indexOf("readExactAssistantTurn(browser");
+  const imageGate = imageHandler.indexOf("await context.waitForProviderObservation(deadline)");
+  const imageObservation = imageHandler.indexOf("browser.readAuthenticatedMedia(");
+  if (textGate < 0 || textObservation < 0 || textGate > textObservation
+    || imageGate < 0 || imageObservation < 0 || imageGate > imageObservation) {
+    findings.push(finding("gpt/provider-observation-gate-first", ROOT,
+      "The first and subsequent text or image observations must enter the global Browser gate first."));
+  }
   requireTokens(responseState, RESPONSE_STATE, [
     "readExactAssistantTurn", "userTurnId", "precedingUserTurnId",
   ], findings, finding);

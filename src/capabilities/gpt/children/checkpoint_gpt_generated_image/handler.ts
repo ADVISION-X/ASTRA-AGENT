@@ -48,6 +48,12 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
   let media: Awaited<ReturnType<typeof browser.readAuthenticatedMedia>>;
   for (;;) {
     if (Date.now() >= deadline) throw executionFailure("failed", "GPT_IMAGE_TIMEOUT");
+    if (!context.waitForProviderObservation) {
+      throw executionFailure("failed", "GPT_PROVIDER_OBSERVATION_GATE_REQUIRED");
+    }
+    if (await context.waitForProviderObservation(deadline) === "deadline") {
+      throw executionFailure("failed", "GPT_IMAGE_TIMEOUT");
+    }
     try {
       media = await browser.readAuthenticatedMedia({ canonicalConversationUrl: conversationUrl, userTurnId,
         semanticMediaId: "gpt-generated-image-main" });
@@ -56,12 +62,6 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
       const code = failureCode(error);
       if (code !== "BROWSER_AUTHENTICATED_MEDIA_USER_TURN_ABSENT"
         && code !== "BROWSER_AUTHENTICATED_MEDIA_IMAGE_SOURCE_ABSENT") throw error;
-    }
-    if (!context.waitForProviderObservation) {
-      throw executionFailure("failed", "GPT_PROVIDER_OBSERVATION_GATE_REQUIRED");
-    }
-    if (await context.waitForProviderObservation(deadline) === "deadline") {
-      throw executionFailure("failed", "GPT_IMAGE_TIMEOUT");
     }
   }
   const original = Buffer.from(media.bytesBase64, "base64");
