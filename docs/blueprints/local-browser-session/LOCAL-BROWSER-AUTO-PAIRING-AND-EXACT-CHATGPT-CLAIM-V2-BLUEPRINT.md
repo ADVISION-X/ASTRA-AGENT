@@ -1,7 +1,7 @@
-# Local Browser Authority V45 施工图
+# Local Browser Authority V46 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"local-browser-authority-v45","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V38","LAW-LOCAL-BROWSER-SESSION-004-V43","LAW-LOCAL-BROWSER-SESSION-006-V34"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"local-browser-authority-v46","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V38","LAW-LOCAL-BROWSER-SESSION-004-V43","LAW-LOCAL-BROWSER-SESSION-006-V34"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
 ```
 
 Browser 只拥有现实页面资源：已获 grant且未闭环 job与 system Target的一对一进程内绑定、实时 current Document、一条 FIFO、一条物理 lane、一个全局 Provider observation节拍、Provider/控件 mutation的唯一 WAL，以及页面生命周期动作后的 fresh readback。它不理解 Product步骤、不保存 GPT回答、不决定 retry或当前 N，也不拥有 Website task。
@@ -20,7 +20,7 @@ Browser 另在同一 FIFO/lane 内唯一拥有 `chatgptPageAccessNotBefore`：�
 
 `FROZEN-GPT-IMAGE-SOURCE-EVENT-WAIT-001` 的 Browser 部分已按本次授权解冻替换并重新冻结：authenticated-media 读取先在 canonical conversation URL 与精确 `userTurnId` 之后、下一个 user turn 之前的范围内直接检查非空 `currentSrc/src`；尚未出现时，只能在同一次加密 command 的调用期 observation 内安装一个 `MutationObserver`，仅监听节点加入及 `src/srcset` 变化，单次最多等待 5000ms，source 出现即在同一次已登录页面调用中 fetch 原始 bytes 并按内容 hash 去重。单次期满仍无 source返回 typed pending并释放 lease/lane；下一次 observation立即进入唯一 FIFO，由 BrowserLaneCoordinator在请求资格与全局节拍满足后激活该 job精确绑定 Tab并 fresh observe，正常轮询不得导航。调用期 observer与 timeout必须结算即销毁，总期限只由 GPT Child现有 `probeBudgetMs`决定；不得形成 per-job timer、第二 timer Owner、持久状态或调度器。
 
-`FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001` 的 Browser 部分固定：真正 submit 前除 Product 已批准的“提示词 hash + 精确附件集合”和 Browser 自有的“current Target/Document/fence + 同 effect 尚未现实输入”外，不得再增加任何发送资格。批准附件集合允许为空。历史 user turn、固定 turn 编号或奇偶、按钮标签均不是发送前置条件，点击前不得读取历史 turn 决定发送资格；点击后等待 2500ms，只从 fresh current Document 选取最大有效序号的 user turn，核对批准 prompt hash 与 Composer 已清空。按钮唯一、可见、可交互与 hit-test 仍是 Browser 执行物理点击的内部机械安全，不得上升为 GPT/Product 业务关卡。
+`FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001` 的 Browser 部分固定：真正 submit 前除 Product 已批准的“提示词 hash + 精确附件集合”和 Browser 自有的“current Target/Document/fence + 同 effect 尚未现实输入”外，不得再增加任何发送资格。批准附件集合允许为空。历史 user turn、固定 turn 编号或奇偶、按钮标签均不是发送前置条件，点击前不得读取历史 turn 决定发送资格；精确 submit 的同一 Browser command 在 `mouseReleased` 后立即发出一次无点击、无业务输入计数的固定中性 `mouseMoved(0,0)`，随后才开始 2500ms 闸门并从 fresh current Document 选取最大有效序号的 user turn，核对批准 prompt hash 与 Composer 已清空。撤离失败发生在 submit 可能已经输入之后，必须保留 `DISPATCHED` 并只允许同 effect 零 submit 读回；普通点击、模型、推理强度、附件、限流弹窗和恢复读回不得执行该撤离，也不得为此增加 DOM 读取、Tab 激活、导航、timer、WAL 或重试。按钮唯一、可见、可交互与 hit-test 仍是 Browser 执行物理点击的内部机械安全，不得上升为 GPT/Product 业务关卡。
 
 `FROZEN-GPT-SUBMIT-ACTIONABILITY-WAIT-001` 的 Browser 部分固定：精确待发送内容和 WAL/current Document 已通过后，精确发送按钮暂时 `disabled/aria-disabled` 时，在同一原子 command 的现有 5000ms 有界期限内重复 fresh mechanical qualification，恢复后至多输入一次；期限耗尽仍返回原生 disabled typed receipt、mutation=no、physical input=0。不得建立第三业务前置条件、持久 timer、第二 WAL、队列或重试器。
 

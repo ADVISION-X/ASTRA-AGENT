@@ -27,6 +27,7 @@ type HoverIntent = Extract<BrowserDomIntent, { kind: "hover" }>;
 type DoubleClickIntent = Extract<BrowserDomIntent, { kind: "doubleClick" }>;
 type KeypressIntent = Extract<BrowserDomIntent, { kind: "keypress" }>;
 type CurrentDocumentAssertion = () => void;
+const NEUTRAL_POINTER_POSITION = Object.freeze({ type: "mouseMoved", x: 0, y: 0, button: "none", buttons: 0 });
 
 type QualificationReceipt = Readonly<{
   candidateCount: number;
@@ -259,10 +260,8 @@ const prepareClick = async (
       }) }
       : { point: preparation.point, retainedNodeId: null };
   }
-  if (intent.preClickExactOutgoingTurn === undefined) {
-    const preconditionReceipt = await zeroActionIfSatisfied(runtime, target, intent, assertCurrent);
-    if (preconditionReceipt !== null) return { receipt: preconditionReceipt };
-  }
+  const preconditionReceipt = await zeroActionIfSatisfied(runtime, target, intent, assertCurrent);
+  if (preconditionReceipt !== null) return { receipt: preconditionReceipt };
   const point = await pointerAction(runtime, target, intent);
   return "failureCode" in point ? { receipt: point } : { point, retainedNodeId: null };
 };
@@ -314,6 +313,7 @@ export const executeClickIntent = async (
   await dispatchPointerClickSequence(
     runtime, target, prepared.point, [1], assertCurrent, onPhysicalInput,
   );
+  if (intent.preClickExactOutgoingTurn !== undefined) await runtime.send(target.tabId, "Input.dispatchMouseEvent", NEUTRAL_POINTER_POSITION);
   return clickMutationReceipt(runtime, target, intent, prepared.retainedNodeId, assertCurrent);
 };
 

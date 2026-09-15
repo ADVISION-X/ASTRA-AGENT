@@ -221,7 +221,7 @@ const exerciseExactOutgoingMismatchReadback = async (): Promise<void> => {
 };
 
 const exerciseExactOutgoingActionabilityWait = async (): Promise<void> => {
-  const run = async (readyAt:number,timeoutMs:number) => {let qualifications=0;const physicalEvents:string[]=[];
+  const run = async (readyAt:number,timeoutMs:number) => {let qualifications=0;const physicalEvents:unknown[]=[];
     const runtime={awaitPageReadPermission:noPageReadBarrier,async send(_tabId:number,method:string,
       parameters?:Readonly<Record<string,unknown>>){if(method==="Runtime.callFunctionOn"
       &&parameters?.returnByValue===true&&String(parameters.functionDeclaration).includes("spec.output")){
@@ -231,7 +231,7 @@ const exerciseExactOutgoingActionabilityWait = async (): Promise<void> => {
       if(infrastructure!==undefined)return infrastructure;
       if(method==="DOM.querySelectorAll")return{nodeIds:parameters?.selector==="submitted"
         &&physicalEvents.length>0?[7]:[]};
-      if(method==="Input.dispatchMouseEvent"){physicalEvents.push(method);return{};}
+      if(method==="Input.dispatchMouseEvent"){physicalEvents.push(parameters);return{};}
       throw new Error(`UNEXPECTED_OUTGOING_WAIT_METHOD:${method}`);}} as ExtensionDebuggerRuntime;
     const result=await executeRegisteredDomIntent(runtime,{tabId:120} as never,{
       kind:"click",selector:"button",expectedMatches:1,preClickExactOutgoingTurn:{
@@ -242,9 +242,12 @@ const exerciseExactOutgoingActionabilityWait = async (): Promise<void> => {
   const delayed = await run(3, 4_500);
   assert.equal(delayed.qualifications, 3);
   assert.equal(delayed.result.postconditionVerified, true);
-  assert.deepEqual(delayed.physicalEvents,
-    ["Input.dispatchMouseEvent", "Input.dispatchMouseEvent", "Input.dispatchMouseEvent"],
-    "a transient disabled send button must recover inside one command and click exactly once");
+  assert.deepEqual(delayed.physicalEvents, [
+    { type: "mouseMoved", x: 5, y: 5, button: "none", buttons: 0 },
+    { type: "mousePressed", x: 5, y: 5, button: "left", buttons: 1, clickCount: 1 },
+    { type: "mouseReleased", x: 5, y: 5, button: "left", buttons: 0, clickCount: 1 },
+    { type: "mouseMoved", x: 0, y: 0, button: "none", buttons: 0 },
+  ], "a transient disabled send button must click once and immediately park the pointer");
   const stuck = await run(Number.POSITIVE_INFINITY, 1_500);
   assert.equal(stuck.result.nativeCauseCode, "BROWSER_DOM_ACTION_ARIA_DISABLED");
   assert.equal(stuck.result.mutationCount, 0);
@@ -268,7 +271,7 @@ const coherentObservation = (open: boolean, currentUrl = "https://chatgpt.com/")
 });
 
 const exerciseExactOutgoingNeverUsesZeroActionPostcondition = async (): Promise<void> => {
-  let pointerEvents = 0;
+  const pointerEvents: Readonly<Record<string, unknown>>[] = [];
   let candidateCalls = 0;
   let postconditionCalls = 0;
   let emptyComposerEligible = 1;
@@ -301,7 +304,7 @@ const exerciseExactOutgoingNeverUsesZeroActionPostcondition = async (): Promise<
     }
     const infrastructure = mutationInfrastructureReply(method, parameters);
     if (infrastructure !== undefined) return infrastructure;
-    if (method === "Input.dispatchMouseEvent") { pointerEvents += 1; return {}; }
+    if (method === "Input.dispatchMouseEvent") { pointerEvents.push(parameters ?? {}); return {}; }
     throw new Error(`UNEXPECTED_EXACT_OUTGOING_CLICK_METHOD:${method}`);
   } } as ExtensionDebuggerRuntime;
   const target = {
@@ -329,8 +332,12 @@ const exerciseExactOutgoingNeverUsesZeroActionPostcondition = async (): Promise<
     "submit must keep the same bounded postcondition open until the temporary WEB route becomes durable");
   assert.equal((result.postconditionObservation as Readonly<Record<string, unknown>>).currentUrl,
     "https://chatgpt.com/c/durable-provider-route");
-  assert.equal(pointerEvents, 3,
-    "an exact outgoing turn must click once even when a historical DOM state already satisfies the postcondition");
+  assert.deepEqual(pointerEvents, [
+    { type: "mouseMoved", x: 5, y: 5, button: "none", buttons: 0 },
+    { type: "mousePressed", x: 5, y: 5, button: "left", buttons: 1, clickCount: 1 },
+    { type: "mouseReleased", x: 5, y: 5, button: "left", buttons: 0, clickCount: 1 },
+    { type: "mouseMoved", x: 0, y: 0, button: "none", buttons: 0 },
+  ], "an exact outgoing turn must click once and park before its postcondition read");
   emptyComposerEligible = 0;
   const rejected = await executeRegisteredDomIntent(runtime, target, {
     ...intent, postClickObservation: {
