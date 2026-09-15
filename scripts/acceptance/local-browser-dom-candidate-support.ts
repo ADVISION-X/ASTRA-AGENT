@@ -164,9 +164,9 @@ export const exerciseNativePointerSequences = async (): Promise<void> => {
   const release = (clickCount: 1 | 2) =>
     ({ type: "mouseReleased", ...point, button: "left", buttons: 0, clickCount });
   assert.deepEqual(await run({ kind: "click", selector: "button", expectedMatches: 1,
-    postClickMatch: { selector: "hydrated", expectedMatches: 1, timeoutMs: 200 } }),
+    postClickMatch: { selector: "hydrated", expectedMatches: 1, timeoutMs: 4_500 } }),
   [move, press(1), release(1)]);
   assert.deepEqual(await run({ kind: "doubleClick", selector: "button", expectedMatches: 1,
-    postDoubleClickMatch: { selector: "hydrated", expectedMatches: 1, timeoutMs: 200 } }),
+    postDoubleClickMatch: { selector: "hydrated", expectedMatches: 1, timeoutMs: 4_500 } }),
   [move, press(1), release(1), press(2), release(2)]);
 };

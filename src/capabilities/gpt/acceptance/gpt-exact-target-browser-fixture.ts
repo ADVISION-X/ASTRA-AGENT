@@ -74,7 +74,7 @@ export const exactAssistantTurnReply = (
 });
 
 export const EXPECTED_GPT_CHILD_IDS = Object.freeze([
-  "attach_approved_gpt_files_once", "checkpoint_gpt_generated_image",
+  "acknowledge_known_gpt_rate_limit", "attach_approved_gpt_files_once", "checkpoint_gpt_generated_image",
   "checkpoint_gpt_text_response", "close_gpt_execution_profile",
   "ensure_gpt_reasoning_requirement",
   "open_gpt_attachment_control",
@@ -88,6 +88,7 @@ type DomResponder = (intent: BrowserDomIntent, callNumber: number) => unknown | 
 type FakeBrowserOptions = Readonly<{
   initialPending?: number;
   initialRecovery?: BrowserAtomicStepOutcome;
+  exposeInitialRecoveryOutsideAtomic?: boolean;
   initialUrl?: string;
   navigationEpochAdvanceOnMutation?: number;
   navigationEpochAdvanceOnWait?: number;
@@ -252,7 +253,7 @@ const executeFakeDomIntent = async (
 ): Promise<unknown> => {
   state.domCalls += 1;
   const mutates = ["click", "hover", "doubleClick", "keypress", "fill",
-    "renameExactGptConversation"].includes(intent.kind);
+    "renameExactGptConversation", "acknowledgeKnownGptRateLimit"].includes(intent.kind);
   const value = intent.kind === "document"
     ? { url: state.url, title: "ChatGPT" }
     : await responder(intent, state.domCalls);
@@ -296,8 +297,10 @@ const createFakeBrowserLease = (
     state.atomicIdentity = identity;
     try { return await action(); } finally { state.atomicIdentity = null; }
   },
-  readAtomicStepOutcome: (identity) => JSON.stringify(identity) === JSON.stringify(state.atomicIdentity)
-    ? state.recovery : null,
+  readAtomicStepOutcome: (identity) =>
+    (options.exposeInitialRecoveryOutsideAtomic && state.atomicIdentity === null)
+      || JSON.stringify(identity) === JSON.stringify(state.atomicIdentity)
+      ? state.recovery : null,
   executeDomIntent: async (intent: BrowserDomIntent) => {
     if (intent.kind !== "selectExactGptConversation") {
       return executeFakeDomIntent(responder, state, intent, options);

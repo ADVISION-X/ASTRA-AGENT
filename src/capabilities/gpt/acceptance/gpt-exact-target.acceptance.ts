@@ -23,7 +23,7 @@ import { execute, profile, profileFacts } from "./gpt-exact-target-profile-fixtu
 import "./gpt-reasoning-requirement.acceptance.js";
 
 assert.deepEqual(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).sort(), EXPECTED_GPT_CHILD_IDS);
-assert.equal(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).length, 14);
+assert.equal(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).length, 15);
 assertGptExactTargetSourceShape(import.meta.url);
 
 const conversationFacts = (
@@ -272,7 +272,8 @@ for (const queryId of [
     const result = await execute("open_gpt_execution_profile", fixture.browser, { profile });
     assert.equal(result.status, "failed");
     assert.ok(result.failureCode?.startsWith("GPT_EXECUTION_PROFILE_HYDRATION_TIMEOUT:"));
-    assert.equal(simulatedNow, 5_000, "profile hydration must not exceed its strict five-second ceiling");
+    assert.equal(simulatedNow, 4_500,
+      "profile hydration must stop at the last complete 1.5-second interval within its five-second ceiling");
     assert.equal(fixture.physicalMutations(), 0);
   } finally {
     Date.now = nativeDateNow;

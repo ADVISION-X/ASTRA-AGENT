@@ -20,6 +20,7 @@ import type { ProductionHash } from "./contracts.js";
 import { readProductionCredential } from "./credential.js";
 import { ProductionExecutor } from "./executor.js";
 import { ProductionRuntimeStore } from "./store.js";
+import { ProviderRateLimitControl } from "./provider-rate-limit-control.js";
 import { typedRuntimeTransportFailure } from "./transport-failure.js";
 import { ProductionWorkerSession } from "./worker-session.js";
 import { readProductionOperationsSnapshot } from "./operations-snapshot.js";
@@ -138,13 +139,23 @@ const createRuntimeState = (
   credential: Awaited<ReturnType<typeof readProductionCredential>>,
 ): RuntimeState => {
   let stateRef: RuntimeState | null = null;
-  const session = new ProductionWorkerSession(credential, () => runtimeState(stateRef!), input.sourceHash);
+  const recoverySession = store.providerCooldownSessionRecoveryIdentity();
+  const session = new ProductionWorkerSession(
+    credential,
+    () => runtimeState(stateRef!),
+    input.sourceHash,
+    recoverySession?.workerInstanceId,
+    recoverySession?.sessionOpenRequestId,
+  );
+  const providerRateLimitControl = new ProviderRateLimitControl(store, session);
   const executor = new ProductionExecutor(store, input.runtimeLogger, {
     dataDir: input.dataDir, sourceHash: input.sourceHash, gpt: input.gpt,
     evidenceStore: input.evidenceStore, browserAuthority: input.browserAuthority,
+    providerRateLimitControl,
   });
   const state: RuntimeState = {
     abort: new AbortController(), active: new Map(), activeAbort: new Map(), store, executor, session,
+    providerRateLimitControl,
     browserAuthority: input.browserAuthority, gpt: input.gpt, evidenceStore: input.evidenceStore,
     dataDir: input.dataDir,
     runtimeLogger: input.runtimeLogger, draining: false, lastHeartbeat: null,
@@ -167,7 +178,7 @@ const establishCloudSession = async (
     typedIdentity: { kind: "producer", producerId: input.runtimeLogger.producerRunId },
   }));
   try {
-    await state.session.open(boundaryId);
+    await state.session.open();
     refreshLedgerReconciled(state);
     const receipt = await state.session.heartbeat();
     state.lastHeartbeat = receipt.issued_at;

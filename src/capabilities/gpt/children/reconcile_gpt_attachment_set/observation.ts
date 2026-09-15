@@ -224,15 +224,16 @@ const waitForNextAttachmentObservation = async (
   browser: ReturnType<typeof requireBrowser>,
   deadline: number,
   waitOrdinal: number,
-): Promise<void> => {
+): Promise<boolean> => {
   const remaining = deadline - Date.now();
-  if (remaining <= 0) return;
+  if (remaining < 1_500) return false;
   const scheduled = ATTACHMENT_OBSERVATION_INTERVALS_MS[
     Math.min(waitOrdinal, ATTACHMENT_OBSERVATION_INTERVALS_MS.length - 1)
   ]!;
   await browser.wait({
-    durationMs: Math.min(remaining, scheduled),
+    durationMs: Math.min(remaining, Math.max(1_500, scheduled)),
   });
+  return true;
 };
 
 export const waitForUploadedAttachmentSet = async (
@@ -260,7 +261,9 @@ export const waitForUploadedAttachmentSet = async (
     } catch (error) {
       if (failureCode(error) !== "BROWSER_DOM_NODE_STALE") throw error;
       if (deadline <= Date.now()) attachmentUploadTimeout(last, files.length);
-      await waitForNextAttachmentObservation(browser, deadline, waitOrdinal);
+      if (!await waitForNextAttachmentObservation(browser, deadline, waitOrdinal)) {
+        attachmentUploadTimeout(last, files.length);
+      }
       waitOrdinal += 1;
       continue;
     }
@@ -277,7 +280,9 @@ export const waitForUploadedAttachmentSet = async (
       });
     }
     if (deadline <= Date.now()) attachmentUploadTimeout(last, files.length);
-    await waitForNextAttachmentObservation(browser, deadline, waitOrdinal);
+    if (!await waitForNextAttachmentObservation(browser, deadline, waitOrdinal)) {
+      attachmentUploadTimeout(last, files.length);
+    }
     waitOrdinal += 1;
   }
 };

@@ -37,6 +37,8 @@ import { gptExecutionFailure } from "./execution-fault.js";
 import type {
   GptEvidenceStorePort,
   GptProductionBrowserAuthority,
+  ProviderRateLimitControlPort,
+  ProviderRateLimitIncidentHandle,
 } from "./production-ports.js";
 import {
   throwGptChildFailure,
@@ -47,6 +49,20 @@ import {
 export type { ProductGptExecution } from "./production-child-support.js";
 
 const RENAME_CLEANUP_MINIMUM_BUDGET_MS = 15_000;
+
+const notClearedRateLimit = (
+  incident: ProviderRateLimitIncidentHandle,
+  observedAt: string,
+) => Object.freeze({
+  clearance: "not_cleared" as const,
+  acknowledgementReceiptHash: gptCanonicalHash({
+    schemaVersion: "gpt-rate-limit-not-cleared.v1",
+    incidentRequestId: incident.incidentRequestId,
+    observedAt,
+    clearance: "not_cleared",
+  }),
+  acknowledgedAt: observedAt,
+});
 
 const confirmedSubmitEffect = (
   prior: BrowserExactCallMutationFact,
@@ -140,6 +156,7 @@ export class ProductionGptChildTools {
     private readonly evidenceStore: GptEvidenceStorePort,
     private readonly browserAuthority: GptProductionBrowserAuthority,
     private readonly runtimeLogger: RuntimeLogger,
+    private readonly providerRateLimitControl: ProviderRateLimitControlPort,
   ) {}
   private browserLifecycle(input: ExecutionInput): ProductionGptBrowserLifecycle {
     return new ProductionGptBrowserLifecycle(
@@ -226,6 +243,64 @@ export class ProductionGptChildTools {
     });
   }
 
+  public async reconcilePendingProviderRateLimitIncidents(
+    parentSpanId: string,
+    signal: AbortSignal,
+  ): Promise<void> {
+    for (const pending of this.providerRateLimitControl.pendingIncidents()) {
+      const execution: ExecutionInput = {
+        jobId: pending.jobId,
+        productId: "runtime-provider-cooldown-recovery",
+        ownerRef: "production-runtime",
+        subjectRef: pending.jobId,
+        authorizationRef: "provider-cooldown-recovery",
+        resultRevision: pending.resultRevision,
+        attemptId: pending.attemptId,
+        deviceId: pending.deviceId,
+        leaseVersion: pending.leaseVersion,
+        executionFenceHash: pending.fenceHash,
+        capabilityManifestHash: pending.capabilityManifestHash,
+        maxProviderTurns: 1,
+        expiresAtMonotonic: performance.now() + 30_000,
+        commandTtlMs: 30_000,
+        abortSignal: signal,
+        parentSpanId,
+      };
+      const browsers = this.browserLifecycle(execution);
+      const incident = await this.providerRateLimitControl.beginIncident(pending);
+      try {
+        try {
+          const acknowledged = await this.executeOne(execution, browsers, {
+            child: "acknowledge_known_gpt_rate_limit",
+            sessionKey: pending.sessionKey,
+            productStepId: "gpt-rate-limit-control",
+            callId: incident.incidentRequestId,
+            actionOrdinal: 1,
+            input: {
+              incidentRequestId: incident.incidentRequestId,
+              dialogHash: pending.dialogHash,
+              observationHash: pending.observationHash,
+              targetRefHash: pending.targetRefHash,
+              documentRefHash: pending.documentRefHash,
+              observedAt: pending.observedAt,
+            },
+          }, signal, true, RuntimeFailureImpact.BLOCKING,
+          Date.parse(pending.observedAt) + 1_000);
+          await incident.deliver({
+            clearance: acknowledged.value.clearance,
+            acknowledgementReceiptHash: acknowledged.value.acknowledgementReceiptHash,
+            acknowledgedAt: acknowledged.value.acknowledgedAt,
+          });
+        } catch (error) {
+          await incident.deliver(notClearedRateLimit(incident, pending.observedAt));
+          throw error;
+        }
+      } finally {
+        await browsers.settle(null);
+      }
+    }
+  }
+
   private async settleExecution(
     input: ExecutionInput,
     browsers: ProductionGptBrowserLifecycle,
@@ -258,7 +333,7 @@ export class ProductionGptChildTools {
             jobId: input.jobId,
             productId: input.productId,
             terminalAt: cleanup.terminalAt,
-            timeoutMs: 2500,
+            timeoutMs: 10000,
           },
         }, input.abortSignal, false, RuntimeFailureImpact.CLEANUP);
       }
@@ -391,6 +466,7 @@ export class ProductionGptChildTools {
     call: ProductGptCallInput<GptChildCapabilityId>,
   ): void {
     if (call.child !== "submit_exact_gpt_turn_once") return;
+    this.providerRateLimitControl.assertProviderSubmitAllowed();
     const dispatched = this.browserAuthority.countProviderTurnDispatches(
       execution.jobId,
       execution.attemptId,
@@ -400,11 +476,73 @@ export class ProductionGptChildTools {
     }
   }
 
+  private async closeKnownProviderRateLimit(
+    execution: ExecutionInput,
+    browsers: ProductionGptBrowserLifecycle,
+    call: ProductGptCallInput<GptChildCapabilityId> & Readonly<{ sessionKey: string }>,
+    result: GptChildCapabilityResult,
+  ): Promise<never> {
+    const dialogHash = "sha256:084b621b91e3affcf2199269157febb07ded1b7a3287ac61104108317cddde15";
+    const observedAtRef = result.proof.factResultIds.find((value) =>
+      value.startsWith("browser-known-gpt-rate-limit|"));
+    const [, observedAt = "", targetRefHash = "", documentRefHash = ""] =
+      observedAtRef?.split("|") ?? [];
+    const observationHash = result.proof.authorityRefHashes[0];
+    if (!Number.isFinite(Date.parse(observedAt)) || !observationHash
+      || !/^sha256:[a-f0-9]{64}$/u.test(targetRefHash)
+      || !/^sha256:[a-f0-9]{64}$/u.test(documentRefHash)) {
+      throw executionFailure("failed", "PROVIDER_RATE_LIMIT_OBSERVATION_INVALID");
+    }
+    const incident = await this.providerRateLimitControl.beginIncident({
+      jobId: execution.jobId,
+      attemptId: execution.attemptId,
+      resultRevision: execution.resultRevision,
+      deviceId: execution.deviceId,
+      leaseVersion: execution.leaseVersion,
+      fenceHash: execution.executionFenceHash,
+      capabilityManifestHash: execution.capabilityManifestHash,
+      dialogHash,
+      observationHash,
+      targetRefHash: targetRefHash as GptHash,
+      documentRefHash: documentRefHash as GptHash,
+      sessionKey: call.sessionKey,
+      observedAt,
+    });
+    try {
+      const acknowledged = await this.executeOne(execution, browsers, {
+        child: "acknowledge_known_gpt_rate_limit",
+        sessionKey: call.sessionKey,
+        productStepId: "gpt-rate-limit-control",
+        callId: incident.incidentRequestId,
+        actionOrdinal: 1,
+        input: {
+          incidentRequestId: incident.incidentRequestId,
+          dialogHash,
+          observationHash,
+          targetRefHash: targetRefHash as GptHash,
+          documentRefHash: documentRefHash as GptHash,
+          observedAt,
+        },
+      }, execution.abortSignal, false, RuntimeFailureImpact.BLOCKING,
+      Date.parse(observedAt) + 1_000);
+      await incident.deliver({
+        clearance: acknowledged.value.clearance,
+        acknowledgementReceiptHash: acknowledged.value.acknowledgementReceiptHash,
+        acknowledgedAt: acknowledged.value.acknowledgedAt,
+      });
+    } catch (error) {
+      await incident.deliver(notClearedRateLimit(incident, observedAt));
+      throw error;
+    }
+    throw executionFailure("failed", "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE");
+  }
+
   private async executeOne<K extends GptChildCapabilityId>(execution: ExecutionInput,
     browsers: ProductionGptBrowserLifecycle,
     call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>, signal: AbortSignal = execution.abortSignal,
     priorEffectKnown = false,
     failureImpact: RuntimeFailureImpact = RuntimeFailureImpact.BLOCKING,
+    rateLimitAckDispatchNotAfter?: number,
   ): Promise<ProductGptChildResult<K>> {
     const intent = this.intentFor(execution, call);
     const contract = GPT_CHILD_CAPABILITY_CONTRACTS[call.child];
@@ -419,7 +557,9 @@ export class ProductionGptChildTools {
       || call.child === "checkpoint_gpt_generated_image";
     try {
       browserCall = contract.requiredTargetKind === "chatgpt"
-        ? await browsers.browserFor(call.sessionKey, call.productStepId, call.callId)
+        ? priorEffectKnown && call.child === "acknowledge_known_gpt_rate_limit"
+          ? await browsers.browserForRateLimitRecovery(call.sessionKey, call.productStepId, call.callId)
+          : await browsers.browserFor(call.sessionKey, call.productStepId, call.callId)
         : undefined;
       if (call.child === "checkpoint_gpt_text_response" && browserCall?.confirmedProviderEffect) {
         const recovered = await readPersistedGptTextResponse({ evidenceStore: this.evidenceStore,
@@ -443,8 +583,18 @@ export class ProductionGptChildTools {
         browserCall,
         signal,
         resultRevision: execution.resultRevision,
+        ...(call.child === "submit_exact_gpt_turn_once"
+          ? { assertProviderInputAllowed: () =>
+              this.providerRateLimitControl.assertProviderSubmitAllowed() }
+          : {}),
+        ...(rateLimitAckDispatchNotAfter === undefined ? {}
+          : { rateLimitAckDispatchNotAfter }),
       });
       result = atomic.result;
+      if (result.status !== "success" && result.failureCode === "BROWSER_KNOWN_GPT_RATE_LIMIT"
+        && call.child !== "acknowledge_known_gpt_rate_limit") {
+        await this.closeKnownProviderRateLimit(execution, browsers, call, result);
+      }
       await recordConfirmedSubmission(call, result, intent as GptAnyChildCapabilityIntent,
         execution, browsers, browserCall);
       resolveDispatched = atomic.resolveDispatched;

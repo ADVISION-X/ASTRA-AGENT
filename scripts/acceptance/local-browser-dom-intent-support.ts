@@ -111,7 +111,7 @@ const exerciseComposerReadiness = async (): Promise<void> => {
   } } as ExtensionDebuggerRuntime;
   const found = await executeRegisteredDomIntent(delayed, { tabId: 99 } as never, {
     kind: "find", selector: "#prompt-textarea", maxMatches: 2,
-    waitFor: { minimumMatches: 1, timeoutMs: 500 },
+    waitFor: { minimumMatches: 1, timeoutMs: 4_500 },
   }) as Readonly<{ count: number }>;
   assert.equal(found.count, 1);
   assert.equal(delayedQueries, 3);
@@ -124,7 +124,7 @@ const exerciseComposerReadiness = async (): Promise<void> => {
   } } as ExtensionDebuggerRuntime;
   const absent = await executeRegisteredDomIntent(missing, { tabId: 100 } as never, {
     kind: "find", selector: "#prompt-textarea", maxMatches: 2,
-    waitFor: { minimumMatches: 1, timeoutMs: 1 },
+    waitFor: { minimumMatches: 1, timeoutMs: 1_500 },
   }) as Readonly<{ count: number }>;
   assert.equal(absent.count, 0);
 };

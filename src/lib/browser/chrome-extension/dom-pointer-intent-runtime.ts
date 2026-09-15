@@ -180,13 +180,13 @@ export const dispatchPointerClickSequence = async (
   let inputObserved = false;
   for (const clickCount of clickCounts) {
     assertCurrent();
-    await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", {
-      type: "mousePressed", x: point.x, y: point.y, button: "left", buttons: 1, clickCount,
-    });
     if (!inputObserved) {
       inputObserved = true;
       onPhysicalInput?.();
     }
+    await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", {
+      type: "mousePressed", x: point.x, y: point.y, button: "left", buttons: 1, clickCount,
+    });
     assertCurrent();
     await debuggerRuntime.send(target.tabId, "Input.dispatchMouseEvent", {
       type: "mouseReleased", x: point.x, y: point.y, button: "left", buttons: 0, clickCount,
@@ -222,7 +222,7 @@ const prepareExactOutgoingClick = async (
 ): Promise<PreparedClick> => {
   const deadline = Date.now() + (intent.postClickObservation?.timeoutMs
     ?? intent.postClickMatch?.timeoutMs ?? intent.postClickAttribute?.timeoutMs
-    ?? intent.postClickUrl?.timeoutMs ?? 1);
+    ?? intent.postClickUrl?.timeoutMs ?? 1_500);
   while (true) {
     assertCurrent();
     const point = await pointerAction(runtime, target, intent);
@@ -230,7 +230,7 @@ const prepareExactOutgoingClick = async (
     const retryable = ["BROWSER_DOM_ACTION_DISABLED", "BROWSER_DOM_ACTION_ARIA_DISABLED"]
       .includes(point.nativeCauseCode ?? point.failureCode);
     if (!retryable || Date.now() >= deadline) return { receipt: point };
-    await waitForNextBoundedObservation(deadline);
+    if (!await waitForNextBoundedObservation(deadline)) return { receipt: point };
   }
 };
 
@@ -275,6 +275,12 @@ const clickMutationReceipt = async (
   assertCurrent: CurrentDocumentAssertion,
 ): Promise<Readonly<Record<string, unknown>>> => {
   assertCurrent();
+  if (intent.postClickMinimumDelayMs !== undefined) {
+    await new Promise<void>((resolve) => globalThis.setTimeout(
+      resolve, intent.postClickMinimumDelayMs,
+    ));
+    assertCurrent();
+  }
   const clickedCandidateAttribute = intent.postClickObservation?.clickedCandidateAttribute;
   const clickedCandidateAttributeValue = clickedCandidateAttribute && retainedNodeId !== null
     ? attribute(await describeNode(runtime, target.tabId, retainedNodeId), clickedCandidateAttribute.name)

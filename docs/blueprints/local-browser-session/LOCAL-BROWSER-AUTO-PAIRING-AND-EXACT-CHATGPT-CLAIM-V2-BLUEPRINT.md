@@ -1,10 +1,14 @@
-# Local Browser Authority V40 施工图
+# Local Browser Authority V41 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"local-browser-authority-v40","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V37","LAW-LOCAL-BROWSER-SESSION-004-V40","LAW-LOCAL-BROWSER-SESSION-006-V31"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"local-browser-authority-v41","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V37","LAW-LOCAL-BROWSER-SESSION-004-V41","LAW-LOCAL-BROWSER-SESSION-006-V32"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
 ```
 
 Browser 只拥有现实页面资源：已获 grant且未闭环 job与 system Target的一对一进程内绑定、实时 current Document、一条 FIFO、一条物理 lane、一个全局 Provider observation节拍、Provider/控件 mutation的唯一 WAL，以及页面生命周期动作后的 fresh readback。它不理解 Product步骤、不保存 GPT回答、不决定 retry或当前 N，也不拥有 Website task。
+
+Browser 另在同一 FIFO/lane 内唯一拥有 `chatgptPageAccessNotBefore`：任意两个不属于同一 coherent 原子周期的 chatgpt.com 普通逻辑 DOM observation、Tab/page activation、navigation 或页面 mutation，其起始单调时间差至少1.5秒，且该门跨job、Tab、Product共享；进程或扩展重启后的第一次普通访问也先等待1.5秒。一次coherent observation内部的CDP primitives不拆分，菜单、菜单项、fill、Enter仍是不同逻辑访问；deadline剩余不足1.5秒时不再读取DOM，返回最后事实的typed timeout。50ms、25—250ms及亚1.5秒尾读路径必须物理退出；2.5秒动作读回、40秒提交静默、60秒Provider observation与业务backoff取更长者。
+
+每个既有ChatGPT逻辑访问在同一central site-policy preflight/coherent observation内机械取得`KnownGptRateLimitDialogFact`。只有唯一`role=dialog`、标题“请求过于频繁”、两段冻结正文、唯一启用且可交互按钮“明白了”、Target/Document不漂移时为`exact_present`；其余为`absent|mismatch`，只返回固定枚举、计数、冻结文案hash与identity，不返回DOM正文。命中时原请求物理输入为零。唯一Product不可见内部ack intent必须携刚取得的fact identity，并在当前已执行logical cycle结束后优先于所有已排队普通访问取得同一lane的下一周期；它不得抢占正在执行的CDP调用，也不得并发建立第二lane。该周期revalidate后点击一次；detection→dispatch可豁免1.5秒且受控SLO不超过1秒，恢复时仍沿用原始`observed_at+1s`截止点，随后仍等待2.5秒fresh absent readback。若恢复时同Target/Document精确重验成立且dialog已不存在，则以零点击、零mutation的absent receipt闭合同一事故；ack使用现役唯一WAL独立identity，DISPATCHED/unknown只读回，不盲点第二次。该例外不得扩展到任何其它动作或形成第二lane、timer、probe Child、selector/坐标通道。
 
 固定扩展只在 exact job已获 Website grant且需要 Browser时懒创建一个 `active:true` 的 visible、system-owned、job-bound ChatGPT production Tab；一 job最多一个 Tab且一 Tab最多一个 job，不建空闲池，不跨 job复用。物理 Tab丢失时只为同一 job补建一个并同样 `active:true`。创建、补建、激活、mutation、observation、恢复与关闭全部经过同一 FIFO/lane，任意时刻 activeTarget与 operatorTargetClaim各至多一个。`chrome.tabs.update(tabId,{active:true})`只把精确 system Tab选为所在 Chrome窗口当前 Tab；随后必须重读并证明同一 tab/window、active、discarded、load、Target/current Document未漂移。不得调用 `windows.update({focused:true})`或 `Page.bringToFront`，不认领、关闭或改写任何操作者 Tab，不以硬点、盲重试、备用通道、第二 lane或第二 registry重新引入并发物理操作。
 
@@ -24,7 +28,7 @@ Browser 只拥有现实页面资源：已获 grant且未闭环 job与 system Tar
 
 Browser mutation 的唯一规则不变：先写 WAL，再至多 dispatch 一次，最后一次输入后等待 2500ms，从 fresh current Document 做直接后置读回。GPT 只有真正提交属于 provider-effect scope；fresh/profile/model/menu/附件/Composer 等准备属于 target-local scope，身份包含 attempt 与当前 Target/Document generation，旧 attempt 不得阻断新 attempt 重建准备。provider_effect_identity 精确为 `job_id + result_revision + product_step_id + call_id + child_id + request_hash + payload_hash`，不含 Product Plugin名称/版本/Skill hash、attempt/process/lease/fence/Target/Document；同一 effect跨进程物理 dispatch总数至多一。WAL为CONFIRMED submit加密保存同包清洗的canonical conversation URL与精确userTurnId；URL只负责“去哪里读”，effect identity只负责“是否已经发送”。confirmed readback先查询当前job WAL；authorized-continuation只按Website当前route relation查询exact parent job唯一CONFIRMED effect，并要求所有terminal payload只产生一个distinct canonical URL。两种模式都经唯一lane为当前job建立或取得其独占system Target；当前URL命中时零导航，否则只执行一次Browser-owned `Page.navigate`到该URL，2500ms后fresh readback必须相等。authorized-continuation不读取父userTurnId/回答、不复用父Target、不授予当前submit。侧栏点击、标题/顺序/时间猜测、搜索、滚动、自动展开、重试与fallback均不参与。该导航不写第二WAL、不取得provider effect identity。纯observation和结果读取不建立第二WAL、lane、timer或队列。
 
-唯一 settled-title 例外仍服从同一 mutation 规则：`renameExactGptConversation` 是源码冻结、caller 无 selector/坐标/脚本/步骤控制的 target-local typed intent。它先证明 currentUrl 精确等于 active call 的 confirmed canonical URL、该 URL 对应侧栏行唯一、菜单与编辑器无残留；标题已精确相等时以零输入结算，否则在一个 WAL command 内依次执行打开当前行菜单、点击唯一“重命名”、填入 NFC targetTitle、Enter 保存四个物理输入，中间不得离开 Browser 或穿插别的 Child。最后一个输入后只在 2500ms 总闸门满时 fresh 读取同一 canonical 行标题，精确相等才 CONFIRMED。
+唯一 settled-title 例外仍服从同一 mutation 规则：`renameExactGptConversation` 是源码冻结、caller 无 selector/坐标/脚本/步骤控制的 target-local typed intent。它先证明 currentUrl 精确等于 active call 的 confirmed canonical URL、该 URL 对应侧栏行唯一、菜单与编辑器无残留；标题已精确相等时以零输入结算，否则在一个 WAL command 和固定10秒预算内依次执行打开当前行菜单、点击唯一“重命名”、填入 NFC targetTitle、Enter 保存四个物理输入，每一步逻辑访问开始前复用账号级1.5秒门，中间不得离开 Browser 或穿插别的 Child。最后一个输入后只在2500ms总闸门满时fresh读取同一canonical行标题，精确相等才CONFIRMED。
 
 现役 `physical_input_count` 原位扩为 `0..4`，authenticated terminal receipt 写入实际累计值；旧 SQLite 表只做事务性单向 rebuild 并保持全部既有行，不新增表、列、dual read 或普通 Runtime migration。部分执行以 1..3 和 REJECTED 结算。若该精确 cleanup command dispatch 后没有 authenticated terminal reply，Browser 可在同一 WAL 原位终结 `REJECTED + dispatched + BROWSER_COMMAND_RECEIPT_MISSING`，计数 0 表示未取得已鉴权计数而不是现实零输入；不得重放，pending 必须归零。此例外不得扩展至 Provider submit、附件、Prompt、模型或任意其它 mutation。
 

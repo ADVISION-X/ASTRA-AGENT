@@ -60,7 +60,7 @@ const exactKeys = (value: Readonly<Record<string, unknown>>, expected: readonly 
 
 const mutationCommandValid = (command: BrowserGovernedCommand): boolean => command.kind === "file-input"
   || (command.kind === "dom-intent" && ["click", "hover", "doubleClick", "keypress", "fill",
-    "renameExactGptConversation"]
+    "renameExactGptConversation", "acknowledgeKnownGptRateLimit"]
     .includes(command.intent.kind));
 
 const qualificationFailureValid = (
@@ -319,6 +319,7 @@ const domActionReceiptValid = (
   value: Readonly<Record<string, unknown>>,
   clickedAttributeValid: boolean,
 ): boolean => {
+  if (intent.kind === "acknowledgeKnownGptRateLimit") return value.clicked === true;
   if (intent.kind === "click") return value.clicked === true && clickedAttributeValid;
   if (intent.kind === "hover") return value.hovered === true;
   if (intent.kind === "doubleClick") return value.doubleClicked === true;
@@ -328,6 +329,29 @@ const domActionReceiptValid = (
   return intent.kind === "fill"
     && value.filled === true
     && value.retainedValueVerified === value.postconditionVerified;
+};
+
+const knownRateLimitBlockerReceiptValid = (
+  value: Readonly<Record<string, unknown>>,
+): boolean => {
+  const fact = value.knownGptRateLimitDialogFact as Readonly<Record<string, unknown>> | null;
+  return value.schemaVersion === "grasseye.browser.known-gpt-rate-limit-blocker.v1"
+  && value.failureCode === "BROWSER_KNOWN_GPT_RATE_LIMIT"
+  && value.nativeCauseCode === null
+  && value.candidateCount === 1
+  && value.identityRevalidated === true
+  && value.mutationCount === 0
+  && value.physicalInputCount === 0
+  && value.postconditionVerified === false
+  && value.qualificationRejected === true
+  && value.qualificationStage === "candidate-set"
+  && fact !== null && typeof fact === "object" && !Array.isArray(fact)
+  && fact.schemaVersion === "grasseye.browser.known-gpt-rate-limit-dialog.v1"
+  && fact.state === "exact_present"
+  && fact.dialogHash === "sha256:084b621b91e3affcf2199269157febb07ded1b7a3287ac61104108317cddde15"
+  && [fact.targetRefHash, fact.documentRefHash, fact.observationHash]
+    .every((hash) => typeof hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(hash))
+  && typeof fact.observedAt === "string" && Number.isFinite(Date.parse(fact.observedAt));
 };
 
 const assertDomActionReceipt = (
@@ -349,7 +373,10 @@ const zeroActionReceiptValid = (
   command: BrowserGovernedCommand,
   value: Readonly<Record<string, unknown>>,
 ): boolean => value.zeroActionSatisfied === true
-  && value.candidateCount === 1
+  && (value.candidateCount === 1
+    || (command.kind === "dom-intent"
+      && command.intent.kind === "acknowledgeKnownGptRateLimit"
+      && value.candidateCount === 0))
   && value.identityRevalidated === true
   && value.postconditionVerified === true
   && command.kind === "dom-intent"
@@ -386,6 +413,11 @@ const decodeZeroMutationReceipt = (
   command: BrowserGovernedCommand,
   value: Readonly<Record<string, unknown>>,
 ): BrowserMutationReceipt => {
+  if (knownRateLimitBlockerReceiptValid(value)) {
+    return Object.freeze({ terminal: "rejected", mutationOutcome: "no",
+      failureCode: "BROWSER_KNOWN_GPT_RATE_LIMIT", nativeCauseCode: null,
+      physicalInputCount: 0 });
+  }
   if (zeroActionReceiptValid(command, value)) {
     return Object.freeze({ terminal: "confirmed", mutationOutcome: "no", failureCode: null,
       nativeCauseCode: null, physicalInputCount: 0 });

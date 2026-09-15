@@ -79,7 +79,8 @@ export class ProductionRuntimeStore extends ProductionStoreOutbox {
 
   public pendingOutboxCount(): number {
     return Number((this.database.prepare(
-      `select count(*) as count from production_outbox where sent_at is null and last_error is null`,
+      `select count(*) as count from production_outbox where sent_at is null
+        and (last_error is null or kind='provider_cooldown')`,
     ).get() as { count: number }).count);
   }
 

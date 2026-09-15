@@ -48,7 +48,13 @@ type ProviderInputGuard = Readonly<{
 export class ExtensionDebuggerRuntime {
   private readonly attached = new Set<number>();
   private inFlightPageActions = 0;
+  private readonly pageActionCompletionWaiters = new Set<() => void>();
   private pageReadNotBefore = 0;
+  private logicalPageAccessActive = false;
+  private logicalPageAccessRequired = false;
+  private logicalPageAccessRunning = false;
+  private readonly urgentLogicalPageAccessQueue: Array<() => Promise<void>> = [];
+  private readonly ordinaryLogicalPageAccessQueue: Array<() => Promise<void>> = [];
   private providerInputGuard: ProviderInputGuard | null = null;
   private pageReadGuard: (() => void) | null = null;
   private readonly pendingFileChoosers = new Map<number, {
@@ -121,6 +127,9 @@ export class ExtensionDebuggerRuntime {
       }
     }
     if (PAGE_READ_METHODS.has(method)) {
+      if (this.logicalPageAccessRequired && !this.logicalPageAccessActive) {
+        throw new Error("BROWSER_PAGE_ACCESS_CYCLE_REQUIRED");
+      }
       await this.awaitPageReadPermission();
       this.pageReadGuard?.();
       return this.chromeApi.debugger.sendCommand(target(tabId), method, parameters);
@@ -162,6 +171,58 @@ export class ExtensionDebuggerRuntime {
     }
   }
 
+  public withLogicalPageAccess<T>(
+    enter: () => Promise<void>,
+    action: () => Promise<T>,
+    priority: "ordinary" | "rate-limit-ack" = "ordinary",
+  ): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const run = async (): Promise<void> => {
+        try {
+          await enter();
+          if (this.logicalPageAccessActive) throw new Error("BROWSER_BACKPRESSURE");
+          this.logicalPageAccessActive = true;
+          try {
+            resolve(await action());
+          } finally {
+            this.logicalPageAccessActive = false;
+          }
+        } catch (error) {
+          reject(error);
+        }
+      };
+      const queue = priority === "rate-limit-ack"
+        ? this.urgentLogicalPageAccessQueue : this.ordinaryLogicalPageAccessQueue;
+      queue.push(run);
+      this.drainLogicalPageAccessQueue();
+    });
+  }
+
+  private drainLogicalPageAccessQueue(): void {
+    if (this.logicalPageAccessRunning) return;
+    this.logicalPageAccessRunning = true;
+    void (async () => {
+      try {
+        while (true) {
+          const next = this.urgentLogicalPageAccessQueue.shift()
+            ?? this.ordinaryLogicalPageAccessQueue.shift();
+          if (!next) return;
+          await next();
+        }
+      } finally {
+        this.logicalPageAccessRunning = false;
+        if (this.urgentLogicalPageAccessQueue.length > 0
+          || this.ordinaryLogicalPageAccessQueue.length > 0) {
+          this.drainLogicalPageAccessQueue();
+        }
+      }
+    })();
+  }
+
+  public requireLogicalPageAccessCycles(): void {
+    this.logicalPageAccessRequired = true;
+  }
+
   public async withPageReadGuard<T>(
     assertInteractive: () => void,
     action: () => Promise<T>,
@@ -199,7 +260,7 @@ export class ExtensionDebuggerRuntime {
   public async awaitPageReadPermission(): Promise<void> {
     while (true) {
       if (this.inFlightPageActions > 0) {
-        await waitForBarrier(1);
+        await new Promise<void>((resolve) => this.pageActionCompletionWaiters.add(resolve));
         continue;
       }
       const remaining = this.pageReadNotBefore - monotonicNow();
@@ -214,6 +275,10 @@ export class ExtensionDebuggerRuntime {
       return await action();
     } finally {
       this.inFlightPageActions -= 1;
+      if (this.inFlightPageActions === 0) {
+        for (const resolve of this.pageActionCompletionWaiters) resolve();
+        this.pageActionCompletionWaiters.clear();
+      }
       this.pageReadNotBefore = Math.max(
         this.pageReadNotBefore,
         monotonicNow() + PAGE_ACTION_READ_SETTLEMENT_MS,

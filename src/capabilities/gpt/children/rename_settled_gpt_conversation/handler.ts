@@ -14,7 +14,7 @@ export const renameSettledGptConversationHandler: GptChildHandler<"rename_settle
     requireExactInputKeys(intent, [
       "canonicalConversationUrl", "jobId", "productId", "terminalAt", "timeoutMs",
     ]);
-    if (intent.input.jobId !== intent.jobId || intent.input.timeoutMs !== 2500) {
+    if (intent.input.jobId !== intent.jobId || intent.input.timeoutMs !== 10_000) {
       throw executionFailure("failed", "GPT_SETTLED_RENAME_INPUT_INVALID");
     }
     const targetTitle = settledGptConversationTitle(intent.input);

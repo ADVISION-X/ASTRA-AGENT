@@ -40,7 +40,7 @@ const executeRename = async (mutationCount: 0 | 4) => {
   }, { initialUrl: canonicalConversationUrl });
   const input = {
     canonicalConversationUrl, jobId, productId: "bazi_ai_full_analysis", terminalAt,
-    timeoutMs: 2500 as const,
+    timeoutMs: 10000 as const,
   };
   const intent = Object.freeze({
     childCapabilityId: "rename_settled_gpt_conversation",
@@ -68,7 +68,7 @@ const executeRename = async (mutationCount: 0 | 4) => {
     kind: "renameExactGptConversation",
     canonicalConversationUrl,
     targetTitle: "0915·八字分析·aiprod_12345678",
-    timeoutMs: 2500,
+    timeoutMs: 10000,
   });
 };
 
@@ -79,7 +79,7 @@ let cleanupAttempts = 0;
 let parks = 0;
 const nonBlockingTools = new ProductionGptChildTools(
   "/tmp/gpt-settled-rename-cleanup", hashCanonical("source"), {} as never, {} as never,
-  {} as never, {} as never,
+  {} as never, {} as never, {} as never,
 );
 (nonBlockingTools as never as { executeOne: () => Promise<never> }).executeOne = async () => {
   cleanupAttempts += 1;

@@ -5,6 +5,8 @@ import {
   GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR,
 } from "../children/open_gpt_model_selector_v2/selectors.js";
 import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
+import { executeProductionGptAtomicCall } from "../production-atomic-call.js";
+import type { ProductionGptBrowserCall } from "../production-browser-lifecycle.js";
 import { approvedFile, conversationUrl, promptHash } from "./gpt-conversation-fixture.js";
 import {
   coherentObservationPacket,
@@ -140,13 +142,21 @@ const exerciseSubmit = async (
     }, conversationUrl);
     throw new Error(`UNEXPECTED_SUBMIT_PROOF_INTENT:${intent.kind}`);
   }, { initialUrl: conversationUrl });
+  let providerGateChecks = 0;
   const result = await createGptAcceptanceHarness(scope).execute(
-    "submit_exact_gpt_turn_once", fixture.browser, { files, promptHash },
+    "submit_exact_gpt_turn_once", fixture.browser, { files, promptHash }, {
+      assertProviderInputAllowed: () => {
+        providerGateChecks += 1;
+        assert.equal(fixture.physicalMutations(), 0,
+          "the durable provider gate must be rechecked before the physical submit");
+      },
+    },
   );
   assert.equal(result.status, "success", result.failureCode ?? "submit proof failed");
   assert.equal(result.value?.status, "CONFIRMED");
   assert.equal(result.value?.userTurnId, expectedUserTurnId);
   assert.equal(exactOutgoingTurnChecked, true);
+  assert.equal(providerGateChecks, 1);
   assert.equal(fixture.physicalMutations(), 1);
 };
 
@@ -177,6 +187,62 @@ await exerciseSubmit("gpt-proof-submit-third-turn", [], [],
   assert.equal(result.proof.browserFact?.effectScope, "provider_effect");
   assert.equal(result.proof.browserFact?.browserOutcome, "CONFIRMED");
   assert.equal(result.proof.browserFact?.mutationOutcome, "confirmed");
+}
+
+for (const priorState of ["rejected", "dispatched"] as const) {
+  const incidentSuffix = priorState === "rejected" ? "3" : "4";
+  const acknowledgementInput = {
+    incidentRequestId: `aipcooldown_${incidentSuffix.repeat(40)}`,
+    dialogHash: "sha256:084b621b91e3affcf2199269157febb07ded1b7a3287ac61104108317cddde15" as const,
+    observationHash: `sha256:${"5".repeat(64)}` as const,
+    targetRefHash: `sha256:${"6".repeat(64)}` as const,
+    documentRefHash: `sha256:${"7".repeat(64)}` as const,
+    observedAt: new Date(Date.now() - 5_000).toISOString(),
+  };
+  const priorOutcome = {
+    state: priorState,
+    mutationOutcome: priorState === "rejected" ? "no" as const : "dispatched" as const,
+    providerEffectIdentityHash: null,
+    terminalAt: priorState === "rejected" ? new Date().toISOString() : null,
+    failureCode: priorState === "rejected" ? "BROWSER_RATE_LIMIT_ACK_REJECTED" : null,
+    nativeFailureCode: null,
+    authorityRef: `browser-mutation:rate-limit-${priorState}`,
+    authorityHash: `sha256:${"8".repeat(64)}` as const,
+    targetRef: "target:1", documentRef: "document:1", physicalInputCount: 0 as const,
+    downloadGuidHash: null, downloadCompleted: false, identityRevalidated: true,
+  };
+  const fixture = fakeBrowser((intent) => {
+    assert.equal(intent.kind, "readKnownGptRateLimitClearance",
+      "terminal ACK recovery may perform only the dedicated read-only clearance observation");
+    return {
+      schemaVersion: "grasseye.browser.known-gpt-rate-limit-clearance.v1",
+      state: "confirmed_absent", dialogHash: acknowledgementInput.dialogHash,
+      targetRefHash: acknowledgementInput.targetRefHash,
+      documentRefHash: acknowledgementInput.documentRefHash,
+      observationHash: `sha256:${"9".repeat(64)}`,
+      observedAt: new Date().toISOString(), candidateCount: 0,
+      identityRevalidated: true, mutationCount: 0,
+      postconditionVerified: true, zeroActionSatisfied: true,
+    };
+  }, { initialRecovery: priorOutcome, exposeInitialRecoveryOutsideAtomic: true });
+  const harness = createGptAcceptanceHarness(`gpt-proof-terminal-${priorState}-rate-limit-ack`);
+  const intent = harness.buildIntent("acknowledge_known_gpt_rate_limit", acknowledgementInput);
+  const browserCall: ProductionGptBrowserCall = {
+    browser: fixture.browser, facade: fixture.browser, providerWaitLog: null,
+    confirmedProviderEffect: null, settledResultPayloadHash: null,
+    settledConversationRenameTaken: false, settledRenameTransportRevoked: false,
+    recoverySelectionRequired: false,
+  };
+  const recovered = await executeProductionGptAtomicCall({
+    dataDir: "/tmp/gpt-exact-target", gpt: harness.gpt, browsers: {} as never,
+    intent, browserCall, signal: new AbortController().signal, resultRevision: 0,
+  });
+  assert.equal(recovered.result.status, "success",
+    recovered.result.failureCode ?? `${priorState} ACK clearance recovery failed`);
+  assert.equal(Reflect.get(recovered.result.value ?? {}, "clearance"), "confirmed_absent");
+  assert.equal(recovered.result.proof.browserFact?.mutationOutcome, "no");
+  assert.equal(fixture.physicalMutations(), 0,
+    `${priorState} ACK recovery must never replay a physical acknowledgement input`);
 }
 
 {
@@ -224,6 +290,59 @@ await exerciseSubmit("gpt-proof-submit-third-turn", [], [],
   assert.equal(temporaryRoute.failureCode, "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
   assert.equal(fixture.physicalMutations(), 0,
     "a historical temporary route must fail before Browser navigation or Provider replay");
+}
+
+{
+  const acknowledgementReceipt = {
+    clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
+    postconditionVerified: true,
+  };
+  const recovery = {
+    state: "confirmed" as const, mutationOutcome: "confirmed" as const,
+    providerEffectIdentityHash: null, terminalAt: new Date().toISOString(),
+    failureCode: null, nativeFailureCode: null, authorityRef: "browser-mutation:cooldown-ack",
+    authorityHash: `sha256:${"7".repeat(64)}` as const, targetRef: "target:1",
+    documentRef: "document:1", physicalInputCount: 1 as const,
+    downloadGuidHash: null, downloadCompleted: false, identityRevalidated: true,
+    terminalPayload: acknowledgementReceipt,
+  };
+  const fixture = fakeBrowser((intent) => {
+    throw new Error(`RECOVERED_ACK_MUST_NOT_TOUCH_BROWSER:${intent.kind}`);
+  }, { initialRecovery: recovery });
+  const result = await createGptAcceptanceHarness("gpt-proof-recovered-rate-limit-ack").execute(
+    "acknowledge_known_gpt_rate_limit", fixture.browser, {
+      incidentRequestId: `aipcooldown_${"1".repeat(40)}`,
+      dialogHash: "sha256:084b621b91e3affcf2199269157febb07ded1b7a3287ac61104108317cddde15",
+      observationHash: `sha256:${"2".repeat(64)}`,
+      targetRefHash: `sha256:${"3".repeat(64)}`,
+      documentRefHash: `sha256:${"4".repeat(64)}`,
+      observedAt: new Date(Date.now() - 5_000).toISOString(),
+    }, { confirmedRateLimitAcknowledgementReadback: { terminalPayload: acknowledgementReceipt } });
+  assert.equal(result.status, "success", result.failureCode ?? "durable ack WAL recovery failed");
+  assert.equal(result.value?.clearance, "confirmed_absent");
+  assert.equal(fixture.physicalMutations(), 0,
+    "a recovered durable acknowledgement must not click the Provider a second time");
+
+  const vanishedDialogFixture = fakeBrowser((intent) => {
+    assert.equal(intent.kind, "acknowledgeKnownGptRateLimit");
+    return { candidateCount: 0, identityRevalidated: true, mutationCount: 0,
+      postconditionVerified: true, zeroActionSatisfied: true };
+  });
+  const vanishedDialog = await createGptAcceptanceHarness(
+    "gpt-proof-vanished-rate-limit-ack",
+  ).execute("acknowledge_known_gpt_rate_limit", vanishedDialogFixture.browser, {
+    incidentRequestId: `aipcooldown_${"2".repeat(40)}`,
+    dialogHash: "sha256:084b621b91e3affcf2199269157febb07ded1b7a3287ac61104108317cddde15",
+    observationHash: `sha256:${"3".repeat(64)}`,
+    targetRefHash: `sha256:${"4".repeat(64)}`,
+    documentRefHash: `sha256:${"5".repeat(64)}`,
+    observedAt: new Date(Date.now() - 5_000).toISOString(),
+  });
+  assert.equal(vanishedDialog.status, "success",
+    vanishedDialog.failureCode ?? "zero-click absence readback failed");
+  assert.equal(vanishedDialog.value?.clearance, "confirmed_absent");
+  assert.equal(vanishedDialogFixture.physicalMutations(), 0,
+    "an already absent exact dialog must close by zero-click readback");
 }
 
 {

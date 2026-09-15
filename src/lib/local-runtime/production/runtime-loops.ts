@@ -81,6 +81,10 @@ const requestClaimBatch = async (state: RuntimeState, available: number) => {
   }));
   try {
     const batch = await claimProductionTasks(state.session, available, boundaryId);
+    state.providerRateLimitControl.observeWebsiteAuthority({
+      serverNow: batch.server_now,
+      reasonCodes: batch.reason_codes,
+    });
     const claimDiagnostics = {
       outcome: batch.outcome,
       claimed_count: batch.jobs.length,
@@ -161,9 +165,15 @@ const reconcilePendingBusinessAdmissions = async (state: RuntimeState): Promise<
 };
 
 const workerIteration = async (state: RuntimeState): Promise<number> => {
+  await state.executor.reconcilePendingProviderRateLimitIncidents(state.abort.signal);
+  await state.providerRateLimitControl.reconcilePendingIntents();
   await reconcilePendingBusinessAdmissions(state);
   refreshLedgerReconciled(state);
   const attestation = await state.session.ensureFreshAttestation();
+  state.providerRateLimitControl.observeWebsiteAuthority({
+    serverNow: attestation.issued_at,
+    reasonCodes: attestation.reason_codes,
+  });
   state.lastHeartbeat = attestation.issued_at;
   const available = Math.min(
     PRODUCTION_BUSINESS_CAPACITY_MAX - businessInFlightCount(state),
@@ -171,7 +181,8 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
   );
   const browser = state.browserAuthority.readProductionRuntimeState();
   const eligible = available > 0 && attestation.claim_eligible && state.ledgerReconciled
-    && browser.browserAuthorityState === "present" && !state.draining && state.runtimeLogger.isWritable();
+    && browser.browserAuthorityState === "present" && !state.draining && state.runtimeLogger.isWritable()
+    && state.providerRateLimitControl.canRequestClaimAuthority();
   if (!eligible) return 1_000;
   const batch = await requestClaimBatch(state, available);
   launchClaimJobs(state, batch.jobs);
@@ -200,6 +211,10 @@ export const sessionHeartbeatLoop = async (state: RuntimeState): Promise<void> =
     if (state.abort.signal.aborted) return;
     try {
       const receipt = await state.session.heartbeat();
+      state.providerRateLimitControl.observeWebsiteAuthority({
+        serverNow: receipt.issued_at,
+        reasonCodes: receipt.reason_codes,
+      });
       state.lastHeartbeat = receipt.issued_at;
     } catch (error) {
       state.lastErrorCode = failureCode(error, "SESSION_HEARTBEAT_FAILED");

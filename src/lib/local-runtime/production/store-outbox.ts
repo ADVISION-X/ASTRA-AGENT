@@ -8,6 +8,7 @@ import {
 } from "./store-outbox-receipt.js";
 import { ProductionStoreTaskState } from "./store-task-state.js";
 import { productionOutboxAuthorityFromRow } from "./store-authority-validation.js";
+import { parseProviderCooldownReceipt } from "./provider-cooldown-receipt.js";
 import {
   json,
   now,
@@ -24,7 +25,24 @@ const receiptHashOf = (response: Record<string, unknown>): ProductionHash | null
   typeof response.receipt_hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(response.receipt_hash)
     ? response.receipt_hash as ProductionHash : null;
 
-const assertTerminalReceipt = (local: LocalReceiptIntent, response: Record<string, unknown>): void => {
+const parseLocalProviderCooldownReceipt = (body: Buffer, response: unknown): unknown => {
+  const request = JSON.parse(body.toString("utf8")) as Record<string, unknown>;
+  return parseProviderCooldownReceipt(response, {
+    requestId: String(request.request_id ?? ""),
+    incidentRequestId: String(request.incident_request_id ?? ""),
+    payloadHash: hashCanonical(request),
+    dialogHash: request.dialog_hash as ProductionHash,
+    observationHash: request.observation_hash as ProductionHash,
+    targetRefHash: request.target_ref_hash as ProductionHash,
+    documentRefHash: request.document_ref_hash as ProductionHash,
+  });
+};
+
+const assertHydratedReceipt = (local: LocalReceiptIntent, response: Record<string, unknown>): void => {
+  if (local.kind === "provider_cooldown") {
+    parseLocalProviderCooldownReceipt(local.body_blob, response);
+    return;
+  }
   if (local.kind !== "terminal") return;
   const request = JSON.parse(local.body_blob.toString("utf8")) as Record<string, unknown>;
   if (request.terminal_status === "completed") {
@@ -91,7 +109,8 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
       if (!existing) throw new Error("PRODUCTION_OUTBOX_INTENT_MISSING");
       const validated = existing.kind === "terminal" ? parseTerminalReceipt(
         response, parseTerminalReceiptExpectation(existing.body_blob.toString("utf8")),
-      ) : response;
+      ) : existing.kind === "provider_cooldown"
+        ? parseLocalProviderCooldownReceipt(existing.body_blob, response) : response;
       const responseJson = json(validated);
       const responseHash = hashCanonical(validated);
       const receiptHash = validated && typeof validated === "object" && !Array.isArray(validated)
@@ -120,8 +139,102 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
 
   public hasUnsentOutbox(jobId: string): boolean {
     return Boolean(this.database.prepare(`select 1 from production_outbox
-      where instr(path,?)>0 and sent_at is null and last_error is null limit 1`
+      where instr(path,?)>0 and sent_at is null
+        and (last_error is null or kind='provider_cooldown') limit 1`
     ).get(jobPathMarker(jobId)));
+  }
+
+  public hasProviderCooldownHistory(): boolean {
+    return Boolean(this.database.prepare(
+      "select 1 from production_outbox where kind='provider_cooldown' limit 1",
+    ).get());
+  }
+
+  public hasUndeliveredProviderCooldown(): boolean {
+    return Boolean(this.database.prepare(`select 1 from production_outbox
+      where kind='provider_cooldown' and sent_at is null limit 1`).get());
+  }
+
+  public latestProviderCooldownServerNow(): string | null {
+    const row = this.database.prepare(`select response_json from production_outbox
+      where kind='provider_cooldown' and sent_at is not null and response_json is not null
+      order by created_at desc,idempotency_key desc limit 1`).get() as
+      { response_json: string } | undefined;
+    if (!row) return null;
+    try {
+      const response = JSON.parse(row.response_json) as Record<string, unknown>;
+      return typeof response.server_now === "string" && Number.isFinite(Date.parse(response.server_now))
+        ? response.server_now : null;
+    } catch { return null; }
+  }
+
+  public latestProviderCooldownClearance(): "pending_unknown" | "confirmed_absent" | "not_cleared" | null {
+    const row = this.database.prepare(`select response_json from production_outbox
+      where kind='provider_cooldown' and sent_at is not null and response_json is not null
+      order by created_at desc,idempotency_key desc limit 1`).get() as
+      { response_json: string } | undefined;
+    if (!row) return null;
+    try {
+      const clearance = (JSON.parse(row.response_json) as Record<string, unknown>).clearance;
+      return clearance === "pending_unknown" || clearance === "confirmed_absent"
+        || clearance === "not_cleared" ? clearance : null;
+    } catch { return null; }
+  }
+
+  public pendingProviderCooldownRequestIds(): readonly string[] {
+    const rows = this.database.prepare(`select idempotency_key from production_outbox
+      where kind='provider_cooldown' and sent_at is null
+        and (json_extract(cast(body_blob as text),'$.phase')='clearance'
+          or exists(select 1 from production_outbox clearance
+            where clearance.kind='provider_cooldown'
+              and json_extract(cast(clearance.body_blob as text),'$.phase')='clearance'
+              and json_extract(cast(clearance.body_blob as text),'$.incident_request_id')=
+                json_extract(cast(production_outbox.body_blob as text),'$.incident_request_id')))
+      order by created_at,idempotency_key`).all() as Array<{ idempotency_key: string }>;
+    return Object.freeze(rows.map((row) => row.idempotency_key));
+  }
+
+  public pendingProviderCooldownIncidentBodies(): readonly Readonly<Record<string, unknown>>[] {
+    const rows = this.database.prepare(`select body_blob from production_outbox
+      where kind='provider_cooldown'
+        and json_extract(cast(body_blob as text),'$.phase')='incident'
+        and not exists(select 1 from production_outbox clearance
+          where clearance.kind='provider_cooldown'
+            and json_extract(cast(clearance.body_blob as text),'$.phase')='clearance'
+            and json_extract(cast(clearance.body_blob as text),'$.clearance')='confirmed_absent'
+            and json_extract(cast(clearance.body_blob as text),'$.incident_request_id')=
+              json_extract(cast(production_outbox.body_blob as text),'$.incident_request_id'))
+      order by created_at,idempotency_key`).all() as Array<{ body_blob: Buffer }>;
+    return Object.freeze(rows.map((row) => Object.freeze(
+      JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>,
+    )));
+  }
+
+  public providerCooldownSessionRecoveryIdentity(): Readonly<{
+    workerInstanceId: string;
+    sessionOpenRequestId: string;
+  }> | null {
+    const rows = this.database.prepare(`select body_blob from production_outbox
+      where kind='provider_cooldown' and sent_at is null
+      order by created_at,idempotency_key`).all() as Array<{ body_blob: Buffer }>;
+    const bodies = rows.map((row) =>
+      JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>);
+    if (bodies.length === 0) return null;
+    const identities = bodies.map((body) => ({
+      workerInstanceId: body.worker_instance_id,
+      sessionOpenRequestId: body.session_open_request_id,
+    }));
+    if (identities.some((identity) => typeof identity.workerInstanceId !== "string"
+      || !identity.workerInstanceId || typeof identity.sessionOpenRequestId !== "string"
+      || !identity.sessionOpenRequestId)
+      || identities.some((identity) => identity.workerInstanceId !== identities[0]!.workerInstanceId
+        || identity.sessionOpenRequestId !== identities[0]!.sessionOpenRequestId)) {
+      throw executionFailure("failed", "PROVIDER_COOLDOWN_SESSION_RECOVERY_IDENTITY_INVALID");
+    }
+    return Object.freeze({
+      workerInstanceId: identities[0]!.workerInstanceId as string,
+      sessionOpenRequestId: identities[0]!.sessionOpenRequestId as string,
+    });
   }
 
   private hydrateOne(jobId: string, receipt: RemoteReceipt): boolean {
@@ -143,7 +256,7 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
       }
       return false;
     }
-    assertTerminalReceipt(local, receipt.response_json);
+    assertHydratedReceipt(local, receipt.response_json);
     this.database.prepare(`update production_outbox set response_json=?,response_hash=?,receipt_hash=?,
       sent_at=coalesce(sent_at,?),last_error=null
       where idempotency_key=? and response_hash is null`).run(
@@ -191,7 +304,7 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
       if (authority.lastError === STALE_LEASE_FENCE_REMOTE_PROOF) {
         throw executionFailure("failed", "PRODUCTION_STALE_FENCE_REAUTHORIZATION_REQUIRED");
       }
-      if (authority.lastError) {
+      if (authority.lastError && authority.kind !== "provider_cooldown") {
         throw executionFailure("failed", authority.lastError);
       }
       try {

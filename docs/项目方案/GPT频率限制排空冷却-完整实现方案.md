@@ -1,11 +1,10 @@
 # GPT 频率限制排空冷却完整实现方案
 
-> 状态：**设计阻断**
+> 状态：**已授权施工，治理对齐完成后进入代码迭代**
 >
 > 需求 Owner：AGENT GPT 生产执行链；Website 是工单授权、冷却和最终业务接纳 Owner。
 >
-> 唯一产物：本文件。
-> 本文件只定义施工方案，不授权修改法案、施工图、合同、代码、数据库、Browser、生产状态或执行发布。
+> 施工授权：2026-09-15 用户已明确授权双仓法案、施工图、代码、质检系统与必要数据库操作，并指定 CI-FULL `CHANGE → READY → RELEASE`；冻结母说明书本身不修改。
 
 ## 1. 需求、权威终点与范围
 
@@ -101,6 +100,14 @@ closure_pending
 - 当前 AGENT 审计把 `src/capabilities/gpt/web/children/rate-limit-dialog.ts` 列为退役且必须物理不存在；本方案不得复活该路径或建立换名兼容壳。
 
 ## 3. Scoped candidate 绑定
+
+### 3.0 本次施工基线
+
+- AGENT：`/Users/nexgen/Documents/AGENT`，`main`，施工前 `HEAD=origin/main=1e423662942544ebf752cacc36762a63fe140970`，clean。
+- Website：`/Users/nexgen/Documents/xuanxue-web`，`main`，施工前 `HEAD=origin/main=0cae908828bd226dd5a09f7906067ae272399c46`，clean。
+- 两仓 `AGENTS.md` 与冻结母说明书已逐字节核对；母说明书 SHA-256 均为 `27a143ecd7016887d056255e106f49caa29d83d06245ff21ea5c0ffd62b98c3a`。
+- 主 Codex 已完成两仓全部现役法案摘要和全部现役 Blueprint 第一遍遍历，并对本事故相关法条/依赖/合同/Manifest进行第二遍正文核验；当前 dirty 仅属于本次获授权候选。
+- 下列 3.1/3.2 中的旧 HEAD/hash 是设计阶段事故勘察证据，不再是施工 candidate；本节是唯一当前施工绑定。
 
 ### 3.1 AGENT
 
@@ -217,7 +224,7 @@ domain_storage_readback_hash
 | 点击结果未知 | 以 Browser WAL/postcondition 对账 | 只读确认 dialog 是否仍存在 | 盲点第二次 | 一次 confirmed ack 或 typed unknown 阻断 |
 | 通知 HTTP 结果未知 | 现有 Outbox + Website write receipt 对账 | 同 request id receipt hydrate | 新 request id 重复升级 | Website 同一 receipt readback |
 | 冷却期内多个 Tab 报同类弹窗 | Website 合并为同一活动冷却窗口 | 每个 Tab 可各自确认自己的唯一 dialog | 把并发观察算多次升级 | 返回相同步阶与 `cooldown_until` |
-| 前一事故 ack 后已确认 dialog absent，且冷却/旧 cohort 闭合后至少一次获准普通页面访问又出现 `absent→exact_present` | 原子 `level=min(level+1,6)` 且 `N=max(1,N-1)` | 新窗口，同步把本次全部在途 job 并入 cohort | 要求先发生新 submit、重置为 5 分钟或杀死超额在途任务 | 10/15/20/25/30/30 分钟，恢复后按新 N grant |
+| 前一事故 ack 后已确认 dialog absent，且冷却结束、Website 已按降低 N 允许旧 cohort 恢复后又出现 `absent→exact_present`（旧 cohort 可以仍有 pending） | 原子 `level=min(level+1,6)` 且 `N=max(1,N-1)` | 新窗口，把旧集合与本次全部在途 job 去重并入同一 cohort | 把旧 cohort pending 误当活动窗口、重置为 5 分钟或杀死超额在途任务 | 10/15/20/25/30/30 分钟，恢复后按新 N grant |
 | N 已降到 1 | 保持 N=1，新的独立事故继续按当前/最高阶冷却并重置稳定计时 | 旧任务收尾；冷却和 cohort 清零后以 N=1 正常工作 | 自动升容、按多 Tab 通知重复扣 N | 建立 `stable_since` 或保持 null |
 | N=1 且冷却已过、cohort=0 | 第一次满足时持久写 `stable_since=server_now` | 有 demand 时以 N=1 正常 claim/执行/入库；无 demand 不造任务 | 以人工改时钟或本地时钟提前恢复 | 连续无精确限流事件的 Website 墙钟计时 |
 | N=1 连续稳定满 6 小时 | 原子 CAS `max_in_flight:1→N0`，关闭 penalty epoch，level 归零 | 正常 N0 | 分步猜 N0、保留旧惩罚阶梯、提前复原 | 下一独立事故从 5 分钟与 N0−1 重新开始 |
@@ -282,16 +289,17 @@ Browser 中央 preflight 是唯一 detector；所有 Production GPT Child 的既
   -> exact known rate-limit fact
   -> 原 Child 本次预定物理输入为 0，并返回 typed blocker
   -> ProductionGptChildTools 内部拦截该 typed blocker（不返回 Product Flow）
-  -> Runtime control port 同步关闭新 claim/submit 门并 enqueue immutable control intent
+  -> Runtime control port 先以现有 SQLite transaction enqueue immutable incident intent；该未决事实本身同步关闭 claim/submit 门
   -> internal ack Child 在当前 lane/lease 上 revalidate 同一 target/document/fact
   -> click 唯一“明白了”一次，独立 WAL identity
   -> fresh postcondition: dialog count = 0, target 不变
   -> Browser WAL settled receipt
-  -> Runtime 在点击 receipt 后 deliver Website notice
+  -> Runtime enqueue 同 incident 派生的 immutable clearance intent
+  -> 现有 Outbox 严格按 incident→clearance 顺序 deliver Website；没有 clearance 行时后台发送器不得抢先发送 incident
   -> ProductionGptChildTools 按原阶段恢复：已发生 effect 继续 checkpoint/readback；未发生 submit 等待 Website 冷却后新 attempt 授权；非阻断 rename 可跳过但不得阻断 admission
 ```
 
-ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab switch=0。分类完成到 click dispatch 的正常链 SLO `<=1000ms`；该 detection→ack 原子周期不人为等待 1.5 秒。中央 preflight 对普通动作的 fail-closed 不得拦住这一个内部 ack intent：ack Child 只能携带刚取得的 exact blocker identity，在同一 lane 内 revalidate 后消费它，不能成为通用 bypass。质检同时记录 p50/p95/max，任一超过 1000ms 的受控样本使该 SLO 失败；ack 之后的 readback 至少等待现役 2.5 秒。持久存储不可写时，Runtime 总门已经因 ledger 不健康而失败关闭；Browser 仍只允许确认该精确 dialog，并发出高优先级 fatal evidence，但不得恢复 claim/submit。
+ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab switch=0。分类完成到 click dispatch 的正常链 SLO `<=1000ms`；该 detection→ack 原子周期不人为等待 1.5 秒。中央 preflight 对普通动作的 fail-closed 不得拦住这一个内部 ack intent：ack Child 只能携带刚取得的 exact blocker identity，在同一 lane 内 revalidate 后消费它，不能成为通用 bypass。质检同时记录 p50/p95/max，任一超过 1000ms 的受控样本使该 SLO 失败；ack 之后的 readback 至少等待现役 2.5 秒。持久存储不可写时，Runtime 总门必须失败关闭并保持零点击；只有 immutable Outbox intent 已持久且 claim/submit 门可从它重建后，Browser 才允许确认该精确 dialog。
 
 旧 `web/children/rate-limit-dialog.ts` 继续不存在；新内部 Child 位于现役 `src/capabilities/gpt/children/**` 主链，只接受内部固定输入且从 `ProductGptChildCapabilityId` 排除。不得新增同义 helper、第二 ack Child、插件级特殊分支或旧路径兼容壳。
 
@@ -323,7 +331,7 @@ ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab swit
 
 ### 7.2 GPT → Runtime
 
-- checkpoint 报告触发 job 身份和 dialog hash；`ProductionGptChildTools` 在结果交给 Product 前拦截，调用 Runtime 注入的单一 `ProviderRateLimitControlPort`。该 port 在允许内部 ack Child 前必须先用现有 SQLite transaction 写入 immutable Outbox intent，并关闭 claim/submit gate；它不是 Product action、第二 scheduler 或第二状态机。
+- checkpoint 报告触发 job 身份和 dialog hash；`ProductionGptChildTools` 在结果交给 Product 前拦截，调用 Runtime 注入的单一 `ProviderRateLimitControlPort`。该 port 在允许内部 ack Child 前必须先用现有 SQLite transaction 写入 immutable incident Outbox intent，并由这条未决记录关闭 claim/submit gate；ack WAL settled 后再写同 `incident_request_id` 派生的 immutable clearance intent。现有后台 Outbox 只有看见匹配 clearance 行后才可按 incident→clearance 发送，避免“事故通知先到 Website、点击尚未发生”的竞态；它不是 Product action、第二 scheduler 或第二状态机。
 - Runtime 同时附上本地去重 in-flight attestation 供 Website 核对，但 Website 从自己的 accepted/grant/admission 状态冻结权威 `rate_limit_job_cohort`；AGENT 本地集合不得成为分母真相。
 - gate 阻止无关新 business claim 和任何未获 cohort 恢复裁决的 `submit_exact_gpt_turn_once`。effect subset 的 exact readback、交付和 admission 始终允许；unsent subset 在 Website 冷却期内不得 submit，冷却后只有匹配降低后 N 的新 attempt 授权才可继续。不得把 `state.draining=true` 当作实现，因为现有 shutdown 会 abort 全部 active job。
 - submit gate 必须在 Product 调用准入和 Browser `providerInputGuard` 即将产生第一次物理输入时各校验同一 Runtime 状态；与限流检测并发的另一个 job 若已越过物理输入门，则纳入 Website cohort 并按已发生/unknown effect 收尾，不能假装未发送。
@@ -333,22 +341,23 @@ ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab swit
 
 - 扩展现有 `ProductionOutboxWrite.kind` 和 Website write receipt 枚举，唯一新增 kind：`provider_cooldown`。
 - 路径绑定触发 job，例如 `POST /internal/ai-production/v6/jobs/{job_id}/provider-cooldown`；请求携带事故发生时的 attempt/lease/fence 和 `incident_request_id`。控制通知以当前已认证 device/session epoch 授权；attempt/lease/fence 是不可变触发证据，Website 核验该 job 在事故时确属该 device，但不得仅因通知送达时 lease 已到期而拒绝事故通知。该写只改变 Provider 控制状态，不冒充 job terminal/result/admission 写。
-- 正常链只有 Browser ack receipt 已 `CONFIRMED` 后才 external deliver。若物理点击已进入 WAL `DISPATCHED` 但结果未知，或 revalidate 后动作资格失败，本地 gate 仍关闭并在该 ack outcome 已持久后交付同一通知；Website 仍进入冷却，因为精确限频 DOM 已成立。事故 receipt 的 clearance 状态必须是 `confirmed_absent | pending_unknown | not_cleared`，只有第一种携带 absent observation hash。unknown 只能读回同一 ack postcondition，不能为满足“点击后通知”而盲点第二次。
-- 第一次检测创建 `incident_request_id` 并随 Outbox durable 保存；crash 后从同一未决/已回执 Outbox 恢复，不能因新的 observation revision 创建第二事故。其它 Tab 可以产生各自 ack receipt/request，但 Website 在同一活动事故门内只减一次 N。
-- HTTP unknown 使用现有设备 job status `write_receipts` 对账并 hydrate 同一 Outbox；不得建立专属重试队列。对账证明远端无 receipt 后，也只能重送同一 immutable request id/body。若初始 clearance 是 `pending_unknown/not_cleared`，后续只沿同一 `incident_request_id + Browser WAL identity` 做 postcondition readback；取得 absent 后，用同一 `provider_cooldown` kind 和 endpoint 写一次确定的 `phase=clearance` immutable 事件，其 phase request id 固定派生自 `incident_request_id`，只把同一事故的 clearance receipt hydrate 为 `confirmed_absent`，绝不创建新事故、重复点击、延长冷却或再次 N−1。若资格失败但 WAL 证明零物理点击，只有新的 exact target/document preflight 仍命中时才可按同一活动事故创建该 Document 自己的唯一 ack identity。
+- 正常链只有 Browser ack receipt 已 `CONFIRMED` 后才 external deliver。若物理点击已进入 WAL `DISPATCHED` 但结果未知，或 revalidate 后动作资格失败，本地 gate 仍关闭，并按固定幂等body先交付incident再交付`not_cleared`；Website 仍进入冷却，因为精确限频 DOM 已成立。事故 receipt 的 clearance 状态必须是 `confirmed_absent | pending_unknown | not_cleared`，只有第一种携带 absent observation hash。恢复继续使用首次`observed_at+1s`截止点；同Target/Document重验后dialog已不存在时允许零点击absent readback闭合。unknown 只能读回同一 ack postcondition，不能为满足“点击后通知”而盲点第二次。ack在唯一logical page queue中只取得当前周期之后的最高优先级，不抢占当前CDP primitive、不并发建立第二lane。
+- 第一次检测创建 `incident_request_id` 并随 Outbox durable 保存；事故正文同时绑定原 grant 的 `capability_manifest_hash`、worker instance、session-open request、attempt/lease/fence、target/document 与 dialog observation。crash 后 Runtime 只能用原 worker instance + session-open request 幂等重开同一 Website session，并从同一未决/已回执 Outbox、同一 `bound-observation` Browser target 和同一内部 ack Child 恢复；Browser WAL 已确认时只读回，不得第二次点击，也不能因新的 observation revision 创建第二事故。其它 Tab 可以产生各自 ack receipt/request，但 Website 在同一活动事故门内只减一次 N。
+- HTTP unknown 使用现有设备 job status `write_receipts` 对账并 hydrate 同一 Outbox；不得建立专属重试队列。失败待重试的 `provider_cooldown` 仍计入 pending/ledger truth，不能被 `last_error` 从健康状态分母中隐去。对账证明远端无 receipt 后，也只能重送同一 immutable request id/body。若初始 clearance 是 `pending_unknown/not_cleared`，后续只沿同一 `incident_request_id + Browser WAL identity` 做 postcondition readback；取得 absent 后，用同一 `provider_cooldown` kind 和 endpoint 写一次确定的 `phase=clearance` immutable 事件，其 phase request id固定派生自 `incident_request_id`，只把同一事故的 clearance receipt hydrate 为 `confirmed_absent`，绝不创建新事故、重复点击、延长冷却或再次 N−1。若同一ack WAL已经是`REJECTED`或`DISPATCHED`，不可篡改旧终态、也不可让通用原子入口先抛错而永久卡门；恢复必须使用同一Browser facade、同一lane和原Target/Document执行普通1.5秒节流的专用只读`readKnownGptRateLimitClearance`，它不写第二WAL且零物理输入。仅精确absent认证事实可闭合原incident；仍存在、mismatch或身份漂移一律保持`not_cleared`。若资格失败但 WAL 证明零物理点击，只有新的 exact target/document preflight 仍命中时才可按同一活动事故创建该 Document 自己的唯一 ack identity。
 
 ### 7.4 Website 冷却与 claim
 
 - 冷却、N 调整和事故排空唯一 Owner：Website AI acceptance。当前 N 与该设备的惩罚周期都只属于 exact `ai_production_devices` 行；全局 `ai_production_control_protocol_state` singleton 不参与本合同，避免多设备串扰。
-- 在 exact device row 增加当前必要的最小五项：`provider_rate_limit_level`、`provider_rate_limit_until`、`provider_rate_limit_baseline_n`、`provider_rate_limit_stable_since`、`provider_rate_limit_job_cohort_json`，与现有 `max_in_flight` 同 Owner、同锁、同事务。最新 incident/receipt hash 与 distinct-incident 证据链从现有 write receipt 读取，不在 device row 复制；cohort 保存事故时全部权威 accepted/granted-but-not-admitted job/effect/result revision 身份，按现有生产 job 安全上限做 schema 大小校验，不假定其数量一定等于或小于当前 N，也不建新表。
+- 在 exact device row 增加当前必要的最小五项：`provider_rate_limit_level`、`provider_rate_limit_until`、`provider_rate_limit_baseline_n`、`provider_rate_limit_stable_since`、`provider_rate_limit_job_cohort_json`，与现有 `max_in_flight` 同 Owner、同锁、同事务。最新 incident/receipt hash 与 distinct-incident 证据链从现有 write receipt 读取，不在 device row 复制；cohort 保存事故时全部权威 accepted/granted-but-not-admitted job/effect/result revision 身份，按现有生产 job 安全上限做 schema 大小校验，不假定其数量一定等于或小于当前 N，也不建新表。每次 receipt 必须回读 `cohort_total/admitted/user_terminated/pending`，且后三者互斥并守恒等于 total；少一行或不守恒一律失败关闭。
 - Website 先按 `incident_request_id + payload_hash` 幂等回读 write receipt；新惩罚周期第一次事件在同一事务锁定 exact device row，冻结 `baseline_n=current max_in_flight`，随后把当前 N 原子写为 `max(1,current-1)`，设置 level=1、until=server_now+5分钟、stable_since=null、冻结全部在途 job，并写 receipt。
-- 第一次事故 receipt 固定记录当前 clearance 枚举；`confirmed_absent` 才带 ack 后 dialog absent observation hash，`pending_unknown/not_cleared` 必须沿 7.3 的同事故 clearance hydrate 收敛。后续新 incident payload 必须引用前一事故最终 `confirmed_absent` receipt，并携带 Browser 产生的“前一 absent 后至少一次获准普通 ChatGPT 页面 logical access”的 ordinal/evidence hash以及当前 `exact_present` hash；不传 DOM 正文。只有前一 cooldown 已到期、`closure_pending=0`，且该证据构成新的 `absent→exact_present` 边时，Website 才在同一 device-row 事务执行 `level=min(level+1,6)`、`N=max(1,N-1)` 和新 cooldown。它不要求先发生新 grant 或 Provider submit；read、activation、navigation 或 mutation preflight 都可成为恢复访问。活动冷却、`closure_pending>0`、前一 clearance 尚未 confirmed absent、或只是其它 Tab 残留 dialog 时，只返回同一 level/N/until，不延长、不升级。
+- 第一次事故 receipt 固定记录当前 clearance 枚举；`confirmed_absent` 才带 ack 后 dialog absent observation hash，`pending_unknown/not_cleared` 必须沿 7.3 的同事故 clearance hydrate 收敛。后续新 incident 只有在前一 cooldown 已到期且现役 write receipt 已证明前一 clearance 为 `confirmed_absent` 时，才在同一 device-row 事务执行 `level=min(level+1,6)`、`N=max(1,N-1)` 和新 cooldown；旧 `closure_pending>0` 不是活动窗口，必须把旧 cohort 与当前全部未 admission 在途 job 按 job 去重取并集。只有 `server_now<cooldown_until` 的活动窗口、前一 clearance 未确认或同 request 重放才只读回同一步，不延长、不升级。
 - claim 在读取设备容量和选择 job 前锁/读同一控制行。事故排空期间只能重授 cohort 原 job 的 `ACTIVE_ATTEMPT` / `CONSUME_CURRENT_RESULT` 零 submit 恢复；不得选择无关 job。没有可恢复 cohort job 时持久返回 `DRAINING`、空 jobs，并按事实给出 `PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE` 或 `PROVIDER_RATE_LIMIT_DRAIN_REMAINING`、step、server time 和 cooldown until。
-- `server_now >= provider_rate_limit_until` 只解除时间门：effect subset 继续零 submit 读回；unsent subset 与依法取得新 result revision 的 cohort job 可在降低后的 N 内取得精确新 attempt/submit 授权。无论是否曾 `mutation_outcome=no`，job 都只能在 admission/readback 后进入 `closure_admitted`，或在用户事后独立、明确、合规的永久终止后进入 `closure_user_terminated`；`closure_pending=0` 后 Website 才恢复无关新 grant。
+- `server_now >= provider_rate_limit_until` 只解除时间门：effect subset 继续零 submit 读回；unsent subset 与依法取得新 result revision 的 cohort job 可在降低后的 N 内取得精确新 attempt/submit 授权。若此时再次出现精确弹窗，即使旧 cohort 尚有 pending 也属于下一 distinct incident并再次升级。无论是否曾 `mutation_outcome=no`，job 都只能在 admission/readback 后进入 `closure_admitted`，或在用户事后独立、明确、合规的永久终止后进入 `closure_user_terminated`；`closure_pending=0` 后 Website 才恢复无关新 grant。
 - 缩容不杀在途：若事故发生时 Website/AGENT 在途数大于新 N，旧 job 保持 lease/recovery/admission 权利，新 grant capacity 固定为 0，直到在途自然收敛到新 N 以下；不得 abort、failure、重复计数或迁移 Tab 来强行符合 N。
 - 当当前 N=1、cooldown 已结束且 `closure_pending=0`，Website 首次在 exact device row 把 `stable_since=server_now`；此后仍按 N=1 正常工作。`server_now >= stable_since+6小时` 且期间无新精确限流事件时，在同一 device-row 事务 CAS `max_in_flight:1→baseline_n`，并清空 level/until/baseline/stable/cohort 活动态。任一新事件先清空 stable_since 并进入当前阶冷却。管理员 capacity endpoint 在惩罚周期内拒绝手工改 N，避免双 Owner；紧急止血仍使用现役 `admission_state=draining`。
 - heartbeat、renew、terminal、artifact、device job status 和 business consumer 路径不受此 claim gate 阻断。
-- 冷却到期不需要 timer/service：下一次现有 heartbeat/claim 以 Website server time 惰性判定；AGENT 使用 receipt 中的 `cooldown_until` 避免无意义 30 秒 claim 空转。正常 claim 恢复条件固定为 `server_now >= cooldown_until AND closure_pending=0`。
+- 冷却到期不需要 timer/service：下一次现有 claim 以 Website server time 惰性判定。provider receipt 必须自哈希绑定 `server_now/cooldown_until`；活动窗口内每份 claim receipt 都携带固定 `PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE` reason。AGENT 只在通知送达后用现有 claim 作权威探测，并仅接受时间不早于最新 provider receipt `server_now` 且不再含该 reason 的 Website claim receipt开 submit 门；本机 `Date.now()`、休眠或 Website 不可达均不能开门。无关正常 claim 恢复条件固定为 `server_now >= cooldown_until AND closure_pending=0`。
+- `0139_ai_production_provider_rate_limit_cooldown.sql` 不自建 `BEGIN/COMMIT`；唯一 commercial migration runner 负责 advisory lock、单事务、hash registry 写入和失败回滚。迁移前只读核验 registry/列/约束与活动写事务，迁移后必须回读 exact hash、五列和约束；不得手工补 registry 或把半迁移当成功。
 
 ### 7.5 业务完成 readback
 
@@ -459,7 +468,7 @@ ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab swit
 ## 10. 停止、恢复与失败关闭
 
 1. DOM 不精确：零点击、零猜测；本次不能声称发生已知限频。若已由其它精确 Tab 建立冷却，继续遵守该冷却。
-2. Outbox/ledger 不可写：claim/submit 失败关闭；精确 dialog 仍允许一次确认以解除当前已提交任务的页面阻塞，但必须保留 fatal evidence，恢复前不得开新请求。
+2. Outbox/ledger 不可写：claim/submit 失败关闭且精确 dialog 保持零点击；只有同一 incident intent 已在现役 `production_outbox` durable readback 成功、并能由它重建本地总门后，才允许唯一 ack Child 确认一次。恢复前不得开新请求。
 3. ack 失败或结果未知：Website 冷却仍成立；先查 Browser WAL和实时 postcondition，不盲点第二次。
 4. Website 通知不可达：本地 gate 永不因本地计时自行打开；先以同 request read-only receipt 对账，再接回现有 Outbox交付。
 5. cooldown 到期但 `closure_pending>0`：仍禁止无关新 claim；effect subset 只允许同 effect 零 submit 收敛，unsent subset 才允许 Website 精确授权的新 attempt；即使权威证明某 effect 实际未发生，该 job 仍留在 pending，直到最终入库回读或用户事后另行作出合规永久终止。
@@ -484,16 +493,6 @@ ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab swit
 
 ## 12. 施工准入与执行 Codex 重绑定
 
-当前保持“设计阻断”，原因有二：
+2026-09-15施工授权已取得，3.0候选绑定与双仓治理遍历已完成。执行顺序冻结为：先同候选原子替换必要active law、Blueprint、跨仓spec、Manifest与唯一registry；主Codex完成第二遍治理审计且自检不低于98%后，才进入代码/质检；子智能体只在代码重要步骤后做只读审计，不并发写代码；最后严格执行双仓原生CI-FULL `CHANGE → clean commit → READY → RELEASE`。
 
-1. 目标行为必须修改两仓 active law、蓝图和跨仓合同；本次“制定方案”不等于 law-amendment 或 construction 授权。
-2. 两仓 HEAD/upstream 当前各自未漂移，但 AGENT 与 Website 的相关 active law、Blueprint、跨仓 spec、Manifest、generated registry 都正由并行 writer 修改且在审计期间持续变化；Website 也不是 clean。它们与本方案未来要替换的 GPT/Browser/Runtime/AI-acceptance 权威面直接重叠。在并行 writer 形成两仓最终 clean commit并重新绑定前，不能安全施工，也不能用瞬时 dirty hash或暂时 major 号宣称候选已冻结。
-
-执行 Codex 开工前必须：
-
-1. 取得用户对两仓相关 active law 解冻/替换以及随后施工的明确授权；
-2. 重新读取两仓 `AGENTS.md`、治理说明书、active law、Manifest、registry、蓝图、spec、实现和质量入口；
-3. 重查 branch/HEAD/upstream/dirty/untracked，并由用户明确处理或归属当前 AGENT 重叠改动；
-4. 重新读取实时 DOM；Provider 文案/结构若漂移，先更新本方案 DOM 合同，不猜；
-5. 逐张执行 WO-0 至 WO-5；每仓只使用自己的 clean commit 和原生质量 verdict；
-6. 最终报告必须分别写明 CHANGE、READY、RELEASE，以及 Website 持久 readback 中 `closure_pending=0`、`closure_admitted`、`closure_user_terminated` 的精确分母。只有 user_terminated=0 才能声称全部成功入库；任何一项未取得都如实失败关闭。
+Provider文案/结构若在未来真实动态证据中漂移，必须零点击失败关闭并更新DOM合同，禁止猜测。最终报告必须分别写明CHANGE、READY、RELEASE，以及Website持久readback中`closure_pending=0`、`closure_admitted`、`closure_user_terminated`的精确分母；只有user_terminated=0才可声称全部成功入库，缺少真实6小时窗口时不得宣称自动复原已获RELEASE证明。

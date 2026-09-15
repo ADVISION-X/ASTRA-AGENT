@@ -66,6 +66,7 @@ interface ChildCapabilityContract {
 }
 
 const GPT_CHILD_CONTRACTS = {
+  acknowledge_known_gpt_rate_limit: { childCapabilityId: "acknowledge_known_gpt_rate_limit", contractVersion: 2, semanticIntent: "acknowledge the one exact known GPT rate-limit dialog after Runtime persisted the provider gate", owner: "gpt", inputSchema: "gpt.acknowledge_known_gpt_rate_limit.input.v1", requiredTargetKind: "chatgpt", profile: "TARGET_LOCAL_MUTATION", boundedWait: true, decisions: ["ACT", "FAIL_CLOSED"], precondition: "Runtime provider cooldown intent is durable and the same target document exact dialog fact is bound", actionQualification: "one exact known dialog and one enabled exact acknowledgement button", mutationBudget: "exactly-one-browser-input", oneObservationOrMutation: "at-most-one-mutation", positivePostcondition: "after at least 2500ms the exact known dialog is absent on the same document", negativePostcondition: "absent multiple mismatched disabled stale or unknown state fails closed without another click", evidenceSchema: "gpt-child-capability-proof.v2", evidenceBoundary: "hashes-refs-counts-typed-causes-only", failureClassification: ["failed"], replayPolicy: "target-local-per-generation" },
   rename_settled_gpt_conversation: { childCapabilityId: "rename_settled_gpt_conversation", contractVersion: 2, semanticIntent: "rename the settled current GPT conversation to its deterministic operator title", owner: "gpt", inputSchema: "gpt.rename_settled_gpt_conversation.input.v1", requiredTargetKind: "chatgpt", profile: "TARGET_LOCAL_MUTATION", boundedWait: true, decisions: ["DONE", "ACT", "FAIL_CLOSED"], precondition: "confirmed canonical conversation settled result exact job route and confirmed-effect terminal time", actionQualification: "the exact canonical sidebar row title differs and no rename menu or editor is already open", mutationBudget: "zero-or-four-browser-inputs", oneObservationOrMutation: "at-most-one-mutation", positivePostcondition: "the exact canonical sidebar row freshly reads the deterministic NFC target title", negativePostcondition: "missing ambiguous stale partial timeout or transport-unknown state terminalizes cleanup without replay", evidenceSchema: "gpt-child-capability-proof.v2", evidenceBoundary: "hashes-refs-counts-typed-causes-only", failureClassification: ["failed"], replayPolicy: "target-local-per-generation" },
   reconcile_gpt_attachment_set: { childCapabilityId: "reconcile_gpt_attachment_set", contractVersion: 3, semanticIntent: "prove all and only approved attachments are ready", owner: "gpt", inputSchema: "gpt.reconcile_gpt_attachment_set.input.v1", requiredTargetKind: "chatgpt", profile: "DOM_OBSERVATION", boundedWait: true, decisions: ["DONE", "WAIT", "FAIL_CLOSED"], precondition: "approved provider display names and Product timeout", actionQualification: "never", mutationBudget: "zero", oneObservationOrMutation: "bounded-observation", positivePostcondition: "one composer exact visible approved attachment card set and zero scoped spinner and pending action", negativePostcondition: "composer or attachment ambiguity unexpected duplicate card or Product deadline fails closed", evidenceSchema: "gpt-child-capability-proof.v2", evidenceBoundary: "hashes-refs-counts-typed-causes-only", failureClassification: ["failed"], replayPolicy: "observation-only" },
   checkpoint_gpt_text_response: { childCapabilityId: "checkpoint_gpt_text_response", contractVersion: 5, semanticIntent: "checkpoint exact assistant outerHTML and deterministic semantic text", owner: "gpt", inputSchema: "gpt.checkpoint_gpt_text_response.input.v3", requiredTargetKind: "chatgpt", profile: "DOM_OBSERVATION", boundedWait: false, decisions: ["DONE", "FAIL_CLOSED"], precondition: "confirmed canonical conversation and exact user turn identity", actionQualification: "never", mutationBudget: "zero", oneObservationOrMutation: "bounded-observation", positivePostcondition: "one revision-bound task-owned artifact binds the exact adjacent assistant turn DOM and semantic text hashes", negativePostcondition: "zero multiple stale revision drift wrong adjacency or content hash drift fails closed", evidenceSchema: "gpt-child-capability-proof.v2", evidenceBoundary: "hashes-refs-counts-typed-causes-only", failureClassification: ["failed"], replayPolicy: "observation-only" },
@@ -180,6 +181,8 @@ export type GptExecutionContext = Readonly<{
   waitForProviderObservation?: (
     observationDeadlineAt: number,
   ) => Promise<"reobserve" | "deadline">;
+  assertProviderInputAllowed?: () => void;
+  rateLimitAckDispatchNotAfter?: number;
   confirmedProviderEffectReadback?: Readonly<{
     terminalPayload: unknown;
     terminalAt: string;
@@ -187,6 +190,10 @@ export type GptExecutionContext = Readonly<{
     authorityHash: `sha256:${string}`;
     providerEffectIdentityHash: `sha256:${string}`;
     mutationOutcome: "no" | "confirmed";
+  }>;
+  confirmedRateLimitAcknowledgementReadback?: Readonly<{
+    terminalPayload: unknown;
+    browserFact?: GptChildBrowserFact;
   }>;
   onProof?: (proof: GptChildCapabilityProof) => Promise<void>;
 }>;

@@ -1,6 +1,8 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 
 import { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
+import { ExtensionDebuggerRuntime } from
+  "../../src/lib/browser/chrome-extension/debugger-runtime.js";
 import type { ExtensionChromeApi } from "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
 import { BrowserAuthorityBroker } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
 import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
@@ -27,6 +29,8 @@ let evaluateRuntime: ((expression: string) => Promise<unknown>) | null = null;
 let basicPointerClick = false;
 let basicPointerDestinationUrl = "https://chatgpt.com/c/interaction-ready";
 let basicPointerResult: unknown = { x: 5, y: 5 };
+let rateLimitDetectorState: Readonly<Record<string, unknown>> = { state: "absent" };
+const rateLimitDetectorStartedAt: number[] = [];
 let switchBeforeProviderInput = false;
 let switchAfterProviderInput = false;
 let switchAwayAndBackTabReadCountdown = 0;
@@ -81,8 +85,15 @@ const sendTargetChromeCommand: ExtensionChromeApi["debugger"]["sendCommand"] = a
   { tabId }, method, parameters,
 ) => {
   debuggerMethods.push(method);
+  if (method === "Runtime.callFunctionOn"
+    && String(parameters?.functionDeclaration).includes("exact_present")) {
+    rateLimitDetectorStartedAt.push(Date.now());
+    return { result: { value: rateLimitDetectorState } };
+  }
   const pointerResult = sendPointerCommand(method, parameters);
   if (pointerResult) return pointerResult;
+  if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
+  if (method === "DOM.resolveNode") return { object: { objectId: "document-root" } };
   if (method === "Runtime.evaluate" && evaluateRuntime) {
     return { result: { value: await evaluateRuntime(String(parameters?.expression)) } };
   }
@@ -165,6 +176,39 @@ const targetChromeApi: ExtensionChromeApi = {
   alarms: chromeApi.alarms,
 };
 
+const pageBoundaryProbe = new ExtensionDebuggerRuntime(targetChromeApi);
+pageBoundaryProbe.adoptAttached(3);
+pageBoundaryProbe.requireLogicalPageAccessCycles();
+await assert.rejects(pageBoundaryProbe.send(3, "Page.getFrameTree"),
+  /BROWSER_PAGE_ACCESS_CYCLE_REQUIRED/u,
+  "a raw CDP page read must not bypass the unique logical ChatGPT access boundary");
+await assert.doesNotReject(pageBoundaryProbe.withLogicalPageAccess(
+  async () => undefined,
+  () => pageBoundaryProbe.send(3, "Page.getFrameTree"),
+));
+const accessOrder: string[] = [];
+let releaseCurrent!: () => void;
+let currentStarted!: () => void;
+const currentRelease = new Promise<void>((resolve) => { releaseCurrent = resolve; });
+const currentStart = new Promise<void>((resolve) => { currentStarted = resolve; });
+const currentAccess = pageBoundaryProbe.withLogicalPageAccess(
+  async () => undefined,
+  async () => { accessOrder.push("current"); currentStarted(); await currentRelease; },
+);
+await currentStart;
+const ordinaryAccess = pageBoundaryProbe.withLogicalPageAccess(
+  async () => undefined,
+  async () => { accessOrder.push("ordinary"); },
+);
+const urgentAccess = pageBoundaryProbe.withLogicalPageAccess(
+  async () => undefined,
+  async () => { accessOrder.push("rate-limit-ack"); },
+  "rate-limit-ack",
+);
+releaseCurrent();
+await Promise.all([currentAccess, ordinaryAccess, urgentAccess]);
+assert.deepEqual(accessOrder, ["current", "rate-limit-ack", "ordinary"],
+  "the exact rate-limit acknowledgement must take the next logical page-access cycle");
 
 const targetAuthority = new ExtensionTargetAuthority(
   targetChromeApi,
@@ -173,8 +217,13 @@ const targetAuthority = new ExtensionTargetAuthority(
 );
 const jobRefHash = `sha256:${"a".repeat(64)}` as const;
 targetAuthority.start();
+const waitForCreatedTab = async (tabId: number): Promise<void> => {
+  while (nextCreatedTabId <= tabId) {
+    await new Promise<void>((resolve) => globalThis.setTimeout(resolve, 0));
+  }
+};
 const firstAcquisition = targetAuthority.acquireJobBoundChatGptTarget("fresh", jobRefHash);
-await Promise.resolve();
+await waitForCreatedTab(3);
 assert.deepEqual(attachedTabs, [], "the task-owned tab must not attach before Chrome reports page completion");
 targetTabUpdated(3, { status: "complete" }, { id: 3, url: "https://chatgpt.com/", title: "ChatGPT" });
 await firstAcquisition;
@@ -214,10 +263,32 @@ const simpleClick = {
   },
 };
 basicPointerClick = true;
+rateLimitDetectorState = { state: "unknown_present" };
+const providerInputsBeforeUnknownDialog = providerInputMethods.length;
+await assert.rejects(
+  targetAuthority.executeRegisteredCommand(simpleClick, interactionTarget, "mutation"),
+  /BROWSER_GPT_DIALOG_UNRECOGNIZED/u,
+);
+assert.equal(providerInputMethods.length, providerInputsBeforeUnknownDialog,
+  "an unknown or structurally mismatched dialog must fail closed with zero physical input");
+rateLimitDetectorState = { state: "exact_present", observedAt: new Date().toISOString() };
+const providerInputsBeforeKnownDialog = providerInputMethods.length;
+const knownDialogBlocked = await targetAuthority.executeRegisteredCommand(
+  simpleClick, interactionTarget, "mutation",
+) as Readonly<Record<string, unknown>>;
+assert.equal(knownDialogBlocked.failureCode, "BROWSER_KNOWN_GPT_RATE_LIMIT");
+assert.equal(knownDialogBlocked.physicalInputCount, 0);
+assert.equal(providerInputMethods.length, providerInputsBeforeKnownDialog,
+  "the exact known dialog must block the original action with zero physical input");
+rateLimitDetectorState = { state: "absent" };
 const firstInteractiveReceipt = await targetAuthority.executeRegisteredCommand(
   simpleClick, interactionTarget, "mutation",
 ) as Readonly<Record<string, unknown>>;
 assert.equal(firstInteractiveReceipt.postconditionVerified, true);
+assert.equal(rateLimitDetectorStartedAt.slice(-3).length, 3);
+assert.ok(rateLimitDetectorStartedAt.slice(-3).every((startedAt, index, values) =>
+  index === 0 || startedAt - values[index - 1]! >= 1_500),
+"ordinary ChatGPT command cycles must start their single rate-limit preflight at least 1500ms apart");
 assert.deepEqual(activatedTabs, [3], "the first mutation must reuse the Tab selected by the observation gate");
 activeTabId = 99;
 targetTabActivated({ tabId: 99, windowId: 1 });
@@ -353,7 +424,7 @@ const activationCountBeforeReadbackReplacement = activatedTabs.length;
 const navigationCountBeforeReadbackReplacement = debuggerMethods
   .filter((method) => method === "Page.navigate").length;
 const replacementAcquisition = targetAuthority.acquireJobBoundChatGptTarget("confirmed-readback", jobRefHash);
-await Promise.resolve();
+await waitForCreatedTab(4);
 targetTabUpdated(4, { status: "complete" }, { id: 4, url: "https://chatgpt.com/", title: "ChatGPT" });
 await replacementAcquisition;
 assert.equal(targetFrames.at(-1)?.body.targetRef, "target-tab-4",
@@ -381,7 +452,7 @@ assert.deepEqual(targetFailures.at(-1), {
 });
 
 const rejectedOrigin = targetAuthority.acquireJobBoundChatGptTarget("fresh", jobRefHash);
-await Promise.resolve();
+await waitForCreatedTab(5);
 mainFrameUrlByTab.set(5, "https://example.com/");
 targetTabUpdated(5, { status: "complete" }, { id: 5, url: "https://example.com/", title: "Wrong Origin" });
 await assert.rejects(rejectedOrigin, /BROWSER_ORIGIN_REJECTED/u);
@@ -390,7 +461,7 @@ assert.ok(removedTabs.includes(5), "a rejected task-owned page must be removed")
 
 attachFailureTabId = 6;
 const debuggerConflict = targetAuthority.acquireJobBoundChatGptTarget("fresh", jobRefHash);
-await Promise.resolve();
+await waitForCreatedTab(6);
 targetTabUpdated(6, { status: "complete" }, { id: 6, url: "https://chatgpt.com/", title: "ChatGPT" });
 await assert.rejects(debuggerConflict, /BROWSER_DEVTOOLS_CONFLICT/u,
   "debugger conflict on the new task-owned tab must fail without touching another page");
@@ -404,8 +475,8 @@ const rotationHashes = ["b", "c", "d"].map(
 const rotationTargetRefs: string[] = [];
 for (const [index, hash] of rotationHashes.entries()) {
   const acquisition = targetAuthority.acquireJobBoundChatGptTarget("fresh", hash);
-  await Promise.resolve();
   const tabId = 7 + index;
+  await waitForCreatedTab(tabId);
   targetTabUpdated(tabId, { status: "complete" }, {
     id: tabId, url: "https://chatgpt.com/", title: "ChatGPT",
   });
@@ -452,7 +523,7 @@ const continuationFrameBaseline = targetFrames.length;
 const continuationAcquisition = targetAuthority.acquireJobBoundChatGptTarget(
   "authorized-continuation", continuationHash, continuationUrl,
 );
-await Promise.resolve();
+await waitForCreatedTab(continuationTabId);
 targetTabUpdated(continuationTabId, { status: "complete" }, {
   id: continuationTabId, url: "https://chatgpt.com/", title: "ChatGPT",
 });

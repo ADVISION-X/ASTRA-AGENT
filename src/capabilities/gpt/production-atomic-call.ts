@@ -2,9 +2,11 @@ import {
   GPT_CHILD_CAPABILITY_CONTRACTS,
   type GptAbilityGroup,
   type GptAnyChildCapabilityIntent,
+  type GptChildBrowserFact,
   type GptChildCapabilityResult,
   type GptExecutionContext,
   gptCanonicalHash,
+  gptExactCallIdentityHash,
 } from "./contract.js";
 import { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
 import type { ProductionGptBrowserCall } from "./production-browser-lifecycle.js";
@@ -19,6 +21,8 @@ type AtomicGptCallInput = Readonly<{
   browserCall: ProductionGptBrowserCall | undefined;
   signal: AbortSignal;
   resultRevision: number;
+  assertProviderInputAllowed?: () => void;
+  rateLimitAckDispatchNotAfter?: number;
 }>;
 
 export const productionGptAtomicIdentity = (
@@ -51,6 +55,10 @@ const executionContext = (
   ...(browser ? { browser } : {}),
   ...(browserAtomicIdentity ? { browserAtomicIdentity } : {}),
   signal: input.signal,
+  ...(input.assertProviderInputAllowed
+    ? { assertProviderInputAllowed: input.assertProviderInputAllowed } : {}),
+  ...(input.rateLimitAckDispatchNotAfter === undefined ? {}
+    : { rateLimitAckDispatchNotAfter: input.rateLimitAckDispatchNotAfter }),
   ...(input.browserCall ? {
     waitForProviderObservation: (probeDeadlineAt: number) =>
       input.browsers.waitForProviderObservation(
@@ -97,6 +105,71 @@ export const executeProductionGptAtomicCall = async (
           authorityHash: priorOutcome.authorityHash,
           providerEffectIdentityHash: priorOutcome.providerEffectIdentityHash,
           mutationOutcome: priorOutcome.mutationOutcome,
+        }),
+      })),
+      resolveDispatched: false,
+    };
+  }
+  if (intent.childCapabilityId === "acknowledge_known_gpt_rate_limit"
+    && priorOutcome.state === "confirmed"
+    && priorOutcome.mutationOutcome === "confirmed"
+    && priorOutcome.physicalInputCount === 1
+    && priorOutcome.terminalPayload
+    && typeof priorOutcome.terminalPayload === "object"
+    && !Array.isArray(priorOutcome.terminalPayload)) {
+    return {
+      result: await gpt.execute(intent, Object.freeze({
+        ...context,
+        confirmedRateLimitAcknowledgementReadback: Object.freeze({
+          terminalPayload: priorOutcome.terminalPayload,
+        }),
+      })),
+      resolveDispatched: false,
+    };
+  }
+  if (intent.childCapabilityId === "acknowledge_known_gpt_rate_limit") {
+    const acknowledgement = intent.input;
+    const rawReadback = await browser.executeDomIntent({
+      kind: "readKnownGptRateLimitClearance",
+      targetRefHash: acknowledgement.targetRefHash,
+      documentRefHash: acknowledgement.documentRefHash,
+    });
+    if (!rawReadback || typeof rawReadback !== "object" || Array.isArray(rawReadback)) {
+      throw executionFailure("failed", "GPT_RATE_LIMIT_CLEARANCE_READBACK_INVALID");
+    }
+    const readback = rawReadback as Readonly<Record<string, unknown>>;
+    const hashes = [readback.dialogHash, readback.targetRefHash,
+      readback.documentRefHash, readback.observationHash];
+    if (readback.schemaVersion !== "grasseye.browser.known-gpt-rate-limit-clearance.v1"
+      || readback.state !== "confirmed_absent"
+      || readback.dialogHash !== acknowledgement.dialogHash
+      || readback.targetRefHash !== acknowledgement.targetRefHash
+      || readback.documentRefHash !== acknowledgement.documentRefHash
+      || hashes.some((hash) => typeof hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(hash))
+      || typeof readback.observedAt !== "string"
+      || !Number.isFinite(Date.parse(readback.observedAt))
+      || readback.candidateCount !== 0 || readback.identityRevalidated !== true
+      || readback.mutationCount !== 0 || readback.postconditionVerified !== true
+      || readback.zeroActionSatisfied !== true) {
+      throw executionFailure("failed", "GPT_RATE_LIMIT_CLEARANCE_READBACK_INVALID");
+    }
+    const browserFact: GptChildBrowserFact = Object.freeze({
+      exactCallIdentityHash: gptExactCallIdentityHash(intent),
+      providerEffectIdentityHash: null,
+      childCapabilityId: intent.childCapabilityId,
+      effectScope: "target_local",
+      browserOutcome: "CONFIRMED",
+      mutationOutcome: "no",
+      terminalAt: readback.observedAt,
+      evidenceRef: `browser-rate-limit-clearance:${readback.observationHash}`,
+      evidenceHash: readback.observationHash as `sha256:${string}`,
+    });
+    return {
+      result: await gpt.execute(intent, Object.freeze({
+        ...context,
+        confirmedRateLimitAcknowledgementReadback: Object.freeze({
+          terminalPayload: rawReadback,
+          browserFact,
         }),
       })),
       resolveDispatched: false,

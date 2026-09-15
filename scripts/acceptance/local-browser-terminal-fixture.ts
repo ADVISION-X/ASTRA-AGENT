@@ -36,7 +36,7 @@ export const permitExecution = (commandId: string) => ({
   childCapabilityId: "open_gpt_model_selector_v2", callId: "gpt-turn-flow.v3", inputHash: hash,
   replayPolicy: "target-local-per-generation" as const, actionOrdinal: 1,
   capabilityId: "browser.dom.click.v1" as const, commandId, sequence: 1,
-  mutationClass: "mutation" as const, workspaceRef: "workspace-1", commandTtlMs: 5_000,
+  mutationClass: "mutation" as const, workspaceRef: "workspace-1", commandTtlMs: 10_000,
   replyChannelToken: `reply:${commandId}`, commandFrameMac: hash,
 });
 
@@ -48,7 +48,7 @@ export const createClickCommand = () => ({
   kind: "dom-intent" as const,
   intent: {
     kind: "click" as const, selector: "button[aria-label='Model selector']", expectedMatches: 1,
-    postClickAttribute: { name: "aria-expanded" as const, equals: "true" as const, timeoutMs: 1_000 },
+    postClickAttribute: { name: "aria-expanded" as const, equals: "true" as const, timeoutMs: 1_500 },
   },
 });
 

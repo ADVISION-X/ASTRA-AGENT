@@ -42,7 +42,7 @@ const findWaitValid = (intent: Extract<BrowserDomIntent, { kind: "find" }>): boo
   return Number.isInteger(intent.waitFor.minimumMatches)
     && intent.waitFor.minimumMatches >= 1 && intent.waitFor.minimumMatches <= intent.maxMatches
     && Number.isInteger(intent.waitFor.timeoutMs)
-    && intent.waitFor.timeoutMs >= 1 && intent.waitFor.timeoutMs <= 30_000;
+    && intent.waitFor.timeoutMs >= 1_500 && intent.waitFor.timeoutMs <= 30_000;
 };
 
 export const assertFindIntent = (intent: Extract<BrowserDomIntent, { kind: "find" }>): void => {

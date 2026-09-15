@@ -65,6 +65,7 @@ export async function claimProductionTasks(
 ): Promise<Readonly<{
   outcome: "LEASE_GRANTED" | "NO_ELIGIBLE_JOB" | "CAPACITY_ZERO" | "CLAIM_BLOCKED" | "DRAINING";
   jobs: readonly ClaimedProductionTask[];
+  server_now: string;
   next_claim_after_ms: number;
   reason_codes: readonly string[];
 }>> {
@@ -86,6 +87,7 @@ export async function claimProductionTasks(
   return {
     outcome: receipt.outcome,
     jobs: Object.freeze(jobs),
+    server_now: receipt.server_now,
     next_claim_after_ms: receipt.next_claim_after_ms,
     reason_codes: Object.freeze(receipt.reason_codes),
   };

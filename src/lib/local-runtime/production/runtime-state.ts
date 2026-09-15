@@ -8,6 +8,7 @@ import type { ProductionExecutor } from "./executor.js";
 import type { ProductionRuntimeStore } from "./store.js";
 import type { ClaimedProductionTask } from "./transport-protocol.js";
 import type { ProductionWorkerSession } from "./worker-session.js";
+import type { ProviderRateLimitControl } from "./provider-rate-limit-control.js";
 
 export type RuntimeState = {
   readonly abort: AbortController;
@@ -16,6 +17,7 @@ export type RuntimeState = {
   readonly store: ProductionRuntimeStore;
   readonly executor: ProductionExecutor;
   readonly session: ProductionWorkerSession;
+  readonly providerRateLimitControl: ProviderRateLimitControl;
   readonly browserAuthority: WorkbenchBrowserAuthority;
   readonly gpt: GptAbilityGroup;
   readonly evidenceStore: ForensicsPersistenceAbilityGroup;

@@ -158,10 +158,8 @@ export const waitForAttachmentControlHydration = async (
   while (fullyAbsent(observed)) {
     if (signal?.aborted) throw executionFailure("failed", "GPT_EXECUTION_ABORTED");
     const remaining = deadline - Date.now();
-    if (remaining <= 0) failAttachmentControl("GPT_ATTACHMENT_CONTROL_HYDRATION_TIMEOUT", observed);
-    await browser.wait({
-      durationMs: Math.min(remaining, Math.max(25, Math.min(250, Math.ceil(remaining / 20)))),
-    });
+    if (remaining < 1_500) failAttachmentControl("GPT_ATTACHMENT_CONTROL_HYDRATION_TIMEOUT", observed);
+    await browser.wait({ durationMs: 1_500 });
     observed = await readAttachmentControlState(browser);
     if (observed.targetRefHash !== targetRefHash || observed.documentRefHash !== documentRefHash) {
       failAttachmentControl("GPT_ATTACHMENT_CONTROL_HYDRATION_DOCUMENT_CHANGED", observed);

@@ -129,6 +129,7 @@ export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_tu
     if (recovered) return recoveredSubmitResult(intent, context, promptHash);
     const browser = requireBrowser(context);
     const submittedSelector = GPT_USER_TURN_SELECTOR;
+    context.assertProviderInputAllowed?.();
     const mutation = await browser.executeDomIntent({
       kind: "click", selector: GPT_SEND_SELECTOR, expectedMatches: 1,
       preClickExactOutgoingTurn: {

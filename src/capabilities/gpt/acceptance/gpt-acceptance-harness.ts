@@ -17,14 +17,12 @@ type GptExecutionContext = Parameters<GptAbilityGroup["execute"]>[1];
 export const createGptAcceptanceHarness = (scope: string) => {
   const gpt = createGptAbilityGroup();
   let ordinal = 0;
-  const execute = <K extends GptChildCapabilityId>(
+  const buildIntent = <K extends GptChildCapabilityId>(
     childCapabilityId: K,
-    browser: BrowserTargetLease,
     input: GptChildInputMap[K],
-    contextOverrides?: Partial<GptExecutionContext>,
-  ) => {
+  ): GptChildCapabilityIntent<K> => {
     ordinal += 1;
-    const intent = Object.freeze({
+    return Object.freeze({
       childCapabilityId,
       executionId: `acceptance:${scope}:${childCapabilityId}:${ordinal}`,
       jobId: "job:gpt-exact-target",
@@ -36,6 +34,14 @@ export const createGptAcceptanceHarness = (scope: string) => {
       actionOrdinal: ordinal,
       input,
     }) as GptChildCapabilityIntent<K>;
+  };
+  const execute = <K extends GptChildCapabilityId>(
+    childCapabilityId: K,
+    browser: BrowserTargetLease,
+    input: GptChildInputMap[K],
+    contextOverrides?: Partial<GptExecutionContext>,
+  ) => {
+    const intent = buildIntent(childCapabilityId, input);
     const browserAtomicIdentity = productionGptAtomicIdentity(
       intent as GptAnyChildCapabilityIntent,
       0,
@@ -46,5 +52,5 @@ export const createGptAcceptanceHarness = (scope: string) => {
     };
     return browser.runAtomicStep(browserAtomicIdentity, () => gpt.execute(intent, context));
   };
-  return Object.freeze({ gpt, execute });
+  return Object.freeze({ gpt, buildIntent, execute });
 };

@@ -110,7 +110,11 @@ try {
   const execution = new ProductionGptChildTools(temporary, HASH_A, createGptAbilityGroup(),
     evidenceStore, authority as never, createRuntimeLogger({ producer: "gpt-artifact-recovery",
       owner: "production-runtime", component: "gpt-child", terminalEnabled: false,
-      fileSink: { directoryPath: join(temporary, "runtime-logs") } })).createExecution({ jobId,
+      fileSink: { directoryPath: join(temporary, "runtime-logs") } }), {
+      assertProviderSubmitAllowed: () => undefined,
+      pendingIncidents: () => Object.freeze([]),
+      beginIncident: async () => { throw new Error("UNEXPECTED_PROVIDER_RATE_LIMIT"); },
+    }).createExecution({ jobId,
     productId: "public_knowledge_article_pipeline",
     attemptId, resultRevision: 0, ownerRef: "owner:1", subjectRef: "subject:1",
     authorizationRef: "authorization:1", deviceId: "device:1", leaseVersion: 1,

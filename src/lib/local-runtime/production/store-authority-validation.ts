@@ -39,7 +39,8 @@ export const productionTaskRowValid = (row: TaskRow, record: StoredProductionTas
 
 const outboxIdentityValid = (row: ProductionOutboxAuthorityRow, expectedKey?: string): boolean =>
   Boolean(row.idempotency_key) && (expectedKey === undefined || row.idempotency_key === expectedKey)
-  && ["artifact", "terminal"].includes(row.kind) && ["POST", "PUT"].includes(row.method)
+  && ["artifact", "terminal", "provider_cooldown"].includes(row.kind)
+  && ["POST", "PUT"].includes(row.method)
   && Buffer.isBuffer(row.body_blob) && persistedDate(row.created_at);
 const outboxDeliveryValid = (row: ProductionOutboxAuthorityRow): boolean =>
   (row.sent_at === null || persistedDate(row.sent_at))

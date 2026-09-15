@@ -4,14 +4,17 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 
-const DATABASE_LAW = "LAW-AGENT-PRODUCTION-RUNTIME-005-V30";
-const PROOF_LAW = "LAW-AGENT-PRODUCTION-RUNTIME-008-V34";
+const DATABASE_LAW = "LAW-AGENT-PRODUCTION-RUNTIME-005-V31";
+const PROOF_LAW = "LAW-AGENT-PRODUCTION-RUNTIME-008-V35";
 const ROOT = "src/lib/local-runtime/production";
 const PATHS = {
   authority: `${ROOT}/store-authority-reader.ts`, ledger: `${ROOT}/store-ledger.ts`,
   outbox: `${ROOT}/store-outbox.ts`, taskState: `${ROOT}/store-task-state.ts`,
   outboxReceipt: `${ROOT}/store-outbox-receipt.ts`,
   authorityValidation: `${ROOT}/store-authority-validation.ts`,
+  runtimeLoops: `${ROOT}/runtime-loops.ts`,
+  providerControl: `${ROOT}/provider-rate-limit-control.ts`,
+  providerReceipt: `${ROOT}/provider-cooldown-receipt.ts`,
   proofSupport: "scripts/acceptance/agent-production-runtime.real-proof-support.ts",
 } as const;
 const sourceFor = (context: InspectorContext, path: string): SourceFile | undefined =>
@@ -58,6 +61,26 @@ export const inspectAgentAuthorityAst = (
     || !authorityValidation.includes("decodeURIComponent(encoded)")) {
     findings.push(finding(DATABASE_LAW, "agent-production-runtime/outbox-job-boundary", PATHS.outbox,
       "Outbox job selection is not bound to one literal encoded path segment."));
+  }
+  const loopsText = sourceFor(context, PATHS.runtimeLoops)?.getFullText() ?? "";
+  const providerText = sourceFor(context, PATHS.providerControl)?.getFullText() ?? "";
+  const providerReceiptText = sourceFor(context, PATHS.providerReceipt)?.getFullText() ?? "";
+  const outboxText = outbox?.getFullText() ?? "";
+  if (!loopsText.includes("state.providerRateLimitControl.canRequestClaimAuthority()")
+    || !loopsText.includes("state.providerRateLimitControl.observeWebsiteAuthority")
+    || !providerText.includes("this.store.hasUndeliveredProviderCooldown()")
+    || !providerText.includes("Date.parse(input.serverNow) < Date.parse(latestIncidentServerNow)")
+    || !providerText.includes('this.store.latestProviderCooldownClearance() === "confirmed_absent"')
+    || !providerText.includes('`${incidentRequestId}_not_cleared`')
+    || providerText.includes("Date.now()")
+    || outboxText.includes("Date.parse(receipt.cooldown_until) >")
+    || !outboxText.includes("parseLocalProviderCooldownReceipt(local.body_blob, response)")
+    || !outboxText.includes("latestProviderCooldownClearance()")
+    || !outboxText.includes("clearance')='confirmed_absent'")
+    || !providerReceiptText.includes("receiptHash !== hashCanonical(core)")) {
+    findings.push(finding(DATABASE_LAW, "agent-production-runtime/provider-cooldown-authority",
+      PATHS.providerControl,
+      "Provider cooldown must close claim and submit from the durable Outbox, reopen only from later Website server authority, and self-hash-validate live plus hydrated receipts."));
   }
   const proofSupport = sourceFor(context, PATHS.proofSupport);
   const proofSql = preparedSql(proofSupport);

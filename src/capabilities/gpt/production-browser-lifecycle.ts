@@ -109,11 +109,19 @@ export class ProductionGptBrowserLifecycle {
     return this.browserForMode(sessionKey, productStepId, callId, "confirmed-readback");
   }
 
+  public async browserForRateLimitRecovery(
+    sessionKey: string,
+    productStepId: string,
+    callId: string,
+  ): Promise<ProductionGptBrowserCall> {
+    return this.browserForMode(sessionKey, productStepId, callId, "bound-observation");
+  }
+
   private async browserForMode(
     sessionKey: string,
     productStepId: string,
     callId: string,
-    targetMode: "fresh" | "authorized-continuation" | "confirmed-readback",
+    targetMode: "fresh" | "authorized-continuation" | "confirmed-readback" | "bound-observation",
   ): Promise<ProductionGptBrowserCall> {
     if (!sessionKey) throw executionFailure("failed", "GPT_SESSION_KEY_REQUIRED");
     if (this.activeBrowser?.sessionKey === sessionKey) return this.activeBrowser.call;

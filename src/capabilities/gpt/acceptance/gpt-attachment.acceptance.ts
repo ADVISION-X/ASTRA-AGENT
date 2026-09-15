@@ -222,7 +222,8 @@ for (const conflict of ["control-ineligible", "active-scope-ambiguous", "leaf-mi
     const result = await execute("open_gpt_attachment_control", fixture.browser, {});
     assert.equal(result.status, "failed");
     assert.ok(result.failureCode?.startsWith("GPT_ATTACHMENT_CONTROL_HYDRATION_TIMEOUT:"));
-    assert.equal(simulatedNow, 5_000, "attachment hydration must not exceed its strict five-second ceiling");
+    assert.equal(simulatedNow, 4_500,
+      "attachment hydration must stop at the last complete 1.5-second interval within its five-second ceiling");
     assert.equal(fixture.physicalMutations(), 0);
   } finally {
     Date.now = nativeDateNow;
@@ -352,7 +353,7 @@ const providerSuffixFixture = fakeBrowser((intent) => {
 const providerSuffixReconciled = await execute(
   "reconcile_gpt_attachment_set",
   providerSuffixFixture.browser,
-  { files: [approvedAttachment], timeoutMs: 1_000 },
+  { files: [approvedAttachment], timeoutMs: 1_500 },
 );
 assert.equal(providerSuffixReconciled.status, "success",
   providerSuffixReconciled.failureCode ?? "Provider duplicate suffix was not normalized");
@@ -369,7 +370,7 @@ const providerRenameFixture = fakeBrowser((intent) => {
 const providerRenameRejected = await execute(
   "reconcile_gpt_attachment_set",
   providerRenameFixture.browser,
-  { files: [approvedAttachment], timeoutMs: 1_000 },
+  { files: [approvedAttachment], timeoutMs: 1_500 },
 );
 assert.equal(providerRenameRejected.status, "failed");
 assert.ok(providerRenameRejected.failureCode?.startsWith("GPT_ATTACHMENT_SET_MISMATCH:"),
@@ -458,14 +459,15 @@ const nativeTimeoutDateNow = Date.now;
 Date.now = () => uploadTimeoutNow;
 try {
   const uploadTimedOut = await execute("reconcile_gpt_attachment_set", uploadTimeoutFixture.browser, {
-    files: [approvedAttachment], timeoutMs: 1_000,
+    files: [approvedAttachment], timeoutMs: 1_500,
   });
   assert.equal(uploadTimedOut.status, "failed");
   assert.ok(uploadTimedOut.failureCode?.startsWith("GPT_ATTACHMENT_UPLOAD_TIMEOUT:cards=1:uploading=0:pending=1:expected=1:"));
   assert.equal(uploadTimedOut.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
-  assert.equal(uploadTimeoutNow, 1_000, "attachment reconciliation must stop at the exact Product deadline");
-  assert.deepEqual(uploadTimeoutFixture.waitDurations(), [1_000],
-    "the final cadence interval must be clipped to the remaining Product deadline");
+  assert.equal(uploadTimeoutNow, 1_500,
+    "attachment reconciliation must preserve the minimum page interval at the Product deadline");
+  assert.deepEqual(uploadTimeoutFixture.waitDurations(), [1_500],
+    "the final cadence interval must never be clipped below 1.5 seconds");
   assert.equal(uploadTimeoutFixture.physicalMutations(), 0,
     "timed-out reconciliation must never mutate the page");
 } finally {

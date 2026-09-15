@@ -25,7 +25,7 @@ const exerciseLifecycleMutant = (): void => {
   inspectAgentProductionRuntime({
     project,
     sealedRoot: path.resolve("."),
-    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V60",
+    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V61",
     targetSet: { queryRef: "acceptance:runtime-lifecycle-mutant", count: 1 },
     targetPaths: [],
     lawRequirements: [],
@@ -34,7 +34,7 @@ const exerciseLifecycleMutant = (): void => {
       manifestPath: "scripts/audit/domains/agent-production-runtime/manifest.json",
       ownerInspectorPath: "scripts/audit/domains/agent-production-runtime/inspector.ts",
       executionGroup: "domain",
-      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V60"],
+      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V61"],
     },
     generatedPlan: [],
   }, findings);
@@ -67,7 +67,7 @@ const exerciseManifestAndLawOwnership = async (): Promise<void> => {
   const runtimeLawRecords = [...runtimeLawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
     .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden: string[] });
   const runtimeCoreLaw = runtimeLawRecords.find(
-    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V60",
+    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V61",
   );
   assert.ok(runtimeCoreLaw);
   for (const token of [
@@ -127,7 +127,8 @@ export const exerciseProductionRuntimeSourceBoundaries = async (): Promise<void>
   exerciseLifecycleMutant();
   assert.match(storeSource, /purgeJob\(jobId: string\)/u);
   assert.match(storeSource, /delete from production_outbox/u);
-  assert.match(outboxSource, /sent_at is null and last_error is null/u);
+  assert.match(outboxSource,
+    /sent_at is null[\s\S]{0,120}last_error is null or kind='provider_cooldown'/u);
   assert.doesNotMatch(`${storeFoundationSource}\n${outboxSource}`,
     /next_delivery_at|nextDeliveryAt|pendingOutbox\(/u);
   await exerciseManifestAndLawOwnership();

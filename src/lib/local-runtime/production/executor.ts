@@ -6,6 +6,7 @@ import {
   type GptAbilityGroup,
 } from "../../../capabilities/gpt/index.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../../capabilities/forensics-persistence/index.js";
+import type { ProviderRateLimitControlPort } from "../../../capabilities/gpt/production-ports.js";
 import {
   RuntimeFailureImpact, requireRuntimeLogWrite, runtimeFailureFromError,
   runtimeLogCauseEventId, withRuntimeLogCause, type RuntimeLogger, type RuntimeSpanHandle,
@@ -153,12 +154,13 @@ export class ProductionExecutor {
       gpt: GptAbilityGroup;
       evidenceStore: ForensicsPersistenceAbilityGroup;
       browserAuthority: WorkbenchBrowserAuthority;
+      providerRateLimitControl: ProviderRateLimitControlPort;
     }>,
   ) {
     this.browserAuthority = input.browserAuthority;
     this.gptChildTools = createProductionGptChildTools(
       input.dataDir, input.sourceHash, input.gpt, input.evidenceStore,
-      input.browserAuthority, runtimeLogger,
+      input.browserAuthority, runtimeLogger, input.providerRateLimitControl,
     );
     this.runtimeLogger = runtimeLogger;
   }
@@ -166,6 +168,32 @@ export class ProductionExecutor {
   private readonly runtimeLogger: RuntimeLogger;
 
   public availableCapacity(): number { return PRODUCTION_BUSINESS_CAPACITY_MAX; }
+
+  public async reconcilePendingProviderRateLimitIncidents(signal: AbortSignal): Promise<void> {
+    if (this.store.pendingProviderCooldownIncidentBodies().length === 0) return;
+    const span = requireRuntimeLogWrite(this.runtimeLogger.startSpan({
+      traceId: `provider-cooldown:${this.runtimeLogger.producerRunId}`,
+      owner: "production-runtime",
+      component: "provider-rate-limit-control",
+      operation: "outbox.flush",
+      typedIdentity: { kind: "producer", producerId: this.runtimeLogger.producerRunId },
+    }));
+    try {
+      await this.gptChildTools.reconcilePendingProviderRateLimitIncidents(span.spanId, signal);
+      requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
+    } catch (error) {
+      const terminal = requireRuntimeLogWrite(span.terminal({
+        outcome: "failed",
+        failure: runtimeFailureFromError({
+          error,
+          code: failureCode(error, "PROVIDER_COOLDOWN_RECOVERY_FAILED"),
+          responsibleOwner: "production-runtime",
+          impact: RuntimeFailureImpact.BLOCKING,
+        }),
+      }));
+      throw withRuntimeLogCause(error, terminal.eventId);
+    }
+  }
 
   public accept(task: WebsiteAgentTask, attemptId: string): StoredProductionTask {
     assertProductionTaskRoutePolicy(task);

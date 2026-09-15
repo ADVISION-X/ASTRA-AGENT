@@ -34,7 +34,7 @@ export type TaskRow = {
 
 export interface ProductionOutboxWrite {
   readonly idempotency_key: string;
-  readonly kind: "artifact" | "terminal";
+  readonly kind: "artifact" | "terminal" | "provider_cooldown";
   readonly path: string;
   readonly method: "POST" | "PUT";
   readonly headers: Readonly<Record<string, string>>;

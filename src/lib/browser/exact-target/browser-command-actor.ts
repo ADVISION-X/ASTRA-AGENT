@@ -4,6 +4,7 @@ import type { BrowserExecutionBinding } from "../infrastructure/browser-authorit
 import { assertValidCommandPermit } from "../transport/command-permit.js";
 import { BrowserCommandAdmissionBudget } from "../transport/browser-command-admission-budget.js";
 import { withRuntimeLogCause, type RuntimeLogger } from "../../runtime-logs/index.js";
+import { executionFailure } from "../../execution-failure.js";
 import type {
   BrowserDomIntent,
   BrowserExactAssistantTurnReplyV3,
@@ -113,7 +114,8 @@ const isMutation = (command: BrowserGovernedCommand): boolean =>
   command.kind === "file-input"
   || (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "hover"
     || command.intent.kind === "doubleClick" || command.intent.kind === "keypress" || command.intent.kind === "fill"
-    || command.intent.kind === "renameExactGptConversation"));
+    || command.intent.kind === "renameExactGptConversation"
+    || command.intent.kind === "acknowledgeKnownGptRateLimit"));
 
 const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
   positive: `sha256:${string}`;
@@ -140,6 +142,10 @@ const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
     case "renameExactGptConversation":
       positive = { kind: intent.kind, canonicalConversationUrl: intent.canonicalConversationUrl,
         targetTitle: intent.targetTitle };
+      break;
+    case "acknowledgeKnownGptRateLimit":
+      positive = { kind: intent.kind, exactKnownDialog: true, acknowledged: true,
+        targetRefHash: intent.targetRefHash, documentRefHash: intent.documentRefHash };
       break;
     case "fill":
       positive = { kind: "fill", selector: intent.selector, retainedValueHash: hashValue(intent.approvedText) };
@@ -272,6 +278,31 @@ const bindExactAssistantTurnReply = (
   }
 };
 
+const isKnownGptRateLimitBlocker = (value: unknown): boolean => Boolean(value)
+  && typeof value === "object" && !Array.isArray(value)
+  && (value as Readonly<Record<string, unknown>>).schemaVersion
+    === "grasseye.browser.known-gpt-rate-limit-blocker.v1"
+  && (value as Readonly<Record<string, unknown>>).failureCode
+    === "BROWSER_KNOWN_GPT_RATE_LIMIT";
+
+const knownGptRateLimitFailure = (value: unknown): Error => {
+  const fact = (value as Record<string, unknown>)
+    .knownGptRateLimitDialogFact as Record<string, unknown>;
+  const hashes = [fact.targetRefHash, fact.documentRefHash, fact.observationHash];
+  if (typeof fact.observedAt !== "string"
+    || hashes.some((hash) => typeof hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(hash))) {
+    return new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  return executionFailure("failed", "BROWSER_KNOWN_GPT_RATE_LIMIT", { metadata: {
+    mutationOutcome: "no",
+    evidence: {
+      evidenceRef: ["browser-known-gpt-rate-limit", fact.observedAt,
+        fact.targetRefHash, fact.documentRefHash].join("|"),
+      evidenceHash: fact.observationHash as `sha256:${string}`,
+    },
+  } });
+};
+
 const assertMatchingReply = (permit: BrowserCommandPermit, reply: BrowserCommandReply): void => {
   if (reply.replyChannelToken !== permit.replyChannelToken || reply.permitSequence !== permit.sequence) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
@@ -356,6 +387,9 @@ export class BrowserCommandActor {
       );
       const boundReply = Object.freeze({ ...reply, result });
       if (mutation) this.completeMutation(permit, command, boundReply, commandSpan, state);
+      if (isKnownGptRateLimitBlocker(reply.result)) {
+        throw knownGptRateLimitFailure(reply.result);
+      }
       completeBrowserCommandSpan({ span: commandSpan });
       state.terminalized = true;
       return result;
@@ -422,7 +456,10 @@ export class BrowserCommandActor {
       failureCode, error: new Error(failureCode, { cause: nativeCause }), pendingReceipt: false,
     });
     state.terminalized = true;
-    throw withRuntimeLogCause(new Error(failureCode, { cause: nativeCause }), failureEvent.eventId);
+    const rejected = failureCode === "BROWSER_KNOWN_GPT_RATE_LIMIT"
+      ? knownGptRateLimitFailure(reply.result)
+      : new Error(failureCode, { cause: nativeCause });
+    throw withRuntimeLogCause(rejected, failureEvent.eventId);
   }
 
   private failExecution(

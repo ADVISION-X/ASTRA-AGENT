@@ -50,6 +50,14 @@ type GptResponseCheckpointInput = Readonly<{
 }>;
 
 export interface GptChildInputMap {
+  readonly acknowledge_known_gpt_rate_limit: Readonly<{
+    incidentRequestId: string;
+    dialogHash: GptHash;
+    observationHash: GptHash;
+    targetRefHash: GptHash;
+    documentRefHash: GptHash;
+    observedAt: string;
+  }>;
   readonly prepare_clean_gpt_chat: Readonly<{ timeoutMs: number }>;
   readonly open_gpt_execution_profile: Readonly<{ profile: GptExecutionProfile }>;
   readonly open_gpt_model_selector_v2: Readonly<{ profile: GptExecutionProfile }>;
@@ -79,11 +87,16 @@ export interface GptChildInputMap {
     jobId: string;
     productId: string;
     terminalAt: string;
-    timeoutMs: 2500;
+    timeoutMs: 10000;
   }>;
 }
 
 export interface GptChildOutputMap {
+  readonly acknowledge_known_gpt_rate_limit: Readonly<{
+    clearance: "confirmed_absent";
+    acknowledgedAt: string;
+    acknowledgementReceiptHash: GptHash;
+  }>;
   readonly prepare_clean_gpt_chat: Readonly<{
     composer: number;
     turns: number;
@@ -160,5 +173,5 @@ export interface GptChildOutputMap {
 export type GptChildCapabilityId = keyof GptChildInputMap & keyof GptChildOutputMap;
 export type ProductGptChildCapabilityId = Exclude<
   GptChildCapabilityId,
-  "rename_settled_gpt_conversation"
+  "rename_settled_gpt_conversation" | "acknowledge_known_gpt_rate_limit"
 >;

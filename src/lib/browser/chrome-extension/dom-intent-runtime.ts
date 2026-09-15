@@ -16,9 +16,21 @@ import { attribute, describeNode,
   documentState, inspectNode, nodeForRead, nodeForSelector, nodeText,
   queryCandidateSet, requireKeyboardActionTarget,
   selectorForLocator } from "./dom-query-runtime.js";
+import { waitForNextChatGptObservation } from "./chatgpt-page-access-gate.js";
+import {
+  KNOWN_GPT_RATE_LIMIT_ACK,
+  KNOWN_GPT_RATE_LIMIT_ACK_SELECTOR,
+  KNOWN_GPT_RATE_LIMIT_DIALOG_SELECTOR,
+  knownGptRateLimitTargetIdentity,
+  observeKnownGptRateLimitDialog,
+  readKnownGptRateLimitClearance,
+} from "./gpt-rate-limit-dialog.js";
 type FindIntent = Extract<BrowserDomIntent, { kind: "find" }>;
 type ValueIntent = Exclude<BrowserDomIntent, {
-  kind: "document" | "selectExactGptConversation" | "renameExactGptConversation" | "observe" | "readExactAssistantTurn" | "find" | "click" | "hover" | "doubleClick" | "keypress";
+  kind: "document" | "selectExactGptConversation" | "renameExactGptConversation"
+    | "acknowledgeKnownGptRateLimit" | "readKnownGptRateLimitClearance"
+    | "observe" | "readExactAssistantTurn" | "find"
+    | "click" | "hover" | "doubleClick" | "keypress";
 }>;
 type CurrentDocumentAssertion = () => void;
 
@@ -38,7 +50,7 @@ const executeFindIntent = async (
   do {
     if (intent.waitFor === undefined || candidates.eligibleCount >= intent.waitFor.minimumMatches
       || Date.now() >= deadline!) break;
-    await waitForNextBoundedObservation(deadline!);
+    if (!await waitForNextChatGptObservation(deadline!)) break;
     candidates = await queryCandidateSet(
       debuggerRuntime, target.tabId, selector, intent.maxMatches + 1, intent.scope,
       intent.textEquals !== undefined ? { value: intent.textEquals, exact: true }
@@ -63,12 +75,6 @@ const executeFindIntent = async (
     nativeStage: candidates.nativeStage,
     ...(matches === undefined ? {} : { matches }),
   };
-};
-
-const waitForNextBoundedObservation = async (deadline: number): Promise<void> => {
-  const remaining = deadline - Date.now();
-  if (remaining <= 0) return;
-  await new Promise<void>((resolve) => globalThis.setTimeout(resolve, Math.min(50, remaining)));
 };
 
 type QualificationReceipt = Readonly<{
@@ -257,6 +263,50 @@ export const executeRegisteredDomIntent = async (
   if (intent.kind === "renameExactGptConversation") {
     const { executeGptConversationRename } = await import("./gpt-conversation-rename-runtime.js");
     return executeGptConversationRename(debuggerRuntime, target, intent, assertCurrent);
+  }
+  if (intent.kind === "acknowledgeKnownGptRateLimit") {
+    const identity = await knownGptRateLimitTargetIdentity(target);
+    if (identity.targetRefHash !== intent.targetRefHash
+      || identity.documentRefHash !== intent.documentRefHash) {
+      throw new Error("BROWSER_DOCUMENT_INVALID");
+    }
+    const fact = await observeKnownGptRateLimitDialog(debuggerRuntime, target);
+    if (!fact) return Object.freeze({
+      candidateCount: 0,
+      identityRevalidated: true,
+      mutationCount: 0,
+      postconditionVerified: true,
+      zeroActionSatisfied: true,
+    });
+    if (fact.targetRefHash !== intent.targetRefHash
+      || fact.documentRefHash !== intent.documentRefHash) {
+      throw new Error("BROWSER_DOCUMENT_INVALID");
+    }
+    const dispatchNotAfter = intent.dispatchNotAfter === null
+      ? Date.parse(fact.observedAt) + 1_000 : Date.parse(intent.dispatchNotAfter);
+    return executeClickIntent(debuggerRuntime, target, {
+      kind: "click",
+      selector: KNOWN_GPT_RATE_LIMIT_ACK_SELECTOR,
+      scope: { selector: KNOWN_GPT_RATE_LIMIT_DIALOG_SELECTOR },
+      expectedTextEquals: KNOWN_GPT_RATE_LIMIT_ACK,
+      expectedMatches: 1,
+      postClickMatch: {
+        selector: KNOWN_GPT_RATE_LIMIT_DIALOG_SELECTOR,
+        expectedMatches: 0,
+        timeoutMs: 5_000,
+      },
+      postClickMinimumDelayMs: 2_500,
+    }, assertCurrent, () => {
+      if (Date.now() > dispatchNotAfter) throw new Error("BROWSER_GPT_RATE_LIMIT_ACK_SLO_EXCEEDED");
+    });
+  }
+  if (intent.kind === "readKnownGptRateLimitClearance") {
+    const identity = await knownGptRateLimitTargetIdentity(target);
+    if (identity.targetRefHash !== intent.targetRefHash
+      || identity.documentRefHash !== intent.documentRefHash) {
+      throw new Error("BROWSER_DOCUMENT_INVALID");
+    }
+    return readKnownGptRateLimitClearance(debuggerRuntime, target);
   }
   if (intent.kind === "document" || intent.kind === "observe") {
     return executeDocumentReadIntent(debuggerRuntime, target, intent);

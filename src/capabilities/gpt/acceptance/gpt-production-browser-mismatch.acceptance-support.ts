@@ -85,7 +85,7 @@ try {
       producer: "agent-confirmed-origin-rejection-acceptance", owner: "production-runtime",
       component: "gpt-child", terminalEnabled: false,
       fileSink: { directoryPath: path.join(temporary, "runtime-logs-origin") },
-    }),
+    }), {} as never,
   ).createExecution({
     jobId: "job:confirmed-recovery", attemptId: "attempt:confirmed-recovery", resultRevision: 0,
     productId: "public_knowledge_article_pipeline",

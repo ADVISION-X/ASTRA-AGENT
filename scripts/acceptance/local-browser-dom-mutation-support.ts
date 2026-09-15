@@ -76,7 +76,7 @@ const exerciseReasoningSlider = async (): Promise<void> => {
   const rejected = await executeRegisteredDomIntent(defaultRuntime, { tabId: 103 } as never, {
     kind: "keypress", selector: "[role='menuitem'][aria-label='能力']:not([aria-disabled='true'])",
     key: "ArrowRight", expectedMatches: 1,
-    postKeypressMatch: { selector: "[role='slider'][aria-valuenow='4']", expectedMatches: 1, timeoutMs: 1 },
+    postKeypressMatch: { selector: "[role='slider'][aria-valuenow='4']", expectedMatches: 1, timeoutMs: 1_500 },
   }, () => undefined) as Readonly<Record<string, unknown>>;
   assert.deepEqual(rejected, {
     keyPressed: "ArrowRight", keypressCount: 1, candidateCount: 1, identityRevalidated: true,
@@ -239,13 +239,13 @@ const exerciseExactOutgoingActionabilityWait = async (): Promise<void> => {
         userTurnSelector:"user-turn",expectedPromptHash:`sha256:${"a".repeat(64)}`,expectedAttachmentLabels:[]},
       postClickMatch:{selector:"submitted",expectedMatches:1,timeoutMs}},()=>undefined) as Readonly<Record<string,unknown>>;
     return{result,qualifications,physicalEvents};};
-  const delayed = await run(3, 200);
+  const delayed = await run(3, 4_500);
   assert.equal(delayed.qualifications, 3);
   assert.equal(delayed.result.postconditionVerified, true);
   assert.deepEqual(delayed.physicalEvents,
     ["Input.dispatchMouseEvent", "Input.dispatchMouseEvent", "Input.dispatchMouseEvent"],
     "a transient disabled send button must recover inside one command and click exactly once");
-  const stuck = await run(Number.POSITIVE_INFINITY, 5);
+  const stuck = await run(Number.POSITIVE_INFINITY, 1_500);
   assert.equal(stuck.result.nativeCauseCode, "BROWSER_DOM_ACTION_ARIA_DISABLED");
   assert.equal(stuck.result.mutationCount, 0);
   assert.deepEqual(stuck.physicalEvents, [],
@@ -319,7 +319,7 @@ const exerciseExactOutgoingNeverUsesZeroActionPostcondition = async (): Promise<
       latestGptUserTurn: true }, { queryId: "empty-composer",
       selector: "composer[contenteditable='true']:has(> p[data-empty-paragraph='true'] > br.ProseMirror-trailingBreak)",
       maxMatches: 1, fields: [], expectedEligibleCount: 1 }],
-    timeoutMs: 100 },
+    timeoutMs: 4_500 },
   };
   const result = await executeRegisteredDomIntent(runtime, target, intent,
     () => undefined) as Readonly<Record<string, unknown>>;
@@ -334,7 +334,7 @@ const exerciseExactOutgoingNeverUsesZeroActionPostcondition = async (): Promise<
   emptyComposerEligible = 0;
   const rejected = await executeRegisteredDomIntent(runtime, target, {
     ...intent, postClickObservation: {
-      queries: intent.postClickObservation!.queries, timeoutMs: 1,
+      queries: intent.postClickObservation!.queries, timeoutMs: 1_500,
     },
   }, () => undefined) as Readonly<Record<string, unknown>>;
   assert.equal(rejected.postconditionVerified, false,
@@ -375,7 +375,7 @@ const exerciseRetainedClickedCandidatePostcondition = async (): Promise<void> =>
       expectedMatches: 1,
       postClickObservation: {
         queries: coherentPostconditionQueries,
-        timeoutMs: 10,
+        timeoutMs: 1_500,
         clickedCandidateAttribute: { name: "aria-checked", equals: "true" },
       },
     }, () => undefined) as Promise<Readonly<Record<string, unknown>>>;
@@ -423,7 +423,7 @@ const exerciseMutationDocumentGuard = async (): Promise<void> => {
     { kind: "click", selector: "button", expectedMatches: 1,
       postClickMatch: { selector: "done", expectedMatches: 1 } },
     { kind: "hover", selector: "button", expectedMatches: 1,
-      postHoverAttribute: { name: "aria-expanded", equals: "true", timeoutMs: 10 } },
+      postHoverAttribute: { name: "aria-expanded", equals: "true", timeoutMs: 1_500 } },
     { kind: "doubleClick", selector: "button", expectedMatches: 1,
       postDoubleClickMatch: { selector: "done", expectedMatches: 1 } },
     { kind: "keypress", selector: "button", key: "Enter", expectedMatches: 1,

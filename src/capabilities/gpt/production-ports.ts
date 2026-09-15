@@ -32,3 +32,37 @@ export interface GptProductionBrowserAuthority {
     wait: BrowserTargetLeaseWait,
   ): Promise<BrowserTargetLease>;
 }
+
+export type ProviderRateLimitIncidentInput = Readonly<{
+  jobId: string;
+  attemptId: string;
+  resultRevision: number;
+  deviceId: string;
+  leaseVersion: number;
+  fenceHash: `sha256:${string}`;
+  capabilityManifestHash: `sha256:${string}`;
+  dialogHash: `sha256:${string}`;
+  observationHash: `sha256:${string}`;
+  targetRefHash: `sha256:${string}`;
+  documentRefHash: `sha256:${string}`;
+  sessionKey: string;
+  observedAt: string;
+}>;
+
+export type ProviderRateLimitClearance = Readonly<{
+  clearance: "confirmed_absent" | "not_cleared";
+  acknowledgementReceiptHash: `sha256:${string}`;
+  acknowledgedAt: string;
+}>;
+
+export interface ProviderRateLimitIncidentHandle {
+  readonly incidentRequestId: string;
+  deliver(clearance: ProviderRateLimitClearance): Promise<void>;
+}
+
+/** Runtime-owned narrow control port; GPT never imports Runtime implementation or state. */
+export interface ProviderRateLimitControlPort {
+  assertProviderSubmitAllowed(): void;
+  pendingIncidents(): readonly ProviderRateLimitIncidentInput[];
+  beginIncident(input: ProviderRateLimitIncidentInput): Promise<ProviderRateLimitIncidentHandle>;
+}

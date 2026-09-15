@@ -19,7 +19,7 @@ const command = Object.freeze({
     kind: "renameExactGptConversation" as const,
     canonicalConversationUrl: "https://chatgpt.com/c/12345678-1234-4123-8123-123456789012",
     targetTitle: "0915·八字分析·aiprod_12345678",
-    timeoutMs: 2500,
+    timeoutMs: 10000,
   }),
 });
 

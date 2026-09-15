@@ -11,6 +11,7 @@ import { attribute, describeNode, documentState, queryAll, queryCandidateSet,
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 import { requireCanonicalGptConversationUrl } from
   "../exact-target/browser-site-policy-registry.js";
+import { waitForNextChatGptObservation } from "./chatgpt-page-access-gate.js";
 
 type ClickIntent = Extract<BrowserDomIntent, { kind: "click" }>;
 type HoverIntent = Extract<BrowserDomIntent, { kind: "hover" }>;
@@ -32,11 +33,7 @@ export type ObservationReadback = Readonly<{
     | "BROWSER_DOM_CANDIDATE_AMBIGUOUS" | null;
 }>;
 
-export const waitForNextBoundedObservation = async (deadline: number): Promise<void> => {
-  const remaining = deadline - Date.now();
-  if (remaining <= 0) return;
-  await new Promise<void>((resolve) => globalThis.setTimeout(resolve, Math.min(50, remaining)));
-};
+export const waitForNextBoundedObservation = waitForNextChatGptObservation;
 
 const exactOutgoingTurnVerified = (
   observation: Awaited<ReturnType<typeof executeCoherentObservation>>,
@@ -98,7 +95,7 @@ export const waitForMatch = async (
   }>,
   timeoutMs?: number,
 ): Promise<MatchReadback> => {
-  const timeout = timeoutMs ?? match.timeoutMs ?? 1;
+  const timeout = timeoutMs ?? match.timeoutMs ?? 1_500;
   await debuggerRuntime.awaitPageReadPermission();
   const deadline = Date.now() + timeout;
   while (true) {
@@ -118,7 +115,7 @@ export const waitForMatch = async (
       rejections: candidates.rejections, nativeCauseCode,
     });
     if (verified || Date.now() >= deadline) return readback;
-    await waitForNextBoundedObservation(deadline);
+    if (!await waitForNextBoundedObservation(deadline)) return readback;
   }
 };
 
@@ -129,7 +126,7 @@ const waitForObservation = async (
   timeoutMs?: number,
   exactOutgoing?: NonNullable<ClickIntent["preClickExactOutgoingTurn"]>,
 ): Promise<ObservationReadback> => {
-  const timeout = timeoutMs ?? postcondition.timeoutMs ?? 1;
+  const timeout = timeoutMs ?? postcondition.timeoutMs ?? 1_500;
   await runtime.awaitPageReadPermission();
   const deadline = Date.now() + timeout;
   const specs = postcondition.queries.map(({ expectedEligibleCount: _expected, ...query }) => query);
@@ -150,7 +147,7 @@ const waitForObservation = async (
         : firstRejection ?? "BROWSER_DOM_CANDIDATE_MISSING";
     const readback = Object.freeze({ verified, observation, nativeCauseCode });
     if (verified || Date.now() >= deadline) return readback;
-    await waitForNextBoundedObservation(deadline);
+    if (!await waitForNextBoundedObservation(deadline)) return readback;
   }
 };
 
@@ -160,7 +157,7 @@ const waitForUrl = async (
   postcondition: Readonly<{ equals?: string; notEquals?: string; timeoutMs?: number }>,
   timeoutMs?: number,
 ): Promise<boolean> => {
-  const timeout = timeoutMs ?? postcondition.timeoutMs ?? 1;
+  const timeout = timeoutMs ?? postcondition.timeoutMs ?? 1_500;
   await debuggerRuntime.awaitPageReadPermission();
   const deadline = Date.now() + timeout;
   do {
@@ -168,7 +165,7 @@ const waitForUrl = async (
     if (postcondition.equals !== undefined && document.url === postcondition.equals) return true;
     if (postcondition.notEquals !== undefined && document.url !== postcondition.notEquals) return true;
     if (Date.now() >= deadline) return false;
-    await waitForNextBoundedObservation(deadline);
+    if (!await waitForNextBoundedObservation(deadline)) return false;
   } while (Date.now() <= deadline);
   return false;
 };
@@ -181,7 +178,7 @@ export const waitForInteractionAttribute = async (
   postAttribute: NonNullable<ClickIntent["postClickAttribute"]> | HoverIntent["postHoverAttribute"],
   timeoutMs?: number,
 ): Promise<boolean> => {
-  const timeout = timeoutMs ?? postAttribute.timeoutMs ?? 1;
+  const timeout = timeoutMs ?? postAttribute.timeoutMs ?? 1_500;
   await debuggerRuntime.awaitPageReadPermission();
   const deadline = Date.now() + timeout;
   do {
@@ -201,7 +198,7 @@ export const waitForInteractionAttribute = async (
           === postAttribute.equals) return true;
     }
     if (Date.now() >= deadline) return false;
-    await waitForNextBoundedObservation(deadline);
+    if (!await waitForNextBoundedObservation(deadline)) return false;
   } while (Date.now() <= deadline);
   return false;
 };

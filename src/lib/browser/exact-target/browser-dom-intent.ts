@@ -104,6 +104,17 @@ export type BrowserDomIntent =
     targetTitle: string;
     timeoutMs: number;
   }>
+  | Readonly<{
+    kind: "acknowledgeKnownGptRateLimit";
+    targetRefHash: `sha256:${string}`;
+    documentRefHash: `sha256:${string}`;
+    dispatchNotAfter: string | null;
+  }>
+  | Readonly<{
+    kind: "readKnownGptRateLimitClearance";
+    targetRefHash: `sha256:${string}`;
+    documentRefHash: `sha256:${string}`;
+  }>
   | Readonly<{ kind: "observe"; queries: readonly BrowserDomObservationQuery[] }>
   | Readonly<{ kind: "readExactAssistantTurn"; userTurnId: string; canonicalConversationUrl: string }>
   | Readonly<{ kind: "inspect"; selector: string; fields: readonly BrowserDomField[]; scope?: BrowserDomReadScope }>
@@ -168,6 +179,8 @@ export type BrowserDomIntent =
       notEquals?: string;
       timeoutMs?: number;
     }>;
+    /** Reserved for the known rate-limit acknowledgement readback. */
+    postClickMinimumDelayMs?: 2500;
   }>
   | Readonly<{
     kind: "hover";
@@ -238,9 +251,24 @@ const assertObservationIntent = (intent: BrowserDomIntent): void => {
       || intent.targetTitle.trim() !== intent.targetTitle
       || [...intent.targetTitle].length < 1 || [...intent.targetTitle].length > 128
       || /[\u0000-\u001f\u007f]/u.test(intent.targetTitle)
-      || !Number.isInteger(intent.timeoutMs) || intent.timeoutMs < 1 || intent.timeoutMs > 2_500) {
+      || intent.timeoutMs !== 10_000) {
       throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
     }
+  }
+  if (intent.kind === "acknowledgeKnownGptRateLimit"
+    && (Object.keys(intent).length !== 4
+      || !/^sha256:[a-f0-9]{64}$/u.test(intent.targetRefHash)
+      || !/^sha256:[a-f0-9]{64}$/u.test(intent.documentRefHash)
+      || (intent.dispatchNotAfter !== null
+        && (!Number.isFinite(Date.parse(intent.dispatchNotAfter))
+          || new Date(intent.dispatchNotAfter).toISOString() !== intent.dispatchNotAfter)))) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  }
+  if (intent.kind === "readKnownGptRateLimitClearance"
+    && (Object.keys(intent).length !== 3
+      || !/^sha256:[a-f0-9]{64}$/u.test(intent.targetRefHash)
+      || !/^sha256:[a-f0-9]{64}$/u.test(intent.documentRefHash))) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
   if (intent.kind === "observe") assertObserveIntent(intent);
   if (intent.kind === "readExactAssistantTurn" && !exactAssistantReadIntentValid(intent)) {
@@ -402,7 +430,7 @@ const assertBoundedPostMatch = (match: Readonly<{
   assertReadEligibility(match.readEligibility);
   assertOptionalRange(match.expectedMatches, 0, 20);
   if (match.timeoutMs !== undefined
-    && (!Number.isInteger(match.timeoutMs) || match.timeoutMs < 1 || match.timeoutMs > 5_000)) {
+    && (!Number.isInteger(match.timeoutMs) || match.timeoutMs < 1_500 || match.timeoutMs > 5_000)) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
 };
@@ -417,7 +445,7 @@ const assertTargetText = (intent: Readonly<{
 };
 
 const timeoutInvalid = (value: number | undefined): boolean => value !== undefined
-  && (!Number.isInteger(value) || value < 1 || value > 5_000);
+  && (!Number.isInteger(value) || value < 1_500 || value > 5_000);
 
 const assertClickAttribute = (
   attribute: Extract<BrowserDomIntent, { kind: "click" }>["postClickAttribute"],
@@ -487,6 +515,9 @@ const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>)
   if (postconditions.length !== 1) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
+  if (intent.postClickMinimumDelayMs !== undefined && intent.postClickMinimumDelayMs !== 2_500) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  }
   assertClickAttribute(intent.postClickAttribute);
   assertClickMatch(intent.postClickMatch);
   assertClickObservation(intent.postClickObservation, intent.preClickExactOutgoingTurn);
@@ -517,7 +548,7 @@ const assertHoverIntent = (intent: Extract<BrowserDomIntent, { kind: "hover" }>)
     || intent.postHoverAttribute.equals !== "true"
     || (intent.postHoverAttribute.timeoutMs !== undefined
       && (!Number.isInteger(intent.postHoverAttribute.timeoutMs)
-        || intent.postHoverAttribute.timeoutMs < 1
+        || intent.postHoverAttribute.timeoutMs < 1_500
         || intent.postHoverAttribute.timeoutMs > 5_000))) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }

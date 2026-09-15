@@ -14,6 +14,6 @@ export const reconcileGptAttachmentSetHandler: GptChildHandler<"reconcile_gpt_at
     requireExactInputKeys(intent, ["files", "timeoutMs"]);
     const files = filesFromIntent(intent);
     const browser = requireBrowser(context);
-    const timeoutMs = Math.max(1_000, numberInput(intent, "timeoutMs"));
+    const timeoutMs = Math.max(1_500, numberInput(intent, "timeoutMs"));
     return waitForUploadedAttachmentSet(browser, files, timeoutMs, context.signal);
   };

@@ -18,6 +18,11 @@ import {
   readExtensionMainFrame,
 } from "./extension-target-observation.js";
 import type { ExtensionChromeApi, ExtensionDebugTarget } from "./extension-runtime-types.js";
+import { ChatGptPageAccessGate } from "./chatgpt-page-access-gate.js";
+import {
+  knownGptRateLimitBlockerReceipt,
+  observeKnownGptRateLimitDialog,
+} from "./gpt-rate-limit-dialog.js";
 
 type TargetFrameSender = (
   kind: "TARGET_CLAIM" | "TARGET_REVOKE",
@@ -30,6 +35,7 @@ export class ExtensionTargetAuthority {
   private activeTarget: ExtensionExactTarget | null = null;
   private readonly createdTarget: ExtensionCreatedTarget;
   private readonly interactionReadiness: ExtensionInteractionReadiness;
+  private readonly pageAccessGate = new ChatGptPageAccessGate();
   private navigationPublication: Promise<void> | null = null;
 
   public constructor(
@@ -38,6 +44,7 @@ export class ExtensionTargetAuthority {
     private readonly reportTargetFailure: TargetFailureReporter,
   ) {
     this.debuggerRuntime = new ExtensionDebuggerRuntime(chromeApi);
+    this.debuggerRuntime.requireLogicalPageAccessCycles();
     this.createdTarget = new ExtensionCreatedTarget(this.debuggerRuntime, reportTargetFailure);
     this.interactionReadiness = new ExtensionInteractionReadiness(
       this.debuggerRuntime,
@@ -85,6 +92,13 @@ export class ExtensionTargetAuthority {
   private async consumeFrameNavigationAfterBarrier(
     tabId: number,
   ): Promise<void> {
+    return this.debuggerRuntime.withLogicalPageAccess(
+      () => this.pageAccessGate.enter(),
+      () => this.consumeFrameNavigationCycle(tabId),
+    );
+  }
+
+  private async consumeFrameNavigationCycle(tabId: number): Promise<void> {
     await this.debuggerRuntime.awaitPageReadPermission();
     if (this.activeTarget?.tabId !== tabId) return;
     if (this.navigationPublication) return void await this.navigationPublication;
@@ -117,6 +131,17 @@ export class ExtensionTargetAuthority {
   }
 
   public async acquireJobBoundChatGptTarget(
+    targetMode: "fresh" | "bound-observation" | "confirmed-readback" | "authorized-continuation",
+    jobRefHash: `sha256:${string}`,
+    parentConversationUrl?: string,
+  ): Promise<void> {
+    return this.debuggerRuntime.withLogicalPageAccess(
+      () => this.pageAccessGate.enter(),
+      () => this.acquireJobBoundChatGptTargetCycle(targetMode, jobRefHash, parentConversationUrl),
+    );
+  }
+
+  private async acquireJobBoundChatGptTargetCycle(
     targetMode: "fresh" | "bound-observation" | "confirmed-readback" | "authorized-continuation",
     jobRefHash: `sha256:${string}`,
     parentConversationUrl?: string,
@@ -226,8 +251,32 @@ export class ExtensionTargetAuthority {
     mutationClass: RegisteredExtensionCommand["mutationClass"],
     assertCommandActive: () => void = () => undefined,
   ): Promise<unknown> {
+    const acknowledgeRateLimit = command.kind === "dom-intent"
+      && command.intent.kind === "acknowledgeKnownGptRateLimit";
+    return this.debuggerRuntime.withLogicalPageAccess(
+      acknowledgeRateLimit ? async () => undefined : () => this.pageAccessGate.enter(),
+      () => this.executeRegisteredCommandCycle(
+        command, target, mutationClass, assertCommandActive,
+      ),
+      acknowledgeRateLimit ? "rate-limit-ack" : "ordinary",
+    );
+  }
+
+  private async executeRegisteredCommandCycle(
+    command: BrowserGovernedCommand,
+    target: ExtensionExactTarget,
+    mutationClass: RegisteredExtensionCommand["mutationClass"],
+    assertCommandActive: () => void,
+  ): Promise<unknown> {
     const execute = async (): Promise<unknown> => {
       assertCommandActive();
+      if (!(command.kind === "dom-intent"
+        && (command.intent.kind === "acknowledgeKnownGptRateLimit"
+          || command.intent.kind === "readKnownGptRateLimitClearance"))) {
+        const blocker = await observeKnownGptRateLimitDialog(this.debuggerRuntime, target);
+        assertCommandActive();
+        if (blocker) return knownGptRateLimitBlockerReceipt(blocker);
+      }
       if (command.kind === "dom-intent") {
         if (command.intent.kind === "selectExactGptConversation") {
           return this.executeConversationSelection(target, command.intent.canonicalConversationUrl);

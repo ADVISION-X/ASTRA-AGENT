@@ -203,7 +203,7 @@ try {
   assert.equal(health.cloudState, "contract_blocked");
   assert.equal(health.executionState, "blocked");
   assert.equal(health.claimAdmissionState, "blocked");
-  assert.equal(health.controlContractVersion, 32,
+  assert.equal(health.controlContractVersion, 33,
     "blocked diagnostics must retain only the consumer contract version needed for exact comparison");
   assert.equal(health.lastErrorCode, "AI_SESSION_BINDING_MISMATCH");
   await bindingMismatchRuntime.close();
@@ -258,6 +258,7 @@ try {
     {
       dataDir: pluginFailureTemporary, sourceHash: HASH_A,
       gpt: {} as never, evidenceStore: {} as never,
+      providerRateLimitControl: {} as never,
       browserAuthority: {
         bindExecutionArtifacts: async (input: Readonly<{ artifacts: readonly BrowserExecutionArtifact[] }>) => {
           browserArtifactBindCalls += 1;
@@ -454,7 +455,7 @@ for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V33",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V34",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:storage-inventory:${evidenceMode}`,

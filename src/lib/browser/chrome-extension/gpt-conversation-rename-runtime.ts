@@ -19,6 +19,9 @@ type CurrentDocumentAssertion = () => void;
 
 const RENAME_MENU_ITEM_SELECTOR = "[role='menuitem']";
 const TITLE_EDITOR_SELECTOR = "input[aria-label='聊天标题'][name='title-editor']";
+const RENAME_LOGICAL_INPUT_GAP_MS = 1_500;
+const waitForNextRenameInput = (): Promise<void> => new Promise((resolve) =>
+  globalThis.setTimeout(resolve, RENAME_LOGICAL_INPUT_GAP_MS));
 
 const selectorValue = (value: string): string => value
   .replaceAll("\\", "\\\\")
@@ -138,6 +141,7 @@ export const executeGptConversationRename = async (
       },
     }, assertCurrent, started), 0);
     if (!menu.ok) return menu.receipt;
+    await waitForNextRenameInput();
 
     const editor = completedStep(await executeClickIntent(runtime, target, {
       kind: "click", selector: RENAME_MENU_ITEM_SELECTOR, expectedTextEquals: "重命名",
@@ -147,12 +151,14 @@ export const executeGptConversationRename = async (
       },
     }, assertCurrent, started), 1);
     if (!editor.ok) return editor.receipt;
+    await waitForNextRenameInput();
 
     const filled = completedStep(await executeFillIntent(runtime, target, {
       kind: "fill", selector: TITLE_EDITOR_SELECTOR, approvedText: intent.targetTitle,
       clearBeforeType: true, expectedMatches: 1,
     }, assertCurrent, started), 2);
     if (!filled.ok) return filled.receipt;
+    await waitForNextRenameInput();
 
     const saved = completedStep(await executeKeypressIntent(runtime, target, {
       kind: "keypress", selector: TITLE_EDITOR_SELECTOR, key: "Enter", expectedMatches: 1,

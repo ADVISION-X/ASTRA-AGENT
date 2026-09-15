@@ -10,10 +10,11 @@ import { ProductionWorkerSession } from "./worker-session.js";
 import { executionFailure } from "../../execution-failure.js";
 
 type RemoteProductionWriteKind =
-  | "checkpoint" | "artifact" | "terminal" | "cancel" | "lease_release" | "renew";
+  | "checkpoint" | "artifact" | "terminal" | "cancel" | "lease_release" | "renew"
+  | "provider_cooldown";
 
 const remoteProductionWriteKinds = new Set<RemoteProductionWriteKind>([
-  "checkpoint", "artifact", "terminal", "cancel", "lease_release", "renew",
+  "checkpoint", "artifact", "terminal", "cancel", "lease_release", "renew", "provider_cooldown",
 ]);
 
 export type RemoteProductionWriteReceipt = Readonly<{

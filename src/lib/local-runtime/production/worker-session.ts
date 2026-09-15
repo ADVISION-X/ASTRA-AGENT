@@ -38,7 +38,8 @@ export class ProductionWorkerSession {
     public readonly device: DeviceCredential,
     private readonly runtimeState: () => Promise<ProductionRuntimeState>,
     private readonly agentBuildHash: ProductionHash,
-    private readonly workerInstanceId = `worker_${randomUUID()}`,
+    public readonly workerInstanceId = `worker_${randomUUID()}`,
+    public readonly sessionOpenRequestId = `aipsopen_${randomUUID()}`,
   ) {}
 
   public get workerSessionId(): string {
@@ -60,11 +61,11 @@ export class ProductionWorkerSession {
     return this.attestation;
   }
 
-  public async open(requestId = `aipsopen_${randomUUID()}`): Promise<void> {
+  public async open(): Promise<void> {
     if (this.credential) return;
     const data = await this.deviceRequest("/internal/ai-production/v6/sessions/open", {
       schema_version: "xuanxue-ai-worker-session-open.v6",
-      request_id: requestId,
+      request_id: this.sessionOpenRequestId,
       environment_id: "production",
       origin: this.device.origin,
       device_id: this.device.device_id,

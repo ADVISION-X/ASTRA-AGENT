@@ -1,4 +1,5 @@
 import { attachApprovedGptFilesOnceHandler } from "./children/attach_approved_gpt_files_once/handler.js";
+import { acknowledgeKnownGptRateLimitHandler } from "./children/acknowledge_known_gpt_rate_limit/handler.js";
 import { checkpointGptGeneratedImageHandler } from "./children/checkpoint_gpt_generated_image/handler.js";
 import { checkpointGptTextResponseHandler } from "./children/checkpoint_gpt_text_response/handler.js";
 import { closeGptExecutionProfileHandler } from "./children/close_gpt_execution_profile/handler.js";
@@ -16,6 +17,7 @@ import type { GptChildCapabilityId } from "./contract.js";
 import type { GptChildHandler } from "./web/child-handler.js";
 
 export const gptChildHandlers = Object.freeze({
+  acknowledge_known_gpt_rate_limit: acknowledgeKnownGptRateLimitHandler,
   prepare_clean_gpt_chat: prepareCleanGptChatHandler,
   open_gpt_execution_profile: openGptExecutionProfileHandler,
   ensure_gpt_reasoning_requirement: ensureGptReasoningRequirementHandler,

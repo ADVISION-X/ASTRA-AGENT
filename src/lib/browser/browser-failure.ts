@@ -1,4 +1,8 @@
-import { TypedExecutionFailure, typedExecutionFailure } from "../execution-failure.js";
+import {
+  TypedExecutionFailure,
+  typedExecutionFailure,
+  type ExecutionFailureMetadata,
+} from "../execution-failure.js";
 
 export type MutationOutcome = "no" | "dispatched" | "confirmed";
 export type BrowserEffectFailureFacts = Readonly<{
@@ -16,8 +20,9 @@ export class BrowserExecutionFailure extends TypedExecutionFailure {
     public readonly mutationOutcome: MutationOutcome,
     public readonly browserEffect: BrowserEffectFailureFacts | null,
     cause?: unknown,
+    metadata: ExecutionFailureMetadata = Object.freeze({}),
   ) {
-    super("failed", code, cause);
+    super("failed", code, cause, metadata);
   }
 }
 
@@ -52,5 +57,6 @@ export const browserExecutionFailure = (
     mutationOutcome ?? (code === "BROWSER_COMMAND_RECEIPT_MISSING" ? "dispatched" : "no"),
     browserEffect ?? null,
     existing?.cause ?? error,
+    existing?.metadata,
   );
 };

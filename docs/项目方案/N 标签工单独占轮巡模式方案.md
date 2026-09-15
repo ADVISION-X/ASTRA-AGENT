@@ -29,7 +29,7 @@ N-TAB基础实现：已合并至双仓 main
 发布：NOT_RELEASED
 ```
 
-原架构仍然有效：Website 唯一拥有动态 N，每工单独占一个 Tab，全部现实页面动作共用一条 Browser lane。本轮不回退该架构，不把 N 降为1调试，也不新增队列、状态库、恢复链、语义验证器或兼容桥。只读快照中的26个完成工单证明 Provider→AGENT→Website→领域持久化主链可用；当前失败集中在既有单链的两个恢复入口，而不是 N-TAB 模型失效。本次继续保持 N=3 和全局至少60秒 observation 硬门。首个 RELEASE 仍只承诺经过真实 GPT 证明的 `1 <= N <= 4`；在这个范围内，`3 -> 4` 才能是后台一次修改。
+原架构仍然有效：Website 唯一拥有动态 N，每工单独占一个 Tab，全部现实页面动作共用一条 Browser lane。普通调试不以 N=1 绕过缺陷，也不新增队列、状态库、恢复链、语义验证器或兼容桥。只读快照中的26个完成工单证明 Provider→AGENT→Website→领域持久化主链可用；当前失败集中在既有单链的两个恢复入口，而不是 N-TAB 模型失效。正常运行继续服从全局至少60秒 Provider observation 硬门；若 Browser 精确识别已知“请求过于频繁”弹窗，则现役《GPT频率限制排空冷却-完整实现方案》精准替代本文件全部“保持N=3/禁止自动降N”断言，由Website唯一Owner按阶梯自动N−1且不低于1，并保证原在途任务收尾入库。
 
 ## 1. 模式定义
 
@@ -863,7 +863,7 @@ GPT安全观察从该Gate首次submit前开始，到最后一个工单Website st
 - 没有unresolved DISPATCHED时，任一Tab关闭只影响自身工单；
 - 无频繁操作提示、Tab crash或debugger conflict。
 
-出现一次Provider频繁操作提示、错误Target输入或页面崩溃，立即 `NO-GO`；保持N=3、停止新claim并修复同一断点，不以降N掩盖并发缺陷。
+错误Target输入或页面崩溃立即`NO-GO`并修复同一断点；精确Provider频繁操作提示则进入现役限流排空合同：先确认、停止无关新claim/submit、按Website唯一N阶梯降容，并继续全部原在途job至admission/readback。该事故处置不是用降N掩盖普通并发缺陷。
 
 ### Gate C：N=3端到端价值证明
 
@@ -907,7 +907,7 @@ N=3闭环稳定后，Gate E再制作N=1性能对照；最终`admitted jobs/hour`
 - 每个闭环工单只关闭自己的system Tab，不保留空闲Tab池、不操作用户Tab；
 - Browser lane最大并发始终为1。
 
-Gate E通过后，首个RELEASE才取得`1..4`的生产安全结论。N=5或更大仍被同一合同安全上限拒绝，直到新候选完成目标高水位真实Gate并替换该上限。任何后置承压失败都回到同一个故障修复，不把N=3自动降成1作为运行兜底。
+Gate E通过后，首个RELEASE才取得`1..4`的生产安全结论。N=5或更大仍被同一合同安全上限拒绝，直到新候选完成目标高水位真实Gate并替换该上限。任何普通后置承压失败都回到同一个故障修复；只有Browser精确DOM证明的已知限流事故可触发Website现役阶梯N−1合同，且不得把其它故障冒充限流。
 
 ## 15. 发布顺序
 
@@ -1199,7 +1199,7 @@ IR-00 保持N=3并进入draining
 -> 双仓 RELEASE
 ```
 
-任何阶段出现 unknown Provider effect、同一 effect submit 增量大于0、第三方Tab被操作、正常轮询导航、Website admission缺失、旧job任一本地责任残留或Worker又把业务错误写成启动失败，立即停止新claim并保持N=3配置不变；不得自动降N、不得用N=1绕过故障。
+任何阶段出现 unknown Provider effect、同一 effect submit 增量大于0、第三方Tab被操作、正常轮询导航、Website admission缺失、旧job任一本地责任残留或Worker又把业务错误写成启动失败，立即停止新claim并保持原事实，不得用N=1绕过普通故障。若其中同时存在精确已知限流DOM，只按现役限流排空合同由Website自动N−1，且不改变unknown effect零重发与旧job收尾义务。
 
 ### 19.6 删除反事实与复杂度上限
 
@@ -1209,7 +1209,7 @@ IR-00 保持N=3并进入draining
 | CAPACITY_ZERO 成功语义 + 30 秒 backoff | 关闭 F3 与 5 秒空转 | Website/AGENT claim loop | 五 outcome 对齐、30 秒无第二 claim |
 | `process_alive` 文案与 cycle error operation | 关闭 F2 | 操作员、Runtime Log 诊断 | 失败轮次不再伪装 runtime.start |
 
-明确禁止新增：sender“禁止重建”分支、AGENT常驻pre-claim清理机制、数据库migration、删除台账、tombstone、replacement job、第二状态、第二queue/outbox/WAL、每job timer、额外Worker、readiness文件/socket、跨仓回调、当前N的AGENT副本、自动降N、兼容桥和旁路恢复命令。
+明确禁止新增：sender“禁止重建”分支、AGENT常驻pre-claim清理机制、删除台账、tombstone、replacement job、第二状态、第二queue/outbox/WAL、每job timer、额外Worker、readiness文件/socket、跨仓回调、当前N的AGENT副本、兼容桥和旁路恢复命令。唯一例外是现役限流排空合同不可分割需要的Website前向migration及同行五个惩罚字段；自动N−1只由该Website唯一Owner执行，不形成第二容量链。
 
 ### 19.7 完成公式
 
@@ -1546,7 +1546,7 @@ S0 双仓本地clean main重绑HEAD/active law/目标hash，禁止新建分支�
 - AGENT 仍产生 `website.result-consume`，或 pending/wait-new 仍被渲染为业务成功；
 - exact pointer 只出现在终端文字而没有持久 authorityRef/hash，或日志泄露业务原文；
 - 继续用 dirty candidate、旧报告 commit 或不同 candidate 的日志宣称 READY/RELEASE；
-- 为调试自动降 N、清空排队、删除已入库结果或重放 unknown effect。
+- 为普通调试自动降N、清空排队、删除已入库结果或重放unknown effect；精确已知限流事故只走现役Website阶梯N−1/排空合同。
 
 ### 20.8 删除反事实与复杂度上限
 
@@ -1813,7 +1813,7 @@ AND new_tables/columns/migrations/contracts/next_actions/states = 0
 - F04替换错误SQL条件，不增加函数；
 - 新验收合并进现役fixture，删除已被统一状态表覆盖的重复case/setup。
 
-任何新增抽象必须同时回答“当前消费者是谁、删除后哪个验收必失败、为何不能由现役Owner承担”。回答不出即删除。尤其禁止：effect scope hash列、winner cache、recovery manager、deployment coordinator、per-job polling worker、Attempt cap、自动降N、旧/新identity双读桥。
+任何新增抽象必须同时回答“当前消费者是谁、删除后哪个验收必失败、为何不能由现役Owner承担”。回答不出即删除。尤其禁止：effect scope hash列、winner cache、recovery manager、deployment coordinator、per-job polling worker、Attempt cap、旧/新identity双读桥；自动降N只允许精确限流合同复用Website当前N唯一Owner同行完成，禁止第二容量Owner。
 
 ### 21.11 分层验收与完成公式
 

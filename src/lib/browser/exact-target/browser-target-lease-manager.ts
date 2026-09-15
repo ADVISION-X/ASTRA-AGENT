@@ -425,7 +425,8 @@ export class BrowserTargetLeaseManager {
     if (command.kind === "file-input") return "mutation";
     if (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "hover"
       || command.intent.kind === "doubleClick" || command.intent.kind === "keypress" || command.intent.kind === "fill"
-      || command.intent.kind === "renameExactGptConversation")) return "mutation";
+      || command.intent.kind === "renameExactGptConversation"
+      || command.intent.kind === "acknowledgeKnownGptRateLimit")) return "mutation";
     return "observation";
   }
 
@@ -440,6 +441,8 @@ export class BrowserTargetLeaseManager {
       readAttribute: "browser.dom.read-attribute.v1",
       selectExactGptConversation: "browser.dom.click.v1",
       renameExactGptConversation: "browser.dom.click.v1",
+      acknowledgeKnownGptRateLimit: "browser.dom.click.v1",
+      readKnownGptRateLimitClearance: "browser.dom.inspect.v1",
       click: "browser.dom.click.v1",
       hover: "browser.dom.hover.v1",
       doubleClick: "browser.dom.double-click.v1",

@@ -71,7 +71,7 @@ export const exerciseCoherentClickPostcondition = async (): Promise<void> => {
   const settled = coherentRuntimeFor(true);
   const success = await executeRegisteredDomIntent(settled.runtime, target, {
     kind: "click", selector: "button", expectedMatches: 1,
-    postClickObservation: { queries: coherentPostconditionQueries, timeoutMs: 10 },
+    postClickObservation: { queries: coherentPostconditionQueries, timeoutMs: 4_500 },
   }, () => undefined) as Readonly<Record<string, unknown>>;
   assert.equal(success.postconditionVerified, true);
   const observation = success.postconditionObservation as Readonly<Record<string, unknown>>;
@@ -83,7 +83,7 @@ export const exerciseCoherentClickPostcondition = async (): Promise<void> => {
   const raced = coherentRuntimeFor(true, 1);
   const zeroAction = await executeRegisteredDomIntent(raced.runtime, target, {
     kind: "click", selector: "button", expectedMatches: 1,
-    postClickObservation: { queries: coherentPostconditionQueries, timeoutMs: 10 },
+    postClickObservation: { queries: coherentPostconditionQueries, timeoutMs: 4_500 },
   }, () => undefined) as Readonly<Record<string, unknown>>;
   assert.equal(zeroAction.mutationCount, 0);
   assert.equal(zeroAction.zeroActionSatisfied, true);
@@ -96,7 +96,7 @@ export const exerciseCoherentClickPostcondition = async (): Promise<void> => {
   const stuck = coherentRuntimeFor(false);
   const rejected = await executeRegisteredDomIntent(stuck.runtime, target, {
     kind: "click", selector: "button", expectedMatches: 1,
-    postClickObservation: { queries: coherentPostconditionQueries, timeoutMs: 10 },
+    postClickObservation: { queries: coherentPostconditionQueries, timeoutMs: 4_500 },
   }, () => undefined) as Readonly<Record<string, unknown>>;
   assert.equal(rejected.postconditionVerified, false);
   assert.equal(rejected.failureCode, "BROWSER_POSTCONDITION_FAILED");

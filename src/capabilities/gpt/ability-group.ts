@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import {
   executionFailureCause,
+  executionFailureMetadata,
   executionFailure,
   failureCode,
 } from "../../lib/execution-failure.js";
@@ -308,10 +309,21 @@ const failedExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
   const failure = classify(failureError);
   const nativeCause = executionFailureCause(failureError);
   const gpt = typedGptExecutionFailure(input.error);
+  const genericEvidence = executionFailureMetadata(input.error)?.evidence;
   const walBrowserFact = failedBrowserFact(input.intent, input.context);
   const observation = failureObservation({
     ...(input.observation ? { observation: input.observation } : {}),
-    ...(gpt?.proofFacts ? { gptProof: gpt.proofFacts } : {}),
+    ...(gpt?.proofFacts ? { gptProof: gpt.proofFacts }
+      : genericEvidence ? { gptProof: {
+          decision: "FAIL_CLOSED" as const,
+          factResultIds: Object.freeze([genericEvidence.evidenceRef]),
+          candidateCardinality: Object.freeze({ raw: 1, eligible: 1 }),
+          authorityRefHashes: Object.freeze([genericEvidence.evidenceHash]),
+          observationRevisionHash: genericEvidence.evidenceHash,
+          mutationOutcome: "no" as const,
+          browserFact: null,
+          nativeFailureCode: null,
+        } } : {}),
     walBrowserFact,
     nativeFailureCode: nativeCause?.code ?? null,
   });

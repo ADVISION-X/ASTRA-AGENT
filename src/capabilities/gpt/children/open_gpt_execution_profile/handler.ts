@@ -59,10 +59,8 @@ const waitForProfileHydration = async (
   while (profileFullyAbsent(observed)) {
     if (signal?.aborted) throw executionFailure("failed", "GPT_EXECUTION_ABORTED");
     const remaining = deadline - Date.now();
-    if (remaining <= 0) failProfileOpen("GPT_EXECUTION_PROFILE_HYDRATION_TIMEOUT", observed);
-    await browser.wait({
-      durationMs: Math.min(remaining, Math.max(25, Math.min(250, Math.ceil(remaining / 20)))),
-    });
+    if (remaining < 1_500) failProfileOpen("GPT_EXECUTION_PROFILE_HYDRATION_TIMEOUT", observed);
+    await browser.wait({ durationMs: 1_500 });
     observed = await topology(browser);
     if (observed.targetRefHash !== targetRefHash || observed.documentRefHash !== documentRefHash) {
       failProfileOpen("GPT_EXECUTION_PROFILE_HYDRATION_DOCUMENT_CHANGED", observed);
