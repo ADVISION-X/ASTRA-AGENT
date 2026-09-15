@@ -41,6 +41,10 @@ const frozenBlueprintChecks = (sources: Readonly<Record<string, string>>): boole
   sources.blueprint!.includes("FROZEN-GPT-RESPONSE-NO-PROMPT-REHASH-001"),
   sources.blueprint!.includes("FROZEN-GPT-ATOMIC-IDENTITY-ROUNDTRIP-001"),
   sources.blueprint!.includes("FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001"),
+  sources.blueprint!.includes("账号级至少 1.5 秒起始节拍"),
+  sources.blueprint!.includes("detection→ack 唯一紧急对外动作"),
+  sources.browserBlueprint!.includes("chatgptPageAccessNotBefore"),
+  sources.browserBlueprint!.includes("detection→dispatch可豁免1.5秒"),
 ];
 
 const lifecycleChecks = (sources: Readonly<Record<string, string>>): boolean[] => {
