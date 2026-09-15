@@ -23,7 +23,7 @@ const MODE_CHECKS = {
 type EvidenceMode = keyof typeof MODE_CHECKS;
 const LAW_MODE_CLAUSES: Readonly<Record<string, Readonly<Partial<Record<EvidenceMode, readonly string[]>>>>> = {
   "LAW-AGENT-PRODUCTION-RUNTIME-001-V61": {
-    "static.ast": staticForbiddenClauses(0, 3, 7),
+    "static.ast": staticForbiddenClauses(0, 3, 7, 8),
     "static.types": staticForbiddenClauses(0),
     "static.contract": staticForbiddenClauses(0, 1, 2, 4, 5),
     "static.dependency": staticClauses(3, 6),
