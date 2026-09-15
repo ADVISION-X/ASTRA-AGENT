@@ -40,6 +40,46 @@ export type ProviderCooldownReceiptExpectation = Readonly<{
 }>;
 
 const HASH = /^sha256:[a-f0-9]{64}$/u;
+const RECEIPT_KEYS = [
+  "schema_version", "request_id", "incident_request_id", "payload_hash", "device_id",
+  "dialog_hash", "observation_hash", "target_ref_hash", "document_ref_hash", "level",
+  "current_n", "baseline_n", "server_now", "cooldown_until", "clearance",
+  "claim_gate_open", "cohort_total", "cohort_admitted", "cohort_user_terminated",
+  "cohort_pending", "cohort_effect_recovery", "cohort_unsent_resume",
+  "cohort_unclassified", "receipt_hash",
+].sort();
+
+const exactReceiptIdentity = (
+  row: Record<string, unknown>, expected: ProviderCooldownReceiptExpectation,
+): boolean => row.schema_version === "xuanxue-ai-provider-cooldown-receipt.v6"
+  && row.request_id === expected.requestId
+  && row.incident_request_id === expected.incidentRequestId
+  && row.payload_hash === expected.payloadHash
+  && (expected.deviceId === undefined || row.device_id === expected.deviceId)
+  && row.dialog_hash === expected.dialogHash
+  && row.observation_hash === expected.observationHash
+  && row.target_ref_hash === expected.targetRefHash
+  && row.document_ref_hash === expected.documentRefHash;
+
+const validCooldownState = (row: Record<string, unknown>): boolean =>
+  Number.isInteger(row.level) && Number(row.level) >= 1 && Number(row.level) <= 6
+  && Number.isInteger(row.current_n) && Number(row.current_n) >= 1
+  && Number.isInteger(row.baseline_n) && Number(row.baseline_n) >= Number(row.current_n)
+  && typeof row.server_now === "string" && Number.isFinite(Date.parse(row.server_now))
+  && typeof row.cooldown_until === "string" && Number.isFinite(Date.parse(row.cooldown_until))
+  && ["pending_unknown", "confirmed_absent", "not_cleared"].includes(String(row.clearance))
+  && typeof row.claim_gate_open === "boolean";
+
+const validCohortCounts = (row: Record<string, unknown>): boolean => {
+  const counts = [row.cohort_total, row.cohort_admitted, row.cohort_user_terminated,
+    row.cohort_pending, row.cohort_effect_recovery, row.cohort_unsent_resume,
+    row.cohort_unclassified];
+  return counts.every((count) => Number.isInteger(count) && Number(count) >= 0)
+    && Number(row.cohort_admitted) + Number(row.cohort_user_terminated)
+      + Number(row.cohort_pending) === Number(row.cohort_total)
+    && Number(row.cohort_effect_recovery) + Number(row.cohort_unsent_resume)
+      + Number(row.cohort_unclassified) === Number(row.cohort_pending);
+};
 
 export const parseProviderCooldownReceipt = (
   value: unknown,
@@ -49,43 +89,14 @@ export const parseProviderCooldownReceipt = (
     throw executionFailure("failed", "PROVIDER_COOLDOWN_RECEIPT_INVALID");
   }
   const row = value as Record<string, unknown>;
-  const counts = [row.cohort_total, row.cohort_admitted, row.cohort_user_terminated,
-    row.cohort_pending, row.cohort_effect_recovery, row.cohort_unsent_resume,
-    row.cohort_unclassified];
   const receiptHash = row.receipt_hash;
-  const expectedKeys = [
-    "schema_version", "request_id", "incident_request_id", "payload_hash", "device_id",
-    "dialog_hash", "observation_hash", "target_ref_hash", "document_ref_hash", "level",
-    "current_n", "baseline_n", "server_now", "cooldown_until", "clearance",
-    "claim_gate_open", "cohort_total", "cohort_admitted", "cohort_user_terminated",
-    "cohort_pending", "cohort_effect_recovery", "cohort_unsent_resume",
-    "cohort_unclassified", "receipt_hash",
-  ].sort();
   const actualKeys = Object.keys(row).sort();
   const core = Object.fromEntries(Object.entries(row).filter(([key]) => key !== "receipt_hash"));
-  if (actualKeys.length !== expectedKeys.length
-    || actualKeys.some((key, index) => key !== expectedKeys[index])
-    || row.schema_version !== "xuanxue-ai-provider-cooldown-receipt.v6"
-    || row.request_id !== expected.requestId
-    || row.incident_request_id !== expected.incidentRequestId
-    || row.payload_hash !== expected.payloadHash
-    || (expected.deviceId !== undefined && row.device_id !== expected.deviceId)
-    || row.dialog_hash !== expected.dialogHash
-    || row.observation_hash !== expected.observationHash
-    || row.target_ref_hash !== expected.targetRefHash
-    || row.document_ref_hash !== expected.documentRefHash
-    || !Number.isInteger(row.level) || Number(row.level) < 1 || Number(row.level) > 6
-    || !Number.isInteger(row.current_n) || Number(row.current_n) < 1
-    || !Number.isInteger(row.baseline_n) || Number(row.baseline_n) < Number(row.current_n)
-    || typeof row.server_now !== "string" || !Number.isFinite(Date.parse(row.server_now))
-    || typeof row.cooldown_until !== "string" || !Number.isFinite(Date.parse(row.cooldown_until))
-    || !["pending_unknown", "confirmed_absent", "not_cleared"].includes(String(row.clearance))
-    || typeof row.claim_gate_open !== "boolean"
-    || !counts.every((count) => Number.isInteger(count) && Number(count) >= 0)
-    || Number(row.cohort_admitted) + Number(row.cohort_user_terminated)
-      + Number(row.cohort_pending) !== Number(row.cohort_total)
-    || Number(row.cohort_effect_recovery) + Number(row.cohort_unsent_resume)
-      + Number(row.cohort_unclassified) !== Number(row.cohort_pending)
+  if (actualKeys.length !== RECEIPT_KEYS.length
+    || actualKeys.some((key, index) => key !== RECEIPT_KEYS[index])
+    || !exactReceiptIdentity(row, expected)
+    || !validCooldownState(row)
+    || !validCohortCounts(row)
     || typeof receiptHash !== "string" || !HASH.test(receiptHash)
     || receiptHash !== hashCanonical(core)) {
     throw executionFailure("failed", "PROVIDER_COOLDOWN_RECEIPT_INVALID");

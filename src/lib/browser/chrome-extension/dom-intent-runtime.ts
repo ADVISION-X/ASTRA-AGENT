@@ -17,14 +17,7 @@ import { attribute, describeNode,
   queryCandidateSet, requireKeyboardActionTarget,
   selectorForLocator } from "./dom-query-runtime.js";
 import { waitForNextChatGptObservation } from "./chatgpt-page-access-gate.js";
-import {
-  KNOWN_GPT_RATE_LIMIT_ACK,
-  KNOWN_GPT_RATE_LIMIT_ACK_SELECTOR,
-  KNOWN_GPT_RATE_LIMIT_DIALOG_SELECTOR,
-  knownGptRateLimitTargetIdentity,
-  observeKnownGptRateLimitDialog,
-  readKnownGptRateLimitClearance,
-} from "./gpt-rate-limit-dialog.js";
+import { executeKnownGptRateLimitIntent } from "./gpt-rate-limit-dialog.js";
 type FindIntent = Extract<BrowserDomIntent, { kind: "find" }>;
 type ValueIntent = Exclude<BrowserDomIntent, {
   kind: "document" | "selectExactGptConversation" | "renameExactGptConversation"
@@ -264,49 +257,9 @@ export const executeRegisteredDomIntent = async (
     const { executeGptConversationRename } = await import("./gpt-conversation-rename-runtime.js");
     return executeGptConversationRename(debuggerRuntime, target, intent, assertCurrent);
   }
-  if (intent.kind === "acknowledgeKnownGptRateLimit") {
-    const identity = await knownGptRateLimitTargetIdentity(target);
-    if (identity.targetRefHash !== intent.targetRefHash
-      || identity.documentRefHash !== intent.documentRefHash) {
-      throw new Error("BROWSER_DOCUMENT_INVALID");
-    }
-    const fact = await observeKnownGptRateLimitDialog(debuggerRuntime, target);
-    if (!fact) return Object.freeze({
-      candidateCount: 0,
-      identityRevalidated: true,
-      mutationCount: 0,
-      postconditionVerified: true,
-      zeroActionSatisfied: true,
-    });
-    if (fact.targetRefHash !== intent.targetRefHash
-      || fact.documentRefHash !== intent.documentRefHash) {
-      throw new Error("BROWSER_DOCUMENT_INVALID");
-    }
-    const dispatchNotAfter = intent.dispatchNotAfter === null
-      ? Date.parse(fact.observedAt) + 1_000 : Date.parse(intent.dispatchNotAfter);
-    return executeClickIntent(debuggerRuntime, target, {
-      kind: "click",
-      selector: KNOWN_GPT_RATE_LIMIT_ACK_SELECTOR,
-      scope: { selector: KNOWN_GPT_RATE_LIMIT_DIALOG_SELECTOR },
-      expectedTextEquals: KNOWN_GPT_RATE_LIMIT_ACK,
-      expectedMatches: 1,
-      postClickMatch: {
-        selector: KNOWN_GPT_RATE_LIMIT_DIALOG_SELECTOR,
-        expectedMatches: 0,
-        timeoutMs: 5_000,
-      },
-      postClickMinimumDelayMs: 2_500,
-    }, assertCurrent, () => {
-      if (Date.now() > dispatchNotAfter) throw new Error("BROWSER_GPT_RATE_LIMIT_ACK_SLO_EXCEEDED");
-    });
-  }
-  if (intent.kind === "readKnownGptRateLimitClearance") {
-    const identity = await knownGptRateLimitTargetIdentity(target);
-    if (identity.targetRefHash !== intent.targetRefHash
-      || identity.documentRefHash !== intent.documentRefHash) {
-      throw new Error("BROWSER_DOCUMENT_INVALID");
-    }
-    return readKnownGptRateLimitClearance(debuggerRuntime, target);
+  if (intent.kind === "acknowledgeKnownGptRateLimit"
+    || intent.kind === "readKnownGptRateLimitClearance") {
+    return executeKnownGptRateLimitIntent(debuggerRuntime, target, intent, assertCurrent);
   }
   if (intent.kind === "document" || intent.kind === "observe") {
     return executeDocumentReadIntent(debuggerRuntime, target, intent);
@@ -317,12 +270,12 @@ export const executeRegisteredDomIntent = async (
       debuggerRuntime, target, intent, assertCurrent, expectedMainFrameLoaderId,
     );
   }
-  if (intent.kind === "find") return executeFindIntent(debuggerRuntime, target, intent);
-  if (intent.kind === "click") {
-    return executeClickIntent(debuggerRuntime, target, intent, assertCurrent);
-  }
-  if (intent.kind === "hover") return executeHoverIntent(debuggerRuntime, target, intent, assertCurrent);
-  if (intent.kind === "doubleClick") return executeDoubleClickIntent(debuggerRuntime, target, intent, assertCurrent);
-  if (intent.kind === "keypress") return executeKeypressIntent(debuggerRuntime, target, intent, assertCurrent);
-  return executeValueIntent(debuggerRuntime, target, intent, assertCurrent);
+  let operation: Promise<unknown>;
+  if (intent.kind === "find") operation = executeFindIntent(debuggerRuntime, target, intent);
+  else if (intent.kind === "click") operation = executeClickIntent(debuggerRuntime, target, intent, assertCurrent);
+  else if (intent.kind === "hover") operation = executeHoverIntent(debuggerRuntime, target, intent, assertCurrent);
+  else if (intent.kind === "doubleClick") operation = executeDoubleClickIntent(debuggerRuntime, target, intent, assertCurrent);
+  else if (intent.kind === "keypress") operation = executeKeypressIntent(debuggerRuntime, target, intent, assertCurrent);
+  else operation = executeValueIntent(debuggerRuntime, target, intent, assertCurrent);
+  return operation;
 };

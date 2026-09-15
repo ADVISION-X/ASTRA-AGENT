@@ -50,11 +50,11 @@ export class ExtensionDebuggerRuntime {
   private inFlightPageActions = 0;
   private readonly pageActionCompletionWaiters = new Set<() => void>();
   private pageReadNotBefore = 0;
-  private logicalPageAccessActive = false;
-  private logicalPageAccessRequired = false;
-  private logicalPageAccessRunning = false;
-  private readonly urgentLogicalPageAccessQueue: Array<() => Promise<void>> = [];
-  private readonly ordinaryLogicalPageAccessQueue: Array<() => Promise<void>> = [];
+  private readonly logicalPageAccess = {
+    active: false, required: false, running: false,
+    urgentLogicalPageAccessQueue: [] as Array<() => Promise<void>>,
+    ordinaryLogicalPageAccessQueue: [] as Array<() => Promise<void>>,
+  };
   private providerInputGuard: ProviderInputGuard | null = null;
   private pageReadGuard: (() => void) | null = null;
   private readonly pendingFileChoosers = new Map<number, {
@@ -127,7 +127,7 @@ export class ExtensionDebuggerRuntime {
       }
     }
     if (PAGE_READ_METHODS.has(method)) {
-      if (this.logicalPageAccessRequired && !this.logicalPageAccessActive) {
+      if (this.logicalPageAccess.required && !this.logicalPageAccess.active) {
         throw new Error("BROWSER_PAGE_ACCESS_CYCLE_REQUIRED");
       }
       await this.awaitPageReadPermission();
@@ -180,39 +180,40 @@ export class ExtensionDebuggerRuntime {
       const run = async (): Promise<void> => {
         try {
           await enter();
-          if (this.logicalPageAccessActive) throw new Error("BROWSER_BACKPRESSURE");
-          this.logicalPageAccessActive = true;
+          if (this.logicalPageAccess.active) throw new Error("BROWSER_BACKPRESSURE");
+          this.logicalPageAccess.active = true;
           try {
             resolve(await action());
           } finally {
-            this.logicalPageAccessActive = false;
+            this.logicalPageAccess.active = false;
           }
         } catch (error) {
           reject(error);
         }
       };
       const queue = priority === "rate-limit-ack"
-        ? this.urgentLogicalPageAccessQueue : this.ordinaryLogicalPageAccessQueue;
+        ? this.logicalPageAccess.urgentLogicalPageAccessQueue
+        : this.logicalPageAccess.ordinaryLogicalPageAccessQueue;
       queue.push(run);
       this.drainLogicalPageAccessQueue();
     });
   }
 
   private drainLogicalPageAccessQueue(): void {
-    if (this.logicalPageAccessRunning) return;
-    this.logicalPageAccessRunning = true;
+    if (this.logicalPageAccess.running) return;
+    this.logicalPageAccess.running = true;
     void (async () => {
       try {
         while (true) {
-          const next = this.urgentLogicalPageAccessQueue.shift()
-            ?? this.ordinaryLogicalPageAccessQueue.shift();
+          const next = this.logicalPageAccess.urgentLogicalPageAccessQueue.shift()
+            ?? this.logicalPageAccess.ordinaryLogicalPageAccessQueue.shift();
           if (!next) return;
           await next();
         }
       } finally {
-        this.logicalPageAccessRunning = false;
-        if (this.urgentLogicalPageAccessQueue.length > 0
-          || this.ordinaryLogicalPageAccessQueue.length > 0) {
+        this.logicalPageAccess.running = false;
+        if (this.logicalPageAccess.urgentLogicalPageAccessQueue.length > 0
+          || this.logicalPageAccess.ordinaryLogicalPageAccessQueue.length > 0) {
           this.drainLogicalPageAccessQueue();
         }
       }
@@ -220,7 +221,7 @@ export class ExtensionDebuggerRuntime {
   }
 
   public requireLogicalPageAccessCycles(): void {
-    this.logicalPageAccessRequired = true;
+    this.logicalPageAccess.required = true;
   }
 
   public async withPageReadGuard<T>(

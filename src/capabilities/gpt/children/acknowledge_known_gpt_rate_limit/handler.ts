@@ -13,6 +13,33 @@ const HASH = /^sha256:[a-f0-9]{64}$/u;
 const EXACT_DIALOG_HASH =
   "sha256:084b621b91e3affcf2199269157febb07ded1b7a3287ac61104108317cddde15";
 
+const inputValid = (input: Readonly<{
+  incidentRequestId: string; dialogHash: string; observationHash: string;
+  targetRefHash: string; documentRefHash: string; observedAt: string;
+}>): boolean => /^aipcooldown_[a-f0-9]{40}$/u.test(input.incidentRequestId)
+  && input.dialogHash === EXACT_DIALOG_HASH && HASH.test(input.observationHash)
+  && HASH.test(input.targetRefHash) && HASH.test(input.documentRefHash)
+  && Number.isFinite(Date.parse(input.observedAt))
+  && new Date(input.observedAt).toISOString() === input.observedAt
+  && Date.now() >= Date.parse(input.observedAt);
+
+const receiptShape = (value: unknown): Readonly<Record<string, unknown>> =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? value as Readonly<Record<string, unknown>> : {};
+
+const suppliedClearanceFactValid = (
+  suppliedFact: GptChildBrowserFact,
+  intent: Parameters<GptChildHandler<"acknowledge_known_gpt_rate_limit">>[0],
+  row: Readonly<Record<string, unknown>>,
+): boolean => suppliedFact.exactCallIdentityHash === gptExactCallIdentityHash(intent)
+  && suppliedFact.childCapabilityId === intent.childCapabilityId
+  && suppliedFact.effectScope === "target_local"
+  && suppliedFact.browserOutcome === "CONFIRMED"
+  && suppliedFact.mutationOutcome === "no"
+  && suppliedFact.providerEffectIdentityHash === null
+  && suppliedFact.terminalAt === row.observedAt
+  && suppliedFact.evidenceHash === row.observationHash;
+
 export const acknowledgeKnownGptRateLimitHandler:
 GptChildHandler<"acknowledge_known_gpt_rate_limit"> = async (intent, context) => {
   requireExactInputKeys(intent, [
@@ -20,12 +47,7 @@ GptChildHandler<"acknowledge_known_gpt_rate_limit"> = async (intent, context) =>
     "documentRefHash", "observedAt",
   ]);
   const input = intent.input;
-  if (!/^aipcooldown_[a-f0-9]{40}$/u.test(input.incidentRequestId)
-    || input.dialogHash !== EXACT_DIALOG_HASH || !HASH.test(input.observationHash)
-    || !HASH.test(input.targetRefHash) || !HASH.test(input.documentRefHash)
-    || Number.isNaN(Date.parse(input.observedAt))
-    || new Date(input.observedAt).toISOString() !== input.observedAt
-    || Date.now() - Date.parse(input.observedAt) < 0) {
+  if (!inputValid(input)) {
     throw executionFailure("failed", "GPT_RATE_LIMIT_ACK_INPUT_INVALID");
   }
   const browser = requireBrowser(context);
@@ -37,8 +59,7 @@ GptChildHandler<"acknowledge_known_gpt_rate_limit"> = async (intent, context) =>
       dispatchNotAfter: context.rateLimitAckDispatchNotAfter === undefined
         ? null : new Date(context.rateLimitAckDispatchNotAfter).toISOString(),
     });
-  const row = receipt && typeof receipt === "object" && !Array.isArray(receipt)
-    ? receipt as Readonly<Record<string, unknown>> : {};
+  const row = receiptShape(receipt);
   const clickedClearance = row.clicked === true && row.mutationCount === 1;
   const absentReadback = row.zeroActionSatisfied === true
     && row.candidateCount === 0 && row.mutationCount === 0;
@@ -46,15 +67,7 @@ GptChildHandler<"acknowledge_known_gpt_rate_limit"> = async (intent, context) =>
     throw executionFailure("failed", "GPT_RATE_LIMIT_ACK_POSTCONDITION_FAILED");
   }
   const suppliedFact = context.confirmedRateLimitAcknowledgementReadback?.browserFact;
-  if (suppliedFact && (!absentReadback
-    || suppliedFact.exactCallIdentityHash !== gptExactCallIdentityHash(intent)
-    || suppliedFact.childCapabilityId !== intent.childCapabilityId
-    || suppliedFact.effectScope !== "target_local"
-    || suppliedFact.browserOutcome !== "CONFIRMED"
-    || suppliedFact.mutationOutcome !== "no"
-    || suppliedFact.providerEffectIdentityHash !== null
-    || suppliedFact.terminalAt !== row.observedAt
-    || suppliedFact.evidenceHash !== row.observationHash)) {
+  if (suppliedFact && (!absentReadback || !suppliedClearanceFactValid(suppliedFact, intent, row))) {
     throw executionFailure("failed", "GPT_RATE_LIMIT_CLEARANCE_READBACK_INVALID");
   }
   const browserFact: GptChildBrowserFact = suppliedFact

@@ -1,5 +1,11 @@
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
+import { executeClickIntent } from "./dom-pointer-intent-runtime.js";
+import type { BrowserDomIntent } from "../exact-target/browser-dom-intent.js";
+
+type RateLimitIntent = Extract<BrowserDomIntent,
+{ kind: "acknowledgeKnownGptRateLimit" | "readKnownGptRateLimitClearance" }>;
+type CurrentDocumentAssertion = () => void;
 
 export const KNOWN_GPT_RATE_LIMIT_FAILURE = "BROWSER_KNOWN_GPT_RATE_LIMIT";
 export const KNOWN_GPT_RATE_LIMIT_DIALOG_SELECTOR = "[role='dialog']";
@@ -139,7 +145,7 @@ export const observeKnownGptRateLimitDialog = async (
       observedAt: result.observedAt,
     });
   } finally {
-    await runtime.send(target.tabId, "Runtime.releaseObject", { objectId }).catch(() => undefined);
+    await runtime.send(target.tabId, "Runtime.releaseObject", { objectId });
   }
 };
 
@@ -191,3 +197,41 @@ export const knownGptRateLimitBlockerReceipt = (
   qualificationStage: "candidate-set",
   knownGptRateLimitDialogFact: fact,
 });
+
+const assertRateLimitIdentity = async (
+  target: ExtensionExactTarget,
+  intent: RateLimitIntent,
+): Promise<void> => {
+  const identity = await knownGptRateLimitTargetIdentity(target);
+  if (identity.targetRefHash !== intent.targetRefHash
+    || identity.documentRefHash !== intent.documentRefHash) throw new Error("BROWSER_DOCUMENT_INVALID");
+};
+
+export const executeKnownGptRateLimitIntent = async (
+  runtime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  intent: RateLimitIntent,
+  assertCurrent: CurrentDocumentAssertion,
+): Promise<unknown> => {
+  await assertRateLimitIdentity(target, intent);
+  if (intent.kind === "readKnownGptRateLimitClearance") {
+    return readKnownGptRateLimitClearance(runtime, target);
+  }
+  const fact = await observeKnownGptRateLimitDialog(runtime, target);
+  if (!fact) return Object.freeze({ candidateCount: 0, identityRevalidated: true,
+    mutationCount: 0, postconditionVerified: true, zeroActionSatisfied: true });
+  if (fact.targetRefHash !== intent.targetRefHash
+    || fact.documentRefHash !== intent.documentRefHash) throw new Error("BROWSER_DOCUMENT_INVALID");
+  const dispatchNotAfter = intent.dispatchNotAfter === null
+    ? Date.parse(fact.observedAt) + 1_000 : Date.parse(intent.dispatchNotAfter);
+  return executeClickIntent(runtime, target, {
+    kind: "click", selector: KNOWN_GPT_RATE_LIMIT_ACK_SELECTOR,
+    scope: { selector: KNOWN_GPT_RATE_LIMIT_DIALOG_SELECTOR },
+    expectedTextEquals: KNOWN_GPT_RATE_LIMIT_ACK, expectedMatches: 1,
+    postClickMatch: { selector: KNOWN_GPT_RATE_LIMIT_DIALOG_SELECTOR,
+      expectedMatches: 0, timeoutMs: 5_000 },
+    postClickMinimumDelayMs: 2_500,
+  }, assertCurrent, () => {
+    if (Date.now() > dispatchNotAfter) throw new Error("BROWSER_GPT_RATE_LIMIT_ACK_SLO_EXCEEDED");
+  });
+};

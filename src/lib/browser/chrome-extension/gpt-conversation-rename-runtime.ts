@@ -103,6 +103,48 @@ const absent = async (
   return candidates.rawCount === 0;
 };
 
+const applyRenameInputs = async (
+  runtime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  intent: RenameIntent,
+  assertCurrent: CurrentDocumentAssertion,
+  started: () => void,
+  selectors: ReturnType<typeof selectorsFor>,
+): Promise<Readonly<Record<string, unknown>>> => {
+  const menu = completedStep(await executeClickIntent(runtime, target, {
+    kind: "click", selector: selectors.menuButton, expectedMatches: 1,
+    postClickMatch: { selector: RENAME_MENU_ITEM_SELECTOR, expectedMatches: 1,
+      textEquals: "重命名", timeoutMs: intent.timeoutMs },
+  }, assertCurrent, started), 0);
+  if (!menu.ok) return menu.receipt;
+  await waitForNextRenameInput();
+  const editor = completedStep(await executeClickIntent(runtime, target, {
+    kind: "click", selector: RENAME_MENU_ITEM_SELECTOR, expectedTextEquals: "重命名",
+    expectedMatches: 1,
+    postClickMatch: { selector: TITLE_EDITOR_SELECTOR, expectedMatches: 1,
+      timeoutMs: intent.timeoutMs },
+  }, assertCurrent, started), 1);
+  if (!editor.ok) return editor.receipt;
+  await waitForNextRenameInput();
+  const filled = completedStep(await executeFillIntent(runtime, target, {
+    kind: "fill", selector: TITLE_EDITOR_SELECTOR, approvedText: intent.targetTitle,
+    clearBeforeType: true, expectedMatches: 1,
+  }, assertCurrent, started), 2);
+  if (!filled.ok) return filled.receipt;
+  await waitForNextRenameInput();
+  const saved = completedStep(await executeKeypressIntent(runtime, target, {
+    kind: "keypress", selector: TITLE_EDITOR_SELECTOR, key: "Enter", expectedMatches: 1,
+    postKeypressMatch: {
+      selector: `${selectors.conversation}[aria-label="${selectorValue(intent.targetTitle)}"]`,
+      expectedMatches: 1, timeoutMs: intent.timeoutMs,
+    },
+  }, assertCurrent, started), 3);
+  return saved.ok ? Object.freeze({
+    renameState: "renamed", candidateCount: 1, identityRevalidated: true,
+    mutationCount: 4, postconditionVerified: true,
+  }) : saved.receipt;
+};
+
 export const executeGptConversationRename = async (
   runtime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
@@ -133,45 +175,7 @@ export const executeGptConversationRename = async (
       mutationCount: 0, postconditionVerified: true,
     });
 
-    const menu = completedStep(await executeClickIntent(runtime, target, {
-      kind: "click", selector: selectors.menuButton, expectedMatches: 1,
-      postClickMatch: {
-        selector: RENAME_MENU_ITEM_SELECTOR, expectedMatches: 1,
-        textEquals: "重命名", timeoutMs: intent.timeoutMs,
-      },
-    }, assertCurrent, started), 0);
-    if (!menu.ok) return menu.receipt;
-    await waitForNextRenameInput();
-
-    const editor = completedStep(await executeClickIntent(runtime, target, {
-      kind: "click", selector: RENAME_MENU_ITEM_SELECTOR, expectedTextEquals: "重命名",
-      expectedMatches: 1,
-      postClickMatch: {
-        selector: TITLE_EDITOR_SELECTOR, expectedMatches: 1, timeoutMs: intent.timeoutMs,
-      },
-    }, assertCurrent, started), 1);
-    if (!editor.ok) return editor.receipt;
-    await waitForNextRenameInput();
-
-    const filled = completedStep(await executeFillIntent(runtime, target, {
-      kind: "fill", selector: TITLE_EDITOR_SELECTOR, approvedText: intent.targetTitle,
-      clearBeforeType: true, expectedMatches: 1,
-    }, assertCurrent, started), 2);
-    if (!filled.ok) return filled.receipt;
-    await waitForNextRenameInput();
-
-    const saved = completedStep(await executeKeypressIntent(runtime, target, {
-      kind: "keypress", selector: TITLE_EDITOR_SELECTOR, key: "Enter", expectedMatches: 1,
-      postKeypressMatch: {
-        selector: `${selectors.conversation}[aria-label="${selectorValue(intent.targetTitle)}"]`,
-        expectedMatches: 1, timeoutMs: intent.timeoutMs,
-      },
-    }, assertCurrent, started), 3);
-    if (!saved.ok) return saved.receipt;
-    return Object.freeze({
-      renameState: "renamed", candidateCount: 1, identityRevalidated: true,
-      mutationCount: 4, postconditionVerified: true,
-    });
+    return await applyRenameInputs(runtime, target, intent, assertCurrent, started, selectors);
   } catch (error) {
     const code = error instanceof Error ? error.message : "BROWSER_POSTCONDITION_FAILED";
     const candidateCount = code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS" ? 2

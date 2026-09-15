@@ -4,13 +4,14 @@ import { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension
 import { ExtensionDebuggerRuntime } from
   "../../src/lib/browser/chrome-extension/debugger-runtime.js";
 import type { ExtensionChromeApi } from "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
-import { BrowserAuthorityBroker } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
-import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
 import { exerciseAuthenticatedMedia } from "./local-browser-authenticated-media-support.js";
 import { exerciseLocalBrowserDomIntent } from "./local-browser-dom-intent-support.js";
 import { emitLocalBrowserAutoPairingProofs } from "./local-browser-proof-support.js";
 import { browserDomFacts } from "./local-browser-dom-runtime-fixture.js";
 import { exerciseAutomaticPairing } from "./local-browser-auto-pairing-support.js";
+import {
+  exerciseAuthorizedContinuation, exerciseClaimBroker, exerciseTargetRotation,
+} from "./local-browser-target-lifecycle-support.js";
 
 type TabActivatedListener = Parameters<ExtensionChromeApi["tabs"]["onActivated"]["addListener"]>[0];
 type TabUpdatedListener = Parameters<ExtensionChromeApi["tabs"]["onUpdated"]["addListener"]>[0];
@@ -469,124 +470,16 @@ assert.ok(removedTabs.includes(6), "a conflicted task-owned page must be removed
 attachFailureTabId = null;
 assert.ok(debuggerEvent, "the exact target owner must observe main-frame navigation");
 
-const rotationHashes = ["b", "c", "d"].map(
-  (value) => `sha256:${value.repeat(64)}` as `sha256:${string}`,
-);
-const rotationTargetRefs: string[] = [];
-for (const [index, hash] of rotationHashes.entries()) {
-  const acquisition = targetAuthority.acquireJobBoundChatGptTarget("fresh", hash);
-  const tabId = 7 + index;
-  await waitForCreatedTab(tabId);
-  targetTabUpdated(tabId, { status: "complete" }, {
-    id: tabId, url: "https://chatgpt.com/", title: "ChatGPT",
-  });
-  await acquisition;
-  rotationTargetRefs.push(String(targetFrames.at(-1)?.body.targetRef));
-  await targetAuthority.parkActiveTarget();
-}
-const navigationBeforeRotation = debuggerMethods.filter((method) => method === "Page.navigate").length;
-for (const index of [0, 1, 2, 0]) {
-  await targetAuthority.acquireJobBoundChatGptTarget(
-    "bound-observation", rotationHashes[index]!,
-  );
-  assert.equal(targetFrames.at(-1)?.body.targetRef, rotationTargetRefs[index]);
-  await targetAuthority.parkActiveTarget();
-}
-assert.deepEqual(activatedTabs.slice(-4), [7, 8, 9, 7],
-  "three job-owned Tabs must rotate A/B/C/A through exact Chrome activation");
-assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length,
-  navigationBeforeRotation, "normal bound observation must switch Tabs with zero navigation");
-removeFailureTabId = 7;
-await assert.rejects(
-  targetAuthority.releaseJobBoundChatGptTarget(rotationHashes[0]!),
-  /BROWSER_TARGET_CLEANUP_FAILED/u,
-  "an unproven tab removal must retain the exact binding for a governed retry",
-);
-await targetAuthority.acquireJobBoundChatGptTarget("bound-observation", rotationHashes[0]!);
-assert.equal(targetFrames.at(-1)?.body.targetRef, rotationTargetRefs[0]);
-await targetAuthority.parkActiveTarget();
-await targetAuthority.releaseJobBoundChatGptTarget(rotationHashes[0]!);
-assert.equal(removedTabs.at(-1), 7, "business closure must remove only the exact job-owned Tab");
-await targetAuthority.acquireJobBoundChatGptTarget("bound-observation", rotationHashes[1]!);
-assert.equal(targetFrames.at(-1)?.body.targetRef, rotationTargetRefs[1],
-  "closing job A must preserve job B's exact bound Tab");
-await targetAuthority.parkActiveTarget();
-await targetAuthority.releaseJobBoundChatGptTarget(rotationHashes[1]!);
-await targetAuthority.releaseJobBoundChatGptTarget(rotationHashes[2]!);
-
-const continuationHash = `sha256:${"e".repeat(64)}` as const;
-const continuationUrl = "https://chatgpt.com/c/article-a";
-const continuationTabId = nextCreatedTabId;
-const continuationNavigationBaseline = debuggerMethods
-  .filter((method) => method === "Page.navigate").length;
-const continuationFrameBaseline = targetFrames.length;
-const continuationAcquisition = targetAuthority.acquireJobBoundChatGptTarget(
-  "authorized-continuation", continuationHash, continuationUrl,
-);
-await waitForCreatedTab(continuationTabId);
-targetTabUpdated(continuationTabId, { status: "complete" }, {
-  id: continuationTabId, url: "https://chatgpt.com/", title: "ChatGPT",
+const rotationHashes = await exerciseTargetRotation({
+  authority: targetAuthority, waitForCreatedTab, targetTabUpdated, targetFrames,
+  debuggerMethods, activatedTabs, removedTabs,
+  setRemoveFailureTabId: (value) => { removeFailureTabId = value; },
 });
-await continuationAcquisition;
-assert.equal(mainFrameUrlByTab.get(continuationTabId), continuationUrl,
-  "authorized continuation must navigate the new current-job Target to the exact parent WAL URL");
-assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length,
-  continuationNavigationBaseline + 1,
-  "authorized continuation must navigate exactly once before publishing its Target claim");
-assert.equal(targetFrames.length, continuationFrameBaseline + 1);
-assert.equal(targetFrames.at(-1)?.kind, "TARGET_CLAIM");
-assert.deepEqual(Object.keys(targetFrames.at(-1)?.body ?? {}).sort(),
-  ["claimOrigin", "documentRef", "jobRefHash", "navigationEpoch", "targetRef"],
-  "the parent conversation URL must remain absent from Target claim transport");
-await targetAuthority.parkActiveTarget();
-const parkedContinuationNavigationBaseline = debuggerMethods
-  .filter((method) => method === "Page.navigate").length;
-await targetAuthority.acquireJobBoundChatGptTarget(
-  "authorized-continuation", continuationHash, continuationUrl,
-);
-assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length,
-  parkedContinuationNavigationBaseline,
-  "a parked current-job Target must be revalidated without re-navigation");
-await targetAuthority.parkActiveTarget();
-mainFrameUrlByTab.set(continuationTabId, "https://chatgpt.com/c/article-b");
-await assert.rejects(
-  targetAuthority.acquireJobBoundChatGptTarget(
-    "authorized-continuation", continuationHash, continuationUrl,
-  ),
-  /BROWSER_POSTCONDITION_FAILED/u,
-  "a parked Target from article B must fail before article A can claim it",
-);
-assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length,
-  parkedContinuationNavigationBaseline,
-  "mismatched parked continuation must fail without navigation");
-await targetAuthority.releaseJobBoundChatGptTarget(continuationHash);
-
-const issuer = new BrowserAuthorityIssuer();
-Reflect.set(issuer, "slot", { kind: "PRESENT", authority: { authorityEpoch: 7, authorityRef: "authority-7" } });
-const broker = new BrowserAuthorityBroker(
-  issuer,
-  () => undefined,
-  () => { throw new Error("target lease factory is outside this claim-only acceptance"); },
-);
-const initialClaim = {
-  authorityEpoch: 7, targetRef: "target-1", documentRef: "document-1", navigationEpoch: 0,
-  claimOrigin: "https://chatgpt.com", jobRefHash: rotationHashes[0]!,
-} as const;
-broker.registerOperatorTargetClaim(initialClaim);
-broker.registerOperatorTargetClaim({ ...initialClaim, documentRef: "document-2", navigationEpoch: 1 });
-assert.throws(() => broker.registerOperatorTargetClaim({ ...initialClaim, targetRef: "target-2" }), /BROWSER_TARGET_INVALID/u,
-  "an authenticated connection must not replace its claimed target without revoke");
-assert.throws(() => broker.registerOperatorTargetClaim({ ...initialClaim, documentRef: "document-4", navigationEpoch: 3 }), /BROWSER_TARGET_INVALID/u,
-  "Document claims must advance by exactly one navigation epoch");
-assert.throws(() => broker.registerOperatorTargetClaim({
-  ...initialClaim, documentRef: "document-3", navigationEpoch: 2, jobRefHash: rotationHashes[1]!,
-}), /BROWSER_TARGET_INVALID/u, "a live claim may never change its exact job identity");
-await assert.rejects(broker.acquireOperatorClaimedTargetLease({
-  jobRefHash: rotationHashes[1]!,
-} as never, "wrong-job"), /BROWSER_TARGET_INVALID/u,
-"an old claimed Tab must never be wrapped as a lease for a different job");
-assert.equal(new Set<number>(activatedTabs).has(99), false, "the interaction gate must never activate an operator Tab");
-assert.equal(new Set<number>(removedTabs).has(99), false, "the production owner must never remove an operator Tab");
+await exerciseAuthorizedContinuation({
+  authority: targetAuthority, nextCreatedTabId, waitForCreatedTab, targetTabUpdated,
+  targetFrames, debuggerMethods, mainFrameUrlByTab,
+});
+await exerciseClaimBroker({ hashes: rotationHashes, activatedTabs, removedTabs });
 
 process.stdout.write("LOCAL_BROWSER_AUTO_PAIRING_AND_EXACT_CHATGPT_CLAIM_ACCEPTANCE_PASS\n");
 emitLocalBrowserAutoPairingProofs();

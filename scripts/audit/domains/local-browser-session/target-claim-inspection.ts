@@ -22,9 +22,7 @@ const laneCoordinatorPath = "src/lib/browser/infrastructure/browser-lane-coordin
 const targetAcquirerPath = "src/lib/browser/infrastructure/browser-target-acquirer.ts";
 const framePayloadPath = "src/lib/browser/transport/browser-authority-frame-payload.ts";
 const domIntentRuntimePath = "src/lib/browser/chrome-extension/dom-intent-runtime.ts";
-const rateLimitHandlerPath =
-  "src/capabilities/gpt/children/acknowledge_known_gpt_rate_limit/handler.ts";
-const productionChildToolsPath = "src/capabilities/gpt/production-child-tools.ts";
+const gptRateLimitRuntimePath = "src/lib/browser/chrome-extension/gpt-rate-limit-dialog.ts";
 
 const interactionReadinessFinding = (
   findings: InspectorFinding[],
@@ -92,6 +90,50 @@ const inspectNoFocusFallback = (
     "The unique interaction gate must not add window focus or Page.bringToFront fallback authority.");
 };
 
+const interactionAuthorityExact = (input: Readonly<{
+  execute: Node; executeBoundary: Node; executeMutation: Node; ensure: Node; assertReady: Node;
+  acquireBoundary: Node; frameBoundary: Node; start: Node; constructor: Node;
+  runtimeText: string; runtimeSendText: string; rateLimitText: string;
+  nonFrameUrlReadCount: number;
+}>): boolean => {
+  const executeText = input.execute.getText();
+  const ensureText = input.ensure.getText();
+  const assertText = input.assertReady.getText();
+  const startText = input.start.getText();
+  return [executeText.includes('mutationClass === "mutation"'),
+    exactCallCount(input.execute, "this.interactionReadiness.executeMutation") === 1,
+    exactCallCount(input.executeMutation, "this.ensureInteractionReady") === 1,
+    exactCallCount(input.executeMutation, "this.debuggerRuntime.withProviderInputGuard") === 1,
+    ensureText.includes("tab.active !== true"),
+    exactCallCount(input.ensure, "this.debuggerRuntime.activateTab") === 1,
+    exactCallCount(input.ensure, "this.debuggerRuntime.readTab") === 3,
+    exactCallCount(input.ensure, "readExtensionMainFrame") === 1,
+    ensureText.includes("activeState.target?.targetRef !== target.targetRef"),
+    ensureText.includes("frame.loaderId !== activeState.loaderId"),
+    exactCallCount(input.ensure, "requireGptWebPolicyForUrl") === 1,
+    input.nonFrameUrlReadCount === 0,
+    ensureText.indexOf("this.recordActiveTab(windowId, target.tabId)")
+      < ensureText.indexOf("readExtensionMainFrame(this.debuggerRuntime, target.tabId)"),
+    ensureText.includes("active.generation !== activationGeneration"),
+    assertText.includes("active.generation !== lease.generation"),
+    exactCallCount(input.assertReady, "this.resolveExactTarget") === 1,
+    exactCallCount(input.start, "this.chromeApi.tabs.onActivated.addListener") === 1,
+    startText.includes("this.interactionReadiness.recordActiveTab"),
+    input.constructor.getText().includes("this.debuggerRuntime.requireLogicalPageAccessCycles()"),
+    exactCallCount(input.executeBoundary, "this.debuggerRuntime.withLogicalPageAccess") === 1,
+    input.executeBoundary.getText().includes('acknowledgeRateLimit ? "rate-limit-ack" : "ordinary"'),
+    exactCallCount(input.acquireBoundary, "this.debuggerRuntime.withLogicalPageAccess") === 1,
+    exactCallCount(input.frameBoundary, "this.debuggerRuntime.withLogicalPageAccess") === 1,
+    input.runtimeSendText.includes("this.logicalPageAccess.required && !this.logicalPageAccess.active"),
+    input.runtimeSendText.includes("BROWSER_PAGE_ACCESS_CYCLE_REQUIRED"),
+    input.runtimeText.includes("urgentLogicalPageAccessQueue.shift()"),
+    input.runtimeText.includes("ordinaryLogicalPageAccessQueue.shift()"),
+    input.executeBoundary.getText().includes("acknowledgeRateLimit ? async () => undefined"),
+    input.rateLimitText.includes("intent.dispatchNotAfter === null"),
+    input.rateLimitText.includes("Date.parse(intent.dispatchNotAfter)"),
+  ].every(Boolean);
+};
+
 const inspectInteractionAuthority = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -103,10 +145,9 @@ const inspectInteractionAuthority = (
   const actor = requireSource(context, findings, lawId, sourcePaths[1]);
   const commandRegistry = requireSource(context, findings, lawId, sourcePaths[8]);
   const domIntentRuntime = requireSource(context, findings, lawId, domIntentRuntimePath);
-  const rateLimitHandler = requireSource(context, findings, lawId, rateLimitHandlerPath);
-  const productionChildTools = requireSource(context, findings, lawId, productionChildToolsPath);
-  if ([authority, readiness, runtime, actor, commandRegistry, domIntentRuntime,
-    rateLimitHandler, productionChildTools].some((source) => !source)) return;
+  const gptRateLimitRuntime = requireSource(context, findings, lawId, gptRateLimitRuntimePath);
+  if ([authority, readiness, runtime, actor, commandRegistry, domIntentRuntime, gptRateLimitRuntime]
+    .some((source) => !source)) return;
 
   const authorityClass = authority!.getClass("ExtensionTargetAuthority");
   const executeBoundary = authorityClass?.getMethod("executeRegisteredCommand");
@@ -123,63 +164,30 @@ const inspectInteractionAuthority = (
   const send = runtime!.getClass("ExtensionDebuggerRuntime")?.getMethod("send");
   const admit = commandRegistry!.getVariableDeclaration("admitExtensionCommand");
   const executeActor = actor!.getClass("ExtensionWebSocketActor")?.getMethod("executeCommand");
-  if (!authorityClass || !executeBoundary || !execute || !acquireBoundary || !frameBoundary
-    || !constructor || !readinessClass || !executeMutation || !ensure
-    || !assertReady || !start || !activate || !send || !admit || !executeActor) {
+  if ([authorityClass, executeBoundary, execute, acquireBoundary, frameBoundary,
+    constructor, readinessClass, executeMutation, ensure, assertReady, start,
+    activate, send, admit, executeActor].some((value) => !value)) {
     interactionReadinessFinding(findings, lawId, interactionReadinessPath,
       "The existing Browser Authority must own the complete interaction-readiness gate.");
     return;
   }
 
-  const executeText = execute.getText();
-  const runtimeSendText = send.getText();
+  const runtimeSendText = send!.getText();
   const runtimeText = runtime!.getFullText();
-  const ensureText = ensure.getText();
-  const assertText = assertReady.getText();
-  const startText = start.getText();
-  const nonFrameUrlReads = readinessClass.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
+  const nonFrameUrlReads = readinessClass!.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
     .filter((property) => property.getName() === "url"
       && property.getExpression().getText() !== "frame");
-  const authorityExact = [executeText.includes('mutationClass === "mutation"'),
-    exactCallCount(execute, "this.interactionReadiness.executeMutation") === 1,
-    exactCallCount(executeMutation, "this.ensureInteractionReady") === 1,
-    exactCallCount(executeMutation, "this.debuggerRuntime.withProviderInputGuard") === 1,
-    ensureText.includes("tab.active !== true"),
-    exactCallCount(ensure, "this.debuggerRuntime.activateTab") === 1,
-    exactCallCount(ensure, "this.debuggerRuntime.readTab") === 3,
-    exactCallCount(ensure, "readExtensionMainFrame") === 1,
-    ensureText.includes("activeState.target?.targetRef !== target.targetRef"),
-    ensureText.includes("frame.loaderId !== activeState.loaderId"),
-    exactCallCount(ensure, "requireGptWebPolicyForUrl") === 1,
-    nonFrameUrlReads.length === 0,
-    ensureText.indexOf("this.recordActiveTab(windowId, target.tabId)")
-      < ensureText.indexOf("readExtensionMainFrame(this.debuggerRuntime, target.tabId)"),
-    ensureText.includes("active.generation !== activationGeneration"),
-    assertText.includes("active.generation !== lease.generation"),
-    exactCallCount(assertReady, "this.resolveExactTarget") === 1,
-    exactCallCount(start, "this.chromeApi.tabs.onActivated.addListener") === 1,
-    startText.includes("this.interactionReadiness.recordActiveTab"),
-    constructor.getText().includes("this.debuggerRuntime.requireLogicalPageAccessCycles()"),
-    exactCallCount(executeBoundary, "this.debuggerRuntime.withLogicalPageAccess") === 1,
-    executeBoundary.getText().includes('acknowledgeRateLimit ? "rate-limit-ack" : "ordinary"'),
-    exactCallCount(acquireBoundary, "this.debuggerRuntime.withLogicalPageAccess") === 1,
-    exactCallCount(frameBoundary, "this.debuggerRuntime.withLogicalPageAccess") === 1,
-    runtimeSendText.includes("this.logicalPageAccessRequired && !this.logicalPageAccessActive"),
-    runtimeSendText.includes("BROWSER_PAGE_ACCESS_CYCLE_REQUIRED"),
-    runtimeText.includes("urgentLogicalPageAccessQueue.shift()"),
-    runtimeText.includes("ordinaryLogicalPageAccessQueue.shift()"),
-    executeBoundary.getText().includes("acknowledgeRateLimit ? async () => undefined"),
-    domIntentRuntime!.getFullText().includes("intent.dispatchNotAfter === null"),
-    domIntentRuntime!.getFullText().includes("Date.parse(intent.dispatchNotAfter)"),
-    rateLimitHandler!.getFullText().includes("context.rateLimitAckDispatchNotAfter"),
-    productionChildTools!.getFullText().includes("Date.parse(observedAt) + 1_000"),
-    productionChildTools!.getFullText().includes("Date.parse(pending.observedAt) + 1_000"),
-    productionChildTools!.getFullText().includes('clearance: "not_cleared"'),
-  ].every(Boolean);
+  const authorityExact = interactionAuthorityExact({ execute: execute!, executeBoundary: executeBoundary!,
+    executeMutation: executeMutation!, ensure: ensure!, assertReady: assertReady!,
+    acquireBoundary: acquireBoundary!, frameBoundary: frameBoundary!, start: start!,
+    constructor: constructor!, runtimeText,
+    runtimeSendText, rateLimitText: gptRateLimitRuntime!.getFullText(),
+    nonFrameUrlReadCount: nonFrameUrlReads.length });
   if (!authorityExact) interactionReadinessFinding(findings, lawId, interactionReadinessPath,
     "Mutation execution and every CDP page read must use one exact-tab logical-access cycle, with only the exact rate-limit acknowledgement bypassing the 1.5-second wait.");
 
-  inspectRuntimeActivation({ activate, send, admit, executeActor }, findings, lawId);
+  inspectRuntimeActivation({ activate: activate!, send: send!, admit: admit!,
+    executeActor: executeActor! }, findings, lawId);
   inspectNoFocusFallback(context, findings, lawId);
 };
 

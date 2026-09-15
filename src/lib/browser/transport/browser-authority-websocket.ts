@@ -492,7 +492,6 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     return randomBytes(32).toString("hex");
   }
 }
-
 const integerField = (body: Readonly<Record<string, unknown>>, name: string): number => {
   const value = body[name];
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");

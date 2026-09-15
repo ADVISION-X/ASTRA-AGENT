@@ -113,14 +113,28 @@ const rejectMissingRenameReply = (input: FailureInput): never => {
   return emitRejected(input, failureCode);
 };
 
+const checkpointMissingIsObservation = (input: FailureInput, code: string): boolean => {
+  if (input.mutation) return false;
+  if (input.permit.childCapabilityId === "checkpoint_gpt_text_response") {
+    return code === "BROWSER_DOM_CANDIDATE_MISSING";
+  }
+  return input.permit.childCapabilityId === "checkpoint_gpt_generated_image"
+    && ["BROWSER_AUTHENTICATED_MEDIA_USER_TURN_ABSENT",
+      "BROWSER_AUTHENTICATED_MEDIA_IMAGE_SOURCE_ABSENT"].includes(code);
+};
+
+const missingRenameReply = (input: FailureInput): boolean => [input.mutation,
+  input.state.dispatched,
+  input.permit.childCapabilityId === "rename_settled_gpt_conversation",
+  input.permit.replayPolicy === "target-local-per-generation",
+  input.command.kind === "dom-intent",
+  input.command.kind === "dom-intent" && input.command.intent.kind === "renameExactGptConversation",
+].every(Boolean);
+
 export const failBrowserCommandExecution = (input: FailureInput): never => {
   if (input.state.terminalized) throw input.error;
   const code = causalBrowserFailureCode(input.error);
-  if (!input.mutation && (input.permit.childCapabilityId === "checkpoint_gpt_text_response"
-    ? code === "BROWSER_DOM_CANDIDATE_MISSING"
-    : input.permit.childCapabilityId === "checkpoint_gpt_generated_image"
-      && ["BROWSER_AUTHENTICATED_MEDIA_USER_TURN_ABSENT",
-        "BROWSER_AUTHENTICATED_MEDIA_IMAGE_SOURCE_ABSENT"].includes(code))) {
+  if (checkpointMissingIsObservation(input, code)) {
     completeBrowserCommandSpan({ span: input.commandSpan });
     input.state.terminalized = true;
     throw input.error;
@@ -129,11 +143,7 @@ export const failBrowserCommandExecution = (input: FailureInput): never => {
   if (input.mutation && input.state.dispatched && input.state.authenticatedReplyHash !== null) {
     return rejectAuthenticatedResult(input);
   }
-  if (input.mutation && input.state.dispatched
-    && input.permit.childCapabilityId === "rename_settled_gpt_conversation"
-    && input.permit.replayPolicy === "target-local-per-generation"
-    && input.command.kind === "dom-intent"
-    && input.command.intent.kind === "renameExactGptConversation") {
+  if (missingRenameReply(input)) {
     return rejectMissingRenameReply(input);
   }
   const failureCode = input.mutation && input.state.dispatched

@@ -1,5 +1,9 @@
 import type { BrowserGovernedCommand } from "./browser-command-actor.js";
 import { browserInteractionNativeCauseCode } from "./browser-interaction-native-cause.js";
+import {
+  decodeConversationRenameReceipt, knownRateLimitBlockerReceiptValid,
+} from "./browser-special-mutation-receipt.js";
+import { observationPostconditionEvidenceValid } from "./browser-observation-receipt.js";
 
 export type BrowserMutationReceipt = Readonly<{
   terminal: "confirmed" | "rejected";
@@ -181,94 +185,6 @@ const postconditionEvidenceValid = (
   return value.nativeCauseCode === postconditionFailureCause(value, expected!);
 };
 
-const coherentPacketHeaderValid = (
-  packet: Readonly<Record<string, unknown>>,
-  queryCount: number,
-): boolean => exactKeys(packet, ["schemaVersion", "exactCallIdentityHash", "targetRefHash", "documentRefHash",
-  "currentUrl", "observationRevisionHash", "observedAt", "queries"])
-  && packet.schemaVersion === "grasseye.browser.dom-observation.v2"
-  && [packet.exactCallIdentityHash, packet.targetRefHash, packet.documentRefHash,
-    packet.observationRevisionHash].every((hash) => typeof hash === "string"
-    && /^sha256:[a-f0-9]{64}$/u.test(hash))
-  && Array.isArray(packet.queries) && packet.queries.length === queryCount;
-
-const coherentRowResult = (
-  candidate: unknown,
-  spec: Readonly<{ queryId: string; expectedEligibleCount: number }>,
-): Readonly<{ valid: boolean; cause: string | null }> => {
-  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
-    return { valid: false, cause: null };
-  }
-  const row = candidate as Readonly<Record<string, unknown>>;
-  if (!coherentRowShapeValid(row, spec.queryId)) return { valid: false, cause: null };
-  if (row.eligibleCount === spec.expectedEligibleCount) return { valid: true, cause: null };
-  const first = (row.rejections as readonly unknown[])[0];
-  const reasons = first && typeof first === "object" && !Array.isArray(first)
-    ? (first as Readonly<Record<string, unknown>>).reasons : undefined;
-  const firstReason = Array.isArray(reasons) && typeof reasons[0] === "string" ? reasons[0] : null;
-  return { valid: true, cause: (row.eligibleCount as number) > spec.expectedEligibleCount
-    ? "BROWSER_DOM_CANDIDATE_AMBIGUOUS" : firstReason ?? "BROWSER_DOM_CANDIDATE_MISSING" };
-};
-
-const coherentRowShapeValid = (
-  row: Readonly<Record<string, unknown>>,
-  queryId: string,
-): boolean => row.queryId === queryId
-  && Number.isSafeInteger(row.rawCount)
-  && Number.isSafeInteger(row.eligibleCount)
-  && (row.rawCount as number) >= 0
-  && (row.eligibleCount as number) >= 0
-  && (row.eligibleCount as number) <= (row.rawCount as number)
-  && Array.isArray(row.rejections);
-
-const postconditionPacket = (
-  command: BrowserGovernedCommand,
-  value: Readonly<Record<string, unknown>>,
-) => {
-  if (command.kind !== "dom-intent" || command.intent.kind !== "click") return null;
-  if (command.intent.postClickObservation === undefined) return null;
-  const packet = value.postconditionObservation;
-  if (!packet || typeof packet !== "object" || Array.isArray(packet)) return null;
-  return { postcondition: command.intent.postClickObservation,
-    packet: packet as Readonly<Record<string, unknown>> };
-};
-
-const exactOutgoingPostconditionVerified = (
-  command: BrowserGovernedCommand,
-  packet: Readonly<Record<string, unknown>>,
-): boolean => {
-  if (command.kind !== "dom-intent" || command.intent.kind !== "click") return false;
-  const exactOutgoing = command.intent.preClickExactOutgoingTurn;
-  if (exactOutgoing === undefined) return true;
-  const firstQuery = (packet.queries as readonly Readonly<Record<string, unknown>>[])[0];
-  const firstMatch = Array.isArray(firstQuery?.matches) ? firstQuery.matches[0] : undefined;
-  const match = firstMatch && typeof firstMatch === "object" && !Array.isArray(firstMatch)
-    ? firstMatch as Readonly<Record<string, unknown>> : null;
-  return match?.exactGptUserPromptHash === exactOutgoing.expectedPromptHash;
-};
-
-const observationPostconditionEvidenceValid = (
-  command: BrowserGovernedCommand,
-  value: Readonly<Record<string, unknown>>,
-): boolean => {
-  const observed = postconditionPacket(command, value);
-  if (!observed) return false;
-  const { postcondition, packet } = observed;
-  if (!coherentPacketHeaderValid(packet, postcondition.queries.length)) return false;
-  const rows = (packet.queries as readonly unknown[]).map((candidate, index) =>
-    coherentRowResult(candidate, postcondition.queries[index]!));
-  const rowsValid = rows.every((row) => row.valid);
-  const ordinaryCause = rows.find((row) => row.cause !== null)?.cause ?? null;
-  const exactOutgoing = command.kind === "dom-intent" && command.intent.kind === "click"
-    ? command.intent.preClickExactOutgoingTurn : undefined;
-  const exactVerified = exactOutgoingPostconditionVerified(command, packet);
-  const verified = ordinaryCause === null && exactVerified;
-  const expectedCause = exactOutgoing !== undefined && !exactVerified
-    ? "BROWSER_DOM_CANDIDATE_MISSING" : ordinaryCause;
-  return rowsValid && value.postconditionVerified === verified
-    && (verified ? value.nativeCauseCode === undefined : value.nativeCauseCode === expectedCause);
-};
-
 const actionKeys = (command: BrowserGovernedCommand, failed: boolean): readonly string[] => {
   const common = ["candidateCount", "identityRevalidated", "mutationCount", "postconditionVerified"];
   const specific = command.kind === "file-input"
@@ -329,29 +245,6 @@ const domActionReceiptValid = (
   return intent.kind === "fill"
     && value.filled === true
     && value.retainedValueVerified === value.postconditionVerified;
-};
-
-const knownRateLimitBlockerReceiptValid = (
-  value: Readonly<Record<string, unknown>>,
-): boolean => {
-  const fact = value.knownGptRateLimitDialogFact as Readonly<Record<string, unknown>> | null;
-  return value.schemaVersion === "grasseye.browser.known-gpt-rate-limit-blocker.v1"
-  && value.failureCode === "BROWSER_KNOWN_GPT_RATE_LIMIT"
-  && value.nativeCauseCode === null
-  && value.candidateCount === 1
-  && value.identityRevalidated === true
-  && value.mutationCount === 0
-  && value.physicalInputCount === 0
-  && value.postconditionVerified === false
-  && value.qualificationRejected === true
-  && value.qualificationStage === "candidate-set"
-  && fact !== null && typeof fact === "object" && !Array.isArray(fact)
-  && fact.schemaVersion === "grasseye.browser.known-gpt-rate-limit-dialog.v1"
-  && fact.state === "exact_present"
-  && fact.dialogHash === "sha256:084b621b91e3affcf2199269157febb07ded1b7a3287ac61104108317cddde15"
-  && [fact.targetRefHash, fact.documentRefHash, fact.observationHash]
-    .every((hash) => typeof hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(hash))
-  && typeof fact.observedAt === "string" && Number.isFinite(Date.parse(fact.observedAt));
 };
 
 const assertDomActionReceipt = (
@@ -511,48 +404,6 @@ const decodeDispatchedMutationReceipt = (
     nativeCauseCode: hasDispatchedPostconditionRejection(rejection)
       ? String(value.nativeCauseCode) : null,
     physicalInputCount: 1,
-  });
-};
-
-const decodeConversationRenameReceipt = (
-  value: Readonly<Record<string, unknown>>,
-): BrowserMutationReceipt => {
-  const successKeys = [
-    "renameState", "candidateCount", "identityRevalidated", "mutationCount",
-    "postconditionVerified",
-  ];
-  const failureKeys = [...successKeys, "failureCode", "nativeCauseCode"];
-  if (!exactKeys(value, value.renameState === "failed" ? failureKeys : successKeys)) {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
-  const count = value.mutationCount;
-  if (!Number.isSafeInteger(count) || (count as number) < 0 || (count as number) > 4
-    || typeof value.postconditionVerified !== "boolean"
-    || !Number.isSafeInteger(value.candidateCount) || (value.candidateCount as number) < 0
-    || (value.candidateCount as number) > 2 || typeof value.identityRevalidated !== "boolean") {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
-  const physicalInputCount = count as 0 | 1 | 2 | 3 | 4;
-  const success = value.postconditionVerified === true
-    && ((physicalInputCount === 0 && value.renameState === "already-exact")
-      || (physicalInputCount === 4 && value.renameState === "renamed"))
-    && value.identityRevalidated === true && value.candidateCount === 1;
-  if (success) return Object.freeze({
-    terminal: "confirmed", mutationOutcome: physicalInputCount === 0 ? "no" : "confirmed",
-    failureCode: null, nativeCauseCode: null, physicalInputCount,
-  });
-  if (value.renameState !== "failed" || typeof value.failureCode !== "string"
-    || !/^BROWSER_[A-Z0-9_]+$/u.test(value.failureCode)
-    || (value.nativeCauseCode !== null && (typeof value.nativeCauseCode !== "string"
-      || !/^BROWSER_[A-Z0-9_]+$/u.test(value.nativeCauseCode)))) {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
-  return Object.freeze({
-    terminal: "rejected",
-    mutationOutcome: physicalInputCount === 0 ? "no" : "confirmed",
-    failureCode: value.failureCode,
-    nativeCauseCode: value.nativeCauseCode as string | null,
-    physicalInputCount,
   });
 };
 

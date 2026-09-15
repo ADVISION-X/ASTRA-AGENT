@@ -37,6 +37,32 @@ const finding = (
   checkId, filePath, message,
 });
 
+const outboxBoundaryValid = (
+  sql: string, markerCalls: number, marker: string, receiptIdentity: string, validation: string,
+): boolean => [!sql.includes("path like"), sql.includes("instr(path,?)>0"), markerCalls >= 1,
+  marker.includes("encodeURIComponent(jobId)"),
+  receiptIdentity.includes("decodeURIComponent(pathJobId) !== jobId"),
+  validation.includes("decodeURIComponent(encoded)")].every(Boolean);
+
+const providerCooldownAuthorityValid = (
+  loops: string, provider: string, receipt: string, outbox: string,
+): boolean => [loops.includes("state.providerRateLimitControl.canRequestClaimAuthority()"),
+  loops.includes("state.providerRateLimitControl.observeWebsiteAuthority"),
+  provider.includes("this.store.hasUndeliveredProviderCooldown()"),
+  provider.includes("Date.parse(input.serverNow) < Date.parse(latestIncidentServerNow)"),
+  provider.includes('this.store.latestProviderCooldownClearance() === "confirmed_absent"'),
+  provider.includes('`${incidentRequestId}_not_cleared`'), !provider.includes("Date.now()"),
+  !outbox.includes("Date.parse(receipt.cooldown_until) >"),
+  outbox.includes("parseLocalProviderCooldownReceipt(local.body_blob, response)"),
+  outbox.includes("latestProviderCooldownClearance()"),
+  outbox.includes("clearance')='confirmed_absent'"),
+  receipt.includes("receiptHash !== hashCanonical(core)")].every(Boolean);
+
+const proofBoundaryValid = (sql: string, prefix: string): boolean => [
+  !sql.includes("path like"), sql.includes("instr(path,?)>0"),
+  prefix.includes("encodeURIComponent(jobId)"),
+].every(Boolean);
+
 export const inspectAgentAuthorityAst = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -55,10 +81,8 @@ export const inspectAgentAuthorityAst = (
   const receiptIdentity = sourceFor(context, PATHS.outboxReceipt)
     ?.getVariableDeclaration("assertReceiptIdentity")?.getText() ?? "";
   const authorityValidation = sourceFor(context, PATHS.authorityValidation)?.getText() ?? "";
-  if (outboxSql.includes("path like") || !outboxSql.includes("instr(path,?)>0")
-    || markerCalls < 1 || !marker?.getText().includes("encodeURIComponent(jobId)")
-    || !receiptIdentity.includes("decodeURIComponent(pathJobId) !== jobId")
-    || !authorityValidation.includes("decodeURIComponent(encoded)")) {
+  if (!outboxBoundaryValid(outboxSql, markerCalls, marker?.getText() ?? "",
+    receiptIdentity, authorityValidation)) {
     findings.push(finding(DATABASE_LAW, "agent-production-runtime/outbox-job-boundary", PATHS.outbox,
       "Outbox job selection is not bound to one literal encoded path segment."));
   }
@@ -66,18 +90,7 @@ export const inspectAgentAuthorityAst = (
   const providerText = sourceFor(context, PATHS.providerControl)?.getFullText() ?? "";
   const providerReceiptText = sourceFor(context, PATHS.providerReceipt)?.getFullText() ?? "";
   const outboxText = outbox?.getFullText() ?? "";
-  if (!loopsText.includes("state.providerRateLimitControl.canRequestClaimAuthority()")
-    || !loopsText.includes("state.providerRateLimitControl.observeWebsiteAuthority")
-    || !providerText.includes("this.store.hasUndeliveredProviderCooldown()")
-    || !providerText.includes("Date.parse(input.serverNow) < Date.parse(latestIncidentServerNow)")
-    || !providerText.includes('this.store.latestProviderCooldownClearance() === "confirmed_absent"')
-    || !providerText.includes('`${incidentRequestId}_not_cleared`')
-    || providerText.includes("Date.now()")
-    || outboxText.includes("Date.parse(receipt.cooldown_until) >")
-    || !outboxText.includes("parseLocalProviderCooldownReceipt(local.body_blob, response)")
-    || !outboxText.includes("latestProviderCooldownClearance()")
-    || !outboxText.includes("clearance')='confirmed_absent'")
-    || !providerReceiptText.includes("receiptHash !== hashCanonical(core)")) {
+  if (!providerCooldownAuthorityValid(loopsText, providerText, providerReceiptText, outboxText)) {
     findings.push(finding(DATABASE_LAW, "agent-production-runtime/provider-cooldown-authority",
       PATHS.providerControl,
       "Provider cooldown must close claim and submit from the durable Outbox, reopen only from later Website server authority, and self-hash-validate live plus hydrated receipts."));
@@ -85,8 +98,7 @@ export const inspectAgentAuthorityAst = (
   const proofSupport = sourceFor(context, PATHS.proofSupport);
   const proofSql = preparedSql(proofSupport);
   const proofPrefix = proofSupport?.getVariableDeclaration("sentProductionCheckpointPrefix")?.getInitializer();
-  if (proofSql.includes("path like") || !proofSql.includes("instr(path,?)>0")
-    || !proofPrefix?.getText().includes("encodeURIComponent(jobId)")) {
+  if (!proofBoundaryValid(proofSql, proofPrefix?.getText() ?? "")) {
     findings.push(finding(PROOF_LAW, "agent-production-runtime/proof-outbox-job-boundary", PATHS.proofSupport,
       "Runtime proof checkpoint selection is not bound to one literal encoded job path segment."));
   }

@@ -49,136 +49,166 @@ type RenameRuntimeState = Readonly<{
   assertCurrent(): void;
 }>;
 
+type MutableRenameState = {
+  title: string;
+  editorValue: string;
+  menuOpen: boolean;
+  editorOpen: boolean;
+  clickOrdinal: number;
+  cancelled: boolean;
+  inputsAfterCancellation: number;
+  semanticInputs: string[];
+  cancelAfterSemanticInputs?: number;
+};
+
+const nodeForSelector = (state: MutableRenameState, selector: string): number[] => {
+  if (selector.includes("data-conversation-options-trigger")) return [11];
+  if (selector === "[role='menuitem']") return state.menuOpen ? [12] : [];
+  if (selector === "input[aria-label='聊天标题'][name='title-editor']") {
+    return state.editorOpen ? [13] : [];
+  }
+  if (selector.includes("data-sidebar-item='true'") && selector.includes("aria-label=")) {
+    return state.title === command.intent.targetTitle ? [10] : [];
+  }
+  if (selector.includes("data-sidebar-item='true'")) return [10];
+  throw new Error(`UNEXPECTED_RENAME_SELECTOR:${selector}`);
+};
+
+const startSemanticInput = (state: MutableRenameState, name: string): void => {
+  if (state.cancelled) state.inputsAfterCancellation += 1;
+  state.semanticInputs.push(name);
+  if (state.semanticInputs.length === state.cancelAfterSemanticInputs) state.cancelled = true;
+};
+
+const callFunctionOn = (state: MutableRenameState,
+  parameters?: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> | undefined => {
+  const objectId = String(parameters?.objectId ?? "");
+  if (objectId.startsWith("rename-node-")) {
+    const nodeId = Number(objectId.slice("rename-node-".length));
+    return { result: { value: browserDomFacts({
+      value: nodeId === 13 ? state.editorValue : "",
+      name: nodeId === 13 ? "title-editor" : "",
+      label: nodeId === 13 ? "聊天标题" : "",
+      type: nodeId === 13 ? "text" : "",
+    }) } };
+  }
+  if (objectId !== "rename-root") return undefined;
+  const request = (parameters?.arguments as readonly Readonly<{ value?: Readonly<{
+    selector?: string; output?: string;
+  }> }>[])?.[0]?.value;
+  const nodeId = nodeForSelector(state, String(request?.selector ?? ""))[0];
+  if (nodeId === undefined) {
+    return { result: { type: "string", value: "BROWSER_DOM_CANDIDATE_MISSING" } };
+  }
+  return parameters?.returnByValue === false
+    ? { result: { type: "object", subtype: "node", objectId: `rename-candidate-${nodeId}` } }
+    : { result: { value: { x: 5, y: 5 } } };
+};
+
+const describeRenameNode = (state: MutableRenameState,
+  parameters?: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> | undefined => {
+  const nodeId = Number(parameters?.nodeId);
+  if (nodeId === 10) return { node: {
+    nodeName: "A", attributes: ["aria-label", state.title], children: [],
+  } };
+  if (nodeId === 12) return { node: {
+    nodeName: "DIV", attributes: ["role", "menuitem"],
+    children: [{ nodeName: "#text", nodeValue: "重命名" }],
+  } };
+  if (nodeId === 13) return { node: {
+    nodeName: "INPUT", attributes: ["aria-label", "聊天标题", "name", "title-editor"],
+    children: [],
+  } };
+  return undefined;
+};
+
+const dispatchRenameMouse = (state: MutableRenameState,
+  parameters?: Readonly<Record<string, unknown>>): Readonly<Record<string, never>> => {
+  const type = String(parameters?.type ?? "");
+  if (type === "mousePressed") {
+    state.clickOrdinal += 1;
+    startSemanticInput(state, state.clickOrdinal === 1 ? "open-menu" : "open-editor");
+  }
+  if (type === "mouseReleased" && state.clickOrdinal === 1) state.menuOpen = true;
+  if (type === "mouseReleased" && state.clickOrdinal === 2) {
+    state.menuOpen = false;
+    state.editorOpen = true;
+    state.editorValue = state.title;
+  }
+  return {};
+};
+
+const dispatchRenameKey = (state: MutableRenameState,
+  parameters?: Readonly<Record<string, unknown>>): Readonly<Record<string, never>> => {
+  const type = String(parameters?.type ?? ""), key = String(parameters?.key ?? "");
+  if (type === "rawKeyDown" && key === "a") startSemanticInput(state, "fill-title");
+  if (type === "rawKeyDown" && key === "Backspace") state.editorValue = "";
+  if (type === "rawKeyDown" && key === "Enter") {
+    startSemanticInput(state, "save-title");
+    state.title = state.editorValue;
+    state.editorOpen = false;
+  }
+  return {};
+};
+
+type RenameMethodHandler = (state: MutableRenameState,
+  parameters?: Readonly<Record<string, unknown>>) => unknown;
+const renameMethodHandlers: Readonly<Record<string, RenameMethodHandler>> = Object.freeze({
+  "Page.getNavigationHistory": () => ({
+    currentIndex: 0, entries: [{ url: command.intent.canonicalConversationUrl, title: "ChatGPT" }],
+  }),
+  "Page.getFrameTree": () => ({ frameTree: { frame: { loaderId: "rename-loader" } } }),
+  "DOM.getDocument": () => ({ root: { nodeId: 1 } }),
+  "DOM.querySelectorAll": (state, parameters) => ({
+    nodeIds: nodeForSelector(state, String(parameters?.selector ?? "")),
+  }),
+  "DOM.resolveNode": (_state, parameters) => ({ object: { objectId: parameters?.nodeId === 1
+    ? "rename-root" : `rename-node-${parameters?.nodeId}` } }),
+  "Runtime.callFunctionOn": callFunctionOn,
+  "DOM.requestNode": (_state, parameters) => ({
+    nodeId: Number(/rename-candidate-(\d+)/u.exec(String(parameters?.objectId ?? ""))?.[1] ?? 0),
+  }),
+  "Runtime.releaseObject": () => ({}),
+  "DOM.focus": () => ({}),
+  "DOM.describeNode": describeRenameNode,
+  "Input.dispatchMouseEvent": dispatchRenameMouse,
+  "Input.dispatchKeyEvent": dispatchRenameKey,
+  "Input.insertText": (state, parameters) => {
+    state.editorValue = String(parameters?.text ?? "");
+    return {};
+  },
+});
+
+const sendRenameRuntime = async (state: MutableRenameState, method: string,
+  parameters?: Readonly<Record<string, unknown>>): Promise<unknown> => {
+  if (method.startsWith("Input.") && state.cancelled) state.inputsAfterCancellation += 1;
+  const handler = renameMethodHandlers[method];
+  if (!handler) throw new Error(`UNEXPECTED_RENAME_RUNTIME_METHOD:${method}`);
+  return handler(state, parameters);
+};
+
 const statefulRenameRuntime = (input: Readonly<{
   initialTitle: string;
   cancelAfterSemanticInputs?: number;
 }>): RenameRuntimeState => {
-  let title = input.initialTitle;
-  let editorValue = title;
-  let menuOpen = false;
-  let editorOpen = false;
-  let clickOrdinal = 0;
-  let cancelled = false;
-  let inputsAfterCancellation = 0;
-  const semanticInputs: string[] = [];
-  const nodeForSelector = (selector: string): number[] => {
-    if (selector.includes("data-conversation-options-trigger")) return [11];
-    if (selector === "[role='menuitem']") return menuOpen ? [12] : [];
-    if (selector === "input[aria-label='聊天标题'][name='title-editor']") {
-      return editorOpen ? [13] : [];
-    }
-    if (selector.includes("data-sidebar-item='true'") && selector.includes("aria-label=")) {
-      return title === command.intent.targetTitle ? [10] : [];
-    }
-    if (selector.includes("data-sidebar-item='true'")) return [10];
-    throw new Error(`UNEXPECTED_RENAME_SELECTOR:${selector}`);
-  };
-  const startSemanticInput = (name: string): void => {
-    if (cancelled) inputsAfterCancellation += 1;
-    semanticInputs.push(name);
-    if (semanticInputs.length === input.cancelAfterSemanticInputs) cancelled = true;
+  const state: MutableRenameState = {
+    title: input.initialTitle, editorValue: input.initialTitle, menuOpen: false, editorOpen: false,
+    clickOrdinal: 0, cancelled: false, inputsAfterCancellation: 0, semanticInputs: [],
+    ...(input.cancelAfterSemanticInputs === undefined
+      ? {} : { cancelAfterSemanticInputs: input.cancelAfterSemanticInputs }),
   };
   const runtime = {
     async awaitPageReadPermission(): Promise<void> { return undefined; },
     async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
-      if (method.startsWith("Input.") && cancelled) inputsAfterCancellation += 1;
-      if (method === "Page.getNavigationHistory") return {
-        currentIndex: 0,
-        entries: [{ url: command.intent.canonicalConversationUrl, title: "ChatGPT" }],
-      };
-      if (method === "Page.getFrameTree") {
-        return { frameTree: { frame: { loaderId: "rename-loader" } } };
-      }
-      if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
-      if (method === "DOM.querySelectorAll") {
-        return { nodeIds: nodeForSelector(String(parameters?.selector ?? "")) };
-      }
-      if (method === "DOM.resolveNode") {
-        return { object: { objectId: parameters?.nodeId === 1
-          ? "rename-root" : `rename-node-${parameters?.nodeId}` } };
-      }
-      if (method === "Runtime.callFunctionOn") {
-        const objectId = String(parameters?.objectId ?? "");
-        if (objectId.startsWith("rename-node-")) {
-          const nodeId = Number(objectId.slice("rename-node-".length));
-          return { result: { value: browserDomFacts({
-            value: nodeId === 13 ? editorValue : "",
-            name: nodeId === 13 ? "title-editor" : "",
-            label: nodeId === 13 ? "聊天标题" : "",
-            type: nodeId === 13 ? "text" : "",
-          }) } };
-        }
-        if (objectId === "rename-root") {
-          const request = (parameters?.arguments as readonly Readonly<{ value?: Readonly<{
-            selector?: string; output?: string;
-          }> }>[])?.[0]?.value;
-          const nodeId = nodeForSelector(String(request?.selector ?? ""))[0];
-          if (nodeId === undefined) return { result: { type: "string", value: "BROWSER_DOM_CANDIDATE_MISSING" } };
-          return parameters?.returnByValue === false
-            ? { result: { type: "object", subtype: "node", objectId: `rename-candidate-${nodeId}` } }
-            : { result: { value: { x: 5, y: 5 } } };
-        }
-      }
-      if (method === "DOM.requestNode") {
-        const match = /rename-candidate-(\d+)/u.exec(String(parameters?.objectId ?? ""));
-        return { nodeId: Number(match?.[1] ?? 0) };
-      }
-      if (method === "Runtime.releaseObject" || method === "DOM.focus") return {};
-      if (method === "DOM.describeNode") {
-        const nodeId = Number(parameters?.nodeId);
-        if (nodeId === 10) return { node: {
-          nodeName: "A", attributes: ["aria-label", title], children: [],
-        } };
-        if (nodeId === 12) return { node: {
-          nodeName: "DIV", attributes: ["role", "menuitem"],
-          children: [{ nodeName: "#text", nodeValue: "重命名" }],
-        } };
-        if (nodeId === 13) return { node: {
-          nodeName: "INPUT", attributes: ["aria-label", "聊天标题", "name", "title-editor"],
-          children: [],
-        } };
-      }
-      if (method === "Input.dispatchMouseEvent") {
-        const type = String(parameters?.type ?? "");
-        if (type === "mousePressed") {
-          clickOrdinal += 1;
-          startSemanticInput(clickOrdinal === 1 ? "open-menu" : "open-editor");
-        }
-        if (type === "mouseReleased" && clickOrdinal === 1) menuOpen = true;
-        if (type === "mouseReleased" && clickOrdinal === 2) {
-          menuOpen = false;
-          editorOpen = true;
-          editorValue = title;
-        }
-        return {};
-      }
-      if (method === "Input.dispatchKeyEvent") {
-        const type = String(parameters?.type ?? "");
-        const key = String(parameters?.key ?? "");
-        if (type === "rawKeyDown" && key === "a") startSemanticInput("fill-title");
-        if (type === "rawKeyDown" && key === "Backspace") editorValue = "";
-        if (type === "rawKeyDown" && key === "Enter") {
-          startSemanticInput("save-title");
-          title = editorValue;
-          editorOpen = false;
-        }
-        return {};
-      }
-      if (method === "Input.insertText") {
-        editorValue = String(parameters?.text ?? "");
-        return {};
-      }
-      throw new Error(`UNEXPECTED_RENAME_RUNTIME_METHOD:${method}`);
+      return sendRenameRuntime(state, method, parameters);
     },
   } as ExtensionDebuggerRuntime;
   return {
     runtime,
-    title: () => title,
-    semanticInputs: () => semanticInputs,
-    inputsAfterCancellation: () => inputsAfterCancellation,
-    assertCurrent: () => {
-      if (cancelled) throw new Error("BROWSER_COMMAND_PERMIT_EXPIRED");
-    },
+    title: () => state.title,
+    semanticInputs: () => state.semanticInputs,
+    inputsAfterCancellation: () => state.inputsAfterCancellation,
+    assertCurrent: () => { if (state.cancelled) throw new Error("BROWSER_COMMAND_PERMIT_EXPIRED"); },
   };
 };
 
@@ -215,7 +245,7 @@ const exerciseRenameRuntime = async (): Promise<void> => {
   }
 };
 
-const exerciseActor = async (root: string): Promise<void> => {
+const assertRenameIntentContract = (): void => {
   assert.doesNotThrow(() => assertBrowserDomIntent(command.intent));
   assert.throws(() => assertBrowserDomIntent({
     ...command.intent, targetTitle: "bad\nname",
@@ -230,7 +260,10 @@ const exerciseActor = async (root: string): Promise<void> => {
       ...command.intent, ...extra,
     } as never), /BROWSER_COMMAND_PERMIT_INVALID/u);
   }
+};
 
+const exerciseActor = async (root: string): Promise<void> => {
+  assertRenameIntentContract();
   const dataDir = join(root, "settled-rename-actor");
   const store = new BrowserMutationStore(dataDir);
   const logger = createRuntimeLogger({

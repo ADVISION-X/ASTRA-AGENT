@@ -148,9 +148,12 @@ export class ExtensionTargetAuthority {
   ): Promise<void> {
     const continuationUrl = targetMode === "authorized-continuation"
       ? requireCanonicalGptConversationUrl(parentConversationUrl ?? "") : undefined;
-    if (!["fresh", "bound-observation", "confirmed-readback", "authorized-continuation"].includes(targetMode)
-      || !/^sha256:[a-f0-9]{64}$/u.test(jobRefHash)
-      || (targetMode !== "authorized-continuation" && parentConversationUrl !== undefined)) {
+    const requestValid = [
+      ["fresh", "bound-observation", "confirmed-readback", "authorized-continuation"].includes(targetMode),
+      /^sha256:[a-f0-9]{64}$/u.test(jobRefHash),
+      targetMode === "authorized-continuation" || parentConversationUrl === undefined,
+    ].every(Boolean);
+    if (!requestValid) {
       throw new Error("BROWSER_TARGET_INVALID");
     }
     if (this.activeTarget || this.createdTarget.isPending()) throw new Error("BROWSER_TARGET_INVALID");

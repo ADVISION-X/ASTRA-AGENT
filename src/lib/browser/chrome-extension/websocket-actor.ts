@@ -36,6 +36,7 @@ import {
 } from "./websocket-command-diagnostic.js";
 import { extensionFrameDiagnostic, extensionRuntimeDiagnostic } from "./websocket-actor-diagnostics.js";
 import { acceptTargetClaimAcknowledgement, TargetClaimAwaiter } from "./websocket-target-claim-awaiter.js";
+import { targetOperationFrom } from "./websocket-target-operation.js";
 
 declare const __GRASSEYE_RELEASE_BUILD_ID__: string;
 
@@ -67,41 +68,6 @@ const commandFrom = (value: unknown): BrowserGovernedCommand => {
 
 const canAttemptAutomaticPairing = (state: SocketState): boolean =>
   state !== "CONNECTING" && state !== "PAIRING" && state !== "CONNECTED";
-
-type TargetOperation = Readonly<{
-  action: "release";
-  jobRefHash: `sha256:${string}`;
-}> | Readonly<{
-  action: "acquire";
-  jobRefHash: `sha256:${string}`;
-  targetMode: "fresh" | "bound-observation" | "confirmed-readback" | "authorized-continuation";
-  parentConversationUrl?: string;
-}>;
-
-const hasExactKeys = (value: Readonly<Record<string, unknown>>, keys: readonly string[]): boolean =>
-  Object.keys(value).length === keys.length && Object.keys(value).every((key) => keys.includes(key));
-
-const targetOperationFrom = (request: Readonly<Record<string, unknown>>): TargetOperation => {
-  const jobRefHash = typeof request.jobRefHash === "string" && /^sha256:[a-f0-9]{64}$/u.test(request.jobRefHash)
-    ? request.jobRefHash as `sha256:${string}`
-    : (() => { throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID"); })();
-  if (request.action === "release") {
-    if (!hasExactKeys(request, ["action", "jobRefHash"])) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    return { action: "release", jobRefHash };
-  }
-  const targetMode = request.targetMode;
-  const validMode = targetMode === "fresh" || targetMode === "bound-observation"
-    || targetMode === "confirmed-readback" || targetMode === "authorized-continuation";
-  const continuation = targetMode === "authorized-continuation";
-  if (request.action !== "acquire" || !validMode
-    || typeof request.parentConversationUrl !== (continuation ? "string" : "undefined")
-    || !hasExactKeys(request, ["action", "targetMode", "jobRefHash",
-      ...(continuation ? ["parentConversationUrl"] : [])])) {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
-  return { action: "acquire", jobRefHash, targetMode,
-    ...(continuation ? { parentConversationUrl: request.parentConversationUrl as string } : {}) };
-};
 
 /** The extension actor is the sole socket owner; every authentication discontinuity requires a fresh automatic pairing. */
 export class ExtensionWebSocketActor {
@@ -352,12 +318,15 @@ export class ExtensionWebSocketActor {
 
   private async executeCommand(socket: WebSocket, frame: BrowserAuthorityFrame): Promise<void> {
     const session = this.session;
-    if (!session || !this.commandReady || frame.epoch !== AUTH_EPOCH) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    if (!session) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    if ([!this.commandReady, frame.epoch !== AUTH_EPOCH].some(Boolean)) {
+      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    }
     const payload = await decrypt(session.serverToClientKey, "server-to-client", frame);
     const permit = asRecord(payload.permit) as BrowserCommandPermit | null;
     const requestSequence = frame.sequence;
-    const permitSequence = permit && typeof permit.sequence === "number" ? permit.sequence : 0;
-    const replyChannelToken = permit && typeof permit.replyChannelToken === "string" ? permit.replyChannelToken : "invalid";
+    const permitSequence = typeof permit?.sequence === "number" ? permit.sequence : 0;
+    const replyChannelToken = typeof permit?.replyChannelToken === "string" ? permit.replyChannelToken : "invalid";
     let commandStage: ExtensionCommandStage = "payload";
     let command: BrowserGovernedCommand | null = null;
     try {
@@ -368,8 +337,8 @@ export class ExtensionWebSocketActor {
       }
       const commandSessionKey = session.serverToClientKey;
       const assertCommandActive = (): void => {
-        if (socket !== this.socket || !this.commandReady
-          || this.session?.serverToClientKey !== commandSessionKey) {
+        if ([socket !== this.socket, !this.commandReady,
+          this.session?.serverToClientKey !== commandSessionKey].some(Boolean)) {
           throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
         }
         if (Date.now() >= deadline) throw new Error("BROWSER_COMMAND_PERMIT_EXPIRED");
@@ -388,8 +357,9 @@ export class ExtensionWebSocketActor {
         registeredCommand.mutationClass,
         assertCommandActive,
       );
-      if (!(command.kind === "dom-intent"
-        && command.intent.kind === "renameExactGptConversation")) assertCommandActive();
+      const renameCommand = command.kind === "dom-intent"
+        ? command.intent.kind === "renameExactGptConversation" : false;
+      if (!renameCommand) assertCommandActive();
       await this.sendEncrypted(socket, "REPLY", { requestSequence, permitSequence, replyChannelToken, result });
     } catch (error) {
       let commandError = error;
@@ -408,7 +378,7 @@ export class ExtensionWebSocketActor {
         commandStage,
         commandKind: command?.kind ?? null,
         commandIntentKind: command?.kind === "dom-intent" ? command.intent.kind : null,
-        capabilityId: permit && typeof permit.capabilityId === "string" ? permit.capabilityId : null,
+        capabilityId: typeof permit?.capabilityId === "string" ? permit.capabilityId : null,
       }));
       await this.sendEncrypted(socket, "REPLY", { requestSequence, permitSequence, replyChannelToken, errorCode: commandErrorCode });
     }

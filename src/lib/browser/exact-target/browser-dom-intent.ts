@@ -16,7 +16,9 @@ import {
   exactAssistantReadIntentValid,
   isBoundedText,
 } from "./browser-dom-read-intent.js";
-import { requireCanonicalGptConversationUrl } from "./browser-site-policy-registry.js";
+import {
+  assertPreClickExactOutgoingTurn, assertSpecialBrowserDomIntent,
+} from "./browser-dom-special-intent.js";
 export type BrowserDomField = typeof BROWSER_DOM_FIELD_VALUES[number];
 export type BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">;
 export type BrowserDomPostconditionField = Exclude<BrowserDomObservationField,
@@ -46,7 +48,6 @@ export type BrowserDomPostconditionQuery = Omit<
   fields: readonly BrowserDomPostconditionField[];
   expectedEligibleCount: number;
 }>;
-
 export type BrowserDomObservationPacketV2 = Readonly<{
   schemaVersion: "grasseye.browser.dom-observation.v2";
   exactCallIdentityHash: `sha256:${string}`;
@@ -231,45 +232,8 @@ export const assertBrowserDomIntent = (intent: BrowserDomIntent): BrowserDomInte
   assertScopedIntent(intent);
   return intent;
 };
-
 const assertObservationIntent = (intent: BrowserDomIntent): void => {
-  if (intent.kind === "selectExactGptConversation") try {
-    requireCanonicalGptConversationUrl(intent.canonicalConversationUrl);
-  } catch { throw new Error("BROWSER_COMMAND_PERMIT_INVALID"); }
-  if (intent.kind === "renameExactGptConversation") {
-    const exactKeys = new Set([
-      "kind", "canonicalConversationUrl", "targetTitle", "timeoutMs",
-    ]);
-    let canonical = false;
-    try {
-      canonical = requireCanonicalGptConversationUrl(intent.canonicalConversationUrl)
-        === intent.canonicalConversationUrl;
-    } catch { canonical = false; }
-    if (Object.keys(intent).length !== exactKeys.size
-      || Object.keys(intent).some((key) => !exactKeys.has(key))
-      || !canonical || intent.targetTitle !== intent.targetTitle.normalize("NFC")
-      || intent.targetTitle.trim() !== intent.targetTitle
-      || [...intent.targetTitle].length < 1 || [...intent.targetTitle].length > 128
-      || /[\u0000-\u001f\u007f]/u.test(intent.targetTitle)
-      || intent.timeoutMs !== 10_000) {
-      throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-    }
-  }
-  if (intent.kind === "acknowledgeKnownGptRateLimit"
-    && (Object.keys(intent).length !== 4
-      || !/^sha256:[a-f0-9]{64}$/u.test(intent.targetRefHash)
-      || !/^sha256:[a-f0-9]{64}$/u.test(intent.documentRefHash)
-      || (intent.dispatchNotAfter !== null
-        && (!Number.isFinite(Date.parse(intent.dispatchNotAfter))
-          || new Date(intent.dispatchNotAfter).toISOString() !== intent.dispatchNotAfter)))) {
-    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-  }
-  if (intent.kind === "readKnownGptRateLimitClearance"
-    && (Object.keys(intent).length !== 3
-      || !/^sha256:[a-f0-9]{64}$/u.test(intent.targetRefHash)
-      || !/^sha256:[a-f0-9]{64}$/u.test(intent.documentRefHash))) {
-    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-  }
+  assertSpecialBrowserDomIntent(intent);
   if (intent.kind === "observe") assertObserveIntent(intent);
   if (intent.kind === "readExactAssistantTurn" && !exactAssistantReadIntentValid(intent)) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
@@ -281,7 +245,6 @@ const assertObservationIntent = (intent: BrowserDomIntent): void => {
   }
   if (intent.kind === "readText" || intent.kind === "readAttribute") assertReadIntent(intent);
 };
-
 const OBSERVATION_QUERY_KEYS = new Set([
   "queryId", "selector", "maxMatches", "fields", "readEligibility", "scope", "textContains", "textEquals",
   "exactGptUserPromptContains",
@@ -290,13 +253,11 @@ const POSTCONDITION_QUERY_KEYS = new Set([
   "queryId", "selector", "maxMatches", "fields", "readEligibility", "scope", "textContains", "textEquals",
   "expectedEligibleCount", "latestGptUserTurn",
 ]);
-
 const assertReadEligibility = (value: BrowserDomReadEligibility | undefined): void => {
   if (value !== undefined && value !== "non-actionable-aria-state") {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
 };
-
 const invalidObservationQueryShape = (
   query: BrowserDomObservationQuery,
   allowedKeys: ReadonlySet<string>,
@@ -522,23 +483,6 @@ const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>)
   assertClickMatch(intent.postClickMatch);
   assertClickObservation(intent.postClickObservation, intent.preClickExactOutgoingTurn);
   assertClickUrl(intent.postClickUrl);
-};
-
-const assertPreClickExactOutgoingTurn = (
-  value: Extract<BrowserDomIntent, { kind: "click" }>["preClickExactOutgoingTurn"],
-): void => {
-  if (!value) return;
-  if (Object.keys(value).sort().join("|")
-    !== "attachmentSelector|composerFormSelector|composerSelector|expectedAttachmentLabels|expectedPromptHash|userTurnSelector"
-    || !isBoundedText(value.composerSelector, 2_048)
-    || !isBoundedText(value.composerFormSelector, 2_048)
-    || !isBoundedText(value.attachmentSelector, 2_048)
-    || !isBoundedText(value.userTurnSelector, 2_048)
-    || !/^sha256:[a-f0-9]{64}$/u.test(value.expectedPromptHash)
-    || !Array.isArray(value.expectedAttachmentLabels)
-    || value.expectedAttachmentLabels.some((label) => !isBoundedText(label, 1_024))) {
-    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-  }
 };
 
 const assertHoverIntent = (intent: Extract<BrowserDomIntent, { kind: "hover" }>): void => {

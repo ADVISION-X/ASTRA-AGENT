@@ -10,6 +10,7 @@ import {
   sourceTextForPaths,
   type FindingFactory,
 } from "./gpt-inspection-support.js";
+import { inspectSettledConversationRenameBoundary } from "./gpt-settled-rename-inspection.js";
 const ROOT = "src/capabilities/gpt";
 const CONTRACT_PATH = `${ROOT}/contract.ts`;
 const CHILD_TYPES_PATH = `${ROOT}/child-types.ts`;
@@ -18,12 +19,6 @@ const CHILDREN_PATH = `${ROOT}/children`;
 const GROUP_PATH = `${ROOT}/ability-group.ts`;
 const HANDLER_REGISTRY_PATH = `${ROOT}/handler-registry.ts`;
 const childFilePath = (id: string, file: string): string => `${CHILDREN_PATH}/${id}/${file}`;
-const PRODUCT_API_PATH = `${ROOT}/product-api.ts`;
-const PRODUCTION_CHILD_TOOLS_PATH = `${ROOT}/production-child-tools.ts`;
-const PRODUCTION_BROWSER_LIFECYCLE_PATH = `${ROOT}/production-browser-lifecycle.ts`;
-const RENAME_CHILD_ID = "rename_settled_gpt_conversation";
-const RENAME_HANDLER_PATH = childFilePath(RENAME_CHILD_ID, "handler.ts");
-const RENAME_TITLE_PATH = childFilePath(RENAME_CHILD_ID, "title.ts");
 const MODEL_HANDLER_PATH = `${CHILDREN_PATH}/select_exact_gpt_model_v2/handler.ts`;
 const MODEL_HANDLER_PATHS = [
   `${CHILDREN_PATH}/open_gpt_model_selector_v2/handler.ts`,
@@ -454,69 +449,6 @@ const inspectContractShape = (
       "gpt/exact-child-type-map", CHILD_TYPES_PATH, `${mapName} must define exactly 15 properties; found ${count}.`,
     ));
   }
-};
-
-const occurrences = (text: string, token: string): number => text.split(token).length - 1;
-
-const inspectSettledConversationRenameBoundary = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  finding: FindingFactory,
-): void => {
-  const childTypes = sourceFor(context, CHILD_TYPES_PATH)?.getFullText() ?? "";
-  const productApi = sourceFor(context, PRODUCT_API_PATH)?.getFullText() ?? "";
-  const productionTools = sourceFor(context, PRODUCTION_CHILD_TOOLS_PATH)?.getFullText() ?? "";
-  const lifecycle = sourceFor(context, PRODUCTION_BROWSER_LIFECYCLE_PATH)?.getFullText() ?? "";
-  const handler = sourceFor(context, RENAME_HANDLER_PATH)?.getFullText() ?? "";
-  const title = sourceFor(context, RENAME_TITLE_PATH)?.getFullText() ?? "";
-  inspectMissingTokens({ source: `${childTypes}\n${productApi}`, required: [
-    "ProductGptChildCapabilityId", `Exclude<`, `\"${RENAME_CHILD_ID}\"`,
-    "execute<K extends ProductGptChildCapabilityId>",
-  ], checkId: "gpt/settled-rename-private-child", filePath: PRODUCT_API_PATH,
-  findings, finding, message: (required) => `The settled rename Child is not excluded from Product GPT tools; missing ${required}.` });
-  inspectMissingTokens({ source: productionTools, required: [
-    "runSettledConversationCleanup", "takeSettledConversationCleanup(nextSessionKey)",
-    "RENAME_CLEANUP_MINIMUM_BUDGET_MS",
-    `child: \"${RENAME_CHILD_ID}\"`, "RuntimeFailureImpact.CLEANUP",
-    "await browsers.settle(error)",
-  ], checkId: "gpt/settled-rename-one-cleanup-hook", filePath: PRODUCTION_CHILD_TOOLS_PATH,
-  findings, finding, message: (required) => `The one settled rename cleanup hook is missing ${required}.` });
-  const settleExecution = sourceFor(context, PRODUCTION_CHILD_TOOLS_PATH)
-    ?.getClass("ProductionGptChildTools")?.getMethod("settleExecution")?.getText() ?? "";
-  if (occurrences(productionTools, `child: \"${RENAME_CHILD_ID}\"`) !== 1
-    || !settleExecution.includes(
-      "await this.runSettledConversationCleanup(input, browsers);\n    await browsers.settle(error);",
-    )) {
-    findings.push(finding(
-      "gpt/settled-rename-one-cleanup-hook", PRODUCTION_CHILD_TOOLS_PATH,
-      "The internal rename Child must have one call site before the original lifecycle park.",
-    ));
-  }
-  if (occurrences(productionTools, "await this.runSettledConversationCleanup(") !== 3) findings.push(finding(
-    "gpt/settled-rename-all-park-exits", PRODUCTION_CHILD_TOOLS_PATH,
-    "The one cleanup function must cover Product execution transition, confirmed readback transition, and final settle.",
-  ));
-  inspectMissingTokens({ source: lifecycle, required: [
-    "confirmedProviderEffect", "settledResultPayloadHash", "takeSettledConversationCleanup",
-    "canonicalConversationUrl", "terminalAt",
-  ], checkId: "gpt/settled-rename-settled-only", filePath: PRODUCTION_BROWSER_LIFECYCLE_PATH,
-  findings, finding, message: (required) => `The settled-only rename gate is missing ${required}.` });
-  inspectMissingTokens({ source: `${handler}\n${title}`, required: [
-    'kind: "renameExactGptConversation"', "settledGptConversationTitle",
-    'timeZone: "Asia/Dubai"', "RENAME_PROJECT_TITLES", "normalize(\"NFC\")",
-  ], checkId: "gpt/settled-rename-deterministic-title", filePath: RENAME_HANDLER_PATH,
-  findings, finding, message: (required) => `The deterministic settled title contract is missing ${required}.` });
-  if (occurrences(handler, 'kind: "renameExactGptConversation"') !== 1) findings.push(finding(
-    "gpt/settled-rename-one-browser-intent", RENAME_HANDLER_PATH,
-    "The rename Child must issue exactly one typed Browser intent.",
-  ));
-  const productConsumers = context.project.getSourceFiles().filter((source) =>
-    source.getFilePath().split("\\").join("/").includes("/src/plugins/"));
-  const leaked = productConsumers.find((source) => source.getFullText().includes(RENAME_CHILD_ID));
-  if (leaked) findings.push(finding(
-    "gpt/settled-rename-private-child", leaked.getFilePath(),
-    "Product Plugin code must not call or name the internal settled rename Child.",
-  ));
 };
 
 

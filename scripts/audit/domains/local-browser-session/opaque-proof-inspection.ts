@@ -120,6 +120,42 @@ const inspectAuthenticatedMediaBoundary = (
   }));
 };
 
+const inspectEncryptedRecoveryLocator = (
+  journal: RequiredSource, findings: InspectorFinding[], lawId: string,
+): void => {
+  const journalText = journal.getFullText();
+  for (const required of ["sealProviderRecoveryPayload(this.payloadKey",
+    "unsealProviderRecoveryPayload(", "requireCanonicalGptConversationUrl(canonicalConversationUrl)"]) {
+    if (journalText.includes(required)) continue;
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/closed-invocation-payload", lawId, filePath: sourcePaths[7],
+      message: `The encrypted Provider recovery locator boundary is missing ${required}.`,
+    }));
+  }
+};
+
+const inspectDiagnosticPayloadBoundary = (
+  sources: readonly RequiredSource[], findings: InspectorFinding[], lawId: string,
+): void => {
+  if (sources.some((source) => identifiers(source).has("canonicalConversationUrl"))) {
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/closed-invocation-payload", lawId,
+      filePath: commandDiagnosticPath,
+      message: "Browser diagnostics must not retain the decrypted canonical conversation URL.",
+    }));
+  }
+  const text = sources.map((source) => source.getFullText()).join("\n");
+  for (const forbidden of ["UnknownError", "JSON.stringify(input.error)",
+    "String(input.error)", "error.message"]) {
+    if (!text.includes(forbidden)) continue;
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/closed-invocation-payload", lawId,
+      filePath: commandDiagnosticPath,
+      message: `Browser diagnostics retain forbidden unclassified or raw error material ${forbidden}.`,
+    }));
+  }
+};
+
 const inspectClosedInvocationPayloadBoundary = (
   sources: InvocationPayloadSources,
   findings: InspectorFinding[],
@@ -155,7 +191,7 @@ const inspectClosedInvocationPayloadBoundary = (
 
   const forbiddenDurableIdentifiers = new Set([
     "approvedText", "resolvedFilePaths", "outerHtml", "semanticText", "pageContent",
-    "canonicalConversationUrl", "resourceUrl", "sourceUrl", "cookie", "token", "credentials",
+    "resourceUrl", "sourceUrl", "cookie", "token", "credentials",
   ]);
   for (const [filePath, source] of [
     [sourcePaths[7], journal],
@@ -172,17 +208,8 @@ const inspectClosedInvocationPayloadBoundary = (
       message: `Browser durable state or diagnostics retain forbidden invocation payload field ${leaked}.`,
     }));
   }
-
-  const diagnosticText = `${commandDiagnostic.getFullText()}\n${frameDiagnostic.getFullText()}`;
-  for (const forbidden of ["UnknownError", "JSON.stringify(input.error)", "String(input.error)", "error.message"]) {
-    if (!diagnosticText.includes(forbidden)) continue;
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/closed-invocation-payload",
-      lawId,
-      filePath: commandDiagnosticPath,
-      message: `Browser diagnostics retain forbidden unclassified or raw error material ${forbidden}.`,
-    }));
-  }
+  inspectEncryptedRecoveryLocator(journal, findings, lawId);
+  inspectDiagnosticPayloadBoundary([commandLogging, commandDiagnostic, frameDiagnostic], findings, lawId);
 };
 
 export const inspectOpaqueAuthorityBoundary = (

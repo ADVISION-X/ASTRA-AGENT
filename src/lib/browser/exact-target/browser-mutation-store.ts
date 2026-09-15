@@ -1,6 +1,5 @@
 import Database from "better-sqlite3";
-import { constants, closeSync, fchmodSync, lstatSync, mkdirSync, openSync, readFileSync, writeFileSync } from "node:fs";
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { mutationIdentity, type MutationRow } from "./browser-mutation-row.js";
 import { ensureCurrentSchema, identityColumns, mutationAuthorityHash } from "./browser-mutation-schema.js";
@@ -19,83 +18,9 @@ import type {
   BrowserMutationState,
 } from "./browser-mutation-types.js";
 import { requireCanonicalGptConversationUrl } from "./browser-site-policy-registry.js";
-
-type EncryptedPayload = Readonly<{ nonce: string; ciphertext: string; tag: string }>;
-
-type ProviderRecoveryPayload = Readonly<{
-  terminalPayload: unknown;
-}>;
-
-const secretKey = (dataDir: string): Buffer => {
-  const directory = join(dataDir, "browser");
-  const file = join(directory, "browser-mutation.key");
-  mkdirSync(directory, { recursive: true, mode: 0o700 });
-  try {
-    const metadata = lstatSync(file);
-    const uid = process.getuid?.();
-    if (!metadata.isFile() || metadata.isSymbolicLink() || (metadata.mode & 0o077) !== 0
-      || (uid !== undefined && metadata.uid !== uid)) throw new Error("BROWSER_MUTATION_KEY_INVALID");
-    const key = readFileSync(file);
-    if (key.byteLength !== 32) throw new Error("BROWSER_MUTATION_KEY_INVALID");
-    return key;
-  } catch (error) {
-    if (!(error && typeof error === "object" && "code" in error && error.code === "ENOENT")) throw error;
-  }
-  const descriptor = openSync(file, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY, 0o600);
-  try {
-    const key = randomBytes(32);
-    writeFileSync(descriptor, key);
-    fchmodSync(descriptor, 0o600);
-    return key;
-  } finally {
-    closeSync(descriptor);
-  }
-};
-
-const encryptPayload = (key: Buffer, aad: string, value: unknown): EncryptedPayload => {
-  const nonce = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", key, nonce);
-  cipher.setAAD(Buffer.from(aad, "utf8"));
-  const ciphertext = Buffer.concat([cipher.update(JSON.stringify(value), "utf8"), cipher.final()]);
-  return Object.freeze({
-    nonce: nonce.toString("base64url"),
-    ciphertext: ciphertext.toString("base64url"),
-    tag: cipher.getAuthTag().toString("base64url"),
-  });
-};
-
-const decryptPayload = (key: Buffer, aad: string, encrypted: EncryptedPayload): unknown => {
-  try {
-    const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(encrypted.nonce, "base64url"));
-    decipher.setAAD(Buffer.from(aad, "utf8"));
-    decipher.setAuthTag(Buffer.from(encrypted.tag, "base64url"));
-    return JSON.parse(Buffer.concat([
-      decipher.update(Buffer.from(encrypted.ciphertext, "base64url")), decipher.final(),
-    ]).toString("utf8")) as unknown;
-  } catch {
-    throw new Error("BROWSER_MUTATION_PAYLOAD_INVALID");
-  }
-};
-
-const sealPayload = (key: Buffer, commandId: string, value: ProviderRecoveryPayload): string =>
-  JSON.stringify(encryptPayload(key, `provider:${commandId}`, value));
-
-const unsealPayload = (key: Buffer, commandId: string, value: string): ProviderRecoveryPayload => {
-  let encrypted: unknown;
-  try { encrypted = JSON.parse(value) as unknown; } catch { throw new Error("BROWSER_MUTATION_PAYLOAD_INVALID"); }
-  if (!encrypted || typeof encrypted !== "object" || Array.isArray(encrypted)) {
-    throw new Error("BROWSER_MUTATION_PAYLOAD_INVALID");
-  }
-  const fields = encrypted as Record<string, unknown>;
-  if (typeof fields.nonce !== "string" || typeof fields.ciphertext !== "string"
-    || typeof fields.tag !== "string") throw new Error("BROWSER_MUTATION_PAYLOAD_INVALID");
-  const payload = decryptPayload(key, `provider:${commandId}`, {
-    nonce: fields.nonce, ciphertext: fields.ciphertext, tag: fields.tag,
-  });
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)
-    || !("terminalPayload" in payload)) throw new Error("BROWSER_MUTATION_PAYLOAD_INVALID");
-  return payload as ProviderRecoveryPayload;
-};
+import {
+  browserMutationPayloadKey, sealProviderRecoveryPayload, unsealProviderRecoveryPayload,
+} from "./browser-mutation-payload.js";
 export class BrowserMutationStore {
   private readonly database: Database.Database;
   private readonly payloadKey: Buffer;
@@ -103,7 +28,7 @@ export class BrowserMutationStore {
   public constructor(dataDir: string) {
     const file = join(dataDir, "browser", "browser-mutations.sqlite");
     mkdirSync(dirname(file), { recursive: true });
-    this.payloadKey = secretKey(dataDir);
+    this.payloadKey = browserMutationPayloadKey(dataDir);
     this.database = new Database(file);
     this.database.pragma("journal_mode = WAL");
     this.database.pragma("synchronous = FULL");
@@ -192,7 +117,8 @@ export class BrowserMutationStore {
   }
 
   public markDispatched(commandId: string): void {
-    this.transition(commandId, "PREPARED", "DISPATCHED", "dispatched", null, null, null);
+    this.transition({ commandId, from: "PREPARED", to: "DISPATCHED",
+      mutationOutcome: "dispatched", reason: null, nativeCauseCode: null, proofHash: null });
   }
 
   public markReceiptMissing(commandId: string, proofHash: `sha256:${string}` | null = null): void {
@@ -211,7 +137,7 @@ export class BrowserMutationStore {
     physicalInputCount: BrowserPhysicalInputCount = 0,
   ): void {
     const sealed = terminalPayload === null ? null
-      : sealPayload(this.payloadKey, commandId, { terminalPayload });
+      : sealProviderRecoveryPayload(this.payloadKey, commandId, { terminalPayload });
     const timestamp = new Date().toISOString();
     const result = this.database.prepare(
       `update browser_mutations set state='CONFIRMED',mutation_outcome=?,reason='direct-postcondition-passed',
@@ -230,12 +156,13 @@ export class BrowserMutationStore {
     nativeCauseCode: string | null = null,
     physicalInputCount: BrowserPhysicalInputCount = 0,
   ): void {
-    this.transition(commandId, "DISPATCHED", "REJECTED", mutationOutcome,
-      reason, nativeCauseCode, proofHash, physicalInputCount);
+    this.transition({ commandId, from: "DISPATCHED", to: "REJECTED", mutationOutcome,
+      reason, nativeCauseCode, proofHash, physicalInputCount });
   }
 
   public markFailedBeforeDispatch(commandId: string, reason: string): void {
-    this.transition(commandId, "PREPARED", "FAILED", "no", reason, null, null);
+    this.transition({ commandId, from: "PREPARED", to: "FAILED", mutationOutcome: "no",
+      reason, nativeCauseCode: null, proofHash: null });
   }
 
   public markTargetLocalDocumentAbsent(input: Readonly<{
@@ -329,7 +256,7 @@ export class BrowserMutationStore {
       if (row.provider_recovery_payload === null) {
         throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID");
       }
-      const payload = unsealPayload(
+      const payload = unsealProviderRecoveryPayload(
         this.payloadKey, row.command_id, row.provider_recovery_payload,
       ).terminalPayload;
       const canonicalConversationUrl = payload && typeof payload === "object" && !Array.isArray(payload)
@@ -388,7 +315,7 @@ export class BrowserMutationStore {
     }
     const failure = terminalFailureFields(row.state, row.reason, row.native_cause_code);
     const recovered = row.provider_recovery_payload === null ? null
-      : unsealPayload(this.payloadKey, row.command_id, row.provider_recovery_payload);
+      : unsealProviderRecoveryPayload(this.payloadKey, row.command_id, row.provider_recovery_payload);
     return Object.freeze({
       state: row.state.toLowerCase() as BrowserAtomicStepOutcome["state"],
       mutationOutcome: requireMutationOutcome(row.mutation_outcome),
@@ -527,17 +454,19 @@ export class BrowserMutationStore {
     return row.terminal_at;
   }
   public close(): void { this.database.close(); }
-  private transition(commandId: string, from: BrowserMutationState, to: BrowserMutationState,
-    mutationOutcome: BrowserMutationOutcome, reason: string | null, nativeCauseCode: string | null,
-    proofHash: `sha256:${string}` | null, physicalInputCount: BrowserPhysicalInputCount = 0): void {
+  private transition(input: Readonly<{
+    commandId: string; from: BrowserMutationState; to: BrowserMutationState;
+    mutationOutcome: BrowserMutationOutcome; reason: string | null; nativeCauseCode: string | null;
+    proofHash: `sha256:${string}` | null; physicalInputCount?: BrowserPhysicalInputCount;
+  }>): void {
     const timestamp = new Date().toISOString();
     const result = this.database.prepare(
       `update browser_mutations set state=?,mutation_outcome=?,reason=?,native_cause_code=?,proof_hash=?,physical_input_count=?,
        terminal_at=case when ? in ('CONFIRMED','REJECTED') then coalesce(terminal_at,?) else terminal_at end,
        updated_at=?
        where command_id=? and state=?`,
-    ).run(to, mutationOutcome, reason, nativeCauseCode, proofHash, physicalInputCount,
-      to, timestamp, timestamp, commandId, from);
+    ).run(input.to, input.mutationOutcome, input.reason, input.nativeCauseCode, input.proofHash,
+      input.physicalInputCount ?? 0, input.to, timestamp, timestamp, input.commandId, input.from);
     if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
   }
 }
