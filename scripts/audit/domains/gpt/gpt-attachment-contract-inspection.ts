@@ -75,7 +75,7 @@ const inspectAttachmentHandler = (
   finding: FindingFactory,
 ): void => {
   const handlerText = handlerSources.map((source) => source.getFullText()).join("\n");
-  if (!handlerText.includes('Math.max(1_000, numberInput(intent, "timeoutMs"))')
+  if (!handlerText.includes('Math.max(1_500, numberInput(intent, "timeoutMs"))')
     || /Math\.min\([^\n]*timeoutMs[^\n]*(?:60_000|60000)|Math\.min\([^\n]*numberInput\([^\n]*(?:60_000|60000)/u.test(handlerText)) {
     findings.push(finding(
       "gpt/attachment-product-timeout-preserved", ATTACHMENT_HANDLER_PATH,

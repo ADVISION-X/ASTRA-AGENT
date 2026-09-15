@@ -4,9 +4,9 @@ import { basename, dirname, join } from "node:path";
 import {
   createProductionGptChildTools,
   type GptAbilityGroup,
+  type ProviderRateLimitControlPort,
 } from "../../../capabilities/gpt/index.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../../capabilities/forensics-persistence/index.js";
-import type { ProviderRateLimitControlPort } from "../../../capabilities/gpt/production-ports.js";
 import {
   RuntimeFailureImpact, requireRuntimeLogWrite, runtimeFailureFromError,
   runtimeLogCauseEventId, withRuntimeLogCause, type RuntimeLogger, type RuntimeSpanHandle,

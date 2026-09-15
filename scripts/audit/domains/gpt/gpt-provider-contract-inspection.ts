@@ -74,7 +74,7 @@ export const inspectGptProviderProbeOwnerContract = (
   const observationParkCalls = waitForObservation?.getDescendantsOfKind(SyntaxKind.CallExpression)
     .filter((call) => call.getExpression().getText() === "active.facade.park") ?? [];
   const settlementParkCalls = parkActive?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .filter((call) => call.getExpression().getText() === "active.browser.park") ?? [];
+    .filter((call) => call.getExpression().getText() === "current.call.browser.park") ?? [];
   const exactParkCalls = [observationParkCalls.length, settlementParkCalls.length]
     .every((count) => count === 1);
   if (!exactParkCalls

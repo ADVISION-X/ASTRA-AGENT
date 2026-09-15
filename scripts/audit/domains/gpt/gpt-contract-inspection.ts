@@ -237,9 +237,9 @@ const inspectChildDenominator = (
   finding: FindingFactory,
 ): string[] => {
   const ids = childIdsFromContract(contract);
-  if (ids.length !== 14 || new Set(ids).size !== 14) findings.push(finding(
+  if (ids.length !== 15 || new Set(ids).size !== 15) findings.push(finding(
     "gpt/exact-child-denominator", CONTRACT_PATH,
-    `GPT_CHILD_CONTRACTS must define exactly 14 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
+    `GPT_CHILD_CONTRACTS must define exactly 15 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
   ));
   inspectRequiredChildIds(ids, findings, finding);
   if (ids.includes("ensure_exact_gpt_model")) findings.push(finding(
@@ -259,10 +259,10 @@ const inspectChildDenominator = (
   inspectChildDirectories(context, directories, findings, finding);
   inspectHandlerRegistryProjection(context, ids, directories, findings, finding);
   const actualProfiles = profileDenominator(contract);
-  const expectedProfiles = { DOM_OBSERVATION: 3, PROVIDER_EFFECT_ONCE: 1, TARGET_LOCAL_MUTATION: 10 };
+  const expectedProfiles = { DOM_OBSERVATION: 3, PROVIDER_EFFECT_ONCE: 1, TARGET_LOCAL_MUTATION: 11 };
   if (JSON.stringify(actualProfiles) !== JSON.stringify(expectedProfiles)) findings.push(finding(
     "gpt/exact-child-profile-denominator", CONTRACT_PATH,
-    `GPT Child profiles must be exactly 3/1/10; found ${JSON.stringify(actualProfiles)}.`,
+    `GPT Child profiles must be exactly 3/1/11; found ${JSON.stringify(actualProfiles)}.`,
   ));
   return ids;
 };
@@ -450,8 +450,8 @@ const inspectContractShape = (
     source.getFilePath().split("\\").join("/").endsWith(`/${CHILD_TYPES_PATH}`));
   for (const mapName of ["GptChildInputMap", "GptChildOutputMap"]) {
     const count = childTypes?.getInterface(mapName)?.getProperties().length ?? 0;
-    if (count !== 14) findings.push(finding(
-      "gpt/exact-child-type-map", CHILD_TYPES_PATH, `${mapName} must define exactly 14 properties; found ${count}.`,
+    if (count !== 15) findings.push(finding(
+      "gpt/exact-child-type-map", CHILD_TYPES_PATH, `${mapName} must define exactly 15 properties; found ${count}.`,
     ));
   }
 };
@@ -481,9 +481,12 @@ const inspectSettledConversationRenameBoundary = (
     "await browsers.settle(error)",
   ], checkId: "gpt/settled-rename-one-cleanup-hook", filePath: PRODUCTION_CHILD_TOOLS_PATH,
   findings, finding, message: (required) => `The one settled rename cleanup hook is missing ${required}.` });
+  const settleExecution = sourceFor(context, PRODUCTION_CHILD_TOOLS_PATH)
+    ?.getClass("ProductionGptChildTools")?.getMethod("settleExecution")?.getText() ?? "";
   if (occurrences(productionTools, `child: \"${RENAME_CHILD_ID}\"`) !== 1
-    || productionTools.indexOf(`child: \"${RENAME_CHILD_ID}\"`)
-      > productionTools.indexOf("await browsers.settle(error)")) {
+    || !settleExecution.includes(
+      "await this.runSettledConversationCleanup(input, browsers);\n    await browsers.settle(error);",
+    )) {
     findings.push(finding(
       "gpt/settled-rename-one-cleanup-hook", PRODUCTION_CHILD_TOOLS_PATH,
       "The internal rename Child must have one call site before the original lifecycle park.",

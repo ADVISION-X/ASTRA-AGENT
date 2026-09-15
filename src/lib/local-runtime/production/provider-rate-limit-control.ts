@@ -3,7 +3,7 @@ import type {
   ProviderRateLimitControlPort,
   ProviderRateLimitIncidentHandle,
   ProviderRateLimitIncidentInput,
-} from "../../../capabilities/gpt/production-ports.js";
+} from "../../../capabilities/gpt/index.js";
 import { executionFailure } from "../../execution-failure.js";
 import { hashCanonical, type ProductionHash } from "./contracts.js";
 import {

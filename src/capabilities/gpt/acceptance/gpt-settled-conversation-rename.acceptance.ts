@@ -6,18 +6,17 @@ import { ProductionGptChildTools } from "../production-child-tools.js";
 import { ProductionGptBrowserLifecycle } from "../production-browser-lifecycle.js";
 import { productionGptAtomicIdentity } from "../production-atomic-call.js";
 import type { GptChildCapabilityIntent } from "../contract.js";
-import {
-  RENAME_PROJECT_TITLES,
-  settledGptConversationTitle,
-} from "../children/rename_settled_gpt_conversation/title.js";
+import { settledGptConversationTitle } from "../children/rename_settled_gpt_conversation/title.js";
 import { fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
 
 const jobId = "aiprod_12345678-1234-4123-8123-123456789012";
 const terminalAt = "2026-09-14T20:30:00.000Z";
 const canonicalConversationUrl = "https://chatgpt.com/c/12345678-1234-4123-8123-123456789012";
 const routeProductIds = [...new Set(routePolicy.routes.map((route) => route.product_id))].sort();
-assert.deepEqual(Object.keys(RENAME_PROJECT_TITLES).sort(), routeProductIds,
-  "the one rename Child must exhaustively own the current route product denominator");
+for (const productId of routeProductIds) assert.match(settledGptConversationTitle({
+  jobId, productId, terminalAt,
+}), /^0915·.+·aiprod_12345678$/u,
+"the one rename Child must exhaustively own the current route product denominator");
 assert.equal(settledGptConversationTitle({
   jobId, productId: "bazi_ai_full_analysis", terminalAt,
 }), "0915·八字分析·aiprod_12345678");

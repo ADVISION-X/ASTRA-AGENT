@@ -16,3 +16,9 @@ export type {
   ProductGptChildResult,
   ProductGptTools,
 } from "./product-api.js";
+export type {
+  ProviderRateLimitClearance,
+  ProviderRateLimitControlPort,
+  ProviderRateLimitIncidentHandle,
+  ProviderRateLimitIncidentInput,
+} from "./production-ports.js";

@@ -17,8 +17,7 @@ const PROJECT_TITLES = Object.freeze({
   qimen_report_followup: "奇门追问",
 } as const);
 
-export type RenameProjectId = keyof typeof PROJECT_TITLES;
-export const RENAME_PROJECT_TITLES: Readonly<Record<RenameProjectId, string>> = PROJECT_TITLES;
+type RenameProjectId = keyof typeof PROJECT_TITLES;
 
 const jobUuid = (jobId: string): string => {
   const match = /^aiprod_([0-9a-f]{8})-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.exec(jobId);
