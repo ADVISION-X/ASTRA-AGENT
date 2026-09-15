@@ -91,6 +91,8 @@ try {
     targetRefHash: hash(first.targetRef), documentRefHash: hash(first.documentRef),
     rawCount: 1, eligibleCount: 1,
   };
+  const conversationUrl = (conversationId: string) =>
+    new URL(`/c/${conversationId}`, terminalPayload.canonicalConversationUrl).href;
   store.prepare(first);
   store.markDispatched(first.commandId);
   store.markConfirmed(first.commandId, hash("terminal-proof"), "confirmed", terminalPayload);
@@ -131,15 +133,16 @@ try {
   assert.equal(recovered?.state, "confirmed");
   assert.equal(recovered?.providerEffectIdentityHash, first.logicalMutationId);
   assert.deepEqual(recovered?.terminalPayload, terminalPayload);
-  assert.equal(store.readUniqueConfirmedConversationUrl(first.jobId, first.productStepId),
+  assert.equal(store.readUniqueConfirmedConversationUrl(first.jobId, first.attemptId, first.productStepId),
     terminalPayload.canonicalConversationUrl,
     "an exact parent job must resolve only its own confirmed conversation URL");
   const continuationIdentity = (
     jobId: string,
     suffix: string,
     productStepId = `continuation-step:${suffix}`,
+    revision = 0,
   ): BrowserMutationIdentity => ({
-    ...identity(`attempt:${suffix}`),
+    ...identity(`attempt:${suffix}`, revision),
     commandId: `continuation:${jobId}:${suffix}`,
     logicalMutationId: hash(`continuation-effect:${jobId}:${suffix}`),
     exactCallIdentityHash: hash(`continuation-call:${jobId}:${suffix}`),
@@ -150,32 +153,47 @@ try {
     payloadHash: hash(`continuation-payload:${jobId}:${suffix}`),
   });
   const confirmContinuation = (jobId: string, suffix: string, canonicalConversationUrl: string | null,
-    productStepId?: string) => {
-    const mutation = continuationIdentity(jobId, suffix, productStepId);
+    productStepId?: string, revision = 0) => {
+    const mutation = continuationIdentity(jobId, suffix, productStepId, revision);
     store.prepare(mutation);
     store.markDispatched(mutation.commandId);
     store.markConfirmed(mutation.commandId, hash(`continuation-proof:${jobId}:${suffix}`),
       "confirmed", canonicalConversationUrl ? { ...terminalPayload, canonicalConversationUrl } : null);
   };
   confirmContinuation("job:article:A", "a1", "https://chatgpt.com/c/article-A", "shared-step");
-  confirmContinuation("job:article:A", "a2", "https://chatgpt.com/c/article-A-other", "other-step");
+  confirmContinuation("job:article:A", "a2", conversationUrl("article-A-revision"), "shared-step", 1);
+  confirmContinuation("job:article:A", "a3", conversationUrl("article-A-other"), "other-step");
   confirmContinuation("job:article:B", "b1", "https://chatgpt.com/c/article-B", "shared-step");
-  assert.equal(store.readUniqueConfirmedConversationUrl("job:article:A", "shared-step"),
+  assert.equal(store.readUniqueConfirmedConversationUrl("job:article:A", "attempt:a1", "shared-step"),
     "https://chatgpt.com/c/article-A");
-  assert.equal(store.readUniqueConfirmedConversationUrl("job:article:B", "shared-step"),
+  assert.equal(store.readUniqueConfirmedConversationUrl("job:article:A", "attempt:a2", "shared-step"),
+    conversationUrl("article-A-revision"),
+    "the accepted parent attempt must disambiguate multiple admitted result revisions");
+  assert.equal(store.readUniqueConfirmedConversationUrl("job:article:B", "attempt:b1", "shared-step"),
     "https://chatgpt.com/c/article-B",
     "interleaved jobs and sibling steps must never lend their URL to the exact parent step");
-  assert.throws(() => store.readUniqueConfirmedConversationUrl("job:article:A", "missing-step"),
+  confirmContinuation("job:article:ambiguous", "first", conversationUrl("ambiguous-first"), "shared-step");
+  confirmContinuation("job:article:ambiguous-staging", "second",
+    conversationUrl("ambiguous-second"), "shared-step");
+  const mutationDatabase = Reflect.get(store, "database") as Database.Database;
+  mutationDatabase.prepare(`update browser_mutations set job_id=?,attempt_id=?
+    where command_id=?`).run("job:article:ambiguous", "attempt:first",
+    "continuation:job:article:ambiguous-staging:second");
+  assert.throws(() => store.readUniqueConfirmedConversationUrl(
+    "job:article:ambiguous", "attempt:first", "shared-step"),
+  /BROWSER_PARENT_PROVIDER_EFFECT_AMBIGUOUS/u);
+  assert.throws(() => store.readUniqueConfirmedConversationUrl(
+    "job:article:A", "attempt:missing", "shared-step"),
     /BROWSER_PARENT_PROVIDER_EFFECT_MISSING/u);
   confirmContinuation("job:article:missing-payload", "d1", null);
   assert.throws(() => store.readUniqueConfirmedConversationUrl(
-    "job:article:missing-payload", "continuation-step:d1"),
+    "job:article:missing-payload", "attempt:d1", "continuation-step:d1"),
     /BROWSER_PARENT_PROVIDER_EFFECT_INVALID/u);
   const unresolvedParent = continuationIdentity("job:article:unresolved", "e1");
   store.prepare(unresolvedParent);
   store.markDispatched(unresolvedParent.commandId);
   assert.throws(() => store.readUniqueConfirmedConversationUrl(
-    "job:article:unresolved", "continuation-step:e1"),
+    "job:article:unresolved", "attempt:e1", "continuation-step:e1"),
     /BROWSER_PARENT_PROVIDER_EFFECT_UNSETTLED/u);
   store.close();
 

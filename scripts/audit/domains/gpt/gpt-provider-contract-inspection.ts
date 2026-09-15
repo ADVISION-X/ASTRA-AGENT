@@ -65,8 +65,9 @@ export const inspectGptProviderProbeOwnerContract = (
     'mode: "product-call-settlement"',
   ], findings, finding);
   requireTokens(sourceText(context, BROWSER_MUTATION_STORE), BROWSER_MUTATION_STORE, [
-    "readUniqueConfirmedConversationUrl(parentJobId: string, parentProductStepId: string)",
-    "product_step_id=? and call_id='turn-submit'", "child_capability_id='submit_exact_gpt_turn_once'",
+    "readUniqueConfirmedConversationUrl(parentJobId: string, parentAttemptId: string,",
+    "job_id=? and attempt_id=? and product_step_id=?", "product_step_id=? and call_id='turn-submit'",
+    "child_capability_id='submit_exact_gpt_turn_once'",
   ], findings, finding);
   for (const forbidden of ["yieldForProviderProbe", "yieldForProviderWait", "waitForDelay",
     "yieldAndReacquire", "productionGptCrossConversationPollCadence", '"provider-probe"',

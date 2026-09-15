@@ -44,6 +44,8 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     ...(resultRevision ? { resultRevision } : {}) });
   const articleTranslation = route.product_id === "localization_article_translation"
     && route.action_id === "article_translation";
+  if (articleTranslation) assert.deepEqual(new Set(run.calls.map((call) => call.productStepId)),
+    new Set(["article_synthesis"]), "article translation must continue the SEO article synthesis step");
   assert.deepEqual(run.calls.map((call) => call.child),
     articleTranslation ? sequence.slice(1) : sequence);
   const reasoningCall = run.calls.find((call) => call.child === "ensure_gpt_reasoning_requirement");

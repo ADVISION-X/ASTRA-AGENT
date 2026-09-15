@@ -14,6 +14,7 @@ import type {
 import { assertBrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
 import { requireRuntimeLogWrite, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { executionFailure, typedExecutionFailure } from "../../lib/execution-failure.js";
+import type { GptProductionExecutionInput } from "./production-child-support.js";
 
 type GptBrowserLeaseAuthority = Readonly<{
   acquireJobBoundTargetLease(
@@ -23,19 +24,10 @@ type GptBrowserLeaseAuthority = Readonly<{
   ): Promise<BrowserTargetLease>;
 }>;
 
-export type GptBrowserExecutionInput = Readonly<{
-  jobId: string;
-  attemptId: string;
-  resultRevision: number;
-  deviceId: string;
-  leaseVersion: number;
-  executionFenceHash: GptHash;
-  capabilityManifestHash: GptHash;
-  expiresAtMonotonic: number;
-  commandTtlMs: number;
-  abortSignal: AbortSignal;
-  providerContinuationParentJobId?: string;
-}>;
+export type GptBrowserExecutionInput = Pick<GptProductionExecutionInput,
+  "jobId" | "attemptId" | "resultRevision" | "deviceId" | "leaseVersion"
+  | "executionFenceHash" | "capabilityManifestHash" | "expiresAtMonotonic"
+  | "commandTtlMs" | "abortSignal" | "providerContinuationParent">;
 
 const sha256 = (value: string): GptHash =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -98,7 +90,7 @@ export class ProductionGptBrowserLifecycle {
     callId: string,
   ): Promise<ProductionGptBrowserCall> {
     return this.browserForMode(sessionKey, productStepId, callId,
-      this.execution.providerContinuationParentJobId ? "authorized-continuation" : "fresh");
+      this.execution.providerContinuationParent ? "authorized-continuation" : "fresh");
   }
 
   public async browserForConfirmedReadback(
@@ -394,7 +386,8 @@ export class ProductionGptBrowserLifecycle {
     `${this.execution.jobId}:${callId}`, targetMode === "authorized-continuation" ? {
       ...wait,
       targetMode,
-      parentJobId: this.execution.providerContinuationParentJobId!,
+      parentJobId: this.execution.providerContinuationParent!.jobId,
+      parentAttemptId: this.execution.providerContinuationParent!.acceptedAttemptId,
     } : {
       ...wait,
       targetMode,

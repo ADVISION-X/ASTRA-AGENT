@@ -31,7 +31,7 @@ type AcquireLaneWaiter = LaneWaiterBase & Readonly<{
   binding: BrowserExecutionBinding;
   ownerId: string;
   targetMode: BrowserTargetLeaseWait["targetMode"];
-  parentJobId?: string;
+  parentJobId?: string; parentAttemptId?: string;
   requestKind: "interaction" | "provider-observation";
 }>;
 type ReleaseLaneWaiter = LaneWaiterBase & Readonly<{
@@ -81,7 +81,8 @@ export class BrowserLaneCoordinator {
       const waiter: AcquireLaneWaiter = {
         kind: "acquire", binding, ownerId, jobRefHash: binding.jobRefHash,
         targetMode: wait.targetMode,
-        ...(wait.targetMode === "authorized-continuation" ? { parentJobId: wait.parentJobId } : {}),
+        ...(wait.targetMode === "authorized-continuation"
+          ? { parentJobId: wait.parentJobId, parentAttemptId: wait.parentAttemptId } : {}),
         requestKind: wait.targetMode === "fresh" || wait.targetMode === "authorized-continuation"
           ? "interaction" : "provider-observation",
         eligibleAt: wait.eligibleAt,
@@ -210,6 +211,11 @@ export class BrowserLaneCoordinator {
     return null;
   }
 
+  private assertWaiterLive(waiter: AcquireLaneWaiter): void {
+    if (!waiter.signal.aborted && waiter.remainingMs() >= 1) return;
+    throw new Error(waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED");
+  }
+
   private async pump(): Promise<void> {
     if (this.active) return;
     if (this.wakeTimer) clearTimeout(this.wakeTimer);
@@ -235,9 +241,7 @@ export class BrowserLaneCoordinator {
         void this.pump();
         return;
       }
-      if (waiter.signal.aborted || waiter.remainingMs() < 1) throw new Error(
-        waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED",
-      );
+      this.assertWaiterLive(waiter);
       if (mutations && this.hasUnresolvedMutation()) {
         const mutation = mutations.settleRetiredTargetLocal(waiter.binding);
         if (mutation.effectScope === "provider_effect" && waiter.targetMode !== "bound-observation") {
@@ -254,14 +258,11 @@ export class BrowserLaneCoordinator {
           throw new Error("BROWSER_PARENT_JOB_SELF_REFERENCE");
         }
         parentConversationUrl = mutations?.readUniqueConfirmedConversationUrl(
-          waiter.parentJobId!, waiter.binding.productStepId,
+          waiter.parentJobId!, waiter.parentAttemptId!, waiter.binding.productStepId,
         );
-        if (!parentConversationUrl) throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_MISSING");
       }
       await this.targetAcquirer.ensureAvailableTarget(waiter, parentConversationUrl);
-      if (waiter.signal.aborted || waiter.remainingMs() < 1) throw new Error(
-        waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED",
-      );
+      this.assertWaiterLive(waiter);
       const lease = await this.resolveBroker().acquireOperatorClaimedTargetLease(waiter.binding, waiter.ownerId);
       waiter.complete(this.withLifecycle(lease, waiter.requestKind));
     } catch (error) {

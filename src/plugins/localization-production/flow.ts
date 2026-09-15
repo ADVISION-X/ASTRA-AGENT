@@ -261,9 +261,10 @@ const runFreshTurn = async (
   prompt: string,
   marker: string,
 ): Promise<Checkpoint> => {
-  const stepId = task.action_id;
-  const profile = task.product_id === "localization_article_translation" && stepId === "article_translation"
-    ? ARTICLE_TRANSLATION_MODEL_PROFILE : MODEL_PROFILE;
+  const articleTranslation = task.product_id === "localization_article_translation"
+    && task.action_id === "article_translation";
+  const stepId = articleTranslation ? "article_synthesis" : task.action_id;
+  const profile = articleTranslation ? ARTICLE_TRANSLATION_MODEL_PROFILE : MODEL_PROFILE;
   const files = uploadedFiles(context);
   const promptHash = sha256(prompt);
   const confirmed = await flow.readConfirmedSubmit({

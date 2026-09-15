@@ -79,8 +79,8 @@ export class ProductionGptChildTools {
         get expiresAtMonotonic() { return input.expiresAtMonotonic; },
         get commandTtlMs() { return input.commandTtlMs; },
         abortSignal: input.abortSignal,
-        ...(input.providerContinuationParentJobId ? {
-          providerContinuationParentJobId: input.providerContinuationParentJobId,
+        ...(input.providerContinuationParent ? {
+          providerContinuationParent: input.providerContinuationParent,
         } : {}),
       },
     );

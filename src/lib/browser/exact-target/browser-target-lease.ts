@@ -53,7 +53,7 @@ export type BrowserTargetLeaseWait = BrowserTargetLeaseWaitBase & (
   }>
   | Readonly<{
     targetMode: "authorized-continuation";
-    parentJobId: string;
+    parentJobId: string; parentAttemptId: string;
   }>
 );
 

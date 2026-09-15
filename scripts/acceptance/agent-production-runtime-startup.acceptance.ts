@@ -28,6 +28,8 @@ import { serializeTerminalFailure } from
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { HASH_A, HASH_B, resultFor, task, validDeviceCredential } from
   "./agent-production-runtime-fixtures.js";
+import { buildProductTask } from "./product-plugin-test-runtime.js";
+import { productionRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
 import { assertProductionStartupPreflight } from
   "./agent-production-runtime-startup-preflight.acceptance-support.js";
 import "./agent-production-runtime-recovery-contract.acceptance.js";
@@ -292,6 +294,40 @@ try {
     },
   }));
 
+  const dispatchPlugin = Reflect.get(executor, "dispatchPlugin") as (input: Readonly<Record<string, unknown>>) => Promise<unknown>;
+  const parentTask = task({ jobId: "job:article-parent", productId: "bazi_ai_full_analysis", actionId: "produce" });
+  const parentAttemptId = "attempt:article-parent-final", parentResult = resultFor(parentTask);
+  pluginFailureStore.acceptTask(parentTask, "attempt:article-parent-superseded"); pluginFailureStore.acceptTask(parentTask, parentAttemptId);
+  pluginFailureStore.completeTask(parentTask.job_id, parentResult);
+  const translationTask = {
+    ...buildProductTask(productionRoutePolicy("localization_article_translation", "article_translation"),
+      { parameters: { target_locale: "en-US", source_resource_id: "resource:article-parent", source_version: "v1",
+        source_sha256: HASH_A, policy_version: "localization-policy.v1" } }), parent_task_ref: parentTask.job_id,
+    parent_result_ref: parentResult.result_payload_ref, parent_result_hash: parentResult.result_payload_hash,
+  };
+  const continuationLease = {
+    attempt_id: "attempt:article-translation", device_id: "device:article-translation", lease_version: 1,
+    execution_fence_hash: HASH_A, capability_manifest_hash: HASH_B, max_provider_turns: 1, provider_turns_used: 0,
+    result_revision: 0, prior_result_rejection: null, expires_at_monotonic: performance.now() + 10_000,
+    command_ttl_ms: 1_000, abort_signal: new AbortController().signal,
+  };
+  const continuationInput = (currentTask: typeof translationTask) => ({ task: currentTask, materials: [],
+    lease: continuationLease, span: startPluginSpan("article-parent-binding"), complete: async () => {
+      throw new Error("UNREACHABLE_PARENT_COMPLETE"); }, uploadGeneratedImage: async () => { throw new Error("UNREACHABLE_PARENT_IMAGE_UPLOAD"); } });
+  await assert.rejects(dispatchPlugin.call(executor, continuationInput({ ...translationTask, parent_task_ref: "job:missing-article-parent" })), /PRODUCTION_PARENT_RESULT_BINDING_MISSING/u);
+  await assert.rejects(dispatchPlugin.call(executor, continuationInput({ ...translationTask, parent_result_hash: `sha256:${"c".repeat(64)}` })), /PRODUCTION_PARENT_RESULT_BINDING_INVALID/u);
+  let capturedContinuationParent: unknown = null; const gptChildTools = Reflect.get(executor, "gptChildTools") as Record<string, unknown>;
+  Reflect.set(gptChildTools, "createExecution", (input: Readonly<Record<string, unknown>>) => {
+    capturedContinuationParent = input.providerContinuationParent; throw new Error("PARENT_BINDING_CAPTURED");
+  });
+  await assert.rejects(dispatchPlugin.call(executor, continuationInput(translationTask)), /PARENT_BINDING_CAPTURED/u);
+  assert.deepEqual(capturedContinuationParent, { jobId: parentTask.job_id, acceptedAttemptId: parentAttemptId });
+  capturedContinuationParent = "UNEXPECTED_PARENT";
+  const staticCatalogRoot = task({ jobId: "job:static-catalog-zh-HK-root", productId: "localization_static_catalog", actionId: "produce_locale_catalog", extra: { parameters: { target_locale: "zh-HK" } } });
+  await assert.rejects(dispatchPlugin.call(executor, continuationInput(staticCatalogRoot as typeof translationTask)),
+    /PARENT_BINDING_CAPTURED/u);
+  assert.equal(capturedContinuationParent, undefined);
+
   assert.throws(
     () => terminalizePluginFailure.call(
       executor, startPluginSpan("direct-product-failure"),
@@ -353,7 +389,6 @@ try {
     local_path: material.material_id === "material:plugin-primary-payment" ? paymentPath : contractPath,
   }));
   executor.accept(dispatchFailureTask, dispatchAttemptId);
-  const gptChildTools = Reflect.get(executor, "gptChildTools") as Record<string, unknown>;
   let settleCalls = 0;
   Reflect.set(gptChildTools, "createExecution", () => ({
     tools: {

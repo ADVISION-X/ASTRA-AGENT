@@ -318,8 +318,9 @@ const inspectExactParentStepContinuation = (
   lawId: string,
 ): void => {
   for (const required of ["waiter.binding.productStepId",
-    "readUniqueConfirmedConversationUrl(parentJobId: string, parentProductStepId: string)",
-    "product_step_id=? and call_id='turn-submit'", "child_capability_id='submit_exact_gpt_turn_once'"])
+    "readUniqueConfirmedConversationUrl(parentJobId: string, parentAttemptId: string,",
+    "job_id=? and attempt_id=? and product_step_id=?", "product_step_id=? and call_id='turn-submit'",
+    "child_capability_id='submit_exact_gpt_turn_once'"])
     if (!sourceText.includes(required)) findings.push(createLocalFinding({
       checkId: "browser-authority/exact-parent-step-continuation", lawId, filePath: mutationStorePath,
       message: `Authorized continuation is missing exact parent-step fact ${required}.`,

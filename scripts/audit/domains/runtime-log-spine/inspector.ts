@@ -371,7 +371,9 @@ const inspectStructureContract = (context: InspectorContext): InspectorFinding[]
     "scripts/runtime-logs/inspect.ts", ["--job", "--source", "sources", "DIAGNOSIS_COMPLETE", "scope.status !== \"SELECTED\""]);
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "browser-authority-reconciliation",
     "src/lib/browser/exact-target/browser-mutation-store.ts", [
-      "dispatchedForBinding", "and state='DISPATCHED' order by updated_at,command_id",
+      "dispatchedForBinding", "where job_id=? and attempt_id=? and state='DISPATCHED'",
+      "and (effect_scope='provider_effect' or (lease_version=? and execution_fence_hash=?))",
+      "order by updated_at,command_id",
     ]);
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "strict-reader",
     "src/lib/runtime-logs/schema.ts", ["exactKeys", "runtimeLogEventShapeValid", "failureValid"]);

@@ -52,16 +52,6 @@ const settleGptExecution = async (
   }
 };
 
-const durableIdentityValid = (
-  accepted: StoredProductionTask,
-  task: WebsiteAgentTask,
-): boolean => {
-  authorizeWebsiteAgentTask(task);
-  return accepted.task.request_hash === task.request_hash
-    && accepted.task.product_id === task.product_id
-    && accepted.task.action_id === task.action_id;
-};
-
 const errno = (error: unknown): string | null =>
   error && typeof error === "object" && "code" in error && typeof error.code === "string"
     ? error.code : null;
@@ -267,12 +257,9 @@ export class ProductionExecutor {
   }
 
   private async dispatchPlugin(input: Readonly<{
-    task: WebsiteAgentTask;
-    materials: readonly LocalProductionMaterial[];
-    lease: ProductionExecutionLease;
-    span: RuntimeSpanHandle;
-    complete: (output: ProductPluginOutput) => Promise<WebsiteAgentResult>;
-    uploadGeneratedImage: (artifact: GeneratedImageArtifact) => Promise<GeneratedImageResultReceipt>;
+    task: WebsiteAgentTask; materials: readonly LocalProductionMaterial[];
+    lease: ProductionExecutionLease; span: RuntimeSpanHandle;
+    complete: (output: ProductPluginOutput) => Promise<WebsiteAgentResult>; uploadGeneratedImage: (artifact: GeneratedImageArtifact) => Promise<GeneratedImageResultReceipt>;
   }>): Promise<WebsiteAgentResult> {
     let completed = false;
     let gptExecution: ActiveGptExecution | null = null;
@@ -281,9 +268,17 @@ export class ProductionExecutor {
     let result: WebsiteAgentResult;
     try {
       result = await dispatchWebsiteAgentTask(input.task, (authorized) => {
-        const routePolicy = productionRoutePolicy(
-          authorized.task.product_id, authorized.task.action_id,
-        );
+        const routePolicy = productionRoutePolicy(authorized.task.product_id, authorized.task.action_id);
+        const parent = routePolicy.relation_kind === "provider_continuation"
+          && authorized.task.parent_task_ref ? this.store.readTask(authorized.task.parent_task_ref) : null;
+        if (authorized.task.parent_task_ref && routePolicy.relation_kind === "provider_continuation" && !parent) {
+          throw executionFailure("failed", "PRODUCTION_PARENT_RESULT_BINDING_MISSING");
+        }
+        if (parent && (parent.status !== "completed" || !parent.result
+          || parent.result.result_payload_ref !== authorized.task.parent_result_ref
+          || parent.result.result_payload_hash !== authorized.task.parent_result_hash)) {
+          throw executionFailure("failed", "PRODUCTION_PARENT_RESULT_BINDING_INVALID");
+        }
         gptExecution = this.gptChildTools.createExecution({
           jobId: authorized.task.job_id,
           productId: authorized.task.product_id,
@@ -301,9 +296,8 @@ export class ProductionExecutor {
           get commandTtlMs() { return input.lease.command_ttl_ms; },
           abortSignal: input.lease.abort_signal,
           parentSpanId: input.span.spanId,
-          ...(routePolicy.relation_kind === "provider_continuation" && authorized.task.parent_task_ref ? {
-            providerContinuationParentJobId: authorized.task.parent_task_ref,
-          } : {}),
+          ...(parent ? { providerContinuationParent: { jobId: parent.task.job_id,
+            acceptedAttemptId: parent.current_attempt_id } } : {}),
         });
         gptLifecycle.decorateFailure = gptExecution.decorateSettledResultFailure;
         gptLifecycle.settle = gptExecution.settle;
@@ -350,7 +344,9 @@ export class ProductionExecutor {
     if (!accepted) throw new Error("PRODUCTION_DURABLE_IDENTITY_MISSING");
     if (accepted.status === "completed" && accepted.result) throw new Error("PRODUCTION_TASK_ALREADY_TERMINAL");
     assertProductionTaskRoutePolicy(task);
-    if (!durableIdentityValid(accepted, task)) {
+    authorizeWebsiteAgentTask(task);
+    if (accepted.task.request_hash !== task.request_hash
+      || accepted.task.product_id !== task.product_id || accepted.task.action_id !== task.action_id) {
       throw executionFailure("failed", "PRODUCTION_PLUGIN_DURABLE_IDENTITY_MISMATCH");
     }
     const span = this.startPluginSpan(task, lease, parentSpanId, task.product_id);

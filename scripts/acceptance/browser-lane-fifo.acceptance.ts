@@ -133,6 +133,7 @@ assert.equal((blockedLane.nextWaiter as () => unknown).call(blockedLane), sameJo
 
 const hash = (character: string) => `sha256:${character.repeat(64)}` as const;
 const binding = (character: string) => ({
+  kind: "production" as const,
   jobId: `job-${character}`, resultRevision: 0, attemptId: `attempt-${character}`,
   productStepId: "article-step", callId: "profile-open",
   deviceId: "device-1", leaseVersion: 1, localOrderId: `job-${character}`,
@@ -163,7 +164,9 @@ const createBehaviorLane = (events: string[], unresolved = 0) => {
       settleRetiredTargetLocal: () => ({ effectScope: "provider_effect",
         childCapabilityId: "submit_exact_gpt_turn_once", logicalMutationId: hash("9") }),
       latestProviderInputTerminalAt: () => null,
-      readUniqueConfirmedConversationUrl: (parentJobId: string, parentProductStepId: string) => {
+      readUniqueConfirmedConversationUrl: (parentJobId: string, parentAttemptId: string,
+        parentProductStepId: string) => {
+        assert.equal(parentAttemptId, "attempt:article:A");
         assert.equal(parentProductStepId, "article-step");
         events.push(`wal:${parentJobId}`);
         return `https://chatgpt.com/c/${parentJobId.replaceAll(":", "-")}`;
@@ -217,6 +220,7 @@ const continuationLane = createBehaviorLane(continuationEvents);
 const continuationLease = await continuationLane.acquire(binding("z") as never, "owner-z", {
   targetMode: "authorized-continuation",
   parentJobId: "job:article:A",
+  parentAttemptId: "attempt:article:A",
   signal: new AbortController().signal,
   eligibleAt: Date.now(),
   remainingMs: () => 5_000,
@@ -229,6 +233,7 @@ await continuationLease.park({ reason: "continuation-finished", mode: "product-c
 await assert.rejects(createBehaviorLane([]).acquire(binding("a") as never, "owner-a", {
   targetMode: "authorized-continuation",
   parentJobId: "job-a",
+  parentAttemptId: "attempt:article:A",
   signal: new AbortController().signal,
   eligibleAt: Date.now(),
   remainingMs: () => 5_000,
