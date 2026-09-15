@@ -311,6 +311,40 @@ const inspectCanonicalConversationPolicy = (
   }
 };
 
+const inspectExactParentStepContinuation = (
+  sourceText: string,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  for (const required of ["waiter.binding.productStepId",
+    "readUniqueConfirmedConversationUrl(parentJobId: string, parentProductStepId: string)",
+    "product_step_id=? and call_id='turn-submit'", "child_capability_id='submit_exact_gpt_turn_once'"])
+    if (!sourceText.includes(required)) findings.push(createLocalFinding({
+      checkId: "browser-authority/exact-parent-step-continuation", lawId, filePath: mutationStorePath,
+      message: `Authorized continuation is missing exact parent-step fact ${required}.`,
+    }));
+};
+
+const inspectProductionTabContract = (
+  debuggerRuntime: ReturnType<typeof requireSource>,
+  findings: InspectorFinding[],
+  lawId: string,
+): void => {
+  const productionTabCreation = debuggerRuntime?.getClass("ExtensionDebuggerRuntime")
+    ?.getMethod("createProductionTab")?.getText() ?? "";
+  const productionTabContract = [
+    productionTabCreation.includes("this.chromeApi.tabs.create({ active: true, url })"),
+    !productionTabCreation.includes("active: false"),
+    !debuggerRuntime?.getFullText().includes("createBackgroundTab"),
+  ].every(Boolean);
+  if (!productionTabContract) findings.push(createLocalFinding({
+    checkId: "browser-authority/job-bound-target-claim",
+    lawId,
+    filePath: extensionDebuggerRuntimePath,
+    message: "The sole production Tab creation path must select the new system Tab with active=true and physically delete the background-tab contract.",
+  }));
+};
+
 const inspectJobBoundClaimPolicy = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -335,19 +369,7 @@ const inspectJobBoundClaimPolicy = (
     "parkActiveTarget", "releaseJobBoundChatGptTarget", "findByJobRefHash", "jobRefHash",
     "publishMainFrameNavigation", "activateTab",
   ], findings, lawId, "The fixed extension must create, validate, retain and release one exact system Target per active GPT job.");
-  const productionTabCreation = debuggerRuntime!.getClass("ExtensionDebuggerRuntime")
-    ?.getMethod("createProductionTab")?.getText() ?? "";
-  const productionTabContract = [
-    productionTabCreation.includes("this.chromeApi.tabs.create({ active: true, url })"),
-    !productionTabCreation.includes("active: false"),
-    !debuggerRuntime!.getFullText().includes("createBackgroundTab"),
-  ].every(Boolean);
-  if (!productionTabContract) findings.push(createLocalFinding({
-    checkId: "browser-authority/job-bound-target-claim",
-    lawId,
-    filePath: extensionDebuggerRuntimePath,
-    message: "The sole production Tab creation path must select the new system Tab with active=true and physically delete the background-tab contract.",
-  }));
+  inspectProductionTabContract(debuggerRuntime!, findings, lawId);
   requireIdentifiers(supervisor!, [
     "requireGptWebClaimOrigin", "establishClaimBoundWorkspace", "pendingJobBoundTargetAcquisition",
     "acquireJobBoundTargetLease",
@@ -382,14 +404,11 @@ const inspectJobBoundClaimPolicy = (
   inspectNonDestructiveTargetRelease(context, leaseManager!, lane!, findings, lawId);
   inspectExactChatGptPolicy(sitePolicy!, findings, lawId);
   inspectCanonicalConversationPolicy(sitePolicy!.getFullText(), findings, lawId);
-  const continuation = `${leaseContract!.getFullText()}\n${lane!.getFullText()}\n${mutationStore!.getFullText()}`;
-  for (const required of ["waiter.binding.productStepId",
-    "readUniqueConfirmedConversationUrl(parentJobId: string, parentProductStepId: string)",
-    "product_step_id=? and call_id='turn-submit'", "child_capability_id='submit_exact_gpt_turn_once'"])
-    if (!continuation.includes(required)) findings.push(createLocalFinding({
-      checkId: "browser-authority/exact-parent-step-continuation", lawId, filePath: mutationStorePath,
-      message: `Authorized continuation is missing exact parent-step fact ${required}.`,
-    }));
+  inspectExactParentStepContinuation(
+    `${leaseContract!.getFullText()}\n${lane!.getFullText()}\n${mutationStore!.getFullText()}`,
+    findings,
+    lawId,
+  );
 };
 
 export const inspectTargetClaimGuards = (
