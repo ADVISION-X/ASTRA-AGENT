@@ -60,9 +60,9 @@ const LAW_ID = "LAW-GPT-001-V53";
 const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V14";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 2, 4, 7, 8),
-  "static.ast": staticClauses(0, 2, 3, 4, 5, 6, 7, 8),
+  "static.ast": staticClauses(0, 2, 3, 4, 5, 6, 7, 8, 9),
   "static.types": staticForbiddenClauses(0, 3, 4),
-  "static.contract": staticForbiddenClauses(0, 1, 2, 3, 4, 5, 6, 7, 8),
+  "static.contract": staticForbiddenClauses(0, 1, 2, 3, 4, 5, 6, 7, 8, 9),
   "static.dependency": staticForbiddenClauses(0, 2, 7, 8),
 } as const;
 const MODE_CHECKS = {
