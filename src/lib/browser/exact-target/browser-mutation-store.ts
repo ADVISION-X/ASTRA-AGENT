@@ -237,18 +237,24 @@ export class BrowserMutationStore {
     return Number(row.count);
   }
 
-  public readUniqueConfirmedConversationUrl(parentJobId: string): string {
-    if (!parentJobId || /[\0]/u.test(parentJobId)) throw new Error("BROWSER_PARENT_JOB_ID_INVALID");
-    if (this.hasUnresolvedMutationForJob(parentJobId)) {
+  public readUniqueConfirmedConversationUrl(parentJobId: string, parentProductStepId: string): string {
+    if (!parentJobId || /[\0]/u.test(parentJobId) || !parentProductStepId || /[\0]/u.test(parentProductStepId)) {
+      throw new Error("BROWSER_PARENT_IDENTITY_INVALID");
+    }
+    if (this.database.prepare(
+      `select 1 from browser_mutations where job_id=? and product_step_id=?
+         and call_id='turn-submit' and child_capability_id='submit_exact_gpt_turn_once'
+         and effect_scope='provider_effect' and state='DISPATCHED' limit 1`,
+    ).get(parentJobId, parentProductStepId)) {
       throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_UNSETTLED");
     }
     const rows = this.database.prepare(
       `select command_id,provider_recovery_payload from browser_mutations
-       where job_id=? and effect_scope='provider_effect'
-         and child_capability_id='submit_exact_gpt_turn_once'
+       where job_id=? and product_step_id=? and call_id='turn-submit'
+         and child_capability_id='submit_exact_gpt_turn_once' and effect_scope='provider_effect'
          and state='CONFIRMED'
        order by command_id`,
-    ).all(parentJobId) as readonly Readonly<{
+    ).all(parentJobId, parentProductStepId) as readonly Readonly<{
       command_id: string;
       provider_recovery_payload: string | null;
     }>[];

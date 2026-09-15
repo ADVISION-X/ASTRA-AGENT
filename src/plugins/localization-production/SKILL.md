@@ -25,9 +25,9 @@
 
 报告和文章的唯一翻译结果只在当前 Product Flow 内做垂直校验；校验失败直接阻断，不得产生候选、选择轮次、第二正式结果或可认领的第二链路。
 
-`localization_static_catalog / produce_locale_catalog` 是网站固定文案的生产动作。一个任务只负责一个目标 locale，并按任务内冻结的全部 context cohort 顺序完成；每个 cohort 的 `public_value_binding` 必须完整绑定核心法、公开价值法、中文批准依据、真实 Owner、可见证据位置和工具角色，缺失或不一致时必须在调用 Provider 前以 `LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING` 失败。每个 cohort 必须使用互相隔离的候选 A（请求 Pro；页面仅有 0–2 档时按现役策略降到 high）、候选 B（high）和盲选器（high），候选请求字节必须相同，盲选器不得看见生产者身份或重写候选。机械合同、消息总数、源 hash、locale、policy 或任一 cohort 证据不闭合时，整个 locale 结果阻断。
+`localization_static_catalog / produce_locale_catalog` 是网站固定文案的生产动作。一个任务仍只负责一个目标 locale，并按任务内冻结的全部 context cohort 顺序完成；每个 cohort 的 `public_value_binding` 必须完整绑定核心法、公开价值法、中文批准依据、真实 Owner、可见证据位置和工具角色，缺失或不一致时必须在调用 Provider 前以 `LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING` 失败。候选 A（请求 Pro；页面仅有 0–2 档时按现役策略降到 high）、候选 B（high）和盲选器（high）继续互相隔离；同一 role 的五个 locale turn 才可按 `zh-HK → zh-TW → en-US → ja-JP → ko-KR` 在一条会话内严格续接，A、B、盲选器之间绝不共享会话。每条续接必须保持同一 source/version/hash、policy、authorization、有序 message-id cohort 与 locale-neutral product step，且只由 Website 签发直接前序；zh-HK 链首 fresh，后四项不再重复 fresh。候选请求字节必须相同，盲选器不得看见生产者身份或重写候选。机械合同、消息总数、源 hash、locale、policy、直接前序或任一 cohort 证据不闭合时，当前 locale 结果阻断。
 
-固定文案动作只产出一个 hash 绑定的 locale 候选结果；它不写 Website 仓库、不发布、不部署、不自行重试，也不创建第二插件、第二队列或第二裁决。五个 locale 是否能作为候选集被接纳，只由 Website 的既有业务结果消费链统一判断。
+固定文案动作只产出一个 hash 绑定的 locale 候选结果；它不写 Website 仓库、不发布、不部署、不自行重试，也不创建第二插件、第二队列、会话台账或第二裁决。五个 locale 仍分别形成任务、结果与领域接纳；后继任务只在直接前序接纳的同一 Website 事务内产生，五个 locale 是否齐备仍只由 Website 既有发布边界判断。会话压缩只把 555 个独立聊天收敛为 111 条 cohort-role 会话，Provider turn、候选比较和五次领域接纳均不减少。
 
 `accuracy_challenge` 与 `quality_reflection` 是原产品结果的复核动作，不产生独立产品。复核必须绑定任务给出的 subject task/result/hash、当前授权与 `review_policy`，只输出可核验 finding；不得替网站保存 review 台账、作发布裁决或改写源内容。
 

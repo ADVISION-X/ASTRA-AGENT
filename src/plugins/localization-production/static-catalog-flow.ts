@@ -140,9 +140,27 @@ type CandidateRun = Readonly<{
   evidenceRefs: readonly string[];
 }>;
 
+function cohortRoleStep(
+  task: WebsiteAgentTask,
+  input: StaticCatalogInput,
+  context: ContextBundle,
+  role: CandidateRole | "selector",
+): string {
+  return `static-catalog:${hashCanonical({
+    source_resource_id: input.source_resource_id,
+    source_version: input.source_version,
+    source_sha256: input.source_sha256,
+    policy_version: input.policy_version,
+    authorization_ref: task.business_identity.authorization_ref,
+    message_ids: context.message_items.map((item) => item.message_id),
+    role,
+  }).slice(7)}`;
+}
+
 async function executeCandidate(input: Readonly<{
   task: WebsiteAgentTask;
   execution: SharedExecutionContext;
+  catalog: StaticCatalogInput;
   context: ContextBundle;
   cohort: StaticCohort;
   requestJson: string;
@@ -150,9 +168,10 @@ async function executeCandidate(input: Readonly<{
 }>): Promise<CandidateRun> {
   const candidateA = input.role === "candidate_a";
   const reasoningEffort = candidateA ? "xhigh" : "high";
+  const stepId = cohortRoleStep(input.task, input.catalog, input.context, input.role);
   const turn = await executeIsolatedLocalizationJsonTurn(input.task, input.execution, {
-    stepId: `${input.cohort.batch_id}:${candidateA ? "candidate-a" : "candidate-b"}`,
-    sessionSuffix: `${input.cohort.batch_id}:${candidateA ? "candidate-a" : "candidate-b"}`,
+    stepId,
+    sessionSuffix: stepId,
     prompt: candidatePrompt(input.execution, input.role, input.requestJson),
     profile: candidateA ? candidateAProfile : candidateBProfile,
     reasoningEffort,
@@ -242,13 +261,14 @@ async function executeCohort(task: WebsiteAgentTask, execution: SharedExecutionC
   input: StaticCatalogInput, cohort: StaticCohort): Promise<CohortResult> {
   const context = parseContext(cohort, input);
   const requestJson = candidateRequestJson(context, cohort);
-  const candidateA = await executeCandidate({ task, execution, context, cohort, requestJson, role: "candidate_a" });
-  const candidateB = await executeCandidate({ task, execution, context, cohort, requestJson, role: "candidate_b" });
+  const candidateA = await executeCandidate({ task, execution, catalog: input, context, cohort, requestJson, role: "candidate_a" });
+  const candidateB = await executeCandidate({ task, execution, catalog: input, context, cohort, requestJson, role: "candidate_b" });
   const mapping = blindMapping(task, context, candidateA.receipt, candidateB.receipt);
   const receipts = { candidate_a: candidateA.receipt, candidate_b: candidateB.receipt } as const;
   const frozenSelectorInput = selectorInputJson(context, cohort, mapping, receipts);
+  const selectorStep = cohortRoleStep(task, input, context, "selector");
   const selectorTurn = await executeIsolatedLocalizationJsonTurn(task, execution, {
-    stepId: `${cohort.batch_id}:selector`, sessionSuffix: `${cohort.batch_id}:selector`,
+    stepId: selectorStep, sessionSuffix: selectorStep,
     prompt: selectorPrompt(execution, frozenSelectorInput), profile: selectorProfile, reasoningEffort: "high",
   });
   const selectorOutput = parseSelector(selectorTurn.value, context, mapping);

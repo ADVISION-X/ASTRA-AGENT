@@ -317,11 +317,10 @@ export const executeIsolatedLocalizationJsonTurn = async (
     );
     return isolatedResult(flow, checkpoint);
   }
-  const fresh = {
+  if (!task.parent_task_ref) await flow.execute({
     productStepId: input.stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat",
     actionOrdinal: 1, input: { timeoutMs: 60_000 },
-  } as const;
-  await flow.execute(fresh);
+  } as const);
   await applyProfile(flow, input.stepId, [2, 3, 4, 5, 6, 7], input.profile);
   const checkpoint = await submitTurn(flow, input.stepId, prompt, marker, [], [8, 9, 10, 11, 12, 13]);
   return isolatedResult(flow, checkpoint);

@@ -172,27 +172,58 @@ const missingUseJson = JSON.stringify(missingUseContext);
 assert.throws(() => parseInput({ ...staticInput, context_bundles: [{ batch_id: contextBundle.batch_id,
   context_bundle_json: missingUseJson, context_bundle_hash: sha256(missingUseJson), message_count: 1 }] }, staticTask),
 /LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING/u);
-const staticRun = await exerciseProductFlow(plugin, {
-  task: staticTask,
-  materialContents: { static_catalog_input: staticInput },
-  output: {},
-  expectedSessionCount: 3,
-  checkpointOutput: (call) => call.productStepId.endsWith(":selector") ? {
-    schema_version: "target-language-selector-output.v1",
-    locale: "en-US",
-    pass: "first",
-    selections: [{
-      message_id: "fixture.hello",
-      selection: "identical",
-      reason_code: "identical-byte-match",
-    }],
-  } : {
-    schema_version: "target-language-candidate.v1",
-    locale: "en-US",
-    context_bundle_hash: contextBundleHash,
-    items: [{ message_id: "fixture.hello", text: "<style>@page{size:A4}</style> Hello {name}", finding_codes: [] }],
-  },
-});
+const staticStep = (role: "candidate_a" | "candidate_b" | "selector") => `static-catalog:${hashCanonical({
+  source_resource_id: staticInput.source_resource_id,
+  source_version: staticInput.source_version,
+  source_sha256: staticInput.source_sha256,
+  policy_version: staticInput.policy_version,
+  authorization_ref: staticTask.business_identity.authorization_ref,
+  message_ids: contextBundle.message_items.map((item) => item.message_id),
+  role,
+}).slice(7)}`;
+const staticLocales = ["zh-HK", "zh-TW", "en-US", "ja-JP", "ko-KR"] as const;
+const staticRuns = [];
+for (const locale of staticLocales) {
+  const localeContext = { ...contextBundle, locale, batch_id: `${locale}-batch-001` };
+  const localeContextJson = JSON.stringify(localeContext);
+  const localeContextHash = sha256(localeContextJson);
+  const localeInput = { ...staticInput, target_locale: locale, context_bundles: [{
+    batch_id: localeContext.batch_id, context_bundle_json: localeContextJson,
+    context_bundle_hash: localeContextHash, message_count: 1,
+  }] };
+  const localeTask = buildProductTask(staticRoute, { parameters: {
+    ...staticTask.parameters, target_locale: locale,
+  } });
+  if (locale === "zh-HK") {
+    delete (localeTask as { parent_task_ref?: string }).parent_task_ref;
+    delete (localeTask as { parent_result_ref?: string }).parent_result_ref;
+    delete (localeTask as { parent_result_hash?: string }).parent_result_hash;
+  }
+  staticRuns.push(await exerciseProductFlow(plugin, {
+    task: localeTask, materialContents: { static_catalog_input: localeInput }, output: {},
+    expectedSessionCount: 3,
+    checkpointOutput: (call) => call.productStepId === staticStep("selector") ? {
+      schema_version: "target-language-selector-output.v1", locale, pass: "first",
+      selections: [{ message_id: "fixture.hello", selection: "identical",
+        reason_code: "identical-byte-match" }],
+    } : {
+      schema_version: "target-language-candidate.v1", locale,
+      context_bundle_hash: localeContextHash,
+      items: [{ message_id: "fixture.hello", text: "<style>@page{size:A4}</style> Hello {name}", finding_codes: [] }],
+    },
+  }));
+}
+const staticRun = staticRuns[2]!;
+assert.equal(staticRuns[0]!.calls.filter((call) => call.child === "prepare_clean_gpt_chat").length, 3,
+  "the zh-HK root must create exactly one fresh conversation per role");
+assert.equal(staticRuns.slice(1).flatMap((run) => run.calls)
+  .some((call) => call.child === "prepare_clean_gpt_chat"), false,
+"direct-parent locales must continue the exact role conversations without preparing fresh chats");
+assert.equal(staticRuns.reduce((count, run) => count + run.physicalSubmitDispatches, 0), 15);
+assert.equal(new Set(staticRuns.flatMap((run) => run.calls
+  .filter((call) => call.child === "submit_exact_gpt_turn_once")
+  .map((call) => call.productStepId))).size, 3,
+"five locale tasks must preserve exactly three locale-neutral cohort-role steps");
 const staticReasoningCalls = staticRun.calls.filter(
   (call) => call.child === "ensure_gpt_reasoning_requirement",
 );
@@ -202,7 +233,7 @@ assert.deepEqual(staticReasoningCalls.map((call) => ({
   reasoningRequirement: call.input.profile.reasoningRequirement,
 })), [
   {
-    productStepId: "en-US-batch-001:candidate-a",
+    productStepId: staticStep("candidate_a"),
     profileRef: "localization-production:static-catalog:candidate-a:pro-standard",
     reasoningRequirement: {
       selectionPolicy: "exact-or-observed-maximum",
@@ -210,22 +241,24 @@ assert.deepEqual(staticReasoningCalls.map((call) => ({
     },
   },
   {
-    productStepId: "en-US-batch-001:candidate-b",
+    productStepId: staticStep("candidate_b"),
     profileRef: "localization-production:static-catalog:candidate-b:high",
     reasoningRequirement: { selectionPolicy: "exact", requestedTier: "high" },
   },
   {
-    productStepId: "en-US-batch-001:selector",
+    productStepId: staticStep("selector"),
     profileRef: "localization-production:static-catalog:selector:high",
     reasoningRequirement: { selectionPolicy: "exact", requestedTier: "high" },
   },
 ]);
 assert.equal(staticRun.physicalSubmitDispatches, 3);
-const selectorWrite = staticRun.calls.find((call) => call.child === "write_exact_gpt_prompt" && call.productStepId.endsWith(":selector"));
+const selectorWrite = staticRun.calls.find((call) => call.child === "write_exact_gpt_prompt"
+  && call.productStepId === staticStep("selector"));
 assert(selectorWrite?.child === "write_exact_gpt_prompt");
 assert.match(String(selectorWrite.input.prompt), new RegExp(JSON.stringify(SELECTOR_REASON_CODES).replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"));
 assert.match(String(selectorWrite.input.prompt), /来源、事实边界、核验依据、当代用途与工具从属位置/u);
-const candidateWrite = staticRun.calls.find((call) => call.child === "write_exact_gpt_prompt" && call.productStepId.endsWith(":candidate-a"));
+const candidateWrite = staticRun.calls.find((call) => call.child === "write_exact_gpt_prompt"
+  && call.productStepId === staticStep("candidate_a"));
 assert(candidateWrite?.child === "write_exact_gpt_prompt");
 assert.match(String(candidateWrite.input.prompt), /PUBLIC_VALUE_SOURCE_ROLE_LOST.*PUBLIC_VALUE_TOOL_ROLE_PROMOTED/u);
 assert.throws(() => parseSelector({ schema_version: "target-language-selector-output.v1", locale: "en-US", pass: "first",

@@ -19,6 +19,7 @@ const sitePolicyPath = "src/lib/browser/exact-target/browser-site-policy-registr
 const targetLeaseManagerPath = "src/lib/browser/exact-target/browser-target-lease-manager.ts";
 const targetLeasePath = "src/lib/browser/exact-target/browser-target-lease.ts";
 const laneCoordinatorPath = "src/lib/browser/infrastructure/browser-lane-coordinator.ts";
+const mutationStorePath = "src/lib/browser/exact-target/browser-mutation-store.ts";
 const targetAcquirerPath = "src/lib/browser/infrastructure/browser-target-acquirer.ts";
 const framePayloadPath = "src/lib/browser/transport/browser-authority-frame-payload.ts";
 const domIntentRuntimePath = "src/lib/browser/chrome-extension/dom-intent-runtime.ts";
@@ -324,9 +325,10 @@ const inspectJobBoundClaimPolicy = (
   const leaseManager = requireSource(context, findings, lawId, targetLeaseManagerPath);
   const leaseContract = requireSource(context, findings, lawId, targetLeasePath);
   const lane = requireSource(context, findings, lawId, laneCoordinatorPath);
+  const mutationStore = requireSource(context, findings, lawId, mutationStorePath);
   const targetAcquirer = requireSource(context, findings, lawId, targetAcquirerPath);
   if (![targetAuthority, debuggerRuntime, sitePolicy, actor, supervisor, broker,
-    leaseManager, leaseContract, lane, targetAcquirer].every(Boolean)) return;
+    leaseManager, leaseContract, lane, mutationStore, targetAcquirer].every(Boolean)) return;
   requireIdentifiers(targetAuthority!, [
     "acquireJobBoundChatGptTarget", "createProductionTab", "removeTab", "GPT_WEB_START_URL",
     "requireGptWebPolicyForUrl", "waitForCreatedTarget", "navigationPublication",
@@ -380,6 +382,14 @@ const inspectJobBoundClaimPolicy = (
   inspectNonDestructiveTargetRelease(context, leaseManager!, lane!, findings, lawId);
   inspectExactChatGptPolicy(sitePolicy!, findings, lawId);
   inspectCanonicalConversationPolicy(sitePolicy!.getFullText(), findings, lawId);
+  const continuation = `${leaseContract!.getFullText()}\n${lane!.getFullText()}\n${mutationStore!.getFullText()}`;
+  for (const required of ["waiter.binding.productStepId",
+    "readUniqueConfirmedConversationUrl(parentJobId: string, parentProductStepId: string)",
+    "product_step_id=? and call_id='turn-submit'", "child_capability_id='submit_exact_gpt_turn_once'"])
+    if (!continuation.includes(required)) findings.push(createLocalFinding({
+      checkId: "browser-authority/exact-parent-step-continuation", lawId, filePath: mutationStorePath,
+      message: `Authorized continuation is missing exact parent-step fact ${required}.`,
+    }));
 };
 
 export const inspectTargetClaimGuards = (

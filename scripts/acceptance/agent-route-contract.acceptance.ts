@@ -101,6 +101,15 @@ for (const route of productionRoutePolicies) {
   tested.add(`${route.product_id}\0${route.action_id}`);
 }
 assert.equal(tested.size, 40);
+const staticRoute = productionRoutePolicies.find((route) => route.product_id === "localization_static_catalog");
+assert(staticRoute);
+const staticSuccessor = taskFor(staticRoute);
+const { parent_task_ref: _task, parent_result_ref: _result, parent_result_hash: _hash, ...staticWithoutParent } = staticSuccessor;
+assert.doesNotThrow(() => assertProductionTaskRoutePolicy({
+  ...staticWithoutParent, parameters: { ...staticWithoutParent.parameters, target_locale: "zh-HK" },
+} as WebsiteAgentTask));
+assert.throws(() => assertProductionTaskRoutePolicy(staticWithoutParent as WebsiteAgentTask),
+  /AGENT_ROUTE_RELATION_KIND_INVALID/u);
 assert.throws(
   () => assertProductRouteSupported("bazi_basic_chart" as never, "produce" as never),
   /PLUGIN_ROUTE_UNSUPPORTED/u,
@@ -137,7 +146,7 @@ assert.throws(() => assertProductionTaskRoutePolicy({
 process.stdout.write("[ACCEPTANCE][agent-route-contract] PASS 40/46/33/0\n");
 for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V32",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V33",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:route-contract:${evidenceMode}`,

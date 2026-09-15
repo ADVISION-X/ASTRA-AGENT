@@ -119,6 +119,7 @@ assert.equal((blockedLane.queue as unknown[]).length, 5,
 const hash = (character: string) => `sha256:${character.repeat(64)}` as const;
 const binding = (character: string) => ({
   jobId: `job-${character}`, resultRevision: 0, attemptId: `attempt-${character}`,
+  productStepId: "article-step", callId: "profile-open",
   deviceId: "device-1", leaseVersion: 1, localOrderId: `job-${character}`,
   contractManifestHash: hash("d"), executionRef: `execution-${character}`,
   jobRefHash: hash(character), executionRefHash: hash(character), writerLeaseEpoch: 1,
@@ -145,7 +146,8 @@ const createBehaviorLane = (events: string[], unresolved = 0) => {
       countDispatched: () => unresolved,
       hasUnresolvedMutationForJob: (jobId: string) => unresolved > 0 && jobId === "job-a",
       latestProviderInputTerminalAt: () => null,
-      readUniqueConfirmedConversationUrl: (parentJobId: string) => {
+      readUniqueConfirmedConversationUrl: (parentJobId: string, parentProductStepId: string) => {
+        assert.equal(parentProductStepId, "article-step");
         events.push(`wal:${parentJobId}`);
         return `https://chatgpt.com/c/${parentJobId.replaceAll(":", "-")}`;
       },

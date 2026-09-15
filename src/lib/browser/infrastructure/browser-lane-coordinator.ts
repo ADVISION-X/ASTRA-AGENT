@@ -244,7 +244,9 @@ export class BrowserLaneCoordinator {
         if (waiter.parentJobId === waiter.binding.jobId) {
           throw new Error("BROWSER_PARENT_JOB_SELF_REFERENCE");
         }
-        parentConversationUrl = mutations?.readUniqueConfirmedConversationUrl(waiter.parentJobId!);
+        parentConversationUrl = mutations?.readUniqueConfirmedConversationUrl(
+          waiter.parentJobId!, waiter.binding.productStepId,
+        );
         if (!parentConversationUrl) throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_MISSING");
       }
       await this.targetAcquirer.ensureAvailableTarget(waiter, parentConversationUrl);

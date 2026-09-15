@@ -12,6 +12,7 @@ const SUBMIT_HANDLER = `${ROOT}/children/submit_exact_gpt_turn_once/handler.ts`;
 const LIFECYCLE = `${ROOT}/production-browser-lifecycle.ts`;
 const RETIRED_CADENCE = `${ROOT}/provider-wait-cross-conversation-cadence.ts`;
 const BROWSER_LANE = "src/lib/browser/infrastructure/browser-lane-coordinator.ts";
+const BROWSER_MUTATION_STORE = "src/lib/browser/exact-target/browser-mutation-store.ts";
 const SEMANTIC_TEXT = "src/lib/browser/chrome-extension/dom-semantic-text.ts";
 const EXACT_ASSISTANT = "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts";
 const PRODUCTION_CHILD_TOOLS = `${ROOT}/production-child-tools.ts`;
@@ -37,7 +38,7 @@ export const inspectGptProviderProbeOwnerContract = (
   const lane = sourceText(context, BROWSER_LANE);
   const lifecycle = sourceText(context, LIFECYCLE);
   requireTokens(lane, BROWSER_LANE, [
-    "private readonly queue: LaneWaiter[] = []", "new Proxy(lease",
+    "private readonly queue: LaneWaiter[] = []", "new Proxy(lease", "waiter.binding.productStepId",
   ], findings, finding);
   for (const forbidden of ["provider-probe", "nextProviderProbeEligibleAt", "startProviderProbeCooldown",
     "waiter.purpose"]) if (lane.includes(forbidden)) findings.push(finding(
@@ -62,6 +63,10 @@ export const inspectGptProviderProbeOwnerContract = (
     'recoverySelectionRequired: targetMode === "confirmed-readback"',
     "selectExactGptConversation", '"bound-observation"', "eligibleAt",
     'mode: "product-call-settlement"',
+  ], findings, finding);
+  requireTokens(sourceText(context, BROWSER_MUTATION_STORE), BROWSER_MUTATION_STORE, [
+    "readUniqueConfirmedConversationUrl(parentJobId: string, parentProductStepId: string)",
+    "product_step_id=? and call_id='turn-submit'", "child_capability_id='submit_exact_gpt_turn_once'",
   ], findings, finding);
   for (const forbidden of ["yieldForProviderProbe", "yieldForProviderWait", "waitForDelay",
     "yieldAndReacquire", "productionGptCrossConversationPollCadence", '"provider-probe"',
