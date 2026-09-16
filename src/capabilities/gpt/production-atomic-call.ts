@@ -61,10 +61,10 @@ const executionContext = (
   ...(input.rateLimitAckDispatchNotAfter === undefined ? {}
     : { rateLimitAckDispatchNotAfter: input.rateLimitAckDispatchNotAfter }),
   ...(input.browserCall ? {
-    waitForProviderObservation: (probeDeadlineAt: number) =>
+    waitForProviderObservation: (probeDeadlineAt, reason) =>
       input.browsers.waitForProviderObservation(
       input.browserCall!, input.intent.productStepId, input.intent.callId,
-      input.intent.childCapabilityId, probeDeadlineAt,
+      input.intent.childCapabilityId, probeDeadlineAt, reason,
       ),
   } : {}),
 });

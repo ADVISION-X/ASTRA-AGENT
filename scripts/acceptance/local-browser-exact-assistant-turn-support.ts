@@ -24,7 +24,7 @@ const successfulObservation = Object.freeze({
   assistantTurnId: "conversation-turn-2",
   precedingUserTurnId: "conversation-turn-1",
   generatingRaw: 0,
-  observedAt, nativeStage: "runtime-call-function-on",
+  observedAt, pendingCause: null, nativeStage: "runtime-call-function-on",
 });
 export const exactConversationFixtureUrl = successfulObservation.currentUrl;
 
@@ -173,6 +173,23 @@ const exerciseCapturedAssistantRejections = async (
     assert.notEqual(observed.semanticText.trim(), "",
       "presentation state must not erase exact adjacent assistant content");
   }
+  const missingUser = await executeCaptured(source, {
+    querySelectorAll: () => [],
+    elementFromPoint: () => null,
+  }, fixture.input, exactConversationFixtureUrl) as Readonly<{
+    rawCount: number; pendingCause: string | null;
+  }>;
+  assert.equal(missingUser.rawCount, 0);
+  assert.equal(missingUser.pendingCause, "exact-user-turn-unavailable");
+  const missingAssistant = await executeCaptured(source, {
+    querySelectorAll: (value: string) => value === fixture.userSelector ? [fixture.user]
+      : value === fixture.turnsSelector ? [fixture.user] : [],
+    elementFromPoint: () => null,
+  }, fixture.input, exactConversationFixtureUrl) as Readonly<{
+    rawCount: number; pendingCause: string | null; observedAt: string;
+  }>;
+  assert.equal(missingAssistant.rawCount, 0);
+  assert.equal(missingAssistant.pendingCause, "adjacent-assistant-missing");
   const ambiguous = await executeCaptured(source, {
     querySelectorAll: (value: string) => value === fixture.userSelector ? [fixture.user]
       : value === fixture.turnsSelector ? [fixture.user, new FakeElement("ambiguous", {
@@ -240,10 +257,14 @@ const exerciseSingleAtomicRead = async (): Promise<void> => {
 
 const exerciseAtomicFailureClosure = async (): Promise<void> => {
   for (const [observation, code] of [
-    [{ ...successfulObservation, rawCount: 0, rawDomHtml: "", semanticText: "" },
-      "BROWSER_DOM_CANDIDATE_MISSING"],
+    [{ ...successfulObservation, rawCount: 0, rawDomHtml: "", semanticText: "",
+      pendingCause: "exact-user-turn-unavailable" }, "BROWSER_EXACT_USER_TURN_UNAVAILABLE"],
+    [{ ...successfulObservation, rawCount: 0, rawDomHtml: "", semanticText: "",
+      pendingCause: "adjacent-assistant-missing" }, "BROWSER_ADJACENT_ASSISTANT_TURN_MISSING"],
     [{ ...successfulObservation, rawCount: 2, rawDomHtml: "", semanticText: "" },
       "BROWSER_DOM_CANDIDATE_AMBIGUOUS"],
+    [{ ...successfulObservation, rawCount: 0, rawDomHtml: "", semanticText: "" },
+      "BROWSER_DOM_READ_INVALID"],
     [{ ...successfulObservation, rawDomHtml: "", semanticText: "" }, "BROWSER_DOM_READ_INVALID"],
   ] as const) await assert.rejects(execute(runtimeFor(observation)), new RegExp(code, "u"));
   await assert.rejects(execute(runtimeFor({ ...successfulObservation,

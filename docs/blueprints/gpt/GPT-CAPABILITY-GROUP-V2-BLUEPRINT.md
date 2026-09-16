@@ -1,7 +1,7 @@
-# GPT 能力组 V57 施工图
+# GPT 能力组 V58 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"gpt-capability-group-v57","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V55","LAW-GPT-002-V19"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"gpt-capability-group-v58","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V55","LAW-GPT-002-V19"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
 ```
 
 ## 唯一 Owner 与职责
@@ -47,6 +47,8 @@ GPT 准备动作对一次 fresh coherent observation 的裁决统一为 `STABLE_
 `FROZEN-GPT-RESPONSE-NO-PROMPT-REHASH-001` 固定：提示词 hash 只属于发送 Child 的发送前内容身份和发送后新 user turn 证明。文本与图片回答读取 Child 不得接收 `expectedPromptHash`，不得从已折叠或重新渲染的历史 user message DOM 提取、规范化、重算或比较 `precedingPromptHash`，也不得把该二次 hash 写入回答或图片 receipt。回答身份只由发送 Child 已确认的 canonical conversation URL、精确 `userTurnId`、其真实紧邻 assistant turn，以及 Browser 当前 Target/Document/revision 共同确定；回答的 `rawDomHash`、`semanticTextHash` 与图片媒体 bytes hash 继续保留。改变或删除本冻结边界，必须由用户在未来任务中明确解冻，并同步替换施工图、实现与唯一质检；普通修复或 CI 授权不构成解冻。
 
 `FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001` 固定：`checkpoint_gpt_text_response` 只允许两个阻断判据。回答身份安全门在同一原子 observation 内整体消费 confirmed canonical conversation URL、exact `userTurnId`、其真实紧邻且唯一的 assistant-role turn、Target/current Document/main-frame loader 与 observation revision；回答结算完成门只消费同包 stop button 状态与 semantic text，stop 存在一律 pending，stop 消失且正文非空立即 DONE，stop 消失且正文连续为空只沿现役 20 分钟窗口 pending 或产生 `GPT_RESPONSE_STOPPED_EMPTY`，stop 再出现、正文非空或身份失真都将窗口归零。页面末位、Composer/submit 数量、layout/visible/viewport/hit-test、hidden/aria-hidden/inert、Prompt rehash、固定 turn 编号/奇偶、标题、侧栏、时间、动画、展开状态及其它 UI 外壳不得成为候选存在、内容返回、DONE、pending 或 failure 的第三门禁，stop 状态也不得在 Browser 读取阶段清空已精确定位的 DOM/semantic text；不得以 boolean、helper、hash、identity、candidate cardinality 或 eligibility 包装规避两门上限。只有授权人明确原文“解冻 FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001”并同步替换现役法案、GPT/Browser 施工图、实现与唯一质检才允许改变；普通修复、Provider UI 变化、CI 或单仓代码授权均不构成解冻。
+
+文本回答的 Provider observation 等待必须只投影一个封闭诊断原因：第一次 observation 尚未发生、exact user turn 当前不可取得、其真实紧邻 assistant turn 当前不存在、stop button 仍存在、或 stop 已消失但正文为空且现役20分钟窗口仍在确认。每次等待只发一个固定事件码，不得同时保留统一文本 wait 事件；原因只由上一次现役两门裁决产生并只供日志观察，不得反向决定 DONE、pending、failure、窗口、deadline、lane、Target、导航或重试。第一次 observation 前必须诚实记录尚未观察，不得伪造页面原因。原因不进入result、artifact、WAL、数据库或typed identity，不新增Runtime日志字段；图片等待继续使用其现役统一事件。
 
 `FROZEN-GPT-IMAGE-SOURCE-EVENT-WAIT-001` 已按本次授权解冻替换并重新冻结：图片 checkpoint 不得按 fixed sleep 猜测图片已经生成。Browser authenticated-media observation 必须在 canonical conversation URL 与精确 `userTurnId` 之后、下一个 user turn 之前的范围内先直接检查非空 `currentSrc/src`；尚未出现时，只能在同一次调用期 observation 内以一个 `MutationObserver` 监听节点加入及 `src/srcset` 变化，单次最多等待 5000ms，出现即在同一次已登录页面调用中 fetch 原始 bytes 并按内容 hash 去重。单次期满仍无 source 只返回现有 typed pending并释放 lease/lane；下一次请求经唯一 FIFO、唯一全局 observation 节拍取得并激活该 job精确绑定 Tab后 fresh observe，正常轮询不得导航，总期限只复用现有 `probeBudgetMs`。不得等待 assistant role、预览/分享/下载控件、`img[alt]`、图片完成标志、布局、可见性、宽高或固定 turn 编号；不得新增 wait Child、per-job timer、队列、WAL、状态机或下载链。未来改变仍须用户明确解冻并同步替换 GPT/Browser 法案、施工图、实现与唯一质检。
 

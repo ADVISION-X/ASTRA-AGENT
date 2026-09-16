@@ -132,9 +132,9 @@ type ProviderWaitSources = Readonly<{
 const inspectProviderObservationOrder = (
   sources: ProviderWaitSources, findings: InspectorFinding[], finding: FindingFactory,
 ): void => {
-  const textGate = sources.textHandler.indexOf("await context.waitForProviderObservation(deadline)");
+  const textGate = sources.textHandler.indexOf("await context.waitForProviderObservation(");
   const textObservation = sources.textHandler.indexOf("readExactAssistantTurn(browser");
-  const imageGate = sources.imageHandler.indexOf("await context.waitForProviderObservation(deadline)");
+  const imageGate = sources.imageHandler.indexOf("await context.waitForProviderObservation(");
   const imageObservation = sources.imageHandler.indexOf("browser.readAuthenticatedMedia(");
   if (textGate < 0 || textObservation < 0 || textGate > textObservation
     || imageGate < 0 || imageObservation < 0 || imageGate > imageObservation) findings.push(finding(

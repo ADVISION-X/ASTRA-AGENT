@@ -183,6 +183,7 @@ export type GptExecutionContext = Readonly<{
   signal?: AbortSignal;
   waitForProviderObservation?: (
     observationDeadlineAt: number,
+    reason: GptProviderObservationWaitReason,
   ) => Promise<"reobserve" | "deadline">;
   assertProviderInputAllowed?: () => void;
   rateLimitAckDispatchNotAfter?: number;
@@ -201,6 +202,14 @@ export type GptExecutionContext = Readonly<{
   }>;
   onProof?: (proof: GptChildCapabilityProof) => Promise<void>;
 }>;
+
+export type GptProviderObservationWaitReason =
+  | "initial-observation"
+  | "exact-user-turn-unavailable"
+  | "adjacent-assistant-missing"
+  | "stop-present"
+  | "stopped-empty-confirming"
+  | "generated-image-source-pending";
 
 export const gptExactCallIdentityHash = (
   intent: Readonly<{

@@ -1,6 +1,6 @@
 import { executionFailure, failureCode } from "../../../../lib/execution-failure.js";
 import { gptExecutionFailure } from "../../execution-fault.js";
-import { gptCanonicalHash } from "../../contract.js";
+import { gptCanonicalHash, type GptProviderObservationWaitReason } from "../../contract.js";
 import type { ProviderStoppedEmptyProof } from "../../../../lib/execution-failure.js";
 
 import { declaredFacts, numberInput, requireBrowser, requireExactInputKeys, stringInput, success, type GptChildHandler } from "../../web/child-handler.js";
@@ -85,13 +85,16 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
     const deadline = Date.now() + probeBudgetMs;
     let stoppedEmptyWindow: StoppedEmptyWindow | null = null;
     let exactResponseObserved = false;
+    let nextWaitReason: GptProviderObservationWaitReason = "initial-observation";
     while (Date.now() < deadline || exactResponseObserved) {
       if (!context.waitForProviderObservation) {
         throw executionFailure("failed", "GPT_PROVIDER_OBSERVATION_GATE_REQUIRED");
       }
       const observationDeadline = exactResponseObserved
         ? Date.now() + GPT_STOPPED_EMPTY_CONFIRMATION_MS : deadline;
-      if (await context.waitForProviderObservation(observationDeadline) === "deadline") {
+      if (await context.waitForProviderObservation(
+        observationDeadline, nextWaitReason,
+      ) === "deadline") {
         if (exactResponseObserved) continue;
         break;
       }
@@ -99,7 +102,14 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
       try {
         assistant = await readExactAssistantTurn(browser, userTurnId, conversationUrl);
       } catch (error) {
-        if (failureCode(error) !== "BROWSER_DOM_CANDIDATE_MISSING") throw error;
+        const code = failureCode(error);
+        if (code === "BROWSER_EXACT_USER_TURN_UNAVAILABLE") {
+          nextWaitReason = "exact-user-turn-unavailable";
+        } else if (code === "BROWSER_ADJACENT_ASSISTANT_TURN_MISSING") {
+          nextWaitReason = "adjacent-assistant-missing";
+        } else {
+          throw error;
+        }
       }
       exactResponseObserved = assistant !== null;
       if (assistant && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0) {
@@ -115,6 +125,8 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
         stoppedEmptyWindow = null;
         continue;
       }
+      nextWaitReason = assistant.generatingRaw > 0
+        ? "stop-present" : "stopped-empty-confirming";
       const observedAt = performance.now();
       const identityHash = gptCanonicalHash({
         canonicalConversationUrl: assistant.currentUrl,

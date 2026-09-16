@@ -116,7 +116,8 @@ const rejectMissingRenameReply = (input: FailureInput): never => {
 const checkpointMissingIsObservation = (input: FailureInput, code: string): boolean => {
   if (input.mutation) return false;
   if (input.permit.childCapabilityId === "checkpoint_gpt_text_response") {
-    return code === "BROWSER_DOM_CANDIDATE_MISSING";
+    return ["BROWSER_EXACT_USER_TURN_UNAVAILABLE",
+      "BROWSER_ADJACENT_ASSISTANT_TURN_MISSING"].includes(code);
   }
   return input.permit.childCapabilityId === "checkpoint_gpt_generated_image"
     && ["BROWSER_AUTHENTICATED_MEDIA_USER_TURN_ABSENT",

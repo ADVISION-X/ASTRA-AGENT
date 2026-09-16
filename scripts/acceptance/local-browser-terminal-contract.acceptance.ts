@@ -93,8 +93,10 @@ try {
   assert.equal(actorStore.readState(observationPermit.commandId), null);
 
   for (const pending of [
-    { commandId: "actor-text-checkpoint-pending", childCapabilityId: "checkpoint_gpt_text_response",
-      code: "BROWSER_DOM_CANDIDATE_MISSING" },
+    { commandId: "actor-text-user-turn-pending", childCapabilityId: "checkpoint_gpt_text_response",
+      code: "BROWSER_EXACT_USER_TURN_UNAVAILABLE" },
+    { commandId: "actor-text-assistant-pending", childCapabilityId: "checkpoint_gpt_text_response",
+      code: "BROWSER_ADJACENT_ASSISTANT_TURN_MISSING" },
     { commandId: "actor-image-checkpoint-pending", childCapabilityId: "checkpoint_gpt_generated_image",
       code: "BROWSER_AUTHENTICATED_MEDIA_IMAGE_SOURCE_ABSENT" },
     { commandId: "actor-image-user-turn-pending", childCapabilityId: "checkpoint_gpt_generated_image",

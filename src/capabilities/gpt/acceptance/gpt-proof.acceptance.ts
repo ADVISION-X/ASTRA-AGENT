@@ -1,4 +1,5 @@
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
+import { executionFailure } from "../../../lib/execution-failure.js";
 
 import { buildGptExecutionProfile } from "../index.js";
 import {
@@ -393,20 +394,21 @@ for (const promptMatches of [true, false]) {
     }
     throw new Error(`UNEXPECTED_EXACT_CHECKPOINT_INTENT:${intent.kind}`);
   }, { initialUrl: conversationUrl });
-  let providerObservationGateCount = 0;
+  const waitReasons: string[] = [];
   const result = await createGptAcceptanceHarness("gpt-proof-exact-checkpoint").execute(
     "checkpoint_gpt_text_response", fixture.browser,
     { canonicalConversationUrl: conversationUrl,
       probeBudgetMs: 200_000, userTurnId, turnMarker: "exact" }, {
-      waitForProviderObservation: async () => {
-        providerObservationGateCount += 1;
+      waitForProviderObservation: async (_deadline, reason) => {
+        waitReasons.push(reason);
         return "reobserve";
       },
     },
   );
   assert.equal(result.status, "success", result.failureCode ?? "exact checkpoint failed");
-  assert.equal(providerObservationGateCount, 1,
+  assert.equal(waitReasons.length, 1,
     "the first exact checkpoint must pass through the Provider observation gate");
+  assert.deepEqual(waitReasons, ["initial-observation"]);
   assert.equal(result.value?.assistantTurnId, assistantTurnId);
   assert.equal(result.value?.semanticText, "exact response");
 }
@@ -422,20 +424,58 @@ for (const promptMatches of [true, false]) {
     const reply = exactAssistantTurnReply(intent, responseReadCount === 1 ? "partial" : "complete");
     return responseReadCount === 1 ? { ...reply, generatingRaw: 1 } : reply;
   }, { initialUrl: conversationUrl });
-  let gateCount = 0;
+  const waitReasons: string[] = [];
   const result = await createGptAcceptanceHarness("gpt-proof-stop-survives-deadline").execute(
     "checkpoint_gpt_text_response", fixture.browser,
     { canonicalConversationUrl: conversationUrl,
       probeBudgetMs: 1, userTurnId, turnMarker: "exact" }, {
-      waitForProviderObservation: async () => {
-        gateCount += 1;
-        if (gateCount === 1) await new Promise((resolve) => setTimeout(resolve, 5));
-        return gateCount === 2 ? "deadline" : "reobserve";
+      waitForProviderObservation: async (_deadline, reason) => {
+        waitReasons.push(reason);
+        if (waitReasons.length === 1) await new Promise((resolve) => setTimeout(resolve, 5));
+        return waitReasons.length === 2 ? "deadline" : "reobserve";
       },
     },
   );
   assert.equal(result.status, "success", result.failureCode ?? "long response was cut off by deadline");
   assert.equal(result.value?.semanticText, "complete");
-  assert.equal(gateCount, 3,
+  assert.deepEqual(waitReasons, ["initial-observation", "stop-present", "stop-present"]);
+  assert.equal(waitReasons.length, 3,
     "a stop-present exact response must remain pending across the original probe deadline");
+}
+
+{
+  const userTurnId = "conversation-turn-3";
+  let responseReadCount = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind !== "readExactAssistantTurn") {
+      throw new Error(`UNEXPECTED_WAIT_REASON_INTENT:${intent.kind}`);
+    }
+    responseReadCount += 1;
+    if (responseReadCount === 1) {
+      throw executionFailure("failed", "BROWSER_EXACT_USER_TURN_UNAVAILABLE");
+    }
+    if (responseReadCount === 2) {
+      throw executionFailure("failed", "BROWSER_ADJACENT_ASSISTANT_TURN_MISSING");
+    }
+    if (responseReadCount === 3) return exactAssistantTurnReply(intent, "");
+    return exactAssistantTurnReply(intent, "complete");
+  }, { initialUrl: conversationUrl });
+  const waitReasons: string[] = [];
+  const result = await createGptAcceptanceHarness("gpt-proof-wait-reasons").execute(
+    "checkpoint_gpt_text_response", fixture.browser,
+    { canonicalConversationUrl: conversationUrl,
+      probeBudgetMs: 200_000, userTurnId, turnMarker: "exact" }, {
+      waitForProviderObservation: async (_deadline, reason) => {
+        waitReasons.push(reason);
+        return "reobserve";
+      },
+    },
+  );
+  assert.equal(result.status, "success", result.failureCode ?? "wait reasons failed");
+  assert.deepEqual(waitReasons, [
+    "initial-observation",
+    "exact-user-turn-unavailable",
+    "adjacent-assistant-missing",
+    "stopped-empty-confirming",
+  ]);
 }

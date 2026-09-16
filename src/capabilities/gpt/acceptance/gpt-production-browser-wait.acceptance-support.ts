@@ -85,6 +85,7 @@ try {
   await assert.rejects(
     lifecycle.waitForProviderObservation(
       active, "research", "text-wait", "checkpoint_gpt_text_response", Date.now() + 5,
+      "initial-observation",
     ),
     /GPT_CONFIRMED_SUBMIT_READBACK_INVALID/u,
   );
@@ -121,6 +122,7 @@ try {
   const shortDeadlineParks = parks;
   assert.equal(await lifecycle.waitForProviderObservation(
     active, "research", "text-wait", "checkpoint_gpt_text_response", Date.now() + 5_000,
+    "initial-observation",
   ), "deadline");
   assert.deepEqual([acquisitions, parks], [shortDeadlineAcquisitions, shortDeadlineParks],
     "a deadline below the 70-second minimum must not park or reacquire Browser");
@@ -131,10 +133,12 @@ try {
     await active.facade.observeCapability({ capabilityId: "browser.dom.inspect.v1" });
     assert.equal(await lifecycle.waitForProviderObservation(
       active, "research", "text-wait", "checkpoint_gpt_text_response", Date.now() + 200_000,
+      "initial-observation",
     ), "reobserve");
     await active.facade.observeCapability({ capabilityId: "browser.dom.inspect.v1" });
     assert.equal(await lifecycle.waitForProviderObservation(
       active, "research", "text-wait", "checkpoint_gpt_text_response", Date.now() + 200_000,
+      "stop-present",
     ), "reobserve");
     await active.facade.observeCapability({ capabilityId: "browser.dom.inspect.v1" });
   });
@@ -156,6 +160,7 @@ try {
     });
     assert.equal(await lifecycle.waitForProviderObservation(
       active, "research", "image-wait", "checkpoint_gpt_generated_image", Date.now() + 200_000,
+      "generated-image-source-pending",
     ), "reobserve");
     await active.facade.readAuthenticatedMedia({
       canonicalConversationUrl: "https://chatgpt.com/c/provider-wait",
@@ -163,6 +168,7 @@ try {
     });
     assert.equal(await lifecycle.waitForProviderObservation(
       active, "research", "image-wait", "checkpoint_gpt_generated_image", Date.now() + 200_000,
+      "generated-image-source-pending",
     ), "reobserve");
     await active.facade.readAuthenticatedMedia({
       canonicalConversationUrl: "https://chatgpt.com/c/provider-wait",
@@ -238,12 +244,12 @@ try {
     "unresolved DISPATCHED must permit zero-input park while WAL continues blocking every acquisition");
   const waitEvents = (await readFile(runtimeLogger.currentSegmentPath()!, "utf8")).trim().split("\n")
     .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>)
-    .filter((event) => event.code === "GPT_PROVIDER_WAIT_ACTIVE");
-  assert.equal(waitEvents.length, 2);
-  assert.deepEqual(waitEvents.map((event) =>
-    (event.typedIdentity as { capabilityCallId: string }).capabilityCallId), [
-    "text-wait:checkpoint_gpt_text_response",
-    "image-wait:checkpoint_gpt_generated_image",
+    .filter((event) => String(event.code).startsWith("GPT_PROVIDER_WAIT_"));
+  assert.deepEqual(waitEvents.map((event) => [event.code,
+    (event.typedIdentity as { capabilityCallId: string }).capabilityCallId]), [
+    ["GPT_PROVIDER_WAIT_INITIAL_OBSERVATION", "text-wait:checkpoint_gpt_text_response"],
+    ["GPT_PROVIDER_WAIT_STOP_PRESENT", "text-wait:checkpoint_gpt_text_response"],
+    ["GPT_PROVIDER_WAIT_ACTIVE", "image-wait:checkpoint_gpt_generated_image"],
   ]);
 } finally {
   await rm(temporary, { recursive: true, force: true });

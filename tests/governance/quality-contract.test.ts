@@ -39,7 +39,7 @@ import { retiredAuthorityExamContractViolations } from "../../scripts/audit/doma
 import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, staticImplementationDigest, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
 import { containsPageMutation, gptPrivateInfrastructureViolations } from "../../scripts/audit/domains/gpt/gpt-inspection-support.js";
-import { textResponseTwoGateSettlementIsFrozen } from "../../scripts/audit/domains/gpt/gpt-frozen-attempt-inspection.js";
+import { providerWaitReasonProjectionIsFrozen, textResponseTwoGateSettlementIsFrozen } from "../../scripts/audit/domains/gpt/gpt-frozen-attempt-inspection.js";
 import { browserMutationSchemaMigrationIsCurrent } from "../../scripts/audit/domains/local-browser-session/browser-mutation-settlement-inspection.js";
 import { exactAssistantTurnReadIsAtomic } from "../../scripts/audit/domains/local-browser-session/dom-mechanical-facts-inspection.js";
 import { requireSource } from "../../scripts/audit/domains/local-browser-session/inspector-support.js";
@@ -1503,6 +1503,8 @@ test("Browser inspectors admit only the exact row-preserving WAL constraint migr
     exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
       "if (currentUrl !== expectedUrl || thirdGate || rawCount !== 1)"),
     exact.replace("loaderAfter !== expectedMainFrameLoaderId", "loaderAfter === expectedMainFrameLoaderId"),
+    exact.replaceAll("exact-user-turn-unavailable", "generic-candidate-missing"),
+    exact.replaceAll("BROWSER_ADJACENT_ASSISTANT_TURN_MISSING", "BROWSER_DOM_CANDIDATE_MISSING"),
     `${exact}\nvoid queryCandidateSet;`,
   ]) assert.equal(exactAssistantTurnReadIsAtomic(inspectSource(exactPath, mutant)), false);
 });
@@ -1516,6 +1518,9 @@ test("GPT text-response settlement keeps stop and text inside the frozen second 
       "while (Date.now() < deadline)"),
     source.replace("Date.now() + GPT_STOPPED_EMPTY_CONFIRMATION_MS : deadline", "deadline"),
     source.replace("if (exactResponseObserved) continue", "if (exactResponseObserved) break"),
+    source.replace("nextWaitReason = \"exact-user-turn-unavailable\"",
+      "nextWaitReason = \"adjacent-assistant-missing\""),
+    source.replace("observationDeadline, nextWaitReason", "observationDeadline, \"initial-observation\""),
     source.replace(
       "assistant && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0",
       "assistant && assistant.hidden === false && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0",
@@ -1525,6 +1530,33 @@ test("GPT text-response settlement keeps stop and text inside the frozen second 
       "observation.generatingRaw > 0 || observation.composerRaw > 0 || observation.semanticText.trim().length > 0",
     ),
   ]) assert.equal(textResponseTwoGateSettlementIsFrozen(mutant), false);
+});
+
+test("GPT Provider wait reasons remain a closed diagnostic projection", () => {
+  const contract = readFileSync("src/capabilities/gpt/contract.ts", "utf8");
+  const lifecycle = readFileSync("src/capabilities/gpt/production-browser-lifecycle.ts", "utf8");
+  const textHandler = readFileSync(
+    "src/capabilities/gpt/children/checkpoint_gpt_text_response/handler.ts", "utf8",
+  );
+  const imageHandler = readFileSync(
+    "src/capabilities/gpt/children/checkpoint_gpt_generated_image/handler.ts", "utf8",
+  );
+  const valid = (contractSource = contract, lifecycleSource = lifecycle,
+    textSource = textHandler, imageSource = imageHandler) => providerWaitReasonProjectionIsFrozen(
+    contractSource, lifecycleSource, textSource, imageSource,
+  );
+  assert.equal(valid(), true);
+  assert.equal(valid(contract.replace("reason: GptProviderObservationWaitReason", "reason?: string")), false);
+  assert.equal(valid(contract, lifecycle.replace(
+    "GPT_PROVIDER_WAIT_EXACT_USER_TURN_UNAVAILABLE", "GPT_PROVIDER_WAIT_ACTIVE",
+  )), false);
+  assert.equal(valid(contract, lifecycle, textHandler.replace(
+    "observationDeadline, nextWaitReason", 'observationDeadline, "initial-observation"',
+  )), false);
+  assert.equal(valid(contract, lifecycle, `${textHandler}\nif (nextWaitReason) throw new Error();`), false);
+  assert.equal(valid(contract, lifecycle, textHandler, imageHandler.replace(
+    'deadline, "generated-image-source-pending"', 'deadline, "initial-observation"',
+  )), false);
 });
 
 test("GPT mutation inspection permits bounded reads but rejects looped or concurrent dispatch", () => {

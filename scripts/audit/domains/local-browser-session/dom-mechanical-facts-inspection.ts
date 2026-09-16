@@ -212,7 +212,9 @@ const inspectMechanicalContract = (
     'BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">'], findings, lawId,
   INTENT_CONTRACT_PATH, "The bounded Browser DOM contract is missing");
   requireTokens(exactAssistantTurnText, ["executeExactAssistantTurnRead", "rawDomHtml", "rawDomHash",
-    "semanticText", "semanticTextHash", "assistantTurnId"], findings, lawId,
+    "semanticText", "semanticTextHash", "assistantTurnId", "exact-user-turn-unavailable",
+    "adjacent-assistant-missing", "BROWSER_EXACT_USER_TURN_UNAVAILABLE",
+    "BROWSER_ADJACENT_ASSISTANT_TURN_MISSING"], findings, lawId,
   EXACT_ASSISTANT_TURN_PATH, "The exact assistant-turn reply-only channel is missing");
   if (exactAssistantTurnText.includes(".slice(0, 1024)") || queryText.includes("value.slice(0, maxChars)")
     || contractText.includes("intent.maxChars > 65536")) finding(findings, lawId, domCoherentObservationPath,
@@ -232,6 +234,7 @@ export const exactAssistantTurnReadIsAtomic = (source: import("ts-morph").Source
     `document.querySelectorAll("[data-testid^='conversation-turn-']")`,
     "const [, assistantOuter = null] = userIndex >= 0 ? turns.slice(userIndex) : []",
     "const raw = assistantOuter", "const rawCount = raw.length",
+    "const pendingCause = userRaw.length !== 1 ? \"exact-user-turn-unavailable\"",
     "if (currentUrl !== expectedUrl || rawCount !== 1)", "const node = raw[0]",
     "rawDomHtml: node.outerHTML",
     "semanticText: browserCanonicalSemanticText(node)"];
@@ -247,6 +250,8 @@ export const exactAssistantTurnReadIsAtomic = (source: import("ts-morph").Source
     (observe.match(/!== expectedMainFrameLoaderId/gu) ?? []).length === 2,
   ];
   return required.every((token) => exactFunction.includes(token))
+    && ["BROWSER_EXACT_USER_TURN_UNAVAILABLE", "BROWSER_ADJACENT_ASSISTANT_TURN_MISSING"]
+      .every((token) => text.includes(token))
     && forbidden.every((token) => !text.includes(token))
     && exactCounts.every(Boolean)
     && execute.includes("expectedMainFrameLoaderId");

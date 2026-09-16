@@ -51,7 +51,9 @@ GptChildHandler<"checkpoint_gpt_generated_image"> = async (intent, context) => {
     if (!context.waitForProviderObservation) {
       throw executionFailure("failed", "GPT_PROVIDER_OBSERVATION_GATE_REQUIRED");
     }
-    if (await context.waitForProviderObservation(deadline) === "deadline") {
+    if (await context.waitForProviderObservation(
+      deadline, "generated-image-source-pending",
+    ) === "deadline") {
       throw executionFailure("failed", "GPT_IMAGE_TIMEOUT");
     }
     try {

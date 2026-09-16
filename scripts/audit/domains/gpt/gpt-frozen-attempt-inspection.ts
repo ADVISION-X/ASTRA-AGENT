@@ -15,17 +15,56 @@ export const textResponseTwoGateSettlementIsFrozen = (source: string): boolean =
     "let exactResponseObserved = false",
     "while (Date.now() < deadline || exactResponseObserved)",
     "Date.now() + GPT_STOPPED_EMPTY_CONFIRMATION_MS : deadline",
-    'if (await context.waitForProviderObservation(observationDeadline) === "deadline")',
+    "let nextWaitReason: GptProviderObservationWaitReason = \"initial-observation\"",
+    "observationDeadline, nextWaitReason",
+    "nextWaitReason = \"exact-user-turn-unavailable\"",
+    "nextWaitReason = \"adjacent-assistant-missing\"",
+    'assistant.generatingRaw > 0\n        ? "stop-present" : "stopped-empty-confirming"',
     "if (exactResponseObserved) continue",
     "exactResponseObserved = assistant !== null",
     "assistant && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0",
   ];
   const forbidden = ["assistant.visible", "assistant.layout", "assistant.hidden",
     "assistant.ariaHidden", "assistant.inert", "assistant.composerRaw", "assistant.assistantIndex",
-    "assistant.precedingPromptHash"];
+    "assistant.precedingPromptHash", "if (nextWaitReason", "switch (nextWaitReason"];
   return required.every((token) => source.includes(token))
     && forbidden.every((token) => !source.includes(token));
 };
+
+export const providerWaitReasonProjectionIsFrozen = (
+  contract: string,
+  lifecycle: string,
+  textHandler: string,
+  imageHandler: string,
+): boolean => [
+  'reason: GptProviderObservationWaitReason',
+  '"initial-observation"',
+  '"exact-user-turn-unavailable"',
+  '"adjacent-assistant-missing"',
+  '"stop-present"',
+  '"stopped-empty-confirming"',
+  '"generated-image-source-pending"',
+].every((token) => contract.includes(token))
+  && [
+    '"initial-observation": "GPT_PROVIDER_WAIT_INITIAL_OBSERVATION"',
+    '"exact-user-turn-unavailable": "GPT_PROVIDER_WAIT_EXACT_USER_TURN_UNAVAILABLE"',
+    '"adjacent-assistant-missing": "GPT_PROVIDER_WAIT_ADJACENT_ASSISTANT_MISSING"',
+    '"stop-present": "GPT_PROVIDER_WAIT_STOP_PRESENT"',
+    '"stopped-empty-confirming": "GPT_PROVIDER_WAIT_STOPPED_EMPTY_CONFIRMING"',
+    'reason === "generated-image-source-pending"',
+    '"GPT_PROVIDER_WAIT_ACTIVE"',
+    "reason in textCodes",
+  ].every((token) => lifecycle.includes(token))
+  && [
+    'nextWaitReason: GptProviderObservationWaitReason = "initial-observation"',
+    "observationDeadline, nextWaitReason",
+    'nextWaitReason = "exact-user-turn-unavailable"',
+    'nextWaitReason = "adjacent-assistant-missing"',
+    '? "stop-present" : "stopped-empty-confirming"',
+  ].every((token) => textHandler.includes(token))
+  && imageHandler.includes('deadline, "generated-image-source-pending"')
+  && !textHandler.includes("if (nextWaitReason")
+  && !textHandler.includes("switch (nextWaitReason");
 
 const contractChecks = (sources: Readonly<Record<string, string>>): boolean[] => [
   /attach_approved_gpt_files_once:[^\n]+profile: "TARGET_LOCAL_MUTATION"[^\n]+replayPolicy: "target-local-per-generation"/u.test(sources.contract!),
@@ -75,6 +114,13 @@ const lifecycleChecks = (sources: Readonly<Record<string, string>>): boolean[] =
     sources.lifecycle!.includes('"confirmed-readback"'),
     probeWalRead >= 0,
     sources.lifecycle!.includes("PROVIDER_OBSERVATION_MIN_INTERVAL_MS = 70_000"),
+    sources.lifecycle!.includes("GPT_PROVIDER_WAIT_INITIAL_OBSERVATION"),
+    sources.lifecycle!.includes("GPT_PROVIDER_WAIT_EXACT_USER_TURN_UNAVAILABLE"),
+    sources.lifecycle!.includes("GPT_PROVIDER_WAIT_ADJACENT_ASSISTANT_MISSING"),
+    sources.lifecycle!.includes("GPT_PROVIDER_WAIT_STOP_PRESENT"),
+    sources.lifecycle!.includes("GPT_PROVIDER_WAIT_STOPPED_EMPTY_CONFIRMING"),
+    sources.lifecycle!.includes('reason === "generated-image-source-pending"'),
+    sources.lifecycle!.includes('"GPT_PROVIDER_WAIT_ACTIVE"'),
     sources.lifecycle!.includes("recoverySelectionRequired: targetMode === \"confirmed-readback\""),
     !sources.lifecycle!.includes('"provider-probe"'),
     !sources.lifecycle!.includes("startProviderProbeCooldown"),
@@ -101,6 +147,9 @@ const lifecycleChecks = (sources: Readonly<Record<string, string>>): boolean[] =
     sources.checkpoint!.includes("observationCount"),
     sources.checkpoint!.includes("terminalObservationRevisionHash"),
     textResponseTwoGateSettlementIsFrozen(sources.checkpoint!),
+    providerWaitReasonProjectionIsFrozen(
+      sources.contract!, sources.lifecycle!, sources.checkpoint!, sources.imageCheckpoint!,
+    ),
   ];
 };
 
@@ -120,6 +169,7 @@ const sources = (context: InspectorContext): Readonly<Record<string, string>> =>
   lifecycle: read(context, `${ROOT}/production-browser-lifecycle.ts`),
   targetAcquirer: read(context, "src/lib/browser/infrastructure/browser-target-acquirer.ts"),
   checkpoint: read(context, `${ROOT}/children/checkpoint_gpt_text_response/handler.ts`),
+  imageCheckpoint: read(context, `${ROOT}/children/checkpoint_gpt_generated_image/handler.ts`),
   blueprint: read(context, "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md"),
   browserBlueprint: read(context,
     "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md"),

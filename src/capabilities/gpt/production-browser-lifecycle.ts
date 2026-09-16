@@ -4,6 +4,7 @@ import {
   type GptChildCapabilityId,
   type GptChildBrowserFact,
   type GptHash,
+  type GptProviderObservationWaitReason,
 } from "./contract.js";
 import type {
   BrowserAtomicStepIdentity,
@@ -241,6 +242,7 @@ export class ProductionGptBrowserLifecycle {
     callId: string,
     childCapabilityId: GptChildCapabilityId,
     observationDeadlineAt: number,
+    reason: GptProviderObservationWaitReason,
   ): Promise<"reobserve" | "deadline"> {
     if (childCapabilityId !== "checkpoint_gpt_text_response"
       && childCapabilityId !== "checkpoint_gpt_generated_image") {
@@ -254,7 +256,7 @@ export class ProductionGptBrowserLifecycle {
     assertConfirmedProviderReadback(active);
     const eligibleAt = Date.now() + PROVIDER_OBSERVATION_MIN_INTERVAL_MS;
     if (eligibleAt > observationDeadlineAt) return "deadline";
-    this.emitProviderWaitLog(active, productStepId, callId, childCapabilityId);
+    this.emitProviderWaitLog(active, productStepId, callId, childCapabilityId, reason);
     await active.facade.park({
       reason: "gpt-provider-observation-wait",
       mode: "product-call-settlement",
@@ -276,8 +278,25 @@ export class ProductionGptBrowserLifecycle {
     productStepId: string,
     callId: string,
     childCapabilityId: GptChildCapabilityId,
+    reason: GptProviderObservationWaitReason,
   ): void {
-    this.emitWaitLog(active, productStepId, callId, childCapabilityId, "GPT_PROVIDER_WAIT_ACTIVE");
+    const textCodes = {
+      "initial-observation": "GPT_PROVIDER_WAIT_INITIAL_OBSERVATION",
+      "exact-user-turn-unavailable": "GPT_PROVIDER_WAIT_EXACT_USER_TURN_UNAVAILABLE",
+      "adjacent-assistant-missing": "GPT_PROVIDER_WAIT_ADJACENT_ASSISTANT_MISSING",
+      "stop-present": "GPT_PROVIDER_WAIT_STOP_PRESENT",
+      "stopped-empty-confirming": "GPT_PROVIDER_WAIT_STOPPED_EMPTY_CONFIRMING",
+    } as const;
+    if (childCapabilityId === "checkpoint_gpt_generated_image"
+      && reason === "generated-image-source-pending") {
+      this.emitWaitLog(active, productStepId, callId, childCapabilityId, "GPT_PROVIDER_WAIT_ACTIVE");
+      return;
+    }
+    if (childCapabilityId !== "checkpoint_gpt_text_response" || !(reason in textCodes)) {
+      throw executionFailure("failed", "GPT_PROVIDER_WAIT_REASON_INVALID");
+    }
+    this.emitWaitLog(active, productStepId, callId, childCapabilityId,
+      textCodes[reason as keyof typeof textCodes]);
   }
 
   private emitWaitLog(
@@ -285,9 +304,14 @@ export class ProductionGptBrowserLifecycle {
     productStepId: string,
     callId: string,
     childCapabilityId: GptChildCapabilityId,
-    code: "GPT_PROVIDER_WAIT_ACTIVE",
+    code: "GPT_PROVIDER_WAIT_ACTIVE"
+      | "GPT_PROVIDER_WAIT_INITIAL_OBSERVATION"
+      | "GPT_PROVIDER_WAIT_EXACT_USER_TURN_UNAVAILABLE"
+      | "GPT_PROVIDER_WAIT_ADJACENT_ASSISTANT_MISSING"
+      | "GPT_PROVIDER_WAIT_STOP_PRESENT"
+      | "GPT_PROVIDER_WAIT_STOPPED_EMPTY_CONFIRMING",
   ): void {
-    const callIdentity = `${productStepId}:${callId}:${childCapabilityId}`;
+    const callIdentity = `${productStepId}:${callId}:${childCapabilityId}:${code}`;
     const emittedAt = performance.now();
     if (active.providerWaitLog?.callIdentity !== callIdentity
       || emittedAt - active.providerWaitLog.emittedAt >= PROVIDER_OBSERVATION_MIN_INTERVAL_MS) {

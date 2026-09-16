@@ -17,6 +17,11 @@ type ExactAssistantObservation = Readonly<{
   nativeStage: "runtime-call-function-on";
 }>;
 
+type ExactAssistantPendingCause =
+  | "exact-user-turn-unavailable"
+  | "adjacent-assistant-missing"
+  | null;
+
 const EXACT_ASSISTANT_TURN_FUNCTION = `async function (spec) {
   ${BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE}
   const userTurnId = spec.userTurnId;
@@ -42,6 +47,8 @@ const EXACT_ASSISTANT_TURN_FUNCTION = `async function (spec) {
   const assistantTurnId = assistantOuter?.getAttribute("data-testid") || "";
   const raw = assistantOuter
     ? Array.from(assistantOuter.querySelectorAll("[data-message-author-role='assistant']")) : [];
+  const pendingCause = userRaw.length !== 1 ? "exact-user-turn-unavailable"
+    : raw.length === 0 ? "adjacent-assistant-missing" : null;
   const observedAt = new Date().toISOString();
   const generatingRaw = document.querySelectorAll(
     "#composer-submit-button[data-testid='stop-button']"
@@ -49,12 +56,12 @@ const EXACT_ASSISTANT_TURN_FUNCTION = `async function (spec) {
   const rawCount = raw.length;
   if (currentUrl !== expectedUrl || rawCount !== 1) return { rawCount,
     rawDomHtml: "", semanticText: "", currentUrl, assistantTurnId, precedingUserTurnId,
-    generatingRaw, observedAt, nativeStage: "runtime-call-function-on" };
+    generatingRaw, observedAt, pendingCause, nativeStage: "runtime-call-function-on" };
   const node = raw[0];
   return { rawCount: 1,
     rawDomHtml: node.outerHTML, semanticText: browserCanonicalSemanticText(node),
     currentUrl, assistantTurnId, precedingUserTurnId, generatingRaw,
-    observedAt, nativeStage: "runtime-call-function-on" };
+    observedAt, pendingCause, nativeStage: "runtime-call-function-on" };
 }`;
 
 const sha256Text = async (value: string): Promise<`sha256:${string}`> => {
@@ -88,6 +95,9 @@ const observationValueShapeValid = (
   typeof observed.precedingUserTurnId === "string",
   Number.isSafeInteger(observed.generatingRaw) && (observed.generatingRaw as number) >= 0,
   exactIsoTimestamp(observed.observedAt),
+  observed.pendingCause === null
+    || observed.pendingCause === "exact-user-turn-unavailable"
+    || observed.pendingCause === "adjacent-assistant-missing",
   observed.nativeStage === "runtime-call-function-on",
 ].every(Boolean);
 
@@ -97,14 +107,24 @@ const decodeObservation = (
 ): ExactAssistantObservation => {
   const observed = record(value);
   const keys = ["rawCount", "rawDomHtml", "semanticText", "currentUrl", "assistantTurnId",
-    "precedingUserTurnId", "generatingRaw", "observedAt", "nativeStage"];
+    "precedingUserTurnId", "generatingRaw", "observedAt", "pendingCause", "nativeStage"];
   const rawCount = count(observed.rawCount);
   if (!observationValueShapeValid(observed, keys)) {
     throw new Error("BROWSER_DOM_READ_INVALID");
   }
   if (observed.currentUrl !== expectedCurrentUrl) throw new Error("BROWSER_DOCUMENT_INVALID");
   if (rawCount > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
-  if (rawCount === 0) throw new Error("BROWSER_DOM_CANDIDATE_MISSING");
+  if (rawCount === 0) {
+    const pendingCause = observed.pendingCause as ExactAssistantPendingCause;
+    if (pendingCause === "exact-user-turn-unavailable") {
+      throw new Error("BROWSER_EXACT_USER_TURN_UNAVAILABLE");
+    }
+    if (pendingCause === "adjacent-assistant-missing") {
+      throw new Error("BROWSER_ADJACENT_ASSISTANT_TURN_MISSING");
+    }
+    throw new Error("BROWSER_DOM_READ_INVALID");
+  }
+  if (observed.pendingCause !== null) throw new Error("BROWSER_DOM_READ_INVALID");
   const rawDomHtml = observed.rawDomHtml as string;
   if (rawDomHtml.length === 0) throw new Error("BROWSER_DOM_READ_INVALID");
   return Object.freeze({
