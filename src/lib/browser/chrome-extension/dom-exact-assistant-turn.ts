@@ -1,5 +1,4 @@
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
-import { BROWSER_MECHANICAL_FACTS_READER_SOURCE } from "./dom-mechanical-facts.js";
 import { BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE } from "./dom-semantic-text.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 import { canonicalBrowserExactAssistantTurnRevision } from
@@ -8,7 +7,6 @@ import { canonicalBrowserExactAssistantTurnRevision } from
 type BrowserRecord = Record<string, unknown>;
 type ExactAssistantObservation = Readonly<{
   rawCount: number;
-  eligibleCount: number;
   rawDomHtml: string;
   semanticText: string;
   currentUrl: string;
@@ -16,12 +14,10 @@ type ExactAssistantObservation = Readonly<{
   precedingUserTurnId: string;
   generatingRaw: number;
   observedAt: string;
-  nativeCauseCode: "NO_LAYOUT_BOX" | null;
   nativeStage: "runtime-call-function-on";
 }>;
 
 const EXACT_ASSISTANT_TURN_FUNCTION = `async function (spec) {
-  ${BROWSER_MECHANICAL_FACTS_READER_SOURCE}
   ${BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE}
   const userTurnId = spec.userTurnId;
   if (!/^conversation-turn-[1-9][0-9]*$/.test(userTurnId)) throw new Error("BROWSER_DOM_READ_INVALID");
@@ -43,7 +39,6 @@ const EXACT_ASSISTANT_TURN_FUNCTION = `async function (spec) {
   const turns = Array.from(document.querySelectorAll("[data-testid^='conversation-turn-']"));
   const userIndex = userRaw.length === 1 ? turns.indexOf(userRaw[0]) : -1;
   const [, assistantOuter = null] = userIndex >= 0 ? turns.slice(userIndex) : [];
-  const assistantIndex = assistantOuter === null ? -1 : turns.indexOf(assistantOuter);
   const assistantTurnId = assistantOuter?.getAttribute("data-testid") || "";
   const raw = assistantOuter
     ? Array.from(assistantOuter.querySelectorAll("[data-message-author-role='assistant']")) : [];
@@ -51,20 +46,15 @@ const EXACT_ASSISTANT_TURN_FUNCTION = `async function (spec) {
   const generatingRaw = document.querySelectorAll(
     "#composer-submit-button[data-testid='stop-button']"
   ).length;
-  const composerRaw = document.querySelectorAll("#composer-submit-button").length;
-  if (currentUrl !== expectedUrl || assistantIndex !== turns.length - 1 || composerRaw !== 1
-    || generatingRaw !== 0 || raw.length !== 1) return { rawCount: raw.length, eligibleCount: 0,
+  const rawCount = raw.length;
+  if (currentUrl !== expectedUrl || rawCount !== 1) return { rawCount,
     rawDomHtml: "", semanticText: "", currentUrl, assistantTurnId, precedingUserTurnId,
-    generatingRaw, observedAt, nativeCauseCode: null,
-    nativeStage: "runtime-call-function-on" };
+    generatingRaw, observedAt, nativeStage: "runtime-call-function-on" };
   const node = raw[0];
-  const facts = browserMechanicalFacts(node, false);
-  const eligible = facts !== null && facts.visible && !facts.ariaHidden && !facts.inert;
-  return { rawCount: 1, eligibleCount: eligible ? 1 : 0,
-    rawDomHtml: eligible ? node.outerHTML : "", semanticText: eligible ? browserCanonicalSemanticText(node) : "",
+  return { rawCount: 1,
+    rawDomHtml: node.outerHTML, semanticText: browserCanonicalSemanticText(node),
     currentUrl, assistantTurnId, precedingUserTurnId, generatingRaw,
-    observedAt, nativeCauseCode: facts === null ? null : facts.nativeCauseCode,
-    nativeStage: "runtime-call-function-on" };
+    observedAt, nativeStage: "runtime-call-function-on" };
 }`;
 
 const sha256Text = async (value: string): Promise<`sha256:${string}`> => {
@@ -88,13 +78,9 @@ const exactIsoTimestamp = (value: unknown): value is string => typeof value === 
 const observationValueShapeValid = (
   observed: BrowserRecord,
   keys: readonly string[],
-  rawCount: number,
-  eligibleCount: number,
 ): boolean => [
   Object.keys(observed).length === keys.length,
   keys.every((key) => Object.hasOwn(observed, key)),
-  eligibleCount <= rawCount,
-  eligibleCount <= 1,
   typeof observed.rawDomHtml === "string",
   typeof observed.semanticText === "string",
   typeof observed.currentUrl === "string",
@@ -102,33 +88,32 @@ const observationValueShapeValid = (
   typeof observed.precedingUserTurnId === "string",
   Number.isSafeInteger(observed.generatingRaw) && (observed.generatingRaw as number) >= 0,
   exactIsoTimestamp(observed.observedAt),
-  new Set([null, "NO_LAYOUT_BOX"]).has(observed.nativeCauseCode as string | null),
   observed.nativeStage === "runtime-call-function-on",
 ].every(Boolean);
 
-const decodeObservation = (value: unknown): ExactAssistantObservation => {
+const decodeObservation = (
+  value: unknown,
+  expectedCurrentUrl: string,
+): ExactAssistantObservation => {
   const observed = record(value);
-  const keys = ["rawCount", "eligibleCount", "rawDomHtml", "semanticText", "currentUrl",
-    "assistantTurnId", "precedingUserTurnId", "generatingRaw", "observedAt",
-    "nativeCauseCode", "nativeStage"];
+  const keys = ["rawCount", "rawDomHtml", "semanticText", "currentUrl", "assistantTurnId",
+    "precedingUserTurnId", "generatingRaw", "observedAt", "nativeStage"];
   const rawCount = count(observed.rawCount);
-  const eligibleCount = count(observed.eligibleCount);
-  if (!observationValueShapeValid(observed, keys, rawCount, eligibleCount)) {
+  if (!observationValueShapeValid(observed, keys)) {
     throw new Error("BROWSER_DOM_READ_INVALID");
   }
+  if (observed.currentUrl !== expectedCurrentUrl) throw new Error("BROWSER_DOCUMENT_INVALID");
   if (rawCount > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
-  if (rawCount === 0 || eligibleCount === 0) throw new Error("BROWSER_DOM_CANDIDATE_MISSING");
-  if (eligibleCount !== 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
+  if (rawCount === 0) throw new Error("BROWSER_DOM_CANDIDATE_MISSING");
   const rawDomHtml = observed.rawDomHtml as string;
   if (rawDomHtml.length === 0) throw new Error("BROWSER_DOM_READ_INVALID");
   return Object.freeze({
-    rawCount, eligibleCount, rawDomHtml,
+    rawCount, rawDomHtml,
     semanticText: observed.semanticText as string, observedAt: observed.observedAt as string,
     currentUrl: observed.currentUrl as string,
     assistantTurnId: observed.assistantTurnId as string,
     precedingUserTurnId: observed.precedingUserTurnId as string,
     generatingRaw: observed.generatingRaw as number,
-    nativeCauseCode: observed.nativeCauseCode as "NO_LAYOUT_BOX" | null,
     nativeStage: "runtime-call-function-on",
   }) as ExactAssistantObservation;
 };
@@ -166,7 +151,7 @@ const observeExactAssistantTurn = async (
     if (call.exceptionDetails !== undefined) throw new Error("BROWSER_DOM_READ_INVALID");
     const loaderAfter = await mainFrameLoaderId(runtime, target.tabId);
     if (loaderAfter !== expectedMainFrameLoaderId) throw new Error("BROWSER_DOCUMENT_INVALID");
-    return decodeObservation(record(call.result).value);
+    return decodeObservation(record(call.result).value, intent.canonicalConversationUrl);
   } catch (error) {
     primaryFailure = error;
     if (error instanceof Error && /^BROWSER_[A-Z_]+$/u.test(error.message)) throw error;

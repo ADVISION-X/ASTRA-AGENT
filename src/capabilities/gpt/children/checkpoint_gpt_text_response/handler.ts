@@ -84,17 +84,24 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
     const browser = requireBrowser(context);
     const deadline = Date.now() + probeBudgetMs;
     let stoppedEmptyWindow: StoppedEmptyWindow | null = null;
-    while (Date.now() < deadline) {
+    let exactResponseObserved = false;
+    while (Date.now() < deadline || exactResponseObserved) {
       if (!context.waitForProviderObservation) {
         throw executionFailure("failed", "GPT_PROVIDER_OBSERVATION_GATE_REQUIRED");
       }
-      if (await context.waitForProviderObservation(deadline) === "deadline") break;
+      const observationDeadline = exactResponseObserved
+        ? Date.now() + GPT_STOPPED_EMPTY_CONFIRMATION_MS : deadline;
+      if (await context.waitForProviderObservation(observationDeadline) === "deadline") {
+        if (exactResponseObserved) continue;
+        break;
+      }
       let assistant: Awaited<ReturnType<typeof readExactAssistantTurn>> | null = null;
       try {
         assistant = await readExactAssistantTurn(browser, userTurnId, conversationUrl);
       } catch (error) {
         if (failureCode(error) !== "BROWSER_DOM_CANDIDATE_MISSING") throw error;
       }
+      exactResponseObserved = assistant !== null;
       if (assistant && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0) {
         const facts = projectExactAssistantTurn(assistant);
         return success({

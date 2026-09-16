@@ -1,7 +1,7 @@
-# Local Browser Authority V47 施工图
+# Local Browser Authority V48 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"local-browser-authority-v47","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V38","LAW-LOCAL-BROWSER-SESSION-004-V43","LAW-LOCAL-BROWSER-SESSION-006-V34"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"local-browser-authority-v48","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V38","LAW-LOCAL-BROWSER-SESSION-004-V43","LAW-LOCAL-BROWSER-SESSION-006-V34"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
 ```
 
 Browser 只拥有现实页面资源：已获 grant且未闭环 job与 system Target的一对一进程内绑定、实时 current Document、一条 FIFO、一条物理 lane、一个全局 Provider observation节拍、Provider/控件 mutation的唯一 WAL，以及页面生命周期动作后的 fresh readback。它不理解 Product步骤、不保存 GPT回答、不决定 retry或当前 N，也不拥有 Website task。
@@ -19,6 +19,8 @@ Browser 另在同一 FIFO/lane 内唯一拥有 `chatgptPageAccessNotBefore`：�
 永久删除仍只有新鲜 Website 读回已持久裁定同一 exact job 为 `PRIVACY_SUBJECT_CLOSED`，或 Website 对该 job 返回权威不存在，才可分别签发 `website-permanent-revocation` 或 `website-admin-deletion`；lane 还必须从唯一 Browser WAL 现场证明该同一 jobId 确有 `DISPATCHED`，并在 active claim 已零输入 park 后，允许这一个 release 经唯一 FIFO、预授权 WebSocket 与 exact jobRefHash ack 删除其 system Tab。`business-admitted`、普通 `wait-new-attempt`、`attempt-replaced`和其他 job 的永久裁定都不得穿过该例外；WAL/effect fact必须保留。
 
 `FROZEN-GPT-RESPONSE-NO-PROMPT-REHASH-001` 的 Browser 部分固定：回答读取只用 canonical conversation URL 和 submit 已确认的精确 `userTurnId` 定位其真实紧邻 assistant turn，并把当前 Target/Document、observation revision、回答内容 hash 或媒体 bytes hash 绑定到一次原子 observation。Browser 不得在回答 checkpoint 再读取、解析或 hash 历史 user prompt，不得返回 `precedingPromptHash`，也不得把 Provider 的折叠、展开、截断或重新渲染状态变成回答准入条件。删除或替代本边界必须由用户明确解冻，并同步替换 GPT/Browser 施工图、实现与唯一质检；普通修复或 CI 授权不构成解冻。
+
+`FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001` 的 Browser 部分固定：exact text response 读取只为 GPT 的两门合同提供同一原子 observation。Browser 只机械证明 confirmed canonical conversation URL、exact `userTurnId`、其真实紧邻且唯一的 assistant-role turn、Target/current Document/main-frame loader 与 observation revision，并在同包返回 stop button 状态、完整 DOM 与 deterministic semantic text；stop 存在不得清空已精确定位的 DOM/semantic text。Browser 不得把页面末位、Composer/submit 数量、layout/visible/viewport/hit-test、hidden/aria-hidden/inert、Prompt rehash、固定 turn 编号/奇偶、标题、侧栏、时间、动画、展开状态或其它 UI 外壳变成候选存在、内容返回或 GPT 结算的第三门禁，也不得用 boolean、helper、hash、identity、candidate cardinality 或 eligibility 包装后重新阻断。协议真实性、authority、Document/revision 与 reply shape 继续失败关闭，但不得重解释回答语义。只有授权人明确原文“解冻 FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001”并同步替换现役法案、GPT/Browser 施工图、实现与唯一质检才允许改变；普通修复、Provider UI 变化、CI 或单仓代码授权均不构成解冻。
 
 `FROZEN-GPT-IMAGE-SOURCE-EVENT-WAIT-001` 的 Browser 部分已按本次授权解冻替换并重新冻结：authenticated-media 读取先在 canonical conversation URL 与精确 `userTurnId` 之后、下一个 user turn 之前的范围内直接检查非空 `currentSrc/src`；尚未出现时，只能在同一次加密 command 的调用期 observation 内安装一个 `MutationObserver`，仅监听节点加入及 `src/srcset` 变化，单次最多等待 5000ms，source 出现即在同一次已登录页面调用中 fetch 原始 bytes 并按内容 hash 去重。单次期满仍无 source返回 typed pending并释放 lease/lane；下一次 observation立即进入唯一 FIFO，由 BrowserLaneCoordinator在请求资格与全局节拍满足后激活该 job精确绑定 Tab并 fresh observe，正常轮询不得导航。调用期 observer与 timeout必须结算即销毁，总期限只由 GPT Child现有 `probeBudgetMs`决定；不得形成 per-job timer、第二 timer Owner、持久状态或调度器。
 

@@ -231,12 +231,17 @@ export const exactAssistantTurnReadIsAtomic = (source: import("ts-morph").Source
   const required = ["BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE", "const userTurnId = spec.userTurnId",
     `document.querySelectorAll("[data-testid^='conversation-turn-']")`,
     "const [, assistantOuter = null] = userIndex >= 0 ? turns.slice(userIndex) : []",
-    "browserMechanicalFacts(node, false)", "rawDomHtml: eligible ? node.outerHTML",
-    "semanticText: eligible ? browserCanonicalSemanticText(node)"];
+    "const raw = assistantOuter", "const rawCount = raw.length",
+    "if (currentUrl !== expectedUrl || rawCount !== 1)", "const node = raw[0]",
+    "rawDomHtml: node.outerHTML",
+    "semanticText: browserCanonicalSemanticText(node)"];
   const forbidden = ["queryCandidateSet", "inspectNode", "DOM.getOuterHTML", "DOM.describeNode",
     "const ordinal =", "turnMarkerMatched", "expectedPromptHash", "precedingPromptHash",
-    "collapsible-user-message-content", ".whitespace-pre-wrap"];
+    "collapsible-user-message-content", ".whitespace-pre-wrap", "assistantIndex", "composerRaw",
+    "browserMechanicalFacts", "eligibleCount", "nativeCauseCode", ".visible", ".hidden",
+    ".ariaHidden", ".inert", "getClientRects", "checkVisibility", "thirdGate"];
   const exactCounts = [
+    (exactFunction.match(/\bif\s*\(/gu) ?? []).length === 3,
     (text.match(/Runtime\.callFunctionOn/gu) ?? []).length === 1,
     (observe.match(/mainFrameLoaderId\(runtime, target\.tabId\)/gu) ?? []).length === 2,
     (observe.match(/!== expectedMainFrameLoaderId/gu) ?? []).length === 2,

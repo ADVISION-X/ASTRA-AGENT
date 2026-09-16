@@ -39,6 +39,7 @@ import { retiredAuthorityExamContractViolations } from "../../scripts/audit/doma
 import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, staticImplementationDigest, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
 import { containsPageMutation, gptPrivateInfrastructureViolations } from "../../scripts/audit/domains/gpt/gpt-inspection-support.js";
+import { textResponseTwoGateSettlementIsFrozen } from "../../scripts/audit/domains/gpt/gpt-frozen-attempt-inspection.js";
 import { browserMutationSchemaMigrationIsCurrent } from "../../scripts/audit/domains/local-browser-session/browser-mutation-settlement-inspection.js";
 import { exactAssistantTurnReadIsAtomic } from "../../scripts/audit/domains/local-browser-session/dom-mechanical-facts-inspection.js";
 import { requireSource } from "../../scripts/audit/domains/local-browser-session/inspector-support.js";
@@ -1482,11 +1483,48 @@ test("Browser inspectors admit only the exact row-preserving WAL constraint migr
     exact.replace("${BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE}", ""),
     exact.replace("document.querySelectorAll(\"[data-testid^='conversation-turn-']\")",
       "document.querySelector(\"[data-testid^='conversation-turn-']\")"),
-    exact.replace("browserMechanicalFacts(node, false)", "null"),
     exact.replace("browserCanonicalSemanticText(node)", 'node.textContent ?? ""'),
+    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
+      "if (currentUrl !== expectedUrl || assistantIndex !== turns.length - 1 || rawCount !== 1)"),
+    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
+      "if (currentUrl !== expectedUrl || composerRaw !== 1 || rawCount !== 1)"),
+    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
+      "if (currentUrl !== expectedUrl || !node.getClientRects().length || rawCount !== 1)"),
+    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
+      "if (currentUrl !== expectedUrl || !node.checkVisibility() || rawCount !== 1)"),
+    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
+      "if (currentUrl !== expectedUrl || node.hidden || rawCount !== 1)"),
+    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
+      "if (currentUrl !== expectedUrl || node.ariaHidden || rawCount !== 1)"),
+    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
+      "if (currentUrl !== expectedUrl || node.inert || rawCount !== 1)"),
+    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
+      "if (currentUrl !== expectedUrl || precedingPromptHash !== expectedPromptHash || rawCount !== 1)"),
+    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
+      "if (currentUrl !== expectedUrl || thirdGate || rawCount !== 1)"),
     exact.replace("loaderAfter !== expectedMainFrameLoaderId", "loaderAfter === expectedMainFrameLoaderId"),
     `${exact}\nvoid queryCandidateSet;`,
   ]) assert.equal(exactAssistantTurnReadIsAtomic(inspectSource(exactPath, mutant)), false);
+});
+
+test("GPT text-response settlement keeps stop and text inside the frozen second gate", () => {
+  const path = "src/capabilities/gpt/children/checkpoint_gpt_text_response/handler.ts";
+  const source = readFileSync(path, "utf8");
+  assert.equal(textResponseTwoGateSettlementIsFrozen(source), true);
+  for (const mutant of [
+    source.replace("while (Date.now() < deadline || exactResponseObserved)",
+      "while (Date.now() < deadline)"),
+    source.replace("Date.now() + GPT_STOPPED_EMPTY_CONFIRMATION_MS : deadline", "deadline"),
+    source.replace("if (exactResponseObserved) continue", "if (exactResponseObserved) break"),
+    source.replace(
+      "assistant && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0",
+      "assistant && assistant.hidden === false && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0",
+    ),
+    source.replace(
+      "observation.generatingRaw > 0 || observation.semanticText.trim().length > 0",
+      "observation.generatingRaw > 0 || observation.composerRaw > 0 || observation.semanticText.trim().length > 0",
+    ),
+  ]) assert.equal(textResponseTwoGateSettlementIsFrozen(mutant), false);
 });
 
 test("GPT mutation inspection permits bounded reads but rejects looped or concurrent dispatch", () => {

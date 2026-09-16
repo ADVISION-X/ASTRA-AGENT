@@ -18,13 +18,13 @@ const target = Object.freeze({
 });
 const observedAt = "2026-09-04T00:00:00.000Z";
 const successfulObservation = Object.freeze({
-  rawCount: 1, eligibleCount: 1,
+  rawCount: 1,
   rawDomHtml: "<div><strong>complete</strong></div>", semanticText: "**complete**",
   currentUrl: "https://chatgpt.com/c/exact",
   assistantTurnId: "conversation-turn-2",
   precedingUserTurnId: "conversation-turn-1",
   generatingRaw: 0,
-  observedAt, nativeCauseCode: null, nativeStage: "runtime-call-function-on",
+  observedAt, nativeStage: "runtime-call-function-on",
 });
 export const exactConversationFixtureUrl = successfulObservation.currentUrl;
 
@@ -98,17 +98,16 @@ const capturedAssistantFixture = () => {
   const input = { kind: "readExactAssistantTurn", userTurnId: "conversation-turn-1",
     canonicalConversationUrl: exactConversationFixtureUrl };
   const exactAssistant = assistantOuter(assistant);
-  const composer = new FakeElement("", {}, {}, { id: "composer-submit-button" }, "BUTTON");
   let queryCalls = 0;
   const document = {
     querySelectorAll: (value: string) => {
       queryCalls += 1;
       return value === userSelector ? [user] : value === turnsSelector ? [user, exactAssistant]
-        : value === "#composer-submit-button" ? [composer] : [];
+        : [];
     },
     elementFromPoint: () => assistant,
   };
-  return { assistant, assistantOuter, composer, document, input, queryCalls: () => queryCalls,
+  return { assistant, assistantOuter, document, input, queryCalls: () => queryCalls,
     text, turnsSelector, user, userSelector };
 };
 
@@ -118,16 +117,21 @@ const exerciseCapturedAssistantBaseline = async (
 ): Promise<void> => {
   const observed = await executeCaptured(
     source, fixture.document, fixture.input, `${exactConversationFixtureUrl}?query=discarded#fragment`,
-  ) as Readonly<{ rawCount: number; eligibleCount: number; rawDomHtml: string; semanticText: string;
+  ) as Readonly<{ rawCount: number; rawDomHtml: string; semanticText: string;
     currentUrl: string; nativeStage: string }>;
-  assert.equal(fixture.queryCalls(), 4,
-    "the assistant, exact predecessor, stop state, and composer identity must share one async Runtime call");
+  assert.equal(fixture.queryCalls(), 3,
+    "the assistant, exact predecessor, and stop state must share one async Runtime call");
+  assert.equal(source.includes("assistantIndex"), false,
+    "a task-owned adjacent assistant must not depend on being the page's final turn");
+  assert.equal(source.includes("composerRaw"), false,
+    "global composer cardinality must not decide whether an adjacent assistant exists");
+  assert.equal(source.includes("browserMechanicalFacts"), false,
+    "display and interaction eligibility must not decide whether exact answer text exists");
   assert.equal(source.includes("collapsible-user-message-content"), false,
     "response read must not parse or hash the already-confirmed user prompt DOM");
   assert.equal(source.includes("precedingPromptHash"), false,
     "response read must not create a second prompt identity");
   assert.equal(observed.rawCount, 1);
-  assert.equal(observed.eligibleCount, 1);
   assert.match(observed.rawDomHtml, /<strong>bold<\/strong>/u);
   assert.equal(observed.semanticText, "**bold**\n- item\n");
   assert.equal(observed.currentUrl, exactConversationFixtureUrl);
@@ -136,45 +140,53 @@ const exerciseCapturedAssistantBaseline = async (
     querySelectorAll: (value: string) => value === "#composer-submit-button[data-testid='stop-button']"
       ? [fixture.assistant] : fixture.document.querySelectorAll(value),
   }, fixture.input, exactConversationFixtureUrl) as Readonly<{
-    rawCount: number; eligibleCount: number; rawDomHtml: string; semanticText: string; generatingRaw: number;
+    rawCount: number; rawDomHtml: string; semanticText: string; generatingRaw: number;
   }>;
-  assert.deepEqual({ rawCount: generatingObserved.rawCount, eligibleCount: generatingObserved.eligibleCount,
-    rawDomHtml: generatingObserved.rawDomHtml, semanticText: generatingObserved.semanticText,
+  assert.deepEqual({ rawCount: generatingObserved.rawCount, rawDomHtml: generatingObserved.rawDomHtml,
+    semanticText: generatingObserved.semanticText,
     generatingRaw: generatingObserved.generatingRaw },
-  { rawCount: 1, eligibleCount: 0, rawDomHtml: "", semanticText: "", generatingRaw: 1 },
-  "generation must short-circuit before assistant visibility, HTML, or semantic-text reads");
+  { rawCount: 1, rawDomHtml: fixture.assistant.outerHTML,
+    semanticText: "**bold**\n- item\n", generatingRaw: 1 },
+  "generation state must remain observable without erasing the exact adjacent assistant candidate");
 };
 
 const exerciseCapturedAssistantRejections = async (
   source: string,
   fixture: ReturnType<typeof capturedAssistantFixture>,
 ): Promise<void> => {
-  const hidden = new FakeElement("hidden", { "pre code": [] }, { display: "none" }, {}, "DIV", [fixture.text("hidden")]);
-  const hiddenObserved = await executeCaptured(source, {
-    querySelectorAll: (value: string) => value === fixture.userSelector ? [fixture.user]
-      : value === fixture.turnsSelector ? [fixture.user, fixture.assistantOuter(hidden)]
-        : value === "#composer-submit-button" ? [fixture.composer] : [],
-    elementFromPoint: () => null,
-  }, fixture.input, exactConversationFixtureUrl) as Readonly<{
-    rawCount: number; eligibleCount: number; rawDomHtml: string;
-  }>;
-  assert.deepEqual({ rawCount: hiddenObserved.rawCount, eligibleCount: hiddenObserved.eligibleCount,
-    rawDomHtml: hiddenObserved.rawDomHtml }, { rawCount: 1, eligibleCount: 0, rawDomHtml: "" });
+  const presentationVariants = [
+    new FakeElement("layoutless", { "pre code": [] }, { display: "none" }, {}, "DIV", [fixture.text("layoutless")]),
+    new FakeElement("hidden", { "pre code": [] }, {}, { hidden: "" }, "DIV", [fixture.text("hidden")]),
+    new FakeElement("aria hidden", { "pre code": [] }, {}, { "aria-hidden": "true" }, "DIV", [fixture.text("aria hidden")]),
+    new FakeElement("inert", { "pre code": [] }, {}, { inert: "" }, "DIV", [fixture.text("inert")]),
+  ];
+  for (const node of presentationVariants) {
+    const observed = await executeCaptured(source, {
+      querySelectorAll: (value: string) => value === fixture.userSelector ? [fixture.user]
+        : value === fixture.turnsSelector ? [fixture.user, fixture.assistantOuter(node)] : [],
+      elementFromPoint: () => null,
+    }, fixture.input, exactConversationFixtureUrl) as Readonly<{
+      rawCount: number; rawDomHtml: string; semanticText: string;
+    }>;
+    assert.equal(observed.rawCount, 1);
+    assert.equal(observed.rawDomHtml, node.outerHTML);
+    assert.notEqual(observed.semanticText.trim(), "",
+      "presentation state must not erase exact adjacent assistant content");
+  }
   const ambiguous = await executeCaptured(source, {
     querySelectorAll: (value: string) => value === fixture.userSelector ? [fixture.user]
       : value === fixture.turnsSelector ? [fixture.user, new FakeElement("ambiguous", {
         "[data-message-author-role='assistant']": [fixture.assistant, fixture.assistant],
       }, {}, { "data-testid": "conversation-turn-2" })]
-        : value === "#composer-submit-button" ? [fixture.composer] : [],
+        : [],
     elementFromPoint: () => fixture.assistant,
-  }, fixture.input, exactConversationFixtureUrl) as Readonly<{ rawCount: number; eligibleCount: number }>;
-  assert.deepEqual({ rawCount: ambiguous.rawCount, eligibleCount: ambiguous.eligibleCount },
-    { rawCount: 2, eligibleCount: 0 });
+  }, fixture.input, exactConversationFixtureUrl) as Readonly<{ rawCount: number }>;
+  assert.equal(ambiguous.rawCount, 2);
   const rich = richSemanticTree();
   const richObserved = await executeCaptured(source, {
     querySelectorAll: (value: string) => value === fixture.userSelector ? [fixture.user]
       : value === fixture.turnsSelector ? [fixture.user, fixture.assistantOuter(rich)]
-        : value === "#composer-submit-button" ? [fixture.composer] : [],
+        : [],
     elementFromPoint: () => rich,
   }, fixture.input, exactConversationFixtureUrl) as Readonly<{ semanticText: string }>;
   assert.equal(richObserved.semanticText, RICH_SEMANTIC_TEXT,
@@ -184,13 +196,20 @@ const exerciseCapturedAssistantRejections = async (
     querySelectorAll: (value: string) => value === fixture.turnsSelector
       ? [fixture.user, fixture.assistantOuter(fixture.assistant), laterTurn]
       : fixture.document.querySelectorAll(value),
-  }, fixture.input, exactConversationFixtureUrl) as Readonly<{ eligibleCount: number }>;
-  assert.equal(drifted.eligibleCount, 0,
-    "a later turn must invalidate the old assistant position instead of starting a stopped-empty window");
+  }, fixture.input, exactConversationFixtureUrl) as Readonly<{
+    rawCount: number; rawDomHtml: string; semanticText: string;
+  }>;
+  assert.deepEqual({ rawCount: drifted.rawCount, rawDomHtml: drifted.rawDomHtml,
+    semanticText: drifted.semanticText }, {
+    rawCount: 1, rawDomHtml: fixture.assistant.outerHTML,
+    semanticText: "**bold**\n- item\n",
+  }, "a later page turn must not erase the assistant adjacent to the exact task-owned user turn");
   const wrongConversation = await executeCaptured(
     source, fixture.document, fixture.input, "https://chatgpt.com/c/another-conversation",
-  ) as Readonly<{ eligibleCount: number }>;
-  assert.equal(wrongConversation.eligibleCount, 0,
+  ) as Readonly<{ rawCount: number; rawDomHtml: string; semanticText: string }>;
+  assert.equal(wrongConversation.rawCount, 1);
+  assert.equal(wrongConversation.rawDomHtml, "");
+  assert.equal(wrongConversation.semanticText, "",
     "a different canonical conversation URL must invalidate the observation");
 };
 
@@ -204,7 +223,7 @@ const exerciseSingleAtomicRead = async (): Promise<void> => {
   const fixture = runtimeFor(successfulObservation);
   const reply = await execute(fixture) as Readonly<Record<string, unknown>>;
   assert.equal(fixture.callCount(), 1,
-    "candidate selection, eligibility, raw HTML, and semantic text must share one Runtime.callFunctionOn");
+    "candidate identity, raw HTML, and semantic text must share one Runtime.callFunctionOn");
   assert.equal(fixture.releases(), 1);
   assert.deepEqual(fixture.methods.filter((method) => [
     "DOM.querySelectorAll", "DOM.describeNode", "DOM.getOuterHTML",
@@ -221,13 +240,16 @@ const exerciseSingleAtomicRead = async (): Promise<void> => {
 
 const exerciseAtomicFailureClosure = async (): Promise<void> => {
   for (const [observation, code] of [
-    [{ ...successfulObservation, rawCount: 0, eligibleCount: 0, rawDomHtml: "", semanticText: "" },
+    [{ ...successfulObservation, rawCount: 0, rawDomHtml: "", semanticText: "" },
       "BROWSER_DOM_CANDIDATE_MISSING"],
-    [{ ...successfulObservation, rawCount: 2, eligibleCount: 0, rawDomHtml: "", semanticText: "" },
+    [{ ...successfulObservation, rawCount: 2, rawDomHtml: "", semanticText: "" },
       "BROWSER_DOM_CANDIDATE_AMBIGUOUS"],
-    [{ ...successfulObservation, rawCount: 1, eligibleCount: 0, rawDomHtml: "", semanticText: "" },
-      "BROWSER_DOM_CANDIDATE_MISSING"],
+    [{ ...successfulObservation, rawDomHtml: "", semanticText: "" }, "BROWSER_DOM_READ_INVALID"],
   ] as const) await assert.rejects(execute(runtimeFor(observation)), new RegExp(code, "u"));
+  await assert.rejects(execute(runtimeFor({ ...successfulObservation,
+    currentUrl: "https://chatgpt.com/c/another-conversation", rawDomHtml: "", semanticText: "" })),
+  /BROWSER_DOCUMENT_INVALID/u,
+  "a canonical conversation mismatch must fail closed instead of becoming retryable candidate missing");
   await assert.rejects(execute(runtimeFor(successfulObservation, ["loader-current", "loader-next"])),
     /BROWSER_DOCUMENT_INVALID/u,
     "a main-frame change during the single observation must invalidate the whole reply");

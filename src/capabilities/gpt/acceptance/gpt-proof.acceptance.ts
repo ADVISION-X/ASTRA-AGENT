@@ -410,3 +410,32 @@ for (const promptMatches of [true, false]) {
   assert.equal(result.value?.assistantTurnId, assistantTurnId);
   assert.equal(result.value?.semanticText, "exact response");
 }
+
+{
+  const userTurnId = "conversation-turn-3";
+  let responseReadCount = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind !== "readExactAssistantTurn") {
+      throw new Error(`UNEXPECTED_LONG_RESPONSE_INTENT:${intent.kind}`);
+    }
+    responseReadCount += 1;
+    const reply = exactAssistantTurnReply(intent, responseReadCount === 1 ? "partial" : "complete");
+    return responseReadCount === 1 ? { ...reply, generatingRaw: 1 } : reply;
+  }, { initialUrl: conversationUrl });
+  let gateCount = 0;
+  const result = await createGptAcceptanceHarness("gpt-proof-stop-survives-deadline").execute(
+    "checkpoint_gpt_text_response", fixture.browser,
+    { canonicalConversationUrl: conversationUrl,
+      probeBudgetMs: 1, userTurnId, turnMarker: "exact" }, {
+      waitForProviderObservation: async () => {
+        gateCount += 1;
+        if (gateCount === 1) await new Promise((resolve) => setTimeout(resolve, 5));
+        return gateCount === 2 ? "deadline" : "reobserve";
+      },
+    },
+  );
+  assert.equal(result.status, "success", result.failureCode ?? "long response was cut off by deadline");
+  assert.equal(result.value?.semanticText, "complete");
+  assert.equal(gateCount, 3,
+    "a stop-present exact response must remain pending across the original probe deadline");
+}

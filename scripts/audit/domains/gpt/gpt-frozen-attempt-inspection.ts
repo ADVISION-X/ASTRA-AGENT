@@ -4,10 +4,28 @@ import { resolve } from "node:path";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 
-const LAW_ID = "LAW-GPT-002-V18";
+const LAW_ID = "LAW-GPT-002-V19";
 const ROOT = "src/capabilities/gpt";
 const read = (context: InspectorContext, path: string): string =>
   readFileSync(resolve(context.sealedRoot, path), "utf8");
+
+export const textResponseTwoGateSettlementIsFrozen = (source: string): boolean => {
+  const required = [
+    "if (observation.generatingRaw > 0 || observation.semanticText.trim().length > 0)",
+    "let exactResponseObserved = false",
+    "while (Date.now() < deadline || exactResponseObserved)",
+    "Date.now() + GPT_STOPPED_EMPTY_CONFIRMATION_MS : deadline",
+    'if (await context.waitForProviderObservation(observationDeadline) === "deadline")',
+    "if (exactResponseObserved) continue",
+    "exactResponseObserved = assistant !== null",
+    "assistant && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0",
+  ];
+  const forbidden = ["assistant.visible", "assistant.layout", "assistant.hidden",
+    "assistant.ariaHidden", "assistant.inert", "assistant.composerRaw", "assistant.assistantIndex",
+    "assistant.precedingPromptHash"];
+  return required.every((token) => source.includes(token))
+    && forbidden.every((token) => !source.includes(token));
+};
 
 const contractChecks = (sources: Readonly<Record<string, string>>): boolean[] => [
   /attach_approved_gpt_files_once:[^\n]+profile: "TARGET_LOCAL_MUTATION"[^\n]+replayPolicy: "target-local-per-generation"/u.test(sources.contract!),
@@ -39,6 +57,8 @@ const frozenBlueprintChecks = (sources: Readonly<Record<string, string>>): boole
   sources.attachmentReconciliation!.includes("normalizeGptProviderAttachmentLabel(label, expectedLabels)"),
   sources.candidate!.includes("expectedLabels.includes(providerLabel(label))"),
   sources.blueprint!.includes("FROZEN-GPT-RESPONSE-NO-PROMPT-REHASH-001"),
+  sources.blueprint!.includes("FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001"),
+  sources.browserBlueprint!.includes("FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001"),
   sources.blueprint!.includes("FROZEN-GPT-ATOMIC-IDENTITY-ROUNDTRIP-001"),
   sources.blueprint!.includes("FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001"),
   sources.blueprint!.includes("GPT_RESPONSE_STOPPED_EMPTY"),
@@ -72,9 +92,15 @@ const lifecycleChecks = (sources: Readonly<Record<string, string>>): boolean[] =
     sources.checkpoint!.includes("observation.generatingRaw > 0"),
     sources.checkpoint!.includes('gptExecutionFailure("GPT_RESPONSE_STOPPED_EMPTY"'),
     sources.checkpoint!.includes("stoppedEmptyWindow = null"),
+    sources.checkpoint!.includes("let exactResponseObserved = false"),
+    sources.checkpoint!.includes("Date.now() < deadline || exactResponseObserved"),
+    sources.checkpoint!.includes("Date.now() + GPT_STOPPED_EMPTY_CONFIRMATION_MS : deadline"),
+    sources.checkpoint!.includes("if (exactResponseObserved) continue"),
+    sources.checkpoint!.includes("exactResponseObserved = assistant !== null"),
     sources.checkpoint!.includes("continuousMonotonicMs"),
     sources.checkpoint!.includes("observationCount"),
     sources.checkpoint!.includes("terminalObservationRevisionHash"),
+    textResponseTwoGateSettlementIsFrozen(sources.checkpoint!),
   ];
 };
 
