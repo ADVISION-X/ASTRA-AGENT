@@ -190,31 +190,35 @@ const attachmentSetReady = (
   && state.uploadingCount === 0
   && state.pendingActionCount === 0;
 
-const assertAttachmentObservationValid = (
-  state: AttachmentSetState,
-  expectedLabels: readonly string[],
-  normalizedObservedLabels: readonly string[],
-  unexpected: readonly string[],
-): void => {
+const assertAttachmentObservationValid = (state: AttachmentSetState): void => {
   if (state.composerRawCount > 1 || state.composerEligibleCount > 1
     || (state.composerRawCount > 0 && state.composerRawCount !== state.composerEligibleCount)) {
     failAttachmentSet("GPT_ATTACHMENT_COMPOSER_INVALID", state);
   }
-  if (state.itemRawCount > expectedLabels.length
-    || state.itemEligibleCount > expectedLabels.length
-    || new Set(normalizedObservedLabels).size !== normalizedObservedLabels.length
-    || unexpected.length > 0) failAttachmentSet("GPT_ATTACHMENT_SET_MISMATCH", state);
   if (state.uploadingCount > state.itemEligibleCount || state.pendingActionCount > state.itemEligibleCount) {
     failAttachmentSet("GPT_ATTACHMENT_VISIBILITY_COUNT_INVALID", state);
   }
 };
 
-const attachmentUploadTimeout = (state: AttachmentSetState, expectedCount: number): never =>
-  failAttachmentSet(
+const attachmentSettlementTimeout = (
+  state: AttachmentSetState,
+  files: readonly ApprovedFile[],
+): never => {
+  const { expectedLabels, normalizedObservedLabels, missing, unexpected } =
+    attachmentSetDifference(files, state.observedLabels);
+  if (state.itemRawCount !== expectedLabels.length
+    || state.itemEligibleCount !== expectedLabels.length
+    || state.observedLabels.length !== expectedLabels.length
+    || new Set(normalizedObservedLabels).size !== normalizedObservedLabels.length
+    || missing.length > 0 || unexpected.length > 0) {
+    failAttachmentSet("GPT_ATTACHMENT_SET_MISMATCH", state);
+  }
+  return failAttachmentSet(
     `GPT_ATTACHMENT_UPLOAD_TIMEOUT:cards=${state.itemEligibleCount}:uploading=${state.uploadingCount}`
-      + `:pending=${state.pendingActionCount}:expected=${expectedCount}`,
+      + `:pending=${state.pendingActionCount}:expected=${files.length}`,
     state,
   );
+};
 
 const ATTACHMENT_OBSERVATION_INTERVALS_MS = [
   2_000, 3_000, 5_000, 7_000, 9_000, 11_000,
@@ -260,16 +264,15 @@ export const waitForUploadedAttachmentSet = async (
       last = await attachmentSetState(browser, "upload-settlement");
     } catch (error) {
       if (failureCode(error) !== "BROWSER_DOM_NODE_STALE") throw error;
-      if (deadline <= Date.now()) attachmentUploadTimeout(last, files.length);
+      if (deadline <= Date.now()) attachmentSettlementTimeout(last, files);
       if (!await waitForNextAttachmentObservation(browser, deadline, waitOrdinal)) {
-        attachmentUploadTimeout(last, files.length);
+        attachmentSettlementTimeout(last, files);
       }
       waitOrdinal += 1;
       continue;
     }
-    const { expectedLabels, normalizedObservedLabels, missing, unexpected } =
-      attachmentSetDifference(files, last.observedLabels);
-    assertAttachmentObservationValid(last, expectedLabels, normalizedObservedLabels, unexpected);
+    const { expectedLabels, missing } = attachmentSetDifference(files, last.observedLabels);
+    assertAttachmentObservationValid(last);
     if (attachmentSetReady(last, expectedLabels.length, missing.length)) {
       return success({
         value: attachmentValue(files),
@@ -279,9 +282,9 @@ export const waitForUploadedAttachmentSet = async (
         }),
       });
     }
-    if (deadline <= Date.now()) attachmentUploadTimeout(last, files.length);
+    if (deadline <= Date.now()) attachmentSettlementTimeout(last, files);
     if (!await waitForNextAttachmentObservation(browser, deadline, waitOrdinal)) {
-      attachmentUploadTimeout(last, files.length);
+      attachmentSettlementTimeout(last, files);
     }
     waitOrdinal += 1;
   }

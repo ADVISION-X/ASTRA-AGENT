@@ -58,6 +58,13 @@ export type WorkbenchBrowserAuthority = Readonly<{
     exactCallIdentityHash: `sha256:${string}`;
     actionOrdinal: number;
   }>): BrowserExactCallMutationFact | null;
+  readProviderEffectStepCallIdentities(input: Readonly<{
+    jobId: string;
+    resultRevision: number;
+    productStepId: string;
+    callId: string;
+    childCapabilityId: string;
+  }>): readonly `sha256:${string}`[];
   purgeBrowserJob(jobId: string): void;
   releaseJobBoundTarget(
     jobId: string,
@@ -149,6 +156,8 @@ export const createWorkbenchBrowserAuthority = async (
     countProviderTurnDispatches: (jobId, attemptId) =>
       supervisor.countProviderTurnDispatches(jobId, attemptId),
     readExactCallMutationFact: (input) => supervisor.readExactCallMutationFact(input),
+    readProviderEffectStepCallIdentities: (input) =>
+      supervisor.readProviderEffectStepCallIdentities(input),
     purgeBrowserJob: (jobId) => supervisor.purgeBrowserJob(jobId),
     releaseJobBoundTarget: (jobId, releaseAuthority, signal) =>
       supervisor.releaseJobBoundTarget(jobId, releaseAuthority, signal),

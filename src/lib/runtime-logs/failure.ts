@@ -80,8 +80,7 @@ export const runtimeFailureFromError = (input: Readonly<{
 
 const RUNTIME_CAUSE_EVENT = Symbol.for("grasseye.runtime-log.cause-event");
 
-export const withRuntimeLogCause = (error: unknown, eventId: string): Error => {
-  const target = error instanceof Error ? error : new Error(String(error));
+export const withRuntimeLogCauseFact = <T extends object>(target: T, eventId: string): T => {
   Object.defineProperty(target, RUNTIME_CAUSE_EVENT, {
     configurable: true,
     enumerable: false,
@@ -91,8 +90,11 @@ export const withRuntimeLogCause = (error: unknown, eventId: string): Error => {
   return target;
 };
 
+export const withRuntimeLogCause = (error: unknown, eventId: string): Error =>
+  withRuntimeLogCauseFact(error instanceof Error ? error : new Error(String(error)), eventId);
+
 export const runtimeLogCauseEventId = (error: unknown): string | null => {
-  if (!(error instanceof Error)) return null;
+  if (!error || typeof error !== "object") return null;
   const value = Reflect.get(error, RUNTIME_CAUSE_EVENT) as unknown;
   return typeof value === "string" && value.length > 0 ? value : null;
 };

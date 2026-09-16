@@ -25,6 +25,13 @@ export interface GptProductionBrowserAuthority {
     exactCallIdentityHash: `sha256:${string}`;
     actionOrdinal: number;
   }>): BrowserExactCallMutationFact | null;
+  readProviderEffectStepCallIdentities(input: Readonly<{
+    jobId: string;
+    resultRevision: number;
+    productStepId: string;
+    callId: string;
+    childCapabilityId: string;
+  }>): readonly `sha256:${string}`[];
   countProviderTurnDispatches(jobId: string, attemptId: string): number;
   acquireJobBoundTargetLease(
     binding: BrowserExecutionBinding,

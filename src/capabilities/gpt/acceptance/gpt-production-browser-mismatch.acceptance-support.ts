@@ -8,7 +8,7 @@ import { ProductionGptChildTools } from "../production-child-tools.js";
 import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import { serializeTerminalFailureTransport } from
   "../../../lib/local-runtime/production/terminal-failure.js";
-import { executionFailure } from "../../../lib/execution-failure.js";
+import { executionFailure, failureCode } from "../../../lib/execution-failure.js";
 import { HASH_A, HASH_B } from "../../../../scripts/acceptance/agent-production-runtime-fixtures.js";
 
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-confirmed-recovery-"));
@@ -68,6 +68,7 @@ try {
   const providerEffectIdentityHash = `sha256:${"8".repeat(64)}` as const;
   const failingTools = new ProductionGptChildTools(
     temporary, HASH_A, {} as never, {} as never, {
+      readProviderEffectStepCallIdentities: () => Object.freeze([]),
       readExactCallMutationFact: () => ({
         effectScope: "provider_effect", providerEffectIdentityHash, outcome: "CONFIRMED",
         mutationOutcome: "confirmed", terminalAt: "2026-09-12T00:00:00.000Z",
@@ -106,6 +107,64 @@ try {
   assert.equal(serialized.mutation_outcome, "confirmed");
   assert.equal(serialized.provider_effect_identity_hash, providerEffectIdentityHash,
     "confirmed-effect Browser acquisition failure must retain the original effect identity");
+
+  const driftedIdentity = `sha256:${"a".repeat(64)}` as const;
+  const driftTools = new ProductionGptChildTools(
+    temporary, HASH_A, {} as never, {} as never, {
+      readProviderEffectStepCallIdentities: () => Object.freeze([driftedIdentity]),
+      readExactCallMutationFact: () => null,
+      countProviderTurnDispatches: () => 0,
+      acquireJobBoundTargetLease: () => {
+        throw new Error("PROVIDER_EFFECT_STEP_IDENTITY_GATE_MUST_PRECEDE_ANY_BROWSER_ACQUISITION");
+      },
+    } as never,
+    createRuntimeLogger({
+      producer: "agent-step-identity-drift-acceptance", owner: "production-runtime",
+      component: "gpt-child", terminalEnabled: false,
+      fileSink: { directoryPath: path.join(temporary, "runtime-logs-drift") },
+    }), {} as never,
+  ).createExecution({
+    jobId: "job:step-identity-drift", attemptId: "attempt:step-identity-drift", resultRevision: 0,
+    productId: "public_knowledge_article_pipeline",
+    ownerRef: "owner:1", subjectRef: "subject:1", authorizationRef: "authorization:1",
+    deviceId: "device:1", leaseVersion: 1, executionFenceHash: HASH_A,
+    capabilityManifestHash: HASH_B, expiresAtMonotonic: performance.now() + 10_000,
+    commandTtlMs: 1_000, abortSignal: new AbortController().signal, parentSpanId: "parent",
+    maxProviderTurns: 1,
+  });
+  let driftFailure: unknown = null;
+  try {
+    await driftTools.tools.readConfirmedSubmit({ sessionKey: "session:step-identity-drift",
+      productStepId: "observe", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
+      actionOrdinal: 1, input: {} as never });
+  } catch (error) { driftFailure = error; }
+  assert.equal(failureCode(driftFailure), "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH",
+    "a prior provider effect whose identity no longer matches must fail closed before any preparation");
+
+  const freshTools = new ProductionGptChildTools(
+    temporary, HASH_A, {} as never, {} as never, {
+      readProviderEffectStepCallIdentities: () => Object.freeze([]),
+      readExactCallMutationFact: () => null,
+      countProviderTurnDispatches: () => 0,
+    } as never,
+    createRuntimeLogger({
+      producer: "agent-step-identity-fresh-acceptance", owner: "production-runtime",
+      component: "gpt-child", terminalEnabled: false,
+      fileSink: { directoryPath: path.join(temporary, "runtime-logs-fresh") },
+    }), {} as never,
+  ).createExecution({
+    jobId: "job:step-identity-fresh", attemptId: "attempt:step-identity-fresh", resultRevision: 0,
+    productId: "public_knowledge_article_pipeline",
+    ownerRef: "owner:1", subjectRef: "subject:1", authorizationRef: "authorization:1",
+    deviceId: "device:1", leaseVersion: 1, executionFenceHash: HASH_A,
+    capabilityManifestHash: HASH_B, expiresAtMonotonic: performance.now() + 10_000,
+    commandTtlMs: 1_000, abortSignal: new AbortController().signal, parentSpanId: "parent",
+    maxProviderTurns: 1,
+  });
+  assert.equal(await freshTools.tools.readConfirmedSubmit({ sessionKey: "session:step-identity-fresh",
+    productStepId: "observe", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
+    actionOrdinal: 1, input: {} as never }), null,
+  "an empty provider effect history must still return null so the first submit can prepare normally");
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }

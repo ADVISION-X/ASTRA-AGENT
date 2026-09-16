@@ -6,6 +6,7 @@ import {
   failureCode,
 } from "../../lib/execution-failure.js";
 import { typedBrowserExecutionFailure } from "../../lib/browser/browser-authority-api.js";
+import { runtimeLogCauseEventId, withRuntimeLogCauseFact } from "../../lib/runtime-logs/index.js";
 
 import {
   GPT_CHILD_CAPABILITY_CONTRACTS,
@@ -351,12 +352,15 @@ const failedExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
   });
   await input.context.onProof?.(proof);
   const browserEffect = failureEffect<K>(observation, gpt?.browserEffect ?? browser?.browserEffect ?? null);
-  return Object.freeze({
+  const causedByEventId = runtimeLogCauseEventId(input.error);
+  const result = {
     status: failure.status, value: null, proof, failureCode: failure.code,
     failureCause: nativeCause,
     failureBrowserEffect: browserEffect,
     reasoningRequirementResult: gpt?.reasoningRequirementResult ?? null,
-  }) as GptChildCapabilityResult<K>;
+  };
+  if (causedByEventId) withRuntimeLogCauseFact(result, causedByEventId);
+  return Object.freeze(result) as GptChildCapabilityResult<K>;
 };
 
 const assertExecutionIdentity = (intent: Readonly<{

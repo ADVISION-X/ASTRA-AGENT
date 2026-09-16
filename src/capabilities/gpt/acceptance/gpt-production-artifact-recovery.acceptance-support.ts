@@ -97,7 +97,9 @@ try {
     pendingMutationCount: () => 0,
     park: async () => undefined,
   };
-  const authority = { readExactCallMutationFact: (input: Readonly<{ exactCallIdentityHash: `sha256:${string}` }>) => ({
+  const authority = {
+    readProviderEffectStepCallIdentities: () => Object.freeze([]),
+    readExactCallMutationFact: (input: Readonly<{ exactCallIdentityHash: `sha256:${string}` }>) => ({
     effectScope: "provider_effect", providerEffectIdentityHash: HASH_A, outcome: "CONFIRMED",
     mutationOutcome: "confirmed", terminalAt: submitOutcome.terminalAt, failureCode: null,
     nativeFailureCode: null, authorityRef: submitOutcome.authorityRef, authorityHash: HASH_B,

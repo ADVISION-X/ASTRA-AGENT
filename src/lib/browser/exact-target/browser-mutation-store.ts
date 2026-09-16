@@ -98,9 +98,11 @@ export class BrowserMutationStore {
       && row.payload_hash === input.payloadHash;
   }
 
-  private assertProviderEffectHistory(input: BrowserMutationIdentity): void {
-    if (!input.logicalMutationId) throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_REQUIRED");
-    const rows = this.database.prepare(
+  private providerEffectHistoryRows(input: Readonly<{
+    jobId: string; resultRevision: number; productStepId: string;
+    callId: string; childCapabilityId: string;
+  }>): readonly ProviderEffectHistoryRow[] {
+    return this.database.prepare(
       `select logical_mutation_id,job_id,result_revision,attempt_id,
               product_step_id,call_id,child_capability_id,effect_scope,request_hash,payload_hash,
               state,mutation_outcome,physical_input_count
@@ -110,6 +112,25 @@ export class BrowserMutationStore {
        order by command_id`,
     ).all(input.jobId, input.resultRevision, input.productStepId, input.callId,
       input.childCapabilityId) as readonly ProviderEffectHistoryRow[];
+  }
+
+  public readProviderEffectStepCallIdentities(input: Readonly<{
+    jobId: string; resultRevision: number; productStepId: string;
+    callId: string; childCapabilityId: string;
+  }>): readonly `sha256:${string}`[] {
+    const rows = this.database.prepare(
+      `select distinct exact_call_identity_hash from browser_mutations
+       where job_id=? and result_revision=? and product_step_id=? and call_id=? and child_capability_id=? and effect_scope='provider_effect'
+         and state in ('PREPARED','DISPATCHED','CONFIRMED','REJECTED')
+       order by exact_call_identity_hash`,
+    ).all(input.jobId, input.resultRevision, input.productStepId, input.callId,
+      input.childCapabilityId) as ReadonlyArray<{ exact_call_identity_hash: `sha256:${string}` }>;
+    return Object.freeze(rows.map((row) => row.exact_call_identity_hash));
+  }
+
+  private assertProviderEffectHistory(input: BrowserMutationIdentity): void {
+    if (!input.logicalMutationId) throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_REQUIRED");
+    const rows = this.providerEffectHistoryRows(input);
     if (rows.length === 0) return;
     if (rows.some((row) => !this.providerEffectIdentityMatches(row, input))) throw new Error("BROWSER_PROVIDER_EFFECT_IDENTITY_DRIFT");
     if (rows.every((row) => row.state === "REJECTED" && row.mutation_outcome === "no"

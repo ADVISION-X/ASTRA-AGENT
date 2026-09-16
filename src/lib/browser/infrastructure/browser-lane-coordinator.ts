@@ -176,6 +176,13 @@ export class BrowserLaneCoordinator {
   }>): BrowserExactCallMutationFact | null {
     return this.infrastructure.mutationState?.readExactCallMutationFact(input) ?? null;
   }
+  public readProviderEffectStepCallIdentities(input: Readonly<{
+    jobId: string; resultRevision: number; productStepId: string;
+    callId: string; childCapabilityId: string;
+  }>): readonly `sha256:${string}`[] {
+    return this.infrastructure.mutationState?.readProviderEffectStepCallIdentities(input)
+      ?? Object.freeze([]);
+  }
 
   private mayCrossUnresolved(waiter: LaneWaiter): boolean {
     const jobId = waiter.kind === "release" ? waiter.jobId : waiter.binding.jobId;
@@ -222,12 +229,19 @@ export class BrowserLaneCoordinator {
     if (this.active) return;
     if (this.wakeTimer) clearTimeout(this.wakeTimer);
     this.wakeTimer = null;
-    const waiter = this.nextWaiter();
+    let waiter: LaneWaiter | null = null;
+    try {
+      waiter = this.nextWaiter();
+      if (waiter) waiter.stopAbortMonitor();
+    } catch (error) {
+      if (waiter) waiter.reject(browserExecutionFailure(error));
+      this.scheduleWake();
+      throw error;
+    }
     if (!waiter) {
       this.scheduleWake();
       return;
     }
-    waiter.stopAbortMonitor();
     this.active = true;
     this.activeJobRefHash = waiter.jobRefHash;
     try {
@@ -311,23 +325,31 @@ export class BrowserLaneCoordinator {
   }
   public rejectPending(reasonCode: string): void { this.targetAcquirer.rejectPending(reasonCode); }
 
-  private scheduleWake(): void {
-    if (this.active || this.queue.length === 0) return;
-    const now = Date.now();
-    const mutationBlocked = this.hasUnresolvedMutation();
-    let nextAt = Number.POSITIVE_INFINITY;
-    for (const waiter of this.queue) {
-      const eligibility = mutationBlocked && !this.mayCrossUnresolved(waiter)
-        ? now + Math.max(0, waiter.remainingMs())
-        : waiter.kind === "acquire" && waiter.requestKind === "provider-observation"
-          ? Math.max(waiter.eligibleAt, this.observationNotBefore)
-          : waiter.eligibleAt;
-      nextAt = Math.min(nextAt, eligibility, now + Math.max(0, waiter.remainingMs()));
-    }
-    const delay = Math.max(1, Math.ceil(nextAt - now));
+  private armWakeTimer(delay: number): void {
+    if (this.wakeTimer) clearTimeout(this.wakeTimer);
     this.wakeTimer = setTimeout(() => {
       this.wakeTimer = null;
       void this.pump();
-    }, delay);
+    }, Math.max(1, Math.ceil(delay)));
+  }
+
+  private scheduleWake(): void {
+    if (this.active || this.queue.length === 0) return;
+    const now = Date.now();
+    let nextAt = Number.POSITIVE_INFINITY;
+    try {
+      const mutationBlocked = this.hasUnresolvedMutation();
+      for (const waiter of this.queue) {
+        const eligibility = mutationBlocked && !this.mayCrossUnresolved(waiter)
+          ? now + Math.max(0, waiter.remainingMs())
+          : waiter.kind === "acquire" && waiter.requestKind === "provider-observation"
+            ? Math.max(waiter.eligibleAt, this.observationNotBefore)
+            : waiter.eligibleAt;
+        nextAt = Math.min(nextAt, eligibility, now + Math.max(0, waiter.remainingMs()));
+      }
+    } catch {
+      nextAt = now + PROVIDER_OBSERVATION_MIN_INTERVAL_MS;
+    }
+    this.armWakeTimer(Number.isFinite(nextAt) ? nextAt - now : PROVIDER_OBSERVATION_MIN_INTERVAL_MS);
   }
 }

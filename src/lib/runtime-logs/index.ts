@@ -1,6 +1,6 @@
 export { createRuntimeLogger, requireRuntimeLogWrite } from "./logger.js";
 export type { RuntimeLogger, RuntimeSpanHandle } from "./logger.js";
-export { runtimeFailureFromError, runtimeLogCauseEventId, withRuntimeLogCause } from "./failure.js";
+export { runtimeFailureFromError, runtimeLogCauseEventId, withRuntimeLogCause, withRuntimeLogCauseFact } from "./failure.js";
 export { runtimeEventIntegrityValid } from "./integrity.js";
 export { runtimeLogEventShapeValid } from "./schema.js";
 export { diagnoseRuntimeLog, discoverRuntimeLogScope } from "./diagnosis.js";

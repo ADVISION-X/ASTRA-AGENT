@@ -118,6 +118,15 @@ export class ProductionGptChildTools {
             writerFenceHash: input.executionFenceHash,
             ...atomicIdentity,
           });
+          const stepCallIdentities = this.browserAuthority.readProviderEffectStepCallIdentities({
+            jobId: input.jobId, resultRevision: input.resultRevision,
+            productStepId: call.productStepId, callId: call.callId,
+            childCapabilityId: call.child,
+          });
+          if (stepCallIdentities.length > 0
+            && !stepCallIdentities.includes(exactCallIdentityHash)) {
+            throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
+          }
           const prior = this.browserAuthority.readExactCallMutationFact({
             jobId: input.jobId, attemptId: input.attemptId,
             exactCallIdentityHash, actionOrdinal: call.actionOrdinal,
@@ -320,6 +329,7 @@ export class ProductionGptChildTools {
     const failure = executionFailure("failed", result.failureCode ?? "GPT_CHILD_FAILED", {
       ...(native ? { cause: native } : {}),
     });
+    const causedByEventId = runtimeLogCauseEventId(result);
     const terminal = result.status === "success"
       ? requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }))
       : requireRuntimeLogWrite(span.terminal({
@@ -328,7 +338,10 @@ export class ProductionGptChildTools {
           error: failure,
           code: result.failureCode ?? "GPT_CHILD_FAILED",
           responsibleOwner: "gpt",
-          impact: failureImpact,
+          impact: failureImpact === RuntimeFailureImpact.CLEANUP
+            ? RuntimeFailureImpact.CLEANUP
+            : causedByEventId ? RuntimeFailureImpact.CONSEQUENTIAL : failureImpact,
+          ...(causedByEventId ? { causedByEventId } : {}),
         }),
       }));
     return terminal.eventId;

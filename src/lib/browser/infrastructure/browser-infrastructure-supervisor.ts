@@ -229,6 +229,13 @@ export class BrowserInfrastructureSupervisor {
     exactCallIdentityHash: `sha256:${string}`;
     actionOrdinal: number;
   }>) { return this.lane.readExactCallMutationFact(input); }
+  public readProviderEffectStepCallIdentities(input: Readonly<{
+    jobId: string;
+    resultRevision: number;
+    productStepId: string;
+    callId: string;
+    childCapabilityId: string;
+  }>) { return this.lane.readProviderEffectStepCallIdentities(input); }
   public health(): BrowserHealthSnapshot {
     const state = this.transport.currentState();
     const current = this.issuer.current();
