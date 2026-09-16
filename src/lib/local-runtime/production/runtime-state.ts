@@ -47,7 +47,12 @@ export const wait = async (milliseconds: number, signal: AbortSignal): Promise<v
 export const safeReason = (error: unknown): string =>
   (error instanceof Error ? error.message : String(error)).replace(/\s+/gu, " ").slice(0, 1_000);
 
-export const restoreBrowserHostVisibilityAfterRelease = async (state: RuntimeState): Promise<void> => {
+type BrowserHostVisibilityState = Pick<RuntimeState,
+  "restoreBrowserHostVisibility" | "lastErrorCode" | "lastErrorReason">;
+
+export const restoreBrowserHostVisibilityAfterRelease = async (
+  state: BrowserHostVisibilityState,
+): Promise<void> => {
   if (!state.restoreBrowserHostVisibility) return;
   try {
     await state.restoreBrowserHostVisibility();

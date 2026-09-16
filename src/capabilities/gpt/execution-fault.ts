@@ -21,6 +21,11 @@ export type GptFailureProofFacts = Readonly<{
 
 class GptExecutionFailure extends TypedExecutionFailure {
   public override readonly name: string = "GptExecutionFailure";
+  public readonly childProof: Readonly<{
+    evidenceRef: string;
+    evidenceHash: `sha256:${string}`;
+  }> | null;
+  public readonly reasoningRequirementResult: GptReasoningRequirementResult | null;
 
   public constructor(
     code: string,
@@ -31,18 +36,20 @@ class GptExecutionFailure extends TypedExecutionFailure {
     }> | null = null,
     public readonly browserEffect: BrowserEffectFailureFacts | null = null,
     public readonly proofFacts: GptFailureProofFacts | null = null,
-    public readonly childProof: Readonly<{
-      evidenceRef: string;
-      evidenceHash: `sha256:${string}`;
-    }> | null = null,
-    public readonly reasoningRequirementResult: GptReasoningRequirementResult | null = null,
-    cause?: unknown,
+    details: Readonly<{
+      childProof?: Readonly<{ evidenceRef: string; evidenceHash: `sha256:${string}` }> | null;
+      reasoningRequirementResult?: GptReasoningRequirementResult | null;
+      cause?: unknown;
+    }> = {},
   ) {
-    super("failed", code, cause, Object.freeze({
+    const childProof = details.childProof ?? null;
+    super("failed", code, details.cause, Object.freeze({
       mutationOutcome, evidence, browserEffect,
       stoppedEmptyProof: proofFacts?.stoppedEmptyProof ?? null,
       childProof,
     }));
+    this.childProof = childProof;
+    this.reasoningRequirementResult = details.reasoningRequirementResult ?? null;
   }
 }
 
@@ -74,7 +81,10 @@ export const gptExecutionFailure = (
   input.evidence,
   input.browserEffect,
   input.proofFacts,
-  input.childProof,
-  input.reasoningRequirementResult,
-  input.cause,
+  {
+    ...(input.childProof !== undefined ? { childProof: input.childProof } : {}),
+    ...(input.reasoningRequirementResult !== undefined
+      ? { reasoningRequirementResult: input.reasoningRequirementResult } : {}),
+    ...(input.cause !== undefined ? { cause: input.cause } : {}),
+  },
 );

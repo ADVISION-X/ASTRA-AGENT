@@ -25,9 +25,6 @@ import {
   websiteJobAbsent,
 } from "../../src/lib/local-runtime/production/runtime-business-admission.js";
 import { businessInFlightCount } from "../../src/lib/local-runtime/production/runtime-loops.js";
-import { restoreBrowserHostVisibilityAfterRelease } from
-  "../../src/lib/local-runtime/production/runtime-state.js";
-import type { RuntimeState } from "../../src/lib/local-runtime/production/runtime-state.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { readProductionOperationsSnapshot } from
   "../../src/lib/local-runtime/production/operations-snapshot.js";
@@ -64,22 +61,6 @@ const successfulJsonResponse = (data: unknown): Response => new Response(
 );
 assert.equal(hashCanonical(agentRouteCapabilityManifest.routes), productionCatalogHash);
 assert.equal(PRODUCTION_BUSINESS_CAPACITY_MAX, 4);
-const failedBrowserRestore = {
-  restoreBrowserHostVisibility: async () => { throw new Error("osascript failed"); },
-  lastErrorCode: null,
-  lastErrorReason: null,
-} as unknown as RuntimeState;
-await restoreBrowserHostVisibilityAfterRelease(failedBrowserRestore);
-assert.equal(failedBrowserRestore.lastErrorCode, "BROWSER_HOST_UNAVAILABLE");
-assert.match(failedBrowserRestore.lastErrorReason ?? "", /osascript failed/u);
-const successfulBrowserRestore = {
-  restoreBrowserHostVisibility: async () => undefined,
-  lastErrorCode: "BROWSER_HOST_UNAVAILABLE",
-  lastErrorReason: "old failure",
-} as unknown as RuntimeState;
-await restoreBrowserHostVisibilityAfterRelease(successfulBrowserRestore);
-assert.equal(successfulBrowserRestore.lastErrorCode, null);
-assert.equal(successfulBrowserRestore.lastErrorReason, null);
 await assert.rejects(
   claimProductionTasks({} as never, 5),
   /V6_CLAIM_LIMIT_INVALID/u,

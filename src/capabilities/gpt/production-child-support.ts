@@ -29,46 +29,59 @@ export type ProductGptExecution = Readonly<{
   settle(error: unknown | null): Promise<void>;
 }>;
 
+const nativeFailureCause = (result: GptChildCapabilityResult): Error | undefined =>
+  result.failureCause ? Object.assign(new Error(result.failureCause.name), {
+    name: result.failureCause.name,
+    ...(result.failureCause.code ? { code: result.failureCause.code } : {}),
+  }) : undefined;
+
+const stoppedEmptyEvidence = (result: GptChildCapabilityResult) =>
+  result.failureCode === "GPT_RESPONSE_STOPPED_EMPTY" && result.proof.stoppedEmptyProof
+    ? Object.freeze({
+        evidenceRef: result.proof.factResultIds[0] ?? result.proof.evidenceRef,
+        evidenceHash: result.proof.stoppedEmptyProof.terminalObservationRevisionHash,
+      })
+    : null;
+
+const failureEvidence = (
+  result: GptChildCapabilityResult,
+  evidenceRef: string,
+  browserFact: GptChildBrowserFact | null,
+  confirmedProviderEffect?: GptChildBrowserFact | null,
+) => confirmedProviderEffect ? Object.freeze({
+  evidenceRef: confirmedProviderEffect.evidenceRef,
+  evidenceHash: confirmedProviderEffect.evidenceHash,
+}) : browserFact ? Object.freeze({
+  evidenceRef: browserFact.evidenceRef,
+  evidenceHash: browserFact.evidenceHash,
+}) : stoppedEmptyEvidence(result) ?? Object.freeze({ evidenceRef, evidenceHash: result.proof.evidenceHash });
+
+const failureProofFacts = (result: GptChildCapabilityResult) => Object.freeze({
+  decision: result.proof.internalDecisionCode ?? "FAIL_CLOSED",
+  factResultIds: result.proof.factResultIds,
+  candidateCardinality: result.proof.candidateCardinality,
+  authorityRefHashes: result.proof.authorityRefHashes,
+  observationRevisionHash: result.proof.observationRevisionHash,
+  mutationOutcome: result.proof.committedMutation,
+  browserFact: result.proof.browserFact,
+  nativeFailureCode: result.proof.nativeFailureCode,
+  ...(result.proof.stoppedEmptyProof
+    ? { stoppedEmptyProof: result.proof.stoppedEmptyProof } : {}),
+});
+
 export const throwGptChildFailure = (
   result: GptChildCapabilityResult,
   evidenceRef: string = result.proof.evidenceRef,
   causeEventId?: string,
   confirmedProviderEffect?: GptChildBrowserFact | null,
 ): never => {
-  const native = result.failureCause ? Object.assign(new Error(result.failureCause.name), {
-    name: result.failureCause.name,
-    ...(result.failureCause.code ? { code: result.failureCause.code } : {}),
-  }) : undefined;
+  const native = nativeFailureCause(result);
   const browserFact = result.proof.browserFact ?? confirmedProviderEffect ?? null;
-  const stoppedEmptyEvidence = result.failureCode === "GPT_RESPONSE_STOPPED_EMPTY"
-    && result.proof.stoppedEmptyProof
-    ? Object.freeze({
-        evidenceRef: result.proof.factResultIds[0] ?? result.proof.evidenceRef,
-        evidenceHash: result.proof.stoppedEmptyProof.terminalObservationRevisionHash,
-      })
-    : null;
   const error = gptExecutionFailure(result.failureCode ?? "GPT_CHILD_FAILED", {
     mutationOutcome: result.proof.committedMutation,
-    evidence: confirmedProviderEffect ? Object.freeze({
-      evidenceRef: confirmedProviderEffect.evidenceRef,
-      evidenceHash: confirmedProviderEffect.evidenceHash,
-    }) : browserFact ? Object.freeze({
-      evidenceRef: browserFact.evidenceRef,
-      evidenceHash: browserFact.evidenceHash,
-    }) : stoppedEmptyEvidence ?? Object.freeze({ evidenceRef, evidenceHash: result.proof.evidenceHash }),
+    evidence: failureEvidence(result, evidenceRef, browserFact, confirmedProviderEffect),
     browserEffect: result.failureBrowserEffect ?? confirmedProviderEffect ?? null,
-    proofFacts: Object.freeze({
-      decision: result.proof.internalDecisionCode ?? "FAIL_CLOSED",
-      factResultIds: result.proof.factResultIds,
-      candidateCardinality: result.proof.candidateCardinality,
-      authorityRefHashes: result.proof.authorityRefHashes,
-      observationRevisionHash: result.proof.observationRevisionHash,
-      mutationOutcome: result.proof.committedMutation,
-      browserFact: result.proof.browserFact,
-      nativeFailureCode: result.proof.nativeFailureCode,
-      ...(result.proof.stoppedEmptyProof
-        ? { stoppedEmptyProof: result.proof.stoppedEmptyProof } : {}),
-    }),
+    proofFacts: failureProofFacts(result),
     childProof: result.failureCode === "GPT_RESPONSE_STOPPED_EMPTY"
       ? Object.freeze({ evidenceRef, evidenceHash: result.proof.evidenceHash }) : null,
     ...(native ? { cause: native } : {}),

@@ -62,6 +62,11 @@ const proofAuthorities = <K extends GptChildCapabilityId>(input: ProofInput<K>) 
   return Object.freeze({ authorityRefHashes });
 };
 
+const stoppedEmptyProofFields = (observation?: ProofObservation) =>
+  observation?.stoppedEmptyProof
+    ? Object.freeze({ stoppedEmptyProof: observation.stoppedEmptyProof })
+    : Object.freeze({});
+
 const proofFor = <K extends GptChildCapabilityId>(input: ProofInput<K>): GptChildCapabilityProof => {
   const contract = GPT_CHILD_CAPABILITY_CONTRACTS[input.intent.childCapabilityId];
   const childStatus = input.failureCode ? "failed" as const : "success" as const;
@@ -101,8 +106,7 @@ const proofFor = <K extends GptChildCapabilityId>(input: ProofInput<K>): GptChil
     postconditionResult,
     browserFact: input.observation?.browserFact ?? null,
     nativeFailureCode: input.nativeFailureCode ?? input.observation?.nativeFailureCode ?? null,
-    ...(input.observation?.stoppedEmptyProof
-      ? { stoppedEmptyProof: input.observation.stoppedEmptyProof } : {}),
+    ...stoppedEmptyProofFields(input.observation),
     startedAt: input.startedAt,
     endedAt: input.endedAt,
   };

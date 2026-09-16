@@ -75,6 +75,18 @@ const validSerializedCause = (cause: unknown): boolean => cause === null || (
 const serializedFailureKeys = ["browser_outcome", "cause", "child_capability_id", "child_proof_hash",
   "child_proof_ref", "code", "effect_scope", "evidence_hash", "evidence_ref", "mutation_outcome",
   "stopped_empty_proof"];
+const stoppedEmptyTimestampsValid = (row: Record<string, unknown>): boolean =>
+  typeof row.first_observed_at === "string" && Number.isFinite(Date.parse(row.first_observed_at))
+  && new Date(row.first_observed_at).toISOString() === row.first_observed_at
+  && typeof row.terminal_observed_at === "string" && Number.isFinite(Date.parse(row.terminal_observed_at))
+  && new Date(row.terminal_observed_at).toISOString() === row.terminal_observed_at
+  && Date.parse(row.terminal_observed_at) >= Date.parse(row.first_observed_at);
+const stoppedEmptyCountersValid = (row: Record<string, unknown>): boolean =>
+  Number.isSafeInteger(row.continuous_monotonic_ms) && Number(row.continuous_monotonic_ms) >= 1_200_000
+  && Number.isSafeInteger(row.observation_count) && Number(row.observation_count) >= 2;
+const stoppedEmptyHashesValid = (row: Record<string, unknown>): boolean =>
+  [row.identity_hash, row.terminal_observation_revision_hash]
+    .every((hash) => typeof hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(hash));
 const serializedStoppedEmptyProofValid = (value: unknown): boolean => {
   if (value === null) return true;
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
@@ -83,15 +95,9 @@ const serializedStoppedEmptyProofValid = (value: unknown): boolean => {
     "continuous_monotonic_ms", "first_observed_at", "identity_hash", "observation_count",
     "terminal_observation_revision_hash", "terminal_observed_at",
   ])
-    && typeof row.first_observed_at === "string" && Number.isFinite(Date.parse(row.first_observed_at))
-    && new Date(row.first_observed_at).toISOString() === row.first_observed_at
-    && typeof row.terminal_observed_at === "string" && Number.isFinite(Date.parse(row.terminal_observed_at))
-    && new Date(row.terminal_observed_at).toISOString() === row.terminal_observed_at
-    && Date.parse(row.terminal_observed_at) >= Date.parse(row.first_observed_at)
-    && Number.isSafeInteger(row.continuous_monotonic_ms) && Number(row.continuous_monotonic_ms) >= 1_200_000
-    && Number.isSafeInteger(row.observation_count) && Number(row.observation_count) >= 2
-    && [row.identity_hash, row.terminal_observation_revision_hash]
-      .every((hash) => typeof hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(hash));
+    && stoppedEmptyTimestampsValid(row)
+    && stoppedEmptyCountersValid(row)
+    && stoppedEmptyHashesValid(row);
 };
 const serializedEvidenceValid = (row: Record<string, unknown>): boolean => {
   const refValid = row.evidence_ref === null

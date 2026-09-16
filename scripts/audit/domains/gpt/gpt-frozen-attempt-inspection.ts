@@ -69,7 +69,7 @@ const lifecycleChecks = (sources: Readonly<Record<string, string>>): boolean[] =
     !sources.candidate!.includes("baselineOrdinal + 2"),
     sources.store!.includes("row.attempt_id !== input.attemptId"),
     sources.checkpoint!.includes("GPT_STOPPED_EMPTY_CONFIRMATION_MS = 20 * 60 * 1_000"),
-    sources.checkpoint!.includes("assistant.generatingRaw > 0"),
+    sources.checkpoint!.includes("observation.generatingRaw > 0"),
     sources.checkpoint!.includes('gptExecutionFailure("GPT_RESPONSE_STOPPED_EMPTY"'),
     sources.checkpoint!.includes("stoppedEmptyWindow = null"),
     sources.checkpoint!.includes("continuousMonotonicMs"),

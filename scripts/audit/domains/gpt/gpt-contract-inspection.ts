@@ -340,8 +340,9 @@ const PROFILE_CONSUMERS = new Set([
   "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
   "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile",
 ]);
-const CONTRACT_V6_CHILDREN = new Set(["checkpoint_gpt_generated_image", "submit_exact_gpt_turn_once"]);
-const CONTRACT_V5_CHILDREN = new Set(["checkpoint_gpt_text_response"]);
+const CONTRACT_V6_CHILDREN = new Set([
+  "checkpoint_gpt_generated_image", "checkpoint_gpt_text_response", "submit_exact_gpt_turn_once",
+]);
 const CONTRACT_V4_CHILDREN = new Set([
   "prepare_clean_gpt_chat", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2", "write_exact_gpt_prompt",
   "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile",
@@ -353,7 +354,6 @@ const CONTRACT_V3_CHILDREN = new Set([
 
 const expectedContractVersion = (id: string): string => {
   if (CONTRACT_V6_CHILDREN.has(id)) return "6";
-  if (CONTRACT_V5_CHILDREN.has(id)) return "5";
   if (CONTRACT_V4_CHILDREN.has(id)) return "4";
   return CONTRACT_V3_CHILDREN.has(id) ? "3" : "2";
 };

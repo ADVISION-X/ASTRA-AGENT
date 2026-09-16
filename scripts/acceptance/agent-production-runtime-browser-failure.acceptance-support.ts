@@ -1,7 +1,32 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 
 import type { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
+import { restoreBrowserHostVisibilityAfterRelease } from
+  "../../src/lib/local-runtime/production/runtime-state.js";
 import { HASH_A, task } from "./agent-production-runtime-fixtures.js";
+
+export const verifyBrowserHostRestoreContract = async (): Promise<void> => {
+  const failedRestore = {
+    restoreBrowserHostVisibility: async () => { throw new Error("osascript failed"); },
+    lastErrorCode: null,
+    lastErrorReason: null,
+  };
+  await restoreBrowserHostVisibilityAfterRelease(failedRestore);
+  assert.equal(failedRestore.lastErrorCode, "BROWSER_HOST_UNAVAILABLE");
+  assert.match(failedRestore.lastErrorReason ?? "", /osascript failed/u);
+  const successfulRestore: {
+    restoreBrowserHostVisibility: () => Promise<void>;
+    lastErrorCode: string | null;
+    lastErrorReason: string | null;
+  } = {
+    restoreBrowserHostVisibility: async () => undefined,
+    lastErrorCode: "BROWSER_HOST_UNAVAILABLE",
+    lastErrorReason: "old failure",
+  };
+  await restoreBrowserHostVisibilityAfterRelease(successfulRestore);
+  assert.equal(successfulRestore.lastErrorCode, null);
+  assert.equal(successfulRestore.lastErrorReason, null);
+};
 
 export const verifyBrowserFailureStoreContract = (store: ProductionRuntimeStore): void => {
   const legalPairs = Object.freeze([
