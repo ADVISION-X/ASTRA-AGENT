@@ -185,45 +185,13 @@ const executeReadValueIntent = async (
   return attribute(await describeNode(debuggerRuntime, target.tabId, nodeId), intent.name) ?? "";
 };
 
-const executeValueIntent = async (
+const readFilledValueReceipt = async (
   debuggerRuntime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
-  intent: ValueIntent,
+  intent: Extract<ValueIntent, { kind: "fill" }>,
   assertCurrent: CurrentDocumentAssertion,
-  onPhysicalInput?: () => void,
-  allowTransientDomConfirmation = true,
+  allowTransientDomConfirmation: boolean,
 ): Promise<unknown> => {
-  if (intent.kind !== "fill") return executeReadValueIntent(debuggerRuntime, target, intent);
-  const node = await confirmedQualifiedNode(
-    debuggerRuntime, target,
-    () => qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent)),
-    assertCurrent, allowTransientDomConfirmation,
-  );
-  if ("receipt" in node) return node.receipt;
-  if (await nodeText(debuggerRuntime, target.tabId, node.nodeId) === intent.approvedText) {
-    return zeroActionReceipt(assertCurrent);
-  }
-  try { await requireKeyboardActionTarget(debuggerRuntime, target.tabId, node.nodeId); }
-  catch (error) {
-    const code = error instanceof Error ? error.message : "";
-    if (!/^BROWSER_DOM_(?:CANDIDATE_MISSING|NODE_STALE|READ_INVALID)$/u.test(code)) throw error;
-    return qualificationReceipt(1, code, "actionability");
-  }
-  assertCurrent();
-  await debuggerRuntime.send(target.tabId, "DOM.focus", { nodeId: node.nodeId });
-  let inputObserved = false;
-  const markInput = (): void => {
-    if (inputObserved) return;
-    inputObserved = true;
-    onPhysicalInput?.();
-  };
-  if (intent.clearBeforeType) {
-    await clearFocusedInput(debuggerRuntime, target.tabId, assertCurrent, markInput);
-  }
-  assertCurrent();
-  await debuggerRuntime.send(target.tabId, "Input.insertText", { text: intent.approvedText });
-  markInput();
-  assertCurrent();
   const readbackNode = await confirmedQualifiedNode(
     debuggerRuntime, target,
     () => qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent)),
@@ -263,6 +231,50 @@ const executeValueIntent = async (
     postconditionVerified,
     ...(postconditionVerified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
   };
+};
+
+const executeValueIntent = async (
+  debuggerRuntime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  intent: ValueIntent,
+  assertCurrent: CurrentDocumentAssertion,
+  onPhysicalInput?: () => void,
+  allowTransientDomConfirmation = true,
+): Promise<unknown> => {
+  if (intent.kind !== "fill") return executeReadValueIntent(debuggerRuntime, target, intent);
+  const node = await confirmedQualifiedNode(
+    debuggerRuntime, target,
+    () => qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent)),
+    assertCurrent, allowTransientDomConfirmation,
+  );
+  if ("receipt" in node) return node.receipt;
+  if (await nodeText(debuggerRuntime, target.tabId, node.nodeId) === intent.approvedText) {
+    return zeroActionReceipt(assertCurrent);
+  }
+  try { await requireKeyboardActionTarget(debuggerRuntime, target.tabId, node.nodeId); }
+  catch (error) {
+    const code = error instanceof Error ? error.message : "";
+    if (!/^BROWSER_DOM_(?:CANDIDATE_MISSING|NODE_STALE|READ_INVALID)$/u.test(code)) throw error;
+    return qualificationReceipt(1, code, "actionability");
+  }
+  assertCurrent();
+  await debuggerRuntime.send(target.tabId, "DOM.focus", { nodeId: node.nodeId });
+  let inputObserved = false;
+  const markInput = (): void => {
+    if (inputObserved) return;
+    inputObserved = true;
+    onPhysicalInput?.();
+  };
+  if (intent.clearBeforeType) {
+    await clearFocusedInput(debuggerRuntime, target.tabId, assertCurrent, markInput);
+  }
+  assertCurrent();
+  await debuggerRuntime.send(target.tabId, "Input.insertText", { text: intent.approvedText });
+  markInput();
+  assertCurrent();
+  return readFilledValueReceipt(
+    debuggerRuntime, target, intent, assertCurrent, allowTransientDomConfirmation,
+  );
 };
 
 export const executeFillIntent = (

@@ -37,11 +37,8 @@ const coherentRuntimeFor = (
   transientWhenClosed = false,
 ) => {
   let clicked = false, coherentCalls = 0, pointerEvents = 0, atomicSource = "", historyCalls = 0;
-  const runtime = { awaitPageReadPermission: noPageReadBarrier, async send(
-    _tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>,
-  ) {
-    const declaration = String(parameters?.functionDeclaration ?? "");
-    if (method === "Runtime.callFunctionOn" && declaration.startsWith("function (request)")) {
+  const runtimeCallReply = (declaration: string): unknown | undefined => {
+    if (declaration.startsWith("function (request)")) {
       atomicSource = declaration;
       coherentCalls += 1;
       const open = clicked || (externallyOpensAtObservation !== undefined
@@ -50,20 +47,31 @@ const coherentRuntimeFor = (
         ? { kind: "postcondition", observation: coherentObservation(true) }
         : { kind: "pointer", point: { x: 5, y: 5 } } } };
     }
-    if (method === "Runtime.callFunctionOn" && declaration.startsWith("async function (specs)")) {
-      coherentCalls += 1;
-      const open = (clicked && settles)
-        || (externallyOpensAtObservation !== undefined && coherentCalls >= externallyOpensAtObservation);
-      const observation = coherentObservation(open);
-      return { result: { value: !open && transientWhenClosed ? { ...observation,
-        queries: observation.queries.map((query) => ({ ...query,
-          rawCount: 0, eligibleCount: 0, matches: [], rejections: [] })) } : observation } };
+    if (!declaration.startsWith("async function (specs)")) return undefined;
+    coherentCalls += 1;
+    const open = (clicked && settles)
+      || (externallyOpensAtObservation !== undefined && coherentCalls >= externallyOpensAtObservation);
+    const observation = coherentObservation(open);
+    return { result: { value: !open && transientWhenClosed ? { ...observation,
+      queries: observation.queries.map((query) => ({ ...query,
+        rawCount: 0, eligibleCount: 0, matches: [], rejections: [] })) } : observation } };
+  };
+  const navigationHistoryReply = () => {
+    historyCalls += 1;
+    return { currentIndex: 0, entries: [{ title: "ChatGPT",
+      url: historyCalls < (driftAtHistoryCall ?? Number.POSITIVE_INFINITY)
+        ? "https://chatgpt.com/" : "https://chatgpt.com/c/different-conversation" }] };
+  };
+  const runtime = { awaitPageReadPermission: noPageReadBarrier, async send(
+    _tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>,
+  ) {
+    const declaration = String(parameters?.functionDeclaration ?? "");
+    if (method === "Runtime.callFunctionOn") {
+      const reply = runtimeCallReply(declaration);
+      if (reply !== undefined) return reply;
     }
     if (method === "Page.getNavigationHistory" && driftAtHistoryCall !== undefined) {
-      historyCalls += 1;
-      return { currentIndex: 0, entries: [{ title: "ChatGPT",
-        url: historyCalls < driftAtHistoryCall ? "https://chatgpt.com/"
-          : "https://chatgpt.com/c/different-conversation" }] };
+      return navigationHistoryReply();
     }
     const infrastructure = mutationInfrastructureReply(method, parameters);
     if (infrastructure !== undefined) return infrastructure;

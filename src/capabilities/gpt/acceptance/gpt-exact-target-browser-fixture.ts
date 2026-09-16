@@ -276,16 +276,11 @@ const executeFakeDomIntent = async (
 };
 
 const createFakeBrowserLease = (
-  responder: DomResponder,
-  state: FakeBrowserState,
-  options: FakeBrowserOptions,
+  responder: DomResponder, state: FakeBrowserState, options: FakeBrowserOptions,
 ): BrowserTargetLease => ({
-  leaseRef: "lease:1",
-  authorityRef: "authority:1",
-  authorityEpoch: 1,
+  leaseRef: "lease:1", authorityRef: "authority:1", authorityEpoch: 1,
   executionBindingHash: `sha256:${"a".repeat(64)}`,
-  ownerId: "gpt-acceptance",
-  agentJobRefHash: `sha256:${"b".repeat(64)}`,
+  ownerId: "gpt-acceptance", agentJobRefHash: `sha256:${"b".repeat(64)}`,
   agentExecutionRefHash: `sha256:${"c".repeat(64)}`,
   writerLeaseEpoch: 1,
   writerFenceHash: `sha256:${"d".repeat(64)}`,

@@ -174,6 +174,42 @@ const transientObservationFailure = (error: unknown): boolean =>
   ["BROWSER_DOM_CANDIDATE_MISSING", "BROWSER_DOM_NODE_STALE", "NO_LAYOUT_BOX"]
     .includes(failureCode(error, ""));
 
+const awaitConfirmationStage = async (
+  browser: BrowserTargetLease,
+  stage: 0 | 1 | 2,
+  signal?: AbortSignal,
+): Promise<void> => {
+  if (signal?.aborted) throw executionFailure("failed", "GPT_EXECUTION_ABORTED");
+  if (stage === 0) return;
+  try {
+    await browser.awaitTransientDomConfirmation({
+      stage, ...(signal === undefined ? {} : { signal }),
+    });
+  } catch (error) {
+    if (signal?.aborted) throw executionFailure(
+      "failed", "GPT_EXECUTION_ABORTED", { cause: error },
+    );
+    throw error;
+  }
+};
+
+type ConfirmationStageRead =
+  | Readonly<{ kind: "observation"; observation: GptCoherentObservation }>
+  | Readonly<{ kind: "transient-failure"; error: unknown }>;
+
+const readConfirmationStage = async (
+  browser: BrowserTargetLease,
+  queries: readonly BrowserDomObservationQuery[],
+  stage: 0 | 1 | 2,
+): Promise<ConfirmationStageRead> => {
+  try {
+    return { kind: "observation", observation: await readCoherentObservation(browser, queries) };
+  } catch (error) {
+    if (!transientObservationFailure(error) || stage === 2) throw error;
+    return { kind: "transient-failure", error };
+  }
+};
+
 export const readConfirmedCoherentObservation = async (
   browser: BrowserTargetLease,
   queries: readonly BrowserDomObservationQuery[],
@@ -185,27 +221,16 @@ export const readConfirmedCoherentObservation = async (
   let baseline: GptCoherentObservation | null = null;
   let lastTransientFailure: unknown = null;
   for (const stage of [0, 1, 2] as const) {
-    if (signal?.aborted) throw executionFailure("failed", "GPT_EXECUTION_ABORTED");
-    if (stage !== 0) try {
-      await browser.awaitTransientDomConfirmation({
-        stage, ...(signal === undefined ? {} : { signal }),
-      });
-    } catch (error) {
-      if (signal?.aborted) throw executionFailure(
-        "failed", "GPT_EXECUTION_ABORTED", { cause: error },
-      );
-      throw error;
-    }
+    await awaitConfirmationStage(browser, stage, signal);
     if (browser.target.targetRef !== targetRef || browser.document.documentRef !== documentRef) {
       throw executionFailure("failed", "GPT_DOM_CONFIRMATION_IDENTITY_CHANGED");
     }
-    let observation: GptCoherentObservation;
-    try { observation = await readCoherentObservation(browser, queries); }
-    catch (error) {
-      if (!transientObservationFailure(error) || stage === 2) throw error;
-      lastTransientFailure = error;
+    const read = await readConfirmationStage(browser, queries, stage);
+    if (read.kind === "transient-failure") {
+      lastTransientFailure = read.error;
       continue;
     }
+    const observation = read.observation;
     if (baseline !== null && !sameObservationIdentity(baseline, observation)) {
       throw executionFailure("failed", "GPT_DOM_CONFIRMATION_IDENTITY_CHANGED");
     }

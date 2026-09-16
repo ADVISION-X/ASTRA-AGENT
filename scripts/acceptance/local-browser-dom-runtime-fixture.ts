@@ -8,17 +8,22 @@ export const browserDomFacts = (overrides: Readonly<Record<string, unknown>> = {
   nativeCauseCode: null, nativeStage: "runtime-call-function-on", ...overrides,
 });
 
+const infrastructureReplies: Readonly<Record<string, unknown>> = Object.freeze({
+  "Page.getFrameTree": { frameTree: { frame: { loaderId: "loader-current" } } },
+  "Page.getNavigationHistory": { currentIndex: 0,
+    entries: [{ url: "https://chatgpt.com/", title: "ChatGPT" }] },
+  "DOM.getDocument": { root: { nodeId: 1 } },
+  "DOM.requestNode": { nodeId: 7 },
+  "Runtime.releaseObject": {},
+});
+
 export const mutationInfrastructureReply = (
   method: string,
   parameters?: Readonly<Record<string, unknown>>,
 ): unknown | undefined => {
   if (method === "Runtime.callFunctionOn"
     && String(parameters?.functionDeclaration ?? "").includes("browserExactEditableText(this)")) return undefined;
-  let reply: unknown;
-  if (method === "Page.getFrameTree") reply = { frameTree: { frame: { loaderId: "loader-current" } } };
-  if (method === "Page.getNavigationHistory") reply = { currentIndex: 0,
-    entries: [{ url: "https://chatgpt.com/", title: "ChatGPT" }] };
-  if (method === "DOM.getDocument") reply = { root: { nodeId: 1 } };
+  let reply = infrastructureReplies[method];
   if (method === "DOM.resolveNode") reply = { object: {
     objectId: parameters?.nodeId === 1 ? "candidate-root" : `node-${parameters?.nodeId}`,
   } };
@@ -30,7 +35,5 @@ export const mutationInfrastructureReply = (
     && String(parameters.functionDeclaration).includes("spec.output")) {
     reply = { result: { value: { x: 5, y: 5 } } };
   }
-  if (method === "DOM.requestNode") reply = { nodeId: 7 };
-  if (method === "Runtime.releaseObject") reply = {};
   return reply;
 };

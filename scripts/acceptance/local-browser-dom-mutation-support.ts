@@ -271,24 +271,28 @@ const coherentObservation = (open: boolean, currentUrl = "https://chatgpt.com/")
   ],
 });
 
-const exerciseExactOutgoingNeverUsesZeroActionPostcondition = async (): Promise<void> => {
-  const pointerEvents: Readonly<Record<string, unknown>>[] = [];
-  let candidateCalls = 0;
-  let postconditionCalls = 0;
-  let emptyComposerEligible = 1;
-  const runtime = { awaitPageReadPermission: noPageReadBarrier, async send(
+type ExactOutgoingRuntimeState = {
+  pointerEvents: Readonly<Record<string, unknown>>[];
+  candidateCalls: number;
+  postconditionCalls: number;
+  emptyComposerEligible: number;
+};
+
+const exactOutgoingRuntime = (state: ExactOutgoingRuntimeState) => ({
+  awaitPageReadPermission: noPageReadBarrier,
+  async send(
     _tabId: number,
     method: string,
     parameters?: Readonly<Record<string, unknown>>,
   ) {
     const source = String(parameters?.functionDeclaration ?? "");
     if (method === "Runtime.callFunctionOn" && source.includes("spec.output")) {
-      candidateCalls += 1;
+      state.candidateCalls += 1;
       return { result: { value: { x: 5, y: 5 } } };
     }
     if (method === "Runtime.callFunctionOn" && source.startsWith("async function (specs)")) {
-      postconditionCalls += 1;
-      const observation = coherentObservation(true, postconditionCalls === 1
+      state.postconditionCalls += 1;
+      const observation = coherentObservation(true, state.postconditionCalls === 1
         ? "https://chatgpt.com/c/WEB:temporary-client-route"
         : "https://chatgpt.com/c/durable-provider-route");
       return { result: { value: { ...observation, queries: [{
@@ -298,16 +302,23 @@ const exerciseExactOutgoingNeverUsesZeroActionPostcondition = async (): Promise<
         rejections: [],
       }, {
         ...observation.queries[0], queryId: "empty-composer", rawCount: 1,
-        eligibleCount: emptyComposerEligible,
-        matches: emptyComposerEligible === 1 ? [{ candidateIndex: 0 }] : [],
-        rejections: emptyComposerEligible === 1 ? [] : [{ index: 0, reasons: ["TEXT_MISMATCH"] }],
+        eligibleCount: state.emptyComposerEligible,
+        matches: state.emptyComposerEligible === 1 ? [{ candidateIndex: 0 }] : [],
+        rejections: state.emptyComposerEligible === 1 ? [] : [{ index: 0, reasons: ["TEXT_MISMATCH"] }],
       }] } } };
     }
     const infrastructure = mutationInfrastructureReply(method, parameters);
     if (infrastructure !== undefined) return infrastructure;
-    if (method === "Input.dispatchMouseEvent") { pointerEvents.push(parameters ?? {}); return {}; }
+    if (method === "Input.dispatchMouseEvent") { state.pointerEvents.push(parameters ?? {}); return {}; }
     throw new Error(`UNEXPECTED_EXACT_OUTGOING_CLICK_METHOD:${method}`);
-  } } as ExtensionDebuggerRuntime;
+  },
+}) as ExtensionDebuggerRuntime;
+
+const exerciseExactOutgoingNeverUsesZeroActionPostcondition = async (): Promise<void> => {
+  const state: ExactOutgoingRuntimeState = {
+    pointerEvents: [], candidateCalls: 0, postconditionCalls: 0, emptyComposerEligible: 1,
+  };
+  const runtime = exactOutgoingRuntime(state);
   const target = {
     tabId: 126, targetRef: "target-126", documentRef: "document-126", navigationEpoch: 1,
   } as never;
@@ -328,18 +339,18 @@ const exerciseExactOutgoingNeverUsesZeroActionPostcondition = async (): Promise<
   const result = await executeRegisteredDomIntent(runtime, target, intent,
     () => undefined) as Readonly<Record<string, unknown>>;
   assert.equal(result.postconditionVerified, true);
-  assert.equal(candidateCalls, 1);
-  assert.equal(postconditionCalls, 2,
+  assert.equal(state.candidateCalls, 1);
+  assert.equal(state.postconditionCalls, 2,
     "submit must keep the same bounded postcondition open until the temporary WEB route becomes durable");
   assert.equal((result.postconditionObservation as Readonly<Record<string, unknown>>).currentUrl,
     "https://chatgpt.com/c/durable-provider-route");
-  assert.deepEqual(pointerEvents, [
+  assert.deepEqual(state.pointerEvents, [
     { type: "mouseMoved", x: 5, y: 5, button: "none", buttons: 0 },
     { type: "mousePressed", x: 5, y: 5, button: "left", buttons: 1, clickCount: 1 },
     { type: "mouseReleased", x: 5, y: 5, button: "left", buttons: 0, clickCount: 1 },
     { type: "mouseMoved", x: 0, y: 0, button: "none", buttons: 0 },
   ], "an exact outgoing turn must click once and park before its postcondition read");
-  emptyComposerEligible = 0;
+  state.emptyComposerEligible = 0;
   const rejected = await executeRegisteredDomIntent(runtime, target, {
     ...intent, postClickObservation: {
       queries: intent.postClickObservation!.queries, timeoutMs: 1_500,
