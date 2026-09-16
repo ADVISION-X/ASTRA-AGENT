@@ -4,9 +4,11 @@ import type { BrowserTargetLease } from "../../../../lib/browser/browser-authori
 import { executionFailure } from "../../../../lib/execution-failure.js";
 import type { GptChildCapabilityIntent } from "../../contract.js";
 import { numberInput } from "../../web/child-handler.js";
+import { isGptRootUrl } from "../../web/contracts/target-document.contract.js";
 import {
   projectCoherentObservation,
-  readCoherentObservation,
+  readConfirmedCoherentObservation,
+  type GptCoherentObservation,
   type GptCoherentFactProjection,
 } from "../../web/gpt-dom-observation.js";
 import {
@@ -43,18 +45,17 @@ export type ConversationState = Readonly<{
   facts: GptCoherentFactProjection;
 }>;
 
-export const readConversationState = async (
-  browser: BrowserTargetLease,
-): Promise<ConversationState> => {
-  const observation = await readCoherentObservation(browser, [
-    { queryId: "composer", selector: GPT_COMPOSER_SELECTOR, maxMatches: 2,
-      fields: ["exactEditableTextHash" as const] },
-    { queryId: "user-turns", selector: GPT_USER_TURN_SELECTOR, maxMatches: 20, fields: [] },
-    { queryId: "assistant-turns", selector: GPT_ASSISTANT_TURN_SELECTOR, maxMatches: 20, fields: [] },
-    { queryId: "attachments", selector: GPT_ATTACHMENT_ITEM_SELECTOR,
-      scope: { selector: GPT_COMPOSER_FORM_SELECTOR }, maxMatches: 20, fields: [] },
-    { queryId: "generating", selector: GPT_GENERATING_STOP_SELECTOR, maxMatches: 2, fields: [] },
-  ]);
+const CONVERSATION_QUERIES = Object.freeze([
+  { queryId: "composer", selector: GPT_COMPOSER_SELECTOR, maxMatches: 2,
+    fields: ["exactEditableTextHash" as const] },
+  { queryId: "user-turns", selector: GPT_USER_TURN_SELECTOR, maxMatches: 20, fields: [] },
+  { queryId: "assistant-turns", selector: GPT_ASSISTANT_TURN_SELECTOR, maxMatches: 20, fields: [] },
+  { queryId: "attachments", selector: GPT_ATTACHMENT_ITEM_SELECTOR,
+    scope: { selector: GPT_COMPOSER_FORM_SELECTOR }, maxMatches: 20, fields: [] },
+  { queryId: "generating", selector: GPT_GENERATING_STOP_SELECTOR, maxMatches: 2, fields: [] },
+]);
+
+const projectConversationState = (observation: GptCoherentObservation): ConversationState => {
   const row = (queryId: string) => observation.rows.find((candidate) => candidate.queryId === queryId)!;
   const composer = row("composer");
   const rawComposerHash = composer.matches[0]?.exactEditableTextHash;
@@ -74,3 +75,23 @@ export const readConversationState = async (
     facts: projectCoherentObservation(observation, "composer"),
   });
 };
+
+const conversationDisposition = (observation: GptCoherentObservation) => {
+  const state = projectConversationState(observation);
+  if (!isGptRootUrl(state.currentUrl)
+    || state.userRaw !== 0 || state.assistantRaw !== 0
+    || state.attachmentsRaw !== 0 || state.generatingRaw !== 0
+    || state.composerRaw > 1) return "HARD_FAIL" as const;
+  return state.composerRaw === 1 && state.composerEligible === 1 && state.composerHash !== null
+    ? state.composerHash === hashConversationValue("") ? "STABLE_DONE" as const : "STABLE_ACT" as const
+    : "TRANSIENT_DOM" as const;
+};
+
+export const readConversationState = async (
+  browser: BrowserTargetLease,
+  signal?: AbortSignal,
+): Promise<ConversationState> => projectConversationState(
+  await readConfirmedCoherentObservation(
+    browser, CONVERSATION_QUERIES, conversationDisposition, signal,
+  ),
+);

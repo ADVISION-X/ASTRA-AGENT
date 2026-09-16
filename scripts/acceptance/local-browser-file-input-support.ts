@@ -64,6 +64,8 @@ const fileDomReply = (
   parameters?: Readonly<Record<string, unknown>>,
 ): unknown | undefined => {
   if (method === "Page.getFrameTree") return { frameTree: { frame: { loaderId: "loader-8" } } };
+  if (method === "Page.getNavigationHistory") return { currentIndex: 0,
+    entries: [{ url: "https://chatgpt.com/", title: "ChatGPT" }] };
   if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
   if (method === "DOM.querySelectorAll") {
     state.queries += 1;

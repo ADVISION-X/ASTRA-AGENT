@@ -3,6 +3,7 @@ import type { BrowserDocumentRef, BrowserTargetRef } from "./browser-target-ref.
 import type { BrowserCapabilityId } from "../protocol/generated/browser-protocol.generated.js";
 import type { BrowserOutcomeResolutionReceipt } from "./browser-outcome-resolver.js";
 import type { BrowserPhysicalInputCount } from "./browser-mutation-types.js";
+export type TransientDomConfirmationStage = 1 | 2;
 
 export type BrowserAtomicStepIdentity = Readonly<{
   resultRevision: number;
@@ -119,6 +120,10 @@ export type BrowserTargetLease = Readonly<{
     mediaType: `image/${string}`;
   }>>;
   wait(input: Readonly<{ durationMs: number }>): Promise<void>;
+  awaitTransientDomConfirmation(input: Readonly<{
+    stage: TransientDomConfirmationStage;
+    signal?: AbortSignal;
+  }>): Promise<void>;
   park(input: Readonly<{
     reason: string;
     mode: "product-call-settlement";

@@ -5,7 +5,7 @@ import type {
 
 import {
   projectCoherentObservation,
-  readCoherentObservation,
+  readConfirmedCoherentObservation,
   type GptCoherentObservation,
   type GptCoherentFactProjection,
 } from "../../web/gpt-dom-observation.js";
@@ -42,6 +42,15 @@ export const projectModelChoiceState = (
 export const readModelChoiceState = async (
   browser: BrowserTargetLease,
   modelDisplayName: string,
-): Promise<ModelChoiceState> => projectModelChoiceState(
-  await readCoherentObservation(browser, [modelChoiceQuery(modelDisplayName)]),
-);
+  signal?: AbortSignal,
+): Promise<ModelChoiceState> => {
+  const queries = [modelChoiceQuery(modelDisplayName)];
+  return projectModelChoiceState(await readConfirmedCoherentObservation(
+    browser, queries, (observation) => {
+      const value = projectModelChoiceState(observation);
+      if (value.count > 1 || (value.count === 1
+        && value.ariaChecked !== "true" && value.ariaChecked !== "false")) return "HARD_FAIL";
+      return value.count === 1 ? "STABLE_ACT" : "TRANSIENT_DOM";
+    }, signal,
+  ));
+};

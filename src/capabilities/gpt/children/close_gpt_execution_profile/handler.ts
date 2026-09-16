@@ -20,7 +20,6 @@ const CLOSE_POSTCONDITION = Object.freeze({
   queries: Object.freeze(PROFILE_TOPOLOGY_QUERIES.map((query) => Object.freeze({
     ...query, expectedEligibleCount: query.queryId === "popup" ? 0 : 1,
   }))),
-  timeoutMs: 5_000,
 });
 
 export const closeGptExecutionProfileHandler: GptChildHandler<"close_gpt_execution_profile"> =
@@ -28,7 +27,7 @@ export const closeGptExecutionProfileHandler: GptChildHandler<"close_gpt_executi
     requireExactInputKeys(intent, ["profile"]);
     profileFromIntent(intent);
     const browser = requireBrowser(context);
-    const observed = await topology(browser);
+    const observed = await topology(browser, context.signal);
     if (profileClosedReady(observed)) return success({
       value: { state: "profile-popup-closed" },
       ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",

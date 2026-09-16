@@ -21,6 +21,10 @@ import {
 } from "./dom-mutation-postcondition.js";
 import { attribute, describeNode, requireKeyboardActionTarget } from "./dom-query-runtime.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
+import {
+  currentGptPageIdentity,
+  readWithTransientDomConfirmation,
+} from "./chatgpt-page-access-gate.js";
 
 type ClickIntent = Extract<BrowserDomIntent, { kind: "click" }>;
 type HoverIntent = Extract<BrowserDomIntent, { kind: "hover" }>;
@@ -39,6 +43,31 @@ type QualificationReceipt = Readonly<{
   failureCode: string;
   nativeCauseCode: string | null;
 }>;
+
+const transientQualification = (value: QualificationReceipt): boolean => [
+  "BROWSER_DOM_CANDIDATE_MISSING", "BROWSER_DOM_NODE_STALE",
+  "BROWSER_DOM_ACTION_NODE_DISCONNECTED", "BROWSER_DOM_ACTION_NO_LAYOUT_BOX",
+  "BROWSER_DOM_ACTION_NOT_VISIBLE", "BROWSER_DOM_ACTION_INERT",
+  "BROWSER_DOM_ACTION_DISABLED", "BROWSER_DOM_ACTION_ARIA_DISABLED",
+].includes(value.nativeCauseCode ?? value.failureCode);
+
+const confirmTransientPreparation = async <T>(
+  runtime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  read: () => Promise<T | QualificationReceipt>,
+  assertCurrent: CurrentDocumentAssertion,
+): Promise<T | QualificationReceipt> => readWithTransientDomConfirmation({
+  read: async () => {
+    assertCurrent();
+    const value = await read();
+    return { value, transient: "failureCode" in (value as T & Partial<QualificationReceipt>)
+      && transientQualification(value as QualificationReceipt) };
+  },
+  continuity: async () => {
+    assertCurrent();
+    return currentGptPageIdentity(runtime, target.tabId);
+  },
+});
 
 const qualificationReceipt = (
   candidateCount: number,
@@ -128,7 +157,7 @@ const retainedPointerAction = async (
     });
   } catch (error) {
     const code = error instanceof Error ? error.message : "";
-    if (/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|READ_INVALID)$/u.test(code)) {
+    if (/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|NODE_STALE|READ_INVALID)$/u.test(code)) {
       return qualificationReceipt(code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS" ? 2 : 0, code, "candidate-set");
     }
     if (!/^BROWSER_DOM_ACTION_[A-Z_]+$/u.test(code)) throw error;
@@ -152,7 +181,7 @@ const observationPointerAction = async (
     }, intent.postClickObservation);
   } catch (error) {
     const code = error instanceof Error ? error.message : "";
-    if (/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|READ_INVALID)$/u.test(code)) {
+    if (/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|NODE_STALE|READ_INVALID)$/u.test(code)) {
       return qualificationReceipt(code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS" ? 2 : 0, code, "candidate-set");
     }
     if (!/^BROWSER_DOM_ACTION_[A-Z_]+$/u.test(code)) throw error;
@@ -200,8 +229,11 @@ const zeroActionIfSatisfied = async (
   target: ExtensionExactTarget,
   intent: ClickIntent,
   assertCurrent: CurrentDocumentAssertion,
+  allowTransientDomConfirmation: boolean,
 ): Promise<Readonly<Record<string, unknown>> | null> => {
-  const readback = await verifyClickPostcondition(runtime, target, intent, 0);
+  const readback = await verifyClickPostcondition(
+    runtime, target, intent, 0, allowTransientDomConfirmation, assertCurrent,
+  );
   if (!readback.verified) return null;
   if (readback.observation !== undefined) {
     return zeroActionObservationReceipt(assertCurrent, readback.observation);
@@ -240,19 +272,25 @@ const prepareClick = async (
   target: ExtensionExactTarget,
   intent: ClickIntent,
   assertCurrent: CurrentDocumentAssertion,
+  allowTransientDomConfirmation: boolean,
 ): Promise<PreparedClick> => {
   if (intent.preClickExactOutgoingTurn !== undefined) {
     return prepareExactOutgoingClick(runtime, target, intent, assertCurrent);
   }
   if (intent.postClickObservation?.clickedCandidateAttribute !== undefined) {
-    const retained = await retainedPointerAction(runtime, target, intent);
+    const retained = allowTransientDomConfirmation
+      ? await confirmTransientPreparation(
+        runtime, target, () => retainedPointerAction(runtime, target, intent), assertCurrent,
+      ) : await retainedPointerAction(runtime, target, intent);
     return "failureCode" in retained
       ? { receipt: retained } : { point: retained, retainedNodeId: retained.nodeId };
   }
   if (intent.postClickObservation !== undefined) {
-    const preparation = await observationPointerAction(runtime, target, intent as ClickIntent & Readonly<{
+    const read = () => observationPointerAction(runtime, target, intent as ClickIntent & Readonly<{
       postClickObservation: NonNullable<ClickIntent["postClickObservation"]>;
     }>);
+    const preparation = allowTransientDomConfirmation
+      ? await confirmTransientPreparation(runtime, target, read, assertCurrent) : await read();
     if ("failureCode" in preparation) return { receipt: preparation };
     return preparation.kind === "postcondition"
       ? { receipt: zeroActionObservationReceipt(assertCurrent, {
@@ -260,9 +298,14 @@ const prepareClick = async (
       }) }
       : { point: preparation.point, retainedNodeId: null };
   }
-  const preconditionReceipt = await zeroActionIfSatisfied(runtime, target, intent, assertCurrent);
+  const preconditionReceipt = await zeroActionIfSatisfied(
+    runtime, target, intent, assertCurrent, allowTransientDomConfirmation,
+  );
   if (preconditionReceipt !== null) return { receipt: preconditionReceipt };
-  const point = await pointerAction(runtime, target, intent);
+  const point = allowTransientDomConfirmation
+    ? await confirmTransientPreparation(
+      runtime, target, () => pointerAction(runtime, target, intent), assertCurrent,
+    ) : await pointerAction(runtime, target, intent);
   return "failureCode" in point ? { receipt: point } : { point, retainedNodeId: null };
 };
 
@@ -272,6 +315,7 @@ const clickMutationReceipt = async (
   intent: ClickIntent,
   retainedNodeId: number | null,
   assertCurrent: CurrentDocumentAssertion,
+  allowTransientDomConfirmation: boolean,
 ): Promise<Readonly<Record<string, unknown>>> => {
   assertCurrent();
   if (intent.postClickMinimumDelayMs !== undefined) {
@@ -284,7 +328,9 @@ const clickMutationReceipt = async (
   const clickedCandidateAttributeValue = clickedCandidateAttribute && retainedNodeId !== null
     ? attribute(await describeNode(runtime, target.tabId, retainedNodeId), clickedCandidateAttribute.name)
     : null;
-  const postcondition = await verifyClickPostcondition(runtime, target, intent);
+  const postcondition = await verifyClickPostcondition(
+    runtime, target, intent, undefined, allowTransientDomConfirmation, assertCurrent,
+  );
   const clickedCandidateAttributeVerified = clickedCandidateAttribute === undefined
     || clickedCandidateAttributeValue === clickedCandidateAttribute.equals;
   return {
@@ -307,14 +353,20 @@ export const executeClickIntent = async (
   intent: ClickIntent,
   assertCurrent: CurrentDocumentAssertion,
   onPhysicalInput?: () => void,
+  allowTransientDomConfirmation = true,
 ): Promise<unknown> => {
-  const prepared = await prepareClick(runtime, target, intent, assertCurrent);
+  const prepared = await prepareClick(
+    runtime, target, intent, assertCurrent, allowTransientDomConfirmation,
+  );
   if ("receipt" in prepared) return prepared.receipt;
   await dispatchPointerClickSequence(
     runtime, target, prepared.point, [1], assertCurrent, onPhysicalInput,
   );
   if (intent.preClickExactOutgoingTurn !== undefined) await runtime.send(target.tabId, "Input.dispatchMouseEvent", NEUTRAL_POINTER_POSITION);
-  return clickMutationReceipt(runtime, target, intent, prepared.retainedNodeId, assertCurrent);
+  return clickMutationReceipt(
+    runtime, target, intent, prepared.retainedNodeId, assertCurrent,
+    allowTransientDomConfirmation,
+  );
 };
 
 export const executeDoubleClickIntent = async (
@@ -323,13 +375,17 @@ export const executeDoubleClickIntent = async (
   intent: DoubleClickIntent,
   assertCurrent: CurrentDocumentAssertion,
 ): Promise<unknown> => {
-  const precondition = await waitForMatch(runtime, target, intent.postDoubleClickMatch, 0);
+  const precondition = await waitForMatch(
+    runtime, target, intent.postDoubleClickMatch, 0, true, assertCurrent,
+  );
   if (precondition.verified) return zeroActionMatchReceipt(assertCurrent, precondition);
   const box = await pointerAction(runtime, target, intent);
   if ("failureCode" in box) return box;
   await dispatchPointerClickSequence(runtime, target, box, [1, 2], assertCurrent);
   assertCurrent();
-  const postcondition = await waitForMatch(runtime, target, intent.postDoubleClickMatch);
+  const postcondition = await waitForMatch(
+    runtime, target, intent.postDoubleClickMatch, undefined, true, assertCurrent,
+  );
   return { doubleClicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
     postconditionVerified: postcondition.verified, ...matchReceiptEvidence(postcondition),
     ...(postcondition.verified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }) };
@@ -341,11 +397,19 @@ export const executeKeypressIntent = async (
   intent: KeypressIntent,
   assertCurrent: CurrentDocumentAssertion,
   onPhysicalInput?: () => void,
+  allowTransientDomConfirmation = true,
 ): Promise<unknown> => {
-  const precondition = await waitForMatch(runtime, target, intent.postKeypressMatch, 0);
+  const precondition = await waitForMatch(
+    runtime, target, intent.postKeypressMatch, 0, allowTransientDomConfirmation, assertCurrent,
+  );
   if (precondition.verified) return zeroActionMatchReceipt(assertCurrent, precondition);
-  const node = await qualifiedNode(() => mutationCandidate(runtime, target, intent));
-  if ("receipt" in node) return node.receipt;
+  const readNode = async () => {
+    const value = await qualifiedNode(() => mutationCandidate(runtime, target, intent));
+    return "receipt" in value ? value.receipt : value;
+  };
+  const node = allowTransientDomConfirmation
+    ? await confirmTransientPreparation(runtime, target, readNode, assertCurrent) : await readNode();
+  if ("failureCode" in node) return node;
   try { await requireKeyboardActionTarget(runtime, target.tabId, node.nodeId); }
   catch (error) {
     const code = error instanceof Error ? error.message : "";
@@ -365,7 +429,9 @@ export const executeKeypressIntent = async (
     await runtime.send(target.tabId, "Input.dispatchKeyEvent", { type: "keyUp", ...keyEvent });
   }
   assertCurrent();
-  const postcondition = await waitForMatch(runtime, target, intent.postKeypressMatch);
+  const postcondition = await waitForMatch(
+    runtime, target, intent.postKeypressMatch, undefined, allowTransientDomConfirmation, assertCurrent,
+  );
   return { keyPressed: intent.key, keypressCount: intent.repeat ?? 1, candidateCount: 1,
     identityRevalidated: true, mutationCount: 1, postconditionVerified: postcondition.verified,
     ...matchReceiptEvidence(postcondition),
@@ -378,16 +444,20 @@ export const executeHoverIntent = async (
   intent: HoverIntent,
   assertCurrent: CurrentDocumentAssertion,
 ): Promise<unknown> => {
-  if (await waitForInteractionAttribute(runtime, target, intent, 1, intent.postHoverAttribute, 0)) {
+  if (await waitForInteractionAttribute(
+    runtime, target, intent, 1, intent.postHoverAttribute, 0, assertCurrent,
+  )) {
     return zeroActionReceipt(assertCurrent);
   }
-  const box = await pointerAction(runtime, target, intent);
+  const box = await confirmTransientPreparation(
+    runtime, target, () => pointerAction(runtime, target, intent), assertCurrent,
+  );
   if ("failureCode" in box) return box;
   assertCurrent();
   await runtime.send(target.tabId, "Input.dispatchMouseEvent", { type: "mouseMoved", x: box.x, y: box.y });
   assertCurrent();
   const postconditionVerified = await waitForInteractionAttribute(
-    runtime, target, intent, 1, intent.postHoverAttribute,
+    runtime, target, intent, 1, intent.postHoverAttribute, undefined, assertCurrent,
   );
   return { hovered: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
     postconditionVerified,

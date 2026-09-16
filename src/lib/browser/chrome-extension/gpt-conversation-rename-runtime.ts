@@ -115,7 +115,7 @@ const applyRenameInputs = async (
     kind: "click", selector: selectors.menuButton, expectedMatches: 1,
     postClickMatch: { selector: RENAME_MENU_ITEM_SELECTOR, expectedMatches: 1,
       textEquals: "重命名", timeoutMs: intent.timeoutMs },
-  }, assertCurrent, started), 0);
+  }, assertCurrent, started, false), 0);
   if (!menu.ok) return menu.receipt;
   await waitForNextRenameInput();
   const editor = completedStep(await executeClickIntent(runtime, target, {
@@ -123,13 +123,13 @@ const applyRenameInputs = async (
     expectedMatches: 1,
     postClickMatch: { selector: TITLE_EDITOR_SELECTOR, expectedMatches: 1,
       timeoutMs: intent.timeoutMs },
-  }, assertCurrent, started), 1);
+  }, assertCurrent, started, false), 1);
   if (!editor.ok) return editor.receipt;
   await waitForNextRenameInput();
   const filled = completedStep(await executeFillIntent(runtime, target, {
     kind: "fill", selector: TITLE_EDITOR_SELECTOR, approvedText: intent.targetTitle,
     clearBeforeType: true, expectedMatches: 1,
-  }, assertCurrent, started), 2);
+  }, assertCurrent, started, false), 2);
   if (!filled.ok) return filled.receipt;
   await waitForNextRenameInput();
   const saved = completedStep(await executeKeypressIntent(runtime, target, {
@@ -138,7 +138,7 @@ const applyRenameInputs = async (
       selector: `${selectors.conversation}[aria-label="${selectorValue(intent.targetTitle)}"]`,
       expectedMatches: 1, timeoutMs: intent.timeoutMs,
     },
-  }, assertCurrent, started), 3);
+  }, assertCurrent, started, false), 3);
   return saved.ok ? Object.freeze({
     renameState: "renamed", candidateCount: 1, identityRevalidated: true,
     mutationCount: 4, postconditionVerified: true,

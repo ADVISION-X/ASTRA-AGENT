@@ -1,12 +1,14 @@
-# Local Browser Authority V46 施工图
+# Local Browser Authority V47 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"local-browser-authority-v46","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V38","LAW-LOCAL-BROWSER-SESSION-004-V43","LAW-LOCAL-BROWSER-SESSION-006-V34"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"local-browser-authority-v47","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V38","LAW-LOCAL-BROWSER-SESSION-004-V43","LAW-LOCAL-BROWSER-SESSION-006-V34"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
 ```
 
 Browser 只拥有现实页面资源：已获 grant且未闭环 job与 system Target的一对一进程内绑定、实时 current Document、一条 FIFO、一条物理 lane、一个全局 Provider observation节拍、Provider/控件 mutation的唯一 WAL，以及页面生命周期动作后的 fresh readback。它不理解 Product步骤、不保存 GPT回答、不决定 retry或当前 N，也不拥有 Website task。
 
 Browser 另在同一 FIFO/lane 内唯一拥有 `chatgptPageAccessNotBefore`：任意两个不属于同一 coherent 原子周期的 chatgpt.com 普通逻辑 DOM observation、Tab/page activation、navigation 或页面 mutation，其起始单调时间差至少1.5秒，且该门跨job、Tab、Product共享；进程或扩展重启后的第一次普通访问也先等待1.5秒。一次coherent observation内部的CDP primitives不拆分，菜单、菜单项、fill、Enter仍是不同逻辑访问；deadline剩余不足1.5秒时不再读取DOM，返回最后事实的typed timeout。50ms、25—250ms及亚1.5秒尾读路径必须物理退出；2.5秒动作读回、40秒提交静默、Browser每轮一次抽取的70—90秒全局Provider observation间隔与业务backoff取更长者。
+
+同一个 `chatgpt-page-access-gate` 还唯一拥有 GPT DOM 瞬态失败确认的 typed stage；调用方只能提交 `stage=1|2`，不得提交裸毫秒、次数或 deadline，固定映射为1.5秒和3秒。每个 stage 完成后，GPT 必须在同一 exact call、Target、current Document及需要时同一current URL上重新读取整包 coherent observation；任何身份漂移立即失败，后续等待与读取增量为零。stage 本身只读且不取得物理输入；候选缺席、stale、`NO_LAYOUT_BOX`及无矛盾 partial topology可进入，候选多义、属性/内容/hash/URL/授权/effect mismatch不可进入。普通动作已经输入后，现役2.5秒闸门后的直接后置节点仍瞬态缺席时可使用同一两级只读确认，但不得重放动作；submit 5秒 actionability、rename 10秒协议、附件/Provider业务等待、限流、Tab/导航/授权/WAL/recovery明确排除。
 
 每个既有ChatGPT逻辑访问在同一central site-policy preflight/coherent observation内机械取得`KnownGptRateLimitDialogFact`。只有唯一`role=dialog`、标题“请求过于频繁”、两段冻结正文、唯一启用且可交互按钮“明白了”、Target/Document不漂移时为`exact_present`；其余为`absent|mismatch`，只返回固定枚举、计数、冻结文案hash与identity，不返回DOM正文。命中时原请求物理输入为零。唯一Product不可见内部ack intent必须携刚取得的fact identity，并在当前已执行logical cycle结束后优先于所有已排队普通访问取得同一lane的下一周期；它不得抢占正在执行的CDP调用，也不得并发建立第二lane。该周期revalidate后点击一次；detection→dispatch可豁免1.5秒且受控SLO不超过1秒，恢复时仍沿用原始`observed_at+1s`截止点，随后仍等待2.5秒fresh absent readback。若恢复时同Target/Document精确重验成立且dialog已不存在，则以零点击、零mutation的absent receipt闭合同一事故；ack使用现役唯一WAL独立identity，DISPATCHED/unknown只读回，不盲点第二次。该例外不得扩展到任何其它动作或形成第二lane、timer、probe Child、selector/坐标通道。
 

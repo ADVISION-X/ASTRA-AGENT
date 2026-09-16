@@ -31,4 +31,15 @@ export const assertGptExactTargetSourceShape = (baseUrl: string): void => {
     assert.doesNotMatch(source,
       /GptTurnExecutor|GPT_TURN_FLOW|runTurn|stepIndex|flowVersion|resumePoint|reconcileOnly/u);
   }
+  const rateLimit = readFileSync(new URL(
+    "../../../lib/browser/chrome-extension/gpt-rate-limit-dialog.ts", baseUrl,
+  ), "utf8");
+  assert.match(rateLimit, /executeClickIntent\([\s\S]*dispatchNotAfter[\s\S]*\}, false\);/u,
+    "the one-second rate-limit acknowledgement must remain outside staged DOM confirmation");
+  const pointerRuntime = readFileSync(new URL(
+    "../../../lib/browser/chrome-extension/dom-pointer-intent-runtime.ts", baseUrl,
+  ), "utf8");
+  assert.match(pointerRuntime,
+    /preClickExactOutgoingTurn !== undefined\)[\s\S]*return prepareExactOutgoingClick/u,
+    "the frozen submit actionability protocol must bypass generic staged preparation");
 };

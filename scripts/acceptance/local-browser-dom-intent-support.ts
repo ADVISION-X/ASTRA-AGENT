@@ -275,6 +275,8 @@ const exerciseSeparatedMechanicalEligibility = async (): Promise<void> => {
       if (coherent !== undefined) return coherent;
       const mechanical = mechanicalReply(method, overrides, parameters);
       if (mechanical !== undefined) return mechanical;
+      if (method === "Page.getNavigationHistory") return { currentIndex: 0,
+        entries: [{ url: "https://chatgpt.com/", title: "ChatGPT" }] };
       if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
       if (method === "DOM.querySelectorAll") return { nodeIds: parameters?.selector === "done" ? [] : [7] };
       throw new Error(`UNEXPECTED_SEPARATED_FACT_METHOD:${method}`);

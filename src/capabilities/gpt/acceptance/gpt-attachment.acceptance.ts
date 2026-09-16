@@ -28,7 +28,7 @@ exerciseAttachmentNameNormalization();
     }
     if (intent.kind === "click" && intent.selector === GPT_ATTACHMENT_CONTROL_SELECTOR) {
       assert.deepEqual(intent.scope, { selector: GPT_COMPOSER_FORM_SELECTOR });
-      assert.equal(intent.postClickObservation?.timeoutMs, 5_000);
+      assert.equal(intent.postClickObservation?.timeoutMs, undefined);
       assert.equal(intent.postClickObservation?.queries.find((query) => query.queryId === "active-menu")?.maxMatches, 2,
         "the GPT menu query must remain inside the Browser permit's 1..20 bound");
       assert.deepEqual(intent.postClickObservation?.queries.map((query) => [
@@ -62,7 +62,7 @@ exerciseAttachmentNameNormalization();
     assert.equal(result.value?.state, "upload-choice-ready");
     assert.equal(observeCount, 2,
       "fully absent attachment control must hydrate before the one click and never read again after it");
-    assert.equal(fixture.waitDurations().length, 1);
+    assert.deepEqual(fixture.waitDurations(), [1_500]);
     assert.equal(fixture.physicalMutations(), 1);
     assert.deepEqual(result.proof.candidateCardinality, { raw: 19, eligible: 1 },
       "scoped exact text eligibility, not global raw count, must settle the menu");
@@ -172,7 +172,9 @@ for (const conflict of ["control-ineligible", "active-scope-ambiguous", "leaf-mi
     assert.equal(result.proof.nativeFailureCode, "NO_LAYOUT_BOX");
   }
   assert.equal(result.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
-  assert.equal(fixture.waitDurations().length, 0, "attachment partial conflicts must fail without waiting");
+  assert.deepEqual(fixture.waitDurations(),
+    conflict === "control-ineligible" ? [1_500, 3_000] : [],
+    "only a no-layout attachment control may receive transient confirmation");
   assert.equal(fixture.physicalMutations(), 0);
 }
 
@@ -221,9 +223,9 @@ for (const conflict of ["control-ineligible", "active-scope-ambiguous", "leaf-mi
   try {
     const result = await execute("open_gpt_attachment_control", fixture.browser, {});
     assert.equal(result.status, "failed");
-    assert.ok(result.failureCode?.startsWith("GPT_ATTACHMENT_CONTROL_HYDRATION_TIMEOUT:"));
+    assert.ok(result.failureCode?.startsWith("GPT_ATTACHMENT_CONTROL_QUALIFICATION_INVALID:"));
     assert.equal(simulatedNow, 4_500,
-      "attachment hydration must stop at the last complete 1.5-second interval within its five-second ceiling");
+      "attachment confirmation must execute the exact 1.5-second and 3-second stages");
     assert.equal(fixture.physicalMutations(), 0);
   } finally {
     Date.now = nativeDateNow;
@@ -247,7 +249,7 @@ for (const driftField of ["targetRefHash", "documentRefHash"] as const) {
   try {
     const result = await execute("open_gpt_attachment_control", fixture.browser, {});
     assert.equal(result.status, "failed");
-    assert.ok(result.failureCode?.startsWith("GPT_ATTACHMENT_CONTROL_HYDRATION_DOCUMENT_CHANGED:"));
+    assert.equal(result.failureCode, "GPT_DOM_CONFIRMATION_IDENTITY_CHANGED");
     assert.equal(result.proof.committedMutation, "no");
     assert.equal(fixture.physicalMutations(), 0);
   } finally {

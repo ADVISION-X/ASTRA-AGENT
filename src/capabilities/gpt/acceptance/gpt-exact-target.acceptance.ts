@@ -55,8 +55,8 @@ const conversationFacts = (
     const result = await execute("prepare_clean_gpt_chat", fixture.browser, { timeoutMs: 60_000 });
     assert.equal(result.status, "success", result.failureCode ?? "prepare hydration failed");
     assert.equal(observations, 3);
-    assert.deepEqual(fixture.waitDurations(), [5_000, 10_000],
-      "prepare hydration must begin at five seconds and progressively slow down");
+    assert.deepEqual(fixture.waitDurations(), [1_500, 3_000],
+      "prepare must use the one typed transient-DOM confirmation cadence");
     assert.equal(fixture.physicalMutations(), 0);
   } finally {
     Date.now = nativeDateNow;
@@ -114,7 +114,7 @@ const profileFixture = fakeBrowser((intent) => {
     if (intent.postClickObservation) {
       const opening = !profileOpen;
       profileOpen = opening;
-      assert.equal(intent.postClickObservation.timeoutMs, 5_000);
+      assert.equal(intent.postClickObservation.timeoutMs, undefined);
       if (opening) {
         assert.deepEqual(intent.postClickObservation.queries.map((query) => [
           query.queryId, query.expectedEligibleCount,
@@ -163,6 +163,84 @@ assert.equal(profileFixture.physicalMutations(), 1, "an already-DONE profile mus
 const closedProfile = await execute("close_gpt_execution_profile", profileFixture.browser, { profile });
 assert.equal(closedProfile.status, "success", closedProfile.failureCode ?? "profile close failed");
 assert.equal(profileFixture.physicalMutations(), 2);
+
+for (const recoveryObservation of [2, 3] as const) {
+  let observations = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      observations += 1;
+      return coherentObservationPacket(intent,
+        observations < recoveryObservation ? {} : profileFacts(intent, true, 0, true));
+    }
+    if (intent.kind === "click" && intent.selector === GPT_PROFILE_TRIGGER_SELECTOR
+      && intent.postClickObservation) {
+      const queries = intent.postClickObservation.queries
+        .map(({ expectedEligibleCount: _expected, ...query }) => query);
+      return {
+        postconditionVerified: true,
+        postconditionObservation: coherentObservationPacket(
+          { queries }, profileFacts({ queries }, false, 0, false),
+        ),
+      };
+    }
+    throw new Error(`UNEXPECTED_CLOSE_CONFIRMATION_INTENT:${intent.kind}`);
+  });
+  const result = await execute("close_gpt_execution_profile", fixture.browser, { profile });
+  assert.equal(result.status, "success", result.failureCode ?? "close confirmation failed");
+  assert.deepEqual(fixture.waitDurations(), recoveryObservation === 2 ? [1_500] : [1_500, 3_000]);
+  assert.equal(observations, recoveryObservation);
+  assert.equal(fixture.physicalMutations(), 1,
+    "transient close confirmation must never duplicate the physical click");
+}
+
+{
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, {});
+    throw new Error(`UNRESOLVED_CLOSE_CONFIRMATION_MUST_NOT_ACT:${intent.kind}`);
+  });
+  const result = await execute("close_gpt_execution_profile", fixture.browser, { profile });
+  assert.equal(result.status, "failed");
+  assert.deepEqual(fixture.waitDurations(), [1_500, 3_000]);
+  assert.equal(fixture.physicalMutations(), 0);
+}
+
+{
+  const controller = new AbortController();
+  let observations = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      observations += 1;
+      return coherentObservationPacket(intent, {});
+    }
+    throw new Error(`ABORTED_CLOSE_CONFIRMATION_MUST_NOT_ACT:${intent.kind}`);
+  }, { onWait: () => controller.abort() });
+  const result = await execute(
+    "close_gpt_execution_profile", fixture.browser, { profile }, { signal: controller.signal },
+  );
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "GPT_EXECUTION_ABORTED");
+  assert.equal(observations, 1, "abort after a stage wait must not issue another DOM read");
+  assert.equal(fixture.physicalMutations(), 0);
+}
+
+{
+  let observations = 0;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      observations += 1;
+      return coherentObservationPacket(intent, observations === 1 ? {} : {
+        ...profileFacts(intent, false, 0, false),
+        trigger: { rawCount: 2, eligibleCount: 2 },
+      });
+    }
+    throw new Error(`O1_HARD_PROFILE_FAILURE_MUST_NOT_ACT:${intent.kind}`);
+  });
+  const result = await execute("close_gpt_execution_profile", fixture.browser, { profile });
+  assert.equal(result.status, "failed");
+  assert.deepEqual(fixture.waitDurations(), [1_500],
+    "an O1 hard contradiction must not request the 3-second stage");
+  assert.equal(fixture.physicalMutations(), 0);
+}
 
 {
   let simulatedNow = 0;
@@ -226,7 +304,8 @@ for (const queryId of [
     assert.ok(result.failureCode?.includes(`revision=sha256:${"4".repeat(64)}`));
     assert.equal(result.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
     assert.equal(result.proof.committedMutation, "no");
-    assert.equal(fixture.waitDurations().length, 0, "partial profile structure must fail without waiting");
+    assert.deepEqual(fixture.waitDurations(), variant === "ambiguous" ? [] : [1_500, 3_000],
+      "only a non-contradictory no-layout sample may receive bounded confirmation");
     assert.equal(fixture.physicalMutations(), 0);
   }
 }
@@ -271,16 +350,18 @@ for (const queryId of [
   try {
     const result = await execute("open_gpt_execution_profile", fixture.browser, { profile });
     assert.equal(result.status, "failed");
-    assert.ok(result.failureCode?.startsWith("GPT_EXECUTION_PROFILE_HYDRATION_TIMEOUT:"));
+    assert.ok(result.failureCode?.startsWith("GPT_EXECUTION_PROFILE_OPEN_QUALIFICATION_INVALID:"));
     assert.equal(simulatedNow, 4_500,
-      "profile hydration must stop at the last complete 1.5-second interval within its five-second ceiling");
+      "profile confirmation must execute the exact 1.5-second and 3-second stages");
     assert.equal(fixture.physicalMutations(), 0);
   } finally {
     Date.now = nativeDateNow;
   }
 }
 
-for (const driftField of ["targetRefHash", "documentRefHash"] as const) {
+for (const driftField of [
+  "exactCallIdentityHash", "targetRefHash", "documentRefHash", "currentUrl",
+] as const) {
   let simulatedNow = 0;
   let observations = 0;
   const fixture = fakeBrowser((intent) => {
@@ -288,7 +369,9 @@ for (const driftField of ["targetRefHash", "documentRefHash"] as const) {
       observations += 1;
       const packet = coherentObservationPacket(intent,
         observations === 1 ? {} : profileFacts(intent, false, 0, false));
-      return observations === 1 ? packet : { ...packet, [driftField]: `sha256:${"5".repeat(64)}` };
+      return observations === 1 ? packet : { ...packet,
+        [driftField]: driftField === "currentUrl"
+          ? "https://chatgpt.com/c/another-conversation" : `sha256:${"5".repeat(64)}` };
     }
     throw new Error(`PROFILE_DOCUMENT_DRIFT_MUST_NOT_ACT:${intent.kind}`);
   }, { onWait: (durationMs) => { simulatedNow += durationMs; } });
@@ -297,7 +380,7 @@ for (const driftField of ["targetRefHash", "documentRefHash"] as const) {
   try {
     const result = await execute("open_gpt_execution_profile", fixture.browser, { profile });
     assert.equal(result.status, "failed");
-    assert.ok(result.failureCode?.startsWith("GPT_EXECUTION_PROFILE_HYDRATION_DOCUMENT_CHANGED:"));
+    assert.equal(result.failureCode, "GPT_DOM_CONFIRMATION_IDENTITY_CHANGED");
     assert.equal(result.proof.committedMutation, "no");
     assert.equal(fixture.physicalMutations(), 0);
   } finally {
@@ -331,7 +414,7 @@ for (const initiallyOpen of [true, false]) {
         query.queryId, query.expectedEligibleCount,
       ]), [["model-choice", 1]],
       "the one Browser click must prove only the exact target-model option");
-      assert.equal(intent.postClickObservation?.timeoutMs, 5_000);
+      assert.equal(intent.postClickObservation?.timeoutMs, undefined);
       state = "open";
       const queries = intent.postClickObservation!.queries
         .map(({ expectedEligibleCount: _expected, ...query }) => query);
@@ -359,6 +442,7 @@ for (const initiallyOpen of [true, false]) {
   assert.equal(result.status, "failed");
   assert.equal(result.failureCode,
     "GPT_MODEL_SELECTION_V2_STATE_INVALID:openableEntry=0:modelChoice=0");
+  assert.deepEqual(fixture.waitDurations(), [1_500, 3_000]);
   assert.equal(fixture.physicalMutations(), 0,
     "an open advanced shell without the exact target-model radio must fail without mutation");
 }
@@ -373,6 +457,7 @@ for (const initiallyOpen of [true, false]) {
   assert.equal(result.failureCode,
     "GPT_MODEL_SELECTION_V2_STATE_INVALID:openableEntry=0:modelChoice=0");
   assert.equal(result.proof.committedMutation, "no");
+  assert.deepEqual(fixture.waitDurations(), [1_500, 3_000]);
   assert.equal(fixture.physicalMutations(), 0);
 }
 
@@ -430,7 +515,7 @@ for (const checked of ["true", "false"] as const) {
         query.queryId, query.expectedEligibleCount,
       ]), [["model-choice", 0]],
       "model selection must prove that the exact chosen option closed in the same Browser mutation packet");
-      assert.equal(intent.postClickObservation?.timeoutMs, 5_000);
+      assert.equal(intent.postClickObservation?.timeoutMs, undefined);
       state = "closed";
       const queries = intent.postClickObservation!.queries
         .map(({ expectedEligibleCount: _expected, ...query }) => query);

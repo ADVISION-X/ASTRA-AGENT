@@ -83,11 +83,11 @@ const inspectAttachmentHandler = (
     ));
   }
   inspectMissingTokens({ source: handlerText, required: [
-    "readAttachmentControlState", "readCoherentObservation", 'queryId: "attachment-control"',
+    "readConfirmedAttachmentControlState", "readConfirmedCoherentObservation", 'queryId: "attachment-control"',
     'queryId: "upload-choice"', "scope: { selector: GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR }",
-    "waitForAttachmentControlHydration", "fullyAbsent", "attachmentControlOpenable",
-    "attachmentControlReady", "GPT_ATTACHMENT_CONTROL_HYDRATION_TIMEOUT",
-    "GPT_ATTACHMENT_CONTROL_HYDRATION_DOCUMENT_CHANGED", "scopeRejections", "observationRevisionHash",
+    "attachmentControlOpenable",
+    "attachmentControlReady",
+    "scopeRejections", "observationRevisionHash",
     "attachmentSetState", 'queryId: "attachment-composer"', 'queryId: "attachment-items"',
     'queryId: "attachment-uploading"', 'queryId: "attachment-pending"',
     "itemRawCount", "itemEligibleCount", "pendingActionCount", "failAttachmentSet",

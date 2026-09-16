@@ -256,8 +256,14 @@ export class ExtensionTargetAuthority {
   ): Promise<unknown> {
     const acknowledgeRateLimit = command.kind === "dom-intent"
       && command.intent.kind === "acknowledgeKnownGptRateLimit";
+    const transientDomConfirmationStage = command.kind === "wait"
+      ? command.transientDomConfirmationStage : undefined;
     return this.debuggerRuntime.withLogicalPageAccess(
-      acknowledgeRateLimit ? async () => undefined : () => this.pageAccessGate.enter(),
+      acknowledgeRateLimit ? async () => undefined
+        : transientDomConfirmationStage === undefined ? () => this.pageAccessGate.enter()
+          : () => this.pageAccessGate.awaitTransientDomConfirmationStage(
+            transientDomConfirmationStage,
+          ),
       () => this.executeRegisteredCommandCycle(
         command, target, mutationClass, assertCommandActive,
       ),

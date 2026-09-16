@@ -24,7 +24,10 @@ export const executeRegisteredExtensionCommand = async (
     lifecycle.assertCurrent();
     return result;
   }
-  if (command.kind === "wait") return executeBoundedBrowserWait(command.durationMs);
+  if (command.kind === "wait") return command.transientDomConfirmationStage === undefined
+    ? executeBoundedBrowserWait(command.durationMs)
+    : { stage: command.transientDomConfirmationStage,
+      waitedMs: command.transientDomConfirmationStage === 1 ? 1_500 : 3_000 };
   if (command.kind === "park-target") {
     await lifecycle.parkTarget();
     return { parked: true };

@@ -43,6 +43,8 @@ const PROFILE_HANDLER_PATHS = [
   `${ROOT}/web/execution-profile-input.ts`,
 ] as const;
 const PROFILE_CONTRACT_PATH = childFilePath("ensure_gpt_reasoning_requirement", "selectors.ts");
+const GPT_DOM_OBSERVATION_PATH = `${ROOT}/web/gpt-dom-observation.ts`;
+const PAGE_ACCESS_GATE_PATH = "src/lib/browser/chrome-extension/chatgpt-page-access-gate.ts";
 const childIdsFromContract = (contract: SourceFile): string[] => {
   const initializer = contract.getVariableDeclaration("GPT_CHILD_CONTRACTS")?.getInitializer();
   const object = initializer && Node.isObjectLiteralExpression(initializer)
@@ -303,10 +305,8 @@ const inspectProfileContracts = (
   inspectMissingTokens({ source: reasoningHandler, required: [
     "ensureGptReasoningRequirementHandler", "requireExactInputKeys", "profileFromIntent",
     "requireBrowser(context)", "ariaValueMin", "ariaValueMax", "ariaValueNow",
-    "postKeypressMatch", "requireConfirmedBrowserFact", "PROFILE_HYDRATION_TIMEOUT_MS",
-    "PROFILE_TOPOLOGY_QUERIES", "profileFullyAbsent", "profileOpenReady", "profileOpenable",
-    "waitForProfileHydration", "GPT_EXECUTION_PROFILE_HYDRATION_TIMEOUT",
-    "GPT_EXECUTION_PROFILE_HYDRATION_DOCUMENT_CHANGED",
+    "postKeypressMatch", "requireConfirmedBrowserFact", "readConfirmedCoherentObservation",
+    "PROFILE_TOPOLOGY_QUERIES", "profileOpenReady", "profileOpenable", "profileDisposition",
     "postClickObservation: PROFILE_OPEN_POSTCONDITION", "mutationRecord.postconditionObservation",
     "decodeCoherentObservationPacket", "scopeRejections", "observationRevisionHash",
     'value.reasoningMaximum === "2"', 'value.reasoningMaximum === "4"',
@@ -318,6 +318,16 @@ const inspectProfileContracts = (
   ], checkId: "gpt/reasoning-requirement-resolution", filePath: PROFILE_HANDLER_PATH,
   findings, finding,
   message: (required) => `Reasoning Child must qualify and read back the Browser-owned numeric control; missing ${required}.` });
+  inspectMissingTokens({ source: sourceTextForPaths(context, [
+    GPT_DOM_OBSERVATION_PATH, PAGE_ACCESS_GATE_PATH,
+  ]), required: [
+    "readConfirmedCoherentObservation", "awaitTransientDomConfirmation",
+    "sameObservationIdentity", "GPT_DOM_CONFIRMATION_IDENTITY_CHANGED",
+    "readWithTransientDomConfirmation", "TRANSIENT_DOM_CONFIRMATION_DELAYS_MS",
+    "1_500", "3_000",
+  ], checkId: "gpt/transient-dom-confirmation-owner", filePath: GPT_DOM_OBSERVATION_PATH,
+  findings, finding,
+  message: (required) => `GPT transient DOM confirmation is missing ${required}.` });
   if (reasoningHandler.includes("postClickMatch: { selector: GPT_PROFILE_REASONING_VALUE_SELECTOR")) {
     findings.push(finding(
       "gpt/profile-open-second-readback-retired", PROFILE_HANDLER_PATH,
@@ -334,9 +344,11 @@ const CONTRACT_V6_CHILDREN = new Set(["checkpoint_gpt_generated_image", "submit_
 const CONTRACT_V5_CHILDREN = new Set(["checkpoint_gpt_text_response"]);
 const CONTRACT_V4_CHILDREN = new Set([
   "prepare_clean_gpt_chat", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2", "write_exact_gpt_prompt",
+  "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile",
 ]);
 const CONTRACT_V3_CHILDREN = new Set([
   ...PROFILE_CONSUMERS, "reconcile_gpt_attachment_set", "open_gpt_attachment_control",
+  "attach_approved_gpt_files_once",
 ]);
 
 const expectedContractVersion = (id: string): string => {

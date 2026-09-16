@@ -3,6 +3,10 @@ import { resolveCoherentPointerAction } from "./dom-coherent-candidate.js";
 import { dispatchPointerClickSequence } from "./dom-pointer-intent-runtime.js";
 import { inspectNode } from "./dom-query-runtime.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
+import {
+  currentGptPageIdentity,
+  readWithTransientDomConfirmation,
+} from "./chatgpt-page-access-gate.js";
 
 type CurrentTargetAssertion = (targetRef: string, documentRef: string) => void;
 type Candidate = Readonly<{
@@ -16,6 +20,8 @@ type FileInputActivation = Readonly<{
   scope: Readonly<{ selector: string }>;
   expectedTextEquals: string;
 }>;
+type ActivationPoint = Readonly<{ kind: "point"; point: PointerAction }>
+  | Readonly<{ kind: "rejection"; value: Readonly<Record<string, unknown>> }>;
 type ApprovedFile = Readonly<{
   grantRef: string;
   contentHash: `sha256:${string}`;
@@ -243,20 +249,54 @@ const activationRejection = (error: unknown): Readonly<Record<string, unknown>> 
 
 const activationPoint = async (
   input: ExtensionFileInput,
-): Promise<Readonly<{ kind: "point"; point: PointerAction }>
-  | Readonly<{ kind: "rejection"; value: Readonly<Record<string, unknown>> }>> => {
-  try {
-    const point = await resolveCoherentPointerAction(input.runtime, input.target, {
-      selector: input.activation.selector,
-      scope: input.activation.scope,
-      text: { value: input.activation.expectedTextEquals, exact: true },
-    });
-    return Object.freeze({ kind: "point", point });
-  } catch (error) {
-    const rejection = activationRejection(error);
-    if (rejection) return Object.freeze({ kind: "rejection", value: rejection });
-    throw error;
-  }
+): Promise<ActivationPoint> =>
+  readWithTransientDomConfirmation<ActivationPoint>({
+    read: async () => {
+      input.assertCurrent(input.target.targetRef, input.target.documentRef);
+      try {
+      const point = await resolveCoherentPointerAction(input.runtime, input.target, {
+        selector: input.activation.selector,
+        scope: input.activation.scope,
+        text: { value: input.activation.expectedTextEquals, exact: true },
+      });
+        return { value: Object.freeze({ kind: "point" as const, point }), transient: false };
+      } catch (error) {
+        const rejection = activationRejection(error);
+        if (!rejection) throw error;
+        const code = error instanceof Error ? error.message : "";
+        return { value: Object.freeze({ kind: "rejection" as const, value: rejection }),
+          transient: code === "BROWSER_DOM_CANDIDATE_MISSING"
+            || code === "BROWSER_DOM_NODE_STALE"
+            || /^BROWSER_DOM_ACTION_(?:NODE_DISCONNECTED|NO_LAYOUT_BOX|NOT_VISIBLE|INERT|DISABLED|ARIA_DISABLED)$/u.test(code) };
+      }
+    },
+    continuity: async () => {
+      input.assertCurrent(input.target.targetRef, input.target.documentRef);
+      return currentGptPageIdentity(input.runtime, input.target.tabId);
+    },
+  });
+
+const readConfirmedFileInput = async (input: ExtensionFileInput): Promise<Candidate> => {
+  const confirmed = await readWithTransientDomConfirmation<Candidate | Readonly<{ error: unknown }>>({
+    read: async () => {
+      input.assertCurrent(input.target.targetRef, input.target.documentRef);
+      try {
+        const value = await readExactFileInput(
+          input.runtime, input.target, input.assertCurrent, input.selector,
+        );
+        return { value, transient: value.candidateCount === 0 };
+      } catch (error) {
+        if (qualificationFailure(error) !== "BROWSER_DOM_NODE_STALE") throw error;
+        return { value: Object.freeze({ error }), transient: true };
+      }
+    },
+    continuity: async () => {
+      input.assertCurrent(input.target.targetRef, input.target.documentRef);
+      return currentGptPageIdentity(input.runtime, input.target.tabId);
+    },
+  });
+  if ("error" in confirmed) throw confirmed.error;
+  return confirmed;
 };
 
 const selectApprovedFiles = async (
@@ -318,9 +358,7 @@ const fileInputReadback = async (
   input: ExtensionFileInput,
 ): Promise<Readonly<Record<string, unknown>>> => {
   input.assertCurrent(input.target.targetRef, input.target.documentRef);
-  const readback = await readExactFileInput(
-    input.runtime, input.target, input.assertCurrent, input.selector,
-  );
+  const readback = await readConfirmedFileInput(input);
   const proof = readback.nodeId === null ? null : await readSelectionProof(
     input.runtime, input.target.tabId, readback.nodeId, input.approvedFiles,
   );
@@ -344,7 +382,7 @@ export const executeExtensionFileInput = async (
   assertFileInputRequest(input);
   let candidate: Candidate;
   try {
-    candidate = await readExactFileInput(input.runtime, input.target, input.assertCurrent, input.selector);
+    candidate = await readConfirmedFileInput(input);
   } catch (error) {
     const code = qualificationFailure(error);
     if (code) return reject(0, code, "candidate-set");

@@ -4,7 +4,7 @@ import {
   attachmentControlReady,
   decodeAttachmentControlState,
   failAttachmentControl,
-  waitForAttachmentControlHydration,
+  readConfirmedAttachmentControlState,
 } from "./observation.js";
 import {
   declaredFacts,
@@ -23,7 +23,7 @@ export const openGptAttachmentControlHandler: GptChildHandler<"open_gpt_attachme
   async (intent, context) => {
     requireExactInputKeys(intent, []);
     const browser = requireBrowser(context);
-    const observed = await waitForAttachmentControlHydration(browser, context.signal);
+    const observed = await readConfirmedAttachmentControlState(browser, context.signal);
     if (attachmentControlReady(observed)) return success({
       value: { state: "upload-choice-ready" },
       ...declaredFacts({

@@ -16,7 +16,11 @@ import { attribute, describeNode,
   documentState, inspectNode, nodeForRead, nodeForSelector, nodeText,
   queryCandidateSet, requireKeyboardActionTarget,
   selectorForLocator } from "./dom-query-runtime.js";
-import { waitForNextChatGptObservation } from "./chatgpt-page-access-gate.js";
+import {
+  currentGptPageIdentity,
+  readWithTransientDomConfirmation,
+  waitForNextChatGptObservation,
+} from "./chatgpt-page-access-gate.js";
 import { executeKnownGptRateLimitIntent } from "./gpt-rate-limit-dialog.js";
 type FindIntent = Extract<BrowserDomIntent, { kind: "find" }>;
 type ValueIntent = Exclude<BrowserDomIntent, {
@@ -115,6 +119,29 @@ const mutationCandidate = (
   ...(intent.scope === undefined ? {} : { scope: intent.scope }),
 });
 
+const transientNodeReceipt = (value: Readonly<{ receipt: QualificationReceipt }>): boolean =>
+  ["BROWSER_DOM_CANDIDATE_MISSING", "BROWSER_DOM_NODE_STALE"]
+    .includes(value.receipt.failureCode);
+
+const confirmedQualifiedNode = async (
+  runtime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  read: () => ReturnType<typeof qualifiedNode>,
+  assertCurrent: CurrentDocumentAssertion,
+  allowTransientDomConfirmation: boolean,
+): ReturnType<typeof qualifiedNode> => allowTransientDomConfirmation
+  ? readWithTransientDomConfirmation({
+    read: async () => {
+      assertCurrent();
+      const value = await read();
+      return { value, transient: "receipt" in value && transientNodeReceipt(value) };
+    },
+    continuity: async () => {
+      assertCurrent();
+      return currentGptPageIdentity(runtime, target.tabId);
+    },
+  }) : read();
+
 const zeroActionReceipt = (assertCurrent: CurrentDocumentAssertion): Readonly<Record<string, unknown>> => {
   assertCurrent();
   return Object.freeze({ candidateCount: 1, identityRevalidated: true, mutationCount: 0,
@@ -164,9 +191,14 @@ const executeValueIntent = async (
   intent: ValueIntent,
   assertCurrent: CurrentDocumentAssertion,
   onPhysicalInput?: () => void,
+  allowTransientDomConfirmation = true,
 ): Promise<unknown> => {
   if (intent.kind !== "fill") return executeReadValueIntent(debuggerRuntime, target, intent);
-  const node = await qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent));
+  const node = await confirmedQualifiedNode(
+    debuggerRuntime, target,
+    () => qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent)),
+    assertCurrent, allowTransientDomConfirmation,
+  );
   if ("receipt" in node) return node.receipt;
   if (await nodeText(debuggerRuntime, target.tabId, node.nodeId) === intent.approvedText) {
     return zeroActionReceipt(assertCurrent);
@@ -192,7 +224,11 @@ const executeValueIntent = async (
   await debuggerRuntime.send(target.tabId, "Input.insertText", { text: intent.approvedText });
   markInput();
   assertCurrent();
-  const readbackNode = await qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent));
+  const readbackNode = await confirmedQualifiedNode(
+    debuggerRuntime, target,
+    () => qualifiedNode(() => mutationCandidate(debuggerRuntime, target, intent)),
+    assertCurrent, allowTransientDomConfirmation,
+  );
   if ("receipt" in readbackNode) return {
     filled: true,
     candidateCount: readbackNode.receipt.candidateCount,
@@ -235,7 +271,10 @@ export const executeFillIntent = (
   intent: Extract<BrowserDomIntent, { kind: "fill" }>,
   assertCurrent: CurrentDocumentAssertion,
   onPhysicalInput?: () => void,
-): Promise<unknown> => executeValueIntent(debuggerRuntime, target, intent, assertCurrent, onPhysicalInput);
+  allowTransientDomConfirmation = true,
+): Promise<unknown> => executeValueIntent(
+  debuggerRuntime, target, intent, assertCurrent, onPhysicalInput, allowTransientDomConfirmation,
+);
 const executeDocumentReadIntent = (
   debuggerRuntime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,

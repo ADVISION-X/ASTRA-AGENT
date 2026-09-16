@@ -5,7 +5,7 @@ import { gptExecutionFailure } from "../../execution-fault.js";
 import { requireBrowser } from "../../web/child-handler.js";
 import {
   projectCoherentObservation,
-  readCoherentObservation,
+  readConfirmedCoherentObservation,
   type GptCoherentObservation,
   type GptCoherentObservationRow,
   type GptCoherentFactProjection,
@@ -56,8 +56,18 @@ const projectAttachmentControlState = (
 };
 export const readAttachmentControlState = async (
   browser: ReturnType<typeof requireBrowser>,
+  signal?: AbortSignal,
 ): Promise<AttachmentControlState> => projectAttachmentControlState(
-  await readCoherentObservation(browser, ATTACHMENT_CONTROL_QUERIES),
+  await readConfirmedCoherentObservation(browser, ATTACHMENT_CONTROL_QUERIES, (observation) => {
+    const value = projectAttachmentControlState(observation);
+    if (attachmentControlReady(value)) return "STABLE_ACT";
+    const control = row(value, "attachment-control");
+    const choice = row(value, "upload-choice");
+    return control.scopeRawCount > 1 || control.eligibleCount > 1 || choice.eligibleCount > 1
+      || (choice.rawCount > 0 && choice.eligibleCount === 0
+        && choice.rejections.some((entry) => entry.reasons.includes("TEXT_MISMATCH")))
+      ? "HARD_FAIL" : "TRANSIENT_DOM";
+  }, signal),
 );
 
 const row = (value: AttachmentControlState, queryId: string): GptCoherentObservationRow =>

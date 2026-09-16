@@ -5,6 +5,7 @@ export type {
   BrowserTargetLease,
   BrowserTargetLeaseWait,
   BrowserTargetReleaseAuthority,
+  TransientDomConfirmationStage,
 } from "./exact-target/browser-target-lease.js";
 export type {
   BrowserExactCallMutationFact,

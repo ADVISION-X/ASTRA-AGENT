@@ -4,7 +4,8 @@ import { executionFailure } from "../../../../lib/execution-failure.js";
 import type { BrowserTargetLease } from "../../../../lib/browser/browser-authority-api.js";
 import {
   projectCoherentObservation,
-  readCoherentObservation,
+  readConfirmedCoherentObservation,
+  type GptCoherentObservation,
   type GptCoherentFactProjection,
 } from "../../web/gpt-dom-observation.js";
 import { GPT_COMPOSER_SELECTOR } from "./selectors.js";
@@ -37,11 +38,29 @@ const exactComposerHash = (match: Readonly<Record<string, unknown>> | undefined)
 
 export const readDraftState = async (
   browser: BrowserTargetLease,
+  signal?: AbortSignal,
 ): Promise<DraftState> => {
-  const observation = await readCoherentObservation(browser, [
+  const queries = [
     { queryId: "composer", selector: GPT_COMPOSER_SELECTOR, maxMatches: 2,
       fields: ["exactEditableTextHash" as const] },
-  ]);
+  ];
+  const project = (observation: GptCoherentObservation): DraftState => {
+    const composer = observation.rows[0]!;
+    return Object.freeze({
+      composerRaw: composer.rawCount,
+      composerEligible: composer.eligibleCount,
+      composerHash: exactComposerHash(composer.matches[0]),
+      facts: projectCoherentObservation(observation, "composer"),
+    });
+  };
+  const observation = await readConfirmedCoherentObservation(browser, queries, (current) => {
+    const value = project(current);
+    if (value.composerRaw > 1 || (value.composerEligible === 1 && value.composerHash === null)) {
+      return "HARD_FAIL";
+    }
+    return value.composerRaw === 1 && value.composerEligible === 1
+      ? "STABLE_ACT" : "TRANSIENT_DOM";
+  }, signal);
   const composer = observation.rows[0]!;
   return Object.freeze({
     composerRaw: composer.rawCount,

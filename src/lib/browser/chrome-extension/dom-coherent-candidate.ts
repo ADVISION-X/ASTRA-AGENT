@@ -51,8 +51,7 @@ const COHERENT_CANDIDATE_FUNCTION = `async function (spec) {
     const facts = browserMechanicalFacts(node, false);
     return facts.connected && facts.layout && facts.visible && !facts.ariaHidden && !facts.inert;
   };
-  const targetEligible = (node) => {
-    if (!mechanicallyEligible(node)) return false;
+  const textEligible = (node) => {
     const text = node.textContent || "";
     return !spec.text || (spec.text.exact
       ? text.trim() === spec.text.value.trim() : text.includes(spec.text.value));
@@ -65,9 +64,12 @@ const COHERENT_CANDIDATE_FUNCTION = `async function (spec) {
     ? "BROWSER_DOM_CANDIDATE_MISSING" : "BROWSER_DOM_CANDIDATE_AMBIGUOUS";
   const raw = Array.from(scopes[0].querySelectorAll(spec.selector));
   if (scopeRaw.length + raw.length > 256) return "BROWSER_DOM_READ_INVALID";
-  const candidates = raw.filter(targetEligible);
+  const textCandidates = raw.filter(textEligible);
+  const candidates = textCandidates.filter(mechanicallyEligible);
   if (candidates.length !== 1) return candidates.length === 0
-    ? "BROWSER_DOM_CANDIDATE_MISSING" : "BROWSER_DOM_CANDIDATE_AMBIGUOUS";
+    ? raw.length > 0 && textCandidates.length === 0
+      ? "BROWSER_DOM_ACTION_NOT_QUALIFIED" : "BROWSER_DOM_CANDIDATE_MISSING"
+    : "BROWSER_DOM_CANDIDATE_AMBIGUOUS";
   const candidate = candidates[0];
   if (spec.output !== "pointer") return candidate;
   const facts = browserMechanicalFacts(candidate, true);

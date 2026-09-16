@@ -37,6 +37,13 @@ const exercisePointerQualification = async (source: string): Promise<void> => {
   }
   assert.equal(await execute(source, { ...document, elementFromPoint: () => new FakeElement("overlay") }, pointerInput),
     "BROWSER_DOM_ACTION_HIT_TEST_FAILED");
+  const wrongText = new FakeElement("Wrong", {}, {}, {}, "BUTTON");
+  const wrongTextScope = new FakeElement("scope", { button: [wrongText] });
+  wrongText.parentElement = wrongTextScope;
+  assert.equal(await execute(source, { documentElement: wrongTextScope,
+    querySelectorAll: () => [wrongTextScope], elementFromPoint: () => wrongText }, pointerInput),
+  "BROWSER_DOM_ACTION_NOT_QUALIFIED",
+  "a present selector with the wrong stable text must hard-fail instead of entering redraw confirmation");
   const excessiveScopes = Array.from({ length: 257 }, () => new FakeElement("scope"));
   assert.equal(await execute(source, { ...document, querySelectorAll: () => excessiveScopes }, {
     selector: "button", scope: { selector: "main" },

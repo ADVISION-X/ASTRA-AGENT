@@ -33,6 +33,7 @@ import {
 } from "./browser-mutation-store.js";
 import type { BrowserAtomicStepOutcome, BrowserMutationIdentity } from "./browser-mutation-types.js";
 import type { BrowserAtomicStepIdentity } from "./browser-target-lease.js";
+import type { TransientDomConfirmationStage } from "./browser-target-lease.js";
 import {
   assertBrowserReconciliationEvidence,
   type BrowserOutcomeResolutionReceipt,
@@ -65,7 +66,12 @@ export type BrowserGovernedCommand =
     userTurnId: string;
     semanticMediaId: "gpt-generated-image-main";
   }>
-  | Readonly<{ kind: "wait"; durationMs: number }>
+  | Readonly<{ kind: "wait"; durationMs: number; transientDomConfirmationStage?: never }>
+  | Readonly<{
+    kind: "wait";
+    transientDomConfirmationStage: TransientDomConfirmationStage;
+    durationMs?: never;
+  }>
   | Readonly<{ kind: "park-target"; reason: string }>;
 
 export type BrowserCommandPort = Readonly<{

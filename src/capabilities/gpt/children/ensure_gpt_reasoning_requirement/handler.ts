@@ -179,7 +179,6 @@ const executeReasoningMutation = async (input: Readonly<{
         selector: `${GPT_PROFILE_REASONING_VALUE_SELECTOR}[aria-valuenow='${input.resolution.value}']`,
         expectedMatches: 1,
         readEligibility: "non-actionable-aria-state",
-        timeoutMs: 5_000,
       },
     });
   } catch (error) {
@@ -207,7 +206,7 @@ GptChildHandler<"ensure_gpt_reasoning_requirement"> = async (intent, context) =>
   requireExactInputKeys(intent, ["profile"]);
   const profile = profileFromIntent(intent);
   const browser = requireBrowser(context);
-  const observed = await topology(browser);
+  const observed = await topology(browser, context.signal);
   const observedScale = observedReasoningScale(observed);
   if (!profileOpenReady(observed)) {
     failReasoningRequirement({
@@ -233,7 +232,7 @@ GptChildHandler<"ensure_gpt_reasoning_requirement"> = async (intent, context) =>
       browserFact: null, nativeFailureCode: null }),
   });
   await executeReasoningMutation({ browser, profile, observed, observedScale, resolution: resolved, currentBefore });
-  const readback = await topology(browser);
+  const readback = await topology(browser, context.signal);
   const readbackScale = observedReasoningScale(readback);
   const browserFact = requireConfirmedBrowserFact(intent, context);
   if (!profileOpenReady(readback) || readbackScale.min !== observedScale.min

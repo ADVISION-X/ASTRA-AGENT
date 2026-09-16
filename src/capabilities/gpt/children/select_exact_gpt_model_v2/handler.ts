@@ -24,7 +24,6 @@ const SELECTION_POSTCONDITION = (modelDisplayName: string) => Object.freeze({
     ...modelChoiceQuery(modelDisplayName),
     expectedEligibleCount: 0,
   })]) as readonly BrowserDomPostconditionQuery[],
-  timeoutMs: 5_000,
   clickedCandidateAttribute: Object.freeze({ name: "aria-checked", equals: "true" }),
 });
 
@@ -41,7 +40,7 @@ export const selectExactGptModelV2Handler: GptChildHandler<"select_exact_gpt_mod
     requireExactInputKeys(intent, ["profile"]);
     const profile = profileFromIntent(intent);
     const browser = requireBrowser(context);
-    const candidate = await readModelChoiceState(browser, profile.modelDisplayName);
+    const candidate = await readModelChoiceState(browser, profile.modelDisplayName, context.signal);
     if (candidate.count !== 1 || (candidate.ariaChecked !== "true" && candidate.ariaChecked !== "false")) {
       throw executionFailure(
         "failed",

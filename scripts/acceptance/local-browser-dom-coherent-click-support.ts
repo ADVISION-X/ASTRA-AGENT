@@ -30,8 +30,13 @@ const coherentObservation = (open: boolean) => ({
       nativeStage: "runtime-call-function-on" },
   ],
 });
-const coherentRuntimeFor = (settles: boolean, externallyOpensAtObservation?: number) => {
-  let clicked = false, coherentCalls = 0, pointerEvents = 0, atomicSource = "";
+const coherentRuntimeFor = (
+  settles: boolean,
+  externallyOpensAtObservation?: number,
+  driftAtHistoryCall?: number,
+  transientWhenClosed = false,
+) => {
+  let clicked = false, coherentCalls = 0, pointerEvents = 0, atomicSource = "", historyCalls = 0;
   const runtime = { awaitPageReadPermission: noPageReadBarrier, async send(
     _tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>,
   ) {
@@ -49,7 +54,16 @@ const coherentRuntimeFor = (settles: boolean, externallyOpensAtObservation?: num
       coherentCalls += 1;
       const open = (clicked && settles)
         || (externallyOpensAtObservation !== undefined && coherentCalls >= externallyOpensAtObservation);
-      return { result: { value: coherentObservation(open) } };
+      const observation = coherentObservation(open);
+      return { result: { value: !open && transientWhenClosed ? { ...observation,
+        queries: observation.queries.map((query) => ({ ...query,
+          rawCount: 0, eligibleCount: 0, matches: [], rejections: [] })) } : observation } };
+    }
+    if (method === "Page.getNavigationHistory" && driftAtHistoryCall !== undefined) {
+      historyCalls += 1;
+      return { currentIndex: 0, entries: [{ title: "ChatGPT",
+        url: historyCalls < driftAtHistoryCall ? "https://chatgpt.com/"
+          : "https://chatgpt.com/c/different-conversation" }] };
     }
     const infrastructure = mutationInfrastructureReply(method, parameters);
     if (infrastructure !== undefined) return infrastructure;
@@ -103,4 +117,20 @@ export const exerciseCoherentClickPostcondition = async (): Promise<void> => {
   assert.equal(rejected.nativeCauseCode, "BROWSER_DOM_CANDIDATE_AMBIGUOUS");
   assert.ok(stuck.coherentCalls() >= 3,
     "an ordinary deadline miss must return the final coherent negative readback instead of DOM_READ_INVALID");
+  const drifted = coherentRuntimeFor(false, undefined, 4, true);
+  await assert.rejects(executeRegisteredDomIntent(drifted.runtime, target, {
+    kind: "click", selector: "button", expectedMatches: 1,
+    postClickObservation: { queries: coherentPostconditionQueries, timeoutMs: 4_500 },
+  }, () => undefined), /BROWSER_DOCUMENT_INVALID/u,
+  "an SPA URL change during transient readback must terminate the old action");
+  assert.equal(drifted.pointerEvents(), 3,
+    "URL drift after one click must never replay the physical action");
+  const driftedDuringO1 = coherentRuntimeFor(false, 3, 6, true);
+  await assert.rejects(executeRegisteredDomIntent(driftedDuringO1.runtime, target, {
+    kind: "click", selector: "button", expectedMatches: 1,
+    postClickObservation: { queries: coherentPostconditionQueries, timeoutMs: 4_500 },
+  }, () => undefined), /BROWSER_DOCUMENT_INVALID/u,
+  "a URL change after a stable O1 DOM read must not return the new conversation result");
+  assert.equal(driftedDuringO1.pointerEvents(), 3,
+    "an O1 identity race must preserve the single already-dispatched click");
 };

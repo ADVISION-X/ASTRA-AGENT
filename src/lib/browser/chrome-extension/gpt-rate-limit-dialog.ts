@@ -233,5 +233,5 @@ export const executeKnownGptRateLimitIntent = async (
     postClickMinimumDelayMs: 2_500,
   }, assertCurrent, () => {
     if (Date.now() > dispatchNotAfter) throw new Error("BROWSER_GPT_RATE_LIMIT_ACK_SLO_EXCEEDED");
-  });
+  }, false);
 };

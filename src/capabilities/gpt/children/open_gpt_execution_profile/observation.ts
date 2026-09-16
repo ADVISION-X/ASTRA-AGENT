@@ -4,7 +4,7 @@ import type {
 } from "../../../../lib/browser/browser-authority-api.js";
 import {
   projectCoherentObservation,
-  readCoherentObservation,
+  readConfirmedCoherentObservation,
   type GptCoherentObservation,
   type GptCoherentObservationRow,
   type GptCoherentFactProjection,
@@ -37,7 +37,6 @@ export type ProfileTopology = Readonly<{
   facts: GptCoherentFactProjection;
 }>;
 
-export const PROFILE_HYDRATION_TIMEOUT_MS = 5_000;
 export const PROFILE_TOPOLOGY_QUERIES = Object.freeze([
   { queryId: "popup", selector: GPT_PROFILE_POPUP_SELECTOR, maxMatches: 2,
     fields: ["ariaLabelledBy"] as const },
@@ -57,7 +56,6 @@ export const PROFILE_OPEN_POSTCONDITION = Object.freeze({
     ...query,
     expectedEligibleCount: 1,
   }))),
-  timeoutMs: PROFILE_HYDRATION_TIMEOUT_MS,
 });
 
 export const projectTopology = (observation: GptCoherentObservation): ProfileTopology => {
@@ -88,9 +86,6 @@ export const projectTopology = (observation: GptCoherentObservation): ProfileTop
   });
 };
 
-export const topology = async (browser: BrowserTargetLease): Promise<ProfileTopology> =>
-  projectTopology(await readCoherentObservation(browser, PROFILE_TOPOLOGY_QUERIES));
-
 const rowCode = (row: GptCoherentObservationRow): string => {
   const rejected = [...row.scopeRejections, ...row.rejections]
     .map((entry) => `${entry.index}.${entry.reasons.join("+")}`).join(",") || "none";
@@ -120,9 +115,6 @@ const rowIs = (value: ProfileTopology, queryId: string, raw: number, eligible: n
   return row?.rawCount === raw && row.eligibleCount === eligible;
 };
 
-export const profileFullyAbsent = (value: ProfileTopology): boolean =>
-  value.rows.every((row) => row.rawCount === 0 && row.eligibleCount === 0);
-
 const approvedReasoningScale = (value: ProfileTopology): boolean =>
   value.reasoningMinimum === "0" && (
     (value.reasoningMaximum === "2" && /^[0-2]$/u.test(value.reasoningCurrent ?? ""))
@@ -143,3 +135,22 @@ export const profileOpenable = (value: ProfileTopology): boolean =>
   && rowIs(value, "trigger", 1, 1)
   && value.triggerExpanded === "false"
   && value.triggerId !== null && value.triggerId.length > 0;
+
+const profileDisposition = (observation: GptCoherentObservation) => {
+  const value = projectTopology(observation);
+  if (profileOpenReady(value)) return "STABLE_DONE" as const;
+  if (profileOpenable(value)) return "STABLE_ACT" as const;
+  if (value.rows.some((candidate) => candidate.rawCount > 1 || candidate.eligibleCount > 1)
+    || (value.trigger === 1 && !["true", "false"].includes(value.triggerExpanded ?? ""))
+    || (value.reasoningValue === 1 && !approvedReasoningScale(value))
+    || (value.popup === 1 && value.trigger === 1
+      && value.popupLabelledBy !== value.triggerId)) return "HARD_FAIL" as const;
+  return "TRANSIENT_DOM" as const;
+};
+
+export const topology = async (
+  browser: BrowserTargetLease,
+  signal?: AbortSignal,
+): Promise<ProfileTopology> => projectTopology(await readConfirmedCoherentObservation(
+  browser, PROFILE_TOPOLOGY_QUERIES, profileDisposition, signal,
+));

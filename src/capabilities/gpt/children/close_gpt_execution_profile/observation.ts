@@ -4,7 +4,7 @@ import type {
 } from "../../../../lib/browser/browser-authority-api.js";
 import {
   projectCoherentObservation,
-  readCoherentObservation,
+  readConfirmedCoherentObservation,
   type GptCoherentObservation,
   type GptCoherentFactProjection,
 } from "../../web/gpt-dom-observation.js";
@@ -48,9 +48,6 @@ export const projectTopology = (observation: GptCoherentObservation): ProfileTop
   });
 };
 
-export const topology = async (browser: BrowserTargetLease): Promise<ProfileTopology> =>
-  projectTopology(await readCoherentObservation(browser, PROFILE_TOPOLOGY_QUERIES));
-
 export const profileClosedReady = (value: ProfileTopology): boolean => value.popup === 0
   && value.trigger === 1 && value.triggerExpanded === "false"
   && value.triggerId !== null && value.triggerId.length > 0 && value.composer === 1;
@@ -59,3 +56,21 @@ export const profileOpenReady = (value: ProfileTopology): boolean => value.popup
   && value.trigger === 1 && value.triggerExpanded === "true"
   && value.triggerId !== null && value.triggerId.length > 0
   && value.popupLabelledBy === value.triggerId;
+
+const profileDisposition = (observation: GptCoherentObservation) => {
+  const value = projectTopology(observation);
+  if (profileClosedReady(value)) return "STABLE_DONE" as const;
+  if (profileOpenReady(value)) return "STABLE_ACT" as const;
+  if (observation.rows.some((candidate) => candidate.rawCount > 1 || candidate.eligibleCount > 1)
+    || (value.trigger === 1 && !["true", "false"].includes(value.triggerExpanded ?? ""))
+    || (value.popup === 1 && value.trigger === 1
+      && value.popupLabelledBy !== value.triggerId)) return "HARD_FAIL" as const;
+  return "TRANSIENT_DOM" as const;
+};
+
+export const topology = async (
+  browser: BrowserTargetLease,
+  signal?: AbortSignal,
+): Promise<ProfileTopology> => projectTopology(await readConfirmedCoherentObservation(
+  browser, PROFILE_TOPOLOGY_QUERIES, profileDisposition, signal,
+));

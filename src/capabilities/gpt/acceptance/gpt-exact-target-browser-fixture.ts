@@ -334,6 +334,17 @@ const createFakeBrowserLease = (
       state.documentRef = `document:${state.navigationEpoch}`;
     }
   },
+  async awaitTransientDomConfirmation(input) {
+    const durationMs = input.stage === 1 ? 1_500 : 3_000;
+    state.waitDurations.push(durationMs);
+    options.onWait?.(durationMs);
+    if (input.signal?.aborted) throw new Error("BROWSER_COMMAND_ABORTED");
+    const advance = options.navigationEpochAdvanceOnWait ?? 0;
+    if (advance > 0) {
+      state.navigationEpoch += advance;
+      state.documentRef = `document:${state.navigationEpoch}`;
+    }
+  },
   async park() { state.physicalMutations += 1; },
   async resolvePendingMutation() {
     if (state.pending !== 1) throw new Error("BROWSER_MUTATION_UNSETTLED");

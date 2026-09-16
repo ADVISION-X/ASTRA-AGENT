@@ -13,7 +13,7 @@ import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 type BrowserRecord = Record<string, unknown>;
 
 const pointerActionCode = (value: unknown): value is string => typeof value === "string"
-  && /^BROWSER_DOM_ACTION_(?:NODE_DISCONNECTED|NO_LAYOUT_BOX|NOT_VISIBLE|ARIA_HIDDEN|INERT|DISABLED|ARIA_DISABLED|OUTSIDE_VIEWPORT|POINTER_EVENTS_NONE|HIT_TEST_FAILED|OUTGOING_(?:STRUCTURE|PROMPT_HASH|ATTACHMENT_SET)_MISMATCH)$/u.test(value);
+  && /^BROWSER_DOM_ACTION_(?:NOT_QUALIFIED|NODE_DISCONNECTED|NO_LAYOUT_BOX|NOT_VISIBLE|ARIA_HIDDEN|INERT|DISABLED|ARIA_DISABLED|OUTSIDE_VIEWPORT|POINTER_EVENTS_NONE|HIT_TEST_FAILED|OUTGOING_(?:STRUCTURE|PROMPT_HASH|ATTACHMENT_SET)_MISMATCH)$/u.test(value);
 
 export const coherentCandidateRecord = (value: unknown): BrowserRecord => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {

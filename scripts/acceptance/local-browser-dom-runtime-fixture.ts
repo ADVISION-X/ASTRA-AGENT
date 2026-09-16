@@ -16,6 +16,8 @@ export const mutationInfrastructureReply = (
     && String(parameters?.functionDeclaration ?? "").includes("browserExactEditableText(this)")) return undefined;
   let reply: unknown;
   if (method === "Page.getFrameTree") reply = { frameTree: { frame: { loaderId: "loader-current" } } };
+  if (method === "Page.getNavigationHistory") reply = { currentIndex: 0,
+    entries: [{ url: "https://chatgpt.com/", title: "ChatGPT" }] };
   if (method === "DOM.getDocument") reply = { root: { nodeId: 1 } };
   if (method === "DOM.resolveNode") reply = { object: {
     objectId: parameters?.nodeId === 1 ? "candidate-root" : `node-${parameters?.nodeId}`,

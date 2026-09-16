@@ -173,7 +173,8 @@ const exerciseScopedExactCandidate = async (): Promise<void> => {
   });
   assert.match(candidateSource, /scopeRaw\.filter\(mechanicallyEligible\)/u,
     "scope qualification must not apply the target text predicate");
-  assert.match(candidateSource, /raw\.filter\(targetEligible\)/u,
+  assert.match(candidateSource,
+    /const textCandidates = raw\.filter\(textEligible\);[\s\S]*textCandidates\.filter\(mechanicallyEligible\)/u,
     "target exact text must apply only to target candidates");
   assert.match(candidateSource, /scopeRaw\.length \+ raw\.length > 256/u,
     "scope and target candidates must share one whole-call budget");

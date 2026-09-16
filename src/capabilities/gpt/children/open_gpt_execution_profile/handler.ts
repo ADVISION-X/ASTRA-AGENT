@@ -1,6 +1,3 @@
-import type { BrowserTargetLease } from "../../../../lib/browser/browser-authority-api.js";
-import { executionFailure } from "../../../../lib/execution-failure.js";
-
 import type { GptChildBrowserFact } from "../../contract.js";
 import { gptExecutionFailure } from "../../execution-fault.js";
 import {
@@ -15,10 +12,8 @@ import { decodeCoherentObservationPacket } from "../../web/gpt-dom-observation.j
 import { GPT_PROFILE_TRIGGER_SELECTOR } from "./selectors.js";
 import { profileFromIntent } from "../../web/execution-profile-input.js";
 import {
-  PROFILE_HYDRATION_TIMEOUT_MS,
   PROFILE_OPEN_POSTCONDITION,
   PROFILE_TOPOLOGY_QUERIES,
-  profileFullyAbsent,
   profileNativeCause,
   profileOpenable,
   profileOpenReady,
@@ -48,33 +43,12 @@ const failProfileOpen = (
   });
 };
 
-const waitForProfileHydration = async (
-  browser: BrowserTargetLease,
-  signal?: AbortSignal,
-): Promise<ProfileTopology> => {
-  const deadline = Date.now() + PROFILE_HYDRATION_TIMEOUT_MS;
-  let observed = await topology(browser);
-  const targetRefHash = observed.targetRefHash;
-  const documentRefHash = observed.documentRefHash;
-  while (profileFullyAbsent(observed)) {
-    if (signal?.aborted) throw executionFailure("failed", "GPT_EXECUTION_ABORTED");
-    const remaining = deadline - Date.now();
-    if (remaining < 1_500) failProfileOpen("GPT_EXECUTION_PROFILE_HYDRATION_TIMEOUT", observed);
-    await browser.wait({ durationMs: 1_500 });
-    observed = await topology(browser);
-    if (observed.targetRefHash !== targetRefHash || observed.documentRefHash !== documentRefHash) {
-      failProfileOpen("GPT_EXECUTION_PROFILE_HYDRATION_DOCUMENT_CHANGED", observed);
-    }
-  }
-  return observed;
-};
-
 export const openGptExecutionProfileHandler: GptChildHandler<"open_gpt_execution_profile"> =
   async (intent, context) => {
     requireExactInputKeys(intent, ["profile"]);
     profileFromIntent(intent);
     const browser = requireBrowser(context);
-    const observed = await waitForProfileHydration(browser, context.signal);
+    const observed = await topology(browser, context.signal);
     if (profileOpenReady(observed)) return success({
       value: { state: "profile-popup-open" },
       ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",

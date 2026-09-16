@@ -57,7 +57,7 @@ export const writeExactGptPromptHandler: GptChildHandler<"write_exact_gpt_prompt
     const prompt = stringInput(intent, "prompt");
     const promptHash = gptComposerHash(prompt);
     const browser = requireBrowser(context);
-    const observed = await readDraftState(browser);
+    const observed = await readDraftState(browser, context.signal);
     requireExactComposer(observed);
     if (observed.composerHash === promptHash) return success({
       value: promptIdentity(prompt),
@@ -68,7 +68,7 @@ export const writeExactGptPromptHandler: GptChildHandler<"write_exact_gpt_prompt
       kind: "fill", selector: GPT_COMPOSER_SELECTOR, approvedText: prompt,
       clearBeforeType: true, expectedMatches: 1,
     });
-    const readback = await readDraftState(browser);
+    const readback = await readDraftState(browser, context.signal);
     requireExactComposer(readback);
     if (readback.composerHash !== promptHash) throw mismatchFailure(intent, context, promptHash, readback);
     const browserFact = requireConfirmedBrowserFact(intent, context);

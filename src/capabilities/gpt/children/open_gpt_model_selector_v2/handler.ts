@@ -28,7 +28,6 @@ const OPEN_POSTCONDITION = (modelDisplayName: string) => Object.freeze({
   queries: Object.freeze([Object.freeze({
     ...modelChoiceQuery(modelDisplayName), expectedEligibleCount: 1,
   })]) as readonly BrowserDomPostconditionQuery[],
-  timeoutMs: 5_000,
 });
 
 export const openGptModelSelectorV2Handler: GptChildHandler<"open_gpt_model_selector_v2"> =
@@ -36,7 +35,7 @@ export const openGptModelSelectorV2Handler: GptChildHandler<"open_gpt_model_sele
     requireExactInputKeys(intent, ["profile"]);
     const profile = profileFromIntent(intent);
     const browser = requireBrowser(context);
-    const observed = await readModelSelectorState(browser, profile.modelDisplayName);
+    const observed = await readModelSelectorState(browser, profile.modelDisplayName, context.signal);
     if (modelSelectorReady(observed)) return success({
       value: { selectionVersion: GPT_MODEL_SELECTION_VERSION, state: "model-selector-open" },
       ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",

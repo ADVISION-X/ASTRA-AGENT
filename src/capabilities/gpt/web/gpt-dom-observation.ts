@@ -4,7 +4,10 @@ import type {
   BrowserDomObservationQuery,
   BrowserTargetLease,
 } from "../../../lib/browser/browser-authority-api.js";
-import { executionFailure } from "../../../lib/execution-failure.js";
+import { executionFailure, failureCode } from "../../../lib/execution-failure.js";
+
+export type GptDomObservationDisposition =
+  | "STABLE_DONE" | "STABLE_ACT" | "TRANSIENT_DOM" | "HARD_FAIL";
 
 const record = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -158,6 +161,59 @@ export const readCoherentObservation = async (
 ): Promise<GptCoherentObservation> => decodeCoherentObservationPacket(
   await browser.executeDomIntent({ kind: "observe", queries }), queries,
 );
+
+const sameObservationIdentity = (
+  baseline: GptCoherentObservation,
+  current: GptCoherentObservation,
+): boolean => baseline.exactCallIdentityHash === current.exactCallIdentityHash
+  && baseline.targetRefHash === current.targetRefHash
+  && baseline.documentRefHash === current.documentRefHash
+  && baseline.currentUrl === current.currentUrl;
+
+const transientObservationFailure = (error: unknown): boolean =>
+  ["BROWSER_DOM_CANDIDATE_MISSING", "BROWSER_DOM_NODE_STALE", "NO_LAYOUT_BOX"]
+    .includes(failureCode(error, ""));
+
+export const readConfirmedCoherentObservation = async (
+  browser: BrowserTargetLease,
+  queries: readonly BrowserDomObservationQuery[],
+  classify: (observation: GptCoherentObservation) => GptDomObservationDisposition,
+  signal?: AbortSignal,
+): Promise<GptCoherentObservation> => {
+  const targetRef = browser.target.targetRef;
+  const documentRef = browser.document.documentRef;
+  let baseline: GptCoherentObservation | null = null;
+  let lastTransientFailure: unknown = null;
+  for (const stage of [0, 1, 2] as const) {
+    if (signal?.aborted) throw executionFailure("failed", "GPT_EXECUTION_ABORTED");
+    if (stage !== 0) try {
+      await browser.awaitTransientDomConfirmation({
+        stage, ...(signal === undefined ? {} : { signal }),
+      });
+    } catch (error) {
+      if (signal?.aborted) throw executionFailure(
+        "failed", "GPT_EXECUTION_ABORTED", { cause: error },
+      );
+      throw error;
+    }
+    if (browser.target.targetRef !== targetRef || browser.document.documentRef !== documentRef) {
+      throw executionFailure("failed", "GPT_DOM_CONFIRMATION_IDENTITY_CHANGED");
+    }
+    let observation: GptCoherentObservation;
+    try { observation = await readCoherentObservation(browser, queries); }
+    catch (error) {
+      if (!transientObservationFailure(error) || stage === 2) throw error;
+      lastTransientFailure = error;
+      continue;
+    }
+    if (baseline !== null && !sameObservationIdentity(baseline, observation)) {
+      throw executionFailure("failed", "GPT_DOM_CONFIRMATION_IDENTITY_CHANGED");
+    }
+    baseline ??= observation;
+    if (classify(observation) !== "TRANSIENT_DOM" || stage === 2) return observation;
+  }
+  throw lastTransientFailure ?? executionFailure("failed", "GPT_DOM_CONFIRMATION_FAILED");
+};
 
 export const projectCoherentObservation = (
   observation: GptCoherentObservation,

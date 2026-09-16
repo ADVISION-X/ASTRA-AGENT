@@ -5,7 +5,7 @@ import type {
 
 import {
   projectCoherentObservation,
-  readCoherentObservation,
+  readConfirmedCoherentObservation,
   type GptCoherentObservation,
   type GptCoherentFactProjection,
 } from "../../web/gpt-dom-observation.js";
@@ -48,9 +48,18 @@ export const projectModelSelectorState = (
 export const readModelSelectorState = async (
   browser: BrowserTargetLease,
   modelDisplayName: string,
-): Promise<ModelSelectorState> => projectModelSelectorState(
-  await readCoherentObservation(browser, modelSelectorQueries(modelDisplayName)),
-);
+  signal?: AbortSignal,
+): Promise<ModelSelectorState> => {
+  const queries = modelSelectorQueries(modelDisplayName);
+  return projectModelSelectorState(await readConfirmedCoherentObservation(
+    browser, queries, (observation) => {
+      const value = projectModelSelectorState(observation);
+      if (modelSelectorReady(value)) return "STABLE_DONE";
+      if (modelSelectorOpenable(value)) return "STABLE_ACT";
+      return value.modelChoice > 1 || value.openableEntry > 1 ? "HARD_FAIL" : "TRANSIENT_DOM";
+    }, signal,
+  ));
+};
 
 export const modelSelectorStateCode = (value: ModelSelectorState): string => [
   `openableEntry=${value.openableEntry}`,

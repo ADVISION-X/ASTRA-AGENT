@@ -2,7 +2,7 @@ import { Node, type SourceFile } from "ts-morph";
 
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
 import { createLocalFinding, domCoherentObservationPath, domExactEditableTextPath, domMechanicalFactsPath,
-  domMutationPostconditionPath, requireSource } from "./inspector-support.js";
+  domMutationPostconditionPath, extensionFileInputPath, requireSource } from "./inspector-support.js";
 
 const QUERY_RUNTIME_PATH = "src/lib/browser/chrome-extension/dom-query-runtime.ts";
 const INTENT_RUNTIME_PATH = "src/lib/browser/chrome-extension/dom-intent-runtime.ts";
@@ -269,13 +269,14 @@ export const inspectDomMechanicalFacts = (
 ): void => {
   const sources = [domMechanicalFactsPath, domExactEditableTextPath, QUERY_RUNTIME_PATH, INTENT_RUNTIME_PATH,
     domMutationPostconditionPath, domCoherentObservationPath, INTENT_CONTRACT_PATH, COHERENT_CANDIDATE_PATH,
-    COHERENT_CANDIDATE_READBACK_PATH, EXACT_ASSISTANT_TURN_PATH, MUTATION_RECEIPT_PATH]
+    COHERENT_CANDIDATE_READBACK_PATH, EXACT_ASSISTANT_TURN_PATH, MUTATION_RECEIPT_PATH,
+    extensionFileInputPath]
     .map((path) => requireSource(context, findings, lawId, path));
   if (!sources.every((source): source is SourceFile => source !== null)) return;
   const [facts, exactEditable, query, runtime, postcondition, observation, contract, candidate,
-    candidateReadback, exactAssistantTurn, mutationReceipt] = sources as [
+    candidateReadback, exactAssistantTurn, mutationReceipt, fileInput] = sources as [
       SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile,
-      SourceFile, SourceFile, SourceFile, SourceFile, SourceFile,
+      SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile,
     ];
 
   const readerInitializer = facts.getVariableDeclaration("BROWSER_MECHANICAL_FACTS_READER_SOURCE")?.getInitializer();
@@ -311,6 +312,10 @@ export const inspectDomMechanicalFacts = (
   const runtimeText = `${runtime.getFullText()}\n${observation.getFullText()}\n${candidateText}`;
   inspectCoherentRuntime(runtimeText, findings, lawId);
   inspectPostconditionEvidence(postcondition.getFullText(), mutationReceipt.getFullText(), findings, lawId);
+  requireTokens(`${runtime.getFullText()}\n${postcondition.getFullText()}\n${fileInput.getFullText()}`, [
+    "readWithTransientDomConfirmation", "currentGptPageIdentity",
+  ], findings, lawId, domMutationPostconditionPath,
+  "The Browser mechanical DOM confirmation must use one shared staged driver with URL continuity");
   const contractText = contract.getFullText();
   inspectMechanicalContract(
     contractText,

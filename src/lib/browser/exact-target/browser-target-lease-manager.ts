@@ -258,6 +258,11 @@ export class BrowserTargetLeaseManager {
       ),
       readAuthenticatedMedia: (media) => this.readAuthenticatedMedia(state, command, media),
       wait: async ({ durationMs }) => { await command("browser.wait.v1", { kind: "wait", durationMs }); },
+      awaitTransientDomConfirmation: async ({ stage, signal }) => {
+        if (signal?.aborted) throw new Error("BROWSER_COMMAND_ABORTED");
+        await command("browser.wait.v1", { kind: "wait", transientDomConfirmationStage: stage });
+        if (signal?.aborted) throw new Error("BROWSER_COMMAND_ABORTED");
+      },
       park: async ({ reason, mode }) => {
         if (mode !== "product-call-settlement") {
           throw new Error("BROWSER_PARK_MODE_INVALID");

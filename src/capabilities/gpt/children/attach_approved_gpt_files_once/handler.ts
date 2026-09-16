@@ -42,7 +42,7 @@ export const attachApprovedGptFilesOnceHandler: GptChildHandler<"attach_approved
         }),
       });
     }
-    const control = await readAttachmentControlState(browser);
+    const control = await readAttachmentControlState(browser, context.signal);
     if (!attachmentControlReady(control)) {
       failAttachmentControl("GPT_UPLOAD_CHOICE_INVALID", control);
     }

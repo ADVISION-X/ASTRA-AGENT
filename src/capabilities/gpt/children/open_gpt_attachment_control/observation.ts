@@ -1,13 +1,11 @@
 import type { BrowserDomObservationQuery } from "../../../../lib/browser/browser-authority-api.js";
-import { executionFailure } from "../../../../lib/execution-failure.js";
-
 import type { GptChildBrowserFact } from "../../contract.js";
 import { gptExecutionFailure } from "../../execution-fault.js";
 import { requireBrowser } from "../../web/child-handler.js";
 import {
   decodeCoherentObservationPacket,
   projectCoherentObservation,
-  readCoherentObservation,
+  readConfirmedCoherentObservation,
   type GptCoherentObservation,
   type GptCoherentObservationRow,
   type GptCoherentFactProjection,
@@ -34,8 +32,6 @@ type AttachmentControlState = Readonly<{
   rows: readonly GptCoherentObservationRow[]; facts: GptCoherentFactProjection;
 }>;
 
-const HYDRATION_TIMEOUT_MS = 5_000;
-
 const ATTACHMENT_CONTROL_QUERIES = Object.freeze([
   {
     queryId: "attachment-control", selector: GPT_ATTACHMENT_CONTROL_SELECTOR,
@@ -58,7 +54,6 @@ export const ATTACHMENT_CONTROL_OPEN_POSTCONDITION = Object.freeze({
     ...query,
     expectedEligibleCount: 1,
   }))),
-  timeoutMs: HYDRATION_TIMEOUT_MS,
 });
 
 const projectAttachmentControlState = (
@@ -80,12 +75,6 @@ const projectAttachmentControlState = (
 
 export const decodeAttachmentControlState = (packet: unknown): AttachmentControlState =>
   projectAttachmentControlState(decodeCoherentObservationPacket(packet, ATTACHMENT_CONTROL_QUERIES));
-
-const readAttachmentControlState = async (
-  browser: ReturnType<typeof requireBrowser>,
-): Promise<AttachmentControlState> => projectAttachmentControlState(
-  await readCoherentObservation(browser, ATTACHMENT_CONTROL_QUERIES),
-);
 
 const row = (value: AttachmentControlState, queryId: string): GptCoherentObservationRow =>
   value.rows.find((candidate) => candidate.queryId === queryId)!;
@@ -114,17 +103,6 @@ export const failAttachmentControl = (
   });
 };
 
-const fullyAbsent = (value: AttachmentControlState): boolean => {
-  const control = row(value, "attachment-control");
-  const activeMenu = row(value, "active-menu");
-  const choice = row(value, "upload-choice");
-  const composerScopeHydrated = (control.scopeRawCount === 0 && control.scopeEligibleCount === 0)
-    || (control.scopeRawCount === 1 && control.scopeEligibleCount === 1);
-  return composerScopeHydrated && control.rawCount === 0 && control.eligibleCount === 0
-    && activeMenu.eligibleCount === 0
-    && choice.scopeEligibleCount === 0 && choice.rawCount === 0 && choice.eligibleCount === 0;
-};
-
 export const attachmentControlOpenable = (value: AttachmentControlState): boolean => {
   const control = row(value, "attachment-control");
   const activeMenu = row(value, "active-menu");
@@ -147,23 +125,25 @@ export const attachmentControlReady = (value: AttachmentControlState): boolean =
     && choice.rejections.every((entry) => entry.reasons.length === 1 && entry.reasons[0] === "TEXT_MISMATCH");
 };
 
-export const waitForAttachmentControlHydration = async (
+const attachmentControlDisposition = (observation: GptCoherentObservation) => {
+  const value = projectAttachmentControlState(observation);
+  if (attachmentControlReady(value)) return "STABLE_DONE" as const;
+  if (attachmentControlOpenable(value)) return "STABLE_ACT" as const;
+  const control = row(value, "attachment-control");
+  const activeMenu = row(value, "active-menu");
+  const choice = row(value, "upload-choice");
+  return control.scopeRawCount > 1 || control.eligibleCount > 1
+    || activeMenu.eligibleCount > 1 || choice.eligibleCount > 1
+    || (choice.rawCount > 0 && choice.eligibleCount === 0
+      && choice.rejections.some((entry) => entry.reasons.includes("TEXT_MISMATCH")))
+    ? "HARD_FAIL" as const : "TRANSIENT_DOM" as const;
+};
+
+export const readConfirmedAttachmentControlState = async (
   browser: ReturnType<typeof requireBrowser>,
   signal?: AbortSignal,
-): Promise<AttachmentControlState> => {
-  const deadline = Date.now() + HYDRATION_TIMEOUT_MS;
-  let observed = await readAttachmentControlState(browser);
-  const targetRefHash = observed.targetRefHash;
-  const documentRefHash = observed.documentRefHash;
-  while (fullyAbsent(observed)) {
-    if (signal?.aborted) throw executionFailure("failed", "GPT_EXECUTION_ABORTED");
-    const remaining = deadline - Date.now();
-    if (remaining < 1_500) failAttachmentControl("GPT_ATTACHMENT_CONTROL_HYDRATION_TIMEOUT", observed);
-    await browser.wait({ durationMs: 1_500 });
-    observed = await readAttachmentControlState(browser);
-    if (observed.targetRefHash !== targetRefHash || observed.documentRefHash !== documentRefHash) {
-      failAttachmentControl("GPT_ATTACHMENT_CONTROL_HYDRATION_DOCUMENT_CHANGED", observed);
-    }
-  }
-  return observed;
-};
+): Promise<AttachmentControlState> => projectAttachmentControlState(
+  await readConfirmedCoherentObservation(
+    browser, ATTACHMENT_CONTROL_QUERIES, attachmentControlDisposition, signal,
+  ),
+);
