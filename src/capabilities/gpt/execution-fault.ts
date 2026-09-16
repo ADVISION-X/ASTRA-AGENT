@@ -3,6 +3,7 @@ import type {
   BrowserEffectFailureFacts,
   MutationOutcome,
 } from "../../lib/browser/browser-authority-api.js";
+import type { ProviderStoppedEmptyProof } from "../../lib/execution-failure.js";
 import type { GptChildBrowserFact } from "./contract.js";
 import type { GptReasoningRequirementResult } from "./child-types.js";
 
@@ -15,6 +16,7 @@ export type GptFailureProofFacts = Readonly<{
   mutationOutcome: "no" | "dispatched" | "confirmed";
   browserFact: GptChildBrowserFact | null;
   nativeFailureCode: string | null;
+  stoppedEmptyProof?: ProviderStoppedEmptyProof | null;
 }>;
 
 class GptExecutionFailure extends TypedExecutionFailure {
@@ -29,10 +31,18 @@ class GptExecutionFailure extends TypedExecutionFailure {
     }> | null = null,
     public readonly browserEffect: BrowserEffectFailureFacts | null = null,
     public readonly proofFacts: GptFailureProofFacts | null = null,
+    public readonly childProof: Readonly<{
+      evidenceRef: string;
+      evidenceHash: `sha256:${string}`;
+    }> | null = null,
     public readonly reasoningRequirementResult: GptReasoningRequirementResult | null = null,
     cause?: unknown,
   ) {
-    super("failed", code, cause, Object.freeze({ mutationOutcome, evidence, browserEffect, proofFacts }));
+    super("failed", code, cause, Object.freeze({
+      mutationOutcome, evidence, browserEffect,
+      stoppedEmptyProof: proofFacts?.stoppedEmptyProof ?? null,
+      childProof,
+    }));
   }
 }
 
@@ -54,6 +64,7 @@ export const gptExecutionFailure = (
     evidence?: Readonly<{ evidenceRef: string; evidenceHash: `sha256:${string}` }> | null;
     browserEffect?: BrowserEffectFailureFacts | null;
     proofFacts?: GptFailureProofFacts | null;
+    childProof?: Readonly<{ evidenceRef: string; evidenceHash: `sha256:${string}` }> | null;
     reasoningRequirementResult?: GptReasoningRequirementResult | null;
     cause?: unknown;
   }> = {},
@@ -63,6 +74,7 @@ export const gptExecutionFailure = (
   input.evidence,
   input.browserEffect,
   input.proofFacts,
+  input.childProof,
   input.reasoningRequirementResult,
   input.cause,
 );

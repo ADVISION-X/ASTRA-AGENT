@@ -1,6 +1,10 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 
 import { ensureCurrentBrowserRuntimeArtifact } from "../startup/lib/browser-runtime-artifact.mjs";
+import {
+  buildChromeWindowRestoreScript,
+  restoreWorkbenchWindowIfChromeHasNoWindow,
+} from "../startup/lib/open-workbench-page.mjs";
 
 const current = Object.freeze({
   status: "READY",
@@ -46,5 +50,25 @@ await assert.rejects(
   /BROWSER_UNPACKED_ARTIFACT_READBACK_MISMATCH/u,
   "startup must fail closed when the rebuilt artifact still fails readback",
 );
+
+const restoreScript = buildChromeWindowRestoreScript("http://127.0.0.1:4173");
+assert.match(restoreScript, /if \(count of windows\) > 0 then return "already_visible"/u);
+assert.match(restoreScript, /if \(count of windows\) = 0 then make new window/u);
+assert.doesNotMatch(restoreScript, /make new tab/u);
+let restoreRuns = 0;
+const visible = await restoreWorkbenchWindowIfChromeHasNoWindow(
+  "http://127.0.0.1:4173",
+  "darwin",
+  async () => { restoreRuns += 1; return { stdout: "already_visible", stderr: "" }; },
+);
+assert.equal(visible.handoffMode, "already_visible");
+assert.equal(restoreRuns, 1);
+const unsupported = await restoreWorkbenchWindowIfChromeHasNoWindow(
+  "http://127.0.0.1:4173",
+  "linux",
+  async () => { restoreRuns += 1; return { stdout: "", stderr: "" }; },
+);
+assert.equal(unsupported.handoffMode, "unsupported_platform_noop");
+assert.equal(restoreRuns, 1, "non-macOS recovery must not launch a second browser path");
 
 process.stdout.write("STARTUP_BROWSER_ARTIFACT_SYNC_ACCEPTANCE_PASS\n");

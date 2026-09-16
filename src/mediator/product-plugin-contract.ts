@@ -140,6 +140,11 @@ export interface SharedExecutionContext {
       receipt_hash: ProductionHash;
       rejected_result_payload_hash: ProductionHash;
       reason_codes: readonly string[];
+    }> | Readonly<{
+      rejection_kind: "provider_stopped_empty";
+      receipt_hash: ProductionHash;
+      rejected_provider_response_fact_hash: ProductionHash;
+      reason_codes: readonly string[];
     }> | null;
   }>;
   readonly uploadGeneratedImage: (artifact: GeneratedImageArtifact) => Promise<GeneratedImageResultReceipt>;

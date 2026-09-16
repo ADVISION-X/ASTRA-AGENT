@@ -57,7 +57,7 @@ import { containsPageMutation, gptPrivateInfrastructureViolations, sourceFor, so
   from "./gpt-inspection-support.js";
 
 const LAW_ID = "LAW-GPT-001-V55";
-const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V17";
+const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V18";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 2, 4, 7, 8),
   "static.ast": staticClauses(0, 2, 3, 4, 5, 6, 7, 8, 9),

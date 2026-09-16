@@ -144,7 +144,8 @@ for (const unavailable of [
   await exerciseFailedEvidenceReadback(result, Object.freeze({ profile: exactProfile }), {
     code: "GPT_REASONING_TIER_UNAVAILABLE", mutation_outcome: "no", effect_scope: null,
     child_capability_id: null, browser_outcome: null, evidence_ref: "record:gpt-failed-readback",
-    evidence_hash: result.proof.evidenceHash, cause: null,
+    evidence_hash: result.proof.evidenceHash, child_proof_ref: null, child_proof_hash: null,
+    stopped_empty_proof: null, cause: null,
   });
 }
 

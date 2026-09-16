@@ -18,7 +18,9 @@ import {
   type RuntimeLogger,
   type RuntimeSpanHandle,
 } from "../../lib/runtime-logs/index.js";
-import { executionFailure, failureCode, typedExecutionFailure } from "../../lib/execution-failure.js";
+import {
+  executionFailure, executionFailureMetadata, failureCode, typedExecutionFailure,
+} from "../../lib/execution-failure.js";
 import { browserExactCallIdentityHash } from "../../lib/browser/browser-authority-api.js";
 import type { ProductGptCallInput, ProductGptChildResult } from "./product-api.js";
 import type { GptHash } from "./contract.js";
@@ -28,7 +30,7 @@ import {
   type ProductionGptBrowserCall,
 } from "./production-browser-lifecycle.js";
 import { productionGptAtomicIdentity } from "./production-atomic-call.js";
-import { gptExecutionFailure } from "./execution-fault.js";
+import { gptExecutionFailure, typedGptExecutionFailure } from "./execution-fault.js";
 import {
   productChildResult, recordConfirmedSubmission, recordSettledProviderResult, submitEffect,
 } from "./production-child-result.js";
@@ -344,6 +346,7 @@ export class ProductionGptChildTools {
       failureCode(error, "GPT_CHILD_RUNTIME_FAILED"),
       { cause: error },
     );
+    const gptFailure = typedGptExecutionFailure(error);
     const failure = confirmedProviderEffect ? gptExecutionFailure(original.code, {
       mutationOutcome: "confirmed",
       evidence: {
@@ -351,6 +354,8 @@ export class ProductionGptChildTools {
         evidenceHash: confirmedProviderEffect.evidenceHash,
       },
       browserEffect: confirmedProviderEffect,
+      proofFacts: gptFailure?.proofFacts ?? null,
+      childProof: executionFailureMetadata(original)?.childProof ?? null,
       cause: original,
     }) : original;
     const terminal = requireRuntimeLogWrite(span.terminal({

@@ -1,7 +1,7 @@
-# GPT 能力组 V55 施工图
+# GPT 能力组 V56 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"gpt-capability-group-v55","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V55","LAW-GPT-002-V17"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"gpt-capability-group-v56","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V55","LAW-GPT-002-V18"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
 ```
 
 ## 唯一 Owner 与职责
@@ -64,11 +64,13 @@ GPT 准备动作对一次 fresh coherent observation 的裁决统一为 `STABLE_
 
 `FROZEN-GPT-CONVERSATION-LOCATOR-EFFECT-SEPARATION-001` 已按本次授权精准解冻替换并重新冻结：canonical conversation URL 是真实恢复现场“去哪里读”的唯一权威，provider_effect_identity 是“是否已经发送”的唯一权威，二者绝不合并或互相授予权限。正常轮询只使用 job 的进程内独占 Target 绑定，pending 释放 lease/lane，下一次经唯一 FIFO激活精确 Tab并 fresh observe一次，不读取 WAL locator、不重选 URL、不导航。只有进程重启、绑定 Target 真正丢失或同等恢复现场，Website 对 DISPATCHED/CONFIRMED effect 重新授权后，才可先从 Browser WAL 精确读回同一 receipt、URL 与 userTurnId，再以 `confirmed-readback` 为该 job取得精确 system Target；当前 URL 已命中时零导航，否则只执行一次 Browser-owned `Page.navigate`，经过 2500ms 总闸门后 fresh readback 必须相等，physical submit 增量为零。侧栏、标题/顺序/时间猜测、搜索、滚动、自动展开、重试与 fallback 均不得参与。
 
-`FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001` 已按本次授权精准解冻替换并重新冻结：submit 已确认后的正常 Provider 回答轮询保留 job—system Target 独占绑定；40 秒静默后第一次及后续observation都先释放当前lease并立即进入唯一 FIFO，GPT只给出至少70秒的最早资格，BrowserLaneCoordinator作为唯一计时 Owner在每次真实observation终结时只抽取一次70—90秒全局间隔；随机值不按job、Tab、Product或Child生成和保存，全设备相邻真实Provider observation至少70秒且总频率不随N增长，剩余deadline不足70秒时Browser acquisition增量为零。请求具备资格后取得并激活精确绑定 Tab、重验 current Document、fresh observe一次；pending释放 lease/lane并重新排队，正常轮询不得重选 canonical URL或导航。只有进程重启、绑定 Target真正丢失或同等恢复现场，才先查同一 Browser WAL effect，再用 `confirmed-readback` 为该 job取得精确 system Target；绝不先回首页，同 URL零导航，不同 URL最多一次精确 `Page.navigate`后 fresh readback。Browser WAL 的 `logical_mutation_id` 是唯一 `provider_effect_identity_hash`，checkpoint稳定后另以 `semanticTextHash` 或媒体 `sha256` 标识结果；只有 Website可拒绝 settled result并签发新 `result_revision`。普通错误、DISPATCHED/CONFIRMED、进程/attempt/lease/fence/Target/Document变化都不得制造第二 submit。
+`FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001` 已按本次授权精准解冻替换并重新冻结：submit 已确认后的正常 Provider 回答轮询保留 job—system Target 独占绑定；40 秒静默后第一次及后续observation都先释放当前lease并立即进入唯一 FIFO，GPT只给出至少70秒的最早资格，BrowserLaneCoordinator作为唯一计时 Owner在每次真实observation终结时只抽取一次70—90秒全局间隔；随机值不按job、Tab、Product或Child生成和保存，全设备相邻真实Provider observation至少70秒且总频率不随N增长，剩余deadline不足70秒时Browser acquisition增量为零。请求具备资格后取得并激活精确绑定 Tab、重验 current Document、fresh observe一次；pending释放 lease/lane并重新排队，正常轮询不得重选 canonical URL或导航。同一精确回答位点只要停止按钮仍在就永不判停；只有停止按钮连续消失且回答连续为空满20分钟才返回 `GPT_RESPONSE_STOPPED_EMPTY`，任一次停止按钮出现、回答非空或位点身份失真都把窗口归零。窗口仅用Child进程内单调时间与现役observation，不增加timer、持久状态、DOM频率或Provider输入。只有进程重启、绑定 Target真正丢失或同等恢复现场，才先查同一 Browser WAL effect，再用 `confirmed-readback` 为该 job取得精确 system Target；绝不先回首页，同 URL零导航，不同 URL最多一次精确 `Page.navigate`后 fresh readback。Browser WAL 的 `logical_mutation_id` 是唯一 `provider_effect_identity_hash`；稳定回答用独立settled result hash，停思考空回答用独立Provider observation fact hash。Website只沿现役唯一rejection receipt链拒绝这两种精确事实并各签发至多一个新 `result_revision`；普通错误、DISPATCHED/CONFIRMED、进程/attempt/lease/fence/Target/Document变化都不得制造第二 submit。
 
 八字 consultation root 与 direct predecessor 只属于 Website 业务关系。Website 在新任务签发前验证 owner/person/chart/root/predecessor、父授权、父 Delivery Manifest 与已入库父结果，并把完整父报告作为本轮 locked-fact material 下发；缺失、多义或身份不等一律 fail closed。八字仍逐任务fresh。SEO文章与固定catalog本地化的provider_continuation同样只属于Website业务关系；Runtime只用本地completed父结果机械核对Website parent ref/hash并携带最终accepted attempt，GPT不复制或解释父子关系，Browser只按当前授权从父job、该accepted attempt与当前product step的唯一WAL瞬时读取canonical URL，不保存业务continuation。
 
 动态本地化 Product 的现役单次提示词必须把 Website 下发的 locale policy 转成一份穷尽式自检清单：所有可翻译 JSON pointer 均使用目标语言，所有 safety pointer 在完成翻译的同时保留原义与约束，所有 protected pointer 保持逐值不变，并在只输出一个完整 JSON object 前逐项自检。该清单只提高首次 Provider 输出通过唯一 Website 领域 validator 的概率，不在 AGENT 增设语义 validator、第二 GPT 回合、修复提示或兼容结果路径。
+
+该 stopped-empty 终态复用 `gpt-child-capability-proof.v2`，额外绑定首次合格 observation 时间、终态 observation 时间、连续单调毫秒、observation 次数、位点 identity hash 与终态 observation revision hash；这些字段只对 `GPT_RESPONSE_STOPPED_EMPTY` 出现。
 
 ## 删除边界
 

@@ -98,15 +98,17 @@ const capturedAssistantFixture = () => {
   const input = { kind: "readExactAssistantTurn", userTurnId: "conversation-turn-1",
     canonicalConversationUrl: exactConversationFixtureUrl };
   const exactAssistant = assistantOuter(assistant);
+  const composer = new FakeElement("", {}, {}, { id: "composer-submit-button" }, "BUTTON");
   let queryCalls = 0;
   const document = {
     querySelectorAll: (value: string) => {
       queryCalls += 1;
-      return value === userSelector ? [user] : value === turnsSelector ? [user, exactAssistant] : [];
+      return value === userSelector ? [user] : value === turnsSelector ? [user, exactAssistant]
+        : value === "#composer-submit-button" ? [composer] : [];
     },
     elementFromPoint: () => assistant,
   };
-  return { assistant, assistantOuter, document, input, queryCalls: () => queryCalls,
+  return { assistant, assistantOuter, composer, document, input, queryCalls: () => queryCalls,
     text, turnsSelector, user, userSelector };
 };
 
@@ -118,8 +120,8 @@ const exerciseCapturedAssistantBaseline = async (
     source, fixture.document, fixture.input, `${exactConversationFixtureUrl}?query=discarded#fragment`,
   ) as Readonly<{ rawCount: number; eligibleCount: number; rawDomHtml: string; semanticText: string;
     currentUrl: string; nativeStage: string }>;
-  assert.equal(fixture.queryCalls(), 3,
-    "the assistant, exact predecessor, and generating state must share one async Runtime call");
+  assert.equal(fixture.queryCalls(), 4,
+    "the assistant, exact predecessor, stop state, and composer identity must share one async Runtime call");
   assert.equal(source.includes("collapsible-user-message-content"), false,
     "response read must not parse or hash the already-confirmed user prompt DOM");
   assert.equal(source.includes("precedingPromptHash"), false,
@@ -150,7 +152,8 @@ const exerciseCapturedAssistantRejections = async (
   const hidden = new FakeElement("hidden", { "pre code": [] }, { display: "none" }, {}, "DIV", [fixture.text("hidden")]);
   const hiddenObserved = await executeCaptured(source, {
     querySelectorAll: (value: string) => value === fixture.userSelector ? [fixture.user]
-      : value === fixture.turnsSelector ? [fixture.user, fixture.assistantOuter(hidden)] : [],
+      : value === fixture.turnsSelector ? [fixture.user, fixture.assistantOuter(hidden)]
+        : value === "#composer-submit-button" ? [fixture.composer] : [],
     elementFromPoint: () => null,
   }, fixture.input, exactConversationFixtureUrl) as Readonly<{
     rawCount: number; eligibleCount: number; rawDomHtml: string;
@@ -161,7 +164,8 @@ const exerciseCapturedAssistantRejections = async (
     querySelectorAll: (value: string) => value === fixture.userSelector ? [fixture.user]
       : value === fixture.turnsSelector ? [fixture.user, new FakeElement("ambiguous", {
         "[data-message-author-role='assistant']": [fixture.assistant, fixture.assistant],
-      }, {}, { "data-testid": "conversation-turn-2" })] : [],
+      }, {}, { "data-testid": "conversation-turn-2" })]
+        : value === "#composer-submit-button" ? [fixture.composer] : [],
     elementFromPoint: () => fixture.assistant,
   }, fixture.input, exactConversationFixtureUrl) as Readonly<{ rawCount: number; eligibleCount: number }>;
   assert.deepEqual({ rawCount: ambiguous.rawCount, eligibleCount: ambiguous.eligibleCount },
@@ -169,11 +173,25 @@ const exerciseCapturedAssistantRejections = async (
   const rich = richSemanticTree();
   const richObserved = await executeCaptured(source, {
     querySelectorAll: (value: string) => value === fixture.userSelector ? [fixture.user]
-      : value === fixture.turnsSelector ? [fixture.user, fixture.assistantOuter(rich)] : [],
+      : value === fixture.turnsSelector ? [fixture.user, fixture.assistantOuter(rich)]
+        : value === "#composer-submit-button" ? [fixture.composer] : [],
     elementFromPoint: () => rich,
   }, fixture.input, exactConversationFixtureUrl) as Readonly<{ semanticText: string }>;
   assert.equal(richObserved.semanticText, RICH_SEMANTIC_TEXT,
     "exact assistant read must preserve headings, prose, lists, inline code, the code block, and trailing prose");
+  const laterTurn = new FakeElement("later", {}, {}, { "data-testid": "conversation-turn-3" });
+  const drifted = await executeCaptured(source, { ...fixture.document,
+    querySelectorAll: (value: string) => value === fixture.turnsSelector
+      ? [fixture.user, fixture.assistantOuter(fixture.assistant), laterTurn]
+      : fixture.document.querySelectorAll(value),
+  }, fixture.input, exactConversationFixtureUrl) as Readonly<{ eligibleCount: number }>;
+  assert.equal(drifted.eligibleCount, 0,
+    "a later turn must invalidate the old assistant position instead of starting a stopped-empty window");
+  const wrongConversation = await executeCaptured(
+    source, fixture.document, fixture.input, "https://chatgpt.com/c/another-conversation",
+  ) as Readonly<{ eligibleCount: number }>;
+  assert.equal(wrongConversation.eligibleCount, 0,
+    "a different canonical conversation URL must invalidate the observation");
 };
 
 const exerciseCapturedExactAssistantTurnFunction = async (source: string): Promise<void> => {

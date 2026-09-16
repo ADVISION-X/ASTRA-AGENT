@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 
 import { createWorkbenchServer as createWorkbenchHttpServer } from "./create-workbench-server.js";
 import { createGrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-launch-contract.js";
+import { restoreWorkbenchWindowIfChromeHasNoWindow } from "../../scripts/startup/lib/open-workbench-page.mjs";
 
 const host = process.env.GRASSEYE_HOST ?? "127.0.0.1";
 const port = Number(process.env.GRASSEYE_PORT ?? 4173);
@@ -12,6 +13,9 @@ const defaultDataDir = path.resolve(process.cwd(), ".grasseye-local");
 
 const workbench = createGrassEyeWorkbenchHandle({
   dataDir: process.env.GRASSEYE_DATA_DIR ?? defaultDataDir,
+  restoreBrowserHostVisibility: async () => {
+    await restoreWorkbenchWindowIfChromeHasNoWindow(baseUrl);
+  },
 });
 
 function createWorkbenchServer(input?: {

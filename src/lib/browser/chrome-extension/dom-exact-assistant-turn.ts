@@ -27,6 +27,8 @@ const EXACT_ASSISTANT_TURN_FUNCTION = `async function (spec) {
   if (!/^conversation-turn-[1-9][0-9]*$/.test(userTurnId)) throw new Error("BROWSER_DOM_READ_INVALID");
   const observedUrl = new URL(location.href);
   const currentUrl = observedUrl.origin + observedUrl.pathname;
+  const expectedUrlValue = new URL(spec.canonicalConversationUrl);
+  const expectedUrl = expectedUrlValue.origin + expectedUrlValue.pathname;
   const segments = observedUrl.pathname.split("/");
   const root = observedUrl.pathname === "/";
   const conversation = segments.length === 3 && segments[0] === "" && segments[1] === "c"
@@ -41,6 +43,7 @@ const EXACT_ASSISTANT_TURN_FUNCTION = `async function (spec) {
   const turns = Array.from(document.querySelectorAll("[data-testid^='conversation-turn-']"));
   const userIndex = userRaw.length === 1 ? turns.indexOf(userRaw[0]) : -1;
   const [, assistantOuter = null] = userIndex >= 0 ? turns.slice(userIndex) : [];
+  const assistantIndex = assistantOuter === null ? -1 : turns.indexOf(assistantOuter);
   const assistantTurnId = assistantOuter?.getAttribute("data-testid") || "";
   const raw = assistantOuter
     ? Array.from(assistantOuter.querySelectorAll("[data-message-author-role='assistant']")) : [];
@@ -48,7 +51,9 @@ const EXACT_ASSISTANT_TURN_FUNCTION = `async function (spec) {
   const generatingRaw = document.querySelectorAll(
     "#composer-submit-button[data-testid='stop-button']"
   ).length;
-  if (generatingRaw !== 0 || raw.length !== 1) return { rawCount: raw.length, eligibleCount: 0,
+  const composerRaw = document.querySelectorAll("#composer-submit-button").length;
+  if (currentUrl !== expectedUrl || assistantIndex !== turns.length - 1 || composerRaw !== 1
+    || generatingRaw !== 0 || raw.length !== 1) return { rawCount: raw.length, eligibleCount: 0,
     rawDomHtml: "", semanticText: "", currentUrl, assistantTurnId, precedingUserTurnId,
     generatingRaw, observedAt, nativeCauseCode: null,
     nativeStage: "runtime-call-function-on" };

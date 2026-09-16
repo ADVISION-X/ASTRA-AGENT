@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 
-const LAW_ID = "LAW-GPT-002-V17";
+const LAW_ID = "LAW-GPT-002-V18";
 const ROOT = "src/capabilities/gpt";
 const read = (context: InspectorContext, path: string): string =>
   readFileSync(resolve(context.sealedRoot, path), "utf8");
@@ -41,6 +41,8 @@ const frozenBlueprintChecks = (sources: Readonly<Record<string, string>>): boole
   sources.blueprint!.includes("FROZEN-GPT-RESPONSE-NO-PROMPT-REHASH-001"),
   sources.blueprint!.includes("FROZEN-GPT-ATOMIC-IDENTITY-ROUNDTRIP-001"),
   sources.blueprint!.includes("FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001"),
+  sources.blueprint!.includes("GPT_RESPONSE_STOPPED_EMPTY"),
+  sources.blueprint!.includes("连续消失且回答连续为空满20分钟"),
   sources.blueprint!.includes("账号级至少 1.5 秒起始节拍"),
   sources.blueprint!.includes("detection→ack 唯一紧急对外动作"),
   sources.browserBlueprint!.includes("chatgptPageAccessNotBefore"),
@@ -66,6 +68,13 @@ const lifecycleChecks = (sources: Readonly<Record<string, string>>): boolean[] =
     !sources.candidate!.includes("querySelectorAll(outgoing.userTurnSelector)"),
     !sources.candidate!.includes("baselineOrdinal + 2"),
     sources.store!.includes("row.attempt_id !== input.attemptId"),
+    sources.checkpoint!.includes("GPT_STOPPED_EMPTY_CONFIRMATION_MS = 20 * 60 * 1_000"),
+    sources.checkpoint!.includes("assistant.generatingRaw > 0"),
+    sources.checkpoint!.includes('gptExecutionFailure("GPT_RESPONSE_STOPPED_EMPTY"'),
+    sources.checkpoint!.includes("stoppedEmptyWindow = null"),
+    sources.checkpoint!.includes("continuousMonotonicMs"),
+    sources.checkpoint!.includes("observationCount"),
+    sources.checkpoint!.includes("terminalObservationRevisionHash"),
   ];
 };
 
@@ -84,6 +93,7 @@ const sources = (context: InspectorContext): Readonly<Record<string, string>> =>
   store: read(context, "src/lib/browser/exact-target/browser-mutation-store.ts"),
   lifecycle: read(context, `${ROOT}/production-browser-lifecycle.ts`),
   targetAcquirer: read(context, "src/lib/browser/infrastructure/browser-target-acquirer.ts"),
+  checkpoint: read(context, `${ROOT}/children/checkpoint_gpt_text_response/handler.ts`),
   blueprint: read(context, "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md"),
   browserBlueprint: read(context,
     "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md"),

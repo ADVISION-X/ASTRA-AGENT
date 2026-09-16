@@ -93,6 +93,7 @@ export class GrassEyeWorkbench {
           evidenceStore: assembly.evidenceStore,
           sourceHash: requireSourceCandidateHash(),
           runtimeLogger: assembly.runtimeLogger,
+          restoreBrowserHostVisibility: this.options.restoreBrowserHostVisibility,
         });
       }
       const productionRuntime = this.productionRuntime;

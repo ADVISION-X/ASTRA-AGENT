@@ -95,11 +95,16 @@ const ExecutionGrantSchema = z.object({
   accepted_attempt_count: z.number().int().min(0),
   max_provider_turns: z.number().int().positive(),
   result_revision: z.number().int().nonnegative(),
-  prior_result_rejection: z.object({
+  prior_result_rejection: z.union([z.object({
     receipt_hash: hash,
     rejected_result_payload_hash: hash,
     reason_codes: z.array(reasonCode).min(1),
-  }).strict().nullable(),
+  }).strict(), z.object({
+    rejection_kind: z.literal("provider_stopped_empty"),
+    receipt_hash: hash,
+    rejected_provider_response_fact_hash: hash,
+    reason_codes: z.array(reasonCode).min(1),
+  }).strict()]).nullable(),
 }).extend({
   attempt_id: z.string().min(1),
   device_id: z.string().min(1),

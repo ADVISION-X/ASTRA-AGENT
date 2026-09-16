@@ -101,6 +101,8 @@ const proofFor = <K extends GptChildCapabilityId>(input: ProofInput<K>): GptChil
     postconditionResult,
     browserFact: input.observation?.browserFact ?? null,
     nativeFailureCode: input.nativeFailureCode ?? input.observation?.nativeFailureCode ?? null,
+    ...(input.observation?.stoppedEmptyProof
+      ? { stoppedEmptyProof: input.observation.stoppedEmptyProof } : {}),
     startedAt: input.startedAt,
     endedAt: input.endedAt,
   };

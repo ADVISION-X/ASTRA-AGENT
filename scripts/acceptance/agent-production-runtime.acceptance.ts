@@ -25,6 +25,9 @@ import {
   websiteJobAbsent,
 } from "../../src/lib/local-runtime/production/runtime-business-admission.js";
 import { businessInFlightCount } from "../../src/lib/local-runtime/production/runtime-loops.js";
+import { restoreBrowserHostVisibilityAfterRelease } from
+  "../../src/lib/local-runtime/production/runtime-state.js";
+import type { RuntimeState } from "../../src/lib/local-runtime/production/runtime-state.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { readProductionOperationsSnapshot } from
   "../../src/lib/local-runtime/production/operations-snapshot.js";
@@ -61,6 +64,22 @@ const successfulJsonResponse = (data: unknown): Response => new Response(
 );
 assert.equal(hashCanonical(agentRouteCapabilityManifest.routes), productionCatalogHash);
 assert.equal(PRODUCTION_BUSINESS_CAPACITY_MAX, 4);
+const failedBrowserRestore = {
+  restoreBrowserHostVisibility: async () => { throw new Error("osascript failed"); },
+  lastErrorCode: null,
+  lastErrorReason: null,
+} as unknown as RuntimeState;
+await restoreBrowserHostVisibilityAfterRelease(failedBrowserRestore);
+assert.equal(failedBrowserRestore.lastErrorCode, "BROWSER_HOST_UNAVAILABLE");
+assert.match(failedBrowserRestore.lastErrorReason ?? "", /osascript failed/u);
+const successfulBrowserRestore = {
+  restoreBrowserHostVisibility: async () => undefined,
+  lastErrorCode: "BROWSER_HOST_UNAVAILABLE",
+  lastErrorReason: "old failure",
+} as unknown as RuntimeState;
+await restoreBrowserHostVisibilityAfterRelease(successfulBrowserRestore);
+assert.equal(successfulBrowserRestore.lastErrorCode, null);
+assert.equal(successfulBrowserRestore.lastErrorReason, null);
 await assert.rejects(
   claimProductionTasks({} as never, 5),
   /V6_CLAIM_LIMIT_INVALID/u,
@@ -266,6 +285,7 @@ try {
   store.acceptTask(waitNew, "attempt:wait-new");
   store.stageResult(waitNew.job_id, resultFor(waitNew));
   let releasedWaitNewTarget = 0;
+  let restoredBrowserHost = 0;
   let waitNewReleaseAuthority = "";
   assert.equal(await reconcileBusinessAdmission({
     store,
@@ -274,9 +294,14 @@ try {
       releasedWaitNewTarget += 1;
       waitNewReleaseAuthority = authority;
     } },
+    restoreBrowserHostVisibility: async () => { restoredBrowserHost += 1; },
+    lastErrorCode: null,
+    lastErrorReason: null,
     abort: new AbortController(),
   } as never, store.readTask(waitNew.job_id)!), "pending");
   assert.equal(releasedWaitNewTarget, 1);
+  assert.equal(restoredBrowserHost, 1,
+    "WAIT_NEW_ATTEMPT must request the zero-window-only host visibility check after target release");
   assert.equal(waitNewReleaseAuthority, "wait-new-attempt",
     "ordinary WAIT_NEW_ATTEMPT must not acquire the permanent cleanup exception");
   assert.equal(store.readTask(waitNew.job_id)?.staged_result, null,
@@ -297,10 +322,13 @@ try {
     browserAuthority: { releaseJobBoundTarget: async (_jobId: string, authority: string) => {
       privacyReleaseAuthority = authority;
     } },
+    restoreBrowserHostVisibility: async () => { restoredBrowserHost += 1; },
     abort: new AbortController(),
   } as never, store.readTask(privacyClosed.job_id)!), "pending");
   assert.equal(privacyReleaseAuthority, "website-permanent-revocation",
     "only Website's persisted permanent privacy decision may acquire the revocation exception");
+  assert.equal(restoredBrowserHost, 1,
+    "permanent revocation must not reuse the ordinary browser-host restore request");
   assert.equal(await reconcileBusinessAdmission({
     store, session: deviceStatusWithoutAdmission(pending.job_id, true), activeAbort: new Map(),
   } as never, store.readTask(pending.job_id)!), "pending");

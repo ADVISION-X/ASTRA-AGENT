@@ -444,7 +444,7 @@ const inspectContractShape = (
     "exactCallIdentityHash", "internalDecisionCode", "executionId", "jobId", "attemptId",
     "productStepId", "callId", "inputHash", "actionOrdinal", "authorityRefHashes", "factResultIds",
     "candidateCardinality", "observationRevisionHash", "committedMutation", "postconditionResult",
-    "browserFact", "nativeFailureCode", "startedAt", "endedAt", "evidenceRef", "evidenceHash",
+    "browserFact", "nativeFailureCode", "stoppedEmptyProof", "startedAt", "endedAt", "evidenceRef", "evidenceHash",
   ]) if (!contract.getInterface("GptChildCapabilityProof")?.getProperty(proofField)) findings.push(finding(
     "gpt/proof-field-required", CONTRACT_PATH, `GptChildCapabilityProof is missing ${proofField}.`,
   ));

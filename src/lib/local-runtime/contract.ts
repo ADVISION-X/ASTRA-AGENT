@@ -7,4 +7,5 @@
 
 export type GrassEyeWorkbenchOptions = {
   dataDir?: string;
+  restoreBrowserHostVisibility?: () => Promise<void>;
 };

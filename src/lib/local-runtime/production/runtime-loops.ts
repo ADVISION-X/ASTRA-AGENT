@@ -194,8 +194,10 @@ export const workerLoop = async (state: RuntimeState): Promise<void> => {
   while (!state.abort.signal.aborted) {
     try {
       delay = await workerIteration(state);
-      state.lastErrorCode = null;
-      state.lastErrorReason = null;
+      if (state.lastErrorCode !== "BROWSER_HOST_UNAVAILABLE") {
+        state.lastErrorCode = null;
+        state.lastErrorReason = null;
+      }
     } catch (error) {
       state.lastErrorCode = failureCode(error, "PRODUCTION_RUNTIME_FAILED");
       state.lastErrorReason = safeReason(error);

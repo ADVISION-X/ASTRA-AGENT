@@ -36,7 +36,9 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   };
   const resultRevision = !review && route.product_id === "localization_report_translation"
     ? { revision: 1, priorRejection: {
+        rejection_kind: "settled_result_unusable",
         receipt_hash: FIXTURE_HASH, rejected_result_payload_hash: FIXTURE_HASH,
+        rejected_provider_response_fact_hash: null,
         reason_codes: ["RESULT_SETTLED_UNUSABLE"],
       } } as const
     : undefined;
@@ -79,15 +81,88 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     assert.match(prompt, /可信来源.*确定事实.*核验依据.*当代用户问题/u);
     for (const requirement of [
       "translatable_json_pointers", "safety_json_pointers", "protected_json_pointers",
-      "target_locale", "JSON 结构和事实不得变化", "只返回一个完整 JSON 对象",
+      "target_locale", "COPY_THEN_REPLACE", "唯一不可变树模板", "完整且唯一的可变更白名单",
+      "即使它是中文", "必须是 translatable_json_pointers 的子集",
+      "六字段 route contract → 源树与白名单不可变边界 → safety 义务 → 术语和呈现偏好",
+      "始终从原 source_content", "prior rejection 不能改写任务边界",
+      "六项自检", "只返回一个完整 JSON 对象",
     ]) assert.match(prompt, new RegExp(requirement, "u"));
+    for (const requirement of [
+      "envelope 键集与 locked identity 精确",
+      "每个节点类型一致",
+      "translatable_json_pointers 全部存在、仍为字符串",
+      "否定、限制、不确定性、专业替代边界与风险义务全部保留",
+    ]) assert.match(prompt, new RegExp(requirement, "u"));
+    const revisionIndex = prompt.indexOf("Website 结果修订事实");
+    const copyIndex = prompt.indexOf("执行 COPY_THEN_REPLACE");
+    const contractIndex = prompt.indexOf("Website route result_contract");
+    const finalCheckIndex = prompt.indexOf("输出前静默完成六项自检");
+    assert.ok(revisionIndex >= 0 && revisionIndex < copyIndex && copyIndex < contractIndex
+      && contractIndex < finalCheckIndex, "primary translation prompt order must remain fixed");
+    assert.match(prompt, /该修订事实不授权变更 source_content、locale_policy、field_policy 或 result_contract/u);
+    const repeated = await exerciseProductFlow(plugin, { task, output,
+      ...(resultRevision ? { resultRevision } : {}) });
+    const repeatedPrompt = String(repeated.calls.find(
+      (call) => call.child === "write_exact_gpt_prompt",
+    )?.input.prompt);
+    assert.equal(sha256(repeatedPrompt), sha256(prompt),
+      "identical primary task facts must produce one stable prompt hash");
+    assert.doesNotMatch(prompt, /unknown_field_policy/u);
+  } else {
+    assert.doesNotMatch(prompt, /COPY_THEN_REPLACE|不授权变更 source_content、locale_policy、field_policy 或 result_contract/u,
+      "review prompts must retain their existing review-only semantics");
   }
   assert.match(prompt, /Website 结果修订事实/u);
+  assert.ok(prompt.split("\n").includes(
+    `Website 结果修订事实：${JSON.stringify(resultRevision ?? { revision: 0, priorRejection: null })}`,
+  ), "shared review and primary revision fact text must retain its exact existing bytes");
   assert.match(prompt, /Website 当前授权依据/u);
   assert.match(prompt, new RegExp(task.business_identity.authorization_ref, "u"));
   if (resultRevision) assert.match(prompt, /RESULT_SETTLED_UNUSABLE/u);
   assert.equal(run.physicalSubmitDispatches, 1);
 }
+
+const incidentShapeRoute = productionRoutePolicies.find((route) =>
+  route.product_id === "localization_article_translation" && route.action_id === "article_translation");
+assert(incidentShapeRoute);
+const incidentSourceRefs = Array.from({ length: 16 }, (_, index) => ({
+  ref: `source:${index + 1}`,
+  label: index === 15 ? "事故等形受保护中文标签" : `受保护标签${index + 1}`,
+}));
+const incidentShapeTask = buildProductTask(incidentShapeRoute, { parameters: {
+  target_locale: "ja-JP", source_resource_id: "article:incident-shape",
+  source_version: "v1", source_sha256: FIXTURE_HASH, policy_version: "localization-policy.v1",
+} });
+const incidentShapeRun = await exerciseProductFlow(plugin, {
+  task: incidentShapeTask,
+  materialContents: {
+    source_content: { schema_version: "incident-shape.v1", source_refs: incidentSourceRefs },
+    terminology: { terms: [] },
+    locale_policy: {
+      translatable_json_pointers: ["/title"],
+      protected_json_pointers: incidentSourceRefs.map((_, index) => `/source_refs/${index}/label`),
+      safety_json_pointers: [],
+    },
+    render_policy: { preserve_structure: true },
+  },
+  output: {
+    schema_version: incidentShapeRoute.result_schema_version,
+    source_resource_id: incidentShapeTask.parameters.source_resource_id,
+    source_version: incidentShapeTask.parameters.source_version,
+    source_sha256: incidentShapeTask.parameters.source_sha256,
+    target_locale: incidentShapeTask.parameters.target_locale,
+    localized_structured_payload: { title: "事故等形" },
+  },
+});
+assert.equal(incidentSourceRefs.length, 16);
+assert.equal(incidentSourceRefs[15]?.label, "事故等形受保护中文标签");
+const incidentShapePrompt = String(incidentShapeRun.calls.find(
+  (call) => call.child === "write_exact_gpt_prompt",
+)?.input.prompt);
+assert.match(incidentShapePrompt, /即使它是中文、可读 label\/title/u);
+assert.match(incidentShapePrompt, /protected_json_pointers.*逐值完全相同/u,
+  "a high-cardinality protected Chinese label fixture must remain outside the translation whitelist");
+assert.match(incidentShapePrompt, /不在白名单的节点默认不可变/u);
 
 const staticRoute = productionRoutePolicies.find((route) => route.product_id === "localization_static_catalog"
   && route.action_id === "produce_locale_catalog");

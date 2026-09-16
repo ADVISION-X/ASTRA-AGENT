@@ -6,6 +6,15 @@ import {
 import { typedBrowserExecutionFailure } from "../../browser/browser-authority-api.js";
 import { typedRuntimeTransportFailure } from "./transport-failure.js";
 
+export type SerializedStoppedEmptyProof = Readonly<{
+  first_observed_at: string;
+  terminal_observed_at: string;
+  continuous_monotonic_ms: number;
+  observation_count: number;
+  identity_hash: `sha256:${string}`;
+  terminal_observation_revision_hash: `sha256:${string}`;
+}>;
+
 export type SerializedExecutionFailure = Readonly<{
   code: string;
   mutation_outcome: "no" | "dispatched" | "confirmed";
@@ -14,6 +23,9 @@ export type SerializedExecutionFailure = Readonly<{
   browser_outcome: "DISPATCHED" | "CONFIRMED" | "REJECTED" | null;
   evidence_ref: string | null;
   evidence_hash: `sha256:${string}` | null;
+  child_proof_ref: string | null;
+  child_proof_hash: `sha256:${string}` | null;
+  stopped_empty_proof: SerializedStoppedEmptyProof | null;
   cause: Readonly<{ name: string; code: string | null }> | null;
 }>;
 
@@ -28,6 +40,7 @@ export const serializeTerminalFailure = (
   const browser = typedBrowserExecutionFailure(error);
   const metadata = executionFailureMetadata(error);
   const evidence = metadata?.evidence ?? null;
+  const stoppedEmpty = metadata?.stoppedEmptyProof ?? null;
   const failure: SerializedExecutionFailure = Object.freeze({
     code: failureCode(error),
     mutation_outcome: metadata?.mutationOutcome ?? browser?.mutationOutcome ?? "no",
@@ -37,6 +50,16 @@ export const serializeTerminalFailure = (
     browser_outcome: metadata?.browserEffect?.browserOutcome ?? browser?.browserEffect?.browserOutcome ?? null,
     evidence_ref: evidence?.evidenceRef ?? null,
     evidence_hash: evidence?.evidenceHash ?? null,
+    child_proof_ref: metadata?.childProof?.evidenceRef ?? null,
+    child_proof_hash: metadata?.childProof?.evidenceHash ?? null,
+    stopped_empty_proof: stoppedEmpty ? Object.freeze({
+      first_observed_at: stoppedEmpty.firstObservedAt,
+      terminal_observed_at: stoppedEmpty.terminalObservedAt,
+      continuous_monotonic_ms: stoppedEmpty.continuousMonotonicMs,
+      observation_count: stoppedEmpty.observationCount,
+      identity_hash: stoppedEmpty.identityHash,
+      terminal_observation_revision_hash: stoppedEmpty.terminalObservationRevisionHash,
+    }) : null,
     cause: executionFailureCause(error),
   });
   return failure;

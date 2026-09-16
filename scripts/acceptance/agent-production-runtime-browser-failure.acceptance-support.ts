@@ -28,6 +28,9 @@ export const verifyBrowserFailureStoreContract = (store: ProductionRuntimeStore)
       browser_outcome: pair.browser_outcome,
       evidence_ref: `browser-mutation:legal-pair:${index}`,
       evidence_hash: HASH_A,
+      child_proof_ref: null,
+      child_proof_hash: null,
+      stopped_empty_proof: null,
       cause: null,
     });
     store.recordAttemptFailure(browserTask.job_id, attemptId, failure);
@@ -49,6 +52,9 @@ export const verifyBrowserFailureStoreContract = (store: ProductionRuntimeStore)
     browser_outcome: "REJECTED",
     evidence_ref: null,
     evidence_hash: null,
+    child_proof_ref: null,
+    child_proof_hash: null,
+    stopped_empty_proof: null,
     cause: null,
   }), /PRODUCTION_ATTEMPT_FAILURE_INVALID/u,
   "Browser facts without their WAL evidence pair must fail before local admission");

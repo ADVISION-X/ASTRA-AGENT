@@ -424,6 +424,9 @@ for (const initiallyOpen of [true, false]) {
     browser_outcome: "CONFIRMED",
     evidence_ref: "browser-mutation:acceptance-call",
     evidence_hash: `sha256:${"9".repeat(64)}`,
+    child_proof_ref: null,
+    child_proof_hash: null,
+    stopped_empty_proof: null,
     cause: null,
   });
 }

@@ -74,6 +74,23 @@ end tell
 `;
 }
 
+export function buildChromeWindowRestoreScript(url) {
+  const escapedUrl = escapeAppleScriptString(url);
+  return `
+if application "Google Chrome" is running then
+    tell application "Google Chrome"
+        if (count of windows) > 0 then return "already_visible"
+    end tell
+end if
+tell application "Google Chrome"
+    activate
+    if (count of windows) = 0 then make new window
+    set URL of active tab of front window to "${escapedUrl}"
+    return "opened_new_window"
+end tell
+`;
+}
+
 async function handoffToCurrentChromeTab(url) {
   const browserAppPath = resolveMacOsChromeAppPath();
   const result = await runSpawn("osascript", ["-e", buildChromeTabHandoffScript(url)]);
@@ -145,4 +162,15 @@ export async function openMainPage(url, platform = process.platform) {
 
 export async function openWorkbenchPage(url, platform = process.platform) {
   return openMainPage(url, platform);
+}
+
+export async function restoreWorkbenchWindowIfChromeHasNoWindow(
+  url,
+  platform = process.platform,
+  spawnRunner = runSpawn,
+) {
+  if (platform !== "darwin") return { handoffMode: "unsupported_platform_noop" };
+  if (spawnRunner === runSpawn) resolveMacOsChromeAppPath();
+  const result = await spawnRunner("osascript", ["-e", buildChromeWindowRestoreScript(url)]);
+  return { handoffMode: result.stdout || "already_visible" };
 }

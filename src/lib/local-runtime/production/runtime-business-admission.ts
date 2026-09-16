@@ -6,6 +6,7 @@ import { failureCode } from "../../execution-failure.js";
 import { hashCanonical } from "./contracts.js";
 import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import type { RuntimeState } from "./runtime-state.js";
+import { restoreBrowserHostVisibilityAfterRelease } from "./runtime-state.js";
 import type { StoredProductionTask } from "./store.js";
 import { productionRuntimeTaskPath } from "./runtime-storage-inventory.js";
 
@@ -72,16 +73,16 @@ export const reconcileBusinessAdmission = async (
   const admission = remote.business_admission_receipt;
   if (!admission) {
     if (remote.next_action_code === "WAIT_NEW_ATTEMPT") {
+      const permanentRevocation = remote.current_reason?.code === "PRIVACY_SUBJECT_CLOSED";
       await state.browserAuthority.releaseJobBoundTarget(
         record.task.job_id,
-        remote.current_reason?.code === "PRIVACY_SUBJECT_CLOSED"
-          ? "website-permanent-revocation"
-          : "wait-new-attempt",
+        permanentRevocation ? "website-permanent-revocation" : "wait-new-attempt",
         state.abort.signal,
       );
       state.store.releaseAttemptForWebsiteDecision(
         record.task.job_id, record.current_attempt_id,
       );
+      if (!permanentRevocation) await restoreBrowserHostVisibilityAfterRelease(state);
       return "pending";
     }
     state.store.setCurrentReason(

@@ -38,6 +38,7 @@ import {
 import {
   jobIdentity,
   leaseBudget,
+  restoreBrowserHostVisibilityAfterRelease,
   safeReason,
   type RuntimeState,
 } from "./runtime-state.js";
@@ -103,14 +104,14 @@ const persistAttemptFailure = async (
   try {
     const remote = await readProductionDeviceJobStatus(state.session, job.job_id);
     if (remote.next_action_code === "WAIT_NEW_ATTEMPT") {
+      const permanentRevocation = remote.current_reason?.code === "PRIVACY_SUBJECT_CLOSED";
       await state.browserAuthority.releaseJobBoundTarget(
         job.job_id,
-        remote.current_reason?.code === "PRIVACY_SUBJECT_CLOSED"
-          ? "website-permanent-revocation"
-          : "wait-new-attempt",
+        permanentRevocation ? "website-permanent-revocation" : "wait-new-attempt",
         state.abort.signal,
       );
       state.store.releaseAttemptForWebsiteDecision(job.job_id, job.grant.attempt_id);
+      if (!permanentRevocation) await restoreBrowserHostVisibilityAfterRelease(state);
     }
   } catch (readbackError) {
     state.lastErrorCode = failureCode(readbackError, "ATTEMPT_RELEASE_READBACK_FAILED");

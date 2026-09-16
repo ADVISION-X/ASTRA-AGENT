@@ -46,6 +46,7 @@ export type ProductionRuntimeStartInput = Readonly<{
   evidenceStore: ForensicsPersistenceAbilityGroup;
   browserAuthority: WorkbenchBrowserAuthority;
   runtimeLogger: RuntimeLogger;
+  restoreBrowserHostVisibility?: (() => Promise<void>) | undefined;
 }>;
 
 const blockedHealth = (
@@ -158,7 +159,9 @@ const createRuntimeState = (
     providerRateLimitControl,
     browserAuthority: input.browserAuthority, gpt: input.gpt, evidenceStore: input.evidenceStore,
     dataDir: input.dataDir,
-    runtimeLogger: input.runtimeLogger, draining: false, lastHeartbeat: null,
+    runtimeLogger: input.runtimeLogger,
+    restoreBrowserHostVisibility: input.restoreBrowserHostVisibility,
+    draining: false, lastHeartbeat: null,
     lastErrorCode: null, lastErrorReason: null, stopped: false, ledgerReconciled: false,
   };
   stateRef = state;

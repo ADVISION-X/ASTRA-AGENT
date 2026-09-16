@@ -1,5 +1,13 @@
 export type ExecutionFailureStatus = "failed";
 export type ExecutionMutationOutcome = "no" | "dispatched" | "confirmed";
+export type ProviderStoppedEmptyProof = Readonly<{
+  firstObservedAt: string;
+  terminalObservedAt: string;
+  continuousMonotonicMs: number;
+  observationCount: number;
+  identityHash: `sha256:${string}`;
+  terminalObservationRevisionHash: `sha256:${string}`;
+}>;
 export type ExecutionFailureMetadata = Readonly<{
   mutationOutcome?: ExecutionMutationOutcome;
   evidence?: Readonly<{ evidenceRef: string; evidenceHash: `sha256:${string}` }> | null;
@@ -10,6 +18,8 @@ export type ExecutionFailureMetadata = Readonly<{
     providerEffectIdentityHash?: `sha256:${string}` | null;
   }> | null;
   settledResultPayloadHash?: `sha256:${string}` | null;
+  stoppedEmptyProof?: ProviderStoppedEmptyProof | null;
+  childProof?: Readonly<{ evidenceRef: string; evidenceHash: `sha256:${string}` }> | null;
 }>;
 
 export class TypedExecutionFailure extends Error {
