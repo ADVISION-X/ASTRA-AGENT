@@ -99,11 +99,13 @@ const reasoningProfileCalls = proceed.calls.filter(
 assert.equal(reasoningProfileCalls.length, 3);
 for (const call of reasoningProfileCalls) {
   assert.equal(call.input.profile.profileRef,
-    "public-knowledge-article-pipeline:gpt-5.6-sol-high");
-  assert.equal(call.input.profile.modelDisplayName, "GPT-5.6 Sol");
+    "public-knowledge-article-pipeline:chatgpt-latest-extra-high");
+  assert.equal(call.input.profile.accountCapabilityRef, "openai-chatgpt:latest");
+  assert.equal(call.input.profile.modelDisplayName, "最新");
+  assert.equal(call.input.profile.modelFamily, "chatgpt-latest");
   assert.deepEqual(call.input.profile.reasoningRequirement, {
     selectionPolicy: "exact",
-    requestedTier: "high",
+    requestedTier: "extra_high",
   });
 }
 assert.deepEqual([...new Set(proceed.calls.map((call) => call.productStepId))], [

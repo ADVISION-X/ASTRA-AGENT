@@ -52,12 +52,21 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   assert(reasoningCall?.child === "ensure_gpt_reasoning_requirement");
   assert.deepEqual({
     profileRef: reasoningCall.input.profile.profileRef,
+    accountCapabilityRef: reasoningCall.input.profile.accountCapabilityRef,
+    modelDisplayName: reasoningCall.input.profile.modelDisplayName,
+    modelFamily: reasoningCall.input.profile.modelFamily,
     reasoningRequirement: reasoningCall.input.profile.reasoningRequirement,
   }, articleTranslation ? {
-    profileRef: "localization-production:article-translation:gpt-5.6-sol-extra-high",
+    profileRef: "localization-production:article-translation:chatgpt-latest-extra-high",
+    accountCapabilityRef: "openai-chatgpt:latest",
+    modelDisplayName: "最新",
+    modelFamily: "chatgpt-latest",
     reasoningRequirement: { selectionPolicy: "exact", requestedTier: "extra_high" },
   } : {
     profileRef: "localization-production:gpt-5.6-sol-pro-standard",
+    accountCapabilityRef: "openai-chatgpt:gpt-5.6-sol",
+    modelDisplayName: "GPT-5.6 Sol",
+    modelFamily: "gpt-5.6",
     reasoningRequirement: { selectionPolicy: "exact-or-observed-maximum", requestedTier: "pro_standard" },
   });
   const prompt = String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt);

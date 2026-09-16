@@ -41,10 +41,10 @@ const MODEL_PROFILE = buildGptExecutionProfile({
   acceptanceVersion: "v1",
 });
 const ARTICLE_TRANSLATION_MODEL_PROFILE = buildGptExecutionProfile({
-  profileRef: `${PLUGIN_ID}:article-translation:gpt-5.6-sol-extra-high`,
-  accountCapabilityRef: "openai-chatgpt:gpt-5.6-sol",
-  modelDisplayName: "GPT-5.6 Sol",
-  modelFamily: "gpt-5.6",
+  profileRef: `${PLUGIN_ID}:article-translation:chatgpt-latest-extra-high`,
+  accountCapabilityRef: "openai-chatgpt:latest",
+  modelDisplayName: "最新",
+  modelFamily: "chatgpt-latest",
   reasoningRequirement: { selectionPolicy: "exact", requestedTier: "extra_high" },
   executorIdentityRef: PLUGIN_ID,
   acceptanceRef: `${PLUGIN_ID}:production`,

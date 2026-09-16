@@ -23,13 +23,13 @@ import {
   type SeoConfirmedSubmit,
 } from "./seo-submit-readback.js";
 const MODEL_PROFILE = buildGptExecutionProfile({
-  profileRef: `${PLUGIN_ID}:gpt-5.6-sol-high`,
-  accountCapabilityRef: "openai-chatgpt:gpt-5.6-sol",
-  modelDisplayName: "GPT-5.6 Sol",
-  modelFamily: "gpt-5.6",
+  profileRef: `${PLUGIN_ID}:chatgpt-latest-extra-high`,
+  accountCapabilityRef: "openai-chatgpt:latest",
+  modelDisplayName: "最新",
+  modelFamily: "chatgpt-latest",
   reasoningRequirement: {
     selectionPolicy: "exact",
-    requestedTier: "high",
+    requestedTier: "extra_high",
   },
   executorIdentityRef: PLUGIN_ID,
   acceptanceRef: `${PLUGIN_ID}:seo-production`,
