@@ -75,6 +75,8 @@ const validSerializedCause = (cause: unknown): boolean => cause === null || (
 const serializedFailureKeys = ["browser_outcome", "cause", "child_capability_id", "child_proof_hash",
   "child_proof_ref", "code", "effect_scope", "evidence_hash", "evidence_ref", "mutation_outcome",
   "stopped_empty_proof"];
+const historicalSerializedFailureKeys = ["browser_outcome", "cause", "child_capability_id", "code",
+  "effect_scope", "evidence_hash", "evidence_ref", "mutation_outcome"];
 const stoppedEmptyTimestampsValid = (row: Record<string, unknown>): boolean =>
   typeof row.first_observed_at === "string" && Number.isFinite(Date.parse(row.first_observed_at))
   && new Date(row.first_observed_at).toISOString() === row.first_observed_at
@@ -127,20 +129,30 @@ const browserFailureFactsValid = (row: Record<string, unknown>): boolean => {
     && ["DISPATCHED", "CONFIRMED", "REJECTED"].includes(outcome)
     && outcomeMatchesMutation && completeEvidence;
 };
+const serializedFailureCoreValid = (row: Record<string, unknown>): boolean =>
+  typeof row.code === "string" && row.code.length > 0
+  && ["no", "dispatched", "confirmed"].includes(String(row.mutation_outcome))
+  && (browserFailureFactsAbsent(row) || browserFailureFactsValid(row))
+  && serializedEvidenceValid(row) && validSerializedCause(row.cause);
 
 export const isSerializedTerminalFailure = (value: unknown): value is SerializedExecutionFailure => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
   return JSON.stringify(Object.keys(row).sort()) === JSON.stringify(serializedFailureKeys)
-    && typeof row.code === "string" && row.code.length > 0
-    && ["no", "dispatched", "confirmed"].includes(String(row.mutation_outcome))
-    && (browserFailureFactsAbsent(row) || browserFailureFactsValid(row))
-    && serializedEvidenceValid(row) && serializedChildProofValid(row)
+    && serializedFailureCoreValid(row) && serializedChildProofValid(row)
     && serializedStoppedEmptyProofValid(row.stopped_empty_proof)
     && (row.code === "GPT_RESPONSE_STOPPED_EMPTY"
       ? row.stopped_empty_proof !== null && row.child_proof_ref !== null
-        : row.stopped_empty_proof === null)
-    && validSerializedCause(row.cause);
+        : row.stopped_empty_proof === null);
+};
+
+export const isPersistedSerializedTerminalFailure = (value: unknown): boolean => {
+  if (isSerializedTerminalFailure(value)) return true;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  return row.code !== "GPT_RESPONSE_STOPPED_EMPTY"
+    && JSON.stringify(Object.keys(row).sort()) === JSON.stringify(historicalSerializedFailureKeys)
+    && serializedFailureCoreValid(row);
 };
 
 export const storedTaskFromRow = (row: TaskRow): StoredProductionTask => ({
