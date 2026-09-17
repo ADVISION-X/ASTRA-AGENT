@@ -38,7 +38,6 @@ import {
 import {
   jobIdentity,
   leaseBudget,
-  restoreBrowserHostVisibilityAfterRelease,
   safeReason,
   type RuntimeState,
 } from "./runtime-state.js";
@@ -111,7 +110,6 @@ const persistAttemptFailure = async (
         state.abort.signal,
       );
       state.store.releaseAttemptForWebsiteDecision(job.job_id, job.grant.attempt_id);
-      if (!permanentRevocation) await restoreBrowserHostVisibilityAfterRelease(state);
     }
   } catch (readbackError) {
     state.lastErrorCode = failureCode(readbackError, "ATTEMPT_RELEASE_READBACK_FAILED");
@@ -306,12 +304,6 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
     if (remote.status !== "failed" || remote.terminal_status !== null
       || remote.accepted_attempt_count !== job.grant.accepted_attempt_count) {
       throw executionFailure("failed", "PRODUCTION_ATTEMPT_AUTHORITY_CONFLICT");
-    }
-    const prior = state.store.readTask(job.job_id);
-    if (prior?.status === "failed" && prior.current_attempt_id !== job.grant.attempt_id) {
-      await state.browserAuthority.releaseJobBoundTarget(
-        job.job_id, "attempt-replaced", abort.signal,
-      );
     }
     const claim = acceptClaim(state, job, abort, jobSpan);
     acceptance.durable = "accepted";

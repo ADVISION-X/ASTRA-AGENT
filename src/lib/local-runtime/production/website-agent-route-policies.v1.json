@@ -1,7 +1,7 @@
 {
   "schema_version": "website-agent-route-policies.v1",
   "contract_id": "ai-acceptance.website-agent-task-result",
-  "contract_version": 12,
+  "contract_version": 13,
   "parameter_types": {
     "admitted_identity_catalog_hash": "sha256",
     "analysis_kind": "bazi_analysis_kind",
@@ -874,9 +874,7 @@
           "integer_minimums": {
             "bytes": 1
           },
-          "mime_type": "image/webp",
-          "width": 1200,
-          "height": 630
+          "mime_type": "image/webp"
         }
       },
       "relation_kind": "primary"

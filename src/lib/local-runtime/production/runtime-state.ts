@@ -23,7 +23,6 @@ export type RuntimeState = {
   readonly evidenceStore: ForensicsPersistenceAbilityGroup;
   readonly dataDir: string;
   readonly runtimeLogger: RuntimeLogger;
-  readonly restoreBrowserHostVisibility?: (() => Promise<void>) | undefined;
   draining: boolean;
   lastHeartbeat: string | null;
   lastErrorCode: string | null;
@@ -46,25 +45,6 @@ export const wait = async (milliseconds: number, signal: AbortSignal): Promise<v
 
 export const safeReason = (error: unknown): string =>
   (error instanceof Error ? error.message : String(error)).replace(/\s+/gu, " ").slice(0, 1_000);
-
-type BrowserHostVisibilityState = Pick<RuntimeState,
-  "restoreBrowserHostVisibility" | "lastErrorCode" | "lastErrorReason">;
-
-export const restoreBrowserHostVisibilityAfterRelease = async (
-  state: BrowserHostVisibilityState,
-): Promise<void> => {
-  if (!state.restoreBrowserHostVisibility) return;
-  try {
-    await state.restoreBrowserHostVisibility();
-    if (state.lastErrorCode === "BROWSER_HOST_UNAVAILABLE") {
-      state.lastErrorCode = null;
-      state.lastErrorReason = null;
-    }
-  } catch (error) {
-    state.lastErrorCode = "BROWSER_HOST_UNAVAILABLE";
-    state.lastErrorReason = safeReason(error);
-  }
-};
 
 export const jobIdentity = (job: ClaimedProductionTask) => ({
   kind: "lease" as const,

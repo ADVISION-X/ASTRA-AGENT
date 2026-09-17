@@ -12,12 +12,12 @@ import { buildAgentProductionSessionOutput } from "./session-output.js";
 const LAWS = {
   core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V63",
   credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V8",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V34",
-  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V34",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V35",
+  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V35",
   database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V33",
-  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V36",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V36",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V37",
+  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V37",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V37",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V38",
 } as const;
 const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
@@ -54,17 +54,13 @@ const finding = (
   evidenceMode, lawId, clauseId: `${lawId.toLowerCase()}-requirement`,
   checkId, filePath, message,
 });
-const read = (context: InspectorContext, path: string): string =>
-  readFileSync(resolve(context.sealedRoot, path), "utf8");
-const sourceFor = (context: InspectorContext, path: string): SourceFile | undefined =>
-  context.project.getSourceFile(resolve(context.sealedRoot, path));
+const read = (context: InspectorContext, path: string): string => readFileSync(resolve(context.sealedRoot, path), "utf8");
+const sourceFor = (context: InspectorContext, path: string): SourceFile | undefined => context.project.getSourceFile(resolve(context.sealedRoot, path));
 const stringLiterals = (source: SourceFile | undefined): Set<string> => new Set(
   source?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralValue()) ?? [],
 );
-const calledStringArguments = (
-  source: SourceFile | undefined,
-  functionName: string,
-  argumentIndex = 0,
+const calledStringArguments = (source: SourceFile | undefined,
+  functionName: string, argumentIndex = 0,
 ): Set<string> => new Set(
   (source?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? []).flatMap((call) => {
     if (call.getExpression().getText() !== functionName) return [];
@@ -179,6 +175,11 @@ const inspectCoreAst = (context: InspectorContext, findings: InspectorFinding[])
     .map((call) => call.getFirstAncestorByKind(SyntaxKind.MethodDeclaration)?.getName());
   const deliverOutbox = outbox?.getClass("ProductionStoreOutbox")?.getMethod("deliverOutbox");
   const forbiddenLifecycleVerdict = `${taskState?.getFullText() ?? ""}\n${outbox?.getFullText() ?? ""}`;
+  const projectSources = context.project.getSourceFiles().filter((source) => !source.isDeclarationFile());
+  const runtimeHostRecoveryText = projectSources.filter((source) =>
+    source.getFilePath().replaceAll("\\", "/").includes(`/${ROOT}/`)).map((source) => source.getFullText()).join("\n");
+  const retiredAttemptReleaseInActiveSource = projectSources.filter((source) =>
+    source.getFilePath().replaceAll("\\", "/").includes("/src/")).some((source) => stringLiterals(source).has("attempt-replaced"));
   const lifecycleViolations = [
     startupReconciliationCalls.has("state.store.endUnsentAttemptWrites"),
     startupReconciliationCalls.has("state.store.setCurrentReason"),
@@ -194,6 +195,8 @@ const inspectCoreAst = (context: InspectorContext, findings: InspectorFinding[])
     !websiteAttemptRelease?.getText().includes("current_attempt_id !== attemptId"),
     ![businessAdmission?.getText(), variableDeclaration(claim, "persistAttemptFailure")?.getInitializer()?.getText()].every(
       (source) => ['remote.next_action_code === "WAIT_NEW_ATTEMPT"', "state.store.releaseAttemptForWebsiteDecision("].every((token) => source?.includes(token))),
+    runtimeHostRecoveryText.includes("restoreBrowserHostVisibility"),
+    retiredAttemptReleaseInActiveSource,
     !deliverOutbox?.getText().includes('executionFailure("failed", authority.lastError)'),
   ];
   if (lifecycleViolations.some(Boolean)) {
@@ -494,6 +497,5 @@ const evaluate = (context: InspectorContext): InspectorEvaluation => {
   return { capabilityDomain: context.planEntry.capabilityDomain, reportedLawIds: context.planEntry.lawIds,
     findings, inspectedFiles: [...context.targetPaths], staticCheckReceipts: receipts };
 };
-
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> =>
   buildAgentProductionSessionOutput(context, evaluate(context));

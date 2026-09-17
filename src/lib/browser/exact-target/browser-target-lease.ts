@@ -61,7 +61,6 @@ export type BrowserTargetLeaseWait = BrowserTargetLeaseWaitBase & (
 export type BrowserTargetReleaseAuthority =
   | "business-admitted"
   | "wait-new-attempt"
-  | "attempt-replaced"
   | "website-permanent-revocation"
   | "website-admin-deletion";
 

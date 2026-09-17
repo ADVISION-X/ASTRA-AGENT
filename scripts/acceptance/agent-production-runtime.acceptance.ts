@@ -2,6 +2,7 @@ import { governanceAssert as assert } from "../audit/shared/governance-exam-asse
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { Project } from "ts-morph";
 
 import {
   agentRouteCapabilityManifest, productionCatalogHash,
@@ -29,13 +30,15 @@ import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/s
 import { readProductionOperationsSnapshot } from
   "../../src/lib/local-runtime/production/operations-snapshot.js";
 import {
-  ClaimBatchReceiptSchema, LeaseRenewReceiptSchema, parseJsonEnvelope,
+  ClaimBatchReceiptSchema, LeaseRenewReceiptSchema, UploadedResultReceiptSchema, parseJsonEnvelope,
   websiteAgentTaskFromClaim,
 } from "../../src/lib/local-runtime/production/transport-protocol.js";
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { assertProductionTaskRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
+import { inspectGeneratedImageTransport } from
+  "../audit/domains/agent-production-runtime/contract-inspection.js";
 import {
   HASH_A,
   HASH_B,
@@ -266,7 +269,6 @@ try {
   store.acceptTask(waitNew, "attempt:wait-new");
   store.stageResult(waitNew.job_id, resultFor(waitNew));
   let releasedWaitNewTarget = 0;
-  let restoredBrowserHost = 0;
   let waitNewReleaseAuthority = "";
   assert.equal(await reconcileBusinessAdmission({
     store,
@@ -275,14 +277,9 @@ try {
       releasedWaitNewTarget += 1;
       waitNewReleaseAuthority = authority;
     } },
-    restoreBrowserHostVisibility: async () => { restoredBrowserHost += 1; },
-    lastErrorCode: null,
-    lastErrorReason: null,
     abort: new AbortController(),
   } as never, store.readTask(waitNew.job_id)!), "pending");
   assert.equal(releasedWaitNewTarget, 1);
-  assert.equal(restoredBrowserHost, 1,
-    "WAIT_NEW_ATTEMPT must request the zero-window-only host visibility check after target release");
   assert.equal(waitNewReleaseAuthority, "wait-new-attempt",
     "ordinary WAIT_NEW_ATTEMPT must not acquire the permanent cleanup exception");
   assert.equal(store.readTask(waitNew.job_id)?.staged_result, null,
@@ -303,13 +300,10 @@ try {
     browserAuthority: { releaseJobBoundTarget: async (_jobId: string, authority: string) => {
       privacyReleaseAuthority = authority;
     } },
-    restoreBrowserHostVisibility: async () => { restoredBrowserHost += 1; },
     abort: new AbortController(),
   } as never, store.readTask(privacyClosed.job_id)!), "pending");
   assert.equal(privacyReleaseAuthority, "website-permanent-revocation",
     "only Website's persisted permanent privacy decision may acquire the revocation exception");
-  assert.equal(restoredBrowserHost, 1,
-    "permanent revocation must not reuse the ordinary browser-host restore request");
   assert.equal(await reconcileBusinessAdmission({
     store, session: deviceStatusWithoutAdmission(pending.job_id, true), activeAbort: new Map(),
   } as never, store.readTask(pending.job_id)!), "pending");
@@ -359,21 +353,24 @@ try {
 
 const imageTemporary = await mkdtemp(path.join(tmpdir(), "agent-generated-image-"));
 const imageStore = new ProductionRuntimeStore(imageTemporary);
+const enqueueGeneratedImage = imageStore.enqueue.bind(imageStore);
+let imageEnqueues = 0;
+imageStore.enqueue = ((write) => {
+  imageEnqueues += 1;
+  return enqueueGeneratedImage(write);
+}) as typeof imageStore.enqueue;
 const imageFetch = globalThis.fetch;
 let physicalImageUploads = 0;
 try {
   const webpBytes = new TextEncoder().encode("fixture-webp");
-  const originalBytes = new TextEncoder().encode("fixture-original");
   const image = Object.freeze({
     artifact_id: "image:fixture",
     webp_bytes: webpBytes,
-    original_bytes: originalBytes,
     sha256: sha256(webpBytes),
-    original_sha256: sha256(originalBytes),
     bytes: webpBytes.byteLength,
     media_type: "image/webp" as const,
-    width: 1200 as const,
-    height: 630 as const,
+    width: 1536,
+    height: 1024,
   });
   globalThis.fetch = (async (input) => {
     physicalImageUploads += 1;
@@ -395,11 +392,36 @@ try {
     device: { server_base_url: "https://production.invalid" },
     authorizationHeaders: async (headers: Record<string, string>) => headers,
   };
+  for (const invalidImage of [
+    { ...image, bytes: image.bytes + 1 },
+    { ...image, sha256: HASH_A },
+    { ...image, media_type: "image/png" },
+  ]) {
+    await assert.rejects(
+      uploadProductionGeneratedImage(imageSession as never, imageStore, imageJob, invalidImage as never),
+      (error: unknown) => typedExecutionFailure(error)?.code === "GENERATED_IMAGE_LOCAL_IDENTITY_MISMATCH",
+      "Runtime must reject local WebP byte-length, hash, and media identity drift before upload",
+    );
+  }
+  assert.equal(physicalImageUploads, 0,
+    "local generated-image identity failures must not create a physical Website upload");
   const first = await uploadProductionGeneratedImage(imageSession as never, imageStore, imageJob, image);
   const repeated = await uploadProductionGeneratedImage(imageSession as never, imageStore, imageJob, image);
   assert.equal(physicalImageUploads, 1, "the generated image transport must be physically delivered once");
+  assert.equal(imageEnqueues, 1, "the generated image transport must persist one Outbox intent");
   assert.deepEqual(repeated.receipt, first.receipt);
   assert.equal(first.receipt.object_ref, "object:image:fixture");
+  await assert.rejects(
+    uploadProductionGeneratedImage(imageSession as never, imageStore, imageJob, {
+      ...image, webp_bytes: new Uint8Array([1, 2, 3]),
+    }),
+    (error: unknown) => typedExecutionFailure(error)?.code === "GENERATED_IMAGE_LOCAL_IDENTITY_MISMATCH",
+    "a delivered Outbox receipt must not bypass current local WebP identity validation",
+  );
+  assert.equal(physicalImageUploads, 1,
+    "a corrupt delivered replay must fail before a second physical Website upload");
+  assert.equal(imageEnqueues, 1,
+    "a corrupt delivered replay must fail before a second Outbox enqueue");
   const secondBytes = new TextEncoder().encode("fixture-webp-second");
   const secondImage = Object.freeze({
     ...image,
@@ -457,6 +479,20 @@ assert.throws(() => parseJsonEnvelope({
     code: "AI_SESSION_BINDING_MISMATCH", message: "mismatch", status: 409, request_id: "request:mismatch",
   },
 }, 200), (error: unknown) => typedExecutionFailure(error)?.code === "AI_PRODUCTION_HTTP_ENVELOPE_STATUS_MISMATCH");
+const uploadedImageReceipt = {
+  schema_version: "xuanxue-ai-material-receipt.v6",
+  artifact_id: "artifact:image",
+  role: "generated_image",
+  object_ref: "object:image",
+  sha256: HASH_A,
+  byte_length: 42,
+  media_type: "image/webp",
+  state: "staged",
+  receipt_hash: HASH_B,
+} as const;
+assert.doesNotThrow(() => UploadedResultReceiptSchema.parse(uploadedImageReceipt));
+assert.throws(() => UploadedResultReceiptSchema.parse({ ...uploadedImageReceipt, width: 1024, height: 1536 }),
+  /unrecognized_keys/u, "V6 uploaded receipt must reject geometry and every other unknown field");
 
 await assert.rejects(
   () => dispatchWebsiteAgentTask(productionTask, () => { throw new Error("CONTEXT_MUST_NOT_BE_CREATED"); }),
@@ -465,9 +501,72 @@ await assert.rejects(
 
 await exerciseWorkerSessionRotation();
 
+for (const mutate of [
+  (project: Project) => {
+    const file = project.getSourceFileOrThrow(path.resolve(
+      "src/lib/local-runtime/production/transport-protocol.ts",
+    ));
+    file.replaceWithText(file.getFullText().replace(
+      "}).strict();\n\nexport type UploadedResultReceipt",
+      "}).passthrough();\n\nexport type UploadedResultReceipt",
+    ));
+  },
+  (project: Project) => {
+    const file = project.getSourceFileOrThrow(path.resolve(
+      "src/lib/local-runtime/production/cloud-client.ts",
+    ));
+    file.replaceWithText(file.getFullText().replace(
+      "): Promise<UploadedResultReceipt> {\n  const uploadArtifactId",
+      "): Promise<UploadedResultReceipt> {\n  void image.originalSha256;\n  const uploadArtifactId",
+    ));
+  },
+  (project: Project) => {
+    const file = project.getSourceFileOrThrow(path.resolve(
+      "src/lib/local-runtime/production/cloud-client.ts",
+    ));
+    file.replaceWithText(file.getFullText().replace("bytes.byteLength !== image.bytes", "false"));
+  },
+  (project: Project) => {
+    const file = project.getSourceFileOrThrow(path.resolve(
+      "src/lib/local-runtime/production/cloud-client.ts",
+    ));
+    file.replaceWithText(file.getFullText().replace("sha256(bytes) !== image.sha256", "false"));
+  },
+  (project: Project) => {
+    const file = project.getSourceFileOrThrow(path.resolve(
+      "src/lib/local-runtime/production/cloud-client.ts",
+    ));
+    file.replaceWithText(file.getFullText().replace('image.media_type !== "image/webp"', "false"));
+  },
+  (project: Project) => {
+    const file = project.getSourceFileOrThrow(path.resolve(
+      "src/lib/local-runtime/production/cloud-client.ts",
+    ));
+    const source = file.getFullText();
+    const functionStart = source.indexOf("async function uploadGeneratedImage");
+    const identityStart = source.indexOf("  const bytes = Buffer.from(image.webp_bytes);", functionStart);
+    const deliveredStart = source.indexOf("  const delivered = store.readOutboxAuthority(requestId);", identityStart);
+    const durableStart = source.indexOf("  const durableHeaders = {", deliveredStart);
+    assert.ok(functionStart >= 0 && identityStart >= 0 && deliveredStart > identityStart
+      && durableStart > deliveredStart, "generated-image guard blocks must remain discoverable");
+    file.replaceWithText(source.slice(0, identityStart)
+      + source.slice(deliveredStart, durableStart)
+      + source.slice(identityStart, deliveredStart)
+      + source.slice(durableStart));
+  },
+] as const) {
+  const project = new Project({ tsConfigFilePath: "tsconfig.json" });
+  mutate(project);
+  const findings: Parameters<typeof inspectGeneratedImageTransport>[1] = [];
+  inspectGeneratedImageTransport({ project, sealedRoot: process.cwd() } as never, findings);
+  assert.ok(findings.some((finding) =>
+    finding.checkId === "agent-production-runtime/generated-image-transport-boundary"),
+  "receipt, Provider-original, local WebP identity and delivered-shortcut mutants must fail the Runtime inspector");
+}
+
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V36",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V37",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"],
   locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
@@ -489,7 +588,7 @@ emitQualityProofObservation({
 });
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V34",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V35",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"],
     locator: `acceptance:agent-production-runtime:business-admission:${evidenceMode}`,

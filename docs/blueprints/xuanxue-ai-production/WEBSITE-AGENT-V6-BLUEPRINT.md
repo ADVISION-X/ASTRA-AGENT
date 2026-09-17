@@ -1,20 +1,20 @@
-# production-runtime 生产级施工图 V53
+# production-runtime 生产级施工图 V54
 
 ```blueprint-record
 {
   "schemaVersion": 1,
-  "blueprintId": "agent-production-runtime-v53",
+  "blueprintId": "agent-production-runtime-v54",
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V63",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V8",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V34",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V34",
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V35",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V35",
     "LAW-AGENT-PRODUCTION-RUNTIME-005-V33",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V36",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V36",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V37"
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V37",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V37",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V38"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-route-capability-manifest.provider.spec.json",
@@ -78,6 +78,8 @@ Runtime 对外只发布 Agent Route Capability Manifest。它从 Mediator 取得
 
 Product、GPT、Browser、Forensics、Runtime Log、App Shell、Startup、Website 继续由各自 active law、blueprint、spec 与唯一 Manifest primary Owner 守住文件及接口边界。Runtime 文档只记录上表接口边，不复制其业务流程、DOM、模型策略、Provider 操作或发布裁决。
 
+generated image 只使用 task-result v13 的现役唯一运输链。GPT Child 交付的已鉴权原始 Provider bytes 必须先以原字节与 hash 写入 task-owned Forensics evidence；Product 只在该 raw artifact 读回成功后，一次性生成仅应用 EXIF 方向且剥离 metadata 的 WebP，输出几何必须等于应用方向后的原图几何。Runtime 与 cloud client 只机械校验 Product 交付的媒体类型、字节、hash、integer 宽高和现役 V6 回执；Runtime 不自行解码图片，不增加 V6 宽高收据字段。任何层都不得 resize、crop、pad，不得以宽高、长宽比或像素总量拒绝交付。Website staging 独立解码出实际宽高，再与 v13 result payload 等值绑定；领域 consumer、对象存储和公开读取仍是同一原有闭环，不新增第二图片链、兼容分支、回退图或另一份原图上传。
+
 GPT 页面 selector 的语义冻结只属于 GPT Child，Browser 只机械执行 typed query，Runtime 只消费 Child terminal。mutation 前是否自动选中精确 system Tab、激活后的 Target/Document 重验、输入前 activation generation 与 `BROWSER_TARGET_NOT_INTERACTIVE` 结算都只属于 Browser Authority；Runtime 不接收 tabId、不调用激活/窗口聚焦、不读取 Browser 私有状态，也不建立第二 precondition、WAL、恢复或重试。该变更不得进入 Runtime 配置、Manifest 字段或跨仓合同；Website 任务、Outbox、artifact receipt 与 business admission receipt 主链保持不变。
 
 ## 2. 真实调用方向与内部结构
@@ -97,7 +99,9 @@ Runtime --plain identity + opaque execution-----------> Architecture-owned Media
 Agent Route Capability Manifest 是 Runtime 对外发布的 provider surface，不是 Runtime 自身的 dependency edge；它保留在本施工图 contractRefs，Website consumer 必须在 Website 所属施工图声明 ai-acceptance → Runtime 的消费边。AGENT 不伪造远端 consumer dependency，也不把 provider 发布方向误写为本地调用方向。Manifest publisher 只能消费 Mediator 返回的纯数据 route snapshot，不得 import Product 源码或通过 re-export、callback、plugin object 绕回 Product runtime authority。
 Runtime 不得反向依赖 App Shell、Local App Shell 或 Startup。Browser 私有 store 不进入 Runtime；若 Runtime 需要 Browser 事实，只能消费 local-browser-session 对外公开的 typed authority/receipt。架构基础法案是治理约束，不伪装成运行 dependency edge。
 
-Website 已持久决定 `WAIT_NEW_ATTEMPT` 后，Runtime 先释放该 job 的 Browser Target 与本地 attempt，再经构造注入的唯一窄宿主回调请求 App Shell 检查 Chrome 窗口可见性：窗口数大于零必须零动作；窗口数为零才复用现役 workbench URL 打开一个 Chrome 窗口。该回调不聚焦既有窗口、不新建额外 Tab、不导航 Provider、不读取 Browser WAL、不重放任务；失败只记录 `BROWSER_HOST_UNAVAILABLE`，不得恢复旧 attempt 或形成第二生命周期、manager、queue、timer、重试器和兼容路径。Runtime 源码不 import Startup 实现，依赖方向仍由 App Shell 注入 Runtime。
+Website 已持久决定 `WAIT_NEW_ATTEMPT` 后，Runtime 只按现役规则释放该 job 的 Browser Target与本地attempt；该业务决定不触发Chrome窗口恢复，也不得越过未决Browser WAL。Chrome完整退出的恢复只由Browser已鉴权Authority WebSocket真实transport terminal触发：App Shell构造的现役零窗口宿主能力经Local App Shell装配注入Browser supervisor，已有Chrome窗口时零动作，零窗口时只打开一个现役Workbench窗口。Runtime production目录不取得该callback、不读取窗口、不重试、不建立第二生命周期、manager、queue、timer或恢复链。
+
+新 attempt 不在 durable accept 前执行旧 Target 的普通预释放。Runtime完成Website fresh readback与durable accept后，Product第一次current production acquisition直接进入现役唯一Browser lane；若全局恰有同job、旧execution fence失效且与当前writer fence不同的一条未决`target_local`，Browser按现役规则先把原WAL行原位结算为`REJECTED + mutation_outcome=dispatched`并保留原`physical_input_count`，再对当前Target/Document执行fresh typed precondition。其它job、多条或混合scope、同fence、非production binding以及provider effect继续失败关闭或只读回，不得新增release例外、删除WAL或把unknown改写为no。
 
 附件链只增补这一条已有公开 dependency edge 的生产调用：Runtime 在 Website material 下载、SHA-256 和 bytes 校验完成后，仅把 `{artifactRef, localPath, sha256, bytes}` 作为 task-owned 临时材料绑定到当前 job/attempt/execution，并在同一 binding 上提供只能为该 artifact 建立/清理 Provider 上传别名的 Runtime-owned 窄化 materializer。GPT 仍是 `providerDisplayName` 算法的唯一语义 Owner；Browser 只机械验证其为安全 NFC basename，再调用该 materializer。Runtime 只在原 task-owned 材料目录以 hardlink 建立精确 basename 别名，不改变原 bytes/hash；同名已存在时只在与原材料同 inode、hash、bytes 时幂等复用，hardlink 不可用或任一身份不等均 typed fail-close，禁止 copy fallback。Browser 继续使用现有唯一 resolver 重验 exact basename、realpath、regular-file、hash 和 bytes 后签发 execution-scoped grant；settle/abort 由 Browser release 触发 Runtime 清理别名，过程不新增目录、表、registry、resolver 或 store。Product 只可在当前进程内单次 dispatch 的既有 `LocalProductionMaterial` 中读取本 Product 材料的 task-owned `local_path`，用于 Product 自有解析，不得拥有其生命周期、持久化/记录路径或把路径传入 GPT/Browser；GPT 永不获得 `localPath`，Product 也不得调用 Browser 附件绑定。同 attempt 已有唯一 verified `CONFIRMED` attach 时只读对账，不再 materialize 或上传。进程重启后 Browser 映射为空，由 Runtime 从 Website durable truth 重建；禁止 Browser 私有复制、持久 registry、第二 resolver/store、兼容桥或 dual path。
 
@@ -145,7 +149,7 @@ Runtime 自身代码保持 production 目录内的直接模块关系。不得新
 Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为：
 
 - Agent Route Capability Manifest provider：version 4；只发布 current session 支持的 `product_id + action_id + task_contract_version + result_contract_version`；Product Profile、Skill、Prompt、Flow、实现名称、版本和 hash 均不得对外发布或参与任务身份；
-- Website Agent Task Result consumer dependency：version 12；文章翻译primary route以provider_continuation携带Website已验证的direct-parent triple；固定catalog的zh-HK链首无parent，后四项携同cohort-role直接前序，Provider URL仍不跨仓；固定catalog逐locale接纳，五locale齐备只在Website仓库发布边界验证；v11不保留兼容读取。
+- Website Agent Task Result consumer dependency：version 13；generated image 只接收 Product 格式化后的无 metadata WebP、绑定 hash/bytes 与实际解码整数宽高，不设固定尺寸、范围、长宽比或总像素门禁，V6 uploaded receipt 不扩展 width/height；文章翻译 primary route 仍以 provider_continuation 携带 Website 已验证的 direct-parent triple；固定 catalog 的 zh-HK 链首无 parent，后四项携同 cohort-role 直接前序，Provider URL 仍不跨仓；固定 catalog 逐 locale 接纳，五 locale 齐备只在 Website 仓库发布边界验证；v12 不保留兼容读取。
 - Xuanxue AI Production V6 consumer dependency：version 34。Website 的 `ai_production_devices.max_in_flight` 是当前 N 的唯一持久 Owner，并在同一设备行唯一持有限流惩罚与cohort事实；Runtime 不保存或配置当前 N/权威cohort。心跳只报告去重后的本地 `agent_attested_in_flight`，claim 请求只按合同安全上限、本地 in-flight和 executor可用量提出，Website在设备事实行锁内收紧最终 grant。当前 active execution与已有 staged result但尚无 Website admission receipt的同一 job合并占用一个席位，Browser action capacity始终为 1。Runtime只消费 Website当前授权、有限 `retry_not_before`、三个 next action、包含 `provider_effect_identity_hash`的 typed effect outcome、provider_cooldown receipt与 admission receipt；不得自行推导容量或业务恢复。
 
 consumer dependency 的 contract body 只能包含 contractId、version、providerRepo。普通启动只校验本仓最小 dependency，不读取未绑定 Website 工作树；跨仓 participant commit 只属于 RELEASE 证据。
@@ -256,7 +260,7 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 每次候选都必须重新证明：
 
 1. 八条 Runtime law、稳定 blueprintId、三份 active contractRef 与 Runtime 唯一 Manifest 的 lawIds 相互一致；Architecture Boundary law 与 Manifest 独立保持其现役一一对应；越界 `ownedPaths` 只在同一候选的一次原子修改中归位，并立即证明无无主、无重叠、无 Runtime manifest-owner-drift。
-2. Website task-result v12、V6 v34 与 AGENT dependency 精确一致；grant 不携带 Provider locator/checkpoint 或 Product Plugin 身份，只绑定当前 task/attempt/lease/fence；attempt failure 必须同时运输 Browser 已持有的 `provider_effect_identity_hash + submit receipt/evidence` 与 stopped-empty 独立 observation proof。`provider_cooldown`只运输固定事故/ack hash与Website receipt，不运输DOM/URL/N。`RESULT_SETTLED_UNUSABLE + CONFIRMED + confirmed + effect hash + evidence + settled result hash` 只允许 Website 拒绝该结果并签发新 result revision；`GPT_RESPONSE_STOPPED_EMPTY` 只使用独立 observation proof 的终态 revision hash形成新拒绝事实，不覆盖提交回执。其它 DISPATCHED/CONFIRMED 只允许同 accepted attempt 零提交读回。八字仅携带 consultation_root_ref 与 direct parent；文章翻译五个locale都携带Website签发的provider_continuation direct parent且链首指向zh-CN生成任务；固定catalog仅zh-HK链首无parent，后四项携同cohort-role直接前序；明确新result revision才可携带hash-bound rejection。
+2. Website task-result v13、V6 v34 与 AGENT dependency 精确一致；generated image 保留原始 Provider bytes 作 task-owned evidence，交付的 WebP 只做方向应用与 metadata 剥离，无几何转换或尺寸门禁；grant 不携带 Provider locator/checkpoint 或 Product Plugin 身份，只绑定当前 task/attempt/lease/fence；attempt failure 必须同时运输 Browser 已持有的 `provider_effect_identity_hash + submit receipt/evidence` 与 stopped-empty 独立 observation proof。`provider_cooldown`只运输固定事故/ack hash与Website receipt，不运输DOM/URL/N。`RESULT_SETTLED_UNUSABLE + CONFIRMED + confirmed + effect hash + evidence + settled result hash` 只允许 Website 拒绝该结果并签发新 result revision；`GPT_RESPONSE_STOPPED_EMPTY` 只使用独立 observation proof 的终态 revision hash形成新拒绝事实，不覆盖提交回执。其它 DISPATCHED/CONFIRMED 只允许同 accepted attempt 零提交读回。八字仅携带 consultation_root_ref 与 direct parent；文章翻译五个locale都携带Website签发的provider_continuation direct parent且链首指向zh-CN生成任务；固定catalog仅zh-HK链首无parent，后四项携同cohort-role直接前序；明确新result revision才可携带hash-bound rejection。
 3. route projection 精确为 40 routes、46 parameter types、33 result contracts、0 reservation routes；bazi_private_base_input 与 result_contract.private_base 为零。
 4. base、Bazi primary、review admission receipt 的互斥字段与完整 canonical hash 全部闭合，未闭合时本地 completed 增量为零。
 5. credential 失败类别分别得到稳定脱敏 typed code，且 claim/Provider mutation 增量为零。

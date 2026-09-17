@@ -1,5 +1,8 @@
 import { readFileSync } from "node:fs";
+import { mkdtemp, rm } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { BrowserLaneCoordinator } from
   "../../src/lib/browser/infrastructure/browser-lane-coordinator.js";
@@ -7,7 +10,10 @@ import { BrowserTargetAcquirer } from
   "../../src/lib/browser/infrastructure/browser-target-acquirer.js";
 import { BrowserTargetLeaseManager } from
   "../../src/lib/browser/exact-target/browser-target-lease-manager.js";
+import { BrowserMutationStore } from
+  "../../src/lib/browser/exact-target/browser-mutation-store.js";
 import { typedBrowserExecutionFailure } from "../../src/lib/browser/browser-failure.js";
+import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 
 const lane = readFileSync("src/lib/browser/infrastructure/browser-lane-coordinator.ts", "utf8");
 const leaseContract = readFileSync("src/lib/browser/exact-target/browser-target-lease.ts", "utf8");
@@ -103,10 +109,6 @@ const waitNewRelease = {
   ...exactRelease, jobId: "job-b", jobRefHash: `sha256:${"f".repeat(64)}`,
   releaseAuthority: "wait-new-attempt",
 };
-const attemptReplacedRelease = {
-  ...exactRelease, jobId: "job-b", jobRefHash: `sha256:${"1".repeat(64)}`,
-  releaseAuthority: "attempt-replaced",
-};
 const wrongJobPermanentRelease = {
   ...exactRelease, jobId: "job-c", jobRefHash: `sha256:${"e".repeat(64)}`,
 };
@@ -115,7 +117,7 @@ const exactPrivacyRelease = {
   releaseAuthority: "website-permanent-revocation",
 };
 Object.assign(blockedLane, {
-  queue: [blockedAcquire, ordinaryRelease, waitNewRelease, attemptReplacedRelease,
+  queue: [blockedAcquire, ordinaryRelease, waitNewRelease,
     wrongJobPermanentRelease, exactRelease, exactPrivacyRelease],
   infrastructure: { mutationState: {
     countDispatched: () => 1,
@@ -131,8 +133,8 @@ const selectedPrivacy = (blockedLane.nextWaiter as () => {
 assert.deepEqual([selectedPrivacy.kind, selectedPrivacy.jobRefHash],
   ["release", exactPrivacyRelease.jobRefHash],
   "the exact job's persisted permanent revocation may use the same bounded exception");
-assert.equal((blockedLane.queue as unknown[]).length, 5,
-  "acquire, admission, WAIT, attempt replacement, and another job's deletion must remain blocked");
+assert.equal((blockedLane.queue as unknown[]).length, 4,
+  "acquire, admission, WAIT, and another job's deletion must remain blocked");
 
 const sameJobAcquire = { ...blockedAcquire, binding: { kind: "production", jobId: "job-b" } };
 const localSameJobAcquire = { ...blockedAcquire, binding: { kind: "local", jobId: "job-b" } };
@@ -188,6 +190,94 @@ const createBehaviorLane = (events: string[], unresolved = 0) => {
   });
   return instance as BrowserLaneCoordinator;
 };
+
+const retiredRoot = await mkdtemp(join(tmpdir(), "browser-lane-retired-target-local-"));
+const retiredStore = new BrowserMutationStore(retiredRoot);
+try {
+  const currentBinding = binding("a");
+  const oldCommandId = "old-target-local-command";
+  const oldExactCallIdentityHash = hash("1");
+  retiredStore.prepare({
+    commandId: oldCommandId,
+    exactCallIdentityHash: oldExactCallIdentityHash,
+    jobId: currentBinding.jobId,
+    resultRevision: currentBinding.resultRevision,
+    attemptId: "attempt-old",
+    leaseVersion: 1,
+    executionFenceHash: hash("2"),
+    productStepId: currentBinding.productStepId,
+    callId: currentBinding.callId,
+    childCapabilityId: "open_gpt_model_selector_v2",
+    effectScope: "target_local",
+    actionOrdinal: 1,
+    targetRef: "target-old",
+    documentRef: "document-old",
+    actionId: "browser.dom.click.v1",
+    positivePostconditionHash: hash("3"),
+    negativePostconditionHash: hash("4"),
+    requestHash: hash("5"),
+    payloadHash: hash("6"),
+  });
+  retiredStore.markDispatched(oldCommandId);
+  const retiredEvents: string[] = [];
+  const retiredLane = createBehaviorLane(retiredEvents);
+  const mutationState = {
+    countDispatched: () => retiredStore.countDispatched(),
+    hasUnresolvedMutationForJob: (jobId: string) => retiredStore.hasUnresolvedMutationForJob(jobId),
+    latestProviderInputTerminalAt: () => retiredStore.latestProviderInputTerminalAt(),
+    settleRetiredTargetLocal: (exactBinding: Parameters<BrowserMutationStore["settleRetiredTargetLocal"]>[0]) => {
+      retiredEvents.push("settle:target-local");
+      return retiredStore.settleRetiredTargetLocal(exactBinding);
+    },
+    authorityHash: (commandId: string) => retiredStore.authorityHash(commandId),
+    readUniqueConfirmedConversationUrl: (parentJobId: string, parentProductStepId: string) =>
+      retiredStore.readUniqueConfirmedConversationUrl(parentJobId, parentProductStepId),
+  };
+  Reflect.set(Reflect.get(retiredLane, "infrastructure"), "mutationState", mutationState);
+  Reflect.set(retiredLane, "runtimeLogger", createRuntimeLogger({
+    producer: "browser-lane-retired-target-local-acceptance",
+    owner: "browser-session",
+    component: "browser-infrastructure",
+    terminalEnabled: false,
+    fileSink: { directoryPath: join(retiredRoot, "runtime-logs") },
+  }));
+  Reflect.set(retiredLane, "resolveBroker", () => ({
+    acquireOperatorClaimedTargetLease: async () => ({
+      pendingMutationCount: () => retiredStore.countDispatched(),
+      park: async () => { retiredEvents.push("park:current-attempt"); },
+    }),
+  }));
+  const retiredLease = await retiredLane.acquire(
+    currentBinding as never,
+    "owner-current-attempt",
+    wait("fresh", new AbortController().signal),
+  );
+  assert.deepEqual(retiredEvents.slice(0, 2), ["settle:target-local", "ensure:fresh"],
+    "the real old target-local WAL row must settle before current Target acquisition");
+  const retiredFact = retiredStore.readExactCallMutationFact({
+    jobId: currentBinding.jobId,
+    attemptId: "attempt-old",
+    exactCallIdentityHash: oldExactCallIdentityHash,
+    actionOrdinal: 1,
+  });
+  assert.equal(retiredFact?.authorityRef, `browser-mutation:${oldCommandId}`,
+    "same-lane settlement must preserve the original command identity");
+  assert.deepEqual({
+    outcome: retiredFact?.outcome,
+    mutationOutcome: retiredFact?.mutationOutcome,
+    failureCode: retiredFact?.failureCode,
+    physicalInputCount: retiredFact?.physicalInputCount,
+  }, {
+    outcome: "REJECTED",
+    mutationOutcome: "dispatched",
+    failureCode: "BROWSER_TARGET_LOCAL_EXECUTION_RETIRED",
+    physicalInputCount: 0,
+  }, "same-lane settlement must preserve physical input evidence and record the exact retired reason");
+  await retiredLease.park({ reason: "retired-target-local-verified", mode: "product-call-settlement" });
+} finally {
+  retiredStore.close();
+  await rm(retiredRoot, { recursive: true, force: true });
+}
 
 const providerUnknown = await createBehaviorLane([], 1).acquire(binding("a") as never, "owner-a",
   wait("fresh", new AbortController().signal)).catch((error: unknown) => error);

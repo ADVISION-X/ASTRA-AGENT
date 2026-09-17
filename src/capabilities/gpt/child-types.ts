@@ -149,19 +149,10 @@ export interface GptChildOutputMap {
     authorityDocumentHash: GptHash;
     canonicalConversationUrl: string;
     turnMarker: string;
-    artifactId: string;
     originalBytes: Uint8Array;
-    webpBytes: Uint8Array;
-    sha256: GptHash;
     originalSha256: GptHash;
     originalSizeBytes: number;
     originalMediaType: `image/${string}`;
-    originalWidth: number;
-    originalHeight: number;
-    bytes: number;
-    mediaType: "image/webp";
-    width: 1200;
-    height: 630;
   }>;
   readonly rename_settled_gpt_conversation: Readonly<{
     state: "already-exact" | "renamed";

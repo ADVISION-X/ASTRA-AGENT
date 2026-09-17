@@ -1,4 +1,5 @@
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
@@ -13,7 +14,7 @@ import {
   exerciseSeoFlow,
   exerciseSeoPromptWriteFailure,
 } from "./public-knowledge-article-pipeline-flow.test-runtime.js";
-import { createContext } from "./public-knowledge-article-pipeline.test-runtime.js";
+import { createContext, ORIENTED_IMAGE_FIXTURE } from "./public-knowledge-article-pipeline.test-runtime.js";
 import { createHarness, seoTask } from
   "./public-knowledge-article-pipeline-fixture-state.js";
 import { articleOutput, researchOutput } from
@@ -144,10 +145,89 @@ assert.equal(proceed.calls.filter((call) => call.child === "prepare_clean_gpt_ch
 assert.equal(proceed.calls.find((call) => call.child === "prepare_clean_gpt_chat")?.productStepId,
   "corpus_research");
 assert.ok((proceed.completed.payload as Readonly<Record<string, unknown>>).image);
+const deliveredImage = (proceed.completed.payload as Readonly<Record<string, unknown>>).image as
+  Readonly<Record<string, unknown>>;
+assert.equal(deliveredImage.width, 1024);
+assert.equal(deliveredImage.height, 1536);
+assert.deepEqual(Object.keys(deliveredImage).sort(), [
+  "artifact_id", "bytes", "height", "mime_type", "object_ref", "receipt_hash",
+  "schema_version", "sha256", "width",
+], "the delivered image must contain exactly the task-result v13 image fields");
 assert.deepEqual(Object.keys(proceed.completed.payload as Readonly<Record<string, unknown>>).sort(),
   ["article", "image", "research", "schema_version"],
   "the delivered package must contain only the Website canonical fields");
 assert.equal(proceed.generatedImageUploadCalls, 1);
+
+{
+  const oriented = createHarness("produce_article");
+  await plugin.execute(seoTask("produce_article"), createContext(
+    oriented, "proceed", undefined, "attempt-oriented", ORIENTED_IMAGE_FIXTURE,
+  ));
+  const image = (oriented.completed?.payload as Readonly<Record<string, unknown>>).image as
+    Readonly<Record<string, unknown>>;
+  assert.equal(image.width, 640);
+  assert.equal(image.height, 320);
+}
+
+{
+  const leakedReceipt = createHarness("produce_article");
+  const context = createContext(leakedReceipt, "proceed");
+  const upload = context.uploadGeneratedImage;
+  const leakedContext = {
+    ...context,
+    uploadGeneratedImage: (async (artifact: Parameters<typeof upload>[0]) => ({
+      ...await upload(artifact), originalSha256: `sha256:${"f".repeat(64)}`,
+    })) as typeof upload,
+  } as typeof context;
+  await assert.rejects(() => plugin.execute(seoTask("produce_article"), leakedContext),
+    /PUBLIC_KNOWLEDGE_IMAGE_INVALID/u,
+    "task-result v13 must reject every extra generated-image field before completion");
+  assert.equal(leakedReceipt.generatedImageUploadCalls, 1);
+  assert.equal(leakedReceipt.completed, null,
+    "a receipt carrying Provider-original identity must not reach Website completion");
+}
+
+const rejectImageCheckpointMutant = async (
+  label: string,
+  mutate: (result: Readonly<Record<string, unknown>>) => Readonly<Record<string, unknown>>,
+): Promise<void> => {
+  const state = createHarness("produce_article");
+  const context = createContext(state, "proceed");
+  const execute = context.gpt.execute;
+  const mutantContext = {
+    ...context,
+    gpt: { ...context.gpt, execute: (async (input: Parameters<typeof execute>[0]) => {
+      const result = await execute(input) as unknown as Readonly<Record<string, unknown>>;
+      return input.child === "checkpoint_gpt_generated_image" ? mutate(result) : result;
+    }) as typeof execute },
+  } as typeof context;
+  await assert.rejects(() => plugin.execute(seoTask("produce_article"), mutantContext),
+    (error: unknown) => ["SEO_IMAGE_ARTIFACT_INVALID", "SEO_IMAGE_ARTIFACT_RECEIPT_INVALID"]
+      .includes(typedExecutionFailure(error)?.code ?? ""), label);
+  assert.equal(state.generatedImageUploadCalls, 0, `${label}: upload increment must remain zero`);
+  assert.equal(state.completed, null, `${label}: completion increment must remain zero`);
+};
+
+await rejectImageCheckpointMutant("raw hash mismatch", (result) => ({ ...result,
+  value: { ...(result.value as Readonly<Record<string, unknown>>),
+    originalSha256: `sha256:${"0".repeat(64)}` },
+}));
+await rejectImageCheckpointMutant("raw size mismatch", (result) => ({ ...result,
+  value: { ...(result.value as Readonly<Record<string, unknown>>),
+    originalSizeBytes: Number((result.value as Readonly<Record<string, unknown>>).originalSizeBytes) + 1 },
+}));
+await rejectImageCheckpointMutant("missing raw artifact receipt", (result) => ({
+  ...result, artifactRefs: [],
+}));
+await rejectImageCheckpointMutant("duplicate raw artifact receipt", (result) => ({
+  ...result, artifactRefs: ["artifact:image-original", "artifact:image-duplicate"],
+}));
+const damagedBytes = new Uint8Array([1, 2, 3, 4]);
+const damagedHash = `sha256:${createHash("sha256").update(damagedBytes).digest("hex")}`;
+await rejectImageCheckpointMutant("undecodable authenticated image", (result) => ({ ...result,
+  value: { ...(result.value as Readonly<Record<string, unknown>>), originalBytes: damagedBytes,
+    originalSizeBytes: damagedBytes.byteLength, originalSha256: damagedHash, mediaHash: damagedHash },
+}));
 
 const nextAttempt = await exerciseSeoFlow(
   plugin, "produce_article", "proceed", undefined, false, "attempt-2",

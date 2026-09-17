@@ -101,6 +101,7 @@ const assertReleaseIdentity = async (
 export const createWorkbenchBrowserAuthority = async (
   dataDir: string,
   runtimeLogger: RuntimeLogger,
+  restoreBrowserHostVisibility?: (() => Promise<void>) | undefined,
 ): Promise<WorkbenchBrowserAuthority> => {
   const profileConfig = resolveProductionBrowserProfileConfig(dataDir);
   const releaseIdentity = await readUnpackedExtensionReleaseIdentity(
@@ -127,6 +128,7 @@ export const createWorkbenchBrowserAuthority = async (
     enrolledProfile,
     releaseIdentity,
     runtimeLogger,
+    restoreBrowserHostVisibility,
   });
   await supervisor.start();
   const endpoints = supervisor.endpoints();

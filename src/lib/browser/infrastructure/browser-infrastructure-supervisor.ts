@@ -44,7 +44,18 @@ export type BrowserInfrastructureSupervisorOptions = Readonly<{
   enrolledProfile: BrowserProfileState;
   releaseIdentity: UnpackedExtensionReleaseIdentity;
   runtimeLogger: RuntimeLogger;
+  restoreBrowserHostVisibility?: (() => Promise<void>) | undefined;
 }>;
+
+export const shouldRestoreBrowserHostVisibility = (input: Readonly<{
+  authorityWasPresent: boolean;
+  reasonCode: string;
+  transportEvent?: string | undefined;
+  started: boolean;
+}>): boolean => input.authorityWasPresent
+  && input.reasonCode === "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"
+  && ["peer_close", "tcp_close", "tcp_error"].includes(input.transportEvent ?? "")
+  && input.started;
 
 const emitInfrastructureFailure = (
   options: BrowserInfrastructureSupervisorOptions,
@@ -124,12 +135,29 @@ export class BrowserInfrastructureSupervisor {
   }
 
   private onRevoked(reasonCode: string, refs?: Readonly<Record<string, string>>): void {
+    const restoreBrowserHost = shouldRestoreBrowserHostVisibility({
+      authorityWasPresent: this.issuer.current().kind === "PRESENT",
+      reasonCode,
+      transportEvent: refs?.transportEvent,
+      started: this.state.started,
+    });
     const extensionFailure = refs?.diagnosticSource === "extension-frame"
       || refs?.diagnosticSource === "extension-runtime";
     this.lane.rejectPending(reasonCode);
     this.disconnectTransport(normalizeBrowserDisconnectReason(reasonCode));
     emitInfrastructureFailure(this.options, this.state, reasonCode,
       extensionFailure ? "extension-runtime" : "authority-revoked");
+    if (restoreBrowserHost) void this.restoreBrowserHostVisibility();
+  }
+
+  private async restoreBrowserHostVisibility(): Promise<void> {
+    try {
+      await this.options.restoreBrowserHostVisibility?.();
+    } catch {
+      emitInfrastructureFailure(
+        this.options, this.state, "BROWSER_HOST_UNAVAILABLE", "browser-host-restore",
+      );
+    }
   }
 
   public async start(): Promise<void> {

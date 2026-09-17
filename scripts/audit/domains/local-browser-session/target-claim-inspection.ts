@@ -428,7 +428,9 @@ export const inspectTargetClaimGuards = (
   const framePayload = requireSource(context, findings, lawId, framePayloadPath);
   const actor = requireSource(context, findings, lawId, sourcePaths[1]);
   const awaiter = requireSource(context, findings, lawId, targetClaimAwaiterPath);
-  if (!channel || !framePayload || !actor || !awaiter) return;
+  const supervisor = requireSource(context, findings, lawId, sourcePaths[3]);
+  const leaseContract = requireSource(context, findings, lawId, targetLeasePath);
+  if (!channel || !framePayload || !actor || !awaiter || !supervisor || !leaseContract) return;
   requireIdentifiers(channel, ["sendTargetClaimAcknowledgement", "parseBrowserAuthorityTargetClaim"], findings, lawId,
     "Workbench target admission must accept epoch zero and return one encrypted acknowledgement.");
   requireIdentifiers(framePayload, ["parseBrowserAuthorityTargetClaim", "nonNegativeIntegerField"], findings, lawId,
@@ -477,6 +479,19 @@ export const inspectTargetClaimGuards = (
     checkId: "browser-authority/job-bound-target-claim", lawId, filePath: sourcePaths[1],
     message: "The retired manual active-tab claim handler must be physically absent.",
   }));
+  const supervisorText = supervisor.getFullText();
+  const hostRestoreContract = ["shouldRestoreBrowserHostVisibility",
+    'reasonCode === "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"', '"peer_close", "tcp_close", "tcp_error"',
+    'this.issuer.current().kind === "PRESENT"', "void this.restoreBrowserHostVisibility()",
+    '"BROWSER_HOST_UNAVAILABLE", "browser-host-restore"'].every((token) => supervisorText.includes(token));
+  if (!hostRestoreContract || leaseContract.getFullText().includes("attempt-replaced")) {
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/authenticated-transport-host-restore",
+      lawId,
+      filePath: sourcePaths[3],
+      message: "Only an authenticated Browser transport terminal may invoke the existing host restore callback, and the retired attempt-replaced release authority must remain absent.",
+    }));
+  }
   inspectJobBoundClaimPolicy(context, findings, lawId);
 };
 

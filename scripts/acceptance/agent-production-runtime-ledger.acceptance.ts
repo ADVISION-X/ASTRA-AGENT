@@ -16,10 +16,8 @@ import { parseProviderCooldownReceipt } from
 import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { HASH_A, HASH_B, resultFor, task } from "./agent-production-runtime-fixtures.js";
-import { verifyBrowserFailureStoreContract, verifyBrowserHostRestoreContract } from
+import { verifyBrowserFailureStoreContract } from
   "./agent-production-runtime-browser-failure.acceptance-support.js";
-
-await verifyBrowserHostRestoreContract();
 
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-production-ledger-"));
 const tableNames = (database: Database.Database): string[] =>

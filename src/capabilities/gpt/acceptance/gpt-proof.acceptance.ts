@@ -1,4 +1,7 @@
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
+import { createHash } from "node:crypto";
+import { resolve } from "node:path";
+import { Project } from "ts-morph";
 import { executionFailure } from "../../../lib/execution-failure.js";
 
 import { buildGptExecutionProfile } from "../index.js";
@@ -7,7 +10,11 @@ import {
 } from "../children/open_gpt_model_selector_v2/selectors.js";
 import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
 import { executeProductionGptAtomicCall } from "../production-atomic-call.js";
+import { persistGptEvidenceArtifacts } from "../evidence-artifacts.js";
+import type { GptEvidenceStorePort } from "../production-ports.js";
 import type { ProductionGptBrowserCall } from "../production-browser-lifecycle.js";
+import { inspectGeneratedImageRawBoundary } from
+  "../../../../scripts/audit/domains/gpt/gpt-provider-contract-inspection.js";
 import { approvedFile, conversationUrl, promptHash } from "./gpt-conversation-fixture.js";
 import { verifyStoppedEmptyRecoveryContract } from "./gpt-stopped-empty.acceptance-support.js";
 import {
@@ -191,6 +198,86 @@ await exerciseSubmit("gpt-proof-submit-third-turn", [], [],
   assert.equal(result.proof.browserFact?.effectScope, "provider_effect");
   assert.equal(result.proof.browserFact?.browserOutcome, "CONFIRMED");
   assert.equal(result.proof.browserFact?.mutationOutcome, "confirmed");
+}
+
+{
+  const original = new Uint8Array([1, 2, 3, 4, 5]);
+  const originalHash = `sha256:${createHash("sha256").update(original).digest("hex")}` as const;
+  const appended: Array<Readonly<{ artifactType: string; mimeType?: string; content?: string | Uint8Array }>> = [];
+  const store: GptEvidenceStorePort = {
+    appendArtifact: async (input) => {
+      appended.push(input);
+      return { status: "success", artifactRef: "artifact:image-original" };
+    },
+    readArtifact: async () => ({ status: "success", artifactRef: "artifact:image-original",
+      artifact: { content: original, mimeType: "image/png", integrityHash: originalHash } }),
+  };
+  const resultValue = {
+    assistantTurnId: "conversation-turn-6", semanticMediaId: "gpt-generated-image-main",
+    mediaHash: originalHash, authorityTargetHash: `sha256:${"1".repeat(64)}`,
+    authorityDocumentHash: `sha256:${"2".repeat(64)}`,
+    canonicalConversationUrl: conversationUrl, turnMarker: "image-turn",
+    originalBytes: original, originalSha256: originalHash,
+    originalSizeBytes: original.byteLength, originalMediaType: "image/png",
+  };
+  const result = { status: "success", value: resultValue } as never;
+  const intent = { executionId: "execution-image", childCapabilityId: "checkpoint_gpt_generated_image" } as never;
+  const refs = await persistGptEvidenceArtifacts({ result, intent, evidenceStore: store,
+    jobId: "job-image", attemptId: "attempt-image", exactCallIdentityHash: `sha256:${"3".repeat(64)}` });
+  assert.deepEqual(refs, ["artifact:image-original"]);
+  assert.equal(appended.length, 1);
+  assert.equal(appended[0]?.artifactType, "ai_raw_output");
+  assert.equal(appended[0]?.mimeType, "image/png");
+  assert.deepEqual(appended[0]?.content, original);
+
+  await assert.rejects(() => persistGptEvidenceArtifacts({
+    result: { status: "success", value: { ...resultValue, originalBytes: new Uint8Array([9]) } } as never,
+    intent, evidenceStore: store, jobId: "job-image", attemptId: "attempt-image",
+    exactCallIdentityHash: `sha256:${"4".repeat(64)}`,
+  }), /GPT_GENERATED_IMAGE_TASK_ARTIFACT_INVALID/u);
+  assert.equal(appended.length, 1, "tampered original bytes must fail before a second artifact append");
+
+  const persistWith = (evidenceStore: GptEvidenceStorePort, suffix: string) => persistGptEvidenceArtifacts({
+    result, intent, evidenceStore, jobId: "job-image", attemptId: "attempt-image",
+    exactCallIdentityHash: `sha256:${suffix.repeat(64)}` as `sha256:${string}`,
+  });
+  await assert.rejects(() => persistWith({
+    appendArtifact: async () => ({ status: "failed", failureReason: "FORENSICS_WRITE_FAILED" }),
+    readArtifact: async () => ({ status: "failed", failureReason: "FORENSICS_ARTIFACT_NOT_FOUND" }),
+  }, "5"), /EVIDENCE_ARTIFACT_APPEND_FAILED/u);
+  await assert.rejects(() => persistWith({
+    appendArtifact: async () => ({ status: "success", artifactRef: "artifact:image-read-failure" }),
+    readArtifact: async () => ({ status: "failed", failureReason: "FORENSICS_READ_FAILED" }),
+  }, "6"), /EVIDENCE_ARTIFACT_READBACK_FAILED/u);
+  for (const [suffix, mimeType, integrityHash] of [
+    ["7", "image/jpeg", originalHash],
+    ["8", "image/png", "invalid-integrity-hash"],
+  ] as const) await assert.rejects(() => persistWith({
+    appendArtifact: async () => ({ status: "success", artifactRef: `artifact:image-${suffix}` }),
+    readArtifact: async () => ({ status: "success", artifactRef: `artifact:image-${suffix}`,
+      artifact: { content: original, mimeType, integrityHash } }),
+  }, suffix), /EVIDENCE_ARTIFACT_READBACK_FAILED/u);
+
+  const findingFactory = ((checkId: string, filePath: string, message: string) =>
+    ({ checkId, filePath, message })) as never;
+  const baselineProject = new Project({ tsConfigFilePath: "tsconfig.json" });
+  const baselineFindings: Parameters<typeof inspectGeneratedImageRawBoundary>[1] = [];
+  inspectGeneratedImageRawBoundary({ project: baselineProject, sealedRoot: process.cwd() } as never,
+    baselineFindings, findingFactory);
+  assert.equal(baselineFindings.filter((finding) =>
+    finding.checkId === "gpt/generated-image-raw-only").length, 0,
+  "the current GPT original-image boundary must pass before mutation checks run");
+
+  const project = new Project({ tsConfigFilePath: "tsconfig.json" });
+  const settlement = project.getSourceFileOrThrow(resolve(
+    "src/capabilities/gpt/production-child-result.ts",
+  ));
+  settlement.replaceWithText(settlement.getFullText().replace("row.originalSha256", "row.sha256"));
+  const findings: Parameters<typeof inspectGeneratedImageRawBoundary>[1] = [];
+  inspectGeneratedImageRawBoundary({ project, sealedRoot: process.cwd() } as never, findings,
+    findingFactory);
+  assert.ok(findings.some((finding) => finding.checkId === "gpt/generated-image-raw-only"),
+    "the GPT AST inspector must reject settlement against the retired sha256 field");
 }
 
 for (const priorState of ["rejected", "dispatched"] as const) {

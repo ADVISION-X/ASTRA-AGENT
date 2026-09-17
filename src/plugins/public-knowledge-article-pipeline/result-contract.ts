@@ -59,9 +59,10 @@ const validatePublicKnowledgeImage = (value: unknown, route: ProductionRoutePoli
   const code = "PUBLIC_KNOWLEDGE_IMAGE_INVALID";
   const contract = contractSection(publicKnowledgeResultContract(route), "image", code);
   const image = result.object(value, code);
+  result.exact(image, contractValues(contract, "exact_fields", code), code);
   if (image.schema_version !== contractText(contract, "schema_version", code)
     || image.mime_type !== contractText(contract, "mime_type", code)
-    || image.width !== contract.width || image.height !== contract.height
+    || !Number.isSafeInteger(image.width) || !Number.isSafeInteger(image.height)
     || !Number.isSafeInteger(image.bytes) || Number(image.bytes) < 1) result.fail(code);
   result.text(image.artifact_id, code);
   result.text(image.object_ref, code);

@@ -67,19 +67,40 @@ const projection = JSON.parse(await readFile(new URL(
   "../../src/lib/local-runtime/production/website-agent-route-policies.v1.json",
   import.meta.url,
 ), "utf8")) as Readonly<{
+  contract_version: number;
   parameter_types: Readonly<Record<string, unknown>>;
   routes: readonly Readonly<{
     product_id: string;
     action_id: string;
-    result_contract?: unknown;
+    result_contract?: Readonly<{ image?: Readonly<{
+      exact_fields?: readonly string[];
+      field_types?: Readonly<{ integer?: readonly string[] }>;
+      integer_minimums?: Readonly<Record<string, number>>;
+      mime_type?: string;
+      width?: unknown;
+      height?: unknown;
+    }> }>;
     required_parameter_keys: readonly string[];
   }>[];
 }>;
 
 assert.equal(productionRoutePolicies.length, 40);
+assert.equal(projection.contract_version, 13);
 assert.equal(projection.routes.length, 40);
 assert.equal(Object.keys(projection.parameter_types).length, 46);
 assert.equal(projection.routes.filter((route) => route.result_contract !== undefined).length, 33);
+const articleImage = projection.routes.find((route) =>
+  route.product_id === "public_knowledge_article_pipeline" && route.action_id === "produce_article")
+  ?.result_contract?.image;
+assert.deepEqual(articleImage?.exact_fields, [
+  "schema_version", "artifact_id", "object_ref", "sha256", "receipt_hash",
+  "bytes", "mime_type", "width", "height",
+]);
+assert.deepEqual(articleImage?.field_types?.integer, ["bytes", "width", "height"]);
+assert.deepEqual(articleImage?.integer_minimums, { bytes: 1 });
+assert.equal(articleImage?.mime_type, "image/webp");
+assert.equal(Object.hasOwn(articleImage ?? {}, "width"), false);
+assert.equal(Object.hasOwn(articleImage ?? {}, "height"), false);
 
 const tested = new Set<string>();
 for (const route of productionRoutePolicies) {
@@ -146,9 +167,9 @@ assert.throws(() => assertProductionTaskRoutePolicy({
 process.stdout.write("[ACCEPTANCE][agent-route-contract] PASS 40/46/33/0\n");
 for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V34",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V35",
     evidenceMode,
-    clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
+    clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "summary"],
     locator: `acceptance:agent-production-runtime:route-contract:${evidenceMode}`,
     observedValue: "provider-derived route projection accepted exact route keys materials relations and result contracts without re-adjudicating Website-authorized parameter values",
   });

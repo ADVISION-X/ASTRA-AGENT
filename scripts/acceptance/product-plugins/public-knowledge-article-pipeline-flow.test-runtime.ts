@@ -48,7 +48,7 @@ const assertHarness = (
     assert.deepEqual(output.evidence_refs, state.calls.flatMap((call) =>
       call.child === "checkpoint_gpt_text_response" ? [`artifact:${call.productStepId}`]
         : call.child === "checkpoint_gpt_generated_image"
-          ? ["artifact:image-original", "artifact:image-webp", "artifact:image-receipt"] : []));
+          ? ["artifact:image-original"] : []));
   }
   assert.equal(new Set(state.calls.map((call) => call.sessionKey)).size, 1);
   assert.ok(state.calls.every((call) => call.sessionKey.includes(attemptId)));

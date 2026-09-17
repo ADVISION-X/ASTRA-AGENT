@@ -67,7 +67,9 @@ export const recordSettledProviderResult = (
     || call.child === "checkpoint_gpt_generated_image";
   if (!readsConfirmedEffect || !browserCall) return;
   const row = value as Readonly<Record<string, unknown>>;
-  const payloadHash = call.child === "checkpoint_gpt_text_response" ? row.semanticTextHash : row.sha256;
+  const payloadHash = call.child === "checkpoint_gpt_text_response"
+    ? row.semanticTextHash
+    : row.originalSha256;
   if (typeof payloadHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(payloadHash)) {
     throw executionFailure("failed", "GPT_SETTLED_RESULT_PAYLOAD_HASH_INVALID");
   }

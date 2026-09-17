@@ -6,7 +6,6 @@ import { failureCode } from "../../execution-failure.js";
 import { hashCanonical } from "./contracts.js";
 import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import type { RuntimeState } from "./runtime-state.js";
-import { restoreBrowserHostVisibilityAfterRelease } from "./runtime-state.js";
 import type { StoredProductionTask } from "./store.js";
 import { productionRuntimeTaskPath } from "./runtime-storage-inventory.js";
 
@@ -82,7 +81,6 @@ export const reconcileBusinessAdmission = async (
       state.store.releaseAttemptForWebsiteDecision(
         record.task.job_id, record.current_attempt_id,
       );
-      if (!permanentRevocation) await restoreBrowserHostVisibilityAfterRelease(state);
       return "pending";
     }
     state.store.setCurrentReason(

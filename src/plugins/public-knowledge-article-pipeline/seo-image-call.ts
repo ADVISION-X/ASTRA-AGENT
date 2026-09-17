@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import sharp from "sharp";
 import type { ProductGptChildResult } from "../../capabilities/gpt/index.js";
 import type {
   ProductionHash,
@@ -48,19 +50,59 @@ const prepareImageSubmit = async (
 
 const imageArtifact = (value: unknown): GeneratedImageArtifact => {
   const artifact = objectValue(value, "SEO_IMAGE_ARTIFACT_INVALID");
-  if (artifact.mediaType !== "image/webp" || artifact.width !== 1200 || artifact.height !== 630
+  if (artifact.mediaType !== "image/webp"
+    || !Number.isSafeInteger(artifact.width)
+    || !Number.isSafeInteger(artifact.height)
     || !Number.isSafeInteger(artifact.bytes) || Number(artifact.bytes) < 1
-    || !(artifact.originalBytes instanceof Uint8Array) || !(artifact.webpBytes instanceof Uint8Array)
-    || artifact.originalBytes.byteLength < 1 || artifact.webpBytes.byteLength !== artifact.bytes) {
+    || !(artifact.webpBytes instanceof Uint8Array)
+    || artifact.webpBytes.byteLength !== artifact.bytes) {
     fail("SEO_IMAGE_ARTIFACT_INVALID");
   }
   return Object.freeze({
     artifact_id: textValue(artifact.artifactId, "SEO_IMAGE_ARTIFACT_INVALID"),
-    webp_bytes: artifact.webpBytes, original_bytes: artifact.originalBytes,
+    webp_bytes: artifact.webpBytes,
     sha256: hashValue(artifact.sha256, "SEO_IMAGE_ARTIFACT_INVALID"),
-    original_sha256: hashValue(artifact.originalSha256, "SEO_IMAGE_ARTIFACT_INVALID"),
-    bytes: Number(artifact.bytes), media_type: "image/webp", width: 1200, height: 630,
+    bytes: Number(artifact.bytes), media_type: "image/webp",
+    width: Number(artifact.width), height: Number(artifact.height),
   });
+};
+
+const sha256 = (value: Uint8Array): ProductionHash =>
+  `sha256:${createHash("sha256").update(value).digest("hex")}`;
+
+const renderImageArtifact = async (value: unknown): Promise<GeneratedImageArtifact> => {
+  const source = objectValue(value, "SEO_IMAGE_ARTIFACT_INVALID");
+  if (!(source.originalBytes instanceof Uint8Array) || source.originalBytes.byteLength < 1
+    || !Number.isSafeInteger(source.originalSizeBytes)
+    || source.originalSizeBytes !== source.originalBytes.byteLength
+    || sha256(source.originalBytes) !== source.originalSha256
+    || typeof source.originalMediaType !== "string" || !source.originalMediaType.startsWith("image/")) {
+    fail("SEO_IMAGE_ARTIFACT_INVALID");
+  }
+  try {
+    const input = Buffer.from(source.originalBytes);
+    const originalMetadata = await sharp(input, { failOn: "error", limitInputPixels: false }).metadata();
+    if (!Number.isSafeInteger(originalMetadata.autoOrient.width)
+      || !Number.isSafeInteger(originalMetadata.autoOrient.height)) {
+      fail("SEO_IMAGE_ARTIFACT_INVALID");
+    }
+    const width = originalMetadata.autoOrient.width;
+    const height = originalMetadata.autoOrient.height;
+    const webpBytes = await sharp(input, { failOn: "error", limitInputPixels: false })
+      .rotate().webp({ quality: 90, effort: 6 }).toBuffer();
+    const outputMetadata = await sharp(webpBytes, { failOn: "error", limitInputPixels: false }).metadata();
+    if (outputMetadata.format !== "webp" || outputMetadata.width !== width || outputMetadata.height !== height
+      || outputMetadata.exif || outputMetadata.icc || outputMetadata.iptc || outputMetadata.xmp) {
+      fail("SEO_IMAGE_ARTIFACT_INVALID");
+    }
+    const imageHash = sha256(webpBytes);
+    return imageArtifact({ artifactId: `airesult_${imageHash.slice(7, 39)}`,
+      webpBytes: new Uint8Array(webpBytes), sha256: imageHash, bytes: webpBytes.byteLength,
+      mediaType: "image/webp", width, height });
+  } catch (error) {
+    if (error instanceof Error && error.message === "SEO_IMAGE_ARTIFACT_INVALID") throw error;
+    fail("SEO_IMAGE_ARTIFACT_INVALID");
+  }
 };
 
 const checkpointSubmittedImage = async (
@@ -82,7 +124,7 @@ const checkpointSubmittedImage = async (
     } as const;
     const checkpoint = await input.flow.execute(checkpointCall);
     const artifactRefs = checkpoint.artifactRefs;
-    if (artifactRefs.length !== 3 || !artifactRefs[0] || !artifactRefs[1]) {
+    if (artifactRefs.length !== 1 || !artifactRefs[0]) {
       fail("SEO_IMAGE_ARTIFACT_RECEIPT_INVALID");
     }
     const value = objectValue(checkpoint.value, "SEO_IMAGE_ARTIFACT_INVALID");
@@ -90,7 +132,7 @@ const checkpointSubmittedImage = async (
     const originalMediaType = textValue(value.originalMediaType, "SEO_IMAGE_ARTIFACT_INVALID");
     if (!originalMediaType.startsWith("image/")) fail("SEO_IMAGE_ARTIFACT_INVALID");
   return Object.freeze({
-      canonicalConversationUrl, mediaHash, generated: imageArtifact(value),
+      canonicalConversationUrl, mediaHash, generated: await renderImageArtifact(value),
   });
 };
 

@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { SyntaxKind } from "ts-morph";
+import { Node, SyntaxKind } from "ts-morph";
 
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 
@@ -20,6 +20,8 @@ const PRODUCTION_CALL_PREPARATION = `${ROOT}/production-call-preparation.ts`;
 const PRODUCTION_PORTS = `${ROOT}/production-ports.ts`;
 const PRODUCT_API = `${ROOT}/product-api.ts`;
 const EVIDENCE_ARTIFACTS = `${ROOT}/evidence-artifacts.ts`;
+const CHILD_TYPES = `${ROOT}/child-types.ts`;
+const PRODUCTION_CHILD_RESULT = `${ROOT}/production-child-result.ts`;
 
 type FindingFactory = (checkId: string, filePath: string, message: string) => InspectorFinding;
 const sourceText = (context: InspectorContext, path: string): string =>
@@ -192,6 +194,78 @@ const inspectRetiredProviderWaitSurfaces = (
   }
 };
 
+export const inspectGeneratedImageRawBoundary = (
+  context: InspectorContext,
+  findings: InspectorFinding[], finding: FindingFactory,
+): void => {
+  const childTypes = context.project.getSourceFile(resolve(context.sealedRoot, CHILD_TYPES));
+  const outputProperty = childTypes?.getInterface("GptChildOutputMap")
+    ?.getProperty("checkpoint_gpt_generated_image");
+  const outputFields = outputProperty?.getTypeNode()?.getDescendantsOfKind(SyntaxKind.PropertySignature)
+    .map((property) => property.getName()).sort() ?? [];
+  const exactOutputFields = ["assistantTurnId", "authorityDocumentHash", "authorityTargetHash",
+    "canonicalConversationUrl", "mediaHash", "originalBytes", "originalMediaType", "originalSha256",
+    "originalSizeBytes", "semanticMediaId", "turnMarker"].sort();
+
+  const handler = context.project.getSourceFile(resolve(context.sealedRoot, IMAGE_HANDLER));
+  const handlerInitializer = handler?.getVariableDeclaration("checkpointGptGeneratedImageHandler")?.getInitializer();
+  const successCall = handlerInitializer?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .find((call) => call.getExpression().getText() === "success");
+  const successObject = successCall?.getArguments()[0];
+  const valueProperty = Node.isObjectLiteralExpression(successObject)
+    ? successObject.getProperty("value") : undefined;
+  const valueInitializer = Node.isPropertyAssignment(valueProperty) ? valueProperty.getInitializer() : undefined;
+  const returnedFields = Node.isObjectLiteralExpression(valueInitializer)
+    ? valueInitializer.getProperties().flatMap((property) =>
+      Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property)
+        ? [property.getName()] : []).sort() : [];
+  const forbiddenHandlerCalls = new Set(["resize", "extract", "extend", "webp"]);
+  const handlerCallNames = handlerInitializer?.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((call) => {
+    const expression = call.getExpression();
+    return Node.isPropertyAccessExpression(expression) ? [expression.getName()] : [];
+  }) ?? [];
+  const handlerRawOnly = handler?.getImportDeclarations()
+    .every((declaration) => declaration.getModuleSpecifierValue() !== "sharp") === true
+    && handlerCallNames.every((name) => !forbiddenHandlerCalls.has(name))
+    && JSON.stringify(returnedFields) === JSON.stringify(exactOutputFields);
+
+  const artifacts = context.project.getSourceFile(resolve(context.sealedRoot, EVIDENCE_ARTIFACTS));
+  const generated = artifacts?.getVariableDeclaration("generatedImageArtifacts")?.getInitializer();
+  const rawReturn = generated?.getDescendantsOfKind(SyntaxKind.ReturnStatement)[0]?.getExpression();
+  const rawElements = Node.isArrayLiteralExpression(rawReturn) ? rawReturn.getElements() : [];
+  const rawObject = rawElements.length === 1 && Node.isObjectLiteralExpression(rawElements[0])
+    ? rawElements[0] : undefined;
+  const exactRawArtifact = rawObject?.getProperties().flatMap((property) =>
+    Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property)
+      ? [property.getName()] : []).sort();
+  const rawPropertyText = (name: string): string | undefined => {
+    const property = rawObject?.getProperty(name);
+    return property && Node.isPropertyAssignment(property) ? property.getInitializer()?.getText() : undefined;
+  };
+  const rawArtifactValid = JSON.stringify(exactRawArtifact) === JSON.stringify(
+    ["artifactType", "content", "mimeType", "suffix"].sort(),
+  ) && rawPropertyText("suffix") === '"original"'
+    && rawPropertyText("artifactType") === '"ai_raw_output"'
+    && rawPropertyText("mimeType") === "row.originalMediaType as string"
+    && rawPropertyText("content") === "new Uint8Array(original)";
+  if (!rawArtifactValid) findings.push(finding(
+    "gpt/generated-image-one-raw-artifact", EVIDENCE_ARTIFACTS,
+    "Generated image checkpoint must persist exactly one source-media raw artifact.",
+  ));
+  const settlement = context.project.getSourceFile(resolve(context.sealedRoot, PRODUCTION_CHILD_RESULT))
+    ?.getVariableDeclaration("recordSettledProviderResult")
+    ?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  const rowProperties = new Set(settlement?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
+    .filter((property) => property.getExpression().getText() === "row")
+    .map((property) => property.getName()) ?? []);
+  const settlementUsesOriginalHash = rowProperties.has("originalSha256") && !rowProperties.has("sha256");
+  if (JSON.stringify(outputFields) !== JSON.stringify(exactOutputFields)
+    || !handlerRawOnly || !settlementUsesOriginalHash) findings.push(finding(
+    "gpt/generated-image-raw-only", IMAGE_HANDLER,
+    "GPT image output, handler and settlement must expose only the exact authenticated original-byte contract.",
+  ));
+};
+
 export const inspectProviderWaitContract = (
   context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory,
 ): void => {
@@ -238,6 +312,7 @@ export const inspectProviderWaitContract = (
     "readPersistedGptTextResponse", "FORENSICS_ARTIFACT_NOT_FOUND",
     "GPT_TEXT_TASK_ARTIFACT_INVALID", "observedResponseArtifact(row)",
   ], findings, finding);
+  inspectGeneratedImageRawBoundary(context, findings, finding);
   inspectRetiredProviderWaitSurfaces(context, sources, findings, finding);
   requireTokens(sourceText(context, SEMANTIC_TEXT), SEMANTIC_TEXT, [
     "browserCanonicalSemanticText", "insidePre", 'name === "CODE"',

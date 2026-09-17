@@ -26,16 +26,12 @@ const imageRecord = (value: unknown): Readonly<Record<string, unknown>> => {
   return value as Readonly<Record<string, unknown>>;
 };
 
-const imageBytes = (row: Readonly<Record<string, unknown>>): Readonly<{
-  original: Uint8Array<ArrayBuffer>;
-  webp: Uint8Array<ArrayBuffer>;
-}> => {
-  if (!(row.originalBytes instanceof Uint8Array) || !(row.webpBytes instanceof Uint8Array)) invalidImage();
+const imageBytes = (row: Readonly<Record<string, unknown>>): Uint8Array<ArrayBuffer> => {
+  if (!(row.originalBytes instanceof Uint8Array)) invalidImage();
   const original = row.originalBytes as Uint8Array<ArrayBuffer>;
-  const webp = row.webpBytes as Uint8Array<ArrayBuffer>;
-  if (hash(original) !== row.originalSha256 || hash(webp) !== row.sha256
-    || original.byteLength !== row.originalSizeBytes || webp.byteLength !== row.bytes) invalidImage();
-  return { original, webp };
+  if (hash(original) !== row.originalSha256
+    || original.byteLength !== row.originalSizeBytes) invalidImage();
+  return original;
 };
 
 const assertImageIdentity = (row: Readonly<Record<string, unknown>>): void => {
@@ -52,45 +48,18 @@ const assertImageAuthority = (row: Readonly<Record<string, unknown>>): void => {
 };
 
 const assertImageFormat = (row: Readonly<Record<string, unknown>>): void => {
-  if (typeof row.originalMediaType !== "string" || !/^image\/[a-z0-9.+-]+$/u.test(row.originalMediaType)
-    || !Number.isSafeInteger(row.originalWidth) || Number(row.originalWidth) < 1
-    || !Number.isSafeInteger(row.originalHeight) || Number(row.originalHeight) < 1
-    || row.mediaType !== "image/webp" || row.width !== 1200 || row.height !== 630) invalidImage();
+  if (typeof row.originalMediaType !== "string" || !/^image\/[a-z0-9.+-]+$/u.test(row.originalMediaType)) invalidImage();
 };
 
 const generatedImageArtifacts = (value: unknown): EvidenceArtifact[] => {
   const row = imageRecord(value);
-  const bytes = imageBytes(row);
+  const original = imageBytes(row);
   assertImageIdentity(row);
   assertImageAuthority(row);
   assertImageFormat(row);
-  const receipt = new TextEncoder().encode(JSON.stringify({
-    schemaVersion: "agent-generated-image-receipt.v2",
-    assistantTurnId: row.assistantTurnId,
-    semanticMediaId: row.semanticMediaId,
-    mediaHash: row.mediaHash,
-    authorityTargetHash: row.authorityTargetHash,
-    authorityDocumentHash: row.authorityDocumentHash,
-    canonicalConversationUrl: row.canonicalConversationUrl,
-    turnMarker: row.turnMarker,
-    originalSha256: row.originalSha256,
-    originalBytes: row.originalSizeBytes,
-    originalMediaType: row.originalMediaType,
-    originalWidth: row.originalWidth,
-    originalHeight: row.originalHeight,
-    webpSha256: row.sha256,
-    webpBytes: row.bytes,
-    mediaType: "image/webp",
-    width: 1200,
-    height: 630,
-  }));
   return [
-    { suffix: "original", artifactType: "other", mimeType: "application/octet-stream",
-      content: new Uint8Array(bytes.original) },
-    { suffix: "webp", artifactType: "other", mimeType: "image/webp",
-      content: new Uint8Array(bytes.webp) },
-    { suffix: "generated-image-receipt", artifactType: "other", mimeType: "application/json",
-      content: receipt },
+    { suffix: "original", artifactType: "ai_raw_output", mimeType: row.originalMediaType as string,
+      content: new Uint8Array(original) },
   ];
 };
 
@@ -184,7 +153,12 @@ const appendArtifact = async (input: Readonly<{
   }
   const readback = await input.evidenceStore.readArtifact({ missionId: input.jobId,
     runId: input.attemptId, idempotencyKey: artifactKey(input.exactCallIdentityHash, input.artifact.suffix) });
-  if (readback.status !== "success" || hash(readback.artifact.content) !== hash(input.artifact.content)) {
+  const expectedHash = hash(input.artifact.content);
+  if (readback.status !== "success"
+    || readback.artifactRef !== appended.artifactRef
+    || readback.artifact.mimeType !== input.artifact.mimeType
+    || !/^sha256:[a-f0-9]{64}$/u.test(readback.artifact.integrityHash)
+    || hash(readback.artifact.content) !== expectedHash) {
     throw executionFailure("failed", "EVIDENCE_ARTIFACT_READBACK_FAILED");
   }
   return appended.artifactRef;

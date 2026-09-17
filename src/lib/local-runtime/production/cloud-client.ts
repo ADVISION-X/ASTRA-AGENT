@@ -260,15 +260,16 @@ async function uploadGeneratedImage(
   const requestId = `aipresult_${hashCanonical({ job_id: job.job_id, attempt_id: job.grant.attempt_id,
     role: "generated_image", hash: image.sha256 }).slice(7, 47)}`;
   const pathname = `/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/artifacts/generated_image/${encodeURIComponent(uploadArtifactId)}`;
+  const bytes = Buffer.from(image.webp_bytes);
+  if (bytes.byteLength !== image.bytes || sha256(bytes) !== image.sha256
+    || image.media_type !== "image/webp"
+    || !Number.isSafeInteger(image.width)
+    || !Number.isSafeInteger(image.height)) {
+    throw executionFailure("failed", "GENERATED_IMAGE_LOCAL_IDENTITY_MISMATCH");
+  }
   const delivered = store.readOutboxAuthority(requestId);
   if (delivered?.state === "delivered") {
     return exactGeneratedImageReceipt(store.readOutboxResponse(requestId), image, uploadArtifactId);
-  }
-  const bytes = Buffer.from(image.webp_bytes);
-  if (bytes.byteLength !== image.bytes || sha256(bytes) !== image.sha256
-    || image.original_bytes.byteLength < 1 || sha256(image.original_bytes) !== image.original_sha256
-    || image.media_type !== "image/webp" || image.width !== 1200 || image.height !== 630) {
-    throw executionFailure("failed", "GENERATED_IMAGE_LOCAL_IDENTITY_MISMATCH");
   }
   const durableHeaders = {
     ...fenceHeaders(job),

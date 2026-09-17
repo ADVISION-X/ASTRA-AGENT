@@ -29,7 +29,11 @@ export async function createWorkbenchAssembly(
   const runtimeLogger = createWorkbenchRuntimeLogger(dataDir);
   let browserAuthority: WorkbenchBrowserAuthority;
   try {
-    browserAuthority = await createWorkbenchBrowserAuthority(dataDir, runtimeLogger);
+    browserAuthority = await createWorkbenchBrowserAuthority(
+      dataDir,
+      runtimeLogger,
+      options.restoreBrowserHostVisibility,
+    );
   } catch (error) {
     const traceId = `producer:${runtimeLogger.producerRunId}`;
     const message = error instanceof Error ? error.message : String(error);

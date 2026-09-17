@@ -7,7 +7,7 @@
   "lawIds": [
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V63",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V8",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V34"
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V35"
   ],
   "specKind": "cross-repo-dependency",
   "contract": {

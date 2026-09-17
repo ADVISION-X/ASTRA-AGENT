@@ -225,7 +225,7 @@ export const UploadedResultReceiptSchema = z.object({
   media_type: z.enum(["application/json", "image/webp"]),
   state: z.literal("staged"),
   receipt_hash: hash,
-}).passthrough();
+}).strict();
 
 export type UploadedResultReceipt = z.infer<typeof UploadedResultReceiptSchema>;
 

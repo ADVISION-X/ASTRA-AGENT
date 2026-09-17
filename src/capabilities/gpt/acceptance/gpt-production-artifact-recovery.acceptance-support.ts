@@ -6,6 +6,9 @@ import { join } from "node:path";
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import { failureCode } from "../../../lib/execution-failure.js";
+import { createGrassEyeFileStorage } from "../../../lib/storage/file-storage.js";
+import { createForensicsPersistenceAbilityGroupFromStorage } from
+  "../../forensics-persistence/index.js";
 import { createGptAbilityGroup } from "../index.js";
 import { gptCanonicalHash, gptExactCallIdentityHash } from "../contract.js";
 import { ProductionGptChildTools } from "../production-child-tools.js";
@@ -35,12 +38,16 @@ const persistedContent = JSON.stringify({ schemaVersion: "agent-observed-respons
   semanticText, semanticTextHash: hash(semanticText) });
 const persistedArtifactKey = `gpt-call-artifact:v1:${checkpointExactCallIdentityHash}:observed-response`;
 const persistedArtifactRef = "artifact:persisted-response";
+const imageBytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+const imageHash = hash(imageBytes);
 
 const temporary = await mkdtemp(join(tmpdir(), "gpt-artifact-recovery-"));
 try {
-  const artifacts = new Map<string, Readonly<{ artifactRef: string; content: Uint8Array }>>([
+  const artifacts = new Map<string, Readonly<{ artifactRef: string; content: Uint8Array;
+    mimeType: string; integrityHash: `sha256:${string}` }>>([
     [persistedArtifactKey, { artifactRef: persistedArtifactRef,
-      content: new TextEncoder().encode(persistedContent) }],
+      content: new TextEncoder().encode(persistedContent), mimeType: "application/json",
+      integrityHash: hash(new TextEncoder().encode(persistedContent)) }],
   ]);
   const corruptArtifacts = new Set<string>();
   let artifactAppends = 0;
@@ -52,7 +59,9 @@ try {
       const content = typeof input.content === "string" ? new TextEncoder().encode(input.content)
         : input.content ?? new Uint8Array();
       const artifactRef = `artifact:${hash(input.idempotencyKey)}`;
-      artifacts.set(input.idempotencyKey, { artifactRef, content });
+      const mimeType = "mimeType" in input && typeof input.mimeType === "string"
+        ? input.mimeType : "application/octet-stream";
+      artifacts.set(input.idempotencyKey, { artifactRef, content, mimeType, integrityHash: hash(content) });
       artifactAppends += 1;
       return { status: "success" as const, artifactRef };
     },
@@ -63,14 +72,15 @@ try {
       if (corruptArtifacts.has(input.idempotencyKey)) return { status: "failed" as const,
         failureReason: "FORENSICS_ARTIFACT_INTEGRITY_MISMATCH" };
       return { status: "success" as const, artifactRef: artifact.artifactRef,
-        artifact: { content: artifact.content, mimeType: "application/json",
-          integrityHash: hash(artifact.content) } };
+        artifact: { content: artifact.content, mimeType: artifact.mimeType,
+          integrityHash: artifact.integrityHash } };
     },
   };
 
   let checkpointBrowserReads = 0;
   let checkpointPageObservations = 0;
   let exactConversationSelections = 0;
+  let authenticatedImageReads = 0;
   const submitOutcome = { state: "confirmed", mutationOutcome: "confirmed",
     providerEffectIdentityHash: HASH_A, terminalAt: "2026-09-13T00:00:00.000Z",
     failureCode: null, nativeFailureCode: null, authorityRef: "browser-mutation:submit",
@@ -102,6 +112,14 @@ try {
         checkpointPageObservations += 1;
         return exactAssistantTurnReply(intent, "first observed response");
       } else throw new Error(`UNEXPECTED_RECOVERY_BROWSER_INTENT:${intent.kind}`);
+    },
+    readAuthenticatedMedia: async () => {
+      authenticatedImageReads += 1;
+      return { authorityTargetHash: HASH_A, authorityDocumentHash: HASH_B,
+        assistantTurnId: "conversation-turn-2", precedingUserTurnId: "conversation-turn-1",
+        currentUrl: conversationUrl, semanticMediaId: "gpt-generated-image-main",
+        bytesBase64: Buffer.from(imageBytes).toString("base64"), sha256: imageHash,
+        sizeBytes: imageBytes.byteLength, mediaType: "image/png" };
     },
     pendingMutationCount: () => 0,
     park: async () => undefined,
@@ -159,6 +177,56 @@ try {
   assert.equal(checkpointPageObservations, 1, "corrupt persisted checkpoint must fail before Browser observation");
   assert.equal(artifactAppends, 1, "recovery must not append an overwrite artifact");
   await execution.settle(null);
+
+  const imageCall = { sessionKey, productStepId: "research",
+    callId: "image-checkpoint", child: "checkpoint_gpt_generated_image", actionOrdinal: 4,
+    input: { canonicalConversationUrl: conversationUrl, probeBudgetMs: 200_000,
+      userTurnId: "conversation-turn-1", turnMarker: "artifact-recovery-image" } } as const;
+  const imageExactCallIdentityHash = gptExactCallIdentityHash({ jobId, attemptId,
+    resultRevision: 0, productStepId: imageCall.productStepId, callId: imageCall.callId,
+    childCapabilityId: imageCall.child, inputHash: gptCanonicalHash(imageCall.input) });
+  const realEvidenceStore = createForensicsPersistenceAbilityGroupFromStorage(
+    createGrassEyeFileStorage(join(temporary, "real-forensics")),
+  );
+  const realExecution = new ProductionGptChildTools(join(temporary, "real-execution"), HASH_A,
+    createGptAbilityGroup(), realEvidenceStore, authority as never,
+    createRuntimeLogger({ producer: "gpt-artifact-recovery-real-store",
+      owner: "production-runtime", component: "gpt-child", terminalEnabled: false,
+      fileSink: { directoryPath: join(temporary, "real-runtime-logs") } }), {
+      assertProviderSubmitAllowed: () => undefined,
+      pendingIncidents: () => Object.freeze([]),
+      beginIncident: async () => { throw new Error("UNEXPECTED_PROVIDER_RATE_LIMIT"); },
+    }).createExecution({ jobId,
+    productId: "public_knowledge_article_pipeline",
+    attemptId, resultRevision: 0, ownerRef: "owner:1", subjectRef: "subject:1",
+    authorizationRef: "authorization:1", deviceId: "device:1", leaseVersion: 1,
+    executionFenceHash: HASH_A, capabilityManifestHash: HASH_B,
+    expiresAtMonotonic: performance.now() + 10_000, commandTtlMs: 1_000,
+    abortSignal: new AbortController().signal, parentSpanId: "parent", maxProviderTurns: 1 });
+  const realRecoveredSubmit = await realExecution.tools.readConfirmedSubmit({ sessionKey,
+    productStepId: "research", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
+    actionOrdinal: 1, input: submitInput });
+  assert.equal(realRecoveredSubmit?.value.userTurnId, "conversation-turn-1");
+  const image = await realExecution.tools.execute(imageCall);
+  assert.equal(image.value.originalSha256, imageHash,
+    "the production facade must settle the generated image with originalSha256");
+  assert.deepEqual(image.value.originalBytes, imageBytes);
+  assert.equal(image.artifactRefs.length, 1);
+  assert.equal(authenticatedImageReads, 1);
+  const imageReadback = await realEvidenceStore.readArtifact({ missionId: jobId, runId: attemptId,
+    idempotencyKey: `gpt-call-artifact:v1:${imageExactCallIdentityHash}:original` });
+  assert.equal(imageReadback.status, "success");
+  if (imageReadback.status === "success") {
+    assert.equal(imageReadback.artifactRef, image.artifactRefs[0]);
+    assert.equal(imageReadback.artifact.mimeType, "image/png");
+    assert.deepEqual(imageReadback.artifact.content, imageBytes);
+    assert.match(imageReadback.artifact.integrityHash, /^sha256:[a-f0-9]{64}$/u);
+    assert.notEqual(imageReadback.artifact.integrityHash, imageHash,
+      "Forensics integrityHash authenticates the stored envelope; raw image identity remains originalSha256");
+  }
+  assert.equal(artifactAppends, 1,
+    "the fake recovery store must not receive the real image artifact");
+  await realExecution.settle(null);
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }

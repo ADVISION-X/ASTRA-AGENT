@@ -99,13 +99,11 @@ export interface ProductionRoutePolicy {
 export interface GeneratedImageArtifact {
   readonly artifact_id: string;
   readonly webp_bytes: Uint8Array;
-  readonly original_bytes: Uint8Array;
   readonly sha256: ProductionHash;
-  readonly original_sha256: ProductionHash;
   readonly bytes: number;
   readonly media_type: "image/webp";
-  readonly width: 1200;
-  readonly height: 630;
+  readonly width: number;
+  readonly height: number;
 }
 
 export interface GeneratedImageResultReceipt {
