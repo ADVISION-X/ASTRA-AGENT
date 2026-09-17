@@ -296,8 +296,7 @@ export class ProductionExecutor {
           get commandTtlMs() { return input.lease.command_ttl_ms; },
           abortSignal: input.lease.abort_signal,
           parentSpanId: input.span.spanId,
-          ...(parent ? { providerContinuationParent: { jobId: parent.task.job_id,
-            acceptedAttemptId: parent.current_attempt_id } } : {}),
+          ...(parent ? { providerContinuationParent: { jobId: parent.task.job_id } } : {}),
         });
         gptLifecycle.decorateFailure = gptExecution.decorateSettledResultFailure;
         gptLifecycle.settle = gptExecution.settle;

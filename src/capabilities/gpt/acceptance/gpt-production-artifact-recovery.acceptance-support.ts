@@ -10,7 +10,8 @@ import { createGptAbilityGroup } from "../index.js";
 import { gptCanonicalHash, gptExactCallIdentityHash } from "../contract.js";
 import { ProductionGptChildTools } from "../production-child-tools.js";
 import { exactAssistantTurnReply } from "./gpt-exact-target-browser-fixture.js";
-import type { BrowserDomIntent } from "../../../lib/browser/browser-authority-api.js";
+import { browserExactCallIdentityHash,
+  type BrowserDomIntent } from "../../../lib/browser/browser-authority-api.js";
 
 const hash = (value: string | Uint8Array): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -79,6 +80,14 @@ try {
       promptHash: HASH_A, userTurnId: "conversation-turn-1", exactCallIdentityHash: HASH_A,
       observationRevisionHash: HASH_A, targetRefHash: HASH_A, documentRefHash: HASH_A,
       rawCount: 1, eligibleCount: 1 } } as const;
+  const submitInput = { files: [], promptHash: HASH_A } as const;
+  const submitAtomicInputHash = gptCanonicalHash([0, gptCanonicalHash(submitInput)]);
+  const submitExactCallIdentityHash = browserExactCallIdentityHash({
+    jobId, attemptId, resultRevision: 0, writerFenceHash: HASH_A,
+    productStepId: "research", callId: "turn-submit",
+    childCapabilityId: "submit_exact_gpt_turn_once", inputHash: submitAtomicInputHash,
+    replayPolicy: "provider-effect-once",
+  });
   const browser = { target: { targetRef: "target:recovery" },
     document: { documentRef: "document:recovery" },
     readAtomicStepOutcome: (identity: Readonly<{ childCapabilityId: string }>) => {
@@ -98,15 +107,19 @@ try {
     park: async () => undefined,
   };
   const authority = {
-    readProviderEffectStepCallIdentities: () => Object.freeze([]),
-    readExactCallMutationFact: (input: Readonly<{ exactCallIdentityHash: `sha256:${string}` }>) => ({
-    effectScope: "provider_effect", providerEffectIdentityHash: HASH_A, outcome: "CONFIRMED",
-    mutationOutcome: "confirmed", terminalAt: submitOutcome.terminalAt, failureCode: null,
-    nativeFailureCode: null, authorityRef: submitOutcome.authorityRef, authorityHash: HASH_B,
-    targetRef: submitOutcome.targetRef, documentRef: submitOutcome.documentRef,
-    productStepId: "research", callId: "turn-submit", childCapabilityId: "submit_exact_gpt_turn_once",
-    actionOrdinal: 1, physicalInputCount: 0, downloadGuidHash: null, downloadCompleted: false,
-    identityRevalidated: true, exactCallIdentityHash: input.exactCallIdentityHash }),
+    readProviderEffectStepCallFact: () => ({
+      exactCallIdentityHash: submitExactCallIdentityHash, inputHash: submitAtomicInputHash,
+      mutation: {
+        effectScope: "provider_effect", providerEffectIdentityHash: HASH_A,
+        outcome: "CONFIRMED", mutationOutcome: "confirmed", terminalAt: submitOutcome.terminalAt,
+        failureCode: null, nativeFailureCode: null, authorityRef: submitOutcome.authorityRef,
+        authorityHash: HASH_B, targetRef: submitOutcome.targetRef,
+        documentRef: submitOutcome.documentRef, productStepId: "research", callId: "turn-submit",
+        childCapabilityId: "submit_exact_gpt_turn_once", actionOrdinal: 1,
+        physicalInputCount: 1, downloadGuidHash: null, downloadCompleted: false,
+        identityRevalidated: true,
+      },
+    }),
     countProviderTurnDispatches: () => 0,
     acquireJobBoundTargetLease: async () => browser };
   const execution = new ProductionGptChildTools(temporary, HASH_A, createGptAbilityGroup(),
@@ -125,7 +138,7 @@ try {
     abortSignal: new AbortController().signal, parentSpanId: "parent", maxProviderTurns: 1 });
   const recoveredSubmit = await execution.tools.readConfirmedSubmit({ sessionKey,
     productStepId: "research", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
-    actionOrdinal: 1, input: { files: [], promptHash: HASH_A } });
+    actionOrdinal: 1, input: submitInput });
   assert.equal(recoveredSubmit?.value.userTurnId, "conversation-turn-1");
   const recovered = await execution.tools.execute(checkpointCall);
   assert.equal(recovered.value.semanticText, semanticText);

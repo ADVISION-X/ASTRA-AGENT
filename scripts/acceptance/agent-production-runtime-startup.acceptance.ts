@@ -321,7 +321,7 @@ try {
     capturedContinuationParent = input.providerContinuationParent; throw new Error("PARENT_BINDING_CAPTURED");
   });
   await assert.rejects(dispatchPlugin.call(executor, continuationInput(translationTask)), /PARENT_BINDING_CAPTURED/u);
-  assert.deepEqual(capturedContinuationParent, { jobId: parentTask.job_id, acceptedAttemptId: parentAttemptId });
+  assert.deepEqual(capturedContinuationParent, { jobId: parentTask.job_id });
   capturedContinuationParent = "UNEXPECTED_PARENT";
   const staticCatalogRoot = task({ jobId: "job:static-catalog-zh-HK-root", productId: "localization_static_catalog", actionId: "produce_locale_catalog", extra: { parameters: { target_locale: "zh-HK" } } });
   await assert.rejects(dispatchPlugin.call(executor, continuationInput(staticCatalogRoot as typeof translationTask)),

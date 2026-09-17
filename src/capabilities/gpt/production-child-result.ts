@@ -4,6 +4,7 @@ import type {
 } from "./contract.js";
 import { gptExactCallIdentityHash } from "./contract.js";
 import type { BrowserExactCallMutationFact } from "../../lib/browser/browser-authority-api.js";
+import type { BrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 import type { ProductGptCallInput, ProductGptChildResult } from "./product-api.js";
 import type {
@@ -36,6 +37,7 @@ export const recordConfirmedSubmission = async (
   execution: ExecutionInput,
   browsers: ProductionGptBrowserLifecycle,
   browserCall: ProductionGptBrowserCall | undefined,
+  browserAtomicIdentity?: BrowserAtomicStepIdentity,
 ): Promise<void> => {
   if (call.child !== "submit_exact_gpt_turn_once" || result.status !== "success") return;
   const effect = result.proof.browserFact;
@@ -49,7 +51,8 @@ export const recordConfirmedSubmission = async (
   }
   if (!browserCall) throw executionFailure("failed", "GPT_BROWSER_REQUIRED");
   await browsers.recordConfirmedProviderEffect(
-    browserCall, effect, productionGptAtomicIdentity(intent, execution.resultRevision),
+    browserCall, effect, browserAtomicIdentity
+      ?? productionGptAtomicIdentity(intent, execution.resultRevision),
     submitted.canonicalConversationUrl, submitted.userTurnId,
   );
 };

@@ -13,6 +13,7 @@ import {
 import type {
   ProductionGptBrowserCall, ProductionGptBrowserLifecycle,
 } from "./production-browser-lifecycle.js";
+import type { BrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
 import type { GptProductionExecutionInput as ExecutionInput } from "./production-child-support.js";
 import { productChildResult, recordSettledProviderResult } from "./production-child-result.js";
 
@@ -54,10 +55,12 @@ export const runProductionAtomicPhase = async (input: Readonly<{
   dataDir: string; gpt: GptAbilityGroup; browsers: ProductionGptBrowserLifecycle;
   intent: GptAnyChildCapabilityIntent; browserCall: ProductionGptBrowserCall | undefined;
   signal: AbortSignal; resultRevision: number; childCapabilityId: GptChildCapabilityId;
+  browserAtomicIdentity?: BrowserAtomicStepIdentity;
   assertProviderInputAllowed: () => void; rateLimitAckDispatchNotAfter?: number;
 }>): Promise<ProductionGptAtomicCallResult> => executeProductionGptAtomicCall({
   dataDir: input.dataDir, gpt: input.gpt, browsers: input.browsers, intent: input.intent,
   browserCall: input.browserCall, signal: input.signal, resultRevision: input.resultRevision,
+  ...(input.browserAtomicIdentity ? { browserAtomicIdentity: input.browserAtomicIdentity } : {}),
   ...(input.childCapabilityId === "submit_exact_gpt_turn_once"
     ? { assertProviderInputAllowed: input.assertProviderInputAllowed } : {}),
   ...(input.rateLimitAckDispatchNotAfter === undefined ? {}

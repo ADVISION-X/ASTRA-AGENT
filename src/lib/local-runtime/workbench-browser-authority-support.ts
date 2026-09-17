@@ -12,7 +12,7 @@ import type {
   BrowserExecutionArtifactBinding,
   BrowserExecutionArtifactLease,
   BrowserExecutionBinding,
-  BrowserExactCallMutationFact,
+  BrowserProviderEffectStepCallFact,
   BrowserAuthorityBroker,
   BrowserTargetLease,
   BrowserTargetReleaseAuthority,
@@ -52,19 +52,14 @@ export type WorkbenchBrowserAuthority = Readonly<{
   hasUnresolvedBrowserMutation(): boolean;
   hasBrowserMutationForJob(jobId: string): boolean;
   countProviderTurnDispatches(jobId: string, attemptId: string): number;
-  readExactCallMutationFact(input: Readonly<{
+  readProviderEffectStepCallFact(input: Readonly<{
     jobId: string;
     attemptId: string;
-    exactCallIdentityHash: `sha256:${string}`;
-    actionOrdinal: number;
-  }>): BrowserExactCallMutationFact | null;
-  readProviderEffectStepCallIdentities(input: Readonly<{
-    jobId: string;
     resultRevision: number;
     productStepId: string;
     callId: string;
     childCapabilityId: string;
-  }>): readonly `sha256:${string}`[];
+  }>): BrowserProviderEffectStepCallFact | null;
   purgeBrowserJob(jobId: string): void;
   releaseJobBoundTarget(
     jobId: string,
@@ -155,9 +150,8 @@ export const createWorkbenchBrowserAuthority = async (
     hasBrowserMutationForJob: (jobId) => supervisor.hasBrowserMutationForJob(jobId),
     countProviderTurnDispatches: (jobId, attemptId) =>
       supervisor.countProviderTurnDispatches(jobId, attemptId),
-    readExactCallMutationFact: (input) => supervisor.readExactCallMutationFact(input),
-    readProviderEffectStepCallIdentities: (input) =>
-      supervisor.readProviderEffectStepCallIdentities(input),
+    readProviderEffectStepCallFact: (input) =>
+      supervisor.readProviderEffectStepCallFact(input),
     purgeBrowserJob: (jobId) => supervisor.purgeBrowserJob(jobId),
     releaseJobBoundTarget: (jobId, releaseAuthority, signal) =>
       supervisor.releaseJobBoundTarget(jobId, releaseAuthority, signal),

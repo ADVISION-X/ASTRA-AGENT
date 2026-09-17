@@ -219,7 +219,7 @@ const submitTurn = async (
   await flow.execute(write);
   const submitResult = await flow.execute(submit) as ProductGptChildResult<"submit_exact_gpt_turn_once">;
   requireConfirmedSubmit(submitResult.effectReceipt);
-  return checkpointSubmittedTurn(flow, stepId, marker, promptHash, submitResult,
+  return checkpointSubmittedTurn(flow, stepId, marker, submitResult.value.promptHash, submitResult,
     [ordinals[3], ordinals[4], ordinals[5]]);
 };
 
@@ -239,7 +239,9 @@ const runFreshTurn = async (
   const confirmed = await flow.readConfirmedSubmit(submit);
   if (confirmed) {
     requireConfirmedSubmit(confirmed.effectReceipt);
-    return checkpointSubmittedTurn(flow, stepId, marker, promptHash, confirmed, [14, 15, 16]);
+    return checkpointSubmittedTurn(
+      flow, stepId, marker, confirmed.value.promptHash, confirmed, [14, 15, 16],
+    );
   }
   const fresh = { productStepId: stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
   await flow.execute(fresh);

@@ -228,7 +228,9 @@ const runFreshTurn = async (
     submitResult = await flow.execute(submit) as ProductGptChildResult<"submit_exact_gpt_turn_once">;
   }
   requireConfirmedSubmit(submitResult.effectReceipt);
-  return checkpointSubmittedTurn(flow, stepId, marker, promptHash, submitResult, [14, 15, 16]);
+  return checkpointSubmittedTurn(
+    flow, stepId, marker, submitResult.value.promptHash, submitResult, [14, 15, 16],
+  );
 };
 
  const receive = (task: WebsiteAgentTask, checkpoint: Checkpoint, context: SharedExecutionContext): Readonly<Record<string, unknown>> => {

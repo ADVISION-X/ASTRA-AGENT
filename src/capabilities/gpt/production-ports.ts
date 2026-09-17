@@ -1,6 +1,6 @@
 import type {
   BrowserExecutionBinding,
-  BrowserExactCallMutationFact,
+  BrowserProviderEffectStepCallFact,
   BrowserTargetLease,
   BrowserTargetLeaseWait,
 } from "../../lib/browser/browser-authority-api.js";
@@ -19,19 +19,14 @@ export interface GptEvidenceStorePort {
 }
 
 export interface GptProductionBrowserAuthority {
-  readExactCallMutationFact(input: Readonly<{
+  readProviderEffectStepCallFact(input: Readonly<{
     jobId: string;
     attemptId: string;
-    exactCallIdentityHash: `sha256:${string}`;
-    actionOrdinal: number;
-  }>): BrowserExactCallMutationFact | null;
-  readProviderEffectStepCallIdentities(input: Readonly<{
-    jobId: string;
     resultRevision: number;
     productStepId: string;
     callId: string;
     childCapabilityId: string;
-  }>): readonly `sha256:${string}`[];
+  }>): BrowserProviderEffectStepCallFact | null;
   countProviderTurnDispatches(jobId: string, attemptId: string): number;
   acquireJobBoundTargetLease(
     binding: BrowserExecutionBinding,

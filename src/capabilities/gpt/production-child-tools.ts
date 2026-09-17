@@ -22,6 +22,7 @@ import {
   executionFailure, executionFailureMetadata, failureCode, typedExecutionFailure,
 } from "../../lib/execution-failure.js";
 import { browserExactCallIdentityHash } from "../../lib/browser/browser-authority-api.js";
+import type { BrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
 import type { ProductGptCallInput, ProductGptChildResult } from "./product-api.js";
 import type { GptHash } from "./contract.js";
 import { persistGptEvidenceArtifacts } from "./evidence-artifacts.js";
@@ -110,34 +111,42 @@ export class ProductionGptChildTools {
           this.assertExecutionActive(input);
           await this.runSettledConversationCleanup(input, browsers, call.sessionKey);
           const intent = this.intentFor(input, call);
-          const atomicIdentity = productionGptAtomicIdentity(
+          const currentAtomicIdentity = productionGptAtomicIdentity(
             intent as GptAnyChildCapabilityIntent, input.resultRevision,
           );
-          const exactCallIdentityHash = browserExactCallIdentityHash({
-            jobId: input.jobId, attemptId: input.attemptId,
-            writerFenceHash: input.executionFenceHash,
-            ...atomicIdentity,
-          });
-          const stepCallIdentities = this.browserAuthority.readProviderEffectStepCallIdentities({
-            jobId: input.jobId, resultRevision: input.resultRevision,
+          const existing = this.browserAuthority.readProviderEffectStepCallFact({
+            jobId: input.jobId, attemptId: input.attemptId, resultRevision: input.resultRevision,
             productStepId: call.productStepId, callId: call.callId,
             childCapabilityId: call.child,
           });
-          if (stepCallIdentities.length > 0
-            && !stepCallIdentities.includes(exactCallIdentityHash)) {
+          if (!existing) return null;
+          const prior = existing.mutation;
+          if (prior.productStepId !== call.productStepId || prior.callId !== call.callId
+            || prior.childCapabilityId !== call.child || prior.actionOrdinal !== call.actionOrdinal) {
             throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
           }
-          const prior = this.browserAuthority.readExactCallMutationFact({
-            jobId: input.jobId, attemptId: input.attemptId,
-            exactCallIdentityHash, actionOrdinal: call.actionOrdinal,
+          const atomicIdentity: BrowserAtomicStepIdentity = Object.freeze({
+            resultRevision: input.resultRevision,
+            productStepId: prior.productStepId,
+            callId: prior.callId,
+            childCapabilityId: prior.childCapabilityId,
+            inputHash: existing.inputHash,
+            actionOrdinal: prior.actionOrdinal,
+            replayPolicy: "provider-effect-once",
           });
-          if (!prior) return null;
-          if (prior.productStepId !== call.productStepId || prior.callId !== call.callId
-            || prior.childCapabilityId !== call.child) {
+          const exactCallIdentityHash = browserExactCallIdentityHash({
+            jobId: input.jobId, attemptId: input.attemptId,
+            writerFenceHash: input.executionFenceHash, ...atomicIdentity,
+          });
+          if (exactCallIdentityHash !== existing.exactCallIdentityHash) {
             throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
           }
           const effect = submitEffect(prior, exactCallIdentityHash, call.child);
           try {
+            if (prior.outcome === "DISPATCHED"
+              && existing.inputHash !== currentAtomicIdentity.inputHash) {
+              throw executionFailure("failed", "PROVIDER_EFFECT_OUTCOME_UNPROVEN");
+            }
             const active = await (prior.outcome === "CONFIRMED"
               ? browsers.browserForConfirmedReadback(
                 call.sessionKey, call.productStepId, call.callId)
@@ -147,6 +156,7 @@ export class ProductionGptChildTools {
             if (!active.facade.readAtomicStepOutcome(atomicIdentity)) return null;
             return await this.executeOne<"submit_exact_gpt_turn_once">(
               input, browsers, call, input.abortSignal, true,
+              RuntimeFailureImpact.BLOCKING, undefined, atomicIdentity,
             );
           } catch (error) {
             throw gptExecutionFailure(failureCode(error, prior.outcome === "CONFIRMED"
@@ -409,6 +419,7 @@ export class ProductionGptChildTools {
     priorEffectKnown = false,
     failureImpact: RuntimeFailureImpact = RuntimeFailureImpact.BLOCKING,
     rateLimitAckDispatchNotAfter?: number,
+    browserAtomicIdentity?: BrowserAtomicStepIdentity,
   ): Promise<ProductGptChildResult<K>> {
     const intent = this.intentFor(execution, call), contract = GPT_CHILD_CAPABILITY_CONTRACTS[call.child];
     const span = this.childSpan(execution, intent);
@@ -429,6 +440,7 @@ export class ProductionGptChildTools {
       result = await runProductionAtomicPhase({ dataDir: this.dataDir, gpt: this.gpt,
         browsers, intent: intent as GptAnyChildCapabilityIntent, browserCall, signal,
         resultRevision: execution.resultRevision, childCapabilityId: call.child,
+        ...(browserAtomicIdentity ? { browserAtomicIdentity } : {}),
         assertProviderInputAllowed: () => this.providerRateLimitControl.assertProviderSubmitAllowed(),
         ...(rateLimitAckDispatchNotAfter === undefined ? {} : { rateLimitAckDispatchNotAfter }) });
       if (result.status !== "success" && result.failureCode === "BROWSER_KNOWN_GPT_RATE_LIMIT"
@@ -443,7 +455,7 @@ export class ProductionGptChildTools {
         });
       }
       await recordConfirmedSubmission(call, result, intent as GptAnyChildCapabilityIntent,
-        execution, browsers, browserCall);
+        execution, browsers, browserCall, browserAtomicIdentity);
       artifactRefs = await persistGptEvidenceArtifacts({
         result, intent, evidenceStore: this.evidenceStore,
         jobId: execution.jobId, attemptId: execution.attemptId,

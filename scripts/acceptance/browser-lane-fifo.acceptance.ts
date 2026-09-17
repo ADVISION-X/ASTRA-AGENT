@@ -173,9 +173,7 @@ const createBehaviorLane = (events: string[], unresolved = 0) => {
       settleRetiredTargetLocal: () => ({ effectScope: "provider_effect",
         childCapabilityId: "submit_exact_gpt_turn_once", logicalMutationId: hash("9") }),
       latestProviderInputTerminalAt: () => null,
-      readUniqueConfirmedConversationUrl: (parentJobId: string, parentAttemptId: string,
-        parentProductStepId: string) => {
-        assert.equal(parentAttemptId, "attempt:article:A");
+      readUniqueConfirmedConversationUrl: (parentJobId: string, parentProductStepId: string) => {
         assert.equal(parentProductStepId, "article-step");
         events.push(`wal:${parentJobId}`);
         return `https://chatgpt.com/c/${parentJobId.replaceAll(":", "-")}`;
@@ -232,7 +230,6 @@ const continuationLane = createBehaviorLane(continuationEvents);
 const continuationLease = await continuationLane.acquire(binding("z") as never, "owner-z", {
   targetMode: "authorized-continuation",
   parentJobId: "job:article:A",
-  parentAttemptId: "attempt:article:A",
   signal: new AbortController().signal,
   eligibleAt: Date.now(),
   remainingMs: () => 5_000,
@@ -245,7 +242,6 @@ await continuationLease.park({ reason: "continuation-finished", mode: "product-c
 await assert.rejects(createBehaviorLane([]).acquire(binding("a") as never, "owner-a", {
   targetMode: "authorized-continuation",
   parentJobId: "job-a",
-  parentAttemptId: "attempt:article:A",
   signal: new AbortController().signal,
   eligibleAt: Date.now(),
   remainingMs: () => 5_000,

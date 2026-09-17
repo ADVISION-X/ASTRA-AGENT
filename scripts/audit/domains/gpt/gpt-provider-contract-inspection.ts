@@ -106,11 +106,17 @@ export const inspectGptProviderProbeOwnerContract = (
     "gpt/no-second-wait-scheduler", LIFECYCLE,
     "GPT must not sample a per-Child Provider observation interval.",
   ));
-  requireTokens(sourceText(context, BROWSER_MUTATION_STORE), BROWSER_MUTATION_STORE, [
-    "readUniqueConfirmedConversationUrl(parentJobId: string, parentAttemptId: string,",
-    "job_id=? and attempt_id=? and product_step_id=?", "product_step_id=? and call_id='turn-submit'",
+  const mutationStore = sourceText(context, BROWSER_MUTATION_STORE);
+  requireTokens(mutationStore, BROWSER_MUTATION_STORE, [
+    "readUniqueConfirmedConversationUrl(parentJobId: string, parentProductStepId: string)",
+    "where job_id=? and product_step_id=?", "product_step_id=? and call_id='turn-submit'",
     "child_capability_id='submit_exact_gpt_turn_once'",
   ], findings, finding);
+  for (const forbidden of ["parentAttemptId", "job_id=? and attempt_id=? and product_step_id=?"])
+    if (mutationStore.includes(forbidden)) findings.push(finding(
+      "gpt/attempt-free-parent-provider-locator", BROWSER_MUTATION_STORE,
+      `Parent Provider locator retains forbidden attempt gate ${forbidden}.`,
+    ));
   for (const forbidden of ["yieldForProviderProbe", "yieldForProviderWait", "waitForDelay",
     "yieldAndReacquire", "productionGptCrossConversationPollCadence", '"provider-probe"',
     "startProviderProbeCooldown"]) if (lifecycle.includes(forbidden)) findings.push(finding(
@@ -214,8 +220,20 @@ export const inspectProviderWaitContract = (
   ], findings, finding);
   requireTokens(sources.submit, SUBMIT_HANDLER, [
     "submitExactGptTurnOnceHandler", "requireConfirmedBrowserFact", 'status: "CONFIRMED"',
-    "canonicalConversationUrl", "userTurnId",
+    "canonicalConversationUrl", "userTurnId", "promptHash: submittedPromptHash",
   ], findings, finding);
+  requireTokens(sources.tools, PRODUCTION_CHILD_TOOLS, [
+    "readProviderEffectStepCallFact({", "inputHash: existing.inputHash",
+    "browserAtomicIdentity",
+  ], findings, finding);
+  requireTokens(sourceText(context, PRODUCTION_PORTS), PRODUCTION_PORTS, [
+    "readProviderEffectStepCallFact(input:", "BrowserProviderEffectStepCallFact | null",
+  ], findings, finding);
+  if ([sources.tools, sourceText(context, PRODUCTION_PORTS)]
+    .some((source) => source.includes("readProviderEffectStepCallIdentities"))) findings.push(finding(
+    "gpt/historical-provider-effect-authority", PRODUCTION_CHILD_TOOLS,
+    "The retired current-identity comparison gate must remain physically absent.",
+  ));
   requireTokens(sources.artifacts, EVIDENCE_ARTIFACTS, [
     "readPersistedGptTextResponse", "FORENSICS_ARTIFACT_NOT_FOUND",
     "GPT_TEXT_TASK_ARTIFACT_INVALID", "observedResponseArtifact(row)",

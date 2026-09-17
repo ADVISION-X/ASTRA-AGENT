@@ -4,7 +4,6 @@ import type {
   BrowserTargetReleaseAuthority,
   BrowserTargetLeaseWait,
 } from "../exact-target/browser-target-lease.js";
-import type { BrowserExactCallMutationFact } from "../exact-target/browser-mutation-types.js";
 import type { BrowserExecutionBinding } from "./browser-authority-broker.js";
 import { BrowserAuthorityBroker } from "./browser-authority-broker.js";
 import { BrowserAuthorityIssuer } from "./browser-authority-issuer.js";
@@ -31,7 +30,7 @@ type AcquireLaneWaiter = LaneWaiterBase & Readonly<{
   binding: BrowserExecutionBinding;
   ownerId: string;
   targetMode: BrowserTargetLeaseWait["targetMode"];
-  parentJobId?: string; parentAttemptId?: string;
+  parentJobId?: string;
   requestKind: "interaction" | "provider-observation";
 }>;
 type ReleaseLaneWaiter = LaneWaiterBase & Readonly<{
@@ -84,7 +83,7 @@ export class BrowserLaneCoordinator {
         kind: "acquire", binding, ownerId, jobRefHash: binding.jobRefHash,
         targetMode: wait.targetMode,
         ...(wait.targetMode === "authorized-continuation"
-          ? { parentJobId: wait.parentJobId, parentAttemptId: wait.parentAttemptId } : {}),
+          ? { parentJobId: wait.parentJobId } : {}),
         requestKind: wait.targetMode === "fresh" || wait.targetMode === "authorized-continuation"
           ? "interaction" : "provider-observation",
         eligibleAt: wait.eligibleAt,
@@ -170,18 +169,11 @@ export class BrowserLaneCoordinator {
   }>): void {
     if (this.activeJobRefHash !== input.jobRefHash) throw new Error("BROWSER_TARGET_INVALID");
   }
-  public readExactCallMutationFact(input: Readonly<{
-    jobId: string; attemptId: string;
-    exactCallIdentityHash: `sha256:${string}`; actionOrdinal: number;
-  }>): BrowserExactCallMutationFact | null {
-    return this.infrastructure.mutationState?.readExactCallMutationFact(input) ?? null;
-  }
-  public readProviderEffectStepCallIdentities(input: Readonly<{
-    jobId: string; resultRevision: number; productStepId: string;
+  public readProviderEffectStepCallFact(input: Readonly<{
+    jobId: string; attemptId: string; resultRevision: number; productStepId: string;
     callId: string; childCapabilityId: string;
-  }>): readonly `sha256:${string}`[] {
-    return this.infrastructure.mutationState?.readProviderEffectStepCallIdentities(input)
-      ?? Object.freeze([]);
+  }>) {
+    return this.infrastructure.mutationState?.readProviderEffectStepCallFact(input) ?? null;
   }
 
   private mayCrossUnresolved(waiter: LaneWaiter): boolean {
@@ -274,7 +266,7 @@ export class BrowserLaneCoordinator {
           throw new Error("BROWSER_PARENT_JOB_SELF_REFERENCE");
         }
         parentConversationUrl = mutations?.readUniqueConfirmedConversationUrl(
-          waiter.parentJobId!, waiter.parentAttemptId!, waiter.binding.productStepId,
+          waiter.parentJobId!, waiter.binding.productStepId,
         );
       }
       await this.targetAcquirer.ensureAvailableTarget(waiter, parentConversationUrl);

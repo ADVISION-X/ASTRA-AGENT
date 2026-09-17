@@ -20,6 +20,7 @@ type AtomicGptCallInput = Readonly<{
   browserCall: ProductionGptBrowserCall | undefined;
   signal: AbortSignal;
   resultRevision: number;
+  browserAtomicIdentity?: BrowserAtomicStepIdentity;
   assertProviderInputAllowed?: () => void;
   rateLimitAckDispatchNotAfter?: number;
 }>;
@@ -78,7 +79,8 @@ export const executeProductionGptAtomicCall = async (
     return await gpt.execute(intent, executionContext(input, browser));
   }
   const replayPolicy = GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId].replayPolicy;
-  const atomicIdentity = productionGptAtomicIdentity(intent, input.resultRevision);
+  const atomicIdentity = input.browserAtomicIdentity
+    ?? productionGptAtomicIdentity(intent, input.resultRevision);
   const context = executionContext(input, browser, atomicIdentity);
   const priorOutcome = browser.readAtomicStepOutcome(atomicIdentity);
   if (!priorOutcome) {

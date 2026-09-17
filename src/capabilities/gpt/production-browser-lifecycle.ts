@@ -412,7 +412,6 @@ export class ProductionGptBrowserLifecycle {
       ...wait,
       targetMode,
       parentJobId: this.execution.providerContinuationParent!.jobId,
-      parentAttemptId: this.execution.providerContinuationParent!.acceptedAttemptId,
     } : {
       ...wait,
       targetMode,

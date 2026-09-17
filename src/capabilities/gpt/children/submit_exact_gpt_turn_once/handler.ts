@@ -82,15 +82,12 @@ type SubmitContext = Parameters<SubmitHandler>[1];
 const recoveredSubmitResult = (
   intent: SubmitIntent,
   context: SubmitContext,
-  promptHash: `sha256:${string}`,
 ) => {
   const recovered = context.confirmedProviderEffectReadback!;
   const submitted = recoveredSubmittedTurn(recovered.terminalPayload);
   const canonicalConversationUrl = canonicalConversationOrNull(submitted.canonicalConversationUrl as string);
   if (!canonicalConversationUrl) throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
-  if (submitted.promptHash !== promptHash) {
-    throw executionFailure("failed", "GPT_SUBMITTED_USER_TURN_PROMPT_HASH_MISMATCH");
-  }
+  const submittedPromptHash = submitted.promptHash as `sha256:${string}`;
   const browserFact = Object.freeze({
     exactCallIdentityHash: gptExactCallIdentityHash(intent),
     providerEffectIdentityHash: recovered.providerEffectIdentityHash,
@@ -103,7 +100,7 @@ const recoveredSubmitResult = (
     evidenceHash: recovered.authorityHash,
   });
   return success({
-    value: { status: "CONFIRMED" as const, promptHash, mutationSent: true as const,
+    value: { status: "CONFIRMED" as const, promptHash: submittedPromptHash, mutationSent: true as const,
       canonicalConversationUrl, userTurnId: submitted.userTurnId as string },
     ...declaredFacts({
       factResultIds: Object.freeze([
@@ -126,7 +123,7 @@ export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_tu
     const files = composerFilesInput(intent);
     const promptHash = composerHashInput(intent, "promptHash");
     const recovered = context.confirmedProviderEffectReadback;
-    if (recovered) return recoveredSubmitResult(intent, context, promptHash);
+    if (recovered) return recoveredSubmitResult(intent, context);
     const browser = requireBrowser(context);
     const submittedSelector = GPT_USER_TURN_SELECTOR;
     const dispatched = context.dispatchedProviderEffectReadback;

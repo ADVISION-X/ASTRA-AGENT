@@ -8,6 +8,7 @@ export type {
 } from "./exact-target/browser-target-lease.js";
 export type {
   BrowserExactCallMutationFact,
+  BrowserProviderEffectStepCallFact,
 } from "./exact-target/browser-mutation-types.js";
 export { browserExactCallIdentityHash } from "./exact-target/browser-command-postcondition.js";
 export type {

@@ -114,18 +114,36 @@ export class BrowserMutationStore {
       input.childCapabilityId) as readonly ProviderEffectHistoryRow[];
   }
 
-  public readProviderEffectStepCallIdentities(input: Readonly<{
-    jobId: string; resultRevision: number; productStepId: string;
+  public readProviderEffectStepCallFact(input: Readonly<{
+    jobId: string; attemptId: string; resultRevision: number; productStepId: string;
     callId: string; childCapabilityId: string;
-  }>): readonly `sha256:${string}`[] {
+  }>): import("./browser-mutation-types.js").BrowserProviderEffectStepCallFact | null {
     const rows = this.database.prepare(
-      `select distinct exact_call_identity_hash from browser_mutations
+      `select exact_call_identity_hash,request_hash,action_ordinal from browser_mutations
        where job_id=? and result_revision=? and product_step_id=? and call_id=? and child_capability_id=? and effect_scope='provider_effect'
-         and state in ('PREPARED','DISPATCHED','CONFIRMED','REJECTED')
-       order by exact_call_identity_hash`,
+         and state in ('DISPATCHED','CONFIRMED','REJECTED')
+         and not (state='REJECTED' and mutation_outcome='no' and physical_input_count=0 and attempt_id<>?)
+       order by updated_at desc,command_id desc limit 2`,
     ).all(input.jobId, input.resultRevision, input.productStepId, input.callId,
-      input.childCapabilityId) as ReadonlyArray<{ exact_call_identity_hash: `sha256:${string}` }>;
-    return Object.freeze(rows.map((row) => row.exact_call_identity_hash));
+      input.childCapabilityId, input.attemptId) as ReadonlyArray<{
+        exact_call_identity_hash: `sha256:${string}`;
+        request_hash: `sha256:${string}`;
+        action_ordinal: number;
+      }>;
+    if (rows.length === 0) return null;
+    if (rows.length !== 1) throw new Error("BROWSER_PROVIDER_EFFECT_FACT_AMBIGUOUS");
+    const row = rows[0]!;
+    const mutation = this.readExactCallMutationFact({
+      jobId: input.jobId, attemptId: input.attemptId,
+      exactCallIdentityHash: row.exact_call_identity_hash, actionOrdinal: row.action_ordinal,
+    });
+    if (!mutation || mutation.effectScope !== "provider_effect"
+      || mutation.productStepId !== input.productStepId || mutation.callId !== input.callId
+      || mutation.childCapabilityId !== input.childCapabilityId) {
+      throw new Error("BROWSER_PROVIDER_EFFECT_FACT_INVALID");
+    }
+    return Object.freeze({ exactCallIdentityHash: row.exact_call_identity_hash,
+      inputHash: row.request_hash, mutation });
   }
 
   private assertProviderEffectHistory(input: BrowserMutationIdentity): void {
@@ -261,25 +279,24 @@ export class BrowserMutationStore {
     return Number(row.count);
   }
 
-  public readUniqueConfirmedConversationUrl(parentJobId: string, parentAttemptId: string,
-    parentProductStepId: string): string {
-    if (![parentJobId, parentAttemptId, parentProductStepId].every((value) => value && !/[\0]/u.test(value))) {
+  public readUniqueConfirmedConversationUrl(parentJobId: string, parentProductStepId: string): string {
+    if (![parentJobId, parentProductStepId].every((value) => value && !/[\0]/u.test(value))) {
       throw new Error("BROWSER_PARENT_IDENTITY_INVALID");
     }
     if (this.database.prepare(
-      `select 1 from browser_mutations where job_id=? and attempt_id=? and product_step_id=?
+      `select 1 from browser_mutations where job_id=? and product_step_id=?
          and call_id='turn-submit' and child_capability_id='submit_exact_gpt_turn_once'
          and effect_scope='provider_effect' and state='DISPATCHED' limit 1`,
-    ).get(parentJobId, parentAttemptId, parentProductStepId)) {
+    ).get(parentJobId, parentProductStepId)) {
       throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_UNSETTLED");
     }
     const rows = this.database.prepare(
       `select command_id,provider_recovery_payload from browser_mutations
-       where job_id=? and attempt_id=? and product_step_id=? and call_id='turn-submit'
+       where job_id=? and product_step_id=? and call_id='turn-submit'
          and child_capability_id='submit_exact_gpt_turn_once' and effect_scope='provider_effect'
          and state='CONFIRMED'
        order by command_id`,
-    ).all(parentJobId, parentAttemptId, parentProductStepId) as readonly Readonly<{
+    ).all(parentJobId, parentProductStepId) as readonly Readonly<{
       command_id: string;
       provider_recovery_payload: string | null;
     }>[];

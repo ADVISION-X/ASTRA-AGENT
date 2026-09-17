@@ -223,19 +223,14 @@ export class BrowserInfrastructureSupervisor {
   public countProviderTurnDispatches(jobId: string, attemptId: string): number {
     return this.lane.countProviderTurnDispatches(jobId, attemptId);
   }
-  public readExactCallMutationFact(input: Readonly<{
+  public readProviderEffectStepCallFact(input: Readonly<{
     jobId: string;
     attemptId: string;
-    exactCallIdentityHash: `sha256:${string}`;
-    actionOrdinal: number;
-  }>) { return this.lane.readExactCallMutationFact(input); }
-  public readProviderEffectStepCallIdentities(input: Readonly<{
-    jobId: string;
     resultRevision: number;
     productStepId: string;
     callId: string;
     childCapabilityId: string;
-  }>) { return this.lane.readProviderEffectStepCallIdentities(input); }
+  }>) { return this.lane.readProviderEffectStepCallFact(input); }
   public health(): BrowserHealthSnapshot {
     const state = this.transport.currentState();
     const current = this.issuer.current();
