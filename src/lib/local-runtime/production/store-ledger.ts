@@ -147,7 +147,8 @@ export class ProductionRuntimeStore extends ProductionStoreOutbox {
     for (const [jobId, task] of tasks) {
       const terminal = projection.terminalByJob.get(jobId);
       const jobOutbox = outbox.filter((authority) => authority.jobId === jobId);
-      if (task.status === "completed" && jobOutbox.some((authority) => authority.state === "pending")) return false;
+      if (task.status === "completed" && jobOutbox.some((authority) => authority.state === "pending"
+        && authority.lastError !== "WEBSITE_ATTEMPT_REPLACED")) return false;
       if (!this.terminalTaskConsistent(task, terminal)) return false;
       const admissionPending = task.status === "failed" && task.staged_result !== null;
       if ((task.status === "completed" || admissionPending)

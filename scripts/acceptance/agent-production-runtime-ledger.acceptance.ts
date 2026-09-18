@@ -302,6 +302,29 @@ try {
     .run(Buffer.from(JSON.stringify({ ...terminal, payload_hash: HASH_A })), terminalKey);
   assert.throws(() => store.assertStartupDataIntegrity(),
     (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_LEDGER_INVARIANT_INVALID");
+  database.prepare("update production_outbox set body_blob=? where idempotency_key=?")
+    .run(Buffer.from(JSON.stringify(terminal)), terminalKey);
+  store.markOutboxSent(terminalKey, {
+    schema_version: "xuanxue-ai-terminal-receipt.v6", job_id: accepted.job_id,
+    terminal_status: "completed", payload_hash: hashCanonical(staged), failure: null,
+    first_terminal: true, device_id: "device:ledger", device_epoch: 1,
+    worker_session_id: "session:ledger", worker_session_epoch: 1,
+    runtime_attestation_receipt_hash: HASH_A,
+  });
+  const replacedKey = "artifact:replaced-before-completion";
+  store.enqueue({ idempotency_key: replacedKey, kind: "artifact",
+    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(accepted.job_id)}/artifacts/replaced`,
+    method: "PUT", headers: {}, body: Buffer.from("replaced") });
+  database.prepare("update production_outbox set last_error='WEBSITE_ATTEMPT_REPLACED' where idempotency_key=?")
+    .run(replacedKey);
+  store.completeTask(accepted.job_id, staged);
+  assert.doesNotThrow(() => store.assertStartupDataIntegrity(),
+    "a write Website replaced before the job completed is settled, not pending");
+  database.prepare("update production_outbox set last_error='INTERNAL_ERROR' where idempotency_key=?")
+    .run(replacedKey);
+  assert.throws(() => store.assertStartupDataIntegrity(),
+    (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_LEDGER_INVARIANT_INVALID",
+    "any other unsent write under a completed job still breaks the ledger");
   store.close();
 
   const legacyDirectory = path.join(temporary, "legacy");
