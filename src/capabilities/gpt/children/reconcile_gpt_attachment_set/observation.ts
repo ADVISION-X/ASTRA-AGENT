@@ -1,3 +1,5 @@
+import { parse } from "node:path";
+
 import { executionFailure, failureCode } from "../../../../lib/execution-failure.js";
 
 import type { GptChildCapabilityIntent } from "../../contract.js";
@@ -48,9 +50,9 @@ const attachmentObservationRowsCode = (
 const attachmentSetCode = (value: AttachmentSetState): string =>
   `revision=${value.facts.observationRevisionHash}:candidates=${attachmentObservationRowsCode(value.rows)}`;
 
-const failAttachmentSet = (code: string, value: AttachmentSetState): never => {
+const failAttachmentSet = (code: string, value: AttachmentSetState, labelsCode = ""): never => {
   const nativeFailureCode = value.rows.find((row) => row.nativeCauseCode !== null)?.nativeCauseCode ?? null;
-  throw gptExecutionFailure(`${code}:${attachmentSetCode(value)}`, {
+  throw gptExecutionFailure(`${code}:${attachmentSetCode(value)}${labelsCode}`, {
     mutationOutcome: "no",
     proofFacts: Object.freeze({
       ...value.facts,
@@ -145,6 +147,29 @@ const attachmentSetDifference = (
   return Object.freeze({ expectedLabels, normalizedObservedLabels, missing, unexpected });
 };
 
+const LABEL_SHAPES: readonly Readonly<[string, (label: string, file: ApprovedFile) => boolean]>[] = [
+  ["SPACE_PAREN_DIGITS", (label, file) => {
+    const { name, ext } = parse(file.providerDisplayName);
+    return label.startsWith(`${name} (`) && label.endsWith(`)${ext}`)
+      && /^\d+$/u.test(label.slice(name.length + 2, label.length - ext.length - 1));
+  }],
+  ["TOKEN_ABSENT", (label, file) => label === file.displayName],
+  ["EXT_CHANGED", (label, file) => parse(label).name === parse(file.providerDisplayName).name
+    && parse(label).ext !== parse(file.providerDisplayName).ext],
+  ["PREFIX_OF_APPROVED", (label, file) => label.length > 0 && label !== file.providerDisplayName
+    && file.providerDisplayName.startsWith(label)],
+];
+
+/** Closed shape codes and counts only; observed label text never leaves this function. */
+const attachmentLabelsCode = (files: readonly ApprovedFile[], observedLabels: readonly string[]): string => {
+  const { normalizedObservedLabels, missing, unexpected } = attachmentSetDifference(files, observedLabels);
+  const duplicates = normalizedObservedLabels.length - new Set(normalizedObservedLabels).size;
+  const shapes = unexpected.map((label) => LABEL_SHAPES.find(([, matches]) =>
+    files.some((file) => matches(label, file)))?.[0] ?? "UNRELATED");
+  return `:labels=missing:${missing.length},unexpected:${unexpected.length},dup:${duplicates}`
+    + `,shape:${shapes.length > 0 ? shapes.join(",") : "none"}`;
+};
+
 const attachmentValue = (files: readonly ApprovedFile[]) => ({
   files: files.map(({ artifactRef, displayName, providerDisplayName, sha256, bytes }) => ({
     artifactRef, displayName, providerDisplayName, sha256, bytes,
@@ -166,7 +191,7 @@ const observeExactAttachmentSet = async (
     || observed.observedLabels.length !== expectedLabels.length
     || new Set(normalizedObservedLabels).size !== normalizedObservedLabels.length
     || missing.length > 0 || unexpected.length > 0) {
-    failAttachmentSet("GPT_ATTACHMENT_SET_MISMATCH", observed);
+    failAttachmentSet("GPT_ATTACHMENT_SET_MISMATCH", observed, attachmentLabelsCode(files, observed.observedLabels));
   }
   return success({
     value: attachmentValue(files),
@@ -211,7 +236,7 @@ const attachmentSettlementTimeout = (
     || state.observedLabels.length !== expectedLabels.length
     || new Set(normalizedObservedLabels).size !== normalizedObservedLabels.length
     || missing.length > 0 || unexpected.length > 0) {
-    failAttachmentSet("GPT_ATTACHMENT_SET_MISMATCH", state);
+    failAttachmentSet("GPT_ATTACHMENT_SET_MISMATCH", state, attachmentLabelsCode(files, state.observedLabels));
   }
   return failAttachmentSet(
     `GPT_ATTACHMENT_UPLOAD_TIMEOUT:cards=${state.itemEligibleCount}:uploading=${state.uploadingCount}`

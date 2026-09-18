@@ -1,5 +1,7 @@
 import type { BrowserGovernedCommand } from "./browser-command-actor.js";
-import { browserInteractionNativeCauseCode } from "./browser-interaction-native-cause.js";
+import {
+  browserDomCandidateMissingStage, browserInteractionNativeCauseCode,
+} from "./browser-interaction-native-cause.js";
 import {
   decodeConversationRenameReceipt, knownRateLimitBlockerReceiptValid,
 } from "./browser-special-mutation-receipt.js";
@@ -280,6 +282,17 @@ const zeroActionReceiptValid = (
     ...(hasMatchPostcondition(command) ? postconditionEvidenceKeys : []),
     ...(hasObservationPostcondition(command) ? ["postconditionObservation"] : [])]);
 
+const CANDIDATE_MISSING_STAGE_INTENTS = new Set([
+  "click", "hover", "doubleClick", "fill", "keypress", "acknowledgeKnownGptRateLimit",
+]);
+
+const candidateMissingStageValid = (
+  command: BrowserGovernedCommand,
+  value: Readonly<Record<string, unknown>>,
+): boolean => value.failureCode === "BROWSER_DOM_CANDIDATE_MISSING"
+  && command.kind === "dom-intent" && CANDIDATE_MISSING_STAGE_INTENTS.has(command.intent.kind)
+  && browserDomCandidateMissingStage(value.nativeCauseCode) === value.nativeCauseCode;
+
 const qualificationReceiptValid = (
   command: BrowserGovernedCommand,
   value: Readonly<Record<string, unknown>>,
@@ -294,7 +307,7 @@ const qualificationReceiptValid = (
     ? value.failureCode === "BROWSER_TARGET_NOT_INTERACTIVE"
       ? value.nativeCauseCode === null
         || browserInteractionNativeCauseCode(value.nativeCauseCode) === value.nativeCauseCode
-      : value.nativeCauseCode === null
+      : value.nativeCauseCode === null || candidateMissingStageValid(command, value)
     : command.kind === "file-input"
       ? value.nativeCauseCode === null
       : outgoingIdentityRejectionCode(value.failureCode)

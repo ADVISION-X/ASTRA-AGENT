@@ -98,7 +98,7 @@ const callFunctionOn = (state: MutableRenameState,
   }> }>[])?.[0]?.value;
   const nodeId = nodeForSelector(state, String(request?.selector ?? ""))[0];
   if (nodeId === undefined) {
-    return { result: { type: "string", value: "BROWSER_DOM_CANDIDATE_MISSING" } };
+    return { result: { type: "string", value: "BROWSER_DOM_CANDIDATE_MISSING:BROWSER_DOM_SELECTOR_ABSENT" } };
   }
   return parameters?.returnByValue === false
     ? { result: { type: "object", subtype: "node", objectId: `rename-candidate-${nodeId}` } }

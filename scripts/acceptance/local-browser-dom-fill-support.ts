@@ -88,7 +88,7 @@ export const exerciseFillReadbackRejection = async (): Promise<void> => {
       candidateReads += 1;
       return candidateReads === 1
         ? { result: { type: "object", subtype: "node", objectId: "candidate-node" } }
-        : { result: { type: "string", value: "BROWSER_DOM_CANDIDATE_MISSING" } };
+        : { result: { type: "string", value: "BROWSER_DOM_CANDIDATE_MISSING:BROWSER_DOM_SELECTOR_ABSENT" } };
     }
     if (method === "Runtime.callFunctionOn"
       && String(parameters?.functionDeclaration ?? "").includes("browserExactEditableText(this)")) {

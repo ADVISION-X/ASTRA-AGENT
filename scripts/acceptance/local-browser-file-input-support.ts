@@ -257,7 +257,7 @@ const exerciseSuccessfulAndRejectedCandidates = async (): Promise<void> => {
 const exerciseActivationFailures = async (): Promise<void> => {
   await assert.rejects(runFileInputScenario({ nodeIds: [7], driftBeforeDispatch: true }), /BROWSER_DOCUMENT_INVALID/u);
   for (const [activationResult, expected] of [
-    ["BROWSER_DOM_CANDIDATE_MISSING", "BROWSER_DOM_CANDIDATE_MISSING"],
+    ["BROWSER_DOM_CANDIDATE_MISSING:BROWSER_DOM_SELECTOR_ABSENT", "BROWSER_DOM_CANDIDATE_MISSING"],
     ["BROWSER_DOM_CANDIDATE_AMBIGUOUS", "BROWSER_DOM_CANDIDATE_AMBIGUOUS"],
     ["BROWSER_DOM_ACTION_HIT_TEST_FAILED", "BROWSER_FILE_INPUT_NOT_QUALIFIED"],
   ] as const) {

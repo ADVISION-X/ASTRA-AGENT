@@ -94,7 +94,13 @@ export const withRuntimeLogCause = (error: unknown, eventId: string): Error =>
   withRuntimeLogCauseFact(error instanceof Error ? error : new Error(String(error)), eventId);
 
 export const runtimeLogCauseEventId = (error: unknown): string | null => {
-  if (!error || typeof error !== "object") return null;
-  const value = Reflect.get(error, RUNTIME_CAUSE_EVENT) as unknown;
-  return typeof value === "string" && value.length > 0 ? value : null;
+  const seen = new Set<object>();
+  let current = error;
+  while (current && typeof current === "object" && !seen.has(current)) {
+    seen.add(current);
+    const value = Reflect.get(current, RUNTIME_CAUSE_EVENT) as unknown;
+    if (typeof value === "string" && value.length > 0) return value;
+    current = Reflect.get(current, "cause") as unknown;
+  }
+  return null;
 };

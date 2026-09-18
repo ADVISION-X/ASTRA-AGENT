@@ -14,6 +14,7 @@ import {
 } from "./dom-coherent-candidate-readback.js";
 import { BROWSER_MECHANICAL_FACTS_READER_SOURCE } from "./dom-mechanical-facts.js";
 import { BROWSER_EXACT_EDITABLE_TEXT_READER_SOURCE } from "./dom-exact-editable-text.js";
+import { CANDIDATE_MISSING_STAGE_SOURCE, candidateMissingFailure } from "./dom-candidate-missing-stage.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 
 type CandidateRequest = Readonly<{
@@ -42,6 +43,7 @@ export type CoherentObservationPointerPreparation = Readonly<{
 const COHERENT_CANDIDATE_FUNCTION = `async function (spec) {
   ${BROWSER_MECHANICAL_FACTS_READER_SOURCE}
   ${BROWSER_EXACT_EDITABLE_TEXT_READER_SOURCE}
+  ${CANDIDATE_MISSING_STAGE_SOURCE}
   const sha256 = async (value) => {
     const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
     return "sha256:" + Array.from(new Uint8Array(digest))
@@ -61,14 +63,14 @@ const COHERENT_CANDIDATE_FUNCTION = `async function (spec) {
   if (scopeRaw.length > 256) return "BROWSER_DOM_READ_INVALID";
   const scopes = scopeRaw.filter(mechanicallyEligible);
   if (scopes.length !== 1) return scopes.length === 0
-    ? "BROWSER_DOM_CANDIDATE_MISSING" : "BROWSER_DOM_CANDIDATE_AMBIGUOUS";
+    ? candidateMissing(scopeRaw.length, 0, 0) : "BROWSER_DOM_CANDIDATE_AMBIGUOUS";
   const raw = Array.from(scopes[0].querySelectorAll(spec.selector));
   if (scopeRaw.length + raw.length > 256) return "BROWSER_DOM_READ_INVALID";
   const textCandidates = raw.filter(textEligible);
   const candidates = textCandidates.filter(mechanicallyEligible);
   if (candidates.length !== 1) return candidates.length === 0
     ? raw.length > 0 && textCandidates.length === 0
-      ? "BROWSER_DOM_ACTION_NOT_QUALIFIED" : "BROWSER_DOM_CANDIDATE_MISSING"
+      ? "BROWSER_DOM_ACTION_NOT_QUALIFIED" : candidateMissing(scopeRaw.length, 1, raw.length)
     : "BROWSER_DOM_CANDIDATE_AMBIGUOUS";
   const candidate = candidates[0];
   if (spec.output !== "pointer") return candidate;
@@ -135,6 +137,7 @@ const RETAINED_POINTER_FUNCTION = `function () {
 
 const COHERENT_OBSERVATION_POINTER_FUNCTION = `function (request) {
   ${BROWSER_MECHANICAL_FACTS_READER_SOURCE}
+  ${CANDIDATE_MISSING_STAGE_SOURCE}
   const currentUrlValue = (() => {
     const observedUrl = new URL(location.href);
     const segments = observedUrl.pathname.split("/");
@@ -254,13 +257,13 @@ const COHERENT_OBSERVATION_POINTER_FUNCTION = `function (request) {
   observedCandidateCount += scopeRaw.length;
   if (observedCandidateCount > 256) return "BROWSER_DOM_READ_INVALID";
   if (scopes.length !== 1) return scopes.length === 0
-    ? "BROWSER_DOM_CANDIDATE_MISSING" : "BROWSER_DOM_CANDIDATE_AMBIGUOUS";
+    ? candidateMissing(scopeRaw.length, 0, 0) : "BROWSER_DOM_CANDIDATE_AMBIGUOUS";
   const raw = Array.from(scopes[0].querySelectorAll(request.candidate.selector));
   observedCandidateCount += raw.length;
   if (observedCandidateCount > 256) return "BROWSER_DOM_READ_INVALID";
   const candidates = raw.filter(targetEligible);
   if (candidates.length !== 1) return candidates.length === 0
-    ? "BROWSER_DOM_CANDIDATE_MISSING" : "BROWSER_DOM_CANDIDATE_AMBIGUOUS";
+    ? candidateMissing(scopeRaw.length, 1, raw.length) : "BROWSER_DOM_CANDIDATE_AMBIGUOUS";
   const candidate = candidates[0];
   const facts = browserMechanicalFacts(candidate, true);
   if (!facts.connected) return "BROWSER_DOM_ACTION_NODE_DISCONNECTED";
@@ -308,8 +311,10 @@ export const resolveCoherentMutationCandidate = async (
     })));
     if (call.exceptionDetails !== undefined) throw new Error("BROWSER_DOM_READ_INVALID");
     const result = record(call.result);
+    const missing = result.type === "string" ? candidateMissingFailure(result.value) : null;
+    if (missing) throw missing;
     if (result.type === "string" && typeof result.value === "string"
-      && /^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|READ_INVALID)$/u.test(result.value)) {
+      && /^BROWSER_DOM_(?:CANDIDATE_AMBIGUOUS|READ_INVALID)$/u.test(result.value)) {
       throw new Error(result.value);
     }
     if (result.subtype !== "node" || typeof result.objectId !== "string") {

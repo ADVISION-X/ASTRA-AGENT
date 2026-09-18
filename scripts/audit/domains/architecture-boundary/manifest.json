@@ -23,6 +23,7 @@
     "docs/项目方案/本地化技能实现方案.md",
     "docs/项目方案/浏览器退出恢复与未决命令解锁-完整实现方案.md",
     "docs/项目方案/系统自完善-完整实现方案.md",
+    "docs/项目方案/连续运行八项问题根治-完整实现方案.md",
     "scripts/acceptance/architecture-boundary.acceptance.ts",
     "scripts/acceptance/product-plugin-test-runtime.ts",
     "scripts/acceptance/product-plugins/**",

@@ -2,6 +2,10 @@ import { governanceAssert as assert } from "../audit/shared/governance-exam-asse
 
 import { decodeBrowserMutationReceipt } from
   "../../src/lib/browser/exact-target/browser-mutation-receipt.js";
+import { BROWSER_DOM_CANDIDATE_MISSING_STAGES } from
+  "../../src/lib/browser/exact-target/browser-interaction-native-cause.js";
+import { CANDIDATE_MISSING_STAGE_SOURCE, candidateMissingFailure, candidateMissingStage } from
+  "../../src/lib/browser/chrome-extension/dom-candidate-missing-stage.js";
 
 const clickCommand = { kind: "dom-intent" as const, intent: {
   kind: "click" as const, selector: "button", expectedMatches: 1,
@@ -118,6 +122,56 @@ const exerciseFileAndQualificationReceipts = (): void => {
     ...crossKindFailure, qualificationStage: "candidate-set", failureCode: "BROWSER_DOM_CANDIDATE_MISSING",
   }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
   "candidate-set causes and candidate counts must describe the same fact");
+  const pageClassifier = new Function(`${CANDIDATE_MISSING_STAGE_SOURCE}\nreturn candidateMissing;`)() as
+    (scopeRaw: number, scopeEligible: number, raw: number) => string;
+  for (const [counts, stage] of [
+    [[0, 0, 0], "BROWSER_DOM_SCOPE_ABSENT"],
+    [[3, 0, 0], "BROWSER_DOM_SCOPE_INELIGIBLE"],
+    [[1, 1, 0], "BROWSER_DOM_SELECTOR_ABSENT"],
+    [[1, 1, 2], "BROWSER_DOM_CANDIDATE_INELIGIBLE"],
+  ] as const) {
+    const reply = pageClassifier(counts[0], counts[1], counts[2]);
+    assert.equal(reply, `BROWSER_DOM_CANDIDATE_MISSING:${stage}`, "the executed page source must classify by counts only");
+    const decoded = candidateMissingFailure(reply);
+    assert.equal(decoded?.message, "BROWSER_DOM_CANDIDATE_MISSING", "the primary failure code must stay unchanged");
+    assert.equal(candidateMissingStage(decoded), stage);
+  }
+  assert.throws(() => candidateMissingFailure("BROWSER_DOM_CANDIDATE_MISSING:UNKNOWN"), /BROWSER_DOM_READ_INVALID/u);
+  const candidateMissing = { ...crossKindFailure, candidateCount: 0, qualificationStage: "candidate-set",
+    failureCode: "BROWSER_DOM_CANDIDATE_MISSING" };
+  const rateLimitCommand = { kind: "dom-intent" as const, intent: {
+    kind: "acknowledgeKnownGptRateLimit" as const, targetRefHash: `sha256:${"2".repeat(64)}` as const,
+    documentRefHash: `sha256:${"3".repeat(64)}` as const, dispatchNotAfter: null,
+  } };
+  for (const command of [clickCommand, keypressCommand, fillCommand, rateLimitCommand] as const) {
+    for (const nativeCauseCode of BROWSER_DOM_CANDIDATE_MISSING_STAGES) {
+      assert.deepEqual(decodeBrowserMutationReceipt(command, { ...candidateMissing, nativeCauseCode }), {
+        terminal: "rejected", mutationOutcome: "no", failureCode: "BROWSER_DOM_CANDIDATE_MISSING",
+        nativeCauseCode, physicalInputCount: 0,
+      }, `${command.intent.kind} must persist the Browser-owned candidate-set stage`);
+    }
+  }
+  for (const [command, nativeCauseCode, reason] of [
+    [fileCommand, "BROWSER_DOM_SELECTOR_ABSENT", "file-input keeps the null-only candidate-set cause"],
+    [clickCommand, "BROWSER_DOM_SCOPE_MISSING", "unknown stages fail closed"],
+    [clickCommand, "NO_LAYOUT_BOX", "stages never reuse per-node eligibility reasons"],
+  ] as const) assert.throws(() => decodeBrowserMutationReceipt(command, { ...candidateMissing, nativeCauseCode }),
+    /BROWSER_AUTH_TRANSCRIPT_INVALID/u, reason);
+  assert.throws(() => decodeBrowserMutationReceipt(clickCommand, {
+    ...candidateMissing, candidateCount: 2, failureCode: "BROWSER_DOM_CANDIDATE_AMBIGUOUS",
+    nativeCauseCode: "BROWSER_DOM_CANDIDATE_INELIGIBLE",
+  }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u, "only a missing candidate set may carry a missing stage");
+  const renameCommand = { kind: "dom-intent" as const, intent: {
+    kind: "renameExactGptConversation" as const, canonicalConversationUrl: "https://chatgpt.com/c/rename",
+    targetTitle: "0918·八字分析·aiprod_12345678", timeoutMs: 10_000,
+  } };
+  assert.deepEqual(decodeBrowserMutationReceipt(renameCommand, {
+    renameState: "failed", candidateCount: 0, identityRevalidated: false, mutationCount: 0,
+    postconditionVerified: false, failureCode: "BROWSER_DOM_CANDIDATE_MISSING",
+    nativeCauseCode: "BROWSER_DOM_SELECTOR_ABSENT",
+  }), { terminal: "rejected", mutationOutcome: "no", failureCode: "BROWSER_DOM_CANDIDATE_MISSING",
+    nativeCauseCode: "BROWSER_DOM_SELECTOR_ABSENT", physicalInputCount: 0 },
+  "the unchanged rename decoder carries the inner step stage as its native cause");
 };
 
 const exerciseFreshReadbackReceipts = (): void => {

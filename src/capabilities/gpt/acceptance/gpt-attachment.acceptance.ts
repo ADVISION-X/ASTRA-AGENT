@@ -11,8 +11,8 @@ import {
   GPT_COMPOSER_FORM_SELECTOR,
 } from "./gpt-page-fixture-selectors.js";
 import {
-  approvedAttachment, attachmentControlFacts, exerciseAttachmentNameNormalization,
-  hiddenPopoverRejections,
+  approvedAttachment, attachmentControlFacts, exerciseAttachmentLabelDiagnostics,
+  exerciseAttachmentNameNormalization, hiddenPopoverRejections,
 } from "./gpt-attachment-name.acceptance-support.js";
 
 const { execute } = createGptAcceptanceHarness("gpt-attachment");
@@ -379,6 +379,8 @@ assert.ok(providerRenameRejected.failureCode?.startsWith("GPT_ATTACHMENT_SET_MIS
   "non-numeric Provider renames must still fail closed");
 assert.equal(providerRenameFixture.physicalMutations(), 0);
 
+await exerciseAttachmentLabelDiagnostics(execute, attachmentFacts);
+
 let noLayoutCardReads = 0;
 const noLayoutAttachmentFixture = fakeBrowser((intent) => {
   if (intent.kind === "observe") {
@@ -465,6 +467,7 @@ try {
   });
   assert.equal(uploadTimedOut.status, "failed");
   assert.ok(uploadTimedOut.failureCode?.startsWith("GPT_ATTACHMENT_UPLOAD_TIMEOUT:cards=1:uploading=0:pending=1:expected=1:"));
+  assert.ok(!uploadTimedOut.failureCode?.includes(":labels="), "only a set mismatch carries the label diagnostic");
   assert.equal(uploadTimedOut.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
   assert.equal(uploadTimeoutNow, 1_500,
     "attachment reconciliation must preserve the minimum page interval at the Product deadline");

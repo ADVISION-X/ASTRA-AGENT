@@ -90,6 +90,21 @@ const exerciseQualificationRejection = async (
   ).get(qualificationPermit.commandId), {
     reason: "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH", native_cause_code: null,
   });
+  const stagePermit = permit("actor-candidate-missing-stage");
+  const stageActor = actorFor(async (candidate, _command, onDispatched) => {
+    onDispatched?.();
+    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+      permitSequence: candidate.sequence, result: { candidateCount: 0, identityRevalidated: false,
+        mutationCount: 0, postconditionVerified: false, qualificationRejected: true,
+        qualificationStage: "candidate-set",
+        failureCode: "BROWSER_DOM_CANDIDATE_MISSING", nativeCauseCode: "BROWSER_DOM_SELECTOR_ABSENT" } };
+  });
+  await assert.rejects(stageActor.execute(stagePermit, clickCommand), /BROWSER_DOM_CANDIDATE_MISSING/u);
+  assert.deepEqual(actorDatabase.prepare(
+    "select reason,native_cause_code from browser_mutations where command_id=?",
+  ).get(stagePermit.commandId), {
+    reason: "BROWSER_DOM_CANDIDATE_MISSING", native_cause_code: "BROWSER_DOM_SELECTOR_ABSENT",
+  }, "the candidate-set stage must reach the single Browser WAL through markRejected");
   const stored = actorDatabase.prepare(
     "select exact_call_identity_hash from browser_mutations where command_id=?",
   ).get(qualificationPermit.commandId) as { exact_call_identity_hash: `sha256:${string}` };

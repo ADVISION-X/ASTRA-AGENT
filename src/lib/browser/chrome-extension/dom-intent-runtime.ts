@@ -4,6 +4,7 @@ import type {
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import { resolveCoherentMutationCandidate } from "./dom-coherent-candidate.js";
+import { candidateMissingStage } from "./dom-candidate-missing-stage.js";
 import { executeExactAssistantTurnRead } from "./dom-exact-assistant-turn.js";
 import { executeCoherentObservation } from "./dom-coherent-observation.js";
 import {
@@ -89,11 +90,12 @@ const qualificationReceipt = (
   candidateCount: number,
   failureCode: string,
   qualificationStage: QualificationReceipt["qualificationStage"],
+  candidateSetCause: string | null = null,
 ): QualificationReceipt =>
   Object.freeze({ candidateCount, qualificationStage, identityRevalidated: false, mutationCount: 0,
     postconditionVerified: false, qualificationRejected: true,
     failureCode: qualificationStage === "actionability" ? "BROWSER_DOM_ACTION_NOT_QUALIFIED" : failureCode,
-    nativeCauseCode: qualificationStage === "actionability" ? failureCode : null });
+    nativeCauseCode: qualificationStage === "actionability" ? failureCode : candidateSetCause });
 
 const qualifiedNode = async (
   readNode: () => Promise<number>,
@@ -104,7 +106,7 @@ const qualifiedNode = async (
     const code = error instanceof Error ? error.message : "";
     if (!/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|NODE_STALE|READ_INVALID)$/u.test(code)) throw error;
     return { receipt: qualificationReceipt(
-      code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS" ? 2 : 0, code, "candidate-set",
+      code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS" ? 2 : 0, code, "candidate-set", candidateMissingStage(error),
     ) };
   }
   return { nodeId };

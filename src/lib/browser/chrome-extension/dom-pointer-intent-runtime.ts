@@ -20,6 +20,7 @@ import {
   zeroActionObservationReceipt,
 } from "./dom-mutation-postcondition.js";
 import { attribute, describeNode, requireKeyboardActionTarget } from "./dom-query-runtime.js";
+import { candidateMissingStage } from "./dom-candidate-missing-stage.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 import {
   currentGptPageIdentity,
@@ -49,7 +50,8 @@ const transientQualification = (value: QualificationReceipt): boolean => [
   "BROWSER_DOM_ACTION_NODE_DISCONNECTED", "BROWSER_DOM_ACTION_NO_LAYOUT_BOX",
   "BROWSER_DOM_ACTION_NOT_VISIBLE", "BROWSER_DOM_ACTION_INERT",
   "BROWSER_DOM_ACTION_DISABLED", "BROWSER_DOM_ACTION_ARIA_DISABLED",
-].includes(value.nativeCauseCode ?? value.failureCode);
+].includes(value.qualificationStage === "candidate-set"
+  ? value.failureCode : value.nativeCauseCode ?? value.failureCode);
 
 const confirmTransientPreparation = async <T>(
   runtime: ExtensionDebuggerRuntime,
@@ -73,6 +75,7 @@ const qualificationReceipt = (
   candidateCount: number,
   failureCode: string,
   qualificationStage: QualificationReceipt["qualificationStage"],
+  candidateSetCause: string | null = null,
 ): QualificationReceipt => {
   const outgoingMismatch = /^BROWSER_DOM_ACTION_OUTGOING_(?:STRUCTURE|PROMPT_HASH|ATTACHMENT_SET)_MISMATCH$/u
     .test(failureCode);
@@ -81,8 +84,15 @@ const qualificationReceipt = (
     postconditionVerified: false, qualificationRejected: true,
     failureCode: qualificationStage === "actionability" && !outgoingMismatch
       ? "BROWSER_DOM_ACTION_NOT_QUALIFIED" : failureCode,
-    nativeCauseCode: qualificationStage === "actionability" && !outgoingMismatch ? failureCode : null,
+    nativeCauseCode: qualificationStage === "actionability" && !outgoingMismatch ? failureCode : candidateSetCause,
   });
+};
+
+const candidateSetReceipt = (error: unknown): QualificationReceipt | null => {
+  const code = error instanceof Error ? error.message : "";
+  if (!/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|NODE_STALE|READ_INVALID)$/u.test(code)) return null;
+  return qualificationReceipt(code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS" ? 2 : 0, code, "candidate-set",
+    candidateMissingStage(error));
 };
 
 const qualifiedNode = async (
@@ -90,11 +100,9 @@ const qualifiedNode = async (
 ): Promise<Readonly<{ nodeId: number }> | Readonly<{ receipt: QualificationReceipt }>> => {
   try { return { nodeId: await readNode() }; }
   catch (error) {
-    const code = error instanceof Error ? error.message : "";
-    if (!/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|NODE_STALE|READ_INVALID)$/u.test(code)) throw error;
-    return { receipt: qualificationReceipt(
-      code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS" ? 2 : 0, code, "candidate-set",
-    ) };
+    const receipt = candidateSetReceipt(error);
+    if (!receipt) throw error;
+    return { receipt };
   }
 };
 
@@ -132,10 +140,9 @@ const pointerAction = async (
         ? { exactOutgoingTurn: intent.preClickExactOutgoingTurn } : {}),
     });
   } catch (error) {
+    const candidateSet = candidateSetReceipt(error);
+    if (candidateSet) return candidateSet;
     const code = error instanceof Error ? error.message : "";
-    if (/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|NODE_STALE|READ_INVALID)$/u.test(code)) {
-      return qualificationReceipt(code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS" ? 2 : 0, code, "candidate-set");
-    }
     if (!/^BROWSER_DOM_ACTION_[A-Z_]+$/u.test(code)) throw error;
     return qualificationReceipt(1, code, "actionability");
   }
@@ -156,10 +163,9 @@ const retainedPointerAction = async (
           ? { text: { value: intent.expectedText, exact: false } } : {}),
     });
   } catch (error) {
+    const candidateSet = candidateSetReceipt(error);
+    if (candidateSet) return candidateSet;
     const code = error instanceof Error ? error.message : "";
-    if (/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|NODE_STALE|READ_INVALID)$/u.test(code)) {
-      return qualificationReceipt(code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS" ? 2 : 0, code, "candidate-set");
-    }
     if (!/^BROWSER_DOM_ACTION_[A-Z_]+$/u.test(code)) throw error;
     return qualificationReceipt(1, code, "actionability");
   }
@@ -180,10 +186,9 @@ const observationPointerAction = async (
           ? { text: { value: intent.expectedText, exact: false } } : {}),
     }, intent.postClickObservation);
   } catch (error) {
+    const candidateSet = candidateSetReceipt(error);
+    if (candidateSet) return candidateSet;
     const code = error instanceof Error ? error.message : "";
-    if (/^BROWSER_DOM_(?:CANDIDATE_MISSING|CANDIDATE_AMBIGUOUS|NODE_STALE|READ_INVALID)$/u.test(code)) {
-      return qualificationReceipt(code === "BROWSER_DOM_CANDIDATE_AMBIGUOUS" ? 2 : 0, code, "candidate-set");
-    }
     if (!/^BROWSER_DOM_ACTION_[A-Z_]+$/u.test(code)) throw error;
     return qualificationReceipt(1, code, "actionability");
   }
