@@ -20,6 +20,11 @@ import {
 const STALE_LEASE_FENCE_CODE = "AI_LEASE_FENCE_STALE";
 const STALE_LEASE_FENCE_REMOTE_PROOF = "WEBSITE_HTTP_409:AI_LEASE_FENCE_STALE";
 const jobPathMarker = (jobId: string): string => `/jobs/${encodeURIComponent(jobId)}/`;
+const headersWithoutExecutionFence = (headersJson: string): string => {
+  const headers = JSON.parse(headersJson) as Record<string, string>;
+  delete headers["x-ai-execution-fence-hash"];
+  return JSON.stringify(headers);
+};
 
 const receiptHashOf = (response: Record<string, unknown>): ProductionHash | null =>
   typeof response.receipt_hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(response.receipt_hash)
@@ -79,14 +84,21 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
   public enqueue(write: ProductionOutboxWrite): void {
     const bytes = Buffer.from(write.body);
     const headers = json(write.headers);
-    const existing = this.database.prepare(`select kind,path,method,headers_json,body_blob
+    const existing = this.database.prepare(`select kind,path,method,headers_json,body_blob,sent_at,last_error
       from production_outbox where idempotency_key=?`).get(write.idempotency_key) as Readonly<{
       kind: string; path: string; method: string; headers_json: string; body_blob: Buffer;
+      sent_at: string | null; last_error: string | null;
     }> | undefined;
     if (existing) {
       if (existing.kind !== write.kind || existing.path !== write.path || existing.method !== write.method
-        || existing.headers_json !== headers || !existing.body_blob.equals(bytes)) {
+        || !existing.body_blob.equals(bytes)
+        || headersWithoutExecutionFence(existing.headers_json) !== headersWithoutExecutionFence(headers)) {
         throw executionFailure("failed", "PRODUCTION_OUTBOX_IDEMPOTENCY_CONFLICT");
+      }
+      if (existing.headers_json !== headers && !existing.sent_at
+        && existing.last_error !== "WEBSITE_ATTEMPT_REPLACED") {
+        this.database.prepare(`update production_outbox set headers_json=?,last_error=null
+          where idempotency_key=? and sent_at is null`).run(headers, write.idempotency_key);
       }
       this.notifyOutbox(this.readOutboxAuthority(write.idempotency_key));
       return;

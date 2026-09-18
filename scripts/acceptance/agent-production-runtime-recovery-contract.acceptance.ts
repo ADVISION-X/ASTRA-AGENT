@@ -5,6 +5,7 @@ import path from "node:path";
 
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
+import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import {
   serializeTerminalFailure,
   serializeTerminalFailureTransport,
@@ -88,6 +89,65 @@ try {
     }),
     (error: unknown) => typedExecutionFailure(error)?.code === "WEBSITE_ATTEMPT_REPLACED",
   );
+  const regrantJob = task({ jobId: "job:regrant-fence", productId: "payment_screenshot_observation", actionId: "observe" });
+  const regrantPath = (name: string) =>
+    `/internal/ai-production/v6/jobs/${encodeURIComponent(regrantJob.job_id)}/artifacts/result_payload/${name}`;
+  const fencedWrite = (key: string, fence: string, body = "same-result") => ({
+    idempotency_key: key, kind: "artifact" as const, path: regrantPath(key), method: "PUT" as const,
+    headers: { "x-ai-execution-fence-hash": fence, "content-type": "application/json", "x-ai-request-id": key },
+    body: Buffer.from(body),
+  });
+  const receipt = { receipt_hash: `sha256:${"d".repeat(64)}` };
+  const neverSend = async (): Promise<never> => { throw new Error("A_RECORDED_OR_REPLACED_WRITE_MUST_NOT_BE_SENT"); };
+  assert.equal(store.acceptTask(regrantJob, "attempt:1").current_reason, "LEASE_GRANTED");
+  store.enqueue(fencedWrite("regrant-result", "fence:A"));
+  await assert.rejects(store.deliverOutbox("regrant-result", async () => {
+    throw runtimeTransportFailure("INTERNAL_ERROR", 500);
+  }), (error: unknown) => typedExecutionFailure(error)?.code === "INTERNAL_ERROR");
+  store.enqueue(fencedWrite("regrant-result", "fence:A"));
+  assert.equal(store.readOutboxAuthority("regrant-result")?.lastError, "INTERNAL_ERROR",
+    "re-enqueue under the same fence must keep the recorded failure");
+  await assert.rejects(store.deliverOutbox("regrant-result", neverSend),
+    (error: unknown) => typedExecutionFailure(error)?.code === "INTERNAL_ERROR",
+    "the same lease must not replay a recorded failure");
+  assert.equal(store.acceptTask(regrantJob, "attempt:1").current_reason, "LEASE_REGRANTED");
+  store.enqueue(fencedWrite("regrant-result", "fence:B"));
+  assert.equal(store.readOutboxAuthority("regrant-result")?.lastError, null);
+  const delivered = await store.deliverOutbox("regrant-result", async (write) => {
+    assert.equal(write.headers["x-ai-execution-fence-hash"], "fence:B");
+    return receipt;
+  });
+  assert.equal(store.readOutboxAuthority("regrant-result")?.state, "delivered");
+  store.enqueue(fencedWrite("regrant-result", "fence:C"));
+  assert.deepEqual(await store.deliverOutbox("regrant-result", neverSend), delivered,
+    "a delivered write returns its stored receipt under a later fence");
+  assert.throws(() => store.enqueue(fencedWrite("regrant-result", "fence:C", "different-result")),
+    (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_OUTBOX_IDEMPOTENCY_CONFLICT");
+  assert.throws(() => store.enqueue({ ...fencedWrite("regrant-result", "fence:C"),
+    headers: { ...fencedWrite("regrant-result", "fence:C").headers, "content-type": "application/octet-stream" } }),
+    (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_OUTBOX_IDEMPOTENCY_CONFLICT",
+    "only the execution fence header may differ");
+  store.enqueue(fencedWrite("regrant-stale", "fence:A"));
+  await assert.rejects(store.deliverOutbox("regrant-stale", async () => {
+    throw runtimeTransportFailure("AI_LEASE_FENCE_STALE", 409);
+  }));
+  assert.equal(store.readOutboxAuthority("regrant-stale")?.lastError, "WEBSITE_HTTP_409:AI_LEASE_FENCE_STALE");
+  store.acceptTask(regrantJob, "attempt:1");
+  store.enqueue(fencedWrite("regrant-stale", "fence:B"));
+  assert.equal(store.readOutboxAuthority("regrant-stale")?.lastError, null);
+  await store.deliverOutbox("regrant-stale", async (write) => {
+    assert.equal(write.headers["x-ai-execution-fence-hash"], "fence:B");
+    return receipt;
+  });
+  assert.equal(store.readOutboxAuthority("regrant-stale")?.state, "delivered");
+  store.enqueue(fencedWrite("regrant-replaced", "fence:A"));
+  store.recordAttemptFailure(regrantJob.job_id, "attempt:1",
+    serializeTerminalFailure(executionFailure("failed", "PRODUCT_EXECUTION_FAILED")));
+  store.acceptTask(regrantJob, "attempt:2");
+  assert.equal(store.readOutboxAuthority("regrant-replaced")?.lastError, "WEBSITE_ATTEMPT_REPLACED");
+  store.enqueue(fencedWrite("regrant-replaced", "fence:B"));
+  await assert.rejects(store.deliverOutbox("regrant-replaced", neverSend),
+    (error: unknown) => typedExecutionFailure(error)?.code === "WEBSITE_ATTEMPT_REPLACED");
   store.close();
 } finally {
   await rm(directory, { recursive: true, force: true });

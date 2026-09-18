@@ -32,7 +32,7 @@
 
 ## 3. Scoped candidate
 
-**AGENT** `/Users/nexgen/Documents/AGENT`，main，HEAD `c7324c2cf56dd96a83c3b921192653943e272e72`：
+**AGENT** `/Users/nexgen/Documents/AGENT`，main，HEAD `47d1a8d7aaeb45ab7aac4bf278dc97e1d30fa390`（施工开始时；授权人 2026-09-18 已整体提交既有工作树）：
 
 | 路径 | blob | 状态 |
 |---|---|---|
@@ -46,34 +46,29 @@
 | `src/lib/local-runtime/production/store-foundation.ts` | `ea539afcc55c126df66e78bb5bcf963b694d1cfa` | clean（依赖：`json` = `JSON.stringify`，第 66 行） |
 | `src/lib/execution-failure.ts` | `a1c7ae79153ae36969fdca24f5e849581e753acb` | clean（依赖：`executionFailure`/`failureCode`） |
 
-AGENT 无关 overlay：暂存删除 `.claude/skills/**`、`CLAUDE.md`，暂存修改 `.gitignore`；施工与提交必须排除。
+AGENT 施工开始时无关 overlay 已随 47d1a8d7 提交，index 为空。
 
-**Website** `/Users/nexgen/Documents/xuanxue-web`，main，HEAD `266b63e2323f4c9a2984f01ba3fea59d41ad0d23`：
+**Website** `/Users/nexgen/Documents/xuanxue-web`，main，HEAD `870cd09a4261f9bdc4c13a504f38f736666642a3`（施工开始时；授权人 2026-09-18 已整体提交既有工作树，§3 “混合候选”已不存在）：
 
 | 路径 | blob | 状态 |
 |---|---|---|
-| `services/api/src/ai-production/output-artifact-routes.ts` | `e0931cebb6baf4937bade620ac9101c2b3dac44e` | M（施工；保留他方改动） |
+| `services/api/src/ai-production/output-artifact-routes.ts` | `e0931cebb6baf4937bade620ac9101c2b3dac44e` | clean@870cd09a（施工） |
 | `services/api/src/ai-production/job-terminal-repository.ts` | `7ae66413fb88c712dd03bc10a18c0051af510bd6` | clean（施工） |
-| `services/api/src/ai-production/job-claim-repository.ts` | `8920036ca3e62c146f57c627f2b63ce2925420c3` | M（施工 1 处 SQL 表达式；他方改动使其 504 行） |
-| `tests/exam/ai-production-v6-contract.test.ts` | `1aa86e1ea43514f2b2f63817b82789ffd8d34f59` | M（施工；追加） |
-| `scripts/audit/domains/ai-acceptance/manifest.json` | `f2e9e9498f2f3ca6dd3658c914f273aeeeceb9a2` | M（施工；追加一行） |
-| `scripts/audit/generated/law-registry.generated.json` | `9c478d71b0207617888a01c42fe148833ab0a2c2` | M（生成物，`pnpm audit:build` 整体重生成） |
+| `services/api/src/ai-production/job-claim-repository.ts` | `8920036ca3e62c146f57c627f2b63ce2925420c3` | clean@870cd09a（施工 1 处 SQL 表达式；HEAD 已 504 行，既有 FILE_BUDGET） |
+| `tests/exam/ai-production-v6-contract.test.ts` | `1aa86e1ea43514f2b2f63817b82789ffd8d34f59` | clean@870cd09a（施工；追加） |
+| `scripts/audit/domains/ai-acceptance/manifest.json` | `f2e9e9498f2f3ca6dd3658c914f273aeeeceb9a2` | clean@870cd09a（施工；追加 0141/0142 两行） |
+| `scripts/audit/generated/law-registry.generated.json` | `9c478d71b0207617888a01c42fe148833ab0a2c2` | clean@870cd09a（生成物，`pnpm audit:build` 重生成） |
 | `data/migrations/commercial/0071_ai_production_control.sql` | `82c1c61cf003b5f200ce14089dc78db2e2534d42` | clean（约束来源） |
-| `data/migrations/commercial/0140_generated_image_source_geometry.sql` | `4a7f0d0c91c303608a089d0a74e2ec43337b9197` | ??（相邻在施，已应用，不修改） |
+| `data/migrations/commercial/0140_generated_image_source_geometry.sql` | `4a7f0d0c91c303608a089d0a74e2ec43337b9197` | clean@870cd09a（已应用，不修改） |
 | `services/api/src/ai-production/business-result-consumer.ts` | `6cfccf797bcc056e8e1583c7c0cc3b014980cfd2` | clean（施工 1 处 WHERE + 删除残留 `lease_version` 字段） |
-| `services/api/src/ai-production/job-lifecycle-repository.ts` | `6a53ef8d458e35fa294e888914ad093fbd66988d` | M（施工 2 处 WHERE；保留他方改动） |
+| `services/api/src/ai-production/job-lifecycle-repository.ts` | `6a53ef8d458e35fa294e888914ad093fbd66988d` | clean@870cd09a（施工 2 处 WHERE） |
 | `services/api/src/ai-production/job-expired-attempts.ts` | `b36f975772554115d7b6fa61f3cbd061480e8625` | clean（依赖） |
 | `services/api/src/ai-production/job-lifecycle-core.ts` | `e390e7e1e6f62b259737ebd4105a2e319ebc8873` | clean（依赖：`lockV6Lease`、`persistWrite` 无 ON CONFLICT） |
 | `scripts/generate/apply-commercial-migrations.ts` | `34687029cee2928628d6d61fc3cd866b37eb319f` | clean（依赖：迁移 runner 与 `--verify`） |
-| `start.sh` | `f61f91bb40c76672b64291657833e93687a93f90` | M（依赖：重启入口；含本会话此前的 `pg_controldata` `LC_ALL=C` 修复，未提交） |
-| `.github/instructions/agent-rules/功能法案.md` | `1231fda044258fca79339bb8216c742540e3a2e2` | M（权威，不修改） |
+| `start.sh` | `f61f91bb40c76672b64291657833e93687a93f90` | clean@870cd09a（依赖：重启入口，含 `LC_ALL=C` 修复） |
+| `.github/instructions/agent-rules/功能法案.md` | `1231fda044258fca79339bb8216c742540e3a2e2` | clean@870cd09a（权威，不修改） |
 
-Website 上述 M/?? 中的既有改动来源与 Owner：
-- 图片几何（0140、`output-artifact-routes.ts` 几何部分、manifest/registry 中 012-V31 相关）：`docs/项目方案/GPT原图尺寸保真链路终极修复-完整实现方案.md`（施工中）。
-- V6 v34 stopped-empty / 013-V14（`job-lifecycle-repository.ts`、`job-claim-repository.ts` prior-rejection、`job-failure-history.ts`、`website-agent-result-payload-contract.ts`、功能法案 013 段）：两仓均无对应方案文件，属授权人本会话开始前已有的未提交工作，Owner 为授权人。
-- `start.sh` `LC_ALL=C`：本会话此前修复，Owner 为授权人。
-
-本方案只追加，不改动上述内容。**提交边界裁决**：本方案 Website 侧改动不单独提交；registry 为整文件生成物、多个目标文件含他方改动，无法按行拆分。Website 合并提交由授权人在上述工作达到 READY 时决定并执行，本方案执行 Claude 不做 Website 提交。
+Website 既有在施改动（图片几何 0140、V6 v34 stopped-empty/013-V14、`start.sh` `LC_ALL=C`）已由授权人在 HEAD 870cd09a 提交。**提交边界裁决**：本方案两仓改动在第四步由 ci-full-governance 以原生 clean Git commit 按精确路径提交，各仓独立，不夹带无关路径。
 
 ## 4. 现役实现与连续性裁决
 
@@ -154,6 +149,15 @@ A4 为后写覆盖、不比较 lease 新旧。并发情形：A4 改写后若旧 
 | fence 进键 / 续租 supersede / 删行 / 发送时注入 fence | 删除 | 违反蓝图 273 行、仍冲突、丢事实或需兼容既存行 |
 | 手工改两库既存行 | 删除 | 修复后自然续租经 A4 收敛 |
 
+### BP-WO 施工图对齐与冻结（双仓，先于一切代码）
+
+- 依据：法案全量遍历结论——无需修法（004-V25 第 46 行、012-V31 第 105/110/111 行、002-V26 允许真实 schema 删除迁移）；但 Website AI-ACCEPTANCE-BLUEPRINT 原第 139 行“不保留…旧 fence 重授权或恢复发送”与 A-WO1 语义存在歧义，必须先对齐。
+- Website `docs/blueprints/domains/ai-acceptance/AI-ACCEPTANCE-BLUEPRINT.md`：§4 增写回执唯一身份与 0141 边界；§5 增写 `business_result_ready` 按 attempt 幂等、staged 按 attempt slot 绑定并跨同 attempt 续租有效、拒收/释放按 attempt 范围 orphan；§6 改写并冻结 `FROZEN-SAME-ATTEMPT-RESULT-REDELIVERY-001`；§9 增验收第 11 条。
+- AGENT `docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md`：§8 第 12 条增写同一冻结条款（Outbox 交付身份不含 fence）。
+- 关联措辞：施工图 §4 删除 0139 的“当前唯一前向migration”表述（0141/0142 存在后不成立）；§6 导语改为“Website 不接受任何旧 fence 请求，不保留跨 attempt Outbox 或第二恢复发送链”。
+- 冻结强制：Website 在 `scripts/audit/domains/ai-acceptance/check.ts` 的 `LAW-AI-ACCEPTANCE-013-V14` 断言 tokens 追加 `FROZEN-SAME-ATTEMPT-RESULT-REDELIVERY-001`（该组 corpus 覆盖 ai-acceptance 施工图）；AGENT 因 007-V37 禁止字符串包含产生 PASS，冻结由 A-WO2 行为验收强制，不新增文本检查。
+- 不修改任何法案、合同 spec 或合同版本（V6 manifest 无受影响字段，`late_old_fence_policy=reject` 保持）。
+
 ### W-WO1 删除回执 payload 唯一约束（Website）
 
 - 前置：已取得迁移执行授权；`xuanshu_schema_migrations` 中 0140 注册 hash 等于当前文件 hash（否则 runner 以 `COMMERCIAL_MIGRATION_HASH_DRIFT` 失败，停止并交还在施方案 Owner）。
@@ -161,7 +165,7 @@ A4 为后写覆盖、不比较 lease 新旧。并发情形：A4 改写后若旧 
   - 执行：`XUANSHU_DATABASE_PROFILE_FILE="$HOME/Library/Application Support/Xuanshu/PostgreSQL/profiles/xuanshu-migrate.json" pnpm db:migrate:commercial`。
   - 核验：`XUANSHU_DATABASE_PROFILE_FILE="$HOME/Library/Application Support/Xuanshu/PostgreSQL/profiles/xuanshu-migrate.json" pnpm exec tsx scripts/generate/apply-commercial-migrations.ts --verify`。
   - 执行失败（锁超时、`COMMERCIAL_MIGRATION_HASH_DRIFT` 等，`xuanshu_schema_migrations` 未写入 `<N>`）：同一步删除本方案新建的迁移文件与 manifest 条目，重跑 `pnpm audit:build`，以 `--verify` 头回到 0140 为准后停止，不留未登记迁移。
-- 编号：施工时取 `data/migrations/commercial/` 当前最大编号 +1（本方案写作时为 `0141`，下文以 `<N>` 表示），W-WO4 断言 1 与 manifest 同步使用该文件名。
+- 编号：施工时取 `data/migrations/commercial/` 当前最大编号 +1（本方案写作时为 `0141`，下文以 `<N>` 表示），W-WO4 断言 1 与 manifest 同步使用该文件名；施工图 §4 已写明 0141，若取号不同须同步改该段。
 - 新增 `data/migrations/commercial/<N>_ai_production_write_receipt_payload_not_unique.sql`：
   ```sql
   set local lock_timeout='5s';
@@ -174,9 +178,14 @@ A4 为后写覆盖、不比较 lease 新旧。并发情形：A4 改写后若旧 
 - 门槛：迁移后 `--verify` 头为 `<N>`；只读 `pg_constraint` 该表唯一约束仅剩 `…worker_session_id_request_id_key`。
 - 回退：迁移失败即事务回滚停止。修复生效后同 payload 多条回执即为预期数据，约束不可恢复；需要回退时只回退代码，不恢复该约束。
 
+### W-WO1b 恢复按 job 读取回执的索引路径（Website，施工审查 F2 新增）
+
+- 依据：删除唯一约束同时删除了其附带索引，`job-device-status-repository.ts` 按 `job_id` 读回执退化为全表扫描（实测 19ms / 15227 行）。0141 字节已登记不可改，故以前向 `data/migrations/commercial/0142_ai_production_write_receipt_job_index.sql` 建非唯一 `(job_id, write_kind)` 索引；施工图 §4 同步写明，manifest 登记，W-WO4 追加该迁移断言。已应用，实测回落 0.15ms。
+- 删除反事实：删去本单即保留本方案自身引入的性能退化，不可删。
+
 ### W-WO2 `business_result_ready` 按 attempt 幂等（Website）
 
-- `job-terminal-repository.ts` `announceResultReady`：`idempotencyKey` 改为 `${row.job_id}:${row.attempt_id}:${completedResult.result_payload_hash}:business-result-ready`；`row.attempt_id` 为空时抛 `ApiError(409, "AI_V6_COMPLETED_RESULT_MISSING", …)`（该分支此前已由 `assertCompletedArtifact` 前置，理论不可达）。
+- `job-terminal-repository.ts` `announceResultReady`：`idempotencyKey` 改为 `${row.job_id}:${row.attempt_id}:${completedResult.result_payload_hash}:business-result-ready`。不加 attempt 空值检查：`announceResultReady` 只在 `assertCompletedArtifact` 之后调用，且 `accepted_at` 已前置校验（删除反事实：检查不可达）。
 
 ### W-WO3 同 attempt 暂存跨续租有效（Website）
 
@@ -184,7 +193,7 @@ A4 为后写覆盖、不比较 lease 新旧。并发情形：A4 改写后若旧 
 2. `output-artifact-routes.ts` `persistResultObjectAfterLock`：由 `artifactSlot` 取 attempt 前缀，局部变量固定命名为 `attempt`（`const attempt = artifactSlot.slice(0, artifactSlot.lastIndexOf(":"))`），传入 `bindResultPayload`、`bindResultEnvelope`，替换其 `leaseVersion` 参数。
 3. `bindResultPayload` image 查询 `and lease_version=$2` → `and artifact_slot=$2`，值 `${attempt}:generated_image`。
 4. `bindResultEnvelope` payload 查询 `and lease_version=$2` → `and artifact_slot=$2`，值 `${attempt}:result_payload`。
-5. `job-terminal-repository.ts` `assertCompletedArtifact`：`and lease_version=$2` → `and artifact_slot like $2`，值 `${row.attempt_id}:%`；`row.attempt_id` 为空抛 409 `AI_V6_COMPLETED_RESULT_RECEIPT_INVALID`。
+5. `job-terminal-repository.ts` `assertCompletedArtifact`：`and lease_version=$2` → `and artifact_slot like $2`，值 `${row.attempt_id}:%`；不加空值检查——`null:%` 匹配零行即落入现役 409 `AI_V6_COMPLETED_RESULT_RECEIPT_INVALID`。
 6. `insertResultObject` 仍写 `lease_version`（保留审计事实）。
 7. 不新增导出。
 8. 三处 orphan 由 lease 范围改为 attempt 范围（参数由 `lease_version` 换为 `<attempt_id>:%`，0 净行）：
@@ -207,7 +216,7 @@ A4 为后写覆盖、不比较 lease 新旧。并发情形：A4 改写后若旧 
 ### A-WO1 enqueue 以当前 fence 重新授权（AGENT）
 
 - `src/lib/local-runtime/production/store-outbox.ts`：
-  1. 顶部新增私有 `EXECUTION_FENCE_HEADER = "x-ai-execution-fence-hash"` 与私有纯函数 `headersWithoutExecutionFence(headersJson: string): string`（parse → delete → stringify）。
+  1. 顶部新增私有纯函数 `headersWithoutExecutionFence(headersJson: string): string`（parse → delete `"x-ai-execution-fence-hash"` → stringify）；header 名与 `"WEBSITE_ATTEMPT_REPLACED"` 各只用一次，按删除原则以字面量内联，不设常量。
   2. `enqueue` 既存行 select 增加 `sent_at,last_error`。
   3. 按 §7：非 `sameIntent` → 抛冲突；headers 全等、`sent_at` 非空或 `last_error === "WEBSITE_ATTEMPT_REPLACED"` → `notifyOutbox` 后返回；否则执行 A4 update 后 `notifyOutbox` 返回。
 - 门槛：`npm run typecheck`；`enqueue` ≤75 行、复杂度 ≤16。
@@ -222,6 +231,8 @@ A4 为后写覆盖、不比较 lease 新旧。并发情形：A4 改写后若旧 
 5. 第二键（同 job 前缀）fence A 入队，`deliverOutbox` 以 `runtimeTransportFailure("AI_LEASE_FENCE_STALE", 409)` 失败 → `lastError === "WEBSITE_HTTP_409:AI_LEASE_FENCE_STALE"`；`acceptTask(job,"attempt:1")`；fence B `enqueue` 后 `lastError === null` 且可交付（A4-STALE）。
 6. 第三键（同 job 前缀）fence A 入队未发送；`acceptTask(job,"attempt:2")` 使其 `WEBSITE_ATTEMPT_REPLACED`；fence B `enqueue` 不抛，`deliverOutbox` 抛 `WEBSITE_ATTEMPT_REPLACED` 且 send 未调用（A5）。
 
+施工偏差（已核）：各场景 path 以 key 区分（`regrantPath(key)`），不用固定 `airesult_regrant`；场景 6 切换到 attempt:2 前先 `recordAttemptFailure(attempt:1)`（`acceptTask` 新 attempt 分支的前置状态）；场景 1 另断言同 fence 再 `enqueue` 保留 `INTERNAL_ERROR`；场景 4 另断言只改非 fence header 也冲突；场景 5 断言以 fence B 送达。
+
 局限：本脚本只证明 AGENT 本地；跨 lease 的 Website 绑定由 W-WO4 与 §9 动态 readback 证明。门槛：`npm run acceptance:agent-production-runtime`、`npm run quality:check`。
 
 ### 顺序与兼容
@@ -231,8 +242,8 @@ A4 为后写覆盖、不比较 lease 新旧。并发情形：A4 改写后若旧 
 
 任意先后部署无不兼容窗口：Website 各项为放宽或保留既有语义；AGENT 仅改本地判定；任一侧先上线时循环持续但不产生新错误类型。
 
-回退（不得整文件反向，目标文件含他方改动）：
-- Website：只反向本方案列出的精确改动——W-WO2 的幂等键模板与 `attempt_id` 空值检查、W-WO3 第 1–5 步与第 8–9 步的 SQL/参数/字段、W-WO4 追加的测试；W-WO1 一旦执行，迁移文件与 manifest 条目保留、约束不恢复。
+回退（只反向本方案精确改动）：
+- Website：只反向本方案列出的精确改动——W-WO2 的幂等键模板、W-WO3 第 1–5 步与第 8–9 步的 SQL/参数/字段、W-WO4 追加的测试；W-WO1 一旦执行，迁移文件与 manifest 条目保留、约束不恢复。
 - AGENT：提交前按 A-WO1/A-WO2 精确反向；提交后 `git revert <本方案提交>`。
 
 ## 9. 分层验收
@@ -246,14 +257,14 @@ A4 为后写覆盖、不比较 lease 新旧。并发情形：A4 改写后若旧 
 
 ## 10. 授权前置与停止条件
 
-- 三项 Website 授权相互独立：①迁移执行（W-WO1 落盘与执行）；②部署混合候选（重启，见下）；③`quality:check` 的法案修订授权（见下）。缺①时 W-WO1 不落盘，D1 未修复，§9.2 终点不可达，只完成其余工单与静态验收并如实报告。
-- Website `pnpm quality:check` 当前必然要求 `GOVERNANCE_LAW_AMENDMENT_AUTHORIZED=1`（功能法案存在他方在施未提交改动，`scripts/audit/governance.ts:200`），该授权覆盖他方法案修改，须用户单独明确给出；Website 另有他方在施造成的既有 code-purity finding（含 `job-claim-repository.ts` FILE_BUDGET），不归本方案、也不得据此宣称 READY。
+- Website 授权：迁移执行（W-WO1/W-WO1b）与服务重启相互独立，均已由授权人 2026-09-18 授权（数据库操作）。缺迁移授权时 W-WO1 不落盘，D1 未修复，§9.2 终点不可达，只完成其余工单与静态验收并如实报告。
+- Website `pnpm quality:check`：HEAD 870cd09a 已包含法案与在施改动，本方案不修改法案；质检按 ci-full-governance 在第四步执行，既有 `job-claim-repository.ts` FILE_BUDGET 若阻断 READY，按 CI-FULL 同一故障鉴权后在同候选内处理。
 - AGENT A-WO2 新增 `store.enqueue(` 行命中 `high-impact-detector` queue 检测，`quality:check` 需用户明确授权 `GRASSEYE_HIGH_IMPACT_AUTHORIZED=1`；不得改写测试规避。
-- 两仓服务重启由用户执行或明确授权。**Website 重启会把工作树中全部他方在施未提交改动（含 012-V31 / 013-V14 法案修订、0140、`job-lifecycle-repository.ts`、`job-failure-history.ts`、`website-agent-result-payload-contract.ts` 等）一并部署**，须用户或在施方案 Owner 对“部署该混合候选”单独明确授权；未获授权则 Website 侧止于代码与静态验收，不重启、不执行 §9.2。
-- §9.2 动态证据只证明混合候选的运行结果，不构成本方案或任何在施方案的 READY / RELEASE 依据。
-- 不修改任何法案、蓝图、合同；如需修改，停止回到设计。
+- 两仓服务重启由用户执行或明确授权。
+- §9.2 动态证据只证明当次候选运行结果，不单独构成 READY / RELEASE 依据。
+- 不修改任何法案与合同；施工图只按 BP-WO 修改。如需修法或改合同，停止回到设计。
 - §3 任一 blob 漂移或目标文件出现无法区分的新改动 → 停止重核。
 
 ## 11. 执行 Claude 重绑定要求
 
-施工前：读两仓 `AGENTS.md`；按 §3 逐项 `git hash-object` / `git status` 复核；重读 AGENT `store-outbox.ts`（`enqueue`、`deliverOutbox`、`recordDeliveryFailure`）、`runtime-claim.ts`（`isResultTransportBoundary`、`completeClaim`、`handleRuntimeBoundaryFailure`），Website `output-artifact-routes.ts`、`job-terminal-repository.ts`、`job-claim-repository.ts:207-230`、`job-expired-attempts.ts`、0071 约束名、0140 注册 hash；只读确认两 job 当前 attempt 未变（若已变，动态验收改用下一次同类事件或保持构造性验收）。提交：AGENT 的无关 overlay 已在 index 暂存，先 `git add -- "docs/项目方案/同attempt续租结果上传幂等冲突-完整实现方案.md"`（方案文件当前未跟踪，仅加这一路径），再 `git commit -- src/lib/local-runtime/production/store-outbox.ts scripts/acceptance/agent-production-runtime-recovery-contract.acceptance.ts "docs/项目方案/同attempt续租结果上传幂等冲突-完整实现方案.md"` 按精确路径提交，index 中无关暂存不进入提交；Website 不由本方案执行 Claude 提交（§3 提交边界裁决）。A-WO2 需新增 `import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js"`（按该脚本现有相对路径风格）。完成后只按 §9 报告实际结果，不把测试 PASS、staged 或 delivered 表述为业务完成或 RELEASE。
+施工前：读两仓 `AGENTS.md`；按 §3 逐项 `git hash-object` / `git status` 复核；重读 AGENT `store-outbox.ts`（`enqueue`、`deliverOutbox`、`recordDeliveryFailure`）、`runtime-claim.ts`（`isResultTransportBoundary`、`completeClaim`、`handleRuntimeBoundaryFailure`），Website `output-artifact-routes.ts`、`job-terminal-repository.ts`、`job-claim-repository.ts:207-230`、`job-expired-attempts.ts`、0071 约束名、0140 注册 hash；只读确认两 job 当前 attempt 未变（若已变，动态验收改用下一次同类事件或保持构造性验收）。提交：AGENT 的无关 overlay 已在 index 暂存，`git commit -- src/lib/local-runtime/production/store-outbox.ts scripts/acceptance/agent-production-runtime-recovery-contract.acceptance.ts "docs/项目方案/同attempt续租结果上传幂等冲突-完整实现方案.md"` 按精确路径提交，index 中无关暂存不进入提交；Website 按 §3 提交边界裁决以精确路径提交。A-WO2 需新增 `import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js"`（按该脚本现有相对路径风格）。完成后只按 §9 报告实际结果，不把测试 PASS、staged 或 delivered 表述为业务完成或 RELEASE。
