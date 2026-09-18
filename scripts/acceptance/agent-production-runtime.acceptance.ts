@@ -2,23 +2,16 @@ import { governanceAssert as assert } from "../audit/shared/governance-exam-asse
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { Project } from "ts-morph";
 
 import {
   agentRouteCapabilityManifest, productionCatalogHash,
 } from "../../src/lib/local-runtime/production/catalog.js";
-import {
-  claimProductionTasks,
-  uploadProductionGeneratedImage,
-} from "../../src/lib/local-runtime/production/cloud-client.js";
-import { PRODUCTION_BUSINESS_CAPACITY_MAX } from
-  "../../src/lib/local-runtime/production/control-contract-dependency.js";
+import { claimProductionTasks } from "../../src/lib/local-runtime/production/cloud-client.js";
 import { readProductionDeviceJobStatus } from
   "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
 import {
   WebsiteAgentTaskSchema,
   hashCanonical,
-  sha256,
 } from "../../src/lib/local-runtime/production/contracts.js";
 import {
   purgeDeletedJob,
@@ -30,19 +23,16 @@ import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/s
 import { readProductionOperationsSnapshot } from
   "../../src/lib/local-runtime/production/operations-snapshot.js";
 import {
-  ClaimBatchReceiptSchema, LeaseRenewReceiptSchema, UploadedResultReceiptSchema, parseJsonEnvelope,
+  ClaimBatchReceiptSchema, LeaseRenewReceiptSchema, parseJsonEnvelope,
   websiteAgentTaskFromClaim,
 } from "../../src/lib/local-runtime/production/transport-protocol.js";
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { assertProductionTaskRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
-import { inspectGeneratedImageTransport } from
-  "../audit/domains/agent-production-runtime/contract-inspection.js";
 import {
   HASH_A,
   HASH_B,
-  HASH_C,
   ADMISSION_JOB_ID,
   admissionReceipt,
   admissionReceiptFor,
@@ -56,14 +46,10 @@ import "./agent-production-runtime-ledger.acceptance.js";
 import "./agent-production-runtime-proof-boundary.acceptance.js";
 import "./agent-production-runtime-startup.acceptance.js";
 import { exerciseWorkerSessionRotation } from "./agent-production-runtime-session-rotation-support.js";
+import { exerciseGeneratedImageTransport } from "./agent-production-runtime-generated-image.acceptance-support.js";
 import { exerciseProductionRuntimeSourceBoundaries } from
   "./agent-production-runtime-recovery-boundary.acceptance-support.js";
-const successfulJsonResponse = (data: unknown): Response => new Response(
-  JSON.stringify({ ok: true, data }),
-  { status: 200, headers: { "content-type": "application/json" } },
-);
 assert.equal(hashCanonical(agentRouteCapabilityManifest.routes), productionCatalogHash);
-assert.equal(PRODUCTION_BUSINESS_CAPACITY_MAX, 4);
 await assert.rejects(
   claimProductionTasks({} as never, 5),
   /V6_CLAIM_LIMIT_INVALID/u,
@@ -351,110 +337,6 @@ try {
   await rm(admissionTemporary, { recursive: true, force: true });
 }
 
-const imageTemporary = await mkdtemp(path.join(tmpdir(), "agent-generated-image-"));
-const imageStore = new ProductionRuntimeStore(imageTemporary);
-const enqueueGeneratedImage = imageStore.enqueue.bind(imageStore);
-let imageEnqueues = 0;
-imageStore.enqueue = ((write) => {
-  imageEnqueues += 1;
-  return enqueueGeneratedImage(write);
-}) as typeof imageStore.enqueue;
-const imageFetch = globalThis.fetch;
-let physicalImageUploads = 0;
-try {
-  const webpBytes = new TextEncoder().encode("fixture-webp");
-  const image = Object.freeze({
-    artifact_id: "image:fixture",
-    webp_bytes: webpBytes,
-    sha256: sha256(webpBytes),
-    bytes: webpBytes.byteLength,
-    media_type: "image/webp" as const,
-    width: 1536,
-    height: 1024,
-  });
-  globalThis.fetch = (async (input) => {
-    physicalImageUploads += 1;
-    const uploadArtifactId = decodeURIComponent(new URL(String(input)).pathname.split("/").at(-1)!);
-    return successfulJsonResponse({
-      schema_version: "xuanxue-ai-material-receipt.v6",
-      artifact_id: uploadArtifactId,
-      role: "generated_image",
-      object_ref: "object:image:fixture",
-      sha256: image.sha256,
-      byte_length: image.bytes,
-      media_type: "image/webp",
-      state: "staged",
-      receipt_hash: HASH_C,
-    });
-  }) as typeof globalThis.fetch;
-  const imageJob = claimTask(productionTask);
-  const imageSession = {
-    device: { server_base_url: "https://production.invalid" },
-    authorizationHeaders: async (headers: Record<string, string>) => headers,
-  };
-  for (const invalidImage of [
-    { ...image, bytes: image.bytes + 1 },
-    { ...image, sha256: HASH_A },
-    { ...image, media_type: "image/png" },
-  ]) {
-    await assert.rejects(
-      uploadProductionGeneratedImage(imageSession as never, imageStore, imageJob, invalidImage as never),
-      (error: unknown) => typedExecutionFailure(error)?.code === "GENERATED_IMAGE_LOCAL_IDENTITY_MISMATCH",
-      "Runtime must reject local WebP byte-length, hash, and media identity drift before upload",
-    );
-  }
-  assert.equal(physicalImageUploads, 0,
-    "local generated-image identity failures must not create a physical Website upload");
-  const first = await uploadProductionGeneratedImage(imageSession as never, imageStore, imageJob, image);
-  const repeated = await uploadProductionGeneratedImage(imageSession as never, imageStore, imageJob, image);
-  assert.equal(physicalImageUploads, 1, "the generated image transport must be physically delivered once");
-  assert.equal(imageEnqueues, 1, "the generated image transport must persist one Outbox intent");
-  assert.deepEqual(repeated.receipt, first.receipt);
-  assert.equal(first.receipt.object_ref, "object:image:fixture");
-  await assert.rejects(
-    uploadProductionGeneratedImage(imageSession as never, imageStore, imageJob, {
-      ...image, webp_bytes: new Uint8Array([1, 2, 3]),
-    }),
-    (error: unknown) => typedExecutionFailure(error)?.code === "GENERATED_IMAGE_LOCAL_IDENTITY_MISMATCH",
-    "a delivered Outbox receipt must not bypass current local WebP identity validation",
-  );
-  assert.equal(physicalImageUploads, 1,
-    "a corrupt delivered replay must fail before a second physical Website upload");
-  assert.equal(imageEnqueues, 1,
-    "a corrupt delivered replay must fail before a second Outbox enqueue");
-  const secondBytes = new TextEncoder().encode("fixture-webp-second");
-  const secondImage = Object.freeze({
-    ...image,
-    artifact_id: "image:fixture-second",
-    webp_bytes: secondBytes,
-    sha256: sha256(secondBytes),
-    bytes: secondBytes.byteLength,
-  });
-  globalThis.fetch = (async () => {
-    physicalImageUploads += 1;
-    return successfulJsonResponse({
-      schema_version: "xuanxue-ai-material-receipt.v6",
-      artifact_id: "image:wrong",
-      role: "generated_image",
-      object_ref: "object:image:wrong",
-      sha256: secondImage.sha256,
-      byte_length: secondImage.bytes,
-      media_type: "image/webp",
-      state: "staged",
-      receipt_hash: HASH_C,
-    });
-  }) as typeof globalThis.fetch;
-  await assert.rejects(
-    uploadProductionGeneratedImage(imageSession as never, imageStore, imageJob, secondImage),
-    (error: unknown) => typedExecutionFailure(error)?.code === "GENERATED_IMAGE_WEBSITE_RECEIPT_MISMATCH",
-    "an artifact receipt for a different image must not terminalize the existing Outbox intent",
-  );
-} finally {
-  globalThis.fetch = imageFetch;
-  imageStore.close();
-  await rm(imageTemporary, { recursive: true, force: true });
-}
-
 const claimed = claimTask(productionTask);
 assert.deepEqual(websiteAgentTaskFromClaim(claimed), productionTask);
 assert.equal(claimed.status, "failed");
@@ -479,20 +361,6 @@ assert.throws(() => parseJsonEnvelope({
     code: "AI_SESSION_BINDING_MISMATCH", message: "mismatch", status: 409, request_id: "request:mismatch",
   },
 }, 200), (error: unknown) => typedExecutionFailure(error)?.code === "AI_PRODUCTION_HTTP_ENVELOPE_STATUS_MISMATCH");
-const uploadedImageReceipt = {
-  schema_version: "xuanxue-ai-material-receipt.v6",
-  artifact_id: "artifact:image",
-  role: "generated_image",
-  object_ref: "object:image",
-  sha256: HASH_A,
-  byte_length: 42,
-  media_type: "image/webp",
-  state: "staged",
-  receipt_hash: HASH_B,
-} as const;
-assert.doesNotThrow(() => UploadedResultReceiptSchema.parse(uploadedImageReceipt));
-assert.throws(() => UploadedResultReceiptSchema.parse({ ...uploadedImageReceipt, width: 1024, height: 1536 }),
-  /unrecognized_keys/u, "V6 uploaded receipt must reject geometry and every other unknown field");
 
 await assert.rejects(
   () => dispatchWebsiteAgentTask(productionTask, () => { throw new Error("CONTEXT_MUST_NOT_BE_CREATED"); }),
@@ -500,69 +368,8 @@ await assert.rejects(
 );
 
 await exerciseWorkerSessionRotation();
+await exerciseGeneratedImageTransport(productionTask);
 
-for (const mutate of [
-  (project: Project) => {
-    const file = project.getSourceFileOrThrow(path.resolve(
-      "src/lib/local-runtime/production/transport-protocol.ts",
-    ));
-    file.replaceWithText(file.getFullText().replace(
-      "}).strict();\n\nexport type UploadedResultReceipt",
-      "}).passthrough();\n\nexport type UploadedResultReceipt",
-    ));
-  },
-  (project: Project) => {
-    const file = project.getSourceFileOrThrow(path.resolve(
-      "src/lib/local-runtime/production/cloud-client.ts",
-    ));
-    file.replaceWithText(file.getFullText().replace(
-      "): Promise<UploadedResultReceipt> {\n  const uploadArtifactId",
-      "): Promise<UploadedResultReceipt> {\n  void image.originalSha256;\n  const uploadArtifactId",
-    ));
-  },
-  (project: Project) => {
-    const file = project.getSourceFileOrThrow(path.resolve(
-      "src/lib/local-runtime/production/cloud-client.ts",
-    ));
-    file.replaceWithText(file.getFullText().replace("bytes.byteLength !== image.bytes", "false"));
-  },
-  (project: Project) => {
-    const file = project.getSourceFileOrThrow(path.resolve(
-      "src/lib/local-runtime/production/cloud-client.ts",
-    ));
-    file.replaceWithText(file.getFullText().replace("sha256(bytes) !== image.sha256", "false"));
-  },
-  (project: Project) => {
-    const file = project.getSourceFileOrThrow(path.resolve(
-      "src/lib/local-runtime/production/cloud-client.ts",
-    ));
-    file.replaceWithText(file.getFullText().replace('image.media_type !== "image/webp"', "false"));
-  },
-  (project: Project) => {
-    const file = project.getSourceFileOrThrow(path.resolve(
-      "src/lib/local-runtime/production/cloud-client.ts",
-    ));
-    const source = file.getFullText();
-    const functionStart = source.indexOf("async function uploadGeneratedImage");
-    const identityStart = source.indexOf("  const bytes = Buffer.from(image.webp_bytes);", functionStart);
-    const deliveredStart = source.indexOf("  const delivered = store.readOutboxAuthority(requestId);", identityStart);
-    const durableStart = source.indexOf("  const durableHeaders = {", deliveredStart);
-    assert.ok(functionStart >= 0 && identityStart >= 0 && deliveredStart > identityStart
-      && durableStart > deliveredStart, "generated-image guard blocks must remain discoverable");
-    file.replaceWithText(source.slice(0, identityStart)
-      + source.slice(deliveredStart, durableStart)
-      + source.slice(identityStart, deliveredStart)
-      + source.slice(durableStart));
-  },
-] as const) {
-  const project = new Project({ tsConfigFilePath: "tsconfig.json" });
-  mutate(project);
-  const findings: Parameters<typeof inspectGeneratedImageTransport>[1] = [];
-  inspectGeneratedImageTransport({ project, sealedRoot: process.cwd() } as never, findings);
-  assert.ok(findings.some((finding) =>
-    finding.checkId === "agent-production-runtime/generated-image-transport-boundary"),
-  "receipt, Provider-original, local WebP identity and delivered-shortcut mutants must fail the Runtime inspector");
-}
 
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({

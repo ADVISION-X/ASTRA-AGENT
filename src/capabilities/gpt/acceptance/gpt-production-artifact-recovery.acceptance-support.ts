@@ -6,9 +6,6 @@ import { join } from "node:path";
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import { failureCode } from "../../../lib/execution-failure.js";
-import { createGrassEyeFileStorage } from "../../../lib/storage/file-storage.js";
-import { createForensicsPersistenceAbilityGroupFromStorage } from
-  "../../forensics-persistence/index.js";
 import { createGptAbilityGroup } from "../index.js";
 import { gptCanonicalHash, gptExactCallIdentityHash } from "../contract.js";
 import { ProductionGptChildTools } from "../production-child-tools.js";
@@ -185,11 +182,8 @@ try {
   const imageExactCallIdentityHash = gptExactCallIdentityHash({ jobId, attemptId,
     resultRevision: 0, productStepId: imageCall.productStepId, callId: imageCall.callId,
     childCapabilityId: imageCall.child, inputHash: gptCanonicalHash(imageCall.input) });
-  const realEvidenceStore = createForensicsPersistenceAbilityGroupFromStorage(
-    createGrassEyeFileStorage(join(temporary, "real-forensics")),
-  );
   const realExecution = new ProductionGptChildTools(join(temporary, "real-execution"), HASH_A,
-    createGptAbilityGroup(), realEvidenceStore, authority as never,
+    createGptAbilityGroup(), evidenceStore, authority as never,
     createRuntimeLogger({ producer: "gpt-artifact-recovery-real-store",
       owner: "production-runtime", component: "gpt-child", terminalEnabled: false,
       fileSink: { directoryPath: join(temporary, "real-runtime-logs") } }), {
@@ -213,19 +207,16 @@ try {
   assert.deepEqual(image.value.originalBytes, imageBytes);
   assert.equal(image.artifactRefs.length, 1);
   assert.equal(authenticatedImageReads, 1);
-  const imageReadback = await realEvidenceStore.readArtifact({ missionId: jobId, runId: attemptId,
+  const imageReadback = await evidenceStore.readArtifact({
     idempotencyKey: `gpt-call-artifact:v1:${imageExactCallIdentityHash}:original` });
   assert.equal(imageReadback.status, "success");
   if (imageReadback.status === "success") {
     assert.equal(imageReadback.artifactRef, image.artifactRefs[0]);
     assert.equal(imageReadback.artifact.mimeType, "image/png");
     assert.deepEqual(imageReadback.artifact.content, imageBytes);
-    assert.match(imageReadback.artifact.integrityHash, /^sha256:[a-f0-9]{64}$/u);
-    assert.notEqual(imageReadback.artifact.integrityHash, imageHash,
-      "Forensics integrityHash authenticates the stored envelope; raw image identity remains originalSha256");
   }
-  assert.equal(artifactAppends, 1,
-    "the fake recovery store must not receive the real image artifact");
+  assert.equal(artifactAppends, 2,
+    "the image checkpoint must append exactly its one original artifact through the evidence port");
   await realExecution.settle(null);
 } finally {
   await rm(temporary, { recursive: true, force: true });

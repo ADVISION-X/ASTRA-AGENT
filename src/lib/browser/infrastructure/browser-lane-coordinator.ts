@@ -42,6 +42,8 @@ type LaneWaiter = AcquireLaneWaiter | ReleaseLaneWaiter;
 type LaneState = ReturnType<typeof createBrowserInfrastructureState>;
 const PROVIDER_OBSERVATION_MIN_INTERVAL_MS = 70_000;
 const PROVIDER_OBSERVATION_RANDOM_SPAN_MS = 20_001;
+const waiterExpiryCode = (waiter: LaneWaiter): string | null => waiter.signal.aborted
+  ? "BROWSER_WAIT_ABORTED" : waiter.remainingMs() < 1 ? "V6_DEADLINE_BUDGET_EXHAUSTED" : null;
 
 export class BrowserLaneCoordinator {
   private readonly queue: LaneWaiter[] = [];
@@ -131,20 +133,17 @@ export class BrowserLaneCoordinator {
   }
 
   private expireWaiter(waiter: LaneWaiter): void {
-    if (!waiter.signal.aborted && waiter.remainingMs() >= 1) return;
+    const expiryCode = waiterExpiryCode(waiter);
     const index = this.queue.indexOf(waiter);
-    if (index < 0) return;
+    if (!expiryCode || index < 0) return;
     this.queue.splice(index, 1);
-    waiter.reject(browserExecutionFailure(new Error(
-      waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED",
-    )));
+    waiter.reject(browserExecutionFailure(new Error(expiryCode)));
     void this.pump();
   }
 
   public readState(): "idle" | "busy" | "blocked" {
     return this.active ? "busy" : this.hasUnresolvedMutation() ? "blocked" : "idle";
   }
-  public waiterCount(): number { return this.queue.length; }
   public reset(reasonCode?: string): void {
     if (this.wakeTimer) clearTimeout(this.wakeTimer);
     this.wakeTimer = null;
@@ -178,7 +177,7 @@ export class BrowserLaneCoordinator {
 
   private mayCrossUnresolved(waiter: LaneWaiter): boolean {
     const jobId = waiter.kind === "release" ? waiter.jobId : waiter.binding.jobId;
-    return Boolean(this.infrastructure.mutationState?.hasUnresolvedMutationForJob(jobId)) && (waiter.kind === "acquire"
+    return Boolean(this.infrastructure.mutationState?.hasMutationForJob(jobId, true)) && (waiter.kind === "acquire"
       ? waiter.binding.kind === "production" : waiter.releaseAuthority === "website-permanent-revocation"
         || waiter.releaseAuthority === "website-admin-deletion");
   }
@@ -188,11 +187,10 @@ export class BrowserLaneCoordinator {
     const now = Date.now();
     for (let index = 0; index < this.queue.length;) {
       const waiter = this.queue[index]!;
-      if (waiter.signal.aborted || waiter.remainingMs() < 1) {
+      const expiryCode = waiterExpiryCode(waiter);
+      if (expiryCode) {
         this.queue.splice(index, 1);
-        waiter.reject(browserExecutionFailure(new Error(
-          waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED",
-        )));
+        waiter.reject(browserExecutionFailure(new Error(expiryCode)));
         continue;
       }
       if (mutationBlocked && !this.mayCrossUnresolved(waiter)) {
@@ -212,24 +210,24 @@ export class BrowserLaneCoordinator {
     return null;
   }
 
-  private assertWaiterLive(waiter: AcquireLaneWaiter): void {
-    if (!waiter.signal.aborted && waiter.remainingMs() >= 1) return;
-    throw new Error(waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED");
+  private takeNextWaiter(): LaneWaiter | null {
+    let waiter: LaneWaiter | null = null;
+    try {
+      waiter = this.nextWaiter();
+      if (waiter) waiter.stopAbortMonitor();
+      return waiter;
+    } catch (error) {
+      if (waiter) waiter.reject(browserExecutionFailure(error));
+      this.scheduleWake();
+      throw error;
+    }
   }
 
   private async pump(): Promise<void> {
     if (this.active) return;
     if (this.wakeTimer) clearTimeout(this.wakeTimer);
     this.wakeTimer = null;
-    let waiter: LaneWaiter | null = null;
-    try {
-      waiter = this.nextWaiter();
-      if (waiter) waiter.stopAbortMonitor();
-    } catch (error) {
-      if (waiter) waiter.reject(browserExecutionFailure(error));
-      this.scheduleWake();
-      throw error;
-    }
+    const waiter = this.takeNextWaiter();
     if (!waiter) {
       this.scheduleWake();
       return;
@@ -241,44 +239,58 @@ export class BrowserLaneCoordinator {
       if (mutations) {
         await awaitBrowserPostSubmitQuiet(() => mutations.latestProviderInputTerminalAt());
       }
-      if (waiter.kind === "release") {
-        await this.targetAcquirer.releaseJobBoundTarget(waiter.remainingMs(), waiter.jobRefHash);
-        waiter.complete();
-        this.active = false;
-        this.activeJobRefHash = null;
-        void this.pump();
-        return;
-      }
-      this.assertWaiterLive(waiter);
-      if (mutations && this.hasUnresolvedMutation()) {
-        const mutation = mutations.settleRetiredTargetLocal(waiter.binding);
-        if (mutation.effectScope === "provider_effect" && waiter.targetMode !== "bound-observation") {
-          throw browserExecutionFailure(new Error("PROVIDER_EFFECT_OUTCOME_UNPROVEN"), "dispatched", {
-            effectScope: "provider_effect", childCapabilityId: mutation.childCapabilityId,
-            browserOutcome: "DISPATCHED", providerEffectIdentityHash: mutation.logicalMutationId ?? null });
-        }
-        if (mutation.effectScope === "target_local") emitBrowserMutationEvent({ runtimeLogger: this.runtimeLogger, mutation, outcome: "REJECTED",
-          authorityHash: mutations.authorityHash(mutation.commandId) });
-      }
-      let parentConversationUrl: string | undefined;
-      if (waiter.targetMode === "authorized-continuation") {
-        if (waiter.parentJobId === waiter.binding.jobId) {
-          throw new Error("BROWSER_PARENT_JOB_SELF_REFERENCE");
-        }
-        parentConversationUrl = mutations?.readUniqueConfirmedConversationUrl(
-          waiter.parentJobId!, waiter.binding.productStepId,
-        );
-      }
-      await this.targetAcquirer.ensureAvailableTarget(waiter, parentConversationUrl);
-      this.assertWaiterLive(waiter);
-      const lease = await this.resolveBroker().acquireOperatorClaimedTargetLease(waiter.binding, waiter.ownerId);
-      waiter.complete(this.withLifecycle(lease, waiter.requestKind));
+      if (waiter.kind === "release") await this.serveRelease(waiter);
+      else await this.serveAcquire(waiter);
     } catch (error) {
       this.active = false;
       this.activeJobRefHash = null;
       void this.pump();
       waiter.reject(browserExecutionFailure(error));
     }
+  }
+
+  private async serveRelease(waiter: ReleaseLaneWaiter): Promise<void> {
+    await this.targetAcquirer.releaseJobBoundTarget(waiter.remainingMs(), waiter.jobRefHash);
+    waiter.complete();
+    this.active = false;
+    this.activeJobRefHash = null;
+    void this.pump();
+  }
+
+  /** Settles the single retired target-local mutation of an older fence before any new acquisition. */
+  private settleRetiredMutation(waiter: AcquireLaneWaiter): void {
+    const mutations = this.infrastructure.mutationState;
+    if (!mutations || !this.hasUnresolvedMutation()) return;
+    const mutation = mutations.settleRetiredTargetLocal(waiter.binding);
+    if (mutation.effectScope === "provider_effect" && waiter.targetMode !== "bound-observation") {
+      throw browserExecutionFailure(new Error("PROVIDER_EFFECT_OUTCOME_UNPROVEN"), "dispatched", {
+        effectScope: "provider_effect", childCapabilityId: mutation.childCapabilityId,
+        browserOutcome: "DISPATCHED", providerEffectIdentityHash: mutation.logicalMutationId ?? null });
+    }
+    if (mutation.effectScope === "target_local") emitBrowserMutationEvent({ runtimeLogger: this.runtimeLogger, mutation, outcome: "REJECTED",
+      authorityHash: mutations.authorityHash(mutation.commandId) });
+  }
+
+  private continuationParentUrl(waiter: AcquireLaneWaiter): string | undefined {
+    if (waiter.targetMode !== "authorized-continuation") return undefined;
+    if (waiter.parentJobId === waiter.binding.jobId) throw new Error("BROWSER_PARENT_JOB_SELF_REFERENCE");
+    return this.infrastructure.mutationState?.readUniqueConfirmedConversationUrl(
+      waiter.parentJobId!, waiter.binding.productStepId,
+    );
+  }
+
+  private async serveAcquire(waiter: AcquireLaneWaiter): Promise<void> {
+    const assertLive = (): void => {
+      const expiryCode = waiterExpiryCode(waiter);
+      if (expiryCode) throw new Error(expiryCode);
+    };
+    assertLive();
+    this.settleRetiredMutation(waiter);
+    const parentConversationUrl = this.continuationParentUrl(waiter);
+    await this.targetAcquirer.ensureAvailableTarget(waiter, parentConversationUrl);
+    assertLive();
+    const lease = await this.resolveBroker().acquireOperatorClaimedTargetLease(waiter.binding, waiter.ownerId);
+    waiter.complete(this.withLifecycle(lease, waiter.requestKind));
   }
 
   private withLifecycle(
@@ -317,14 +329,6 @@ export class BrowserLaneCoordinator {
   }
   public rejectPending(reasonCode: string): void { this.targetAcquirer.rejectPending(reasonCode); }
 
-  private armWakeTimer(delay: number): void {
-    if (this.wakeTimer) clearTimeout(this.wakeTimer);
-    this.wakeTimer = setTimeout(() => {
-      this.wakeTimer = null;
-      void this.pump();
-    }, Math.max(1, Math.ceil(delay)));
-  }
-
   private scheduleWake(): void {
     if (this.active || this.queue.length === 0) return;
     const now = Date.now();
@@ -342,6 +346,11 @@ export class BrowserLaneCoordinator {
     } catch {
       nextAt = now + PROVIDER_OBSERVATION_MIN_INTERVAL_MS;
     }
-    this.armWakeTimer(Number.isFinite(nextAt) ? nextAt - now : PROVIDER_OBSERVATION_MIN_INTERVAL_MS);
+    const delay = Number.isFinite(nextAt) ? nextAt - now : PROVIDER_OBSERVATION_MIN_INTERVAL_MS;
+    if (this.wakeTimer) clearTimeout(this.wakeTimer);
+    this.wakeTimer = setTimeout(() => {
+      this.wakeTimer = null;
+      void this.pump();
+    }, Math.max(1, Math.ceil(delay)));
   }
 }

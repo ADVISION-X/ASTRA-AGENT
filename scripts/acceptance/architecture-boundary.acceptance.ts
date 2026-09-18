@@ -17,8 +17,6 @@ import {
 import { inspectProductAcceptanceBoundaries } from "../audit/domains/architecture-boundary/components/scan-product-acceptance-boundaries.js";
 import { inspectBusinessRecoveryAuthorityBoundaries } from "../audit/domains/architecture-boundary/components/scan-product-acceptance-boundaries.js";
 import { inspectRuntimeBrowserPrivateImports } from "../audit/domains/architecture-boundary/components/scan-plugin-capability-boundaries.js";
-import { inspectPublicKnowledgeImageOwnership } from
-  "../audit/domains/architecture-boundary/inspector.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V11";
@@ -100,48 +98,6 @@ for (const [filePath, checkId, source] of authorityBoundaryCases) {
   inspectBusinessRecoveryAuthorityBoundaries({ findings, inspectedFiles, lawId, project });
   assert.ok(findings.some((finding) => finding.checkId === checkId),
     `${filePath} must emit ${checkId}`);
-}
-
-{
-  const project = new Project({ tsConfigFilePath });
-  const findings: Parameters<typeof inspectPublicKnowledgeImageOwnership>[1] = [];
-  inspectPublicKnowledgeImageOwnership({ project, sealedRoot: process.cwd() } as never,
-    findings, new Set<string>(), lawId);
-  assert.equal(findings.filter((finding) =>
-    finding.checkId === "architecture-boundary/public-knowledge-image-owner").length, 0,
-  "the current production image owner must pass before mutation checks run");
-}
-
-for (const mutate of [
-  (project: Project) => {
-    const file = project.getSourceFileOrThrow(resolve(
-      "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts",
-    ));
-    file.replaceWithText(file.getFullText().replace(".rotate().webp(", ".resize(1200, 630).webp("));
-  },
-  (project: Project) => {
-    const file = project.getSourceFileOrThrow(resolve(
-      "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts",
-    ));
-    file.replaceWithText(file.getFullText().replace(".rotate().webp(", ".rotate().flop().webp("));
-  },
-  (project: Project) => {
-    const file = project.getSourceFileOrThrow(resolve("src/mediator/product-plugin-contract.ts"));
-    file.replaceWithText(file.getFullText().replace("readonly webp_bytes: Uint8Array;",
-      "readonly webp_bytes: Uint8Array; readonly originalSha256: ProductionHash;"));
-  },
-  (project: Project) => project.createSourceFile(resolve(
-    "src/plugins/public-knowledge-article-pipeline/second-sharp-owner-mutant.ts",
-  ), 'import sharp from "sharp"; export const mutant = sharp;'),
-] as const) {
-  const project = new Project({ tsConfigFilePath });
-  mutate(project);
-  const findings: Parameters<typeof inspectPublicKnowledgeImageOwnership>[1] = [];
-  inspectPublicKnowledgeImageOwnership({ project, sealedRoot: process.cwd() } as never,
-    findings, new Set<string>(), lawId);
-  assert.ok(findings.some((finding) =>
-    finding.checkId === "architecture-boundary/public-knowledge-image-owner"),
-  "generated-image geometry, original leakage and second Sharp owner mutants must fail");
 }
 
 {

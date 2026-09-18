@@ -244,7 +244,6 @@ export class BrowserInfrastructureSupervisor {
   }
 
   public readBrowserLaneState(): "idle" | "busy" | "blocked" { return this.lane.readState(); }
-  public readBrowserLaneWaiterCount(): number { return this.lane.waiterCount(); }
   public hasUnresolvedBrowserMutation(): boolean { return this.lane.hasUnresolvedMutation(); }
   public hasBrowserMutationForJob(jobId: string): boolean { return this.lane.hasMutationForJob(jobId); }
   public purgeBrowserJob(jobId: string): void { this.lane.purgeJob(jobId); }

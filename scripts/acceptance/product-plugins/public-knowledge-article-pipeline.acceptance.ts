@@ -1,6 +1,11 @@
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+import { Project } from "ts-morph";
+
+import { inspectPublicKnowledgeImageOwnership } from "../../audit/domains/architecture-boundary/inspector.js";
 
 import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
 import { typedExecutionFailure } from "../../../src/lib/execution-failure.js";
@@ -197,8 +202,8 @@ const rejectImageCheckpointMutant = async (
   const mutantContext = {
     ...context,
     gpt: { ...context.gpt, execute: (async (input: Parameters<typeof execute>[0]) => {
-      const result = await execute(input) as unknown as Readonly<Record<string, unknown>>;
-      return input.child === "checkpoint_gpt_generated_image" ? mutate(result) : result;
+      const result = await execute(input);
+      return input.child === "checkpoint_gpt_generated_image" ? mutate({ ...result }) : result;
     }) as typeof execute },
   } as typeof context;
   await assert.rejects(() => plugin.execute(seoTask("produce_article"), mutantContext),
@@ -306,4 +311,51 @@ for (const action of ["accuracy_challenge", "quality_reflection"] as const) {
   assert.deepEqual(review.calls.map((call) => call.child), initialText);
   assert.equal(review.calls.some((call) => call.child.includes("continuation")), false);
 }
+/** The Sharp image owner of this Product must pass, and geometry, original leakage and second-owner mutants must fail. */
+const exerciseImageOwnership = (): void => {
+  const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V11";
+  const tsConfigFilePath = "tsconfig.json";
+  {
+    const project = new Project({ tsConfigFilePath });
+    const findings: Parameters<typeof inspectPublicKnowledgeImageOwnership>[1] = [];
+    inspectPublicKnowledgeImageOwnership({ project, sealedRoot: process.cwd() } as never,
+      findings, new Set<string>(), lawId);
+    assert.ok(!findings.some((finding) =>
+      finding.checkId === "architecture-boundary/public-knowledge-image-owner"),
+    "the current production image owner must pass before mutation checks run");
+  }
+
+  for (const mutate of [
+    (project: Project) => {
+      const file = project.getSourceFileOrThrow(resolve(
+        "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts",
+      ));
+      file.replaceWithText(file.getFullText().replace(".rotate().webp(", ".resize(1200, 630).webp("));
+    },
+    (project: Project) => {
+      const file = project.getSourceFileOrThrow(resolve(
+        "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts",
+      ));
+      file.replaceWithText(file.getFullText().replace(".rotate().webp(", ".rotate().flop().webp("));
+    },
+    (project: Project) => {
+      const file = project.getSourceFileOrThrow(resolve("src/mediator/product-plugin-contract.ts"));
+      file.replaceWithText(file.getFullText().replace("readonly webp_bytes: Uint8Array;",
+        "readonly webp_bytes: Uint8Array; readonly originalSha256: ProductionHash;"));
+    },
+    (project: Project) => project.createSourceFile(resolve(
+      "src/plugins/public-knowledge-article-pipeline/second-sharp-owner-mutant.ts",
+    ), 'import sharp from "sharp"; export const mutant = sharp;'),
+  ] as const) {
+    const project = new Project({ tsConfigFilePath });
+    mutate(project);
+    const findings: Parameters<typeof inspectPublicKnowledgeImageOwnership>[1] = [];
+    inspectPublicKnowledgeImageOwnership({ project, sealedRoot: process.cwd() } as never,
+      findings, new Set<string>(), lawId);
+    assert.ok(findings.some((finding) =>
+      finding.checkId === "architecture-boundary/public-knowledge-image-owner"),
+    "generated-image geometry, original leakage and second Sharp owner mutants must fail");
+  }
+};
+exerciseImageOwnership();
 process.stdout.write("[ACCEPTANCE][public-knowledge-article-pipeline] PASS\n");

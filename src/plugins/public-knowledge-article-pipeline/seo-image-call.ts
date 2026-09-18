@@ -70,7 +70,7 @@ const imageArtifact = (value: unknown): GeneratedImageArtifact => {
 const sha256 = (value: Uint8Array): ProductionHash =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
-const renderImageArtifact = async (value: unknown): Promise<GeneratedImageArtifact> => {
+const originalImageBytes = (value: unknown): Uint8Array => {
   const source = objectValue(value, "SEO_IMAGE_ARTIFACT_INVALID");
   if (!(source.originalBytes instanceof Uint8Array) || source.originalBytes.byteLength < 1
     || !Number.isSafeInteger(source.originalSizeBytes)
@@ -79,22 +79,32 @@ const renderImageArtifact = async (value: unknown): Promise<GeneratedImageArtifa
     || typeof source.originalMediaType !== "string" || !source.originalMediaType.startsWith("image/")) {
     fail("SEO_IMAGE_ARTIFACT_INVALID");
   }
+  return source.originalBytes as Uint8Array;
+};
+
+/** Applies only the recorded orientation and re-encodes to metadata-free WebP of the same oriented geometry. */
+const orientedWebp = async (input: Buffer): Promise<Readonly<{ webpBytes: Buffer; width: number; height: number }>> => {
+  const originalMetadata = await sharp(input, { failOn: "error", limitInputPixels: false }).metadata();
+  if (!Number.isSafeInteger(originalMetadata.autoOrient.width)
+    || !Number.isSafeInteger(originalMetadata.autoOrient.height)) {
+    fail("SEO_IMAGE_ARTIFACT_INVALID");
+  }
+  const width = originalMetadata.autoOrient.width;
+  const height = originalMetadata.autoOrient.height;
+  const webpBytes = await sharp(input, { failOn: "error", limitInputPixels: false })
+    .rotate().webp({ quality: 90, effort: 6 }).toBuffer();
+  const outputMetadata = await sharp(webpBytes, { failOn: "error", limitInputPixels: false }).metadata();
+  if (outputMetadata.format !== "webp" || outputMetadata.width !== width || outputMetadata.height !== height
+    || outputMetadata.exif || outputMetadata.icc || outputMetadata.iptc || outputMetadata.xmp) {
+    fail("SEO_IMAGE_ARTIFACT_INVALID");
+  }
+  return { webpBytes, width, height };
+};
+
+const renderImageArtifact = async (value: unknown): Promise<GeneratedImageArtifact> => {
+  const input = Buffer.from(originalImageBytes(value));
   try {
-    const input = Buffer.from(source.originalBytes);
-    const originalMetadata = await sharp(input, { failOn: "error", limitInputPixels: false }).metadata();
-    if (!Number.isSafeInteger(originalMetadata.autoOrient.width)
-      || !Number.isSafeInteger(originalMetadata.autoOrient.height)) {
-      fail("SEO_IMAGE_ARTIFACT_INVALID");
-    }
-    const width = originalMetadata.autoOrient.width;
-    const height = originalMetadata.autoOrient.height;
-    const webpBytes = await sharp(input, { failOn: "error", limitInputPixels: false })
-      .rotate().webp({ quality: 90, effort: 6 }).toBuffer();
-    const outputMetadata = await sharp(webpBytes, { failOn: "error", limitInputPixels: false }).metadata();
-    if (outputMetadata.format !== "webp" || outputMetadata.width !== width || outputMetadata.height !== height
-      || outputMetadata.exif || outputMetadata.icc || outputMetadata.iptc || outputMetadata.xmp) {
-      fail("SEO_IMAGE_ARTIFACT_INVALID");
-    }
+    const { webpBytes, width, height } = await orientedWebp(input);
     const imageHash = sha256(webpBytes);
     return imageArtifact({ artifactId: `airesult_${imageHash.slice(7, 39)}`,
       webpBytes: new Uint8Array(webpBytes), sha256: imageHash, bytes: webpBytes.byteLength,

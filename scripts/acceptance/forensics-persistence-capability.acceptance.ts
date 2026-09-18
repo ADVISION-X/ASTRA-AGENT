@@ -1,4 +1,5 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
+import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -40,6 +41,20 @@ try {
   assert.equal(index.includes("raw-answer"), false);
   assert.equal(index.trim().split("\n").length, 2);
   await assert.rejects(readFile(join(tempRoot, "forensics", "records-run_1.ndjson")));
+  const imageBytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3]);
+  const image = await group.appendArtifact({ missionId: input.missionId, runId: input.runId,
+    artifactType: "ai_raw_output", mimeType: "image/png", content: imageBytes, idempotencyKey: "image-1" });
+  if (image.status !== "success") throw new Error(image.failureReason);
+  const imageReadback = await group.readArtifact({ missionId: input.missionId, runId: input.runId,
+    idempotencyKey: "image-1" });
+  if (imageReadback.status !== "success") throw new Error(imageReadback.failureReason);
+  assert.equal(imageReadback.artifactRef, image.artifactRef);
+  assert.equal(imageReadback.artifact.mimeType, "image/png");
+  assert.deepEqual(new Uint8Array(imageReadback.artifact.content), imageBytes);
+  assert.match(imageReadback.artifact.integrityHash, /^sha256:[a-f0-9]{64}$/u);
+  assert.notEqual(imageReadback.artifact.integrityHash,
+    `sha256:${createHash("sha256").update(imageBytes).digest("hex")}`,
+    "integrityHash authenticates the stored envelope, not the raw image identity");
 } finally {
   await rm(tempRoot, { recursive: true, force: true });
 }

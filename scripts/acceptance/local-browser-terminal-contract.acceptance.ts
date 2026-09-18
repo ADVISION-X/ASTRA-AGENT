@@ -51,7 +51,7 @@ try {
         mutationCount: 1, postconditionVerified: true },
     };
   }).execute(confirmedPermit, clickCommand);
-  assert.equal(actorStore.readState(confirmedPermit.commandId), "CONFIRMED");
+  assert.equal(actorStore.readCommand(confirmedPermit.commandId)?.state ?? null, "CONFIRMED");
   assert.equal(actorStore.readMutationOutcome(confirmedPermit.commandId), "confirmed");
   const zeroActionPermit = permit("actor-zero-action");
   await actorFor(async (candidate, _command, onDispatched) => {
@@ -60,7 +60,7 @@ try {
       permitSequence: candidate.sequence, result: { candidateCount: 1, identityRevalidated: true,
         mutationCount: 0, postconditionVerified: true, zeroActionSatisfied: true } };
   }).execute(zeroActionPermit, clickCommand);
-  assert.equal(actorStore.readState(zeroActionPermit.commandId), "CONFIRMED");
+  assert.equal(actorStore.readCommand(zeroActionPermit.commandId)?.state ?? null, "CONFIRMED");
   assert.equal(actorStore.readMutationOutcome(zeroActionPermit.commandId), "no");
   await exerciseActorRejections(actorRoot, actorFor, actorStore, clickCommand);
 
@@ -90,7 +90,7 @@ try {
       targetRefHash, documentRefHash, currentUrl, observationRevisionHash, observedAt, queries: observationQueries },
   })).execute(observationPermit, observationCommand) as Readonly<Record<string, unknown>>;
   assert.equal(observationResult.exactCallIdentityHash, browserExactCallIdentityHash(observationPermit));
-  assert.equal(actorStore.readState(observationPermit.commandId), null);
+  assert.equal(actorStore.readCommand(observationPermit.commandId)?.state ?? null, null);
 
   for (const pending of [
     { commandId: "actor-text-user-turn-pending", childCapabilityId: "checkpoint_gpt_text_response",
@@ -235,7 +235,7 @@ try {
   assert.equal((((coherentClickResult.postconditionObservation as Readonly<Record<string, unknown>>)
     .queries as readonly Readonly<Record<string, unknown>>[])[0]?.matches as readonly Readonly<Record<string, unknown>>[])[0]
     ?.ariaExpanded, "true", "the exact-call-bound packet must preserve its permitted mechanical field");
-  assert.equal(actorStore.readState(coherentClickPermit.commandId), "CONFIRMED");
+  assert.equal(actorStore.readCommand(coherentClickPermit.commandId)?.state ?? null, "CONFIRMED");
 
   const forgedSelectedPermit: BrowserCommandPermit = {
     ...permit("actor-forged-selected-candidate"), commandTtlMs: 10_000,
@@ -264,7 +264,7 @@ try {
         },
       } };
   }).execute(selectedCandidatePermit, selectedCandidateCommand);
-  assert.equal(actorStore.readState(selectedCandidatePermit.commandId), "CONFIRMED",
+  assert.equal(actorStore.readCommand(selectedCandidatePermit.commandId)?.state ?? null, "CONFIRMED",
     "the exact selected-candidate readback must survive the Browser receipt decoder");
   await assert.rejects(actorFor(async (candidate, _command, onDispatched) => {
     onDispatched?.();
@@ -281,7 +281,7 @@ try {
       } };
   }).execute(forgedSelectedPermit, selectedCandidateCommand), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
   "the Browser actor must reject a claimed success when the exact clicked candidate is still unchecked");
-  assert.equal(actorStore.readState(forgedSelectedPermit.commandId), "REJECTED");
+  assert.equal(actorStore.readCommand(forgedSelectedPermit.commandId)?.state ?? null, "REJECTED");
   assert.equal(actorStore.readMutationOutcome(forgedSelectedPermit.commandId), "dispatched");
 
   const coherentQualificationPermit: BrowserCommandPermit = {
@@ -301,7 +301,7 @@ try {
     coherentQualificationActor.execute(coherentQualificationPermit, coherentClickCommand),
     /BROWSER_DOM_CANDIDATE_MISSING/u,
   );
-  assert.equal(actorStore.readState(coherentQualificationPermit.commandId), "REJECTED",
+  assert.equal(actorStore.readCommand(coherentQualificationPermit.commandId)?.state ?? null, "REJECTED",
     "a coherent-click qualification terminal must not be misclassified as a missing receipt");
   assert.equal(coherentQualificationActor.mutationOutcome(coherentQualificationPermit.commandId), "no");
 
@@ -315,7 +315,7 @@ try {
   }).execute(insufficientBudgetPermit, coherentClickCommand), /BROWSER_COMMAND_PERMIT_INVALID/u);
   assert.equal(insufficientBudgetSends, 0,
     "a command without postcondition timeout plus terminal-reply margin must fail before send");
-  assert.equal(actorStore.readState(insufficientBudgetPermit.commandId), null,
+  assert.equal(actorStore.readCommand(insufficientBudgetPermit.commandId)?.state ?? null, null,
     "insufficient reply budget must produce neither PREPARED nor DISPATCHED");
 
   const fileCommand = { kind: "file-input" as const, selector: "#upload-files",
@@ -334,7 +334,7 @@ try {
         mutationCount: 1, postconditionVerified: true } };
   }).execute(forgedFilePermit, fileCommand), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
   "file-input may not be confirmed without exact selected-count, approved-set, and accept readback");
-  assert.equal(actorStore.readState(forgedFilePermit.commandId), "REJECTED",
+  assert.equal(actorStore.readCommand(forgedFilePermit.commandId)?.state ?? null, "REJECTED",
     "an authenticated malformed result must retain its exact rejection instead of impersonating a missing reply");
   assert.equal(actorStore.readMutationOutcome(forgedFilePermit.commandId), "dispatched");
 
@@ -348,7 +348,7 @@ try {
         mutationCount: 1, selectedFileCount: 1, approvedSetVerified: true, acceptVerified: true,
         postconditionVerified: true } };
   }).execute(confirmedFilePermit, fileCommand);
-  assert.equal(actorStore.readState(confirmedFilePermit.commandId), "CONFIRMED");
+  assert.equal(actorStore.readCommand(confirmedFilePermit.commandId)?.state ?? null, "CONFIRMED");
 
   const rejectedPermit = permit("actor-rejected");
   const rejectedActor = actorFor(async (candidate, _command, onDispatched) => {
@@ -375,7 +375,7 @@ try {
     rejectedActor.execute(rejectedPermit, matchClickCommand),
     /BROWSER_POSTCONDITION_FAILED/u,
   );
-  assert.equal(actorStore.readState(rejectedPermit.commandId), "REJECTED");
+  assert.equal(actorStore.readCommand(rejectedPermit.commandId)?.state ?? null, "REJECTED");
   assert.equal(rejectedActor.mutationOutcome(rejectedPermit.commandId), "confirmed");
   const rejectedDatabase = new Database(join(actorRoot, "browser", "browser-mutations.sqlite"), { readonly: true });
   assert.deepEqual(rejectedDatabase.prepare(
@@ -428,7 +428,7 @@ try {
   assert.equal(serializeTerminalFailure(wrappedBrowserFailure).cause?.code, "ECONNRESET",
     "the real Browser command wrapper must preserve the innermost native cause");
   assert.equal(dispatchCount, 1);
-  assert.equal(actorStore.readState(receiptMissingPermit.commandId), "DISPATCHED");
+  assert.equal(actorStore.readCommand(receiptMissingPermit.commandId)?.state ?? null, "DISPATCHED");
   assert.equal(receiptMissingActor.hasDispatchedMutation(receiptMissingPermit.commandId), true);
   assert.equal(receiptMissingActor.mutationOutcome(receiptMissingPermit.commandId), "dispatched");
   assert.equal(receiptMissingActor.browserOutcome(receiptMissingPermit.commandId), "DISPATCHED");

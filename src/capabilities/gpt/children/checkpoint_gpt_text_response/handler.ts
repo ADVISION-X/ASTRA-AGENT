@@ -55,7 +55,7 @@ export const advanceStoppedEmptyWindow = (
     identityHash: `sha256:${string}`;
   }>,
   observedAt: number,
-): Readonly<{ window: StoppedEmptyWindow | null; confirmed: boolean }> => {
+): Readonly<{ window: null; confirmed: false }> | Readonly<{ window: StoppedEmptyWindow; confirmed: boolean }> => {
   if (observation.generatingRaw > 0 || observation.semanticText.trim().length > 0) {
     return Object.freeze({ window: null, confirmed: false });
   }
@@ -72,6 +72,59 @@ export const advanceStoppedEmptyWindow = (
     confirmed: observedAt - window.sinceMonotonicMs >= GPT_STOPPED_EMPTY_CONFIRMATION_MS,
   });
 };
+
+type ExactTurnRead = Readonly<{ assistant: ExactAssistantObservation }>
+  | Readonly<{ assistant: null; waitReason: GptProviderObservationWaitReason }>;
+
+/** One exact read; only the two pending Browser facts become a typed wait reason. */
+const readExactTurnOrPending = async (
+  browser: ReturnType<typeof requireBrowser>,
+  userTurnId: string,
+  conversationUrl: string,
+): Promise<ExactTurnRead> => {
+  try {
+    return { assistant: await readExactAssistantTurn(browser, userTurnId, conversationUrl) };
+  } catch (error) {
+    const code = failureCode(error);
+    if (code === "BROWSER_EXACT_USER_TURN_UNAVAILABLE") {
+      return { assistant: null, waitReason: "exact-user-turn-unavailable" };
+    }
+    if (code === "BROWSER_ADJACENT_ASSISTANT_TURN_MISSING") {
+      return { assistant: null, waitReason: "adjacent-assistant-missing" };
+    }
+    throw error;
+  }
+};
+
+/** Advances the stopped-empty window for an observed, not yet settled assistant turn. */
+const advanceObservedAssistant = (
+  assistant: ExactAssistantObservation,
+  current: StoppedEmptyWindow | null,
+): StoppedEmptyWindow | null => {
+  const observedAt = performance.now();
+  const stoppedEmpty = advanceStoppedEmptyWindow(current, {
+    generatingRaw: assistant.generatingRaw,
+    semanticText: assistant.semanticText,
+    observedAt: assistant.observedAt,
+    identityHash: gptCanonicalHash({
+      canonicalConversationUrl: assistant.currentUrl,
+      userTurnId: assistant.precedingUserTurnId,
+      assistantTurnId: assistant.assistantTurnId,
+      targetRefHash: assistant.targetRefHash,
+      documentRefHash: assistant.documentRefHash,
+    }),
+  }, observedAt);
+  if (stoppedEmpty.confirmed) throwStoppedEmptyFailure(assistant, stoppedEmpty.window, observedAt);
+  return stoppedEmpty.window;
+};
+
+const settledTextResponse = (assistant: ExactAssistantObservation) => success({
+  value: { assistantTurnId: assistant.assistantTurnId, rawDomHtml: assistant.rawDomHtml,
+    rawDomHash: assistant.rawDomHash, semanticText: assistant.semanticText,
+    semanticTextHash: assistant.semanticTextHash },
+  ...declaredFacts({ ...projectExactAssistantTurn(assistant), decision: "DONE", mutationOutcome: "no",
+    browserFact: null, nativeFailureCode: null }),
+});
 
 export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_text_response"> =
   async (intent, context) => {
@@ -92,61 +145,23 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
       }
       const observationDeadline = exactResponseObserved
         ? Date.now() + GPT_STOPPED_EMPTY_CONFIRMATION_MS : deadline;
-      if (await context.waitForProviderObservation(
-        observationDeadline, nextWaitReason,
-      ) === "deadline") {
+      if (await context.waitForProviderObservation(observationDeadline, nextWaitReason) === "deadline") {
         if (exactResponseObserved) continue;
         break;
       }
-      let assistant: Awaited<ReturnType<typeof readExactAssistantTurn>> | null = null;
-      try {
-        assistant = await readExactAssistantTurn(browser, userTurnId, conversationUrl);
-      } catch (error) {
-        const code = failureCode(error);
-        if (code === "BROWSER_EXACT_USER_TURN_UNAVAILABLE") {
-          nextWaitReason = "exact-user-turn-unavailable";
-        } else if (code === "BROWSER_ADJACENT_ASSISTANT_TURN_MISSING") {
-          nextWaitReason = "adjacent-assistant-missing";
-        } else {
-          throw error;
-        }
-      }
-      exactResponseObserved = assistant !== null;
-      if (assistant && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0) {
-        const facts = projectExactAssistantTurn(assistant);
-        return success({
-          value: { assistantTurnId: assistant.assistantTurnId, rawDomHtml: assistant.rawDomHtml, rawDomHash: assistant.rawDomHash,
-            semanticText: assistant.semanticText, semanticTextHash: assistant.semanticTextHash },
-          ...declaredFacts({ ...facts, decision: "DONE", mutationOutcome: "no",
-            browserFact: null, nativeFailureCode: null }),
-        });
-      }
-      if (!assistant) {
+      const read = await readExactTurnOrPending(browser, userTurnId, conversationUrl);
+      exactResponseObserved = read.assistant !== null;
+      if (read.assistant === null) {
+        nextWaitReason = read.waitReason;
         stoppedEmptyWindow = null;
         continue;
       }
-      nextWaitReason = assistant.generatingRaw > 0
-        ? "stop-present" : "stopped-empty-confirming";
-      const observedAt = performance.now();
-      const identityHash = gptCanonicalHash({
-        canonicalConversationUrl: assistant.currentUrl,
-        userTurnId: assistant.precedingUserTurnId,
-        assistantTurnId: assistant.assistantTurnId,
-        targetRefHash: assistant.targetRefHash,
-        documentRefHash: assistant.documentRefHash,
-      });
-      const stoppedEmpty = advanceStoppedEmptyWindow(stoppedEmptyWindow, {
-        generatingRaw: assistant.generatingRaw,
-        semanticText: assistant.semanticText,
-        observedAt: assistant.observedAt,
-        identityHash,
-      }, observedAt);
-      stoppedEmptyWindow = stoppedEmpty.window;
-      if (!stoppedEmpty.confirmed) continue;
-      if (!stoppedEmptyWindow) {
-        throw executionFailure("failed", "GPT_STOPPED_EMPTY_WINDOW_INVALID");
+      const assistant = read.assistant;
+      if (assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0) {
+        return settledTextResponse(assistant);
       }
-      throwStoppedEmptyFailure(assistant, stoppedEmptyWindow, observedAt);
+      nextWaitReason = assistant.generatingRaw > 0 ? "stop-present" : "stopped-empty-confirming";
+      stoppedEmptyWindow = advanceObservedAssistant(assistant, stoppedEmptyWindow);
     }
     throw executionFailure("failed", "GPT_RESPONSE_TIMEOUT");
   };

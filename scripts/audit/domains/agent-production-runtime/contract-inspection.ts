@@ -6,14 +6,14 @@ import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
-const LAWS = {
+export const LAWS = {
   core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V63", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V8",
   route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V35", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V35",
   database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V33", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V37",
   staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V37",
   dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V38",
 } as const;
-const ALL_LAWS = Object.values(LAWS);
+export const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
 const PATHS = {
   admission: `${ROOT}/cloud-reconciliation-client.ts`, inventory: `${ROOT}/runtime-storage-inventory.ts`,
@@ -31,9 +31,9 @@ const finding = (lawId: string, checkId: string, filePath: string, message: stri
   evidenceMode: "static.contract", lawId, clauseId: `${lawId.toLowerCase()}-requirement`,
   checkId, filePath, message,
 });
-const read = (context: InspectorContext, path: string): string =>
+export const read = (context: InspectorContext, path: string): string =>
   readFileSync(resolve(context.sealedRoot, path), "utf8");
-const sourceFor = (context: InspectorContext, path: string): SourceFile | undefined =>
+export const sourceFor = (context: InspectorContext, path: string): SourceFile | undefined =>
   context.project.getSourceFile(resolve(context.sealedRoot, path));
 
 const inspectMinimalDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
@@ -70,6 +70,62 @@ const inspectRouteProjection = (context: InspectorContext, findings: InspectorFi
     "Route projection is not contract v13 with the exact 40/46/33/0 denominator."));
 };
 
+const accessedProperties = (node: Node | undefined, receiver: string): string[] =>
+  [...new Set(node?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
+    .filter((property) => property.getExpression().getText() === receiver)
+    .map((property) => property.getName()) ?? [])].sort();
+
+const generatedImageUploadIsExact = (cloud: SourceFile | undefined): boolean => {
+  const upload = cloud?.getFunction("uploadGeneratedImage");
+  const calls = upload?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
+  const firstArguments = (name: string): string[] => calls
+    .filter((call) => call.getExpression().getText() === name)
+    .map((call) => call.getArguments()[0]?.getText() ?? "");
+  const expectedImageProperties = new Set([
+    "artifact_id", "bytes", "height", "media_type", "sha256", "webp_bytes", "width",
+  ]);
+  const localIdentityComparisons = new Set(upload?.getDescendantsOfKind(SyntaxKind.BinaryExpression)
+    .map((comparison) => comparison.getText()) ?? []);
+  const identityChecks = ["bytes.byteLength !== image.bytes", "sha256(bytes) !== image.sha256",
+    'image.media_type !== "image/webp"'];
+  const identityGuard = upload?.getDescendantsOfKind(SyntaxKind.IfStatement).find((statement) => {
+    const expression = statement.getExpression().getText();
+    return identityChecks.every((check) => expression.includes(check));
+  });
+  const deliveredGuard = upload?.getDescendantsOfKind(SyntaxKind.IfStatement)
+    .find((statement) => statement.getExpression().getText() === 'delivered?.state === "delivered"');
+  const safeIntegers = firstArguments("Number.isSafeInteger");
+  return firstArguments("Buffer.from").includes("image.webp_bytes")
+    && safeIntegers.includes("image.width") && safeIntegers.includes("image.height")
+    && identityChecks.every((check) => localIdentityComparisons.has(check))
+    && identityGuard !== undefined && deliveredGuard !== undefined
+    && identityGuard.getStart() < deliveredGuard.getStart()
+    && accessedProperties(upload, "image").every((property) => expectedImageProperties.has(property))
+    && !(upload?.getDescendantsOfKind(SyntaxKind.NumericLiteral)
+      .some((literal) => literal.getLiteralValue() === 1200 || literal.getLiteralValue() === 630) ?? true);
+};
+
+const generatedImageReceiptIsV6 = (context: InspectorContext, cloud: SourceFile | undefined): boolean => {
+  const transport = sourceFor(context, PATHS.transport);
+  const receiptInitializer = transport?.getVariableDeclaration("UploadedResultReceiptSchema")?.getInitializer();
+  const receiptObject = receiptInitializer?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
+  const receiptFields = receiptObject?.getProperties().flatMap((property) =>
+    Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property)
+      ? [property.getName()] : []).sort() ?? [];
+  const exactReceiptFields = ["artifact_id", "byte_length", "media_type", "object_ref", "receipt_hash",
+    "role", "schema_version", "sha256", "state"].sort();
+  const receiptExpression = Node.isCallExpression(receiptInitializer) ? receiptInitializer.getExpression() : undefined;
+  const receiptIsStrict = receiptExpression !== undefined
+    && Node.isPropertyAccessExpression(receiptExpression)
+    && receiptExpression.getName() === "strict";
+  const exactReceipt = cloud?.getVariableDeclaration("exactGeneratedImageReceipt")?.getInitializer();
+  return receiptIsStrict && JSON.stringify(receiptFields) === JSON.stringify(exactReceiptFields)
+    && JSON.stringify(accessedProperties(exactReceipt, "receipt"))
+      === JSON.stringify(["artifact_id", "byte_length", "media_type", "role", "sha256"])
+    && JSON.stringify(accessedProperties(exactReceipt, "image"))
+      === JSON.stringify(["bytes", "media_type", "sha256"]);
+};
+
 export const inspectGeneratedImageTransport = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const projection = JSON.parse(read(context, PATHS.routeProjection)) as {
     routes?: Array<{ product_id?: unknown; action_id?: unknown; result_contract?: {
@@ -90,67 +146,7 @@ export const inspectGeneratedImageTransport = (context: InspectorContext, findin
     "Public knowledge image projection must require actual integer dimensions without fixed or range geometry gates."));
 
   const cloud = sourceFor(context, PATHS.cloudClient);
-  const upload = cloud?.getFunction("uploadGeneratedImage");
-  const calls = upload?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
-  const callArguments = (name: string): string[][] => calls
-    .filter((call) => call.getExpression().getText() === name)
-    .map((call) => call.getArguments().map((argument) => argument.getText()));
-  const imageProperties = new Set(upload?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-    .filter((property) => property.getExpression().getText() === "image")
-    .map((property) => property.getName()) ?? []);
-  const expectedImageProperties = new Set([
-    "artifact_id", "bytes", "height", "media_type", "sha256", "webp_bytes", "width",
-  ]);
-  const localIdentityComparisons = new Set(upload?.getDescendantsOfKind(SyntaxKind.BinaryExpression)
-    .map((comparison) => comparison.getText()) ?? []);
-  const identityGuard = upload?.getDescendantsOfKind(SyntaxKind.IfStatement).find((statement) => {
-    const expression = statement.getExpression().getText();
-    return expression.includes("bytes.byteLength !== image.bytes")
-      && expression.includes("sha256(bytes) !== image.sha256")
-      && expression.includes('image.media_type !== "image/webp"');
-  });
-  const deliveredGuard = upload?.getDescendantsOfKind(SyntaxKind.IfStatement)
-    .find((statement) => statement.getExpression().getText() === 'delivered?.state === "delivered"');
-  const validCloud = callArguments("Buffer.from").some(([argument]) => argument === "image.webp_bytes")
-    && callArguments("Number.isSafeInteger").some(([argument]) => argument === "image.width")
-    && callArguments("Number.isSafeInteger").some(([argument]) => argument === "image.height")
-    && localIdentityComparisons.has("bytes.byteLength !== image.bytes")
-    && localIdentityComparisons.has("sha256(bytes) !== image.sha256")
-    && localIdentityComparisons.has('image.media_type !== "image/webp"')
-    && identityGuard !== undefined && deliveredGuard !== undefined
-    && identityGuard.getStart() < deliveredGuard.getStart()
-    && [...imageProperties].every((property) => expectedImageProperties.has(property))
-    && !(upload?.getDescendantsOfKind(SyntaxKind.NumericLiteral)
-      .some((literal) => literal.getLiteralValue() === 1200 || literal.getLiteralValue() === 630) ?? true);
-
-  const transport = sourceFor(context, PATHS.transport);
-  const receiptInitializer = transport?.getVariableDeclaration("UploadedResultReceiptSchema")?.getInitializer();
-  const receiptObject = receiptInitializer?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
-  const receiptFields = receiptObject?.getProperties().flatMap((property) =>
-    Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property)
-      ? [property.getName()] : []).sort() ?? [];
-  const exactReceiptFields = ["artifact_id", "byte_length", "media_type", "object_ref", "receipt_hash",
-    "role", "schema_version", "sha256", "state"].sort();
-  const receiptRootCall = Node.isCallExpression(receiptInitializer) ? receiptInitializer : undefined;
-  const receiptExpression = receiptRootCall?.getExpression();
-  const receiptIsStrict = receiptExpression !== undefined
-    && Node.isPropertyAccessExpression(receiptExpression)
-    && receiptExpression.getName() === "strict";
-  const receiptFieldsRemainV6 = receiptIsStrict
-    && JSON.stringify(receiptFields) === JSON.stringify(exactReceiptFields);
-
-  const exactReceipt = cloud?.getVariableDeclaration("exactGeneratedImageReceipt")?.getInitializer();
-  const receiptComparisons = new Set(exactReceipt?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-    .filter((property) => property.getExpression().getText() === "receipt")
-    .map((property) => property.getName()) ?? []);
-  const receiptImageComparisons = new Set(exactReceipt?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-    .filter((property) => property.getExpression().getText() === "image")
-    .map((property) => property.getName()) ?? []);
-  const validReceiptComparison = JSON.stringify([...receiptComparisons].sort())
-      === JSON.stringify(["artifact_id", "byte_length", "media_type", "role", "sha256"])
-    && JSON.stringify([...receiptImageComparisons].sort())
-      === JSON.stringify(["bytes", "media_type", "sha256"]);
-  if (!validCloud || !receiptFieldsRemainV6 || !validReceiptComparison) findings.push(finding(LAWS.route,
+  if (!generatedImageUploadIsExact(cloud) || !generatedImageReceiptIsV6(context, cloud)) findings.push(finding(LAWS.route,
     "agent-production-runtime/generated-image-transport-boundary", PATHS.cloudClient,
     "Runtime must upload only the WebP identity and must not add Provider originals, fixed geometry, or dimensions to the V6 transport receipt."));
 };

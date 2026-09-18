@@ -289,7 +289,7 @@ const exerciseActor = async (root: string): Promise<void> => {
             mutationCount: 4, postconditionVerified: true },
       };
     }).execute(candidate, command);
-    assert.equal(store.readState(candidate.commandId), "CONFIRMED");
+    assert.equal(store.readCommand(candidate.commandId)?.state ?? null, "CONFIRMED");
     assert.equal(physicalInputCount(dataDir, candidate.commandId), count);
   }
 
@@ -306,7 +306,7 @@ const exerciseActor = async (root: string): Promise<void> => {
           failureCode: "BROWSER_POSTCONDITION_FAILED", nativeCauseCode: null },
       };
     }).execute(partial, command), /BROWSER_POSTCONDITION_FAILED/u);
-    assert.equal(store.readState(partial.commandId), "REJECTED");
+    assert.equal(store.readCommand(partial.commandId)?.state ?? null, "REJECTED");
     assert.equal(physicalInputCount(dataDir, partial.commandId), count);
   }
 
@@ -321,14 +321,14 @@ const exerciseActor = async (root: string): Promise<void> => {
         mutationCount: 4, postconditionVerified: true, targetTitle: command.intent.targetTitle },
     };
   }).execute(extraField, command), /BROWSER_AUTH_TRANSCRIPT_INVALID/u);
-  assert.equal(store.readState(extraField.commandId), "REJECTED");
+  assert.equal(store.readCommand(extraField.commandId)?.state ?? null, "REJECTED");
 
   const missing = renamePermit("settled-rename-missing-reply");
   await assert.rejects(actorFor(async (_candidate, _command, onDispatched) => {
     onDispatched?.();
     throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
   }).execute(missing, command), /BROWSER_COMMAND_RECEIPT_MISSING/u);
-  assert.equal(store.readState(missing.commandId), "REJECTED");
+  assert.equal(store.readCommand(missing.commandId)?.state ?? null, "REJECTED");
   assert.equal(store.readMutationOutcome(missing.commandId), "dispatched");
   assert.equal(store.countDispatched(), 0,
     "the exact cleanup missing-reply exception must leave no pending Browser mutation");

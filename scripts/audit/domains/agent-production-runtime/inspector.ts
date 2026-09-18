@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { createFinding } from "../../shared/finding-utils.js";
@@ -7,19 +7,8 @@ import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
 import { observeStaticMode } from "../../shared/static-target-object-inspector.js";
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 import { inspectAgentAuthorityAst } from "./authority-inspection.js";
-import { inspectAgentContracts } from "./contract-inspection.js";
+import { ALL_LAWS, LAWS, inspectAgentContracts, read, sourceFor } from "./contract-inspection.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
-const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V63",
-  credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V8",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V35",
-  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V35",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V33",
-  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V37",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V37",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V38",
-} as const;
-const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
 const PATHS = {
   startup: `${ROOT}/runtime-startup.ts`,
@@ -54,8 +43,6 @@ const finding = (
   evidenceMode, lawId, clauseId: `${lawId.toLowerCase()}-requirement`,
   checkId, filePath, message,
 });
-const read = (context: InspectorContext, path: string): string => readFileSync(resolve(context.sealedRoot, path), "utf8");
-const sourceFor = (context: InspectorContext, path: string): SourceFile | undefined => context.project.getSourceFile(resolve(context.sealedRoot, path));
 const stringLiterals = (source: SourceFile | undefined): Set<string> => new Set(
   source?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralValue()) ?? [],
 );

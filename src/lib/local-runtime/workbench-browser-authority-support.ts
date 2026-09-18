@@ -44,7 +44,6 @@ export type WorkbenchBrowserAuthority = Readonly<{
     browserTargetState: "claimed" | "absent";
   }>;
   readBrowserLaneState(): "idle" | "busy" | "blocked";
-  readBrowserLaneWaiterCount(): number;
   bindExecutionArtifacts(input: Readonly<{
     binding: BrowserExecutionArtifactBinding;
     artifacts: readonly BrowserExecutionArtifact[];
@@ -145,7 +144,6 @@ export const createWorkbenchBrowserAuthority = async (
       browserTargetState: endpoints.broker.currentOperatorTargetStatus(),
     }),
     readBrowserLaneState: () => supervisor.readBrowserLaneState(),
-    readBrowserLaneWaiterCount: () => supervisor.readBrowserLaneWaiterCount(),
     bindExecutionArtifacts: (input) => supervisor.bindExecutionArtifacts(input),
     hasUnresolvedBrowserMutation: () =>
       supervisor.hasUnresolvedBrowserMutation(),

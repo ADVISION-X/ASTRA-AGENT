@@ -147,7 +147,7 @@ try {
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
   });
   assert.throws(() => store.resolve({ commandId: "command-1", targetRef: "target-2", state: "CONFIRMED", mutationOutcome: "dispatched", proofHash: hash }), /BROWSER_MUTATION_STATE_CONFLICT/u);
-  assert.equal(store.readDispatched("command-1")?.childCapabilityId, "open_gpt_model_selector_v2");
+  assert.equal(store.readCommand("command-1")?.identity.childCapabilityId, "open_gpt_model_selector_v2");
   assert.equal(store.readAtomicStepOutcome({
     jobId: "job-1", attemptId: "attempt-1", exactCallIdentityHash,
     actionOrdinal: 1, targetRef: "target-1", effectScope: "target_local",

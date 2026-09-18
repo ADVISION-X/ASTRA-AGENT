@@ -32,7 +32,7 @@ const exerciseNotInteractiveRejection = async (
         nativeCauseCode: null,
       } };
   }).execute(notInteractivePermit, clickCommand), /BROWSER_TARGET_NOT_INTERACTIVE/u);
-  assert.equal(actorStore.readState(notInteractivePermit.commandId), "REJECTED");
+  assert.equal(actorStore.readCommand(notInteractivePermit.commandId)?.state ?? null, "REJECTED");
   assert.equal(actorStore.readMutationOutcome(notInteractivePermit.commandId), "no");
 };
 
@@ -64,7 +64,7 @@ const exerciseFillReadbackRejection = async (
   assert.equal(serializeTerminalFailure(new Error("RESULT_SETTLED_UNUSABLE", {
     cause: new Error("AGENT_RESULT_SCHEMA_VERSION_INVALID"),
   })).cause?.code, "AGENT_RESULT_SCHEMA_VERSION_INVALID");
-  assert.equal(actorStore.readState(fillReadbackPermit.commandId), "REJECTED");
+  assert.equal(actorStore.readCommand(fillReadbackPermit.commandId)?.state ?? null, "REJECTED");
   assert.equal(fillReadbackActor.mutationOutcome(fillReadbackPermit.commandId), "confirmed");
 };
 
@@ -82,7 +82,7 @@ const exerciseQualificationRejection = async (
   });
   await assert.rejects(qualificationActor.execute(qualificationPermit, clickCommand),
     /BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH/u);
-  assert.equal(actorStore.readState(qualificationPermit.commandId), "REJECTED");
+  assert.equal(actorStore.readCommand(qualificationPermit.commandId)?.state ?? null, "REJECTED");
   assert.equal(qualificationActor.mutationOutcome(qualificationPermit.commandId), "no");
   const actorDatabase = new Database(join(actorRoot, "browser", "browser-mutations.sqlite"), { readonly: true });
   assert.deepEqual(actorDatabase.prepare(

@@ -98,6 +98,11 @@ const capturedAssistantFixture = () => {
   const input = { kind: "readExactAssistantTurn", userTurnId: "conversation-turn-1",
     canonicalConversationUrl: exactConversationFixtureUrl };
   const exactAssistant = assistantOuter(assistant);
+  const turns = (laterTurns: readonly FakeElement[], pointed: FakeElement | null) => ({
+    querySelectorAll: (value: string) => value === userSelector ? [user]
+      : value === turnsSelector ? [user, ...laterTurns] : [],
+    elementFromPoint: () => pointed,
+  });
   let queryCalls = 0;
   const document = {
     querySelectorAll: (value: string) => {
@@ -108,7 +113,7 @@ const capturedAssistantFixture = () => {
     elementFromPoint: () => assistant,
   };
   return { assistant, assistantOuter, document, input, queryCalls: () => queryCalls,
-    text, turnsSelector, user, userSelector };
+    text, turns, user };
 };
 
 const exerciseCapturedAssistantBaseline = async (
@@ -161,11 +166,8 @@ const exerciseCapturedAssistantRejections = async (
     new FakeElement("inert", { "pre code": [] }, {}, { inert: "" }, "DIV", [fixture.text("inert")]),
   ];
   for (const node of presentationVariants) {
-    const observed = await executeCaptured(source, {
-      querySelectorAll: (value: string) => value === fixture.userSelector ? [fixture.user]
-        : value === fixture.turnsSelector ? [fixture.user, fixture.assistantOuter(node)] : [],
-      elementFromPoint: () => null,
-    }, fixture.input, exactConversationFixtureUrl) as Readonly<{
+    const observed = await executeCaptured(source, fixture.turns([fixture.assistantOuter(node)], null),
+      fixture.input, exactConversationFixtureUrl) as Readonly<{
       rawCount: number; rawDomHtml: string; semanticText: string;
     }>;
     assert.equal(observed.rawCount, 1);
@@ -181,39 +183,26 @@ const exerciseCapturedAssistantRejections = async (
   }>;
   assert.equal(missingUser.rawCount, 0);
   assert.equal(missingUser.pendingCause, "exact-user-turn-unavailable");
-  const missingAssistant = await executeCaptured(source, {
-    querySelectorAll: (value: string) => value === fixture.userSelector ? [fixture.user]
-      : value === fixture.turnsSelector ? [fixture.user] : [],
-    elementFromPoint: () => null,
-  }, fixture.input, exactConversationFixtureUrl) as Readonly<{
+  const missingAssistant = await executeCaptured(source, fixture.turns([], null),
+    fixture.input, exactConversationFixtureUrl) as Readonly<{
     rawCount: number; pendingCause: string | null; observedAt: string;
   }>;
   assert.equal(missingAssistant.rawCount, 0);
   assert.equal(missingAssistant.pendingCause, "adjacent-assistant-missing");
-  const ambiguous = await executeCaptured(source, {
-    querySelectorAll: (value: string) => value === fixture.userSelector ? [fixture.user]
-      : value === fixture.turnsSelector ? [fixture.user, new FakeElement("ambiguous", {
-        "[data-message-author-role='assistant']": [fixture.assistant, fixture.assistant],
-      }, {}, { "data-testid": "conversation-turn-2" })]
-        : [],
-    elementFromPoint: () => fixture.assistant,
-  }, fixture.input, exactConversationFixtureUrl) as Readonly<{ rawCount: number }>;
+  const ambiguous = await executeCaptured(source, fixture.turns([new FakeElement("ambiguous", {
+    "[data-message-author-role='assistant']": [fixture.assistant, fixture.assistant],
+  }, {}, { "data-testid": "conversation-turn-2" })], fixture.assistant),
+  fixture.input, exactConversationFixtureUrl) as Readonly<{ rawCount: number }>;
   assert.equal(ambiguous.rawCount, 2);
   const rich = richSemanticTree();
-  const richObserved = await executeCaptured(source, {
-    querySelectorAll: (value: string) => value === fixture.userSelector ? [fixture.user]
-      : value === fixture.turnsSelector ? [fixture.user, fixture.assistantOuter(rich)]
-        : [],
-    elementFromPoint: () => rich,
-  }, fixture.input, exactConversationFixtureUrl) as Readonly<{ semanticText: string }>;
+  const richObserved = await executeCaptured(source, fixture.turns([fixture.assistantOuter(rich)], rich),
+    fixture.input, exactConversationFixtureUrl) as Readonly<{ semanticText: string }>;
   assert.equal(richObserved.semanticText, RICH_SEMANTIC_TEXT,
     "exact assistant read must preserve headings, prose, lists, inline code, the code block, and trailing prose");
   const laterTurn = new FakeElement("later", {}, {}, { "data-testid": "conversation-turn-3" });
-  const drifted = await executeCaptured(source, { ...fixture.document,
-    querySelectorAll: (value: string) => value === fixture.turnsSelector
-      ? [fixture.user, fixture.assistantOuter(fixture.assistant), laterTurn]
-      : fixture.document.querySelectorAll(value),
-  }, fixture.input, exactConversationFixtureUrl) as Readonly<{
+  const drifted = await executeCaptured(source,
+    fixture.turns([fixture.assistantOuter(fixture.assistant), laterTurn], fixture.assistant),
+    fixture.input, exactConversationFixtureUrl) as Readonly<{
     rawCount: number; rawDomHtml: string; semanticText: string;
   }>;
   assert.deepEqual({ rawCount: drifted.rawCount, rawDomHtml: drifted.rawDomHtml,

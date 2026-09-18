@@ -22,6 +22,15 @@ import { requireCanonicalGptConversationUrl } from "./browser-site-policy-regist
 import {
   browserMutationPayloadKey, sealProviderRecoveryPayload, unsealProviderRecoveryPayload,
 } from "./browser-mutation-payload.js";
+const assertSettledRowTiming = (
+  row: Pick<AtomicStepRow, "action_ordinal" | "state" | "terminal_at">, actionOrdinal: number,
+): void => {
+  if (row.action_ordinal !== actionOrdinal) throw new Error("BROWSER_ACTION_SEQUENCE_DRIFT");
+  if (row.state === "DISPATCHED" ? row.terminal_at !== null
+    : !row.terminal_at || !Number.isFinite(Date.parse(row.terminal_at))) {
+    throw new Error("BROWSER_TERMINAL_AT_INVALID");
+  }
+};
 export class BrowserMutationStore {
   private readonly database: Database.Database;
   private readonly payloadKey: Buffer;
@@ -252,15 +261,9 @@ export class BrowserMutationStore {
     return Object.freeze(rows.map((row) => row.command_id));
   }
 
-  public hasMutationForJob(jobId: string): boolean {
+  public hasMutationForJob(jobId: string, unresolvedOnly = false): boolean {
     return Boolean(this.database.prepare(
-      "select 1 from browser_mutations where job_id=? limit 1",
-    ).get(jobId));
-  }
-
-  public hasUnresolvedMutationForJob(jobId: string): boolean {
-    return Boolean(this.database.prepare(
-      "select 1 from browser_mutations where job_id=? and state='DISPATCHED' limit 1",
+      `select 1 from browser_mutations where job_id=? ${unresolvedOnly ? "and state='DISPATCHED'" : ""} limit 1`,
     ).get(jobId));
   }
 
@@ -353,11 +356,7 @@ export class BrowserMutationStore {
     if (rows.length === 0) return null;
     if (rows.length !== 1) throw new Error("BROWSER_RECONCILIATION_SCOPE_AMBIGUOUS");
     const row = rows[0]!;
-    if (row.action_ordinal !== input.actionOrdinal) throw new Error("BROWSER_ACTION_SEQUENCE_DRIFT");
-    if (row.state === "DISPATCHED" && row.terminal_at !== null) throw new Error("BROWSER_TERMINAL_AT_INVALID");
-    if (row.state !== "DISPATCHED" && (!row.terminal_at || !Number.isFinite(Date.parse(row.terminal_at)))) {
-      throw new Error("BROWSER_TERMINAL_AT_INVALID");
-    }
+    assertSettledRowTiming(row, input.actionOrdinal);
     if (input.effectScope === "provider_effect" && !row.logical_mutation_id) {
       throw new Error("BROWSER_PROVIDER_EFFECT_IDENTITY_MISSING");
     }
@@ -401,34 +400,14 @@ export class BrowserMutationStore {
          and not (effect_scope='provider_effect' and state='REJECTED'
            and mutation_outcome='no' and physical_input_count=0 and attempt_id<>?)
        order by updated_at desc,command_id desc limit 2`,
-    ).all(input.jobId, input.exactCallIdentityHash, input.attemptId) as ReadonlyArray<{
-      command_id: string;
+    ).all(input.jobId, input.exactCallIdentityHash, input.attemptId) as ReadonlyArray<Omit<AtomicStepRow, "provider_recovery_payload"> & Readonly<{
       effect_scope: "target_local" | "provider_effect";
-      logical_mutation_id: `sha256:${string}`;
-      state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
-      mutation_outcome: BrowserMutationOutcome | null;
-      reason: string | null;
-      native_cause_code: string | null;
-      terminal_at: string | null;
-      target_ref: string;
-      document_ref: string;
-      product_step_id: string;
-      call_id: string;
-      child_capability_id: string;
-      action_ordinal: number;
-      physical_input_count: BrowserPhysicalInputCount;
-      download_guid_hash: `sha256:${string}` | null;
-      download_completed: 0 | 1;
-      media_identity_revalidated: 0 | 1;
-    }>;
+      product_step_id: string; call_id: string; child_capability_id: string;
+    }>>;
     if (rows.length === 0) return null;
     if (rows.length !== 1) throw new Error("BROWSER_EXACT_CALL_FACT_AMBIGUOUS");
     const row = rows[0]!;
-    if (row.action_ordinal !== input.actionOrdinal) throw new Error("BROWSER_ACTION_SEQUENCE_DRIFT");
-    if (row.state === "DISPATCHED" && row.terminal_at !== null) throw new Error("BROWSER_TERMINAL_AT_INVALID");
-    if (row.state !== "DISPATCHED" && (!row.terminal_at || !Number.isFinite(Date.parse(row.terminal_at)))) {
-      throw new Error("BROWSER_TERMINAL_AT_INVALID");
-    }
+    assertSettledRowTiming(row, input.actionOrdinal);
     const failure = terminalFailureFields(row.state, row.reason, row.native_cause_code);
     return Object.freeze({
       effectScope: row.effect_scope,
@@ -452,18 +431,13 @@ export class BrowserMutationStore {
     });
   }
 
-  public readDispatched(commandId: string): BrowserMutationIdentity | null {
+  public readCommand(commandId: string): Readonly<{
+    state: BrowserMutationState; identity: BrowserMutationIdentity;
+  }> | null {
     const row = this.database.prepare(
-      `select ${identityColumns},state from browser_mutations where command_id=? and state='DISPATCHED'`,
+      `select ${identityColumns},state from browser_mutations where command_id=?`,
     ).get(commandId) as MutationRow | undefined;
-    return row ? Object.freeze(mutationIdentity(row)) : null;
-  }
-
-  public readState(commandId: string): BrowserMutationState | null {
-    const row = this.database.prepare(
-      "select state from browser_mutations where command_id=?",
-    ).get(commandId) as { state: BrowserMutationState } | undefined;
-    return row?.state ?? null;
+    return row ? Object.freeze({ state: row.state, identity: Object.freeze(mutationIdentity(row)) }) : null;
   }
 
   public readMutationOutcome(commandId: string): BrowserMutationOutcome {

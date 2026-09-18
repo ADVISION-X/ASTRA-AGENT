@@ -320,7 +320,7 @@ try {
     ),
   } }));
   await assert.rejects(terminalErrorPromise, /BROWSER_DOM_CANDIDATE_MISSING/u);
-  assert.equal(chainStore.readState(terminalErrorPermit.commandId), "REJECTED");
+  assert.equal(chainStore.readCommand(terminalErrorPermit.commandId)?.state ?? null, "REJECTED");
   assert.equal(chainStore.readMutationOutcome(terminalErrorPermit.commandId), "dispatched");
   assert.equal(sentFrames.length, terminalErrorSentBefore + 1,
     "an explicit authenticated error reply must terminalize without a second dispatch");
@@ -365,7 +365,7 @@ try {
       }),
     );
     await assert.rejects(forgedActor.execute(forgedPermit, graceCommand), /BROWSER_COMMAND_RECEIPT_MISSING/u);
-    assert.equal(chainStore.readState(forgedPermit.commandId), "DISPATCHED");
+    assert.equal(chainStore.readCommand(forgedPermit.commandId)?.state ?? null, "DISPATCHED");
     assert.equal(chainStore.readMutationOutcome(forgedPermit.commandId), "dispatched");
     assert.equal(forgedDispatches, 1,
       `${caseName} must not counterfeit terminal settlement or authorize a second dispatch`);
@@ -377,7 +377,7 @@ try {
   };
   const missingReplySentBefore = sentFrames.length;
   await assert.rejects(chainActor.execute(missingReplyPermit, graceCommand), /BROWSER_COMMAND_RECEIPT_MISSING/u);
-  assert.equal(chainStore.readState(missingReplyPermit.commandId), "DISPATCHED");
+  assert.equal(chainStore.readCommand(missingReplyPermit.commandId)?.state ?? null, "DISPATCHED");
   assert.equal(chainStore.readMutationOutcome(missingReplyPermit.commandId), "dispatched");
   assert.equal(sentFrames.length, missingReplySentBefore + 1,
     "a genuinely missing terminal reply must preserve one DISPATCHED WAL row without resend");

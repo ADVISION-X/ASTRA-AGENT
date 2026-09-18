@@ -81,6 +81,11 @@ const assertCallBoundary = (call: SeoCall): void => {
   }
 };
 
+const confirmedEffect = (evidenceRef: string) => ({
+  effectScope: "provider_effect", outcome: "CONFIRMED", mutationOutcome: "confirmed",
+  terminalAt: CONFIRMED_AT, evidenceRef, evidenceHash: HASH,
+});
+
 export const createContext = (
   state: SeoHarness,
   decision: "proceed" | "decline",
@@ -100,10 +105,7 @@ export const createContext = (
       const evidenceRef = `evidence:readback:${call.productStepId}`;
       return { value: outputForCall(state, call, decision, image), evidenceRef, evidenceHash: HASH,
         sourceAttemptId: attemptId, exactCallIdentityHash: HASH, artifactRefs: [],
-        effectReceipt: {
-          effectScope: "provider_effect", outcome: "CONFIRMED", mutationOutcome: "confirmed",
-          terminalAt: CONFIRMED_AT, evidenceRef, evidenceHash: HASH,
-        } } as never;
+        effectReceipt: confirmedEffect(evidenceRef) } as never;
     },
     execute: async (input: SeoExecuteInput) => {
       const call = input as SeoCall;
@@ -121,23 +123,15 @@ export const createContext = (
         artifactRefs: call.child === "checkpoint_gpt_text_response" ? [`artifact:${call.productStepId}`]
           : call.child === "checkpoint_gpt_generated_image"
             ? ["artifact:image-original"] : [],
-        effectReceipt: call.child === "submit_exact_gpt_turn_once" ? {
-          effectScope: "provider_effect", outcome: "CONFIRMED", mutationOutcome: "confirmed",
-          terminalAt: CONFIRMED_AT, evidenceRef, evidenceHash: HASH,
-        } : null } as never;
+        effectReceipt: call.child === "submit_exact_gpt_turn_once" ? confirmedEffect(evidenceRef) : null } as never;
     },
   },
   resultRevision: { revision: 0, priorRejection: null },
   uploadGeneratedImage: async (artifact) => {
     state.generatedImageUploadCalls += 1;
     const metadata = await sharp(artifact.webp_bytes, { failOn: "error", limitInputPixels: false }).metadata();
-    assert.equal(metadata.format, "webp");
-    assert.equal(metadata.width, artifact.width);
-    assert.equal(metadata.height, artifact.height);
-    assert.equal(metadata.exif, undefined);
-    assert.equal(metadata.icc, undefined);
-    assert.equal(metadata.iptc, undefined);
-    assert.equal(metadata.xmp, undefined);
+    assert.deepEqual([metadata.format, metadata.width, metadata.height, metadata.exif, metadata.icc,
+      metadata.iptc, metadata.xmp], ["webp", artifact.width, artifact.height, undefined, undefined, undefined, undefined]);
     if (image === ORIENTED_IMAGE_FIXTURE) {
       const decoded = await sharp(artifact.webp_bytes).raw().toBuffer({ resolveWithObject: true });
       const sample = (x: number, y: number, channel: number): number =>

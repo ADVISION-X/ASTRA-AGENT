@@ -121,7 +121,7 @@ Object.assign(blockedLane, {
     wrongJobPermanentRelease, exactRelease, exactPrivacyRelease],
   infrastructure: { mutationState: {
     countDispatched: () => 1,
-    hasUnresolvedMutationForJob: (jobId: string) => jobId === "job-b",
+    hasMutationForJob: (jobId: string, unresolvedOnly: boolean) => unresolvedOnly && jobId === "job-b",
   } },
 });
 const selected = (blockedLane.nextWaiter as () => { kind: string; jobRefHash: string }).call(blockedLane);
@@ -171,7 +171,7 @@ const createBehaviorLane = (events: string[], unresolved = 0) => {
     wakeTimer: null, observationNotBefore: 0,
     infrastructure: { mutationState: {
       countDispatched: () => unresolved,
-      hasUnresolvedMutationForJob: (jobId: string) => unresolved > 0 && jobId === "job-a",
+      hasMutationForJob: (jobId: string, unresolvedOnly: boolean) => unresolvedOnly && unresolved > 0 && jobId === "job-a",
       settleRetiredTargetLocal: () => ({ effectScope: "provider_effect",
         childCapabilityId: "submit_exact_gpt_turn_once", logicalMutationId: hash("9") }),
       latestProviderInputTerminalAt: () => null,
@@ -223,7 +223,7 @@ try {
   const retiredLane = createBehaviorLane(retiredEvents);
   const mutationState = {
     countDispatched: () => retiredStore.countDispatched(),
-    hasUnresolvedMutationForJob: (jobId: string) => retiredStore.hasUnresolvedMutationForJob(jobId),
+    hasMutationForJob: (jobId: string, unresolvedOnly: boolean) => retiredStore.hasMutationForJob(jobId, unresolvedOnly),
     latestProviderInputTerminalAt: () => retiredStore.latestProviderInputTerminalAt(),
     settleRetiredTargetLocal: (exactBinding: Parameters<BrowserMutationStore["settleRetiredTargetLocal"]>[0]) => {
       retiredEvents.push("settle:target-local");
@@ -356,11 +356,11 @@ const activeLease = await releaseLane.acquire(binding("a") as never, "owner-a",
 const releaseInfrastructure = Reflect.get(releaseLane, "infrastructure") as {
   mutationState: {
     countDispatched(): number;
-    hasUnresolvedMutationForJob(jobId: string): boolean;
+    hasMutationForJob(jobId: string, unresolvedOnly: boolean): boolean;
   };
 };
 releaseInfrastructure.mutationState.countDispatched = () => 1;
-releaseInfrastructure.mutationState.hasUnresolvedMutationForJob = (jobId) => jobId === "job-a";
+releaseInfrastructure.mutationState.hasMutationForJob = (jobId, unresolvedOnly) => unresolvedOnly && jobId === "job-a";
 const exactReleasePromise = releaseLane.releaseJobBoundTarget(
   "job-a", "website-admin-deletion", new AbortController().signal,
 );

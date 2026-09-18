@@ -13,13 +13,9 @@ export type {
 export { browserExactCallIdentityHash } from "./exact-target/browser-command-postcondition.js";
 export type {
   BrowserDomIntent,
-  BrowserDomObservationField,
-  BrowserDomObservationPacketV2,
   BrowserDomObservationQuery,
   BrowserDomPostconditionQuery,
-  BrowserExactAssistantTurnReplyV3,
 } from "./exact-target/browser-dom-intent.js";
-export type { BrowserFileArtifactGrantV1 } from "./exact-target/browser-file-artifact-grant.js";
 export type {
   BrowserExecutionBinding,
   BrowserExecutionArtifact,

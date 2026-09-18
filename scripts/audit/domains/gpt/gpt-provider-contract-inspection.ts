@@ -194,6 +194,51 @@ const inspectRetiredProviderWaitSurfaces = (
   }
 };
 
+const objectFieldNames = (node: Node | undefined): string[] => Node.isObjectLiteralExpression(node)
+  ? node.getProperties().flatMap((property) =>
+    Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property)
+      ? [property.getName()] : []).sort() : [];
+
+/** The image Child returns the exact original-byte fields and never re-encodes through Sharp. */
+const imageHandlerIsRawOnly = (context: InspectorContext, exactOutputFields: readonly string[]): boolean => {
+  const handler = context.project.getSourceFile(resolve(context.sealedRoot, IMAGE_HANDLER));
+  const handlerInitializer = handler?.getVariableDeclaration("checkpointGptGeneratedImageHandler")?.getInitializer();
+  const successObject = handlerInitializer?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .find((call) => call.getExpression().getText() === "success")?.getArguments()[0];
+  const valueProperty = Node.isObjectLiteralExpression(successObject)
+    ? successObject.getProperty("value") : undefined;
+  const returnedFields = objectFieldNames(Node.isPropertyAssignment(valueProperty)
+    ? valueProperty.getInitializer() : undefined);
+  const forbiddenHandlerCalls = new Set(["resize", "extract", "extend", "webp"]);
+  const handlerCallNames = handlerInitializer?.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((call) => {
+    const expression = call.getExpression();
+    return Node.isPropertyAccessExpression(expression) ? [expression.getName()] : [];
+  }) ?? [];
+  return handler?.getImportDeclarations()
+    .every((declaration) => declaration.getModuleSpecifierValue() !== "sharp") === true
+    && handlerCallNames.every((name) => !forbiddenHandlerCalls.has(name))
+    && JSON.stringify(returnedFields) === JSON.stringify(exactOutputFields);
+};
+
+const generatedImageHasOneRawArtifact = (context: InspectorContext): boolean => {
+  const artifacts = context.project.getSourceFile(resolve(context.sealedRoot, EVIDENCE_ARTIFACTS));
+  const generated = artifacts?.getVariableDeclaration("generatedImageArtifacts")?.getInitializer();
+  const rawReturn = generated?.getDescendantsOfKind(SyntaxKind.ReturnStatement)[0]?.getExpression();
+  const rawElements = Node.isArrayLiteralExpression(rawReturn) ? rawReturn.getElements() : [];
+  const rawObject = rawElements.length === 1 && Node.isObjectLiteralExpression(rawElements[0])
+    ? rawElements[0] : undefined;
+  const rawPropertyText = (name: string): string | undefined => {
+    const property = rawObject?.getProperty(name);
+    return property && Node.isPropertyAssignment(property) ? property.getInitializer()?.getText() : undefined;
+  };
+  return rawObject !== undefined && JSON.stringify(objectFieldNames(rawObject)) === JSON.stringify(
+    ["artifactType", "content", "mimeType", "suffix"].sort(),
+  ) && rawPropertyText("suffix") === '"original"'
+    && rawPropertyText("artifactType") === '"ai_raw_output"'
+    && rawPropertyText("mimeType") === "row.originalMediaType as string"
+    && rawPropertyText("content") === "new Uint8Array(original)";
+};
+
 export const inspectGeneratedImageRawBoundary = (
   context: InspectorContext,
   findings: InspectorFinding[], finding: FindingFactory,
@@ -206,49 +251,7 @@ export const inspectGeneratedImageRawBoundary = (
   const exactOutputFields = ["assistantTurnId", "authorityDocumentHash", "authorityTargetHash",
     "canonicalConversationUrl", "mediaHash", "originalBytes", "originalMediaType", "originalSha256",
     "originalSizeBytes", "semanticMediaId", "turnMarker"].sort();
-
-  const handler = context.project.getSourceFile(resolve(context.sealedRoot, IMAGE_HANDLER));
-  const handlerInitializer = handler?.getVariableDeclaration("checkpointGptGeneratedImageHandler")?.getInitializer();
-  const successCall = handlerInitializer?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .find((call) => call.getExpression().getText() === "success");
-  const successObject = successCall?.getArguments()[0];
-  const valueProperty = Node.isObjectLiteralExpression(successObject)
-    ? successObject.getProperty("value") : undefined;
-  const valueInitializer = Node.isPropertyAssignment(valueProperty) ? valueProperty.getInitializer() : undefined;
-  const returnedFields = Node.isObjectLiteralExpression(valueInitializer)
-    ? valueInitializer.getProperties().flatMap((property) =>
-      Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property)
-        ? [property.getName()] : []).sort() : [];
-  const forbiddenHandlerCalls = new Set(["resize", "extract", "extend", "webp"]);
-  const handlerCallNames = handlerInitializer?.getDescendantsOfKind(SyntaxKind.CallExpression).flatMap((call) => {
-    const expression = call.getExpression();
-    return Node.isPropertyAccessExpression(expression) ? [expression.getName()] : [];
-  }) ?? [];
-  const handlerRawOnly = handler?.getImportDeclarations()
-    .every((declaration) => declaration.getModuleSpecifierValue() !== "sharp") === true
-    && handlerCallNames.every((name) => !forbiddenHandlerCalls.has(name))
-    && JSON.stringify(returnedFields) === JSON.stringify(exactOutputFields);
-
-  const artifacts = context.project.getSourceFile(resolve(context.sealedRoot, EVIDENCE_ARTIFACTS));
-  const generated = artifacts?.getVariableDeclaration("generatedImageArtifacts")?.getInitializer();
-  const rawReturn = generated?.getDescendantsOfKind(SyntaxKind.ReturnStatement)[0]?.getExpression();
-  const rawElements = Node.isArrayLiteralExpression(rawReturn) ? rawReturn.getElements() : [];
-  const rawObject = rawElements.length === 1 && Node.isObjectLiteralExpression(rawElements[0])
-    ? rawElements[0] : undefined;
-  const exactRawArtifact = rawObject?.getProperties().flatMap((property) =>
-    Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property)
-      ? [property.getName()] : []).sort();
-  const rawPropertyText = (name: string): string | undefined => {
-    const property = rawObject?.getProperty(name);
-    return property && Node.isPropertyAssignment(property) ? property.getInitializer()?.getText() : undefined;
-  };
-  const rawArtifactValid = JSON.stringify(exactRawArtifact) === JSON.stringify(
-    ["artifactType", "content", "mimeType", "suffix"].sort(),
-  ) && rawPropertyText("suffix") === '"original"'
-    && rawPropertyText("artifactType") === '"ai_raw_output"'
-    && rawPropertyText("mimeType") === "row.originalMediaType as string"
-    && rawPropertyText("content") === "new Uint8Array(original)";
-  if (!rawArtifactValid) findings.push(finding(
+  if (!generatedImageHasOneRawArtifact(context)) findings.push(finding(
     "gpt/generated-image-one-raw-artifact", EVIDENCE_ARTIFACTS,
     "Generated image checkpoint must persist exactly one source-media raw artifact.",
   ));
@@ -260,7 +263,7 @@ export const inspectGeneratedImageRawBoundary = (
     .map((property) => property.getName()) ?? []);
   const settlementUsesOriginalHash = rowProperties.has("originalSha256") && !rowProperties.has("sha256");
   if (JSON.stringify(outputFields) !== JSON.stringify(exactOutputFields)
-    || !handlerRawOnly || !settlementUsesOriginalHash) findings.push(finding(
+    || !imageHandlerIsRawOnly(context, exactOutputFields) || !settlementUsesOriginalHash) findings.push(finding(
     "gpt/generated-image-raw-only", IMAGE_HANDLER,
     "GPT image output, handler and settlement must expose only the exact authenticated original-byte contract.",
   ));

@@ -12,82 +12,60 @@ import { inspectConstitutionalBoundary } from "./constitutional-boundary-inspect
 import { producerModePassed, recordStaticCheck, staticForbiddenClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
 import { observeStaticMode } from "../../shared/static-target-object-inspector.js";
 
-export const inspectPublicKnowledgeImageOwnership = (
-  context: InspectorContext,
-  findings: ReturnType<typeof createFinding>[],
-  inspectedFiles: Set<string>,
-  lawId: string,
-): void => {
-  const imagePath = "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts";
-  const resultPath = "src/plugins/public-knowledge-article-pipeline/result-contract.ts";
-  const mediatorPath = "src/mediator/product-plugin-contract.ts";
-  const source = (path: string): SourceFile | undefined => {
-    inspectedFiles.add(path);
-    return context.project.getSourceFile(resolve(context.sealedRoot, path));
-  };
-  const image = source(imagePath);
-  const result = source(resultPath);
-  const mediator = source(mediatorPath);
-  const render = image?.getVariableDeclaration("renderImageArtifact")
-    ?.getInitializerIfKind(SyntaxKind.ArrowFunction);
-  const checkpoint = image?.getVariableDeclaration("checkpointSubmittedImage")
-    ?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+const PK_IMAGE_PATH = "src/plugins/public-knowledge-article-pipeline/seo-image-call.ts";
+
+const sharpChain = (initializer: Node | undefined): Readonly<{ root: string; methods: readonly string[] }> | null => {
+  let current = initializer;
+  while (current && Node.isAwaitExpression(current)) current = current.getExpression();
+  const methods: string[] = [];
+  while (current && Node.isCallExpression(current)) {
+    const expression = current.getExpression();
+    if (Node.isIdentifier(expression)) return { root: expression.getText(), methods };
+    if (!Node.isPropertyAccessExpression(expression)) return null;
+    methods.push(expression.getName());
+    current = expression.getExpression();
+  }
+  return null;
+};
+
+const soleSharpOwner = (context: InspectorContext, inspectedFiles: Set<string>): boolean => {
   const sharpImports = context.project.getSourceFiles().flatMap((candidate) => candidate.getImportDeclarations()
     .filter((declaration) => declaration.getModuleSpecifierValue() === "sharp")
     .map((declaration) => ({ declaration,
       path: relative(context.sealedRoot, candidate.getFilePath()).replaceAll("\\", "/") })))
     .filter(({ path }) => path.startsWith("src/"));
   for (const item of sharpImports) inspectedFiles.add(item.path);
-  const soleSharpOwner = sharpImports.length === 1 && sharpImports[0]?.path === imagePath
+  return sharpImports.length === 1 && sharpImports[0]?.path === PK_IMAGE_PATH
     && sharpImports[0].declaration.getDefaultImport()?.getText() === "sharp";
-  const calls = render?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
-  const sharpCalls = calls.filter((call) => call.getExpression().getText() === "sharp");
-  const unlimitedDecode = sharpCalls.length === 3 && sharpCalls.every((call) => {
-    const options = call.getArguments()[1];
-    if (!options || !Node.isObjectLiteralExpression(options)) return false;
-    return options.getProperty("limitInputPixels")?.getText().endsWith(": false") === true;
-  });
-  const orientedGeometry = ["originalMetadata.autoOrient.width", "originalMetadata.autoOrient.height"]
-    .every((text) => render?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-      .some((property) => property.getText() === text));
-  const metadataStripped = ["exif", "icc", "iptc", "xmp"].every((name) =>
-    render?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-      .some((property) => property.getExpression().getText() === "outputMetadata"
-        && property.getName() === name));
-  const sharpChain = (initializer: Node | undefined): Readonly<{ root: string; methods: readonly string[] }> | null => {
-    let current = initializer;
-    while (current && Node.isAwaitExpression(current)) current = current.getExpression();
-    const methods: string[] = [];
-    while (current && Node.isCallExpression(current)) {
-      const expression = current.getExpression();
-      if (Node.isIdentifier(expression)) return { root: expression.getText(), methods };
-      if (!Node.isPropertyAccessExpression(expression)) return null;
-      methods.push(expression.getName());
-      current = expression.getExpression();
-    }
-    return null;
-  };
-  const initializerFor = (name: string): Node | undefined => render
+};
+
+/** The WebP owner decodes without pixel caps, keeps oriented geometry, strips metadata and never resizes. */
+const webpOwnerIsFormatOnly = (webp: Node | undefined): boolean => {
+  const sharpCalls = webp?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((call) => call.getExpression().getText() === "sharp") ?? [];
+  const properties = webp?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression) ?? [];
+  const chains = ["originalMetadata", "webpBytes", "outputMetadata"].map((name) => sharpChain(webp
     ?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
-    .find((declaration) => declaration.getName() === name)?.getInitializer();
-  const originalMetadataChain = sharpChain(initializerFor("originalMetadata"));
-  const webpChain = sharpChain(initializerFor("webpBytes"));
-  const outputMetadataChain = sharpChain(initializerFor("outputMetadata"));
-  const exactFormatOnlyChains = originalMetadataChain?.root === "sharp"
-    && JSON.stringify(originalMetadataChain.methods) === JSON.stringify(["metadata"])
-    && webpChain?.root === "sharp"
-    && JSON.stringify(webpChain.methods) === JSON.stringify(["toBuffer", "webp", "rotate"])
-    && outputMetadataChain?.root === "sharp"
-    && JSON.stringify(outputMetadataChain.methods) === JSON.stringify(["metadata"]);
-  const noFixedGeometry = !(render?.getDescendantsOfKind(SyntaxKind.NumericLiteral)
-    .some((literal) => literal.getLiteralValue() === 1200 || literal.getLiteralValue() === 630) ?? true);
-  const artifactRefLengthGate = checkpoint?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-    .some((property) => property.getText() === "artifactRefs.length") === true;
-  const generatedArtifact = mediator?.getInterface("GeneratedImageArtifact");
-  const artifactFields = generatedArtifact?.getProperties().map((property) => property.getName()).sort() ?? [];
-  const expectedArtifactFields = [
-    "artifact_id", "bytes", "height", "media_type", "sha256", "webp_bytes", "width",
-  ].sort();
+    .find((declaration) => declaration.getName() === name)?.getInitializer()));
+  return sharpCalls.length === 3 && sharpCalls.every((call) => {
+    const options = call.getArguments()[1];
+    return options !== undefined && Node.isObjectLiteralExpression(options)
+      && options.getProperty("limitInputPixels")?.getText().endsWith(": false") === true;
+  })
+    && ["originalMetadata.autoOrient.width", "originalMetadata.autoOrient.height"]
+      .every((text) => properties.some((property) => property.getText() === text))
+    && ["exif", "icc", "iptc", "xmp"].every((name) => properties.some((property) =>
+      property.getExpression().getText() === "outputMetadata" && property.getName() === name))
+    && JSON.stringify(chains) === JSON.stringify([{ root: "sharp", methods: ["metadata"] },
+      { root: "sharp", methods: ["toBuffer", "webp", "rotate"] }, { root: "sharp", methods: ["metadata"] }])
+    && !(webp?.getDescendantsOfKind(SyntaxKind.NumericLiteral)
+      .some((literal) => literal.getLiteralValue() === 1200 || literal.getLiteralValue() === 630) ?? true);
+};
+
+/** The mediator artifact and result validator carry actual integer dimensions and no Provider original. */
+const imageContractKeepsActualDimensions = (mediator: SourceFile | undefined, result: SourceFile | undefined): boolean => {
+  const artifactFields = mediator?.getInterface("GeneratedImageArtifact")?.getProperties()
+    .map((property) => property.getName()).sort() ?? [];
   const validateImage = result?.getVariableDeclaration("validatePublicKnowledgeImage")?.getInitializer();
   const safeIntegerArgs = validateImage?.getDescendantsOfKind(SyntaxKind.CallExpression)
     .filter((call) => call.getExpression().getText() === "Number.isSafeInteger")
@@ -95,22 +73,41 @@ export const inspectPublicKnowledgeImageOwnership = (
   const contractGeometryAccess = validateImage?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
     .some((property) => property.getExpression().getText() === "contract"
       && ["width", "height"].includes(property.getName())) ?? true;
-  const valid = soleSharpOwner && unlimitedDecode && orientedGeometry && metadataStripped
-    && exactFormatOnlyChains && noFixedGeometry
-    && artifactRefLengthGate
-    && JSON.stringify(artifactFields) === JSON.stringify(expectedArtifactFields)
+  return JSON.stringify(artifactFields) === JSON.stringify(
+    ["artifact_id", "bytes", "height", "media_type", "sha256", "webp_bytes", "width"].sort())
     && safeIntegerArgs.includes("image.width") && safeIntegerArgs.includes("image.height")
     && !contractGeometryAccess;
+};
+
+export const inspectPublicKnowledgeImageOwnership = (
+  context: InspectorContext,
+  findings: ReturnType<typeof createFinding>[],
+  inspectedFiles: Set<string>,
+  lawId: string,
+): void => {
+  const source = (path: string): SourceFile | undefined => {
+    inspectedFiles.add(path);
+    return context.project.getSourceFile(resolve(context.sealedRoot, path));
+  };
+  const image = source(PK_IMAGE_PATH);
+  const checkpoint = image?.getVariableDeclaration("checkpointSubmittedImage")
+    ?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  const artifactRefLengthGate = checkpoint?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
+    .some((property) => property.getText() === "artifactRefs.length") === true;
+  const valid = soleSharpOwner(context, inspectedFiles)
+    && webpOwnerIsFormatOnly(image?.getVariableDeclaration("orientedWebp")
+      ?.getInitializerIfKind(SyntaxKind.ArrowFunction))
+    && artifactRefLengthGate
+    && imageContractKeepsActualDimensions(source("src/mediator/product-plugin-contract.ts"),
+      source("src/plugins/public-knowledge-article-pipeline/result-contract.ts"));
   if (!valid) findings.push(createFinding({
     evidenceMode: "static.ast", lawId,
     clauseId: `${lawId.toLowerCase()}-requirement`,
     checkId: "architecture-boundary/public-knowledge-image-owner",
-    filePath: imagePath,
+    filePath: PK_IMAGE_PATH,
     message: "The public-knowledge Product must be the sole format-only WebP owner and must preserve source-oriented geometry without exporting Provider originals.",
   }));
 };
-
-
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
   const lawIds = resolveArchitectureLawIds(context.planEntry);

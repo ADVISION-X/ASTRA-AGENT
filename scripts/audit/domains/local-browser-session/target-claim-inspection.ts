@@ -1,4 +1,4 @@
-import { Node, SyntaxKind } from "ts-morph";
+import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { astIdentifierName } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
 import {
@@ -135,7 +135,7 @@ const interactionAuthorityExact = (input: Readonly<{
   ].every(Boolean);
 };
 
-const inspectInteractionAuthority = (
+export const inspectInteractionReadiness = (
   context: InspectorContext,
   findings: InspectorFinding[],
   lawId: string,
@@ -419,6 +419,33 @@ const inspectJobBoundClaimPolicy = (
   );
 };
 
+/** TARGET_CLAIM carries only claimOrigin identity and parses epoch zero as a valid first claim. */
+const inspectTargetClaimPayload = (framePayload: SourceFile, findings: InspectorFinding[], lawId: string): void => {
+  const parseClaim = framePayload.getVariableDeclaration("parseBrowserAuthorityTargetClaim");
+  const parseClaimText = parseClaim?.getText() ?? "";
+  const originFinding = (message: string) => createLocalFinding({
+    checkId: "browser-authority/target-claim-origin-only", lawId, filePath: framePayloadPath, message,
+  });
+  for (const required of [
+    'stringField(body, "claimOrigin")', "requireGptWebClaimOrigin(claimOrigin)",
+    '["targetRef", "documentRef", "navigationEpoch", "claimOrigin", "jobRefHash"]',
+  ]) if (!parseClaimText.includes(required)) {
+    findings.push(originFinding(`TARGET_CLAIM must carry exact claimOrigin only; missing ${required}.`));
+  }
+  if (/stringField\(body,\s*["'](?:url|currentUrl)["']\)/u.test(parseClaimText)) {
+    findings.push(originFinding("TARGET_CLAIM must not carry current or canonical conversation URL."));
+  }
+  const initializer = parseClaim?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+    .find((declaration) => declaration.getName() === "navigationEpoch")
+    ?.getInitializerIfKind(SyntaxKind.CallExpression)?.getExpression();
+  if (!initializer || !Node.isIdentifier(initializer) || astIdentifierName(initializer) !== "nonNegativeIntegerField") {
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/terminal-authority", lawId, filePath: sourcePaths[0],
+      message: "The first target claim must parse navigationEpoch with the non-negative integer boundary so epoch zero remains valid.",
+    }));
+  }
+};
+
 export const inspectTargetClaimGuards = (
   context: InspectorContext,
   findings: InspectorFinding[],
@@ -445,36 +472,7 @@ export const inspectTargetClaimGuards = (
   }));
   requireIdentifiers(awaiter, ["TargetClaimAwaiter", "begin", "accept", "fail"], findings, lawId,
     "The extension must not report target success before the Workbench acknowledgement.");
-  const parseClaim = framePayload.getVariableDeclaration("parseBrowserAuthorityTargetClaim");
-  const parseClaimText = parseClaim?.getText() ?? "";
-  for (const required of [
-    'stringField(body, "claimOrigin")', "requireGptWebClaimOrigin(claimOrigin)",
-    '["targetRef", "documentRef", "navigationEpoch", "claimOrigin", "jobRefHash"]',
-  ]) if (!parseClaimText.includes(required)) findings.push(createLocalFinding({
-    checkId: "browser-authority/target-claim-origin-only",
-    lawId,
-    filePath: framePayloadPath,
-    message: `TARGET_CLAIM must carry exact claimOrigin only; missing ${required}.`,
-  }));
-  if (/stringField\(body,\s*["'](?:url|currentUrl)["']\)/u.test(parseClaimText)) {
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/target-claim-origin-only",
-      lawId,
-      filePath: framePayloadPath,
-      message: "TARGET_CLAIM must not carry current or canonical conversation URL.",
-    }));
-  }
-  const navigationEpoch = parseClaim?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
-    .find((declaration) => declaration.getName() === "navigationEpoch");
-  const initializer = navigationEpoch?.getInitializerIfKind(SyntaxKind.CallExpression)?.getExpression();
-  if (!initializer || !Node.isIdentifier(initializer) || astIdentifierName(initializer) !== "nonNegativeIntegerField") {
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/terminal-authority",
-      lawId,
-      filePath: sourcePaths[0],
-      message: "The first target claim must parse navigationEpoch with the non-negative integer boundary so epoch zero remains valid.",
-    }));
-  }
+  inspectTargetClaimPayload(framePayload, findings, lawId);
   if (/GRASSEYE_CLAIM_ACTIVE_TARGET|claimActiveTarget/u.test(actor.getFullText())) findings.push(createLocalFinding({
     checkId: "browser-authority/job-bound-target-claim", lawId, filePath: sourcePaths[1],
     message: "The retired manual active-tab claim handler must be physically absent.",
@@ -494,9 +492,3 @@ export const inspectTargetClaimGuards = (
   }
   inspectJobBoundClaimPolicy(context, findings, lawId);
 };
-
-export const inspectInteractionReadiness = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => inspectInteractionAuthority(context, findings, lawId);

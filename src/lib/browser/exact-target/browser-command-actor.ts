@@ -411,7 +411,7 @@ export class BrowserCommandActor {
   }
 
   public hasDispatchedMutation(commandId: string): boolean {
-    return this.mutations.readDispatched(commandId) !== null;
+    return this.mutations.readCommand(commandId)?.state === "DISPATCHED";
   }
 
   public mutationOutcome(commandId: string): "no" | "dispatched" | "confirmed" {
@@ -419,13 +419,14 @@ export class BrowserCommandActor {
   }
 
   public browserOutcome(commandId: string): "DISPATCHED" | "CONFIRMED" | "REJECTED" | null {
-    const state = this.mutations.readState(commandId);
+    const state = this.mutations.readCommand(commandId)?.state;
     return state === "DISPATCHED" || state === "CONFIRMED" || state === "REJECTED" ? state : null;
   }
 
   public async resolveDispatchedMutation(receipt: BrowserOutcomeResolutionReceipt): Promise<void> {
-    const entry = this.mutations.readDispatched(receipt.commandId);
-    if (!entry) throw new Error("BROWSER_MUTATION_UNSETTLED");
+    const command = this.mutations.readCommand(receipt.commandId);
+    if (command?.state !== "DISPATCHED") throw new Error("BROWSER_MUTATION_UNSETTLED");
+    const entry = command.identity;
     assertBrowserReconciliationEvidence(receipt);
     if (receipt.uniqueTargetRef !== entry.targetRef) throw new Error("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
     const state = receipt.outcome === "TERMINAL_SUCCESS" ? "CONFIRMED" : "REJECTED";

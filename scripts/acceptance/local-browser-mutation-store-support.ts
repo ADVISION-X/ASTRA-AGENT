@@ -45,7 +45,7 @@ export const exerciseBrowserMutationStore = (root: string): void => {
   assert.equal(restarted.settleRetiredTargetLocal({
     jobId: "job-1", attemptId: "attempt-2", writerFenceHash: nextFence,
   })?.commandId, "old-command");
-  assert.equal(restarted.readState("old-command"), "REJECTED");
+  assert.equal(restarted.readCommand("old-command")?.state ?? null, "REJECTED");
   assert.equal(restarted.readMutationOutcome("old-command"), "dispatched");
   restarted.prepare(identity("new-command", "attempt-2", nextFence));
   restarted.markDispatched("new-command");
@@ -65,7 +65,7 @@ export const exerciseBrowserMutationStore = (root: string): void => {
   "same-attempt provider DISPATCHED must bind readback across fences");
   assert.equal(provider.settleRetiredTargetLocal({ jobId: "job-1", attemptId: "attempt-provider",
     writerFenceHash: nextFence }).effectScope, "provider_effect");
-  assert.equal(provider.readState(providerIdentity.commandId), "DISPATCHED",
+  assert.equal(provider.readCommand(providerIdentity.commandId)?.state ?? null, "DISPATCHED",
     "provider readback admission must not terminalize or rewrite the unknown effect");
   assert.throws(() => provider.settleRetiredTargetLocal({ jobId: "job-1", attemptId: "other-attempt",
     writerFenceHash: nextFence }), /BROWSER_MUTATION_UNSETTLED/u);
