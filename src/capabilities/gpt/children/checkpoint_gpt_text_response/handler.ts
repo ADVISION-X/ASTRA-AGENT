@@ -73,29 +73,6 @@ export const advanceStoppedEmptyWindow = (
   });
 };
 
-type ExactTurnRead = Readonly<{ assistant: ExactAssistantObservation }>
-  | Readonly<{ assistant: null; waitReason: GptProviderObservationWaitReason }>;
-
-/** One exact read; only the two pending Browser facts become a typed wait reason. */
-const readExactTurnOrPending = async (
-  browser: ReturnType<typeof requireBrowser>,
-  userTurnId: string,
-  conversationUrl: string,
-): Promise<ExactTurnRead> => {
-  try {
-    return { assistant: await readExactAssistantTurn(browser, userTurnId, conversationUrl) };
-  } catch (error) {
-    const code = failureCode(error);
-    if (code === "BROWSER_EXACT_USER_TURN_UNAVAILABLE") {
-      return { assistant: null, waitReason: "exact-user-turn-unavailable" };
-    }
-    if (code === "BROWSER_ADJACENT_ASSISTANT_TURN_MISSING") {
-      return { assistant: null, waitReason: "adjacent-assistant-missing" };
-    }
-    throw error;
-  }
-};
-
 /** Advances the stopped-empty window for an observed, not yet settled assistant turn. */
 const advanceObservedAssistant = (
   assistant: ExactAssistantObservation,
@@ -126,14 +103,19 @@ const settledTextResponse = (assistant: ExactAssistantObservation) => success({
     browserFact: null, nativeFailureCode: null }),
 });
 
+const checkpointInput = (intent: Parameters<GptChildHandler<"checkpoint_gpt_text_response">>[0]) => {
+  requireExactInputKeys(intent, ["canonicalConversationUrl", "probeBudgetMs", "turnMarker", "userTurnId"]);
+  const conversationUrl = canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
+  stringInput(intent, "turnMarker");
+  const userTurnId = stringInput(intent, "userTurnId");
+  const probeBudgetMs = numberInput(intent, "probeBudgetMs");
+  if (!Number.isSafeInteger(probeBudgetMs) || probeBudgetMs < 1 || probeBudgetMs > 3_600_000) throw executionFailure("failed", "GPT_RESPONSE_PROBE_BUDGET_INVALID");
+  return { conversationUrl, userTurnId, probeBudgetMs };
+};
+
 export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_text_response"> =
   async (intent, context) => {
-    requireExactInputKeys(intent, ["canonicalConversationUrl", "probeBudgetMs", "turnMarker", "userTurnId"]);
-    const conversationUrl = canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
-    stringInput(intent, "turnMarker");
-    const userTurnId = stringInput(intent, "userTurnId");
-    const probeBudgetMs = numberInput(intent, "probeBudgetMs");
-    if (!Number.isSafeInteger(probeBudgetMs) || probeBudgetMs < 1 || probeBudgetMs > 3_600_000) throw executionFailure("failed", "GPT_RESPONSE_PROBE_BUDGET_INVALID");
+    const { conversationUrl, userTurnId, probeBudgetMs } = checkpointInput(intent);
     const browser = requireBrowser(context);
     const deadline = Date.now() + probeBudgetMs;
     let stoppedEmptyWindow: StoppedEmptyWindow | null = null;
@@ -149,18 +131,29 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
         if (exactResponseObserved) continue;
         break;
       }
-      const read = await readExactTurnOrPending(browser, userTurnId, conversationUrl);
-      exactResponseObserved = read.assistant !== null;
-      if (read.assistant === null) {
-        nextWaitReason = read.waitReason;
+      let assistant: ExactAssistantObservation | null = null;
+      try {
+        assistant = await readExactAssistantTurn(browser, userTurnId, conversationUrl);
+      } catch (error) {
+        const code = failureCode(error);
+        if (code === "BROWSER_EXACT_USER_TURN_UNAVAILABLE") {
+          nextWaitReason = "exact-user-turn-unavailable";
+        } else if (code === "BROWSER_ADJACENT_ASSISTANT_TURN_MISSING") {
+          nextWaitReason = "adjacent-assistant-missing";
+        } else {
+          throw error;
+        }
+      }
+      exactResponseObserved = assistant !== null;
+      if (assistant && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0) {
+        return settledTextResponse(assistant);
+      }
+      if (!assistant) {
         stoppedEmptyWindow = null;
         continue;
       }
-      const assistant = read.assistant;
-      if (assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0) {
-        return settledTextResponse(assistant);
-      }
-      nextWaitReason = assistant.generatingRaw > 0 ? "stop-present" : "stopped-empty-confirming";
+      nextWaitReason = assistant.generatingRaw > 0
+        ? "stop-present" : "stopped-empty-confirming";
       stoppedEmptyWindow = advanceObservedAssistant(assistant, stoppedEmptyWindow);
     }
     throw executionFailure("failed", "GPT_RESPONSE_TIMEOUT");
