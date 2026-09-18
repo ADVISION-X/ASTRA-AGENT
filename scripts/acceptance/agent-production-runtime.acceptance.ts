@@ -23,7 +23,7 @@ import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/s
 import { readProductionOperationsSnapshot } from
   "../../src/lib/local-runtime/production/operations-snapshot.js";
 import {
-  ClaimBatchReceiptSchema, LeaseRenewReceiptSchema, parseJsonEnvelope,
+  ClaimBatchReceiptSchema, ClaimedProductionTaskSchema, LeaseRenewReceiptSchema, parseJsonEnvelope,
   websiteAgentTaskFromClaim,
 } from "../../src/lib/local-runtime/production/transport-protocol.js";
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
@@ -341,6 +341,31 @@ const claimed = claimTask(productionTask);
 assert.deepEqual(websiteAgentTaskFromClaim(claimed), productionTask);
 assert.equal(claimed.status, "failed");
 assert.equal(claimed.grant.accepted_attempt_count, 1);
+const truncatedRejection = {
+  receipt_hash: HASH_A, rejected_result_payload_hash: HASH_B,
+  reason_codes: ["LOCALIZATION_STRUCTURED_EDITION_SEMANTIC_INVALID", "LOCALIZATION_SAFETY_FIELD_TRUNCATED"],
+  validation_failure: { native_error_code: "LOCALIZATION_SAFETY_FIELD_TRUNCATED",
+    json_pointer: "/excluded_scope/segments/2/text", safety_obligation: "scope_limited" },
+} as const;
+const revisedClaim = (priorRejection: unknown) => ({
+  ...claimed, grant: { ...claimed.grant, result_revision: 2, prior_result_rejection: priorRejection },
+});
+assert.deepEqual(ClaimedProductionTaskSchema.parse(revisedClaim(truncatedRejection)).grant.prior_result_rejection,
+  truncatedRejection);
+const structureRejection = { ...truncatedRejection,
+  validation_failure: { native_error_code: "LOCALIZATION_STRUCTURE_OR_FACT_CHANGED", json_pointer: null } };
+assert.deepEqual(ClaimedProductionTaskSchema.parse(revisedClaim(structureRejection)).grant.prior_result_rejection,
+  structureRejection);
+for (const validationFailure of [
+  { native_error_code: "LOCALIZATION_SAFETY_FIELD_TRUNCATED", safety_obligation: "scope_limited" },
+  { ...truncatedRejection.validation_failure, json_pointer: 7 },
+  { ...truncatedRejection.validation_failure, safety_obligation: "tone_preserved" },
+  { ...truncatedRejection.validation_failure, source_text: "原文" },
+]) assert.throws(() => ClaimedProductionTaskSchema.parse(revisedClaim({ ...truncatedRejection, validation_failure: validationFailure })));
+assert.throws(() => ClaimedProductionTaskSchema.parse(revisedClaim({
+  rejection_kind: "provider_stopped_empty", receipt_hash: HASH_A, rejected_provider_response_fact_hash: HASH_B,
+  reason_codes: ["GPT_RESPONSE_STOPPED_EMPTY"], validation_failure: truncatedRejection.validation_failure,
+})));
 
 await exerciseProductionRuntimeSourceBoundaries();
 

@@ -99,6 +99,13 @@ const ExecutionGrantSchema = z.object({
     receipt_hash: hash,
     rejected_result_payload_hash: hash,
     reason_codes: z.array(reasonCode).min(1),
+    validation_failure: z.object({
+      native_error_code: reasonCode,
+      json_pointer: z.string().nullable(),
+      safety_obligation: z.enum([
+        "no_guarantee", "not_professional_substitute", "uncertainty_preserved", "scope_limited", "risk_disclosed",
+      ]).optional(),
+    }).strict().optional(),
   }).strict(), z.object({
     rejection_kind: z.literal("provider_stopped_empty"),
     receipt_hash: hash,
