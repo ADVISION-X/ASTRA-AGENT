@@ -47,11 +47,17 @@ export const coherentCandidateMainFrameLoaderId = async (
   return frame.loaderId;
 };
 
+/** Maps a coherent candidate-set page string reply to its typed failure, or null for any other value. */
+export const coherentCandidateSetFailure = (value: unknown): Error | null =>
+  candidateMissingFailure(value) ?? (typeof value === "string"
+    && /^BROWSER_DOM_(?:CANDIDATE_AMBIGUOUS|READ_INVALID)$/u.test(value) ? new Error(value) : null);
+
+const pointerReplyFailure = (value: unknown): Error | null =>
+  coherentCandidateSetFailure(value) ?? (pointerActionCode(value) ? new Error(value) : null);
+
 export const coherentPointerFromValue = (value: unknown): BrowserPointerAction => {
-  const missing = candidateMissingFailure(value);
-  if (missing) throw missing;
-  if (typeof value === "string" && (/^BROWSER_DOM_(?:CANDIDATE_AMBIGUOUS|READ_INVALID)$/u.test(value)
-    || pointerActionCode(value))) throw new Error(value);
+  const failure = pointerReplyFailure(value);
+  if (failure) throw failure;
   const point = coherentCandidateRecord(value);
   if (typeof point.x !== "number" || !Number.isFinite(point.x)
     || typeof point.y !== "number" || !Number.isFinite(point.y)) {
@@ -81,10 +87,8 @@ export const decodeObservationPointerPreparation = async (
   target: ExtensionExactTarget,
   postcondition: Readonly<{ queries: readonly BrowserDomPostconditionQuery[] }>,
 ): Promise<CoherentObservationPointerPreparation> => {
-  const missing = candidateMissingFailure(value);
-  if (missing) throw missing;
-  if (typeof value === "string" && (/^BROWSER_DOM_(?:CANDIDATE_AMBIGUOUS|READ_INVALID)$/u.test(value)
-    || pointerActionCode(value))) throw new Error(value);
+  const failure = pointerReplyFailure(value);
+  if (failure) throw failure;
   const reply = coherentCandidateRecord(value);
   if ((reply.kind !== "postcondition" && reply.kind !== "pointer") || Object.keys(reply).length !== 2) {
     throw new Error("BROWSER_DOM_READ_INVALID");

@@ -9,12 +9,13 @@ import {
   coherentCandidateMainFrameLoaderId as mainFrameLoaderId,
   coherentCandidateRecord as record,
   coherentPointerFromValue as pointerFromValue,
+  coherentCandidateSetFailure,
   decodeObservationPointerPreparation,
   readCoherentCandidate as read,
 } from "./dom-coherent-candidate-readback.js";
 import { BROWSER_MECHANICAL_FACTS_READER_SOURCE } from "./dom-mechanical-facts.js";
 import { BROWSER_EXACT_EDITABLE_TEXT_READER_SOURCE } from "./dom-exact-editable-text.js";
-import { CANDIDATE_MISSING_STAGE_SOURCE, candidateMissingFailure } from "./dom-candidate-missing-stage.js";
+import { CANDIDATE_MISSING_STAGE_SOURCE } from "./dom-candidate-missing-stage.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 
 type CandidateRequest = Readonly<{
@@ -311,12 +312,8 @@ export const resolveCoherentMutationCandidate = async (
     })));
     if (call.exceptionDetails !== undefined) throw new Error("BROWSER_DOM_READ_INVALID");
     const result = record(call.result);
-    const missing = result.type === "string" ? candidateMissingFailure(result.value) : null;
-    if (missing) throw missing;
-    if (result.type === "string" && typeof result.value === "string"
-      && /^BROWSER_DOM_(?:CANDIDATE_AMBIGUOUS|READ_INVALID)$/u.test(result.value)) {
-      throw new Error(result.value);
-    }
+    const failure = coherentCandidateSetFailure(result.value);
+    if (failure) throw failure;
     if (result.subtype !== "node" || typeof result.objectId !== "string") {
       throw new Error("BROWSER_DOM_READ_INVALID");
     }

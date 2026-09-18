@@ -61,6 +61,11 @@ const observationPacket = (advancedEligibleCount: number) => ({
   ],
 });
 
+const crossKindFailure = { candidateCount: 1, qualificationStage: "actionability",
+  identityRevalidated: false, mutationCount: 0,
+  postconditionVerified: false, qualificationRejected: true,
+  failureCode: "BROWSER_FILE_INPUT_NOT_QUALIFIED", nativeCauseCode: null };
+
 const exerciseFileAndQualificationReceipts = (): void => {
   const fileSuccess = { candidateCount: 1, identityRevalidated: true, mutationCount: 1,
     selectedFileCount: 1, approvedSetVerified: true, acceptVerified: true,
@@ -76,10 +81,6 @@ const exerciseFileAndQualificationReceipts = (): void => {
     /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
     "file-input success receipts must reject extra or contradictory fields");
 
-  const crossKindFailure = { candidateCount: 1, qualificationStage: "actionability",
-    identityRevalidated: false, mutationCount: 0,
-    postconditionVerified: false, qualificationRejected: true,
-    failureCode: "BROWSER_FILE_INPUT_NOT_QUALIFIED", nativeCauseCode: null };
   assert.throws(() => decodeBrowserMutationReceipt(clickCommand, crossKindFailure),
     /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
     "DOM commands must reject file-input-only qualification causes");
@@ -122,6 +123,9 @@ const exerciseFileAndQualificationReceipts = (): void => {
     ...crossKindFailure, qualificationStage: "candidate-set", failureCode: "BROWSER_DOM_CANDIDATE_MISSING",
   }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
   "candidate-set causes and candidate counts must describe the same fact");
+};
+
+const exerciseCandidateMissingStageReceipts = (): void => {
   const pageClassifier = new Function(`${CANDIDATE_MISSING_STAGE_SOURCE}\nreturn candidateMissing;`)() as
     (scopeRaw: number, scopeEligible: number, raw: number) => string;
   for (const [counts, stage] of [
@@ -252,6 +256,7 @@ const exercisePostconditionEvidenceReceipts = (): void => {
 
 export const exerciseStrictMutationReceipts = (): void => {
   exerciseFileAndQualificationReceipts();
+  exerciseCandidateMissingStageReceipts();
   exerciseFreshReadbackReceipts();
   exercisePostconditionEvidenceReceipts();
 };
