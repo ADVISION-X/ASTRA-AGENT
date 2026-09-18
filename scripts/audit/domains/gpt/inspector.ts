@@ -459,12 +459,12 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
     ),
   }));
   const frozenAssertions = (["static.ast", "static.contract"] as const).map((evidenceMode) => ({
-    clauses: evidenceMode === "static.ast" ? staticClauses(0, 2, 3, 4) : staticClauses(1, 5, 6, 7),
+    clauses: evidenceMode === "static.ast" ? staticClauses(0, 2, 3, 4) : staticClauses(1, 5, 6, 7, 8),
     evidenceMode,
     passed: producerModePassed(evaluation.staticCheckReceipts, FROZEN_ATTEMPT_LAW_ID,
       evidenceMode === "static.ast" ? ["inspectFrozenAttemptAst"] : ["inspectFrozenAttemptContract"]),
     refs: staticEvidenceRefs(context, FROZEN_ATTEMPT_LAW_ID, evidenceMode,
-      evidenceMode === "static.ast" ? staticClauses(0, 2, 3, 4) : staticClauses(1, 5, 6, 7),
+      evidenceMode === "static.ast" ? staticClauses(0, 2, 3, 4) : staticClauses(1, 5, 6, 7, 8),
       evaluation.staticCheckReceipts,
       evidenceMode === "static.ast" ? ["inspectFrozenAttemptAst"] : ["inspectFrozenAttemptContract"]),
   }));
