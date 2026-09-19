@@ -94,6 +94,7 @@ type FakeBrowserOptions = Readonly<{
   authenticatedMedia?: Awaited<ReturnType<BrowserTargetLease["readAuthenticatedMedia"]>>;
   onAttachFile?: (input: Parameters<BrowserTargetLease["attachFile"]>[0]) => void;
   onWait?: (durationMs: number) => void;
+  enforceClickedAttributeReadback?: boolean;
 }>;
 type FakeBrowserState = {
   pending: number;
@@ -257,6 +258,19 @@ const executeFakeDomIntent = async (
     ? { url: state.url, title: "ChatGPT" }
     : await responder(intent, state.domCalls);
   if (mutates) {
+    if (options.enforceClickedAttributeReadback === true && intent.kind === "click"
+      && intent.postClickObservation?.clickedCandidateAttribute !== undefined) {
+      const result = fakeResultRecord(value);
+      const readback = result?.clickedCandidateAttributeReadback;
+      const expected = intent.postClickObservation.clickedCandidateAttribute;
+      if (!readback || typeof readback !== "object" || Array.isArray(readback)
+        || Object.keys(readback).sort().join("|") !== "name|value|verified"
+        || Reflect.get(readback, "name") !== expected.name || Reflect.get(readback, "value") !== expected.equals
+        || Reflect.get(readback, "verified") !== true) {
+        return rejectFakeMutation(state, { failureCode: "BROWSER_AUTH_TRANSCRIPT_INVALID" }, "no",
+          "BROWSER_AUTH_TRANSCRIPT_INVALID");
+      }
+    }
     settleFakeMutation(state, value);
     const advance = options.navigationEpochAdvanceOnMutation ?? 0;
     if (advance > 0) {

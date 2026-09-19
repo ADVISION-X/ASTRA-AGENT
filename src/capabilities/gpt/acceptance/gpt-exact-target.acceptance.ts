@@ -31,9 +31,21 @@ assert.deepEqual(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).sort(), EXPECTED_GP
 assert.equal(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).length, 14);
 assertGptExactTargetSourceShape(import.meta.url);
 
+type ConversationOverrides = Readonly<{
+  user?: number;
+  assistant?: number;
+  attachments?: number;
+  generating?: number;
+  mode?: "chat" | "work" | "invalid";
+  chatModeRaw?: number;
+  chatModeEligible?: number;
+  workModeRaw?: number;
+  workModeEligible?: number;
+}>;
+
 const conversationFacts = (
   draft: string | null,
-  overrides: Readonly<Record<string, number>> = {},
+  overrides: ConversationOverrides = {},
 ) => ({
   composer: { rawCount: draft === null ? 0 : 1, eligibleCount: draft === null ? 0 : 1,
     matches: draft === null ? [] : [{ exactEditableTextHash: hashConversationValue(draft) }] },
@@ -41,6 +53,12 @@ const conversationFacts = (
   "assistant-turns": { rawCount: overrides.assistant ?? 0, eligibleCount: overrides.assistant ?? 0 },
   attachments: { rawCount: overrides.attachments ?? 0, eligibleCount: overrides.attachments ?? 0 },
   generating: { rawCount: overrides.generating ?? 0, eligibleCount: overrides.generating ?? 0 },
+  "chat-mode": { rawCount: overrides.chatModeRaw ?? 1,
+    eligibleCount: overrides.chatModeEligible ?? overrides.chatModeRaw ?? 1,
+    matches: (overrides.chatModeRaw ?? 1) === 0 ? [] : [{ ariaChecked: overrides.mode === "work" ? "false" : "true" }] },
+  "work-mode": { rawCount: overrides.workModeRaw ?? 1,
+    eligibleCount: overrides.workModeEligible ?? overrides.workModeRaw ?? 1,
+    matches: (overrides.workModeRaw ?? 1) === 0 ? [] : [{ ariaChecked: overrides.mode === "work" ? "true" : overrides.mode === "invalid" ? "true" : "false" }] },
 });
 
 {
@@ -107,6 +125,91 @@ for (const [field, failureCode] of [
   assert.equal(observations, 2, "an isolated stale draft must be cleared once and reread once");
   assert.deepEqual(fixture.waitDurations(), []);
   assert.equal(fixture.physicalMutations(), 1);
+}
+
+{
+  let mode: "chat" | "work" = "work";
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, conversationFacts("", { mode }));
+    if (intent.kind === "click") {
+      assert.equal(intent.expectedTextEquals, undefined);
+      assert.match(intent.selector, /data-tpp-toggle-value='chatgpt'/u);
+      assert.deepEqual(intent.postClickObservation?.queries.map((query) => [
+        query.queryId, query.expectedEligibleCount, query.fields,
+      ]), [
+        ["chat-mode", 1, ["ariaChecked"]], ["work-mode", 1, ["ariaChecked"]],
+      ]);
+      mode = "chat";
+      const queries = intent.postClickObservation!.queries
+        .map(({ expectedEligibleCount: _expected, ...query }) => query);
+      return {
+        postconditionVerified: true,
+        clickedCandidateAttributeReadback: { name: "aria-checked", value: "true", verified: true },
+        postconditionObservation: coherentObservationPacket({ queries }, conversationFacts("", { mode })),
+      };
+    }
+    throw new Error(`WORK_TO_CHAT_MUST_ONLY_CLICK:${intent.kind}`);
+  }, { enforceClickedAttributeReadback: true });
+  const result = await execute("prepare_clean_gpt_chat", fixture.browser, { timeoutMs: 60_000 });
+  assert.equal(result.status, "success", result.failureCode ?? "work-to-chat failed");
+  assert.equal(result.value?.staleDraftCleared, false);
+  assert.equal(fixture.physicalMutations(), 1);
+}
+
+for (const failure of ["wrong-attribute", "postcondition-not-chat"] as const) {
+  let mode: "chat" | "work" = "work";
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, conversationFacts("", { mode }));
+    if (intent.kind === "click") {
+      mode = failure === "postcondition-not-chat" ? "work" : "chat";
+      const queries = intent.postClickObservation!.queries
+        .map(({ expectedEligibleCount: _expected, ...query }) => query);
+      return {
+        postconditionVerified: true,
+        clickedCandidateAttributeReadback: failure === "wrong-attribute"
+          ? { name: "aria-checked", value: "false", verified: false }
+          : { name: "aria-checked", value: "true", verified: true },
+        postconditionObservation: coherentObservationPacket({ queries }, conversationFacts("", { mode })),
+      };
+    }
+    throw new Error(`WORK_TO_CHAT_FAILURE_MUST_NOT_REACT:${intent.kind}`);
+  }, { enforceClickedAttributeReadback: true });
+  const result = await execute("prepare_clean_gpt_chat", fixture.browser, { timeoutMs: 60_000 });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, failure === "wrong-attribute"
+    ? "BROWSER_AUTH_TRANSCRIPT_INVALID" : "GPT_CHAT_MODE_SELECTION_POSTCONDITION_INVALID");
+  assert.equal(fixture.physicalMutations(), failure === "wrong-attribute" ? 0 : 1);
+}
+
+for (const [overrides, code, waits] of [
+  [{ chatModeRaw: 0 }, "GPT_CHAT_MODE_MISSING", [1_500, 3_000]],
+  [{ chatModeRaw: 2, chatModeEligible: 2 }, "GPT_CHAT_MODE_AMBIGUOUS", []],
+  [{ chatModeEligible: 0 }, "GPT_CHAT_MODE_NOT_ACTIONABLE", [1_500, 3_000]],
+  [{ workModeRaw: 0 }, "GPT_CHAT_MODE_MISSING", [1_500, 3_000]],
+] as const) {
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, conversationFacts("", overrides));
+    throw new Error(`MODE_TOPOLOGY_FAILURE_MUST_NOT_ACT:${intent.kind}`);
+  });
+  const result = await execute("prepare_clean_gpt_chat", fixture.browser, { timeoutMs: 60_000 });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, code);
+  assert.deepEqual(fixture.waitDurations(), waits);
+  assert.equal(fixture.physicalMutations(), 0);
+}
+
+for (const [draft, mode, code] of [
+  ["stale draft", "work", "GPT_CHAT_MODE_WORK_SELECTED_WITH_DRAFT"],
+  ["", "invalid", "GPT_CHAT_MODE_INVALID"],
+] as const) {
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, conversationFacts(draft, { mode }));
+    throw new Error(`INVALID_FRESH_MODE_MUST_NOT_ACT:${intent.kind}`);
+  });
+  const result = await execute("prepare_clean_gpt_chat", fixture.browser, { timeoutMs: 60_000 });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, code);
+  assert.equal(fixture.physicalMutations(), 0);
 }
 
 let profileOpen = false;
