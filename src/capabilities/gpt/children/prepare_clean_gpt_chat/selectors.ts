@@ -1,5 +1,5 @@
 export const GPT_COMPOSER_SELECTOR = "#prompt-textarea";
-export const GPT_CHAT_MODE_GROUP_SELECTOR = "[role='radiogroup'][aria-label='选择聊天界面']";
+const GPT_CHAT_MODE_GROUP_SELECTOR = "[role='radiogroup'][aria-label='选择聊天界面']";
 export const GPT_CHAT_MODE_CHAT_SELECTOR =
   `${GPT_CHAT_MODE_GROUP_SELECTOR} [role='radio'][data-tpp-toggle-value='chatgpt']`;
 export const GPT_CHAT_MODE_WORK_SELECTOR =

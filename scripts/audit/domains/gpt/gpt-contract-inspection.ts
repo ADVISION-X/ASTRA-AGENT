@@ -255,10 +255,10 @@ const inspectChildDenominator = (
   inspectChildDirectories(context, directories, findings, finding);
   inspectHandlerRegistryProjection(context, ids, directories, findings, finding);
   const actualProfiles = profileDenominator(contract);
-  const expectedProfiles = { DOM_OBSERVATION: 3, PROVIDER_EFFECT_ONCE: 1, TARGET_LOCAL_MUTATION: 11 };
+  const expectedProfiles = { DOM_OBSERVATION: 3, PROVIDER_EFFECT_ONCE: 1, TARGET_LOCAL_MUTATION: 10 };
   if (JSON.stringify(actualProfiles) !== JSON.stringify(expectedProfiles)) findings.push(finding(
     "gpt/exact-child-profile-denominator", CONTRACT_PATH,
-    `GPT Child profiles must be exactly 3/1/11; found ${JSON.stringify(actualProfiles)}.`,
+    `GPT Child profiles must be exactly 3/1/10; found ${JSON.stringify(actualProfiles)}.`,
   ));
   return ids;
 };
@@ -343,9 +343,10 @@ const CONTRACT_V6_CHILDREN = new Set([
   "checkpoint_gpt_generated_image", "checkpoint_gpt_text_response", "submit_exact_gpt_turn_once",
 ]);
 const CONTRACT_V4_CHILDREN = new Set([
-  "prepare_clean_gpt_chat", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2", "write_exact_gpt_prompt",
+  "open_gpt_model_selector_v2", "select_exact_gpt_model_v2", "write_exact_gpt_prompt",
   "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile",
 ]);
+const CONTRACT_V5_CHILDREN = new Set(["prepare_clean_gpt_chat"]);
 const CONTRACT_V3_CHILDREN = new Set([
   ...PROFILE_CONSUMERS, "reconcile_gpt_attachment_set", "open_gpt_attachment_control",
   "attach_approved_gpt_files_once",
@@ -353,6 +354,7 @@ const CONTRACT_V3_CHILDREN = new Set([
 
 const expectedContractVersion = (id: string): string => {
   if (CONTRACT_V6_CHILDREN.has(id)) return "6";
+  if (CONTRACT_V5_CHILDREN.has(id)) return "5";
   if (CONTRACT_V4_CHILDREN.has(id)) return "4";
   return CONTRACT_V3_CHILDREN.has(id) ? "3" : "2";
 };

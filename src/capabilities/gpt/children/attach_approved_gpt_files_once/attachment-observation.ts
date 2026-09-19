@@ -87,7 +87,7 @@ export const filesFromIntent = (
   return files;
 };
 
-export const attachmentSetState = async (
+const attachmentSetState = async (
   browser: ReturnType<typeof requireBrowser>,
 ): Promise<AttachmentSetState> => {
   const observation = await readCoherentObservation(browser, [
@@ -177,4 +177,3 @@ export const observeExactAttachmentSet = async (
     }),
   });
 };
-

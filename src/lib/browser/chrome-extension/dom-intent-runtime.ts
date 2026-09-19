@@ -279,16 +279,6 @@ const executeValueIntent = async (
   );
 };
 
-export const executeFillIntent = (
-  debuggerRuntime: ExtensionDebuggerRuntime,
-  target: ExtensionExactTarget,
-  intent: Extract<BrowserDomIntent, { kind: "fill" }>,
-  assertCurrent: CurrentDocumentAssertion,
-  onPhysicalInput?: () => void,
-  allowTransientDomConfirmation = true,
-): Promise<unknown> => executeValueIntent(
-  debuggerRuntime, target, intent, assertCurrent, onPhysicalInput, allowTransientDomConfirmation,
-);
 const executeDocumentReadIntent = (
   debuggerRuntime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
