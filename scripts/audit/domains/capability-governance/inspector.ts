@@ -1,4 +1,4 @@
-import { SyntaxKind, type ImportDeclaration, type Node as MorphNode, type Symbol as MorphSymbol } from "ts-morph";
+import { Node, SyntaxKind, type CallExpression, type ImportDeclaration, type Node as MorphNode, type Symbol as MorphSymbol } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
@@ -34,9 +34,18 @@ const isDeterministicContentJudgeName = (value: string): boolean => {
   return semanticSubject && decision || providerContentHeuristic;
 };
 
+const deterministicContentJudgeCallName = (call: CallExpression): string => {
+  const expression = call.getExpression();
+  return Node.isPropertyAccessExpression(expression) ? expression.getName() : expression.getText();
+};
+
+const isProviderContentDecisionSource = (repoPath: string): boolean => repoPath.startsWith("src/plugins/")
+  || repoPath.startsWith("src/capabilities/gpt/") || repoPath.startsWith("src/lib/browser/");
+
 const deterministicContentJudgeCalls = (project: InspectorContext["project"]) => listActiveSourceFiles(project)
+  .filter((sourceFile) => isProviderContentDecisionSource(getRepoSourcePath(sourceFile)))
   .flatMap((sourceFile) => sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .filter((call) => isDeterministicContentJudgeName(call.getExpression().getText()))
+    .filter((call) => isDeterministicContentJudgeName(deterministicContentJudgeCallName(call)))
     .map((call) => ({ call, repoPath: getRepoSourcePath(sourceFile) })));
 
 const pushMechanicalContentAstFindings = (input: {
@@ -50,8 +59,8 @@ const pushMechanicalContentAstFindings = (input: {
       lawId: input.lawId,
       filePath: repoPath,
       evidenceMode: "static.ast",
-      evidence: call.getExpression().getText(),
-      message: `${repoPath} invokes deterministic content judge ${call.getExpression().getText()}.`,
+      evidence: deterministicContentJudgeCallName(call),
+      message: `${repoPath} invokes deterministic content judge ${deterministicContentJudgeCallName(call)}.`,
     });
   }
 };
@@ -68,8 +77,8 @@ const pushMechanicalContentTypeFindings = (input: {
       lawId: input.lawId,
       filePath: repoPath,
       evidenceMode: "static.types",
-      evidence: `${call.getExpression().getText()}:${resultType}`,
-      message: `${repoPath} types deterministic content judge ${call.getExpression().getText()} as ${resultType}.`,
+      evidence: `${deterministicContentJudgeCallName(call)}:${resultType}`,
+      message: `${repoPath} types deterministic content judge ${deterministicContentJudgeCallName(call)} as ${resultType}.`,
     });
   }
 };
@@ -81,6 +90,7 @@ const pushMechanicalContentDependencyFindings = (input: {
 }): void => {
   for (const sourceFile of listActiveSourceFiles(input.project)) {
     const repoPath = getRepoSourcePath(sourceFile);
+    if (!isProviderContentDecisionSource(repoPath)) continue;
     for (const declaration of sourceFile.getImportDeclarations()) {
       for (const imported of declaration.getNamedImports()) {
         if (!isDeterministicContentJudgeName(imported.getName())) continue;
