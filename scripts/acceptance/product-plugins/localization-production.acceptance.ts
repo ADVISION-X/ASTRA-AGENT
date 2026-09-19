@@ -2,7 +2,13 @@ import { governanceAssert as assert } from "../../audit/shared/governance-exam-a
 import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
 import { productionRoutePolicies } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { hashCanonical, sha256 } from "../../../src/mediator/product-plugin-contract.js";
-import { parseInput, parseSelector, SELECTOR_REASON_CODES } from "../../../src/plugins/localization-production/static-catalog-contract.js";
+import {
+  parseCandidate,
+  parseContext,
+  parseInput,
+  STATIC_CATALOG_FINDING_CODES,
+} from "../../../src/plugins/localization-production/static-catalog-contract.js";
+import { STATIC_CATALOG_PRODUCTION_INSTRUCTION } from "../../../src/plugins/localization-production/static-catalog-flow.js";
 import { buildProductTask, exerciseProductFlow, FIXTURE_HASH, routesForPlugin } from "../product-plugin-test-runtime.js";
 
 const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "localization-production");
@@ -202,10 +208,6 @@ const contextBundle = {
     surface_ref: "fixture:surface",
     surface_source_refs: ["fixture.ts:1"],
     copy_group_id: "fixture.hello",
-    risk_class: "normal",
-    audience: "site_visitor_or_customer",
-    user_action: "read",
-    user_outcome: "understand",
     surrounding_message_ids: [],
     control_role: "text",
     source_text: "<style>@page{size:A4}</style> 你好 {name}",
@@ -217,9 +219,6 @@ const contextBundle = {
     protected_tokens: ["<style>", "{name}", "</style>"],
     max_graphemes: null,
     allow_wrapping: true,
-    safety_owner_refs: [],
-    legal_owner_refs: [],
-    commercial_owner_refs: [],
   }],
 } as const;
 const contextBundleJson = JSON.stringify(contextBundle);
@@ -230,7 +229,7 @@ const staticInput = {
   source_resource_id: "website-fixed-copy-catalog",
   source_version: "fixture-v1",
   source_sha256: FIXTURE_HASH,
-  policy_version: "target-language-review-v4-20260914",
+  policy_version: "target-language-review-v5-20260919",
   expected_message_count: 1,
   context_bundles: [{ batch_id: contextBundle.batch_id, context_bundle_json: contextBundleJson,
     context_bundle_hash: contextBundleHash, message_count: 1 }],
@@ -255,20 +254,22 @@ const alteredBindingJson = JSON.stringify(alteredBindingContext);
 assert.throws(() => parseInput({ ...staticInput, context_bundles: [{ batch_id: contextBundle.batch_id,
   context_bundle_json: alteredBindingJson, context_bundle_hash: sha256(alteredBindingJson), message_count: 1 }] }, staticTask),
 /LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING/u);
-const missingUseContext = JSON.parse(contextBundleJson) as { message_items: Array<Record<string, unknown>> };
-delete missingUseContext.message_items[0]!.user_action;
-const missingUseJson = JSON.stringify(missingUseContext);
-assert.throws(() => parseInput({ ...staticInput, context_bundles: [{ batch_id: contextBundle.batch_id,
-  context_bundle_json: missingUseJson, context_bundle_hash: sha256(missingUseJson), message_count: 1 }] }, staticTask),
-/LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING/u);
-const staticStep = (role: "candidate_a" | "candidate_b" | "selector") => `static-catalog:${hashCanonical({
+const toolWordsSource = "<style>@page{size:A4}</style> AI、AGENT、GPT 与模型不是价值主体 {name}";
+const toolWordsContext = JSON.parse(contextBundleJson) as typeof contextBundle;
+const toolWordsItems = [{ ...toolWordsContext.message_items[0], source_text: toolWordsSource,
+  source_hash: sha256(toolWordsSource) }];
+const toolWordsJson = JSON.stringify({ ...toolWordsContext, message_items: toolWordsItems });
+assert.doesNotThrow(() => parseInput({ ...staticInput, context_bundles: [{ batch_id: contextBundle.batch_id,
+  context_bundle_json: toolWordsJson, context_bundle_hash: sha256(toolWordsJson), message_count: 1 }] }, staticTask),
+"deterministic parsing must not infer or reject a tool role from natural-language keywords");
+const staticStep = () => `static-catalog:${hashCanonical({
   source_resource_id: staticInput.source_resource_id,
   source_version: staticInput.source_version,
   source_sha256: staticInput.source_sha256,
   policy_version: staticInput.policy_version,
   authorization_ref: staticTask.business_identity.authorization_ref,
   message_ids: contextBundle.message_items.map((item) => item.message_id),
-  role,
+  role: "production",
 }).slice(7)}`;
 const staticLocales = ["zh-HK", "zh-TW", "en-US", "ja-JP", "ko-KR"] as const;
 const staticRuns = [];
@@ -290,29 +291,25 @@ for (const locale of staticLocales) {
   }
   staticRuns.push(await exerciseProductFlow(plugin, {
     task: localeTask, materialContents: { static_catalog_input: localeInput }, output: {},
-    expectedSessionCount: 3,
-    checkpointOutput: (call) => call.productStepId === staticStep("selector") ? {
-      schema_version: "target-language-selector-output.v1", locale, pass: "first",
-      selections: [{ message_id: "fixture.hello", selection: "identical",
-        reason_code: "identical-byte-match" }],
-    } : {
+    expectedSessionCount: 1,
+    checkpointOutput: () => ({
       schema_version: "target-language-candidate.v1", locale,
       context_bundle_hash: localeContextHash,
       items: [{ message_id: "fixture.hello", text: "<style>@page{size:A4}</style> Hello {name}", finding_codes: [] }],
-    },
+    }),
   }));
 }
 const staticRun = staticRuns[2]!;
-assert.equal(staticRuns[0]!.calls.filter((call) => call.child === "prepare_clean_gpt_chat").length, 3,
-  "the zh-HK root must create exactly one fresh conversation per role");
+assert.equal(staticRuns[0]!.calls.filter((call) => call.child === "prepare_clean_gpt_chat").length, 1,
+  "the zh-HK cohort root must create exactly one production conversation");
 assert.equal(staticRuns.slice(1).flatMap((run) => run.calls)
   .some((call) => call.child === "prepare_clean_gpt_chat"), false,
 "direct-parent locales must continue the exact role conversations without preparing fresh chats");
-assert.equal(staticRuns.reduce((count, run) => count + run.physicalSubmitDispatches, 0), 15);
+assert.equal(staticRuns.reduce((count, run) => count + run.physicalSubmitDispatches, 0), 5);
 assert.equal(new Set(staticRuns.flatMap((run) => run.calls
   .filter((call) => call.child === "submit_exact_gpt_turn_once")
-  .map((call) => call.productStepId))).size, 3,
-"five locale tasks must preserve exactly three locale-neutral cohort-role steps");
+  .map((call) => call.productStepId))).size, 1,
+"five locale tasks must preserve one locale-neutral cohort production step");
 const staticReasoningCalls = staticRun.calls.filter(
   (call) => call.child === "ensure_gpt_reasoning_requirement",
 );
@@ -322,37 +319,41 @@ assert.deepEqual(staticReasoningCalls.map((call) => ({
   reasoningRequirement: call.input.profile.reasoningRequirement,
 })), [
   {
-    productStepId: staticStep("candidate_a"),
-    profileRef: "localization-production:static-catalog:candidate-a:pro-standard",
+    productStepId: staticStep(),
+    profileRef: "localization-production:static-catalog:production:pro-standard",
     reasoningRequirement: {
       selectionPolicy: "exact-or-observed-maximum",
       requestedTier: "pro_standard",
     },
   },
-  {
-    productStepId: staticStep("candidate_b"),
-    profileRef: "localization-production:static-catalog:candidate-b:high",
-    reasoningRequirement: { selectionPolicy: "exact", requestedTier: "high" },
-  },
-  {
-    productStepId: staticStep("selector"),
-    profileRef: "localization-production:static-catalog:selector:high",
-    reasoningRequirement: { selectionPolicy: "exact", requestedTier: "high" },
-  },
 ]);
-assert.equal(staticRun.physicalSubmitDispatches, 3);
-const selectorWrite = staticRun.calls.find((call) => call.child === "write_exact_gpt_prompt"
-  && call.productStepId === staticStep("selector"));
-assert(selectorWrite?.child === "write_exact_gpt_prompt");
-assert.match(String(selectorWrite.input.prompt), new RegExp(JSON.stringify(SELECTOR_REASON_CODES).replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"));
-assert.match(String(selectorWrite.input.prompt), /来源、事实边界、核验依据、当代用途与工具从属位置/u);
-const candidateWrite = staticRun.calls.find((call) => call.child === "write_exact_gpt_prompt"
-  && call.productStepId === staticStep("candidate_a"));
-assert(candidateWrite?.child === "write_exact_gpt_prompt");
-assert.match(String(candidateWrite.input.prompt), /PUBLIC_VALUE_SOURCE_ROLE_LOST.*PUBLIC_VALUE_TOOL_ROLE_PROMOTED/u);
-assert.throws(() => parseSelector({ schema_version: "target-language-selector-output.v1", locale: "en-US", pass: "first",
-  selections: [{ message_id: "fixture.hello", selection: "option_1", reason_code: "fidelity" }] }, contextBundle as never,
-{ first_pass_candidates: [{ blind_label: "option_1" }, { blind_label: "option_2" }] } as never), /LOCALIZATION_STATIC_SELECTOR_SELECTION_INVALID/u);
+assert.equal(staticRun.physicalSubmitDispatches, 1);
+const productionWrite = staticRun.calls.find((call) => call.child === "write_exact_gpt_prompt"
+  && call.productStepId === staticStep());
+assert(productionWrite?.child === "write_exact_gpt_prompt");
+assert.match(String(productionWrite.input.prompt), /返本溯源，古为今用/u);
+assert.match(String(productionWrite.input.prompt), new RegExp(STATIC_CATALOG_FINDING_CODES.join(".*"), "u"));
+assert.equal(sha256(STATIC_CATALOG_PRODUCTION_INSTRUCTION),
+  "sha256:8ec9793c62e88e4f937a154e7aff9e697a89912870f13aa8f1420497155ab79d");
+const parsedStaticInput = parseInput(staticInput, staticTask);
+const parsedStaticContext = parseContext(parsedStaticInput.context_bundles[0], parsedStaticInput);
+const candidate = (finding_codes: readonly string[], text: string = contextBundle.message_items[0].source_text) => ({
+  schema_version: "target-language-candidate.v1", locale: "en-US", context_bundle_hash: contextBundleHash,
+  items: [{ message_id: "fixture.hello", text, finding_codes }],
+}) as const;
+assert.throws(() => parseCandidate(candidate(["UNKNOWN_FINDING"]), parsedStaticContext, contextBundleHash),
+  /LOCALIZATION_STATIC_CANDIDATE_FINDINGS_INVALID/u);
+assert.throws(() => parseCandidate(candidate(["SOURCE_AMBIGUOUS", "UNTRUSTED_INSTRUCTION_CONFLICT"]),
+  parsedStaticContext, contextBundleHash), /LOCALIZATION_STATIC_CANDIDATE_FINDINGS_INVALID/u);
+assert.throws(() => parseCandidate(candidate(["SOURCE_AMBIGUOUS"], "translated"), parsedStaticContext,
+  contextBundleHash), /LOCALIZATION_STATIC_CANDIDATE_FINDING_FALLBACK_INVALID/u);
+assert.deepEqual(parseCandidate(candidate(["SOURCE_AMBIGUOUS"]), parsedStaticContext, contextBundleHash).items,
+  candidate(["SOURCE_AMBIGUOUS"]).items);
+const unrestrictedLanguageContext = { ...parsedStaticContext, message_items: [{
+  ...parsedStaticContext.message_items[0]!, max_graphemes: 1,
+}] };
+assert.doesNotThrow(() => parseCandidate(candidate([], "<style>@page{size:A4}</style> Hello, world {name}"),
+  unrestrictedLanguageContext, contextBundleHash));
 const staticPayload = staticRun.completed.payload as Readonly<Record<string, unknown>>;
 assert.equal(staticPayload.schema_version, "localization-static-catalog-result.v2");
 assert.equal(staticPayload.decision, "production_approved");

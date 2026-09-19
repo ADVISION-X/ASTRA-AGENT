@@ -7,29 +7,34 @@ import { executionFailure } from "../../lib/execution-failure.js";
 
 const TARGET_LOCALES = new Set(["zh-HK", "zh-TW", "en-US", "ja-JP", "ko-KR"]);
 const HASH = /^sha256:[a-f0-9]{64}$/u;
-const STATIC_POLICY_VERSION = "target-language-review-v4-20260914";
+const STATIC_POLICY_VERSION = "target-language-review-v5-20260919";
 const PUBLIC_VALUE_AUTHORITY_REFS = ["LAW-PROJECT-GOVERNANCE-010-V1", "LAW-USER-VALUE-INTERFACE-001-V4"] as const;
 const PUBLIC_VALUE_AUTHORITY_HASHES = [
   "sha256:79f430599798e5bb10d73dd70cd32dfa1b4254709a99f32c363e82b06679fbd3",
   "sha256:b9e9f7f3af6fc703577c07906e1c096bb091995d29f3356af44b976258b0d6f1",
 ] as const;
-export const SELECTOR_REASON_CODES = Object.freeze({
-  blind_label: Object.freeze(["meaning-and-action-preserved", "candidate-quality-preferred"]), identical: Object.freeze(["identical-byte-match"]),
-  blocked: Object.freeze(["blocking-finding"]),
-} as const);
+
+export const STATIC_CATALOG_FINDING_CODES = Object.freeze([
+  "UNTRUSTED_INSTRUCTION_CONFLICT",
+  "SOURCE_AMBIGUOUS",
+  "OWNER_FACT_UNPROVEN_OR_CONFLICT",
+  "TERMINOLOGY_CONFLICT",
+  "FORMAT_CONSTRAINT_UNSATISFIED",
+  "MEANING_OR_ACTION_CHANGED",
+  "FACT_CERTAINTY_CHANGED",
+  "EVIDENCE_ROLE_LOST",
+  "PRESENT_USE_LOST",
+  "TOOL_ROLE_PROMOTED",
+  "PLACEHOLDER_OR_TOKEN_RISK",
+] as const);
 
 type TargetLocale = "zh-HK" | "zh-TW" | "en-US" | "ja-JP" | "ko-KR";
-export type CandidateRole = "candidate_a" | "candidate_b";
-export type FormalSelection = CandidateRole | "identical" | "blocked";
 
 interface ContextItem {
   readonly message_id: string;
   readonly semantic_owner: string;
   readonly surface_ref: string;
   readonly surface_source_refs: readonly string[];
-  readonly audience: string;
-  readonly user_action: string;
-  readonly user_outcome: string;
   readonly source_text: string;
   readonly source_hash: ProductionHash;
   readonly parameter_schema: readonly string[];
@@ -83,7 +88,7 @@ export interface StaticCatalogInput {
   readonly source_sha256: ProductionHash;
   readonly policy_version: string;
   readonly expected_message_count: number;
-  readonly context_bundles: readonly StaticCohort[];
+  readonly context_bundles: readonly [StaticCohort];
 }
 
 export interface CandidateItem {
@@ -97,39 +102,6 @@ export interface CandidatePayload {
   readonly locale: TargetLocale;
   readonly context_bundle_hash: ProductionHash;
   readonly items: readonly CandidateItem[];
-}
-
-export interface CandidateReceipt {
-  readonly role: CandidateRole;
-  readonly context_bundle_hash: ProductionHash;
-  readonly payload_json: string;
-  readonly payload_hash: ProductionHash;
-}
-
-export interface BlindMappingItem {
-  readonly blind_label: string;
-  readonly candidate_role: CandidateRole;
-  readonly candidate_payload_hash: ProductionHash;
-}
-
-export interface BlindMapping {
-  readonly schema_version: "target-language-blind-mapping.v1";
-  readonly locale: TargetLocale;
-  readonly context_bundle_hash: ProductionHash;
-  readonly first_pass_candidates: readonly [BlindMappingItem, BlindMappingItem];
-  readonly nonce_ref: string;
-}
-
-export interface SelectorOutput {
-  readonly schema_version: "target-language-selector-output.v1";
-  readonly locale: TargetLocale;
-  readonly pass: "first";
-  readonly selections: readonly Readonly<{ message_id: string; selection: string; reason_code: string }>[];
-}
-
-export function selectorReasonAllowed(selection: string, reason: string, labels: ReadonlySet<string>): boolean {
-  const kind = labels.has(selection) ? "blind_label" : selection === "identical" || selection === "blocked" ? selection : null;
-  return kind !== null && SELECTOR_REASON_CODES[kind].some((code) => code === reason);
 }
 
 export function fail(code: string): never {
@@ -161,9 +133,6 @@ function stringArray(value: unknown, code: string): readonly string[] {
 }
 
 const sortedUnique = (values: readonly string[]): readonly string[] => [...new Set(values)].sort();
-const toolRole = (items: readonly ContextItem[]): PublicValueBinding["tool_role"] =>
-  items.some((item) => /\b(?:AI|AGENT|GPT|Provider|Browser|Runtime)\b|人工智能|模型/iu.test(item.source_text))
-    ? "approved_disclosure_only" : "not_present";
 const canonicalApprovalRef = (sourceCatalogHash: ProductionHash): string =>
   `content/zh-CN/locales/messages.json#production-approved-${sourceCatalogHash}`;
 
@@ -176,36 +145,20 @@ export function sameStrings(left: readonly string[], right: readonly string[]): 
 }
 
 function templateParameterNames(value: string): readonly string[] {
-  return [...value.matchAll(/\{([A-Za-z0-9_.-]+)\}/gu)]
-    .map((match) => match[1]!)
-    .sort();
+  return [...value.matchAll(/\{([A-Za-z0-9_.-]+)\}/gu)].map((match) => match[1]!).sort();
 }
 
 function protectedOccurrenceCount(value: string, token: string): number {
   return token ? value.split(token).length - 1 : 0;
 }
 
-function assertPunctuation(locale: TargetLocale, value: string, protectedTokens: readonly string[]): void {
-  if (!TARGET_LOCALES.has(locale) || !["zh-HK", "zh-TW", "ja-JP"].includes(locale)) return;
-  const cjk = "\\p{Script=Han}\\p{Script=Hiragana}\\p{Script=Katakana}";
-  const text = protectedTokens.reduce((current, token) => current.split(token).join(""), value);
-  if (/\.\.\./u.test(text) || new RegExp(`[${cjk}][,;!?](?=[${cjk}]|$)`, "u").test(text)) {
-    fail("LOCALIZATION_STATIC_CANDIDATE_PUNCTUATION_INVALID");
-  }
-}
-
-function assertCandidateText(context: ContextItem, locale: TargetLocale, text: string): void {
+function assertCandidateText(context: ContextItem, _locale: TargetLocale, text: string): void {
   const schema = [...context.parameter_schema].sort();
   if (!sameStrings(templateParameterNames(text), schema)
     || context.protected_tokens.some((token) =>
       protectedOccurrenceCount(text, token) !== protectedOccurrenceCount(context.source_text, token))) {
     fail("LOCALIZATION_STATIC_CANDIDATE_MECHANICS_INVALID");
   }
-  if (context.max_graphemes !== null
-    && [...new Intl.Segmenter(locale, { granularity: "grapheme" }).segment(text)].length > context.max_graphemes) {
-    fail("LOCALIZATION_STATIC_CANDIDATE_LENGTH_INVALID");
-  }
-  assertPunctuation(locale, text, context.protected_tokens);
 }
 
 function parseContextItem(value: unknown): ContextItem {
@@ -229,9 +182,6 @@ function parseContextItem(value: unknown): ContextItem {
     semantic_owner: stringValue(candidate.semantic_owner, "LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING"),
     surface_ref: stringValue(candidate.surface_ref, "LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING"),
     surface_source_refs: surfaceSourceRefs,
-    audience: stringValue(candidate.audience, "LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING"),
-    user_action: stringValue(candidate.user_action, "LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING"),
-    user_outcome: stringValue(candidate.user_outcome, "LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING"),
     source_text: sourceText, source_hash: sourceHash, parameter_schema: parameterSchema, parameter_types: parameterTypes,
     protected_tokens: stringArray(candidate.protected_tokens, "LOCALIZATION_STATIC_PROTECTED_TOKEN_INVALID"),
     max_graphemes: candidate.max_graphemes as number | null, allow_wrapping: candidate.allow_wrapping } as ContextItem;
@@ -251,7 +201,9 @@ function parsePublicValueBinding(value: unknown, items: readonly ContextItem[], 
     || canonicalRef !== canonicalApprovalRef(sourceCatalogHash)
     || !sameStrings(sourceOwnerRefs, sortedUnique(items.map((item) => item.semantic_owner)))
     || !sameStrings(visibleEvidenceRefs, sortedUnique(items.map((item) => item.surface_ref)))
-    || binding.tool_role !== toolRole(items)) fail("LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING");
+    || !["not_present", "approved_disclosure_only"].includes(String(binding.tool_role))) {
+    fail("LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING");
+  }
   return { schema_version: "target-language-public-value-binding.v1", authority_refs: authorityRefs,
     authority_hashes: authorityHashes, canonical_approval_ref: canonicalRef, source_owner_refs: sourceOwnerRefs,
     visible_evidence_refs: visibleEvidenceRefs, tool_role: binding.tool_role as PublicValueBinding["tool_role"] };
@@ -275,16 +227,11 @@ export function parseContext(cohort: StaticCohort, input: StaticCatalogInput): C
     if (typeof pair[0] !== "string" || sha256(pair[0]) !== pair[1]) fail("LOCALIZATION_STATIC_POLICY_HASH_INVALID");
   }
   const items = rawItems.map(parseContextItem);
-  const ids = items.map((item) => item.message_id);
-  if (new Set(ids).size !== ids.length) fail("LOCALIZATION_STATIC_MESSAGE_ID_INVALID");
-  const sourceCatalogHash=hashValue(raw.source_catalog_hash, "LOCALIZATION_STATIC_SOURCE_HASH_INVALID");
-  const binding = parsePublicValueBinding(raw.public_value_binding, items, sourceCatalogHash);
+  if (new Set(items.map((item) => item.message_id)).size !== items.length) fail("LOCALIZATION_STATIC_MESSAGE_ID_INVALID");
+  const sourceCatalogHash = hashValue(raw.source_catalog_hash, "LOCALIZATION_STATIC_SOURCE_HASH_INVALID");
   return {
-    schema_version: "target-language-context-bundle.v2",
-    message_syntax: "typed-placeholder-v1",
-    review_kind: "target_language_translation",
-    locale: input.target_locale,
-    source_locale: "zh-CN",
+    schema_version: "target-language-context-bundle.v2", message_syntax: "typed-placeholder-v1",
+    review_kind: "target_language_translation", locale: input.target_locale, source_locale: "zh-CN",
     source_catalog_hash: sourceCatalogHash,
     batch_id: stringValue(raw.batch_id, "LOCALIZATION_STATIC_BATCH_ID_INVALID"),
     expression_policy_hash: hashValue(raw.expression_policy_hash, "LOCALIZATION_STATIC_POLICY_HASH_INVALID"),
@@ -293,7 +240,7 @@ export function parseContext(cohort: StaticCohort, input: StaticCatalogInput): C
     terminology_json: stringValue(raw.terminology_json, "LOCALIZATION_STATIC_POLICY_HASH_INVALID"),
     format_policy_hash: hashValue(raw.format_policy_hash, "LOCALIZATION_STATIC_POLICY_HASH_INVALID"),
     format_policy_source: stringValue(raw.format_policy_source, "LOCALIZATION_STATIC_POLICY_HASH_INVALID"),
-    public_value_binding: binding,
+    public_value_binding: parsePublicValueBinding(raw.public_value_binding, items, sourceCatalogHash),
     message_items: items,
   };
 }
@@ -307,33 +254,36 @@ export function parseInput(value: unknown, task: WebsiteAgentTask): StaticCatalo
     || input.source_resource_id !== "website-fixed-copy-catalog"
     || input.policy_version !== STATIC_POLICY_VERSION
     || !Number.isSafeInteger(input.expected_message_count) || Number(input.expected_message_count) < 1
-    || !Array.isArray(input.context_bundles) || input.context_bundles.length < 1) {
+    || !Array.isArray(input.context_bundles) || input.context_bundles.length !== 1) {
     fail("LOCALIZATION_STATIC_INPUT_IDENTITY_INVALID");
   }
   for (const key of ["target_locale", "source_resource_id", "source_version", "source_sha256", "policy_version"] as const) {
     if (input[key] !== task.parameters[key]) fail("LOCALIZATION_STATIC_TASK_INPUT_MISMATCH");
   }
-  const cohorts = input.context_bundles.map((value) => {
-    const cohort = objectValue(value, "LOCALIZATION_STATIC_COHORT_INVALID");
-    exact(cohort, ["batch_id", "context_bundle_json", "context_bundle_hash", "message_count"], "LOCALIZATION_STATIC_COHORT_FIELDS_INVALID");
-    if (!Number.isSafeInteger(cohort.message_count) || Number(cohort.message_count) < 1) fail("LOCALIZATION_STATIC_COHORT_COUNT_INVALID");
-    return { batch_id: stringValue(cohort.batch_id, "LOCALIZATION_STATIC_BATCH_ID_INVALID"),
-      context_bundle_json: stringValue(cohort.context_bundle_json, "LOCALIZATION_STATIC_CONTEXT_JSON_INVALID"),
-      context_bundle_hash: hashValue(cohort.context_bundle_hash, "LOCALIZATION_STATIC_CONTEXT_HASH_INVALID"),
-      message_count: Number(cohort.message_count) } as StaticCohort;
-  });
-  const parsed: StaticCatalogInput = { schema_version: "localization-static-catalog-input.v1",
+  const rawCohort = objectValue(input.context_bundles[0], "LOCALIZATION_STATIC_COHORT_INVALID");
+  exact(rawCohort, ["batch_id", "context_bundle_json", "context_bundle_hash", "message_count"],
+    "LOCALIZATION_STATIC_COHORT_FIELDS_INVALID");
+  if (!Number.isSafeInteger(rawCohort.message_count) || Number(rawCohort.message_count) < 1) {
+    fail("LOCALIZATION_STATIC_COHORT_COUNT_INVALID");
+  }
+  const cohort: StaticCohort = {
+    batch_id: stringValue(rawCohort.batch_id, "LOCALIZATION_STATIC_BATCH_ID_INVALID"),
+    context_bundle_json: stringValue(rawCohort.context_bundle_json, "LOCALIZATION_STATIC_CONTEXT_JSON_INVALID"),
+    context_bundle_hash: hashValue(rawCohort.context_bundle_hash, "LOCALIZATION_STATIC_CONTEXT_HASH_INVALID"),
+    message_count: Number(rawCohort.message_count),
+  };
+  const parsed: StaticCatalogInput = {
+    schema_version: "localization-static-catalog-input.v1",
     target_locale: input.target_locale as TargetLocale,
     source_resource_id: "website-fixed-copy-catalog",
     source_sha256: hashValue(input.source_sha256, "LOCALIZATION_STATIC_SOURCE_HASH_INVALID"),
     source_version: stringValue(input.source_version, "LOCALIZATION_STATIC_SOURCE_VERSION_INVALID"),
     policy_version: stringValue(input.policy_version, "LOCALIZATION_STATIC_POLICY_VERSION_INVALID"),
-    expected_message_count: Number(input.expected_message_count), context_bundles: cohorts };
-  const batches = cohorts.map((cohort) => cohort.batch_id);
-  const contexts = cohorts.map((cohort) => parseContext(cohort, parsed));
-  const ids = contexts.flatMap((context) => context.message_items.map((item) => item.message_id));
-  if (new Set(batches).size !== batches.length || new Set(ids).size !== ids.length
-    || ids.length !== parsed.expected_message_count) fail("LOCALIZATION_STATIC_INPUT_DENOMINATOR_INVALID");
+    expected_message_count: Number(input.expected_message_count),
+    context_bundles: [cohort],
+  };
+  const context = parseContext(cohort, parsed);
+  if (context.message_items.length !== parsed.expected_message_count) fail("LOCALIZATION_STATIC_INPUT_DENOMINATOR_INVALID");
   return parsed;
 }
 
@@ -347,38 +297,29 @@ export function parseCandidate(
     || value.context_bundle_hash !== contextHash || !Array.isArray(value.items)) {
     fail("LOCALIZATION_STATIC_CANDIDATE_IDENTITY_INVALID");
   }
-  const items = value.items.map((raw) => {
+  const allowed = new Map<string, number>(STATIC_CATALOG_FINDING_CODES.map((code, index) => [code, index]));
+  const items = value.items.map((raw, index) => {
     const item = objectValue(raw, "LOCALIZATION_STATIC_CANDIDATE_ITEM_INVALID");
     exact(item, ["message_id", "text", "finding_codes"], "LOCALIZATION_STATIC_CANDIDATE_ITEM_FIELDS_INVALID");
+    const findings = stringArray(item.finding_codes, "LOCALIZATION_STATIC_CANDIDATE_FINDINGS_INVALID");
+    const positions = findings.map((code) => allowed.get(code));
+    if (positions.some((position) => position === undefined)
+      || new Set(findings).size !== findings.length
+      || positions.some((position, findingIndex) => findingIndex > 0 && position! <= positions[findingIndex - 1]!)) {
+      fail("LOCALIZATION_STATIC_CANDIDATE_FINDINGS_INVALID");
+    }
+    const text = stringValue(item.text, "LOCALIZATION_STATIC_CANDIDATE_ITEM_INVALID");
+    const source = context.message_items[index];
+    if (!source || findings.length > 0 && text !== source.source_text) {
+      fail("LOCALIZATION_STATIC_CANDIDATE_FINDING_FALLBACK_INVALID");
+    }
     return { message_id: stringValue(item.message_id, "LOCALIZATION_STATIC_CANDIDATE_ITEM_INVALID"),
-      text: stringValue(item.text, "LOCALIZATION_STATIC_CANDIDATE_ITEM_INVALID"),
-      finding_codes: stringArray(item.finding_codes, "LOCALIZATION_STATIC_CANDIDATE_FINDINGS_INVALID") } as CandidateItem;
+      text, finding_codes: findings } as CandidateItem;
   });
-  const expectedIds = context.message_items.map((item) => item.message_id);
-  if (!sameStrings(items.map((item) => item.message_id), expectedIds)) fail("LOCALIZATION_STATIC_CANDIDATE_DENOMINATOR_INVALID");
+  if (!sameStrings(items.map((item) => item.message_id), context.message_items.map((item) => item.message_id))) {
+    fail("LOCALIZATION_STATIC_CANDIDATE_DENOMINATOR_INVALID");
+  }
   items.forEach((item, index) => assertCandidateText(context.message_items[index]!, context.locale, item.text));
   return { schema_version: "target-language-candidate.v1", locale: context.locale,
     context_bundle_hash: contextHash, items };
-}
-
-export function parseSelector(value: Readonly<Record<string, unknown>>, context: ContextBundle,
-  mapping: BlindMapping): SelectorOutput {
-  exact(value, ["schema_version", "locale", "pass", "selections"], "LOCALIZATION_STATIC_SELECTOR_FIELDS_INVALID");
-  if (value.schema_version !== "target-language-selector-output.v1" || value.locale !== context.locale
-    || value.pass !== "first" || !Array.isArray(value.selections)) fail("LOCALIZATION_STATIC_SELECTOR_IDENTITY_INVALID");
-  const labels = new Set(mapping.first_pass_candidates.map((item) => item.blind_label));
-  const selections = value.selections.map((raw) => {
-    const item = objectValue(raw, "LOCALIZATION_STATIC_SELECTOR_ITEM_INVALID");
-    exact(item, ["message_id", "selection", "reason_code"], "LOCALIZATION_STATIC_SELECTOR_ITEM_FIELDS_INVALID");
-    const selection = stringValue(item.selection, "LOCALIZATION_STATIC_SELECTOR_SELECTION_INVALID");
-    const reason = stringValue(item.reason_code, "LOCALIZATION_STATIC_SELECTOR_REASON_INVALID");
-    if (!selectorReasonAllowed(selection, reason, labels)) fail("LOCALIZATION_STATIC_SELECTOR_SELECTION_INVALID");
-    return { message_id: stringValue(item.message_id, "LOCALIZATION_STATIC_SELECTOR_ITEM_INVALID"),
-      selection, reason_code: reason };
-  });
-  if (!sameStrings(selections.map((item) => item.message_id), context.message_items.map((item) => item.message_id))) {
-    fail("LOCALIZATION_STATIC_SELECTOR_DENOMINATOR_INVALID");
-  }
-  return { schema_version: "target-language-selector-output.v1", locale: context.locale,
-    pass: "first", selections };
 }
