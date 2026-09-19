@@ -1,6 +1,6 @@
-import type { ImportDeclaration, Node as MorphNode, Symbol as MorphSymbol } from "ts-morph";
+import { SyntaxKind, type ImportDeclaration, type Node as MorphNode, type Symbol as MorphSymbol } from "ts-morph";
 
-import { createFinding, selectLawId } from "../../shared/finding-utils.js";
+import { createFinding } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
 import {
   buildCapabilityRoot,
@@ -18,6 +18,84 @@ import { pushFacadePurityFindings } from "./components/capability-facade-purity.
 import { inspectCapabilityFacadeTypes } from "./components/capability-facade-types.js";
 import { isOwnerlessGenericTarget } from "./components/capability-path-boundary.js";
 type CapabilityGroupFindingInput = Omit<Parameters<typeof createFinding>[0], "evidenceMode"> & { evidenceMode?: string };
+
+const MECHANICAL_CONTENT_LAW_ID = "LAW-CAPABILITY-GOVERNANCE-002-V1";
+
+const isDeterministicContentJudgeName = (value: string): boolean => {
+  const normalized = value.toLocaleLowerCase("en-US");
+  const semanticSubject = ["semantic", "quality", "professional", "faithful", "strength", "keyword", "similarity", "score"]
+    .some((term) => normalized.includes(term));
+  const decision = ["assert", "validate", "verify", "ensure", "check", "guard", "gate", "judge", "evaluate", "review", "reject", "block", "retry"]
+    .some((term) => normalized.includes(term));
+  const providerContentHeuristic = ["answer", "response", "output", "content", "result"]
+    .some((term) => normalized.includes(term))
+    && ["keyword", "regex", "length", "score", "similarity", "strength"]
+      .some((term) => normalized.includes(term));
+  return semanticSubject && decision || providerContentHeuristic;
+};
+
+const deterministicContentJudgeCalls = (project: InspectorContext["project"]) => listActiveSourceFiles(project)
+  .flatMap((sourceFile) => sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((call) => isDeterministicContentJudgeName(call.getExpression().getText()))
+    .map((call) => ({ call, repoPath: getRepoSourcePath(sourceFile) })));
+
+const pushMechanicalContentAstFindings = (input: {
+  lawId: string;
+  project: InspectorContext["project"];
+  pushFinding: ReturnType<typeof createDedupedFindingPusher>;
+}): void => {
+  for (const { call, repoPath } of deterministicContentJudgeCalls(input.project)) {
+    input.pushFinding({
+      checkId: "capability-governance/deterministic-content-judge",
+      lawId: input.lawId,
+      filePath: repoPath,
+      evidenceMode: "static.ast",
+      evidence: call.getExpression().getText(),
+      message: `${repoPath} invokes deterministic content judge ${call.getExpression().getText()}.`,
+    });
+  }
+};
+
+const pushMechanicalContentTypeFindings = (input: {
+  lawId: string;
+  project: InspectorContext["project"];
+  pushFinding: ReturnType<typeof createDedupedFindingPusher>;
+}): void => {
+  for (const { call, repoPath } of deterministicContentJudgeCalls(input.project)) {
+    const resultType = call.getType().getText(call);
+    input.pushFinding({
+      checkId: "capability-governance/deterministic-content-judge-type",
+      lawId: input.lawId,
+      filePath: repoPath,
+      evidenceMode: "static.types",
+      evidence: `${call.getExpression().getText()}:${resultType}`,
+      message: `${repoPath} types deterministic content judge ${call.getExpression().getText()} as ${resultType}.`,
+    });
+  }
+};
+
+const pushMechanicalContentDependencyFindings = (input: {
+  lawId: string;
+  project: InspectorContext["project"];
+  pushFinding: ReturnType<typeof createDedupedFindingPusher>;
+}): void => {
+  for (const sourceFile of listActiveSourceFiles(input.project)) {
+    const repoPath = getRepoSourcePath(sourceFile);
+    for (const declaration of sourceFile.getImportDeclarations()) {
+      for (const imported of declaration.getNamedImports()) {
+        if (!isDeterministicContentJudgeName(imported.getName())) continue;
+        input.pushFinding({
+          checkId: "capability-governance/deterministic-content-judge-dependency",
+          lawId: input.lawId,
+          filePath: repoPath,
+          evidenceMode: "static.dependency",
+          evidence: `${declaration.getModuleSpecifierValue()}:${imported.getName()}`,
+          message: `${repoPath} imports deterministic content judge ${imported.getName()}.`,
+        });
+      }
+    }
+  }
+};
 
 const createDedupedFindingPusher = (findings: ReturnType<typeof createFinding>[]) => {
   const findingKeys = new Set<string>();
@@ -412,6 +490,22 @@ export const inspectCapabilityGovernanceProject = (
   const findings: ReturnType<typeof createFinding>[] = [];
   const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
   const pushFinding = createDedupedFindingPusher(findings);
+  if (lawId === MECHANICAL_CONTENT_LAW_ID) {
+    recordStaticCheck({ check: "pushMechanicalContentAstFindings", findings,
+      implementation: pushMechanicalContentAstFindings, lawIds: [lawId], receipts: staticCheckReceipts,
+      run: () => pushMechanicalContentAstFindings({ lawId, project, pushFinding }) });
+    recordStaticCheck({ check: "pushMechanicalContentTypeFindings", findings,
+      implementation: pushMechanicalContentTypeFindings, lawIds: [lawId], observe: observeTypes, receipts: staticCheckReceipts,
+      run: () => pushMechanicalContentTypeFindings({ lawId, project, pushFinding }) });
+    recordStaticCheck({ check: "pushMechanicalContentDependencyFindings", findings,
+      implementation: pushMechanicalContentDependencyFindings, lawIds: [lawId], receipts: staticCheckReceipts,
+      run: () => pushMechanicalContentDependencyFindings({ lawId, project, pushFinding }) });
+    return {
+      findings,
+      inspectedFiles: listActiveSourceFiles(project).map((sourceFile) => getRepoSourcePath(sourceFile)).sort(),
+      staticCheckReceipts,
+    };
+  }
   const scan = recordStaticCheck({ check: "collectCapabilityGovernanceScan", findings,
     implementation: collectCapabilityGovernanceScan, lawIds: [lawId], receipts: staticCheckReceipts, run: () => collectCapabilityGovernanceScan({
     facadeLawId: lawId,
@@ -454,43 +548,59 @@ export const inspectCapabilityGovernanceProject = (
 };
 
 const inspectDomainEvaluation = async (context: InspectorContext): Promise<InspectorEvaluation> => {
-  const lawId = selectLawId(context.planEntry.lawIds, context.selectedLawId);
   const authorityAvailable = context.targetPaths.includes(".github/instructions/agent-rules/基础法案.md")
     && context.targetPaths.includes(".github/instructions/agent-rules/功能法案.md");
-  const evaluation = inspectCapabilityGovernanceProject(
-    context.project, authorityAvailable, lawId, () => observeStaticMode(context, "static.types"),
-  );
+  const lawIds = context.lawRequirements.map((requirement) => requirement.lawId);
+  const evaluations = lawIds.map((lawId) => inspectCapabilityGovernanceProject(
+    context.project,
+    authorityAvailable && lawId !== MECHANICAL_CONTENT_LAW_ID,
+    lawId,
+    () => observeStaticMode(context, "static.types"),
+  ));
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
-    reportedLawIds: context.planEntry.lawIds,
-    findings: evaluation.findings,
+    reportedLawIds: lawIds,
+    findings: evaluations.flatMap((evaluation) => evaluation.findings),
     inspectedFiles: [...context.targetPaths],
-    staticCheckReceipts: evaluation.staticCheckReceipts,
+    staticCheckReceipts: evaluations.flatMap((evaluation) => evaluation.staticCheckReceipts),
   };
 };
 
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = await inspectDomainEvaluation(context);
-  const lawId = selectLawId(evaluation.reportedLawIds, context.selectedLawId);
-  const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-  const checks = (mode: string): string[] => mode === "static.dependency"
-    ? ["pushMissingCapabilityConsumers", "pushMissingFacadeExportConsumers"]
-    : mode === "static.filesystem" ? ["pushMissingCapabilityFacades"]
-      : mode === "static.types" ? ["inspectCapabilityFacadeTypes"]
-        : ["collectCapabilityGovernanceScan"];
-  const clauses = (mode: string): string[] => mode === "static.ast" ? staticClauses(0, 1, 3, 5, 6, 11)
-    : mode === "static.dependency" ? staticForbiddenClauses(2, 4)
-      : mode === "static.types" ? staticForbiddenClauses(0) : staticForbiddenClauses(3);
-  const refs = (mode: string, clauses: string[]) => ({
-    passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks(mode)),
-    refs: staticEvidenceRefs(context, lawId, mode, clauses, evaluation.staticCheckReceipts, checks(mode)),
+  const checks = (lawId: string, mode: string): string[] => lawId === MECHANICAL_CONTENT_LAW_ID
+    ? mode === "static.ast" ? ["pushMechanicalContentAstFindings"]
+      : mode === "static.types" ? ["pushMechanicalContentTypeFindings"]
+        : ["pushMechanicalContentDependencyFindings"]
+    : mode === "static.dependency" ? ["pushMissingCapabilityConsumers", "pushMissingFacadeExportConsumers"]
+      : mode === "static.filesystem" ? ["pushMissingCapabilityFacades"]
+        : mode === "static.types" ? ["inspectCapabilityFacadeTypes"]
+          : ["collectCapabilityGovernanceScan"];
+  const clauses = (lawId: string, mode: string): string[] => lawId === MECHANICAL_CONTENT_LAW_ID
+    ? mode === "static.ast" ? staticClauses(0, 2, 3, 5, 6)
+      : mode === "static.types" ? staticForbiddenClauses(0, 2, 3, 6)
+        : staticForbiddenClauses(1, 4)
+    : mode === "static.ast" ? staticClauses(0, 1, 3, 5, 6, 11)
+      : mode === "static.dependency" ? staticForbiddenClauses(2, 4)
+        : mode === "static.types" ? staticForbiddenClauses(0) : staticForbiddenClauses(3);
+  const refs = (lawId: string, mode: string, assertedClauses: string[]) => ({
+    passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks(lawId, mode)),
+    refs: staticEvidenceRefs(context, lawId, mode, assertedClauses, evaluation.staticCheckReceipts, checks(lawId, mode)),
   });
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
-    lawResults: [{ lawId, assertions: [
-      ...(["static.ast", "static.dependency", "static.filesystem", "static.types"] as const).map((evidenceMode) =>
-        ({ clauses: clauses(evidenceMode), evidenceMode, ...refs(evidenceMode, clauses(evidenceMode)) })),
-    ], findings }], inspectedFiles: evaluation.inspectedFiles,
+    lawResults: evaluation.reportedLawIds.map((lawId) => {
+      const requirement = context.lawRequirements.find((entry) => entry.lawId === lawId)!;
+      return {
+        lawId,
+        assertions: requirement.requiredStaticModes.map((evidenceMode) => {
+          const assertedClauses = clauses(lawId, evidenceMode);
+          return { clauses: assertedClauses, evidenceMode, ...refs(lawId, evidenceMode, assertedClauses) };
+        }),
+        findings: evaluation.findings.filter((finding) => finding.lawId === lawId),
+      };
+    }),
+    inspectedFiles: evaluation.inspectedFiles,
   });
 };

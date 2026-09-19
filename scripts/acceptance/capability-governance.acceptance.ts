@@ -25,6 +25,11 @@ const findingIds = (files: Record<string, string>): Set<string> => new Set(
   inspectCapabilityGovernanceProject(projectWith(files), false).findings.map((finding) => finding.checkId),
 );
 
+const mechanicalContentFindingIds = (files: Record<string, string>): Set<string> => new Set(
+  inspectCapabilityGovernanceProject(projectWith(files), false, "LAW-CAPABILITY-GOVERNANCE-002-V1")
+    .findings.map((finding) => finding.checkId),
+);
+
 assert.ok(findingIds({
   "src/capabilities/demo/index.ts": "export { decideBusinessOutcome } from './business-decision.ts';",
   "src/capabilities/demo/business-decision.ts": "export const decideBusinessOutcome = () => 'PASS';",
@@ -75,6 +80,14 @@ assert.ok(findingIds({
   "src/plugins/demo/index.ts": "import { privateRuntime } from '../../capabilities/demo/runtime/private.ts'; void privateRuntime;",
 }).has("capability-group/missing-public-facade"));
 
+assert.ok(mechanicalContentFindingIds({
+  "src/plugins/demo/content-quality.ts": [
+    "const semanticQualityGate = (value: string): boolean => value.length > 20;",
+    "const providerOutput = 'provider response';",
+    "if (!semanticQualityGate(providerOutput)) throw new Error('CONTENT_QUALITY_REJECTED');",
+  ].join("\n"),
+}).has("capability-governance/deterministic-content-judge"));
+
 const blueprintSource = readFileSync(
   "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md",
   "utf8",
@@ -89,4 +102,9 @@ emitQualityProofObservation({
   lawId: "LAW-CAPABILITY-GOVERNANCE-001-V15", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:10","forbidden:11","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"],
   locator: "acceptance:capability-governance:mutant-matrix",
   observedValue: "seven capability-governance clause mutants rejected by the capability-governance inspector",
+});
+emitQualityProofObservation({
+  lawId: "LAW-CAPABILITY-GOVERNANCE-002-V1", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","summary"],
+  locator: "acceptance:capability-governance:mechanical-content-mutant",
+  observedValue: "deterministic semantic-quality gate mutant rejected by the capability-governance inspector",
 });
