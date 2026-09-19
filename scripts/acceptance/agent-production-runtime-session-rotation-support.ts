@@ -65,7 +65,7 @@ const createSessionFetch = (
   if (url.endsWith("/internal/ai-production/v6/sessions/open")) return successfulJsonResponse({
     session: {
       device_id: "device:atomic-claim", worker_session_id: "worker-session:atomic-claim",
-      worker_session_epoch: 1, control_contract_version: 36,
+      worker_session_epoch: 1, control_contract_version: 37,
     },
     session_credential: credentialFor(1),
   });

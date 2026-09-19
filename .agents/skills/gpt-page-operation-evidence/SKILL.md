@@ -21,7 +21,7 @@ Website 冻结生产任务和资料
 
 - Product Plugin 是步骤、顺序、分支、模型、推理档位、prompt、附件和 continuation 的唯一 Owner。Skill 只读合同、源码与 trace，不实现第二个 Product runner。
 - 页面动作只能由 Codex 通过 `chrome:control-chrome` 执行。禁止增加自动化 Worker、运行时 hook、定时器、后台抓取器或终端 Playwright/CDP。
-- `production-source.mjs` 只离线校验任务、材料字节、Product 合同与已落盘 trace；它没有浏览器能力，不能点击、输入、上传、提交或重跑任务。
+- `production-source.mjs` 只离线校验任务、材料字节、Product 合同、现役 terminal 与 Browser receipt；现役 artifact-only 存储没有逐 Child trace 时它必须输出不完整 source。它没有浏览器能力，不能点击、输入、上传、提交或重跑任务。
 - `chrome-scene-collector.mjs` 只能由当前 Codex 在 Chrome 插件会话中导入，并按一次明确的 Child 调用执行一次采集；它不是 CLI，没有自主选任务、遍历产品、调度或后台运行入口。
 - 禁止合成业务 prompt、合成附件、模拟对话冒充产品覆盖。测试代码可以使用明确标为 test-only 的结构夹具，但测试夹具绝不能进入报告。
 - 不新增第二报告、第二矩阵、第二 selector 系统、DOM 数据库、回放平台、队列、服务或质量裁决。
@@ -64,7 +64,6 @@ node .agents/skills/gpt-page-operation-evidence/scripts/production-source.mjs \
   --repo /Users/nexgen/Documents/AGENT \
   --runtime-db /Users/nexgen/Documents/AGENT/.grasseye-local/production-runtime.sqlite \
   --task-root /Users/nexgen/Documents/AGENT/.grasseye-local/plugin-tasks/production-runtime \
-  --forensics-root /Users/nexgen/Documents/AGENT/.grasseye-local/forensics \
   --browser-db /Users/nexgen/Documents/AGENT/.grasseye-local/browser/browser-mutations.sqlite \
   --job-id exact_production_job_id \
   --attempt-id exact_attempt_id \
@@ -78,21 +77,18 @@ node .agents/skills/gpt-page-operation-evidence/scripts/production-source.mjs \
 - material 目录与 task `material_refs` 文件集合完全相等；
 - 每个文件名、role、ordinal、bytes 和 sha256 精确相等；
 - 本 Skill 的产品流程投影与当前 Product 路由一致；投影不属于 Product 生产合同；
-- forensics trace 每一行都属于同一 job/attempt/plugin，Child、ordinal、exact call identity 与完整性哈希一致；
-- 本工具只消费生产链已经拥有的 `input_hash` 与安全 `page_input_role_hashes`；缺失时标记输入绑定缺口，不得要求生产链为采集工具补字段。存在时，后者只允许含 prompt/response、附件显示名集合、模型、推理要求、会话 URL、turn marker 和 assistant turn identity 的哈希或非敏感枚举；不得保存正文；
-- 已接受生产 attempt 的 durable forensics 是历史实际调用顺序的唯一真相；当前 Product 合同和源码只说明“今天的流程投影”，不得反向淘汰旧 attempt 的真实 trace；
-- Browser receipt 存在时，它的 step/Child/ordinal 必须与同一 exact call 一致，`callId` 只从该真实回执取得；没有回执时写 `null`，不得从手写表补造；
-- Browser receipt 的 `request_hash` 与 forensics `input_hash` 必须相等。旧历史记录若只有 Browser request hash，只能标为 `BROWSER_MUTATION_RECEIPT_ONLY`；没有逐角色输入哈希时不得反推 prompt、附件、profile 或 continuation，也不得成为完整采集；
-- 当前 attempt 的完成分支必须有当前 task 行的 durable `result_json` 哈希回执；指定历史 attempt 时，绝不能借用当前 task 行的 status/result。历史失败只认 `production_attempt_failures(job_id, attempt_id)` 的精确记录，并与该 attempt 最后一条 failed trace 做时间、Child/evidence（记录声明时）关联；没有该 attempt 自己的 durable terminal 就固定为 `PARTIAL/DURABLE_ATTEMPT_TERMINAL_UNAVAILABLE`；
+- 现役 artifact-only forensics 没有逐 Child trace；`actualTrace=[]` 时不可打开 Chrome，报告固定保持 `NOT_CAPTURED/PARTIAL`；
+- 不得从 Product 合同、源码、artifact、Browser receipt 或手写表推断 Child、ordinal、exact call identity、页面输入或调用顺序；
+- 当前 attempt 的完成分支只认当前 task 行的 durable `result_json` 哈希回执；当前失败只认同一 `production_tasks` 行的 immutable `attempt_failure_json`。没有实际 trace 时，它们只能证明 terminal fact，不能构成页面调用证据；
 - source manifest 不含 HEAD、分支或 worktree 绑定。
 
-任一失败都在浏览器前停止：`PRODUCT_INPUT_INCOMPLETE`、`PRODUCT_MATERIAL_BYTE_MISMATCH`、`PRODUCT_FLOW_TRACE_MISMATCH` 或 `PRODUCT_FLOW_CONTRACT_*`。
+任一失败或空 `actualTrace` 都在浏览器前停止：`PRODUCT_INPUT_INCOMPLETE`、`PRODUCT_MATERIAL_BYTE_MISMATCH`、`PRODUCT_FLOW_CONTRACT_*` 或 `PRODUCT_TRACE_UNAVAILABLE`。
 
 ## Codex + Chrome 的采集方式
 
 进入真实 Chrome 前必须读取 `chrome:control-chrome` Skill。Codex 只操作本轮明确绑定的采集标签页；不得接管系统生产标签页或用户其它标签页。Skill 不自动触发 Product，不注册后台监听。
 
-Codex 必须把 source manifest 的 `actualTrace` 当成该生产 attempt 的逐调用采购清单，并读取 Product 现役源码理解每次调用。合同中的阶段拓扑只生成 `flowProjectionStatus/flowProjectionGaps`，不改写历史清单。`exactCallIdentityHash` 标识同一个逻辑调用；同一逻辑调用发生失败后重试时 hash 可能相同，因此每条实际 forensics 记录另有唯一 `traceEntryId`。同一个 Child 在不同步骤、不同 cohort 或同一逻辑调用的不同尝试中重复出现时，必须分别采集，绝不能共用一份 DOM。
+只有 source 已携带现役可验证的非空 `actualTrace` 才可把它作为逐调用采购清单。当前 artifact-only runtime 不产生该清单，因此 Codex 必须停止在 source，不得开启 Chrome 复刻、推断调用或复用旧 scene。
 
 每条调用的页面状态分母由 `actualTrace.resultStatus + mutationOutcome + 已落盘 Browser 观察` 和矩阵共同派生，不能由 mapping 挑选：`confirmed/dispatched` 必须收齐该分支的 pre/post；成功 `no` 只要求 already-satisfied/steady 状态；失败 `no` 且根本未进入 Browser 时状态分母为零，以空 specimen 和 durable failure 明确表示“没有可采 DOM”，不得强造页面证据，也不要求 input↔DOM 匹配。其它调用即使整条未映射，报告也必须保存派生状态清单并逐项报缺口。
 

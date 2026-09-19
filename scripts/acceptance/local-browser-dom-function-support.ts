@@ -1,4 +1,9 @@
+import { runInNewContext } from "node:vm";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
+import type { ExtensionDebuggerRuntime } from
+  "../../src/lib/browser/chrome-extension/debugger-runtime.js";
+import { readExactEditableText } from
+  "../../src/lib/browser/chrome-extension/dom-exact-editable-text.js";
 import { FakeElement, FakeTextNode, RICH_SEMANTIC_TEXT, execute, hash, richSemanticTree }
   from "./local-browser-dom-function-fixture.js";
 export const exerciseCapturedCoherentObservationPointerFunction = (source: string): void => {
@@ -151,6 +156,84 @@ const exerciseComposerExactHashes = async (source: string): Promise<void> => {
     "rendered semantic text must remain distinct from the Composer current-value projection");
   assert.equal(exactResult.queries[2]?.matches[0]?.semanticTextHash, hash(RICH_SEMANTIC_TEXT),
     "coherent observation must hash the whole rich answer, including text around its one code block");
+
+  const editableWhitespaceCases = [
+    ["approved\u00a0prompt", "approved prompt"],
+    ["approved\u202fprompt", "approved\u202fprompt"],
+    ["approved\u2007prompt", "approved\u2007prompt"],
+    ["approved\tprompt", "approved\tprompt"],
+    ["approved  prompt", "approved  prompt"],
+    ["approved\nprompt", "approved\nprompt"],
+  ] as const;
+  for (const [index, [rendered, expected]] of editableWhitespaceCases.entries()) {
+    const editable = new FakeElement(rendered, {}, {}, {
+      id: "prompt-textarea", contenteditable: "true",
+    }, "DIV", [new FakeTextNode(rendered)]);
+    const editableRoot = new FakeElement("", { [`#editable-${index}`]: [editable] });
+    editable.parentElement = editableRoot;
+    const editableResult = await execute(source, {
+      documentElement: editableRoot, querySelectorAll: () => [], elementFromPoint: () => editable,
+    }, [{ queryId: `editable-${index}`, selector: `#editable-${index}`, maxMatches: 1,
+      fields: ["exactEditableTextHash"] }]) as Readonly<{
+        queries: readonly Readonly<{ matches: readonly Readonly<{
+          exactEditableTextHash: string;
+        }>[] }>[];
+      }>;
+    assert.equal(editableResult.queries[0]?.matches[0]?.exactEditableTextHash, hash(expected),
+      "the exact editable projection must map only NBSP and preserve every other whitespace byte");
+  }
+};
+
+const exerciseIncidentScalePromptProjection = async (source: string): Promise<void> => {
+  const sevenSpaceTail = "one two three four five six seven eight";
+  const approved = `${"甲".repeat(111_075)}\n${sevenSpaceTail}\n[GRASSEYE:prompt-end]`;
+  const rendered = `${"甲".repeat(111_075)}\n${sevenSpaceTail.replaceAll(" ", "\u00a0")}\n[GRASSEYE:prompt-end]`;
+  assert.equal([...rendered].filter((value) => value === "\u00a0").length, 7);
+  assert.ok(rendered.length > 111_074 && rendered.endsWith("[GRASSEYE:prompt-end]"));
+
+  const editable = new FakeElement(rendered, {}, {}, {
+    id: "prompt-textarea", contenteditable: "true",
+  }, "DIV", [new FakeTextNode(rendered)]);
+  const directRuntime = {
+    async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
+      if (method === "DOM.resolveNode") return { object: { objectId: "incident-editable" } };
+      if (method === "Runtime.callFunctionOn") {
+        const implementation = runInNewContext(`(${String(parameters?.functionDeclaration)})`, {
+          Element: FakeElement,
+        }) as (this: FakeElement) => unknown;
+        return { result: { value: implementation.call(editable) } };
+      }
+      if (method === "Runtime.releaseObject") return {};
+      throw new Error(`UNEXPECTED_INCIDENT_PROMPT_METHOD:${method}`);
+    },
+  } as ExtensionDebuggerRuntime;
+  assert.equal(await readExactEditableText(directRuntime, 1, 1), approved,
+    "direct fill readback must project all seven NBSP bytes without truncating the marker");
+
+  const promptBody = new FakeElement(rendered, {}, {}, {
+    "data-testid": "collapsible-user-message-content",
+  }, "DIV", [new FakeTextNode(rendered)]);
+  const userTurn = new FakeElement(rendered, {
+    "[data-testid='collapsible-user-message-content']": [promptBody],
+    "[data-message-author-role='user']": [promptBody],
+  }, {}, { "data-testid": "conversation-turn-111074" }, "ARTICLE", [promptBody]);
+  const root = new FakeElement("", { "#prompt-textarea": [editable], ".user-turn": [userTurn] });
+  editable.parentElement = root;
+  userTurn.parentElement = root;
+  const result = await execute(source, {
+    documentElement: root, querySelectorAll: () => [], elementFromPoint: () => editable,
+  }, [
+    { queryId: "incident-editable", selector: "#prompt-textarea", maxMatches: 1,
+      fields: ["exactEditableTextHash"] },
+    { queryId: "incident-user-turn", selector: ".user-turn", maxMatches: 1,
+      fields: ["exactGptUserPromptHash"] },
+  ]) as Readonly<{ queries: readonly Readonly<{ matches: readonly Readonly<{
+    exactEditableTextHash?: string; exactGptUserPromptHash?: string;
+  }>[] }>[] }>;
+  assert.equal(result.queries[0]?.matches[0]?.exactEditableTextHash, hash(approved),
+    "coherent editable hash must cover the complete incident-scale Prompt");
+  assert.equal(result.queries[1]?.matches[0]?.exactGptUserPromptHash, hash(approved),
+    "post-submit user Prompt hash must match the same complete projected Prompt");
 };
 const userPromptFixture = () => {
   const userPrompt = "[GRASSEYE:exact-user-prompt]\napproved prompt";
@@ -193,6 +276,54 @@ const exerciseMarkedUserPromptHash = async (source: string): Promise<void> => {
     "the exact GPT user Prompt hash must include only the unique rendered Prompt body");
   assert.notEqual(exactUserTurn?.semanticTextHash, hash(userPrompt),
     "the outer user-turn semantic hash must expose why attachment and controls cannot identify the Prompt");
+
+  const renderedWithNbsp = "[GRASSEYE:exact-user-prompt]\napproved\u00a0prompt";
+  const nbspBody = new FakeElement(renderedWithNbsp, {}, {}, {
+    "data-testid": "collapsible-user-message-content",
+  }, "DIV", [new FakeTextNode(renderedWithNbsp)]);
+  const nbspTurn = new FakeElement(renderedWithNbsp, {
+    "[data-testid='collapsible-user-message-content']": [nbspBody],
+    "[data-message-author-role='user']": [nbspBody],
+  }, {}, { "data-testid": "conversation-turn-3" }, "ARTICLE", [nbspBody]);
+  const nbspRoot = new FakeElement("", { ".user-turn": [nbspTurn] });
+  nbspTurn.parentElement = nbspRoot;
+  const nbspResult = await execute(source, {
+    documentElement: nbspRoot, querySelectorAll: () => [], elementFromPoint: () => nbspTurn,
+  }, [{ queryId: "nbsp-user-turn", selector: ".user-turn", maxMatches: 1,
+    fields: ["exactGptUserPromptHash"] }]) as Readonly<{
+      queries: readonly Readonly<{ matches: readonly Readonly<{ exactGptUserPromptHash: string }>[] }>[];
+    }>;
+  assert.equal(nbspResult.queries[0]?.matches[0]?.exactGptUserPromptHash, hash(userPrompt),
+    "the long user Prompt projection must map only Provider-rendered NBSP to ordinary space");
+
+  const preservedWhitespacePrompts = [
+    "[GRASSEYE:exact-user-prompt]\napproved\u202fprompt",
+    "[GRASSEYE:exact-user-prompt]\napproved\u2007prompt",
+    "[GRASSEYE:exact-user-prompt]\napproved\tprompt",
+    "[GRASSEYE:exact-user-prompt]\napproved  prompt",
+    "[GRASSEYE:exact-user-prompt]\napproved\nprompt",
+  ] as const;
+  for (const [index, exactPrompt] of preservedWhitespacePrompts.entries()) {
+    const exactBody = new FakeElement(exactPrompt, {}, {}, {
+      "data-testid": "collapsible-user-message-content",
+    }, "DIV", [new FakeTextNode(exactPrompt)]);
+    const exactTurn = new FakeElement(exactPrompt, {
+      "[data-testid='collapsible-user-message-content']": [exactBody],
+      "[data-message-author-role='user']": [exactBody],
+    }, {}, { "data-testid": `conversation-turn-${20 + index}` }, "ARTICLE", [exactBody]);
+    const exactRoot = new FakeElement("", { ".user-turn": [exactTurn] });
+    exactTurn.parentElement = exactRoot;
+    const exactWhitespaceResult = await execute(source, {
+      documentElement: exactRoot, querySelectorAll: () => [], elementFromPoint: () => exactTurn,
+    }, [{ queryId: `preserved-user-turn-${index}`, selector: ".user-turn", maxMatches: 1,
+      fields: ["exactGptUserPromptHash"] }]) as Readonly<{
+        queries: readonly Readonly<{ matches: readonly Readonly<{
+          exactGptUserPromptHash: string;
+        }>[] }>[];
+      }>;
+    assert.equal(exactWhitespaceResult.queries[0]?.matches[0]?.exactGptUserPromptHash,
+      hash(exactPrompt), "the user Prompt projection must preserve every non-NBSP whitespace byte");
+  }
 };
 
 const exerciseFencedUserPromptHash = async (source: string): Promise<void> => {
@@ -249,6 +380,29 @@ const exerciseShortUserPromptHash = async (source: string): Promise<void> => {
     }>;
   assert.equal(shortResult.queries[0]?.matches[0]?.exactGptUserPromptHash, hash(shortPrompt),
     "a real short Prompt must bind the unique uncollapsed whitespace-pre-wrap leaf");
+
+  const shortRendered = "生成一张\u00a0与本文主题一致的封面图";
+  const shortApproved = "生成一张 与本文主题一致的封面图";
+  const shortNbspLeaf = new FakeElement(shortRendered, {}, {}, {
+    class: "max-w-full whitespace-pre-wrap",
+  }, "DIV", [new FakeTextNode(shortRendered)]);
+  const shortNbspUserRoot = new FakeElement(shortRendered, {
+    ".whitespace-pre-wrap": [shortNbspLeaf],
+  }, {}, { "data-message-author-role": "user" });
+  const shortNbspTurn = new FakeElement(shortRendered, {
+    "[data-testid='collapsible-user-message-content']": [],
+    "[data-message-author-role='user']": [shortNbspUserRoot],
+  }, {}, { "data-testid": "conversation-turn-6" }, "ARTICLE", [shortNbspUserRoot]);
+  const shortNbspRoot = new FakeElement("", { ".user-turn": [shortNbspTurn] });
+  shortNbspTurn.parentElement = shortNbspRoot;
+  const shortNbspResult = await execute(source, {
+    documentElement: shortNbspRoot, querySelectorAll: () => [], elementFromPoint: () => shortNbspTurn,
+  }, [{ queryId: "short-nbsp-user-turn", selector: ".user-turn", maxMatches: 1,
+    fields: ["exactGptUserPromptHash"] }]) as Readonly<{
+      queries: readonly Readonly<{ matches: readonly Readonly<{ exactGptUserPromptHash: string }>[] }>[];
+    }>;
+  assert.equal(shortNbspResult.queries[0]?.matches[0]?.exactGptUserPromptHash, hash(shortApproved),
+    "the short user Prompt path must use the same one-character NBSP projection");
 };
 
 const exerciseExactUserPromptHash = async (source: string): Promise<void> => {
@@ -359,6 +513,21 @@ const exerciseAssistantSemanticTextHash = async (source: string): Promise<void> 
   assert.equal(observed?.semanticTextHash, hash(RICH_SEMANTIC_TEXT),
     "the existing assistant semantic hash must exclude outer turn controls");
 
+  const assistantNbspText = "assistant\u00a0text";
+  const assistantNbspResponse = new FakeElement(assistantNbspText, {}, {}, {}, "DIV", [
+    new FakeTextNode(assistantNbspText),
+  ]);
+  const assistantNbspTurn = assistantTurnFixture([assistantNbspResponse]);
+  const assistantNbspResult = await execute(source, {
+    documentElement: assistantNbspTurn.root, querySelectorAll: () => [],
+    elementFromPoint: () => assistantNbspTurn.assistantTurn,
+  }, [{ queryId: "assistant-nbsp", selector: ".assistant-turn", maxMatches: 1,
+    fields: ["semanticTextHash"] }]) as Readonly<{
+      queries: readonly Readonly<{ matches: readonly Readonly<{ semanticTextHash: string }>[] }>[];
+    }>;
+  assert.equal(assistantNbspResult.queries[0]?.matches[0]?.semanticTextHash, hash(assistantNbspText),
+    "assistant semantic text must preserve NBSP byte-for-byte");
+
   const imageOnlyTurn = assistantTurnFixture([]);
   const imageOnlyResult = await execute(source, {
     documentElement: imageOnlyTurn.root, querySelectorAll: () => [],
@@ -408,6 +577,7 @@ export const exerciseCapturedObservationFunction = async (source: string): Promi
   const observationDocument = await exerciseObservationRejections(source);
   await exerciseHiddenStateRead(source);
   await exerciseComposerExactHashes(source);
+  await exerciseIncidentScalePromptProjection(source);
   await exerciseUserPromptHashes(source);
   await exerciseAssistantSemanticTextHash(source);
   await exerciseInvalidObservationUrls(source, observationDocument);

@@ -70,7 +70,7 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
         && Array.from(candidate.childNodes || []).every((child) => child.nodeType !== 1));
     if (shortPromptNodes.length === 0) throw new Error("BROWSER_DOM_CANDIDATE_MISSING");
     if (shortPromptNodes.length !== 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
-    return canonicalSemanticText(shortPromptNodes[0]);
+    return browserCanonicalGptUserPromptText(shortPromptNodes[0]);
   };
   const gptAssistantResponseText = (node) => {
     if (!(node instanceof Element)

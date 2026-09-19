@@ -1,8 +1,8 @@
 {
   "schemaVersion": "gpt-page-operation-matrix.v4",
   "scopeRule": "For this evidence tool, a child is in scope when it reads, navigates, clicks, types, uploads, waits on, checkpoints, or obtains media from a page. DOM terminology does not define the denominator.",
-  "currentContractCount": 13,
-  "expectedPageOperationCount": 13,
+  "currentContractCount": 14,
+  "expectedPageOperationCount": 14,
   "requiredLiveStateOrder": "capturedAt-ascending-same-run",
   "requiredCircles": [
     "core",
@@ -44,6 +44,73 @@
     "image-main": "One Product-owned production image flow covering generation, stable semantic media, original-content identity, and image checkpoint behavior."
   },
   "children": [
+    {
+      "childCapabilityId": "acknowledge_known_gpt_rate_limit",
+      "scenarioId": "text-main",
+      "coreTargets": [
+        "rate-limit-dialog",
+        "acknowledgement-control",
+        "clearance"
+      ],
+      "requiredLiveStates": [
+        "exact-rate-limit-dialog",
+        "acknowledgement-dispatched",
+        "dialog-cleared"
+      ],
+      "liveStateTargets": {
+        "exact-rate-limit-dialog": [
+          "rate-limit-dialog",
+          "acknowledgement-control"
+        ],
+        "acknowledgement-dispatched": [
+          "acknowledgement-control"
+        ],
+        "dialog-cleared": [
+          "clearance"
+        ]
+      },
+      "optionalLiveStates": [],
+      "childSpecificDerivedStates": [
+        "rate-limit-dialog-absent",
+        "rate-limit-dialog-unrecognized",
+        "acknowledgement-control-disabled",
+        "clearance-readback-failed"
+      ],
+      "requiredInputRefs": [],
+      "stateAssertions": {
+        "exact-rate-limit-dialog": [
+          {
+            "path": "core.attributes.role",
+            "operator": "equals",
+            "value": "dialog"
+          },
+          {
+            "path": "core.targets.acknowledgement-control.textProjection",
+            "operator": "equals",
+            "value": "明白了"
+          }
+        ],
+        "acknowledgement-dispatched": [
+          {
+            "path": "stateFacts.capturePhase",
+            "operator": "equals",
+            "value": "POST_ACTION"
+          }
+        ],
+        "dialog-cleared": [
+          {
+            "path": "core.attributes.kind",
+            "operator": "equals",
+            "value": "KNOWN_GPT_RATE_LIMIT_CLEARANCE"
+          },
+          {
+            "path": "stateFacts.candidateCount",
+            "operator": "equals",
+            "value": 0
+          }
+        ]
+      }
+    },
     {
       "childCapabilityId": "reconcile_gpt_attachment_set",
       "scenarioId": "text-main",

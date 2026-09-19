@@ -32,6 +32,7 @@ export const BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE = `
   const browserCanonicalGptUserPromptText = (node) => {
     const value = Array.from(node.childNodes || [])
       .map((child) => browserSemanticNode(child, node, false, true)).join("");
-    return value.endsWith("\\n") ? value.slice(0, -1) : value;
+    const exactValue = value.endsWith("\\n") ? value.slice(0, -1) : value;
+    return exactValue.split("\\u00a0").join(" ");
   };
 `;

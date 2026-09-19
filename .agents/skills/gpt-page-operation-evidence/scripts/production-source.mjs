@@ -2,7 +2,7 @@
 
 import { createHash } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
-import { readdir, readFile, stat, writeFile, mkdir, rename } from "node:fs/promises";
+import { readdir, readFile, writeFile, mkdir, rename } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pageInputBindingValid } from "./page-input-binding.mjs";
@@ -71,6 +71,37 @@ async function json(path, code = "JSON_READ_FAILED") {
   catch (error) { fail(code, `${path}:${error instanceof Error ? error.message : String(error)}`); }
 }
 
+async function projectionForTask(repo, task) {
+  const root = join(repo,
+    ".agents/skills/gpt-page-operation-evidence/references/product-flow-projections");
+  let entries;
+  try { entries = await readdir(root, { withFileTypes: true }); }
+  catch { fail("PRODUCT_FLOW_CONTRACT_INVALID", "projection-directory"); }
+  const matches = [];
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith(".json")) continue;
+    const path = join(root, entry.name);
+    const contract = await json(path, "PRODUCT_FLOW_CONTRACT_INVALID");
+    const route = contract?.routes?.find((candidate) => candidate?.productId === task.product_id
+      && candidate?.actionId === task.action_id);
+    if (route) matches.push({ path, contract, route });
+  }
+  if (matches.length !== 1) fail("PRODUCT_FLOW_CONTRACT_ROUTE_MISSING",
+    `${task.product_id}/${task.action_id}`);
+  const [{ path, contract, route }] = matches;
+  if (contract.schemaVersion !== PROJECTION_SCHEMA || contract.owner !== "gpt-page-operation-evidence"
+    || typeof contract.sourcePluginId !== "string" || !SAFE_SEGMENT.test(contract.sourcePluginId)
+    || !Number.isSafeInteger(contract.sourcePluginVersion)
+    || contract.traceAuthority?.kind !== "durable-product-forensics"
+    || contract.traceAuthority?.sequenceOwner !== "accepted-production-attempt"
+    || contract.traceAuthority?.currentFlowSourcesRole !== "projection-only"
+    || !exactStringList(contract.flowOwnerSources)
+    || contract.callSequenceTemplates !== undefined || !validRouteContract(route)) {
+    fail("PRODUCT_FLOW_CONTRACT_INVALID", `${task.product_id}/${task.action_id}`);
+  }
+  return { path, contract, route };
+}
+
 async function atomicJson(path, value) {
   await mkdir(dirname(path), { recursive: true });
   const temporary = `${path}.tmp-${process.pid}`;
@@ -137,61 +168,6 @@ async function flowBinding(repo, contract, traceChildren) {
     files.push({ path, sha256: hash(content) });
   }
   return stable({ files, digest: hash(JSON.stringify(stable(files))) });
-}
-
-async function forensicsTrace(forensicsRoot, jobId, attemptId, pluginId, pluginVersion) {
-  const path = join(forensicsRoot, `records-${attemptId.replaceAll("-", "_")}.ndjson`);
-  let text;
-  try { text = await readFile(path, "utf8"); } catch { fail("PRODUCT_TRACE_NOT_FOUND", attemptId); }
-  const records = text.split(/\r?\n/u).filter(Boolean).map((line, index) => {
-    try { return JSON.parse(line); } catch { fail("PRODUCT_TRACE_RECORD_INVALID", `${attemptId}:${index + 1}`); }
-  }).filter((record) => record.sourceAbilityGroupId === "gpt");
-  if (records.length === 0) fail("PRODUCT_TRACE_EMPTY", attemptId);
-  return records.map((record) => {
-    const { integrityHash, ...integrityContent } = record;
-    if (hash(JSON.stringify(integrityContent)) !== integrityHash) {
-      fail("PRODUCT_TRACE_INTEGRITY_MISMATCH", String(record.recordRef ?? "unknown"));
-    }
-    const payload = record.payload ?? {};
-    const hasInputProjection = payload.input_hash !== undefined || payload.call_id !== undefined
-      || payload.product_step_id !== undefined || payload.page_input_role_hashes !== undefined;
-    if (record.missionId !== jobId || record.runId !== attemptId
-      || payload.plugin_version !== pluginVersion || record.sourceChildCapabilityId !== payload.child_capability_id
-      || !HASH.test(payload.exact_call_identity_hash ?? "") || !Number.isSafeInteger(payload.action_ordinal)
-      || (payload.input_hash !== undefined && !HASH.test(payload.input_hash ?? ""))
-      || (hasInputProjection && (typeof payload.call_id !== "string" || payload.call_id.length === 0
-        || payload.product_step_id !== record.stepId || !HASH.test(payload.input_hash ?? "")
-        || !payload.page_input_role_hashes || typeof payload.page_input_role_hashes !== "object"
-        || Array.isArray(payload.page_input_role_hashes)))
-      || record.capabilityCallId !== `gpt-call:${payload.exact_call_identity_hash.slice("sha256:".length)}`
-      || typeof record.recordRef !== "string" || record.recordRef.length === 0
-      || !HASH.test(record.integrityHash ?? "")) {
-      fail("PRODUCT_FLOW_TRACE_MISMATCH", String(record.recordRef ?? "unknown"));
-    }
-    if (hasInputProjection && hash(JSON.stringify([jobId, attemptId, pluginId, pluginVersion,
-      record.stepId, payload.call_id, payload.child_capability_id, payload.input_hash]))
-      !== payload.exact_call_identity_hash) {
-      fail("PRODUCT_INPUT_BINDING_MISMATCH", String(record.recordRef ?? "unknown"));
-    }
-    return stable({
-      traceEntryId: hash(`${payload.exact_call_identity_hash}:${record.integrityHash}`),
-      productStepId: record.stepId, capabilityCallId: record.capabilityCallId,
-      actionOrdinal: payload.action_ordinal, childId: payload.child_capability_id,
-      exactCallIdentityHash: payload.exact_call_identity_hash,
-      resultStatus: payload.result_status, failureCode: payload.failure_code,
-      mutationOutcome: payload.committed_mutation, postconditionResult: payload.postcondition_result,
-      candidateCardinality: payload.candidate_cardinality,
-      forensicsInputHash: payload.input_hash ?? null,
-      forensicsCallId: payload.call_id ?? null,
-      forensicsPageInputRoleHashes: payload.page_input_role_hashes ?? null,
-      observationRevisionHash: payload.failure_proof?.observation_revision_hash ?? null,
-      sourceEvidenceHash: payload.source_evidence_hash ?? null,
-      failureBrowserEvidenceHash: payload.failure_proof?.browser_fact?.evidence_hash ?? null,
-      startedAt: payload.started_at, endedAt: payload.ended_at,
-      evidenceRef: record.recordRef, evidenceHash: record.integrityHash,
-    });
-  }).sort((left, right) => Date.parse(left.startedAt) - Date.parse(right.startedAt)
-    || left.productStepId.localeCompare(right.productStepId) || left.actionOrdinal - right.actionOrdinal);
 }
 
 function expectedStages(route, materialJson) {
@@ -361,9 +337,11 @@ function durableAttemptTerminal(row, task, identity, attemptId, failureRow, resu
       fail("PRODUCT_FAILURE_RECEIPT_TRACE_MISMATCH", "terminal-time");
     }
     const childCorrelation = failure.child_capability_id == null ? "NOT_DECLARED"
-      : lastFailure?.childId === failure.child_capability_id ? "MATCHED" : "MISMATCH";
+      : lastFailure === null ? "TRACE_UNAVAILABLE"
+        : lastFailure.childId === failure.child_capability_id ? "MATCHED" : "MISMATCH";
     const evidenceCorrelation = failure.evidence_hash == null ? "NOT_DECLARED"
-      : lastFailure && failureTraceEvidenceHashes(lastFailure).has(failure.evidence_hash) ? "MATCHED" : "MISMATCH";
+      : lastFailure === null ? "TRACE_UNAVAILABLE"
+        : failureTraceEvidenceHashes(lastFailure).has(failure.evidence_hash) ? "MATCHED" : "MISMATCH";
     if (childCorrelation === "MISMATCH" || evidenceCorrelation === "MISMATCH") {
       fail("PRODUCT_FAILURE_RECEIPT_TRACE_MISMATCH", `${childCorrelation}/${evidenceCorrelation}`);
     }
@@ -372,9 +350,9 @@ function durableAttemptTerminal(row, task, identity, attemptId, failureRow, resu
       reason: failure.code,
       durableResult: null,
       completionReceiptProof: null,
-      source: "ATTEMPT_FAILURE_ROW",
+      source: "CURRENT_TASK_ATTEMPT_FAILURE",
       failureReceiptProof: stable({
-        terminalSource: "ATTEMPT_FAILURE_ROW",
+        terminalSource: "CURRENT_TASK_ATTEMPT_FAILURE",
         durableFailureReceiptHash: hash(JSON.stringify(stable({
           jobId: row.job_id, attemptId, failureJson: failureRow.failure_json, createdAt: failureRow.created_at,
         }))),
@@ -427,7 +405,6 @@ async function main() {
   const repo = resolve(required(args, "repo"));
   const runtimeDb = resolve(required(args, "runtime-db"));
   const taskRoot = resolve(required(args, "task-root"));
-  const forensicsRoot = resolve(required(args, "forensics-root"));
   const browserDb = resolve(required(args, "browser-db"));
   const jobId = required(args, "job-id");
   const requestedAttemptId = args["attempt-id"];
@@ -435,13 +412,12 @@ async function main() {
     fail("PRODUCT_TASK_IDENTITY_MISMATCH", "unsafe-segment");
   }
   const database = new DatabaseSync(runtimeDb, { readOnly: true });
-  const row = database.prepare(`select job_id,request_hash,task_json,identity_json,status,current_attempt_id,
-    current_reason,result_json,created_at,updated_at from production_tasks where job_id=?`).get(jobId);
+  const row = database.prepare(`select job_id,request_hash,task_json,status,current_attempt_id,
+    current_reason,result_json,attempt_failure_json,created_at,updated_at
+    from production_tasks where job_id=?`).get(jobId);
   const attemptId = requestedAttemptId ?? row?.current_attempt_id;
-  const failureRow = row && attemptId
-    ? database.prepare(`select failure_json,created_at from production_attempt_failures
-      where job_id=? and attempt_id=?`).get(jobId, attemptId)
-    : null;
+  const failureRow = row && attemptId === row.current_attempt_id && row.attempt_failure_json
+    ? { failure_json: row.attempt_failure_json, created_at: row.updated_at } : null;
   const currentResultEnvelope = row && attemptId === row.current_attempt_id && row.status === "completed"
     ? parsedJson(row.result_json, "PRODUCT_RESULT_RECEIPT_INVALID") : null;
   const resultPayloadRows = currentResultEnvelope?.result_payload_ref
@@ -453,34 +429,22 @@ async function main() {
   database.close();
   if (!row) fail("PRODUCT_TASK_NOT_FOUND", jobId);
   let task;
-  let identity;
-  try { task = JSON.parse(row.task_json); identity = JSON.parse(row.identity_json); }
+  try { task = JSON.parse(row.task_json); }
   catch { fail("PRODUCT_TASK_ENVELOPE_INVALID", jobId); }
-  if (task.job_id !== row.job_id || task.request_hash !== row.request_hash
-    || identity.request_hash !== row.request_hash || typeof identity.plugin_id !== "string"
-    || !SAFE_SEGMENT.test(identity.plugin_id)
-    || !Number.isSafeInteger(identity.plugin_version)) fail("PRODUCT_TASK_IDENTITY_MISMATCH", jobId);
-  const contractPath = join(repo,
-    ".agents/skills/gpt-page-operation-evidence/references/product-flow-projections",
-    `${identity.plugin_id}.json`);
-  const contract = await json(contractPath, "PRODUCT_FLOW_CONTRACT_INVALID");
-  if (contract.schemaVersion !== PROJECTION_SCHEMA || contract.sourcePluginId !== identity.plugin_id
-    || contract.sourcePluginVersion !== identity.plugin_version
-    || contract.owner !== "gpt-page-operation-evidence"
-    || contract.traceAuthority?.kind !== "durable-product-forensics"
-    || contract.traceAuthority?.sequenceOwner !== "accepted-production-attempt"
-    || contract.traceAuthority?.currentFlowSourcesRole !== "projection-only"
-    || !exactStringList(contract.flowOwnerSources)
-    || contract.callSequenceTemplates !== undefined) {
-    fail("PRODUCT_FLOW_CONTRACT_INVALID", identity.plugin_id);
+  if (task.job_id !== row.job_id || task.request_hash !== row.request_hash) {
+    fail("PRODUCT_TASK_IDENTITY_MISMATCH", jobId);
   }
-  const routeDeclaration = contract.routes?.find((entry) => entry.productId === task.product_id && entry.actionId === task.action_id);
-  if (!routeDeclaration) fail("PRODUCT_FLOW_CONTRACT_ROUTE_MISSING", `${task.product_id}/${task.action_id}`);
-  if (!validRouteContract(routeDeclaration)) fail("PRODUCT_FLOW_CONTRACT_INVALID", `${task.product_id}/${task.action_id}`);
-  const route = routeDeclaration;
+  const { path: contractPath, contract, route } = await projectionForTask(repo, task);
+  const identity = Object.freeze({
+    plugin_id: contract.sourcePluginId,
+    plugin_version: contract.sourcePluginVersion,
+    request_hash: row.request_hash,
+  });
   const materialRoot = join(taskRoot, jobId, "materials");
   const materials = await exactMaterialSet(task, materialRoot, route);
-  const trace = await forensicsTrace(forensicsRoot, jobId, attemptId, identity.plugin_id, identity.plugin_version);
+  // The governed runtime retains artifacts, not a per-child record ledger.  A source manifest may
+  // therefore bind durable task/material/terminal facts while honestly reporting no call trace.
+  const trace = [];
   const receipts = browserReceipts(browserDb, jobId, attemptId);
   const receiptByCall = Object.groupBy(receipts, (receipt) => receipt.exact_call_identity_hash);
   const actualTrace = trace.map((entry) => {

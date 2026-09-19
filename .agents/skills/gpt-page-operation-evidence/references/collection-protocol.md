@@ -4,7 +4,7 @@
 
 采集的操作者是当前 Codex，浏览器通道只能是 `chrome:control-chrome`。本 Skill 不安装 Worker、不监听 Runtime、不注入 Product、不创建定时任务，也不在终端启动 Playwright/CDP。
 
-终端运行的离线脚本只允许做：读取生产 task、核对材料 bytes/sha256、读取 Product 合同/源码/forensics trace、装配 Codex 已采回的 scene、更新唯一报告。任何离线 CLI 出现浏览器导航、点击、填入、上传或提交能力都必须拒绝。
+终端运行的离线脚本只允许做：读取生产 task、核对材料 bytes/sha256、读取 Product 合同/源码、现役 terminal 与 Browser receipt、装配 Codex 已采回的 scene、更新唯一报告。现役 artifact-only 存储不提供逐 Child trace；缺失时必须输出不完整 source。任何离线 CLI 出现浏览器导航、点击、填入、上传或提交能力都必须拒绝。
 
 `chrome-scene-collector.mjs` 是唯一例外，但它不是 CLI 或自动任务：只能由当前 Codex 在 `chrome:control-chrome` 已建立的交互会话中导入；Codex 每明确执行一个 Child 调用，才让它记录该次 pre/command/post。它不得读取 `process.argv`，不得拥有 `main`、产品循环、任务选择、调度或后台入口。
 
@@ -12,13 +12,13 @@
 
 每轮必须明确：`productId`、`actionId`、生产 `jobId`、实际 `attemptId`。静态本地化还必须明确 `target_locale`，其最小范围是该 locale 的全部 cohort。
 
-本 Skill 在 `references/product-flow-projections/<plugin>.json` 保存自己的可删除流程投影。投影由本 Skill 维护，只声明资料规则、阶段拓扑和要读取的现役 flow source；Product 生产目录不拥有、不读取也不为它适配。已接受生产 attempt 的真实调用顺序只由现有 durable forensics trace 证明。`exactCallIdentityHash` 绑定调用身份，但不能单独冒充页面输入证明；现有 forensics 若有 `input_hash` 和安全 `page_input_role_hashes`，工具可用它们与 Chrome DOM 做逐角色相等校验，缺失则报告工具缺口。当前投影与历史 trace 不同，只能标成投影漂移，不能宣布历史事实无效。
+本 Skill 在 `references/product-flow-projections/<plugin>.json` 保存自己的可删除流程投影。投影由本 Skill 维护，只声明资料规则、阶段拓扑和要读取的现役 flow source；Product 生产目录不拥有、不读取也不为它适配。现役 artifact-only forensics 不提供真实逐 Child 调用顺序，故不得从 artifact、当前源码或投影推断 `exactCallIdentityHash`、步骤或页面输入；缺失时报告工具缺口。当前投影不构成历史事实。
 
 仓库内不允许出现第二份 Product 路由注册表。报告的全部产品分母来自现役 `productPluginCatalogSnapshot`；缺合同的路由只能显示 `PRODUCT_EVIDENCE_CONTRACT_NOT_IMPLEMENTED`。
 
 ## 3. 生产资料核对
 
-`production-source.mjs` 必须只读打开 production runtime DB、材料目录、forensics records 和 Browser mutation DB。它要求：
+`production-source.mjs` 必须只读打开 production runtime DB、材料目录和 Browser mutation DB。它要求：
 
 1. task 行与 task JSON 的 job/request hash 一致；
 2. accepted Product/Action identity 与 task request hash 一致；
@@ -26,13 +26,11 @@
 4. 材料目录没有缺文件、多文件或子目录；
 5. display name、role、bytes、sha256 与磁盘字节一致；
 6. 本 Skill 的产品流程投影与当前 Catalog 一致；
-7. trace 每行属于同一 job/attempt/plugin，Child 与 payload 身份一致；
-8. trace 每一步的 step/Child/ordinal/exact call identity 与 forensics 完整性成立，且每条实际记录有唯一 `traceEntryId`；
-9. Browser receipt 若存在，必须与同一 exact call 的 step/Child/ordinal 一致；语义 `callId` 只取自回执，无回执时为 `null`；
-10. Browser receipt 的 `request_hash` 与 forensics `input_hash` 必须一致；旧记录缺 `page_input_role_hashes` 时只能保留历史事实并报告输入绑定 GAP，禁止从源码、通用 profile 变体或相似任务反推；
-11. 当前 Product 阶段拓扑只输出 `flowProjectionStatus/flowProjectionGaps`，不得反向否决历史 trace；
+7. 现役 artifact-only 存储不提供逐 Child trace；工具不得读取 retired `records-*`、推断 Child 顺序或由 Browser receipt 反向生成 trace；
+8. Browser receipt 只有在已有同一 exact call 的 trace 时才能成为该调用补充；无 trace 时仅作为不完整 source 的独立 receipt 集合，不能生成 `traceEntryId` 或 `callId`；
+9. 当前 Product 阶段拓扑只输出 `flowProjectionStatus/flowProjectionGaps`，不得从投影推断历史调用；
 12. 当前 attempt 的完成分支必须把 task 行的 result receipt 与 production outbox 中对应 `result_payload` 的 object ref、body bytes、sha256、response hash 和 receipt hash 全部对齐；分支值从校验后的 payload 读取；指定历史 attempt 时禁止借用当前 task 行的状态或结果；
-13. 历史失败分支必须精确命中 `production_attempt_failures(job_id, attempt_id)`，并将该行的哈希回执与同 attempt 最后一条 failed trace 关联；记录声明 Child/evidence hash 时必须相等；
+13. 当前失败只精确命中同一 `production_tasks` 行的 `attempt_failure_json`；无 trace 时它只能作为 terminal fact，不能关联 Child/evidence 或形成页面分支。指定历史 attempt 不得读取、推断或复用当前行的失败字段；现行两表 runtime 无该 attempt 自己的 durable terminal 时必须返回 `PARTIAL/DURABLE_ATTEMPT_TERMINAL_UNAVAILABLE`；
 14. 历史 attempt 没有自己的 durable terminal 时只能输出 `PARTIAL/DURABLE_ATTEMPT_TERMINAL_UNAVAILABLE`。
 
 校验器生成的仓库外 source manifest 可含执行所需的本地生产标识；合并进公共报告时必须投影为 hash-only 身份。公共报告不得保留原始 job/attempt、材料文件名、task reason、forensics record ref 或 Browser command id，也不复制 prompt、材料正文、结果正文或原始会话 ID。

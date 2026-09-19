@@ -416,8 +416,8 @@ async function buildChildDemand(repo, contract, requirement, matrix, refs) {
 async function loadContracts(repo) {
   const contractPath = join(repo, "src/capabilities/gpt/contract.ts");
   const module = await import(`${pathToFileURL(contractPath).href}?evidence=${Date.now()}`);
-  const ids = [...module.GPT_CHILD_CAPABILITY_IDS];
   const contracts = module.GPT_CHILD_CAPABILITY_CONTRACTS;
+  const ids = Object.keys(contracts).sort();
   assertUnique(ids, "CONTRACT_CHILD_DUPLICATE");
   for (const id of ids) {
     if (!contracts[id] || contracts[id].childCapabilityId !== id) fail("CONTRACT_ENTRY_INVALID", id);

@@ -10,7 +10,9 @@ const DOM_READ_INVALID = "BROWSER_DOM_READ_INVALID";
  */
 export const BROWSER_EXACT_EDITABLE_TEXT_READER_SOURCE = `const browserExactEditableBlockText = (node) => {
   const name = String(node.nodeName || "").toUpperCase();
-  if (node.nodeType === 3 || name === "#TEXT") return typeof node.nodeValue === "string" ? node.nodeValue : "";
+  if (node.nodeType === 3 || name === "#TEXT") {
+    return typeof node.nodeValue === "string" ? node.nodeValue.split("\\u00a0").join(" ") : "";
+  }
   if (name === "BR") return "";
   const value = Array.from(node.childNodes || []).map((child) =>
     String(child.nodeName || "").toUpperCase() === "BR" ? "\\n" : browserExactEditableBlockText(child)

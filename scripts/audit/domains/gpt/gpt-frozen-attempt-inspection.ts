@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 
-const LAW_ID = "LAW-GPT-002-V20";
+const LAW_ID = "LAW-GPT-002-V21";
 const ROOT = "src/capabilities/gpt";
 const read = (context: InspectorContext, path: string): string =>
   readFileSync(resolve(context.sealedRoot, path), "utf8");

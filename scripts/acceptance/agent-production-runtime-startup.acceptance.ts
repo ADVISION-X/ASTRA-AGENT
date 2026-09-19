@@ -205,7 +205,7 @@ try {
   assert.equal(health.cloudState, "contract_blocked");
   assert.equal(health.executionState, "blocked");
   assert.equal(health.claimAdmissionState, "blocked");
-  assert.equal(health.controlContractVersion, 36,
+  assert.equal(health.controlContractVersion, 37,
     "blocked diagnostics must retain only the consumer contract version needed for exact comparison");
   assert.equal(health.lastErrorCode, "AI_SESSION_BINDING_MISMATCH");
   await bindingMismatchRuntime.close();
@@ -490,7 +490,7 @@ for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V38",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V39",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:storage-inventory:${evidenceMode}`,

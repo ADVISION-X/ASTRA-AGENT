@@ -48,17 +48,17 @@
 }
 ```
 
-`sourceSnapshotId` 只由 task 投影与实际材料字节身份计算。`flowContractDigest` 只由目标产品合同、Product flow sources 和 trace 实际调用的 Child sources 计算。两者都不得包含 Git HEAD、branch、clean 或全仓摘要。
+`sourceSnapshotId` 只由 task 投影与实际材料字节身份计算。`flowContractDigest` 只由目标产品合同、Product flow sources 和已存在的 trace Child sources 计算。两者都不得包含 Git HEAD、branch、clean 或全仓摘要。
 
-`actualTrace` 是该 accepted attempt 的历史采购清单。`callId` 只有 Browser durable receipt 能提供时才非空，禁止从另一张手写序列表推断。`flowProjectionStatus/flowProjectionGaps` 只比较当前 Product 阶段投影；`HISTORICAL_DRIFT` 不否决已经由 durable task、材料和 forensics 证明的历史事实。
+现役 artifact-only runtime 不提供 `actualTrace`；此时它固定为空数组，`flowStatus=PARTIAL`，且不得从 artifact、Browser receipt、当前源码或投影构造调用。`flowProjectionStatus/flowProjectionGaps` 只比较当前 Product 阶段投影，不构成历史事实。
 
-新生产记录的 `inputBinding` 必须来自同一 forensics record 的 `input_hash/page_input_role_hashes`。Browser mutation receipt 的 `request_hash` 只能校验或补充 aggregate `inputHash`，不能替代逐角色哈希。旧记录缺逐角色字段时保留为历史事实，但相应页面调用只能输出 `PAGE_INPUT_BINDING_GAP`，禁止从当前源码或其它调用逆向补造。
+没有实际 trace 时没有 `inputBinding`；Browser mutation receipt 不能替代逐角色哈希或反向生成调用。
 
-指定历史 attempt 时，终态只绑定该 attempt 自己的 durable terminal。历史失败必须读取精确的 `production_attempt_failures(job_id, attempt_id)` 行，并在 `terminalBranchProof.durableFailureReceiptHash` 中绑定该行；当前 task 行即使后来完成也不能替历史 attempt 提供 status/result。历史 attempt 无专属终态时必须是 `PARTIAL`，缺口为 `DURABLE_ATTEMPT_TERMINAL_UNAVAILABLE`。
+指定历史 attempt 时，终态只绑定该 attempt 自己的 durable terminal。现行 runtime 的 durable failure 仅在当前 task 行的 `attempt_failure_json`；它只可用于该行 `current_attempt_id`，并在 `terminalBranchProof.durableFailureReceiptHash` 中绑定该字段。当前 task 行即使后来完成或失败都不能替历史 attempt 提供 status/result/failure。历史 attempt 无专属终态时必须是 `PARTIAL`，缺口为 `DURABLE_ATTEMPT_TERMINAL_UNAVAILABLE`。
 
 合法终点必须写 `flowStatus=OBSERVED_COMPLETE_PATH` 和非空 `terminalBranch`。`production-failure` 表示真实故障分支已经走到终点；若该分支的所有实际页面调用 DOM 齐全，采集完整不等于业务成功。尚未到终点时使用 `PARTIAL`、`terminalBranch=null` 和准确 `flowGaps`。
 
-`terminalBranchProof` 对完成分支保存 task result receipt、result payload、result object receipt 与 production outbox authority 的四个安全哈希；SEO `research-declined` 还必须来自 Product 合同声明路径上的明确 durable decision，不能由阶段数推断。失败分支保存 attempt 专属 durable failure receipt + 最后一条 failed trace 的安全关联证明。失败 source 缺该字段时装配器直接拒绝，禁止兼容推断。公共报告只保留 source manifest 的安全投影和可复算 digest，不保留原始 job/attempt、材料名、reason、recordRef 或 commandId。
+`terminalBranchProof` 只在实际 trace 已足以形成合法分支时存在。失败 task 的 receipt 在无 trace 时只能形成 source terminal fact，不能推断 `production-failure` branch 或进入 Chrome 装配。公共报告只保留 source manifest 的安全投影和可复算 digest，不保留原始 job/attempt、材料名、reason、recordRef 或 commandId。
 
 ## 2. Capture V6
 
