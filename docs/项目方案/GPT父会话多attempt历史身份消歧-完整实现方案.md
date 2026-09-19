@@ -12,7 +12,7 @@
 
 ### 1.1 触发事实
 
-运行日志 `运行日志.json`（2026-09-19 15:22–18:51）复核发现 5 个独立工单（`aiprod_054f1199-154e-41af-82ab-0b4a574d1635`、`2a03a520-80e1-4a09-a598-5055f4420912`、`3b0c51fa-d16e-405a-b635-044e68ea0dbc`、`b2b7e83c-97f1-47d4-a582-b940124c3629`、`f0675f47-454e-4cee-a10f-c78238a10916`，均为 `localization_article_translation/article_translation`、`target_locale=zh-HK`，provider_continuation 关系）在 `gpt-child` 启动后 11–30ms 内即失败：`failure.code=BROWSER_PARENT_PROVIDER_EFFECT_AMBIGUOUS`。`production_tasks.current_reason=WAIT_NEW_ATTEMPT`，Website 现役退避会自动重试，但每次重试预期仍会确定性再次命中同一根因（不会自愈）。
+2026-09-19 15:22–18:51 的运行取证复核发现 5 个独立工单（`aiprod_054f1199-154e-41af-82ab-0b4a574d1635`、`2a03a520-80e1-4a09-a598-5055f4420912`、`3b0c51fa-d16e-405a-b635-044e68ea0dbc`、`b2b7e83c-97f1-47d4-a582-b940124c3629`、`f0675f47-454e-4cee-a10f-c78238a10916`，均为 `localization_article_translation/article_translation`、`target_locale=zh-HK`，provider_continuation 关系）在 `gpt-child` 启动后 11–30ms 内即失败：`failure.code=BROWSER_PARENT_PROVIDER_EFFECT_AMBIGUOUS`。`production_tasks.current_reason=WAIT_NEW_ATTEMPT`，Website 现役退避会自动重试，但每次重试预期仍会确定性再次命中同一根因（不会自愈）。
 
 ### 1.2 已验证根因（数据库解密实证，已通过独立审计复现核实）
 
