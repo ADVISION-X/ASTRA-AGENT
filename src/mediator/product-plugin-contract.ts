@@ -141,7 +141,6 @@ export interface SharedExecutionContext {
       validation_failure?: Readonly<{
         native_error_code: string;
         json_pointer: string | null;
-        safety_obligation?: "no_guarantee" | "not_professional_substitute" | "uncertainty_preserved" | "scope_limited" | "risk_disclosed" | undefined;
       }> | undefined;
     }> | Readonly<{
       rejection_kind: "provider_stopped_empty";

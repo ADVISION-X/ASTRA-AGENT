@@ -102,9 +102,6 @@ const ExecutionGrantSchema = z.object({
     validation_failure: z.object({
       native_error_code: reasonCode,
       json_pointer: z.string().nullable(),
-      safety_obligation: z.enum([
-        "no_guarantee", "not_professional_substitute", "uncertainty_preserved", "scope_limited", "risk_disclosed",
-      ]).optional(),
     }).strict().optional(),
   }).strict(), z.object({
     rejection_kind: z.literal("provider_stopped_empty"),

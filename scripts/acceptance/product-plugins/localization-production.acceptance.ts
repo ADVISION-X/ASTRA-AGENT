@@ -35,12 +35,12 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     localized_structured_payload: { title: "localized" },
   };
   const settledRejection = { receipt_hash: FIXTURE_HASH, rejected_result_payload_hash: FIXTURE_HASH,
-    reason_codes: ["LOCALIZATION_STRUCTURED_EDITION_SEMANTIC_INVALID", "LOCALIZATION_SAFETY_FIELD_TRUNCATED"] } as const;
+    reason_codes: ["LOCALIZATION_STRUCTURED_EDITION_STRUCTURE_INVALID", "LOCALIZATION_STRUCTURE_CHANGED"] } as const;
   const reportTranslation = route.product_id === "localization_report_translation";
   const resultRevision = review ? undefined : reportTranslation
     ? { revision: 1, priorRejection: { ...settledRejection,
-        validation_failure: { native_error_code: "LOCALIZATION_SAFETY_FIELD_TRUNCATED",
-          json_pointer: "/excluded_scope/segments/2/text", safety_obligation: "scope_limited" } } } as const
+        validation_failure: { native_error_code: "LOCALIZATION_STRUCTURE_CHANGED",
+          json_pointer: "/excluded_scope/segments" } } } as const
     : { revision: 1, priorRejection: settledRejection } as const;
   const run = await exerciseProductFlow(plugin, { task, output,
     ...(resultRevision ? { resultRevision } : {}) });
@@ -119,7 +119,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   assert.match(prompt, /Website 当前授权依据/u);
   assert.match(prompt, new RegExp(task.business_identity.authorization_ref, "u"));
   if (resultRevision && reportTranslation) assert.match(prompt,
-    /"validation_failure":\{"native_error_code":"LOCALIZATION_SAFETY_FIELD_TRUNCATED","json_pointer":"\/excluded_scope\/segments\/2\/text","safety_obligation":"scope_limited"\}/u);
+    /"validation_failure":\{"native_error_code":"LOCALIZATION_STRUCTURE_CHANGED","json_pointer":"\/excluded_scope\/segments"\}/u);
   if (resultRevision && !reportTranslation) assert.doesNotMatch(prompt, /validation_failure/u,
     "a settled rejection without domain validation facts must keep the revision fact line unchanged");
   assert.equal(run.physicalSubmitDispatches, 1);
