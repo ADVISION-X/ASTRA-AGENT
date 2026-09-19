@@ -1,9 +1,10 @@
 import type { BrowserGovernedCommand } from "./browser-command-actor.js";
 import {
   browserDomCandidateMissingStage, browserInteractionNativeCauseCode,
+  browserPostconditionNativeCauseValid,
 } from "./browser-interaction-native-cause.js";
 import {
-  decodeConversationRenameReceipt, knownRateLimitBlockerReceiptValid,
+  knownRateLimitBlockerReceiptValid,
 } from "./browser-special-mutation-receipt.js";
 import { observationPostconditionEvidenceValid } from "./browser-observation-receipt.js";
 
@@ -12,7 +13,7 @@ export type BrowserMutationReceipt = Readonly<{
   mutationOutcome: "no" | "confirmed";
   failureCode: string | null;
   nativeCauseCode: string | null;
-  physicalInputCount: 0 | 1 | 2 | 3 | 4;
+  physicalInputCount: 0 | 1;
 }>;
 
 const DOM_REJECTION_CODES = new Set([
@@ -66,7 +67,7 @@ const exactKeys = (value: Readonly<Record<string, unknown>>, expected: readonly 
 
 const mutationCommandValid = (command: BrowserGovernedCommand): boolean => command.kind === "file-input"
   || (command.kind === "dom-intent" && ["click", "hover", "doubleClick", "keypress", "fill",
-    "renameExactGptConversation", "acknowledgeKnownGptRateLimit"]
+    "acknowledgeKnownGptRateLimit"]
     .includes(command.intent.kind));
 
 const qualificationFailureValid = (
@@ -376,6 +377,7 @@ const dispatchedEnvelopeValid = (
   const hasRejection = hasDispatchedPostconditionRejection(rejection);
   const nativeCauseValid = hasRejection
     ? POSTCONDITION_NATIVE_CAUSES.has(String(value.nativeCauseCode))
+      || browserPostconditionNativeCauseValid(value.nativeCauseCode)
     : value.nativeCauseCode === undefined;
   return (exactIdentity || rejection.fillReadback) && nativeCauseValid
     && dispatchedEvidenceValid(command, value)
@@ -426,9 +428,6 @@ export const decodeBrowserMutationReceipt = (
 ): BrowserMutationReceipt => {
   if (!mutationCommandValid(command)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   const value = result && typeof result === "object" ? result as Record<string, unknown> : {};
-  if (command.kind === "dom-intent" && command.intent.kind === "renameExactGptConversation") {
-    return decodeConversationRenameReceipt(value);
-  }
   const mutationCount = value.mutationCount;
   if ((mutationCount !== 0 && mutationCount !== 1) || typeof value.postconditionVerified !== "boolean"
     || (value.zeroActionSatisfied === true && value.qualificationRejected === true)) {

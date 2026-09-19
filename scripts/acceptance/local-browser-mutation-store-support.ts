@@ -6,7 +6,7 @@ import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser
 export const hash = `sha256:${"a".repeat(64)}` as const;
 export const exactHash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
-const identity = (commandId: string, attemptId: string, executionFenceHash = hash) => ({
+export const identity = (commandId: string, attemptId: string, executionFenceHash = hash) => ({
   commandId,
   exactCallIdentityHash: exactHash(`${attemptId}:${commandId}`),
   jobId: "job-1",
@@ -81,4 +81,24 @@ export const exerciseBrowserMutationStore = (root: string): void => {
   assert.notEqual(terminal?.authorityHash, dispatchedAuthorityHash,
     "positive readback must expose the terminal WAL hash, not its prior DISPATCHED hash");
   provider.close();
+};
+
+/** P.5: a P1 observational postcondition cause must be accepted and round-trip through the WAL unchanged. */
+export const exercisePostconditionNativeCauseWalRoundTrip = (root: string): void => {
+  const store = new BrowserMutationStore(root);
+  const walIdentity = identity("postcondition-command", "attempt-postcondition");
+  store.prepare(walIdentity);
+  store.markDispatched(walIdentity.commandId);
+  store.markRejected(walIdentity.commandId, exactHash("postcondition-rejection"), "confirmed",
+    "BROWSER_POSTCONDITION_FAILED", "BROWSER_POSTCONDITION_Q0__NO_LAYOUT_BOX");
+  const terminal = store.readAtomicStepOutcome({
+    jobId: walIdentity.jobId, attemptId: walIdentity.attemptId,
+    exactCallIdentityHash: walIdentity.exactCallIdentityHash, actionOrdinal: walIdentity.actionOrdinal,
+    targetRef: walIdentity.targetRef, effectScope: "target_local",
+  });
+  assert.equal(terminal?.state, "rejected");
+  assert.equal(terminal?.failureCode, "BROWSER_POSTCONDITION_FAILED");
+  assert.equal(terminal?.nativeFailureCode, "BROWSER_POSTCONDITION_Q0__NO_LAYOUT_BOX",
+    "a P1 observational postcondition cause must round-trip through the WAL unchanged");
+  store.close();
 };

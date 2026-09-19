@@ -10,7 +10,6 @@ import {
   sourceTextForPaths,
   type FindingFactory,
 } from "./gpt-inspection-support.js";
-import { inspectSettledConversationRenameBoundary } from "./gpt-settled-rename-inspection.js";
 const ROOT = "src/capabilities/gpt";
 const CONTRACT_PATH = `${ROOT}/contract.ts`;
 const CHILD_TYPES_PATH = `${ROOT}/child-types.ts`;
@@ -234,9 +233,9 @@ const inspectChildDenominator = (
   finding: FindingFactory,
 ): string[] => {
   const ids = childIdsFromContract(contract);
-  if (ids.length !== 15 || new Set(ids).size !== 15) findings.push(finding(
+  if (ids.length !== 14 || new Set(ids).size !== 14) findings.push(finding(
     "gpt/exact-child-denominator", CONTRACT_PATH,
-    `GPT_CHILD_CONTRACTS must define exactly 15 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
+    `GPT_CHILD_CONTRACTS must define exactly 14 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
   ));
   inspectRequiredChildIds(ids, findings, finding);
   if (ids.includes("ensure_exact_gpt_model")) findings.push(finding(
@@ -457,8 +456,8 @@ const inspectContractShape = (
     source.getFilePath().split("\\").join("/").endsWith(`/${CHILD_TYPES_PATH}`));
   for (const mapName of ["GptChildInputMap", "GptChildOutputMap"]) {
     const count = childTypes?.getInterface(mapName)?.getProperties().length ?? 0;
-    if (count !== 15) findings.push(finding(
-      "gpt/exact-child-type-map", CHILD_TYPES_PATH, `${mapName} must define exactly 15 properties; found ${count}.`,
+    if (count !== 14) findings.push(finding(
+      "gpt/exact-child-type-map", CHILD_TYPES_PATH, `${mapName} must define exactly 14 properties; found ${count}.`,
     ));
   }
 };
@@ -478,5 +477,4 @@ export const inspectGptContractDenominator = (
   inspectProfileContracts(context, findings, finding);
   inspectProfileVersionCutover(context, contract, findings, finding);
   inspectContractShape(contract, findings, finding);
-  inspectSettledConversationRenameBoundary(context, findings, finding);
 };

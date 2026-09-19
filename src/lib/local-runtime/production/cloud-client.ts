@@ -151,13 +151,15 @@ export async function downloadProductionMaterials(
 export async function renewProductionLease(
   session: ProductionWorkerSession,
   job: ClaimedProductionTask,
+  requestId = `aiprenew_${randomUUID()}`,
+  signal?: AbortSignal,
 ) {
-  const requestId = `aiprenew_${randomUUID()}`;
-  return LeaseRenewReceiptSchema.parse(await session.request(
+  const data = await session.request(
     `/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/renew`,
     {
       method: "POST",
       headers: fenceHeaders(job),
+      ...(signal ? { signal } : {}),
       body: JSON.stringify({
         schema_version: "xuanxue-ai-lease-renew.v6",
         control_protocol_version: "xuanxue-ai-production-v6",
@@ -171,7 +173,12 @@ export async function renewProductionLease(
         fence_hash: job.grant.execution_fence.fence_hash,
       }),
     },
-  ));
+  );
+  try {
+    return LeaseRenewReceiptSchema.parse(data);
+  } catch (error) {
+    throw runtimeTransportFailure("AI_PRODUCTION_HTTP_ENVELOPE_INVALID", 200, error);
+  }
 }
 
 export async function releaseProductionLease(

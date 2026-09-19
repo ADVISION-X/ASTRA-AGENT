@@ -13,6 +13,22 @@ import {
   type RuntimeAttestationReceipt,
   type WorkerSessionCredential,
 } from "./transport-protocol.js";
+import { runtimeTransportFailure, typedRuntimeTransportFailure } from "./transport-failure.js";
+
+const parseCloudResponse = async (response: Response): Promise<unknown> => {
+  let raw: unknown;
+  try {
+    raw = await response.json();
+  } catch (cause) {
+    throw runtimeTransportFailure("AI_PRODUCTION_HTTP_ENVELOPE_INVALID", response.status, cause);
+  }
+  try {
+    return parseJsonEnvelope(raw, response.status);
+  } catch (error) {
+    throw typedRuntimeTransportFailure(error)
+      ?? runtimeTransportFailure("AI_PRODUCTION_HTTP_ENVELOPE_INVALID", response.status, error);
+  }
+};
 export interface ProductionRuntimeState {
   readonly agent_attested_in_flight: number;
   readonly browser_action_in_flight: 0 | 1;
@@ -195,11 +211,7 @@ export class ProductionWorkerSession {
     } catch (cause) {
       throw executionFailure("failed", "CLOUD_TRANSPORT_UNAVAILABLE", { cause });
     }
-    const raw = await response.json() as unknown;
-    if (!response.ok) {
-      try { return parseJsonEnvelope(raw, response.status); } catch (error) { throw error; }
-    }
-    return parseJsonEnvelope(raw, response.status);
+    return parseCloudResponse(response);
   }
 
   public async close(): Promise<void> {
@@ -228,8 +240,6 @@ export class ProductionWorkerSession {
     } catch (cause) {
       throw executionFailure("failed", "CLOUD_TRANSPORT_UNAVAILABLE", { cause });
     }
-    const raw = await response.json() as unknown;
-    if (!response.ok) return parseJsonEnvelope(raw, response.status);
-    return parseJsonEnvelope(raw, response.status);
+    return parseCloudResponse(response);
   }
 }

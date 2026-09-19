@@ -356,10 +356,9 @@ export class ExtensionWebSocketActor {
         target,
         registeredCommand.mutationClass,
         assertCommandActive,
+        deadline,
       );
-      const renameCommand = command.kind === "dom-intent"
-        ? command.intent.kind === "renameExactGptConversation" : false;
-      if (!renameCommand) assertCommandActive();
+      assertCommandActive();
       await this.sendEncrypted(socket, "REPLY", { requestSequence, permitSequence, replyChannelToken, result });
     } catch (error) {
       let commandError = error;

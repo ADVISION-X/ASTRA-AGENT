@@ -97,4 +97,62 @@ export const exerciseAttachmentLabelDiagnostics = async (
   const duplicateRejected = await execute("reconcile_gpt_attachment_set", duplicateFixture.browser,
     { files: [approvedAttachment], timeoutMs: 1_500 });
   assert.ok(duplicateRejected.failureCode?.endsWith(":labels=missing:0,unexpected:0,dup:1,shape:none"),
-    `a normalized duplicate must be counted without shape codes: ${duplicateRejected.failureCode ?? "none"}`);};
+    `a normalized duplicate must be counted without shape codes: ${duplicateRejected.failureCode ?? "none"}`);
+};
+
+/** The A1 pre-upload gate: a foreign composer card must block attach_approved_gpt_files_once
+ * before any browser mutation, while an empty composer or an already-approved card must not. */
+export const exerciseForeignComposerCardGate = async (
+  execute: ReturnType<typeof createGptAcceptanceHarness>["execute"],
+): Promise<void> => {
+  const approvedProviderName = providerAttachmentName("甲.pdf", "artifact:1");
+  const controlFacts = attachmentControlFacts("open");
+
+  const foreignCardFixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, {
+      ...controlFacts,
+      "attachment-composer": { rawCount: 1, eligibleCount: 1 },
+      "attachment-items": { rawCount: 1, eligibleCount: 1, matches: [{ ariaLabel: "外来文件.pdf" }] },
+    });
+    throw new Error(`FOREIGN_CARD_GATE_MUST_NOT_ACT:${intent.kind}`);
+  }, {
+    onAttachFile: () => { throw new Error("ATTACH_MUST_NOT_BE_CALLED_WHEN_FOREIGN_CARDS_PRESENT"); },
+  });
+  const foreignCardRejected = await execute("attach_approved_gpt_files_once", foreignCardFixture.browser,
+    { files: [approvedAttachment] });
+  assert.equal(foreignCardRejected.status, "failed");
+  assert.ok(foreignCardRejected.failureCode?.startsWith("GPT_ATTACHMENT_COMPOSER_FOREIGN_CARDS:cards=1:foreign=1"),
+    `expected a FOREIGN_CARDS rejection: ${foreignCardRejected.failureCode ?? "none"}`);
+  assert.ok(!foreignCardRejected.failureCode?.includes("外来"),
+    "the foreign-card failure code must never carry observed label text");
+
+  let attachedInput: unknown = null;
+  const sameBatchFixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, {
+      ...controlFacts,
+      "attachment-composer": { rawCount: 1, eligibleCount: 1 },
+      "attachment-items": { rawCount: 1, eligibleCount: 1, matches: [{ ariaLabel: approvedProviderName }] },
+    });
+    throw new Error(`FOREIGN_CARD_GATE_MUST_NOT_OBSERVE:${intent.kind}`);
+  }, { onAttachFile: (input) => { attachedInput = input; } });
+  const sameBatchAccepted = await execute("attach_approved_gpt_files_once", sameBatchFixture.browser,
+    { files: [approvedAttachment] });
+  assert.equal(sameBatchAccepted.status, "success",
+    sameBatchAccepted.failureCode ?? "an already-approved same-batch card must not block upload");
+  assert.ok(attachedInput, "an existing same-batch card must not block the upload");
+
+  attachedInput = null;
+  const emptyComposerFixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, {
+      ...controlFacts,
+      "attachment-composer": { rawCount: 1, eligibleCount: 1 },
+      "attachment-items": { rawCount: 0, eligibleCount: 0 },
+    });
+    throw new Error(`FOREIGN_CARD_GATE_MUST_NOT_OBSERVE:${intent.kind}`);
+  }, { onAttachFile: (input) => { attachedInput = input; } });
+  const emptyComposerAccepted = await execute("attach_approved_gpt_files_once", emptyComposerFixture.browser,
+    { files: [approvedAttachment] });
+  assert.equal(emptyComposerAccepted.status, "success",
+    emptyComposerAccepted.failureCode ?? "an empty composer must not change upload behavior");
+  assert.ok(attachedInput, "an empty composer must still allow the upload");
+};

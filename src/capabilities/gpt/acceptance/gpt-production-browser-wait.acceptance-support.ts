@@ -190,18 +190,7 @@ try {
   );
   assert.deepEqual([acquisitions, selections, parks], [5, 0, 4],
     "a later Provider turn must not acquire Browser while the current result is unsettled");
-  assert.equal(lifecycle.takeSettledConversationCleanup(), null,
-    "title cleanup must remain unavailable until the confirmed result is settled");
   lifecycle.recordSettledResult(active, HASH_B);
-  assert.equal(lifecycle.takeSettledConversationCleanup("session:provider-wait"), null,
-    "continuing the same session must not interleave or consume the cleanup Child");
-  assert.deepEqual(lifecycle.takeSettledConversationCleanup("session:next"), {
-    sessionKey: "session:provider-wait",
-    canonicalConversationUrl: "https://chatgpt.com/c/provider-wait",
-    terminalAt: "2026-09-12T00:00:00.000Z",
-  }, "title cleanup must consume only the settled current conversation identity");
-  assert.equal(lifecycle.takeSettledConversationCleanup(), null,
-    "the same settled conversation must expose the cleanup Child at most once");
   const settledFailure = serializeTerminalFailure(
     lifecycle.decorateSettledResultFailure(new Error("AGENT_RESULT_SCHEMA_VERSION_INVALID")),
   );

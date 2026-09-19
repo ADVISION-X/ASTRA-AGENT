@@ -4,6 +4,10 @@ import type {
   BrowserDomIntent,
   BrowserDomObservationPacketV2,
 } from "../exact-target/browser-dom-intent.js";
+import {
+  browserPostconditionNativeCause,
+  type BrowserPostconditionNativeCause,
+} from "../exact-target/browser-interaction-native-cause.js";
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import { executeCoherentObservation } from "./dom-coherent-observation.js";
 import { attribute, describeNode, documentState, queryAll, queryCandidateSet,
@@ -34,7 +38,7 @@ export type ObservationReadback = Readonly<{
   verified: boolean;
   observation: Awaited<ReturnType<typeof executeCoherentObservation>>;
   nativeCauseCode: BrowserDomIneligibleReason | "BROWSER_DOM_CANDIDATE_MISSING"
-    | "BROWSER_DOM_CANDIDATE_AMBIGUOUS" | null;
+    | "BROWSER_DOM_CANDIDATE_AMBIGUOUS" | BrowserPostconditionNativeCause | null;
 }>;
 
 export const waitForNextBoundedObservation = waitForNextChatGptObservation;
@@ -186,9 +190,9 @@ const waitForObservation = async (
     const firstRejection = mismatch?.rejections[0]?.reasons[0];
     const nativeCauseCode = verified ? null : exactOutgoing !== undefined
       ? "BROWSER_DOM_CANDIDATE_MISSING" as const
-      : mismatch!.eligibleCount > expected!
+      : browserPostconditionNativeCause(evidenceIndex, mismatch!.eligibleCount > expected!
         ? "BROWSER_DOM_CANDIDATE_AMBIGUOUS" as const
-        : firstRejection ?? "BROWSER_DOM_CANDIDATE_MISSING";
+        : firstRejection ?? "BROWSER_DOM_CANDIDATE_MISSING" as const);
     const readback = Object.freeze({ verified, observation, nativeCauseCode });
     const transient = mismatch !== undefined && matchStillTransient(
       mismatch.rawCount, mismatch.eligibleCount, expected!, mismatch.rejections,

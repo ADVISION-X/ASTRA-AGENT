@@ -237,7 +237,6 @@ for (const priorState of ["rejected", "dispatched"] as const) {
   const browserCall: ProductionGptBrowserCall = {
     browser: fixture.browser, facade: fixture.browser, providerWaitLog: null,
     confirmedProviderEffect: null, settledResultPayloadHash: null,
-    settledConversationRenameTaken: false, settledRenameTransportRevoked: false,
     recoverySelectionRequired: false,
   };
   const recovered = await executeProductionGptAtomicCall({
@@ -321,7 +320,6 @@ for (const promptMatches of [true, false]) {
   const intent = harness.buildIntent("submit_exact_gpt_turn_once", { files: [], promptHash });
   const browserCall: ProductionGptBrowserCall = { browser: fixture.browser, facade: fixture.browser,
     providerWaitLog: null, confirmedProviderEffect: null, settledResultPayloadHash: null,
-    settledConversationRenameTaken: false, settledRenameTransportRevoked: false,
     recoverySelectionRequired: false };
   const recovered = await executeProductionGptAtomicCall({ dataDir: "/tmp/gpt-exact-target",
     gpt: harness.gpt, browsers: {} as never, intent, browserCall,

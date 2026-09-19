@@ -17,7 +17,6 @@ const MUTATION_RECEIPT_PATH = "src/lib/browser/exact-target/browser-mutation-rec
 const SPECIAL_MUTATION_RECEIPT_PATH =
   "src/lib/browser/exact-target/browser-special-mutation-receipt.ts";
 const COMMAND_FAILURE_PATH = "src/lib/browser/exact-target/browser-command-failure.ts";
-const RENAME_RUNTIME_PATH = "src/lib/browser/chrome-extension/gpt-conversation-rename-runtime.ts";
 
 const requireText = (
   text: string,
@@ -101,7 +100,6 @@ type SettlementSources = Readonly<{
   specialMutationReceipt: SettlementSource;
   postcondition: SettlementSource;
   pointerRuntime: SettlementSource;
-  renameRuntime: SettlementSource;
   resolver: SettlementSource;
   runtime: SettlementSource;
   schema: SettlementSource;
@@ -122,7 +120,6 @@ const requireSettlementSources = (
   const schema = requireSource(context, findings, lawId, browserMutationSchemaPath);
   const runtime = requireSource(context, findings, lawId, DOM_RUNTIME_PATH);
   const pointerRuntime = requireSource(context, findings, lawId, domPointerIntentRuntimePath);
-  const renameRuntime = requireSource(context, findings, lawId, RENAME_RUNTIME_PATH);
   const postcondition = requireSource(context, findings, lawId, domMutationPostconditionPath);
   const contract = requireSource(context, findings, lawId, DOM_CONTRACT_PATH);
   const specialContract = requireSource(context, findings, lawId, SPECIAL_DOM_CONTRACT_PATH);
@@ -143,7 +140,7 @@ const requireSettlementSources = (
   const targetAuthority = requireSource(context, findings, lawId, targetAuthorityPath);
   const targetObservation = requireSource(context, findings, lawId, extensionTargetObservationPath);
   const extensionActor = requireSource(context, findings, lawId, sourcePaths[1]);
-  const required = [actor, store, schema, runtime, pointerRuntime, renameRuntime, postcondition,
+  const required = [actor, store, schema, runtime, pointerRuntime, postcondition,
     contract, specialContract, resolver,
     fileInput, failure, mutationReceipt, specialMutationReceipt, transport, commandPostcondition, manager,
     debuggerRuntime, createdTarget, targetAuthority, targetObservation, extensionActor];
@@ -154,7 +151,7 @@ const requireSettlementSources = (
     debuggerRuntime: debuggerRuntime!,
     failure: failure!, fileInput: fileInput!, manager: manager!, mutationReceipt: mutationReceipt!,
     specialMutationReceipt: specialMutationReceipt!, postcondition: postcondition!,
-    pointerRuntime: pointerRuntime!, renameRuntime: renameRuntime!, resolver: resolver!, runtime: runtime!, schema: schema!,
+    pointerRuntime: pointerRuntime!, resolver: resolver!, runtime: runtime!, schema: schema!,
     store: store!, targetAuthority: targetAuthority!, targetObservation: targetObservation!,
     extensionActor: extensionActor!,
     transport: transport! };
@@ -335,52 +332,16 @@ const inspectMutationExecution = (
   ], findings, lawId, domMutationPostconditionPath);
   requireText(`${sources.contract.getFullText()}\n${sources.specialContract.getFullText()}`, [
     "intent.expectedMatches !== undefined && intent.expectedMatches !== 1",
-    'intent.kind === "renameExactGptConversation"', "requireCanonicalGptConversationUrl",
-    "intent.targetTitle.normalize(\"NFC\")", "intent.timeoutMs !== 10_000", "exactKeys",
+    "exactKeys",
     "Object.keys(intent).length !== exactKeys.size", "!exactKeys.has(key)",
   ], findings, lawId, DOM_CONTRACT_PATH);
-  requireText(sources.renameRuntime.getFullText(), [
-    "executeGptConversationRename", "[data-sidebar-item='true']", "data-conversation-options-trigger",
-    "input[aria-label='聊天标题'][name='title-editor']", "executeClickIntent", "executeFillIntent",
-    "executeKeypressIntent", "currentTitle === intent.targetTitle", "physicalInputCount",
-    "mutationCount: 4", "postconditionVerified: true", "RENAME_LOGICAL_INPUT_GAP_MS = 1_500",
-    "waitForNextRenameInput",
-  ], findings, lawId, RENAME_RUNTIME_PATH);
   requireText(sources.extensionActor.getFullText(), [
     "Date.parse(frame.deadline)", "assertCommandActive", "Date.now() >= deadline",
     "socket !== this.socket", "this.session?.serverToClientKey !== commandSessionKey",
-    "command.intent.kind === \"renameExactGptConversation\"",
   ], findings, lawId, sourcePaths[1]);
   requireText(sources.targetAuthority.getFullText(), [
     "assertCommandActive", "const assertCurrent", "assertCommandActive();",
-    "command.intent.kind === \"renameExactGptConversation\"", "return result",
   ], findings, lawId, targetAuthorityPath);
-  for (const forbidden of ["Page.navigate", "executeScript", "while ("]) {
-    if (!sources.renameRuntime.getFullText().includes(forbidden)) continue;
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/settled-conversation-rename", lawId,
-      filePath: RENAME_RUNTIME_PATH,
-      message: `The settled rename runtime retains forbidden second-path token ${forbidden}.`,
-    }));
-  }
-  if (sources.renameRuntime.getFullText().split("await waitForNextRenameInput()").length - 1 !== 3) {
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/settled-conversation-rename", lawId,
-      filePath: RENAME_RUNTIME_PATH,
-      message: "The four-step rename must use the sole 1.5-second gate exactly between its three adjacent inputs.",
-    }));
-  }
-  requireText(`${sources.mutationReceipt.getFullText()}\n${sources.specialMutationReceipt.getFullText()}`, [
-    '"renameExactGptConversation"', "decodeConversationRenameReceipt", "physicalInputCount === 4",
-    "physicalInputCount,", "renameState === \"already-exact\"", "exactKeys(value",
-  ], findings, lawId, MUTATION_RECEIPT_PATH);
-  requireText(sources.failure.getFullText(), [
-    'input.permit.childCapabilityId === "rename_settled_gpt_conversation"',
-    'input.command.intent.kind === "renameExactGptConversation"',
-    'const failureCode = "BROWSER_COMMAND_RECEIPT_MISSING"',
-    "rejectMissingRenameReply", "input.mutations.markRejected(", '"dispatched",',
-    "failureCode,\n    null,\n    0,",
-  ], findings, lawId, COMMAND_FAILURE_PATH);
   requireText(sources.resolver.getFullText(), [
     "mutationOutcome: \"dispatched\"", "receipt.mutationOutcome !== \"dispatched\"",
   ], findings, lawId, OUTCOME_RESOLVER_PATH);

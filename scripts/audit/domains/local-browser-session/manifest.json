@@ -6,9 +6,9 @@
     "LAW-LOCAL-BROWSER-SESSION-001-V4",
     "LAW-LOCAL-BROWSER-SESSION-002-V6",
     "LAW-LOCAL-BROWSER-SESSION-003-V38",
-    "LAW-LOCAL-BROWSER-SESSION-004-V43",
+    "LAW-LOCAL-BROWSER-SESSION-004-V44",
     "LAW-LOCAL-BROWSER-SESSION-005-V6",
-    "LAW-LOCAL-BROWSER-SESSION-006-V34"
+    "LAW-LOCAL-BROWSER-SESSION-006-V35"
   ],
   "ownedPaths": [
     "artifacts/browser-release/**",
@@ -47,7 +47,6 @@
     "scripts/acceptance/local-browser-property-model.acceptance.ts",
     "scripts/acceptance/local-browser-provider-effect-recovery.acceptance.ts",
     "scripts/acceptance/local-browser-rule-mutants.acceptance.ts",
-    "scripts/acceptance/local-browser-settled-rename-support.ts",
     "scripts/acceptance/local-browser-target-lifecycle-support.ts",
     "scripts/acceptance/local-browser-terminal-contract.acceptance.ts",
     "scripts/acceptance/local-browser-terminal-fixture.ts",

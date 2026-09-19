@@ -1,4 +1,8 @@
 import type { BrowserGovernedCommand } from "./browser-command-actor.js";
+import {
+  browserPostconditionNativeCause,
+  type BrowserPostconditionBaseCause,
+} from "./browser-interaction-native-cause.js";
 
 const exactKeys = (value: Readonly<Record<string, unknown>>, expected: readonly string[]): boolean => {
   const keys = Object.keys(value);
@@ -27,6 +31,7 @@ const coherentRowShapeValid = (
 const coherentRowResult = (
   candidate: unknown,
   spec: Readonly<{ queryId: string; expectedEligibleCount: number }>,
+  queryIndex: number | undefined,
 ): Readonly<{ valid: boolean; cause: string | null }> => {
   if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
     return { valid: false, cause: null };
@@ -38,8 +43,11 @@ const coherentRowResult = (
   const reasons = first && typeof first === "object" && !Array.isArray(first)
     ? (first as Readonly<Record<string, unknown>>).reasons : undefined;
   const firstReason = Array.isArray(reasons) && typeof reasons[0] === "string" ? reasons[0] : null;
-  return { valid: true, cause: (row.eligibleCount as number) > spec.expectedEligibleCount
-    ? "BROWSER_DOM_CANDIDATE_AMBIGUOUS" : firstReason ?? "BROWSER_DOM_CANDIDATE_MISSING" };
+  const baseCause: BrowserPostconditionBaseCause = (row.eligibleCount as number) > spec.expectedEligibleCount
+    ? "BROWSER_DOM_CANDIDATE_AMBIGUOUS"
+    : (firstReason as BrowserPostconditionBaseCause | null) ?? "BROWSER_DOM_CANDIDATE_MISSING";
+  return { valid: true,
+    cause: queryIndex === undefined ? baseCause : browserPostconditionNativeCause(queryIndex, baseCause) };
 };
 
 const postconditionPacket = (
@@ -76,12 +84,12 @@ export const observationPostconditionEvidenceValid = (
   if (!observed) return false;
   const { postcondition, packet } = observed;
   if (!coherentPacketHeaderValid(packet, postcondition.queries.length)) return false;
-  const rows = (packet.queries as readonly unknown[]).map((candidate, index) =>
-    coherentRowResult(candidate, postcondition.queries[index]!));
-  const rowsValid = rows.every((row) => row.valid);
-  const ordinaryCause = rows.find((row) => row.cause !== null)?.cause ?? null;
   const exactOutgoing = command.kind === "dom-intent" && command.intent.kind === "click"
     ? command.intent.preClickExactOutgoingTurn : undefined;
+  const rows = (packet.queries as readonly unknown[]).map((candidate, index) =>
+    coherentRowResult(candidate, postcondition.queries[index]!, exactOutgoing === undefined ? index : undefined));
+  const rowsValid = rows.every((row) => row.valid);
+  const ordinaryCause = rows.find((row) => row.cause !== null)?.cause ?? null;
   const exactVerified = exactOutgoingPostconditionVerified(command, packet);
   const verified = ordinaryCause === null && exactVerified;
   const expectedCause = exactOutgoing !== undefined && !exactVerified

@@ -1,4 +1,4 @@
-import { executionFailure } from "../../execution-failure.js";
+import { executionFailure, typedExecutionFailure } from "../../execution-failure.js";
 import {
   requireRuntimeLogWrite,
   runtimeLogCauseEventId,
@@ -13,7 +13,38 @@ import {
   wait,
   type RuntimeState,
 } from "./runtime-state.js";
+import { typedRuntimeTransportFailure } from "./transport-failure.js";
 import type { ClaimedProductionTask } from "./transport-protocol.js";
+import type { ProductionWorkerSession } from "./worker-session.js";
+
+const RENEW_RETRY_INTERVAL_MS = 5_000;
+const RENEW_RETRY_MIN_LEFT_MS = 8_000;
+
+export const renewFailureRetryable = (error: unknown): boolean => {
+  const transport = typedRuntimeTransportFailure(error);
+  if (transport) return transport.httpStatus >= 500 && transport.httpStatus < 600;
+  return typedExecutionFailure(error)?.code === "CLOUD_TRANSPORT_UNAVAILABLE";
+};
+
+export const renewWithinBudget = async (input: Readonly<{
+  session: ProductionWorkerSession;
+  job: ClaimedProductionTask;
+  budget: ProductionExecutionLease;
+  signal: AbortSignal;
+}>): ReturnType<typeof renewProductionLease> => {
+  for (;;) {
+    try {
+      return await renewProductionLease(input.session, input.job, undefined, input.signal);
+    } catch (error) {
+      if (input.signal.aborted || !renewFailureRetryable(error)) throw error;
+      const leftMs = input.budget.expires_at_monotonic - performance.now();
+      const waitMs = Math.min(RENEW_RETRY_INTERVAL_MS, leftMs - RENEW_RETRY_MIN_LEFT_MS);
+      if (waitMs <= 0) throw error;
+      await wait(waitMs, input.signal);
+      if (input.signal.aborted) throw error;
+    }
+  }
+};
 
 export class ProductionRuntimeBoundaryError extends Error {
   public constructor(public readonly boundaryCause: unknown) {
@@ -92,7 +123,10 @@ export const heartbeatWhileRunning = async <T>(input: Readonly<{
     }));
     let receipt;
     try {
-      receipt = await renewProductionLease(input.state.session, input.job);
+      receipt = await renewWithinBudget({
+        session: input.state.session, job: input.job,
+        budget: input.budget, signal: input.abort.signal,
+      });
       requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
     } catch (error) {
       const terminal = terminalSpanFailure(span, error, runtimeLogCauseEventId(error),

@@ -115,7 +115,6 @@ const isMutation = (command: BrowserGovernedCommand): boolean =>
   command.kind === "file-input"
   || (command.kind === "dom-intent" && (command.intent.kind === "click" || command.intent.kind === "hover"
     || command.intent.kind === "doubleClick" || command.intent.kind === "keypress" || command.intent.kind === "fill"
-    || command.intent.kind === "renameExactGptConversation"
     || command.intent.kind === "acknowledgeKnownGptRateLimit"));
 
 const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
@@ -140,10 +139,6 @@ const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
   const intent = command.intent;
   let positive: Readonly<Record<string, unknown>>;
   switch (intent.kind) {
-    case "renameExactGptConversation":
-      positive = { kind: intent.kind, canonicalConversationUrl: intent.canonicalConversationUrl,
-        targetTitle: intent.targetTitle };
-      break;
     case "acknowledgeKnownGptRateLimit":
       positive = { kind: intent.kind, exactKnownDialog: true, acknowledged: true,
         targetRefHash: intent.targetRefHash, documentRefHash: intent.documentRefHash };

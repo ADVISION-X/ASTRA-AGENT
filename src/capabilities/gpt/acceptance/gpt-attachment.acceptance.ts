@@ -12,7 +12,7 @@ import {
 } from "./gpt-page-fixture-selectors.js";
 import {
   approvedAttachment, attachmentControlFacts, exerciseAttachmentLabelDiagnostics,
-  exerciseAttachmentNameNormalization, hiddenPopoverRejections,
+  exerciseAttachmentNameNormalization, exerciseForeignComposerCardGate, hiddenPopoverRejections,
 } from "./gpt-attachment-name.acceptance-support.js";
 
 const { execute } = createGptAcceptanceHarness("gpt-attachment");
@@ -303,7 +303,8 @@ assert.deepEqual(attachedInput, {
   }],
 });
 assert.equal(attachmentMutation.proof.committedMutation, "confirmed");
-assert.equal(attachmentMutationFixture.documentCalls(), 1);
+assert.equal(attachmentMutationFixture.documentCalls(), 2,
+  "the pre-upload foreign-card observation precedes the attachment-control readback");
 assert.equal(attachmentMutationFixture.physicalMutations(), 1,
   "GPT must send one approved artifact-ref batch to Browser Authority");
 
@@ -380,6 +381,7 @@ assert.ok(providerRenameRejected.failureCode?.startsWith("GPT_ATTACHMENT_SET_MIS
 assert.equal(providerRenameFixture.physicalMutations(), 0);
 
 await exerciseAttachmentLabelDiagnostics(execute, attachmentFacts);
+await exerciseForeignComposerCardGate(execute);
 
 let noLayoutCardReads = 0;
 const noLayoutAttachmentFixture = fakeBrowser((intent) => {

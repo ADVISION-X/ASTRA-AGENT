@@ -31,3 +31,46 @@ export type BrowserDomCandidateMissingStage = typeof BROWSER_DOM_CANDIDATE_MISSI
 export const browserDomCandidateMissingStage = (value: unknown): BrowserDomCandidateMissingStage | null =>
   typeof value === "string" && (BROWSER_DOM_CANDIDATE_MISSING_STAGES as readonly string[]).includes(value)
     ? value as BrowserDomCandidateMissingStage : null;
+
+/**
+ * Closed 20x11 set for observational postcondition native causes: `BROWSER_POSTCONDITION_Q<i>__<C>`
+ * where `i` is the first mismatched query index (0..19, the `assertObservationQueries` cap) and `C`
+ * is that query's own cause (candidate-set ambiguous/missing, or one of the 9 ineligibility reasons).
+ */
+export const BROWSER_POSTCONDITION_QUERY_INDEX_MAX = 19;
+
+const BROWSER_POSTCONDITION_BASE_CAUSES = Object.freeze([
+  "BROWSER_DOM_CANDIDATE_AMBIGUOUS",
+  "BROWSER_DOM_CANDIDATE_MISSING",
+  "DISCONNECTED",
+  "NO_LAYOUT_BOX",
+  "DISPLAY_HIDDEN",
+  "VISIBILITY_HIDDEN",
+  "OPACITY_HIDDEN",
+  "HTML_HIDDEN",
+  "ARIA_HIDDEN",
+  "INERT",
+  "TEXT_MISMATCH",
+] as const);
+
+export type BrowserPostconditionBaseCause = typeof BROWSER_POSTCONDITION_BASE_CAUSES[number];
+
+export type BrowserPostconditionNativeCause =
+  `BROWSER_POSTCONDITION_Q${number}__${BrowserPostconditionBaseCause}`;
+
+const BROWSER_POSTCONDITION_NATIVE_CAUSES: ReadonlySet<string> = new Set(
+  Array.from({ length: BROWSER_POSTCONDITION_QUERY_INDEX_MAX + 1 }, (_, index) => index)
+    .flatMap((index) => BROWSER_POSTCONDITION_BASE_CAUSES.map((cause) =>
+      `BROWSER_POSTCONDITION_Q${index}__${cause}`)),
+);
+
+/** Composes the one closed-set code for a mismatch at `queryIndex` with base cause `cause`. */
+export const browserPostconditionNativeCause = (
+  queryIndex: number,
+  cause: BrowserPostconditionBaseCause,
+): BrowserPostconditionNativeCause => `BROWSER_POSTCONDITION_Q${queryIndex}__${cause}` as
+  BrowserPostconditionNativeCause;
+
+/** Returns true only for a code in the closed 220-member P1 set. */
+export const browserPostconditionNativeCauseValid = (value: unknown): value is BrowserPostconditionNativeCause =>
+  typeof value === "string" && BROWSER_POSTCONDITION_NATIVE_CAUSES.has(value);

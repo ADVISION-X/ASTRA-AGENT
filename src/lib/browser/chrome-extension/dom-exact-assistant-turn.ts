@@ -64,6 +64,122 @@ const EXACT_ASSISTANT_TURN_FUNCTION = `async function (spec) {
     observedAt, pendingCause, nativeStage: "runtime-call-function-on" };
 }`;
 
+/**
+ * One synchronous, stateless step of the exact-turn materialization walk. Called repeatedly by the
+ * extension with a fresh objectId each time; contains no timer or Promise so the extension owns every
+ * wait. Step 0 locates the scroll container common to all rendered turns and jumps to its bottom; later
+ * steps move it up by 0.8x its client height. Returns page facts only, never DOM/HTML content.
+ */
+const MATERIALIZE_STEP_FUNCTION = `function (spec) {
+  if (document.visibilityState !== "visible") {
+    return { pageVisible: false, containerFound: false, hit: false, atTop: false };
+  }
+  const turns = Array.from(document.querySelectorAll("[data-testid^='conversation-turn-']"));
+  let container = null;
+  if (turns.length > 0) {
+    let candidate = turns[0].parentElement;
+    while (candidate && candidate !== document.body) {
+      const style = getComputedStyle(candidate);
+      if ((style.overflowY === "auto" || style.overflowY === "scroll")
+        && candidate.scrollHeight > candidate.clientHeight
+        && turns.every((turn) => candidate.contains(turn))) {
+        container = candidate;
+        break;
+      }
+      candidate = candidate.parentElement;
+    }
+  }
+  if (!container) return { pageVisible: true, containerFound: false, hit: false, atTop: false };
+  if (spec.step === 0) {
+    container.scrollTop = container.scrollHeight;
+  } else {
+    container.scrollTop = Math.max(0, container.scrollTop - 0.8 * container.clientHeight);
+  }
+  const hit = document.querySelectorAll(
+    "[data-testid='" + spec.userTurnId + "']"
+  ).length >= 1;
+  const atTop = container.scrollTop <= 0;
+  return { pageVisible: true, containerFound: true, hit, atTop };
+}`;
+
+type MaterializeStepResult = Readonly<{
+  pageVisible: boolean;
+  containerFound: boolean;
+  hit: boolean;
+  atTop: boolean;
+}>;
+
+const decodeMaterializeStep = (value: unknown): MaterializeStepResult => {
+  const observed = record(value);
+  if (typeof observed.pageVisible !== "boolean" || typeof observed.containerFound !== "boolean"
+    || typeof observed.hit !== "boolean" || typeof observed.atTop !== "boolean") {
+    throw new Error("BROWSER_DOM_READ_INVALID");
+  }
+  return Object.freeze({
+    pageVisible: observed.pageVisible, containerFound: observed.containerFound,
+    hit: observed.hit, atTop: observed.atTop,
+  });
+};
+
+const MATERIALIZE_STEP_BUDGET_MS = 12_000;
+const MATERIALIZE_STEP_DEADLINE_MARGIN_MS = 3_000;
+const MATERIALIZE_STEP_MIN_BUDGET_MS = 4_000;
+const MATERIALIZE_STEP_INTERVAL_MS = 400;
+const MATERIALIZE_STEP_INTERVAL_MARGIN_MS = 500;
+const MATERIALIZE_STEP_MAX_COUNT = 48;
+
+const wait = async (durationMs: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, durationMs));
+
+/**
+ * Extension-owned, best-effort DOM materialization for a virtualized ChatGPT turn list. Only entered
+ * when the current Document has zero rendered turns matching userTurnId; it never scrolls when a
+ * candidate already exists or is ambiguous. Every wait and the hard deadline are owned by this
+ * function's own clock, not by the page, so a hidden or throttled tab cannot delay the command past
+ * its deadline. All failures are swallowed: the caller always falls back to the current (still
+ * unavailable) observation.
+ */
+const materializeExactUserTurn = async (
+  runtime: ExtensionDebuggerRuntime,
+  target: ExtensionExactTarget,
+  userTurnId: string,
+  commandDeadlineAt: number,
+): Promise<void> => {
+  const budgetMs = Math.min(
+    MATERIALIZE_STEP_BUDGET_MS, commandDeadlineAt - Date.now() - MATERIALIZE_STEP_DEADLINE_MARGIN_MS,
+  );
+  if (budgetMs < MATERIALIZE_STEP_MIN_BUDGET_MS) return;
+  const deadline = Date.now() + budgetMs;
+  try {
+    for (let step = 0; step < MATERIALIZE_STEP_MAX_COUNT; step += 1) {
+      if (Date.now() + MATERIALIZE_STEP_INTERVAL_MS + MATERIALIZE_STEP_INTERVAL_MARGIN_MS >= deadline) return;
+      let objectId: string | null = null;
+      let result: MaterializeStepResult;
+      try {
+        const document = record(await runtime.send(target.tabId, "DOM.getDocument", { depth: 0, pierce: true }));
+        const root = record(document.root);
+        if (!Number.isSafeInteger(root.nodeId)) return;
+        const resolved = record(await runtime.send(target.tabId, "DOM.resolveNode", { nodeId: root.nodeId }));
+        objectId = record(resolved.object).objectId as string;
+        if (typeof objectId !== "string" || objectId.length === 0) return;
+        const call = record(await runtime.send(target.tabId, "Runtime.callFunctionOn", {
+          objectId, functionDeclaration: MATERIALIZE_STEP_FUNCTION,
+          arguments: [{ value: { userTurnId, step } }], returnByValue: true, awaitPromise: false, silent: true,
+        }));
+        if (call.exceptionDetails !== undefined) return;
+        result = decodeMaterializeStep(record(call.result).value);
+      } finally {
+        if (objectId !== null) await runtime.send(target.tabId, "Runtime.releaseObject", { objectId })
+          .catch(() => undefined);
+      }
+      if (!result.pageVisible || !result.containerFound || result.hit || result.atTop) return;
+      await wait(MATERIALIZE_STEP_INTERVAL_MS);
+    }
+  } catch {
+    // Best-effort only; the caller re-reads the current (possibly still unavailable) observation.
+  }
+};
+
 const sha256Text = async (value: string): Promise<`sha256:${string}`> => {
   const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return `sha256:${[...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
@@ -188,11 +304,24 @@ export const executeExactAssistantTurnRead = async (
   intent: Extract<import("../exact-target/browser-dom-intent.js").BrowserDomIntent, { kind: "readExactAssistantTurn" }>,
   assertCurrent: () => void,
   expectedMainFrameLoaderId: string,
+  commandDeadlineAt?: number,
 ): Promise<unknown> => {
   assertCurrent();
-  const observed = await observeExactAssistantTurn(
-    debuggerRuntime, target, intent, expectedMainFrameLoaderId,
-  );
+  let observed: ExactAssistantObservation;
+  try {
+    observed = await observeExactAssistantTurn(
+      debuggerRuntime, target, intent, expectedMainFrameLoaderId,
+    );
+  } catch (error) {
+    if (!(error instanceof Error) || error.message !== "BROWSER_EXACT_USER_TURN_UNAVAILABLE"
+      || commandDeadlineAt === undefined) throw error;
+    assertCurrent();
+    await materializeExactUserTurn(debuggerRuntime, target, intent.userTurnId, commandDeadlineAt);
+    assertCurrent();
+    observed = await observeExactAssistantTurn(
+      debuggerRuntime, target, intent, expectedMainFrameLoaderId,
+    );
+  }
   assertCurrent();
   const rawDomHash = await sha256Text(observed.rawDomHtml);
   const semanticTextHash = await sha256Text(observed.semanticText);

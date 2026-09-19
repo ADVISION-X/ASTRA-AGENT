@@ -2,7 +2,7 @@ import { executionFailure } from "../../../../lib/execution-failure.js";
 
 import type { GptChildCapabilityIntent } from "../../contract.js";
 import { gptExecutionFailure } from "../../execution-fault.js";
-import { gptAttachmentProviderDisplayName } from "../../schema.js";
+import { gptAttachmentProviderDisplayName, normalizeGptProviderAttachmentLabel } from "../../schema.js";
 import {
   arrayInput,
   declaredFacts,
@@ -87,7 +87,7 @@ export const filesFromIntent = (
   return files;
 };
 
-const attachmentSetState = async (
+export const attachmentSetState = async (
   browser: ReturnType<typeof requireBrowser>,
 ): Promise<AttachmentSetState> => {
   const observation = await readCoherentObservation(browser, [
@@ -111,6 +111,30 @@ const attachmentSetState = async (
     rows: observation.rows,
     facts: projectCoherentObservation(observation, "attachment-items"),
   });
+};
+
+export const assertNoForeignComposerAttachments = async (
+  browser: ReturnType<typeof requireBrowser>,
+  files: readonly ApprovedFile[],
+): Promise<void> => {
+  const observed = await attachmentSetState(browser);
+  const expectedLabels = files.map((file) => file.providerDisplayName);
+  const foreignCount = observed.observedLabels.filter((label) =>
+    !expectedLabels.includes(normalizeGptProviderAttachmentLabel(label, expectedLabels))).length;
+  if (foreignCount === 0) return;
+  throw gptExecutionFailure(
+    `GPT_ATTACHMENT_COMPOSER_FOREIGN_CARDS:cards=${observed.itemEligibleCount}:foreign=${foreignCount}`,
+    {
+      mutationOutcome: "no",
+      proofFacts: Object.freeze({
+        ...observed.facts,
+        decision: "FAIL_CLOSED",
+        mutationOutcome: "no",
+        browserFact: null,
+        nativeFailureCode: null,
+      }),
+    },
+  );
 };
 
 const attachmentSetDifference = (

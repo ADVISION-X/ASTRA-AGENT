@@ -122,7 +122,7 @@ export const exerciseCoherentClickPostcondition = async (): Promise<void> => {
   }, () => undefined) as Readonly<Record<string, unknown>>;
   assert.equal(rejected.postconditionVerified, false);
   assert.equal(rejected.failureCode, "BROWSER_POSTCONDITION_FAILED");
-  assert.equal(rejected.nativeCauseCode, "BROWSER_DOM_CANDIDATE_AMBIGUOUS");
+  assert.equal(rejected.nativeCauseCode, "BROWSER_POSTCONDITION_Q0__BROWSER_DOM_CANDIDATE_AMBIGUOUS");
   assert.ok(stuck.coherentCalls() >= 3,
     "an ordinary deadline miss must return the final coherent negative readback instead of DOM_READ_INVALID");
   const drifted = coherentRuntimeFor(false, undefined, 4, true);

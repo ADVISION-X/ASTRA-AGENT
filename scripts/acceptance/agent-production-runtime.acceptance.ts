@@ -46,6 +46,7 @@ import "./agent-production-runtime-ledger.acceptance.js";
 import "./agent-production-runtime-proof-boundary.acceptance.js";
 import "./agent-production-runtime-startup.acceptance.js";
 import { exerciseWorkerSessionRotation } from "./agent-production-runtime-session-rotation-support.js";
+import { exerciseLeaseRenewRetry } from "./agent-production-runtime-lease-renew-retry-support.js";
 import { exerciseGeneratedImageTransport } from "./agent-production-runtime-generated-image.acceptance-support.js";
 import { exerciseProductionRuntimeSourceBoundaries } from
   "./agent-production-runtime-recovery-boundary.acceptance-support.js";
@@ -389,26 +390,27 @@ await assert.rejects(
 );
 
 await exerciseWorkerSessionRotation();
+await exerciseLeaseRenewRetry();
 await exerciseGeneratedImageTransport(productionTask);
 
 
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V37",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V38",
   evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"],
   locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
   observedValue: "the unique Runtime ownership inspector accepted the current Runtime-only manifest and rejected injected Mediator and Product ownership mutants",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V63",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V64",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:attempt-recovery-state-machine",
   observedValue: "binary task lifecycle durable accept same-attempt recovery lease outbox and typed cross-owner boundaries exercised",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V63",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V64",
   evidenceMode: "exam.property",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:transport-properties",
@@ -416,7 +418,7 @@ emitQualityProofObservation({
 });
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V35",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V36",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"],
     locator: `acceptance:agent-production-runtime:business-admission:${evidenceMode}`,

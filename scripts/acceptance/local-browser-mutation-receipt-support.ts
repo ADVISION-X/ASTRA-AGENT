@@ -2,8 +2,9 @@ import { governanceAssert as assert } from "../audit/shared/governance-exam-asse
 
 import { decodeBrowserMutationReceipt } from
   "../../src/lib/browser/exact-target/browser-mutation-receipt.js";
-import { BROWSER_DOM_CANDIDATE_MISSING_STAGES } from
-  "../../src/lib/browser/exact-target/browser-interaction-native-cause.js";
+import {
+  BROWSER_DOM_CANDIDATE_MISSING_STAGES, browserPostconditionNativeCauseValid,
+} from "../../src/lib/browser/exact-target/browser-interaction-native-cause.js";
 import { CANDIDATE_MISSING_STAGE_SOURCE, candidateMissingFailure, candidateMissingStage } from
   "../../src/lib/browser/chrome-extension/dom-candidate-missing-stage.js";
 
@@ -165,17 +166,6 @@ const exerciseCandidateMissingStageReceipts = (): void => {
     ...candidateMissing, candidateCount: 2, failureCode: "BROWSER_DOM_CANDIDATE_AMBIGUOUS",
     nativeCauseCode: "BROWSER_DOM_CANDIDATE_INELIGIBLE",
   }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u, "only a missing candidate set may carry a missing stage");
-  const renameCommand = { kind: "dom-intent" as const, intent: {
-    kind: "renameExactGptConversation" as const, canonicalConversationUrl: "https://chatgpt.com/c/rename",
-    targetTitle: "0918·八字分析·aiprod_12345678", timeoutMs: 10_000,
-  } };
-  assert.deepEqual(decodeBrowserMutationReceipt(renameCommand, {
-    renameState: "failed", candidateCount: 0, identityRevalidated: false, mutationCount: 0,
-    postconditionVerified: false, failureCode: "BROWSER_DOM_CANDIDATE_MISSING",
-    nativeCauseCode: "BROWSER_DOM_SELECTOR_ABSENT",
-  }), { terminal: "rejected", mutationOutcome: "no", failureCode: "BROWSER_DOM_CANDIDATE_MISSING",
-    nativeCauseCode: "BROWSER_DOM_SELECTOR_ABSENT", physicalInputCount: 0 },
-  "the unchanged rename decoder carries the inner step stage as its native cause");
 };
 
 const exerciseFreshReadbackReceipts = (): void => {
@@ -222,11 +212,12 @@ const exerciseFreshReadbackReceipts = (): void => {
   "a selected-candidate success cannot claim an unchecked clicked radio");
   const coherentFailure = {
     ...coherentSuccess, postconditionVerified: false, postconditionObservation: observationPacket(0),
-    failureCode: "BROWSER_POSTCONDITION_FAILED", nativeCauseCode: "BROWSER_DOM_CANDIDATE_MISSING",
+    failureCode: "BROWSER_POSTCONDITION_FAILED",
+    nativeCauseCode: "BROWSER_POSTCONDITION_Q1__BROWSER_DOM_CANDIDATE_MISSING",
   };
   assert.deepEqual(decodeBrowserMutationReceipt(observationClickCommand, coherentFailure), {
     terminal: "rejected", mutationOutcome: "confirmed", failureCode: "BROWSER_POSTCONDITION_FAILED",
-    nativeCauseCode: "BROWSER_DOM_CANDIDATE_MISSING", physicalInputCount: 1,
+    nativeCauseCode: "BROWSER_POSTCONDITION_Q1__BROWSER_DOM_CANDIDATE_MISSING", physicalInputCount: 1,
   });
   assert.throws(() => decodeBrowserMutationReceipt(observationClickCommand, {
     ...coherentFailure, nativeCauseCode: "BROWSER_DOM_CANDIDATE_AMBIGUOUS",
@@ -254,9 +245,111 @@ const exercisePostconditionEvidenceReceipts = (): void => {
     "postcondition evidence and native cause must describe the same candidate set");
 };
 
+const observationPacketHeader = {
+  schemaVersion: "grasseye.browser.dom-observation.v2",
+  exactCallIdentityHash: `sha256:${"1".repeat(64)}`,
+  targetRefHash: `sha256:${"2".repeat(64)}`,
+  documentRefHash: `sha256:${"3".repeat(64)}`,
+  currentUrl: "https://chatgpt.com/",
+  observationRevisionHash: `sha256:${"4".repeat(64)}`,
+  observedAt: "2026-09-04T00:00:00.000Z",
+} as const;
+
+const observationCommandWithQueries = (queryCount: number) => ({
+  kind: "dom-intent" as const,
+  intent: {
+    kind: "click" as const, selector: "button", expectedMatches: 1,
+    postClickObservation: { timeoutMs: 5_000, queries: Array.from({ length: queryCount }, (_, index) => ({
+      queryId: `q${index}`, selector: `[data-q='${index}']`, maxMatches: 1, fields: [],
+      expectedEligibleCount: 1,
+    })) },
+  },
+});
+
+const observationPacketWithMismatch = (queryCount: number, mismatch: Readonly<{
+  index: number; rawCount: number; eligibleCount: number;
+  rejections?: readonly Readonly<{ index: number; reasons: readonly string[] }>[];
+}>) => ({
+  ...observationPacketHeader,
+  queries: Array.from({ length: queryCount }, (_, index) => index === mismatch.index
+    ? { queryId: `q${index}`, rawCount: mismatch.rawCount, eligibleCount: mismatch.eligibleCount,
+      rejections: mismatch.rejections ?? [] }
+    : { queryId: `q${index}`, rawCount: 1, eligibleCount: 1, rejections: [] }),
+});
+
+/** P-验收: the 20x11 closed-set query-index prefix on observational postcondition native causes. */
+const exercisePostconditionQueryIndexCauses = (): void => {
+  const sixQueryCommand = observationCommandWithQueries(6);
+  const missingAtQ2 = {
+    clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
+    postconditionVerified: false,
+    postconditionObservation: observationPacketWithMismatch(6, { index: 2, rawCount: 0, eligibleCount: 0 }),
+    failureCode: "BROWSER_POSTCONDITION_FAILED",
+    nativeCauseCode: "BROWSER_POSTCONDITION_Q2__BROWSER_DOM_CANDIDATE_MISSING",
+  };
+  assert.deepEqual(decodeBrowserMutationReceipt(sixQueryCommand, missingAtQ2), {
+    terminal: "rejected", mutationOutcome: "confirmed", failureCode: "BROWSER_POSTCONDITION_FAILED",
+    nativeCauseCode: "BROWSER_POSTCONDITION_Q2__BROWSER_DOM_CANDIDATE_MISSING", physicalInputCount: 1,
+  }, "P.1: a 6-query profile packet missing its 3rd query must surface Q2__BROWSER_DOM_CANDIDATE_MISSING");
+
+  const invisibleAtQ0 = {
+    clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
+    postconditionVerified: false,
+    postconditionObservation: observationPacketWithMismatch(6, { index: 0, rawCount: 1, eligibleCount: 0,
+      rejections: [{ index: 0, reasons: ["NO_LAYOUT_BOX"] }] }),
+    failureCode: "BROWSER_POSTCONDITION_FAILED",
+    nativeCauseCode: "BROWSER_POSTCONDITION_Q0__NO_LAYOUT_BOX",
+  };
+  assert.deepEqual(decodeBrowserMutationReceipt(sixQueryCommand, invisibleAtQ0), {
+    terminal: "rejected", mutationOutcome: "confirmed", failureCode: "BROWSER_POSTCONDITION_FAILED",
+    nativeCauseCode: "BROWSER_POSTCONDITION_Q0__NO_LAYOUT_BOX", physicalInputCount: 1,
+  }, "P.2: the first query's own ineligibility reason must survive unchanged under the Q0 prefix");
+
+  for (const forgedCause of [
+    "BROWSER_POSTCONDITION_Q1__BROWSER_DOM_CANDIDATE_MISSING",
+    "BROWSER_POSTCONDITION_Q2__BROWSER_DOM_CANDIDATE_AMBIGUOUS",
+    "BROWSER_DOM_CANDIDATE_MISSING",
+  ]) assert.throws(() => decodeBrowserMutationReceipt(sixQueryCommand, {
+    ...missingAtQ2, nativeCauseCode: forgedCause,
+  }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
+  `P.3: a forged index or base cause (${forgedCause}) must never be accepted`);
+
+  const singleMatchFailure = {
+    clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
+    postconditionVerified: false, postconditionRawCount: 1, postconditionEligibleCount: 0,
+    postconditionRejections: [{ index: 0, reasons: ["ARIA_HIDDEN"] }],
+    failureCode: "BROWSER_POSTCONDITION_FAILED", nativeCauseCode: "ARIA_HIDDEN",
+  } as const;
+  assert.deepEqual(decodeBrowserMutationReceipt(clickCommand, singleMatchFailure), {
+    terminal: "rejected", mutationOutcome: "confirmed", failureCode: "BROWSER_POSTCONDITION_FAILED",
+    nativeCauseCode: "ARIA_HIDDEN", physicalInputCount: 1,
+  }, "P.4: single-match-type postconditions must keep their unprefixed native cause");
+
+  assert.equal(browserPostconditionNativeCauseValid("BROWSER_POSTCONDITION_Q19__NO_LAYOUT_BOX"), true);
+  assert.equal(browserPostconditionNativeCauseValid("BROWSER_POSTCONDITION_Q20__NO_LAYOUT_BOX"), false);
+  const twentyQueryCommand = observationCommandWithQueries(20);
+  const q19Failure = {
+    clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
+    postconditionVerified: false,
+    postconditionObservation: observationPacketWithMismatch(20, { index: 19, rawCount: 1, eligibleCount: 0,
+      rejections: [{ index: 0, reasons: ["NO_LAYOUT_BOX"] }] }),
+    failureCode: "BROWSER_POSTCONDITION_FAILED",
+    nativeCauseCode: "BROWSER_POSTCONDITION_Q19__NO_LAYOUT_BOX",
+  };
+  assert.deepEqual(decodeBrowserMutationReceipt(twentyQueryCommand, q19Failure), {
+    terminal: "rejected", mutationOutcome: "confirmed", failureCode: "BROWSER_POSTCONDITION_FAILED",
+    nativeCauseCode: "BROWSER_POSTCONDITION_Q19__NO_LAYOUT_BOX", physicalInputCount: 1,
+  }, "P.6: the last permitted query index (19) must be accepted");
+  assert.throws(() => decodeBrowserMutationReceipt(twentyQueryCommand, {
+    ...q19Failure, nativeCauseCode: "BROWSER_POSTCONDITION_Q20__NO_LAYOUT_BOX",
+  }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
+  "P.6: a query index beyond the 20-query cap must never be accepted");
+};
+
 export const exerciseStrictMutationReceipts = (): void => {
   exerciseFileAndQualificationReceipts();
   exerciseCandidateMissingStageReceipts();
   exerciseFreshReadbackReceipts();
   exercisePostconditionEvidenceReceipts();
+  exercisePostconditionQueryIndexCauses();
 };

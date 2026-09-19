@@ -80,7 +80,6 @@ export const EXPECTED_GPT_CHILD_IDS = Object.freeze([
   "open_gpt_attachment_control",
   "open_gpt_execution_profile", "open_gpt_model_selector_v2",
   "prepare_clean_gpt_chat", "reconcile_gpt_attachment_set",
-  "rename_settled_gpt_conversation",
   "select_exact_gpt_model_v2", "submit_exact_gpt_turn_once", "write_exact_gpt_prompt",
 ].sort());
 
@@ -253,7 +252,7 @@ const executeFakeDomIntent = async (
 ): Promise<unknown> => {
   state.domCalls += 1;
   const mutates = ["click", "hover", "doubleClick", "keypress", "fill",
-    "renameExactGptConversation", "acknowledgeKnownGptRateLimit"].includes(intent.kind);
+    "acknowledgeKnownGptRateLimit"].includes(intent.kind);
   const value = intent.kind === "document"
     ? { url: state.url, title: "ChatGPT" }
     : await responder(intent, state.domCalls);

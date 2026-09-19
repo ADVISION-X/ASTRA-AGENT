@@ -28,7 +28,7 @@ import {
 import "./gpt-reasoning-requirement.acceptance.js";
 
 assert.deepEqual(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).sort(), EXPECTED_GPT_CHILD_IDS);
-assert.equal(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).length, 15);
+assert.equal(Object.keys(GPT_CHILD_CAPABILITY_CONTRACTS).length, 14);
 assertGptExactTargetSourceShape(import.meta.url);
 
 const conversationFacts = (

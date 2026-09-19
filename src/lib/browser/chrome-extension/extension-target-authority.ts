@@ -253,6 +253,7 @@ export class ExtensionTargetAuthority {
     target: ExtensionExactTarget,
     mutationClass: RegisteredExtensionCommand["mutationClass"],
     assertCommandActive: () => void = () => undefined,
+    commandDeadlineAt?: number,
   ): Promise<unknown> {
     const acknowledgeRateLimit = command.kind === "dom-intent"
       && command.intent.kind === "acknowledgeKnownGptRateLimit";
@@ -265,7 +266,7 @@ export class ExtensionTargetAuthority {
             transientDomConfirmationStage,
           ),
       () => this.executeRegisteredCommandCycle(
-        command, target, mutationClass, assertCommandActive,
+        command, target, mutationClass, assertCommandActive, commandDeadlineAt,
       ),
       acknowledgeRateLimit ? "rate-limit-ack" : "ordinary",
     );
@@ -276,6 +277,7 @@ export class ExtensionTargetAuthority {
     target: ExtensionExactTarget,
     mutationClass: RegisteredExtensionCommand["mutationClass"],
     assertCommandActive: () => void,
+    commandDeadlineAt?: number,
   ): Promise<unknown> {
     const execute = async (): Promise<unknown> => {
       assertCommandActive();
@@ -302,9 +304,8 @@ export class ExtensionTargetAuthority {
         }
         const result = await executeRegisteredDomIntent(
           this.debuggerRuntime, target, command.intent, assertCurrent,
-          expectedMainFrameLoaderId ?? undefined,
+          expectedMainFrameLoaderId ?? undefined, commandDeadlineAt,
         );
-        if (command.intent.kind === "renameExactGptConversation") return result;
         assertCurrent();
         return result;
       }

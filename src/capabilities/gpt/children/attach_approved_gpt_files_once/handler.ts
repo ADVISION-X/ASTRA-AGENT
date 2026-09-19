@@ -1,4 +1,5 @@
 import {
+  assertNoForeignComposerAttachments,
   attachmentValue,
   filesFromIntent,
   observeExactAttachmentSet,
@@ -42,6 +43,7 @@ export const attachApprovedGptFilesOnceHandler: GptChildHandler<"attach_approved
         }),
       });
     }
+    await assertNoForeignComposerAttachments(browser, files);
     const control = await readAttachmentControlState(browser, context.signal);
     if (!attachmentControlReady(control)) {
       failAttachmentControl("GPT_UPLOAD_CHOICE_INVALID", control);

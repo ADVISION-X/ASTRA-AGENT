@@ -25,7 +25,7 @@ import {
 import { executeKnownGptRateLimitIntent } from "./gpt-rate-limit-dialog.js";
 type FindIntent = Extract<BrowserDomIntent, { kind: "find" }>;
 type ValueIntent = Exclude<BrowserDomIntent, {
-  kind: "document" | "selectExactGptConversation" | "renameExactGptConversation"
+  kind: "document" | "selectExactGptConversation"
     | "acknowledgeKnownGptRateLimit" | "readKnownGptRateLimitClearance"
     | "observe" | "readExactAssistantTurn" | "find"
     | "click" | "hover" | "doubleClick" | "keypress";
@@ -303,13 +303,10 @@ export const executeRegisteredDomIntent = async (
   intent: BrowserDomIntent,
   assertCurrent: CurrentDocumentAssertion,
   expectedMainFrameLoaderId?: string,
+  commandDeadlineAt?: number,
 ): Promise<unknown> => {
   assertCurrent();
   if (intent.kind === "selectExactGptConversation") throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-  if (intent.kind === "renameExactGptConversation") {
-    const { executeGptConversationRename } = await import("./gpt-conversation-rename-runtime.js");
-    return executeGptConversationRename(debuggerRuntime, target, intent, assertCurrent);
-  }
   if (intent.kind === "acknowledgeKnownGptRateLimit"
     || intent.kind === "readKnownGptRateLimitClearance") {
     return executeKnownGptRateLimitIntent(debuggerRuntime, target, intent, assertCurrent);
@@ -320,7 +317,7 @@ export const executeRegisteredDomIntent = async (
   if (intent.kind === "readExactAssistantTurn") {
     if (!expectedMainFrameLoaderId) throw new Error("BROWSER_DOCUMENT_INVALID");
     return executeExactAssistantTurnRead(
-      debuggerRuntime, target, intent, assertCurrent, expectedMainFrameLoaderId,
+      debuggerRuntime, target, intent, assertCurrent, expectedMainFrameLoaderId, commandDeadlineAt,
     );
   }
   let operation: Promise<unknown>;

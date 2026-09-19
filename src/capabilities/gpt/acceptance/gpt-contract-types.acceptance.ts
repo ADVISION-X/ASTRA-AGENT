@@ -2,7 +2,6 @@ import type { GptChildCapabilityId, GptChildInputMap, GptChildOutputMap } from "
 import type {
   ProductGptCallInput,
   ProductGptChildResult,
-  ProductGptTools,
 } from "../product-api.js";
 
 const hash = `sha256:${"a".repeat(64)}` as const;
@@ -37,9 +36,6 @@ const missingSubmitFiles: ProductGptCallInput<"submit_exact_gpt_turn_once"> = { 
 const wrongWriteOutput: GptChildOutputMap["write_exact_gpt_prompt"] = { state: "profile-popup-open" };
 
 declare const publicResult: ProductGptChildResult<"write_exact_gpt_prompt">;
-declare const publicTools: ProductGptTools;
-// @ts-expect-error settled conversation rename is internal cleanup and cannot enter Product tools.
-void publicTools.execute<"rename_settled_gpt_conversation">(undefined as never);
 const exactHash: `sha256:${string}` = publicResult.value.hash;
 void [validWriteCall, validSubmitCall, validWriteSuccess, wrongChildInput,
   extraInputField, missingSubmitFiles, wrongWriteOutput, exactHash];

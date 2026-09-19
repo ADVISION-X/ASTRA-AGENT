@@ -100,19 +100,6 @@ const recordUnsettledMutation = (input: FailureInput, code: string): void => {
   });
 };
 
-const rejectMissingRenameReply = (input: FailureInput): never => {
-  const failureCode = "BROWSER_COMMAND_RECEIPT_MISSING";
-  input.mutations.markRejected(
-    input.permit.commandId,
-    hashBrowserCommandValue(failureCode),
-    "dispatched",
-    failureCode,
-    null,
-    0,
-  );
-  return emitRejected(input, failureCode);
-};
-
 const checkpointMissingIsObservation = (input: FailureInput, code: string): boolean => {
   if (input.mutation) return false;
   if (input.permit.childCapabilityId === "checkpoint_gpt_text_response") {
@@ -123,14 +110,6 @@ const checkpointMissingIsObservation = (input: FailureInput, code: string): bool
     && ["BROWSER_AUTHENTICATED_MEDIA_USER_TURN_ABSENT",
       "BROWSER_AUTHENTICATED_MEDIA_IMAGE_SOURCE_ABSENT"].includes(code);
 };
-
-const missingRenameReply = (input: FailureInput): boolean => [input.mutation,
-  input.state.dispatched,
-  input.permit.childCapabilityId === "rename_settled_gpt_conversation",
-  input.permit.replayPolicy === "target-local-per-generation",
-  input.command.kind === "dom-intent",
-  input.command.kind === "dom-intent" && input.command.intent.kind === "renameExactGptConversation",
-].every(Boolean);
 
 export const failBrowserCommandExecution = (input: FailureInput): never => {
   if (input.state.terminalized) throw input.error;
@@ -143,9 +122,6 @@ export const failBrowserCommandExecution = (input: FailureInput): never => {
   if (input.terminalReply !== null) return rejectAuthenticatedTerminalReply(input, input.terminalReply);
   if (input.mutation && input.state.dispatched && input.state.authenticatedReplyHash !== null) {
     return rejectAuthenticatedResult(input);
-  }
-  if (missingRenameReply(input)) {
-    return rejectMissingRenameReply(input);
   }
   const failureCode = input.mutation && input.state.dispatched
     ? "BROWSER_COMMAND_RECEIPT_MISSING" : code;

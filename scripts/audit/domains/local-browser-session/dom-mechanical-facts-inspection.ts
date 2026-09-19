@@ -245,7 +245,7 @@ export const exactAssistantTurnReadIsAtomic = (source: import("ts-morph").Source
     ".ariaHidden", ".inert", "getClientRects", "checkVisibility", "thirdGate"];
   const exactCounts = [
     (exactFunction.match(/\bif\s*\(/gu) ?? []).length === 3,
-    (text.match(/Runtime\.callFunctionOn/gu) ?? []).length === 1,
+    (observe.match(/Runtime\.callFunctionOn/gu) ?? []).length === 1,
     (observe.match(/mainFrameLoaderId\(runtime, target\.tabId\)/gu) ?? []).length === 2,
     (observe.match(/!== expectedMainFrameLoaderId/gu) ?? []).length === 2,
   ];

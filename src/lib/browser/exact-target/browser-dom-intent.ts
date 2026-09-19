@@ -100,12 +100,6 @@ export type BrowserDomIntent =
   | Readonly<{ kind: "document" }>
   | Readonly<{ kind: "selectExactGptConversation"; canonicalConversationUrl: string }>
   | Readonly<{
-    kind: "renameExactGptConversation";
-    canonicalConversationUrl: string;
-    targetTitle: string;
-    timeoutMs: number;
-  }>
-  | Readonly<{
     kind: "acknowledgeKnownGptRateLimit";
     targetRefHash: `sha256:${string}`;
     documentRefHash: `sha256:${string}`;
