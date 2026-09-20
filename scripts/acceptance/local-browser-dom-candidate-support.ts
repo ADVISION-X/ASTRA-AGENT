@@ -88,6 +88,14 @@ const exerciseOutgoingAttachmentIdentity = async (source: string): Promise<void>
   assert.equal(JSON.stringify(await execute(source, documentFor(retriedForm), fixture.guardedInput)),
     JSON.stringify({ x: 5, y: 5 }),
     "a Provider-only final numeric duplicate suffix must preserve the approved attachment identity");
+  const dateTimeSuffixed = new FakeElement("approved(20260920-014044).pdf", {}, {}, {
+    "aria-label": "approved(20260920-014044).pdf",
+  });
+  const dateTimeSuffixedForm = new FakeElement(fixture.prompt, { attachment: [dateTimeSuffixed] }, {}, {},
+    "FORM", [fixture.composer, dateTimeSuffixed, fixture.send]);
+  assert.equal(JSON.stringify(await execute(source, documentFor(dateTimeSuffixedForm), fixture.guardedInput)),
+    JSON.stringify({ x: 5, y: 5 }),
+    "a Provider-only final date-time suffix must preserve the approved attachment identity");
   const twoApproved = new FakeElement(fixture.prompt, { attachment: [fixture.attachment, retried] }, {}, {},
     "FORM", [fixture.composer, fixture.attachment, retried, fixture.send]);
   const explicitNames = { ...fixture.guardedInput, exactOutgoingTurn: {
@@ -95,6 +103,16 @@ const exerciseOutgoingAttachmentIdentity = async (source: string): Promise<void>
   assert.equal(JSON.stringify(await execute(source, documentFor(twoApproved), explicitNames)),
     JSON.stringify({ x: 5, y: 5 }),
     "an explicitly approved numeric-parenthetical name must win before Provider suffix normalization");
+  const exactDateTimeNames = { ...fixture.guardedInput, exactOutgoingTurn: {
+    ...fixture.guardedInput.exactOutgoingTurn,
+    expectedAttachmentLabels: ["approved.pdf", "approved(20260920-014044).pdf"],
+  } };
+  const twoDateTimeApproved = new FakeElement(fixture.prompt,
+    { attachment: [fixture.attachment, dateTimeSuffixed] }, {}, {},
+    "FORM", [fixture.composer, fixture.attachment, dateTimeSuffixed, fixture.send]);
+  assert.equal(JSON.stringify(await execute(source, documentFor(twoDateTimeApproved), exactDateTimeNames)),
+    JSON.stringify({ x: 5, y: 5 }),
+    "an explicitly approved date-time-parenthetical name must win before Provider suffix normalization");
   const noAttachment = new FakeElement(fixture.prompt, { attachment: [] }, {}, {},
     "FORM", [fixture.composer, fixture.send]);
   assert.equal(JSON.stringify(await execute(source, documentFor(noAttachment), { ...fixture.guardedInput,
@@ -114,6 +132,40 @@ const exerciseOutgoingRejections = async (source: string): Promise<void> => {
       : selector === "form" ? [renamedForm] : [] };
   assert.equal(await execute(source, renamedDocument, fixture.guardedInput),
     "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH");
+  for (const invalidLabel of [
+    "approved (20260920-014044).pdf",
+    "approved(2026092-014044).pdf",
+    "approved(20260920-01404).pdf",
+    "approved(20260920_014044).pdf",
+    "approved(5)(20260920-014044).pdf",
+  ]) {
+    const invalid = new FakeElement(invalidLabel, {}, {}, { "aria-label": invalidLabel });
+    const invalidForm = new FakeElement(fixture.prompt, { attachment: [invalid] }, {}, {},
+      "FORM", [fixture.composer, invalid, fixture.send]);
+    const invalidDocument = { ...fixture.guardedDocument,
+      documentElement: new FakeElement("root", { button: [fixture.send] }, {}, {}, "MAIN", [invalidForm]),
+      querySelectorAll: (selector: string) => selector === "composer" ? [fixture.composer]
+        : selector === "form" ? [invalidForm] : [] };
+    assert.equal(await execute(source, invalidDocument, fixture.guardedInput),
+      "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH",
+      `the Browser submit guard must reject an unapproved Provider suffix shape: ${invalidLabel}`);
+  }
+  for (const [invalidLabel, approvedLabel] of [
+    ["approved(5)(20260920-014044).pdf", "approved(5).pdf"],
+    ["approved(20260920-014044)(7).pdf", "approved(20260920-014044).pdf"],
+  ] as const) {
+    const invalid = new FakeElement(invalidLabel, {}, {}, { "aria-label": invalidLabel });
+    const invalidForm = new FakeElement(fixture.prompt, { attachment: [invalid] }, {}, {},
+      "FORM", [fixture.composer, invalid, fixture.send]);
+    const invalidDocument = { ...fixture.guardedDocument,
+      documentElement: new FakeElement("root", { button: [fixture.send] }, {}, {}, "MAIN", [invalidForm]),
+      querySelectorAll: (selector: string) => selector === "composer" ? [fixture.composer]
+        : selector === "form" ? [invalidForm] : [] };
+    assert.equal(await execute(source, invalidDocument, { ...fixture.guardedInput, exactOutgoingTurn: {
+      ...fixture.guardedInput.exactOutgoingTurn, expectedAttachmentLabels: [approvedLabel],
+    } }), "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH",
+    `the Browser submit guard must reject a second Provider suffix: ${invalidLabel}`);
+  }
   const historicalTurns = [1, 7, 3].map((ordinal) => new FakeElement("turn", {}, {}, {
     "data-testid": `conversation-turn-${ordinal}` }));
   const historyDocument = { ...fixture.guardedDocument,

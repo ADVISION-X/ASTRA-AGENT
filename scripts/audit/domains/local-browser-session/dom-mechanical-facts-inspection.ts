@@ -307,11 +307,13 @@ export const inspectDomMechanicalFacts = (
   );
   const candidateText = `${candidate.getFullText()}\n${candidateReadback.getFullText()}`;
   requireTokens(candidateText, [
-    String.raw`const providerLabel = (label) => label.replace(/\\(\\d+\\)(?=(?:\\.[^./]+)?$)/u, "");`,
+    String.raw`const providerDuplicateSuffix = /\\((?:\\d+|\\d{8}-\\d{6})\\)(?=(?:\\.[^./]+)?$)/u;`,
+    'label.replace(providerDuplicateSuffix, "")',
+    "providerDuplicateSuffix.test(withoutProviderDuplicateSuffix) ? label : withoutProviderDuplicateSuffix",
     "expectedLabels.includes(label) ? label : expectedLabels.includes(providerLabel(label)) ? providerLabel(label) : label",
     "JSON.stringify(observedLabels) !== JSON.stringify(expectedLabels)",
   ], findings, lawId, COHERENT_CANDIDATE_PATH,
-  "The frozen Provider numeric duplicate-suffix attachment identity rule is missing");
+  "The frozen Provider approved duplicate-suffix attachment identity rule is missing");
   inspectExactGptUserPromptProjection(
     observation.getFullText(), contract.getFullText(), candidateText, findings, lawId,
   );

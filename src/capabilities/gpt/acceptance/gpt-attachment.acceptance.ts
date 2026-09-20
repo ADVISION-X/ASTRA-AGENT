@@ -363,6 +363,23 @@ assert.equal(providerSuffixReconciled.status, "success",
 assert.equal(providerSuffixFixture.physicalMutations(), 0,
   "Provider suffix normalization must remain a read-only comparison");
 
+const providerDateTimeSuffixedName = approvedProviderName.replace(/(?=\.[^./]+$)/u, "(20260920-014044)");
+const providerDateTimeSuffixFixture = fakeBrowser((intent) => {
+  if (intent.kind === "observe") {
+    return coherentObservationPacket(intent, attachmentFacts(true, false, providerDateTimeSuffixedName));
+  }
+  throw new Error(`PROVIDER_DATE_TIME_SUFFIX_RECONCILIATION_MUST_NOT_ACT:${intent.kind}`);
+});
+const providerDateTimeSuffixReconciled = await execute(
+  "reconcile_gpt_attachment_set",
+  providerDateTimeSuffixFixture.browser,
+  { files: [approvedAttachment], timeoutMs: 1_500 },
+);
+assert.equal(providerDateTimeSuffixReconciled.status, "success",
+  providerDateTimeSuffixReconciled.failureCode ?? "Provider date-time suffix was not normalized");
+assert.equal(providerDateTimeSuffixFixture.physicalMutations(), 0,
+  "Provider date-time suffix normalization must remain a read-only comparison");
+
 const providerRenameFixture = fakeBrowser((intent) => {
   if (intent.kind === "observe") {
     return coherentObservationPacket(intent,

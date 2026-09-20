@@ -4,7 +4,7 @@
   "status": "active",
   "lawIds": [
     "LAW-GPT-001-V57",
-    "LAW-GPT-002-V21"
+    "LAW-GPT-002-V22"
   ],
   "ownedPaths": [
     ".agents/skills/gpt-page-operation-evidence/**",

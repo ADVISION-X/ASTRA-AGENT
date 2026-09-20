@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 
-const LAW_ID = "LAW-GPT-002-V21";
+const LAW_ID = "LAW-GPT-002-V22";
 const ROOT = "src/capabilities/gpt";
 const read = (context: InspectorContext, path: string): string =>
   readFileSync(resolve(context.sealedRoot, path), "utf8");
@@ -92,6 +92,8 @@ const frozenBlueprintChecks = (sources: Readonly<Record<string, string>>): boole
   sources.blueprint!.includes("FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001"),
   sources.blueprint!.includes("FROZEN-GPT-ATTACHMENT-PROVIDER-DUPLICATE-SUFFIX-001"),
   sources.browserBlueprint!.includes("FROZEN-GPT-ATTACHMENT-PROVIDER-DUPLICATE-SUFFIX-001"),
+  sources.blueprint!.includes("(<8位十进制日期>-<6位十进制时间>)"),
+  sources.browserBlueprint!.includes("(<8位十进制日期>-<6位十进制时间>)"),
   sources.attachmentSchema!.includes("normalizeGptProviderAttachmentLabel"),
   sources.attachmentReconciliation!.includes("normalizeGptProviderAttachmentLabel(label, expectedLabels)"),
   sources.candidate!.includes("expectedLabels.includes(providerLabel(label))"),

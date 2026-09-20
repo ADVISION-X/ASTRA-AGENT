@@ -153,7 +153,9 @@ const inspectAttachmentIdentityContract = (
   const attachmentSchema = sourceFor(context, SCHEMA_PATH)?.getFullText() ?? "";
   inspectMissingTokens({ source: attachmentSchema, required: [
     "normalizeGptProviderAttachmentLabel", "expectedLabels.includes(normalized)",
-    ".replace(/\\(\\d+\\)(?=(?:\\.[^./]+)?$)/u, \"\")",
+    "const providerDuplicateSuffix = /\\((?:\\d+|\\d{8}-\\d{6})\\)(?=(?:\\.[^./]+)?$)/u",
+    "normalized.replace(providerDuplicateSuffix, \"\")",
+    "!providerDuplicateSuffix.test(withoutProviderDuplicateSuffix)",
     "expectedLabels.includes(withoutProviderDuplicateSuffix)",
   ], checkId: "gpt/provider-duplicate-suffix-normalization", filePath: SCHEMA_PATH,
   findings, finding,

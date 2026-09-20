@@ -101,7 +101,11 @@ const COHERENT_CANDIDATE_FUNCTION = `async function (spec) {
       return "BROWSER_DOM_ACTION_OUTGOING_PROMPT_HASH_MISMATCH";
     }
     const expectedLabels = outgoing.expectedAttachmentLabels.map((label) => label.normalize("NFC")).sort();
-    const providerLabel = (label) => label.replace(/\\(\\d+\\)(?=(?:\\.[^./]+)?$)/u, "");
+    const providerDuplicateSuffix = /\\((?:\\d+|\\d{8}-\\d{6})\\)(?=(?:\\.[^./]+)?$)/u;
+    const providerLabel = (label) => {
+      const withoutProviderDuplicateSuffix = label.replace(providerDuplicateSuffix, "");
+      return providerDuplicateSuffix.test(withoutProviderDuplicateSuffix) ? label : withoutProviderDuplicateSuffix;
+    };
     const observedLabels = Array.from(forms[0].querySelectorAll(outgoing.attachmentSelector))
       .map((node) => (node.getAttribute("aria-label") || "").normalize("NFC")).map((label) => expectedLabels.includes(label) ? label : expectedLabels.includes(providerLabel(label)) ? providerLabel(label) : label).sort();
     if (JSON.stringify(observedLabels) !== JSON.stringify(expectedLabels)) {

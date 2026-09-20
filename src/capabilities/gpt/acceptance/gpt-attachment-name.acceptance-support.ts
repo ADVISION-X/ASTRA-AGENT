@@ -52,10 +52,32 @@ export const exerciseAttachmentNameNormalization = (): void => {
     "approved.pdf", "one Provider-only final numeric duplicate suffix must preserve approved attachment identity");
   assert.equal(normalizeGptProviderAttachmentLabel("approved(5)", ["approved"]),
     "approved", "the same final numeric suffix rule must apply to an attachment without an extension");
+  assert.equal(normalizeGptProviderAttachmentLabel("approved(20260920-014044).pdf", ["approved.pdf"]),
+    "approved.pdf", "one Provider-only final date-time suffix must preserve approved attachment identity");
+  assert.equal(normalizeGptProviderAttachmentLabel("approved(20260920-014044)", ["approved"]),
+    "approved", "the same final date-time suffix rule must apply without an extension");
   assert.equal(normalizeGptProviderAttachmentLabel("approved(5).pdf", ["approved.pdf", "approved(5).pdf"]),
     "approved(5).pdf", "an explicitly approved numeric-parenthetical name must win before normalization");
+  assert.equal(normalizeGptProviderAttachmentLabel(
+    "approved(20260920-014044).pdf",
+    ["approved.pdf", "approved(20260920-014044).pdf"],
+  ), "approved(20260920-014044).pdf",
+  "an explicitly approved date-time-parenthetical name must win before normalization");
   assert.equal(normalizeGptProviderAttachmentLabel("approved(copy).pdf", ["approved.pdf"]),
     "approved(copy).pdf", "a non-numeric parenthetical rename must remain unexpected");
+  for (const invalid of [
+    "approved (20260920-014044).pdf",
+    "approved(2026092-014044).pdf",
+    "approved(20260920-01404).pdf",
+    "approved(20260920_014044).pdf",
+    "approved(5)(20260920-014044).pdf",
+  ]) assert.equal(normalizeGptProviderAttachmentLabel(invalid, ["approved.pdf"]), invalid,
+    `an unapproved Provider suffix shape must remain unexpected: ${invalid}`);
+  for (const [observed, approved] of [
+    ["approved(5)(20260920-014044).pdf", "approved(5).pdf"],
+    ["approved(20260920-014044)(7).pdf", "approved(20260920-014044).pdf"],
+  ] as const) assert.equal(normalizeGptProviderAttachmentLabel(observed, [approved]), observed,
+    `a second Provider suffix must remain unexpected when the approved name ends in a suffix: ${observed}`);
 };
 
 /** Closed label-shape and duplicate diagnostics of a terminal attachment set mismatch. */

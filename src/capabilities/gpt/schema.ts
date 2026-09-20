@@ -67,8 +67,10 @@ export const normalizeGptProviderAttachmentLabel = (
 ): string => {
   const normalized = observedLabel.normalize("NFC");
   if (expectedLabels.includes(normalized)) return normalized;
-  const withoutProviderDuplicateSuffix = normalized.replace(/\(\d+\)(?=(?:\.[^./]+)?$)/u, "");
-  return expectedLabels.includes(withoutProviderDuplicateSuffix)
+  const providerDuplicateSuffix = /\((?:\d+|\d{8}-\d{6})\)(?=(?:\.[^./]+)?$)/u;
+  const withoutProviderDuplicateSuffix = normalized.replace(providerDuplicateSuffix, "");
+  return !providerDuplicateSuffix.test(withoutProviderDuplicateSuffix)
+    && expectedLabels.includes(withoutProviderDuplicateSuffix)
     ? withoutProviderDuplicateSuffix
     : normalized;
 };
