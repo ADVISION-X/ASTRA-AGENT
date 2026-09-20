@@ -133,7 +133,9 @@ try {
   assert.equal(recovered?.state, "confirmed");
   assert.equal(recovered?.providerEffectIdentityHash, first.logicalMutationId);
   assert.deepEqual(recovered?.terminalPayload, terminalPayload);
-  assert.equal(store.readUniqueConfirmedConversationUrl(first.jobId, first.productStepId),
+  assert.equal(store.readUniqueConfirmedConversationUrl(
+    first.jobId, first.attemptId, first.productStepId,
+  ),
     terminalPayload.canonicalConversationUrl,
     "an exact parent job must resolve only its own confirmed conversation URL");
   const historicalFact = store.readProviderEffectStepCallFact({
@@ -172,33 +174,71 @@ try {
   confirmContinuation("job:article:A", "a2", conversationUrl("article-A-revision"), "shared-step", 1);
   confirmContinuation("job:article:A", "a3", conversationUrl("article-A-other"), "other-step");
   confirmContinuation("job:article:B", "b1", "https://chatgpt.com/c/article-B", "shared-step");
-  assert.throws(() => store.readUniqueConfirmedConversationUrl("job:article:A", "shared-step"),
-    /BROWSER_PARENT_PROVIDER_EFFECT_AMBIGUOUS/u,
-    "multiple parent result effects must fail closed instead of using a mutable final attempt as locator");
-  assert.equal(store.readUniqueConfirmedConversationUrl("job:article:B", "shared-step"),
+  const mutationDatabase = Reflect.get(store, "database") as Database.Database;
+  const rowCountBeforeRead = Number((mutationDatabase.prepare(
+    "select count(*) as count from browser_mutations",
+  ).get() as { count: number }).count);
+  assert.equal(store.readUniqueConfirmedConversationUrl(
+    "job:article:A", "attempt:a1", "shared-step",
+  ), "https://chatgpt.com/c/article-A",
+  "the completed parent attempt must select its own confirmed historical locator");
+  assert.equal(Number((mutationDatabase.prepare(
+    "select count(*) as count from browser_mutations",
+  ).get() as { count: number }).count), rowCountBeforeRead,
+  "parent locator reads must not mutate the WAL");
+  assert.equal(store.readUniqueConfirmedConversationUrl(
+    "job:article:A", "attempt:a2", "shared-step",
+  ), conversationUrl("article-A-revision"),
+  "a later completed parent attempt must select its own locator without changing effect identity");
+  assert.throws(() => store.readUniqueConfirmedConversationUrl(
+    "job:article:A", "attempt:a3", "shared-step",
+  ), /BROWSER_PARENT_PROVIDER_EFFECT_MISSING/u,
+  "a sibling attempt with another step must not satisfy the completed parent selector");
+  assert.throws(() => store.readUniqueConfirmedConversationUrl(
+    "", "attempt:a1", "shared-step",
+  ), /BROWSER_PARENT_IDENTITY_INVALID/u);
+  assert.throws(() => store.readUniqueConfirmedConversationUrl(
+    "job:article:A", "attempt:\0bad", "shared-step",
+  ), /BROWSER_PARENT_IDENTITY_INVALID/u);
+  assert.equal(store.readUniqueConfirmedConversationUrl(
+    "job:article:B", "attempt:b1", "shared-step",
+  ),
     "https://chatgpt.com/c/article-B",
     "interleaved jobs and sibling steps must never lend their URL to the exact parent step");
   confirmContinuation("job:article:ambiguous", "first", conversationUrl("ambiguous-first"), "shared-step");
   confirmContinuation("job:article:ambiguous-staging", "second",
-    conversationUrl("ambiguous-second"), "shared-step");
-  const mutationDatabase = Reflect.get(store, "database") as Database.Database;
+    conversationUrl("ambiguous-first"), "shared-step");
   mutationDatabase.prepare(`update browser_mutations set job_id=?,attempt_id=?
     where command_id=?`).run("job:article:ambiguous", "attempt:first",
     "continuation:job:article:ambiguous-staging:second");
   assert.throws(() => store.readUniqueConfirmedConversationUrl(
-    "job:article:ambiguous", "shared-step"),
+    "job:article:ambiguous", "attempt:first", "shared-step"),
   /BROWSER_PARENT_PROVIDER_EFFECT_AMBIGUOUS/u);
   assert.throws(() => store.readUniqueConfirmedConversationUrl(
-    "job:article:A", "missing-step"), /BROWSER_PARENT_PROVIDER_EFFECT_MISSING/u);
+    "job:article:A", "attempt:a1", "missing-step"), /BROWSER_PARENT_PROVIDER_EFFECT_MISSING/u);
   confirmContinuation("job:article:missing-payload", "d1", null);
   assert.throws(() => store.readUniqueConfirmedConversationUrl(
-    "job:article:missing-payload", "continuation-step:d1"),
+    "job:article:missing-payload", "attempt:d1", "continuation-step:d1"),
     /BROWSER_PARENT_PROVIDER_EFFECT_INVALID/u);
-  const unresolvedParent = continuationIdentity("job:article:unresolved", "e1");
+  confirmContinuation("job:article:invalid-url", "f1", "https://example.com/c/not-chatgpt");
+  assert.throws(() => store.readUniqueConfirmedConversationUrl(
+    "job:article:invalid-url", "attempt:f1", "continuation-step:f1"),
+    /BROWSER_PARENT_PROVIDER_EFFECT_INVALID/u);
+  confirmContinuation("job:article:corrupt", "g1", conversationUrl("corrupt"));
+  mutationDatabase.prepare("update browser_mutations set provider_recovery_payload=? where command_id=?")
+    .run("corrupt", "continuation:job:article:corrupt:g1");
+  assert.throws(() => store.readUniqueConfirmedConversationUrl(
+    "job:article:corrupt", "attempt:g1", "continuation-step:g1"),
+    /BROWSER_PARENT_PROVIDER_EFFECT_INVALID/u);
+  const unresolvedParent = continuationIdentity("job:article:A", "a4", "shared-step", 2);
   store.prepare(unresolvedParent);
   store.markDispatched(unresolvedParent.commandId);
+  assert.equal(store.readUniqueConfirmedConversationUrl(
+    "job:article:A", "attempt:a2", "shared-step",
+  ), conversationUrl("article-A-revision"),
+  "an unresolved historical sibling attempt must not block the completed parent attempt locator");
   assert.throws(() => store.readUniqueConfirmedConversationUrl(
-    "job:article:unresolved", "continuation-step:e1"),
+    "job:article:A", "attempt:a4", "shared-step"),
     /BROWSER_PARENT_PROVIDER_EFFECT_UNSETTLED/u);
   store.close();
 

@@ -103,6 +103,7 @@ export const inspectGptProviderProbeOwnerContract = (
     'recoverySelectionRequired: targetMode === "confirmed-readback"',
     "selectExactGptConversation", '"bound-observation"', "eligibleAt",
     'mode: "product-call-settlement"',
+    "parentAttemptId: this.execution.providerContinuationParent!.acceptedAttemptId",
   ], findings, finding);
   if (lifecycle.includes("Math.random")) findings.push(finding(
     "gpt/no-second-wait-scheduler", LIFECYCLE,
@@ -110,15 +111,11 @@ export const inspectGptProviderProbeOwnerContract = (
   ));
   const mutationStore = sourceText(context, BROWSER_MUTATION_STORE);
   requireTokens(mutationStore, BROWSER_MUTATION_STORE, [
-    "readUniqueConfirmedConversationUrl(parentJobId: string, parentProductStepId: string)",
-    "where job_id=? and product_step_id=?", "product_step_id=? and call_id='turn-submit'",
-    "child_capability_id='submit_exact_gpt_turn_once'",
+    "parentAttemptId: string", "where job_id=? and attempt_id=? and product_step_id=?",
+    "product_step_id=? and call_id='turn-submit'",
+    "child_capability_id='submit_exact_gpt_turn_once'", "rows.length !== 1",
+    ").all(parentJobId, parentAttemptId, parentProductStepId)",
   ], findings, finding);
-  for (const forbidden of ["parentAttemptId", "job_id=? and attempt_id=? and product_step_id=?"])
-    if (mutationStore.includes(forbidden)) findings.push(finding(
-      "gpt/attempt-free-parent-provider-locator", BROWSER_MUTATION_STORE,
-      `Parent Provider locator retains forbidden attempt gate ${forbidden}.`,
-    ));
   for (const forbidden of ["yieldForProviderProbe", "yieldForProviderWait", "waitForDelay",
     "yieldAndReacquire", "productionGptCrossConversationPollCadence", '"provider-probe"',
     "startProviderProbeCooldown"]) if (lifecycle.includes(forbidden)) findings.push(finding(

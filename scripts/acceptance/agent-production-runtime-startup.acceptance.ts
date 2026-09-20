@@ -293,12 +293,10 @@ try {
       pluginId: "public-knowledge-article-pipeline", stepId,
     },
   }));
-
   const dispatchPlugin = Reflect.get(executor, "dispatchPlugin") as (input: Readonly<Record<string, unknown>>) => Promise<unknown>;
   const parentTask = task({ jobId: "job:article-parent", productId: "bazi_ai_full_analysis", actionId: "produce" });
   const parentAttemptId = "attempt:article-parent-final", parentResult = resultFor(parentTask);
   pluginFailureStore.acceptTask(parentTask, "attempt:article-parent-superseded"); pluginFailureStore.acceptTask(parentTask, parentAttemptId);
-  pluginFailureStore.completeTask(parentTask.job_id, parentResult);
   const translationTask = {
     ...buildProductTask(productionRoutePolicy("localization_article_translation", "article_translation"),
       { parameters: { target_locale: "en-US", source_resource_id: "resource:article-parent", source_version: "v1",
@@ -314,20 +312,23 @@ try {
   const continuationInput = (currentTask: typeof translationTask) => ({ task: currentTask, materials: [],
     lease: continuationLease, span: startPluginSpan("article-parent-binding"), complete: async () => {
       throw new Error("UNREACHABLE_PARENT_COMPLETE"); }, uploadGeneratedImage: async () => { throw new Error("UNREACHABLE_PARENT_IMAGE_UPLOAD"); } });
+  await assert.rejects(dispatchPlugin.call(executor, continuationInput(translationTask)), /PRODUCTION_PARENT_RESULT_BINDING_INVALID/u);
+  pluginFailureStore.completeTask(parentTask.job_id, parentResult);
+  assert.throws(() => pluginFailureStore.acceptTask(parentTask, "attempt:article-parent-after-completion"), /PRODUCTION_TASK_IDENTITY_CONFLICT/u);
   await assert.rejects(dispatchPlugin.call(executor, continuationInput({ ...translationTask, parent_task_ref: "job:missing-article-parent" })), /PRODUCTION_PARENT_RESULT_BINDING_MISSING/u);
+  await assert.rejects(dispatchPlugin.call(executor, continuationInput({ ...translationTask, parent_result_ref: "result:wrong" })), /PRODUCTION_PARENT_RESULT_BINDING_INVALID/u);
   await assert.rejects(dispatchPlugin.call(executor, continuationInput({ ...translationTask, parent_result_hash: `sha256:${"c".repeat(64)}` })), /PRODUCTION_PARENT_RESULT_BINDING_INVALID/u);
   let capturedContinuationParent: unknown = null; const gptChildTools = Reflect.get(executor, "gptChildTools") as Record<string, unknown>;
   Reflect.set(gptChildTools, "createExecution", (input: Readonly<Record<string, unknown>>) => {
     capturedContinuationParent = input.providerContinuationParent; throw new Error("PARENT_BINDING_CAPTURED");
   });
   await assert.rejects(dispatchPlugin.call(executor, continuationInput(translationTask)), /PARENT_BINDING_CAPTURED/u);
-  assert.deepEqual(capturedContinuationParent, { jobId: parentTask.job_id });
+  assert.deepEqual(capturedContinuationParent, { jobId: parentTask.job_id, acceptedAttemptId: parentAttemptId });
   capturedContinuationParent = "UNEXPECTED_PARENT";
   const staticCatalogRoot = task({ jobId: "job:static-catalog-zh-HK-root", productId: "localization_static_catalog", actionId: "produce_locale_catalog", extra: { parameters: { target_locale: "zh-HK" } } });
   await assert.rejects(dispatchPlugin.call(executor, continuationInput(staticCatalogRoot as typeof translationTask)),
     /PARENT_BINDING_CAPTURED/u);
   assert.equal(capturedContinuationParent, undefined);
-
   assert.throws(
     () => terminalizePluginFailure.call(
       executor, startPluginSpan("direct-product-failure"),
@@ -335,7 +336,6 @@ try {
     ),
     /PUBLIC_KNOWLEDGE_TOPIC_MANIFEST_INVALID/u,
   );
-
   const childSpan = requireRuntimeLogWrite(pluginFailureLogger.startSpan({
     traceId: "job:plugin-failure-code", owner: "gpt", component: "gpt-child",
     operation: "gpt.child",
@@ -481,7 +481,7 @@ assert.doesNotMatch(runtimeSource, /ATTEMPT_ENDED:/u);
 
 for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V8",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V9",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:credential:${evidenceMode}`,
@@ -490,7 +490,7 @@ for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V39",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V40",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
     locator: `acceptance:agent-production-runtime:storage-inventory:${evidenceMode}`,

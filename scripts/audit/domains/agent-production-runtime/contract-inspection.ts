@@ -7,11 +7,11 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 export const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V65", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V8",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V37", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V37",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V35", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V39",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V39",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V40",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V66", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V9",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V38", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V38",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V36", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V40",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V40",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V41",
 } as const;
 export const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
@@ -267,6 +267,14 @@ const inspectBusinessCapacity = (context: InspectorContext, findings: InspectorF
   if (!oneCapacityOwner) findings.push(finding(LAWS.route,
     "agent-production-runtime/business-capacity-max", PATHS.controlDependency,
     "Runtime must expose only the protocol maximum and attest its local active plus admission-pending union without owning the Website device N."));
+  const exactParentLocator = ["parent.status !== \"completed\"",
+    "parent.result.result_payload_ref !== authorized.task.parent_result_ref",
+    "parent.result.result_payload_hash !== authorized.task.parent_result_hash",
+    "providerContinuationParent", "jobId: parent.task.job_id",
+    "acceptedAttemptId: parent.current_attempt_id"].every((token) => executor.includes(token));
+  if (!exactParentLocator) findings.push(finding(LAWS.core,
+    "agent-production-runtime/completed-parent-locator", PATHS.executor,
+    "Runtime must bind the accepted completed-parent attempt only after the exact Website result triple is validated."));
 };
 
 const inspectStorageAndLawDenominator = (context: InspectorContext, findings: InspectorFinding[]): void => {

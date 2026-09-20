@@ -51,10 +51,12 @@ export type BrowserTargetLeaseWait = BrowserTargetLeaseWaitBase & (
   | Readonly<{
     targetMode: "fresh" | "bound-observation" | "confirmed-readback";
     parentJobId?: never;
+    parentAttemptId?: never;
   }>
   | Readonly<{
     targetMode: "authorized-continuation";
     parentJobId: string;
+    parentAttemptId: string;
   }>
 );
 

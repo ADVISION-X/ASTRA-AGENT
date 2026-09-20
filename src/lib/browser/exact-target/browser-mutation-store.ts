@@ -282,50 +282,49 @@ export class BrowserMutationStore {
     return Number(row.count);
   }
 
-  public readUniqueConfirmedConversationUrl(parentJobId: string, parentProductStepId: string): string {
-    if (![parentJobId, parentProductStepId].every((value) => value && !/[\0]/u.test(value))) {
+  public readUniqueConfirmedConversationUrl(
+    parentJobId: string, parentAttemptId: string, parentProductStepId: string,
+  ): string {
+    if (![parentJobId, parentAttemptId, parentProductStepId].every(
+      (value) => value && !/[\0]/u.test(value),
+    )) {
       throw new Error("BROWSER_PARENT_IDENTITY_INVALID");
     }
     if (this.database.prepare(
-      `select 1 from browser_mutations where job_id=? and product_step_id=?
+      `select 1 from browser_mutations where job_id=? and attempt_id=? and product_step_id=?
          and call_id='turn-submit' and child_capability_id='submit_exact_gpt_turn_once'
          and effect_scope='provider_effect' and state='DISPATCHED' limit 1`,
-    ).get(parentJobId, parentProductStepId)) {
+    ).get(parentJobId, parentAttemptId, parentProductStepId)) {
       throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_UNSETTLED");
     }
     const rows = this.database.prepare(
       `select command_id,provider_recovery_payload from browser_mutations
-       where job_id=? and product_step_id=? and call_id='turn-submit'
+       where job_id=? and attempt_id=? and product_step_id=? and call_id='turn-submit'
          and child_capability_id='submit_exact_gpt_turn_once' and effect_scope='provider_effect'
          and state='CONFIRMED'
        order by command_id`,
-    ).all(parentJobId, parentProductStepId) as readonly Readonly<{
+    ).all(parentJobId, parentAttemptId, parentProductStepId) as readonly Readonly<{
       command_id: string;
       provider_recovery_payload: string | null;
     }>[];
-    const urls = new Set(rows.map((row) => {
-      if (row.provider_recovery_payload === null) {
-        throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID");
-      }
-      const payload = unsealProviderRecoveryPayload(
-        this.payloadKey, row.command_id, row.provider_recovery_payload,
-      ).terminalPayload;
-      const canonicalConversationUrl = payload && typeof payload === "object" && !Array.isArray(payload)
-        ? (payload as Record<string, unknown>).canonicalConversationUrl : undefined;
-      if (!payload || typeof payload !== "object" || Array.isArray(payload)
-        || typeof canonicalConversationUrl !== "string") {
-        throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID");
-      }
-      try {
-        return requireCanonicalGptConversationUrl(canonicalConversationUrl);
-      } catch {
-        throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID");
-      }
-    }));
-    if (urls.size !== 1) throw new Error(rows.length === 0
+    if (rows.length !== 1) throw new Error(rows.length === 0
       ? "BROWSER_PARENT_PROVIDER_EFFECT_MISSING"
       : "BROWSER_PARENT_PROVIDER_EFFECT_AMBIGUOUS");
-    return [...urls][0]!;
+    const row = rows[0]!;
+    if (row.provider_recovery_payload === null) throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID");
+    let payload: unknown;
+    try {
+      payload = unsealProviderRecoveryPayload(
+        this.payloadKey, row.command_id, row.provider_recovery_payload,
+      ).terminalPayload;
+    } catch { throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID"); }
+    const canonicalConversationUrl = payload && typeof payload === "object" && !Array.isArray(payload)
+      ? (payload as Record<string, unknown>).canonicalConversationUrl : undefined;
+    if (!payload || typeof payload !== "object" || Array.isArray(payload) || typeof canonicalConversationUrl !== "string") {
+      throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID");
+    }
+    try { return requireCanonicalGptConversationUrl(canonicalConversationUrl); }
+    catch { throw new Error("BROWSER_PARENT_PROVIDER_EFFECT_INVALID"); }
   }
 
   public readAtomicStepOutcome(input: Readonly<{

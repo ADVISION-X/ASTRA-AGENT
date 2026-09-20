@@ -31,6 +31,7 @@ type AcquireLaneWaiter = LaneWaiterBase & Readonly<{
   ownerId: string;
   targetMode: BrowserTargetLeaseWait["targetMode"];
   parentJobId?: string;
+  parentAttemptId?: string;
   requestKind: "interaction" | "provider-observation";
 }>;
 type ReleaseLaneWaiter = LaneWaiterBase & Readonly<{
@@ -85,7 +86,7 @@ export class BrowserLaneCoordinator {
         kind: "acquire", binding, ownerId, jobRefHash: binding.jobRefHash,
         targetMode: wait.targetMode,
         ...(wait.targetMode === "authorized-continuation"
-          ? { parentJobId: wait.parentJobId } : {}),
+          ? { parentJobId: wait.parentJobId, parentAttemptId: wait.parentAttemptId } : {}),
         requestKind: wait.targetMode === "fresh" || wait.targetMode === "authorized-continuation"
           ? "interaction" : "provider-observation",
         eligibleAt: wait.eligibleAt,
@@ -275,7 +276,7 @@ export class BrowserLaneCoordinator {
     if (waiter.targetMode !== "authorized-continuation") return undefined;
     if (waiter.parentJobId === waiter.binding.jobId) throw new Error("BROWSER_PARENT_JOB_SELF_REFERENCE");
     return this.infrastructure.mutationState?.readUniqueConfirmedConversationUrl(
-      waiter.parentJobId!, waiter.binding.productStepId,
+      waiter.parentJobId!, waiter.parentAttemptId!, waiter.binding.productStepId,
     );
   }
 

@@ -3,7 +3,7 @@
   "capabilityDomain": "architecture-boundary",
   "status": "active",
   "lawIds": [
-    "LAW-ARCHITECTURE-BOUNDARY-001-V11"
+    "LAW-ARCHITECTURE-BOUNDARY-001-V12"
   ],
   "ownedPaths": [
     "docs/项目方案/GPT提示词空格投影与Target-Local恢复闭环-完整实现方案.md",

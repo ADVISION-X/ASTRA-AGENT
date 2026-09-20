@@ -313,7 +313,7 @@ for (const action of ["accuracy_challenge", "quality_reflection"] as const) {
 }
 /** The Sharp image owner of this Product must pass, and geometry, original leakage and second-owner mutants must fail. */
 const exerciseImageOwnership = (): void => {
-  const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V11";
+  const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V12";
   const tsConfigFilePath = "tsconfig.json";
   {
     const project = new Project({ tsConfigFilePath });

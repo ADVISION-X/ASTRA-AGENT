@@ -19,7 +19,7 @@ import { inspectCapabilityFacadeTypes } from "./components/capability-facade-typ
 import { isOwnerlessGenericTarget } from "./components/capability-path-boundary.js";
 type CapabilityGroupFindingInput = Omit<Parameters<typeof createFinding>[0], "evidenceMode"> & { evidenceMode?: string };
 
-const MECHANICAL_CONTENT_LAW_ID = "LAW-CAPABILITY-GOVERNANCE-002-V1";
+const MECHANICAL_CONTENT_LAW_ID = "LAW-CAPABILITY-GOVERNANCE-002-V2";
 
 const isDeterministicContentJudgeName = (value: string): boolean => {
   const normalized = value.toLocaleLowerCase("en-US");
@@ -494,7 +494,7 @@ const inspectSourceFile = (
 export const inspectCapabilityGovernanceProject = (
   project: InspectorContext["project"],
   includeAuthority: boolean,
-  lawId = "LAW-CAPABILITY-GOVERNANCE-001-V15",
+  lawId = "LAW-CAPABILITY-GOVERNANCE-001-V16",
   observeTypes: () => string = () => observeTypeCheckerRelations(project),
 ): { findings: ReturnType<typeof createFinding>[]; inspectedFiles: string[]; staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] } => {
   const findings: ReturnType<typeof createFinding>[] = [];

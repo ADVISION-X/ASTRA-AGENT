@@ -317,19 +317,15 @@ const inspectExactParentStepContinuation = (
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  for (const required of ["waiter.binding.productStepId",
-    "readUniqueConfirmedConversationUrl(parentJobId: string, parentProductStepId: string)",
-    "where job_id=? and product_step_id=?", "product_step_id=? and call_id='turn-submit'",
-    "child_capability_id='submit_exact_gpt_turn_once'"])
+  for (const required of ["parentAttemptId?: never", "parentAttemptId: wait.parentAttemptId",
+    "waiter.parentAttemptId!, waiter.binding.productStepId", "parentAttemptId: string",
+    "where job_id=? and attempt_id=? and product_step_id=?",
+    "product_step_id=? and call_id='turn-submit'",
+    "child_capability_id='submit_exact_gpt_turn_once'", "rows.length !== 1",
+    ").all(parentJobId, parentAttemptId, parentProductStepId)"])
     if (!sourceText.includes(required)) findings.push(createLocalFinding({
       checkId: "browser-authority/exact-parent-step-continuation", lawId, filePath: mutationStorePath,
-      message: `Authorized continuation is missing exact parent-step fact ${required}.`,
-    }));
-  for (const forbidden of ["parentAttemptId", "job_id=? and attempt_id=? and product_step_id=?"])
-    if (sourceText.includes(forbidden)) findings.push(createLocalFinding({
-      checkId: "browser-authority/attempt-free-parent-continuation", lawId,
-      filePath: mutationStorePath,
-      message: `Authorized continuation retains forbidden parent attempt gate ${forbidden}.`,
+      message: `Authorized continuation is missing exact completed-parent-attempt fact ${required}.`,
     }));
 };
 

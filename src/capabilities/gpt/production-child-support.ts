@@ -20,7 +20,7 @@ export type GptProductionExecutionInput = Readonly<{
   commandTtlMs: number;
   abortSignal: AbortSignal;
   parentSpanId: string;
-  providerContinuationParent?: Readonly<{ jobId: string }>;
+  providerContinuationParent?: Readonly<{ jobId: string; acceptedAttemptId: string }>;
 }>;
 
 export type ProductGptExecution = Readonly<{
