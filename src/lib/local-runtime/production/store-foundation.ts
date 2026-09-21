@@ -150,27 +150,32 @@ export const isSerializedTerminalFailure = (value: unknown): value is Serialized
         : row.stopped_empty_proof === null);
 };
 
-const terminalFailureTransportValid = (row: Record<string, unknown>): boolean => {
-  const providerHashValid = row.effect_scope === "provider_effect"
+const providerEffectIdentityValid = (row: Record<string, unknown>): boolean =>
+  row.effect_scope === "provider_effect"
     ? typeof row.provider_effect_identity_hash === "string"
       && /^sha256:[a-f0-9]{64}$/u.test(row.provider_effect_identity_hash)
     : row.provider_effect_identity_hash === null;
-  const settledHashValid = row.code === "RESULT_SETTLED_UNUSABLE"
+
+const settledResultHashValid = (row: Record<string, unknown>): boolean =>
+  row.code === "RESULT_SETTLED_UNUSABLE"
     ? row.effect_scope === "provider_effect" && row.browser_outcome === "CONFIRMED"
       && row.mutation_outcome === "confirmed"
       && typeof row.settled_result_payload_hash === "string"
       && /^sha256:[a-f0-9]{64}$/u.test(row.settled_result_payload_hash)
     : row.settled_result_payload_hash === null;
-  const stoppedEmptyValid = row.code !== "GPT_RESPONSE_STOPPED_EMPTY"
+
+const stoppedEmptyTransportValid = (row: Record<string, unknown>): boolean =>
+  row.code !== "GPT_RESPONSE_STOPPED_EMPTY"
     ? row.stopped_empty_proof === null && row.child_proof_ref === null && row.child_proof_hash === null
     : row.effect_scope === "provider_effect" && row.browser_outcome === "CONFIRMED"
       && row.child_capability_id === "submit_exact_gpt_turn_once"
       && row.mutation_outcome === "confirmed" && row.stopped_empty_proof !== null
       && serializedChildProofValid(row);
-  return providerHashValid && settledHashValid && stoppedEmptyValid
+
+const terminalFailureTransportValid = (row: Record<string, unknown>): boolean =>
+  providerEffectIdentityValid(row) && settledResultHashValid(row) && stoppedEmptyTransportValid(row)
     && !(row.effect_scope === "provider_effect"
       && row.browser_outcome === "CONFIRMED" && row.mutation_outcome === "no");
-};
 
 export const isSerializedTerminalFailureTransport = (
   value: unknown,

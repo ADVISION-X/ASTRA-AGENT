@@ -5,8 +5,9 @@ import { ProductionRuntimeStore as RuntimeStore } from "../../src/lib/local-runt
 import {
   executeClaim,
   reconcilePendingAttemptFailures,
-  stageCompletedClaimResult,
 } from "../../src/lib/local-runtime/production/runtime-claim.js";
+import { stageCompletedClaimResult } from
+  "../../src/lib/local-runtime/production/runtime-claim-operations.js";
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";

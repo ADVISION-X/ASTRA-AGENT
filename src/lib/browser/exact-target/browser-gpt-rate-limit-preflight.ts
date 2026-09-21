@@ -72,28 +72,7 @@ export const knownGptRateLimitPreflightFactShapeValid = (
 ): value is KnownGptRateLimitPreflightFact => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const fact = value as Readonly<Record<string, unknown>>;
-  if (!exactKeys(fact)
-    || fact.schemaVersion !== "grasseye.browser.known-gpt-rate-limit-preflight.v2"
-    || !["absent", "exact_present", "mismatch"].includes(String(fact.state))
-    || fact.dialogHash !== KNOWN_GPT_RATE_LIMIT_DIALOG_HASH
-    || fact.titleHash !== KNOWN_GPT_RATE_LIMIT_TITLE_HASH
-    || fact.bodyHash !== KNOWN_GPT_RATE_LIMIT_BODY_HASH
-    || fact.acknowledgementHash !== KNOWN_GPT_RATE_LIMIT_ACK_HASH
-    || ![fact.exactCallIdentityHash, fact.targetRefHash, fact.documentRefHash,
-      fact.observationHash].every(hash)
-    || typeof fact.observedAt !== "string"
-    || !Number.isFinite(Date.parse(fact.observedAt))
-    || new Date(fact.observedAt).toISOString() !== fact.observedAt) return false;
-  const counts = [fact.dialogRawCount, fact.dialogEligibleCount, fact.dialogActionableCount,
-    fact.acknowledgementButtonRawCount, fact.acknowledgementButtonEligibleCount,
-    fact.acknowledgementButtonActionableCount];
-  if (!counts.every(count)
-    || (fact.dialogEligibleCount as number) > (fact.dialogRawCount as number)
-    || (fact.dialogActionableCount as number) > (fact.dialogEligibleCount as number)
-    || (fact.acknowledgementButtonEligibleCount as number)
-      > (fact.acknowledgementButtonRawCount as number)
-    || (fact.acknowledgementButtonActionableCount as number)
-      > (fact.acknowledgementButtonEligibleCount as number)) return false;
+  if (!knownPreflightIdentityValid(fact) || !knownPreflightCountsValid(fact)) return false;
   const exact = fact.dialogRawCount === 1 && fact.dialogEligibleCount === 1
     && fact.dialogActionableCount === 1 && fact.acknowledgementButtonRawCount === 1
     && fact.acknowledgementButtonEligibleCount === 1
@@ -101,4 +80,31 @@ export const knownGptRateLimitPreflightFactShapeValid = (
   if (fact.state === "absent") return (fact.dialogEligibleCount as number) === 0;
   if (fact.state === "exact_present") return exact;
   return (fact.dialogEligibleCount as number) > 0 && !exact;
+};
+
+const knownPreflightIdentityValid = (fact: Readonly<Record<string, unknown>>): boolean =>
+  exactKeys(fact)
+  && fact.schemaVersion === "grasseye.browser.known-gpt-rate-limit-preflight.v2"
+  && ["absent", "exact_present", "mismatch"].includes(String(fact.state))
+  && fact.dialogHash === KNOWN_GPT_RATE_LIMIT_DIALOG_HASH
+  && fact.titleHash === KNOWN_GPT_RATE_LIMIT_TITLE_HASH
+  && fact.bodyHash === KNOWN_GPT_RATE_LIMIT_BODY_HASH
+  && fact.acknowledgementHash === KNOWN_GPT_RATE_LIMIT_ACK_HASH
+  && [fact.exactCallIdentityHash, fact.targetRefHash, fact.documentRefHash,
+    fact.observationHash].every(hash)
+  && typeof fact.observedAt === "string"
+  && Number.isFinite(Date.parse(fact.observedAt))
+  && new Date(fact.observedAt).toISOString() === fact.observedAt;
+
+const knownPreflightCountsValid = (fact: Readonly<Record<string, unknown>>): boolean => {
+  const counts = [fact.dialogRawCount, fact.dialogEligibleCount, fact.dialogActionableCount,
+    fact.acknowledgementButtonRawCount, fact.acknowledgementButtonEligibleCount,
+    fact.acknowledgementButtonActionableCount];
+  return counts.every(count)
+    && (fact.dialogEligibleCount as number) <= (fact.dialogRawCount as number)
+    && (fact.dialogActionableCount as number) <= (fact.dialogEligibleCount as number)
+    && (fact.acknowledgementButtonEligibleCount as number)
+      <= (fact.acknowledgementButtonRawCount as number)
+    && (fact.acknowledgementButtonActionableCount as number)
+      <= (fact.acknowledgementButtonEligibleCount as number);
 };

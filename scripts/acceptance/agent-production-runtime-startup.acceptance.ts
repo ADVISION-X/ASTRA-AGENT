@@ -32,7 +32,6 @@ import { buildProductTask } from "./product-plugin-test-runtime.js";
 import { productionRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
 import { assertProductionStartupPreflight } from
   "./agent-production-runtime-startup-preflight.acceptance-support.js";
-import "./agent-production-runtime-recovery-contract.acceptance.js";
 
 await assertProductionStartupPreflight();
 

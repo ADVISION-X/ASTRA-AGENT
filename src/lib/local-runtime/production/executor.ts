@@ -35,7 +35,6 @@ export interface ProductionExecutionResult {
   readonly providerEffectReadbackProof: ProviderEffectReadbackProofV1 | null;
 }
 
-type ActiveGptExecution = ReturnType<ReturnType<typeof createProductionGptChildTools>["createExecution"]>;
 type GptExecutionLifecycle = {
   decorateFailure: ((error: unknown) => unknown) | null;
   settle: ((error: unknown | null) => Promise<void>) | null;
@@ -278,7 +277,6 @@ export class ProductionExecutor {
     providerEffectReadbackProof: ProviderEffectReadbackProofV1 | null;
   }>> {
     let completed = false;
-    let gptExecution: ActiveGptExecution | null = null;
     let readProviderEffectReadbackProof: () => ProviderEffectReadbackProofV1 | null = () => null;
     const gptLifecycle: GptExecutionLifecycle = { decorateFailure: null, settle: null };
     let primaryError: unknown = null;
@@ -287,7 +285,7 @@ export class ProductionExecutor {
       result = await dispatchWebsiteAgentTask(input.task, (authorized) => {
         const routePolicy = productionRoutePolicy(authorized.task.product_id, authorized.task.action_id);
         const parent = this.readContinuationParent(authorized.task, routePolicy.relation_kind);
-        gptExecution = this.gptChildTools.createExecution({
+        const gptExecution = this.gptChildTools.createExecution({
           jobId: authorized.task.job_id,
           productId: authorized.task.product_id,
           ownerRef: authorized.task.business_identity.owner_ref,

@@ -21,8 +21,8 @@ type RateLimitIntent = Extract<BrowserDomIntent,
 { kind: "acknowledgeKnownGptRateLimit" | "readKnownGptRateLimitClearance" }>;
 type CurrentDocumentAssertion = () => void;
 
-export const KNOWN_GPT_RATE_LIMIT_FAILURE = "BROWSER_KNOWN_GPT_RATE_LIMIT";
-export const GPT_DIALOG_UNRECOGNIZED_FAILURE = "BROWSER_GPT_DIALOG_UNRECOGNIZED";
+const KNOWN_GPT_RATE_LIMIT_FAILURE = "BROWSER_KNOWN_GPT_RATE_LIMIT";
+const GPT_DIALOG_UNRECOGNIZED_FAILURE = "BROWSER_GPT_DIALOG_UNRECOGNIZED";
 
 export type KnownGptRateLimitClearanceFact = Readonly<{
   schemaVersion: "grasseye.browser.known-gpt-rate-limit-clearance.v1";
@@ -192,7 +192,7 @@ export const observeKnownGptRateLimitDialog = async (
   }
 };
 
-export const readKnownGptRateLimitClearance = async (
+const readKnownGptRateLimitClearance = async (
   runtime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
   exactCallIdentityHash: `sha256:${string}`,

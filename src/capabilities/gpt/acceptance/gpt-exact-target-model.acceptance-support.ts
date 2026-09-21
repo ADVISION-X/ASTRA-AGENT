@@ -8,24 +8,25 @@ import { exerciseFailedEvidenceReadback }
   from "./gpt-failure-evidence-readback.acceptance-support.js";
 import { execute, profile } from "./gpt-exact-target-profile-fixture.js";
 
-export const exerciseExactModelSelection = async (): Promise<void> => {
-  type ModelState = "closed" | "transition" | "open" | "broken";
-  const modelFacts = (state: ModelState, checked?: "true" | "false") => ({
-    popup: { rawCount: 1, eligibleCount: 1 },
-    entry: { rawCount: 1,
-      eligibleCount: state === "open" || state === "broken" ? 0 : 1 },
-    "openable-entry": { rawCount: state === "closed" ? 1 : 0,
-      eligibleCount: state === "closed" ? 1 : 0 },
-    "simple-panel": { rawCount: 1,
-      eligibleCount: state === "closed" ? 1 : 0 },
-    "advanced-panel": { rawCount: state === "open" || state === "transition" ? 1 : 0,
-      eligibleCount: state === "open" || state === "transition" ? 1 : 0 },
-    ...((checked ?? (state === "open" ? "false" : undefined)) === undefined ? {} : {
-      "model-choice": { rawCount: 1, eligibleCount: 1,
-        matches: [{ ariaChecked: checked ?? "false" }] },
-    }),
-  });
-  
+
+type ModelState = "closed" | "transition" | "open" | "broken";
+const modelFacts = (state: ModelState, checked?: "true" | "false") => ({
+  popup: { rawCount: 1, eligibleCount: 1 },
+  entry: { rawCount: 1,
+    eligibleCount: state === "open" || state === "broken" ? 0 : 1 },
+  "openable-entry": { rawCount: state === "closed" ? 1 : 0,
+    eligibleCount: state === "closed" ? 1 : 0 },
+  "simple-panel": { rawCount: 1,
+    eligibleCount: state === "closed" ? 1 : 0 },
+  "advanced-panel": { rawCount: state === "open" || state === "transition" ? 1 : 0,
+    eligibleCount: state === "open" || state === "transition" ? 1 : 0 },
+  ...((checked ?? (state === "open" ? "false" : undefined)) === undefined ? {} : {
+    "model-choice": { rawCount: 1, eligibleCount: 1,
+      matches: [{ ariaChecked: checked ?? "false" }] },
+  }),
+});
+
+const verifyModelOpen = async (): Promise<void> => {
   for (const initiallyOpen of [true, false]) {
     let state: ModelState = initiallyOpen ? "open" : "closed";
     const fixture = fakeBrowser((intent) => {
@@ -51,78 +52,80 @@ export const exerciseExactModelSelection = async (): Promise<void> => {
     assert.equal(state, "open");
     assert.equal(fixture.physicalMutations(), initiallyOpen ? 0 : 1);
   }
-  
-  {
-    const fixture = fakeBrowser((intent) => {
-      if (intent.kind === "observe") return coherentObservationPacket(intent, {
-        ...modelFacts("open"), "model-choice": { rawCount: 0, eligibleCount: 0 },
-      });
-      throw new Error(`UNHYDRATED_MODEL_CHOICE_MUST_NOT_COMPLETE:${intent.kind}`);
+};
+
+const verifyUnhydratedChoice = async (): Promise<void> => {
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, {
+      ...modelFacts("open"), "model-choice": { rawCount: 0, eligibleCount: 0 },
     });
-    const result = await execute("open_gpt_model_selector_v2", fixture.browser, { profile });
-    assert.equal(result.status, "failed");
-    assert.equal(result.failureCode,
-      "GPT_MODEL_SELECTION_V2_STATE_INVALID:openableEntry=0:modelChoice=0");
-    assert.deepEqual(fixture.waitDurations(), [1_500, 3_000]);
-    assert.equal(fixture.physicalMutations(), 0,
-      "an open advanced shell without the exact target-model radio must fail without mutation");
-  }
-  
-  {
-    const fixture = fakeBrowser((intent) => {
-      if (intent.kind === "observe") return coherentObservationPacket(intent, modelFacts("transition"));
-      throw new Error(`TRANSITIONAL_MODEL_TOPOLOGY_MUST_NOT_ACT:${intent.kind}`);
-    });
-    const result = await execute("open_gpt_model_selector_v2", fixture.browser, { profile });
-    assert.equal(result.status, "failed");
-    assert.equal(result.failureCode,
-      "GPT_MODEL_SELECTION_V2_STATE_INVALID:openableEntry=0:modelChoice=0");
-    assert.equal(result.proof.committedMutation, "no");
-    assert.deepEqual(fixture.waitDurations(), [1_500, 3_000]);
-    assert.equal(fixture.physicalMutations(), 0);
-  }
-  
-  {
-    let clicked = false;
-    const fixture = fakeBrowser((intent) => {
-      if (intent.kind === "observe") {
-        return coherentObservationPacket(intent, modelFacts(clicked ? "broken" : "closed"));
-      }
-      if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTOR_OPEN_ENTRY) {
-        clicked = true;
-        const queries = intent.postClickObservation!.queries
-          .map(({ expectedEligibleCount: _expected, ...query }) => query);
-        return {
-          postconditionVerified: true,
-          postconditionObservation: coherentObservationPacket({ queries }, modelFacts("broken")),
-        };
-      }
-      throw new Error(`UNEXPECTED_CONFIRMED_MODEL_DRIFT_INTENT:${intent.kind}`);
-    });
-    const result = await execute("open_gpt_model_selector_v2", fixture.browser, { profile });
-    const failureCode = "GPT_MODEL_SELECTION_V2_STATE_INVALID:openableEntry=0:modelChoice=0";
-    assert.equal(result.status, "failed");
-    assert.equal(result.failureCode, failureCode);
-    assert.equal(result.proof.committedMutation, "confirmed");
-    assert.equal(result.proof.postconditionResult, "failed");
-    assert.equal(result.proof.browserFact?.browserOutcome, "CONFIRMED");
-    assert.equal(result.proof.browserFact?.mutationOutcome, "confirmed");
-    assert.equal(fixture.physicalMutations(), 1);
-    await exerciseFailedEvidenceReadback(result, Object.freeze({ profile }), {
-      code: failureCode,
-      mutation_outcome: "confirmed",
-      effect_scope: "target_local",
-      child_capability_id: "open_gpt_model_selector_v2",
-      browser_outcome: "CONFIRMED",
-      evidence_ref: "browser-mutation:acceptance-call",
-      evidence_hash: `sha256:${"9".repeat(64)}`,
-      child_proof_ref: null,
-      child_proof_hash: null,
-      stopped_empty_proof: null,
-      cause: null,
-    });
-  }
-  
+    throw new Error(`UNHYDRATED_MODEL_CHOICE_MUST_NOT_COMPLETE:${intent.kind}`);
+  });
+  const result = await execute("open_gpt_model_selector_v2", fixture.browser, { profile });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode,
+    "GPT_MODEL_SELECTION_V2_STATE_INVALID:openableEntry=0:modelChoice=0");
+  assert.deepEqual(fixture.waitDurations(), [1_500, 3_000]);
+  assert.equal(fixture.physicalMutations(), 0,
+    "an open advanced shell without the exact target-model radio must fail without mutation");
+};
+
+const verifyTransitionalTopology = async (): Promise<void> => {
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, modelFacts("transition"));
+    throw new Error(`TRANSITIONAL_MODEL_TOPOLOGY_MUST_NOT_ACT:${intent.kind}`);
+  });
+  const result = await execute("open_gpt_model_selector_v2", fixture.browser, { profile });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode,
+    "GPT_MODEL_SELECTION_V2_STATE_INVALID:openableEntry=0:modelChoice=0");
+  assert.equal(result.proof.committedMutation, "no");
+  assert.deepEqual(fixture.waitDurations(), [1_500, 3_000]);
+  assert.equal(fixture.physicalMutations(), 0);
+};
+
+const verifyConfirmedModelDrift = async (): Promise<void> => {
+  let clicked = false;
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      return coherentObservationPacket(intent, modelFacts(clicked ? "broken" : "closed"));
+    }
+    if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTOR_OPEN_ENTRY) {
+      clicked = true;
+      const queries = intent.postClickObservation!.queries
+        .map(({ expectedEligibleCount: _expected, ...query }) => query);
+      return {
+        postconditionVerified: true,
+        postconditionObservation: coherentObservationPacket({ queries }, modelFacts("broken")),
+      };
+    }
+    throw new Error(`UNEXPECTED_CONFIRMED_MODEL_DRIFT_INTENT:${intent.kind}`);
+  });
+  const result = await execute("open_gpt_model_selector_v2", fixture.browser, { profile });
+  const failureCode = "GPT_MODEL_SELECTION_V2_STATE_INVALID:openableEntry=0:modelChoice=0";
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, failureCode);
+  assert.equal(result.proof.committedMutation, "confirmed");
+  assert.equal(result.proof.postconditionResult, "failed");
+  assert.equal(result.proof.browserFact?.browserOutcome, "CONFIRMED");
+  assert.equal(result.proof.browserFact?.mutationOutcome, "confirmed");
+  assert.equal(fixture.physicalMutations(), 1);
+  await exerciseFailedEvidenceReadback(result, Object.freeze({ profile }), {
+    code: failureCode,
+    mutation_outcome: "confirmed",
+    effect_scope: "target_local",
+    child_capability_id: "open_gpt_model_selector_v2",
+    browser_outcome: "CONFIRMED",
+    evidence_ref: "browser-mutation:acceptance-call",
+    evidence_hash: `sha256:${"9".repeat(64)}`,
+    child_proof_ref: null,
+    child_proof_hash: null,
+    stopped_empty_proof: null,
+    cause: null,
+  });
+};
+
+const verifyModelSelection = async (): Promise<void> => {
   for (const checked of ["true", "false"] as const) {
     let state: ModelState = "open";
     let observations = 0;
@@ -158,28 +161,35 @@ export const exerciseExactModelSelection = async (): Promise<void> => {
     assert.equal(observations, 1, "model selection must not issue a second DOM observation after Browser confirmation");
     assert.equal(fixture.physicalMutations(), 1);
   }
-  
-  {
-    const fixture = fakeBrowser((intent) => {
-      if (intent.kind === "observe") {
-        return coherentObservationPacket(intent, modelFacts("open", "false"));
-      }
-      if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR) {
-        const queries = intent.postClickObservation!.queries
-          .map(({ expectedEligibleCount: _expected, ...query }) => query);
-        return {
-          postconditionVerified: true,
-          clickedCandidateAttributeReadback: { name: "aria-checked", value: "false", verified: false },
-          postconditionObservation: coherentObservationPacket({ queries }, modelFacts("closed")),
-        };
-      }
-      throw new Error(`UNEXPECTED_UNSELECTED_MODEL_INTENT:${intent.kind}`);
-    });
-    const result = await execute("select_exact_gpt_model_v2", fixture.browser, { profile });
-    assert.equal(result.status, "failed");
-    assert.equal(result.failureCode, "GPT_MODEL_SELECTION_V2_SELECTED_FACT_INVALID");
-    assert.equal(fixture.physicalMutations(), 1);
-  }
-  
 };
 
+const verifyUnselectedReadback = async (): Promise<void> => {
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") {
+      return coherentObservationPacket(intent, modelFacts("open", "false"));
+    }
+    if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR) {
+      const queries = intent.postClickObservation!.queries
+        .map(({ expectedEligibleCount: _expected, ...query }) => query);
+      return {
+        postconditionVerified: true,
+        clickedCandidateAttributeReadback: { name: "aria-checked", value: "false", verified: false },
+        postconditionObservation: coherentObservationPacket({ queries }, modelFacts("closed")),
+      };
+    }
+    throw new Error(`UNEXPECTED_UNSELECTED_MODEL_INTENT:${intent.kind}`);
+  });
+  const result = await execute("select_exact_gpt_model_v2", fixture.browser, { profile });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "GPT_MODEL_SELECTION_V2_SELECTED_FACT_INVALID");
+  assert.equal(fixture.physicalMutations(), 1);
+};
+
+export const exerciseExactModelSelection = async (): Promise<void> => {
+  await verifyModelOpen();
+  await verifyUnhydratedChoice();
+  await verifyTransitionalTopology();
+  await verifyConfirmedModelDrift();
+  await verifyModelSelection();
+  await verifyUnselectedReadback();
+};

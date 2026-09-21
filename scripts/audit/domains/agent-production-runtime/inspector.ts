@@ -14,6 +14,7 @@ const PATHS = {
   startup: `${ROOT}/runtime-startup.ts`,
   runtimeState: `${ROOT}/runtime-state.ts`,
   runtimeClaim: `${ROOT}/runtime-claim.ts`,
+  runtimeClaimOperations: `${ROOT}/runtime-claim-operations.ts`,
   businessAdmission: `${ROOT}/runtime-business-admission.ts`,
   taskState: `${ROOT}/store-task-state.ts`,
   outbox: `${ROOT}/store-outbox.ts`,
@@ -123,9 +124,6 @@ const inspectCoreAst = (context: InspectorContext, findings: InspectorFinding[])
   const startup = sourceFor(context, PATHS.startup);
   const state = sourceFor(context, PATHS.runtimeState);
   const claim = sourceFor(context, PATHS.runtimeClaim);
-  const businessAdmission = sourceFor(context, PATHS.businessAdmission);
-  const taskState = sourceFor(context, PATHS.taskState);
-  const outbox = sourceFor(context, PATHS.outbox);
   const startupTokens = stringLiterals(startup);
   for (const token of ["GPT_CONTINUATION_CURRENT_CHECKPOINT_MISSING", "GPT_CONTINUATION_FRONTIER_INVALID"]) {
     if (startupTokens.has(token)) findings.push(finding(LAWS.core, "static.ast",
@@ -148,10 +146,20 @@ const inspectCoreAst = (context: InspectorContext, findings: InspectorFinding[])
     findings.push(finding(LAWS.storage, "static.ast", "agent-production-runtime/no-automatic-storage-delete",
       PATHS.runtimeClaim, "Business admission still triggers automatic task storage deletion."));
   }
+};
+
+const inspectWebsiteAttemptLifecycle = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const startup = sourceFor(context, PATHS.startup);
+  const claim = sourceFor(context, PATHS.runtimeClaim);
+  const businessAdmission = sourceFor(context, PATHS.businessAdmission);
+  const taskState = sourceFor(context, PATHS.taskState);
+  const outbox = sourceFor(context, PATHS.outbox);
   const startupReconciliation = startup?.getFunction("reconcileTaskRecord");
   const startupReconciliationCalls = new Set(startupReconciliation?.getDescendantsOfKind(SyntaxKind.CallExpression)
     .map((call) => call.getExpression().getText()) ?? []);
-  const boundaryFailure = variableDeclaration(claim, "handleRuntimeBoundaryFailure")?.getInitializer();
+  const boundaryFailure = variableDeclaration(
+    sourceFor(context, PATHS.runtimeClaimOperations), "handleRuntimeBoundaryFailure",
+  )?.getInitializer();
   const admissionCalls = new Set(businessAdmission?.getDescendantsOfKind(SyntaxKind.CallExpression)
     .map((call) => call.getExpression().getText()) ?? []);
   const taskStateClass = taskState?.getClass("ProductionStoreTaskState");
@@ -180,8 +188,9 @@ const inspectCoreAst = (context: InspectorContext, findings: InspectorFinding[])
     Boolean(taskStateClass?.getMethod("discardStagedResult")),
     /ATTEMPT_ENDED|PRODUCTION_OUTBOX_ATTEMPT_ENDED/u.test(forbiddenLifecycleVerdict),
     !websiteAttemptSupersession?.hasModifier(SyntaxKind.PrivateKeyword),
-    supersessionOwners.length !== 2,
-    supersessionOwners.sort().join(",") !== "acceptTask,releaseAttemptForWebsiteDecision",
+    supersessionOwners.length !== 3,
+    supersessionOwners.sort().join(",")
+      !== "acceptTask,acceptTaskAfterFailureReconciled,releaseAttemptForWebsiteDecision",
     !websiteAttemptRelease?.getText().includes("current_attempt_id !== attemptId"),
     ![businessAdmission?.getText(), failureDisposition].every((source) =>
       ['remote.next_action_code === "WAIT_NEW_ATTEMPT"', "state.store.releaseAttemptForWebsiteDecision("].every(
@@ -362,6 +371,7 @@ export function inspectAgentProductionRuntime(
   findings: InspectorFinding[],
 ): void {
   inspectCoreAst(context, findings);
+  inspectWebsiteAttemptLifecycle(context, findings);
   inspectCredentialAst(context, findings);
   inspectContractAst(context, findings);
   inspectDatabaseAst(context, findings);

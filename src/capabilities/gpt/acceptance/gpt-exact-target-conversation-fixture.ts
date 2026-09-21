@@ -12,23 +12,28 @@ type ConversationOverrides = Readonly<{
   workModeEligible?: number;
 }>;
 
+const countFacts = (count: number) => ({ rawCount: count, eligibleCount: count });
+const modeFacts = (raw: number, eligible: number, checked: "true" | "false") => ({
+  rawCount: raw, eligibleCount: eligible,
+  matches: raw === 0 ? [] : [{ ariaChecked: checked }],
+});
+
 export const conversationFacts = (
   draft: string | null,
   overrides: ConversationOverrides = {},
-) => ({
-  composer: { rawCount: draft === null ? 0 : 1, eligibleCount: draft === null ? 0 : 1,
-    matches: draft === null ? [] : [{ exactEditableTextHash: hashConversationValue(draft) }] },
-  "user-turns": { rawCount: overrides.user ?? 0, eligibleCount: overrides.user ?? 0 },
-  "assistant-turns": { rawCount: overrides.assistant ?? 0, eligibleCount: overrides.assistant ?? 0 },
-  attachments: { rawCount: overrides.attachments ?? 0, eligibleCount: overrides.attachments ?? 0 },
-  generating: { rawCount: overrides.generating ?? 0, eligibleCount: overrides.generating ?? 0 },
-  "chat-mode": { rawCount: overrides.chatModeRaw ?? 1,
-    eligibleCount: overrides.chatModeEligible ?? overrides.chatModeRaw ?? 1,
-    matches: (overrides.chatModeRaw ?? 1) === 0 ? []
-      : [{ ariaChecked: overrides.mode === "work" ? "false" : "true" }] },
-  "work-mode": { rawCount: overrides.workModeRaw ?? 1,
-    eligibleCount: overrides.workModeEligible ?? overrides.workModeRaw ?? 1,
-    matches: (overrides.workModeRaw ?? 1) === 0 ? []
-      : [{ ariaChecked: overrides.mode === "work" ? "true"
-        : overrides.mode === "invalid" ? "true" : "false" }] },
-});
+) => {
+  const chatModeRaw = overrides.chatModeRaw ?? 1;
+  const workModeRaw = overrides.workModeRaw ?? 1;
+  return {
+    composer: { rawCount: draft === null ? 0 : 1, eligibleCount: draft === null ? 0 : 1,
+      matches: draft === null ? [] : [{ exactEditableTextHash: hashConversationValue(draft) }] },
+    "user-turns": countFacts(overrides.user ?? 0),
+    "assistant-turns": countFacts(overrides.assistant ?? 0),
+    attachments: countFacts(overrides.attachments ?? 0),
+    generating: countFacts(overrides.generating ?? 0),
+    "chat-mode": modeFacts(chatModeRaw, overrides.chatModeEligible ?? chatModeRaw,
+      overrides.mode === "work" ? "false" : "true"),
+    "work-mode": modeFacts(workModeRaw, overrides.workModeEligible ?? workModeRaw,
+      overrides.mode === "work" || overrides.mode === "invalid" ? "true" : "false"),
+  };
+};
