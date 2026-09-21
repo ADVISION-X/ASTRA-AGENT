@@ -6,6 +6,8 @@
     "LAW-ARCHITECTURE-BOUNDARY-001-V12"
   ],
   "ownedPaths": [
+    "docs/项目方案/AGENT运行拓扑图-完整实现方案.md",
+    "docs/项目方案/AGENT运行拓扑图-生产代码对照与差异待修-完整实现方案.md",
     "docs/项目方案/AI生产派单金字塔优先级排序-完整实现方案.md",
     "docs/项目方案/GPT Provider效果跨恢复单调性与限流冷却门根治-完整实现方案.md",
     "docs/项目方案/GPT提示词空格投影与Target-Local恢复闭环-完整实现方案.md",
