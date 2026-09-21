@@ -1,7 +1,7 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { FakeElement, FakeTextNode, RICH_SEMANTIC_TEXT, execute, hash, richSemanticTree }
   from "./local-browser-dom-function-fixture.js";
-import { exerciseEditablePromptHashes } from "./local-browser-dom-editable-prompt-support.js";
+import { exerciseEditablePromptHashes } from "./local-browser-dom-function-fixture.js";
 export const exerciseCapturedCoherentObservationPointerFunction = (source: string): void => {
   const reasoning = new FakeElement("", {}, {}, {
     "aria-valuemin": "0", "aria-valuemax": "4", "aria-valuenow": "2",

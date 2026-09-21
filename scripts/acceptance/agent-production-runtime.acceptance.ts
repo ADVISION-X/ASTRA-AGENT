@@ -29,7 +29,7 @@ import {
   task,
 } from "./agent-production-runtime-fixtures.js";
 import { exerciseOperationsAndBusinessAdmission } from
-  "./agent-production-runtime-admission-support.js";
+  "./agent-production-runtime-recovery-boundary.acceptance-support.js";
 import "./agent-production-runtime-ledger.acceptance.js";
 import "./agent-production-runtime-proof-boundary.acceptance.js";
 import "./agent-production-runtime-startup.acceptance.js";
