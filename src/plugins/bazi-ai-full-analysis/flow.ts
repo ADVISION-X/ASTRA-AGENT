@@ -29,7 +29,14 @@ const requireParentReport = (task: WebsiteAgentTask, context: SharedExecutionCon
 };
 
 export const executeOwnedFlow = async (task: WebsiteAgentTask, context: SharedExecutionContext) => {
+  if (task.product_id !== "bazi_ai_full_analysis") {
+    throw executionFailure("failed", "PRODUCT_AI_FULL_ANALYSIS_CONTRACT_INVALID");
+  }
   if (context.routePolicy.relation_kind !== "review") {
+    const roles = context.materials.slice().sort((a, b) => a.ordinal - b.ordinal).map((item) => item.role);
+    if (roles.join("\0") !== ["bazi_formal_input", "result_contract"].join("\0")) {
+      throw executionFailure("failed", "PRODUCT_AI_FULL_ANALYSIS_CONTRACT_INVALID");
+    }
     requireParentReport(task, context);
   }
   const flow = createOwnedExecution(task, context);

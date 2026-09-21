@@ -2,6 +2,7 @@ import { governanceAssert as assert } from "../../audit/shared/governance-exam-a
 import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
 import { productionRoutePolicies } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { buildProductTask, exerciseConfirmedSubmitRecovery, exerciseProductFlow, FIXTURE_HASH, FIXTURE_HASH_B, routesForPlugin } from "../product-plugin-test-runtime.js";
+import { parseProductResult } from "../../../src/plugins/bazi-ai-full-analysis/result-contract.js";
 
 const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "bazi-ai-full-analysis");
 assert(plugin);
@@ -34,7 +35,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   const output = {
     schema_version: route.result_schema_version,
     answer_summary: { professional_markdown: "专业层", reader_explanation_markdown: "读者层" },
-    answer_blocks: [{ section: "one" }], question_snapshot: "question",
+    answer_blocks: [{ section: "one" }], question_snapshot: { question_ref: "question:1" },
     covered_question_unit_refs: ["question:1"], citations: [], uncertainties: [], limitations: [], safety_notes: [],
   };
   const flowFixture = {
@@ -51,5 +52,10 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   await exerciseConfirmedSubmitRecovery(plugin, flowFixture);
   assert.equal(run.physicalSubmitDispatches, 1);
   assert.deepEqual(run.calls.map((call) => call.child), reviewSequence);
+
+  assert.throws(
+    () => parseProductResult(task, { ...output, question_snapshot: { question_ref: "question:mismatched" } }, route),
+    /BAZI_AI_FULL_ANALYSIS_QUESTION_SNAPSHOT_LOCK_INVALID/u,
+  );
 }
 process.stdout.write("[ACCEPTANCE][bazi-ai-full-analysis] PASS\n");
