@@ -1,19 +1,26 @@
 # GPT 频率限制排空冷却完整实现方案
 
-> 设计状态：**方案可施工（当前未授权执行）**
+> 设计状态：**设计中（2026-09-21 精确测试落点迭代中）**
 >
 > 需求 Owner：AGENT GPT 生产执行链；Website 是工单授权、冷却和最终业务接纳 Owner。
 >
-> 执行授权边界：2026-09-15 的历史施工授权解释既有系统来源；2026-09-20 本轮只授权制定和迭代方案。即使设计状态转为“方案可施工”，代码、测试、Browser、生产和发布仍等待用户新的明确执行指令；冻结母说明书不修改。
+> 执行授权边界：2026-09-15 的历史施工授权解释既有系统来源；2026-09-20 只授权制定和迭代方案；2026-09-21 本轮只授权严格重绑、迭代本唯一方案并进行独立只读审计。即使设计状态转为“可施工”，代码、测试、Browser、Website、生产和发布仍等待用户新的明确执行指令；冻结母说明书不修改。
 
-## 0. 2026-09-20 DOM 识别回归迭代裁决
+## 0. 2026-09-20 DOM 识别回归与 2026-09-21 candidate 重绑裁决
 
-> 本节是本方案唯一的现役识别迭代增量，覆盖下文 WO-3 中“精确识别”的施工细节，但不改变冷却、N−1、Outbox、Website receipt、cohort 或发布边界。设计状态与执行授权严格分离；2026-09-20 尚未开始代码、测试、Browser 或生产动作。
+> 本节是本方案唯一的现役识别迭代增量，覆盖下文 WO-3 中“精确识别”的施工细节，但不改变冷却、N−1、Outbox、Website receipt、cohort 或发布边界。设计状态与执行授权严格分离；截至 2026-09-21 仍未开始代码、测试、Browser、Website 或生产动作。
+
+### 0.0 2026-09-21 写前重绑与连续性
+
+- AGENT 当前绑定：`/Users/nexgen/Documents/AGENT`，branch=`main`，HEAD=`12c1c6578927c12d891e2f88db0c5470cd759ca6`，tracking=`origin/main@12c1c6578927c12d891e2f88db0c5470cd759ca6`，ahead/behind=`0/0`。本方案写前 SHA-256=`ca731b5a791fcb9225769f48cedd7c2299c23550faebd749d8ed44e0951d10b8`，作为文档基线单独记录，不进入 source candidate。
+- 当前唯一无关 dirty 是 `docs/项目方案/GPT Provider效果跨恢复单调性与限流冷却门根治-完整实现方案.md`；它归用户所有，本方案的写入、质检与未来施工均不得格式化、恢复、覆盖或纳入该文件。目标生产源、acceptance、manifest、active law 与 Blueprint 全部 clean。
+- 连续性裁决：从旧绑定 `af9883f6663ab8d96a12722fc77788320125f6ad` 到当前 HEAD 的提交虽调整过 GPT exact-target acceptance 与 `prepare_clean_gpt_chat` 相邻 consumer，但本轮十个已存在的 scoped source/authority/config 文件字节哈希均与 3.1 记录一致，无 detector、central preflight、rate-limit contract、Playwright 依赖、law 或 Blueprint 变更；不引入新 Owner、新状态或新生产施工面。
+- Website 当前绑定：`/Users/nexgen/Documents/xuanxue-web`，branch=`main`，HEAD=`8a71d36402cd6b797be1eed80308e1f0fc967e6b`，tracking=`origin/main@8a71d36402cd6b797be1eed80308e1f0fc967e6b`，ahead/behind=`0/0`，工作树 clean。Website 仍只是未来 RELEASE/readback candidate，不进入 WO-3A 施工差异。
 
 ### 0.1 当前候选与第一直接断裂
 
 - 需求 Owner 与唯一实现 Owner：AGENT Browser Authority；Website、Product Plugin 和 Runtime 不拥有弹窗 DOM 分类。
-- 当前绑定：`/Users/nexgen/Documents/AGENT`，branch=`main`，HEAD=`af9883f6663ab8d96a12722fc77788320125f6ad`，tracking=`origin/main@42643572967f5c9f193e54ad16036a45687d566c`，本地 ahead 11。方案文件本身是本轮获授权的 related dirty；与识别施工面无关的既有 dirty 仅为 `scripts/acceptance/product-plugins/localization-production.acceptance.ts` 和 `src/plugins/localization-production/static-catalog-flow.ts`，必须保留且不得触碰。施工前重新读取 HEAD、tracking、完整 status 与本节列出的 source hash；任一相关文件漂移则重绑后再施工。
+- 当前绑定以 0.0 和 3.1 为准。施工前必须重新读取 HEAD、tracking、完整 status 与本节列出的 source hash；任一相关文件漂移则只重算受影响段并再审计，命中施工面的未归属改动则关闭施工准入。方案文件只记独立文档 hash，不冒充 source candidate。
 - 当前实现 `src/lib/browser/chrome-extension/gpt-rate-limit-dialog.ts` 的 `DETECTOR` 用 `dialog.textContent` 与 `[title, body1, body2, ack].join(" ")` 做整段等值，同时要求唯一可见 dialog 和唯一可见、启用的 button。实际页面肉眼呈现冻结文案时，DOM 元素之间仍可能没有 `textContent` 空格，或包含不渲染的隐藏文本，因此可见结构正确也会落入现役实现的 `unknown_present`，上抛 `BROWSER_GPT_DIALOG_UNRECOGNIZED`。这是本轮第一直接断裂；后续未关闭 submit 门、未进入 ack Child、未生成 cooldown receipt 都是其下游后果。施工时必须把内部 `unknown_present` 物理替换为现役法案定义的 `mismatch`；不得保留 alias 或双状态，外层错误码保持不变。
 - 现有 `scripts/acceptance/local-browser-auto-pairing.acceptance.ts` 只把 `Runtime.callFunctionOn` 返回值直接 stub 为 `absent | unknown_present | exact_present`，验证了 fail-close 与零物理输入，却没有执行真实 `DETECTOR`，所以没有覆盖“可见文字正确、`textContent` 拼接不同”的回归。
 - 当前截图和旧日志能证明用户看到的是目标弹窗以及当前链返回了 typed mismatch；由于本轮无法读取真实 DOM，不能把“缺空格”“隐藏节点”中的任一种宣告为已经单独实证的唯一 DOM 差异。方案修复的是已确定存在的错误判定边界：分类必须依据可见语义结构，不得依据包含隐藏内容和节点拼接偶然性的整段 `textContent`。
@@ -38,8 +45,8 @@
 
 ### 0.4 原子工单 WO-3A：可见语义分类与真实 detector 验收
 
-- 修改范围：`src/lib/browser/chrome-extension/gpt-rate-limit-dialog.ts`；现有 local-browser acceptance 入口及其 support/manifest。不得修改 Website、Runtime cooldown、Product Plugin、旧 Pick3 路径或无关 localization dirty 文件。
-- 结构约束：生产文件当前 237 行，原位替换 `DETECTOR`，不得新增生产抽象；`local-browser-auto-pairing.acceptance.ts` 当前 485 行、接近 500 行红线，因此新增的 DOM fixture 必须放入该 domain 现有 acceptance support 边界，由主 acceptance 仅调用一次。若新增 support 文件，必须纳入 `scripts/audit/domains/local-browser-session/manifest.json`，它只承载本 detector 的真实消费者验收，不形成第二测试入口或第二 verdict。
+- 修改范围精确为 `src/lib/browser/chrome-extension/gpt-rate-limit-dialog.ts`、`scripts/acceptance/local-browser-auto-pairing.acceptance.ts`、新文件 `scripts/acceptance/local-browser-rate-limit-dialog-support.ts` 和 `scripts/audit/domains/local-browser-session/manifest.json`。不得修改 Website、Runtime cooldown、Product Plugin、旧 Pick3 路径或任何届时存在的无关 dirty/untracked overlay。
+- 结构约束：生产文件当前 237 行，原位替换 `DETECTOR`，不得新增生产抽象；`local-browser-auto-pairing.acceptance.ts` 当前 485 行、接近 500 行红线，不得在主文件内展开 fixture。唯一测试落点固定为 `scripts/acceptance/local-browser-rate-limit-dialog-support.ts`：它只导出一个由主 acceptance 单次调用的验收函数，使用本地无网络 Playwright 页面执行生产 detector，并必须纳入 `scripts/audit/domains/local-browser-session/manifest.json`。不得把该 fixture 塞入只拥有配对职责的 `local-browser-auto-pairing-support.ts`，不得使用 `node:vm/FakeElement` 伪造 `innerText`/layout/hit-test，也不新增 npm/质检入口或第二 verdict。
 - 验收必须执行生产 `Runtime.callFunctionOn.functionDeclaration` 本身，而不是继续伪造 detector state。复用仓库现有 Playwright 依赖创建本地、无网络 HTML fixture，至少覆盖：
   1. 冻结标题/两段正文/按钮分别位于独立元素，`textContent` 无目标拼接空格但 `innerText` 可见顺序正确，必须 `exact_present`；
   2. dialog 内存在隐藏文本节点但可见结构精确，必须 `exact_present`；
@@ -54,7 +61,7 @@
 
 - 删除旧 Pick3 watcher、模糊词表、portal/alertdialog fallback、第二 detector、第二状态机和新持久化后，本轮仍能通过中央 preflight 完成识别，因此它们全部不进入方案。
 - 若删除 `innerText` 可见语义分类，当前正确可见弹窗仍可能因 `textContent` 节点拼接或隐藏文本失败；因此该原位替换不可删除。
-- 若删除真实 detector fixture，现有 stub 仍会让同类回归静态通过；因此该 fixture 是唯一必要新增测试结构。
+- 若删除 `scripts/acceptance/local-browser-rate-limit-dialog-support.ts` 中的真实 detector fixture，现有 stub 仍会让同类回归静态通过；因此该精确文件是唯一必要新增测试结构。
 - 本迭代完成只表示：冻结可见弹窗被中央 preflight 稳定判为 `exact_present`，未知结构继续 fail-close，原请求零物理输入，后续复用现役 ack/cooldown 链。未取得真实 Browser ack receipt、Website cooldown receipt、cohort admission 和持久化 readback前，不得声明 RELEASE 或事故业务闭环。
 
 ## 1. 需求、权威终点与范围
@@ -122,7 +129,7 @@ closure_pending
 - 用户截图：`/var/folders/wg/jqx8m72j5t73k7b8stzs_kpc0000gn/T/codex-clipboard-a5ebedd6-9f78-4059-aad4-44ce59cca071.png`，SHA-256 `0b8bc089d42ed7750770238959d1c557581f73d217416c99d3039d8a55339a1a`。
 - 2026-09-15 曾只读取得同一 Chrome 会话当时的 DOM：恰好一个可见 `role=dialog`；标题为“请求过于频繁”；正文依次为“你的请求过于频繁。为保障数据安全，我们已暂时限制你访问对话记录。”和“请稍等几分钟后再重试。”；恰好一个启用按钮“明白了”。这不是 2026-09-20 当前 DOM readback。
 - 当时按钮没有稳定 `data-testid` 或 `aria-label`，dialog 使用生成的 Radix `aria-labelledby`。因此实现不得依赖坐标、生成 id、全页文本扫描或截图 OCR。
-- 2026-09-15 没有点击按钮、刷新页面或修改 Browser/Website 生产状态；2026-09-20 同样没有取得新的真实 DOM。历史证据只定义 fixture 和 fail-close 停止条件，不证明当前在线结构或目标代码已处理它。
+- 2026-09-15 没有点击按钮、刷新页面或修改 Browser/Website 生产状态；2026-09-20 与 2026-09-21 同样没有取得新的真实 DOM。历史证据只定义 fixture 和 fail-close 停止条件，不证明当前在线结构或目标代码已处理它。
 
 ### 2.2 用户提供的日志
 
@@ -156,19 +163,19 @@ closure_pending
 
 - realpath：`/Users/nexgen/Documents/AGENT`
 - branch：`main`
-- HEAD：`af9883f6663ab8d96a12722fc77788320125f6ad`
-- tracking：`origin/main@42643572967f5c9f193e54ad16036a45687d566c`，本地 ahead 11。
-- 本轮 source candidate 只包含：`src/lib/browser/chrome-extension/gpt-rate-limit-dialog.ts`、复用的 `src/lib/browser/chrome-extension/dom-mechanical-facts.ts`、`src/lib/browser/chrome-extension/extension-target-authority.ts`、local-browser acceptance/support/manifest，以及本方案。方案文件是本轮 related dirty；其余 target source 与 active law/Blueprint 当前均未 dirty。
-- 施工面外既有 dirty：`scripts/acceptance/product-plugins/localization-production.acceptance.ts`、`src/plugins/localization-production/static-catalog-flow.ts`。两者归用户所有，不得格式化、恢复、覆盖或纳入本轮质检修复。
+- HEAD：`12c1c6578927c12d891e2f88db0c5470cd759ca6`
+- tracking：`origin/main@12c1c6578927c12d891e2f88db0c5470cd759ca6`，ahead/behind=`0/0`。
+- 本轮 source candidate 精确为：修改 `src/lib/browser/chrome-extension/gpt-rate-limit-dialog.ts`、`scripts/acceptance/local-browser-auto-pairing.acceptance.ts`、`scripts/audit/domains/local-browser-session/manifest.json`；新增 `scripts/acceptance/local-browser-rate-limit-dialog-support.ts`；只读复用/校验 `src/lib/browser/chrome-extension/dom-mechanical-facts.ts`、`src/lib/browser/chrome-extension/extension-target-authority.ts`、`package.json`、`package-lock.json`、`.github/instructions/agent-rules/功能法案.md`、`docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md`、`docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md`。本方案只是唯一文档产物，单独记录 hash，不进入 source candidate。
+- 施工面外当前唯一 dirty 为 `docs/项目方案/GPT Provider效果跨恢复单调性与限流冷却门根治-完整实现方案.md`。它归用户所有，不得读取为本方案 authority，不得格式化、恢复、覆盖或纳入本轮质检修复。施工时以届时完整 status 为准，不把当前 dirty 集合冻结成永久前置。
 - 当前 active authority 已完成并进入 HEAD，不再需要 law amendment：`.github/instructions/agent-rules/功能法案.md:738,1073,1139`、`docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md:39`、`docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md:17` 已共同冻结中央 preflight、唯一 `role=dialog`、冻结文案、完整可交互按钮、一次 ack、1.5秒普通门、2.5秒 readback、单 lane/WAL 和无旧 helper。
-- 设计时关键 hash：`gpt-rate-limit-dialog.ts=a900c39c5eca6a45ce8a9860f51bdc5d4bec6e8f5c4f0b133135cbbf672a7af9`；`dom-mechanical-facts.ts=d80fd5e7554e2d66fa702dfc3df72d9aa85a8747c23b1d9038927d68d98b26e9`；`extension-target-authority.ts=f7b1f8da7bc9e31c47e7184cf7bc6a698afa6ac1ec49dd7c066a1d5f62c5f8bb`；`local-browser-auto-pairing.acceptance.ts=6fbcc0792ba8a2ca6790dbc6c7a6d450a9da22178808c26d561ca7af7ce7cb8a`；`local-browser-session/manifest.json=5d05ddbd30cc5d1b1a55c49c570bc959520d00f59235130d17e1dff306362d81`；`LOCAL-BROWSER...BLUEPRINT.md=61d76c07a26f08f16e7104ff0980c47a086841cc1d7db4c5c1ffada1f7da8804`；`GPT-CAPABILITY...BLUEPRINT.md=d6c649ae3e20e3fc221802bf7e9064b12da7a7f2da2a904117598226b94b6f76`；`功能法案.md=ed20318549900d6b3755566bb40448ae15b42eb5bc5519cceea9cc164ed52ca0`。拟新增的 detector acceptance support 在设计时不存在，无旧 hash；其唯一准入是加入现役 manifest、由现有 acceptance 单次调用且不新增 npm/quality 入口。施工前任一既有 source/authority hash 漂移必须重算受影响段。
+- 设计时关键 hash：`gpt-rate-limit-dialog.ts=a900c39c5eca6a45ce8a9860f51bdc5d4bec6e8f5c4f0b133135cbbf672a7af9`；`dom-mechanical-facts.ts=d80fd5e7554e2d66fa702dfc3df72d9aa85a8747c23b1d9038927d68d98b26e9`；`extension-target-authority.ts=f7b1f8da7bc9e31c47e7184cf7bc6a698afa6ac1ec49dd7c066a1d5f62c5f8bb`；`local-browser-auto-pairing.acceptance.ts=6fbcc0792ba8a2ca6790dbc6c7a6d450a9da22178808c26d561ca7af7ce7cb8a`；`local-browser-session/manifest.json=5d05ddbd30cc5d1b1a55c49c570bc959520d00f59235130d17e1dff306362d81`；`package.json=9ac78c31c2dd3497581d977f748f3fe8733905f14d6cb36363d7f4e4c9e3533d`；`package-lock.json=6fe1e4f698c168342de122c3725801fae1c081d550144cc638d8dc935b26d3c3`；`LOCAL-BROWSER...BLUEPRINT.md=61d76c07a26f08f16e7104ff0980c47a086841cc1d7db4c5c1ffada1f7da8804`；`GPT-CAPABILITY...BLUEPRINT.md=d6c649ae3e20e3fc221802bf7e9064b12da7a7f2da2a904117598226b94b6f76`；`功能法案.md=ed20318549900d6b3755566bb40448ae15b42eb5bc5519cceea9cc164ed52ca0`。`scripts/acceptance/local-browser-rate-limit-dialog-support.ts` 设计时必须不存在，因而无 prior hash；它只能由现有 `local-browser-auto-pairing.acceptance.ts` 单次调用、加入现役 manifest，且不得新增 npm/quality 入口。施工前任一已存在 source/authority/config hash 漂移必须重算受影响段；该新文件若已由其它 writer 创建则停止并裁决归属。
 
 ### 3.2 Website
 
 - realpath：`/Users/nexgen/Documents/xuanxue-web`
 - branch：`main`
-- HEAD：`15cd2e28981bfa1665dbd5def71b0f6c288dfee1`；tracking=`origin/main@941e91a842b4388c96216f39a43927c4a128e949`，本地 ahead 9。
-- Website 已实现的 cooldown/receipt/cohort 主链是本轮 detector 修正的下游消费者，本轮零修改、零 migration、零合同版本变化。当前 Website 存在包括 localization、authority/audit、package 与无关设计资产在内的 dirty overlay，因此它不属于本轮 source candidate，也不能用于新的 RELEASE 结论；本轮不得切仓追改这些文件。
+- HEAD：`8a71d36402cd6b797be1eed80308e1f0fc967e6b`；tracking=`origin/main@8a71d36402cd6b797be1eed80308e1f0fc967e6b`，ahead/behind=`0/0`，工作树 clean。
+- Website 已实现的 cooldown/receipt/cohort 主链是本轮 detector 修正的下游消费者，本轮零修改、零 migration、零合同版本变化。Website 不属于本轮 source candidate，当前 clean 也不得被冒充为新的 RELEASE 结论；本轮不得切仓追改 Website。
 - 只有未来进入本方案原有 RELEASE 动态闭环时，才重新绑定 Website clean candidate，并复证 Browser exact fact 经现役 Runtime/Outbox 到 Website receipt/admission readback；这不阻塞 AGENT 内 WO-3A 的 CHANGE 施工与本域 acceptance。
 
 任一 AGENT source candidate、active authority、HEAD、分支或相关 dirty overlay 变化，都必须重新计算受影响的设计段；Website 变化只在跨仓 RELEASE/readback 阶段重新绑定，不扩大 WO-3A。
@@ -180,7 +187,7 @@ closure_pending
 | 法案系统 | AGENT active law 已冻结中央 preflight、`absent\|exact_present\|mismatch`、唯一精确 dialog、完整可交互按钮、一次 ack、单 lane/WAL；Website cooldown 权威保持现役 | 无法案缺口；当前实现仍输出 `unknown_present` 且 detector 未执行完整可交互分类 | 不改法案；让 `gpt-rate-limit-dialog.ts` 精确服从现役 major，并物理删除旧状态名 |
 | 施工图 | GPT 与 Local Browser Blueprint 已定义 Browser fact → Runtime gate → 内部 ack Child → 2.5秒 absent readback → 现役 cooldown/receipt 主链 | 施工图已闭合，当前 detector 对 `textContent` 偶然结构过拟合，无法稳定进入主链 | 只原位修复 Browser Owner 的分类算法；不新增 watcher、Child、handoff 或跨仓版本 |
 | 代码 | 中央 preflight、1.5秒门、WAL、ack intent、Runtime cooldown 与 Website consumer 均已存在；`gpt-rate-limit-dialog.ts` 用整段 `textContent`，acceptance 仅 stub 返回值 | 可见结构正确时可能被错判；exact_present 也尚未在 detector 阶段证明完整 pointer actionability | 复用 `BROWSER_MECHANICAL_FACTS_READER_SOURCE`，用 `innerText` 冻结顺序和精确标题/按钮完成同一 coherent classification |
-| 质检 | 唯一 `acceptance:local-browser-terminal` 与全仓 `quality:check` 已存在，并已覆盖 fail-close、零物理输入和时序 | 没有执行生产 `functionDeclaration` 的 DOM fixture，导致同类回归可静态通过 | 在现有 acceptance domain support 内执行生产 detector；不建新 npm 入口或第二 verdict |
+| 质检 | 唯一 `acceptance:local-browser-terminal` 与全仓 `quality:check` 已存在，并已覆盖 fail-close、零物理输入和时序 | 没有执行生产 `functionDeclaration` 的 DOM fixture，导致同类回归可静态通过 | 在精确新文件 `scripts/acceptance/local-browser-rate-limit-dialog-support.ts` 中执行生产 detector，由现有 acceptance 单次调用；不建新 npm 入口或第二 verdict |
 
 **本轮第一直接断裂只有一处：** Browser Authority 的 `gpt-rate-limit-dialog.ts::DETECTOR` 把原始 `textContent` 整段拼接等值当作可见语义结构，且没有在 exact_present 阶段复用现役完整 pointer actionability。中央 preflight、一次确认、Runtime gate、Outbox、Website cooldown 与最终 admission 主链已经存在，本轮全部复用；不得把历史已闭合的 1.5秒门、冷却或跨仓合同重新扩成施工范围。
 
@@ -388,8 +395,8 @@ ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab swit
 
 - Owner：AGENT Browser Authority；本工单不修改 law-system。
 - 当前事实：本方案需要的 active law、GPT Blueprint、Local Browser Blueprint 与 Runtime/Website 下游合同均已在现役 HEAD 定义，不存在等待解冻或另行 law amendment 的前置。
-- 施工动作：代码修改前重新读取 AGENT HEAD、tracking、完整 status、本节 source hash 与 active authority hash；确认只有方案文件及两处无关 localization 用户改动为 dirty，目标生产文件、acceptance 和 manifest 无未归属改动。
-- 完成门：candidate 与 3.1 精确相等；若相关 source/authority 漂移，只重算受影响段并再次独立审计，不得进入代码。Website 只在未来 RELEASE/readback 阶段重绑。
+- 施工动作：代码修改前重新读取 AGENT HEAD、tracking、完整 status、本节 source hash 与 active authority hash；当时存在的无关用户 dirty/untracked overlay 只记录并排除，不格式化、恢复、覆盖或纳入本轮差异；目标生产文件、acceptance 和 manifest 如有未归属改动则停止。
+- 完成门：届时 scoped source/authority hash 与 3.1 记录一致，且完整 status 无施工面未归属改动；HEAD、tracking 或无关 overlay 变化不得通过恰好匹配历史 dirty 集合伪造准入。若相关 source/authority 漂移，只重算受影响段并再次独立审计，不得进入代码。Website 只在未来 RELEASE/readback 阶段重绑。
 
 ### WO-1：Website 持久冷却 Owner（现役基线，本轮零修改）
 
@@ -410,8 +417,8 @@ ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab swit
 ### WO-3：Browser 可见语义精确识别
 
 - Owner：Browser 拥有 DOM 事实/WAL/物理点击；GPT checkpoint 拥有业务语义调用和同回答继续读取。
-- 路径片区：`src/lib/browser/chrome-extension/gpt-rate-limit-dialog.ts`、复用的 `dom-mechanical-facts.ts`、现有 local-browser acceptance support/manifest。`extension-target-authority.ts`、GPT Child、Runtime、Outbox 和 Website 只作为只读 consumer 证据，不修改。
-- 动作：按 0.3 原位替换 detector；复用现役 mechanical facts reader；把 `unknown_present` 物理替换为 `mismatch`；增加执行生产 functionDeclaration 的无网络 Playwright fixture。不得新增生产 helper、watcher、selector fallback、状态、接口或持久化。
+- 路径片区：修改 `src/lib/browser/chrome-extension/gpt-rate-limit-dialog.ts`、`scripts/acceptance/local-browser-auto-pairing.acceptance.ts`、`scripts/audit/domains/local-browser-session/manifest.json`，新增 `scripts/acceptance/local-browser-rate-limit-dialog-support.ts`；只读复用/验证 `dom-mechanical-facts.ts`、`extension-target-authority.ts`、`package.json`、`package-lock.json`、GPT Child、Runtime、Outbox 和 Website consumer。
+- 动作：按 0.3 原位替换 detector；复用现役 mechanical facts reader；把 `unknown_present` 物理替换为 `mismatch`；在 `scripts/acceptance/local-browser-rate-limit-dialog-support.ts` 实现执行生产 functionDeclaration 的无网络 Playwright fixture，由主 acceptance 单次调用并将新文件加入现役 manifest。不得新增生产 helper、watcher、selector fallback、状态、接口或持久化。
 - 验收：0.4 全部分支通过；现有中央 preflight、零原动作输入、单 ack、`>=1500ms` 普通门、`observation→dispatch<=1000ms`、ack 后 `>=2500ms` fresh readback 的既有断言无回归。
 - 禁止：修改或复活退役 rate-limit 文件、增加 Product action、扫描整页、保存原始对话内容，或在 detector 与 click runtime 各维护一套 actionability。
 
@@ -428,7 +435,7 @@ ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab swit
 - 事件发生前准备至少：2 个 submit 已 CONFIRMED 的 job、1 个已 claim 未 submit 的 job、1 个 queued job；不得为造样本故意提高页面频率或轰炸 Provider。
 - 必须证明：全账号普通页面访问实测无 `<1500ms`；唯一 DOM 精确点击且 detection→ack 不被节拍延误；无关新 submit/claim=0；两个已提交 job 均原 effect 入库；未 submit job 冷却中无 Provider 输入、冷却后仍是同 job 并最终入库；queued job 在旧 cohort 全部闭合前无 grant；即使 5 分钟先到、cohort 非空也不恢复无关新工单；cohort 闭合后以 N0−1 恢复；下一次自然 `absent→exact_present` 即使发生在 submit 之前，也必须成为 10 分钟且再 N−1 的 distinct incident。
 - 6 小时恢复证明不得真实占用 6 小时阻塞 CI：状态机/property 用 Website 可控 server clock 覆盖 `6h-1ms` 不恢复、`6h` 才可恢复、期间新事故清零 stable_since；RELEASE 另以真实 N=1 连续运行窗口和服务器时间戳/readback 证明至少 6 小时。若没有这段真实窗口，只能声明 CHANGE/READY，不能声明自动复原已生产证明。
-- 当前截图和 2026-09-15 历史只读 DOM 只能作为设计输入，不能替代未来候选的 RELEASE 证据；2026-09-20 尚无新的 live DOM readback。
+- 当前截图和 2026-09-15 历史只读 DOM 只能作为设计输入，不能替代未来候选的 RELEASE 证据；截至 2026-09-21 尚无新的 live DOM readback。
 
 ## 9. 分层验收
 
@@ -436,6 +443,7 @@ ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab swit
 
 - 旧 `rate-limit-dialog.ts` 及同义兼容路径为零。
 - 本轮生产差异只允许 `gpt-rate-limit-dialog.ts` 原位 detector 修正；`dom-mechanical-facts.ts` 只复用不复制，Product、GPT Child、Runtime、Outbox、Website 生产代码零差异。
+- 测试差异只允许 `scripts/acceptance/local-browser-auto-pairing.acceptance.ts`、新增 `scripts/acceptance/local-browser-rate-limit-dialog-support.ts` 和 `scripts/audit/domains/local-browser-session/manifest.json`；`package.json`/`package-lock.json` 只读复用现有 Playwright，依赖差异必须为零。
 - detector 状态只剩 `absent | mismatch | exact_present`；`unknown_present` 在生产和测试中均为零。
 - Product facade 不出现新的确认动作；只有一个 detector、一个 Browser lane、一个 ack Child、一个 cooldown Owner、一个 Outbox 和一个质量 verdict。
 - active law、Blueprint、跨仓 schema/version/hash 零修改；本轮没有“新合同”。
@@ -497,16 +505,16 @@ ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab swit
 | exact device row 五个惩罚字段 + 当前 N 同行原子 CAS | 删除后阶梯、截止时间、N0、6小时稳定门、冻结 cohort 和 readback 无 durable Owner；放全局 singleton 会与 per-device N 作用域错位并串设备 | 复用现有 device row，不建 cooldown table，不改全局 singleton |
 | 一个 typed notice endpoint/receipt | 删除后 Website 无法原子关闭 grant并回读通知 | 归入现有 V6 job/write receipt 路由 |
 
-已删除/拒绝的结构：旧 rate-limit helper、独立 probe Child、第二 ack Child、第二 cooldown 表、第二队列、timer service、产品私有 pause、AGENT/Browser 的 N 副本、逐 job 频率门、强制 abort active jobs、重发 recovery、兼容桥、feature flag、原始 DOM/URL台账、专属 quality 命令和新的 Agent。现役唯一内部 ack Child、Runtime gate、Outbox、Website cooldown/N−1 与 cohort 是 detector 的既有真实消费者，本轮只复用不修改；本轮唯一新增测试结构是由现有 acceptance 单次调用的生产 detector fixture。
+已删除/拒绝的结构：旧 rate-limit helper、独立 probe Child、第二 ack Child、第二 cooldown 表、第二队列、timer service、产品私有 pause、AGENT/Browser 的 N 副本、逐 job 频率门、强制 abort active jobs、重发 recovery、兼容桥、feature flag、原始 DOM/URL台账、专属 quality 命令和新的 Agent。现役唯一内部 ack Child、Runtime gate、Outbox、Website cooldown/N−1 与 cohort 是 detector 的既有真实消费者，本轮只复用不修改；本轮唯一新增测试结构精确为 `scripts/acceptance/local-browser-rate-limit-dialog-support.ts`，删除它会使生产 detector 的真实 `innerText`/layout/hit-test 回归无法被现有 stub 发现；它只由现有 acceptance 单次调用，不形成新入口或新 verdict。
 
 ## 12. 施工准入与执行 Codex 重绑定
 
 本轮唯一施工顺序冻结为：
 
-1. 执行 WO-0，只重绑 3.1 的 AGENT source candidate、active authority 和无关 dirty；不修改法案、Blueprint、跨仓 spec、registry、Runtime 或 Website。
-2. 执行 WO-3：原位修正 detector，复用唯一 mechanical reader，物理删除 `unknown_present`，在现有 local-browser acceptance domain 增加生产 functionDeclaration fixture并更新同一 manifest。
+1. 执行 WO-0，只重绑 3.1 的 AGENT source candidate、active authority 和届时完整 status；保护并排除所有无关 dirty/untracked overlay，不修改法案、Blueprint、跨仓 spec、registry、Runtime 或 Website。
+2. 执行 WO-3：原位修正 detector，复用唯一 mechanical reader，物理删除 `unknown_present`；新增 `scripts/acceptance/local-browser-rate-limit-dialog-support.ts` 承载生产 functionDeclaration 的无网络 Playwright fixture，由 `scripts/acceptance/local-browser-auto-pairing.acceptance.ts` 单次调用，并将新文件加入 `scripts/audit/domains/local-browser-session/manifest.json`。
 3. 运行 `npm run acceptance:local-browser-terminal`，再运行仓库唯一 `npm run quality:check -- CHANGE`；失败只围绕同一 detector GAP 修复，不扩大到无关 dirty或跨仓。
-4. CHANGE 通过后重新核对 diff：生产差异仅 detector；其余只允许 acceptance support/manifest和本方案。独立子智能体只读复审零阻断后，才能形成 clean AGENT commit进入 READY。
+4. CHANGE 通过后重新核对 diff：生产差异仅 `gpt-rate-limit-dialog.ts`；其余只允许 `local-browser-auto-pairing.acceptance.ts`、新增 `local-browser-rate-limit-dialog-support.ts`、`local-browser-session/manifest.json` 和本方案，`package.json`/`package-lock.json` 差异为零。独立子智能体只读复审零阻断后，才能形成 clean AGENT commit进入 READY。
 5. READY/RELEASE 分开。RELEASE 前绑定 clean Website candidate，但不部署 Website 新合同或 migration；只用自然发生的真实事件复证现役 receipt/cohort/admission/readback。
 
 Provider 文案、`role=dialog`、单一 `aria-labelledby` 或 actionability 结构若在未来真实证据中漂移，必须 `mismatch`、零点击失败关闭并回到同一方案，禁止扩大 selector或猜测。最终报告分别写明 CHANGE、READY、RELEASE；没有真实 Browser ack receipt 与 Website 持久 readback，不得声明事故闭环。
