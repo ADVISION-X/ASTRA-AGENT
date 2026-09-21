@@ -2,7 +2,6 @@ export {
   createGptAbilityGroup,
 } from "./ability-group.js";
 export { createProductionGptChildTools } from "./production-child-tools.js";
-export { isProviderEffectReadbackProofV1 } from "./production-child-support.js";
 export {
   type GptAbilityGroup,
   type GptApprovedFile,

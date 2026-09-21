@@ -111,7 +111,7 @@ export const deviceStatusWithoutAdmission = (
     business_admission_receipt: null, business_consumer_error: null,
     accepted_attempt_count: 1, write_receipts: [],
   }),
-}) as never;
+});
 
 export const validDeviceCredential = {
   protocol_version: "xuanxue-ai-production-v6",

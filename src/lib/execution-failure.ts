@@ -24,6 +24,10 @@ export type ExecutionFailureMetadata = Readonly<{
   stoppedEmptyProof?: ProviderStoppedEmptyProof | null;
   childProof?: Readonly<{ evidenceRef: string; evidenceHash: `sha256:${string}` }> | null;
   knownGptRateLimitPreflightFact?: KnownGptRateLimitPreflightFact | null;
+  knownGptDialogAuthority?: Readonly<{
+    evidenceRef: string;
+    evidenceHash: `sha256:${string}`;
+  }> | null;
 }>;
 
 export class TypedExecutionFailure extends Error {

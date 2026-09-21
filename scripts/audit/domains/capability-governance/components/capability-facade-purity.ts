@@ -13,9 +13,16 @@ type CapabilityGroupFindingInput = Omit<Parameters<typeof createFinding>[0], "ev
 type CapabilityFacadePolicy = ReturnType<typeof resolveCapabilityFacadePolicy>;
 type PushFinding = (input: CapabilityGroupFindingInput) => void;
 
-const isFactoryContractValueExportAllowed = (capabilityRoot: string, targetPath: string): boolean =>
+const isFactoryContractValueExportAllowed = (
+  capabilityRoot: string,
+  targetPath: string,
+  exportedNames: readonly string[],
+): boolean =>
   targetPath === `${capabilityRoot}/ability-group.ts`
-    || targetPath === `${capabilityRoot}/schema.ts`;
+    || targetPath === `${capabilityRoot}/schema.ts`
+    || (capabilityRoot === "src/capabilities/gpt"
+      && targetPath === `${capabilityRoot}/production-child-tools.ts`
+      && exportedNames.length === 1 && exportedNames[0] === "createProductionGptChildTools");
 
 const isRuntimeValueExportDeclaration = (
   exportDeclaration: ExportDeclaration,
@@ -107,11 +114,12 @@ const pushNonContractValueExportFinding = (input: {
   pushFinding: PushFinding;
   repoPath: string;
   targetPath: string;
+  exportedNames: readonly string[];
 }): void => {
   if (
     !input.hasRuntimeValueExport
     || input.policy.mode !== "factory-contract"
-    || isFactoryContractValueExportAllowed(input.capabilityRoot, input.targetPath)
+    || isFactoryContractValueExportAllowed(input.capabilityRoot, input.targetPath, input.exportedNames)
   ) {
     return;
   }
@@ -182,6 +190,7 @@ const pushFacadeExportDeclarationFindings = (input: FacadePurityContext): void =
       pushFinding: input.pushFinding,
       repoPath: input.repoPath,
       targetPath,
+      exportedNames,
     });
   }
 };

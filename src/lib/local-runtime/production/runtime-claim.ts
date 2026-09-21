@@ -55,10 +55,6 @@ import { productionRuntimeTaskPath } from "./runtime-storage-inventory.js";
 import { reconcileBusinessAdmission } from "./runtime-business-admission.js";
 import type { AttemptFailureFirstFact, SerializedTerminalFailure } from "./terminal-failure.js";
 import type { StoredProductionTask } from "./store.js";
-import { isProviderEffectReadbackProofV1 } from "../../../capabilities/gpt/index.js";
-import { typedGptExecutionFailure } from "../../../capabilities/gpt/execution-fault.js";
-import { knownGptRateLimitPreflightFactValid } from
-  "../../browser/exact-target/browser-special-mutation-receipt.js";
 
 const isResultTransportBoundary = (error: unknown): boolean => {
   const typed = typedExecutionFailure(error);
@@ -73,62 +69,16 @@ const isResultTransportBoundary = (error: unknown): boolean => {
     || (httpStatus !== null && httpStatus >= 500);
 };
 
-const authoritativeGptDialogMismatch = (error: unknown): Readonly<{
-  authorityRef: string;
-  authorityHash: `sha256:${string}`;
-}> | null => {
-  if (failureCode(error) !== "BROWSER_GPT_DIALOG_UNRECOGNIZED") return null;
-  const metadata = executionFailureMetadata(error);
-  const gptFailure = typedGptExecutionFailure(error);
-  const fact = metadata?.knownGptRateLimitPreflightFact;
-  const evidence = metadata?.evidence;
-  const proofBrowserFact = gptFailure?.proofFacts?.browserFact;
-  const canonicalEvidenceRef = fact && ["browser-gpt-dialog-unrecognized", fact.observedAt,
-    fact.exactCallIdentityHash, fact.targetRefHash, fact.documentRefHash].join("|");
-  const directAuthority = Boolean(evidence && fact
-    && evidence.evidenceHash === fact.observationHash
-    && evidence.evidenceRef === canonicalEvidenceRef);
-  const walAuthority = Boolean(evidence && proofBrowserFact
-    && evidence.evidenceRef === proofBrowserFact.evidenceRef
-    && evidence.evidenceHash === proofBrowserFact.evidenceHash);
-  if (!evidence || !knownGptRateLimitPreflightFactValid(fact) || fact.state !== "mismatch"
-    || !proofBrowserFact
-    || !proofBrowserFact.knownGptRateLimitPreflightFact
-    || hashCanonical(proofBrowserFact.knownGptRateLimitPreflightFact) !== hashCanonical(fact)
-    || (!directAuthority && !walAuthority)) return null;
-  return Object.freeze({
-    authorityRef: evidence.evidenceRef,
-    authorityHash: evidence.evidenceHash,
-  });
-};
-
-const authoritativeGptKnownRateLimit = (error: unknown): Readonly<{
-  authorityRef: string;
-  authorityHash: `sha256:${string}`;
-}> | null => {
-  if (failureCode(error) !== "BROWSER_KNOWN_GPT_RATE_LIMIT") return null;
-  const metadata = executionFailureMetadata(error);
-  const gptFailure = typedGptExecutionFailure(error);
-  const fact = metadata?.knownGptRateLimitPreflightFact;
-  const evidence = metadata?.evidence;
-  const proofBrowserFact = gptFailure?.proofFacts?.browserFact;
-  const canonicalEvidenceRef = fact && ["browser-known-gpt-rate-limit", fact.observedAt,
-    fact.exactCallIdentityHash, fact.targetRefHash, fact.documentRefHash].join("|");
-  const directAuthority = Boolean(evidence && fact
-    && evidence.evidenceHash === fact.observationHash
-    && evidence.evidenceRef === canonicalEvidenceRef);
-  const walAuthority = Boolean(evidence && proofBrowserFact
-    && evidence.evidenceRef === proofBrowserFact.evidenceRef
-    && evidence.evidenceHash === proofBrowserFact.evidenceHash);
-  if (!evidence || !knownGptRateLimitPreflightFactValid(fact) || fact.state !== "exact_present"
-    || !proofBrowserFact
-    || !proofBrowserFact.knownGptRateLimitPreflightFact
-    || hashCanonical(proofBrowserFact.knownGptRateLimitPreflightFact) !== hashCanonical(fact)
-    || (!directAuthority && !walAuthority)) return null;
-  return Object.freeze({
-    authorityRef: evidence.evidenceRef,
-    authorityHash: evidence.evidenceHash,
-  });
+const authoritativeGptDialog = (
+  error: unknown,
+  expectedCode: "BROWSER_GPT_DIALOG_UNRECOGNIZED" | "BROWSER_KNOWN_GPT_RATE_LIMIT",
+): Readonly<{ authorityRef: string; authorityHash: `sha256:${string}` }> | null => {
+  if (failureCode(error) !== expectedCode) return null;
+  const authority = executionFailureMetadata(error)?.knownGptDialogAuthority;
+  return authority ? Object.freeze({
+    authorityRef: authority.evidenceRef,
+    authorityHash: authority.evidenceHash,
+  }) : null;
 };
 
 
@@ -589,6 +539,14 @@ const executeAndUpload = async (input: Readonly<{
   return { execution, uploaded };
 };
 
+const providerEffectProofHashMatches = (
+  proof: Awaited<ReturnType<RuntimeState["executor"]["execute"]>>["providerEffectReadbackProof"],
+): boolean => {
+  if (!proof) return false;
+  const { proof_hash: proofHash, ...proofBody } = proof;
+  return hashCanonical(proofBody) === proofHash;
+};
+
 export const stageCompletedClaimResult = (input: Readonly<{
   store: RuntimeState["store"];
   job: ClaimedProductionTask;
@@ -597,7 +555,8 @@ export const stageCompletedClaimResult = (input: Readonly<{
   const pendingFailure = input.store.readTask(input.job.job_id)?.attempt_failure ?? null;
   if (pendingFailure) {
     const proof = input.execution.providerEffectReadbackProof;
-    if (!isProviderEffectReadbackProofV1(proof)
+    if (!proof || proof.schema_version !== "provider-effect-readback-proof.v1"
+      || !providerEffectProofHashMatches(proof)
       || proof.job_id !== input.job.job_id
       || proof.attempt_id !== input.job.grant.attempt_id
       || proof.result_revision !== input.job.grant.result_revision
@@ -705,8 +664,8 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
         return;
       }
       const code = failureCode(error);
-      const mismatchAuthority = authoritativeGptDialogMismatch(error);
-      const rateLimitAuthority = authoritativeGptKnownRateLimit(error);
+      const mismatchAuthority = authoritativeGptDialog(error, "BROWSER_GPT_DIALOG_UNRECOGNIZED");
+      const rateLimitAuthority = authoritativeGptDialog(error, "BROWSER_KNOWN_GPT_RATE_LIMIT");
       const browserAuthority = mismatchAuthority ?? rateLimitAuthority;
       terminalSpanFailure(
         jobSpan, error, runtimeLogCauseEventId(error), "JOB_EXECUTION_FAILED",

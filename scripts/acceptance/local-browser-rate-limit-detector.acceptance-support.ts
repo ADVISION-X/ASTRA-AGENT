@@ -115,10 +115,6 @@ export const detectedKnownGptRateLimitMismatchFact = async (
   return await detect([wrongBody]) as KnownGptRateLimitPreflightFact;
 };
 
-export const detectedKnownGptRateLimitAbsentFact = async (
-): Promise<KnownGptRateLimitPreflightFact> =>
-  await detect([]) as KnownGptRateLimitPreflightFact;
-
 export const detectedKnownGptRateLimitExactFact = async (
 ): Promise<KnownGptRateLimitPreflightFact> =>
   await detect([exactDialog()]) as KnownGptRateLimitPreflightFact;

@@ -5,9 +5,10 @@ import {
   executionFailure,
   failureCode,
 } from "../../lib/execution-failure.js";
-import { typedBrowserExecutionFailure } from "../../lib/browser/browser-authority-api.js";
-import { knownGptRateLimitPreflightFactValid } from
-  "../../lib/browser/exact-target/browser-special-mutation-receipt.js";
+import {
+  knownGptRateLimitPreflightFactValid,
+  typedBrowserExecutionFailure,
+} from "../../lib/browser/browser-authority-api.js";
 import { runtimeLogCauseEventId, withRuntimeLogCauseFact } from "../../lib/runtime-logs/index.js";
 
 import {

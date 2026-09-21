@@ -1,5 +1,4 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import { createHash } from "node:crypto";
 
 import type { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { ProductionRuntimeStore as RuntimeStore } from "../../src/lib/local-runtime/production/store.js";
@@ -12,14 +11,6 @@ import { executionFailure, typedExecutionFailure } from "../../src/lib/execution
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
-import {
-  KNOWN_GPT_RATE_LIMIT_ACK_HASH,
-  KNOWN_GPT_RATE_LIMIT_BODY_HASH,
-  KNOWN_GPT_RATE_LIMIT_DIALOG_HASH,
-  KNOWN_GPT_RATE_LIMIT_TITLE_HASH,
-  knownGptRateLimitPreflightObservationInput,
-  type KnownGptRateLimitPreflightFact,
-} from "../../src/lib/browser/exact-target/browser-gpt-rate-limit-preflight.js";
 import { serializeTerminalFailureTransport } from
   "../../src/lib/local-runtime/production/terminal-failure.js";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -27,45 +18,18 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HASH_A, attemptFailureFirstFact, claimTask, deviceStatusWithoutAdmission,
   resultFor, task } from "./agent-production-runtime-fixtures.js";
-import { providerEffectReadbackProofHash } from
-  "../../src/capabilities/gpt/production-child-support.js";
-import { gptExecutionFailure } from "../../src/capabilities/gpt/execution-fault.js";
+const mismatchEvidenceRef = "browser-gpt-dialog-unrecognized:typed-authority";
 
-const mismatchPreflightUnsigned = Object.freeze({
-  schemaVersion: "grasseye.browser.known-gpt-rate-limit-preflight.v2",
-  state: "mismatch",
-  dialogHash: KNOWN_GPT_RATE_LIMIT_DIALOG_HASH,
-  titleHash: KNOWN_GPT_RATE_LIMIT_TITLE_HASH,
-  bodyHash: KNOWN_GPT_RATE_LIMIT_BODY_HASH,
-  acknowledgementHash: KNOWN_GPT_RATE_LIMIT_ACK_HASH,
-  exactCallIdentityHash: `sha256:${"1".repeat(64)}` as const,
-  targetRefHash: `sha256:${"2".repeat(64)}` as const,
-  documentRefHash: `sha256:${"3".repeat(64)}` as const,
-  observedAt: "2026-09-21T00:00:00.000Z",
-  dialogRawCount: 1, dialogEligibleCount: 1, dialogActionableCount: 0,
-  acknowledgementButtonRawCount: 1, acknowledgementButtonEligibleCount: 1,
-  acknowledgementButtonActionableCount: 1,
-}) satisfies Omit<KnownGptRateLimitPreflightFact, "observationHash">;
-const mismatchPreflightFact = Object.freeze({
-  ...mismatchPreflightUnsigned,
-  observationHash: `sha256:${createHash("sha256").update(JSON.stringify(
-    knownGptRateLimitPreflightObservationInput(mismatchPreflightUnsigned),
-  )).digest("hex")}` as const,
-}) satisfies KnownGptRateLimitPreflightFact;
-const mismatchEvidenceRef = ["browser-gpt-dialog-unrecognized", mismatchPreflightFact.observedAt,
-  mismatchPreflightFact.exactCallIdentityHash, mismatchPreflightFact.targetRefHash,
-  mismatchPreflightFact.documentRefHash].join("|");
-const exactPreflightUnsigned = Object.freeze({
-  ...mismatchPreflightUnsigned,
-  state: "exact_present" as const,
-  dialogActionableCount: 1,
+const typedDialogFailure = (
+  code: "BROWSER_GPT_DIALOG_UNRECOGNIZED" | "BROWSER_KNOWN_GPT_RATE_LIMIT",
+  evidenceRef: string,
+  evidenceHash: `sha256:${string}`,
+) => executionFailure("failed", code, {
+  metadata: Object.freeze({
+    evidence: Object.freeze({ evidenceRef, evidenceHash }),
+    knownGptDialogAuthority: Object.freeze({ evidenceRef, evidenceHash }),
+  }),
 });
-const exactPreflightFact = Object.freeze({
-  ...exactPreflightUnsigned,
-  observationHash: `sha256:${createHash("sha256").update(JSON.stringify(
-    knownGptRateLimitPreflightObservationInput(exactPreflightUnsigned),
-  )).digest("hex")}` as const,
-}) satisfies KnownGptRateLimitPreflightFact;
 
 export const verifyBrowserFailureStoreContract = (store: ProductionRuntimeStore): void => {
   const legalPairs = Object.freeze([
@@ -154,31 +118,7 @@ export const verifyGptDialogMismatchRuntimeContract = async (): Promise<void> =>
           store.acceptTask(acceptedTask, attemptId),
         acceptAfterFailureReconciled: () => { throw new Error("UNEXPECTED_RECONCILIATION"); },
         execute: async () => {
-          const browserFact = Object.freeze({
-            exactCallIdentityHash: mismatchPreflightFact.exactCallIdentityHash,
-            providerEffectIdentityHash: null,
-            childCapabilityId: "prepare_clean_gpt_chat" as const,
-            effectScope: "target_local" as const,
-            browserOutcome: "REJECTED" as const,
-            mutationOutcome: "no" as const,
-            terminalAt: null,
-            evidenceRef: mismatchEvidenceRef,
-            evidenceHash: mismatchPreflightFact.observationHash,
-            knownGptRateLimitPreflightFact: mismatchPreflightFact,
-          });
-          throw gptExecutionFailure("BROWSER_GPT_DIALOG_UNRECOGNIZED", {
-            mutationOutcome: "no", evidence: {
-              evidenceRef: mismatchEvidenceRef,
-              evidenceHash: mismatchPreflightFact.observationHash,
-            }, browserEffect: browserFact,
-            proofFacts: {
-              decision: "FAIL_CLOSED", factResultIds: Object.freeze([]),
-              candidateCardinality: Object.freeze({ raw: 1, eligible: 1 }),
-              authorityRefHashes: Object.freeze([mismatchPreflightFact.observationHash]),
-              observationRevisionHash: mismatchPreflightFact.observationHash,
-              mutationOutcome: "no", browserFact, nativeFailureCode: null,
-            },
-          });
+          throw typedDialogFailure("BROWSER_GPT_DIALOG_UNRECOGNIZED", mismatchEvidenceRef, HASH_A);
         },
       } as never,
       session: {
@@ -187,7 +127,7 @@ export const verifyGptDialogMismatchRuntimeContract = async (): Promise<void> =>
         device: { server_base_url: "http://127.0.0.1:4322" },
         request: async (path: string) => {
           if (path.endsWith("/lease-release")) releaseRequests += 1;
-          return (statusSession as unknown as { request(): Promise<unknown> }).request();
+          return statusSession.request();
         },
       } as never,
       providerRateLimitControl: {} as never,
@@ -220,7 +160,7 @@ export const verifyGptDialogMismatchRuntimeContract = async (): Promise<void> =>
     assert.equal(terminal?.authorityRef,
       mismatchEvidenceRef,
       "runtime diagnosis must bind the mismatch terminal to its Browser authority");
-    assert.equal(terminal?.authorityHash, mismatchPreflightFact.observationHash,
+    assert.equal(terminal?.authorityHash, HASH_A,
       "runtime diagnosis must retain the Browser mismatch evidence hash");
   } finally {
     store.close();
@@ -253,31 +193,8 @@ export const verifyKnownGptRateLimitRuntimeContract = async (): Promise<void> =>
           store.acceptTask(acceptedTask, attemptId),
         acceptAfterFailureReconciled: () => { throw new Error("UNEXPECTED_RECONCILIATION"); },
         execute: async () => {
-          const confirmedProviderEffectHash = `sha256:${"8".repeat(64)}` as const;
-          const browserFact = Object.freeze({
-            exactCallIdentityHash: exactPreflightFact.exactCallIdentityHash,
-            providerEffectIdentityHash: confirmedProviderEffectHash,
-            childCapabilityId: "submit_exact_gpt_turn_once" as const,
-            effectScope: "provider_effect" as const,
-            browserOutcome: "CONFIRMED" as const,
-            mutationOutcome: "confirmed" as const,
-            terminalAt: "2026-09-21T00:00:00.000Z",
-            evidenceRef: "browser-mutation:confirmed-known-rate-limit",
-            evidenceHash: HASH_A,
-            knownGptRateLimitPreflightFact: exactPreflightFact,
-          });
-          throw gptExecutionFailure("BROWSER_KNOWN_GPT_RATE_LIMIT", {
-            mutationOutcome: "confirmed", evidence: {
-              evidenceRef: browserFact.evidenceRef, evidenceHash: browserFact.evidenceHash,
-            }, browserEffect: browserFact,
-            proofFacts: {
-              decision: "FAIL_CLOSED", factResultIds: Object.freeze([]),
-              candidateCardinality: Object.freeze({ raw: 1, eligible: 1 }),
-              authorityRefHashes: Object.freeze([browserFact.evidenceHash]),
-              observationRevisionHash: browserFact.evidenceHash,
-              mutationOutcome: "confirmed", browserFact, nativeFailureCode: null,
-            },
-          });
+          throw typedDialogFailure("BROWSER_KNOWN_GPT_RATE_LIMIT",
+            "browser-mutation:confirmed-known-rate-limit", HASH_A);
         },
       } as never,
       session: {
@@ -285,7 +202,7 @@ export const verifyKnownGptRateLimitRuntimeContract = async (): Promise<void> =>
         device: { server_base_url: "http://127.0.0.1:4322" },
         request: async (requestPath: string) => {
           if (requestPath.endsWith("/lease-release")) releaseRequests += 1;
-          return (statusSession as unknown as { request(): Promise<unknown> }).request();
+          return statusSession.request();
         },
       } as never,
       providerRateLimitControl: {
@@ -565,31 +482,7 @@ export const verifyAttemptFailureReadbackRuntimeContract = async (): Promise<voi
         },
         execute: async () => {
           productExecutions += 1;
-          const browserFact = Object.freeze({
-            exactCallIdentityHash: mismatchPreflightFact.exactCallIdentityHash,
-            providerEffectIdentityHash: null,
-            childCapabilityId: "prepare_clean_gpt_chat" as const,
-            effectScope: "target_local" as const,
-            browserOutcome: "REJECTED" as const,
-            mutationOutcome: "no" as const,
-            terminalAt: null,
-            evidenceRef: mismatchEvidenceRef,
-            evidenceHash: mismatchPreflightFact.observationHash,
-            knownGptRateLimitPreflightFact: mismatchPreflightFact,
-          });
-          throw gptExecutionFailure("BROWSER_GPT_DIALOG_UNRECOGNIZED", {
-            mutationOutcome: "no", evidence: {
-              evidenceRef: mismatchEvidenceRef,
-              evidenceHash: mismatchPreflightFact.observationHash,
-            }, browserEffect: browserFact,
-            proofFacts: {
-              decision: "FAIL_CLOSED", factResultIds: Object.freeze([]),
-              candidateCardinality: Object.freeze({ raw: 1, eligible: 1 }),
-              authorityRefHashes: Object.freeze([mismatchPreflightFact.observationHash]),
-              observationRevisionHash: mismatchPreflightFact.observationHash,
-              mutationOutcome: "no", browserFact, nativeFailureCode: null,
-            },
-          });
+          throw typedDialogFailure("BROWSER_GPT_DIALOG_UNRECOGNIZED", mismatchEvidenceRef, HASH_A);
         },
       },
       session: {
@@ -954,7 +847,7 @@ export const verifyAttemptFailureReadbackRuntimeContract = async (): Promise<voi
       browser_authority_hash: browserAuthorityHash,
       readback_provider_input_delta: 0 as const,
     });
-    const proof = Object.freeze({ ...proofBody, proof_hash: providerEffectReadbackProofHash(proofBody) });
+    const proof = Object.freeze({ ...proofBody, proof_hash: hashCanonical(proofBody) });
     assert.throws(() => stage({ ...proof, browser_authority_hash: HASH_A }),
       (error: unknown) => typedExecutionFailure(error)?.code === "PROVIDER_EFFECT_READBACK_PROOF_INVALID",
       "ACTIVE_ATTEMPT must reject a tampered provider-effect readback carrier");

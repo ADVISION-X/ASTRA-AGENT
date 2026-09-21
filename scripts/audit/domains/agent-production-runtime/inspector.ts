@@ -161,6 +161,9 @@ const inspectCoreAst = (context: InspectorContext, findings: InspectorFinding[])
     .filter((call) => call.getExpression().getText() === "this.supersedeUnsentWritesForWebsiteAttempt") ?? [])
     .map((call) => call.getFirstAncestorByKind(SyntaxKind.MethodDeclaration)?.getName());
   const deliverOutbox = outbox?.getClass("ProductionStoreOutbox")?.getMethod("deliverOutbox");
+  const failureDisposition = variableDeclaration(claim, "applyRemoteFailureDisposition")?.getInitializer()?.getText();
+  const persistFailure = variableDeclaration(claim, "persistAttemptFailure")?.getInitializer()?.getText();
+  const reconcileFailures = variableDeclaration(claim, "reconcilePendingAttemptFailures")?.getInitializer()?.getText();
   const forbiddenLifecycleVerdict = `${taskState?.getFullText() ?? ""}\n${outbox?.getFullText() ?? ""}`;
   const projectSources = context.project.getSourceFiles().filter((source) => !source.isDeclarationFile());
   const runtimeHostRecoveryText = projectSources.filter((source) =>
@@ -180,8 +183,11 @@ const inspectCoreAst = (context: InspectorContext, findings: InspectorFinding[])
     supersessionOwners.length !== 2,
     supersessionOwners.sort().join(",") !== "acceptTask,releaseAttemptForWebsiteDecision",
     !websiteAttemptRelease?.getText().includes("current_attempt_id !== attemptId"),
-    ![businessAdmission?.getText(), variableDeclaration(claim, "persistAttemptFailure")?.getInitializer()?.getText()].every(
-      (source) => ['remote.next_action_code === "WAIT_NEW_ATTEMPT"', "state.store.releaseAttemptForWebsiteDecision("].every((token) => source?.includes(token))),
+    ![businessAdmission?.getText(), failureDisposition].every((source) =>
+      ['remote.next_action_code === "WAIT_NEW_ATTEMPT"', "state.store.releaseAttemptForWebsiteDecision("].every(
+        (token) => source?.includes(token))),
+    !persistFailure?.includes("applyRemoteFailureDisposition(state, persisted, remote, localFailure)"),
+    !reconcileFailures?.includes("applyRemoteFailureDisposition(state, task, remote, failure)"),
     runtimeHostRecoveryText.includes("restoreBrowserHostVisibility"),
     retiredAttemptReleaseInActiveSource,
     !deliverOutbox?.getText().includes('executionFailure("failed", authority.lastError)'),

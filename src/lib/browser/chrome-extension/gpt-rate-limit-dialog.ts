@@ -137,7 +137,7 @@ export const knownGptRateLimitExactCallIdentityHash = async (
   permit.inputHash,
 ]));
 
-export const knownGptRateLimitTargetIdentity = async (
+const knownGptRateLimitTargetIdentity = async (
   target: ExtensionExactTarget,
 ): Promise<Readonly<{
   targetRefHash: `sha256:${string}`;

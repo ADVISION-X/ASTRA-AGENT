@@ -3,6 +3,7 @@ import type {
   BrowserEffectFailureFacts,
   MutationOutcome,
 } from "../../lib/browser/browser-authority-api.js";
+import { knownGptRateLimitPreflightFactValid } from "../../lib/browser/browser-authority-api.js";
 import type { ProviderStoppedEmptyProof } from "../../lib/execution-failure.js";
 import type { GptChildBrowserFact } from "./contract.js";
 import type { GptReasoningRequirementResult } from "./child-types.js";
@@ -18,6 +19,28 @@ export type GptFailureProofFacts = Readonly<{
   nativeFailureCode: string | null;
   stoppedEmptyProof?: ProviderStoppedEmptyProof | null;
 }>;
+
+const knownGptDialogAuthority = (
+  code: string,
+  evidence: Readonly<{ evidenceRef: string; evidenceHash: `sha256:${string}` }> | null,
+  proofFacts: GptFailureProofFacts | null,
+): Readonly<{ evidenceRef: string; evidenceHash: `sha256:${string}` }> | null => {
+  const browserFact = proofFacts?.browserFact;
+  const fact = browserFact?.knownGptRateLimitPreflightFact;
+  const expectedState = code === "BROWSER_GPT_DIALOG_UNRECOGNIZED" ? "mismatch"
+    : code === "BROWSER_KNOWN_GPT_RATE_LIMIT" ? "exact_present" : null;
+  if (!evidence || !fact || !browserFact || !expectedState
+    || !knownGptRateLimitPreflightFactValid(fact) || fact.state !== expectedState) return null;
+  const prefix = expectedState === "mismatch"
+    ? "browser-gpt-dialog-unrecognized" : "browser-known-gpt-rate-limit";
+  const directRef = [prefix, fact.observedAt, fact.exactCallIdentityHash,
+    fact.targetRefHash, fact.documentRefHash].join("|");
+  const directAuthority = evidence.evidenceRef === directRef
+    && evidence.evidenceHash === fact.observationHash;
+  const walAuthority = evidence.evidenceRef === browserFact.evidenceRef
+    && evidence.evidenceHash === browserFact.evidenceHash;
+  return directAuthority || walAuthority ? evidence : null;
+};
 
 class GptExecutionFailure extends TypedExecutionFailure {
   public override readonly name: string = "GptExecutionFailure";
@@ -43,6 +66,7 @@ class GptExecutionFailure extends TypedExecutionFailure {
     }> = {},
   ) {
     const childProof = details.childProof ?? null;
+    const dialogAuthority = knownGptDialogAuthority(code, evidence, proofFacts);
     super("failed", code, details.cause, Object.freeze({
       mutationOutcome, evidence, browserEffect,
       stoppedEmptyProof: proofFacts?.stoppedEmptyProof ?? null,
@@ -50,6 +74,7 @@ class GptExecutionFailure extends TypedExecutionFailure {
       ...(proofFacts?.browserFact?.knownGptRateLimitPreflightFact
         ? { knownGptRateLimitPreflightFact:
             proofFacts.browserFact.knownGptRateLimitPreflightFact } : {}),
+      ...(dialogAuthority ? { knownGptDialogAuthority: dialogAuthority } : {}),
     }));
     this.childProof = childProof;
     this.reasoningRequirementResult = details.reasoningRequirementResult ?? null;

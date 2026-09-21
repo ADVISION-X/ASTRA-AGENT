@@ -178,10 +178,17 @@ const inspectCredentialSchema = (context: InspectorContext, findings: InspectorF
 };
 
 const inspectLeaseReleaseIdentity = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const builder = sourceFor(context, PATHS.cloudClient)?.getFunction("buildProductionLeaseRelease")?.getText() ?? "";
   const release = sourceFor(context, PATHS.cloudClient)?.getFunction("releaseProductionLease")?.getText() ?? "";
-  const missingPayload = !release.includes("payload_hash: payloadHash");
-  const missingRequest = !release.includes("const requestId = `aiprelease_${hashCanonical({");
-  if (missingPayload || missingRequest || release.includes("idempotency_key")) findings.push(finding(LAWS.route,
+  const builderOwnsIdentity = builder.includes("payload_hash: payloadHash")
+    && builder.includes("const requestId = `aiprelease_${hashCanonical({")
+    && builder.includes("body_payload_hash: request.payload_hash")
+    && builder.includes("write_request_payload_hash: hashCanonical(request)");
+  const releaseUsesBuiltRequest = release.includes("const { request } = built")
+    && release.includes("body: JSON.stringify(request)")
+    && release.includes("return request.request_id");
+  if (!builderOwnsIdentity || !releaseUsesBuiltRequest
+    || builder.includes("idempotency_key") || release.includes("idempotency_key")) findings.push(finding(LAWS.route,
     "agent-production-runtime/lease-release-identity", PATHS.cloudClient,
     "Lease release must use one deterministic request_id without a duplicate idempotency_key."));
 };
@@ -268,8 +275,8 @@ const inspectBusinessCapacity = (context: InspectorContext, findings: InspectorF
     "agent-production-runtime/business-capacity-max", PATHS.controlDependency,
     "Runtime must expose only the protocol maximum and attest its local active plus admission-pending union without owning the Website device N."));
   const exactParentLocator = ["parent.status !== \"completed\"",
-    "parent.result.result_payload_ref !== authorized.task.parent_result_ref",
-    "parent.result.result_payload_hash !== authorized.task.parent_result_hash",
+    "parent.result.result_payload_ref !== task.parent_result_ref",
+    "parent.result.result_payload_hash !== task.parent_result_hash",
     "providerContinuationParent", "jobId: parent.task.job_id",
     "acceptedAttemptId: parent.current_attempt_id"].every((token) => executor.includes(token));
   if (!exactParentLocator) findings.push(finding(LAWS.core,
