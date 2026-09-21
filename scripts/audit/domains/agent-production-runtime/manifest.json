@@ -15,7 +15,10 @@
   "ownedPaths": [
     "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md",
     "docs/specs/agent-production-runtime/**",
+    "scripts/acceptance/agent-production-runtime-browser-failure-store.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime-browser-failure.acceptance-support.ts",
+    "scripts/acceptance/agent-production-runtime-dialog-failure.acceptance-support.ts",
+    "scripts/acceptance/agent-production-runtime-failure-readback.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime-fixtures.ts",
     "scripts/acceptance/agent-production-runtime-generated-image.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime-lease-renew-retry-support.ts",
@@ -26,6 +29,7 @@
     "scripts/acceptance/agent-production-runtime-session-rotation-support.ts",
     "scripts/acceptance/agent-production-runtime-startup-preflight.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime-startup.acceptance.ts",
+    "scripts/acceptance/agent-production-runtime-wait-new-attempt.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime.acceptance.ts",
     "scripts/acceptance/agent-production-runtime.real-proof-support.ts",
     "scripts/acceptance/agent-production-runtime.real-proof.ts",
