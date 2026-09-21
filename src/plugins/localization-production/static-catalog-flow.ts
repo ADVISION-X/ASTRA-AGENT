@@ -4,6 +4,7 @@ import { buildGptExecutionProfile } from "../../capabilities/gpt/index.js";
 import {
   hashCanonical,
   sha256,
+  type ProductionHash,
   type SharedExecutionContext,
   type WebsiteAgentTask,
 } from "../../mediator/product-plugin-contract.js";
@@ -77,8 +78,11 @@ function productionStep(
 export function buildStaticCatalogProductionPrompt(
   execution: SharedExecutionContext,
   contextBundleJson: string,
+  contextBundleHash: ProductionHash,
 ): string {
   return [execution.productSkill.text, "", STATIC_CATALOG_PRODUCTION_INSTRUCTION,
+    `本轮唯一不可变外层 context_bundle_hash：${contextBundleHash}`,
+    "输出字段 context_bundle_hash 必须原样回传上述外层值，不得使用 ContextBundle 内的 source_catalog_hash 代替。",
     "冻结 ContextBundle JSON：", contextBundleJson].join("\n");
 }
 
@@ -102,7 +106,11 @@ export const executeStaticCatalogFlow = async (
   const turn = await executeIsolatedLocalizationJsonTurn(task, execution, {
     stepId,
     sessionSuffix: stepId,
-    prompt: buildStaticCatalogProductionPrompt(execution, cohort.context_bundle_json),
+    prompt: buildStaticCatalogProductionPrompt(
+      execution,
+      cohort.context_bundle_json,
+      cohort.context_bundle_hash,
+    ),
     profile: productionProfile,
     reasoningEffort: "xhigh",
   });

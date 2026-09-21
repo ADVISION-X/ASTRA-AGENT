@@ -331,8 +331,14 @@ assert.equal(staticRun.physicalSubmitDispatches, 1);
 const productionWrite = staticRun.calls.find((call) => call.child === "write_exact_gpt_prompt"
   && call.productStepId === staticStep());
 assert(productionWrite?.child === "write_exact_gpt_prompt");
-assert.match(String(productionWrite.input.prompt), /返本溯源，古为今用/u);
-assert.match(String(productionWrite.input.prompt), new RegExp(STATIC_CATALOG_FINDING_CODES.join(".*"), "u"));
+const staticProductionPrompt = String(productionWrite.input.prompt);
+assert.match(staticProductionPrompt, /返本溯源，古为今用/u);
+assert.match(staticProductionPrompt, new RegExp(STATIC_CATALOG_FINDING_CODES.join(".*"), "u"));
+assert.ok(staticProductionPrompt.split("\n").includes(
+  `本轮唯一不可变外层 context_bundle_hash：${contextBundleHash}`,
+), "the model must receive the exact outer ContextBundle hash required by the strict parser");
+assert.match(staticProductionPrompt,
+  /不得使用 ContextBundle 内的 source_catalog_hash 代替/u);
 assert.equal(sha256(STATIC_CATALOG_PRODUCTION_INSTRUCTION),
   "sha256:8ec9793c62e88e4f937a154e7aff9e697a89912870f13aa8f1420497155ab79d");
 const parsedStaticInput = parseInput(staticInput, staticTask);
@@ -341,6 +347,11 @@ const candidate = (finding_codes: readonly string[], text: string = contextBundl
   schema_version: "target-language-candidate.v1", locale: "en-US", context_bundle_hash: contextBundleHash,
   items: [{ message_id: "fixture.hello", text, finding_codes }],
 }) as const;
+assert.throws(() => parseCandidate({
+  ...candidate([]),
+  context_bundle_hash: contextBundle.source_catalog_hash,
+}, parsedStaticContext, contextBundleHash), /LOCALIZATION_STATIC_CANDIDATE_IDENTITY_INVALID/u,
+"the visible inner source hash must never satisfy the outer ContextBundle identity");
 assert.throws(() => parseCandidate(candidate(["UNKNOWN_FINDING"]), parsedStaticContext, contextBundleHash),
   /LOCALIZATION_STATIC_CANDIDATE_FINDINGS_INVALID/u);
 assert.throws(() => parseCandidate(candidate(["SOURCE_AMBIGUOUS", "UNTRUSTED_INSTRUCTION_CONFLICT"]),

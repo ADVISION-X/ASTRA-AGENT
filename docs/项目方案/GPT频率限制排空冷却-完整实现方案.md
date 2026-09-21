@@ -1,10 +1,61 @@
 # GPT 频率限制排空冷却完整实现方案
 
-> 状态：**已授权施工，治理对齐完成后进入代码迭代**
+> 设计状态：**方案可施工（当前未授权执行）**
 >
 > 需求 Owner：AGENT GPT 生产执行链；Website 是工单授权、冷却和最终业务接纳 Owner。
 >
-> 施工授权：2026-09-15 用户已明确授权双仓法案、施工图、代码、质检系统与必要数据库操作，并指定 CI-FULL `CHANGE → READY → RELEASE`；冻结母说明书本身不修改。
+> 执行授权边界：2026-09-15 的历史施工授权解释既有系统来源；2026-09-20 本轮只授权制定和迭代方案。即使设计状态转为“方案可施工”，代码、测试、Browser、生产和发布仍等待用户新的明确执行指令；冻结母说明书不修改。
+
+## 0. 2026-09-20 DOM 识别回归迭代裁决
+
+> 本节是本方案唯一的现役识别迭代增量，覆盖下文 WO-3 中“精确识别”的施工细节，但不改变冷却、N−1、Outbox、Website receipt、cohort 或发布边界。设计状态与执行授权严格分离；2026-09-20 尚未开始代码、测试、Browser 或生产动作。
+
+### 0.1 当前候选与第一直接断裂
+
+- 需求 Owner 与唯一实现 Owner：AGENT Browser Authority；Website、Product Plugin 和 Runtime 不拥有弹窗 DOM 分类。
+- 当前绑定：`/Users/nexgen/Documents/AGENT`，branch=`main`，HEAD=`af9883f6663ab8d96a12722fc77788320125f6ad`，tracking=`origin/main@42643572967f5c9f193e54ad16036a45687d566c`，本地 ahead 11。方案文件本身是本轮获授权的 related dirty；与识别施工面无关的既有 dirty 仅为 `scripts/acceptance/product-plugins/localization-production.acceptance.ts` 和 `src/plugins/localization-production/static-catalog-flow.ts`，必须保留且不得触碰。施工前重新读取 HEAD、tracking、完整 status 与本节列出的 source hash；任一相关文件漂移则重绑后再施工。
+- 当前实现 `src/lib/browser/chrome-extension/gpt-rate-limit-dialog.ts` 的 `DETECTOR` 用 `dialog.textContent` 与 `[title, body1, body2, ack].join(" ")` 做整段等值，同时要求唯一可见 dialog 和唯一可见、启用的 button。实际页面肉眼呈现冻结文案时，DOM 元素之间仍可能没有 `textContent` 空格，或包含不渲染的隐藏文本，因此可见结构正确也会落入现役实现的 `unknown_present`，上抛 `BROWSER_GPT_DIALOG_UNRECOGNIZED`。这是本轮第一直接断裂；后续未关闭 submit 门、未进入 ack Child、未生成 cooldown receipt 都是其下游后果。施工时必须把内部 `unknown_present` 物理替换为现役法案定义的 `mismatch`；不得保留 alias 或双状态，外层错误码保持不变。
+- 现有 `scripts/acceptance/local-browser-auto-pairing.acceptance.ts` 只把 `Runtime.callFunctionOn` 返回值直接 stub 为 `absent | unknown_present | exact_present`，验证了 fail-close 与零物理输入，却没有执行真实 `DETECTOR`，所以没有覆盖“可见文字正确、`textContent` 拼接不同”的回归。
+- 当前截图和旧日志能证明用户看到的是目标弹窗以及当前链返回了 typed mismatch；由于本轮无法读取真实 DOM，不能把“缺空格”“隐藏节点”中的任一种宣告为已经单独实证的唯一 DOM 差异。方案修复的是已确定存在的错误判定边界：分类必须依据可见语义结构，不得依据包含隐藏内容和节点拼接偶然性的整段 `textContent`。
+
+### 0.2 历史连续性裁决
+
+- `a97d7a3c05e325f441f784bf2a26c01fee3c63ec`（2026-06-21）是历史线索：Pick3 当时读取 dialog `innerText` 并避免把弹窗当作 GPT 输出；它同时含 `textContent` fallback、宽正则、portal、`role=button`、最后按钮 fallback 和 500ms watcher，不能证明本轮精确算法成立。
+- `93af7fbf0010031c5333a3e694d05cde1babe735`（2026-07-26）继续提供“读取可见文字”的历史线索；`23b03c6254fbfc6cece846bdedf704c18cc032df` 及后续提交仍改造过共享 watcher，因此不得把 `93af7fb`称为退役前最后字节。
+- `d8df235c5ac4d31a1bba4734995048833ad842bc`（2026-08-15）删除 Pick3 专用文件和 Pick3 watcher，但保留并迁移共享 `web-chat-rate-limit-dialog.ts`。后续共享旧链最终也已退役；本轮不得恢复任何旧文件、500ms timer、模糊正则、`[data-radix-portal]`/整页 fallback、按钮序号 fallback、无限点击或 Product 私有恢复链。
+- 本轮只恢复仍符合现役权威的一项不变量：**分类读取渲染后的可见文字，而不是整段原始 `textContent`**。现役中央 preflight、唯一 `role=dialog`、冻结文案、唯一按钮、Target/Document identity、一次 ack、1.5秒普通访问门、2.5秒 post-click readback 和 Browser WAL 全部保留。
+
+### 0.3 唯一目标识别算法
+
+`gpt-rate-limit-dialog.ts` 仍是唯一 Owner，原位修改现有 `DETECTOR`，不新增生产文件或第二 helper：
+
+1. 只在当前精确 Target/Document 内查询 `[role='dialog']`，并用唯一 mechanical reader 的 rendered visibility（connected、layout、display、visibility、opacity、`hidden`）形成可见候选；`aria-hidden`/`inert` 但仍渲染的 dialog 仍进入可见基数，并因不满足 exact actionability 归为 `mismatch`。可见候选零个返回 `absent`，多于一个返回 `mismatch`。
+2. `aria-labelledby` 必须存在且规范化后恰好包含一个非空 ID token；该 token 在当前 `document` 中必须恰好解析一个 connected Element，该节点必须位于当前 dialog 内、可见、非 `aria-hidden`、不在 `inert` 树内。标题节点 `innerText` 规范化后必须精确等于“请求过于频繁”。生成 id 只用于本次 Document 内解引用，不持久化、不进入 wire 或 receipt。
+3. 只读取 `dialog.innerText` 的渲染语义并做 NFC、连续空白折叠和首尾清理。规范化后的可见文本必须精确等于 `标题 + 正文1 + 正文2 + 明白了` 的冻结顺序；不得使用模糊关键词，也不得因隐藏节点或 DOM 元素间缺少 `textContent` 空格而误判。
+4. dialog 内 raw `button` 逐个复用 `dom-mechanical-facts.ts` 的 `BROWSER_MECHANICAL_FACTS_READER_SOURCE` 分类；只有 `facts.visible=false` 的真正不渲染项不进入可见按钮基数。仅 `aria-hidden`/`inert` 但仍渲染的 button 继续进入可见基数和 `dialog.innerText`，并因 actionability 不成立归为 `mismatch`。可见按钮必须恰好一个，其 `innerText` 规范化后精确等于“明白了”，并以 `includePointerFacts=true` 在同一 coherent call 内证明 connected、layout、visible、非 `aria-hidden`、非 `inert`、非 disabled、非 `aria-disabled`、位于 viewport、`pointer-events!='none'` 且 center hit-test 命中自身或后代；任一不成立均为 `mismatch`。不接受“确定/OK/Got it”、`[role=button]` 或最后一个按钮 fallback，也不得复制第二份近似 actionability 实现。
+5. exact 命中仍只返回冻结 dialog hash、Target/Document/observation identity 和时间；`absent|mismatch` 只返回固定枚举与许可计数，不返回 DOM、全文或生成 id。现有外层错误码 `BROWSER_GPT_DIALOG_UNRECOGNIZED` 保持不变，避免新增跨层合同。
+6. 命中后的控制链完全复用现役 `extension-target-authority.ts → knownGptRateLimitBlockerReceipt → ProviderRateLimitControlPort → acknowledge_known_gpt_rate_limit → acknowledgeKnownGptRateLimit intent`；本轮不修改冷却、Outbox、Website 合同或业务完成分母。
+
+### 0.4 原子工单 WO-3A：可见语义分类与真实 detector 验收
+
+- 修改范围：`src/lib/browser/chrome-extension/gpt-rate-limit-dialog.ts`；现有 local-browser acceptance 入口及其 support/manifest。不得修改 Website、Runtime cooldown、Product Plugin、旧 Pick3 路径或无关 localization dirty 文件。
+- 结构约束：生产文件当前 237 行，原位替换 `DETECTOR`，不得新增生产抽象；`local-browser-auto-pairing.acceptance.ts` 当前 485 行、接近 500 行红线，因此新增的 DOM fixture 必须放入该 domain 现有 acceptance support 边界，由主 acceptance 仅调用一次。若新增 support 文件，必须纳入 `scripts/audit/domains/local-browser-session/manifest.json`，它只承载本 detector 的真实消费者验收，不形成第二测试入口或第二 verdict。
+- 验收必须执行生产 `Runtime.callFunctionOn.functionDeclaration` 本身，而不是继续伪造 detector state。复用仓库现有 Playwright 依赖创建本地、无网络 HTML fixture，至少覆盖：
+  1. 冻结标题/两段正文/按钮分别位于独立元素，`textContent` 无目标拼接空格但 `innerText` 可见顺序正确，必须 `exact_present`；
+  2. dialog 内存在隐藏文本节点但可见结构精确，必须 `exact_present`；
+  3. 标题、任一正文或按钮文字漂移，必须 `mismatch` 且零物理输入；
+  4. 零可见 dialog 为 `absent`；两个可见 dialog、两个可见 button、唯一可见 button 为 disabled/aria-disabled/aria-hidden/inert、viewport 外、`pointer-events:none` 或 center hit-test 被遮挡均为 `mismatch`；一个完整可交互 button 加 `display:none`、`visibility:hidden`、`hidden` 或经 fixture 证明不贡献 `innerText` 的无 layout button 仍必须为 `exact_present`；`opacity:0`、`aria-hidden` 或 `inert` 的额外 button 只要文字仍进入 `dialog.innerText` 就必须为 `mismatch`；
+  5. 缺失、空值、多 token、解析零/多个元素、指向 dialog 外节点、标题节点 hidden/aria-hidden/inert 或标题漂移的 `aria-labelledby` 均为 `mismatch`；
+  6. 现役 `unknown_present` 与测试 stub 必须物理退出，只保留 `absent | mismatch | exact_present`；exact 命中仍阻断原 Child 动作且 `physicalInputCount=0`，只有现役内部 ack intent 可以执行一次点击；现有 1.5秒/1秒/2.5秒时序断言继续通过。
+- 原生质检：先运行本 domain 现有 `npm run acceptance:local-browser-terminal`；随后只使用全仓唯一 `npm run quality:check -- CHANGE`。READY/RELEASE 仍服从本方案原有门槛，fixture PASS 不得冒充真实 Chrome 或 Website readback。
+- 动态停止条件：若未来真实 DOM 证明目标弹窗不是唯一可见 `role=dialog`、没有可解析的单一 `aria-labelledby` 标题，或可见文案已变，停止并记录 typed mismatch；不得临场扩大 selector、恢复模糊匹配或人工坐标点击。取得新的只读 DOM 证据后，先更新同一方案和冻结 hash，再决定是否需要法案变更。
+
+### 0.5 删除反事实与完成门
+
+- 删除旧 Pick3 watcher、模糊词表、portal/alertdialog fallback、第二 detector、第二状态机和新持久化后，本轮仍能通过中央 preflight 完成识别，因此它们全部不进入方案。
+- 若删除 `innerText` 可见语义分类，当前正确可见弹窗仍可能因 `textContent` 节点拼接或隐藏文本失败；因此该原位替换不可删除。
+- 若删除真实 detector fixture，现有 stub 仍会让同类回归静态通过；因此该 fixture 是唯一必要新增测试结构。
+- 本迭代完成只表示：冻结可见弹窗被中央 preflight 稳定判为 `exact_present`，未知结构继续 fail-close，原请求零物理输入，后续复用现役 ack/cooldown 链。未取得真实 Browser ack receipt、Website cooldown receipt、cohort admission 和持久化 readback前，不得声明 RELEASE 或事故业务闭环。
 
 ## 1. 需求、权威终点与范围
 
@@ -66,12 +117,12 @@ closure_pending
 
 ## 2. 输入证据与事实边界
 
-### 2.1 用户截图与本轮实时 DOM
+### 2.1 用户截图与 2026-09-15 历史只读 DOM
 
 - 用户截图：`/var/folders/wg/jqx8m72j5t73k7b8stzs_kpc0000gn/T/codex-clipboard-a5ebedd6-9f78-4059-aad4-44ce59cca071.png`，SHA-256 `0b8bc089d42ed7750770238959d1c557581f73d217416c99d3039d8a55339a1a`。
-- 2026-09-15 本轮只读取得同一 Chrome 会话当前 DOM：恰好一个 `role=dialog`；标题为“请求过于频繁”；正文依次为“你的请求过于频繁。为保障数据安全，我们已暂时限制你访问对话记录。”和“请稍等几分钟后再重试。”；恰好一个启用的按钮“明白了”。
-- 当前按钮没有稳定 `data-testid` 或 `aria-label`，dialog 使用生成的 Radix `aria-labelledby`。因此实现不得依赖坐标、生成 id、全页文本扫描或截图 OCR。
-- 本轮没有点击按钮、没有刷新页面、没有修改 Browser/Website 生产状态。以上只证明当前弹窗结构，不证明目标代码已经处理它。
+- 2026-09-15 曾只读取得同一 Chrome 会话当时的 DOM：恰好一个可见 `role=dialog`；标题为“请求过于频繁”；正文依次为“你的请求过于频繁。为保障数据安全，我们已暂时限制你访问对话记录。”和“请稍等几分钟后再重试。”；恰好一个启用按钮“明白了”。这不是 2026-09-20 当前 DOM readback。
+- 当时按钮没有稳定 `data-testid` 或 `aria-label`，dialog 使用生成的 Radix `aria-labelledby`。因此实现不得依赖坐标、生成 id、全页文本扫描或截图 OCR。
+- 2026-09-15 没有点击按钮、刷新页面或修改 Browser/Website 生产状态；2026-09-20 同样没有取得新的真实 DOM。历史证据只定义 fixture 和 fail-close 停止条件，不证明当前在线结构或目标代码已处理它。
 
 ### 2.2 用户提供的日志
 
@@ -101,73 +152,37 @@ closure_pending
 
 ## 3. Scoped candidate 绑定
 
-### 3.0 本次施工基线
-
-- AGENT：`/Users/nexgen/Documents/AGENT`，`main`，施工前 `HEAD=origin/main=1e423662942544ebf752cacc36762a63fe140970`，clean。
-- Website：`/Users/nexgen/Documents/xuanxue-web`，`main`，施工前 `HEAD=origin/main=0cae908828bd226dd5a09f7906067ae272399c46`，clean。
-- 两仓 `AGENTS.md` 与冻结母说明书已逐字节核对；母说明书 SHA-256 均为 `27a143ecd7016887d056255e106f49caa29d83d06245ff21ea5c0ffd62b98c3a`。
-- 主 Codex 已完成两仓全部现役法案摘要和全部现役 Blueprint 第一遍遍历，并对本事故相关法条/依赖/合同/Manifest进行第二遍正文核验；当前 dirty 仅属于本次获授权候选。
-- 下列 3.1/3.2 中的旧 HEAD/hash 是设计阶段事故勘察证据，不再是施工 candidate；本节是唯一当前施工绑定。
-
 ### 3.1 AGENT
 
 - realpath：`/Users/nexgen/Documents/AGENT`
 - branch：`main`
-- HEAD / `origin/main`：`2479b2002c808c3433aae6eabff460eea30bd4f8`；该提交已包含 `49ce4425` 的非阻断 GPT 聊天重命名功能，并把本方案较早版本纳入 Git。
-- 当前工作树不是可施工候选。本任务只修改本文件；另一个并行 writer 从 active law、GPT/Browser/V6 Blueprint、跨仓 spec、Manifest/registry 与其它方案继续扩张到 Runtime、Browser authority、Product/Plugin 合同和 localization flow 实现。该 overlay 在独立审计和最终核验期间仍持续漂移；本任务没有修改这些文件，也未改动或重写 `49ce4425`。因此只冻结 HEAD；下列 hash 全部是稳定 HEAD/base 勘察证据，不是当前 overlay 或施工绑定。所有 dirty authority/实现都明确记为“未绑定”，不追逐瞬时 hash、不把它冒充施工基线。
-- HEAD/base 关键字节：
-  - 未绑定 dirty authority：`.github/instructions/agent-rules/功能法案.md`、`docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md`、`docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md`、`docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md`、`docs/specs/agent-production-runtime/{agent-route-capability-manifest.provider,website-agent-task-result.dependency,xuanxue-ai-production-v6.dependency}.spec.json` 及受其生成影响的 Manifest/registry。审计快照一度显示 GPT `V52/V13`、Browser `V37/V40/V31`，但它们仍在 dirty overlay，不能视为最终 active baseline。
-  - 未绑定 dirty 实现面：`scripts/generate/sync-website-agent-route-policy-projection.ts`、`src/capabilities/gpt/{production-browser-lifecycle.ts,production-child-support.ts,production-child-tools.ts}`、`src/lib/browser/**` 当前列出的 authority/WAL/lease/lane/transport 文件、`src/lib/local-runtime/production/{executor.ts,route-policy.ts}`、`src/mediator/product-plugin-contract.ts` 与 `src/plugins/localization-production/flow.ts`。这只是最终核验时的已知集合；施工前仍必须重新读取完整 `git status`，新增 dirty/untracked 同样失败关闭。
-  - `docs/项目方案/N 标签工单独占轮巡模式方案.md`：`sha256:2f307fc20b362937dfc5768976d15cc9f0c480999bbba2d2a16d92a64cda05ec`
-  - `src/capabilities/gpt/children/checkpoint_gpt_text_response/handler.ts`：`sha256:1ad14c615867913cd5227c440f694025c69be7c95e3fdf9322f35e3892f3ad36`
-  - `src/capabilities/gpt/web/gpt-dom-observation.ts`：`sha256:918dc1a1fb4cb4e8c7d0f2621ad4cf59a999d32c6fc035b547a244edce425f8e`
-  - `src/capabilities/gpt/production-browser-lifecycle.ts`：`sha256:f2ff4c2f04d23a7ccf6f771b6049c14c1fac542bd661bf4b832fbf39b343ce72`
-  - `src/capabilities/gpt/contract.ts`：`sha256:3f7153448755a7bde3478af8da7ce910e65f2101f6235de7b650794d154ca1be`
-  - `src/capabilities/gpt/child-types.ts`：`sha256:2d5f223cb48ff6a3928c185951771fc43c2087a2cb1b1bdb517bbba5cd693f5a`
-  - `src/capabilities/gpt/production-child-tools.ts`：`sha256:54ad0ad90d57caa0f132772047d9c0a1b7a25dc7e735cc9d63c2eb56e29226b7`
-  - `src/capabilities/gpt/children/open_gpt_execution_profile/handler.ts`：`sha256:7634b9f92cf0bba49a906c0e3f05f475d74c83f2cb95d2489af2d760dd799343`
-  - `src/capabilities/gpt/children/open_gpt_attachment_control/observation.ts`：`sha256:48427bd11685043a2d07361c5339a29d5db827579c8e29082d17c06e4e8539ae`
-  - `src/capabilities/gpt/children/reconcile_gpt_attachment_set/observation.ts`：`sha256:5adc94b1d4a9db258a087ad3a4351b4cacafc23563bebbb87724f7e384e7be9f`
-  - `src/capabilities/gpt/children/prepare_clean_gpt_chat/handler.ts`：`sha256:db984c6ea8da8a364001685326887936389899b016fda7c7a36ad48dd7812516`
-  - `src/lib/browser/chrome-extension/dom-mutation-postcondition.ts`：`sha256:ef94b687dee83445f5f171ef56a2d91fd79f6c9d0666712bb9313f1d8613a434`
-  - `src/lib/browser/chrome-extension/dom-intent-runtime.ts`：`sha256:683c69110fd5b322b6b569d0619946cd347ec861d0ee9117154d90cad9be1926`
-  - `src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts`：`sha256:cbadfd8ad272653a15574744827f49facbd108f1a1541afbd283db040fb2b9fe`
-  - `src/lib/browser/chrome-extension/debugger-runtime.ts`：`sha256:f2ddb8843d73ecd3f53fac6a292cfab7b388a9650d05c38080334f6b48f0dc7c`
-  - `src/lib/browser/exact-target/browser-command-postcondition.ts`：`sha256:427bc6d13857992b4ec82ed4e3effaf8339735581c57d5c3434c34b2edb4daf3`
-  - `src/capabilities/gpt/children/rename_settled_gpt_conversation/handler.ts`：`sha256:9c7a611f805a07110f195f09b7134d16efd1af575a110ef7659422bb966d7d72`
-  - `src/lib/browser/chrome-extension/gpt-conversation-rename-runtime.ts`：`sha256:74fd6abaef40f8a2c85719737b76903648ad8025cb50c5bb2a7641c543014290`
-  - `src/lib/local-runtime/production/runtime-loops.ts`：`sha256:ec2638c9134ed5b1adbe90277de934880b9fa3e323fefa30ef94350ead27d248`
-  - `src/lib/local-runtime/production/runtime-startup.ts`：`sha256:0d2ffecceaeea0fee0f861324e21f8491fae3573643fa0a598dee462036e3625`
-  - `src/lib/local-runtime/production/store-outbox.ts`：`sha256:4aa0e4798484eea662e11ebc4719f31273e99a8d84a9f9ffeab5ab22515ff98f`
-  - `src/lib/local-runtime/production/store-foundation.ts`：`sha256:e56d3b12755d1958f65b3b8a41e5738341ea125f7445a764b6511f075340f427`
-  - `src/lib/local-runtime/production/executor.ts`：`sha256:795a0330276fa8ab54de71b7a83b8a7bd31fb2ea0cd959dfe7baaa5833cdb226`
+- HEAD：`af9883f6663ab8d96a12722fc77788320125f6ad`
+- tracking：`origin/main@42643572967f5c9f193e54ad16036a45687d566c`，本地 ahead 11。
+- 本轮 source candidate 只包含：`src/lib/browser/chrome-extension/gpt-rate-limit-dialog.ts`、复用的 `src/lib/browser/chrome-extension/dom-mechanical-facts.ts`、`src/lib/browser/chrome-extension/extension-target-authority.ts`、local-browser acceptance/support/manifest，以及本方案。方案文件是本轮 related dirty；其余 target source 与 active law/Blueprint 当前均未 dirty。
+- 施工面外既有 dirty：`scripts/acceptance/product-plugins/localization-production.acceptance.ts`、`src/plugins/localization-production/static-catalog-flow.ts`。两者归用户所有，不得格式化、恢复、覆盖或纳入本轮质检修复。
+- 当前 active authority 已完成并进入 HEAD，不再需要 law amendment：`.github/instructions/agent-rules/功能法案.md:738,1073,1139`、`docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md:39`、`docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md:17` 已共同冻结中央 preflight、唯一 `role=dialog`、冻结文案、完整可交互按钮、一次 ack、1.5秒普通门、2.5秒 readback、单 lane/WAL 和无旧 helper。
+- 设计时关键 hash：`gpt-rate-limit-dialog.ts=a900c39c5eca6a45ce8a9860f51bdc5d4bec6e8f5c4f0b133135cbbf672a7af9`；`dom-mechanical-facts.ts=d80fd5e7554e2d66fa702dfc3df72d9aa85a8747c23b1d9038927d68d98b26e9`；`extension-target-authority.ts=f7b1f8da7bc9e31c47e7184cf7bc6a698afa6ac1ec49dd7c066a1d5f62c5f8bb`；`local-browser-auto-pairing.acceptance.ts=6fbcc0792ba8a2ca6790dbc6c7a6d450a9da22178808c26d561ca7af7ce7cb8a`；`local-browser-session/manifest.json=5d05ddbd30cc5d1b1a55c49c570bc959520d00f59235130d17e1dff306362d81`；`LOCAL-BROWSER...BLUEPRINT.md=61d76c07a26f08f16e7104ff0980c47a086841cc1d7db4c5c1ffada1f7da8804`；`GPT-CAPABILITY...BLUEPRINT.md=d6c649ae3e20e3fc221802bf7e9064b12da7a7f2da2a904117598226b94b6f76`；`功能法案.md=ed20318549900d6b3755566bb40448ae15b42eb5bc5519cceea9cc164ed52ca0`。拟新增的 detector acceptance support 在设计时不存在，无旧 hash；其唯一准入是加入现役 manifest、由现有 acceptance 单次调用且不新增 npm/quality 入口。施工前任一既有 source/authority hash 漂移必须重算受影响段。
 
 ### 3.2 Website
 
 - realpath：`/Users/nexgen/Documents/xuanxue-web`
 - branch：`main`
-- HEAD / `origin/main`：`53648354d60a266b67bc745ce14fd26d6810f9fd`
-- 当前工作树同样不是可施工候选。另一个并行 writer 正在修改 active law、System/AI-acceptance Blueprint、三份跨仓 spec、实际共享合同实现、AI acceptance audit/test、三个 domain Manifest、generated registry 与两处 localization 实现；不能声称当前实现 clean。审计快照一度显示 AI acceptance `012-V27/013-V9`，但 dirty overlay 没有最终权威性。
-- 关键当前字节：
-  - 未绑定 dirty authority/实现/证明面：`.github/instructions/agent-rules/功能法案.md`、`docs/blueprints/SYSTEM-BLUEPRINT.md`、`docs/blueprints/domains/ai-acceptance/AI-ACCEPTANCE-BLUEPRINT.md`、`docs/specs/ai-acceptance/{agent-route-capability-manifest.dependency,website-agent-task-result.provider,xuanxue-ai-production-v6.contract}.spec.json`、`packages/ai-contracts/src/agent-task/{website-agent-route-policies.v1.json,website-agent-route-policy.ts,website-agent-task-result.ts}`、`scripts/audit/domains/ai-acceptance/check.ts`、`tests/exam/ai-production-v6-contract.test.ts`、受影响的 Manifest/registry，以及 `services/api/src/localization/{article-localization-owner.ts,localization-composition-root.ts}`。最后两处虽不是本方案施工片区，也必须作为 construction 前全工作树归属检查的一部分保留，不得覆盖。
-  - `data/migrations/commercial/0137_ai_production_dynamic_n_tab_capacity.sql`：`sha256:21ea4237fd9261fd7405d7430e3e27de2d30b1133f14321fe5752b417e07775e`
-  - `services/api/src/ai-production/job-claim-repository.ts`：`sha256:5463bc96256b23fdedf36c8f10fbce7bedd36cd6e85d8559520cecaeceadf351`
-  - `services/api/src/ai-production/device-auth.ts`：`sha256:dddbe23593eefc409d8bea4547ee8cb561390c0e7befed2c4e838233c11db50f`
-  - `services/api/src/ai-production/control-plane-status.ts`：`sha256:7a1ba83d65a94a08c04166836e65b6c13cd3bccd4c439d3222d43a43ef3e1c04`
-  - 当前 commercial migration 尾号：`0138`；施工时只在重新绑定后裁决下一 migration 名称。
+- HEAD：`15cd2e28981bfa1665dbd5def71b0f6c288dfee1`；tracking=`origin/main@941e91a842b4388c96216f39a43927c4a128e949`，本地 ahead 9。
+- Website 已实现的 cooldown/receipt/cohort 主链是本轮 detector 修正的下游消费者，本轮零修改、零 migration、零合同版本变化。当前 Website 存在包括 localization、authority/audit、package 与无关设计资产在内的 dirty overlay，因此它不属于本轮 source candidate，也不能用于新的 RELEASE 结论；本轮不得切仓追改这些文件。
+- 只有未来进入本方案原有 RELEASE 动态闭环时，才重新绑定 Website clean candidate，并复证 Browser exact fact 经现役 Runtime/Outbox 到 Website receipt/admission readback；这不阻塞 AGENT 内 WO-3A 的 CHANGE 施工与本域 acceptance。
 
-任一关键字节、HEAD、分支或相关 dirty overlay 变化，都必须重新计算受影响的设计段；不得照抄本方案中的文件清单施工。
+任一 AGENT source candidate、active authority、HEAD、分支或相关 dirty overlay 变化，都必须重新计算受影响的设计段；Website 变化只在跨仓 RELEASE/readback 阶段重新绑定，不扩大 WO-3A。
 
 ## 4. 四维映射与第一直接断裂
 
 | 维度 | 当前权威/实现 | 当前 GAP | 目标落点 |
 |---|---|---|---|
-| 法案系统 | 两仓 HEAD/base law 可读，但当前相关 active-law、spec、Manifest、registry 正由并行 writer 共同漂移，尚无可绑定的最终 major 集合 | 未授权 GPT 对该弹窗做目标内确认；未定义全账号页面访问至少 1.5 秒、Provider 冷却、自动 N−1、N=1 稳定 6 小时复原和“冷却不杀任何在途任务”；当前 candidate 也未冻结 | 等并行 writer 形成 clean commit 后重新枚举精确 active majors；再取得用户独立 law-amendment 授权，精确替换相关 major 并重建唯一 registry |
-| 施工图 | 一 job 一 system Tab、一 Browser lane、Website 独占当前 N/attempt/admission、正常回答同 effect 读回 | `N 标签`方案把限频列为 NO-GO 且明确禁止自动降 N；与本次新需求直接冲突，没有生产处置主链 | 在现役 GPT、Browser、V6 和 AI-acceptance 蓝图各自 Owner 段落补同一合同，并同步替换 N 标签方案的冲突断言，不新建竞争蓝图 |
-| 代码 | Browser action→read 已有 2.5 秒、Provider observation由唯一Browser lane每轮抽取70—90秒，但 postcondition 仍以 50ms、两个 hydration 以 25–250ms 重读；Runtime `state.draining` 会在 shutdown abort 全部 active job；Website 当前 N 只在 device row，draining 能挡 claim | 没有全账号 1.5 秒页面访问门、全路径弹窗 DOM fact、原子确认、持久通知、Provider 冷却门、自动 N−1/N0 恢复；现有 shutdown drain 不能复用 | 复用 Browser lane/现有等待 Owner 收口节拍；Browser 中央 preflight 增已知 blocker fact，checkpoint 只是消费者；现有 Outbox 增一种写；Website exact device row 同时拥有当前 N 与最小惩罚事实；claim 同事务拒绝新 grant，全局 control singleton 零修改 |
-| 质检 | 两仓各有唯一 `quality:check`，现有 GPT/Browser/Runtime/AI acceptance 与 real proof | 没有 1.5 秒全局页面访问证据、DOM、阶梯、N−1/6小时复原、并发、崩溃恢复、全部在途任务入库分母 | 扩展现有 domain inspector/acceptance/dynamic proof；不建专属第二质检入口 |
+| 法案系统 | AGENT active law 已冻结中央 preflight、`absent\|exact_present\|mismatch`、唯一精确 dialog、完整可交互按钮、一次 ack、单 lane/WAL；Website cooldown 权威保持现役 | 无法案缺口；当前实现仍输出 `unknown_present` 且 detector 未执行完整可交互分类 | 不改法案；让 `gpt-rate-limit-dialog.ts` 精确服从现役 major，并物理删除旧状态名 |
+| 施工图 | GPT 与 Local Browser Blueprint 已定义 Browser fact → Runtime gate → 内部 ack Child → 2.5秒 absent readback → 现役 cooldown/receipt 主链 | 施工图已闭合，当前 detector 对 `textContent` 偶然结构过拟合，无法稳定进入主链 | 只原位修复 Browser Owner 的分类算法；不新增 watcher、Child、handoff 或跨仓版本 |
+| 代码 | 中央 preflight、1.5秒门、WAL、ack intent、Runtime cooldown 与 Website consumer 均已存在；`gpt-rate-limit-dialog.ts` 用整段 `textContent`，acceptance 仅 stub 返回值 | 可见结构正确时可能被错判；exact_present 也尚未在 detector 阶段证明完整 pointer actionability | 复用 `BROWSER_MECHANICAL_FACTS_READER_SOURCE`，用 `innerText` 冻结顺序和精确标题/按钮完成同一 coherent classification |
+| 质检 | 唯一 `acceptance:local-browser-terminal` 与全仓 `quality:check` 已存在，并已覆盖 fail-close、零物理输入和时序 | 没有执行生产 `functionDeclaration` 的 DOM fixture，导致同类回归可静态通过 | 在现有 acceptance domain support 内执行生产 detector；不建新 npm 入口或第二 verdict |
 
-**第一直接断裂分为同一事故链的两个相邻入口：** Browser/GPT 已经允许 50ms 与 25–250ms 的 ChatGPT DOM 重观测，缺少全账号至少 1.5 秒的频率门；当 Provider 已弹出限频 dialog 后，`gpt-dom-observation.ts` 和 `checkpoint_gpt_text_response` 又只把页面解释成“回答 pending/settled”，没有 typed fact、一次确认或通知 Website claim/N Owner 的合法路径。前者使过密访问风险真实存在，后者使事故发生后页面阻塞与继续签发无法闭环。日志不能证明前者是唯一网络根因，但代码足以证明两处合同 GAP 都必须修。
+**本轮第一直接断裂只有一处：** Browser Authority 的 `gpt-rate-limit-dialog.ts::DETECTOR` 把原始 `textContent` 整段拼接等值当作可见语义结构，且没有在 exact_present 阶段复用现役完整 pointer actionability。中央 preflight、一次确认、Runtime gate、Outbox、Website cooldown 与最终 admission 主链已经存在，本轮全部复用；不得把历史已闭合的 1.5秒门、冷却或跨仓合同重新扩成施工范围。
 
 ## 5. Identity spine 与有限状态分母
 
@@ -235,7 +250,7 @@ domain_storage_readback_hash
 
 ### 6.1 全账号 1.5 秒页面访问门
 
-Browser 是该频率的唯一 Owner，复用现有单 lane、site policy 与 extension runtime，在现有 runtime 增加一个只对 `https://chatgpt.com` 生效的逻辑访问准入方法，不把节拍复制到各 Product Child，也不拖慢其它站点。定义：
+Browser 是该频率的唯一 Owner；现役单 lane、site policy 与 extension runtime 已拥有只对 `https://chatgpt.com` 生效的逻辑访问准入。本轮只把它作为不可回归边界，不修改节拍实现、不把节拍复制到各 Product Child。现役定义：
 
 ```text
 ordinary_chatgpt_page_access
@@ -254,13 +269,13 @@ ordinary_chatgpt_page_access
 - deadline 剩余不足 1.5 秒时不再读取 DOM；直接以最后一次 observation 形成 typed timeout。禁止用 `Math.min(remaining, interval)` 在 deadline 尾部补 1–1499ms 的最后一读。
 - 协议字段可以继续用整数毫秒表达，避免无价值的跨层单位迁移；质检裁决的是实际相邻页面周期 `elapsed>=1500ms`，不是变量名是否含 `Ms`。
 
-现役路径的目标裁决：
+现役路径的已闭合裁决（本轮只做回归验证，零修改）：
 
-| 当前路径 | 当前事实 | 目标 |
+| 当前路径 | 现役事实 | 本轮裁决 |
 |---|---|---|
-| `dom-mutation-postcondition.ts` 与 `dom-intent-runtime.ts` | 重试等待最多 50ms，且有两份同义 helper | 只保留 Browser Owner 下的一份 1.5 秒有界重观测规则；另一份物理删除，不留 alias |
-| execution-profile hydration | 25–250ms | 初读后每次重读至少 1.5 秒；5 秒总预算内至多 3 次后续读，尾部不足 1.5 秒不读 |
-| attachment-control hydration | 25–250ms | 同上 |
+| `dom-mutation-postcondition.ts` 与 `dom-intent-runtime.ts` | 已受 Browser Owner 的逻辑访问门约束 | 保持，不重新实现 |
+| execution-profile hydration | 已服从中央逻辑访问门 | 保持，不修改 Child |
+| attachment-control hydration | 已服从中央逻辑访问门 | 保持，不修改 Child |
 | attachment upload settlement | 2/3/5/7/9/11秒 | 保留序列；任何缩短的 deadline 尾部不触发亚 1.5 秒读 |
 | clean-chat hydration | 5/10/15/30秒 | 保留序列；尾部规则同上 |
 | Provider response checkpoint | Browser每轮一次抽取70—90秒全局间隔；真实相邻观察至少70秒 | 保留，不被1.5秒门缩短 |
@@ -268,20 +283,20 @@ ordinary_chatgpt_page_access
 
 ### 6.2 精确识别
 
-现役 `readExactAssistantTurn` 只返回 assistant 节点 DOM，无法覆盖页面级 modal，也无法覆盖 profile、附件、发送资格、submit、导航或 settled rename 等前置阶段。目标是在 Browser 对 `chatgpt.com` 的中央 site-policy preflight 中，让**每一次既有 ChatGPT 逻辑读/动作周期**先在同一个 coherent observation 内取得下列固定 dialog 机械事实；这不是新增轮询或独立 probe。对 observation intent，把 blocker fact 合并进同一次页面函数调用；对 mutation intent，在任何物理输入前同 lane 取得 preflight fact，若命中则原请求保持 `physical_input_count=0`。`readExactAssistantTurn` 继续消费同一 fact，但不再是唯一入口。即使 assistant 尚未出现，也必须先返回 dialog 的 `absent | exact_present | mismatch`，不得因业务节点缺失丢失 blocker。`KnownGptRateLimitDialogFact` 只有同时满足以下条件才成立：
+Browser 对 `chatgpt.com` 的现役中央 site-policy preflight 已让每一次既有 ChatGPT 逻辑读/动作周期先在同一个 coherent observation 内取得固定 dialog 机械事实；它不是新增轮询或独立 probe。本轮只修正该 preflight 内 detector 的可见语义与 actionability 分类。对 observation intent，blocker fact 继续合并进同一次页面函数调用；对 mutation intent，任何物理输入前仍必须先分类，命中时原请求保持 `physical_input_count=0`。即使 assistant 尚未出现，也必须先返回 `absent | exact_present | mismatch`。`KnownGptRateLimitDialogFact` 只有同时满足 0.3 及以下条件才成立：
 
 1. 当前 target/document 仍等于该 job 的 system Target 和 fresh current Document；
-2. `role=dialog` 数量精确为 1；
+2. rendered-visible `[role='dialog']` 候选恰好为 1；零候选为 `absent`，多于 1 为 `mismatch`。只有 `facts.visible=false` 的真正不渲染 dialog 不进入基数；仍渲染但 `aria-hidden`/`inert` 的 dialog 进入基数并因 exact 条件不成立返回 `mismatch`；
 3. dialog 内 heading 规范化文本精确为“请求过于频繁”；
 4. 两段正文按顺序精确相等；
-5. dialog 内按钮数量精确为 1，规范化文本精确为“明白了”，且 `disabled=false`、可见、可交互；
+5. dialog 内 raw `button` 经唯一 mechanical reader 排除 `facts.visible=false` 的真正不渲染项后，可见候选恰好为 1；该项规范化文本精确为“明白了”，并满足 0.3 的全部 pointer actionability；仍渲染的 `aria-hidden`/`inert` 项不得排除；
 6. 观察包只输出固定枚举、计数、规范化固定文案 hash、target/document identity，不输出 dialog HTML 或整页 DOM；现役 assistant 节点原始 DOM 仍只按当前专用合同交 task-owned evidence Owner。
 
-缺一、多一、Document stale 或出现未知文案，均返回 typed mismatch；不得按坐标、按钮序号、全页“明白了”或模糊关键词点击。
+零 rendered-visible dialog 只按第2项返回 `absent`。已有唯一可见 dialog 后，标题、正文或可见按钮候选缺一/多一、actionability 不完整、Document stale 或未知文案均返回 typed `mismatch`；只有真正不渲染的额外 dialog/button 不改变可见基数。不得按坐标、按钮序号、全页“明白了”或模糊关键词点击。
 
 ### 6.3 原子动作
 
-Browser 中央 preflight 是唯一 detector；所有 Production GPT Child 的既有 Browser reply 都可携带同一 typed blocker，并由 `ProductionGptChildTools` 的单一内部拦截点消费。`checkpoint_gpt_text_response` 只是 post-submit 场景的一个消费者，不再承担唯一检测责任。增加一个 Product 不可见的 `acknowledge_known_gpt_rate_limit` 内部 Child，唯一责任是把一次确认点击绑定到独立 Browser atomic identity/WAL。检测与动作不能塞入同一个 observation-only atomic step，否则 crash 后无法区分“已读未点”和“已点结果未知”。
+Browser 中央 preflight 是唯一 detector；所有 Production GPT Child 的既有 Browser reply 可携带同一 typed blocker，并由 `ProductionGptChildTools` 的现役单一内部拦截点消费。`checkpoint_gpt_text_response` 只是 post-submit consumer。现役 Product 不可见 `acknowledge_known_gpt_rate_limit` 内部 Child 继续只负责把一次确认点击绑定到独立 Browser atomic identity/WAL；本轮不新增或修改该 Child。
 
 ```text
 任一 Production GPT Child 的既有逻辑页面访问
@@ -301,9 +316,11 @@ Browser 中央 preflight 是唯一 detector；所有 Production GPT Child 的既
 
 ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab switch=0。分类完成到 click dispatch 的正常链 SLO `<=1000ms`；该 detection→ack 原子周期不人为等待 1.5 秒。中央 preflight 对普通动作的 fail-closed 不得拦住这一个内部 ack intent：ack Child 只能携带刚取得的 exact blocker identity，在同一 lane 内 revalidate 后消费它，不能成为通用 bypass。质检同时记录 p50/p95/max，任一超过 1000ms 的受控样本使该 SLO 失败；ack 之后的 readback 至少等待现役 2.5 秒。持久存储不可写时，Runtime 总门必须失败关闭并保持零点击；只有 immutable Outbox intent 已持久且 claim/submit 门可从它重建后，Browser 才允许确认该精确 dialog。
 
-旧 `web/children/rate-limit-dialog.ts` 继续不存在；新内部 Child 位于现役 `src/capabilities/gpt/children/**` 主链，只接受内部固定输入且从 `ProductGptChildCapabilityId` 排除。不得新增同义 helper、第二 ack Child、插件级特殊分支或旧路径兼容壳。
+旧 `web/children/rate-limit-dialog.ts` 继续不存在；现役内部 Child 位于 `src/capabilities/gpt/children/**` 主链，只接受内部固定输入且从 `ProductGptChildCapabilityId` 排除。不得新增同义 helper、第二 ack Child、插件级特殊分支或旧路径兼容壳。
 
-## 7. 唯一目标链与 handoff 合同
+## 7. 现役唯一主链与本轮 handoff 边界
+
+下列链已经存在，是 WO-3 detector 修正必须接回且不得改写的 consumer 主链；箭头不表示本轮新增 Runtime、Outbox、Website 合同、字段、migration 或状态。
 
 ```text
 任一 Production GPT Child 的既有 ChatGPT 逻辑访问
@@ -339,7 +356,7 @@ ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab swit
 
 ### 7.3 Runtime → Website
 
-- 扩展现有 `ProductionOutboxWrite.kind` 和 Website write receipt 枚举，唯一新增 kind：`provider_cooldown`。
+- 现役 `ProductionOutboxWrite.kind` 和 Website write receipt 已包含唯一 `provider_cooldown`；本轮只消费，不扩展枚举。
 - 路径绑定触发 job，例如 `POST /internal/ai-production/v6/jobs/{job_id}/provider-cooldown`；请求携带事故发生时的 attempt/lease/fence 和 `incident_request_id`。控制通知以当前已认证 device/session epoch 授权；attempt/lease/fence 是不可变触发证据，Website 核验该 job 在事故时确属该 device，但不得仅因通知送达时 lease 已到期而拒绝事故通知。该写只改变 Provider 控制状态，不冒充 job terminal/result/admission 写。
 - 正常链只有 Browser ack receipt 已 `CONFIRMED` 后才 external deliver。若物理点击已进入 WAL `DISPATCHED` 但结果未知，或 revalidate 后动作资格失败，本地 gate 仍关闭，并按固定幂等body先交付incident再交付`not_cleared`；Website 仍进入冷却，因为精确限频 DOM 已成立。事故 receipt 的 clearance 状态必须是 `confirmed_absent | pending_unknown | not_cleared`，只有第一种携带 absent observation hash。恢复继续使用首次`observed_at+1s`截止点；同Target/Document重验后dialog已不存在时允许零点击absent readback闭合。unknown 只能读回同一 ack postcondition，不能为满足“点击后通知”而盲点第二次。ack在唯一logical page queue中只取得当前周期之后的最高优先级，不抢占当前CDP primitive、不并发建立第二lane。
 - 第一次检测创建 `incident_request_id` 并随 Outbox durable 保存；事故正文同时绑定原 grant 的 `capability_manifest_hash`、worker instance、session-open request、attempt/lease/fence、target/document 与 dialog observation。crash 后 Runtime 只能用原 worker instance + session-open request 幂等重开同一 Website session，并从同一未决/已回执 Outbox、同一 `bound-observation` Browser target 和同一内部 ack Child 恢复；Browser WAL 已确认时只读回，不得第二次点击，也不能因新的 observation revision 创建第二事故。其它 Tab 可以产生各自 ack receipt/request，但 Website 在同一活动事故门内只减一次 N。
@@ -348,7 +365,7 @@ ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab swit
 ### 7.4 Website 冷却与 claim
 
 - 冷却、N 调整和事故排空唯一 Owner：Website AI acceptance。当前 N 与该设备的惩罚周期都只属于 exact `ai_production_devices` 行；全局 `ai_production_control_protocol_state` singleton 不参与本合同，避免多设备串扰。
-- 在 exact device row 增加当前必要的最小五项：`provider_rate_limit_level`、`provider_rate_limit_until`、`provider_rate_limit_baseline_n`、`provider_rate_limit_stable_since`、`provider_rate_limit_job_cohort_json`，与现有 `max_in_flight` 同 Owner、同锁、同事务。最新 incident/receipt hash 与 distinct-incident 证据链从现有 write receipt 读取，不在 device row 复制；cohort 保存事故时全部权威 accepted/granted-but-not-admitted job/effect/result revision 身份，按现有生产 job 安全上限做 schema 大小校验，不假定其数量一定等于或小于当前 N，也不建新表。每次 receipt 必须回读 `cohort_total/admitted/user_terminated/pending`，且后三者互斥并守恒等于 total；少一行或不守恒一律失败关闭。
+- exact device row 现役五项 `provider_rate_limit_level`、`provider_rate_limit_until`、`provider_rate_limit_baseline_n`、`provider_rate_limit_stable_since`、`provider_rate_limit_job_cohort_json` 与 `max_in_flight` 同 Owner、同锁、同事务；本轮零 schema/字段变化。最新 incident/receipt hash 与 distinct-incident 证据链继续从现有 write receipt 读取，不在 device row 复制；cohort 与守恒 readback 保持现役合同。
 - Website 先按 `incident_request_id + payload_hash` 幂等回读 write receipt；新惩罚周期第一次事件在同一事务锁定 exact device row，冻结 `baseline_n=current max_in_flight`，随后把当前 N 原子写为 `max(1,current-1)`，设置 level=1、until=server_now+5分钟、stable_since=null、冻结全部在途 job，并写 receipt。
 - 第一次事故 receipt 固定记录当前 clearance 枚举；`confirmed_absent` 才带 ack 后 dialog absent observation hash，`pending_unknown/not_cleared` 必须沿 7.3 的同事故 clearance hydrate 收敛。后续新 incident 只有在前一 cooldown 已到期且现役 write receipt 已证明前一 clearance 为 `confirmed_absent` 时，才在同一 device-row 事务执行 `level=min(level+1,6)`、`N=max(1,N-1)` 和新 cooldown；旧 `closure_pending>0` 不是活动窗口，必须把旧 cohort 与当前全部未 admission 在途 job 按 job 去重取并集。只有 `server_now<cooldown_until` 的活动窗口、前一 clearance 未确认或同 request 重放才只读回同一步，不延长、不升级。
 - claim 在读取设备容量和选择 job 前锁/读同一控制行。事故排空期间只能重授 cohort 原 job 的 `ACTIVE_ATTEMPT` / `CONSUME_CURRENT_RESULT` 零 submit 恢复；不得选择无关 job。没有可恢复 cohort job 时持久返回 `DRAINING`、空 jobs，并按事实给出 `PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE` 或 `PROVIDER_RATE_LIMIT_DRAIN_REMAINING`、step、server time 和 cooldown until。
@@ -357,7 +374,7 @@ ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab swit
 - 当当前 N=1、cooldown 已结束且 `closure_pending=0`，Website 首次在 exact device row 把 `stable_since=server_now`；此后仍按 N=1 正常工作。`server_now >= stable_since+6小时` 且期间无新精确限流事件时，在同一 device-row 事务 CAS `max_in_flight:1→baseline_n`，并清空 level/until/baseline/stable/cohort 活动态。任一新事件先清空 stable_since 并进入当前阶冷却。管理员 capacity endpoint 在惩罚周期内拒绝手工改 N，避免双 Owner；紧急止血仍使用现役 `admission_state=draining`。
 - heartbeat、renew、terminal、artifact、device job status 和 business consumer 路径不受此 claim gate 阻断。
 - 冷却到期不需要 timer/service：下一次现有 claim 以 Website server time 惰性判定。provider receipt 必须自哈希绑定 `server_now/cooldown_until`；活动窗口内每份 claim receipt 都携带固定 `PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE` reason。AGENT 只在通知送达后用现有 claim 作权威探测，并仅接受时间不早于最新 provider receipt `server_now` 且不再含该 reason 的 Website claim receipt开 submit 门；本机 `Date.now()`、休眠或 Website 不可达均不能开门。无关正常 claim 恢复条件固定为 `server_now >= cooldown_until AND closure_pending=0`。
-- `0139_ai_production_provider_rate_limit_cooldown.sql` 不自建 `BEGIN/COMMIT`；唯一 commercial migration runner 负责 advisory lock、单事务、hash registry 写入和失败回滚。迁移前只读核验 registry/列/约束与活动写事务，迁移后必须回读 exact hash、五列和约束；不得手工补 registry 或把半迁移当成功。
+- `0139_ai_production_provider_rate_limit_cooldown.sql` 是现役历史 migration，本轮不得重跑、改写或新增后继 migration；未来 RELEASE 只读回现有 registry、五列和约束。
 
 ### 7.5 业务完成 readback
 
@@ -367,50 +384,42 @@ ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab swit
 
 ## 8. 原子工单与施工顺序
 
-### WO-0：权威解冻与候选重绑
+### WO-0：当前权威与候选重绑
 
-- Owner：两仓各自 law-system；需用户另行明确批准 law amendment。
-- 修改范围：只替换本方案点名的相关 active law major、对应 Manifest/唯一 registry 和现役蓝图/跨仓 spec 引用。
-- 必须冻结：全账号普通 ChatGPT 页面逻辑访问至少 1.5 秒及唯一 ack 例外；Browser 每次既有 ChatGPT logical access 的中央 preflight 同周期检测、Product 不可见的唯一内部 ack Child；Provider 冷却 Owner；每次 N−1、N=1 稳定至少 6 小时恢复 N0；冷却不杀任何在途任务；Website admission/用户独立终止的互斥闭环终点；无第二链。同步替换 N 标签方案中“限频只 NO-GO、保持 N=3、不得自动降 N”的冲突断言。
-- 完成门：两仓 active law/Manifest/registry 分母一致；相关 dirty overlay 已由用户处理或在授权候选中精确归属。
+- Owner：AGENT Browser Authority；本工单不修改 law-system。
+- 当前事实：本方案需要的 active law、GPT Blueprint、Local Browser Blueprint 与 Runtime/Website 下游合同均已在现役 HEAD 定义，不存在等待解冻或另行 law amendment 的前置。
+- 施工动作：代码修改前重新读取 AGENT HEAD、tracking、完整 status、本节 source hash 与 active authority hash；确认只有方案文件及两处无关 localization 用户改动为 dirty，目标生产文件、acceptance 和 manifest 无未归属改动。
+- 完成门：candidate 与 3.1 精确相等；若相关 source/authority 漂移，只重算受影响段并再次独立审计，不得进入代码。Website 只在未来 RELEASE/readback 阶段重绑。
 
-### WO-1：Website 持久冷却 Owner
+### WO-1：Website 持久冷却 Owner（现役基线，本轮零修改）
 
 - Owner：Website AI acceptance。
 - 路径片区：`data/migrations/commercial/**`、`packages/ai-contracts/src/agent-task/{website-agent-route-policies.v1.json,website-agent-route-policy.ts,website-agent-task-result.ts}`、`services/api/src/ai-production/**`、`scripts/audit/domains/ai-acceptance/{check.ts,manifest.json}`、`tests/exam/ai-production-v6-contract.test.ts` 与该 domain 既有 dynamic proof。
-- 动作：在 exact `ai_production_devices` 行增加最小五个 penalty/cohort 字段；typed notice/receipt；同行同事务冻结 N0、执行 N−1；冻结有界 job cohort；原子阶梯；cohort recovery claim；N=1 `stable_since` 与 6 小时后 CAS 恢复 N0；按设备控制室 readback。全局 control singleton 零修改。惩罚周期内现有人工 capacity endpoint 拒绝并发改 N，避免双 Owner。
+- 本轮裁决：上述结构已经是 detector exact fact 的现役下游消费者，本轮不得修改、迁移或复制。未来 RELEASE 只复证既有 receipt/cohort/readback，不重做 migration 或合同。
 - 验收：并发 notice 只升一次/只减一次 N；5/10/15/20/25/30/30；活动窗口不延长；N 按事件 `3→2→1` 或 `4→3→2→1` 且不低于 1；缩容不杀超额在途；无关新 grant=0；effect subset 同身份恢复、unsent subset 冷却后继续、renew/terminal/admission 全部可用；时间已满但 cohort 非空仍不放无关新工单；ack unknown 必须以同 incident/WAL 从 `pending_unknown→confirmed_absent`，其后新 `exact_present` 才升级且只升级一次；N=1 满足稳定门前不升，连续满 6 小时后一次恢复 N0 并把下一事故重置为第一阶。
 - 回退：保留已经持久的冷却/receipt 事实，回退到匹配的 Website commit；不得删 receipt 或重新开放 claim 来伪造恢复。
 
-### WO-2：AGENT Runtime 持久门与通知
+### WO-2：AGENT Runtime 持久门与通知（现役基线，本轮零修改）
 
 - Owner：Agent production runtime。
 - 路径片区：现有 production contracts、`store-foundation/outbox`、cloud client/reconciliation、runtime loops/state、既有验收与审计。
-- 动作：Outbox 增 `provider_cooldown`；关闭 submit 门后只记录本地在途 attestation 并标出 effect/unsent 子集，Website 再依据自己的 accepted/grant/admission 状态冻结权威 cohort；本地 provider gate；click 后交付；remote receipt hydrate；restart 重建 gate；无关新 claim 与 submit 双门；只消费 Website receipt 中的当前 N/level/until，不在本地保存 N 或权威 cohort 副本。
+- 本轮裁决：现役 Outbox、provider gate、receipt hydrate 与 restart truth 全部复用；本轮只让 Browser detector 能正确产生既有 exact blocker fact，不修改 Runtime 状态、存储、队列、通知或恢复逻辑。
 - 验收：进程在 enqueue 后、click 后、HTTP dispatch 后分别 crash，重启均不产生新 claim/submit；同 request 最终只一个 Website receipt。
 - 禁止：复用 shutdown abort、增加 cooldown SQLite 表、第二 retry worker 或环境变量调步长。
 
-### WO-3：Browser/GPT 1.5 秒门、精确确认与原回答续跑
+### WO-3：Browser 可见语义精确识别
 
 - Owner：Browser 拥有 DOM 事实/WAL/物理点击；GPT checkpoint 拥有业务语义调用和同回答继续读取。
-- 路径片区：Browser `dom-intent-runtime.ts`/site-policy 与 observation packet schema、`dom-exact-assistant-turn.ts`、`gpt-dom-observation.ts`、所有 Production GPT Child 共用的 Browser reply/interceptor、现有 checkpoint handler/support、`production-child-tools.ts` 与内部 control port、唯一新增 `children/acknowledge_known_gpt_rate_limit/**`、两个 50ms postcondition/find loop、两个 25–250ms hydration loop、attachment/clean-chat deadline 尾读、现有 Browser WAL、`49ce4425` 已加入的 settled rename 路径、对应审计/acceptance/real proof。
-- 动作：在 Browser 唯一 Owner 收口全账号普通逻辑页面访问至少 1.5 秒，物理删除第二份同义 50ms helper；所有 deadline 尾部不足 1.5 秒时不再重读；保留更长门；每个既有 ChatGPT logical access 在中央 preflight 的同一 coherent cycle 增有界 dialog fact，命中时原请求零物理输入；Production tools 在唯一入口拦截而不暴露给 Product，调用 Runtime port 持久关门后再执行内部 ack Child；同 lane revalidate+click+postcondition；ack receipt 后按原阶段恢复，effect readback 不重 submit、unsent submit 等 Website 冷却/新 attempt、rename 可跳过。checkpoint 仅是 post-submit consumer。settled rename 继续保持非阻断，但其内部 DOM 重观测同样受 1.5 秒门约束。
-- 验收：profile、附件、发送资格、submit、导航、checkpoint 与 rename 任一阶段出现精确 dialog 都被同一 detector 捕获；跨 job/Tab/Product 的普通逻辑访问实际间隔全部 `>=1500ms`；extension/runtime crash 后首次普通访问也不得提前；精确 DOM 一次点击且 `observation→ack<=1000ms`；ack 后 readback `>=2500ms`；0/2 dialog、2 buttons、stale Document、文案漂移全部零点击；确认后同 job 不重 submit并最终产出原结果；聊天重命名的成功/失败均不改变收尾与 admission。
-- 禁止：复活退役 rate-limit 文件、增加 Product action、扫描整页或保存原始对话内容。
+- 路径片区：`src/lib/browser/chrome-extension/gpt-rate-limit-dialog.ts`、复用的 `dom-mechanical-facts.ts`、现有 local-browser acceptance support/manifest。`extension-target-authority.ts`、GPT Child、Runtime、Outbox 和 Website 只作为只读 consumer 证据，不修改。
+- 动作：按 0.3 原位替换 detector；复用现役 mechanical facts reader；把 `unknown_present` 物理替换为 `mismatch`；增加执行生产 functionDeclaration 的无网络 Playwright fixture。不得新增生产 helper、watcher、selector fallback、状态、接口或持久化。
+- 验收：0.4 全部分支通过；现有中央 preflight、零原动作输入、单 ack、`>=1500ms` 普通门、`observation→dispatch<=1000ms`、ack 后 `>=2500ms` fresh readback 的既有断言无回归。
+- 禁止：修改或复活退役 rate-limit 文件、增加 Product action、扫描整页、保存原始对话内容，或在 detector 与 click runtime 各维护一套 actionability。
 
-### WO-4：跨仓空窗切换
+### WO-4：发布与跨仓 readback 边界
 
-禁止兼容桥，按以下顺序：
-
-1. 用 Website 现役 control plane 进入 `admission_state=draining`，只停止新 grant；保持 AGENT 运行。
-2. 等待 Website 权威读回：active execution=0、admission pending=0、unknown Provider effect=0、现有 Outbox 未决=0。若任一非零，不得停 Runtime或部署。
-3. 停止旧 Runtime，固定两仓合同 hash 和 clean release commits。
-4. 先迁移/部署 Website 新合同与持久 Owner；在 admission 仍 draining 下验证 endpoint/receipt/claim。
-5. 再部署匹配的 AGENT；启动后完成 manifest/session handshake，仍不得 claim。
-6. 运行受控静态/fixture/crash 验收后再把 Website admission 恢复 open。
-7. 任一步失败保持 draining，回退到两仓匹配 commits；不得以旧/新双收、feature flag 或版本 fallback 穿越空窗。
-
-这一步的部署 drain 与事故后的 Provider cooldown 是两个正交事实：前者只用于无兼容桥发布，后者是本方案新增的生产事件；不得合并成一个含义不清的状态。
+- 本轮不改变跨仓合同、Website schema、Runtime通知或部署顺序，因此不存在新旧合同空窗，不执行 Website migration或部署。
+- AGENT READY 必须使用包含 WO-3 的 clean commit；RELEASE 前按现役发布程序绑定 AGENT 与 Website 各自 clean candidate。若 Website 仍有未归属 dirty，RELEASE 阻断，但不得把它吸收到本轮修复。
+- 真实自然限频事件发生时，复用现役 Runtime/Outbox/Website 主链取得 cooldown receipt、cohort admission 与 storage readback；失败保持现役 gate，不允许兼容桥、feature flag、第二 endpoint 或双写。
 
 ### WO-5：真实动态闭环
 
@@ -419,24 +428,23 @@ ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab swit
 - 事件发生前准备至少：2 个 submit 已 CONFIRMED 的 job、1 个已 claim 未 submit 的 job、1 个 queued job；不得为造样本故意提高页面频率或轰炸 Provider。
 - 必须证明：全账号普通页面访问实测无 `<1500ms`；唯一 DOM 精确点击且 detection→ack 不被节拍延误；无关新 submit/claim=0；两个已提交 job 均原 effect 入库；未 submit job 冷却中无 Provider 输入、冷却后仍是同 job 并最终入库；queued job 在旧 cohort 全部闭合前无 grant；即使 5 分钟先到、cohort 非空也不恢复无关新工单；cohort 闭合后以 N0−1 恢复；下一次自然 `absent→exact_present` 即使发生在 submit 之前，也必须成为 10 分钟且再 N−1 的 distinct incident。
 - 6 小时恢复证明不得真实占用 6 小时阻塞 CI：状态机/property 用 Website 可控 server clock 覆盖 `6h-1ms` 不恢复、`6h` 才可恢复、期间新事故清零 stable_since；RELEASE 另以真实 N=1 连续运行窗口和服务器时间戳/readback 证明至少 6 小时。若没有这段真实窗口，只能声明 CHANGE/READY，不能声明自动复原已生产证明。
-- 当前截图和本轮 live DOM 只能作为设计输入，不能替代未来候选的 RELEASE 证据。
+- 当前截图和 2026-09-15 历史只读 DOM 只能作为设计输入，不能替代未来候选的 RELEASE 证据；2026-09-20 尚无新的 live DOM readback。
 
 ## 9. 分层验收
 
 ### 9.1 静态与合同
 
 - 旧 `rate-limit-dialog.ts` 及同义兼容路径为零。
-- Product facade 不出现新的用户可调用确认动作；唯一内部 ack Child 不在 `ProductGptChildCapabilityId`，Product Flow 零修改。
-- 只有一个 cooldown Owner、一个 Outbox、一个 Browser lane、一个 claim gate、一个质量 verdict。
-- 50ms、25–250ms 及 deadline 尾部亚 1.5 秒 ChatGPT DOM 重观测路径为零；两份同义 `waitForNextBoundedObservation` 收敛为 Browser Owner 的一份规则。
-- 当前 N 与 `baseline_n/level/until/stable_since/cohort` 都只在 exact `ai_production_devices` 行；全局 control singleton、AGENT、Browser 不得缓存或复制这些 per-device 事实。
-- 双仓 schema/version/hash、枚举、required/optional、unknown-field、canonical hash 完全按新合同闭合。
+- 本轮生产差异只允许 `gpt-rate-limit-dialog.ts` 原位 detector 修正；`dom-mechanical-facts.ts` 只复用不复制，Product、GPT Child、Runtime、Outbox、Website 生产代码零差异。
+- detector 状态只剩 `absent | mismatch | exact_present`；`unknown_present` 在生产和测试中均为零。
+- Product facade 不出现新的确认动作；只有一个 detector、一个 Browser lane、一个 ack Child、一个 cooldown Owner、一个 Outbox 和一个质量 verdict。
+- active law、Blueprint、跨仓 schema/version/hash 零修改；本轮没有“新合同”。
 
 ### 9.2 DOM/Browser fixture
 
-- 精确中文 dialog：1 次物理点击，postcondition dialog=0。
+- 精确中文 dialog：detector 返回 `exact_present`；现役内部 ack 链保持最多 1 次物理点击，postcondition dialog=0。
 - profile、附件、发送资格、submit/navigation preflight、assistant checkpoint 或 rename 中任一业务节点尚未满足但精确 dialog 已出现：同一次中央 preflight/coherent observation 必须先返回 blocker fact，原请求零物理输入；Runtime durable gate 早于 ack dispatch。
-- 错字、少一段正文、按钮 disabled、两个按钮、两个 dialog、stale Document：0 次点击，typed failure。
+- 错字、少一段正文、唯一可见按钮 disabled/aria-disabled/aria-hidden/inert/viewport外/pointer-events none/hit-test遮挡、两个可见按钮、两个可见 dialog、stale Document：0 次点击，typed mismatch/failure；一个完整可交互按钮加 `display:none`、`visibility:hidden`、`hidden` 或已证明不贡献 `innerText` 的无 layout button 仍为 exact；`opacity:0`、`aria-hidden`、`inert` 额外按钮的文字若进入 `dialog.innerText` 则为 mismatch。
 - ack DISPATCHED 后 crash：WAL readback，不二次点击。
 - observation complete → click dispatch：每个受控样本 `<=1000ms`。
 - 除上述唯一 detection→ack 例外，跨 job、Tab、Product、普通读/动作、重命名以及 extension restart 的相邻逻辑页面访问全部 `>=1500ms`；deadline 剩余 1–1499ms 时 observation 增量为 0。
@@ -462,7 +470,7 @@ ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab swit
 ### 9.5 原生质量入口
 
 - AGENT：使用仓库唯一 `npm run quality:check -- <CHANGE|READY|RELEASE>` 及 active law 声明的既有 GPT/Browser/Runtime focused acceptance/real proof。
-- Website：使用仓库唯一 `pnpm run quality:check -- <CHANGE|READY|RELEASE>` 及 AI acceptance 既有 exam/dynamic proof。
+- Website：本轮 CHANGE/READY 零修改且不运行 Website 施工质检；只有未来 RELEASE/readback 绑定 clean Website candidate 后，才使用其唯一 `pnpm run quality:check -- RELEASE` 与现役 AI acceptance proof。
 - CHANGE、READY、RELEASE 分开；低层 PASS、HTTP 成功或真实点击均不得冒充 Website 入库。
 
 ## 10. 停止、恢复与失败关闭
@@ -489,10 +497,16 @@ ack 动作预算：`physical_input_count=1`，navigation=0，submit=0，Tab swit
 | exact device row 五个惩罚字段 + 当前 N 同行原子 CAS | 删除后阶梯、截止时间、N0、6小时稳定门、冻结 cohort 和 readback 无 durable Owner；放全局 singleton 会与 per-device N 作用域错位并串设备 | 复用现有 device row，不建 cooldown table，不改全局 singleton |
 | 一个 typed notice endpoint/receipt | 删除后 Website 无法原子关闭 grant并回读通知 | 归入现有 V6 job/write receipt 路由 |
 
-已删除/拒绝的结构：旧 rate-limit helper、独立 probe Child、第二 ack Child、第二 cooldown 表、第二队列、timer service、产品私有 pause、AGENT/Browser 的 N 副本、逐 job 频率门、强制 abort active jobs、重发 recovery、兼容桥、feature flag、原始 DOM/URL台账、专属 quality 命令和新的 Agent。唯一内部 ack Child 被保留，是因为中央 detector 的 observation/preflight 不能安全拥有可重放 mutation；自动 N−1 被保留，是因为它是本轮用户明确新增且由 Website 当前 N 唯一 Owner 直接消费的必要行为。
+已删除/拒绝的结构：旧 rate-limit helper、独立 probe Child、第二 ack Child、第二 cooldown 表、第二队列、timer service、产品私有 pause、AGENT/Browser 的 N 副本、逐 job 频率门、强制 abort active jobs、重发 recovery、兼容桥、feature flag、原始 DOM/URL台账、专属 quality 命令和新的 Agent。现役唯一内部 ack Child、Runtime gate、Outbox、Website cooldown/N−1 与 cohort 是 detector 的既有真实消费者，本轮只复用不修改；本轮唯一新增测试结构是由现有 acceptance 单次调用的生产 detector fixture。
 
 ## 12. 施工准入与执行 Codex 重绑定
 
-2026-09-15施工授权已取得，3.0候选绑定与双仓治理遍历已完成。执行顺序冻结为：先同候选原子替换必要active law、Blueprint、跨仓spec、Manifest与唯一registry；主Codex完成第二遍治理审计且自检不低于98%后，才进入代码/质检；子智能体只在代码重要步骤后做只读审计，不并发写代码；最后严格执行双仓原生CI-FULL `CHANGE → clean commit → READY → RELEASE`。
+本轮唯一施工顺序冻结为：
 
-Provider文案/结构若在未来真实动态证据中漂移，必须零点击失败关闭并更新DOM合同，禁止猜测。最终报告必须分别写明CHANGE、READY、RELEASE，以及Website持久readback中`closure_pending=0`、`closure_admitted`、`closure_user_terminated`的精确分母；只有user_terminated=0才可声称全部成功入库，缺少真实6小时窗口时不得宣称自动复原已获RELEASE证明。
+1. 执行 WO-0，只重绑 3.1 的 AGENT source candidate、active authority 和无关 dirty；不修改法案、Blueprint、跨仓 spec、registry、Runtime 或 Website。
+2. 执行 WO-3：原位修正 detector，复用唯一 mechanical reader，物理删除 `unknown_present`，在现有 local-browser acceptance domain 增加生产 functionDeclaration fixture并更新同一 manifest。
+3. 运行 `npm run acceptance:local-browser-terminal`，再运行仓库唯一 `npm run quality:check -- CHANGE`；失败只围绕同一 detector GAP 修复，不扩大到无关 dirty或跨仓。
+4. CHANGE 通过后重新核对 diff：生产差异仅 detector；其余只允许 acceptance support/manifest和本方案。独立子智能体只读复审零阻断后，才能形成 clean AGENT commit进入 READY。
+5. READY/RELEASE 分开。RELEASE 前绑定 clean Website candidate，但不部署 Website 新合同或 migration；只用自然发生的真实事件复证现役 receipt/cohort/admission/readback。
+
+Provider 文案、`role=dialog`、单一 `aria-labelledby` 或 actionability 结构若在未来真实证据中漂移，必须 `mismatch`、零点击失败关闭并回到同一方案，禁止扩大 selector或猜测。最终报告分别写明 CHANGE、READY、RELEASE；没有真实 Browser ack receipt 与 Website 持久 readback，不得声明事故闭环。
