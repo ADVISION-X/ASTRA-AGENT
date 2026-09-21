@@ -23,6 +23,9 @@ type AtomicGptCallInput = Readonly<{
   browserAtomicIdentity?: BrowserAtomicStepIdentity;
   assertProviderInputAllowed?: () => void;
   rateLimitAckDispatchNotAfter?: number;
+  recordConfirmedProviderEffectReadback?: NonNullable<
+    GptExecutionContext["recordConfirmedProviderEffectReadback"]
+  >;
 }>;
 
 export type ProductionGptAtomicCallResult = GptChildCapabilityResult;
@@ -61,6 +64,8 @@ const executionContext = (
     ? { assertProviderInputAllowed: input.assertProviderInputAllowed } : {}),
   ...(input.rateLimitAckDispatchNotAfter === undefined ? {}
     : { rateLimitAckDispatchNotAfter: input.rateLimitAckDispatchNotAfter }),
+  ...(input.recordConfirmedProviderEffectReadback
+    ? { recordConfirmedProviderEffectReadback: input.recordConfirmedProviderEffectReadback } : {}),
   ...(input.browserCall ? {
     waitForProviderObservation: (probeDeadlineAt, reason) =>
       input.browsers.waitForProviderObservation(

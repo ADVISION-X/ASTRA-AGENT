@@ -7,6 +7,8 @@ import {
 } from "../children/open_gpt_model_selector_v2/selectors.js";
 import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
 import { executeProductionGptAtomicCall } from "../production-atomic-call.js";
+import { failedGptChildExecutionResult } from "../ability-group.js";
+import { closeKnownProviderRateLimit } from "../production-rate-limit-closure.js";
 import type { ProductionGptBrowserCall } from "../production-browser-lifecycle.js";
 import { approvedFile, conversationUrl, promptHash } from "./gpt-conversation-fixture.js";
 import { verifyStoppedEmptyRecoveryContract } from "./gpt-stopped-empty.acceptance-support.js";
@@ -57,6 +59,73 @@ assert.deepEqual(done.proof.candidateCardinality, { raw: 1, eligible: 1 },
 assert.equal(done.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
 assert.equal(done.proof.committedMutation, "no");
 assert.equal(done.proof.browserFact, null);
+
+{
+  const mismatchHarness = createGptAcceptanceHarness("gpt-proof-dialog-mismatch");
+  const intent = mismatchHarness.buildIntent("open_gpt_model_selector_v2", { profile });
+  const evidenceRef = "browser-gpt-dialog-unrecognized|2026-09-21T00:00:00.000Z";
+  const evidenceHash = `sha256:${"d".repeat(64)}` as const;
+  const failed = await failedGptChildExecutionResult({
+    intent,
+    context: { dataDir: "/tmp/gpt-dialog-mismatch" },
+    startedAt: "2026-09-21T00:00:00.000Z",
+    error: executionFailure("failed", "BROWSER_GPT_DIALOG_UNRECOGNIZED", {
+      metadata: { mutationOutcome: "no", evidence: { evidenceRef, evidenceHash } },
+    }),
+  });
+  assert.equal(failed.status, "failed");
+  assert.equal(failed.failureCode, "BROWSER_GPT_DIALOG_UNRECOGNIZED");
+  assert.equal(failed.proof.browserFact, null,
+    "a code and generic evidence without the complete Browser fact must not forge the mismatch exception");
+  assert.equal(failed.proof.committedMutation, "no");
+}
+
+{
+  const rateLimitHarness = createGptAcceptanceHarness("gpt-proof-known-rate-limit");
+  const intent = rateLimitHarness.buildIntent("open_gpt_model_selector_v2", { profile });
+  const observedAt = "2026-09-21T00:00:00.000Z";
+  const exactCallHash = `sha256:${"1".repeat(64)}` as const;
+  const targetRefHash = `sha256:${"2".repeat(64)}` as const;
+  const documentRefHash = `sha256:${"3".repeat(64)}` as const;
+  const observationHash = `sha256:${"4".repeat(64)}` as const;
+  const failed = await failedGptChildExecutionResult({
+    intent,
+    context: { dataDir: "/tmp/gpt-known-rate-limit" },
+    startedAt: observedAt,
+    error: executionFailure("failed", "BROWSER_KNOWN_GPT_RATE_LIMIT", {
+      metadata: { mutationOutcome: "no", evidence: {
+        evidenceRef: ["browser-known-gpt-rate-limit", observedAt, exactCallHash,
+          targetRefHash, documentRefHash].join("|"),
+        evidenceHash: observationHash,
+      } },
+    }),
+  });
+  let delivered = 0;
+  let incidentInput: Readonly<Record<string, unknown>> | null = null;
+  await assert.rejects(closeKnownProviderRateLimit({
+    execution: {
+      jobId: "job:known-rate-limit", attemptId: "attempt:known-rate-limit", resultRevision: 0,
+      deviceId: "device:1", leaseVersion: 1, executionFenceHash: `sha256:${"5".repeat(64)}`,
+      capabilityManifestHash: `sha256:${"6".repeat(64)}`,
+    } as never,
+    call: { sessionKey: "session:known-rate-limit" },
+    result: failed,
+    providerRateLimitControl: {
+      assertProviderSubmitAllowed: () => undefined,
+      pendingIncidents: () => [],
+      beginIncident: async (input) => {
+        incidentInput = input;
+        return { incidentRequestId: `aipcooldown_${"7".repeat(40)}`,
+          deliver: async () => { delivered += 1; } };
+      },
+    },
+    executeAcknowledgement: async () => { throw new Error("ACK_NOT_RUN_IN_PARSE_ACCEPTANCE"); },
+  }), /ACK_NOT_RUN_IN_PARSE_ACCEPTANCE/u);
+  assert.equal(Reflect.get(incidentInput ?? {}, "targetRefHash"), targetRefHash);
+  assert.equal(Reflect.get(incidentInput ?? {}, "documentRefHash"), documentRefHash);
+  assert.equal(Reflect.get(incidentInput ?? {}, "observationHash"), observationHash);
+  assert.equal(delivered, 1, "known exact dialog must still enter and close the current incident path");
+}
 
 let open = false;
 const actHarness = createGptAcceptanceHarness("gpt-proof-act");

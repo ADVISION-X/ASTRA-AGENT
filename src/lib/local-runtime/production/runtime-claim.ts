@@ -2,6 +2,7 @@ import { join } from "node:path";
 
 import {
   executionFailure,
+  executionFailureMetadata,
   failureCode,
   typedExecutionFailure,
 } from "../../execution-failure.js";
@@ -15,12 +16,17 @@ import {
   type RuntimeSpanHandle,
 } from "../../runtime-logs/index.js";
 import {
+  buildProductionLeaseRelease,
   downloadProductionMaterials,
   terminalProductionTask,
   uploadProductionGeneratedImage,
   uploadProductionResult,
+  type BuiltProductionLeaseRelease,
 } from "./cloud-client.js";
-import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
+import {
+  readProductionDeviceJobStatus,
+  type RemoteProductionDeviceJobStatus,
+} from "./cloud-reconciliation-client.js";
 import { productionCatalogHash } from "./catalog.js";
 import { hashCanonical, type WebsiteAgentTask } from "./contracts.js";
 import type { ProductionExecutionLease } from "./contracts.js";
@@ -47,6 +53,12 @@ import {
 } from "./runtime-business-admission.js";
 import { productionRuntimeTaskPath } from "./runtime-storage-inventory.js";
 import { reconcileBusinessAdmission } from "./runtime-business-admission.js";
+import type { AttemptFailureFirstFact, SerializedTerminalFailure } from "./terminal-failure.js";
+import type { StoredProductionTask } from "./store.js";
+import { isProviderEffectReadbackProofV1 } from "../../../capabilities/gpt/index.js";
+import { typedGptExecutionFailure } from "../../../capabilities/gpt/execution-fault.js";
+import { knownGptRateLimitPreflightFactValid } from
+  "../../browser/exact-target/browser-special-mutation-receipt.js";
 
 const isResultTransportBoundary = (error: unknown): boolean => {
   const typed = typedExecutionFailure(error);
@@ -61,6 +73,64 @@ const isResultTransportBoundary = (error: unknown): boolean => {
     || (httpStatus !== null && httpStatus >= 500);
 };
 
+const authoritativeGptDialogMismatch = (error: unknown): Readonly<{
+  authorityRef: string;
+  authorityHash: `sha256:${string}`;
+}> | null => {
+  if (failureCode(error) !== "BROWSER_GPT_DIALOG_UNRECOGNIZED") return null;
+  const metadata = executionFailureMetadata(error);
+  const gptFailure = typedGptExecutionFailure(error);
+  const fact = metadata?.knownGptRateLimitPreflightFact;
+  const evidence = metadata?.evidence;
+  const proofBrowserFact = gptFailure?.proofFacts?.browserFact;
+  const canonicalEvidenceRef = fact && ["browser-gpt-dialog-unrecognized", fact.observedAt,
+    fact.exactCallIdentityHash, fact.targetRefHash, fact.documentRefHash].join("|");
+  const directAuthority = Boolean(evidence && fact
+    && evidence.evidenceHash === fact.observationHash
+    && evidence.evidenceRef === canonicalEvidenceRef);
+  const walAuthority = Boolean(evidence && proofBrowserFact
+    && evidence.evidenceRef === proofBrowserFact.evidenceRef
+    && evidence.evidenceHash === proofBrowserFact.evidenceHash);
+  if (!evidence || !knownGptRateLimitPreflightFactValid(fact) || fact.state !== "mismatch"
+    || !proofBrowserFact
+    || !proofBrowserFact.knownGptRateLimitPreflightFact
+    || hashCanonical(proofBrowserFact.knownGptRateLimitPreflightFact) !== hashCanonical(fact)
+    || (!directAuthority && !walAuthority)) return null;
+  return Object.freeze({
+    authorityRef: evidence.evidenceRef,
+    authorityHash: evidence.evidenceHash,
+  });
+};
+
+const authoritativeGptKnownRateLimit = (error: unknown): Readonly<{
+  authorityRef: string;
+  authorityHash: `sha256:${string}`;
+}> | null => {
+  if (failureCode(error) !== "BROWSER_KNOWN_GPT_RATE_LIMIT") return null;
+  const metadata = executionFailureMetadata(error);
+  const gptFailure = typedGptExecutionFailure(error);
+  const fact = metadata?.knownGptRateLimitPreflightFact;
+  const evidence = metadata?.evidence;
+  const proofBrowserFact = gptFailure?.proofFacts?.browserFact;
+  const canonicalEvidenceRef = fact && ["browser-known-gpt-rate-limit", fact.observedAt,
+    fact.exactCallIdentityHash, fact.targetRefHash, fact.documentRefHash].join("|");
+  const directAuthority = Boolean(evidence && fact
+    && evidence.evidenceHash === fact.observationHash
+    && evidence.evidenceRef === canonicalEvidenceRef);
+  const walAuthority = Boolean(evidence && proofBrowserFact
+    && evidence.evidenceRef === proofBrowserFact.evidenceRef
+    && evidence.evidenceHash === proofBrowserFact.evidenceHash);
+  if (!evidence || !knownGptRateLimitPreflightFactValid(fact) || fact.state !== "exact_present"
+    || !proofBrowserFact
+    || !proofBrowserFact.knownGptRateLimitPreflightFact
+    || hashCanonical(proofBrowserFact.knownGptRateLimitPreflightFact) !== hashCanonical(fact)
+    || (!directAuthority && !walAuthority)) return null;
+  return Object.freeze({
+    authorityRef: evidence.evidenceRef,
+    authorityHash: evidence.evidenceHash,
+  });
+};
+
 
 const releaseUnacceptedClaim = async (
   state: RuntimeState,
@@ -69,13 +139,220 @@ const releaseUnacceptedClaim = async (
   spanId: string,
   causeEventId: string,
 ): Promise<void> => {
-  await releaseLeaseWithLog(state, job, spanId,
-    {
+  const release = buildProductionLeaseRelease(state.session, job, {
       reasonCode: failureCode(error).startsWith("V6_DEADLINE_")
         ? "LEASE_SAFETY_BUDGET_EXHAUSTED" : "CAPABILITY_CHANGED_BEFORE_ACCEPT",
       attemptFailure: null,
-    },
-    causeEventId);
+    });
+  await releaseLeaseWithLog(state, job, spanId, release, causeEventId);
+};
+
+const firstFact = (
+  failureCore: SerializedTerminalFailure,
+  release: BuiltProductionLeaseRelease,
+): AttemptFailureFirstFact => Object.freeze({
+  failure_core: failureCore,
+  release_descriptor: release.descriptor,
+});
+
+const remoteFailureCore = (
+  remote: NonNullable<RemoteProductionDeviceJobStatus["attempt_failure"]>,
+): SerializedTerminalFailure => Object.freeze({
+  code: remote.code,
+  mutation_outcome: remote.mutation_outcome,
+  effect_scope: remote.effect_scope,
+  child_capability_id: remote.child_capability_id,
+  browser_outcome: remote.browser_outcome,
+  evidence_ref: remote.evidence_ref,
+  evidence_hash: remote.evidence_hash,
+  child_proof_ref: remote.child_proof_ref,
+  child_proof_hash: remote.child_proof_hash,
+  stopped_empty_proof: remote.stopped_empty_proof,
+  cause: remote.cause,
+  provider_effect_identity_hash: remote.provider_effect_identity_hash,
+  settled_result_payload_hash: remote.settled_result_payload_hash,
+});
+
+const releaseReceiptMatches = (
+  remote: RemoteProductionDeviceJobStatus,
+  failure: AttemptFailureFirstFact,
+): boolean => {
+  const candidates = remote.write_receipts.filter((receipt) =>
+    receipt.request_id === failure.release_descriptor.request_id
+    && receipt.write_kind === "lease_release");
+  if (candidates.length === 0) return false;
+  if (candidates.length !== 1) {
+    throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_RECEIPT_CONFLICT");
+  }
+  const receipt = candidates[0]!;
+  if (receipt.payload_hash !== failure.release_descriptor.write_request_payload_hash) return false;
+  const response = receipt.response_json;
+  const expectedReason = failure.failure_core.code === "RESULT_SETTLED_UNUSABLE"
+    || failure.failure_core.code === "GPT_RESPONSE_STOPPED_EMPTY"
+    ? "RESULT_REVISION_REJECTED"
+    : failure.failure_core.effect_scope === "provider_effect"
+      && ["dispatched", "confirmed"].includes(failure.failure_core.mutation_outcome)
+      ? "PROVIDER_EFFECT_READBACK_PENDING"
+      : failure.failure_core.code;
+  return JSON.stringify(Object.keys(response).sort()) === JSON.stringify([
+    "attempt_failure", "job_id", "lease_disposition", "payload_hash", "reason_code",
+    "schema_version", "task_status", "terminal_payload_hash",
+  ])
+    && response.schema_version === "xuanxue-ai-lease-release-receipt.v6"
+    && response.job_id === remote.job_id
+    && response.task_status === "failed"
+    && response.lease_disposition === "released"
+    && response.reason_code === expectedReason
+    && response.payload_hash === failure.release_descriptor.body_payload_hash
+    && response.terminal_payload_hash === null
+    && hashCanonical(response.attempt_failure) === hashCanonical(failure.failure_core);
+};
+
+const remoteFailureMatches = (
+  remote: RemoteProductionDeviceJobStatus,
+  failure: AttemptFailureFirstFact,
+): boolean => Boolean(remote.attempt_failure
+  && remote.attempt_failure.from_status === "failed"
+  && remote.attempt_failure.to_status === "failed"
+  && remote.attempt_failure.attempt_id === failure.release_descriptor.attempt_id
+  && remote.attempt_failure.lease_version === failure.release_descriptor.lease_version
+  && hashCanonical(remoteFailureCore(remote.attempt_failure)) === hashCanonical(failure.failure_core));
+
+const attemptFailureAuthorityConflict = (
+  remote: RemoteProductionDeviceJobStatus,
+  failure: AttemptFailureFirstFact,
+) => {
+  const remoteHash = hashCanonical(remoteFailureCore(remote.attempt_failure!));
+  const localHash = hashCanonical(failure.failure_core);
+  const evidenceRef = ["attempt-failure-authority-conflict", remote.job_id,
+    failure.release_descriptor.attempt_id, String(failure.release_descriptor.lease_version),
+    remote.attempt_failure!.attempt_id, String(remote.attempt_failure!.lease_version),
+    failure.release_descriptor.request_id, localHash, remoteHash].join("|");
+  return executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_AUTHORITY_CONFLICT", {
+    metadata: { mutationOutcome: "no", evidence: {
+      evidenceRef,
+      evidenceHash: hashCanonical({ evidenceRef }),
+    } },
+  });
+};
+
+const failureAllowsNewAttempt = (failure: SerializedTerminalFailure): boolean =>
+  failure.code === "RESULT_SETTLED_UNUSABLE" || failure.code === "GPT_RESPONSE_STOPPED_EMPTY"
+  || (failure.effect_scope === "target_local" && failure.browser_outcome === "REJECTED")
+  || (failure.effect_scope === "provider_effect" && failure.browser_outcome === "REJECTED"
+    && failure.mutation_outcome === "no");
+
+const assertAttemptFailureReadback = (
+  remote: RemoteProductionDeviceJobStatus,
+  failure: AttemptFailureFirstFact,
+  releaseOutcome: "response_received" | "response_unknown" | "conflict_409",
+): void => {
+  if (remote.attempt_failure && !remoteFailureMatches(remote, failure)) {
+    throw attemptFailureAuthorityConflict(remote, failure);
+  }
+  if (releaseOutcome === "conflict_409") {
+    if (!remoteFailureMatches(remote, failure)) {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_READBACK_MISMATCH");
+    }
+    throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_CONFLICT_RESPONSE_INVALID");
+  }
+  if (!releaseReceiptMatches(remote, failure)) {
+    throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_READBACK_MISMATCH");
+  }
+};
+
+const postFailureAndReadback = async (
+  state: RuntimeState,
+  job: ClaimedProductionTask,
+  release: BuiltProductionLeaseRelease,
+  failure: AttemptFailureFirstFact,
+  parentSpanId: string,
+  causeEventId: string,
+): Promise<RemoteProductionDeviceJobStatus> => {
+  let releaseError: unknown = null;
+  try {
+    await releaseLeaseWithLog(state, job, parentSpanId, release, causeEventId);
+  } catch (error) {
+    releaseError = error;
+  }
+  try {
+    const remote = await readProductionDeviceJobStatus(state.session, job.job_id);
+    const releaseOutcome = releaseError === null ? "response_received"
+      : failureCode(releaseError) === "AI_PRODUCTION_ATTEMPT_FAILURE_IDEMPOTENCY_CONFLICT"
+        ? "conflict_409" : "response_unknown";
+    assertAttemptFailureReadback(remote, failure, releaseOutcome);
+    return remote;
+  } catch (readbackError) {
+    if (releaseError) {
+      const metadata = executionFailureMetadata(readbackError);
+      throw executionFailure(
+        "failed",
+        failureCode(readbackError, "PRODUCTION_ATTEMPT_FAILURE_RECONCILIATION_FAILED"),
+        { cause: new AggregateError(
+          [releaseError, readbackError], "PRODUCTION_ATTEMPT_FAILURE_RECONCILIATION_FAILED",
+        ), ...(metadata ? { metadata } : {}) },
+      );
+    }
+    throw readbackError;
+  }
+};
+
+const applyRemoteFailureDisposition = async (
+  state: RuntimeState,
+  task: StoredProductionTask,
+  remote: RemoteProductionDeviceJobStatus,
+  failure: AttemptFailureFirstFact,
+): Promise<void> => {
+  if (remote.next_action_code === "WAIT_NEW_ATTEMPT") {
+    const permanentRevocation = remote.current_reason?.code === "PRIVACY_SUBJECT_CLOSED";
+    await state.browserAuthority.releaseJobBoundTarget(
+      task.task.job_id,
+      permanentRevocation ? "website-permanent-revocation" : "wait-new-attempt",
+      state.abort.signal,
+    );
+    state.store.releaseAttemptForWebsiteDecision(task.task.job_id, task.current_attempt_id);
+    return;
+  }
+  if (remote.next_action_code === "CONSUME_CURRENT_RESULT") {
+    if (!task.staged_result) {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_RESULT_AUTHORITY_MISSING");
+    }
+    state.store.clearAttemptFailureForCurrentResult(task.task.job_id, failure);
+    await reconcileBusinessAdmission(state, state.store.readTask(task.task.job_id)!);
+  }
+};
+
+export const reconcilePendingAttemptFailures = async (state: RuntimeState): Promise<void> => {
+  for (const task of state.store.pendingAttemptFailures()) {
+    const failure = task.attempt_failure!;
+    let remote: RemoteProductionDeviceJobStatus;
+    try {
+      remote = await readProductionDeviceJobStatus(state.session, task.task.job_id);
+    } catch (error) {
+      if (!websiteJobAbsent(error)) throw error;
+      await purgeDeletedJob(state, task.task.job_id);
+      continue;
+    }
+    if (remote.attempt_failure && !remoteFailureMatches(remote, failure)) {
+      const conflict = attemptFailureAuthorityConflict(remote, failure);
+      const evidence = executionFailureMetadata(conflict)?.evidence;
+      state.store.setCurrentReason(task.task.job_id, [conflict.code,
+        evidence?.evidenceRef, evidence?.evidenceHash].filter(Boolean).join("|"));
+      continue;
+    }
+    if (!releaseReceiptMatches(remote, failure) && !remoteFailureMatches(remote, failure)) {
+      continue;
+    }
+    if (remote.next_action_code === "WAIT_NEW_ATTEMPT"
+      || remote.next_action_code === "CONSUME_CURRENT_RESULT") {
+      await applyRemoteFailureDisposition(state, task, remote, failure);
+      continue;
+    }
+    if (remote.next_action_code !== "ACTIVE_ATTEMPT"
+      || failureAllowsNewAttempt(failure.failure_core)) {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_NEXT_ACTION_MISMATCH");
+    }
+  }
 };
 
 const persistAttemptFailure = async (
@@ -85,34 +362,23 @@ const persistAttemptFailure = async (
   parentSpanId: string,
 ): Promise<void> => {
   const failure = serializeTerminalFailureTransport(error);
-  const {
-    provider_effect_identity_hash: _effectTransportOnly,
-    settled_result_payload_hash: _resultTransportOnly,
-    ...localFailure
-  } = failure;
-  state.store.recordAttemptFailure(job.job_id, job.grant.attempt_id, localFailure);
+  const release = buildProductionLeaseRelease(state.session, job, {
+    reasonCode: "ATTEMPT_FAILED", attemptFailure: failure,
+  });
+  const localFailure = firstFact(failure, release);
+  const persisted = state.store.recordAttemptFailure(job.job_id, job.grant.attempt_id, localFailure);
   try {
-    await releaseLeaseWithLog(state, job, parentSpanId, {
-      reasonCode: "ATTEMPT_FAILED", attemptFailure: failure,
-    }, runtimeLogCauseEventId(error) ?? parentSpanId);
-  } catch (releaseError) {
-    state.lastErrorCode = failureCode(releaseError, "LEASE_RELEASE_FAILED");
-    state.lastErrorReason = safeReason(releaseError);
-    return;
-  }
-  try {
-    const remote = await readProductionDeviceJobStatus(state.session, job.job_id);
-    if (remote.next_action_code === "WAIT_NEW_ATTEMPT") {
-      const permanentRevocation = remote.current_reason?.code === "PRIVACY_SUBJECT_CLOSED";
-      await state.browserAuthority.releaseJobBoundTarget(
-        job.job_id,
-        permanentRevocation ? "website-permanent-revocation" : "wait-new-attempt",
-        state.abort.signal,
-      );
-      state.store.releaseAttemptForWebsiteDecision(job.job_id, job.grant.attempt_id);
-    }
+    const remote = await postFailureAndReadback(
+      state, job, release, localFailure, parentSpanId,
+      runtimeLogCauseEventId(error) ?? parentSpanId,
+    );
+    await applyRemoteFailureDisposition(state, persisted, remote, localFailure);
   } catch (readbackError) {
-    state.lastErrorCode = failureCode(readbackError, "ATTEMPT_RELEASE_READBACK_FAILED");
+    const code = failureCode(readbackError, "ATTEMPT_RELEASE_READBACK_FAILED");
+    const evidence = executionFailureMetadata(readbackError)?.evidence;
+    state.store.setCurrentReason(job.job_id,
+      [code, evidence?.evidenceRef, evidence?.evidenceHash].filter(Boolean).join("|"));
+    state.lastErrorCode = code;
     state.lastErrorReason = safeReason(readbackError);
   }
 };
@@ -123,11 +389,83 @@ const assertClaimIdentity = (job: ClaimedProductionTask): void => {
   }
 };
 
+const reconcileClaimAttemptFailure = async (
+  state: RuntimeState,
+  job: ClaimedProductionTask,
+  remote: RemoteProductionDeviceJobStatus,
+  parentSpanId: string,
+): Promise<Readonly<{
+  reconciledFailure: AttemptFailureFirstFact | null;
+  stopBeforeProduct: boolean;
+}>> => {
+  const local = state.store.readTask(job.job_id);
+  const failure = local?.attempt_failure ?? null;
+  if (!failure) return Object.freeze({ reconciledFailure: null, stopBeforeProduct: false });
+  const websiteGrantedNewAttempt = local!.current_reason === "WAIT_NEW_ATTEMPT"
+    && local!.current_attempt_id !== job.grant.attempt_id
+    && failure.release_descriptor.attempt_id === local!.current_attempt_id
+    && failureAllowsNewAttempt(failure.failure_core)
+    && remote.attempt_failure === null
+    && remote.next_action_code === "ACTIVE_ATTEMPT";
+  if (websiteGrantedNewAttempt) {
+    return Object.freeze({ reconciledFailure: failure, stopBeforeProduct: false });
+  }
+  if (local!.current_reason === "WAIT_NEW_ATTEMPT") {
+    throw executionFailure("failed", "PRODUCTION_WAIT_NEW_ATTEMPT_AUTHORITY_CONFLICT");
+  }
+  if (local!.current_attempt_id !== job.grant.attempt_id
+    || failure.release_descriptor.attempt_id !== job.grant.attempt_id) {
+    throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_AUTHORITY_MISSING");
+  }
+  const claimRelease = buildProductionLeaseRelease(state.session, job, {
+    reasonCode: "ATTEMPT_FAILED", attemptFailure: failure.failure_core,
+  });
+  const claimBoundFailure = firstFact(failure.failure_core, claimRelease);
+  const remoteMatchesClaim = remoteFailureMatches(remote, claimBoundFailure);
+  const remoteMatchesFirstFact = remoteFailureMatches(remote, failure);
+  if (remote.attempt_failure && !remoteMatchesClaim && !remoteMatchesFirstFact) {
+    const conflict = attemptFailureAuthorityConflict(remote, claimBoundFailure);
+    const evidence = executionFailureMetadata(conflict)?.evidence;
+    state.store.setCurrentReason(job.job_id, [conflict.code,
+      evidence?.evidenceRef, evidence?.evidenceHash].filter(Boolean).join("|"));
+    throw conflict;
+  }
+  let effectiveFailure = failure;
+  if (remoteMatchesClaim && hashCanonical(claimBoundFailure) !== hashCanonical(failure)) {
+    effectiveFailure = state.store.rebindAttemptFailureReleaseDescriptor(
+      job.job_id, failure, claimBoundFailure,
+    ).attempt_failure!;
+  }
+  const remoteHasFailure = releaseReceiptMatches(remote, failure)
+    || remoteMatchesFirstFact || remoteMatchesClaim;
+  if (!remoteHasFailure) {
+    const rebound = hashCanonical(claimBoundFailure) === hashCanonical(failure)
+      ? failure
+      : state.store.rebindAttemptFailureReleaseDescriptor(
+        job.job_id, failure, claimBoundFailure,
+      ).attempt_failure!;
+    const reconciled = await postFailureAndReadback(
+      state, job, claimRelease, rebound, parentSpanId, parentSpanId,
+    );
+    await applyRemoteFailureDisposition(state, state.store.readTask(job.job_id)!, reconciled, rebound);
+    return Object.freeze({ reconciledFailure: rebound, stopBeforeProduct: true });
+  }
+  if (remote.next_action_code !== "ACTIVE_ATTEMPT") {
+    throw executionFailure("failed", "PRODUCTION_CLAIM_AFTER_FAILURE_NEXT_ACTION_INVALID");
+  }
+  const sameAttempt = local!.current_attempt_id === job.grant.attempt_id;
+  if (sameAttempt === failureAllowsNewAttempt(failure.failure_core)) {
+    throw executionFailure("failed", "PRODUCTION_CLAIM_AFTER_FAILURE_IDENTITY_INVALID");
+  }
+  return Object.freeze({ reconciledFailure: effectiveFailure, stopBeforeProduct: false });
+};
+
 const acceptClaim = (
   state: RuntimeState,
   job: ClaimedProductionTask,
   abort: AbortController,
   jobSpan: RuntimeSpanHandle,
+  reconciledFailure: AttemptFailureFirstFact | null,
 ) => {
   const task = websiteAgentTaskFromClaim(job);
   assertClaimIdentity(job);
@@ -137,7 +475,11 @@ const acceptClaim = (
     component: "production-store", operation: "job.durable-accept", typedIdentity: jobIdentity(job),
   }));
   const record = runRuntimeSpanSync({
-    span, action: () => state.executor.accept(task, job.grant.attempt_id), failureCode: "DURABLE_ACCEPT_FAILED",
+    span,
+    action: () => reconciledFailure
+      ? state.executor.acceptAfterFailureReconciled(task, job.grant.attempt_id, reconciledFailure)
+      : state.executor.accept(task, job.grant.attempt_id),
+    failureCode: "DURABLE_ACCEPT_FAILED",
     success: (accepted) => ({
       authorityRef: `production-task:${job.job_id}`, authorityHash: hashCanonical(accepted),
     }),
@@ -174,12 +516,14 @@ const handleRuntimeBoundaryFailure = async (input: Readonly<{
 }>): Promise<void> => {
   const current = input.state.store.readTask(input.job.job_id);
   if (current?.status === "failed" && current.current_attempt_id === input.job.grant.attempt_id) {
+    const evidence = executionFailureMetadata(input.error)?.evidence;
     input.state.store.setCurrentReason(
       input.job.job_id,
-      failureCode(input.error, "PRODUCTION_RUNTIME_BOUNDARY_FAILED"),
+      [failureCode(input.error, "PRODUCTION_RUNTIME_BOUNDARY_FAILED"),
+        evidence?.evidenceRef, evidence?.evidenceHash].filter(Boolean).join("|"),
     );
   }
-  if (input.durability !== "unaccepted") return;
+  if (input.durability !== "unaccepted" || current?.attempt_failure) return;
   try {
     await releaseUnacceptedClaim(
       input.state, input.job, input.error, input.parentSpanId, input.causeEventId,
@@ -245,6 +589,35 @@ const executeAndUpload = async (input: Readonly<{
   return { execution, uploaded };
 };
 
+export const stageCompletedClaimResult = (input: Readonly<{
+  store: RuntimeState["store"];
+  job: ClaimedProductionTask;
+  execution: Awaited<ReturnType<RuntimeState["executor"]["execute"]>>;
+}>): void => {
+  const pendingFailure = input.store.readTask(input.job.job_id)?.attempt_failure ?? null;
+  if (pendingFailure) {
+    const proof = input.execution.providerEffectReadbackProof;
+    if (!isProviderEffectReadbackProofV1(proof)
+      || proof.job_id !== input.job.job_id
+      || proof.attempt_id !== input.job.grant.attempt_id
+      || proof.result_revision !== input.job.grant.result_revision
+      || proof.provider_effect_identity_hash
+        !== pendingFailure.failure_core.provider_effect_identity_hash
+      || proof.browser_authority_ref !== pendingFailure.failure_core.evidence_ref
+      || proof.browser_authority_hash !== pendingFailure.failure_core.evidence_hash
+      || pendingFailure.failure_core.effect_scope !== "provider_effect"
+      || !["dispatched", "confirmed"].includes(pendingFailure.failure_core.mutation_outcome)
+      || proof.readback_provider_input_delta !== 0) {
+      throw executionFailure("failed", "PROVIDER_EFFECT_READBACK_PROOF_INVALID");
+    }
+    input.store.stageResultAfterProviderEffectReadback(
+      input.job.job_id, input.execution.result, pendingFailure,
+    );
+    return;
+  }
+  input.store.stageResult(input.job.job_id, input.execution.result);
+};
+
 const completeClaim = async (input: Readonly<{
   state: RuntimeState;
   job: ClaimedProductionTask;
@@ -259,7 +632,7 @@ const completeClaim = async (input: Readonly<{
     typedIdentity: jobIdentity(input.job),
   }));
   const payloadHash = hashCanonical(input.execution.result);
-  input.state.store.stageResult(input.job.job_id, input.execution.result);
+  stageCompletedClaimResult({ store: input.state.store, job: input.job, execution: input.execution });
   await runRuntimeSpan({
     span, failureCode: "JOB_TERMINAL_FAILED", action: async () => {
       await terminalProductionTask(input.state.session, input.state.store, input.job, {
@@ -305,7 +678,16 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
       || remote.accepted_attempt_count !== job.grant.accepted_attempt_count) {
       throw executionFailure("failed", "PRODUCTION_ATTEMPT_AUTHORITY_CONFLICT");
     }
-    const claim = acceptClaim(state, job, abort, jobSpan);
+    const failureReconciliation = await reconcileClaimAttemptFailure(
+      state, job, remote, jobSpan.spanId,
+    );
+    if (failureReconciliation.stopBeforeProduct) {
+      requireRuntimeLogWrite(jobSpan.terminal({ outcome: "succeeded" }));
+      return;
+    }
+    const claim = acceptClaim(
+      state, job, abort, jobSpan, failureReconciliation.reconciledFailure,
+    );
     acceptance.durable = "accepted";
     state.store.markExecuting(job.job_id);
     const materials = await downloadClaimMaterials(state, job, materialDir, jobSpan);
@@ -322,9 +704,35 @@ export const executeClaim = async (state: RuntimeState, job: ClaimedProductionTa
         requireRuntimeLogWrite(jobSpan.terminal({ outcome: "succeeded" }));
         return;
       }
+      const code = failureCode(error);
+      const mismatchAuthority = authoritativeGptDialogMismatch(error);
+      const rateLimitAuthority = authoritativeGptKnownRateLimit(error);
+      const browserAuthority = mismatchAuthority ?? rateLimitAuthority;
       terminalSpanFailure(
         jobSpan, error, runtimeLogCauseEventId(error), "JOB_EXECUTION_FAILED",
+        browserAuthority ?? undefined,
+        browserAuthority ? "browser-session" : undefined,
       );
+      if (code === "BROWSER_GPT_DIALOG_UNRECOGNIZED" && mismatchAuthority) {
+        state.store.setCurrentReason(job.job_id, "BROWSER_GPT_DIALOG_UNRECOGNIZED");
+        return;
+      }
+      let cooldownGateClosed = false;
+      if (code === "BROWSER_KNOWN_GPT_RATE_LIMIT" && rateLimitAuthority) {
+        try {
+          state.providerRateLimitControl.assertProviderSubmitAllowed();
+        } catch (gateError) {
+          cooldownGateClosed = failureCode(gateError) === "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE";
+        }
+      }
+      if (code === "BROWSER_KNOWN_GPT_RATE_LIMIT" && rateLimitAuthority && cooldownGateClosed) {
+        state.store.setCurrentReason(job.job_id, [
+          "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE",
+          rateLimitAuthority.authorityRef,
+          rateLimitAuthority.authorityHash,
+        ].join("|"));
+        return;
+      }
       await persistAttemptFailure(state, job, error, jobSpan.spanId);
       return;
     }

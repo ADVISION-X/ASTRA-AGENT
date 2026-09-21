@@ -1,4 +1,5 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
+import { createHash } from "node:crypto";
 
 import { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
 import { ExtensionDebuggerRuntime } from
@@ -12,11 +13,14 @@ import { exerciseAutomaticPairing } from "./local-browser-auto-pairing-support.j
 import {
   exerciseAuthorizedContinuation, exerciseClaimBroker, exerciseTargetRotation,
 } from "./local-browser-target-lifecycle-support.js";
+import { verifyKnownGptRateLimitDetector } from
+  "./local-browser-rate-limit-detector.acceptance-support.js";
 
 type TabActivatedListener = Parameters<ExtensionChromeApi["tabs"]["onActivated"]["addListener"]>[0];
 type TabUpdatedListener = Parameters<ExtensionChromeApi["tabs"]["onUpdated"]["addListener"]>[0];
 type DebuggerDetachListener = Parameters<ExtensionChromeApi["debugger"]["onDetach"]["addListener"]>[0];
 const chromeApi = await exerciseAutomaticPairing();
+await verifyKnownGptRateLimitDetector();
 
 let createdTab: Readonly<{ active: true; url: string }> | null = null;
 let debuggerEvent: Parameters<ExtensionChromeApi["debugger"]["onEvent"]["addListener"]>[0] | null = null;
@@ -87,9 +91,41 @@ const sendTargetChromeCommand: ExtensionChromeApi["debugger"]["sendCommand"] = a
 ) => {
   debuggerMethods.push(method);
   if (method === "Runtime.callFunctionOn"
-    && String(parameters?.functionDeclaration).includes("exact_present")) {
+    && String(parameters?.functionDeclaration).includes("known-gpt-rate-limit-preflight.v2")) {
     rateLimitDetectorStartedAt.push(Date.now());
-    return { result: { value: rateLimitDetectorState } };
+    const expected = ((parameters?.arguments as readonly Readonly<{ value: Record<string, unknown> }>[])?.[0]
+      ?.value ?? {});
+    const state = rateLimitDetectorState.state;
+    const exact = state === "exact_present";
+    const mismatch = state === "mismatch";
+    const unsigned = {
+      schemaVersion: "grasseye.browser.known-gpt-rate-limit-preflight.v2",
+      state,
+      dialogHash: expected.dialogHash,
+      titleHash: expected.titleHash,
+      bodyHash: expected.bodyHash,
+      acknowledgementHash: expected.acknowledgementHash,
+      exactCallIdentityHash: expected.exactCallIdentityHash,
+      targetRefHash: expected.targetRefHash,
+      documentRefHash: expected.documentRefHash,
+      observedAt: typeof rateLimitDetectorState.observedAt === "string"
+        ? rateLimitDetectorState.observedAt : new Date().toISOString(),
+      dialogRawCount: exact || mismatch ? 1 : 0,
+      dialogEligibleCount: exact || mismatch ? 1 : 0,
+      dialogActionableCount: exact ? 1 : 0,
+      acknowledgementButtonRawCount: exact || mismatch ? 1 : 0,
+      acknowledgementButtonEligibleCount: exact || mismatch ? 1 : 0,
+      acknowledgementButtonActionableCount: exact || mismatch ? 1 : 0,
+    };
+    const hashInput = [unsigned.schemaVersion, unsigned.state, unsigned.dialogHash,
+      unsigned.titleHash, unsigned.bodyHash, unsigned.acknowledgementHash,
+      unsigned.exactCallIdentityHash, unsigned.targetRefHash, unsigned.documentRefHash,
+      unsigned.observedAt, unsigned.dialogRawCount, unsigned.dialogEligibleCount,
+      unsigned.dialogActionableCount, unsigned.acknowledgementButtonRawCount,
+      unsigned.acknowledgementButtonEligibleCount,
+      unsigned.acknowledgementButtonActionableCount];
+    return { result: { value: { ...unsigned,
+      observationHash: `sha256:${createHash("sha256").update(JSON.stringify(hashInput)).digest("hex")}` } } };
   }
   const pointerResult = sendPointerCommand(method, parameters);
   if (pointerResult) return pointerResult;
@@ -216,6 +252,19 @@ const targetAuthority = new ExtensionTargetAuthority(
   async (kind, body) => { targetFrames.push({ kind, body }); if (kind === "TARGET_REVOKE") targetFailureOrder.push(kind); },
   (failure) => { targetFailures.push(failure); targetFailureOrder.push("DIAGNOSTIC"); },
 );
+const acceptanceExactCallIdentityHash = `sha256:${"e".repeat(64)}` as const;
+const executeRegisteredCommand = (
+  command: Parameters<ExtensionTargetAuthority["executeRegisteredCommand"]>[0],
+  target: Parameters<ExtensionTargetAuthority["executeRegisteredCommand"]>[1],
+  mutationClass: Parameters<ExtensionTargetAuthority["executeRegisteredCommand"]>[2],
+) => targetAuthority.executeRegisteredCommand(
+  command, target, mutationClass, acceptanceExactCallIdentityHash,
+).then((result) => {
+  if (!result || typeof result !== "object" || Array.isArray(result)) return result;
+  const record = result as Readonly<Record<string, unknown>>;
+  return record.schemaVersion === "grasseye.browser.command-preflight.v1"
+    ? record.commandResult : result;
+});
 const jobRefHash = `sha256:${"a".repeat(64)}` as const;
 targetAuthority.start();
 const waitForCreatedTab = async (tabId: number): Promise<void> => {
@@ -249,7 +298,7 @@ assert.deepEqual(activatedTabs, [], "authenticated-media probe must not activate
 const interactionTarget = targetAuthority.resolve(firstTargetRef, firstDocumentRef);
 activeTabId = 99;
 targetTabActivated({ tabId: 99, windowId: 1 });
-await targetAuthority.executeRegisteredCommand(
+await executeRegisteredCommand(
   { kind: "wait", durationMs: 1 }, interactionTarget, "observation",
 );
 assert.deepEqual(activatedTabs, [3],
@@ -264,17 +313,49 @@ const simpleClick = {
   },
 };
 basicPointerClick = true;
-rateLimitDetectorState = { state: "unknown_present" };
+rateLimitDetectorState = { state: "mismatch" };
 const providerInputsBeforeUnknownDialog = providerInputMethods.length;
-await assert.rejects(
-  targetAuthority.executeRegisteredCommand(simpleClick, interactionTarget, "mutation"),
-  /BROWSER_GPT_DIALOG_UNRECOGNIZED/u,
-);
+const unrecognizedDialog = await executeRegisteredCommand(
+  simpleClick, interactionTarget, "mutation",
+) as Readonly<Record<string, unknown>>;
+assert.equal(unrecognizedDialog.failureCode, "BROWSER_GPT_DIALOG_UNRECOGNIZED");
+assert.equal(unrecognizedDialog.physicalInputCount, 0);
 assert.equal(providerInputMethods.length, providerInputsBeforeUnknownDialog,
   "an unknown or structurally mismatched dialog must fail closed with zero physical input");
+const targetRefHash = `sha256:${createHash("sha256").update(firstTargetRef).digest("hex")}` as const;
+const documentRefHash = `sha256:${createHash("sha256").update(firstDocumentRef).digest("hex")}` as const;
+const mismatchedAcknowledgement = await executeRegisteredCommand({
+  kind: "dom-intent",
+  intent: {
+    kind: "acknowledgeKnownGptRateLimit",
+    targetRefHash,
+    documentRefHash,
+    dispatchNotAfter: null,
+  },
+}, interactionTarget, "mutation") as Readonly<Record<string, unknown>>;
+assert.equal(mismatchedAcknowledgement.failureCode, "BROWSER_GPT_DIALOG_UNRECOGNIZED");
+assert.equal(mismatchedAcknowledgement.physicalInputCount, 0,
+  "acknowledgement mismatch must return the typed rejection without physical input");
+const mismatchedClearance = await executeRegisteredCommand({
+  kind: "dom-intent",
+  intent: { kind: "readKnownGptRateLimitClearance", targetRefHash, documentRefHash },
+}, interactionTarget, "observation") as Readonly<Record<string, unknown>>;
+assert.equal(mismatchedClearance.failureCode, "BROWSER_GPT_DIALOG_UNRECOGNIZED");
+assert.equal(mismatchedClearance.physicalInputCount, 0,
+  "clearance mismatch must return the same typed rejection without physical input");
+for (const receipt of [mismatchedAcknowledgement, mismatchedClearance]) {
+  const fact = receipt.knownGptRateLimitPreflightFact as Readonly<Record<string, unknown>>;
+  assert.equal(fact.state, "mismatch");
+  assert.equal(Object.keys(fact).length, 17,
+    "each control-intent mismatch must retain the complete mechanical fact");
+  assert.equal(fact.dialogEligibleCount, 1);
+  assert.equal(fact.dialogActionableCount, 0);
+}
+assert.equal(providerInputMethods.length, providerInputsBeforeUnknownDialog,
+  "neither control-intent mismatch may reach physical input");
 rateLimitDetectorState = { state: "exact_present", observedAt: new Date().toISOString() };
 const providerInputsBeforeKnownDialog = providerInputMethods.length;
-const knownDialogBlocked = await targetAuthority.executeRegisteredCommand(
+const knownDialogBlocked = await executeRegisteredCommand(
   simpleClick, interactionTarget, "mutation",
 ) as Readonly<Record<string, unknown>>;
 assert.equal(knownDialogBlocked.failureCode, "BROWSER_KNOWN_GPT_RATE_LIMIT");
@@ -282,7 +363,7 @@ assert.equal(knownDialogBlocked.physicalInputCount, 0);
 assert.equal(providerInputMethods.length, providerInputsBeforeKnownDialog,
   "the exact known dialog must block the original action with zero physical input");
 rateLimitDetectorState = { state: "absent" };
-const firstInteractiveReceipt = await targetAuthority.executeRegisteredCommand(
+const firstInteractiveReceipt = await executeRegisteredCommand(
   simpleClick, interactionTarget, "mutation",
 ) as Readonly<Record<string, unknown>>;
 assert.equal(firstInteractiveReceipt.postconditionVerified, true);
@@ -293,15 +374,15 @@ assert.ok(rateLimitDetectorStartedAt.slice(-3).every((startedAt, index, values) 
 assert.deepEqual(activatedTabs, [3], "the first mutation must reuse the Tab selected by the observation gate");
 activeTabId = 99;
 targetTabActivated({ tabId: 99, windowId: 1 });
-await targetAuthority.executeRegisteredCommand(simpleClick, interactionTarget, "mutation");
+await executeRegisteredCommand(simpleClick, interactionTarget, "mutation");
 assert.deepEqual(activatedTabs, [3, 3], "a mutation after the user switches away must reselect only the exact system Tab");
-await targetAuthority.executeRegisteredCommand(simpleClick, interactionTarget, "mutation");
+await executeRegisteredCommand(simpleClick, interactionTarget, "mutation");
 assert.deepEqual(activatedTabs, [3, 3], "an already-active system Tab must not call tabs.update again");
 
 const providerInputsBeforeOriginRejection = providerInputMethods.length;
 const acceptedInteractionOrigin = mainFrameUrlByTab.get(3);
 mainFrameUrlByTab.set(3, "http://127.0.0.1:4173/");
-const rejectedInteractionOrigin = await targetAuthority.executeRegisteredCommand(
+const rejectedInteractionOrigin = await executeRegisteredCommand(
   simpleClick, interactionTarget, "mutation",
 ) as Readonly<Record<string, unknown>>;
 assert.equal(rejectedInteractionOrigin.failureCode, "BROWSER_TARGET_NOT_INTERACTIVE");
@@ -314,7 +395,7 @@ mainFrameUrlByTab.set(3, acceptedInteractionOrigin!);
 const providerInputsBeforeQualificationSwitch = providerInputMethods.length;
 mainFrameUrlByTab.set(3, "https://chatgpt.com/");
 switchAwayAndBackTabReadCountdown = 2;
-const switchedAwayAndBackDuringQualification = await targetAuthority.executeRegisteredCommand(
+const switchedAwayAndBackDuringQualification = await executeRegisteredCommand(
   simpleClick, interactionTarget, "mutation",
 ) as Readonly<Record<string, unknown>>;
 assert.equal(switchedAwayAndBackDuringQualification.failureCode, "BROWSER_TARGET_NOT_INTERACTIVE");
@@ -325,7 +406,7 @@ assert.equal(providerInputMethods.length, providerInputsBeforeQualificationSwitc
 const providerInputsBeforeSwitch = providerInputMethods.length;
 mainFrameUrlByTab.set(3, "https://chatgpt.com/");
 switchBeforeProviderInput = true;
-const switchedBeforeInput = await targetAuthority.executeRegisteredCommand(
+const switchedBeforeInput = await executeRegisteredCommand(
   simpleClick, interactionTarget, "mutation",
 ) as Readonly<Record<string, unknown>>;
 assert.equal(switchedBeforeInput.failureCode, "BROWSER_TARGET_NOT_INTERACTIVE");
@@ -339,7 +420,7 @@ mainFrameUrlByTab.set(3, "https://chatgpt.com/");
 switchAfterProviderInput = true;
 const providerInputsBeforeLateSwitch = providerInputMethods.length;
 await assert.rejects(
-  targetAuthority.executeRegisteredCommand(simpleClick, interactionTarget, "mutation"),
+  executeRegisteredCommand(simpleClick, interactionTarget, "mutation"),
   /BROWSER_TARGET_NOT_INTERACTIVE/u,
   "a user tab switch after Provider input starts must preserve an uncertain dispatched result",
 );
@@ -349,13 +430,13 @@ assert.equal(providerInputMethods.length, providerInputsBeforeLateSwitch + 1,
 activeTabId = 3;
 targetTabActivated({ tabId: 3, windowId: 1 });
 discardedTabIds.add(3);
-const discardedReceipt = await targetAuthority.executeRegisteredCommand(
+const discardedReceipt = await executeRegisteredCommand(
   simpleClick, interactionTarget, "mutation",
 ) as Readonly<Record<string, unknown>>;
 discardedTabIds.delete(3);
 assert.equal(discardedReceipt.failureCode, "BROWSER_TARGET_NOT_INTERACTIVE");
 assert.equal(discardedReceipt.mutationCount, 0, "a discarded system Tab must fail before physical input");
-const selectConversation = (url: string, target = interactionTarget) => targetAuthority.executeRegisteredCommand(
+const selectConversation = (url: string, target = interactionTarget) => executeRegisteredCommand(
   { kind: "dom-intent", intent: { kind: "selectExactGptConversation", canonicalConversationUrl: url } }, target, "lifecycle") as Promise<Readonly<Record<string, unknown>>>;
 const selectionBaseline = [providerInputMethods.length, debuggerMethods.filter((method) => method === "Page.navigate").length] as const;
 mainFrameUrlByTab.set(3, "https://chatgpt.com/c/sidebar-target?messageId=message-1#tail");

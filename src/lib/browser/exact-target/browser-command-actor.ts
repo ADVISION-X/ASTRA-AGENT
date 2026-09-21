@@ -40,6 +40,11 @@ import {
 } from "./browser-outcome-resolver.js";
 import { decodeBrowserMutationReceipt } from "./browser-mutation-receipt.js";
 import { submitRecoveryPayload } from "./browser-submit-recovery-payload.js";
+import {
+  decodeKnownGptRateLimitPreflightReply,
+  knownGptRateLimitPreflightFactValid,
+  type BrowserPreflightReply,
+} from "./browser-special-mutation-receipt.js";
 
 export type BrowserGovernedCommand =
   | Readonly<{ kind: "dom-intent"; intent: BrowserDomIntent }>
@@ -202,26 +207,27 @@ const mutationIdentity = (permit: BrowserCommandPermit, command: BrowserGoverned
   };
 };
 
-const isKnownGptRateLimitBlocker = (value: unknown): boolean => Boolean(value)
-  && typeof value === "object" && !Array.isArray(value)
-  && (value as Readonly<Record<string, unknown>>).schemaVersion
-    === "grasseye.browser.known-gpt-rate-limit-blocker.v1"
-  && (value as Readonly<Record<string, unknown>>).failureCode
-    === "BROWSER_KNOWN_GPT_RATE_LIMIT";
-
-const knownGptRateLimitFailure = (value: unknown): Error => {
-  const fact = (value as Record<string, unknown>)
-    .knownGptRateLimitDialogFact as Record<string, unknown>;
-  const hashes = [fact.targetRefHash, fact.documentRefHash, fact.observationHash];
+const gptDialogPreflightFailure = (
+  value: unknown,
+  failureCode: Exclude<BrowserPreflightReply["specialFailureCode"], null>,
+): Error => {
+  const fact = (value as Record<string, unknown>).knownGptRateLimitPreflightFact;
+  if (!knownGptRateLimitPreflightFactValid(fact)) {
+    return new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  const hashes = [fact.exactCallIdentityHash, fact.targetRefHash,
+    fact.documentRefHash, fact.observationHash];
   if (typeof fact.observedAt !== "string"
     || hashes.some((hash) => typeof hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(hash))) {
     return new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
-  return executionFailure("failed", "BROWSER_KNOWN_GPT_RATE_LIMIT", { metadata: {
+  return executionFailure("failed", failureCode, { metadata: {
     mutationOutcome: "no",
+    knownGptRateLimitPreflightFact: fact,
     evidence: {
-      evidenceRef: ["browser-known-gpt-rate-limit", fact.observedAt,
-        fact.targetRefHash, fact.documentRefHash].join("|"),
+      evidenceRef: [failureCode === "BROWSER_KNOWN_GPT_RATE_LIMIT"
+        ? "browser-known-gpt-rate-limit" : "browser-gpt-dialog-unrecognized",
+      fact.observedAt, fact.exactCallIdentityHash, fact.targetRefHash, fact.documentRefHash].join("|"),
       evidenceHash: fact.observationHash as `sha256:${string}`,
     },
   } });
@@ -306,13 +312,16 @@ export class BrowserCommandActor {
       assertMatchingReply(permit, reply);
       state.authenticatedReplyHash = hashValue(reply.result);
       this.authorityGuard.assertCurrentAuthority(permit);
+      const preflight = decodeKnownGptRateLimitPreflightReply(permit, command, reply.result);
       const result = bindExactAssistantTurnReply(
-        permit, command, bindBrowserCommandObservationPacket(permit, command, reply.result),
+        permit, command, bindBrowserCommandObservationPacket(permit, command, preflight.commandResult),
       );
       const boundReply = Object.freeze({ ...reply, result });
-      if (mutation) this.completeMutation(permit, command, boundReply, commandSpan, state);
-      if (isKnownGptRateLimitBlocker(reply.result)) {
-        throw knownGptRateLimitFailure(reply.result);
+      if (mutation) this.completeMutation(
+        permit, command, boundReply, reply.result, commandSpan, state,
+      );
+      if (preflight.specialFailureCode) {
+        throw gptDialogPreflightFailure(reply.result, preflight.specialFailureCode);
       }
       completeBrowserCommandSpan({ span: commandSpan });
       state.terminalized = true;
@@ -342,12 +351,13 @@ export class BrowserCommandActor {
     permit: BrowserCommandPermit,
     command: BrowserGovernedCommand,
     reply: BrowserCommandReply,
+    authenticatedReplyResult: unknown,
     commandSpan: ReturnType<typeof startBrowserCommandSpan>,
     state: BrowserCommandExecutionState,
   ): void {
     if (!state.dispatched) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     const result = decodeBrowserMutationReceipt(command, reply.result);
-    const replyHash = hashValue(reply.result);
+    const replyHash = hashValue(authenticatedReplyResult);
     if (result.terminal === "rejected") {
       this.mutations.markRejected(
         permit.commandId,
@@ -381,7 +391,8 @@ export class BrowserCommandActor {
     });
     state.terminalized = true;
     const rejected = failureCode === "BROWSER_KNOWN_GPT_RATE_LIMIT"
-      ? knownGptRateLimitFailure(reply.result)
+      || failureCode === "BROWSER_GPT_DIALOG_UNRECOGNIZED"
+      ? gptDialogPreflightFailure(authenticatedReplyResult, failureCode)
       : new Error(failureCode, { cause: nativeCause });
     throw withRuntimeLogCause(rejected, failureEvent.eventId);
   }

@@ -1,11 +1,11 @@
 import { executionFailure } from "../../execution-failure.js";
-import type { SerializedExecutionFailure } from "./terminal-failure.js";
+import type { AttemptFailureFirstFact } from "./terminal-failure.js";
 import type { WebsiteAgentResult, WebsiteAgentTask } from "./contracts.js";
 import { WebsiteAgentResultSchema } from "./contracts.js";
 import { ProductionStoreFoundation } from "./store-foundation.js";
 import { productionTaskRowValid } from "./store-authority-validation.js";
 import {
-  isSerializedTerminalFailure,
+  isAttemptFailureFirstFact,
   json,
   now,
   storedTaskFromRow,
@@ -62,14 +62,20 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
         if (existing.status !== "failed") {
           throw executionFailure("failed", "PRODUCTION_ACCEPTED_ATTEMPT_IDENTITY_CONFLICT");
         }
+        if (existing.attempt_failure) {
+          throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_RECONCILIATION_REQUIRED");
+        }
         this.database.prepare(`update production_tasks
-          set attempt_failure_json=null,current_reason='LEASE_REGRANTED',updated_at=?
+          set current_reason='LEASE_REGRANTED',updated_at=?
           where job_id=? and status='failed' and current_attempt_id=?`).run(
           now(), task.job_id, attemptId,
         );
         return this.readTask(task.job_id)!;
       }
       if (existing.status === "failed") {
+        if (existing.attempt_failure) {
+          throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_RECONCILIATION_REQUIRED");
+        }
         this.database.transaction(() => {
           this.supersedeUnsentWritesForWebsiteAttempt(task.job_id);
           this.database.prepare(`update production_tasks
@@ -88,6 +94,44 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
       task.job_id, task.request_hash, json(task), "failed", attemptId,
       "LEASE_GRANTED", timestamp, timestamp,
     );
+    return this.readTask(task.job_id)!;
+  }
+
+  public acceptTaskAfterFailureReconciled(
+    task: WebsiteAgentTask,
+    attemptId: string,
+    expected: AttemptFailureFirstFact,
+  ): StoredProductionTask {
+    if (!isAttemptFailureFirstFact(expected)) {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_INVALID");
+    }
+    const transaction = this.database.transaction(() => {
+      const current = this.readTask(task.job_id);
+      if (!current || current.status !== "failed"
+        || current.task.request_hash !== task.request_hash
+        || json(current.attempt_failure) !== json(expected)) {
+        throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_RECONCILIATION_CONFLICT");
+      }
+      if (current.current_attempt_id === attemptId) {
+        this.database.prepare(`update production_tasks
+          set current_reason='LEASE_REGRANTED',updated_at=?
+          where job_id=? and status='failed' and current_attempt_id=? and attempt_failure_json=?`).run(
+          now(), task.job_id, attemptId, json(expected),
+        );
+        return;
+      }
+      this.supersedeUnsentWritesForWebsiteAttempt(task.job_id);
+      const changed = this.database.prepare(`update production_tasks
+        set current_attempt_id=?,current_reason='LEASE_GRANTED',staged_result_json=null,
+          attempt_failure_json=null,updated_at=?
+        where job_id=? and status='failed' and attempt_failure_json=?`).run(
+        attemptId, now(), task.job_id, json(expected),
+      );
+      if (changed.changes !== 1) {
+        throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_RECONCILIATION_CONFLICT");
+      }
+    });
+    transaction();
     return this.readTask(task.job_id)!;
   }
 
@@ -134,12 +178,62 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     }
   }
 
+  public stageResultAfterProviderEffectReadback(
+    jobId: string,
+    result: WebsiteAgentResult,
+    expected: AttemptFailureFirstFact,
+  ): void {
+    WebsiteAgentResultSchema.parse(result);
+    if (!isAttemptFailureFirstFact(expected)
+      || expected.failure_core.effect_scope !== "provider_effect"
+      || !["dispatched", "confirmed"].includes(expected.failure_core.mutation_outcome)
+      || expected.failure_core.provider_effect_identity_hash === null) {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_INVALID");
+    }
+    const transaction = this.database.transaction(() => {
+      const accepted = this.readTask(jobId);
+      assertResultIdentity(accepted, result);
+      if (json(accepted!.attempt_failure) !== json(expected)) {
+        throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_RECONCILIATION_CONFLICT");
+      }
+      if (accepted!.staged_result && json(accepted!.staged_result) !== json(result)) {
+        throw executionFailure("failed", "PRODUCTION_STAGED_RESULT_CONFLICT");
+      }
+      const changed = this.database.prepare(`update production_tasks
+        set attempt_failure_json=null,staged_result_json=?,
+          current_reason='BUSINESS_ADMISSION_PENDING',updated_at=?
+        where job_id=? and status='failed' and attempt_failure_json=?`).run(
+        json(result), now(), jobId, json(expected),
+      );
+      if (changed.changes !== 1) {
+        throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_RECONCILIATION_CONFLICT");
+      }
+    });
+    transaction();
+  }
+
+  public clearAttemptFailureForCurrentResult(
+    jobId: string,
+    expected: AttemptFailureFirstFact,
+  ): void {
+    if (!isAttemptFailureFirstFact(expected)) {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_INVALID");
+    }
+    const changed = this.database.prepare(`update production_tasks
+      set attempt_failure_json=null,current_reason='BUSINESS_ADMISSION_PENDING',updated_at=?
+      where job_id=? and status='failed' and staged_result_json is not null
+        and attempt_failure_json=?`).run(now(), jobId, json(expected));
+    if (changed.changes !== 1 || this.readTask(jobId)?.attempt_failure !== null) {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_RECONCILIATION_CONFLICT");
+    }
+  }
+
   public completeTask(jobId: string, result: WebsiteAgentResult): void {
     WebsiteAgentResultSchema.parse(result);
     assertResultIdentity(this.readTask(jobId), result);
     const changed = this.database.prepare(`update production_tasks set status='completed',current_reason=null,
       result_json=?,staged_result_json=null,updated_at=?
-      where job_id=? and status='failed'`).run(
+      where job_id=? and status='failed' and attempt_failure_json is null`).run(
       json(result), now(), jobId,
     );
     if (changed.changes === 0 && !sameCompletion(this.readTask(jobId), result)) {
@@ -172,6 +266,14 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     return rows.map(taskAuthorityFromRow);
   }
 
+  public pendingAttemptFailures(): readonly StoredProductionTask[] {
+    const rows = this.database.prepare(`select job_id,request_hash,task_json,status,result_json,
+      staged_result_json,attempt_failure_json,current_attempt_id,current_reason,updated_at from production_tasks
+      where status='failed' and attempt_failure_json is not null
+      order by updated_at,job_id`).all() as TaskRow[];
+    return rows.map(taskAuthorityFromRow);
+  }
+
   public async purgeJob(jobId: string): Promise<void> {
     if (!jobId || /[\0]/u.test(jobId)) {
       throw executionFailure("failed", "PRODUCTION_STORAGE_JOB_ID_INVALID");
@@ -196,8 +298,13 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     ).run(reason.slice(0, 1_000), now(), jobId);
   }
 
-  public recordAttemptFailure(jobId: string, attemptId: string, failure: SerializedExecutionFailure): void {
-    if (!isSerializedTerminalFailure(failure)) {
+  public recordAttemptFailure(
+    jobId: string,
+    attemptId: string,
+    failure: AttemptFailureFirstFact,
+  ): StoredProductionTask {
+    if (!isAttemptFailureFirstFact(failure)
+      || failure.release_descriptor.attempt_id !== attemptId) {
       throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_INVALID");
     }
     const existing = this.database.prepare(
@@ -215,7 +322,39 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     this.database.prepare(`update production_tasks
       set attempt_failure_json=coalesce(attempt_failure_json,?),current_reason=?,updated_at=?
       where job_id=? and status='failed' and current_attempt_id=?`).run(
-      serialized, failure.code.slice(0, 1_000), now(), jobId, attemptId,
+      serialized, failure.failure_core.code.slice(0, 1_000), now(), jobId, attemptId,
     );
+    const persisted = this.readTask(jobId);
+    if (!persisted || json(persisted.attempt_failure) !== serialized) {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_READBACK_MISMATCH");
+    }
+    return persisted;
+  }
+
+  public rebindAttemptFailureReleaseDescriptor(
+    jobId: string,
+    expected: AttemptFailureFirstFact,
+    replacement: AttemptFailureFirstFact,
+  ): StoredProductionTask {
+    if (!isAttemptFailureFirstFact(expected) || !isAttemptFailureFirstFact(replacement)
+      || json(expected.failure_core) !== json(replacement.failure_core)
+      || expected.release_descriptor.attempt_id !== replacement.release_descriptor.attempt_id
+      || replacement.release_descriptor.lease_version <= expected.release_descriptor.lease_version) {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_REBIND_INVALID");
+    }
+    const changed = this.database.prepare(`update production_tasks
+      set attempt_failure_json=?,current_reason=?,updated_at=?
+      where job_id=? and status='failed' and current_attempt_id=? and attempt_failure_json=?`).run(
+      json(replacement), replacement.failure_core.code.slice(0, 1_000), now(), jobId,
+      replacement.release_descriptor.attempt_id, json(expected),
+    );
+    if (changed.changes !== 1) {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_REBIND_CONFLICT");
+    }
+    const persisted = this.readTask(jobId);
+    if (!persisted || json(persisted.attempt_failure) !== json(replacement)) {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_READBACK_MISMATCH");
+    }
+    return persisted;
   }
 }

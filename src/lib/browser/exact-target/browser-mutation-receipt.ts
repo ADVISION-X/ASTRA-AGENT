@@ -5,6 +5,7 @@ import {
 } from "./browser-interaction-native-cause.js";
 import {
   knownRateLimitBlockerReceiptValid,
+  unrecognizedGptDialogReceiptValid,
 } from "./browser-special-mutation-receipt.js";
 import { observationPostconditionEvidenceValid } from "./browser-observation-receipt.js";
 
@@ -323,6 +324,11 @@ const decodeZeroMutationReceipt = (
   if (knownRateLimitBlockerReceiptValid(value)) {
     return Object.freeze({ terminal: "rejected", mutationOutcome: "no",
       failureCode: "BROWSER_KNOWN_GPT_RATE_LIMIT", nativeCauseCode: null,
+      physicalInputCount: 0 });
+  }
+  if (unrecognizedGptDialogReceiptValid(value)) {
+    return Object.freeze({ terminal: "rejected", mutationOutcome: "no",
+      failureCode: "BROWSER_GPT_DIALOG_UNRECOGNIZED", nativeCauseCode: null,
       physicalInputCount: 0 });
   }
   if (zeroActionReceiptValid(command, value)) {

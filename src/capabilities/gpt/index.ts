@@ -1,7 +1,8 @@
 export {
   createGptAbilityGroup,
-  createProductionGptChildTools,
 } from "./ability-group.js";
+export { createProductionGptChildTools } from "./production-child-tools.js";
+export { isProviderEffectReadbackProofV1 } from "./production-child-support.js";
 export {
   type GptAbilityGroup,
   type GptApprovedFile,
@@ -16,6 +17,9 @@ export type {
   ProductGptChildResult,
   ProductGptTools,
 } from "./product-api.js";
+export type {
+  ProviderEffectReadbackProofV1,
+} from "./production-child-support.js";
 export type {
   ProviderRateLimitClearance,
   ProviderRateLimitControlPort,

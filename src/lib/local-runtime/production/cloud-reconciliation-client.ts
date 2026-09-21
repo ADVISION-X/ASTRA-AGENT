@@ -8,6 +8,8 @@ import {
 } from "./contracts.js";
 import { ProductionWorkerSession } from "./worker-session.js";
 import { executionFailure } from "../../execution-failure.js";
+import { isSerializedTerminalFailureTransport } from "./store-foundation.js";
+import type { SerializedTerminalFailure } from "./terminal-failure.js";
 
 type RemoteProductionWriteKind =
   | "checkpoint" | "artifact" | "terminal" | "cancel" | "lease_release" | "renew"
@@ -22,6 +24,13 @@ export type RemoteProductionWriteReceipt = Readonly<{
   write_kind: RemoteProductionWriteKind;
   payload_hash: ProductionHash;
   response_json: Record<string, unknown>;
+}>;
+
+export type RemoteAttemptFailure = SerializedTerminalFailure & Readonly<{
+  from_status: string | null;
+  to_status: string | null;
+  attempt_id: string;
+  lease_version: number;
 }>;
 
 type BaseBusinessAdmissionReceipt = Readonly<{
@@ -47,6 +56,7 @@ export type RemoteProductionDeviceJobStatus = Readonly<{
   job_id: string;
   status: string;
   current_reason: Readonly<Record<string, unknown>> | null;
+  attempt_failure: RemoteAttemptFailure | null;
   control_intent: ControlIntent;
   next_action_code: "ACTIVE_ATTEMPT" | "WAIT_NEW_ATTEMPT" | "CONSUME_CURRENT_RESULT";
   terminal_status: "completed" | null;
@@ -56,6 +66,35 @@ export type RemoteProductionDeviceJobStatus = Readonly<{
   accepted_attempt_count: number;
   write_receipts: readonly RemoteProductionWriteReceipt[];
 }>;
+
+const failureCoreKeys = [
+  "browser_outcome", "cause", "child_capability_id", "child_proof_hash", "child_proof_ref", "code",
+  "effect_scope", "evidence_hash", "evidence_ref", "mutation_outcome", "provider_effect_identity_hash",
+  "settled_result_payload_hash", "stopped_empty_proof",
+] as const;
+const parseRemoteAttemptFailure = (value: unknown): RemoteAttemptFailure | null => {
+  if (value === null) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw executionFailure("failed", "V6_DEVICE_ATTEMPT_FAILURE_INVALID");
+  }
+  const row = value as Record<string, unknown>;
+  const expectedKeys = [...failureCoreKeys, "attempt_id", "from_status", "lease_version", "to_status"].sort();
+  const core = Object.freeze(Object.fromEntries(failureCoreKeys.map((key) => [key, row[key]])));
+  if (JSON.stringify(Object.keys(row).sort()) !== JSON.stringify(expectedKeys)
+    || !isSerializedTerminalFailureTransport(core)
+    || typeof row.attempt_id !== "string" || row.attempt_id.length === 0
+    || !Number.isSafeInteger(row.lease_version) || Number(row.lease_version) < 1
+    || ![row.from_status, row.to_status].every((status) => status === null || typeof status === "string")) {
+    throw executionFailure("failed", "V6_DEVICE_ATTEMPT_FAILURE_INVALID");
+  }
+  return Object.freeze({
+    ...(core as SerializedTerminalFailure),
+    from_status: row.from_status as string | null,
+    to_status: row.to_status as string | null,
+    attempt_id: row.attempt_id,
+    lease_version: row.lease_version,
+  }) as RemoteAttemptFailure;
+};
 
 const admissionBaseKeys = [
   "schema_version", "job_id", "result_payload_hash", "consumer_ref",
@@ -149,7 +188,10 @@ const parseRemoteWriteReceipt = (receipt: unknown): RemoteProductionWriteReceipt
     throw executionFailure("failed", "V6_DEVICE_JOB_STATUS_INVALID");
   }
   const item = receipt as Record<string, unknown>;
-  if (typeof item.request_id !== "string" || !item.request_id
+  if (JSON.stringify(Object.keys(item).sort()) !== JSON.stringify([
+    "payload_hash", "request_id", "response_json", "write_kind",
+  ])
+    || typeof item.request_id !== "string" || !item.request_id
     || typeof item.write_kind !== "string"
     || !remoteProductionWriteKinds.has(item.write_kind as RemoteProductionWriteKind)
     || typeof item.payload_hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(item.payload_hash)
@@ -248,10 +290,12 @@ export async function readProductionDeviceJobStatus(
   const admission = parseBusinessAdmissionReceipt(jobId, row.business_admission_receipt);
   assertBusinessAdmissionAuthority(row, admission, terminalStatus);
   const { controlIntent, currentReason } = parseDeviceControlAuthority(row, jobId);
+  const attemptFailure = parseRemoteAttemptFailure(row.attempt_failure);
   return Object.freeze({
     job_id: jobId,
     status: row.status as string,
     current_reason: currentReason ? Object.freeze({ ...currentReason }) : null,
+    attempt_failure: attemptFailure,
     control_intent: controlIntent,
     next_action_code: row.next_action_code as RemoteProductionDeviceJobStatus["next_action_code"],
     terminal_status: terminalStatus,

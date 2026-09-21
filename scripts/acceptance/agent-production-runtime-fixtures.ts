@@ -18,11 +18,41 @@ import {
   type ClaimedProductionTask,
 } from "../../src/lib/local-runtime/production/transport-protocol.js";
 import { authorizeWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
+import type {
+  AttemptFailureFirstFact,
+  SerializedExecutionFailure,
+  SerializedTerminalFailure,
+} from "../../src/lib/local-runtime/production/terminal-failure.js";
 
 export const HASH_A = `sha256:${"a".repeat(64)}` as ProductionHash;
 export const HASH_B = `sha256:${"b".repeat(64)}` as ProductionHash;
 export const HASH_C = `sha256:${"c".repeat(64)}` as ProductionHash;
 export const ADMISSION_JOB_ID = "job:business-admission";
+
+export const attemptFailureFirstFact = (
+  attemptId: string,
+  failure: SerializedExecutionFailure | SerializedTerminalFailure,
+  leaseVersion = 1,
+): AttemptFailureFirstFact => {
+  const failureCore: SerializedTerminalFailure = Object.freeze({
+    ...failure,
+    provider_effect_identity_hash: "provider_effect_identity_hash" in failure
+      ? failure.provider_effect_identity_hash : null,
+    settled_result_payload_hash: "settled_result_payload_hash" in failure
+      ? failure.settled_result_payload_hash : null,
+  });
+  const bodyPayloadHash = hashCanonical({ attempt_id: attemptId, lease_version: leaseVersion, failureCore });
+  return Object.freeze({
+    failure_core: failureCore,
+    release_descriptor: Object.freeze({
+      attempt_id: attemptId,
+      lease_version: leaseVersion,
+      request_id: `aiprelease_${bodyPayloadHash.slice(7, 47)}`,
+      body_payload_hash: bodyPayloadHash,
+      write_request_payload_hash: hashCanonical({ bodyPayloadHash, attemptId, leaseVersion }),
+    }),
+  });
+};
 
 export const admissionReceiptFor = (
   jobId: string,
@@ -58,6 +88,7 @@ export const deviceStatusWithAdmission = (
     control_intent: { schema_version: "xuanxue-ai-control-intent.v6", job_id: jobId,
       control_epoch: 0, intent: "none", reason_code: null },
     next_action_code: "CONSUME_CURRENT_RESULT", terminal_status: "completed",
+    attempt_failure: null,
     terminal_payload_hash: terminalPayloadHash, business_admission_receipt: receipt,
     business_consumer_error: null, accepted_attempt_count: 1, write_receipts: [],
   }),
@@ -76,6 +107,7 @@ export const deviceStatusWithoutAdmission = (
       control_epoch: deleted ? 1 : 0, intent: deleted ? "cancel_requested" : "none",
       reason_code: deleted ? "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED" : null },
     next_action_code: nextAction, terminal_status: null, terminal_payload_hash: null,
+    attempt_failure: null,
     business_admission_receipt: null, business_consumer_error: null,
     accepted_attempt_count: 1, write_receipts: [],
   }),

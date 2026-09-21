@@ -57,6 +57,9 @@ export const runProductionAtomicPhase = async (input: Readonly<{
   signal: AbortSignal; resultRevision: number; childCapabilityId: GptChildCapabilityId;
   browserAtomicIdentity?: BrowserAtomicStepIdentity;
   assertProviderInputAllowed: () => void; rateLimitAckDispatchNotAfter?: number;
+  recordConfirmedProviderEffectReadback?: NonNullable<
+    import("./contract.js").GptExecutionContext["recordConfirmedProviderEffectReadback"]
+  >;
 }>): Promise<ProductionGptAtomicCallResult> => executeProductionGptAtomicCall({
   dataDir: input.dataDir, gpt: input.gpt, browsers: input.browsers, intent: input.intent,
   browserCall: input.browserCall, signal: input.signal, resultRevision: input.resultRevision,
@@ -65,4 +68,6 @@ export const runProductionAtomicPhase = async (input: Readonly<{
     ? { assertProviderInputAllowed: input.assertProviderInputAllowed } : {}),
   ...(input.rateLimitAckDispatchNotAfter === undefined ? {}
     : { rateLimitAckDispatchNotAfter: input.rateLimitAckDispatchNotAfter }),
+  ...(input.recordConfirmedProviderEffectReadback
+    ? { recordConfirmedProviderEffectReadback: input.recordConfirmedProviderEffectReadback } : {}),
 });

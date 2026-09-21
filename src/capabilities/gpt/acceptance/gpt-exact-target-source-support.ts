@@ -36,6 +36,23 @@ export const assertGptExactTargetSourceShape = (baseUrl: string): void => {
   ), "utf8");
   assert.match(rateLimit, /executeClickIntent\([\s\S]*dispatchNotAfter[\s\S]*\}, false\);/u,
     "the one-second rate-limit acknowledgement must remain outside staged DOM confirmation");
+  assert.match(rateLimit, /innerText/u);
+  assert.doesNotMatch(rateLimit, /textContent|unknown_present|known-gpt-rate-limit-dialog\.v1/u);
+  for (const token of ["absent", "exact_present", "mismatch", "dialogRawCount",
+    "dialogEligibleCount", "dialogActionableCount", "acknowledgementButtonRawCount",
+    "acknowledgementButtonEligibleCount", "acknowledgementButtonActionableCount"]) {
+    assert.match(rateLimit, new RegExp(token, "u"));
+  }
+  const productionTools = readFileSync(new URL("../production-child-tools.ts", baseUrl), "utf8");
+  const rateLimitBoundary = productionTools.indexOf("const code = failureCode(error);");
+  assert.ok(rateLimitBoundary >= 0);
+  assert.ok(productionTools.indexOf("persistGptEvidenceArtifacts") < rateLimitBoundary);
+  assert.match(productionTools.slice(rateLimitBoundary),
+    /BROWSER_GPT_DIALOG_UNRECOGNIZED[\s\S]*BROWSER_KNOWN_GPT_RATE_LIMIT/u,
+    "both exact and mismatched dialogs must enter the one in-memory normalization boundary");
+  assert.match(productionTools.slice(rateLimitBoundary),
+    /failedGptChildExecutionResult[\s\S]*evidenceRef = result\.proof\.browserFact/u,
+  "the rate-limit catch must normalize directly to an in-memory Child proof");
   const pointerRuntime = readFileSync(new URL(
     "../../../lib/browser/chrome-extension/dom-pointer-intent-runtime.ts", baseUrl,
   ), "utf8");

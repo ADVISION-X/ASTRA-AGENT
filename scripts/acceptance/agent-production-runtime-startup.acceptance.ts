@@ -26,7 +26,7 @@ import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/
 import { serializeTerminalFailure } from
   "../../src/lib/local-runtime/production/terminal-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
-import { HASH_A, HASH_B, resultFor, task, validDeviceCredential } from
+import { HASH_A, HASH_B, attemptFailureFirstFact, resultFor, task, validDeviceCredential } from
   "./agent-production-runtime-fixtures.js";
 import { buildProductTask } from "./product-plugin-test-runtime.js";
 import { productionRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
@@ -67,7 +67,8 @@ try {
   store.acceptTask(ordinaryFailure, ordinaryAttemptId);
   store.markExecuting(ordinaryFailure.job_id);
   store.recordAttemptFailure(ordinaryFailure.job_id, ordinaryAttemptId,
-    serializeTerminalFailure(executionFailure("failed", "PROVIDER_REJECTED")));
+    attemptFailureFirstFact(ordinaryAttemptId,
+      serializeTerminalFailure(executionFailure("failed", "PROVIDER_REJECTED"))));
   assert.equal(store.readTask(ordinaryFailure.job_id)?.current_reason, "PROVIDER_REJECTED");
   store.close();
 } finally {

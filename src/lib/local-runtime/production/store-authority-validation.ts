@@ -6,7 +6,7 @@ import {
   type WebsiteAgentResult,
 } from "./contracts.js";
 import {
-  isPersistedSerializedTerminalFailure,
+  isAttemptFailureFirstFact,
   type ProductionOutboxAuthority,
   type ProductionOutboxAuthorityRow,
   type ProductionOutboxWrite,
@@ -26,13 +26,14 @@ const resultValid = (record: StoredProductionTask, result: WebsiteAgentResult | 
     && result.action_id === record.task.action_id);
 const taskStateValid = (record: StoredProductionTask): boolean => record.status === "completed"
   ? Boolean(record.result) && record.staged_result === null && record.current_reason === null
+    && record.attempt_failure === null
   : record.result === null && record.current_reason !== null;
 
 export const productionTaskAuthorityValid = (record: StoredProductionTask): boolean =>
   WebsiteAgentTaskSchema.safeParse(record.task).success
   && resultValid(record, record.result) && resultValid(record, record.staged_result) && taskStateValid(record)
   && record.current_attempt_id.length > 0 && persistedDate(record.updated_at)
-  && (record.attempt_failure === null || isPersistedSerializedTerminalFailure(record.attempt_failure));
+  && (record.attempt_failure === null || isAttemptFailureFirstFact(record.attempt_failure));
 export const productionTaskRowValid = (row: TaskRow, record: StoredProductionTask): boolean =>
   row.job_id === record.task.job_id && row.request_hash === record.task.request_hash
   && productionTaskAuthorityValid(record);

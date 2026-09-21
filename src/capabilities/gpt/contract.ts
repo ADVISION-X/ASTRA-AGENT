@@ -12,6 +12,8 @@ import type {
   GptReasoningRequirementResult,
 } from "./child-types.js";
 import type { ProviderStoppedEmptyProof } from "../../lib/execution-failure.js";
+import type { KnownGptRateLimitPreflightFact } from
+  "../../lib/browser/exact-target/browser-gpt-rate-limit-preflight.js";
 
 export type {
   GptApprovedFile,
@@ -40,6 +42,7 @@ export type GptChildBrowserFact = Readonly<{
   terminalAt: string | null;
   evidenceRef: string;
   evidenceHash: `sha256:${string}`;
+  knownGptRateLimitPreflightFact?: KnownGptRateLimitPreflightFact;
 }>;
 
 interface ChildCapabilityContract {
@@ -194,6 +197,16 @@ export type GptExecutionContext = Readonly<{
     mutationOutcome: "no" | "confirmed";
   }>;
   dispatchedProviderEffectReadback?: BrowserAtomicStepOutcome;
+  recordConfirmedProviderEffectReadback?: (proof: Readonly<{
+    jobId: string;
+    attemptId: string;
+    resultRevision: number;
+    providerEffectIdentityHash: `sha256:${string}`;
+    exactCallIdentityHash: `sha256:${string}`;
+    browserAuthorityRef: string;
+    browserAuthorityHash: `sha256:${string}`;
+    readbackProviderInputDelta: 0;
+  }>) => void;
   confirmedRateLimitAcknowledgementReadback?: Readonly<{
     terminalPayload: unknown;
     browserFact?: GptChildBrowserFact;

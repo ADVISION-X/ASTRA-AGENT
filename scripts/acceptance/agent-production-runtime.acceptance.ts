@@ -36,6 +36,13 @@ import "./agent-production-runtime-startup.acceptance.js";
 import { exerciseWorkerSessionRotation } from "./agent-production-runtime-session-rotation-support.js";
 import { exerciseLeaseRenewRetry } from "./agent-production-runtime-lease-renew-retry-support.js";
 import { exerciseGeneratedImageTransport } from "./agent-production-runtime-generated-image.acceptance-support.js";
+import {
+  verifyGptDialogMismatchRuntimeContract,
+  verifyKnownGptRateLimitRuntimeContract,
+} from
+  "./agent-production-runtime-browser-failure.acceptance-support.js";
+import { verifyAttemptFailureReadbackRuntimeContract } from
+  "./agent-production-runtime-browser-failure.acceptance-support.js";
 import { exerciseProductionRuntimeSourceBoundaries } from
   "./agent-production-runtime-recovery-boundary.acceptance-support.js";
 assert.equal(hashCanonical(agentRouteCapabilityManifest.routes), productionCatalogHash);
@@ -208,6 +215,9 @@ await assert.rejects(
 await exerciseWorkerSessionRotation();
 await exerciseLeaseRenewRetry();
 await exerciseGeneratedImageTransport(productionTask);
+await verifyGptDialogMismatchRuntimeContract();
+await verifyKnownGptRateLimitRuntimeContract();
+await verifyAttemptFailureReadbackRuntimeContract();
 
 
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] PASS\n");

@@ -6,6 +6,8 @@ import {
   failureCode,
 } from "../../lib/execution-failure.js";
 import { typedBrowserExecutionFailure } from "../../lib/browser/browser-authority-api.js";
+import { knownGptRateLimitPreflightFactValid } from
+  "../../lib/browser/exact-target/browser-special-mutation-receipt.js";
 import { runtimeLogCauseEventId, withRuntimeLogCauseFact } from "../../lib/runtime-logs/index.js";
 
 import {
@@ -24,7 +26,6 @@ import {
 } from "./contract.js";
 import type { GptChildHandler, GptChildObservation } from "./web/child-handler.js";
 import { gptChildHandlers } from "./handler-registry.js";
-import { ProductionGptChildTools } from "./production-child-tools.js";
 import {
   typedGptExecutionFailure,
   type GptFailureProofFacts,
@@ -304,7 +305,7 @@ const failurePostconditionResult = (
   return committedMutation === "dispatched" ? "pending" : "failed";
 };
 
-const failedExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
+export const failedGptChildExecutionResult = async <K extends GptChildCapabilityId>(input: Readonly<{
   intent: GptChildCapabilityIntent<K>;
   context: GptExecutionContext;
   startedAt: string;
@@ -317,7 +318,41 @@ const failedExecution = async <K extends GptChildCapabilityId>(input: Readonly<{
   const nativeCause = executionFailureCause(failureError);
   const gpt = typedGptExecutionFailure(input.error);
   const genericEvidence = executionFailureMetadata(input.error)?.evidence;
-  const walBrowserFact = failedBrowserFact(input.intent, input.context);
+  const rateLimitPreflight = executionFailureMetadata(input.error)?.knownGptRateLimitPreflightFact;
+  const persistedBrowserFact = failedBrowserFact(input.intent, input.context);
+  const authoritativeRateLimitPreflight = (failure.code === "BROWSER_GPT_DIALOG_UNRECOGNIZED"
+      && rateLimitPreflight?.state === "mismatch"
+      || failure.code === "BROWSER_KNOWN_GPT_RATE_LIMIT"
+      && rateLimitPreflight?.state === "exact_present")
+    && genericEvidence
+    && knownGptRateLimitPreflightFactValid(rateLimitPreflight)
+    && genericEvidence.evidenceHash === rateLimitPreflight.observationHash
+    && genericEvidence.evidenceRef === [failure.code === "BROWSER_KNOWN_GPT_RATE_LIMIT"
+      ? "browser-known-gpt-rate-limit" : "browser-gpt-dialog-unrecognized",
+      rateLimitPreflight.observedAt, rateLimitPreflight.exactCallIdentityHash,
+      rateLimitPreflight.targetRefHash, rateLimitPreflight.documentRefHash].join("|");
+  const rateLimitBrowserFact: GptChildBrowserFact | null = authoritativeRateLimitPreflight
+    ? Object.freeze({
+        exactCallIdentityHash: gptExactCallIdentityHash(input.intent),
+        providerEffectIdentityHash: null,
+        childCapabilityId: input.intent.childCapabilityId,
+        effectScope: "target_local",
+        browserOutcome: "REJECTED",
+        mutationOutcome: "no",
+        terminalAt: null,
+        evidenceRef: genericEvidence.evidenceRef,
+        evidenceHash: genericEvidence.evidenceHash,
+        knownGptRateLimitPreflightFact: rateLimitPreflight,
+      })
+    : null;
+  const walBrowserFact = persistedBrowserFact && rateLimitBrowserFact
+    ? Object.freeze({
+        ...persistedBrowserFact,
+        ...(rateLimitBrowserFact.knownGptRateLimitPreflightFact
+          ? { knownGptRateLimitPreflightFact:
+              rateLimitBrowserFact.knownGptRateLimitPreflightFact } : {}),
+      })
+    : persistedBrowserFact ?? rateLimitBrowserFact;
   const observation = failureObservation({
     ...(input.observation ? { observation: input.observation } : {}),
     ...(gpt?.proofFacts ? { gptProof: gpt.proofFacts }
@@ -407,7 +442,8 @@ const executeOne = async <K extends GptChildCapabilityId>(
     assertObservationIsAtomic(intent, context, nextObservation);
     return await successfulExecution({ intent, context, startedAt, observation: nextObservation });
   } catch (error) {
-    return await failedExecution({
+    if (failureCode(error) === "BROWSER_GPT_DIALOG_UNRECOGNIZED") throw error;
+    return await failedGptChildExecutionResult({
       intent, context, startedAt,
       ...(observation ? { observation } : {}), error,
     });
@@ -417,7 +453,3 @@ const executeOne = async <K extends GptChildCapabilityId>(
 export const createGptAbilityGroup = (): GptAbilityGroup => Object.freeze({
   execute: executeOne,
 });
-
-export const createProductionGptChildTools = (
-  ...input: ConstructorParameters<typeof ProductionGptChildTools>
-): ProductionGptChildTools => new ProductionGptChildTools(...input);

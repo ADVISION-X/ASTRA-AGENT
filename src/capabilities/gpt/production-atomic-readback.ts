@@ -1,6 +1,7 @@
 import type {
   BrowserAtomicStepOutcome, BrowserTargetLease,
 } from "../../lib/browser/browser-authority-api.js";
+import { browserExactCallIdentityHash } from "../../lib/browser/browser-authority-api.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 import type {
   GptAbilityGroup, GptAnyChildCapabilityIntent, GptChildBrowserFact,
@@ -36,7 +37,7 @@ const confirmedProviderEffectReadback = async (
     || (priorOutcome.mutationOutcome !== "no" && priorOutcome.mutationOutcome !== "confirmed")
     || !priorOutcome.providerEffectIdentityHash || !priorOutcome.terminalAt
     || priorOutcome.terminalPayload == null) return null;
-  return await input.gpt.execute(intent, Object.freeze({
+  const result = await input.gpt.execute(intent, Object.freeze({
       ...input.context,
       confirmedProviderEffectReadback: Object.freeze({
         terminalPayload: priorOutcome.terminalPayload, terminalAt: priorOutcome.terminalAt,
@@ -45,6 +46,27 @@ const confirmedProviderEffectReadback = async (
         mutationOutcome: priorOutcome.mutationOutcome,
       }),
     }));
+  if (result.status === "success") {
+    if (!input.context.browserAtomicIdentity) {
+      throw executionFailure("failed", "PROVIDER_EFFECT_READBACK_IDENTITY_MISSING");
+    }
+    input.context.recordConfirmedProviderEffectReadback?.(Object.freeze({
+      jobId: intent.jobId,
+      attemptId: intent.attemptId,
+      resultRevision: intent.resultRevision,
+      providerEffectIdentityHash: priorOutcome.providerEffectIdentityHash,
+      exactCallIdentityHash: browserExactCallIdentityHash({
+        jobId: intent.jobId,
+        attemptId: intent.attemptId,
+        writerFenceHash: input.browser.writerFenceHash,
+        ...input.context.browserAtomicIdentity,
+      }),
+      browserAuthorityRef: priorOutcome.authorityRef,
+      browserAuthorityHash: priorOutcome.authorityHash,
+      readbackProviderInputDelta: 0,
+    }));
+  }
+  return result;
 };
 
 const confirmedAcknowledgementReadback = async (

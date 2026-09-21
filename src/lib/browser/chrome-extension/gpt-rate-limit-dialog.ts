@@ -2,33 +2,27 @@ import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 import { executeClickIntent } from "./dom-pointer-intent-runtime.js";
 import type { BrowserDomIntent } from "../exact-target/browser-dom-intent.js";
+import type { BrowserCommandPermit } from "../transport/command-permit.js";
+import {
+  KNOWN_GPT_RATE_LIMIT_ACK,
+  KNOWN_GPT_RATE_LIMIT_ACK_HASH,
+  KNOWN_GPT_RATE_LIMIT_ACK_SELECTOR,
+  KNOWN_GPT_RATE_LIMIT_BODY,
+  KNOWN_GPT_RATE_LIMIT_BODY_HASH,
+  KNOWN_GPT_RATE_LIMIT_DIALOG_HASH,
+  KNOWN_GPT_RATE_LIMIT_DIALOG_SELECTOR,
+  KNOWN_GPT_RATE_LIMIT_TITLE,
+  KNOWN_GPT_RATE_LIMIT_TITLE_HASH,
+  knownGptRateLimitPreflightFactShapeValid,
+  type KnownGptRateLimitPreflightFact,
+} from "../exact-target/browser-gpt-rate-limit-preflight.js";
 
 type RateLimitIntent = Extract<BrowserDomIntent,
 { kind: "acknowledgeKnownGptRateLimit" | "readKnownGptRateLimitClearance" }>;
 type CurrentDocumentAssertion = () => void;
 
 export const KNOWN_GPT_RATE_LIMIT_FAILURE = "BROWSER_KNOWN_GPT_RATE_LIMIT";
-export const KNOWN_GPT_RATE_LIMIT_DIALOG_SELECTOR = "[role='dialog']";
-export const KNOWN_GPT_RATE_LIMIT_ACK_SELECTOR = "[role='dialog'] button";
-export const KNOWN_GPT_RATE_LIMIT_TITLE = "请求过于频繁";
-export const KNOWN_GPT_RATE_LIMIT_BODY = Object.freeze([
-  "你的请求过于频繁。为保障数据安全，我们已暂时限制你访问对话记录。",
-  "请稍等几分钟后再重试。",
-]);
-export const KNOWN_GPT_RATE_LIMIT_ACK = "明白了";
-
-export const KNOWN_GPT_RATE_LIMIT_DIALOG_HASH =
-  "sha256:084b621b91e3affcf2199269157febb07ded1b7a3287ac61104108317cddde15";
-
-export type KnownGptRateLimitDialogFact = Readonly<{
-  schemaVersion: "grasseye.browser.known-gpt-rate-limit-dialog.v1";
-  state: "exact_present";
-  dialogHash: `sha256:${string}`;
-  targetRefHash: `sha256:${string}`;
-  documentRefHash: `sha256:${string}`;
-  observationHash: `sha256:${string}`;
-  observedAt: string;
-}>;
+export const GPT_DIALOG_UNRECOGNIZED_FAILURE = "BROWSER_GPT_DIALOG_UNRECOGNIZED";
 
 export type KnownGptRateLimitClearanceFact = Readonly<{
   schemaVersion: "grasseye.browser.known-gpt-rate-limit-clearance.v1";
@@ -45,9 +39,9 @@ export type KnownGptRateLimitClearanceFact = Readonly<{
   zeroActionSatisfied: true;
 }>;
 
-const DETECTOR = `async function (expected) {
+export const KNOWN_GPT_RATE_LIMIT_DETECTOR = `async function (expected) {
   const visible = (node) => {
-    if (!(node instanceof Element) || !node.isConnected || node.hidden
+    if (!(node instanceof HTMLElement) || !node.isConnected || node.hidden
       || node.getAttribute("aria-hidden") === "true" || node.closest("[inert]")) return false;
     const style = getComputedStyle(node);
     return style.display !== "none" && style.visibility !== "hidden"
@@ -55,18 +49,66 @@ const DETECTOR = `async function (expected) {
   };
   const canonical = (value) => String(value || "").normalize("NFC")
     .replace(/\\s+/gu, " ").trim();
-  const dialogs = Array.from(document.querySelectorAll(expected.dialogSelector)).filter(visible);
-  if (dialogs.length === 0) return { state: "absent" };
-  const exact = dialogs.filter((dialog) => {
-    const text = canonical(dialog.textContent);
-    const buttons = Array.from(dialog.querySelectorAll("button")).filter(visible);
-    return text === canonical([expected.title, ...expected.body, expected.ack].join(" "))
-      && buttons.length === 1 && canonical(buttons[0].textContent) === expected.ack
-      && !buttons[0].disabled && buttons[0].getAttribute("aria-disabled") !== "true";
+  const actionable = (button) => {
+    if (!visible(button) || button.disabled || button.getAttribute("aria-disabled") === "true") return false;
+    const style = getComputedStyle(button);
+    if (style.pointerEvents === "none") return false;
+    const rect = button.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0 || rect.right <= 0 || rect.bottom <= 0
+      || rect.left >= innerWidth || rect.top >= innerHeight) return false;
+    const x = Math.min(Math.max(rect.left + rect.width / 2, 0), innerWidth - 1);
+    const y = Math.min(Math.max(rect.top + rect.height / 2, 0), innerHeight - 1);
+    const hit = document.elementFromPoint(x, y);
+    return hit === button || (hit instanceof Node && button.contains(hit));
+  };
+  const rawDialogs = Array.from(document.querySelectorAll(expected.dialogSelector));
+  const eligibleDialogs = rawDialogs.filter(visible);
+  const exactLines = [expected.title, ...expected.body, expected.ack];
+  const visibleLines = (dialog) => String(dialog.innerText || "").normalize("NFC")
+    .split(/\\r?\\n/gu).map(canonical).filter(Boolean);
+  const actionableDialogs = eligibleDialogs.filter((dialog) => {
+    const lines = visibleLines(dialog);
+    return lines.length === exactLines.length
+      && lines.every((line, index) => line === exactLines[index]);
   });
-  if (exact.length !== 1 || dialogs.length !== 1) return { state: "unknown_present" };
-  const observedAt = new Date().toISOString();
-  return { state: "exact_present", observedAt };
+  const rawButtons = rawDialogs.flatMap((dialog) => Array.from(dialog.querySelectorAll("button")));
+  const eligibleButtons = rawButtons.filter((button) => eligibleDialogs.some((dialog) => dialog.contains(button))
+    && visible(button)
+    && canonical(button.innerText) === expected.ack);
+  const actionableButtons = eligibleButtons.filter(actionable);
+  const exact = rawDialogs.length === 1 && eligibleDialogs.length === 1
+    && actionableDialogs.length === 1 && rawButtons.length === 1
+    && eligibleButtons.length === 1 && actionableButtons.length === 1;
+  const state = eligibleDialogs.length === 0 ? "absent" : exact ? "exact_present" : "mismatch";
+  const unsigned = {
+    schemaVersion: "grasseye.browser.known-gpt-rate-limit-preflight.v2",
+    state,
+    dialogHash: expected.dialogHash,
+    titleHash: expected.titleHash,
+    bodyHash: expected.bodyHash,
+    acknowledgementHash: expected.acknowledgementHash,
+    exactCallIdentityHash: expected.exactCallIdentityHash,
+    targetRefHash: expected.targetRefHash,
+    documentRefHash: expected.documentRefHash,
+    observedAt: new Date().toISOString(),
+    dialogRawCount: rawDialogs.length,
+    dialogEligibleCount: eligibleDialogs.length,
+    dialogActionableCount: actionableDialogs.length,
+    acknowledgementButtonRawCount: rawButtons.length,
+    acknowledgementButtonEligibleCount: eligibleButtons.length,
+    acknowledgementButtonActionableCount: actionableButtons.length,
+  };
+  const hashInput = [unsigned.schemaVersion, unsigned.state, unsigned.dialogHash,
+    unsigned.titleHash, unsigned.bodyHash, unsigned.acknowledgementHash,
+    unsigned.exactCallIdentityHash, unsigned.targetRefHash, unsigned.documentRefHash,
+    unsigned.observedAt, unsigned.dialogRawCount, unsigned.dialogEligibleCount,
+    unsigned.dialogActionableCount, unsigned.acknowledgementButtonRawCount,
+    unsigned.acknowledgementButtonEligibleCount, unsigned.acknowledgementButtonActionableCount];
+  const digest = await crypto.subtle.digest("SHA-256",
+    new TextEncoder().encode(JSON.stringify(hashInput)));
+  const observationHash = "sha256:" + Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return { ...unsigned, observationHash };
 }`;
 
 const record = (value: unknown): Record<string, unknown> => {
@@ -82,6 +124,19 @@ const sha256 = async (value: string): Promise<`sha256:${string}`> => {
     .map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 };
 
+export const knownGptRateLimitExactCallIdentityHash = async (
+  permit: Pick<BrowserCommandPermit, "jobId" | "attemptId" | "resultRevision" | "writerFenceHash"
+  | "productStepId" | "callId" | "childCapabilityId" | "inputHash" | "replayPolicy">,
+): Promise<`sha256:${string}`> => sha256(JSON.stringify([
+  permit.jobId,
+  permit.resultRevision,
+  ...(permit.replayPolicy === "provider-effect-once" ? [] : [permit.attemptId, permit.writerFenceHash]),
+  permit.productStepId,
+  permit.callId,
+  permit.childCapabilityId,
+  permit.inputHash,
+]));
+
 export const knownGptRateLimitTargetIdentity = async (
   target: ExtensionExactTarget,
 ): Promise<Readonly<{
@@ -95,7 +150,9 @@ export const knownGptRateLimitTargetIdentity = async (
 export const observeKnownGptRateLimitDialog = async (
   runtime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
-): Promise<KnownGptRateLimitDialogFact | null> => {
+  exactCallIdentityHash: `sha256:${string}`,
+): Promise<KnownGptRateLimitPreflightFact> => {
+  const identity = await knownGptRateLimitTargetIdentity(target);
   const document = record(await runtime.send(target.tabId, "DOM.getDocument", { depth: 0, pierce: true }));
   const root = record(document.root);
   if (!Number.isSafeInteger(root.nodeId)) throw new Error("BROWSER_DOM_READ_INVALID");
@@ -105,45 +162,31 @@ export const observeKnownGptRateLimitDialog = async (
   try {
     const call = record(await runtime.send(target.tabId, "Runtime.callFunctionOn", {
       objectId,
-      functionDeclaration: DETECTOR,
+      functionDeclaration: KNOWN_GPT_RATE_LIMIT_DETECTOR,
       arguments: [{ value: {
         dialogSelector: KNOWN_GPT_RATE_LIMIT_DIALOG_SELECTOR,
         title: KNOWN_GPT_RATE_LIMIT_TITLE,
         body: KNOWN_GPT_RATE_LIMIT_BODY,
         ack: KNOWN_GPT_RATE_LIMIT_ACK,
         dialogHash: KNOWN_GPT_RATE_LIMIT_DIALOG_HASH,
+        titleHash: KNOWN_GPT_RATE_LIMIT_TITLE_HASH,
+        bodyHash: KNOWN_GPT_RATE_LIMIT_BODY_HASH,
+        acknowledgementHash: KNOWN_GPT_RATE_LIMIT_ACK_HASH,
+        exactCallIdentityHash,
+        ...identity,
       } }],
       returnByValue: true,
       awaitPromise: true,
       silent: true,
     }));
     const result = record(record(call.result).value);
-    if (result.state === "absent") return null;
-    if (result.state !== "exact_present") throw new Error("BROWSER_GPT_DIALOG_UNRECOGNIZED");
-    if (typeof result.observedAt !== "string" || !Number.isFinite(Date.parse(result.observedAt))) {
+    if (!knownGptRateLimitPreflightFactShapeValid(result)
+      || result.exactCallIdentityHash !== exactCallIdentityHash
+      || result.targetRefHash !== identity.targetRefHash
+      || result.documentRefHash !== identity.documentRefHash) {
       throw new Error("BROWSER_DOM_READ_INVALID");
     }
-    const { targetRefHash, documentRefHash } = await knownGptRateLimitTargetIdentity(target);
-    const observationHash = await sha256(JSON.stringify({
-      dialogHash: KNOWN_GPT_RATE_LIMIT_DIALOG_HASH,
-      targetRefHash,
-      documentRefHash,
-      observedAt: result.observedAt,
-      title: KNOWN_GPT_RATE_LIMIT_TITLE,
-      body: KNOWN_GPT_RATE_LIMIT_BODY,
-      acknowledgement: KNOWN_GPT_RATE_LIMIT_ACK,
-      dialogCount: 1,
-      acknowledgementButtonCount: 1,
-    }));
-    return Object.freeze({
-      schemaVersion: "grasseye.browser.known-gpt-rate-limit-dialog.v1",
-      state: "exact_present",
-      dialogHash: KNOWN_GPT_RATE_LIMIT_DIALOG_HASH,
-      targetRefHash,
-      documentRefHash,
-      observationHash,
-      observedAt: result.observedAt,
-    });
+    return Object.freeze(result);
   } finally {
     await runtime.send(target.tabId, "Runtime.releaseObject", { objectId });
   }
@@ -152,28 +195,19 @@ export const observeKnownGptRateLimitDialog = async (
 export const readKnownGptRateLimitClearance = async (
   runtime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
-): Promise<KnownGptRateLimitClearanceFact> => {
-  if (await observeKnownGptRateLimitDialog(runtime, target)) {
-    throw new Error("BROWSER_GPT_RATE_LIMIT_STILL_PRESENT");
-  }
-  const observedAt = new Date().toISOString();
-  const { targetRefHash, documentRefHash } = await knownGptRateLimitTargetIdentity(target);
-  const observationHash = await sha256(JSON.stringify({
-    dialogHash: KNOWN_GPT_RATE_LIMIT_DIALOG_HASH,
-    targetRefHash,
-    documentRefHash,
-    observedAt,
-    state: "confirmed_absent",
-    dialogCount: 0,
-  }));
+  exactCallIdentityHash: `sha256:${string}`,
+): Promise<unknown> => {
+  const fact = await observeKnownGptRateLimitDialog(runtime, target, exactCallIdentityHash);
+  if (fact.state === "exact_present") throw new Error("BROWSER_GPT_RATE_LIMIT_STILL_PRESENT");
+  if (fact.state === "mismatch") return unrecognizedGptDialogReceipt(fact);
   return Object.freeze({
     schemaVersion: "grasseye.browser.known-gpt-rate-limit-clearance.v1",
     state: "confirmed_absent",
-    dialogHash: KNOWN_GPT_RATE_LIMIT_DIALOG_HASH,
-    targetRefHash,
-    documentRefHash,
-    observationHash,
-    observedAt,
+    dialogHash: fact.dialogHash,
+    targetRefHash: fact.targetRefHash,
+    documentRefHash: fact.documentRefHash,
+    observationHash: fact.observationHash,
+    observedAt: fact.observedAt,
     candidateCount: 0,
     identityRevalidated: true,
     mutationCount: 0,
@@ -183,19 +217,44 @@ export const readKnownGptRateLimitClearance = async (
 };
 
 export const knownGptRateLimitBlockerReceipt = (
-  fact: KnownGptRateLimitDialogFact,
+  fact: KnownGptRateLimitPreflightFact,
 ): Readonly<Record<string, unknown>> => Object.freeze({
-  schemaVersion: "grasseye.browser.known-gpt-rate-limit-blocker.v1",
+  schemaVersion: "grasseye.browser.known-gpt-rate-limit-blocker.v2",
   failureCode: KNOWN_GPT_RATE_LIMIT_FAILURE,
   nativeCauseCode: null,
-  candidateCount: 1,
+  candidateCount: fact.dialogEligibleCount,
   identityRevalidated: true,
   mutationCount: 0,
   physicalInputCount: 0,
   postconditionVerified: false,
   qualificationRejected: true,
   qualificationStage: "candidate-set",
-  knownGptRateLimitDialogFact: fact,
+  knownGptRateLimitPreflightFact: fact,
+});
+
+export const unrecognizedGptDialogReceipt = (
+  fact: KnownGptRateLimitPreflightFact,
+): Readonly<Record<string, unknown>> => Object.freeze({
+  schemaVersion: "grasseye.browser.gpt-dialog-unrecognized-rejection.v1",
+  failureCode: GPT_DIALOG_UNRECOGNIZED_FAILURE,
+  nativeCauseCode: null,
+  candidateCount: fact.dialogEligibleCount,
+  identityRevalidated: true,
+  mutationCount: 0,
+  physicalInputCount: 0,
+  postconditionVerified: false,
+  qualificationRejected: true,
+  qualificationStage: "candidate-set",
+  knownGptRateLimitPreflightFact: fact,
+});
+
+export const knownGptRateLimitAbsentEnvelope = (
+  fact: KnownGptRateLimitPreflightFact,
+  commandResult: unknown,
+): Readonly<Record<string, unknown>> => Object.freeze({
+  schemaVersion: "grasseye.browser.command-preflight.v1",
+  knownGptRateLimitPreflightFact: fact,
+  commandResult,
 });
 
 const assertRateLimitIdentity = async (
@@ -211,14 +270,16 @@ export const executeKnownGptRateLimitIntent = async (
   runtime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
   intent: RateLimitIntent,
+  exactCallIdentityHash: `sha256:${string}`,
   assertCurrent: CurrentDocumentAssertion,
 ): Promise<unknown> => {
   await assertRateLimitIdentity(target, intent);
   if (intent.kind === "readKnownGptRateLimitClearance") {
-    return readKnownGptRateLimitClearance(runtime, target);
+    return readKnownGptRateLimitClearance(runtime, target, exactCallIdentityHash);
   }
-  const fact = await observeKnownGptRateLimitDialog(runtime, target);
-  if (!fact) return Object.freeze({ candidateCount: 0, identityRevalidated: true,
+  const fact = await observeKnownGptRateLimitDialog(runtime, target, exactCallIdentityHash);
+  if (fact.state === "mismatch") return unrecognizedGptDialogReceipt(fact);
+  if (fact.state === "absent") return Object.freeze({ candidateCount: 0, identityRevalidated: true,
     mutationCount: 0, postconditionVerified: true, zeroActionSatisfied: true });
   if (fact.targetRefHash !== intent.targetRefHash
     || fact.documentRefHash !== intent.documentRefHash) throw new Error("BROWSER_DOCUMENT_INVALID");

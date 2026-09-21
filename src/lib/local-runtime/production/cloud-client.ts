@@ -35,6 +35,7 @@ import type {
 import { executionFailure } from "../../execution-failure.js";
 import { productionCloudFetch } from "./cloud-transport.js";
 import type { ProductionLeaseRelease } from "./lease-release-contract.js";
+import type { AttemptFailureReleaseDescriptor } from "./terminal-failure.js";
 import {
   runtimeTransportFailure,
   typedRuntimeTransportFailure,
@@ -181,11 +182,31 @@ export async function renewProductionLease(
   }
 }
 
-export async function releaseProductionLease(
-  session: ProductionWorkerSession,
+export type ProductionLeaseReleaseRequest = Readonly<{
+  schema_version: "xuanxue-ai-lease-release.v6";
+  control_protocol_version: "xuanxue-ai-production-v6";
+  request_id: string;
+  job_id: string;
+  worker_session_id: string;
+  worker_session_epoch: number;
+  attempt_id: string;
+  lease_version: number;
+  fence_hash: ProductionHash;
+  payload_hash: ProductionHash;
+  reason_code: ProductionLeaseRelease["reasonCode"];
+  attempt_failure: ProductionLeaseRelease["attemptFailure"];
+}>;
+
+export type BuiltProductionLeaseRelease = Readonly<{
+  request: ProductionLeaseReleaseRequest;
+  descriptor: AttemptFailureReleaseDescriptor;
+}>;
+
+export function buildProductionLeaseRelease(
+  session: Pick<ProductionWorkerSession, "workerSessionId" | "workerSessionEpoch">,
   job: ClaimedProductionTask,
   release: ProductionLeaseRelease,
-): Promise<string> {
+): BuiltProductionLeaseRelease {
   const payload = {
     reason_code: release.reasonCode,
     attempt_failure: release.attemptFailure,
@@ -199,25 +220,43 @@ export async function releaseProductionLease(
     lease_version: job.grant.lease_version,
     payload_hash: payloadHash,
   }).slice(7, 47)}`;
-  await session.request(`/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/lease-release`, {
-    method: "POST",
-    headers: fenceHeaders(job),
-    body: JSON.stringify({
-      schema_version: "xuanxue-ai-lease-release.v6",
-      control_protocol_version: "xuanxue-ai-production-v6",
-      request_id: requestId,
-      job_id: job.job_id,
-      worker_session_id: session.workerSessionId,
-      worker_session_epoch: session.workerSessionEpoch,
-      attempt_id: job.grant.attempt_id,
-      lease_version: job.grant.lease_version,
-      fence_hash: job.grant.execution_fence.fence_hash,
-      payload_hash: payloadHash,
-      reason_code: release.reasonCode,
-      attempt_failure: release.attemptFailure,
+  const request: ProductionLeaseReleaseRequest = Object.freeze({
+    schema_version: "xuanxue-ai-lease-release.v6",
+    control_protocol_version: "xuanxue-ai-production-v6",
+    request_id: requestId,
+    job_id: job.job_id,
+    worker_session_id: session.workerSessionId,
+    worker_session_epoch: session.workerSessionEpoch,
+    attempt_id: job.grant.attempt_id,
+    lease_version: job.grant.lease_version,
+    fence_hash: job.grant.execution_fence.fence_hash,
+    payload_hash: payloadHash,
+    reason_code: release.reasonCode,
+    attempt_failure: release.attemptFailure,
+  });
+  return Object.freeze({
+    request,
+    descriptor: Object.freeze({
+      attempt_id: request.attempt_id,
+      lease_version: request.lease_version,
+      request_id: request.request_id,
+      body_payload_hash: request.payload_hash,
+      write_request_payload_hash: hashCanonical(request),
     }),
   });
-  return requestId;
+}
+
+export async function releaseProductionLease(
+  session: ProductionWorkerSession,
+  built: BuiltProductionLeaseRelease,
+): Promise<string> {
+  const { request } = built;
+  await session.request(`/internal/ai-production/v6/jobs/${encodeURIComponent(request.job_id)}/lease-release`, {
+    method: "POST",
+    headers: { "x-ai-execution-fence-hash": request.fence_hash },
+    body: JSON.stringify(request),
+  });
+  return request.request_id;
 }
 
 async function uploadJsonObject(

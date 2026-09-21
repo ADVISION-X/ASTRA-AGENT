@@ -47,6 +47,9 @@ class GptExecutionFailure extends TypedExecutionFailure {
       mutationOutcome, evidence, browserEffect,
       stoppedEmptyProof: proofFacts?.stoppedEmptyProof ?? null,
       childProof,
+      ...(proofFacts?.browserFact?.knownGptRateLimitPreflightFact
+        ? { knownGptRateLimitPreflightFact:
+            proofFacts.browserFact.knownGptRateLimitPreflightFact } : {}),
     }));
     this.childProof = childProof;
     this.reasoningRequirementResult = details.reasoningRequirementResult ?? null;

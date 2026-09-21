@@ -4,6 +4,7 @@ import { basename, dirname, join } from "node:path";
 import {
   createProductionGptChildTools,
   type GptAbilityGroup,
+  type ProviderEffectReadbackProofV1,
   type ProviderRateLimitControlPort,
 } from "../../../capabilities/gpt/index.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../../capabilities/forensics-persistence/index.js";
@@ -26,10 +27,12 @@ import type {
 import { PRODUCTION_BUSINESS_CAPACITY_MAX } from "./control-contract-dependency.js";
 import { assertProductionTaskRoutePolicy, productionRoutePolicy } from "./route-policy.js";
 import { ProductionRuntimeStore, type StoredProductionTask } from "./store.js";
+import type { AttemptFailureFirstFact } from "./terminal-failure.js";
 
 export interface ProductionExecutionResult {
   readonly record: StoredProductionTask;
   readonly result: WebsiteAgentResult;
+  readonly providerEffectReadbackProof: ProviderEffectReadbackProofV1 | null;
 }
 
 type ActiveGptExecution = ReturnType<ReturnType<typeof createProductionGptChildTools>["createExecution"]>;
@@ -191,6 +194,16 @@ export class ProductionExecutor {
     return this.store.acceptTask(task, attemptId);
   }
 
+  public acceptAfterFailureReconciled(
+    task: WebsiteAgentTask,
+    attemptId: string,
+    failure: AttemptFailureFirstFact,
+  ): StoredProductionTask {
+    assertProductionTaskRoutePolicy(task);
+    authorizeWebsiteAgentTask(task);
+    return this.store.acceptTaskAfterFailureReconciled(task, attemptId, failure);
+  }
+
   private startPluginSpan(
     task: WebsiteAgentTask,
     lease: ProductionExecutionLease,
@@ -260,9 +273,13 @@ export class ProductionExecutor {
     task: WebsiteAgentTask; materials: readonly LocalProductionMaterial[];
     lease: ProductionExecutionLease; span: RuntimeSpanHandle;
     complete: (output: ProductPluginOutput) => Promise<WebsiteAgentResult>; uploadGeneratedImage: (artifact: GeneratedImageArtifact) => Promise<GeneratedImageResultReceipt>;
-  }>): Promise<WebsiteAgentResult> {
+  }>): Promise<Readonly<{
+    result: WebsiteAgentResult;
+    providerEffectReadbackProof: ProviderEffectReadbackProofV1 | null;
+  }>> {
     let completed = false;
     let gptExecution: ActiveGptExecution | null = null;
+    let readProviderEffectReadbackProof: () => ProviderEffectReadbackProofV1 | null = () => null;
     const gptLifecycle: GptExecutionLifecycle = { decorateFailure: null, settle: null };
     let primaryError: unknown = null;
     let result: WebsiteAgentResult;
@@ -294,6 +311,7 @@ export class ProductionExecutor {
         });
         gptLifecycle.decorateFailure = gptExecution.decorateSettledResultFailure;
         gptLifecycle.settle = gptExecution.settle;
+        readProviderEffectReadbackProof = gptExecution.readProviderEffectReadbackProof;
         return {
           materials: input.materials,
           routePolicy,
@@ -322,7 +340,10 @@ export class ProductionExecutor {
       await settleGptExecution(gptLifecycle, primaryError);
     }
     if (!completed) throw new Error("PLUGIN_RESULT_NOT_COMPLETED");
-    return result;
+    return Object.freeze({
+      result,
+      providerEffectReadbackProof: readProviderEffectReadbackProof(),
+    });
   }
 
   private readContinuationParent(
@@ -373,7 +394,9 @@ export class ProductionExecutor {
         },
         artifacts: materials.map(productionMaterialBrowserArtifact),
       });
-      const result = await this.dispatchPlugin({ task, materials, lease, span, complete, uploadGeneratedImage });
+      const dispatched = await this.dispatchPlugin({
+        task, materials, lease, span, complete, uploadGeneratedImage,
+      });
       try {
         await browserArtifactLease.release();
       } catch (cleanupError) {
@@ -383,7 +406,11 @@ export class ProductionExecutor {
       }
       browserArtifactLease = null;
       requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
-      return { record: this.store.readTask(task.job_id)!, result };
+      return {
+        record: this.store.readTask(task.job_id)!,
+        result: dispatched.result,
+        providerEffectReadbackProof: dispatched.providerEffectReadbackProof,
+      };
     } catch (error) {
       let failure = error;
       if (browserArtifactLease) {

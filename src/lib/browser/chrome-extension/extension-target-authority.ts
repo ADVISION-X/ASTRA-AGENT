@@ -20,8 +20,10 @@ import {
 import type { ExtensionChromeApi, ExtensionDebugTarget } from "./extension-runtime-types.js";
 import { ChatGptPageAccessGate } from "./chatgpt-page-access-gate.js";
 import {
+  knownGptRateLimitAbsentEnvelope,
   knownGptRateLimitBlockerReceipt,
   observeKnownGptRateLimitDialog,
+  unrecognizedGptDialogReceipt,
 } from "./gpt-rate-limit-dialog.js";
 
 type TargetFrameSender = (
@@ -252,6 +254,7 @@ export class ExtensionTargetAuthority {
     command: BrowserGovernedCommand,
     target: ExtensionExactTarget,
     mutationClass: RegisteredExtensionCommand["mutationClass"],
+    exactCallIdentityHash: `sha256:${string}`,
     assertCommandActive: () => void = () => undefined,
     commandDeadlineAt?: number,
   ): Promise<unknown> {
@@ -266,7 +269,8 @@ export class ExtensionTargetAuthority {
             transientDomConfirmationStage,
           ),
       () => this.executeRegisteredCommandCycle(
-        command, target, mutationClass, assertCommandActive, commandDeadlineAt,
+        command, target, mutationClass, exactCallIdentityHash,
+        assertCommandActive, commandDeadlineAt,
       ),
       acknowledgeRateLimit ? "rate-limit-ack" : "ordinary",
     );
@@ -276,6 +280,7 @@ export class ExtensionTargetAuthority {
     command: BrowserGovernedCommand,
     target: ExtensionExactTarget,
     mutationClass: RegisteredExtensionCommand["mutationClass"],
+    exactCallIdentityHash: `sha256:${string}`,
     assertCommandActive: () => void,
     commandDeadlineAt?: number,
   ): Promise<unknown> {
@@ -284,10 +289,37 @@ export class ExtensionTargetAuthority {
       if (!(command.kind === "dom-intent"
         && (command.intent.kind === "acknowledgeKnownGptRateLimit"
           || command.intent.kind === "readKnownGptRateLimitClearance"))) {
-        const blocker = await observeKnownGptRateLimitDialog(this.debuggerRuntime, target);
+        const preflight = await observeKnownGptRateLimitDialog(
+          this.debuggerRuntime, target, exactCallIdentityHash,
+        );
         assertCommandActive();
-        if (blocker) return knownGptRateLimitBlockerReceipt(blocker);
+        if (preflight.state === "exact_present") return knownGptRateLimitBlockerReceipt(preflight);
+        if (preflight.state === "mismatch") return unrecognizedGptDialogReceipt(preflight);
+        const result = await this.executeRegisteredCommandBody(
+          command, target, exactCallIdentityHash, assertCommandActive, commandDeadlineAt,
+        );
+        return knownGptRateLimitAbsentEnvelope(preflight, result);
       }
+      return this.executeRegisteredCommandBody(
+        command, target, exactCallIdentityHash, assertCommandActive, commandDeadlineAt,
+      );
+    };
+
+    if (mutationClass === "mutation") {
+      return this.interactionReadiness.executeMutation(target, execute);
+    }
+    return mutationClass === "observation"
+      ? this.interactionReadiness.executeObservation(target, execute)
+      : execute();
+  }
+
+  private async executeRegisteredCommandBody(
+    command: BrowserGovernedCommand,
+    target: ExtensionExactTarget,
+    exactCallIdentityHash: `sha256:${string}`,
+    assertCommandActive: () => void,
+    commandDeadlineAt?: number,
+  ): Promise<unknown> {
       if (command.kind === "dom-intent") {
         if (command.intent.kind === "selectExactGptConversation") {
           return this.executeConversationSelection(target, command.intent.canonicalConversationUrl);
@@ -304,26 +336,19 @@ export class ExtensionTargetAuthority {
         }
         const result = await executeRegisteredDomIntent(
           this.debuggerRuntime, target, command.intent, assertCurrent,
-          expectedMainFrameLoaderId ?? undefined, commandDeadlineAt,
+          expectedMainFrameLoaderId ?? undefined, commandDeadlineAt, exactCallIdentityHash,
         );
         assertCurrent();
         return result;
       }
-      return executeRegisteredExtensionCommand(this.debuggerRuntime, target, command, {
+      return executeRegisteredExtensionCommand(
+        this.debuggerRuntime, target, command, {
         assertCurrent: () => {
           assertCommandActive();
           this.targets.resolve(target.targetRef, target.documentRef);
         },
         parkTarget: () => this.parkActiveTarget(),
       });
-    };
-
-    if (mutationClass === "mutation") {
-      return this.interactionReadiness.executeMutation(target, execute);
-    }
-    return mutationClass === "observation"
-      ? this.interactionReadiness.executeObservation(target, execute)
-      : execute();
   }
 
   public async retireInvalidCommandTarget(

@@ -2,7 +2,11 @@ import path from "node:path";
 import Database from "better-sqlite3";
 
 import { executionFailure, typedExecutionFailure } from "../../execution-failure.js";
-import type { SerializedExecutionFailure } from "./terminal-failure.js";
+import type {
+  AttemptFailureFirstFact,
+  SerializedExecutionFailure,
+  SerializedTerminalFailure,
+} from "./terminal-failure.js";
 import type { WebsiteAgentResult, WebsiteAgentTask } from "./contracts.js";
 import { hashCanonical, type ProductionHash } from "./contracts.js";
 
@@ -13,7 +17,7 @@ export interface StoredProductionTask {
   readonly status: ProductionTaskStatus;
   readonly result: WebsiteAgentResult | null;
   readonly staged_result: WebsiteAgentResult | null;
-  readonly attempt_failure: SerializedExecutionFailure | null;
+  readonly attempt_failure: AttemptFailureFirstFact | null;
   readonly current_attempt_id: string;
   readonly current_reason: string | null;
   readonly updated_at: string;
@@ -75,8 +79,8 @@ const validSerializedCause = (cause: unknown): boolean => cause === null || (
 const serializedFailureKeys = ["browser_outcome", "cause", "child_capability_id", "child_proof_hash",
   "child_proof_ref", "code", "effect_scope", "evidence_hash", "evidence_ref", "mutation_outcome",
   "stopped_empty_proof"];
-const historicalSerializedFailureKeys = ["browser_outcome", "cause", "child_capability_id", "code",
-  "effect_scope", "evidence_hash", "evidence_ref", "mutation_outcome"];
+const serializedTerminalFailureKeys = [...serializedFailureKeys,
+  "provider_effect_identity_hash", "settled_result_payload_hash"].sort();
 const stoppedEmptyTimestampsValid = (row: Record<string, unknown>): boolean =>
   typeof row.first_observed_at === "string" && Number.isFinite(Date.parse(row.first_observed_at))
   && new Date(row.first_observed_at).toISOString() === row.first_observed_at
@@ -146,13 +150,58 @@ export const isSerializedTerminalFailure = (value: unknown): value is Serialized
         : row.stopped_empty_proof === null);
 };
 
-export const isPersistedSerializedTerminalFailure = (value: unknown): boolean => {
-  if (isSerializedTerminalFailure(value)) return true;
+const terminalFailureTransportValid = (row: Record<string, unknown>): boolean => {
+  const providerHashValid = row.effect_scope === "provider_effect"
+    ? typeof row.provider_effect_identity_hash === "string"
+      && /^sha256:[a-f0-9]{64}$/u.test(row.provider_effect_identity_hash)
+    : row.provider_effect_identity_hash === null;
+  const settledHashValid = row.code === "RESULT_SETTLED_UNUSABLE"
+    ? row.effect_scope === "provider_effect" && row.browser_outcome === "CONFIRMED"
+      && row.mutation_outcome === "confirmed"
+      && typeof row.settled_result_payload_hash === "string"
+      && /^sha256:[a-f0-9]{64}$/u.test(row.settled_result_payload_hash)
+    : row.settled_result_payload_hash === null;
+  const stoppedEmptyValid = row.code !== "GPT_RESPONSE_STOPPED_EMPTY"
+    ? row.stopped_empty_proof === null && row.child_proof_ref === null && row.child_proof_hash === null
+    : row.effect_scope === "provider_effect" && row.browser_outcome === "CONFIRMED"
+      && row.child_capability_id === "submit_exact_gpt_turn_once"
+      && row.mutation_outcome === "confirmed" && row.stopped_empty_proof !== null
+      && serializedChildProofValid(row);
+  return providerHashValid && settledHashValid && stoppedEmptyValid
+    && !(row.effect_scope === "provider_effect"
+      && row.browser_outcome === "CONFIRMED" && row.mutation_outcome === "no");
+};
+
+export const isSerializedTerminalFailureTransport = (
+  value: unknown,
+): value is SerializedTerminalFailure => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
-  return row.code !== "GPT_RESPONSE_STOPPED_EMPTY"
-    && JSON.stringify(Object.keys(row).sort()) === JSON.stringify(historicalSerializedFailureKeys)
-    && serializedFailureCoreValid(row);
+  const executionFailure = Object.fromEntries(serializedFailureKeys.map((key) => [key, row[key]]));
+  return JSON.stringify(Object.keys(row).sort()) === JSON.stringify(serializedTerminalFailureKeys)
+    && isSerializedTerminalFailure(executionFailure)
+    && terminalFailureTransportValid(row);
+};
+
+const releaseDescriptorValid = (value: unknown): boolean => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  return JSON.stringify(Object.keys(row).sort()) === JSON.stringify([
+    "attempt_id", "body_payload_hash", "lease_version", "request_id", "write_request_payload_hash",
+  ])
+    && typeof row.attempt_id === "string" && row.attempt_id.length > 0
+    && Number.isSafeInteger(row.lease_version) && Number(row.lease_version) > 0
+    && typeof row.request_id === "string" && row.request_id.length > 0
+    && [row.body_payload_hash, row.write_request_payload_hash]
+      .every((hash) => typeof hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(hash));
+};
+
+export const isAttemptFailureFirstFact = (value: unknown): value is AttemptFailureFirstFact => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  return JSON.stringify(Object.keys(row).sort()) === JSON.stringify(["failure_core", "release_descriptor"])
+    && isSerializedTerminalFailureTransport(row.failure_core)
+    && releaseDescriptorValid(row.release_descriptor);
 };
 
 export const storedTaskFromRow = (row: TaskRow): StoredProductionTask => ({
@@ -161,7 +210,7 @@ export const storedTaskFromRow = (row: TaskRow): StoredProductionTask => ({
   result: row.result_json ? JSON.parse(row.result_json) as WebsiteAgentResult : null,
   staged_result: row.staged_result_json ? JSON.parse(row.staged_result_json) as WebsiteAgentResult : null,
   attempt_failure: row.attempt_failure_json
-    ? JSON.parse(row.attempt_failure_json) as SerializedExecutionFailure : null,
+    ? JSON.parse(row.attempt_failure_json) as AttemptFailureFirstFact : null,
   current_attempt_id: row.current_attempt_id,
   current_reason: row.current_reason,
   updated_at: row.updated_at,

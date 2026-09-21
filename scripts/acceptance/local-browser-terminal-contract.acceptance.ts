@@ -19,10 +19,14 @@ import { exerciseBrowserDiagnosticContract } from "./local-browser-diagnostic-co
 import {
   exactHash, exerciseBrowserMutationStore, exercisePostconditionNativeCauseWalRoundTrip, hash,
 } from "./local-browser-mutation-store-support.js";
-import { createBrowserActorFactory, createClickCommand, createMatchClickCommand, permit } from "./local-browser-terminal-fixture.js";
+import { createBrowserActorFactory, createClickCommand, createMatchClickCommand, permit,
+  rateLimitSpecialReceipt } from "./local-browser-terminal-fixture.js";
 import { permitAuthority, permitExecution } from "./local-browser-terminal-fixture.js";
 import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
 import { exerciseActorRejections } from "./local-browser-terminal-rejection-support.js";
+import { decodeKnownGptRateLimitPreflightReply } from
+  "../../src/lib/browser/exact-target/browser-special-mutation-receipt.js";
+import { absentPreflightEnvelope } from "./local-browser-terminal-fixture.js";
 const root = await mkdtemp(join(tmpdir(), "browser-mutation-state-"));
 try {
   exerciseBrowserMutationStore(root);
@@ -41,6 +45,23 @@ try {
   const clickCommand = createClickCommand();
   const matchClickCommand = createMatchClickCommand();
   const confirmedPermit = permit("actor-confirmed");
+  const validPreflight = absentPreflightEnvelope(confirmedPermit, { ok: true });
+  assert.deepEqual(
+    decodeKnownGptRateLimitPreflightReply(confirmedPermit, clickCommand, validPreflight).commandResult,
+    { ok: true },
+  );
+  assert.throws(() => decodeKnownGptRateLimitPreflightReply(
+    confirmedPermit, clickCommand, { ok: true },
+  ), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
+  "a bare command result must not survive after the v2 preflight cutover");
+  const validRecord = validPreflight as Readonly<Record<string, unknown>>;
+  const validFact = validRecord.knownGptRateLimitPreflightFact as Readonly<Record<string, unknown>>;
+  for (const tamperedFact of [
+    { ...validFact, exactCallIdentityHash: `sha256:${"f".repeat(64)}` },
+    { ...validFact, observationHash: `sha256:${"f".repeat(64)}` },
+  ]) assert.throws(() => decodeKnownGptRateLimitPreflightReply(
+    confirmedPermit, clickCommand, { ...validRecord, knownGptRateLimitPreflightFact: tamperedFact },
+  ), /BROWSER_AUTH_TRANSCRIPT_INVALID/u);
   await actorFor(async (candidate, _command, onDispatched) => {
     onDispatched?.();
     return {
@@ -62,6 +83,23 @@ try {
   }).execute(zeroActionPermit, clickCommand);
   assert.equal(actorStore.readCommand(zeroActionPermit.commandId)?.state ?? null, "CONFIRMED");
   assert.equal(actorStore.readMutationOutcome(zeroActionPermit.commandId), "no");
+  for (const special of [
+    { id: "actor-known-rate-limit", state: "exact_present" as const,
+      code: "BROWSER_KNOWN_GPT_RATE_LIMIT" },
+    { id: "actor-unrecognized-gpt-dialog", state: "mismatch" as const,
+      code: "BROWSER_GPT_DIALOG_UNRECOGNIZED" },
+  ]) {
+    const specialPermit = permit(special.id);
+    const specialActor = actorFor(async (candidate, _command, onDispatched) => {
+      onDispatched?.();
+      return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+        permitSequence: candidate.sequence,
+        result: rateLimitSpecialReceipt(candidate, special.state) };
+    }, false);
+    await assert.rejects(specialActor.execute(specialPermit, clickCommand), new RegExp(special.code, "u"));
+    assert.equal(actorStore.readCommand(specialPermit.commandId)?.state ?? null, "REJECTED");
+    assert.equal(actorStore.readMutationOutcome(specialPermit.commandId), "no");
+  }
   await exerciseActorRejections(actorRoot, actorFor, actorStore, clickCommand);
 
   const observationPermit: BrowserCommandPermit = {

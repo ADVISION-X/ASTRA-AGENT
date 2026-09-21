@@ -1,3 +1,6 @@
+import type { KnownGptRateLimitPreflightFact } from
+  "./browser/exact-target/browser-gpt-rate-limit-preflight.js";
+
 export type ExecutionFailureStatus = "failed";
 export type ExecutionMutationOutcome = "no" | "dispatched" | "confirmed";
 export type ProviderStoppedEmptyProof = Readonly<{
@@ -20,6 +23,7 @@ export type ExecutionFailureMetadata = Readonly<{
   settledResultPayloadHash?: `sha256:${string}` | null;
   stoppedEmptyProof?: ProviderStoppedEmptyProof | null;
   childProof?: Readonly<{ evidenceRef: string; evidenceHash: `sha256:${string}` }> | null;
+  knownGptRateLimitPreflightFact?: KnownGptRateLimitPreflightFact | null;
 }>;
 
 export class TypedExecutionFailure extends Error {

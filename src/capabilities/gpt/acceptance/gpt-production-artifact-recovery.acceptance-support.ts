@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import { failureCode } from "../../../lib/execution-failure.js";
-import { createGptAbilityGroup } from "../index.js";
+import { createGptAbilityGroup, isProviderEffectReadbackProofV1 } from "../index.js";
 import { gptCanonicalHash, gptExactCallIdentityHash } from "../contract.js";
 import { ProductionGptChildTools } from "../production-child-tools.js";
 import { exactAssistantTurnReply } from "./gpt-exact-target-browser-fixture.js";
@@ -97,6 +97,7 @@ try {
   });
   const browser = { target: { targetRef: "target:recovery" },
     document: { documentRef: "document:recovery" },
+    writerFenceHash: HASH_A,
     readAtomicStepOutcome: (identity: Readonly<{ childCapabilityId: string }>) => {
       if (identity.childCapabilityId === "submit_exact_gpt_turn_once") return submitOutcome;
       checkpointBrowserReads += 1;
@@ -155,6 +156,14 @@ try {
     productStepId: "research", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
     actionOrdinal: 1, input: submitInput });
   assert.equal(recoveredSubmit?.value.userTurnId, "conversation-turn-1");
+  const providerReadbackProof = execution.readProviderEffectReadbackProof();
+  assert.equal(isProviderEffectReadbackProofV1(providerReadbackProof), true);
+  assert.equal(providerReadbackProof?.provider_effect_identity_hash, HASH_A);
+  assert.equal(providerReadbackProof?.exact_call_identity_hash, submitExactCallIdentityHash);
+  assert.equal(providerReadbackProof?.browser_authority_ref, submitOutcome.authorityRef);
+  assert.equal(providerReadbackProof?.browser_authority_hash, submitOutcome.authorityHash);
+  assert.equal(providerReadbackProof?.readback_provider_input_delta, 0,
+    "a confirmed Provider effect recovery must add zero Browser input even when the original WAL input was one");
   const recovered = await execution.tools.execute(checkpointCall);
   assert.equal(recovered.value.semanticText, semanticText);
   assert.equal(recovered.artifactRefs[0], persistedArtifactRef);

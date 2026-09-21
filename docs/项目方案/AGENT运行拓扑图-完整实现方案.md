@@ -2,7 +2,7 @@
 
 ## 0. 方案状态与唯一结论
 
-状态：**FROZEN——现役事实表 v1 已由授权人批准；只读生产代码对照已授权，生产代码施工门仍关闭**。本方案把 AGENT—Website 现有交流中已经由现役法案、Blueprint、合同、实现或同事件原始证据证明的状态、字段、时序、Owner、返回事实、消费者和终点固化成唯一可查表单。它不是重构方案，不预先决定修改 manifest、Schema、法案、Blueprint、跨仓合同或生产实现。
+状态：**FROZEN——现役事实表 v2 已由授权人批准；双仓法案与施工图必须先对齐并完成主 Codex 两轮自审，生产代码门在此之前保持关闭**。本方案把 AGENT—Website 现有交流中已经由现役法案、Blueprint、合同、实现或同事件原始证据证明的状态、字段、时序、Owner、返回事实、消费者和终点固化成唯一可查表单。它不是重构方案，不预先决定修改 manifest、Schema、法案、Blueprint、跨仓合同或生产实现。
 
 **唯一结论**：不再以“某个 409、某个限流弹窗、某次 Tab 轮询”分别设计补丁，也不以“建立完整拓扑”为名批量改代码。必须按以下顺序推进：
 
@@ -72,25 +72,14 @@ Website Domain Consumer 对同一 job_id + result_payload_hash 幂等入库
 
 | 仓库 | realpath | branch / HEAD | tracking | 工作树 |
 |---|---|---|---|---|
-| AGENT | `/Users/nexgen/Documents/AGENT` | `main` / `69e58c004590b224ba9e07c61116657120f6bab1` | `origin/main` / `12c1c6578927c12d891e2f88db0c5470cd759ca6` | 两份既有项目方案 dirty；目标生产源、active law、Blueprint 当前 clean；本地 main 比 tracking 多 1 个已提交 Bazi result-contract 对齐提交 |
-| Website | `/Users/nexgen/Documents/xuanxue-web` | `main` / `8a71d36402cd6b797be1eed80308e1f0fc967e6b` | `origin/main` | clean |
+| AGENT | `/Users/nexgen/Documents/AGENT` | `main` / `69b00115f1be6478db26116969a1c5169255760b` | `origin/main` / `12c1c6578927c12d891e2f88db0c5470cd759ca6` | 本地 main 比 tracking 多 2 个提交；唯一未跟踪文件为本拓扑的生产代码对照与差异待修方案；本拓扑、active law、Blueprint 与生产源在本轮写入前 clean |
+| Website | `/Users/nexgen/Documents/xuanxue-web` | `main` / `8a71d36402cd6b797be1eed80308e1f0fc967e6b` | `origin/main` / 同 HEAD | 一份无交集的奇门方案未跟踪；active law、Blueprint 与本轮生产目标在写入前 clean |
 
-两份 dirty 方案是：
-
-- `docs/项目方案/GPT Provider效果跨恢复单调性与限流冷却门根治-完整实现方案.md`；
-- `docs/项目方案/GPT频率限制排空冷却-完整实现方案.md`。
-
-授权人已明确否定继续围绕这类局部方案往返迭代。两份文件从本方案生效起只是**历史输入和已知症状证据**，不得独立触发施工。由于它们当前含未归属 dirty overlay，本轮不删除、不恢复、不覆盖。
+未跟踪方案的边界是：AGENT 的生产代码对照与差异待修方案是本次已授权施工输入；Website 的奇门方案与本拓扑无交集，必须保留且不得修改、删除或据此扩大施工范围。
 
 ### 2.2 本轮授权
 
-本轮只授权设计并写入本唯一方案。未授权：
-
-- 修改 TypeScript、测试、Schema、数据库、Browser 或生产数据；
-- 修改 AGENT/Website active law、Blueprint、spec 或双仓合同；
-- 修改 `/Users/nexgen/.codex/skills/closed-loop-implementation-design` 全局 Skill；
-- 修改项目级 `.agents/skills/agent-flow-boundary-gatekeeper/SKILL.md`；
-- 运行真实 Product、动作 Chrome、触发 Provider、重试/恢复工单或执行双仓质检。
+授权人已明确授权 `WT-TOPOLOGY-001`、必要 active law、施工图、代码、质检系统与数据库操作，并要求严格按阶段施工：先完成法案/施工图对齐及主 Codex 不低于两轮自审且达到 98%，再进入生产代码；代码完成后主 Codex 再自审不低于两轮，随后才可启动只读子智能体审计。任何阶段授权都不得修改冻结 Skill、建立分支/工作树、兼容桥、第二链路或无真实消费者的治理结构；CI-FULL 只在代码与审计门闭合后由现役冻结 Skill 执行。
 
 ### 2.3 施工前必须重绑
 
@@ -373,7 +362,7 @@ ID 一旦进入冻结版本即永久保留语义，禁止改号复用。删除�
 | S20 | P3 Runtime 本地完成 | agent-production-runtime | `local_completed` | Runtime 机械校验同一 admission receipt 后的本地终态 | 不得先于有效 admission 或冒充 Website public completed |
 | S21 | P7 Domain Consumer | 命中业务域的 Website Domain Consumer | `pending \| rejected \| admitted` | staged result 的领域解释和接纳结果 | 不得决定 Product/Browser 恢复 |
 | S22 | P2 Website cooldown gate | Website ai-acceptance device authority | `blocked \| clearance_pending \| open` | Website server-time 与最新 incident/clearance receipt 形成的授权门 | 不等于 Browser 页面状态或 attempt failure |
-| S23 | P5/P6 evidence persistence | forensics-persistence-capability | `append_pending \| persisted \| readback_failed` | Child proof/artifact 的持久化与完整性事实 | 不解释 Product 恢复或业务完成 |
+| S23 | P5/P6 completed-answer artifact persistence | forensics-persistence-capability | `append_pending \| persisted \| readback_failed` | 仅已完成 GPT 回答的 task-owned raw artifact 持久化与完整性事实 | 普通 Child proof/failure 不落 Forensics；不解释 Product 恢复或业务完成 |
 
 ### 5.3 `N/G` 原子节点必填列
 
@@ -479,7 +468,7 @@ N01–N28 只收录当前 law/Blueprint 与现役实现共同可定位的单一 
 | N09 | Product 业务 Flow / P4 | 命中 route 的具体 Product Plugin | 只在当前 attempt/lease/abort 预算内决定 Child/skip/repeat/result | Product result 或一次 Child 调用；Product 自己读回 | first typed Product/Child failure；Runtime→Website；不公开 cursor |
 | N10 | Browser observation / P6 | local-browser-session | T01/T02；同包 current Document/revision；零动作 | coherent typed fact；GPT Child | stale/missing/ambiguous/pending；当前 Child 决定 WAIT/FAIL |
 | N11 | Browser mutation/WAL / P6 | local-browser-session | pre-dispatch WAL；`0..1` input；T03/T05 | S11/S12 + WAL readback；GPT Child | unresolved `DISPATCHED` 保留原 identity，禁止重放 |
-| N12 | Child proof 持久 / P5/P6 | forensics-persistence-capability | 每个 Child terminal 一份 append/readback/hash | proof ref/hash；Product，失败时 Runtime | 写入或 readback 不闭合则 Child 不得成功 |
+| N12 | completed-answer raw artifact 持久 / P5/P6 | forensics-persistence-capability | 仅成功的文本/图片答案 checkpoint 按 exact task/attempt/call identity append、readback、hash；普通 Child terminal/failure 写入增量为 0 | raw artifact ref/hash；当前 Product 调用链 | 写入或 readback 不闭合则该答案 checkpoint 不得成功；不得新增逐 Child ledger |
 | N13 | Runtime lease renew 与执行预算 / P3 | agent-production-runtime | T15；只请求并消费同一 attempt 的 Website renew receipt | fresh receipt 绑定当前 execution；继续执行 | 4xx/schema invalid/预算耗尽 abort；不创建 attempt |
 | N14 | result Outbox / P3 | agent-production-runtime 的唯一 Outbox | 同 `job + attempt + result hash` 一份幂等 intent | transport receipt；Website staging readback | deadline 未观察到 receipt 时查询同一 intent；不重做 Product/Provider |
 | N15 | attempt failure fact 投影与运输 / P3 | agent-production-runtime | 同 `(job_id, attempt_id)` 对外复用同一 first typed fact/identity | typed payload/hash；Website ai-acceptance readback | deadline 未取得 transport receipt 时只查同一请求；409 停止写入并读回原 fact |
@@ -629,7 +618,7 @@ G01–G14 与当前 `GPT_CHILD_CAPABILITY_CONTRACTS`、`handler-registry.ts` 和
 | H06 | Product → GPT Child | Product 私有调用输入 + call identity/deadline | Child 验证 authority inputs | typed rejection/failure；Product 决定下一业务动作 |
 | H07 | GPT Child → Browser | typed observation/mutation request + effect identity | Browser receipt/WAL/direct readback | rejected/dispatched/deadline-no-receipt；Browser 只 reconcile 同 effect |
 | H08 | Browser → GPT Child | coherent observation 或 S11/S12 terminal | Child direct postcondition | stale/ambiguous/pending；Child WAIT/FAIL |
-| H09 | GPT Child → Forensics | Child proof/evidence append intent + call identity | Forensics append/readback/hash | 写入/readback 失败；Child 不能成功 |
+| H09 | 成功的 GPT 答案 checkpoint → Forensics | completed-answer raw artifact append intent + exact task/attempt/call identity | Forensics append/readback/hash | 写入/readback 失败；该答案 checkpoint 不能成功；普通 Child/failure 不进入 Forensics |
 | H10 | Product → Runtime | result 或 first typed failure + evidence refs | Runtime exact result/failure binding | contract mismatch；Runtime 不解释 Product 语义 |
 | H11 | Runtime Outbox → Website staging | one intent + job/attempt/result hash | transport receipt + staging readback | deadline 未取得 receipt 时查同一 intent；Runtime Outbox 恢复 |
 | H12 | Website staging → Domain Consumer | staged payload + job/result hash | 领域对象 + admission receipt | consumer rejection/pending；Domain Consumer Owner |
@@ -638,7 +627,7 @@ G01–G14 与当前 `GPT_CHILD_CAPABILITY_CONTRACTS`、`handler-registry.ts` 和
 | H15 | Runtime failure → ai-acceptance | 同 attempt 单调 failure fact | Website 原 fact/next action readback | 409 读回原 fact；Website recovery Owner |
 | H16 | Browser → Runtime cooldown Outbox | N16 incident/ack/clearance fact + effect identity | N23 intent/readback；incident 必须先于 ack/clearance 交付 | pending/not_cleared 保持本地 submit gate |
 | H17 | ai-acceptance → Runtime | session credential/receipt | Runtime 验证并绑定有效 session | stale/rejected/deadline-no-receipt；session/claim=0 |
-| H18 | Forensics → Product | proof ref/hash + typed outcome | Product 读回 proof 完整性并消费 | 缺失/不等；Product 保持失败 |
+| H18 | Forensics → 当前 Product 调用链 | completed-answer raw artifact ref/hash | 当前调用链读回 artifact 完整性并消费 | 缺失/不等；该答案 checkpoint 保持失败 |
 | H19 | Runtime cooldown Outbox → Website device authority | incident/ack/clearance intent + idempotency identity | N24 receipt + server-time/cohort gate readback | deadline 未取得 receipt 时查同一 intent；不另建队列 |
 | H20 | Website lease authority → Runtime | renew receipt + current attempt/fence/expiry | N13 验证并更新进程内预算 | stale/invalid/ended；Runtime abort |
 | H21 | Website deletion/revocation → Runtime | exact job absence/revocation fact | N26 Runtime-owned absence readback | 失败报告 Website；其它 job 不动 |
@@ -673,7 +662,7 @@ H01–H24 只描述相邻 Owner 的事实交付，不执行步骤、不安排 ti
 | I15 | S10、G01、O17–O20 | visible text/actionability 必须区分 absent、exact_present 与 mismatch |
 | I16 | S11/S12、G12、O03/O04/O11、H07/H08 | prepare 前先读回同一 confirmed effect identity |
 | I17 | G12、O03/O04/O11、H07/H08 | dispatched/confirmed 后 submit 增量为 0 |
-| I18 | S23、N12、G01–G14、H09/H18 | proof/artifact append、readback 与 hash 属于同一 Forensics authority |
+| I18 | S23、N12、H09/H18 | 只有已完成答案 raw artifact 的 append、readback 与 hash 属于 Forensics；普通 Child proof 留在当前执行内存，Browser 机械终态由 Browser WAL 持久，Runtime 故障由现役 current reason/runtime log 记录，三者不得合并成第二 ledger |
 | I19 | S15/S16/S21、N14/N17/N22、O06/O16、H11/H12 | staged 被拒后只重消费同一 payload，不重跑 Provider |
 | I20 | S14–S17/S20/S21、N14/N17/N18/N21/N22、O05–O07、H11–H14 | transport、staging、public/local completed 均不得冒充领域入库 |
 | I21 | N15/N20、O02/O08/O21、H15 | 同 attempt failure 单调；409 后停止重写并读回原 fact |
@@ -889,23 +878,24 @@ Skill 是施工纪律守门人，不是运行权威、第二拓扑副本或修�
 
 | 编号 | 当前边界 | 唯一解除条件 |
 |---|---|---|
-| B1 | 只读生产代码对照已授权，结果只能进入唯一差异待修方案 | 对照结束后由授权人决定是否批准具体 mismatch 施工 |
-| B2 | 生产代码、法案、Blueprint、Website、数据库和动态验证仍未授权修改 | 对每个精确差异另行取得施工授权 |
+| B1 | `WT-TOPOLOGY-001` 已授权并由本版闭合；法案/施工图优先门仍生效 | 两轮主 Codex 自审达到 98% 且无阻断 finding 后才进入代码 |
+| B2 | 必要法案、Blueprint、Website、数据库、代码与质检已授权，但只能按既定工单和阶段执行 | 每一阶段前重绑 candidate/dirty set；禁止兼容桥、第二链路和范围扩张 |
 | B3 | 项目 Skill 修改未授权 | 另行授权后只允许现有 Skill 引用冻结基线 |
 | B4 | 当前存量工单的活体权威读回和恢复未授权 | 如需处理具体工单，另行授权只读归位及后续精确动作 |
 
-授权人已批准本版并授权只读代码对照，不授权修改法案、Blueprint、Manifest、Website 合同、生产代码或 Skill。代码对照如果证明某一冻结行与现役 authority 冲突，先报告精确 ID 和证据并走新版本拓扑变更；不得用代码反向静默修改本冻结版本，也不得预先申请一揽子跨仓改造。
+授权人已批准建立并冻结 v2，并授权按既定差异方案修改必要法案、Blueprint、代码、质检与数据库。授权不包含修改冻结 Skill，也不取消法案/施工图优先、主 Codex 自审、只读独立审计、主仓施工和唯一质量入口等阶段门。
 
 ---
 
 ## 16. 文档身份与冻结记录
 
 - 唯一路径：`docs/项目方案/AGENT运行拓扑图-完整实现方案.md`
-- 表单版本：`agent-runtime-topology-form.v1`
-- 状态：`FROZEN / 事实行已绑定 / 生产代码只读对照已授权`
+- 表单版本：`agent-runtime-topology-form.v2`
+- supersedes：`agent-runtime-topology-form.v1`（v1 字节与冻结 hash 由 Git 历史保留，不建立并行 v2/new 同职文件）
+- 状态：`FROZEN / 事实行已绑定 / 法案与施工图优先施工已授权 / 代码门受阶段条件约束`
 - 批准人：`授权人（本会话）`
-- 批准时间：`2026-09-21T15:15:16+04:00`
+- 批准时间：`2026-09-21T17:08:16+04:00`
 - 冻结 hash 规范：UTF-8 原文删除“冻结规范化 SHA-256”和“当前文档规范化 SHA-256”两行后执行 SHA-256。
-- 冻结规范化 SHA-256：`507b09ceb03772fff0eb4f23abc6238066a85c8f12c1a4c291e7db0c9eda7b76`
-- 当前文档规范化 SHA-256：`507b09ceb03772fff0eb4f23abc6238066a85c8f12c1a4c291e7db0c9eda7b76`
+- 冻结规范化 SHA-256：`74d8b9d3ef88f7290bb7309447064f9da1568b3e9f5dba4bff64d46b23ff6283`
+- 当前文档规范化 SHA-256：`74d8b9d3ef88f7290bb7309447064f9da1568b3e9f5dba4bff64d46b23ff6283`
 - 本文件是施工前唯一冻结拓扑事实基线，不是 runtime state、运行时合同、quality verdict、CHANGE、READY、RELEASE 或生产完成证据。任何对照和待修内容只能写入 §5.7 指定文件。

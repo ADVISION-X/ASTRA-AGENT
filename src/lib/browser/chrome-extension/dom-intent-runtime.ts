@@ -294,12 +294,16 @@ export const executeRegisteredDomIntent = async (
   assertCurrent: CurrentDocumentAssertion,
   expectedMainFrameLoaderId?: string,
   commandDeadlineAt?: number,
+  exactCallIdentityHash?: `sha256:${string}`,
 ): Promise<unknown> => {
   assertCurrent();
   if (intent.kind === "selectExactGptConversation") throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   if (intent.kind === "acknowledgeKnownGptRateLimit"
     || intent.kind === "readKnownGptRateLimitClearance") {
-    return executeKnownGptRateLimitIntent(debuggerRuntime, target, intent, assertCurrent);
+    if (!exactCallIdentityHash) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    return executeKnownGptRateLimitIntent(
+      debuggerRuntime, target, intent, exactCallIdentityHash, assertCurrent,
+    );
   }
   if (intent.kind === "document" || intent.kind === "observe") {
     return executeDocumentReadIntent(debuggerRuntime, target, intent);

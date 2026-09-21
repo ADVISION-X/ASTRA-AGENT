@@ -116,8 +116,17 @@ export const exerciseProductionRuntimeSourceBoundaries = async (): Promise<void>
   assert.doesNotMatch(executorSource, /runTurn|ProductionGptExecutor|GPT_TURN_FLOW/u);
   assert.match(executorSource, /gpt: gptExecution\.tools/u);
   const executeClaimSource = runtimeSource.slice(runtimeSource.indexOf("export const executeClaim"));
-  assert.match(storeSource, /attempt_failure_json=null,current_reason='LEASE_REGRANTED'/u);
+  assert.doesNotMatch(storeSource, /attempt_failure_json=null,current_reason='LEASE_REGRANTED'/u);
+  assert.match(storeSource,
+    /stageResultAfterProviderEffectReadback[\s\S]*?set attempt_failure_json=null,staged_result_json=\?/u);
   assert.doesNotMatch(executeClaimSource, /recoverAcceptedClaim|reconcileStaleFenceCheckpoint/u);
+  const mismatchBranch = executeClaimSource.indexOf(
+    'code === "BROWSER_GPT_DIALOG_UNRECOGNIZED"',
+  );
+  const persistFailure = executeClaimSource.indexOf("await persistAttemptFailure", mismatchBranch);
+  assert.ok(mismatchBranch >= 0 && persistFailure > mismatchBranch);
+  assert.match(executeClaimSource.slice(mismatchBranch, persistFailure),
+    /setCurrentReason\(job\.job_id, "BROWSER_GPT_DIALOG_UNRECOGNIZED"\)[\s\S]*return;/u);
   assert.doesNotMatch(outboxSource, /recoverCheckpointPrefix|deliverReauthorizedStaleCheckpoint/u);
   assert.doesNotMatch(runtimeStartupSource, /PROCESS_RESTART_ATTEMPT_ENDED|endUnsentAttemptWrites/u);
   assert.doesNotMatch(runtimeSource, /ATTEMPT_ENDED:/u);

@@ -13,7 +13,7 @@ import { productionCatalogHash } from "./catalog.js";
 import { PRODUCTION_BUSINESS_CAPACITY_MAX } from "./control-contract-dependency.js";
 import { hashCanonical } from "./contracts.js";
 import type { ProductionRuntimeHealth } from "./runtime-contract.js";
-import { executeClaim } from "./runtime-claim.js";
+import { executeClaim, reconcilePendingAttemptFailures } from "./runtime-claim.js";
 import { reconcileBusinessAdmission } from "./runtime-business-admission.js";
 import { terminalSpanFailure } from "./runtime-logging.js";
 import {
@@ -167,6 +167,7 @@ const reconcilePendingBusinessAdmissions = async (state: RuntimeState): Promise<
 const workerIteration = async (state: RuntimeState): Promise<number> => {
   await state.executor.reconcilePendingProviderRateLimitIncidents(state.abort.signal);
   await state.providerRateLimitControl.reconcilePendingIntents();
+  await reconcilePendingAttemptFailures(state);
   await reconcilePendingBusinessAdmissions(state);
   refreshLedgerReconciled(state);
   const attestation = await state.session.ensureFreshAttestation();

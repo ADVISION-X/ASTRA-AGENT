@@ -11,7 +11,7 @@ import {
 import { typedExecutionFailure } from "../../execution-failure.js";
 import {
   releaseProductionLease,
-  type ProductionLeaseRelease,
+  type BuiltProductionLeaseRelease,
 } from "./cloud-client.js";
 import type { ClaimedProductionTask } from "./transport-protocol.js";
 import { typedRuntimeTransportFailure } from "./transport-failure.js";
@@ -79,7 +79,7 @@ export const releaseLeaseWithLog = async (
   state: RuntimeState,
   job: ClaimedProductionTask,
   parentSpanId: string,
-  release: ProductionLeaseRelease,
+  release: BuiltProductionLeaseRelease,
   causedByEventId: string,
 ): Promise<string> => {
   const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
@@ -87,7 +87,7 @@ export const releaseLeaseWithLog = async (
     operation: "job.lease-release", typedIdentity: jobIdentity(job),
   }));
   try {
-    const requestId = await releaseProductionLease(state.session, job, release);
+    const requestId = await releaseProductionLease(state.session, release);
     requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
     return requestId;
   } catch (error) {

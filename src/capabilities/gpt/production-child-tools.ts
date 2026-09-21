@@ -5,8 +5,10 @@ import {
   type GptChildCapabilityId,
   type GptChildCapabilityIntent,
   type GptChildCapabilityResult,
+  type GptExecutionContext,
   type ProductGptChildCapabilityId,
 } from "./contract.js";
+import { failedGptChildExecutionResult } from "./ability-group.js";
 import { gptExactCallIdentityHash } from "./contract.js";
 import { gptCanonicalHash } from "./contract.js";
 import {
@@ -48,7 +50,10 @@ import {
 } from "./production-rate-limit-closure.js";
 import {
   throwGptChildFailure,
+  isProviderEffectReadbackProofV1,
+  providerEffectReadbackProofHash,
   type GptProductionExecutionInput as ExecutionInput,
+  type ProviderEffectReadbackProofV1,
   type ProductGptExecution,
 } from "./production-child-support.js";
 
@@ -58,6 +63,9 @@ type ExecuteOneOptions = Readonly<{
   priorEffectKnown?: boolean;
   rateLimitAckDispatchNotAfter?: number;
   browserAtomicIdentity?: BrowserAtomicStepIdentity;
+  recordConfirmedProviderEffectReadback?: NonNullable<
+    GptExecutionContext["recordConfirmedProviderEffectReadback"]
+  >;
 }>;
 
 export class ProductionGptChildTools {
@@ -94,11 +102,35 @@ export class ProductionGptChildTools {
   }
   public createExecution(input: ExecutionInput): ProductGptExecution {
     const browsers = this.browserLifecycle(input);
+    let providerEffectReadbackProof: ProviderEffectReadbackProofV1 | null = null;
+    const recordConfirmedProviderEffectReadback: NonNullable<
+      GptExecutionContext["recordConfirmedProviderEffectReadback"]
+    > = (raw) => {
+      const body = Object.freeze({
+        schema_version: "provider-effect-readback-proof.v1" as const,
+        job_id: raw.jobId,
+        attempt_id: raw.attemptId,
+        result_revision: raw.resultRevision,
+        provider_effect_identity_hash: raw.providerEffectIdentityHash,
+        exact_call_identity_hash: raw.exactCallIdentityHash,
+        browser_authority_ref: raw.browserAuthorityRef,
+        browser_authority_hash: raw.browserAuthorityHash,
+        readback_provider_input_delta: raw.readbackProviderInputDelta,
+      });
+      const next = Object.freeze({ ...body, proof_hash: providerEffectReadbackProofHash(body) });
+      if (!isProviderEffectReadbackProofV1(next)
+        || (providerEffectReadbackProof && providerEffectReadbackProof.proof_hash !== next.proof_hash)) {
+        throw executionFailure("failed", "PROVIDER_EFFECT_READBACK_PROOF_CONFLICT");
+      }
+      providerEffectReadbackProof = next;
+    };
     const execute = async <K extends ProductGptChildCapabilityId>(
       call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
     ): Promise<ProductGptChildResult<K>> => {
       this.assertExecutionActive(input);
-      const result = await this.executeOne(input, browsers, call);
+      const result = await this.executeOne(input, browsers, call, {
+        recordConfirmedProviderEffectReadback,
+      });
       return result as ProductGptChildResult<K>;
     };
     return Object.freeze({
@@ -108,8 +140,11 @@ export class ProductionGptChildTools {
         execute,
         readConfirmedSubmit: (
           call: ProductGptCallInput<"submit_exact_gpt_turn_once"> & Readonly<{ sessionKey: string }>,
-        ) => this.readConfirmedSubmit(input, browsers, call),
+        ) => this.readConfirmedSubmit(
+          input, browsers, call, recordConfirmedProviderEffectReadback,
+        ),
       }),
+      readProviderEffectReadbackProof: () => providerEffectReadbackProof,
       decorateSettledResultFailure: (error) => browsers.decorateSettledResultFailure(error),
       settle: (error) => browsers.settle(error),
     });
@@ -119,7 +154,11 @@ export class ProductionGptChildTools {
     input: ExecutionInput,
     browsers: ProductionGptBrowserLifecycle,
     call: ProductGptCallInput<"submit_exact_gpt_turn_once"> & Readonly<{ sessionKey: string }>,
+    recordConfirmedProviderEffectReadback: NonNullable<
+      GptExecutionContext["recordConfirmedProviderEffectReadback"]
+    >,
   ): Promise<ProductGptChildResult<"submit_exact_gpt_turn_once"> | null> {
+    const startedAt = new Date().toISOString();
     this.assertExecutionActive(input);
     const intent = this.intentFor(input, call);
     const currentAtomicIdentity = productionGptAtomicIdentity(
@@ -167,8 +206,39 @@ export class ProductionGptChildTools {
       if (!active.facade.readAtomicStepOutcome(atomicIdentity)) return null;
       return await this.executeOne<"submit_exact_gpt_turn_once">(input, browsers, call, {
         priorEffectKnown: true, browserAtomicIdentity: atomicIdentity,
+        recordConfirmedProviderEffectReadback,
       });
     } catch (error) {
+      const code = failureCode(error);
+      if ((code === "BROWSER_GPT_DIALOG_UNRECOGNIZED"
+        || code === "BROWSER_KNOWN_GPT_RATE_LIMIT")
+        && typedGptExecutionFailure(error)?.proofFacts?.browserFact
+          ?.knownGptRateLimitPreflightFact) {
+        throw error;
+      }
+      if (code === "BROWSER_GPT_DIALOG_UNRECOGNIZED"
+        || code === "BROWSER_KNOWN_GPT_RATE_LIMIT") {
+        const failed = await failedGptChildExecutionResult({
+          intent,
+          context: { dataDir: this.dataDir, signal: input.abortSignal },
+          startedAt,
+          error,
+        });
+        if (code === "BROWSER_KNOWN_GPT_RATE_LIMIT") {
+          const closureError = await this.closeKnownRateLimitAndReadGate(
+            input, browsers, call, failed,
+          );
+          if (closureError) {
+            throw gptExecutionFailure(failureCode(closureError), {
+              mutationOutcome: effect.mutationOutcome,
+              evidence: { evidenceRef: effect.evidenceRef, evidenceHash: effect.evidenceHash },
+              browserEffect: effect,
+              cause: closureError,
+            });
+          }
+        }
+        throwGptChildFailure(failed, failed.proof.evidenceRef, undefined, effect);
+      }
       throw gptExecutionFailure(failureCode(error, prior.outcome === "CONFIRMED"
         ? "GPT_CONFIRMED_SUBMIT_READBACK_FAILED" : "PROVIDER_EFFECT_OUTCOME_UNPROVEN"), {
         mutationOutcome: effect.mutationOutcome, evidence: {
@@ -367,23 +437,56 @@ export class ProductionGptChildTools {
     }
   }
 
+  private async closeKnownRateLimitAndReadGate(
+    execution: ExecutionInput,
+    browsers: ProductionGptBrowserLifecycle,
+    call: Readonly<{ sessionKey: string }>,
+    result: GptChildCapabilityResult,
+  ): Promise<unknown | null> {
+    try {
+      this.providerRateLimitControl.assertProviderSubmitAllowed();
+    } catch (gateError) {
+      if (failureCode(gateError) === "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE") return null;
+      return gateError;
+    }
+    let closureError: unknown = executionFailure(
+      "failed", "PROVIDER_RATE_LIMIT_CLOSURE_DID_NOT_TERMINATE",
+    );
+    try {
+      await closeKnownProviderRateLimit({
+        execution, call, result,
+        providerRateLimitControl: this.providerRateLimitControl,
+        executeAcknowledgement: (acknowledgement, dispatchNotAfter) => this.executeOne(
+          execution, browsers, acknowledgement, { rateLimitAckDispatchNotAfter: dispatchNotAfter },
+        ),
+      });
+    } catch (caught) {
+      closureError = caught;
+    }
+    try {
+      this.providerRateLimitControl.assertProviderSubmitAllowed();
+    } catch (gateError) {
+      if (failureCode(gateError) === "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE") return null;
+    }
+    return closureError;
+  }
+
   private async executeOne<K extends GptChildCapabilityId>(execution: ExecutionInput,
     browsers: ProductionGptBrowserLifecycle,
     call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
     {
       priorEffectKnown = false,
-      rateLimitAckDispatchNotAfter, browserAtomicIdentity,
+      rateLimitAckDispatchNotAfter, browserAtomicIdentity, recordConfirmedProviderEffectReadback,
     }: ExecuteOneOptions = {},
   ): Promise<ProductGptChildResult<K>> {
     const intent = this.intentFor(execution, call), contract = GPT_CHILD_CAPABILITY_CONTRACTS[call.child];
+    const startedAt = new Date().toISOString();
     const span = this.childSpan(execution, intent);
     let result: GptChildCapabilityResult | undefined;
     let evidenceRef: string;
     let evidenceHash: GptHash;
     let artifactRefs: readonly string[] = Object.freeze([]);
     let browserCall: Awaited<ReturnType<ProductionGptBrowserLifecycle["browserFor"]>> | undefined;
-    const readsConfirmedEffect = call.child === "checkpoint_gpt_text_response"
-      || call.child === "checkpoint_gpt_generated_image";
     try {
       browserCall = await acquireProductionBrowserCall(browsers, call,
         contract.requiredTargetKind, priorEffectKnown);
@@ -395,31 +498,66 @@ export class ProductionGptChildTools {
         browsers, intent: intent as GptAnyChildCapabilityIntent, browserCall, signal: execution.abortSignal,
         resultRevision: execution.resultRevision, childCapabilityId: call.child,
         ...(browserAtomicIdentity ? { browserAtomicIdentity } : {}),
+        ...(recordConfirmedProviderEffectReadback ? { recordConfirmedProviderEffectReadback } : {}),
         assertProviderInputAllowed: () => this.providerRateLimitControl.assertProviderSubmitAllowed(),
         ...(rateLimitAckDispatchNotAfter === undefined ? {} : { rateLimitAckDispatchNotAfter }) });
-      if (result.status !== "success" && result.failureCode === "BROWSER_KNOWN_GPT_RATE_LIMIT"
-        && call.child !== "acknowledge_known_gpt_rate_limit") {
-        await closeKnownProviderRateLimit({
-          execution, call, result,
-          providerRateLimitControl: this.providerRateLimitControl,
-          executeAcknowledgement: (acknowledgement, dispatchNotAfter) => this.executeOne(
-            execution, browsers, acknowledgement, { rateLimitAckDispatchNotAfter: dispatchNotAfter },
-          ),
+      if (result.status !== "success" && result.failureCode === "BROWSER_KNOWN_GPT_RATE_LIMIT") {
+        if (call.child !== "acknowledge_known_gpt_rate_limit") {
+          const closureError = await this.closeKnownRateLimitAndReadGate(
+            execution, browsers, call, result,
+          );
+          if (closureError) {
+            return this.terminalizeError(
+              span, closureError, browserCall?.confirmedProviderEffect ?? null,
+            );
+          }
+        }
+        evidenceRef = result.proof.browserFact?.evidenceRef ?? result.proof.evidenceRef;
+        evidenceHash = result.proof.evidenceHash;
+      } else {
+        await recordConfirmedSubmission(call, result, intent as GptAnyChildCapabilityIntent,
+          execution, browsers, browserCall, browserAtomicIdentity);
+        artifactRefs = await persistGptEvidenceArtifacts({
+          result, intent, evidenceStore: this.evidenceStore,
+          jobId: execution.jobId, attemptId: execution.attemptId,
+          exactCallIdentityHash: gptExactCallIdentityHash(intent),
         });
+        evidenceRef = artifactRefs[0]
+          ?? result.proof.browserFact?.evidenceRef ?? result.proof.evidenceRef;
+        evidenceHash = result.proof.evidenceHash;
       }
-      await recordConfirmedSubmission(call, result, intent as GptAnyChildCapabilityIntent,
-        execution, browsers, browserCall, browserAtomicIdentity);
-      artifactRefs = await persistGptEvidenceArtifacts({
-        result, intent, evidenceStore: this.evidenceStore,
-        jobId: execution.jobId, attemptId: execution.attemptId,
-        exactCallIdentityHash: gptExactCallIdentityHash(intent),
-      });
-      evidenceRef = artifactRefs[0] ?? result.proof.browserFact?.evidenceRef ?? result.proof.evidenceRef;
-      evidenceHash = result.proof.evidenceHash;
     } catch (error) {
-      return this.terminalizeError(
-        span, error, readsConfirmedEffect ? browserCall?.confirmedProviderEffect : null,
-      );
+      const code = failureCode(error);
+      if (code !== "BROWSER_GPT_DIALOG_UNRECOGNIZED"
+        && code !== "BROWSER_KNOWN_GPT_RATE_LIMIT") {
+        return this.terminalizeError(
+          span, error, browserCall?.confirmedProviderEffect ?? null,
+        );
+      }
+      const atomicIdentity = browserCall
+        ? browserAtomicIdentity ?? productionGptAtomicIdentity(
+          intent as GptAnyChildCapabilityIntent, execution.resultRevision,
+        ) : undefined;
+      const context: GptExecutionContext = {
+        dataDir: this.dataDir,
+        signal: execution.abortSignal,
+        ...(browserCall ? { browser: browserCall.facade } : {}),
+        ...(atomicIdentity ? { browserAtomicIdentity: atomicIdentity } : {}),
+      };
+      result = await failedGptChildExecutionResult({ intent, context, startedAt, error });
+      evidenceRef = result.proof.browserFact?.evidenceRef ?? result.proof.evidenceRef;
+      evidenceHash = result.proof.evidenceHash;
+      if (code === "BROWSER_KNOWN_GPT_RATE_LIMIT"
+        && call.child !== "acknowledge_known_gpt_rate_limit") {
+        const closureError = await this.closeKnownRateLimitAndReadGate(
+          execution, browsers, call, result,
+        );
+        if (closureError) {
+          return this.terminalizeError(
+            span, closureError, browserCall?.confirmedProviderEffect ?? null,
+          );
+        }
+      }
     }
     if (!result) return this.terminalizeError(
       span, executionFailure("failed", "GPT_CHILD_RESULT_MISSING"), undefined,
@@ -428,7 +566,8 @@ export class ProductionGptChildTools {
     if (result.status !== "success") {
       throwGptChildFailure(
         result, evidenceRef, terminalEventId,
-        readsConfirmedEffect ? browserCall?.confirmedProviderEffect : null,
+        result.failureCode === "BROWSER_GPT_DIALOG_UNRECOGNIZED"
+          ? null : browserCall?.confirmedProviderEffect ?? null,
       );
     }
     const successful = result as Extract<GptChildCapabilityResult, { status: "success" }>;
@@ -438,3 +577,7 @@ export class ProductionGptChildTools {
   }
 
 }
+
+export const createProductionGptChildTools = (
+  ...input: ConstructorParameters<typeof ProductionGptChildTools>
+): ProductionGptChildTools => new ProductionGptChildTools(...input);

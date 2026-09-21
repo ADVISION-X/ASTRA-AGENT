@@ -6,11 +6,13 @@ import path from "node:path";
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
+import { readProductionDeviceJobStatus } from
+  "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
 import {
   serializeTerminalFailure,
   serializeTerminalFailureTransport,
 } from "../../src/lib/local-runtime/production/terminal-failure.js";
-import { task } from "./agent-production-runtime-fixtures.js";
+import { attemptFailureFirstFact, task } from "./agent-production-runtime-fixtures.js";
 
 const directory = await mkdtemp(path.join(tmpdir(), "agent-fresh-attempt-"));
 try {
@@ -27,13 +29,45 @@ try {
     mutation_outcome: "confirmed", effect_scope: "provider_effect",
     child_capability_id: "submit_exact_gpt_turn_once", browser_outcome: "CONFIRMED",
     provider_effect_identity_hash: providerEffectHash, settled_result_payload_hash: null });
+  const remoteFailureCore = serializeTerminalFailureTransport(
+    executionFailure("failed", "REMOTE_FAILURE_FACT"),
+  );
+  const remoteFailure = { ...remoteFailureCore, from_status: "failed", to_status: "failed",
+    attempt_id: "attempt:remote-failure", lease_version: 3 };
+  const deviceStatus = (attemptFailure: unknown) => ({
+    schema_version: "xuanxue-ai-device-job-status.v6",
+    job_id: "job:remote-failure",
+    status: "failed",
+    current_reason: null,
+    attempt_failure: attemptFailure,
+    control_intent: { schema_version: "xuanxue-ai-control-intent.v6",
+      job_id: "job:remote-failure", control_epoch: 0, intent: "none", reason_code: null },
+    next_action_code: "ACTIVE_ATTEMPT",
+    terminal_status: null,
+    terminal_payload_hash: null,
+    business_admission_receipt: null,
+    business_consumer_error: null,
+    accepted_attempt_count: 1,
+    write_receipts: [],
+  });
+  const parsedRemote = await readProductionDeviceJobStatus({
+    request: async () => deviceStatus(remoteFailure),
+  } as never, "job:remote-failure");
+  assert.deepEqual(parsedRemote.attempt_failure, remoteFailure);
+  await assert.rejects(readProductionDeviceJobStatus({
+    request: async () => deviceStatus(serializeTerminalFailure(
+      executionFailure("failed", "LEGACY_REMOTE_FAILURE"),
+    )),
+  } as never, "job:remote-failure"),
+  (error: unknown) => typedExecutionFailure(error)?.code === "V6_DEVICE_ATTEMPT_FAILURE_INVALID");
   const runtimeClaim = await readFile(new URL(
     "../../src/lib/local-runtime/production/runtime-claim.ts", import.meta.url,
   ), "utf8");
   assert.doesNotMatch(runtimeClaim, /browser-mutation-authority|browser-mutations\.sqlite/u,
     "Runtime must transport the public typed effect fact without reading Browser private storage");
   assert.match(runtimeClaim, /serializeTerminalFailureTransport/u);
-  assert.match(runtimeClaim, /provider_effect_identity_hash: _effectTransportOnly/u);
+  assert.doesNotMatch(runtimeClaim, /provider_effect_identity_hash: _effectTransportOnly/u);
+  assert.match(runtimeClaim, /buildProductionLeaseRelease/u);
   const runtimeLoops = await readFile(new URL(
     "../../src/lib/local-runtime/production/runtime-loops.ts", import.meta.url,
   ), "utf8");
@@ -47,10 +81,12 @@ try {
     actionId: "observe",
   });
   store.acceptTask(job, "attempt:1");
+  const firstFailure = attemptFailureFirstFact("attempt:1",
+    serializeTerminalFailure(executionFailure("failed", "PRODUCT_EXECUTION_FAILED")));
   store.recordAttemptFailure(
     job.job_id,
     "attempt:1",
-    serializeTerminalFailure(executionFailure("failed", "PRODUCT_EXECUTION_FAILED")),
+    firstFailure,
   );
   const artifactKey = "artifact:fresh-attempt";
   store.enqueue({
@@ -73,11 +109,15 @@ try {
     }),
     (error: unknown) => typedExecutionFailure(error)?.code === "CLOUD_TRANSPORT_UNAVAILABLE",
   );
-  const regranted = store.acceptTask(job, "attempt:1");
+  assert.throws(() => store.acceptTask(job, "attempt:1"),
+    /PRODUCTION_ATTEMPT_FAILURE_RECONCILIATION_REQUIRED/u);
+  const regranted = store.acceptTaskAfterFailureReconciled(job, "attempt:1", firstFailure);
   assert.equal(regranted.current_reason, "LEASE_REGRANTED");
-  assert.equal(regranted.attempt_failure, null,
-    "Website regrant of the same accepted attempt must permit zero-submit result convergence");
-  const fresh = store.acceptTask(job, "attempt:2");
+  assert.deepEqual(regranted.attempt_failure, firstFailure,
+    "Website regrant of the same accepted attempt must retain the first failure fact");
+  assert.throws(() => store.acceptTask(job, "attempt:2"),
+    /PRODUCTION_ATTEMPT_FAILURE_RECONCILIATION_REQUIRED/u);
+  const fresh = store.acceptTaskAfterFailureReconciled(job, "attempt:2", firstFailure);
   assert.equal(fresh.current_attempt_id, "attempt:2");
   assert.equal(fresh.attempt_failure, null);
   assert.equal(fresh.staged_result, null);
@@ -141,9 +181,10 @@ try {
   });
   assert.equal(store.readOutboxAuthority("regrant-stale")?.state, "delivered");
   store.enqueue(fencedWrite("regrant-replaced", "fence:A"));
-  store.recordAttemptFailure(regrantJob.job_id, "attempt:1",
+  const replacedFailure = attemptFailureFirstFact("attempt:1",
     serializeTerminalFailure(executionFailure("failed", "PRODUCT_EXECUTION_FAILED")));
-  store.acceptTask(regrantJob, "attempt:2");
+  store.recordAttemptFailure(regrantJob.job_id, "attempt:1", replacedFailure);
+  store.acceptTaskAfterFailureReconciled(regrantJob, "attempt:2", replacedFailure);
   assert.equal(store.readOutboxAuthority("regrant-replaced")?.lastError, "WEBSITE_ATTEMPT_REPLACED");
   store.enqueue(fencedWrite("regrant-replaced", "fence:B"));
   await assert.rejects(store.deliverOutbox("regrant-replaced", neverSend),

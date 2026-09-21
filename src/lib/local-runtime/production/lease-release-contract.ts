@@ -1,4 +1,4 @@
-import type { SerializedExecutionFailure } from "./terminal-failure.js";
+import type { SerializedTerminalFailure } from "./terminal-failure.js";
 
 export type ProductionLeaseRelease =
   | Readonly<{
@@ -7,5 +7,5 @@ export type ProductionLeaseRelease =
   }>
   | Readonly<{
     reasonCode: "ATTEMPT_FAILED";
-    attemptFailure: SerializedExecutionFailure;
+    attemptFailure: SerializedTerminalFailure;
   }>;

@@ -34,6 +34,19 @@ export type SerializedTerminalFailure = SerializedExecutionFailure & Readonly<{
   settled_result_payload_hash: `sha256:${string}` | null;
 }>;
 
+export type AttemptFailureReleaseDescriptor = Readonly<{
+  attempt_id: string;
+  lease_version: number;
+  request_id: string;
+  body_payload_hash: `sha256:${string}`;
+  write_request_payload_hash: `sha256:${string}`;
+}>;
+
+export type AttemptFailureFirstFact = Readonly<{
+  failure_core: SerializedTerminalFailure;
+  release_descriptor: AttemptFailureReleaseDescriptor;
+}>;
+
 export const serializeTerminalFailure = (
   error: unknown,
 ): SerializedExecutionFailure => {

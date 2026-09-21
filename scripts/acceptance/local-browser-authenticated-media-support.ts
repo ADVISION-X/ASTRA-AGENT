@@ -87,6 +87,20 @@ type MediaExerciseInput = Readonly<{
   setRuntime(value: Runtime | null): void;
 }>;
 
+const acceptanceExactCallIdentityHash = `sha256:${"e".repeat(64)}` as const;
+const execute = async (
+  input: MediaExerciseInput,
+  authority: ReturnType<MediaExerciseInput["authority"]["resolve"]>,
+): Promise<unknown> => {
+  const result = await input.authority.executeRegisteredCommand(
+    command, authority, "observation", acceptanceExactCallIdentityHash,
+  );
+  if (!result || typeof result !== "object" || Array.isArray(result)) return result;
+  const record = result as Readonly<Record<string, unknown>>;
+  return record.schemaVersion === "grasseye.browser.command-preflight.v1"
+    ? record.commandResult : result;
+};
+
 const exerciseMediaSuccess = async (
   input: MediaExerciseInput,
   authority: ReturnType<MediaExerciseInput["authority"]["resolve"]>,
@@ -95,9 +109,7 @@ const exerciseMediaSuccess = async (
   second: TestImage,
 ): Promise<void> => {
   input.setRuntime(runtime({ turns: [user(), response([first, second])], bytes }));
-  const authenticated = await input.authority.executeRegisteredCommand(
-    command, authority, "observation",
-  ) as Record<string, unknown>;
+  const authenticated = await execute(input, authority) as Record<string, unknown>;
   assert.equal(authenticated.sha256, `sha256:${createHash("sha256").update(bytes).digest("hex")}`);
   assert.equal(authenticated.assistantTurnId, "conversation-turn-6");
   assert.equal(authenticated.precedingUserTurnId, command.userTurnId);
@@ -109,9 +121,7 @@ const exerciseMediaSuccess = async (
   const observationCount = { value: 0 };
   input.setRuntime(runtime({ turns: [user(), response([])],
     turnsAfterObserve: [user(), response([first])], observationCount, bytes }));
-  const hydrated = await input.authority.executeRegisteredCommand(
-    command, authority, "observation",
-  ) as Record<string, unknown>;
+  const hydrated = await execute(input, authority) as Record<string, unknown>;
   assert.equal(hydrated.assistantTurnId, "conversation-turn-6");
   assert.equal(observationCount.value, 1,
     "authenticated media must wait on source hydration inside the same Browser observation");
@@ -126,20 +136,20 @@ const exerciseMediaFailures = async (
 ): Promise<void> => {
   input.setRuntime(runtime({ turns: [user(), response([first, second])],
     bytesForSource: (source) => source.endsWith("/a") ? bytes : new Uint8Array([1, 2, 3, 4]) }));
-  await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"),
+  await assert.rejects(execute(input, authority),
     /BROWSER_AUTHENTICATED_MEDIA_CONTENT_MULTIPLE/u);
   const afterNextUser = new TestTurn("conversation-turn-8", false, [first]);
   for (const turns of [[] as readonly TestTurn[], [user(), response([])],
     [user(), new TestTurn("conversation-turn-7", true), afterNextUser]]) {
     input.setRuntime(runtime({ turns }));
-    await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"),
+    await assert.rejects(execute(input, authority),
       /BROWSER_AUTHENTICATED_MEDIA_(?:USER_TURN|IMAGE_SOURCE)_ABSENT/u);
   }
   input.setRuntime(runtime({ turns: [user(), user(), response([first])] }));
-  await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"),
+  await assert.rejects(execute(input, authority),
     /BROWSER_AUTHENTICATED_MEDIA_USER_TURN_MULTIPLE/u);
   input.setRuntime(runtime({ turns: [user(), response([first])], currentUrl: `${GPT_WEB_ORIGIN}/c/wrong` }));
-  await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"),
+  await assert.rejects(execute(input, authority),
     /BROWSER_AUTHENTICATED_MEDIA_WRONG_DOCUMENT/u);
 };
 
@@ -152,14 +162,14 @@ const exerciseMediaFetchFailures = async (
   const fetchCount = { value: 0 };
   const duplicate = new TestImage(`${GPT_WEB_ORIGIN}/content/same`);
   input.setRuntime(runtime({ turns: [user(), response([duplicate, duplicate])], bytes, fetchCount }));
-  await input.authority.executeRegisteredCommand(command, authority, "observation");
+  await execute(input, authority);
   assert.equal(fetchCount.value, 1, "the same authenticated resource URL must be fetched once");
   for (const failure of [
     { input: { rejectFetch: true }, expected: /BROWSER_AUTHENTICATED_MEDIA_FETCH_FAILED/u },
     { input: { responseStatus: 403 }, expected: /BROWSER_AUTHENTICATED_MEDIA_FETCH_REJECTED/u },
   ]) {
     input.setRuntime(runtime({ turns: [user(), response([first])], ...failure.input }));
-    await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"), failure.expected);
+    await assert.rejects(execute(input, authority), failure.expected);
   }
   for (const invalid of [
     { bytes, mediaType: "text/plain", failure: /BROWSER_AUTHENTICATED_MEDIA_TYPE_INVALID/u },
@@ -169,7 +179,7 @@ const exerciseMediaFetchFailures = async (
   ]) {
     input.setRuntime(runtime({ turns: [user(), response([first])],
       bytes: invalid.bytes, mediaType: invalid.mediaType }));
-    await assert.rejects(input.authority.executeRegisteredCommand(command, authority, "observation"), invalid.failure);
+    await assert.rejects(execute(input, authority), invalid.failure);
   }
 };
 

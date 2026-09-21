@@ -37,6 +37,7 @@ import {
 import { extensionFrameDiagnostic, extensionRuntimeDiagnostic } from "./websocket-actor-diagnostics.js";
 import { acceptTargetClaimAcknowledgement, TargetClaimAwaiter } from "./websocket-target-claim-awaiter.js";
 import { targetOperationFrom } from "./websocket-target-operation.js";
+import { knownGptRateLimitExactCallIdentityHash } from "./gpt-rate-limit-dialog.js";
 
 declare const __GRASSEYE_RELEASE_BUILD_ID__: string;
 
@@ -355,6 +356,7 @@ export class ExtensionWebSocketActor {
         command,
         target,
         registeredCommand.mutationClass,
+        await knownGptRateLimitExactCallIdentityHash(permit),
         assertCommandActive,
         deadline,
       );

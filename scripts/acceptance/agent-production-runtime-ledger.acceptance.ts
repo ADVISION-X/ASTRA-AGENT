@@ -11,11 +11,18 @@ import { resolveStoredProductionAuthority } from
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { ProviderRateLimitControl } from
   "../../src/lib/local-runtime/production/provider-rate-limit-control.js";
+import { buildProductionLeaseRelease } from
+  "../../src/lib/local-runtime/production/cloud-client.js";
 import { parseProviderCooldownReceipt } from
   "../../src/lib/local-runtime/production/provider-cooldown-receipt.js";
-import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
+import {
+  serializeTerminalFailure,
+  serializeTerminalFailureTransport,
+} from "../../src/lib/local-runtime/production/terminal-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
-import { HASH_A, HASH_B, resultFor, task } from "./agent-production-runtime-fixtures.js";
+import {
+  HASH_A, HASH_B, attemptFailureFirstFact, claimTask, resultFor, task,
+} from "./agent-production-runtime-fixtures.js";
 import { verifyBrowserFailureStoreContract } from
   "./agent-production-runtime-browser-failure.acceptance-support.js";
 
@@ -43,22 +50,79 @@ try {
   const firstAttempt = "attempt:three-truths:1";
   store.acceptTask(accepted, firstAttempt);
   store.markExecuting(accepted.job_id);
-  const firstFailure = serializeTerminalFailure(executionFailure("failed", "PROVIDER_REJECTED"));
+  const legacyFailure = serializeTerminalFailure(executionFailure("failed", "PROVIDER_REJECTED"));
+  assert.throws(() => store.recordAttemptFailure(
+    accepted.job_id, firstAttempt, legacyFailure as never,
+  ), /PRODUCTION_ATTEMPT_FAILURE_INVALID/u,
+  "the removed 11-key attempt failure shape must not remain a persistence compatibility path");
+  const firstFailure = attemptFailureFirstFact(firstAttempt, legacyFailure);
   store.recordAttemptFailure(accepted.job_id, firstAttempt, firstFailure);
   store.recordAttemptFailure(accepted.job_id, firstAttempt, firstFailure);
   assert.deepEqual(store.readTask(accepted.job_id)?.attempt_failure, firstFailure);
+  assert.throws(() => store.completeTask(accepted.job_id, resultFor(accepted)),
+    /PRODUCTION_TASK_COMPLETION_CONFLICT/u,
+    "a task with a surviving first failure fact must never become completed");
+  const releaseClaim = claimTask(task({
+    jobId: "job:release-builder", productId: "payment_screenshot_observation", actionId: "observe",
+  }));
+  const releaseCore = attemptFailureFirstFact(releaseClaim.grant.attempt_id, legacyFailure).failure_core;
+  const builtRelease = buildProductionLeaseRelease({
+    workerSessionId: releaseClaim.grant.worker_session_id,
+    workerSessionEpoch: releaseClaim.grant.worker_session_epoch,
+  } as never, releaseClaim, { reasonCode: "ATTEMPT_FAILED", attemptFailure: releaseCore });
+  assert.equal(builtRelease.descriptor.body_payload_hash, builtRelease.request.payload_hash);
+  assert.equal(builtRelease.descriptor.write_request_payload_hash, hashCanonical(builtRelease.request));
+  assert.equal(builtRelease.descriptor.request_id, builtRelease.request.request_id);
   verifyBrowserFailureStoreContract(store);
   assert.throws(() => store.recordAttemptFailure(
     accepted.job_id,
     firstAttempt,
-    serializeTerminalFailure(executionFailure("failed", "DIFFERENT_FAILURE")),
+    attemptFailureFirstFact(firstAttempt,
+      serializeTerminalFailure(executionFailure("failed", "DIFFERENT_FAILURE"))),
   ), /PRODUCTION_ATTEMPT_FAILURE_IMMUTABLE/u);
 
   const secondAttempt = "attempt:three-truths:2";
-  const second = store.acceptTask(accepted, secondAttempt);
+  assert.throws(() => store.acceptTask(accepted, firstAttempt),
+    /PRODUCTION_ATTEMPT_FAILURE_RECONCILIATION_REQUIRED/u);
+  assert.deepEqual(store.acceptTaskAfterFailureReconciled(
+    accepted, firstAttempt, firstFailure,
+  ).attempt_failure, firstFailure,
+  "a reconciled same-attempt regrant must preserve the first failure fact");
+  assert.throws(() => store.acceptTask(accepted, secondAttempt),
+    /PRODUCTION_ATTEMPT_FAILURE_RECONCILIATION_REQUIRED/u);
+  const second = store.acceptTaskAfterFailureReconciled(accepted, secondAttempt, firstFailure);
   assert.equal(second.current_attempt_id, secondAttempt);
   assert.equal(second.attempt_failure, null);
   assert.equal(store.acceptTask(accepted, secondAttempt).current_reason, "LEASE_REGRANTED");
+
+  const recoveryTask = task({
+    jobId: "job:provider-effect-readback-stage",
+    productId: "payment_screenshot_observation",
+    actionId: "observe",
+  });
+  const recoveryAttempt = "attempt:provider-effect-readback-stage";
+  store.acceptTask(recoveryTask, recoveryAttempt);
+  const providerFailure = attemptFailureFirstFact(recoveryAttempt,
+    serializeTerminalFailureTransport(executionFailure("failed", "PRODUCT_EXECUTION_FAILED", {
+      metadata: {
+        mutationOutcome: "confirmed",
+        evidence: { evidenceRef: "browser-mutation:provider-effect", evidenceHash: HASH_A },
+        browserEffect: {
+          effectScope: "provider_effect",
+          childCapabilityId: "submit_exact_gpt_turn_once",
+          browserOutcome: "CONFIRMED",
+          providerEffectIdentityHash: HASH_B,
+        },
+      },
+    })));
+  store.recordAttemptFailure(recoveryTask.job_id, recoveryAttempt, providerFailure);
+  const recoveryResult = resultFor(recoveryTask);
+  assert.throws(() => store.stageResult(recoveryTask.job_id, recoveryResult),
+    /PRODUCTION_ATTEMPT_ALREADY_FAILED/u);
+  store.stageResultAfterProviderEffectReadback(recoveryTask.job_id, recoveryResult, providerFailure);
+  assert.equal(store.readTask(recoveryTask.job_id)?.attempt_failure, null);
+  assert.deepEqual(store.readTask(recoveryTask.job_id)?.staged_result, recoveryResult);
+  await store.purgeJob(recoveryTask.job_id);
 
   const artifactKey = "artifact:three-truths";
   store.enqueue({
@@ -110,6 +174,13 @@ try {
   assert.throws(() => cleanProviderControl.assertProviderSubmitAllowed(),
     /PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE/u,
     "an active Website cooldown reason must close submit even without local incident history");
+  cleanProviderControl.observeWebsiteAuthority({
+    serverNow: "2030-01-01T00:00:02.000Z",
+    reasonCodes: ["PROVIDER_RATE_LIMIT_CLEARANCE_PENDING"],
+  });
+  assert.throws(() => cleanProviderControl.assertProviderSubmitAllowed(),
+    /PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE/u,
+    "Website clearance_pending must close submit even without local incident history");
   const cooldownKey = "aipcooldown_0123456789abcdef0123456789abcdef01234567";
   store.enqueue({
     idempotency_key: cooldownKey,

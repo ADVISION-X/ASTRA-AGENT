@@ -33,10 +33,11 @@ export const closeKnownProviderRateLimit = async (input: Readonly<{
   const dialogHash = "sha256:084b621b91e3affcf2199269157febb07ded1b7a3287ac61104108317cddde15";
   const observedAtRef = input.result.proof.factResultIds.find((value) =>
     value.startsWith("browser-known-gpt-rate-limit|"));
-  const [, observedAt = "", targetRefHash = "", documentRefHash = ""] =
+  const [, observedAt = "", exactCallIdentityHash = "", targetRefHash = "", documentRefHash = ""] =
     observedAtRef?.split("|") ?? [];
   const observationHash = input.result.proof.authorityRefHashes[0];
   if (!Number.isFinite(Date.parse(observedAt)) || !observationHash
+    || !/^sha256:[a-f0-9]{64}$/u.test(exactCallIdentityHash)
     || !/^sha256:[a-f0-9]{64}$/u.test(targetRefHash)
     || !/^sha256:[a-f0-9]{64}$/u.test(documentRefHash)) {
     throw executionFailure("failed", "PROVIDER_RATE_LIMIT_OBSERVATION_INVALID");

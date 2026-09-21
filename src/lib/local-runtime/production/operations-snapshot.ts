@@ -131,7 +131,8 @@ const localRows = (input: Readonly<{
     const task = input.store.readTask(jobId);
     rows.push(row({ axis: "agent_task", owner: "agent-production-runtime", current_value: task ? {
       status: task.status, current_reason: task.current_reason, attempt_id: task.current_attempt_id,
-      attempt_failure_code: task.attempt_failure?.code ?? null, staged_result: task.staged_result !== null,
+      attempt_failure_code: task.attempt_failure?.failure_core.code ?? null,
+      staged_result: task.staged_result !== null,
       result: task.result !== null,
     } : null, reason_code: task?.current_reason ?? "LOCAL_TASK_ABSENT",
     observed_at: task?.updated_at ?? observedAt, freshness: snapshotFreshness,
