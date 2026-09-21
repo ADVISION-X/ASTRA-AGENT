@@ -309,6 +309,7 @@
         "scripts/acceptance/local-browser-proof-support.ts",
         "scripts/acceptance/local-browser-property-model.acceptance.ts",
         "scripts/acceptance/local-browser-provider-effect-recovery.acceptance.ts",
+        "scripts/acceptance/local-browser-rate-limit-detector.acceptance-support.ts",
         "scripts/acceptance/local-browser-rule-mutants.acceptance.ts",
         "scripts/acceptance/local-browser-target-lifecycle-support.ts",
         "scripts/acceptance/local-browser-terminal-contract.acceptance.ts",
