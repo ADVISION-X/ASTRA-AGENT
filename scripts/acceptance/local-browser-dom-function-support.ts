@@ -113,12 +113,12 @@ const userPromptFixture = () => {
 
 const exerciseUserPromptWhitespaceHashes = async (source: string): Promise<void> => {
   const { userPrompt } = userPromptFixture();
-  const prompts = ["[GRASSEYE:exact-user-prompt]\\napproved\\u00a0prompt",
-    "[GRASSEYE:exact-user-prompt]\\napproved\\u202fprompt",
-    "[GRASSEYE:exact-user-prompt]\\napproved\\u2007prompt",
-    "[GRASSEYE:exact-user-prompt]\\napproved\\tprompt",
-    "[GRASSEYE:exact-user-prompt]\\napproved  prompt",
-    "[GRASSEYE:exact-user-prompt]\\napproved\\nprompt"] as const;
+  const prompts = ["[GRASSEYE:exact-user-prompt]\napproved\u00a0prompt",
+    "[GRASSEYE:exact-user-prompt]\napproved\u202fprompt",
+    "[GRASSEYE:exact-user-prompt]\napproved\u2007prompt",
+    "[GRASSEYE:exact-user-prompt]\napproved\tprompt",
+    "[GRASSEYE:exact-user-prompt]\napproved  prompt",
+    "[GRASSEYE:exact-user-prompt]\napproved\nprompt"] as const;
   for (const [index, exactPrompt] of prompts.entries()) {
     const body = new FakeElement(exactPrompt, {}, {}, {
       "data-testid": "collapsible-user-message-content",

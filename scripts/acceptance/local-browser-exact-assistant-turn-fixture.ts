@@ -8,7 +8,7 @@ export const exactAssistantTarget = Object.freeze({
   tabId: 111, targetRef: "target-111", documentRef: "document-11", navigationEpoch: 11,
   jobRefHash: `sha256:${"a".repeat(64)}` as const, loaderId: "loader-current",
 });
-const observedAt = "2026-09-04T00:00:00.000Z";
+export const exactAssistantObservedAt = "2026-09-04T00:00:00.000Z";
 export const successfulAssistantObservation = Object.freeze({
   rawCount: 1,
   rawDomHtml: "<div><strong>complete</strong></div>", semanticText: "**complete**",
@@ -16,7 +16,7 @@ export const successfulAssistantObservation = Object.freeze({
   assistantTurnId: "conversation-turn-2",
   precedingUserTurnId: "conversation-turn-1",
   generatingRaw: 0,
-  observedAt, pendingCause: null, nativeStage: "runtime-call-function-on",
+  observedAt: exactAssistantObservedAt, pendingCause: null, nativeStage: "runtime-call-function-on",
 });
 export const exactConversationFixtureUrl = successfulAssistantObservation.currentUrl;
 

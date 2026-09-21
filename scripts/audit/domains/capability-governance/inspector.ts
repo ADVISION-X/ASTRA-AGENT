@@ -16,121 +16,21 @@ import { resolveCapabilityFacadePolicy } from "./components/capability-source-of
 import { pushCapabilitySourceOfTruthFindings } from "./components/capability-governance-report.js";
 import { pushFacadePurityFindings } from "./components/capability-facade-purity.js";
 import { inspectCapabilityFacadeTypes } from "./components/capability-facade-types.js";
-import { isOwnerlessGenericTarget } from "./components/capability-path-boundary.js";
 import { createDedupedFindingPusher, pushMechanicalContentAstFindings,
   pushMechanicalContentDependencyFindings, pushMechanicalContentTypeFindings,
 } from "./mechanical-content-inspection.js";
+import {
+  pushCapabilityCrossOwnerImportFindings,
+  pushCapabilityPluginImportFindings,
+  pushChildCompositionFindings,
+  registerCapabilityRoot,
+} from "./capability-import-inspection.js";
 
 const MECHANICAL_CONTENT_LAW_ID = "LAW-CAPABILITY-GOVERNANCE-002-V2";
-
-
-const registerCapabilityRoot = (capabilityRoots: Set<string>, repoPath: string): void => {
-  const pathInfo = classifyRepoPath(repoPath);
-  if (pathInfo.kind === "capability") {
-    capabilityRoots.add(buildCapabilityRoot(pathInfo.owner));
-  }
-};
 
 const resolveCapabilityRoot = (repoPath: string): string | undefined => {
   const pathInfo = classifyRepoPath(repoPath);
   return pathInfo.kind === "capability" ? buildCapabilityRoot(pathInfo.owner) : undefined;
-};
-
-const pushCapabilityPluginImportFindings = (
-  sourceFile: Parameters<typeof getRepoSourcePath>[0],
-  repoPath: string,
-  facadeLawId: string,
-  pushFinding: ReturnType<typeof createDedupedFindingPusher>,
-): void => {
-  for (const importDeclaration of sourceFile.getImportDeclarations()) {
-    const targetSourceFile = importDeclaration.getModuleSpecifierSourceFile();
-    if (!targetSourceFile) {
-      continue;
-    }
-    const targetPath = getRepoSourcePath(targetSourceFile);
-    if (!targetPath.startsWith("src/plugins/")) {
-      continue;
-    }
-    pushFinding({
-      checkId: "capability-group/capability-imports-plugin",
-      lawId: facadeLawId,
-      filePath: repoPath,
-      evidence: targetPath,
-      message: `${repoPath} imports plugin-owned code ${targetPath}.`,
-    });
-  }
-};
-
-const pushCapabilityCrossOwnerImportFindings = (
-  sourceFile: Parameters<typeof getRepoSourcePath>[0],
-  repoPath: string,
-  facadeLawId: string,
-  pushFinding: ReturnType<typeof createDedupedFindingPusher>,
-): void => {
-  const sourceCapabilityRoot = resolveCapabilityRoot(repoPath);
-  if (!sourceCapabilityRoot) {
-    return;
-  }
-
-  for (const importDeclaration of sourceFile.getImportDeclarations()) {
-    const targetSourceFile = importDeclaration.getModuleSpecifierSourceFile();
-    if (!targetSourceFile) {
-      continue;
-    }
-    const targetPath = getRepoSourcePath(targetSourceFile);
-    const targetPathInfo = classifyRepoPath(targetPath);
-    if (targetPathInfo.kind === "other" && isOwnerlessGenericTarget(targetPath)) {
-      pushFinding({
-        checkId: "capability-group/ownerless-generic-import",
-        lawId: facadeLawId,
-        filePath: repoPath,
-        evidence: targetPath,
-        message: `${repoPath} imports capability logic from ownerless generic path ${targetPath}.`,
-      });
-      continue;
-    }
-    if (targetPathInfo.kind !== "capability") {
-      continue;
-    }
-    const targetCapabilityRoot = buildCapabilityRoot(targetPathInfo.owner);
-    if (targetCapabilityRoot === sourceCapabilityRoot) {
-      continue;
-    }
-    pushFinding({
-      checkId: "capability-group/cross-owner-import",
-      lawId: facadeLawId,
-      filePath: repoPath,
-      evidence: targetPath,
-      message: `${repoPath} imports unrelated capability owner code ${targetPath}.`,
-    });
-  }
-};
-
-const pushChildCompositionFindings = (
-  sourceFile: Parameters<typeof getRepoSourcePath>[0],
-  repoPath: string,
-  facadeLawId: string,
-  pushFinding: ReturnType<typeof createDedupedFindingPusher>,
-): void => {
-  const sourceInfo = classifyRepoPath(repoPath);
-  if (sourceInfo.kind !== "capability" || sourceInfo.section !== "children") return;
-  const sourceChildId = repoPath.split("/")[4];
-  if (!sourceChildId) return;
-  for (const importDeclaration of sourceFile.getImportDeclarations()) {
-    const targetSourceFile = importDeclaration.getModuleSpecifierSourceFile();
-    if (!targetSourceFile) continue;
-    const targetPath = getRepoSourcePath(targetSourceFile);
-    const targetInfo = classifyRepoPath(targetPath);
-    if (targetInfo.kind !== "capability" || targetInfo.owner !== sourceInfo.owner || targetInfo.section !== "children") continue;
-    if (targetPath.split("/")[4] === sourceChildId) continue;
-    pushFinding({
-      checkId: "capability-group/child-composes-child",
-      lawId: facadeLawId,
-      filePath: repoPath,
-      evidence: targetPath,
-      message: `${repoPath} composes sibling child ability ${targetPath} instead of one atomic action.`,
-    });
-  }
 };
 
 const hasExportStarFacade = (sourceFile: Parameters<typeof getRepoSourcePath>[0]): boolean =>

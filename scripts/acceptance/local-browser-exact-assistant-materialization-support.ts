@@ -116,7 +116,9 @@ const exerciseMaterializationHit = async (): Promise<void> => {
     assert.equal(hitAtStep3.materializeCallCount(), 3, "the walk must stop at the step that hits");
     assert.equal(hitAtStep3.mainCallCount(), 2,
       "an unavailable read followed by exactly one re-read after materialization");
-    const alreadyMounted = await execute(exactAssistantRuntimeFor(successfulAssistantObservation));
+    const alreadyMounted = await executeExactAssistantFixture(
+      exactAssistantRuntimeFor(successfulAssistantObservation),
+    );
     assert.deepEqual(materialized, alreadyMounted,
       "T3.7: a hit-after-materialization reply must equal the already-mounted control exactly");
   });
@@ -244,4 +246,3 @@ export const exerciseExactAssistantMaterialization = async (): Promise<void> => 
   await exerciseMaterializationExtensionOwnedClock();
   await exerciseMaterializationNoSideEffects();
 };
-
