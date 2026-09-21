@@ -12,7 +12,7 @@ import type {
   ProductionGptBrowserCall, ProductionGptBrowserLifecycle,
 } from "./production-browser-lifecycle.js";
 import { productionGptAtomicIdentity } from "./production-atomic-call.js";
-import type { GptProductionExecutionInput as ExecutionInput } from "./production-child-support.js";
+import type { GptProductionExecutionInput as ExecutionInput } from "./production-ports.js";
 import { persistGptEvidenceArtifacts } from "./evidence-artifacts.js";
 import type { GptEvidenceStorePort } from "./production-ports.js";
 

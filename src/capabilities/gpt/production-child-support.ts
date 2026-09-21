@@ -14,26 +14,7 @@ import type { ProductionGptBrowserCall } from "./production-browser-lifecycle.js
 import type { BrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
 import { productionGptAtomicIdentity } from "./production-atomic-call.js";
 import { failedGptChildExecutionResult } from "./ability-group.js";
-
-export type GptProductionExecutionInput = Readonly<{
-  jobId: string;
-  productId: string;
-  ownerRef: string;
-  subjectRef: string;
-  authorizationRef: string;
-  resultRevision: number;
-  attemptId: string;
-  deviceId: string;
-  leaseVersion: number;
-  executionFenceHash: GptHash;
-  capabilityManifestHash: GptHash;
-  maxProviderTurns: number;
-  expiresAtMonotonic: number;
-  commandTtlMs: number;
-  abortSignal: AbortSignal;
-  parentSpanId: string;
-  providerContinuationParent?: Readonly<{ jobId: string; acceptedAttemptId: string }>;
-}>;
+import type { GptProductionExecutionInput } from "./production-ports.js";
 
 export type ProviderEffectReadbackProofV1 = Readonly<{
   schema_version: "provider-effect-readback-proof.v1";

@@ -49,10 +49,10 @@ import {
   handleGptChildExecutionError,
   terminalizeGptChildError,
   terminalizeGptChildResult,
-  type GptProductionExecutionInput as ExecutionInput,
   type ProviderEffectReadbackProofV1,
   type ProductGptExecution,
 } from "./production-child-support.js";
+import type { GptProductionExecutionInput as ExecutionInput } from "./production-ports.js";
 
 export type { ProductGptExecution } from "./production-child-support.js";
 

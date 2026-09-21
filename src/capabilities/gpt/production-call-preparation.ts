@@ -14,7 +14,7 @@ import type {
   ProductionGptBrowserCall, ProductionGptBrowserLifecycle,
 } from "./production-browser-lifecycle.js";
 import type { BrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
-import type { GptProductionExecutionInput as ExecutionInput } from "./production-child-support.js";
+import type { GptProductionExecutionInput as ExecutionInput } from "./production-ports.js";
 import { productChildResult, recordSettledProviderResult } from "./production-child-result.js";
 
 export const acquireProductionBrowserCall = async (

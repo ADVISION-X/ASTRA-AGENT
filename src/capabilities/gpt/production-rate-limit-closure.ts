@@ -1,8 +1,8 @@
 import { executionFailure } from "../../lib/execution-failure.js";
 import { gptCanonicalHash, type GptChildCapabilityResult, type GptHash } from "./contract.js";
 import type { ProductGptCallInput, ProductGptChildResult } from "./product-api.js";
-import type { GptProductionExecutionInput as ExecutionInput } from "./production-child-support.js";
-import type { ProviderRateLimitControlPort, ProviderRateLimitIncidentHandle } from "./production-ports.js";
+import type { GptProductionExecutionInput as ExecutionInput,
+  ProviderRateLimitControlPort, ProviderRateLimitIncidentHandle } from "./production-ports.js";
 
 export const notClearedRateLimit = (
   incident: ProviderRateLimitIncidentHandle,

@@ -297,9 +297,14 @@ export const inspectProviderWaitContract = (
     "canonicalConversationUrl", "userTurnId", "promptHash: submittedPromptHash",
   ], findings, finding);
   requireTokens(sources.tools, PRODUCTION_CHILD_TOOLS, [
-    "readProviderEffectStepCallFact({", "inputHash: existing.inputHash",
+    "readProviderEffectStepCallFact({", "confirmedSubmitIdentity(input, call, existing)",
     "browserAtomicIdentity",
   ], findings, finding);
+  requireTokens(sourceText(context, "src/capabilities/gpt/production-child-result.ts"),
+    "src/capabilities/gpt/production-child-result.ts", [
+      "inputHash: existing.inputHash", "browserExactCallIdentityHash({",
+      "exactCallIdentityHash !== existing.exactCallIdentityHash",
+    ], findings, finding);
   requireTokens(sourceText(context, PRODUCTION_PORTS), PRODUCTION_PORTS, [
     "readProviderEffectStepCallFact(input:", "BrowserProviderEffectStepCallFact | null",
   ], findings, finding);

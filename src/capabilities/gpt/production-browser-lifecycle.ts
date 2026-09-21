@@ -15,7 +15,7 @@ import type {
 import { assertBrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
 import { requireRuntimeLogWrite, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { executionFailure, typedExecutionFailure } from "../../lib/execution-failure.js";
-import type { GptProductionExecutionInput } from "./production-child-support.js";
+import type { GptProductionExecutionInput } from "./production-ports.js";
 
 type GptBrowserLeaseAuthority = Readonly<{
   acquireJobBoundTargetLease(

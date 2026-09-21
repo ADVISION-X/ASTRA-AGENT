@@ -4,6 +4,27 @@ import type {
   BrowserTargetLease,
   BrowserTargetLeaseWait,
 } from "../../lib/browser/browser-authority-api.js";
+import type { GptHash } from "./contract.js";
+
+export type GptProductionExecutionInput = Readonly<{
+  jobId: string;
+  productId: string;
+  ownerRef: string;
+  subjectRef: string;
+  authorizationRef: string;
+  resultRevision: number;
+  attemptId: string;
+  deviceId: string;
+  leaseVersion: number;
+  executionFenceHash: GptHash;
+  capabilityManifestHash: GptHash;
+  maxProviderTurns: number;
+  expiresAtMonotonic: number;
+  commandTtlMs: number;
+  abortSignal: AbortSignal;
+  parentSpanId: string;
+  providerContinuationParent?: Readonly<{ jobId: string; acceptedAttemptId: string }>;
+}>;
 
 type GptAppendArtifactResult = Readonly<{ status: "success"; artifactRef: string }>
   | Readonly<{ status: "failed"; failureReason: string }>;
