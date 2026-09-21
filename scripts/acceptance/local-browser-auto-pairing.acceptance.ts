@@ -2,8 +2,6 @@ import { governanceAssert as assert } from "../audit/shared/governance-exam-asse
 import { createHash } from "node:crypto";
 
 import { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
-import { ExtensionDebuggerRuntime } from
-  "../../src/lib/browser/chrome-extension/debugger-runtime.js";
 import type { ExtensionChromeApi } from "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
 import { exerciseAuthenticatedMedia } from "./local-browser-authenticated-media-support.js";
 import { exerciseLocalBrowserDomIntent } from "./local-browser-dom-intent-support.js";
@@ -11,9 +9,10 @@ import { emitLocalBrowserAutoPairingProofs } from "./local-browser-proof-support
 import { browserDomFacts } from "./local-browser-dom-runtime-fixture.js";
 import { exerciseAutomaticPairing } from "./local-browser-auto-pairing-support.js";
 import {
-  exerciseAuthorizedContinuation, exerciseClaimBroker, exerciseTargetRotation,
+  exerciseAuthorizedContinuation, exerciseClaimBroker, exerciseLogicalPageAccessPriority,
+  exerciseTargetRotation,
 } from "./local-browser-target-lifecycle-support.js";
-import { verifyKnownGptRateLimitDetector } from
+import { rateLimitDetectorCdpResult, verifyKnownGptRateLimitDetector } from
   "./local-browser-rate-limit-detector.acceptance-support.js";
 
 type TabActivatedListener = Parameters<ExtensionChromeApi["tabs"]["onActivated"]["addListener"]>[0];
@@ -92,40 +91,7 @@ const sendTargetChromeCommand: ExtensionChromeApi["debugger"]["sendCommand"] = a
   debuggerMethods.push(method);
   if (method === "Runtime.callFunctionOn"
     && String(parameters?.functionDeclaration).includes("known-gpt-rate-limit-preflight.v2")) {
-    rateLimitDetectorStartedAt.push(Date.now());
-    const expected = ((parameters?.arguments as readonly Readonly<{ value: Record<string, unknown> }>[])?.[0]
-      ?.value ?? {});
-    const state = rateLimitDetectorState.state;
-    const exact = state === "exact_present";
-    const mismatch = state === "mismatch";
-    const unsigned = {
-      schemaVersion: "grasseye.browser.known-gpt-rate-limit-preflight.v2",
-      state,
-      dialogHash: expected.dialogHash,
-      titleHash: expected.titleHash,
-      bodyHash: expected.bodyHash,
-      acknowledgementHash: expected.acknowledgementHash,
-      exactCallIdentityHash: expected.exactCallIdentityHash,
-      targetRefHash: expected.targetRefHash,
-      documentRefHash: expected.documentRefHash,
-      observedAt: typeof rateLimitDetectorState.observedAt === "string"
-        ? rateLimitDetectorState.observedAt : new Date().toISOString(),
-      dialogRawCount: exact || mismatch ? 1 : 0,
-      dialogEligibleCount: exact || mismatch ? 1 : 0,
-      dialogActionableCount: exact ? 1 : 0,
-      acknowledgementButtonRawCount: exact || mismatch ? 1 : 0,
-      acknowledgementButtonEligibleCount: exact || mismatch ? 1 : 0,
-      acknowledgementButtonActionableCount: exact || mismatch ? 1 : 0,
-    };
-    const hashInput = [unsigned.schemaVersion, unsigned.state, unsigned.dialogHash,
-      unsigned.titleHash, unsigned.bodyHash, unsigned.acknowledgementHash,
-      unsigned.exactCallIdentityHash, unsigned.targetRefHash, unsigned.documentRefHash,
-      unsigned.observedAt, unsigned.dialogRawCount, unsigned.dialogEligibleCount,
-      unsigned.dialogActionableCount, unsigned.acknowledgementButtonRawCount,
-      unsigned.acknowledgementButtonEligibleCount,
-      unsigned.acknowledgementButtonActionableCount];
-    return { result: { value: { ...unsigned,
-      observationHash: `sha256:${createHash("sha256").update(JSON.stringify(hashInput)).digest("hex")}` } } };
+    return rateLimitDetectorCdpResult(parameters, rateLimitDetectorState, rateLimitDetectorStartedAt);
   }
   const pointerResult = sendPointerCommand(method, parameters);
   if (pointerResult) return pointerResult;
@@ -213,39 +179,7 @@ const targetChromeApi: ExtensionChromeApi = {
   alarms: chromeApi.alarms,
 };
 
-const pageBoundaryProbe = new ExtensionDebuggerRuntime(targetChromeApi);
-pageBoundaryProbe.adoptAttached(3);
-pageBoundaryProbe.requireLogicalPageAccessCycles();
-await assert.rejects(pageBoundaryProbe.send(3, "Page.getFrameTree"),
-  /BROWSER_PAGE_ACCESS_CYCLE_REQUIRED/u,
-  "a raw CDP page read must not bypass the unique logical ChatGPT access boundary");
-await assert.doesNotReject(pageBoundaryProbe.withLogicalPageAccess(
-  async () => undefined,
-  () => pageBoundaryProbe.send(3, "Page.getFrameTree"),
-));
-const accessOrder: string[] = [];
-let releaseCurrent!: () => void;
-let currentStarted!: () => void;
-const currentRelease = new Promise<void>((resolve) => { releaseCurrent = resolve; });
-const currentStart = new Promise<void>((resolve) => { currentStarted = resolve; });
-const currentAccess = pageBoundaryProbe.withLogicalPageAccess(
-  async () => undefined,
-  async () => { accessOrder.push("current"); currentStarted(); await currentRelease; },
-);
-await currentStart;
-const ordinaryAccess = pageBoundaryProbe.withLogicalPageAccess(
-  async () => undefined,
-  async () => { accessOrder.push("ordinary"); },
-);
-const urgentAccess = pageBoundaryProbe.withLogicalPageAccess(
-  async () => undefined,
-  async () => { accessOrder.push("rate-limit-ack"); },
-  "rate-limit-ack",
-);
-releaseCurrent();
-await Promise.all([currentAccess, ordinaryAccess, urgentAccess]);
-assert.deepEqual(accessOrder, ["current", "rate-limit-ack", "ordinary"],
-  "the exact rate-limit acknowledgement must take the next logical page-access cycle");
+await exerciseLogicalPageAccessPriority(targetChromeApi);
 
 const targetAuthority = new ExtensionTargetAuthority(
   targetChromeApi,
@@ -478,7 +412,6 @@ await targetAuthority.releaseActiveTarget(false);
 assert.deepEqual(detachedTabs, [], "socket suspension must preserve the one production debugger session");
 
 await exerciseLocalBrowserDomIntent();
-
 const navigateBeforeFreshReuse = debuggerMethods.filter((method) => method === "Page.navigate").length;
 const secondAcquisition = targetAuthority.acquireJobBoundChatGptTarget("fresh", jobRefHash);
 await Promise.resolve();
@@ -561,6 +494,5 @@ await exerciseAuthorizedContinuation({
   targetFrames, debuggerMethods, mainFrameUrlByTab,
 });
 await exerciseClaimBroker({ hashes: rotationHashes, activatedTabs, removedTabs });
-
 process.stdout.write("LOCAL_BROWSER_AUTO_PAIRING_AND_EXACT_CHATGPT_CLAIM_ACCEPTANCE_PASS\n");
 emitLocalBrowserAutoPairingProofs();

@@ -129,26 +129,15 @@ const requireTokens = (
   }
 };
 
-const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] => {
-  const findings: InspectorFinding[] = [];
-  for (const repoPath of targetSources(context)) {
-    const source = read(context, repoPath);
-    for (const line of directOutputViolations(source, repoPath)) findings.push(finding(
-      LAW_OPERATIONAL, "static.ast", "direct-output-forbidden", repoPath,
-      "Production source bypasses the unique Runtime Log Spine terminal/file sink.", line,
-    ));
-  }
-  for (const repoPath of RETIRED_PATHS) {
-    if (existsSync(resolve(context.sealedRoot, repoPath))) findings.push(finding(
-      LAW_OPERATIONAL, "static.ast", "retired-chain-absent", repoPath,
-      "A retired logger, bus, stage logger, debug bundle, or second diagnostic persistence path remains.",
-    ));
-  }
+const inspectProductionLogBoundaries = (context: InspectorContext, findings: InspectorFinding[]): void => {
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
     "src/lib/local-runtime/production/runtime-claim.ts", [
-      "operation: \"job.execute\"", "operation: \"job.durable-accept\"",
-      "operation: \"material.download-verify\"", "operation: \"result.upload\"", "operation: \"job.terminal\"",
-      "requireRuntimeLogWrite",
+      "operation: \"job.execute\"", "requireRuntimeLogWrite",
+    ]);
+  requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
+    "src/lib/local-runtime/production/runtime-claim-operations.ts", [
+      "operation: \"job.durable-accept\"", "operation: \"material.download-verify\"",
+      "operation: \"result.upload\"", "operation: \"job.terminal\"", "requireRuntimeLogWrite",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "production-boundaries",
     "src/lib/local-runtime/production/runtime-execution-heartbeat.ts",
@@ -171,6 +160,24 @@ const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] =>
       "operation: \"cloud.session-open\"", "operation: \"runtime.start\"", "operation: \"runtime.shutdown\"",
       "requireRuntimeLogWrite",
     ]);
+};
+
+const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] => {
+  const findings: InspectorFinding[] = [];
+  for (const repoPath of targetSources(context)) {
+    const source = read(context, repoPath);
+    for (const line of directOutputViolations(source, repoPath)) findings.push(finding(
+      LAW_OPERATIONAL, "static.ast", "direct-output-forbidden", repoPath,
+      "Production source bypasses the unique Runtime Log Spine terminal/file sink.", line,
+    ));
+  }
+  for (const repoPath of RETIRED_PATHS) {
+    if (existsSync(resolve(context.sealedRoot, repoPath))) findings.push(finding(
+      LAW_OPERATIONAL, "static.ast", "retired-chain-absent", repoPath,
+      "A retired logger, bus, stage logger, debug bundle, or second diagnostic persistence path remains.",
+    ));
+  }
+  inspectProductionLogBoundaries(context, findings);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "executor-boundaries",
     "src/lib/local-runtime/production/executor.ts", [
       "operation: \"plugin.execute\"", "parentSpanId", "causedByEventId", "requireRuntimeLogWrite",
@@ -178,6 +185,9 @@ const inspectOperationalAst = (context: InspectorContext): InspectorFinding[] =>
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "executor-boundaries",
     "src/capabilities/gpt/production-child-tools.ts", [
       "operation: \"gpt.child\"", "parentSpanId", "requireRuntimeLogWrite",
+    ]);
+  requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "executor-boundaries",
+    "src/capabilities/gpt/production-child-support.ts", [
       "runtimeLogCauseEventId", "RuntimeFailureImpact.CONSEQUENTIAL", "causedByEventId",
     ]);
   requireTokens(context, findings, LAW_OPERATIONAL, "static.ast", "producer-boundaries",

@@ -23,7 +23,8 @@ import { createBrowserActorFactory, createClickCommand, createMatchClickCommand,
   rateLimitSpecialReceipt } from "./local-browser-terminal-fixture.js";
 import { permitAuthority, permitExecution } from "./local-browser-terminal-fixture.js";
 import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
-import { exerciseActorRejections } from "./local-browser-terminal-rejection-support.js";
+import { exerciseActorRejections, exerciseCheckpointObservationFailures } from
+  "./local-browser-terminal-rejection-support.js";
 import { decodeKnownGptRateLimitPreflightReply } from
   "../../src/lib/browser/exact-target/browser-special-mutation-receipt.js";
 import { absentPreflightEnvelope } from "./local-browser-terminal-fixture.js";
@@ -130,54 +131,8 @@ try {
   assert.equal(observationResult.exactCallIdentityHash, browserExactCallIdentityHash(observationPermit));
   assert.equal(actorStore.readCommand(observationPermit.commandId)?.state ?? null, null);
 
-  for (const pending of [
-    { commandId: "actor-text-user-turn-pending", childCapabilityId: "checkpoint_gpt_text_response",
-      code: "BROWSER_EXACT_USER_TURN_UNAVAILABLE" },
-    { commandId: "actor-text-assistant-pending", childCapabilityId: "checkpoint_gpt_text_response",
-      code: "BROWSER_ADJACENT_ASSISTANT_TURN_MISSING" },
-    { commandId: "actor-image-checkpoint-pending", childCapabilityId: "checkpoint_gpt_generated_image",
-      code: "BROWSER_AUTHENTICATED_MEDIA_IMAGE_SOURCE_ABSENT" },
-    { commandId: "actor-image-user-turn-pending", childCapabilityId: "checkpoint_gpt_generated_image",
-      code: "BROWSER_AUTHENTICATED_MEDIA_USER_TURN_ABSENT" },
-  ] as const) {
-    const pendingPermit: BrowserCommandPermit = {
-      ...observationPermit, ...permitAuthority(pending.commandId), ...permitExecution(pending.commandId),
-      capabilityId: "browser.dom.inspect.v1", mutationClass: "observation", replayPolicy: "observation-only",
-      childCapabilityId: pending.childCapabilityId,
-    };
-    await assert.rejects(actorFor(async () => { throw new Error(pending.code); })
-      .execute(pendingPermit, observationCommand), new RegExp(pending.code, "u"));
-    const events = readFileSync(actorLogger.currentSegmentPath()!, "utf8").trim().split("\n")
-      .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>)
-      .filter((event) => event.spanId === `${pending.commandId}:1`);
-    assert.equal(events.at(-1)?.outcome, "succeeded",
-      "an expected checkpoint absence is a successful observation, while the Child retains timeout ownership");
-    assert.equal(events.some((event) => event.kind === "error" || event.outcome === "failed"), false);
-  }
-
-  const ordinaryMissingPermit: BrowserCommandPermit = {
-    ...observationPermit, ...permitAuthority("actor-ordinary-observation-missing"),
-    ...permitExecution("actor-ordinary-observation-missing"), capabilityId: "browser.dom.inspect.v1",
-    mutationClass: "observation", replayPolicy: "observation-only",
-  };
-  await assert.rejects(actorFor(async () => { throw new Error("BROWSER_DOM_CANDIDATE_MISSING"); })
-    .execute(ordinaryMissingPermit, observationCommand), /BROWSER_DOM_CANDIDATE_MISSING/u);
-  const ordinaryMissingEvents = readFileSync(actorLogger.currentSegmentPath()!, "utf8").trim().split("\n")
-    .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>)
-    .filter((event) => event.spanId === `${ordinaryMissingPermit.commandId}:1`);
-  assert.equal(ordinaryMissingEvents.at(-1)?.outcome, "failed",
-    "the checkpoint exception must not soften ordinary Browser observation failures");
-
-  const checkpointMutationPermit: BrowserCommandPermit = {
-    ...permit("actor-checkpoint-mutation-missing"), childCapabilityId: "checkpoint_gpt_text_response",
-  };
-  await assert.rejects(actorFor(async () => { throw new Error("BROWSER_DOM_CANDIDATE_MISSING"); })
-    .execute(checkpointMutationPermit, clickCommand), /BROWSER_DOM_CANDIDATE_MISSING/u);
-  const checkpointMutationEvents = readFileSync(actorLogger.currentSegmentPath()!, "utf8").trim().split("\n")
-    .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>)
-    .filter((event) => event.spanId === `${checkpointMutationPermit.commandId}:1`);
-  assert.equal(checkpointMutationEvents.at(-1)?.outcome, "failed",
-    "the checkpoint exception must never soften a Browser mutation failure");
+  await exerciseCheckpointObservationFailures({ actorFor, actorLogger,
+    observationPermit, observationCommand, clickCommand });
 
   const exactAssistantPermit: BrowserCommandPermit = {
     ...permit("actor-exact-assistant"), capabilityId: "browser.dom.inspect.v1",

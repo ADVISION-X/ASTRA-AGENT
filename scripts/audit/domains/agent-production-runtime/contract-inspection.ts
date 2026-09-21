@@ -329,3 +329,17 @@ export const inspectAgentContracts = (context: InspectorContext, findings: Inspe
   inspectStorageAndLawDenominator(context, findings);
   inspectDynamicRoutes(findings);
 };
+
+export const runtimeManifestOwnershipDrift = (ownedPaths: readonly string[]): string[] => {
+  const runtimeOwnedPath = (path: string): boolean =>
+    path === "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md"
+    || path === "docs/specs/agent-production-runtime/**"
+    || path.startsWith("scripts/acceptance/agent-production-runtime")
+    || path === "scripts/acceptance/agent-route-contract.acceptance.ts"
+    || path === "scripts/audit/domains/agent-production-runtime/**"
+    || path === "scripts/generate/sync-website-agent-route-policy-projection.ts"
+    || path === "scripts/maintenance/production-runtime-storage-reconcile.ts"
+    || path === "src/lib/execution-failure.ts"
+    || path === "src/lib/local-runtime/production/**";
+  return ownedPaths.filter((path) => !runtimeOwnedPath(path));
+};

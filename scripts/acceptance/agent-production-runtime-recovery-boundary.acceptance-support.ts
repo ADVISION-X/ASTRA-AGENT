@@ -6,8 +6,9 @@ import { Project } from "ts-morph";
 
 import {
   inspectAgentProductionRuntime,
-  runtimeManifestOwnershipDrift,
 } from "../audit/domains/agent-production-runtime/inspector.js";
+import { runtimeManifestOwnershipDrift } from
+  "../audit/domains/agent-production-runtime/contract-inspection.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { purgeDeletedJob, reconcileBusinessAdmission }
   from "../../src/lib/local-runtime/production/runtime-business-admission.js";
@@ -159,9 +160,7 @@ export const exerciseProductionRuntimeSourceBoundaries = async (): Promise<void>
   await exerciseManifestAndLawOwnership();
 };
 
-export const exerciseOperationsAndBusinessAdmission = async (
-  productionTask: ReturnType<typeof task>,
-): Promise<void> => {
+const exerciseOperationsSnapshot = async (): Promise<void> => {
   const operationsTemporary = await mkdtemp(path.join(tmpdir(), "agent-operations-snapshot-"));
   try {
     const snapshot = await readProductionOperationsSnapshot({
@@ -204,6 +203,107 @@ export const exerciseOperationsAndBusinessAdmission = async (
   } finally {
     await rm(operationsTemporary, { recursive: true, force: true });
   }
+};
+
+const exerciseWaitNewAndPrivacy = async (
+  store: ProductionRuntimeStore, productionTask: ReturnType<typeof task>,
+): Promise<void> => {
+  const waitNew = task({ jobId: "job:admission:wait-new",
+    productId: productionTask.product_id, actionId: productionTask.action_id,
+    materialRefs: productionTask.material_refs,
+    extra: { parameters: productionTask.parameters } });
+  store.acceptTask(waitNew, "attempt:wait-new");
+  store.stageResult(waitNew.job_id, resultFor(waitNew));
+  let releasedWaitNewTarget = 0;
+  let waitNewReleaseAuthority = "";
+  assert.equal(await reconcileBusinessAdmission({
+    store,
+    session: deviceStatusWithoutAdmission(waitNew.job_id, false, "WAIT_NEW_ATTEMPT"),
+    browserAuthority: { releaseJobBoundTarget: async (_jobId: string, authority: string) => {
+      releasedWaitNewTarget += 1;
+      waitNewReleaseAuthority = authority;
+    } },
+    abort: new AbortController(),
+  } as never, store.readTask(waitNew.job_id)!), "pending");
+  assert.equal(releasedWaitNewTarget, 1);
+  assert.equal(waitNewReleaseAuthority, "wait-new-attempt",
+    "ordinary WAIT_NEW_ATTEMPT must not acquire the permanent cleanup exception");
+  assert.equal(store.readTask(waitNew.job_id)?.staged_result, null,
+    "Website WAIT_NEW_ATTEMPT must release only the old local admission-pending attempt");
+  assert.equal(store.readTask(waitNew.job_id)?.current_reason, "WAIT_NEW_ATTEMPT");
+  const privacyClosed = task({ jobId: "job:admission:privacy-closed",
+    productId: productionTask.product_id, actionId: productionTask.action_id,
+    materialRefs: productionTask.material_refs,
+    extra: { parameters: productionTask.parameters } });
+  store.acceptTask(privacyClosed, "attempt:privacy-closed");
+  store.stageResult(privacyClosed.job_id, resultFor(privacyClosed));
+  let privacyReleaseAuthority = "";
+  assert.equal(await reconcileBusinessAdmission({
+    store,
+    session: deviceStatusWithoutAdmission(
+      privacyClosed.job_id, false, "WAIT_NEW_ATTEMPT", "PRIVACY_SUBJECT_CLOSED",
+    ),
+    browserAuthority: { releaseJobBoundTarget: async (_jobId: string, authority: string) => {
+      privacyReleaseAuthority = authority;
+    } },
+    abort: new AbortController(),
+  } as never, store.readTask(privacyClosed.job_id)!), "pending");
+  assert.equal(privacyReleaseAuthority, "website-permanent-revocation",
+    "only Website's persisted permanent privacy decision may acquire the revocation exception");
+};
+
+const exerciseAdmissionDeletion = async (
+  store: ProductionRuntimeStore, admissionTemporary: string,
+  productionTask: ReturnType<typeof task>, pending: ReturnType<typeof task>,
+): Promise<void> => {
+  assert.equal(await reconcileBusinessAdmission({
+    store, session: deviceStatusWithoutAdmission(pending.job_id, true), activeAbort: new Map(),
+  } as never, store.readTask(pending.job_id)!), "pending");
+  assert.equal(store.readTask(pending.job_id)?.current_reason, "BUSINESS_ADMISSION_PENDING",
+    "cancel_requested is not physical Website absence and cannot authorize local deletion");
+  let browserPurges = 0, evidencePurges = 0, deletionReleaseAuthority = "";
+  await purgeDeletedJob({ store, dataDir: admissionTemporary,
+    abort: new AbortController(),
+    browserAuthority: { releaseJobBoundTarget: async (_jobId: string, authority: string) => {
+      deletionReleaseAuthority = authority;
+    },
+      purgeBrowserJob: () => { browserPurges += 1; } },
+    evidenceStore: { deleteArtifactsForMission: async () => { evidencePurges += 1; } },
+  } as never, pending.job_id);
+  assert.equal(store.readTask(pending.job_id), null);
+  assert.equal(browserPurges, 1);
+  assert.equal(evidencePurges, 1);
+  assert.equal(deletionReleaseAuthority, "website-admin-deletion",
+    "Website 404 deletion must use the only exact admin-deletion release authority");
+  assert.equal(store.pendingBusinessAdmissions().some((row) => row.task.job_id === pending.job_id), false,
+    "physical Website absence must remove the existing task and stop admission polling");
+  const retryable = task({ jobId: "job:admission:purge-retry",
+    productId: productionTask.product_id, actionId: productionTask.action_id,
+    materialRefs: productionTask.material_refs,
+    extra: { parameters: productionTask.parameters } });
+  store.acceptTask(retryable, "attempt:purge-retry");
+  store.stageResult(retryable.job_id, resultFor(retryable));
+  await assert.rejects(purgeDeletedJob({ store, dataDir: admissionTemporary,
+    abort: new AbortController(),
+    browserAuthority: { releaseJobBoundTarget: async () => undefined,
+      purgeBrowserJob: () => undefined },
+    evidenceStore: { deleteArtifactsForMission: async () => { throw new Error("FORENSICS_PURGE_FAILED"); } },
+  } as never, retryable.job_id), /PRODUCTION_JOB_PURGE_FAILED/u);
+  assert.notEqual(store.readTask(retryable.job_id), null,
+    "a partial purge must retain the task authority so the same deletion can retry");
+  await purgeDeletedJob({ store, dataDir: admissionTemporary,
+    abort: new AbortController(),
+    browserAuthority: { releaseJobBoundTarget: async () => undefined,
+      purgeBrowserJob: () => undefined },
+    evidenceStore: { deleteArtifactsForMission: async () => undefined },
+  } as never, retryable.job_id);
+  assert.equal(store.readTask(retryable.job_id), null);
+};
+
+export const exerciseOperationsAndBusinessAdmission = async (
+  productionTask: ReturnType<typeof task>,
+): Promise<void> => {
+  await exerciseOperationsSnapshot();
 
   const admissionTemporary = await mkdtemp(path.join(tmpdir(), "agent-business-admission-"));
   try {
@@ -247,90 +347,8 @@ export const exerciseOperationsAndBusinessAdmission = async (
       "an admission-pending job must retain the only business slot after execution settles");
     assert.equal(businessInFlightCount({ active: new Map([[pending.job_id, Promise.resolve()]]), store } as never), 1,
       "active and admission-pending views of the same job must count once");
-    const waitNew = task({ jobId: "job:admission:wait-new",
-      productId: productionTask.product_id, actionId: productionTask.action_id,
-      materialRefs: productionTask.material_refs,
-      extra: { parameters: productionTask.parameters } });
-    store.acceptTask(waitNew, "attempt:wait-new");
-    store.stageResult(waitNew.job_id, resultFor(waitNew));
-    let releasedWaitNewTarget = 0;
-    let waitNewReleaseAuthority = "";
-    assert.equal(await reconcileBusinessAdmission({
-      store,
-      session: deviceStatusWithoutAdmission(waitNew.job_id, false, "WAIT_NEW_ATTEMPT"),
-      browserAuthority: { releaseJobBoundTarget: async (_jobId: string, authority: string) => {
-        releasedWaitNewTarget += 1;
-        waitNewReleaseAuthority = authority;
-      } },
-      abort: new AbortController(),
-    } as never, store.readTask(waitNew.job_id)!), "pending");
-    assert.equal(releasedWaitNewTarget, 1);
-    assert.equal(waitNewReleaseAuthority, "wait-new-attempt",
-      "ordinary WAIT_NEW_ATTEMPT must not acquire the permanent cleanup exception");
-    assert.equal(store.readTask(waitNew.job_id)?.staged_result, null,
-      "Website WAIT_NEW_ATTEMPT must release only the old local admission-pending attempt");
-    assert.equal(store.readTask(waitNew.job_id)?.current_reason, "WAIT_NEW_ATTEMPT");
-    const privacyClosed = task({ jobId: "job:admission:privacy-closed",
-      productId: productionTask.product_id, actionId: productionTask.action_id,
-      materialRefs: productionTask.material_refs,
-      extra: { parameters: productionTask.parameters } });
-    store.acceptTask(privacyClosed, "attempt:privacy-closed");
-    store.stageResult(privacyClosed.job_id, resultFor(privacyClosed));
-    let privacyReleaseAuthority = "";
-    assert.equal(await reconcileBusinessAdmission({
-      store,
-      session: deviceStatusWithoutAdmission(
-        privacyClosed.job_id, false, "WAIT_NEW_ATTEMPT", "PRIVACY_SUBJECT_CLOSED",
-      ),
-      browserAuthority: { releaseJobBoundTarget: async (_jobId: string, authority: string) => {
-        privacyReleaseAuthority = authority;
-      } },
-      abort: new AbortController(),
-    } as never, store.readTask(privacyClosed.job_id)!), "pending");
-    assert.equal(privacyReleaseAuthority, "website-permanent-revocation",
-      "only Website's persisted permanent privacy decision may acquire the revocation exception");
-    assert.equal(await reconcileBusinessAdmission({
-      store, session: deviceStatusWithoutAdmission(pending.job_id, true), activeAbort: new Map(),
-    } as never, store.readTask(pending.job_id)!), "pending");
-    assert.equal(store.readTask(pending.job_id)?.current_reason, "BUSINESS_ADMISSION_PENDING",
-      "cancel_requested is not physical Website absence and cannot authorize local deletion");
-    let browserPurges = 0, evidencePurges = 0, deletionReleaseAuthority = "";
-    await purgeDeletedJob({ store, dataDir: admissionTemporary,
-      abort: new AbortController(),
-      browserAuthority: { releaseJobBoundTarget: async (_jobId: string, authority: string) => {
-        deletionReleaseAuthority = authority;
-      },
-        purgeBrowserJob: () => { browserPurges += 1; } },
-      evidenceStore: { deleteArtifactsForMission: async () => { evidencePurges += 1; } },
-    } as never, pending.job_id);
-    assert.equal(store.readTask(pending.job_id), null);
-    assert.equal(browserPurges, 1);
-    assert.equal(evidencePurges, 1);
-    assert.equal(deletionReleaseAuthority, "website-admin-deletion",
-      "Website 404 deletion must use the only exact admin-deletion release authority");
-    assert.equal(store.pendingBusinessAdmissions().some((row) => row.task.job_id === pending.job_id), false,
-      "physical Website absence must remove the existing task and stop admission polling");
-    const retryable = task({ jobId: "job:admission:purge-retry",
-      productId: productionTask.product_id, actionId: productionTask.action_id,
-      materialRefs: productionTask.material_refs,
-      extra: { parameters: productionTask.parameters } });
-    store.acceptTask(retryable, "attempt:purge-retry");
-    store.stageResult(retryable.job_id, resultFor(retryable));
-    await assert.rejects(purgeDeletedJob({ store, dataDir: admissionTemporary,
-      abort: new AbortController(),
-      browserAuthority: { releaseJobBoundTarget: async () => undefined,
-        purgeBrowserJob: () => undefined },
-      evidenceStore: { deleteArtifactsForMission: async () => { throw new Error("FORENSICS_PURGE_FAILED"); } },
-    } as never, retryable.job_id), /PRODUCTION_JOB_PURGE_FAILED/u);
-    assert.notEqual(store.readTask(retryable.job_id), null,
-      "a partial purge must retain the task authority so the same deletion can retry");
-    await purgeDeletedJob({ store, dataDir: admissionTemporary,
-      abort: new AbortController(),
-      browserAuthority: { releaseJobBoundTarget: async () => undefined,
-        purgeBrowserJob: () => undefined },
-      evidenceStore: { deleteArtifactsForMission: async () => undefined },
-    } as never, retryable.job_id);
-    assert.equal(store.readTask(retryable.job_id), null);
+    await exerciseWaitNewAndPrivacy(store, productionTask);
+    await exerciseAdmissionDeletion(store, admissionTemporary, productionTask, pending);
     store.close();
   } finally {
     await rm(admissionTemporary, { recursive: true, force: true });

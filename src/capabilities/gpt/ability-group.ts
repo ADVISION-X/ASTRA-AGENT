@@ -306,6 +306,40 @@ const failurePostconditionResult = (
   return committedMutation === "dispatched" ? "pending" : "failed";
 };
 
+const authoritativeRateLimitBrowserFact = <K extends GptChildCapabilityId>(
+  intent: GptChildCapabilityIntent<K>, error: unknown, code: string,
+): GptChildBrowserFact | null => {
+  const evidence = executionFailureMetadata(error)?.evidence;
+  const preflight = executionFailureMetadata(error)?.knownGptRateLimitPreflightFact;
+  const expectedState = code === "BROWSER_KNOWN_GPT_RATE_LIMIT" ? "exact_present"
+    : code === "BROWSER_GPT_DIALOG_UNRECOGNIZED" ? "mismatch" : null;
+  if (!evidence || !expectedState || preflight?.state !== expectedState
+    || !knownGptRateLimitPreflightFactValid(preflight)
+    || evidence.evidenceHash !== preflight.observationHash) return null;
+  const evidenceKind = expectedState === "exact_present"
+    ? "browser-known-gpt-rate-limit" : "browser-gpt-dialog-unrecognized";
+  const expectedRef = [evidenceKind, preflight.observedAt, preflight.exactCallIdentityHash,
+    preflight.targetRefHash, preflight.documentRefHash].join("|");
+  if (evidence.evidenceRef !== expectedRef) return null;
+  return Object.freeze({
+    exactCallIdentityHash: gptExactCallIdentityHash(intent), providerEffectIdentityHash: null,
+    childCapabilityId: intent.childCapabilityId, effectScope: "target_local",
+    browserOutcome: "REJECTED", mutationOutcome: "no", terminalAt: null,
+    evidenceRef: evidence.evidenceRef, evidenceHash: evidence.evidenceHash,
+    knownGptRateLimitPreflightFact: preflight,
+  });
+};
+
+const failureWalBrowserFact = (
+  persisted: GptChildBrowserFact | null,
+  rateLimit: GptChildBrowserFact | null,
+): GptChildBrowserFact | null => {
+  if (!persisted) return rateLimit;
+  if (!rateLimit?.knownGptRateLimitPreflightFact) return persisted;
+  return Object.freeze({ ...persisted,
+    knownGptRateLimitPreflightFact: rateLimit.knownGptRateLimitPreflightFact });
+};
+
 export const failedGptChildExecutionResult = async <K extends GptChildCapabilityId>(input: Readonly<{
   intent: GptChildCapabilityIntent<K>;
   context: GptExecutionContext;
@@ -319,41 +353,9 @@ export const failedGptChildExecutionResult = async <K extends GptChildCapability
   const nativeCause = executionFailureCause(failureError);
   const gpt = typedGptExecutionFailure(input.error);
   const genericEvidence = executionFailureMetadata(input.error)?.evidence;
-  const rateLimitPreflight = executionFailureMetadata(input.error)?.knownGptRateLimitPreflightFact;
   const persistedBrowserFact = failedBrowserFact(input.intent, input.context);
-  const authoritativeRateLimitPreflight = (failure.code === "BROWSER_GPT_DIALOG_UNRECOGNIZED"
-      && rateLimitPreflight?.state === "mismatch"
-      || failure.code === "BROWSER_KNOWN_GPT_RATE_LIMIT"
-      && rateLimitPreflight?.state === "exact_present")
-    && genericEvidence
-    && knownGptRateLimitPreflightFactValid(rateLimitPreflight)
-    && genericEvidence.evidenceHash === rateLimitPreflight.observationHash
-    && genericEvidence.evidenceRef === [failure.code === "BROWSER_KNOWN_GPT_RATE_LIMIT"
-      ? "browser-known-gpt-rate-limit" : "browser-gpt-dialog-unrecognized",
-      rateLimitPreflight.observedAt, rateLimitPreflight.exactCallIdentityHash,
-      rateLimitPreflight.targetRefHash, rateLimitPreflight.documentRefHash].join("|");
-  const rateLimitBrowserFact: GptChildBrowserFact | null = authoritativeRateLimitPreflight
-    ? Object.freeze({
-        exactCallIdentityHash: gptExactCallIdentityHash(input.intent),
-        providerEffectIdentityHash: null,
-        childCapabilityId: input.intent.childCapabilityId,
-        effectScope: "target_local",
-        browserOutcome: "REJECTED",
-        mutationOutcome: "no",
-        terminalAt: null,
-        evidenceRef: genericEvidence.evidenceRef,
-        evidenceHash: genericEvidence.evidenceHash,
-        knownGptRateLimitPreflightFact: rateLimitPreflight,
-      })
-    : null;
-  const walBrowserFact = persistedBrowserFact && rateLimitBrowserFact
-    ? Object.freeze({
-        ...persistedBrowserFact,
-        ...(rateLimitBrowserFact.knownGptRateLimitPreflightFact
-          ? { knownGptRateLimitPreflightFact:
-              rateLimitBrowserFact.knownGptRateLimitPreflightFact } : {}),
-      })
-    : persistedBrowserFact ?? rateLimitBrowserFact;
+  const rateLimitBrowserFact = authoritativeRateLimitBrowserFact(input.intent, input.error, failure.code);
+  const walBrowserFact = failureWalBrowserFact(persistedBrowserFact, rateLimitBrowserFact);
   const observation = failureObservation({
     ...(input.observation ? { observation: input.observation } : {}),
     ...(gpt?.proofFacts ? { gptProof: gpt.proofFacts }

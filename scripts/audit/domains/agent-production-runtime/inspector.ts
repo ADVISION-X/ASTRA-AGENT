@@ -7,7 +7,8 @@ import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
 import { observeStaticMode } from "../../shared/static-target-object-inspector.js";
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 import { inspectAgentAuthorityAst } from "./authority-inspection.js";
-import { ALL_LAWS, LAWS, inspectAgentContracts, read, sourceFor } from "./contract-inspection.js";
+import { ALL_LAWS, LAWS, inspectAgentContracts, read, runtimeManifestOwnershipDrift,
+  sourceFor } from "./contract-inspection.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
 const ROOT = "src/lib/local-runtime/production";
 const PATHS = {
@@ -419,20 +420,6 @@ export function inspectAgentDependencies(
     "agent-production-runtime/shared-proof-owner-drift", PATHS.proof,
     `Runtime proof remains shared with ${adjacentRoutes.length} adjacent dynamic routes.`));
 }
-
-export const runtimeManifestOwnershipDrift = (ownedPaths: readonly string[]): string[] => {
-  const runtimeOwnedPath = (path: string): boolean =>
-    path === "docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md"
-    || path === "docs/specs/agent-production-runtime/**"
-    || path.startsWith("scripts/acceptance/agent-production-runtime")
-    || path === "scripts/acceptance/agent-route-contract.acceptance.ts"
-    || path === "scripts/audit/domains/agent-production-runtime/**"
-    || path === "scripts/generate/sync-website-agent-route-policy-projection.ts"
-    || path === "scripts/maintenance/production-runtime-storage-reconcile.ts"
-    || path === "src/lib/execution-failure.ts"
-    || path === "src/lib/local-runtime/production/**";
-  return ownedPaths.filter((path) => !runtimeOwnedPath(path));
-};
 
 export function inspectAgentSql(
   context: InspectorContext,

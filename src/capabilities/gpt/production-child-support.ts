@@ -1,8 +1,19 @@
 import { gptCanonicalHash } from "./contract.js";
-import type { GptChildBrowserFact, GptChildCapabilityResult, GptHash } from "./contract.js";
-import { withRuntimeLogCause } from "../../lib/runtime-logs/index.js";
-import { gptExecutionFailure } from "./execution-fault.js";
+import type { GptAnyChildCapabilityIntent, GptChildBrowserFact, GptChildCapabilityResult,
+  GptExecutionContext, GptHash,
+} from "./contract.js";
+import {
+  RuntimeFailureImpact, requireRuntimeLogWrite, runtimeLogCauseEventId,
+  runtimeFailureFromError, withRuntimeLogCause, type RuntimeSpanHandle,
+} from "../../lib/runtime-logs/index.js";
+import { executionFailure, executionFailureMetadata, failureCode, typedExecutionFailure,
+} from "../../lib/execution-failure.js";
+import { gptExecutionFailure, typedGptExecutionFailure } from "./execution-fault.js";
 import type { ProductGptTools } from "./product-api.js";
+import type { ProductionGptBrowserCall } from "./production-browser-lifecycle.js";
+import type { BrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
+import { productionGptAtomicIdentity } from "./production-atomic-call.js";
+import { failedGptChildExecutionResult } from "./ability-group.js";
 
 export type GptProductionExecutionInput = Readonly<{
   jobId: string;
@@ -156,4 +167,94 @@ export const throwGptChildFailure = (
   });
   const propagated = causeEventId ? withRuntimeLogCause(error, causeEventId) : error;
   throw propagated;
+};
+
+export const terminalizeGptChildResult = (
+  span: RuntimeSpanHandle, result: GptChildCapabilityResult,
+): string => {
+  const native = nativeFailureCause(result);
+  const failure = executionFailure("failed", result.failureCode ?? "GPT_CHILD_FAILED", {
+    ...(native ? { cause: native } : {}),
+  });
+  const causedByEventId = runtimeLogCauseEventId(result);
+  const terminal = result.status === "success"
+    ? requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }))
+    : requireRuntimeLogWrite(span.terminal({ outcome: "failed",
+      failure: runtimeFailureFromError({ error: failure,
+        code: result.failureCode ?? "GPT_CHILD_FAILED", responsibleOwner: "gpt",
+        impact: causedByEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
+        ...(causedByEventId ? { causedByEventId } : {}),
+      }),
+    }));
+  return terminal.eventId;
+};
+
+export const terminalizeGptChildError = (
+  span: RuntimeSpanHandle, error: unknown,
+  confirmedProviderEffect?: ProductionGptBrowserCall["confirmedProviderEffect"],
+): never => {
+  const causedByEventId = runtimeLogCauseEventId(error);
+  const original = typedExecutionFailure(error) ?? executionFailure("failed",
+    failureCode(error, "GPT_CHILD_RUNTIME_FAILED"), { cause: error });
+  const gptFailure = typedGptExecutionFailure(error);
+  const failure = confirmedProviderEffect ? gptExecutionFailure(original.code, {
+    mutationOutcome: "confirmed",
+    evidence: { evidenceRef: confirmedProviderEffect.evidenceRef,
+      evidenceHash: confirmedProviderEffect.evidenceHash },
+    browserEffect: confirmedProviderEffect,
+    proofFacts: gptFailure?.proofFacts ?? null,
+    childProof: executionFailureMetadata(original)?.childProof ?? null,
+    cause: original,
+  }) : original;
+  const terminal = requireRuntimeLogWrite(span.terminal({ outcome: "failed",
+    failure: runtimeFailureFromError({ error: failure,
+      code: failureCode(failure, "GPT_CHILD_RUNTIME_FAILED"), responsibleOwner: "gpt",
+      impact: causedByEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
+      ...(causedByEventId ? { causedByEventId } : {}),
+    }),
+  }));
+  const propagated = error instanceof AggregateError && error.cause !== undefined ? error : failure;
+  throw withRuntimeLogCause(propagated, terminal.eventId);
+};
+
+const recoverGptBrowserFailure = async (input: Readonly<{
+  dataDir: string; execution: GptProductionExecutionInput;
+  intent: GptAnyChildCapabilityIntent; startedAt: string; error: unknown;
+  browserCall: ProductionGptBrowserCall | undefined;
+  browserAtomicIdentity: BrowserAtomicStepIdentity | undefined;
+}>): Promise<GptChildCapabilityResult> => {
+  const atomicIdentity = input.browserCall
+    ? input.browserAtomicIdentity ?? productionGptAtomicIdentity(input.intent, input.execution.resultRevision)
+    : undefined;
+  const context: GptExecutionContext = {
+    dataDir: input.dataDir, signal: input.execution.abortSignal,
+    ...(input.browserCall ? { browser: input.browserCall.facade } : {}),
+    ...(atomicIdentity ? { browserAtomicIdentity: atomicIdentity } : {}),
+  };
+  return await failedGptChildExecutionResult({
+    intent: input.intent, context, startedAt: input.startedAt, error: input.error,
+  });
+};
+
+export const handleGptChildExecutionError = async (input: Readonly<{
+  dataDir: string; execution: GptProductionExecutionInput;
+  intent: GptAnyChildCapabilityIntent; startedAt: string; error: unknown;
+  browserCall: ProductionGptBrowserCall | undefined;
+  browserAtomicIdentity: BrowserAtomicStepIdentity | undefined;
+  span: RuntimeSpanHandle; childCapabilityId: string;
+  closeKnownRateLimit: (result: GptChildCapabilityResult) => Promise<unknown | null>;
+}>): Promise<GptChildCapabilityResult> => {
+  const code = failureCode(input.error);
+  if (code !== "BROWSER_GPT_DIALOG_UNRECOGNIZED" && code !== "BROWSER_KNOWN_GPT_RATE_LIMIT") {
+    return terminalizeGptChildError(input.span, input.error,
+      input.browserCall?.confirmedProviderEffect ?? null);
+  }
+  const result = await recoverGptBrowserFailure(input);
+  if (code === "BROWSER_KNOWN_GPT_RATE_LIMIT"
+    && input.childCapabilityId !== "acknowledge_known_gpt_rate_limit") {
+    const closureError = await input.closeKnownRateLimit(result);
+    if (closureError) return terminalizeGptChildError(input.span, closureError,
+      input.browserCall?.confirmedProviderEffect ?? null);
+  }
+  return result;
 };

@@ -1,4 +1,4 @@
-import { webcrypto } from "node:crypto";
+import { createHash, webcrypto } from "node:crypto";
 import { runInNewContext } from "node:vm";
 
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
@@ -16,6 +16,43 @@ import {
 } from "../../src/lib/browser/exact-target/browser-gpt-rate-limit-preflight.js";
 import { knownGptRateLimitPreflightFactValid } from
   "../../src/lib/browser/exact-target/browser-special-mutation-receipt.js";
+
+export const rateLimitDetectorCdpResult = (
+  parameters: Readonly<Record<string, unknown>> | undefined,
+  detectorState: Readonly<Record<string, unknown>>,
+  startedAt: number[],
+) => {
+  startedAt.push(Date.now());
+  const expected = ((parameters?.arguments as readonly Readonly<{ value: Record<string, unknown> }>[])?.[0]
+    ?.value ?? {});
+  const state = detectorState.state;
+  const exact = state === "exact_present";
+  const mismatch = state === "mismatch";
+  const unsigned = {
+    schemaVersion: "grasseye.browser.known-gpt-rate-limit-preflight.v2", state,
+    dialogHash: expected.dialogHash, titleHash: expected.titleHash, bodyHash: expected.bodyHash,
+    acknowledgementHash: expected.acknowledgementHash,
+    exactCallIdentityHash: expected.exactCallIdentityHash,
+    targetRefHash: expected.targetRefHash, documentRefHash: expected.documentRefHash,
+    observedAt: typeof detectorState.observedAt === "string"
+      ? detectorState.observedAt : new Date().toISOString(),
+    dialogRawCount: exact || mismatch ? 1 : 0,
+    dialogEligibleCount: exact || mismatch ? 1 : 0,
+    dialogActionableCount: exact ? 1 : 0,
+    acknowledgementButtonRawCount: exact || mismatch ? 1 : 0,
+    acknowledgementButtonEligibleCount: exact || mismatch ? 1 : 0,
+    acknowledgementButtonActionableCount: exact || mismatch ? 1 : 0,
+  };
+  const hashInput = [unsigned.schemaVersion, unsigned.state, unsigned.dialogHash,
+    unsigned.titleHash, unsigned.bodyHash, unsigned.acknowledgementHash,
+    unsigned.exactCallIdentityHash, unsigned.targetRefHash, unsigned.documentRefHash,
+    unsigned.observedAt, unsigned.dialogRawCount, unsigned.dialogEligibleCount,
+    unsigned.dialogActionableCount, unsigned.acknowledgementButtonRawCount,
+    unsigned.acknowledgementButtonEligibleCount,
+    unsigned.acknowledgementButtonActionableCount];
+  return { result: { value: { ...unsigned,
+    observationHash: `sha256:${createHash("sha256").update(JSON.stringify(hashInput)).digest("hex")}` } } };
+};
 
 class FakeNode {}
 

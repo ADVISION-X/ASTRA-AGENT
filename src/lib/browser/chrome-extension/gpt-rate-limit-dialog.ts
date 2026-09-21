@@ -24,21 +24,6 @@ type CurrentDocumentAssertion = () => void;
 const KNOWN_GPT_RATE_LIMIT_FAILURE = "BROWSER_KNOWN_GPT_RATE_LIMIT";
 const GPT_DIALOG_UNRECOGNIZED_FAILURE = "BROWSER_GPT_DIALOG_UNRECOGNIZED";
 
-export type KnownGptRateLimitClearanceFact = Readonly<{
-  schemaVersion: "grasseye.browser.known-gpt-rate-limit-clearance.v1";
-  state: "confirmed_absent";
-  dialogHash: `sha256:${string}`;
-  targetRefHash: `sha256:${string}`;
-  documentRefHash: `sha256:${string}`;
-  observationHash: `sha256:${string}`;
-  observedAt: string;
-  candidateCount: 0;
-  identityRevalidated: true;
-  mutationCount: 0;
-  postconditionVerified: true;
-  zeroActionSatisfied: true;
-}>;
-
 export const KNOWN_GPT_RATE_LIMIT_DETECTOR = `async function (expected) {
   const visible = (node) => {
     if (!(node instanceof HTMLElement) || !node.isConnected || node.hidden

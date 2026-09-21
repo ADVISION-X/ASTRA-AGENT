@@ -40,7 +40,7 @@ import {
   verifyGptDialogMismatchRuntimeContract,
   verifyKnownGptRateLimitRuntimeContract,
 } from
-  "./agent-production-runtime-browser-failure.acceptance-support.js";
+  "./agent-production-runtime-dialog-failure.acceptance-support.js";
 import { verifyAttemptFailureReadbackRuntimeContract } from
   "./agent-production-runtime-browser-failure.acceptance-support.js";
 import { exerciseProductionRuntimeSourceBoundaries } from

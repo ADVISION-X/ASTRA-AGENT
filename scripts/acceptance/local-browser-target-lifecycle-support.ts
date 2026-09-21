@@ -4,6 +4,8 @@ import type { ExtensionTargetAuthority } from
   "../../src/lib/browser/chrome-extension/extension-target-authority.js";
 import type { ExtensionChromeApi } from
   "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
+import { ExtensionDebuggerRuntime } from
+  "../../src/lib/browser/chrome-extension/debugger-runtime.js";
 import { BrowserAuthorityBroker } from
   "../../src/lib/browser/infrastructure/browser-authority-broker.js";
 import { BrowserAuthorityIssuer } from
@@ -14,6 +16,34 @@ type TargetFrame = Readonly<{
   body: Record<string, unknown>;
 }>;
 type TabUpdatedListener = Parameters<ExtensionChromeApi["tabs"]["onUpdated"]["addListener"]>[0];
+
+export const exerciseLogicalPageAccessPriority = async (chromeApi: ExtensionChromeApi): Promise<void> => {
+  const probe = new ExtensionDebuggerRuntime(chromeApi);
+  probe.adoptAttached(3);
+  probe.requireLogicalPageAccessCycles();
+  await assert.rejects(probe.send(3, "Page.getFrameTree"),
+    /BROWSER_PAGE_ACCESS_CYCLE_REQUIRED/u,
+    "a raw CDP page read must not bypass the unique logical ChatGPT access boundary");
+  await assert.doesNotReject(probe.withLogicalPageAccess(
+    async () => undefined, () => probe.send(3, "Page.getFrameTree")));
+  const accessOrder: string[] = [];
+  let releaseCurrent!: () => void;
+  let currentStarted!: () => void;
+  const currentRelease = new Promise<void>((resolve) => { releaseCurrent = resolve; });
+  const currentStart = new Promise<void>((resolve) => { currentStarted = resolve; });
+  const currentAccess = probe.withLogicalPageAccess(
+    async () => undefined,
+    async () => { accessOrder.push("current"); currentStarted(); await currentRelease; });
+  await currentStart;
+  const ordinaryAccess = probe.withLogicalPageAccess(
+    async () => undefined, async () => { accessOrder.push("ordinary"); });
+  const urgentAccess = probe.withLogicalPageAccess(
+    async () => undefined, async () => { accessOrder.push("rate-limit-ack"); }, "rate-limit-ack");
+  releaseCurrent();
+  await Promise.all([currentAccess, ordinaryAccess, urgentAccess]);
+  assert.deepEqual(accessOrder, ["current", "rate-limit-ack", "ordinary"],
+    "the exact rate-limit acknowledgement must take the next logical page-access cycle");
+};
 
 const closeRotatedTargets = async (input: Readonly<{
   authority: ExtensionTargetAuthority;

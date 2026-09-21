@@ -3,8 +3,9 @@ import type {
   GptChildCapabilityIntent, GptChildCapabilityResult, GptHash,
 } from "./contract.js";
 import { gptExactCallIdentityHash } from "./contract.js";
-import type { BrowserExactCallMutationFact } from "../../lib/browser/browser-authority-api.js";
-import type { BrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
+import { browserExactCallIdentityHash, type BrowserAtomicStepIdentity,
+  type BrowserExactCallMutationFact, type BrowserProviderEffectStepCallFact,
+} from "../../lib/browser/browser-authority-api.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 import type { ProductGptCallInput, ProductGptChildResult } from "./product-api.js";
 import type {
@@ -12,6 +13,8 @@ import type {
 } from "./production-browser-lifecycle.js";
 import { productionGptAtomicIdentity } from "./production-atomic-call.js";
 import type { GptProductionExecutionInput as ExecutionInput } from "./production-child-support.js";
+import { persistGptEvidenceArtifacts } from "./evidence-artifacts.js";
+import type { GptEvidenceStorePort } from "./production-ports.js";
 
 export const submitEffect = (
   prior: BrowserExactCallMutationFact,
@@ -28,6 +31,32 @@ export const submitEffect = (
     childCapabilityId, effectScope: "provider_effect", browserOutcome: prior.outcome,
     mutationOutcome: prior.mutationOutcome, terminalAt: prior.terminalAt,
     evidenceRef: prior.authorityRef, evidenceHash: prior.authorityHash });
+};
+
+export const confirmedSubmitIdentity = (
+  execution: ExecutionInput,
+  call: ProductGptCallInput<"submit_exact_gpt_turn_once">,
+  existing: BrowserProviderEffectStepCallFact,
+): Readonly<{ atomicIdentity: BrowserAtomicStepIdentity; exactCallIdentityHash: GptHash }> => {
+  const prior = existing.mutation;
+  if (prior.productStepId !== call.productStepId || prior.callId !== call.callId
+    || prior.childCapabilityId !== call.child || prior.actionOrdinal !== call.actionOrdinal) {
+    throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
+  }
+  const atomicIdentity: BrowserAtomicStepIdentity = Object.freeze({
+    resultRevision: execution.resultRevision, productStepId: prior.productStepId,
+    callId: prior.callId, childCapabilityId: prior.childCapabilityId,
+    inputHash: existing.inputHash, actionOrdinal: prior.actionOrdinal,
+    replayPolicy: "provider-effect-once",
+  });
+  const exactCallIdentityHash = browserExactCallIdentityHash({
+    jobId: execution.jobId, attemptId: execution.attemptId,
+    writerFenceHash: execution.executionFenceHash, ...atomicIdentity,
+  });
+  if (exactCallIdentityHash !== existing.exactCallIdentityHash) {
+    throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
+  }
+  return Object.freeze({ atomicIdentity, exactCallIdentityHash });
 };
 
 export const recordConfirmedSubmission = async (
@@ -55,6 +84,34 @@ export const recordConfirmedSubmission = async (
       ?? productionGptAtomicIdentity(intent, execution.resultRevision),
     submitted.canonicalConversationUrl, submitted.userTurnId,
   );
+};
+
+export const persistGptChildOutcome = async (input: Readonly<{
+  call: ProductGptCallInput<GptChildCapabilityId>;
+  result: GptChildCapabilityResult;
+  intent: GptAnyChildCapabilityIntent;
+  execution: ExecutionInput;
+  browsers: ProductionGptBrowserLifecycle;
+  browserCall: ProductionGptBrowserCall | undefined;
+  browserAtomicIdentity?: BrowserAtomicStepIdentity;
+  evidenceStore: GptEvidenceStorePort;
+}>): Promise<Readonly<{ evidenceRef: string; evidenceHash: GptHash; artifactRefs: readonly string[] }>> => {
+  const { call, result, intent, execution, browsers, browserCall, browserAtomicIdentity } = input;
+  const rateLimitBlocked = result.status !== "success"
+    && result.failureCode === "BROWSER_KNOWN_GPT_RATE_LIMIT";
+  if (rateLimitBlocked) return Object.freeze({
+    evidenceRef: result.proof.browserFact?.evidenceRef ?? result.proof.evidenceRef,
+    evidenceHash: result.proof.evidenceHash, artifactRefs: Object.freeze([]),
+  });
+  await recordConfirmedSubmission(call, result, intent, execution, browsers, browserCall, browserAtomicIdentity);
+  const artifactRefs = await persistGptEvidenceArtifacts({
+    result, intent, evidenceStore: input.evidenceStore,
+    jobId: execution.jobId, attemptId: execution.attemptId,
+    exactCallIdentityHash: gptExactCallIdentityHash(intent),
+  });
+  return Object.freeze({ evidenceRef: artifactRefs[0]
+    ?? result.proof.browserFact?.evidenceRef ?? result.proof.evidenceRef,
+  evidenceHash: result.proof.evidenceHash, artifactRefs });
 };
 
 export const recordSettledProviderResult = (

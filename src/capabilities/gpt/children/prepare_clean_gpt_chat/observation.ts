@@ -141,16 +141,22 @@ const projectConversationState = (observation: GptCoherentObservation): Conversa
   });
 };
 
+const invalidConversation = (state: ConversationState): boolean =>
+  !isGptRootUrl(state.currentUrl)
+  || state.userRaw !== 0 || state.assistantRaw !== 0
+  || state.attachmentsRaw !== 0 || state.generatingRaw !== 0
+  || state.composerRaw > 1 || state.chatModeRaw > 1 || state.workModeRaw > 1
+  || (state.chatModeChecked !== null && state.workModeChecked !== null
+    && state.chatModeChecked === state.workModeChecked);
+
+const conversationModeUnsettled = (state: ConversationState): boolean =>
+  state.chatModeRaw !== 1 || state.chatModeEligible !== 1
+  || state.workModeRaw !== 1 || state.workModeEligible !== 1;
+
 const conversationDisposition = (observation: GptCoherentObservation) => {
   const state = projectConversationState(observation);
-  const dirty = state.userRaw !== 0 || state.assistantRaw !== 0
-    || state.attachmentsRaw !== 0 || state.generatingRaw !== 0;
-  const ambiguous = state.composerRaw > 1 || state.chatModeRaw > 1 || state.workModeRaw > 1;
-  const contradictoryMode = state.chatModeChecked !== null && state.workModeChecked !== null
-    && state.chatModeChecked === state.workModeChecked;
-  if (!isGptRootUrl(state.currentUrl) || dirty || ambiguous || contradictoryMode) return "HARD_FAIL" as const;
-  if (state.chatModeRaw !== 1 || state.chatModeEligible !== 1
-    || state.workModeRaw !== 1 || state.workModeEligible !== 1) return "TRANSIENT_DOM" as const;
+  if (invalidConversation(state)) return "HARD_FAIL" as const;
+  if (conversationModeUnsettled(state)) return "TRANSIENT_DOM" as const;
   if (state.chatModeChecked === null || state.workModeChecked === null) return "HARD_FAIL" as const;
   return state.composerRaw === 1 && state.composerEligible === 1 && state.composerHash !== null
     ? exactChatModeSelected(state) && state.composerHash === hashConversationValue("")

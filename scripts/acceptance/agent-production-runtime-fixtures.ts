@@ -191,3 +191,24 @@ export const claimTask = (base: WebsiteAgentTask): ClaimedProductionTask => {
     grant: executionGrant(base),
   });
 };
+
+export const failureStatus = (
+  jobId: string,
+  attemptFailure: Readonly<Record<string, unknown>> | null,
+  writeReceipts: readonly Readonly<Record<string, unknown>>[],
+) => ({
+  schema_version: "xuanxue-ai-device-job-status.v6",
+  job_id: jobId,
+  status: "failed",
+  current_reason: null,
+  attempt_failure: attemptFailure,
+  control_intent: { schema_version: "xuanxue-ai-control-intent.v6",
+    job_id: jobId, control_epoch: 0, intent: "none", reason_code: null },
+  next_action_code: "ACTIVE_ATTEMPT",
+  terminal_status: null,
+  terminal_payload_hash: null,
+  business_admission_receipt: null,
+  business_consumer_error: null,
+  accepted_attempt_count: 1,
+  write_receipts: writeReceipts,
+});

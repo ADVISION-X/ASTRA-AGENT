@@ -24,7 +24,7 @@ import {
   HASH_A, HASH_B, attemptFailureFirstFact, claimTask, resultFor, task,
 } from "./agent-production-runtime-fixtures.js";
 import { verifyBrowserFailureStoreContract } from
-  "./agent-production-runtime-browser-failure.acceptance-support.js";
+  "./agent-production-runtime-browser-failure-store.acceptance-support.js";
 
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-production-ledger-"));
 const tableNames = (database: Database.Database): string[] =>
