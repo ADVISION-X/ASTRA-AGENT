@@ -245,6 +245,23 @@ const settleFakeMutation = (state: FakeBrowserState, value: unknown): void => {
   markConfirmedMutation(state, mutationOutcome);
 };
 
+const clickedAttributeReadbackValid = (intent: Extract<BrowserDomIntent, { kind: "click" }>, value: unknown): boolean => {
+  if (intent.postClickObservation?.clickedCandidateAttribute === undefined) return true;
+  const result = fakeResultRecord(value);
+  const readback = result?.clickedCandidateAttributeReadback;
+  const expected = intent.postClickObservation.clickedCandidateAttribute;
+  return Boolean(readback && typeof readback === "object" && !Array.isArray(readback)
+    && Object.keys(readback).sort().join("|") === "name|value|verified"
+    && Reflect.get(readback, "name") === expected.name && Reflect.get(readback, "value") === expected.equals
+    && Reflect.get(readback, "verified") === true);
+};
+
+const advanceFakeDocument = (state: FakeBrowserState, advance: number): void => {
+  if (advance <= 0) return;
+  state.navigationEpoch += advance;
+  state.documentRef = `document:${state.navigationEpoch}`;
+};
+
 const executeFakeDomIntent = async (
   responder: DomResponder,
   state: FakeBrowserState,
@@ -259,31 +276,18 @@ const executeFakeDomIntent = async (
     : await responder(intent, state.domCalls);
   if (mutates) {
     if (options.enforceClickedAttributeReadback === true && intent.kind === "click"
-      && intent.postClickObservation?.clickedCandidateAttribute !== undefined) {
-      const result = fakeResultRecord(value);
-      const readback = result?.clickedCandidateAttributeReadback;
-      const expected = intent.postClickObservation.clickedCandidateAttribute;
-      if (!readback || typeof readback !== "object" || Array.isArray(readback)
-        || Object.keys(readback).sort().join("|") !== "name|value|verified"
-        || Reflect.get(readback, "name") !== expected.name || Reflect.get(readback, "value") !== expected.equals
-        || Reflect.get(readback, "verified") !== true) {
-        return rejectFakeMutation(state, { failureCode: "BROWSER_AUTH_TRANSCRIPT_INVALID" }, "no",
-          "BROWSER_AUTH_TRANSCRIPT_INVALID");
-      }
+      && !clickedAttributeReadbackValid(intent, value)) {
+      return rejectFakeMutation(state, { failureCode: "BROWSER_AUTH_TRANSCRIPT_INVALID" }, "no",
+        "BROWSER_AUTH_TRANSCRIPT_INVALID");
     }
     settleFakeMutation(state, value);
-    const advance = options.navigationEpochAdvanceOnMutation ?? 0;
-    if (advance > 0) {
-      state.navigationEpoch += advance;
-      state.documentRef = `document:${state.navigationEpoch}`;
-    }
+    advanceFakeDocument(state, options.navigationEpochAdvanceOnMutation ?? 0);
   }
   if (intent.kind !== "document" || !value || typeof value !== "object" || Array.isArray(value)) return value;
   const nextUrl = Reflect.get(value, "url");
   if (typeof nextUrl === "string" && nextUrl !== state.url) {
     state.url = nextUrl;
-    state.navigationEpoch += 1;
-    state.documentRef = `document:${state.navigationEpoch}`;
+    advanceFakeDocument(state, 1);
   }
   return value;
 };

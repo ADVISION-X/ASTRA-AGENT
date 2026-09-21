@@ -269,16 +269,7 @@ export class ProductionExecutor {
     try {
       result = await dispatchWebsiteAgentTask(input.task, (authorized) => {
         const routePolicy = productionRoutePolicy(authorized.task.product_id, authorized.task.action_id);
-        const parent = routePolicy.relation_kind === "provider_continuation"
-          && authorized.task.parent_task_ref ? this.store.readTask(authorized.task.parent_task_ref) : null;
-        if (authorized.task.parent_task_ref && routePolicy.relation_kind === "provider_continuation" && !parent) {
-          throw executionFailure("failed", "PRODUCTION_PARENT_RESULT_BINDING_MISSING");
-        }
-        if (parent && (parent.status !== "completed" || !parent.result
-          || parent.result.result_payload_ref !== authorized.task.parent_result_ref
-          || parent.result.result_payload_hash !== authorized.task.parent_result_hash)) {
-          throw executionFailure("failed", "PRODUCTION_PARENT_RESULT_BINDING_INVALID");
-        }
+        const parent = this.readContinuationParent(authorized.task, routePolicy.relation_kind);
         gptExecution = this.gptChildTools.createExecution({
           jobId: authorized.task.job_id,
           productId: authorized.task.product_id,
@@ -332,6 +323,23 @@ export class ProductionExecutor {
     }
     if (!completed) throw new Error("PLUGIN_RESULT_NOT_COMPLETED");
     return result;
+  }
+
+  private readContinuationParent(
+    task: Readonly<Pick<WebsiteAgentTask, "parent_task_ref" | "parent_result_ref" | "parent_result_hash">>,
+    relationKind: ReturnType<typeof productionRoutePolicy>["relation_kind"],
+  ) {
+    const parent = relationKind === "provider_continuation" && task.parent_task_ref
+      ? this.store.readTask(task.parent_task_ref) : null;
+    if (task.parent_task_ref && relationKind === "provider_continuation" && !parent) {
+      throw executionFailure("failed", "PRODUCTION_PARENT_RESULT_BINDING_MISSING");
+    }
+    if (parent && (parent.status !== "completed" || !parent.result
+      || parent.result.result_payload_ref !== task.parent_result_ref
+      || parent.result.result_payload_hash !== task.parent_result_hash)) {
+      throw executionFailure("failed", "PRODUCTION_PARENT_RESULT_BINDING_INVALID");
+    }
+    return parent;
   }
 
   public async execute(

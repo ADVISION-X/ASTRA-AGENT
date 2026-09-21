@@ -342,7 +342,7 @@ const withFakeExtensionClock = async <T>(run: () => Promise<T>): Promise<T> => {
   globalThis.setTimeout = ((handler: (...args: unknown[]) => void, timeoutMs?: number) => {
     now += typeof timeoutMs === "number" ? timeoutMs : 0;
     handler();
-    return 0 as unknown as ReturnType<typeof setTimeout>;
+    return originalSetTimeout(() => undefined, 0);
   }) as typeof setTimeout;
   try {
     return await run();

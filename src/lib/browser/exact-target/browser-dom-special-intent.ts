@@ -3,12 +3,19 @@ import { requireCanonicalGptConversationUrl } from "./browser-site-policy-regist
 
 const exactHash = (value: string): boolean => /^sha256:[a-f0-9]{64}$/u.test(value);
 
+const invalidExactKeys = (intent: BrowserDomIntent, keys: readonly string[]): boolean => {
+  const exactKeys = new Set(keys);
+  return Object.keys(intent).length !== exactKeys.size
+    || Object.keys(intent).some((key) => !exactKeys.has(key));
+};
+
 export const assertSpecialBrowserDomIntent = (intent: BrowserDomIntent): void => {
   if (intent.kind === "selectExactGptConversation") try {
     requireCanonicalGptConversationUrl(intent.canonicalConversationUrl);
   } catch { throw new Error("BROWSER_COMMAND_PERMIT_INVALID"); }
   if (intent.kind === "acknowledgeKnownGptRateLimit"
-    && (Object.keys(intent).length !== 4 || !exactHash(intent.targetRefHash)
+    && (invalidExactKeys(intent, ["kind", "targetRefHash", "documentRefHash", "dispatchNotAfter"])
+      || !exactHash(intent.targetRefHash)
       || !exactHash(intent.documentRefHash)
       || (intent.dispatchNotAfter !== null
         && (!Number.isFinite(Date.parse(intent.dispatchNotAfter))
@@ -16,7 +23,8 @@ export const assertSpecialBrowserDomIntent = (intent: BrowserDomIntent): void =>
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
   if (intent.kind === "readKnownGptRateLimitClearance"
-    && (Object.keys(intent).length !== 3 || !exactHash(intent.targetRefHash)
+    && (invalidExactKeys(intent, ["kind", "targetRefHash", "documentRefHash"])
+      || !exactHash(intent.targetRefHash)
       || !exactHash(intent.documentRefHash))) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
 };
 

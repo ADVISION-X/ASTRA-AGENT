@@ -1,11 +1,7 @@
-import { runInNewContext } from "node:vm";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import type { ExtensionDebuggerRuntime } from
-  "../../src/lib/browser/chrome-extension/debugger-runtime.js";
-import { readExactEditableText } from
-  "../../src/lib/browser/chrome-extension/dom-exact-editable-text.js";
 import { FakeElement, FakeTextNode, RICH_SEMANTIC_TEXT, execute, hash, richSemanticTree }
   from "./local-browser-dom-function-fixture.js";
+import { exerciseEditablePromptHashes } from "./local-browser-dom-editable-prompt-support.js";
 export const exerciseCapturedCoherentObservationPointerFunction = (source: string): void => {
   const reasoning = new FakeElement("", {}, {}, {
     "aria-valuemin": "0", "aria-valuemax": "4", "aria-valuenow": "2",
@@ -102,139 +98,6 @@ const exerciseHiddenStateRead = async (source: string): Promise<void> => {
     rawCount: 1, eligibleCount: 1, matches: [{ candidateIndex: 0, ariaHidden: true }],
   }), "the explicit non-actionable read mode may ignore only ARIA_HIDDEN");
 };
-const exerciseComposerExactHashes = async (source: string): Promise<void> => {
-  const trailingBreak = new FakeElement("", {}, {}, { class: "ProseMirror-trailingBreak" }, "BR");
-  const emptyParagraph = new FakeElement("", {}, {}, { "data-empty-paragraph": "true" }, "P", [trailingBreak]);
-  const emptyComposer = new FakeElement("", {}, {}, {
-    id: "prompt-textarea", contenteditable: "true",
-  }, "DIV", [emptyParagraph]);
-  const composerRoot = new FakeElement("", { "#prompt-textarea": [emptyComposer] });
-  emptyComposer.parentElement = composerRoot;
-  const emptyResult = await execute(source, {
-    documentElement: composerRoot, querySelectorAll: () => [], elementFromPoint: () => emptyComposer,
-  }, [{ queryId: "composer", selector: "#prompt-textarea", maxMatches: 1,
-    fields: ["semanticTextHash"] }]) as Readonly<{
-      queries: readonly Readonly<{ matches: readonly Readonly<{ semanticTextHash: string }>[] }>[];
-    }>;
-  assert.equal(emptyResult.queries[0]?.matches[0]?.semanticTextHash,
-    "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "the exact live ProseMirror empty marker must project to the empty semantic string");
-  const markdownPrompt = "# Heading\n- item\n`code`\n";
-  const markdownBlocks = markdownPrompt.split("\n").map((value) =>
-    new FakeElement(value, {}, {}, {}, "P", value.length === 0 ? [] : [new FakeTextNode(value)]));
-  const markdownComposer = new FakeElement(markdownPrompt, {}, {}, {
-    id: "prompt-textarea", contenteditable: "true",
-  }, "DIV", markdownBlocks);
-  const styledParagraph = new FakeElement("bold", {}, {}, {}, "P", [
-    new FakeElement("bold", {}, {}, {}, "STRONG", [new FakeTextNode("bold")]),
-  ]);
-  const styledComposer = new FakeElement("bold", {}, {}, {
-    id: "prompt-textarea", contenteditable: "true",
-  }, "DIV", [styledParagraph]);
-  const richResponse = richSemanticTree();
-  const exactRoot = new FakeElement("", {
-    "#markdown": [markdownComposer], "#styled": [styledComposer], "#rich": [richResponse],
-  });
-  markdownComposer.parentElement = exactRoot;
-  styledComposer.parentElement = exactRoot;
-  richResponse.parentElement = exactRoot;
-  const exactResult = await execute(source, {
-    documentElement: exactRoot, querySelectorAll: () => [], elementFromPoint: () => markdownComposer,
-  }, [
-    { queryId: "markdown", selector: "#markdown", maxMatches: 1,
-      fields: ["exactEditableTextHash"] },
-    { queryId: "styled", selector: "#styled", maxMatches: 1,
-      fields: ["exactEditableTextHash", "semanticTextHash"] },
-    { queryId: "rich", selector: "#rich", maxMatches: 1, fields: ["semanticTextHash"] },
-  ]) as Readonly<{ queries: readonly Readonly<{ matches: readonly Readonly<{
-      exactEditableTextHash: string; semanticTextHash?: string;
-    }>[] }>[] }>;
-  assert.equal(exactResult.queries[0]?.matches[0]?.exactEditableTextHash, hash(markdownPrompt),
-    "Composer exact hash must preserve headings, list markers, backticks, and the trailing newline");
-  assert.equal(exactResult.queries[1]?.matches[0]?.exactEditableTextHash, hash("bold"));
-  assert.equal(exactResult.queries[1]?.matches[0]?.semanticTextHash, hash("**bold**"),
-    "rendered semantic text must remain distinct from the Composer current-value projection");
-  assert.equal(exactResult.queries[2]?.matches[0]?.semanticTextHash, hash(RICH_SEMANTIC_TEXT),
-    "coherent observation must hash the whole rich answer, including text around its one code block");
-
-  const editableWhitespaceCases = [
-    ["approved\u00a0prompt", "approved prompt"],
-    ["approved\u202fprompt", "approved\u202fprompt"],
-    ["approved\u2007prompt", "approved\u2007prompt"],
-    ["approved\tprompt", "approved\tprompt"],
-    ["approved  prompt", "approved  prompt"],
-    ["approved\nprompt", "approved\nprompt"],
-  ] as const;
-  for (const [index, [rendered, expected]] of editableWhitespaceCases.entries()) {
-    const editable = new FakeElement(rendered, {}, {}, {
-      id: "prompt-textarea", contenteditable: "true",
-    }, "DIV", [new FakeTextNode(rendered)]);
-    const editableRoot = new FakeElement("", { [`#editable-${index}`]: [editable] });
-    editable.parentElement = editableRoot;
-    const editableResult = await execute(source, {
-      documentElement: editableRoot, querySelectorAll: () => [], elementFromPoint: () => editable,
-    }, [{ queryId: `editable-${index}`, selector: `#editable-${index}`, maxMatches: 1,
-      fields: ["exactEditableTextHash"] }]) as Readonly<{
-        queries: readonly Readonly<{ matches: readonly Readonly<{
-          exactEditableTextHash: string;
-        }>[] }>[];
-      }>;
-    assert.equal(editableResult.queries[0]?.matches[0]?.exactEditableTextHash, hash(expected),
-      "the exact editable projection must map only NBSP and preserve every other whitespace byte");
-  }
-};
-
-const exerciseIncidentScalePromptProjection = async (source: string): Promise<void> => {
-  const sevenSpaceTail = "one two three four five six seven eight";
-  const approved = `${"甲".repeat(111_075)}\n${sevenSpaceTail}\n[GRASSEYE:prompt-end]`;
-  const rendered = `${"甲".repeat(111_075)}\n${sevenSpaceTail.replaceAll(" ", "\u00a0")}\n[GRASSEYE:prompt-end]`;
-  assert.equal([...rendered].filter((value) => value === "\u00a0").length, 7);
-  assert.ok(rendered.length > 111_074 && rendered.endsWith("[GRASSEYE:prompt-end]"));
-
-  const editable = new FakeElement(rendered, {}, {}, {
-    id: "prompt-textarea", contenteditable: "true",
-  }, "DIV", [new FakeTextNode(rendered)]);
-  const directRuntime = {
-    async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
-      if (method === "DOM.resolveNode") return { object: { objectId: "incident-editable" } };
-      if (method === "Runtime.callFunctionOn") {
-        const implementation = runInNewContext(`(${String(parameters?.functionDeclaration)})`, {
-          Element: FakeElement,
-        }) as (this: FakeElement) => unknown;
-        return { result: { value: implementation.call(editable) } };
-      }
-      if (method === "Runtime.releaseObject") return {};
-      throw new Error(`UNEXPECTED_INCIDENT_PROMPT_METHOD:${method}`);
-    },
-  } as ExtensionDebuggerRuntime;
-  assert.equal(await readExactEditableText(directRuntime, 1, 1), approved,
-    "direct fill readback must project all seven NBSP bytes without truncating the marker");
-
-  const promptBody = new FakeElement(rendered, {}, {}, {
-    "data-testid": "collapsible-user-message-content",
-  }, "DIV", [new FakeTextNode(rendered)]);
-  const userTurn = new FakeElement(rendered, {
-    "[data-testid='collapsible-user-message-content']": [promptBody],
-    "[data-message-author-role='user']": [promptBody],
-  }, {}, { "data-testid": "conversation-turn-111074" }, "ARTICLE", [promptBody]);
-  const root = new FakeElement("", { "#prompt-textarea": [editable], ".user-turn": [userTurn] });
-  editable.parentElement = root;
-  userTurn.parentElement = root;
-  const result = await execute(source, {
-    documentElement: root, querySelectorAll: () => [], elementFromPoint: () => editable,
-  }, [
-    { queryId: "incident-editable", selector: "#prompt-textarea", maxMatches: 1,
-      fields: ["exactEditableTextHash"] },
-    { queryId: "incident-user-turn", selector: ".user-turn", maxMatches: 1,
-      fields: ["exactGptUserPromptHash"] },
-  ]) as Readonly<{ queries: readonly Readonly<{ matches: readonly Readonly<{
-    exactEditableTextHash?: string; exactGptUserPromptHash?: string;
-  }>[] }>[] }>;
-  assert.equal(result.queries[0]?.matches[0]?.exactEditableTextHash, hash(approved),
-    "coherent editable hash must cover the complete incident-scale Prompt");
-  assert.equal(result.queries[1]?.matches[0]?.exactGptUserPromptHash, hash(approved),
-    "post-submit user Prompt hash must match the same complete projected Prompt");
-};
 const userPromptFixture = () => {
   const userPrompt = "[GRASSEYE:exact-user-prompt]\napproved prompt";
   const promptBody = new FakeElement(userPrompt, {}, {}, {
@@ -246,6 +109,36 @@ const userPromptFixture = () => {
     new FakeElement("approved prompt", {}, {}, {}, "P", [new FakeTextNode("approved prompt")]),
   ]);
   return { userPrompt, promptBody };
+};
+
+const exerciseUserPromptWhitespaceHashes = async (source: string): Promise<void> => {
+  const { userPrompt } = userPromptFixture();
+  const prompts = ["[GRASSEYE:exact-user-prompt]\\napproved\\u00a0prompt",
+    "[GRASSEYE:exact-user-prompt]\\napproved\\u202fprompt",
+    "[GRASSEYE:exact-user-prompt]\\napproved\\u2007prompt",
+    "[GRASSEYE:exact-user-prompt]\\napproved\\tprompt",
+    "[GRASSEYE:exact-user-prompt]\\napproved  prompt",
+    "[GRASSEYE:exact-user-prompt]\\napproved\\nprompt"] as const;
+  for (const [index, exactPrompt] of prompts.entries()) {
+    const body = new FakeElement(exactPrompt, {}, {}, {
+      "data-testid": "collapsible-user-message-content",
+    }, "DIV", [new FakeTextNode(exactPrompt)]);
+    const turn = new FakeElement(exactPrompt, {
+      "[data-testid='collapsible-user-message-content']": [body],
+      "[data-message-author-role='user']": [body],
+    }, {}, { "data-testid": `conversation-turn-${20 + index}` }, "ARTICLE", [body]);
+    const root = new FakeElement("", { ".user-turn": [turn] });
+    turn.parentElement = root;
+    const result = await execute(source, {
+      documentElement: root, querySelectorAll: () => [], elementFromPoint: () => turn,
+    }, [{ queryId: `whitespace-user-turn-${index}`, selector: ".user-turn", maxMatches: 1,
+      fields: ["exactGptUserPromptHash"] }]) as Readonly<{
+        queries: readonly Readonly<{ matches: readonly Readonly<{ exactGptUserPromptHash: string }>[] }>[];
+      }>;
+    assert.equal(result.queries[0]?.matches[0]?.exactGptUserPromptHash,
+      hash(index === 0 ? userPrompt : exactPrompt),
+      "the user Prompt projection must map only NBSP and preserve every other whitespace byte");
+  }
 };
 
 const exerciseMarkedUserPromptHash = async (source: string): Promise<void> => {
@@ -276,54 +169,7 @@ const exerciseMarkedUserPromptHash = async (source: string): Promise<void> => {
     "the exact GPT user Prompt hash must include only the unique rendered Prompt body");
   assert.notEqual(exactUserTurn?.semanticTextHash, hash(userPrompt),
     "the outer user-turn semantic hash must expose why attachment and controls cannot identify the Prompt");
-
-  const renderedWithNbsp = "[GRASSEYE:exact-user-prompt]\napproved\u00a0prompt";
-  const nbspBody = new FakeElement(renderedWithNbsp, {}, {}, {
-    "data-testid": "collapsible-user-message-content",
-  }, "DIV", [new FakeTextNode(renderedWithNbsp)]);
-  const nbspTurn = new FakeElement(renderedWithNbsp, {
-    "[data-testid='collapsible-user-message-content']": [nbspBody],
-    "[data-message-author-role='user']": [nbspBody],
-  }, {}, { "data-testid": "conversation-turn-3" }, "ARTICLE", [nbspBody]);
-  const nbspRoot = new FakeElement("", { ".user-turn": [nbspTurn] });
-  nbspTurn.parentElement = nbspRoot;
-  const nbspResult = await execute(source, {
-    documentElement: nbspRoot, querySelectorAll: () => [], elementFromPoint: () => nbspTurn,
-  }, [{ queryId: "nbsp-user-turn", selector: ".user-turn", maxMatches: 1,
-    fields: ["exactGptUserPromptHash"] }]) as Readonly<{
-      queries: readonly Readonly<{ matches: readonly Readonly<{ exactGptUserPromptHash: string }>[] }>[];
-    }>;
-  assert.equal(nbspResult.queries[0]?.matches[0]?.exactGptUserPromptHash, hash(userPrompt),
-    "the long user Prompt projection must map only Provider-rendered NBSP to ordinary space");
-
-  const preservedWhitespacePrompts = [
-    "[GRASSEYE:exact-user-prompt]\napproved\u202fprompt",
-    "[GRASSEYE:exact-user-prompt]\napproved\u2007prompt",
-    "[GRASSEYE:exact-user-prompt]\napproved\tprompt",
-    "[GRASSEYE:exact-user-prompt]\napproved  prompt",
-    "[GRASSEYE:exact-user-prompt]\napproved\nprompt",
-  ] as const;
-  for (const [index, exactPrompt] of preservedWhitespacePrompts.entries()) {
-    const exactBody = new FakeElement(exactPrompt, {}, {}, {
-      "data-testid": "collapsible-user-message-content",
-    }, "DIV", [new FakeTextNode(exactPrompt)]);
-    const exactTurn = new FakeElement(exactPrompt, {
-      "[data-testid='collapsible-user-message-content']": [exactBody],
-      "[data-message-author-role='user']": [exactBody],
-    }, {}, { "data-testid": `conversation-turn-${20 + index}` }, "ARTICLE", [exactBody]);
-    const exactRoot = new FakeElement("", { ".user-turn": [exactTurn] });
-    exactTurn.parentElement = exactRoot;
-    const exactWhitespaceResult = await execute(source, {
-      documentElement: exactRoot, querySelectorAll: () => [], elementFromPoint: () => exactTurn,
-    }, [{ queryId: `preserved-user-turn-${index}`, selector: ".user-turn", maxMatches: 1,
-      fields: ["exactGptUserPromptHash"] }]) as Readonly<{
-        queries: readonly Readonly<{ matches: readonly Readonly<{
-          exactGptUserPromptHash: string;
-        }>[] }>[];
-      }>;
-    assert.equal(exactWhitespaceResult.queries[0]?.matches[0]?.exactGptUserPromptHash,
-      hash(exactPrompt), "the user Prompt projection must preserve every non-NBSP whitespace byte");
-  }
+  await exerciseUserPromptWhitespaceHashes(source);
 };
 
 const exerciseFencedUserPromptHash = async (source: string): Promise<void> => {
@@ -576,8 +422,7 @@ const exerciseInvalidObservationUrls = async (
 export const exerciseCapturedObservationFunction = async (source: string): Promise<void> => {
   const observationDocument = await exerciseObservationRejections(source);
   await exerciseHiddenStateRead(source);
-  await exerciseComposerExactHashes(source);
-  await exerciseIncidentScalePromptProjection(source);
+  await exerciseEditablePromptHashes(source);
   await exerciseUserPromptHashes(source);
   await exerciseAssistantSemanticTextHash(source);
   await exerciseInvalidObservationUrls(source, observationDocument);

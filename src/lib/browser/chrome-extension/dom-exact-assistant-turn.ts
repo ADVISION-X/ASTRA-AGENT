@@ -136,8 +136,8 @@ const wait = async (durationMs: number): Promise<void> =>
  * when the current Document has zero rendered turns matching userTurnId; it never scrolls when a
  * candidate already exists or is ambiguous. Every wait and the hard deadline are owned by this
  * function's own clock, not by the page, so a hidden or throttled tab cannot delay the command past
- * its deadline. All failures are swallowed: the caller always falls back to the current (still
- * unavailable) observation.
+ * its deadline. CDP failures remain typed failures; only a completed bounded walk falls through to
+ * the caller's fresh unavailable observation.
  */
 const materializeExactUserTurn = async (
   runtime: ExtensionDebuggerRuntime,
@@ -150,8 +150,7 @@ const materializeExactUserTurn = async (
   );
   if (budgetMs < MATERIALIZE_STEP_MIN_BUDGET_MS) return;
   const deadline = Date.now() + budgetMs;
-  try {
-    for (let step = 0; step < MATERIALIZE_STEP_MAX_COUNT; step += 1) {
+  for (let step = 0; step < MATERIALIZE_STEP_MAX_COUNT; step += 1) {
       if (Date.now() + MATERIALIZE_STEP_INTERVAL_MS + MATERIALIZE_STEP_INTERVAL_MARGIN_MS >= deadline) return;
       let objectId: string | null = null;
       let result: MaterializeStepResult;
@@ -169,14 +168,10 @@ const materializeExactUserTurn = async (
         if (call.exceptionDetails !== undefined) return;
         result = decodeMaterializeStep(record(call.result).value);
       } finally {
-        if (objectId !== null) await runtime.send(target.tabId, "Runtime.releaseObject", { objectId })
-          .catch(() => undefined);
+        if (objectId !== null) await runtime.send(target.tabId, "Runtime.releaseObject", { objectId });
       }
       if (!result.pageVisible || !result.containerFound || result.hit || result.atTop) return;
       await wait(MATERIALIZE_STEP_INTERVAL_MS);
-    }
-  } catch {
-    // Best-effort only; the caller re-reads the current (possibly still unavailable) observation.
   }
 };
 

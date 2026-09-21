@@ -1,4 +1,4 @@
-import { Node, SyntaxKind, type CallExpression, type ImportDeclaration, type Node as MorphNode, type Symbol as MorphSymbol } from "ts-morph";
+import { type ImportDeclaration, type Node as MorphNode, type Symbol as MorphSymbol } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";
 import { type InspectorContext, type InspectorEvaluation, type SessionInspectorOutput } from "../../shared/inspector-contracts.js";
@@ -17,107 +17,12 @@ import { pushCapabilitySourceOfTruthFindings } from "./components/capability-gov
 import { pushFacadePurityFindings } from "./components/capability-facade-purity.js";
 import { inspectCapabilityFacadeTypes } from "./components/capability-facade-types.js";
 import { isOwnerlessGenericTarget } from "./components/capability-path-boundary.js";
-type CapabilityGroupFindingInput = Omit<Parameters<typeof createFinding>[0], "evidenceMode"> & { evidenceMode?: string };
+import { createDedupedFindingPusher, pushMechanicalContentAstFindings,
+  pushMechanicalContentDependencyFindings, pushMechanicalContentTypeFindings,
+} from "./mechanical-content-inspection.js";
 
 const MECHANICAL_CONTENT_LAW_ID = "LAW-CAPABILITY-GOVERNANCE-002-V2";
 
-const isDeterministicContentJudgeName = (value: string): boolean => {
-  const normalized = value.toLocaleLowerCase("en-US");
-  const semanticSubject = ["semantic", "quality", "professional", "faithful", "strength", "keyword", "similarity", "score"]
-    .some((term) => normalized.includes(term));
-  const decision = ["assert", "validate", "verify", "ensure", "check", "guard", "gate", "judge", "evaluate", "review", "reject", "block", "retry"]
-    .some((term) => normalized.includes(term));
-  const providerContentHeuristic = ["answer", "response", "output", "content", "result"]
-    .some((term) => normalized.includes(term))
-    && ["keyword", "regex", "length", "score", "similarity", "strength"]
-      .some((term) => normalized.includes(term));
-  return semanticSubject && decision || providerContentHeuristic;
-};
-
-const deterministicContentJudgeCallName = (call: CallExpression): string => {
-  const expression = call.getExpression();
-  return Node.isPropertyAccessExpression(expression) ? expression.getName() : expression.getText();
-};
-
-const isProviderContentDecisionSource = (repoPath: string): boolean => repoPath.startsWith("src/plugins/")
-  || repoPath.startsWith("src/capabilities/gpt/") || repoPath.startsWith("src/lib/browser/");
-
-const deterministicContentJudgeCalls = (project: InspectorContext["project"]) => listActiveSourceFiles(project)
-  .filter((sourceFile) => isProviderContentDecisionSource(getRepoSourcePath(sourceFile)))
-  .flatMap((sourceFile) => sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .filter((call) => isDeterministicContentJudgeName(deterministicContentJudgeCallName(call)))
-    .map((call) => ({ call, repoPath: getRepoSourcePath(sourceFile) })));
-
-const pushMechanicalContentAstFindings = (input: {
-  lawId: string;
-  project: InspectorContext["project"];
-  pushFinding: ReturnType<typeof createDedupedFindingPusher>;
-}): void => {
-  for (const { call, repoPath } of deterministicContentJudgeCalls(input.project)) {
-    input.pushFinding({
-      checkId: "capability-governance/deterministic-content-judge",
-      lawId: input.lawId,
-      filePath: repoPath,
-      evidenceMode: "static.ast",
-      evidence: deterministicContentJudgeCallName(call),
-      message: `${repoPath} invokes deterministic content judge ${deterministicContentJudgeCallName(call)}.`,
-    });
-  }
-};
-
-const pushMechanicalContentTypeFindings = (input: {
-  lawId: string;
-  project: InspectorContext["project"];
-  pushFinding: ReturnType<typeof createDedupedFindingPusher>;
-}): void => {
-  for (const { call, repoPath } of deterministicContentJudgeCalls(input.project)) {
-    const resultType = call.getType().getText(call);
-    input.pushFinding({
-      checkId: "capability-governance/deterministic-content-judge-type",
-      lawId: input.lawId,
-      filePath: repoPath,
-      evidenceMode: "static.types",
-      evidence: `${deterministicContentJudgeCallName(call)}:${resultType}`,
-      message: `${repoPath} types deterministic content judge ${deterministicContentJudgeCallName(call)} as ${resultType}.`,
-    });
-  }
-};
-
-const pushMechanicalContentDependencyFindings = (input: {
-  lawId: string;
-  project: InspectorContext["project"];
-  pushFinding: ReturnType<typeof createDedupedFindingPusher>;
-}): void => {
-  for (const sourceFile of listActiveSourceFiles(input.project)) {
-    const repoPath = getRepoSourcePath(sourceFile);
-    if (!isProviderContentDecisionSource(repoPath)) continue;
-    for (const declaration of sourceFile.getImportDeclarations()) {
-      for (const imported of declaration.getNamedImports()) {
-        if (!isDeterministicContentJudgeName(imported.getName())) continue;
-        input.pushFinding({
-          checkId: "capability-governance/deterministic-content-judge-dependency",
-          lawId: input.lawId,
-          filePath: repoPath,
-          evidenceMode: "static.dependency",
-          evidence: `${declaration.getModuleSpecifierValue()}:${imported.getName()}`,
-          message: `${repoPath} imports deterministic content judge ${imported.getName()}.`,
-        });
-      }
-    }
-  }
-};
-
-const createDedupedFindingPusher = (findings: ReturnType<typeof createFinding>[]) => {
-  const findingKeys = new Set<string>();
-  return (input: CapabilityGroupFindingInput): void => {
-    const key = `${input.checkId}:${input.filePath ?? ""}:${input.message}`;
-    if (findingKeys.has(key)) {
-      return;
-    }
-    findingKeys.add(key);
-    findings.push(createFinding({ ...input, evidenceMode: input.evidenceMode ?? "static.ast" }));
-  };
-};
 
 const registerCapabilityRoot = (capabilityRoots: Set<string>, repoPath: string): void => {
   const pathInfo = classifyRepoPath(repoPath);

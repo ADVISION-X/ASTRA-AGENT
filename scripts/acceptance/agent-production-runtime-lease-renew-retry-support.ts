@@ -49,7 +49,7 @@ const withFakeClock = async <T>(run: () => Promise<T>): Promise<T> => {
   globalThis.setTimeout = ((handler: (...args: unknown[]) => void, ms?: number) => {
     now += typeof ms === "number" ? ms : 0;
     handler();
-    return 0 as unknown as ReturnType<typeof setTimeout>;
+    return originalSetTimeout(() => undefined, 0);
   }) as typeof setTimeout;
   try {
     return await run();
@@ -122,8 +122,7 @@ const exerciseRenewRetry = async (
   const controller = new AbortController();
   const outcome = renewWithinBudget({
     session, job: job(), budget: budgetWithLeftMs(leftMs), signal: controller.signal,
-  });
-  outcome.catch(() => undefined).finally(() => { globalThis.fetch = originalFetch; });
+  }).finally(() => { globalThis.fetch = originalFetch; });
   return { outcome, requestIds, elapsedMs: () => performance.now() - started };
 };
 
@@ -240,7 +239,7 @@ const exerciseAbortDuringWaitStopsFurtherRequests = async (): Promise<void> => {
     globalThis.setTimeout = ((handler: (...args: unknown[]) => void) => {
       controller.abort("PRODUCTION_RUNTIME_STOPPED");
       handler();
-      return 0 as unknown as ReturnType<typeof setTimeout>;
+      return originalSetTimeout(() => undefined, 0);
     }) as typeof setTimeout;
     try {
       await assert.rejects(renewWithinBudget({

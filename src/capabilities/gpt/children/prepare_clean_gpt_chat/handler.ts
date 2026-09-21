@@ -72,6 +72,73 @@ const freshChatFailureCode = (state: ConversationState): string => {
   return failure.find(([matches]) => matches)?.[1] ?? "GPT_CHAT_DRAFT_NOT_EMPTY_AFTER_CLEAR";
 };
 
+type PrepareIntent = Parameters<GptChildHandler<"prepare_clean_gpt_chat">>[0];
+type PrepareContext = Parameters<GptChildHandler<"prepare_clean_gpt_chat">>[1];
+type PrepareBrowser = ReturnType<typeof requireBrowser>;
+
+const selectChatMode = async (
+  intent: PrepareIntent, context: PrepareContext, browser: PrepareBrowser, observed: ConversationState,
+) => {
+  if (observed.composerHash !== hashConversationValue("")) {
+    throw executionFailure("failed", "GPT_CHAT_MODE_WORK_SELECTED_WITH_DRAFT");
+  }
+  const mutation = await browser.executeDomIntent({
+    kind: "click", selector: GPT_CHAT_MODE_CHAT_SELECTOR, expectedMatches: 1,
+    postClickObservation: CHAT_MODE_POSTCONDITION,
+  });
+  const mutationRecord = mutation && typeof mutation === "object" && !Array.isArray(mutation)
+    ? mutation as Readonly<Record<string, unknown>> : {};
+  const selected = projectChatModeState(decodeCoherentObservationPacket(
+    mutationRecord.postconditionObservation, CHAT_MODE_QUERIES,
+  ));
+  if (!exactChatModeSelected(selected) || selected.currentUrl !== observed.currentUrl
+    || selected.facts.authorityRefHashes[0] !== observed.facts.authorityRefHashes[0]
+    || selected.facts.authorityRefHashes[1] !== observed.facts.authorityRefHashes[1]) {
+    throw executionFailure("failed", "GPT_CHAT_MODE_SELECTION_POSTCONDITION_INVALID");
+  }
+  const browserFact = requireConfirmedBrowserFact(intent, context);
+  const readback = await readConversationState(browser, context.signal);
+  const proofFacts = declaredFacts({
+    ...readback.facts, decision: "ACT", mutationOutcome: browserFact.mutationOutcome,
+    factResultIds: Object.freeze([...readback.facts.factResultIds, browserFact.evidenceRef]),
+    authorityRefHashes: Object.freeze([...readback.facts.authorityRefHashes, browserFact.evidenceHash]),
+    browserFact, nativeFailureCode: null,
+  });
+  if (!freshChatTopology(readback) || readback.composerHash !== hashConversationValue("")) {
+    throw gptExecutionFailure("GPT_CHAT_MODE_SELECTION_POSTCONDITION_INVALID", {
+      mutationOutcome: browserFact.mutationOutcome,
+      evidence: { evidenceRef: browserFact.evidenceRef, evidenceHash: browserFact.evidenceHash },
+      browserEffect: { effectScope: browserFact.effectScope, childCapabilityId: browserFact.childCapabilityId,
+        browserOutcome: browserFact.browserOutcome }, proofFacts, cause: new Error(freshChatFailureCode(readback)),
+    });
+  }
+  return success({ value: { composer: 1, turns: 0, attachments: 0, generating: 0,
+    draftEmpty: true as const, staleDraftCleared: false }, ...proofFacts });
+};
+
+const clearStaleDraft = async (intent: PrepareIntent, context: PrepareContext, browser: PrepareBrowser) => {
+  await browser.executeDomIntent({ kind: "fill", selector: GPT_COMPOSER_SELECTOR, approvedText: "",
+    clearBeforeType: true, expectedMatches: 1 });
+  const browserFact = requireConfirmedBrowserFact(intent, context, { allowNoMutationOutcome: true });
+  const readback = await readConversationState(browser, context.signal);
+  const proofFacts = declaredFacts({ ...readback.facts, decision: "ACT", mutationOutcome: browserFact.mutationOutcome,
+    factResultIds: Object.freeze([...readback.facts.factResultIds, browserFact.evidenceRef]),
+    authorityRefHashes: Object.freeze([...readback.facts.authorityRefHashes, browserFact.evidenceHash]),
+    browserFact, nativeFailureCode: null });
+  if (!freshChatTopology(readback) || readback.composerHash !== hashConversationValue("")) {
+    const causeCode = freshChatFailureCode(readback);
+    throw gptExecutionFailure("GPT_CHAT_DRAFT_CLEAR_FAILED", {
+      mutationOutcome: browserFact.mutationOutcome,
+      evidence: { evidenceRef: browserFact.evidenceRef, evidenceHash: browserFact.evidenceHash },
+      browserEffect: { effectScope: browserFact.effectScope, childCapabilityId: browserFact.childCapabilityId,
+        browserOutcome: browserFact.browserOutcome }, proofFacts,
+      cause: Object.assign(new Error(causeCode), { code: causeCode }),
+    });
+  }
+  return success({ value: { composer: 1, turns: 0, attachments: 0, generating: 0,
+    draftEmpty: true as const, staleDraftCleared: browserFact.mutationOutcome === "confirmed" }, ...proofFacts });
+};
+
 export const prepareCleanGptChatHandler: GptChildHandler<"prepare_clean_gpt_chat"> =
   async (intent, context) => {
     requireExactInputKeys(intent, ["timeoutMs"]);
@@ -84,92 +151,12 @@ export const prepareCleanGptChatHandler: GptChildHandler<"prepare_clean_gpt_chat
       || observed.composerEligible !== 1 || observed.composerHash === null)) {
       throw executionFailure("failed", "GPT_CHAT_HYDRATION_PENDING");
     }
-    if (exactWorkModeSelected(observed)) {
-      if (observed.composerHash !== hashConversationValue("")) {
-        throw executionFailure("failed", "GPT_CHAT_MODE_WORK_SELECTED_WITH_DRAFT");
-      }
-      const mutation = await browser.executeDomIntent({
-        kind: "click", selector: GPT_CHAT_MODE_CHAT_SELECTOR, expectedMatches: 1,
-        postClickObservation: CHAT_MODE_POSTCONDITION,
-      });
-      const mutationRecord = mutation && typeof mutation === "object" && !Array.isArray(mutation)
-        ? mutation as Readonly<Record<string, unknown>> : {};
-      const postcondition = decodeCoherentObservationPacket(
-        mutationRecord.postconditionObservation, CHAT_MODE_QUERIES,
-      );
-      const selected = projectChatModeState(postcondition);
-      if (!exactChatModeSelected(selected)
-        || selected.currentUrl !== observed.currentUrl
-        || selected.facts.authorityRefHashes[0] !== observed.facts.authorityRefHashes[0]
-        || selected.facts.authorityRefHashes[1] !== observed.facts.authorityRefHashes[1]) {
-        throw executionFailure("failed", "GPT_CHAT_MODE_SELECTION_POSTCONDITION_INVALID");
-      }
-      const browserFact = requireConfirmedBrowserFact(intent, context);
-      const readback = await readConversationState(browser, context.signal);
-      if (!freshChatTopology(readback) || readback.composerHash !== hashConversationValue("")) {
-        throw gptExecutionFailure("GPT_CHAT_MODE_SELECTION_POSTCONDITION_INVALID", {
-          mutationOutcome: browserFact.mutationOutcome,
-          evidence: { evidenceRef: browserFact.evidenceRef, evidenceHash: browserFact.evidenceHash },
-          browserEffect: {
-            effectScope: browserFact.effectScope,
-            childCapabilityId: browserFact.childCapabilityId,
-            browserOutcome: browserFact.browserOutcome,
-          },
-          proofFacts: declaredFacts({
-            ...readback.facts, decision: "ACT", mutationOutcome: browserFact.mutationOutcome,
-            factResultIds: Object.freeze([...readback.facts.factResultIds, browserFact.evidenceRef]),
-            authorityRefHashes: Object.freeze([...readback.facts.authorityRefHashes, browserFact.evidenceHash]),
-            browserFact, nativeFailureCode: null,
-          }),
-          cause: new Error(freshChatFailureCode(readback)),
-        });
-      }
-      return success({
-        value: { composer: 1, turns: 0, attachments: 0, generating: 0,
-          draftEmpty: true, staleDraftCleared: false },
-        ...declaredFacts({
-          ...readback.facts, decision: "ACT", mutationOutcome: browserFact.mutationOutcome,
-          factResultIds: Object.freeze([...readback.facts.factResultIds, browserFact.evidenceRef]),
-          authorityRefHashes: Object.freeze([...readback.facts.authorityRefHashes, browserFact.evidenceHash]),
-          browserFact, nativeFailureCode: null,
-        }),
-      });
-    }
+    if (exactWorkModeSelected(observed)) return selectChatMode(intent, context, browser, observed);
     if (observed.composerHash === hashConversationValue("")) return success({
       value: { composer: 1, turns: 0, attachments: 0, generating: 0,
         draftEmpty: true, staleDraftCleared: false },
       ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
         browserFact: null, nativeFailureCode: null }),
     });
-    await browser.executeDomIntent({
-      kind: "fill", selector: GPT_COMPOSER_SELECTOR, approvedText: "",
-      clearBeforeType: true, expectedMatches: 1,
-    });
-    const browserFact = requireConfirmedBrowserFact(intent, context, { allowNoMutationOutcome: true });
-    const readback = await readConversationState(browser, context.signal);
-    const proofFacts = declaredFacts({
-      ...readback.facts, decision: "ACT", mutationOutcome: browserFact.mutationOutcome,
-      factResultIds: Object.freeze([...readback.facts.factResultIds, browserFact.evidenceRef]),
-      authorityRefHashes: Object.freeze([...readback.facts.authorityRefHashes, browserFact.evidenceHash]),
-      browserFact, nativeFailureCode: null,
-    });
-    if (!freshChatTopology(readback) || readback.composerHash !== hashConversationValue("")) {
-      const causeCode = freshChatFailureCode(readback);
-      throw gptExecutionFailure("GPT_CHAT_DRAFT_CLEAR_FAILED", {
-        mutationOutcome: browserFact.mutationOutcome,
-        evidence: { evidenceRef: browserFact.evidenceRef, evidenceHash: browserFact.evidenceHash },
-        browserEffect: {
-          effectScope: browserFact.effectScope,
-          childCapabilityId: browserFact.childCapabilityId,
-          browserOutcome: browserFact.browserOutcome,
-        },
-        proofFacts,
-        cause: Object.assign(new Error(causeCode), { code: causeCode }),
-      });
-    }
-    return success({
-      value: { composer: 1, turns: 0, attachments: 0, generating: 0,
-        draftEmpty: true, staleDraftCleared: browserFact.mutationOutcome === "confirmed" },
-      ...proofFacts,
-    });
+    return clearStaleDraft(intent, context, browser);
   };
