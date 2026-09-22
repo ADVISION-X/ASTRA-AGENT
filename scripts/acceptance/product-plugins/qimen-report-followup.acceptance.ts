@@ -8,16 +8,16 @@ const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "qimen
 assert(plugin);
 const skillText = readFileSync(new URL("../../../src/plugins/qimen-report-followup/SKILL.md", import.meta.url), "utf8");
 const reviewSequence = [
-  "prepare_clean_gpt_chat", "open_gpt_execution_profile", "open_gpt_model_selector_v2",
-  "select_exact_gpt_model_v2", "open_gpt_execution_profile", "ensure_gpt_reasoning_requirement",
+  "prepare_clean_gpt_chat", "open_gpt_execution_profile", "open_gpt_model_selector_v3",
+  "select_gpt_model_from_start_v3", "open_gpt_execution_profile", "select_gpt_reasoning_from_start_v3",
   "close_gpt_execution_profile",
   "open_gpt_attachment_control", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
   "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "checkpoint_gpt_text_response",
 ] as const;
 const followupSequence = [
   "prepare_clean_gpt_chat",
-  "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
-  "open_gpt_execution_profile", "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile", "open_gpt_attachment_control",
+  "open_gpt_execution_profile", "open_gpt_model_selector_v3", "select_gpt_model_from_start_v3",
+  "open_gpt_execution_profile", "select_gpt_reasoning_from_start_v3", "close_gpt_execution_profile", "open_gpt_attachment_control",
   "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set", "write_exact_gpt_prompt",
   "submit_exact_gpt_turn_once", "checkpoint_gpt_text_response",
 ] as const;

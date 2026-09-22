@@ -21,14 +21,11 @@ export const exerciseFailedEvidenceReadback = async <K extends GptChildCapabilit
 };
 
 export const exerciseReasoningEvidenceReadback = async (
-  result: GptChildCapabilityResult<"ensure_gpt_reasoning_requirement">,
-  input: GptChildInputMap["ensure_gpt_reasoning_requirement"],
+  result: GptChildCapabilityResult<"select_gpt_reasoning_from_start_v3">,
+  input: GptChildInputMap["select_gpt_reasoning_from_start_v3"],
 ): Promise<void> => {
   assert.equal(result.status, "success");
-  assert.equal(result.reasoningRequirementResult?.requestedTier,
-    input.profile.reasoningRequirement.requestedTier);
-  assert.equal(result.reasoningRequirementResult?.selectionPolicy,
-    input.profile.reasoningRequirement.selectionPolicy);
+  assert.equal(result.reasoningRequirementResult?.startTier, input.profile.startReasoningTier);
 };
 
 export const exercisePreExecutionFailureEvidence = async (): Promise<void> => {

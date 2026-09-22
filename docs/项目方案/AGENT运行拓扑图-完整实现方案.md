@@ -2,7 +2,7 @@
 
 ## 0. 方案状态与唯一结论
 
-状态：**FROZEN——现役事实表 v2 已由授权人批准；双仓法案与施工图必须先对齐并完成主 Codex 两轮自审，生产代码门在此之前保持关闭**。本方案把 AGENT—Website 现有交流中已经由现役法案、Blueprint、合同、实现或同事件原始证据证明的状态、字段、时序、Owner、返回事实、消费者和终点固化成唯一可查表单。它不是重构方案，不预先决定修改 manifest、Schema、法案、Blueprint、跨仓合同或生产实现。
+状态：**v3 已按本工单授权重新冻结；v2 的冻结语义和 hash 由 Git 历史保留**。本方案把 AGENT—Website 现有交流中已经由现役法案、Blueprint、合同、实现或同事件原始证据证明的状态、字段、时序、Owner、返回事实、消费者和终点固化成唯一可查表单。v3 只改变经授权的模型/推理配型相关原子节点，不借此重构其它链路；冻结只建立代码对照锚点，不证明现役代码已实现或动态工单已通过。
 
 **唯一结论**：不再以“某个 409、某个限流弹窗、某次 Tab 轮询”分别设计补丁，也不以“建立完整拓扑”为名批量改代码。必须按以下顺序推进：
 
@@ -539,16 +539,16 @@ R01–R40 来自 AGENT 当前 `website-agent-route-policies.v1.json` 的完整 r
 
 ## 7. `G` 现役 GPT 原子 Child
 
-G01–G14 与当前 `GPT_CHILD_CAPABILITY_CONTRACTS`、`handler-registry.ts` 和各 Child handler 一一对应；动作上限、decision set、postcondition、proof 与 replay policy 均来自现役 contract，不是未来能力占位。
+G01–G14 记录 v2 与当时 `GPT_CHILD_CAPABILITY_CONTRACTS`、`handler-registry.ts` 的一一对应；其中 G04–G06 在 v3 退休且保留原义以供追溯。v3 授权目标只以 G15–G17 接替这三个原子语义；在代码对齐前，它们是已批准的施工锚点，不得冒称现役 Child 已实现或动态证明已通过。其它 G ID 保持原义。
 
 | ID | 原子 Child / 状态平面 | 单一责任与动作上限 | 确认政策 | 成功记录、消费者与 readback | 失败/截止未取得证明的记录、报告与回接 |
 |---|---|---|---|---|---|
 | G01 | `acknowledge_known_gpt_rate_limit` / P5-P6 | exact 弹窗 ack，精确 1 次 input | T02+T04+T03 | Child proof + ack WAL + clearance；N16 | incident、`not_cleared`、proof/effect 原样保留；Runtime→Website |
 | G02 | `prepare_clean_gpt_chat` / P5-P6 | 证明 fresh Chat root/清理孤立 draft，`0..1` | T01+T02+T03 | Child proof；Product readback | typed failed proof/effect；Runtime→Website |
 | G03 | `open_gpt_execution_profile` / P5-P6 | 打开 profile，`0..1` | T01+T02+T03 | Child proof；Product | typed failed proof/effect；Runtime→Website |
-| G04 | `open_gpt_model_selector_v2` / P5-P6 | 使 exact 模型选项可用，`0..1` | T01+T02+T03 | Child proof；Product | typed failed proof/effect；Runtime→Website |
-| G05 | `select_exact_gpt_model_v2` / P5-P6 | 选择 exact 模型，精确 1 次 | T03；`aria-checked=true` + selector 退出 | Child proof；Product | typed failed proof/effect；Runtime→Website |
-| G06 | `ensure_gpt_reasoning_requirement` / P5-P6 | 满足 Product 冻结 reasoning，`0..1` | T02+T03 | Child proof；Product | typed failed proof/effect；Runtime→Website |
+| G04 | RETIRED：`open_gpt_model_selector_v2` / P5-P6 | v2 使 Product exact 模型选项可用，`0..1` | v2 T01+T02+T03 | v2 Child proof；由 G15 接替，不再作为新工单执行锚点 | v2 typed failed proof/effect 仍按历史原义解读 |
+| G05 | RETIRED：`select_exact_gpt_model_v2` / P5-P6 | v2 选择 Product exact 模型，精确 1 次 | v2 T03；`aria-checked=true` + selector 退出 | v2 Child proof；由 G16 接替，不再作为新工单执行锚点 | v2 typed failed proof/effect 仍按历史原义解读 |
+| G06 | RETIRED：`ensure_gpt_reasoning_requirement` / P5-P6 | v2 满足 Product 冻结 reasoning，`0..1` | v2 T02+T03 | v2 Child proof；由 G17 接替，不再作为新工单执行锚点 | v2 typed failed proof/effect 仍按历史原义解读 |
 | G07 | `close_gpt_execution_profile` / P5-P6 | 关闭 profile，`0..1` | T03；popup absent + trigger collapsed + composer usable | Child proof；Product | typed failed proof/effect；Runtime→Website |
 | G08 | `open_gpt_attachment_control` / P5-P6 | 打开附件菜单，`0..1` | T02+T03；unique menu/leaf | Child proof；Product | typed failed proof/effect；Runtime→Website |
 | G09 | `attach_approved_gpt_files_once` / P5-P6 | 一批选择全部批准文件，`0..1` | T02+T03+T09 | Child proof + target-local WAL；Product | proof/effect 原样保留；Runtime→Website |
@@ -557,6 +557,9 @@ G01–G14 与当前 `GPT_CHILD_CAPABILITY_CONTRACTS`、`handler-registry.ts` 和
 | G12 | `submit_exact_gpt_turn_once` / P5-P6 | 一次 Provider effect，精确 1 次 submit | exact outgoing identity + WAL + T03+T06 | Child proof + provider-effect WAL；Product | S11/S12 与 effect identity 原样保留；Runtime→Website |
 | G13 | `checkpoint_gpt_text_response` / P5-P6 | 读取 exact adjacent assistant text，0 动作 | T07+T08+Product deadline | raw DOM + semantic task artifact + proof；Product | timeout/stopped-empty/typed DOM failure proof；Runtime→Website |
 | G14 | `checkpoint_gpt_generated_image` / P5-P6 | 读取 exact adjacent image bytes，0 动作 | T07+T11+Product deadline | authenticated bytes artifact + proof；Product | timeout/source/identity failure proof；Runtime→Website |
+| G15 | v3 模型子菜单开启 / P5-P6 | 唯一收起态“选择模型”入口，`0..1` 点击；已展开则零输入读回 | T01+T02+T03；点击后独立展开态 `postClickMatch`，不以收起态 inert radio 冒充已展开 | Browser fresh 后置机械 fact → GPT Child success → Product；不决定模型候选 | 入口缺失、多义、点击后未展开或 WAL 未决均返回首个 typed failure，Runtime→Website |
+| G16 | v3 起始后缀模型选择 / P5-P6 | Product 起始模型只取 `[最新,GPT-5.6 Sol]` 后缀；前项同包唯一且 `aria-disabled=true` 才看后项；实际候选已唯一选中则零输入，否则至多点击一次 | T01+T02+T03；点击时同次 mutation 直接 `aria-checked=true` + 退出可操作集合；零输入时 fresh 已选事实；各自后置 Target/Document 双哈希 | 实际模型与后置双哈希仅在调用期 typed success 交 Product→G17；Browser WAL 保存原机械终态 | 普通缺席/瞬态不降级，点击后拒绝/未决不点下一项；首个 typed failure/effect 经 Runtime→Website |
+| G17 | v3 起始后缀推理选择 / P5-P6 | Product 原起始档只取 `[Pro,极高,高]` 后缀；第二次 G03 后，同一 fresh packet 核 G16 实际模型、双哈希连续、已选模型 radio 与当前 slider/禁用 Pro，再 `0..1` 点击 | T01+T02+T03；已选 radio 的 inert 只读不操作；A 为 Sol/Pro 的 `0..4`，B 为 Sol/极高的 `0..3 + Pro[aria-disabled=true]` | 实际模型/档仅在本轮调用期交 Product；不入 Website task/result 或普通 Child 持久账本 | 身份/模型不等、Pro 仅缺席、无明确不可选、点击后拒绝/未决均首个 typed failure/effect 经 Runtime→Website |
 
 `DONE/ACT/WAIT/FAIL_CLOSED` 是 Child 内部局部决定字母表，不是 Website job 状态。`WAIT` 只能在同一 Child 的既有 deadline 内 park/reobserve，不能创建新 attempt、新 timer Owner 或新恢复分支。
 
@@ -653,7 +656,7 @@ H01–H24 只描述相邻 Owner 的事实交付，不执行步骤、不安排 ti
 | I06 | N07/N10/N11、H07/H08 | Target/Document 缺失或漂移时 Provider 物理重放增量为 0 |
 | I07 | S11/S12、N11、O03、H07/H08 | deadline 未取得 receipt 时保留原 WAL，不得写成 `mutation=no` |
 | I08 | T01–T03、N10/N11、G02–G11 | DOM missing/ambiguous/transient/postcondition 具有封闭 typed result |
-| I09 | G03–G07、O02、H09/H10 | model/profile/reasoning first failure 原样传递 |
+| I09 | G03、G07、G15–G17、O02、H10 | model/profile/reasoning first failure 原样传递；G04–G06 只保留 v2 历史语义，不进入新执行链 |
 | I10 | T09、G09/G10 | exact attachment set、节拍和 deadline 同一绑定 |
 | I11 | T01/T07、G13/G14、N07/N10 | 首次观察、全局 lane、eligibleAt 与 deadline 使用同一现役政策 |
 | I12 | G13/G14、T07、H08 | checkpoint 使用 bounded observation；不得新增持续 DOM watcher |
@@ -675,7 +678,7 @@ H01–H24 只描述相邻 Owner 的事实交付，不执行步骤、不安排 ti
 | I28 | S19、N18、O07 | CHANGE、READY、RELEASE 与业务 readback 严格分级 |
 | I29 | S01–S23、O01–O21 | diagnostic code 不得升格为 control state |
 | I30 | §3.11、§5.6、§13 | 局部方案必须先过拓扑版本变更门 |
-| I31 | N08/N09、R01–R40、G01–G14 | retired route/export/contract 只能在代码对照后裁决并验收零残留 |
+| I31 | N08/N09、R01–R40、G01–G17 | retired route/export/contract 只能在代码对照后裁决并验收零残留；G04–G06 对应旧执行语义须物理退出 |
 | I32 | N09、G12–G14、H05–H09 | conversation/turn/attempt lineage 逐边精确绑定 |
 | I33 | N05/N09/N17、H05/H10/H12 | Runtime 机械校验、Product usable、Domain rejection 分权 |
 | I34 | G14、N12/N14/N17、H09–H12 | image bytes、media、geometry 与 result hash 端到端连续 |
@@ -725,6 +728,8 @@ Skill 是施工纪律守门人，不是运行权威、第二拓扑副本或修�
 
 ## 12. 三阶段原子工单与严格顺序
 
+本节 TF-0 至 TF-4 的“已完成/已冻结”仅记录 v2 历史；v3 当前状态只由 §16 记录，未重新冻结前不得把下述历史状态用作代码准入。
+
 ### 第一阶段：拓扑表单建设与冻结
 
 #### TF-0：证据和候选绑定
@@ -737,7 +742,7 @@ Skill 是施工纪律守门人，不是运行权威、第二拓扑副本或修�
 #### TF-1：状态、节点和时钟表
 
 - **状态**：已完成；正文只保留当前 authority/contract/实现可证明的事实，行内审批状态已删除。
-- **输出**：S01–S23、N01–N28、R01–R40、G01–G14、T01–T18。
+- **输出**：S01–S23、N01–N28、R01–R40、G01–G17（其中 G04–G06 退休）、T01–T18。
 - **完成门**：每行的 Owner、入口、动作上限、确认政策、成功/失败/截止无回执、consumer 和业务完成边界无空白、无“同上”、无审批占位字段。
 
 #### TF-2：handoff、结果矩阵和问题回挂
@@ -800,16 +805,16 @@ Skill 是施工纪律守门人，不是运行权威、第二拓扑副本或修�
 
 ### 13.1 现役事实表建设验收（本轮）
 
-本节是冻结时的结构与事实检查记录，不是第二 quality PASS。当前 1–8 已闭合；授权人已批准本版并签发冻结身份。
+本节 1–8 是 v2 冻结时的历史检查记录，不是 v3 的 quality PASS。v3 变更候选须在本工单完成两轮主 Codex 自审、新 hash 和重新冻结后才可引用本节作为当前检查记录。
 
 1. 只有一份母本文件，没有第二表、第二报告或机器副本。
-2. S01–S23、N01–N28、R01–R40、G01–G14、T01–T18、H01–H24、O01–O21、I01–I36 均有稳定 ID。
+2. S01–S23、N01–N28、R01–R40、G01–G17（G04–G06 退休）、T01–T18、H01–H24、O01–O21、I01–I36 均有稳定 ID。
 3. 每个原子节点均回答 Owner、入口 identity、单一动作、副作用上限、确认政策、合法结果、成功/失败/截止无回执记录、consumer、下一决定 Owner 和业务终点关系。
 4. 每个等待均有时钟 Owner、初次观察、节拍/递增、deadline、pending 记录和到期报告；不存在“持续轮询”“适当重试”。
 5. 每条 handoff 均列 producer、output、identity、consumer、readback、非成功结果、恢复 Owner 和防重/防漏原则。
 6. I01–I36 均有交叉索引；409、限流、Provider effect、staging/admission 和质量层级没有压成一个状态。
 7. 所有机器 Manifest 替换、跨仓新 payload、Product Flow runtime publication 和批量施工已从当前设计移除。
-8. 拓扑行内不存在审批占位、可能、推测或 `UNPROVEN`；文档状态为 `FROZEN`，但不得冒充质量 PASS、代码可施工、READY 或 RELEASE。
+8. v2 拓扑行内不存在审批占位、可能、推测或 `UNPROVEN`；v2 当时状态为 `FROZEN`，但不代表 v3 候选已冻结，也不得冒充质量 PASS、代码可施工、READY 或 RELEASE。
 
 ### 13.2 冻结验收（授权人确认时）
 
@@ -883,19 +888,20 @@ Skill 是施工纪律守门人，不是运行权威、第二拓扑副本或修�
 | B3 | 项目 Skill 修改未授权 | 另行授权后只允许现有 Skill 引用冻结基线 |
 | B4 | 当前存量工单的活体权威读回和恢复未授权 | 如需处理具体工单，另行授权只读归位及后续精确动作 |
 
-授权人已批准建立并冻结 v2，并授权按既定差异方案修改必要法案、Blueprint、代码、质检与数据库。授权不包含修改冻结 Skill，也不取消法案/施工图优先、主 Codex 自审、只读独立审计、主仓施工和唯一质量入口等阶段门。
+授权人已批准建立并冻结 v2，并在本工单授权对已证模型/推理形态提出 v3、对必要施工图和代码/质检实施精确修改。授权不包含修改冻结 Skill，也不取消法案/施工图优先、主 Codex 自审、只读独立审计、主仓施工和唯一质量入口等阶段门。v3 只有取得本节新 hash 并完成重新冻结，才成为代码对照锚点；此前 v2 仍是已冻结历史基线。
 
 ---
 
 ## 16. 文档身份与冻结记录
 
 - 唯一路径：`docs/项目方案/AGENT运行拓扑图-完整实现方案.md`
-- 表单版本：`agent-runtime-topology-form.v2`
-- supersedes：`agent-runtime-topology-form.v1`（v1 字节与冻结 hash 由 Git 历史保留，不建立并行 v2/new 同职文件）
-- 状态：`FROZEN / 事实行已绑定 / 法案与施工图优先施工已授权 / 代码门受阶段条件约束`
+- 表单版本：`agent-runtime-topology-form.v3`（本工单重新冻结）
+- supersedes：`agent-runtime-topology-form.v2`（v2 字节与冻结 hash 由 Git 历史保留，不建立并行同职文件）
+- 状态：`FROZEN / 两轮主 Codex 文档与实现可行性自审已闭合 / 只作为代码对照锚点`
 - 批准人：`授权人（本会话）`
-- 批准时间：`2026-09-21T17:08:16+04:00`
-- 冻结 hash 规范：UTF-8 原文删除“冻结规范化 SHA-256”和“当前文档规范化 SHA-256”两行后执行 SHA-256。
-- 冻结规范化 SHA-256：`74d8b9d3ef88f7290bb7309447064f9da1568b3e9f5dba4bff64d46b23ff6283`
-- 当前文档规范化 SHA-256：`74d8b9d3ef88f7290bb7309447064f9da1568b3e9f5dba4bff64d46b23ff6283`
-- 本文件是施工前唯一冻结拓扑事实基线，不是 runtime state、运行时合同、quality verdict、CHANGE、READY、RELEASE 或生产完成证据。任何对照和待修内容只能写入 §5.7 指定文件。
+- 批准时间：`2026-09-22T07:01:49+04:00`
+- 冻结 hash 规范：UTF-8 原文仅删除以 `- v3 冻结规范化 SHA-256：` 和 `- 当前文档规范化 SHA-256：` 开头的两行后执行 SHA-256；v2 历史 hash 行保留。
+- v2 历史冻结规范化 SHA-256：`74d8b9d3ef88f7290bb7309447064f9da1568b3e9f5dba4bff64d46b23ff6283`
+- v3 冻结规范化 SHA-256：`d94d4051b586554b3f7fcde92976db193dd3220a766fd6461f571ce25fcc094f`
+- 当前文档规范化 SHA-256：`d94d4051b586554b3f7fcde92976db193dd3220a766fd6461f571ce25fcc094f`
+- 本文件在 v3 重新冻结后才是施工前唯一现役拓扑事实基线，不是 runtime state、运行时合同、quality verdict、CHANGE、READY、RELEASE 或生产完成证据。任何对照和待修内容只能写入 §5.7 指定文件。

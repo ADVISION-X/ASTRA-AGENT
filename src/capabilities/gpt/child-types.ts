@@ -1,15 +1,13 @@
 import type {
   GptExecutionProfile,
-  GptReasoningRequirement,
   GptReasoningTier,
 } from "./schema.js";
 
 export type GptHash = `sha256:${string}`;
 
 export type GptReasoningRequirementResult = Readonly<{
-  requestedTier: GptReasoningTier;
-  requestedValue: number;
-  selectionPolicy: GptReasoningRequirement["selectionPolicy"];
+  startTier: GptReasoningTier;
+  startValue: number;
   observedScale: Readonly<{
     min: number | null;
     max: number | null;
@@ -60,9 +58,14 @@ export interface GptChildInputMap {
   }>;
   readonly prepare_clean_gpt_chat: Readonly<{ timeoutMs: number }>;
   readonly open_gpt_execution_profile: Readonly<{ profile: GptExecutionProfile }>;
-  readonly open_gpt_model_selector_v2: Readonly<{ profile: GptExecutionProfile }>;
-  readonly select_exact_gpt_model_v2: Readonly<{ profile: GptExecutionProfile }>;
-  readonly ensure_gpt_reasoning_requirement: Readonly<{ profile: GptExecutionProfile }>;
+  readonly open_gpt_model_selector_v3: Readonly<{ profile: GptExecutionProfile }>;
+  readonly select_gpt_model_from_start_v3: Readonly<{ profile: GptExecutionProfile }>;
+  readonly select_gpt_reasoning_from_start_v3: Readonly<{
+    profile: GptExecutionProfile;
+    actualModelDisplayName: GptExecutionProfile["startModelDisplayName"];
+    modelTargetRefHash: GptHash;
+    modelDocumentRefHash: GptHash;
+  }>;
   readonly close_gpt_execution_profile: Readonly<{ profile: GptExecutionProfile }>;
   readonly open_gpt_attachment_control: Readonly<Record<string, never>>;
   readonly attach_approved_gpt_files_once: Readonly<{ files: readonly GptApprovedFileInput[] }>;
@@ -99,17 +102,19 @@ export interface GptChildOutputMap {
     staleDraftCleared: boolean;
   }>;
   readonly open_gpt_execution_profile: Readonly<{ state: "profile-popup-open" }>;
-  readonly open_gpt_model_selector_v2: Readonly<{
-    selectionVersion: "gpt-model-selection.v2";
+  readonly open_gpt_model_selector_v3: Readonly<{
+    selectionVersion: "gpt-model-selection.v3";
     state: "model-selector-open" | "model-selector-opened";
   }>;
-  readonly select_exact_gpt_model_v2: Readonly<{
-    modelDisplayName: string;
+  readonly select_gpt_model_from_start_v3: Readonly<{
+    modelDisplayName: GptExecutionProfile["startModelDisplayName"];
+    targetRefHash: GptHash;
+    documentRefHash: GptHash;
     previousChecked: "true" | "false";
-    selectionVersion: "gpt-model-selection.v2";
-    state: "exact-model-selected";
+    selectionVersion: "gpt-model-selection.v3";
+    state: "already-selected" | "model-selected";
   }>;
-  readonly ensure_gpt_reasoning_requirement: GptReasoningRequirementResult & Readonly<{
+  readonly select_gpt_reasoning_from_start_v3: GptReasoningRequirementResult & Readonly<{
     state: "already-selected" | "selected";
   }>;
   readonly close_gpt_execution_profile: Readonly<{ state: "profile-popup-closed" }>;

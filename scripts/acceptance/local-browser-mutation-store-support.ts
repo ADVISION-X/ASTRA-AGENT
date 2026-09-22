@@ -15,7 +15,7 @@ export const identity = (commandId: string, attemptId: string, executionFenceHas
   leaseVersion: 1,
   executionFenceHash,
   productStepId: "step-1",
-  childCapabilityId: "open_gpt_model_selector_v2",
+  childCapabilityId: "open_gpt_model_selector_v3",
   callId: "call-1",
   effectScope: "target_local" as const,
   actionOrdinal: 1,

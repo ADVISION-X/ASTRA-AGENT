@@ -18,30 +18,30 @@ const CHILDREN_PATH = `${ROOT}/children`;
 const GROUP_PATH = `${ROOT}/ability-group.ts`;
 const HANDLER_REGISTRY_PATH = `${ROOT}/handler-registry.ts`;
 const childFilePath = (id: string, file: string): string => `${CHILDREN_PATH}/${id}/${file}`;
-const MODEL_HANDLER_PATH = `${CHILDREN_PATH}/select_exact_gpt_model_v2/handler.ts`;
+const MODEL_HANDLER_PATH = `${CHILDREN_PATH}/select_gpt_model_from_start_v3/handler.ts`;
 const MODEL_HANDLER_PATHS = [
-  `${CHILDREN_PATH}/open_gpt_model_selector_v2/handler.ts`,
-  childFilePath("open_gpt_model_selector_v2", "observation.ts"),
-  childFilePath("open_gpt_model_selector_v2", "selectors.ts"),
+  `${CHILDREN_PATH}/open_gpt_model_selector_v3/handler.ts`,
+  childFilePath("open_gpt_model_selector_v3", "observation.ts"),
+  childFilePath("open_gpt_model_selector_v3", "selectors.ts"),
   MODEL_HANDLER_PATH,
-  childFilePath("select_exact_gpt_model_v2", "observation.ts"),
-  childFilePath("select_exact_gpt_model_v2", "selectors.ts"),
+  childFilePath("select_gpt_model_from_start_v3", "observation.ts"),
+  childFilePath("select_gpt_model_from_start_v3", "selectors.ts"),
 ] as const;
-const MODEL_CONTRACT_PATH = childFilePath("select_exact_gpt_model_v2", "selectors.ts");
-const PROFILE_HANDLER_PATH = `${CHILDREN_PATH}/ensure_gpt_reasoning_requirement/handler.ts`;
+const MODEL_CONTRACT_PATH = childFilePath("select_gpt_model_from_start_v3", "selectors.ts");
+const PROFILE_HANDLER_PATH = `${CHILDREN_PATH}/select_gpt_reasoning_from_start_v3/handler.ts`;
 const PROFILE_HANDLER_PATHS = [
   `${CHILDREN_PATH}/open_gpt_execution_profile/handler.ts`,
   childFilePath("open_gpt_execution_profile", "observation.ts"),
   childFilePath("open_gpt_execution_profile", "selectors.ts"),
   PROFILE_HANDLER_PATH,
-  childFilePath("ensure_gpt_reasoning_requirement", "observation.ts"),
-  childFilePath("ensure_gpt_reasoning_requirement", "selectors.ts"),
+  childFilePath("select_gpt_reasoning_from_start_v3", "observation.ts"),
+  childFilePath("select_gpt_reasoning_from_start_v3", "selectors.ts"),
   `${CHILDREN_PATH}/close_gpt_execution_profile/handler.ts`,
   childFilePath("close_gpt_execution_profile", "observation.ts"),
   childFilePath("close_gpt_execution_profile", "selectors.ts"),
   `${ROOT}/web/execution-profile-input.ts`,
 ] as const;
-const PROFILE_CONTRACT_PATH = childFilePath("ensure_gpt_reasoning_requirement", "selectors.ts");
+const PROFILE_CONTRACT_PATH = childFilePath("select_gpt_reasoning_from_start_v3", "selectors.ts");
 const GPT_DOM_OBSERVATION_PATH = `${ROOT}/web/gpt-dom-observation.ts`;
 const PAGE_ACCESS_GATE_PATH = "src/lib/browser/chrome-extension/chatgpt-page-access-gate.ts";
 const childIdsFromContract = (contract: SourceFile): string[] => {
@@ -149,7 +149,7 @@ const inspectRequiredChildIds = (
   finding: FindingFactory,
 ): void => {
   for (const required of [
-    "open_gpt_model_selector_v2", "select_exact_gpt_model_v2", "ensure_gpt_reasoning_requirement",
+    "open_gpt_model_selector_v3", "select_gpt_model_from_start_v3", "select_gpt_reasoning_from_start_v3",
   ]) if (!ids.includes(required)) findings.push(finding(
     "gpt/model-selection-v2-required", CONTRACT_PATH, `The public denominator is missing ${required}.`,
   ));
@@ -270,28 +270,26 @@ const inspectProfileContracts = (
 ): void => {
   const modelContract = sourceFor(context, MODEL_CONTRACT_PATH)?.getFullText() ?? "";
   inspectMissingTokens({ source: modelContract, required: [
-    "GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR", "[role='menuitemradio']",
-  ], checkId: "gpt/model-selection-v2-visible-contract", filePath: MODEL_CONTRACT_PATH,
-  findings, finding, message: (required) => `Model selection V2 contract is missing ${required}.` });
+    "GPT_MODEL_CHOICE_SELECTOR", "[role='menuitemradio']",
+  ], checkId: "gpt/model-selection-v3-visible-contract", filePath: MODEL_CONTRACT_PATH,
+  findings, finding, message: (required) => `Model selection V3 contract is missing ${required}.` });
   const modelHandler = sourceTextForPaths(context, MODEL_HANDLER_PATHS);
   inspectMissingTokens({ source: modelHandler, required: [
-    "openGptModelSelectorV2Handler", "selectExactGptModelV2Handler", "SELECTION_POSTCONDITION",
+    "openGptModelSelectorV3Handler", "selectGptModelFromStartV3Handler",
     "readModelChoiceState", "clickedCandidateAttribute", "selectedReadbackValid",
-    "postClickObservation: OPEN_POSTCONDITION",
-    "postClickObservation: SELECTION_POSTCONDITION", "mutationRecord.postconditionObservation",
+    "postClickMatch: { selector: GPT_MODEL_SELECTOR_EXPANDED_ENTRY",
+    "postClickObservation: postcondition(chosen.name)", "record.postconditionObservation",
     "expectedEligibleCount", "decodeCoherentObservationPacket", "modelChoiceQuery",
-  ], checkId: "gpt/model-selection-v2-handler", filePath: MODEL_HANDLER_PATH,
-  findings, finding, message: (required) => `Model selection V2 handler is missing ${required}.` });
+    "first.ariaDisabled === true", "selectedRawCount", "targetRefHash", "documentRefHash",
+  ], checkId: "gpt/model-selection-v3-handler", filePath: MODEL_HANDLER_PATH,
+  findings, finding, message: (required) => `Model selection V3 handler is missing ${required}.` });
   for (const retired of [
-    "GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR", "expandedEntry",
-    "GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR", "postClickMatch: {",
-    "GPT_PROFILE_POPUP_SELECTOR", "GPT_PROFILE_SIMPLE_PANEL_SELECTOR",
-    "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR", "modelSelectorTopology",
-    "simplePanel", "advancedPanel",
+    "GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR", "SELECTION_POSTCONDITION",
+    "profile.modelDisplayName", "modelSelectorTopology",
   ]) {
     if (modelContract.includes(retired) || modelHandler.includes(retired)) findings.push(finding(
-      "gpt/model-selection-v2-expanded-state-retired", MODEL_HANDLER_PATH,
-      `The obsolete expanded-entry topology remains reachable through ${retired}.`,
+      "gpt/model-selection-v2-retired", MODEL_HANDLER_PATH,
+      `The obsolete exact-model path remains reachable through ${retired}.`,
     ));
   }
   const reasoningContract = sourceFor(context, PROFILE_CONTRACT_PATH)?.getFullText() ?? "";
@@ -302,17 +300,17 @@ const inspectProfileContracts = (
   findings, finding, message: (required) => `Reasoning contract is missing ${required}.` });
   const reasoningHandler = sourceTextForPaths(context, PROFILE_HANDLER_PATHS);
   inspectMissingTokens({ source: reasoningHandler, required: [
-    "ensureGptReasoningRequirementHandler", "requireExactInputKeys", "profileFromIntent",
+    "selectGptReasoningFromStartV3Handler", "requireExactInputKeys", "profileFromIntent",
     "requireBrowser(context)", "ariaValueMin", "ariaValueMax", "ariaValueNow",
     "postKeypressMatch", "requireConfirmedBrowserFact", "readConfirmedCoherentObservation",
-    "PROFILE_TOPOLOGY_QUERIES", "profileOpenReady", "profileOpenable", "profileDisposition",
+    "profileTopologyQueries", "profileOpenReady", "profileOpenable", "profileDisposition",
     "postClickObservation: PROFILE_OPEN_POSTCONDITION", "mutationRecord.postconditionObservation",
     "decodeCoherentObservationPacket", "scopeRejections", "observationRevisionHash",
-    'value.reasoningMaximum === "2"', 'value.reasoningMaximum === "4"',
+    'value.reasoningMaximum === "2"', 'value.reasoningMaximum === "3"', 'value.reasoningMaximum === "4"',
     "resolveReasoningRequirement", 'code: "GPT_REASONING_TIER_UNAVAILABLE"',
-    'selectionPolicy === "exact"', 'tier: "high", value: 2, degraded: true',
-    'tier: "pro_standard", value: 4, degraded: false',
-    "requestedTier", "requestedValue", "observedScale", "resolvedTier", "resolvedValue",
+    'tier: "high", value: 2', 'tier: "extra_high", value: 3',
+    "startTier", "startValue", "observedScale", "resolvedTier", "resolvedValue",
+    "selectedModelRaw", "proDisabledRaw", "modelTargetRefHash", "modelDocumentRefHash",
     "currentValue", "mutationOutcome", "browserOutcome", "gptPostcondition",
   ], checkId: "gpt/reasoning-requirement-resolution", filePath: PROFILE_HANDLER_PATH,
   findings, finding,
@@ -336,15 +334,15 @@ const inspectProfileContracts = (
 };
 
 const PROFILE_CONSUMERS = new Set([
-  "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
-  "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile",
+  "open_gpt_execution_profile", "open_gpt_model_selector_v3", "select_gpt_model_from_start_v3",
+  "select_gpt_reasoning_from_start_v3", "close_gpt_execution_profile",
 ]);
 const CONTRACT_V6_CHILDREN = new Set([
   "checkpoint_gpt_generated_image", "checkpoint_gpt_text_response", "submit_exact_gpt_turn_once",
 ]);
 const CONTRACT_V4_CHILDREN = new Set([
-  "open_gpt_model_selector_v2", "select_exact_gpt_model_v2", "write_exact_gpt_prompt",
-  "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile",
+  "open_gpt_model_selector_v3", "select_gpt_model_from_start_v3", "write_exact_gpt_prompt",
+  "select_gpt_reasoning_from_start_v3", "close_gpt_execution_profile",
 ]);
 const CONTRACT_V5_CHILDREN = new Set(["prepare_clean_gpt_chat"]);
 const CONTRACT_V3_CHILDREN = new Set([
@@ -371,13 +369,12 @@ const inspectProfileSchema = (
 ): void => {
   const schema = sourceFor(context, SCHEMA_PATH)?.getFullText() ?? "";
   inspectMissingTokens({ source: schema, required: [
-    'z.literal("gpt-execution-profile.v2")', 'z.discriminatedUnion("selectionPolicy"',
-    'selectionPolicy: z.literal("exact")',
-    'selectionPolicy: z.literal("exact-or-observed-maximum")',
-    'requestedTier: z.literal("pro_standard")', "reasoningRequirement: GptReasoningRequirementSchema",
-  ], checkId: "gpt/profile-v2-required-policy", filePath: SCHEMA_PATH,
-  findings, finding, message: (required) => `Execution Profile V2 is missing ${required}.` });
-  for (const retired of ["gpt-execution-profile.v1", "reasoningTier", "pro_extended"]) {
+    'z.literal("gpt-execution-profile.v3")',
+    'startModelDisplayName: z.enum(["最新", "GPT-5.6 Sol"])',
+    "startReasoningTier: GptReasoningTierSchema",
+  ], checkId: "gpt/profile-v3-start-target", filePath: SCHEMA_PATH,
+  findings, finding, message: (required) => `Execution Profile V3 is missing ${required}.` });
+  for (const retired of ["gpt-execution-profile.v1", "gpt-execution-profile.v2", "selectionPolicy", "accountCapabilityRef", "modelFamily", "pro_extended"]) {
     if (schema.includes(retired)) findings.push(finding(
       "gpt/profile-v1-reader-retired", SCHEMA_PATH,
       `Execution Profile schema retains retired token ${retired}.`,

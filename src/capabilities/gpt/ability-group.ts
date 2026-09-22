@@ -178,12 +178,11 @@ const successfulReasoningRequirementResult = (
   childCapabilityId: GptChildCapabilityId,
   observation: GptChildObservation,
 ): GptReasoningRequirementResult | null => {
-  if (childCapabilityId !== "ensure_gpt_reasoning_requirement") return null;
-  const value = observation.value as GptChildOutputMap["ensure_gpt_reasoning_requirement"];
+  if (childCapabilityId !== "select_gpt_reasoning_from_start_v3") return null;
+  const value = observation.value as GptChildOutputMap["select_gpt_reasoning_from_start_v3"];
   return Object.freeze({
-    requestedTier: value.requestedTier,
-    requestedValue: value.requestedValue,
-    selectionPolicy: value.selectionPolicy,
+    startTier: value.startTier,
+    startValue: value.startValue,
     observedScale: Object.freeze({ ...value.observedScale }),
     resolvedTier: value.resolvedTier,
     resolvedValue: value.resolvedValue,

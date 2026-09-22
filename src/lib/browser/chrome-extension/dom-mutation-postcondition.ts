@@ -3,6 +3,7 @@ import type {
   BrowserDomIneligibleReason,
   BrowserDomIntent,
   BrowserDomObservationPacketV2,
+  BrowserDomReadEligibility,
 } from "../exact-target/browser-dom-intent.js";
 import {
   browserPostconditionNativeCause,
@@ -113,7 +114,7 @@ export const waitForMatch = async (
   match: Readonly<{
     selector: string;
     expectedMatches: number;
-    readEligibility?: "non-actionable-aria-state";
+    readEligibility?: BrowserDomReadEligibility;
     textContains?: string;
     textEquals?: string;
     timeoutMs?: number;

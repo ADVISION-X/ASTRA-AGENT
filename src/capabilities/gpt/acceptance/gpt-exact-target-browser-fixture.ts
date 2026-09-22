@@ -76,11 +76,11 @@ export const exactAssistantTurnReply = (
 export const EXPECTED_GPT_CHILD_IDS = Object.freeze([
   "acknowledge_known_gpt_rate_limit", "attach_approved_gpt_files_once", "checkpoint_gpt_generated_image",
   "checkpoint_gpt_text_response", "close_gpt_execution_profile",
-  "ensure_gpt_reasoning_requirement",
+  "select_gpt_reasoning_from_start_v3",
   "open_gpt_attachment_control",
-  "open_gpt_execution_profile", "open_gpt_model_selector_v2",
+  "open_gpt_execution_profile", "open_gpt_model_selector_v3",
   "prepare_clean_gpt_chat", "reconcile_gpt_attachment_set",
-  "select_exact_gpt_model_v2", "submit_exact_gpt_turn_once", "write_exact_gpt_prompt",
+  "select_gpt_model_from_start_v3", "submit_exact_gpt_turn_once", "write_exact_gpt_prompt",
 ].sort());
 
 type DomResponder = (intent: BrowserDomIntent, callNumber: number) => unknown | Promise<unknown>;

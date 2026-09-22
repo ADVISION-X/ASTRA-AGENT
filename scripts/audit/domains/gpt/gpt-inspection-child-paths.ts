@@ -29,18 +29,18 @@ export const GPT_CONVERSATION_HANDLER_PATHS = [
 ] as const;
 export const GPT_RESPONSE_PAGE_PATH = `${GPT_ROOT}/web/gpt-dom-observation.ts`;
 export const GPT_TURN_EXECUTOR_PATH = `${GPT_ROOT}/gpt-turn-executor.ts`;
-export const GPT_MODEL_SELECTION_V2_HANDLER_PATHS = [
-  gptChildHandlerPath("open_gpt_model_selector_v2"), gptChildFilePath("open_gpt_model_selector_v2", "observation.ts"),
-  gptChildFilePath("open_gpt_model_selector_v2", "selectors.ts"), gptChildHandlerPath("select_exact_gpt_model_v2"),
-  gptChildFilePath("select_exact_gpt_model_v2", "observation.ts"), gptChildFilePath("select_exact_gpt_model_v2", "selectors.ts"),
+export const GPT_MODEL_SELECTION_V3_HANDLER_PATHS = [
+  gptChildHandlerPath("open_gpt_model_selector_v3"), gptChildFilePath("open_gpt_model_selector_v3", "observation.ts"),
+  gptChildFilePath("open_gpt_model_selector_v3", "selectors.ts"), gptChildHandlerPath("select_gpt_model_from_start_v3"),
+  gptChildFilePath("select_gpt_model_from_start_v3", "observation.ts"), gptChildFilePath("select_gpt_model_from_start_v3", "selectors.ts"),
 ] as const;
-export const GPT_MODEL_SELECTION_V2_CONTRACT_PATH = gptChildFilePath("select_exact_gpt_model_v2", "selectors.ts");
+export const GPT_MODEL_SELECTION_V3_CONTRACT_PATH = gptChildFilePath("select_gpt_model_from_start_v3", "selectors.ts");
 export const GPT_EXECUTION_PROFILE_HANDLER_PATHS = [
-  ...["open_gpt_execution_profile", "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile"].flatMap((id) => [
+  ...["open_gpt_execution_profile", "select_gpt_reasoning_from_start_v3", "close_gpt_execution_profile"].flatMap((id) => [
     gptChildHandlerPath(id), gptChildFilePath(id, "observation.ts"), gptChildFilePath(id, "selectors.ts"),
   ]), `${GPT_ROOT}/web/execution-profile-input.ts`,
 ] as const;
-export const GPT_EXECUTION_PROFILE_CONTRACT_PATH = gptChildFilePath("ensure_gpt_reasoning_requirement", "selectors.ts");
+export const GPT_EXECUTION_PROFILE_CONTRACT_PATH = gptChildFilePath("select_gpt_reasoning_from_start_v3", "selectors.ts");
 export const GPT_ATTACHMENT_HANDLER_PATHS = [
   gptChildHandlerPath("open_gpt_attachment_control"), gptChildFilePath("open_gpt_attachment_control", "observation.ts"),
   gptChildFilePath("open_gpt_attachment_control", "selectors.ts"), gptChildHandlerPath("attach_approved_gpt_files_once"),

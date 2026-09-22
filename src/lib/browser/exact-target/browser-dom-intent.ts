@@ -23,7 +23,7 @@ export type BrowserDomField = typeof BROWSER_DOM_FIELD_VALUES[number];
 export type BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">;
 export type BrowserDomPostconditionField = Exclude<BrowserDomObservationField,
   "semanticTextHash" | "exactEditableTextHash">;
-export type BrowserDomReadEligibility = "non-actionable-aria-state";
+export type BrowserDomReadEligibility = "non-actionable-aria-state" | "non-actionable-inert-state";
 export type BrowserDomIneligibleReason =
   | "DISCONNECTED" | "NO_LAYOUT_BOX" | "DISPLAY_HIDDEN" | "VISIBILITY_HIDDEN"
   | "OPACITY_HIDDEN" | "HTML_HIDDEN" | "ARIA_HIDDEN" | "INERT" | "TEXT_MISMATCH";
@@ -247,8 +247,12 @@ const POSTCONDITION_QUERY_KEYS = new Set([
   "queryId", "selector", "maxMatches", "fields", "readEligibility", "scope", "textContains", "textEquals",
   "expectedEligibleCount", "latestGptUserTurn",
 ]);
-const assertReadEligibility = (value: BrowserDomReadEligibility | undefined): void => {
-  if (value !== undefined && value !== "non-actionable-aria-state") {
+const assertReadEligibility = (
+  value: BrowserDomReadEligibility | undefined,
+  allowInertObservation = false,
+): void => {
+  if (value !== undefined && value !== "non-actionable-aria-state"
+    && !(allowInertObservation && value === "non-actionable-inert-state")) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
 };
@@ -280,7 +284,7 @@ const assertObservationQueries = (
       throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
     }
     queryIds.add(query.queryId);
-    assertReadEligibility(query.readEligibility);
+    assertReadEligibility(query.readEligibility, allowedKeys === OBSERVATION_QUERY_KEYS);
     assertReadScope(query.scope);
     assertObservationText(query);
     assertObservationFields(query.fields);

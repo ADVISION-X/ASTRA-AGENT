@@ -47,13 +47,8 @@ items 必须与 message_items 同顺序、同数量、同 message_id；字段不
 
 const productionProfile = buildGptExecutionProfile({
   profileRef: "localization-production:static-catalog:production:pro-standard",
-  accountCapabilityRef: "openai-chatgpt:gpt-5.6-sol",
-  modelDisplayName: "GPT-5.6 Sol",
-  modelFamily: "gpt-5.6",
-  reasoningRequirement: {
-    selectionPolicy: "exact-or-observed-maximum",
-    requestedTier: "pro_standard",
-  },
+  startModelDisplayName: "GPT-5.6 Sol",
+  startReasoningTier: "pro_standard",
   executorIdentityRef: "localization-production:static-catalog:production",
   acceptanceRef: "localization-production:static-catalog",
   acceptanceVersion: "v2",
@@ -112,7 +107,6 @@ export const executeStaticCatalogFlow = async (
       cohort.context_bundle_hash,
     ),
     profile: productionProfile,
-    reasoningEffort: "xhigh",
   });
   const result = parseCandidate(turn.value, context, cohort.context_bundle_hash);
   const blocked = result.items.some((item) => item.finding_codes.length > 0);

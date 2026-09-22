@@ -20,7 +20,7 @@ import {
   exerciseSeoPromptWriteFailure,
 } from "./public-knowledge-article-pipeline-flow.test-runtime.js";
 import { createContext, ORIENTED_IMAGE_FIXTURE } from "./public-knowledge-article-pipeline.test-runtime.js";
-import { createHarness, seoTask } from
+import { createHarness, seoTask, HASH } from
   "./public-knowledge-article-pipeline-fixture-state.js";
 import { articleOutput, researchOutput } from
   "./public-knowledge-article-pipeline-output-fixtures.js";
@@ -30,8 +30,8 @@ assert(plugin);
 const produceRoute = productionRoutePolicy("public_knowledge_article_pipeline", "produce_article");
 
 const profile = [
-  "open_gpt_execution_profile", "open_gpt_model_selector_v2", "select_exact_gpt_model_v2",
-  "open_gpt_execution_profile", "ensure_gpt_reasoning_requirement", "close_gpt_execution_profile",
+  "open_gpt_execution_profile", "open_gpt_model_selector_v3", "select_gpt_model_from_start_v3",
+  "open_gpt_execution_profile", "select_gpt_reasoning_from_start_v3", "close_gpt_execution_profile",
 ] as const;
 const attachments = [
   "open_gpt_attachment_control", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
@@ -100,19 +100,17 @@ assert.deepEqual(proceed.calls.map((call) => call.child), [
   ...initialText, ...continuedText, ...continuedImage,
 ]);
 const reasoningProfileCalls = proceed.calls.filter(
-  (call) => call.child === "ensure_gpt_reasoning_requirement",
+  (call) => call.child === "select_gpt_reasoning_from_start_v3",
 );
 assert.equal(reasoningProfileCalls.length, 3);
 for (const call of reasoningProfileCalls) {
   assert.equal(call.input.profile.profileRef,
     "public-knowledge-article-pipeline:chatgpt-latest-extra-high");
-  assert.equal(call.input.profile.accountCapabilityRef, "openai-chatgpt:latest");
-  assert.equal(call.input.profile.modelDisplayName, "最新");
-  assert.equal(call.input.profile.modelFamily, "chatgpt-latest");
-  assert.deepEqual(call.input.profile.reasoningRequirement, {
-    selectionPolicy: "exact",
-    requestedTier: "extra_high",
-  });
+  assert.equal(call.input.profile.startModelDisplayName, "最新");
+  assert.equal(call.input.profile.startReasoningTier, "extra_high");
+  assert.equal(call.input.actualModelDisplayName, "最新");
+  assert.equal(call.input.modelTargetRefHash, HASH);
+  assert.equal(call.input.modelDocumentRefHash, HASH);
 }
 assert.deepEqual([...new Set(proceed.calls.map((call) => call.productStepId))], [
   "corpus_research", "article_synthesis", "article_image_generation",

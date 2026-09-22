@@ -394,7 +394,7 @@ try {
       code: "BROWSER_POSTCONDITION_FAILED",
       mutation_outcome: "confirmed",
       effect_scope: "target_local",
-      child_capability_id: "open_gpt_model_selector_v2",
+      child_capability_id: "open_gpt_model_selector_v3",
       browser_outcome: "REJECTED",
       evidence_ref: null,
       evidence_hash: null,

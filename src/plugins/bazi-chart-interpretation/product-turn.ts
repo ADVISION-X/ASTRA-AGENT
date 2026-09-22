@@ -155,15 +155,17 @@ export const applyProfile = async (
   ordinals: readonly [number, number, number, number, number, number],
 ): Promise<void> => {
   const open = { productStepId: stepId, callId: "profile-open", child: "open_gpt_execution_profile", actionOrdinal: ordinals[0], input: { profile } } as const;
-  const selector = { productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v2", actionOrdinal: ordinals[1], input: { profile } } as const;
-  const model = { productStepId: stepId, callId: "model-select", child: "select_exact_gpt_model_v2", actionOrdinal: ordinals[2], input: { profile } } as const;
+  const selector = { productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v3", actionOrdinal: ordinals[1], input: { profile } } as const;
+  const model = { productStepId: stepId, callId: "model-select", child: "select_gpt_model_from_start_v3", actionOrdinal: ordinals[2], input: { profile } } as const;
   const reopen = { productStepId: stepId, callId: "profile-open-after-model", child: "open_gpt_execution_profile", actionOrdinal: ordinals[3], input: { profile } } as const;
-  const reasoning = { productStepId: stepId, callId: "reasoning-select", child: "ensure_gpt_reasoning_requirement", actionOrdinal: ordinals[4], input: { profile } } as const;
   const close = { productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[5], input: { profile } } as const;
   await flow.execute(open);
   await flow.execute(selector);
-  await flow.execute(model);
+  const selected = await flow.execute(model) as ProductGptChildResult<"select_gpt_model_from_start_v3">;
   await flow.execute(reopen);
+  const reasoning = { productStepId: stepId, callId: "reasoning-select", child: "select_gpt_reasoning_from_start_v3", actionOrdinal: ordinals[4], input: { profile, actualModelDisplayName: selected.value.modelDisplayName,
+    modelTargetRefHash: selected.value.targetRefHash,
+    modelDocumentRefHash: selected.value.documentRefHash } } as const;
   await flow.execute(reasoning);
   await flow.execute(close);
 };

@@ -22,13 +22,8 @@ const PRODUCT_INSTRUCTION = "围绕原始问事完成奇门专业回答，覆盖
 const WAIT_TIMEOUT_MS = 3_600_000;
 const MODEL_PROFILE = buildGptExecutionProfile({
   profileRef: `${PLUGIN_ID}:gpt-5.6-sol-pro-standard`,
-  accountCapabilityRef: "openai-chatgpt:gpt-5.6-sol",
-  modelDisplayName: "GPT-5.6 Sol",
-  modelFamily: "gpt-5.6",
-  reasoningRequirement: {
-    selectionPolicy: "exact-or-observed-maximum",
-    requestedTier: "pro_standard",
-  },
+  startModelDisplayName: "GPT-5.6 Sol",
+  startReasoningTier: "pro_standard",
   executorIdentityRef: PLUGIN_ID,
   acceptanceRef: `${PLUGIN_ID}:production`,
   acceptanceVersion: "v1",
@@ -133,15 +128,17 @@ const applyProfile = async (
   ordinals: readonly [number, number, number, number, number, number],
 ): Promise<void> => {
   const open = { productStepId: stepId, callId: "profile-open", child: "open_gpt_execution_profile", actionOrdinal: ordinals[0], input: { profile: MODEL_PROFILE } } as const;
-  const selector = { productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v2", actionOrdinal: ordinals[1], input: { profile: MODEL_PROFILE } } as const;
-  const model = { productStepId: stepId, callId: "model-select", child: "select_exact_gpt_model_v2", actionOrdinal: ordinals[2], input: { profile: MODEL_PROFILE } } as const;
+  const selector = { productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v3", actionOrdinal: ordinals[1], input: { profile: MODEL_PROFILE } } as const;
+  const model = { productStepId: stepId, callId: "model-select", child: "select_gpt_model_from_start_v3", actionOrdinal: ordinals[2], input: { profile: MODEL_PROFILE } } as const;
   const reopen = { productStepId: stepId, callId: "profile-open-after-model", child: "open_gpt_execution_profile", actionOrdinal: ordinals[3], input: { profile: MODEL_PROFILE } } as const;
-  const reasoning = { productStepId: stepId, callId: "reasoning-select", child: "ensure_gpt_reasoning_requirement", actionOrdinal: ordinals[4], input: { profile: MODEL_PROFILE } } as const;
   const close = { productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[5], input: { profile: MODEL_PROFILE } } as const;
   await flow.execute(open);
   await flow.execute(selector);
-  await flow.execute(model);
+  const selected = await flow.execute(model) as ProductGptChildResult<"select_gpt_model_from_start_v3">;
   await flow.execute(reopen);
+  const reasoning = { productStepId: stepId, callId: "reasoning-select", child: "select_gpt_reasoning_from_start_v3", actionOrdinal: ordinals[4], input: { profile: MODEL_PROFILE, actualModelDisplayName: selected.value.modelDisplayName,
+    modelTargetRefHash: selected.value.targetRefHash,
+    modelDocumentRefHash: selected.value.documentRefHash } } as const;
   await flow.execute(reasoning);
   await flow.execute(close);
 };

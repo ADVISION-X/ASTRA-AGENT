@@ -46,8 +46,8 @@ import {
   GPT_EXECUTION_PROFILE_CONTRACT_PATH as EXECUTION_PROFILE_CONTRACT_PATH,
   GPT_EXECUTION_PROFILE_HANDLER_PATHS as EXECUTION_PROFILE_HANDLER_PATHS,
   GPT_IMAGE_RESPONSE_HANDLER_PATHS as IMAGE_RESPONSE_HANDLER_PATHS,
-  GPT_MODEL_SELECTION_V2_CONTRACT_PATH as MODEL_SELECTION_V2_CONTRACT_PATH,
-  GPT_MODEL_SELECTION_V2_HANDLER_PATHS as MODEL_SELECTION_V2_HANDLER_PATHS,
+  GPT_MODEL_SELECTION_V3_CONTRACT_PATH as MODEL_SELECTION_V3_CONTRACT_PATH,
+  GPT_MODEL_SELECTION_V3_HANDLER_PATHS as MODEL_SELECTION_V3_HANDLER_PATHS,
   GPT_RESPONSE_PAGE_PATH as RESPONSE_PAGE_PATH,
   GPT_RETIRED_SHARED_SEMANTIC_PATHS as RETIRED_SHARED_SEMANTIC_PATHS,
   GPT_TEXT_RESPONSE_HANDLER_PATHS as TEXT_RESPONSE_HANDLER_PATHS,
@@ -263,36 +263,34 @@ const inspectExactCallContract = (context: InspectorContext, findings: Inspector
 };
 
 const inspectModelSelectionContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const handler = sourceTextForPaths(context, MODEL_SELECTION_V2_HANDLER_PATHS);
-  const contract = sourceFor(context, MODEL_SELECTION_V2_CONTRACT_PATH)?.getFullText() ?? "";
+  const handler = sourceTextForPaths(context, MODEL_SELECTION_V3_HANDLER_PATHS);
+  const contract = sourceFor(context, MODEL_SELECTION_V3_CONTRACT_PATH)?.getFullText() ?? "";
   for (const required of [
-    "selector: GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR",
-    "expectedTextEquals: profile.modelDisplayName",
-    "postClickObservation: SELECTION_POSTCONDITION",
-    "mutationRecord.postconditionObservation", "readModelChoiceState",
+    "selector: GPT_MODEL_CHOICE_SELECTOR",
+    "expectedTextEquals: chosen.name",
+    "postClickObservation: postcondition(chosen.name)",
+    "record.postconditionObservation", "readModelChoiceState",
     "clickedCandidateAttribute", "selectedReadbackValid",
-    "postClickObservation: OPEN_POSTCONDITION",
+    "postClickMatch: { selector: GPT_MODEL_SELECTOR_EXPANDED_ENTRY",
     "expectedEligibleCount", "decodeCoherentObservationPacket", "modelChoiceQuery",
+    "first.ariaDisabled === true", "selectedRawCount", "targetRefHash", "documentRefHash",
   ]) if (!handler.includes(required)) findings.push(finding(
-    "gpt/model-selection-exact-radio", childHandlerPath("select_exact_gpt_model_v2"),
-    `Exact model selection is missing ${required}.`,
+    "gpt/model-selection-start-fallback", childHandlerPath("select_gpt_model_from_start_v3"),
+    `Start-based model selection is missing ${required}.`,
   ));
   for (const retired of [
-    "GPT_MODEL_SELECTION_V2_EXPANDED_ENTRY_SELECTOR", "expandedEntry",
-    "GPT_MODEL_SELECTION_V2_RESTORED_STATE_SELECTOR", "postClickMatch: {",
-    "GPT_PROFILE_POPUP_SELECTOR", "GPT_PROFILE_SIMPLE_PANEL_SELECTOR",
-    "GPT_MODEL_SELECTION_V2_PANEL_SELECTOR", "modelSelectorTopology",
-    "simplePanel", "advancedPanel",
+    "GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR", "SELECTION_POSTCONDITION",
+    "profile.modelDisplayName", "modelSelectorTopology",
   ]) {
     if (handler.includes(retired) || contract.includes(retired)) findings.push(finding(
-      "gpt/model-selection-expanded-entry-retired", childHandlerPath("select_exact_gpt_model_v2"),
-      `The obsolete expanded-entry state remains reachable through ${retired}.`,
+      "gpt/model-selection-v2-retired", childHandlerPath("select_gpt_model_from_start_v3"),
+      `The obsolete exact-model path remains reachable through ${retired}.`,
     ));
   }
   for (const required of [
-    "GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR", "[role='menuitemradio']",
+    "GPT_MODEL_CHOICE_SELECTOR", "[role='menuitemradio']",
   ]) if (!contract.includes(required)) findings.push(finding(
-    "gpt/model-selection-direct-postcondition", MODEL_SELECTION_V2_CONTRACT_PATH,
+    "gpt/model-selection-direct-postcondition", MODEL_SELECTION_V3_CONTRACT_PATH,
     `The model selection contract is missing ${required}.`,
   ));
 };
@@ -307,16 +305,16 @@ const inspectExecutionProfileStateReadContract = (
     'readEligibility: "non-actionable-aria-state"',
     "GPT_PROFILE_REASONING_VALUE_SELECTOR}[aria-valuenow=",
   ]) if (!handler.includes(required)) findings.push(finding(
-    "gpt/profile-non-actionable-state-read", childHandlerPath("ensure_gpt_reasoning_requirement"),
+    "gpt/profile-non-actionable-state-read", childHandlerPath("select_gpt_reasoning_from_start_v3"),
     `The execution-profile Child is missing ${required}.`,
   ));
   if ((handler.match(/readEligibility:\s*"non-actionable-aria-state"/gu) ?? []).length !== 3) findings.push(finding(
-    "gpt/profile-non-actionable-state-read", childHandlerPath("ensure_gpt_reasoning_requirement"),
+    "gpt/profile-non-actionable-state-read", childHandlerPath("select_gpt_reasoning_from_start_v3"),
     "The reasoning slider read mode must exist exactly on both isolated Child topology queries and the reasoning postcondition.",
   ));
   if (/kind:\s*"keypress"[\s\S]{0,160}selector:\s*GPT_PROFILE_REASONING_VALUE_SELECTOR\s*,/u.test(handler)) {
     findings.push(finding(
-      "gpt/profile-hidden-slider-action-forbidden", childHandlerPath("ensure_gpt_reasoning_requirement"),
+      "gpt/profile-hidden-slider-action-forbidden", childHandlerPath("select_gpt_reasoning_from_start_v3"),
       "The aria-hidden reasoning slider must never become the keypress action target.",
     ));
   }
@@ -346,7 +344,7 @@ const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFind
     ...TEXT_RESPONSE_HANDLER_PATHS, ...IMAGE_RESPONSE_HANDLER_PATHS,
     ...CONVERSATION_HANDLER_PATHS,
     RESPONSE_PAGE_PATH,
-    ...MODEL_SELECTION_V2_HANDLER_PATHS, MODEL_SELECTION_V2_CONTRACT_PATH,
+    ...MODEL_SELECTION_V3_HANDLER_PATHS, MODEL_SELECTION_V3_CONTRACT_PATH,
     ...EXECUTION_PROFILE_HANDLER_PATHS, EXECUTION_PROFILE_CONTRACT_PATH,
     ...ATTACHMENT_HANDLER_PATHS, ATTACHMENT_CONTRACT_PATH,
     PRODUCTION_CHILD_TOOLS_PATH, PRODUCTION_BROWSER_LIFECYCLE_PATH,

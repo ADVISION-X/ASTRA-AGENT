@@ -3,8 +3,8 @@ import { executionFailure } from "../../../lib/execution-failure.js";
 
 import { buildGptExecutionProfile } from "../index.js";
 import {
-  GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR,
-} from "../children/open_gpt_model_selector_v2/selectors.js";
+  GPT_MODEL_SELECTOR_OPENABLE_ENTRY,
+} from "../children/open_gpt_model_selector_v3/selectors.js";
 import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
 import { executeProductionGptAtomicCall } from "../production-atomic-call.js";
 import { failedGptChildExecutionResult } from "../ability-group.js";
@@ -22,13 +22,8 @@ import {
 
 const profile = buildGptExecutionProfile({
   profileRef: "acceptance:proof-profile",
-  accountCapabilityRef: "acceptance:account-capability",
-  modelDisplayName: "GPT-5.6 Sol",
-  modelFamily: "gpt-5.6",
-  reasoningRequirement: {
-    selectionPolicy: "exact-or-observed-maximum",
-    requestedTier: "pro_standard",
-  },
+  startModelDisplayName: "GPT-5.6 Sol",
+  startReasoningTier: "pro_standard",
   executorIdentityRef: "acceptance:executor",
   acceptanceRef: "acceptance:gpt-proof",
   acceptanceVersion: "v1",
@@ -37,14 +32,8 @@ const profile = buildGptExecutionProfile({
 verifyStoppedEmptyRecoveryContract();
 
 const modelFacts = (open: boolean) => ({
-  popup: { rawCount: 1, eligibleCount: 1 },
-  entry: { rawCount: 2, eligibleCount: open ? 0 : 1 },
   "openable-entry": { rawCount: open ? 0 : 1, eligibleCount: open ? 0 : 1 },
-  "simple-panel": { rawCount: 1, eligibleCount: open ? 0 : 1 },
-  "advanced-panel": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
-  "model-choice": open
-    ? { rawCount: 1, eligibleCount: 1, matches: [{ ariaChecked: "false" }] }
-    : { rawCount: 0, eligibleCount: 0 },
+  "expanded-entry": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
 });
 
 const doneHarness = createGptAcceptanceHarness("gpt-proof-done");
@@ -52,18 +41,18 @@ const doneFixture = fakeBrowser((intent) => {
   if (intent.kind === "observe") return coherentObservationPacket(intent, modelFacts(true));
   throw new Error(`UNEXPECTED_DONE_PROOF_INTENT:${intent.kind}`);
 });
-const done = await doneHarness.execute("open_gpt_model_selector_v2", doneFixture.browser, { profile });
+const done = await doneHarness.execute("open_gpt_model_selector_v3", doneFixture.browser, { profile });
 assert.equal(done.status, "success", done.failureCode ?? "DONE proof failed");
 assert.equal(done.proof.internalDecisionCode, "DONE");
 assert.deepEqual(done.proof.candidateCardinality, { raw: 1, eligible: 1 },
-  "GPT semantic DONE is proved only by the exact target model option");
+  "GPT selector DONE is proved by the expanded menu entry");
 assert.equal(done.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
 assert.equal(done.proof.committedMutation, "no");
 assert.equal(done.proof.browserFact, null);
 
 {
   const mismatchHarness = createGptAcceptanceHarness("gpt-proof-dialog-mismatch");
-  const intent = mismatchHarness.buildIntent("open_gpt_model_selector_v2", { profile });
+  const intent = mismatchHarness.buildIntent("open_gpt_model_selector_v3", { profile });
   const evidenceRef = "browser-gpt-dialog-unrecognized|2026-09-21T00:00:00.000Z";
   const evidenceHash = `sha256:${"d".repeat(64)}` as const;
   const failed = await failedGptChildExecutionResult({
@@ -83,7 +72,7 @@ assert.equal(done.proof.browserFact, null);
 
 {
   const rateLimitHarness = createGptAcceptanceHarness("gpt-proof-known-rate-limit");
-  const intent = rateLimitHarness.buildIntent("open_gpt_model_selector_v2", { profile });
+  const intent = rateLimitHarness.buildIntent("open_gpt_model_selector_v3", { profile });
   const observedAt = "2026-09-21T00:00:00.000Z";
   const exactCallHash = `sha256:${"1".repeat(64)}` as const;
   const targetRefHash = `sha256:${"2".repeat(64)}` as const;
@@ -132,24 +121,22 @@ let open = false;
 const actHarness = createGptAcceptanceHarness("gpt-proof-act");
 const actFixture = fakeBrowser((intent) => {
   if (intent.kind === "observe") return coherentObservationPacket(intent, modelFacts(open));
-  if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR) {
+  if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTOR_OPENABLE_ENTRY) {
     open = true;
-    const queries = intent.postClickObservation!.queries
-      .map(({ expectedEligibleCount: _expected, ...query }) => query);
     return { postconditionVerified: true,
-      postconditionObservation: coherentObservationPacket({ queries }, modelFacts(open)) };
+      postconditionRawCount: 1, postconditionEligibleCount: 1 };
   }
   throw new Error(`UNEXPECTED_ACT_PROOF_INTENT:${intent.kind}`);
 });
-const acted = await actHarness.execute("open_gpt_model_selector_v2", actFixture.browser, { profile });
+const acted = await actHarness.execute("open_gpt_model_selector_v3", actFixture.browser, { profile });
 assert.equal(acted.status, "success", acted.failureCode ?? "ACT proof failed");
 assert.equal(acted.proof.internalDecisionCode, "ACT");
 assert.equal(acted.proof.committedMutation, "confirmed");
 assert.equal(acted.proof.browserFact?.browserOutcome, "CONFIRMED");
 assert.equal(acted.proof.browserFact?.mutationOutcome, "confirmed");
-assert.equal(acted.proof.browserFact?.childCapabilityId, "open_gpt_model_selector_v2");
+assert.equal(acted.proof.browserFact?.childCapabilityId, "open_gpt_model_selector_v3");
 assert.equal(acted.proof.browserFact?.evidenceHash, `sha256:${"9".repeat(64)}`);
-assert.equal(JSON.stringify(acted.proof).includes(profile.modelDisplayName), false,
+assert.equal(JSON.stringify(acted.proof).includes(profile.startModelDisplayName), false,
   "proof must contain only hashes, refs, cardinality and typed facts, never sensitive UI text");
 
 let zeroActionOpened = false;
@@ -157,15 +144,13 @@ const zeroActionFixture = fakeBrowser((intent) => {
   if (intent.kind === "observe") return coherentObservationPacket(intent, modelFacts(zeroActionOpened));
   if (intent.kind === "click") {
     zeroActionOpened = true;
-    const queries = intent.postClickObservation!.queries
-      .map(({ expectedEligibleCount: _expected, ...query }) => query);
     return { mutationCount: 0, postconditionVerified: true, zeroActionSatisfied: true,
-      postconditionObservation: coherentObservationPacket({ queries }, modelFacts(zeroActionOpened)) };
+      postconditionRawCount: 1, postconditionEligibleCount: 1 };
   }
   throw new Error(`UNEXPECTED_ZERO_ACTION_MODEL_INTENT:${intent.kind}`);
 });
 const zeroActionResult = await createGptAcceptanceHarness("gpt-proof-zero-action-scope")
-  .execute("open_gpt_model_selector_v2", zeroActionFixture.browser, { profile });
+  .execute("open_gpt_model_selector_v3", zeroActionFixture.browser, { profile });
 assert.equal(zeroActionResult.status, "success", zeroActionResult.failureCode ?? "zero-action proof failed");
 assert.equal(zeroActionResult.value?.state, "model-selector-open");
 assert.equal(zeroActionResult.proof.internalDecisionCode, "DONE");
@@ -181,8 +166,8 @@ const stableFixture = () => fakeBrowser((intent) => {
   if (intent.kind === "observe") return coherentObservationPacket(intent, modelFacts(true));
   throw new Error(`UNEXPECTED_STABLE_PROOF_INTENT:${intent.kind}`);
 });
-const stableOne = await stableHarnessOne.execute("open_gpt_model_selector_v2", stableFixture().browser, { profile });
-const stableTwo = await stableHarnessTwo.execute("open_gpt_model_selector_v2", stableFixture().browser, { profile });
+const stableOne = await stableHarnessOne.execute("open_gpt_model_selector_v3", stableFixture().browser, { profile });
+const stableTwo = await stableHarnessTwo.execute("open_gpt_model_selector_v3", stableFixture().browser, { profile });
 assert.equal(stableOne.proof.evidenceHash, stableTwo.proof.evidenceHash,
   "same exact call and same facts must produce one stable proof hash");
 

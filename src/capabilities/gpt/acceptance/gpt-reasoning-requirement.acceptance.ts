@@ -12,19 +12,22 @@ import {
 import { coherentObservationPacket, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
 import { execute, profile, profileFacts } from "./gpt-exact-target-profile-fixture.js";
 import {
-  exerciseFailedEvidenceReadback,
   exerciseReasoningEvidenceReadback,
 } from "./gpt-failure-evidence-readback.acceptance-support.js";
 
-const exactReasoningProfile = (requestedTier: "high" | "extra_high" | "pro_standard") => buildGptExecutionProfile({
-  profileRef: `acceptance:gpt-profile:${requestedTier}`,
-  accountCapabilityRef: "acceptance:account-capability",
-  modelDisplayName: "GPT-5.6 Sol",
-  modelFamily: "gpt-5.6",
-  reasoningRequirement: { selectionPolicy: "exact", requestedTier },
+const exactReasoningProfile = (startTier: "high" | "extra_high" | "pro_standard") => buildGptExecutionProfile({
+  profileRef: `acceptance:gpt-profile:${startTier}`,
+  startModelDisplayName: "GPT-5.6 Sol",
+  startReasoningTier: startTier,
   executorIdentityRef: "acceptance:executor",
   acceptanceRef: "acceptance:gpt-exact-target",
   acceptanceVersion: "v1",
+});
+const reasoningInput = (executionProfile: typeof profile) => Object.freeze({
+  profile: executionProfile,
+  actualModelDisplayName: executionProfile.startModelDisplayName,
+  modelTargetRefHash: `sha256:${"2".repeat(64)}` as const,
+  modelDocumentRefHash: `sha256:${"3".repeat(64)}` as const,
 });
 
 const runReasoning = async (input: Readonly<{
@@ -37,13 +40,15 @@ const runReasoning = async (input: Readonly<{
   let keypresses = 0;
   const fixture = fakeBrowser((intent) => {
     if (intent.kind === "observe") {
+      assert.equal(intent.queries.some((query) => ["popup", "simple-panel", "trigger"].includes(query.queryId)),
+        false, "G17 must not gate reasoning on the old profile shell");
+      assert.equal(intent.queries.some((query) => query.queryId === "pro-fifth-label"
+        && query.textEquals === "Pro，第 5 项，共 5 项。"), true);
       return coherentObservationPacket(intent, profileFacts(intent, true, current, true, input.maximum));
     }
     if (intent.kind === "keypress") {
       keypresses += 1;
-      const target = input.executionProfile.reasoningRequirement.selectionPolicy === "exact"
-        ? reasoningTierUiValue[input.executionProfile.reasoningRequirement.requestedTier]
-        : input.maximum;
+      const target = Math.min(reasoningTierUiValue[input.executionProfile.startReasoningTier], input.maximum);
       const delta = target - input.current;
       assert.equal(intent.selector, GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
         "the actionable target must remain the visible enabled capability menu item");
@@ -58,16 +63,16 @@ const runReasoning = async (input: Readonly<{
     throw new Error(`UNEXPECTED_REASONING_INTENT:${intent.kind}`);
   });
   const result = await execute(
-    "ensure_gpt_reasoning_requirement", fixture.browser, { profile: input.executionProfile },
+    "select_gpt_reasoning_from_start_v3", fixture.browser, reasoningInput(input.executionProfile),
   );
   return Object.freeze({ result, fixture, keypresses });
 };
 
 for (const reasoningCase of [
-  Object.freeze({ maximum: 4, current: 1, resolvedTier: "pro_standard" as const,
-    resolvedValue: 4, degraded: false, mutation: "confirmed" as const }),
   Object.freeze({ maximum: 4, current: 4, resolvedTier: "pro_standard" as const,
     resolvedValue: 4, degraded: false, mutation: "no" as const }),
+  Object.freeze({ maximum: 3, current: 3, resolvedTier: "extra_high" as const,
+    resolvedValue: 3, degraded: true, mutation: "no" as const }),
   Object.freeze({ maximum: 2, current: 0, resolvedTier: "high" as const,
     resolvedValue: 2, degraded: true, mutation: "confirmed" as const }),
   Object.freeze({ maximum: 2, current: 2, resolvedTier: "high" as const,
@@ -76,9 +81,8 @@ for (const reasoningCase of [
   const { result, fixture, keypresses } = await runReasoning({ executionProfile: profile, ...reasoningCase });
   assert.equal(result.status, "success", result.failureCode ?? "adaptive reasoning selection failed");
   assert.deepEqual(result.reasoningRequirementResult, {
-    requestedTier: "pro_standard",
-    requestedValue: 4,
-    selectionPolicy: "exact-or-observed-maximum",
+    startTier: "pro_standard",
+    startValue: 4,
     observedScale: { min: 0, max: reasoningCase.maximum, currentBefore: reasoningCase.current },
     resolvedTier: reasoningCase.resolvedTier,
     resolvedValue: reasoningCase.resolvedValue,
@@ -93,8 +97,16 @@ for (const reasoningCase of [
   assert.equal(keypresses, reasoningCase.mutation === "confirmed" ? 1 : 0);
   assert.equal(fixture.physicalMutations(), reasoningCase.mutation === "confirmed" ? 1 : 0);
   if (reasoningCase.mutation === "confirmed") {
-    await exerciseReasoningEvidenceReadback(result, Object.freeze({ profile }));
+    await exerciseReasoningEvidenceReadback(result, reasoningInput(profile));
   }
+}
+
+{
+  const { result, fixture } = await runReasoning({ executionProfile: profile, maximum: 4, current: 1 });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "GPT_REASONING_TIER_UNAVAILABLE",
+    "max=4 without the current Pro fifth-label fact must not be called Pro-available");
+  assert.equal(fixture.physicalMutations(), 0);
 }
 
 for (const maximum of [2, 4]) {
@@ -102,7 +114,7 @@ for (const maximum of [2, 4]) {
   const { result, fixture } = await runReasoning({ executionProfile: exactHigh, maximum, current: 2 });
   assert.equal(result.status, "success", result.failureCode ?? "exact high must remain available");
   assert.deepEqual(result.reasoningRequirementResult, {
-    requestedTier: "high", requestedValue: 2, selectionPolicy: "exact",
+    startTier: "high", startValue: 2,
     observedScale: { min: 0, max: maximum, currentBefore: 2 },
     resolvedTier: "high", resolvedValue: 2, degraded: false, currentValue: 2,
     mutationOutcome: "no", browserOutcome: null, gptPostcondition: "passed",
@@ -117,7 +129,7 @@ for (const maximum of [2, 4]) {
   });
   assert.equal(result.status, "success");
   assert.deepEqual(result.reasoningRequirementResult, {
-    requestedTier: "extra_high", requestedValue: 3, selectionPolicy: "exact",
+    startTier: "extra_high", startValue: 3,
     observedScale: { min: 0, max: 4, currentBefore: 2 },
     resolvedTier: "extra_high", resolvedValue: 3, degraded: false, currentValue: 3,
     mutationOutcome: "confirmed", browserOutcome: "CONFIRMED", gptPostcondition: "passed",
@@ -126,30 +138,21 @@ for (const maximum of [2, 4]) {
   assert.equal(fixture.physicalMutations(), 1);
 }
 
-for (const unavailable of [
-  Object.freeze({ tier: "extra_high" as const, requestedValue: 3 }),
-  Object.freeze({ tier: "pro_standard" as const, requestedValue: 4 }),
+for (const fallback of [
+  Object.freeze({ tier: "extra_high" as const, maximum: 2, resolvedTier: "high", resolvedValue: 2 }),
+  Object.freeze({ tier: "pro_standard" as const, maximum: 2, resolvedTier: "high", resolvedValue: 2 }),
+  Object.freeze({ tier: "pro_standard" as const, maximum: 3, resolvedTier: "extra_high", resolvedValue: 3 }),
 ]) {
-  const exactProfile = exactReasoningProfile(unavailable.tier);
-  const { result, fixture } = await runReasoning({ executionProfile: exactProfile, maximum: 2, current: 1 });
-  assert.equal(result.status, "failed");
-  assert.equal(result.failureCode, "GPT_REASONING_TIER_UNAVAILABLE");
-  assert.deepEqual(result.reasoningRequirementResult, {
-    requestedTier: unavailable.tier, requestedValue: unavailable.requestedValue, selectionPolicy: "exact",
-    observedScale: { min: 0, max: 2, currentBefore: 1 },
-    resolvedTier: null, resolvedValue: null, degraded: false, currentValue: 1,
-    mutationOutcome: "no", browserOutcome: null, gptPostcondition: "failed",
-  });
-  assert.equal(fixture.physicalMutations(), 0);
-  await exerciseFailedEvidenceReadback(result, Object.freeze({ profile: exactProfile }), {
-    code: "GPT_REASONING_TIER_UNAVAILABLE", mutation_outcome: "no", effect_scope: null,
-    child_capability_id: null, browser_outcome: null, evidence_ref: "record:gpt-failed-readback",
-    evidence_hash: result.proof.evidenceHash, child_proof_ref: null, child_proof_hash: null,
-    stopped_empty_proof: null, cause: null,
-  });
+  const startProfile = exactReasoningProfile(fallback.tier);
+  const { result, fixture } = await runReasoning({ executionProfile: startProfile, maximum: fallback.maximum, current: 1 });
+  assert.equal(result.status, "success", result.failureCode ?? "fallback failed");
+  assert.equal(result.reasoningRequirementResult?.resolvedTier, fallback.resolvedTier);
+  assert.equal(result.reasoningRequirementResult?.resolvedValue, fallback.resolvedValue);
+  assert.equal(result.reasoningRequirementResult?.degraded, true);
+  assert.equal(fixture.physicalMutations(), 1);
 }
 
-for (const maximum of [1, 3, 5]) {
+for (const maximum of [1, 5]) {
   const { result, fixture } = await runReasoning({ executionProfile: profile, maximum, current: 0 });
   assert.equal(result.status, "failed");
   assert.ok(result.failureCode?.startsWith("GPT_EXECUTION_PROFILE_REASONING_STATE_INVALID:"));
@@ -166,7 +169,7 @@ for (const malformed of [
       profileFacts(intent, true, malformed.current, true, malformed.maximum, malformed.minimum));
     throw new Error(`MALFORMED_REASONING_SCALE_MUST_NOT_ACT:${malformed.name}:${intent.kind}`);
   });
-  const result = await execute("ensure_gpt_reasoning_requirement", fixture.browser, { profile });
+  const result = await execute("select_gpt_reasoning_from_start_v3", fixture.browser, reasoningInput(profile));
   assert.equal(result.status, "failed");
   assert.ok(result.failureCode?.startsWith("GPT_EXECUTION_PROFILE_REASONING_STATE_INVALID:"));
   assert.equal(fixture.physicalMutations(), 0);
@@ -188,7 +191,7 @@ for (const state of ["missing", "disabled", "ambiguous"] as const) {
         : { rawCount: 2, eligibleCount: 2 },
     });
   });
-  const result = await execute("ensure_gpt_reasoning_requirement", fixture.browser, { profile });
+  const result = await execute("select_gpt_reasoning_from_start_v3", fixture.browser, reasoningInput(profile));
   assert.equal(result.status, "failed");
   assert.ok(result.failureCode?.startsWith("GPT_EXECUTION_PROFILE_REASONING_STATE_INVALID:"));
   assert.equal(fixture.physicalMutations(), 0);
@@ -201,8 +204,7 @@ for (const state of ["missing", "disabled", "ambiguous"] as const) {
   assert.equal(result.status, "failed");
   assert.ok(result.failureCode?.startsWith("GPT_EXECUTION_PROFILE_REASONING_PENDING:"));
   assert.deepEqual(result.reasoningRequirementResult, {
-    requestedTier: "pro_standard", requestedValue: 4,
-    selectionPolicy: "exact-or-observed-maximum",
+    startTier: "pro_standard", startValue: 4,
     observedScale: { min: 0, max: 2, currentBefore: 0 },
     resolvedTier: "high", resolvedValue: 2, degraded: true, currentValue: 1,
     mutationOutcome: "confirmed", browserOutcome: "CONFIRMED", gptPostcondition: "failed",

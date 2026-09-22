@@ -128,7 +128,7 @@ try {
     commandId: "command-1", logicalMutationId, exactCallIdentityHash,
     jobId: "job-1", resultRevision: 0, attemptId: "attempt-1", leaseVersion: 1,
     executionFenceHash: hash, targetRef: "target-1", documentRef: "document-1",
-    productStepId: "step-1", callId: "call-1", childCapabilityId: "open_gpt_model_selector_v2",
+    productStepId: "step-1", callId: "call-1", childCapabilityId: "open_gpt_model_selector_v3",
     effectScope: "target_local", actionOrdinal: 1,
     actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
@@ -141,13 +141,13 @@ try {
     exactCallIdentityHash: `sha256:${"d".repeat(64)}`,
     jobId: "job-1", resultRevision: 0, attemptId: "attempt-2", leaseVersion: 2,
     executionFenceHash: hash, targetRef: "target-1", documentRef: "document-1",
-    productStepId: "step-1", callId: "call-1", childCapabilityId: "open_gpt_model_selector_v2",
+    productStepId: "step-1", callId: "call-1", childCapabilityId: "open_gpt_model_selector_v3",
     effectScope: "target_local", actionOrdinal: 1,
     actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
   });
   assert.throws(() => store.resolve({ commandId: "command-1", targetRef: "target-2", state: "CONFIRMED", mutationOutcome: "dispatched", proofHash: hash }), /BROWSER_MUTATION_STATE_CONFLICT/u);
-  assert.equal(store.readCommand("command-1")?.identity.childCapabilityId, "open_gpt_model_selector_v2");
+  assert.equal(store.readCommand("command-1")?.identity.childCapabilityId, "open_gpt_model_selector_v3");
   assert.equal(store.readAtomicStepOutcome({
     jobId: "job-1", attemptId: "attempt-1", exactCallIdentityHash,
     actionOrdinal: 1, targetRef: "target-1", effectScope: "target_local",
@@ -181,7 +181,7 @@ try {
     exactCallIdentityHash: `sha256:${"3".repeat(64)}`,
     jobId: "job-1", resultRevision: 0, attemptId: "attempt-1", leaseVersion: 2,
     executionFenceHash: hash, targetRef: "target-2", documentRef: "document-2",
-    productStepId: "step-1", callId: "call-1", childCapabilityId: "open_gpt_model_selector_v2",
+    productStepId: "step-1", callId: "call-1", childCapabilityId: "open_gpt_model_selector_v3",
     effectScope: "target_local", actionOrdinal: 1,
     actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
@@ -230,7 +230,7 @@ try {
     exactCallIdentityHash: `sha256:${"1".repeat(64)}`,
     jobId: "job-1", resultRevision: 0, attemptId: "attempt-2", leaseVersion: 2,
     executionFenceHash: hash, targetRef: "target-2", documentRef: "document-2",
-    productStepId: "step-1", callId: "call-1", childCapabilityId: "open_gpt_model_selector_v2",
+    productStepId: "step-1", callId: "call-1", childCapabilityId: "open_gpt_model_selector_v3",
     effectScope: "target_local", actionOrdinal: 1,
     actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,

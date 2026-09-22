@@ -45,6 +45,11 @@ const outputForCall = (
   decision: "proceed" | "decline",
   image: ImageFixture,
 ): unknown => {
+  if (call.child === "select_gpt_model_from_start_v3") return {
+    modelDisplayName: call.input.profile.startModelDisplayName,
+    targetRefHash: HASH, documentRefHash: HASH,
+    previousChecked: "true", selectionVersion: "gpt-model-selection.v3", state: "already-selected",
+  };
   if (call.child === "reconcile_gpt_attachment_set") return { files: state.materials.map((material, index) => ({
     artifactRef: material.material_id, displayName: material.display_name,
     providerDisplayName: state.providerNames[index], sha256: HASH, bytes: 1,

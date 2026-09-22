@@ -212,7 +212,7 @@ try {
     executionFenceHash: hash("2"),
     productStepId: currentBinding.productStepId,
     callId: currentBinding.callId,
-    childCapabilityId: "open_gpt_model_selector_v2",
+    childCapabilityId: "open_gpt_model_selector_v3",
     effectScope: "target_local",
     actionOrdinal: 1,
     targetRef: "target-old",

@@ -2,6 +2,7 @@ import { governanceAssert as assert } from "../audit/shared/governance-exam-asse
 import { FakeElement, FakeTextNode, RICH_SEMANTIC_TEXT, execute, hash, richSemanticTree }
   from "./local-browser-dom-function-fixture.js";
 import { exerciseEditablePromptHashes } from "./local-browser-dom-function-fixture.js";
+import { assertBrowserDomIntent } from "../../src/lib/browser/exact-target/browser-dom-intent.js";
 export const exerciseCapturedCoherentObservationPointerFunction = (source: string): void => {
   const reasoning = new FakeElement("", {}, {}, {
     "aria-valuemin": "0", "aria-valuemax": "4", "aria-valuenow": "2",
@@ -97,6 +98,37 @@ const exerciseHiddenStateRead = async (source: string): Promise<void> => {
     matches: hiddenResult.queries[1]?.matches }), JSON.stringify({
     rawCount: 1, eligibleCount: 1, matches: [{ candidateIndex: 0, ariaHidden: true }],
   }), "the explicit non-actionable read mode may ignore only ARIA_HIDDEN");
+};
+
+const exerciseInertStateReadOnly = async (source: string): Promise<void> => {
+  const selected = new FakeElement("GPT-5.6 Sol", {}, {}, { "aria-checked": "true" });
+  const inertRoot = new FakeElement("root", { "[role='menuitemradio']": [selected] }, {}, { inert: "" });
+  selected.parentElement = inertRoot;
+  const queries = [
+    { queryId: "default-selected", selector: "[role='menuitemradio']", maxMatches: 1,
+      fields: ["ariaChecked", "inert"] },
+    { queryId: "explicit-selected", selector: "[role='menuitemradio']", maxMatches: 1,
+      textEquals: "GPT-5.6 Sol", readEligibility: "non-actionable-inert-state",
+      fields: ["ariaChecked", "inert"] },
+  ] as const;
+  assertBrowserDomIntent({ kind: "observe", queries });
+  const result = await execute(source, {
+    documentElement: inertRoot, querySelectorAll: () => [], elementFromPoint: () => null,
+  }, queries) as Readonly<{ queries: readonly Readonly<{
+    rawCount: number; eligibleCount: number;
+    matches: readonly Readonly<{ ariaChecked: string; inert: boolean }>[];
+    rejections: readonly unknown[];
+  }>[] }>;
+  assert.equal(JSON.stringify({ raw: result.queries[0]?.rawCount, eligible: result.queries[0]?.eligibleCount,
+    rejections: result.queries[0]?.rejections }),
+  JSON.stringify({ raw: 1, eligible: 0, rejections: [{ index: 0, reasons: ["INERT"] }] }));
+  assert.equal(JSON.stringify({ raw: result.queries[1]?.rawCount, eligible: result.queries[1]?.eligibleCount,
+    matches: result.queries[1]?.matches }),
+  JSON.stringify({ raw: 1, eligible: 1,
+    matches: [{ candidateIndex: 0, ariaChecked: "true", inert: true }] }));
+  assert.throws(() => assertBrowserDomIntent({ kind: "click", selector: "[role='menuitemradio']",
+    postClickMatch: { selector: "[role='menuitemradio']", expectedMatches: 1,
+      readEligibility: "non-actionable-inert-state" } }), /BROWSER_COMMAND_PERMIT_INVALID/u);
 };
 const userPromptFixture = () => {
   const userPrompt = "[GRASSEYE:exact-user-prompt]\napproved prompt";
@@ -422,6 +454,7 @@ const exerciseInvalidObservationUrls = async (
 export const exerciseCapturedObservationFunction = async (source: string): Promise<void> => {
   const observationDocument = await exerciseObservationRejections(source);
   await exerciseHiddenStateRead(source);
+  await exerciseInertStateReadOnly(source);
   await exerciseEditablePromptHashes(source);
   await exerciseUserPromptHashes(source);
   await exerciseAssistantSemanticTextHash(source);

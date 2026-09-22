@@ -1,5 +1,6 @@
 import {
   buildGptExecutionProfile,
+  type ProductGptChildResult,
 } from "../../capabilities/gpt/index.js";
 import type { WebsiteAgentTask } from "../../mediator/product-plugin-contract.js";
 import type {
@@ -24,13 +25,8 @@ import {
 } from "./seo-submit-readback.js";
 const MODEL_PROFILE = buildGptExecutionProfile({
   profileRef: `${PLUGIN_ID}:chatgpt-latest-extra-high`,
-  accountCapabilityRef: "openai-chatgpt:latest",
-  modelDisplayName: "最新",
-  modelFamily: "chatgpt-latest",
-  reasoningRequirement: {
-    selectionPolicy: "exact",
-    requestedTier: "extra_high",
-  },
+  startModelDisplayName: "最新",
+  startReasoningTier: "extra_high",
   executorIdentityRef: PLUGIN_ID,
   acceptanceRef: `${PLUGIN_ID}:seo-production`,
   acceptanceVersion: "v1",
@@ -82,10 +78,14 @@ export const applyExactProfile = async (
   ordinals: SeoProfileOrdinals,
 ): Promise<void> => {
   await execute({ sessionKey: "", productStepId: stepId, callId: "profile-open", child: "open_gpt_execution_profile", actionOrdinal: ordinals[0], input: { profile: MODEL_PROFILE } });
-  await execute({ sessionKey: "", productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v2", actionOrdinal: ordinals[1], input: { profile: MODEL_PROFILE } });
-  await execute({ sessionKey: "", productStepId: stepId, callId: "model-select", child: "select_exact_gpt_model_v2", actionOrdinal: ordinals[2], input: { profile: MODEL_PROFILE } });
+  await execute({ sessionKey: "", productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v3", actionOrdinal: ordinals[1], input: { profile: MODEL_PROFILE } });
+  const selected = await execute({ sessionKey: "", productStepId: stepId, callId: "model-select", child: "select_gpt_model_from_start_v3", actionOrdinal: ordinals[2], input: { profile: MODEL_PROFILE } }) as ProductGptChildResult<"select_gpt_model_from_start_v3">;
   await execute({ sessionKey: "", productStepId: stepId, callId: "profile-open-after-model", child: "open_gpt_execution_profile", actionOrdinal: ordinals[3], input: { profile: MODEL_PROFILE } });
-  await execute({ sessionKey: "", productStepId: stepId, callId: "reasoning-select", child: "ensure_gpt_reasoning_requirement", actionOrdinal: ordinals[4], input: { profile: MODEL_PROFILE } });
+  await execute({ sessionKey: "", productStepId: stepId, callId: "reasoning-select", child: "select_gpt_reasoning_from_start_v3", actionOrdinal: ordinals[4], input: {
+    profile: MODEL_PROFILE, actualModelDisplayName: selected.value.modelDisplayName,
+    modelTargetRefHash: selected.value.targetRefHash,
+    modelDocumentRefHash: selected.value.documentRefHash,
+  } });
   await execute({ sessionKey: "", productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[5], input: { profile: MODEL_PROFILE } });
 };
 

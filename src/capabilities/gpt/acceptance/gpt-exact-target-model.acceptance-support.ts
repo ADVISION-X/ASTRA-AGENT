@@ -1,195 +1,148 @@
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
-import { GPT_MODEL_SELECTION_V2_OPENABLE_ENTRY_SELECTOR as GPT_MODEL_SELECTOR_OPEN_ENTRY }
-  from "../children/open_gpt_model_selector_v2/selectors.js";
-import { GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR }
-  from "../children/select_exact_gpt_model_v2/selectors.js";
+import { GPT_MODEL_SELECTOR_OPENABLE_ENTRY } from "../children/open_gpt_model_selector_v3/selectors.js";
+import { GPT_MODEL_CHOICE_SELECTOR } from "../children/select_gpt_model_from_start_v3/selectors.js";
+import { buildGptExecutionProfile } from "../index.js";
 import { coherentObservationPacket, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
-import { exerciseFailedEvidenceReadback }
-  from "./gpt-failure-evidence-readback.acceptance-support.js";
 import { execute, profile } from "./gpt-exact-target-profile-fixture.js";
 
-
-type ModelState = "closed" | "transition" | "open" | "broken";
-const modelFacts = (state: ModelState, checked?: "true" | "false") => ({
-  popup: { rawCount: 1, eligibleCount: 1 },
-  entry: { rawCount: 1,
-    eligibleCount: state === "open" || state === "broken" ? 0 : 1 },
+const selectorFacts = (state: "closed" | "open" | "transition") => ({
   "openable-entry": { rawCount: state === "closed" ? 1 : 0,
     eligibleCount: state === "closed" ? 1 : 0 },
-  "simple-panel": { rawCount: 1,
-    eligibleCount: state === "closed" ? 1 : 0 },
-  "advanced-panel": { rawCount: state === "open" || state === "transition" ? 1 : 0,
-    eligibleCount: state === "open" || state === "transition" ? 1 : 0 },
-  ...((checked ?? (state === "open" ? "false" : undefined)) === undefined ? {} : {
-    "model-choice": { rawCount: 1, eligibleCount: 1,
-      matches: [{ ariaChecked: checked ?? "false" }] },
-  }),
+  "expanded-entry": { rawCount: state === "open" ? 1 : 0,
+    eligibleCount: state === "open" ? 1 : 0 },
 });
+
+const choiceFacts = (input: Readonly<{
+  checked: "true" | "false";
+  latestDisabled?: boolean;
+  latestPresent?: boolean;
+  solPresent?: boolean;
+}>) => {
+  const latestPresent = input.latestPresent ?? true;
+  const solPresent = input.solPresent ?? true;
+  return {
+    "latest-model": { rawCount: latestPresent ? 1 : 0, eligibleCount: latestPresent ? 1 : 0,
+      matches: latestPresent ? [{ ariaChecked: "false", ariaDisabled: input.latestDisabled ?? false,
+        disabled: false, inert: false }] : [] },
+    "sol-model": { rawCount: solPresent ? 1 : 0, eligibleCount: solPresent ? 1 : 0,
+      matches: solPresent ? [{ ariaChecked: input.checked, ariaDisabled: false,
+        disabled: false, inert: false }] : [] },
+    "selected-model-count": { rawCount: input.checked === "true" ? 1 : 0,
+      eligibleCount: input.checked === "true" ? 1 : 0 },
+  };
+};
 
 const verifyModelOpen = async (): Promise<void> => {
   for (const initiallyOpen of [true, false]) {
-    let state: ModelState = initiallyOpen ? "open" : "closed";
+    let state: "closed" | "open" = initiallyOpen ? "open" : "closed";
     const fixture = fakeBrowser((intent) => {
-      if (intent.kind === "observe") return coherentObservationPacket(intent, modelFacts(state));
-      if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTOR_OPEN_ENTRY) {
-        assert.deepEqual(intent.postClickObservation?.queries.map((query) => [
-          query.queryId, query.expectedEligibleCount,
-        ]), [["model-choice", 1]],
-        "the one Browser click must prove only the exact target-model option");
-        assert.equal(intent.postClickObservation?.timeoutMs, undefined);
+      if (intent.kind === "observe") return coherentObservationPacket(intent, selectorFacts(state));
+      if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTOR_OPENABLE_ENTRY) {
+        assert.equal(intent.postClickMinimumDelayMs, 2_500);
+        assert.equal(intent.postClickMatch?.expectedMatches, 1);
         state = "open";
-        const queries = intent.postClickObservation!.queries
-          .map(({ expectedEligibleCount: _expected, ...query }) => query);
-        return {
-          postconditionVerified: true,
-          postconditionObservation: coherentObservationPacket({ queries }, modelFacts(state)),
-        };
+        return { postconditionVerified: true, postconditionRawCount: 1,
+          postconditionEligibleCount: 1 };
       }
       throw new Error(`UNEXPECTED_MODEL_OPEN_INTENT:${intent.kind}`);
     });
-    const result = await execute("open_gpt_model_selector_v2", fixture.browser, { profile });
-    assert.equal(result.status, "success", result.failureCode ?? "model selector failed");
+    const result = await execute("open_gpt_model_selector_v3", fixture.browser, { profile });
+    assert.equal(result.status, "success", result.failureCode ?? "selector open failed");
     assert.equal(state, "open");
     assert.equal(fixture.physicalMutations(), initiallyOpen ? 0 : 1);
   }
 };
 
-const verifyUnhydratedChoice = async (): Promise<void> => {
+const verifySelectorTransitionFailsClosed = async (): Promise<void> => {
   const fixture = fakeBrowser((intent) => {
-    if (intent.kind === "observe") return coherentObservationPacket(intent, {
-      ...modelFacts("open"), "model-choice": { rawCount: 0, eligibleCount: 0 },
-    });
-    throw new Error(`UNHYDRATED_MODEL_CHOICE_MUST_NOT_COMPLETE:${intent.kind}`);
+    if (intent.kind === "observe") return coherentObservationPacket(intent, selectorFacts("transition"));
+    throw new Error(`TRANSITION_MUST_NOT_ACT:${intent.kind}`);
   });
-  const result = await execute("open_gpt_model_selector_v2", fixture.browser, { profile });
+  const result = await execute("open_gpt_model_selector_v3", fixture.browser, { profile });
   assert.equal(result.status, "failed");
-  assert.equal(result.failureCode,
-    "GPT_MODEL_SELECTION_V2_STATE_INVALID:openableEntry=0:modelChoice=0");
-  assert.deepEqual(fixture.waitDurations(), [1_500, 3_000]);
-  assert.equal(fixture.physicalMutations(), 0,
-    "an open advanced shell without the exact target-model radio must fail without mutation");
-};
-
-const verifyTransitionalTopology = async (): Promise<void> => {
-  const fixture = fakeBrowser((intent) => {
-    if (intent.kind === "observe") return coherentObservationPacket(intent, modelFacts("transition"));
-    throw new Error(`TRANSITIONAL_MODEL_TOPOLOGY_MUST_NOT_ACT:${intent.kind}`);
-  });
-  const result = await execute("open_gpt_model_selector_v2", fixture.browser, { profile });
-  assert.equal(result.status, "failed");
-  assert.equal(result.failureCode,
-    "GPT_MODEL_SELECTION_V2_STATE_INVALID:openableEntry=0:modelChoice=0");
-  assert.equal(result.proof.committedMutation, "no");
+  assert.equal(result.failureCode, "GPT_MODEL_SELECTOR_V3_STATE_INVALID:openableEntry=0:expandedEntry=0");
   assert.deepEqual(fixture.waitDurations(), [1_500, 3_000]);
   assert.equal(fixture.physicalMutations(), 0);
 };
 
-const verifyConfirmedModelDrift = async (): Promise<void> => {
-  let clicked = false;
-  const fixture = fakeBrowser((intent) => {
-    if (intent.kind === "observe") {
-      return coherentObservationPacket(intent, modelFacts(clicked ? "broken" : "closed"));
-    }
-    if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTOR_OPEN_ENTRY) {
-      clicked = true;
-      const queries = intent.postClickObservation!.queries
-        .map(({ expectedEligibleCount: _expected, ...query }) => query);
-      return {
-        postconditionVerified: true,
-        postconditionObservation: coherentObservationPacket({ queries }, modelFacts("broken")),
-      };
-    }
-    throw new Error(`UNEXPECTED_CONFIRMED_MODEL_DRIFT_INTENT:${intent.kind}`);
-  });
-  const result = await execute("open_gpt_model_selector_v2", fixture.browser, { profile });
-  const failureCode = "GPT_MODEL_SELECTION_V2_STATE_INVALID:openableEntry=0:modelChoice=0";
-  assert.equal(result.status, "failed");
-  assert.equal(result.failureCode, failureCode);
-  assert.equal(result.proof.committedMutation, "confirmed");
-  assert.equal(result.proof.postconditionResult, "failed");
-  assert.equal(result.proof.browserFact?.browserOutcome, "CONFIRMED");
-  assert.equal(result.proof.browserFact?.mutationOutcome, "confirmed");
-  assert.equal(fixture.physicalMutations(), 1);
-  await exerciseFailedEvidenceReadback(result, Object.freeze({ profile }), {
-    code: failureCode,
-    mutation_outcome: "confirmed",
-    effect_scope: "target_local",
-    child_capability_id: "open_gpt_model_selector_v2",
-    browser_outcome: "CONFIRMED",
-    evidence_ref: "browser-mutation:acceptance-call",
-    evidence_hash: `sha256:${"9".repeat(64)}`,
-    child_proof_ref: null,
-    child_proof_hash: null,
-    stopped_empty_proof: null,
-    cause: null,
-  });
-};
-
 const verifyModelSelection = async (): Promise<void> => {
   for (const checked of ["true", "false"] as const) {
-    let state: ModelState = "open";
-    let observations = 0;
     const fixture = fakeBrowser((intent) => {
-      if (intent.kind === "observe") {
-        observations += 1;
-        return coherentObservationPacket(intent, modelFacts(state, checked));
-      }
-      if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR) {
-        assert.equal(intent.expectedTextEquals, profile.modelDisplayName);
+      if (intent.kind === "observe") return coherentObservationPacket(intent, choiceFacts({ checked }));
+      if (intent.kind === "click" && intent.selector === GPT_MODEL_CHOICE_SELECTOR) {
+        assert.equal(intent.expectedTextEquals, "GPT-5.6 Sol");
         assert.deepEqual(intent.postClickObservation?.clickedCandidateAttribute,
           { name: "aria-checked", equals: "true" });
-        assert.deepEqual(intent.postClickObservation?.queries.map((query) => [
-          query.queryId, query.expectedEligibleCount,
-        ]), [["model-choice", 0]],
-        "model selection must prove that the exact chosen option closed in the same Browser mutation packet");
-        assert.equal(intent.postClickObservation?.timeoutMs, undefined);
-        state = "closed";
         const queries = intent.postClickObservation!.queries
           .map(({ expectedEligibleCount: _expected, ...query }) => query);
-        return {
-          postconditionVerified: true,
+        return { postconditionVerified: true,
           clickedCandidateAttributeReadback: { name: "aria-checked", value: "true", verified: true },
-          postconditionObservation: coherentObservationPacket({ queries }, modelFacts(state)),
-        };
+          postconditionObservation: coherentObservationPacket({ queries }, {
+            "sol-model": { rawCount: 0, eligibleCount: 0 },
+          }) };
       }
       throw new Error(`UNEXPECTED_MODEL_SELECT_INTENT:${intent.kind}`);
     });
-    const result = await execute("select_exact_gpt_model_v2", fixture.browser, { profile });
+    const result = await execute("select_gpt_model_from_start_v3", fixture.browser, { profile });
     assert.equal(result.status, "success", result.failureCode ?? "model selection failed");
+    assert.equal(result.value?.modelDisplayName, "GPT-5.6 Sol");
     assert.equal(result.value?.previousChecked, checked);
-    assert.equal(result.value?.state, "exact-model-selected");
-    assert.equal(observations, 1, "model selection must not issue a second DOM observation after Browser confirmation");
-    assert.equal(fixture.physicalMutations(), 1);
+    assert.equal(result.value?.state, checked === "true" ? "already-selected" : "model-selected");
+    assert.equal(fixture.physicalMutations(), checked === "true" ? 0 : 1);
   }
 };
 
-const verifyUnselectedReadback = async (): Promise<void> => {
+const verifyMissingStartFailsClosed = async (): Promise<void> => {
   const fixture = fakeBrowser((intent) => {
-    if (intent.kind === "observe") {
-      return coherentObservationPacket(intent, modelFacts("open", "false"));
-    }
-    if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR) {
-      const queries = intent.postClickObservation!.queries
-        .map(({ expectedEligibleCount: _expected, ...query }) => query);
-      return {
-        postconditionVerified: true,
-        clickedCandidateAttributeReadback: { name: "aria-checked", value: "false", verified: false },
-        postconditionObservation: coherentObservationPacket({ queries }, modelFacts("closed")),
-      };
-    }
-    throw new Error(`UNEXPECTED_UNSELECTED_MODEL_INTENT:${intent.kind}`);
+    if (intent.kind === "observe") return coherentObservationPacket(intent,
+      choiceFacts({ checked: "false", solPresent: false }));
+    throw new Error(`MISSING_START_MUST_NOT_ACT:${intent.kind}`);
   });
-  const result = await execute("select_exact_gpt_model_v2", fixture.browser, { profile });
+  const result = await execute("select_gpt_model_from_start_v3", fixture.browser, { profile });
   assert.equal(result.status, "failed");
-  assert.equal(result.failureCode, "GPT_MODEL_SELECTION_V2_SELECTED_FACT_INVALID");
-  assert.equal(fixture.physicalMutations(), 1);
+  assert.equal(fixture.physicalMutations(), 0);
+};
+
+const verifyExplicitLatestDowngrade = async (): Promise<void> => {
+  const latestProfile = buildGptExecutionProfile({
+    profileRef: "acceptance:gpt-latest-start",
+    startModelDisplayName: "最新",
+    startReasoningTier: "high",
+    executorIdentityRef: "acceptance:executor",
+    acceptanceRef: "acceptance:gpt-exact-target",
+    acceptanceVersion: "v1",
+  });
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent,
+      choiceFacts({ checked: "true", latestDisabled: true }));
+    throw new Error(`EXPLICIT_DOWNGRADE_MUST_NOT_CLICK:${intent.kind}`);
+  });
+  const result = await execute("select_gpt_model_from_start_v3", fixture.browser, { profile: latestProfile });
+  assert.equal(result.status, "success", result.failureCode ?? "latest-to-Sol downgrade failed");
+  assert.equal(result.value?.modelDisplayName, "GPT-5.6 Sol");
+  assert.equal(result.value?.state, "already-selected");
+  assert.equal(fixture.physicalMutations(), 0);
+};
+
+const verifySelectedCountConflictFailsClosed = async (): Promise<void> => {
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, {
+      ...choiceFacts({ checked: "true" }),
+      "selected-model-count": { rawCount: 0, eligibleCount: 0 },
+    });
+    throw new Error(`SELECTED_COUNT_CONFLICT_MUST_NOT_ACT:${intent.kind}`);
+  });
+  const result = await execute("select_gpt_model_from_start_v3", fixture.browser, { profile });
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureCode, "GPT_MODEL_V3_CANDIDATE_NOT_PROVEN");
+  assert.equal(fixture.physicalMutations(), 0);
 };
 
 export const exerciseExactModelSelection = async (): Promise<void> => {
   await verifyModelOpen();
-  await verifyUnhydratedChoice();
-  await verifyTransitionalTopology();
-  await verifyConfirmedModelDrift();
+  await verifySelectorTransitionFailsClosed();
   await verifyModelSelection();
-  await verifyUnselectedReadback();
+  await verifyMissingStartFailsClosed();
+  await verifyExplicitLatestDowngrade();
+  await verifySelectedCountConflictFailsClosed();
 };

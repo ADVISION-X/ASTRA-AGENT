@@ -112,7 +112,7 @@ export const permitExecution = (commandId: string) => ({
   attemptId: "attempt-actor", deviceId: "device-1", leaseVersion: 1,
   localOrderId: `order:${commandId}`, targetLeaseRef: "lease-1", targetRef: "target-1",
   documentRef: "document-1", productStepId: "report_translation:candidate_a",
-  childCapabilityId: "open_gpt_model_selector_v2", callId: "gpt-turn-flow.v3", inputHash: hash,
+  childCapabilityId: "open_gpt_model_selector_v3", callId: "gpt-turn-flow.v3", inputHash: hash,
   replayPolicy: "target-local-per-generation" as const, actionOrdinal: 1,
   capabilityId: "browser.dom.click.v1" as const, commandId, sequence: 1,
   mutationClass: "mutation" as const, workspaceRef: "workspace-1", commandTtlMs: 10_000,

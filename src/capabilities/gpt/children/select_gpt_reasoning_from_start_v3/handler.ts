@@ -50,18 +50,28 @@ const observedReasoningScale = (value: ProfileTopology): GptReasoningRequirement
 
 const resolveReasoningRequirement = (
   profile: GptExecutionProfile,
-  observedMaximum: 2 | 4,
+  observed: ProfileTopology,
 ): ReasoningResolution | null => {
-  const requirement = profile.reasoningRequirement;
-  const requestedValue = reasoningTierUiValue[requirement.requestedTier];
-  if (requirement.selectionPolicy === "exact") {
-    return requestedValue <= observedMaximum
-      ? Object.freeze({ tier: requirement.requestedTier, value: requestedValue, degraded: false })
-      : null;
+  const maximum = integerField(observed.reasoningMaximum);
+  const proDisabled = observed.proDisabledRaw === 1 && observed.proDisabledEligible === 1
+    && observed.proAriaDisabled === true && observed.proInert === true;
+  const start = profile.startReasoningTier;
+  if (maximum === 4 && observed.proDisabledRaw === 0 && (
+    start !== "pro_standard" || (observed.proFifthLabelRaw === 1 && observed.proFifthLabelEligible === 1)
+  )) {
+    return Object.freeze({ tier: start, value: reasoningTierUiValue[start], degraded: false });
   }
-  return observedMaximum === 4
-    ? Object.freeze({ tier: "pro_standard", value: 4, degraded: false })
-    : Object.freeze({ tier: "high", value: 2, degraded: true });
+  if (!proDisabled) return null;
+  if (maximum === 3 && proDisabled && start === "pro_standard") {
+    return Object.freeze({ tier: "extra_high", value: 3, degraded: true });
+  }
+  if (maximum === 3 && start !== "pro_standard") {
+    return Object.freeze({ tier: start, value: reasoningTierUiValue[start], degraded: false });
+  }
+  if (maximum === 2) {
+    return Object.freeze({ tier: "high", value: 2, degraded: start !== "high" });
+  }
+  return null;
 };
 
 const reasoningRequirementResult = (input: Readonly<{
@@ -73,9 +83,8 @@ const reasoningRequirementResult = (input: Readonly<{
   browserOutcome: GptReasoningRequirementResult["browserOutcome"];
   gptPostcondition: GptReasoningRequirementResult["gptPostcondition"];
 }>): GptReasoningRequirementResult => Object.freeze({
-  requestedTier: input.profile.reasoningRequirement.requestedTier,
-  requestedValue: reasoningTierUiValue[input.profile.reasoningRequirement.requestedTier],
-  selectionPolicy: input.profile.reasoningRequirement.selectionPolicy,
+  startTier: input.profile.startReasoningTier,
+  startValue: reasoningTierUiValue[input.profile.startReasoningTier],
   observedScale: input.observedScale,
   resolvedTier: input.resolution?.tier ?? null,
   resolvedValue: input.resolution?.value ?? null,
@@ -201,20 +210,25 @@ const executeReasoningMutation = async (input: Readonly<{
   }
 };
 
-export const ensureGptReasoningRequirementHandler:
-GptChildHandler<"ensure_gpt_reasoning_requirement"> = async (intent, context) => {
-  requireExactInputKeys(intent, ["profile"]);
+export const selectGptReasoningFromStartV3Handler:
+GptChildHandler<"select_gpt_reasoning_from_start_v3"> = async (intent, context) => {
+  requireExactInputKeys(intent, ["actualModelDisplayName", "modelDocumentRefHash", "modelTargetRefHash", "profile"]);
   const profile = profileFromIntent(intent);
   const browser = requireBrowser(context);
-  const observed = await topology(browser, context.signal);
+  const observed = await topology(browser, intent.input.actualModelDisplayName, context.signal);
   const observedScale = observedReasoningScale(observed);
-  if (!profileOpenReady(observed)) {
+  const modelProofValid = (value: ProfileTopology): boolean =>
+    value.targetRefHash === intent.input.modelTargetRefHash
+    && value.documentRefHash === intent.input.modelDocumentRefHash
+    && value.selectedModelRaw === 1 && value.selectedModelEligible === 1
+    && value.selectedModelChecked === "true" && value.selectedModelInert === true;
+  if (!profileOpenReady(observed) || !modelProofValid(observed)) {
     failReasoningRequirement({
       code: "GPT_EXECUTION_PROFILE_REASONING_STATE_INVALID", profile, topology: observed,
       observedScale, resolution: null, currentValue: observedScale.currentBefore,
     });
   }
-  const resolution = resolveReasoningRequirement(profile, observedScale.max as 2 | 4);
+  const resolution = resolveReasoningRequirement(profile, observed);
   if (!resolution) {
     failReasoningRequirement({
       code: "GPT_REASONING_TIER_UNAVAILABLE", profile, topology: observed,
@@ -232,11 +246,14 @@ GptChildHandler<"ensure_gpt_reasoning_requirement"> = async (intent, context) =>
       browserFact: null, nativeFailureCode: null }),
   });
   await executeReasoningMutation({ browser, profile, observed, observedScale, resolution: resolved, currentBefore });
-  const readback = await topology(browser, context.signal);
+  const readback = await topology(browser, intent.input.actualModelDisplayName, context.signal);
   const readbackScale = observedReasoningScale(readback);
+  const readbackResolution = resolveReasoningRequirement(profile, readback);
   const browserFact = requireConfirmedBrowserFact(intent, context);
-  if (!profileOpenReady(readback) || readbackScale.min !== observedScale.min
-    || readbackScale.max !== observedScale.max || readbackScale.currentBefore !== resolved.value) {
+  if (!profileOpenReady(readback) || !modelProofValid(readback) || readbackScale.min !== observedScale.min
+    || readbackScale.max !== observedScale.max || readbackScale.currentBefore !== resolved.value
+    || readbackResolution?.tier !== resolved.tier || readbackResolution.value !== resolved.value
+    || readbackResolution.degraded !== resolved.degraded) {
     failReasoningRequirement({
       code: "GPT_EXECUTION_PROFILE_REASONING_PENDING", profile, topology: readback,
       observedScale, resolution: resolved, currentValue: readbackScale.currentBefore, browserFact,

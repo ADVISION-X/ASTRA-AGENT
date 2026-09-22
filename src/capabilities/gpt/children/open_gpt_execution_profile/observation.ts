@@ -118,6 +118,7 @@ const rowIs = (value: ProfileTopology, queryId: string, raw: number, eligible: n
 const approvedReasoningScale = (value: ProfileTopology): boolean =>
   value.reasoningMinimum === "0" && (
     (value.reasoningMaximum === "2" && /^[0-2]$/u.test(value.reasoningCurrent ?? ""))
+    || (value.reasoningMaximum === "3" && /^[0-3]$/u.test(value.reasoningCurrent ?? ""))
     || (value.reasoningMaximum === "4" && /^[0-4]$/u.test(value.reasoningCurrent ?? ""))
   );
 

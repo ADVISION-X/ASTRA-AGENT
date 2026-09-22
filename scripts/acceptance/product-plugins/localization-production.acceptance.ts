@@ -14,8 +14,8 @@ import { buildProductTask, exerciseProductFlow, FIXTURE_HASH, routesForPlugin } 
 const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "localization-production");
 assert(plugin);
 const sequence = [
-  "prepare_clean_gpt_chat", "open_gpt_execution_profile", "open_gpt_model_selector_v2",
-  "select_exact_gpt_model_v2", "open_gpt_execution_profile", "ensure_gpt_reasoning_requirement",
+  "prepare_clean_gpt_chat", "open_gpt_execution_profile", "open_gpt_model_selector_v3",
+  "select_gpt_model_from_start_v3", "open_gpt_execution_profile", "select_gpt_reasoning_from_start_v3",
   "close_gpt_execution_profile",
   "open_gpt_attachment_control", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
   "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "checkpoint_gpt_text_response",
@@ -56,26 +56,23 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     new Set(["article_synthesis"]), "article translation must continue the SEO article synthesis step");
   assert.deepEqual(run.calls.map((call) => call.child),
     articleTranslation ? sequence.slice(1) : sequence);
-  const reasoningCall = run.calls.find((call) => call.child === "ensure_gpt_reasoning_requirement");
-  assert(reasoningCall?.child === "ensure_gpt_reasoning_requirement");
+  const reasoningCall = run.calls.find((call) => call.child === "select_gpt_reasoning_from_start_v3");
+  assert(reasoningCall?.child === "select_gpt_reasoning_from_start_v3");
   assert.deepEqual({
     profileRef: reasoningCall.input.profile.profileRef,
-    accountCapabilityRef: reasoningCall.input.profile.accountCapabilityRef,
-    modelDisplayName: reasoningCall.input.profile.modelDisplayName,
-    modelFamily: reasoningCall.input.profile.modelFamily,
-    reasoningRequirement: reasoningCall.input.profile.reasoningRequirement,
+    startModelDisplayName: reasoningCall.input.profile.startModelDisplayName,
+    startReasoningTier: reasoningCall.input.profile.startReasoningTier,
+    actualModelDisplayName: reasoningCall.input.actualModelDisplayName,
+    modelTargetRefHash: reasoningCall.input.modelTargetRefHash,
+    modelDocumentRefHash: reasoningCall.input.modelDocumentRefHash,
   }, articleTranslation ? {
     profileRef: "localization-production:article-translation:chatgpt-latest-extra-high",
-    accountCapabilityRef: "openai-chatgpt:latest",
-    modelDisplayName: "最新",
-    modelFamily: "chatgpt-latest",
-    reasoningRequirement: { selectionPolicy: "exact", requestedTier: "extra_high" },
+    startModelDisplayName: "最新", startReasoningTier: "extra_high",
+    actualModelDisplayName: "最新", modelTargetRefHash: FIXTURE_HASH, modelDocumentRefHash: FIXTURE_HASH,
   } : {
     profileRef: "localization-production:gpt-5.6-sol-pro-standard",
-    accountCapabilityRef: "openai-chatgpt:gpt-5.6-sol",
-    modelDisplayName: "GPT-5.6 Sol",
-    modelFamily: "gpt-5.6",
-    reasoningRequirement: { selectionPolicy: "exact-or-observed-maximum", requestedTier: "pro_standard" },
+    startModelDisplayName: "GPT-5.6 Sol", startReasoningTier: "pro_standard",
+    actualModelDisplayName: "GPT-5.6 Sol", modelTargetRefHash: FIXTURE_HASH, modelDocumentRefHash: FIXTURE_HASH,
   });
   const prompt = String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt);
   assert.doesNotMatch(prompt, /Product Plugin|result_contract attachment/u);
@@ -311,20 +308,17 @@ assert.equal(new Set(staticRuns.flatMap((run) => run.calls
   .map((call) => call.productStepId))).size, 1,
 "five locale tasks must preserve one locale-neutral cohort production step");
 const staticReasoningCalls = staticRun.calls.filter(
-  (call) => call.child === "ensure_gpt_reasoning_requirement",
+  (call) => call.child === "select_gpt_reasoning_from_start_v3",
 );
 assert.deepEqual(staticReasoningCalls.map((call) => ({
   productStepId: call.productStepId,
   profileRef: call.input.profile.profileRef,
-  reasoningRequirement: call.input.profile.reasoningRequirement,
+  startReasoningTier: call.input.profile.startReasoningTier,
 })), [
   {
     productStepId: staticStep(),
     profileRef: "localization-production:static-catalog:production:pro-standard",
-    reasoningRequirement: {
-      selectionPolicy: "exact-or-observed-maximum",
-      requestedTier: "pro_standard",
-    },
+    startReasoningTier: "pro_standard",
   },
 ]);
 assert.equal(staticRun.physicalSubmitDispatches, 1);
