@@ -1,24 +1,13 @@
 import { governanceAssert as assert } from
   "../../../../scripts/audit/shared/governance-exam-assert.js";
 
-import type { GptChildCapabilityId, GptChildCapabilityResult, GptChildInputMap } from "../contract.js";
+import type { GptChildCapabilityResult } from "../contract.js";
 import { executionFailure } from "../../../lib/execution-failure.js";
 import {
   serializeTerminalFailure,
   serializeTerminalFailureTransport,
 } from "../../../lib/local-runtime/production/terminal-failure.js";
 import { throwGptChildFailure } from "../production-child-support.js";
-
-export const exerciseFailedEvidenceReadback = async <K extends GptChildCapabilityId>(
-  result: GptChildCapabilityResult<K>,
-  _input: GptChildInputMap[K],
-  expectedFailure: ReturnType<typeof serializeTerminalFailure>,
-): Promise<void> => {
-  let thrown: unknown = null;
-  try { throwGptChildFailure(result); } catch (error) { thrown = error; }
-  assert.deepEqual(serializeTerminalFailure(thrown), { ...expectedFailure,
-    evidence_ref: result.proof.browserFact?.evidenceRef ?? result.proof.evidenceRef });
-};
 
 export const exercisePreExecutionFailureEvidence = async (): Promise<void> => {
   const failure = serializeTerminalFailure(executionFailure(
