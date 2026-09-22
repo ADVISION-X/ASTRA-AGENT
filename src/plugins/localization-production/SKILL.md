@@ -25,9 +25,9 @@
 
 报告和文章的唯一翻译结果只在当前 Product Flow 内做垂直校验；校验失败直接阻断，不得产生候选、选择轮次、第二正式结果或可认领的第二链路。
 
-`localization_static_catalog / produce_locale_catalog` 是网站固定文案的生产动作。一个任务只负责一个目标 locale 的一个冻结 ContextBundle；`public_value_binding` 必须完整绑定核心法、公开价值法、中文批准依据、真实 Owner、可见证据位置和工具角色，缺失或不一致时必须在调用 Provider 前以 `LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING` 失败。唯一固定 `production` role 只声明起点 GPT-5.6 Sol / Pro；GPT 共用能力按当前页面可证明的后缀可用性选择实际模型与推理档，明确禁用的 Pro 可降至极高，缺席或瞬态不能作为降级依据；一个任务只执行一次模型提交并返回一个结果。同一 cohort 的五个 locale turn 按 `zh-HK → zh-TW → en-US → ja-JP → ko-KR` 在一条会话内严格续接；每条续接必须保持同一 source/version/hash、policy、authorization、有序 message-id cohort 与 locale-neutral production step，且只由 Website 签发直接前序。每个 cohort 的 zh-HK 链首 fresh，后四项不重复 fresh；完成 ko-KR 后下一 cohort 重新 fresh。机械合同、消息总数、源 hash、locale、policy、直接前序或任一 cohort 证据不闭合时，当前 locale 结果阻断。
+`localization_static_catalog / produce_locale_catalog` 只翻译 Website 冻结 ContextBundle 中的 `message_items`。首任务覆盖一个 locale/cohort 的待译字段；若部分字段未通过网站机械验收，下一个新任务只包含这些失败 ID。每次任务与 attempt 只提交一次模型结果，五个 locale 各自 fresh，互不等待。 `read_only_siblings` 只用于理解上下文，不能加入输出分母；每条 `failure_code` 是网站上次机械拒收的确定事实，应据此修正该字段。`public_value_binding` 必须完整，缺失时在调用 Provider 前失败。
 
-固定文案动作只产出一个 hash 绑定的 locale 结果；模型在同一次回答内自检并用现役 allowlist 报告 finding，任一 finding 非空时对应 text 必须字节回退 source_text，整张任务阻断。空 finding 只表示模型未报告阻断，不表示批准、接纳或发布。该动作不写 Website 仓库、不发布、不部署、不自行重试，也不创建第二生产者、第二候选、selector、修稿轮、第二队列、会话台账或第二裁决。五个 locale 仍分别形成任务、结果与领域接纳；后继任务只在直接前序接纳的同一 Website 事务内产生，完整 cohort×五语矩阵是否齐备仍只由 Website 既有发布边界判断。会话压缩只用 `C` 条 cohort 会话承载 `5C` 个 Provider turn。
+固定文案结果使用 v3 合同：有译文时提交有序非空 ID 子集；整组无法翻译时提交 `translation_failed` 和稳定错误码。AGENT 不做第二审校或机械接纳裁决，不用中文源文回填目标译文，也不附 finding、语义评分或审批结论。Website 唯一验收来源身份、ID、占位符、受保护 token 等机械事实，并负责逐字段生效、失败字段自动再译及同任务退避。该动作不写 Website 仓库、不部署、不创建第二生产链。
 
 `accuracy_challenge` 与 `quality_reflection` 是原产品结果的复核动作，不产生独立产品。复核必须绑定任务给出的 subject task/result/hash、当前授权与 `review_policy`，只输出可核验 finding；不得替网站保存 review 台账、作发布裁决或改写源内容。
 

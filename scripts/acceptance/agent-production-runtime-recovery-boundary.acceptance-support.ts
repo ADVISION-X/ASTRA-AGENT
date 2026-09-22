@@ -38,7 +38,7 @@ const exerciseLifecycleMutant = (): void => {
   inspectAgentProductionRuntime({
     project,
     sealedRoot: path.resolve("."),
-    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V66",
+    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V67",
     targetSet: { queryRef: "acceptance:runtime-lifecycle-mutant", count: 1 },
     targetPaths: [],
     lawRequirements: [],
@@ -47,7 +47,7 @@ const exerciseLifecycleMutant = (): void => {
       manifestPath: "scripts/audit/domains/agent-production-runtime/manifest.json",
       ownerInspectorPath: "scripts/audit/domains/agent-production-runtime/inspector.ts",
       executionGroup: "domain",
-      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V66"],
+      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V67"],
     },
     generatedPlan: [],
   }, findings);
@@ -80,7 +80,7 @@ const exerciseManifestAndLawOwnership = async (): Promise<void> => {
   const runtimeLawRecords = [...runtimeLawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
     .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden: string[] });
   const runtimeCoreLaw = runtimeLawRecords.find(
-    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V66",
+    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V67",
   );
   assert.ok(runtimeCoreLaw);
   for (const token of [

@@ -1,7 +1,7 @@
 # Local Browser Authority V52 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"local-browser-authority-v52","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V39","LAW-LOCAL-BROWSER-SESSION-004-V46","LAW-LOCAL-BROWSER-SESSION-006-V36"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"local-browser-authority-v52","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V40","LAW-LOCAL-BROWSER-SESSION-004-V47","LAW-LOCAL-BROWSER-SESSION-006-V37"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
 ```
 
 Browser 只拥有现实页面资源：已获 grant且未闭环 job与 system Target的一对一进程内绑定、实时 current Document、一条 FIFO、一条物理 lane、一个全局 Provider observation节拍、Provider/控件 mutation的唯一 WAL，以及页面生命周期动作后的 fresh readback。它不理解 Product步骤、不保存 GPT回答、不决定 retry或当前 N，也不拥有 Website task。

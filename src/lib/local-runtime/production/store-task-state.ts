@@ -274,6 +274,15 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     return rows.map(taskAuthorityFromRow);
   }
 
+  public unfinishedExecutionsWithoutReceipt(): readonly StoredProductionTask[] {
+    const rows = this.database.prepare(`select job_id,request_hash,task_json,status,result_json,
+      staged_result_json,attempt_failure_json,current_attempt_id,current_reason,updated_at from production_tasks
+      where status='failed' and staged_result_json is null and attempt_failure_json is null
+        and current_reason='EXECUTING'
+      order by updated_at,job_id`).all() as TaskRow[];
+    return rows.map(taskAuthorityFromRow);
+  }
+
   public async purgeJob(jobId: string): Promise<void> {
     if (!jobId || /[\0]/u.test(jobId)) {
       throw executionFailure("failed", "PRODUCTION_STORAGE_JOB_ID_INVALID");

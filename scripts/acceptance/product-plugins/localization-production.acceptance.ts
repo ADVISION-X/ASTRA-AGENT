@@ -6,7 +6,6 @@ import {
   parseCandidate,
   parseContext,
   parseInput,
-  STATIC_CATALOG_FINDING_CODES,
 } from "../../../src/plugins/localization-production/static-catalog-contract.js";
 import { STATIC_CATALOG_PRODUCTION_INSTRUCTION } from "../../../src/plugins/localization-production/static-catalog-flow.js";
 import { buildProductTask, exerciseProductFlow, FIXTURE_HASH, routesForPlugin } from "../product-plugin-test-runtime.js";
@@ -168,20 +167,24 @@ assert.match(incidentShapePrompt, /不在白名单的节点默认不可变/u);
 const staticRoute = productionRoutePolicies.find((route) => route.product_id === "localization_static_catalog"
   && route.action_id === "produce_locale_catalog");
 assert(staticRoute);
+const sourceItems = ["fixture.hello", "fixture.goodbye"].map((message_id) => ({
+  message_id, semantic_owner: "fixture", surface_ref: "fixture:surface",
+  surface_source_refs: ["fixture.ts:1"], copy_group_id: "fixture",
+  surrounding_message_ids: [], control_role: "text", source_text: `你好 {name} ${message_id}`,
+  source_hash: sha256(`你好 {name} ${message_id}`), existing_target_text: `你好 {name} ${message_id}`,
+  existing_target_hash: sha256(`你好 {name} ${message_id}`), parameter_schema: ["name"],
+  parameter_types: [{ name: "name", type: "string" }], protected_tokens: ["{name}"],
+  max_graphemes: null, allow_wrapping: true, failure_code: null,
+}));
 const contextBundle = {
-  schema_version: "target-language-context-bundle.v2",
-  message_syntax: "typed-placeholder-v1",
-  review_kind: "target_language_translation",
-  locale: "en-US",
-  source_locale: "zh-CN",
-  source_catalog_hash: FIXTURE_HASH,
-  batch_id: "en-US-batch-001",
-  expression_policy_hash: sha256("{}"),
-  expression_policy_json: "{}",
-  terminology_hash: sha256("{}"),
-  terminology_json: "{}",
-  format_policy_hash: sha256("fixture-format-policy"),
-  format_policy_source: "fixture-format-policy",
+  schema_version: "target-language-context-bundle.v3", message_syntax: "typed-placeholder-v1",
+  review_kind: "target_language_translation", locale: "en-US", source_locale: "zh-CN",
+  source_catalog_hash: FIXTURE_HASH, batch_id: "en-US-batch-001", cohort_id: "batch-001",
+  cohort_message_ids: sourceItems.map((item) => item.message_id),
+  ordered_pending_ids_hash: hashCanonical(sourceItems.map((item) => item.message_id)),
+  read_only_siblings: [], expression_policy_hash: sha256("{}"), expression_policy_json: "{}",
+  terminology_hash: sha256("{}"), terminology_json: "{}",
+  format_policy_hash: sha256("fixture-format-policy"), format_policy_source: "fixture-format-policy",
   public_value_binding: {
     schema_version: "target-language-public-value-binding.v1",
     authority_refs: ["LAW-PROJECT-GOVERNANCE-010-V1", "LAW-USER-VALUE-INTERFACE-001-V4"],
@@ -190,174 +193,52 @@ const contextBundle = {
       "sha256:b9e9f7f3af6fc703577c07906e1c096bb091995d29f3356af44b976258b0d6f1",
     ],
     canonical_approval_ref: `content/zh-CN/locales/messages.json#production-approved-${FIXTURE_HASH}`,
-    source_owner_refs: ["fixture"],
-    visible_evidence_refs: ["fixture:surface"],
-    tool_role: "not_present",
+    source_owner_refs: ["fixture"], visible_evidence_refs: ["fixture:surface"], tool_role: "not_present",
   },
-  message_items: [{
-    message_id: "fixture.hello",
-    semantic_owner: "fixture",
-    surface_ref: "fixture:surface",
-    surface_source_refs: ["fixture.ts:1"],
-    copy_group_id: "fixture.hello",
-    surrounding_message_ids: [],
-    control_role: "text",
-    source_text: "<style>@page{size:A4}</style> 你好 {name}",
-    source_hash: sha256("<style>@page{size:A4}</style> 你好 {name}"),
-    existing_target_text: "<style>@page{size:A4}</style> Hello {name}",
-    existing_target_hash: sha256("<style>@page{size:A4}</style> Hello {name}"),
-    parameter_schema: ["name"],
-    parameter_types: [{ name: "name", type: "string" }],
-    protected_tokens: ["<style>", "{name}", "</style>"],
-    max_graphemes: null,
-    allow_wrapping: true,
-  }],
+  message_items: sourceItems,
 } as const;
 const contextBundleJson = JSON.stringify(contextBundle);
 const contextBundleHash = sha256(contextBundleJson);
 const staticInput = {
-  schema_version: "localization-static-catalog-input.v1",
-  target_locale: "en-US",
-  source_resource_id: "website-fixed-copy-catalog",
-  source_version: "fixture-v1",
-  source_sha256: FIXTURE_HASH,
-  policy_version: "target-language-review-v5-20260919",
-  expected_message_count: 1,
+  schema_version: "localization-static-catalog-input.v1", target_locale: "en-US",
+  source_resource_id: "website-fixed-copy-catalog", source_version: "fixture-v1",
+  source_sha256: FIXTURE_HASH, policy_version: "target-language-review-v5-20260919",
+  expected_message_count: 2,
   context_bundles: [{ batch_id: contextBundle.batch_id, context_bundle_json: contextBundleJson,
-    context_bundle_hash: contextBundleHash, message_count: 1 }],
+    context_bundle_hash: contextBundleHash, message_count: 2 }],
 } as const;
 const staticTask = buildProductTask(staticRoute, { parameters: {
-  target_locale: staticInput.target_locale,
-  source_resource_id: staticInput.source_resource_id,
-  source_version: staticInput.source_version,
-  source_sha256: staticInput.source_sha256,
-  policy_version: staticInput.policy_version,
-  result_schema_version: "localization-static-catalog-result.v2",
+  target_locale: staticInput.target_locale, source_resource_id: staticInput.source_resource_id,
+  source_version: staticInput.source_version, source_sha256: staticInput.source_sha256,
+  policy_version: staticInput.policy_version, cohort_id: contextBundle.cohort_id,
+  ordered_pending_ids_hash: contextBundle.ordered_pending_ids_hash,
+  result_schema_version: "localization-static-catalog-result.v3",
 } });
-const missingBindingContext = { ...contextBundle } as Record<string, unknown>;
-delete missingBindingContext.public_value_binding;
-const missingBindingJson = JSON.stringify(missingBindingContext);
-assert.throws(() => parseInput({ ...staticInput, context_bundles: [{ batch_id: contextBundle.batch_id,
-  context_bundle_json: missingBindingJson, context_bundle_hash: sha256(missingBindingJson), message_count: 1 }] }, staticTask),
-/LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING/u);
-const alteredBindingContext = JSON.parse(contextBundleJson) as { public_value_binding: { authority_hashes: string[] } };
-alteredBindingContext.public_value_binding.authority_hashes[0] = FIXTURE_HASH;
-const alteredBindingJson = JSON.stringify(alteredBindingContext);
-assert.throws(() => parseInput({ ...staticInput, context_bundles: [{ batch_id: contextBundle.batch_id,
-  context_bundle_json: alteredBindingJson, context_bundle_hash: sha256(alteredBindingJson), message_count: 1 }] }, staticTask),
-/LOCALIZATION_PUBLIC_VALUE_CONTEXT_MISSING/u);
-const toolWordsSource = "<style>@page{size:A4}</style> AI、AGENT、GPT 与模型不是价值主体 {name}";
-const toolWordsContext = JSON.parse(contextBundleJson) as typeof contextBundle;
-const toolWordsItems = [{ ...toolWordsContext.message_items[0], source_text: toolWordsSource,
-  source_hash: sha256(toolWordsSource) }];
-const toolWordsJson = JSON.stringify({ ...toolWordsContext, message_items: toolWordsItems });
-assert.doesNotThrow(() => parseInput({ ...staticInput, context_bundles: [{ batch_id: contextBundle.batch_id,
-  context_bundle_json: toolWordsJson, context_bundle_hash: sha256(toolWordsJson), message_count: 1 }] }, staticTask),
-"deterministic parsing must not infer or reject a tool role from natural-language keywords");
-const staticStep = () => `static-catalog:${hashCanonical({
-  source_resource_id: staticInput.source_resource_id,
-  source_version: staticInput.source_version,
-  source_sha256: staticInput.source_sha256,
-  policy_version: staticInput.policy_version,
-  authorization_ref: staticTask.business_identity.authorization_ref,
-  message_ids: contextBundle.message_items.map((item) => item.message_id),
-  role: "production",
-}).slice(7)}`;
-const staticLocales = ["zh-HK", "zh-TW", "en-US", "ja-JP", "ko-KR"] as const;
-const staticRuns = [];
-for (const locale of staticLocales) {
-  const localeContext = { ...contextBundle, locale, batch_id: `${locale}-batch-001` };
-  const localeContextJson = JSON.stringify(localeContext);
-  const localeContextHash = sha256(localeContextJson);
-  const localeInput = { ...staticInput, target_locale: locale, context_bundles: [{
-    batch_id: localeContext.batch_id, context_bundle_json: localeContextJson,
-    context_bundle_hash: localeContextHash, message_count: 1,
-  }] };
-  const localeTask = buildProductTask(staticRoute, { parameters: {
-    ...staticTask.parameters, target_locale: locale,
-  } });
-  if (locale === "zh-HK") {
-    delete (localeTask as { parent_task_ref?: string }).parent_task_ref;
-    delete (localeTask as { parent_result_ref?: string }).parent_result_ref;
-    delete (localeTask as { parent_result_hash?: string }).parent_result_hash;
-  }
-  staticRuns.push(await exerciseProductFlow(plugin, {
-    task: localeTask, materialContents: { static_catalog_input: localeInput }, output: {},
-    expectedSessionCount: 1,
-    checkpointOutput: () => ({
-      schema_version: "target-language-candidate.v1", locale,
-      context_bundle_hash: localeContextHash,
-      items: [{ message_id: "fixture.hello", text: "<style>@page{size:A4}</style> Hello {name}", finding_codes: [] }],
-    }),
-  }));
-}
-const staticRun = staticRuns[2]!;
-assert.equal(staticRuns[0]!.calls.filter((call) => call.child === "prepare_clean_gpt_chat").length, 1,
-  "the zh-HK cohort root must create exactly one production conversation");
-assert.equal(staticRuns.slice(1).flatMap((run) => run.calls)
-  .some((call) => call.child === "prepare_clean_gpt_chat"), false,
-"direct-parent locales must continue the exact role conversations without preparing fresh chats");
-assert.equal(staticRuns.reduce((count, run) => count + run.physicalSubmitDispatches, 0), 5);
-assert.equal(new Set(staticRuns.flatMap((run) => run.calls
-  .filter((call) => call.child === "submit_exact_gpt_turn_once")
-  .map((call) => call.productStepId))).size, 1,
-"five locale tasks must preserve one locale-neutral cohort production step");
-const staticReasoningCalls = staticRun.calls.filter(
-  (call) => call.child === "select_gpt_reasoning_from_start_v3",
-);
-assert.deepEqual(staticReasoningCalls.map((call) => ({
-  productStepId: call.productStepId,
-  profileRef: call.input.profile.profileRef,
-  requestedReasoningValue: call.input.profile.requestedReasoningValue,
-})), [
-  {
-    productStepId: staticStep(),
-    profileRef: "localization-production:static-catalog:production:pro-standard",
-    requestedReasoningValue: 5,
-  },
-]);
-assert.equal(staticRun.physicalSubmitDispatches, 1);
-const productionWrite = staticRun.calls.find((call) => call.child === "write_exact_gpt_prompt"
-  && call.productStepId === staticStep());
-assert(productionWrite?.child === "write_exact_gpt_prompt");
-const staticProductionPrompt = String(productionWrite.input.prompt);
-assert.match(staticProductionPrompt, /返本溯源，古为今用/u);
-assert.match(staticProductionPrompt, new RegExp(STATIC_CATALOG_FINDING_CODES.join(".*"), "u"));
-assert.ok(staticProductionPrompt.split("\n").includes(
-  `本轮唯一不可变外层 context_bundle_hash：${contextBundleHash}`,
-), "the model must receive the exact outer ContextBundle hash required by the strict parser");
-assert.match(staticProductionPrompt,
-  /不得使用 ContextBundle 内的 source_catalog_hash 代替/u);
-assert.equal(sha256(STATIC_CATALOG_PRODUCTION_INSTRUCTION),
-  "sha256:8ec9793c62e88e4f937a154e7aff9e697a89912870f13aa8f1420497155ab79d");
 const parsedStaticInput = parseInput(staticInput, staticTask);
 const parsedStaticContext = parseContext(parsedStaticInput.context_bundles[0], parsedStaticInput);
-const candidate = (finding_codes: readonly string[], text: string = contextBundle.message_items[0].source_text) => ({
-  schema_version: "target-language-candidate.v1", locale: "en-US", context_bundle_hash: contextBundleHash,
-  items: [{ message_id: "fixture.hello", text, finding_codes }],
-}) as const;
-assert.throws(() => parseCandidate({
-  ...candidate([]),
-  context_bundle_hash: contextBundle.source_catalog_hash,
-}, parsedStaticContext, contextBundleHash), /LOCALIZATION_STATIC_CANDIDATE_IDENTITY_INVALID/u,
-"the visible inner source hash must never satisfy the outer ContextBundle identity");
-assert.throws(() => parseCandidate(candidate(["UNKNOWN_FINDING"]), parsedStaticContext, contextBundleHash),
-  /LOCALIZATION_STATIC_CANDIDATE_FINDINGS_INVALID/u);
-assert.throws(() => parseCandidate(candidate(["SOURCE_AMBIGUOUS", "UNTRUSTED_INSTRUCTION_CONFLICT"]),
-  parsedStaticContext, contextBundleHash), /LOCALIZATION_STATIC_CANDIDATE_FINDINGS_INVALID/u);
-assert.throws(() => parseCandidate(candidate(["SOURCE_AMBIGUOUS"], "translated"), parsedStaticContext,
-  contextBundleHash), /LOCALIZATION_STATIC_CANDIDATE_FINDING_FALLBACK_INVALID/u);
-assert.deepEqual(parseCandidate(candidate(["SOURCE_AMBIGUOUS"]), parsedStaticContext, contextBundleHash).items,
-  candidate(["SOURCE_AMBIGUOUS"]).items);
-const unrestrictedLanguageContext = { ...parsedStaticContext, message_items: [{
-  ...parsedStaticContext.message_items[0]!, max_graphemes: 1,
-}] };
-assert.doesNotThrow(() => parseCandidate(candidate([], "<style>@page{size:A4}</style> Hello, world {name}"),
-  unrestrictedLanguageContext, contextBundleHash));
+const candidate = {
+  schema_version: "target-language-candidate.v3", locale: "en-US", context_bundle_hash: contextBundleHash,
+  items: [{ message_id: "fixture.hello", text: "Hello {name}" }],
+};
+assert.deepEqual(parseCandidate(candidate, parsedStaticContext, contextBundleHash).items, candidate.items,
+  "a trusted ordered subset must be carried to Website without whole-cohort blocking");
+assert.doesNotThrow(() => parseCandidate({ ...candidate, items: [{ message_id: "fixture.unknown", text: "Hello {name}" }] },
+  parsedStaticContext, contextBundleHash), "Website rejects whole-set identity errors on the same job");
+assert.doesNotThrow(() => parseCandidate({ ...candidate, items: [{ message_id: "fixture.hello", text: null }] },
+  parsedStaticContext, contextBundleHash), "individual malformed text is a Website field verdict");
+const staticRun = await exerciseProductFlow(plugin, {
+  task: staticTask, materialContents: { static_catalog_input: staticInput }, output: {},
+  expectedSessionCount: 1, checkpointOutput: () => candidate,
+});
+assert.equal(staticRun.physicalSubmitDispatches, 1);
+assert.equal(staticRun.calls.filter((call) => call.child === "prepare_clean_gpt_chat").length, 1);
+const staticPrompt = String(staticRun.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt);
+assert.match(staticPrompt, /read_only_siblings/u);
+assert.doesNotMatch(staticPrompt, /"finding_codes"\s*:|五个 locale turn/u);
 const staticPayload = staticRun.completed.payload as Readonly<Record<string, unknown>>;
-assert.equal(staticPayload.schema_version, "localization-static-catalog-result.v2");
-assert.equal(staticPayload.decision, "production_approved");
-assert.equal(Object.hasOwn(staticPayload, "cohort_results"), false);
-assert.equal(staticPayload.selected_catalog_hash,
-  hashCanonical([{ message_id: "fixture.hello", text: "<style>@page{size:A4}</style> Hello {name}", finding_codes: [] }]));
+assert.equal(staticPayload.schema_version, "localization-static-catalog-result.v3");
+assert.equal(staticPayload.decision, "candidate_submitted");
+assert.equal(staticPayload.message_count, 1);
+assert.equal(staticPayload.selected_catalog_hash, hashCanonical(candidate.items));
+assert.match(STATIC_CATALOG_PRODUCTION_INSTRUCTION, /网站负责机械验收/u);
 process.stdout.write("[ACCEPTANCE][localization-production] PASS\n");

@@ -3,7 +3,7 @@
   "capabilityDomain": "architecture-boundary",
   "status": "active",
   "lawIds": [
-    "LAW-ARCHITECTURE-BOUNDARY-001-V12"
+    "LAW-ARCHITECTURE-BOUNDARY-001-V13"
   ],
   "ownedPaths": [
     "docs/项目方案/AGENT运行拓扑图-完整实现方案.md",

@@ -1,7 +1,7 @@
 {
   "schema_version": "website-agent-route-policies.v1",
   "contract_id": "ai-acceptance.website-agent-task-result",
-  "contract_version": 13,
+  "contract_version": 14,
   "parameter_types": {
     "admitted_identity_catalog_hash": "sha256",
     "analysis_kind": "bazi_analysis_kind",
@@ -11,6 +11,7 @@
     "bazi_pdf_semantic_manifest_ref": "non_empty_string",
     "case_manifest_hash": "sha256",
     "case_manifest_ref": "non_empty_string",
+    "cohort_id": "non_empty_string",
     "challenge_id": "non_empty_string",
     "chart_hash": "sha256",
     "chart_ref": "non_empty_string",
@@ -26,6 +27,7 @@
     "naming_requirement_brief_ref": "non_empty_string",
     "naming_task_ref": "non_empty_string",
     "observation_schema_version": "payment_observation_version",
+    "ordered_pending_ids_hash": "sha256",
     "output_contract_ref": "non_empty_string",
     "parent_raw_output_hash": "sha256",
     "owner_scope_hash": "sha256",
@@ -1036,6 +1038,8 @@
         "source_version",
         "source_sha256",
         "policy_version",
+        "cohort_id",
+        "ordered_pending_ids_hash",
         "result_schema_version"
       ],
       "material_roles": [
@@ -1050,10 +1054,10 @@
           "owner_scope_policy": "forbidden"
         }
       ],
-      "result_schema_version": "localization-static-catalog-result.v2",
+      "result_schema_version": "localization-static-catalog-result.v3",
       "result_contract": {
-        "contract_version": 2,
-        "exact_fields": [
+        "contract_version": 3,
+        "common_fields": [
           "schema_version",
           "action_id",
           "source_resource_id",
@@ -1061,16 +1065,15 @@
           "source_sha256",
           "target_locale",
           "policy_version",
-          "message_count",
-          "selected_messages",
-          "selected_catalog_hash",
           "decision"
         ],
+        "candidate_submitted_fields": ["message_count", "selected_messages", "selected_catalog_hash"],
+        "translation_failed_fields": ["failure_code"],
         "evidence_transport": "website-agent-result.evidence_refs",
         "internal_cohort_topology": "agent_private",
-        "candidate_set_admission": "one-locale-before-five-locale-publication"
+        "candidate_set_admission": "per-message-mechanical-current-catalog"
       },
-      "relation_kind": "provider_continuation"
+      "relation_kind": "primary"
     },
     {
       "product_id": "payment_screenshot_observation",

@@ -9,12 +9,13 @@ import {
 } from "../../runtime-logs/index.js";
 import { failureCode } from "../../execution-failure.js";
 import { claimProductionTasks } from "./cloud-client.js";
+import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import { productionCatalogHash } from "./catalog.js";
 import { PRODUCTION_BUSINESS_CAPACITY_MAX } from "./control-contract-dependency.js";
 import { hashCanonical } from "./contracts.js";
 import type { ProductionRuntimeHealth } from "./runtime-contract.js";
 import { executeClaim, reconcilePendingAttemptFailures } from "./runtime-claim.js";
-import { reconcileBusinessAdmission } from "./runtime-business-admission.js";
+import { purgeDeletedJob, reconcileBusinessAdmission, websiteJobAbsent } from "./runtime-business-admission.js";
 import { terminalSpanFailure } from "./runtime-logging.js";
 import {
   refreshLedgerReconciled,
@@ -164,11 +165,24 @@ const reconcilePendingBusinessAdmissions = async (state: RuntimeState): Promise<
   }
 };
 
+const reconcileUnfinishedExecutionsWithoutReceipt = async (state: RuntimeState): Promise<void> => {
+  for (const task of state.store.unfinishedExecutionsWithoutReceipt()) {
+    if (state.active.has(task.task.job_id)) continue;
+    try {
+      await readProductionDeviceJobStatus(state.session, task.task.job_id);
+    } catch (error) {
+      if (!websiteJobAbsent(error)) throw error;
+      await purgeDeletedJob(state, task.task.job_id);
+    }
+  }
+};
+
 const workerIteration = async (state: RuntimeState): Promise<number> => {
   await state.executor.reconcilePendingProviderRateLimitIncidents(state.abort.signal);
   await state.providerRateLimitControl.reconcilePendingIntents();
   await reconcilePendingAttemptFailures(state);
   await reconcilePendingBusinessAdmissions(state);
+  await reconcileUnfinishedExecutionsWithoutReceipt(state);
   refreshLedgerReconciled(state);
   const attestation = await state.session.ensureFreshAttestation();
   state.providerRateLimitControl.observeWebsiteAuthority({

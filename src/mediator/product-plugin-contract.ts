@@ -138,6 +138,7 @@ export interface SharedExecutionContext {
       receipt_hash: ProductionHash;
       rejected_result_payload_hash: ProductionHash;
       reason_codes: readonly string[];
+      field_failures?: Readonly<Record<string, string>> | undefined;
       validation_failure?: Readonly<{
         native_error_code: string;
         json_pointer: string | null;

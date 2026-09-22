@@ -99,6 +99,7 @@ const ExecutionGrantSchema = z.object({
     receipt_hash: hash,
     rejected_result_payload_hash: hash,
     reason_codes: z.array(reasonCode).min(1),
+    field_failures: z.record(z.string().min(1), reasonCode).optional(),
     validation_failure: z.object({
       native_error_code: reasonCode,
       json_pointer: z.string().nullable(),
