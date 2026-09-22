@@ -23,7 +23,7 @@ export type BrowserDomField = typeof BROWSER_DOM_FIELD_VALUES[number];
 export type BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">;
 export type BrowserDomPostconditionField = Exclude<BrowserDomObservationField,
   "semanticTextHash" | "exactEditableTextHash">;
-export type BrowserDomReadEligibility = "non-actionable-aria-state" | "non-actionable-inert-state";
+export type BrowserDomReadEligibility = "non-actionable-aria-state";
 export type BrowserDomIneligibleReason =
   | "DISCONNECTED" | "NO_LAYOUT_BOX" | "DISPLAY_HIDDEN" | "VISIBILITY_HIDDEN"
   | "OPACITY_HIDDEN" | "HTML_HIDDEN" | "ARIA_HIDDEN" | "INERT" | "TEXT_MISMATCH";
@@ -136,6 +136,8 @@ export type BrowserDomIntent =
     expectedTextEquals?: string;
     expectedMatches?: number;
     scope?: BrowserDomReadScope;
+    /** Dispatch one click at the unique descendant's center, even when the postcondition already holds. */
+    requiredClickPointSelector?: string;
     /** Exact approved GPT turn revalidated in the same DOM call that resolves the click point. */
     preClickExactOutgoingTurn?: Readonly<{
       composerSelector: string;
@@ -207,7 +209,7 @@ export type BrowserDomIntent =
     kind: "keypress";
     selector: string;
     key: "Enter" | "ArrowLeft" | "ArrowRight";
-    repeat?: 1 | 2 | 3 | 4;
+    repeat?: 1 | 2 | 3 | 4 | 5;
     expectedMatches?: number;
     scope?: BrowserDomReadScope;
     postKeypressMatch: Readonly<{
@@ -247,12 +249,8 @@ const POSTCONDITION_QUERY_KEYS = new Set([
   "queryId", "selector", "maxMatches", "fields", "readEligibility", "scope", "textContains", "textEquals",
   "expectedEligibleCount", "latestGptUserTurn",
 ]);
-const assertReadEligibility = (
-  value: BrowserDomReadEligibility | undefined,
-  allowInertObservation = false,
-): void => {
-  if (value !== undefined && value !== "non-actionable-aria-state"
-    && !(allowInertObservation && value === "non-actionable-inert-state")) {
+const assertReadEligibility = (value: BrowserDomReadEligibility | undefined): void => {
+  if (value !== undefined && value !== "non-actionable-aria-state") {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
 };
@@ -284,7 +282,7 @@ const assertObservationQueries = (
       throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
     }
     queryIds.add(query.queryId);
-    assertReadEligibility(query.readEligibility, allowedKeys === OBSERVATION_QUERY_KEYS);
+    assertReadEligibility(query.readEligibility);
     assertReadScope(query.scope);
     assertObservationText(query);
     assertObservationFields(query.fields);
@@ -373,7 +371,7 @@ const assertKeypressIntent = (intent: Extract<BrowserDomIntent, { kind: "keypres
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
   if (intent.repeat !== undefined
-    && (!Number.isInteger(intent.repeat) || intent.repeat < 1 || intent.repeat > 4)) {
+    && (!Number.isInteger(intent.repeat) || intent.repeat < 1 || intent.repeat > 5)) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
   assertBoundedPostMatch(intent.postKeypressMatch);
@@ -467,6 +465,11 @@ const assertClickObservation = (
 const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>): void => {
   assertTargetText(intent);
   assertPreClickExactOutgoingTurn(intent.preClickExactOutgoingTurn);
+  if (intent.requiredClickPointSelector !== undefined
+    && (!isBoundedText(intent.requiredClickPointSelector, 2_048)
+      || intent.postClickMatch === undefined || intent.preClickExactOutgoingTurn !== undefined)) {
+    throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  }
   const postconditions = [
     intent.postClickAttribute, intent.postClickMatch, intent.postClickObservation, intent.postClickUrl,
   ]

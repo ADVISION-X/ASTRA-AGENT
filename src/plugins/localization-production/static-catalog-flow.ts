@@ -48,7 +48,7 @@ items 必须与 message_items 同顺序、同数量、同 message_id；字段不
 const productionProfile = buildGptExecutionProfile({
   profileRef: "localization-production:static-catalog:production:pro-standard",
   startModelDisplayName: "GPT-5.6 Sol",
-  startReasoningTier: "pro_standard",
+  requestedReasoningValue: 5,
   executorIdentityRef: "localization-production:static-catalog:production",
   acceptanceRef: "localization-production:static-catalog",
   acceptanceVersion: "v2",

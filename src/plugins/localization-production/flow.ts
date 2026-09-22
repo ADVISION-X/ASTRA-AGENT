@@ -37,7 +37,7 @@ const WAIT_TIMEOUT_MS = 3_600_000;
 const MODEL_PROFILE = buildGptExecutionProfile({
   profileRef: `${PLUGIN_ID}:gpt-5.6-sol-pro-standard`,
   startModelDisplayName: "GPT-5.6 Sol",
-  startReasoningTier: "pro_standard",
+  requestedReasoningValue: 5,
   executorIdentityRef: PLUGIN_ID,
   acceptanceRef: `${PLUGIN_ID}:production`,
   acceptanceVersion: "v1",
@@ -45,7 +45,7 @@ const MODEL_PROFILE = buildGptExecutionProfile({
 const ARTICLE_TRANSLATION_MODEL_PROFILE = buildGptExecutionProfile({
   profileRef: `${PLUGIN_ID}:article-translation:chatgpt-latest-extra-high`,
   startModelDisplayName: "最新",
-  startReasoningTier: "extra_high",
+  requestedReasoningValue: 4,
   executorIdentityRef: PLUGIN_ID,
   acceptanceRef: `${PLUGIN_ID}:production`,
   acceptanceVersion: "v1",
@@ -177,22 +177,18 @@ const promptFor = (
 const applyProfile = async (
   flow: OwnedExecution,
   stepId: string,
-  ordinals: readonly [number, number, number, number, number, number],
+  ordinals: readonly [number, number, number, number, number],
   profile: GptExecutionProfile,
 ) => {
   const open = { productStepId: stepId, callId: "profile-open", child: "open_gpt_execution_profile", actionOrdinal: ordinals[0], input: { profile } } as const;
   const selector = { productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v3", actionOrdinal: ordinals[1], input: { profile } } as const;
   const model = { productStepId: stepId, callId: "model-select", child: "select_gpt_model_from_start_v3", actionOrdinal: ordinals[2], input: { profile } } as const;
-  const reopen = { productStepId: stepId, callId: "profile-open-after-model", child: "open_gpt_execution_profile", actionOrdinal: ordinals[3], input: { profile } } as const;
-  const close = { productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[5], input: { profile } } as const;
+  const close = { productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[4], input: { profile } } as const;
   const apply = flow.execute;
   await apply(open);
   await apply(selector);
-  const selected = await apply(model) as ProductGptChildResult<"select_gpt_model_from_start_v3">;
-  await apply(reopen);
-  const reasoning = { productStepId: stepId, callId: "reasoning-select", child: "select_gpt_reasoning_from_start_v3", actionOrdinal: ordinals[4], input: { profile, actualModelDisplayName: selected.value.modelDisplayName,
-    modelTargetRefHash: selected.value.targetRefHash,
-    modelDocumentRefHash: selected.value.documentRefHash } } as const;
+  await apply(model);
+  const reasoning = { productStepId: stepId, callId: "reasoning-select", child: "select_gpt_reasoning_from_start_v3", actionOrdinal: ordinals[3], input: { profile } } as const;
   await apply(reasoning);
   await apply(close);
 };
@@ -303,7 +299,7 @@ const runFreshTurn = async (
     const fresh = { productStepId: stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
     await flow.execute(fresh);
   }
-  await applyProfile(flow, stepId, [2, 3, 4, 5, 6, 7], profile);
+  await applyProfile(flow, stepId, [2, 3, 4, 6, 7], profile);
   await applyAttachments(flow, context, stepId, [8, 9, 10]);
   return submitTurn(flow, stepId, prompt, marker, files, [11, 12, 13, 14, 15, 16]);
 };
@@ -345,7 +341,7 @@ export const executeIsolatedLocalizationJsonTurn = async (
     productStepId: input.stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat",
     actionOrdinal: 1, input: { timeoutMs: 60_000 },
   } as const);
-  await applyProfile(flow, input.stepId, [2, 3, 4, 5, 6, 7], input.profile);
+  await applyProfile(flow, input.stepId, [2, 3, 4, 6, 7], input.profile);
   const checkpoint = await submitTurn(flow, input.stepId, prompt, marker, [], [8, 9, 10, 11, 12, 13]);
   return isolatedResult(flow, checkpoint);
 };

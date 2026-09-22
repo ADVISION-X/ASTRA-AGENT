@@ -277,10 +277,10 @@ const inspectProfileContracts = (
   inspectMissingTokens({ source: modelHandler, required: [
     "openGptModelSelectorV3Handler", "selectGptModelFromStartV3Handler",
     "readModelChoiceState", "clickedCandidateAttribute", "selectedReadbackValid",
-    "postClickMatch: { selector: GPT_MODEL_SELECTOR_EXPANDED_ENTRY",
+    "postClickMatch: { selector: GPT_MODEL_SELECTOR_OPTION",
     "postClickObservation: postcondition(chosen.name)", "record.postconditionObservation",
     "expectedEligibleCount", "decodeCoherentObservationPacket", "modelChoiceQuery",
-    "first.ariaDisabled === true", "selectedRawCount", "targetRefHash", "documentRefHash",
+    "first.ariaDisabled === true", "selectedRawCount", "modelDisplayName",
   ], checkId: "gpt/model-selection-v3-handler", filePath: MODEL_HANDLER_PATH,
   findings, finding, message: (required) => `Model selection V3 handler is missing ${required}.` });
   for (const retired of [
@@ -306,11 +306,11 @@ const inspectProfileContracts = (
     "profileTopologyQueries", "profileOpenReady", "profileOpenable", "profileDisposition",
     "postClickObservation: PROFILE_OPEN_POSTCONDITION", "mutationRecord.postconditionObservation",
     "decodeCoherentObservationPacket", "scopeRejections", "observationRevisionHash",
-    'value.reasoningMaximum === "2"', 'value.reasoningMaximum === "3"', 'value.reasoningMaximum === "4"',
-    "resolveReasoningRequirement", 'code: "GPT_REASONING_TIER_UNAVAILABLE"',
-    'tier: "high", value: 2', 'tier: "extra_high", value: 3',
-    "startTier", "startValue", "observedScale", "resolvedTier", "resolvedValue",
-    "selectedModelRaw", "proDisabledRaw", "modelTargetRefHash", "modelDocumentRefHash",
+    'max !== null && /^(?:0|[1-5])$/u.test(max)',
+    "resolveReasoningRequirement", 'code: "GPT_REASONING_SCALE_INVALID"',
+    "Math.min(profile.requestedReasoningValue, maximum)",
+    "requestedValue", "observedScale", "resolvedValue",
+    "reasoningControlReady", "enabled-reasoning-control", "reasoning-value",
     "currentValue", "mutationOutcome", "browserOutcome", "gptPostcondition",
   ], checkId: "gpt/reasoning-requirement-resolution", filePath: PROFILE_HANDLER_PATH,
   findings, finding,
@@ -371,7 +371,7 @@ const inspectProfileSchema = (
   inspectMissingTokens({ source: schema, required: [
     'z.literal("gpt-execution-profile.v3")',
     'startModelDisplayName: z.enum(["最新", "GPT-5.6 Sol"])',
-    "startReasoningTier: GptReasoningTierSchema",
+    "requestedReasoningValue: z.number().int().min(0).max(5)",
   ], checkId: "gpt/profile-v3-start-target", filePath: SCHEMA_PATH,
   findings, finding, message: (required) => `Execution Profile V3 is missing ${required}.` });
   for (const retired of ["gpt-execution-profile.v1", "gpt-execution-profile.v2", "selectionPolicy", "accountCapabilityRef", "modelFamily", "pro_extended"]) {

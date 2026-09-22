@@ -20,7 +20,7 @@ import {
   exerciseSeoPromptWriteFailure,
 } from "./public-knowledge-article-pipeline-flow.test-runtime.js";
 import { createContext, ORIENTED_IMAGE_FIXTURE } from "./public-knowledge-article-pipeline.test-runtime.js";
-import { createHarness, seoTask, HASH } from
+import { createHarness, seoTask } from
   "./public-knowledge-article-pipeline-fixture-state.js";
 import { articleOutput, researchOutput } from
   "./public-knowledge-article-pipeline-output-fixtures.js";
@@ -31,7 +31,7 @@ const produceRoute = productionRoutePolicy("public_knowledge_article_pipeline", 
 
 const profile = [
   "open_gpt_execution_profile", "open_gpt_model_selector_v3", "select_gpt_model_from_start_v3",
-  "open_gpt_execution_profile", "select_gpt_reasoning_from_start_v3", "close_gpt_execution_profile",
+  "select_gpt_reasoning_from_start_v3", "close_gpt_execution_profile",
 ] as const;
 const attachments = [
   "open_gpt_attachment_control", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
@@ -107,10 +107,7 @@ for (const call of reasoningProfileCalls) {
   assert.equal(call.input.profile.profileRef,
     "public-knowledge-article-pipeline:chatgpt-latest-extra-high");
   assert.equal(call.input.profile.startModelDisplayName, "最新");
-  assert.equal(call.input.profile.startReasoningTier, "extra_high");
-  assert.equal(call.input.actualModelDisplayName, "最新");
-  assert.equal(call.input.modelTargetRefHash, HASH);
-  assert.equal(call.input.modelDocumentRefHash, HASH);
+  assert.equal(call.input.profile.requestedReasoningValue, 4);
 }
 assert.deepEqual([...new Set(proceed.calls.map((call) => call.productStepId))], [
   "corpus_research", "article_synthesis", "article_image_generation",

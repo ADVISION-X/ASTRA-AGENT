@@ -34,27 +34,13 @@ export const selectGptModelFromStartV3Handler: GptChildHandler<"select_gpt_model
     const profile = profileFromIntent(intent);
     const browser = requireBrowser(context);
     const observed = await readModelChoiceState(browser, profile.startModelDisplayName, context.signal);
-    const suffix = profile.startModelDisplayName === "最新" ? observed.choices : observed.choices.slice(1);
-    const first = suffix[0]!;
-    const chosen = first.ariaDisabled === true && suffix.length === 2 ? suffix[1]! : first;
-    if (first.count !== 1 || (chosen !== first && chosen.count !== 1)
+    const chosen = observed.choice;
+    if (chosen.name !== profile.startModelDisplayName || chosen.count !== 1
       || chosen.ariaDisabled !== false || chosen.disabled !== false || chosen.inert !== false
       || !["true", "false"].includes(chosen.checked ?? "")
       || (chosen.checked === "true" && observed.selectedRawCount !== 1)) {
       throw executionFailure("failed", "GPT_MODEL_V3_CANDIDATE_NOT_PROVEN");
     }
-    if (chosen.checked === "true") return success({
-      value: {
-        modelDisplayName: chosen.name,
-        targetRefHash: observed.targetRefHash,
-        documentRefHash: observed.documentRefHash,
-        previousChecked: "true",
-        selectionVersion: GPT_MODEL_SELECTION_VERSION,
-        state: "already-selected",
-      },
-      ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
-        browserFact: null, nativeFailureCode: null }),
-    });
     const mutation = await browser.executeDomIntent({
       kind: "click", selector: GPT_MODEL_CHOICE_SELECTOR,
       expectedTextEquals: chosen.name, expectedMatches: 1,
@@ -77,9 +63,7 @@ export const selectGptModelFromStartV3Handler: GptChildHandler<"select_gpt_model
     return success({
       value: {
         modelDisplayName: chosen.name,
-        targetRefHash: packet.targetRefHash,
-        documentRefHash: packet.documentRefHash,
-        previousChecked: "false",
+        previousChecked: chosen.checked as "true" | "false",
         selectionVersion: GPT_MODEL_SELECTION_VERSION,
         state: "model-selected",
       },

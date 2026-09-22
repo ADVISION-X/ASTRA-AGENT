@@ -270,6 +270,8 @@ const zeroActionReceiptValid = (
   command: BrowserGovernedCommand,
   value: Readonly<Record<string, unknown>>,
 ): boolean => value.zeroActionSatisfied === true
+  && !(command.kind === "dom-intent" && command.intent.kind === "click"
+    && command.intent.requiredClickPointSelector !== undefined)
   && (value.candidateCount === 1
     || (command.kind === "dom-intent"
       && command.intent.kind === "acknowledgeKnownGptRateLimit"

@@ -20,6 +20,7 @@ import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 
 type CandidateRequest = Readonly<{
   selector: string;
+  clickPointSelector?: string;
   scope?: BrowserDomReadScope;
   text?: Readonly<{ value: string; exact: boolean }>;
   exactOutgoingTurn?: Readonly<{
@@ -87,7 +88,26 @@ const COHERENT_CANDIDATE_FUNCTION = `async function (spec) {
   if (globalThis.getComputedStyle(candidate).pointerEvents === "none") {
     return "BROWSER_DOM_ACTION_POINTER_EVENTS_NONE";
   }
-  if (!facts.hitTest) return "BROWSER_DOM_ACTION_HIT_TEST_FAILED";
+  if (!spec.clickPointSelector && !facts.hitTest) return "BROWSER_DOM_ACTION_HIT_TEST_FAILED";
+  const clickPoint = (() => {
+    if (!spec.clickPointSelector) return {
+      x: facts.bounds.x + facts.bounds.width / 2,
+      y: facts.bounds.y + facts.bounds.height / 2
+    };
+    const markers = Array.from(candidate.querySelectorAll(spec.clickPointSelector));
+    if (markers.length !== 1) return null;
+    const markerFacts = browserMechanicalFacts(markers[0], false);
+    if (!markerFacts || !markerFacts.visible) return null;
+    const marker = markers[0].getBoundingClientRect();
+    const x = marker.left + marker.width / 2;
+    const y = marker.top + marker.height / 2;
+    if (x < facts.bounds.x || x > facts.bounds.x + facts.bounds.width
+      || y < facts.bounds.y || y > facts.bounds.y + facts.bounds.height
+      || x < 0 || x >= globalThis.innerWidth || y < 0 || y >= globalThis.innerHeight) return null;
+    const top = document.elementFromPoint(x, y);
+    return top !== null && candidate.contains(top) ? { x, y } : null;
+  })();
+  if (clickPoint === null) return "BROWSER_DOM_ACTION_HIT_TEST_FAILED";
   if (spec.exactOutgoingTurn) {
     const outgoing = spec.exactOutgoingTurn;
     const composers = Array.from(document.querySelectorAll(outgoing.composerSelector));
@@ -112,10 +132,7 @@ const COHERENT_CANDIDATE_FUNCTION = `async function (spec) {
       return "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH";
     }
   }
-  return {
-    x: facts.bounds.x + facts.bounds.width / 2,
-    y: facts.bounds.y + facts.bounds.height / 2
-  };
+  return clickPoint;
 }`;
 
 const RETAINED_POINTER_FUNCTION = `function () {
@@ -167,7 +184,9 @@ const COHERENT_OBSERVATION_POINTER_FUNCTION = `function (request) {
     if (facts.ariaHidden && !(checkText && spec.readEligibility === "non-actionable-aria-state")) {
       reasons.push("ARIA_HIDDEN");
     }
-    if (facts.inert) reasons.push("INERT");
+    if (facts.inert) {
+      reasons.push("INERT");
+    }
     if (checkText && ((spec.textContains !== undefined && !(node.textContent || "").includes(spec.textContains))
       || (spec.textEquals !== undefined && (node.textContent || "").trim() !== spec.textEquals.trim()))) {
       reasons.push("TEXT_MISMATCH");

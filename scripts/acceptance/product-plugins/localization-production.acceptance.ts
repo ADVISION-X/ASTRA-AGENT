@@ -15,7 +15,7 @@ const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "local
 assert(plugin);
 const sequence = [
   "prepare_clean_gpt_chat", "open_gpt_execution_profile", "open_gpt_model_selector_v3",
-  "select_gpt_model_from_start_v3", "open_gpt_execution_profile", "select_gpt_reasoning_from_start_v3",
+  "select_gpt_model_from_start_v3", "select_gpt_reasoning_from_start_v3",
   "close_gpt_execution_profile",
   "open_gpt_attachment_control", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
   "write_exact_gpt_prompt", "submit_exact_gpt_turn_once", "checkpoint_gpt_text_response",
@@ -61,18 +61,13 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   assert.deepEqual({
     profileRef: reasoningCall.input.profile.profileRef,
     startModelDisplayName: reasoningCall.input.profile.startModelDisplayName,
-    startReasoningTier: reasoningCall.input.profile.startReasoningTier,
-    actualModelDisplayName: reasoningCall.input.actualModelDisplayName,
-    modelTargetRefHash: reasoningCall.input.modelTargetRefHash,
-    modelDocumentRefHash: reasoningCall.input.modelDocumentRefHash,
+    requestedReasoningValue: reasoningCall.input.profile.requestedReasoningValue,
   }, articleTranslation ? {
     profileRef: "localization-production:article-translation:chatgpt-latest-extra-high",
-    startModelDisplayName: "最新", startReasoningTier: "extra_high",
-    actualModelDisplayName: "最新", modelTargetRefHash: FIXTURE_HASH, modelDocumentRefHash: FIXTURE_HASH,
+    startModelDisplayName: "最新", requestedReasoningValue: 4,
   } : {
     profileRef: "localization-production:gpt-5.6-sol-pro-standard",
-    startModelDisplayName: "GPT-5.6 Sol", startReasoningTier: "pro_standard",
-    actualModelDisplayName: "GPT-5.6 Sol", modelTargetRefHash: FIXTURE_HASH, modelDocumentRefHash: FIXTURE_HASH,
+    startModelDisplayName: "GPT-5.6 Sol", requestedReasoningValue: 5,
   });
   const prompt = String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt);
   assert.doesNotMatch(prompt, /Product Plugin|result_contract attachment/u);
@@ -313,12 +308,12 @@ const staticReasoningCalls = staticRun.calls.filter(
 assert.deepEqual(staticReasoningCalls.map((call) => ({
   productStepId: call.productStepId,
   profileRef: call.input.profile.profileRef,
-  startReasoningTier: call.input.profile.startReasoningTier,
+  requestedReasoningValue: call.input.profile.requestedReasoningValue,
 })), [
   {
     productStepId: staticStep(),
     profileRef: "localization-production:static-catalog:production:pro-standard",
-    startReasoningTier: "pro_standard",
+    requestedReasoningValue: 5,
   },
 ]);
 assert.equal(staticRun.physicalSubmitDispatches, 1);

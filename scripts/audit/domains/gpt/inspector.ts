@@ -271,12 +271,12 @@ const inspectModelSelectionContract = (context: InspectorContext, findings: Insp
     "postClickObservation: postcondition(chosen.name)",
     "record.postconditionObservation", "readModelChoiceState",
     "clickedCandidateAttribute", "selectedReadbackValid",
-    "postClickMatch: { selector: GPT_MODEL_SELECTOR_EXPANDED_ENTRY",
+    "textEquals: profile.startModelDisplayName, expectedMatches: 1",
     "expectedEligibleCount", "decodeCoherentObservationPacket", "modelChoiceQuery",
-    "first.ariaDisabled === true", "selectedRawCount", "targetRefHash", "documentRefHash",
+    "chosen.name !== profile.startModelDisplayName", "selectedRawCount", "targetRefHash", "documentRefHash",
   ]) if (!handler.includes(required)) findings.push(finding(
-    "gpt/model-selection-start-fallback", childHandlerPath("select_gpt_model_from_start_v3"),
-    `Start-based model selection is missing ${required}.`,
+    "gpt/model-selection-exact-model", childHandlerPath("select_gpt_model_from_start_v3"),
+    `Exact model selection is missing ${required}.`,
   ));
   for (const retired of [
     "GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR", "SELECTION_POSTCONDITION",
@@ -308,9 +308,9 @@ const inspectExecutionProfileStateReadContract = (
     "gpt/profile-non-actionable-state-read", childHandlerPath("select_gpt_reasoning_from_start_v3"),
     `The execution-profile Child is missing ${required}.`,
   ));
-  if ((handler.match(/readEligibility:\s*"non-actionable-aria-state"/gu) ?? []).length !== 3) findings.push(finding(
+  if ((handler.match(/readEligibility:\s*"non-actionable-aria-state"/gu) ?? []).length !== 4) findings.push(finding(
     "gpt/profile-non-actionable-state-read", childHandlerPath("select_gpt_reasoning_from_start_v3"),
-    "The reasoning slider read mode must exist exactly on both isolated Child topology queries and the reasoning postcondition.",
+    "The reasoning slider read mode must exist on both Child observations and both action postconditions.",
   ));
   if (/kind:\s*"keypress"[\s\S]{0,160}selector:\s*GPT_PROFILE_REASONING_VALUE_SELECTOR\s*,/u.test(handler)) {
     findings.push(finding(

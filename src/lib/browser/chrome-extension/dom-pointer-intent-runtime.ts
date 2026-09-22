@@ -138,6 +138,8 @@ const pointerAction = async (
         : {}),
       ...(intent.kind === "click" && intent.preClickExactOutgoingTurn !== undefined
         ? { exactOutgoingTurn: intent.preClickExactOutgoingTurn } : {}),
+      ...(intent.kind === "click" && intent.requiredClickPointSelector !== undefined
+        ? { clickPointSelector: intent.requiredClickPointSelector } : {}),
     });
   } catch (error) {
     const candidateSet = candidateSetReceipt(error);
@@ -303,10 +305,12 @@ const prepareClick = async (
       }) }
       : { point: preparation.point, retainedNodeId: null };
   }
-  const preconditionReceipt = await zeroActionIfSatisfied(
-    runtime, target, intent, assertCurrent, allowTransientDomConfirmation,
-  );
-  if (preconditionReceipt !== null) return { receipt: preconditionReceipt };
+  if (intent.requiredClickPointSelector === undefined) {
+    const preconditionReceipt = await zeroActionIfSatisfied(
+      runtime, target, intent, assertCurrent, allowTransientDomConfirmation,
+    );
+    if (preconditionReceipt !== null) return { receipt: preconditionReceipt };
+  }
   const point = allowTransientDomConfirmation
     ? await confirmTransientPreparation(
       runtime, target, () => pointerAction(runtime, target, intent), assertCurrent,

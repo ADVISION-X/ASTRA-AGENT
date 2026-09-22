@@ -9,7 +9,7 @@ import {
   type GptChildHandler,
 } from "../../web/child-handler.js";
 import { profileFromIntent } from "../../web/execution-profile-input.js";
-import { GPT_MODEL_SELECTOR_EXPANDED_ENTRY, GPT_MODEL_SELECTOR_OPENABLE_ENTRY } from "./selectors.js";
+import { GPT_MODEL_SELECTOR_OPENABLE_ENTRY, GPT_MODEL_SELECTOR_OPTION } from "./selectors.js";
 import {
   modelSelectorOpenable,
   modelSelectorReady,
@@ -20,9 +20,9 @@ import {
 export const openGptModelSelectorV3Handler: GptChildHandler<"open_gpt_model_selector_v3"> =
   async (intent, context) => {
     requireExactInputKeys(intent, ["profile"]);
-    profileFromIntent(intent);
+    const profile = profileFromIntent(intent);
     const browser = requireBrowser(context);
-    const observed = await readModelSelectorState(browser, context.signal);
+    const observed = await readModelSelectorState(browser, profile.startModelDisplayName, context.signal);
     if (modelSelectorReady(observed)) return success({
       value: { selectionVersion: GPT_MODEL_SELECTION_VERSION, state: "model-selector-open" },
       ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
@@ -34,12 +34,12 @@ export const openGptModelSelectorV3Handler: GptChildHandler<"open_gpt_model_sele
     const mutation = await browser.executeDomIntent({
       kind: "click", selector: GPT_MODEL_SELECTOR_OPENABLE_ENTRY, expectedMatches: 1,
       postClickMinimumDelayMs: 2_500,
-      postClickMatch: { selector: GPT_MODEL_SELECTOR_EXPANDED_ENTRY, expectedMatches: 1 },
+      postClickMatch: { selector: GPT_MODEL_SELECTOR_OPTION,
+        textEquals: profile.startModelDisplayName, expectedMatches: 1 },
     });
     const record = mutation && typeof mutation === "object" && !Array.isArray(mutation)
       ? mutation as Readonly<Record<string, unknown>> : {};
-    if (record.postconditionVerified !== true || record.postconditionRawCount !== 1
-      || record.postconditionEligibleCount !== 1) {
+    if (record.postconditionVerified !== true || record.postconditionEligibleCount !== 1) {
       throw executionFailure("failed", "GPT_MODEL_SELECTOR_V3_POSTCONDITION_INVALID");
     }
     const browserFact = requireConfirmedBrowserFact(intent, context, { allowNoMutationOutcome: true });

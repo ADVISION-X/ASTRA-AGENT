@@ -302,9 +302,10 @@ const firstInteractiveReceipt = await executeRegisteredCommand(
 ) as Readonly<Record<string, unknown>>;
 assert.equal(firstInteractiveReceipt.postconditionVerified, true);
 assert.equal(rateLimitDetectorStartedAt.slice(-3).length, 3);
-assert.ok(rateLimitDetectorStartedAt.slice(-3).every((startedAt, index, values) =>
-  index === 0 || startedAt - values[index - 1]! >= 1_500),
-"ordinary ChatGPT command cycles must start their single rate-limit preflight at least 1500ms apart");
+const recentPreflightIntervals = rateLimitDetectorStartedAt.slice(-3).slice(1)
+  .map((startedAt, index) => startedAt - rateLimitDetectorStartedAt.slice(-3)[index]!);
+assert.ok(recentPreflightIntervals.every((interval) => interval >= 1_500),
+  `ordinary ChatGPT command preflight intervals must be at least 1500ms: ${recentPreflightIntervals.join(",")}`);
 assert.deepEqual(activatedTabs, [3], "the first mutation must reuse the Tab selected by the observation gate");
 activeTabId = 99;
 targetTabActivated({ tabId: 99, windowId: 1 });

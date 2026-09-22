@@ -25,7 +25,7 @@ export const exerciseReasoningEvidenceReadback = async (
   input: GptChildInputMap["select_gpt_reasoning_from_start_v3"],
 ): Promise<void> => {
   assert.equal(result.status, "success");
-  assert.equal(result.reasoningRequirementResult?.startTier, input.profile.startReasoningTier);
+  assert.equal(result.reasoningRequirementResult?.requestedValue, input.profile.requestedReasoningValue);
 };
 
 export const exercisePreExecutionFailureEvidence = async (): Promise<void> => {

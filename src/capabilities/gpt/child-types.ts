@@ -1,21 +1,15 @@
-import type {
-  GptExecutionProfile,
-  GptReasoningTier,
-} from "./schema.js";
+import type { GptExecutionProfile } from "./schema.js";
 
 export type GptHash = `sha256:${string}`;
 
 export type GptReasoningRequirementResult = Readonly<{
-  startTier: GptReasoningTier;
-  startValue: number;
+  requestedValue: number;
   observedScale: Readonly<{
     min: number | null;
     max: number | null;
     currentBefore: number | null;
   }>;
-  resolvedTier: GptReasoningTier | null;
   resolvedValue: number | null;
-  degraded: boolean;
   currentValue: number | null;
   mutationOutcome: "no" | "dispatched" | "confirmed";
   browserOutcome: "DISPATCHED" | "CONFIRMED" | "REJECTED" | null;
@@ -60,12 +54,7 @@ export interface GptChildInputMap {
   readonly open_gpt_execution_profile: Readonly<{ profile: GptExecutionProfile }>;
   readonly open_gpt_model_selector_v3: Readonly<{ profile: GptExecutionProfile }>;
   readonly select_gpt_model_from_start_v3: Readonly<{ profile: GptExecutionProfile }>;
-  readonly select_gpt_reasoning_from_start_v3: Readonly<{
-    profile: GptExecutionProfile;
-    actualModelDisplayName: GptExecutionProfile["startModelDisplayName"];
-    modelTargetRefHash: GptHash;
-    modelDocumentRefHash: GptHash;
-  }>;
+  readonly select_gpt_reasoning_from_start_v3: Readonly<{ profile: GptExecutionProfile }>;
   readonly close_gpt_execution_profile: Readonly<{ profile: GptExecutionProfile }>;
   readonly open_gpt_attachment_control: Readonly<Record<string, never>>;
   readonly attach_approved_gpt_files_once: Readonly<{ files: readonly GptApprovedFileInput[] }>;
@@ -108,14 +97,12 @@ export interface GptChildOutputMap {
   }>;
   readonly select_gpt_model_from_start_v3: Readonly<{
     modelDisplayName: GptExecutionProfile["startModelDisplayName"];
-    targetRefHash: GptHash;
-    documentRefHash: GptHash;
     previousChecked: "true" | "false";
     selectionVersion: "gpt-model-selection.v3";
-    state: "already-selected" | "model-selected";
+    state: "model-selected";
   }>;
   readonly select_gpt_reasoning_from_start_v3: GptReasoningRequirementResult & Readonly<{
-    state: "already-selected" | "selected";
+    state: "selected";
   }>;
   readonly close_gpt_execution_profile: Readonly<{ state: "profile-popup-closed" }>;
   readonly open_gpt_attachment_control: Readonly<{ state: "upload-choice-ready" }>;

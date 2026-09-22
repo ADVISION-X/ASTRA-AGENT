@@ -10,7 +10,7 @@ export const { execute } = createGptAcceptanceHarness("gpt-exact-target");
 export const profile = buildGptExecutionProfile({
   profileRef: "acceptance:gpt-profile",
   startModelDisplayName: "GPT-5.6 Sol",
-  startReasoningTier: "pro_standard",
+  requestedReasoningValue: 5,
   executorIdentityRef: "acceptance:executor",
   acceptanceRef: "acceptance:gpt-exact-target",
   acceptanceVersion: "v1",
@@ -51,17 +51,12 @@ export const profileFacts = (
     "reasoning-value": reasoningValueFacts(
       reasoningReady, reasoningEligible, reasoningCurrent, reasoningMaximum, reasoningMinimum,
     ),
-    "pro-fifth-label": { rawCount: open ? 1 : 0,
-      eligibleCount: open && reasoningMaximum === 4 && reasoningCurrent === 4 ? 1 : 0 },
     trigger: {
       rawCount: 1, eligibleCount: 1,
       matches: [{ id: "profile-trigger", ariaExpanded: open ? "true" : "false" }],
     },
     "selected-model": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0,
       matches: open ? [{ ariaChecked: "true", inert: true }] : [] },
-    "pro-disabled": { rawCount: open && reasoningMaximum < 4 ? 1 : 0,
-      eligibleCount: open && reasoningMaximum < 4 ? 1 : 0,
-      matches: open && reasoningMaximum < 4 ? [{ ariaDisabled: true, inert: true }] : [] },
     composer: { rawCount: 1, eligibleCount: 1 },
   });
 };

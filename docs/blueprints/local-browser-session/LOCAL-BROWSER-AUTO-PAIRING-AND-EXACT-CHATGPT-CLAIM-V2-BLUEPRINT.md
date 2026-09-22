@@ -36,7 +36,7 @@ exact text response 的暂未取得结果只能把两类Browser机械事实分�
 
 `FROZEN-GPT-SUBMIT-ACTIONABILITY-WAIT-001` 的 Browser 部分固定：精确待发送内容和 WAL/current Document 已通过后，精确发送按钮暂时 `disabled/aria-disabled` 时，在同一原子 command 的现有 5000ms 有界期限内重复 fresh mechanical qualification，恢复后至多输入一次；期限耗尽仍返回原生 disabled typed receipt、mutation=no、physical input=0。不得建立第三业务前置条件、持久 timer、第二 WAL、队列或重试器。
 
-`FROZEN-GPT-MODEL-SELECTOR-SEMANTIC-MINIMUM-001` 经本工单明确解冻后的 Browser 部分替换语义：冻结拓扑 v2 的 G04–G06 保留原义并退休，新语义分别由 G15–G17 接替。G15 对唯一“选择模型”入口执行至多一次物理点击，点击后 2.5 秒以 fresh 展开态子菜单标记的独立 `postClickMatch` 证明本次入口打开；已展开则零输入读回。选项资格留给 G16 fresh 读取，不把收起态 `inert` 同名节点的存在当作完成，也不假定点击入口与后置标记是同一节点。G16 只对 GPT 已从起始后缀确定的唯一精确、可操作且尚未选中的模型选项执行至多一次点击，同次 mutation 对保留的被点击节点直接核 `aria-checked=true`，并核其退出当前可操作集合；已唯一选中则零输入成功。两种成功各自 fresh 后置 packet 的 Target/Document 双哈希原样作为调用期事实返回，不建快照或第二身份。现役 coherent `observe` 仅为 G17 的精确已选模型 radio 与 Pro 禁用 radio 提供窄化的非操作性 `inert` 读取，返回真实 `inert`、`aria-checked`、`aria-disabled` 与 raw/eligible 基数；任何 click、keypress、物理动作前后置资格仍排除 `inert`。Browser 不排序模型或推理档，不把普通缺席判为额度耗尽，不检查 popup、simple/advanced panel、旧面板形态或 `data-active` 外壳；Target/Document 漂移、多义、动作未决继续失败关闭。此语义须与 GPT 施工图、冻结拓扑、实现和唯一质检同候选对齐后重新冻结。
+`FROZEN-GPT-MODEL-SELECTOR-SEMANTIC-MINIMUM-001` 本次按明确授权解冻、原位替换并重新冻结：G15–G17 保留唯一链，G04–G06 仍退休。G15 至多点击一次唯一模型入口，现役 2500ms 闸门核当前 Document 的指定模型选项。G16 对 Product 指定模型的唯一可操作选项总是点击一次，即使先前已选中；Browser 在同一动作中核点击节点选中与菜单关闭，缺失、禁用、多义失败。删除 G16 后第二次 G03 调用，G17 紧接 G16，只读取当前目标聊天中的唯一可操作“能力”控件及唯一滑块 min/max/now，数值必须 min=0 且 0<=now<=max<=5。GPT 计算 min(requestedReasoningValue,max)；当前值已等于目标时 Browser 点击滑块柄一次，否则执行一次有界方向键动作；两条路径都经 current Target/Document、唯一 WAL 与动作资格，并 fresh 读回目标值。Browser 不读取模型或推理业务策略，不新增第二链。
 
 `document` 是 Target 当前状态的 live view。导航、刷新或 Target 交接后，所有合法消费者必须读到新的 Document；任何包装层不得用对象展开、缓存或复制把它冻结成旧 Document。
 

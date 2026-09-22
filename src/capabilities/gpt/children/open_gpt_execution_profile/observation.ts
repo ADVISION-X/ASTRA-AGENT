@@ -115,12 +115,12 @@ const rowIs = (value: ProfileTopology, queryId: string, raw: number, eligible: n
   return row?.rawCount === raw && row.eligibleCount === eligible;
 };
 
-const approvedReasoningScale = (value: ProfileTopology): boolean =>
-  value.reasoningMinimum === "0" && (
-    (value.reasoningMaximum === "2" && /^[0-2]$/u.test(value.reasoningCurrent ?? ""))
-    || (value.reasoningMaximum === "3" && /^[0-3]$/u.test(value.reasoningCurrent ?? ""))
-    || (value.reasoningMaximum === "4" && /^[0-4]$/u.test(value.reasoningCurrent ?? ""))
-  );
+const approvedReasoningScale = (value: ProfileTopology): boolean => {
+  const max = value.reasoningMaximum;
+  const now = value.reasoningCurrent;
+  return value.reasoningMinimum === "0" && max !== null && /^(?:0|[1-5])$/u.test(max)
+    && now !== null && /^(?:0|[1-5])$/u.test(now) && Number(now) <= Number(max);
+};
 
 export const profileOpenReady = (value: ProfileTopology): boolean =>
   ["popup", "simple-panel", "reasoning-control", "enabled-reasoning-control", "reasoning-value", "trigger"]

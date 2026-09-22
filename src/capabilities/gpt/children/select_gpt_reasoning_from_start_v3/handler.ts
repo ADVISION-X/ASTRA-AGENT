@@ -19,23 +19,22 @@ import {
 } from "../../web/child-handler.js";
 import {
   GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
+  GPT_PROFILE_REASONING_CLICK_SELECTOR,
+  GPT_PROFILE_REASONING_THUMB_SELECTOR,
   GPT_PROFILE_REASONING_VALUE_SELECTOR,
-  reasoningTierUiValue,
 } from "./selectors.js";
 import { profileFromIntent } from "../../web/execution-profile-input.js";
 import {
   profileNativeCause,
-  profileOpenReady,
+  reasoningControlReady,
   topology,
   topologyCode,
   type ProfileTopology,
 } from "./observation.js";
-import type { GptExecutionProfile, GptReasoningTier } from "../../schema.js";
+import type { GptExecutionProfile } from "../../schema.js";
 
 type ReasoningResolution = Readonly<{
-  tier: GptReasoningTier;
   value: number;
-  degraded: boolean;
 }>;
 
 const integerField = (value: string | null): number | null =>
@@ -53,25 +52,9 @@ const resolveReasoningRequirement = (
   observed: ProfileTopology,
 ): ReasoningResolution | null => {
   const maximum = integerField(observed.reasoningMaximum);
-  const proDisabled = observed.proDisabledRaw === 1 && observed.proDisabledEligible === 1
-    && observed.proAriaDisabled === true && observed.proInert === true;
-  const start = profile.startReasoningTier;
-  if (maximum === 4 && observed.proDisabledRaw === 0 && (
-    start !== "pro_standard" || (observed.proFifthLabelRaw === 1 && observed.proFifthLabelEligible === 1)
-  )) {
-    return Object.freeze({ tier: start, value: reasoningTierUiValue[start], degraded: false });
-  }
-  if (!proDisabled) return null;
-  if (maximum === 3 && proDisabled && start === "pro_standard") {
-    return Object.freeze({ tier: "extra_high", value: 3, degraded: true });
-  }
-  if (maximum === 3 && start !== "pro_standard") {
-    return Object.freeze({ tier: start, value: reasoningTierUiValue[start], degraded: false });
-  }
-  if (maximum === 2) {
-    return Object.freeze({ tier: "high", value: 2, degraded: start !== "high" });
-  }
-  return null;
+  return maximum !== null && maximum <= 5
+    ? Object.freeze({ value: Math.min(profile.requestedReasoningValue, maximum) })
+    : null;
 };
 
 const reasoningRequirementResult = (input: Readonly<{
@@ -83,12 +66,9 @@ const reasoningRequirementResult = (input: Readonly<{
   browserOutcome: GptReasoningRequirementResult["browserOutcome"];
   gptPostcondition: GptReasoningRequirementResult["gptPostcondition"];
 }>): GptReasoningRequirementResult => Object.freeze({
-  startTier: input.profile.startReasoningTier,
-  startValue: reasoningTierUiValue[input.profile.startReasoningTier],
+  requestedValue: input.profile.requestedReasoningValue,
   observedScale: input.observedScale,
-  resolvedTier: input.resolution?.tier ?? null,
   resolvedValue: input.resolution?.value ?? null,
-  degraded: input.resolution?.degraded ?? false,
   currentValue: input.currentValue,
   mutationOutcome: input.mutationOutcome,
   browserOutcome: input.browserOutcome,
@@ -152,9 +132,9 @@ const selectedReasoningResult = (input: Readonly<{
   observedScale: GptReasoningRequirementResult["observedScale"];
   resolution: ReasoningResolution;
   currentValue: number;
-  mutationOutcome: "no" | "confirmed";
+  mutationOutcome: "confirmed";
   browserOutcome: "CONFIRMED" | null;
-  state: "already-selected" | "selected";
+  state: "selected";
 }>) => Object.freeze({
   ...reasoningRequirementResult({
     profile: input.profile,
@@ -178,18 +158,32 @@ const executeReasoningMutation = async (input: Readonly<{
 }>): Promise<void> => {
   const delta = input.resolution.value - input.currentBefore;
   try {
-    await input.browser.executeDomIntent({
-      kind: "keypress",
-      selector: GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
-      key: delta < 0 ? "ArrowLeft" : "ArrowRight",
-      repeat: Math.abs(delta) as 1 | 2 | 3 | 4,
-      expectedMatches: 1,
-      postKeypressMatch: {
-        selector: `${GPT_PROFILE_REASONING_VALUE_SELECTOR}[aria-valuenow='${input.resolution.value}']`,
+    if (delta === 0) {
+      await input.browser.executeDomIntent({
+        kind: "click",
+        selector: GPT_PROFILE_REASONING_CLICK_SELECTOR,
         expectedMatches: 1,
-        readEligibility: "non-actionable-aria-state",
-      },
-    });
+        requiredClickPointSelector: GPT_PROFILE_REASONING_THUMB_SELECTOR,
+        postClickMatch: {
+          selector: `${GPT_PROFILE_REASONING_VALUE_SELECTOR}[aria-valuenow='${input.resolution.value}']`,
+          expectedMatches: 1,
+          readEligibility: "non-actionable-aria-state",
+        },
+      });
+    } else {
+      await input.browser.executeDomIntent({
+        kind: "keypress",
+        selector: GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR,
+        key: delta < 0 ? "ArrowLeft" : "ArrowRight",
+        repeat: Math.abs(delta) as 1 | 2 | 3 | 4 | 5,
+        expectedMatches: 1,
+        postKeypressMatch: {
+          selector: `${GPT_PROFILE_REASONING_VALUE_SELECTOR}[aria-valuenow='${input.resolution.value}']`,
+          expectedMatches: 1,
+          readEligibility: "non-actionable-aria-state",
+        },
+      });
+    }
   } catch (error) {
     const browserFailure = typedBrowserExecutionFailure(error);
     const mutationOutcome = browserFailure?.mutationOutcome ?? "no";
@@ -212,17 +206,12 @@ const executeReasoningMutation = async (input: Readonly<{
 
 export const selectGptReasoningFromStartV3Handler:
 GptChildHandler<"select_gpt_reasoning_from_start_v3"> = async (intent, context) => {
-  requireExactInputKeys(intent, ["actualModelDisplayName", "modelDocumentRefHash", "modelTargetRefHash", "profile"]);
+  requireExactInputKeys(intent, ["profile"]);
   const profile = profileFromIntent(intent);
   const browser = requireBrowser(context);
-  const observed = await topology(browser, intent.input.actualModelDisplayName, context.signal);
+  const observed = await topology(browser, context.signal);
   const observedScale = observedReasoningScale(observed);
-  const modelProofValid = (value: ProfileTopology): boolean =>
-    value.targetRefHash === intent.input.modelTargetRefHash
-    && value.documentRefHash === intent.input.modelDocumentRefHash
-    && value.selectedModelRaw === 1 && value.selectedModelEligible === 1
-    && value.selectedModelChecked === "true" && value.selectedModelInert === true;
-  if (!profileOpenReady(observed) || !modelProofValid(observed)) {
+  if (!reasoningControlReady(observed)) {
     failReasoningRequirement({
       code: "GPT_EXECUTION_PROFILE_REASONING_STATE_INVALID", profile, topology: observed,
       observedScale, resolution: null, currentValue: observedScale.currentBefore,
@@ -231,29 +220,20 @@ GptChildHandler<"select_gpt_reasoning_from_start_v3"> = async (intent, context) 
   const resolution = resolveReasoningRequirement(profile, observed);
   if (!resolution) {
     failReasoningRequirement({
-      code: "GPT_REASONING_TIER_UNAVAILABLE", profile, topology: observed,
+      code: "GPT_REASONING_SCALE_INVALID", profile, topology: observed,
       observedScale, resolution: null, currentValue: observedScale.currentBefore, includeTopology: false,
     });
   }
   const resolved = resolution as ReasoningResolution;
   const currentBefore = observedScale.currentBefore!;
-  if (currentBefore === resolved.value) return success({
-    value: selectedReasoningResult({
-      profile, observedScale, resolution: resolved, currentValue: currentBefore,
-      mutationOutcome: "no", browserOutcome: null, state: "already-selected",
-    }),
-    ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
-      browserFact: null, nativeFailureCode: null }),
-  });
   await executeReasoningMutation({ browser, profile, observed, observedScale, resolution: resolved, currentBefore });
-  const readback = await topology(browser, intent.input.actualModelDisplayName, context.signal);
+  const readback = await topology(browser, context.signal);
   const readbackScale = observedReasoningScale(readback);
   const readbackResolution = resolveReasoningRequirement(profile, readback);
   const browserFact = requireConfirmedBrowserFact(intent, context);
-  if (!profileOpenReady(readback) || !modelProofValid(readback) || readbackScale.min !== observedScale.min
+  if (!reasoningControlReady(readback) || readbackScale.min !== observedScale.min
     || readbackScale.max !== observedScale.max || readbackScale.currentBefore !== resolved.value
-    || readbackResolution?.tier !== resolved.tier || readbackResolution.value !== resolved.value
-    || readbackResolution.degraded !== resolved.degraded) {
+    || readbackResolution?.value !== resolved.value) {
     failReasoningRequirement({
       code: "GPT_EXECUTION_PROFILE_REASONING_PENDING", profile, topology: readback,
       observedScale, resolution: resolved, currentValue: readbackScale.currentBefore, browserFact,

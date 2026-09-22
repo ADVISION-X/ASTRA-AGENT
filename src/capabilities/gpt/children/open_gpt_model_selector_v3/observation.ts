@@ -5,22 +5,20 @@ import {
   type GptCoherentObservation,
   type GptCoherentFactProjection,
 } from "../../web/gpt-dom-observation.js";
-import {
-  GPT_MODEL_SELECTOR_EXPANDED_ENTRY,
-  GPT_MODEL_SELECTOR_OPENABLE_ENTRY,
-} from "./selectors.js";
+import { GPT_MODEL_SELECTOR_OPENABLE_ENTRY, GPT_MODEL_SELECTOR_OPTION } from "./selectors.js";
+import type { GptExecutionProfile } from "../../schema.js";
 
 type ModelSelectorState = Readonly<{
   openableEntry: number;
-  expandedEntry: number;
+  specifiedModel: number;
   facts: GptCoherentFactProjection;
 }>;
 
-const QUERIES = Object.freeze([
+const queries = (name: GptExecutionProfile["startModelDisplayName"]) => Object.freeze([
   { queryId: "openable-entry", selector: GPT_MODEL_SELECTOR_OPENABLE_ENTRY,
     maxMatches: 2, fields: ["ariaExpanded"] as const },
-  { queryId: "expanded-entry", selector: GPT_MODEL_SELECTOR_EXPANDED_ENTRY,
-    maxMatches: 2, fields: ["ariaExpanded"] as const },
+  { queryId: "specified-model", selector: GPT_MODEL_SELECTOR_OPTION,
+    textEquals: name, maxMatches: 2, fields: [] },
 ] satisfies readonly BrowserDomObservationQuery[]);
 
 export const projectModelSelectorState = (observation: GptCoherentObservation): ModelSelectorState => {
@@ -29,29 +27,32 @@ export const projectModelSelectorState = (observation: GptCoherentObservation): 
     return row?.rawCount === 1 && row.eligibleCount === 1 ? 1
       : row?.rawCount === 0 && row.eligibleCount === 0 ? 0 : -1;
   };
+  const specifiedModel = observation.rows.find((candidate) => candidate.queryId === "specified-model");
   return Object.freeze({
     openableEntry: count("openable-entry"),
-    expandedEntry: count("expanded-entry"),
-    facts: projectCoherentObservation(observation, "expanded-entry"),
+    specifiedModel: specifiedModel && specifiedModel.eligibleCount <= 1
+      ? specifiedModel.eligibleCount : -1,
+    facts: projectCoherentObservation(observation, "specified-model"),
   });
 };
 
 export const modelSelectorReady = (value: ModelSelectorState): boolean =>
-  value.expandedEntry === 1 && value.openableEntry === 0;
+  value.specifiedModel === 1;
 export const modelSelectorOpenable = (value: ModelSelectorState): boolean =>
-  value.openableEntry === 1 && value.expandedEntry === 0;
+  value.openableEntry === 1 && value.specifiedModel === 0;
 export const modelSelectorStateCode = (value: ModelSelectorState): string =>
-  `openableEntry=${value.openableEntry}:expandedEntry=${value.expandedEntry}`;
+  `openableEntry=${value.openableEntry}:specifiedModel=${value.specifiedModel}`;
 
 export const readModelSelectorState = async (
   browser: BrowserTargetLease,
+  name: GptExecutionProfile["startModelDisplayName"],
   signal?: AbortSignal,
 ): Promise<ModelSelectorState> => projectModelSelectorState(await readConfirmedCoherentObservation(
-  browser, QUERIES, (observation) => {
+  browser, queries(name), (observation) => {
     const state = projectModelSelectorState(observation);
     if (modelSelectorReady(state)) return "STABLE_DONE";
     if (modelSelectorOpenable(state)) return "STABLE_ACT";
-    return state.openableEntry < 0 || state.expandedEntry < 0
-      || state.openableEntry + state.expandedEntry > 1 ? "HARD_FAIL" : "TRANSIENT_DOM";
+    return state.openableEntry < 0 || state.specifiedModel < 0
+      ? "HARD_FAIL" : "TRANSIENT_DOM";
   }, signal,
 ));

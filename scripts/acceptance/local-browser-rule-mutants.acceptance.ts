@@ -98,7 +98,7 @@ try {
       kind: "keypress",
       selector: "[role='menuitem'][aria-label='能力']:not([aria-disabled='true'])",
       key,
-      repeat: 4,
+      repeat: 5,
       expectedMatches: 1,
       postKeypressMatch: { selector: "[role='slider'][aria-valuenow='3']", expectedMatches: 1,
         readEligibility: "non-actionable-aria-state", timeoutMs: 5_000 },
@@ -108,12 +108,12 @@ try {
     kind: "keypress",
     selector: "[role='menuitem'][aria-label='能力']:not([aria-disabled='true'])",
     key: "ArrowRight",
-    repeat: 5,
+    repeat: 6,
     expectedMatches: 1,
     postKeypressMatch: { selector: "[role='slider']", expectedMatches: 1,
       readEligibility: "non-actionable-aria-state" },
   } as never), /BROWSER_COMMAND_PERMIT_INVALID/u,
-  "a keypress repeat beyond the complete five-value slider must fail closed");
+  "a keypress repeat beyond the complete six-value slider must fail closed");
   assert.throws(() => assertBrowserDomIntent({
     kind: "keypress",
     selector: "[role='menuitem'][aria-label='能力']:not([aria-disabled='true'])",

@@ -100,15 +100,12 @@ const exerciseHiddenStateRead = async (source: string): Promise<void> => {
   }), "the explicit non-actionable read mode may ignore only ARIA_HIDDEN");
 };
 
-const exerciseInertStateReadOnly = async (source: string): Promise<void> => {
+const exerciseInertStateRejection = async (source: string): Promise<void> => {
   const selected = new FakeElement("GPT-5.6 Sol", {}, {}, { "aria-checked": "true" });
   const inertRoot = new FakeElement("root", { "[role='menuitemradio']": [selected] }, {}, { inert: "" });
   selected.parentElement = inertRoot;
   const queries = [
     { queryId: "default-selected", selector: "[role='menuitemradio']", maxMatches: 1,
-      fields: ["ariaChecked", "inert"] },
-    { queryId: "explicit-selected", selector: "[role='menuitemradio']", maxMatches: 1,
-      textEquals: "GPT-5.6 Sol", readEligibility: "non-actionable-inert-state",
       fields: ["ariaChecked", "inert"] },
   ] as const;
   assertBrowserDomIntent({ kind: "observe", queries });
@@ -122,13 +119,13 @@ const exerciseInertStateReadOnly = async (source: string): Promise<void> => {
   assert.equal(JSON.stringify({ raw: result.queries[0]?.rawCount, eligible: result.queries[0]?.eligibleCount,
     rejections: result.queries[0]?.rejections }),
   JSON.stringify({ raw: 1, eligible: 0, rejections: [{ index: 0, reasons: ["INERT"] }] }));
-  assert.equal(JSON.stringify({ raw: result.queries[1]?.rawCount, eligible: result.queries[1]?.eligibleCount,
-    matches: result.queries[1]?.matches }),
-  JSON.stringify({ raw: 1, eligible: 1,
-    matches: [{ candidateIndex: 0, ariaChecked: "true", inert: true }] }));
+  assert.throws(() => assertBrowserDomIntent({ kind: "observe", queries: [{
+    queryId: "retired-inert-read", selector: "[role='menuitemradio']", maxMatches: 1,
+    fields: ["ariaChecked"], readEligibility: "non-actionable-inert-state" as never,
+  }] }), /BROWSER_COMMAND_PERMIT_INVALID/u);
   assert.throws(() => assertBrowserDomIntent({ kind: "click", selector: "[role='menuitemradio']",
     postClickMatch: { selector: "[role='menuitemradio']", expectedMatches: 1,
-      readEligibility: "non-actionable-inert-state" } }), /BROWSER_COMMAND_PERMIT_INVALID/u);
+      readEligibility: "non-actionable-inert-state" as never } }), /BROWSER_COMMAND_PERMIT_INVALID/u);
 };
 const userPromptFixture = () => {
   const userPrompt = "[GRASSEYE:exact-user-prompt]\napproved prompt";
@@ -454,7 +451,7 @@ const exerciseInvalidObservationUrls = async (
 export const exerciseCapturedObservationFunction = async (source: string): Promise<void> => {
   const observationDocument = await exerciseObservationRejections(source);
   await exerciseHiddenStateRead(source);
-  await exerciseInertStateReadOnly(source);
+  await exerciseInertStateRejection(source);
   await exerciseEditablePromptHashes(source);
   await exerciseUserPromptHashes(source);
   await exerciseAssistantSemanticTextHash(source);

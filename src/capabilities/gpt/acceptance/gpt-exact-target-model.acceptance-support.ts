@@ -8,8 +8,12 @@ import { execute, profile } from "./gpt-exact-target-profile-fixture.js";
 const selectorFacts = (state: "closed" | "open" | "transition") => ({
   "openable-entry": { rawCount: state === "closed" ? 1 : 0,
     eligibleCount: state === "closed" ? 1 : 0 },
-  "expanded-entry": { rawCount: state === "open" ? 1 : 0,
-    eligibleCount: state === "open" ? 1 : 0 },
+  "specified-model": { rawCount: state === "transition" ? 0 : 2,
+    eligibleCount: state === "open" ? 1 : 0,
+    rejections: state === "transition" ? [] : state === "open"
+      ? [{ index: 0, reasons: ["TEXT_MISMATCH"] }]
+      : [{ index: 0, reasons: ["OPACITY_HIDDEN"] },
+        { index: 1, reasons: ["OPACITY_HIDDEN", "TEXT_MISMATCH"] }] },
 });
 
 const choiceFacts = (input: Readonly<{
@@ -40,8 +44,10 @@ const verifyModelOpen = async (): Promise<void> => {
       if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTOR_OPENABLE_ENTRY) {
         assert.equal(intent.postClickMinimumDelayMs, 2_500);
         assert.equal(intent.postClickMatch?.expectedMatches, 1);
+        assert.equal(intent.postClickMatch?.selector, "[role='menuitemradio']");
+        assert.equal(intent.postClickMatch?.textEquals, profile.startModelDisplayName);
         state = "open";
-        return { postconditionVerified: true, postconditionRawCount: 1,
+        return { postconditionVerified: true, postconditionRawCount: 2,
           postconditionEligibleCount: 1 };
       }
       throw new Error(`UNEXPECTED_MODEL_OPEN_INTENT:${intent.kind}`);
@@ -53,6 +59,20 @@ const verifyModelOpen = async (): Promise<void> => {
   }
 };
 
+const verifyDuplicateSpecifiedModelFailsClosed = async (): Promise<void> => {
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind === "observe") return coherentObservationPacket(intent, {
+      ...selectorFacts("open"),
+      "specified-model": { rawCount: 3, eligibleCount: 2,
+        rejections: [{ index: 0, reasons: ["TEXT_MISMATCH"] }] },
+    });
+    throw new Error(`DUPLICATE_MODEL_MUST_NOT_ACT:${intent.kind}`);
+  });
+  const result = await execute("open_gpt_model_selector_v3", fixture.browser, { profile });
+  assert.equal(result.status, "failed");
+  assert.equal(fixture.physicalMutations(), 0);
+};
+
 const verifySelectorTransitionFailsClosed = async (): Promise<void> => {
   const fixture = fakeBrowser((intent) => {
     if (intent.kind === "observe") return coherentObservationPacket(intent, selectorFacts("transition"));
@@ -60,7 +80,7 @@ const verifySelectorTransitionFailsClosed = async (): Promise<void> => {
   });
   const result = await execute("open_gpt_model_selector_v3", fixture.browser, { profile });
   assert.equal(result.status, "failed");
-  assert.equal(result.failureCode, "GPT_MODEL_SELECTOR_V3_STATE_INVALID:openableEntry=0:expandedEntry=0");
+  assert.equal(result.failureCode, "GPT_MODEL_SELECTOR_V3_STATE_INVALID:openableEntry=0:specifiedModel=0");
   assert.deepEqual(fixture.waitDurations(), [1_500, 3_000]);
   assert.equal(fixture.physicalMutations(), 0);
 };
@@ -87,8 +107,8 @@ const verifyModelSelection = async (): Promise<void> => {
     assert.equal(result.status, "success", result.failureCode ?? "model selection failed");
     assert.equal(result.value?.modelDisplayName, "GPT-5.6 Sol");
     assert.equal(result.value?.previousChecked, checked);
-    assert.equal(result.value?.state, checked === "true" ? "already-selected" : "model-selected");
-    assert.equal(fixture.physicalMutations(), checked === "true" ? 0 : 1);
+    assert.equal(result.value?.state, "model-selected");
+    assert.equal(fixture.physicalMutations(), 1);
   }
 };
 
@@ -103,11 +123,11 @@ const verifyMissingStartFailsClosed = async (): Promise<void> => {
   assert.equal(fixture.physicalMutations(), 0);
 };
 
-const verifyExplicitLatestDowngrade = async (): Promise<void> => {
+const verifyLatestUnavailableFailsClosed = async (): Promise<void> => {
   const latestProfile = buildGptExecutionProfile({
     profileRef: "acceptance:gpt-latest-start",
     startModelDisplayName: "最新",
-    startReasoningTier: "high",
+    requestedReasoningValue: 4,
     executorIdentityRef: "acceptance:executor",
     acceptanceRef: "acceptance:gpt-exact-target",
     acceptanceVersion: "v1",
@@ -118,9 +138,8 @@ const verifyExplicitLatestDowngrade = async (): Promise<void> => {
     throw new Error(`EXPLICIT_DOWNGRADE_MUST_NOT_CLICK:${intent.kind}`);
   });
   const result = await execute("select_gpt_model_from_start_v3", fixture.browser, { profile: latestProfile });
-  assert.equal(result.status, "success", result.failureCode ?? "latest-to-Sol downgrade failed");
-  assert.equal(result.value?.modelDisplayName, "GPT-5.6 Sol");
-  assert.equal(result.value?.state, "already-selected");
+  assert.equal(result.status, "failed", "latest unavailable must never select Sol");
+  assert.equal(result.value, null);
   assert.equal(fixture.physicalMutations(), 0);
 };
 
@@ -140,9 +159,10 @@ const verifySelectedCountConflictFailsClosed = async (): Promise<void> => {
 
 export const exerciseExactModelSelection = async (): Promise<void> => {
   await verifyModelOpen();
+  await verifyDuplicateSpecifiedModelFailsClosed();
   await verifySelectorTransitionFailsClosed();
   await verifyModelSelection();
   await verifyMissingStartFailsClosed();
-  await verifyExplicitLatestDowngrade();
+  await verifyLatestUnavailableFailsClosed();
   await verifySelectedCountConflictFailsClosed();
 };

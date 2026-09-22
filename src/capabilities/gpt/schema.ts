@@ -3,12 +3,6 @@ import { parse } from "node:path";
 
 import { z } from "zod";
 import { executionFailure } from "../../lib/execution-failure.js";
-export const GptReasoningTierSchema = z.enum([
-  "high",
-  "extra_high",
-  "pro_standard",
-]);
-
 export const GptExecutionProfileSchema = z.object({
   schemaVersion: z.literal("gpt-execution-profile.v3"),
   profileRef: z.string().min(1).max(512),
@@ -17,13 +11,12 @@ export const GptExecutionProfileSchema = z.object({
   provider: z.literal("openai-chatgpt"),
   transport: z.literal("gpt-web"),
   startModelDisplayName: z.enum(["最新", "GPT-5.6 Sol"]),
-  startReasoningTier: GptReasoningTierSchema,
+  requestedReasoningValue: z.number().int().min(0).max(5),
   executorIdentityRef: z.string().min(1).max(512),
   acceptanceRef: z.string().min(1).max(512),
   acceptanceVersion: z.string().min(1).max(120),
 }).strict();
 
-export type GptReasoningTier = z.infer<typeof GptReasoningTierSchema>;
 export type GptExecutionProfile = z.infer<typeof GptExecutionProfileSchema>;
 
 const hashProfile = (profile: Omit<GptExecutionProfile, "profileHash">): `sha256:${string}` =>
@@ -62,7 +55,7 @@ export const normalizeGptProviderAttachmentLabel = (
 export const buildGptExecutionProfile = (input: Readonly<{
   profileRef: string;
   startModelDisplayName: GptExecutionProfile["startModelDisplayName"];
-  startReasoningTier: GptReasoningTier;
+  requestedReasoningValue: number;
   executorIdentityRef: string;
   acceptanceRef: string;
   acceptanceVersion: string;
@@ -73,7 +66,7 @@ export const buildGptExecutionProfile = (input: Readonly<{
     provider: "openai-chatgpt" as const,
     transport: "gpt-web" as const,
     startModelDisplayName: input.startModelDisplayName,
-    startReasoningTier: input.startReasoningTier,
+    requestedReasoningValue: input.requestedReasoningValue,
     executorIdentityRef: input.executorIdentityRef,
     acceptanceRef: input.acceptanceRef,
     acceptanceVersion: input.acceptanceVersion,

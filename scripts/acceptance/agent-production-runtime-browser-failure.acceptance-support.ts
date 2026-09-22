@@ -338,6 +338,8 @@ export const verifyAttemptFailureReadbackRuntimeContract = async (): Promise<voi
 
   await verifyWaitNewAttempt();
 
+  await verifyUnresolvedBrowserMutationDoesNotStarveClaimRecovery();
+
   await verifyClaimTimeFirstFactConflict();
 
   for (const scenario of [
@@ -354,4 +356,45 @@ export const verifyAttemptFailureReadbackRuntimeContract = async (): Promise<voi
   await verifyActiveProviderEffectCarrier();
 
   await verifyConsumeCurrentResult();
+};
+
+const verifyUnresolvedBrowserMutationDoesNotStarveClaimRecovery = async (): Promise<void> => {
+  const directory = await mkdtemp(join(tmpdir(), "agent-unresolved-browser-claim-recovery-"));
+  const store = new RuntimeStore(directory);
+  try {
+    const websiteTask = task({ jobId: "job:wait-new-unrelated-browser-mutation",
+      productId: "payment_screenshot_observation", actionId: "observe" });
+    const job = claimTask(websiteTask);
+    store.acceptTask(websiteTask, job.grant.attempt_id);
+    const failure = attemptFailureFirstFact(job.grant.attempt_id,
+      serializeTerminalFailureTransport(executionFailure("failed", "BROWSER_POSTCONDITION_FAILED")));
+    store.recordAttemptFailure(job.job_id, job.grant.attempt_id, failure);
+    const remoteFailure = { ...failure.failure_core, from_status: "failed", to_status: "failed",
+      attempt_id: job.grant.attempt_id, lease_version: job.grant.lease_version };
+    const remote = { ...failureStatus(job.job_id, remoteFailure, []),
+      next_action_code: "WAIT_NEW_ATTEMPT" };
+    let released = 0;
+    let unresolved = true;
+    const state = {
+      store,
+      session: { request: async () => remote },
+      browserAuthority: {
+        hasUnresolvedBrowserMutation: () => unresolved,
+        releaseJobBoundTarget: async () => { released += 1; },
+      },
+      abort: new AbortController(),
+    } as never;
+    await reconcilePendingAttemptFailures(state);
+    assert.equal(released, 0,
+      "an unrelated unresolved Browser mutation must not make pre-claim recovery wait for target release");
+    assert.deepEqual(store.readTask(job.job_id)?.attempt_failure, failure,
+      "deferred release must retain the immutable failed-attempt authority");
+    unresolved = false;
+    await reconcilePendingAttemptFailures(state);
+    assert.equal(released, 1, "the deferred release must resume after the Browser mutation settles");
+    assert.equal(store.readTask(job.job_id)?.current_reason, "WAIT_NEW_ATTEMPT");
+  } finally {
+    store.close();
+    await rm(directory, { recursive: true, force: true });
+  }
 };

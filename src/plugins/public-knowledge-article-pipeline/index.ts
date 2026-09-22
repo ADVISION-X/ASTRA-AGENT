@@ -76,7 +76,7 @@ const produceArticleTurn = async (
     files: [],
     prompt: articlePrompt(task, marker, context.routePolicy, research),
     ordinals: [27, 28, 29, 30, 31, 32],
-    prepare: () => applyExactProfile(flow.execute, stepId, [21, 22, 23, 24, 25, 26]),
+    prepare: () => applyExactProfile(flow.execute, stepId, [21, 22, 23, 25, 26]),
   });
   return Object.freeze({
     checkpoint,

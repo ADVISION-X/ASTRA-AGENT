@@ -152,20 +152,16 @@ export const applyProfile = async (
   flow: OwnedExecution,
   stepId: string,
   profile: typeof MODEL_PROFILE,
-  ordinals: readonly [number, number, number, number, number, number],
+  ordinals: readonly [number, number, number, number, number],
 ): Promise<void> => {
   const open = { productStepId: stepId, callId: "profile-open", child: "open_gpt_execution_profile", actionOrdinal: ordinals[0], input: { profile } } as const;
   const selector = { productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v3", actionOrdinal: ordinals[1], input: { profile } } as const;
   const model = { productStepId: stepId, callId: "model-select", child: "select_gpt_model_from_start_v3", actionOrdinal: ordinals[2], input: { profile } } as const;
-  const reopen = { productStepId: stepId, callId: "profile-open-after-model", child: "open_gpt_execution_profile", actionOrdinal: ordinals[3], input: { profile } } as const;
-  const close = { productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[5], input: { profile } } as const;
+  const close = { productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[4], input: { profile } } as const;
   await flow.execute(open);
   await flow.execute(selector);
-  const selected = await flow.execute(model) as ProductGptChildResult<"select_gpt_model_from_start_v3">;
-  await flow.execute(reopen);
-  const reasoning = { productStepId: stepId, callId: "reasoning-select", child: "select_gpt_reasoning_from_start_v3", actionOrdinal: ordinals[4], input: { profile, actualModelDisplayName: selected.value.modelDisplayName,
-    modelTargetRefHash: selected.value.targetRefHash,
-    modelDocumentRefHash: selected.value.documentRefHash } } as const;
+  await flow.execute(model);
+  const reasoning = { productStepId: stepId, callId: "reasoning-select", child: "select_gpt_reasoning_from_start_v3", actionOrdinal: ordinals[3], input: { profile } } as const;
   await flow.execute(reasoning);
   await flow.execute(close);
 };
@@ -276,7 +272,7 @@ export const runTurn = async (
   }
   await flow.execute({ productStepId: stepId, callId: "fresh-chat",
     child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } });
-  await applyProfile(flow, stepId, MODEL_PROFILE, [2, 3, 4, 5, 6, 7]);
+  await applyProfile(flow, stepId, MODEL_PROFILE, [2, 3, 4, 6, 7]);
   await applyAttachments(flow, context, stepId,
     context.materials.map((material) => material.role), [8, 9, 10]);
   return submitTurn(flow, stepId, prompt, marker, files, [11, 12, 13, 14, 15, 16]);

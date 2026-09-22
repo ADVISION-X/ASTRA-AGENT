@@ -138,7 +138,7 @@ const observationExecutionValue = (input: ExecutionValueInput): ExecutionValue |
   if (call.child === "select_gpt_model_from_start_v3") return { value: {
     modelDisplayName: call.input.profile.startModelDisplayName,
     targetRefHash: FIXTURE_HASH, documentRefHash: FIXTURE_HASH,
-    previousChecked: "true", selectionVersion: "gpt-model-selection.v3", state: "already-selected",
+    previousChecked: "true", selectionVersion: "gpt-model-selection.v3", state: "model-selected",
   } };
   if (call.child === "reconcile_gpt_attachment_set") return attachmentExecutionValue(input);
   if (call.child === "submit_exact_gpt_turn_once") {

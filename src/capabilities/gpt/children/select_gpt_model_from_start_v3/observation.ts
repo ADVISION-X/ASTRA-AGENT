@@ -18,7 +18,7 @@ type ModelChoice = Readonly<{
   inert: boolean | null;
 }>;
 export type ModelChoiceState = Readonly<{
-  choices: readonly ModelChoice[];
+  choice: ModelChoice;
   selectedRawCount: number;
   targetRefHash: `sha256:${string}`;
   documentRefHash: `sha256:${string}`;
@@ -32,9 +32,8 @@ export const modelChoiceQuery = (name: ModelName): BrowserDomObservationQuery =>
   maxMatches: 2,
   fields: ["ariaChecked", "ariaDisabled", "disabled", "inert"] as const,
 });
-const QUERIES = Object.freeze([
-  modelChoiceQuery("最新"),
-  modelChoiceQuery("GPT-5.6 Sol"),
+const queries = (name: ModelName) => Object.freeze([
+  modelChoiceQuery(name),
   { queryId: "selected-model-count", selector: "[role='menuitemradio'][aria-checked='true']",
     maxMatches: 2, fields: [] },
 ] satisfies readonly BrowserDomObservationQuery[]);
@@ -51,8 +50,10 @@ export const projectModelChoiceState = (observation: GptCoherentObservation): Mo
       inert: typeof first?.inert === "boolean" ? first.inert : null,
     });
   };
+  const modelRow = observation.rows.find((row) => row.queryId !== "selected-model-count")!;
+  const modelName = modelRow.queryId === "latest-model" ? "最新" : "GPT-5.6 Sol";
   return Object.freeze({
-    choices: Object.freeze([choice("最新"), choice("GPT-5.6 Sol")]),
+    choice: choice(modelName),
     selectedRawCount: observation.rows.find((row) => row.queryId === "selected-model-count")!.rawCount,
     targetRefHash: observation.targetRefHash,
     documentRefHash: observation.documentRefHash,
@@ -65,20 +66,13 @@ export const readModelChoiceState = async (
   start: ModelName,
   signal?: AbortSignal,
 ): Promise<ModelChoiceState> => projectModelChoiceState(await readConfirmedCoherentObservation(
-  browser, QUERIES, (observation) => {
+  browser, queries(start), (observation) => {
     const state = projectModelChoiceState(observation);
-    if (state.selectedRawCount > 1 || state.choices.some((choice) => choice.count > 1)) return "HARD_FAIL";
-    const suffix = start === "最新" ? state.choices : state.choices.slice(1);
-    const first = suffix[0]!;
+    if (state.selectedRawCount > 1 || state.choice.count > 1) return "HARD_FAIL";
+    const first = state.choice;
     if (first.count === 0) return "TRANSIENT_DOM";
     if (first.count !== 1 || !["true", "false"].includes(first.checked ?? "")
       || first.ariaDisabled === null || first.disabled === null || first.inert !== false) return "HARD_FAIL";
-    if (first.ariaDisabled && suffix.length === 2) {
-      const next = suffix[1]!;
-      if (next.count === 0) return "TRANSIENT_DOM";
-      if (next.count !== 1 || !["true", "false"].includes(next.checked ?? "")
-        || next.ariaDisabled === null || next.disabled === null || next.inert !== false) return "HARD_FAIL";
-    }
     return "STABLE_ACT";
   }, signal,
 ));

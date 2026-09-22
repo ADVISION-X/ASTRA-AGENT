@@ -20,7 +20,7 @@ type PointerClickIntent = Extract<Parameters<typeof executeRegisteredDomIntent>[
 }>;
 
 const exerciseReasoningSlider = async (): Promise<void> => {
-  for (const [key, virtualKeyCode, repeat] of [["ArrowLeft", 37, 1], ["ArrowRight", 39, 4]] as const) {
+  for (const [key, virtualKeyCode, repeat] of [["ArrowLeft", 37, 1], ["ArrowRight", 39, 5]] as const) {
     const events: Readonly<Record<string, unknown>>[] = [];
     const runtime = { awaitPageReadPermission: noPageReadBarrier,
       async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {

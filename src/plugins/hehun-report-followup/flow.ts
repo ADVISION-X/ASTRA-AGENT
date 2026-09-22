@@ -25,7 +25,7 @@ const WAIT_TIMEOUT_MS = 3_600_000;
 const MODEL_PROFILE = buildGptExecutionProfile({
   profileRef: `${PLUGIN_ID}:gpt-5.6-sol-pro-standard`,
   startModelDisplayName: "GPT-5.6 Sol",
-  startReasoningTier: "pro_standard",
+  requestedReasoningValue: 5,
   executorIdentityRef: PLUGIN_ID,
   acceptanceRef: `${PLUGIN_ID}:production`,
   acceptanceVersion: "v1",
@@ -127,20 +127,16 @@ const promptFor = (
 const applyProfile = async (
   flow: OwnedExecution,
   stepId: string,
-  ordinals: readonly [number, number, number, number, number, number],
+  ordinals: readonly [number, number, number, number, number],
 ): Promise<void> => {
   const open = { productStepId: stepId, callId: "profile-open", child: "open_gpt_execution_profile", actionOrdinal: ordinals[0], input: { profile: MODEL_PROFILE } } as const;
   const selector = { productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v3", actionOrdinal: ordinals[1], input: { profile: MODEL_PROFILE } } as const;
   const model = { productStepId: stepId, callId: "model-select", child: "select_gpt_model_from_start_v3", actionOrdinal: ordinals[2], input: { profile: MODEL_PROFILE } } as const;
-  const reopen = { productStepId: stepId, callId: "profile-open-after-model", child: "open_gpt_execution_profile", actionOrdinal: ordinals[3], input: { profile: MODEL_PROFILE } } as const;
-  const close = { productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[5], input: { profile: MODEL_PROFILE } } as const;
+  const close = { productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[4], input: { profile: MODEL_PROFILE } } as const;
   await flow.execute(open);
   await flow.execute(selector);
-  const selected = await flow.execute(model) as ProductGptChildResult<"select_gpt_model_from_start_v3">;
-  await flow.execute(reopen);
-  const reasoning = { productStepId: stepId, callId: "reasoning-select", child: "select_gpt_reasoning_from_start_v3", actionOrdinal: ordinals[4], input: { profile: MODEL_PROFILE, actualModelDisplayName: selected.value.modelDisplayName,
-    modelTargetRefHash: selected.value.targetRefHash,
-    modelDocumentRefHash: selected.value.documentRefHash } } as const;
+  await flow.execute(model);
+  const reasoning = { productStepId: stepId, callId: "reasoning-select", child: "select_gpt_reasoning_from_start_v3", actionOrdinal: ordinals[3], input: { profile: MODEL_PROFILE } } as const;
   await flow.execute(reasoning);
   await flow.execute(close);
 };
@@ -221,7 +217,7 @@ const runFreshTurn = async (
   if (!submitResult) {
     const fresh = { productStepId: stepId, callId: "fresh-chat", child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 } } as const;
     await flow.execute(fresh);
-    await applyProfile(flow, stepId, [2, 3, 4, 5, 6, 7]);
+    await applyProfile(flow, stepId, [2, 3, 4, 6, 7]);
     await applyAttachments(flow, context, stepId, [8, 9, 10]);
     await flow.execute({ productStepId: stepId, callId: "prompt-write",
       child: "write_exact_gpt_prompt", actionOrdinal: 11, input: { prompt } });

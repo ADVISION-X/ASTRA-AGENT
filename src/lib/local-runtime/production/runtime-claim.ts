@@ -257,6 +257,11 @@ export const reconcilePendingAttemptFailures = async (state: RuntimeState): Prom
     }
     if (remote.next_action_code === "WAIT_NEW_ATTEMPT"
       || remote.next_action_code === "CONSUME_CURRENT_RESULT") {
+      if (remote.next_action_code === "WAIT_NEW_ATTEMPT"
+        && remote.current_reason?.code !== "PRIVACY_SUBJECT_CLOSED"
+        && state.browserAuthority.hasUnresolvedBrowserMutation()) {
+        continue;
+      }
       await applyRemoteFailureDisposition(state, task, remote, failure);
       continue;
     }

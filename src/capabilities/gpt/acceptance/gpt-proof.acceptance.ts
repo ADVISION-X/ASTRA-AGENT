@@ -23,7 +23,7 @@ import {
 const profile = buildGptExecutionProfile({
   profileRef: "acceptance:proof-profile",
   startModelDisplayName: "GPT-5.6 Sol",
-  startReasoningTier: "pro_standard",
+  requestedReasoningValue: 5,
   executorIdentityRef: "acceptance:executor",
   acceptanceRef: "acceptance:gpt-proof",
   acceptanceVersion: "v1",
@@ -33,7 +33,7 @@ verifyStoppedEmptyRecoveryContract();
 
 const modelFacts = (open: boolean) => ({
   "openable-entry": { rawCount: open ? 0 : 1, eligibleCount: open ? 0 : 1 },
-  "expanded-entry": { rawCount: open ? 1 : 0, eligibleCount: open ? 1 : 0 },
+  "specified-model": { rawCount: 2, eligibleCount: open ? 1 : 0 },
 });
 
 const doneHarness = createGptAcceptanceHarness("gpt-proof-done");
@@ -44,8 +44,8 @@ const doneFixture = fakeBrowser((intent) => {
 const done = await doneHarness.execute("open_gpt_model_selector_v3", doneFixture.browser, { profile });
 assert.equal(done.status, "success", done.failureCode ?? "DONE proof failed");
 assert.equal(done.proof.internalDecisionCode, "DONE");
-assert.deepEqual(done.proof.candidateCardinality, { raw: 1, eligible: 1 },
-  "GPT selector DONE is proved by the expanded menu entry");
+assert.deepEqual(done.proof.candidateCardinality, { raw: 2, eligible: 1 },
+  "GPT selector DONE is proved by the exact visible model option");
 assert.equal(done.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
 assert.equal(done.proof.committedMutation, "no");
 assert.equal(done.proof.browserFact, null);
@@ -124,7 +124,7 @@ const actFixture = fakeBrowser((intent) => {
   if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTOR_OPENABLE_ENTRY) {
     open = true;
     return { postconditionVerified: true,
-      postconditionRawCount: 1, postconditionEligibleCount: 1 };
+      postconditionRawCount: 2, postconditionEligibleCount: 1 };
   }
   throw new Error(`UNEXPECTED_ACT_PROOF_INTENT:${intent.kind}`);
 });
@@ -145,7 +145,7 @@ const zeroActionFixture = fakeBrowser((intent) => {
   if (intent.kind === "click") {
     zeroActionOpened = true;
     return { mutationCount: 0, postconditionVerified: true, zeroActionSatisfied: true,
-      postconditionRawCount: 1, postconditionEligibleCount: 1 };
+      postconditionRawCount: 2, postconditionEligibleCount: 1 };
   }
   throw new Error(`UNEXPECTED_ZERO_ACTION_MODEL_INTENT:${intent.kind}`);
 });

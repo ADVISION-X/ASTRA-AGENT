@@ -6,7 +6,7 @@ export const PRODUCT_INSTRUCTION =
 export const MODEL_PROFILE = buildGptExecutionProfile({
   profileRef: `${PLUGIN_ID}:gpt-5.6-sol-pro-standard`,
   startModelDisplayName: "GPT-5.6 Sol",
-  startReasoningTier: "pro_standard",
+  requestedReasoningValue: 5,
   executorIdentityRef: PLUGIN_ID,
   acceptanceRef: `${PLUGIN_ID}:production`,
   acceptanceVersion: "v1",

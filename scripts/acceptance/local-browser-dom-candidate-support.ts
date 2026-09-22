@@ -55,6 +55,23 @@ const exercisePointerQualification = async (source: string): Promise<void> => {
   }), "BROWSER_DOM_READ_INVALID", "scope plus target candidates must share the 256 budget");
 };
 
+const exerciseRequiredClickPoint = async (source: string): Promise<void> => {
+  const thumb = new FakeElement("", {}, { pointerEvents: "none" }, { "aria-hidden": "true" });
+  thumb.getBoundingClientRect = () => ({ left: 7, top: 2, right: 9, bottom: 4, width: 2, height: 2 });
+  const slider = new FakeElement("", { thumb: [thumb] }, {}, {}, "DIV", [thumb]);
+  const root = new FakeElement("", { slider: [slider] }, {}, {}, "MAIN", [slider]);
+  const document = { documentElement: root, elementFromPoint: () => thumb };
+  const request = { selector: "slider", clickPointSelector: "thumb", output: "pointer" };
+  assert.equal(JSON.stringify(await execute(source, document, request)), JSON.stringify({ x: 8, y: 3 }),
+    "a hidden non-interactive thumb may locate one click inside its actionable slider ancestor");
+  const missing = new FakeElement("", { thumb: [] }, {}, {}, "DIV");
+  const missingRoot = new FakeElement("", { slider: [missing] }, {}, {}, "MAIN", [missing]);
+  assert.equal(await execute(source, { documentElement: missingRoot, elementFromPoint: () => missing }, request),
+    "BROWSER_DOM_ACTION_HIT_TEST_FAILED");
+  assert.equal(await execute(source, { ...document, elementFromPoint: () => new FakeElement("overlay") }, request),
+    "BROWSER_DOM_ACTION_HIT_TEST_FAILED");
+};
+
 const outgoingFixture = () => {
   const prompt = "approved prompt";
   const composer = new FakeElement(prompt, {}, {}, { contenteditable: "true" }, "DIV", [new FakeTextNode(prompt)]);
@@ -188,6 +205,7 @@ const exerciseOutgoingRejections = async (source: string): Promise<void> => {
 
 export const exerciseCapturedCandidateFunction = async (source: string): Promise<void> => {
   await exercisePointerQualification(source);
+  await exerciseRequiredClickPoint(source);
   await exerciseOutgoingAttachmentIdentity(source);
   await exerciseOutgoingRejections(source);
 };

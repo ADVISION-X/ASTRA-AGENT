@@ -136,7 +136,7 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
     if (facts.ariaHidden && !(checkText && spec.readEligibility === "non-actionable-aria-state")) {
       reasons.push("ARIA_HIDDEN");
     }
-    if (facts.inert && !(checkText && spec.readEligibility === "non-actionable-inert-state")) {
+    if (facts.inert) {
       reasons.push("INERT");
     }
     if (checkText && ((spec.textContains !== undefined && !(node.textContent || "").includes(spec.textContains))

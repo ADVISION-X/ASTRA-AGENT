@@ -62,11 +62,11 @@ Website claim + lease/grant/fence
 | Runtime 运行职责 | 只通过 typed interface 消费 | 明确不拥有 |
 |---|---|---|
 | credential read、session、claim、durable accept、attempt、lease/fence | Website control intent、claim/grant/fence、business admission receipt | Website 业务准入、任务创建、领域入库、公开状态 |
-| Runtime 当前授权的运输、lease/fence 与 typed failure | Browser effect WAL、GPT 当前 Child 结果 | Product 静态 Flow、Prompt、各技能起始模型/推理档、Child 顺序与结果组装；GPT 对实际配型的局部裁决 |
+| Runtime 当前授权的运输、lease/fence 与 typed failure | Browser effect WAL、GPT 当前 Child 结果 | Product 静态 Flow、Prompt、各技能精确模型/0..5 推理目标、Child 顺序与结果组装；GPT 只作当前滑杆上限数值截断 |
 | product-opaque failure、健康与诊断安全投影 | Runtime Log 的单写者接口 | Browser 私有 WAL、Target/Document、Runtime Log 事实正文 |
 | 唯一 Runtime inspector、acceptance 与 Runtime-only proof | 相邻能力权威已签发的 typed receipt，不复制证明正文 | 第二 checker、proof、queue、store、receipt、verdict 或兼容链 |
 
-Manifest primary Owner 只表示路径治理。Product runtime authority 只拥有静态 Flow、Prompt、每个技能的起始模型/推理档、Child 顺序与结果组装，不拥有 Website 恢复决定或 Provider session store。GPT 在该起点的授权后缀内按当前 Browser 事实选择实际模型/推理档，只执行当前 turn；Runtime 只做当前 task/attempt 的 typed 转交；Website Bazi sender 唯一提供已入库且精确绑定的父报告材料，Browser 唯一拥有 WAL 与 FIFO。
+Manifest primary Owner 只表示路径治理。Product runtime authority 只拥有静态 Flow、Prompt、每个技能的精确模型与 0..5 整数推理目标、Child 顺序与结果组装，不拥有 Website 恢复决定或 Provider session store。GPT 不替换指定模型，只在该模型当前页面滑杆下计算 min(要求值, 上限) 并精确读回；Runtime 只做当前 task/attempt 的 typed 转交；Website Bazi sender 唯一提供已入库且精确绑定的父报告材料，Browser 唯一拥有 WAL 与 FIFO。
 
 `business_recovery_decision_owner_count = 1`，唯一 Owner 是 `Website.ai-acceptance`。target_local+REJECTED 的 no/dispatched/confirmed 或 provider_effect+no 时 Website 可结束旧 attempt并有限退避后签发新 attempt；provider_effect+dispatched/confirmed 时保留同一 accepted attempt并只授权同 effect跨进程读回，physical submit增量恒为零；target_local+DISPATCHED、target_local+CONFIRMED+confirmed、缺失、非法、矛盾或 stale lease事实失败关闭。Website 明确拒绝已取得结果后，可签发新 result revision。旧 fence 的迟到写请求全部拒绝。
 

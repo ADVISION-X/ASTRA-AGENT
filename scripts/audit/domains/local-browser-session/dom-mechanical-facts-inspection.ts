@@ -208,8 +208,7 @@ const inspectMechanicalContract = (
     "BrowserDomObservationPacketV2", "exactCallIdentityHash", "targetRefHash", "documentRefHash",
     "currentUrl", "observationRevisionHash", "BrowserExactAssistantTurnReplyV3",
     'kind: "readExactAssistantTurn"',
-    'BrowserDomReadEligibility = "non-actionable-aria-state" | "non-actionable-inert-state"',
-    'allowInertObservation && value === "non-actionable-inert-state"',
+    'BrowserDomReadEligibility = "non-actionable-aria-state"',
     "readEligibility?: BrowserDomReadEligibility",
     'BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">'], findings, lawId,
   INTENT_CONTRACT_PATH, "The bounded Browser DOM contract is missing");
