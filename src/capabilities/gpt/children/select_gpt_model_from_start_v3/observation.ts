@@ -17,7 +17,7 @@ type ModelChoice = Readonly<{
   disabled: boolean | null;
   inert: boolean | null;
 }>;
-export type ModelChoiceState = Readonly<{
+type ModelChoiceState = Readonly<{
   choice: ModelChoice;
   selectedRawCount: number;
   targetRefHash: `sha256:${string}`;
@@ -38,7 +38,7 @@ const queries = (name: ModelName) => Object.freeze([
     maxMatches: 2, fields: [] },
 ] satisfies readonly BrowserDomObservationQuery[]);
 
-export const projectModelChoiceState = (observation: GptCoherentObservation): ModelChoiceState => {
+const projectModelChoiceState = (observation: GptCoherentObservation): ModelChoiceState => {
   const choice = (name: ModelName): ModelChoice => {
     const row = observation.rows.find((candidate) => candidate.queryId === modelChoiceQuery(name).queryId)!;
     const first = row.matches[0];

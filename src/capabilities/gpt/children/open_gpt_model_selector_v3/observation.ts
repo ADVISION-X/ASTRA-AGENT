@@ -21,7 +21,7 @@ const queries = (name: GptExecutionProfile["startModelDisplayName"]) => Object.f
     textEquals: name, maxMatches: 2, fields: [] },
 ] satisfies readonly BrowserDomObservationQuery[]);
 
-export const projectModelSelectorState = (observation: GptCoherentObservation): ModelSelectorState => {
+const projectModelSelectorState = (observation: GptCoherentObservation): ModelSelectorState => {
   const count = (id: string) => {
     const row = observation.rows.find((candidate) => candidate.queryId === id);
     return row?.rawCount === 1 && row.eligibleCount === 1 ? 1

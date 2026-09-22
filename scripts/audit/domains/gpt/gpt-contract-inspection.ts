@@ -277,10 +277,9 @@ const inspectProfileContracts = (
   inspectMissingTokens({ source: modelHandler, required: [
     "openGptModelSelectorV3Handler", "selectGptModelFromStartV3Handler",
     "readModelChoiceState", "clickedCandidateAttribute", "selectedReadbackValid",
-    "postClickMatch: { selector: GPT_MODEL_SELECTOR_OPTION",
     "postClickObservation: postcondition(chosen.name)", "record.postconditionObservation",
     "expectedEligibleCount", "decodeCoherentObservationPacket", "modelChoiceQuery",
-    "first.ariaDisabled === true", "selectedRawCount", "modelDisplayName",
+    "chosen.ariaDisabled !== false", "selectedRawCount", "modelDisplayName",
   ], checkId: "gpt/model-selection-v3-handler", filePath: MODEL_HANDLER_PATH,
   findings, finding, message: (required) => `Model selection V3 handler is missing ${required}.` });
   for (const retired of [
@@ -295,7 +294,8 @@ const inspectProfileContracts = (
   const reasoningContract = sourceFor(context, PROFILE_CONTRACT_PATH)?.getFullText() ?? "";
   inspectMissingTokens({ source: reasoningContract, required: [
     "[role='menuitem'][aria-label='能力']", "[data-model-reasoning-effort-slider] [role='slider']",
-    "fast: 0", "medium: 1", "high: 2", "extra_high: 3", "pro_standard: 4",
+    "GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR",
+    "GPT_PROFILE_REASONING_CLICK_SELECTOR", "GPT_PROFILE_REASONING_THUMB_SELECTOR",
   ], checkId: "gpt/reasoning-approved-scale-contract", filePath: PROFILE_CONTRACT_PATH,
   findings, finding, message: (required) => `Reasoning contract is missing ${required}.` });
   const reasoningHandler = sourceTextForPaths(context, PROFILE_HANDLER_PATHS);
@@ -341,10 +341,12 @@ const CONTRACT_V6_CHILDREN = new Set([
   "checkpoint_gpt_generated_image", "checkpoint_gpt_text_response", "submit_exact_gpt_turn_once",
 ]);
 const CONTRACT_V4_CHILDREN = new Set([
-  "open_gpt_model_selector_v3", "select_gpt_model_from_start_v3", "write_exact_gpt_prompt",
-  "select_gpt_reasoning_from_start_v3", "close_gpt_execution_profile",
+  "open_gpt_model_selector_v3", "write_exact_gpt_prompt", "close_gpt_execution_profile",
 ]);
-const CONTRACT_V5_CHILDREN = new Set(["prepare_clean_gpt_chat"]);
+const CONTRACT_V5_CHILDREN = new Set([
+  "prepare_clean_gpt_chat", "select_gpt_model_from_start_v3",
+  "select_gpt_reasoning_from_start_v3",
+]);
 const CONTRACT_V3_CHILDREN = new Set([
   ...PROFILE_CONSUMERS, "reconcile_gpt_attachment_set", "open_gpt_attachment_control",
   "attach_approved_gpt_files_once",
@@ -360,7 +362,10 @@ const expectedContractVersion = (id: string): string => {
 const INPUT_V2_CHILDREN = new Set([
   ...PROFILE_CONSUMERS, "submit_exact_gpt_turn_once",
 ]);
-const INPUT_V3_CHILDREN = new Set(["checkpoint_gpt_text_response", "checkpoint_gpt_generated_image"]);
+const INPUT_V3_CHILDREN = new Set([
+  "checkpoint_gpt_text_response", "checkpoint_gpt_generated_image",
+  "select_gpt_reasoning_from_start_v3",
+]);
 
 const inspectProfileSchema = (
   context: InspectorContext,

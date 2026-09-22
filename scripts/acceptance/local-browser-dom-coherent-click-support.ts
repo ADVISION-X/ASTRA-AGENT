@@ -89,6 +89,30 @@ const coherentRuntimeFor = (
     atomicSource: () => atomicSource };
 };
 
+const exerciseRequiredSliderClick = async (target: never): Promise<void> => {
+  const alreadySelected = coherentRuntimeFor(true, 1);
+  const requiredClick = { kind: "click", selector: "[data-model-reasoning-effort-slider]",
+    expectedMatches: 1,
+    requiredClickPointSelector: "[data-model-reasoning-effort-slider-thumb]",
+    postClickMatch: { selector: "[role='slider'][aria-valuenow='3']", expectedMatches: 1,
+      readEligibility: "non-actionable-aria-state" } } as const;
+  const requiredResult = await executeRegisteredDomIntent(alreadySelected.runtime, target,
+    requiredClick, () => undefined) as Readonly<Record<string, unknown>>;
+  assert.equal(alreadySelected.pointerEvents(), 3,
+    "an already satisfied reasoning value must still dispatch one complete mouse click");
+  assert.equal(requiredResult.mutationCount, 1);
+  const requiredCommand = { kind: "dom-intent", intent: requiredClick } as never;
+  const requiredReceipt = decodeBrowserMutationReceipt(requiredCommand, requiredResult);
+  assert.equal(requiredReceipt.mutationOutcome, "confirmed");
+  assert.equal(requiredReceipt.physicalInputCount, 1);
+  assert.throws(() => decodeBrowserMutationReceipt(requiredCommand, {
+    candidateCount: 1, identityRevalidated: true, mutationCount: 0,
+    postconditionVerified: true, zeroActionSatisfied: true,
+    postconditionRawCount: 1, postconditionEligibleCount: 1, postconditionRejections: [],
+  }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
+  "a required physical click cannot settle from a zero-input receipt");
+};
+
 export const exerciseCoherentClickPostcondition = async (): Promise<void> => {
   const target = {
     tabId: 125, targetRef: "target-125", documentRef: "document-125", navigationEpoch: 1,
@@ -118,27 +142,7 @@ export const exerciseCoherentClickPostcondition = async (): Promise<void> => {
   assert.match(raced.atomicSource(), /if \(postconditionSatisfied\) return \{ kind: "postcondition", observation \};[\s\S]*const scopeRaw = request\.candidate\.scope/u,
     "one Runtime.callFunctionOn snapshot must choose postcondition or a freshly qualified pointer before returning");
   exerciseCapturedCoherentObservationPointerFunction(raced.atomicSource());
-  const alreadySelected = coherentRuntimeFor(true, 1);
-  const requiredClick = { kind: "click", selector: "[data-model-reasoning-effort-slider]",
-    expectedMatches: 1,
-    requiredClickPointSelector: "[data-model-reasoning-effort-slider-thumb]",
-    postClickMatch: { selector: "[role='slider'][aria-valuenow='3']", expectedMatches: 1,
-      readEligibility: "non-actionable-aria-state" } } as const;
-  const requiredResult = await executeRegisteredDomIntent(alreadySelected.runtime, target,
-    requiredClick, () => undefined) as Readonly<Record<string, unknown>>;
-  assert.equal(alreadySelected.pointerEvents(), 3,
-    "an already satisfied reasoning value must still dispatch one complete mouse click");
-  assert.equal(requiredResult.mutationCount, 1);
-  const requiredCommand = { kind: "dom-intent", intent: requiredClick } as never;
-  const requiredReceipt = decodeBrowserMutationReceipt(requiredCommand, requiredResult);
-  assert.equal(requiredReceipt.mutationOutcome, "confirmed");
-  assert.equal(requiredReceipt.physicalInputCount, 1);
-  assert.throws(() => decodeBrowserMutationReceipt(requiredCommand, {
-    candidateCount: 1, identityRevalidated: true, mutationCount: 0,
-    postconditionVerified: true, zeroActionSatisfied: true,
-    postconditionRawCount: 1, postconditionEligibleCount: 1, postconditionRejections: [],
-  }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
-  "a required physical click cannot settle from a zero-input receipt");
+  await exerciseRequiredSliderClick(target);
   const stuck = coherentRuntimeFor(false);
   const rejected = await executeRegisteredDomIntent(stuck.runtime, target, {
     kind: "click", selector: "button", expectedMatches: 1,

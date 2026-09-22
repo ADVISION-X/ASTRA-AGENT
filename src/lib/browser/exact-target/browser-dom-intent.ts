@@ -136,7 +136,6 @@ export type BrowserDomIntent =
     expectedTextEquals?: string;
     expectedMatches?: number;
     scope?: BrowserDomReadScope;
-    /** Dispatch one click at the unique descendant's center, even when the postcondition already holds. */
     requiredClickPointSelector?: string;
     /** Exact approved GPT turn revalidated in the same DOM call that resolves the click point. */
     preClickExactOutgoingTurn?: Readonly<{

@@ -266,12 +266,15 @@ const assertDomActionReceipt = (
   if (!valid) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
 };
 
+const requiresPhysicalClick = (command: BrowserGovernedCommand): boolean =>
+  command.kind === "dom-intent" && command.intent.kind === "click"
+    && command.intent.requiredClickPointSelector !== undefined;
+
 const zeroActionReceiptValid = (
   command: BrowserGovernedCommand,
   value: Readonly<Record<string, unknown>>,
 ): boolean => value.zeroActionSatisfied === true
-  && !(command.kind === "dom-intent" && command.intent.kind === "click"
-    && command.intent.requiredClickPointSelector !== undefined)
+  && !requiresPhysicalClick(command)
   && (value.candidateCount === 1
     || (command.kind === "dom-intent"
       && command.intent.kind === "acknowledgeKnownGptRateLimit"

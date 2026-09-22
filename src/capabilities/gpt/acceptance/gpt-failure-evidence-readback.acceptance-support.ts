@@ -20,14 +20,6 @@ export const exerciseFailedEvidenceReadback = async <K extends GptChildCapabilit
     evidence_ref: result.proof.browserFact?.evidenceRef ?? result.proof.evidenceRef });
 };
 
-export const exerciseReasoningEvidenceReadback = async (
-  result: GptChildCapabilityResult<"select_gpt_reasoning_from_start_v3">,
-  input: GptChildInputMap["select_gpt_reasoning_from_start_v3"],
-): Promise<void> => {
-  assert.equal(result.status, "success");
-  assert.equal(result.reasoningRequirementResult?.requestedValue, input.profile.requestedReasoningValue);
-};
-
 export const exercisePreExecutionFailureEvidence = async (): Promise<void> => {
   const failure = serializeTerminalFailure(executionFailure(
     "failed", "BROWSER_RECONCILIATION_SCOPE_INVALID",

@@ -5,7 +5,6 @@ import { GPT_PROFILE_REASONING_CLICK_SELECTOR, GPT_PROFILE_REASONING_THUMB_SELEC
   "../children/select_gpt_reasoning_from_start_v3/selectors.js";
 import { coherentObservationPacket, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
 import { execute, profile, profileFacts } from "./gpt-exact-target-profile-fixture.js";
-import { exerciseReasoningEvidenceReadback } from "./gpt-failure-evidence-readback.acceptance-support.js";
 
 const requestedProfile = (value: number) => buildGptExecutionProfile({
   profileRef: `acceptance:reasoning:${value}`,
@@ -106,7 +105,8 @@ for (const c of [
   assert.equal(keypresses, c.current === c.target ? 0 : 1);
   assert.equal(sliderClicks, c.current === c.target ? 1 : 0);
   assert.equal(fixture.physicalMutations(), 1);
-  await exerciseReasoningEvidenceReadback(result, reasoningInput(executionProfile));
+  assert.equal(result.status, "success");
+  assert.equal(result.reasoningRequirementResult?.requestedValue, executionProfile.requestedReasoningValue);
 }
 
 for (const enabledControls of [0, 2]) {
