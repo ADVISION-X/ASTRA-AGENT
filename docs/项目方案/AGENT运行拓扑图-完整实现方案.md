@@ -2,7 +2,7 @@
 
 ## 0. 方案状态与唯一结论
 
-状态：**v3 已按本工单授权重新冻结；v2 的冻结语义和 hash 由 Git 历史保留**。本方案把 AGENT—Website 现有交流中已经由现役法案、Blueprint、合同、实现或同事件原始证据证明的状态、字段、时序、Owner、返回事实、消费者和终点固化成唯一可查表单。v3 只改变经授权的模型/推理配型相关原子节点，不借此重构其它链路；冻结只建立代码对照锚点，不证明现役代码已实现或动态工单已通过。
+状态：**v4 按本工单授权解冻并重新冻结；v2/v3 历史由 Git 保留**。本表只精确替换模型/推理配型相关 G03/G15–G17；冻结只建立代码对照锚点，不证明现役代码已实现或动态工单已通过。
 
 **唯一结论**：不再以“某个 409、某个限流弹窗、某次 Tab 轮询”分别设计补丁，也不以“建立完整拓扑”为名批量改代码。必须按以下顺序推进：
 
@@ -539,13 +539,13 @@ R01–R40 来自 AGENT 当前 `website-agent-route-policies.v1.json` 的完整 r
 
 ## 7. `G` 现役 GPT 原子 Child
 
-G01–G14 记录 v2 与当时 `GPT_CHILD_CAPABILITY_CONTRACTS`、`handler-registry.ts` 的一一对应；其中 G04–G06 在 v3 退休且保留原义以供追溯。v3 授权目标只以 G15–G17 接替这三个原子语义；在代码对齐前，它们是已批准的施工锚点，不得冒称现役 Child 已实现或动态证明已通过。其它 G ID 保持原义。
+G01–G14 记录 v2 的原子职责；G04–G06 自 v3 退休且保留历史原义。v4 沿用 G15–G17 唯一现役 ID，不新增 Child；其它 G ID 不变。
 
 | ID | 原子 Child / 状态平面 | 单一责任与动作上限 | 确认政策 | 成功记录、消费者与 readback | 失败/截止未取得证明的记录、报告与回接 |
 |---|---|---|---|---|---|
 | G01 | `acknowledge_known_gpt_rate_limit` / P5-P6 | exact 弹窗 ack，精确 1 次 input | T02+T04+T03 | Child proof + ack WAL + clearance；N16 | incident、`not_cleared`、proof/effect 原样保留；Runtime→Website |
 | G02 | `prepare_clean_gpt_chat` / P5-P6 | 证明 fresh Chat root/清理孤立 draft，`0..1` | T01+T02+T03 | Child proof；Product readback | typed failed proof/effect；Runtime→Website |
-| G03 | `open_gpt_execution_profile` / P5-P6 | 打开 profile，`0..1` | T01+T02+T03 | Child proof；Product | typed failed proof/effect；Runtime→Website |
+| G03 | `open_gpt_execution_profile` / P5-P6 | 打开 profile，`0..1`；允许 slider max=5 | T01+T02+T03；min=0，整数 0<=now<=max<=5 | Child proof；Product | typed failed proof/effect；Runtime→Website |
 | G04 | RETIRED：`open_gpt_model_selector_v2` / P5-P6 | v2 使 Product exact 模型选项可用，`0..1` | v2 T01+T02+T03 | v2 Child proof；由 G15 接替，不再作为新工单执行锚点 | v2 typed failed proof/effect 仍按历史原义解读 |
 | G05 | RETIRED：`select_exact_gpt_model_v2` / P5-P6 | v2 选择 Product exact 模型，精确 1 次 | v2 T03；`aria-checked=true` + selector 退出 | v2 Child proof；由 G16 接替，不再作为新工单执行锚点 | v2 typed failed proof/effect 仍按历史原义解读 |
 | G06 | RETIRED：`ensure_gpt_reasoning_requirement` / P5-P6 | v2 满足 Product 冻结 reasoning，`0..1` | v2 T02+T03 | v2 Child proof；由 G17 接替，不再作为新工单执行锚点 | v2 typed failed proof/effect 仍按历史原义解读 |
@@ -557,9 +557,9 @@ G01–G14 记录 v2 与当时 `GPT_CHILD_CAPABILITY_CONTRACTS`、`handler-regist
 | G12 | `submit_exact_gpt_turn_once` / P5-P6 | 一次 Provider effect，精确 1 次 submit | exact outgoing identity + WAL + T03+T06 | Child proof + provider-effect WAL；Product | S11/S12 与 effect identity 原样保留；Runtime→Website |
 | G13 | `checkpoint_gpt_text_response` / P5-P6 | 读取 exact adjacent assistant text，0 动作 | T07+T08+Product deadline | raw DOM + semantic task artifact + proof；Product | timeout/stopped-empty/typed DOM failure proof；Runtime→Website |
 | G14 | `checkpoint_gpt_generated_image` / P5-P6 | 读取 exact adjacent image bytes，0 动作 | T07+T11+Product deadline | authenticated bytes artifact + proof；Product | timeout/source/identity failure proof；Runtime→Website |
-| G15 | v3 模型子菜单开启 / P5-P6 | 唯一收起态“选择模型”入口，`0..1` 点击；已展开则零输入读回 | T01+T02+T03；点击后独立展开态 `postClickMatch`，不以收起态 inert radio 冒充已展开 | Browser fresh 后置机械 fact → GPT Child success → Product；不决定模型候选 | 入口缺失、多义、点击后未展开或 WAL 未决均返回首个 typed failure，Runtime→Website |
-| G16 | v3 起始后缀模型选择 / P5-P6 | Product 起始模型只取 `[最新,GPT-5.6 Sol]` 后缀；前项同包唯一且 `aria-disabled=true` 才看后项；实际候选已唯一选中则零输入，否则至多点击一次 | T01+T02+T03；点击时同次 mutation 直接 `aria-checked=true` + 退出可操作集合；零输入时 fresh 已选事实；各自后置 Target/Document 双哈希 | 实际模型与后置双哈希仅在调用期 typed success 交 Product→G17；Browser WAL 保存原机械终态 | 普通缺席/瞬态不降级，点击后拒绝/未决不点下一项；首个 typed failure/effect 经 Runtime→Website |
-| G17 | v3 起始后缀推理选择 / P5-P6 | Product 原起始档只取 `[Pro,极高,高]` 后缀；第二次 G03 后，同一 fresh packet 核 G16 实际模型、双哈希连续、已选模型 radio 与当前 slider/禁用 Pro，再 `0..1` 点击 | T01+T02+T03；已选 radio 的 inert 只读不操作；A 为 Sol/Pro 的 `0..4`，B 为 Sol/极高的 `0..3 + Pro[aria-disabled=true]` | 实际模型/档仅在本轮调用期交 Product；不入 Website task/result 或普通 Child 持久账本 | 身份/模型不等、Pro 仅缺席、无明确不可选、点击后拒绝/未决均首个 typed failure/effect 经 Runtime→Website |
+| G15 | v4 模型子菜单开启 / P5-P6 | 唯一“选择模型”入口 `0..1` 点击；真实呈现则零输入 | T01+T02+T03；2500ms 后 fresh 证明子菜单与指定模型选项真实呈现，不以 opacity-hidden 展开入口为唯一后置 | Browser fresh fact→GPT→Product | 未呈现/多义/未决保留 WAL 并 typed failure，不盲点；Runtime→Website |
+| G16 | v4 精确模型选择 / P5-P6 | Product 指定模型唯一且可操作；不论此前是否选中都点击一次，无后缀替代 | T01+T02+T03；核点击节点选中且模型列表关闭 | 精确模型及 Browser WAL 机械终态交 Product | 缺失/禁用/多义/漂移/未决失败；绝不换模型；Runtime→Website |
+| G17 | v4 数值推理选择 / P5-P6 | 紧接 G16，读唯一可用“能力”控件及滑块 min/max/now；目标 min(Product 要求 0..5, 当前 max)，相等时点击滑块柄一次，否则一次有界 keypress | T01+T02+T03；min=0 且 0<=now<=max<=5，Browser 动作确认及 fresh 读回唯一滑块 now=目标 | 数值仅调用期交 Product，不入 Website 持久任务 | 无效/多义/读回不等/未决 typed failure，Runtime→Website |
 
 `DONE/ACT/WAIT/FAIL_CLOSED` 是 Child 内部局部决定字母表，不是 Website job 状态。`WAIT` 只能在同一 Child 的既有 deadline 内 park/reobserve，不能创建新 attempt、新 timer Owner 或新恢复分支。
 
@@ -888,20 +888,21 @@ Skill 是施工纪律守门人，不是运行权威、第二拓扑副本或修�
 | B3 | 项目 Skill 修改未授权 | 另行授权后只允许现有 Skill 引用冻结基线 |
 | B4 | 当前存量工单的活体权威读回和恢复未授权 | 如需处理具体工单，另行授权只读归位及后续精确动作 |
 
-授权人已批准建立并冻结 v2，并在本工单授权对已证模型/推理形态提出 v3、对必要施工图和代码/质检实施精确修改。授权不包含修改冻结 Skill，也不取消法案/施工图优先、主 Codex 自审、只读独立审计、主仓施工和唯一质量入口等阶段门。v3 只有取得本节新 hash 并完成重新冻结，才成为代码对照锚点；此前 v2 仍是已冻结历史基线。
+授权人已批准建立并冻结 v2/v3，本工单授权精确模型与数值截断成为 v4；不修改冻结 Skill，按本轮最新要求由主 Codex 两轮自审，不启动子智能体。v4 新 hash 重新冻结后为代码对照锚点，历史仅由 Git 保留。
 
 ---
 
 ## 16. 文档身份与冻结记录
 
 - 唯一路径：`docs/项目方案/AGENT运行拓扑图-完整实现方案.md`
-- 表单版本：`agent-runtime-topology-form.v3`（本工单重新冻结）
-- supersedes：`agent-runtime-topology-form.v2`（v2 字节与冻结 hash 由 Git 历史保留，不建立并行同职文件）
+- 表单版本：`agent-runtime-topology-form.v4`（本工单重新冻结）
+- supersedes：`agent-runtime-topology-form.v3`（历史由 Git 保留）
 - 状态：`FROZEN / 两轮主 Codex 文档与实现可行性自审已闭合 / 只作为代码对照锚点`
 - 批准人：`授权人（本会话）`
 - 批准时间：`2026-09-22T07:01:49+04:00`
-- 冻结 hash 规范：UTF-8 原文仅删除以 `- v3 冻结规范化 SHA-256：` 和 `- 当前文档规范化 SHA-256：` 开头的两行后执行 SHA-256；v2 历史 hash 行保留。
+- 冻结 hash 规范：UTF-8 原文仅删除以 `- v4 冻结规范化 SHA-256：` 和 `- 当前文档规范化 SHA-256：` 开头的两行后执行 SHA-256；v2/v3 历史 hash 行保留。
 - v2 历史冻结规范化 SHA-256：`74d8b9d3ef88f7290bb7309447064f9da1568b3e9f5dba4bff64d46b23ff6283`
-- v3 冻结规范化 SHA-256：`d94d4051b586554b3f7fcde92976db193dd3220a766fd6461f571ce25fcc094f`
-- 当前文档规范化 SHA-256：`d94d4051b586554b3f7fcde92976db193dd3220a766fd6461f571ce25fcc094f`
-- 本文件在 v3 重新冻结后才是施工前唯一现役拓扑事实基线，不是 runtime state、运行时合同、quality verdict、CHANGE、READY、RELEASE 或生产完成证据。任何对照和待修内容只能写入 §5.7 指定文件。
+- v3 历史冻结规范化 SHA-256：`d94d4051b586554b3f7fcde92976db193dd3220a766fd6461f571ce25fcc094f`
+- v4 冻结规范化 SHA-256：`fe29741381ecb628232817cfd4679b0f66edc2694d0ed6d145208b0d27d9ab62`
+- 当前文档规范化 SHA-256：`fe29741381ecb628232817cfd4679b0f66edc2694d0ed6d145208b0d27d9ab62`
+- 本文件在 v4 重新冻结后才是施工前唯一现役拓扑事实基线，不是 runtime state、运行时合同、quality verdict、CHANGE、READY、RELEASE 或生产完成证据。任何对照和待修内容只能写入 §5.7 指定文件。
