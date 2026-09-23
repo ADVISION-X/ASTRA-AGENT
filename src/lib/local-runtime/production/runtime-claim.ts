@@ -210,10 +210,9 @@ const applyRemoteFailureDisposition = async (
   failure: AttemptFailureFirstFact,
 ): Promise<void> => {
   if (remote.next_action_code === "WAIT_NEW_ATTEMPT") {
-    const permanentRevocation = remote.current_reason?.code === "PRIVACY_SUBJECT_CLOSED";
     await state.browserAuthority.releaseJobBoundTarget(
       task.task.job_id,
-      permanentRevocation ? "website-permanent-revocation" : "wait-new-attempt",
+      "wait-new-attempt",
       state.abort.signal,
     );
     state.store.releaseAttemptForWebsiteDecision(task.task.job_id, task.current_attempt_id);
@@ -236,7 +235,17 @@ export const reconcilePendingAttemptFailures = async (state: RuntimeState): Prom
       remote = await readProductionDeviceJobStatus(state.session, task.task.job_id);
     } catch (error) {
       if (!websiteJobAbsent(error)) throw error;
-      await purgeDeletedJob(state, task.task.job_id);
+      const active = state.activeAbort?.get(task.task.job_id);
+      if (active) {
+        active.abort("WEBSITE_JOB_ABSENT");
+        continue;
+      }
+      try {
+        await purgeDeletedJob(state, task.task.job_id);
+      } catch (purgeError) {
+        state.store.setCurrentReason(task.task.job_id,
+          failureCode(purgeError, "PRODUCTION_JOB_PURGE_FAILED"));
+      }
       continue;
     }
     if (remote.attempt_failure && !remoteFailureMatches(remote, failure)) {
@@ -247,9 +256,9 @@ export const reconcilePendingAttemptFailures = async (state: RuntimeState): Prom
       continue;
     }
     if (!releaseReceiptMatches(remote, failure) && !remoteFailureMatches(remote, failure)) continue;
-    if (remote.next_action_code === "WAIT_NEW_ATTEMPT"
+      if (remote.next_action_code === "WAIT_NEW_ATTEMPT"
       || remote.next_action_code === "CONSUME_CURRENT_RESULT") {
-      if (remote.next_action_code === "WAIT_NEW_ATTEMPT" && remote.current_reason?.code !== "PRIVACY_SUBJECT_CLOSED"
+    if (remote.next_action_code === "WAIT_NEW_ATTEMPT"
         && state.browserAuthority.hasUnresolvedBrowserMutation()) continue;
       await applyRemoteFailureDisposition(state, task, remote, failure);
       continue;

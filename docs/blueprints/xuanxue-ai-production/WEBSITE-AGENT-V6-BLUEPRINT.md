@@ -7,14 +7,14 @@
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V67",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V68",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V10",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V39",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V39",
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V37",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V41",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V41",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V42"
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V40",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V40",
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V38",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V42",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V42",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V43"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-route-capability-manifest.provider.spec.json",
@@ -35,9 +35,9 @@
     {"contractRef":null,"from":{"domain":"startup-entrypoint","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"}}
   ],
   "prohibitedDependencyEdges": [
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V67","to":{"domain":"app-shell-ui","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V67","to":{"domain":"local-app-shell","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V67","to":{"domain":"startup-entrypoint","repo":"local"}}
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V68","to":{"domain":"app-shell-ui","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V68","to":{"domain":"local-app-shell","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V68","to":{"domain":"startup-entrypoint","repo":"local"}}
   ]
 }
 ```
@@ -162,7 +162,7 @@ Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为�
 
 - Agent Route Capability Manifest provider：version 4；只发布 current session 支持的 `product_id + action_id + task_contract_version + result_contract_version`；Product Profile、Skill、Prompt、Flow、实现名称、版本和 hash 均不得对外发布或参与任务身份；
 - Website Agent Task Result consumer dependency：version 14；generated image 只接收 Product 格式化后的无 metadata WebP、绑定 hash/bytes 与实际解码整数宽高，不设固定尺寸、范围、长宽比或总像素门禁，V6 uploaded receipt 不扩展 width/height；文章翻译 primary route 仍以 provider_continuation 携带 Website 已验证的 direct-parent triple；固定catalog所有locale任务均fresh且parent triple全空，Provider URL仍不跨仓；Website逐字段机械接纳并将合格译文立即作为本地在用版本，失败ID单独补译；旧v13结果合同不兼容读取。
-- Xuanxue AI Production V6 consumer dependency：version 39。grant必填`same_accepted_attempt`由Website claim transaction机械派生；false是fresh attempt，true必须同时命中AGENT本地同attempt durable authority，否则在Product与任何Website写入前失败关闭。v39切换必须先证明旧会话无未完成accepted business attempt，再由Website迁移supersede旧会话，使旧claim receipt失去授权回放入口。Website 的`ai_production_devices.max_in_flight`仍是当前N的唯一持久Owner并唯一持有限流cohort；Runtime不保存或配置当前N/权威cohort。心跳只报告去重本地在途数，claim请求只按合同安全上限、本地in-flight和executor可用量提出，Website在设备事实行锁内收紧最终grant。Browser action capacity始终为1；Runtime只消费Website当前授权、有限`retry_not_before`、三个next action、typed effect outcome、provider_cooldown receipt与admission receipt。
+- Xuanxue AI Production V6 consumer dependency：version 40。保留 v39 的 `same_accepted_attempt` grant 语义，永久停止只消费 Website exact job absence，包含管理员未完成 Work Order 清除与获授权的隐私未完成质量反思清除。false 是 fresh attempt，true 必须同时命中 AGENT 本地同 attempt durable authority，否则在 Product 与任何 Website 写入前失败关闭。v40 切换先证明旧会话无未完成 accepted business attempt，再由 Website 迁移 supersede 旧会话，使旧 claim receipt 失去授权回放入口；不保留 v39 兼容读写。Website 的`ai_production_devices.max_in_flight`仍是当前N的唯一持久Owner并唯一持有限流cohort；Runtime不保存或配置当前N/权威cohort。心跳只报告去重本地在途数，claim请求只按合同安全上限、本地in-flight和executor可用量提出，Website在设备事实行锁内收紧最终grant。Browser action capacity始终为1；Runtime只消费Website当前授权、有限`retry_not_before`、三个next action、typed effect outcome、provider_cooldown receipt与admission receipt。
 
 consumer dependency 的 contract body 只能包含 contractId、version、providerRepo。普通启动只校验本仓最小 dependency，不读取未绑定 Website 工作树；跨仓 participant commit 只属于 RELEASE 证据。
 
@@ -246,7 +246,7 @@ Runtime 唯一数据库只保留两表：
 
 普通启动对 Runtime DB、Outbox 和 task-owned plugin directory 做唯一 read-only inventory。输出稳定的目录总数、owned 数、orphan 数与 orphan bytes；读取失败、结构多义或 orphan 存在时阻断新 claim，但不复制 Website lease/fence，不自动移动、修复或删除，不建立目录台账、隐藏 tombstone、第二索引、第二表、maintenance worker 或删除协议。
 
-普通启动不得模糊清理。Runtime 只在自己已经 durable accept 的 exact job 后续被 Website 权威读回为不存在时，取得该 job 的唯一删除授权；必须按 job_id 同步清除本地 task、Outbox、task-owned 目录、Browser WAL 与 Forensics artifact，并逐项证明目标缺席、其它 job 保持不变。不得保留永久撤销状态、删除队列、删除台账、归档或兼容路径。
+普通启动不得模糊清理。Runtime 只在自己已经 durable accept 的 exact job 后续被 Website 权威读回为不存在时，取得该 job 的唯一删除授权；必须按 job_id 同步清除本地 task、Outbox、task-owned 目录、Browser WAL 与 Forensics artifact，并逐项证明目标缺席、其它 job 保持不变。仅旧 Forensics 字节先写而索引未落盘留下的无主 `.bin`，由原 Forensics Owner 在这次已授权清算中比对完整共享索引后同步删除并读回缺席；有索引的所有兄弟 artifact 保持不变，普通启动仍只读。不得保留永久撤销状态、删除队列、删除台账、归档或兼容路径。
 
 ## 7. 质量系统与发布边界
 

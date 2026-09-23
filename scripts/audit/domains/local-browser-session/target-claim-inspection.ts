@@ -256,15 +256,16 @@ const inspectNonDestructiveTargetRelease = (
     "mutationBlocked && !this.mayCrossUnresolved(waiter)",
     "settleRetiredTargetLocal(waiter.binding)",
     'waiter.binding.kind === "production"',
-    'waiter.releaseAuthority === "website-permanent-revocation"',
     'waiter.releaseAuthority === "website-admin-deletion"',
   ].every((token) => laneText.includes(token));
+  const forbiddenPermanentRevocation = laneText.includes('website-permanent-revocation');
   const lifecycleSettles = lifecycle.includes("finally")
     && lifecycle.indexOf("this.active = false") > lifecycle.indexOf("finally");
   if ([parkAt >= 0, settlementModeAt > parkAt, physicalParkAt > settlementModeAt,
     requiredReleaseFacts, !forbiddenReleaseFacts, !destructiveClose,
     admission.includes('value.kind !== "park-target"'), lifecycleSettles,
-    requiredLaneFacts, !lifecycle.includes("revokeOperatorTargetClaim")].every(Boolean)) return;
+    requiredLaneFacts, !forbiddenPermanentRevocation,
+    !lifecycle.includes("revokeOperatorTargetClaim")].every(Boolean)) return;
   findings.push(createLocalFinding({
     checkId: "browser-authority/dispatched-mutation-target-release", lawId, filePath: targetLeaseManagerPath,
     message: "The one lane must permit only exact same-job production closure or Website-authorized deletion through unresolved DISPATCHED.",

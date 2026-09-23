@@ -43,6 +43,7 @@ export const websiteJobAbsent = (error: unknown): boolean => {
 
 export const purgeDeletedJob = async (state: RuntimeState, jobId: string): Promise<void> => {
   try {
+    state.activeAbort?.get(jobId)?.abort("WEBSITE_JOB_ABSENT");
     await state.browserAuthority.releaseJobBoundTarget(
       jobId, "website-admin-deletion", state.abort.signal,
     );
@@ -72,10 +73,9 @@ export const reconcileBusinessAdmission = async (
   const admission = remote.business_admission_receipt;
   if (!admission) {
     if (remote.next_action_code === "WAIT_NEW_ATTEMPT") {
-      const permanentRevocation = remote.current_reason?.code === "PRIVACY_SUBJECT_CLOSED";
       await state.browserAuthority.releaseJobBoundTarget(
         record.task.job_id,
-        permanentRevocation ? "website-permanent-revocation" : "wait-new-attempt",
+        "wait-new-attempt",
         state.abort.signal,
       );
       state.store.releaseAttemptForWebsiteDecision(

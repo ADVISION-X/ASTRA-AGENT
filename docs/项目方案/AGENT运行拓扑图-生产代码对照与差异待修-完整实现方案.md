@@ -1,6 +1,72 @@
 # AGENT 运行拓扑图—生产代码对照与差异待修完整实现方案
 
-## 2026-09-23｜attempt failure / recovery 连坐修订
+## 2026-09-23｜质量反思隐私关闭与永久撤权闭环（当前增量）
+
+状态：**第一阶段双仓权威已对齐；主 Codex 两轮自检均闭合，允许进入本节限定的生产代码与质检施工；真实数据库删除继续受活体读回门阻断**。本节取代下文历史阶段中的 H21–H23/N26–N28 `MATCH` 和“P0/P1/P2 为 0”作为当前裁决；下文 D01–D04、RF-01–RF-06 只记录其各自施工时的证据，不对本节新发现的隐私路径出具 PASS。2026-09-23 用户已授权双仓法案、施工图、直接关联代码/质检及数据库操作，并要求主仓 main 原位施工、无分支、先权威后代码、两轮主审、后续子智能体只读审计及 CI-FULL。
+
+### 需求、终点与候选
+
+本次只处理 Website 质量反思任务在账户关闭、隐私 `delete/restrict_processing` 和 snapshot retention 交错时的生命周期，以及它交给 AGENT 的 exact job 清算。业务终点为：未获领域 admission 的任务在 Website 被合法撤销后不再可领取、结果不可消费；已获 admission 的领域完成闭包保持可验证且私有内容按现役隐私 Owner 的规则处理；AGENT 对获明确删除授权的 exact job 清除自身 task/Outbox/material/result、Browser 私有对象和 Forensics artifact，并分别读回缺席。其它 job、已发生的 Provider 现实效果及 Provider 自有日志不受此工单承诺覆盖。
+
+| 仓库 | scoped source candidate | 本节相关工作树 |
+|---|---|---|
+| AGENT `/Users/nexgen/Documents/AGENT` | `main`=`origin/main`=`52bef71a1ce0605931983633a3b6462908e8e6d2`；本文件、拓扑 v4、Runtime/Browser/Forensics 当前代码和 Blueprint | 本文件带先前已授权的方案差异；本轮生产目标文件写前 clean，未改 localization 文件 |
+| Website `/Users/nexgen/Documents/xuanxue-web` | `main`=`origin/main`=`5470ef21cdc36f55ab659972c8533ab700243dd6`；ai-acceptance、quality reflection、privacy、retention、V6 contract/manifest、现役法案/Blueprint | 写前 clean |
+
+这些 HEAD 是本次证据快照，不是拓扑对未来代码提交的哈希锁。拓扑 §16 的**文档自身** v4 规范化 hash 声明 `fe2974…ab62`，按其两行排除规则实算 `983473…2c12`；§3.1 的“现役”法案版本也落后当前双仓 Blueprint。两项是文档记录待裁决，不用于否定下面独立从代码证明的断裂，也不得冒充新的冻结批准。下文旧 §1 的 v2 hash 和旧 HEAD 只作为历史记录。
+
+### 四维权威与已存在能力
+
+- **法案/施工图**：拓扑 v4 `N19/N26–N28、H21–H23、I26/I29` 要求 Website 先裁定 admission closure，再把 exact absence/revocation 交三 Owner 清算；Website `AI-ACCEPTANCE-BLUEPRINT.md:67,83–85,119` 保留合法领域完成闭包，且普通失败必须有限退避。Website `LAW-COMMERCIAL-PRIVACY-SECURITY-007-V1` 禁止隐私清除抹掉必需交付证明，也禁止保留不必要身份。当前 V6 manifest `unfinished_delivery_liveness.permanent_stop_authority=website_job_absence_after_admin_unfinished_purge`、`retry_not_before_policy=persisted_and_finite`；AGENT Runtime Blueprint `:230,249` 明确 exact Website absence 的现有三方 purge。Browser Blueprint `:25` 仍允许 `PRIVACY_SUBJECT_CLOSED` 专用 Target release 并要求此时 WAL/effect fact 保留。**manifest 的永久停止权威与 Browser Blueprint 的 revocation 路径不能被本方案默默合并**；若最终仍需非 404 永久撤权，必须先分别取得相关现役法案/Blueprint/合同修改授权。
+- **现役实现**：`runtime-privacy.ts:28,57` 是账户关闭与隐私请求入口，调用 `quality-reflection-privacy.ts:14–99`。后者只选择 `snapshot_deleted_at is null` 的计划，清空 review job `result_json`、attempt/staged/lease/fence，以 `PRIVACY_SUBJECT_CLOSED + retry_not_before=9999` 阻断 claim，却保留 job 和 terminal/admission 字段。`job-claim-selection.ts:129`、`provider-cooldown-repository.ts:140–163` 把 reason code 当控制条件；`job-claim-observation.ts:186` 仍以 terminal 字段投影 `CONSUME_CURRENT_RESULT`。`job-device-status-repository.ts:48–85` 对完成任务依赖 `result_json` 的 result hash。AGENT `runtime-business-admission.ts:44–55` 已有完整 404 purge，`runtime-claim.ts:212–220`、`runtime-loops.ts:223–235` 和 `runtime-business-admission.ts:72–84` 的非 404 撤权分支却只释放 Target/attempt。
+- **真实消费者与持久事实**：Website review consumer 在 `quality-reflection-finding-repository.ts:241–327` 写 plan completion/finding/receipt；`business-result-consumer.ts:90–105` 只消费 terminal 且有 valid `result_json` 的 job。`ai_quality_reflection_plans.materialized_job_id`、review challenge 的 `child_job_id` 均有 job FK，不能将“物理删除”缩写为一条 `delete ai_production_jobs`。Browser `browser-mutation-store.ts:270–277` 与 Forensics 的现有 exact purge 是可复用的 Owner 能力；Website 的 `public-knowledge/work-order-deletion-repository.ts` 仅是独占对象清单及完成闭包判定的参考，不能直接挪用其产品私有删除范围。
+- **质检**：两仓唯一原生 verdict 分别是 AGENT `npm run quality:check` 和 Website `pnpm quality:check`。现有 `tests/ai-production/quality-reflection.integration.test.ts:91–235` 断言旧 `j.status='cancelled'`/input 清理，未覆盖当前 V6 terminal/admission 投影、retention 先到期、AGENT exact purge 或兄弟 job 隔离；须先核它是否仍在原生质检分母。AGENT 现有 recovery acceptance 只断言 revocation release。`quality-reflection-schedule-repository.ts` 约 400 行，施工须先核原生结构预算，不在同一大文件继续堆状态分支。方案完成和直接验收均不得当成真实 PostgreSQL、Browser、Provider 或领域 readback。
+
+### 第一直接断裂、前轮连续性与有限分母
+
+1. `quality-reflection-schedule-repository.ts:282–303` 用 `r.status='failed'` 判定 materialized snapshot 可过期；V6 的 `failed` 也覆盖所有尚未 admission 的执行。随后隐私选择在 `quality-reflection-privacy.ts:22` 以 `snapshot_deleted_at is null` 排除同一 plan。这是 retention→privacy 的第一遗漏，tombstone 本身不阻止 `material-asset-lifecycle.ts:68–85` 的材料解析，也不自动清除仍有 job binding 的对象。
+2. 对被选中的 plan，`quality-reflection-privacy.ts:77–89` 在原 V6 生命周期 Owner 外直接清空结果/attempt 并留下 terminal/admission 事实。已 terminal 未 admission 时 Website 投影 `CONSUME_CURRENT_RESULT` 而 consumer 无结果可收；已 admission 时设备状态可能因 result hash 缺失返回 `AI_V6_BUSINESS_ADMISSION_AUTHORITY_INVALID`。9999 年哨兵还与 manifest 的有限退避政策冲突。
+3. Website job 仍存在，AGENT 的 404 清算入口不发生；非 404 `PRIVACY_SUBJECT_CLOSED` 只释放 Target/attempt，H21–H23 没有 Runtime、Browser WAL、Forensics absence readback。本文件历史 §2 曾把三行判为 MATCH；前轮实际成立的不变量是“**exact Website absence** 才进入既有三方 purge”，而非“任何永久原因都已清算”。本轮保留既有 404 purge，不复制第二清算器。
+
+有限 Git 连续性核对命中真实语义往返：隐私 helper 的 `snapshot_deleted_at` 过滤始于 2026-08-01，2026-08-20 增加 `result_json=null`，2026-08-27 扩大 `materialized + failed` retention 资格；历史 migration `0099_ai_production_v6_permanent_authorization_revocation.sql` 曾为永久撤权原因切换合同，当前 manifest 于 2026-09-13 写成“仅 Website absence”后，helper 又于 2026-09-14 加入 attempt 清空与 9999 年哨兵。AGENT 的 exact 404 purge 于 2026-09-12 已落地，2026-09-16 的 revocation 判断仍只 release。旧测试和本文件旧 `MATCH` 没有证明完整隐私清算，因此本轮保留 404 purge 的身份/兄弟 job 隔离不变量，并以具体跨仓后置验收防止再次只修 release；历史 migration 也不能单独授权保留当前第二永久停止入口。
+
+身份主线固定为 `privacy subject → plan_id → subject_job_id/materialized_job_id → job_id + admission receipt/result hash + current attempt/fence → Website exact status/absence → AGENT same job_id → Browser WAL/Target + Forensics artifact`。有限分母只有：未物化 plan；已物化但未领取；accepted attempt 活跃；结果已 staged/terminal 但未 admission；已 admission；retention 已标记而 job 未完成；Website 删除回执明确/未知但 exact readback 可得；AGENT 清算成功/部分失败或 Browser unresolved effect。每一分支都必须区分 `delete/account closure` 与 `restrict_processing` 的授权语义，不能假定二者等价。已有合法领域完成闭包不得因删除私有材料被伪装为未完成。
+
+### 唯一目标链与原子工单草案
+
+| 工单 | Owner、落点与必需动作 | consumer/readback 与停止门 |
+|---|---|---|
+| PR-01 | Website `ai-acceptance` 生命周期 Owner；在 `quality-reflection-privacy.ts` 入口前用现有 job/runtime 与领域 admission receipt 判定 exact child 是未完成还是已完成，不再以 `status='failed'`、`snapshot_deleted_at`、诊断码或无限重试时间代替权威。复用现有事务锁序和 V6 lifecycle，不新增隐私状态、队列或第二控制 Owner。 | 对每个 plan/job 持久读回 admission closure 与当前授权；任一缺失、未知或 FK/对象清单不完整则失败关闭，零删除。明确 `restrict_processing` 与 delete 的政策前不得施工其共同分支。 |
+| PR-02 | Website quality reflection/retention Owner；`quality-reflection-schedule-repository.ts:277–305` 改为以真实 admission/撤销事实判定可清 snapshot；`quality-reflection-privacy.ts:14–24` 的隐私选取不得因 snapshot 已标记而丢掉仍存在的 child job。复用现有 plan/材料 binding 与 tombstone，不建第二 retention ledger。 | 已物化未完成、retention 先到期、再收到 delete/restrict 的同一 child 必须进入 PR-01；物理对象删除由其原 Owner 按 exact inventory/readback 完成，不能把 tombstone 当硬删除。 |
+| PR-03 | Website ai-acceptance/quality reflection；对**明确允许删除且未获 admission** 的 review child 复用现有精确删除能力与对象所有权，按 plan→job→独占材料/输出/attempt/event/FK 的实际引用清单制定有序删除，保留 subject 已完成闭包。不得直接重用 SEO Work Order 私有函数或留 `PRIVACY_SUBJECT_CLOSED + 9999` 兼容壳。 | Website 对 exact child 回 404、plan 进入合法取消/关闭事实；回执未知只读回同一身份，不能重发不可逆对象删除；任何共享引用、已获 admission 或无缺席读回均停止。若现有 FK 无法在不破坏完成闭包下闭合，先形成经授权的最小 schema 变更和迁移，再施工。 |
+| PR-04 | AGENT Runtime/Browser/Forensics 各自现有 Owner；只消费 PR-03 的 Website exact absence，复用 `purgeDeletedJob`，按 Runtime task/Outbox/私有目录、Browser Target/WAL、Forensics artifact 分别验证 exact absence，兄弟 job 不变。梳理并物理退休仅靠诊断码触发的永久 release 分支；普通 `WAIT_NEW_ATTEMPT` 保持原义。 | 404 后物理 submit 增量零；unresolved WAL 按现役唯一 Browser lane/删除门失败关闭，不得删除后伪称 `mutation_outcome=no`；某 Owner 清理失败保留可重读原 job identity 并报告 typed failure，不建删除队列。 |
+| PR-05 | Website 已获 admission 的 review/domain Owner；保持 challenge/finding、business receipt、terminal/result hash 的必要完成闭包，同时按现役隐私/安全 Owner 清理可删除私有对象。当前 `result_json=null` 会使 V6 status 500，不能继续使用。 | 完成任务的 Website status 仍可读回原 admission hash、领域对象与 privacy 后允许保留的最小事实；AGENT 本地完成任务是否及如何获得合法清理授权、`restrict_processing` 是否可保留内容，属于下面的权威阻断，不能由 PR-03 的未完成 404 类推。 |
+
+顺序是 PR-01/PR-05 的权威裁决与同一身份库存 → PR-02/PR-03 Website 侧修复及迁移门（若确需）→ PR-04 AGENT 现有 404 consumer 与三 Owner readback → 双仓各自直接验收/唯一 `quality:check` → 独立只读审计 → 另行授权的真实 PostgreSQL、Browser、Provider/领域 Dynamic Proof。Website 尚不能保证对仍在运行的 AGENT 产生兼容的 404 前，不得切换 PR-03；若需要跨仓新字段，必须另写同一文件内的 drain、合同冻结点、迁移和回退门，禁止临时双读/双写。
+
+### 删除反事实与设计阻断
+
+目标不新增任何状态、队列、worker、持久 ledger、兼容协议或第二 quality verdict：PR-01 使用 Website 已有 admission/terminal authority；PR-02 使用已有 plan 与材料对象 Owner；PR-03 使用已有 exact deletion/404 语义；PR-04 使用现有 `purgeDeletedJob`。若删去 PR-02，retention 先到期分支仍漏撤权；删去 PR-03，Website 仍留一个不可领取但未终态的 child；删去 PR-04，AGENT 私有对象仍残留；删去 PR-05，已完成任务仍因清空 `result_json` 而状态 500。`recovery_pending` 只有 schema 与接受分支、未见现役 writer；本轮不以它建立第二恢复工单，真实数据库零行/历史行必须在迁移决定前只读核验。
+
+**当前权威裁决与施工门**：① 用户本次“不能证明不能被删除即删除”授权适用于 `account closure/delete/restrict_processing` 的未获有效领域 admission 的定时 quality reflection child：Website ai-acceptance 按 exact 身份物理删除；已获 admission 的 child 保留 result envelope/hash、领域 receipt 与必要完成事实，但无独立法律/交付依据的私有 result payload 对象必须删除并读回缺席。② Website `LAW-COMMERCIAL-PRIVACY-SECURITY-007-V2`、AI Acceptance Blueprint 与 AGENT Browser/Runtime Blueprint 将永久删除收敛为 Website exact job absence；删去 `PRIVACY_SUBJECT_CLOSED + 9999` 第二停止路径；V6 provider/consumer 合同升为 v40，不建立 v39 兼容链。③ 网站前向迁移必须在旧会话无未完成 accepted attempt 后 supersede 旧会话；旧迁移字节不改写。④ live PostgreSQL 在本机 `localhost:5432` 与 Unix socket 均不可达，活体 plan/job/admission/FK 分布未知；任何真实库删除必须先按 exact 身份、共享引用和现役约束只读盘点，不能从静态 schema 推断已安全。⑤ 第一阶段需主 Codex 两轮独立自检双仓法案/施工图/合同及当前方案，达到至少 98% 且无重大 finding 后才能进入生产代码；任何核不准项继续阻断，不用覆盖率粉饰。
+
+### 第一阶段主 Codex 两轮自检（代码施工前）
+
+第一轮按两仓各两份唯一 active law 全文机器解析，共 **606 条**（AGENT 38、Website 568），遍历现役施工图 **10 份**、active spec **9 份**；逐条核 active law ID、依赖、Blueprint/spec lawIds、跨仓 V6 v40 五处版本、两仓 source/registry projection。发现 AGENT Browser law 原 V47 将非 404 永久撤权与 WAL 保留并列，和 Runtime exact absence 清算冲突，已在同一法条升 V48、同步 Manifest/Blueprint 并重建唯一 registry；Website 商业隐私 law 升 V2，合同 v40、双仓 Blueprint 与依赖同步。复审后 dangling law/Blueprint/spec 引用为 **0**，两仓 `audit:projection:check` 为 `PROJECTION_CURRENT`，`git diff --check` 通过。本轮只证明权威引用结构，不证明生产行为。
+
+第二轮由主 Codex沿 `subject → plan → child → admission → object → Website absence → AGENT Runtime/Browser/Forensics` 逐项核对 **16 个**授权与删除场景：未接纳删除、restrict 范围、已接纳闭包、完成 payload 清除、retention 先到、failed 非终态、无 9999 哨兵、Browser 只认 exact absence、诊断码不取删除权、WAL 删除读回、Runtime 现有清算、v40 唯一合同、无 v39 兼容、兄弟 job 隔离、未知结果失败关闭、无第二 Owner/状态/台账。16/16 的权威落点均有明确正负边界，按此有限分母为 **100%**，高于 98% 门；这是**法案/施工图设计自检**，不是代码、数据库、Provider 或 RELEASE PASS。现库 PostgreSQL 不可达，真实库对象分布与约束仍需在执行任何真实删除前只读核验。
+
+### 第二阶段施工与主 Codex 代码双轮自检
+
+双仓只在 `main` 原位修改，未建分支或 worktree。Website 沿原隐私入口锁 subject/plan/child，按领域 review receipt 与 business consumption hash 复核 admission；前向 `0147` 将 `materialized_job_id` FK 从意外 cascade 改为 SET NULL，并把 v40 旧 session、未结 accepted attempt、旧 `PRIVACY_SUBJECT_CLOSED/9999`、旧 snapshot 标删仍留 blob、已接纳 child envelope 已清空均设为失败关闭切换门。未接纳 child 在独占引用预检、cooldown cohort 精确移除及对象 Delete+HEAD 后删 exact job/级联图，读回 job/runtime/event/failure/material/artifact/write receipt 缺席与 plan 取消；已接纳 child 留 envelope/hash/receipt，删无保留依据的 payload/snapshot 私有对象并标记旧 artifact 不可再读。普通 retention 去掉 `failed` 作为完成依据并对合格 snapshot 执行物理 Delete+HEAD；review consumer 的事务锁序同步改成 subject→plan→child。商业隐私原请求先落库；含 R2 外部 Delete 的事务禁用 40001/40P01 透明重跑，每个 exact ref 先 HEAD，回执不明只回读。AGENT 保留唯一 404 purge、退休诊断码永久 release，单 job purge 失败留 durable identity 并继续兄弟恢复扫描；后台扫到执行中的 exact 404 先 abort，执行退场后再按原 Owner 清算。Forensics 在现有索引 Owner 中改为先持久 owner index、再写 bytes、原子替换共享索引，支持索引已有但 bytes 缺失的精确重试/删除，并在获授权的 exact purge 中清理旧版未入索引的独占字节。
+
+首轮主 Codex 曾按 22 项静态场景自评 22/22；独立只读审计随后证实 Website 存在 retention 只写 tombstone、0147 旧数据门遗漏、R2 Delete 与可重试数据库事务裂缝、旧集成验收引用已删除表；AGENT 另有 Browser FIFO 唤醒、旧 Forensics byte-only orphan 与运行中 404 未 abort。**原 22/22 PASS 已撤销**，独立结论 Website 不高于 18/22、AGENT 15/16，均为 `AUDIT_FAIL`。主 Codex 已把 Website 隐私法案升 V3 并与施工图对齐，补原请求持久身份、HEAD-first 与禁透明重试、retention 物理删、旧数据迁移门及 AGENT active 404 abort，正在复核。真实数据库/R2 连接仍未配置，`pg_isready localhost:5432` 无响应；迁移和真实对象删除尚未执行，READY/RELEASE 仍未成立。未获新的独立 PASS 前不启动唯一 `quality:check ready`。
+
+主 Codex 补审第 1 遍按 `原请求 → plan/job 锁 → 完成回执 → 独占 ref → 外部 Delete → SQL 提交 → 重入读回 → AGENT exact 404` 重查，发现只禁事务透明重试仍不足以防重启后再发 Delete，遂只在原隐私请求 `record_json` 记录被尝试对象的 ref hash，retention 复用原材料 tombstone；Delete 先 HEAD，已尝试但仍存在则 409 失败关闭。第 2 遍交叉核账户关闭、delete 与 restrict、retention 四个入口，发现不同原请求可对同一 ref 重发，以及 retention 在 serializable 主事务内另写 marker 可能造成快照冲突，遂加跨原请求与 tombstone 的同 ref 互斥，并把 retention marker 先在独立短事务写入，再开启禁透明重试的删除事务。原 22 项静态分母已逐项重新核对，**22/22 是待独立复审的主 Codex 自评**；R2 未知/仍存/缺席 3 条模拟直接验收、AGENT active 404 abort 与随后 purge 验收、双仓 typecheck/投影与 diff 检查已过。真实数据库/R2 缺席使迁移与动态结果仍待取证，独立审计结论未更新前状态保持 `AUDIT_FAIL`。
+
+---
+
+## 历史快照：2026-09-23 attempt failure / recovery 连坐修订
 
 状态：**已撤销旧文中“D04 16/16 PASS”结论；本轮已按冻结拓扑第 11 节三分法完成双仓同一恢复链原位修复，两仓唯一 `quality:check` 均为 `CHANGE_PASS`，修复后跨仓子智能体审计为 PASS、P0/P1/P2 均为 0。尚未形成 READY、RELEASE 或生产证明。**
 
@@ -47,7 +113,7 @@
 
 禁止项：不新增表、列、队列、worker、恢复 ledger、wire enum、兼容读写、feature flag 或第二 classifier；不物理删除现有三个工单；不把测试、HTTP 200、READY 或 Test Mode 当生产恢复证明。
 
-## 0. 状态、边界与唯一结论
+## 历史快照 §0. 当时的状态、边界与结论
 
 状态：**PHASE 3 第六轮独立复审的 D01/D03 finding 已定点修复，D04保持16/16 PASS；修复后两轮主 Codex 自审均以10/10施工工单、204/204冻结定义与完整动态分支为分母达到100%，已进入全新第七轮只读独立复审，尚未进入 CI-FULL**。
 
@@ -418,6 +484,6 @@ PHASE 1 已闭合 `D02` 与 `D03` authority，且两轮主 Codex 审计通过。
 
 ---
 
-## 7. 当前授权结论
+## 7. 历史授权结论
 
 冻结拓扑到生产代码的差异清单继续保持唯一施工记录。本轮R19至R25的finding均已在原Owner内闭合，双仓最新原生CHANGE均通过，两名独立审计者最终结论均为`AUDIT_PASS`且P0/P1/P2为0。下一门仅为各仓形成clean commit后执行READY并推送；READY通过也不等于RELEASE。真实PostgreSQL迁移、Browser/Provider与业务领域Dynamic Proof未在本轮执行，当前不得宣称生产完成或RELEASE。

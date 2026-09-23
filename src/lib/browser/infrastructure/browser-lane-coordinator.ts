@@ -158,7 +158,10 @@ export class BrowserLaneCoordinator {
   }
   public hasUnresolvedMutation(): boolean { return (this.infrastructure.mutationState?.countDispatched() ?? 0) > 0; }
   public hasMutationForJob(jobId: string): boolean { return this.infrastructure.mutationState?.hasMutationForJob(jobId) ?? false; }
-  public purgeJob(jobId: string): void { this.infrastructure.mutationState?.purgeJob(jobId); }
+  public purgeJob(jobId: string): void {
+    this.infrastructure.mutationState?.purgeJob(jobId);
+    void this.pump();
+  }
   public countProviderTurnDispatches(jobId: string, attemptId: string): number {
     return this.infrastructure.mutationState?.countProviderTurnDispatches(jobId, attemptId) ?? 0;
   }
@@ -179,8 +182,7 @@ export class BrowserLaneCoordinator {
   private mayCrossUnresolved(waiter: LaneWaiter): boolean {
     const jobId = waiter.kind === "release" ? waiter.jobId : waiter.binding.jobId;
     return Boolean(this.infrastructure.mutationState?.hasMutationForJob(jobId, true)) && (waiter.kind === "acquire"
-      ? waiter.binding.kind === "production" : waiter.releaseAuthority === "website-permanent-revocation"
-        || waiter.releaseAuthority === "website-admin-deletion");
+      ? waiter.binding.kind === "production" : waiter.releaseAuthority === "website-admin-deletion");
   }
 
   private nextWaiter(): LaneWaiter | null {

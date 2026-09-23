@@ -1,5 +1,5 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { Project } from "ts-morph";
@@ -10,6 +10,9 @@ import {
 import { runtimeManifestOwnershipDrift } from
   "../audit/domains/agent-production-runtime/contract-inspection.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
+import { executionFailure } from "../../src/lib/execution-failure.js";
+import { reconcilePendingAttemptFailures }
+  from "../../src/lib/local-runtime/production/runtime-claim.js";
 import { purgeDeletedJob, reconcileBusinessAdmission }
   from "../../src/lib/local-runtime/production/runtime-business-admission.js";
 import { businessInFlightCount, claimReusesExistingBusinessSlot } from
@@ -39,7 +42,7 @@ const exerciseLifecycleMutant = (): void => {
   inspectAgentProductionRuntime({
     project,
     sealedRoot: path.resolve("."),
-    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V67",
+    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V68",
     targetSet: { queryRef: "acceptance:runtime-lifecycle-mutant", count: 1 },
     targetPaths: [],
     lawRequirements: [],
@@ -48,7 +51,7 @@ const exerciseLifecycleMutant = (): void => {
       manifestPath: "scripts/audit/domains/agent-production-runtime/manifest.json",
       ownerInspectorPath: "scripts/audit/domains/agent-production-runtime/inspector.ts",
       executionGroup: "domain",
-      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V67"],
+      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V68"],
     },
     generatedPlan: [],
   }, findings);
@@ -81,7 +84,7 @@ const exerciseManifestAndLawOwnership = async (): Promise<void> => {
   const runtimeLawRecords = [...runtimeLawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
     .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden: string[] });
   const runtimeCoreLaw = runtimeLawRecords.find(
-    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V67",
+    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V68",
   );
   assert.ok(runtimeCoreLaw);
   for (const token of [
@@ -263,8 +266,8 @@ const exerciseWaitNewAndPrivacy = async (
     } },
     abort: new AbortController(),
   } as never, store.readTask(privacyClosed.job_id)!), "pending");
-  assert.equal(privacyReleaseAuthority, "website-permanent-revocation",
-    "only Website's persisted permanent privacy decision may acquire the revocation exception");
+  assert.equal(privacyReleaseAuthority, "wait-new-attempt",
+    "a diagnostic privacy reason cannot grant permanent deletion or WAL release");
 };
 
 const exerciseAdmissionDeletion = async (
@@ -406,6 +409,70 @@ export const exerciseOperationsAndBusinessAdmission = async (
     assert.match(runtimeLoopsSource,
       /businessInFlightJobIds\(state\)\.has\(job\.job_id\)[\s\S]*!claimReusesExistingBusinessSlot\(state, job\)/u,
       "only an exact readback or paused cooldown regrant may reuse an occupied slot");
+    const sweepDir = path.join(admissionTemporary, "sweep");
+    await mkdir(sweepDir);
+    const sweepStore = new ProductionRuntimeStore(sweepDir);
+    const deleted = task({ jobId: "job:sweep:deleted", productId: productionTask.product_id,
+      actionId: productionTask.action_id, materialRefs: productionTask.material_refs,
+      extra: { parameters: productionTask.parameters } });
+    const sibling = task({ jobId: "job:sweep:sibling", productId: productionTask.product_id,
+      actionId: productionTask.action_id, materialRefs: productionTask.material_refs,
+      extra: { parameters: productionTask.parameters } });
+    for (const candidate of [deleted, sibling]) {
+      const attemptId = `attempt:${candidate.job_id}`;
+      sweepStore.acceptTask(candidate, attemptId);
+      sweepStore.recordAttemptFailure(candidate.job_id, attemptId,
+        failureFact(candidate.job_id, attemptId, {}));
+    }
+    const observed: string[] = [];
+    await reconcilePendingAttemptFailures({ store: sweepStore, dataDir: sweepDir,
+      abort: new AbortController(),
+      session: { request: async (route: string) => {
+        if (route.includes(encodeURIComponent(deleted.job_id))) {
+          throw executionFailure("failed", "AI_V6_DEVICE_JOB_NOT_FOUND");
+        }
+        observed.push(sibling.job_id);
+        return deviceStatusWithoutAdmission(sibling.job_id).request();
+      } },
+      browserAuthority: { releaseJobBoundTarget: async () => {
+        throw new Error("SIBLING_UNRESOLVED_WAL");
+      } },
+    } as never);
+    assert.deepEqual(observed, [sibling.job_id],
+      "one exact 404 purge failure must not block sibling status recovery scanning");
+    assert.equal(sweepStore.readTask(deleted.job_id)?.current_reason, "PRODUCTION_JOB_PURGE_FAILED");
+    assert.ok(sweepStore.readTask(deleted.job_id), "failed exact purge must retain its durable identity");
+    sweepStore.close();
+    const activeDir = path.join(admissionTemporary, "active-404");
+    await mkdir(activeDir);
+    const activeStore = new ProductionRuntimeStore(activeDir);
+    const activeJob = task({ jobId: "job:active:deleted", productId: productionTask.product_id,
+      actionId: productionTask.action_id, materialRefs: productionTask.material_refs,
+      extra: { parameters: productionTask.parameters } });
+    activeStore.acceptTask(activeJob, "attempt:active-deleted");
+    activeStore.recordAttemptFailure(activeJob.job_id, "attempt:active-deleted",
+      failureFact(activeJob.job_id, "attempt:active-deleted", {}));
+    const activeAbort = new AbortController();
+    let releaseCalls = 0;
+    const activeState = { store: activeStore, dataDir: activeDir, abort: new AbortController(),
+      active: new Map([[activeJob.job_id, Promise.resolve()]]),
+      activeAbort: new Map([[activeJob.job_id, activeAbort]]),
+      session: { request: async () => { throw executionFailure("failed", "AI_V6_DEVICE_JOB_NOT_FOUND"); } },
+      browserAuthority: { releaseJobBoundTarget: async () => { releaseCalls += 1; },
+        purgeBrowserJob: () => undefined },
+      evidenceStore: { deleteArtifactsForMission: async () => undefined },
+    };
+    await reconcilePendingAttemptFailures(activeState as never);
+    assert.equal(activeAbort.signal.aborted, true,
+      "background exact 404 must stop an active same-attempt recovery before its next input");
+    assert.equal(releaseCalls, 0, "background deletion must wait for the active execution to settle");
+    assert.ok(activeStore.readTask(activeJob.job_id), "active execution retains its durable identity until settled");
+    activeState.active.delete(activeJob.job_id);
+    activeState.activeAbort.delete(activeJob.job_id);
+    await reconcilePendingAttemptFailures(activeState as never);
+    assert.equal(activeStore.readTask(activeJob.job_id), null,
+      "the same exact 404 must finish owner purge after execution settles");
+    activeStore.close();
     await exerciseWaitNewAndPrivacy(store, productionTask);
     await exerciseAdmissionDeletion(store, admissionTemporary, productionTask, pending);
     store.close();

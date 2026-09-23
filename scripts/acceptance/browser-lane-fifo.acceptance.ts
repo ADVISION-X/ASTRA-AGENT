@@ -47,7 +47,7 @@ assert.match(lane, /settleRetiredTargetLocal\(waiter\.binding\)/u,
   "same-job target-local closure must settle the old WAL row before acquisition");
 assert.ok(lane.indexOf("settleRetiredTargetLocal(waiter.binding)")
   < lane.indexOf("ensureAvailableTarget(waiter, parentConversationUrl)"));
-assert.match(lane, /website-permanent-revocation/u);
+assert.doesNotMatch(lane, /website-permanent-revocation/u);
 assert.match(lane, /website-admin-deletion/u);
 assert.match(lane, /releaseJobBoundTarget/u,
   "Website closure must release an exact job-bound Target through the same FIFO");
@@ -112,13 +112,9 @@ const waitNewRelease = {
 const wrongJobPermanentRelease = {
   ...exactRelease, jobId: "job-c", jobRefHash: `sha256:${"e".repeat(64)}`,
 };
-const exactPrivacyRelease = {
-  ...exactRelease, jobRefHash: `sha256:${"2".repeat(64)}`,
-  releaseAuthority: "website-permanent-revocation",
-};
 Object.assign(blockedLane, {
   queue: [blockedAcquire, ordinaryRelease, waitNewRelease,
-    wrongJobPermanentRelease, exactRelease, exactPrivacyRelease],
+    wrongJobPermanentRelease, exactRelease],
   infrastructure: { mutationState: {
     countDispatched: () => 1,
     hasMutationForJob: (jobId: string, unresolvedOnly: boolean) => unresolvedOnly && jobId === "job-b",
@@ -127,12 +123,29 @@ Object.assign(blockedLane, {
 const selected = (blockedLane.nextWaiter as () => { kind: string; jobRefHash: string }).call(blockedLane);
 assert.deepEqual([selected.kind, selected.jobRefHash], ["release", releaseHash],
   "Website-authorized exact release must not deadlock behind the job's unresolved WAL");
-const selectedPrivacy = (blockedLane.nextWaiter as () => {
-  kind: string; jobRefHash: string;
-}).call(blockedLane);
-assert.deepEqual([selectedPrivacy.kind, selectedPrivacy.jobRefHash],
-  ["release", exactPrivacyRelease.jobRefHash],
-  "the exact job's persisted permanent revocation may use the same bounded exception");
+let purgePumpCount = 0;
+let unresolvedAfterPurge = true;
+let resumedSibling: { kind: string; jobRefHash: string } | null = null;
+const wakeLane = Object.create(BrowserLaneCoordinator.prototype) as Record<string, unknown>;
+Object.assign(wakeLane, {
+  active: false,
+  queue: [blockedAcquire],
+  infrastructure: { mutationState: {
+    countDispatched: () => unresolvedAfterPurge ? 1 : 0,
+    hasMutationForJob: () => unresolvedAfterPurge,
+    purgeJob: () => { unresolvedAfterPurge = false; },
+  } },
+  pump: async () => {
+    purgePumpCount += 1;
+    const next = (wakeLane.nextWaiter as () => { kind: string; jobRefHash: string }).call(wakeLane);
+    resumedSibling = next ? { kind: next.kind, jobRefHash: next.jobRefHash } : null;
+  },
+});
+(wakeLane.purgeJob as (jobId: string) => void).call(wakeLane, "job-b");
+await Promise.resolve();
+assert.equal(purgePumpCount, 1, "exact WAL purge must immediately re-pump the one FIFO lane");
+assert.deepEqual(resumedSibling, { kind: "acquire", jobRefHash: blockedAcquire.jobRefHash },
+  "a queued sibling must resume after the deleted job's WAL is gone");
 assert.equal((blockedLane.queue as unknown[]).length, 4,
   "acquire, admission, WAIT, and another job's deletion must remain blocked");
 

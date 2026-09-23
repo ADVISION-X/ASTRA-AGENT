@@ -1,7 +1,7 @@
 # Local Browser Authority V52 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"local-browser-authority-v52","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V40","LAW-LOCAL-BROWSER-SESSION-004-V47","LAW-LOCAL-BROWSER-SESSION-006-V37"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"local-browser-authority-v52","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V40","LAW-LOCAL-BROWSER-SESSION-004-V48","LAW-LOCAL-BROWSER-SESSION-006-V37"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
 ```
 
 Browser 只拥有现实页面资源：已获 grant且未闭环 job与 system Target的一对一进程内绑定、实时 current Document、一条 FIFO、一条物理 lane、一个全局 Provider observation节拍、Provider/控件 mutation的唯一 WAL，以及页面生命周期动作后的 fresh readback。它不理解 Product步骤、不保存 GPT回答、不决定 retry或当前 N，也不拥有 Website task。
@@ -22,7 +22,7 @@ Browser 另在同一 FIFO/lane 内唯一拥有 `chatgptPageAccessNotBefore`：�
 
 全局存在 unresolved `DISPATCHED` 时，其他 job 的 acquisition 与普通 release 一律失败关闭；同一 job 也只能在 Website 当前生产授权已 fresh readback、AGENT 已 durable accept且唯一 FIFO/lane现场证明身份完全一致时进入收尾。`provider_effect` 只允许零输入 postcondition/readback：fresh DOM 精确证明已发生时，由同一 Child 调用现役 Browser resolver 把原 WAL 行原位结算为 `CONFIRMED + mutation_outcome=confirmed`，再读回终态 authority hash并继续读取原结果；已证明未发生则返回 `mutation_outcome=no` 交由 Website 决定以后是否签发新 attempt；无法证明则返回 `PROVIDER_EFFECT_OUTCOME_UNPROVEN` 并保持原行 `DISPATCHED`、保留原 accepted attempt。任何新进程、Tab、fence或attempt都不得重发。`target_local` 只有旧 execution fence 已失效、当前 fence 不同且全局恰有这一条同 job unresolved target-local时，才可在任何新 acquisition 前把旧 WAL 行原位终结为 `REJECTED + mutation_outcome=dispatched`，保留原 `physical_input_count` 与完整 WAL事实，再对当前 Target/Document执行fresh typed precondition；多条、混合scope、同fence、非生产binding或身份漂移全部失败关闭。Browser不得据此签发新attempt或result revision，也不得把unknown改写成no。
 
-永久删除仍只有新鲜 Website 读回已持久裁定同一 exact job 为 `PRIVACY_SUBJECT_CLOSED`，或 Website 对该 job 返回权威不存在，才可分别签发 `website-permanent-revocation` 或 `website-admin-deletion`；lane 还必须从唯一 Browser WAL 现场证明该同一 jobId 确有 `DISPATCHED`，并在 active claim 已零输入 park 后，允许这一个 release 经唯一 FIFO、预授权 WebSocket 与 exact jobRefHash ack 删除其 system Tab。`business-admitted`、普通 `wait-new-attempt`和其他 job 的普通 release或永久裁定都不得穿过该例外；WAL/effect fact必须保留。新 attempt 不先释放旧 Target；它在 Runtime durable accept后通过第一次 current production acquisition进入唯一 lane，由现役同job、不同writer fence、单一旧`target_local`收尾规则先原位结算旧行，再取得或重建当前 Target。
+永久删除只以 Website 对同一 exact job 返回权威不存在为授权，Runtime 才可签发 `website-admin-deletion`；lane 从唯一 Browser WAL 现场证明同一 jobId 的未决 `DISPATCHED`，在 active claim 已零输入 park 后，允许该 release 经唯一 FIFO、预授权 WebSocket 与 exact jobRefHash ack 删除其 system Tab，随后由原 Browser Owner 按同一 jobId 清除 WAL 并读回缺席。`PRIVACY_SUBJECT_CLOSED`、`business-admitted`、普通 `wait-new-attempt` 和其它 job 的普通 release 都不得取得永久删除资格；不得把未知 effect 改写为 `mutation_outcome=no`。新 attempt 不先释放旧 Target；它在 Runtime durable accept 后通过第一次 current production acquisition 进入唯一 lane，由现役同 job、不同 writer fence、单一旧 `target_local` 收尾规则先原位结算旧行，再取得或重建当前 Target。
 
 `FROZEN-GPT-RESPONSE-NO-PROMPT-REHASH-001` 的 Browser 部分固定：回答读取只用 canonical conversation URL 和 submit 已确认的精确 `userTurnId` 定位其真实紧邻 assistant turn，并把当前 Target/Document、observation revision、回答内容 hash 或媒体 bytes hash 绑定到一次原子 observation。Browser 不得在回答 checkpoint 再读取、解析或 hash 历史 user prompt，不得返回 `precedingPromptHash`，也不得把 Provider 的折叠、展开、截断或重新渲染状态变成回答准入条件。删除或替代本边界必须由用户明确解冻，并同步替换 GPT/Browser 施工图、实现与唯一质检；普通修复或 CI 授权不构成解冻。
 

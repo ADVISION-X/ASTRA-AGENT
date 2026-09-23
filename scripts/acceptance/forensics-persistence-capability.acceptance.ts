@@ -30,16 +30,33 @@ try {
 
   const crashBytes = Buffer.from([0, 1, 2, 254, 255]);
   const crashRef = createArtifactRef("artifact\0mission-crash\0run-crash\0answer-crash");
+  const legacyOrphanRef = createArtifactRef("artifact\0mission-legacy\0run-legacy\0answer-legacy");
   await mkdir(join(tempRoot, "forensics", "artifacts"), { recursive: true });
   await writeFile(join(tempRoot, "forensics", "artifacts", `${crashRef}.bin`), crashBytes,
     { flag: "wx", mode: 0o600 });
+  const storage = createGrassEyeFileStorage(tempRoot);
   const recovered = await group.appendArtifact({ missionId: "mission-crash", runId: "run-crash",
     artifactType: "ai_raw_output", content: crashBytes, idempotencyKey: "answer-crash" });
   if (recovered.status !== "success") throw new Error(recovered.failureReason);
   assert.equal(recovered.artifactRef, crashRef);
+  const legacyOrphanPath = join(tempRoot, "forensics", "artifacts", `${legacyOrphanRef}.bin`);
+  await writeFile(legacyOrphanPath, crashBytes, { flag: "wx", mode: 0o600 });
+  await storage.deleteArtifactsForMission("mission-legacy");
+  await assert.rejects(readFile(legacyOrphanPath), /ENOENT/u,
+    "legacy byte-only orphan must be removed before an exact 404 purge is acknowledged");
+  assert.ok(await storage.readArtifact(artifact.artifactRef),
+    "unindexed garbage collection must not remove indexed sibling evidence");
   const index = await readFile(join(tempRoot, "forensics", "artifacts.ndjson"), "utf8");
   assert.equal(index.includes("raw-answer"), false);
   assert.equal(index.trim().split("\n").length, 2);
+  await rm(join(tempRoot, "forensics", "artifacts", `${crashRef}.bin`));
+  await storage.deleteArtifactsForMission("mission-crash");
+  assert.equal(await storage.readArtifact(crashRef), null,
+    "an indexed write interrupted before bytes must remain exactly purgeable");
+  assert.equal((await readFile(join(tempRoot, "forensics", "artifacts.ndjson"), "utf8"))
+    .includes(crashRef), false);
+  assert.ok(await storage.readArtifact(artifact.artifactRef),
+    "purging the interrupted mission must preserve its sibling artifact");
   await assert.rejects(readFile(join(tempRoot, "forensics", "records-run_1.ndjson")));
   const imageBytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3]);
   const image = await group.appendArtifact({ missionId: input.missionId, runId: input.runId,

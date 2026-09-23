@@ -453,7 +453,7 @@ try {
 }
 
 emitQualityProofObservation({
-  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V47",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V48",
   evidenceMode: "exam.golden",
   clauses: [
     "forbidden:0",

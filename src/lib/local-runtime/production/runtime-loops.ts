@@ -223,10 +223,9 @@ const reconcileUnfinishedExecutionsWithoutReceipt = async (state: RuntimeState):
       const remote = await readProductionDeviceJobStatus(state.session, task.task.job_id);
       if (remote.next_action_code === "WAIT_NEW_ATTEMPT"
         && task.current_reason !== "WAIT_NEW_ATTEMPT") {
-        const permanentRevocation = remote.current_reason?.code === "PRIVACY_SUBJECT_CLOSED";
         await state.browserAuthority.releaseJobBoundTarget(
           task.task.job_id,
-          permanentRevocation ? "website-permanent-revocation" : "wait-new-attempt",
+          "wait-new-attempt",
           state.abort.signal,
         );
         state.store.releaseAttemptForWebsiteDecision(
@@ -235,7 +234,12 @@ const reconcileUnfinishedExecutionsWithoutReceipt = async (state: RuntimeState):
       }
     } catch (error) {
       if (!websiteJobAbsent(error)) throw error;
-      await purgeDeletedJob(state, task.task.job_id);
+      try {
+        await purgeDeletedJob(state, task.task.job_id);
+      } catch (purgeError) {
+        state.store.setCurrentReason(task.task.job_id,
+          failureCode(purgeError, "PRODUCTION_JOB_PURGE_FAILED"));
+      }
     }
   }
 };

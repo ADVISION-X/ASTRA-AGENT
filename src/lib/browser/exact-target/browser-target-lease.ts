@@ -63,7 +63,6 @@ export type BrowserTargetLeaseWait = BrowserTargetLeaseWaitBase & (
 export type BrowserTargetReleaseAuthority =
   | "business-admitted"
   | "wait-new-attempt"
-  | "website-permanent-revocation"
   | "website-admin-deletion";
 
 export type BrowserApprovedArtifactRef = Readonly<{
