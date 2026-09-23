@@ -52,43 +52,55 @@ export type AttemptFailureDisposition =
   | "same_attempt_provider_readback"
   | "fail_closed";
 
+const browserEvidenceComplete = (failure: SerializedTerminalFailure): boolean =>
+  failure.child_capability_id !== null
+  && failure.evidence_ref !== null && failure.evidence_hash !== null;
+
+const ordinaryProofFieldsEmpty = (failure: SerializedTerminalFailure): boolean =>
+  failure.child_proof_ref === null && failure.child_proof_hash === null
+  && failure.stopped_empty_proof === null && failure.settled_result_payload_hash === null;
+
+const confirmedProviderEffect = (failure: SerializedTerminalFailure): boolean =>
+  browserEvidenceComplete(failure) && failure.effect_scope === "provider_effect"
+  && failure.provider_effect_identity_hash !== null
+  && failure.browser_outcome === "CONFIRMED" && failure.mutation_outcome === "confirmed";
+
+const rejectedBeforeProviderEffect = (failure: SerializedTerminalFailure): boolean =>
+  ordinaryProofFieldsEmpty(failure) && browserEvidenceComplete(failure)
+  && failure.browser_outcome === "REJECTED"
+  && (failure.effect_scope === "target_local" && failure.provider_effect_identity_hash === null
+    || failure.effect_scope === "provider_effect" && failure.provider_effect_identity_hash !== null
+      && failure.mutation_outcome === "no");
+
+const sameEffectReadback = (failure: SerializedTerminalFailure): boolean =>
+  ordinaryProofFieldsEmpty(failure) && browserEvidenceComplete(failure)
+  && failure.effect_scope === "provider_effect" && failure.provider_effect_identity_hash !== null
+  && (failure.browser_outcome === "DISPATCHED" && failure.mutation_outcome === "dispatched"
+    || failure.browser_outcome === "CONFIRMED" && failure.mutation_outcome === "confirmed"
+    || failure.browser_outcome === "REJECTED"
+      && ["dispatched", "confirmed"].includes(failure.mutation_outcome));
+
+const settledResultRevision = (failure: SerializedTerminalFailure): boolean =>
+  confirmedProviderEffect(failure) && failure.settled_result_payload_hash !== null
+  && failure.child_proof_ref === null && failure.child_proof_hash === null
+  && failure.stopped_empty_proof === null;
+
+const stoppedEmptyRevision = (failure: SerializedTerminalFailure): boolean =>
+  confirmedProviderEffect(failure) && failure.child_capability_id === "submit_exact_gpt_turn_once"
+  && failure.child_proof_ref !== null && failure.child_proof_hash !== null
+  && failure.stopped_empty_proof !== null && failure.settled_result_payload_hash === null;
+
 export const classifyAttemptFailure = (
   failure: SerializedTerminalFailure,
 ): AttemptFailureDisposition => {
-  const completeBrowserEvidence = failure.child_capability_id !== null
-    && failure.evidence_ref !== null && failure.evidence_hash !== null;
-  const providerEffectFact = completeBrowserEvidence && failure.effect_scope === "provider_effect"
-    && failure.provider_effect_identity_hash !== null;
-  const targetLocalFact = completeBrowserEvidence && failure.effect_scope === "target_local"
-    && failure.provider_effect_identity_hash === null;
-  const ordinaryProofFields = failure.child_proof_ref === null && failure.child_proof_hash === null
-    && failure.stopped_empty_proof === null && failure.settled_result_payload_hash === null;
-  const exactConfirmedProviderEffect = providerEffectFact
-    && failure.browser_outcome === "CONFIRMED" && failure.mutation_outcome === "confirmed"
-    && failure.evidence_ref !== null && failure.evidence_hash !== null;
-  const settledResultRevision = failure.code === "RESULT_SETTLED_UNUSABLE"
-    && exactConfirmedProviderEffect && failure.settled_result_payload_hash !== null
-    && failure.child_proof_ref === null && failure.child_proof_hash === null
-    && failure.stopped_empty_proof === null;
-  const stoppedEmptyRevision = failure.code === "GPT_RESPONSE_STOPPED_EMPTY"
-    && exactConfirmedProviderEffect && failure.child_capability_id === "submit_exact_gpt_turn_once"
-    && failure.child_proof_ref !== null && failure.child_proof_hash !== null
-    && failure.stopped_empty_proof !== null && failure.settled_result_payload_hash === null;
   if (failure.code === "RESULT_SETTLED_UNUSABLE")
-    return settledResultRevision ? "new_attempt_allowed" : "fail_closed";
+    return settledResultRevision(failure) ? "new_attempt_allowed" : "fail_closed";
   if (failure.code === "GPT_RESPONSE_STOPPED_EMPTY")
-    return stoppedEmptyRevision ? "new_attempt_allowed" : "fail_closed";
-  if (ordinaryProofFields && (targetLocalFact && failure.browser_outcome === "REJECTED"
-    || providerEffectFact && failure.browser_outcome === "REJECTED"
-      && failure.mutation_outcome === "no")) {
+    return stoppedEmptyRevision(failure) ? "new_attempt_allowed" : "fail_closed";
+  if (rejectedBeforeProviderEffect(failure)) {
     return "new_attempt_allowed";
   }
-  const sameEffectReadback = ordinaryProofFields && providerEffectFact
-    && (failure.browser_outcome === "DISPATCHED" && failure.mutation_outcome === "dispatched"
-      || failure.browser_outcome === "CONFIRMED" && failure.mutation_outcome === "confirmed"
-      || failure.browser_outcome === "REJECTED"
-        && ["dispatched", "confirmed"].includes(failure.mutation_outcome));
-  if (sameEffectReadback) {
+  if (sameEffectReadback(failure)) {
     return "same_attempt_provider_readback";
   }
   return "fail_closed";

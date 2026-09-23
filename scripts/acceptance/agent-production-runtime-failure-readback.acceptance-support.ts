@@ -314,6 +314,40 @@ export const verifyClaimTimeFirstFactConflict = async (): Promise<void> => {
   }
 };
 
+const verifyRegrantedWithoutLocalAuthority = async <T extends { session: object; lastErrorCode: string | null }>(
+  state: T, counts: { durableAccepts: number; productExecutions: number; websiteWrites: number },
+): Promise<void> => {
+  const regrantedTask = task({
+    jobId: "job:regranted-without-local-authority",
+    productId: "payment_screenshot_observation", actionId: "observe",
+  });
+  const freshShape = claimTask(regrantedTask);
+  const regrantedJob = {
+    ...freshShape, grant: { ...freshShape.grant, same_accepted_attempt: true },
+  };
+  counts.durableAccepts = 0;
+  counts.productExecutions = 0;
+  counts.websiteWrites = 0;
+  const regrantState = { ...state,
+    activeAbort: new Map([[regrantedJob.job_id, new AbortController()]]),
+    session: { ...state.session, request:
+      async (path: string, options?: Readonly<{ method?: string }>) => {
+      if (options?.method && options.method !== "GET") counts.websiteWrites += 1;
+      if (!path.endsWith("/device-status")) throw new Error("UNEXPECTED_RUNTIME_REQUEST");
+      return failureStatus(regrantedJob.job_id, null, []);
+    } },
+  };
+  await executeClaim(regrantState as never, regrantedJob);
+  assert.equal(counts.durableAccepts, 0,
+    "a regranted accepted attempt without its local authority must stop before acceptance");
+  assert.equal(counts.productExecutions, 0,
+    "an unknown old attempt must never enter Product or replay Provider submit");
+  assert.equal(counts.websiteWrites, 0,
+    "an unknown old accepted attempt must remain remote authority and must not be released");
+  assert.equal(regrantState.lastErrorCode,
+    "PRODUCTION_REGRANTED_ATTEMPT_LOCAL_AUTHORITY_MISSING");
+};
+
 export const verifyRemoteFailureWithoutLocalAuthorityStopsBeforeProduct = async (): Promise<void> => {
   const directory = await mkdtemp(join(tmpdir(), "agent-remote-failure-without-local-authority-"));
   const store = new RuntimeStore(directory);
@@ -338,21 +372,19 @@ export const verifyRemoteFailureWithoutLocalAuthorityStopsBeforeProduct = async 
       from_status: "failed", to_status: "failed",
       attempt_id: job.grant.attempt_id, lease_version: job.grant.lease_version,
     };
-    let durableAccepts = 0;
-    let productExecutions = 0;
-    let websiteWrites = 0;
+    const counts = { durableAccepts: 0, productExecutions: 0, websiteWrites: 0 };
     const state = {
       abort: new AbortController(), active: new Map(),
       activeAbort: new Map([[job.job_id, new AbortController()]]), store,
       executor: {
-        accept: () => { durableAccepts += 1; throw new Error("UNEXPECTED_ACCEPT"); },
-        execute: async () => { productExecutions += 1; throw new Error("UNEXPECTED_EXECUTION"); },
+        accept: () => { counts.durableAccepts += 1; throw new Error("UNEXPECTED_ACCEPT"); },
+        execute: async () => { counts.productExecutions += 1; throw new Error("UNEXPECTED_EXECUTION"); },
       },
       session: {
         workerSessionId: "worker:remote-failure-without-local-authority", workerSessionEpoch: 1,
         device: { server_base_url: "http://127.0.0.1:4322" },
         request: async (path: string, options?: Readonly<{ method?: string }>) => {
-          if (options?.method && options.method !== "GET") websiteWrites += 1;
+          if (options?.method && options.method !== "GET") counts.websiteWrites += 1;
           if (!path.endsWith("/device-status")) throw new Error("UNEXPECTED_RUNTIME_REQUEST");
           return failureStatus(job.job_id, remoteFailure, []);
         },
@@ -366,47 +398,20 @@ export const verifyRemoteFailureWithoutLocalAuthorityStopsBeforeProduct = async 
       }),
       draining: false, lastHeartbeat: null, lastErrorCode: null, lastErrorReason: null,
       stopped: false, ledgerReconciled: true,
-    } as never;
-    await executeClaim(state, job);
-    assert.equal(durableAccepts, 0,
+    };
+    await executeClaim(state as never, job);
+    assert.equal(counts.durableAccepts, 0,
       "a remote first fact without its local durable carrier must stop before acceptance");
-    assert.equal(productExecutions, 0,
+    assert.equal(counts.productExecutions, 0,
       "a remote first fact without local authority must produce zero Product or Provider execution");
-    assert.equal(websiteWrites, 0,
+    assert.equal(counts.websiteWrites, 0,
       "the boundary must retain the accepted remote attempt instead of releasing it as unaccepted");
-    assert.equal((state as unknown as { lastErrorCode: string | null }).lastErrorCode,
+    assert.equal(state.lastErrorCode,
       "PRODUCTION_REMOTE_ATTEMPT_FAILURE_LOCAL_AUTHORITY_MISSING");
     assert.equal(store.readTask(job.job_id), null,
       "the AGENT must not invent a local first fact from Website readback");
 
-    const regrantedTask = task({
-      jobId: "job:regranted-without-local-authority",
-      productId: "payment_screenshot_observation", actionId: "observe",
-    });
-    const freshShape = claimTask(regrantedTask);
-    const regrantedJob = {
-      ...freshShape, grant: { ...freshShape.grant, same_accepted_attempt: true },
-    };
-    durableAccepts = 0;
-    productExecutions = 0;
-    websiteWrites = 0;
-    (state as unknown as { activeAbort: Map<string, AbortController> }).activeAbort
-      .set(regrantedJob.job_id, new AbortController());
-    (state as unknown as { session: { request: (path: string, options?: Readonly<{ method?: string }>) => Promise<unknown> } }).session.request =
-      async (path: string, options?: Readonly<{ method?: string }>) => {
-        if (options?.method && options.method !== "GET") websiteWrites += 1;
-        if (!path.endsWith("/device-status")) throw new Error("UNEXPECTED_RUNTIME_REQUEST");
-        return failureStatus(regrantedJob.job_id, null, []);
-      };
-    await executeClaim(state, regrantedJob);
-    assert.equal(durableAccepts, 0,
-      "a regranted accepted attempt without its local authority must stop before acceptance");
-    assert.equal(productExecutions, 0,
-      "an unknown old attempt must never enter Product or replay Provider submit");
-    assert.equal(websiteWrites, 0,
-      "an unknown old accepted attempt must remain remote authority and must not be released");
-    assert.equal((state as unknown as { lastErrorCode: string | null }).lastErrorCode,
-      "PRODUCTION_REGRANTED_ATTEMPT_LOCAL_AUTHORITY_MISSING");
+    await verifyRegrantedWithoutLocalAuthority(state, counts);
   } finally {
     store.close();
     await rm(directory, { recursive: true, force: true });

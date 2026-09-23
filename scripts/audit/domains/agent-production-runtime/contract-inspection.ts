@@ -38,9 +38,9 @@ export const sourceFor = (context: InspectorContext, path: string): SourceFile |
 
 const inspectMinimalDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const [path, version, lawId, checkId] of [
-    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 37,
+    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 40,
       LAWS.route, "agent-production-runtime/v37-dependency"],
-    ["docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json", 13,
+    ["docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json", 14,
       LAWS.route, "agent-production-runtime/v13-result-dependency"],
   ] as const) {
     const dependency = JSON.parse(read(context, path)) as { version?: unknown; contract?: Record<string, unknown> };
@@ -64,10 +64,10 @@ const inspectRouteProjection = (context: InspectorContext, findings: InspectorFi
     return Array.isArray(keys) && keys.includes("reusable_base_reservation_ref")
       && keys.includes("reusable_base_reservation_hash");
   }).length;
-  if (route.contract_version !== 13 || routes.length !== 40 || Object.keys(route.parameter_types ?? {}).length !== 46
+  if (route.contract_version !== 14 || routes.length !== 40 || Object.keys(route.parameter_types ?? {}).length !== 48
     || resultContracts !== 33 || reservations !== 0) findings.push(finding(LAWS.route,
     "agent-production-runtime/route-denominator", PATHS.routeProjection,
-    "Route projection is not contract v13 with the exact 40/46/33/0 denominator."));
+    "Route projection is not contract v14 with the exact 40/48/33/0 denominator."));
 };
 
 const accessedProperties = (node: Node | undefined, receiver: string): string[] =>
@@ -265,7 +265,7 @@ const inspectBusinessCapacity = (context: InspectorContext, findings: InspectorF
     && !workerSession.includes("business_capacity_total")
     && runtimeLoops.includes("PRODUCTION_BUSINESS_CAPACITY_MAX - businessInFlightCount(state)")
     && runtimeLoops.includes("state.store.pendingBusinessAdmissions()")
-    && runtimeLoops.includes("inFlightJobIds.has(job.job_id)")
+    && runtimeLoops.includes("businessInFlightJobIds(state).has(job.job_id)")
     && runtimeLoops.includes("agent_attested_in_flight: businessInFlightCount(state)")
     && executor.includes("return PRODUCTION_BUSINESS_CAPACITY_MAX")
     && cloudClient.includes("limit > PRODUCTION_BUSINESS_CAPACITY_MAX")

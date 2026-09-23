@@ -95,23 +95,10 @@ const exerciseManifestAndLawOwnership = async (): Promise<void> => {
   ]) assert.ok(runtimeCoreLaw.forbidden.some((entry) => entry.includes(token)), token);
 };
 
-export const exerciseProductionRuntimeSourceBoundaries = async (): Promise<void> => {
-  const [runtimeSource, runtimeStartupSource, businessAdmissionSource, runtimeLoopsSource,
-    outboxSource, storeFoundationSource, reconciliationSource, executorSource, storeSource,
-    workerSessionSource, cloudClientSource] =
-    await Promise.all([
-      readRuntimeSource("runtime-claim.ts"),
-      readRuntimeSource("runtime-startup.ts"),
-      readRuntimeSource("runtime-business-admission.ts"),
-      readRuntimeSource("runtime-loops.ts"),
-      readRuntimeSource("store-outbox.ts"),
-      readRuntimeSource("store-foundation.ts"),
-      readRuntimeSource("cloud-reconciliation-client.ts"),
-      readRuntimeSource("executor.ts"),
-      readRuntimeSource("store-task-state.ts"),
-      readRuntimeSource("worker-session.ts"),
-      readRuntimeSource("cloud-client.ts"),
-    ]);
+const assertClaimAndAdmissionSourceBoundaries = (
+  runtimeSource: string, runtimeLoopsSource: string, workerSessionSource: string,
+  cloudClientSource: string, executorSource: string,
+): void => {
   assert.doesNotMatch(runtimeSource, /outcome: "failed"[\s\S]{0,300}BUSINESS_ADMISSION_PENDING/u);
   assert.doesNotMatch(runtimeLoopsSource, /outcome: "failed"[\s\S]{0,300}BUSINESS_ADMISSION_PENDING/u);
   assert.match(runtimeLoopsSource,
@@ -131,6 +118,28 @@ export const exerciseProductionRuntimeSourceBoundaries = async (): Promise<void>
   assert.doesNotMatch(runtimeSource, /emitState|stateKey:|currentStates|reconciledFromAuthority/u);
   assert.doesNotMatch(executorSource, /runTurn|ProductionGptExecutor|GPT_TURN_FLOW/u);
   assert.match(executorSource, /gpt: gptExecution\.tools/u);
+};
+
+export const exerciseProductionRuntimeSourceBoundaries = async (): Promise<void> => {
+  const [runtimeSource, runtimeStartupSource, businessAdmissionSource, runtimeLoopsSource,
+    outboxSource, storeFoundationSource, reconciliationSource, executorSource, storeSource,
+    workerSessionSource, cloudClientSource] =
+    await Promise.all([
+      readRuntimeSource("runtime-claim.ts"),
+      readRuntimeSource("runtime-startup.ts"),
+      readRuntimeSource("runtime-business-admission.ts"),
+      readRuntimeSource("runtime-loops.ts"),
+      readRuntimeSource("store-outbox.ts"),
+      readRuntimeSource("store-foundation.ts"),
+      readRuntimeSource("cloud-reconciliation-client.ts"),
+      readRuntimeSource("executor.ts"),
+      readRuntimeSource("store-task-state.ts"),
+      readRuntimeSource("worker-session.ts"),
+      readRuntimeSource("cloud-client.ts"),
+    ]);
+  assertClaimAndAdmissionSourceBoundaries(
+    runtimeSource, runtimeLoopsSource, workerSessionSource, cloudClientSource, executorSource,
+  );
   const executeClaimSource = runtimeSource.slice(runtimeSource.indexOf("export const executeClaim"));
   const executionFailureSource = runtimeSource.slice(
     runtimeSource.indexOf("const handleProductExecutionFailure"),
@@ -318,6 +327,125 @@ const exerciseAdmissionDeletion = async (
   assert.equal(store.readTask(retryable.job_id), null);
 };
 
+const failureFact = (jobId: string, attemptId: string, overrides: Record<string, unknown>) =>
+  attemptFailureFirstFact(attemptId, {
+        code: "BROWSER_ATTEMPT_FAILED", mutation_outcome: "confirmed",
+        evidence_ref: `browser-fact:${jobId}`, effect_scope: "provider_effect",
+        child_capability_id: "submit_exact_gpt_turn_once", browser_outcome: "CONFIRMED",
+        provider_effect_identity_hash: HASH_A, settled_result_payload_hash: null,
+        stopped_empty_proof: null, child_proof_ref: null, child_proof_hash: null,
+        evidence_hash: HASH_B, cause: null, ...overrides,
+      } as never);
+
+const exerciseFailureCapacity = async (
+  store: ProductionRuntimeStore, productionTask: ReturnType<typeof task>,
+): Promise<void> => {
+  const readback = task({ jobId: "job:capacity:provider-readback",
+    productId: productionTask.product_id, actionId: productionTask.action_id,
+    materialRefs: productionTask.material_refs, extra: { parameters: productionTask.parameters } });
+  store.acceptTask(readback, "attempt:provider-readback");
+  store.recordAttemptFailure(readback.job_id, "attempt:provider-readback",
+    failureFact(readback.job_id, "attempt:provider-readback", {}));
+  assert.equal(businessInFlightCount({ active: new Map(), store } as never), 2,
+    "a durable same-attempt provider readback must retain its existing business slot");
+  assert.equal(businessInFlightCount({ active: new Map([[readback.job_id, Promise.resolve()]]), store } as never), 2,
+    "a regranted readback execution must reuse the existing slot instead of adding another");
+  const readbackClaim = claimTask(readback);
+  assert.equal(claimReusesExistingBusinessSlot({ active: new Map(), store } as never, {
+    ...readbackClaim, grant: { ...readbackClaim.grant, attempt_id: "attempt:different" },
+  }), false, "a provider readback slot must reject a grant for a different attempt");
+  const unclassified = task({ jobId: "job:capacity:unclassified-failure",
+    productId: productionTask.product_id, actionId: productionTask.action_id,
+    materialRefs: productionTask.material_refs, extra: { parameters: productionTask.parameters } });
+  store.acceptTask(unclassified, "attempt:unclassified");
+  store.recordAttemptFailure(unclassified.job_id, "attempt:unclassified",
+    failureFact(unclassified.job_id, "attempt:unclassified", {
+      effect_scope: "target_local", browser_outcome: "DISPATCHED",
+      provider_effect_identity_hash: null, mutation_outcome: "dispatched",
+    }));
+  assert.equal(businessInFlightCount({ active: new Map(), store } as never), 3,
+    "a fail-closed accepted attempt must remain in the attested business denominator");
+  const runtimeLoopsSource = await readRuntimeSource("runtime-loops.ts");
+  assert.match(runtimeLoopsSource,
+    /availableNewSlots > 0 \|\| hasExistingAttemptRecovery/u,
+    "a full business denominator must still permit an existing readback or cooldown attempt to request regrant");
+  assert.match(runtimeLoopsSource,
+    /requestClaimBatch\([\s\S]{0,80}Math\.max\(1, availableNewSlots\), recoveryOnlyClaim/u,
+    "the existing V6 wire minimum must be preserved while attestation keeps new grant capacity at zero");
+  assert.match(runtimeLoopsSource,
+    /businessInFlightJobIds\(state\)\.has\(job\.job_id\)[\s\S]*!claimReusesExistingBusinessSlot\(state, job\)/u,
+    "only an exact readback or paused cooldown regrant may reuse an occupied slot");
+};
+
+const exerciseBackgroundDeletionSweep = async (
+  admissionTemporary: string, productionTask: ReturnType<typeof task>,
+): Promise<void> => {
+  const sweepDir = path.join(admissionTemporary, "sweep");
+  await mkdir(sweepDir);
+  const sweepStore = new ProductionRuntimeStore(sweepDir);
+  const deleted = task({ jobId: "job:sweep:deleted", productId: productionTask.product_id,
+    actionId: productionTask.action_id, materialRefs: productionTask.material_refs,
+    extra: { parameters: productionTask.parameters } });
+  const sibling = task({ jobId: "job:sweep:sibling", productId: productionTask.product_id,
+    actionId: productionTask.action_id, materialRefs: productionTask.material_refs,
+    extra: { parameters: productionTask.parameters } });
+  for (const candidate of [deleted, sibling]) {
+    const attemptId = `attempt:${candidate.job_id}`;
+    sweepStore.acceptTask(candidate, attemptId);
+    sweepStore.recordAttemptFailure(candidate.job_id, attemptId,
+      failureFact(candidate.job_id, attemptId, {}));
+  }
+  const observed: string[] = [];
+  await reconcilePendingAttemptFailures({ store: sweepStore, dataDir: sweepDir,
+    abort: new AbortController(),
+    session: { request: async (route: string) => {
+      if (route.includes(encodeURIComponent(deleted.job_id))) {
+        throw executionFailure("failed", "AI_V6_DEVICE_JOB_NOT_FOUND");
+      }
+      observed.push(sibling.job_id);
+      return deviceStatusWithoutAdmission(sibling.job_id).request();
+    } },
+    browserAuthority: { releaseJobBoundTarget: async () => {
+      throw new Error("SIBLING_UNRESOLVED_WAL");
+    } },
+  } as never);
+  assert.deepEqual(observed, [sibling.job_id],
+    "one exact 404 purge failure must not block sibling status recovery scanning");
+  assert.equal(sweepStore.readTask(deleted.job_id)?.current_reason, "PRODUCTION_JOB_PURGE_FAILED");
+  assert.ok(sweepStore.readTask(deleted.job_id), "failed exact purge must retain its durable identity");
+  sweepStore.close();
+  const activeDir = path.join(admissionTemporary, "active-404");
+  await mkdir(activeDir);
+  const activeStore = new ProductionRuntimeStore(activeDir);
+  const activeJob = task({ jobId: "job:active:deleted", productId: productionTask.product_id,
+    actionId: productionTask.action_id, materialRefs: productionTask.material_refs,
+    extra: { parameters: productionTask.parameters } });
+  activeStore.acceptTask(activeJob, "attempt:active-deleted");
+  activeStore.recordAttemptFailure(activeJob.job_id, "attempt:active-deleted",
+    failureFact(activeJob.job_id, "attempt:active-deleted", {}));
+  const activeAbort = new AbortController();
+  let releaseCalls = 0;
+  const activeState = { store: activeStore, dataDir: activeDir, abort: new AbortController(),
+    active: new Map([[activeJob.job_id, Promise.resolve()]]),
+    activeAbort: new Map([[activeJob.job_id, activeAbort]]),
+    session: { request: async () => { throw executionFailure("failed", "AI_V6_DEVICE_JOB_NOT_FOUND"); } },
+    browserAuthority: { releaseJobBoundTarget: async () => { releaseCalls += 1; },
+      purgeBrowserJob: () => undefined },
+    evidenceStore: { deleteArtifactsForMission: async () => undefined },
+  };
+  await reconcilePendingAttemptFailures(activeState as never);
+  assert.equal(activeAbort.signal.aborted, true,
+    "background exact 404 must stop an active same-attempt recovery before its next input");
+  assert.equal(releaseCalls, 0, "background deletion must wait for the active execution to settle");
+  assert.ok(activeStore.readTask(activeJob.job_id), "active execution retains its durable identity until settled");
+  activeState.active.delete(activeJob.job_id);
+  activeState.activeAbort.delete(activeJob.job_id);
+  await reconcilePendingAttemptFailures(activeState as never);
+  assert.equal(activeStore.readTask(activeJob.job_id), null,
+    "the same exact 404 must finish owner purge after execution settles");
+  activeStore.close();
+};
+
 export const exerciseOperationsAndBusinessAdmission = async (
   productionTask: ReturnType<typeof task>,
 ): Promise<void> => {
@@ -365,114 +493,8 @@ export const exerciseOperationsAndBusinessAdmission = async (
       "an admission-pending job must retain the only business slot after execution settles");
     assert.equal(businessInFlightCount({ active: new Map([[pending.job_id, Promise.resolve()]]), store } as never), 1,
       "active and admission-pending views of the same job must count once");
-    const failureFact = (jobId: string, attemptId: string, overrides: Record<string, unknown>) =>
-      attemptFailureFirstFact(attemptId, {
-        code: "BROWSER_ATTEMPT_FAILED", mutation_outcome: "confirmed",
-        evidence_ref: `browser-fact:${jobId}`, effect_scope: "provider_effect",
-        child_capability_id: "submit_exact_gpt_turn_once", browser_outcome: "CONFIRMED",
-        provider_effect_identity_hash: HASH_A, settled_result_payload_hash: null,
-        stopped_empty_proof: null, child_proof_ref: null, child_proof_hash: null,
-        evidence_hash: HASH_B, cause: null, ...overrides,
-      } as never);
-    const readback = task({ jobId: "job:capacity:provider-readback",
-      productId: productionTask.product_id, actionId: productionTask.action_id,
-      materialRefs: productionTask.material_refs, extra: { parameters: productionTask.parameters } });
-    store.acceptTask(readback, "attempt:provider-readback");
-    store.recordAttemptFailure(readback.job_id, "attempt:provider-readback",
-      failureFact(readback.job_id, "attempt:provider-readback", {}));
-    assert.equal(businessInFlightCount({ active: new Map(), store } as never), 2,
-      "a durable same-attempt provider readback must retain its existing business slot");
-    assert.equal(businessInFlightCount({ active: new Map([[readback.job_id, Promise.resolve()]]), store } as never), 2,
-      "a regranted readback execution must reuse the existing slot instead of adding another");
-    const readbackClaim = claimTask(readback);
-    assert.equal(claimReusesExistingBusinessSlot({ active: new Map(), store } as never, {
-      ...readbackClaim, grant: { ...readbackClaim.grant, attempt_id: "attempt:different" },
-    }), false, "a provider readback slot must reject a grant for a different attempt");
-    const unclassified = task({ jobId: "job:capacity:unclassified-failure",
-      productId: productionTask.product_id, actionId: productionTask.action_id,
-      materialRefs: productionTask.material_refs, extra: { parameters: productionTask.parameters } });
-    store.acceptTask(unclassified, "attempt:unclassified");
-    store.recordAttemptFailure(unclassified.job_id, "attempt:unclassified",
-      failureFact(unclassified.job_id, "attempt:unclassified", {
-        effect_scope: "target_local", browser_outcome: "DISPATCHED",
-        provider_effect_identity_hash: null, mutation_outcome: "dispatched",
-      }));
-    assert.equal(businessInFlightCount({ active: new Map(), store } as never), 3,
-      "a fail-closed accepted attempt must remain in the attested business denominator");
-    const runtimeLoopsSource = await readRuntimeSource("runtime-loops.ts");
-    assert.match(runtimeLoopsSource,
-      /availableNewSlots > 0 \|\| hasExistingAttemptRecovery/u,
-      "a full business denominator must still permit an existing readback or cooldown attempt to request regrant");
-    assert.match(runtimeLoopsSource,
-      /requestClaimBatch\([\s\S]{0,80}Math\.max\(1, availableNewSlots\), recoveryOnlyClaim/u,
-      "the existing V6 wire minimum must be preserved while attestation keeps new grant capacity at zero");
-    assert.match(runtimeLoopsSource,
-      /businessInFlightJobIds\(state\)\.has\(job\.job_id\)[\s\S]*!claimReusesExistingBusinessSlot\(state, job\)/u,
-      "only an exact readback or paused cooldown regrant may reuse an occupied slot");
-    const sweepDir = path.join(admissionTemporary, "sweep");
-    await mkdir(sweepDir);
-    const sweepStore = new ProductionRuntimeStore(sweepDir);
-    const deleted = task({ jobId: "job:sweep:deleted", productId: productionTask.product_id,
-      actionId: productionTask.action_id, materialRefs: productionTask.material_refs,
-      extra: { parameters: productionTask.parameters } });
-    const sibling = task({ jobId: "job:sweep:sibling", productId: productionTask.product_id,
-      actionId: productionTask.action_id, materialRefs: productionTask.material_refs,
-      extra: { parameters: productionTask.parameters } });
-    for (const candidate of [deleted, sibling]) {
-      const attemptId = `attempt:${candidate.job_id}`;
-      sweepStore.acceptTask(candidate, attemptId);
-      sweepStore.recordAttemptFailure(candidate.job_id, attemptId,
-        failureFact(candidate.job_id, attemptId, {}));
-    }
-    const observed: string[] = [];
-    await reconcilePendingAttemptFailures({ store: sweepStore, dataDir: sweepDir,
-      abort: new AbortController(),
-      session: { request: async (route: string) => {
-        if (route.includes(encodeURIComponent(deleted.job_id))) {
-          throw executionFailure("failed", "AI_V6_DEVICE_JOB_NOT_FOUND");
-        }
-        observed.push(sibling.job_id);
-        return deviceStatusWithoutAdmission(sibling.job_id).request();
-      } },
-      browserAuthority: { releaseJobBoundTarget: async () => {
-        throw new Error("SIBLING_UNRESOLVED_WAL");
-      } },
-    } as never);
-    assert.deepEqual(observed, [sibling.job_id],
-      "one exact 404 purge failure must not block sibling status recovery scanning");
-    assert.equal(sweepStore.readTask(deleted.job_id)?.current_reason, "PRODUCTION_JOB_PURGE_FAILED");
-    assert.ok(sweepStore.readTask(deleted.job_id), "failed exact purge must retain its durable identity");
-    sweepStore.close();
-    const activeDir = path.join(admissionTemporary, "active-404");
-    await mkdir(activeDir);
-    const activeStore = new ProductionRuntimeStore(activeDir);
-    const activeJob = task({ jobId: "job:active:deleted", productId: productionTask.product_id,
-      actionId: productionTask.action_id, materialRefs: productionTask.material_refs,
-      extra: { parameters: productionTask.parameters } });
-    activeStore.acceptTask(activeJob, "attempt:active-deleted");
-    activeStore.recordAttemptFailure(activeJob.job_id, "attempt:active-deleted",
-      failureFact(activeJob.job_id, "attempt:active-deleted", {}));
-    const activeAbort = new AbortController();
-    let releaseCalls = 0;
-    const activeState = { store: activeStore, dataDir: activeDir, abort: new AbortController(),
-      active: new Map([[activeJob.job_id, Promise.resolve()]]),
-      activeAbort: new Map([[activeJob.job_id, activeAbort]]),
-      session: { request: async () => { throw executionFailure("failed", "AI_V6_DEVICE_JOB_NOT_FOUND"); } },
-      browserAuthority: { releaseJobBoundTarget: async () => { releaseCalls += 1; },
-        purgeBrowserJob: () => undefined },
-      evidenceStore: { deleteArtifactsForMission: async () => undefined },
-    };
-    await reconcilePendingAttemptFailures(activeState as never);
-    assert.equal(activeAbort.signal.aborted, true,
-      "background exact 404 must stop an active same-attempt recovery before its next input");
-    assert.equal(releaseCalls, 0, "background deletion must wait for the active execution to settle");
-    assert.ok(activeStore.readTask(activeJob.job_id), "active execution retains its durable identity until settled");
-    activeState.active.delete(activeJob.job_id);
-    activeState.activeAbort.delete(activeJob.job_id);
-    await reconcilePendingAttemptFailures(activeState as never);
-    assert.equal(activeStore.readTask(activeJob.job_id), null,
-      "the same exact 404 must finish owner purge after execution settles");
-    activeStore.close();
+    await exerciseFailureCapacity(store, productionTask);
+    await exerciseBackgroundDeletionSweep(admissionTemporary, productionTask);
     await exerciseWaitNewAndPrivacy(store, productionTask);
     await exerciseAdmissionDeletion(store, admissionTemporary, productionTask, pending);
     store.close();

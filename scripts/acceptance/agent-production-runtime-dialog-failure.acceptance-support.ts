@@ -107,6 +107,71 @@ export const verifyGptDialogMismatchRuntimeContract = async (): Promise<void> =>
   }
 };
 
+const verifyCooldownSibling = async (
+  store: RuntimeStore, temporary: string, runtimeLogger: RuntimeLogger,
+  releaseRequests: { count: number },
+): Promise<void> => {
+  const siblingTask = task({
+    jobId: "job:cooldown-active-sibling-runtime",
+    productId: "payment_screenshot_observation",
+    actionId: "observe",
+  });
+  const siblingJob = claimTask(siblingTask);
+  const siblingStatus = deviceStatusWithoutAdmission(siblingJob.job_id);
+  await executeClaim({
+    abort: new AbortController(), active: new Map(),
+    activeAbort: new Map([[siblingJob.job_id, new AbortController()]]), store,
+    executor: {
+      accept: (acceptedTask: typeof siblingTask, attemptId: string) =>
+        store.acceptTask(acceptedTask, attemptId),
+      acceptAfterFailureReconciled: () => { throw new Error("UNEXPECTED_RECONCILIATION"); },
+      execute: async () => {
+        throw executionFailure("failed", "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE");
+      },
+    } as never,
+    session: {
+      workerSessionId: "worker:1", workerSessionEpoch: 1,
+      device: { server_base_url: "http://127.0.0.1:4322" },
+      request: async (requestPath: string) => {
+        if (requestPath.endsWith("/lease-release")) releaseRequests.count += 1;
+        return siblingStatus.request();
+      },
+    } as never,
+    providerRateLimitControl: {
+      assertProviderSubmitAllowed: () => {
+        throw executionFailure("failed", "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE");
+      },
+    } as never,
+    browserAuthority: {} as never, gpt: {} as never, evidenceStore: {} as never,
+    dataDir: temporary, runtimeLogger, draining: false, lastHeartbeat: null,
+    lastErrorCode: null, lastErrorReason: null, stopped: false, ledgerReconciled: true,
+  }, siblingJob);
+  const siblingRecord = store.readTask(siblingJob.job_id);
+  assert.equal(siblingRecord?.current_reason, "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE");
+  assert.equal(siblingRecord?.attempt_failure, null,
+    "a sibling that reaches the shared closed submit gate must remain resumable after cooldown");
+  assert.equal(businessInFlightCount({ active: new Map(), store } as never), 2,
+    "both paused accepted attempts must remain in the attested business denominator");
+  assert.equal(claimReusesExistingBusinessSlot({ store } as never, siblingJob), true,
+    "the exact paused attempt regrant must reuse its occupied business slot after the time gate");
+  assert.equal(claimReusesExistingBusinessSlot({ store } as never, {
+    ...siblingJob, grant: { ...siblingJob.grant, attempt_id: "attempt:different" },
+  }), false, "a different attempt must not borrow the paused attempt slot");
+  for (const index of [3, 4]) {
+    const pausedTask = task({
+      jobId: `job:cooldown-active-${index}`,
+      productId: "payment_screenshot_observation", actionId: "observe",
+    });
+    const pausedJob = claimTask(pausedTask);
+    store.acceptTask(pausedTask, pausedJob.grant.attempt_id);
+    store.setCurrentReason(pausedTask.job_id, "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE");
+  }
+  assert.equal(businessInFlightCount({ active: new Map(), store } as never), 4,
+    "four paused accepted attempts must retain the full attested denominator until exact recovery");
+  assert.equal(releaseRequests.count, 0,
+    "a shared cooldown pause must not release or terminate either accepted attempt");
+};
+
 export const verifyKnownGptRateLimitRuntimeContract = async (): Promise<void> => {
   const temporary = await mkdtemp(join(tmpdir(), "agent-known-rate-limit-runtime-"));
   const store = new RuntimeStore(temporary);
@@ -117,7 +182,7 @@ export const verifyKnownGptRateLimitRuntimeContract = async (): Promise<void> =>
       actionId: "observe",
     });
     const job = claimTask(websiteTask);
-    let releaseRequests = 0;
+    const releaseRequests = { count: 0 };
     const statusSession = deviceStatusWithoutAdmission(job.job_id);
     const runtimeLogger = createRuntimeLogger({
       producer: "agent-known-rate-limit-runtime-acceptance",
@@ -140,7 +205,7 @@ export const verifyKnownGptRateLimitRuntimeContract = async (): Promise<void> =>
         workerSessionId: "worker:1", workerSessionEpoch: 1,
         device: { server_base_url: "http://127.0.0.1:4322" },
         request: async (requestPath: string) => {
-          if (requestPath.endsWith("/lease-release")) releaseRequests += 1;
+          if (requestPath.endsWith("/lease-release")) releaseRequests.count += 1;
           return statusSession.request();
         },
       } as never,
@@ -164,70 +229,12 @@ export const verifyKnownGptRateLimitRuntimeContract = async (): Promise<void> =>
     assert.equal(store.unfinishedExecutionsWithoutReceipt()
       .some((candidate) => candidate.task.job_id === job.job_id), true,
     "a paused accepted attempt must remain in Website status reconciliation for later revocation or deletion");
-    assert.equal(releaseRequests, 0,
+    assert.equal(releaseRequests.count, 0,
       "an authoritative exact dialog behind a closed cooldown gate must not issue a 409-prone release");
     assert.equal(store.outboxAuthorities().length, 0,
       "the Runtime exception must not create a second Website write path");
 
-    const siblingTask = task({
-      jobId: "job:cooldown-active-sibling-runtime",
-      productId: "payment_screenshot_observation",
-      actionId: "observe",
-    });
-    const siblingJob = claimTask(siblingTask);
-    const siblingStatus = deviceStatusWithoutAdmission(siblingJob.job_id);
-    await executeClaim({
-      abort: new AbortController(), active: new Map(),
-      activeAbort: new Map([[siblingJob.job_id, new AbortController()]]), store,
-      executor: {
-        accept: (acceptedTask: typeof siblingTask, attemptId: string) =>
-          store.acceptTask(acceptedTask, attemptId),
-        acceptAfterFailureReconciled: () => { throw new Error("UNEXPECTED_RECONCILIATION"); },
-        execute: async () => {
-          throw executionFailure("failed", "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE");
-        },
-      } as never,
-      session: {
-        workerSessionId: "worker:1", workerSessionEpoch: 1,
-        device: { server_base_url: "http://127.0.0.1:4322" },
-        request: async (requestPath: string) => {
-          if (requestPath.endsWith("/lease-release")) releaseRequests += 1;
-          return siblingStatus.request();
-        },
-      } as never,
-      providerRateLimitControl: {
-        assertProviderSubmitAllowed: () => {
-          throw executionFailure("failed", "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE");
-        },
-      } as never,
-      browserAuthority: {} as never, gpt: {} as never, evidenceStore: {} as never,
-      dataDir: temporary, runtimeLogger, draining: false, lastHeartbeat: null,
-      lastErrorCode: null, lastErrorReason: null, stopped: false, ledgerReconciled: true,
-    }, siblingJob);
-    const siblingRecord = store.readTask(siblingJob.job_id);
-    assert.equal(siblingRecord?.current_reason, "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE");
-    assert.equal(siblingRecord?.attempt_failure, null,
-      "a sibling that reaches the shared closed submit gate must remain resumable after cooldown");
-    assert.equal(businessInFlightCount({ active: new Map(), store } as never), 2,
-      "both paused accepted attempts must remain in the attested business denominator");
-    assert.equal(claimReusesExistingBusinessSlot({ store } as never, siblingJob), true,
-      "the exact paused attempt regrant must reuse its occupied business slot after the time gate");
-    assert.equal(claimReusesExistingBusinessSlot({ store } as never, {
-      ...siblingJob, grant: { ...siblingJob.grant, attempt_id: "attempt:different" },
-    }), false, "a different attempt must not borrow the paused attempt slot");
-    for (const index of [3, 4]) {
-      const pausedTask = task({
-        jobId: `job:cooldown-active-${index}`,
-        productId: "payment_screenshot_observation", actionId: "observe",
-      });
-      const pausedJob = claimTask(pausedTask);
-      store.acceptTask(pausedTask, pausedJob.grant.attempt_id);
-      store.setCurrentReason(pausedTask.job_id, "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE");
-    }
-    assert.equal(businessInFlightCount({ active: new Map(), store } as never), 4,
-      "four paused accepted attempts must retain the full attested denominator until exact recovery");
-    assert.equal(releaseRequests, 0,
-      "a shared cooldown pause must not release or terminate either accepted attempt");
+    await verifyCooldownSibling(store, temporary, runtimeLogger, releaseRequests);
   } finally {
     store.close();
     await rm(temporary, { recursive: true, force: true });
