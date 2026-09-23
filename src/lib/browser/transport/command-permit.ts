@@ -13,6 +13,10 @@ export type BrowserCommandPermit = Readonly<{
   writerFenceHash: BrowserHash;
   candidateHash: BrowserHash;
   contractManifestHash: BrowserHash;
+  deliveryPriorityReplayGrantHash: BrowserHash | null;
+  domainRejectionRevision?: boolean;
+  deliveryPriorityReplayCall?: Readonly<{ productStepId: string; callId: string;
+    childCapabilityId: string; sourceEffectSetHash: BrowserHash }> | null;
   jobId: string;
   resultRevision: number;
   attemptId: string;
@@ -51,6 +55,9 @@ export const browserCommandPermitMacPayload = (permit: BrowserUnsignedCommandPer
   permit.writerFenceHash,
   permit.candidateHash,
   permit.contractManifestHash,
+  permit.deliveryPriorityReplayGrantHash,
+  permit.domainRejectionRevision ?? false,
+  permit.deliveryPriorityReplayCall ?? null,
   permit.jobId,
   permit.resultRevision,
   permit.attemptId,
@@ -113,6 +120,7 @@ const hasValidPermitHashes = (permit: BrowserCommandPermit): boolean => {
     permit.writerFenceHash,
     permit.candidateHash,
     permit.contractManifestHash,
+    ...(permit.deliveryPriorityReplayGrantHash === null ? [] : [permit.deliveryPriorityReplayGrantHash]),
     permit.inputHash,
     permit.commandFrameMac,
   ];

@@ -26,7 +26,7 @@ const exerciseLifecycleMutant = (): void => {
   inspectAgentProductionRuntime({
     project,
     sealedRoot: path.resolve("."),
-    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V68",
+    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V69",
     targetSet: { queryRef: "acceptance:runtime-lifecycle-mutant", count: 1 },
     targetPaths: [],
     lawRequirements: [],
@@ -35,7 +35,7 @@ const exerciseLifecycleMutant = (): void => {
       manifestPath: "scripts/audit/domains/agent-production-runtime/manifest.json",
       ownerInspectorPath: "scripts/audit/domains/agent-production-runtime/inspector.ts",
       executionGroup: "domain",
-      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V68"],
+      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V69"],
     },
     generatedPlan: [],
   }, findings);
@@ -68,12 +68,12 @@ const exerciseManifestAndLawOwnership = async (): Promise<void> => {
   const runtimeLawRecords = [...runtimeLawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
     .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden: string[] });
   const runtimeCoreLaw = runtimeLawRecords.find(
-    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V68",
+    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V69",
   );
   assert.ok(runtimeCoreLaw);
   for (const token of [
     "只有 Website.ai-acceptance",
-    "新 attempt 任意读取旧 attempt",
+    "Runtime 直接读取 Browser 私有 WAL",
     "第二 Outbox",
     "第二 state machine",
   ]) assert.ok(runtimeCoreLaw.forbidden.some((entry) => entry.includes(token)), token);
@@ -94,7 +94,7 @@ const assertClaimAndAdmissionSourceBoundaries = (
   assert.match(workerSessionSource,
     /forceCurrentAttestation[\s\S]{0,180}\? await this\.performHeartbeat\(\)/u);
   assert.match(cloudClientSource,
-    /requestClaim\(requestId, limit, forceCurrentAttestation\)/u);
+    /requestClaim\(requestId, limit, forceCurrentAttestation, sourceEvidence\)/u);
   assert.doesNotMatch(runtimeLoopsSource,
     /operation: "website\.result-consume"[\s\S]{0,900}reconcileBusinessAdmission/u);
   assert.match(runtimeLoopsSource,
@@ -130,8 +130,9 @@ export const exerciseProductionRuntimeSourceBoundaries = async (): Promise<void>
     runtimeSource.indexOf("export const executeClaim"),
   );
   assert.doesNotMatch(storeSource, /attempt_failure_json=null,current_reason='LEASE_REGRANTED'/u);
+  assert.doesNotMatch(storeSource, /stageResultAfterProviderEffectReadback/u);
   assert.match(storeSource,
-    /stageResultAfterProviderEffectReadback[\s\S]*?set attempt_failure_json=null,staged_result_json=\?/u);
+    /acceptTaskAfterSourceHandoff[\s\S]*?SOURCE_HANDOFF_SEALED/u);
   assert.doesNotMatch(executeClaimSource, /recoverAcceptedClaim|reconcileStaleFenceCheckpoint/u);
   const mismatchBranch = executionFailureSource.indexOf(
     'code === "BROWSER_GPT_DIALOG_UNRECOGNIZED"',
@@ -162,7 +163,7 @@ export const exerciseProductionRuntimeSourceBoundaries = async (): Promise<void>
   assert.match(storeSource, /purgeJob\(jobId: string\)/u);
   assert.match(storeSource, /delete from production_outbox/u);
   assert.match(outboxSource,
-    /sent_at is null[\s\S]{0,120}last_error is null or kind='provider_cooldown'/u);
+    /sent_at is null[\s\S]{0,120}last_error is null or \(kind='provider_cooldown'/u);
   assert.doesNotMatch(`${storeFoundationSource}\n${outboxSource}`,
     /next_delivery_at|nextDeliveryAt|pendingOutbox\(/u);
   await exerciseManifestAndLawOwnership();

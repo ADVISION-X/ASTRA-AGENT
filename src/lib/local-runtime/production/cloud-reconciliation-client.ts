@@ -3,8 +3,9 @@ import {
   type ControlIntent,
 } from "./transport-protocol.js";
 import {
-  hashCanonical,
+  hashCanonical, WebsiteAgentResultSchema,
   type ProductionHash,
+  type WebsiteAgentResult,
 } from "./contracts.js";
 import { ProductionWorkerSession } from "./worker-session.js";
 import { executionFailure } from "../../execution-failure.js";
@@ -65,6 +66,8 @@ export type RemoteProductionDeviceJobStatus = Readonly<{
   business_consumer_error: string | null;
   accepted_attempt_count: number;
   write_receipts: readonly RemoteProductionWriteReceipt[];
+  staged_result: WebsiteAgentResult | null;
+  staged_artifact_receipts: readonly Readonly<{ role: string; receipt_hash: ProductionHash }>[];
 }>;
 
 const failureCoreKeys = [
@@ -219,7 +222,8 @@ const deviceStatusAuthorityFieldsValid = (row: Record<string, unknown>): boolean
   && ["ACTIVE_ATTEMPT", "WAIT_NEW_ATTEMPT", "CONSUME_CURRENT_RESULT"].includes(
     row.next_action_code as string,
   )
-  && Array.isArray(row.write_receipts);
+  && Array.isArray(row.write_receipts)
+  && Array.isArray(row.staged_artifact_receipts);
 
 const deviceStatusAttemptAuthorityValid = (row: Record<string, unknown>): boolean =>
   Number.isSafeInteger(row.accepted_attempt_count) && Number(row.accepted_attempt_count) >= 0;
@@ -291,6 +295,27 @@ export async function readProductionDeviceJobStatus(
   assertBusinessAdmissionAuthority(row, admission, terminalStatus);
   const { controlIntent, currentReason } = parseDeviceControlAuthority(row, jobId);
   const attemptFailure = parseRemoteAttemptFailure(row.attempt_failure);
+  const staged = row.staged_result === null ? null
+    : WebsiteAgentResultSchema.safeParse(row.staged_result);
+  if (staged !== null && !staged.success) {
+    throw executionFailure("failed", "V6_DEVICE_STAGED_RESULT_INVALID");
+  }
+  const stagedArtifactReceipts = (row.staged_artifact_receipts as unknown[]).map((value) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw executionFailure("failed", "V6_DEVICE_STAGED_ARTIFACT_INVALID");
+    }
+    const artifact = value as Record<string, unknown>;
+    if (!["result_payload", "result_envelope", "generated_image"].includes(String(artifact.role))
+      || typeof artifact.receipt_hash !== "string"
+      || !/^sha256:[a-f0-9]{64}$/u.test(artifact.receipt_hash)) {
+      throw executionFailure("failed", "V6_DEVICE_STAGED_ARTIFACT_INVALID");
+    }
+    return Object.freeze({ role: artifact.role as string,
+      receipt_hash: artifact.receipt_hash as ProductionHash });
+  });
+  if (staged !== null && stagedArtifactReceipts.length < 2) {
+    throw executionFailure("failed", "V6_DEVICE_STAGED_RESULT_AUTHORITY_INVALID");
+  }
   return Object.freeze({
     job_id: jobId,
     status: row.status as string,
@@ -304,5 +329,7 @@ export async function readProductionDeviceJobStatus(
     business_consumer_error: row.business_consumer_error as string | null,
     accepted_attempt_count: row.accepted_attempt_count as number,
     write_receipts: Object.freeze((row.write_receipts as unknown[]).map(parseRemoteWriteReceipt)),
+    staged_result: staged?.data ?? null,
+    staged_artifact_receipts: Object.freeze(stagedArtifactReceipts),
   });
 }

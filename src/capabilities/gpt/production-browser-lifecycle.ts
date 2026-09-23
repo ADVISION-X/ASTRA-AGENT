@@ -27,6 +27,8 @@ type GptBrowserLeaseAuthority = Readonly<{
 
 export type GptBrowserExecutionInput = Pick<GptProductionExecutionInput,
   "jobId" | "attemptId" | "resultRevision" | "deviceId" | "leaseVersion"
+  | "deliveryPriorityReplayCalls"
+  | "domainRejectionRevision"
   | "executionFenceHash" | "capabilityManifestHash" | "expiresAtMonotonic"
   | "commandTtlMs" | "abortSignal" | "providerContinuationParent">;
 
@@ -366,6 +368,8 @@ export class ProductionGptBrowserLifecycle {
       writerLeaseEpoch: this.execution.leaseVersion,
       writerFenceHash: this.execution.executionFenceHash,
       candidateHash: this.sourceHash,
+      domainRejectionRevision: this.execution.domainRejectionRevision ?? false,
+      deliveryPriorityReplayCalls: this.execution.deliveryPriorityReplayCalls ?? [],
       get commandTtlMs() { return currentCommandTtlMs(); },
     };
     const wait = {

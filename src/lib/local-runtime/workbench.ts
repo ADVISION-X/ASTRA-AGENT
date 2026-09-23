@@ -60,6 +60,8 @@ export class GrassEyeWorkbench {
   private productionRuntime: ProductionRuntimeHandle | null = null;
   private activeHandle: GrassEyeWorkbenchHandle | null = null;
   private initializationPromise: Promise<void> | null = null;
+  private blockedRetryTimer: ReturnType<typeof setTimeout> | null = null;
+  private shuttingDown = false;
   private initializationState: WorkbenchInitializationState = {
     status: "initializing",
     failureReason: null,
@@ -68,6 +70,7 @@ export class GrassEyeWorkbench {
   constructor(private readonly options: GrassEyeWorkbenchOptions) {}
 
   async init(): Promise<void> {
+    this.shuttingDown = false;
     if (this.initializationState.status === "ready") return;
     if (this.initializationPromise) return this.initializationPromise;
     this.initializationState = { status: "initializing", failureReason: null };
@@ -104,6 +107,7 @@ export class GrassEyeWorkbench {
         () => this.initializationState,
       );
       this.initializationState = { status: "ready", failureReason: null };
+      if (productionRuntime.blocked) this.scheduleBlockedRuntimeRetry();
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       this.initializationState = {
@@ -114,7 +118,50 @@ export class GrassEyeWorkbench {
     }
   }
 
+  private scheduleBlockedRuntimeRetry(): void {
+    if (this.blockedRetryTimer || this.shuttingDown) return;
+    this.blockedRetryTimer = setTimeout(() => {
+      this.blockedRetryTimer = null;
+      void this.retryBlockedRuntime();
+    }, 5_000);
+  }
+
+  private async retryBlockedRuntime(): Promise<void> {
+    const assembly = this.assembly;
+    const blocked = this.productionRuntime;
+    if (this.shuttingDown || !assembly || !blocked?.blocked) return;
+    try {
+      await blocked.close();
+      if (this.shuttingDown) return;
+      const replacement = await startProductionRuntime({
+        dataDir: assembly.dataDir,
+        gpt: assembly.gptAbilityGroup,
+        browserAuthority: assembly.browserAuthority,
+        evidenceStore: assembly.evidenceStore,
+        sourceHash: requireSourceCandidateHash(),
+        runtimeLogger: assembly.runtimeLogger,
+      });
+      if (this.shuttingDown) {
+        await replacement.close();
+        return;
+      }
+      this.productionRuntime = replacement;
+      this.activeHandle = buildWorkbenchHandle(assembly, () => this.init(),
+        () => this.shutdown(), this.productionRuntime, () => this.initializationState);
+      this.initializationState = { status: "ready", failureReason: null };
+    } catch (error) {
+      this.initializationState = { status: "failed",
+        failureReason: error instanceof Error ? error.message : String(error) };
+    }
+    if (!this.shuttingDown && (this.productionRuntime?.blocked || !this.productionRuntime)) {
+      this.scheduleBlockedRuntimeRetry();
+    }
+  }
+
   async shutdown(): Promise<void> {
+    this.shuttingDown = true;
+    if (this.blockedRetryTimer) clearTimeout(this.blockedRetryTimer);
+    this.blockedRetryTimer = null;
     const productionRuntime = this.productionRuntime;
     const assembly = this.assembly;
     this.activeHandle = null;

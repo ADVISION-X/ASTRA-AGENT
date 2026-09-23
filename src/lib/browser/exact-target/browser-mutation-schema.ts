@@ -2,7 +2,8 @@ import Database from "better-sqlite3";
 import { createHash } from "node:crypto";
 
 export const identityColumns = `command_id,logical_mutation_id,exact_call_identity_hash,job_id,result_revision,attempt_id,
-  lease_version,execution_fence_hash,product_step_id,call_id,child_capability_id,effect_scope,action_ordinal,
+  lease_version,execution_fence_hash,delivery_priority_replay_grant_hash,
+  product_step_id,call_id,child_capability_id,effect_scope,action_ordinal,
   target_ref,document_ref,action_id,positive_postcondition_hash,negative_postcondition_hash,
   request_hash,payload_hash`;
 
@@ -11,6 +12,9 @@ export const mutationAuthorityHash = (row: unknown): `sha256:${string}` => {
   if (row && typeof row === "object" && !Array.isArray(row)) {
     const normalized = { ...row as Record<string, unknown> };
     if (normalized.native_cause_code === null) delete normalized.native_cause_code;
+    if (normalized.delivery_priority_replay_grant_hash === null) {
+      delete normalized.delivery_priority_replay_grant_hash;
+    }
     hashInput = normalized;
   }
   return `sha256:${createHash("sha256").update(JSON.stringify(hashInput)).digest("hex")}`;
@@ -26,6 +30,7 @@ const currentTableSql = `
     attempt_id text not null,
     lease_version integer not null,
     execution_fence_hash text not null,
+    delivery_priority_replay_grant_hash text,
     product_step_id text not null,
     call_id text not null,
     child_capability_id text not null,
@@ -61,6 +66,51 @@ const createIndexes = (database: Database.Database): void => {
     create index if not exists browser_mutations_exact_call_identity
       on browser_mutations(job_id,exact_call_identity_hash,state);
   `);
+};
+
+// Target claims share the Browser Owner database. The claim is durable before
+// its acknowledgement permits the first governed page command.
+export const ensureTargetClaimSchema = (database: Database.Database): void => {
+  const existing = database.prepare("select name from sqlite_master where type='table' and name='browser_target_claims'").get();
+  if (existing) {
+    const columns = (database.prepare("pragma table_info(browser_target_claims)").all() as Array<{ name: string }>).map((column) => column.name);
+    if (columns.length === 5 && ["target_ref", "job_ref_hash", "tab_id", "claimed_at", "released_at"]
+      .every((column) => columns.includes(column))) {
+      database.transaction(() => {
+        database.exec("alter table browser_target_claims rename to browser_target_claims_old");
+        database.exec(`create table browser_target_claims (
+          claim_id integer primary key,
+          target_ref text not null,
+          job_ref_hash text not null,
+          tab_id integer not null,
+          claim_source text not null check(claim_source in ('authenticated_claim','legacy_wal')),
+          claimed_at text not null,
+          released_at text,
+          release_outcome text check(release_outcome in ('physical_absent','quiesced')),
+          release_proof_hash text
+        )`);
+        database.exec(`insert into browser_target_claims(target_ref,job_ref_hash,tab_id,claim_source,claimed_at,released_at)
+          select target_ref,job_ref_hash,tab_id,'legacy_wal',claimed_at,released_at from browser_target_claims_old`);
+        database.exec("drop table browser_target_claims_old");
+      })();
+    } else if (columns.length !== 9 || ["claim_id", "target_ref", "job_ref_hash", "tab_id",
+      "claim_source", "claimed_at", "released_at", "release_outcome", "release_proof_hash"]
+      .some((column) => !columns.includes(column))) throw new Error("BROWSER_REPAIR_REQUIRED");
+  } else {
+    database.exec(`create table browser_target_claims (
+      claim_id integer primary key,
+      target_ref text not null,
+      job_ref_hash text not null,
+      tab_id integer not null,
+      claim_source text not null check(claim_source in ('authenticated_claim','legacy_wal')),
+      claimed_at text not null,
+      released_at text,
+      release_outcome text check(release_outcome in ('physical_absent','quiesced')),
+      release_proof_hash text
+    )`);
+  }
+  database.exec("create index if not exists browser_target_claims_job on browser_target_claims(job_ref_hash,released_at)");
+  database.exec("create index if not exists browser_target_claims_ref on browser_target_claims(target_ref,released_at)");
 };
 
 const requiredColumns = [...identityColumns.split(",").map((column) => column.trim()),
@@ -124,11 +174,25 @@ export const ensureCurrentSchema = (database: Database.Database): void => {
   if (!table) {
     database.exec(currentTableSql);
     createIndexes(database);
+    ensureTargetClaimSchema(database);
     return;
+  }
+  const columnRowsBefore = database.prepare("pragma table_info(browser_mutations)").all() as Array<{ name: string }>;
+  const columnsBefore = columnRowsBefore.map((column) => column.name);
+  if (!columnsBefore.includes("delivery_priority_replay_grant_hash")) {
+    const oldRequired = requiredColumns.filter((column) =>
+      column !== "delivery_priority_replay_grant_hash");
+    if (columnsBefore.length !== oldRequired.length
+      || oldRequired.some((column) => !columnsBefore.includes(column))) {
+      throw new Error("BROWSER_REPAIR_REQUIRED");
+    }
+    database.exec(`alter table browser_mutations
+      add column delivery_priority_replay_grant_hash text`);
   }
   if (!currentColumnsAndIndexes(database)) throw new Error("BROWSER_REPAIR_REQUIRED");
   const constraint = physicalInputConstraint(table.sql);
   if (constraint === 2) migratePhysicalInputConstraint(database);
   else if (constraint !== 4) throw new Error("BROWSER_REPAIR_REQUIRED");
   if (!currentColumnsAndIndexes(database)) throw new Error("BROWSER_REPAIR_REQUIRED");
+  ensureTargetClaimSchema(database);
 };

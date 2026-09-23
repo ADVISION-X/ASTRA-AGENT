@@ -143,7 +143,9 @@ export class BrowserLaneCoordinator {
   }
 
   public readState(): "idle" | "busy" | "blocked" {
-    return this.active ? "busy" : this.hasUnresolvedMutation() ? "blocked" : "idle";
+    return this.active ? "busy" : this.hasUnresolvedMutation()
+      && !this.infrastructure.mutationState?.allDispatchedTargetsSettled()
+      ? "blocked" : "idle";
   }
   public reset(reasonCode?: string): void {
     if (this.wakeTimer) clearTimeout(this.wakeTimer);
@@ -180,9 +182,12 @@ export class BrowserLaneCoordinator {
   }
 
   private mayCrossUnresolved(waiter: LaneWaiter): boolean {
-    const jobId = waiter.kind === "release" ? waiter.jobId : waiter.binding.jobId;
-    return Boolean(this.infrastructure.mutationState?.hasMutationForJob(jobId, true)) && (waiter.kind === "acquire"
-      ? waiter.binding.kind === "production" : waiter.releaseAuthority === "website-admin-deletion");
+    if (this.infrastructure.mutationState?.allDispatchedTargetsSettled()) return true;
+    if (waiter.kind === "release") return waiter.releaseAuthority === "website-admin-deletion"
+      || waiter.releaseAuthority === "business-admitted"
+      || waiter.releaseAuthority === "wait-new-attempt";
+    return waiter.binding.kind === "production"
+      && Boolean(this.infrastructure.mutationState?.hasMutationForJob(waiter.binding.jobId, true));
   }
 
   private nextWaiter(): LaneWaiter | null {
@@ -253,7 +258,9 @@ export class BrowserLaneCoordinator {
   }
 
   private async serveRelease(waiter: ReleaseLaneWaiter): Promise<void> {
-    await this.targetAcquirer.releaseJobBoundTarget(waiter.remainingMs(), waiter.jobRefHash);
+    await this.targetAcquirer.releaseJobBoundTarget(
+      waiter.remainingMs(), waiter.jobId, waiter.jobRefHash,
+    );
     waiter.complete();
     this.active = false;
     this.activeJobRefHash = null;
@@ -264,6 +271,7 @@ export class BrowserLaneCoordinator {
   private settleRetiredMutation(waiter: AcquireLaneWaiter): void {
     const mutations = this.infrastructure.mutationState;
     if (!mutations || !this.hasUnresolvedMutation()) return;
+    if (mutations.allDispatchedTargetsSettled()) return;
     const mutation = mutations.settleRetiredTargetLocal(waiter.binding);
     if (mutation.effectScope === "provider_effect" && waiter.targetMode !== "bound-observation") {
       throw browserExecutionFailure(new Error("PROVIDER_EFFECT_OUTCOME_UNPROVEN"), "dispatched", {

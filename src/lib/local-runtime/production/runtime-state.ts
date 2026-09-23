@@ -69,6 +69,7 @@ export const leaseBudget = (
     capability_manifest_hash: job.grant.capability_manifest_hash,
     max_provider_turns: job.grant.max_provider_turns, provider_turns_used: 0,
     result_revision: job.grant.result_revision,
+    delivery_priority_replay_grant: job.grant.delivery_priority_replay_grant,
     prior_result_rejection: job.grant.prior_result_rejection,
     expires_at_monotonic: performance.now() + remaining - 10_000,
     command_ttl_ms: Math.min(20_000, remaining - 10_000), abort_signal: abort.signal,

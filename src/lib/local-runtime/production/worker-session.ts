@@ -166,6 +166,7 @@ export class ProductionWorkerSession {
     requestId: string,
     requestedLimit: number,
     forceCurrentAttestation = false,
+    sourceEvidence: readonly import("./contracts.js").SourceAttemptHandoff[] = [],
   ): Promise<unknown> {
     return this.runSessionAuthorityTurn(async () => {
       const attestation = forceCurrentAttestation
@@ -179,6 +180,7 @@ export class ProductionWorkerSession {
         worker_session_epoch: this.workerSessionEpoch,
         requested_new_limit: requestedLimit,
         runtime_attestation_receipt_hash: attestation.receipt_hash,
+        source_evidence: sourceEvidence,
       } as const;
       const receipt = ClaimBatchReceiptSchema.parse(await this.request(
         "/internal/ai-production/v6/jobs/claim", {

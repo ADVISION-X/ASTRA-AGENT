@@ -83,12 +83,21 @@ export class ExtensionWebSocketActor {
   private readonly targetAuthority: ExtensionTargetAuthority;
   private readonly heartbeat: ExtensionHeartbeat;
   private readonly autoBootstrap: PairingAutoBootstrap;
+  private readonly pendingCommandHandlers = new Set<Promise<void>>();
+  private readonly pendingTargetHandlers = new Set<Promise<void>>();
+  private commandAdmissionSuspended = false;
 
   public constructor(private readonly chromeApi: ExtensionChromeApi) {
     this.targetAuthority = new ExtensionTargetAuthority(
       chromeApi,
       (kind, body) => this.sendTargetFrame(kind, body),
       (input) => this.reportTargetFailure(input),
+      async () => {
+        this.commandAdmissionSuspended = true;
+        await Promise.allSettled([
+          ...this.pendingCommandHandlers, ...this.pendingTargetHandlers,
+        ]);
+      },
     );
     this.heartbeat = new ExtensionHeartbeat(
       chromeApi,
@@ -222,7 +231,13 @@ export class ExtensionWebSocketActor {
         return;
       }
       if (frame.kind === "REVOKE") return this.clearPairing("BROWSER_SERVER_REVOKE");
-      if (frame.kind === "COMMAND") { await this.executeCommand(socket, frame); return; }
+      if (frame.kind === "COMMAND") {
+        if (this.commandAdmissionSuspended) throw new Error("BROWSER_OLD_TARGET_RECONCILIATION_REQUIRED");
+        const handler = this.executeCommand(socket, frame);
+        this.pendingCommandHandlers.add(handler);
+        try { await handler; } finally { this.pendingCommandHandlers.delete(handler); }
+        return;
+      }
       this.close("BROWSER_UNEXPECTED_FRAME_KIND");
     } catch (error) {
       let reasonCode = pairingErrorCode(error);
@@ -304,16 +319,26 @@ export class ExtensionWebSocketActor {
     const request = await decrypt(session.serverToClientKey, "server-to-client", frame);
     const operation = targetOperationFrom(request);
     if (operation.action === "release") {
-      try { await this.targetAuthority.releaseJobBoundChatGptTarget(operation.jobRefHash); }
+      try {
+        await this.targetAuthority.releaseJobBoundChatGptTarget(operation.jobRefHash, operation.targetRefs);
+        this.commandAdmissionSuspended = false;
+      }
       catch (error) { this.reportRuntimeFailure(error, "job-bound-target-acquisition"); }
       return;
     }
+    if (this.commandAdmissionSuspended) throw new Error("BROWSER_OLD_TARGET_RECONCILIATION_REQUIRED");
+    const handler = this.targetAuthority.acquireJobBoundChatGptTarget(
+      operation.targetMode, operation.jobRefHash, operation.parentConversationUrl,
+      operation.expectedTargetRef,
+    );
+    this.pendingTargetHandlers.add(handler);
     try {
-      await this.targetAuthority.acquireJobBoundChatGptTarget(
-        operation.targetMode, operation.jobRefHash, operation.parentConversationUrl,
-      );
+      await handler;
+      this.commandAdmissionSuspended = false;
     } catch (error) {
       this.reportRuntimeFailure(error, "job-bound-target-acquisition");
+    } finally {
+      this.pendingTargetHandlers.delete(handler);
     }
   }
 
@@ -461,7 +486,8 @@ export class ExtensionWebSocketActor {
   private reportTargetFailure(input: Readonly<{
     targetRef: string;
     runtimeEventType: "debugger-detach" | "tab-remove";
-    reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT" | "BROWSER_DEVTOOLS_CONFLICT";
+    reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT" | "BROWSER_DEVTOOLS_CONFLICT"
+      | "BROWSER_TARGET_CLEANUP_FAILED";
     nativeCauseCode?: "CHROME_DEBUGGER_TARGET_CLOSED" | "CHROME_DEBUGGER_CANCELED_BY_USER";
   }>): Promise<void> {
     const body = {

@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { join } from "node:path";
 
 import { BrowserCommandActor } from "../exact-target/browser-command-actor.js";
@@ -113,6 +113,9 @@ export class BrowserInfrastructureSupervisor {
     if (initialClaim && this.state.pendingJobBoundTargetAcquisition?.jobRefHash !== input.jobRefHash) {
       throw new Error("BROWSER_TARGET_INVALID");
     }
+    const mutations = this.state.mutationState;
+    if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
+    mutations.recordTargetClaim({ jobRefHash: input.jobRefHash, targetRef: input.targetRef });
     this.establishClaimBoundWorkspace();
     this.broker.registerOperatorTargetClaim({ authorityEpoch: currentAuthorityEpoch(this.issuer), ...input });
     this.lane.observeCurrentTargetClaim(input);
@@ -120,8 +123,32 @@ export class BrowserInfrastructureSupervisor {
   }
 
   private onTargetRevoke(input: BrowserAuthorityTargetRevoke): void {
+    if (input.releaseOutcome) {
+      const pending = this.state.pendingJobBoundTargetAcquisition;
+      if (!pending || pending.action !== "release" || pending.jobRefHash !== input.jobRefHash
+        || !pending.targetRefs) throw new Error("BROWSER_TARGET_INVALID");
+      if (input.releaseOutcome === "absent" && pending.targetRefs.length > 0) {
+        throw new Error("BROWSER_TARGET_PHYSICAL_ABSENCE_UNPROVEN");
+      }
+      if (input.targetRefs.length !== pending.targetRefs.length
+        || input.targetRefs.some((ref, index) => ref !== pending.targetRefs![index])
+        || (pending.targetRefs.length > 0 && input.targetRef !== pending.targetRefs[0])) {
+        throw new Error("BROWSER_TARGET_RELEASE_FENCE_MISMATCH");
+      }
+      const proofHash = `sha256:${createHash("sha256").update(JSON.stringify({
+        jobRefHash: input.jobRefHash, targetRefs: input.targetRefs,
+        releaseOutcome: input.releaseOutcome, authorityEpoch: currentAuthorityEpoch(this.issuer),
+      })).digest("hex")}` as const;
+      this.state.mutationState?.markTargetReleased({
+        jobRefHash: input.jobRefHash, targetRefs: pending.targetRefs,
+        outcome: input.releaseOutcome === "released" ? "physical_absent" : "quiesced",
+        proofHash,
+      });
+      if (input.targetRef !== null) this.broker.revokeOperatorTargetClaim(input.targetRef);
+      this.lane.resolvePending("release", input.jobRefHash);
+      return;
+    }
     if (input.targetRef !== null) this.broker.revokeOperatorTargetClaim(input.targetRef);
-    if (input.releaseOutcome) this.lane.resolvePending("release", input.jobRefHash);
   }
 
   private onDiagnostic(reasonCode: string, refs: Readonly<Record<string, string>>): void {
@@ -244,8 +271,32 @@ export class BrowserInfrastructureSupervisor {
   }
 
   public readBrowserLaneState(): "idle" | "busy" | "blocked" { return this.lane.readState(); }
+  public readBoundJobRefHash(): `sha256:${string}` | null {
+    return this.broker.currentOperatorTargetJobRefHash();
+  }
+  public readUnreleasedTargetClaims() {
+    const mutations = this.state.mutationState;
+    if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
+    return mutations.unreleasedTargetClaims();
+  }
   public hasUnresolvedBrowserMutation(): boolean { return this.lane.hasUnresolvedMutation(); }
   public hasBrowserMutationForJob(jobId: string): boolean { return this.lane.hasMutationForJob(jobId); }
+  public readJobBrowserHistoryEvidence(jobId: string) {
+    const mutations = this.state.mutationState;
+    if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
+    return mutations.jobHistoryEvidence(jobId);
+  }
+  public readJobPhysicalInputState(jobId: string) {
+    const mutations = this.state.mutationState;
+    if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
+    return mutations.readJobPhysicalInputState(jobId);
+  }
+
+  public verifyRuntimeTaskProvenance(earliestTaskCreatedAt: string | null): void {
+    const mutations = this.state.mutationState;
+    if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
+    mutations.verifyRuntimeTaskProvenance(earliestTaskCreatedAt);
+  }
   public purgeBrowserJob(jobId: string): void { this.lane.purgeJob(jobId); }
   public countProviderTurnDispatches(jobId: string, attemptId: string): number {
     return this.lane.countProviderTurnDispatches(jobId, attemptId);

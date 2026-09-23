@@ -3,7 +3,8 @@ import {
 } from "../../execution-failure.js";
 import { requireRuntimeLogWrite, type RuntimeSpanHandle } from "../../runtime-logs/index.js";
 import {
-  buildProductionLeaseRelease, downloadProductionMaterials, terminalProductionTask,
+  buildProductionLeaseRelease, buildTerminalProductionIntent, deliverTerminalProductionIntent,
+  downloadProductionMaterials,
   uploadProductionGeneratedImage, uploadProductionResult,
 } from "./cloud-client.js";
 import { productionCatalogHash } from "./catalog.js";
@@ -65,9 +66,29 @@ export const acceptClaim = (
   }));
   const record = runRuntimeSpanSync({
     span,
-    action: () => reconciledFailure
-      ? state.executor.acceptAfterFailureReconciled(task, job.grant.attempt_id, reconciledFailure)
-      : state.executor.accept(task, job.grant.attempt_id),
+    action: () => {
+      const local = state.store.readTask(job.job_id);
+      const sourceSeal = job.grant.source_handoff_seal_hash;
+      if (sourceSeal && local?.current_reason === `SOURCE_HANDOFF_SEALED|${sourceSeal}`) {
+        const sealed = state.store.readSealedSourceHandoff(job.job_id, local.current_attempt_id!);
+        const replay = job.grant.delivery_priority_replay_grant;
+        if (!sealed || (sealed.kind === "delivery_priority_replay") !== (replay !== null)
+          || replay !== null && (sealed.replay_calls.length !== replay.calls.length
+            || sealed.replay_calls.some((call, index) => {
+              const issued = replay.calls[index];
+              return !issued || call.product_step_id !== issued.product_step_id
+                || call.call_id !== issued.call_id
+                || call.child_capability_id !== issued.child_capability_id
+                || call.source_effect_set_hash !== issued.source_effect_set_hash;
+            }))) {
+          throw executionFailure("failed", "PRODUCTION_REPLAY_GRANT_SOURCE_MISMATCH");
+        }
+        return state.executor.acceptAfterSourceHandoff(task, job.grant.attempt_id, sourceSeal);
+      }
+      return reconciledFailure
+        ? state.executor.acceptAfterFailureReconciled(task, job.grant.attempt_id, reconciledFailure)
+        : state.executor.accept(task, job.grant.attempt_id);
+    },
     failureCode: "DURABLE_ACCEPT_FAILED",
     success: (accepted) => ({
       authorityRef: `production-task:${job.job_id}`, authorityHash: hashCanonical(accepted),
@@ -121,6 +142,11 @@ export const handleRuntimeBoundaryFailure = async (input: Readonly<{
     input.state.lastErrorReason = safeReason(input.error);
     return;
   }
+  if (input.job.grant.same_accepted_attempt) {
+    input.state.lastErrorCode = boundaryFailureCode;
+    input.state.lastErrorReason = safeReason(input.error);
+    return;
+  }
   if (input.durability !== "unaccepted" || current?.attempt_failure) return;
   try {
     await releaseUnacceptedClaim(
@@ -142,6 +168,7 @@ export const executeAndUpload = async (input: Readonly<{
   jobSpan: RuntimeSpanHandle;
 }>) => {
   let uploaded: Awaited<ReturnType<typeof uploadProductionResult>> | undefined;
+  let terminalIntent: ReturnType<typeof buildTerminalProductionIntent> | undefined;
   let uploadBoundaryFailure: unknown | undefined;
   const generatedImageReceipts: Awaited<ReturnType<typeof uploadProductionGeneratedImage>>["transportReceipt"][] = [];
   let execution: Awaited<ReturnType<RuntimeState["executor"]["execute"]>>;
@@ -162,6 +189,15 @@ export const executeAndUpload = async (input: Readonly<{
               priorArtifactReceipts: generatedImageReceipts,
             }),
           });
+          terminalIntent = buildTerminalProductionIntent(input.state.session, input.job, {
+            status: "completed", payload_hash: hashCanonical(uploaded.envelope),
+            result_receipt_hashes: uploaded.artifact_receipts.map((receipt) => receipt.receipt_hash),
+            terminal_source_first_fact_raw: input.state.store.readAttemptFailureRaw(input.job.job_id),
+          });
+          input.state.store.stageResultAndEnqueueTerminal({
+            jobId: input.job.job_id, attemptId: input.job.grant.attempt_id,
+            result: uploaded.envelope, terminal: terminalIntent.write,
+          });
         } catch (error) {
           if (isResultTransportBoundary(error)) uploadBoundaryFailure = error;
           throw error;
@@ -178,51 +214,22 @@ export const executeAndUpload = async (input: Readonly<{
       abort: input.abort, parentSpanId: input.jobSpan.spanId,
     });
   } catch (error) {
+    const durable = input.state.store.readTask(input.job.job_id);
+    if (uploaded && terminalIntent && durable?.staged_result
+      && durable.current_attempt_id === input.job.grant.attempt_id
+      && hashCanonical(durable.staged_result) === hashCanonical(uploaded.envelope)
+      && input.state.store.readOutboxAuthority(terminalIntent.requestId)) {
+      execution = { record: durable, result: durable.staged_result,
+        providerEffectReadbackProof: null };
+    } else {
     if (uploadBoundaryFailure !== undefined) {
       throw new ProductionRuntimeBoundaryError(uploadBoundaryFailure);
     }
     throw error;
-  }
-  if (!uploaded) throw new Error("PLUGIN_RESULT_UPLOAD_MISSING");
-  return { execution, uploaded };
-};
-
-const providerEffectProofHashMatches = (
-  proof: Awaited<ReturnType<RuntimeState["executor"]["execute"]>>["providerEffectReadbackProof"],
-): boolean => {
-  if (!proof) return false;
-  const { proof_hash: proofHash, ...proofBody } = proof;
-  return hashCanonical(proofBody) === proofHash;
-};
-
-export const stageCompletedClaimResult = (input: Readonly<{
-  store: RuntimeState["store"];
-  job: ClaimedProductionTask;
-  execution: Awaited<ReturnType<RuntimeState["executor"]["execute"]>>;
-}>): void => {
-  const pendingFailure = input.store.readTask(input.job.job_id)?.attempt_failure ?? null;
-  if (pendingFailure) {
-    const proof = input.execution.providerEffectReadbackProof;
-    if (!proof || proof.schema_version !== "provider-effect-readback-proof.v1"
-      || !providerEffectProofHashMatches(proof)
-      || proof.job_id !== input.job.job_id
-      || proof.attempt_id !== input.job.grant.attempt_id
-      || proof.result_revision !== input.job.grant.result_revision
-      || proof.provider_effect_identity_hash
-        !== pendingFailure.failure_core.provider_effect_identity_hash
-      || proof.browser_authority_ref !== pendingFailure.failure_core.evidence_ref
-      || proof.browser_authority_hash !== pendingFailure.failure_core.evidence_hash
-      || pendingFailure.failure_core.effect_scope !== "provider_effect"
-      || !["dispatched", "confirmed"].includes(pendingFailure.failure_core.mutation_outcome)
-      || proof.readback_provider_input_delta !== 0) {
-      throw executionFailure("failed", "PROVIDER_EFFECT_READBACK_PROOF_INVALID");
     }
-    input.store.stageResultAfterProviderEffectReadback(
-      input.job.job_id, input.execution.result, pendingFailure,
-    );
-    return;
   }
-  input.store.stageResult(input.job.job_id, input.execution.result);
+  if (!uploaded || !terminalIntent) throw new Error("PLUGIN_RESULT_UPLOAD_MISSING");
+  return { execution, uploaded, terminalIntent };
 };
 
 export const completeClaim = async (input: Readonly<{
@@ -230,6 +237,7 @@ export const completeClaim = async (input: Readonly<{
   job: ClaimedProductionTask;
   execution: Awaited<ReturnType<RuntimeState["executor"]["execute"]>>;
   uploaded: Awaited<ReturnType<typeof uploadProductionResult>>;
+  terminalIntent: ReturnType<typeof buildTerminalProductionIntent>;
   materialDir: string;
   jobSpan: RuntimeSpanHandle;
 }>): Promise<void> => {
@@ -238,14 +246,11 @@ export const completeClaim = async (input: Readonly<{
     owner: "production-runtime", component: "production-runtime", operation: "job.terminal",
     typedIdentity: jobIdentity(input.job),
   }));
-  const payloadHash = hashCanonical(input.execution.result);
-  stageCompletedClaimResult({ store: input.state.store, job: input.job, execution: input.execution });
   await runRuntimeSpan({
     span, failureCode: "JOB_TERMINAL_FAILED", action: async () => {
-      await terminalProductionTask(input.state.session, input.state.store, input.job, {
-        status: "completed", payload_hash: payloadHash,
-        result_receipt_hashes: input.uploaded.artifact_receipts.map((receipt) => receipt.receipt_hash),
-      });
+      await deliverTerminalProductionIntent(
+        input.state.session, input.state.store, input.terminalIntent,
+      );
       input.state.store.setCurrentReason(input.job.job_id, "BUSINESS_ADMISSION_PENDING");
       return input.state.store.readTask(input.job.job_id)!;
     },

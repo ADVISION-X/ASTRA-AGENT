@@ -5,6 +5,7 @@ import path from "node:path";
 
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
+import { hashCanonical, sha256 } from "../../src/lib/local-runtime/production/contracts.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import { readProductionDeviceJobStatus } from
   "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
@@ -49,6 +50,8 @@ try {
     business_consumer_error: null,
     accepted_attempt_count: 1,
     write_receipts: [],
+    staged_result: null,
+    staged_artifact_receipts: [],
   });
   const parsedRemote = await readProductionDeviceJobStatus({
     request: async () => deviceStatus(remoteFailure),
@@ -116,8 +119,29 @@ try {
   assert.deepEqual(regranted.attempt_failure, firstFailure,
     "Website regrant of the same accepted attempt must retain the first failure fact");
   assert.throws(() => store.acceptTask(job, "attempt:2"),
-    /PRODUCTION_ATTEMPT_FAILURE_RECONCILIATION_REQUIRED/u);
-  const fresh = store.acceptTaskAfterFailureReconciled(job, "attempt:2", firstFailure);
+    /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u);
+  assert.throws(() => store.acceptTaskAfterFailureReconciled(job, "attempt:2", firstFailure),
+    /PRODUCTION_ATTEMPT_FAILURE_RECONCILIATION_CONFLICT/u);
+  const outbox = store.readResultOutboxHistoryEvidence(job.job_id, "attempt:1");
+  const sourceBody = {
+    kind: "attempt_handoff" as const,
+    job_id: job.job_id,
+    source_attempt_id: "attempt:1",
+    source_task_hash: hashCanonical(job),
+    first_fact_raw_hash: sha256(Buffer.from(store.readAttemptFailureRaw(job.job_id)!, "utf8")),
+    outbox_history_hash: outbox.historyHash,
+    outbox_candidate_count: outbox.candidateCount,
+    browser_history_hash: providerEffectHash,
+    browser_row_count: 0,
+    browser_input_state: "zero" as const,
+    browser_target_settled: true,
+    target_settlement_hash: providerEffectHash,
+    readback_exhaustion_hash: null,
+    replay_calls: [],
+  };
+  const sourceSeal = hashCanonical(sourceBody);
+  store.sealSourceHandoff({ ...sourceBody, seal_hash: sourceSeal });
+  const fresh = store.acceptTaskAfterSourceHandoff(job, "attempt:2", sourceSeal);
   assert.equal(fresh.current_attempt_id, "attempt:2");
   assert.equal(fresh.attempt_failure, null);
   assert.equal(fresh.staged_result, null);
@@ -184,7 +208,26 @@ try {
   const replacedFailure = attemptFailureFirstFact("attempt:1",
     serializeTerminalFailure(executionFailure("failed", "PRODUCT_EXECUTION_FAILED")));
   store.recordAttemptFailure(regrantJob.job_id, "attempt:1", replacedFailure);
-  store.acceptTaskAfterFailureReconciled(regrantJob, "attempt:2", replacedFailure);
+  const replacedOutbox = store.readResultOutboxHistoryEvidence(regrantJob.job_id, "attempt:1");
+  const replacedSource = {
+    kind: "attempt_handoff" as const,
+    job_id: regrantJob.job_id,
+    source_attempt_id: "attempt:1",
+    source_task_hash: hashCanonical(regrantJob),
+    first_fact_raw_hash: sha256(Buffer.from(store.readAttemptFailureRaw(regrantJob.job_id)!, "utf8")),
+    outbox_history_hash: replacedOutbox.historyHash,
+    outbox_candidate_count: replacedOutbox.candidateCount,
+    browser_history_hash: providerEffectHash,
+    browser_row_count: 0,
+    browser_input_state: "zero" as const,
+    browser_target_settled: true,
+    target_settlement_hash: providerEffectHash,
+    readback_exhaustion_hash: null,
+    replay_calls: [],
+  };
+  const replacedSeal = hashCanonical(replacedSource);
+  store.sealSourceHandoff({ ...replacedSource, seal_hash: replacedSeal });
+  store.acceptTaskAfterSourceHandoff(regrantJob, "attempt:2", replacedSeal);
   assert.equal(store.readOutboxAuthority("regrant-replaced")?.lastError, "WEBSITE_ATTEMPT_REPLACED");
   store.enqueue(fencedWrite("regrant-replaced", "fence:B"));
   await assert.rejects(store.deliverOutbox("regrant-replaced", neverSend),

@@ -6,12 +6,14 @@ import type { ExtensionDebugTarget, ExtensionTab } from "./extension-runtime-typ
 export type TargetFailureReporter = (input: Readonly<{
   targetRef: string;
   runtimeEventType: "debugger-detach" | "tab-remove";
-  reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT" | "BROWSER_DEVTOOLS_CONFLICT";
+  reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT" | "BROWSER_DEVTOOLS_CONFLICT"
+    | "BROWSER_TARGET_CLEANUP_FAILED";
   nativeCauseCode?: "CHROME_DEBUGGER_TARGET_CLOSED" | "CHROME_DEBUGGER_CANCELED_BY_USER";
 }>) => Promise<void> | void;
 
 type PendingCreatedTarget = Readonly<{
   tabId: number;
+  chromeTargetId: string;
   resolve(target: ExtensionDebugTarget): void;
   reject(error: Error): void;
   timeout: ReturnType<typeof globalThis.setTimeout> | null;
@@ -19,6 +21,7 @@ type PendingCreatedTarget = Readonly<{
 
 export class ExtensionCreatedTarget {
   private pendingTarget: PendingCreatedTarget | null = null;
+  private readonly removedTabIds = new Set<number>();
 
   public constructor(
     private readonly debuggerRuntime: ExtensionDebuggerRuntime,
@@ -29,10 +32,14 @@ export class ExtensionCreatedTarget {
     return this.pendingTarget !== null;
   }
 
-  public waitForCreatedTarget(tabId: number): Promise<ExtensionDebugTarget> {
+  public markTabRemoved(tabId: number): void { this.removedTabIds.add(tabId); }
+
+  public waitForCreatedTarget(tabId: number, chromeTargetId: string): Promise<ExtensionDebugTarget> {
     if (this.pendingTarget) throw new Error("BROWSER_TARGET_INVALID");
+    if (!chromeTargetId) throw new Error("BROWSER_TARGET_INVALID");
+    this.removedTabIds.delete(tabId);
     const pending = new Promise<ExtensionDebugTarget>((resolve, reject) => {
-      this.pendingTarget = { tabId, resolve, reject, timeout: null };
+      this.pendingTarget = { tabId, chromeTargetId, resolve, reject, timeout: null };
     });
     void this.startCreatedTargetDeadlineAfterBarrier(tabId);
     return pending;
@@ -51,13 +58,20 @@ export class ExtensionCreatedTarget {
     this.pendingTarget = null;
     if (pending.timeout !== null) globalThis.clearTimeout(pending.timeout);
     try {
+      if (this.removedTabIds.has(pending.tabId)
+        || !(await this.debuggerRuntime.readTargets()).some((target) =>
+          target.tabId === pending.tabId && target.id === pending.chromeTargetId)) {
+        throw new Error("BROWSER_TARGET_CLEANUP_IDENTITY_MISMATCH");
+      }
       await this.debuggerRuntime.removeTab(pending.tabId);
-    } catch {
+    } catch (error) {
       await this.reportTargetFailure({
         targetRef: `job-owned-tab:${pending.tabId}`,
         runtimeEventType: "tab-remove",
-        reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT",
+        reasonCode: "BROWSER_TARGET_CLEANUP_FAILED",
       });
+      pending.reject(new Error(reasonCode, { cause: error }));
+      return;
     }
     pending.reject(new Error(reasonCode));
   }
@@ -77,7 +91,7 @@ export class ExtensionCreatedTarget {
     if (!pending || pending.tabId !== tabId) return;
     const target: ExtensionDebugTarget = Object.freeze({
       attached: false,
-      id: `job-owned-tab:${tabId}`,
+      id: pending.chromeTargetId,
       tabId,
       title: tab.title ?? "",
       type: "page",

@@ -195,6 +195,11 @@ const mutationIdentity = (permit: BrowserCommandPermit, command: BrowserGoverned
     attemptId: permit.attemptId,
     leaseVersion: permit.leaseVersion,
     executionFenceHash: permit.writerFenceHash,
+    deliveryPriorityReplayGrantHash: effectScope === "provider_effect"
+      ? permit.deliveryPriorityReplayGrantHash : null,
+    domainRejectionRevision: permit.domainRejectionRevision ?? false,
+    deliveryPriorityReplayCall: effectScope === "provider_effect"
+      ? permit.deliveryPriorityReplayCall ?? null : null,
     productStepId: permit.productStepId,
     callId: permit.callId,
     childCapabilityId: permit.childCapabilityId,

@@ -152,10 +152,13 @@ const verifyCooldownSibling = async (
     "a sibling that reaches the shared closed submit gate must remain resumable after cooldown");
   assert.equal(businessInFlightCount({ active: new Map(), store } as never), 2,
     "both paused accepted attempts must remain in the attested business denominator");
-  assert.equal(claimReusesExistingBusinessSlot({ store } as never, siblingJob), true,
+  assert.equal(claimReusesExistingBusinessSlot({ store } as never, {
+    ...siblingJob, grant: { ...siblingJob.grant, same_accepted_attempt: true },
+  }), true,
     "the exact paused attempt regrant must reuse its occupied business slot after the time gate");
   assert.equal(claimReusesExistingBusinessSlot({ store } as never, {
-    ...siblingJob, grant: { ...siblingJob.grant, attempt_id: "attempt:different" },
+    ...siblingJob, grant: { ...siblingJob.grant, attempt_id: "attempt:different",
+      same_accepted_attempt: true },
   }), false, "a different attempt must not borrow the paused attempt slot");
   for (const index of [3, 4]) {
     const pausedTask = task({
@@ -224,7 +227,9 @@ export const verifyKnownGptRateLimitRuntimeContract = async (): Promise<void> =>
         HASH_A].join("|"));
     assert.equal(record?.attempt_failure, null,
       "an authoritative exact dialog behind a closed cooldown gate must not become attempt failure");
-    assert.equal(claimReusesExistingBusinessSlot({ store } as never, job), true,
+    assert.equal(claimReusesExistingBusinessSlot({ store } as never, {
+      ...job, grant: { ...job.grant, same_accepted_attempt: true },
+    }), true,
       "the exact accepted attempt that triggered cooldown must reuse its occupied slot despite bound evidence");
     assert.equal(store.unfinishedExecutionsWithoutReceipt()
       .some((candidate) => candidate.task.job_id === job.job_id), true,

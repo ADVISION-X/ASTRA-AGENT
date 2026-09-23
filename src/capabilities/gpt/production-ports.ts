@@ -13,6 +13,10 @@ export type GptProductionExecutionInput = Readonly<{
   subjectRef: string;
   authorizationRef: string;
   resultRevision: number;
+  domainRejectionRevision?: boolean;
+  deliveryPriorityReplayCalls?: readonly Readonly<{ productStepId: string; callId: string;
+    childCapabilityId: string; sourceEffectSetHash: GptHash;
+    callGrantHash: GptHash }>[];
   attemptId: string;
   deviceId: string;
   leaseVersion: number;

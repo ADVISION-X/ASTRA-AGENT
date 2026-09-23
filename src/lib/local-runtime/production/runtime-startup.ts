@@ -104,6 +104,7 @@ const blockedRuntimeHandle = (
   const traceId = `producer:${input.runtimeLogger.producerRunId}`;
   let stopped = false;
   return {
+    blocked: true,
     readHealth: () => blockedHealth(input, store, error, stopped, controlContractVersion),
     readOperationsSnapshot: (jobId) => readProductionOperationsSnapshot({
       dataDir: input.dataDir, store, browser: input.browserAuthority,
@@ -245,6 +246,7 @@ const createRuntimeHandle = (
   const loop = workerLoop(state);
   const heartbeat = sessionHeartbeatLoop(state);
   return {
+    blocked: false,
     readHealth: () => readHealth(state),
     readOperationsSnapshot: (jobId) => readProductionOperationsSnapshot({
       dataDir: input.dataDir, store: state.store, browser: input.browserAuthority,
@@ -265,6 +267,7 @@ export const startProductionRuntime = async (
   const store = await initializeStore(input, startSpan);
   try {
     store.assertStartupDataIntegrity();
+    input.browserAuthority.verifyRuntimeTaskProvenance(store.earliestTaskCreatedAt());
     const inventory = await readProductionRuntimeStorageInventory(
       input.dataDir, store.storageResponsibilities(),
     );

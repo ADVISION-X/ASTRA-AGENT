@@ -72,7 +72,8 @@ const exerciseWaitNewAndPrivacy = async (
     materialRefs: productionTask.material_refs,
     extra: { parameters: productionTask.parameters } });
   store.acceptTask(waitNew, "attempt:wait-new");
-  store.stageResult(waitNew.job_id, resultFor(waitNew));
+  store.markExecuting(waitNew.job_id);
+  store.stageResult(waitNew.job_id, "attempt:wait-new", resultFor(waitNew));
   let releasedWaitNewTarget = 0;
   let waitNewReleaseAuthority = "";
   assert.equal(await reconcileBusinessAdmission({
@@ -84,21 +85,21 @@ const exerciseWaitNewAndPrivacy = async (
     } },
     abort: new AbortController(),
   } as never, store.readTask(waitNew.job_id)!), "pending");
-  assert.equal(releasedWaitNewTarget, 1);
-  assert.equal(waitNewReleaseAuthority, "wait-new-attempt",
-    "ordinary WAIT_NEW_ATTEMPT must not acquire the permanent cleanup exception");
-  assert.equal(store.readTask(waitNew.job_id)?.staged_result, null,
-    "Website WAIT_NEW_ATTEMPT must release only the old local admission-pending attempt");
-  assert.equal(store.readTask(waitNew.job_id)?.current_reason, "WAIT_NEW_ATTEMPT");
+  assert.equal(releasedWaitNewTarget, 0);
+  assert.equal(waitNewReleaseAuthority, "");
+  assert.deepEqual(store.readTask(waitNew.job_id)?.staged_result, resultFor(waitNew),
+    "a valid result remains ready while Website admission is reconciled");
+  assert.equal(store.readTask(waitNew.job_id)?.current_reason, "RESULT_AUTHORITY_RECONCILIATION_PENDING");
   assert.equal(store.unfinishedExecutionsWithoutReceipt()
-    .some((candidate) => candidate.task.job_id === waitNew.job_id), true,
-  "WAIT_NEW_ATTEMPT must retain status readback so a later Website deletion can trigger exact purge");
+    .some((candidate) => candidate.task.job_id === waitNew.job_id), false,
+  "the staged result remains in the admission readback queue");
   const privacyClosed = task({ jobId: "job:admission:privacy-closed",
     productId: productionTask.product_id, actionId: productionTask.action_id,
     materialRefs: productionTask.material_refs,
     extra: { parameters: productionTask.parameters } });
   store.acceptTask(privacyClosed, "attempt:privacy-closed");
-  store.stageResult(privacyClosed.job_id, resultFor(privacyClosed));
+  store.markExecuting(privacyClosed.job_id);
+  store.stageResult(privacyClosed.job_id, "attempt:privacy-closed", resultFor(privacyClosed));
   let privacyReleaseAuthority = "";
   assert.equal(await reconcileBusinessAdmission({
     store,
@@ -110,8 +111,8 @@ const exerciseWaitNewAndPrivacy = async (
     } },
     abort: new AbortController(),
   } as never, store.readTask(privacyClosed.job_id)!), "pending");
-  assert.equal(privacyReleaseAuthority, "wait-new-attempt",
-    "a diagnostic privacy reason cannot grant permanent deletion or WAL release");
+  assert.equal(privacyReleaseAuthority, "",
+    "a diagnostic privacy reason cannot revoke an already valid result");
 };
 
 const exerciseAdmissionDeletion = async (
@@ -144,7 +145,8 @@ const exerciseAdmissionDeletion = async (
     materialRefs: productionTask.material_refs,
     extra: { parameters: productionTask.parameters } });
   store.acceptTask(retryable, "attempt:purge-retry");
-  store.stageResult(retryable.job_id, resultFor(retryable));
+  store.markExecuting(retryable.job_id);
+  store.stageResult(retryable.job_id, "attempt:purge-retry", resultFor(retryable));
   await assert.rejects(purgeDeletedJob({ store, dataDir: admissionTemporary,
     abort: new AbortController(),
     browserAuthority: { releaseJobBoundTarget: async () => undefined,
@@ -296,7 +298,8 @@ export const exerciseOperationsAndBusinessAdmission = async (
         extra: { parameters: productionTask.parameters } });
       const staged = resultFor(accepted);
       store.acceptTask(accepted, `attempt:${kind}`);
-      store.stageResult(accepted.job_id, staged);
+      store.markExecuting(accepted.job_id);
+      store.stageResult(accepted.job_id, `attempt:${kind}`, staged);
       const typedReceipt = admissionReceiptFor(accepted.job_id, staged.result_payload_hash,
         kind === "bazi" ? {
           bazi_domain_admission_receipt_hash: HASH_A,
@@ -317,7 +320,8 @@ export const exerciseOperationsAndBusinessAdmission = async (
       extra: { parameters: productionTask.parameters } });
     const pendingResult = resultFor(pending);
     store.acceptTask(pending, "attempt:pending");
-    store.stageResult(pending.job_id, pendingResult);
+    store.markExecuting(pending.job_id);
+    store.stageResult(pending.job_id, "attempt:pending", pendingResult);
     assert.equal(await reconcileBusinessAdmission({
       store, session: deviceStatusWithoutAdmission(pending.job_id),
     } as never, store.readTask(pending.job_id)!), "pending");

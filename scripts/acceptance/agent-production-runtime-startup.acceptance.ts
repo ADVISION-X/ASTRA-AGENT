@@ -157,7 +157,8 @@ try {
   historyStore.acceptTask(historyTask, "attempt:historical-terminal");
   const historicalResult = { ...resultFor(historyTask),
     evidence_refs: [`art-${"a".repeat(64)}`] };
-  historyStore.stageResult(historyTask.job_id, historicalResult);
+  historyStore.markExecuting(historyTask.job_id);
+  historyStore.stageResult(historyTask.job_id, "attempt:historical-terminal", historicalResult);
   for (const [key, receipt] of [["payload", HASH_A], ["envelope", HASH_B]] as const) {
     historyStore.enqueue({ idempotency_key: `artifact:historical-terminal:${key}`, kind: "artifact",
       path: `/internal/ai-production/v6/jobs/${historyTask.job_id}/artifacts/${key}`,
@@ -182,7 +183,10 @@ try {
     worker_session_epoch: 1,
     runtime_attestation_receipt_hash: HASH_A,
   });
-  historyStore.acceptTask(historyTask, "attempt:website-authorized-next");
+  (Reflect.get(historyStore, "database") as import("better-sqlite3").Database)
+    .prepare(`update production_tasks set current_attempt_id=? where job_id=?`).run(
+      "attempt:website-authorized-next", historyTask.job_id,
+    );
   historyStore.close();
   bindingMismatchRuntime = await startProductionRuntime({
     dataDir,
@@ -190,6 +194,7 @@ try {
     gpt: createGptAbilityGroup(),
     evidenceStore: createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(dataDir)),
     browserAuthority: {
+      verifyRuntimeTaskProvenance: () => undefined,
       readProductionRuntimeState: () => ({
         browserAuthorityState: "absent" as const,
         browserTargetState: "absent" as const,
@@ -205,7 +210,7 @@ try {
   assert.equal(health.cloudState, "contract_blocked");
   assert.equal(health.executionState, "blocked");
   assert.equal(health.claimAdmissionState, "blocked");
-  assert.equal(health.controlContractVersion, 40,
+  assert.equal(health.controlContractVersion, 42,
     "blocked diagnostics must retain only the consumer contract version needed for exact comparison");
   assert.equal(health.lastErrorCode, "AI_SESSION_BINDING_MISMATCH");
   await bindingMismatchRuntime.close();
@@ -296,7 +301,7 @@ try {
   const dispatchPlugin = Reflect.get(executor, "dispatchPlugin") as (input: Readonly<Record<string, unknown>>) => Promise<unknown>;
   const parentTask = task({ jobId: "job:article-parent", productId: "bazi_ai_full_analysis", actionId: "produce" });
   const parentAttemptId = "attempt:article-parent-final", parentResult = resultFor(parentTask);
-  pluginFailureStore.acceptTask(parentTask, "attempt:article-parent-superseded"); pluginFailureStore.acceptTask(parentTask, parentAttemptId);
+  pluginFailureStore.acceptTask(parentTask, parentAttemptId);
   const translationTask = {
     ...buildProductTask(productionRoutePolicy("localization_article_translation", "article_translation"),
       { parameters: { target_locale: "en-US", source_resource_id: "resource:article-parent", source_version: "v1",
@@ -313,7 +318,9 @@ try {
     lease: continuationLease, span: startPluginSpan("article-parent-binding"), complete: async () => {
       throw new Error("UNREACHABLE_PARENT_COMPLETE"); }, uploadGeneratedImage: async () => { throw new Error("UNREACHABLE_PARENT_IMAGE_UPLOAD"); } });
   await assert.rejects(dispatchPlugin.call(executor, continuationInput(translationTask)), /PRODUCTION_PARENT_RESULT_BINDING_INVALID/u);
-  pluginFailureStore.completeTask(parentTask.job_id, parentResult);
+  (Reflect.get(pluginFailureStore, "database") as import("better-sqlite3").Database)
+    .prepare(`update production_tasks set status='completed',result_json=?,current_reason=null
+      where job_id=?`).run(JSON.stringify(parentResult), parentTask.job_id);
   assert.throws(() => pluginFailureStore.acceptTask(parentTask, "attempt:article-parent-after-completion"), /PRODUCTION_TASK_IDENTITY_CONFLICT/u);
   await assert.rejects(dispatchPlugin.call(executor, continuationInput({ ...translationTask, parent_task_ref: "job:missing-article-parent" })), /PRODUCTION_PARENT_RESULT_BINDING_MISSING/u);
   await assert.rejects(dispatchPlugin.call(executor, continuationInput({ ...translationTask, parent_result_ref: "result:wrong" })), /PRODUCTION_PARENT_RESULT_BINDING_INVALID/u);
@@ -420,6 +427,7 @@ try {
         provider_turns_used: 0,
         result_revision: 0,
         prior_result_rejection: null,
+        delivery_priority_replay_grant: null,
         expires_at_monotonic: performance.now() + 10_000,
         command_ttl_ms: 1_000,
         abort_signal: new AbortController().signal,

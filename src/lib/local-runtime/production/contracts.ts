@@ -10,6 +10,22 @@ import { executionFailure } from "../../execution-failure.js";
 export { hashCanonical, sha256 };
 export type { ProductionHash };
 
+export type SourceAttemptHandoff = Readonly<{
+  kind: "attempt_handoff" | "delivery_priority_replay";
+  job_id: string; source_attempt_id: string;
+  source_task_hash: ProductionHash | null;
+  first_fact_raw_hash: ProductionHash | null;
+  outbox_history_hash: ProductionHash; outbox_candidate_count: number;
+  browser_history_hash: ProductionHash; browser_row_count: number;
+  browser_input_state: "zero" | "possible" | "unknown";
+  replay_calls: readonly Readonly<{ product_step_id: string; call_id: string;
+    child_capability_id: string; source_effect_set_hash: ProductionHash }>[];
+  browser_target_settled: boolean;
+  target_settlement_hash: ProductionHash;
+  readback_exhaustion_hash: ProductionHash | null;
+  seal_hash: ProductionHash;
+}>;
+
 const WEBSITE_AGENT_PROTOCOL_VERSION = "xuanxue-ai-production-v6" as const;
 export const TASK_CONTRACT_ID = "website-agent-task" as const;
 export const TASK_CONTRACT_VERSION = 1 as const;
@@ -165,6 +181,13 @@ export interface ProductionExecutionLease {
   readonly capability_manifest_hash: ProductionHash;
   readonly max_provider_turns: number;
   readonly result_revision: number;
+  readonly delivery_priority_replay_grant: Readonly<{
+    grant_hash: ProductionHash; source_seal_hash: ProductionHash;
+    source_attempt_id: string; result_revision: number;
+    calls: readonly Readonly<{ product_step_id: string; call_id: string;
+      child_capability_id: string; source_effect_set_hash: ProductionHash;
+      call_grant_hash: ProductionHash }>[];
+  }> | null;
   readonly prior_result_rejection: Readonly<{
     receipt_hash: ProductionHash;
     rejected_result_payload_hash: ProductionHash;

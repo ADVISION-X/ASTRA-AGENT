@@ -17,10 +17,12 @@ export type BrowserAuthorityTargetRevoke = Readonly<{
   targetRef: string;
   jobRefHash?: never;
   releaseOutcome?: never;
+  targetRefs?: never;
 }> | Readonly<{
   targetRef: string | null;
   jobRefHash: `sha256:${string}`;
-  releaseOutcome: "released" | "absent";
+  releaseOutcome: "released" | "quiesced" | "absent";
+  targetRefs: readonly string[];
 }>;
 
 export const authorityRecord = (value: unknown): Record<string, unknown> | null =>
@@ -94,13 +96,18 @@ export const parseBrowserAuthorityTargetRevoke = (
   const targetRef = body.targetRef;
   const jobRefHash = body.jobRefHash;
   const releaseOutcome = body.releaseOutcome;
-  if (Object.keys(body).length !== 3
+  const targetRefs = body.targetRefs;
+  if (Object.keys(body).length !== 4
     || (targetRef !== null && (typeof targetRef !== "string" || targetRef.length === 0))
     || typeof jobRefHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(jobRefHash)
-    || (releaseOutcome !== "released" && releaseOutcome !== "absent")
-    || (releaseOutcome === "released") !== (typeof targetRef === "string")) {
+    || (releaseOutcome !== "released" && releaseOutcome !== "quiesced" && releaseOutcome !== "absent")
+    || !Array.isArray(targetRefs) || targetRefs.some((ref) => typeof ref !== "string"
+      || !/^target-tab-\d+$/u.test(ref)) || new Set(targetRefs).size !== targetRefs.length
+    || (releaseOutcome === "absent") !== (targetRefs.length === 0)
+    || (targetRef === null) !== (targetRefs.length === 0)
+    || (targetRefs.length > 0 && targetRef !== targetRefs[0])) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
   return { targetRef: targetRef as string | null, jobRefHash: jobRefHash as `sha256:${string}`,
-    releaseOutcome };
+    releaseOutcome, targetRefs: targetRefs as string[] };
 };

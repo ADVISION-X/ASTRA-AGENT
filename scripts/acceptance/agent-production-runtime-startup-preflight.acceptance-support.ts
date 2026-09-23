@@ -55,7 +55,7 @@ const assertDependencyProjection = async (): Promise<void> => {
     await writeFile(dependencyPath, JSON.stringify(dependency), { mode: 0o600 });
     assert.deepEqual(await verifyProductionDependency({
       agentDependencyPath: dependencyPath,
-    }), { status: "READY", version: 40 });
+    }), { status: "READY", version: 42 });
   
     const contract = dependency.contract as Record<string, unknown>;
     await writeFile(dependencyPath, JSON.stringify({
@@ -169,7 +169,8 @@ const assertOccupiedStorageInventory = async (
       sourceHash: HASH_A,
       gpt: createGptAbilityGroup(),
       evidenceStore: createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(dataDir)),
-      browserAuthority: { readProductionRuntimeState: () => ({
+      browserAuthority: { verifyRuntimeTaskProvenance: () => undefined,
+        readProductionRuntimeState: () => ({
         browserAuthorityState: "absent" as const, browserTargetState: "absent" as const,
       }) } as never,
       runtimeLogger: createRuntimeLogger({

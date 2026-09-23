@@ -37,6 +37,7 @@ export type ProviderEffectHistoryRow = Readonly<{
   logical_mutation_id: `sha256:${string}` | null;
   job_id: string;
   result_revision: number;
+  delivery_priority_replay_grant_hash: `sha256:${string}` | null;
   attempt_id: string;
   product_step_id: string;
   call_id: string;
@@ -44,7 +45,7 @@ export type ProviderEffectHistoryRow = Readonly<{
   effect_scope: "target_local" | "provider_effect";
   request_hash: `sha256:${string}`;
   payload_hash: `sha256:${string}`;
-  state: "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED";
+  state: "PREPARED" | "DISPATCHED" | "CONFIRMED" | "REJECTED" | "FAILED";
   mutation_outcome: BrowserMutationOutcome | null;
   physical_input_count: BrowserPhysicalInputCount;
 }>;

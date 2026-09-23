@@ -23,6 +23,7 @@ const executeRegisteredDomIntent = (
 
 const exactTestTarget = (documentRef: string, navigationEpoch: number) => ({
   tabId: 105,
+  chromeTargetId: "chrome-target-fixture",
   targetRef: "target-105",
   documentRef,
   navigationEpoch,

@@ -107,7 +107,7 @@ export const permitAuthority = (commandId: string) => ({
   contractManifestHash: hash,
 });
 
-export const permitExecution = (commandId: string) => ({
+export const permitExecution = (commandId: string) => ({deliveryPriorityReplayGrantHash: null,
   jobId: `job:${commandId}`, resultRevision: 0,
   attemptId: "attempt-actor", deviceId: "device-1", leaseVersion: 1,
   localOrderId: `order:${commandId}`, targetLeaseRef: "lease-1", targetRef: "target-1",

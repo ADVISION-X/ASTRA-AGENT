@@ -24,6 +24,18 @@ type CurrentAuthority = {
 };
 
 const lawStem = (lawId: string): string => lawId.replace(/-V[1-9][0-9]*$/u, '');
+const normativeLawReference = (value: string): string => value.replace(
+  /LAW-[A-Z0-9]+(?:-[A-Z0-9]+)*-[0-9]{3}-V[1-9][0-9]*/gu,
+  (lawId) => lawStem(lawId),
+);
+const normalizeLawReferences = (value: unknown): unknown => {
+  if (typeof value === 'string') return normativeLawReference(value);
+  if (Array.isArray(value)) return value.map(normalizeLawReferences);
+  if (value && typeof value === 'object') return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [key, normalizeLawReferences(entry)]),
+  );
+  return value;
+};
 const normativeLawRecord = (law: Law): unknown => ({
   appliesTo: law.appliesTo,
   capabilityDomain: law.capabilityDomain,
@@ -43,7 +55,8 @@ export const assertLawMajorVersionChanges = (prior: readonly Law[], current: rea
   for (const priorLaw of prior) {
     const currentLaw = currentByStem.get(lawStem(priorLaw.lawId));
     if (!currentLaw) continue;
-    const changed = JSON.stringify(normativeLawRecord(priorLaw)) !== JSON.stringify(normativeLawRecord(currentLaw));
+    const changed = JSON.stringify(normalizeLawReferences(normativeLawRecord(priorLaw)))
+      !== JSON.stringify(normalizeLawReferences(normativeLawRecord(currentLaw)));
     if (changed && (currentLaw.lawId === priorLaw.lawId || currentLaw.supersedesLawId !== priorLaw.lawId)) {
       fail('LAW_MAJOR_CHANGE_UNENFORCED', `${priorLaw.lawId}:normative-semantics`);
     }

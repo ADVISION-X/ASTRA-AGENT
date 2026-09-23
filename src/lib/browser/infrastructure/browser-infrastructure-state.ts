@@ -5,6 +5,7 @@ export type PendingJobBoundTargetAcquisition = Readonly<{
   authorityEpoch: number;
   action: "acquire" | "release";
   jobRefHash: `sha256:${string}`;
+  targetRefs?: readonly string[];
   resolve(): void;
   reject(error: Error): void;
   timeout: ReturnType<typeof setTimeout>;

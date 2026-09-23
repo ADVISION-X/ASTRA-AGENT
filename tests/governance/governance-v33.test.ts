@@ -56,6 +56,17 @@ test('normative law edits require a successor major', () => {
     lawId: prior.lawId.replace(/-V[1-9][0-9]*$/u, `-V${successorVersion}`), supersedesLawId: prior.lawId };
   assert.doesNotThrow(() => assertLawMajorVersionChanges([prior], [successor]));
   assert.doesNotThrow(() => assertLawMajorVersionChanges([prior], []));
+  const dependency = prior.dependsOnLawIds[0];
+  if (dependency) {
+    const nextDependency = dependency.replace(/-V([1-9][0-9]*)$/u,
+      (_, version: string) => `-V${Number(version) + 1}`);
+    assert.doesNotThrow(() => assertLawMajorVersionChanges([prior], [{
+      ...prior, dependsOnLawIds: [nextDependency, ...prior.dependsOnLawIds.slice(1)],
+    }]));
+    assert.throws(() => assertLawMajorVersionChanges([prior], [{
+      ...prior, dependsOnLawIds: [...prior.dependsOnLawIds, 'LAW-NEW-001-V1'],
+    }]), (error: unknown) => error instanceof GovernanceError && error.code === 'LAW_MAJOR_CHANGE_UNENFORCED');
+  }
 });
 
 test('law corpus permits an empty source but rejects two active majors for one lawKey', () => {

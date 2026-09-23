@@ -25,6 +25,7 @@ let createdTab: Readonly<{ active: true; url: string }> | null = null;
 let debuggerEvent: Parameters<ExtensionChromeApi["debugger"]["onEvent"]["addListener"]>[0] | null = null;
 let debuggerDetach: DebuggerDetachListener = () => { throw new Error("debugger detach listener was not installed"); };
 let targetTabUpdated: TabUpdatedListener = () => { throw new Error("target tab listener was not installed"); };
+let targetTabRemoved: (tabId: number) => void = () => undefined;
 let nextCreatedTabId = 3;
 let getTargetsCalls = 0;
 let attachFailureTabId: number | null = null;
@@ -131,7 +132,11 @@ const targetChromeApi: ExtensionChromeApi = {
     detach: async ({ tabId }) => { detachedTabs.push(tabId); },
     getTargets: async () => {
       getTargetsCalls += 1;
-      return [];
+      return Array.from({ length: nextCreatedTabId - 3 }, (_, index) => index + 3)
+        .filter((tabId) => !removedTabs.includes(tabId))
+        .map((tabId) => ({ attached: attachedTabs.includes(tabId),
+          id: `chrome-target-${tabId}`, tabId, title: "ChatGPT", type: "page" as const,
+          url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/" }));
     },
     sendCommand: sendTargetChromeCommand,
     onDetach: { addListener: (listener) => { debuggerDetach = listener; } },
@@ -164,6 +169,7 @@ const targetChromeApi: ExtensionChromeApi = {
         throw new Error("ambiguous exact tab removal");
       }
       removedTabs.push(tabId);
+      targetTabRemoved(tabId);
     },
     update: async (tabId) => {
       activatedTabs.push(tabId);
@@ -174,7 +180,7 @@ const targetChromeApi: ExtensionChromeApi = {
     },
     onActivated: { addListener: (listener) => { targetTabActivated = listener; } },
     onUpdated: { addListener: (listener) => { targetTabUpdated = listener; } },
-    onRemoved: { addListener: () => undefined },
+    onRemoved: { addListener: (listener) => { targetTabRemoved = listener; } },
   },
   alarms: chromeApi.alarms,
 };
@@ -185,6 +191,7 @@ const targetAuthority = new ExtensionTargetAuthority(
   targetChromeApi,
   async (kind, body) => { targetFrames.push({ kind, body }); if (kind === "TARGET_REVOKE") targetFailureOrder.push(kind); },
   (failure) => { targetFailures.push(failure); targetFailureOrder.push("DIAGNOSTIC"); },
+  async () => undefined,
 );
 const acceptanceExactCallIdentityHash = `sha256:${"e".repeat(64)}` as const;
 const executeRegisteredCommand = (
@@ -212,7 +219,7 @@ assert.deepEqual(attachedTabs, [], "the task-owned tab must not attach before Ch
 targetTabUpdated(3, { status: "complete" }, { id: 3, url: "https://chatgpt.com/", title: "ChatGPT" });
 await firstAcquisition;
 assert.deepEqual(attachedTabs, [3]);
-assert.equal(getTargetsCalls, 0, "job acquisition must not enumerate or reuse operator ChatGPT tabs");
+assert.ok(getTargetsCalls > 0, "the new task Tab must bind its exact Chrome target identity");
 assert.deepEqual(createdTab, { active: true, url: "https://chatgpt.com/" });
 assert.equal(activeTabId, 3, "the first production Tab must be selected in its existing Chrome window");
 assert.equal(targetFrames[0]?.kind, "TARGET_CLAIM");

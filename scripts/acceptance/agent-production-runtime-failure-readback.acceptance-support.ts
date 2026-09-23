@@ -314,40 +314,6 @@ export const verifyClaimTimeFirstFactConflict = async (): Promise<void> => {
   }
 };
 
-const verifyRegrantedWithoutLocalAuthority = async <T extends { session: object; lastErrorCode: string | null }>(
-  state: T, counts: { durableAccepts: number; productExecutions: number; websiteWrites: number },
-): Promise<void> => {
-  const regrantedTask = task({
-    jobId: "job:regranted-without-local-authority",
-    productId: "payment_screenshot_observation", actionId: "observe",
-  });
-  const freshShape = claimTask(regrantedTask);
-  const regrantedJob = {
-    ...freshShape, grant: { ...freshShape.grant, same_accepted_attempt: true },
-  };
-  counts.durableAccepts = 0;
-  counts.productExecutions = 0;
-  counts.websiteWrites = 0;
-  const regrantState = { ...state,
-    activeAbort: new Map([[regrantedJob.job_id, new AbortController()]]),
-    session: { ...state.session, request:
-      async (path: string, options?: Readonly<{ method?: string }>) => {
-      if (options?.method && options.method !== "GET") counts.websiteWrites += 1;
-      if (!path.endsWith("/device-status")) throw new Error("UNEXPECTED_RUNTIME_REQUEST");
-      return failureStatus(regrantedJob.job_id, null, []);
-    } },
-  };
-  await executeClaim(regrantState as never, regrantedJob);
-  assert.equal(counts.durableAccepts, 0,
-    "a regranted accepted attempt without its local authority must stop before acceptance");
-  assert.equal(counts.productExecutions, 0,
-    "an unknown old attempt must never enter Product or replay Provider submit");
-  assert.equal(counts.websiteWrites, 0,
-    "an unknown old accepted attempt must remain remote authority and must not be released");
-  assert.equal(regrantState.lastErrorCode,
-    "PRODUCTION_REGRANTED_ATTEMPT_LOCAL_AUTHORITY_MISSING");
-};
-
 export const verifyRemoteFailureWithoutLocalAuthorityStopsBeforeProduct = async (): Promise<void> => {
   const directory = await mkdtemp(join(tmpdir(), "agent-remote-failure-without-local-authority-"));
   const store = new RuntimeStore(directory);
@@ -411,10 +377,61 @@ export const verifyRemoteFailureWithoutLocalAuthorityStopsBeforeProduct = async 
     assert.equal(store.readTask(job.job_id), null,
       "the AGENT must not invent a local first fact from Website readback");
 
-    await verifyRegrantedWithoutLocalAuthority(state, counts);
   } finally {
     store.close();
     await rm(directory, { recursive: true, force: true });
+  }
+
+  const recoveryDirectory = await mkdtemp(join(tmpdir(), "agent-missing-local-accepted-"));
+  const recoveryStore = new RuntimeStore(recoveryDirectory);
+  try {
+    const acceptedTask = task({ jobId: "job:missing-local-accepted",
+      productId: "payment_screenshot_observation", actionId: "observe" });
+    const first = claimTask(acceptedTask);
+    const regrant = { ...first, grant: { ...first.grant, same_accepted_attempt: true } };
+    let accepts = 0;
+    let executions = 0;
+    let websiteWrites = 0;
+    await executeClaim({
+      abort: new AbortController(), active: new Map(),
+      activeAbort: new Map([[regrant.job_id, new AbortController()]]), store: recoveryStore,
+      executor: {
+        accept: (value: typeof acceptedTask, attemptId: string) => {
+          accepts += 1;
+          return recoveryStore.acceptTask(value, attemptId);
+        },
+        execute: async () => { executions += 1; throw new Error("UNEXPECTED_EXECUTION"); },
+      },
+      session: {
+        workerSessionId: "worker:missing-local", workerSessionEpoch: 1,
+        device: { server_base_url: "http://127.0.0.1:4322" },
+        request: async (_path: string, options?: Readonly<{ method?: string }>) => {
+          if (options?.method && options.method !== "GET") websiteWrites += 1;
+          return failureStatus(regrant.job_id, null, []);
+        },
+      },
+      browserAuthority: {
+        readJobBrowserHistoryEvidence: () => ({ walHistoryVerified: true, rowCount: 1 }),
+        readUnreleasedTargetClaims: () => [],
+      },
+      evidenceStore: {}, providerRateLimitControl: {}, gpt: {},
+      dataDir: recoveryDirectory,
+      runtimeLogger: createRuntimeLogger({ producer: "agent-missing-local-accepted",
+        owner: "production-runtime", component: "production-runtime", terminalEnabled: false,
+        fileSink: { directoryPath: join(recoveryDirectory, "runtime-logs") } }),
+      draining: false, lastHeartbeat: null, lastErrorCode: null, lastErrorReason: null,
+      stopped: false, ledgerReconciled: true,
+    } as never, regrant);
+    assert.equal(accepts, 1);
+    assert.equal(executions, 0,
+      "Browser history with a missing local task must first restore the durable task identity");
+    assert.equal(websiteWrites, 0,
+      "the accepted Website attempt must not be released during local authority recovery");
+    assert.equal(recoveryStore.readTask(regrant.job_id)?.current_reason,
+      "LOCAL_AUTHORITY_RECOVERY_PENDING");
+  } finally {
+    recoveryStore.close();
+    await rm(recoveryDirectory, { recursive: true, force: true });
   }
 };
 
@@ -464,7 +481,8 @@ export const verifyUnclassifiedFailureStopsBeforeProduct = async (): Promise<voi
           return failureStatus(job.job_id, remoteFailure, []);
         },
       },
-      browserAuthority: {}, evidenceStore: {}, providerRateLimitControl: {}, gpt: {},
+      browserAuthority: { readJobPhysicalInputState: () => "zero" },
+      evidenceStore: {}, providerRateLimitControl: {}, gpt: {},
       dataDir: directory,
       runtimeLogger: createRuntimeLogger({
         producer: "agent-unclassified-failure", owner: "production-runtime",
@@ -482,8 +500,8 @@ export const verifyUnclassifiedFailureStopsBeforeProduct = async (): Promise<voi
     assert.equal(websiteWrites, 0,
       "an unclassified failure must produce zero Website writes");
     assert.equal(store.readTask(job.job_id)?.current_reason,
-      "PRODUCTION_ATTEMPT_FAILURE_UNCLASSIFIED",
-      "the local task must retain the exact fail-closed diagnosis");
+      "PRODUCTION_SOURCE_HANDOFF_REQUIRED",
+      "a zero-input first fact must enter source handoff without executing Product");
     assert.deepEqual(store.readTask(job.job_id)?.attempt_failure?.failure_core, failure.failure_core,
       "fail-closed classification must preserve the immutable failure core");
     assert.equal(store.readTask(job.job_id)?.attempt_failure?.release_descriptor.lease_version, 2,

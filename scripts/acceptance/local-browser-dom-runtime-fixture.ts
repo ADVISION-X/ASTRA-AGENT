@@ -44,7 +44,7 @@ export const mutationInfrastructureReply = (
   return reply;
 };
 
-export const exactAssistantTarget = Object.freeze({
+export const exactAssistantTarget = Object.freeze({chromeTargetId: "chrome-target-fixture",
   tabId: 111, targetRef: "target-111", documentRef: "document-11", navigationEpoch: 11,
   jobRefHash: `sha256:${"a".repeat(64)}` as const, loaderId: "loader-current",
 });

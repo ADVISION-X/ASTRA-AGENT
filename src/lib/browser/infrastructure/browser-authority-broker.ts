@@ -24,6 +24,10 @@ type BrowserExecutionBindingCore = Readonly<{
   writerLeaseEpoch: number;
   writerFenceHash: BrowserHash;
   candidateHash: BrowserHash;
+  domainRejectionRevision?: boolean;
+  deliveryPriorityReplayCalls?: readonly Readonly<{ productStepId: string; callId: string;
+    childCapabilityId: string; sourceEffectSetHash: BrowserHash;
+    callGrantHash: BrowserHash }>[];
   commandTtlMs: number;
 }>;
 

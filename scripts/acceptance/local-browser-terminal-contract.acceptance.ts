@@ -34,6 +34,7 @@ try {
   exercisePostconditionNativeCauseWalRoundTrip(join(root, "postcondition-native-cause"));
   const actorRoot = join(root, "actor");
   const actorStore = new BrowserMutationStore(actorRoot);
+  actorStore.verifyRuntimeTaskProvenance(null);
   const actorLogger = createRuntimeLogger({
     producer: "browser-actor-acceptance",
     producerRunId: "browser-actor-acceptance-run",
@@ -453,7 +454,7 @@ try {
 }
 
 emitQualityProofObservation({
-  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V48",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V49",
   evidenceMode: "exam.golden",
   clauses: [
     "forbidden:0",

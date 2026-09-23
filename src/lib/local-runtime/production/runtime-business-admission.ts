@@ -3,6 +3,7 @@ import { lstat, rm } from "node:fs/promises";
 
 import { executionFailure } from "../../execution-failure.js";
 import { failureCode } from "../../execution-failure.js";
+import { RuntimeFailureImpact, requireRuntimeLogWrite, runtimeFailureFromError } from "../../runtime-logs/index.js";
 import { hashCanonical } from "./contracts.js";
 import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import type { RuntimeState } from "./runtime-state.js";
@@ -73,14 +74,7 @@ export const reconcileBusinessAdmission = async (
   const admission = remote.business_admission_receipt;
   if (!admission) {
     if (remote.next_action_code === "WAIT_NEW_ATTEMPT") {
-      await state.browserAuthority.releaseJobBoundTarget(
-        record.task.job_id,
-        "wait-new-attempt",
-        state.abort.signal,
-      );
-      state.store.releaseAttemptForWebsiteDecision(
-        record.task.job_id, record.current_attempt_id,
-      );
+      state.store.setCurrentReason(record.task.job_id, "RESULT_AUTHORITY_RECONCILIATION_PENDING");
       return "pending";
     }
     state.store.setCurrentReason(
@@ -95,9 +89,39 @@ export const reconcileBusinessAdmission = async (
     || admission.result_payload_hash !== staged.result_payload_hash) {
     throw executionFailure("failed", "BUSINESS_ADMISSION_RESULT_HASH_MISMATCH");
   }
-  await state.browserAuthority.releaseJobBoundTarget(
-    record.task.job_id, "business-admitted", state.abort.signal,
-  );
+  if (!record.current_attempt_id) {
+    throw executionFailure("failed", "BUSINESS_ADMISSION_ATTEMPT_IDENTITY_MISSING");
+  }
+  try {
+    state.store.hydrateCurrentResultArtifacts(record.task.job_id,
+      record.current_attempt_id, staged, remote.write_receipts);
+  } catch (error) {
+    state.lastErrorCode = failureCode(error, "PRODUCTION_RESULT_ARTIFACT_READBACK_INCOMPLETE");
+    state.lastErrorReason = "Website admission is authoritative; local artifact receipt reconciliation remains pending.";
+  }
   state.store.completeTask(record.task.job_id, staged);
+  try {
+    await state.browserAuthority.releaseJobBoundTarget(
+      record.task.job_id, "business-admitted", state.abort.signal,
+    );
+    if (state.browserAuthority.readProductionRuntimeState().browserTargetState !== "absent") {
+      throw executionFailure("failed", "BROWSER_ADMITTED_TARGET_RELEASE_READBACK_MISSING");
+    }
+    state.store.settleBrowserCleanup(record.task.job_id);
+  } catch (error) {
+    state.lastErrorCode = failureCode(error, "BROWSER_ADMISSION_CLEANUP_FAILED");
+    state.lastErrorReason = "Business result was admitted; Browser Target cleanup remains pending.";
+    try {
+      requireRuntimeLogWrite(state.runtimeLogger.emitError({
+        traceId: record.task.job_id,
+        owner: "browser-session", component: "business-admission-cleanup",
+        operation: "browser.infrastructure",
+        typedIdentity: { kind: "job", jobId: record.task.job_id },
+        failure: runtimeFailureFromError({ error,
+          code: state.lastErrorCode, responsibleOwner: "browser-session",
+          impact: RuntimeFailureImpact.CLEANUP }),
+      }));
+    } catch { /* completed business result remains authoritative */ }
+  }
   return "completed";
 };

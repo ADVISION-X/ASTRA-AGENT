@@ -382,6 +382,11 @@ export class BrowserTargetLeaseManager {
     const commandId = randomUUID();
     const replyChannelToken = randomUUID();
     const certificateHash = hashBrowserAuthorityCertificate(this.certificate);
+    const replayCall = input.replayPolicy === "provider-effect-once"
+      ? (this.executionBinding.deliveryPriorityReplayCalls ?? []).find((call) =>
+        call.productStepId === input.productStepId
+        && call.callId === input.callId
+        && call.childCapabilityId === input.childCapabilityId) ?? null : null;
     const authorityPermit = {
       permitRef: randomUUID(),
       authorityRef: this.certificate.authorityRef,
@@ -392,6 +397,15 @@ export class BrowserTargetLeaseManager {
       writerFenceHash: this.executionBinding.writerFenceHash,
       candidateHash: this.executionBinding.candidateHash,
       contractManifestHash: this.executionBinding.contractManifestHash,
+      deliveryPriorityReplayGrantHash:
+        replayCall?.callGrantHash ?? null,
+      domainRejectionRevision: this.executionBinding.domainRejectionRevision ?? false,
+      deliveryPriorityReplayCall:
+        replayCall === null ? null : {
+          productStepId: replayCall.productStepId, callId: replayCall.callId,
+          childCapabilityId: replayCall.childCapabilityId,
+          sourceEffectSetHash: replayCall.sourceEffectSetHash,
+        },
     };
     const executionPermit = {
       jobId: this.executionBinding.jobId,

@@ -11,6 +11,12 @@ export type BrowserMutationIdentity = Readonly<{
   attemptId: string;
   leaseVersion: number;
   executionFenceHash: `sha256:${string}`;
+  deliveryPriorityReplayGrantHash: `sha256:${string}` | null;
+  domainRejectionRevision?: boolean;
+  deliveryPriorityReplayCall?: Readonly<{
+    productStepId: string; callId: string; childCapabilityId: string;
+    sourceEffectSetHash: `sha256:${string}`;
+  }> | null;
   productStepId: string;
   callId: string;
   childCapabilityId: string;

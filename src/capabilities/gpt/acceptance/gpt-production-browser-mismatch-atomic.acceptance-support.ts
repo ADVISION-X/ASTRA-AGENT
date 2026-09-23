@@ -32,6 +32,7 @@ try {
   const mutationStore = new BrowserMutationStore(
     path.join(temporary, "browser-dialog-mismatch-atomic"),
   );
+  mutationStore.verifyRuntimeTaskProvenance(null);
   const atomicLogger = createRuntimeLogger({
     producer: "agent-dialog-mismatch-atomic-acceptance", owner: "production-runtime",
     component: "gpt-child", terminalEnabled: false,

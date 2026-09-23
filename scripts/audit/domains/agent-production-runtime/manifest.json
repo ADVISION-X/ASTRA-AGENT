@@ -3,7 +3,7 @@
   "capabilityDomain": "agent-production-runtime",
   "status": "active",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V68",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V69",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V10",
     "LAW-AGENT-PRODUCTION-RUNTIME-003-V40",
     "LAW-AGENT-PRODUCTION-RUNTIME-004-V40",
@@ -30,7 +30,6 @@
     "scripts/acceptance/agent-production-runtime-session-rotation-support.ts",
     "scripts/acceptance/agent-production-runtime-startup-preflight.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime-startup.acceptance.ts",
-    "scripts/acceptance/agent-production-runtime-wait-new-attempt.acceptance-support.ts",
     "scripts/acceptance/agent-production-runtime.acceptance.ts",
     "scripts/acceptance/agent-production-runtime.real-proof-support.ts",
     "scripts/acceptance/agent-production-runtime.real-proof.ts",

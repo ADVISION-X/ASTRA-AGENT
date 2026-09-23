@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import { createHash } from "node:crypto";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { mutationIdentity, type MutationRow } from "./browser-mutation-row.js";
 import { ensureCurrentSchema, identityColumns, mutationAuthorityHash } from "./browser-mutation-schema.js";
@@ -34,21 +34,229 @@ const assertSettledRowTiming = (
 export class BrowserMutationStore {
   private readonly database: Database.Database;
   private readonly payloadKey: Buffer;
+  public readonly existedAtOpen: boolean;
+  private readonly fileBirthtimeMs: number;
+  private provenanceVerified = false;
 
   public constructor(dataDir: string) {
     const file = join(dataDir, "browser", "browser-mutations.sqlite");
+    this.existedAtOpen = existsSync(file);
     mkdirSync(dirname(file), { recursive: true });
     this.payloadKey = browserMutationPayloadKey(dataDir);
     this.database = new Database(file);
     this.database.pragma("journal_mode = WAL");
     this.database.pragma("synchronous = FULL");
     ensureCurrentSchema(this.database);
+    if (String(this.database.pragma("integrity_check", { simple: true })).toLowerCase() !== "ok"
+      || (this.database.pragma("foreign_key_check") as unknown[]).length !== 0) {
+      throw new Error("BROWSER_REPAIR_REQUIRED");
+    }
+    this.fileBirthtimeMs = statSync(file).birthtimeMs;
+    this.ingestLegacyTargetRefs();
     this.database.prepare(
       "update browser_mutations set state='FAILED',reason='BROWSER_COMMAND_NOT_DISPATCHED',updated_at=? where state='PREPARED'",
     ).run(new Date().toISOString());
   }
 
+  public verifyRuntimeTaskProvenance(earliestTaskCreatedAt: string | null): void {
+    const createdAt = earliestTaskCreatedAt === null ? null : Date.parse(earliestTaskCreatedAt);
+    if (createdAt !== null && !Number.isFinite(createdAt)) {
+      throw new Error("BROWSER_WAL_PROVENANCE_INVALID");
+    }
+    // Browser opens before Runtime. A brand-new WAL is safe only if Runtime has
+    // no already accepted task. An older task than this file means lost history.
+    this.provenanceVerified = !(!this.existedAtOpen && createdAt !== null
+      || createdAt !== null && this.fileBirthtimeMs > createdAt);
+  }
+
+  public assertRuntimeTaskProvenance(): void {
+    if (!this.provenanceVerified) throw new Error("BROWSER_WAL_HISTORY_UNVERIFIED");
+  }
+
+  private ingestLegacyTargetRefs(): void {
+    const historical = this.database.prepare(`select distinct job_id,target_ref from browser_mutations
+      where target_ref like 'target-tab-%'`).all() as Array<{ job_id: string; target_ref: string }>;
+    this.database.transaction(() => {
+      for (const row of historical) {
+        const match = /^target-tab-(\d+)$/u.exec(row.target_ref);
+        if (!match) throw new Error("BROWSER_REPAIR_REQUIRED");
+        const jobRefHash = `sha256:${createHash("sha256").update(row.job_id).digest("hex")}` as const;
+        const previous = this.database.prepare(`select claim_id from browser_target_claims
+          where job_ref_hash=? and target_ref=? limit 1`).get(jobRefHash, row.target_ref);
+        if (previous) continue;
+        this.database.prepare(`insert into browser_target_claims(
+          target_ref,job_ref_hash,tab_id,claim_source,claimed_at,released_at
+        ) values(?,?,?,'legacy_wal',?,null)`).run(
+          row.target_ref, jobRefHash, Number(match[1]), new Date().toISOString(),
+        );
+      }
+    })();
+  }
+
+  public recordTargetClaim(input: Readonly<{
+    jobRefHash: `sha256:${string}`; targetRef: string;
+  }>): void {
+    this.assertRuntimeTaskProvenance();
+    const match = /^target-tab-(\d+)$/u.exec(input.targetRef);
+    const tabId = match ? Number(match[1]) : NaN;
+    if (!/^sha256:[a-f0-9]{64}$/u.test(input.jobRefHash)
+      || !Number.isSafeInteger(tabId) || tabId < 0) throw new Error("BROWSER_TARGET_INVALID");
+    this.database.transaction(() => {
+      const existing = this.database.prepare(`select job_ref_hash,claim_source from browser_target_claims
+        where target_ref=? and released_at is null`).all(input.targetRef) as Array<{
+          job_ref_hash: string; claim_source: string;
+        }>;
+      if (existing.some((row) => row.job_ref_hash !== input.jobRefHash)) throw new Error("BROWSER_TARGET_INVALID");
+      if (existing.some((row) => row.claim_source === "authenticated_claim")) return;
+      this.database.prepare(`insert into browser_target_claims(
+        target_ref,job_ref_hash,tab_id,claim_source,claimed_at,released_at
+      ) values(?,?,?,'authenticated_claim',?,null)`).run(
+        input.targetRef, input.jobRefHash, tabId, new Date().toISOString(),
+      );
+    })();
+  }
+
+  public unreleasedTargetRefs(jobId: string, jobRefHash: `sha256:${string}`): readonly string[] {
+    if (!/^sha256:[a-f0-9]{64}$/u.test(jobRefHash)) throw new Error("BROWSER_TARGET_INVALID");
+    const expectedHash = `sha256:${createHash("sha256").update(jobId).digest("hex")}`;
+    if (jobRefHash !== expectedHash) throw new Error("BROWSER_TARGET_INVALID");
+    const refs = this.database.prepare(`select distinct target_ref from browser_target_claims
+      where job_ref_hash=? and released_at is null order by claimed_at,target_ref`).all(jobRefHash) as Array<{ target_ref: string }>;
+    return refs.map((row) => row.target_ref);
+  }
+
+  public unreleasedTargetClaims(): readonly Readonly<{
+    jobRefHash: `sha256:${string}`; targetRef: string;
+  }>[] {
+    const rows = this.database.prepare(`select distinct job_ref_hash,target_ref from browser_target_claims
+      where released_at is null order by claimed_at,target_ref`).all() as Array<{
+        job_ref_hash: `sha256:${string}`; target_ref: string;
+      }>;
+    return rows.map((row) => ({ jobRefHash: row.job_ref_hash, targetRef: row.target_ref }));
+  }
+
+  public jobHistoryEvidence(jobId: string): Readonly<{
+    historyHash: `sha256:${string}`; rowCount: number; walHistoryVerified: boolean;
+    targetSettlementHash: `sha256:${string}`; targetSettled: boolean;
+    replayCalls: readonly Readonly<{ productStepId: string; callId: string;
+      childCapabilityId: string; sourceEffectSetHash: `sha256:${string}` }>[];
+  }> {
+    const rows = this.database.prepare(`select command_id,job_id,attempt_id,result_revision,
+      target_ref,effect_scope,product_step_id,call_id,child_capability_id,
+      delivery_priority_replay_grant_hash,
+      state,mutation_outcome,physical_input_count,request_hash,payload_hash
+      from browser_mutations where job_id=? order by command_id`).all(jobId);
+    const jobRefHash = `sha256:${createHash("sha256").update(jobId).digest("hex")}`;
+    const claims = this.database.prepare(`select target_ref,claim_source,claimed_at,
+      released_at,release_outcome,release_proof_hash from browser_target_claims
+      where job_ref_hash=? order by claim_id`).all(jobRefHash) as Array<{
+        released_at: string | null; release_outcome: string | null;
+        release_proof_hash: string | null;
+      }>;
+    return Object.freeze({
+      historyHash: `sha256:${createHash("sha256").update(JSON.stringify(rows)).digest("hex")}`,
+      rowCount: rows.length, walHistoryVerified: this.provenanceVerified,
+      targetSettlementHash: `sha256:${createHash("sha256")
+        .update(JSON.stringify(claims)).digest("hex")}`,
+      targetSettled: (rows.length === 0 || claims.length > 0)
+        && claims.every((claim) => claim.released_at !== null
+          && ["physical_absent", "quiesced"].includes(claim.release_outcome ?? "")
+          && /^sha256:[a-f0-9]{64}$/u.test(claim.release_proof_hash ?? "")),
+      replayCalls: this.unresolvedProviderCalls(jobId),
+    });
+  }
+
+  private providerEffectSetRows(input: Readonly<{ jobId: string; productStepId: string;
+    callId: string; childCapabilityId: string; beforeRevision?: number }>): readonly Readonly<{
+      command_id: string; attempt_id: string; result_revision: number; state: string;
+      mutation_outcome: string; physical_input_count: number; request_hash: string;
+      payload_hash: string; delivery_priority_replay_grant_hash: string | null;
+    }>[] {
+    return this.database.prepare(`select command_id,attempt_id,result_revision,state,
+      mutation_outcome,physical_input_count,request_hash,payload_hash,
+      delivery_priority_replay_grant_hash from browser_mutations
+      where job_id=? and product_step_id=? and call_id=? and child_capability_id=?
+        and effect_scope='provider_effect' and (? is null or result_revision<?)
+      order by command_id`).all(input.jobId, input.productStepId, input.callId,
+      input.childCapabilityId, input.beforeRevision ?? null, input.beforeRevision ?? null) as readonly Readonly<{
+        command_id: string; attempt_id: string; result_revision: number; state: string;
+        mutation_outcome: string; physical_input_count: number; request_hash: string;
+        payload_hash: string; delivery_priority_replay_grant_hash: string | null;
+      }>[];
+  }
+
+  private static possibleProviderInput(row: Readonly<{
+    state: string; mutation_outcome: string; physical_input_count: number;
+  }>): boolean {
+    return !(row.physical_input_count === 0
+      && (row.state === "PREPARED" || row.state === "FAILED"
+        || (row.state === "REJECTED" && row.mutation_outcome === "no")));
+  }
+
+  private unresolvedProviderCalls(jobId: string): readonly Readonly<{
+    productStepId: string; callId: string; childCapabilityId: string;
+    sourceEffectSetHash: `sha256:${string}`;
+  }>[] {
+    const candidates = this.database.prepare(`select distinct product_step_id,call_id,child_capability_id
+      from browser_mutations where job_id=? and effect_scope='provider_effect'
+      order by product_step_id,call_id,child_capability_id`).all(jobId) as Array<{
+        product_step_id: string; call_id: string; child_capability_id: string;
+      }>;
+    const calls: Array<{ productStepId: string; callId: string;
+      childCapabilityId: string; sourceEffectSetHash: `sha256:${string}` }> = [];
+    for (const candidate of candidates) {
+      const call = { productStepId: candidate.product_step_id, callId: candidate.call_id,
+        childCapabilityId: candidate.child_capability_id };
+      const rows = this.providerEffectSetRows({ jobId, ...call });
+      if (!rows.some(BrowserMutationStore.possibleProviderInput)) continue;
+      calls.push(Object.freeze({ ...call, sourceEffectSetHash: `sha256:${createHash("sha256")
+        .update(JSON.stringify(rows)).digest("hex")}` }));
+    }
+    return Object.freeze(calls);
+  }
+
+  public readJobPhysicalInputState(jobId: string): "zero" | "possible" | "unknown" {
+    if (!this.provenanceVerified) return "unknown";
+    const rows = this.database.prepare(`select state,mutation_outcome,physical_input_count
+      from browser_mutations where job_id=? and effect_scope='provider_effect'`).all(jobId) as Array<{
+        state: string; mutation_outcome: string; physical_input_count: number;
+      }>;
+    if (rows.some((row) => row.state === "DISPATCHED" || row.state === "CONFIRMED"
+      || row.mutation_outcome === "dispatched" || row.mutation_outcome === "confirmed"
+      || row.physical_input_count > 0)) return "possible";
+    if (rows.every((row) => row.physical_input_count === 0
+      && (row.state === "FAILED" || row.state === "PREPARED"
+        || (row.state === "REJECTED" && row.mutation_outcome === "no")))) return "zero";
+    return "unknown";
+  }
+
+  public markTargetReleased(input: Readonly<{
+    jobRefHash: `sha256:${string}`; targetRefs: readonly string[];
+    outcome: "physical_absent" | "quiesced"; proofHash: `sha256:${string}`;
+  }>): void {
+    if (!/^sha256:[a-f0-9]{64}$/u.test(input.proofHash)) throw new Error("BROWSER_TARGET_RELEASE_PROOF_INVALID");
+    this.database.transaction(() => {
+      for (const targetRef of input.targetRefs) {
+        const result = this.database.prepare(`update browser_target_claims set released_at=?,
+            release_outcome=?,release_proof_hash=?
+          where job_ref_hash=? and target_ref=? and released_at is null`).run(
+          new Date().toISOString(), input.outcome, input.proofHash, input.jobRefHash, targetRef,
+        );
+        if (result.changes < 1) throw new Error("BROWSER_TARGET_RELEASE_FENCE_MISMATCH");
+      }
+    })();
+  }
+
   public prepare(input: BrowserMutationIdentity): void {
+    this.assertRuntimeTaskProvenance();
+    if (input.deliveryPriorityReplayGrantHash !== null
+      && (input.effectScope !== "provider_effect" || input.resultRevision < 1
+        || !/^sha256:[a-f0-9]{64}$/u.test(input.deliveryPriorityReplayGrantHash))) {
+      throw new Error("BROWSER_REPLAY_GRANT_INVALID");
+    }
+    if ((input.deliveryPriorityReplayGrantHash === null) !== (input.deliveryPriorityReplayCall == null)) {
+      throw new Error("BROWSER_REPLAY_GRANT_INVALID");
+    }
     if (!input.exactCallIdentityHash
       || !input.productStepId || !input.callId || !input.childCapabilityId
       || !Number.isInteger(input.actionOrdinal) || input.actionOrdinal < 1
@@ -79,11 +287,12 @@ export class BrowserMutationStore {
       this.database.prepare(
         `insert into browser_mutations(
           ${identityColumns},state,mutation_outcome,terminal_at,updated_at
-        ) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'PREPARED','no',null,?)`,
+        ) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'PREPARED','no',null,?)`,
       ).run(
         input.commandId, input.logicalMutationId ?? null, input.exactCallIdentityHash,
         input.jobId, input.resultRevision, input.attemptId,
-        input.leaseVersion, input.executionFenceHash, input.productStepId,
+        input.leaseVersion, input.executionFenceHash,
+        input.deliveryPriorityReplayGrantHash, input.productStepId,
         input.callId, input.childCapabilityId, input.effectScope,
         input.actionOrdinal, input.targetRef, input.documentRef,
         input.actionId, input.positivePostconditionHash, input.negativePostconditionHash,
@@ -112,12 +321,13 @@ export class BrowserMutationStore {
     callId: string; childCapabilityId: string;
   }>): readonly ProviderEffectHistoryRow[] {
     return this.database.prepare(
-      `select logical_mutation_id,job_id,result_revision,attempt_id,
+      `select logical_mutation_id,job_id,result_revision,
+              delivery_priority_replay_grant_hash,attempt_id,
               product_step_id,call_id,child_capability_id,effect_scope,request_hash,payload_hash,
               state,mutation_outcome,physical_input_count
        from browser_mutations
        where job_id=? and result_revision=? and product_step_id=? and call_id=? and child_capability_id=? and effect_scope='provider_effect'
-         and state in ('PREPARED','DISPATCHED','CONFIRMED','REJECTED')
+         and state in ('PREPARED','DISPATCHED','CONFIRMED','REJECTED','FAILED')
        order by command_id`,
     ).all(input.jobId, input.resultRevision, input.productStepId, input.callId,
       input.childCapabilityId) as readonly ProviderEffectHistoryRow[];
@@ -128,7 +338,7 @@ export class BrowserMutationStore {
     callId: string; childCapabilityId: string;
   }>): import("./browser-mutation-types.js").BrowserProviderEffectStepCallFact | null {
     const rows = this.database.prepare(
-      `select exact_call_identity_hash,request_hash,action_ordinal from browser_mutations
+      `select exact_call_identity_hash,request_hash,action_ordinal,attempt_id from browser_mutations
        where job_id=? and result_revision=? and product_step_id=? and call_id=? and child_capability_id=? and effect_scope='provider_effect'
          and state in ('DISPATCHED','CONFIRMED','REJECTED')
          and not (state='REJECTED' and mutation_outcome='no' and physical_input_count=0 and attempt_id<>?)
@@ -138,12 +348,13 @@ export class BrowserMutationStore {
         exact_call_identity_hash: `sha256:${string}`;
         request_hash: `sha256:${string}`;
         action_ordinal: number;
+        attempt_id: string;
       }>;
     if (rows.length === 0) return null;
     if (rows.length !== 1) throw new Error("BROWSER_PROVIDER_EFFECT_FACT_AMBIGUOUS");
     const row = rows[0]!;
     const mutation = this.readExactCallMutationFact({
-      jobId: input.jobId, attemptId: input.attemptId,
+      jobId: input.jobId, attemptId: row.attempt_id,
       exactCallIdentityHash: row.exact_call_identity_hash, actionOrdinal: row.action_ordinal,
     });
     if (!mutation || mutation.effectScope !== "provider_effect"
@@ -157,11 +368,44 @@ export class BrowserMutationStore {
 
   private assertProviderEffectHistory(input: BrowserMutationIdentity): void {
     if (!input.logicalMutationId) throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_REQUIRED");
+    const oldRows = this.providerEffectSetRows({ jobId: input.jobId,
+      productStepId: input.productStepId, callId: input.callId,
+      childCapabilityId: input.childCapabilityId, beforeRevision: input.resultRevision });
+    const oldPossible = oldRows.some(BrowserMutationStore.possibleProviderInput);
+    const call = input.deliveryPriorityReplayCall;
+    if (oldPossible && input.domainRejectionRevision !== true) {
+      const oldHash = `sha256:${createHash("sha256").update(JSON.stringify(oldRows)).digest("hex")}`;
+      if (!input.deliveryPriorityReplayGrantHash || !call
+        || call.productStepId !== input.productStepId || call.callId !== input.callId
+        || call.childCapabilityId !== input.childCapabilityId
+        || call.sourceEffectSetHash !== oldHash) {
+        throw new Error("BROWSER_PROVIDER_EFFECT_OLD_INPUT_UNAUTHORIZED");
+      }
+    } else if (input.deliveryPriorityReplayGrantHash !== null) {
+      throw new Error("BROWSER_REPLAY_GRANT_UNNEEDED");
+    }
+    if (input.deliveryPriorityReplayGrantHash !== null) {
+      const used = this.database.prepare(`select command_id from browser_mutations
+        where job_id=? and delivery_priority_replay_grant_hash=? limit 1`).get(
+        input.jobId, input.deliveryPriorityReplayGrantHash,
+      );
+      if (used) throw new Error("BROWSER_REPLAY_GRANT_CONSUMED");
+    }
     const rows = this.providerEffectHistoryRows(input);
     if (rows.length === 0) return;
-    if (rows.some((row) => !this.providerEffectIdentityMatches(row, input))) throw new Error("BROWSER_PROVIDER_EFFECT_IDENTITY_DRIFT");
-    if (rows.every((row) => row.state === "REJECTED" && row.mutation_outcome === "no"
-      && row.physical_input_count === 0 && row.attempt_id !== input.attemptId)) return;
+    if (rows.some((row) => row.delivery_priority_replay_grant_hash
+      !== input.deliveryPriorityReplayGrantHash)) {
+      throw new Error("BROWSER_REPLAY_GRANT_MISMATCH");
+    }
+    // A Website-authorized replacement attempt may change the Product payload.
+    // Only the complete old no-input history permits that first new identity.
+    if (rows.every((row) => row.attempt_id !== input.attemptId
+      && row.physical_input_count === 0
+      && (row.state === "PREPARED" || row.state === "FAILED"
+        || (row.state === "REJECTED" && row.mutation_outcome === "no")))) return;
+    if (rows.some((row) => !this.providerEffectIdentityMatches(row, input))) {
+      throw new Error("BROWSER_PROVIDER_EFFECT_IDENTITY_DRIFT");
+    }
     throw new Error("BROWSER_PROVIDER_EFFECT_REPLAY_FORBIDDEN");
   }
 
@@ -461,6 +705,18 @@ export class BrowserMutationStore {
       "select count(*) as count from browser_mutations where state='DISPATCHED'",
     ).get() as { count: number };
     return Number(row.count);
+  }
+
+  public allDispatchedTargetsSettled(): boolean {
+    const rows = this.database.prepare(`select job_id,target_ref from browser_mutations
+      where state='DISPATCHED'`).all() as Array<{ job_id: string; target_ref: string }>;
+    if (rows.length === 0) return false;
+    return rows.every((row) => {
+      const jobRefHash = `sha256:${createHash("sha256").update(row.job_id).digest("hex")}`;
+      return Boolean(this.database.prepare(`select 1 from browser_target_claims
+        where job_ref_hash=? and target_ref=? and released_at is not null
+          and release_proof_hash is not null limit 1`).get(jobRefHash, row.target_ref));
+    });
   }
 
   public latestProviderInputTerminalAt(): string | null {

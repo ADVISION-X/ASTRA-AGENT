@@ -203,6 +203,14 @@ export class ProductionExecutor {
     return this.store.acceptTaskAfterFailureReconciled(task, attemptId, failure);
   }
 
+  public acceptAfterSourceHandoff(
+    task: WebsiteAgentTask, attemptId: string, sealHash: `sha256:${string}`,
+  ): StoredProductionTask {
+    assertProductionTaskRoutePolicy(task);
+    authorizeWebsiteAgentTask(task);
+    return this.store.acceptTaskAfterSourceHandoff(task, attemptId, sealHash);
+  }
+
   private startPluginSpan(
     task: WebsiteAgentTask,
     lease: ProductionExecutionLease,
@@ -292,6 +300,13 @@ export class ProductionExecutor {
           subjectRef: authorized.task.business_identity.subject_ref,
           authorizationRef: authorized.task.business_identity.authorization_ref,
           resultRevision: input.lease.result_revision,
+          domainRejectionRevision: input.lease.prior_result_rejection !== null,
+          deliveryPriorityReplayCalls: input.lease.delivery_priority_replay_grant?.calls.map((call) => ({
+            productStepId: call.product_step_id, callId: call.call_id,
+            childCapabilityId: call.child_capability_id,
+            sourceEffectSetHash: call.source_effect_set_hash,
+            callGrantHash: call.call_grant_hash,
+          })) ?? [],
           attemptId: input.lease.attempt_id,
           deviceId: input.lease.device_id,
           leaseVersion: input.lease.lease_version,
@@ -335,7 +350,21 @@ export class ProductionExecutor {
       primaryError = gptLifecycle.decorateFailure?.(error) ?? error;
       throw primaryError;
     } finally {
-      await settleGptExecution(gptLifecycle, primaryError);
+      try {
+        await settleGptExecution(gptLifecycle, primaryError);
+      } catch (cleanupError) {
+        if (!completed || !this.store.readTask(input.task.job_id)?.staged_result) throw cleanupError;
+        requireRuntimeLogWrite(this.runtimeLogger.emitError({
+          traceId: input.task.job_id,
+          owner: "browser-session", component: "gpt-browser-lifecycle",
+          operation: "browser.infrastructure",
+          typedIdentity: { kind: "plugin-step", jobId: input.task.job_id,
+            attemptId: input.lease.attempt_id, pluginId: input.task.product_id, stepId: "browser.settle" },
+          failure: runtimeFailureFromError({ error: cleanupError,
+            code: failureCode(cleanupError, "GPT_BROWSER_LIFECYCLE_FAILED"),
+            responsibleOwner: "browser-session", impact: RuntimeFailureImpact.CLEANUP }),
+        }));
+      }
     }
     if (!completed) throw new Error("PLUGIN_RESULT_NOT_COMPLETED");
     return Object.freeze({
@@ -398,9 +427,16 @@ export class ProductionExecutor {
       try {
         await browserArtifactLease.release();
       } catch (cleanupError) {
-        throw new AggregateError(
-          [cleanupError], "GPT_BROWSER_LIFECYCLE_FAILED", { cause: cleanupError },
-        );
+        requireRuntimeLogWrite(this.runtimeLogger.emitError({
+          traceId: task.job_id,
+          owner: "browser-session", component: "gpt-browser-lifecycle",
+          operation: "browser.infrastructure",
+          typedIdentity: { kind: "plugin-step", jobId: task.job_id,
+            attemptId: lease.attempt_id, pluginId: task.product_id, stepId: "browser.release" },
+          failure: runtimeFailureFromError({ error: cleanupError,
+            code: failureCode(cleanupError, "GPT_BROWSER_LIFECYCLE_FAILED"),
+            responsibleOwner: "browser-session", impact: RuntimeFailureImpact.CLEANUP }),
+        }));
       }
       browserArtifactLease = null;
       requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
@@ -410,12 +446,18 @@ export class ProductionExecutor {
         providerEffectReadbackProof: dispatched.providerEffectReadbackProof,
       };
     } catch (error) {
+      const durableResult = this.store.readTask(task.job_id);
+      if (durableResult?.staged_result && durableResult.current_attempt_id === lease.attempt_id) {
+        requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
+        return { record: durableResult, result: durableResult.staged_result,
+          providerEffectReadbackProof: null };
+      }
       let failure = error;
       if (browserArtifactLease) {
         try {
           await browserArtifactLease.release();
         } catch (cleanupError) {
-          failure = new AggregateError(
+          if (!this.store.readTask(task.job_id)?.staged_result) failure = new AggregateError(
             [cleanupError], "GPT_BROWSER_LIFECYCLE_FAILED", { cause: error },
           );
         }

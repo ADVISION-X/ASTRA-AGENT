@@ -80,7 +80,8 @@ export class ProductionRuntimeStore extends ProductionStoreOutbox {
   public pendingOutboxCount(): number {
     return Number((this.database.prepare(
       `select count(*) as count from production_outbox where sent_at is null
-        and (last_error is null or kind='provider_cooldown')`,
+        and (last_error is null or (kind='provider_cooldown'
+          and last_error<>'BUSINESS_ADMITTED'))`,
     ).get() as { count: number }).count);
   }
 
@@ -148,7 +149,10 @@ export class ProductionRuntimeStore extends ProductionStoreOutbox {
       const terminal = projection.terminalByJob.get(jobId);
       const jobOutbox = outbox.filter((authority) => authority.jobId === jobId);
       if (task.status === "completed" && jobOutbox.some((authority) => authority.state === "pending"
-        && authority.lastError !== "WEBSITE_ATTEMPT_REPLACED")) return false;
+        && authority.lastError !== "WEBSITE_ATTEMPT_REPLACED"
+        && authority.lastError !== "BUSINESS_ADMITTED"
+        && authority.lastError !== "BROWSER_CLEANUP_PENDING"
+        && authority.kind !== "provider_cooldown")) return false;
       if (!this.terminalTaskConsistent(task, terminal)) return false;
       const admissionPending = task.status === "failed" && task.staged_result !== null;
       if ((task.status === "completed" || admissionPending)

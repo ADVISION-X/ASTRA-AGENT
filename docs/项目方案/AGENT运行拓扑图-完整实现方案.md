@@ -2,9 +2,9 @@
 
 ## 0. 方案状态与唯一结论
 
-状态：**v4 按本工单授权解冻并重新冻结；v2/v3 历史由 Git 保留**。本表只精确替换模型/推理配型相关 G03/G15–G17；冻结只建立代码对照锚点，不证明现役代码已实现或动态工单已通过。
+状态：**v8 按本轮授权迭代后重新冻结；v2–v7 历史由 Git 保留**。本轮重画 Demand→Result→Admission 主轴；冻结只建立施工对照锚点，不证明代码或动态工单已通过。
 
-**唯一结论**：不再以“某个 409、某个限流弹窗、某次 Tab 轮询”分别设计补丁，也不以“建立完整拓扑”为名批量改代码。必须按以下顺序推进：
+**唯一结论**：Website 已接受且未完成、未明确取消/删除/撤权的 job 是持续业务债务。任意普通失败之后都必须有自动下一动作；局部动作因证据不足而失败关闭，不得把 job 永久停住。按法案与施工图双仓对齐、主 Codex 两轮审计、代码与质检、独立审计、CI-FULL 的顺序推进：
 
 ```text
 现役事实进入门（来源、candidate、Owner、consumer、readback 均已绑定）
@@ -14,7 +14,7 @@
   -> 以确认后的表单为唯一锚点，只读对照生产代码
   -> 形成逐行差异清单
   -> 每个差异独立判断 KEEP / 原位修复 / 删除
-  -> 另行授权后才允许精确生产代码迭代
+  -> 本轮已获授权，双仓法案施工图两轮主审达标后进入精确生产代码迭代
 ```
 
 拓扑表单对每个原子能力回答且仅回答：
@@ -26,7 +26,7 @@
 5. 失败、拒绝、等待或截止前未取得回执分别写什么确定事实、报给谁、是否允许重放；
 6. 哪个 readback 才能证明业务真正完成。
 
-它是**人可读、只收录已证明事实的静态能力与 handoff 锚点**，不是新运行时合同、Scheduler、Workflow Engine、进度表、恢复状态机或日志台账。表内不存在审批占位、可能、推测或无 deadline 的 `unknown`；文档是否获批冻结只记录在 §16，不进入任何拓扑行。当前 Route Manifest 与现役运行合同全部保持不动；是否需要任何机器投影，必须等表单冻结并完成生产代码差异审查后另行裁决。
+它是**人可读、只收录已证明事实的静态能力与 handoff 锚点**，不是新运行时合同、Scheduler、Workflow Engine、进度表、恢复状态机或日志台账。表内不存在审批占位、可能、推测或无 deadline 的 `unknown`；文档是否获批冻结只记录在 §12，不进入任何拓扑行。现役 Route Manifest 保持唯一；本轮 V6 跨仓合同按双仓法案与施工图同步升版，机器拓扑投影仍无真实消费者。
 
 ---
 
@@ -53,10 +53,16 @@ Website Domain Consumer 对同一 job_id + result_payload_hash 幂等入库
   -> AGENT 机械校验同一 receipt 后 local completed
 ```
 
+### 1.2.1 业务主轴与总性门
+
+`RESULT_ABSENT → RESULT_READY → RESULT_ADMITTED` 是现有 Website job、AGENT task/Outbox 和 Website admission 的投影，不新增运行时状态。只要 demand active 且未 admission，Website 的同一 claim/observation 权威必须给出可执行的下一步或有限期限的再检查时间：旧结果/Outbox 恢复与交付、原 Provider effect 读回、旧 Target 清算及证据对账、普通新 attempt、Website 持久授权的一次风险重提交、Domain Consumer/admission 对账。`nextAction=null` 与 `retry_not_before=null` 且无其他自动接点是架构失败。只有 Website 持久取消、删除、撤权或完成可终止需求。
+
+机械有效结果一旦成立，Runtime 必须在唯一 SQLite transaction 持久 stage 与 terminal Outbox intent；Browser/GPT cleanup 失败仅是诊断，不能撤销结果。Website 对同 job 新 attempt 的行锁裁决必须先核本地已鉴权 `source_evidence[]`、原 Outbox、Website artifact/terminal；旧结果可恢复就重授旧 attempt 交付。只有确证旧结果不可恢复才签普通新 attempt；这并不授权 Provider 重发。Browser 原 WAL 全历史可证零输入时可在新 attempt 用当前 Prompt/hash 首次提交；已可能输入时先零输入读回。跨 attempt 的本地接纳仅走 Website source seal 与原 manifest 的持久 CAS；旧 failure CAS 只处理同 attempt。封存的 Outbox 来源 hash 只覆盖不可变 intent 身份、路径与 body hash；原 SQLite 中已封存 manifest 在后续 claim 复用，部分上传回执晚到不改 seal。已接受 attempt 重授而本地 task 缺席时，先核 Browser WAL、Outbox 与 Target 历史；完全空白才正常接纳，已有历史先恢复 task 身份并于下一轮对账，不能把本地缺席当作零输入。证据不完整的 `fail_closed` 不能因 job 级“可能输入”而重新执行 Product；原恢复 claim 在释放仍可安全重绑的旧 Target 前，先在仍可安全重绑的旧 Target 对每个旧 effect 作真实零输入读回；旧实例不可绑但 CONFIRMED WAL 有可信会话 URL/user turn 时，再用新独占 Target 精确读回原会话，逐调用持久记录读回路径、Target/Document、观察时间、结果或失败码及 Owner proof；历史哈希的定时重算或等待不能充当读回耗尽。旧 Target 物理缺席或精确身份丢失后，若 CONFIRMED WAL 仍有可信会话 URL/user turn，先在新 Target 精确零提交读回；只有两条适用路径均失败或根本无可信锚点，才进入 Website 风险门。Browser Owner 对已鉴权 Target claim 在给 Extension ack 前，将 exact jobRefHash、targetRef/tabId 持久到原 Browser SQLite；启动与每次新 Target mutation 前枚举 v40 WAL 未结算 targetRef：仅真正未结算 DISPATCHED 输入与当前 lane/Extension handler 进入跨 job 全局门；历史 legacy_wal 数字 Target 候选只在归属 job 的读回与释放中局部清算，不能把全部 released_at=null 候选误判为仍占用物理 Tab。旧 Target 若与 Extension registry 精确同一，则关闭并向 Chrome tabs/debugger 读回缺席；归属不可证的旧 v40 tabId 禁止猜删，须由已鉴权 Extension 核旧 transport epoch/fence 已撤并等待旧 handler/CDP page action/read barrier 全部停稳，在同一 Browser SQLite 持久 typed quiescence proof。空 registry 不是物理缺席证据。若旧答案在旧 Target 及可信会话新 Target 两条适用路径均可证不可取得，且旧 Target 可证物理缺席或旧输入可证静止，Website 原 claim/event/receipt 可签指定调用的一次风险 grant；单独 `quiesced` 只证明旧输入静止，不证明旧答案不可取得；source evidence 枚举完整旧 WAL 中需风险重提的稳定调用集合；Website 同一 event/receipt/revision 对每项三元组及其跨旧 attempt/revision 的完整 Provider effect 集合 hash 独立签 grant hash；Browser 原 WAL 在单事务核该项集合、当前精确调用及 grant 的全部既有 row，每项 grant 最多插入一条新 Provider effect row，其他调用不得借用；允许用户授权的可能重复提交，继续只接纳一个业务结果。该风险路径是明确的交付优先例外，不能由 AGENT 自签或因网络断线推断旧 Target 已消失。 现役本机旧 `production_attempt_handoffs` 已有封存记录时，Runtime 只按精确旧表形状在原 SQLite 单事务迁移并逐行读回原身份、seal 与 manifest，新增读回观察为空；未知形状继续阻止启动，不能用空新库冒充无历史。
+
 ### 1.3 非目标
 
 - 不把 Product Plugin 的 Prompt、模型、Child 顺序、分支和下一步决定权移给 Runtime、Website、Skill 或通用图执行器。
-- 不预设用 `AgentRuntimeTopologyManifestV1` 替换现役 Route Manifest；不因表单整理而修改跨仓运行协议。
+- 不预设用 `AgentRuntimeTopologyManifestV1` 替换现役 Route Manifest；不因表单整理而增加第二跨仓协议；本轮唯一 V6 合同按已授权需求升版。
 - 不把“表单已确认”解释为生产代码存在差异，更不把差异审查解释为已获施工授权。
 - 不建 per-job step ledger、`step_index`、`resume_point`、第二 checkpoint store、第二 WAL、第二 Outbox、第二 failure history 或第二恢复结论。
 - 不把 Runtime Log 当作当前状态，不用日志重放推断业务成功。
@@ -91,9 +97,9 @@ Website Domain Consumer 对同一 job_id + result_payload_hash 幂等入库
 
 ### 3.1 法案与施工图
 
-1. AGENT `LAW-AGENT-PRODUCTION-RUNTIME-001-V66`、`LAW-ARCHITECTURE-BOUNDARY-001-V12` 固定：Runtime/Mediator 不得决定 Product Prompt、模型、Child 顺序、分支或下一步；Website.ai-acceptance 是唯一业务恢复决策 Owner。
-2. `LAW-AGENT-PRODUCTION-RUNTIME-003-V38` 和现役 Runtime Blueprint 固定：Runtime 对外只发布由 Mediator 纯路由快照生成的 `product_id + action_id + task/result contract version`。
-3. Website `LAW-AI-ACCEPTANCE-002-V27`、`003-V10`、`004-V26`、`012-V34` 与 AI Acceptance Blueprint 固定：Website 不得逐步遥控 AGENT，不接收 Product Flow、Prompt、模型、selector、Target/Document 和恢复位置；Website 只有 `ACTIVE_ATTEMPT | WAIT_NEW_ATTEMPT | CONSUME_CURRENT_RESULT` 三个 next action。
+1. AGENT `LAW-AGENT-PRODUCTION-RUNTIME-001-V69`、`LAW-ARCHITECTURE-BOUNDARY-001-V14` 固定：Runtime/Mediator 不得决定 Product Prompt、模型、Child 顺序、分支或下一步；Website.ai-acceptance 是唯一业务恢复决策 Owner。
+2. `LAW-AGENT-PRODUCTION-RUNTIME-003-V40` 和现役 Runtime Blueprint 固定：Runtime 对外只发布由 Mediator 纯路由快照生成的 `product_id + action_id + task/result contract version`。
+3. Website `LAW-AI-ACCEPTANCE-002-V29`、`003-V10`、`004-V28`、`012-V37` 与 AI Acceptance Blueprint 固定：Website 不得逐步遥控 AGENT，不接收 Product Flow、Prompt、模型、selector、Target/Document 和恢复位置；Website 只有 `ACTIVE_ATTEMPT | WAIT_NEW_ATTEMPT | CONSUME_CURRENT_RESULT` 三个 next action。
 4. GPT Blueprint 固定：一个 Child 只做一个局部决定、零或一次 Browser 动作、直接后置证明；Child 不得决定 Product 下一步。
 5. Browser Blueprint 固定：唯一 FIFO/lane、唯一 mutation WAL、至多一次物理输入，pending observation 释放 lane，Provider effect 不得盲目重放。
 
@@ -214,15 +220,9 @@ Website `job-failure-history.ts::ensureSameFailure` 对同一 `(job_id, attempt_
 
 针对授权人此前提出的“页面弹出操作频繁会不会立即 409”：**不会由弹窗本身直接产生 409。** 当前设计意图是 exact dialog → Browser 零/一次确认 → Runtime 持久 cooldown intent → Website 冻结 cohort/新 submit → clearance；Child 最终报 `PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE`。只有当同一 attempt 此前已经持久化了另一份不兼容 failure fact，而后续弹窗/lease-release 又试图写入新事实，才会触发 409。当前 detector 仍有 `textContent`/`unknown_present` 开放缺口，因此本拓扑必须同时覆盖 `exact_present | mismatch | absent`，不能假设所有弹窗都可被精确识别。
 
-### 3.10 回溯得到的七寸
+### 3.10 v6 主轴裁决
 
-七寸不是“轮询太快”或“Website 太严格”，而是三件事叠加：
-
-1. **静态可能性没有双方确认的唯一基线**：各 Owner 分别知道自己的 route、Child、时钟和恢复事实，但没有一张共同冻结的表说明某原子节点允许等待、失败、未知还是发生 effect；这不自动等于 Website runtime 必须新增字段；
-2. **动态事实没有统一投影**：同一原生故障经过 Child、Product、Runtime、lease-release 时可被重新包装成不同 failure fact；
-3. **八个状态平面被语言压扁**：等待、容量不足、物理未知、Product 不可用、交付成功、接纳失败、基础设施故障都被叫作“任务成功/失败”。
-
-因此根治条件不是增加重试，而是：先用冻结拓扑表封闭“能发生什么”，再逐行证明运行时每个平面是否只报告自己的 typed fact、跨 Owner 是否保持单调、最终完成是否只由 P7 readback 裁决。任何实现修复都必须晚于该对照。
+旧版对 failure identity、八个观测平面和 409 第一事实的分析保留为事故证据，但它漏掉了更高的不变量：Website 的业务需求仍 active 时，失败不能把自动下一动作消灭。现役 `fail_closed → retry_not_before=null → 不再领取` 恰好形成了隐藏终态。v6 让 Website claim/observation/worker 同一谓词保证活性，让旧结果优先和 Browser WAL 全历史守住安全；局部 `fail_closed` 只禁止当前危险 mutation，不再决定 job 生命周期。任何通过拓扑静态审查却不能在进程重启后自动进入真实 claim/执行/交付循环的实现，一律不合格。
 
 ### 3.11 未来新增问题的唯一准入门
 
@@ -233,7 +233,7 @@ Website `job-failure-history.ts::ensureSameFailure` 对同一 `(job_id, attempt_
 3. **全新责任**：必须通过当前必要性、真实消费者、唯一 Owner、删除反事实、可执行 readback 五项存在性审判，才可新增节点；
 4. **只有下游症状**：回挂到最早 typed failure；HTTP 409/5xx、Runtime consequential failure 和重复日志不得各建一个新状态。
 
-首次出现且无法落入现役行的事件，必须记录已经观察到的精确来源、时间、identity、payload/hash 和第一个拒绝点，并停止沿旧拓扑继续动作；该事件从发生时起就是“已观察的新事实”，不是永久 `unknown`。只有把它作为新版本拓扑变更、完成 Owner/consumer/readback 证明并重新冻结后，才能对照或修改生产代码。不得自动 retry、改写旧事实、创建 replacement job、另写一份局部施工 authority。
+首次出现且无法落入现役行的事件，必须记录精确来源、时间、identity、payload/hash 和第一个拒绝点，停止当前危险动作并在同一 job 自动回到权威对账/有限再检查；不得把未知当成无输入，也不得让需求因拓扑缺行永久失去下一动作。确需扩图时按现役法案、Owner/consumer/readback 证明并重新冻结，不创建 replacement job 或局部施工 authority。
 
 ### 3.12 唯一基线的维护纪律
 
@@ -247,71 +247,43 @@ Website `job-failure-history.ts::ensureSameFailure` 对同一 `(job_id, attempt_
 
 ## 4. 拓扑表单的法定位置与总图
 
-### 4.1 定位：法案之下、施工图之前的冻结运行基线
+### 4.1 权威位置与本轮施工顺序
 
-本表不是普通辅助文案，不是运行时合同，也不是直接修改代码的施工图。它是现役法案和未来施工图之间的**唯一冻结运行基线**：法案规定 Owner、边界和不可违反原则；本表把每个现役原子责任的入口、动作、时钟、结果、证据、handoff 与业务终点逐格定清；差异对照表再证明生产代码是否符合；精确施工图只能处理已经证实的差异。
+双仓现役法案是最高规范，active Blueprint 说明长期 Owner/handoff，Website 唯一 V6 provider spec 与 AGENT dependency spec 定义跨仓 wire；本表只作为静态拓扑索引。本轮先对齐上述权威并由主 Codex 做两遍文档审计；重新冻结 v6 后按唯一完整实现方案修改两仓代码、原生质检及必要数据库迁移。任何未完成 job 的实际 claim/worker/readback，不能用表单通过代替。
 
-```text
-现役法案 / Blueprint / canonical contract
-  -> 已证明事实进入唯一拓扑表单（本轮建设）
-  -> 反向审查 + 授权人批准版本
-  -> 冻结版本 + 冻结规范化 SHA-256
-  -> 只读逐行对照生产代码
-  -> 差异清单（MATCH | MISMATCH | NO_EVIDENCE）
-  -> 对每个 MISMATCH 另行授权精确施工图
-  -> 生产代码修复 + 原生质检 + 业务 readback
-```
-
-本轮到“已证明事实表”结束。批准前不得填写“已冻结”，不得正式启动代码对照；冻结后不得用代码、日志、局部方案或 Skill 反向覆盖表单。
-
-### 4.2 当前现役主链只作为填表边界
+### 4.2 Demand–Result–Admission 总图
 
 ```text
-Website Domain Sender
-  -> task + materials + result contract
-  -> Website session / attestation
-  -> Website claim / accepted attempt / lease / fence
-  -> Runtime durable accept
-  -> Mediator exact one-time route
-  -> Product Plugin（业务 Flow 唯一执行与分支 Owner）
-       -> GPT atomic Child
-            -> Browser observation
-            -> 可选 WAL + <=1 physical mutation + direct readback
-            -> GptChildCapabilityProof
-       <- Product 决定下一 Child / skip / repeat / result assembly
-  -> Runtime one Outbox intent
-  -> Website staging
-  -> Domain Consumer admission + domain-object readback
-  -> Website public completed（按业务域附加门）
-  -> Runtime local completed
+Website active demand / exact job
+  -> Website 唯一 claim + accepted attempt + lease/fence
+  -> Runtime durable accept / 原 task、Outbox、候选与 Browser WAL 对账
+  -> 有效旧结果：原身份继续 Outbox/terminal/admission
+  -> 无可恢复结果：Product 原入口执行，GPT Child 经 Browser 原 WAL/lane 取得结果
+       -> 旧 effect 已可能输入：先零 submit 读回
+       -> 全历史零输入：普通新 attempt 首次输入
+       -> 旧答案有界不可得、旧 Target 可证物理缺席或旧输入可证静止：Website 风险 grant 指定一次新输入
+  -> 机械有效结果：stage + terminal Outbox intent 同一 SQLite 事务
+  -> cleanup 只诊断，Outbox 继续向 Website terminal 交付
+  -> Domain Consumer admission receipt + 领域对象读回
+  -> Website completed / Runtime local completed
 
-任一失败或截至 deadline 未取得确定 receipt
-  -> 原 Owner typed fact
-  -> 相邻 handoff 原样传递
-  -> Website ai-acceptance 唯一恢复决定
+任一普通失败、进程崩溃或重启
+  -> 原 Owner 保全事实并停止当前危险动作
+  -> Website 同一 job claim/observation 给出动作或有限再检查时间
+  -> 原 worker 自动接回，直到 admission 或 Website 明确终止需求
 ```
 
-这张总图只限定表单分母，不授权新字段、新投影、新接口或新运行机制。
+Product Plugin 仍唯一拥有私有 Flow、Prompt、Child 顺序和结果组装；Website 不取得 Browser URL、Target、step cursor 或第二恢复链。
 
-### 4.3 静态基线、活体事实和施工指令严格分离
+### 4.3 事实与施工边界
 
-| 对象 | 唯一权威 | 本表只记录什么 | 本阶段动作 |
-|---|---|---|---|
-| Child 的稳定能力边界 | 现役 Child contract/Blueprint | Owner、输入、动作上限、结果字母表、证据与消费者 | `FORM ONLY`；不改合同 |
-| Product route 的业务 Flow | 命中 route 的 Product Plugin | 业务责任、可能调用的能力种类和终点；不复制 Prompt/分支实现 | `FORM ONLY`；不发布给 Website runtime |
-| 当前 job/attempt/lease/next action | Website ai-acceptance | 状态所属平面、Owner、readback 和合法转换 | 不保存任何活体行 |
-| 当前 Browser mutation/effect | Browser WAL | 可能结果、身份绑定、readback 与禁止重放规则 | 不暴露、不复制 WAL row |
-| 当前 Child 局部结果 | GPT Child proof / Forensics | 成功、失败、未知如何记录和交给谁 | 不建第二 proof store |
-| 历史因果 | Runtime Log Spine | 只标为诊断证据 | 不推导当前状态 |
-| 业务完成 | Website Domain Consumer + admission receipt | 唯一终点和 readback | 不以 HTTP/Outbox/staging 代替 |
-
-“Website 侧得到地图”在当前阶段仅表示 Website 与 AGENT 的责任方审阅同一冻结表单，不表示 Website runtime 新增 topology payload、节点游标或 Product Flow 控制权。
+拓扑行不保存活体状态。当前 job/attempt/next action 由 Website 原 job/claim/event 决定，物理输入事实由 Browser 原 WAL 决定，结果交付由 Runtime 原 Outbox 与 Website admission 决定。历史日志只作诊断。旧 result contract 依原声明版本核验；新代码或拓扑 hash 不追溯否决机械有效旧结果。
 
 ### 4.4 Product Flow 的可审阅边界
 
 本表可以列出 Product 的稳定业务责任、入口合同、会调用的原子能力类别、合法终点和交给相邻 Owner 的 typed fact；不得抄录 Prompt、模型值、selector、分支实现表达式、Target/Document、WAL row、当前 step cursor、resume point 或 next child。Product Plugin 仍是其 Flow 的唯一执行、分支、skip/repeat 和结果组装 Owner。
 
-若未来逐行代码对照证明 Website runtime 确实缺少某个必要事实，必须把它作为独立差异，通过真实 consumer、存在性审判、跨仓 authority 和另行授权重新裁决；本表阶段不得预埋 `AgentRuntimeTopologyManifestV1` 或任何替换方案。
+Website 不消费本表的机器投影；本轮必要的新 `source_evidence[]`、风险 grant 和 terminal first fact 已在唯一 V6 合同及完整实现方案中逐字段定义，不能另建机器拓扑、恢复接口或步骤游标。
 
 ---
 
@@ -416,16 +388,6 @@ ID 一旦进入冻结版本即永久保留语义，禁止改号复用。删除�
 
 冻结后禁止原地静默改写。任何变化必须先建立“拓扑变更提案”，说明现有行为何错误/缺失、受影响 ID、Owner、consumer、代码范围和兼容影响；经审查及授权人批准后发布新版本、新 hash，再允许代码对照或施工。生产事故也不得先改代码后补表。
 
-### 5.7 冻结后唯一代码对照产物（不属于拓扑事实表）
-
-冻结拓扑不得再写入对照结果。代码对照与差异待修只允许写入以下唯一施工前方案：
-
-`docs/项目方案/AGENT运行拓扑图-生产代码对照与差异待修-完整实现方案.md`
-
-该文件必须引用本表版本和冻结 hash；只读对照生产代码，不运行会改变状态的测试、Browser、Provider、数据库或恢复动作。每个冻结 ID 恰有一个 `MATCH | MISMATCH | NO_EVIDENCE`，但只有 `MISMATCH/NO_EVIDENCE` 进入待修工单；MATCH 明细不得膨胀成第二拓扑副本。
-
----
-
 ## 6. `T` 现役时钟与确认政策
 
 以下数值来自当前 candidate 上的现役合同与实现：GPT Child contract、`gpt-dom-observation.ts`、`production-browser-lifecycle.ts`、Browser extension、Runtime production transport/lease loop，以及 Website V6 provider。它们在本表中作为现役事实；冻结后代码对照只判断其它生产路径是否一致，不能把不一致反向降格为审批占位。
@@ -440,7 +402,7 @@ ID 一旦进入冻结版本即永久保留语义，禁止改号复用。删除�
 | T06 | submit 后静默门 | 40,000ms | Browser lane | 到期后才可服务后续 lane | 继续等待 Provider，不创建第二状态 |
 | T07 | Provider 回答/图片观察 | 每次请求先至少 70,000ms；全局相邻真实观察 70,000–90,000ms | GPT 给 deadline；Browser lane 给节拍 | pending 只 park/reobserve；成功为 exact adjacent turn 或 authenticated media proof | deadline 为 `GPT_RESPONSE_TIMEOUT` / `GPT_IMAGE_TIMEOUT` |
 | T08 | stopped-empty 确认 | exact assistant 已停止且持续空内容 20 分钟 | GPT | 期间仍为 WAIT；成功写 `ProviderStoppedEmptyProof` | `GPT_RESPONSE_STOPPED_EMPTY`，交 Website 裁决 result revision |
-| T09 | attachment settlement | 2s、3s、5s、7s、9s、11s，之后固定 11s，截止于 Product `timeoutMs` | GPT Child | pending 记录同一 expected set；成功写 exact approved set proof | mismatch 立即 fail；pending 到 deadline 为 upload timeout |
+| T09 | attachment settlement | 2s、3s、5s、7s、9s、11s，之后固定 11s，截止于 Product `timeoutMs` | GPT Child | pending 记录同一 expected set；成功写 exact approved set proof | 集合差异在等待预算内继续观察；最终 settled 不等为 mismatch，仍上传中且预算耗尽为 timeout |
 | T10 | exact-turn 虚拟列表物化 | 最多 48 步、每步 400ms、总预算至多 12s，command deadline 前保留 3s | Browser | 成功为 exact user turn 可观察 | unavailable/pending，不扩大 selector |
 | T11 | authenticated image source 事件等待 | 单次 command 内至多 5,000ms | Browser | 成功为同次 authenticated bytes | typed pending，回到 T07 |
 | T12 | worker 空闲迭代 | 可领取时 1,000ms；Website `next_claim_after_ms` 优先；本地异常 1s 翻倍至 30s | Runtime/Website receipt | claim receipt + Runtime span | typed runtime error；不创建 attempt |
@@ -460,8 +422,8 @@ N01–N28 只收录当前 law/Blueprint 与现役实现共同可定位的单一 
 | N01 | 业务 task 创建授权 / P1 | R01–R40 各行声明的 Website Domain Sender | 同一业务事务冻结 subject、task/material/result contract 与 request hash | Website task；ai-acceptance/V6 按同一 request 读取 | 不创建 job 或 typed reason 回该 Rxx Sender |
 | N02 | session open / P2 | Website ai-acceptance（Runtime 请求） | exact control contract；T14 | session credential；Runtime readback | typed 4xx/409/schema/transport；session/claim=0 |
 | N03 | runtime attestation / P2 | Website ai-acceptance（Runtime 提交） | 现役 capability/identity；T13 | attestation receipt；claim consumer | stale/mismatch=`CLAIM_BLOCKED`；不签 grant |
-| N04 | claim/grant/attempt / P2 | Website ai-acceptance | capacity、demand、retry_not_before；T12/T18 | grant + accepted attempt + lease + fence + result revision；Runtime readback | S04 封闭 outcome；Runtime 按 receipt 等待 |
-| N05 | Runtime durable accept / P3 | agent-production-runtime | exact grant/attempt/lease/fence/contract；剩余预算满足现役门 | 本地 task-attempt binding；Mediator readback | accept 前门丢失则零业务副作用 release |
+| N04 | claim/grant/attempt / P2 | Website ai-acceptance | demand、admission、已鉴权 `source_evidence[]`、旧结果优先、全历史 effect 与容量；T12/T18 | 原 attempt 交付或同 job 新 attempt 的当前 grant/lease/fence/revision；Runtime readback | S04 outcome 与有限再检查时间；无静默死区 |
+| N05 | Runtime durable accept / P3 | agent-production-runtime | exact grant/attempt/lease/fence/contract、旧本地结果/first fact/Outbox/Browser 原 Owner 证据；剩余预算满足现役门 | 原 task identity 与当前授权 CAS binding；Mediator readback | accept 前门丢失则零业务副作用并自动回原 claim 对账 |
 | N06 | materials 下载/readback / P3 | agent-production-runtime | 逐对象机械校验 hash/bytes/media/authorization | task-owned material receipt；Product 消费 | typed transport/material failure；Runtime→Website |
 | N07 | Browser Target claim / P6 | local-browser-session | N05 后经唯一 FIFO/lane；T05/T17 | target claim receipt；GPT Child | unavailable/ambiguous/unresolved WAL；不猜 Tab |
 | N08 | Mediator 单次路由 / P4 边界 | architecture-boundary | `product_id + action_id + contract version` 精确命中一次 | 恰好一个 Product invocation | unsupported/duplicate/mismatch；Runtime→Website |
@@ -470,13 +432,13 @@ N01–N28 只收录当前 law/Blueprint 与现役实现共同可定位的单一 
 | N11 | Browser mutation/WAL / P6 | local-browser-session | pre-dispatch WAL；`0..1` input；T03/T05 | S11/S12 + WAL readback；GPT Child | unresolved `DISPATCHED` 保留原 identity，禁止重放 |
 | N12 | completed-answer raw artifact 持久 / P5/P6 | forensics-persistence-capability | 仅成功的文本/图片答案 checkpoint 按 exact task/attempt/call identity append、readback、hash；普通 Child terminal/failure 写入增量为 0 | raw artifact ref/hash；当前 Product 调用链 | 写入或 readback 不闭合则该答案 checkpoint 不得成功；不得新增逐 Child ledger |
 | N13 | Runtime lease renew 与执行预算 / P3 | agent-production-runtime | T15；只请求并消费同一 attempt 的 Website renew receipt | fresh receipt 绑定当前 execution；继续执行 | 4xx/schema invalid/预算耗尽 abort；不创建 attempt |
-| N14 | result Outbox / P3 | agent-production-runtime 的唯一 Outbox | 同 `job + attempt + result hash` 一份幂等 intent | transport receipt；Website staging readback | deadline 未观察到 receipt 时查询同一 intent；不重做 Product/Provider |
+| N14 | result Outbox / P3 | agent-production-runtime 的唯一 Outbox | 机械有效结果取得上传回执后，在同一 SQLite 事务 stage + 同 `job + attempt + result hash` terminal intent，先于 Browser cleanup | transport receipt；Website staging/terminal readback | deadline 未观察到 receipt 时查询同一 intent；cleanup 不撤销 result，不重做 Product/Provider |
 | N15 | attempt failure fact 投影与运输 / P3 | agent-production-runtime | 同 `(job_id, attempt_id)` 对外复用同一 first typed fact/identity | typed payload/hash；Website ai-acceptance readback | deadline 未取得 transport receipt 时只查同一请求；409 停止写入并读回原 fact |
 | N16 | cooldown 页面 incident/ack/clearance fact / P6 | local-browser-session | exact dialog 观察；T04/T03；`0..1` ack | S18 + WAL/observation identity；Runtime 消费 | mismatch/not_cleared/pending 保持 submit 关闭；不写 attempt failure |
-| N17 | Domain admission / P7 | R01–R40 各行声明的 Website Domain Consumer | 同 job/result hash 重消费 staged result | admission receipt + domain-object readback | pending/consumer rejection 保持未完成且不重跑 Provider |
+| N17 | Domain admission / P7 | R01–R40 各行声明的 Website Domain Consumer | 同 job/result hash 重消费 staged result | admission receipt + domain-object readback | transient pending 继续同 result；明确 rejection 由 Website 签下一 revision，同 job 继续取得结果 |
 | N18 | Website public completed / P7 | Website ai-acceptance | 仅 N17 valid receipt + 业务域附加门 | S17；Website job readback | receipt/附加门不闭合即保持未完成 |
 | N19 | Website admin deletion/permanent revocation / P1/P2 | Website 唯一授权 Owner | 先按有效 admission closure 与确认计数重算，再持久删除/撤销事实 | exact Website absence/revocation readback | 漂移稳定 409、删除增量 0 |
-| N20 | Website attempt failure 持久与恢复决定 / P2 | Website ai-acceptance | 接收 N15；同 attempt 幂等比较并写唯一 failure fact | 原 fact + `ACTIVE_ATTEMPT \| WAIT_NEW_ATTEMPT \| CONSUME_CURRENT_RESULT` readback | 矛盾稳定 409；不让 Runtime 改写或代决策 |
+| N20 | Website attempt failure 持久与恢复决定 / P2 | Website ai-acceptance | 接收 N15，原值保全并从同一 job/结果快照裁决自动下一动作 | 原 fact + 有限再检查时间 + `ACTIVE_ATTEMPT \| WAIT_NEW_ATTEMPT \| CONSUME_CURRENT_RESULT` readback | 矛盾停止当前写入但继续对账；Runtime 不代决策 |
 | N21 | Runtime local completed / P3 | agent-production-runtime | 机械校验当前 job/result hash 的 N17 admission receipt | S20 本地 task readback | receipt/hash 不等即保持未完成 |
 | N22 | Website result staging / P7 | Website ai-acceptance | 接收 N14；只校验外层机械合同与同一 result identity | S15 staged readback；Domain Consumer 消费 | staging rejection typed fact；不解释领域内容 |
 | N23 | cooldown Outbox 运输 / P3 | agent-production-runtime 的唯一 Outbox | N16 incident 必须先于 ack/clearance 有持久 intent；复用同一 Outbox | Website receipt readback | receipt 未到保持本地 submit gate；不另建表/worker |
@@ -574,28 +536,30 @@ G01–G14 记录 v2 的原子职责；G04–G06 自 v3 退休且保留历史原�
 | O01 | Child 局部成功 | Child proof；有 mutation 时绑定 WAL ref/hash | Product / Product | 业务完成、Website admission |
 | O02 | Child 局部失败 | first typed failure + proof + 已存在的 effect fact | Product→Runtime / Website ai-acceptance 只决定 attempt 恢复 | cleanup 或 lease error 不得覆盖第一故障 |
 | O03 | Browser effect 截至 deadline 无法证明 terminal | 原 WAL identity、`DISPATCHED` 与 deadline/no-receipt fact | GPT Child→Product→Runtime；Browser 只做同 effect reconcile | 不得降级为 `mutation=no`，不得重放 |
-| O04 | Provider effect 已 confirmed | effect identity + exact postcondition/readback | Product；需要恢复时 Website 保留同 attempt | 不得重新 prepare/submit |
+| O04 | Provider effect 已 confirmed | effect identity + exact postcondition/readback | Product；旧答案可读时 Website 重授同 attempt | 原 effect 不得重发；仅旧答案有界不可得且旧 Target 可证物理缺席或旧输入可证静止后，Website 风险 grant 可指定新 revision 一次可能重复输入 |
 | O05 | Runtime transport receipt 截至 deadline 未观察到 | 同一 Outbox intent/idempotency key + deadline/no-receipt fact | Runtime Outbox | 不得重做 Product/Provider |
 | O06 | Website staging 成功 | staged payload identity/hash | Domain Consumer | 不得写 public/local completed |
 | O07 | Domain admission 成功 | admission receipt + domain-object readback | Website ai-acceptance，随后 Runtime | 不等于 RELEASE |
 | O08 | 同 attempt failure identity 冲突 | Website 已持久原 fact + 新 payload/hash 的矛盾证据 | Website ai-acceptance | 不得当 5xx 重试或创建 replacement job |
 
-现役不变量：外层只能保留 first typed failure 并附加 `caused_by` 诊断链，不能把它重命名成通用 Product/Runtime failure。是否需要 Runtime 新增某种 canonical failure 持久化，属于冻结后代码对照才能裁决的实现问题；本表只固定“同一 attempt 对外事实必须单调且不可矛盾”的边界，不预选实现。
+v6 不变量：同一 attempt 的 first typed failure 原值与 `caused_by` 诊断链必须保留，不得伪造或覆盖；它只约束该 attempt 的证据写入，不得阻止同一 job 的机械有效结果交付，也不得让活跃 demand 永久失去自动下一动作。
 
-### 8.2 Website 现役恢复矩阵
+### 8.2 Website 业务继续与 Browser 输入矩阵
 
-| ID | AGENT 精确事实 | Website 唯一决定 | 物理 Provider 动作 |
+O09–O16 的 ID 保留供原始事故和质检引用；下表是 v6 语义。它们约束下一动作与物理输入，均不拥有业务停止权。
+
+| ID | 精确事实 | Website/AGENT 自动下一动作 | Provider 输入上限 |
 |---|---|---|---:|
-| O09 | `target_local + REJECTED + no\|dispatched\|confirmed` | 结束旧 attempt；按现役 `retry_not_before` 决定是否签新 attempt | 旧 attempt 为 0 |
-| O10 | `provider_effect + mutation_outcome=no` | 结束旧 attempt；有限退避后可签新 attempt | 仅新授权可首次 submit |
-| O11 | `provider_effect + dispatched\|confirmed` | 保留同 accepted attempt，仅 `ACTIVE_ATTEMPT` 同 effect 读回 | submit 增量=0 |
-| O12 | `target_local + DISPATCHED` | 保留旧 attempt，fail closed | 0 |
-| O13 | `target_local + CONFIRMED + confirmed` | 保留旧 attempt，fail closed | 0 |
-| O14 | 缺字段、非法、矛盾或 stale lease | 保留旧 attempt，fail closed | 0 |
-| O15 | 已有 result 且 Website 明确 `RESULT_REVISION_REJECTED` | 新 result revision / 新 effect identity | 仅新身份可 submit |
-| O16 | staged/terminal 存在但无 admission receipt | `CONSUME_CURRENT_RESULT` | 0；只继续 Domain Consumer |
+| O09 | `target_local + REJECTED` | Website 有限退避新 attempt；Browser 查全历史后恢复页面准备 | 由全历史零输入/原 effect/风险 grant 决定 |
+| O10 | `provider_effect + mutation_outcome=no` 且全历史零输入 | Website 新 attempt，Browser 可用当前 hash 首次提交 | 新授权至多一次 |
+| O11 | `provider_effect + dispatched\|confirmed` | 原 effect 在旧 Target 上逐调用真实零输入 readback；成功继续交付，真实有界耗尽或旧 Target 可证不可读后清算，再请 Website 风险裁决 | 普通授权 0；风险 grant 指定一次 |
+| O12 | `target_local + DISPATCHED` | 禁当前危险动作，原 WAL/Target 对账；旧 Target 物理缺席或旧输入可证静止后恢复同 job | 未获风险 grant 前 0 |
+| O13 | `target_local + CONFIRMED + confirmed` | 页面准备事实只作诊断；查全历史/旧结果后继续同 job | 由 Provider effect 事实决定 |
+| O14 | 缺字段、非法、矛盾或 stale lease | 保留原字节并自动重取权威/补证；旧结果优先，不得因 shape 使 demand 失活 | 不明时 0 |
+| O15 | Website 明确拒绝当前 result revision | Website 签下一 revision；Browser 按全历史与风险授权守门 | 由新身份与授权决定 |
+| O16 | staged/terminal 存在但无 admission receipt | 原 Outbox/terminal/Domain Consumer/admission 自动读回或交付 | 0 |
 
-上述恢复决定只能由 Website 现役 authority 拥有。本表只记录已存在的恢复语义，不执行恢复、不创建 per-step ledger，也不授权 AGENT 根据表单签发新 attempt。
+Website 的 observation 与实际 claim 使用同一持久谓词和有限再检查时间。Website 在签任何新 attempt 前于同一行锁事务核 AGENT 已鉴权 `source_evidence[]` 与 Website 原结果/receipt；可恢复 READY 必须继续旧结果。对于原答案经有界读回仍不可得、旧 DISPATCHED 物理输入未决且准备切换的危险旧 Target，Browser 证明旧 Target 物理缺席或旧 handler/CDP 输入静止之前，同 job 新 attempt 与其他 job 均不得在新 Target 输入；正常已确认且仍绑定的轮询 Tab 继续按唯一 FIFO/lane 与全局观察节拍交错，不要求关闭。风险 grant 的新 result revision 与 grant hash 由 Website 原 job event/claim receipt 持久签发，Browser 原 WAL 原位一次性绑定；结果归 Website 唯一 Domain Consumer 接纳。
 
 ### 8.3 操作频繁弹窗与 409 分支
 
@@ -687,222 +651,44 @@ H01–H24 只描述相邻 Owner 的事实交付，不执行步骤、不安排 ti
 
 ---
 
-## 10. Skill 固化边界（当前不施工）
+## 10. 存在性与删除裁决
 
-### 10.1 不新建第二 Skill，也不在本轮修改现有 Skill
+本拓扑仅是当前双仓法案之下的静态 Owner/handoff/时钟/证据索引，运行时真实消费者仍是 Website 原 job/claim/event/admission、AGENT 原 task/Outbox、Browser 原 WAL/lane 与 Product/GPT 原 Child。`S/N/R/G/T/H/O/I` 仅供审查定位，不进入跨仓 payload 或数据库。旧版 §10–§14 把当前任务写成“先做图，未来另行申请代码”，其施工许可、阶段验收、Skill 设想和重复待修表与本轮已授权的完整方案冲突；v5 已物理删除这些过程副本，施工顺序与验收只由双仓法案、冻结母说明书和 `AGENT原attempt无失败事实恢复-完整实现方案.md` 承载。
 
-未来如获单独授权，只复用项目已有 `.agents/skills/agent-flow-boundary-gatekeeper/SKILL.md`，不新建 `agent-runtime-topology`，也不把 AGENT 专属表格复制进通用 `closed-loop-implementation-design`。本轮 Skill 只用于审查本方案，没有获得修改授权。
-
-### 10.2 冻结后 Skill 只引用基线，不复制数据
-
-未来 Skill 可被授权固化以下方法：
-
-1. 生产链方案或修复前读取本文件的当前 `FROZEN` 版本、批准记录和冻结 hash；
-2. 把问题回挂到一个状态平面、一个 `Ixx` 及受影响的 `N/G/T/H/O` 行；
-3. 表单未冻结、hash 不等或问题无法分类时停止代码施工；
-4. 需要新节点/outcome/时钟/Owner 时，先提出拓扑变更，批准并重新冻结后再对照代码；
-5. 禁止在 Skill 中硬编码 Child 列表、秒数、Product Flow 或 Website 恢复矩阵。
-
-Skill 是施工纪律守门人，不是运行权威、第二拓扑副本或修改拓扑的授权人。Website 侧“得到地图”是共同审阅冻结基线；是否未来需要机器合同，必须由冻结后的真实差异另行证明。
+保留现役 Route Manifest、Provider contract、Browser WAL、Runtime Outbox 和 Website Domain Consumer，因为删除任一项会分别失去路由、授权、物理输入去重、幂等交付或领域完成证明。删除“attempt/failure 具有 business stop 权”的拓扑语义，因为 Website active demand 仍有真实消费者且该停止无合法 Owner。`AgentRuntimeTopologyManifestV1`、Product step cursor、第二 ledger/queue/store/scheduler/Skill、兼容桥和第二恢复链没有本次真实消费者，继续不建。
 
 ---
 
-## 11. 存在性审判与删除反事实
+## 11. 本轮授权与代码门
 
-| 结构单元 | 当前真实需求/消费者 | 删除后的具体失败 | 更短完整方案 | 当前动作 |
-|---|---|---|---|---|
-| 本文件中的唯一拓扑表单 | 授权人、AGENT/Website 责任方、未来施工 Codex | 继续没有统一锚点，局部方案可各自发明状态和修复 | 同一母本内建设，无第二文档 | `KEEP/BUILD` |
-| `S/N/R/G/T/H/O/I` 稳定 ID | 冻结审查、代码差异对照、未来拓扑变更 | 无法定位同一责任、比较版本或约束工单范围 | 文档内 ID 已是最短机制 | `KEEP` |
-| 冻结版本 + 规范化 hash + 批准记录 | 授权人和未来施工 Codex | 无法证明对照的是哪版表，可能静默改表后施工 | 复用同一文件，不建 registry | `KEEP` |
-| 唯一代码对照与差异待修方案 | 未来只读审计与精确施工授权 | 表单期望与实际代码差异继续靠印象判断 | 独立引用冻结 hash，不修改冻结母表 | `KEEP, SEPARATE FROM FROZEN BASELINE` |
-| 现役 Route Manifest / session/grant 合同 | 现役 Runtime/Website consumer | 本轮无权删除，删除会破坏现役链 | 保持不动；是否不足待冻结后证明 | `NO TOUCH` |
-| 现有 Child proof / Browser WAL / Runtime Outbox / Website failure/admission | 各自现役 consumer | 删除会丢失局部证据、at-most-once、交付幂等或业务终点 | 本表只引用，不复制 | `NO TOUCH` |
-| `AgentRuntimeTopologyManifestV1` 或其他机器拓扑投影 | 当前没有已证明的 runtime consumer/GAP | 删除该设想不影响表单建设与代码对照 | 先用冻结表单定位真实差异 | `DELETE FROM CURRENT DESIGN` |
-| Product Flow runtime publication 给 Website | 当前任务只要求共同基线，没有授权或必要 consumer | 删除该设想不影响双方审阅 | 人工冻结表单先行 | `DELETE FROM CURRENT DESIGN` |
-| Website topology coverage runtime validation | 当前未证明 session/claim 需要 | 删除该设想不影响现役恢复矩阵 | 冻结后按具体 mismatch 再审判 | `DELETE FROM CURRENT DESIGN` |
-| 新 per-step DB/ledger、workflow、scheduler、timer、恢复队列 | 无真实消费者且会建立第二状态/Owner | 删除后各现役 Owner 仍负责自己的状态和时钟 | 复用现役权威 | `DELETE FROM DESIGN` |
-| 新独立 topology Skill | 现有边界 Skill 可在未来只引用本表 | 删除无生产失败 | 不新建 Skill | `DELETE FROM DESIGN` |
-| Product cursor、per-step ledger、next-child command | Website 无合法 consumer | 删除不影响 Product 自主执行和领域接纳 | Product 继续私有 Flow | `DELETE FROM DESIGN` |
-
----
-
-## 12. 三阶段原子工单与严格顺序
-
-本节 TF-0 至 TF-4 的“已完成/已冻结”仅记录 v2 历史；v3 当前状态只由 §16 记录，未重新冻结前不得把下述历史状态用作代码准入。
-
-### 第一阶段：拓扑表单建设与冻结
-
-#### TF-0：证据和候选绑定
-
-- **状态**：已完成当前草案所需的有限绑定；不等于全仓代码审计。
-- **输入**：现役法案/Blueprint/合同的既知边界、十五天问题族、两份现场日志、当前已识别的实现事实。
-- **输出**：§2–§3 的 candidate、状态平面、问题族和第一直接断裂。
-- **禁止**：不因历史方案或日志直接裁决生产代码修改。
-
-#### TF-1：状态、节点和时钟表
-
-- **状态**：已完成；正文只保留当前 authority/contract/实现可证明的事实，行内审批状态已删除。
-- **输出**：S01–S23、N01–N28、R01–R40、G01–G17（其中 G04–G06 退休）、T01–T18。
-- **完成门**：每行的 Owner、入口、动作上限、确认政策、成功/失败/截止无回执、consumer 和业务完成边界无空白、无“同上”、无审批占位字段。
-
-#### TF-2：handoff、结果矩阵和问题回挂
-
-- **状态**：已完成；所有问题约束已改为陈述事实，不再以问题句或 `UNPROVEN` 占位。
-- **输出**：O01–O21、H01–H24、I01–I36 交叉索引。
-- **完成门**：每条 handoff 的 identity、readback、非成功结果和 recovery Owner 可独立证伪；每个 Ixx 有唯一检查落点。
-
-#### TF-3：冻结前反向攻击
-
-- **状态**：第二轮已执行；当前表内反向链已闭合，尚未取得授权人版本批准。
-- **顺序**：从 N18 Website public completed 与 N21 Runtime local completed 反向到 N01；检查遗漏 handoff、重复 writer、错误 Owner、状态互认、无限等待、现实动作重放和未覆盖问题族。
-- **已修正**：把 Runtime Outbox/Website staging、Runtime failure/Website recovery、Browser incident/Website cooldown、Website public completed/Runtime local completed、Website deletion/AGENT purge 拆成单 Owner 节点与相邻 handoff；R01–R40 已与当前 AGENT catalog/Website route policy 机械对齐，并逐行绑定 Website 具体 Domain Sender/Consumer；I12 已收窄为当前 contract/acceptance 能证明的 bounded-observation 事实，删除“页面压力导致崩溃”的未证明因果。
-- **输出**：只在本文件保留已证明事实；不得形成第二审计报告。
-- **失败规则**：以后发现任一行缺真实 Owner、consumer、readback 或现役依据，直接从拟冻结版本中排除并阻断整版批准，不能给该行挂审批占位继续存在。
-
-#### TF-4：授权人确认并冻结
-
-- **状态**：已执行；授权人于本会话明确要求以冻结拓扑为锚点开始生产代码对照。
-- **动作**：记录表单版本、批准人、批准时间和冻结规范化 SHA-256；冻结后本文件不再承载对照结果。
-- **输出**：`FROZEN` 基线。冻结只是后续对照锚点，不是 CHANGE/READY/RELEASE。
-
-### 第二阶段：冻结后只读生产代码对照
-
-#### CA-0：逐行绑定实现
-
-- **前置**：TF-4 已完成，冻结 hash 精确一致；授权人已明确要求开始只读代码对照。
-- **动作**：按 S/N/R/G/T/H/O/I 行读取当前 law/Blueprint/contract/code/test/consumer；结果写入 §5.7 指定的唯一差异待修方案。
-- **禁止**：不改代码、不格式化、不运行 Browser/Provider/数据库/恢复、不把静态测试当生产 readback。
-- **输出**：每行只有 `MATCH | MISMATCH | NO_EVIDENCE`，并绑定精确路径/符号和影响。
-
-#### CA-1：差异裁决
-
-- **前置**：CA-0 分母完整。
-- **动作**：每个 `MISMATCH` 独立判断 `KEEP（表单需走变更流程）| 原位修复 | 删除`；每个 `NO_EVIDENCE` 保持阻断，不猜测。
-- **输出**：窄范围差异清单，不产生批量代码工单，不预设 Manifest、Schema、法案或跨仓变更。
-
-### 第三阶段：另行授权后的精确修复
-
-#### RW-0：一差异一工单
-
-- **前置**：冻结表单、完整代码对照和授权人对具体差异的施工授权。
-- **动作**：每张工单只处理一个可独立验收的 mismatch 及其不可分割直接关联对象；明确 Owner、允许路径、旧路径删除、原生质检和业务 readback。
-- **禁止**：不得用一个“拓扑建设”工单批量修改双仓；不得顺手重构或建立兼容桥。
-
-#### RW-1：施工、质检和真实闭环
-
-- **前置**：重新绑定两仓 HEAD/tracking/dirty state/authority/冻结 hash。
-- **动作**：按已授权工单原位精确修复；每仓只用其唯一原生质检；需要生产验证时另取动态授权。
-- **终点**：对应 mismatch 有代码/合同 readback；业务类差异最终抵达 Domain Consumer admission 和领域对象 readback。
-
-### 当前工单和 Skill 的处理
-
-- 当前存量生产工单不因拓扑表建设被删除、重试、claim、恢复或冻结；日志只作为历史证据。若用户之后要求处理具体工单，必须先按现役权威只读归位，再单独授权动作。
-- Skill 修改不属于 TF 阶段。只有冻结完成且另行授权后，才可按 §10 更新现有项目 Skill；不新建 Skill，不复制表内数据。
-
----
-
-## 13. 分阶段验收
-
-### 13.1 现役事实表建设验收（本轮）
-
-本节 1–8 是 v2 冻结时的历史检查记录，不是 v3 的 quality PASS。v3 变更候选须在本工单完成两轮主 Codex 自审、新 hash 和重新冻结后才可引用本节作为当前检查记录。
-
-1. 只有一份母本文件，没有第二表、第二报告或机器副本。
-2. S01–S23、N01–N28、R01–R40、G01–G17（G04–G06 退休）、T01–T18、H01–H24、O01–O21、I01–I36 均有稳定 ID。
-3. 每个原子节点均回答 Owner、入口 identity、单一动作、副作用上限、确认政策、合法结果、成功/失败/截止无回执记录、consumer、下一决定 Owner 和业务终点关系。
-4. 每个等待均有时钟 Owner、初次观察、节拍/递增、deadline、pending 记录和到期报告；不存在“持续轮询”“适当重试”。
-5. 每条 handoff 均列 producer、output、identity、consumer、readback、非成功结果、恢复 Owner 和防重/防漏原则。
-6. I01–I36 均有交叉索引；409、限流、Provider effect、staging/admission 和质量层级没有压成一个状态。
-7. 所有机器 Manifest 替换、跨仓新 payload、Product Flow runtime publication 和批量施工已从当前设计移除。
-8. v2 拓扑行内不存在审批占位、可能、推测或 `UNPROVEN`；v2 当时状态为 `FROZEN`，但不代表 v3 候选已冻结，也不得冒充质量 PASS、代码可施工、READY 或 RELEASE。
-
-### 13.2 冻结验收（授权人确认时）
-
-1. 表内只含证据已绑定的事实；授权人明确批准整版状态语义、Owner、时钟、结果和 handoff。
-2. 从 N18/N21 反向到 N01 的端到端审查无未解释断裂；一旦产生 `OWNER_BOUNDARY_UNPROVEN` 或 `END_TO_END_CLOSURE_UNPROVEN` finding，该事实行必须退出拟冻结版本并阻断冻结。
-3. 文档写入冻结版本、批准人、批准时间与规范化 SHA-256；hash 计算规则唯一。
-4. 冻结后任何改动必须发布新版本和新 hash，旧版本语义不得静默改写。
-
-### 13.3 代码对照验收（冻结后、另行授权）
-
-1. 每个冻结 ID 均绑定当前精确 law/Blueprint/contract/code/test/consumer，不能只按文件名判断。
-2. 每行恰有一个 `MATCH | MISMATCH | NO_EVIDENCE`，并有可复核证据；`NO_EVIDENCE` 不得算通过。
-3. 对照过程生产代码差异为零，Browser/Provider/数据库/工单副作用为零。
-4. 只有被证明的 `MISMATCH` 才能进入精确修复候选；不得从表单直接推导批量重构。
-
-### 13.4 未来修复验收（不属于本轮）
-
-每个获授权 mismatch 使用对应仓唯一原生 `quality:check`，并按风险分别证明 CHANGE、READY、RELEASE。Provider/HTTP/Outbox/staging/局部测试成功均不能替代 Domain Consumer admission receipt 和领域对象 readback；只有业务类修复真实抵达该终点，才能声称业务闭环。
-
----
-
-## 14. 停止门、变更控制与未来 Codex 纪律
-
-### 14.1 任一命中即停止当前阶段
-
-- 表单尚未由授权人明确确认，却开始正式代码差异裁决或生产施工；
-- 用当前代码反向修改表单以掩盖 mismatch，而未走拓扑变更流程；
-- 一个节点有两个 Owner，或同一事实出现两个 writer/恢复结论；
-- 等待没有时钟 Owner、完整节拍或 deadline；deadline 未取得现实动作 receipt 却准备重放；
-- handoff 缺 producer、consumer、identity、独立 readback 或 recovery Owner；
-- 任何工单跨越多个无关拓扑 ID，或以“统一拓扑”为名批量修改双仓；
-- 准备新增 Manifest、Schema、DB、ledger、workflow、scheduler、queue、compatibility reader、runtime projection 或第二 Skill，却没有冻结后具体 mismatch 与真实 consumer 证明；
-- Website/task/grant 试图保存 Product cursor、选择 edge 或下发 next child；
-- 施工面命中无法安全区分的用户 dirty overlay；
-- 无 admission receipt 和领域对象 readback却宣称业务完成。
-
-### 14.2 冻结基线的变更控制
-
-冻结后只能通过以下顺序改变：
-
-```text
-发现事实缺口或法案变化
-  -> 指定受影响的 S/N/R/G/T/H/O/I ID
-  -> 提交拓扑变更提案和证据
-  -> Owner/consumer/兼容/代码影响审查
-  -> 授权人批准
-  -> 新版本 + 新规范化 hash
-  -> 重新冻结
-  -> 再进行生产代码对照
-```
-
-禁止直接覆盖旧冻结语义、复用已退休 ID、先改生产代码后补表、用紧急事故绕过确认、或让 Skill/测试/Manifest 自动修改基线。草案阶段可在同一文件纠错；冻结后每次变化都是新版本，不是原地静默编辑。
-
-### 14.3 未来代码对照或施工的强制重绑
-
-1. 先验证本文件是当前获批 `FROZEN` 版本且规范化 hash 一致；
-2. 读取双仓当前 `AGENTS.md`、适用 active law/Blueprint、provider/consumer contract；
-3. 核对 branch/HEAD/tracking/dirty overlay 和受影响 source candidate；
-4. 只处理授权指定的拓扑 ID，保护所有无关用户改动；
-5. 先 CA-0/CA-1，只读形成差异；再等待具体 RW 授权；
-6. 差异涉及 law、Blueprint、Website、Skill、生产工单或动态验证时分别取得对应授权，不得从“建设拓扑表”继承。
-
----
-
-## 15. 冻结时的后续授权边界
+两轮主 Codex 文档自审：第一轮逐条解析并核对双仓 606 条 active law、10 份 active Blueprint 与 14 份 spec 的唯一性、依赖、版本和适用引用；第二轮反向追踪 demand、旧结果、Provider effect、旧 Target、跨 session 接管与领域 admission，修复发现的冲突后重跑 50 项文档门，50/50 通过。该结论仅放行代码施工，绝非代码质量、动态工单或业务完成证明。
 
 | 编号 | 当前边界 | 唯一解除条件 |
 |---|---|---|
 | B1 | `WT-TOPOLOGY-001` 已授权并由本版闭合；法案/施工图优先门仍生效 | 两轮主 Codex 自审达到 98% 且无阻断 finding 后才进入代码 |
 | B2 | 必要法案、Blueprint、Website、数据库、代码与质检已授权，但只能按既定工单和阶段执行 | 每一阶段前重绑 candidate/dirty set；禁止兼容桥、第二链路和范围扩张 |
 | B3 | 项目 Skill 修改未授权 | 另行授权后只允许现有 Skill 引用冻结基线 |
-| B4 | 当前存量工单的活体权威读回和恢复未授权 | 如需处理具体工单，另行授权只读归位及后续精确动作 |
+| B4 | 存量工单恢复按本轮通用主链施工与原生验收，不因三个 ID 开特殊通道 | 动态生产动作仍按本仓 CI-FULL 与现役权威门执行 |
 
-授权人已批准建立并冻结 v2/v3，本工单授权精确模型与数值截断成为 v4；不修改冻结 Skill，按本轮最新要求由主 Codex 两轮自审，不启动子智能体。v4 新 hash 重新冻结后为代码对照锚点，历史仅由 Git 保留。
+授权人本轮明确解冻 v4，授权双仓法案、施工图、代码、质检与数据库迭代；v5 两轮主 Codex 文档自审达到门槛后重新冻结；本轮发现旧 v40 tabId 可能复用，授权解冻 v5；v6 经两轮主审确认物理缺席或旧输入静止的窄门后重新冻结；本轮解冻后以持久自动下一动作、来源封口和风险交付门作 v7 迭代。第一阶段不启动子智能体；代码阶段重要步骤和最终放行由只读审计子智能体参与。历史由 Git 保留。
 
 ---
 
-## 16. 文档身份与冻结记录
+## 12. 文档身份与冻结记录
 
 - 唯一路径：`docs/项目方案/AGENT运行拓扑图-完整实现方案.md`
-- 表单版本：`agent-runtime-topology-form.v4`（本工单重新冻结）
-- supersedes：`agent-runtime-topology-form.v3`（历史由 Git 保留）
-- 状态：`FROZEN / 两轮主 Codex 文档与实现可行性自审已闭合 / 只作为代码对照锚点`
+- 表单版本：`agent-runtime-topology-form.v8`（本轮重新冻结）
+- supersedes：`agent-runtime-topology-form.v7`（历史由 Git 保留）
+- 状态：`FROZEN / v8 两轮主 Codex 文档自审完成 / 仅作施工对照锚点`
 - 批准人：`授权人（本会话）`
-- 批准时间：`2026-09-22T07:01:49+04:00`
-- 冻结 hash 规范：UTF-8 原文仅删除以 `- v4 冻结规范化 SHA-256：` 和 `- 当前文档规范化 SHA-256：` 开头的两行后执行 SHA-256；v2/v3 历史 hash 行保留。
+- 批准时间：`2026-09-24T00:06:42+04:00`（本轮解冻授权后重新冻结）
+- 冻结 hash 规范：UTF-8 原文仅删除以 `- v8 冻结规范化 SHA-256：` 和 `- 当前文档规范化 SHA-256：` 开头的两行后执行 SHA-256；v2/v3/v4/v5/v6/v7 历史 hash 行保留。
 - v2 历史冻结规范化 SHA-256：`74d8b9d3ef88f7290bb7309447064f9da1568b3e9f5dba4bff64d46b23ff6283`
 - v3 历史冻结规范化 SHA-256：`d94d4051b586554b3f7fcde92976db193dd3220a766fd6461f571ce25fcc094f`
 - v4 冻结规范化 SHA-256：`fe29741381ecb628232817cfd4679b0f66edc2694d0ed6d145208b0d27d9ab62`
-- 当前文档规范化 SHA-256：`fe29741381ecb628232817cfd4679b0f66edc2694d0ed6d145208b0d27d9ab62`
-- 本文件在 v4 重新冻结后才是施工前唯一现役拓扑事实基线，不是 runtime state、运行时合同、quality verdict、CHANGE、READY、RELEASE 或生产完成证据。任何对照和待修内容只能写入 §5.7 指定文件。
+- v5 历史冻结规范化 SHA-256：`c596502cba50cc1934dcdf067ac169acd02014c17eed32ff9cfd874184755a23`
+- v6 历史冻结规范化 SHA-256：`0d40eae193ebedbeb6647d1551eb9562b74dcf9d3b8e150212193d8daaf28275`
+- v7 历史冻结规范化 SHA-256：`b1f5411a27d55980cbc6533559780d430cf99c602d3f2381779803cd80dcde7a`
+- v8 冻结规范化 SHA-256：`1f0f55fe1f1297fe438f3e0fb5807ecbe7e0f25782570219e42850d3a2652f5a`
+- 当前文档规范化 SHA-256：`1f0f55fe1f1297fe438f3e0fb5807ecbe7e0f25782570219e42850d3a2652f5a`
+- 本文件在 v8 重新冻结后才是施工前唯一现役拓扑事实基线，不是 runtime state、运行时合同、quality verdict、CHANGE、READY、RELEASE 或生产完成证据。具体施工差异与验收只由本轮唯一完整实现方案承载。

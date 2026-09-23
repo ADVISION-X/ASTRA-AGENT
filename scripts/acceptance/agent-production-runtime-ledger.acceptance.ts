@@ -5,7 +5,7 @@ import path from "node:path";
 import Database from "better-sqlite3";
 
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
-import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
+import { hashCanonical, sha256 } from "../../src/lib/local-runtime/production/contracts.js";
 import { resolveStoredProductionAuthority } from
   "../../src/lib/local-runtime/production/store-authority-reader.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
@@ -17,7 +17,6 @@ import { parseProviderCooldownReceipt } from
   "../../src/lib/local-runtime/production/provider-cooldown-receipt.js";
 import {
   serializeTerminalFailure,
-  serializeTerminalFailureTransport,
 } from "../../src/lib/local-runtime/production/terminal-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import {
@@ -38,7 +37,9 @@ try {
   await mkdir(dataDirectory);
   const store = new ProductionRuntimeStore(dataDirectory);
   const database = Reflect.get(store, "database") as Database.Database;
-  assert.deepEqual(tableNames(database), ["production_outbox", "production_tasks"]);
+  assert.deepEqual(tableNames(database), [
+    "production_attempt_handoffs", "production_outbox", "production_tasks",
+  ]);
   assert.equal(columns(database, "production_tasks").includes("attempt_failure_json"), true);
   assert.equal(tableNames(database).includes("production_attempt_failures"), false);
   assert.equal(tableNames(database).includes("production_checkpoints"), false);
@@ -89,40 +90,76 @@ try {
   ).attempt_failure, firstFailure,
   "a reconciled same-attempt regrant must preserve the first failure fact");
   assert.throws(() => store.acceptTask(accepted, secondAttempt),
-    /PRODUCTION_ATTEMPT_FAILURE_RECONCILIATION_REQUIRED/u);
-  const second = store.acceptTaskAfterFailureReconciled(accepted, secondAttempt, firstFailure);
+    /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u);
+  assert.throws(() => store.acceptTaskAfterFailureReconciled(
+    accepted, secondAttempt, firstFailure,
+  ), /PRODUCTION_ATTEMPT_FAILURE_RECONCILIATION_CONFLICT/u,
+  "old failure reconciliation cannot accept a different attempt");
+  const partialKey = "artifact:three-truths:partial-before-handoff";
+  store.enqueue({ idempotency_key: partialKey, kind: "artifact",
+    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(accepted.job_id)}/artifacts/generated_image/partial`,
+    method: "PUT", headers: {}, body: Buffer.from("partial") });
+  const immutableOutbox = store.readResultOutboxHistoryEvidence(accepted.job_id, firstAttempt);
+  const sourceBody = {
+    kind: "attempt_handoff" as const,
+    job_id: accepted.job_id,
+    source_attempt_id: firstAttempt,
+    source_task_hash: hashCanonical(accepted),
+    first_fact_raw_hash: sha256(Buffer.from(store.readAttemptFailureRaw(accepted.job_id)!, "utf8")),
+    outbox_history_hash: immutableOutbox.historyHash,
+    outbox_candidate_count: immutableOutbox.candidateCount,
+    browser_history_hash: HASH_B,
+    browser_row_count: 0,
+    browser_input_state: "zero" as const,
+    browser_target_settled: true,
+    target_settlement_hash: HASH_A,
+    readback_exhaustion_hash: null,
+    replay_calls: [],
+  };
+  const sourceSeal = hashCanonical(sourceBody);
+  store.sealSourceHandoff({ ...sourceBody, seal_hash: sourceSeal });
+  store.markOutboxSent(partialKey, { receipt_hash: HASH_A });
+  assert.equal(store.readResultOutboxHistoryEvidence(accepted.job_id, firstAttempt).historyHash,
+    immutableOutbox.historyHash,
+  "transport receipt timing cannot change a sealed source history hash");
+  assert.equal(store.readSealedSourceHandoff(accepted.job_id, firstAttempt)?.seal_hash, sourceSeal);
+  const second = store.acceptTaskAfterSourceHandoff(accepted, secondAttempt, sourceSeal);
   assert.equal(second.current_attempt_id, secondAttempt);
   assert.equal(second.attempt_failure, null);
   assert.equal(store.acceptTask(accepted, secondAttempt).current_reason, "LEASE_REGRANTED");
 
-  const recoveryTask = task({
-    jobId: "job:provider-effect-readback-stage",
-    productId: "payment_screenshot_observation",
-    actionId: "observe",
-  });
-  const recoveryAttempt = "attempt:provider-effect-readback-stage";
-  store.acceptTask(recoveryTask, recoveryAttempt);
-  const providerFailure = attemptFailureFirstFact(recoveryAttempt,
-    serializeTerminalFailureTransport(executionFailure("failed", "PRODUCT_EXECUTION_FAILED", {
-      metadata: {
-        mutationOutcome: "confirmed",
-        evidence: { evidenceRef: "browser-mutation:provider-effect", evidenceHash: HASH_A },
-        browserEffect: {
-          effectScope: "provider_effect",
-          childCapabilityId: "submit_exact_gpt_turn_once",
-          browserOutcome: "CONFIRMED",
-          providerEffectIdentityHash: HASH_B,
-        },
-      },
-    })));
-  store.recordAttemptFailure(recoveryTask.job_id, recoveryAttempt, providerFailure);
-  const recoveryResult = resultFor(recoveryTask);
-  assert.throws(() => store.stageResult(recoveryTask.job_id, recoveryResult),
-    /PRODUCTION_ATTEMPT_ALREADY_FAILED/u);
-  store.stageResultAfterProviderEffectReadback(recoveryTask.job_id, recoveryResult, providerFailure);
-  assert.equal(store.readTask(recoveryTask.job_id)?.attempt_failure, null);
-  assert.deepEqual(store.readTask(recoveryTask.job_id)?.staged_result, recoveryResult);
-  await store.purgeJob(recoveryTask.job_id);
+  const ambiguousTask = task({ jobId: "job:timed-source-reconciliation",
+    productId: "payment_screenshot_observation", actionId: "observe" });
+  const ambiguousAttempt = "attempt:timed-source-reconciliation";
+  store.acceptTask(ambiguousTask, ambiguousAttempt);
+  const observeUnavailableResult = () => store.recordSourceReadbackFailure(
+    ambiguousTask.job_id, ambiguousAttempt, "SOURCE_RESULT_RECONCILIATION_PENDING", HASH_A,
+  );
+  observeUnavailableResult();
+  observeUnavailableResult();
+  const backdateLatestObservation = (offsetMs: number) => {
+    const row = database.prepare(`select readback_observations_json from production_attempt_handoffs
+      where job_id=? and source_attempt_id=?`).get(
+      ambiguousTask.job_id, ambiguousAttempt,
+    ) as { readback_observations_json: string };
+    const observations = JSON.parse(row.readback_observations_json) as Array<{
+      observed_at: string; error_code: string; evidence_hash: string | null;
+    }>;
+    observations.at(-1)!.observed_at = new Date(Date.now() - offsetMs).toISOString();
+    database.prepare(`update production_attempt_handoffs set readback_observations_json=?
+      where job_id=? and source_attempt_id=?`).run(
+      JSON.stringify(observations), ambiguousTask.job_id, ambiguousAttempt,
+    );
+    return observations.length;
+  };
+  assert.equal(backdateLatestObservation(122_000), 1,
+    "immediate worker iterations must not inflate readback exhaustion evidence");
+  observeUnavailableResult();
+  assert.equal(backdateLatestObservation(61_000), 2);
+  observeUnavailableResult();
+  assert.match(store.readSourceReadbackExhaustionHash(
+    ambiguousTask.job_id, ambiguousAttempt) ?? "", /^sha256:[a-f0-9]{64}$/u,
+  "three bounded observations over two minutes must make Website risk adjudication reachable");
 
   const artifactKey = "artifact:three-truths";
   store.enqueue({
@@ -345,7 +382,8 @@ try {
     /PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE/u,
     "not_cleared must keep Provider submit closed");
   const staged = { ...resultFor(accepted), evidence_refs: [`art-${"a".repeat(64)}`] };
-  store.stageResult(accepted.job_id, staged);
+  store.markExecuting(accepted.job_id);
+  store.stageResult(accepted.job_id, secondAttempt, staged);
   store.enqueue({ idempotency_key: "artifact:envelope", kind: "artifact",
     path: `/internal/ai-production/v6/jobs/${encodeURIComponent(accepted.job_id)}/artifacts/envelope`,
     method: "PUT", headers: {}, body: Buffer.from("envelope") });
@@ -397,6 +435,39 @@ try {
     (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_LEDGER_INVARIANT_INVALID",
     "any other unsent write under a completed job still breaks the ledger");
   store.close();
+
+  const previousHandoffDirectory = path.join(temporary, "previous-handoff-shape");
+  await mkdir(previousHandoffDirectory);
+  new ProductionRuntimeStore(previousHandoffDirectory).close();
+  const previousHandoff = new Database(path.join(previousHandoffDirectory, "production-runtime.sqlite"));
+  previousHandoff.exec(`drop table production_attempt_handoffs;
+    create table production_attempt_handoffs(
+      job_id text not null, source_attempt_id text not null,
+      issued_attempt_id text, seal_hash text not null,
+      source_manifest_json text not null, first_fact_raw text,
+      sealed_at text not null, accepted_at text,
+      primary key(job_id,source_attempt_id)
+    )`);
+  const originalManifest = JSON.stringify({ seal_hash: HASH_A, source: "preserved" });
+  previousHandoff.prepare(`insert into production_attempt_handoffs(
+    job_id,source_attempt_id,issued_attempt_id,seal_hash,source_manifest_json,
+    first_fact_raw,sealed_at,accepted_at) values(?,?,?,?,?,?,?,?)`).run(
+    "job:preserved", "attempt:source", "attempt:issued", HASH_A,
+    originalManifest, JSON.stringify({ code: "original" }),
+    "2026-09-23T00:00:00.000Z", "2026-09-23T00:01:00.000Z",
+  );
+  previousHandoff.close();
+  const migrated = new ProductionRuntimeStore(previousHandoffDirectory);
+  const migratedDatabase = Reflect.get(migrated, "database") as Database.Database;
+  assert.deepEqual(migratedDatabase.prepare(`select seal_hash,source_manifest_json,
+    first_fact_raw,readback_observations_json from production_attempt_handoffs
+    where job_id='job:preserved'`).get(), {
+    seal_hash: HASH_A, source_manifest_json: originalManifest,
+    first_fact_raw: JSON.stringify({ code: "original" }), readback_observations_json: "[]",
+  }, "the exact previous table migrates in place without losing sealed identities or inventing readback");
+  migrated.close();
+  assert.doesNotThrow(() => new ProductionRuntimeStore(previousHandoffDirectory).close(),
+    "the migrated current table must reopen without a second migration");
 
   const legacyDirectory = path.join(temporary, "legacy");
   await mkdir(legacyDirectory);

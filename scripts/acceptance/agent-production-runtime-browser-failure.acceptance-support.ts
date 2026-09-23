@@ -5,9 +5,7 @@ import {
   executeClaim,
   reconcilePendingAttemptFailures,
 } from "../../src/lib/local-runtime/production/runtime-claim.js";
-import { stageCompletedClaimResult } from
-  "../../src/lib/local-runtime/production/runtime-claim-operations.js";
-import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
+import { executionFailure } from "../../src/lib/execution-failure.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { serializeTerminalFailureTransport } from
@@ -15,7 +13,7 @@ import { serializeTerminalFailureTransport } from
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HASH_A, attemptFailureFirstFact, claimTask, failureStatus,
+import { attemptFailureFirstFact, claimTask, failureStatus,
   resultFor, task } from "./agent-production-runtime-fixtures.js";
 import {
   verifyClaimTimeFirstFactConflict, verifyFailureReleaseReadbackScenarios,
@@ -24,8 +22,6 @@ import {
   verifyUnclassifiedFailureStopsBeforeProduct,
 } from
   "./agent-production-runtime-failure-readback.acceptance-support.js";
-import { verifyWaitNewAttempt } from
-  "./agent-production-runtime-wait-new-attempt.acceptance-support.js";
 
 
 
@@ -102,77 +98,6 @@ try {
 }
 };
 
-const verifyActiveProviderEffectCarrier = async (): Promise<void> => {
-const activeCarrierDirectory = await mkdtemp(join(tmpdir(), "agent-active-carrier-"));
-const activeCarrierStore = new RuntimeStore(activeCarrierDirectory);
-try {
-  const websiteTask = task({
-    jobId: "job:active-provider-effect-carrier",
-    productId: "payment_screenshot_observation",
-    actionId: "observe",
-  });
-  const job = claimTask(websiteTask);
-  activeCarrierStore.acceptTask(websiteTask, job.grant.attempt_id);
-  const browserAuthorityRef = "browser-mutation:confirmed-provider-effect";
-  const browserAuthorityHash = `sha256:${"b".repeat(64)}` as const;
-  const providerEffectIdentityHash = HASH_A;
-  const failure = attemptFailureFirstFact(job.grant.attempt_id,
-    serializeTerminalFailureTransport(executionFailure("failed", "PRODUCT_EXECUTION_FAILED", {
-      metadata: {
-        mutationOutcome: "confirmed",
-        evidence: { evidenceRef: browserAuthorityRef, evidenceHash: browserAuthorityHash },
-        browserEffect: {
-          effectScope: "provider_effect",
-          childCapabilityId: "submit_exact_gpt_turn_once",
-          browserOutcome: "CONFIRMED",
-          providerEffectIdentityHash,
-        },
-      },
-    })));
-  activeCarrierStore.recordAttemptFailure(websiteTask.job_id, job.grant.attempt_id, failure);
-  const executionRecord = activeCarrierStore.readTask(websiteTask.job_id)!;
-  const result = resultFor(websiteTask);
-  const stage = (providerEffectReadbackProof: unknown) => stageCompletedClaimResult({
-    store: activeCarrierStore,
-    job,
-    execution: { record: executionRecord, result, providerEffectReadbackProof } as never,
-  });
-  assert.throws(() => stage(null),
-    (error: unknown) => typedExecutionFailure(error)?.code === "PROVIDER_EFFECT_READBACK_PROOF_INVALID",
-    "ACTIVE_ATTEMPT must reject a missing provider-effect readback carrier");
-  assert.deepEqual(activeCarrierStore.readTask(websiteTask.job_id)?.attempt_failure, failure);
-  assert.equal(activeCarrierStore.readTask(websiteTask.job_id)?.staged_result, null,
-    "a missing carrier must not stage the result");
-  const proofBody = Object.freeze({
-    schema_version: "provider-effect-readback-proof.v1" as const,
-    job_id: websiteTask.job_id,
-    attempt_id: job.grant.attempt_id,
-    result_revision: job.grant.result_revision,
-    provider_effect_identity_hash: providerEffectIdentityHash,
-    exact_call_identity_hash: `sha256:${"c".repeat(64)}` as const,
-    browser_authority_ref: browserAuthorityRef,
-    browser_authority_hash: browserAuthorityHash,
-    readback_provider_input_delta: 0 as const,
-  });
-  const proof = Object.freeze({ ...proofBody, proof_hash: hashCanonical(proofBody) });
-  assert.throws(() => stage({ ...proof, browser_authority_hash: HASH_A }),
-    (error: unknown) => typedExecutionFailure(error)?.code === "PROVIDER_EFFECT_READBACK_PROOF_INVALID",
-    "ACTIVE_ATTEMPT must reject a tampered provider-effect readback carrier");
-  assert.deepEqual(activeCarrierStore.readTask(websiteTask.job_id)?.attempt_failure, failure);
-  assert.equal(activeCarrierStore.readTask(websiteTask.job_id)?.staged_result, null,
-    "a tampered carrier must not stage the result");
-  stage(proof);
-  const staged = activeCarrierStore.readTask(websiteTask.job_id);
-  assert.equal(staged?.attempt_failure, null,
-    "the exact carrier must atomically clear the matching first fact");
-  assert.deepEqual(staged?.staged_result, result,
-    "the exact carrier must stage only the same execution result");
-} finally {
-  activeCarrierStore.close();
-  await rm(activeCarrierDirectory, { recursive: true, force: true });
-}
-};
-
 const verifyConsumeCurrentResult = async (): Promise<void> => {
 const temporary = await mkdtemp(join(tmpdir(), "agent-failure-consume-current-result-"));
 const store = new RuntimeStore(temporary);
@@ -185,7 +110,8 @@ try {
   const attemptId = "attempt:failure-consume-current-result";
   store.acceptTask(websiteTask, attemptId);
   const staged = resultFor(websiteTask);
-  store.stageResult(websiteTask.job_id, staged);
+  store.markExecuting(websiteTask.job_id);
+  store.stageResult(websiteTask.job_id, attemptId, staged);
   const failure = attemptFailureFirstFact(attemptId,
     serializeTerminalFailureTransport(executionFailure("failed", "BUSINESS_ADMISSION_INTERRUPTED")));
   store.recordAttemptFailure(websiteTask.job_id, attemptId, failure);
@@ -235,8 +161,8 @@ try {
   const reconciled = store.readTask(websiteTask.job_id);
   assert.equal(reads, 2,
     "consume-current-result must read the failure disposition and then business admission");
-  assert.equal(reconciled?.attempt_failure, null,
-    "consume-current-result must atomically clear the obsolete first failure fact");
+  assert.deepEqual(reconciled?.attempt_failure, failure,
+    "consume-current-result must preserve the first failure fact until Website admission");
   assert.deepEqual(reconciled?.staged_result, staged,
     "consume-current-result must retain the exact staged result for admission");
   assert.equal(reconciled?.current_reason, "BUSINESS_ADMISSION_PENDING");
@@ -345,7 +271,6 @@ export const verifyAttemptFailureReadbackRuntimeContract = async (): Promise<voi
 
   await verifyUnclassifiedFailureStopsBeforeProduct();
 
-  await verifyWaitNewAttempt();
 
   await verifyUnresolvedBrowserMutationDoesNotStarveClaimRecovery();
 
@@ -364,7 +289,6 @@ export const verifyAttemptFailureReadbackRuntimeContract = async (): Promise<voi
 
   await verifyLeaseRebind();
 
-  await verifyActiveProviderEffectCarrier();
 
   await verifyConsumeCurrentResult();
 };
@@ -391,6 +315,7 @@ const verifyUnresolvedBrowserMutationDoesNotStarveClaimRecovery = async (): Prom
       session: { request: async () => remote },
       browserAuthority: {
         hasUnresolvedBrowserMutation: () => unresolved,
+        readJobPhysicalInputState: () => "zero",
         releaseJobBoundTarget: async () => { released += 1; },
       },
       abort: new AbortController(),
@@ -403,7 +328,8 @@ const verifyUnresolvedBrowserMutationDoesNotStarveClaimRecovery = async (): Prom
     unresolved = false;
     await reconcilePendingAttemptFailures(state);
     assert.equal(released, 1, "the deferred release must resume after the Browser mutation settles");
-    assert.equal(store.readTask(job.job_id)?.current_reason, "WAIT_NEW_ATTEMPT");
+    assert.equal(store.readTask(job.job_id)?.current_reason,
+      "SOURCE_HANDOFF_RECONCILIATION_PENDING");
   } finally {
     store.close();
     await rm(directory, { recursive: true, force: true });

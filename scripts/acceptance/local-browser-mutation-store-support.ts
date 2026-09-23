@@ -6,7 +6,7 @@ import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser
 export const hash = `sha256:${"a".repeat(64)}` as const;
 export const exactHash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
-export const identity = (commandId: string, attemptId: string, executionFenceHash = hash) => ({
+export const identity = (commandId: string, attemptId: string, executionFenceHash = hash) => ({deliveryPriorityReplayGrantHash: null,
   commandId,
   exactCallIdentityHash: exactHash(`${attemptId}:${commandId}`),
   jobId: "job-1",
@@ -30,11 +30,13 @@ export const identity = (commandId: string, attemptId: string, executionFenceHas
 
 export const exerciseBrowserMutationStore = (root: string): void => {
   const first = new BrowserMutationStore(root);
+  first.verifyRuntimeTaskProvenance(null);
   first.prepare(identity("old-command", "attempt-1"));
   first.markDispatched("old-command");
   first.close();
 
   const restarted = new BrowserMutationStore(root);
+  restarted.verifyRuntimeTaskProvenance(null);
   assert.deepEqual(restarted.dispatchedForBinding({
     jobId: "job-1", attemptId: "attempt-2", leaseVersion: 1, executionFenceHash: hash,
   }), [], "a new attempt must not inherit old pending mutations");
@@ -55,6 +57,7 @@ export const exerciseBrowserMutationStore = (root: string): void => {
   restarted.close();
 
   const provider = new BrowserMutationStore(join(root, "provider-case"));
+  provider.verifyRuntimeTaskProvenance(null);
   const providerIdentity = { ...identity("provider-command", "attempt-provider"),
     effectScope: "provider_effect" as const, logicalMutationId: exactHash("provider-effect"),
     childCapabilityId: "submit_exact_gpt_turn_once" };
@@ -86,6 +89,7 @@ export const exerciseBrowserMutationStore = (root: string): void => {
 /** P.5: a P1 observational postcondition cause must be accepted and round-trip through the WAL unchanged. */
 export const exercisePostconditionNativeCauseWalRoundTrip = (root: string): void => {
   const store = new BrowserMutationStore(root);
+  store.verifyRuntimeTaskProvenance(null);
   const walIdentity = identity("postcondition-command", "attempt-postcondition");
   store.prepare(walIdentity);
   store.markDispatched(walIdentity.commandId);

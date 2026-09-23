@@ -12,7 +12,7 @@ import { claimProductionTasks } from "./cloud-client.js";
 import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import { productionCatalogHash } from "./catalog.js";
 import { PRODUCTION_BUSINESS_CAPACITY_MAX } from "./control-contract-dependency.js";
-import { hashCanonical } from "./contracts.js";
+import { hashCanonical, sha256 } from "./contracts.js";
 import type { ProductionRuntimeHealth } from "./runtime-contract.js";
 import { executeClaim, reconcilePendingAttemptFailures } from "./runtime-claim.js";
 import { classifyAttemptFailure } from "./terminal-failure.js";
@@ -26,12 +26,15 @@ import {
 } from "./runtime-state.js";
 
 const pendingAttemptFailureJobs = (state: RuntimeState) => state.store.pendingAttemptFailures()
-  .filter((row) => row.current_reason !== "WAIT_NEW_ATTEMPT" && row.current_attempt_id !== null);
+  .filter((row) => row.current_attempt_id !== null);
 
 const pendingProviderReadbackJobIds = (state: RuntimeState): ReadonlySet<string> => new Set(
   pendingAttemptFailureJobs(state)
-    .filter((row) => classifyAttemptFailure(row.attempt_failure!.failure_core)
-      === "same_attempt_provider_readback")
+    .filter((row) => row.attempt_failure !== null
+      && !row.current_reason?.startsWith("SOURCE_HANDOFF_SEALED|")
+      && (classifyAttemptFailure(row.attempt_failure.failure_core)
+        === "same_attempt_provider_readback"
+        || state.browserAuthority.readJobPhysicalInputState(row.task.job_id) !== "zero"))
     .map((row) => row.task.job_id),
 );
 
@@ -48,23 +51,23 @@ const pendingCooldownResumeJobIds = (state: RuntimeState): ReadonlySet<string> =
 
 export const claimReusesExistingBusinessSlot = (
   state: RuntimeState,
-  job: Readonly<{ job_id: string; grant: Readonly<{ attempt_id: string }> }>,
+  job: Readonly<{ job_id: string; grant: Readonly<{
+    attempt_id: string; same_accepted_attempt: boolean;
+    source_handoff_seal_hash: `sha256:${string}` | null;
+  }> }>,
 ): boolean => {
   const durable = state.store.readTask(job.job_id);
+  if (durable?.current_attempt_id !== job.grant.attempt_id
+    && durable?.current_reason === `SOURCE_HANDOFF_SEALED|${job.grant.source_handoff_seal_hash}`
+    && job.grant.source_handoff_seal_hash !== null) return true;
   if (durable?.current_attempt_id !== job.grant.attempt_id) return false;
-  if (durable.attempt_failure
-    && classifyAttemptFailure(durable.attempt_failure.failure_core)
-      === "same_attempt_provider_readback") return true;
-  return durable?.status === "failed"
-    && providerCooldownPaused(durable.current_reason)
-    && durable.attempt_failure === null;
+  return durable.status === "failed" && job.grant.same_accepted_attempt;
 };
 
 const businessInFlightJobIds = (state: RuntimeState): ReadonlySet<string> => new Set([
   ...state.active.keys(),
   ...state.store.taskAuthorities()
-    .filter((row) => row.status === "failed" && row.current_attempt_id !== null
-      && row.current_reason !== "WAIT_NEW_ATTEMPT")
+    .filter((row) => row.status === "failed" && row.current_attempt_id !== null)
     .map((row) => row.task.job_id),
 ]);
 
@@ -119,6 +122,7 @@ const requestClaimBatch = async (
   state: RuntimeState,
   available: number,
   forceCurrentAttestation: boolean,
+  sourceEvidence: Parameters<typeof claimProductionTasks>[4],
 ) => {
   const boundaryId = `aipclaim_${randomUUID()}`;
   const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
@@ -129,6 +133,7 @@ const requestClaimBatch = async (
   try {
     const batch = await claimProductionTasks(
       state.session, available, boundaryId, forceCurrentAttestation,
+      sourceEvidence,
     );
     state.providerRateLimitControl.observeWebsiteAuthority({
       serverNow: batch.server_now,
@@ -158,18 +163,73 @@ const requestClaimBatch = async (
   }
 };
 
+const prepareSourceHandoffs = async (
+  state: RuntimeState,
+): Promise<NonNullable<Parameters<typeof claimProductionTasks>[4]>> => {
+  const evidence: NonNullable<Parameters<typeof claimProductionTasks>[4]>[number][] = [];
+  for (const task of state.store.taskAuthorities()) {
+    const jobId = task.task.job_id;
+    if (task.status !== "failed" || !task.current_attempt_id || task.staged_result
+      || state.active.has(jobId)) continue;
+    const priorSeal = state.store.readSealedSourceHandoff(jobId, task.current_attempt_id);
+    if (priorSeal) {
+      evidence.push(priorSeal);
+      continue;
+    }
+    const outbox = state.store.readResultOutboxHistoryEvidence(jobId, task.current_attempt_id);
+    if (outbox.candidateCount !== 0) continue;
+    const browserInput = state.browserAuthority.readJobPhysicalInputState(jobId);
+    if (browserInput !== "zero") continue;
+    const jobRefHash = sha256(Buffer.from(jobId, "utf8"));
+    if (state.browserAuthority.readUnreleasedTargetClaims()
+      .some((claim) => claim.jobRefHash === jobRefHash)) {
+      try {
+        await state.browserAuthority.releaseJobBoundTarget(
+          jobId, "wait-new-attempt", state.abort.signal,
+        );
+      } catch (error) {
+        state.lastErrorCode = failureCode(error, "SOURCE_TARGET_RELEASE_PENDING");
+        state.lastErrorReason = safeReason(error);
+        continue;
+      }
+    }
+    if (state.browserAuthority.readUnreleasedTargetClaims()
+      .some((claim) => claim.jobRefHash === jobRefHash)) continue;
+    const browser = state.browserAuthority.readJobBrowserHistoryEvidence(jobId);
+    if (!browser.walHistoryVerified || !browser.targetSettled) continue;
+    const firstRaw = state.store.readAttemptFailureRaw(jobId);
+    const body = Object.freeze({
+      kind: "attempt_handoff" as const,
+      job_id: jobId,
+      source_attempt_id: task.current_attempt_id,
+      source_task_hash: hashCanonical(task.task),
+      first_fact_raw_hash: firstRaw === null ? null : sha256(Buffer.from(firstRaw, "utf8")),
+      outbox_history_hash: outbox.historyHash,
+      outbox_candidate_count: outbox.candidateCount,
+      browser_history_hash: browser.historyHash,
+      browser_row_count: browser.rowCount,
+      browser_input_state: browserInput,
+      replay_calls: [],
+      browser_target_settled: true,
+      target_settlement_hash: browser.targetSettlementHash,
+      readback_exhaustion_hash: null,
+    });
+    const sealed = Object.freeze({ ...body, seal_hash: hashCanonical(body) });
+    state.store.sealSourceHandoff(sealed);
+    evidence.push(sealed);
+  }
+  return evidence;
+};
+
 const launchClaimJobs = (
   state: RuntimeState,
   jobs: Awaited<ReturnType<typeof claimProductionTasks>>["jobs"],
 ): void => {
   const uniqueJobIds = new Set(jobs.map((job) => job.job_id));
-  const executionOrAdmissionJobIds = new Set([
-    ...state.active.keys(),
-    ...state.store.pendingBusinessAdmissions().map((row) => row.task.job_id),
-  ]);
+  const executingJobIds = new Set(state.active.keys());
   const resultingBusinessJobIds = new Set([...businessInFlightJobIds(state), ...uniqueJobIds]);
   if (jobs.length > PRODUCTION_BUSINESS_CAPACITY_MAX || uniqueJobIds.size !== jobs.length
-    || jobs.some((job) => executionOrAdmissionJobIds.has(job.job_id))
+    || jobs.some((job) => executingJobIds.has(job.job_id))
     || jobs.some((job) => businessInFlightJobIds(state).has(job.job_id)
       && !claimReusesExistingBusinessSlot(state, job))
     || resultingBusinessJobIds.size > PRODUCTION_BUSINESS_CAPACITY_MAX) {
@@ -216,21 +276,50 @@ const reconcilePendingBusinessAdmissions = async (state: RuntimeState): Promise<
   }
 };
 
+const reconcileCompletedBrowserTargets = async (state: RuntimeState): Promise<void> => {
+  if (state.browserAuthority.readProductionRuntimeState().browserAuthorityState !== "present") return;
+  const boundJobRefHash = state.browserAuthority.readBoundJobRefHash();
+  const unclosed = state.browserAuthority.readUnreleasedTargetClaims();
+  const completedWithOldClaim = state.store.taskAuthorities()
+    .filter((task) => task.status === "completed"
+      && unclosed.some((claim) => claim.jobRefHash === sha256(Buffer.from(task.task.job_id, "utf8"))))
+    .map((task) => task.task.job_id);
+  const pending = [...new Set([
+    ...state.store.pendingBrowserCleanupJobIds(), ...completedWithOldClaim,
+  ])];
+  if (pending.length === 0) return;
+  const jobId = boundJobRefHash
+    ? pending.find((candidate) => sha256(Buffer.from(candidate, "utf8")) === boundJobRefHash)
+    : pending[0];
+  if (!jobId) return;
+  try {
+    await state.browserAuthority.releaseJobBoundTarget(
+      jobId, "business-admitted", state.abort.signal,
+    );
+    const releasedJobRefHash = sha256(Buffer.from(jobId, "utf8"));
+    if (state.browserAuthority.readUnreleasedTargetClaims()
+      .some((claim) => claim.jobRefHash === releasedJobRefHash)
+      || (boundJobRefHash === releasedJobRefHash
+        && state.browserAuthority.readBoundJobRefHash() === boundJobRefHash)) {
+      throw new Error("BROWSER_ADMITTED_TARGET_RELEASE_READBACK_MISSING");
+    }
+    state.store.settleBrowserCleanup(jobId);
+  } catch (error) {
+    state.lastErrorCode = failureCode(error, "BROWSER_ADMITTED_TARGET_CLEANUP_PENDING");
+    state.lastErrorReason = safeReason(error);
+  }
+};
+
 const reconcileUnfinishedExecutionsWithoutReceipt = async (state: RuntimeState): Promise<void> => {
   for (const task of state.store.unfinishedExecutionsWithoutReceipt()) {
     if (state.active.has(task.task.job_id)) continue;
     try {
       const remote = await readProductionDeviceJobStatus(state.session, task.task.job_id);
       if (remote.next_action_code === "WAIT_NEW_ATTEMPT"
-        && task.current_reason !== "WAIT_NEW_ATTEMPT") {
-        await state.browserAuthority.releaseJobBoundTarget(
-          task.task.job_id,
-          "wait-new-attempt",
-          state.abort.signal,
-        );
-        state.store.releaseAttemptForWebsiteDecision(
-          task.task.job_id, task.current_attempt_id,
-        );
+        && task.current_reason !== "SOURCE_HANDOFF_RECONCILIATION_PENDING"
+        && !task.current_reason?.startsWith("SOURCE_HANDOFF_SEALED|")) {
+        state.store.setCurrentReason(task.task.job_id,
+          "SOURCE_HANDOFF_RECONCILIATION_PENDING");
       }
     } catch (error) {
       if (!websiteJobAbsent(error)) throw error;
@@ -245,12 +334,28 @@ const reconcileUnfinishedExecutionsWithoutReceipt = async (state: RuntimeState):
 };
 
 const workerIteration = async (state: RuntimeState): Promise<number> => {
-  await state.executor.reconcilePendingProviderRateLimitIncidents(state.abort.signal);
-  await state.providerRateLimitControl.reconcilePendingIntents();
-  await reconcilePendingAttemptFailures(state);
   await reconcilePendingBusinessAdmissions(state);
-  await reconcileUnfinishedExecutionsWithoutReceipt(state);
+  await reconcileCompletedBrowserTargets(state);
+  const hasDeliveryCandidate = state.store.pendingBusinessAdmissions().length > 0
+    || state.store.uploadedResultCandidateJobIds().length > 0;
+  try {
+    await state.executor.reconcilePendingProviderRateLimitIncidents(state.abort.signal);
+    await state.providerRateLimitControl.reconcilePendingIntents();
+    await reconcilePendingAttemptFailures(state);
+  } catch (error) {
+    if (!hasDeliveryCandidate) throw error;
+    state.lastErrorCode = failureCode(error, "PROVIDER_RECOVERY_PENDING");
+    state.lastErrorReason = safeReason(error);
+  }
+  try {
+    await reconcileUnfinishedExecutionsWithoutReceipt(state);
+  } catch (error) {
+    if (!hasDeliveryCandidate) throw error;
+    state.lastErrorCode = failureCode(error, "EXECUTION_RECONCILIATION_PENDING");
+    state.lastErrorReason = safeReason(error);
+  }
   refreshLedgerReconciled(state);
+  const sourceEvidence = await prepareSourceHandoffs(state);
   const attestation = await state.session.ensureFreshAttestation();
   state.providerRateLimitControl.observeWebsiteAuthority({
     serverNow: attestation.issued_at,
@@ -262,18 +367,27 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
     state.executor.availableCapacity(),
   );
   const hasPendingProviderReadback = pendingProviderReadbackJobIds(state).size > 0;
+  const hasAcceptedAttemptRecovery = state.store.taskAuthorities().some((row) =>
+    row.status === "failed" && row.current_attempt_id !== null
+      && !state.active.has(row.task.job_id));
   const hasPendingCooldownResume = pendingCooldownResumeJobIds(state).size > 0;
-  const hasExistingAttemptRecovery = hasPendingProviderReadback || hasPendingCooldownResume;
+  const hasPendingStagedResult = state.store.pendingBusinessAdmissions().length > 0;
+  const hasUploadedResultCandidate = state.store.uploadedResultCandidateJobIds().length > 0;
+  const hasExistingAttemptRecovery = hasAcceptedAttemptRecovery
+    || hasPendingProviderReadback || hasPendingCooldownResume
+    || hasPendingStagedResult || hasUploadedResultCandidate || sourceEvidence.length > 0;
   const browser = state.browserAuthority.readProductionRuntimeState();
   const eligible = (availableNewSlots > 0 || hasExistingAttemptRecovery)
-    && state.executor.availableCapacity() > 0
+    && (state.executor.availableCapacity() > 0 || hasPendingStagedResult || hasUploadedResultCandidate)
     && attestation.claim_eligible && state.ledgerReconciled
-    && browser.browserAuthorityState === "present" && !state.draining && state.runtimeLogger.isWritable()
-    && state.providerRateLimitControl.canRequestClaimAuthority();
+    && (browser.browserAuthorityState === "present" || hasPendingStagedResult || hasUploadedResultCandidate)
+    && !state.draining && state.runtimeLogger.isWritable()
+    && (state.providerRateLimitControl.canRequestClaimAuthority()
+      || hasPendingStagedResult || hasUploadedResultCandidate);
   if (!eligible) return 1_000;
   const recoveryOnlyClaim = availableNewSlots <= 0 && hasExistingAttemptRecovery;
   const batch = await requestClaimBatch(
-    state, Math.max(1, availableNewSlots), recoveryOnlyClaim,
+    state, Math.max(1, availableNewSlots), recoveryOnlyClaim, sourceEvidence,
   );
   launchClaimJobs(state, batch.jobs);
   return batch.outcome === "LEASE_GRANTED" ? 1_000 : batch.next_claim_after_ms;

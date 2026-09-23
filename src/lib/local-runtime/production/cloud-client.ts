@@ -64,6 +64,7 @@ export async function claimProductionTasks(
   limit: number,
   requestId = `aipclaim_${randomUUID()}`,
   forceCurrentAttestation = false,
+  sourceEvidence: Parameters<ProductionWorkerSession["requestClaim"]>[3] = [],
 ): Promise<Readonly<{
   outcome: "LEASE_GRANTED" | "NO_ELIGIBLE_JOB" | "CAPACITY_ZERO" | "CLAIM_BLOCKED" | "DRAINING";
   jobs: readonly ClaimedProductionTask[];
@@ -75,7 +76,7 @@ export async function claimProductionTasks(
     throw new Error("V6_CLAIM_LIMIT_INVALID");
   }
   const receipt = ClaimBatchReceiptSchema.parse(
-    await session.requestClaim(requestId, limit, forceCurrentAttestation),
+    await session.requestClaim(requestId, limit, forceCurrentAttestation, sourceEvidence),
   );
   if (receipt.request_id !== requestId) throw executionFailure("failed", "V6_CLAIM_RECEIPT_MISMATCH");
   const jobs = receipt.jobs.map((raw) => ClaimedProductionTaskSchema.parse(raw));
@@ -449,16 +450,16 @@ export async function uploadProductionResult(input: ProductionResultUploadInput)
   };
 }
 
-export async function terminalProductionTask(
+export function buildTerminalProductionIntent(
   session: ProductionWorkerSession,
-  store: ProductionRuntimeStore,
   job: ClaimedProductionTask,
   input: Readonly<{
     status: "completed";
     payload_hash: ProductionHash;
     result_receipt_hashes: readonly ProductionHash[];
+    terminal_source_first_fact_raw: string | null;
   }>,
-): Promise<TerminalReceipt> {
+) {
   const requestId = `aipterminal_${hashCanonical({
     job_id: job.job_id,
     attempt_id: job.grant.attempt_id,
@@ -467,6 +468,8 @@ export async function terminalProductionTask(
     failure: null,
     payload_hash: input.payload_hash,
     result_object_receipts: input.result_receipt_hashes,
+    terminal_source_first_fact_hash: input.terminal_source_first_fact_raw === null
+      ? null : sha256(Buffer.from(input.terminal_source_first_fact_raw, "utf8")),
   }).slice(7, 47)}`;
   const pathname = `/internal/ai-production/v6/jobs/${encodeURIComponent(job.job_id)}/terminal`;
   const body = JSON.stringify({
@@ -484,10 +487,23 @@ export async function terminalProductionTask(
     failure: null,
     payload_hash: input.payload_hash,
     result_object_receipts: input.result_receipt_hashes,
+    terminal_source_first_fact: input.terminal_source_first_fact_raw === null ? null
+      : { raw_json: input.terminal_source_first_fact_raw,
+        hash: sha256(Buffer.from(input.terminal_source_first_fact_raw, "utf8")) },
   });
-  const expected = parseTerminalReceiptExpectation(body);
-  store.enqueue({ idempotency_key: requestId, kind: "terminal", path: pathname, method: "POST", headers: fenceHeaders(job), body });
-  const response = await store.deliverOutbox(requestId, async (write) => session.request(write.path, {
+  parseTerminalReceiptExpectation(body);
+  return Object.freeze({ requestId, write: Object.freeze({ idempotency_key: requestId,
+    kind: "terminal" as const, path: pathname, method: "POST" as const,
+    headers: fenceHeaders(job), body }) });
+}
+
+export async function deliverTerminalProductionIntent(
+  session: ProductionWorkerSession,
+  store: ProductionRuntimeStore,
+  intent: ReturnType<typeof buildTerminalProductionIntent>,
+): Promise<TerminalReceipt> {
+  const expected = parseTerminalReceiptExpectation(intent.write.body);
+  const response = await store.deliverOutbox(intent.requestId, async (write) => session.request(write.path, {
     method: write.method,
     headers: write.headers,
     body: Buffer.from(write.body),

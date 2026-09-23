@@ -9,6 +9,7 @@ export type MutationRow = Readonly<{
   attempt_id: string;
   lease_version: number;
   execution_fence_hash: `sha256:${string}`;
+  delivery_priority_replay_grant_hash: `sha256:${string}` | null;
   product_step_id: string;
   call_id: string;
   child_capability_id: string;
@@ -35,6 +36,7 @@ export const mutationIdentity = (row: MutationRow): BrowserMutationIdentity => (
   attemptId: row.attempt_id,
   leaseVersion: row.lease_version,
   executionFenceHash: row.execution_fence_hash,
+  deliveryPriorityReplayGrantHash: row.delivery_priority_replay_grant_hash,
   productStepId: row.product_step_id,
   callId: row.call_id,
   childCapabilityId: row.child_capability_id,

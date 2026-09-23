@@ -13,6 +13,10 @@ export type ExtensionCommandPermit = Readonly<{
   writerFenceHash: BrowserHash;
   candidateHash: BrowserHash;
   contractManifestHash: BrowserHash;
+  deliveryPriorityReplayGrantHash: BrowserHash | null;
+  domainRejectionRevision?: boolean;
+  deliveryPriorityReplayCall?: Readonly<{ productStepId: string; callId: string;
+    childCapabilityId: string; sourceEffectSetHash: BrowserHash }> | null;
   jobId: string;
   resultRevision: number;
   attemptId: string;
@@ -95,11 +99,24 @@ const hasValidPermitHashes = (permit: ExtensionCommandPermit): boolean => isHash
   && isHash(permit.writerFenceHash)
   && isHash(permit.candidateHash)
   && isHash(permit.contractManifestHash)
+  && (permit.deliveryPriorityReplayGrantHash === null
+    || isHash(permit.deliveryPriorityReplayGrantHash))
   && isHash(permit.inputHash)
   && isHash(permit.commandFrameMac);
 
 const hasValidPermitMetadata = (permit: ExtensionCommandPermit): boolean => hasValidPermitNumbers(permit)
-  && hasValidPermitHashes(permit);
+  && hasValidPermitHashes(permit)
+  && (permit.domainRejectionRevision === undefined
+    || typeof permit.domainRejectionRevision === "boolean")
+  && !(permit.domainRejectionRevision === true && permit.deliveryPriorityReplayGrantHash !== null)
+  && ((permit.deliveryPriorityReplayGrantHash === null)
+    === (permit.deliveryPriorityReplayCall == null))
+  && (permit.deliveryPriorityReplayCall == null
+    || (permit.replayPolicy === "provider-effect-once"
+      && permit.deliveryPriorityReplayCall.productStepId === permit.productStepId
+      && permit.deliveryPriorityReplayCall.callId === permit.callId
+      && permit.deliveryPriorityReplayCall.childCapabilityId === permit.childCapabilityId
+      && isHash(permit.deliveryPriorityReplayCall.sourceEffectSetHash)));
 
 const hasValidPermitShape = (permit: ExtensionCommandPermit): boolean => hasRequiredPermitReferences(permit)
   && hasValidPermitMetadata(permit);

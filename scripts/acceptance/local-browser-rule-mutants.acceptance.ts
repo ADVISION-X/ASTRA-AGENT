@@ -124,7 +124,8 @@ try {
   } as never), /BROWSER_COMMAND_PERMIT_INVALID/u,
   "keypress admission must stay closed to unowned keys");
   const store = new BrowserMutationStore(root);
-  store.prepare({
+  store.verifyRuntimeTaskProvenance(null);
+  store.prepare({deliveryPriorityReplayGrantHash: null,
     commandId: "command-1", logicalMutationId, exactCallIdentityHash,
     jobId: "job-1", resultRevision: 0, attemptId: "attempt-1", leaseVersion: 1,
     executionFenceHash: hash, targetRef: "target-1", documentRef: "document-1",
@@ -136,7 +137,7 @@ try {
   assert.throws(() => store.resolve({ commandId: "command-1", targetRef: "target-1", state: "CONFIRMED", mutationOutcome: "dispatched", proofHash: hash }), /BROWSER_MUTATION_STATE_CONFLICT/u);
   store.markDispatched("command-1");
   store.markReceiptMissing("command-1");
-  store.prepare({
+  store.prepare({deliveryPriorityReplayGrantHash: null,
     commandId: "command-retry", logicalMutationId: `sha256:${"c".repeat(64)}`,
     exactCallIdentityHash: `sha256:${"d".repeat(64)}`,
     jobId: "job-1", resultRevision: 0, attemptId: "attempt-2", leaseVersion: 2,
@@ -176,7 +177,7 @@ try {
     jobId: "job-1", attemptId: "attempt-1", exactCallIdentityHash, actionOrdinal: 2,
   }), /BROWSER_ACTION_SEQUENCE_DRIFT/u,
   "actionOrdinal must be checked after exact effect identity lookup and must not create a second mutation");
-  assert.doesNotThrow(() => store.prepare({
+  assert.doesNotThrow(() => store.prepare({deliveryPriorityReplayGrantHash: null,
     commandId: "command-cross-generation", logicalMutationId: `sha256:${"0".repeat(64)}`,
     exactCallIdentityHash: `sha256:${"3".repeat(64)}`,
     jobId: "job-1", resultRevision: 0, attemptId: "attempt-1", leaseVersion: 2,
@@ -189,7 +190,7 @@ try {
   store.markFailedBeforeDispatch("command-cross-generation", "FIXTURE_NOT_DISPATCHED");
   const reusableProviderExactHash = `sha256:${"6".repeat(64)}` as const;
   const reusableProviderLogicalHash = `sha256:${"7".repeat(64)}` as const;
-  store.prepare({
+  store.prepare({deliveryPriorityReplayGrantHash: null,
     commandId: "command-provider-no-input-rejected", logicalMutationId: reusableProviderLogicalHash,
     exactCallIdentityHash: reusableProviderExactHash,
     jobId: "job-1", resultRevision: 0, attemptId: "attempt-1", leaseVersion: 1,
@@ -205,7 +206,7 @@ try {
     jobId: "job-1", attemptId: "attempt-2",
     exactCallIdentityHash: reusableProviderExactHash, actionOrdinal: 13,
   }), null, "a prior-attempt provider rejection with zero physical input must not bind retry to its old Target");
-  assert.doesNotThrow(() => store.prepare({
+  assert.doesNotThrow(() => store.prepare({deliveryPriorityReplayGrantHash: null,
     commandId: "command-provider-retry-after-no-input", logicalMutationId: reusableProviderLogicalHash,
     exactCallIdentityHash: reusableProviderExactHash,
     jobId: "job-1", resultRevision: 0, attemptId: "attempt-2", leaseVersion: 2,
@@ -225,7 +226,7 @@ try {
     "retry readback must ignore the obsolete no-input rejection");
   assert.equal(confirmedProviderFact?.providerEffectIdentityHash, reusableProviderLogicalHash,
     "confirmed Provider-effect readback must retain its durable effect identity");
-  store.prepare({
+  store.prepare({deliveryPriorityReplayGrantHash: null,
     commandId: "command-new-target", logicalMutationId: `sha256:${"e".repeat(64)}`,
     exactCallIdentityHash: `sha256:${"1".repeat(64)}`,
     jobId: "job-1", resultRevision: 0, attemptId: "attempt-2", leaseVersion: 2,
@@ -237,7 +238,7 @@ try {
   });
   store.markDispatched("command-new-target");
   store.markConfirmed("command-new-target", hash);
-  store.prepare({
+  store.prepare({deliveryPriorityReplayGrantHash: null,
     commandId: "command-provider-effect", logicalMutationId: `sha256:${"f".repeat(64)}`,
     exactCallIdentityHash: `sha256:${"2".repeat(64)}`,
     jobId: "job-1", resultRevision: 0, attemptId: "attempt-2", leaseVersion: 2,

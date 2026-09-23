@@ -22,6 +22,7 @@ export interface ProductionRuntimeHealth {
 }
 
 export interface ProductionRuntimeHandle {
+  readonly blocked: boolean;
   readonly close: () => Promise<void>;
   readonly readHealth: () => ProductionRuntimeHealth;
   readonly readOperationsSnapshot: (jobId?: string) => Promise<ProductionOperationsSnapshot>;

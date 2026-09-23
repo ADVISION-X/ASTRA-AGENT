@@ -86,6 +86,8 @@ export class ProductionGptChildTools {
         jobId: input.jobId,
         attemptId: input.attemptId,
         resultRevision: input.resultRevision,
+        domainRejectionRevision: input.domainRejectionRevision ?? false,
+        deliveryPriorityReplayCalls: input.deliveryPriorityReplayCalls ?? [],
         deviceId: input.deviceId,
         leaseVersion: input.leaseVersion,
         executionFenceHash: input.executionFenceHash,

@@ -15,7 +15,7 @@ import { submitRecoveryPayload } from
 
 const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
-const identity = (attemptId: string, revision = 0): BrowserMutationIdentity => Object.freeze({
+const identity = (attemptId: string, revision = 0): BrowserMutationIdentity => Object.freeze({deliveryPriorityReplayGrantHash: null,
   commandId: `command:${attemptId}:${revision}`,
   logicalMutationId: hash(`provider-effect:${revision}`),
   exactCallIdentityHash: hash(`exact-call:${revision}`),
@@ -75,6 +75,7 @@ try {
   incompleteSchema.close();
 
   const store = new BrowserMutationStore(root);
+  store.verifyRuntimeTaskProvenance(null);
   const schema = new Database(path.join(root, "browser", "browser-mutations.sqlite"), { readonly: true });
   const columns = (schema.prepare("pragma table_info(browser_mutations)").all() as Array<{ name: string }>)
     .map((column) => column.name);
@@ -126,6 +127,51 @@ try {
     payloadHash: hash("payload:drift"),
   }), /BROWSER_PROVIDER_EFFECT_IDENTITY_DRIFT/u,
   "one result revision cannot hide a second submit behind request or payload drift");
+  const riskOld = { ...identity("attempt:risk-old"), jobId: "job:risk-scope",
+    commandId: "command:risk:old", logicalMutationId: hash("risk-old-effect"),
+    exactCallIdentityHash: hash("risk-old-call") };
+  store.prepare(riskOld);
+  store.markDispatched(riskOld.commandId);
+  store.markConfirmed(riskOld.commandId, hash("risk-old-proof"), "confirmed", null);
+  const riskOldSecond = { ...riskOld, commandId: "command:risk:old-second",
+    productStepId: "provider-submit-second",
+    logicalMutationId: hash("risk-old-second-effect"),
+    exactCallIdentityHash: hash("risk-old-second-call") };
+  store.prepare(riskOldSecond);
+  store.markDispatched(riskOldSecond.commandId);
+  store.markConfirmed(riskOldSecond.commandId, hash("risk-old-second-proof"), "confirmed", null);
+  const replayCalls = store.jobHistoryEvidence(riskOld.jobId).replayCalls;
+  assert.equal(replayCalls.length, 2,
+    "the source must enumerate every old Provider call that may have received input");
+  const replayCall = replayCalls[0];
+  assert.ok(replayCall, "the WAL must name the exact old Provider call and effect set");
+  const risk = { ...identity("attempt:risk-new", 1), jobId: riskOld.jobId,
+    commandId: "command:risk:once",
+    deliveryPriorityReplayGrantHash: hash("website-risk-grant"),
+    deliveryPriorityReplayCall: replayCall };
+  assert.throws(() => store.prepare({ ...risk, deliveryPriorityReplayCall: null }),
+    /BROWSER_REPLAY_GRANT_INVALID/u,
+    "a job-level grant hash without an exact old call must not allow Provider input");
+  assert.throws(() => store.prepare({ ...risk, deliveryPriorityReplayCall: {
+    ...replayCall, sourceEffectSetHash: hash("wrong-old-effect-set"),
+  } }), /BROWSER_PROVIDER_EFFECT_OLD_INPUT_UNAUTHORIZED/u,
+  "the risk grant must match the complete old Provider effect set");
+  assert.doesNotThrow(() => store.prepare(risk),
+    "one Website-scoped risk grant may prepare the designated new effect");
+  assert.throws(() => store.prepare({ ...risk, commandId: "command:risk:second",
+    exactCallIdentityHash: hash("risk-second-call") }), /BROWSER_REPLAY_GRANT_CONSUMED/u,
+  "the same grant must not prepare a second Provider effect row");
+  assert.throws(() => store.prepare({ ...risk, commandId: "command:risk:sibling",
+    productStepId: riskOldSecond.productStepId }), /BROWSER_PROVIDER_EFFECT_OLD_INPUT_UNAUTHORIZED/u,
+  "a grant for one old call must not move to another Provider call");
+  const riskSecond = { ...risk, commandId: "command:risk:other-scoped-call",
+    productStepId: riskOldSecond.productStepId,
+    logicalMutationId: hash("risk-second-new-effect"),
+    exactCallIdentityHash: hash("risk-second-new-call"),
+    deliveryPriorityReplayGrantHash: hash("website-risk-second-grant"),
+    deliveryPriorityReplayCall: replayCalls[1]! };
+  assert.doesNotThrow(() => store.prepare(riskSecond),
+    "a second old Provider call may use its own exact Website grant in the same revision");
   const recovered = store.readAtomicStepOutcome({
     jobId: second.jobId, attemptId: second.attemptId, exactCallIdentityHash: second.exactCallIdentityHash,
     actionOrdinal: second.actionOrdinal, targetRef: second.targetRef, effectScope: "provider_effect",
@@ -161,6 +207,7 @@ try {
     callId: "turn-submit",
     requestHash: hash(`continuation-request:${jobId}:${suffix}`),
     payloadHash: hash(`continuation-payload:${jobId}:${suffix}`),
+    domainRejectionRevision: revision > 0,
   });
   const confirmContinuation = (jobId: string, suffix: string, canonicalConversationUrl: string | null,
     productStepId?: string, revision = 0) => {
@@ -243,6 +290,7 @@ try {
   store.close();
 
   const restarted = new BrowserMutationStore(root);
+  restarted.verifyRuntimeTaskProvenance(null);
   const restartedOutcome = restarted.readAtomicStepOutcome({
     jobId: second.jobId, attemptId: second.attemptId, exactCallIdentityHash: second.exactCallIdentityHash,
     actionOrdinal: second.actionOrdinal, targetRef: second.targetRef, effectScope: "provider_effect",
@@ -251,9 +299,10 @@ try {
     "confirmed submit payload survives Browser restart for the same effect readback");
   assert.equal(restartedOutcome?.providerEffectIdentityHash, first.logicalMutationId,
     "the public typed outcome carries the Browser-owned provider effect identity");
-  assert.doesNotThrow(() => restarted.prepare(identity("attempt:2", 1)),
+  assert.doesNotThrow(() => restarted.prepare({ ...identity("attempt:2", 1),
+    domainRejectionRevision: true }),
     "a Website-authorized new result revision receives a new provider effect");
-  const rejectedNoInput = identity("attempt:1", 2);
+  const rejectedNoInput = { ...identity("attempt:1", 2), domainRejectionRevision: true };
   restarted.prepare(rejectedNoInput);
   restarted.markDispatched(rejectedNoInput.commandId);
   restarted.markRejected(rejectedNoInput.commandId, hash("no-input"), "no", "BROWSER_DOM_READ_INVALID");
@@ -267,7 +316,9 @@ try {
     "the same attempt must retain its no-input rejection instead of self-retrying");
   assert.equal(noInputOutcome("attempt:2"), null,
     "a Website-authorized new attempt must not be blocked by an older zero-input rejection");
-  const retriedNoInput = identity("attempt:2", 2);
+  const retriedNoInput = { ...identity("attempt:2", 2), domainRejectionRevision: true };
+  assert.doesNotThrow(() => restarted.prepare(retriedNoInput),
+    "the new attempt may prepare an effect after proven zero physical input");
   assert.throws(() => restarted.prepare({
     ...retriedNoInput,
     commandId: "command:attempt:2:no-input-drift",
@@ -275,9 +326,7 @@ try {
     requestHash: hash("request:no-input-drift"),
     payloadHash: hash("payload:no-input-drift"),
   }), /BROWSER_PROVIDER_EFFECT_IDENTITY_DRIFT/u,
-  "zero physical input permits a new attempt, not a different effect identity");
-  assert.doesNotThrow(() => restarted.prepare(retriedNoInput),
-    "the new attempt may prepare the same provider effect after proven zero physical input");
+  "after the new attempt fixes its effect identity, a different identity must be rejected");
   restarted.markDispatched(retriedNoInput.commandId);
   restarted.markConfirmed(retriedNoInput.commandId, hash("retried-terminal"), "confirmed", terminalPayload);
   assert.equal(noInputOutcome("attempt:3")?.state, "confirmed",

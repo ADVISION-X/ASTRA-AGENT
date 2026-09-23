@@ -50,6 +50,18 @@ export type WorkbenchBrowserAuthority = Readonly<{
   }>): Promise<BrowserExecutionArtifactLease>;
   hasUnresolvedBrowserMutation(): boolean;
   hasBrowserMutationForJob(jobId: string): boolean;
+  readJobBrowserHistoryEvidence(jobId: string): Readonly<{
+    historyHash: `sha256:${string}`; rowCount: number; walHistoryVerified: boolean;
+    targetSettlementHash: `sha256:${string}`; targetSettled: boolean;
+    replayCalls: readonly Readonly<{ productStepId: string; callId: string;
+      childCapabilityId: string; sourceEffectSetHash: `sha256:${string}` }>[];
+  }>;
+  readJobPhysicalInputState(jobId: string): "zero" | "possible" | "unknown";
+  verifyRuntimeTaskProvenance(earliestTaskCreatedAt: string | null): void;
+  readBoundJobRefHash(): `sha256:${string}` | null;
+  readUnreleasedTargetClaims(): readonly Readonly<{
+    jobRefHash: `sha256:${string}`; targetRef: string;
+  }>[];
   countProviderTurnDispatches(jobId: string, attemptId: string): number;
   readProviderEffectStepCallFact(input: Readonly<{
     jobId: string;
@@ -148,6 +160,12 @@ export const createWorkbenchBrowserAuthority = async (
     hasUnresolvedBrowserMutation: () =>
       supervisor.hasUnresolvedBrowserMutation(),
     hasBrowserMutationForJob: (jobId) => supervisor.hasBrowserMutationForJob(jobId),
+    readJobBrowserHistoryEvidence: (jobId) => supervisor.readJobBrowserHistoryEvidence(jobId),
+    readJobPhysicalInputState: (jobId) => supervisor.readJobPhysicalInputState(jobId),
+    verifyRuntimeTaskProvenance: (earliestTaskCreatedAt) =>
+      supervisor.verifyRuntimeTaskProvenance(earliestTaskCreatedAt),
+    readBoundJobRefHash: () => supervisor.readBoundJobRefHash(),
+    readUnreleasedTargetClaims: () => supervisor.readUnreleasedTargetClaims(),
     countProviderTurnDispatches: (jobId, attemptId) =>
       supervisor.countProviderTurnDispatches(jobId, attemptId),
     readProviderEffectStepCallFact: (input) =>

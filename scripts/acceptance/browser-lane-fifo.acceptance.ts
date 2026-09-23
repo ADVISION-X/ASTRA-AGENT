@@ -117,12 +117,16 @@ Object.assign(blockedLane, {
     wrongJobPermanentRelease, exactRelease],
   infrastructure: { mutationState: {
     countDispatched: () => 1,
+    allDispatchedTargetsSettled: () => false,
     hasMutationForJob: (jobId: string, unresolvedOnly: boolean) => unresolvedOnly && jobId === "job-b",
   } },
 });
 const selected = (blockedLane.nextWaiter as () => { kind: string; jobRefHash: string }).call(blockedLane);
-assert.deepEqual([selected.kind, selected.jobRefHash], ["release", releaseHash],
-  "Website-authorized exact release must not deadlock behind the job's unresolved WAL");
+assert.deepEqual([selected.kind, selected.jobRefHash], ["release", ordinaryRelease.jobRefHash],
+  "a Website-authorized completed job release may proceed while another job owns unresolved WAL");
+const selectedExact = (blockedLane.nextWaiter as () => { kind: string; jobRefHash: string }).call(blockedLane);
+assert.deepEqual([selectedExact.kind, selectedExact.jobRefHash], ["release", waitNewRelease.jobRefHash],
+  "the exact wait-new-attempt release remains reachable behind the blocked acquire");
 let purgePumpCount = 0;
 let unresolvedAfterPurge = true;
 let resumedSibling: { kind: string; jobRefHash: string } | null = null;
@@ -132,6 +136,7 @@ Object.assign(wakeLane, {
   queue: [blockedAcquire],
   infrastructure: { mutationState: {
     countDispatched: () => unresolvedAfterPurge ? 1 : 0,
+    allDispatchedTargetsSettled: () => !unresolvedAfterPurge,
     hasMutationForJob: () => unresolvedAfterPurge,
     purgeJob: () => { unresolvedAfterPurge = false; },
   } },
@@ -146,8 +151,8 @@ await Promise.resolve();
 assert.equal(purgePumpCount, 1, "exact WAL purge must immediately re-pump the one FIFO lane");
 assert.deepEqual(resumedSibling, { kind: "acquire", jobRefHash: blockedAcquire.jobRefHash },
   "a queued sibling must resume after the deleted job's WAL is gone");
-assert.equal((blockedLane.queue as unknown[]).length, 4,
-  "acquire, admission, WAIT, and another job's deletion must remain blocked");
+assert.equal((blockedLane.queue as unknown[]).length, 3,
+  "blocked acquire and the remaining releases must retain their queue identities");
 
 const sameJobAcquire = { ...blockedAcquire, binding: { kind: "production", jobId: "job-b" } };
 const localSameJobAcquire = { ...blockedAcquire, binding: { kind: "local", jobId: "job-b" } };
@@ -174,7 +179,7 @@ const createBehaviorLane = (events: string[], unresolved = 0) => {
       events.push(parentConversationUrl
         ? `ensure:${waiter.targetMode}:${parentConversationUrl}` : `ensure:${waiter.targetMode}`);
     },
-    releaseJobBoundTarget: async (_remainingMs: number, jobRefHash: string) => {
+    releaseJobBoundTarget: async (_remainingMs: number, _jobId: string, jobRefHash: string) => {
       events.push(`release:${jobRefHash}`);
     },
     reset: () => undefined, resolvePending: () => undefined, rejectPending: () => undefined,
@@ -184,6 +189,7 @@ const createBehaviorLane = (events: string[], unresolved = 0) => {
     wakeTimer: null, observationNotBefore: 0,
     infrastructure: { mutationState: {
       countDispatched: () => unresolved,
+      allDispatchedTargetsSettled: () => unresolved === 0,
       hasMutationForJob: (jobId: string, unresolvedOnly: boolean) => unresolvedOnly && unresolved > 0 && jobId === "job-a",
       settleRetiredTargetLocal: () => ({ effectScope: "provider_effect",
         childCapabilityId: "submit_exact_gpt_turn_once", logicalMutationId: hash("9") }),
@@ -211,11 +217,12 @@ const createBehaviorLane = (events: string[], unresolved = 0) => {
 
 const retiredRoot = await mkdtemp(join(tmpdir(), "browser-lane-retired-target-local-"));
 const retiredStore = new BrowserMutationStore(retiredRoot);
+retiredStore.verifyRuntimeTaskProvenance(null);
 try {
   const currentBinding = binding("a");
   const oldCommandId = "old-target-local-command";
   const oldExactCallIdentityHash = hash("1");
-  retiredStore.prepare({
+  retiredStore.prepare({deliveryPriorityReplayGrantHash: null,
     commandId: oldCommandId,
     exactCallIdentityHash: oldExactCallIdentityHash,
     jobId: currentBinding.jobId,
@@ -241,6 +248,7 @@ try {
   const retiredLane = createBehaviorLane(retiredEvents);
   const mutationState = {
     countDispatched: () => retiredStore.countDispatched(),
+    allDispatchedTargetsSettled: () => retiredStore.allDispatchedTargetsSettled(),
     hasMutationForJob: (jobId: string, unresolvedOnly: boolean) => retiredStore.hasMutationForJob(jobId, unresolvedOnly),
     latestProviderInputTerminalAt: () => retiredStore.latestProviderInputTerminalAt(),
     settleRetiredTargetLocal: (exactBinding: Parameters<BrowserMutationStore["settleRetiredTargetLocal"]>[0]) => {
@@ -407,9 +415,10 @@ releaseAcquirer = new BrowserTargetAcquirer(
     queueMicrotask(() => releaseAcquirer.resolvePending("release", jobRefHash));
   } } as never,
   { current: () => ({ kind: "PRESENT", authority: { authorityEpoch: 1 } }) } as never,
-  { pendingJobBoundTargetAcquisition: null } as never,
+  { pendingJobBoundTargetAcquisition: null,
+    mutationState: { unreleasedTargetRefs: () => [] } } as never,
 );
-await releaseAcquirer.releaseJobBoundTarget(5_000, releasedJobHash as `sha256:${string}`);
+await releaseAcquirer.releaseJobBoundTarget(5_000, "released-job", releasedJobHash as `sha256:${string}`);
 assert.deepEqual(releaseFrames, [releasedJobHash],
   "the selected FIFO release must cross the one preauthorized WebSocket path and settle only on exact ack");
 

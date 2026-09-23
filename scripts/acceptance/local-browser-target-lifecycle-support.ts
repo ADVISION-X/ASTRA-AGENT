@@ -54,20 +54,16 @@ const closeRotatedTargets = async (input: Readonly<{
   setRemoveFailureTabId(value: number | null): void;
 }>): Promise<void> => {
   input.setRemoveFailureTabId(7);
-  await assert.rejects(input.authority.releaseJobBoundChatGptTarget(input.hashes[0]!),
-    /BROWSER_TARGET_CLEANUP_FAILED/u,
-    "an unproven tab removal must retain the exact binding for a governed retry");
-  await input.authority.acquireJobBoundChatGptTarget("bound-observation", input.hashes[0]!);
-  assert.equal(input.targetFrames.at(-1)?.body.targetRef, input.targetRefs[0]);
-  await input.authority.parkActiveTarget();
-  await input.authority.releaseJobBoundChatGptTarget(input.hashes[0]!);
-  assert.equal(input.removedTabs.at(-1), 7, "business closure must remove only the exact job-owned Tab");
+  await input.authority.releaseJobBoundChatGptTarget(input.hashes[0]!, [input.targetRefs[0]!]);
+  assert.equal(input.targetFrames.at(-1)?.body.releaseOutcome, "quiesced",
+    "failed physical removal must retire the old command handler without claiming physical absence");
+  assert.equal(input.removedTabs.includes(7), false);
   await input.authority.acquireJobBoundChatGptTarget("bound-observation", input.hashes[1]!);
   assert.equal(input.targetFrames.at(-1)?.body.targetRef, input.targetRefs[1],
     "closing job A must preserve job B's exact bound Tab");
   await input.authority.parkActiveTarget();
-  await input.authority.releaseJobBoundChatGptTarget(input.hashes[1]!);
-  await input.authority.releaseJobBoundChatGptTarget(input.hashes[2]!);
+  await input.authority.releaseJobBoundChatGptTarget(input.hashes[1]!, [input.targetRefs[1]!]);
+  await input.authority.releaseJobBoundChatGptTarget(input.hashes[2]!, [input.targetRefs[2]!]);
 };
 
 export const exerciseTargetRotation = async (input: Readonly<{
@@ -155,7 +151,7 @@ export const exerciseAuthorizedContinuation = async (input: Readonly<{
     "a parked Target from article B must fail before article A can claim it");
   assert.equal(input.debuggerMethods.filter((method) => method === "Page.navigate").length,
     parkedBaseline, "mismatched parked continuation must fail without navigation");
-  await input.authority.releaseJobBoundChatGptTarget(hash);
+  await input.authority.releaseJobBoundChatGptTarget(hash, [String(input.targetFrames.at(-1)?.body.targetRef)]);
 };
 
 export const exerciseClaimBroker = async (input: Readonly<{

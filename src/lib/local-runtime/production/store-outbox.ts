@@ -1,6 +1,7 @@
 import { executionFailure, failureCode } from "../../execution-failure.js";
 import { typedRuntimeTransportFailure } from "./transport-failure.js";
-import { hashCanonical, parseTerminalReceipt, parseTerminalReceiptExpectation, type ProductionHash } from "./contracts.js";
+import { hashCanonical, parseTerminalReceipt, parseTerminalReceiptExpectation, sha256,
+  WebsiteAgentResultSchema, type ProductionHash, type WebsiteAgentResult } from "./contracts.js";
 import {
   assertReceiptIdentity,
   type LocalReceiptIntent,
@@ -58,6 +59,183 @@ const assertHydratedReceipt = (local: LocalReceiptIntent, response: Record<strin
 };
 
 export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
+  public readUploadedResultEnvelope(jobId: string, attemptId: string): WebsiteAgentResult | null {
+    const attemptHash = hashCanonical({ attempt_id: attemptId }).slice(7, 23);
+    const rows = this.database.prepare(`select body_blob from production_outbox
+      where kind='artifact' and instr(path,?)>0
+        and instr(path,'/artifacts/result_envelope/')>0
+        and instr(path,?)>0 order by created_at desc,idempotency_key desc`
+    ).all(jobPathMarker(jobId), `_${attemptHash}_result_envelope_`) as Array<{ body_blob: Buffer }>;
+    for (const row of rows) {
+      let parsed: unknown;
+      try { parsed = JSON.parse(row.body_blob.toString("utf8")); }
+      catch { throw executionFailure("failed", "PRODUCTION_RESULT_ENVELOPE_CORRUPT"); }
+      const result = WebsiteAgentResultSchema.safeParse(parsed);
+      if (!result.success || result.data.job_id !== jobId) {
+        throw executionFailure("failed", "PRODUCTION_RESULT_ENVELOPE_CORRUPT");
+      }
+      return result.data;
+    }
+    return null;
+  }
+
+  public readResultOutboxHistoryEvidence(jobId: string, attemptId: string): Readonly<{
+    historyHash: ProductionHash; rowCount: number; candidateCount: number;
+  }> {
+    const rows = this.database.prepare(`select idempotency_key,kind,path,body_blob from production_outbox
+      where instr(path,?)>0 and kind in ('artifact','terminal')
+      order by idempotency_key`).all(jobPathMarker(jobId)) as Array<{
+        idempotency_key: string; kind: string; path: string; body_blob: Buffer;
+      }>;
+    const facts = rows.map((row) => ({
+      idempotencyKey: row.idempotency_key, kind: row.kind, path: row.path,
+      bodyHash: sha256(row.body_blob),
+    }));
+    const attemptHash = hashCanonical({ attempt_id: attemptId }).slice(7, 23);
+    return Object.freeze({
+      historyHash: hashCanonical(facts),
+      rowCount: rows.length,
+      candidateCount: rows.filter((row) => row.kind === "terminal"
+        ? (() => {
+          try { return (JSON.parse(row.body_blob.toString("utf8")) as { attempt_id?: string })
+            .attempt_id === attemptId; }
+          catch { return true; }
+        })()
+        : row.path.includes("/artifacts/result_envelope/")
+          && row.path.includes(`_${attemptHash}_result_envelope_`)).length,
+    });
+  }
+
+  public uploadedResultCandidateJobIds(): readonly string[] {
+    return Object.freeze(this.taskAuthorities()
+      .filter((row) => row.status === "failed" && row.current_attempt_id !== null
+        && this.hasUploadedResultCandidate(row.task.job_id, row.current_attempt_id))
+      .map((row) => row.task.job_id));
+  }
+
+  public hasUploadedResultCandidate(jobId: string, attemptId: string): boolean {
+    const attemptHash = hashCanonical({ attempt_id: attemptId }).slice(7, 23);
+    return Boolean(this.database.prepare(`select 1 from production_outbox
+      where kind='artifact' and instr(path,?)>0 and instr(path,?)>0
+        and (instr(path,'/artifacts/result_payload/')>0
+          or instr(path,'/artifacts/result_envelope/')>0) limit 1`
+    ).get(jobPathMarker(jobId), `_${attemptHash}_result_`));
+  }
+
+  public readStagedTerminalReceipts(jobId: string, attemptId: string,
+    result: WebsiteAgentResult): readonly ProductionHash[] {
+    const rows = this.database.prepare(`select body_blob from production_outbox
+      where kind='terminal' and instr(path,?)>0 order by created_at desc,idempotency_key desc`
+    ).all(jobPathMarker(jobId)) as Array<{ body_blob: Buffer }>;
+    for (const row of rows) {
+      let body: Record<string, unknown>;
+      try { body = JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>; }
+      catch { continue; }
+      if (body.job_id !== jobId || body.attempt_id !== attemptId
+        || body.payload_hash !== hashCanonical(result)) continue;
+      const receipts = body.result_object_receipts;
+      if (!Array.isArray(receipts) || receipts.length < 2
+        || receipts.some((receipt) => typeof receipt !== "string"
+          || !/^sha256:[a-f0-9]{64}$/u.test(receipt))) break;
+      return Object.freeze([...receipts] as ProductionHash[]);
+    }
+    throw executionFailure("failed", "PRODUCTION_STAGED_TERMINAL_INTENT_MISSING");
+  }
+
+  public hydrateCurrentResultArtifacts(jobId: string, attemptId: string,
+    result: WebsiteAgentResult, remoteReceipts: readonly RemoteReceipt[]): void {
+    const expected = this.readStagedTerminalReceipts(jobId, attemptId, result);
+    const selected = remoteReceipts.filter((receipt) => receipt.write_kind === "artifact"
+      && expected.includes(receipt.response_json.receipt_hash as ProductionHash));
+    if (selected.length !== expected.length
+      || new Set(selected.map((receipt) => receipt.response_json.receipt_hash)).size !== expected.length) {
+      throw executionFailure("failed", "PRODUCTION_RESULT_ARTIFACT_READBACK_INCOMPLETE");
+    }
+    this.hydrateRemoteOutboxReceipts(jobId, selected);
+    const delivered = this.database.prepare(`select receipt_hash from production_outbox
+      where kind='artifact' and instr(path,?)>0 and sent_at is not null
+        and receipt_hash is not null`).all(jobPathMarker(jobId)) as Array<{ receipt_hash: string }>;
+    if (expected.some((receipt) => !delivered.some((row) => row.receipt_hash === receipt))) {
+      throw executionFailure("failed", "PRODUCTION_RESULT_ARTIFACT_READBACK_INCOMPLETE");
+    }
+  }
+
+  public stageResultAndEnqueueTerminal(input: Readonly<{
+    jobId: string;
+    attemptId: string;
+    result: WebsiteAgentResult;
+    terminal: ProductionOutboxWrite;
+    websiteStagedArtifactReceipts?: readonly Readonly<{ role: string; receipt_hash: ProductionHash }>[];
+  }>): void {
+    if (input.terminal.kind !== "terminal") throw executionFailure("failed", "PRODUCTION_TERMINAL_INTENT_INVALID");
+    this.database.transaction(() => {
+      let terminal: Record<string, unknown>;
+      try { terminal = JSON.parse(Buffer.from(input.terminal.body).toString("utf8")) as Record<string, unknown>; }
+      catch { throw executionFailure("failed", "PRODUCTION_TERMINAL_INTENT_INVALID"); }
+      const expected = parseTerminalReceiptExpectation(terminal);
+      const firstRaw = this.readAttemptFailureRaw(input.jobId);
+      const sourceFact = terminal.terminal_source_first_fact;
+      const sourceMatches = firstRaw === null ? sourceFact === null : Boolean(sourceFact
+        && typeof sourceFact === "object" && !Array.isArray(sourceFact)
+        && (sourceFact as Record<string, unknown>).raw_json === firstRaw
+        && (sourceFact as Record<string, unknown>).hash === sha256(Buffer.from(firstRaw, "utf8")));
+      const receipts = terminal.result_object_receipts;
+      const delivered = this.database.prepare(`select path,body_blob,response_json,receipt_hash
+        from production_outbox where kind='artifact' and instr(path,?)>0
+          and sent_at is not null and response_hash is not null
+          and receipt_hash is not null`).all(jobPathMarker(input.jobId)) as {
+        path: string; body_blob: Buffer; response_json: string; receipt_hash: string;
+      }[];
+      const selected = Array.isArray(receipts) ? delivered.filter((row) => receipts.includes(row.receipt_hash)) : [];
+      const attemptHash = hashCanonical({ attempt_id: input.attemptId }).slice(7, 23);
+      const selectedRoles: string[] = [];
+      const receiptRowsValid = selected.length === (Array.isArray(receipts) ? receipts.length : -1)
+        && selected.every((row) => {
+          let response: Record<string, unknown>;
+          try { response = JSON.parse(row.response_json) as Record<string, unknown>; }
+          catch { return false; }
+          const role = response.role;
+          const artifactId = response.artifact_id;
+          const roleAttemptHash = role === "generated_image"
+            ? hashCanonical({ attempt_id: input.attemptId, role }).slice(7, 23) : attemptHash;
+          if (typeof role !== "string" || typeof artifactId !== "string"
+            || !["result_payload", "result_envelope", "generated_image"].includes(role)
+            || !artifactId.includes(roleAttemptHash)
+            || !row.path.includes(`/artifacts/${role}/${encodeURIComponent(artifactId)}`)
+            || response.receipt_hash !== row.receipt_hash) return false;
+          selectedRoles.push(role);
+          if (role === "result_payload") return row.receipt_hash === input.result.result_object_receipt.receipt_hash
+            && response.sha256 === input.result.result_payload_hash;
+          if (role === "result_envelope") {
+            try { return json(JSON.parse(row.body_blob.toString("utf8"))) === json(input.result); }
+            catch { return false; }
+          }
+          return true;
+        });
+      const remoteReceipts = input.websiteStagedArtifactReceipts;
+      const remoteReceiptValid = remoteReceipts !== undefined && Array.isArray(receipts)
+        && remoteReceipts.length === receipts.length
+        && remoteReceipts.every((item) => receipts.includes(item.receipt_hash))
+        && remoteReceipts.filter((item) => item.role === "result_payload").length === 1
+        && remoteReceipts.filter((item) => item.role === "result_envelope").length === 1
+        && remoteReceipts.find((item) => item.role === "result_payload")?.receipt_hash
+          === input.result.result_object_receipt.receipt_hash;
+      if (expected.job_id !== input.jobId || terminal.attempt_id !== input.attemptId
+        || terminal.payload_hash !== hashCanonical(input.result)
+        || input.result.evidence_refs.length === 0 || !sourceMatches
+        || !Array.isArray(receipts) || receipts.length < 2 || receipts.length > 4
+        || new Set(receipts).size !== receipts.length
+        || !(receiptRowsValid
+          && selectedRoles.filter((role) => role === "result_payload").length === 1
+          && selectedRoles.filter((role) => role === "result_envelope").length === 1)
+          && !remoteReceiptValid) {
+        throw executionFailure("failed", "PRODUCTION_TERMINAL_INTENT_INVALID");
+      }
+      this.stageResult(input.jobId, input.attemptId, input.result);
+      this.persistOutboxWrite(input.terminal);
+    })();
+    this.notifyOutbox(this.readOutboxAuthority(input.terminal.idempotency_key));
+  }
   private readPendingOutboxWrite(idempotencyKey: string): ProductionOutboxWrite {
     const row = this.database.prepare(`select idempotency_key,kind,path,method,headers_json,body_blob
       from production_outbox where idempotency_key=? and sent_at is null`
@@ -82,6 +260,11 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
   }
 
   public enqueue(write: ProductionOutboxWrite): void {
+    this.persistOutboxWrite(write);
+    this.notifyOutbox(this.readOutboxAuthority(write.idempotency_key));
+  }
+
+  private persistOutboxWrite(write: ProductionOutboxWrite): void {
     const bytes = Buffer.from(write.body);
     const headers = json(write.headers);
     const existing = this.database.prepare(`select kind,path,method,headers_json,body_blob,sent_at,last_error
@@ -100,7 +283,6 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
         this.database.prepare(`update production_outbox set headers_json=?,last_error=null
           where idempotency_key=? and sent_at is null`).run(headers, write.idempotency_key);
       }
-      this.notifyOutbox(this.readOutboxAuthority(write.idempotency_key));
       return;
     }
     this.database.prepare(`insert into production_outbox(
@@ -108,7 +290,6 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
     ) values(?,?,?,?,?,?,?)`).run(
       write.idempotency_key, write.kind, write.path, write.method, headers, bytes, now(),
     );
-    this.notifyOutbox(this.readOutboxAuthority(write.idempotency_key));
   }
 
   public markOutboxSent(idempotencyKey: string, response: unknown): void {
@@ -152,19 +333,21 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
   public hasUnsentOutbox(jobId: string): boolean {
     return Boolean(this.database.prepare(`select 1 from production_outbox
       where instr(path,?)>0 and sent_at is null
-        and (last_error is null or kind='provider_cooldown') limit 1`
+        and (last_error is null or (kind='provider_cooldown'
+          and last_error<>'BUSINESS_ADMITTED')) limit 1`
     ).get(jobPathMarker(jobId)));
   }
 
   public hasProviderCooldownHistory(): boolean {
     return Boolean(this.database.prepare(
-      "select 1 from production_outbox where kind='provider_cooldown' limit 1",
+      "select 1 from production_outbox where kind='provider_cooldown' and coalesce(last_error,'')<>'BUSINESS_ADMITTED' limit 1",
     ).get());
   }
 
   public hasUndeliveredProviderCooldown(): boolean {
     return Boolean(this.database.prepare(`select 1 from production_outbox
-      where kind='provider_cooldown' and sent_at is null limit 1`).get());
+      where kind='provider_cooldown' and sent_at is null
+        and coalesce(last_error,'')<>'BUSINESS_ADMITTED' limit 1`).get());
   }
 
   public latestProviderCooldownServerNow(): string | null {
@@ -196,6 +379,7 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
   public pendingProviderCooldownRequestIds(): readonly string[] {
     const rows = this.database.prepare(`select idempotency_key from production_outbox
       where kind='provider_cooldown' and sent_at is null
+        and coalesce(last_error,'')<>'BUSINESS_ADMITTED'
         and (json_extract(cast(body_blob as text),'$.phase')='clearance'
           or exists(select 1 from production_outbox clearance
             where clearance.kind='provider_cooldown'
@@ -209,6 +393,7 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
   public pendingProviderCooldownIncidentBodies(): readonly Readonly<Record<string, unknown>>[] {
     const rows = this.database.prepare(`select body_blob from production_outbox
       where kind='provider_cooldown'
+        and coalesce(last_error,'')<>'BUSINESS_ADMITTED'
         and json_extract(cast(body_blob as text),'$.phase')='incident'
         and not exists(select 1 from production_outbox clearance
           where clearance.kind='provider_cooldown'
@@ -228,6 +413,7 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
   }> | null {
     const rows = this.database.prepare(`select body_blob from production_outbox
       where kind='provider_cooldown' and sent_at is null
+        and coalesce(last_error,'')<>'BUSINESS_ADMITTED'
       order by created_at,idempotency_key`).all() as Array<{ body_blob: Buffer }>;
     const bodies = rows.map((row) =>
       JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>);

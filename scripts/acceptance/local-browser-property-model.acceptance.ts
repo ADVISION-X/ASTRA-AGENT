@@ -165,7 +165,7 @@ const readyBody = await extensionDecrypt(directionalKeys.serverToClientKey, "ser
   decodeBrowserAuthorityFrame(sentFrames[2]!));
 assert.equal(readyBody.commandPermitKey, commandPermitKey);
 
-const permitAuthority = Object.freeze({
+const permitAuthority = Object.freeze({deliveryPriorityReplayGrantHash: null,
   authorityRef: "authority-wire-proof", authorityEpoch: 1, certificateHash: hash,
   channelSessionHash: hash, executionBindingHash: hash, writerFenceHash: hash,
   candidateHash: hash, contractManifestHash: hash,
@@ -281,6 +281,7 @@ assert.equal(sentFrames.length, graceSentBefore + 1,
 
 const chainRoot = await mkdtemp(join(tmpdir(), "browser-reply-chain-"));
 const chainStore = new BrowserMutationStore(chainRoot);
+chainStore.verifyRuntimeTaskProvenance(null);
 try {
   const chainActor = new BrowserCommandActor(
     new BrowserCommandAdmissionBudget(),
@@ -386,4 +387,4 @@ try {
   await rm(chainRoot, { recursive: true, force: true });
 }
 console.log("LOCAL_BROWSER_PROPERTY_MODEL_ACCEPTANCE_PASS");
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V48", evidenceMode: "exam.property", clauses: ["forbidden:0","forbidden:1","forbidden:9","summary"], locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 authenticated frame sequences round-trip exactly; encrypted invocation payloads remain complete and one-shot mutation replies never replay" });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V49", evidenceMode: "exam.property", clauses: ["forbidden:0","forbidden:1","forbidden:9","summary"], locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 authenticated frame sequences round-trip exactly; encrypted invocation payloads remain complete and one-shot mutation replies never replay" });

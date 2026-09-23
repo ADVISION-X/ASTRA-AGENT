@@ -4,6 +4,7 @@ export type ExtensionExactTarget = Readonly<{
   targetRef: string;
   documentRef: string;
   tabId: number;
+  chromeTargetId: string;
   navigationEpoch: number;
   jobRefHash: `sha256:${string}`;
   loaderId: string;
@@ -20,7 +21,8 @@ export type ExtensionOperatorTargetClaim = Readonly<{
 
 export const assertExactTarget = (target: ExtensionExactTarget): void => {
   if (!target.targetRef || !target.documentRef || !Number.isInteger(target.tabId)
-    || !/^sha256:[a-f0-9]{64}$/u.test(target.jobRefHash) || !target.loaderId) {
+    || !/^sha256:[a-f0-9]{64}$/u.test(target.jobRefHash) || !target.loaderId
+    || !target.chromeTargetId) {
     throw new Error("BROWSER_TARGET_INVALID");
   }
 };
@@ -29,13 +31,15 @@ export const assertExactTarget = (target: ExtensionExactTarget): void => {
 export class ExtensionExactTargetRegistry {
   private readonly targets = new Map<string, ExtensionExactTarget>();
 
-  public claimOperatorTarget(tabId: number, jobRefHash: `sha256:${string}`, loaderId: string): ExtensionExactTarget {
+  public claimOperatorTarget(tabId: number, jobRefHash: `sha256:${string}`,
+    loaderId: string, chromeTargetId: string): ExtensionExactTarget {
     if (!Number.isInteger(tabId) || tabId < 0 || !/^sha256:[a-f0-9]{64}$/u.test(jobRefHash)
-      || !loaderId || this.findByJobRefHash(jobRefHash)) throw new Error("BROWSER_TARGET_INVALID");
+      || !loaderId || !chromeTargetId || this.findByJobRefHash(jobRefHash)) throw new Error("BROWSER_TARGET_INVALID");
     const target: ExtensionExactTarget = {
       targetRef: `target-tab-${tabId}`,
       documentRef: `document-${newRef()}`,
       tabId,
+      chromeTargetId,
       navigationEpoch: 0,
       jobRefHash,
       loaderId,
