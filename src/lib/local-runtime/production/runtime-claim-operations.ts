@@ -112,6 +112,15 @@ export const handleRuntimeBoundaryFailure = async (input: Readonly<{
         evidence?.evidenceRef, evidence?.evidenceHash].filter(Boolean).join("|"),
     );
   }
+  const boundaryFailureCode = failureCode(input.error);
+  if ([
+    "PRODUCTION_REMOTE_ATTEMPT_FAILURE_LOCAL_AUTHORITY_MISSING",
+    "PRODUCTION_REGRANTED_ATTEMPT_LOCAL_AUTHORITY_MISSING",
+  ].includes(boundaryFailureCode)) {
+    input.state.lastErrorCode = boundaryFailureCode;
+    input.state.lastErrorReason = safeReason(input.error);
+    return;
+  }
   if (input.durability !== "unaccepted" || current?.attempt_failure) return;
   try {
     await releaseUnacceptedClaim(

@@ -52,6 +52,8 @@ type RotationSignals = Readonly<{
 type RotationState = {
   heartbeatCount: number;
   claimCount: number;
+  attestedInFlight: number;
+  observedHeartbeatInFlight: number[];
   observedClaimHashes: string[];
   observedClaimTokens: string[];
   tamperClaimHash: boolean;
@@ -65,7 +67,7 @@ const createSessionFetch = (
   if (url.endsWith("/internal/ai-production/v6/sessions/open")) return successfulJsonResponse({
     session: {
       device_id: "device:atomic-claim", worker_session_id: "worker-session:atomic-claim",
-      worker_session_epoch: 1, control_contract_version: 38,
+      worker_session_epoch: 1, control_contract_version: 39,
     },
     session_credential: credentialFor(1),
   });
@@ -75,7 +77,10 @@ const createSessionFetch = (
       signals.heartbeatRotationEntered.release();
       await signals.heartbeatRotationRelease.promise;
     }
-    const receiptHash = [HASH_A, HASH_B, HASH_C, HASH_A][heartbeatNumber - 1];
+    if (typeof init?.body !== "string") throw new Error("HEARTBEAT_BODY_MISSING");
+    const heartbeatBody = JSON.parse(init.body) as { agent_attested_in_flight?: number };
+    state.observedHeartbeatInFlight.push(Number(heartbeatBody.agent_attested_in_flight));
+    const receiptHash = [HASH_A, HASH_B, HASH_C, HASH_A, HASH_B][heartbeatNumber - 1];
     if (!receiptHash) throw new Error("UNEXPECTED_HEARTBEAT_COUNT");
     return successfulJsonResponse({
       attestation_receipt: attestationFor(heartbeatNumber, receiptHash,
@@ -119,6 +124,18 @@ const exerciseClaimOrdering = async (
   await exerciseNearExpiryClaim(session, state, signals);
   await exerciseClaimAfterRotation(session, state, signals);
   await exerciseHeartbeatAfterClaim(session, state, signals);
+  state.attestedInFlight = 4;
+  const forced = await claimProductionTasks(
+    session, 1, "claim:full-capacity-recovery", true,
+  );
+  assert.equal(forced.outcome, "NO_ELIGIBLE_JOB");
+  assert.equal(state.heartbeatCount, 5,
+    "a full-capacity recovery claim must force a current heartbeat despite a valid cached receipt");
+  assert.equal(state.observedHeartbeatInFlight[4], 4,
+    "the forced heartbeat must carry the current full business denominator");
+  assert.equal(state.observedClaimHashes[3], HASH_B,
+    "the recovery claim must bind the receipt produced by the forced heartbeat");
+  assert.equal(state.observedClaimTokens[3], `Bearer ${credentialFor(6).token}`);
 };
 
 const exerciseNearExpiryClaim = async (
@@ -174,7 +191,8 @@ const exerciseHeartbeatAfterClaim = async (
 
 export const exerciseWorkerSessionRotation = async (): Promise<void> => {
   const state: RotationState = {
-    heartbeatCount: 0, claimCount: 0, observedClaimHashes: [], observedClaimTokens: [],
+    heartbeatCount: 0, claimCount: 0, attestedInFlight: 0,
+    observedHeartbeatInFlight: [], observedClaimHashes: [], observedClaimTokens: [],
     tamperClaimHash: false,
   };
   const signals: RotationSignals = {
@@ -194,7 +212,8 @@ export const exerciseWorkerSessionRotation = async (): Promise<void> => {
       enrolled_at: "2026-09-03T00:00:00.000Z",
     });
     const session = new ProductionWorkerSession(device, async () => ({
-      agent_attested_in_flight: 0, browser_action_in_flight: 0, browser_authority_state: "present",
+      agent_attested_in_flight: state.attestedInFlight,
+      browser_action_in_flight: 0, browser_authority_state: "present",
       browser_target_state: "absent", browser_lane_state: "idle", drain_state: "open",
       ledger_reconciled: true,
     }), HASH_B, "worker-instance:atomic-claim");

@@ -165,6 +165,7 @@ const executionGrant = (base: WebsiteAgentTask) => {
     result_contract_id: RESULT_CONTRACT_ID, result_contract_version: RESULT_CONTRACT_VERSION,
     capability_manifest_hash: productionCatalogHash,
     accepted_attempt_count: 1, max_provider_turns: 8,
+    same_accepted_attempt: false,
     result_revision: 0, prior_result_rejection: null,
   } as const;
   return {
@@ -172,12 +173,12 @@ const executionGrant = (base: WebsiteAgentTask) => {
     worker_session_id: "worker:1", worker_session_epoch: 1, lease_token: `lease:${base.job_id}`,
     lease_version: 1, server_now: "2030-01-01T00:00:00.000Z",
     lease_expires_at: "2030-01-01T00:05:00.000Z", renew_after_ms: 20_000,
-    control_contract_version: 38,
+    control_contract_version: 39,
     execution_fence: {
       schema_version: "xuanxue-ai-execution-fence.v6", environment_id: "production", device_id: "device:1",
       device_epoch: 1, worker_session_id: "worker:1", worker_session_epoch: 1, job_id: base.job_id,
       attempt_id: `attempt:${base.job_id}`, lease_version: 1, lease_token_hash: HASH_A,
-      control_contract_version: 38, fence_hash: HASH_B,
+      control_contract_version: 39, fence_hash: HASH_B,
     },
   } as const;
 };

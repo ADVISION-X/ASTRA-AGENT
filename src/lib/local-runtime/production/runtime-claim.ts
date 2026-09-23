@@ -9,7 +9,7 @@ import {
   executionFailureMetadata,
   failureCode,
 } from "../../execution-failure.js";
-import { serializeTerminalFailureTransport } from "./terminal-failure.js";
+import { classifyAttemptFailure, serializeTerminalFailureTransport } from "./terminal-failure.js";
 import {
   requireRuntimeLogWrite,
   runtimeLogCauseEventId,
@@ -99,11 +99,11 @@ const releaseReceiptMatches = (
   const receipt = candidates[0]!;
   if (receipt.payload_hash !== failure.release_descriptor.write_request_payload_hash) return false;
   const response = receipt.response_json;
+  const disposition = classifyAttemptFailure(failure.failure_core);
   const expectedReason = failure.failure_core.code === "RESULT_SETTLED_UNUSABLE"
     || failure.failure_core.code === "GPT_RESPONSE_STOPPED_EMPTY"
     ? "RESULT_REVISION_REJECTED"
-    : failure.failure_core.effect_scope === "provider_effect"
-      && ["dispatched", "confirmed"].includes(failure.failure_core.mutation_outcome)
+    : disposition === "same_attempt_provider_readback"
       ? "PROVIDER_EFFECT_READBACK_PENDING"
       : failure.failure_core.code;
   return JSON.stringify(Object.keys(response).sort()) === JSON.stringify([
@@ -147,12 +147,6 @@ const attemptFailureAuthorityConflict = (
     } },
   });
 };
-
-const failureAllowsNewAttempt = (failure: SerializedTerminalFailure): boolean =>
-  failure.code === "RESULT_SETTLED_UNUSABLE" || failure.code === "GPT_RESPONSE_STOPPED_EMPTY"
-  || (failure.effect_scope === "target_local" && failure.browser_outcome === "REJECTED")
-  || (failure.effect_scope === "provider_effect" && failure.browser_outcome === "REJECTED"
-    && failure.mutation_outcome === "no");
 
 const assertAttemptFailureReadback = (
   remote: RemoteProductionDeviceJobStatus,
@@ -260,8 +254,15 @@ export const reconcilePendingAttemptFailures = async (state: RuntimeState): Prom
       await applyRemoteFailureDisposition(state, task, remote, failure);
       continue;
     }
-    if (remote.next_action_code !== "ACTIVE_ATTEMPT"
-      || failureAllowsNewAttempt(failure.failure_core)) {
+    if (remote.next_action_code !== "ACTIVE_ATTEMPT") {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_NEXT_ACTION_MISMATCH");
+    }
+    const disposition = classifyAttemptFailure(failure.failure_core);
+    if (disposition === "fail_closed") {
+      state.store.setCurrentReason(task.task.job_id, "PRODUCTION_ATTEMPT_FAILURE_UNCLASSIFIED");
+      continue;
+    }
+    if (disposition !== "same_attempt_provider_readback") {
       throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_NEXT_ACTION_MISMATCH");
     }
   }
@@ -294,8 +295,6 @@ const persistAttemptFailure = async (
     state.lastErrorReason = safeReason(readbackError);
   }
 };
-
-
 const websiteAuthorizedNewAttempt = (
   local: StoredProductionTask,
   failure: AttemptFailureFirstFact,
@@ -304,7 +303,7 @@ const websiteAuthorizedNewAttempt = (
 ): boolean => local.current_reason === "WAIT_NEW_ATTEMPT"
   && local.current_attempt_id !== job.grant.attempt_id
   && failure.release_descriptor.attempt_id === local.current_attempt_id
-  && failureAllowsNewAttempt(failure.failure_core)
+  && classifyAttemptFailure(failure.failure_core) === "new_attempt_allowed"
   && remote.attempt_failure === null
   && remote.next_action_code === "ACTIVE_ATTEMPT";
 
@@ -335,7 +334,20 @@ const reconcileClaimAttemptFailure = async (
 }>> => {
   const local = state.store.readTask(job.job_id);
   const failure = local?.attempt_failure ?? null;
-  if (!failure) return Object.freeze({ reconciledFailure: null, stopBeforeProduct: false });
+  if (!failure) {
+    if (remote.attempt_failure) {
+      throw executionFailure(
+        "failed", "PRODUCTION_REMOTE_ATTEMPT_FAILURE_LOCAL_AUTHORITY_MISSING",
+      );
+    }
+    if (job.grant.same_accepted_attempt
+      && (!local || local.current_attempt_id !== job.grant.attempt_id)) {
+      throw executionFailure(
+        "failed", "PRODUCTION_REGRANTED_ATTEMPT_LOCAL_AUTHORITY_MISSING",
+      );
+    }
+    return Object.freeze({ reconciledFailure: null, stopBeforeProduct: false });
+  }
   if (websiteAuthorizedNewAttempt(local!, failure, job, remote)) {
     return Object.freeze({ reconciledFailure: failure, stopBeforeProduct: false });
   }
@@ -379,13 +391,13 @@ const reconcileClaimAttemptFailure = async (
     throw executionFailure("failed", "PRODUCTION_CLAIM_AFTER_FAILURE_NEXT_ACTION_INVALID");
   }
   const sameAttempt = local!.current_attempt_id === job.grant.attempt_id;
-  if (sameAttempt === failureAllowsNewAttempt(failure.failure_core)) {
+  const disposition = classifyAttemptFailure(effectiveFailure.failure_core);
+  if (disposition === "fail_closed")
+    throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_UNCLASSIFIED");
+  if ((disposition === "same_attempt_provider_readback") !== sameAttempt)
     throw executionFailure("failed", "PRODUCTION_CLAIM_AFTER_FAILURE_IDENTITY_INVALID");
-  }
   return Object.freeze({ reconciledFailure: effectiveFailure, stopBeforeProduct: false });
 };
-
-
 const handleProductExecutionFailure = async (
   state: RuntimeState,
   job: ClaimedProductionTask,
@@ -412,7 +424,8 @@ const handleProductExecutionFailure = async (
     return;
   }
   let cooldownGateClosed = false;
-  if (code === "BROWSER_KNOWN_GPT_RATE_LIMIT" && rateLimitAuthority) {
+  if (code === "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE"
+    || code === "BROWSER_KNOWN_GPT_RATE_LIMIT" && rateLimitAuthority) {
     try {
       state.providerRateLimitControl.assertProviderSubmitAllowed();
     } catch (gateError) {
@@ -425,6 +438,10 @@ const handleProductExecutionFailure = async (
       rateLimitAuthority.authorityRef,
       rateLimitAuthority.authorityHash,
     ].join("|"));
+    return;
+  }
+  if (code === "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE" && cooldownGateClosed) {
+    state.store.setCurrentReason(job.job_id, "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE");
     return;
   }
   await persistAttemptFailure(state, job, error, jobSpan.spanId);

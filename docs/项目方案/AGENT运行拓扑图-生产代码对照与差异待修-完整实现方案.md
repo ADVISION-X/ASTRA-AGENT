@@ -1,5 +1,52 @@
 # AGENT 运行拓扑图—生产代码对照与差异待修完整实现方案
 
+## 2026-09-23｜attempt failure / recovery 连坐修订
+
+状态：**已撤销旧文中“D04 16/16 PASS”结论；本轮已按冻结拓扑第 11 节三分法完成双仓同一恢复链原位修复，两仓唯一 `quality:check` 均为 `CHANGE_PASS`，修复后跨仓子智能体审计为 PASS、P0/P1/P2 均为 0。尚未形成 READY、RELEASE 或生产证明。**
+
+### 当前绑定与变更边界
+
+| 仓库 | branch / HEAD | 当前工作树 | 本轮授权范围 |
+|---|---|---|---|
+| AGENT | `main` / `14cd463f3a7dd86c90c67000b6fb17fb12df7407` | 现有长 `source_task_id/material_id` 合同修复，以及本轮 `runtime-claim/terminal-failure` 三分法修复均为已授权 dirty；不得覆盖 | failure classifier、failure receipt/readback、同 attempt 回读领取、容量投影及直接验收 |
+| Website | `main` / `44217a0121c80f5686044e6e97e67c6e9416e74a` | 本轮目标文件施工前 clean | `ai-acceptance` 内现役 lifecycle、lease expiry、claim selection 与现有 Exam；不改 wire、DB schema、active law 或 Blueprint |
+
+冻结裁决只有三类：
+
+1. `new_attempt_allowed`：完整当前 lease failure fact 且为 `target_local + REJECTED + (no/dispatched/confirmed)`、`provider_effect + REJECTED + no`，或现役合同已严格验证的 `RESULT_SETTLED_UNUSABLE / GPT_RESPONSE_STOPPED_EMPTY` revision rejection；
+2. `same_attempt_provider_readback`：完整当前 lease provider fact，且只允许 `DISPATCHED+dispatched`、`CONFIRMED+confirmed`、`REJECTED+(dispatched|confirmed)`；保留 accepted attempt，物理 submit 增量必须为零；
+3. `fail_closed`：缺失、非法、矛盾、stale lease 或其余组合；保留原 attempt/failure authority，清除失效 lease fence，禁止新 attempt、禁止同 effect regrant、禁止进入 Product。
+
+### 已证实连坐 finding
+
+| ID | 生产断点 | 事实与影响 | 唯一修复 |
+|---|---|---|---|
+| RF-01 | Website lifecycle | `!attemptFailureAllowsNewAttempt(failure)` 被直接解释为 `sameEffectReadback`，把第三类错误并入第二类 | 在现有 `job-lifecycle-core.ts` 建立唯一纯三分 classifier；release 明确 switch，fail-closed 只保留 attempt/failure 并写现役 `current_reason` |
+| RF-02 | Website lease expiry | 当前布尔 `newAttemptAuthorized` 的补集全部写成 readback pending，stale/missing/contradictory fact 可被再次领取 | expiry 读取当前 attempt 的完整 failure fact 与 lease version，按同一 classifier 三分；stale/非法进入 fail-closed |
+| RF-03 | Website claim selection | recoverable 只以 `attempt_id + accepted_at + lease_owner` 判断，没有证明其为第二类 | selector 读取当前 attempt append-only failure fact并复用唯一 classifier；只有第二类可 regrant |
+| RF-04 | AGENT receipt/readback | release receipt 预期 reason 仍以 scope/mutation 的近似补集选择，可能把 fail-closed 当 readback receipt | receipt reason 直接由现役三分 classifier 决定；第三类只接受原 failure code，不接受 readback pending |
+| RF-05 | AGENT business capacity | attestation 与 launch 只计算 active execution / pending admission，已 durable 的 readback/fail-closed attempt 在执行 promise 结束后从业务分母消失 | 复用现役 task store，将非 `WAIT_NEW_ATTEMPT` 的 pending attempt failure 计入同一 job-id 集合；同 attempt regrant 复用已有业务槽位 |
+| RF-06 | AGENT claim liveness | 若 pending readback 占满 N，现役 `available > 0` 门不会再发 claim，而协议 `requested_new_limit` 又不能为 0，导致零 submit readback 永久拿不到 regrant | claim 请求仍以最小 1 保持现役 wire 合同，但 attestation 把 preserved attempt 计入 N，使 Website 新 grant capacity 为 0；AGENT 仅在存在 pending readback 且有 executor 空位时越过“新槽位为 0”门，并只接受已有 pending failure job 的 regrant |
+
+附件提出的“Website same-effect release 清除 `lease_owner`，因此容量漏计”与当前代码不符：`sameEffectReadback` 以及过期保存分支只清 token/expiry/session/fence，保留 `lease_owner`；现役 Website `countV6DeviceBusinessInFlight` 因而仍计算该 accepted attempt。本轮禁止为这个未成立的推断新增状态或补丁，但必须以 Exam 锁定该事实。
+
+### 修复后证据与独立审计
+
+- AGENT：`npm run typecheck`、`npm run acceptance:agent-production-runtime`、唯一 `npm run quality:check` 均通过，最终 verdict 为 `CHANGE_PASS`；
+- Website：Node `v24.20.0` 下 `pnpm quality:check` 全量通过，最终 verdict 为 `CHANGE_PASS`；AI Production V6 Exam 为 43 项，其中 42 pass、0 fail、1 项因未设置 `AI_PRODUCTION_POSTGRES_TEST=1` 跳过；
+- 双仓 `git diff --check` 通过；未新增 schema、migration、wire 字段、状态、队列、worker、兼容路径或第二恢复 Owner；
+- 修复后子智能体重新读取当前双仓 dirty candidate 和关键调用方，按三分类、stale fact、跨 lease provider readback、fail-closed、满 N 活性、容量去重、receipt reason、兄弟工单隔离与唯一 Owner 逐项复审，结论为 PASS，P0/P1/P2 均为 0；
+- 本轮没有物理删除既有三个工单，也没有执行生产重启、真实 PostgreSQL 开关用例、真实 Browser/Provider、Dynamic Proof、READY 或 RELEASE。
+
+### 施工顺序与验收
+
+1. 先在 Website 将 lifecycle、expiry、selector 全部绑定同一 classifier，并补正现有 AI V6 Exam 的三类正负矩阵、stale lease、fail-closed 不可领取与容量保留；
+2. 再在 AGENT 将 receipt reason、business capacity、满 N 的 readback claim 和 regrant 槽位复用绑定现有 classifier/store，并扩展现役 production runtime acceptance；
+3. 运行两仓目标 typecheck/直接验收与各仓唯一 `quality:check`；静态与普通动态验收只构成 CHANGE 证据；
+4. 修复完成后启动全新子智能体只读审计，按 RF-01—RF-06、冻结三分矩阵、零 submit、兄弟 job 隔离、无第二 Owner/队列/状态机逐项判定；任何 finding 回到同一文件和同一实现原位迭代。
+
+禁止项：不新增表、列、队列、worker、恢复 ledger、wire enum、兼容读写、feature flag 或第二 classifier；不物理删除现有三个工单；不把测试、HTTP 200、READY 或 Test Mode 当生产恢复证明。
+
 ## 0. 状态、边界与唯一结论
 
 状态：**PHASE 3 第六轮独立复审的 D01/D03 finding 已定点修复，D04保持16/16 PASS；修复后两轮主 Codex 自审均以10/10施工工单、204/204冻结定义与完整动态分支为分母达到100%，已进入全新第七轮只读独立复审，尚未进入 CI-FULL**。
@@ -359,10 +406,18 @@ PHASE 1 已闭合 `D02` 与 `D03` authority，且两轮主 Codex 审计通过。
 | 主 Codex 实现自审 R17 | R8 finding裁决 / 冻结锚点 / 唯一Owner / 防膨胀 | D03可采纳finding以同一`readVerifiedReplay`在device锁前后各读一次，锁后命中直接返回同一verified receipt，不进入active-incident冲突、不分配新write_order。D04以device-status唯一query按`runtime.attempt_id`过滤failure；无当前attempt仍返回历史latest，有新attempt只返回该attempt failure，append-only历史与trigger不变。D03 heartbeat finding按P0法案精确驳回：cooldown必须允许cohort accepted attempt regrant/零submit readback及时间门后未发送恢复，故claim-request资格不得与无关新grant gate合并；现役claim selector以`constrainedJobIds`守住边界。拓扑hash仍为`74d8b9d3...`，204项分母不变；无新表、状态、队列、worker、Owner、兼容桥或第二reader；双仓diff-check通过 | PASS；可采纳finding闭合，驳回finding有法案与真实consumer反证，结构分母100% |
 | 主 Codex 实现自审 R18 | 并发同request / 新attempt真实投影 / 全链聚焦回归 | Website Exam新增锁前miss→锁后命中同request场景，证明返回原receipt、write_order保持1、cooldown状态不二次更新；新增device-status查询与0087 immutable trigger联合断言，证明历史不删且新attempt不会继承旧failure。AGENT真实`executeClaim`新attempt CAS/Product正负分支继续通过。AGENT GPT/Runtime、Browser terminal/property/mutant/authority/auto-pairing/effect-recovery/FIFO、extension build/verify与projection全通过；Website production typecheck、AI v6 Exam=`42 pass/0 fail/1 PostgreSQL skip`、projection current通过 | PASS；10/10工单、204/204定义及两项可采纳finding正负分支完成度/准确度均自评100%，超过98%门 |
 
-当前 `WT-TOPOLOGY-001`、`WT-AUTH-001`、10 个施工工单与旧shape排空门仍保持闭合；第八轮两项可采纳finding已完成施工图、代码、直接质检及主Codex R17/R18两轮100%自审，heartbeat finding已按P0法案与cohort真实consumer精确驳回。授权人随后明确要求本轮修复后不再启动独立审计，直接进入CI-FULL；该指令取代原计划中的R9复审步骤，不改变CI-FULL自身的candidate、dirty、CHANGE、READY、RELEASE失败关闭门。双仓并行 qimen dirty 与Website localization既存Exam失败仍不得修改、隐藏或冒充clean candidate。
+| 主 Codex 拓扑连坐审计 R19 | N15/N20、H03/H24、I16/I17/I21/I23/I25/I29/I36 与 Blueprint attempt/cooldown 全链 | 撤销此前放行：发现四个真实漏点。其一，AGENT 满 N 时恢复性claim可复用旧attestation，Website可能同时授予恢复job与新job，违反同一时刻业务分母；其二，Website已有当前attempt first fact而AGENT本地载体缺失时，Runtime把该grant当fresh并可能再次进入Product；其三，exact cooldown cohort成员按设计可无`attempt_failure`，现有selector却把所有无failure accepted attempt永久排除；其四，selector已排除fail-closed attempt，但claim observation仍把它计为完全eligible并误报并发选择 | `AUDIT_FAIL`；原先PASS失效，四项必须在原Owner内闭合后重新独立复审 |
+| 主 Codex 定点迭代 R20 | fresh attestation、远端first fact、cooldown cohort、claim diagnosis | recovery-only claim在同一session authority turn强制heartbeat并使用新attestation；远端当前attempt first fact而本地无载体时在Product前失败关闭并禁止按unaccepted release；Website恢复选择只额外允许当前设备精确`job_id + attempt_id` cooldown cohort中的无failure accepted attempt；selector与diagnosis复用同一允许函数。未新增表、队列、worker、持久状态、兼容桥或第二恢复Owner | 已完成代码与聚焦验收；等待双仓完整CHANGE及全新独立复审 |
+| 独立实现复审 R9 + 主 Codex 迭代 R21 | cooldown 时间门、并行在途、expiry、跨设备诊断、行为证据 | 独立复审先后发现：active cooldown过早重授无failure任务；设备B的accepted attempt被设备A误报并发；A关闭共享gate时在途未submit的B把暂停固化为failure；expiry先把合法cooldown resume记为fail_closed；满N修复仅有源码断言。已收紧为无failure resume只在`provider_rate_limit_until<=serverNow`后开放，accepted attempt按lease owner诊断；Runtime仅在现役submit gate再次确认关闭后把直接cooldown error保留为暂停reason且不写first fact；expiry对精确resume identity不写fail_closed/event；真实WorkerSession验收证明强制heartbeat携满N=4并让claim绑定新receipt/hash/token | finding均已原位迭代并通过双仓聚焦验收；等待两名独立审计者最终复核与最新完整CHANGE |
+| 独立实现复审 R10 + 主 Codex 迭代 R22 | cooldown preserve/resume 分离、expiry设备隔离、AGENT席位闭合 | 复审继续发现：全局expiry会由设备A误判设备B冻结attempt，active窗口的空resume集合也不足以保护同设备冻结attempt；Runtime暂停分支退出active后会从attestation席位消失，且后续同attempt regrant会被批次门拒绝。Website现把`preserveAttempts`固定为active/drain全cohort、`resumeAttempts`固定为时间门到期后的精确cohort，expiry SQL强制`lease_owner=当前claim设备`并只以preserve集合跳过无failure分类；AGENT业务分母改为所有durable accepted且非WAIT_NEW任务，同slot复用仅允许same-effect readback或同job+attempt的exact cooldown pause | 双仓聚焦验收通过；等待最终独立复核与原生CHANGE |
+| 独立实现复审 R11 + 主 Codex 迭代 R23 | 满席恢复触发、暂停reason单义、撤权/删除读回、closure分类 | 最终复审继续发现：满席若全为无failure的cooldown暂停任务，worker只识别Provider readback而永不再claim；原触发任务的暂停reason绑定Browser authority后带后缀，exact字符串判断拒绝同attempt复用；暂停任务不在Website status reconciliation集合，后续撤权或物理删除会永久占本地席位；Website closure SQL把合法无failure暂停任务误归`unclassified`而selector仍允许恢复。AGENT现统一识别`PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE`及其authority-bound形式，满席existing-attempt恢复强制当前attestation，同attempt复用同时覆盖触发任务与sibling，四个暂停任务仍签入N；所有已接受且无result/failure的任务继续读Website status，首次WAIT_NEW/永久撤权只释放一次，WAIT_NEW后仍保留只读对账并在后续404执行现役purge。Website closure将精确cohort中完全无failure row的暂停任务归入`unsent_resume`，并补真实SQL矩阵case | 已完成代码与聚焦验收；等待两名独立审计者重新复核与最新双仓CHANGE |
+| 独立实现复审 R12 + 主 Codex 迭代 R24 | 无failure旧attempt的fresh/regrant身份、readback slot attempt绑定、两阶段删除 | 复审证明：Website允许exact cooldown cohort中无failure的accepted attempt在时间门后重授，但AGENT本地authority丢失时无法区分fresh grant与旧attempt regrant，空WAL会把未知旧Provider effect当fresh并可能重复submit；provider-readback席位复用还只校验job而未校验attempt；WAIT_NEW后再物理删除的两阶段顺序仍需持续读到404。Website唯一grant合同新增由claim transaction直接派生的`same_accepted_attempt`，AGENT仅允许该标志为true且本地存在同attempt durable authority时进入Product；本地缺失时保留远端accepted authority并在任何Website写入前失败关闭。provider-readback和cooldown两类席位复用均要求同job+attempt；WAIT_NEW只释放一次但继续同一status reader直至regrant或404 purge。该字段只证明本次grant是fresh或既有accepted attempt，不新增恢复状态、DB、Owner、队列或兼容路径，双仓必须同一READY批次发布 | 已完成代码与聚焦验收；等待最终独立复核与最新双仓CHANGE |
+| 独立实现复审 R13 + 主 Codex 迭代 R25 | 必填grant字段的版本隔离与旧receipt回放门 | 红队发现若必填`same_accepted_attempt`仍隐藏在v38，新Website会接纳旧AGENT session后返回旧consumer无法解析的grant，反向混版也会拒绝缺字段；同request旧claim receipt还可能原样回放旧shape。canonical provider与AGENT dependency现同步升为v39，strict producer/validator/consumer只认同一shape；Website迁移在锁内按完整durable accepted business分母拒绝任何未完成attempt，不依赖可为空的worker_session_id或session状态，通过后supersede全部旧活跃会话并立即失效current/previous token。跨session reconciliation在读取或写入旧claim receipt前还要求predecessor与当前session合同版本精确相等，因此v39凭据不能回放v38 jobs_json；旧receipt保持不可改。真实commercial migrator对0146写入canonical `ai-acceptance` Owner，并由READY数据库合同校验同一身份。不增加兼容解码、dual read/write或第二合同 | PASS；两名独立审计者P0/P1/P2均为0，双仓最新CHANGE_PASS |
+
+当前 `WT-TOPOLOGY-001`、`WT-AUTH-001`、10 个施工工单与旧shape排空门的既有结论不替代本轮R19/R9 finding。授权人本轮明确要求在修复后启动子智能体审计，并在通过后执行双仓READY与推送；因此先前“取消后续独立审计”的时点指令已被本轮最新指令取代。双仓必须先通过唯一CHANGE入口和两名审计者最终复核，随后以各自clean commit执行READY；RELEASE与Dynamic Proof仍不在本轮授权范围。
 
 ---
 
 ## 7. 当前授权结论
 
-冻结拓扑到生产代码的差异清单已获施工授权并完成PHASE 2代码及主审闭环。第八轮两项可采纳finding已完成施工图先行、定点修复、直接验收和R17/R18两轮主Codex自审；授权人已明确取消后续独立审计并要求直接进入冻结`ci-full-governance`。下一步只允许按双仓唯一质量入口执行CI-FULL；是否能达到READY/RELEASE完全由其clean candidate、原生质量与Dynamic Proof门裁决，当前尚不得宣称READY或RELEASE。
+冻结拓扑到生产代码的差异清单继续保持唯一施工记录。本轮R19至R25的finding均已在原Owner内闭合，双仓最新原生CHANGE均通过，两名独立审计者最终结论均为`AUDIT_PASS`且P0/P1/P2为0。下一门仅为各仓形成clean commit后执行READY并推送；READY通过也不等于RELEASE。真实PostgreSQL迁移、Browser/Provider与业务领域Dynamic Proof未在本轮执行，当前不得宣称生产完成或RELEASE。

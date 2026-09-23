@@ -17,7 +17,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HASH_A, attemptFailureFirstFact, claimTask, failureStatus,
   resultFor, task } from "./agent-production-runtime-fixtures.js";
-import { verifyClaimTimeFirstFactConflict, verifyFailureReleaseReadbackScenarios } from
+import {
+  verifyClaimTimeFirstFactConflict, verifyFailureReleaseReadbackScenarios,
+  verifyAttemptFailureClassificationMatrix,
+  verifyRemoteFailureWithoutLocalAuthorityStopsBeforeProduct,
+  verifyUnclassifiedFailureStopsBeforeProduct,
+} from
   "./agent-production-runtime-failure-readback.acceptance-support.js";
 import { verifyWaitNewAttempt } from
   "./agent-production-runtime-wait-new-attempt.acceptance-support.js";
@@ -334,13 +339,19 @@ const verifyNewLeaseConflictScenario = async (scenario: Readonly<{
 };
 
 export const verifyAttemptFailureReadbackRuntimeContract = async (): Promise<void> => {
+  verifyAttemptFailureClassificationMatrix();
+
   await verifyFailureReleaseReadbackScenarios();
+
+  await verifyUnclassifiedFailureStopsBeforeProduct();
 
   await verifyWaitNewAttempt();
 
   await verifyUnresolvedBrowserMutationDoesNotStarveClaimRecovery();
 
   await verifyClaimTimeFirstFactConflict();
+
+  await verifyRemoteFailureWithoutLocalAuthorityStopsBeforeProduct();
 
   for (const scenario of [
     { slug: "current-lease-different-core", currentLease: 2, remoteLease: 2,

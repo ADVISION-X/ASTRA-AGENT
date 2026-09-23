@@ -12,12 +12,13 @@ import { runtimeManifestOwnershipDrift } from
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { purgeDeletedJob, reconcileBusinessAdmission }
   from "../../src/lib/local-runtime/production/runtime-business-admission.js";
-import { businessInFlightCount } from "../../src/lib/local-runtime/production/runtime-loops.js";
+import { businessInFlightCount, claimReusesExistingBusinessSlot } from
+  "../../src/lib/local-runtime/production/runtime-loops.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { readProductionOperationsSnapshot }
   from "../../src/lib/local-runtime/production/operations-snapshot.js";
 import {
-  HASH_A, HASH_B, admissionReceiptFor, deviceStatusWithAdmission,
+  HASH_A, HASH_B, admissionReceiptFor, attemptFailureFirstFact, claimTask, deviceStatusWithAdmission,
   deviceStatusWithoutAdmission, resultFor, task,
 } from "./agent-production-runtime-fixtures.js";
 
@@ -93,7 +94,8 @@ const exerciseManifestAndLawOwnership = async (): Promise<void> => {
 
 export const exerciseProductionRuntimeSourceBoundaries = async (): Promise<void> => {
   const [runtimeSource, runtimeStartupSource, businessAdmissionSource, runtimeLoopsSource,
-    outboxSource, storeFoundationSource, reconciliationSource, executorSource, storeSource] =
+    outboxSource, storeFoundationSource, reconciliationSource, executorSource, storeSource,
+    workerSessionSource, cloudClientSource] =
     await Promise.all([
       readRuntimeSource("runtime-claim.ts"),
       readRuntimeSource("runtime-startup.ts"),
@@ -104,11 +106,21 @@ export const exerciseProductionRuntimeSourceBoundaries = async (): Promise<void>
       readRuntimeSource("cloud-reconciliation-client.ts"),
       readRuntimeSource("executor.ts"),
       readRuntimeSource("store-task-state.ts"),
+      readRuntimeSource("worker-session.ts"),
+      readRuntimeSource("cloud-client.ts"),
     ]);
   assert.doesNotMatch(runtimeSource, /outcome: "failed"[\s\S]{0,300}BUSINESS_ADMISSION_PENDING/u);
   assert.doesNotMatch(runtimeLoopsSource, /outcome: "failed"[\s\S]{0,300}BUSINESS_ADMISSION_PENDING/u);
   assert.match(runtimeLoopsSource,
     /component: "production-admission-readback"[\s\S]{0,120}operation: "website\.v6-request"/u);
+  assert.match(runtimeLoopsSource,
+    /recoveryOnlyClaim = availableNewSlots <= 0 && hasExistingAttemptRecovery/u);
+  assert.match(runtimeLoopsSource,
+    /Math\.max\(1, availableNewSlots\), recoveryOnlyClaim/u);
+  assert.match(workerSessionSource,
+    /forceCurrentAttestation[\s\S]{0,180}\? await this\.performHeartbeat\(\)/u);
+  assert.match(cloudClientSource,
+    /requestClaim\(requestId, limit, forceCurrentAttestation\)/u);
   assert.doesNotMatch(runtimeLoopsSource,
     /operation: "website\.result-consume"[\s\S]{0,900}reconcileBusinessAdmission/u);
   assert.match(runtimeLoopsSource,
@@ -231,6 +243,9 @@ const exerciseWaitNewAndPrivacy = async (
   assert.equal(store.readTask(waitNew.job_id)?.staged_result, null,
     "Website WAIT_NEW_ATTEMPT must release only the old local admission-pending attempt");
   assert.equal(store.readTask(waitNew.job_id)?.current_reason, "WAIT_NEW_ATTEMPT");
+  assert.equal(store.unfinishedExecutionsWithoutReceipt()
+    .some((candidate) => candidate.task.job_id === waitNew.job_id), true,
+  "WAIT_NEW_ATTEMPT must retain status readback so a later Website deletion can trigger exact purge");
   const privacyClosed = task({ jobId: "job:admission:privacy-closed",
     productId: productionTask.product_id, actionId: productionTask.action_id,
     materialRefs: productionTask.material_refs,
@@ -347,6 +362,50 @@ export const exerciseOperationsAndBusinessAdmission = async (
       "an admission-pending job must retain the only business slot after execution settles");
     assert.equal(businessInFlightCount({ active: new Map([[pending.job_id, Promise.resolve()]]), store } as never), 1,
       "active and admission-pending views of the same job must count once");
+    const failureFact = (jobId: string, attemptId: string, overrides: Record<string, unknown>) =>
+      attemptFailureFirstFact(attemptId, {
+        code: "BROWSER_ATTEMPT_FAILED", mutation_outcome: "confirmed",
+        evidence_ref: `browser-fact:${jobId}`, effect_scope: "provider_effect",
+        child_capability_id: "submit_exact_gpt_turn_once", browser_outcome: "CONFIRMED",
+        provider_effect_identity_hash: HASH_A, settled_result_payload_hash: null,
+        stopped_empty_proof: null, child_proof_ref: null, child_proof_hash: null,
+        evidence_hash: HASH_B, cause: null, ...overrides,
+      } as never);
+    const readback = task({ jobId: "job:capacity:provider-readback",
+      productId: productionTask.product_id, actionId: productionTask.action_id,
+      materialRefs: productionTask.material_refs, extra: { parameters: productionTask.parameters } });
+    store.acceptTask(readback, "attempt:provider-readback");
+    store.recordAttemptFailure(readback.job_id, "attempt:provider-readback",
+      failureFact(readback.job_id, "attempt:provider-readback", {}));
+    assert.equal(businessInFlightCount({ active: new Map(), store } as never), 2,
+      "a durable same-attempt provider readback must retain its existing business slot");
+    assert.equal(businessInFlightCount({ active: new Map([[readback.job_id, Promise.resolve()]]), store } as never), 2,
+      "a regranted readback execution must reuse the existing slot instead of adding another");
+    const readbackClaim = claimTask(readback);
+    assert.equal(claimReusesExistingBusinessSlot({ active: new Map(), store } as never, {
+      ...readbackClaim, grant: { ...readbackClaim.grant, attempt_id: "attempt:different" },
+    }), false, "a provider readback slot must reject a grant for a different attempt");
+    const unclassified = task({ jobId: "job:capacity:unclassified-failure",
+      productId: productionTask.product_id, actionId: productionTask.action_id,
+      materialRefs: productionTask.material_refs, extra: { parameters: productionTask.parameters } });
+    store.acceptTask(unclassified, "attempt:unclassified");
+    store.recordAttemptFailure(unclassified.job_id, "attempt:unclassified",
+      failureFact(unclassified.job_id, "attempt:unclassified", {
+        effect_scope: "target_local", browser_outcome: "DISPATCHED",
+        provider_effect_identity_hash: null, mutation_outcome: "dispatched",
+      }));
+    assert.equal(businessInFlightCount({ active: new Map(), store } as never), 3,
+      "a fail-closed accepted attempt must remain in the attested business denominator");
+    const runtimeLoopsSource = await readRuntimeSource("runtime-loops.ts");
+    assert.match(runtimeLoopsSource,
+      /availableNewSlots > 0 \|\| hasExistingAttemptRecovery/u,
+      "a full business denominator must still permit an existing readback or cooldown attempt to request regrant");
+    assert.match(runtimeLoopsSource,
+      /requestClaimBatch\([\s\S]{0,80}Math\.max\(1, availableNewSlots\), recoveryOnlyClaim/u,
+      "the existing V6 wire minimum must be preserved while attestation keeps new grant capacity at zero");
+    assert.match(runtimeLoopsSource,
+      /businessInFlightJobIds\(state\)\.has\(job\.job_id\)[\s\S]*!claimReusesExistingBusinessSlot\(state, job\)/u,
+      "only an exact readback or paused cooldown regrant may reuse an occupied slot");
     await exerciseWaitNewAndPrivacy(store, productionTask);
     await exerciseAdmissionDeletion(store, admissionTemporary, productionTask, pending);
     store.close();

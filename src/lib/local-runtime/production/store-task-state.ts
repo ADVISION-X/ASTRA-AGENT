@@ -278,7 +278,7 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     const rows = this.database.prepare(`select job_id,request_hash,task_json,status,result_json,
       staged_result_json,attempt_failure_json,current_attempt_id,current_reason,updated_at from production_tasks
       where status='failed' and staged_result_json is null and attempt_failure_json is null
-        and current_reason='EXECUTING'
+        and current_attempt_id is not null
       order by updated_at,job_id`).all() as TaskRow[];
     return rows.map(taskAuthorityFromRow);
   }

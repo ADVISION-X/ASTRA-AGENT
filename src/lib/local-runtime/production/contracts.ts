@@ -68,7 +68,7 @@ export const ProductionProductIdSchema = z.string().min(1).max(160);
 const ProductionActionIdSchema = z.string().min(1).max(160);
 
 const ProductionMaterialSchema = z.object({
-  material_id: z.string().min(1).max(240),
+  material_id: z.string().min(1),
   ordinal: z.number().int().nonnegative(),
   role: z.string().min(1).max(120),
   display_name: z.string().min(1).max(240),
@@ -110,7 +110,7 @@ export const WebsiteAgentTaskBaseSchema = z.object({
   schema_version: z.literal("website-agent-task.v1"),
   protocol_version: z.literal(WEBSITE_AGENT_PROTOCOL_VERSION),
   job_id: z.string().min(1).max(240),
-  source_task_id: z.string().min(1).max(240),
+  source_task_id: z.string().min(1),
   product_id: ProductionProductIdSchema,
   action_id: ProductionActionIdSchema,
   idempotency_key: z.string().min(1).max(500),
@@ -214,7 +214,7 @@ export interface WebsiteAgentResult {
 export const WebsiteAgentResultSchema = z.object({
   schema_version: z.literal("website-agent-result.v1"),
   job_id: z.string().min(1).max(240),
-  source_task_id: z.string().min(1).max(240),
+  source_task_id: z.string().min(1),
   product_id: ProductionProductIdSchema,
   action_id: ProductionActionIdSchema,
   result_contract_id: z.literal(RESULT_CONTRACT_ID),

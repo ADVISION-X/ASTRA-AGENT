@@ -69,7 +69,7 @@ const renewSessionFetch = (
     const url = String(input);
     if (url.endsWith("/sessions/open")) return successfulJsonResponse({
       session: { device_id: validDeviceCredential.device_id, worker_session_id: "worker-session:renew-retry",
-        worker_session_epoch: 1, control_contract_version: 38 },
+        worker_session_epoch: 1, control_contract_version: 39 },
       session_credential: {
         schema_version: "xuanxue-ai-worker-session-credential.v6",
         worker_session_id: "worker-session:renew-retry", worker_session_epoch: 1,

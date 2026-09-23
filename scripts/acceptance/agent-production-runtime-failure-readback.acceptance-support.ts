@@ -9,7 +9,8 @@ import { executionFailure } from "../../src/lib/execution-failure.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
-import { serializeTerminalFailureTransport } from
+import { classifyAttemptFailure, serializeTerminalFailureTransport,
+  type SerializedTerminalFailure } from
   "../../src/lib/local-runtime/production/terminal-failure.js";
 import { HASH_A, attemptFailureFirstFact, claimTask, failureStatus, task } from
   "./agent-production-runtime-fixtures.js";
@@ -197,6 +198,63 @@ export const verifyFailureReleaseReadbackScenarios = async (): Promise<void> => 
   }
 };
 
+export const verifyAttemptFailureClassificationMatrix = (): void => {
+  const base: SerializedTerminalFailure = {
+    code: "PRODUCT_EXECUTION_FAILED", mutation_outcome: "no", effect_scope: null,
+    child_capability_id: null, browser_outcome: null, evidence_ref: null, evidence_hash: null,
+    child_proof_ref: null, child_proof_hash: null, stopped_empty_proof: null, cause: null,
+    provider_effect_identity_hash: null, settled_result_payload_hash: null,
+  };
+  const classify = (override: Partial<SerializedTerminalFailure>) =>
+    classifyAttemptFailure({ ...base, ...override });
+  const browserFact = {
+    child_capability_id: "submit_exact_gpt_turn_once",
+    evidence_ref: "browser-mutation:classification", evidence_hash: HASH_A,
+  };
+  const providerFact = { ...browserFact, effect_scope: "provider_effect" as const,
+    provider_effect_identity_hash: HASH_A };
+  for (const mutation_outcome of ["no", "dispatched", "confirmed"] as const) {
+    assert.equal(classify({ ...browserFact, effect_scope: "target_local", browser_outcome: "REJECTED",
+      mutation_outcome }), "new_attempt_allowed");
+  }
+  assert.equal(classify({ ...providerFact, browser_outcome: "REJECTED",
+    mutation_outcome: "no" }), "new_attempt_allowed");
+  for (const [browser_outcome, mutation_outcome] of [
+    ["DISPATCHED", "dispatched"], ["CONFIRMED", "confirmed"],
+    ["REJECTED", "dispatched"], ["REJECTED", "confirmed"],
+  ] as const) assert.equal(classify({ ...providerFact, browser_outcome,
+    mutation_outcome }), "same_attempt_provider_readback");
+  for (const [browser_outcome, mutation_outcome] of [
+    [null, "dispatched"], ["DISPATCHED", "confirmed"], ["CONFIRMED", "dispatched"],
+    ["CONFIRMED", "no"], ["DISPATCHED", "no"],
+  ] as const) assert.equal(classify({ ...providerFact, browser_outcome,
+    mutation_outcome }), "fail_closed");
+  for (const incomplete of [
+    { ...providerFact, child_capability_id: null },
+    { ...providerFact, evidence_ref: null },
+    { ...providerFact, evidence_hash: null },
+    { ...providerFact, provider_effect_identity_hash: null },
+  ]) assert.equal(classify({ ...incomplete, browser_outcome: "CONFIRMED",
+    mutation_outcome: "confirmed" }), "fail_closed");
+  assert.equal(classify({ effect_scope: "target_local", browser_outcome: "REJECTED",
+    mutation_outcome: "no" }), "fail_closed");
+  const confirmedEffect = {
+    ...providerFact, browser_outcome: "CONFIRMED" as const, mutation_outcome: "confirmed" as const,
+  };
+  assert.equal(classify({ ...confirmedEffect, code: "RESULT_SETTLED_UNUSABLE",
+    settled_result_payload_hash: HASH_A }), "new_attempt_allowed");
+  assert.equal(classify({ ...confirmedEffect, code: "RESULT_SETTLED_UNUSABLE" }), "fail_closed");
+  assert.equal(classify({ ...confirmedEffect, code: "GPT_RESPONSE_STOPPED_EMPTY",
+    child_capability_id: "submit_exact_gpt_turn_once", child_proof_ref: "child-proof:1",
+    child_proof_hash: HASH_A, stopped_empty_proof: {
+      first_observed_at: "2026-09-23T00:00:00.000Z",
+      terminal_observed_at: "2026-09-23T00:20:00.000Z", continuous_monotonic_ms: 1_200_000,
+      observation_count: 2, identity_hash: HASH_A, terminal_observation_revision_hash: HASH_A,
+    },
+  }), "new_attempt_allowed");
+  assert.equal(classify({ ...confirmedEffect, code: "GPT_RESPONSE_STOPPED_EMPTY" }), "fail_closed");
+};
+
 export const verifyClaimTimeFirstFactConflict = async (): Promise<void> => {
   const conflictDirectory = await mkdtemp(join(tmpdir(), "agent-claim-failure-conflict-"));
   const conflictStore = new RuntimeStore(conflictDirectory);
@@ -253,5 +311,180 @@ export const verifyClaimTimeFirstFactConflict = async (): Promise<void> => {
   } finally {
     conflictStore.close();
     await rm(conflictDirectory, { recursive: true, force: true });
+  }
+};
+
+export const verifyRemoteFailureWithoutLocalAuthorityStopsBeforeProduct = async (): Promise<void> => {
+  const directory = await mkdtemp(join(tmpdir(), "agent-remote-failure-without-local-authority-"));
+  const store = new RuntimeStore(directory);
+  try {
+    const websiteTask = task({
+      jobId: "job:remote-failure-without-local-authority",
+      productId: "payment_screenshot_observation",
+      actionId: "observe",
+    });
+    const job = claimTask(websiteTask);
+    const remoteFailure = {
+      ...serializeTerminalFailureTransport(executionFailure("failed", "PROVIDER_RESPONSE_UNKNOWN", {
+        metadata: {
+          mutationOutcome: "dispatched",
+          evidence: { evidenceRef: "browser-fact:remote-only", evidenceHash: HASH_A },
+          browserEffect: {
+            effectScope: "provider_effect", childCapabilityId: "submit_exact_gpt_turn_once",
+            browserOutcome: "DISPATCHED", providerEffectIdentityHash: HASH_A,
+          },
+        },
+      })),
+      from_status: "failed", to_status: "failed",
+      attempt_id: job.grant.attempt_id, lease_version: job.grant.lease_version,
+    };
+    let durableAccepts = 0;
+    let productExecutions = 0;
+    let websiteWrites = 0;
+    const state = {
+      abort: new AbortController(), active: new Map(),
+      activeAbort: new Map([[job.job_id, new AbortController()]]), store,
+      executor: {
+        accept: () => { durableAccepts += 1; throw new Error("UNEXPECTED_ACCEPT"); },
+        execute: async () => { productExecutions += 1; throw new Error("UNEXPECTED_EXECUTION"); },
+      },
+      session: {
+        workerSessionId: "worker:remote-failure-without-local-authority", workerSessionEpoch: 1,
+        device: { server_base_url: "http://127.0.0.1:4322" },
+        request: async (path: string, options?: Readonly<{ method?: string }>) => {
+          if (options?.method && options.method !== "GET") websiteWrites += 1;
+          if (!path.endsWith("/device-status")) throw new Error("UNEXPECTED_RUNTIME_REQUEST");
+          return failureStatus(job.job_id, remoteFailure, []);
+        },
+      },
+      browserAuthority: {}, evidenceStore: {}, providerRateLimitControl: {}, gpt: {},
+      dataDir: directory,
+      runtimeLogger: createRuntimeLogger({
+        producer: "agent-remote-failure-without-local-authority", owner: "production-runtime",
+        component: "production-runtime", terminalEnabled: false,
+        fileSink: { directoryPath: join(directory, "runtime-logs") },
+      }),
+      draining: false, lastHeartbeat: null, lastErrorCode: null, lastErrorReason: null,
+      stopped: false, ledgerReconciled: true,
+    } as never;
+    await executeClaim(state, job);
+    assert.equal(durableAccepts, 0,
+      "a remote first fact without its local durable carrier must stop before acceptance");
+    assert.equal(productExecutions, 0,
+      "a remote first fact without local authority must produce zero Product or Provider execution");
+    assert.equal(websiteWrites, 0,
+      "the boundary must retain the accepted remote attempt instead of releasing it as unaccepted");
+    assert.equal((state as unknown as { lastErrorCode: string | null }).lastErrorCode,
+      "PRODUCTION_REMOTE_ATTEMPT_FAILURE_LOCAL_AUTHORITY_MISSING");
+    assert.equal(store.readTask(job.job_id), null,
+      "the AGENT must not invent a local first fact from Website readback");
+
+    const regrantedTask = task({
+      jobId: "job:regranted-without-local-authority",
+      productId: "payment_screenshot_observation", actionId: "observe",
+    });
+    const freshShape = claimTask(regrantedTask);
+    const regrantedJob = {
+      ...freshShape, grant: { ...freshShape.grant, same_accepted_attempt: true },
+    };
+    durableAccepts = 0;
+    productExecutions = 0;
+    websiteWrites = 0;
+    (state as unknown as { activeAbort: Map<string, AbortController> }).activeAbort
+      .set(regrantedJob.job_id, new AbortController());
+    (state as unknown as { session: { request: (path: string, options?: Readonly<{ method?: string }>) => Promise<unknown> } }).session.request =
+      async (path: string, options?: Readonly<{ method?: string }>) => {
+        if (options?.method && options.method !== "GET") websiteWrites += 1;
+        if (!path.endsWith("/device-status")) throw new Error("UNEXPECTED_RUNTIME_REQUEST");
+        return failureStatus(regrantedJob.job_id, null, []);
+      };
+    await executeClaim(state, regrantedJob);
+    assert.equal(durableAccepts, 0,
+      "a regranted accepted attempt without its local authority must stop before acceptance");
+    assert.equal(productExecutions, 0,
+      "an unknown old attempt must never enter Product or replay Provider submit");
+    assert.equal(websiteWrites, 0,
+      "an unknown old accepted attempt must remain remote authority and must not be released");
+    assert.equal((state as unknown as { lastErrorCode: string | null }).lastErrorCode,
+      "PRODUCTION_REGRANTED_ATTEMPT_LOCAL_AUTHORITY_MISSING");
+  } finally {
+    store.close();
+    await rm(directory, { recursive: true, force: true });
+  }
+};
+
+export const verifyUnclassifiedFailureStopsBeforeProduct = async (): Promise<void> => {
+  const directory = await mkdtemp(join(tmpdir(), "agent-unclassified-failure-"));
+  const store = new RuntimeStore(directory);
+  try {
+    const websiteTask = task({
+      jobId: "job:unclassified-failure",
+      productId: "payment_screenshot_observation",
+      actionId: "observe",
+    });
+    const firstGrant = claimTask(websiteTask);
+    const job = { ...firstGrant, grant: { ...firstGrant.grant, lease_version: 2 } };
+    store.acceptTask(websiteTask, job.grant.attempt_id);
+    const failure = attemptFailureFirstFact(job.grant.attempt_id,
+      serializeTerminalFailureTransport(executionFailure("failed", "GPT_CHAT_MODE_MISSING")));
+    store.recordAttemptFailure(job.job_id, job.grant.attempt_id, failure);
+    const remoteFailure = {
+      ...failure.failure_core,
+      from_status: "failed", to_status: "failed",
+      attempt_id: job.grant.attempt_id, lease_version: job.grant.lease_version,
+    };
+    let durableAccepts = 0;
+    let productExecutions = 0;
+    let websiteWrites = 0;
+    const state = {
+      abort: new AbortController(), active: new Map(),
+      activeAbort: new Map([[job.job_id, new AbortController()]]), store,
+      executor: {
+        accept: () => { durableAccepts += 1; throw new Error("UNEXPECTED_ACCEPT"); },
+        acceptAfterFailureReconciled: () => {
+          durableAccepts += 1;
+          throw new Error("UNEXPECTED_RECONCILED_ACCEPT");
+        },
+        execute: async () => {
+          productExecutions += 1;
+          throw new Error("UNEXPECTED_PRODUCT_EXECUTION");
+        },
+      },
+      session: {
+        workerSessionId: "worker:unclassified-failure", workerSessionEpoch: 1,
+        device: { server_base_url: "http://127.0.0.1:4322" },
+        request: async (path: string, options?: Readonly<{ method?: string }>) => {
+          if (options?.method && options.method !== "GET") websiteWrites += 1;
+          if (!path.endsWith("/device-status")) throw new Error("UNEXPECTED_RUNTIME_REQUEST");
+          return failureStatus(job.job_id, remoteFailure, []);
+        },
+      },
+      browserAuthority: {}, evidenceStore: {}, providerRateLimitControl: {}, gpt: {},
+      dataDir: directory,
+      runtimeLogger: createRuntimeLogger({
+        producer: "agent-unclassified-failure", owner: "production-runtime",
+        component: "production-runtime", terminalEnabled: false,
+        fileSink: { directoryPath: join(directory, "runtime-logs") },
+      }),
+      draining: false, lastHeartbeat: null, lastErrorCode: null, lastErrorReason: null,
+      stopped: false, ledgerReconciled: true,
+    } as never;
+    await executeClaim(state, job);
+    assert.equal(durableAccepts, 0,
+      "an unclassified failure must stop before durable Product acceptance");
+    assert.equal(productExecutions, 0,
+      "an unclassified failure must produce zero Product executions and Provider inputs");
+    assert.equal(websiteWrites, 0,
+      "an unclassified failure must produce zero Website writes");
+    assert.equal(store.readTask(job.job_id)?.current_reason,
+      "PRODUCTION_ATTEMPT_FAILURE_UNCLASSIFIED",
+      "the local task must retain the exact fail-closed diagnosis");
+    assert.deepEqual(store.readTask(job.job_id)?.attempt_failure?.failure_core, failure.failure_core,
+      "fail-closed classification must preserve the immutable failure core");
+    assert.equal(store.readTask(job.job_id)?.attempt_failure?.release_descriptor.lease_version, 2,
+      "the first fact may only rebind to the current higher lease descriptor");
+  } finally {
+    store.close();
+    await rm(directory, { recursive: true, force: true });
   }
 };

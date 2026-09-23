@@ -26,6 +26,7 @@ import {
   admissionReceipt,
   claimTask,
   deviceStatusWithAdmission,
+  resultFor,
   task,
 } from "./agent-production-runtime-fixtures.js";
 import { exerciseOperationsAndBusinessAdmission } from
@@ -83,6 +84,18 @@ const reviewTask = task({
 
 assert.equal(authorizeWebsiteAgentTask(productionTask).task, productionTask);
 assert.equal(authorizeWebsiteAgentTask(reviewTask).task, reviewTask);
+const providerOwnedLongSourceTask = task({
+  jobId: "job:long-provider-source", productId: "payment_screenshot_observation", actionId: "observe",
+  materialRefs: [{
+    ...productionTask.material_refs[0]!,
+    material_id: `provider-material:${"x".repeat(299)}`,
+  }],
+  extra: { source_task_id: `provider-source:${"x".repeat(280)}` },
+});
+assert.equal(providerOwnedLongSourceTask.source_task_id.length, 296);
+assert.equal(providerOwnedLongSourceTask.material_refs[0]?.material_id.length, 317);
+assert.equal(claimTask(providerOwnedLongSourceTask).source_task_id, providerOwnedLongSourceTask.source_task_id);
+assert.equal(resultFor(providerOwnedLongSourceTask).source_task_id, providerOwnedLongSourceTask.source_task_id);
 assert.throws(() => WebsiteAgentTaskSchema.parse({ ...productionTask, plugin_id: "forbidden" }), /unrecognized_keys/u);
 assert.throws(() => WebsiteAgentTaskSchema.parse({
   ...productionTask, material_refs: [{ ...productionTask.material_refs[0]!, may_issue_instruction: true }],

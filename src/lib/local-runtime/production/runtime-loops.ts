@@ -15,6 +15,7 @@ import { PRODUCTION_BUSINESS_CAPACITY_MAX } from "./control-contract-dependency.
 import { hashCanonical } from "./contracts.js";
 import type { ProductionRuntimeHealth } from "./runtime-contract.js";
 import { executeClaim, reconcilePendingAttemptFailures } from "./runtime-claim.js";
+import { classifyAttemptFailure } from "./terminal-failure.js";
 import { purgeDeletedJob, reconcileBusinessAdmission, websiteJobAbsent } from "./runtime-business-admission.js";
 import { terminalSpanFailure } from "./runtime-logging.js";
 import {
@@ -24,10 +25,51 @@ import {
   type RuntimeState,
 } from "./runtime-state.js";
 
-export const businessInFlightCount = (state: RuntimeState): number => new Set([
+const pendingAttemptFailureJobs = (state: RuntimeState) => state.store.pendingAttemptFailures()
+  .filter((row) => row.current_reason !== "WAIT_NEW_ATTEMPT" && row.current_attempt_id !== null);
+
+const pendingProviderReadbackJobIds = (state: RuntimeState): ReadonlySet<string> => new Set(
+  pendingAttemptFailureJobs(state)
+    .filter((row) => classifyAttemptFailure(row.attempt_failure!.failure_core)
+      === "same_attempt_provider_readback")
+    .map((row) => row.task.job_id),
+);
+
+const providerCooldownPaused = (reason: string | null): boolean =>
+  reason === "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE"
+  || reason?.startsWith("PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE|") === true;
+
+const pendingCooldownResumeJobIds = (state: RuntimeState): ReadonlySet<string> => new Set(
+  state.store.taskAuthorities()
+    .filter((row) => row.status === "failed" && row.current_attempt_id !== null
+      && row.attempt_failure === null && providerCooldownPaused(row.current_reason))
+    .map((row) => row.task.job_id),
+);
+
+export const claimReusesExistingBusinessSlot = (
+  state: RuntimeState,
+  job: Readonly<{ job_id: string; grant: Readonly<{ attempt_id: string }> }>,
+): boolean => {
+  const durable = state.store.readTask(job.job_id);
+  if (durable?.current_attempt_id !== job.grant.attempt_id) return false;
+  if (durable.attempt_failure
+    && classifyAttemptFailure(durable.attempt_failure.failure_core)
+      === "same_attempt_provider_readback") return true;
+  return durable?.status === "failed"
+    && providerCooldownPaused(durable.current_reason)
+    && durable.attempt_failure === null;
+};
+
+const businessInFlightJobIds = (state: RuntimeState): ReadonlySet<string> => new Set([
   ...state.active.keys(),
-  ...state.store.pendingBusinessAdmissions().map((row) => row.task.job_id),
-]).size;
+  ...state.store.taskAuthorities()
+    .filter((row) => row.status === "failed" && row.current_attempt_id !== null
+      && row.current_reason !== "WAIT_NEW_ATTEMPT")
+    .map((row) => row.task.job_id),
+]);
+
+export const businessInFlightCount = (state: RuntimeState): number =>
+  businessInFlightJobIds(state).size;
 
 export const runtimeState = async (state: RuntimeState) => {
   refreshLedgerReconciled(state);
@@ -73,7 +115,11 @@ export const readHealth = (state: RuntimeState): ProductionRuntimeHealth => {
   };
 };
 
-const requestClaimBatch = async (state: RuntimeState, available: number) => {
+const requestClaimBatch = async (
+  state: RuntimeState,
+  available: number,
+  forceCurrentAttestation: boolean,
+) => {
   const boundaryId = `aipclaim_${randomUUID()}`;
   const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
     traceId: `producer:${state.runtimeLogger.producerRunId}`, boundaryId, owner: "production-runtime",
@@ -81,7 +127,9 @@ const requestClaimBatch = async (state: RuntimeState, available: number) => {
     typedIdentity: { kind: "request", requestId: boundaryId },
   }));
   try {
-    const batch = await claimProductionTasks(state.session, available, boundaryId);
+    const batch = await claimProductionTasks(
+      state.session, available, boundaryId, forceCurrentAttestation,
+    );
     state.providerRateLimitControl.observeWebsiteAuthority({
       serverNow: batch.server_now,
       reasonCodes: batch.reason_codes,
@@ -115,13 +163,16 @@ const launchClaimJobs = (
   jobs: Awaited<ReturnType<typeof claimProductionTasks>>["jobs"],
 ): void => {
   const uniqueJobIds = new Set(jobs.map((job) => job.job_id));
-  const inFlightJobIds = new Set([
+  const executionOrAdmissionJobIds = new Set([
     ...state.active.keys(),
     ...state.store.pendingBusinessAdmissions().map((row) => row.task.job_id),
   ]);
+  const resultingBusinessJobIds = new Set([...businessInFlightJobIds(state), ...uniqueJobIds]);
   if (jobs.length > PRODUCTION_BUSINESS_CAPACITY_MAX || uniqueJobIds.size !== jobs.length
-    || jobs.some((job) => inFlightJobIds.has(job.job_id))
-    || businessInFlightCount(state) + jobs.length > PRODUCTION_BUSINESS_CAPACITY_MAX) {
+    || jobs.some((job) => executionOrAdmissionJobIds.has(job.job_id))
+    || jobs.some((job) => businessInFlightJobIds(state).has(job.job_id)
+      && !claimReusesExistingBusinessSlot(state, job))
+    || resultingBusinessJobIds.size > PRODUCTION_BUSINESS_CAPACITY_MAX) {
     throw new Error("V6_CLAIM_BATCH_INVALID");
   }
   for (const job of jobs) {
@@ -169,7 +220,19 @@ const reconcileUnfinishedExecutionsWithoutReceipt = async (state: RuntimeState):
   for (const task of state.store.unfinishedExecutionsWithoutReceipt()) {
     if (state.active.has(task.task.job_id)) continue;
     try {
-      await readProductionDeviceJobStatus(state.session, task.task.job_id);
+      const remote = await readProductionDeviceJobStatus(state.session, task.task.job_id);
+      if (remote.next_action_code === "WAIT_NEW_ATTEMPT"
+        && task.current_reason !== "WAIT_NEW_ATTEMPT") {
+        const permanentRevocation = remote.current_reason?.code === "PRIVACY_SUBJECT_CLOSED";
+        await state.browserAuthority.releaseJobBoundTarget(
+          task.task.job_id,
+          permanentRevocation ? "website-permanent-revocation" : "wait-new-attempt",
+          state.abort.signal,
+        );
+        state.store.releaseAttemptForWebsiteDecision(
+          task.task.job_id, task.current_attempt_id,
+        );
+      }
     } catch (error) {
       if (!websiteJobAbsent(error)) throw error;
       await purgeDeletedJob(state, task.task.job_id);
@@ -190,16 +253,24 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
     reasonCodes: attestation.reason_codes,
   });
   state.lastHeartbeat = attestation.issued_at;
-  const available = Math.min(
+  const availableNewSlots = Math.min(
     PRODUCTION_BUSINESS_CAPACITY_MAX - businessInFlightCount(state),
     state.executor.availableCapacity(),
   );
+  const hasPendingProviderReadback = pendingProviderReadbackJobIds(state).size > 0;
+  const hasPendingCooldownResume = pendingCooldownResumeJobIds(state).size > 0;
+  const hasExistingAttemptRecovery = hasPendingProviderReadback || hasPendingCooldownResume;
   const browser = state.browserAuthority.readProductionRuntimeState();
-  const eligible = available > 0 && attestation.claim_eligible && state.ledgerReconciled
+  const eligible = (availableNewSlots > 0 || hasExistingAttemptRecovery)
+    && state.executor.availableCapacity() > 0
+    && attestation.claim_eligible && state.ledgerReconciled
     && browser.browserAuthorityState === "present" && !state.draining && state.runtimeLogger.isWritable()
     && state.providerRateLimitControl.canRequestClaimAuthority();
   if (!eligible) return 1_000;
-  const batch = await requestClaimBatch(state, available);
+  const recoveryOnlyClaim = availableNewSlots <= 0 && hasExistingAttemptRecovery;
+  const batch = await requestClaimBatch(
+    state, Math.max(1, availableNewSlots), recoveryOnlyClaim,
+  );
   launchClaimJobs(state, batch.jobs);
   return batch.outcome === "LEASE_GRANTED" ? 1_000 : batch.next_claim_after_ms;
 };

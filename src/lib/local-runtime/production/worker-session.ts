@@ -162,9 +162,15 @@ export class ProductionWorkerSession {
       : this.attestation;
   }
 
-  public async requestClaim(requestId: string, requestedLimit: number): Promise<unknown> {
+  public async requestClaim(
+    requestId: string,
+    requestedLimit: number,
+    forceCurrentAttestation = false,
+  ): Promise<unknown> {
     return this.runSessionAuthorityTurn(async () => {
-      const attestation = await this.freshAttestationInTurn(CLAIM_ATTESTATION_MIN_VALIDITY_MS);
+      const attestation = forceCurrentAttestation
+        ? await this.performHeartbeat()
+        : await this.freshAttestationInTurn(CLAIM_ATTESTATION_MIN_VALIDITY_MS);
       const claimRequest = {
         schema_version: "xuanxue-ai-claim-request.v6",
         control_protocol_version: "xuanxue-ai-production-v6",

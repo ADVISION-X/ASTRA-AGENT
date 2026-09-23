@@ -93,6 +93,7 @@ const ExecutionGrantSchema = z.object({
   result_contract_version: z.literal(1),
   capability_manifest_hash: hash,
   accepted_attempt_count: z.number().int().min(0),
+  same_accepted_attempt: z.boolean(),
   max_provider_turns: z.number().int().positive(),
   result_revision: z.number().int().nonnegative(),
   prior_result_rejection: z.union([z.object({
