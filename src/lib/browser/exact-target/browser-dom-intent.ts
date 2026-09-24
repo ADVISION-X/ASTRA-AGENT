@@ -386,8 +386,7 @@ const assertBoundedPostMatch = (match: Readonly<{
   if (!isBoundedText(match.selector, 2_048)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   assertReadEligibility(match.readEligibility);
   assertOptionalRange(match.expectedMatches, 0, 20);
-  if (match.timeoutMs !== undefined
-    && (!Number.isInteger(match.timeoutMs) || match.timeoutMs < 1_500 || match.timeoutMs > 5_000)) {
+  if (timeoutInvalid(match.timeoutMs)) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
 };

@@ -7,7 +7,6 @@ import Database from "better-sqlite3";
 import { createGptAbilityGroup } from "../../src/capabilities/gpt/index.js";
 import { createForensicsPersistenceAbilityGroupFromStorage } from "../../src/capabilities/forensics-persistence/index.js";
 import { ProductionExecutor } from "../../src/lib/local-runtime/production/executor.js";
-import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { terminalSpanFailure } from "../../src/lib/local-runtime/production/runtime-logging.js";
 import { startProductionRuntime } from "../../src/lib/local-runtime/production/runtime.js";
 import { shutdownRuntime } from "../../src/lib/local-runtime/production/runtime-startup.js";
@@ -28,11 +27,11 @@ import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/
 import { serializeTerminalFailure } from
   "../../src/lib/local-runtime/production/terminal-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
-import { HASH_A, HASH_B, attemptFailureFirstFact, resultFor, task, validDeviceCredential } from
+import { HASH_A, HASH_B, attemptFailureFirstFact, resultFor, task } from
   "./agent-production-runtime-fixtures.js";
 import { buildProductTask } from "./product-plugin-test-runtime.js";
 import { productionRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
-import { assertProductionStartupPreflight } from
+import { assertProductionStartupPreflight, assertSessionBindingMismatchStartup } from
   "./agent-production-runtime-startup-preflight.acceptance-support.js";
 
 await assertProductionStartupPreflight();
@@ -153,102 +152,7 @@ try {
   await rm(temporary, { recursive: true, force: true });
 }
 
-const bindingMismatchTemporary = await mkdtemp(path.join(tmpdir(), "agent-session-binding-mismatch-"));
-const bindingMismatchCredentialPath = path.join(bindingMismatchTemporary, "device-credential.json");
-const bindingMismatchOriginalCredentialPath = process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
-const bindingMismatchOriginalFetch = globalThis.fetch;
-let bindingMismatchRuntime: Awaited<ReturnType<typeof startProductionRuntime>> | null = null;
-const bindingMismatchRequestPaths: string[] = [];
-try {
-  await writeFile(bindingMismatchCredentialPath, JSON.stringify(validDeviceCredential), { mode: 0o600 });
-  process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = bindingMismatchCredentialPath;
-  globalThis.fetch = (async (input: string | URL | Request) => {
-    bindingMismatchRequestPaths.push(new URL(input instanceof Request ? input.url : input).pathname);
-    return new Response(JSON.stringify({
-      ok: false,
-      error: {
-        code: "AI_SESSION_BINDING_MISMATCH",
-        message: "Worker session binding rejected.",
-        status: 409,
-        request_id: "request:binding-mismatch",
-      },
-    }), { status: 409, headers: { "content-type": "application/json" } });
-  }) as typeof globalThis.fetch;
-  const dataDir = path.join(bindingMismatchTemporary, "runtime");
-  await mkdir(dataDir);
-  const historyStore = new ProductionRuntimeStore(dataDir);
-  const historyTask = task({ jobId: "job:historical-terminal-new-attempt",
-    productId: "payment_screenshot_observation", actionId: "observe" });
-  historyStore.acceptTask(historyTask, "attempt:historical-terminal");
-  const historicalResult = { ...resultFor(historyTask),
-    evidence_refs: [`art-${"a".repeat(64)}`] };
-  historyStore.markExecuting(historyTask.job_id);
-  historyStore.stageResult(historyTask.job_id, "attempt:historical-terminal", historicalResult);
-  for (const [key, receipt] of [["payload", HASH_A], ["envelope", HASH_B]] as const) {
-    historyStore.enqueue({ idempotency_key: `artifact:historical-terminal:${key}`, kind: "artifact",
-      path: `/internal/ai-production/v6/jobs/${historyTask.job_id}/artifacts/${key}`,
-      method: "PUT", headers: {}, body: Buffer.from(key) });
-    historyStore.markOutboxSent(`artifact:historical-terminal:${key}`, { receipt_hash: receipt });
-  }
-  const historicalPayloadHash = hashCanonical(historicalResult);
-  historyStore.enqueue({ idempotency_key: "terminal:historical-terminal", kind: "terminal",
-    path: `/internal/ai-production/v6/jobs/${historyTask.job_id}/terminal`,
-    method: "POST", headers: {}, body: JSON.stringify({
-      schema_version: "xuanxue-ai-terminal-cas.v6", job_id: historyTask.job_id,
-      terminal_status: "completed", payload_hash: historicalPayloadHash, failure: null,
-      worker_session_id: "session:historical-terminal",
-      worker_session_epoch: 1,
-      result_object_receipts: [HASH_A, HASH_B],
-    }) });
-  historyStore.markOutboxSent("terminal:historical-terminal", {
-    schema_version: "xuanxue-ai-terminal-receipt.v6", job_id: historyTask.job_id,
-    terminal_status: "completed", payload_hash: historicalPayloadHash, failure: null,
-    first_terminal: true, device_id: "device:historical-terminal", device_epoch: 1,
-    worker_session_id: "session:historical-terminal",
-    worker_session_epoch: 1,
-    runtime_attestation_receipt_hash: HASH_A,
-  });
-  (Reflect.get(historyStore, "database") as import("better-sqlite3").Database)
-    .prepare(`update production_tasks set current_attempt_id=? where job_id=?`).run(
-      "attempt:website-authorized-next", historyTask.job_id,
-    );
-  historyStore.close();
-  bindingMismatchRuntime = await startProductionRuntime({
-    dataDir,
-    sourceHash: HASH_A,
-    gpt: createGptAbilityGroup(),
-    evidenceStore: createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(dataDir)),
-    browserAuthority: {
-      verifyRuntimeTaskProvenance: () => undefined,
-      readProductionRuntimeState: () => ({
-        browserAuthorityState: "absent" as const,
-        browserTargetState: "absent" as const,
-      }),
-    } as never,
-    runtimeLogger: createRuntimeLogger({
-      producer: "agent-session-binding-mismatch", owner: "production-runtime", component: "production-session",
-      terminalEnabled: false, fileSink: { directoryPath: path.join(bindingMismatchTemporary, "runtime-logs") },
-    }),
-  });
-  const health = bindingMismatchRuntime.readHealth();
-  assert.equal(health.shellState, "ready");
-  assert.equal(health.cloudState, "contract_blocked");
-  assert.equal(health.executionState, "blocked");
-  assert.equal(health.claimAdmissionState, "blocked");
-  assert.equal(health.controlContractVersion, 43,
-    "blocked diagnostics must retain only the consumer contract version needed for exact comparison");
-  assert.equal(health.lastErrorCode, "AI_SESSION_BINDING_MISMATCH");
-  await bindingMismatchRuntime.close();
-  bindingMismatchRuntime = null;
-  assert.deepEqual(bindingMismatchRequestPaths, ["/internal/ai-production/v6/sessions/open"],
-    "a deterministic session binding 409 must not create a worker or heartbeat handle that reopens on shutdown");
-} finally {
-  if (bindingMismatchRuntime) await bindingMismatchRuntime.close();
-  globalThis.fetch = bindingMismatchOriginalFetch;
-  if (bindingMismatchOriginalCredentialPath === undefined) delete process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
-  else process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = bindingMismatchOriginalCredentialPath;
-  await rm(bindingMismatchTemporary, { recursive: true, force: true });
-}
+await assertSessionBindingMismatchStartup();
 
 const remoteClaimLogTemporary = await mkdtemp(path.join(tmpdir(), "agent-remote-claim-log-"));
 try {

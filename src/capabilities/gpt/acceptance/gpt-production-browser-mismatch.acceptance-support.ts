@@ -23,6 +23,17 @@ import {
 import type { BrowserAtomicStepIdentity } from
   "../../../lib/browser/browser-authority-api.js";
 
+const executionInput = (
+  jobId: string, attemptId: string, executionFenceHash: typeof HASH_A | typeof HASH_B,
+) => ({
+  jobId, attemptId, resultRevision: 0, productId: "public_knowledge_article_pipeline",
+  ownerRef: "owner:1", subjectRef: "subject:1", authorizationRef: "authorization:1",
+  deviceId: "device:1", leaseVersion: 1, executionFenceHash,
+  capabilityManifestHash: HASH_B, expiresAtMonotonic: performance.now() + 10_000,
+  commandTtlMs: 1_000, abortSignal: new AbortController().signal, parentSpanId: "parent",
+  maxProviderTurns: 1,
+});
+
 const mismatchPreflightFact = await detectedKnownGptRateLimitMismatchFact();
 const mismatchAuthorityRef = ["browser-gpt-dialog-unrecognized",
   mismatchPreflightFact.observedAt, mismatchPreflightFact.exactCallIdentityHash,
@@ -71,15 +82,7 @@ try {
       component: "gpt-child", terminalEnabled: false,
       fileSink: { directoryPath: path.join(temporary, "runtime-logs-origin") },
     }), {} as never,
-  ).createExecution({
-    jobId: "job:confirmed-recovery", attemptId: "attempt:confirmed-recovery", resultRevision: 0,
-    productId: "public_knowledge_article_pipeline",
-    ownerRef: "owner:1", subjectRef: "subject:1", authorizationRef: "authorization:1",
-    deviceId: "device:1", leaseVersion: 1, executionFenceHash: HASH_A,
-    capabilityManifestHash: HASH_B, expiresAtMonotonic: performance.now() + 10_000,
-    commandTtlMs: 1_000, abortSignal: new AbortController().signal, parentSpanId: "parent",
-    maxProviderTurns: 1,
-  });
+  ).createExecution(executionInput("job:confirmed-recovery", "attempt:confirmed-recovery", HASH_A));
   let recoveryFailure: unknown = null;
   try {
     await failingTools.tools.readConfirmedSubmit({ sessionKey: "session:failed-origin",
@@ -148,15 +151,7 @@ try {
       component: "gpt-child", terminalEnabled: false,
       fileSink: { directoryPath: path.join(temporary, "runtime-logs-drift") },
     }), {} as never,
-  ).createExecution({
-    jobId: driftJobId, attemptId: "attempt:step-identity-drift", resultRevision: 0,
-    productId: "public_knowledge_article_pipeline",
-    ownerRef: "owner:1", subjectRef: "subject:1", authorizationRef: "authorization:1",
-    deviceId: "device:1", leaseVersion: 1, executionFenceHash: HASH_B,
-    capabilityManifestHash: HASH_B, expiresAtMonotonic: performance.now() + 10_000,
-    commandTtlMs: 1_000, abortSignal: new AbortController().signal, parentSpanId: "parent",
-    maxProviderTurns: 1,
-  });
+  ).createExecution(executionInput(driftJobId, "attempt:step-identity-drift", HASH_B));
   const historicalCall = {
     sessionKey: "session:step-identity-drift", productStepId: "observe", callId: "turn-submit",
     child: "submit_exact_gpt_turn_once", actionOrdinal: 1,
@@ -202,15 +197,7 @@ try {
       component: "gpt-child", terminalEnabled: false,
       fileSink: { directoryPath: path.join(temporary, "runtime-logs-confirmed-dialog-mismatch") },
     }), {} as never,
-  ).createExecution({
-    jobId: confirmedMismatchJobId, attemptId: "attempt:confirmed-dialog-mismatch",
-    resultRevision: 0, productId: "public_knowledge_article_pipeline",
-    ownerRef: "owner:1", subjectRef: "subject:1", authorizationRef: "authorization:1",
-    deviceId: "device:1", leaseVersion: 1, executionFenceHash: HASH_A,
-    capabilityManifestHash: HASH_B, expiresAtMonotonic: performance.now() + 10_000,
-    commandTtlMs: 1_000, abortSignal: new AbortController().signal, parentSpanId: "parent",
-    maxProviderTurns: 1,
-  });
+  ).createExecution(executionInput(confirmedMismatchJobId, "attempt:confirmed-dialog-mismatch", HASH_A));
   let confirmedMismatchFailure: unknown = null;
   try {
     await confirmedMismatchTools.tools.readConfirmedSubmit({
@@ -303,15 +290,7 @@ try {
       },
     },
   );
-  const confirmedExactTools = confirmedExactToolOwner.createExecution({
-    jobId: confirmedExactJobId, attemptId: "attempt:confirmed-known-rate-limit",
-    resultRevision: 0, productId: "public_knowledge_article_pipeline",
-    ownerRef: "owner:1", subjectRef: "subject:1", authorizationRef: "authorization:1",
-    deviceId: "device:1", leaseVersion: 1, executionFenceHash: HASH_A,
-    capabilityManifestHash: HASH_B, expiresAtMonotonic: performance.now() + 10_000,
-    commandTtlMs: 1_000, abortSignal: new AbortController().signal, parentSpanId: "parent",
-    maxProviderTurns: 1,
-  });
+  const confirmedExactTools = confirmedExactToolOwner.createExecution(executionInput(confirmedExactJobId, "attempt:confirmed-known-rate-limit", HASH_A));
   let confirmedExactFailure: unknown = null;
   try {
     await confirmedExactTools.tools.readConfirmedSubmit({
@@ -338,15 +317,7 @@ try {
   exactAcquisitions = 0;
   exactGateClosed = false;
   exactIncidentPersistenceFails = true;
-  const closureFailureTools = confirmedExactToolOwner.createExecution({
-    jobId: confirmedExactJobId, attemptId: "attempt:confirmed-known-rate-limit",
-    resultRevision: 0, productId: "public_knowledge_article_pipeline",
-    ownerRef: "owner:1", subjectRef: "subject:1", authorizationRef: "authorization:1",
-    deviceId: "device:1", leaseVersion: 1, executionFenceHash: HASH_A,
-    capabilityManifestHash: HASH_B, expiresAtMonotonic: performance.now() + 10_000,
-    commandTtlMs: 1_000, abortSignal: new AbortController().signal, parentSpanId: "parent",
-    maxProviderTurns: 1,
-  });
+  const closureFailureTools = confirmedExactToolOwner.createExecution(executionInput(confirmedExactJobId, "attempt:confirmed-known-rate-limit", HASH_A));
   let closureFailure: unknown = null;
   try {
     await closureFailureTools.tools.readConfirmedSubmit({
@@ -415,15 +386,7 @@ try {
         };
       },
     },
-  ).createExecution({
-    jobId: "job:fresh-known-rate-limit", attemptId: "attempt:fresh-known-rate-limit",
-    resultRevision: 0, productId: "public_knowledge_article_pipeline",
-    ownerRef: "owner:1", subjectRef: "subject:1", authorizationRef: "authorization:1",
-    deviceId: "device:1", leaseVersion: 1, executionFenceHash: HASH_A,
-    capabilityManifestHash: HASH_B, expiresAtMonotonic: performance.now() + 10_000,
-    commandTtlMs: 1_000, abortSignal: new AbortController().signal, parentSpanId: "parent",
-    maxProviderTurns: 1,
-  });
+  ).createExecution(executionInput("job:fresh-known-rate-limit", "attempt:fresh-known-rate-limit", HASH_A));
   let freshExactFailure: unknown = null;
   try {
     await freshExactTools.tools.execute({
@@ -486,15 +449,7 @@ try {
       pendingIncidents: () => { providerControlCalls += 1; return []; },
       beginIncident: async () => { providerControlCalls += 1; throw new Error("forbidden"); },
     },
-  ).createExecution({
-    jobId: "job:dialog-mismatch", attemptId: "attempt:dialog-mismatch", resultRevision: 0,
-    productId: "public_knowledge_article_pipeline",
-    ownerRef: "owner:1", subjectRef: "subject:1", authorizationRef: "authorization:1",
-    deviceId: "device:1", leaseVersion: 1, executionFenceHash: HASH_A,
-    capabilityManifestHash: HASH_B, expiresAtMonotonic: performance.now() + 10_000,
-    commandTtlMs: 1_000, abortSignal: new AbortController().signal, parentSpanId: "parent",
-    maxProviderTurns: 1,
-  });
+  ).createExecution(executionInput("job:dialog-mismatch", "attempt:dialog-mismatch", HASH_A));
   let mismatchFailure: unknown = null;
   try {
     await mismatchTools.tools.execute({

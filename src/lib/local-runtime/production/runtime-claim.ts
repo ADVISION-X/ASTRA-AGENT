@@ -17,8 +17,8 @@ import {
   runtimeLogCauseEventId,
   type RuntimeSpanHandle,
 } from "../../runtime-logs/index.js";
-import { buildProductionLeaseRelease, buildTerminalProductionIntent,
-  deliverTerminalProductionIntent } from "./cloud-client.js";
+import { buildProductionLeaseRelease } from "./cloud-client.js";
+import { buildTerminalProductionIntent, deliverTerminalProductionIntent } from "./cloud-terminal-intent.js";
 import {
   readProductionDeviceJobStatus,
   type RemoteProductionDeviceJobStatus,

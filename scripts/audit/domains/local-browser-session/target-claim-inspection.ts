@@ -282,12 +282,20 @@ const inspectTargetClaimPayload = (framePayload: SourceFile, findings: Inspector
   if (/stringField\(body,\s*["'](?:url|currentUrl)["']\)/u.test(parseClaimText)) {
     findings.push(originFinding("TARGET_CLAIM must not carry current or canonical conversation URL."));
   }
-  const initializer = parseClaim?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
+  const epochCall = parseClaim?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
     .find((declaration) => declaration.getName() === "navigationEpoch")
-    ?.getInitializerIfKind(SyntaxKind.CallExpression)?.getExpression();
-  if (!initializer || !Node.isIdentifier(initializer) || astIdentifierName(initializer) !== "nonNegativeIntegerField") {
+    ?.getInitializerIfKind(SyntaxKind.CallExpression);
+  const integerParser = framePayload.getVariableDeclaration("integerField")
+    ?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  const epochArguments = epochCall?.getArguments().map((argument) => argument.getText()) ?? [];
+  if (!epochCall || !Node.isIdentifier(epochCall.getExpression())
+    || astIdentifierName(epochCall.getExpression()) !== "integerField"
+    || JSON.stringify(epochArguments) !== JSON.stringify(["body", '"navigationEpoch"'])
+    || integerParser?.getParameters()[2]?.getInitializer()?.getText() !== "0"
+    || !integerParser.getBody().getText().includes("Number.isSafeInteger(value)")
+    || !integerParser.getBody().getText().includes("value < minimum")) {
     findings.push(createLocalFinding({
-      checkId: "browser-authority/terminal-authority", lawId, filePath: sourcePaths[0],
+      checkId: "browser-authority/terminal-authority", lawId, filePath: framePayloadPath,
       message: "The first target claim must parse navigationEpoch with the non-negative integer boundary so epoch zero remains valid.",
     }));
   }
@@ -307,8 +315,13 @@ export const inspectTargetClaimGuards = (
   if (!channel || !framePayload || !actor || !awaiter || !supervisor || !leaseContract) return;
   requireIdentifiers(channel, ["sendTargetClaimAcknowledgement", "parseBrowserAuthorityTargetClaim"], findings, lawId,
     "Workbench target admission must accept epoch zero and return one encrypted acknowledgement.");
-  requireIdentifiers(framePayload, ["parseBrowserAuthorityTargetClaim", "nonNegativeIntegerField"], findings, lawId,
+  requireIdentifiers(framePayload, ["parseBrowserAuthorityTargetClaim", "integerField"], findings, lawId,
     "The Target claim payload owner must validate the complete exact wire identity.");
+  if (!channel.getFullText().includes('integerField(body, "requestSequence", 1)')
+    || !channel.getFullText().includes('integerField(body, "permitSequence", 1)')) findings.push(createLocalFinding({
+    checkId: "browser-authority/terminal-authority", lawId, filePath: sourcePaths[0],
+    message: "Socket request and permit sequences must retain the positive integer boundary.",
+  }));
   requireIdentifiers(actor, ["TargetClaimAwaiter", "targetClaims", "sendTargetFrame", "acceptTargetClaimAcknowledgement"], findings, lawId,
     "The extension actor must route target claims through the one acknowledgement awaiter.");
   requireIdentifiers(actor, ["acceptTargetAcquire", "acquireJobBoundChatGptTarget"], findings, lawId,

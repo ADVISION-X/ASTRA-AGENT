@@ -4,10 +4,11 @@ import {
 } from "../../execution-failure.js";
 import { requireRuntimeLogWrite, type RuntimeSpanHandle } from "../../runtime-logs/index.js";
 import {
-  buildProductionLeaseRelease, buildTerminalProductionIntent, deliverTerminalProductionIntent,
+  buildProductionLeaseRelease,
   downloadProductionMaterials,
   uploadProductionGeneratedImage, uploadProductionResult,
 } from "./cloud-client.js";
+import { buildTerminalProductionIntent, deliverTerminalProductionIntent } from "./cloud-terminal-intent.js";
 import { productionCatalogHash } from "./catalog.js";
 import { hashCanonical, type ProductionExecutionLease, type WebsiteAgentTask } from "./contracts.js";
 import { heartbeatWhileRunning, ProductionRuntimeBoundaryError } from "./runtime-execution-heartbeat.js";

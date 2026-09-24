@@ -141,6 +141,25 @@ export const readPersistedGptTextResponse = async (input: Readonly<{
     value: Object.freeze(response) as TextResponse });
 };
 
+const assertImageBinding = (binding: Readonly<Record<string, unknown>>): void => {
+  if (Object.keys(binding).sort().join("|") !== ["schemaVersion", "assistantTurnId",
+    "semanticMediaId", "authorityTargetHash", "authorityDocumentHash",
+    "canonicalConversationHash", "userTurnHash", "turnMarkerHash", "originalArtifactRef",
+    "originalSha256", "originalSizeBytes", "originalMediaType"].sort().join("|")
+    || binding.schemaVersion !== "gpt-image-source-binding.v1"
+    || typeof binding.originalArtifactRef !== "string" || !binding.originalArtifactRef
+    || !Number.isSafeInteger(binding.originalSizeBytes) || Number(binding.originalSizeBytes) < 1
+    || ![binding.authorityTargetHash, binding.authorityDocumentHash,
+      binding.canonicalConversationHash, binding.userTurnHash, binding.turnMarkerHash,
+      binding.originalSha256].every((value) => typeof value === "string"
+        && /^sha256:[a-f0-9]{64}$/u.test(value))
+    || typeof binding.originalMediaType !== "string"
+    || !/^image\/[a-z0-9.+-]+$/u.test(binding.originalMediaType)) invalidImage();
+  if (typeof binding.assistantTurnId !== "string" || !binding.assistantTurnId
+    || binding.semanticMediaId !== "gpt-generated-image-main") invalidImage();
+  assertImageAuthority(binding);
+};
+
 export const readPersistedGptImageEvidence = async (input: Readonly<{
   evidenceStore: GptEvidenceStorePort;
   jobId: string;
@@ -163,22 +182,7 @@ export const readPersistedGptImageEvidence = async (input: Readonly<{
   try { parsed = JSON.parse(new TextDecoder().decode(descriptor.artifact.content)); }
   catch { return invalidImage(); }
   const binding = imageRecord(parsed);
-  if (Object.keys(binding).sort().join("|") !== ["schemaVersion", "assistantTurnId",
-    "semanticMediaId", "authorityTargetHash", "authorityDocumentHash",
-    "canonicalConversationHash", "userTurnHash", "turnMarkerHash", "originalArtifactRef",
-    "originalSha256", "originalSizeBytes", "originalMediaType"].sort().join("|")
-    || binding.schemaVersion !== "gpt-image-source-binding.v1"
-    || typeof binding.originalArtifactRef !== "string" || !binding.originalArtifactRef
-    || !Number.isSafeInteger(binding.originalSizeBytes) || Number(binding.originalSizeBytes) < 1
-    || ![binding.authorityTargetHash, binding.authorityDocumentHash,
-      binding.canonicalConversationHash, binding.userTurnHash, binding.turnMarkerHash,
-      binding.originalSha256].every((value) => typeof value === "string"
-        && /^sha256:[a-f0-9]{64}$/u.test(value))
-    || typeof binding.originalMediaType !== "string"
-    || !/^image\/[a-z0-9.+-]+$/u.test(binding.originalMediaType)) invalidImage();
-  if (typeof binding.assistantTurnId !== "string" || !binding.assistantTurnId
-    || binding.semanticMediaId !== "gpt-generated-image-main") invalidImage();
-  assertImageAuthority(binding);
+  assertImageBinding(binding);
   const original = await input.evidenceStore.readArtifact({ ...identity,
     idempotencyKey: artifactKey(input.exactCallIdentityHash, "original") });
   if (original.status !== "success") return invalidImage();

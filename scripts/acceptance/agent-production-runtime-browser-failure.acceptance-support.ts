@@ -15,13 +15,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { attemptFailureFirstFact, claimTask, failureStatus,
   resultFor, task } from "./agent-production-runtime-fixtures.js";
-import {
-  verifyClaimTimeFirstFactConflict, verifyFailureReleaseReadbackScenarios,
-  verifyAttemptFailureClassificationMatrix,
-  verifyRemoteFailureWithoutLocalAuthorityStopsBeforeProduct,
-  verifyUnclassifiedFailureStopsBeforeProduct,
-} from
+import { verifyFailureReleaseReadbackScenarios, verifyAttemptFailureClassificationMatrix } from
   "./agent-production-runtime-failure-readback.acceptance-support.js";
+import {
+  verifyClaimTimeFirstFactConflict, verifyRemoteFailureWithoutLocalAuthorityStopsBeforeProduct,
+  verifyUnclassifiedFailureStopsBeforeProduct,
+} from "./agent-production-runtime-failure-authority.acceptance-support.js";
 
 
 

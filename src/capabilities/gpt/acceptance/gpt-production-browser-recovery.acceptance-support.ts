@@ -6,10 +6,45 @@ import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import { HASH_A, HASH_B } from "../../../../scripts/acceptance/agent-production-runtime-fixtures.js";
 import { typedExecutionFailure } from "../../../lib/execution-failure.js";
 
+const verifySecondConfirmedReadback = async (
+  lifecycle: ProductionGptBrowserLifecycle,
+  active: Awaited<ReturnType<ProductionGptBrowserLifecycle["browserForConfirmedReadback"]>>,
+  selectedUrls: string[],
+): Promise<void> => {
+  const firstUrl = selectedUrls[0]!;
+  assert.equal(firstUrl.endsWith("/c/confirmed-recovery"), true);
+  const secondUrl = firstUrl.replace("/c/confirmed-recovery", "/c/second-recovery");
+  await assert.rejects(lifecycle.browserForConfirmedReadback(
+    "session:confirmed-recovery", "second-step", "turn-submit",
+  ), (error: unknown) => typedExecutionFailure(error)?.code
+    === "GPT_BROWSER_SESSION_TRANSITION_UNSETTLED");
+  lifecycle.recordSettledResult(active, HASH_A);
+  const second = await lifecycle.browserForConfirmedReadback(
+    "session:confirmed-recovery", "second-step", "turn-submit",
+  );
+  assert.equal(second, active, "same-session readback keeps the one Browser lease");
+  await lifecycle.recordConfirmedProviderEffect(second, {
+    exactCallIdentityHash: `sha256:${"7".repeat(64)}`,
+    providerEffectIdentityHash: `sha256:${"9".repeat(64)}`,
+    childCapabilityId: "submit_exact_gpt_turn_once", effectScope: "provider_effect",
+    browserOutcome: "CONFIRMED", mutationOutcome: "confirmed",
+    terminalAt: "2026-09-12T00:00:01.000Z", evidenceRef: "browser-mutation:second-submit",
+    evidenceHash: `sha256:${"4".repeat(64)}`,
+  }, {
+    resultRevision: 0, productStepId: "second-step", callId: "turn-submit",
+    childCapabilityId: "submit_exact_gpt_turn_once", inputHash: HASH_B,
+    actionOrdinal: 2, replayPolicy: "provider-effect-once",
+  }, secondUrl, "conversation-turn-2");
+  assert.equal(selectedUrls.length, 2,
+    "a second confirmed effect in the same Product session must select its own WAL URL");
+  assert.deepEqual(selectedUrls, [firstUrl, secondUrl]);
+  lifecycle.recordSettledResult(second, HASH_B);
+  await lifecycle.settle(null);
+};
+
 export const verifyConfirmedReadbackLease = async (temporary: string): Promise<void> => {
   let targetMode: string | undefined;
   let acquisitions = 0;
-  let selections = 0;
   const selectedUrls: string[] = [];
   const lifecycle = new ProductionGptBrowserLifecycle(
     {
@@ -22,7 +57,6 @@ export const verifyConfirmedReadbackLease = async (temporary: string): Promise<v
           target: { targetRef: "target:confirmed-recovery" },
           document: { documentRef: "document:confirmed-recovery" },
           executeDomIntent: async (intent: Readonly<{ canonicalConversationUrl?: string }>) => {
-            selections += 1;
             selectedUrls.push(intent.canonicalConversationUrl ?? "");
           },
           pendingMutationCount: () => 0,
@@ -58,38 +92,10 @@ export const verifyConfirmedReadbackLease = async (temporary: string): Promise<v
     childCapabilityId: "submit_exact_gpt_turn_once", inputHash: HASH_A,
     actionOrdinal: 1, replayPolicy: "provider-effect-once",
   }, "https://chatgpt.com/c/confirmed-recovery", "conversation-turn-1");
-  assert.deepEqual([targetMode, acquisitions, selections],
+  assert.deepEqual([targetMode, acquisitions, selectedUrls.length],
     ["confirmed-readback", 1, 1],
     "confirmed-effect recovery may acquire once and select the exact canonical URL once");
-  const firstUrl = selectedUrls[0]!;
-  assert.equal(firstUrl.endsWith("/c/confirmed-recovery"), true);
-  const secondUrl = firstUrl.replace("/c/confirmed-recovery", "/c/second-recovery");
-  await assert.rejects(lifecycle.browserForConfirmedReadback(
-    "session:confirmed-recovery", "second-step", "turn-submit",
-  ), (error: unknown) => typedExecutionFailure(error)?.code
-    === "GPT_BROWSER_SESSION_TRANSITION_UNSETTLED");
-  lifecycle.recordSettledResult(active, HASH_A);
-  const second = await lifecycle.browserForConfirmedReadback(
-    "session:confirmed-recovery", "second-step", "turn-submit",
-  );
-  assert.equal(second, active, "same-session readback keeps the one Browser lease");
-  await lifecycle.recordConfirmedProviderEffect(second, {
-    exactCallIdentityHash: `sha256:${"7".repeat(64)}`,
-    providerEffectIdentityHash: `sha256:${"9".repeat(64)}`,
-    childCapabilityId: "submit_exact_gpt_turn_once", effectScope: "provider_effect",
-    browserOutcome: "CONFIRMED", mutationOutcome: "confirmed",
-    terminalAt: "2026-09-12T00:00:01.000Z", evidenceRef: "browser-mutation:second-submit",
-    evidenceHash: `sha256:${"4".repeat(64)}`,
-  }, {
-    resultRevision: 0, productStepId: "second-step", callId: "turn-submit",
-    childCapabilityId: "submit_exact_gpt_turn_once", inputHash: HASH_B,
-    actionOrdinal: 2, replayPolicy: "provider-effect-once",
-  }, secondUrl, "conversation-turn-2");
-  assert.equal(selections, 2,
-    "a second confirmed effect in the same Product session must select its own WAL URL");
-  assert.deepEqual(selectedUrls, [firstUrl, secondUrl]);
-  lifecycle.recordSettledResult(second, HASH_B);
-  await lifecycle.settle(null);
+  await verifySecondConfirmedReadback(lifecycle, active, selectedUrls);
 };
 
 export const verifyNoPriorProviderEffect = async (temporary: string): Promise<void> => {

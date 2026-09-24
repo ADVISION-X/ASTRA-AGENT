@@ -139,11 +139,14 @@ const assertReleaseIdentity = async (
   return extensionTreeHash;
 };
 
-export const createWorkbenchBrowserAuthority = async (
+const startBrowserSupervisor = async (
   dataDir: string,
   runtimeLogger: RuntimeLogger,
   restoreBrowserHostVisibility?: (() => Promise<void>) | undefined,
-): Promise<WorkbenchBrowserAuthority> => {
+): Promise<Readonly<{
+  supervisor: BrowserInfrastructureSupervisor;
+  releaseBuildId: string;
+}>> => {
   const profileConfig = resolveProductionBrowserProfileConfig(dataDir);
   const releaseIdentity = await readUnpackedExtensionReleaseIdentity(
     resolve(
@@ -172,12 +175,23 @@ export const createWorkbenchBrowserAuthority = async (
     restoreBrowserHostVisibility,
   });
   await supervisor.start();
+  return { supervisor, releaseBuildId: releaseIdentity.releaseBuildId };
+};
+
+export const createWorkbenchBrowserAuthority = async (
+  dataDir: string,
+  runtimeLogger: RuntimeLogger,
+  restoreBrowserHostVisibility?: (() => Promise<void>) | undefined,
+): Promise<WorkbenchBrowserAuthority> => {
+  const { supervisor, releaseBuildId } = await startBrowserSupervisor(
+    dataDir, runtimeLogger, restoreBrowserHostVisibility,
+  );
   const endpoints = supervisor.endpoints();
   return {
     broker: endpoints.broker,
     health: () => supervisor.health(),
     readOperatorPairingState: () => supervisor.readOperatorPairingState(),
-    readReleaseBuildId: () => releaseIdentity.releaseBuildId,
+    readReleaseBuildId: () => releaseBuildId,
     readProductionRuntimeState: () => ({
       browserAuthorityState:
         endpoints.broker.currentStatus().kind === "AVAILABLE"

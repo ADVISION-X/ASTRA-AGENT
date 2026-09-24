@@ -148,6 +148,36 @@ const projectWebsiteAgentTaskEnvelope = (value: object): Record<string, unknown>
     .flatMap((key) => record[key] === undefined ? [] : [[key, record[key]]]));
 };
 
+const invalidResultRevisionBinding = (
+  grant: z.infer<typeof ExecutionGrantSchema>,
+): boolean => {
+  return (grant.result_revision === 0)
+    !== (grant.prior_result_rejection === null && grant.delivery_priority_replay_grant === null)
+    || grant.delivery_priority_replay_grant !== null
+      && (grant.delivery_priority_replay_grant.source_seal_hash !== grant.source_handoff_seal_hash
+        || grant.delivery_priority_replay_grant.result_revision !== grant.result_revision
+        || grant.prior_result_rejection !== null
+        || new Set(grant.delivery_priority_replay_grant.calls.map((call) => JSON.stringify([
+          call.product_step_id, call.call_id, call.child_capability_id,
+        ]))).size !== grant.delivery_priority_replay_grant.calls.length
+        || grant.delivery_priority_replay_grant.calls.some((call) =>
+          call.call_grant_hash !== hashCanonical({ job_id: grant.job_id,
+            attempt_id: grant.attempt_id,
+            source_seal_hash: grant.delivery_priority_replay_grant!.source_seal_hash,
+            source_attempt_id: grant.delivery_priority_replay_grant!.source_attempt_id,
+            result_revision: grant.delivery_priority_replay_grant!.result_revision,
+            product_step_id: call.product_step_id, call_id: call.call_id,
+            child_capability_id: call.child_capability_id,
+            source_effect_set_hash: call.source_effect_set_hash }))
+        || grant.delivery_priority_replay_grant.grant_hash !== hashCanonical({
+          job_id: grant.job_id, attempt_id: grant.attempt_id,
+          source_seal_hash: grant.delivery_priority_replay_grant.source_seal_hash,
+          source_attempt_id: grant.delivery_priority_replay_grant.source_attempt_id,
+          result_revision: grant.delivery_priority_replay_grant.result_revision,
+          calls: grant.delivery_priority_replay_grant.calls,
+        }));
+};
+
 export const ClaimedProductionTaskSchema = WebsiteAgentTaskBaseSchema.extend({
   status: z.literal("failed"),
   current_reason: z.literal("LEASE_GRANTED"),
@@ -173,31 +203,7 @@ export const ClaimedProductionTaskSchema = WebsiteAgentTaskBaseSchema.extend({
     || grant.execution_fence.control_contract_version !== grant.control_contract_version) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_CLAIM_TASK_GRANT_MISMATCH" });
   }
-  if ((grant.result_revision === 0)
-    !== (grant.prior_result_rejection === null && grant.delivery_priority_replay_grant === null)
-    || grant.delivery_priority_replay_grant !== null
-      && (grant.delivery_priority_replay_grant.source_seal_hash !== grant.source_handoff_seal_hash
-        || grant.delivery_priority_replay_grant.result_revision !== grant.result_revision
-        || grant.prior_result_rejection !== null
-        || new Set(grant.delivery_priority_replay_grant.calls.map((call) => JSON.stringify([
-          call.product_step_id, call.call_id, call.child_capability_id,
-        ]))).size !== grant.delivery_priority_replay_grant.calls.length
-        || grant.delivery_priority_replay_grant.calls.some((call) =>
-          call.call_grant_hash !== hashCanonical({ job_id: grant.job_id,
-            attempt_id: grant.attempt_id,
-            source_seal_hash: grant.delivery_priority_replay_grant!.source_seal_hash,
-            source_attempt_id: grant.delivery_priority_replay_grant!.source_attempt_id,
-            result_revision: grant.delivery_priority_replay_grant!.result_revision,
-            product_step_id: call.product_step_id, call_id: call.call_id,
-            child_capability_id: call.child_capability_id,
-            source_effect_set_hash: call.source_effect_set_hash }))
-        || grant.delivery_priority_replay_grant.grant_hash !== hashCanonical({
-          job_id: grant.job_id, attempt_id: grant.attempt_id,
-          source_seal_hash: grant.delivery_priority_replay_grant.source_seal_hash,
-          source_attempt_id: grant.delivery_priority_replay_grant.source_attempt_id,
-          result_revision: grant.delivery_priority_replay_grant.result_revision,
-          calls: grant.delivery_priority_replay_grant.calls,
-        }))) {
+  if (invalidResultRevisionBinding(grant)) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "V6_RESULT_REVISION_BINDING_INVALID" });
   }
 });

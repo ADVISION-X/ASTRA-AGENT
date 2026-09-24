@@ -9,7 +9,8 @@ const PROOF_LAW = "LAW-AGENT-PRODUCTION-RUNTIME-008-V43";
 const ROOT = "src/lib/local-runtime/production";
 const PATHS = {
   authority: `${ROOT}/store-authority-reader.ts`, ledger: `${ROOT}/store-ledger.ts`,
-  outbox: `${ROOT}/store-outbox.ts`, taskState: `${ROOT}/store-task-state.ts`,
+  outbox: `${ROOT}/store-outbox.ts`, cooldown: `${ROOT}/store-cooldown.ts`,
+  taskState: `${ROOT}/store-task-state.ts`,
   outboxReceipt: `${ROOT}/store-outbox-receipt.ts`,
   authorityValidation: `${ROOT}/store-authority-validation.ts`,
   runtimeLoops: `${ROOT}/runtime-loops.ts`,
@@ -45,7 +46,7 @@ const outboxBoundaryValid = (
   validation.includes("decodeURIComponent(encoded)")].every(Boolean);
 
 const providerCooldownAuthorityValid = (
-  loops: string, provider: string, receipt: string, outbox: string,
+  loops: string, provider: string, receipt: string, outbox: string, cooldown: string,
 ): boolean => [loops.includes("state.providerRateLimitControl.canRequestClaimAuthority()"),
   loops.includes("state.providerRateLimitControl.observeWebsiteAuthority"),
   provider.includes("this.store.hasUndeliveredProviderCooldown()"),
@@ -54,8 +55,8 @@ const providerCooldownAuthorityValid = (
   provider.includes('`${incidentRequestId}_not_cleared`'), !provider.includes("Date.now()"),
   !outbox.includes("Date.parse(receipt.cooldown_until) >"),
   outbox.includes("parseLocalProviderCooldownReceipt(local.body_blob, response)"),
-  outbox.includes("latestProviderCooldownClearance()"),
-  outbox.includes("clearance')='confirmed_absent'"),
+  cooldown.includes("latestProviderCooldownClearance()"),
+  cooldown.includes("clearance')='confirmed_absent'"),
   receipt.includes("receiptHash !== hashCanonical(core)")].every(Boolean);
 
 const proofBoundaryValid = (sql: string, prefix: string): boolean => [
@@ -90,7 +91,10 @@ export const inspectAgentAuthorityAst = (
   const providerText = sourceFor(context, PATHS.providerControl)?.getFullText() ?? "";
   const providerReceiptText = sourceFor(context, PATHS.providerReceipt)?.getFullText() ?? "";
   const outboxText = outbox?.getFullText() ?? "";
-  if (!providerCooldownAuthorityValid(loopsText, providerText, providerReceiptText, outboxText)) {
+  const cooldownText = sourceFor(context, PATHS.cooldown)?.getFullText() ?? "";
+  if (!providerCooldownAuthorityValid(
+    loopsText, providerText, providerReceiptText, outboxText, cooldownText,
+  )) {
     findings.push(finding(DATABASE_LAW, "agent-production-runtime/provider-cooldown-authority",
       PATHS.providerControl,
       "Provider cooldown must close claim and submit from the durable Outbox, reopen only from later Website server authority, and self-hash-validate live plus hydrated receipts."));

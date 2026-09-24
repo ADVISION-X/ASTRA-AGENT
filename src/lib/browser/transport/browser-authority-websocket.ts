@@ -25,6 +25,7 @@ import {
   canonicalBrowserAuthorityPlaintext,
   compareReplyToken,
   encryptedFrameBody,
+  integerField,
   parseBrowserAuthorityTargetClaim,
   parseBrowserAuthorityTargetRevoke,
   parseCanonicalPlaintext,
@@ -86,7 +87,6 @@ type ActiveSocket = Readonly<{
 }>;
 const MAX_PREAUTH_FRAMES = 3;
 const AUTH_EPOCH = 1;
-const COMMAND_DEADLINE_MS = BROWSER_COMMAND_DEFAULT_DEADLINE_MS;
 const MUTATION_TERMINAL_REPLY_GRACE_MS = 4_000;
 const aadForFrame = (frame: Pick<BrowserAuthorityFrame, "protocolVersion" | "kind" | "epoch" | "sequence" | "deadline">): string =>
   canonicalizeBrowserAuthorityValue({
@@ -166,7 +166,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     if (!active) throw new Error("BROWSER_LIVENESS_EXPIRED");
     const sequence = active.nextServerSequence;
     const commandDeadlineMs = Math.min(
-      COMMAND_DEADLINE_MS,
+      BROWSER_COMMAND_DEFAULT_DEADLINE_MS,
       permit.commandTtlMs,
     );
     const deadline = new Date(Date.now() + commandDeadlineMs).toISOString();
@@ -220,7 +220,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       active,
       "TARGET_ACQUIRE",
       sequence,
-      new Date(Date.now() + COMMAND_DEADLINE_MS).toISOString(),
+      new Date(Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS).toISOString(),
       { action: "acquire", targetMode, jobRefHash,
         ...(targetMode === "authorized-continuation" ? { parentConversationUrl } : {}),
         ...(expectedTargetRef ? { expectedTargetRef } : {}) },
@@ -246,7 +246,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       active,
       "TARGET_ACQUIRE",
       sequence,
-      new Date(Date.now() + COMMAND_DEADLINE_MS).toISOString(),
+      new Date(Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS).toISOString(),
       { action: "release", jobRefHash, targetRefs },
     );
     this.active = { ...active, nextServerSequence: sequence + 1 };
@@ -322,10 +322,10 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       kind: "AUTHENTICATED",
       epoch: AUTH_EPOCH,
       sequence: 0,
-      deadline: new Date(Date.now() + COMMAND_DEADLINE_MS).toISOString(),
+      deadline: new Date(Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS).toISOString(),
       body: { sessionHash: verified.sessionHash, serverFinalSignature: verified.serverFinalSignature },
     }));
-    const readyFrame = this.encryptedFrame(this.active, "READY", 1, new Date(Date.now() + COMMAND_DEADLINE_MS).toISOString(), ready);
+    const readyFrame = this.encryptedFrame(this.active, "READY", 1, new Date(Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS).toISOString(), ready);
     this.active = { ...this.active, nextServerSequence: 2 };
     socket.send(encodeBrowserAuthorityFrame(readyFrame));
   }
@@ -386,8 +386,8 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
 
   private acceptReply(body: Record<string, unknown>): void {
     const active = this.active;
-    const requestSequence = integerField(body, "requestSequence");
-    const permitSequence = integerField(body, "permitSequence");
+    const requestSequence = integerField(body, "requestSequence", 1);
+    const permitSequence = integerField(body, "permitSequence", 1);
     const replyChannelToken = stringField(body, "replyChannelToken");
     const reply = active?.replies.get(requestSequence);
     if (!active || !reply
@@ -456,7 +456,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       active,
       "TARGET_CLAIM",
       sequence,
-      new Date(Date.now() + COMMAND_DEADLINE_MS).toISOString(),
+      new Date(Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS).toISOString(),
       { targetRef: claim.targetRef, documentRef: claim.documentRef, jobRefHash: claim.jobRefHash },
     );
     this.active = { ...active, nextServerSequence: sequence + 1 };
@@ -497,8 +497,3 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     return randomBytes(32).toString("hex");
   }
 }
-const integerField = (body: Readonly<Record<string, unknown>>, name: string): number => {
-  const value = body[name];
-  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  return value;
-};

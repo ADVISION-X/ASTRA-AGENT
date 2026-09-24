@@ -68,9 +68,13 @@ export const stringField = (body: Readonly<Record<string, unknown>>, name: strin
   return value;
 };
 
-const nonNegativeIntegerField = (body: Readonly<Record<string, unknown>>, name: string): number => {
+export const integerField = (
+  body: Readonly<Record<string, unknown>>, name: string, minimum = 0,
+): number => {
   const value = body[name];
-  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < minimum) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
   return value;
 };
 
@@ -79,7 +83,7 @@ export const parseBrowserAuthorityTargetClaim = (
 ): BrowserAuthorityTargetClaim => {
   const targetRef = stringField(body, "targetRef");
   const documentRef = stringField(body, "documentRef");
-  const navigationEpoch = nonNegativeIntegerField(body, "navigationEpoch");
+  const navigationEpoch = integerField(body, "navigationEpoch");
   const claimOrigin = stringField(body, "claimOrigin");
   const jobRefHash = stringField(body, "jobRefHash");
   if (!/^sha256:[a-f0-9]{64}$/u.test(jobRefHash) || Object.keys(body).length !== 5

@@ -21,7 +21,9 @@ import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { verifyProductionDependency } from "../startup/lib/production-contract-preflight.js";
-import { HASH_A, validDeviceCredential } from "./agent-production-runtime-fixtures.js";
+import { HASH_A, HASH_B, resultFor, task, validDeviceCredential } from "./agent-production-runtime-fixtures.js";
+import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
+import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 
 const expectCredentialCode = async (dataDir: string, code: string): Promise<void> => {
   await assert.rejects(readProductionCredential(dataDir),
@@ -213,4 +215,108 @@ export const assertProductionStartupPreflight = async (): Promise<void> => {
   await assertDependencyProjection();
   await assertCredentialBoundary();
   await assertStorageInventoryBoundary();
+};
+
+const seedHistoricalTerminalAttempt = async (dataDir: string): Promise<void> => {
+  const historyStore = new ProductionRuntimeStore(dataDir);
+  const historyTask = task({ jobId: "job:historical-terminal-new-attempt",
+    productId: "payment_screenshot_observation", actionId: "observe" });
+  historyStore.acceptTask(historyTask, "attempt:historical-terminal");
+  const historicalResult = { ...resultFor(historyTask),
+    evidence_refs: [`art-${"a".repeat(64)}`] };
+  historyStore.markExecuting(historyTask.job_id);
+  historyStore.stageResult(historyTask.job_id, "attempt:historical-terminal", historicalResult);
+  for (const [key, receipt] of [["payload", HASH_A], ["envelope", HASH_B]] as const) {
+    historyStore.enqueue({ idempotency_key: `artifact:historical-terminal:${key}`, kind: "artifact",
+      path: `/internal/ai-production/v6/jobs/${historyTask.job_id}/artifacts/${key}`,
+      method: "PUT", headers: {}, body: Buffer.from(key) });
+    historyStore.markOutboxSent(`artifact:historical-terminal:${key}`, { receipt_hash: receipt });
+  }
+  const historicalPayloadHash = hashCanonical(historicalResult);
+  historyStore.enqueue({ idempotency_key: "terminal:historical-terminal", kind: "terminal",
+    path: `/internal/ai-production/v6/jobs/${historyTask.job_id}/terminal`,
+    method: "POST", headers: {}, body: JSON.stringify({
+      schema_version: "xuanxue-ai-terminal-cas.v6", job_id: historyTask.job_id,
+      terminal_status: "completed", payload_hash: historicalPayloadHash, failure: null,
+      worker_session_id: "session:historical-terminal",
+      worker_session_epoch: 1,
+      result_object_receipts: [HASH_A, HASH_B],
+    }) });
+  historyStore.markOutboxSent("terminal:historical-terminal", {
+    schema_version: "xuanxue-ai-terminal-receipt.v6", job_id: historyTask.job_id,
+    terminal_status: "completed", payload_hash: historicalPayloadHash, failure: null,
+    first_terminal: true, device_id: "device:historical-terminal", device_epoch: 1,
+    worker_session_id: "session:historical-terminal",
+    worker_session_epoch: 1,
+    runtime_attestation_receipt_hash: HASH_A,
+  });
+  (Reflect.get(historyStore, "database") as import("better-sqlite3").Database)
+    .prepare(`update production_tasks set current_attempt_id=? where job_id=?`).run(
+      "attempt:website-authorized-next", historyTask.job_id,
+    );
+  historyStore.close();
+};
+
+export const assertSessionBindingMismatchStartup = async (): Promise<void> => {
+const bindingMismatchTemporary = await mkdtemp(path.join(tmpdir(), "agent-session-binding-mismatch-"));
+const bindingMismatchCredentialPath = path.join(bindingMismatchTemporary, "device-credential.json");
+const bindingMismatchOriginalCredentialPath = process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
+const bindingMismatchOriginalFetch = globalThis.fetch;
+let bindingMismatchRuntime: Awaited<ReturnType<typeof startProductionRuntime>> | null = null;
+const bindingMismatchRequestPaths: string[] = [];
+try {
+  await writeFile(bindingMismatchCredentialPath, JSON.stringify(validDeviceCredential), { mode: 0o600 });
+  process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = bindingMismatchCredentialPath;
+  globalThis.fetch = (async (input: string | URL | Request) => {
+    bindingMismatchRequestPaths.push(new URL(input instanceof Request ? input.url : input).pathname);
+    return new Response(JSON.stringify({
+      ok: false,
+      error: {
+        code: "AI_SESSION_BINDING_MISMATCH",
+        message: "Worker session binding rejected.",
+        status: 409,
+        request_id: "request:binding-mismatch",
+      },
+    }), { status: 409, headers: { "content-type": "application/json" } });
+  }) as typeof globalThis.fetch;
+  const dataDir = path.join(bindingMismatchTemporary, "runtime");
+  await mkdir(dataDir);
+  await seedHistoricalTerminalAttempt(dataDir);
+  bindingMismatchRuntime = await startProductionRuntime({
+    dataDir,
+    sourceHash: HASH_A,
+    gpt: createGptAbilityGroup(),
+    evidenceStore: createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(dataDir)),
+    browserAuthority: {
+      verifyRuntimeTaskProvenance: () => undefined,
+      readProductionRuntimeState: () => ({
+        browserAuthorityState: "absent" as const,
+        browserTargetState: "absent" as const,
+      }),
+    } as never,
+    runtimeLogger: createRuntimeLogger({
+      producer: "agent-session-binding-mismatch", owner: "production-runtime", component: "production-session",
+      terminalEnabled: false, fileSink: { directoryPath: path.join(bindingMismatchTemporary, "runtime-logs") },
+    }),
+  });
+  const health = bindingMismatchRuntime.readHealth();
+  assert.equal(health.shellState, "ready");
+  assert.equal(health.cloudState, "contract_blocked");
+  assert.equal(health.executionState, "blocked");
+  assert.equal(health.claimAdmissionState, "blocked");
+  assert.equal(health.controlContractVersion, 43,
+    "blocked diagnostics must retain only the consumer contract version needed for exact comparison");
+  assert.equal(health.lastErrorCode, "AI_SESSION_BINDING_MISMATCH");
+  await bindingMismatchRuntime.close();
+  bindingMismatchRuntime = null;
+  assert.deepEqual(bindingMismatchRequestPaths, ["/internal/ai-production/v6/sessions/open"],
+    "a deterministic session binding 409 must not create a worker or heartbeat handle that reopens on shutdown");
+} finally {
+  if (bindingMismatchRuntime) await bindingMismatchRuntime.close();
+  globalThis.fetch = bindingMismatchOriginalFetch;
+  if (bindingMismatchOriginalCredentialPath === undefined) delete process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
+  else process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = bindingMismatchOriginalCredentialPath;
+  await rm(bindingMismatchTemporary, { recursive: true, force: true });
+}
+
 };
