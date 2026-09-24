@@ -37,6 +37,7 @@
         "scripts/acceptance/agent-production-runtime-browser-failure.acceptance-support.ts",
         "scripts/acceptance/agent-production-runtime-business-admission.acceptance-support.ts",
         "scripts/acceptance/agent-production-runtime-dialog-failure.acceptance-support.ts",
+        "scripts/acceptance/agent-production-runtime-failure-authority.acceptance-support.ts",
         "scripts/acceptance/agent-production-runtime-failure-readback.acceptance-support.ts",
         "scripts/acceptance/agent-production-runtime-fixtures.ts",
         "scripts/acceptance/agent-production-runtime-generated-image.acceptance-support.ts",
