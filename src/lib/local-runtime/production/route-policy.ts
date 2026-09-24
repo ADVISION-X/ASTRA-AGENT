@@ -75,14 +75,14 @@ const assertRouteRelation = (task: WebsiteAgentTask, expected: ProductionRoutePo
     task.review_policy];
   const staticRoot = task.product_id === "localization_static_catalog"
     && task.action_id === "produce_locale_catalog";
-  const parentRequired = expected.relation_kind === "followup"
-    || (expected.relation_kind === "provider_continuation" && !staticRoot);
+  const parentRequired = !staticRoot
+    && ["followup", "provider_continuation"].includes(expected.relation_kind);
   const hasAnyParent = parentIdentity.some((value) => value !== undefined);
   const hasFullParent = parentIdentity.every((value) => value !== undefined);
-  if ((parentRequired && !hasFullParent)
+  const parentRelationValid = staticRoot ? !hasAnyParent || hasFullParent
+    : parentRequired ? hasFullParent : !hasAnyParent;
+  if (!parentRelationValid
     || (expected.relation_kind === "review") !== reviewIdentity.every((value) => value !== undefined)
-    || (!parentRequired && !staticRoot && hasAnyParent)
-    || (staticRoot && hasAnyParent && !hasFullParent)
     || (expected.relation_kind !== "review" && reviewIdentity.some((value) => value !== undefined))) {
     throw new Error("AGENT_ROUTE_RELATION_KIND_INVALID");
   }

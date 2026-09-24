@@ -40,8 +40,8 @@ const inspectMinimalDependencies = (context: InspectorContext, findings: Inspect
   for (const [path, version, lawId, checkId] of [
     ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 43,
       LAWS.route, "agent-production-runtime/v43-dependency"],
-    ["docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json", 14,
-      LAWS.route, "agent-production-runtime/v13-result-dependency"],
+    ["docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json", 15,
+      LAWS.route, "agent-production-runtime/v15-result-dependency"],
   ] as const) {
     const dependency = JSON.parse(read(context, path)) as { version?: unknown; contract?: Record<string, unknown> };
     if (dependency.version !== version || dependency.contract?.version !== version
