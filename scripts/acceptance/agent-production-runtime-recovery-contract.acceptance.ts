@@ -5,6 +5,7 @@ import path from "node:path";
 
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
+import { businessInFlightCount } from "../../src/lib/local-runtime/production/runtime-loops.js";
 import { historicalEffectsSettled } from "../../src/lib/local-runtime/production/runtime-source-readback-proofs.js";
 import { hashCanonical, sha256 } from "../../src/lib/local-runtime/production/contracts.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
@@ -87,8 +88,13 @@ try {
     readback_proofs: [],
   };
   const sourceSeal = hashCanonical(sourceBody);
+  const beforeHandoffSlots = businessInFlightCount({ active: new Map(), store } as never);
   store.sealSourceHandoff({ ...sourceBody, seal_hash: sourceSeal });
+  assert.equal(businessInFlightCount({ active: new Map(), store } as never), beforeHandoffSlots - 1,
+    "a sealed old attempt must release its local slot so the same job can obtain a new grant at N=1");
   const fresh = store.acceptTaskAfterSourceHandoff(job, "attempt:2", sourceSeal);
+  assert.equal(businessInFlightCount({ active: new Map(), store } as never), beforeHandoffSlots,
+    "the Website-authorized new attempt occupies one local slot again");
   assert.equal(fresh.current_attempt_id, "attempt:2");
   assert.equal(fresh.attempt_failure, null);
   assert.equal(fresh.staged_result, null);

@@ -58,9 +58,6 @@ export const claimReusesExistingBusinessSlot = (
   }> }>,
 ): boolean => {
   const durable = state.store.readTask(job.job_id);
-  if (durable?.current_attempt_id !== job.grant.attempt_id
-    && durable?.current_reason === `SOURCE_HANDOFF_SEALED|${job.grant.source_handoff_seal_hash}`
-    && job.grant.source_handoff_seal_hash !== null) return true;
   if (durable?.current_attempt_id !== job.grant.attempt_id) return false;
   return durable.status === "failed" && job.grant.same_accepted_attempt;
 };
@@ -68,7 +65,8 @@ export const claimReusesExistingBusinessSlot = (
 const businessInFlightJobIds = (state: RuntimeState): ReadonlySet<string> => new Set([
   ...state.active.keys(),
   ...state.store.taskAuthorities()
-    .filter((row) => row.status === "failed" && row.current_attempt_id !== null)
+    .filter((row) => row.status === "failed" && row.current_attempt_id !== null
+      && !row.current_reason?.startsWith("SOURCE_HANDOFF_SEALED|"))
     .map((row) => row.task.job_id),
 ]);
 
