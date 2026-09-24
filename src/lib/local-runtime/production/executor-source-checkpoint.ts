@@ -1,4 +1,4 @@
-import type { GptProductionExecutionInput } from "../../../capabilities/gpt/production-ports.js";
+import type { GptProductionExecutionInput } from "../../../capabilities/gpt/index.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
 import { executionFailure } from "../../execution-failure.js";
 import { hashCanonical, sha256 } from "./contracts.js";

@@ -1,4 +1,4 @@
-import type { GptProductionExecutionInput } from "../../../capabilities/gpt/production-ports.js";
+import type { GptProductionExecutionInput } from "../../../capabilities/gpt/index.js";
 import type { ProductionExecutionLease, WebsiteAgentTask } from "./contracts.js";
 
 /** Maps the one Website lease to the GPT child contract without changing its authority. */

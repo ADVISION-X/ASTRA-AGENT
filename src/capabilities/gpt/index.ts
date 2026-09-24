@@ -20,6 +20,7 @@ export type {
   ProviderEffectReadbackProofV1,
 } from "./production-child-support.js";
 export type {
+  GptProductionExecutionInput,
   ProviderRateLimitClearance,
   ProviderRateLimitControlPort,
   ProviderRateLimitIncidentHandle,

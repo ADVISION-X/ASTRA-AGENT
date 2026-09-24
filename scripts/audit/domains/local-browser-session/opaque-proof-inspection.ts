@@ -15,6 +15,8 @@ type InvocationPayloadSources = Readonly<{
   extensionActor: RequiredSource;
   extensionCrypto: RequiredSource;
   journal: RequiredSource;
+  journalEvidence: RequiredSource;
+  journalReplay: RequiredSource;
   commandLogging: RequiredSource;
   commandDiagnostic: RequiredSource;
   frameDiagnostic: RequiredSource;
@@ -26,6 +28,8 @@ const extensionCryptoPath = "src/lib/browser/chrome-extension/websocket-actor-cr
 const commandLoggingPath = "src/lib/browser/exact-target/browser-command-runtime-logging.ts";
 const commandDiagnosticPath = "src/lib/browser/chrome-extension/websocket-command-diagnostic.ts";
 const frameDiagnosticPath = "src/lib/browser/chrome-extension/websocket-actor-diagnostics.ts";
+const journalEvidencePath = "src/lib/browser/exact-target/browser-mutation-evidence.ts";
+const journalReplayPath = "src/lib/browser/exact-target/browser-mutation-replay-evidence.ts";
 
 const inspectOpaqueRawFields = (
   sources: readonly (readonly [string, RequiredSource])[],
@@ -121,17 +125,19 @@ const inspectAuthenticatedMediaBoundary = (
 };
 
 const inspectEncryptedRecoveryLocator = (
-  journal: RequiredSource, findings: InspectorFinding[], lawId: string,
+  journal: RequiredSource, journalEvidence: RequiredSource, journalReplay: RequiredSource,
+  findings: InspectorFinding[], lawId: string,
 ): void => {
-  const journalText = journal.getFullText();
-  for (const required of ["sealProviderRecoveryPayload(this.payloadKey",
-    "unsealProviderRecoveryPayload(", "requireCanonicalGptConversationUrl(canonicalConversationUrl)"]) {
-    if (journalText.includes(required)) continue;
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/closed-invocation-payload", lawId, filePath: sourcePaths[7],
-      message: `The encrypted Provider recovery locator boundary is missing ${required}.`,
-    }));
-  }
+  for (const [filePath, source, required] of [
+    [sourcePaths[7], journal, "sealProviderRecoveryPayload(this.payloadKey"],
+    [journalEvidencePath, journalEvidence, "unsealProviderRecoveryPayload("],
+    [journalEvidencePath, journalEvidence, "requireCanonicalGptConversationUrl(canonicalConversationUrl)"],
+    [journalReplayPath, journalReplay, "unsealProviderRecoveryPayload("],
+    [journalReplayPath, journalReplay, "requireCanonicalGptConversationUrl(value.canonicalConversationUrl)"],
+  ] as const) if (!source.getFullText().includes(required)) findings.push(createLocalFinding({
+    checkId: "browser-authority/closed-invocation-payload", lawId, filePath,
+    message: `The encrypted Provider recovery locator boundary is missing ${required}.`,
+  }));
 };
 
 const inspectDiagnosticPayloadBoundary = (
@@ -161,7 +167,7 @@ const inspectClosedInvocationPayloadBoundary = (
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  const { transport, extensionActor, extensionCrypto, journal, commandLogging,
+  const { transport, extensionActor, extensionCrypto, journal, journalEvidence, journalReplay, commandLogging,
     commandDiagnostic, frameDiagnostic } = sources;
   const requiredByFile = [
     [sourcePaths[0], transport.getFullText(), [
@@ -195,6 +201,8 @@ const inspectClosedInvocationPayloadBoundary = (
   ]);
   for (const [filePath, source] of [
     [sourcePaths[7], journal],
+    [journalEvidencePath, journalEvidence],
+    [journalReplayPath, journalReplay],
     [commandLoggingPath, commandLogging],
     [commandDiagnosticPath, commandDiagnostic],
     [frameDiagnosticPath, frameDiagnostic],
@@ -208,7 +216,7 @@ const inspectClosedInvocationPayloadBoundary = (
       message: `Browser durable state or diagnostics retain forbidden invocation payload field ${leaked}.`,
     }));
   }
-  inspectEncryptedRecoveryLocator(journal, findings, lawId);
+  inspectEncryptedRecoveryLocator(journal, journalEvidence, journalReplay, findings, lawId);
   inspectDiagnosticPayloadBoundary([commandLogging, commandDiagnostic, frameDiagnostic], findings, lawId);
 };
 
@@ -219,6 +227,8 @@ export const inspectOpaqueAuthorityBoundary = (
 ): void => {
   const transport = requireSource(context, findings, lawId, sourcePaths[0]);
   const journal = requireSource(context, findings, lawId, sourcePaths[7]);
+  const journalEvidence = requireSource(context, findings, lawId, journalEvidencePath);
+  const journalReplay = requireSource(context, findings, lawId, journalReplayPath);
   const broker = requireSource(context, findings, lawId, sourcePaths[18]);
   const supervisor = requireSource(context, findings, lawId, sourcePaths[3]);
   const targetAuthority = requireSource(context, findings, lawId, targetAuthorityPath);
@@ -232,7 +242,7 @@ export const inspectOpaqueAuthorityBoundary = (
   const commandLogging = requireSource(context, findings, lawId, commandLoggingPath);
   const commandDiagnostic = requireSource(context, findings, lawId, commandDiagnosticPath);
   const frameDiagnostic = requireSource(context, findings, lawId, frameDiagnosticPath);
-  if (!transport || !journal || !broker || !supervisor || !targetAuthority || !commandRuntime
+  if (!transport || !journal || !journalEvidence || !journalReplay || !broker || !supervisor || !targetAuthority || !commandRuntime
     || !authenticatedMediaRuntime || !leaseManager
     || !extensionActor || !extensionCrypto
     || !commandLogging || !commandDiagnostic || !frameDiagnostic) return;
@@ -243,12 +253,15 @@ export const inspectOpaqueAuthorityBoundary = (
   inspectOpaqueRawFields([
     [sourcePaths[0], transport],
     [sourcePaths[7], journal],
+    [journalEvidencePath, journalEvidence],
+    [journalReplayPath, journalReplay],
     [sourcePaths[3], supervisor],
   ], findings, lawId);
   inspectAuthenticatedMediaBoundary(targetAuthority, commandRuntime, authenticatedMediaRuntime,
     leaseManager, findings, lawId);
   inspectClosedInvocationPayloadBoundary(
-    { transport, extensionActor, extensionCrypto, journal, commandLogging, commandDiagnostic, frameDiagnostic },
+    { transport, extensionActor, extensionCrypto, journal, journalEvidence, journalReplay,
+      commandLogging, commandDiagnostic, frameDiagnostic },
     findings, lawId,
   );
 };
