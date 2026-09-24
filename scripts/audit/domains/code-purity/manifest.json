@@ -14,6 +14,7 @@
     ".nvmrc",
     ".vscode/tasks.json",
     "docs/blueprints/code-purity/QUALITY-EVIDENCE-OWNERSHIP-V1-BLUEPRINT.md",
+    "docs/项目方案/AGENT代码纯洁度分层反馈-完整实现方案.md",
     "package-lock.json",
     "package.json",
     "pnpm-workspace.yaml",
