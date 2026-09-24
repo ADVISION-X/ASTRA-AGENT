@@ -24,8 +24,9 @@ import type {
   LocalProductionMaterial, ProductionExecutionLease, ProductionHash,
   WebsiteAgentResult, WebsiteAgentTask,
 } from "./contracts.js";
-import { hashCanonical, sha256 } from "./contracts.js";
 import { PRODUCTION_BUSINESS_CAPACITY_MAX } from "./control-contract-dependency.js";
+import { recordSourceCheckpoint } from "./executor-source-checkpoint.js";
+import { gptLeaseInput } from "./executor-gpt-input.js";
 import { assertProductionTaskRoutePolicy, productionRoutePolicy } from "./route-policy.js";
 import { ProductionRuntimeStore, type StoredProductionTask } from "./store.js";
 import type { AttemptFailureFirstFact } from "./terminal-failure.js";
@@ -285,6 +286,22 @@ export class ProductionExecutor {
     throw withRuntimeLogCause(failure, terminal.eventId);
   }
 
+  private logBrowserCleanup(input: Readonly<{
+    jobId: string; attemptId: string; pluginId: string;
+    stepId: "browser.settle" | "browser.release"; error: unknown;
+  }>): void {
+    requireRuntimeLogWrite(this.runtimeLogger.emitError({
+      traceId: input.jobId,
+      owner: "browser-session", component: "gpt-browser-lifecycle",
+      operation: "browser.infrastructure",
+      typedIdentity: { kind: "plugin-step", jobId: input.jobId,
+        attemptId: input.attemptId, pluginId: input.pluginId, stepId: input.stepId },
+      failure: runtimeFailureFromError({ error: input.error,
+        code: failureCode(input.error, "GPT_BROWSER_LIFECYCLE_FAILED"),
+        responsibleOwner: "browser-session", impact: RuntimeFailureImpact.CLEANUP }),
+    }));
+  }
+
   private async dispatchPlugin(input: Readonly<{
     task: WebsiteAgentTask; materials: readonly LocalProductionMaterial[];
     lease: ProductionExecutionLease; span: RuntimeSpanHandle;
@@ -303,94 +320,13 @@ export class ProductionExecutor {
         const routePolicy = productionRoutePolicy(authorized.task.product_id, authorized.task.action_id);
         const parent = this.readContinuationParent(authorized.task, routePolicy.relation_kind);
         const gptExecution = this.gptChildTools.createExecution({
-          recordSettledCheckpoint: (checkpoint) => {
-            const history = this.browserAuthority.readJobBrowserHistoryEvidence(authorized.task.job_id);
-            const effects = history.replayEffects.filter((effect) =>
-              effect.effectIdentityHash === checkpoint.providerEffectIdentityHash
-              && effect.attemptId === checkpoint.sourceAttemptId
-              && effect.resultRevision === checkpoint.sourceResultRevision);
-            if (!history.walHistoryVerified || effects.length !== 1) {
-              throw executionFailure("failed", "PRODUCTION_SOURCE_EFFECT_IDENTITY_AMBIGUOUS");
-            }
-            const effect = effects[0]!;
-            if (effect.state !== "CONFIRMED" || effect.mutationOutcome !== "confirmed"
-              || effect.physicalInputCount !== 1 || effect.anchorState !== "trusted"
-              || !effect.canonicalConversationHash || !effect.userTurnHash
-              || effect.walAuthorityHash !== checkpoint.browserAuthorityHash
-              || effect.canonicalConversationHash !== sha256(Buffer.from(
-                checkpoint.canonicalConversationUrl, "utf8"))
-              || effect.userTurnHash !== sha256(Buffer.from(checkpoint.userTurnId, "utf8"))) {
-              throw executionFailure("failed", "PRODUCTION_SOURCE_CHECKPOINT_IDENTITY_MISMATCH");
-            }
-            const body = Object.freeze({
-              kind: "settled_checkpoint" as const, path: "source_checkpoint" as const,
-              effect_identity_hash: effect.effectIdentityHash,
-              source_effect_set_hash: effect.sourceEffectSetHash,
-              old_target_ref_hash: effect.oldTargetRefHash,
-              old_document_ref_hash: effect.oldDocumentRefHash,
-              wal_authority_hash: effect.walAuthorityHash,
-              provider_input_delta: 0 as const,
-              source_attempt_id: checkpoint.sourceAttemptId,
-              source_result_revision: checkpoint.sourceResultRevision,
-              checkpoint_exact_call_identity_hash: checkpoint.checkpointExactCallIdentityHash,
-              artifact_ref: checkpoint.artifactRef,
-              artifact_content_hash: checkpoint.artifactContentHash,
-              submit_prompt_hash: checkpoint.submitPromptHash,
-              canonical_conversation_hash: effect.canonicalConversationHash,
-              user_turn_hash: effect.userTurnHash,
-            });
-            this.store.recordSourceReadbackObservation(authorized.task.job_id,
-              input.lease.attempt_id, {
-                ...body, proof_hash: hashCanonical(body), observed_at: new Date().toISOString(),
-              });
-          },
-          jobId: authorized.task.job_id,
-          productId: authorized.task.product_id,
-          ownerRef: authorized.task.business_identity.owner_ref,
-          subjectRef: authorized.task.business_identity.subject_ref,
-          authorizationRef: authorized.task.business_identity.authorization_ref,
-          resultRevision: input.lease.result_revision,
-          ...(input.lease.readback_only_calls ? { readbackOnlyCalls:
-            input.lease.readback_only_calls.map((call) => ({
-              productStepId: call.product_step_id, callId: call.call_id,
-              childCapabilityId: call.child_capability_id,
-            })) } : {}),
-          ...(input.lease.source_reusable_calls ? { sourceReusableCalls:
-            input.lease.source_reusable_calls.map((call) => ({
-              productStepId: call.product_step_id, callId: call.call_id,
-              childCapabilityId: call.child_capability_id,
-              sourceEffectSetHash: call.source_effect_set_hash,
-              sourceAttemptId: call.source_attempt_id,
-              sourceResultRevision: call.source_result_revision,
-              effectIdentityHash: call.effect_identity_hash,
-              walAuthorityHash: call.wal_authority_hash,
-              checkpointExactCallIdentityHash: call.checkpoint_exact_call_identity_hash,
-              artifactRef: call.artifact_ref,
-              artifactContentHash: call.artifact_content_hash,
-              submitPromptHash: call.submit_prompt_hash,
-              canonicalConversationHash: call.canonical_conversation_hash,
-              userTurnHash: call.user_turn_hash,
-            })) } : {}),
-          domainRejectionRevision: input.lease.prior_result_rejection !== null,
-          sourceReuseZeroSubmitGrant: input.lease.delivery_priority_replay_grant !== null
-            && input.lease.delivery_priority_replay_grant.calls.length === 0
-            && (input.lease.source_reusable_calls?.length ?? 0) > 0,
-          deliveryPriorityReplayCalls: input.lease.delivery_priority_replay_grant?.calls.map((call) => ({
-            productStepId: call.product_step_id, callId: call.call_id,
-            childCapabilityId: call.child_capability_id,
-            sourceEffectSetHash: call.source_effect_set_hash,
-            callGrantHash: call.call_grant_hash,
-          })) ?? [],
-          attemptId: input.lease.attempt_id,
-          deviceId: input.lease.device_id,
-          leaseVersion: input.lease.lease_version,
-          executionFenceHash: input.lease.execution_fence_hash,
-          capabilityManifestHash: input.lease.capability_manifest_hash,
-          maxProviderTurns: input.lease.max_provider_turns,
+          recordSettledCheckpoint: (checkpoint) => recordSourceCheckpoint({
+            store: this.store, browserAuthority: this.browserAuthority,
+            jobId: authorized.task.job_id, attemptId: input.lease.attempt_id, checkpoint,
+          }),
+          ...gptLeaseInput(authorized.task, input.lease, input.span.spanId),
           get expiresAtMonotonic() { return input.lease.expires_at_monotonic; },
           get commandTtlMs() { return input.lease.command_ttl_ms; },
-          abortSignal: input.lease.abort_signal,
-          parentSpanId: input.span.spanId,
           ...(parent ? { providerContinuationParent: {
             jobId: parent.task.job_id,
             acceptedAttemptId: parent.current_attempt_id,
@@ -428,16 +364,8 @@ export class ProductionExecutor {
         await settleGptExecution(gptLifecycle, primaryError);
       } catch (cleanupError) {
         if (!completed || !this.store.readTask(input.task.job_id)?.staged_result) throw cleanupError;
-        requireRuntimeLogWrite(this.runtimeLogger.emitError({
-          traceId: input.task.job_id,
-          owner: "browser-session", component: "gpt-browser-lifecycle",
-          operation: "browser.infrastructure",
-          typedIdentity: { kind: "plugin-step", jobId: input.task.job_id,
-            attemptId: input.lease.attempt_id, pluginId: input.task.product_id, stepId: "browser.settle" },
-          failure: runtimeFailureFromError({ error: cleanupError,
-            code: failureCode(cleanupError, "GPT_BROWSER_LIFECYCLE_FAILED"),
-            responsibleOwner: "browser-session", impact: RuntimeFailureImpact.CLEANUP }),
-        }));
+        this.logBrowserCleanup({ jobId: input.task.job_id, attemptId: input.lease.attempt_id,
+          pluginId: input.task.product_id, stepId: "browser.settle", error: cleanupError });
       }
     }
     if (!completed) throw new Error("PLUGIN_RESULT_NOT_COMPLETED");
@@ -501,16 +429,8 @@ export class ProductionExecutor {
       try {
         await browserArtifactLease.release();
       } catch (cleanupError) {
-        requireRuntimeLogWrite(this.runtimeLogger.emitError({
-          traceId: task.job_id,
-          owner: "browser-session", component: "gpt-browser-lifecycle",
-          operation: "browser.infrastructure",
-          typedIdentity: { kind: "plugin-step", jobId: task.job_id,
-            attemptId: lease.attempt_id, pluginId: task.product_id, stepId: "browser.release" },
-          failure: runtimeFailureFromError({ error: cleanupError,
-            code: failureCode(cleanupError, "GPT_BROWSER_LIFECYCLE_FAILED"),
-            responsibleOwner: "browser-session", impact: RuntimeFailureImpact.CLEANUP }),
-        }));
+        this.logBrowserCleanup({ jobId: task.job_id, attemptId: lease.attempt_id,
+          pluginId: task.product_id, stepId: "browser.release", error: cleanupError });
       }
       browserArtifactLease = null;
       requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));

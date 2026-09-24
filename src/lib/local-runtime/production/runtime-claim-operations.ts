@@ -1,4 +1,4 @@
-import type { SourceReadbackEffectProof } from "./source-readback-contract.js";
+import type { SourceAttemptHandoff, SourceReadbackEffectProof } from "./source-readback-contract.js";
 import {
   executionFailure, executionFailureMetadata, failureCode, typedExecutionFailure,
 } from "../../execution-failure.js";
@@ -50,6 +50,37 @@ const assertClaimIdentity = (job: ClaimedProductionTask): void => {
   if (job.grant.capability_manifest_hash !== productionCatalogHash) {
     throw executionFailure("failed", "CAPABILITY_MANIFEST_CHANGED_BEFORE_ACCEPT");
   }
+};
+
+const reusableCallsFor = (source: SourceAttemptHandoff | null) => {
+  return source?.readback_proofs.filter((proof) =>
+    proof.disposition === "settled_reusable").map((proof) => {
+    const settled = proof.effects.filter((effect): effect is Extract<
+      SourceReadbackEffectProof, { settled_checkpoint: object }
+    > => effect.settled_checkpoint !== undefined)
+      .sort((a, b) => b.settled_checkpoint.source_result_revision
+        - a.settled_checkpoint.source_result_revision
+        || a.effect_identity_hash.localeCompare(b.effect_identity_hash))[0];
+    if (!settled) {
+      throw executionFailure("failed", "PRODUCTION_SOURCE_CHECKPOINT_IDENTITY_MISMATCH");
+    }
+    return Object.freeze({
+      product_step_id: proof.product_step_id, call_id: proof.call_id,
+      child_capability_id: proof.child_capability_id,
+      source_effect_set_hash: proof.source_effect_set_hash,
+      source_attempt_id: settled.settled_checkpoint.source_attempt_id,
+      source_result_revision: settled.settled_checkpoint.source_result_revision,
+      effect_identity_hash: settled.effect_identity_hash,
+      wal_authority_hash: settled.wal_authority_hash,
+      checkpoint_exact_call_identity_hash:
+        settled.settled_checkpoint.checkpoint_exact_call_identity_hash,
+      artifact_ref: settled.settled_checkpoint.artifact_ref,
+      artifact_content_hash: settled.settled_checkpoint.artifact_content_hash,
+      submit_prompt_hash: settled.settled_checkpoint.submit_prompt_hash,
+      canonical_conversation_hash: settled.settled_checkpoint.canonical_conversation_hash,
+      user_turn_hash: settled.settled_checkpoint.user_turn_hash,
+    });
+  }) ?? [];
 };
 
 export const acceptClaim = (
@@ -111,34 +142,7 @@ export const acceptClaim = (
     || source.source_attempt_id !== replay.source_attempt_id)) {
     throw executionFailure("failed", "PRODUCTION_REPLAY_GRANT_SOURCE_MISMATCH");
   }
-  const reusableCalls = source?.readback_proofs.filter((proof) =>
-    proof.disposition === "settled_reusable").map((proof) => {
-    const settled = proof.effects.filter((effect): effect is Extract<
-      SourceReadbackEffectProof, { settled_checkpoint: object }
-    > => effect.settled_checkpoint !== undefined)
-      .sort((a, b) => b.settled_checkpoint.source_result_revision
-        - a.settled_checkpoint.source_result_revision
-        || a.effect_identity_hash.localeCompare(b.effect_identity_hash))[0];
-    if (!settled) {
-      throw executionFailure("failed", "PRODUCTION_SOURCE_CHECKPOINT_IDENTITY_MISMATCH");
-    }
-    return Object.freeze({
-      product_step_id: proof.product_step_id, call_id: proof.call_id,
-      child_capability_id: proof.child_capability_id,
-      source_effect_set_hash: proof.source_effect_set_hash,
-      source_attempt_id: settled.settled_checkpoint.source_attempt_id,
-      source_result_revision: settled.settled_checkpoint.source_result_revision,
-      effect_identity_hash: settled.effect_identity_hash,
-      wal_authority_hash: settled.wal_authority_hash,
-      checkpoint_exact_call_identity_hash:
-        settled.settled_checkpoint.checkpoint_exact_call_identity_hash,
-      artifact_ref: settled.settled_checkpoint.artifact_ref,
-      artifact_content_hash: settled.settled_checkpoint.artifact_content_hash,
-      submit_prompt_hash: settled.settled_checkpoint.submit_prompt_hash,
-      canonical_conversation_hash: settled.settled_checkpoint.canonical_conversation_hash,
-      user_turn_hash: settled.settled_checkpoint.user_turn_hash,
-    });
-  }) ?? [];
+  const reusableCalls = reusableCallsFor(source);
   const budget: ProductionExecutionLease = {
     ...baseBudget,
     ...(readbackOnlyCalls ? { readback_only_calls: readbackOnlyCalls.map((call) => ({
