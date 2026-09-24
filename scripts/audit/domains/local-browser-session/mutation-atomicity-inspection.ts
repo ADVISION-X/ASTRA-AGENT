@@ -28,14 +28,41 @@ const forbidTokens = (
   }));
 };
 
+const inspectSharedWalConnection = (
+  context: InspectorContext, findings: InspectorFinding[], lawId: string,
+): void => {
+  const storePath = "src/lib/browser/exact-target/browser-mutation-store.ts";
+  const evidencePath = "src/lib/browser/exact-target/browser-mutation-evidence.ts";
+  const store = requireSource(context, findings, lawId, storePath);
+  const evidence = requireSource(context, findings, lawId, evidencePath);
+  if (!store || !evidence) return;
+  const writer = store.getClass("BrowserMutationStore");
+  const constructor = writer?.getConstructors()[0]?.getText() ?? "";
+  const reader = evidence.getClass("BrowserMutationEvidence")?.getConstructors()[0]?.getText() ?? "";
+  if (writer?.getExtends()?.getText() === "BrowserMutationEvidence"
+    && constructor.includes("const database = new Database(file)")
+    && constructor.includes("super(database, payloadKey)")
+    && constructor.indexOf("super(database, payloadKey)") < constructor.indexOf('this.database.pragma("journal_mode = WAL")')
+    && reader.includes("protected readonly database: Database.Database")
+    && !evidence.getFullText().includes("new Database(")) return;
+  findings.push(createLocalFinding({ checkId: "browser-authority/one-mutation-store",
+    lawId, filePath: storePath,
+    message: "Browser WAL evidence and mutation writer must share the one SQLite connection.",
+  }));
+};
+
 export const inspectAtomicIfAndThenBoundary = (
   context: InspectorContext, findings: InspectorFinding[], lawId: string,
 ): void => {
   const store = requireSource(context, findings, lawId, "src/lib/browser/exact-target/browser-mutation-store.ts");
+  const evidence = requireSource(context, findings, lawId,
+    "src/lib/browser/exact-target/browser-mutation-evidence.ts");
   const actor = requireSource(context, findings, lawId, sourcePaths[6]);
-  if (!store || !actor) return;
-  requireTokens(store.getFullText(), ["attempt_id=?", "BROWSER_EXACT_CALL_REPLAY_FORBIDDEN", "readAtomicStepOutcome"],
+  if (!store || !evidence || !actor) return;
+  requireTokens(store.getFullText(), ["BROWSER_EXACT_CALL_REPLAY_FORBIDDEN", "extends BrowserMutationEvidence"],
     findings, lawId, store.getFilePath(), "browser-authority/current-attempt-once");
+  requireTokens(evidence.getFullText(), ["attempt_id=?", "readAtomicStepOutcome"],
+    findings, lawId, evidence.getFilePath(), "browser-authority/current-attempt-once");
   requireTokens(actor.getFullText(), ["dispatchedForBinding", "readAtomicStepOutcome"],
     findings, lawId, sourcePaths[6], "browser-authority/current-attempt-once");
 };
@@ -48,6 +75,8 @@ export const inspectDisposableAttemptBoundary = (
     "src/lib/browser/infrastructure/browser-target-acquirer.ts",
     "src/lib/browser/infrastructure/browser-authority-broker.ts",
     "src/lib/browser/exact-target/browser-mutation-store.ts",
+    "src/lib/browser/exact-target/browser-mutation-evidence.ts",
+    "src/lib/browser/exact-target/browser-mutation-replay-evidence.ts",
   ];
   const sources = paths.map((path) => requireSource(context, findings, lawId, path));
   if (sources.some((source) => !source)) return;
@@ -65,6 +94,7 @@ const inspectV51ProofTopology = (
   context: InspectorContext, findings: InspectorFinding[], lawId: string,
 ): void => {
   if (lawId !== "LAW-LOCAL-BROWSER-SESSION-004-V51") return;
+  inspectSharedWalConnection(context, findings, lawId);
   const permitPath = "src/lib/browser/transport/command-permit.ts";
   const actorPath = "src/lib/browser/exact-target/browser-command-actor.ts";
   const supervisorPath = "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts";
@@ -139,16 +169,43 @@ const inspectProviderEffectCallPath = (
   }));
 };
 
+const inspectReplayGrantRowAdmission = (
+  store: NonNullable<ReturnType<typeof requireSource>>,
+  findings: InspectorFinding[], lawId: string, storePath: string,
+): void => {
+  const mutationStore = store.getClass("BrowserMutationStore");
+  const history = mutationStore?.getMethod("assertProviderEffectHistory")?.getText() ?? "";
+  const rowValid = mutationStore?.getMethod("replayGrantRowValid")?.getText() ?? "";
+  const guarded = history.includes("if (grantRows.length > 0 && grantRows.some((row, index) =>\n      !this.replayGrantRowValid(row, index, grantRows.length, input)))")
+    && history.includes('throw new Error("BROWSER_REPLAY_GRANT_CONSUMED")');
+  const exactRow = ["!this.providerEffectIdentityMatches(row, input)",
+    "row.attempt_id !== input.attemptId", "row.physical_input_count !== 0",
+    'row.mutation_outcome !== "no"', "row.provider_recovery_payload !== null",
+    "if (index < length - 1)", 'row.state === "REJECTED"',
+    'row.state === "FAILED"', "row.proof_hash === null", "row.proof_hash !== null",
+    "row.terminal_at === null", "row.terminal_at !== null",
+  ].every((token) => rowValid.includes(token));
+  if (guarded && exactRow) return;
+  findings.push(createLocalFinding({
+    checkId: "browser-authority/risk-zero-input-retry", lawId, filePath: storePath,
+    message: "Every reused risk grant row must enter the exact zero-input terminal proof before prepare may rebind it.",
+  }));
+};
+
 export const inspectProviderEffectAttemptGuard = (
   context: InspectorContext, findings: InspectorFinding[], lawId: string,
 ): void => {
   const postconditionPath = "src/lib/browser/exact-target/browser-command-postcondition.ts";
   const storePath = "src/lib/browser/exact-target/browser-mutation-store.ts";
+  const evidencePath = "src/lib/browser/exact-target/browser-mutation-evidence.ts";
+  const replayPath = "src/lib/browser/exact-target/browser-mutation-replay-evidence.ts";
   const schemaPath = "src/lib/browser/exact-target/browser-mutation-schema.ts";
   const postcondition = requireSource(context, findings, lawId, postconditionPath);
   const store = requireSource(context, findings, lawId, storePath);
+  const evidence = requireSource(context, findings, lawId, evidencePath);
+  const replay = requireSource(context, findings, lawId, replayPath);
   const schema = requireSource(context, findings, lawId, schemaPath);
-  if (!postcondition || !store || !schema) return;
+  if (!postcondition || !store || !evidence || !replay || !schema) return;
   requireTokens(postcondition.getFullText(), [
     'permit.replayPolicy === "provider-effect-once" ? []',
     "browserProviderEffectIdentityHash", "permit.jobId", "permit.resultRevision",
@@ -157,7 +214,10 @@ export const inspectProviderEffectAttemptGuard = (
   ], findings, lawId, postconditionPath,
   "browser-authority/provider-effect-cross-attempt-identity");
   const storeText = store.getFullText();
+  const evidenceText = evidence.getFullText();
+  const replayText = replay.getFullText();
   inspectProviderEffectCallPath(store, findings, lawId, storePath);
+  inspectReplayGrantRowAdmission(store, findings, lawId, storePath);
   requireTokens(storeText, [
     "providerEffectIdentityMatches", "assertProviderEffectHistory",
     "where job_id=? and result_revision=? and product_step_id=? and call_id=? and child_capability_id=? and effect_scope='provider_effect'",
@@ -165,12 +225,17 @@ export const inspectProviderEffectAttemptGuard = (
     "BROWSER_PROVIDER_EFFECT_IDENTITY_DRIFT", "BROWSER_PROVIDER_EFFECT_REPLAY_FORBIDDEN",
   ], findings, lawId, storePath,
   "browser-authority/provider-effect-cross-attempt-identity");
-  requireTokens(storeText, [
+  requireTokens(storeText, ["extends BrowserMutationEvidence", "this.providerEffectSetRows({"],
+    findings, lawId, storePath, "browser-authority/source-effect-history");
+  requireTokens(evidenceText, [
     "const replayCalls = this.unresolvedProviderCalls(jobId)",
-    "effects.filter(BrowserMutationStore.possibleProviderInput)",
-    "sourceEffectSetHash: `sha256:${createHash",
-    "this.providerEffectSetRows({ jobId, productStepId: call.productStepId",
-  ], findings, lawId, storePath, "browser-authority/source-effect-history");
+    "readJobReplayEffects({", "possibleProviderInput: BrowserMutationEvidence.possibleProviderInput",
+    "this.providerEffectSetRows({", "providerEffectSetHash:",
+  ], findings, lawId, evidencePath, "browser-authority/source-effect-history");
+  requireTokens(replayText, ["effects.filter(input.possibleProviderInput)",
+    "sourceEffectSetHash: input.providerEffectSetHash(call, row.result_revision + 1)",
+    "walAuthorityHash: input.authorityHash(row.command_id)",
+  ], findings, lawId, replayPath, "browser-authority/source-effect-history");
   requireTokens(storeText, [
     "const rebindCommand = input.effectScope === \"provider_effect\"",
     "return last.state === \"FAILED\" ? last.command_id : null",
@@ -185,7 +250,7 @@ export const inspectProviderEffectAttemptGuard = (
     "row.state === \"REJECTED\" && row.proof_hash !== null",
     "if (rows.length !== grantRows.length) throw new Error(\"BROWSER_REPLAY_GRANT_MISMATCH\")",
   ], findings, lawId, storePath, "browser-authority/risk-zero-input-retry");
-  forbidTokens(`${storeText}\n${schema.getFullText()}`, [
+  forbidTokens(`${storeText}\n${evidenceText}\n${replayText}\n${schema.getFullText()}`, [
     "owner_plugin_id", "plugin_version", "pluginVersion",
     "direct_predecessor_task_ref_hash", "completed_frontier_hash",
     "persistContinuation", "advanceContinuation", "recordContinuation", "readContinuation",

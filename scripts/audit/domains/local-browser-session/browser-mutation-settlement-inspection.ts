@@ -17,6 +17,7 @@ const MUTATION_RECEIPT_PATH = "src/lib/browser/exact-target/browser-mutation-rec
 const SPECIAL_MUTATION_RECEIPT_PATH =
   "src/lib/browser/exact-target/browser-special-mutation-receipt.ts";
 const COMMAND_FAILURE_PATH = "src/lib/browser/exact-target/browser-command-failure.ts";
+const MUTATION_EVIDENCE_PATH = "src/lib/browser/exact-target/browser-mutation-evidence.ts";
 
 const requireText = (
   text: string,
@@ -104,6 +105,7 @@ type SettlementSources = Readonly<{
   runtime: SettlementSource;
   schema: SettlementSource;
   store: SettlementSource;
+  mutationEvidence: SettlementSource;
   transport: SettlementSource;
   targetAuthority: SettlementSource;
   targetObservation: SettlementSource;
@@ -117,6 +119,7 @@ const requireSettlementSources = (
 ): SettlementSources | null => {
   const actor = requireSource(context, findings, lawId, sourcePaths[6]);
   const store = requireSource(context, findings, lawId, sourcePaths[7]);
+  const mutationEvidence = requireSource(context, findings, lawId, MUTATION_EVIDENCE_PATH);
   const schema = requireSource(context, findings, lawId, browserMutationSchemaPath);
   const runtime = requireSource(context, findings, lawId, DOM_RUNTIME_PATH);
   const pointerRuntime = requireSource(context, findings, lawId, domPointerIntentRuntimePath);
@@ -140,7 +143,7 @@ const requireSettlementSources = (
   const targetAuthority = requireSource(context, findings, lawId, targetAuthorityPath);
   const targetObservation = requireSource(context, findings, lawId, extensionTargetObservationPath);
   const extensionActor = requireSource(context, findings, lawId, sourcePaths[1]);
-  const required = [actor, store, schema, runtime, pointerRuntime, postcondition,
+  const required = [actor, store, mutationEvidence, schema, runtime, pointerRuntime, postcondition,
     contract, specialContract, resolver,
     fileInput, failure, mutationReceipt, specialMutationReceipt, transport, commandPostcondition, manager,
     debuggerRuntime, createdTarget, targetAuthority, targetObservation, extensionActor];
@@ -152,7 +155,7 @@ const requireSettlementSources = (
     failure: failure!, fileInput: fileInput!, manager: manager!, mutationReceipt: mutationReceipt!,
     specialMutationReceipt: specialMutationReceipt!, postcondition: postcondition!,
     pointerRuntime: pointerRuntime!, resolver: resolver!, runtime: runtime!, schema: schema!,
-    store: store!, targetAuthority: targetAuthority!, targetObservation: targetObservation!,
+    store: store!, mutationEvidence: mutationEvidence!, targetAuthority: targetAuthority!, targetObservation: targetObservation!,
     extensionActor: extensionActor!,
     transport: transport! };
 };
@@ -300,12 +303,15 @@ const inspectMutationPersistence = (
     "POINTER_ACTIONABILITY_NATIVE_CAUSES", "KEYBOARD_ACTIONABILITY_NATIVE_CAUSES",
   ], findings, lawId, MUTATION_RECEIPT_PATH);
   requireText(sources.store.getFullText(), [
-    "BrowserMutationOutcome", "mutationOutcome", "mutation_outcome", "readMutationOutcome",
-    "requireMutationOutcome", "mutationOutcome: requireMutationOutcome(row.mutation_outcome)", "terminal_at=case when",
-    "native_cause_code", "nativeCauseCode", "terminalFailureFields", "nativeFailureCode",
+    "BrowserMutationOutcome", "mutationOutcome", "mutation_outcome", "terminal_at=case when",
+    "native_cause_code", "nativeCauseCode",
     "settleRetiredTargetLocal", "BROWSER_TARGET_LOCAL_EXECUTION_RETIRED",
     "rows.length === 1", "row.execution_fence_hash === input.writerFenceHash",
   ], findings, lawId, sourcePaths[7]);
+  requireText(sources.mutationEvidence.getFullText(), ["readMutationOutcome",
+    "requireMutationOutcome", "mutationOutcome: requireMutationOutcome(row.mutation_outcome)",
+    "terminalFailureFields", "nativeFailureCode",
+  ], findings, lawId, MUTATION_EVIDENCE_PATH);
   requireText(actorText, [
     "result.nativeCauseCode",
   ], findings, lawId, sourcePaths[6]);
@@ -313,7 +319,8 @@ const inspectMutationPersistence = (
     checkId: "browser-authority/mutation-settlement", lawId, filePath: browserMutationSchemaPath,
     message: "The Browser WAL must preserve rows while transactionally replacing only the old 0..2 physical-input constraint with 0..4.",
   }));
-  if (sources.store.getFullText().includes("legacyMutationOutcome")) findings.push(createLocalFinding({
+  if (`${sources.store.getFullText()}\n${sources.mutationEvidence.getFullText()}`
+    .includes("legacyMutationOutcome")) findings.push(createLocalFinding({
     checkId: "browser-authority/mutation-settlement", lawId, filePath: sourcePaths[7],
     message: "The current Browser WAL reader must not retain a legacy outcome fallback.",
   }));

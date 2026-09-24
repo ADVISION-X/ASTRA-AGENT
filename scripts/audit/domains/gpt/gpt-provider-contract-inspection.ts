@@ -12,7 +12,7 @@ const SUBMIT_HANDLER = `${ROOT}/children/submit_exact_gpt_turn_once/handler.ts`;
 const LIFECYCLE = `${ROOT}/production-browser-lifecycle.ts`;
 const RETIRED_CADENCE = `${ROOT}/provider-wait-cross-conversation-cadence.ts`;
 const BROWSER_LANE = "src/lib/browser/infrastructure/browser-lane-coordinator.ts";
-const BROWSER_MUTATION_STORE = "src/lib/browser/exact-target/browser-mutation-store.ts";
+const BROWSER_MUTATION_EVIDENCE = "src/lib/browser/exact-target/browser-mutation-evidence.ts";
 const SEMANTIC_TEXT = "src/lib/browser/chrome-extension/dom-semantic-text.ts";
 const EXACT_ASSISTANT = "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts";
 const PRODUCTION_CHILD_TOOLS = `${ROOT}/production-child-tools.ts`;
@@ -109,8 +109,8 @@ export const inspectGptProviderProbeOwnerContract = (
     "gpt/no-second-wait-scheduler", LIFECYCLE,
     "GPT must not sample a per-Child Provider observation interval.",
   ));
-  const mutationStore = sourceText(context, BROWSER_MUTATION_STORE);
-  requireTokens(mutationStore, BROWSER_MUTATION_STORE, [
+  const mutationEvidence = sourceText(context, BROWSER_MUTATION_EVIDENCE);
+  requireTokens(mutationEvidence, BROWSER_MUTATION_EVIDENCE, [
     "parentAttemptId: string", "where job_id=? and attempt_id=? and product_step_id=?",
     "product_step_id=? and call_id='turn-submit'",
     "child_capability_id='submit_exact_gpt_turn_once'", "rows.length !== 1",
@@ -359,13 +359,15 @@ export const inspectGptCrossTaskStateAbsence = (
   context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory,
 ): void => {
   const tools = sourceText(context, PRODUCTION_CHILD_TOOLS);
+  const session = sourceText(context, `${ROOT}/production-execution-session.ts`);
+  const sourceReuse = sourceText(context, `${ROOT}/production-execution-source-reuse.ts`);
   const ports = sourceText(context, PRODUCTION_PORTS);
   const api = sourceText(context, PRODUCT_API);
   for (const forbidden of [
     "acquireContinuation", "recordContinuation", "GptContinuationStore", "gpt_continuations",
     "consultationIdentityHash", "predecessorSourceTaskRef", "readConfirmedProviderLocator",
   ]) {
-    if ([tools, ports, api].some((source) => source.includes(forbidden))) findings.push(finding(
+    if ([tools, session, sourceReuse, ports, api].some((source) => source.includes(forbidden))) findings.push(finding(
       "gpt/no-cross-task-provider-state", ROOT,
       `GPT production surface retains forbidden cross-task Provider state ${forbidden}.`,
     ));

@@ -30,6 +30,7 @@ import {
 } from "./browser-authority-broker.js";
 import { BrowserAuthorityIssuer } from "./browser-authority-issuer.js";
 import { createBrowserInfrastructureState } from "./browser-infrastructure-state.js";
+import { BrowserInfrastructureEvidence } from "./browser-infrastructure-evidence.js";
 import { BrowserLaneCoordinator } from "./browser-lane-coordinator.js";
 import { BrowserOwnerLock } from "./browser-owner-lock.js";
 import { BrowserRuntimeLogEmitter } from "./browser-runtime-log-emitter.js";
@@ -76,6 +77,7 @@ export class BrowserInfrastructureSupervisor {
   private readonly websocket: BrowserAuthorityWebSocket;
   private readonly state = createBrowserInfrastructureState();
   private readonly lane: BrowserLaneCoordinator;
+  public readonly evidence: BrowserInfrastructureEvidence;
 
   public constructor(private readonly options: BrowserInfrastructureSupervisorOptions) {
     this.ownerLock = new BrowserOwnerLock(join(options.dataDir, "browser", "owner.lock"));
@@ -104,6 +106,7 @@ export class BrowserInfrastructureSupervisor {
     this.lane = new BrowserLaneCoordinator(
       () => this.broker, this.websocket, this.issuer, this.state, options.runtimeLogger,
     );
+    this.evidence = new BrowserInfrastructureEvidence(this.lane, this.broker, this.state);
   }
 
   private onTargetClaim(input: BrowserAuthorityTargetClaim): void {
@@ -277,64 +280,12 @@ export class BrowserInfrastructureSupervisor {
     return this.lane.releaseJobBoundTarget(jobId, releaseAuthority, signal);
   }
 
-  public readBrowserLaneState(): "idle" | "busy" | "blocked" { return this.lane.readState(); }
-  public readBoundJobRefHash(): `sha256:${string}` | null {
-    return this.broker.currentOperatorTargetJobRefHash();
-  }
-  public readUnreleasedTargetClaims() {
-    const mutations = this.state.mutationState;
-    if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
-    return mutations.unreleasedTargetClaims();
-  }
-  public hasUnresolvedBrowserMutation(): boolean { return this.lane.hasUnresolvedMutation(); }
-  public hasBrowserMutationForJob(jobId: string): boolean { return this.lane.hasMutationForJob(jobId); }
-  public readJobBrowserHistoryEvidence(jobId: string) {
-    const mutations = this.state.mutationState;
-    if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
-    return mutations.jobHistoryEvidence(jobId);
-  }
-  public readJobPhysicalInputState(jobId: string) {
-    const mutations = this.state.mutationState;
-    if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
-    return mutations.readJobPhysicalInputState(jobId);
-  }
-  public readAttemptPhysicalInputState(jobId: string, attemptId: string) {
-    const mutations = this.state.mutationState;
-    if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
-    return mutations.readAttemptPhysicalInputState(jobId, attemptId);
-  }
-
   public verifyRuntimeTaskProvenance(earliestTaskCreatedAt: string | null): void {
     const mutations = this.state.mutationState;
     if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
     mutations.verifyRuntimeTaskProvenance(earliestTaskCreatedAt);
   }
   public purgeBrowserJob(jobId: string): void { this.lane.purgeJob(jobId); }
-  public countProviderTurnDispatches(jobId: string, attemptId: string): number {
-    return this.lane.countProviderTurnDispatches(jobId, attemptId);
-  }
-  public readProviderEffectStepCallFact(input: Readonly<{
-    jobId: string;
-    attemptId: string;
-    resultRevision: number;
-    productStepId: string;
-    callId: string;
-    childCapabilityId: string;
-  }>) { return this.lane.readProviderEffectStepCallFact(input); }
-  public readProvenZeroInputProviderCommand(input: Parameters<
-    NonNullable<typeof this.state.mutationState>["readProvenZeroInputProviderCommand"]
-  >[0]) {
-    const mutations = this.state.mutationState;
-    if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
-    return mutations.readProvenZeroInputProviderCommand(input);
-  }
-  public readSourceConfirmedProviderEffect(input: Parameters<
-    NonNullable<typeof this.state.mutationState>["readSourceConfirmedProviderEffect"]
-  >[0]) {
-    const mutations = this.state.mutationState;
-    if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
-    return mutations.readSourceConfirmedProviderEffect(input);
-  }
   public health(): BrowserHealthSnapshot {
     const state = this.transport.currentState();
     const current = this.issuer.current();

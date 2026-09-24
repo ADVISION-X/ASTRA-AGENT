@@ -71,6 +71,12 @@ export const sourcePaths = [
   extensionDebuggerRuntimePath,
   extensionCommandRuntimePath,
   domPointerIntentRuntimePath,
+  "src/lib/browser/chrome-extension/extension-target-acquisition.ts",
+  "src/lib/browser/chrome-extension/extension-target-release.ts",
+  "src/lib/browser/chrome-extension/websocket-pairing-proof.ts",
+  "src/lib/browser/exact-target/browser-mutation-evidence.ts",
+  "src/lib/browser/exact-target/browser-mutation-replay-evidence.ts",
+  "src/lib/browser/infrastructure/browser-infrastructure-evidence.ts",
 ] as const;
 
 export const retiredPaths = [

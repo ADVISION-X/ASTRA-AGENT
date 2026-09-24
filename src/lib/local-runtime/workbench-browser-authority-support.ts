@@ -199,27 +199,27 @@ export const createWorkbenchBrowserAuthority = async (
           : "absent",
       browserTargetState: endpoints.broker.currentOperatorTargetStatus(),
     }),
-    readBrowserLaneState: () => supervisor.readBrowserLaneState(),
+    readBrowserLaneState: () => supervisor.evidence.readBrowserLaneState(),
     bindExecutionArtifacts: (input) => supervisor.bindExecutionArtifacts(input),
     hasUnresolvedBrowserMutation: () =>
-      supervisor.hasUnresolvedBrowserMutation(),
-    hasBrowserMutationForJob: (jobId) => supervisor.hasBrowserMutationForJob(jobId),
-    readJobBrowserHistoryEvidence: (jobId) => supervisor.readJobBrowserHistoryEvidence(jobId),
-    readJobPhysicalInputState: (jobId) => supervisor.readJobPhysicalInputState(jobId),
+      supervisor.evidence.hasUnresolvedBrowserMutation(),
+    hasBrowserMutationForJob: (jobId) => supervisor.evidence.hasBrowserMutationForJob(jobId),
+    readJobBrowserHistoryEvidence: (jobId) => supervisor.evidence.readJobBrowserHistoryEvidence(jobId),
+    readJobPhysicalInputState: (jobId) => supervisor.evidence.readJobPhysicalInputState(jobId),
     readAttemptPhysicalInputState: (jobId, attemptId) =>
-      supervisor.readAttemptPhysicalInputState(jobId, attemptId),
+      supervisor.evidence.readAttemptPhysicalInputState(jobId, attemptId),
     verifyRuntimeTaskProvenance: (earliestTaskCreatedAt) =>
       supervisor.verifyRuntimeTaskProvenance(earliestTaskCreatedAt),
-    readBoundJobRefHash: () => supervisor.readBoundJobRefHash(),
-    readUnreleasedTargetClaims: () => supervisor.readUnreleasedTargetClaims(),
+    readBoundJobRefHash: () => supervisor.evidence.readBoundJobRefHash(),
+    readUnreleasedTargetClaims: () => supervisor.evidence.readUnreleasedTargetClaims(),
     countProviderTurnDispatches: (jobId, attemptId) =>
-      supervisor.countProviderTurnDispatches(jobId, attemptId),
+      supervisor.evidence.countProviderTurnDispatches(jobId, attemptId),
     readProviderEffectStepCallFact: (input) =>
-      supervisor.readProviderEffectStepCallFact(input),
+      supervisor.evidence.readProviderEffectStepCallFact(input),
     readProvenZeroInputProviderCommand: (input) =>
-      supervisor.readProvenZeroInputProviderCommand(input),
+      supervisor.evidence.readProvenZeroInputProviderCommand(input),
     readSourceConfirmedProviderEffect: (input) =>
-      supervisor.readSourceConfirmedProviderEffect(input),
+      supervisor.evidence.readSourceConfirmedProviderEffect(input),
     purgeBrowserJob: (jobId) => supervisor.purgeBrowserJob(jobId),
     releaseJobBoundTarget: (jobId, releaseAuthority, signal) =>
       supervisor.releaseJobBoundTarget(jobId, releaseAuthority, signal),

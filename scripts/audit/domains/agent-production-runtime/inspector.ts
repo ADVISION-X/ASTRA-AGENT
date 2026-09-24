@@ -124,7 +124,6 @@ export function inspectAgentFilesystem(
 const inspectCoreAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const startup = sourceFor(context, PATHS.startup);
   const state = sourceFor(context, PATHS.runtimeState);
-  const claim = sourceFor(context, PATHS.runtimeClaim);
   const startupTokens = stringLiterals(startup);
   for (const token of ["GPT_CONTINUATION_CURRENT_CHECKPOINT_MISSING", "GPT_CONTINUATION_FRONTIER_INVALID"]) {
     if (startupTokens.has(token)) findings.push(finding(LAWS.core, "static.ast",
@@ -142,13 +141,18 @@ const inspectCoreAst = (context: InspectorContext, findings: InspectorFinding[])
     findings.push(finding(LAWS.core, "static.ast", "agent-production-runtime/no-browser-private-store",
       PATHS.runtimeState, "Runtime diagnosis imports Browser private authority state."));
   }
-  if (claim?.getImportDeclarations().some((declaration) =>
-    declaration.getNamedImports().some((entry) => entry.getName() === "rm"))) {
-    findings.push(finding(LAWS.storage, "static.ast", "agent-production-runtime/no-automatic-storage-delete",
-      PATHS.runtimeClaim, "Business admission still triggers automatic task storage deletion."));
+  for (const path of [PATHS.runtimeClaim,
+    "src/lib/local-runtime/production/runtime-claim-recovery.ts",
+    "src/lib/local-runtime/production/runtime-claim-source-readback-failure.ts",
+    "src/lib/local-runtime/production/runtime-claim-preproduct.ts"]) {
+    const claimSource = sourceFor(context, path);
+    if (!claimSource || claimSource.getImportDeclarations().some((declaration) =>
+      declaration.getNamedImports().some((entry) => entry.getName() === "rm"))) {
+      findings.push(finding(LAWS.storage, "static.ast", "agent-production-runtime/no-automatic-storage-delete",
+        path, "Business admission still triggers automatic task storage deletion."));
+    }
   }
 };
-
 const inspectWebsiteAttemptLifecycle = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const startup = sourceFor(context, PATHS.startup);
   const claim = sourceFor(context, PATHS.runtimeClaim);

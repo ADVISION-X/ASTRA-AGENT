@@ -380,7 +380,7 @@ const inspectStructureContract = (context: InspectorContext): InspectorFinding[]
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "unique-diagnosis-cli",
     "scripts/runtime-logs/inspect.ts", ["--job", "--source", "sources", "DIAGNOSIS_COMPLETE", "scope.status !== \"SELECTED\""]);
   requireTokens(context, findings, LAW_STRUCTURE, "static.contract", "browser-authority-reconciliation",
-    "src/lib/browser/exact-target/browser-mutation-store.ts", [
+    "src/lib/browser/exact-target/browser-mutation-evidence.ts", [
       "dispatchedForBinding", "where job_id=? and attempt_id=? and state='DISPATCHED'",
       "and (effect_scope='provider_effect' or (lease_version=? and execution_fence_hash=?))",
       "order by updated_at,command_id",

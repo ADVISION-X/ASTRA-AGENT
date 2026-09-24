@@ -24,6 +24,8 @@ export const assertGptExactTargetSourceShape = (baseUrl: string): void => {
     "../contract.ts",
     "../ability-group.ts",
     "../production-child-tools.ts",
+    "../production-execution-session.ts",
+    "../production-execution-source-reuse.ts",
     "../production-browser-lifecycle.ts",
     "../../../mediator/product-plugin-contract.ts",
   ]) {
@@ -46,7 +48,9 @@ export const assertGptExactTargetSourceShape = (baseUrl: string): void => {
   const productionTools = readFileSync(new URL("../production-child-tools.ts", baseUrl), "utf8");
   const rateLimitBoundary = productionTools.indexOf("const code = failureCode(error);");
   assert.ok(rateLimitBoundary >= 0);
-  assert.ok(productionTools.indexOf("persistGptEvidenceArtifacts") < rateLimitBoundary);
+  const childResult = readFileSync(new URL("../production-child-result.ts", baseUrl), "utf8");
+  assert.match(childResult, /persistGptChildOutcome[\s\S]*persistGptEvidenceArtifacts/u,
+    "successful Child evidence persists through the one result writer");
   assert.match(productionTools.slice(rateLimitBoundary),
     /BROWSER_GPT_DIALOG_UNRECOGNIZED[\s\S]*BROWSER_KNOWN_GPT_RATE_LIMIT/u,
     "both exact and mismatched dialogs must enter the one in-memory normalization boundary");

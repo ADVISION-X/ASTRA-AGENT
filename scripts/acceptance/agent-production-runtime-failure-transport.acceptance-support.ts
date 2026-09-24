@@ -54,11 +54,16 @@ export const verifyRecoveryFailureTransport = async (
     )),
   } as never, "job:remote-failure"),
   (error: unknown) => typedExecutionFailure(error)?.code === "V6_DEVICE_ATTEMPT_FAILURE_INVALID");
-  const runtimeClaim = await readFile(new URL(
-    "../../src/lib/local-runtime/production/runtime-claim.ts", import.meta.url,
-  ), "utf8");
-  assert.doesNotMatch(runtimeClaim, /browser-mutation-authority|browser-mutations\.sqlite/u,
-    "Runtime must transport the public typed effect fact without reading Browser private storage");
+  const runtimeClaimPaths = ["runtime-claim.ts", "runtime-claim-recovery.ts",
+    "runtime-claim-source-readback-failure.ts", "runtime-claim-preproduct.ts"];
+  const runtimeClaims = await Promise.all(runtimeClaimPaths.map(async (path) => readFile(new URL(
+    `../../src/lib/local-runtime/production/${path}`, import.meta.url,
+  ), "utf8")));
+  for (const runtimeClaim of runtimeClaims) {
+    assert.doesNotMatch(runtimeClaim, /browser-mutation-authority|browser-mutations\.sqlite/u,
+      "Runtime must transport the public typed effect fact without reading Browser private storage");
+  }
+  const runtimeClaim = runtimeClaims[0]!;
   assert.match(runtimeClaim, /serializeTerminalFailureTransport/u);
   assert.doesNotMatch(runtimeClaim, /provider_effect_identity_hash: _effectTransportOnly/u);
   assert.match(runtimeClaim, /buildProductionLeaseRelease/u);
