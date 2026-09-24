@@ -216,7 +216,7 @@ const finishShutdown = (
   throw withRuntimeLogCause(error, terminal.eventId);
 };
 
-const shutdownRuntime = async (
+export const shutdownRuntime = async (
   state: RuntimeState,
   loop: Promise<void>,
   heartbeat: Promise<void>,
@@ -233,7 +233,15 @@ const shutdownRuntime = async (
   for (const controller of state.activeAbort.values()) controller.abort("PRODUCTION_RUNTIME_STOPPED");
   await Promise.all([loop, heartbeat]).catch((error) => errors.push(error));
   await Promise.allSettled([...state.active.values()]);
-  await state.session.close().catch((error) => errors.push(error));
+  let retainCooldownSession = true;
+  try {
+    retainCooldownSession = state.store.providerCooldownSessionRecoveryIdentity() !== null;
+  } catch (error) {
+    errors.push(error);
+  }
+  if (!retainCooldownSession) {
+    await state.session.close().catch((error) => errors.push(error));
+  }
   state.stopped = true;
   try { state.store.close(); } catch (error) { errors.push(error); }
   finishShutdown(span, errors);

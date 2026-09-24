@@ -296,6 +296,33 @@ export const readExactAssistantTurn = async (
   const value = record(await browser.executeDomIntent({
     kind: "readExactAssistantTurn", userTurnId, canonicalConversationUrl,
   }));
+  if (value.pendingCause === "exact-user-turn-unavailable"
+    || value.pendingCause === "adjacent-assistant-missing") {
+    if (value.schemaVersion !== "grasseye.browser.exact-assistant-turn.v3"
+      || value.currentUrl !== canonicalConversationUrl
+      || value.precedingUserTurnId !== userTurnId
+      || value.rawDomHtml !== "" || value.semanticText !== ""
+      || !nonNegativeInteger(value.generatingRaw)
+      || typeof value.observedAt !== "string" || Number.isNaN(Date.parse(value.observedAt))
+      || [value.targetRefHash, value.documentRefHash, value.observationRevisionHash]
+        .some((hash) => typeof hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(hash))) {
+      throw executionFailure("failed", "GPT_EXACT_ASSISTANT_TURN_RESULT_INVALID");
+    }
+    throw executionFailure("failed", value.pendingCause === "exact-user-turn-unavailable"
+      ? "BROWSER_EXACT_USER_TURN_UNAVAILABLE" : "BROWSER_ADJACENT_ASSISTANT_TURN_MISSING", {
+      metadata: { exactReadbackNegativeObservation: Object.freeze({
+        pendingCause: value.pendingCause,
+        canonicalConversationUrl, userTurnId,
+        targetRefHash: value.targetRefHash as `sha256:${string}`,
+        documentRefHash: value.documentRefHash as `sha256:${string}`,
+        observationRevisionHash: value.observationRevisionHash as `sha256:${string}`,
+        observedAt: value.observedAt,
+        generatingRaw: value.generatingRaw as number,
+        firstObservedAt: value.observedAt,
+        observationCount: 1,
+      }) },
+    });
+  }
   if (!exactAssistantIdentityValid(value, userTurnId)
     || !exactAssistantContentValid(value)) {
     throw executionFailure("failed", "GPT_EXACT_ASSISTANT_TURN_RESULT_INVALID");

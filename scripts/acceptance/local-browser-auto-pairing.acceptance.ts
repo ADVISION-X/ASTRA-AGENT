@@ -2,6 +2,8 @@ import { governanceAssert as assert } from "../audit/shared/governance-exam-asse
 import { createHash } from "node:crypto";
 
 import { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
+import { ChatGptPageAccessGate } from
+  "../../src/lib/browser/chrome-extension/chatgpt-page-access-gate.js";
 import type { ExtensionChromeApi } from "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
 import { exerciseAuthenticatedMedia } from "./local-browser-authenticated-media-support.js";
 import { exerciseLocalBrowserDomIntent } from "./local-browser-dom-intent-support.js";
@@ -47,6 +49,7 @@ const activatedTabs: number[] = [];
 const discardedTabIds = new Set<number>();
 const providerInputMethods: string[] = [];
 const attachedTabs: number[] = [];
+const detachedCurrentTabIds = new Set<number>();
 const detachedTabs: number[] = [];
 const debuggerMethods: string[] = [];
 const removedTabs: number[] = [];
@@ -127,19 +130,24 @@ const targetChromeApi: ExtensionChromeApi = {
   debugger: {
     attach: async ({ tabId }) => {
       if (tabId === attachFailureTabId) throw new Error("another debugger owns the new task tab");
+      detachedCurrentTabIds.delete(tabId);
       attachedTabs.push(tabId);
     },
-    detach: async ({ tabId }) => { detachedTabs.push(tabId); },
+    detach: async ({ tabId }) => { detachedCurrentTabIds.add(tabId); detachedTabs.push(tabId); },
     getTargets: async () => {
       getTargetsCalls += 1;
       return Array.from({ length: nextCreatedTabId - 3 }, (_, index) => index + 3)
         .filter((tabId) => !removedTabs.includes(tabId))
-        .map((tabId) => ({ attached: attachedTabs.includes(tabId),
+        .map((tabId) => ({ attached: attachedTabs.includes(tabId)
+          && !detachedCurrentTabIds.has(tabId),
           id: `chrome-target-${tabId}`, tabId, title: "ChatGPT", type: "page" as const,
           url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/" }));
     },
     sendCommand: sendTargetChromeCommand,
-    onDetach: { addListener: (listener) => { debuggerDetach = listener; } },
+    onDetach: { addListener: (listener) => { debuggerDetach = (target, reason) => {
+      detachedCurrentTabIds.add(target.tabId);
+      listener(target, reason);
+    }; } },
     onEvent: { addListener: (listener) => { debuggerEvent = listener; } },
   },
   tabs: {
@@ -151,6 +159,7 @@ const targetChromeApi: ExtensionChromeApi = {
       return { id };
     },
     get: async (tabId) => {
+      if (removedTabs.includes(tabId)) throw new Error("No tab with id");
       if (switchAwayAndBackTabReadCountdown > 0) {
         switchAwayAndBackTabReadCountdown -= 1;
         if (switchAwayAndBackTabReadCountdown === 0) {
@@ -309,10 +318,15 @@ const firstInteractiveReceipt = await executeRegisteredCommand(
 ) as Readonly<Record<string, unknown>>;
 assert.equal(firstInteractiveReceipt.postconditionVerified, true);
 assert.equal(rateLimitDetectorStartedAt.slice(-3).length, 3);
-const recentPreflightIntervals = rateLimitDetectorStartedAt.slice(-3).slice(1)
-  .map((startedAt, index) => startedAt - rateLimitDetectorStartedAt.slice(-3)[index]!);
-assert.ok(recentPreflightIntervals.every((interval) => interval >= 1_500),
-  `ordinary ChatGPT command preflight intervals must be at least 1500ms: ${recentPreflightIntervals.join(",")}`);
+const pageAccessGate = new ChatGptPageAccessGate();
+const gateStarts: number[] = [];
+for (let index = 0; index < 3; index += 1) {
+  await pageAccessGate.enter();
+  gateStarts.push(performance.now());
+}
+assert.ok(gateStarts.slice(1).every((startedAt, index) =>
+  startedAt - gateStarts[index]! >= 1_500),
+"ordinary ChatGPT logical access starts must be at least 1500ms apart");
 assert.deepEqual(activatedTabs, [3], "the first mutation must reuse the Tab selected by the observation gate");
 activeTabId = 99;
 targetTabActivated({ tabId: 99, windowId: 1 });
@@ -439,7 +453,8 @@ debuggerDetach({ tabId: 3 }, "target_closed");
 await new Promise<void>((resolve) => globalThis.setTimeout(resolve, 0));
 assert.deepEqual(targetFailureOrder, ["DIAGNOSTIC", "TARGET_REVOKE"]);
 assert.deepEqual(targetFailures.at(-1), {
-  targetRef: firstTargetRef, runtimeEventType: "debugger-detach",
+  targetRef: firstTargetRef, jobRefHash, documentRef: String(targetFrames.at(-2)?.body.documentRef),
+  runtimeEventType: "debugger-detach",
   reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT",
   nativeCauseCode: "CHROME_DEBUGGER_TARGET_CLOSED",
 });
@@ -466,10 +481,12 @@ assert.deepEqual(createdTab, { active: true, url: "https://chatgpt.com/" },
   "replacement acquisition must select only its new system Tab");
 assert.equal(activeTabId, 4, "the replacement system Tab must be selected in its existing Chrome window");
 assert.equal(nextCreatedTabId, 5, "physical loss must create exactly one replacement production Tab");
+const replacementCurrentDocumentRef = String(targetFrames.at(-1)?.body.documentRef);
 debuggerDetach({ tabId: 4 }, "canceled_by_user");
 await new Promise<void>((resolve) => globalThis.setTimeout(resolve, 0));
 assert.deepEqual(targetFailures.at(-1), {
-  targetRef: "target-tab-4", runtimeEventType: "debugger-detach",
+  targetRef: "target-tab-4", jobRefHash, documentRef: replacementCurrentDocumentRef,
+  runtimeEventType: "debugger-detach",
   reasonCode: "BROWSER_DEVTOOLS_CONFLICT",
   nativeCauseCode: "CHROME_DEBUGGER_CANCELED_BY_USER",
 });

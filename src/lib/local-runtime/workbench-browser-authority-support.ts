@@ -55,8 +55,25 @@ export type WorkbenchBrowserAuthority = Readonly<{
     targetSettlementHash: `sha256:${string}`; targetSettled: boolean;
     replayCalls: readonly Readonly<{ productStepId: string; callId: string;
       childCapabilityId: string; sourceEffectSetHash: `sha256:${string}` }>[];
+    replayEffects: readonly Readonly<{ attemptId: string; resultRevision: number;
+      state: "DISPATCHED" | "CONFIRMED" | "REJECTED";
+      mutationOutcome: "no" | "dispatched" | "confirmed";
+      productStepId: string; callId: string;
+      childCapabilityId: string; sourceEffectSetHash: `sha256:${string}`;
+      effectIdentityHash: `sha256:${string}`; authorityRef: string;
+      oldTargetRefHash: `sha256:${string}`;
+      oldDocumentRefHash: `sha256:${string}`; walAuthorityHash: `sha256:${string}`;
+      anchorState: "trusted" | "absent"; anchorProofHash: `sha256:${string}`;
+      canonicalConversationHash: `sha256:${string}` | null;
+      userTurnHash: `sha256:${string}` | null;
+      physicalInputCount: number }>[];
+    targetSettlements: readonly Readonly<{ targetRefHash: `sha256:${string}`;
+      claimSource: "legacy_wal" | "authenticated_claim";
+      outcome: "physical_absent" | "quiesced"; proofHash: `sha256:${string}`;
+      releasedAt: string }>[];
   }>;
   readJobPhysicalInputState(jobId: string): "zero" | "possible" | "unknown";
+  readAttemptPhysicalInputState(jobId: string, attemptId: string): "zero" | "possible" | "unknown";
   verifyRuntimeTaskProvenance(earliestTaskCreatedAt: string | null): void;
   readBoundJobRefHash(): `sha256:${string}` | null;
   readUnreleasedTargetClaims(): readonly Readonly<{
@@ -71,6 +88,19 @@ export type WorkbenchBrowserAuthority = Readonly<{
     callId: string;
     childCapabilityId: string;
   }>): BrowserProviderEffectStepCallFact | null;
+  readProvenZeroInputProviderCommand(input: Readonly<{
+    authorityRef: string; authorityHash: `sha256:${string}`;
+    jobId: string; attemptId: string; resultRevision: number;
+    effectIdentityHash: `sha256:${string}`;
+  }>): Readonly<{ productStepId: string; callId: string; childCapabilityId: string;
+    grantHash: `sha256:${string}` }> | null;
+  readSourceConfirmedProviderEffect(input: Readonly<{
+    jobId: string; sourceAttemptId: string; sourceResultRevision: number;
+    productStepId: string; callId: string; childCapabilityId: string;
+    effectIdentityHash: `sha256:${string}`; walAuthorityHash: `sha256:${string}`;
+  }>): Readonly<{ exactCallIdentityHash: `sha256:${string}`; actionOrdinal: number;
+    inputHash: `sha256:${string}`; terminalPayload: unknown;
+    authorityRef: string; authorityHash: `sha256:${string}`; terminalAt: string }>;
   purgeBrowserJob(jobId: string): void;
   releaseJobBoundTarget(
     jobId: string,
@@ -162,6 +192,8 @@ export const createWorkbenchBrowserAuthority = async (
     hasBrowserMutationForJob: (jobId) => supervisor.hasBrowserMutationForJob(jobId),
     readJobBrowserHistoryEvidence: (jobId) => supervisor.readJobBrowserHistoryEvidence(jobId),
     readJobPhysicalInputState: (jobId) => supervisor.readJobPhysicalInputState(jobId),
+    readAttemptPhysicalInputState: (jobId, attemptId) =>
+      supervisor.readAttemptPhysicalInputState(jobId, attemptId),
     verifyRuntimeTaskProvenance: (earliestTaskCreatedAt) =>
       supervisor.verifyRuntimeTaskProvenance(earliestTaskCreatedAt),
     readBoundJobRefHash: () => supervisor.readBoundJobRefHash(),
@@ -170,6 +202,10 @@ export const createWorkbenchBrowserAuthority = async (
       supervisor.countProviderTurnDispatches(jobId, attemptId),
     readProviderEffectStepCallFact: (input) =>
       supervisor.readProviderEffectStepCallFact(input),
+    readProvenZeroInputProviderCommand: (input) =>
+      supervisor.readProvenZeroInputProviderCommand(input),
+    readSourceConfirmedProviderEffect: (input) =>
+      supervisor.readSourceConfirmedProviderEffect(input),
     purgeBrowserJob: (jobId) => supervisor.purgeBrowserJob(jobId),
     releaseJobBoundTarget: (jobId, releaseAuthority, signal) =>
       supervisor.releaseJobBoundTarget(jobId, releaseAuthority, signal),

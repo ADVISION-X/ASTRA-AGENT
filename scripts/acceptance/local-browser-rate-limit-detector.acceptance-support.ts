@@ -22,7 +22,7 @@ export const rateLimitDetectorCdpResult = (
   detectorState: Readonly<Record<string, unknown>>,
   startedAt: number[],
 ) => {
-  startedAt.push(Date.now());
+  startedAt.push(performance.now());
   const expected = ((parameters?.arguments as readonly Readonly<{ value: Record<string, unknown> }>[])?.[0]
     ?.value ?? {});
   const state = detectorState.state;

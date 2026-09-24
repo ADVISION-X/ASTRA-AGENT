@@ -166,6 +166,7 @@ const inspectWebsiteAttemptLifecycle = (context: InspectorContext, findings: Ins
   const taskStateClass = taskState?.getClass("ProductionStoreTaskState");
   const websiteAttemptSupersession = taskStateClass?.getMethod("supersedeUnsentWritesForWebsiteAttempt");
   const websiteAttemptRelease = taskStateClass?.getMethod("releaseAttemptForWebsiteDecision");
+  const acceptAfterHandoff = taskStateClass?.getMethod("acceptTaskAfterSourceHandoff");
   const supersessionOwners = (taskStateClass?.getDescendantsOfKind(SyntaxKind.CallExpression)
     .filter((call) => call.getExpression().getText() === "this.supersedeUnsentWritesForWebsiteAttempt") ?? [])
     .map((call) => call.getFirstAncestorByKind(SyntaxKind.MethodDeclaration)?.getName());
@@ -189,15 +190,18 @@ const inspectWebsiteAttemptLifecycle = (context: InspectorContext, findings: Ins
     Boolean(taskStateClass?.getMethod("discardStagedResult")),
     /ATTEMPT_ENDED|PRODUCTION_OUTBOX_ATTEMPT_ENDED/u.test(forbiddenLifecycleVerdict),
     !websiteAttemptSupersession?.hasModifier(SyntaxKind.PrivateKeyword),
-    supersessionOwners.length !== 3,
+    supersessionOwners.length !== 1,
     supersessionOwners.sort().join(",")
-      !== "acceptTask,acceptTaskAfterFailureReconciled,releaseAttemptForWebsiteDecision",
-    !websiteAttemptRelease?.getText().includes("current_attempt_id !== attemptId"),
-    ![businessAdmission?.getText(), failureDisposition].every((source) =>
-      ['remote.next_action_code === "WAIT_NEW_ATTEMPT"', "state.store.releaseAttemptForWebsiteDecision("].every(
-        (token) => source?.includes(token))),
-    !persistFailure?.includes("applyRemoteFailureDisposition(state, persisted, remote, localFailure)"),
-    !reconcileFailures?.includes("applyRemoteFailureDisposition(state, task, remote, failure)"),
+      !== "acceptTaskAfterSourceHandoff",
+    Boolean(websiteAttemptRelease),
+    !acceptAfterHandoff?.getText().includes("current_attempt_id !== archived.source_attempt_id"),
+    !acceptAfterHandoff?.getText().includes("current_reason !== `SOURCE_HANDOFF_SEALED|${sealHash}`"),
+    !acceptAfterHandoff?.getText().includes("this.supersedeUnsentWritesForWebsiteAttempt(task.job_id)"),
+    !businessAdmission?.getText().includes('remote.next_action_code === "WAIT_NEW_ATTEMPT"'),
+    !failureDisposition?.includes('remote.next_action_code === "WAIT_NEW_ATTEMPT"'),
+    !failureDisposition?.includes('"SOURCE_HANDOFF_RECONCILIATION_PENDING"'),
+    !persistFailure?.includes("applyRemoteFailureDisposition(state, persisted, remote)"),
+    !reconcileFailures?.includes("applyRemoteFailureDisposition(state, task, remote)"),
     runtimeHostRecoveryText.includes("restoreBrowserHostVisibility"),
     retiredAttemptReleaseInActiveSource,
     !deliverOutbox?.getText().includes('executionFailure("failed", authority.lastError)'),

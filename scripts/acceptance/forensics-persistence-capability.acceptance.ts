@@ -77,8 +77,8 @@ try {
 }
 
 process.stdout.write("[ACCEPTANCE] forensics-persistence-capability PASS\n");
-for (const lawId of ["LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V6",
-  "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V6", "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V5"]) {
+for (const lawId of ["LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V7",
+  "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V7", "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V6"]) {
   emitQualityProofObservation({ lawId, evidenceMode: "exam.golden", clauses: ["forbidden:0", "summary"],
     locator: "acceptance:forensics:raw-answer-artifact",
     observedValue: "one idempotent raw answer artifact is appended and read back; record ledger is absent" });

@@ -338,7 +338,9 @@ export class BrowserLaneCoordinator {
   public resolvePending(action: "acquire" | "release", jobRefHash: string): void {
     this.targetAcquirer.resolvePending(action, jobRefHash);
   }
-  public rejectPending(reasonCode: string): void { this.targetAcquirer.rejectPending(reasonCode); }
+  public rejectPending(reasonCode: string, refs?: Readonly<Record<string, string>>): void {
+    this.targetAcquirer.rejectPending(reasonCode, refs);
+  }
 
   private scheduleWake(): void {
     if (this.active || this.queue.length === 0) return;

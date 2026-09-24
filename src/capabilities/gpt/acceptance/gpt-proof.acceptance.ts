@@ -115,6 +115,31 @@ assert.equal(done.proof.browserFact, null);
   assert.equal(Reflect.get(incidentInput ?? {}, "documentRefHash"), documentRefHash);
   assert.equal(Reflect.get(incidentInput ?? {}, "observationHash"), observationHash);
   assert.equal(delivered, 1, "known exact dialog must still enter and close the current incident path");
+  const clearanceWrites: string[] = [];
+  await assert.rejects(closeKnownProviderRateLimit({
+    execution: {
+      jobId: "job:known-rate-limit", attemptId: "attempt:known-rate-limit", resultRevision: 0,
+      deviceId: "device:1", leaseVersion: 1, executionFenceHash: `sha256:${"5".repeat(64)}`,
+      capabilityManifestHash: `sha256:${"6".repeat(64)}`,
+    } as never,
+    call: { sessionKey: "session:known-rate-limit" },
+    result: failed,
+    providerRateLimitControl: {
+      assertProviderSubmitAllowed: () => undefined,
+      pendingIncidents: () => [],
+      beginIncident: async () => ({ incidentRequestId: `aipcooldown_${"7".repeat(40)}`,
+        deliver: async (clearance) => {
+          clearanceWrites.push(clearance.clearance);
+          throw new Error("CLEARANCE_RESPONSE_LOST");
+        } }),
+    },
+    executeAcknowledgement: async () => ({ value: {
+      clearance: "confirmed_absent", acknowledgementReceiptHash: observationHash,
+      acknowledgedAt: observedAt,
+    } }) as never,
+  }), /CLEARANCE_RESPONSE_LOST/u);
+  assert.deepEqual(clearanceWrites, ["confirmed_absent"],
+    "a lost clearance response must not append not_cleared after an acknowledged absence");
 }
 
 let open = false;
@@ -421,6 +446,8 @@ for (const promptMatches of [true, false]) {
   assert.deepEqual(waitReasons, ["initial-observation", "stop-present", "stop-present"]);
   assert.equal(waitReasons.length, 3,
     "a stop-present exact response must remain pending across the original probe deadline");
+  assert.equal(responseReadCount, 2,
+    "a deadline gate result must not read the Provider response");
 }
 
 {

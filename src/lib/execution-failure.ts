@@ -11,6 +11,18 @@ export type ProviderStoppedEmptyProof = Readonly<{
   identityHash: `sha256:${string}`;
   terminalObservationRevisionHash: `sha256:${string}`;
 }>;
+export type ExactReadbackNegativeObservation = Readonly<{
+  pendingCause: "exact-user-turn-unavailable" | "adjacent-assistant-missing";
+  canonicalConversationUrl: string;
+  userTurnId: string;
+  targetRefHash: `sha256:${string}`;
+  documentRefHash: `sha256:${string}`;
+  observationRevisionHash: `sha256:${string}`;
+  observedAt: string;
+  generatingRaw: number;
+  firstObservedAt: string;
+  observationCount: number;
+}>;
 export type ExecutionFailureMetadata = Readonly<{
   mutationOutcome?: ExecutionMutationOutcome;
   evidence?: Readonly<{ evidenceRef: string; evidenceHash: `sha256:${string}` }> | null;
@@ -24,6 +36,7 @@ export type ExecutionFailureMetadata = Readonly<{
   stoppedEmptyProof?: ProviderStoppedEmptyProof | null;
   childProof?: Readonly<{ evidenceRef: string; evidenceHash: `sha256:${string}` }> | null;
   knownGptRateLimitPreflightFact?: KnownGptRateLimitPreflightFact | null;
+  exactReadbackNegativeObservation?: ExactReadbackNegativeObservation | null;
   knownGptDialogAuthority?: Readonly<{
     evidenceRef: string;
     evidenceHash: `sha256:${string}`;
@@ -71,6 +84,43 @@ export const executionFailureMetadata = (error: unknown): ExecutionFailureMetada
     seen.add(current);
     if (current instanceof TypedExecutionFailure && Object.keys(current.metadata).length > 0) {
       return current.metadata;
+    }
+    current = current instanceof Error ? current.cause : undefined;
+  }
+  return null;
+};
+
+export const exactReadbackNegativeObservation = (
+  error: unknown,
+): ExactReadbackNegativeObservation | null => {
+  let current = error;
+  const seen = new Set<object>();
+  while (current && typeof current === "object" && !seen.has(current)) {
+    seen.add(current);
+    if (current instanceof TypedExecutionFailure
+      && current.metadata.exactReadbackNegativeObservation) {
+      return current.metadata.exactReadbackNegativeObservation;
+    }
+    current = current instanceof Error ? current.cause : undefined;
+  }
+  return null;
+};
+
+export const oldTargetUnavailableFact = (
+  error: unknown,
+): Readonly<{ jobRefHash: `sha256:${string}`; targetRefHash: `sha256:${string}`;
+  proofHash: `sha256:${string}` }> | null => {
+  let current = error;
+  const seen = new Set<object>();
+  while (current && typeof current === "object" && !seen.has(current)) {
+    seen.add(current);
+    const fact = "oldTargetUnavailableFact" in current ? current.oldTargetUnavailableFact : null;
+    if (fact && typeof fact === "object" && "jobRefHash" in fact
+      && "targetRefHash" in fact && "proofHash" in fact
+      && [fact.jobRefHash, fact.targetRefHash, fact.proofHash]
+        .every((value) => typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value))) {
+      return fact as Readonly<{ jobRefHash: `sha256:${string}`;
+        targetRefHash: `sha256:${string}`; proofHash: `sha256:${string}` }>;
     }
     current = current instanceof Error ? current.cause : undefined;
   }

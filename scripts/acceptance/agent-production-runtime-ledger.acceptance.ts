@@ -1,5 +1,5 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
@@ -108,6 +108,7 @@ try {
     first_fact_raw_hash: sha256(Buffer.from(store.readAttemptFailureRaw(accepted.job_id)!, "utf8")),
     outbox_history_hash: immutableOutbox.historyHash,
     outbox_candidate_count: immutableOutbox.candidateCount,
+    payload_slot_conflict: null,
     browser_history_hash: HASH_B,
     browser_row_count: 0,
     browser_input_state: "zero" as const,
@@ -115,6 +116,8 @@ try {
     target_settlement_hash: HASH_A,
     readback_exhaustion_hash: null,
     replay_calls: [],
+    rejected_call: null,
+    readback_proofs: [],
   };
   const sourceSeal = hashCanonical(sourceBody);
   store.sealSourceHandoff({ ...sourceBody, seal_hash: sourceSeal });
@@ -127,39 +130,6 @@ try {
   assert.equal(second.current_attempt_id, secondAttempt);
   assert.equal(second.attempt_failure, null);
   assert.equal(store.acceptTask(accepted, secondAttempt).current_reason, "LEASE_REGRANTED");
-
-  const ambiguousTask = task({ jobId: "job:timed-source-reconciliation",
-    productId: "payment_screenshot_observation", actionId: "observe" });
-  const ambiguousAttempt = "attempt:timed-source-reconciliation";
-  store.acceptTask(ambiguousTask, ambiguousAttempt);
-  const observeUnavailableResult = () => store.recordSourceReadbackFailure(
-    ambiguousTask.job_id, ambiguousAttempt, "SOURCE_RESULT_RECONCILIATION_PENDING", HASH_A,
-  );
-  observeUnavailableResult();
-  observeUnavailableResult();
-  const backdateLatestObservation = (offsetMs: number) => {
-    const row = database.prepare(`select readback_observations_json from production_attempt_handoffs
-      where job_id=? and source_attempt_id=?`).get(
-      ambiguousTask.job_id, ambiguousAttempt,
-    ) as { readback_observations_json: string };
-    const observations = JSON.parse(row.readback_observations_json) as Array<{
-      observed_at: string; error_code: string; evidence_hash: string | null;
-    }>;
-    observations.at(-1)!.observed_at = new Date(Date.now() - offsetMs).toISOString();
-    database.prepare(`update production_attempt_handoffs set readback_observations_json=?
-      where job_id=? and source_attempt_id=?`).run(
-      JSON.stringify(observations), ambiguousTask.job_id, ambiguousAttempt,
-    );
-    return observations.length;
-  };
-  assert.equal(backdateLatestObservation(122_000), 1,
-    "immediate worker iterations must not inflate readback exhaustion evidence");
-  observeUnavailableResult();
-  assert.equal(backdateLatestObservation(61_000), 2);
-  observeUnavailableResult();
-  assert.match(store.readSourceReadbackExhaustionHash(
-    ambiguousTask.job_id, ambiguousAttempt) ?? "", /^sha256:[a-f0-9]{64}$/u,
-  "three bounded observations over two minutes must make Website risk adjudication reachable");
 
   const artifactKey = "artifact:three-truths";
   store.enqueue({
@@ -323,6 +293,8 @@ try {
   assert.doesNotThrow(() => providerControl.assertProviderSubmitAllowed(),
     "only a later Website authority receipt without the active cooldown reason may reopen submit");
   const deliveredPhases: string[] = [];
+  let failFirstNotCleared = true;
+  let remoteClearance = "pending_unknown";
   const failedAckControl = new ProviderRateLimitControl(store, {
     device: { device_id: "device-1" },
     workerSessionId: "session-1",
@@ -332,6 +304,14 @@ try {
     request: async (_path: string, init: Readonly<{ body: Buffer }>) => {
       const body = JSON.parse(init.body.toString("utf8")) as Record<string, unknown>;
       deliveredPhases.push(`${String(body.phase)}:${String(body.clearance)}`);
+      if (body.clearance === "not_cleared" && failFirstNotCleared) {
+        failFirstNotCleared = false;
+        throw new Error("COOLDOWN_RESPONSE_LOST");
+      }
+      if (body.clearance === "confirmed_absent" && remoteClearance !== "not_cleared") {
+        throw new Error("OLD_CLEARANCE_NOT_DELIVERED");
+      }
+      remoteClearance = String(body.clearance);
       const core = {
         schema_version: "xuanxue-ai-provider-cooldown-receipt.v6" as const,
         request_id: String(body.request_id),
@@ -343,7 +323,8 @@ try {
         target_ref_hash: body.target_ref_hash,
         document_ref_hash: body.document_ref_hash,
         level: 2, current_n: 1, baseline_n: 3,
-        server_now: "2030-01-01T00:10:00.000Z",
+        server_now: body.clearance === "confirmed_absent"
+          ? "2030-01-01T00:11:00.000Z" : "2030-01-01T00:10:00.000Z",
         cooldown_until: "2030-01-01T00:20:00.000Z",
         clearance: body.clearance,
         claim_gate_open: false,
@@ -368,19 +349,41 @@ try {
     sessionKey: "product:failed-ack",
     observedAt: "2030-01-01T00:09:59.000Z",
   });
-  await failedAckIncident.deliver({
+  await assert.rejects(failedAckIncident.deliver({
     clearance: "not_cleared",
     acknowledgementReceiptHash: HASH_B,
     acknowledgedAt: "2030-01-01T00:10:00.000Z",
-  });
+  }), /COOLDOWN_RESPONSE_LOST/u);
   assert.deepEqual(deliveredPhases,
     ["incident:pending_unknown", "clearance:not_cleared"],
-    "an acknowledgement failure must still durably notify Website in incident-first order");
+    "a failed not_cleared response keeps its original intent pending after the incident");
   assert.equal(failedAckControl.pendingIncidents().length, 1,
     "not_cleared must retain the original exact incident for zero-submit recovery");
   assert.throws(() => failedAckControl.assertProviderSubmitAllowed(),
     /PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE/u,
     "not_cleared must keep Provider submit closed");
+  await failedAckControl.reconcilePendingIntents();
+  await failedAckIncident.deliver({
+    clearance: "confirmed_absent",
+    acknowledgementReceiptHash: HASH_B,
+    acknowledgedAt: "2030-01-01T00:11:00.000Z",
+  });
+  assert.deepEqual(deliveredPhases, ["incident:pending_unknown", "clearance:not_cleared",
+    "clearance:not_cleared", "clearance:confirmed_absent"],
+  "the original not_cleared receipt must precede the later confirmed_absent clearance");
+  database.prepare(`update production_outbox set created_at=?
+    where idempotency_key in (?,?)`).run("2030-01-01T00:10:00.000Z",
+    `${failedAckIncident.incidentRequestId}_not_cleared`,
+    `${failedAckIncident.incidentRequestId}_clearance`);
+  assert.equal(store.latestProviderCooldownClearance(), "confirmed_absent",
+    "a same-millisecond not_cleared key must not outrank the later confirmed_absent intent");
+  assert.equal(store.latestProviderCooldownServerNow(), "2030-01-01T00:11:00.000Z");
+  const loopSource = await readFile(new URL(
+    "../../src/lib/local-runtime/production/runtime-loops.ts", import.meta.url), "utf8");
+  const iteration = loopSource.slice(loopSource.indexOf("const workerIteration ="));
+  assert.ok(iteration.indexOf("providerRateLimitControl.reconcilePendingIntents()")
+    < iteration.indexOf("executor.reconcilePendingProviderRateLimitIncidents"),
+  "each recovery iteration must send old durable cooldown intents before Browser forms new clearance");
   const staged = { ...resultFor(accepted), evidence_refs: [`art-${"a".repeat(64)}`] };
   store.markExecuting(accepted.job_id);
   store.stageResult(accepted.job_id, secondAttempt, staged);
@@ -457,17 +460,16 @@ try {
     "2026-09-23T00:00:00.000Z", "2026-09-23T00:01:00.000Z",
   );
   previousHandoff.close();
-  const migrated = new ProductionRuntimeStore(previousHandoffDirectory);
-  const migratedDatabase = Reflect.get(migrated, "database") as Database.Database;
-  assert.deepEqual(migratedDatabase.prepare(`select seal_hash,source_manifest_json,
-    first_fact_raw,readback_observations_json from production_attempt_handoffs
-    where job_id='job:preserved'`).get(), {
+  assert.throws(() => new ProductionRuntimeStore(previousHandoffDirectory),
+    (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_SCHEMA_MIGRATION_REQUIRED",
+    "ordinary startup must not migrate a previous handoff table");
+  const unchangedPrevious = new Database(path.join(previousHandoffDirectory, "production-runtime.sqlite"));
+  assert.deepEqual(unchangedPrevious.prepare(`select seal_hash,source_manifest_json,
+    first_fact_raw from production_attempt_handoffs where job_id='job:preserved'`).get(), {
     seal_hash: HASH_A, source_manifest_json: originalManifest,
-    first_fact_raw: JSON.stringify({ code: "original" }), readback_observations_json: "[]",
-  }, "the exact previous table migrates in place without losing sealed identities or inventing readback");
-  migrated.close();
-  assert.doesNotThrow(() => new ProductionRuntimeStore(previousHandoffDirectory).close(),
-    "the migrated current table must reopen without a second migration");
+    first_fact_raw: JSON.stringify({ code: "original" }),
+  }, "the previous handoff record must remain byte-for-byte available for an authorized offline cutover");
+  unchangedPrevious.close();
 
   const legacyDirectory = path.join(temporary, "legacy");
   await mkdir(legacyDirectory);
@@ -488,10 +490,10 @@ try {
 
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V38",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V39",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:3", "summary"],
-    locator: `acceptance:agent-production-runtime:two-table-authority:${evidenceMode}`,
-    observedValue: "two-table SQLite authority stores task state and Outbox only and rejects lease checkpoint continuation or failure-ledger mirrors",
+    locator: `acceptance:agent-production-runtime:three-table-authority:${evidenceMode}`,
+    observedValue: "three-table SQLite authority stores task state, Outbox and source handoff evidence; ordinary startup rejects migration and lease checkpoint continuation mirrors",
   });
 }

@@ -190,11 +190,16 @@ const exerciseSingleAtomicRead = async (): Promise<void> => {
 };
 
 const exerciseAtomicFailureClosure = async (): Promise<void> => {
+  for (const pendingCause of ["exact-user-turn-unavailable", "adjacent-assistant-missing"] as const) {
+    const reply = await execute(runtimeFor({ ...successfulObservation,
+      rawCount: 0, rawDomHtml: "", semanticText: "", pendingCause })) as Readonly<Record<string, unknown>>;
+    assert.equal(reply.pendingCause, pendingCause,
+      "a missing exact turn must return a bound negative observation for source readback proof");
+    assert.equal(reply.rawDomHtml, "");
+    assert.equal(reply.semanticText, "");
+    assert.match(String(reply.observationRevisionHash), /^sha256:[a-f0-9]{64}$/u);
+  }
   for (const [observation, code] of [
-    [{ ...successfulObservation, rawCount: 0, rawDomHtml: "", semanticText: "",
-      pendingCause: "exact-user-turn-unavailable" }, "BROWSER_EXACT_USER_TURN_UNAVAILABLE"],
-    [{ ...successfulObservation, rawCount: 0, rawDomHtml: "", semanticText: "",
-      pendingCause: "adjacent-assistant-missing" }, "BROWSER_ADJACENT_ASSISTANT_TURN_MISSING"],
     [{ ...successfulObservation, rawCount: 2, rawDomHtml: "", semanticText: "" },
       "BROWSER_DOM_CANDIDATE_AMBIGUOUS"],
     [{ ...successfulObservation, rawCount: 0, rawDomHtml: "", semanticText: "" },
@@ -337,9 +342,9 @@ const exerciseMaterializationHit = async (): Promise<void> => {
       steps: Array.from({ length: 40 },
         () => ({ pageVisible: true, containerFound: true, hit: false, atTop: false } as const)),
     });
-    await assert.rejects(materialize(neverHits, start + 20_000),
-      /BROWSER_EXACT_USER_TURN_UNAVAILABLE/u,
-      "T3.1: a walk that never hits and never reaches the top must still fail closed on deadline");
+    const reply = await materialize(neverHits, start + 20_000) as Readonly<Record<string, unknown>>;
+    assert.equal(reply.pendingCause, "exact-user-turn-unavailable",
+      "T3.1: a walk that never hits must return bound negative evidence");
   });
 };
 
@@ -348,8 +353,8 @@ const exerciseMaterializationInsufficientBudget = async (): Promise<void> => {
   await withFakeExtensionClock(async () => {
     const start = Date.now();
     const fixture = materializeRuntimeFor({ steps: [] });
-    await assert.rejects(materialize(fixture, start + 5_000),
-      /BROWSER_EXACT_USER_TURN_UNAVAILABLE/u);
+    const reply = await materialize(fixture, start + 5_000) as Readonly<Record<string, unknown>>;
+    assert.equal(reply.pendingCause, "exact-user-turn-unavailable");
     assert.equal(fixture.materializeCallCount(), 0, "budget under 4s must trigger zero steps");
     assert.equal(fixture.mainCallCount(), 2, "the unavailable observation is still re-read once");
   });
@@ -362,8 +367,8 @@ const exerciseMaterializationNoContainer = async (): Promise<void> => {
     const fixture = materializeRuntimeFor({
       steps: [{ pageVisible: true, containerFound: false, hit: false, atTop: false }],
     });
-    await assert.rejects(materialize(fixture, start + 20_000),
-      /BROWSER_EXACT_USER_TURN_UNAVAILABLE/u);
+    const reply = await materialize(fixture, start + 20_000) as Readonly<Record<string, unknown>>;
+    assert.equal(reply.pendingCause, "exact-user-turn-unavailable");
     assert.equal(fixture.materializeCallCount(), 1);
   });
 };
@@ -375,8 +380,8 @@ const exerciseMaterializationHiddenDocument = async (): Promise<void> => {
     const fixture = materializeRuntimeFor({
       steps: [{ pageVisible: false, containerFound: false, hit: false, atTop: false }],
     });
-    await assert.rejects(materialize(fixture, start + 20_000),
-      /BROWSER_EXACT_USER_TURN_UNAVAILABLE/u);
+    const reply = await materialize(fixture, start + 20_000) as Readonly<Record<string, unknown>>;
+    assert.equal(reply.pendingCause, "exact-user-turn-unavailable");
     assert.equal(fixture.materializeCallCount(), 1,
       "a hidden document must not receive any step after the first observes it hidden");
   });
@@ -392,8 +397,8 @@ const exerciseMaterializationBudgetExhausted = async (): Promise<void> => {
       steps: Array.from({ length: 48 },
         () => ({ pageVisible: true, containerFound: true, hit: false, atTop: false } as const)),
     });
-    await assert.rejects(materialize(neverSettles, start + budgetMs + 3_000),
-      /BROWSER_EXACT_USER_TURN_UNAVAILABLE/u);
+    const reply = await materialize(neverSettles, start + budgetMs + 3_000) as Readonly<Record<string, unknown>>;
+    assert.equal(reply.pendingCause, "exact-user-turn-unavailable");
     assert.ok(neverSettles.materializeCallCount() <= 48, "the walk must never exceed the step cap");
     const elapsedMs = Date.now() - start;
     assert.ok(elapsedMs <= budgetMs + 1_000,

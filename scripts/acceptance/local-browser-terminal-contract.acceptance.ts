@@ -12,7 +12,6 @@ import { browserExactCallIdentityHash } from "../../src/lib/browser/exact-target
 import { canonicalizeBrowserAuthorityValue } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
-import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { verifyBrowserArtifactAndLockContracts } from "./local-browser-artifact-and-lock.acceptance-support.js";
 import { exerciseStrictMutationReceipts } from "./local-browser-mutation-receipt-support.js";
 import { exerciseBrowserDiagnosticContract } from "./local-browser-diagnostic-contract-support.js";
@@ -167,6 +166,24 @@ try {
     result: { ...exactAssistantReply, observationRevisionHash: exactAssistantObservationRevisionHash },
   })).execute(exactAssistantPermit, exactAssistantCommand) as Readonly<Record<string, unknown>>;
   assert.match(String(boundExactAssistant.exactCallIdentityHash), /^sha256:[a-f0-9]{64}$/u);
+  const negativeExactAssistant = {
+    ...exactAssistantReply,
+    assistantTurnId: "",
+    currentUrl: exactAssistantCommand.intent.canonicalConversationUrl,
+    rawDomHtml: "", rawDomHash: exactHash(""),
+    semanticText: "", semanticTextHash: exactHash(""),
+    pendingCause: "exact-user-turn-unavailable" as const,
+  };
+  const negativeRevision = exactHash(canonicalBrowserExactAssistantTurnRevision(
+    negativeExactAssistant, negativeExactAssistant.pendingCause,
+  ));
+  const boundNegative = await actorFor(async (candidate) => ({
+    replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+    permitSequence: candidate.sequence,
+    result: { ...negativeExactAssistant, observationRevisionHash: negativeRevision },
+  })).execute(exactAssistantPermit, exactAssistantCommand) as Readonly<Record<string, unknown>>;
+  assert.equal(boundNegative.pendingCause, "exact-user-turn-unavailable");
+  assert.match(String(boundNegative.exactCallIdentityHash), /^sha256:[a-f0-9]{64}$/u);
   const tamperedExactAssistantPermit: BrowserCommandPermit = {
     ...exactAssistantPermit,
     ...permitAuthority("actor-exact-assistant-tampered"),
@@ -452,21 +469,3 @@ try {
 } finally {
   await rm(root, { recursive: true, force: true });
 }
-
-emitQualityProofObservation({
-  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V49",
-  evidenceMode: "exam.golden",
-  clauses: [
-    "forbidden:0",
-    "forbidden:1",
-    "forbidden:10",
-    "forbidden:11",
-    "forbidden:12",
-    "forbidden:2",
-    "forbidden:4",
-    "summary",
-  ],
-  locator: "acceptance:local-browser-terminal:mutation-golden",
-  observedValue:
-    "restart recovery preserves DISPATCHED without replay, binds exact plugin step child and action ordinal, rejects mismatched resolution identity, and terminalizes direct postconditions as CONFIRMED or REJECTED",
-});

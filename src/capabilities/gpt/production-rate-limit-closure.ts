@@ -50,21 +50,19 @@ export const closeKnownProviderRateLimit = async (input: Readonly<{
     targetRefHash: targetRefHash as GptHash, documentRefHash: documentRefHash as GptHash,
     sessionKey: input.call.sessionKey, observedAt,
   });
-  try {
-    const acknowledged = await input.executeAcknowledgement({
+  const acknowledged = await input.executeAcknowledgement({
       child: "acknowledge_known_gpt_rate_limit", sessionKey: input.call.sessionKey,
       productStepId: "gpt-rate-limit-control", callId: incident.incidentRequestId,
       actionOrdinal: 1,
       input: { incidentRequestId: incident.incidentRequestId, dialogHash, observationHash,
         targetRefHash: targetRefHash as GptHash, documentRefHash: documentRefHash as GptHash,
         observedAt },
-    }, Date.parse(observedAt) + 1_000);
-    await incident.deliver({ clearance: acknowledged.value.clearance,
-      acknowledgementReceiptHash: acknowledged.value.acknowledgementReceiptHash,
-      acknowledgedAt: acknowledged.value.acknowledgedAt });
-  } catch (error) {
+    }, Date.parse(observedAt) + 1_000).catch(async (error: unknown) => {
     await incident.deliver(notClearedRateLimit(incident, observedAt));
     throw error;
-  }
+  });
+  await incident.deliver({ clearance: acknowledged.value.clearance,
+    acknowledgementReceiptHash: acknowledged.value.acknowledgementReceiptHash,
+    acknowledgedAt: acknowledged.value.acknowledgedAt });
   throw executionFailure("failed", "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE");
 };

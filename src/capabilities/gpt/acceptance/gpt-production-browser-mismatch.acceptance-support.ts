@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { ProductionGptChildTools } from "../production-child-tools.js";
-import { verifyConfirmedReadbackLease, verifyNoPriorProviderEffect } from
+import { verifyConfirmedReadbackLease, verifyHistoricalReadbackOnlyCall,
+  verifyNoPriorProviderEffect } from
   "./gpt-production-browser-recovery.acceptance-support.js";
 import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import { serializeTerminalFailureTransport } from
@@ -34,6 +35,7 @@ const exactAuthorityRef = ["browser-known-gpt-rate-limit",
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-confirmed-recovery-"));
 try {
   await verifyConfirmedReadbackLease(temporary);
+  await verifyHistoricalReadbackOnlyCall(temporary);
 
   const providerEffectIdentityHash = `sha256:${"8".repeat(64)}` as const;
   const historicalAtomicInputHash = `sha256:${"7".repeat(64)}` as const;
@@ -51,7 +53,8 @@ try {
     browserExactCallIdentityHash({
       jobId, attemptId: "attempt:ignored", writerFenceHash: HASH_A, resultRevision: 0,
       productStepId, callId: "turn-submit", childCapabilityId: "submit_exact_gpt_turn_once",
-      inputHash: historicalAtomicInputHash, replayPolicy: "provider-effect-once",
+      inputHash: historicalAtomicInputHash,
+      replayPolicy: "provider-effect-once",
     });
   const failingTools = new ProductionGptChildTools(
     temporary, HASH_A, {} as never, {} as never, {
@@ -90,6 +93,8 @@ try {
     "confirmed-effect Browser acquisition failure must retain the original effect identity");
 
   let recoveredSelections = 0;
+  let recoveredAcquisitions = 0;
+  let retiredOldTargets = 0;
   const historicalPromptHash = HASH_A;
   const currentPromptHash = HASH_B;
   const driftJobId = "job:step-identity-drift";
@@ -101,7 +106,19 @@ try {
         mutation: confirmedMutation(),
       }),
       countProviderTurnDispatches: () => 0,
-      acquireJobBoundTargetLease: async () => ({
+      releaseJobBoundTarget: async (jobId: string, authority: string) => {
+        assert.equal(jobId, driftJobId);
+        assert.equal(authority, "wait-new-attempt");
+        retiredOldTargets += 1;
+      },
+      acquireJobBoundTargetLease: async () => {
+        recoveredAcquisitions += 1;
+        if (recoveredAcquisitions === 1) {
+          throw executionFailure("failed", "BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE");
+        }
+        assert.equal(retiredOldTargets, 1,
+          "the old Target must quiesce before a replacement can read its exact conversation");
+        return ({
         target: { targetRef: "target:historical-confirmed" },
         document: { documentRef: "document:historical-confirmed" },
         pendingMutationCount: () => 0,
@@ -123,7 +140,8 @@ try {
         },
         executeDomIntent: async () => { recoveredSelections += 1; },
         park: async () => undefined,
-      }),
+        });
+      },
     } as never,
     createRuntimeLogger({
       producer: "agent-step-identity-drift-acceptance", owner: "production-runtime",
@@ -134,20 +152,28 @@ try {
     jobId: driftJobId, attemptId: "attempt:step-identity-drift", resultRevision: 0,
     productId: "public_knowledge_article_pipeline",
     ownerRef: "owner:1", subjectRef: "subject:1", authorizationRef: "authorization:1",
-    deviceId: "device:1", leaseVersion: 1, executionFenceHash: HASH_A,
+    deviceId: "device:1", leaseVersion: 1, executionFenceHash: HASH_B,
     capabilityManifestHash: HASH_B, expiresAtMonotonic: performance.now() + 10_000,
     commandTtlMs: 1_000, abortSignal: new AbortController().signal, parentSpanId: "parent",
     maxProviderTurns: 1,
   });
-  const recoveredHistoricalSubmit = await driftTools.tools.readConfirmedSubmit({
+  const historicalCall = {
     sessionKey: "session:step-identity-drift", productStepId: "observe", callId: "turn-submit",
     child: "submit_exact_gpt_turn_once", actionOrdinal: 1,
     input: { files: [], promptHash: currentPromptHash },
-  });
+  } as const;
+  await assert.rejects(driftTools.tools.readConfirmedSubmit(historicalCall),
+    /BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE/u,
+    "GPT must report old-instance unavailability to Runtime before any Target release");
+  assert.deepEqual([recoveredAcquisitions, retiredOldTargets], [1, 0]);
+  retiredOldTargets = 1; // Runtime owns the intervening typed-fact persistence and Target settlement.
+  const recoveredHistoricalSubmit = await driftTools.tools.readConfirmedSubmit(historicalCall);
   assert.equal(recoveredHistoricalSubmit?.value.promptHash, historicalPromptHash,
     "a confirmed historical submit must return its persisted prompt fact after current prompt drift");
   assert.equal(recoveredSelections, 1,
     "historical confirmed recovery may only select its canonical conversation and must not submit again");
+  assert.deepEqual([recoveredAcquisitions, retiredOldTargets], [2, 1],
+    "the next recovery claim may read the original effect after Runtime settles the old Target");
 
   await verifyNoPriorProviderEffect(temporary);
 
@@ -438,7 +464,9 @@ try {
     },
     {
       readProviderEffectStepCallFact: () => null,
+      readSourceConfirmedProviderEffect: () => { throw new Error("UNEXPECTED_SOURCE_READBACK"); },
       countProviderTurnDispatches: () => 0,
+      releaseJobBoundTarget: async () => { throw new Error("UNEXPECTED_TARGET_RELEASE"); },
       acquireJobBoundTargetLease: async () => {
         throw executionFailure("failed", "BROWSER_GPT_DIALOG_UNRECOGNIZED", {
           metadata: { mutationOutcome: "no",

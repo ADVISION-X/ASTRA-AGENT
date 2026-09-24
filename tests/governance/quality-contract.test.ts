@@ -373,9 +373,9 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
   } as const;
   const routes = {
     browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", clauses: ["forbidden:6"] },
-    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V69", clauses: ["summary"] },
-    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V69", clauses: ["forbidden:0", "forbidden:2"] },
-    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V69", clauses: ["forbidden:2"] },
+    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V70", clauses: ["summary"] },
+    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V70", clauses: ["forbidden:0", "forbidden:2"] },
+    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V70", clauses: ["forbidden:2"] },
     provider: { lawId: "LAW-GPT-001-V61", clauses: ["forbidden:0", "forbidden:3", "forbidden:7"] },
     authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V10", clauses: ["forbidden:1", "forbidden:2"] },
     recovery: { lawId: "LAW-RUNTIME-LOG-SPINE-001-V7", clauses: ["summary"] },
@@ -1108,7 +1108,7 @@ test("provider contracts reject malformed payloads before identity matching", ()
   )) as unknown;
   assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
     new Map([
-      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V69", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V70", "agent-production-runtime"],
       ["LAW-AGENT-PRODUCTION-RUNTIME-003-V40", "agent-production-runtime"],
     ]),
     (path) => path === "src/lib/local-runtime/production/catalog.ts"));
@@ -1350,7 +1350,7 @@ test("every active law scope is deterministic, owned, unique, and includes all c
 
 test("active mutation inspectors use one DISPATCHED chain inside each law scope", () => {
   const registry = buildRegistry();
-  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V69");
+  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V70");
   assert.ok(agentLaw);
   const agentTargets = computeTargetPaths(agentLaw, registry);
   const crossOwnerPaths = [
@@ -1504,7 +1504,7 @@ test("Browser inspectors admit only the exact row-preserving WAL constraint migr
       "if (currentUrl !== expectedUrl || thirdGate || rawCount !== 1)"),
     exact.replace("loaderAfter !== expectedMainFrameLoaderId", "loaderAfter === expectedMainFrameLoaderId"),
     exact.replaceAll("exact-user-turn-unavailable", "generic-candidate-missing"),
-    exact.replaceAll("BROWSER_ADJACENT_ASSISTANT_TURN_MISSING", "BROWSER_DOM_CANDIDATE_MISSING"),
+    exact.replaceAll("adjacent-assistant-missing", "generic-candidate-missing"),
     `${exact}\nvoid queryCandidateSet;`,
   ]) assert.equal(exactAssistantTurnReadIsAtomic(inspectSource(exactPath, mutant)), false);
 });
@@ -1629,7 +1629,7 @@ test("Dynamic Proof routes are separated by native Owner", () => {
     ".catch(() => undefined)", "cleanupVerified: true", "dynamic.recovery",
     "old_attempt_after_restart_rejected", "new_attempt_fresh_started",
   ]) assert.equal(proof.includes(forbidden), false, forbidden);
-  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V69", "runtime_schema_exact", "runtime_orphan_directory_count",
+  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V70", "runtime_schema_exact", "runtime_orphan_directory_count",
     "AGENT_RUNTIME_OWNER_ISOLATED_RELEASE_PROOF_NOT_ADMITTED"]) assert.ok(proof.includes(token), token);
   for (const adjacentPrefix of ["LAW-GPT-", "LAW-LOCAL-BROWSER-SESSION-", "LAW-RUNTIME-LOG-SPINE-"]) {
     assert.equal(proof.includes(adjacentPrefix), false, adjacentPrefix);

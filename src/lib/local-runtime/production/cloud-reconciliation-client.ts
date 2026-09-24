@@ -313,7 +313,7 @@ export async function readProductionDeviceJobStatus(
     return Object.freeze({ role: artifact.role as string,
       receipt_hash: artifact.receipt_hash as ProductionHash });
   });
-  if (staged !== null && stagedArtifactReceipts.length < 2) {
+  if (staged !== null && admission === null && stagedArtifactReceipts.length < 2) {
     throw executionFailure("failed", "V6_DEVICE_STAGED_RESULT_AUTHORITY_INVALID");
   }
   return Object.freeze({

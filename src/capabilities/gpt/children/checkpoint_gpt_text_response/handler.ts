@@ -1,7 +1,7 @@
-import { executionFailure, failureCode } from "../../../../lib/execution-failure.js";
+import { executionFailure, executionFailureMetadata, failureCode } from "../../../../lib/execution-failure.js";
 import { gptExecutionFailure } from "../../execution-fault.js";
 import { gptCanonicalHash, type GptProviderObservationWaitReason } from "../../contract.js";
-import type { ProviderStoppedEmptyProof } from "../../../../lib/execution-failure.js";
+import type { ExactReadbackNegativeObservation, ProviderStoppedEmptyProof } from "../../../../lib/execution-failure.js";
 
 import { declaredFacts, numberInput, requireBrowser, requireExactInputKeys, stringInput, success, type GptChildHandler } from "../../web/child-handler.js";
 import {
@@ -113,6 +113,36 @@ const checkpointInput = (intent: Parameters<GptChildHandler<"checkpoint_gpt_text
   return { conversationUrl, userTurnId, probeBudgetMs };
 };
 
+const recordNegativeObservation = (
+  current: ExactReadbackNegativeObservation | null,
+  error: unknown,
+): ExactReadbackNegativeObservation | null => {
+  const negative = executionFailureMetadata(error)?.exactReadbackNegativeObservation;
+  if (!negative || negative.generatingRaw !== 0) return null;
+  const same = current !== null
+    && current.canonicalConversationUrl === negative.canonicalConversationUrl
+    && current.userTurnId === negative.userTurnId
+    && current.targetRefHash === negative.targetRefHash
+    && current.documentRefHash === negative.documentRefHash
+    && current.pendingCause === negative.pendingCause;
+  return Object.freeze({ ...negative,
+    firstObservedAt: same ? current.firstObservedAt : negative.observedAt,
+    observationCount: same ? current.observationCount + 1 : 1,
+  });
+};
+
+const confirmedNegativeWindow = (
+  observation: ExactReadbackNegativeObservation | null,
+): observation is ExactReadbackNegativeObservation => observation !== null
+  && observation.observationCount >= 2
+  && Date.parse(observation.observedAt) > Date.parse(observation.firstObservedAt);
+
+const requireObservationGate = (context: Parameters<GptChildHandler<"checkpoint_gpt_text_response">>[1]) => {
+  const gate = context.waitForProviderObservation;
+  if (!gate) throw executionFailure("failed", "GPT_PROVIDER_OBSERVATION_GATE_REQUIRED");
+  return gate;
+};
+
 export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_text_response"> =
   async (intent, context) => {
     const { conversationUrl, userTurnId, probeBudgetMs } = checkpointInput(intent);
@@ -121,13 +151,12 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
     let stoppedEmptyWindow: StoppedEmptyWindow | null = null;
     let exactResponseObserved = false;
     let nextWaitReason: GptProviderObservationWaitReason = "initial-observation";
+    const negativeWindow: { current: ExactReadbackNegativeObservation | null } = { current: null };
     while (Date.now() < deadline || exactResponseObserved) {
-      if (!context.waitForProviderObservation) {
-        throw executionFailure("failed", "GPT_PROVIDER_OBSERVATION_GATE_REQUIRED");
-      }
+      const waitForProviderObservation = requireObservationGate(context);
       const observationDeadline = exactResponseObserved
         ? Date.now() + GPT_STOPPED_EMPTY_CONFIRMATION_MS : deadline;
-      if (await context.waitForProviderObservation(observationDeadline, nextWaitReason) === "deadline") {
+      if (await waitForProviderObservation(observationDeadline, nextWaitReason) === "deadline") {
         if (exactResponseObserved) continue;
         break;
       }
@@ -143,6 +172,7 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
         } else {
           throw error;
         }
+        negativeWindow.current = recordNegativeObservation(negativeWindow.current, error);
       }
       exactResponseObserved = assistant !== null;
       if (assistant && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0) {
@@ -152,9 +182,16 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
         stoppedEmptyWindow = null;
         continue;
       }
+      negativeWindow.current = null;
       nextWaitReason = assistant.generatingRaw > 0
         ? "stop-present" : "stopped-empty-confirming";
       stoppedEmptyWindow = advanceObservedAssistant(assistant, stoppedEmptyWindow);
+    }
+    const lastNegative = negativeWindow.current;
+    if (confirmedNegativeWindow(lastNegative)) {
+      throw executionFailure("failed", "GPT_EXACT_READBACK_UNAVAILABLE", {
+        metadata: { exactReadbackNegativeObservation: lastNegative },
+      });
     }
     throw executionFailure("failed", "GPT_RESPONSE_TIMEOUT");
   };

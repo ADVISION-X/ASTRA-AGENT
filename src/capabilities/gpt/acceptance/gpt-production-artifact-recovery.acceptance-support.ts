@@ -5,14 +5,17 @@ import { join } from "node:path";
 
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
-import { failureCode } from "../../../lib/execution-failure.js";
+import { executionFailureMetadata, failureCode, oldTargetUnavailableFact } from
+  "../../../lib/execution-failure.js";
 import { createGptAbilityGroup } from "../index.js";
 import { isProviderEffectReadbackProofV1 } from "../production-child-support.js";
 import { gptCanonicalHash, gptExactCallIdentityHash } from "../contract.js";
 import { ProductionGptChildTools } from "../production-child-tools.js";
+import { readPersistedGptImageEvidence } from "../evidence-artifacts.js";
 import { exactAssistantTurnReply } from "./gpt-exact-target-browser-fixture.js";
 import { browserExactCallIdentityHash,
   type BrowserDomIntent } from "../../../lib/browser/browser-authority-api.js";
+import { browserExecutionFailure } from "../../../lib/browser/browser-failure.js";
 
 const hash = (value: string | Uint8Array): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -149,6 +152,8 @@ try {
     }).createExecution({  jobId,
     productId: "public_knowledge_article_pipeline",
     attemptId, resultRevision: 0, ownerRef: "owner:1", subjectRef: "subject:1",
+    readbackOnlyCalls: [{ productStepId: "research", callId: "turn-submit",
+      childCapabilityId: "submit_exact_gpt_turn_once" }],
     authorizationRef: "authorization:1", deviceId: "device:1", leaseVersion: 1,
     executionFenceHash: HASH_A, capabilityManifestHash: HASH_B,
     expiresAtMonotonic: performance.now() + 10_000, commandTtlMs: 1_000,
@@ -165,6 +170,9 @@ try {
   assert.equal(providerReadbackProof?.browser_authority_hash, submitOutcome.authorityHash);
   assert.equal(providerReadbackProof?.readback_provider_input_delta, 0,
     "a confirmed Provider effect recovery must add zero Browser input even when the original WAL input was one");
+  await assert.rejects(execution.tools.execute({ ...checkpointCall,
+    input: { ...checkpointCall.input, userTurnId: "conversation-turn-999" } }),
+  (error: unknown) => failureCode(error) === "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
   const recovered = await execution.tools.execute(checkpointCall);
   assert.equal(recovered.value.semanticText, semanticText);
   assert.equal(recovered.artifactRefs[0], persistedArtifactRef);
@@ -178,6 +186,141 @@ try {
   assert.deepEqual([checkpointBrowserReads, checkpointPageObservations], [1, 1],
     "missing checkpoint artifact must perform one first Browser observation and append it");
   assert.equal(artifactAppends, 1);
+
+  const sourceEffectIdentityHash = hash("old-provider-effect");
+  const sourceWalAuthorityHash = hash("old-provider-wal");
+  const sourcePromptHash = hash("old-prompt");
+  const newPromptHash = hash("new-revision-prompt");
+  let sourceBrowserReads = 0;
+  let sourceAcquisitions = 0;
+  const settledCheckpoints: unknown[] = [];
+  const sourceAuthority = {
+    readSourceConfirmedProviderEffect: () => {
+      sourceBrowserReads += 1;
+      return {
+        exactCallIdentityHash: submitExactCallIdentityHash, actionOrdinal: 1,
+        inputHash: submitAtomicInputHash,
+        terminalPayload: { canonicalConversationUrl: conversationUrl,
+          promptHash: sourcePromptHash, userTurnId: "conversation-turn-1",
+          exactCallIdentityHash: submitExactCallIdentityHash,
+          rawCount: 1, eligibleCount: 1 },
+        authorityRef: "browser-mutation:old-submit",
+        authorityHash: sourceWalAuthorityHash,
+        terminalAt: "2026-09-13T00:00:00.000Z",
+      };
+    },
+    acquireJobBoundTargetLease: async () => {
+      sourceAcquisitions += 1;
+      throw new Error("SOURCE_REUSE_MUST_NOT_ACQUIRE_BROWSER");
+    },
+  };
+  const riskOnlyExecution = new ProductionGptChildTools(join(temporary, "risk-call-rename"),
+    HASH_A, createGptAbilityGroup(), evidenceStore, sourceAuthority as never,
+    createRuntimeLogger({ producer: "gpt-risk-call-rename", owner: "production-runtime",
+      component: "gpt-child", terminalEnabled: false,
+      fileSink: { directoryPath: join(temporary, "risk-call-rename-logs") } }), {
+      assertProviderSubmitAllowed: () => undefined,
+      pendingIncidents: () => Object.freeze([]),
+      beginIncident: async () => { throw new Error("UNEXPECTED_PROVIDER_RATE_LIMIT"); },
+    }).createExecution({ jobId, productId: "public_knowledge_article_pipeline",
+      attemptId: "attempt:risk-call-rename", resultRevision: 1,
+      ownerRef: "owner:1", subjectRef: "subject:1", authorizationRef: "authorization:1",
+      deviceId: "device:1", leaseVersion: 2, executionFenceHash: HASH_A,
+      capabilityManifestHash: HASH_B, expiresAtMonotonic: performance.now() + 10_000,
+      commandTtlMs: 1_000, abortSignal: new AbortController().signal,
+      parentSpanId: "parent", maxProviderTurns: 1,
+      deliveryPriorityReplayCalls: [{ productStepId: "corpus_research", callId: "turn-submit",
+        childCapabilityId: "submit_exact_gpt_turn_once", sourceEffectSetHash: HASH_A,
+        callGrantHash: HASH_B }],
+    });
+  await assert.rejects(riskOnlyExecution.tools.readConfirmedSubmit({ sessionKey,
+    productStepId: "renamed-step", callId: "turn-submit",
+    child: "submit_exact_gpt_turn_once", actionOrdinal: 13,
+    input: { files: [], promptHash: newPromptHash } }),
+  (error: unknown) => failureCode(error) === "PRODUCTION_REPLAY_GRANT_SOURCE_MISMATCH");
+  await assert.rejects(riskOnlyExecution.tools.readConfirmedSubmit({ sessionKey,
+    productStepId: "corpus_research", callId: "renamed-submit",
+    child: "submit_exact_gpt_turn_once", actionOrdinal: 13,
+    input: { files: [], promptHash: newPromptHash } }),
+  (error: unknown) => failureCode(error) === "PRODUCTION_REPLAY_GRANT_SOURCE_MISMATCH");
+  await assert.rejects(riskOnlyExecution.tools.execute({ sessionKey,
+    productStepId: "renamed-step", callId: "fresh-chat", child: "prepare_clean_gpt_chat",
+    actionOrdinal: 1, input: { timeoutMs: 60_000 } }),
+  (error: unknown) => failureCode(error) === "PRODUCTION_REPLAY_GRANT_SOURCE_MISMATCH");
+  assert.deepEqual([sourceBrowserReads, sourceAcquisitions], [0, 0],
+    "a renamed call cannot bypass an unconsumed Website risk grant");
+  await riskOnlyExecution.settle(null);
+  const sourceExecution = new ProductionGptChildTools(join(temporary, "source-reuse"), HASH_A,
+    createGptAbilityGroup(), evidenceStore, sourceAuthority as never,
+    createRuntimeLogger({ producer: "gpt-artifact-source-reuse",
+      owner: "production-runtime", component: "gpt-child", terminalEnabled: false,
+      fileSink: { directoryPath: join(temporary, "source-reuse-logs") } }), {
+      assertProviderSubmitAllowed: () => undefined,
+      pendingIncidents: () => Object.freeze([]),
+      beginIncident: async () => { throw new Error("UNEXPECTED_PROVIDER_RATE_LIMIT"); },
+    }).createExecution({ jobId, productId: "public_knowledge_article_pipeline",
+      attemptId: "attempt:new-revision", resultRevision: 1,
+      ownerRef: "owner:1", subjectRef: "subject:1",
+      authorizationRef: "authorization:1", deviceId: "device:1", leaseVersion: 2,
+      executionFenceHash: HASH_A, capabilityManifestHash: HASH_B,
+      expiresAtMonotonic: performance.now() + 10_000, commandTtlMs: 1_000,
+      abortSignal: new AbortController().signal, parentSpanId: "parent", maxProviderTurns: 1,
+      deliveryPriorityReplayCalls: [{ productStepId: "other-step", callId: "other-submit",
+        childCapabilityId: "submit_exact_gpt_turn_once", sourceEffectSetHash: HASH_A,
+        callGrantHash: HASH_B }],
+      sourceReusableCalls: [{ productStepId: "research", callId: "turn-submit",
+        childCapabilityId: "submit_exact_gpt_turn_once", sourceEffectSetHash: HASH_A,
+        sourceAttemptId: attemptId, sourceResultRevision: 0,
+        effectIdentityHash: sourceEffectIdentityHash, walAuthorityHash: sourceWalAuthorityHash,
+        checkpointExactCallIdentityHash, artifactRef: persistedArtifactRef,
+        artifactContentHash: hash(new TextEncoder().encode(persistedContent)),
+        submitPromptHash: sourcePromptHash, canonicalConversationHash: hash(conversationUrl),
+        userTurnHash: hash("conversation-turn-1") }],
+      recordSettledCheckpoint: (checkpoint) => { settledCheckpoints.push(checkpoint); },
+    });
+  const oldSubmit = await sourceExecution.tools.readConfirmedSubmit({ sessionKey,
+    productStepId: "research", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
+    actionOrdinal: 1, input: { files: [], promptHash: newPromptHash } });
+  assert.equal(oldSubmit?.value.promptHash, sourcePromptHash,
+    "a new revision must reuse the old confirmed Provider effect despite prompt drift");
+  const oldCheckpoint = await sourceExecution.tools.execute(checkpointCall);
+  assert.equal(oldCheckpoint.value.semanticText, semanticText);
+  assert.equal(oldCheckpoint.artifactRefs[0], persistedArtifactRef);
+  assert.deepEqual([sourceBrowserReads, sourceAcquisitions, settledCheckpoints.length], [1, 0, 1],
+    "settled source reuse must read original WAL and Forensics with zero Browser acquisition");
+  await sourceExecution.settle(null);
+
+  const unavailable = new Error("BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE") as Error & {
+    oldTargetUnavailableFact?: Readonly<{ jobRefHash: `sha256:${string}`;
+      targetRefHash: `sha256:${string}`; proofHash: `sha256:${string}` }>;
+  };
+  unavailable.oldTargetUnavailableFact = { jobRefHash: hash(jobId),
+    targetRefHash: hash("target:recovery"), proofHash: hash("old-instance-unavailable") };
+  const unavailableExecution = new ProductionGptChildTools(join(temporary, "unavailable-readback"), HASH_A,
+    createGptAbilityGroup(), evidenceStore, {
+      ...authority, acquireJobBoundTargetLease: async () => { throw browserExecutionFailure(unavailable); },
+    } as never,
+    createRuntimeLogger({ producer: "gpt-artifact-unavailable-readback",
+      owner: "production-runtime", component: "gpt-child", terminalEnabled: false,
+      fileSink: { directoryPath: join(temporary, "unavailable-readback-logs") } }), {
+      assertProviderSubmitAllowed: () => undefined,
+      pendingIncidents: () => Object.freeze([]),
+      beginIncident: async () => { throw new Error("UNEXPECTED_PROVIDER_RATE_LIMIT"); },
+    }).createExecution({ jobId, productId: "public_knowledge_article_pipeline",
+      attemptId, resultRevision: 0, ownerRef: "owner:1", subjectRef: "subject:1",
+      authorizationRef: "authorization:1", deviceId: "device:1", leaseVersion: 1,
+      executionFenceHash: HASH_A, capabilityManifestHash: HASH_B,
+      expiresAtMonotonic: performance.now() + 10_000, commandTtlMs: 1_000,
+      abortSignal: new AbortController().signal, parentSpanId: "parent", maxProviderTurns: 1 });
+  await assert.rejects(unavailableExecution.tools.readConfirmedSubmit({ sessionKey,
+    productStepId: "research", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
+    actionOrdinal: 1, input: submitInput }), (error: unknown) => {
+    assert.equal(failureCode(error), "BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE");
+    assert.equal(executionFailureMetadata(error)?.browserEffect?.providerEffectIdentityHash, HASH_A);
+    assert.equal(oldTargetUnavailableFact(error)?.proofHash, unavailable.oldTargetUnavailableFact?.proofHash);
+    return true;
+  });
+
   corruptArtifacts.add(persistedArtifactKey);
   await assert.rejects(execution.tools.execute(checkpointCall), (error: unknown) =>
     failureCode(error) === "EVIDENCE_ARTIFACT_READBACK_FAILED");
@@ -192,7 +335,7 @@ try {
   const imageExactCallIdentityHash = gptExactCallIdentityHash({ jobId, attemptId,
     resultRevision: 0, productStepId: imageCall.productStepId, callId: imageCall.callId,
     childCapabilityId: imageCall.child, inputHash: gptCanonicalHash(imageCall.input) });
-  const realExecution = new ProductionGptChildTools(join(temporary, "real-execution"), HASH_A,
+  const realTools = new ProductionGptChildTools(join(temporary, "real-execution"), HASH_A,
     createGptAbilityGroup(), evidenceStore, authority as never,
     createRuntimeLogger({ producer: "gpt-artifact-recovery-real-store",
       owner: "production-runtime", component: "gpt-child", terminalEnabled: false,
@@ -200,7 +343,8 @@ try {
       assertProviderSubmitAllowed: () => undefined,
       pendingIncidents: () => Object.freeze([]),
       beginIncident: async () => { throw new Error("UNEXPECTED_PROVIDER_RATE_LIMIT"); },
-    }).createExecution({  jobId,
+    });
+  const realExecution = realTools.createExecution({  jobId,
     productId: "public_knowledge_article_pipeline",
     attemptId, resultRevision: 0, ownerRef: "owner:1", subjectRef: "subject:1",
     authorizationRef: "authorization:1", deviceId: "device:1", leaseVersion: 1,
@@ -225,8 +369,77 @@ try {
     assert.equal(imageReadback.artifact.mimeType, "image/png");
     assert.deepEqual(imageReadback.artifact.content, imageBytes);
   }
-  assert.equal(artifactAppends, 2,
-    "the image checkpoint must append exactly its one original artifact through the evidence port");
+  const imageEvidence = await readPersistedGptImageEvidence({
+    evidenceStore, jobId, attemptId, exactCallIdentityHash: imageExactCallIdentityHash,
+  });
+  assert.equal(imageEvidence?.originalArtifactRef, image.artifactRefs[0]);
+  assert.equal(imageEvidence?.binding.originalSha256, imageHash);
+  const bindingKey = `gpt-call-artifact:v1:${imageExactCallIdentityHash}:source-binding`;
+  const savedBinding = artifacts.get(bindingKey);
+  assert.ok(savedBinding);
+  artifacts.delete(bindingKey);
+  assert.equal(await readPersistedGptImageEvidence({ evidenceStore, jobId, attemptId,
+    exactCallIdentityHash: imageExactCallIdentityHash }), null,
+  "an original image without its identity binding cannot be a settled source");
+  await assert.rejects(realTools.verifySourceCheckpointArtifact({
+    jobId, sourceAttemptId: attemptId,
+    checkpointExactCallIdentityHash: imageExactCallIdentityHash,
+    artifactRef: imageEvidence!.artifactRef, artifactContentHash: imageEvidence!.integrityHash,
+  }), (error: unknown) => failureCode(error) === "PRODUCTION_SOURCE_CHECKPOINT_ARTIFACT_UNAVAILABLE");
+  artifacts.set(bindingKey, savedBinding);
+  assert.equal(artifactAppends, 3,
+    "the image checkpoint must bind the original bytes with one internal identity artifact");
+  const imageSourceExecution = new ProductionGptChildTools(join(temporary, "image-source-reuse"),
+    HASH_A, createGptAbilityGroup(), evidenceStore, sourceAuthority as never,
+    createRuntimeLogger({ producer: "gpt-image-source-reuse", owner: "production-runtime",
+      component: "gpt-child", terminalEnabled: false,
+      fileSink: { directoryPath: join(temporary, "image-source-logs") } }), {
+      assertProviderSubmitAllowed: () => undefined,
+      pendingIncidents: () => Object.freeze([]),
+      beginIncident: async () => { throw new Error("UNEXPECTED_PROVIDER_RATE_LIMIT"); },
+    }).createExecution({ jobId, productId: "public_knowledge_article_pipeline",
+      attemptId: "attempt:image-source-revision", resultRevision: 1,
+      ownerRef: "owner:1", subjectRef: "subject:1", authorizationRef: "authorization:1",
+      deviceId: "device:1", leaseVersion: 2, executionFenceHash: HASH_A,
+      capabilityManifestHash: HASH_B, expiresAtMonotonic: performance.now() + 10_000,
+      commandTtlMs: 1_000, abortSignal: new AbortController().signal,
+      parentSpanId: "parent", maxProviderTurns: 1, sourceReuseZeroSubmitGrant: true,
+      deliveryPriorityReplayCalls: [],
+      sourceReusableCalls: [{ productStepId: "research", callId: "turn-submit",
+        childCapabilityId: "submit_exact_gpt_turn_once", sourceEffectSetHash: HASH_A,
+        sourceAttemptId: attemptId, sourceResultRevision: 0,
+        effectIdentityHash: sourceEffectIdentityHash, walAuthorityHash: sourceWalAuthorityHash,
+        checkpointExactCallIdentityHash: imageExactCallIdentityHash,
+        artifactRef: imageEvidence!.artifactRef, artifactContentHash: imageEvidence!.integrityHash,
+        submitPromptHash: sourcePromptHash, canonicalConversationHash: hash(conversationUrl),
+        userTurnHash: hash("conversation-turn-1") }],
+      recordSettledCheckpoint: (checkpoint) => { settledCheckpoints.push(checkpoint); },
+    });
+  await assert.rejects(imageSourceExecution.tools.readConfirmedSubmit({ sessionKey,
+    productStepId: "renamed-step", callId: "turn-submit",
+    child: "submit_exact_gpt_turn_once", actionOrdinal: 1,
+    input: { files: [], promptHash: newPromptHash } }),
+  (error: unknown) => failureCode(error) === "PRODUCTION_SOURCE_REUSE_IDENTITY_MISMATCH");
+  await assert.rejects(imageSourceExecution.tools.readConfirmedSubmit({ sessionKey,
+    productStepId: "research", callId: "renamed-submit",
+    child: "submit_exact_gpt_turn_once", actionOrdinal: 1,
+    input: { files: [], promptHash: newPromptHash } }),
+  (error: unknown) => failureCode(error) === "PRODUCTION_SOURCE_REUSE_IDENTITY_MISMATCH");
+  await assert.rejects(imageSourceExecution.tools.execute({ ...imageCall,
+    productStepId: "renamed-step" }),
+  (error: unknown) => failureCode(error) === "PRODUCTION_SOURCE_REUSE_IDENTITY_MISMATCH");
+  assert.deepEqual([sourceBrowserReads, sourceAcquisitions], [1, 0],
+    "a zero-submit grant must reject renamed calls before Browser Target or Provider input");
+  const imageSourceSubmit = await imageSourceExecution.tools.readConfirmedSubmit({ sessionKey,
+    productStepId: "research", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
+    actionOrdinal: 1, input: { files: [], promptHash: newPromptHash } });
+  assert.equal(imageSourceSubmit?.value.promptHash, sourcePromptHash);
+  const reusedImage = await imageSourceExecution.tools.execute(imageCall);
+  assert.deepEqual(reusedImage.value.originalBytes, imageBytes);
+  assert.equal(reusedImage.artifactRefs[0], image.artifactRefs[0]);
+  assert.deepEqual([sourceBrowserReads, sourceAcquisitions, settledCheckpoints.length], [2, 0, 2],
+    "article image source reuse must return original media with zero Provider input or Target acquisition");
+  await imageSourceExecution.settle(null);
   await realExecution.settle(null);
 } finally {
   await rm(temporary, { recursive: true, force: true });

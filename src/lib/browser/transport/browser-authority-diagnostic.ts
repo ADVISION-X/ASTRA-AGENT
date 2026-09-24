@@ -3,6 +3,7 @@ import { isBrowserCapabilityId } from "../protocol/generated/browser-protocol.ge
 const ALLOWED_KEYS = new Set([
   "reasonCode", "failedFrameKind", "failedFrameSequence", "diagnosticSource", "runtimeEventType",
   "commandStage", "commandKind", "commandIntentKind", "capabilityId", "targetRef", "nativeCauseCode",
+  "jobRefHash",
   "encodedByteLength",
 ]);
 const FRAME_KINDS = new Set([
@@ -85,5 +86,12 @@ export const parseBrowserAuthorityDiagnostic = (
     if (value !== null) refs[name] = value;
   }
   addCapabilityAndTargetRefs(body, refs);
+  if (body.jobRefHash !== undefined) {
+    if (typeof body.jobRefHash !== "string"
+      || !/^sha256:[a-f0-9]{64}$/u.test(body.jobRefHash)) {
+      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    }
+    refs.jobRefHash = body.jobRefHash;
+  }
   return Object.freeze({ reasonCode, refs: Object.freeze(refs) });
 };

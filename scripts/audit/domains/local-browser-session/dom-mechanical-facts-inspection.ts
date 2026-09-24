@@ -11,6 +11,8 @@ const MUTATION_RECEIPT_PATH = "src/lib/browser/exact-target/browser-mutation-rec
 const COHERENT_CANDIDATE_PATH = "src/lib/browser/chrome-extension/dom-coherent-candidate.ts";
 const COHERENT_CANDIDATE_READBACK_PATH = "src/lib/browser/chrome-extension/dom-coherent-candidate-readback.ts";
 const EXACT_ASSISTANT_TURN_PATH = "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts";
+const SEMANTIC_TEXT_PATH = "src/lib/browser/chrome-extension/dom-semantic-text.ts";
+const NATIVE_CAUSE_PATH = "src/lib/browser/exact-target/browser-interaction-native-cause.ts";
 
 const finding = (
   findings: InspectorFinding[],
@@ -172,6 +174,7 @@ const inspectExactEditableProjection = (
 
 const inspectExactGptUserPromptProjection = (
   observationText: string,
+  semanticText: string,
   contractText: string,
   candidateText: string,
   findings: InspectorFinding[],
@@ -181,8 +184,16 @@ const inspectExactGptUserPromptProjection = (
     "GPT_TURN_TEST_ID", "GPT_USER_PROMPT_CONTENT_SELECTOR", "exactGptUserPromptText",
     "userRoots.length === 0", "userRoots.length !== 1", "promptNodes.length > 1",
     'field === "exactGptUserPromptHash"', "sha256(exactGptUserPromptText(node))",
+    'const GPT_SHORT_USER_PROMPT_CONTENT_SELECTOR = ".whitespace-pre-wrap"',
+    "if (promptNodes.length === 1) return browserCanonicalGptUserPromptText(promptNodes[0])",
+    "shortPromptNodes.length === 0", "shortPromptNodes.length !== 1",
+    "child.nodeType !== 1",
   ], findings, lawId, domCoherentObservationPath,
   "The exact GPT user Prompt hash projection is missing");
+  requireTokens(semanticText, ['return exactValue.split("\\\\u00a0").join(" ")',
+    "browserCanonicalGptUserPromptText", "browserSemanticNode(child, node, false, true)"],
+  findings, lawId, SEMANTIC_TEXT_PATH,
+  "The canonical GPT Prompt projection must change only the U+00A0 code point");
   requireTokens(contractText, ["exactGptUserPromptHash"], findings, lawId, INTENT_CONTRACT_PATH,
     "The bounded Browser observation field set is missing");
   requireTokens(candidateText, [
@@ -214,8 +225,7 @@ const inspectMechanicalContract = (
   INTENT_CONTRACT_PATH, "The bounded Browser DOM contract is missing");
   requireTokens(exactAssistantTurnText, ["executeExactAssistantTurnRead", "rawDomHtml", "rawDomHash",
     "semanticText", "semanticTextHash", "assistantTurnId", "exact-user-turn-unavailable",
-    "adjacent-assistant-missing", "BROWSER_EXACT_USER_TURN_UNAVAILABLE",
-    "BROWSER_ADJACENT_ASSISTANT_TURN_MISSING"], findings, lawId,
+    "adjacent-assistant-missing", "pendingCause"], findings, lawId,
   EXACT_ASSISTANT_TURN_PATH, "The exact assistant-turn reply-only channel is missing");
   if (exactAssistantTurnText.includes(".slice(0, 1024)") || queryText.includes("value.slice(0, maxChars)")
     || contractText.includes("intent.maxChars > 65536")) finding(findings, lawId, domCoherentObservationPath,
@@ -251,7 +261,9 @@ export const exactAssistantTurnReadIsAtomic = (source: import("ts-morph").Source
     (observe.match(/!== expectedMainFrameLoaderId/gu) ?? []).length === 2,
   ];
   return required.every((token) => exactFunction.includes(token))
-    && ["BROWSER_EXACT_USER_TURN_UNAVAILABLE", "BROWSER_ADJACENT_ASSISTANT_TURN_MISSING"]
+    && ['if (observed.pendingCause === "exact-user-turn-unavailable"',
+      'pendingCause !== "adjacent-assistant-missing"',
+      'pendingCause: observed.pendingCause']
       .every((token) => text.includes(token))
     && forbidden.every((token) => !text.includes(token))
     && exactCounts.every(Boolean)
@@ -259,18 +271,33 @@ export const exactAssistantTurnReadIsAtomic = (source: import("ts-morph").Source
 };
 
 const inspectPostconditionEvidence = (
-  runtimeText: string,
-  receiptText: string,
+  input: Readonly<{ postconditionText: string; receiptText: string;
+    nativeCauseText: string; runtimeText: string; fileInputText: string }>,
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
-  requireTokens(runtimeText, ["postconditionRawCount", "postconditionEligibleCount",
+  requireTokens(input.postconditionText, ["postconditionRawCount", "postconditionEligibleCount",
     "postconditionRejections", "nativeCauseCode", "match.readEligibility"], findings, lawId,
   INTENT_RUNTIME_PATH, "The bounded postcondition readback receipt is missing");
-  requireTokens(receiptText, ["postconditionEvidenceValid", "postconditionRawCount",
+  requireTokens(input.receiptText, ["postconditionEvidenceValid", "postconditionRawCount",
     "postconditionEligibleCount", "postconditionRejections", "POSTCONDITION_REJECTION_REASONS",
     '"ARIA_HIDDEN"'], findings, lawId, MUTATION_RECEIPT_PATH,
   "The Browser mutation receipt is not validating exact postcondition rejection evidence");
+  requireTokens(input.postconditionText, ["queries.findIndex((query, index) =>",
+    "browserPostconditionNativeCause(evidenceIndex", "mismatch!.eligibleCount > expected!"],
+  findings, lawId, domMutationPostconditionPath,
+  "The first failed postcondition query must produce its indexed native cause");
+  requireTokens(input.nativeCauseText, ["BROWSER_POSTCONDITION_QUERY_INDEX_MAX = 19",
+    "BROWSER_POSTCONDITION_NATIVE_CAUSES", "browserPostconditionNativeCauseValid"],
+  findings, lawId, NATIVE_CAUSE_PATH, "Indexed postcondition causes must stay in the closed set");
+  requireTokens(input.receiptText, ["browserPostconditionNativeCauseValid(value.nativeCauseCode)",
+    "value.nativeCauseCode === postconditionFailureCause(value, expected!)"],
+  findings, lawId, MUTATION_RECEIPT_PATH,
+  "The Browser receipt must reject a forged indexed native cause");
+  requireTokens(`${input.runtimeText}\n${input.postconditionText}\n${input.fileInputText}`, [
+    "readWithTransientDomConfirmation", "currentGptPageIdentity",
+  ], findings, lawId, domMutationPostconditionPath,
+  "The Browser mechanical DOM confirmation must use one shared staged driver with URL continuity");
 };
 
 export const inspectDomMechanicalFacts = (
@@ -281,13 +308,13 @@ export const inspectDomMechanicalFacts = (
   const sources = [domMechanicalFactsPath, domExactEditableTextPath, QUERY_RUNTIME_PATH, INTENT_RUNTIME_PATH,
     domMutationPostconditionPath, domCoherentObservationPath, INTENT_CONTRACT_PATH, COHERENT_CANDIDATE_PATH,
     COHERENT_CANDIDATE_READBACK_PATH, EXACT_ASSISTANT_TURN_PATH, MUTATION_RECEIPT_PATH,
-    extensionFileInputPath]
+    extensionFileInputPath, SEMANTIC_TEXT_PATH, NATIVE_CAUSE_PATH]
     .map((path) => requireSource(context, findings, lawId, path));
   if (!sources.every((source): source is SourceFile => source !== null)) return;
   const [facts, exactEditable, query, runtime, postcondition, observation, contract, candidate,
-    candidateReadback, exactAssistantTurn, mutationReceipt, fileInput] = sources as [
+    candidateReadback, exactAssistantTurn, mutationReceipt, fileInput, semanticText, nativeCause] = sources as [
       SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile,
-      SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile,
+      SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile,
     ];
 
   const readerInitializer = facts.getVariableDeclaration("BROWSER_MECHANICAL_FACTS_READER_SOURCE")?.getInitializer();
@@ -316,19 +343,23 @@ export const inspectDomMechanicalFacts = (
   ], findings, lawId, COHERENT_CANDIDATE_PATH,
   "The frozen Provider approved duplicate-suffix attachment identity rule is missing");
   inspectExactGptUserPromptProjection(
-    observation.getFullText(), contract.getFullText(), candidateText, findings, lawId,
+    observation.getFullText(), semanticText.getFullText(), contract.getFullText(), candidateText, findings, lawId,
   );
+  requireTokens(observation.getFullText(), [
+    'spec.textEquals !== undefined && (node.textContent || "").trim() !== spec.textEquals.trim()',
+  ], findings, lawId, domCoherentObservationPath,
+  "Exact-text Browser observations must use equality rather than substring matching");
+  requireTokens(queryText, ["text.exact ? actual.trim() === text.value.trim() : actual.includes(text.value)"],
+    findings, lawId, QUERY_RUNTIME_PATH, "The direct Browser text query must preserve exact matching");
   inspectCoherentPointerAction(candidateText, queryText, findings, lawId);
   inspectAtomicObservationPointer(
     candidateText, runtime.getFullText(), findings, lawId,
   );
   const runtimeText = `${runtime.getFullText()}\n${observation.getFullText()}\n${candidateText}`;
   inspectCoherentRuntime(runtimeText, findings, lawId);
-  inspectPostconditionEvidence(postcondition.getFullText(), mutationReceipt.getFullText(), findings, lawId);
-  requireTokens(`${runtime.getFullText()}\n${postcondition.getFullText()}\n${fileInput.getFullText()}`, [
-    "readWithTransientDomConfirmation", "currentGptPageIdentity",
-  ], findings, lawId, domMutationPostconditionPath,
-  "The Browser mechanical DOM confirmation must use one shared staged driver with URL continuity");
+  inspectPostconditionEvidence({ postconditionText: postcondition.getFullText(),
+    receiptText: mutationReceipt.getFullText(), nativeCauseText: nativeCause.getFullText(),
+    runtimeText: runtime.getFullText(), fileInputText: fileInput.getFullText() }, findings, lawId);
   const contractText = contract.getFullText();
   inspectMechanicalContract(
     contractText,

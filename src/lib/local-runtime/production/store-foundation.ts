@@ -335,79 +335,6 @@ const exactTableShape = (database: Database.Database, table: keyof typeof tableS
     && JSON.stringify(foreignKeys) === JSON.stringify(expectedForeignKeys[table]);
 };
 
-const previousHandoffSql = `create table production_attempt_handoffs(
-    job_id text not null, source_attempt_id text not null,
-    issued_attempt_id text, seal_hash text not null,
-    source_manifest_json text not null, first_fact_raw text,
-    sealed_at text not null, accepted_at text,
-    primary key(job_id,source_attempt_id)
-  )`;
-
-const exactPreviousHandoffShape = (database: Database.Database): boolean => {
-  const declared = database.prepare(`select sql from sqlite_master
-    where type='table' and name='production_attempt_handoffs'`).get() as { sql: string } | undefined;
-  if (!declared || canonicalSql(declared.sql) !== canonicalSql(previousHandoffSql)) return false;
-  const columns = database.prepare("pragma table_info(production_attempt_handoffs)").all() as Array<{
-    name: string; type: string; notnull: number; pk: number; dflt_value: unknown;
-  }>;
-  if (columns.some((column) => column.dflt_value !== null)
-    || JSON.stringify(columns.map((column) =>
-      `${column.name}:${column.type}:${column.notnull}:${column.pk}`)) !== JSON.stringify([
-      "job_id:TEXT:1:1", "source_attempt_id:TEXT:1:2", "issued_attempt_id:TEXT:0:0",
-      "seal_hash:TEXT:1:0", "source_manifest_json:TEXT:1:0", "first_fact_raw:TEXT:0:0",
-      "sealed_at:TEXT:1:0", "accepted_at:TEXT:0:0",
-    ])) return false;
-  const indexes = database.prepare("pragma index_list(production_attempt_handoffs)").all() as Array<{
-    name: string; unique: number; origin: string; partial: number;
-  }>;
-  const foreignKeys = database.prepare("pragma foreign_key_list(production_attempt_handoffs)").all();
-  return indexes.length === 1 && indexes[0]?.unique === 1 && indexes[0]?.origin === "pk"
-    && indexes[0]?.partial === 0
-    && JSON.stringify((database.prepare(`pragma index_info("${indexes[0].name.replaceAll('"', '""')}")`)
-      .all() as Array<{ name: string }>).map((column) => column.name))
-      === JSON.stringify(["job_id", "source_attempt_id"])
-    && foreignKeys.length === 0;
-};
-
-const migratePreviousHandoffs = (database: Database.Database): void => {
-  const before = database.prepare(`select job_id,source_attempt_id,issued_attempt_id,seal_hash,
-    source_manifest_json,first_fact_raw,sealed_at,accepted_at
-    from production_attempt_handoffs order by job_id,source_attempt_id`).all() as Array<{
-      job_id: string; source_attempt_id: string; issued_attempt_id: string | null;
-      seal_hash: string; source_manifest_json: string; first_fact_raw: string | null;
-      sealed_at: string; accepted_at: string | null;
-    }>;
-  for (const row of before) {
-    const manifest = JSON.parse(row.source_manifest_json) as { seal_hash?: string };
-    if (manifest.seal_hash !== row.seal_hash
-      || !/^sha256:[a-f0-9]{64}$/u.test(row.seal_hash)
-      || row.first_fact_raw !== null && !JSON.parse(row.first_fact_raw)) {
-      throw executionFailure("failed", "PRODUCTION_SCHEMA_MIGRATION_REQUIRED");
-    }
-  }
-  database.transaction(() => {
-    database.exec("alter table production_attempt_handoffs rename to production_attempt_handoffs_previous");
-    database.exec(productionSchemaSql.split(/;\s*(?=create table)/gu)
-      .find((statement) => statement.trim().startsWith("create table production_attempt_handoffs"))!);
-    database.exec(`insert into production_attempt_handoffs(
-      job_id,source_attempt_id,issued_attempt_id,seal_hash,source_manifest_json,
-      first_fact_raw,sealed_at,accepted_at,readback_observations_json)
-      select job_id,source_attempt_id,issued_attempt_id,seal_hash,source_manifest_json,
-        first_fact_raw,sealed_at,accepted_at,'[]'
-      from production_attempt_handoffs_previous`);
-    database.exec("drop table production_attempt_handoffs_previous");
-    const after = database.prepare(`select job_id,source_attempt_id,issued_attempt_id,seal_hash,
-      source_manifest_json,first_fact_raw,sealed_at,accepted_at
-      from production_attempt_handoffs order by job_id,source_attempt_id`).all();
-    if (!exactTableShape(database, "production_attempt_handoffs")
-      || JSON.stringify(before) !== JSON.stringify(after)
-      || (database.prepare(`select count(*) as count from production_attempt_handoffs
-        where readback_observations_json!='[]'`).get() as { count: number }).count !== 0) {
-      throw executionFailure("failed", "PRODUCTION_SCHEMA_MIGRATION_REQUIRED");
-    }
-  })();
-};
-
 const currentSchemaPresent = (database: Database.Database): boolean =>
   (Object.keys(tableShapes) as Array<keyof typeof tableShapes>).every((table) => exactTableShape(database, table))
   && String(database.pragma("integrity_check", { simple: true })).toLowerCase() === "ok"
@@ -448,24 +375,6 @@ const initializeOrAssertCurrentSchema = (database: Database.Database): void => {
     return;
   }
   const expectedTables = executionTables.filter((table) => table !== "production_steps").sort();
-  const oldTables = ["production_outbox", "production_tasks"];
-  if (JSON.stringify(productionTables) === JSON.stringify(oldTables)
-    && exactTableShape(database, "production_outbox")
-    && exactTableShape(database, "production_tasks")
-    && String(database.pragma("integrity_check", { simple: true })).toLowerCase() === "ok") {
-    database.exec(productionSchemaSql.split(/;\s*(?=create table)/gu)
-      .find((statement) => statement.trim().startsWith("create table production_attempt_handoffs"))!);
-    productionTables.push("production_attempt_handoffs");
-    productionTables.sort();
-  }
-  if (JSON.stringify(productionTables) === JSON.stringify(expectedTables)
-    && exactTableShape(database, "production_outbox")
-    && exactTableShape(database, "production_tasks")
-    && exactPreviousHandoffShape(database)
-    && String(database.pragma("integrity_check", { simple: true })).toLowerCase() === "ok"
-    && (database.pragma("foreign_key_check") as unknown[]).length === 0) {
-    migratePreviousHandoffs(database);
-  }
   if (String(database.pragma("journal_mode", { simple: true })).toLowerCase() !== "wal"
     || !currentSchemaPresent(database)
     || JSON.stringify(productionTables) !== JSON.stringify(expectedTables)) {

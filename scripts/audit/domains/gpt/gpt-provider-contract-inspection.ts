@@ -134,17 +134,45 @@ type ProviderWaitSources = Readonly<{
   artifacts: string;
 }>;
 
+const textObservationGateValid = (context: InspectorContext): boolean => {
+  const textSource = context.project.getSourceFile(resolve(context.sealedRoot, TEXT_HANDLER));
+  const textLoop = textSource?.getDescendantsOfKind(SyntaxKind.WhileStatement)
+    .find((loop) => loop.getText().includes("readExactAssistantTurn(browser"))?.getText() ?? "";
+  const helper = textSource?.getVariableDeclaration("requireObservationGate")?.getInitializer()?.getText() ?? "";
+  const textGateBinding = textLoop.indexOf("const waitForProviderObservation = requireObservationGate(context);");
+  const textGate = textLoop.indexOf("if (await waitForProviderObservation(");
+  const textDeadline = textLoop.indexOf(') === "deadline") {', textGate);
+  const textBreak = textLoop.indexOf("break;", textDeadline);
+  const textObservation = textLoop.indexOf("readExactAssistantTurn(browser");
+  return helper.includes("const gate = context.waitForProviderObservation;")
+    && helper.includes('if (!gate) throw executionFailure("failed", "GPT_PROVIDER_OBSERVATION_GATE_REQUIRED");')
+    && helper.includes("return gate;") && textGateBinding >= 0 && textGate > textGateBinding
+    && textDeadline > textGate && textBreak > textDeadline && textObservation > textBreak;
+};
+
+const imageObservationGateValid = (context: InspectorContext): boolean => {
+  const imageSource = context.project.getSourceFile(resolve(context.sealedRoot, IMAGE_HANDLER));
+  const imageLoop = imageSource?.getDescendantsOfKind(SyntaxKind.ForStatement)
+    .find((loop) => loop.getText().includes("browser.readAuthenticatedMedia("))?.getText() ?? "";
+  const imageGate = imageLoop.indexOf("if (await context.waitForProviderObservation(");
+  const imageDeadline = imageLoop.indexOf(') === "deadline") {', imageGate);
+  const imageTimeout = imageLoop.indexOf('throw executionFailure("failed", "GPT_IMAGE_TIMEOUT")', imageDeadline);
+  const imageObservation = imageLoop.indexOf("browser.readAuthenticatedMedia(");
+  return imageGate >= 0 && imageDeadline > imageGate && imageTimeout > imageDeadline
+    && imageObservation > imageTimeout;
+};
+
 const inspectProviderObservationOrder = (
-  sources: ProviderWaitSources, findings: InspectorFinding[], finding: FindingFactory,
+  context: InspectorContext, sources: ProviderWaitSources,
+  findings: InspectorFinding[], finding: FindingFactory,
 ): void => {
-  const textGate = sources.textHandler.indexOf("await context.waitForProviderObservation(");
-  const textObservation = sources.textHandler.indexOf("readExactAssistantTurn(browser");
-  const imageGate = sources.imageHandler.indexOf("await context.waitForProviderObservation(");
-  const imageObservation = sources.imageHandler.indexOf("browser.readAuthenticatedMedia(");
-  if (textGate < 0 || textObservation < 0 || textGate > textObservation
-    || imageGate < 0 || imageObservation < 0 || imageGate > imageObservation) findings.push(finding(
-    "gpt/provider-observation-gate-first", ROOT,
-    "The first and subsequent text or image observations must enter the global Browser gate first.",
+  if (!textObservationGateValid(context)) findings.push(finding(
+    "gpt/provider-observation-gate-first", TEXT_HANDLER,
+    "The text response observation must enter the global Browser gate first.",
+  ));
+  if (!imageObservationGateValid(context)) findings.push(finding(
+    "gpt/provider-observation-gate-first", IMAGE_HANDLER,
+    "The image observation must enter the global Browser gate first.",
   ));
   const recoveryCall = sources.tools.indexOf("recoverPersistedTextCheckpoint(");
   const browserObservation = sources.tools.indexOf("runProductionAtomicPhase(");
@@ -288,7 +316,7 @@ export const inspectProviderWaitContract = (
     "readAuthenticatedMedia", "waitForProviderObservation", 'mutationOutcome: "no"', "browserFact: null",
     'throw executionFailure("failed", "GPT_IMAGE_TIMEOUT")',
   ], findings, finding);
-  inspectProviderObservationOrder(sources, findings, finding);
+  inspectProviderObservationOrder(context, sources, findings, finding);
   requireTokens(sources.responseState, RESPONSE_STATE, [
     "readExactAssistantTurn", "userTurnId", "precedingUserTurnId",
   ], findings, finding);

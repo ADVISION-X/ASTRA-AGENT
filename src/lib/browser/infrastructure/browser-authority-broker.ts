@@ -364,8 +364,13 @@ export class BrowserAuthorityBroker {
     this.operatorTargetClaim = claim;
   }
 
-  public revokeOperatorTargetClaim(targetRef?: string): void {
-    if (targetRef === undefined || this.operatorTargetClaim?.targetRef === targetRef) {
+  public revokeOperatorTargetClaim(identity?: Readonly<{
+    targetRef: string; jobRefHash: BrowserHash; documentRef?: string;
+  }>): void {
+    if (identity === undefined || this.operatorTargetClaim?.targetRef === identity.targetRef
+      && this.operatorTargetClaim.jobRefHash === identity.jobRefHash
+      && (identity.documentRef === undefined
+        || this.operatorTargetClaim.documentRef === identity.documentRef)) {
       this.operatorTargetClaim = null;
     }
   }

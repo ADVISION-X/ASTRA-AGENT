@@ -7,9 +7,9 @@ import type { InspectorContext, InspectorEvaluation, SessionInspectorOutput } fr
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs,
   validateStaticInspection } from "../../shared/static-inspection-contract.js";
 
-const LAWS = ["LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V6",
-  "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V6",
-  "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V5"] as const;
+const LAWS = ["LAW-FORENSICS-PERSISTENCE-CAPABILITY-001-V7",
+  "LAW-FORENSICS-PERSISTENCE-CAPABILITY-002-V7",
+  "LAW-FORENSICS-PERSISTENCE-CAPABILITY-003-V6"] as const;
 const REQUIRED = [
   "src/capabilities/forensics-persistence/contract.ts",
   "src/capabilities/forensics-persistence/ability-group.ts",

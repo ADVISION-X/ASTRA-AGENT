@@ -67,7 +67,7 @@ const createSessionFetch = (
   if (url.endsWith("/internal/ai-production/v6/sessions/open")) return successfulJsonResponse({
     session: {
       device_id: "device:atomic-claim", worker_session_id: "worker-session:atomic-claim",
-      worker_session_epoch: 1, control_contract_version: 42,
+      worker_session_epoch: 1, control_contract_version: 43, attestation_seq: 0,
     },
     session_credential: credentialFor(1),
   });
@@ -224,6 +224,66 @@ export const exerciseWorkerSessionRotation = async (): Promise<void> => {
       /V6_CLAIM_RECEIPT_MISMATCH/u,
       "a receipt for a different canonical claim request must fail closed",
     );
+  } finally {
+    Date.now = originalDateNow;
+    globalThis.fetch = originalFetch;
+  }
+};
+
+export const exerciseHeartbeatResponseLossRecovery = async (): Promise<void> => {
+  const originalFetch = globalThis.fetch;
+  const originalDateNow = Date.now;
+  Date.now = () => Date.parse("2026-09-03T00:00:00.000Z");
+  let opens = 0;
+  let serverSequence = 0;
+  let serverGeneration = 1;
+  let loseFirstHeartbeatResponse = true;
+  globalThis.fetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+    const url = String(input);
+    if (url.endsWith("/sessions/open")) {
+      opens += 1;
+      return successfulJsonResponse({
+        session: { device_id: "device:atomic-claim", worker_session_id: "worker-session:atomic-claim",
+          worker_session_epoch: 1, control_contract_version: 43, attestation_seq: serverSequence },
+        session_credential: credentialFor(serverGeneration),
+      });
+    }
+    if (!url.endsWith("/heartbeat") || typeof init?.body !== "string") {
+      throw new Error(`UNEXPECTED_HEARTBEAT_RECOVERY_URL:${url}`);
+    }
+    const body = JSON.parse(init.body) as { attestation_seq: number };
+    assert.equal(body.attestation_seq, serverSequence + 1,
+      "a remote-committed heartbeat must advance the next local sequence after exact open replay");
+    serverSequence += 1;
+    serverGeneration += 1;
+    if (loseFirstHeartbeatResponse) {
+      loseFirstHeartbeatResponse = false;
+      throw new TypeError("heartbeat response lost after remote commit");
+    }
+    return successfulJsonResponse({
+      attestation_receipt: attestationFor(serverSequence, HASH_A),
+      session_credential: credentialFor(serverGeneration),
+    });
+  };
+  try {
+    const device = DeviceCredentialSchema.parse({
+      protocol_version: "xuanxue-ai-production-v6", server_base_url: "http://127.0.0.1:3000",
+      environment_id: "production", origin: "http://localhost:3000", device_id: "device:atomic-claim",
+      device_epoch: 1, credential: `aidc_v6_${"d".repeat(40)}`,
+      enrolled_at: "2026-09-03T00:00:00.000Z",
+    });
+    const session = new ProductionWorkerSession(device, async () => ({
+      agent_attested_in_flight: 0, browser_action_in_flight: 0,
+      browser_authority_state: "present", browser_target_state: "absent",
+      browser_lane_state: "idle", drain_state: "open", ledger_reconciled: true,
+    }), HASH_B, "worker-instance:atomic-claim");
+    await assert.rejects(session.heartbeat(), /CLOUD_TRANSPORT_UNAVAILABLE/u);
+    assert.equal(opens, 2, "the same open request must resynchronize the original session");
+    assert.equal(serverSequence, 1);
+    const recovered = await session.heartbeat();
+    assert.equal(recovered.attestation_seq, 2);
+    assert.equal(serverSequence, 2);
+    assert.equal(opens, 2, "recovery must not allocate another session");
   } finally {
     Date.now = originalDateNow;
     globalThis.fetch = originalFetch;

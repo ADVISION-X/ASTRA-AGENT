@@ -12,7 +12,7 @@ import {
   RuntimeFailureImpact, requireRuntimeLogWrite, runtimeFailureFromError,
   runtimeLogCauseEventId, withRuntimeLogCause, type RuntimeLogger, type RuntimeSpanHandle,
 } from "../../runtime-logs/index.js";
-import { executionFailure, failureCode, typedExecutionFailure } from "../../execution-failure.js";
+import { executionFailure, failureCode } from "../../execution-failure.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
 import { authorizeWebsiteAgentTask, dispatchWebsiteAgentTask } from "../../../mediator/agent-production-route.js";
 import type {
@@ -24,6 +24,7 @@ import type {
   LocalProductionMaterial, ProductionExecutionLease, ProductionHash,
   WebsiteAgentResult, WebsiteAgentTask,
 } from "./contracts.js";
+import { hashCanonical, sha256 } from "./contracts.js";
 import { PRODUCTION_BUSINESS_CAPACITY_MAX } from "./control-contract-dependency.js";
 import { assertProductionTaskRoutePolicy, productionRoutePolicy } from "./route-policy.js";
 import { ProductionRuntimeStore, type StoredProductionTask } from "./store.js";
@@ -161,6 +162,14 @@ export class ProductionExecutor {
 
   public availableCapacity(): number { return PRODUCTION_BUSINESS_CAPACITY_MAX; }
 
+  public async verifySourceCheckpointArtifact(input: Readonly<{
+    jobId: string; sourceAttemptId: string;
+    checkpointExactCallIdentityHash: ProductionHash;
+    artifactRef: string; artifactContentHash: ProductionHash;
+  }>): Promise<void> {
+    await this.gptChildTools.verifySourceCheckpointArtifact(input);
+  }
+
   public async reconcilePendingProviderRateLimitIncidents(signal: AbortSignal): Promise<void> {
     if (this.store.pendingProviderCooldownIncidentBodies().length === 0) return;
     const span = requireRuntimeLogWrite(this.runtimeLogger.startSpan({
@@ -232,7 +241,7 @@ export class ProductionExecutor {
     error: unknown,
     identity?: Readonly<{ attemptId: string; pluginId: string }>,
   ): never {
-    const failure = typedExecutionFailure(error) ?? executionFailure(
+    const failure = error instanceof Error ? error : executionFailure(
       "failed", failureCode(error, "PLUGIN_EXECUTION_FAILED"), { cause: error },
     );
     const causedByEventId = runtimeLogCauseEventId(error);
@@ -240,7 +249,7 @@ export class ProductionExecutor {
       outcome: "failed",
       failure: runtimeFailureFromError({
         error: failure,
-        code: failure.code,
+        code: failureCode(failure, "PLUGIN_EXECUTION_FAILED"),
         responsibleOwner: "product-plugin",
         impact: causedByEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
         ...(causedByEventId ? { causedByEventId } : {}),
@@ -294,13 +303,78 @@ export class ProductionExecutor {
         const routePolicy = productionRoutePolicy(authorized.task.product_id, authorized.task.action_id);
         const parent = this.readContinuationParent(authorized.task, routePolicy.relation_kind);
         const gptExecution = this.gptChildTools.createExecution({
+          recordSettledCheckpoint: (checkpoint) => {
+            const history = this.browserAuthority.readJobBrowserHistoryEvidence(authorized.task.job_id);
+            const effects = history.replayEffects.filter((effect) =>
+              effect.effectIdentityHash === checkpoint.providerEffectIdentityHash
+              && effect.attemptId === checkpoint.sourceAttemptId
+              && effect.resultRevision === checkpoint.sourceResultRevision);
+            if (!history.walHistoryVerified || effects.length !== 1) {
+              throw executionFailure("failed", "PRODUCTION_SOURCE_EFFECT_IDENTITY_AMBIGUOUS");
+            }
+            const effect = effects[0]!;
+            if (effect.state !== "CONFIRMED" || effect.mutationOutcome !== "confirmed"
+              || effect.physicalInputCount !== 1 || effect.anchorState !== "trusted"
+              || !effect.canonicalConversationHash || !effect.userTurnHash
+              || effect.walAuthorityHash !== checkpoint.browserAuthorityHash
+              || effect.canonicalConversationHash !== sha256(Buffer.from(
+                checkpoint.canonicalConversationUrl, "utf8"))
+              || effect.userTurnHash !== sha256(Buffer.from(checkpoint.userTurnId, "utf8"))) {
+              throw executionFailure("failed", "PRODUCTION_SOURCE_CHECKPOINT_IDENTITY_MISMATCH");
+            }
+            const body = Object.freeze({
+              kind: "settled_checkpoint" as const, path: "source_checkpoint" as const,
+              effect_identity_hash: effect.effectIdentityHash,
+              source_effect_set_hash: effect.sourceEffectSetHash,
+              old_target_ref_hash: effect.oldTargetRefHash,
+              old_document_ref_hash: effect.oldDocumentRefHash,
+              wal_authority_hash: effect.walAuthorityHash,
+              provider_input_delta: 0 as const,
+              source_attempt_id: checkpoint.sourceAttemptId,
+              source_result_revision: checkpoint.sourceResultRevision,
+              checkpoint_exact_call_identity_hash: checkpoint.checkpointExactCallIdentityHash,
+              artifact_ref: checkpoint.artifactRef,
+              artifact_content_hash: checkpoint.artifactContentHash,
+              submit_prompt_hash: checkpoint.submitPromptHash,
+              canonical_conversation_hash: effect.canonicalConversationHash,
+              user_turn_hash: effect.userTurnHash,
+            });
+            this.store.recordSourceReadbackObservation(authorized.task.job_id,
+              input.lease.attempt_id, {
+                ...body, proof_hash: hashCanonical(body), observed_at: new Date().toISOString(),
+              });
+          },
           jobId: authorized.task.job_id,
           productId: authorized.task.product_id,
           ownerRef: authorized.task.business_identity.owner_ref,
           subjectRef: authorized.task.business_identity.subject_ref,
           authorizationRef: authorized.task.business_identity.authorization_ref,
           resultRevision: input.lease.result_revision,
+          ...(input.lease.readback_only_calls ? { readbackOnlyCalls:
+            input.lease.readback_only_calls.map((call) => ({
+              productStepId: call.product_step_id, callId: call.call_id,
+              childCapabilityId: call.child_capability_id,
+            })) } : {}),
+          ...(input.lease.source_reusable_calls ? { sourceReusableCalls:
+            input.lease.source_reusable_calls.map((call) => ({
+              productStepId: call.product_step_id, callId: call.call_id,
+              childCapabilityId: call.child_capability_id,
+              sourceEffectSetHash: call.source_effect_set_hash,
+              sourceAttemptId: call.source_attempt_id,
+              sourceResultRevision: call.source_result_revision,
+              effectIdentityHash: call.effect_identity_hash,
+              walAuthorityHash: call.wal_authority_hash,
+              checkpointExactCallIdentityHash: call.checkpoint_exact_call_identity_hash,
+              artifactRef: call.artifact_ref,
+              artifactContentHash: call.artifact_content_hash,
+              submitPromptHash: call.submit_prompt_hash,
+              canonicalConversationHash: call.canonical_conversation_hash,
+              userTurnHash: call.user_turn_hash,
+            })) } : {}),
           domainRejectionRevision: input.lease.prior_result_rejection !== null,
+          sourceReuseZeroSubmitGrant: input.lease.delivery_priority_replay_grant !== null
+            && input.lease.delivery_priority_replay_grant.calls.length === 0
+            && (input.lease.source_reusable_calls?.length ?? 0) > 0,
           deliveryPriorityReplayCalls: input.lease.delivery_priority_replay_grant?.calls.map((call) => ({
             productStepId: call.product_step_id, callId: call.call_id,
             childCapabilityId: call.child_capability_id,

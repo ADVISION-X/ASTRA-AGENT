@@ -1,7 +1,7 @@
+import type { SourceAttemptHandoff, SourceReadbackEffectProof, SourceReadbackObservation } from "./source-readback-contract.js";
 import { executionFailure } from "../../execution-failure.js";
 import type { AttemptFailureFirstFact } from "./terminal-failure.js";
-import { hashCanonical, sha256, type SourceAttemptHandoff,
-  type WebsiteAgentResult, type WebsiteAgentTask } from "./contracts.js";
+import { hashCanonical, sha256, type WebsiteAgentResult, type WebsiteAgentTask } from "./contracts.js";
 import { WebsiteAgentResultSchema } from "./contracts.js";
 import { ProductionStoreFoundation } from "./store-foundation.js";
 import { productionTaskRowValid } from "./store-authority-validation.js";
@@ -41,20 +41,43 @@ const taskAuthorityFromRow = (row: TaskRow): StoredProductionTask => {
 };
 
 export abstract class ProductionStoreTaskState extends ProductionStoreFoundation {
-  public recordSourceReadbackFailure(
-    jobId: string, attemptId: string, errorCode: string,
-    evidenceHash: `sha256:${string}` | null,
+  public recordSourceReadbackObservation(
+    jobId: string, attemptId: string, observation: SourceReadbackObservation,
   ): void {
-    const allowed = new Set([
-      "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT", "GPT_CONFIRMED_SUBMIT_READBACK_FAILED",
-      "PROVIDER_EFFECT_OUTCOME_UNPROVEN", "BROWSER_DOCUMENT_INVALID",
-      "BROWSER_OLD_TARGET_RECONCILIATION_REQUIRED", "BROWSER_TARGET_PHYSICAL_ABSENCE_UNPROVEN",
-      "SOURCE_RESULT_RECONCILIATION_PENDING",
-    ]);
-    if (!allowed.has(errorCode)) return;
+    const validHash = (value: string): boolean => /^sha256:[a-f0-9]{64}$/u.test(value);
+    if (![observation.effect_identity_hash, observation.source_effect_set_hash,
+      observation.old_target_ref_hash, observation.old_document_ref_hash,
+      observation.wal_authority_hash].every(validHash)
+      || observation.provider_input_delta !== 0
+      || !Number.isFinite(Date.parse(observation.observed_at))
+      || observation.kind === "settled_checkpoint" && (
+        observation.path !== "source_checkpoint" || !observation.source_attempt_id
+        || !Number.isSafeInteger(observation.source_result_revision)
+        || observation.source_result_revision < 0 || !observation.artifact_ref
+        || ![observation.artifact_content_hash,
+          observation.checkpoint_exact_call_identity_hash, observation.submit_prompt_hash,
+          observation.canonical_conversation_hash, observation.user_turn_hash,
+          observation.proof_hash].every(validHash))
+      || observation.kind === "negative_exact" && (
+        observation.path !== "old_target" && observation.path !== "exact_conversation"
+        || !Number.isSafeInteger(observation.observation_count)
+        || observation.observation_count < 2
+        || !Number.isFinite(Date.parse(observation.first_observed_at))
+        || Date.parse(observation.observed_at) <= Date.parse(observation.first_observed_at)
+        || ![observation.target_ref_hash, observation.document_ref_hash,
+          observation.observation_revision_hash, observation.canonical_conversation_hash,
+          observation.user_turn_hash].every(validHash)
+        || observation.pending_cause !== "exact-user-turn-unavailable"
+          && observation.pending_cause !== "adjacent-assistant-missing")
+      || observation.kind === "old_instance_unavailable" && (
+        observation.path !== "old_target" || !validHash(observation.proof_hash))) {
+      throw executionFailure("failed", "PRODUCTION_SOURCE_READBACK_PROOF_INVALID");
+    }
     this.database.transaction(() => {
       const current = this.readTask(jobId);
-      if (!current || current.status !== "failed" || current.current_attempt_id !== attemptId
+      if (!current || current.current_attempt_id !== attemptId
+        || observation.kind !== "settled_checkpoint" && current.status !== "failed"
+        || observation.kind === "settled_checkpoint" && current.status === "completed"
         || current.staged_result !== null
         || current.current_reason?.startsWith("SOURCE_HANDOFF_SEALED|")) {
         throw executionFailure("failed", "PRODUCTION_SOURCE_READBACK_CONFLICT");
@@ -64,13 +87,22 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
         jobId, attemptId,
       ) as { readback_observations_json: string } | undefined;
       const observations = existing
-        ? JSON.parse(existing.readback_observations_json) as Array<{
-          observed_at: string; error_code: string; evidence_hash: string | null;
-        }> : [];
+        ? JSON.parse(existing.readback_observations_json) as SourceReadbackObservation[] : [];
       if (!Array.isArray(observations)) throw executionFailure("failed", "PRODUCTION_SOURCE_READBACK_CORRUPT");
-      const latest = observations.at(-1);
-      if (latest && Date.now() - Date.parse(latest.observed_at) < 60_000) return;
-      observations.push({ observed_at: now(), error_code: errorCode, evidence_hash: evidenceHash });
+      const prior = observations.findIndex((item) => item.effect_identity_hash === observation.effect_identity_hash
+        && item.path === observation.path);
+      if (prior >= 0) {
+        const previous = observations[prior]!;
+        if (observation.kind === "settled_checkpoint") {
+          if (previous.kind !== "settled_checkpoint"
+            || previous.proof_hash !== observation.proof_hash) {
+            throw executionFailure("failed", "PRODUCTION_SOURCE_READBACK_CONFLICT");
+          }
+          return;
+        }
+        observations.splice(prior, 1);
+      }
+      observations.push(observation);
       if (existing) this.database.prepare(`update production_attempt_handoffs
         set readback_observations_json=? where job_id=? and source_attempt_id=?`).run(
         json(observations), jobId, attemptId,
@@ -84,22 +116,17 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
     })();
   }
 
-  public readSourceReadbackExhaustionHash(
+  public readSourceReadbackObservations(
     jobId: string, attemptId: string,
-  ): `sha256:${string}` | null {
+  ): readonly SourceReadbackObservation[] {
     const row = this.database.prepare(`select readback_observations_json
       from production_attempt_handoffs where job_id=? and source_attempt_id=?`).get(
       jobId, attemptId,
     ) as { readback_observations_json: string } | undefined;
-    if (!row) return null;
-    const observations = JSON.parse(row.readback_observations_json) as Array<{
-      observed_at: string; error_code: string; evidence_hash: string | null;
-    }>;
-    if (!Array.isArray(observations) || observations.length < 3) return null;
-    const first = Date.parse(observations[0]!.observed_at);
-    const last = Date.parse(observations.at(-1)!.observed_at);
-    if (!Number.isFinite(first) || !Number.isFinite(last) || last - first < 120_000) return null;
-    return hashCanonical({ job_id: jobId, source_attempt_id: attemptId, observations });
+    if (!row) return [];
+    const parsed: unknown = JSON.parse(row.readback_observations_json);
+    if (!Array.isArray(parsed)) throw executionFailure("failed", "PRODUCTION_SOURCE_READBACK_CORRUPT");
+    return parsed as SourceReadbackObservation[];
   }
 
   public sealSourceHandoff(manifest: SourceAttemptHandoff): void {
@@ -177,6 +204,219 @@ export abstract class ProductionStoreTaskState extends ProductionStoreFoundation
       throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
     }
     return manifest;
+  }
+
+  public readIssuedSourceHandoff(
+    jobId: string, issuedAttemptId: string, sealHash: `sha256:${string}`,
+  ): SourceAttemptHandoff | null {
+    const current = this.readTask(jobId);
+    const row = this.database.prepare(`select source_attempt_id,source_manifest_json,accepted_at
+      from production_attempt_handoffs where job_id=? and issued_attempt_id=? and seal_hash=?`).get(
+      jobId, issuedAttemptId, sealHash,
+    ) as { source_attempt_id: string; source_manifest_json: string | null;
+      accepted_at: string | null } | undefined;
+    if (!current || current.current_attempt_id !== issuedAttemptId || !row?.source_manifest_json
+      || !row.accepted_at) return null;
+    const manifest = JSON.parse(row.source_manifest_json) as SourceAttemptHandoff;
+    const { seal_hash: storedSeal, ...body } = manifest;
+    if (storedSeal !== sealHash || hashCanonical(body) !== sealHash
+      || manifest.job_id !== jobId || manifest.source_attempt_id !== row.source_attempt_id
+      || manifest.source_task_hash !== hashCanonical(current.task)) {
+      throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
+    }
+    return manifest;
+  }
+
+  public readIssuedSourceHandoffForAttempt(
+    jobId: string, issuedAttemptId: string,
+  ): SourceAttemptHandoff | null {
+    const rows = this.database.prepare(`select seal_hash from production_attempt_handoffs
+      where job_id=? and issued_attempt_id=? and accepted_at is not null limit 2`).all(
+      jobId, issuedAttemptId,
+    ) as Array<{ seal_hash: `sha256:${string}` }>;
+    if (rows.length > 1) throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
+    return rows[0] ? this.readIssuedSourceHandoff(
+      jobId, issuedAttemptId, rows[0].seal_hash,
+    ) : null;
+  }
+
+  public readAcceptedSourceSettlements(jobId: string): readonly (
+    Readonly<{ kind: "rejection_settled"; sourceAttemptId: string;
+      sourceHandoffSealHash: `sha256:${string}`;
+      effectIdentityHash: `sha256:${string}`; evidenceRef: string;
+      evidenceHash: `sha256:${string}`; sourceEffectSetHash: `sha256:${string}`;
+      productStepId: string; callId: string; childCapabilityId: string }>
+    | Readonly<{ kind: "risk_authorized";
+      sourceHandoffSealHash: `sha256:${string}`;
+      effectIdentityHash: `sha256:${string}`;
+      sourceEffectSetHash: `sha256:${string}`;
+      productStepId: string; callId: string; childCapabilityId: string }>
+    | Readonly<{ kind: "reused_checkpoint"; sourceAttemptId: string;
+      sourceHandoffSealHash: `sha256:${string}`;
+      effect: Extract<SourceReadbackEffectProof, { settled_checkpoint: object }>;
+      effectIdentityHash: `sha256:${string}`; sourceEffectSetHash: `sha256:${string}`;
+      productStepId: string; callId: string; childCapabilityId: string }>
+  )[] {
+    const rows = this.database.prepare(`select source_attempt_id,issued_attempt_id,seal_hash,
+        source_manifest_json,first_fact_raw from production_attempt_handoffs
+      where job_id=? and accepted_at is not null and issued_attempt_id is not null
+      order by source_attempt_id`).all(jobId) as Array<{
+        source_attempt_id: string; issued_attempt_id: string;
+        seal_hash: `sha256:${string}`;
+        source_manifest_json: string | null; first_fact_raw: string | null;
+      }>;
+    const currentAttempt = this.readTask(jobId)?.current_attempt_id;
+    if (!currentAttempt) throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
+    const byIssued = new Map<string, typeof rows[number]>();
+    for (const row of rows) {
+      if (byIssued.has(row.issued_attempt_id)) {
+        throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
+      }
+      byIssued.set(row.issued_attempt_id, row);
+    }
+    const settled: Array<
+      Readonly<{ kind: "rejection_settled"; sourceAttemptId: string;
+        sourceHandoffSealHash: `sha256:${string}`;
+        effectIdentityHash: `sha256:${string}`; evidenceRef: string;
+        evidenceHash: `sha256:${string}`; sourceEffectSetHash: `sha256:${string}`;
+        productStepId: string; callId: string; childCapabilityId: string }>
+      | Readonly<{ kind: "risk_authorized";
+        sourceHandoffSealHash: `sha256:${string}`;
+        effectIdentityHash: `sha256:${string}`;
+        sourceEffectSetHash: `sha256:${string}`;
+        productStepId: string; callId: string; childCapabilityId: string }>
+      | Readonly<{ kind: "reused_checkpoint"; sourceAttemptId: string;
+        sourceHandoffSealHash: `sha256:${string}`;
+        effect: Extract<SourceReadbackEffectProof, { settled_checkpoint: object }>;
+        effectIdentityHash: `sha256:${string}`; sourceEffectSetHash: `sha256:${string}`;
+        productStepId: string; callId: string; childCapabilityId: string }>
+    > = [];
+    const seen = new Set<string>();
+    let cursor: string | undefined = currentAttempt;
+    while (cursor && byIssued.has(cursor)) {
+      if (seen.has(cursor)) throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
+      seen.add(cursor);
+      const row: (typeof rows)[number] = byIssued.get(cursor)!;
+      cursor = row.source_attempt_id;
+      if (!row.source_manifest_json) throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
+      const manifest = JSON.parse(row.source_manifest_json) as SourceAttemptHandoff;
+      const { seal_hash: sealHash, ...body } = manifest;
+      if (sealHash !== row.seal_hash || hashCanonical(body) !== sealHash
+        || manifest.job_id !== jobId || manifest.source_attempt_id !== row.source_attempt_id) {
+        throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
+      }
+      if (manifest.kind === "delivery_priority_replay") {
+        const exhausted = manifest.readback_proofs.filter((proof) =>
+          proof.disposition === "replay_exhausted");
+        if (manifest.readback_exhaustion_hash !== hashCanonical(exhausted)) {
+          throw executionFailure("failed", "PRODUCTION_SOURCE_REPLAY_INVALID");
+        }
+        if (exhausted.length === 0) {
+          if (!manifest.payload_slot_conflict || manifest.replay_calls.length === 0
+            || manifest.readback_proofs.length !== manifest.replay_calls.length
+            || manifest.readback_proofs.some((proof) => proof.disposition !== "settled_reusable")) {
+            throw executionFailure("failed", "PRODUCTION_SOURCE_REPLAY_INVALID");
+          }
+          for (const proof of manifest.readback_proofs) {
+            const call = manifest.replay_calls.find((item) =>
+              item.product_step_id === proof.product_step_id && item.call_id === proof.call_id
+              && item.child_capability_id === proof.child_capability_id
+              && item.source_effect_set_hash === proof.source_effect_set_hash);
+            const checkpoints = proof.effects.filter((effect): effect is Extract<
+              SourceReadbackEffectProof, { settled_checkpoint: object }
+            > => effect.settled_checkpoint !== undefined);
+            if (!call || checkpoints.length !== proof.effects.length || checkpoints.length === 0) {
+              throw executionFailure("failed", "PRODUCTION_SOURCE_REPLAY_INVALID");
+            }
+            for (const effect of checkpoints) {
+              if (effect.source_effect_set_hash !== call.source_effect_set_hash) {
+                throw executionFailure("failed", "PRODUCTION_SOURCE_REPLAY_INVALID");
+              }
+              settled.push(Object.freeze({ kind: "reused_checkpoint" as const,
+                sourceAttemptId: effect.settled_checkpoint.source_attempt_id,
+                sourceHandoffSealHash: row.seal_hash,
+                effect, effectIdentityHash: effect.effect_identity_hash,
+                sourceEffectSetHash: effect.source_effect_set_hash,
+                productStepId: proof.product_step_id, callId: proof.call_id,
+                childCapabilityId: proof.child_capability_id }));
+            }
+          }
+          continue;
+        }
+        for (const proof of exhausted) {
+          if (!manifest.replay_calls.some((call) =>
+            call.product_step_id === proof.product_step_id
+            && call.call_id === proof.call_id
+            && call.child_capability_id === proof.child_capability_id
+            && call.source_effect_set_hash === proof.source_effect_set_hash)) {
+            throw executionFailure("failed", "PRODUCTION_SOURCE_REPLAY_INVALID");
+          }
+          let exhaustedEffects = 0;
+          for (const effect of proof.effects) {
+            if (effect.old_path === null) {
+              if (!("rejection_settled" in effect)
+                && !("risk_authorized" in effect)
+                && !("settled_checkpoint" in effect)) {
+                throw executionFailure("failed", "PRODUCTION_SOURCE_REPLAY_INVALID");
+              }
+              continue;
+            }
+            exhaustedEffects += 1;
+            settled.push(Object.freeze({ kind: "risk_authorized" as const,
+              sourceHandoffSealHash: row.seal_hash,
+              effectIdentityHash: effect.effect_identity_hash,
+              sourceEffectSetHash: effect.source_effect_set_hash,
+              productStepId: proof.product_step_id,
+              callId: proof.call_id,
+              childCapabilityId: proof.child_capability_id }));
+          }
+          if (exhaustedEffects === 0) {
+            throw executionFailure("failed", "PRODUCTION_SOURCE_REPLAY_INVALID");
+          }
+        }
+        continue;
+      }
+      if (manifest.kind !== "attempt_handoff" || manifest.browser_input_state !== "possible") continue;
+      const historical = !Object.hasOwn(manifest, "rejected_call");
+      const rejectedCall = historical
+        && manifest.replay_calls.length === 1
+        && Array.isArray(manifest.readback_proofs)
+        && manifest.readback_proofs.length === 0
+        ? manifest.replay_calls[0] : manifest.rejected_call;
+      const raw = row.first_fact_raw;
+      const first = raw === null ? null : JSON.parse(raw) as unknown;
+      if (!first || !isAttemptFailureFirstFact(first)
+        || manifest.first_fact_raw_hash !== sha256(Buffer.from(raw!, "utf8"))
+        || first.failure_core.code !== "RESULT_SETTLED_UNUSABLE"
+          && first.failure_core.code !== "GPT_RESPONSE_STOPPED_EMPTY"
+        || first.failure_core.effect_scope !== "provider_effect"
+        || first.failure_core.browser_outcome !== "CONFIRMED"
+        || first.failure_core.mutation_outcome !== "confirmed"
+        || first.failure_core.provider_effect_identity_hash === null
+        || first.failure_core.evidence_ref === null
+        || first.failure_core.evidence_hash === null
+        || !rejectedCall
+        || !manifest.replay_calls.some((call) =>
+          call.product_step_id === rejectedCall.product_step_id
+          && call.call_id === rejectedCall.call_id
+          && call.child_capability_id === rejectedCall.child_capability_id
+          && call.source_effect_set_hash === rejectedCall.source_effect_set_hash)
+        || !historical && manifest.rejected_call?.effect_identity_hash
+          !== first.failure_core.provider_effect_identity_hash) {
+        throw executionFailure("failed", "PRODUCTION_SOURCE_REJECTION_INVALID");
+      }
+      settled.push(Object.freeze({ kind: "rejection_settled" as const,
+        sourceAttemptId: row.source_attempt_id,
+        sourceHandoffSealHash: row.seal_hash,
+        effectIdentityHash: first.failure_core.provider_effect_identity_hash,
+        evidenceRef: first.failure_core.evidence_ref,
+        evidenceHash: first.failure_core.evidence_hash,
+        sourceEffectSetHash: rejectedCall.source_effect_set_hash,
+        productStepId: rejectedCall.product_step_id,
+        callId: rejectedCall.call_id,
+        childCapabilityId: rejectedCall.child_capability_id }));
+    }
+    return Object.freeze(settled);
   }
 
   public earliestTaskCreatedAt(): string | null {

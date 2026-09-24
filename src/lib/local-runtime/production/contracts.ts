@@ -10,22 +10,6 @@ import { executionFailure } from "../../execution-failure.js";
 export { hashCanonical, sha256 };
 export type { ProductionHash };
 
-export type SourceAttemptHandoff = Readonly<{
-  kind: "attempt_handoff" | "delivery_priority_replay";
-  job_id: string; source_attempt_id: string;
-  source_task_hash: ProductionHash | null;
-  first_fact_raw_hash: ProductionHash | null;
-  outbox_history_hash: ProductionHash; outbox_candidate_count: number;
-  browser_history_hash: ProductionHash; browser_row_count: number;
-  browser_input_state: "zero" | "possible" | "unknown";
-  replay_calls: readonly Readonly<{ product_step_id: string; call_id: string;
-    child_capability_id: string; source_effect_set_hash: ProductionHash }>[];
-  browser_target_settled: boolean;
-  target_settlement_hash: ProductionHash;
-  readback_exhaustion_hash: ProductionHash | null;
-  seal_hash: ProductionHash;
-}>;
-
 const WEBSITE_AGENT_PROTOCOL_VERSION = "xuanxue-ai-production-v6" as const;
 export const TASK_CONTRACT_ID = "website-agent-task" as const;
 export const TASK_CONTRACT_VERSION = 1 as const;
@@ -174,6 +158,18 @@ export type ProductionActionId = z.infer<typeof ProductionActionIdSchema>;
 type ProductionMaterial = z.infer<typeof ProductionMaterialSchema>;
 
 export interface ProductionExecutionLease {
+  readonly source_reusable_calls?: readonly Readonly<{
+    product_step_id: string; call_id: string; child_capability_id: string;
+    source_effect_set_hash: ProductionHash;
+    source_attempt_id: string; source_result_revision: number;
+    effect_identity_hash: ProductionHash; wal_authority_hash: ProductionHash;
+    checkpoint_exact_call_identity_hash: ProductionHash;
+    artifact_ref: string; artifact_content_hash: ProductionHash;
+    submit_prompt_hash: ProductionHash;
+    canonical_conversation_hash: ProductionHash; user_turn_hash: ProductionHash;
+  }>[];
+  readonly readback_only_calls?: readonly Readonly<{ product_step_id: string; call_id: string;
+    child_capability_id: "submit_exact_gpt_turn_once" }>[];
   readonly attempt_id: string;
   readonly device_id: string;
   readonly lease_version: number;

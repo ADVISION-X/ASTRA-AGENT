@@ -20,7 +20,17 @@ import {
 
 const STALE_LEASE_FENCE_CODE = "AI_LEASE_FENCE_STALE";
 const STALE_LEASE_FENCE_REMOTE_PROOF = "WEBSITE_HTTP_409:AI_LEASE_FENCE_STALE";
+const RESULT_OBJECT_CONFLICT_REMOTE_PROOF = "WEBSITE_HTTP_409:AI_PRODUCTION_RESULT_OBJECT_CONFLICT";
 const jobPathMarker = (jobId: string): string => `/jobs/${encodeURIComponent(jobId)}/`;
+const resultPayloadIntentIdentity = (jobId: string, attemptId: string,
+  contentHash: ProductionHash): Readonly<{ requestId: string; path: string }> => {
+  const requestId = `aipresult_${hashCanonical({ job_id: jobId, attempt_id: attemptId,
+    role: "result_payload", content_hash: contentHash }).slice(7, 47)}`;
+  const attemptHash = hashCanonical({ attempt_id: attemptId }).slice(7, 23);
+  const artifactId = `airesult_${jobId.replace(/[^A-Za-z0-9_-]/gu, "_").slice(-64)}_${attemptHash}_result_payload_${contentHash.slice(-16)}`;
+  return Object.freeze({ requestId,
+    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(jobId)}/artifacts/result_payload/${encodeURIComponent(artifactId)}` });
+};
 const headersWithoutExecutionFence = (headersJson: string): string => {
   const headers = JSON.parse(headersJson) as Record<string, string>;
   delete headers["x-ai-execution-fence-hash"];
@@ -95,31 +105,67 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
     return Object.freeze({
       historyHash: hashCanonical(facts),
       rowCount: rows.length,
-      candidateCount: rows.filter((row) => row.kind === "terminal"
-        ? (() => {
-          try { return (JSON.parse(row.body_blob.toString("utf8")) as { attempt_id?: string })
-            .attempt_id === attemptId; }
-          catch { return true; }
-        })()
-        : row.path.includes("/artifacts/result_envelope/")
-          && row.path.includes(`_${attemptHash}_result_envelope_`)).length,
+      candidateCount: rows.filter((row) => {
+        if (row.kind !== "terminal") return row.path.includes("/artifacts/result_envelope/")
+          && row.path.includes(`_${attemptHash}_result_envelope_`);
+        let terminalAttemptId: unknown = null;
+        try {
+          const body: unknown = JSON.parse(row.body_blob.toString("utf8"));
+          if (typeof body === "object" && body !== null && "attempt_id" in body
+            && typeof body.attempt_id === "string" && body.attempt_id.length > 0) {
+            terminalAttemptId = body.attempt_id;
+          }
+        } catch {
+          // A corrupt terminal body remains an unresolved candidate for this job.
+          terminalAttemptId = null;
+        }
+        return terminalAttemptId === null || terminalAttemptId === attemptId;
+      }).length,
     });
   }
 
-  public uploadedResultCandidateJobIds(): readonly string[] {
-    return Object.freeze(this.taskAuthorities()
-      .filter((row) => row.status === "failed" && row.current_attempt_id !== null
-        && this.hasUploadedResultCandidate(row.task.job_id, row.current_attempt_id))
-      .map((row) => row.task.job_id));
-  }
-
-  public hasUploadedResultCandidate(jobId: string, attemptId: string): boolean {
+  public readResultPayloadSlotConflict(jobId: string, attemptId: string): Readonly<{
+    old_request_id: string; old_payload_hash: ProductionHash; old_receipt_hash: ProductionHash;
+    new_request_id: string; new_payload_hash: ProductionHash;
+  }> | null {
     const attemptHash = hashCanonical({ attempt_id: attemptId }).slice(7, 23);
-    return Boolean(this.database.prepare(`select 1 from production_outbox
-      where kind='artifact' and instr(path,?)>0 and instr(path,?)>0
-        and (instr(path,'/artifacts/result_payload/')>0
-          or instr(path,'/artifacts/result_envelope/')>0) limit 1`
-    ).get(jobPathMarker(jobId), `_${attemptHash}_result_`));
+    const rows = this.database.prepare(`select idempotency_key,path,body_blob,sent_at,receipt_hash,last_error,response_json
+      from production_outbox where kind='artifact' and instr(path,?)>0
+        and instr(path,'/artifacts/result_payload/')>0 and instr(path,?)>0`
+    ).all(jobPathMarker(jobId), `_${attemptHash}_result_payload_`) as Array<{
+      idempotency_key: string;
+      path: string;
+      body_blob: Buffer; sent_at: string | null; receipt_hash: string | null;
+      last_error: string | null; response_json: string | null;
+    }>;
+    const accepted = rows.filter((row) => row.sent_at !== null && row.receipt_hash !== null
+      && row.response_json !== null);
+    const conflicted = rows.filter((row) => row.sent_at === null
+      && row.last_error === RESULT_OBJECT_CONFLICT_REMOTE_PROOF);
+    for (const old of accepted) for (const next of conflicted) {
+      if (old.body_blob.equals(next.body_blob)) continue;
+      let receipt: Record<string, unknown>;
+      try { receipt = JSON.parse(old.response_json!) as Record<string, unknown>; }
+      catch { continue; }
+      const oldHash = sha256(old.body_blob);
+      const nextHash = sha256(next.body_blob);
+      const oldIdentity = resultPayloadIntentIdentity(jobId, attemptId, oldHash);
+      const nextIdentity = resultPayloadIntentIdentity(jobId, attemptId, nextHash);
+      if (old.idempotency_key !== oldIdentity.requestId || old.path !== oldIdentity.path
+        || next.idempotency_key !== nextIdentity.requestId || next.path !== nextIdentity.path) continue;
+      if (receipt.role !== "result_payload" || receipt.sha256 !== oldHash
+        || receipt.receipt_hash !== old.receipt_hash
+        || receipt.artifact_id !== decodeURIComponent(old.path.split("/").at(-1) ?? "")
+        || typeof receipt.object_ref !== "string"
+        || receipt.media_type !== "application/json"
+        || receipt.byte_length !== old.body_blob.byteLength) continue;
+      return Object.freeze({
+        old_request_id: old.idempotency_key, old_payload_hash: oldHash,
+        old_receipt_hash: old.receipt_hash as ProductionHash,
+        new_request_id: next.idempotency_key, new_payload_hash: nextHash,
+      });
+    }
+    return null;
   }
 
   public readStagedTerminalReceipts(jobId: string, attemptId: string,
@@ -353,7 +399,7 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
   public latestProviderCooldownServerNow(): string | null {
     const row = this.database.prepare(`select response_json from production_outbox
       where kind='provider_cooldown' and sent_at is not null and response_json is not null
-      order by created_at desc,idempotency_key desc limit 1`).get() as
+      order by rowid desc limit 1`).get() as
       { response_json: string } | undefined;
     if (!row) return null;
     try {
@@ -366,7 +412,7 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
   public latestProviderCooldownClearance(): "pending_unknown" | "confirmed_absent" | "not_cleared" | null {
     const row = this.database.prepare(`select response_json from production_outbox
       where kind='provider_cooldown' and sent_at is not null and response_json is not null
-      order by created_at desc,idempotency_key desc limit 1`).get() as
+      order by rowid desc limit 1`).get() as
       { response_json: string } | undefined;
     if (!row) return null;
     try {
@@ -386,7 +432,7 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
               and json_extract(cast(clearance.body_blob as text),'$.phase')='clearance'
               and json_extract(cast(clearance.body_blob as text),'$.incident_request_id')=
                 json_extract(cast(production_outbox.body_blob as text),'$.incident_request_id')))
-      order by created_at,idempotency_key`).all() as Array<{ idempotency_key: string }>;
+      order by production_outbox.rowid`).all() as Array<{ idempotency_key: string }>;
     return Object.freeze(rows.map((row) => row.idempotency_key));
   }
 
@@ -411,10 +457,18 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
     workerInstanceId: string;
     sessionOpenRequestId: string;
   }> | null {
-    const rows = this.database.prepare(`select body_blob from production_outbox
-      where kind='provider_cooldown' and sent_at is null
-        and coalesce(last_error,'')<>'BUSINESS_ADMITTED'
-      order by created_at,idempotency_key`).all() as Array<{ body_blob: Buffer }>;
+    const rows = this.database.prepare(`select body_blob from production_outbox notice
+      where notice.kind='provider_cooldown'
+        and coalesce(notice.last_error,'')<>'BUSINESS_ADMITTED'
+        and (notice.sent_at is null
+          or (json_extract(cast(notice.body_blob as text),'$.phase')='incident'
+            and not exists(select 1 from production_outbox clearance
+              where clearance.kind='provider_cooldown' and clearance.sent_at is not null
+                and json_extract(cast(clearance.body_blob as text),'$.phase')='clearance'
+                and json_extract(cast(clearance.body_blob as text),'$.clearance')='confirmed_absent'
+                and json_extract(cast(clearance.body_blob as text),'$.incident_request_id')=
+                  json_extract(cast(notice.body_blob as text),'$.incident_request_id'))))
+      order by notice.created_at,notice.idempotency_key`).all() as Array<{ body_blob: Buffer }>;
     const bodies = rows.map((row) =>
       JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>);
     if (bodies.length === 0) return null;
@@ -479,8 +533,11 @@ export abstract class ProductionStoreOutbox extends ProductionStoreTaskState {
     const transport = typedRuntimeTransportFailure(error);
     const staleFenceRejected = transport?.code === STALE_LEASE_FENCE_CODE
       && transport.httpStatus === 409;
+    const resultObjectConflictRejected = transport?.code === "AI_PRODUCTION_RESULT_OBJECT_CONFLICT"
+      && transport.httpStatus === 409;
     const code = staleFenceRejected
       ? STALE_LEASE_FENCE_REMOTE_PROOF
+      : resultObjectConflictRejected ? RESULT_OBJECT_CONFLICT_REMOTE_PROOF
       : failureCode(error, "OUTBOX_DELIVERY_FAILED");
     const changed = this.database.prepare(`update production_outbox
       set last_error=? where idempotency_key=? and sent_at is null`

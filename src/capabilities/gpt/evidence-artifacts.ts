@@ -12,6 +12,23 @@ type EvidenceArtifact = Readonly<{
 }>;
 type TextResponse = Extract<GptChildCapabilityResult<"checkpoint_gpt_text_response">,
   { status: "success" }>["value"];
+type ImageResponse = Extract<GptChildCapabilityResult<"checkpoint_gpt_generated_image">,
+  { status: "success" }>["value"];
+
+type ImageBinding = Readonly<{
+  schemaVersion: "gpt-image-source-binding.v1";
+  assistantTurnId: string;
+  semanticMediaId: "gpt-generated-image-main";
+  authorityTargetHash: `sha256:${string}`;
+  authorityDocumentHash: `sha256:${string}`;
+  canonicalConversationHash: `sha256:${string}`;
+  userTurnHash: `sha256:${string}`;
+  turnMarkerHash: `sha256:${string}`;
+  originalArtifactRef: string;
+  originalSha256: `sha256:${string}`;
+  originalSizeBytes: number;
+  originalMediaType: `image/${string}`;
+}>;
 
 const hash = (value: string | Uint8Array): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -124,6 +141,80 @@ export const readPersistedGptTextResponse = async (input: Readonly<{
     value: Object.freeze(response) as TextResponse });
 };
 
+export const readPersistedGptImageEvidence = async (input: Readonly<{
+  evidenceStore: GptEvidenceStorePort;
+  jobId: string;
+  attemptId: string;
+  exactCallIdentityHash: `sha256:${string}`;
+}>): Promise<Readonly<{ artifactRef: string; integrityHash: `sha256:${string}`;
+  originalArtifactRef: string; binding: ImageBinding; originalBytes: Uint8Array }> | null> => {
+  const identity = { missionId: input.jobId, runId: input.attemptId };
+  const descriptor = await input.evidenceStore.readArtifact({ ...identity,
+    idempotencyKey: artifactKey(input.exactCallIdentityHash, "source-binding") });
+  if (descriptor.status !== "success") {
+    if (descriptor.failureReason === "FORENSICS_ARTIFACT_NOT_FOUND") return null;
+    throw executionFailure("failed", "EVIDENCE_ARTIFACT_READBACK_FAILED");
+  }
+  if (!descriptor.artifactRef || descriptor.artifact.mimeType !== "application/json"
+    || hash(descriptor.artifact.content) !== descriptor.artifact.integrityHash) {
+    throw executionFailure("failed", "GPT_GENERATED_IMAGE_TASK_ARTIFACT_INVALID");
+  }
+  let parsed: unknown;
+  try { parsed = JSON.parse(new TextDecoder().decode(descriptor.artifact.content)); }
+  catch { return invalidImage(); }
+  const binding = imageRecord(parsed);
+  if (Object.keys(binding).sort().join("|") !== ["schemaVersion", "assistantTurnId",
+    "semanticMediaId", "authorityTargetHash", "authorityDocumentHash",
+    "canonicalConversationHash", "userTurnHash", "turnMarkerHash", "originalArtifactRef",
+    "originalSha256", "originalSizeBytes", "originalMediaType"].sort().join("|")
+    || binding.schemaVersion !== "gpt-image-source-binding.v1"
+    || typeof binding.originalArtifactRef !== "string" || !binding.originalArtifactRef
+    || !Number.isSafeInteger(binding.originalSizeBytes) || Number(binding.originalSizeBytes) < 1
+    || ![binding.authorityTargetHash, binding.authorityDocumentHash,
+      binding.canonicalConversationHash, binding.userTurnHash, binding.turnMarkerHash,
+      binding.originalSha256].every((value) => typeof value === "string"
+        && /^sha256:[a-f0-9]{64}$/u.test(value))
+    || typeof binding.originalMediaType !== "string"
+    || !/^image\/[a-z0-9.+-]+$/u.test(binding.originalMediaType)) invalidImage();
+  if (typeof binding.assistantTurnId !== "string" || !binding.assistantTurnId
+    || binding.semanticMediaId !== "gpt-generated-image-main") invalidImage();
+  assertImageAuthority(binding);
+  const original = await input.evidenceStore.readArtifact({ ...identity,
+    idempotencyKey: artifactKey(input.exactCallIdentityHash, "original") });
+  if (original.status !== "success") return invalidImage();
+  if (original.artifactRef !== binding.originalArtifactRef
+    || original.artifact.mimeType !== binding.originalMediaType
+    || hash(original.artifact.content) !== binding.originalSha256
+    || original.artifact.integrityHash !== binding.originalSha256
+    || original.artifact.content.byteLength !== binding.originalSizeBytes) invalidImage();
+  return Object.freeze({ artifactRef: descriptor.artifactRef,
+    integrityHash: descriptor.artifact.integrityHash as `sha256:${string}`,
+    originalArtifactRef: original.artifactRef,
+    binding: binding as ImageBinding, originalBytes: original.artifact.content });
+};
+
+export const imageResponseFromEvidence = (
+  evidence: NonNullable<Awaited<ReturnType<typeof readPersistedGptImageEvidence>>>,
+  input: Readonly<{ canonicalConversationUrl: string; userTurnId: string; turnMarker: string }>,
+): ImageResponse => {
+  if (hash(input.canonicalConversationUrl) !== evidence.binding.canonicalConversationHash
+    || hash(input.userTurnId) !== evidence.binding.userTurnHash
+    || hash(input.turnMarker) !== evidence.binding.turnMarkerHash) invalidImage();
+  return Object.freeze({
+    assistantTurnId: evidence.binding.assistantTurnId,
+    semanticMediaId: evidence.binding.semanticMediaId,
+    mediaHash: evidence.binding.originalSha256,
+    authorityTargetHash: evidence.binding.authorityTargetHash,
+    authorityDocumentHash: evidence.binding.authorityDocumentHash,
+    canonicalConversationUrl: input.canonicalConversationUrl,
+    turnMarker: input.turnMarker,
+    originalBytes: evidence.originalBytes,
+    originalSha256: evidence.binding.originalSha256,
+    originalSizeBytes: evidence.binding.originalSizeBytes,
+    originalMediaType: evidence.binding.originalMediaType,
+  });
+};
+
 const artifactsFor = (
   result: GptChildCapabilityResult,
   intent: Parameters<GptAbilityGroup["execute"]>[0],
@@ -175,6 +266,31 @@ export const persistGptEvidenceArtifacts = async (input: Readonly<{
   const refs: string[] = [];
   for (const artifact of artifactsFor(input.result, input.intent)) {
     refs.push(await appendArtifact({ ...input, artifact, executionId: input.intent.executionId }));
+  }
+  if (input.result.status === "success"
+    && input.intent.childCapabilityId === "checkpoint_gpt_generated_image") {
+    const row = imageRecord(input.result.value);
+    const intent = input.intent.input as Readonly<{ canonicalConversationUrl: string;
+      userTurnId: string; turnMarker: string }>;
+    if (refs.length !== 1 || row.canonicalConversationUrl !== intent.canonicalConversationUrl
+      || row.turnMarker !== intent.turnMarker || !intent.userTurnId) invalidImage();
+    const binding: ImageBinding = Object.freeze({
+      schemaVersion: "gpt-image-source-binding.v1",
+      assistantTurnId: row.assistantTurnId as string,
+      semanticMediaId: "gpt-generated-image-main",
+      authorityTargetHash: row.authorityTargetHash as `sha256:${string}`,
+      authorityDocumentHash: row.authorityDocumentHash as `sha256:${string}`,
+      canonicalConversationHash: hash(intent.canonicalConversationUrl),
+      userTurnHash: hash(intent.userTurnId),
+      turnMarkerHash: hash(intent.turnMarker),
+      originalArtifactRef: refs[0]!,
+      originalSha256: row.originalSha256 as `sha256:${string}`,
+      originalSizeBytes: row.originalSizeBytes as number,
+      originalMediaType: row.originalMediaType as `image/${string}`,
+    });
+    await appendArtifact({ ...input, executionId: input.intent.executionId,
+      artifact: { suffix: "source-binding", artifactType: "other",
+        mimeType: "application/json", content: new TextEncoder().encode(JSON.stringify(binding)) } });
   }
   return Object.freeze(refs);
 };

@@ -18,6 +18,7 @@ export const extensionRuntimeDiagnostic = (
   error: unknown,
   runtimeEventType: "unhandledrejection" | "worker-error" | "liveness-pulse" | "job-bound-target-acquisition",
   failedFrameSequence: number,
+  refs: Readonly<{ jobRefHash?: string; targetRef?: string }> = {},
 ): Record<string, unknown> => ({
   reasonCode: browserCommandErrorCode(error),
   failedFrameKind: "EXTENSION_RUNTIME",
@@ -25,4 +26,6 @@ export const extensionRuntimeDiagnostic = (
   diagnosticSource: "extension-runtime",
   runtimeEventType,
   encodedByteLength: 0,
+  ...(refs.jobRefHash ? { jobRefHash: refs.jobRefHash } : {}),
+  ...(refs.targetRef ? { targetRef: refs.targetRef } : {}),
 });

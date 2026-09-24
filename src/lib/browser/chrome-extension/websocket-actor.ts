@@ -323,7 +323,8 @@ export class ExtensionWebSocketActor {
         await this.targetAuthority.releaseJobBoundChatGptTarget(operation.jobRefHash, operation.targetRefs);
         this.commandAdmissionSuspended = false;
       }
-      catch (error) { this.reportRuntimeFailure(error, "job-bound-target-acquisition"); }
+      catch (error) { this.reportRuntimeFailure(error, "job-bound-target-acquisition",
+        frame.sequence, { jobRefHash: operation.jobRefHash }); }
       return;
     }
     if (this.commandAdmissionSuspended) throw new Error("BROWSER_OLD_TARGET_RECONCILIATION_REQUIRED");
@@ -336,7 +337,10 @@ export class ExtensionWebSocketActor {
       await handler;
       this.commandAdmissionSuspended = false;
     } catch (error) {
-      this.reportRuntimeFailure(error, "job-bound-target-acquisition");
+      this.reportRuntimeFailure(error, "job-bound-target-acquisition", frame.sequence, {
+        jobRefHash: operation.jobRefHash,
+        ...(operation.expectedTargetRef ? { targetRef: operation.expectedTargetRef } : {}),
+      });
     } finally {
       this.pendingTargetHandlers.delete(handler);
     }
@@ -474,8 +478,10 @@ export class ExtensionWebSocketActor {
     socket?.close(4000, reasonCode);
   }
 
-  private reportRuntimeFailure(error: unknown, runtimeEventType: "unhandledrejection" | "worker-error" | "liveness-pulse" | "job-bound-target-acquisition"): void {
-    const body = extensionRuntimeDiagnostic(error, runtimeEventType, this.session?.nextClientSequence ?? 0);
+  private reportRuntimeFailure(error: unknown, runtimeEventType: "unhandledrejection" | "worker-error" | "liveness-pulse" | "job-bound-target-acquisition",
+    failedFrameSequence = this.session?.nextClientSequence ?? 0,
+    refs: Readonly<{ jobRefHash?: string; targetRef?: string }> = {}): void {
+    const body = extensionRuntimeDiagnostic(error, runtimeEventType, failedFrameSequence, refs);
     void (async () => {
       if (this.state !== "CONNECTED" || !this.session) return;
       try { await this.sendEncrypted(this.socket, "DIAGNOSTIC", body); }

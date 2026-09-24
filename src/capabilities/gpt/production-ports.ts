@@ -7,6 +7,25 @@ import type {
 import type { GptHash } from "./contract.js";
 
 export type GptProductionExecutionInput = Readonly<{
+  sourceReusableCalls?: readonly Readonly<{
+    productStepId: string; callId: string; childCapabilityId: string;
+    sourceEffectSetHash: GptHash;
+    sourceAttemptId: string; sourceResultRevision: number;
+    effectIdentityHash: GptHash; walAuthorityHash: GptHash;
+    checkpointExactCallIdentityHash: GptHash;
+    artifactRef: string; artifactContentHash: GptHash;
+    submitPromptHash: GptHash;
+    canonicalConversationHash: GptHash; userTurnHash: GptHash;
+  }>[];
+  recordSettledCheckpoint?: (input: Readonly<{
+    providerEffectIdentityHash: GptHash; browserAuthorityHash: GptHash;
+    browserAuthorityRef: string; sourceAttemptId: string; sourceResultRevision: number;
+    checkpointExactCallIdentityHash: GptHash; artifactRef: string;
+    artifactContentHash: GptHash; submitPromptHash: GptHash;
+    canonicalConversationUrl: string; userTurnId: string;
+  }>) => void;
+  readbackOnlyCalls?: readonly Readonly<{ productStepId: string; callId: string;
+    childCapabilityId: "submit_exact_gpt_turn_once" }>[];
   jobId: string;
   productId: string;
   ownerRef: string;
@@ -14,6 +33,7 @@ export type GptProductionExecutionInput = Readonly<{
   authorizationRef: string;
   resultRevision: number;
   domainRejectionRevision?: boolean;
+  sourceReuseZeroSubmitGrant?: boolean;
   deliveryPriorityReplayCalls?: readonly Readonly<{ productStepId: string; callId: string;
     childCapabilityId: string; sourceEffectSetHash: GptHash;
     callGrantHash: GptHash }>[];
@@ -44,6 +64,15 @@ export interface GptEvidenceStorePort {
 }
 
 export interface GptProductionBrowserAuthority {
+  readSourceConfirmedProviderEffect(input: Readonly<{
+    jobId: string; sourceAttemptId: string; sourceResultRevision: number;
+    productStepId: string; callId: string; childCapabilityId: string;
+    effectIdentityHash: GptHash; walAuthorityHash: GptHash;
+  }>): Readonly<{ exactCallIdentityHash: GptHash; actionOrdinal: number;
+    inputHash: GptHash; terminalPayload: unknown;
+    authorityRef: string; authorityHash: GptHash; terminalAt: string }>;
+  releaseJobBoundTarget(jobId: string, releaseAuthority: "wait-new-attempt",
+    signal: AbortSignal): Promise<void>;
   readProviderEffectStepCallFact(input: Readonly<{
     jobId: string;
     attemptId: string;

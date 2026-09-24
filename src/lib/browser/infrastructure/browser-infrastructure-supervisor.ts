@@ -144,15 +144,22 @@ export class BrowserInfrastructureSupervisor {
         outcome: input.releaseOutcome === "released" ? "physical_absent" : "quiesced",
         proofHash,
       });
-      if (input.targetRef !== null) this.broker.revokeOperatorTargetClaim(input.targetRef);
+      if (input.targetRef !== null
+        && this.broker.currentOperatorTargetJobRefHash() === input.jobRefHash) {
+        this.broker.revokeOperatorTargetClaim({ targetRef: input.targetRef,
+          jobRefHash: input.jobRefHash });
+      }
       this.lane.resolvePending("release", input.jobRefHash);
       return;
     }
-    if (input.targetRef !== null) this.broker.revokeOperatorTargetClaim(input.targetRef);
+    if (input.targetRef !== null) this.broker.revokeOperatorTargetClaim({
+      targetRef: input.targetRef, jobRefHash: input.jobRefHash,
+      documentRef: input.documentRef,
+    });
   }
 
   private onDiagnostic(reasonCode: string, refs: Readonly<Record<string, string>>): void {
-    if (refs.runtimeEventType === "job-bound-target-acquisition") this.lane.rejectPending(reasonCode);
+    if (refs.runtimeEventType === "job-bound-target-acquisition") this.lane.rejectPending(reasonCode, refs);
     if ((refs.runtimeEventType === "debugger-detach" || refs.runtimeEventType === "tab-remove")
       && refs.targetRef) {
       this.websocket.rejectTargetCommands(refs.targetRef, reasonCode, refs.nativeCauseCode);
@@ -291,6 +298,11 @@ export class BrowserInfrastructureSupervisor {
     if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
     return mutations.readJobPhysicalInputState(jobId);
   }
+  public readAttemptPhysicalInputState(jobId: string, attemptId: string) {
+    const mutations = this.state.mutationState;
+    if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
+    return mutations.readAttemptPhysicalInputState(jobId, attemptId);
+  }
 
   public verifyRuntimeTaskProvenance(earliestTaskCreatedAt: string | null): void {
     const mutations = this.state.mutationState;
@@ -309,6 +321,20 @@ export class BrowserInfrastructureSupervisor {
     callId: string;
     childCapabilityId: string;
   }>) { return this.lane.readProviderEffectStepCallFact(input); }
+  public readProvenZeroInputProviderCommand(input: Parameters<
+    NonNullable<typeof this.state.mutationState>["readProvenZeroInputProviderCommand"]
+  >[0]) {
+    const mutations = this.state.mutationState;
+    if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
+    return mutations.readProvenZeroInputProviderCommand(input);
+  }
+  public readSourceConfirmedProviderEffect(input: Parameters<
+    NonNullable<typeof this.state.mutationState>["readSourceConfirmedProviderEffect"]
+  >[0]) {
+    const mutations = this.state.mutationState;
+    if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
+    return mutations.readSourceConfirmedProviderEffect(input);
+  }
   public health(): BrowserHealthSnapshot {
     const state = this.transport.currentState();
     const current = this.issuer.current();

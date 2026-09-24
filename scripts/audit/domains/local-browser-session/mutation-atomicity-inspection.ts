@@ -1,3 +1,4 @@
+import { SyntaxKind } from "ts-morph";
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
 import { createLocalFinding, requireSource, sourcePaths } from "./inspector-support.js";
 
@@ -60,6 +61,84 @@ export const inspectDisposableAttemptBoundary = (
     "browser-authority/single-fifo");
 };
 
+const inspectV51ProofTopology = (
+  context: InspectorContext, findings: InspectorFinding[], lawId: string,
+): void => {
+  if (lawId !== "LAW-LOCAL-BROWSER-SESSION-004-V51") return;
+  const permitPath = "src/lib/browser/transport/command-permit.ts";
+  const actorPath = "src/lib/browser/exact-target/browser-command-actor.ts";
+  const supervisorPath = "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts";
+  const permit = requireSource(context, findings, lawId, permitPath);
+  const actor = requireSource(context, findings, lawId, actorPath);
+  const supervisor = requireSource(context, findings, lawId, supervisorPath);
+  if (!permit || !actor || !supervisor) return;
+  const permitType = permit.getFullText().match(/export type BrowserCommandPermit = Readonly<\{([\s\S]*?)\}>;/u)?.[1] ?? "";
+  if (!permitType || /\bproof(?:Envelope|Hash|_hash)?\b/iu.test(permitType)) findings.push(createLocalFinding({
+    checkId: "browser-authority/no-caller-proof-envelope", lawId, filePath: permitPath,
+    message: "The Browser command permit must not accept a caller-authored proof envelope.",
+  }));
+  requireTokens(actor.getFullText(), ["const replyHash = hashValue(authenticatedReplyResult)",
+    "this.mutations.markRejected(", "this.mutations.markConfirmed("], findings, lawId, actorPath,
+  "browser-authority/no-caller-proof-envelope");
+  const browserSources = context.project.getSourceFiles().filter((source) =>
+    source.getFilePath().replaceAll("\\", "/")
+      .startsWith(`${context.sealedRoot.replaceAll("\\", "/")}/src/lib/browser/`));
+  const requiredBrowserSources = context.targetPaths.filter((path) =>
+    path.startsWith("src/lib/browser/") && path.endsWith(".ts"));
+  const storeConstructors = browserSources.flatMap((source) =>
+    [...source.getFullText().matchAll(/new BrowserMutationStore\(/gu)]
+      .map(() => source.getFilePath()));
+  if (browserSources.length < requiredBrowserSources.length
+    || storeConstructors.length !== 1
+    || storeConstructors[0] !== supervisor.getFilePath()
+    || !supervisor.getClass("BrowserInfrastructureSupervisor")?.getMethod("start")
+      ?.getText().includes("this.state.mutationState = new BrowserMutationStore(this.options.dataDir)")) {
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/one-mutation-store", lawId, filePath: supervisorPath,
+      message: "The sealed Browser source set must have one runtime mutation store, constructed only by supervisor.start.",
+    }));
+  }
+  for (const source of browserSources) {
+    if (!/BrowserProofJournal|proof[-_]?events(?:\.ndjson)?|hash[-_]?chain|archive[-_]?receipt|recovery[-_]?receipt|recovery[-_]?genesis/iu
+      .test(source.getFullText())) continue;
+    findings.push(createLocalFinding({
+      checkId: "browser-authority/no-proof-journal-boot-scan", lawId,
+      filePath: source.getFilePath().slice(context.sealedRoot.length + 1).replaceAll("\\", "/"),
+      message: "Browser runtime must not add a lifecycle proof journal or proof-event startup scan.",
+    }));
+  }
+};
+
+const inspectProviderEffectCallPath = (
+  store: NonNullable<ReturnType<typeof requireSource>>,
+  findings: InspectorFinding[], lawId: string, storePath: string,
+): void => {
+  const mutationStore = store.getClass("BrowserMutationStore");
+  const prepare = mutationStore?.getMethod("prepare");
+  const history = mutationStore?.getMethod("assertProviderEffectHistory");
+  const guardedHistory = prepare?.getDescendantsOfKind(SyntaxKind.ConditionalExpression)
+    .some((expression) => expression.getCondition().getText() === 'input.effectScope === "provider_effect"'
+      && expression.getWhenTrue().getText() === "this.assertProviderEffectHistory(input)"
+      && expression.getWhenFalse().getText() === "null");
+  const zeroInputHistory = history?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((call) => call.getExpression().getText() === "rows.every")
+    .some((call) => {
+      const predicate = call.getArguments()[0]?.getText() ?? "";
+      const decision = call.getFirstAncestorByKind(SyntaxKind.IfStatement);
+      return decision?.getThenStatement().getText() === "return null;"
+        && predicate.includes("row.attempt_id !== input.attemptId")
+        && predicate.includes("row.physical_input_count === 0")
+        && predicate.includes('row.state === "PREPARED"')
+        && predicate.includes('row.state === "FAILED"')
+        && predicate.includes('row.state === "REJECTED" && row.mutation_outcome === "no"');
+    });
+  if (guardedHistory && zeroInputHistory) return;
+  findings.push(createLocalFinding({
+    checkId: "browser-authority/provider-effect-cross-attempt-identity", lawId, filePath: storePath,
+    message: "Only Provider effects may consult the exact old effect history, and a new attempt requires every old row to prove zero input.",
+  }));
+};
+
 export const inspectProviderEffectAttemptGuard = (
   context: InspectorContext, findings: InspectorFinding[], lawId: string,
 ): void => {
@@ -78,15 +157,34 @@ export const inspectProviderEffectAttemptGuard = (
   ], findings, lawId, postconditionPath,
   "browser-authority/provider-effect-cross-attempt-identity");
   const storeText = store.getFullText();
+  inspectProviderEffectCallPath(store, findings, lawId, storePath);
   requireTokens(storeText, [
-    'if (input.effectScope === "provider_effect") this.assertProviderEffectHistory(input)',
     "providerEffectIdentityMatches", "assertProviderEffectHistory",
     "where job_id=? and result_revision=? and product_step_id=? and call_id=? and child_capability_id=? and effect_scope='provider_effect'",
     "row.state === \"REJECTED\" && row.mutation_outcome === \"no\"",
-    "row.physical_input_count === 0 && row.attempt_id !== input.attemptId",
     "BROWSER_PROVIDER_EFFECT_IDENTITY_DRIFT", "BROWSER_PROVIDER_EFFECT_REPLAY_FORBIDDEN",
   ], findings, lawId, storePath,
   "browser-authority/provider-effect-cross-attempt-identity");
+  requireTokens(storeText, [
+    "const replayCalls = this.unresolvedProviderCalls(jobId)",
+    "effects.filter(BrowserMutationStore.possibleProviderInput)",
+    "sourceEffectSetHash: `sha256:${createHash",
+    "this.providerEffectSetRows({ jobId, productStepId: call.productStepId",
+  ], findings, lawId, storePath, "browser-authority/source-effect-history");
+  requireTokens(storeText, [
+    "const rebindCommand = input.effectScope === \"provider_effect\"",
+    "return last.state === \"FAILED\" ? last.command_id : null",
+    "if (rebindCommand !== null)",
+    "where command_id=? and state='FAILED' and mutation_outcome='no'",
+    "and physical_input_count=0 and proof_hash is null and terminal_at is null",
+    "if (updated.changes !== 1) throw new Error(\"BROWSER_REPLAY_GRANT_CONSUMED\")",
+  ], findings, lawId, storePath, "browser-authority/risk-prepared-rebind");
+  requireTokens(storeText, [
+    "from browser_mutations where job_id=? and delivery_priority_replay_grant_hash=?",
+    "row.physical_input_count !== 0 || row.mutation_outcome !== \"no\"",
+    "row.state === \"REJECTED\" && row.proof_hash !== null",
+    "if (rows.length !== grantRows.length) throw new Error(\"BROWSER_REPLAY_GRANT_MISMATCH\")",
+  ], findings, lawId, storePath, "browser-authority/risk-zero-input-retry");
   forbidTokens(`${storeText}\n${schema.getFullText()}`, [
     "owner_plugin_id", "plugin_version", "pluginVersion",
     "direct_predecessor_task_ref_hash", "completed_frontier_hash",
@@ -95,4 +193,5 @@ export const inspectProviderEffectAttemptGuard = (
     "BrowserContinuationCheckpoint", "BrowserContinuationBinding",
   ], findings, lawId, `${storePath},${schemaPath}`,
   "browser-authority/no-provider-effect-shadow-state");
+  inspectV51ProofTopology(context, findings, lawId);
 };

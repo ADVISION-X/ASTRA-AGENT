@@ -24,6 +24,7 @@ import {
   HASH_B,
   ADMISSION_JOB_ID,
   admissionReceipt,
+  admissionReceiptFor,
   claimTask,
   deviceStatusWithAdmission,
   resultFor,
@@ -34,7 +35,8 @@ import { exerciseOperationsAndBusinessAdmission } from
 import "./agent-production-runtime-ledger.acceptance.js";
 import "./agent-production-runtime-proof-boundary.acceptance.js";
 import "./agent-production-runtime-startup.acceptance.js";
-import { exerciseWorkerSessionRotation } from "./agent-production-runtime-session-rotation-support.js";
+import { exerciseHeartbeatResponseLossRecovery, exerciseWorkerSessionRotation } from
+  "./agent-production-runtime-session-rotation-support.js";
 import { exerciseLeaseRenewRetry } from "./agent-production-runtime-lease-renew-retry-support.js";
 import { exerciseGeneratedImageTransport } from "./agent-production-runtime-generated-image.acceptance-support.js";
 import {
@@ -135,6 +137,27 @@ for (const receipt of admissionVariants) {
   const status = await readProductionDeviceJobStatus(deviceStatusWithAdmission(receipt), ADMISSION_JOB_ID);
   assert.deepEqual(status.business_admission_receipt, receipt);
 }
+const admittedStagedResult = resultFor(task({
+  jobId: ADMISSION_JOB_ID, productId: "payment_screenshot_observation", actionId: "observe",
+}));
+const admittedStagedReceipt = admissionReceiptFor(
+  ADMISSION_JOB_ID, admittedStagedResult.result_payload_hash,
+);
+const admittedStagedStatus = await readProductionDeviceJobStatus(deviceStatusWithAdmission(
+  admittedStagedReceipt, ADMISSION_JOB_ID, hashCanonical(admittedStagedResult), admittedStagedResult,
+), ADMISSION_JOB_ID);
+assert.deepEqual(admittedStagedStatus.business_admission_receipt, admittedStagedReceipt,
+  "admitted Website artifacts leave no staged receipts but must allow the same result to complete locally");
+assert.deepEqual(admittedStagedStatus.staged_result, admittedStagedResult);
+const admittedStatusSession: { request: () => Promise<Record<string, unknown>> } = deviceStatusWithAdmission(
+  admittedStagedReceipt, ADMISSION_JOB_ID, hashCanonical(admittedStagedResult), admittedStagedResult,
+);
+const absentAdmissionStatus = await admittedStatusSession.request();
+await assert.rejects(readProductionDeviceJobStatus({
+  request: async () => ({ ...absentAdmissionStatus, status: "failed", business_admission_receipt: null }),
+} as never, ADMISSION_JOB_ID),
+(error: unknown) => typedExecutionFailure(error)?.code === "V6_DEVICE_STAGED_RESULT_AUTHORITY_INVALID",
+"a staged result without Website admission still requires its artifact receipts");
 for (const receipt of [
   admissionReceipt({ bazi_domain_admission_receipt_hash: HASH_A }),
   admissionReceipt({
@@ -226,6 +249,7 @@ await assert.rejects(
 );
 
 await exerciseWorkerSessionRotation();
+await exerciseHeartbeatResponseLossRecovery();
 await exerciseLeaseRenewRetry();
 await exerciseGeneratedImageTransport(productionTask);
 await verifyGptDialogMismatchRuntimeContract();
@@ -242,14 +266,14 @@ emitQualityProofObservation({
   observedValue: "the unique Runtime ownership inspector accepted the current Runtime-only manifest and rejected injected Mediator and Product ownership mutants",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V69",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V70",
   evidenceMode: "exam.state-machine",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:attempt-recovery-state-machine",
   observedValue: "binary task lifecycle durable accept same-attempt recovery lease outbox and typed cross-owner boundaries exercised",
 });
 emitQualityProofObservation({
-  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V69",
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V70",
   evidenceMode: "exam.property",
   clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
   locator: "acceptance:agent-production-runtime:transport-properties",

@@ -117,7 +117,18 @@ export class ProductionGptBrowserLifecycle {
     targetMode: "fresh" | "authorized-continuation" | "confirmed-readback" | "bound-observation",
   ): Promise<ProductionGptBrowserCall> {
     if (!sessionKey) throw executionFailure("failed", "GPT_SESSION_KEY_REQUIRED");
-    if (this.activeBrowser?.sessionKey === sessionKey) return this.activeBrowser.call;
+    if (this.activeBrowser?.sessionKey === sessionKey) {
+      const active = this.activeBrowser.call;
+      if (targetMode === "confirmed-readback" && active.confirmedProviderEffect) {
+        if (!active.settledResultPayloadHash) {
+          throw executionFailure("failed", "GPT_BROWSER_SESSION_TRANSITION_UNSETTLED");
+        }
+        active.confirmedProviderEffect = null;
+        active.settledResultPayloadHash = null;
+        active.recoverySelectionRequired = true;
+      }
+      return active;
+    }
     const previous = this.activeBrowser?.call;
     if (previous) {
       if (!previous.confirmedProviderEffect || !previous.settledResultPayloadHash) {

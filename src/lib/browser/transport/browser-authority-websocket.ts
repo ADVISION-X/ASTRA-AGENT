@@ -208,7 +208,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     jobRefHash: `sha256:${string}`,
     parentConversationUrl?: string,
     expectedTargetRef?: string,
-  ): void {
+  ): number {
     if ((targetMode === "authorized-continuation") !== (typeof parentConversationUrl === "string")) {
       throw new Error("BROWSER_TARGET_INVALID");
     }
@@ -228,6 +228,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     this.active = { ...active, nextServerSequence: sequence + 1 };
     try {
       active.socket.send(encodeBrowserAuthorityFrame(frame));
+      return sequence;
     } catch {
       this.revoke(active.socket, "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
       throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");

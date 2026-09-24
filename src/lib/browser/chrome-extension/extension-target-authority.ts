@@ -62,7 +62,8 @@ export class ExtensionTargetAuthority {
 
   public start(): void {
     this.chromeApi.debugger.onDetach.addListener((target, reason) => {
-      void this.consumeDebuggerDetachAfterBarrier(target.tabId, reason);
+      const known = this.targets.findByTabId(target.tabId);
+      void this.consumeDebuggerDetachAfterBarrier(target.tabId, reason, known ?? null);
     });
     this.chromeApi.debugger.onEvent.addListener((target, method) => {
       if (method !== "Page.frameNavigated" || this.activeTarget?.tabId !== target.tabId) return;
@@ -76,28 +77,32 @@ export class ExtensionTargetAuthority {
       this.interactionReadiness.recordActiveTab(activeInfo.windowId, activeInfo.tabId);
     });
     this.chromeApi.tabs.onRemoved?.addListener((tabId) => {
-      this.removedTabIds.add(tabId);
-      this.orphanCandidates.delete(tabId);
-      this.clearOrphanRetry(tabId);
-      this.createdTarget.markTabRemoved(tabId);
-      void this.consumeTabRemovalAfterBarrier(tabId);
+      const known = this.targets.findByTabId(tabId);
+      void this.consumeTabRemovalAfterBarrier(tabId, known ?? null);
     });
   }
 
   private async consumeDebuggerDetachAfterBarrier(
     tabId: number,
     reason: Parameters<typeof debuggerDetachFailure>[0],
+    eventTarget: ExtensionExactTarget | null,
   ): Promise<void> {
     await this.debuggerRuntime.awaitPageReadPermission();
     const known = this.targets.findByTabId(tabId);
-    if (!known) return;
+    if (!known || !eventTarget || known.chromeTargetId !== eventTarget.chromeTargetId
+      || known.jobRefHash !== eventTarget.jobRefHash) return;
+    const targets = await this.debuggerRuntime.readTargets();
+    if (targets.some((target) => target.tabId === tabId
+      && target.id === known.chromeTargetId && target.attached)) return;
     this.targets.invalidateTab(tabId);
     if (this.activeTarget?.tabId === tabId) {
       this.activeTarget = null;
       this.navigationPublication = null;
     }
     await this.publishTargetFailure({
-      targetRef: known.targetRef, runtimeEventType: "debugger-detach", ...debuggerDetachFailure(reason),
+      targetRef: known.targetRef, jobRefHash: known.jobRefHash,
+      documentRef: known.documentRef,
+      runtimeEventType: "debugger-detach", ...debuggerDetachFailure(reason),
     });
   }
 
@@ -118,17 +123,32 @@ export class ExtensionTargetAuthority {
     await this.publishMainFrameNavigation(frame.url, frame.loaderId);
   }
 
-  private async consumeTabRemovalAfterBarrier(tabId: number): Promise<void> {
+  private async consumeTabRemovalAfterBarrier(
+    tabId: number, eventTarget: ExtensionExactTarget | null,
+  ): Promise<void> {
     await this.debuggerRuntime.awaitPageReadPermission();
+    try {
+      await this.debuggerRuntime.readTab(tabId);
+      return;
+    } catch {
+      const targets = await this.debuggerRuntime.readTargets();
+      if (targets.some((target) => target.tabId === tabId)) return;
+    }
+    this.removedTabIds.add(tabId);
+    this.orphanCandidates.delete(tabId);
+    this.clearOrphanRetry(tabId);
+    this.createdTarget.markTabRemoved(tabId);
     const known = this.targets.findByTabId(tabId);
-    if (!known) return;
+    if (!known || !eventTarget || known.chromeTargetId !== eventTarget.chromeTargetId
+      || known.jobRefHash !== eventTarget.jobRefHash) return;
     this.targets.invalidateTab(tabId);
     if (this.activeTarget?.tabId === tabId) {
       this.activeTarget = null;
       this.navigationPublication = null;
     }
     await this.publishTargetFailure({
-      targetRef: known.targetRef, runtimeEventType: "tab-remove",
+      targetRef: known.targetRef, jobRefHash: known.jobRefHash,
+      documentRef: known.documentRef, runtimeEventType: "tab-remove",
       reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT",
     });
   }
@@ -137,9 +157,12 @@ export class ExtensionTargetAuthority {
     return this.targets.resolve(targetRef, documentRef);
   }
 
-  private async publishTargetFailure(input: Parameters<TargetFailureReporter>[0]): Promise<void> {
+  private async publishTargetFailure(input: Parameters<TargetFailureReporter>[0] & Readonly<{
+    jobRefHash: `sha256:${string}`; documentRef: string;
+  }>): Promise<void> {
     await this.reportTargetFailure(input);
-    await this.send("TARGET_REVOKE", { targetRef: input.targetRef });
+    await this.send("TARGET_REVOKE", { targetRef: input.targetRef,
+      jobRefHash: input.jobRefHash, documentRef: input.documentRef });
   }
 
   public async acquireJobBoundChatGptTarget(
@@ -177,13 +200,15 @@ export class ExtensionTargetAuthority {
     }
     if (this.activeTarget || this.createdTarget.isPending()) throw new Error("BROWSER_TARGET_INVALID");
     const bound = this.targets.findByJobRefHash(jobRefHash);
+    if (expectedTargetRef && !bound) {
+      throw new Error("BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE");
+    }
     if (expectedTargetRef && bound?.targetRef !== expectedTargetRef) {
       throw new Error("BROWSER_OLD_TARGET_RECONCILIATION_REQUIRED");
     }
     if (bound) return this.reacquireParkedTarget(
       bound.targetRef, targetMode === "fresh", continuationUrl,
     );
-    if (expectedTargetRef) throw new Error("BROWSER_OLD_TARGET_RECONCILIATION_REQUIRED");
     if (targetMode === "bound-observation") throw new Error("BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT");
     const candidate = await this.createProductionCandidate();
     if (candidate.tabId === undefined) throw new Error("BROWSER_TARGET_INVALID");
@@ -308,7 +333,10 @@ export class ExtensionTargetAuthority {
     if (notifyWorkbench) {
       await this.debuggerRuntime.detach(target.tabId);
     }
-    if (notifyWorkbench) await this.send("TARGET_REVOKE", { targetRef: target.targetRef });
+    if (notifyWorkbench) await this.send("TARGET_REVOKE", {
+      targetRef: target.targetRef, jobRefHash: target.jobRefHash,
+      documentRef: target.documentRef,
+    });
   }
 
   public async parkActiveTarget(): Promise<void> {
@@ -317,7 +345,8 @@ export class ExtensionTargetAuthority {
     if (!target || !target.loaderId) throw new Error("BROWSER_TARGET_INVALID");
     this.activeTarget = null;
     this.navigationPublication = null;
-    await this.send("TARGET_REVOKE", { targetRef: target.targetRef });
+    await this.send("TARGET_REVOKE", { targetRef: target.targetRef,
+      jobRefHash: target.jobRefHash, documentRef: target.documentRef });
   }
 
   public async executeRegisteredCommand(

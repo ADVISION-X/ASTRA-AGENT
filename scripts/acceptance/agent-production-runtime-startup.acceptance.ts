@@ -10,6 +10,7 @@ import { ProductionExecutor } from "../../src/lib/local-runtime/production/execu
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { terminalSpanFailure } from "../../src/lib/local-runtime/production/runtime-logging.js";
 import { startProductionRuntime } from "../../src/lib/local-runtime/production/runtime.js";
+import { shutdownRuntime } from "../../src/lib/local-runtime/production/runtime-startup.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import {
   RuntimeFailureImpact,
@@ -20,7 +21,8 @@ import {
   type RuntimeSpanHandle,
 } from "../../src/lib/runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
-import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
+import { executionFailure, executionFailureMetadata, oldTargetUnavailableFact,
+  typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import type { BrowserExecutionArtifact } from "../../src/lib/browser/browser-authority-api.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import { serializeTerminalFailure } from
@@ -34,6 +36,29 @@ import { assertProductionStartupPreflight } from
   "./agent-production-runtime-startup-preflight.acceptance-support.js";
 
 await assertProductionStartupPreflight();
+
+for (const unresolvedCooldown of [true, false]) {
+  let closedSessions = 0;
+  let closedStores = 0;
+  let heartbeats = 0;
+  const abort = new AbortController();
+  await shutdownRuntime({
+    runtimeLogger: { producerRunId: "shutdown-cooldown-acceptance", startSpan: () => ({
+      ok: true, event: { terminal: () => ({ ok: true, event: { eventId: "shutdown-receipt" } }) },
+    }) },
+    session: { heartbeat: async () => { heartbeats += 1; },
+      close: async () => { closedSessions += 1; } },
+    store: { providerCooldownSessionRecoveryIdentity: () => unresolvedCooldown
+      ? { workerInstanceId: "worker-old", sessionOpenRequestId: "aipsopen-old" } : null,
+    close: () => { closedStores += 1; } },
+    abort, activeAbort: new Map(), active: new Map(), draining: false, stopped: false,
+  } as never, Promise.resolve(), Promise.resolve());
+  assert.equal(heartbeats, 1);
+  assert.equal(closedStores, 1);
+  assert.equal(closedSessions, unresolvedCooldown ? 0 : 1,
+    "shutdown preserves the exact old session only while a cooldown lineage remains unresolved");
+  assert.equal(abort.signal.aborted, true);
+}
 
 const firstCheckpointCrashTemporary = await mkdtemp(
   path.join(tmpdir(), "agent-production-first-checkpoint-crash-"),
@@ -210,7 +235,7 @@ try {
   assert.equal(health.cloudState, "contract_blocked");
   assert.equal(health.executionState, "blocked");
   assert.equal(health.claimAdmissionState, "blocked");
-  assert.equal(health.controlContractVersion, 42,
+  assert.equal(health.controlContractVersion, 43,
     "blocked diagnostics must retain only the consumer contract version needed for exact comparison");
   assert.equal(health.lastErrorCode, "AI_SESSION_BINDING_MISMATCH");
   await bindingMismatchRuntime.close();
@@ -311,7 +336,8 @@ try {
   const continuationLease = {
     attempt_id: "attempt:article-translation", device_id: "device:article-translation", lease_version: 1,
     execution_fence_hash: HASH_A, capability_manifest_hash: HASH_B, max_provider_turns: 1, provider_turns_used: 0,
-    result_revision: 0, prior_result_rejection: null, expires_at_monotonic: performance.now() + 10_000,
+    result_revision: 0, prior_result_rejection: null, delivery_priority_replay_grant: null,
+    expires_at_monotonic: performance.now() + 10_000,
     command_ttl_ms: 1_000, abort_signal: new AbortController().signal,
   };
   const continuationInput = (currentTask: typeof translationTask) => ({ task: currentTask, materials: [],
@@ -342,6 +368,27 @@ try {
       executionFailure("failed", "PUBLIC_KNOWLEDGE_TOPIC_MANIFEST_INVALID"),
     ),
     /PUBLIC_KNOWLEDGE_TOPIC_MANIFEST_INVALID/u,
+  );
+  const oldTargetError = executionFailure("failed", "BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE") as
+    ReturnType<typeof executionFailure> & { oldTargetUnavailableFact?: Readonly<{
+      jobRefHash: `sha256:${string}`; targetRefHash: `sha256:${string}`;
+      proofHash: `sha256:${string}` }> };
+  oldTargetError.oldTargetUnavailableFact = {
+    jobRefHash: HASH_A, targetRefHash: HASH_B, proofHash: HASH_A,
+  };
+  const providerFailure = executionFailure("failed", "BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE", {
+    cause: oldTargetError, metadata: { browserEffect: {
+      effectScope: "provider_effect", childCapabilityId: "submit_exact_gpt_turn_once",
+      browserOutcome: "CONFIRMED", providerEffectIdentityHash: HASH_B,
+    } },
+  });
+  assert.throws(
+    () => terminalizePluginFailure.call(
+      executor, startPluginSpan("old-target-provider-identity"), providerFailure,
+    ),
+    (error: unknown) => error === providerFailure
+      && executionFailureMetadata(error)?.browserEffect?.providerEffectIdentityHash === HASH_B
+      && oldTargetUnavailableFact(error)?.proofHash === HASH_A,
   );
   const childSpan = requireRuntimeLogWrite(pluginFailureLogger.startSpan({
     traceId: "job:plugin-failure-code", owner: "gpt", component: "gpt-child",
@@ -457,12 +504,13 @@ try {
     .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>);
   const pluginFailureEvents = pluginLogEvents
     .filter((event) => event.kind === "span.terminal" && event.operation === "plugin.execute");
-  assert.equal(pluginFailureEvents.length, 3);
+  assert.equal(pluginFailureEvents.length, 4);
   assert.deepEqual(pluginFailureEvents.map((event) => {
     const failure = event.failure as Readonly<Record<string, unknown>>;
     return [failure.code, failure.impact, failure.causedByEventId ?? null];
   }), [
     ["PUBLIC_KNOWLEDGE_TOPIC_MANIFEST_INVALID", RuntimeFailureImpact.BLOCKING, null],
+    ["BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE", RuntimeFailureImpact.BLOCKING, null],
     ["GPT_CHILD_FAILED", RuntimeFailureImpact.CONSEQUENTIAL, childTerminal.eventId],
     ["PAYMENT_OBSERVATION_PROVIDER_FAILED", RuntimeFailureImpact.BLOCKING, null],
   ]);
@@ -473,7 +521,7 @@ try {
   assert.equal(cleanupEvents.length, 1);
   const cleanupFailure = cleanupEvents[0]!.failure as Readonly<Record<string, unknown>>;
   assert.equal(cleanupFailure.impact, RuntimeFailureImpact.CLEANUP);
-  assert.equal(cleanupFailure.causedByEventId, pluginFailureEvents[2]!.eventId);
+  assert.equal(cleanupFailure.causedByEventId, pluginFailureEvents[3]!.eventId);
   pluginFailureStore.close();
 } finally {
   await rm(pluginFailureTemporary, { recursive: true, force: true });

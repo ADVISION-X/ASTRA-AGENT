@@ -55,9 +55,12 @@ Website Domain Consumer 对同一 job_id + result_payload_hash 幂等入库
 
 ### 1.2.1 业务主轴与总性门
 
+Website 已按同一 source attempt 的 `RESULT_SETTLED_UNUSABLE` 或 `GPT_RESPONSE_STOPPED_EMPTY` 写入原 `result_revision_rejected_v1`，且 AGENT 已核现役 Browser WAL 全历史、旧 Target 已精确结算、原 Outbox 无可交付候选时，走原 `source_evidence[]` 的 `attempt_handoff` 签新 result revision。除被拒 effect 外，其它旧可能输入 effect 都须有原 checkpoint/Forensics 正向结算证明；被拒 effect 以 Website 同一 first failure、rejection event、effect 与独立结果/observation fact hash 精确绑定，stopped-empty 不伪装成 checkpoint。风险重提交集合为空；新 revision 从 Product 原入口执行，每个新 effect 仍各至多一次。缺任一事实继续自动对账，不得在本地猜签新 revision。原 job 的本地占槽、新 grant 分类和旧 attempt 的持久 CAS 必须随同一 source handoff 闭合。
+旧 revision 的 Provider 输入被 Website 精确 rejection receipt 与原 source handoff/event 结算后，当前 revision 的 target-local `REJECTED/no` 不得把旧输入误判为当前 attempt 已提交。Browser 仍核完整 WAL；当前 attempt Provider 输入为零且旧 rejection 来源交接已签出该 attempt、旧 Target 已结算、无结果/Outbox 候选时，Website 可在同 revision 签普通新 attempt，旧 effect 只作历史且不能被盲重发。跨 revision 的历史 effect 观察绑定形成时稳定的集合前缀 hash；当前逐调用 proof 另绑定含全部旧 effect 的调用集合 hash。任一事实不明仍保留原 job 有限对账。
+
 `RESULT_ABSENT → RESULT_READY → RESULT_ADMITTED` 是现有 Website job、AGENT task/Outbox 和 Website admission 的投影，不新增运行时状态。只要 demand active 且未 admission，Website 的同一 claim/observation 权威必须给出可执行的下一步或有限期限的再检查时间：旧结果/Outbox 恢复与交付、原 Provider effect 读回、旧 Target 清算及证据对账、普通新 attempt、Website 持久授权的一次风险重提交、Domain Consumer/admission 对账。`nextAction=null` 与 `retry_not_before=null` 且无其他自动接点是架构失败。只有 Website 持久取消、删除、撤权或完成可终止需求。
 
-机械有效结果一旦成立，Runtime 必须在唯一 SQLite transaction 持久 stage 与 terminal Outbox intent；Browser/GPT cleanup 失败仅是诊断，不能撤销结果。Website 对同 job 新 attempt 的行锁裁决必须先核本地已鉴权 `source_evidence[]`、原 Outbox、Website artifact/terminal；旧结果可恢复就重授旧 attempt 交付。只有确证旧结果不可恢复才签普通新 attempt；这并不授权 Provider 重发。Browser 原 WAL 全历史可证零输入时可在新 attempt 用当前 Prompt/hash 首次提交；已可能输入时先零输入读回。跨 attempt 的本地接纳仅走 Website source seal 与原 manifest 的持久 CAS；旧 failure CAS 只处理同 attempt。封存的 Outbox 来源 hash 只覆盖不可变 intent 身份、路径与 body hash；原 SQLite 中已封存 manifest 在后续 claim 复用，部分上传回执晚到不改 seal。已接受 attempt 重授而本地 task 缺席时，先核 Browser WAL、Outbox 与 Target 历史；完全空白才正常接纳，已有历史先恢复 task 身份并于下一轮对账，不能把本地缺席当作零输入。证据不完整的 `fail_closed` 不能因 job 级“可能输入”而重新执行 Product；原恢复 claim 在释放仍可安全重绑的旧 Target 前，先在仍可安全重绑的旧 Target 对每个旧 effect 作真实零输入读回；旧实例不可绑但 CONFIRMED WAL 有可信会话 URL/user turn 时，再用新独占 Target 精确读回原会话，逐调用持久记录读回路径、Target/Document、观察时间、结果或失败码及 Owner proof；历史哈希的定时重算或等待不能充当读回耗尽。旧 Target 物理缺席或精确身份丢失后，若 CONFIRMED WAL 仍有可信会话 URL/user turn，先在新 Target 精确零提交读回；只有两条适用路径均失败或根本无可信锚点，才进入 Website 风险门。Browser Owner 对已鉴权 Target claim 在给 Extension ack 前，将 exact jobRefHash、targetRef/tabId 持久到原 Browser SQLite；启动与每次新 Target mutation 前枚举 v40 WAL 未结算 targetRef：仅真正未结算 DISPATCHED 输入与当前 lane/Extension handler 进入跨 job 全局门；历史 legacy_wal 数字 Target 候选只在归属 job 的读回与释放中局部清算，不能把全部 released_at=null 候选误判为仍占用物理 Tab。旧 Target 若与 Extension registry 精确同一，则关闭并向 Chrome tabs/debugger 读回缺席；归属不可证的旧 v40 tabId 禁止猜删，须由已鉴权 Extension 核旧 transport epoch/fence 已撤并等待旧 handler/CDP page action/read barrier 全部停稳，在同一 Browser SQLite 持久 typed quiescence proof。空 registry 不是物理缺席证据。若旧答案在旧 Target 及可信会话新 Target 两条适用路径均可证不可取得，且旧 Target 可证物理缺席或旧输入可证静止，Website 原 claim/event/receipt 可签指定调用的一次风险 grant；单独 `quiesced` 只证明旧输入静止，不证明旧答案不可取得；source evidence 枚举完整旧 WAL 中需风险重提的稳定调用集合；Website 同一 event/receipt/revision 对每项三元组及其跨旧 attempt/revision 的完整 Provider effect 集合 hash 独立签 grant hash；Browser 原 WAL 在单事务核该项集合、当前精确调用及 grant 的全部既有 row，每项 grant 最多插入一条新 Provider effect row，其他调用不得借用；允许用户授权的可能重复提交，继续只接纳一个业务结果。该风险路径是明确的交付优先例外，不能由 AGENT 自签或因网络断线推断旧 Target 已消失。 现役本机旧 `production_attempt_handoffs` 已有封存记录时，Runtime 只按精确旧表形状在原 SQLite 单事务迁移并逐行读回原身份、seal 与 manifest，新增读回观察为空；未知形状继续阻止启动，不能用空新库冒充无历史。
+机械有效结果一旦成立，Runtime 必须在唯一 SQLite transaction 持久 stage 与 terminal Outbox intent；Browser/GPT cleanup 失败仅是诊断，不能撤销结果。Website 对同 job 新 attempt 的行锁裁决必须先核本地已鉴权 `source_evidence[]`、原 Outbox、Website artifact/terminal；旧结果可恢复就重授旧 attempt 交付。只有确证旧结果不可恢复才签普通新 attempt；这并不授权 Provider 重发。Browser 原 WAL 全历史可证零输入时可在新 attempt 用当前 Prompt/hash 首次提交；旧 revision 已由 Website rejection 与原 source handoff/event 精确结算时，当前来源 attempt 可证零输入也可在同 revision 的普通新 attempt 首次提交；其余已可能输入 effect 仍先零输入读回。跨 attempt 的本地接纳仅走 Website source seal 与原 manifest 的持久 CAS；旧 failure CAS 只处理同 attempt。封存的 Outbox 来源 hash 只覆盖不可变 intent 身份、路径与 body hash；原 SQLite 中已封存 manifest 在后续 claim 复用，部分上传回执晚到不改 seal。已接受 attempt 重授而本地 task 缺席时，先核 Browser WAL、Outbox 与 Target 历史；完全空白才正常接纳，已有历史先恢复 task 身份并于下一轮对账，不能把本地缺席当作零输入。证据不完整的 `fail_closed` 不能因 job 级“可能输入”而重新执行 Product；原恢复 claim 在释放仍可安全重绑的旧 Target 前，先在仍可安全重绑的旧 Target 对每个旧 effect 作真实零输入读回；旧实例不可绑但 CONFIRMED WAL 有可信会话 URL/user turn 时，再用新独占 Target 精确读回原会话，逐调用持久记录读回路径、Target/Document、观察时间、结果或失败码及 Owner proof；历史哈希的定时重算或等待不能充当读回耗尽。旧 Target 物理缺席或精确身份丢失后，若 CONFIRMED WAL 仍有可信会话 URL/user turn，先在新 Target 精确零提交读回；只有两条适用路径均失败或根本无可信锚点，才进入 Website 风险门。Browser Owner 对已鉴权 Target claim 在给 Extension ack 前，将 exact jobRefHash、targetRef/tabId 持久到原 Browser SQLite；启动与每次新 Target mutation 前枚举 v40 WAL 未结算 targetRef：仅真正未结算 DISPATCHED 输入与当前 lane/Extension handler 进入跨 job 全局门；历史 legacy_wal 数字 Target 候选只在归属 job 的读回与释放中局部清算，不能把全部 released_at=null 候选误判为仍占用物理 Tab。旧 Target 若与 Extension registry 精确同一，则关闭并向 Chrome tabs/debugger 读回缺席；归属不可证的旧 v40 tabId 禁止猜删，须由已鉴权 Extension 核旧 transport epoch/fence 已撤并等待旧 handler/CDP page action/read barrier 全部停稳，在同一 Browser SQLite 持久 typed quiescence proof。空 registry 不是物理缺席证据。若旧答案在旧 Target 及可信会话新 Target 两条适用路径均可证不可取得，且旧 Target 可证物理缺席或旧输入可证静止，Website 原 claim/event/receipt 可签指定调用的一次风险 grant；单独 `quiesced` 只证明旧输入静止，不证明旧答案不可取得；source evidence 枚举完整旧 WAL 中需风险重提的稳定调用集合；Website 同一 event/receipt/revision 对每项三元组及其跨旧 attempt/revision 的完整 Provider effect 集合 hash 独立签 grant hash；Browser 原 WAL 在单事务核该项集合、当前精确调用及 grant 的全部既有 row，每项 grant 最多插入一条新 Provider effect row，其他调用不得借用；允许用户授权的可能重复提交，继续只接纳一个业务结果。该风险路径是明确的交付优先例外，不能由 AGENT 自签或因网络断线推断旧 Target 已消失。 现役本机旧 `production_attempt_handoffs` 已经获授权单次 cutover 并逐行读回原身份、seal 与 manifest；普通 Runtime 启动只读校验精确三表，旧形状或缺表返回 migration-required，不留启动迁移或兼容入口，也不能用空新库冒充无历史。
 
 ### 1.3 非目标
 
@@ -97,7 +100,7 @@ Website Domain Consumer 对同一 job_id + result_payload_hash 幂等入库
 
 ### 3.1 法案与施工图
 
-1. AGENT `LAW-AGENT-PRODUCTION-RUNTIME-001-V69`、`LAW-ARCHITECTURE-BOUNDARY-001-V14` 固定：Runtime/Mediator 不得决定 Product Prompt、模型、Child 顺序、分支或下一步；Website.ai-acceptance 是唯一业务恢复决策 Owner。
+1. AGENT `LAW-AGENT-PRODUCTION-RUNTIME-001-V70`、`LAW-ARCHITECTURE-BOUNDARY-001-V15` 固定：Runtime/Mediator 不得决定 Product Prompt、模型、Child 顺序、分支或下一步；Website.ai-acceptance 是唯一业务恢复决策 Owner。
 2. `LAW-AGENT-PRODUCTION-RUNTIME-003-V40` 和现役 Runtime Blueprint 固定：Runtime 对外只发布由 Mediator 纯路由快照生成的 `product_id + action_id + task/result contract version`。
 3. Website `LAW-AI-ACCEPTANCE-002-V29`、`003-V10`、`004-V28`、`012-V37` 与 AI Acceptance Blueprint 固定：Website 不得逐步遥控 AGENT，不接收 Product Flow、Prompt、模型、selector、Target/Document 和恢复位置；Website 只有 `ACTIVE_ATTEMPT | WAIT_NEW_ATTEMPT | CONSUME_CURRENT_RESULT` 三个 next action。
 4. GPT Blueprint 固定：一个 Child 只做一个局部决定、零或一次 Browser 动作、直接后置证明；Child 不得决定 Product 下一步。
@@ -109,7 +112,7 @@ Website Domain Consumer 对同一 job_id + result_payload_hash 幂等入库
 - `src/capabilities/gpt/contract.ts` 的 `GPT_CHILD_CAPABILITY_CONTRACTS` 已覆盖 14 个 Child，且已声明 semantic intent、profile、decision set、pre/postcondition、mutation budget、evidence schema 和 replay policy。
 - 同文件的 `GptChildCapabilityProof` 已记录 child/version/status/reason、exact call identity、job/attempt/result revision/product step/call/input hash/action ordinal、authority/evidence、candidate cardinality、observation revision、mutation/postcondition/browser fact 与开始结束时间。
 - Browser 已有唯一 lane、WAL、Target/Document authority、访问门、动作后读回、Provider observation cadence 和类型化 terminal fact。
-- Runtime 已有 session/attestation、claim、durable accept、lease renew、Product 单次路由、唯一 Outbox、Website admission reconciliation 和两表本地权威。
+- Runtime 已有 session/attestation、claim、durable accept、lease renew、Product 单次路由、唯一 Outbox、Website admission reconciliation 和三表本地权威（第三表仅保全原 attempt 交接与真实读回证明）。
 - Website 已有 attempt failure fact、恢复矩阵、三个 next action、staging、Domain Consumer 和 admission receipt。
 
 ### 3.3 第一直接断裂
@@ -260,7 +263,7 @@ Website active demand / exact job
   -> 有效旧结果：原身份继续 Outbox/terminal/admission
   -> 无可恢复结果：Product 原入口执行，GPT Child 经 Browser 原 WAL/lane 取得结果
        -> 旧 effect 已可能输入：先零 submit 读回
-       -> 全历史零输入：普通新 attempt 首次输入
+       -> 全历史零输入，或旧 revision 已被 Website 拒收结算且当前来源 attempt 零输入：普通新 attempt 首次输入
        -> 旧答案有界不可得、旧 Target 可证物理缺席或旧输入可证静止：Website 风险 grant 指定一次新输入
   -> 机械有效结果：stage + terminal Outbox intent 同一 SQLite 事务
   -> cleanup 只诊断，Outbox 继续向 Website terminal 交付
@@ -550,13 +553,13 @@ O09–O16 的 ID 保留供原始事故和质检引用；下表是 v6 语义。�
 
 | ID | 精确事实 | Website/AGENT 自动下一动作 | Provider 输入上限 |
 |---|---|---|---:|
-| O09 | `target_local + REJECTED` | Website 有限退避新 attempt；Browser 查全历史后恢复页面准备 | 由全历史零输入/原 effect/风险 grant 决定 |
-| O10 | `provider_effect + mutation_outcome=no` 且全历史零输入 | Website 新 attempt，Browser 可用当前 hash 首次提交 | 新授权至多一次 |
+| O09 | `target_local + REJECTED` | 普通或拒收来源由 Website 证据交接签新 attempt；未用的风险 grant 只重授同 attempt，Browser 先结算旧 Target 再以新 fence 重做准备 | 由当前 attempt 零输入、旧 revision 结算及原风险 grant 精确决定 |
+| O10 | `provider_effect + mutation_outcome=no` 且全历史零输入，或旧 revision 已获 Website rejection/source handoff 结算且当前来源 attempt 零输入 | Website 核原事件后签同 revision 新 attempt，Browser 查全历史并按当前授权首次提交 | 新授权至多一次 |
 | O11 | `provider_effect + dispatched\|confirmed` | 原 effect 在旧 Target 上逐调用真实零输入 readback；成功继续交付，真实有界耗尽或旧 Target 可证不可读后清算，再请 Website 风险裁决 | 普通授权 0；风险 grant 指定一次 |
 | O12 | `target_local + DISPATCHED` | 禁当前危险动作，原 WAL/Target 对账；旧 Target 物理缺席或旧输入可证静止后恢复同 job | 未获风险 grant 前 0 |
 | O13 | `target_local + CONFIRMED + confirmed` | 页面准备事实只作诊断；查全历史/旧结果后继续同 job | 由 Provider effect 事实决定 |
 | O14 | 缺字段、非法、矛盾或 stale lease | 保留原字节并自动重取权威/补证；旧结果优先，不得因 shape 使 demand 失活 | 不明时 0 |
-| O15 | Website 明确拒绝当前 result revision | Website 签下一 revision；Browser 按全历史与风险授权守门 | 由新身份与授权决定 |
+| O15 | Website 明确拒绝当前 result revision | Website 按原 rejection/source handoff 签下一 revision；旧 effect 留历史，当前 revision 的后续技术失败按 O09/O10 重新判当前来源 attempt 输入 | 由新身份与授权决定 |
 | O16 | staged/terminal 存在但无 admission receipt | 原 Outbox/terminal/Domain Consumer/admission 自动读回或交付 | 0 |
 
 Website 的 observation 与实际 claim 使用同一持久谓词和有限再检查时间。Website 在签任何新 attempt 前于同一行锁事务核 AGENT 已鉴权 `source_evidence[]` 与 Website 原结果/receipt；可恢复 READY 必须继续旧结果。对于原答案经有界读回仍不可得、旧 DISPATCHED 物理输入未决且准备切换的危险旧 Target，Browser 证明旧 Target 物理缺席或旧 handler/CDP 输入静止之前，同 job 新 attempt 与其他 job 均不得在新 Target 输入；正常已确认且仍绑定的轮询 Tab 继续按唯一 FIFO/lane 与全局观察节拍交错，不要求关闭。风险 grant 的新 result revision 与 grant hash 由 Website 原 job event/claim receipt 持久签发，Browser 原 WAL 原位一次性绑定；结果归 Website 唯一 Domain Consumer 接纳。

@@ -7,6 +7,7 @@ import { canonicalBrowserExactAssistantTurnRevision } from
 type BrowserRecord = Record<string, unknown>;
 type ExactAssistantObservation = Readonly<{
   rawCount: number;
+  pendingCause: ExactAssistantPendingCause;
   rawDomHtml: string;
   semanticText: string;
   currentUrl: string;
@@ -227,19 +228,21 @@ const decodeObservation = (
   if (rawCount > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
   if (rawCount === 0) {
     const pendingCause = observed.pendingCause as ExactAssistantPendingCause;
-    if (pendingCause === "exact-user-turn-unavailable") {
-      throw new Error("BROWSER_EXACT_USER_TURN_UNAVAILABLE");
-    }
-    if (pendingCause === "adjacent-assistant-missing") {
-      throw new Error("BROWSER_ADJACENT_ASSISTANT_TURN_MISSING");
-    }
-    throw new Error("BROWSER_DOM_READ_INVALID");
+    if (pendingCause !== "exact-user-turn-unavailable"
+      && pendingCause !== "adjacent-assistant-missing") throw new Error("BROWSER_DOM_READ_INVALID");
+    return Object.freeze({
+      rawCount, pendingCause, rawDomHtml: "", semanticText: "",
+      observedAt: observed.observedAt as string, currentUrl: observed.currentUrl as string,
+      assistantTurnId: observed.assistantTurnId as string,
+      precedingUserTurnId: observed.precedingUserTurnId as string,
+      generatingRaw: observed.generatingRaw as number, nativeStage: "runtime-call-function-on",
+    });
   }
   if (observed.pendingCause !== null) throw new Error("BROWSER_DOM_READ_INVALID");
   const rawDomHtml = observed.rawDomHtml as string;
   if (rawDomHtml.length === 0) throw new Error("BROWSER_DOM_READ_INVALID");
   return Object.freeze({
-    rawCount, rawDomHtml,
+    rawCount, pendingCause: null, rawDomHtml,
     semanticText: observed.semanticText as string, observedAt: observed.observedAt as string,
     currentUrl: observed.currentUrl as string,
     assistantTurnId: observed.assistantTurnId as string,
@@ -302,14 +305,11 @@ export const executeExactAssistantTurnRead = async (
   commandDeadlineAt?: number,
 ): Promise<unknown> => {
   assertCurrent();
-  let observed: ExactAssistantObservation;
-  try {
-    observed = await observeExactAssistantTurn(
-      debuggerRuntime, target, intent, expectedMainFrameLoaderId,
-    );
-  } catch (error) {
-    if (!(error instanceof Error) || error.message !== "BROWSER_EXACT_USER_TURN_UNAVAILABLE"
-      || commandDeadlineAt === undefined) throw error;
+  let observed = await observeExactAssistantTurn(
+    debuggerRuntime, target, intent, expectedMainFrameLoaderId,
+  );
+  if (observed.pendingCause === "exact-user-turn-unavailable"
+    && commandDeadlineAt !== undefined) {
     assertCurrent();
     await materializeExactUserTurn(debuggerRuntime, target, intent.userTurnId, commandDeadlineAt);
     assertCurrent();
@@ -330,7 +330,7 @@ export const executeExactAssistantTurnRead = async (
     observedAt: observed.observedAt,
   });
   const observationRevisionHash = await sha256Text(
-    canonicalBrowserExactAssistantTurnRevision(revisionInput),
+    canonicalBrowserExactAssistantTurnRevision(revisionInput, observed.pendingCause),
   );
   return Object.freeze({
     schemaVersion: "grasseye.browser.exact-assistant-turn.v3" as const,
@@ -346,5 +346,6 @@ export const executeExactAssistantTurnRead = async (
     semanticText: observed.semanticText,
     semanticTextHash,
     observedAt: observed.observedAt,
+    ...(observed.pendingCause === null ? {} : { pendingCause: observed.pendingCause }),
   });
 };

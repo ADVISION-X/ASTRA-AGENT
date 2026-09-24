@@ -14,6 +14,7 @@ export type BrowserExactAssistantTurnRevisionInput = Readonly<{
 
 export const canonicalBrowserExactAssistantTurnRevision = (
   input: BrowserExactAssistantTurnRevisionInput,
+  pendingCause: "exact-user-turn-unavailable" | "adjacent-assistant-missing" | null = null,
 ): string => canonicalizeBrowserAuthorityValue({
     targetRefHash: input.targetRefHash,
     documentRefHash: input.documentRefHash,
@@ -24,4 +25,5 @@ export const canonicalBrowserExactAssistantTurnRevision = (
     rawDomHash: input.rawDomHash,
     semanticTextHash: input.semanticTextHash,
     observedAt: input.observedAt,
+    ...(pendingCause === null ? {} : { pendingCause }),
   });

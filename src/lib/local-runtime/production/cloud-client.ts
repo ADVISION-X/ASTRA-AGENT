@@ -65,6 +65,7 @@ export async function claimProductionTasks(
   requestId = `aipclaim_${randomUUID()}`,
   forceCurrentAttestation = false,
   sourceEvidence: Parameters<ProductionWorkerSession["requestClaim"]>[3] = [],
+  deliveryCandidates: Parameters<ProductionWorkerSession["requestClaim"]>[4] = [],
 ): Promise<Readonly<{
   outcome: "LEASE_GRANTED" | "NO_ELIGIBLE_JOB" | "CAPACITY_ZERO" | "CLAIM_BLOCKED" | "DRAINING";
   jobs: readonly ClaimedProductionTask[];
@@ -76,7 +77,8 @@ export async function claimProductionTasks(
     throw new Error("V6_CLAIM_LIMIT_INVALID");
   }
   const receipt = ClaimBatchReceiptSchema.parse(
-    await session.requestClaim(requestId, limit, forceCurrentAttestation, sourceEvidence),
+    await session.requestClaim(requestId, limit, forceCurrentAttestation,
+      sourceEvidence, deliveryCandidates),
   );
   if (receipt.request_id !== requestId) throw executionFailure("failed", "V6_CLAIM_RECEIPT_MISMATCH");
   const jobs = receipt.jobs.map((raw) => ClaimedProductionTaskSchema.parse(raw));

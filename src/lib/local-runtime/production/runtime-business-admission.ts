@@ -121,7 +121,10 @@ export const reconcileBusinessAdmission = async (
           code: state.lastErrorCode, responsibleOwner: "browser-session",
           impact: RuntimeFailureImpact.CLEANUP }),
       }));
-    } catch { /* completed business result remains authoritative */ }
+    } catch (logError) {
+      state.lastErrorCode = failureCode(logError, "BROWSER_ADMISSION_CLEANUP_LOG_FAILED");
+      state.lastErrorReason = "Business result was admitted; Browser cleanup and its diagnostic log remain pending.";
+    }
   }
   return "completed";
 };

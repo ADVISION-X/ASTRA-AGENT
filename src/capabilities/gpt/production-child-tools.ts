@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import {
   GPT_CHILD_CAPABILITY_CONTRACTS,
   type GptAbilityGroup,
@@ -34,6 +36,8 @@ import {
 import {
   acquireProductionBrowserCall, recoverPersistedTextCheckpoint, runProductionAtomicPhase,
 } from "./production-call-preparation.js";
+import { imageResponseFromEvidence, readPersistedGptImageEvidence,
+  readPersistedGptTextResponse } from "./evidence-artifacts.js";
 import type {
   GptEvidenceStorePort,
   GptProductionBrowserAuthority,
@@ -77,6 +81,27 @@ export class ProductionGptChildTools {
     private readonly runtimeLogger: RuntimeLogger,
     private readonly providerRateLimitControl: ProviderRateLimitControlPort,
   ) {}
+  public async verifySourceCheckpointArtifact(input: Readonly<{
+    jobId: string; sourceAttemptId: string;
+    checkpointExactCallIdentityHash: GptHash;
+    artifactRef: string; artifactContentHash: GptHash;
+  }>): Promise<void> {
+    const recovered = await readPersistedGptTextResponse({
+      evidenceStore: this.evidenceStore, jobId: input.jobId,
+      attemptId: input.sourceAttemptId,
+      exactCallIdentityHash: input.checkpointExactCallIdentityHash,
+    });
+    const image = recovered ? null : await readPersistedGptImageEvidence({
+      evidenceStore: this.evidenceStore, jobId: input.jobId,
+      attemptId: input.sourceAttemptId,
+      exactCallIdentityHash: input.checkpointExactCallIdentityHash,
+    });
+    const artifact = recovered ?? image;
+    if (!artifact || artifact.artifactRef !== input.artifactRef
+      || artifact.integrityHash !== input.artifactContentHash) {
+      throw executionFailure("failed", "PRODUCTION_SOURCE_CHECKPOINT_ARTIFACT_UNAVAILABLE");
+    }
+  }
   private browserLifecycle(input: ExecutionInput): ProductionGptBrowserLifecycle {
     return new ProductionGptBrowserLifecycle(
       this.browserAuthority,
@@ -103,7 +128,65 @@ export class ProductionGptChildTools {
   }
   public createExecution(input: ExecutionInput): ProductGptExecution {
     const browsers = this.browserLifecycle(input);
+    const sourceReusableCalls = new Map((input.sourceReusableCalls ?? []).map((call) =>
+      [[call.productStepId, call.callId, call.childCapabilityId].join("\u0000"), call]));
+    const sourceCompletedKeys = new Set<string>();
+    const riskCalls = new Map((input.deliveryPriorityReplayCalls ?? []).map((call) =>
+      [[call.productStepId, call.callId, call.childCapabilityId].join("\u0000"), call]));
+    const riskCompletedKeys = new Set<string>();
+    const riskSubmittedByStep = new Map<string, string>();
+    if (sourceReusableCalls.size !== (input.sourceReusableCalls?.length ?? 0)
+      || riskCalls.size !== (input.deliveryPriorityReplayCalls?.length ?? 0)
+      || input.sourceReuseZeroSubmitGrant === true
+        && (sourceReusableCalls.size === 0 || input.deliveryPriorityReplayCalls?.length !== 0)
+      || sourceReusableCalls.size > 0 && (input.domainRejectionRevision
+        || !input.deliveryPriorityReplayCalls?.length && input.sourceReuseZeroSubmitGrant !== true)) {
+      throw executionFailure("failed", "PRODUCTION_SOURCE_REUSE_AUTHORITY_INVALID");
+    }
+    const sourcePendingByStep = new Map<string, Readonly<{
+      key: string;
+      source: NonNullable<ExecutionInput["sourceReusableCalls"]>[number];
+      canonicalConversationUrl: string; userTurnId: string;
+    }>>();
     let providerEffectReadbackProof: ProviderEffectReadbackProofV1 | null = null;
+    const proofByEffect = new Map<string, ProviderEffectReadbackProofV1>();
+    const callKey = (call: Readonly<{ productStepId: string; callId: string;
+      childCapabilityId: string }>): string =>
+      [call.productStepId, call.callId, call.childCapabilityId].join("\u0000");
+    const historicalCallsPending = (): boolean =>
+      riskCalls.size > riskCompletedKeys.size || sourceReusableCalls.size > sourceCompletedKeys.size;
+    const pendingReadbacks = new Map((input.readbackOnlyCalls ?? []).map((call) =>
+      [callKey(call), call]));
+    const submittedByStep = new Map<string, Readonly<{
+      providerEffectIdentityHash: GptHash; browserAuthorityHash: GptHash;
+      browserAuthorityRef: string; submitPromptHash: GptHash;
+      canonicalConversationUrl: string; userTurnId: string;
+      sourceAttemptId: string; sourceResultRevision: number;
+    }>>();
+    const captureSubmit = (sessionKey: string, productStepId: string,
+      result: ProductGptChildResult<"submit_exact_gpt_turn_once">): void => {
+      const receipt = result.effectReceipt;
+      const value = result.value;
+      if (!receipt || receipt.outcome !== "CONFIRMED"
+        || receipt.mutationOutcome !== "confirmed"
+        || !receipt.providerEffectIdentityHash || !receipt.evidenceRef
+        || !receipt.evidenceHash || !value.canonicalConversationUrl
+        || !value.userTurnId || !value.promptHash) {
+        throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
+      }
+      submittedByStep.set(`${sessionKey}\u0000${productStepId}`, Object.freeze({
+        providerEffectIdentityHash: receipt.providerEffectIdentityHash,
+        browserAuthorityHash: receipt.evidenceHash,
+        browserAuthorityRef: receipt.evidenceRef,
+        submitPromptHash: value.promptHash,
+        canonicalConversationUrl: value.canonicalConversationUrl,
+        userTurnId: value.userTurnId,
+        sourceAttemptId: result.sourceAttemptId,
+        sourceResultRevision: input.resultRevision,
+      }));
+    };
+    let activeReadback: Readonly<{ key: string; productStepId: string;
+      canonicalConversationUrl: string; userTurnId: string }> | null = null;
     const recordConfirmedProviderEffectReadback: ReadbackRecorder = (raw) => {
       const body = Object.freeze({
         schema_version: "provider-effect-readback-proof.v1" as const,
@@ -117,19 +200,161 @@ export class ProductionGptChildTools {
         readback_provider_input_delta: raw.readbackProviderInputDelta,
       });
       const next = Object.freeze({ ...body, proof_hash: providerEffectReadbackProofHash(body) });
+      const prior = proofByEffect.get(next.provider_effect_identity_hash);
       if (!isProviderEffectReadbackProofV1(next)
-        || (providerEffectReadbackProof && providerEffectReadbackProof.proof_hash !== next.proof_hash)) {
+        || (prior && prior.proof_hash !== next.proof_hash)) {
         throw executionFailure("failed", "PROVIDER_EFFECT_READBACK_PROOF_CONFLICT");
       }
+      proofByEffect.set(next.provider_effect_identity_hash, next);
       providerEffectReadbackProof = next;
     };
     const execute = async <K extends ProductGptChildCapabilityId>(
       call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>,
     ): Promise<ProductGptChildResult<K>> => {
       this.assertExecutionActive(input);
+      const sourceForStep = [...sourceReusableCalls.entries()].find(([key, source]) =>
+        source.productStepId === call.productStepId && !sourceCompletedKeys.has(key))?.[1];
+      if (input.sourceReuseZeroSubmitGrant === true && !sourceForStep) {
+        throw executionFailure("failed", "PRODUCTION_SOURCE_REUSE_IDENTITY_MISMATCH");
+      }
+      if (riskCalls.size > 0 && historicalCallsPending()
+        && (call.child === "submit_exact_gpt_turn_once"
+          && !riskCalls.has(callKey({ productStepId: call.productStepId,
+            callId: call.callId, childCapabilityId: call.child }))
+          || ![...riskCalls.values(), ...sourceReusableCalls.values()].some((historical) =>
+            historical.productStepId === call.productStepId))) {
+        throw executionFailure("failed", "PRODUCTION_REPLAY_GRANT_SOURCE_MISMATCH");
+      }
+      if (sourceForStep) {
+        if (call.child !== "checkpoint_gpt_text_response"
+          && call.child !== "checkpoint_gpt_generated_image") {
+          throw executionFailure("failed", "PRODUCTION_SOURCE_REUSE_READBACK_ONLY");
+        }
+        const pending = sourcePendingByStep.get(`${call.sessionKey}\u0000${call.productStepId}`);
+        const checkpointInput = call.input as Readonly<{
+          canonicalConversationUrl: string; userTurnId: string; turnMarker?: string;
+        }>;
+        if (!pending || pending.source !== sourceForStep
+          || pending.canonicalConversationUrl !== checkpointInput.canonicalConversationUrl
+          || pending.userTurnId !== checkpointInput.userTurnId) {
+          throw executionFailure("failed", "PRODUCTION_SOURCE_REUSE_IDENTITY_MISMATCH");
+        }
+        const source = pending.source;
+        const identity = { evidenceStore: this.evidenceStore, jobId: input.jobId,
+          attemptId: source.sourceAttemptId,
+          exactCallIdentityHash: source.checkpointExactCallIdentityHash };
+        const image = call.child === "checkpoint_gpt_generated_image"
+          ? await readPersistedGptImageEvidence(identity) : null;
+        const text = call.child === "checkpoint_gpt_text_response"
+          ? await readPersistedGptTextResponse(identity) : null;
+        const recovered = image ?? text;
+        if (!recovered || recovered.artifactRef !== source.artifactRef
+          || recovered.integrityHash !== source.artifactContentHash) {
+          throw executionFailure("failed", "PRODUCTION_SOURCE_CHECKPOINT_ARTIFACT_UNAVAILABLE");
+        }
+        const value = image
+          ? imageResponseFromEvidence(image, {
+            canonicalConversationUrl: checkpointInput.canonicalConversationUrl,
+            userTurnId: checkpointInput.userTurnId,
+            turnMarker: checkpointInput.turnMarker ?? "",
+          }) : text!.value;
+        const reused = Object.freeze({
+          value, evidenceRef: recovered.artifactRef,
+          evidenceHash: recovered.integrityHash,
+          sourceAttemptId: source.sourceAttemptId,
+          exactCallIdentityHash: source.checkpointExactCallIdentityHash,
+          artifactRefs: Object.freeze([image?.originalArtifactRef ?? recovered.artifactRef]),
+          effectReceipt: null,
+        }) as ProductGptChildResult<K>;
+        input.recordSettledCheckpoint?.(Object.freeze({
+          providerEffectIdentityHash: source.effectIdentityHash,
+          browserAuthorityHash: source.walAuthorityHash,
+          browserAuthorityRef: `browser-source:${source.effectIdentityHash}`,
+          sourceAttemptId: source.sourceAttemptId,
+          sourceResultRevision: source.sourceResultRevision,
+          checkpointExactCallIdentityHash: source.checkpointExactCallIdentityHash,
+          artifactRef: source.artifactRef, artifactContentHash: source.artifactContentHash,
+          submitPromptHash: source.submitPromptHash,
+          canonicalConversationUrl: pending.canonicalConversationUrl,
+          userTurnId: pending.userTurnId,
+        }));
+        sourcePendingByStep.delete(`${call.sessionKey}\u0000${call.productStepId}`);
+        sourceCompletedKeys.add(pending.key);
+        return reused;
+      }
+      const checkpoint = call.child === "checkpoint_gpt_text_response"
+        || call.child === "checkpoint_gpt_generated_image";
+      if (pendingReadbacks.size > 0 && (!activeReadback
+        || call.productStepId !== activeReadback.productStepId || !checkpoint)) {
+        throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_ONLY");
+      }
+      if (pendingReadbacks.size > 0 && checkpoint) {
+        const checkpointInput = call.input as Readonly<{
+          canonicalConversationUrl?: string; userTurnId?: string;
+        }>;
+        if (!activeReadback
+          || checkpointInput.canonicalConversationUrl !== activeReadback.canonicalConversationUrl
+          || checkpointInput.userTurnId !== activeReadback.userTurnId) {
+          throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
+        }
+      }
       const result = await this.executeOne(input, browsers, call, {
         recordConfirmedProviderEffectReadback,
       });
+      if (call.child === "submit_exact_gpt_turn_once") {
+        captureSubmit(call.sessionKey, call.productStepId,
+          result as ProductGptChildResult<"submit_exact_gpt_turn_once">);
+        const riskKey = callKey({ productStepId: call.productStepId,
+          callId: call.callId, childCapabilityId: call.child });
+        if (riskCalls.has(riskKey)) {
+          riskSubmittedByStep.set(`${call.sessionKey}\u0000${call.productStepId}`, riskKey);
+        }
+      }
+      if (call.child === "checkpoint_gpt_text_response"
+        || call.child === "checkpoint_gpt_generated_image") {
+        const submit = submittedByStep.get(`${call.sessionKey}\u0000${call.productStepId}`);
+        const checkpointInput = call.input as Readonly<{
+          canonicalConversationUrl: string; userTurnId: string;
+        }>;
+        if (submit && input.recordSettledCheckpoint) {
+          if (submit.canonicalConversationUrl !== checkpointInput.canonicalConversationUrl
+            || submit.userTurnId !== checkpointInput.userTurnId) {
+            throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
+          }
+          const identity = { evidenceStore: this.evidenceStore, jobId: input.jobId,
+            attemptId: input.attemptId, exactCallIdentityHash: result.exactCallIdentityHash };
+          const image = call.child === "checkpoint_gpt_generated_image"
+            ? await readPersistedGptImageEvidence(identity) : null;
+          const text = call.child === "checkpoint_gpt_text_response"
+            ? await readPersistedGptTextResponse(identity) : null;
+          const recovered = image ?? text;
+          if (!recovered || !result.artifactRefs.includes(
+            image?.originalArtifactRef ?? recovered.artifactRef)) {
+            throw executionFailure("failed", "EVIDENCE_ARTIFACT_READBACK_FAILED");
+          }
+          if (image) imageResponseFromEvidence(image, {
+            canonicalConversationUrl: checkpointInput.canonicalConversationUrl,
+            userTurnId: checkpointInput.userTurnId,
+            turnMarker: (call.input as { turnMarker: string }).turnMarker,
+          });
+          input.recordSettledCheckpoint(Object.freeze({
+            ...submit,
+            checkpointExactCallIdentityHash: result.exactCallIdentityHash,
+            artifactRef: recovered.artifactRef,
+            artifactContentHash: recovered.integrityHash,
+          }));
+        }
+        submittedByStep.delete(`${call.sessionKey}\u0000${call.productStepId}`);
+        const riskKey = riskSubmittedByStep.get(`${call.sessionKey}\u0000${call.productStepId}`);
+        if (riskKey) {
+          riskCompletedKeys.add(riskKey);
+          riskSubmittedByStep.delete(`${call.sessionKey}\u0000${call.productStepId}`);
+        }
+      }
+      if (pendingReadbacks.size > 0 && activeReadback && checkpoint) {
+        pendingReadbacks.delete(activeReadback.key);
+        activeReadback = null;
+      }
       return result as ProductGptChildResult<K>;
     };
     return Object.freeze({
@@ -137,11 +362,100 @@ export class ProductionGptChildTools {
         jobId: input.jobId,
         attemptId: input.attemptId,
         execute,
-        readConfirmedSubmit: (
+        readConfirmedSubmit: async (
           call: ConfirmedSubmitCall,
-        ) => this.readConfirmedSubmit(
-          input, browsers, call, recordConfirmedProviderEffectReadback,
-        ),
+        ) => {
+          const key = callKey({ productStepId: call.productStepId,
+            callId: call.callId, childCapabilityId: call.child });
+          const reusable = sourceReusableCalls.get(key);
+          if (reusable) {
+            if (sourceCompletedKeys.has(key)) {
+              throw executionFailure("failed", "PRODUCTION_SOURCE_REUSE_IDENTITY_MISMATCH");
+            }
+            const original = this.browserAuthority.readSourceConfirmedProviderEffect({
+              jobId: input.jobId, sourceAttemptId: reusable.sourceAttemptId,
+              sourceResultRevision: reusable.sourceResultRevision,
+              productStepId: reusable.productStepId, callId: reusable.callId,
+              childCapabilityId: reusable.childCapabilityId,
+              effectIdentityHash: reusable.effectIdentityHash,
+              walAuthorityHash: reusable.walAuthorityHash,
+            });
+            const raw = original.terminalPayload;
+            const value = raw && typeof raw === "object" && !Array.isArray(raw)
+              ? raw as Readonly<Record<string, unknown>> : null;
+            const digest = (text: string): GptHash =>
+              `sha256:${createHash("sha256").update(text).digest("hex")}`;
+            if (!value || original.actionOrdinal !== call.actionOrdinal
+              || value.promptHash !== reusable.submitPromptHash
+              || typeof value.canonicalConversationUrl !== "string"
+              || typeof value.userTurnId !== "string"
+              || value.exactCallIdentityHash !== original.exactCallIdentityHash
+              || value.rawCount !== 1 || value.eligibleCount !== 1
+              || digest(value.canonicalConversationUrl) !== reusable.canonicalConversationHash
+              || digest(value.userTurnId) !== reusable.userTurnHash) {
+              throw executionFailure("failed", "PRODUCTION_SOURCE_REUSE_IDENTITY_MISMATCH");
+            }
+            const result = Object.freeze({
+              value: Object.freeze({ status: "CONFIRMED" as const,
+                promptHash: reusable.submitPromptHash, mutationSent: true as const,
+                canonicalConversationUrl: value.canonicalConversationUrl,
+                userTurnId: value.userTurnId }),
+              evidenceRef: original.authorityRef,
+              evidenceHash: original.authorityHash,
+              sourceAttemptId: reusable.sourceAttemptId,
+              exactCallIdentityHash: original.exactCallIdentityHash,
+              artifactRefs: Object.freeze([]),
+              effectReceipt: Object.freeze({
+                effectScope: "provider_effect" as const,
+                providerEffectIdentityHash: reusable.effectIdentityHash,
+                outcome: "CONFIRMED" as const, mutationOutcome: "confirmed" as const,
+                terminalAt: original.terminalAt,
+                evidenceRef: original.authorityRef, evidenceHash: original.authorityHash,
+              }),
+            });
+            sourcePendingByStep.set(`${call.sessionKey}\u0000${call.productStepId}`,
+              Object.freeze({ key, source: reusable,
+                canonicalConversationUrl: value.canonicalConversationUrl,
+                userTurnId: value.userTurnId }));
+            return result;
+          }
+          if (input.sourceReuseZeroSubmitGrant === true) {
+            throw executionFailure("failed", "PRODUCTION_SOURCE_REUSE_IDENTITY_MISMATCH");
+          }
+          if (riskCalls.size > 0 && historicalCallsPending()
+            && !riskCalls.has(key)) {
+            throw executionFailure("failed", "PRODUCTION_REPLAY_GRANT_SOURCE_MISMATCH");
+          }
+          if ([...sourceReusableCalls.entries()].some(([sourceKey, source]) =>
+            source.productStepId === call.productStepId
+            && !sourceCompletedKeys.has(sourceKey))) {
+            throw executionFailure("failed", "PRODUCTION_SOURCE_REUSE_READBACK_ONLY");
+          }
+          if (pendingReadbacks.size > 0
+            && (!pendingReadbacks.has(key)
+              || activeReadback !== null && activeReadback.key !== key)) {
+            throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
+          }
+          const result = await this.readConfirmedSubmit(
+            input, browsers, call, recordConfirmedProviderEffectReadback,
+          );
+          if (result) {
+            captureSubmit(call.sessionKey, call.productStepId, result);
+            if (riskCalls.has(key)) {
+              riskSubmittedByStep.set(`${call.sessionKey}\u0000${call.productStepId}`, key);
+            }
+          }
+          if (pendingReadbacks.size > 0 && !result) {
+            throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
+          }
+          if (result && pendingReadbacks.size > 0) {
+            activeReadback = Object.freeze({ key, productStepId: call.productStepId,
+              canonicalConversationUrl: result.value.canonicalConversationUrl,
+              userTurnId: result.value.userTurnId,
+            });
+          }
+          return result;
+        },
       }),
       readProviderEffectReadbackProof: () => providerEffectReadbackProof,
       decorateSettledResultFailure: (error) => browsers.decorateSettledResultFailure(error),
@@ -167,6 +481,11 @@ export class ProductionGptChildTools {
     });
     if (!existing) return null;
     const prior = existing.mutation;
+    if (prior.outcome === "REJECTED" && prior.mutationOutcome === "no"
+      && prior.physicalInputCount === 0
+      && input.deliveryPriorityReplayCalls?.some((risk) =>
+        risk.productStepId === call.productStepId && risk.callId === call.callId
+        && risk.childCapabilityId === call.child)) return null;
     const { atomicIdentity, exactCallIdentityHash } = confirmedSubmitIdentity(input, call, existing);
     const effect = submitEffect(prior, exactCallIdentityHash, call.child);
     try {
@@ -176,11 +495,13 @@ export class ProductionGptChildTools {
       }
       const active = await (prior.outcome === "CONFIRMED"
         ? browsers.browserForConfirmedReadback(
-          call.sessionKey, call.productStepId, call.callId)
-        : browsers.browserForRateLimitRecovery(
-        call.sessionKey, call.productStepId, call.callId,
+          call.sessionKey, call.productStepId, call.callId,
+        ) : browsers.browserForRateLimitRecovery(
+          call.sessionKey, call.productStepId, call.callId,
         ));
-      if (!active.facade.readAtomicStepOutcome(atomicIdentity)) return null;
+      if (!active.facade.readAtomicStepOutcome(atomicIdentity)) {
+        throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
+      }
       return await this.executeOne<"submit_exact_gpt_turn_once">(input, browsers, call, {
         priorEffectKnown: true, browserAtomicIdentity: atomicIdentity,
         recordConfirmedProviderEffectReadback,
@@ -251,8 +572,7 @@ export class ProductionGptChildTools {
       const browsers = this.browserLifecycle(execution);
       const incident = await this.providerRateLimitControl.beginIncident(pending);
       try {
-        try {
-          const acknowledged = await this.executeOne(execution, browsers, {
+        const acknowledged = await this.executeOne(execution, browsers, {
             child: "acknowledge_known_gpt_rate_limit",
             sessionKey: pending.sessionKey,
             productStepId: "gpt-rate-limit-control",
@@ -266,16 +586,15 @@ export class ProductionGptChildTools {
               documentRefHash: pending.documentRefHash,
               observedAt: pending.observedAt,
             },
-          }, { priorEffectKnown: true, rateLimitAckDispatchNotAfter: Date.parse(pending.observedAt) + 1_000 });
-          await incident.deliver({
-            clearance: acknowledged.value.clearance,
-            acknowledgementReceiptHash: acknowledged.value.acknowledgementReceiptHash,
-            acknowledgedAt: acknowledged.value.acknowledgedAt,
-          });
-        } catch (error) {
+          }, { priorEffectKnown: true, rateLimitAckDispatchNotAfter: Date.parse(pending.observedAt) + 1_000 }).catch(async (error: unknown) => {
           await incident.deliver(notClearedRateLimit(incident, pending.observedAt));
           throw error;
-        }
+        });
+        await incident.deliver({
+          clearance: acknowledged.value.clearance,
+          acknowledgementReceiptHash: acknowledged.value.acknowledgementReceiptHash,
+          acknowledgedAt: acknowledged.value.acknowledgedAt,
+        });
       } finally {
         await browsers.settle(null);
       }

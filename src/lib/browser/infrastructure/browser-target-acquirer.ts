@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { BrowserExecutionBinding } from "./browser-authority-broker.js";
 import { BrowserAuthorityBroker } from "./browser-authority-broker.js";
 import { BrowserAuthorityIssuer } from "./browser-authority-issuer.js";
@@ -28,12 +29,13 @@ export class BrowserTargetAcquirer {
     const mutations = this.infrastructure.mutationState;
     if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
     mutations.assertRuntimeTaskProvenance();
-    const unclosed = mutations.unreleasedTargetClaims();
-    if (unclosed.some((claim) => claim.jobRefHash !== waiter.binding.jobRefHash)
-      || unclosed.length > 1) throw new Error("BROWSER_OLD_TARGET_RECONCILIATION_REQUIRED");
+    const unclosed = mutations.unreleasedTargetClaims()
+      .filter((claim) => claim.jobRefHash === waiter.binding.jobRefHash);
+    const targetRefs = [...new Set(unclosed.map((claim) => claim.targetRef))];
+    if (targetRefs.length > 1) throw new Error("BROWSER_OLD_TARGET_RECONCILIATION_REQUIRED");
     // A surviving Extension may still hold the old answer after AGENT restart.
     // Rebind the exact same Target for readback before any release decision.
-    if (unclosed.length > 0 && waiter.targetMode === "fresh") {
+    if (targetRefs.length > 0 && waiter.targetMode === "fresh") {
       throw new Error("BROWSER_OLD_TARGET_RECONCILIATION_REQUIRED");
     }
     const currentJobRefHash = this.resolveBroker().currentOperatorTargetJobRefHash();
@@ -47,7 +49,7 @@ export class BrowserTargetAcquirer {
     await this.acquireJobBoundTarget(
       Math.min(waiter.binding.commandTtlMs, waiter.remainingMs()), waiter.targetMode,
       waiter.binding.jobRefHash, parentConversationUrl,
-      unclosed[0]?.targetRef,
+      targetRefs[0],
     );
   }
 
@@ -58,11 +60,10 @@ export class BrowserTargetAcquirer {
     parentConversationUrl?: string,
     expectedTargetRef?: string,
   ): Promise<void> {
-    await this.awaitTargetOperation(commandTtlMs, "acquire", jobRefHash, () => {
+    await this.awaitTargetOperation(commandTtlMs, "acquire", jobRefHash, () =>
       this.websocket.requestPreauthorizedTargetAcquisition(
         targetMode, jobRefHash, parentConversationUrl, expectedTargetRef,
-      );
-    });
+      ), undefined, expectedTargetRef);
   }
 
   public async releaseJobBoundTarget(
@@ -86,8 +87,9 @@ export class BrowserTargetAcquirer {
     commandTtlMs: number,
     action: "acquire" | "release",
     jobRefHash: `sha256:${string}`,
-    dispatch: () => void,
+    dispatch: () => number | void,
     targetRefs?: readonly string[],
+    expectedTargetRef?: string,
   ): Promise<void> {
     const current = this.issuer.current();
     if (current.kind === "ABSENT") throw new Error(current.reasonCode);
@@ -109,11 +111,17 @@ export class BrowserTargetAcquirer {
         action,
         jobRefHash,
         ...(targetRefs ? { targetRefs } : {}),
+        ...(expectedTargetRef ? { expectedTargetRef } : {}),
         resolve,
         reject,
         timeout,
       };
-      try { dispatch(); }
+      try {
+        const sequence = dispatch();
+        if (sequence !== undefined) this.infrastructure.pendingJobBoundTargetAcquisition = {
+          ...this.infrastructure.pendingJobBoundTargetAcquisition!, requestSequence: sequence,
+        };
+      }
       catch (error) {
         this.rejectPending(error instanceof Error ? error.message : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
       }
@@ -130,11 +138,34 @@ export class BrowserTargetAcquirer {
     pending.resolve();
   }
 
-  public rejectPending(reasonCode: string): void {
+  public rejectPending(reasonCode: string, refs: Readonly<Record<string, string>> = {}): void {
     const pending = this.infrastructure.pendingJobBoundTargetAcquisition;
     if (!pending) return;
+    if (refs.jobRefHash && refs.jobRefHash !== pending.jobRefHash) return;
+    if (refs.failedFrameSequence && pending.requestSequence !== undefined
+      && Number(refs.failedFrameSequence) !== pending.requestSequence) return;
     this.infrastructure.pendingJobBoundTargetAcquisition = null;
     clearTimeout(pending.timeout);
-    pending.reject(new Error(reasonCode));
+    const error = new Error(reasonCode) as Error & {
+      oldTargetUnavailableFact?: Readonly<{ jobRefHash: `sha256:${string}`;
+        targetRefHash: `sha256:${string}`; proofHash: `sha256:${string}` }>;
+    };
+    if (reasonCode === "BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE"
+      && pending.action === "acquire" && pending.expectedTargetRef
+      && pending.requestSequence !== undefined
+      && refs.jobRefHash === pending.jobRefHash
+      && refs.targetRef === pending.expectedTargetRef
+      && Number(refs.failedFrameSequence) === pending.requestSequence) {
+      const targetRefHash = `sha256:${createHash("sha256")
+        .update(pending.expectedTargetRef).digest("hex")}` as const;
+      error.oldTargetUnavailableFact = Object.freeze({
+        jobRefHash: pending.jobRefHash, targetRefHash,
+        proofHash: `sha256:${createHash("sha256").update(JSON.stringify({
+          reasonCode, jobRefHash: pending.jobRefHash, targetRefHash,
+          requestSequence: pending.requestSequence, authorityEpoch: pending.authorityEpoch,
+        })).digest("hex")}` as const,
+      });
+    }
+    pending.reject(error);
   }
 }

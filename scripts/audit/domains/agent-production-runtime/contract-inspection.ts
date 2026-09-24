@@ -7,9 +7,9 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 export const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V69", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V10",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V70", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V10",
   route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V40", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V40",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V38", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V42",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V39", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V42",
   staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V42",
   dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V43",
 } as const;
@@ -38,8 +38,8 @@ export const sourceFor = (context: InspectorContext, path: string): SourceFile |
 
 const inspectMinimalDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const [path, version, lawId, checkId] of [
-    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 40,
-      LAWS.route, "agent-production-runtime/v37-dependency"],
+    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 43,
+      LAWS.route, "agent-production-runtime/v43-dependency"],
     ["docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json", 14,
       LAWS.route, "agent-production-runtime/v13-result-dependency"],
   ] as const) {

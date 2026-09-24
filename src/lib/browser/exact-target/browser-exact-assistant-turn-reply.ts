@@ -14,7 +14,9 @@ const exactAssistantTurnIdentityValid = (
   intent: Extract<BrowserDomIntent, { kind: "readExactAssistantTurn" }>,
 ): boolean => {
   const keys = Object.keys(value);
-  const exactKeys = keys.length === 13 && ["schemaVersion", "targetRefHash", "documentRefHash",
+  const negative = value.pendingCause === "exact-user-turn-unavailable"
+    || value.pendingCause === "adjacent-assistant-missing";
+  const exactKeys = keys.length === (negative ? 14 : 13) && ["schemaVersion", "targetRefHash", "documentRefHash",
     "observationRevisionHash", "assistantTurnId", "currentUrl", "precedingUserTurnId",
     "generatingRaw", "rawDomHtml", "rawDomHash", "semanticText", "semanticTextHash", "observedAt",
   ].every((key) => keys.includes(key));
@@ -23,8 +25,10 @@ const exactAssistantTurnIdentityValid = (
     typeof value.observationRevisionHash === "string",
     /^sha256:[a-f0-9]{64}$/u.test(String(value.observationRevisionHash)),
     typeof value.assistantTurnId === "string",
-    /^conversation-turn-[1-9][0-9]*$/u.test(String(value.assistantTurnId)),
+    negative || /^conversation-turn-[1-9][0-9]*$/u.test(String(value.assistantTurnId)),
     typeof value.currentUrl === "string", value.precedingUserTurnId === intent.userTurnId,
+    !negative || value.currentUrl === intent.canonicalConversationUrl,
+    !negative || value.rawDomHtml === "" && value.semanticText === "",
   ].every(Boolean);
 };
 
@@ -52,7 +56,8 @@ const exactAssistantTurnValueValid = (
     precedingUserTurnId: value.precedingUserTurnId as string, generatingRaw: value.generatingRaw as number,
     rawDomHash: value.rawDomHash as `sha256:${string}`,
     semanticTextHash: value.semanticTextHash as `sha256:${string}`, observedAt,
-  }));
+  }, value.pendingCause === "exact-user-turn-unavailable"
+    || value.pendingCause === "adjacent-assistant-missing" ? value.pendingCause : null));
 };
 
 export const bindExactAssistantTurnReply = (

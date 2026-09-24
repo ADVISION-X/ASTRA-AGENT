@@ -19,7 +19,9 @@ const resultValue = {
   originalBytes: original, originalSha256: originalHash,
   originalSizeBytes: original.byteLength, originalMediaType: "image/png",
 };
-const intent = { executionId: "execution-image", childCapabilityId: "checkpoint_gpt_generated_image" } as never;
+const intent = { executionId: "execution-image", childCapabilityId: "checkpoint_gpt_generated_image",
+  input: { canonicalConversationUrl: conversationUrl, userTurnId: "conversation-turn-5",
+    turnMarker: "image-turn" } } as never;
 
 const persistWith = (evidenceStore: GptEvidenceStorePort, suffix: string, value: unknown = resultValue) =>
   persistGptEvidenceArtifacts({
@@ -30,22 +32,40 @@ const persistWith = (evidenceStore: GptEvidenceStorePort, suffix: string, value:
 
 const verifyOriginalPersistence = async (): Promise<void> => {
   const appended: Array<Readonly<{ artifactType: string; mimeType?: string; content?: string | Uint8Array }>> = [];
+  const saved = new Map<string, Readonly<{ artifactRef: string; content: Uint8Array;
+    mimeType: string; integrityHash: `sha256:${string}` }>>();
   const store: GptEvidenceStorePort = {
     appendArtifact: async (input) => {
       appended.push(input);
-      return { status: "success", artifactRef: "artifact:image-original" };
+      const content = typeof input.content === "string" ? new TextEncoder().encode(input.content)
+        : input.content ?? new Uint8Array();
+      const artifactRef = `artifact:${input.idempotencyKey}`;
+      saved.set(input.idempotencyKey, { artifactRef, content,
+        mimeType: input.mimeType ?? "application/octet-stream",
+        integrityHash: `sha256:${createHash("sha256").update(content).digest("hex")}` });
+      return { status: "success", artifactRef };
     },
-    readArtifact: async () => ({ status: "success", artifactRef: "artifact:image-original",
-      artifact: { content: original, mimeType: "image/png", integrityHash: originalHash } }),
+    readArtifact: async (input) => {
+      const item = saved.get(input.idempotencyKey);
+      if (!item) return { status: "failed", failureReason: "FORENSICS_ARTIFACT_NOT_FOUND" };
+      return { status: "success", artifactRef: item.artifactRef,
+        artifact: { content: item.content, mimeType: item.mimeType,
+          integrityHash: item.integrityHash } };
+    },
   };
-  assert.deepEqual(await persistWith(store, "3"), ["artifact:image-original"]);
-  assert.equal(appended.length, 1);
+  assert.deepEqual(await persistWith(store, "3"),
+    [`artifact:gpt-call-artifact:v1:sha256:${"3".repeat(64)}:original`]);
+  assert.equal(appended.length, 2);
   assert.equal(appended[0]?.artifactType, "ai_raw_output");
   assert.equal(appended[0]?.mimeType, "image/png");
   assert.deepEqual(appended[0]?.content, original);
+  assert.equal(appended[1]?.artifactType, "other");
+  assert.equal(appended[1]?.mimeType, "application/json");
+  assert.equal(JSON.parse(Buffer.from(appended[1]?.content as Uint8Array).toString("utf8"))
+    .originalSha256, originalHash);
   await assert.rejects(() => persistWith(store, "4", { ...resultValue, originalBytes: new Uint8Array([9]) }),
     /GPT_GENERATED_IMAGE_TASK_ARTIFACT_INVALID/u);
-  assert.equal(appended.length, 1, "tampered original bytes must fail before a second artifact append");
+  assert.equal(appended.length, 2, "tampered original bytes must fail before another artifact append");
   await assert.rejects(() => persistWith({
     appendArtifact: async () => ({ status: "failed", failureReason: "FORENSICS_WRITE_FAILED" }),
     readArtifact: async () => ({ status: "failed", failureReason: "FORENSICS_ARTIFACT_NOT_FOUND" }),

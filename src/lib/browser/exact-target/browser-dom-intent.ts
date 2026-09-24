@@ -89,6 +89,7 @@ export type BrowserExactAssistantTurnReplyV3 = Readonly<{
   semanticText: string;
   semanticTextHash: `sha256:${string}`;
   observedAt: string;
+  pendingCause?: "exact-user-turn-unavailable" | "adjacent-assistant-missing";
 }>;
 
 export type BrowserDomReadScope = Readonly<{ selector: string }>;

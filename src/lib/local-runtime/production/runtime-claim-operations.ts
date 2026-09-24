@@ -1,3 +1,4 @@
+import type { SourceReadbackEffectProof } from "./source-readback-contract.js";
 import {
   executionFailure, executionFailureMetadata, failureCode, typedExecutionFailure,
 } from "../../execution-failure.js";
@@ -56,10 +57,12 @@ export const acceptClaim = (
   abort: AbortController,
   jobSpan: RuntimeSpanHandle,
   reconciledFailure: AttemptFailureFirstFact | null,
+  readbackOnlyCalls: readonly Readonly<{ productStepId: string; callId: string;
+    childCapabilityId: "submit_exact_gpt_turn_once" }>[] | null,
 ) => {
   const task = websiteAgentTaskFromClaim(job);
   assertClaimIdentity(job);
-  const budget = leaseBudget(job, abort);
+  const baseBudget = leaseBudget(job, abort);
   const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
     traceId: job.job_id, parentSpanId: jobSpan.spanId, owner: "production-runtime",
     component: "production-store", operation: "job.durable-accept", typedIdentity: jobIdentity(job),
@@ -72,9 +75,11 @@ export const acceptClaim = (
       if (sourceSeal && local?.current_reason === `SOURCE_HANDOFF_SEALED|${sourceSeal}`) {
         const sealed = state.store.readSealedSourceHandoff(job.job_id, local.current_attempt_id!);
         const replay = job.grant.delivery_priority_replay_grant;
+        const exhaustedCalls = sealed?.readback_proofs.filter((proof) =>
+          proof.disposition === "replay_exhausted") ?? [];
         if (!sealed || (sealed.kind === "delivery_priority_replay") !== (replay !== null)
-          || replay !== null && (sealed.replay_calls.length !== replay.calls.length
-            || sealed.replay_calls.some((call, index) => {
+          || replay !== null && (exhaustedCalls.length !== replay.calls.length
+            || exhaustedCalls.some((call, index) => {
               const issued = replay.calls[index];
               return !issued || call.product_step_id !== issued.product_step_id
                 || call.call_id !== issued.call_id
@@ -97,6 +102,50 @@ export const acceptClaim = (
   if (record.status !== "failed") {
     throw new Error("PRODUCTION_TASK_ALREADY_TERMINAL");
   }
+  const replay = job.grant.delivery_priority_replay_grant;
+  const source = replay ? state.store.readIssuedSourceHandoff(
+    job.job_id, job.grant.attempt_id, replay.source_seal_hash,
+  ) : null;
+  if (replay && (!source || source.kind !== "delivery_priority_replay"
+    || source.source_attempt_id !== replay.source_attempt_id)) {
+    throw executionFailure("failed", "PRODUCTION_REPLAY_GRANT_SOURCE_MISMATCH");
+  }
+  const reusableCalls = source?.readback_proofs.filter((proof) =>
+    proof.disposition === "settled_reusable").map((proof) => {
+    const settled = proof.effects.filter((effect): effect is Extract<
+      SourceReadbackEffectProof, { settled_checkpoint: object }
+    > => effect.settled_checkpoint !== undefined)
+      .sort((a, b) => b.settled_checkpoint.source_result_revision
+        - a.settled_checkpoint.source_result_revision
+        || a.effect_identity_hash.localeCompare(b.effect_identity_hash))[0];
+    if (!settled) {
+      throw executionFailure("failed", "PRODUCTION_SOURCE_CHECKPOINT_IDENTITY_MISMATCH");
+    }
+    return Object.freeze({
+      product_step_id: proof.product_step_id, call_id: proof.call_id,
+      child_capability_id: proof.child_capability_id,
+      source_effect_set_hash: proof.source_effect_set_hash,
+      source_attempt_id: settled.settled_checkpoint.source_attempt_id,
+      source_result_revision: settled.settled_checkpoint.source_result_revision,
+      effect_identity_hash: settled.effect_identity_hash,
+      wal_authority_hash: settled.wal_authority_hash,
+      checkpoint_exact_call_identity_hash:
+        settled.settled_checkpoint.checkpoint_exact_call_identity_hash,
+      artifact_ref: settled.settled_checkpoint.artifact_ref,
+      artifact_content_hash: settled.settled_checkpoint.artifact_content_hash,
+      submit_prompt_hash: settled.settled_checkpoint.submit_prompt_hash,
+      canonical_conversation_hash: settled.settled_checkpoint.canonical_conversation_hash,
+      user_turn_hash: settled.settled_checkpoint.user_turn_hash,
+    });
+  }) ?? [];
+  const budget: ProductionExecutionLease = {
+    ...baseBudget,
+    ...(readbackOnlyCalls ? { readback_only_calls: readbackOnlyCalls.map((call) => ({
+      product_step_id: call.productStepId, call_id: call.callId,
+      child_capability_id: call.childCapabilityId,
+    })) } : {}),
+    ...(reusableCalls.length > 0 ? { source_reusable_calls: reusableCalls } : {}),
+  };
   return { task, budget, record };
 };
 

@@ -95,6 +95,7 @@ const ExecutionGrantSchema = z.object({
   capability_manifest_hash: hash,
   accepted_attempt_count: z.number().int().min(0),
   same_accepted_attempt: z.boolean(),
+  delivery_only: z.boolean(),
   source_handoff_seal_hash: hash.nullable(),
   max_provider_turns: z.number().int().positive(),
   result_revision: z.number().int().nonnegative(),
@@ -124,7 +125,7 @@ const ExecutionGrantSchema = z.object({
       child_capability_id: z.string().min(1),
       source_effect_set_hash: hash,
       call_grant_hash: hash,
-    }).strict()).min(1).max(64),
+    }).strict()).max(64),
   }).strict().nullable(),
 }).extend({
   attempt_id: z.string().min(1),

@@ -15,22 +15,30 @@ export type TargetOperation = Readonly<{
 const hasExactKeys = (value: Readonly<Record<string, unknown>>, keys: readonly string[]): boolean =>
   Object.keys(value).length === keys.length && Object.keys(value).every((key) => keys.includes(key));
 
-export const targetOperationFrom = (value: unknown): TargetOperation => {
-  const request = asRecord(value);
-  if (!request) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  const jobRefHash = typeof request.jobRefHash === "string" && /^sha256:[a-f0-9]{64}$/u.test(request.jobRefHash)
-    ? request.jobRefHash as `sha256:${string}`
-    : (() => { throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID"); })();
-  if (request.action === "release") {
-    if (!hasExactKeys(request, ["action", "jobRefHash", "targetRefs"])
-      || !Array.isArray(request.targetRefs)
-      || request.targetRefs.some((ref) => typeof ref !== "string"
-        || !/^target-tab-\d+$/u.test(ref))
-      || new Set(request.targetRefs).size !== request.targetRefs.length) {
-      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    }
-    return { action: "release", jobRefHash, targetRefs: request.targetRefs as string[] };
+const parseJobRefHash = (request: Readonly<Record<string, unknown>>): `sha256:${string}` => {
+  const value = request.jobRefHash;
+  if (typeof value !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(value)) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
+  return value as `sha256:${string}`;
+};
+
+const parseRelease = (
+  request: Readonly<Record<string, unknown>>, jobRefHash: `sha256:${string}`,
+): Extract<TargetOperation, { action: "release" }> => {
+  const targetRefs = request.targetRefs;
+  if (!hasExactKeys(request, ["action", "jobRefHash", "targetRefs"])
+    || !Array.isArray(targetRefs)
+    || targetRefs.some((ref) => typeof ref !== "string" || !/^target-tab-\d+$/u.test(ref))
+    || new Set(targetRefs).size !== targetRefs.length) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  return { action: "release", jobRefHash, targetRefs: targetRefs as string[] };
+};
+
+const parseAcquire = (
+  request: Readonly<Record<string, unknown>>, jobRefHash: `sha256:${string}`,
+): Extract<TargetOperation, { action: "acquire" }> => {
   const targetMode = request.targetMode;
   const validMode = targetMode === "fresh" || targetMode === "bound-observation"
     || targetMode === "confirmed-readback" || targetMode === "authorized-continuation";
@@ -49,4 +57,13 @@ export const targetOperationFrom = (value: unknown): TargetOperation => {
     ...(continuation ? { parentConversationUrl: request.parentConversationUrl as string } : {}),
     ...(request.expectedTargetRef
       ? { expectedTargetRef: request.expectedTargetRef as string } : {}) };
+};
+
+export const targetOperationFrom = (value: unknown): TargetOperation => {
+  const request = asRecord(value);
+  if (!request) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  const jobRefHash = parseJobRefHash(request);
+  return request.action === "release"
+    ? parseRelease(request, jobRefHash)
+    : parseAcquire(request, jobRefHash);
 };

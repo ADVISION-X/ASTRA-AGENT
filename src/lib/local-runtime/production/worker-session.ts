@@ -95,10 +95,26 @@ export class ProductionWorkerSession {
     if (response.session?.device_id !== this.device.device_id
       || response.session.worker_session_id !== credential.worker_session_id
       || response.session.worker_session_epoch !== credential.worker_session_epoch
-      || response.session.control_contract_version !== productionControlContractVersion) {
+      || response.session.control_contract_version !== productionControlContractVersion
+      || !Number.isSafeInteger(response.session.attestation_seq)
+      || (response.session.attestation_seq as number) < 0) {
       throw executionFailure("failed", "PRODUCTION_SESSION_BINDING_INVALID");
     }
+    this.sequence = response.session.attestation_seq as number;
     this.credential = credential;
+    this.attestation = null;
+  }
+
+  private async resynchronizeHeartbeatSession(): Promise<void> {
+    const previous = this.credential;
+    this.credential = null;
+    this.attestation = null;
+    await this.open();
+    if (previous && (this.credential!.worker_session_id !== previous.worker_session_id
+      || this.credential!.worker_session_epoch !== previous.worker_session_epoch)) {
+      this.credential = null;
+      throw executionFailure("failed", "PRODUCTION_SESSION_BINDING_INVALID");
+    }
   }
 
   public async heartbeat(): Promise<RuntimeAttestationReceipt> {
@@ -119,36 +135,41 @@ export class ProductionWorkerSession {
     await this.open();
     const state = await this.runtimeState();
     const next = this.sequence + 1;
-    const data = await this.request(`/internal/ai-production/v6/sessions/${encodeURIComponent(this.workerSessionId)}/heartbeat`, {
-      method: "POST",
-      body: JSON.stringify({
-        schema_version: "xuanxue-ai-worker-runtime-attestation.v6",
-        request_id: `aipattreq_${randomUUID()}`,
-        attestation_seq: next,
-        worker_session_id: this.workerSessionId,
-        worker_session_epoch: this.workerSessionEpoch,
-        agent_attested_in_flight: state.agent_attested_in_flight,
-        browser_action_capacity_total: 1,
-        browser_action_in_flight: state.browser_action_in_flight,
-        browser_authority_state: state.browser_authority_state,
-        browser_target_state: state.browser_target_state,
-        browser_lane_state: state.browser_lane_state,
-        drain_state: state.drain_state,
-        ledger_reconciled: state.ledger_reconciled,
-        capability_manifest: agentRouteCapabilityManifest,
-      }),
-    }) as { attestation_receipt?: unknown; session_credential?: unknown };
-    const receipt = RuntimeAttestationReceiptSchema.parse(data.attestation_receipt);
-    const credential = WorkerSessionCredentialSchema.parse(data.session_credential);
-    if (receipt.worker_session_id !== this.workerSessionId || receipt.attestation_seq !== next
-      || credential.worker_session_id !== this.workerSessionId
-      || credential.token_generation <= this.credential!.token_generation) {
-      throw executionFailure("failed", "PRODUCTION_ATTESTATION_BINDING_INVALID");
+    try {
+      const data = await this.request(`/internal/ai-production/v6/sessions/${encodeURIComponent(this.workerSessionId)}/heartbeat`, {
+        method: "POST",
+        body: JSON.stringify({
+          schema_version: "xuanxue-ai-worker-runtime-attestation.v6",
+          request_id: `aipattreq_${randomUUID()}`,
+          attestation_seq: next,
+          worker_session_id: this.workerSessionId,
+          worker_session_epoch: this.workerSessionEpoch,
+          agent_attested_in_flight: state.agent_attested_in_flight,
+          browser_action_capacity_total: 1,
+          browser_action_in_flight: state.browser_action_in_flight,
+          browser_authority_state: state.browser_authority_state,
+          browser_target_state: state.browser_target_state,
+          browser_lane_state: state.browser_lane_state,
+          drain_state: state.drain_state,
+          ledger_reconciled: state.ledger_reconciled,
+          capability_manifest: agentRouteCapabilityManifest,
+        }),
+      }) as { attestation_receipt?: unknown; session_credential?: unknown };
+      const receipt = RuntimeAttestationReceiptSchema.parse(data.attestation_receipt);
+      const credential = WorkerSessionCredentialSchema.parse(data.session_credential);
+      if (receipt.worker_session_id !== this.workerSessionId || receipt.attestation_seq !== next
+        || credential.worker_session_id !== this.workerSessionId
+        || credential.token_generation <= this.credential!.token_generation) {
+        throw executionFailure("failed", "PRODUCTION_ATTESTATION_BINDING_INVALID");
+      }
+      this.credential = credential;
+      this.attestation = receipt;
+      this.sequence = next;
+      return receipt;
+    } catch (error) {
+      await this.resynchronizeHeartbeatSession();
+      throw error;
     }
-    this.credential = credential;
-    this.attestation = receipt;
-    this.sequence = next;
-    return receipt;
   }
 
   public async ensureFreshAttestation(): Promise<RuntimeAttestationReceipt> {
@@ -166,7 +187,9 @@ export class ProductionWorkerSession {
     requestId: string,
     requestedLimit: number,
     forceCurrentAttestation = false,
-    sourceEvidence: readonly import("./contracts.js").SourceAttemptHandoff[] = [],
+    sourceEvidence: readonly import("./source-readback-contract.js").SourceAttemptHandoff[] = [],
+    deliveryCandidates: readonly Readonly<{ job_id: string; attempt_id: string;
+      candidate_hash: `sha256:${string}` }>[] = [],
   ): Promise<unknown> {
     return this.runSessionAuthorityTurn(async () => {
       const attestation = forceCurrentAttestation
@@ -181,6 +204,7 @@ export class ProductionWorkerSession {
         requested_new_limit: requestedLimit,
         runtime_attestation_receipt_hash: attestation.receipt_hash,
         source_evidence: sourceEvidence,
+        delivery_candidates: deliveryCandidates,
       } as const;
       const receipt = ClaimBatchReceiptSchema.parse(await this.request(
         "/internal/ai-production/v6/jobs/claim", {
