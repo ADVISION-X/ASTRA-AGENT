@@ -25,13 +25,13 @@ SEO article localization: Website route relation=provider_continuation
   -> 为当前 job 建立独占 Target并精确导航
   -> 当前 translation turn submit/checkpoint
 
-Static catalog localization: Website route relation=fresh
-  -> 每个 locale/cohort 和失败 ID 补译都是独立 job、独立 fresh GPT chat
-  -> 只消费 Website 本轮冻结的 ContextBundle 与已合格 siblings 只读材料
-  -> parent triple 恒为空；不读父 job、父 WAL、父 URL 或父回答
+Static catalog localization: Website route relation=provider_continuation
+  -> 同 cohort 首任务无 parent triple 且 fresh；后继和失败 ID 补译各为独立 job，但顺序复用直接父任务的一个聊天
+  -> 每个 job 只消费 Website 本轮冻结的 ContextBundle 与已合格 siblings 只读材料
+  -> 后继只凭 Website 已接纳的直接父三元组，由现役 Browser 从父 job、已完成父 attempt 和相同 product step 的唯一 CONFIRMED WAL 读取 URL；不读父回答或父 Tab
 ```
 
-这条链不把父回答作为翻译源：五次翻译始终消费Website下发的同一份zh-CN canonical article material。Runtime先用本地completed父任务机械核对Website parent ref/hash，再读取该父任务的current attempt；GPT只把route-authorized exact parent job、该completed parent attempt与当前Product给出的`article_synthesis` step整体交给Browser acquisition，不接触父URL、父Target、父userTurnId或父回答。parent attempt只用于WAL locator只读选择，永不进入provider effect identity。任何父结果绑定缺失或不等、父attempt缺失、WAL缺失/多义/未决都在Provider输入前失败关闭。
+上述 SEO 文章链不把父回答作为翻译源：五次翻译始终消费Website下发的同一份zh-CN canonical article material。Runtime先用本地completed父任务机械核对Website parent ref/hash，再读取该父任务的current attempt；GPT只把route-authorized exact parent job、该completed parent attempt与当前Product给出的`article_synthesis` step整体交给Browser acquisition，不接触父URL、父Target、父userTurnId或父回答。parent attempt只用于WAL locator只读选择，永不进入provider effect identity。任何父结果绑定缺失或不等、父attempt缺失、WAL缺失/多义/未决都在Provider输入前失败关闭。
 
 `submit_exact_gpt_turn_once` 在自己的直接后置一次返回 CONFIRMED、canonical conversation URL、精确 user turn 身份和 Browser effect receipt。provider_effect_identity 不含 attempt/process/lease/fence/Target/Document；Browser WAL 已有 CONFIRMED 时该 Child 只读回同一 receipt/URL，绝不再次输入。`checkpoint_gpt_text_response` 正常轮询保留 exact job 与其独占 system Target 的双向唯一绑定，但 pending 立即释放 Browser lease 与唯一物理 lane。GPT Child 只计算下一次 observation 的最早资格时间并立即调用现役 Browser typed 入口，不创建或等待 timer；请求进入唯一 FIFO 后，由 BrowserLaneCoordinator 以 waiter `eligibleAt`、一个全局 `observationNotBefore` 和一个 wake timer 作为唯一计时 Owner。具备资格后只取得并激活精确绑定 Tab、重验实时 current Document、fresh observe 一次；pending 再释放，正常轮询 `Page.navigate=0`。ready 时由同一 coherent observation 一次取得紧邻 assistant turn 的 observed DOM + semantic text，写入且读回一份 artifact。同一 attempt、exact call 的该 artifact 已存在且完整性成立时，必须先按现役 idempotency identity 精确读回并直接返回，Browser 页面 observation 增量为零；仅 artifact 不存在时才允许首次观察并 append，已存在但内容或完整性不成立时 typed fail-close，绝不覆盖。
 
