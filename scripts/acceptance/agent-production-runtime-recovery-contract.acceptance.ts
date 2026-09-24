@@ -1,142 +1,27 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
-import { historicalEffectsSettled } from "../../src/lib/local-runtime/production/runtime-loops.js";
+import { historicalEffectsSettled } from "../../src/lib/local-runtime/production/runtime-source-readback-proofs.js";
 import { hashCanonical, sha256 } from "../../src/lib/local-runtime/production/contracts.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
-import { readProductionDeviceJobStatus } from
-  "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
 import {
   serializeTerminalFailure,
   serializeTerminalFailureTransport,
 } from "../../src/lib/local-runtime/production/terminal-failure.js";
 import { attemptFailureFirstFact, task } from "./agent-production-runtime-fixtures.js";
+import { verifyPayloadSlotConflict } from "./agent-production-runtime-payload-slot.acceptance-support.js";
+import { verifyRecoveryFailureTransport } from "./agent-production-runtime-failure-transport.acceptance-support.js";
 
 const directory = await mkdtemp(path.join(tmpdir(), "agent-fresh-attempt-"));
 try {
   const providerEffectHash = `sha256:${"c".repeat(64)}` as const;
-  assert.deepEqual(serializeTerminalFailureTransport(
-    executionFailure("failed", "PRODUCT_EXECUTION_FAILED", { metadata: {
-      mutationOutcome: "confirmed",
-      browserEffect: {
-        effectScope: "provider_effect", childCapabilityId: "submit_exact_gpt_turn_once",
-        browserOutcome: "CONFIRMED", providerEffectIdentityHash: providerEffectHash,
-      },
-    }}),
-  ), { ...serializeTerminalFailure(executionFailure("failed", "PRODUCT_EXECUTION_FAILED")),
-    mutation_outcome: "confirmed", effect_scope: "provider_effect",
-    child_capability_id: "submit_exact_gpt_turn_once", browser_outcome: "CONFIRMED",
-    provider_effect_identity_hash: providerEffectHash, settled_result_payload_hash: null });
-  const remoteFailureCore = serializeTerminalFailureTransport(
-    executionFailure("failed", "REMOTE_FAILURE_FACT"),
-  );
-  const remoteFailure = { ...remoteFailureCore, from_status: "failed", to_status: "failed",
-    attempt_id: "attempt:remote-failure", lease_version: 3 };
-  const deviceStatus = (attemptFailure: unknown) => ({
-    schema_version: "xuanxue-ai-device-job-status.v6",
-    job_id: "job:remote-failure",
-    status: "failed",
-    current_reason: null,
-    attempt_failure: attemptFailure,
-    control_intent: { schema_version: "xuanxue-ai-control-intent.v6",
-      job_id: "job:remote-failure", control_epoch: 0, intent: "none", reason_code: null },
-    next_action_code: "ACTIVE_ATTEMPT",
-    terminal_status: null,
-    terminal_payload_hash: null,
-    business_admission_receipt: null,
-    business_consumer_error: null,
-    accepted_attempt_count: 1,
-    write_receipts: [],
-    staged_result: null,
-    staged_artifact_receipts: [],
-  });
-  const parsedRemote = await readProductionDeviceJobStatus({
-    request: async () => deviceStatus(remoteFailure),
-  } as never, "job:remote-failure");
-  assert.deepEqual(parsedRemote.attempt_failure, remoteFailure);
-  await assert.rejects(readProductionDeviceJobStatus({
-    request: async () => deviceStatus(serializeTerminalFailure(
-      executionFailure("failed", "LEGACY_REMOTE_FAILURE"),
-    )),
-  } as never, "job:remote-failure"),
-  (error: unknown) => typedExecutionFailure(error)?.code === "V6_DEVICE_ATTEMPT_FAILURE_INVALID");
-  const runtimeClaim = await readFile(new URL(
-    "../../src/lib/local-runtime/production/runtime-claim.ts", import.meta.url,
-  ), "utf8");
-  assert.doesNotMatch(runtimeClaim, /browser-mutation-authority|browser-mutations\.sqlite/u,
-    "Runtime must transport the public typed effect fact without reading Browser private storage");
-  assert.match(runtimeClaim, /serializeTerminalFailureTransport/u);
-  assert.doesNotMatch(runtimeClaim, /provider_effect_identity_hash: _effectTransportOnly/u);
-  assert.match(runtimeClaim, /buildProductionLeaseRelease/u);
-  const runtimeLoops = await readFile(new URL(
-    "../../src/lib/local-runtime/production/runtime-loops.ts", import.meta.url,
-  ), "utf8");
-  assert.match(runtimeLoops,
-    /const browser = state\.browserAuthority\.readProductionRuntimeState\(\);[\s\S]*?browser\.browserAuthorityState === "present"[\s\S]*?if \(!eligible\) return 1_000;[\s\S]*?requestClaimBatch/u,
-    "the worker must fail closed before claiming when Browser Authority is absent");
+  await verifyRecoveryFailureTransport(providerEffectHash);
   const store = new ProductionRuntimeStore(directory);
-  const partial = task({ jobId: "job:payload-only-source",
-    productId: "payment_screenshot_observation", actionId: "observe" });
-  store.acceptTask(partial, "attempt:payload-only");
-  const partialAttemptHash = hashCanonical({ attempt_id: "attempt:payload-only" }).slice(7, 23);
-  const emptyOutbox = store.readResultOutboxHistoryEvidence(partial.job_id, "attempt:payload-only");
-  store.enqueue({ idempotency_key: "aipresult_payload_only", kind: "artifact",
-    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(partial.job_id)}/artifacts/result_payload/airesult_${partialAttemptHash}_result_payload_payload`,
-    method: "PUT", headers: {}, body: Buffer.from("{\"answer\":1}") });
-  const payloadOnly = store.readResultOutboxHistoryEvidence(partial.job_id, "attempt:payload-only");
-  assert.equal(payloadOnly.rowCount, 1);
-  assert.equal(payloadOnly.candidateCount, 0,
-    "partial payload upload must preserve history without claiming a complete result");
-  assert.notEqual(payloadOnly.historyHash, emptyOutbox.historyHash);
-  store.enqueue({ idempotency_key: "aipresult_envelope_ready", kind: "artifact",
-    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(partial.job_id)}/artifacts/result_envelope/airesult_${partialAttemptHash}_result_envelope_envelope`,
-    method: "PUT", headers: {}, body: Buffer.from("{\"answer\":1}") });
-  assert.equal(store.readResultOutboxHistoryEvidence(partial.job_id, "attempt:payload-only").candidateCount, 1,
-    "a complete result envelope must block source handoff");
-  const oldPayloadBody = Buffer.from("{\"answer\":2}");
-  const oldPayloadHash = sha256(oldPayloadBody);
-  const oldPayloadRequest = `aipresult_${hashCanonical({ job_id: partial.job_id,
-    attempt_id: "attempt:payload-only", role: "result_payload",
-    content_hash: oldPayloadHash }).slice(7, 47)}`;
-  const oldArtifactId = `airesult_${partial.job_id.replace(/[^A-Za-z0-9_-]/gu, "_").slice(-64)}_${partialAttemptHash}_result_payload_${oldPayloadHash.slice(-16)}`;
-  const oldPayloadReceipt = { role: "result_payload", receipt_hash: providerEffectHash,
-    sha256: oldPayloadHash, artifact_id: oldArtifactId, object_ref: "object:old-payload",
-    media_type: "application/json", byte_length: oldPayloadBody.byteLength };
-  store.enqueue({ idempotency_key: oldPayloadRequest, kind: "artifact",
-    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(partial.job_id)}/artifacts/result_payload/${encodeURIComponent(oldArtifactId)}`,
-    method: "PUT", headers: { "x-ai-content-sha256": oldPayloadHash },
-    body: oldPayloadBody });
-  assert.equal(store.hydrateRemoteOutboxReceipts(partial.job_id, [{
-    request_id: oldPayloadRequest, write_kind: "artifact",
-    payload_hash: sha256(oldPayloadBody), response_json: oldPayloadReceipt,
-  }]), 1);
-  assert.deepEqual(await store.deliverOutbox(oldPayloadRequest, async () => {
-    throw new Error("OLD_PAYLOAD_MUST_NOT_BE_UPLOADED_AGAIN");
-  }), oldPayloadReceipt,
-  "a prior session's exact Website receipt must settle the original payload Outbox intent");
-  const changedPayloadBody = Buffer.from("{\"answer\":3}");
-  const changedPayloadHash = sha256(changedPayloadBody);
-  const changedPayloadRequest = `aipresult_${hashCanonical({ job_id: partial.job_id,
-    attempt_id: "attempt:payload-only", role: "result_payload",
-    content_hash: changedPayloadHash }).slice(7, 47)}`;
-  const changedArtifactId = `airesult_${partial.job_id.replace(/[^A-Za-z0-9_-]/gu, "_").slice(-64)}_${partialAttemptHash}_result_payload_${changedPayloadHash.slice(-16)}`;
-  store.enqueue({ idempotency_key: changedPayloadRequest, kind: "artifact",
-    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(partial.job_id)}/artifacts/result_payload/${encodeURIComponent(changedArtifactId)}`,
-    method: "PUT", headers: { "x-ai-content-sha256": changedPayloadHash },
-    body: changedPayloadBody });
-  await assert.rejects(store.deliverOutbox(changedPayloadRequest, async () => {
-    throw runtimeTransportFailure("AI_PRODUCTION_RESULT_OBJECT_CONFLICT", 409);
-  }), /AI_PRODUCTION_RESULT_OBJECT_CONFLICT/u);
-  assert.deepEqual(store.readResultPayloadSlotConflict(partial.job_id, "attempt:payload-only"), {
-    old_request_id: oldPayloadRequest, old_payload_hash: oldPayloadHash,
-    old_receipt_hash: providerEffectHash, new_request_id: changedPayloadRequest,
-    new_payload_hash: changedPayloadHash,
-  },
-    "an exact old receipt plus different rejected bytes must open the zero-submit source path");
+  await verifyPayloadSlotConflict(store, providerEffectHash);
   const job = task({
     jobId: "job:fresh-attempt",
     productId: "payment_screenshot_observation",

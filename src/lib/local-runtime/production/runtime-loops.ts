@@ -1,4 +1,3 @@
-import type { SourceReadbackCallProof, SourceReadbackEffectProof } from "./source-readback-contract.js";
 import { randomUUID } from "node:crypto";
 
 import {
@@ -14,6 +13,7 @@ import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js"
 import { productionCatalogHash } from "./catalog.js";
 import { PRODUCTION_BUSINESS_CAPACITY_MAX } from "./control-contract-dependency.js";
 import { hashCanonical, sha256 } from "./contracts.js";
+import { prepareSourceHandoffs } from "./runtime-source-handoff.js";
 import type { ProductionRuntimeHealth } from "./runtime-contract.js";
 import { executeClaim, reconcilePendingAttemptFailures } from "./runtime-claim.js";
 import { classifyAttemptFailure } from "./terminal-failure.js";
@@ -165,438 +165,6 @@ const requestClaimBatch = async (
   }
 };
 
-const sourceReadbackProofs = (
-  browser: ReturnType<RuntimeState["browserAuthority"]["readJobBrowserHistoryEvidence"]>,
-  observations: ReturnType<RuntimeState["store"]["readSourceReadbackObservations"]>,
-  settledHistory: ReturnType<RuntimeState["store"]["readAcceptedSourceSettlements"]>,
-): readonly SourceReadbackCallProof[] | null => {
-  if (!browser.walHistoryVerified || browser.replayCalls.length === 0) return null;
-  const calls: SourceReadbackCallProof[] = [];
-  for (const call of browser.replayCalls) {
-    const effects = browser.replayEffects.filter((effect) => effect.productStepId === call.productStepId
-      && effect.callId === call.callId && effect.childCapabilityId === call.childCapabilityId);
-    if (effects.length === 0) return null;
-    const effectProofs: SourceReadbackEffectProof[] = [];
-    for (const effect of effects) {
-      const rejection = settledHistory.find((item): item is Extract<
-        typeof settledHistory[number], { kind: "rejection_settled" }> =>
-        item.kind === "rejection_settled"
-        && item.effectIdentityHash === effect.effectIdentityHash
-        && item.sourceAttemptId === effect.attemptId
-        && item.sourceEffectSetHash === effect.sourceEffectSetHash
-        && item.productStepId === call.productStepId
-        && item.callId === call.callId
-        && item.childCapabilityId === call.childCapabilityId);
-      const risk = settledHistory.find((item) => item.kind === "risk_authorized"
-        && item.effectIdentityHash === effect.effectIdentityHash
-        && item.sourceEffectSetHash === effect.sourceEffectSetHash
-        && item.productStepId === call.productStepId
-        && item.callId === call.callId
-        && item.childCapabilityId === call.childCapabilityId);
-      const reused = settledHistory.find((item): item is Extract<
-        typeof settledHistory[number], { kind: "reused_checkpoint" }> =>
-        item.kind === "reused_checkpoint"
-        && item.effectIdentityHash === effect.effectIdentityHash
-        && item.sourceAttemptId === effect.attemptId
-        && item.sourceEffectSetHash === effect.sourceEffectSetHash
-        && item.productStepId === call.productStepId
-        && item.callId === call.callId
-        && item.childCapabilityId === call.childCapabilityId);
-      if ([rejection, risk, reused].filter(Boolean).length > 1) return null;
-      if (reused) {
-        if (effect.state !== "CONFIRMED" || effect.mutationOutcome !== "confirmed"
-          || effect.physicalInputCount !== 1 || effect.anchorState !== "trusted"
-          || reused.effect.wal_authority_hash !== effect.walAuthorityHash
-          || reused.effect.old_target_ref_hash !== effect.oldTargetRefHash
-          || reused.effect.old_document_ref_hash !== effect.oldDocumentRefHash
-          || reused.effect.anchor_proof_hash !== effect.anchorProofHash) return null;
-        effectProofs.push(reused.effect);
-        continue;
-      }
-      if (rejection) {
-        if (effect.state !== "CONFIRMED" || effect.mutationOutcome !== "confirmed"
-          || effect.physicalInputCount !== 1
-          || effect.authorityRef !== rejection.evidenceRef
-          || effect.walAuthorityHash !== rejection.evidenceHash) return null;
-        effectProofs.push(Object.freeze({
-          effect_identity_hash: effect.effectIdentityHash,
-          source_effect_set_hash: effect.sourceEffectSetHash,
-          old_target_ref_hash: effect.oldTargetRefHash,
-          old_document_ref_hash: effect.oldDocumentRefHash,
-          wal_authority_hash: effect.walAuthorityHash,
-          anchor_state: effect.anchorState,
-          anchor_proof_hash: effect.anchorProofHash,
-          old_path: null, exact_path: null,
-          rejection_settled: Object.freeze({
-            source_attempt_id: effect.attemptId,
-            source_handoff_seal_hash: rejection.sourceHandoffSealHash,
-          }),
-        }));
-        continue;
-      }
-      if (risk) {
-        effectProofs.push(Object.freeze({
-          effect_identity_hash: effect.effectIdentityHash,
-          source_effect_set_hash: effect.sourceEffectSetHash,
-          old_target_ref_hash: effect.oldTargetRefHash,
-          old_document_ref_hash: effect.oldDocumentRefHash,
-          wal_authority_hash: effect.walAuthorityHash,
-          anchor_state: effect.anchorState,
-          anchor_proof_hash: effect.anchorProofHash,
-          old_path: null, exact_path: null,
-          risk_authorized: Object.freeze({
-            source_handoff_seal_hash: risk.sourceHandoffSealHash }),
-        }));
-        continue;
-      }
-      const observationsForEffect = observations.filter((item) =>
-        item.effect_identity_hash === effect.effectIdentityHash
-        && item.source_effect_set_hash === effect.sourceEffectSetHash
-        && item.old_target_ref_hash === effect.oldTargetRefHash
-        && item.old_document_ref_hash === effect.oldDocumentRefHash
-        && item.wal_authority_hash === effect.walAuthorityHash
-        && item.provider_input_delta === 0);
-      const settled = observationsForEffect.find((item): item is Extract<typeof item,
-        { kind: "settled_checkpoint" }> => item.kind === "settled_checkpoint"
-        && item.source_attempt_id === effect.attemptId
-        && item.source_result_revision === effect.resultRevision);
-      if (settled) {
-        const { proof_hash: proofHash, observed_at: observedAt, ...settledBody } = settled;
-        if (effect.state !== "CONFIRMED" || effect.mutationOutcome !== "confirmed"
-          || effect.physicalInputCount !== 1 || effect.anchorState !== "trusted"
-          || effect.canonicalConversationHash !== settled.canonical_conversation_hash
-          || effect.userTurnHash !== settled.user_turn_hash
-          || hashCanonical(settledBody) !== proofHash) return null;
-        effectProofs.push(Object.freeze({
-          effect_identity_hash: effect.effectIdentityHash,
-          source_effect_set_hash: effect.sourceEffectSetHash,
-          old_target_ref_hash: effect.oldTargetRefHash,
-          old_document_ref_hash: effect.oldDocumentRefHash,
-          wal_authority_hash: effect.walAuthorityHash,
-          anchor_state: effect.anchorState,
-          anchor_proof_hash: effect.anchorProofHash,
-          old_path: null, exact_path: null,
-          settled_checkpoint: Object.freeze({
-            source_attempt_id: settled.source_attempt_id,
-            source_result_revision: settled.source_result_revision,
-            checkpoint_exact_call_identity_hash: settled.checkpoint_exact_call_identity_hash,
-            artifact_ref: settled.artifact_ref,
-            artifact_content_hash: settled.artifact_content_hash,
-            submit_prompt_hash: settled.submit_prompt_hash,
-            canonical_conversation_hash: settled.canonical_conversation_hash,
-            user_turn_hash: settled.user_turn_hash,
-            proof_hash: proofHash, observed_at: observedAt,
-            provider_input_delta: 0,
-          }),
-        }));
-        continue;
-      }
-      const old = observationsForEffect.find((item): item is Extract<typeof item, { kind: "negative_exact" }> =>
-        item.kind === "negative_exact" && item.path === "old_target"
-        && item.target_ref_hash === effect.oldTargetRefHash);
-      const unavailable = observationsForEffect.find((item): item is Extract<typeof item, { kind: "old_instance_unavailable" }> =>
-        item.kind === "old_instance_unavailable" && item.path === "old_target");
-      const settlement = browser.targetSettlements.find((item) =>
-        item.targetRefHash === effect.oldTargetRefHash);
-      const exact = observationsForEffect.find((item): item is Extract<typeof item, { kind: "negative_exact" }> =>
-        item.kind === "negative_exact"
-        && item.path === "exact_conversation"
-        && item.target_ref_hash !== effect.oldTargetRefHash);
-      const unaddressable = effect.anchorState === "absent" && settlement !== undefined;
-      if (!old && !unavailable && !unaddressable
-        || effect.anchorState === "trusted" && !exact) return null;
-      effectProofs.push(Object.freeze({
-        effect_identity_hash: effect.effectIdentityHash,
-        source_effect_set_hash: effect.sourceEffectSetHash,
-        old_target_ref_hash: effect.oldTargetRefHash,
-        old_document_ref_hash: effect.oldDocumentRefHash,
-        wal_authority_hash: effect.walAuthorityHash,
-        anchor_state: effect.anchorState,
-        anchor_proof_hash: effect.anchorProofHash,
-        old_path: old ? Object.freeze({ outcome: "negative_observed" as const,
-          proof_hash: old.observation_revision_hash, observed_at: old.observed_at,
-          provider_input_delta: 0 as const,
-          target_ref_hash: old.target_ref_hash, document_ref_hash: old.document_ref_hash,
-        }) : unavailable ? Object.freeze({ outcome: "instance_unavailable" as const,
-          proof_hash: unavailable!.proof_hash, observed_at: unavailable!.observed_at,
-          provider_input_delta: 0 as const, target_ref_hash: effect.oldTargetRefHash,
-          document_ref_hash: effect.oldDocumentRefHash,
-        }) : Object.freeze({ outcome: "unaddressable_quiesced" as const,
-          proof_hash: hashCanonical({ effectIdentityHash: effect.effectIdentityHash,
-            anchorProofHash: effect.anchorProofHash,
-            settlementProofHash: settlement!.proofHash }),
-          settlement_proof_hash: settlement!.proofHash,
-          settlement_outcome: settlement!.outcome,
-          observed_at: settlement!.releasedAt, provider_input_delta: 0 as const,
-          target_ref_hash: effect.oldTargetRefHash,
-          document_ref_hash: effect.oldDocumentRefHash,
-        }),
-        exact_path: effect.anchorState === "trusted" && exact ? Object.freeze({
-          outcome: "negative_observed" as const,
-          proof_hash: exact.observation_revision_hash,
-          target_ref_hash: exact.target_ref_hash,
-          document_ref_hash: exact.document_ref_hash,
-          observed_at: exact.observed_at,
-          provider_input_delta: 0 as const,
-        }) : null,
-      }));
-    }
-    calls.push(Object.freeze({
-      product_step_id: call.productStepId, call_id: call.callId,
-      child_capability_id: call.childCapabilityId,
-      source_effect_set_hash: call.sourceEffectSetHash,
-      disposition: effectProofs.some((effect) => effect.settled_checkpoint !== undefined)
-        ? "settled_reusable" as const
-        : effectProofs.some((effect) => effect.old_path !== null)
-          ? "replay_exhausted" as const : "historical_settled" as const,
-      effects: Object.freeze(effectProofs),
-    }));
-  }
-  return Object.freeze(calls);
-};
-
-export const historicalEffectsSettled = (
-  effects: readonly Pick<ReturnType<RuntimeState["browserAuthority"]["readJobBrowserHistoryEvidence"]>["replayEffects"][number],
-    "attemptId" | "effectIdentityHash" | "sourceEffectSetHash" | "productStepId" | "callId"
-    | "childCapabilityId" | "authorityRef" | "walAuthorityHash">[],
-  settledHistory: ReturnType<RuntimeState["store"]["readAcceptedSourceSettlements"]>,
-  currentAttemptId: string,
-): boolean => effects.length > 0 && effects.every((effect) =>
-  effect.attemptId !== currentAttemptId
-  && settledHistory.some((item) => item.effectIdentityHash === effect.effectIdentityHash
-    && item.sourceEffectSetHash === effect.sourceEffectSetHash
-    && item.productStepId === effect.productStepId
-    && item.callId === effect.callId
-    && item.childCapabilityId === effect.childCapabilityId
-    && (item.kind === "risk_authorized" ? true
-      : item.kind === "reused_checkpoint"
-        ? item.sourceAttemptId === effect.attemptId
-          && item.effect.wal_authority_hash === effect.walAuthorityHash
-        : item.sourceAttemptId === effect.attemptId
-          && item.evidenceRef === effect.authorityRef
-          && item.evidenceHash === effect.walAuthorityHash)));
-
-const prepareSourceHandoffs = async (
-  state: RuntimeState,
-): Promise<NonNullable<Parameters<typeof claimProductionTasks>[4]>> => {
-  const evidence: NonNullable<Parameters<typeof claimProductionTasks>[4]>[number][] = [];
-  for (const task of state.store.taskAuthorities()) {
-    const jobId = task.task.job_id;
-    if (task.status !== "failed" || !task.current_attempt_id || task.staged_result
-      || state.active.has(jobId)) continue;
-    const priorSeal = state.store.readSealedSourceHandoff(jobId, task.current_attempt_id);
-    if (priorSeal) {
-      evidence.push(priorSeal);
-      continue;
-    }
-    const outbox = state.store.readResultOutboxHistoryEvidence(jobId, task.current_attempt_id);
-    if (outbox.candidateCount !== 0) continue;
-    const browserInput = state.browserAuthority.readAttemptPhysicalInputState(
-      jobId, task.current_attempt_id,
-    );
-    const historicalInput = state.browserAuthority.readJobPhysicalInputState(jobId);
-    const jobRefHash = sha256(Buffer.from(jobId, "utf8"));
-    const observations = state.store.readSourceReadbackObservations(jobId, task.current_attempt_id);
-    const settledHistory = state.store.readAcceptedSourceSettlements(jobId);
-    const rejected = task.attempt_failure?.failure_core;
-    const rejectedResult = browserInput === "possible" && rejected
-      && (rejected.code === "RESULT_SETTLED_UNUSABLE"
-        && rejected.settled_result_payload_hash !== null
-        || rejected.code === "GPT_RESPONSE_STOPPED_EMPTY"
-          && rejected.stopped_empty_proof !== null)
-      && rejected.effect_scope === "provider_effect"
-      && rejected.browser_outcome === "CONFIRMED"
-      && rejected.mutation_outcome === "confirmed"
-      && rejected.provider_effect_identity_hash !== null;
-    const beforeRelease = historicalInput === "zero" ? null
-      : state.browserAuthority.readJobBrowserHistoryEvidence(jobId);
-    const priorHandoff = browserInput === "zero" && historicalInput === "possible"
-      ? state.store.readIssuedSourceHandoffForAttempt(jobId, task.current_attempt_id)
-      : null;
-    const inheritedZeroSubmit = priorHandoff?.kind === "delivery_priority_replay"
-      && priorHandoff.payload_slot_conflict !== null
-      && priorHandoff.readback_proofs.length === priorHandoff.replay_calls.length
-      && priorHandoff.readback_proofs.every((proof) => proof.disposition === "settled_reusable");
-    const inheritedPayloadConflict = inheritedZeroSubmit
-      ? state.store.readResultPayloadSlotConflict(jobId, task.current_attempt_id) : null;
-    if (inheritedZeroSubmit && inheritedPayloadConflict === null) continue;
-    const historicalRejection = (priorHandoff?.kind === "attempt_handoff"
-      || inheritedZeroSubmit)
-      && beforeRelease?.walHistoryVerified === true
-      && historicalEffectsSettled(beforeRelease.replayEffects, settledHistory,
-        task.current_attempt_id);
-    if (browserInput === "zero" && historicalInput !== "zero" && !historicalRejection) continue;
-    const rejectedEffect = rejectedResult && beforeRelease?.replayEffects.find((effect) =>
-      effect.effectIdentityHash === rejected.provider_effect_identity_hash);
-    const rejectedCall = rejectedEffect && beforeRelease?.replayCalls.find((call) =>
-      call.productStepId === rejectedEffect.productStepId
-      && call.callId === rejectedEffect.callId
-      && call.childCapabilityId === rejectedEffect.childCapabilityId);
-    if (rejectedResult && (!beforeRelease?.walHistoryVerified
-      || !rejectedEffect || rejectedEffect.state !== "CONFIRMED"
-      || !rejectedCall
-      || rejectedEffect.attemptId !== task.current_attempt_id
-      || rejectedEffect.childCapabilityId !== rejected.child_capability_id
-      || rejectedEffect.authorityRef !== rejected.evidence_ref
-      || rejectedEffect.walAuthorityHash !== rejected.evidence_hash
-      || rejectedEffect.mutationOutcome !== "confirmed"
-      || rejectedEffect.physicalInputCount !== 1
-      || beforeRelease.replayEffects.filter((effect) =>
-        effect.productStepId === rejectedEffect.productStepId
-        && effect.callId === rejectedEffect.callId
-        && effect.childCapabilityId === rejectedEffect.childCapabilityId
-        && effect.attemptId === task.current_attempt_id).length !== 1
-      || beforeRelease.replayCalls.filter((call) =>
-        call.productStepId === rejectedEffect.productStepId
-        && call.callId === rejectedEffect.callId
-        && call.childCapabilityId === rejectedEffect.childCapabilityId).length !== 1
-      || beforeRelease.replayEffects.filter((effect) =>
-        effect.effectIdentityHash === rejected.provider_effect_identity_hash).length !== 1)) continue;
-    if (beforeRelease && (!beforeRelease.walHistoryVerified
-      || beforeRelease.replayEffects.length === 0
-      || !rejectedResult && !historicalRejection
-        && !beforeRelease.replayEffects.every((effect) => settledHistory.some((item) =>
-          item.effectIdentityHash === effect.effectIdentityHash
-          && (item.kind === "risk_authorized"
-            ? item.sourceEffectSetHash === effect.sourceEffectSetHash
-            : item.sourceAttemptId === effect.attemptId))
-          || effect.anchorState === "absent"
-        || observations.some((item) => item.effect_identity_hash === effect.effectIdentityHash
-          && (item.path === "old_target" || item.kind === "settled_checkpoint")))
-      || !rejectedResult && !historicalRejection
-        && beforeRelease.replayEffects.some((effect) => effect.anchorState === "trusted"
-        && !settledHistory.some((item) => item.effectIdentityHash === effect.effectIdentityHash
-          && (item.kind === "risk_authorized"
-            ? item.sourceEffectSetHash === effect.sourceEffectSetHash
-            : item.sourceAttemptId === effect.attemptId))
-        && !observations.some((item) => item.effect_identity_hash === effect.effectIdentityHash
-          && (item.path === "exact_conversation" || item.kind === "settled_checkpoint"))))) continue;
-    let sourceArtifactsVerified = true;
-    for (const observation of observations) {
-      if (observation.kind !== "settled_checkpoint") continue;
-      try {
-        await state.executor.verifySourceCheckpointArtifact({
-          jobId, sourceAttemptId: observation.source_attempt_id,
-          checkpointExactCallIdentityHash: observation.checkpoint_exact_call_identity_hash,
-          artifactRef: observation.artifact_ref,
-          artifactContentHash: observation.artifact_content_hash,
-        });
-      } catch (error) {
-        state.lastErrorCode = failureCode(error, "PRODUCTION_SOURCE_CHECKPOINT_ARTIFACT_UNAVAILABLE");
-        state.lastErrorReason = safeReason(error);
-        sourceArtifactsVerified = false;
-        break;
-      }
-    }
-    if (!sourceArtifactsVerified) continue;
-    if (state.browserAuthority.readUnreleasedTargetClaims()
-      .some((claim) => claim.jobRefHash === jobRefHash)) {
-      try {
-        await state.browserAuthority.releaseJobBoundTarget(
-          jobId, "wait-new-attempt", state.abort.signal,
-        );
-      } catch (error) {
-        state.lastErrorCode = failureCode(error, "SOURCE_TARGET_RELEASE_PENDING");
-        state.lastErrorReason = safeReason(error);
-        continue;
-      }
-    }
-    if (state.browserAuthority.readUnreleasedTargetClaims()
-      .some((claim) => claim.jobRefHash === jobRefHash)) continue;
-    const browser = state.browserAuthority.readJobBrowserHistoryEvidence(jobId);
-    if (!browser.walHistoryVerified || !browser.targetSettled) continue;
-    const priorEffects = rejectedResult ? browser.replayEffects.filter((effect) =>
-      effect.effectIdentityHash !== rejected.provider_effect_identity_hash)
-      : browser.replayEffects;
-    const provedCalls = browser.replayCalls.filter((call) =>
-      priorEffects.some((effect) => effect.productStepId === call.productStepId
-        && effect.callId === call.callId
-        && effect.childCapabilityId === call.childCapabilityId));
-    const readbackProofs = browserInput === "zero" && inheritedPayloadConflict === null ? []
-      : rejectedResult && provedCalls.length === 0 ? []
-      : sourceReadbackProofs({ ...browser, replayCalls: provedCalls,
-        replayEffects: priorEffects }, observations,
-        settledHistory);
-    if (readbackProofs === null) continue;
-    let reusableArtifactsVerified = true;
-    for (const proof of readbackProofs) for (const effect of proof.effects) {
-      if (effect.settled_checkpoint === undefined) continue;
-      try {
-        await state.executor.verifySourceCheckpointArtifact({
-          jobId, sourceAttemptId: effect.settled_checkpoint.source_attempt_id,
-          checkpointExactCallIdentityHash:
-            effect.settled_checkpoint.checkpoint_exact_call_identity_hash,
-          artifactRef: effect.settled_checkpoint.artifact_ref,
-          artifactContentHash: effect.settled_checkpoint.artifact_content_hash,
-        });
-      } catch (error) {
-        state.lastErrorCode = failureCode(error, "PRODUCTION_SOURCE_CHECKPOINT_ARTIFACT_UNAVAILABLE");
-        state.lastErrorReason = safeReason(error);
-        reusableArtifactsVerified = false;
-        break;
-      }
-    }
-    if (!reusableArtifactsVerified) continue;
-    const payloadSlotConflict = browserInput === "possible"
-      ? state.store.readResultPayloadSlotConflict(jobId, task.current_attempt_id)
-      : inheritedPayloadConflict;
-    const reusablePayloadConflict = payloadSlotConflict !== null
-      && readbackProofs.length === browser.replayCalls.length
-      && readbackProofs.length > 0
-      && readbackProofs.every((proof) => proof.disposition === "settled_reusable");
-    if (rejectedResult && (readbackProofs.some((proof) =>
-      proof.disposition === "replay_exhausted")
-      || browser.replayCalls.length - readbackProofs.length > 1
-      || browser.replayCalls.length - readbackProofs.length === 1
-        && provedCalls.some((call) => Boolean(rejectedCall)
-          && call.productStepId === (rejectedCall || null)?.productStepId
-          && call.callId === (rejectedCall || null)?.callId
-          && call.childCapabilityId === (rejectedCall || null)?.childCapabilityId))) continue;
-    if (browserInput !== "zero" && !readbackProofs.some((proof) =>
-      proof.disposition === "replay_exhausted") && !rejectedResult
-      && !reusablePayloadConflict) continue;
-    const firstRaw = state.store.readAttemptFailureRaw(jobId);
-    if (rejectedResult && firstRaw === null) continue;
-    const body = Object.freeze({
-      kind: browserInput === "zero" && !reusablePayloadConflict || rejectedResult
-        ? "attempt_handoff" as const : "delivery_priority_replay" as const,
-      job_id: jobId,
-      source_attempt_id: task.current_attempt_id,
-      source_task_hash: hashCanonical(task.task),
-      first_fact_raw_hash: firstRaw === null ? null : sha256(Buffer.from(firstRaw, "utf8")),
-      outbox_history_hash: outbox.historyHash,
-      outbox_candidate_count: outbox.candidateCount,
-      payload_slot_conflict: reusablePayloadConflict ? payloadSlotConflict : null,
-      browser_history_hash: browser.historyHash,
-      browser_row_count: browser.rowCount,
-      browser_input_state: browserInput,
-      replay_calls: browserInput === "zero" && !reusablePayloadConflict ? []
-        : browser.replayCalls.map((call) => Object.freeze({
-        product_step_id: call.productStepId, call_id: call.callId,
-        child_capability_id: call.childCapabilityId,
-        source_effect_set_hash: call.sourceEffectSetHash,
-      })),
-      rejected_call: rejectedResult && rejectedCall ? Object.freeze({
-        product_step_id: rejectedCall.productStepId,
-        call_id: rejectedCall.callId,
-        child_capability_id: rejectedCall.childCapabilityId,
-        source_effect_set_hash: rejectedCall.sourceEffectSetHash,
-        effect_identity_hash: rejected.provider_effect_identity_hash,
-      }) : null,
-      readback_proofs: readbackProofs,
-      browser_target_settled: true,
-      target_settlement_hash: browser.targetSettlementHash,
-      readback_exhaustion_hash: browserInput === "zero" && !reusablePayloadConflict
-        || rejectedResult ? null
-        : hashCanonical(readbackProofs.filter((proof) => proof.disposition === "replay_exhausted")),
-    });
-    const sealed = Object.freeze({ ...body, seal_hash: hashCanonical(body) });
-    state.store.sealSourceHandoff(sealed);
-    evidence.push(sealed);
-  }
-  return evidence;
-};
-
 const launchClaimJobs = (
   state: RuntimeState,
   jobs: Awaited<ReturnType<typeof claimProductionTasks>>["jobs"],
@@ -709,6 +277,20 @@ const reconcileUnfinishedExecutionsWithoutReceipt = async (state: RuntimeState):
   }
 };
 
+const claimAdmissionEligible = (
+  state: RuntimeState, availableNewSlots: number, hasExistingAttemptRecovery: boolean,
+  hasPendingStagedResult: boolean, attestationEligible: boolean,
+): boolean => {
+  const browser = state.browserAuthority.readProductionRuntimeState();
+  return (availableNewSlots > 0 || hasExistingAttemptRecovery)
+    && (state.executor.availableCapacity() > 0 || hasPendingStagedResult)
+    && attestationEligible && state.ledgerReconciled
+    && (browser.browserAuthorityState === "present" || hasPendingStagedResult)
+    && !state.draining && state.runtimeLogger.isWritable()
+    && (state.providerRateLimitControl.canRequestClaimAuthority()
+      || hasPendingStagedResult);
+};
+
 const workerIteration = async (state: RuntimeState): Promise<number> => {
   await reconcilePendingBusinessAdmissions(state);
   await reconcileCompletedBrowserTargets(state);
@@ -758,14 +340,8 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
   const hasExistingAttemptRecovery = hasAcceptedAttemptRecovery
     || hasPendingProviderReadback || hasPendingCooldownResume
     || hasPendingStagedResult || sourceEvidence.length > 0;
-  const browser = state.browserAuthority.readProductionRuntimeState();
-  const eligible = (availableNewSlots > 0 || hasExistingAttemptRecovery)
-    && (state.executor.availableCapacity() > 0 || hasPendingStagedResult)
-    && attestation.claim_eligible && state.ledgerReconciled
-    && (browser.browserAuthorityState === "present" || hasPendingStagedResult)
-    && !state.draining && state.runtimeLogger.isWritable()
-    && (state.providerRateLimitControl.canRequestClaimAuthority()
-      || hasPendingStagedResult);
+  const eligible = claimAdmissionEligible(state, availableNewSlots,
+    hasExistingAttemptRecovery, hasPendingStagedResult, attestation.claim_eligible);
   if (!eligible) return 1_000;
   const recoveryOnlyClaim = availableNewSlots <= 0 && hasExistingAttemptRecovery;
   const batch = await requestClaimBatch(
