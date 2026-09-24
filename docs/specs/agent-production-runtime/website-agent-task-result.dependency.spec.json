@@ -2,17 +2,17 @@
   "schemaVersion": 1,
   "specId": "agent-production-runtime.website-agent-task-result-dependency",
   "status": "active",
-  "version": 14,
+  "version": 15,
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V70",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V40",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V40"
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V71",
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V41",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V41"
   ],
   "specKind": "cross-repo-dependency",
   "contract": {
     "contractId": "ai-acceptance.website-agent-task-result",
-    "version": 14,
+    "version": 15,
     "providerRepo": "ADVISION-X/xuanxue-web"
   }
 }

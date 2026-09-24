@@ -7,11 +7,11 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 export const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V70", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V10",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V40", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V40",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V39", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V42",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V42",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V43",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V71", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V11",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V41", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V41",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V40", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V43",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V43",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V44",
 } as const;
 export const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
@@ -64,10 +64,10 @@ const inspectRouteProjection = (context: InspectorContext, findings: InspectorFi
     return Array.isArray(keys) && keys.includes("reusable_base_reservation_ref")
       && keys.includes("reusable_base_reservation_hash");
   }).length;
-  if (route.contract_version !== 14 || routes.length !== 40 || Object.keys(route.parameter_types ?? {}).length !== 48
+  if (route.contract_version !== 15 || routes.length !== 40 || Object.keys(route.parameter_types ?? {}).length !== 48
     || resultContracts !== 33 || reservations !== 0) findings.push(finding(LAWS.route,
     "agent-production-runtime/route-denominator", PATHS.routeProjection,
-    "Route projection is not contract v14 with the exact 40/48/33/0 denominator."));
+    "Route projection is not contract v15 with the exact 40/48/33/0 denominator."));
 };
 
 const accessedProperties = (node: Node | undefined, receiver: string): string[] =>

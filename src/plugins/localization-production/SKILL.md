@@ -25,7 +25,7 @@
 
 报告和文章的唯一翻译结果只在当前 Product Flow 内做垂直校验；校验失败直接阻断，不得产生候选、选择轮次、第二正式结果或可认领的第二链路。
 
-`localization_static_catalog / produce_locale_catalog` 只翻译 Website 冻结 ContextBundle 中的 `message_items`。首任务覆盖一个 locale/cohort 的待译字段；若部分字段未通过网站机械验收，下一个新任务只包含这些失败 ID。每次任务与 attempt 只提交一次模型结果，五个 locale 各自 fresh，互不等待。 `read_only_siblings` 只用于理解上下文，不能加入输出分母；每条 `failure_code` 是网站上次机械拒收的确定事实，应据此修正该字段。`public_value_binding` 必须完整，缺失时在调用 Provider 前失败。
+`localization_static_catalog / produce_locale_catalog` 只翻译 Website 冻结 ContextBundle 中的 `message_items`。同一 cohort 首任务从 clean chat 开始；Website 逐任务签发已接纳直接前驱后，后继五语与失败 ID 补译只沿父任务 WAL 的唯一 URL 顺序续聊，每张任务仍各提交一次模型结果。若部分字段未通过网站机械验收，下一个新任务只包含这些失败 ID；当前语言闭合后才进入下一语言。`read_only_siblings` 只用于理解上下文，不能加入输出分母；每条 `failure_code` 是网站上次机械拒收的确定事实，应据此修正该字段。`public_value_binding` 必须完整，缺失时在调用 Provider 前失败。
 
 固定文案结果使用 v3 合同：有译文时提交有序非空 ID 子集；整组无法翻译时提交 `translation_failed` 和稳定错误码。AGENT 不做第二审校或机械接纳裁决，不用中文源文回填目标译文，也不附 finding、语义评分或审批结论。Website 唯一验收来源身份、ID、占位符、受保护 token 等机械事实，并负责逐字段生效、失败字段自动再译及同任务退避。该动作不写 Website 仓库、不部署、不创建第二生产链。
 

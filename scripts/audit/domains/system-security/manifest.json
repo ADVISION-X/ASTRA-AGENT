@@ -3,7 +3,7 @@
   "capabilityDomain": "system-security",
   "status": "active",
   "lawIds": [
-    "LAW-SYSTEM-SECURITY-001-V13"
+    "LAW-SYSTEM-SECURITY-001-V14"
   ],
   "ownedPaths": [
     "scripts/acceptance/system-security.acceptance.ts",

@@ -7,7 +7,7 @@ export type { ProductionRoutePolicy } from "../../../mediator/product-plugin-con
 type RoutePolicyProjection = Readonly<{
   schema_version: "website-agent-route-policies.v1";
   contract_id: "ai-acceptance.website-agent-task-result";
-  contract_version: 14;
+  contract_version: 15;
   parameter_types: Readonly<Record<string, string>>;
   routes: readonly ProductionRoutePolicy[];
 }>;
@@ -15,7 +15,7 @@ type RoutePolicyProjection = Readonly<{
 const projection = routePolicyArtifact as RoutePolicyProjection;
 if (projection.schema_version !== "website-agent-route-policies.v1"
   || projection.contract_id !== "ai-acceptance.website-agent-task-result"
-  || projection.contract_version !== 14
+  || projection.contract_version !== 15
   || !projection.parameter_types
   || Object.keys(projection.parameter_types).length !== 48
   || projection.routes.length !== 40) {
@@ -73,11 +73,16 @@ const assertRouteRelation = (task: WebsiteAgentTask, expected: ProductionRoutePo
   const parentIdentity = [task.parent_task_ref, task.parent_result_ref, task.parent_result_hash];
   const reviewIdentity = [task.subject_task_ref, task.subject_result_ref, task.subject_result_hash,
     task.review_policy];
+  const staticRoot = task.product_id === "localization_static_catalog"
+    && task.action_id === "produce_locale_catalog";
   const parentRequired = expected.relation_kind === "followup"
-    || expected.relation_kind === "provider_continuation";
-  if (parentRequired !== parentIdentity.every((value) => value !== undefined)
+    || (expected.relation_kind === "provider_continuation" && !staticRoot);
+  const hasAnyParent = parentIdentity.some((value) => value !== undefined);
+  const hasFullParent = parentIdentity.every((value) => value !== undefined);
+  if ((parentRequired && !hasFullParent)
     || (expected.relation_kind === "review") !== reviewIdentity.every((value) => value !== undefined)
-    || (!parentRequired && parentIdentity.some((value) => value !== undefined))
+    || (!parentRequired && !staticRoot && hasAnyParent)
+    || (staticRoot && hasAnyParent && !hasFullParent)
     || (expected.relation_kind !== "review" && reviewIdentity.some((value) => value !== undefined))) {
     throw new Error("AGENT_ROUTE_RELATION_KIND_INVALID");
   }

@@ -46,8 +46,9 @@ function productionStep(
     source_version: input.source_version,
     source_sha256: input.source_sha256,
     policy_version: input.policy_version,
+    cohort_id: context.cohort_id,
+    cohort_message_ids: context.cohort_message_ids,
     authorization_ref: task.business_identity.authorization_ref,
-    message_ids: context.message_items.map((item) => item.message_id),
     role: "production",
   }).slice(7)}`;
 }

@@ -1,7 +1,7 @@
 {
   "schema_version": "website-agent-route-policies.v1",
   "contract_id": "ai-acceptance.website-agent-task-result",
-  "contract_version": 14,
+  "contract_version": 15,
   "parameter_types": {
     "admitted_identity_catalog_hash": "sha256",
     "analysis_kind": "bazi_analysis_kind",
@@ -1073,7 +1073,7 @@
         "internal_cohort_topology": "agent_private",
         "candidate_set_admission": "per-message-mechanical-current-catalog"
       },
-      "relation_kind": "primary"
+      "relation_kind": "provider_continuation"
     },
     {
       "product_id": "payment_screenshot_observation",

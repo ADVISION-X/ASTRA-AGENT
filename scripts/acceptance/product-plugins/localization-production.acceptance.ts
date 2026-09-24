@@ -202,7 +202,7 @@ const contextBundleHash = sha256(contextBundleJson);
 const staticInput = {
   schema_version: "localization-static-catalog-input.v1", target_locale: "en-US",
   source_resource_id: "website-fixed-copy-catalog", source_version: "fixture-v1",
-  source_sha256: FIXTURE_HASH, policy_version: "target-language-review-v5-20260919",
+  source_sha256: FIXTURE_HASH, policy_version: "target-language-review-v6-20260924",
   expected_message_count: 2,
   context_bundles: [{ batch_id: contextBundle.batch_id, context_bundle_json: contextBundleJson,
     context_bundle_hash: contextBundleHash, message_count: 2 }],
@@ -231,7 +231,17 @@ const staticRun = await exerciseProductFlow(plugin, {
   expectedSessionCount: 1, checkpointOutput: () => candidate,
 });
 assert.equal(staticRun.physicalSubmitDispatches, 1);
-assert.equal(staticRun.calls.filter((call) => call.child === "prepare_clean_gpt_chat").length, 1);
+assert.equal(staticRun.calls.filter((call) => call.child === "prepare_clean_gpt_chat").length, 0);
+const staticRootTask = { ...staticTask };
+delete (staticRootTask as Partial<typeof staticRootTask>).parent_task_ref;
+delete (staticRootTask as Partial<typeof staticRootTask>).parent_result_ref;
+delete (staticRootTask as Partial<typeof staticRootTask>).parent_result_hash;
+const staticRootRun = await exerciseProductFlow(plugin, {
+  task: staticRootTask, materialContents: { static_catalog_input: staticInput }, output: {},
+  expectedSessionCount: 1, checkpointOutput: () => candidate,
+});
+assert.equal(staticRootRun.physicalSubmitDispatches, 1);
+assert.equal(staticRootRun.calls.filter((call) => call.child === "prepare_clean_gpt_chat").length, 1);
 const staticPrompt = String(staticRun.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt);
 assert.match(staticPrompt, /read_only_siblings/u);
 assert.doesNotMatch(staticPrompt, /"finding_codes"\s*:|五个 locale turn/u);

@@ -492,7 +492,7 @@ try {
 }
 process.stdout.write("LOCAL_BROWSER_ATTEMPT_FENCE_ACCEPTANCE_PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V51", evidenceMode: "exam.golden",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V52", evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "forbidden:3", "forbidden:4", "forbidden:5"],
   locator: "acceptance:local-browser-provider-effect-recovery:risk-grant",
   observedValue: "original Provider effect sets remain in WAL; a risk grant rebinds only proven zero-input PREPARED and retries only proven REJECTED/no commands until one physical input",

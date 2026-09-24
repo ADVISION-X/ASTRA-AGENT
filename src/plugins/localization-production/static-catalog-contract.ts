@@ -8,7 +8,7 @@ import { executionFailure } from "../../lib/execution-failure.js";
 
 const TARGET_LOCALES = new Set(["zh-HK", "zh-TW", "en-US", "ja-JP", "ko-KR"]);
 const HASH = /^sha256:[a-f0-9]{64}$/u;
-const STATIC_POLICY_VERSION = "target-language-review-v5-20260919";
+const STATIC_POLICY_VERSION = "target-language-review-v6-20260924";
 const PUBLIC_VALUE_AUTHORITY_REFS = ["LAW-PROJECT-GOVERNANCE-010-V1", "LAW-USER-VALUE-INTERFACE-001-V4"] as const;
 const PUBLIC_VALUE_AUTHORITY_HASHES = [
   "sha256:79f430599798e5bb10d73dd70cd32dfa1b4254709a99f32c363e82b06679fbd3",

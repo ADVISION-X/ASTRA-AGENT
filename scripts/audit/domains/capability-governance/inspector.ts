@@ -26,7 +26,7 @@ import {
   registerCapabilityRoot,
 } from "./capability-import-inspection.js";
 
-const MECHANICAL_CONTENT_LAW_ID = "LAW-CAPABILITY-GOVERNANCE-002-V3";
+const MECHANICAL_CONTENT_LAW_ID = "LAW-CAPABILITY-GOVERNANCE-002-V4";
 
 const resolveCapabilityRoot = (repoPath: string): string | undefined => {
   const pathInfo = classifyRepoPath(repoPath);
@@ -299,7 +299,7 @@ const inspectSourceFile = (
 export const inspectCapabilityGovernanceProject = (
   project: InspectorContext["project"],
   includeAuthority: boolean,
-  lawId = "LAW-CAPABILITY-GOVERNANCE-001-V17",
+  lawId = "LAW-CAPABILITY-GOVERNANCE-001-V18",
   observeTypes: () => string = () => observeTypeCheckerRelations(project),
 ): { findings: ReturnType<typeof createFinding>[]; inspectedFiles: string[]; staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] } => {
   const findings: ReturnType<typeof createFinding>[] = [];
