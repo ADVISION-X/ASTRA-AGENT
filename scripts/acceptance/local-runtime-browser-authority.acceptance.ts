@@ -1,5 +1,6 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import { existsSync } from "node:fs";
+import Database from "better-sqlite3";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -7,6 +8,8 @@ import { join, resolve } from "node:path";
 import { Node, Project, SyntaxKind } from "ts-morph";
 
 import { createWorkbenchAssembly } from "../../src/lib/local-runtime/workbench-assembly.js";
+import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
+import { ensureCurrentSchema } from "../../src/lib/browser/exact-target/browser-mutation-schema.js";
 import {
   BrowserInfrastructureSupervisor,
   shouldRestoreBrowserHostVisibility,
@@ -183,6 +186,40 @@ try {
     "cold start without an authenticated transport terminal must not request host recovery");
 } finally {
   await assembly.browserAuthority.shutdown();
+}
+
+const admissionRoot = await mkdtemp(join(tmpdir(), "browser-schema-startup-"));
+try {
+  for (const variant of ["old-table", "wrong-journal"] as const) {
+    const dir = join(admissionRoot, variant, "browser");
+    mkdirSync(dir, { recursive: true });
+    const file = join(dir, "browser-mutations.sqlite");
+    const database = new Database(file);
+    ensureCurrentSchema(database);
+    if (variant === "old-table") {
+      database.pragma("journal_mode = WAL");
+      database.exec("create table browser_mutations_physical_input_v2 (old_effect text)");
+      database.exec("insert into browser_mutations_physical_input_v2 values ('historical-effect')");
+    }
+    database.close();
+    assert.throws(() => new BrowserMutationStore(join(admissionRoot, variant)), /BROWSER_REPAIR_REQUIRED/u);
+    assert.equal(existsSync(join(dir, "browser-mutation.key")), false,
+      "a rejected existing database must not create an encryption key");
+    const readback = new Database(file, { readonly: true, fileMustExist: true });
+    assert.equal(readback.pragma("journal_mode", { simple: true }), variant === "old-table" ? "wal" : "delete");
+    if (variant === "old-table") assert.deepEqual(readback.prepare(
+      "select old_effect from browser_mutations_physical_input_v2").all(), [{ old_effect: "historical-effect" }]);
+    readback.close();
+  }
+  const emptyDir = join(admissionRoot, "empty-file", "browser");
+  mkdirSync(emptyDir, { recursive: true });
+  writeFileSync(join(emptyDir, "browser-mutations.sqlite"), "");
+  const emptyRecovered = new BrowserMutationStore(join(admissionRoot, "empty-file"));
+  assert.equal(emptyRecovered.existedAtOpen, false);
+  emptyRecovered.verifyRuntimeTaskProvenance("2020-01-01T00:00:00Z");
+  assert.throws(() => emptyRecovered.assertRuntimeTaskProvenance(), /BROWSER_WAL_HISTORY_UNVERIFIED/u);
+} finally {
+  await rm(admissionRoot, { recursive: true, force: true });
 }
 
 console.log("LOCAL_RUNTIME_BROWSER_AUTHORITY_ACCEPTANCE_PASS");

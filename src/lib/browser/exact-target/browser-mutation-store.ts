@@ -25,11 +25,28 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
   public constructor(dataDir: string) {
     const file = join(dataDir, "browser", "browser-mutations.sqlite");
     const existedAtOpen = existsSync(file);
-    mkdirSync(dirname(file), { recursive: true });
+    let hadCurrentWalAtOpen = false;
+    if (existedAtOpen) {
+      const inspection = new Database(file, { readonly: true, fileMustExist: true });
+      try {
+        const objects = inspection.prepare("select 1 from sqlite_master limit 1").get();
+        if (objects) {
+          ensureCurrentSchema(inspection);
+          if (String(inspection.pragma("journal_mode", { simple: true })).toLowerCase() !== "wal"
+            || String(inspection.pragma("integrity_check", { simple: true })).toLowerCase() !== "ok"
+            || (inspection.pragma("foreign_key_check") as unknown[]).length !== 0) {
+            throw new Error("BROWSER_REPAIR_REQUIRED");
+          }
+          hadCurrentWalAtOpen = true;
+        }
+      } finally {
+        inspection.close();
+      }
+    } else mkdirSync(dirname(file), { recursive: true });
     const payloadKey = browserMutationPayloadKey(dataDir);
     const database = new Database(file);
     super(database, payloadKey);
-    this.existedAtOpen = existedAtOpen;
+    this.existedAtOpen = hadCurrentWalAtOpen;
     this.database.pragma("journal_mode = WAL");
     this.database.pragma("synchronous = FULL");
     ensureCurrentSchema(this.database);

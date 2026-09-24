@@ -40,7 +40,7 @@ import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.j
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, staticImplementationDigest, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
 import { containsPageMutation, gptPrivateInfrastructureViolations } from "../../scripts/audit/domains/gpt/gpt-inspection-support.js";
 import { providerWaitReasonProjectionIsFrozen, textResponseTwoGateSettlementIsFrozen } from "../../scripts/audit/domains/gpt/gpt-frozen-attempt-inspection.js";
-import { browserMutationSchemaMigrationIsCurrent } from "../../scripts/audit/domains/local-browser-session/browser-mutation-settlement-inspection.js";
+import { browserMutationSchemaIsCurrent, browserMutationStoreStartupOrderIsCurrent } from "../../scripts/audit/domains/local-browser-session/browser-mutation-settlement-inspection.js";
 import { exactAssistantTurnReadIsAtomic } from "../../scripts/audit/domains/local-browser-session/dom-mechanical-facts-inspection.js";
 import { requireSource } from "../../scripts/audit/domains/local-browser-session/inspector-support.js";
 import { redactHashWriteOrderIsExact } from "../../scripts/audit/domains/runtime-log-spine/inspector.js";
@@ -1456,25 +1456,56 @@ test("active Browser and Runtime Log inspectors reject semantic decoys", () => {
   assert.equal(redactHashWriteOrderIsExact(inspectSource(loggerPath, redactionDecoy)), false);
 });
 
-test("Browser inspectors admit only the exact row-preserving WAL constraint migration and atomic assistant reads", () => {
+test("Browser inspectors require current WAL schema without startup migration and atomic assistant reads", () => {
   const inspectSource = (path: string, source: string) => {
     const project = new Project({ useInMemoryFileSystem: true });
     return project.createSourceFile(path, source);
   };
   const schemaPath = "src/lib/browser/exact-target/browser-mutation-schema.ts";
   const schema = readFileSync(schemaPath, "utf8");
-  assert.equal(browserMutationSchemaMigrationIsCurrent(inspectSource(schemaPath, schema)), true);
+  assert.equal(browserMutationSchemaIsCurrent(inspectSource(schemaPath, schema)), true);
   for (const mutant of [
     schema.replace("mutation_outcome text check(mutation_outcome in ('no','dispatched','confirmed'))", "mutation_outcome text"),
     schema.replace("native_cause_code text", "native_failure_text text"),
     schema.replace('"provider_recovery_payload",', '"provider_recovery_alias",'),
+    schema.replace("lease_version,execution_fence_hash,delivery_priority_replay_grant_hash,",
+      "lease_version,execution_fence_hash,"),
     schema.replace("columns.length !== requiredColumns.length", "columns.length === requiredColumns.length"),
     schema.replace("check(physical_input_count between 0 and 4)", "check(physical_input_count between 0 and 9)"),
-    schema.replace("database.transaction(() => {\n    for (const index of requiredIndexes)",
-      "(() => {\n    for (const index of requiredIndexes)"),
-    schema.replace("before.count !== after.count", "before.count === after.count"),
-    schema.replace("drop table ${migrationTable}", "drop table browser_mutations"),
-  ]) assert.equal(browserMutationSchemaMigrationIsCurrent(inspectSource(schemaPath, mutant)), false);
+    schema.replace("columns.length !== targetClaimColumns.length", "columns.length === targetClaimColumns.length"),
+    schema.replace("target_ref text not null", "target_ref text"),
+    schema.replace("document_ref text not null", "document_ref text"),
+    schema.replace("state text not null check(state in ('PREPARED','DISPATCHED','CONFIRMED','REJECTED','FAILED'))",
+      "state text not null"),
+    schema.replace("job_ref_hash text not null", "job_ref_hash text"),
+    schema.replace("rows.length === expected.size", "rows.length >= expected.size"),
+    schema.replace("normalizedSql(row.sql) === normalizedSql(expected.get(row.name) ?? \"\")",
+      "expected.has(row.name)"),
+    schema.replace("actual.replace(grantColumn, \"\") === expected.replace(grantColumn, \"\")",
+      "actual.includes(expected)"),
+    schema.replace("normalizedSql(table?.sql ?? \"\") !== normalizedSql(targetClaimTableSql)",
+      "!table"),
+    schema.replace("!mutationTableMatches(table.sql)", "false"),
+    schema.replace("type in ('table','view','index','trigger')", "type='table'"),
+    schema.replace("if (objects.length > 0) throw new Error(\"BROWSER_REPAIR_REQUIRED\")",
+      "if (objects.length > 0) return"),
+    schema.replace("objects.some((object) => !currentObjects.has(object.name))", "false"),
+    schema.replace("assertTargetClaimSchema(database);", "createTargetClaimSchema(database);"),
+    `${schema}\nconst forbiddenMigration = "alter table browser_mutations add column old_value text";`,
+  ]) assert.equal(browserMutationSchemaIsCurrent(inspectSource(schemaPath, mutant)), false);
+
+  const storePath = "src/lib/browser/exact-target/browser-mutation-store.ts";
+  const store = readFileSync(storePath, "utf8");
+  assert.equal(browserMutationStoreStartupOrderIsCurrent(inspectSource(storePath, store)), true);
+  const probeStart = store.indexOf("    if (existedAtOpen) {");
+  const probeEnd = store.indexOf("    const payloadKey =", probeStart);
+  const probe = store.slice(probeStart, probeEnd);
+  const lateProbe = store.slice(0, probeStart) + store.slice(probeEnd)
+    .replace('this.database.pragma("journal_mode = WAL");',
+      `this.database.pragma("journal_mode = WAL");\n${probe}`);
+  assert.equal(browserMutationStoreStartupOrderIsCurrent(inspectSource(storePath, lateProbe)), false);
+  assert.equal(browserMutationStoreStartupOrderIsCurrent(inspectSource(storePath,
+    store.replace("ensureCurrentSchema(inspection);", "void inspection;"))), false);
 
   const exactPath = "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts";
   const exact = readFileSync(exactPath, "utf8");

@@ -270,7 +270,7 @@ Runtime 唯一数据库只保留三表：
 
 `production_tasks` 不保存 Product Plugin 名称、版本、Skill hash、Catalog hash、checkpoint schema 或执行位置；业务请求身份直接来自其 Website task 中的 job_id、product_id、action_id、task/result contract 与 request_hash。Browser WAL 只保存物理 mutation terminal、result_revision 与同一 effect 的加密 canonical conversation URL，且 plugin 字段数为零。Runtime、GPT 与 Browser 均不保存跨任务 consultation identity、source task、checkpoint、frontier 或 Provider conversation；Website 父子关系和已入库父报告只通过本轮业务 task/material 传入。
 
-首次安装只有在零张 production_* 表时才可建立当前三表 schema 并设置 WAL。已有任一表后，普通构造与启动只读验证精确表、列、主键、唯一索引、外键、WAL、integrity_check、foreign_key_check 与数据不变量；旧表或缺表返回 migration-required，不在普通启动补表、重建或迁移。`production_leases` 与任何 Website lease/fence 镜像必须物理不存在；Runtime 只消费当前 Website grant/renew，并以进程内单调预算停止过期执行。Runtime 不保留普通启动迁移入口；Browser WAL 只做自身现役 schema 的单向扩展且不保留旧新双读写。数据库缺失、不可读、损坏、查询异常、记录缺失与 hash mismatch 必须分别保留。
+首次安装只有在零张 production_* 表时才可建立当前三表 schema 并设置 WAL。已有任一表后，普通构造与启动只读验证精确表、列、主键、唯一索引、外键、WAL、integrity_check、foreign_key_check 与数据不变量；旧表或缺表返回 migration-required，不在普通启动补表、重建或迁移。`production_leases` 与任何 Website lease/fence 镜像必须物理不存在；Runtime 只消费当前 Website grant/renew，并以进程内单调预算停止过期执行。Runtime 不保留普通启动迁移入口。Browser WAL 只在全新空库建立现役 schema；已存在但 sqlite_master 零对象的库按未初始化处理，仍由 accepted task provenance 门阻止历史丢失。已有 Browser 持久对象时，普通启动先只读验证现役 WAL 与 target-claim 表的列、索引、约束及全部持久对象清单，旧结构、额外旧表或缺表返回 `BROWSER_REPAIR_REQUIRED`，拒绝前不改 journal mode、不写 key、不执行崩溃恢复；验证通过后才可执行现役 PREPARED 崩溃恢复。普通启动不做 ALTER、复制、重建或补表。历史 `legacy_wal` claim 行只作原 WAL 证据，不重新抬升为活动 claim。数据库缺失、不可读、损坏、查询异常、记录缺失与 hash mismatch 必须分别保留。
 
 普通启动对 Runtime DB、Outbox 和 task-owned plugin directory 做唯一 read-only inventory。输出稳定的目录总数、owned 数、orphan 数与 orphan bytes；读取失败、结构多义或 orphan 存在时阻断新 claim，但不复制 Website lease/fence，不自动移动、修复或删除，不建立目录台账、隐藏 tombstone、第二索引、第二表、maintenance worker 或删除协议。
 

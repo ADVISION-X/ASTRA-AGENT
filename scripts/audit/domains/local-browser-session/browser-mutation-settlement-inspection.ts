@@ -53,38 +53,106 @@ const inspectDispatchPersistence = (
 
 type SettlementSource = NonNullable<ReturnType<typeof requireSource>>;
 
-export const browserMutationSchemaMigrationIsCurrent = (schema: SourceFile): boolean => {
+const requiredIdentityConstraints = ["command_id text primary key",
+  "exact_call_identity_hash text not null", "job_id text not null", "attempt_id text not null",
+  "execution_fence_hash text not null", "product_step_id text not null", "call_id text not null",
+  "child_capability_id text not null", "target_ref text not null", "document_ref text not null",
+  "action_id text not null", "positive_postcondition_hash text not null",
+  "negative_postcondition_hash text not null", "request_hash text not null", "payload_hash text not null",
+  "state text not null check(state in ('prepared','dispatched','confirmed','rejected','failed'))"];
+
+export const browserMutationSchemaIsCurrent = (schema: SourceFile): boolean => {
   const text = schema.getFullText().toLowerCase();
   const table = schema.getVariableDeclaration("currentTableSql")
     ?.getInitializer()?.getText().toLowerCase() ?? "";
+  const claims = schema.getVariableDeclaration("targetClaimTableSql")
+    ?.getInitializer()?.getText().toLowerCase() ?? "";
   const columns = schema.getVariableDeclaration("requiredColumns")
     ?.getInitializer()?.getText().toLowerCase() ?? "";
+  const identity = schema.getVariableDeclaration("identityColumns")
+    ?.getInitializer()?.getText().toLowerCase() ?? "";
+  const mutationIndexes = schema.getVariableDeclaration("mutationIndexSql")
+    ?.getInitializer()?.getText().toLowerCase() ?? "";
+  const claimIndexes = schema.getVariableDeclaration("targetClaimIndexSql")
+    ?.getInitializer()?.getText().toLowerCase() ?? "";
+  const objects = schema.getVariableDeclaration("currentObjects")
+    ?.getInitializer()?.getText() ?? "";
   const admission = schema.getVariableDeclaration("ensureCurrentSchema")?.getInitializer()?.getText() ?? "";
   const shape = schema.getVariableDeclaration("currentColumnsAndIndexes")
     ?.getInitializer()?.getText() ?? "";
-  const migration = schema.getVariableDeclaration("migratePhysicalInputConstraint")
+  const claimShape = schema.getVariableDeclaration("assertTargetClaimSchema")
+    ?.getInitializer()?.getText() ?? "";
+  const indexes = schema.getVariableDeclaration("indexesMatch")
+    ?.getInitializer()?.getText() ?? "";
+  const tableShape = schema.getVariableDeclaration("mutationTableMatches")
     ?.getInitializer()?.getText() ?? "";
   return [
+    requiredIdentityConstraints.every((constraint) => table.includes(constraint)),
     table.includes("mutation_outcome text check(mutation_outcome in ('no','dispatched','confirmed'))"),
     table.includes("check(physical_input_count between 0 and 4)"),
     table.includes("native_cause_code text"), table.includes("provider_recovery_payload text"),
+    table.includes("delivery_priority_replay_grant_hash text"),
+    table.includes("target_ref text not null"),
+    claims.includes("check(claim_source in ('authenticated_claim','legacy_wal'))"),
+    claims.includes("target_ref text not null"),
+    claims.includes("job_ref_hash text not null"), claims.includes("tab_id integer not null"),
+    claims.includes("claimed_at text not null"),
+    claims.includes("check(release_outcome in ('physical_absent','quiesced'))"),
+    mutationIndexes.includes("on browser_mutations(job_id,attempt_id,lease_version,execution_fence_hash,state)"),
+    mutationIndexes.includes("on browser_mutations(job_id,logical_mutation_id,state)"),
+    mutationIndexes.includes("on browser_mutations(job_id,exact_call_identity_hash,state)"),
+    claimIndexes.includes("on browser_target_claims(job_ref_hash,released_at)"),
+    claimIndexes.includes("on browser_target_claims(target_ref,released_at)"),
+    objects.includes('"browser_mutations", "browser_target_claims"'),
+    objects.includes('"sqlite_autoindex_browser_mutations_1"'),
+    objects.includes("...mutationIndexSql.keys(), ...targetClaimIndexSql.keys()"),
     columns.includes('"mutation_outcome"'), columns.includes('"native_cause_code"'),
     columns.includes('"provider_recovery_payload"'),
+    identity.includes("delivery_priority_replay_grant_hash"),
     shape.includes("columns.length !== requiredColumns.length"),
     shape.includes("requiredColumns.some((column) => !columns.includes(column))"),
-    shape.includes("indexes.size === requiredIndexes.size"),
-    shape.includes("[...requiredIndexes].every((index) => indexes.has(index))"),
-    text.includes('if (constraint === 2) migratephysicalinputconstraint(database)'),
-    text.includes('else if (constraint !== 4) throw new error("browser_repair_required")'),
-    migration.includes("database.transaction"),
-    migration.includes("alter table browser_mutations rename to ${migrationTable}"),
-    migration.includes("insert into browser_mutations(${requiredColumns.join(\",\")})"),
-    migration.includes("before.count !== after.count"), migration.includes("drop table ${migrationTable}"),
-    migration.includes("createIndexes(database)"),
+    shape.includes('indexesMatch(database, "browser_mutations", mutationIndexSql)'),
+    claimShape.includes("columns.length !== targetClaimColumns.length"),
+    claimShape.includes("normalizedSql(table?.sql ?? \"\") !== normalizedSql(targetClaimTableSql)"),
+    claimShape.includes('!indexesMatch(database, "browser_target_claims", targetClaimIndexSql)'),
+    indexes.includes("rows.length === expected.size"),
+    indexes.includes("normalizedSql(row.sql) === normalizedSql(expected.get(row.name) ?? \"\")"),
+    tableShape.includes("actual.replace(grantColumn, \"\") === expected.replace(grantColumn, \"\")"),
+    admission.includes("type in ('table','view','index','trigger')"),
+    admission.includes("if (objects.length > 0) throw new Error(\"BROWSER_REPAIR_REQUIRED\")"),
+    admission.includes("objects.length !== currentObjects.size"),
+    admission.includes("objects.some((object) => !currentObjects.has(object.name))"),
+    admission.includes("createTargetClaimSchema(database)"),
+    admission.includes("assertTargetClaimSchema(database)"),
+    admission.includes("!mutationTableMatches(table.sql)"),
     admission.includes('throw new Error("BROWSER_REPAIR_REQUIRED")'),
-    !text.includes("alter table browser_mutations add"), !text.includes("drop table browser_mutations"),
+    !text.includes("alter table"), !text.includes("drop table"),
+    !text.includes("migratephysicalinputconstraint"),
     !text.includes("browser_mutation_schema_rebuild_requires_empty_store"),
   ].every(Boolean);
+};
+
+export const browserMutationStoreStartupOrderIsCurrent = (store: SourceFile): boolean => {
+  const constructor = store.getClass("BrowserMutationStore")?.getConstructors()[0]?.getText() ?? "";
+  const ordered = [
+    "new Database(file, { readonly: true, fileMustExist: true })",
+    "ensureCurrentSchema(inspection)",
+    'inspection.pragma("journal_mode", { simple: true })',
+    "inspection.close()",
+    "browserMutationPayloadKey(dataDir)",
+    "new Database(file)",
+    'this.database.pragma("journal_mode = WAL")',
+    "ensureCurrentSchema(this.database)",
+    "this.assertHistoricalTargetClaimCoverage()",
+    "update browser_mutations set state='FAILED'",
+  ];
+  const locations = ordered.map((token) => constructor.indexOf(token));
+  return locations.every((location, index) => location >= 0
+    && (index === 0 || location > locations[index - 1]!))
+    && constructor.includes('inspection.prepare("select 1 from sqlite_master limit 1").get()')
+    && constructor.includes("if (objects) {")
+    && constructor.includes("hadCurrentWalAtOpen = true")
+    && constructor.includes("this.existedAtOpen = hadCurrentWalAtOpen");
 };
 
 type SettlementSources = Readonly<{
@@ -315,9 +383,13 @@ const inspectMutationPersistence = (
   requireText(actorText, [
     "result.nativeCauseCode",
   ], findings, lawId, sourcePaths[6]);
-  if (!browserMutationSchemaMigrationIsCurrent(sources.schema)) findings.push(createLocalFinding({
+  if (!browserMutationSchemaIsCurrent(sources.schema)) findings.push(createLocalFinding({
     checkId: "browser-authority/mutation-settlement", lawId, filePath: browserMutationSchemaPath,
-    message: "The Browser WAL must preserve rows while transactionally replacing only the old 0..2 physical-input constraint with 0..4.",
+    message: "Existing Browser WAL schema must be validated without startup migration or repair DDL.",
+  }));
+  if (!browserMutationStoreStartupOrderIsCurrent(sources.store)) findings.push(createLocalFinding({
+    checkId: "browser-authority/mutation-settlement", lawId, filePath: sourcePaths[7],
+    message: "The Browser Store must validate existing WAL read-only before key or journal writes.",
   }));
   if (`${sources.store.getFullText()}\n${sources.mutationEvidence.getFullText()}`
     .includes("legacyMutationOutcome")) findings.push(createLocalFinding({
