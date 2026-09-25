@@ -32,6 +32,42 @@ type ExecuteAcknowledgement = (
   dispatchNotAfter: number,
 ) => Promise<ProductGptChildResult<"acknowledge_known_gpt_rate_limit">>;
 
+const sha256Ref = (value: string): boolean => /^sha256:[a-f0-9]{64}$/u.test(value);
+
+/** Read the exact known rate-limit observation carried by the Browser proof; any mismatch fails closed. */
+const readKnownRateLimitObservation = (result: GptChildCapabilityResult) => {
+  const observedAtRef = result.proof.factResultIds.find((value) =>
+    value.startsWith("browser-known-gpt-rate-limit|"));
+  const [, observedAt = "", exactCallIdentityHash = "", targetRefHash = "", documentRefHash = ""] =
+    observedAtRef?.split("|") ?? [];
+  const observationHash = result.proof.authorityRefHashes[0];
+  const preflight = result.proof.browserFact?.knownGptRateLimitPreflightFact;
+  if (!Number.isFinite(Date.parse(observedAt)) || !observationHash
+    || !preflight || !knownGptRateLimitPreflightFactValid(preflight)
+    || preflight.state !== "exact_present" || preflight.observationHash !== observationHash
+    || preflight.observedAt !== observedAt || preflight.exactCallIdentityHash !== exactCallIdentityHash
+    || preflight.targetRefHash !== targetRefHash || preflight.documentRefHash !== documentRefHash
+    || ![exactCallIdentityHash, targetRefHash, documentRefHash].every(sha256Ref)) {
+    throw executionFailure("failed", "PROVIDER_RATE_LIMIT_OBSERVATION_INVALID");
+  }
+  return { observedAt, observationHash, targetRefHash, documentRefHash, preflight };
+};
+
+const targetlessRateLimitObservationHash = (
+  preflight: ReturnType<typeof readKnownRateLimitObservation>["preflight"],
+): GptHash => gptCanonicalHash({
+  schemaVersion: preflight.schemaVersion, state: preflight.state,
+  dialogHash: preflight.dialogHash, titleHash: preflight.titleHash,
+  bodyHash: preflight.bodyHash, acknowledgementHash: preflight.acknowledgementHash,
+  exactCallIdentityHash: preflight.exactCallIdentityHash, observedAt: preflight.observedAt,
+  dialogRawCount: preflight.dialogRawCount,
+  dialogEligibleCount: preflight.dialogEligibleCount,
+  dialogActionableCount: preflight.dialogActionableCount,
+  acknowledgementButtonRawCount: preflight.acknowledgementButtonRawCount,
+  acknowledgementButtonEligibleCount: preflight.acknowledgementButtonEligibleCount,
+  acknowledgementButtonActionableCount: preflight.acknowledgementButtonActionableCount,
+});
+
 export const closeKnownProviderRateLimit = async (input: Readonly<{
   execution: ExecutionInput;
   call: Readonly<{ sessionKey: string }>;
@@ -40,40 +76,14 @@ export const closeKnownProviderRateLimit = async (input: Readonly<{
   executeAcknowledgement: ExecuteAcknowledgement;
 }>): Promise<never> => {
   const dialogHash = "sha256:084b621b91e3affcf2199269157febb07ded1b7a3287ac61104108317cddde15";
-  const observedAtRef = input.result.proof.factResultIds.find((value) =>
-    value.startsWith("browser-known-gpt-rate-limit|"));
-  const [, observedAt = "", exactCallIdentityHash = "", targetRefHash = "", documentRefHash = ""] =
-    observedAtRef?.split("|") ?? [];
-  const observationHash = input.result.proof.authorityRefHashes[0];
-  const preflight = input.result.proof.browserFact?.knownGptRateLimitPreflightFact;
-  if (!Number.isFinite(Date.parse(observedAt)) || !observationHash
-    || !preflight || !knownGptRateLimitPreflightFactValid(preflight)
-    || preflight.state !== "exact_present" || preflight.observationHash !== observationHash
-    || preflight.observedAt !== observedAt || preflight.exactCallIdentityHash !== exactCallIdentityHash
-    || preflight.targetRefHash !== targetRefHash || preflight.documentRefHash !== documentRefHash
-    || !/^sha256:[a-f0-9]{64}$/u.test(exactCallIdentityHash)
-    || !/^sha256:[a-f0-9]{64}$/u.test(targetRefHash)
-    || !/^sha256:[a-f0-9]{64}$/u.test(documentRefHash)) {
-    throw executionFailure("failed", "PROVIDER_RATE_LIMIT_OBSERVATION_INVALID");
-  }
-  const targetlessObservationHash = gptCanonicalHash({
-    schemaVersion: preflight.schemaVersion, state: preflight.state,
-    dialogHash: preflight.dialogHash, titleHash: preflight.titleHash,
-    bodyHash: preflight.bodyHash, acknowledgementHash: preflight.acknowledgementHash,
-    exactCallIdentityHash: preflight.exactCallIdentityHash, observedAt: preflight.observedAt,
-    dialogRawCount: preflight.dialogRawCount,
-    dialogEligibleCount: preflight.dialogEligibleCount,
-    dialogActionableCount: preflight.dialogActionableCount,
-    acknowledgementButtonRawCount: preflight.acknowledgementButtonRawCount,
-    acknowledgementButtonEligibleCount: preflight.acknowledgementButtonEligibleCount,
-    acknowledgementButtonActionableCount: preflight.acknowledgementButtonActionableCount,
-  });
+  const { observedAt, observationHash, targetRefHash, documentRefHash, preflight } =
+    readKnownRateLimitObservation(input.result);
   const incident = await input.providerRateLimitControl.beginIncident({
     jobId: input.execution.jobId, attemptId: input.execution.attemptId,
     resultRevision: input.execution.resultRevision, deviceId: input.execution.deviceId,
     leaseVersion: input.execution.leaseVersion, fenceHash: input.execution.executionFenceHash,
     capabilityManifestHash: input.execution.capabilityManifestHash, dialogHash,
-    observationHash: targetlessObservationHash,
+    observationHash: targetlessRateLimitObservationHash(preflight),
     sessionKey: input.call.sessionKey, observedAt,
   });
   const acknowledged = await input.executeAcknowledgement({

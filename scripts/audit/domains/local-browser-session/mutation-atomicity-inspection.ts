@@ -234,7 +234,9 @@ export const inspectProviderEffectAttemptGuard = (
   ], findings, lawId, evidencePath, "browser-authority/source-effect-history");
   requireTokens(replayText, ["effects.filter(input.possibleProviderInput)",
     "sourceEffectSetHash: input.providerEffectSetHash(call, row.result_revision + 1)",
-    "walAuthorityHash: input.authorityHash(row.command_id)",
+    "rawWalAuthorityHash: input.authorityHash(row.command_id)",
+    "walAuthorityHash: hash(JSON.stringify({",
+    "schemaVersion: \"browser-source-wal-authority.v44\"",
   ], findings, lawId, replayPath, "browser-authority/source-effect-history");
   requireTokens(storeText, [
     "const rebindCommand = input.effectScope === \"provider_effect\"",

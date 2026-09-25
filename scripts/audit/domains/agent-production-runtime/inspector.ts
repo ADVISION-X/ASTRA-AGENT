@@ -195,8 +195,7 @@ const inspectWebsiteAttemptLifecycle = (context: InspectorContext, findings: Ins
     /ATTEMPT_ENDED|PRODUCTION_OUTBOX_ATTEMPT_ENDED/u.test(forbiddenLifecycleVerdict),
     !websiteAttemptSupersession?.hasModifier(SyntaxKind.PrivateKeyword),
     supersessionOwners.length !== 1,
-    supersessionOwners.sort().join(",")
-      !== "acceptTaskAfterSourceHandoff",
+    supersessionOwners.sort().join(",") !== "acceptTaskAfterSourceHandoff",
     Boolean(websiteAttemptRelease),
     !acceptAfterHandoff?.getText().includes("current_attempt_id !== archived.source_attempt_id"),
     !acceptAfterHandoff?.getText().includes("archived.sealed_at === null"),

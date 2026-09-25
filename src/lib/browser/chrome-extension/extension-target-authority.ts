@@ -14,8 +14,8 @@ import { preflightTargetAcquisition } from "./extension-target-acquisition.js";
 import { ExtensionInteractionReadiness } from "./extension-interaction-readiness.js";
 import { executeRegisteredDomIntent } from "./dom-intent-runtime.js";
 import { ExtensionExactTargetRegistry, type ExtensionExactTarget } from "./exact-target-runtime.js";
+import { ExtensionTargetLoss } from "./extension-target-loss.js";
 import {
-  debuggerDetachFailure,
   exactAssistantReadLoaderId,
   readExtensionMainFrame,
 } from "./extension-target-observation.js";
@@ -33,6 +33,12 @@ type TargetFrameSender = (
   body: Record<string, unknown>,
 ) => Promise<void>;
 
+/** The original failure stays authoritative; a failed Chrome-state probe is recorded as its cause. */
+const keepOriginalError = (error: unknown, probeError: unknown): unknown => {
+  if (error instanceof Error && error.cause === undefined) error.cause = probeError;
+  return error;
+};
+
 export class ExtensionTargetAuthority {
   private readonly targets = new ExtensionExactTargetRegistry();
   private readonly debuggerRuntime: ExtensionDebuggerRuntime;
@@ -40,12 +46,13 @@ export class ExtensionTargetAuthority {
   private readonly createdTarget: ExtensionCreatedTarget;
   private readonly interactionReadiness: ExtensionInteractionReadiness;
   private readonly pageAccessGate = new ChatGptPageAccessGate();
+  private readonly targetLoss: ExtensionTargetLoss;
   private navigationPublication: Promise<void> | null = null;
 
   public constructor(
     private readonly chromeApi: ExtensionChromeApi,
     private readonly send: TargetFrameSender,
-    private readonly reportTargetFailure: TargetFailureReporter,
+    reportTargetFailure: TargetFailureReporter,
     private readonly awaitOldCommandHandlers: () => Promise<void>,
   ) {
     this.debuggerRuntime = new ExtensionDebuggerRuntime(chromeApi);
@@ -56,12 +63,19 @@ export class ExtensionTargetAuthority {
       (targetRef, documentRef) => this.targets.resolve(targetRef, documentRef),
       () => Object.freeze({ target: this.activeTarget, loaderId: this.activeTarget?.loaderId ?? null }),
     );
+    this.targetLoss = new ExtensionTargetLoss({
+      debuggerRuntime: this.debuggerRuntime, targets: this.targets,
+      createdTarget: this.createdTarget, reportTargetFailure,
+      readActiveTabId: () => this.activeTarget?.tabId ?? null,
+      clearActiveTarget: () => this.clearActiveTarget(),
+      sendRevoke: (body) => this.send("TARGET_REVOKE", body),
+    });
   }
 
   public start(): void {
     this.chromeApi.debugger.onDetach.addListener((target, reason) => {
       const known = this.targets.findByTabId(target.tabId);
-      void this.consumeDebuggerDetachAfterBarrier(target.tabId, reason, known ?? null);
+      void this.targetLoss.consumeDebuggerDetach(target.tabId, reason, known ?? null);
     });
     this.chromeApi.debugger.onEvent.addListener((target, method) => {
       if (method !== "Page.frameNavigated" || this.activeTarget?.tabId !== target.tabId) return;
@@ -75,32 +89,13 @@ export class ExtensionTargetAuthority {
     });
     this.chromeApi.tabs.onRemoved?.addListener((tabId) => {
       const known = this.targets.findByTabId(tabId);
-      void this.consumeTabRemovalAfterBarrier(tabId, known ?? null);
+      void this.targetLoss.consumeTabRemoval(tabId, known ?? null);
     });
   }
 
-  private async consumeDebuggerDetachAfterBarrier(
-    tabId: number,
-    reason: Parameters<typeof debuggerDetachFailure>[0],
-    eventTarget: ExtensionExactTarget | null,
-  ): Promise<void> {
-    await this.debuggerRuntime.awaitPageReadPermission();
-    const known = this.targets.findByTabId(tabId);
-    if (!known || !eventTarget || known.chromeTargetId !== eventTarget.chromeTargetId
-      || known.jobRefHash !== eventTarget.jobRefHash) return;
-    const targets = await this.debuggerRuntime.readTargets();
-    if (targets.some((target) => target.tabId === tabId
-      && target.id === known.chromeTargetId && target.attached)) return;
-    this.targets.invalidateTab(tabId);
-    if (this.activeTarget?.tabId === tabId) {
-      this.activeTarget = null;
-      this.navigationPublication = null;
-    }
-    await this.publishTargetFailure({
-      targetRef: known.targetRef, jobRefHash: known.jobRefHash,
-      documentRef: known.documentRef,
-      runtimeEventType: "debugger-detach", ...debuggerDetachFailure(reason),
-    });
+  private clearActiveTarget(): void {
+    this.activeTarget = null;
+    this.navigationPublication = null;
   }
 
   private async consumeFrameNavigationAfterBarrier(
@@ -120,42 +115,8 @@ export class ExtensionTargetAuthority {
     await this.publishMainFrameNavigation(frame.url, frame.loaderId);
   }
 
-  private async consumeTabRemovalAfterBarrier(
-    tabId: number, eventTarget: ExtensionExactTarget | null,
-  ): Promise<void> {
-    await this.debuggerRuntime.awaitPageReadPermission();
-    try {
-      await this.debuggerRuntime.readTab(tabId);
-      return;
-    } catch {
-      const targets = await this.debuggerRuntime.readTargets();
-      if (targets.some((target) => target.tabId === tabId)) return;
-    }
-    this.createdTarget.markTabRemoved(tabId);
-    const known = this.targets.findByTabId(tabId);
-    if (!known || !eventTarget || known.chromeTargetId !== eventTarget.chromeTargetId
-      || known.jobRefHash !== eventTarget.jobRefHash) return;
-    this.targets.invalidateTab(tabId);
-    if (this.activeTarget?.tabId === tabId) {
-      this.activeTarget = null;
-      this.navigationPublication = null;
-    }
-    await this.publishTargetFailure({
-      targetRef: known.targetRef, jobRefHash: known.jobRefHash,
-      documentRef: known.documentRef, runtimeEventType: "tab-remove",
-      reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT",
-    });
-  }
   public resolve(targetRef: string, documentRef: string): ExtensionExactTarget {
     return this.targets.resolve(targetRef, documentRef);
-  }
-
-  private async publishTargetFailure(input: Parameters<TargetFailureReporter>[0] & Readonly<{
-    jobRefHash: `sha256:${string}`; documentRef: string;
-  }>): Promise<void> {
-    await this.reportTargetFailure(input);
-    await this.send("TARGET_REVOKE", { targetRef: input.targetRef,
-      jobRefHash: input.jobRefHash, documentRef: input.documentRef });
   }
 
   public async acquireJobBoundChatGptTarget(
@@ -188,15 +149,7 @@ export class ExtensionTargetAuthority {
     }
     const candidate = await this.createdTarget.createProductionCandidate();
     if (candidate.tabId === undefined) throw new Error("BROWSER_TARGET_INVALID");
-    try {
-      await this.debuggerRuntime.attach(candidate.tabId);
-    } catch (error) {
-      try { await this.createdTarget.removeExactCandidate(candidate); }
-      catch (cleanupError) {
-        throw new AggregateError([error, cleanupError], "BROWSER_TARGET_CLEANUP_FAILED");
-      }
-      throw new Error("BROWSER_DEVTOOLS_CONFLICT", { cause: error });
-    }
+    await this.attachOrRemoveCandidate(candidate, candidate.tabId);
     try {
       await this.debuggerRuntime.send(candidate.tabId, "Page.enable");
       let mainFrame = await readExtensionMainFrame(this.debuggerRuntime, candidate.tabId);
@@ -211,10 +164,7 @@ export class ExtensionTargetAuthority {
       const target = this.targets.claimOperatorTarget(
         candidate.tabId, jobRefHash, mainFrame.loaderId, candidate.id,
       );
-      this.activeTarget = target;
-      await this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(target, {
-        claimOrigin: gptWebClaimOriginForUrl(mainFrame.url),
-      }));
+      await this.claimActiveTarget(target, mainFrame.url);
     } catch (error) {
       try { await this.discardJobOwnedTarget(candidate); }
       catch (cleanupError) {
@@ -223,6 +173,21 @@ export class ExtensionTargetAuthority {
       throw error;
     }
   }
+  /** Attach the debugger to the new candidate, or remove that exact candidate and report the conflict. */
+  private async attachOrRemoveCandidate(
+    candidate: ExtensionDebugTarget, tabId: number,
+  ): Promise<void> {
+    try {
+      await this.debuggerRuntime.attach(tabId);
+    } catch (error) {
+      try { await this.createdTarget.removeExactCandidate(candidate); }
+      catch (cleanupError) {
+        throw new AggregateError([error, cleanupError], "BROWSER_TARGET_CLEANUP_FAILED");
+      }
+      throw new Error("BROWSER_DEVTOOLS_CONFLICT", { cause: error });
+    }
+  }
+
   public async releaseJobBoundChatGptTarget(
     jobRefHash: `sha256:${string}`,
   ): Promise<void> {
@@ -239,15 +204,11 @@ export class ExtensionTargetAuthority {
     await this.createdTarget.rejectPendingCreatedTarget("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
     const target = this.activeTarget;
     if (!target) return;
-    this.activeTarget = null;
-    this.navigationPublication = null;
-    if (notifyWorkbench) {
-      this.targets.remove(target.targetRef);
-    }
-    if (notifyWorkbench) {
-      await this.debuggerRuntime.detach(target.tabId);
-    }
-    if (notifyWorkbench) await this.send("TARGET_REVOKE", {
+    this.clearActiveTarget();
+    if (!notifyWorkbench) return;
+    this.targets.remove(target.targetRef);
+    await this.debuggerRuntime.detach(target.tabId);
+    await this.send("TARGET_REVOKE", {
       targetRef: target.targetRef, jobRefHash: target.jobRefHash,
       documentRef: target.documentRef,
     });
@@ -256,8 +217,7 @@ export class ExtensionTargetAuthority {
     await this.debuggerRuntime.awaitPageReadPermission();
     const target = this.activeTarget;
     if (!target || !target.loaderId) throw new Error("BROWSER_TARGET_INVALID");
-    this.activeTarget = null;
-    this.navigationPublication = null;
+    this.clearActiveTarget();
     await this.send("TARGET_REVOKE", { targetRef: target.targetRef,
       jobRefHash: target.jobRefHash, documentRef: target.documentRef });
   }
@@ -409,22 +369,10 @@ export class ExtensionTargetAuthority {
         && requireCanonicalGptConversationUrl(mainFrame.url) !== continuationUrl) {
         throw new Error("BROWSER_POSTCONDITION_FAILED");
       }
-      if (resetToStart) {
-        await this.debuggerRuntime.send(
-          parked.tabId, "Page.navigate", { url: GPT_WEB_START_URL },
-        );
-        await this.debuggerRuntime.awaitPageReadPermission();
-        mainFrame = await readExtensionMainFrame(this.debuggerRuntime, parked.tabId);
-        if (mainFrame.loaderId === parked.loaderId) {
-          throw new Error("BROWSER_DOCUMENT_INVALID");
-        }
-      }
+      if (resetToStart) mainFrame = await this.resetParkedTabToStart(parked);
       const target = mainFrame.loaderId === parked.loaderId
         ? parked : this.targets.advanceDocument(targetRef, mainFrame.loaderId);
-      this.activeTarget = target;
-      await this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(target, {
-        claimOrigin: gptWebClaimOriginForUrl(mainFrame.url),
-      }));
+      await this.claimActiveTarget(target, mainFrame.url);
       return true;
     } catch (error) {
       this.activeTarget = null;
@@ -435,9 +383,20 @@ export class ExtensionTargetAuthority {
           this.targets.invalidateTab(parked.tabId);
           return false;
         }
-      } catch { /* Keep the original error when Chrome state cannot be proved. */ }
+      } catch (probeError) {
+        throw keepOriginalError(error, probeError);
+      }
       throw error;
     }
+  }
+
+  /** Navigate the parked Tab to the fixed start URL and require a fresh Document. */
+  private async resetParkedTabToStart(parked: ExtensionExactTarget) {
+    await this.debuggerRuntime.send(parked.tabId, "Page.navigate", { url: GPT_WEB_START_URL });
+    await this.debuggerRuntime.awaitPageReadPermission();
+    const mainFrame = await readExtensionMainFrame(this.debuggerRuntime, parked.tabId);
+    if (mainFrame.loaderId === parked.loaderId) throw new Error("BROWSER_DOCUMENT_INVALID");
+    return mainFrame;
   }
 
   private async discardJobOwnedTarget(candidate: ExtensionDebugTarget): Promise<void> {
@@ -526,12 +485,15 @@ export class ExtensionTargetAuthority {
       throw error;
     }
     const next = this.targets.advanceDocument(current.targetRef, loaderId);
-    this.activeTarget = next;
-    const promise = this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(next, {
+    await this.claimActiveTarget(next, url);
+    return next;
+  }
+
+  private async claimActiveTarget(target: ExtensionExactTarget, url: string): Promise<void> {
+    this.activeTarget = target;
+    await this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(target, {
       claimOrigin: gptWebClaimOriginForUrl(url),
     }));
-    await promise;
-    return next;
   }
 
 }

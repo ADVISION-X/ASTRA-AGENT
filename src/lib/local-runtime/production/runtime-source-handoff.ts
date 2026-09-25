@@ -13,10 +13,9 @@ type SourceEvidence = NonNullable<Parameters<typeof claimProductionTasks>[4]>[nu
 type Observations = ReturnType<RuntimeState["store"]["readSourceReadbackObservations"]>;
 type Settlements = ReturnType<RuntimeState["store"]["readAcceptedSourceSettlements"]>;
 const assertV44SealedHandoff = (source: SourceEvidence): void => {
-  const root = source as unknown as Record<string, unknown>;
-  if (!Object.hasOwn(root, "input_quiescence_proof")
-    || Object.hasOwn(root, "browser_target_settled")
-    || Object.hasOwn(root, "target_settlement_hash")
+  if (!Object.hasOwn(source, "input_quiescence_proof")
+    || Object.hasOwn(source, "browser_target_settled")
+    || Object.hasOwn(source, "target_settlement_hash")
     || source.readback_proofs.some((proof) => proof.effects.some((effect) =>
       Object.hasOwn(effect, "old_path") || Object.hasOwn(effect, "old_target_ref_hash")
       || Object.hasOwn(effect, "old_document_ref_hash")))) {

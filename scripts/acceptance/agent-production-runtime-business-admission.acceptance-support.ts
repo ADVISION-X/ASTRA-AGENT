@@ -299,6 +299,80 @@ const exerciseBackgroundDeletionSweep = async (
   activeStore.close();
 };
 
+const exerciseCompletedAdmissionCleanup = async (
+  store: ProductionRuntimeStore, productionTask: ReturnType<typeof task>,
+): Promise<void> => {
+  for (const kind of ["base", "bazi", "review"] as const) {
+    const accepted = task({ jobId: `job:admission:${kind}`,
+      productId: productionTask.product_id, actionId: productionTask.action_id,
+      materialRefs: productionTask.material_refs,
+      extra: { parameters: productionTask.parameters } });
+    const staged = resultFor(accepted);
+    store.acceptTask(accepted, `attempt:${kind}`);
+    store.markExecuting(accepted.job_id);
+    stageResultForAcceptance(store, accepted.job_id, `attempt:${kind}`, staged);
+    const typedReceipt = admissionReceiptFor(accepted.job_id, staged.result_payload_hash,
+      kind === "bazi" ? {
+        bazi_domain_admission_receipt_hash: HASH_A,
+        delivery_manifest_id: "delivery-manifest:1",
+        delivery_manifest_hash: HASH_B,
+      } : kind === "review" ? { review_receipt_hash: HASH_A } : {});
+    let releaseCalls = 0;
+    assert.equal(await reconcileBusinessAdmission({
+      store,
+      session: deviceStatusWithAdmission(typedReceipt, accepted.job_id, hashCanonical(staged)),
+      browserAuthority: { releaseJobBoundTarget: async () => {
+          releaseCalls += 1;
+          if (kind === "review") throw new Error("BROWSER_TARGET_CLEANUP_FAILED");
+        } },
+      abort: new AbortController(),
+    } as never, store.readTask(accepted.job_id)!), "completed");
+    assert.equal(releaseCalls, 1,
+      "parked Target and true absence must both use the Browser release readback");
+    assert.equal(store.readTask(accepted.job_id)?.status, "completed");
+    assert.equal(store.pendingBrowserCleanupJobIds().includes(accepted.job_id),
+      kind === "review", "failed release must keep the completed job in cleanup retry");
+  }
+  const cleanupJob = "job:admission:review";
+  await reconcileCompletedBrowserTargets({ store, abort: new AbortController(),
+    browserAuthority: {
+      releaseJobBoundTarget: async () => { throw new Error("BROWSER_TARGET_CLEANUP_FAILED"); } },
+  } as never);
+  assert.deepEqual(store.pendingBrowserCleanupJobIds(), [cleanupJob],
+    "failed background release must preserve the pending cleanup");
+  let retried = 0;
+  await reconcileCompletedBrowserTargets({ store, abort: new AbortController(),
+    browserAuthority: { releaseJobBoundTarget: async () => { retried += 1; } },
+  } as never);
+  assert.equal(retried, 1);
+  assert.equal(store.pendingBrowserCleanupJobIds().includes(cleanupJob), false,
+    "verified released or absent reply settles the existing cleanup state");
+};
+
+const exercisePendingAdmission = async (
+  store: ProductionRuntimeStore, productionTask: ReturnType<typeof task>,
+): Promise<ReturnType<typeof task>> => {
+  const pending = task({ jobId: "job:admission:pending",
+    productId: productionTask.product_id, actionId: productionTask.action_id,
+    materialRefs: productionTask.material_refs,
+    extra: { parameters: productionTask.parameters } });
+  const pendingResult = resultFor(pending);
+  store.acceptTask(pending, "attempt:pending");
+  store.markExecuting(pending.job_id);
+  stageResultForAcceptance(store, pending.job_id, "attempt:pending", pendingResult);
+  assert.equal(await reconcileBusinessAdmission({
+    store, session: deviceStatusWithoutAdmission(pending.job_id),
+  } as never, store.readTask(pending.job_id)!), "pending");
+  assert.deepEqual(store.readTask(pending.job_id)?.staged_result, pendingResult,
+    "absence of Website admission must preserve the staged result and await Website authority");
+  assert.equal(store.readTask(pending.job_id)?.current_reason, "BUSINESS_ADMISSION_PENDING");
+  assert.equal(businessInFlightCount({ active: new Map(), store } as never), 1,
+    "an admission-pending job must retain the only business slot after execution settles");
+  assert.equal(businessInFlightCount({ active: new Map([[pending.job_id, Promise.resolve()]]), store } as never), 1,
+    "active and admission-pending views of the same job must count once");
+  return pending;
+};
+
 export const exerciseOperationsAndBusinessAdmission = async (
   productionTask: ReturnType<typeof task>,
 ): Promise<void> => {
@@ -307,69 +381,8 @@ export const exerciseOperationsAndBusinessAdmission = async (
   const admissionTemporary = await mkdtemp(path.join(tmpdir(), "agent-business-admission-"));
   try {
     const store = new ProductionRuntimeStore(admissionTemporary);
-    for (const kind of ["base", "bazi", "review"] as const) {
-      const accepted = task({ jobId: `job:admission:${kind}`,
-        productId: productionTask.product_id, actionId: productionTask.action_id,
-        materialRefs: productionTask.material_refs,
-        extra: { parameters: productionTask.parameters } });
-      const staged = resultFor(accepted);
-      store.acceptTask(accepted, `attempt:${kind}`);
-      store.markExecuting(accepted.job_id);
-      stageResultForAcceptance(store, accepted.job_id, `attempt:${kind}`, staged);
-      const typedReceipt = admissionReceiptFor(accepted.job_id, staged.result_payload_hash,
-        kind === "bazi" ? {
-          bazi_domain_admission_receipt_hash: HASH_A,
-          delivery_manifest_id: "delivery-manifest:1",
-          delivery_manifest_hash: HASH_B,
-        } : kind === "review" ? { review_receipt_hash: HASH_A } : {});
-      let releaseCalls = 0;
-      assert.equal(await reconcileBusinessAdmission({
-        store,
-        session: deviceStatusWithAdmission(typedReceipt, accepted.job_id, hashCanonical(staged)),
-        browserAuthority: { releaseJobBoundTarget: async () => {
-            releaseCalls += 1;
-            if (kind === "review") throw new Error("BROWSER_TARGET_CLEANUP_FAILED");
-          } },
-        abort: new AbortController(),
-      } as never, store.readTask(accepted.job_id)!), "completed");
-      assert.equal(releaseCalls, 1,
-        "parked Target and true absence must both use the Browser release readback");
-      assert.equal(store.readTask(accepted.job_id)?.status, "completed");
-      assert.equal(store.pendingBrowserCleanupJobIds().includes(accepted.job_id),
-        kind === "review", "failed release must keep the completed job in cleanup retry");
-    }
-    const cleanupJob = "job:admission:review";
-    await reconcileCompletedBrowserTargets({ store, abort: new AbortController(),
-      browserAuthority: {
-        releaseJobBoundTarget: async () => { throw new Error("BROWSER_TARGET_CLEANUP_FAILED"); } },
-    } as never);
-    assert.deepEqual(store.pendingBrowserCleanupJobIds(), [cleanupJob],
-      "failed background release must preserve the pending cleanup");
-    let retried = 0;
-    await reconcileCompletedBrowserTargets({ store, abort: new AbortController(),
-      browserAuthority: { releaseJobBoundTarget: async () => { retried += 1; } },
-    } as never);
-    assert.equal(retried, 1);
-    assert.equal(store.pendingBrowserCleanupJobIds().includes(cleanupJob), false,
-      "verified released or absent reply settles the existing cleanup state");
-    const pending = task({ jobId: "job:admission:pending",
-      productId: productionTask.product_id, actionId: productionTask.action_id,
-      materialRefs: productionTask.material_refs,
-      extra: { parameters: productionTask.parameters } });
-    const pendingResult = resultFor(pending);
-    store.acceptTask(pending, "attempt:pending");
-    store.markExecuting(pending.job_id);
-    stageResultForAcceptance(store, pending.job_id, "attempt:pending", pendingResult);
-    assert.equal(await reconcileBusinessAdmission({
-      store, session: deviceStatusWithoutAdmission(pending.job_id),
-    } as never, store.readTask(pending.job_id)!), "pending");
-    assert.deepEqual(store.readTask(pending.job_id)?.staged_result, pendingResult,
-      "absence of Website admission must preserve the staged result and await Website authority");
-    assert.equal(store.readTask(pending.job_id)?.current_reason, "BUSINESS_ADMISSION_PENDING");
-    assert.equal(businessInFlightCount({ active: new Map(), store } as never), 1,
-      "an admission-pending job must retain the only business slot after execution settles");
-    assert.equal(businessInFlightCount({ active: new Map([[pending.job_id, Promise.resolve()]]), store } as never), 1,
-      "active and admission-pending views of the same job must count once");
+    await exerciseCompletedAdmissionCleanup(store, productionTask);
+    const pending = await exercisePendingAdmission(store, productionTask);
     await exerciseFailureCapacity(store, productionTask);
     await exerciseBackgroundDeletionSweep(admissionTemporary, productionTask);
     await exerciseWaitNewAndPrivacy(store, productionTask);

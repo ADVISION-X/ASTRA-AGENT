@@ -356,7 +356,8 @@ const inspectMutationPersistence = (
   requireText(sources.store.getFullText(), [
     "BrowserMutationOutcome", "mutationOutcome", "mutation_outcome", "terminal_at=case when",
     "native_cause_code", "nativeCauseCode",
-    "rows.length === 1", "row.execution_fence_hash === input.writerFenceHash",
+    "select 1 from browser_mutations where state='DISPATCHED' limit 1",
+    "if (result.changes !== 1) throw new Error(\"BROWSER_MUTATION_STATE_CONFLICT\")",
   ], findings, lawId, sourcePaths[7]);
   if (sources.store.getFullText().includes("settleRetiredTargetLocal")
     || sources.store.getFullText().includes("BROWSER_TARGET_LOCAL_EXECUTION_RETIRED")) {

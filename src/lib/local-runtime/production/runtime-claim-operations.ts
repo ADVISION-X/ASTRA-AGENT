@@ -83,6 +83,43 @@ const reusableCallsFor = (source: SourceAttemptHandoff | null) => {
   }) ?? [];
 };
 
+const assertReplayGrantMatchesSeal = (
+  replay: ClaimedProductionTask["grant"]["delivery_priority_replay_grant"],
+  sealed: SourceAttemptHandoff,
+): void => {
+  const exhaustedCalls = sealed.readback_proofs.filter((proof) =>
+    proof.disposition === "replay_exhausted");
+  if ((sealed.kind === "delivery_priority_replay") !== (replay !== null)
+    || replay !== null && (exhaustedCalls.length !== replay.calls.length
+      || exhaustedCalls.some((call, index) => {
+        const issued = replay.calls[index];
+        return !issued || call.product_step_id !== issued.product_step_id
+          || call.call_id !== issued.call_id
+          || call.child_capability_id !== issued.child_capability_id
+          || call.source_effect_set_hash !== issued.source_effect_set_hash;
+      }))) {
+    throw executionFailure("failed", "PRODUCTION_REPLAY_GRANT_SOURCE_MISMATCH");
+  }
+};
+
+/** Bind a source-handoff grant to its typed local seal; true when it regrants the issued attempt. */
+const requireSourceGrantSeal = (
+  state: RuntimeState, job: ClaimedProductionTask, sourceSeal: `sha256:${string}`,
+): boolean => {
+  const local = state.store.readTask(job.job_id);
+  const issuedRegrant = job.grant.same_accepted_attempt
+    && local?.current_attempt_id === job.grant.attempt_id;
+  const sealed = issuedRegrant
+    ? state.store.readIssuedSourceHandoff(job.job_id, job.grant.attempt_id, sourceSeal)
+    : local?.current_attempt_id
+      ? state.store.readSealedSourceHandoff(job.job_id, local.current_attempt_id) : null;
+  if (!sealed || sealed.seal_hash !== sourceSeal) {
+    throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_REQUIRED");
+  }
+  assertReplayGrantMatchesSeal(job.grant.delivery_priority_replay_grant, sealed);
+  return issuedRegrant;
+};
+
 export const acceptClaim = (
   state: RuntimeState,
   job: ClaimedProductionTask,
@@ -102,35 +139,9 @@ export const acceptClaim = (
   const record = runRuntimeSpanSync({
     span,
     action: () => {
-      const local = state.store.readTask(job.job_id);
       const sourceSeal = job.grant.source_handoff_seal_hash;
-      if (sourceSeal !== null) {
-        const issuedRegrant = job.grant.same_accepted_attempt
-          && local?.current_attempt_id === job.grant.attempt_id;
-        const sealed = issuedRegrant
-          ? state.store.readIssuedSourceHandoff(job.job_id, job.grant.attempt_id, sourceSeal)
-          : local?.current_attempt_id
-            ? state.store.readSealedSourceHandoff(job.job_id, local.current_attempt_id) : null;
-        if (!sealed || sealed.seal_hash !== sourceSeal) {
-          throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_REQUIRED");
-        }
-        const replay = job.grant.delivery_priority_replay_grant;
-        const exhaustedCalls = sealed.readback_proofs.filter((proof) =>
-          proof.disposition === "replay_exhausted");
-        if ((sealed.kind === "delivery_priority_replay") !== (replay !== null)
-          || replay !== null && (exhaustedCalls.length !== replay.calls.length
-            || exhaustedCalls.some((call, index) => {
-              const issued = replay.calls[index];
-              return !issued || call.product_step_id !== issued.product_step_id
-                || call.call_id !== issued.call_id
-                || call.child_capability_id !== issued.child_capability_id
-                || call.source_effect_set_hash !== issued.source_effect_set_hash;
-            }))) {
-          throw executionFailure("failed", "PRODUCTION_REPLAY_GRANT_SOURCE_MISMATCH");
-        }
-        if (!issuedRegrant) {
-          return state.executor.acceptAfterSourceHandoff(task, job.grant.attempt_id, sourceSeal);
-        }
+      if (sourceSeal !== null && !requireSourceGrantSeal(state, job, sourceSeal)) {
+        return state.executor.acceptAfterSourceHandoff(task, job.grant.attempt_id, sourceSeal);
       }
       return reconciledFailure
         ? state.executor.acceptAfterFailureReconciled(task, job.grant.attempt_id, reconciledFailure)

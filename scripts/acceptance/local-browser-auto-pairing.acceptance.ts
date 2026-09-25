@@ -10,8 +10,8 @@ import { emitLocalBrowserAutoPairingProofs } from "./local-browser-proof-support
 import { browserDomFacts } from "./local-browser-dom-runtime-fixture.js";
 import { exerciseAutomaticPairing } from "./local-browser-auto-pairing-support.js";
 import {
-  exerciseAuthorizedContinuation, exerciseClaimBroker, exerciseLogicalPageAccessPriority,
-  exerciseTargetRotation,
+  exerciseAuthorizedContinuation, exerciseClaimBroker, exerciseClosedParkedTabRecovery,
+  exerciseLogicalPageAccessPriority, exerciseTargetRotation,
 } from "./local-browser-target-lifecycle-support.js";
 import { rateLimitDetectorCdpResult, verifyKnownGptRateLimitDetector } from
   "./local-browser-rate-limit-detector.acceptance-support.js";
@@ -476,38 +476,10 @@ await exerciseAuthorizedContinuation({
   authority: targetAuthority, nextCreatedTabId, waitForCreatedTab, targetTabUpdated,
   targetFrames, debuggerMethods, mainFrameUrlByTab,
 });
-const closedJob = `sha256:${"f".repeat(64)}` as const;
-const closedTabId = nextCreatedTabId;
-const firstClosedTabClaim = targetAuthority.acquireJobBoundChatGptTarget("fresh", closedJob);
-await waitForCreatedTab(closedTabId);
-targetTabUpdated(closedTabId, { status: "complete" }, {
-  id: closedTabId, url: "https://chatgpt.com/", title: "ChatGPT",
+await exerciseClosedParkedTabRecovery({
+  authority: targetAuthority, readNextCreatedTabId: () => nextCreatedTabId,
+  waitForCreatedTab, targetTabUpdated, targetFrames, targetFailures, removedTabs,
 });
-await firstClosedTabClaim;
-const oldTargetRef = targetFrames.at(-1)?.body.targetRef;
-await targetAuthority.parkActiveTarget();
-removedTabs.push(closedTabId);
-const replacementTabId = nextCreatedTabId;
-const failuresBeforeClosedTabRecovery = targetFailures.length;
-await assert.rejects(
-  targetAuthority.acquireJobBoundChatGptTarget("bound-observation", closedJob),
-  /BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT/u,
-  "a stale bound observation must not replace its missing current Tab",
-);
-assert.equal(nextCreatedTabId, replacementTabId,
-  "a missing bound observation must not create a new system Tab");
-const replacement = targetAuthority.acquireJobBoundChatGptTarget("confirmed-readback", closedJob);
-await waitForCreatedTab(replacementTabId);
-targetTabUpdated(replacementTabId, { status: "complete" }, {
-  id: replacementTabId, url: "https://chatgpt.com/", title: "ChatGPT",
-});
-await replacement;
-assert.notEqual(targetFrames.at(-1)?.body.targetRef, oldTargetRef,
-  "a closed parked Tab must be replaced with a current Target on the next acquisition");
-assert.equal(targetFailures.length, failuresBeforeClosedTabRecovery,
-  "closed parked Tab recovery must not report an old Target failure first");
-await targetAuthority.parkActiveTarget();
-await targetAuthority.releaseJobBoundChatGptTarget(closedJob);
 await exerciseClaimBroker({ hashes: rotationHashes, activatedTabs, removedTabs });
 process.stdout.write("LOCAL_BROWSER_AUTO_PAIRING_AND_EXACT_CHATGPT_CLAIM_ACCEPTANCE_PASS\n");
 emitLocalBrowserAutoPairingProofs();

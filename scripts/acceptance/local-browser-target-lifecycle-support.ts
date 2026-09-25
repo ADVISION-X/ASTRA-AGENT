@@ -152,6 +152,49 @@ export const exerciseAuthorizedContinuation = async (input: Readonly<{
   await input.authority.releaseJobBoundChatGptTarget(hash);
 };
 
+export const exerciseClosedParkedTabRecovery = async (input: Readonly<{
+  authority: ExtensionTargetAuthority;
+  readNextCreatedTabId(): number;
+  waitForCreatedTab(tabId: number): Promise<void>;
+  targetTabUpdated: TabUpdatedListener;
+  targetFrames: TargetFrame[];
+  targetFailures: readonly unknown[];
+  removedTabs: number[];
+}>): Promise<void> => {
+  const closedJob = `sha256:${"f".repeat(64)}` as const;
+  const closedTabId = input.readNextCreatedTabId();
+  const firstClosedTabClaim = input.authority.acquireJobBoundChatGptTarget("fresh", closedJob);
+  await input.waitForCreatedTab(closedTabId);
+  input.targetTabUpdated(closedTabId, { status: "complete" }, {
+    id: closedTabId, url: "https://chatgpt.com/", title: "ChatGPT",
+  });
+  await firstClosedTabClaim;
+  const oldTargetRef = input.targetFrames.at(-1)?.body.targetRef;
+  await input.authority.parkActiveTarget();
+  input.removedTabs.push(closedTabId);
+  const replacementTabId = input.readNextCreatedTabId();
+  const failuresBeforeClosedTabRecovery = input.targetFailures.length;
+  await assert.rejects(
+    input.authority.acquireJobBoundChatGptTarget("bound-observation", closedJob),
+    /BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT/u,
+    "a stale bound observation must not replace its missing current Tab",
+  );
+  assert.equal(input.readNextCreatedTabId(), replacementTabId,
+    "a missing bound observation must not create a new system Tab");
+  const replacement = input.authority.acquireJobBoundChatGptTarget("confirmed-readback", closedJob);
+  await input.waitForCreatedTab(replacementTabId);
+  input.targetTabUpdated(replacementTabId, { status: "complete" }, {
+    id: replacementTabId, url: "https://chatgpt.com/", title: "ChatGPT",
+  });
+  await replacement;
+  assert.notEqual(input.targetFrames.at(-1)?.body.targetRef, oldTargetRef,
+    "a closed parked Tab must be replaced with a current Target on the next acquisition");
+  assert.equal(input.targetFailures.length, failuresBeforeClosedTabRecovery,
+    "closed parked Tab recovery must not report an old Target failure first");
+  await input.authority.parkActiveTarget();
+  await input.authority.releaseJobBoundChatGptTarget(closedJob);
+};
+
 export const exerciseClaimBroker = async (input: Readonly<{
   hashes: readonly `sha256:${string}`[];
   activatedTabs: number[];

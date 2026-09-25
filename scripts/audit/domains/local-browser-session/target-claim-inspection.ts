@@ -188,7 +188,9 @@ const readbackUsesCurrentTargetAndCanonicalUrl = (reacquire: string, selection: 
   && selection.includes('"Page.navigate", { url: expected }')
   && selection.includes("publishMainFrameNavigation(mainFrame.url, mainFrame.loaderId, true)")
   && reacquire.includes("debuggerRuntime.readTargets()")
-  && !selection.includes("debuggerRuntime.readTargets()")
+  && selection.indexOf("readExtensionMainFrame(") < selection.indexOf("debuggerRuntime.readTargets()")
+  && selection.indexOf("debuggerRuntime.readTargets()") < selection.indexOf('"Page.navigate", { url: expected }')
+  && selection.includes("candidate.id === target.chromeTargetId && candidate.attached")
   && !selection.includes("nav a[href")
   && !selection.includes("tabs.query")
   && !selection.includes("Page.bringToFront");
@@ -286,7 +288,7 @@ const inspectJobBoundClaimPolicy = (
   requireIdentifiers(lane!, ["BrowserTargetAcquirer", "targetAcquirer", "ensureAvailableTarget"], findings, lawId,
     "The sole Browser lane must delegate target acquisition to its one private target acquirer.");
   const requestClassificationPrivate = !leaseContract!.getFullText().includes("requestKind")
-    && lane!.getFullText().includes('requestKind: wait.targetMode === "fresh"');
+    && lane!.getFullText().includes('requestKind: wait.targetMode === "confirmed-readback"');
   if (!requestClassificationPrivate) {
     findings.push(createLocalFinding({
       checkId: "browser-authority/job-bound-target-claim", lawId, filePath: targetLeasePath,

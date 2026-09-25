@@ -33,6 +33,62 @@ const checkpointBody = (effect: BrowserEffect, checkpoint: NonNullable<
   user_turn_hash: checkpoint.user_turn_hash,
 });
 
+type Checkpoint = NonNullable<SourceReadbackEffectProof["settled_checkpoint"]>;
+type Settlement<K extends SettledHistory[number]["kind"]> = Extract<SettledHistory[number], { kind: K }>;
+
+const checkpointProof = (
+  checkpoint: Pick<Checkpoint, "source_attempt_id" | "source_result_revision"
+    | "checkpoint_exact_call_identity_hash" | "artifact_ref" | "artifact_content_hash"
+    | "submit_prompt_hash" | "canonical_conversation_hash" | "user_turn_hash">,
+  proofHash: `sha256:${string}`, observedAt: string,
+) => Object.freeze({
+  source_attempt_id: checkpoint.source_attempt_id,
+  source_result_revision: checkpoint.source_result_revision,
+  checkpoint_exact_call_identity_hash: checkpoint.checkpoint_exact_call_identity_hash,
+  artifact_ref: checkpoint.artifact_ref, artifact_content_hash: checkpoint.artifact_content_hash,
+  submit_prompt_hash: checkpoint.submit_prompt_hash,
+  canonical_conversation_hash: checkpoint.canonical_conversation_hash,
+  user_turn_hash: checkpoint.user_turn_hash, proof_hash: proofHash,
+  observed_at: observedAt, provider_input_delta: 0 as const,
+});
+
+const reusedCheckpointProof = (effect: BrowserEffect,
+  item: Settlement<"reused_checkpoint">): SourceReadbackEffectProof | null => {
+  const old = item.effect;
+  const checkpoint = old.settled_checkpoint;
+  if (!confirmed(effect) || effect.anchorState !== "trusted" || !checkpoint
+    || old.effect_identity_hash !== effect.effectIdentityHash
+    || old.source_effect_set_hash !== effect.sourceEffectSetHash
+    || old.wal_authority_hash !== effect.walAuthorityHash
+    || old.anchor_proof_hash !== effect.anchorProofHash
+    || checkpoint.source_attempt_id !== effect.attemptId
+    || checkpoint.source_result_revision !== effect.resultRevision
+    || checkpoint.canonical_conversation_hash !== effect.canonicalConversationHash
+    || checkpoint.user_turn_hash !== effect.userTurnHash) return null;
+  return Object.freeze({ ...identity(effect), settled_checkpoint: checkpointProof(
+    checkpoint, hashCanonical(checkpointBody(effect, checkpoint)), checkpoint.observed_at) });
+};
+
+const rejectionSettledProof = (effect: BrowserEffect,
+  item: Settlement<"rejection_settled">): SourceReadbackEffectProof | null => {
+  if (!confirmed(effect) || effect.authorityRef !== item.evidenceRef
+    || effect.rawWalAuthorityHash !== item.evidenceHash) return null;
+  return Object.freeze({ ...identity(effect), rejection_settled: Object.freeze({
+    source_attempt_id: effect.attemptId,
+    source_handoff_seal_hash: item.sourceHandoffSealHash,
+  }) });
+};
+
+const riskAuthorizedProof = (effect: BrowserEffect,
+  item: Settlement<"risk_authorized">): SourceReadbackEffectProof | null => {
+  if (effect.anchorState !== item.sourceAnchorState
+    || item.sourceWalAuthorityHash !== effect.walAuthorityHash
+    || item.sourceAnchorProofHash !== effect.anchorProofHash) return null;
+  return Object.freeze({ ...identity(effect), risk_authorized: Object.freeze({
+    source_handoff_seal_hash: item.sourceHandoffSealHash,
+  }) });
+};
+
 const acceptedProof = (effect: BrowserEffect, call: BrowserCall,
   history: SettledHistory): SourceReadbackEffectProof | null | undefined => {
   const matching = history.filter((item) => item.effectIdentityHash === effect.effectIdentityHash
@@ -43,45 +99,9 @@ const acceptedProof = (effect: BrowserEffect, call: BrowserCall,
   if (matching.length > 1) return null;
   const item = matching[0];
   if (!item) return undefined;
-  if (item.kind === "reused_checkpoint") {
-    const old = item.effect;
-    const checkpoint = old.settled_checkpoint;
-    if (!confirmed(effect) || effect.anchorState !== "trusted" || !checkpoint
-      || old.effect_identity_hash !== effect.effectIdentityHash
-      || old.source_effect_set_hash !== effect.sourceEffectSetHash
-      || old.wal_authority_hash !== effect.walAuthorityHash
-      || old.anchor_proof_hash !== effect.anchorProofHash
-      || checkpoint.source_attempt_id !== effect.attemptId
-      || checkpoint.source_result_revision !== effect.resultRevision
-      || checkpoint.canonical_conversation_hash !== effect.canonicalConversationHash
-      || checkpoint.user_turn_hash !== effect.userTurnHash) return null;
-    return Object.freeze({ ...identity(effect), settled_checkpoint: Object.freeze({
-      source_attempt_id: checkpoint.source_attempt_id,
-      source_result_revision: checkpoint.source_result_revision,
-      checkpoint_exact_call_identity_hash: checkpoint.checkpoint_exact_call_identity_hash,
-      artifact_ref: checkpoint.artifact_ref,
-      artifact_content_hash: checkpoint.artifact_content_hash,
-      submit_prompt_hash: checkpoint.submit_prompt_hash,
-      canonical_conversation_hash: checkpoint.canonical_conversation_hash,
-      user_turn_hash: checkpoint.user_turn_hash,
-      proof_hash: hashCanonical(checkpointBody(effect, checkpoint)),
-      observed_at: checkpoint.observed_at, provider_input_delta: 0 as const,
-    }) });
-  }
-  if (item.kind === "rejection_settled") {
-    if (!confirmed(effect) || effect.authorityRef !== item.evidenceRef
-      || effect.rawWalAuthorityHash !== item.evidenceHash) return null;
-    return Object.freeze({ ...identity(effect), rejection_settled: Object.freeze({
-      source_attempt_id: effect.attemptId,
-      source_handoff_seal_hash: item.sourceHandoffSealHash,
-    }) });
-  }
-  if (effect.anchorState !== item.sourceAnchorState
-    || item.sourceWalAuthorityHash !== effect.walAuthorityHash
-    || item.sourceAnchorProofHash !== effect.anchorProofHash) return null;
-  return Object.freeze({ ...identity(effect), risk_authorized: Object.freeze({
-    source_handoff_seal_hash: item.sourceHandoffSealHash,
-  }) });
+  if (item.kind === "reused_checkpoint") return reusedCheckpointProof(effect, item);
+  if (item.kind === "rejection_settled") return rejectionSettledProof(effect, item);
+  return riskAuthorizedProof(effect, item);
 };
 
 const observedCheckpoint = (effect: BrowserEffect, observations: Observations):
@@ -95,16 +115,8 @@ const observedCheckpoint = (effect: BrowserEffect, observations: Observations):
     || effect.canonicalConversationHash !== settled.canonical_conversation_hash
     || effect.userTurnHash !== settled.user_turn_hash
     || hashCanonical(body) !== proofHash) return null;
-  return Object.freeze({ ...identity(effect), settled_checkpoint: Object.freeze({
-    source_attempt_id: settled.source_attempt_id,
-    source_result_revision: settled.source_result_revision,
-    checkpoint_exact_call_identity_hash: settled.checkpoint_exact_call_identity_hash,
-    artifact_ref: settled.artifact_ref, artifact_content_hash: settled.artifact_content_hash,
-    submit_prompt_hash: settled.submit_prompt_hash,
-    canonical_conversation_hash: settled.canonical_conversation_hash,
-    user_turn_hash: settled.user_turn_hash, proof_hash: proofHash,
-    observed_at: observedAt, provider_input_delta: 0 as const,
-  }) });
+  return Object.freeze({ ...identity(effect),
+    settled_checkpoint: checkpointProof(settled, proofHash, observedAt) });
 };
 
 const exhaustedProof = (effect: BrowserEffect, observations: Observations):

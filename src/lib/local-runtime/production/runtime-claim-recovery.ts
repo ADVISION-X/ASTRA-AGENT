@@ -162,6 +162,17 @@ const bindRecordedFailureToRemote = async (
   return Object.freeze({ effectiveFailure, stopBeforeProduct: false });
 };
 
+/** The grant carries the exact typed seal of the local source attempt and awaits only the issued-attempt switch. */
+const grantAwaitsSourceSwitch = (
+  state: RuntimeState, job: ClaimedProductionTask,
+  local: StoredProductionTask | null, remote: RemoteProductionDeviceJobStatus,
+): boolean => {
+  if (job.grant.source_handoff_seal_hash === null || !local?.current_attempt_id) return false;
+  return state.store.readSealedSourceHandoff(job.job_id, local.current_attempt_id)?.seal_hash
+    === job.grant.source_handoff_seal_hash
+    && local.current_attempt_id !== job.grant.attempt_id && remote.attempt_failure === null;
+};
+
 export const reconcileClaimAttemptFailure = async (
   state: RuntimeState,
   job: ClaimedProductionTask,
@@ -176,12 +187,7 @@ export const reconcileClaimAttemptFailure = async (
     childCapabilityId: "submit_exact_gpt_turn_once" }>[] | null;
 }>> => {
   const local = state.store.readTask(job.job_id);
-  if (job.grant.source_handoff_seal_hash !== null
-    && local?.current_attempt_id
-    && state.store.readSealedSourceHandoff(job.job_id, local.current_attempt_id)?.seal_hash
-      === job.grant.source_handoff_seal_hash
-    && local.current_attempt_id !== job.grant.attempt_id
-    && remote.attempt_failure === null) {
+  if (grantAwaitsSourceSwitch(state, job, local, remote)) {
     return Object.freeze({ reconciledFailure: null, stopBeforeProduct: false,
       readbackOnlyCalls: null });
   }
