@@ -8,7 +8,8 @@ updated_at: 2026-09-26
 owner_repo: ADVISION-X/AGENT
 owner_domain: gpt
 candidate_branch: main
-candidate_agent_head: 15f111e4d977f223c1ed2c5fb33c28d1f2582111
+candidate_agent_head: a66c3d2d0b9282d3ff029e5227d3976baa65b15a
+scheme_head_before_this_revision: e419068a97b76a52213ef894e2b1e5ded12479af
 website_baseline: 01664ae8518eaec49ac0af5d142c758a1a219fd9
 implementation_mode: subtraction_only
 skill: 闭环实现设计-SKILL
@@ -57,7 +58,7 @@ self_audit_verdict: PASS_TWO_PASS
 
 双仓当前树均未截断：
 
-- `ADVISION-X/AGENT@15f111e4d977f223c1ed2c5fb33c28d1f2582111`：1176 entries / 912 files。
+- `ADVISION-X/AGENT` 最新生产代码基线=`a66c3d2d0b9282d3ff029e5227d3976baa65b15a`：recursive tree `truncated=false`，1179 entries / 915 files；本方案文档提交位于其后，不改变生产代码。
 - `ADVISION-X/xuanxue-web@01664ae8518eaec49ac0af5d142c758a1a219fd9`：7411 entries / 6389 files。
 
 ### 1.2 第二遍：删除反事实
@@ -68,15 +69,16 @@ self_audit_verdict: PASS_TWO_PASS
 
 1. Target 正位已完成，本轮不重开 Target。
 2. `current_reason` 控制权已从 source seal/CAS、stage permit、capacity、cooldown、deletion、readiness/completed 主链退出，本轮不重开 `current_reason`。
-3. 最新故障的四种主要表面码：
+3. 基线之后出现的 `a66c3d2...` 是明确标注 **not READY-verified** 的 Code Purity/Browser inspector 临时快照；它修改 Runtime/source readback、Browser Target-loss 与若干 quality 文件，但没有修改本方案锁定的 profile/model/attachment GPT DOM Child，也没有改变 active GPT/Browser/Capability law。故七寸结论不变。该提交自带的既有 READY 债务只能作为候选质量事实处理，禁止借本方案扩成新的 DOM 基础设施。
+4. 最新故障的四种主要表面码：
    - `BROWSER_DOM_CANDIDATE_MISSING`
    - `GPT_EXECUTION_PROFILE_OPEN_QUALIFICATION_INVALID`
    - `GPT_MODEL_V3_CANDIDATE_NOT_PROVEN`
    - `BROWSER_POSTCONDITION_FAILED`
 
    不是四套基础设施问题，而是同一个边界问题的不同投影：**GPT Child 在动作前/后要求了超过自身语义目标的 DOM 事实，把易漂移的页面拓扑抬高成业务活性门。**
-4. Browser 已经在真实 mutation 边界拥有候选基数、actionability、Target/Document、WAL、零或一次输入、2.5 秒 fresh postcondition 的唯一机械权威；GPT 再提前复制 disabled/inert/selected-count 等资格，只会制造第二裁决点。
-5. GPT 已有唯一 `TRANSIENT_DOM` 只读确认：0 → 1.5 秒 → 3 秒，最多三次同身份 fresh observation。本轮不得再加 timer、retry manager、WAIT 状态或局部恢复链。
+5. Browser 已经在真实 mutation 边界拥有候选基数、actionability、Target/Document、WAL、零或一次输入、2.5 秒 fresh postcondition 的唯一机械权威；GPT 再提前复制 disabled/inert/selected-count 等资格，只会制造第二裁决点。
+6. GPT 已有唯一 `TRANSIENT_DOM` 只读确认：0 → 1.5 秒 → 3 秒，最多三次同身份 fresh observation。本轮不得再加 timer、retry manager、WAIT 状态或局部恢复链。
 
 ---
 
@@ -359,11 +361,13 @@ Browser 点击本身负责 control 的真实候选/actionability。
 施工前重新确认：
 
 ```text
-AGENT main = 15f111e4d977f223c1ed2c5fb33c28d1f2582111
+AGENT production baseline = a66c3d2d0b9282d3ff029e5227d3976baa65b15a
 Website main = 01664ae8518eaec49ac0af5d142c758a1a219fd9
 ```
 
-若用户之后推送了新代码，只重算本方案列出的目标路径 diff；不得因普通漂移自动扩展施工范围。
+当前 `main` 还包含本方案自己的文档提交；施工时以最新 `main` 为 Git 起点，但生产语义基线按 `a66c3d2...` 重核。若用户之后再推送新代码，只重算本方案列出的目标路径及它们的直接 authority/quality 依赖；不得因普通漂移自动扩展施工范围。
+
+`a66c3d2...` 已公开注明 READY 尚未通过，且存在既有 GPT inspector/500 行红线债务。本方案不得把这些既有质量债务伪装成本轮已解决；最终 READY 仍必须由当前 candidate 的原生质量门诚实给出。
 
 ### W1 — 法案
 
