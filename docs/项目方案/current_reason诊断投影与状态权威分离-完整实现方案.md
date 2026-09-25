@@ -1170,3 +1170,181 @@ Result：
 > 真实状态必须来自 typed durable facts；在合法诊断结构内改变 current_reason 的具体内容，系统授权与业务行为必须保持不变。
 
 > 独立子智能体未放行前，本方案保持设计阻断，方案建设不结束。
+
+
+---
+
+## 13. 主设计只读审计 R5：全 consumer 扫描（非独立子智能体）
+
+本轮重新扫描 AGENT / Website 现役 current_reason 使用面，重点判断“读取/比较 current_reason”到底是诊断用途还是权威用途。
+
+### R5-F1：Control Room / UI 的诊断分支允许保留
+
+Website Localization Control Room 当前存在类似：
+
+~~~text
+current_reason.code
+-> ai_reason_code
+-> 选择展示最近一次 rejection field failures
+~~~
+
+只要该分支仅决定：
+- reason_code 展示；
+- 诊断字段展开；
+- 控制室说明；
+- 人工排障上下文；
+
+且绝不改变：
+- claim eligibility；
+- retry_not_before；
+- next_action；
+- source handoff；
+- Provider submit gate；
+- result stage/terminal；
+- deletion authorization；
+- business completed；
+
+则属于合法诊断消费者，不进入删除分母。
+
+因此本方案的静态质检必须检查“current_reason 是否参与权威动作分支”，不能粗暴禁止所有 if / equality / startsWith。
+
+### R5-F2：Runtime reconcile 的重复诊断写允许幂等判断
+
+runtime-loops.ts 中类似：
+
+~~~text
+if current_reason != SOURCE_HANDOFF_RECONCILIATION_PENDING
+  -> setCurrentReason(...)
+~~~
+
+若其唯一效果是避免重复写同一诊断文本，不改变下一动作、claim、capacity、handoff 或 mutation，则允许保留或以等价诊断幂等实现。
+
+但 SOURCE_HANDOFF_SEALED prefix 对 business-in-flight / source-readback / attempt切换的影响必须删除。
+
+### R5-F3：production-source evidence 对 reason 的历史对照属于审计，不是 Runtime authority
+
+gpt-page-operation-evidence 的 production-source 脚本可把 current_reason 与 trace failure 做 hash/关系比较，用于诊断证据报告。
+
+这类离线/只读证据消费者可以保留，前提是：
+- 不写生产状态；
+- 不决定 claim/recovery；
+- 不签 Provider 权限；
+- 不冒充业务 completed。
+
+### R5 总结
+
+~~~text
+新增 P0 = 0
+新增 P1 = 0
+P2 = 1：必须区分“诊断条件”与“权威条件”，禁止一刀切静态规则
+独立子智能体 = 未执行
+~~~
+
+---
+
+## 14. 主设计只读审计 R6：Demand / Provider / Completed 红线攻击（非独立子智能体）
+
+### R6-A：Demand liveness
+
+从 Website AI Acceptance 当前 next-action 投影反查：
+
+~~~text
+terminal_status != null 或 status=completed
+-> CONSUME_CURRENT_RESULT
+
+attempt_id + accepted_at
+-> ACTIVE_ATTEMPT
+
+否则
+-> WAIT_NEW_ATTEMPT
+~~~
+
+该决定不依赖 current_reason。
+
+因此 current_reason 降级后，Website 仍有独立 next_action 权威。
+
+必须保持：
+- Runtime 自动请求/等待 Website 下一动作；
+- fail-close 只限制当前危险动作；
+- Website demand 未终止时不得形成 permanent local terminal；
+- 不创建 replacement job。
+
+### R6-B：Provider at-most-once / controlled risk
+
+本方案不得改变：
+- provider_effect_identity；
+- Browser WAL；
+- delivery_priority_replay_grant；
+- current grant / fence；
+- Target 方案冻结的 effect / locator / current-action 三轴。
+
+删除 cooldown reason parser 后，Provider submit gate 只能更少依赖诊断文本，不能新增输入资格。
+
+验收硬门：
+
+~~~text
+仅改变 current_reason
+-> Provider physical input delta 必须恒为 0
+~~~
+
+### R6-C：Result monotonicity
+
+已 staged / terminal 的机械结果不得被 current_reason 改写、清空或历史 failure 撤销。
+
+真正完成仍只认：
+
+~~~text
+Domain Consumer admission
++ business consumption
++ object/current-row readback
+-> status=completed
+~~~
+
+AGENT completed -> current_reason=null 及 Website completed projection -> reason null 只是形状一致性。
+
+### R6-D：历史 migration 与 current_reason
+
+历史 migration 中存在：
+- RECOVERY_PARKED；
+- automatic-recovery-cutover；
+- ATTEMPT_CUTOVER_RETIRED；
+- PRIVACY_SUBJECT_CLOSED 等旧诊断值。
+
+本轮：
+- 不改历史 migration bytes；
+- 不回写历史 reason；
+- 不新增 compatibility；
+- 只删除现役 Runtime / readiness 对历史 reason 的权威解释。
+
+### R6 总结
+
+~~~text
+新增 P0 = 0
+新增 P1 = 0
+Demand redline = 保持
+Provider safety = 保持
+Result monotonicity = 保持
+独立子智能体 = 未执行
+第三方 verdict = PENDING
+方案状态 = 设计阻断
+~~~
+
+---
+
+## 15. 当前最终审计状态
+
+~~~text
+闭环 SKILL 深读：>= 2 遍，完成
+双仓 recursive tree：完成
+法案系统：完成
+施工图：完成
+现役实现：完成
+原生质检：完成
+主设计审计 R1-R6：完成
+独立子智能体审计：未执行
+独立子智能体放行：PENDING
+可施工：否
+方案建设结束：否
+~~~
+
+本方案继续保持 **设计阻断**。只有独立子智能体按第 12 节审计问题返回 P0=0、P1=0 的明确放行 verdict 后，才允许把方案状态改为“可施工”；子智能体不得参与代码施工或并发写入。
