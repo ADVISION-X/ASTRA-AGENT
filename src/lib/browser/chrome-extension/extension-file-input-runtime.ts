@@ -1,5 +1,6 @@
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
 import { resolveCoherentPointerAction } from "./dom-coherent-candidate.js";
+import { executeCoherentObservation } from "./dom-coherent-observation.js";
 import { dispatchPointerClickSequence } from "./dom-pointer-intent-runtime.js";
 import { inspectNode } from "./dom-query-runtime.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
@@ -27,12 +28,6 @@ type ApprovedFile = Readonly<{
   contentHash: `sha256:${string}`;
   maxBytes: number;
 }>;
-type SelectionProof = Readonly<{
-  selectedFileCount: number;
-  approvedSetVerified: boolean;
-  acceptVerified: boolean;
-}>;
-
 const record = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("BROWSER_DOM_READ_INVALID");
@@ -110,79 +105,6 @@ const readExactFileInput = async (
   });
 };
 
-const SELECTION_PROOF_FUNCTION = `async function (approvedFiles) {
-  if (!(this instanceof HTMLInputElement) || this.type !== "file" || !this.files) return null;
-  const acceptTokens = this.accept.split(",").map((token) => token.trim().toLowerCase()).filter(Boolean);
-  const accepts = (file) => acceptTokens.length === 0 || acceptTokens.some((token) => {
-    if (token.startsWith(".")) return file.name.toLowerCase().endsWith(token);
-    if (token.endsWith("/*")) return file.type.toLowerCase().startsWith(token.slice(0, -1));
-    return file.type.toLowerCase() === token;
-  });
-  const selected = [];
-  for (const file of Array.from(this.files)) {
-    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", await file.arrayBuffer()));
-    const contentHash = "sha256:" + Array.from(digest)
-      .map((byte) => byte.toString(16).padStart(2, "0")).join("");
-    selected.push({ contentHash, sizeBytes: file.size, acceptMatched: accepts(file) });
-  }
-  const remaining = approvedFiles.map((file) => ({ ...file }));
-  const approvedSetVerified = selected.length === approvedFiles.length && selected.every((file) => {
-    const index = remaining.findIndex((approved) => approved.contentHash === file.contentHash
-      && file.sizeBytes <= approved.maxBytes);
-    if (index < 0) return false;
-    remaining.splice(index, 1);
-    return true;
-  }) && remaining.length === 0;
-  return {
-    selectedFileCount: selected.length,
-    approvedSetVerified,
-    acceptVerified: selected.every((file) => file.acceptMatched),
-  };
-}`;
-
-const selectionProof = (value: unknown): SelectionProof => {
-  const proof = record(value);
-  if (!Number.isSafeInteger(proof.selectedFileCount) || (proof.selectedFileCount as number) < 0
-    || typeof proof.approvedSetVerified !== "boolean" || typeof proof.acceptVerified !== "boolean") {
-    throw new Error("BROWSER_DOM_READ_INVALID");
-  }
-  return Object.freeze({
-    selectedFileCount: proof.selectedFileCount as number,
-    approvedSetVerified: proof.approvedSetVerified,
-    acceptVerified: proof.acceptVerified,
-  });
-};
-
-const readSelectionProof = async (
-  runtime: ExtensionDebuggerRuntime,
-  tabId: number,
-  nodeId: number,
-  approvedFiles: readonly ApprovedFile[],
-): Promise<SelectionProof> => {
-  const objectId = record(record(await safeRead(() => runtime.send(
-    tabId, "DOM.resolveNode", { nodeId },
-  ))).object).objectId;
-  if (typeof objectId !== "string" || objectId.length === 0) throw new Error("BROWSER_DOM_READ_INVALID");
-  let primaryFailure: unknown = null;
-  try {
-    const call = record(await safeRead(() => runtime.send(tabId, "Runtime.callFunctionOn", {
-      objectId,
-      functionDeclaration: SELECTION_PROOF_FUNCTION,
-      arguments: [{ value: approvedFiles.map(({ contentHash, maxBytes }) => ({ contentHash, maxBytes })) }],
-      returnByValue: true,
-      awaitPromise: true,
-      silent: true,
-    })));
-    return selectionProof(record(call.result).value);
-  } catch (error) {
-    primaryFailure = error;
-    throw error;
-  } finally {
-    try { await safeRead(() => runtime.send(tabId, "Runtime.releaseObject", { objectId })); }
-    catch (error) { if (primaryFailure === null) throw new Error("BROWSER_DOM_READ_INVALID", { cause: error }); }
-  }
-};
-
 const acceptPolicyValid = (value: unknown): boolean => typeof value === "string"
   && (value.trim().length === 0 || value.split(",").every((token) => {
     const normalized = token.trim().toLowerCase();
@@ -203,6 +125,8 @@ type ExtensionFileInput = Readonly<{
 }>;
 
 const assertFileInputRequest = (input: ExtensionFileInput): void => {
+  const approvedNames = input.resolvedFilePaths.map((path) =>
+    path.slice(path.lastIndexOf("/") + 1).normalize("NFC"));
   if (input.selector !== "form[data-chatgpt-composer] input[type='file'][aria-label='附加文件']"
     || input.activation?.selector !== "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child"
     || input.activation?.scope?.selector !== "[data-composer-overlay-floating-ui='true']"
@@ -212,7 +136,9 @@ const assertFileInputRequest = (input: ExtensionFileInput): void => {
     || new Set(input.approvedFiles.map((file) => file.grantRef)).size !== input.approvedFiles.length
     || input.approvedFiles.some((file) => !file.grantRef || !/^sha256:[a-f0-9]{64}$/u.test(file.contentHash)
       || !Number.isSafeInteger(file.maxBytes) || file.maxBytes < 1)
-    || input.resolvedFilePaths.some((filePath) => !filePath.startsWith("/"))) {
+    || input.resolvedFilePaths.some((filePath) => !filePath.startsWith("/"))
+    || approvedNames.some((name) => name.length === 0)
+    || new Set(approvedNames).size !== approvedNames.length) {
     throw new Error("BROWSER_FILE_GRANT_INVALID");
   }
 };
@@ -224,16 +150,6 @@ const fileInputQualified = (candidate: Candidate, selectedPathCount: number): bo
   && candidate.facts.ariaDisabled === false
   && (selectedPathCount === 1 || candidate.facts.multiple === true)
   && acceptPolicyValid(candidate.facts.accept);
-
-const fileInputPostconditionVerified = (
-  readback: Candidate,
-  proof: SelectionProof | null,
-  approvedFileCount: number,
-): boolean => readback.candidateCount === 1 && readback.facts?.tagName === "INPUT"
-  && readback.facts.type === "file" && readback.facts.connected === true
-  && readback.facts.disabled === false && readback.facts.ariaDisabled === false
-  && proof?.selectedFileCount === approvedFileCount
-  && proof.approvedSetVerified && proof.acceptVerified;
 
 type PointerAction = Awaited<ReturnType<typeof resolveCoherentPointerAction>>;
 
@@ -304,6 +220,7 @@ const selectApprovedFiles = async (
   candidate: Candidate,
 ): Promise<Readonly<Record<string, unknown>> | null> => {
   let interceptionMayBeEnabled = false;
+  let selectionAccepted = false;
   let primaryFailure: unknown = null;
   const closeInterception = async (): Promise<void> => {
     if (!interceptionMayBeEnabled) return;
@@ -337,6 +254,8 @@ const selectApprovedFiles = async (
             backendNodeId: chooser.backendNodeId,
             files: [...input.resolvedFilePaths],
           });
+          input.assertCurrent(input.target.targetRef, input.target.documentRef);
+          selectionAccepted = true;
         } catch (error) {
           primaryFailure = error;
           throw error;
@@ -351,29 +270,32 @@ const selectApprovedFiles = async (
   } finally {
     await closeInterception();
   }
+  if (!selectionAccepted) throw new Error("BROWSER_FILE_CHOOSER_MISMATCH");
   return null;
 };
 
-const fileInputReadback = async (
-  input: ExtensionFileInput,
-): Promise<Readonly<Record<string, unknown>>> => {
+const readComposerAttachmentPhase = async (input: ExtensionFileInput): Promise<Readonly<{
+  currentUrl: string; valid: boolean; cardNames: readonly string[]; uploadingCount: number;
+}>> => {
   input.assertCurrent(input.target.targetRef, input.target.documentRef);
-  const readback = await readConfirmedFileInput(input);
-  const proof = readback.nodeId === null ? null : await readSelectionProof(
-    input.runtime, input.target.tabId, readback.nodeId, input.approvedFiles,
-  );
+  const observed = await executeCoherentObservation(input.runtime, input.target, [
+    { queryId: "attachment-composer", selector: "form[data-chatgpt-composer]", maxMatches: 2, fields: [] },
+    { queryId: "attachment-cards", selector: "button.composer-attachment-surface[aria-label]",
+      scope: { selector: "form[data-chatgpt-composer]" }, maxMatches: 20, fields: ["ariaLabel"] },
+    { queryId: "attachment-uploading",
+      selector: "[role='progressbar']",
+      scope: { selector: "form[data-chatgpt-composer]" }, maxMatches: 20, fields: [] },
+  ]);
   input.assertCurrent(input.target.targetRef, input.target.documentRef);
-  const postconditionVerified = fileInputPostconditionVerified(readback, proof, input.approvedFiles.length);
-  return Object.freeze({
-    selectedFileCount: proof?.selectedFileCount ?? 0,
-    approvedSetVerified: proof?.approvedSetVerified ?? false,
-    acceptVerified: proof?.acceptVerified ?? false,
-    candidateCount: 1,
-    identityRevalidated: true,
-    mutationCount: 1,
-    postconditionVerified,
-    ...(postconditionVerified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
-  });
+  const [composer, cards, uploading] = observed.queries;
+  const cardNames = (cards!.matches as readonly Readonly<Record<string, unknown>>[])
+    .map((card) => typeof card.ariaLabel === "string" ? card.ariaLabel.normalize("NFC") : "");
+  const valid = composer!.rawCount === 1 && composer!.eligibleCount === 1
+    && cards!.rawCount === cards!.eligibleCount && uploading!.rawCount === uploading!.eligibleCount
+    && cardNames.length === cards!.eligibleCount
+    && typeof uploading!.eligibleCount === "number";
+  return Object.freeze({ currentUrl: observed.currentUrl, valid, cardNames,
+    uploadingCount: uploading!.eligibleCount as number });
 };
 
 export const executeExtensionFileInput = async (
@@ -396,7 +318,26 @@ export const executeExtensionFileInput = async (
   if (!fileInputQualified(candidate, input.resolvedFilePaths.length)) {
     return reject(1, "BROWSER_FILE_INPUT_NOT_QUALIFIED", "actionability");
   }
+  const before = await readComposerAttachmentPhase(input);
+  if (!before.valid || before.cardNames.length !== 0 || before.uploadingCount !== 0) {
+    return reject(1, "BROWSER_FILE_INPUT_NOT_QUALIFIED", "actionability");
+  }
   const selectionRejection = await selectApprovedFiles(input, candidate);
   if (selectionRejection) return selectionRejection;
-  return fileInputReadback(input);
+  const after = await readComposerAttachmentPhase(input);
+  const expectedNames = new Set(input.resolvedFilePaths.map((path) =>
+    path.slice(path.lastIndexOf("/") + 1).normalize("NFC")));
+  const postconditionVerified = after.valid && after.currentUrl === before.currentUrl
+    && expectedNames.size === input.approvedFiles.length
+    && new Set(after.cardNames).size === after.cardNames.length
+    && after.cardNames.every((name) => expectedNames.has(name))
+    && after.uploadingCount <= input.approvedFiles.length
+    && (after.uploadingCount > 0 || after.cardNames.length === input.approvedFiles.length);
+  return Object.freeze({
+    candidateCount: 1,
+    identityRevalidated: true,
+    mutationCount: 1,
+    postconditionVerified,
+    ...(postconditionVerified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }),
+  });
 };

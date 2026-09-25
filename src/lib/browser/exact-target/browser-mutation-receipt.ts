@@ -191,32 +191,16 @@ const postconditionEvidenceValid = (
 
 const actionKeys = (command: BrowserGovernedCommand, failed: boolean): readonly string[] => {
   const common = ["candidateCount", "identityRevalidated", "mutationCount", "postconditionVerified"];
-  const specific = command.kind === "file-input"
-    ? ["selectedFileCount", "approvedSetVerified", "acceptVerified"]
-    : command.kind === "dom-intent" ? domActionKeys(command) : [];
-  if (specific.length === 0) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  const specific = command.kind === "dom-intent" ? domActionKeys(command) : [];
+  if (command.kind !== "file-input" && specific.length === 0) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
   const match = hasMatchPostcondition(command);
   const observation = hasObservationPostcondition(command);
   return [...common, ...specific, ...(match ? postconditionEvidenceKeys : []),
     ...(observation ? ["postconditionObservation"] : []),
     ...(failed ? ["failureCode"] : []),
     ...(failed && (match || observation) ? ["nativeCauseCode"] : [])];
-};
-
-const assertFileInputReceipt = (
-  command: Extract<BrowserGovernedCommand, { kind: "file-input" }>,
-  value: Readonly<Record<string, unknown>>,
-): void => {
-  if (!Number.isSafeInteger(value.selectedFileCount) || (value.selectedFileCount as number) < 0
-    || (value.selectedFileCount as number) > 20 || typeof value.approvedSetVerified !== "boolean"
-    || typeof value.acceptVerified !== "boolean") {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
-  if (value.postconditionVerified === true
-    && (value.selectedFileCount !== command.approvedFiles.length
-      || value.approvedSetVerified !== true || value.acceptVerified !== true)) {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
 };
 
 const clickedAttributeReceiptValid = (
@@ -399,9 +383,8 @@ const assertDispatchedActionReceipt = (
   command: BrowserGovernedCommand,
   value: Readonly<Record<string, unknown>>,
 ): void => {
-  if (command.kind === "file-input") assertFileInputReceipt(command, value);
-  else if (command.kind === "dom-intent") assertDomActionReceipt(command, value);
-  else throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  if (command.kind === "dom-intent") assertDomActionReceipt(command, value);
+  else if (command.kind !== "file-input") throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
 };
 
 const decodeDispatchedMutationReceipt = (

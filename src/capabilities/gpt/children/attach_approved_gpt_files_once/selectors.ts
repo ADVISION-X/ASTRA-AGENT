@@ -6,4 +6,4 @@ export const GPT_UPLOAD_FROM_COMPUTER_SELECTOR = "[data-mention-list-scroll-area
 export const GPT_UPLOAD_FROM_COMPUTER_LABEL = "添加照片和文件";
 export const GPT_FILE_INPUT_SELECTOR = "form[data-chatgpt-composer] input[type='file'][aria-label='附加文件']";
 export const GPT_COMPOSER_FORM_SELECTOR = "form[data-chatgpt-composer]";
-export const GPT_ATTACHMENT_ITEM_SELECTOR = "[role='group'][aria-label]";
+export const GPT_ATTACHMENT_ITEM_SELECTOR = "button.composer-attachment-surface[aria-label]";

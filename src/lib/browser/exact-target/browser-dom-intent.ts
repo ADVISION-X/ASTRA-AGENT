@@ -486,7 +486,6 @@ const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>)
   assertClickObservation(intent.postClickObservation, intent.preClickExactOutgoingTurn);
   assertClickUrl(intent.postClickUrl);
 };
-
 const assertHoverIntent = (intent: Extract<BrowserDomIntent, { kind: "hover" }>): void => {
   assertTargetText(intent);
   if (!intent.postHoverAttribute

@@ -57,7 +57,12 @@ export const browserCommandPermitMacPayload = (permit: BrowserUnsignedCommandPer
   permit.contractManifestHash,
   permit.deliveryPriorityReplayGrantHash,
   permit.domainRejectionRevision ?? false,
-  permit.deliveryPriorityReplayCall ?? null,
+  permit.deliveryPriorityReplayCall == null ? null : [
+    permit.deliveryPriorityReplayCall.productStepId,
+    permit.deliveryPriorityReplayCall.callId,
+    permit.deliveryPriorityReplayCall.childCapabilityId,
+    permit.deliveryPriorityReplayCall.sourceEffectSetHash,
+  ],
   permit.jobId,
   permit.resultRevision,
   permit.attemptId,

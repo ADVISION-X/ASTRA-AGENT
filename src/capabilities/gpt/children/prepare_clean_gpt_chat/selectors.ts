@@ -10,4 +10,4 @@ export const GPT_ASSISTANT_TURN_SELECTOR =
   "[data-turn-key]:has([data-chatgpt-search-unit-key$=':assistant'])";
 export const GPT_GENERATING_STOP_SELECTOR = "form[data-chatgpt-composer] button[aria-label='停止']";
 export const GPT_COMPOSER_FORM_SELECTOR = "form[data-chatgpt-composer]";
-export const GPT_ATTACHMENT_ITEM_SELECTOR = "[role='group'][aria-label]";
+export const GPT_ATTACHMENT_ITEM_SELECTOR = "button.composer-attachment-surface[aria-label]";

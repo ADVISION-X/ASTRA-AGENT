@@ -1,5 +1,6 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import Database from "better-sqlite3";
+import { createHmac } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -22,6 +23,9 @@ import { createBrowserActorFactory, createClickCommand, createMatchClickCommand,
   rateLimitSpecialReceipt } from "./local-browser-terminal-fixture.js";
 import { permitAuthority, permitExecution } from "./local-browser-terminal-fixture.js";
 import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
+import { browserCommandPermitMacPayload } from "../../src/lib/browser/transport/command-permit.js";
+import { assertExtensionCommandPermit, clearExtensionPermitAuthority,
+  setExtensionPermitAuthority } from "../../src/lib/browser/chrome-extension/command-permit-validator.js";
 import { exerciseActorRejections, exerciseCheckpointObservationFailures } from
   "./local-browser-terminal-rejection-support.js";
 import { decodeKnownGptRateLimitPreflightReply } from
@@ -29,6 +33,35 @@ import { decodeKnownGptRateLimitPreflightReply } from
 import { absentPreflightEnvelope } from "./local-browser-terminal-fixture.js";
 const root = await mkdtemp(join(tmpdir(), "browser-mutation-state-"));
 try {
+  const replayPermit: BrowserCommandPermit = {
+    ...permit("risk-replay-mac"), resultRevision: 2, replayPolicy: "provider-effect-once",
+    deliveryPriorityReplayGrantHash: hash,
+    deliveryPriorityReplayCall: {
+      productStepId: "report_translation:candidate_a", callId: "gpt-turn-flow.v3",
+      childCapabilityId: "open_gpt_model_selector_v3", sourceEffectSetHash: hash,
+    },
+  };
+  const transported = (JSON.parse(canonicalizeBrowserAuthorityValue({ permit: replayPermit })) as {
+    permit: BrowserCommandPermit;
+  }).permit;
+  const { commandFrameMac: _originalMac, ...unsignedBefore } = replayPermit;
+  const { commandFrameMac: _transportedMac, ...unsignedAfter } = transported;
+  assert.equal(browserCommandPermitMacPayload(unsignedBefore), browserCommandPermitMacPayload(unsignedAfter),
+    "a replay permit MAC payload must survive the encrypted channel's canonical key ordering");
+  const permitKey = Buffer.alloc(32, 7);
+  const signedReplayPermit = {
+    ...replayPermit,
+    commandFrameMac: `sha256:${createHmac("sha256", permitKey)
+      .update(browserCommandPermitMacPayload(unsignedBefore)).digest("hex")}` as `sha256:${string}`,
+  };
+  const receivedReplayPermit = (JSON.parse(canonicalizeBrowserAuthorityValue({
+    permit: signedReplayPermit,
+  })) as { permit: BrowserCommandPermit }).permit;
+  setExtensionPermitAuthority({ authorityRef: replayPermit.authorityRef,
+    authorityEpoch: replayPermit.authorityEpoch, certificateHash: replayPermit.certificateHash,
+    channelSessionHash: replayPermit.channelSessionHash, commandPermitKey: permitKey.toString("base64") });
+  try { await assertExtensionCommandPermit(receivedReplayPermit); }
+  finally { clearExtensionPermitAuthority(); }
   exerciseBrowserMutationStore(root);
   exercisePostconditionNativeCauseWalRoundTrip(join(root, "postcondition-native-cause"));
   const actorRoot = join(root, "actor");
@@ -341,10 +374,10 @@ try {
   await assert.rejects(actorFor(async (candidate, _command, onDispatched) => {
     onDispatched?.();
     return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
-      permitSequence: candidate.sequence, result: { candidateCount: 1, identityRevalidated: true,
+      permitSequence: candidate.sequence, result: { candidateCount: 1, identityRevalidated: false,
         mutationCount: 1, postconditionVerified: true } };
   }).execute(forgedFilePermit, fileCommand), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
-  "file-input may not be confirmed without exact selected-count, approved-set, and accept readback");
+  "file-input may not be confirmed without the exact Target and Document still bound");
   assert.equal(actorStore.readCommand(forgedFilePermit.commandId)?.state ?? null, "REJECTED",
     "an authenticated malformed result must retain its exact rejection instead of impersonating a missing reply");
   assert.equal(actorStore.readMutationOutcome(forgedFilePermit.commandId), "dispatched");
@@ -356,8 +389,7 @@ try {
     onDispatched?.();
     return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
       permitSequence: candidate.sequence, result: { candidateCount: 1, identityRevalidated: true,
-        mutationCount: 1, selectedFileCount: 1, approvedSetVerified: true, acceptVerified: true,
-        postconditionVerified: true } };
+        mutationCount: 1, postconditionVerified: true } };
   }).execute(confirmedFilePermit, fileCommand);
   assert.equal(actorStore.readCommand(confirmedFilePermit.commandId)?.state ?? null, "CONFIRMED");
 

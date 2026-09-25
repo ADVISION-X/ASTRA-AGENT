@@ -133,7 +133,7 @@ const postconditionPair = (command: BrowserGovernedCommand): Readonly<{
       selector: command.selector,
       activation: command.activation,
       approvedFiles: command.approvedFiles,
-      attached: true,
+      composerUploadObserved: true,
     };
     return Object.freeze({
       positive: hashValue({ ...positive, result: "passed" }),

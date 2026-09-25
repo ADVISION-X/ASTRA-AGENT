@@ -220,7 +220,7 @@ const assertAttachmentObservationValid = (state: AttachmentSetState): void => {
     || (state.composerRawCount > 0 && state.composerRawCount !== state.composerEligibleCount)) {
     failAttachmentSet("GPT_ATTACHMENT_COMPOSER_INVALID", state);
   }
-  if (state.uploadingCount > state.itemEligibleCount || state.pendingActionCount > state.itemEligibleCount) {
+  if (state.pendingActionCount > state.itemEligibleCount) {
     failAttachmentSet("GPT_ATTACHMENT_VISIBILITY_COUNT_INVALID", state);
   }
 };

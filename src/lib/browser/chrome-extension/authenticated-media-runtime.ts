@@ -14,8 +14,7 @@ const sha256Text = async (value: string): Promise<`sha256:${string}`> => {
     .map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 };
 
-const authenticatedMediaExpression = (canonicalConversationUrl: string, userTurnId: string): string => `
-  (async () => {
+const mediaSourceDiscoveryExpression = (canonicalConversationUrl: string, userTurnId: string): string => `
     const inspectSources = () => {
       const observedUrl = new URL(location.href);
       const currentUrl = observedUrl.origin + observedUrl.pathname;
@@ -64,6 +63,11 @@ const authenticatedMediaExpression = (canonicalConversationUrl: string, userTurn
       if (terminal(value)) finish(value);
       else timeout = setTimeout(() => finish(inspectSources()), ${AUTHENTICATED_MEDIA_SOURCE_WAIT_MS});
     });
+`;
+
+const authenticatedMediaExpression = (canonicalConversationUrl: string, userTurnId: string): string => `
+  (async () => {
+    ${mediaSourceDiscoveryExpression(canonicalConversationUrl, userTurnId)}
     if (discovered.errorCode) return { errorCode: discovered.errorCode };
     if (!discovered.sourceOwners) return { errorCode: discovered.pendingCode };
     const { currentUrl, sourceOwners } = discovered;

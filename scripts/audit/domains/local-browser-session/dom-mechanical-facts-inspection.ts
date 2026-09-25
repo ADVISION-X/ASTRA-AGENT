@@ -181,7 +181,10 @@ const inspectExactGptUserPromptProjection = (
   lawId: string,
 ): void => {
   requireTokens(observationText, [
-    "GPT_TURN_TEST_ID", "GPT_USER_PROMPT_CONTENT_SELECTOR", "exactGptUserPromptText",
+    "GPT_TURN_KEY", "GPT_USER_PROMPT_CONTENT_SELECTOR", "exactGptUserPromptText",
+    'node.getAttribute("data-turn-key")',
+    'userRoots[0].getAttribute("data-chatgpt-search-message-ids") !== turnKey',
+    'userRoots[0].querySelectorAll("[data-user-message-bubble=\'true\']").length !== 1',
     "userRoots.length === 0", "userRoots.length !== 1", "promptNodes.length > 1",
     'field === "exactGptUserPromptHash"', "sha256(exactGptUserPromptText(node))",
     'const GPT_SHORT_USER_PROMPT_CONTENT_SELECTOR = ".whitespace-pre-wrap"',

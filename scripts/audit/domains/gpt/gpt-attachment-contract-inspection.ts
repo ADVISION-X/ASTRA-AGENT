@@ -44,7 +44,7 @@ const inspectAttachmentSelectors = (
     GPT_UPLOAD_FROM_COMPUTER_SELECTOR: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child",
     GPT_UPLOAD_FROM_COMPUTER_LABEL: "添加照片和文件",
     GPT_COMPOSER_FORM_SELECTOR: "form[data-chatgpt-composer]",
-    GPT_ATTACHMENT_ITEM_SELECTOR: "[role='group'][aria-label]",
+    GPT_ATTACHMENT_ITEM_SELECTOR: "button.composer-attachment-surface[aria-label]",
   } as const;
   for (const [name, value] of Object.entries(expected)) if (literal(name) !== value) findings.push(finding(
     "gpt/chrome-proven-attachment-dom", ATTACHMENT_CONTRACT_PATH,
@@ -53,7 +53,7 @@ const inspectAttachmentSelectors = (
   const contractText = contract?.getFullText() ?? "";
   const settlementContractText = settlementContract?.getFullText() ?? "";
   for (const required of [
-    "GPT_ATTACHMENT_PENDING_ACTION_SELECTOR", "button.cursor-wait",
+    "GPT_ATTACHMENT_PENDING_ACTION_SELECTOR", "${GPT_ATTACHMENT_ITEM_SELECTOR}.cursor-wait",
   ]) if (!settlementContractText.includes(required)) findings.push(finding(
     "gpt/chrome-proven-attachment-dom", ATTACHMENT_SETTLEMENT_CONTRACT_PATH,
     `Attachment DOM contract is missing current Chrome-proven pending state ${required}.`,

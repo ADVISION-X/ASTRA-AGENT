@@ -69,7 +69,6 @@ const crossKindFailure = { candidateCount: 1, qualificationStage: "actionability
 
 const exerciseFileAndQualificationReceipts = (): void => {
   const fileSuccess = { candidateCount: 1, identityRevalidated: true, mutationCount: 1,
-    selectedFileCount: 1, approvedSetVerified: true, acceptVerified: true,
     postconditionVerified: true };
   assert.deepEqual(decodeBrowserMutationReceipt(fileCommand, fileSuccess), {
     terminal: "confirmed", mutationOutcome: "confirmed", failureCode: null, nativeCauseCode: null,
@@ -78,6 +77,7 @@ const exerciseFileAndQualificationReceipts = (): void => {
   for (const forged of [
     { ...fileSuccess, resolvedFilePaths: ["/secret.txt"] },
     { ...fileSuccess, failureCode: "BROWSER_POSTCONDITION_FAILED" },
+    { ...fileSuccess, selectedFileCount: 1, approvedSetVerified: true, acceptVerified: true },
   ]) assert.throws(() => decodeBrowserMutationReceipt(fileCommand, forged),
     /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
     "file-input success receipts must reject extra or contradictory fields");

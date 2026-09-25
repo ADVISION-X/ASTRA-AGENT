@@ -10,9 +10,6 @@ import { executeExtensionFileInput } from
 type FileInputScenario = Readonly<{
   nodeIds: readonly number[];
   facts?: Readonly<Record<string, unknown>>;
-  selectedCount?: number;
-  approvedSetVerified?: boolean;
-  acceptVerified?: boolean;
   driftBeforeDispatch?: boolean;
   failReadback?: boolean;
   onFileInput?: () => void;
@@ -27,6 +24,11 @@ type FileInputScenario = Readonly<{
     scope: Readonly<{ selector: string }>;
     expectedTextEquals: string;
   }>;
+  afterSelection?: Readonly<{ cardNames: readonly string[]; uploadingCount: number }>;
+  preexistingUploadingCount?: number;
+  resolvedFilePaths?: readonly string[];
+  afterSelectionUrl?: string;
+  failPostObservation?: boolean;
 }>;
 
 const activation = Object.freeze({
@@ -55,6 +57,7 @@ type ScenarioState = {
   interceptionDisabled: number;
   usedChooserBackendNode: boolean;
   clickedPoints: Array<Readonly<{ x: unknown; y: unknown }>>;
+  observations: number;
 };
 
 const fileDomReply = (
@@ -88,13 +91,32 @@ const runtimeFunctionReply = (
   state: ScenarioState,
   parameters?: Readonly<Record<string, unknown>>,
 ): unknown => {
-  if (String(parameters?.functionDeclaration).includes("approvedSetVerified")) return { result: { value: {
-    selectedFileCount: input.selectedCount ?? 2,
-    approvedSetVerified: input.approvedSetVerified ?? true,
-    acceptVerified: input.acceptVerified ?? true,
-  } } };
   const argument = Array.isArray(parameters?.arguments)
     ? parameters.arguments[0] as { value?: { output?: unknown } } | undefined : undefined;
+  if (Array.isArray(argument?.value)) {
+    if (input.failPostObservation && state.fileInputs > 0) throw new Error("POST_OBSERVATION_FAILED");
+    state.observations += 1;
+    const phase = state.fileInputs > 0
+      ? input.afterSelection ?? { cardNames: [], uploadingCount: 2 }
+      : { cardNames: [], uploadingCount: input.preexistingUploadingCount ?? 0 };
+    const rows = (argument.value as readonly { queryId: string }[]).map((spec) => {
+      const labels = spec.queryId === "attachment-cards" ? phase.cardNames : [];
+      const count = spec.queryId === "attachment-composer" ? 1
+        : spec.queryId === "attachment-uploading" ? phase.uploadingCount : labels.length;
+      return {
+        queryId: spec.queryId, scopeRawCount: 1, scopeEligibleCount: 1,
+        rawCount: count, eligibleCount: count,
+        matches: Array.from({ length: count }, (_, candidateIndex) => ({
+          candidateIndex, ...(spec.queryId === "attachment-cards" ? { ariaLabel: labels[candidateIndex] } : {}),
+        })),
+        scopeRejections: [], rejections: [], nativeCauseCode: null, nativeCauseCount: 0,
+        nativeStage: "runtime-call-function-on",
+      };
+    });
+    return { result: { value: { currentUrl: state.fileInputs > 0
+      ? input.afterSelectionUrl ?? "https://chatgpt.com/" : "https://chatgpt.com/",
+    observedAt: new Date().toISOString(), queries: rows } } };
+  }
   if (argument?.value?.output === "pointer") return { result: {
     value: input.activationResult ?? (input.activationAfterInterception && state.interceptionEnabled === 0
       ? { x: 1, y: 1 } : { x: 20, y: 30 }),
@@ -161,6 +183,7 @@ const runFileInputScenario = async (input: FileInputScenario) => {
   const state: ScenarioState = {
     fileInputs: 0, queries: 0, targetChecks: 0, pointerClicks: 0,
     interceptionEnabled: 0, interceptionDisabled: 0, usedChooserBackendNode: false, clickedPoints: [],
+    observations: 0,
   };
   const runtime = createScenarioRuntime(input, state);
   const result = await executeExtensionFileInput({
@@ -177,7 +200,7 @@ const runFileInputScenario = async (input: FileInputScenario) => {
       { grantRef: "grant-a", contentHash: `sha256:${"a".repeat(64)}`, maxBytes: 10_000 },
       { grantRef: "grant-b", contentHash: `sha256:${"b".repeat(64)}`, maxBytes: 20_000 },
     ],
-    resolvedFilePaths: ["/approved/a.pdf", "/approved/b.pdf"],
+    resolvedFilePaths: input.resolvedFilePaths ?? ["/approved/a.pdf", "/approved/b.pdf"],
   });
   return { result, ...state };
 };
@@ -221,10 +244,9 @@ const exerciseSuccessfulAndRejectedCandidates = async (): Promise<void> => {
     ...activation, expectedTextEquals: "模糊上传",
   } }), /BROWSER_FILE_GRANT_INVALID/u,
   "Browser must reject caller-authored or drifted chooser activation semantics before physical input");
-  const success = await runFileInputScenario({ nodeIds: [7], selectedCount: 2 });
+  const success = await runFileInputScenario({ nodeIds: [7] });
   assert.deepEqual(success.result, {
-    selectedFileCount: 2, candidateCount: 1, identityRevalidated: true,
-    approvedSetVerified: true, acceptVerified: true, mutationCount: 1, postconditionVerified: true,
+    candidateCount: 1, identityRevalidated: true, mutationCount: 1, postconditionVerified: true,
   });
   assert.equal(success.fileInputs, 1, "the complete approved set must use one physical file-input command");
   assert.equal(success.pointerClicks, 1, "the exact visible Provider upload leaf must be clicked once");
@@ -232,8 +254,35 @@ const exerciseSuccessfulAndRejectedCandidates = async (): Promise<void> => {
   assert.equal(success.interceptionDisabled, 1);
   assert.equal(success.usedChooserBackendNode, true,
     "the approved set must bind to the exact chooser backend node, never a direct hidden nodeId path");
+  assert.equal(success.observations, 2, "file input requires coherent composer reads before and after selection");
+  const settled = await runFileInputScenario({ nodeIds: [7], afterSelection: {
+    cardNames: ["a.pdf", "b.pdf"], uploadingCount: 0,
+  } });
+  assert.equal(settled.result.postconditionVerified, true);
+  const missing = await runFileInputScenario({ nodeIds: [7], afterSelection: {
+    cardNames: [], uploadingCount: 0,
+  } });
+  assert.equal(missing.result.postconditionVerified, false);
+  assert.equal(missing.result.failureCode, "BROWSER_POSTCONDITION_FAILED");
+  const unexpectedProgress = await runFileInputScenario({ nodeIds: [7], afterSelection: {
+    cardNames: [], uploadingCount: 3,
+  } });
+  assert.equal(unexpectedProgress.result.postconditionVerified, false,
+    "two approved files cannot prove three independent upload indicators");
+  const oldUpload = await runFileInputScenario({ nodeIds: [7], preexistingUploadingCount: 2 });
+  assert.equal(oldUpload.fileInputs, 0, "preexisting upload activity must not prove a new file selection");
+  await assert.rejects(runFileInputScenario({ nodeIds: [7],
+    resolvedFilePaths: ["/approved/a.pdf", "/other/a.pdf"] }), /BROWSER_FILE_GRANT_INVALID/u,
+  "duplicate approved display names must be rejected before file selection");
+  const driftedUrl = await runFileInputScenario({ nodeIds: [7],
+    afterSelectionUrl: "https://chatgpt.com/c/another-conversation" });
+  assert.equal(driftedUrl.result.postconditionVerified, false);
+  let physicalInputs = 0;
+  await assert.rejects(runFileInputScenario({ nodeIds: [7], failPostObservation: true,
+    onFileInput: () => { physicalInputs += 1; } }), /BROWSER_DOM_READ_INVALID/u);
+  assert.equal(physicalInputs, 1, "an uncertain postcondition must never become a successful receipt");
   const redrawn = await runFileInputScenario({
-    nodeIds: [7], selectedCount: 2, activationAfterInterception: true,
+    nodeIds: [7], activationAfterInterception: true,
   });
   assert.deepEqual(redrawn.clickedPoints, [{ x: 20, y: 30 }],
     "the visible leaf must be freshly resolved only after chooser interception is active");
@@ -294,22 +343,15 @@ const exerciseChooserFailures = async (): Promise<void> => {
     "an uncertain interception enable must still attempt and prove cleanup");
 };
 
-const exerciseReadbackFailures = async (): Promise<void> => {
-  let failedReadbackInputs = 0;
-  const readbackInterceptionEvents: boolean[] = [];
-  await assert.rejects(runFileInputScenario({ nodeIds: [7], failReadback: true,
-    interceptionEvents: readbackInterceptionEvents,
-    onFileInput: () => { failedReadbackInputs += 1; } }), /BROWSER_DOM_NODE_STALE/u,
-  "an unreadable after-action file set must stay DISPATCHED/unknown instead of inventing a count");
-  assert.equal(failedReadbackInputs, 1);
-  assert.deepEqual(readbackInterceptionEvents, [true, false],
-    "chooser interception must already be closed before after-action readback");
-  for (const mismatch of [{ approvedSetVerified: false }, { acceptVerified: false }]) {
-    const rejected = await runFileInputScenario({ nodeIds: [7], ...mismatch });
-    assert.equal(rejected.fileInputs, 1, "a failed exact-set readback must preserve the one physical input fact");
-    assert.equal(rejected.result.postconditionVerified, false);
-    assert.equal(rejected.result.failureCode, "BROWSER_POSTCONDITION_FAILED");
-  }
+const exerciseAfterActionInputReplacement = async (): Promise<void> => {
+  const interceptionEvents: boolean[] = [];
+  const selected = await runFileInputScenario({ nodeIds: [7], failReadback: true,
+    interceptionEvents });
+  assert.equal(selected.fileInputs, 1);
+  assert.equal(selected.queries, 1,
+    "a page may clear or replace the transient input after accepting its file chooser selection");
+  assert.equal(selected.result.postconditionVerified, true);
+  assert.deepEqual(interceptionEvents, [true, false]);
 };
 
 export const exerciseFileInput = async (): Promise<void> => {
@@ -317,5 +359,5 @@ export const exerciseFileInput = async (): Promise<void> => {
   await exerciseSuccessfulAndRejectedCandidates();
   await exerciseActivationFailures();
   await exerciseChooserFailures();
-  await exerciseReadbackFailures();
+  await exerciseAfterActionInputReplacement();
 };

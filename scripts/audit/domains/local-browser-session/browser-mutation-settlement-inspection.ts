@@ -365,8 +365,8 @@ const inspectMutationPersistence = (
   ], findings, lawId, sourcePaths[6]);
   requireText(`${sources.mutationReceipt.getFullText()}\n${sources.specialMutationReceipt.getFullText()}`, [
     "zeroActionSatisfied", "qualificationRejected", "mutationCount === 0",
-    "mutationOutcome: \"no\"", "mutationOutcome: \"confirmed\"", "selectedFileCount",
-    "command.approvedFiles.length", "approvedSetVerified", "acceptVerified", "REJECTION_CODES",
+    "mutationOutcome: \"no\"", "mutationOutcome: \"confirmed\"",
+    "command.kind === \"file-input\"", "REJECTION_CODES",
     "qualificationStage", "qualificationFactsConsistent", "exactKeys",
     "POINTER_ACTIONABILITY_NATIVE_CAUSES", "KEYBOARD_ACTIONABILITY_NATIVE_CAUSES",
   ], findings, lawId, MUTATION_RECEIPT_PATH);
@@ -431,9 +431,10 @@ const inspectMutationExecution = (
   requireText(sources.fileInput.getFullText(), [
     "executeExtensionFileInput", "DOM.setFileInputFiles", "approvedFiles", "resolvedFilePaths",
     "candidate.facts.multiple === true", "candidate.facts.disabled === false",
-    "candidate.facts.ariaDisabled === false", "acceptPolicyValid", "SELECTION_PROOF_FUNCTION",
-    "crypto.subtle.digest", "approvedSetVerified", "acceptVerified", "mutationCount: 1",
-    "postconditionVerified", "assertCurrent(input.target.targetRef, input.target.documentRef)",
+    "candidate.facts.ariaDisabled === false", "acceptPolicyValid",
+    "Page.setInterceptFileChooserDialog", "captureFileChooserOpened",
+    "chooser.backendNodeId !== candidate.backendNodeId", "mutationCount: 1",
+    "postconditionVerified: true", "assertCurrent(input.target.targetRef, input.target.documentRef)",
   ], findings, lawId, extensionFileInputPath);
 };
 
