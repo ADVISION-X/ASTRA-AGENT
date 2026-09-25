@@ -8,7 +8,7 @@ import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/s
 import { acceptClaim } from "../../src/lib/local-runtime/production/runtime-claim-operations.js";
 import type { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { requireRuntimeLogWrite } from "../../src/lib/runtime-logs/index.js";
-import { businessInFlightCount, claimReusesExistingBusinessSlot } from "../../src/lib/local-runtime/production/runtime-loops.js";
+import { businessInFlightCount } from "../../src/lib/local-runtime/production/runtime-loops.js";
 import { targetlessFirstFactHash, validV44SourceHandoff } from "../../src/lib/local-runtime/production/store-source-settlement.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
@@ -118,18 +118,14 @@ const exerciseSealedAttemptClosure = (context: SourceSealContext): string => {
   assert.throws(() => store.acceptTask(job, "attempt:1"),
     /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u,
   "generic same-attempt regrant cannot reopen a sealed source attempt");
-  assert.equal(businessInFlightCount({ active: new Map(), store } as never), beforeHandoffSlots,
-    "a sealed source attempt must retain the same job's business slot until Website demand closes");
+  assert.equal(businessInFlightCount({ active: new Map(), store } as never), beforeHandoffSlots - 1,
+    "a typed-sealed source attempt must release its local slot so the same job can obtain a new grant at N=1");
   return sealedAt.sealed_at;
 };
 
 /** The exact typed seal admits only the Website-issued attempt; a later stage plus terminal blocks any seal. */
 const exerciseIssuedAttemptAndStageRace = (context: SourceSealContext, sealedAt: string): void => {
   const { store, directory, job, sourceBody, sourceSeal, beforeHandoffSlots } = context;
-  assert.equal(claimReusesExistingBusinessSlot({ active: new Map(), store } as never, {
-    job_id: job.job_id, grant: { attempt_id: "attempt:2", same_accepted_attempt: false,
-      source_handoff_seal_hash: sourceSeal },
-  }), true, "a Website-issued new attempt with the exact typed seal reuses that job slot");
   const fresh = store.acceptTaskAfterSourceHandoff(job, "attempt:2", sourceSeal);
   const damagedIssuedDb = new Database(path.join(directory, "production-runtime.sqlite"));
   damagedIssuedDb.prepare(`update production_attempt_handoffs set sealed_at=null
@@ -144,7 +140,7 @@ const exerciseIssuedAttemptAndStageRace = (context: SourceSealContext, sealedAt:
     where job_id=? and source_attempt_id=?`).run(sealedAt, job.job_id, "attempt:1");
   damagedIssuedDb.close();
   assert.equal(businessInFlightCount({ active: new Map(), store } as never), beforeHandoffSlots,
-    "the Website-authorized new attempt keeps the same local slot");
+    "the Website-authorized new attempt occupies one local slot again");
   assert.equal(fresh.current_attempt_id, "attempt:2");
   assert.equal(fresh.attempt_failure, null);
   assert.equal(fresh.staged_result, null);

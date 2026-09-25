@@ -33,20 +33,16 @@ export const claimReusesExistingBusinessSlot = (
   }> }>,
 ): boolean => {
   const durable = state.store.readTask(job.job_id);
-  if (!durable || durable.status !== "failed" || !durable.current_attempt_id) return false;
-  if (durable.current_attempt_id === job.grant.attempt_id) {
-    return job.grant.same_accepted_attempt;
-  }
-  if (job.grant.same_accepted_attempt || !job.grant.source_handoff_seal_hash) return false;
-  return state.store.readSealedSourceHandoff(
-    job.job_id, durable.current_attempt_id,
-  )?.seal_hash === job.grant.source_handoff_seal_hash;
+  if (durable?.current_attempt_id !== job.grant.attempt_id) return false;
+  return durable.status === "failed" && job.grant.same_accepted_attempt;
 };
 
+/** A typed-sealed source attempt releases its slot so the same job can obtain its Website-issued attempt. */
 const businessInFlightJobIds = (state: RuntimeState): ReadonlySet<string> => new Set([
   ...state.active.keys(),
   ...state.store.taskAuthorities()
-    .filter((row) => row.status === "failed" && row.current_attempt_id !== null)
+    .filter((row) => row.status === "failed" && row.current_attempt_id !== null
+      && state.store.readSealedSourceHandoff(row.task.job_id, row.current_attempt_id) === null)
     .map((row) => row.task.job_id),
 ]);
 

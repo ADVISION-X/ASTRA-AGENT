@@ -75,7 +75,7 @@ const inspectProviderParking = (
   if (!exactParkCalls
     || !parkActive?.getText().includes('mode: "product-call-settlement"')
     || !waitForObservation?.getText().includes("active.browser.pendingMutationCount() > 0")
-    || !waitForObservation?.getText().includes('"bound-observation", eligibleAt')
+    || !waitForObservation?.getText().includes('"confirmed-readback", eligibleAt')
     || !lifecycleClass?.getMethod("settle")?.getText().includes("this.parkActive(")) findings.push(finding(
     "gpt/no-browser-poll-scheduler", LIFECYCLE,
     "Provider pending and Product settlement must park through the sole Browser lane, with Browser-owned observation eligibility.",
