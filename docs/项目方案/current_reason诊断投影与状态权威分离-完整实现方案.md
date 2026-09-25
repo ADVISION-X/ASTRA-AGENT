@@ -215,7 +215,7 @@ Website：
 
 ### 3.3 绝对规则
 
-> **改变、清空、篡改 current_reason 的文本，不得改变任何真实授权、恢复资格、在途业务数、Provider 输入资格、stage 资格、业务 completed 或 deletion 资格。**
+> **在 schema 允许的合法诊断值范围内，改变、替换或篡改 current_reason 的具体内容，不得改变任何真实授权、恢复资格、在途业务数、Provider 输入资格、stage 资格、业务 completed 或 deletion 资格。failed 本地任务仍保留 current_reason 非空的诊断完整性约束；本方案不把 null 变成 failed 行的合法诊断值。**
 
 如果改变 current_reason 会改变这些行为，直接判定为结构性错误。
 
@@ -741,7 +741,7 @@ Owner：AGENT agent-production-runtime。
 
 精确原则：
 
-- source attempt typed sealed 且已提交 Website 等待新 attempt 时，不把旧 source attempt当可执行当前 attempt；
+- 只在 production_tasks.current_attempt_id 精确等于某条 production_attempt_handoffs.source_attempt_id 且该行 seal_hash/sealed_at 已成立时，才把这个 exact 旧 source attempt 视为已封口；不能因为同 job 存在任意历史 sealed row 就排除当前新 attempt；
 - 新 issued attempt durable accept 后，新 attempt 占同一 job 一个业务席位；
 - 同一 job 永远去重；
 - current_reason 变化不改变分母。
@@ -899,7 +899,7 @@ current_reason = SOURCE_HANDOFF_SEALED|fake
 
 #### Q-A2：篡改 reason 不得破坏真实 seal
 
-真实 typed handoff 已 sealed 后，把 current_reason 改为任意诊断值：
+真实 typed handoff 已 sealed 后，把 current_reason 改为任意合法非空诊断值：
 
 - readSealedSourceHandoff 仍返回同一 manifest；
 - Website source evidence 仍同一 hash；
@@ -950,7 +950,7 @@ Owner：Website native quality。
 
 ### Q-W1：next action 与 current_reason 独立
 
-对同一 runtime row，只变 current_reason.code/owner/location：
+对同一 runtime row，只在合法诊断结构内改变 current_reason.code/owner/location：
 
 ~~~text
 v6JobNextAction 必须不变
@@ -1245,4 +1245,115 @@ current_reason、claim 200、LEASE_GRANTED、Runtime READY、CHANGE PASS 均不�
 
 > **Website demand 不死，AGENT 的交付责任不死。任何诊断文本都没有资格把工单判死。**
 
-> **真实状态必须来自 typed durable facts；改变 current_reason 字符串，系统行为必须保持不变。**
+> **真实状态必须来自 typed durable facts；在合法诊断结构内改变 current_reason 的具体内容，系统授权与业务行为必须保持不变。**
+
+
+---
+
+## 15. 主设计反向审计 R1（非独立子智能体）
+
+本节是主设计者自己的反向审计，**不等于第三方审计，不构成独立子智能体放行**。
+
+### R1-F1：原文把 current_reason=null 也视为可任意变化，违反本地 schema
+
+**级别：P1，已修正。**
+
+现役 production_tasks schema 明确要求：
+
+- failed -> result_json is null 且 current_reason is not null；
+- completed -> result_json 非空、staged_result_json null、current_reason null。
+
+因此“清空 current_reason 不改变行为”不是合法 mutation 样本。新规则改为：
+
+> 在合法诊断结构/非空值范围内改变 current_reason 内容，不得改变授权与业务行为；nullability 仍服从现役 task schema。
+
+本轮不删除 current_reason 列，也不修改这一诊断完整性约束。
+
+### R1-F2：typed sealed 判断必须绑定 exact current source attempt
+
+**级别：P1，已修正。**
+
+production_attempt_handoffs 是 append/history 表，同一 job 可存在历史 source attempt seal。任何新 helper 如果只判断“此 job 是否有 sealed row”，会把新 issued attempt 错当旧 source attempt。
+
+唯一合法谓词必须精确绑定：
+
+~~~text
+production_tasks.current_attempt_id
+==
+production_attempt_handoffs.source_attempt_id
+
+AND seal_hash is not null
+AND sealed_at is not null
+~~~
+
+issued_attempt_id/accepted_at 用于证明 handoff 的后续 issuance/acceptance，不得把历史 source row继续当当前 attempt fence。
+
+所有 stage、first-fact、business-in-flight、readback observation 的 sealed 判定必须复用同一个 typed reader，不复制 SQL 变体。
+
+### R1-F3：Claim current_reason 降级不能偷偷形成跨仓合同漂移
+
+**级别：P1，设计门已补。**
+
+Website 当前仍生产 current_reason=LEASE_GRANTED，AGENT 当前 consumer 用 literal 校验。
+
+本方案默认：
+
+- Website producer bytes 不变；
+- AGENT consumer 从 literal 改为 non-empty diagnostic string；
+- grant/lease/fence 继续严格核；
+- 不升 control contract。
+
+施工前质量系统必须机械证明：
+
+1. Website provider contract/spec 并未把“consumer 必须以 LEASE_GRANTED 字面值取得授权”定义成独立合同义务；
+2. Website V43/V44 producer 输出字节不变；
+3. 旧 consumer/new Website 与新 consumer/旧 Website 的 wire shape 不变；
+4. current_reason 变化只会改变诊断，不改变 grant identity。
+
+若任一 canonical contract checker 把该 literal 视为跨仓授权语义，则本 Work Order 立即回到设计阻断，按真实 provider/consumer contract 变更重新裁决版本，禁止靠宽松 parser 偷穿版本门。
+
+### R1-F4：current_reason 允许做“诊断写幂等”，禁止做业务状态门
+
+**级别：P2，已澄清。**
+
+允许：
+
+~~~text
+if current_reason already equals same diagnostic value
+  -> skip duplicate diagnostic UPDATE
+~~~
+
+前提是该分支只减少重复诊断写，不能改变：
+
+- claim/recovery；
+- source seal；
+- capacity；
+- Provider gate；
+- stage/terminal；
+- deletion；
+- completed。
+
+因此静态质检不能简单禁止所有 current_reason 条件表达式，而要禁止它参与**权威动作分支**。诊断展示和诊断写幂等属于允许面。
+
+### R1-F5：与 Target 方案共改文件，必须串行 rebase
+
+**级别：P1，已在第 8.2 节冻结。**
+
+两方案均触达 source-handoff/Runtime/quality。不能由两个实现主体并发施工。
+
+独立子智能体最终审计必须再次确认：
+
+- Target 方案施工后的新 baseline 没有改变 production_attempt_handoffs seal 语义；
+- 若改变，本文 B1/B2 必须重新绑定，不得直接套旧方案。
+
+### R1 总结
+
+~~~text
+P0 = 0
+P1 = 4（均已在方案正文修正/加门）
+P2 = 1（已澄清）
+独立子智能体 = 未执行
+最终放行 = PENDING
+~~~
+
+因此方案仍保持：**设计阻断**。
