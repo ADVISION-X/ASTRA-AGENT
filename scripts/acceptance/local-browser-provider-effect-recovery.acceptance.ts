@@ -10,13 +10,19 @@ import {
 } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
 import type { BrowserMutationIdentity } from "../../src/lib/browser/exact-target/browser-mutation-types.js";
 import { ensureCurrentSchema } from "../../src/lib/browser/exact-target/browser-mutation-schema.js";
+import { browserMutationPayloadKey, sealProviderRecoveryPayload } from
+  "../../src/lib/browser/exact-target/browser-mutation-payload.js";
 import { submitRecoveryPayload } from
   "../../src/lib/browser/exact-target/browser-submit-recovery-payload.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
-const identity = (attemptId: string, revision = 0): BrowserMutationIdentity => Object.freeze({deliveryPriorityReplayGrantHash: null,
+const withProviderIdentity = <T extends BrowserMutationIdentity>(input: T): T => ({ ...input,
+  logicalMutationId: hash(JSON.stringify([input.jobId, input.resultRevision,
+    input.productStepId, input.callId, input.childCapabilityId,
+    input.requestHash, input.payloadHash])) });
+const identity = (attemptId: string, revision = 0): BrowserMutationIdentity => withProviderIdentity({deliveryPriorityReplayGrantHash: null,
   commandId: `command:${attemptId}:${revision}`,
   logicalMutationId: hash(`provider-effect:${revision}`),
   exactCallIdentityHash: hash(`exact-call:${revision}`),
@@ -77,10 +83,8 @@ try {
     "select type,name,sql from sqlite_master where type in ('table','index') order by type,name").all());
   const rejectWithoutChange = (database: Database.Database, reason: string): void => {
     const before = schemaReceipt(database);
-    const claims = database.prepare("select * from browser_target_claims").all();
     assert.throws(() => ensureCurrentSchema(database), /BROWSER_REPAIR_REQUIRED/u, reason);
     assert.equal(schemaReceipt(database), before, `${reason}: schema must remain unchanged`);
-    assert.deepEqual(database.prepare("select * from browser_target_claims").all(), claims, `${reason}: claims unchanged`);
     database.close();
   };
   const currentFixture = new Database(path.join(root, "current-schema-source.sqlite"));
@@ -106,18 +110,9 @@ try {
   viewOnly.close();
   const oldClaimSchema = new Database(path.join(root, "old-target-claims.sqlite"));
   ensureCurrentSchema(oldClaimSchema);
-  oldClaimSchema.exec("drop table browser_target_claims");
   oldClaimSchema.exec("create table browser_target_claims (target_ref text, job_ref_hash text, tab_id integer, claimed_at text, released_at text)");
   oldClaimSchema.exec("insert into browser_target_claims values ('target-tab-old','job-hash-old',12,'2026-01-01T00:00:00Z',null)");
-  rejectWithoutChange(oldClaimSchema, "Browser startup must reject old target claims");
-  const historicalClaim = new Database(path.join(root, "historical-claim.sqlite"));
-  ensureCurrentSchema(historicalClaim);
-  historicalClaim.exec("insert into browser_target_claims (target_ref,job_ref_hash,tab_id,claim_source,claimed_at) values ('target-tab-old','job-hash-old',12,'legacy_wal','2026-01-01T00:00:00Z')");
-  const historicalBefore = JSON.stringify(historicalClaim.prepare("select * from browser_target_claims").all());
-  assert.doesNotThrow(() => ensureCurrentSchema(historicalClaim));
-  assert.equal(JSON.stringify(historicalClaim.prepare("select * from browser_target_claims").all()),
-    historicalBefore, "current-schema startup must preserve legacy_wal evidence rows");
-  historicalClaim.close();
+  rejectWithoutChange(oldClaimSchema, "Browser startup must reject a retained target identity table");
   const missingGrantSchema = new Database(path.join(root, "missing-replay-grant.sqlite"));
   ensureCurrentSchema(missingGrantSchema);
   missingGrantSchema.exec("alter table browser_mutations drop column delivery_priority_replay_grant_hash");
@@ -145,6 +140,29 @@ try {
   store.prepare(first);
   store.markDispatched(first.commandId);
   store.markConfirmed(first.commandId, hash("terminal-proof"), "confirmed", terminalPayload);
+  const anchorDatabase = new Database(path.join(root, "browser", "browser-mutations.sqlite"));
+  const anchorBefore = store.jobHistoryEvidence(first.jobId).replayEffects[0]!.anchorProofHash;
+  anchorDatabase.prepare("update browser_mutations set target_ref=?,document_ref=? where command_id=?")
+    .run("target:replacement", "document:replacement", first.commandId);
+  assert.equal(store.jobHistoryEvidence(first.jobId).replayEffects[0]!.anchorProofHash, anchorBefore,
+    "V44 conversation anchor must not depend on historical Target or Document");
+  anchorDatabase.prepare("update browser_mutations set target_ref=?,document_ref=? where command_id=?")
+    .run(first.targetRef, first.documentRef, first.commandId);
+  const sealedOriginal = anchorDatabase.prepare("select provider_recovery_payload from browser_mutations where command_id=?")
+    .pluck().get(first.commandId) as string;
+  const sealAnchor = (terminal: object) => sealProviderRecoveryPayload(
+    browserMutationPayloadKey(root), first.commandId, { terminalPayload: terminal });
+  anchorDatabase.prepare("update browser_mutations set provider_recovery_payload=? where command_id=?")
+    .run(sealAnchor({ ...terminalPayload, promptHash: hash("different-prompt") }), first.commandId);
+  assert.notEqual(store.jobHistoryEvidence(first.jobId).replayEffects[0]!.anchorProofHash, anchorBefore,
+    "a changed prompt binding must change the V44 anchor proof");
+  anchorDatabase.prepare("update browser_mutations set provider_recovery_payload=? where command_id=?")
+    .run(sealAnchor({ ...terminalPayload, exactCallIdentityHash: hash("different-call") }), first.commandId);
+  assert.throws(() => store.jobHistoryEvidence(first.jobId), /BROWSER_PROVIDER_RECOVERY_ANCHOR_INVALID/u,
+    "a sealed anchor with the wrong exact call must fail closed");
+  anchorDatabase.prepare("update browser_mutations set provider_recovery_payload=? where command_id=?")
+    .run(sealedOriginal, first.commandId);
+  anchorDatabase.close();
   const attachmentPreparation = (attemptId: string, generation: number): BrowserMutationIdentity => ({
     ...identity(attemptId), commandId: `attachment:${attemptId}`,
     logicalMutationId: hash(`attachment:${attemptId}:${generation}`),
@@ -178,16 +196,14 @@ try {
     payloadHash: hash("payload:drift"),
   }), /BROWSER_PROVIDER_EFFECT_IDENTITY_DRIFT/u,
   "one result revision cannot hide a second submit behind request or payload drift");
-  const riskOld = { ...identity("attempt:risk-old"), jobId: "job:risk-scope",
-    commandId: "command:risk:old", logicalMutationId: hash("risk-old-effect"),
-    exactCallIdentityHash: hash("risk-old-call") };
+  const riskOld = withProviderIdentity({ ...identity("attempt:risk-old"), jobId: "job:risk-scope",
+    commandId: "command:risk:old", exactCallIdentityHash: hash("risk-old-call") });
   store.prepare(riskOld);
   store.markDispatched(riskOld.commandId);
   store.markConfirmed(riskOld.commandId, hash("risk-old-proof"), "confirmed", null);
-  const riskOldSecond = { ...riskOld, commandId: "command:risk:old-second",
+  const riskOldSecond = withProviderIdentity({ ...riskOld, commandId: "command:risk:old-second",
     productStepId: "provider-submit-second",
-    logicalMutationId: hash("risk-old-second-effect"),
-    exactCallIdentityHash: hash("risk-old-second-call") };
+    exactCallIdentityHash: hash("risk-old-second-call") });
   store.prepare(riskOldSecond);
   store.markDispatched(riskOldSecond.commandId);
   store.markConfirmed(riskOldSecond.commandId, hash("risk-old-second-proof"), "confirmed", null);
@@ -199,10 +215,10 @@ try {
   const oldEffectSetHash = store.jobHistoryEvidence(riskOld.jobId).replayEffects
     .find((effect) => effect.effectIdentityHash === riskOld.logicalMutationId)?.sourceEffectSetHash;
   assert.ok(oldEffectSetHash);
-  const risk = { ...identity("attempt:risk-new", 1), jobId: riskOld.jobId,
+  const risk = withProviderIdentity({ ...identity("attempt:risk-new", 1), jobId: riskOld.jobId,
     commandId: "command:risk:once",
     deliveryPriorityReplayGrantHash: hash("website-risk-grant"),
-    deliveryPriorityReplayCall: replayCall };
+    deliveryPriorityReplayCall: replayCall });
   assert.throws(() => store.prepare({ ...risk, deliveryPriorityReplayCall: null }),
     /BROWSER_REPLAY_GRANT_INVALID/u,
     "a job-level grant hash without an exact old call must not allow Provider input");
@@ -218,12 +234,11 @@ try {
   assert.throws(() => store.prepare({ ...risk, commandId: "command:risk:sibling",
     productStepId: riskOldSecond.productStepId }), /BROWSER_PROVIDER_EFFECT_OLD_INPUT_UNAUTHORIZED/u,
   "a grant for one old call must not move to another Provider call");
-  const riskSecond = { ...risk, commandId: "command:risk:other-scoped-call",
+  const riskSecond = withProviderIdentity({ ...risk, commandId: "command:risk:other-scoped-call",
     productStepId: riskOldSecond.productStepId,
-    logicalMutationId: hash("risk-second-new-effect"),
     exactCallIdentityHash: hash("risk-second-new-call"),
     deliveryPriorityReplayGrantHash: hash("website-risk-second-grant"),
-    deliveryPriorityReplayCall: replayCalls[1]! };
+    deliveryPriorityReplayCall: replayCalls[1]! });
   assert.doesNotThrow(() => store.prepare(riskSecond),
     "a second old Provider call may use its own exact Website grant in the same revision");
   store.markDispatched(risk.commandId);
@@ -260,10 +275,9 @@ try {
     suffix: string,
     productStepId = `continuation-step:${suffix}`,
     revision = 0,
-  ): BrowserMutationIdentity => ({
+  ): BrowserMutationIdentity => withProviderIdentity({
     ...identity(`attempt:${suffix}`, revision),
     commandId: `continuation:${jobId}:${suffix}`,
-    logicalMutationId: hash(`continuation-effect:${jobId}:${suffix}`),
     exactCallIdentityHash: hash(`continuation-call:${jobId}:${suffix}`),
     jobId,
     productStepId,
@@ -362,9 +376,13 @@ try {
     "confirmed submit payload survives Browser restart for the same effect readback");
   assert.equal(restartedOutcome?.providerEffectIdentityHash, first.logicalMutationId,
     "the public typed outcome carries the Browser-owned provider effect identity");
+  assert.throws(() => restarted.prepare({ ...identity("attempt:2", 1),
+    domainRejectionRevision: true }), /BROWSER_MUTATION_UNSETTLED/u,
+  "an unresolved physical input blocks even a Website-authorized new revision");
+  restarted.markRejected(unresolvedParent.commandId, hash("terminal-no-input"), "no");
   assert.doesNotThrow(() => restarted.prepare({ ...identity("attempt:2", 1),
     domainRejectionRevision: true }),
-    "a Website-authorized new result revision receives a new provider effect");
+    "a new revision may proceed only after the old writer has a reliable terminal");
   const rejectedNoInput = { ...identity("attempt:1", 2), domainRejectionRevision: true };
   restarted.prepare(rejectedNoInput);
   restarted.markDispatched(rejectedNoInput.commandId);
@@ -391,7 +409,10 @@ try {
   }), /BROWSER_PROVIDER_EFFECT_IDENTITY_DRIFT/u,
   "after the new attempt fixes its effect identity, a different identity must be rejected");
   restarted.markDispatched(retriedNoInput.commandId);
-  restarted.markConfirmed(retriedNoInput.commandId, hash("retried-terminal"), "confirmed", terminalPayload);
+  restarted.markConfirmed(retriedNoInput.commandId, hash("retried-terminal"), "confirmed", {
+    ...terminalPayload, exactCallIdentityHash: retriedNoInput.exactCallIdentityHash,
+    targetRefHash: hash(retriedNoInput.targetRef), documentRefHash: hash(retriedNoInput.documentRef),
+  });
   assert.equal(noInputOutcome("attempt:3")?.state, "confirmed",
     "a consumed provider effect must block every later attempt");
   restarted.close();
@@ -399,15 +420,15 @@ try {
   const riskDir = path.join(root, "risk-rebind");
   const riskStore = new BrowserMutationStore(riskDir);
   riskStore.verifyRuntimeTaskProvenance(null);
-  const source = { ...identity("attempt:risk-source"), jobId: "job:risk-rebind",
-    commandId: "command:risk-source" };
+  const source = withProviderIdentity({ ...identity("attempt:risk-source"), jobId: "job:risk-rebind",
+    commandId: "command:risk-source" });
   riskStore.prepare(source);
   riskStore.markDispatched(source.commandId);
   riskStore.markConfirmed(source.commandId, hash("risk-source-confirmed"), "confirmed");
   const sourceCall = riskStore.jobHistoryEvidence(source.jobId).replayCalls[0]!;
-  const firstRisk = { ...identity("attempt:risk-issued", 1), jobId: source.jobId,
+  const firstRisk = withProviderIdentity({ ...identity("attempt:risk-issued", 1), jobId: source.jobId,
     commandId: "command:risk-prepared", deliveryPriorityReplayGrantHash: hash("risk-rebind-grant"),
-    deliveryPriorityReplayCall: sourceCall };
+    deliveryPriorityReplayCall: sourceCall });
   riskStore.prepare(firstRisk);
   riskStore.close();
   const afterCrash = new BrowserMutationStore(riskDir);
@@ -427,7 +448,7 @@ try {
   assert.deepEqual(grantRows().map((row) => row.command_id), [rebound.commandId]);
   afterCrash.markDispatched(rebound.commandId);
   assert.throws(() => afterCrash.prepare({ ...rebound, commandId: "command:risk-unsettled" }),
-    /BROWSER_REPLAY_GRANT_CONSUMED/u,
+    /BROWSER_MUTATION_UNSETTLED/u,
     "an unresolved dispatch cannot obtain a second Provider command");
   afterCrash.markRejected(rebound.commandId, hash("risk-zero-input-proof"), "no",
     "BROWSER_TARGET_NOT_INTERACTIVE", null, 0);
@@ -456,7 +477,8 @@ try {
   afterCrash.prepare(eventual);
   afterCrash.markDispatched(eventual.commandId);
   afterCrash.markConfirmed(eventual.commandId, hash("risk-eventual-input"),
-    "confirmed", terminalPayload, 1);
+    "confirmed", { ...terminalPayload, exactCallIdentityHash: eventual.exactCallIdentityHash,
+      targetRefHash: hash(eventual.targetRef), documentRefHash: hash(eventual.documentRef) }, 1);
   assert.equal(afterCrash.readAtomicStepOutcome({
     jobId: afterNoInput.jobId, attemptId: afterNoInput.attemptId,
     exactCallIdentityHash: afterNoInput.exactCallIdentityHash,
@@ -479,7 +501,9 @@ try {
     productStepId: afterNoInput.productStepId, callId: afterNoInput.callId,
     childCapabilityId: afterNoInput.childCapabilityId,
     effectIdentityHash: afterNoInput.logicalMutationId!,
-    walAuthorityHash: afterCrash.authorityHash(eventual.commandId),
+    walAuthorityHash: afterCrash.jobHistoryEvidence(afterNoInput.jobId)
+      .replayEffects.find((effect) => effect.effectIdentityHash
+        === afterNoInput.logicalMutationId)!.walAuthorityHash,
   }).authorityHash, afterCrash.authorityHash(eventual.commandId),
   "later source recovery selects only the actual confirmed Provider command");
   assert.throws(() => afterCrash.prepare({ ...afterNoInput,
@@ -492,7 +516,7 @@ try {
 }
 process.stdout.write("LOCAL_BROWSER_ATTEMPT_FENCE_ACCEPTANCE_PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V53", evidenceMode: "exam.golden",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V54", evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "forbidden:3", "forbidden:4", "forbidden:5"],
   locator: "acceptance:local-browser-provider-effect-recovery:risk-grant",
   observedValue: "original Provider effect sets remain in WAL; a risk grant rebinds only proven zero-input PREPARED and retries only proven REJECTED/no commands until one physical input",

@@ -7,7 +7,8 @@ import { executionFailure, typedExecutionFailure } from "../../src/lib/execution
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { businessInFlightCount } from "../../src/lib/local-runtime/production/runtime-loops.js";
 import { historicalEffectsSettled } from "../../src/lib/local-runtime/production/runtime-source-readback-proofs.js";
-import { hashCanonical, sha256 } from "../../src/lib/local-runtime/production/contracts.js";
+import { targetlessFirstFactHash } from "../../src/lib/local-runtime/production/store-source-settlement.js";
+import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import {
   serializeTerminalFailure,
@@ -18,6 +19,13 @@ import { verifyPayloadSlotConflict } from "./agent-production-runtime-payload-sl
 import { verifyRecoveryFailureTransport } from "./agent-production-runtime-failure-transport.acceptance-support.js";
 
 const directory = await mkdtemp(path.join(tmpdir(), "agent-fresh-attempt-"));
+const terminalQuiescence = (historyHash: `sha256:${string}`,
+  calls: readonly { source_effect_set_hash: `sha256:${string}` }[]) => {
+  const body = { kind: "terminal_wal" as const, browser_history_hash: historyHash,
+    source_effect_set_hash: hashCanonical(calls.map((call) => call.source_effect_set_hash).sort()),
+    unresolved_command_set_hash: hashCanonical([]) };
+  return { ...body, proof_hash: hashCanonical(body) };
+};
 try {
   const providerEffectHash = `sha256:${"c".repeat(64)}` as const;
   await verifyRecoveryFailureTransport(providerEffectHash);
@@ -73,15 +81,14 @@ try {
     job_id: job.job_id,
     source_attempt_id: "attempt:1",
     source_task_hash: hashCanonical(job),
-    first_fact_raw_hash: sha256(Buffer.from(store.readAttemptFailureRaw(job.job_id)!, "utf8")),
+    first_fact_raw_hash: targetlessFirstFactHash(store.readAttemptFailureRaw(job.job_id)),
     outbox_history_hash: outbox.historyHash,
     outbox_candidate_count: outbox.candidateCount,
     payload_slot_conflict: null,
     browser_history_hash: providerEffectHash,
     browser_row_count: 0,
     browser_input_state: "zero" as const,
-    browser_target_settled: true,
-    target_settlement_hash: providerEffectHash,
+    input_quiescence_proof: null,
     readback_exhaustion_hash: null,
     replay_calls: [],
     rejected_call: null,
@@ -167,15 +174,14 @@ try {
     job_id: regrantJob.job_id,
     source_attempt_id: "attempt:1",
     source_task_hash: hashCanonical(regrantJob),
-    first_fact_raw_hash: sha256(Buffer.from(store.readAttemptFailureRaw(regrantJob.job_id)!, "utf8")),
+    first_fact_raw_hash: targetlessFirstFactHash(store.readAttemptFailureRaw(regrantJob.job_id)),
     outbox_history_hash: replacedOutbox.historyHash,
     outbox_candidate_count: replacedOutbox.candidateCount,
     payload_slot_conflict: null,
     browser_history_hash: providerEffectHash,
     browser_row_count: 0,
     browser_input_state: "zero" as const,
-    browser_target_settled: true,
-    target_settlement_hash: providerEffectHash,
+    input_quiescence_proof: null,
     readback_exhaustion_hash: null,
     replay_calls: [],
     rejected_call: null,
@@ -192,11 +198,7 @@ try {
     kind: "negative_exact" as const, path: "exact_conversation" as const,
     effect_identity_hash: providerEffectHash,
     source_effect_set_hash: providerEffectHash,
-    old_target_ref_hash: providerEffectHash,
-    old_document_ref_hash: providerEffectHash,
     wal_authority_hash: providerEffectHash,
-    target_ref_hash: providerEffectHash,
-    document_ref_hash: providerEffectHash,
     observation_revision_hash: providerEffectHash,
     observed_at: "2030-01-01T00:01:00.000Z",
     first_observed_at: "2030-01-01T00:00:00.000Z",
@@ -217,13 +219,6 @@ try {
     },
   ), /PRODUCTION_SOURCE_READBACK_PROOF_INVALID/u,
   "the proof interval must advance before persisting a negative readback");
-  assert.throws(() => store.recordSourceReadbackObservation(
-    regrantJob.job_id, "attempt:2", {
-      ...negativeObservation, kind: "old_instance_unavailable",
-      path: "old_target", proof_hash: "not-a-hash",
-    } as never,
-  ), /PRODUCTION_SOURCE_READBACK_PROOF_INVALID/u,
-  "an unauthenticated old-instance fact cannot be persisted");
   assert.equal(store.readSourceReadbackObservations(regrantJob.job_id, "attempt:2").length, 0);
 
   const inherited = task({ jobId: "job:historical-rejection",
@@ -250,40 +245,45 @@ try {
     child_capability_id: "submit_exact_gpt_turn_once", source_effect_set_hash: oldEffect };
   const oldBody = { kind: "attempt_handoff" as const, job_id: inherited.job_id,
     source_attempt_id: "attempt:old", source_task_hash: hashCanonical(inherited),
-    first_fact_raw_hash: sha256(Buffer.from(store.readAttemptFailureRaw(inherited.job_id)!, "utf8")),
+    first_fact_raw_hash: targetlessFirstFactHash(store.readAttemptFailureRaw(inherited.job_id)),
     outbox_history_hash: oldOutbox.historyHash,
     outbox_candidate_count: oldOutbox.candidateCount,
     payload_slot_conflict: null,
     browser_history_hash: providerEffectHash, browser_row_count: 1,
     browser_input_state: "possible" as const, replay_calls: [oldCall],
-    readback_proofs: [], browser_target_settled: true,
-    target_settlement_hash: providerEffectHash, readback_exhaustion_hash: null };
+    rejected_call: { ...oldCall, effect_identity_hash: oldEffect },
+    readback_proofs: [], input_quiescence_proof: terminalQuiescence(providerEffectHash, [oldCall]),
+    readback_exhaustion_hash: null };
   const oldSeal = hashCanonical(oldBody);
+  const unquietOldBody = { ...oldBody, input_quiescence_proof: null };
+  assert.throws(() => store.sealSourceHandoff({ ...unquietOldBody,
+    seal_hash: hashCanonical(unquietOldBody) } as never), /PRODUCTION_SOURCE_HANDOFF_CONFLICT/u,
+  "a possible-input V44 source requires terminal WAL quiescence");
   store.sealSourceHandoff({ ...oldBody, seal_hash: oldSeal } as never);
   store.acceptTaskAfterSourceHandoff(inherited, "attempt:new", oldSeal);
   assert.deepEqual(store.readAcceptedSourceSettlements(inherited.job_id).map((item) =>
     [item.kind, item.effectIdentityHash, item.sourceHandoffSealHash]),
   [["rejection_settled", oldEffect, oldSeal]],
-  "an accepted old single-call rejection without rejected_call remains readable");
+  "an accepted single-call rejection remains readable");
 
   store.recordAttemptFailure(inherited.job_id, "attempt:new",
     rejectedFailure("attempt:new", nextEffect));
   const newerOutbox = store.readResultOutboxHistoryEvidence(inherited.job_id, "attempt:new");
   const newerCall = { ...oldCall, source_effect_set_hash: nextEffect };
   const newerBody = { ...oldBody, source_attempt_id: "attempt:new",
-    first_fact_raw_hash: sha256(Buffer.from(store.readAttemptFailureRaw(inherited.job_id)!, "utf8")),
+    first_fact_raw_hash: targetlessFirstFactHash(store.readAttemptFailureRaw(inherited.job_id)),
     outbox_history_hash: newerOutbox.historyHash,
     replay_calls: [newerCall], rejected_call: { ...newerCall,
       effect_identity_hash: nextEffect },
+    input_quiescence_proof: terminalQuiescence(providerEffectHash, [newerCall]),
     readback_proofs: [{ ...newerCall, disposition: "historical_settled" as const,
       effects: [{ effect_identity_hash: oldEffect, source_effect_set_hash: oldEffect,
-        old_target_ref_hash: oldEffect, old_document_ref_hash: oldEffect,
         wal_authority_hash: providerEffectHash, anchor_state: "trusted" as const,
-        anchor_proof_hash: oldEffect, old_path: null, exact_path: null,
+        anchor_proof_hash: oldEffect,
         rejection_settled: { source_attempt_id: "attempt:old",
           source_handoff_seal_hash: oldSeal } }] }] };
   const newerSeal = hashCanonical(newerBody);
-  store.sealSourceHandoff({ ...newerBody, seal_hash: newerSeal });
+  store.sealSourceHandoff({ ...newerBody, seal_hash: newerSeal } as never);
   store.acceptTaskAfterSourceHandoff(inherited, "attempt:third", newerSeal);
   assert.deepEqual(store.readAcceptedSourceSettlements(inherited.job_id).map((item) =>
     item.effectIdentityHash).sort(), [oldEffect, nextEffect].sort(),
@@ -296,7 +296,6 @@ try {
   const checkpointBody = {
     kind: "settled_checkpoint" as const, path: "source_checkpoint" as const,
     effect_identity_hash: oldEffect, source_effect_set_hash: oldEffect,
-    old_target_ref_hash: oldEffect, old_document_ref_hash: oldEffect,
     wal_authority_hash: providerEffectHash, provider_input_delta: 0 as const,
     source_attempt_id: "attempt:zero-old", source_result_revision: 0,
     checkpoint_exact_call_identity_hash: oldEffect,
@@ -305,9 +304,8 @@ try {
     user_turn_hash: oldEffect,
   };
   const zeroEffect = { effect_identity_hash: oldEffect, source_effect_set_hash: oldEffect,
-    old_target_ref_hash: oldEffect, old_document_ref_hash: oldEffect,
     wal_authority_hash: providerEffectHash, anchor_state: "trusted" as const,
-    anchor_proof_hash: oldEffect, old_path: null, exact_path: null,
+    anchor_proof_hash: oldEffect,
     settled_checkpoint: {
       source_attempt_id: "attempt:zero-old", source_result_revision: 0,
       checkpoint_exact_call_identity_hash: oldEffect,
@@ -328,11 +326,11 @@ try {
     payload_slot_conflict: zeroConflict, browser_history_hash: oldEffect,
     browser_row_count: 1, browser_input_state: "possible" as const,
     replay_calls: [oldCall], rejected_call: null, readback_proofs: [zeroProof],
-    browser_target_settled: true, target_settlement_hash: oldEffect,
+    input_quiescence_proof: terminalQuiescence(oldEffect, [oldCall]),
     readback_exhaustion_hash: hashCanonical([]),
   };
   const zeroSeal = hashCanonical(zeroBody);
-  store.sealSourceHandoff({ ...zeroBody, seal_hash: zeroSeal });
+  store.sealSourceHandoff({ ...zeroBody, seal_hash: zeroSeal } as never);
   store.acceptTaskAfterSourceHandoff(zeroReuse, "attempt:zero-new", zeroSeal);
   const firstZeroSettlements = store.readAcceptedSourceSettlements(zeroReuse.job_id);
   assert.deepEqual(firstZeroSettlements.map((item) => item.kind), ["reused_checkpoint"]);
@@ -340,20 +338,25 @@ try {
     effectIdentityHash: oldEffect, sourceEffectSetHash: oldEffect,
     productStepId: oldCall.product_step_id, callId: oldCall.call_id,
     childCapabilityId: oldCall.child_capability_id, authorityRef: "browser:old",
-    walAuthorityHash: providerEffectHash }], firstZeroSettlements, "attempt:zero-new"), true,
+    walAuthorityHash: providerEffectHash, rawWalAuthorityHash: providerEffectHash,
+    anchorProofHash: oldEffect,
+    anchorState: "trusted" }], firstZeroSettlements, "attempt:zero-new"), true,
   "a signed zero-submit grant keeps the old Provider effect settled after a new crash");
   const secondZeroBody = { ...zeroBody, source_attempt_id: "attempt:zero-new",
     browser_input_state: "zero" as const, browser_row_count: 2,
+    input_quiescence_proof: null,
     payload_slot_conflict: { ...zeroConflict, old_request_id: "second-old",
       new_request_id: "second-new" } };
   const secondZeroSeal = hashCanonical(secondZeroBody);
-  store.sealSourceHandoff({ ...secondZeroBody, seal_hash: secondZeroSeal });
+  store.sealSourceHandoff({ ...secondZeroBody, seal_hash: secondZeroSeal } as never);
   store.acceptTaskAfterSourceHandoff(zeroReuse, "attempt:zero-third", secondZeroSeal);
   assert.equal(historicalEffectsSettled([{ attemptId: "attempt:zero-old",
     effectIdentityHash: oldEffect, sourceEffectSetHash: oldEffect,
     productStepId: oldCall.product_step_id, callId: oldCall.call_id,
     childCapabilityId: oldCall.child_capability_id, authorityRef: "browser:old",
-    walAuthorityHash: providerEffectHash }], store.readAcceptedSourceSettlements(zeroReuse.job_id),
+    walAuthorityHash: providerEffectHash, rawWalAuthorityHash: providerEffectHash,
+    anchorProofHash: oldEffect,
+    anchorState: "trusted" }], store.readAcceptedSourceSettlements(zeroReuse.job_id),
   "attempt:zero-third"), true, "a second object-slot conflict preserves the same zero-submit lineage");
 
   const article = task({ jobId: "job:article-three-step-reuse",
@@ -383,9 +386,10 @@ try {
     source_attempt_id: "attempt:article-old", source_task_hash: hashCanonical(article),
     outbox_history_hash: articleOutbox.historyHash,
     outbox_candidate_count: articleOutbox.candidateCount,
-    browser_row_count: 3, replay_calls: articleCalls, readback_proofs: articleProofs };
+    browser_row_count: 3, replay_calls: articleCalls, readback_proofs: articleProofs,
+    input_quiescence_proof: terminalQuiescence(oldEffect, articleCalls) };
   const articleSeal = hashCanonical(articleBody);
-  store.sealSourceHandoff({ ...articleBody, seal_hash: articleSeal });
+  store.sealSourceHandoff({ ...articleBody, seal_hash: articleSeal } as never);
   store.acceptTaskAfterSourceHandoff(article, "attempt:article-new", articleSeal);
   const articleSettlements = store.readAcceptedSourceSettlements(article.job_id);
   assert.deepEqual(articleSettlements.map((item) => item.effectIdentityHash).sort(),
@@ -395,6 +399,8 @@ try {
     sourceEffectSetHash: call.source_effect_set_hash, productStepId: call.product_step_id,
     callId: call.call_id, childCapabilityId: call.child_capability_id,
     authorityRef: `browser:${articleSteps[index]}`, walAuthorityHash: providerEffectHash,
+    rawWalAuthorityHash: providerEffectHash, anchorProofHash: oldEffect,
+    rawAnchorProofHash: oldEffect, anchorState: "trusted" as const,
   })), articleSettlements, "attempt:article-new"), true,
   "the article handoff must settle research, article and image without replaying a Provider call");
 
@@ -406,23 +412,25 @@ try {
       executionFailure("failed", "SOURCE_RESULT_RECONCILIATION_PENDING"))));
   const riskOutbox = store.readResultOutboxHistoryEvidence(priorRisk.job_id, "attempt:risk-old");
   const riskEffect = { effect_identity_hash: oldEffect, source_effect_set_hash: oldEffect,
-    old_target_ref_hash: oldEffect, old_document_ref_hash: oldEffect,
     wal_authority_hash: providerEffectHash, anchor_state: "absent" as const,
-    anchor_proof_hash: oldEffect, old_path: { outcome: "instance_unavailable" as const,
-      proof_hash: oldEffect, observed_at: "2020-01-01T00:00:00.000Z",
-      provider_input_delta: 0 as const, target_ref_hash: oldEffect,
-      document_ref_hash: oldEffect }, exact_path: null };
+    anchor_proof_hash: oldEffect, unaddressable: {
+      proof_hash: hashCanonical({ effect_identity_hash: oldEffect,
+        source_effect_set_hash: oldEffect, wal_authority_hash: providerEffectHash,
+        anchor_state: "absent", anchor_proof_hash: oldEffect,
+        observed_at: "2020-01-01T00:00:00.000Z", provider_input_delta: 0 }),
+      observed_at: "2020-01-01T00:00:00.000Z", provider_input_delta: 0 as const } };
   const riskProof = { ...oldCall, disposition: "replay_exhausted" as const,
     effects: [riskEffect] };
   const riskBody = { ...oldBody, kind: "delivery_priority_replay" as const,
     job_id: priorRisk.job_id, source_attempt_id: "attempt:risk-old",
     source_task_hash: hashCanonical(priorRisk),
-    first_fact_raw_hash: sha256(Buffer.from(store.readAttemptFailureRaw(priorRisk.job_id)!, "utf8")),
+    first_fact_raw_hash: targetlessFirstFactHash(store.readAttemptFailureRaw(priorRisk.job_id)),
     outbox_history_hash: riskOutbox.historyHash,
     rejected_call: null, readback_proofs: [riskProof],
+    input_quiescence_proof: terminalQuiescence(providerEffectHash, [oldCall]),
     readback_exhaustion_hash: hashCanonical([riskProof]) };
   const riskSeal = hashCanonical(riskBody);
-  store.sealSourceHandoff({ ...riskBody, seal_hash: riskSeal });
+  store.sealSourceHandoff({ ...riskBody, seal_hash: riskSeal } as never);
   store.acceptTaskAfterSourceHandoff(priorRisk, "attempt:risk-new", riskSeal);
   assert.deepEqual(store.readAcceptedSourceSettlements(priorRisk.job_id).map((item) =>
     [item.kind, item.effectIdentityHash, item.sourceHandoffSealHash]),
@@ -435,15 +443,18 @@ try {
   const riskNewCall = { ...oldCall, source_effect_set_hash: nextEffect };
   const rejectedAfterRisk = { ...oldBody, job_id: priorRisk.job_id,
     source_attempt_id: "attempt:risk-new", source_task_hash: hashCanonical(priorRisk),
-    first_fact_raw_hash: sha256(Buffer.from(store.readAttemptFailureRaw(priorRisk.job_id)!, "utf8")),
+    first_fact_raw_hash: targetlessFirstFactHash(store.readAttemptFailureRaw(priorRisk.job_id)),
     outbox_history_hash: riskNewOutbox.historyHash,
     replay_calls: [riskNewCall], rejected_call: { ...riskNewCall,
       effect_identity_hash: nextEffect },
+    input_quiescence_proof: terminalQuiescence(providerEffectHash, [riskNewCall]),
     readback_proofs: [{ ...riskNewCall, disposition: "historical_settled" as const,
-      effects: [{ ...riskEffect, old_path: null, exact_path: null,
+      effects: [{ effect_identity_hash: oldEffect, source_effect_set_hash: oldEffect,
+        wal_authority_hash: providerEffectHash, anchor_state: "absent" as const,
+        anchor_proof_hash: oldEffect,
         risk_authorized: { source_handoff_seal_hash: riskSeal } }] }] };
   const rejectedAfterRiskSeal = hashCanonical(rejectedAfterRisk);
-  store.sealSourceHandoff({ ...rejectedAfterRisk, seal_hash: rejectedAfterRiskSeal });
+  store.sealSourceHandoff({ ...rejectedAfterRisk, seal_hash: rejectedAfterRiskSeal } as never);
   store.acceptTaskAfterSourceHandoff(priorRisk, "attempt:zero-current", rejectedAfterRiskSeal);
   const riskThenRejection = store.readAcceptedSourceSettlements(priorRisk.job_id);
   assert.deepEqual(riskThenRejection.map((item) => item.kind).sort(),
@@ -453,11 +464,15 @@ try {
     effectIdentityHash: oldEffect, sourceEffectSetHash: oldEffect,
     productStepId: oldCall.product_step_id, callId: oldCall.call_id,
     childCapabilityId: oldCall.child_capability_id,
-    authorityRef: "browser-mutation:attempt:risk-old", walAuthorityHash: providerEffectHash },
+    authorityRef: "browser-mutation:attempt:risk-old", walAuthorityHash: providerEffectHash,
+    rawWalAuthorityHash: providerEffectHash, anchorProofHash: oldEffect,
+    rawAnchorProofHash: oldEffect, anchorState: "absent" as const },
   { attemptId: "attempt:risk-new", effectIdentityHash: nextEffect,
     sourceEffectSetHash: nextEffect, productStepId: oldCall.product_step_id,
     callId: oldCall.call_id, childCapabilityId: oldCall.child_capability_id,
-    authorityRef: "browser-mutation:attempt:risk-new", walAuthorityHash: providerEffectHash }];
+    authorityRef: "browser-mutation:attempt:risk-new", walAuthorityHash: providerEffectHash,
+    rawWalAuthorityHash: providerEffectHash, anchorProofHash: oldEffect,
+    rawAnchorProofHash: oldEffect, anchorState: "trusted" as const }];
   assert.equal(historicalEffectsSettled(historicalEffects, riskThenRejection,
     "attempt:zero-current"), true,
   "a zero-input attempt must continue after signed risk and signed rejection");

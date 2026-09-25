@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 
-const LAW_ID = "LAW-GPT-002-V28";
+const LAW_ID = "LAW-GPT-002-V29";
 const ROOT = "src/capabilities/gpt";
 const read = (context: InspectorContext, path: string): string =>
   readFileSync(resolve(context.sealedRoot, path), "utf8");
@@ -128,9 +128,9 @@ const lifecycleChecks = (sources: Readonly<Record<string, string>>): boolean[] =
     !sources.lifecycle!.includes("startProviderProbeCooldown"),
     !sources.lifecycle!.includes("BROWSER_RECONCILIATION_IDENTITY_MISMATCH"),
     sources.targetAcquirer!.includes(
-      "requestPreauthorizedTargetAcquisition(\n        targetMode, jobRefHash, parentConversationUrl, expectedTargetRef,",
+      "requestPreauthorizedTargetAcquisition(\n        targetMode, jobRefHash, parentConversationUrl,",
     ),
-    sources.targetAcquirer!.includes("expectedTargetRef"),
+    !sources.targetAcquirer!.includes("expectedTargetRef"),
     sources.mutationEvidence!.includes("providerEffectIdentityHash: input.effectScope === \"provider_effect\""),
     !sources.candidate!.includes("priorTurns.length > 1"),
     !sources.candidate!.includes("querySelectorAll(outgoing.userTurnSelector)"),

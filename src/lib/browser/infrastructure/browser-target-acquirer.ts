@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import type { BrowserExecutionBinding } from "./browser-authority-broker.js";
 import { BrowserAuthorityBroker } from "./browser-authority-broker.js";
 import { BrowserAuthorityIssuer } from "./browser-authority-issuer.js";
@@ -29,15 +28,6 @@ export class BrowserTargetAcquirer {
     const mutations = this.infrastructure.mutationState;
     if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
     mutations.assertRuntimeTaskProvenance();
-    const unclosed = mutations.unreleasedTargetClaims()
-      .filter((claim) => claim.jobRefHash === waiter.binding.jobRefHash);
-    const targetRefs = [...new Set(unclosed.map((claim) => claim.targetRef))];
-    if (targetRefs.length > 1) throw new Error("BROWSER_OLD_TARGET_RECONCILIATION_REQUIRED");
-    // A surviving Extension may still hold the old answer after AGENT restart.
-    // Rebind the exact same Target for readback before any release decision.
-    if (targetRefs.length > 0 && waiter.targetMode === "fresh") {
-      throw new Error("BROWSER_OLD_TARGET_RECONCILIATION_REQUIRED");
-    }
     const currentJobRefHash = this.resolveBroker().currentOperatorTargetJobRefHash();
     if (currentJobRefHash === waiter.binding.jobRefHash) {
       if (waiter.targetMode === "authorized-continuation") {
@@ -49,7 +39,6 @@ export class BrowserTargetAcquirer {
     await this.acquireJobBoundTarget(
       Math.min(waiter.binding.commandTtlMs, waiter.remainingMs()), waiter.targetMode,
       waiter.binding.jobRefHash, parentConversationUrl,
-      targetRefs[0],
     );
   }
 
@@ -58,29 +47,24 @@ export class BrowserTargetAcquirer {
     targetMode: BrowserTargetLeaseWait["targetMode"],
     jobRefHash: `sha256:${string}`,
     parentConversationUrl?: string,
-    expectedTargetRef?: string,
   ): Promise<void> {
     await this.awaitTargetOperation(commandTtlMs, "acquire", jobRefHash, () =>
       this.websocket.requestPreauthorizedTargetAcquisition(
-        targetMode, jobRefHash, parentConversationUrl, expectedTargetRef,
-      ), undefined, expectedTargetRef);
+        targetMode, jobRefHash, parentConversationUrl,
+      ));
   }
 
   public async releaseJobBoundTarget(
     commandTtlMs: number,
-    jobId: string,
     jobRefHash: `sha256:${string}`,
   ): Promise<void> {
     const currentJobRefHash = this.resolveBroker().currentOperatorTargetJobRefHash();
     if (currentJobRefHash !== null && currentJobRefHash !== jobRefHash) {
       throw new Error("BROWSER_TARGET_INVALID");
     }
-    const mutations = this.infrastructure.mutationState;
-    if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
-    const targetRefs = mutations.unreleasedTargetRefs(jobId, jobRefHash);
     await this.awaitTargetOperation(commandTtlMs, "release", jobRefHash, () => {
-      this.websocket.requestPreauthorizedTargetRelease(jobRefHash, targetRefs);
-    }, targetRefs);
+      this.websocket.requestPreauthorizedTargetRelease(jobRefHash);
+    });
   }
 
   private async awaitTargetOperation(
@@ -88,8 +72,6 @@ export class BrowserTargetAcquirer {
     action: "acquire" | "release",
     jobRefHash: `sha256:${string}`,
     dispatch: () => number | void,
-    targetRefs?: readonly string[],
-    expectedTargetRef?: string,
   ): Promise<void> {
     const current = this.issuer.current();
     if (current.kind === "ABSENT") throw new Error(current.reasonCode);
@@ -110,8 +92,6 @@ export class BrowserTargetAcquirer {
         authorityEpoch: current.authority.authorityEpoch,
         action,
         jobRefHash,
-        ...(targetRefs ? { targetRefs } : {}),
-        ...(expectedTargetRef ? { expectedTargetRef } : {}),
         resolve,
         reject,
         timeout,
@@ -146,26 +126,6 @@ export class BrowserTargetAcquirer {
       && Number(refs.failedFrameSequence) !== pending.requestSequence) return;
     this.infrastructure.pendingJobBoundTargetAcquisition = null;
     clearTimeout(pending.timeout);
-    const error = new Error(reasonCode) as Error & {
-      oldTargetUnavailableFact?: Readonly<{ jobRefHash: `sha256:${string}`;
-        targetRefHash: `sha256:${string}`; proofHash: `sha256:${string}` }>;
-    };
-    if (reasonCode === "BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE"
-      && pending.action === "acquire" && pending.expectedTargetRef
-      && pending.requestSequence !== undefined
-      && refs.jobRefHash === pending.jobRefHash
-      && refs.targetRef === pending.expectedTargetRef
-      && Number(refs.failedFrameSequence) === pending.requestSequence) {
-      const targetRefHash = `sha256:${createHash("sha256")
-        .update(pending.expectedTargetRef).digest("hex")}` as const;
-      error.oldTargetUnavailableFact = Object.freeze({
-        jobRefHash: pending.jobRefHash, targetRefHash,
-        proofHash: `sha256:${createHash("sha256").update(JSON.stringify({
-          reasonCode, jobRefHash: pending.jobRefHash, targetRefHash,
-          requestSequence: pending.requestSequence, authorityEpoch: pending.authorityEpoch,
-        })).digest("hex")}` as const,
-      });
-    }
-    pending.reject(error);
+    pending.reject(new Error(reasonCode));
   }
 }

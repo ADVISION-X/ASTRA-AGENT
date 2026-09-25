@@ -18,12 +18,10 @@ export type BrowserAuthorityTargetRevoke = Readonly<{
   jobRefHash: `sha256:${string}`;
   documentRef: string;
   releaseOutcome?: never;
-  targetRefs?: never;
 }> | Readonly<{
   targetRef: string | null;
   jobRefHash: `sha256:${string}`;
-  releaseOutcome: "released" | "quiesced" | "absent";
-  targetRefs: readonly string[];
+  releaseOutcome: "released" | "absent";
 }>;
 
 export const authorityRecord = (value: unknown): Record<string, unknown> | null =>
@@ -100,14 +98,12 @@ const parseTargetFailureRevoke = (
   const targetRef = stringField(body, "targetRef");
   const jobRefHash = stringField(body, "jobRefHash");
   const documentRef = stringField(body, "documentRef");
-  if (!/^sha256:[a-f0-9]{64}$/u.test(jobRefHash)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  if (!/^sha256:[a-f0-9]{64}$/u.test(jobRefHash)
+    || Object.keys(body).sort().join("|") !== "documentRef|jobRefHash|targetRef") {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
   return { targetRef, jobRefHash: jobRefHash as `sha256:${string}`, documentRef };
 };
-
-const validReleaseTargetRefs = (value: unknown): value is string[] =>
-  Array.isArray(value)
-  && value.every((ref) => typeof ref === "string" && /^target-tab-\d+$/u.test(ref))
-  && new Set(value).size === value.length;
 
 const parseTargetReleaseRevoke = (
   body: Readonly<Record<string, unknown>>,
@@ -115,22 +111,18 @@ const parseTargetReleaseRevoke = (
   const targetRef = body.targetRef;
   const jobRefHash = body.jobRefHash;
   const releaseOutcome = body.releaseOutcome;
-  const targetRefs = body.targetRefs;
-  if (Object.keys(body).length !== 4
+  if (Object.keys(body).sort().join("|") !== "jobRefHash|releaseOutcome|targetRef"
     || (targetRef !== null && (typeof targetRef !== "string" || targetRef.length === 0))
     || typeof jobRefHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(jobRefHash)
-    || (releaseOutcome !== "released" && releaseOutcome !== "quiesced" && releaseOutcome !== "absent")
-    || !validReleaseTargetRefs(targetRefs)
-    || (releaseOutcome === "absent") !== (targetRefs.length === 0)
-    || (targetRef === null) !== (targetRefs.length === 0)
-    || (targetRefs.length > 0 && targetRef !== targetRefs[0])) {
+    || (releaseOutcome !== "released" && releaseOutcome !== "absent")
+    || (releaseOutcome === "absent") !== (targetRef === null)) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
   return { targetRef: targetRef as string | null, jobRefHash: jobRefHash as `sha256:${string}`,
-    releaseOutcome, targetRefs: targetRefs as string[] };
+    releaseOutcome };
 };
 
 export const parseBrowserAuthorityTargetRevoke = (
   body: Readonly<Record<string, unknown>>,
-): BrowserAuthorityTargetRevoke => Object.keys(body).length === 3
-  ? parseTargetFailureRevoke(body) : parseTargetReleaseRevoke(body);
+): BrowserAuthorityTargetRevoke => Object.hasOwn(body, "releaseOutcome")
+  ? parseTargetReleaseRevoke(body) : parseTargetFailureRevoke(body);

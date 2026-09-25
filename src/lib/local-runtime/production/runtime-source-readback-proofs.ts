@@ -7,180 +7,201 @@ type BrowserEffect = BrowserHistory["replayEffects"][number];
 type BrowserCall = BrowserHistory["replayCalls"][number];
 type Observations = ReturnType<RuntimeState["store"]["readSourceReadbackObservations"]>;
 type SettledHistory = ReturnType<RuntimeState["store"]["readAcceptedSourceSettlements"]>;
-
-const effectIdentity = (effect: BrowserEffect) => ({
+const identity = (effect: BrowserEffect) => ({
   effect_identity_hash: effect.effectIdentityHash,
   source_effect_set_hash: effect.sourceEffectSetHash,
-  old_target_ref_hash: effect.oldTargetRefHash,
-  old_document_ref_hash: effect.oldDocumentRefHash,
   wal_authority_hash: effect.walAuthorityHash,
   anchor_state: effect.anchorState,
   anchor_proof_hash: effect.anchorProofHash,
 });
-
-const confirmedReplayEffect = (effect: BrowserEffect): boolean =>
+const confirmed = (effect: BrowserEffect): boolean =>
   effect.state === "CONFIRMED" && effect.mutationOutcome === "confirmed"
   && effect.physicalInputCount === 1;
+const checkpointBody = (effect: BrowserEffect, checkpoint: NonNullable<
+  SourceReadbackEffectProof["settled_checkpoint"]>) => ({
+  kind: "settled_checkpoint" as const, path: "source_checkpoint" as const,
+  effect_identity_hash: effect.effectIdentityHash,
+  source_effect_set_hash: effect.sourceEffectSetHash,
+  wal_authority_hash: effect.walAuthorityHash, provider_input_delta: 0 as const,
+  source_attempt_id: checkpoint.source_attempt_id,
+  source_result_revision: checkpoint.source_result_revision,
+  checkpoint_exact_call_identity_hash: checkpoint.checkpoint_exact_call_identity_hash,
+  artifact_ref: checkpoint.artifact_ref,
+  artifact_content_hash: checkpoint.artifact_content_hash,
+  submit_prompt_hash: checkpoint.submit_prompt_hash,
+  canonical_conversation_hash: checkpoint.canonical_conversation_hash,
+  user_turn_hash: checkpoint.user_turn_hash,
+});
 
-// Undefined means no accepted settlement; null means a contradictory settlement.
-const acceptedEffectProof = (
-  effect: BrowserEffect, call: BrowserCall, history: SettledHistory,
-): SourceReadbackEffectProof | null | undefined => {
+const acceptedProof = (effect: BrowserEffect, call: BrowserCall,
+  history: SettledHistory): SourceReadbackEffectProof | null | undefined => {
   const matching = history.filter((item) => item.effectIdentityHash === effect.effectIdentityHash
     && item.sourceEffectSetHash === effect.sourceEffectSetHash
     && item.productStepId === call.productStepId && item.callId === call.callId
     && item.childCapabilityId === call.childCapabilityId
     && (item.kind === "risk_authorized" || item.sourceAttemptId === effect.attemptId));
-  const rejection = matching.find((item): item is Extract<SettledHistory[number],
-    { kind: "rejection_settled" }> => item.kind === "rejection_settled");
-  const risk = matching.find((item) => item.kind === "risk_authorized");
-  const reused = matching.find((item): item is Extract<SettledHistory[number],
-    { kind: "reused_checkpoint" }> => item.kind === "reused_checkpoint");
-  if ([rejection, risk, reused].filter(Boolean).length > 1) return null;
-  if (reused) {
-    if (!confirmedReplayEffect(effect) || effect.anchorState !== "trusted"
-      || reused.effect.wal_authority_hash !== effect.walAuthorityHash
-      || reused.effect.old_target_ref_hash !== effect.oldTargetRefHash
-      || reused.effect.old_document_ref_hash !== effect.oldDocumentRefHash
-      || reused.effect.anchor_proof_hash !== effect.anchorProofHash) return null;
-    return reused.effect;
+  if (matching.length > 1) return null;
+  const item = matching[0];
+  if (!item) return undefined;
+  if (item.kind === "reused_checkpoint") {
+    const old = item.effect;
+    const checkpoint = old.settled_checkpoint;
+    if (!confirmed(effect) || effect.anchorState !== "trusted" || !checkpoint
+      || old.effect_identity_hash !== effect.effectIdentityHash
+      || old.source_effect_set_hash !== effect.sourceEffectSetHash
+      || old.wal_authority_hash !== effect.walAuthorityHash
+      || old.anchor_proof_hash !== effect.anchorProofHash
+      || checkpoint.source_attempt_id !== effect.attemptId
+      || checkpoint.source_result_revision !== effect.resultRevision
+      || checkpoint.canonical_conversation_hash !== effect.canonicalConversationHash
+      || checkpoint.user_turn_hash !== effect.userTurnHash) return null;
+    return Object.freeze({ ...identity(effect), settled_checkpoint: Object.freeze({
+      source_attempt_id: checkpoint.source_attempt_id,
+      source_result_revision: checkpoint.source_result_revision,
+      checkpoint_exact_call_identity_hash: checkpoint.checkpoint_exact_call_identity_hash,
+      artifact_ref: checkpoint.artifact_ref,
+      artifact_content_hash: checkpoint.artifact_content_hash,
+      submit_prompt_hash: checkpoint.submit_prompt_hash,
+      canonical_conversation_hash: checkpoint.canonical_conversation_hash,
+      user_turn_hash: checkpoint.user_turn_hash,
+      proof_hash: hashCanonical(checkpointBody(effect, checkpoint)),
+      observed_at: checkpoint.observed_at, provider_input_delta: 0 as const,
+    }) });
   }
-  if (rejection) {
-    if (!confirmedReplayEffect(effect) || effect.authorityRef !== rejection.evidenceRef
-      || effect.walAuthorityHash !== rejection.evidenceHash) return null;
-    return Object.freeze({ ...effectIdentity(effect), old_path: null, exact_path: null,
-      rejection_settled: Object.freeze({ source_attempt_id: effect.attemptId,
-        source_handoff_seal_hash: rejection.sourceHandoffSealHash }) });
+  if (item.kind === "rejection_settled") {
+    if (!confirmed(effect) || effect.authorityRef !== item.evidenceRef
+      || effect.rawWalAuthorityHash !== item.evidenceHash) return null;
+    return Object.freeze({ ...identity(effect), rejection_settled: Object.freeze({
+      source_attempt_id: effect.attemptId,
+      source_handoff_seal_hash: item.sourceHandoffSealHash,
+    }) });
   }
-  if (risk) return Object.freeze({ ...effectIdentity(effect), old_path: null, exact_path: null,
-    risk_authorized: Object.freeze({ source_handoff_seal_hash: risk.sourceHandoffSealHash }) });
-  return undefined;
+  if (effect.anchorState !== item.sourceAnchorState
+    || item.sourceWalAuthorityHash !== effect.walAuthorityHash
+    || item.sourceAnchorProofHash !== effect.anchorProofHash) return null;
+  return Object.freeze({ ...identity(effect), risk_authorized: Object.freeze({
+    source_handoff_seal_hash: item.sourceHandoffSealHash,
+  }) });
 };
 
-const checkpointProof = (
-  effect: BrowserEffect, observations: Observations,
-): SourceReadbackEffectProof | null | undefined => {
-  const settled = observations.find((item): item is Extract<Observations[number],
-    { kind: "settled_checkpoint" }> => item.kind === "settled_checkpoint"
+const observedCheckpoint = (effect: BrowserEffect, observations: Observations):
+  SourceReadbackEffectProof | null | undefined => {
+  const settled = observations.find((item) => item.kind === "settled_checkpoint"
     && item.source_attempt_id === effect.attemptId
     && item.source_result_revision === effect.resultRevision);
-  if (!settled) return undefined;
-  const { proof_hash: proofHash, observed_at: observedAt, ...settledBody } = settled;
-  if (effect.state !== "CONFIRMED" || effect.mutationOutcome !== "confirmed"
-    || effect.physicalInputCount !== 1 || effect.anchorState !== "trusted"
+  if (!settled || settled.kind !== "settled_checkpoint") return undefined;
+  const { proof_hash: proofHash, observed_at: observedAt, ...body } = settled;
+  if (!confirmed(effect) || effect.anchorState !== "trusted"
     || effect.canonicalConversationHash !== settled.canonical_conversation_hash
     || effect.userTurnHash !== settled.user_turn_hash
-    || hashCanonical(settledBody) !== proofHash) return null;
-  return Object.freeze({ ...effectIdentity(effect), old_path: null, exact_path: null,
-    settled_checkpoint: Object.freeze({
-      source_attempt_id: settled.source_attempt_id,
-      source_result_revision: settled.source_result_revision,
-      checkpoint_exact_call_identity_hash: settled.checkpoint_exact_call_identity_hash,
-      artifact_ref: settled.artifact_ref,
-      artifact_content_hash: settled.artifact_content_hash,
-      submit_prompt_hash: settled.submit_prompt_hash,
-      canonical_conversation_hash: settled.canonical_conversation_hash,
-      user_turn_hash: settled.user_turn_hash,
-      proof_hash: proofHash, observed_at: observedAt, provider_input_delta: 0,
+    || hashCanonical(body) !== proofHash) return null;
+  return Object.freeze({ ...identity(effect), settled_checkpoint: Object.freeze({
+    source_attempt_id: settled.source_attempt_id,
+    source_result_revision: settled.source_result_revision,
+    checkpoint_exact_call_identity_hash: settled.checkpoint_exact_call_identity_hash,
+    artifact_ref: settled.artifact_ref, artifact_content_hash: settled.artifact_content_hash,
+    submit_prompt_hash: settled.submit_prompt_hash,
+    canonical_conversation_hash: settled.canonical_conversation_hash,
+    user_turn_hash: settled.user_turn_hash, proof_hash: proofHash,
+    observed_at: observedAt, provider_input_delta: 0 as const,
+  }) });
+};
+
+const exhaustedProof = (effect: BrowserEffect, observations: Observations):
+  SourceReadbackEffectProof | null => {
+  if (effect.anchorState === "absent") {
+    const observedAt = new Date().toISOString();
+    return Object.freeze({ ...identity(effect), unaddressable: Object.freeze({
+      proof_hash: hashCanonical({ effect_identity_hash: effect.effectIdentityHash,
+        source_effect_set_hash: effect.sourceEffectSetHash,
+        wal_authority_hash: effect.walAuthorityHash, anchor_state: "absent",
+        anchor_proof_hash: effect.anchorProofHash, observed_at: observedAt,
+        provider_input_delta: 0 }), observed_at: observedAt, provider_input_delta: 0 as const,
     }) });
+  }
+  const exact = observations.find((item) => item.kind === "negative_exact"
+    && item.path === "exact_conversation"
+    && item.canonical_conversation_hash === effect.canonicalConversationHash
+    && item.user_turn_hash === effect.userTurnHash);
+  if (!exact || exact.kind !== "negative_exact") return null;
+  const proof = {
+    effect_identity_hash: effect.effectIdentityHash,
+    source_effect_set_hash: effect.sourceEffectSetHash,
+    wal_authority_hash: effect.walAuthorityHash,
+    canonical_conversation_hash: exact.canonical_conversation_hash,
+    user_turn_hash: exact.user_turn_hash, pending_cause: exact.pending_cause,
+    first_observed_at: exact.first_observed_at, observed_at: exact.observed_at,
+    observation_count: exact.observation_count, provider_input_delta: 0 as const,
+  };
+  return Object.freeze({ ...identity(effect), exact_negative: Object.freeze({
+    proof_hash: hashCanonical(proof), first_observed_at: exact.first_observed_at,
+    observed_at: exact.observed_at, observation_count: exact.observation_count,
+    pending_cause: exact.pending_cause,
+    canonical_conversation_hash: exact.canonical_conversation_hash,
+    user_turn_hash: exact.user_turn_hash, provider_input_delta: 0 as const,
+  }) });
 };
 
-const negativePathsProof = (
-  effect: BrowserEffect, observations: Observations, browser: BrowserHistory,
-): SourceReadbackEffectProof | null => {
-  const old = observations.find((item): item is Extract<Observations[number], { kind: "negative_exact" }> =>
-    item.kind === "negative_exact" && item.path === "old_target"
-    && item.target_ref_hash === effect.oldTargetRefHash);
-  const unavailable = observations.find((item): item is Extract<Observations[number], { kind: "old_instance_unavailable" }> =>
-    item.kind === "old_instance_unavailable" && item.path === "old_target");
-  const settlement = browser.targetSettlements.find((item) =>
-    item.targetRefHash === effect.oldTargetRefHash);
-  const exact = observations.find((item): item is Extract<Observations[number], { kind: "negative_exact" }> =>
-    item.kind === "negative_exact" && item.path === "exact_conversation"
-    && item.target_ref_hash !== effect.oldTargetRefHash);
-  const unaddressable = effect.anchorState === "absent" && settlement !== undefined;
-  if (!old && !unavailable && !unaddressable
-    || effect.anchorState === "trusted" && !exact) return null;
-  const oldPath = old ? Object.freeze({ outcome: "negative_observed" as const,
-    proof_hash: old.observation_revision_hash, observed_at: old.observed_at,
-    provider_input_delta: 0 as const,
-    target_ref_hash: old.target_ref_hash, document_ref_hash: old.document_ref_hash,
-  }) : unavailable ? Object.freeze({ outcome: "instance_unavailable" as const,
-    proof_hash: unavailable.proof_hash, observed_at: unavailable.observed_at,
-    provider_input_delta: 0 as const, target_ref_hash: effect.oldTargetRefHash,
-    document_ref_hash: effect.oldDocumentRefHash,
-  }) : Object.freeze({ outcome: "unaddressable_quiesced" as const,
-    proof_hash: hashCanonical({ effectIdentityHash: effect.effectIdentityHash,
-      anchorProofHash: effect.anchorProofHash, settlementProofHash: settlement!.proofHash }),
-    settlement_proof_hash: settlement!.proofHash, settlement_outcome: settlement!.outcome,
-    observed_at: settlement!.releasedAt, provider_input_delta: 0 as const,
-    target_ref_hash: effect.oldTargetRefHash, document_ref_hash: effect.oldDocumentRefHash,
-  });
-  return Object.freeze({ ...effectIdentity(effect), old_path: oldPath,
-    exact_path: effect.anchorState === "trusted" && exact ? Object.freeze({
-      outcome: "negative_observed" as const, proof_hash: exact.observation_revision_hash,
-      target_ref_hash: exact.target_ref_hash, document_ref_hash: exact.document_ref_hash,
-      observed_at: exact.observed_at, provider_input_delta: 0 as const,
-    }) : null });
-};
-
-export const sourceReadbackProofs = (
-  browser: BrowserHistory, observations: Observations, settledHistory: SettledHistory,
-): readonly SourceReadbackCallProof[] | null => {
+export const sourceReadbackProofs = (browser: BrowserHistory,
+  observations: Observations, settledHistory: SettledHistory):
+  readonly SourceReadbackCallProof[] | null => {
   if (!browser.walHistoryVerified || browser.replayCalls.length === 0) return null;
   const calls: SourceReadbackCallProof[] = [];
   for (const call of browser.replayCalls) {
-    const effects = browser.replayEffects.filter((effect) => effect.productStepId === call.productStepId
-      && effect.callId === call.callId && effect.childCapabilityId === call.childCapabilityId);
+    const effects = browser.replayEffects.filter((effect) =>
+      effect.productStepId === call.productStepId && effect.callId === call.callId
+      && effect.childCapabilityId === call.childCapabilityId);
     if (effects.length === 0) return null;
-    const effectProofs: SourceReadbackEffectProof[] = [];
+    const proofs: SourceReadbackEffectProof[] = [];
     for (const effect of effects) {
-      const accepted = acceptedEffectProof(effect, call, settledHistory);
+      const accepted = acceptedProof(effect, call, settledHistory);
       if (accepted === null) return null;
-      const matchingObservations = observations.filter((item) =>
+      const matched = observations.filter((item) =>
         item.effect_identity_hash === effect.effectIdentityHash
         && item.source_effect_set_hash === effect.sourceEffectSetHash
-        && item.old_target_ref_hash === effect.oldTargetRefHash
-        && item.old_document_ref_hash === effect.oldDocumentRefHash
         && item.wal_authority_hash === effect.walAuthorityHash
         && item.provider_input_delta === 0);
-      const checkpoint = accepted === undefined ? checkpointProof(effect, matchingObservations) : undefined;
+      const checkpoint = accepted === undefined ? observedCheckpoint(effect, matched) : undefined;
       if (checkpoint === null) return null;
-      const proof = accepted ?? checkpoint ?? negativePathsProof(effect, matchingObservations, browser);
+      const proof = accepted ?? checkpoint ?? exhaustedProof(effect, matched);
       if (!proof) return null;
-      effectProofs.push(proof);
+      proofs.push(proof);
     }
     calls.push(Object.freeze({
       product_step_id: call.productStepId, call_id: call.callId,
       child_capability_id: call.childCapabilityId,
       source_effect_set_hash: call.sourceEffectSetHash,
-      disposition: effectProofs.some((effect) => effect.settled_checkpoint !== undefined)
+      disposition: proofs.some((effect) => effect.settled_checkpoint !== undefined)
         ? "settled_reusable" as const
-        : effectProofs.some((effect) => effect.old_path !== null)
+        : proofs.some((effect) => effect.exact_negative !== undefined
+          || effect.unaddressable !== undefined)
           ? "replay_exhausted" as const : "historical_settled" as const,
-      effects: Object.freeze(effectProofs),
+      effects: Object.freeze(proofs),
     }));
   }
   return Object.freeze(calls);
 };
 
 export const historicalEffectsSettled = (
-  effects: readonly Pick<ReturnType<RuntimeState["browserAuthority"]["readJobBrowserHistoryEvidence"]>["replayEffects"][number],
-    "attemptId" | "effectIdentityHash" | "sourceEffectSetHash" | "productStepId" | "callId"
-    | "childCapabilityId" | "authorityRef" | "walAuthorityHash">[],
-  settledHistory: ReturnType<RuntimeState["store"]["readAcceptedSourceSettlements"]>,
-  currentAttemptId: string,
+  effects: readonly (Pick<BrowserEffect, "attemptId" | "effectIdentityHash"
+    | "sourceEffectSetHash" | "productStepId" | "callId"
+    | "childCapabilityId" | "authorityRef" | "walAuthorityHash"
+    | "rawWalAuthorityHash" | "anchorProofHash" | "anchorState">)[],
+  settledHistory: SettledHistory, currentAttemptId: string,
 ): boolean => effects.length > 0 && effects.every((effect) =>
   effect.attemptId !== currentAttemptId
   && settledHistory.some((item) => item.effectIdentityHash === effect.effectIdentityHash
     && item.sourceEffectSetHash === effect.sourceEffectSetHash
-    && item.productStepId === effect.productStepId
-    && item.callId === effect.callId
+    && item.productStepId === effect.productStepId && item.callId === effect.callId
     && item.childCapabilityId === effect.childCapabilityId
-    && (item.kind === "risk_authorized" ? true
+    && (item.kind === "risk_authorized"
+      ? item.sourceAnchorState === effect.anchorState
+        && item.sourceWalAuthorityHash === effect.walAuthorityHash
+        && item.sourceAnchorProofHash === effect.anchorProofHash
       : item.kind === "reused_checkpoint"
         ? item.sourceAttemptId === effect.attemptId
           && item.effect.wal_authority_hash === effect.walAuthorityHash
+          && item.effect.anchor_proof_hash === effect.anchorProofHash
         : item.sourceAttemptId === effect.attemptId
           && item.evidenceRef === effect.authorityRef
-          && item.evidenceHash === effect.walAuthorityHash)));
+          && item.evidenceHash === effect.rawWalAuthorityHash)));

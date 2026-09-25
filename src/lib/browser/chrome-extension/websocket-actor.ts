@@ -231,7 +231,7 @@ export class ExtensionWebSocketActor {
       }
       if (frame.kind === "REVOKE") return this.clearPairing("BROWSER_SERVER_REVOKE");
       if (frame.kind === "COMMAND") {
-        if (this.commandAdmissionSuspended) throw new Error("BROWSER_OLD_TARGET_RECONCILIATION_REQUIRED");
+        if (this.commandAdmissionSuspended) throw new Error("BROWSER_COMMAND_ADMISSION_SUSPENDED");
         const handler = this.executeCommand(socket, frame);
         this.pendingCommandHandlers.add(handler);
         try { await handler; } finally { this.pendingCommandHandlers.delete(handler); }
@@ -259,17 +259,16 @@ export class ExtensionWebSocketActor {
     const operation = targetOperationFrom(request);
     if (operation.action === "release") {
       try {
-        await this.targetAuthority.releaseJobBoundChatGptTarget(operation.jobRefHash, operation.targetRefs);
+        await this.targetAuthority.releaseJobBoundChatGptTarget(operation.jobRefHash);
         this.commandAdmissionSuspended = false;
       }
       catch (error) { this.reportRuntimeFailure(error, "job-bound-target-acquisition",
         frame.sequence, { jobRefHash: operation.jobRefHash }); }
       return;
     }
-    if (this.commandAdmissionSuspended) throw new Error("BROWSER_OLD_TARGET_RECONCILIATION_REQUIRED");
+    if (this.commandAdmissionSuspended) throw new Error("BROWSER_COMMAND_ADMISSION_SUSPENDED");
     const handler = this.targetAuthority.acquireJobBoundChatGptTarget(
       operation.targetMode, operation.jobRefHash, operation.parentConversationUrl,
-      operation.expectedTargetRef,
     );
     this.pendingTargetHandlers.add(handler);
     try {
@@ -278,7 +277,6 @@ export class ExtensionWebSocketActor {
     } catch (error) {
       this.reportRuntimeFailure(error, "job-bound-target-acquisition", frame.sequence, {
         jobRefHash: operation.jobRefHash,
-        ...(operation.expectedTargetRef ? { targetRef: operation.expectedTargetRef } : {}),
       });
     } finally {
       this.pendingTargetHandlers.delete(handler);

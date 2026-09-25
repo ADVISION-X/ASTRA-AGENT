@@ -8,7 +8,7 @@ export const emitLocalBrowserAutoPairingProofs = (): void => {
     observedValue: "fixed extension retrieves one in-memory pairing secret only from the exact loopback route, rejects invalid origin responses, stays single-flight, and reloads before pairing when releaseBuildId differs",
   });
   emitQualityProofObservation({
-    lawId: "LAW-LOCAL-BROWSER-SESSION-003-V43", evidenceMode: "exam.golden",
+    lawId: "LAW-LOCAL-BROWSER-SESSION-003-V44", evidenceMode: "exam.golden",
     clauses: ["forbidden:2", "forbidden:3", "summary"],
     locator: "acceptance:local-browser-terminal:job-target-golden",
     observedValue: "the production authority creates one active ChatGPT system Tab without focusing its Chrome window, reuses the exact Target while present, classifies DOM missing ambiguous stale and malformed reads without BROWSER_TARGET_INVALID, and after authoritative physical loss creates exactly one active replacement Target without enumerating operator pages",

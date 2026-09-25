@@ -10,10 +10,8 @@ import { BrowserAuthorityIssuer } from "./browser-authority-issuer.js";
 import type { createBrowserInfrastructureState } from "./browser-infrastructure-state.js";
 import { BrowserAuthorityWebSocket } from "../transport/browser-authority-websocket.js";
 import { browserExecutionFailure } from "../browser-failure.js";
-import type { RuntimeLogger } from "../../runtime-logs/index.js";
 import { BrowserTargetAcquirer } from "./browser-target-acquirer.js";
 import { awaitBrowserPostSubmitQuiet } from "../exact-target/browser-command-postcondition.js";
-import { emitBrowserMutationEvent } from "../exact-target/browser-command-runtime-logging.js";
 
 type LaneWaiterBase = Readonly<{
   kind: "acquire" | "release";
@@ -59,7 +57,6 @@ export class BrowserLaneCoordinator {
     websocket: BrowserAuthorityWebSocket,
     issuer: BrowserAuthorityIssuer,
     private readonly infrastructure: LaneState,
-    private readonly runtimeLogger: RuntimeLogger,
   ) {
     this.targetAcquirer = new BrowserTargetAcquirer(resolveBroker, websocket, issuer, infrastructure);
   }
@@ -87,8 +84,8 @@ export class BrowserLaneCoordinator {
         targetMode: wait.targetMode,
         ...(wait.targetMode === "authorized-continuation"
           ? { parentJobId: wait.parentJobId, parentAttemptId: wait.parentAttemptId } : {}),
-        requestKind: wait.targetMode === "fresh" || wait.targetMode === "authorized-continuation"
-          ? "interaction" : "provider-observation",
+        requestKind: wait.targetMode === "confirmed-readback"
+          ? "provider-observation" : "interaction",
         eligibleAt: wait.eligibleAt,
         signal: wait.signal, remainingMs: wait.remainingMs,
         stopAbortMonitor: () => wait.signal.removeEventListener("abort", abort),
@@ -143,9 +140,7 @@ export class BrowserLaneCoordinator {
   }
 
   public readState(): "idle" | "busy" | "blocked" {
-    return this.active ? "busy" : this.hasUnresolvedMutation()
-      && !this.infrastructure.mutationState?.allDispatchedTargetsSettled()
-      ? "blocked" : "idle";
+    return this.active ? "busy" : this.hasUnresolvedMutation() ? "blocked" : "idle";
   }
   public reset(reasonCode?: string): void {
     if (this.wakeTimer) clearTimeout(this.wakeTimer);
@@ -181,15 +176,6 @@ export class BrowserLaneCoordinator {
     return this.infrastructure.mutationState?.readProviderEffectStepCallFact(input) ?? null;
   }
 
-  private mayCrossUnresolved(waiter: LaneWaiter): boolean {
-    if (this.infrastructure.mutationState?.allDispatchedTargetsSettled()) return true;
-    if (waiter.kind === "release") return waiter.releaseAuthority === "website-admin-deletion"
-      || waiter.releaseAuthority === "business-admitted"
-      || waiter.releaseAuthority === "wait-new-attempt";
-    return waiter.binding.kind === "production"
-      && Boolean(this.infrastructure.mutationState?.hasMutationForJob(waiter.binding.jobId, true));
-  }
-
   private nextWaiter(): LaneWaiter | null {
     const mutationBlocked = this.hasUnresolvedMutation();
     const now = Date.now();
@@ -201,7 +187,8 @@ export class BrowserLaneCoordinator {
         waiter.reject(browserExecutionFailure(new Error(expiryCode)));
         continue;
       }
-      if (mutationBlocked && !this.mayCrossUnresolved(waiter)) {
+      if (mutationBlocked && (waiter.kind === "acquire"
+        || (this.infrastructure.mutationState?.countDispatched(waiter.jobId) ?? 0) > 0)) {
         index += 1;
         continue;
       }
@@ -259,27 +246,12 @@ export class BrowserLaneCoordinator {
 
   private async serveRelease(waiter: ReleaseLaneWaiter): Promise<void> {
     await this.targetAcquirer.releaseJobBoundTarget(
-      waiter.remainingMs(), waiter.jobId, waiter.jobRefHash,
+      waiter.remainingMs(), waiter.jobRefHash,
     );
     waiter.complete();
     this.active = false;
     this.activeJobRefHash = null;
     void this.pump();
-  }
-
-  /** Settles the single retired target-local mutation of an older fence before any new acquisition. */
-  private settleRetiredMutation(waiter: AcquireLaneWaiter): void {
-    const mutations = this.infrastructure.mutationState;
-    if (!mutations || !this.hasUnresolvedMutation()) return;
-    if (mutations.allDispatchedTargetsSettled()) return;
-    const mutation = mutations.settleRetiredTargetLocal(waiter.binding);
-    if (mutation.effectScope === "provider_effect" && waiter.targetMode !== "bound-observation") {
-      throw browserExecutionFailure(new Error("PROVIDER_EFFECT_OUTCOME_UNPROVEN"), "dispatched", {
-        effectScope: "provider_effect", childCapabilityId: mutation.childCapabilityId,
-        browserOutcome: "DISPATCHED", providerEffectIdentityHash: mutation.logicalMutationId ?? null });
-    }
-    if (mutation.effectScope === "target_local") emitBrowserMutationEvent({ runtimeLogger: this.runtimeLogger, mutation, outcome: "REJECTED",
-      authorityHash: mutations.authorityHash(mutation.commandId) });
   }
 
   private continuationParentUrl(waiter: AcquireLaneWaiter): string | undefined {
@@ -296,11 +268,12 @@ export class BrowserLaneCoordinator {
       if (expiryCode) throw new Error(expiryCode);
     };
     assertLive();
-    this.settleRetiredMutation(waiter);
     const parentConversationUrl = this.continuationParentUrl(waiter);
     await this.targetAcquirer.ensureAvailableTarget(waiter, parentConversationUrl);
     assertLive();
-    const lease = await this.resolveBroker().acquireOperatorClaimedTargetLease(waiter.binding, waiter.ownerId);
+    const lease = await this.resolveBroker().acquireOperatorClaimedTargetLease(
+      waiter.binding, waiter.ownerId,
+    );
     waiter.complete(this.withLifecycle(lease, waiter.requestKind));
   }
 
@@ -349,7 +322,9 @@ export class BrowserLaneCoordinator {
     try {
       const mutationBlocked = this.hasUnresolvedMutation();
       for (const waiter of this.queue) {
-        const eligibility = mutationBlocked && !this.mayCrossUnresolved(waiter)
+        const blocked = mutationBlocked && (waiter.kind === "acquire"
+          || (this.infrastructure.mutationState?.countDispatched(waiter.jobId) ?? 0) > 0);
+        const eligibility = blocked
           ? now + Math.max(0, waiter.remainingMs())
           : waiter.kind === "acquire" && waiter.requestKind === "provider-observation"
             ? Math.max(waiter.eligibleAt, this.observationNotBefore)

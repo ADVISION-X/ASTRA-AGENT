@@ -3,12 +3,26 @@ import { createHash } from "node:crypto";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { appendSeoRevision, compareSeoRevision, fixedFieldValues, migrateV7Envelope, sealSeoRevision, validateSeoReportExtension,
-  validateSeoRevision, seoActionConflicts, seoFlowGaps, seoStageCoverageGaps,
+import { appendSeoRevision, compareSeoRevision, fixedFieldValues, freezeSeoFlow, migrateV7Envelope, sealSeoRevision, validateSeoReportExtension,
+  validateSeoRevision, readSeoReport, seoActionConflicts, seoFlowGaps, seoStageCoverageGaps,
   selectedSeoBranch } from "./seo-report-revisions.mjs";
 import { assertSeoSourceAdmission } from "./seo-live-source.mjs";
+import { candidateEntries, targetEvidence } from "./assemble-live-capture.mjs";
 
 const repo = resolve(new URL("../../../../", import.meta.url).pathname);
+const matrix = JSON.parse(await readFile(join(repo,
+  ".agents/skills/gpt-page-operation-evidence/references/page-operation-matrix.json"), "utf8"));
+for (const child of matrix.children) {
+  for (const [stateId, targets] of Object.entries(child.liveStateTargets)) {
+    assert.ok(targets.length > 0, `${child.childCapabilityId}/${stateId}:no-positive-anchor`);
+    for (const assertion of child.stateAssertions?.[stateId] ?? []) {
+      if (assertion.operator !== "absent" || !assertion.path.startsWith("core.targets.")) continue;
+      const target = assertion.path.slice("core.targets.".length);
+      assert.ok(!targets.includes(target),
+        `${child.childCapabilityId}/${stateId}:required-and-absent:${target}`);
+    }
+  }
+}
 const sha = (value) => `sha256:${createHash("sha256").update(value).digest("hex")}`;
 const stable = (value) => Array.isArray(value) ? value.map(stable)
   : value && typeof value === "object" ? Object.fromEntries(Object.keys(value).sort()
@@ -111,6 +125,60 @@ function sample(runId, supersedesRevisionId = null) {
 }
 
 async function main() {
+  const strictPrefix = { schemaVersion: "gpt-page-seo-capture-revision.v2",
+    frozenFlow: freezeSeoFlow(true), source: { executionProfile: {
+      startModelDisplayName: "最新", requestedReasoningValue: 4 } },
+    frozenPlan: [{ childCapabilityId: "submit_exact_gpt_turn_once",
+      liveStateTargets: { "pre-submit-ready": ["composer", "submit-control"] },
+      stateAssertions: { "pre-submit-ready": [{ path: "stateFacts.capturePhase",
+        operator: "equals", value: "PRE_ACTION" }] } }],
+    calls: [{ observedCallId: sha("strict-prefix-call"), stepId: "corpus_research",
+      childCapabilityId: "submit_exact_gpt_turn_once", stateIds: ["pre-submit-ready"],
+      sceneIds: ["strict-prefix-scene"], expectedAttachmentLabelHashes: [sha("approved")] }],
+    scenes: [{ sceneId: "strict-prefix-scene", pageFacts: {},
+      decisionReceipt: { kind: "ACTION_REQUIRED" }, transitionReceipt: null }],
+    cells: [{ childCapabilityId: "submit_exact_gpt_turn_once",
+      stateId: "pre-submit-ready", observations: [{ observedCallId: sha("strict-prefix-call"),
+        sceneId: "strict-prefix-scene", specimen: {
+          stateFacts: { capturePhase: "PRE_ACTION" },
+          core: { targets: { composer: { observed: true, identityHash: sha("composer") },
+            "submit-control": { observed: true, identityHash: sha("submit") } },
+          actionQualification: { qualified: true } },
+          related: { transitionChain: { typedCommand: { kind: "NOT_APPLICABLE" },
+            directPostcondition: { passed: true } } } } }] }],
+    stageReceipts: [{ stepId: "corpus_research" }] };
+  assert.ok(seoStageCoverageGaps(strictPrefix, "corpus_research").includes(
+    "unqualified-branch-state:corpus_research/submit_exact_gpt_turn_once/pre-submit-ready"));
+  const hashedValue = (value) => ({ kind: "HASH_ONLY", sha256: sha(value), length: value.length });
+  const capturedNode = (tag, attributes, machineFacts, subtreeText = "") => ({
+    tag, attributes, machineFacts, connected: true,
+    rect: { x: 0, y: 0, width: tag === "input" ? 0 : 20,
+      height: tag === "input" ? 0 : 20 },
+    style: { display: tag === "input" ? "none" : "block", visibility: "visible", opacity: "1" },
+    textProjection: hashedValue(""), subtreeTextProjection: hashedValue(subtreeText),
+  });
+  const currentScene = { sceneId: "v2-target-scene", stateSignature: sha("v2-target-scene"), nodes: [
+    capturedNode("button", { "aria-label": hashedValue("添加文件等内容") },
+      { composerFormAncestor: true }),
+    capturedNode("button", {}, { activeAttachmentPopoverAncestor: true }, "添加照片和文件"),
+    capturedNode("input", { type: "file", "aria-label": hashedValue("附加文件") },
+      { composerFormAncestor: true }),
+    capturedNode("button", { type: "submit", "aria-label": hashedValue("发送") },
+      { composerFormAncestor: true }),
+  ], pageFacts: { captureScope: { schemaVersion: "gpt-page-collector-scope.v2" } } };
+  for (const target of ["attachment-trigger", "attachment-menu", "upload-entry", "file-input",
+    "submit-control"]) assert.equal(candidateEntries(target, currentScene).length, 1, target);
+  assert.equal(targetEvidence("file-input", currentScene).record?.observed, true);
+  assert.equal(targetEvidence("file-input", currentScene).qualifiedCount, 1);
+  const wrongFileInput = { ...currentScene, nodes: [capturedNode("input", {
+    type: "file", "aria-label": hashedValue("其它文件输入") }, { composerFormAncestor: true })] };
+  assert.equal(targetEvidence("file-input", wrongFileInput).record, undefined);
+  assert.equal(targetEvidence("file-input", wrongFileInput).qualifiedCount, 0);
+  const oldScopeScene = { ...currentScene, pageFacts: { captureScope: {
+    schemaVersion: "gpt-page-collector-scope.v1" } } };
+  for (const target of ["attachment-menu", "upload-entry", "file-input"]) {
+    assert.equal(candidateEntries(target, oldScopeScene).length, 0, `v1:${target}`);
+  }
   const coveredSpecimen = { core: { targets: { composer: { observed: true,
     identityHash: sha("target") } } }, related: { transitionChain: {
     typedCommand: { kind: "NOT_APPLICABLE" },
@@ -146,6 +214,56 @@ async function main() {
   assert.deepEqual(seoStageCoverageGaps(failedAction, "corpus_research"), []);
   assert.deepEqual(seoActionConflicts(failedAction, "corpus_research"),
     ["failed-postcondition:corpus_research/child/post"]);
+  const attachStates = ["upload-leaf-ready", "file-chooser-bound", "file-set-readback"];
+  const attachScene = { sceneId: "attach-scene", pageFacts: { attachmentSetProof: {
+    expectedLabelHashes: [sha("file")], observedNormalizedLabelHashes: [sha("file")],
+    formCount: 1, expectedCount: 1, rawCount: 1, eligibleCount: 1,
+    missingCount: 0, unexpectedCount: 0, duplicateCount: 0 } },
+  decisionReceipt: { kind: "ALREADY_SATISFIED" }, stateSignature: sha("attach-scene") };
+  const attachSpecimen = (target) => ({ stateFacts: { capturePhase: "ALREADY_SATISFIED",
+    attachmentSetProof: attachScene.pageFacts.attachmentSetProof },
+  core: { targets: { [target]: { observed: true, identityHash: sha(target) } },
+    actionQualification: { qualified: true } }, related: { transitionChain: {
+    typedCommand: { kind: "ZERO_ACTION" }, directPostcondition: { passed: true } } } });
+  const attachCoverage = { schemaVersion: "gpt-page-seo-capture-revision.v2",
+    frozenFlow: { expectedCalls: [{ stepId: "corpus_research",
+      childCapabilityId: "attach_approved_gpt_files_once" }],
+    stateBranches: { attach_approved_gpt_files_once: [attachStates] },
+    terminalStates: { attach_approved_gpt_files_once: ["file-set-readback"] } },
+    frozenPlan: [{ childCapabilityId: "attach_approved_gpt_files_once",
+      liveStateTargets: Object.fromEntries(attachStates.map((state, index) =>
+        [state, [["upload-entry", "file-input", "attachment-cards"][index]]])) }],
+    calls: [{ observedCallId: "attach-call", stepId: "corpus_research",
+      childCapabilityId: "attach_approved_gpt_files_once", stateIds: attachStates,
+      sceneIds: [attachScene.sceneId], expectedAttachmentLabelHashes: [sha("file")] }],
+    scenes: [attachScene], cells: attachStates.map((state, index) => ({
+      childCapabilityId: "attach_approved_gpt_files_once", stateId: state,
+      observations: [{ observedCallId: "attach-call", sceneId: attachScene.sceneId,
+        specimen: attachSpecimen(["upload-entry", "file-input", "attachment-cards"][index]) }] })) };
+  assert(seoFlowGaps(attachCoverage, true).includes(
+    "unqualified-branch-state:corpus_research/attach_approved_gpt_files_once/file-set-readback"));
+  const uploaded = structuredClone(attachCoverage);
+  uploaded.calls[0].expectedUploadFiles = [{ providerDisplayNameHash: sha("file"),
+    sha256: sha("file-bytes"), bytes: 10 }];
+  uploaded.scenes[0].capturedAt = "2026-09-24T00:00:03.000Z";
+  uploaded.scenes[0].documentIdentityHash = sha("upload-document");
+  uploaded.scenes[0].activeTabIdentityHash = sha("upload-tab");
+  const uploadPre = { sceneId: "upload-pre", capturedAt: "2026-09-24T00:00:01.000Z",
+    documentIdentityHash: sha("upload-document"), activeTabIdentityHash: sha("upload-tab"),
+    stateSignature: sha("upload-pre"), decisionReceipt: { kind: "ACTION_REQUIRED",
+      actionId: "upload-action", operation: "filechooser.setFiles" } };
+  const uploadPost = { sceneId: "upload-post", capturedAt: "2026-09-24T00:00:02.000Z",
+    documentIdentityHash: sha("upload-document"), activeTabIdentityHash: sha("upload-tab"),
+    transitionReceipt: { outcome: "DISPATCH_RETURNED", operation: "filechooser.setFiles",
+      actionId: "upload-action", preSceneId: uploadPre.sceneId,
+      preSceneSignature: uploadPre.stateSignature, postconditionPassed: true,
+      uploadedArtifactProof: { source: "SIGNED_COMMAND_ARGUMENTS",
+        items: structuredClone(uploaded.calls[0].expectedUploadFiles) } } };
+  uploaded.scenes.push(uploadPre, uploadPost);
+  uploaded.calls[0].sceneIds = [uploadPre.sceneId, uploadPost.sceneId, attachScene.sceneId];
+  assert(!seoFlowGaps(uploaded, true).some((gap) => gap.endsWith("/file-set-readback")));
+  uploaded.scenes[2].transitionReceipt.uploadedArtifactProof.items[0].sha256 = sha("wrong-bytes");
+  assert(seoFlowGaps(uploaded, true).some((gap) => gap.endsWith("/file-set-readback")));
   const prefix = structuredClone(coverage);
   prefix.frozenFlow.expectedCalls.push({ stepId: "article_synthesis", childCapabilityId: "child" });
   prefix.calls.push({ observedCallId: "article-call", stepId: "article_synthesis",
@@ -342,6 +460,14 @@ async function main() {
   const final = JSON.parse(await readFile(reportPath, "utf8"));
   assert.equal(final.seoCaptureRevisions.length, 3);
   assert.equal(final.seoCaptureRevisions[0].evidenceRevisionId, first.evidenceRevisionId);
+  assert.equal(await readFile(reportPath, "utf8"), `${JSON.stringify(final)}\n`);
+  assert.deepEqual((await readSeoReport(reportPath)).seoCaptureRevisions.map((entry) =>
+    entry.evidenceRevisionId), final.seoCaptureRevisions.map((entry) => entry.evidenceRevisionId));
+  const malformedPath = join(folder, "malformed-report.json");
+  await writeFile(malformedPath, (await readFile(reportPath, "utf8")).slice(0, -2));
+  await assert.rejects(readSeoReport(malformedPath), /SEO_REPORT_STREAM_SUFFIX_INVALID/u);
+  await writeFile(malformedPath, `${await readFile(reportPath, "utf8")}\u00a0`);
+  await assert.rejects(readSeoReport(malformedPath), /SEO_REPORT_STREAM_SUFFIX_INVALID/u);
   const tampered = structuredClone(final);
   tampered.seoCaptureRevisions[0].source.archiveHash = sha("tampered");
   assert.throws(() => validateSeoReportExtension(tampered), /SEO_REVISION_(?:HASH|SCENE)_INVALID/u);

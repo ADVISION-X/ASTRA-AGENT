@@ -1,5 +1,7 @@
 import { failureCode } from "../../execution-failure.js";
-import { hashCanonical, sha256 } from "./contracts.js";
+import { executionFailure } from "../../execution-failure.js";
+import { hashCanonical } from "./contracts.js";
+import { targetlessFirstFactHash } from "./store-source-settlement.js";
 import { claimProductionTasks } from "./cloud-client.js";
 import { safeReason, type RuntimeState } from "./runtime-state.js";
 import { historicalEffectsSettled, sourceReadbackProofs } from "./runtime-source-readback-proofs.js";
@@ -10,6 +12,17 @@ type Rejected = NonNullable<Task["attempt_failure"]>["failure_core"];
 type SourceEvidence = NonNullable<Parameters<typeof claimProductionTasks>[4]>[number];
 type Observations = ReturnType<RuntimeState["store"]["readSourceReadbackObservations"]>;
 type Settlements = ReturnType<RuntimeState["store"]["readAcceptedSourceSettlements"]>;
+const assertV44SealedHandoff = (source: SourceEvidence): void => {
+  const root = source as unknown as Record<string, unknown>;
+  if (!Object.hasOwn(root, "input_quiescence_proof")
+    || Object.hasOwn(root, "browser_target_settled")
+    || Object.hasOwn(root, "target_settlement_hash")
+    || source.readback_proofs.some((proof) => proof.effects.some((effect) =>
+      Object.hasOwn(effect, "old_path") || Object.hasOwn(effect, "old_target_ref_hash")
+      || Object.hasOwn(effect, "old_document_ref_hash")))) {
+    throw executionFailure("failed", "PRODUCTION_V43_SEALED_HANDOFF_CUTOVER_REQUIRED");
+  }
+};
 
 const isRejectedProviderResult = (browserInput: string, rejected: Rejected | undefined): boolean =>
   !!(browserInput === "possible" && rejected
@@ -50,7 +63,7 @@ const rejectedEffectMatches = (
 ): boolean => !!before?.walHistoryVerified && !!effect && effect.state === "CONFIRMED" && !!call
   && effect.attemptId === attemptId && effect.childCapabilityId === rejected.child_capability_id
   && effect.authorityRef === rejected.evidence_ref
-  && effect.walAuthorityHash === rejected.evidence_hash
+  && effect.rawWalAuthorityHash === rejected.evidence_hash
   && effect.mutationOutcome === "confirmed" && effect.physicalInputCount === 1
   && before.replayEffects.filter((item) => item.productStepId === effect.productStepId
     && item.callId === effect.callId && item.childCapabilityId === effect.childCapabilityId
@@ -71,7 +84,7 @@ const historyReadbackAvailable = (
         : item.sourceAttemptId === effect.attemptId))
     || effect.anchorState === "absent"
     || observations.some((item) => item.effect_identity_hash === effect.effectIdentityHash
-      && (item.path === "old_target" || item.kind === "settled_checkpoint"))))
+      && item.kind === "settled_checkpoint")))
   && (rejectedResult || historicalRejection || !before.replayEffects.some((effect) =>
     effect.anchorState === "trusted"
     && !settledHistory.some((item) => item.effectIdentityHash === effect.effectIdentityHash
@@ -133,20 +146,15 @@ const verifySourceArtifacts = async (
   return true;
 };
 
-const releaseSourceTarget = async (state: RuntimeState, jobId: string): Promise<boolean> => {
-  const jobRefHash = sha256(Buffer.from(jobId, "utf8"));
-  if (state.browserAuthority.readUnreleasedTargetClaims()
-    .some((claim) => claim.jobRefHash === jobRefHash)) {
-    try { await state.browserAuthority.releaseJobBoundTarget(
-      jobId, "wait-new-attempt", state.abort.signal,
-    ); } catch (error) {
-      state.lastErrorCode = failureCode(error, "SOURCE_TARGET_RELEASE_PENDING");
-      state.lastErrorReason = safeReason(error);
-      return false;
-    }
-  }
-  return !state.browserAuthority.readUnreleasedTargetClaims()
-    .some((claim) => claim.jobRefHash === jobRefHash);
+const terminalWriterQuiescence = (browser: BrowserHistory) => {
+  if (!browser.walHistoryVerified || browser.unresolvedCommandCount !== 0
+    || browser.unresolvedCommandSetHash !== hashCanonical([])) return null;
+  const body = Object.freeze({ kind: "terminal_wal" as const,
+    browser_history_hash: browser.historyHash,
+    source_effect_set_hash: hashCanonical(browser.replayCalls
+      .map((call) => call.sourceEffectSetHash).sort()),
+    unresolved_command_set_hash: browser.unresolvedCommandSetHash });
+  return Object.freeze({ ...body, proof_hash: hashCanonical(body) });
 };
 
 const sealSourceHandoff = (
@@ -163,7 +171,7 @@ const sealSourceHandoff = (
       ? "attempt_handoff" as const : "delivery_priority_replay" as const,
     job_id: task.task.job_id, source_attempt_id: attemptId,
     source_task_hash: hashCanonical(task.task),
-    first_fact_raw_hash: firstRaw === null ? null : sha256(Buffer.from(firstRaw, "utf8")),
+    first_fact_raw_hash: targetlessFirstFactHash(firstRaw),
     outbox_history_hash: outbox.historyHash, outbox_candidate_count: outbox.candidateCount,
     payload_slot_conflict: reusablePayloadConflict ? payloadSlotConflict : null,
     browser_history_hash: browser.historyHash, browser_row_count: browser.rowCount,
@@ -180,8 +188,7 @@ const sealSourceHandoff = (
       effect_identity_hash: rejected.provider_effect_identity_hash,
     }) : null,
     readback_proofs: readbackProofs,
-    browser_target_settled: true,
-    target_settlement_hash: browser.targetSettlementHash,
+    input_quiescence_proof: browserInput === "zero" ? null : terminalWriterQuiescence(browser),
     readback_exhaustion_hash: browserInput === "zero" && !reusablePayloadConflict || rejectedResult
       ? null : hashCanonical(readbackProofs.filter((proof) => proof.disposition === "replay_exhausted")),
   });
@@ -227,9 +234,9 @@ const prepareOneSourceHandoff = async (
     .map((item) => ({ sourceAttemptId: item.source_attempt_id,
       checkpointExactCallIdentityHash: item.checkpoint_exact_call_identity_hash,
       artifactRef: item.artifact_ref, artifactContentHash: item.artifact_content_hash })))) return null;
-  if (!await releaseSourceTarget(state, jobId)) return null;
   const browser = state.browserAuthority.readJobBrowserHistoryEvidence(jobId);
-  if (!browser.walHistoryVerified || !browser.targetSettled) return null;
+  if (!browser.walHistoryVerified || browserInput !== "zero"
+    && terminalWriterQuiescence(browser) === null) return null;
   const priorEffects = rejectedResult ? browser.replayEffects.filter((effect) =>
     effect.effectIdentityHash !== rejected?.provider_effect_identity_hash) : browser.replayEffects;
   const provedCalls = browser.replayCalls.filter((call) =>
@@ -266,7 +273,7 @@ export const prepareSourceHandoffs = async (
     if (task.status !== "failed" || !task.current_attempt_id || task.staged_result
       || state.active.has(jobId)) continue;
     const priorSeal = state.store.readSealedSourceHandoff(jobId, task.current_attempt_id);
-    if (priorSeal) { evidence.push(priorSeal); continue; }
+    if (priorSeal) { assertV44SealedHandoff(priorSeal); evidence.push(priorSeal); continue; }
     const preflight = preflightSourceHandoff(state, task, task.current_attempt_id);
     if (!preflight) continue;
     const sealed = await prepareOneSourceHandoff(state, preflight);

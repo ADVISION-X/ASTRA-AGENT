@@ -69,33 +69,9 @@ const createIndexes = (database: Database.Database): void => {
   for (const sql of mutationIndexSql.values()) database.exec(sql);
 };
 
-// Target claims share the Browser Owner database. Existing databases are
-// inspected without DDL; historical legacy_wal rows remain evidence only.
-const targetClaimTableSql = `create table browser_target_claims (
-  claim_id integer primary key,
-  target_ref text not null,
-  job_ref_hash text not null,
-  tab_id integer not null,
-  claim_source text not null check(claim_source in ('authenticated_claim','legacy_wal')),
-  claimed_at text not null,
-  released_at text,
-  release_outcome text check(release_outcome in ('physical_absent','quiesced')),
-  release_proof_hash text
-)`;
-const targetClaimColumns = ["claim_id", "target_ref", "job_ref_hash", "tab_id",
-  "claim_source", "claimed_at", "released_at", "release_outcome", "release_proof_hash"];
-const targetClaimIndexSql = new Map([
-  ["browser_target_claims_job", "create index browser_target_claims_job on browser_target_claims(job_ref_hash,released_at)"],
-  ["browser_target_claims_ref", "create index browser_target_claims_ref on browser_target_claims(target_ref,released_at)"],
-]);
-const currentObjects = new Set(["browser_mutations", "browser_target_claims",
+const currentObjects = new Set(["browser_mutations",
   "sqlite_autoindex_browser_mutations_1",
-  ...mutationIndexSql.keys(), ...targetClaimIndexSql.keys()]);
-
-const createTargetClaimSchema = (database: Database.Database): void => {
-  database.exec(targetClaimTableSql);
-  for (const sql of targetClaimIndexSql.values()) database.exec(sql);
-};
+  ...mutationIndexSql.keys()]);
 
 const requiredColumns = [...identityColumns.split(",").map((column) => column.trim()),
   "proof_hash", "state", "mutation_outcome", "physical_input_count", "download_guid_hash",
@@ -124,20 +100,6 @@ const mutationTableMatches = (sql: string | undefined): boolean => {
     && actual.replace(grantColumn, "") === expected.replace(grantColumn, "");
 };
 
-const assertTargetClaimSchema = (database: Database.Database): void => {
-  const table = database.prepare(
-    "select sql from sqlite_master where type='table' and name='browser_target_claims'",
-  ).get() as { sql?: string } | undefined;
-  const columns = (database.prepare("pragma table_info(browser_target_claims)").all() as Array<{ name: string }>)
-    .map((column) => column.name);
-  if (columns.length !== targetClaimColumns.length
-    || targetClaimColumns.some((column) => !columns.includes(column))
-    || normalizedSql(table?.sql ?? "") !== normalizedSql(targetClaimTableSql)
-    || !indexesMatch(database, "browser_target_claims", targetClaimIndexSql)) {
-    throw new Error("BROWSER_REPAIR_REQUIRED");
-  }
-};
-
 const currentColumnsAndIndexes = (database: Database.Database): boolean => {
   const columns = (database.prepare("pragma table_info(browser_mutations)").all() as Array<{ name: string }>)
     .map((column) => column.name);
@@ -158,7 +120,6 @@ export const ensureCurrentSchema = (database: Database.Database): void => {
     database.transaction(() => {
       database.exec(currentTableSql);
       createIndexes(database);
-      createTargetClaimSchema(database);
     })();
     return;
   }
@@ -169,5 +130,4 @@ export const ensureCurrentSchema = (database: Database.Database): void => {
   if (!currentColumnsAndIndexes(database) || !mutationTableMatches(table.sql)) {
     throw new Error("BROWSER_REPAIR_REQUIRED");
   }
-  assertTargetClaimSchema(database);
 };

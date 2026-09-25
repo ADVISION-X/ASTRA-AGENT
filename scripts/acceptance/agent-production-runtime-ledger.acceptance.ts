@@ -5,10 +5,11 @@ import path from "node:path";
 import Database from "better-sqlite3";
 
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
-import { hashCanonical, sha256 } from "../../src/lib/local-runtime/production/contracts.js";
+import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { resolveStoredProductionAuthority } from
   "../../src/lib/local-runtime/production/store-authority-reader.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
+import { targetlessFirstFactHash } from "../../src/lib/local-runtime/production/store-source-settlement.js";
 import { ProviderRateLimitControl } from
   "../../src/lib/local-runtime/production/provider-rate-limit-control.js";
 import { buildProductionLeaseRelease } from
@@ -105,15 +106,14 @@ try {
     job_id: accepted.job_id,
     source_attempt_id: firstAttempt,
     source_task_hash: hashCanonical(accepted),
-    first_fact_raw_hash: sha256(Buffer.from(store.readAttemptFailureRaw(accepted.job_id)!, "utf8")),
+    first_fact_raw_hash: targetlessFirstFactHash(store.readAttemptFailureRaw(accepted.job_id)),
     outbox_history_hash: immutableOutbox.historyHash,
     outbox_candidate_count: immutableOutbox.candidateCount,
     payload_slot_conflict: null,
     browser_history_hash: HASH_B,
     browser_row_count: 0,
     browser_input_state: "zero" as const,
-    browser_target_settled: true,
-    target_settlement_hash: HASH_A,
+    input_quiescence_proof: null,
     readback_exhaustion_hash: null,
     replay_calls: [],
     rejected_call: null,
@@ -195,7 +195,7 @@ try {
     path: `/internal/ai-production/v6/jobs/${encodeURIComponent(accepted.job_id)}/provider-cooldown`,
     method: "POST",
     headers: { "x-ai-execution-fence-hash": HASH_A },
-    body: JSON.stringify({ schema_version: "xuanxue-ai-provider-cooldown-notice.v6",
+    body: JSON.stringify({ schema_version: "xuanxue-ai-provider-cooldown-notice.v7",
       request_id: cooldownKey, incident_request_id: cooldownKey, phase: "incident",
       job_id: accepted.job_id, attempt_id: secondAttempt, result_revision: 0,
       lease_version: 2, fence_hash: HASH_A, capability_manifest_hash: HASH_A,
@@ -203,7 +203,7 @@ try {
       clearance: "pending_unknown",
       worker_instance_id: "worker-recoverable", session_open_request_id: "aipsopen-recoverable",
       dialog_hash: HASH_A, observation_hash: HASH_A,
-      target_ref_hash: HASH_A, document_ref_hash: HASH_A }),
+      }),
   });
   assert.equal(store.hasUndeliveredProviderCooldown(), true,
     "a durable unsent provider cooldown intent must close local claim and submit admission");
@@ -225,7 +225,7 @@ try {
     idempotency_key: clearanceKey, kind: "provider_cooldown",
     path: `/internal/ai-production/v6/jobs/${encodeURIComponent(accepted.job_id)}/provider-cooldown`,
     method: "POST", headers: { "x-ai-execution-fence-hash": HASH_A },
-    body: JSON.stringify({ schema_version: "xuanxue-ai-provider-cooldown-notice.v6",
+    body: JSON.stringify({ schema_version: "xuanxue-ai-provider-cooldown-notice.v7",
       request_id: clearanceKey, incident_request_id: cooldownKey, phase: "clearance",
       job_id: accepted.job_id, attempt_id: secondAttempt, result_revision: 0,
       lease_version: 2, fence_hash: HASH_A, capability_manifest_hash: HASH_A,
@@ -233,20 +233,19 @@ try {
       clearance: "confirmed_absent",
       worker_instance_id: "worker-recoverable", session_open_request_id: "aipsopen-recoverable",
       dialog_hash: HASH_A, observation_hash: HASH_A,
-      target_ref_hash: HASH_A, document_ref_hash: HASH_A }),
+      }),
   });
   database.prepare("update production_outbox set last_error='CLOUD_TRANSPORT_UNAVAILABLE' where idempotency_key=?")
     .run(cooldownKey);
   assert.deepEqual(store.pendingProviderCooldownRequestIds(), [cooldownKey, clearanceKey],
     "durable clearance unlocks ordered retry and transient provider delivery errors remain retryable");
   const receiptCore = {
-    schema_version: "xuanxue-ai-provider-cooldown-receipt.v6" as const,
+    schema_version: "xuanxue-ai-provider-cooldown-receipt.v7" as const,
     request_id: cooldownKey, incident_request_id: cooldownKey,
     payload_hash: hashCanonical(JSON.parse(database.prepare(
       "select cast(body_blob as text) from production_outbox where idempotency_key=?",
     ).pluck().get(cooldownKey) as string)),
     device_id: "device-1", dialog_hash: HASH_A, observation_hash: HASH_A,
-    target_ref_hash: HASH_A, document_ref_hash: HASH_A,
     level: 1, current_n: 2, baseline_n: 3,
     server_now: "2030-01-01T00:00:00.000Z", cooldown_until: "2030-01-01T00:05:00.000Z",
     clearance: "pending_unknown" as const, claim_gate_open: false,
@@ -313,15 +312,13 @@ try {
       }
       remoteClearance = String(body.clearance);
       const core = {
-        schema_version: "xuanxue-ai-provider-cooldown-receipt.v6" as const,
+        schema_version: "xuanxue-ai-provider-cooldown-receipt.v7" as const,
         request_id: String(body.request_id),
         payload_hash: hashCanonical(body),
         incident_request_id: String(body.incident_request_id),
         device_id: "device-1",
         dialog_hash: body.dialog_hash,
         observation_hash: body.observation_hash,
-        target_ref_hash: body.target_ref_hash,
-        document_ref_hash: body.document_ref_hash,
         level: 2, current_n: 1, baseline_n: 3,
         server_now: body.clearance === "confirmed_absent"
           ? "2030-01-01T00:11:00.000Z" : "2030-01-01T00:10:00.000Z",
@@ -344,8 +341,6 @@ try {
     capabilityManifestHash: HASH_A,
     dialogHash: HASH_A,
     observationHash: HASH_B,
-    targetRefHash: HASH_A,
-    documentRefHash: HASH_B,
     sessionKey: "product:failed-ack",
     observedAt: "2030-01-01T00:09:59.000Z",
   });

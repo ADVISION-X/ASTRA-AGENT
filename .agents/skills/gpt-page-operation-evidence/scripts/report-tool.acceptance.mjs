@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -380,6 +380,19 @@ async function main() {
   await writeFile(legacyPath, `${JSON.stringify(legacy)}\n`);
   assert.match(run(["validate", "--repo", REPO, "--matrix", MATRIX, "--report", legacyPath], 1).stderr,
     /REPORT_LEGACY_INVALIDATED/u);
+
+  const v7 = structuredClone(report);
+  v7.schemaVersion = "gpt-page-operation-evidence.v7";
+  delete v7.legacyV7;
+  delete v7.seoCaptureRevisions;
+  const v7Path = join(directory, "docs/项目方案/GPT页面操作子能力实证资料.json");
+  await mkdir(join(directory, "docs/项目方案"), { recursive: true });
+  await writeFile(v7Path, `${JSON.stringify(v7)}\n`);
+  const migration = JSON.parse(run(["migrate-v8", "--repo", REPO, "--matrix", MATRIX,
+    "--report", v7Path]).stdout);
+  assert.equal(migration.migrated, true);
+  assert.equal(JSON.parse(await readFile(v7Path, "utf8")).schemaVersion,
+    "gpt-page-operation-evidence.v8");
 
   process.stdout.write(`${JSON.stringify({ passed: true, products: report.products.length,
     cases: ["catalog-denominator", "product-inventory", "head-independent",

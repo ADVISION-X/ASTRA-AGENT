@@ -63,14 +63,11 @@ export class ProviderRateLimitControl implements ProviderRateLimitControlPort {
         capabilityManifestHash: body.capability_manifest_hash,
         dialogHash: body.dialog_hash,
         observationHash: body.observation_hash,
-        targetRefHash: body.target_ref_hash,
-        documentRefHash: body.document_ref_hash,
         sessionKey: body.gpt_session_key,
         observedAt: body.observed_at,
       };
       const hashes = [input.fenceHash, input.capabilityManifestHash,
-        input.dialogHash, input.observationHash,
-        input.targetRefHash, input.documentRefHash];
+        input.dialogHash, input.observationHash];
       if (typeof input.jobId !== "string" || !input.jobId
         || typeof input.attemptId !== "string" || !input.attemptId
         || !Number.isInteger(input.resultRevision) || Number(input.resultRevision) < 0
@@ -103,8 +100,6 @@ export class ProviderRateLimitControl implements ProviderRateLimitControlPort {
           deviceId: this.session.device.device_id,
           dialogHash: body.dialog_hash as ProductionHash,
           observationHash: body.observation_hash as ProductionHash,
-          targetRefHash: body.target_ref_hash as ProductionHash,
-          documentRefHash: body.document_ref_hash as ProductionHash,
         });
       });
     }
@@ -165,8 +160,6 @@ export class ProviderRateLimitControl implements ProviderRateLimitControlPort {
       capability_manifest_hash: input.capabilityManifestHash,
       dialog_hash: input.dialogHash,
       observation_hash: input.observationHash,
-      target_ref_hash: input.targetRefHash,
-      document_ref_hash: input.documentRefHash,
       gpt_session_key: input.sessionKey,
       observed_at: input.observedAt,
       clearance: clearance.clearance,
@@ -175,7 +168,7 @@ export class ProviderRateLimitControl implements ProviderRateLimitControlPort {
     } as const;
     const businessPayloadHash = hashCanonical(payload);
     const request = {
-      schema_version: "xuanxue-ai-provider-cooldown-notice.v6",
+      schema_version: "xuanxue-ai-provider-cooldown-notice.v7",
       control_protocol_version: "xuanxue-ai-production-v6",
       request_id: requestId,
       idempotency_key: requestId,
@@ -191,8 +184,6 @@ export class ProviderRateLimitControl implements ProviderRateLimitControlPort {
       deviceId: input.deviceId,
       dialogHash: input.dialogHash,
       observationHash: input.observationHash,
-      targetRefHash: input.targetRefHash,
-      documentRefHash: input.documentRefHash,
       write: Object.freeze({
         idempotency_key: requestId,
         kind: "provider_cooldown" as const,

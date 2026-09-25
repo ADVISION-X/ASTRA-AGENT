@@ -40,20 +40,16 @@ export const exerciseBrowserMutationStore = (root: string): void => {
   assert.deepEqual(restarted.dispatchedForBinding({
     jobId: "job-1", attemptId: "attempt-2", leaseVersion: 1, executionFenceHash: hash,
   }), [], "a new attempt must not inherit old pending mutations");
-  assert.throws(() => restarted.settleRetiredTargetLocal({
-    jobId: "job-1", attemptId: "attempt-2", writerFenceHash: hash,
-  }), /BROWSER_MUTATION_UNSETTLED/u, "the current fence cannot retire itself");
   const nextFence = `sha256:${"b".repeat(64)}` as const;
-  assert.equal(restarted.settleRetiredTargetLocal({
-    jobId: "job-1", attemptId: "attempt-2", writerFenceHash: nextFence,
-  })?.commandId, "old-command");
-  assert.equal(restarted.readCommand("old-command")?.state ?? null, "REJECTED");
+  assert.equal(restarted.readCommand("old-command")?.state ?? null, "DISPATCHED",
+    "a new fence must not terminalize a command from the old attempt");
   assert.equal(restarted.readMutationOutcome("old-command"), "dispatched");
-  restarted.prepare(identity("new-command", "attempt-2", nextFence));
-  restarted.markDispatched("new-command");
+  assert.throws(() => restarted.prepare(identity("new-command", "attempt-2", nextFence)),
+    /BROWSER_MUTATION_UNSETTLED/u,
+    "a new fence must not bypass a globally unresolved Browser writer");
   assert.deepEqual(restarted.dispatchedForBinding({
     jobId: "job-1", attemptId: "attempt-2", leaseVersion: 1, executionFenceHash: nextFence,
-  }), ["new-command"]);
+  }), []);
   restarted.close();
 
   const provider = new BrowserMutationStore(join(root, "provider-case"));
@@ -66,12 +62,8 @@ export const exerciseBrowserMutationStore = (root: string): void => {
   assert.deepEqual(provider.dispatchedForBinding({ jobId: "job-1", attemptId: "attempt-provider",
     leaseVersion: 2, executionFenceHash: nextFence }), [providerIdentity.commandId],
   "same-attempt provider DISPATCHED must bind readback across fences");
-  assert.equal(provider.settleRetiredTargetLocal({ jobId: "job-1", attemptId: "attempt-provider",
-    writerFenceHash: nextFence }).effectScope, "provider_effect");
   assert.equal(provider.readCommand(providerIdentity.commandId)?.state ?? null, "DISPATCHED",
     "provider readback admission must not terminalize or rewrite the unknown effect");
-  assert.throws(() => provider.settleRetiredTargetLocal({ jobId: "job-1", attemptId: "other-attempt",
-    writerFenceHash: nextFence }), /BROWSER_MUTATION_UNSETTLED/u);
   const dispatchedAuthorityHash = provider.authorityHash(providerIdentity.commandId);
   provider.resolve({ commandId: providerIdentity.commandId, targetRef: providerIdentity.targetRef,
     state: "CONFIRMED", mutationOutcome: "confirmed", proofHash: exactHash("fresh-provider-postcondition") });

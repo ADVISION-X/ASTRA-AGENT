@@ -43,7 +43,7 @@ import type {
   ProviderRateLimitControlPort,
 } from "./production-ports.js";
 import {
-  closeKnownProviderRateLimit, notClearedRateLimit,
+  closeKnownProviderRateLimit, confirmedRateLimitAckHash, notClearedRateLimit,
 } from "./production-rate-limit-closure.js";
 import {
   throwGptChildFailure,
@@ -165,12 +165,12 @@ export class ProductionGptChildTools {
         && existing.inputHash !== currentAtomicIdentity.inputHash) {
         throw executionFailure("failed", "PROVIDER_EFFECT_OUTCOME_UNPROVEN");
       }
-      const active = await (prior.outcome === "CONFIRMED"
-        ? browsers.browserForConfirmedReadback(
-          call.sessionKey, call.productStepId, call.callId,
-        ) : browsers.browserForRateLimitRecovery(
-          call.sessionKey, call.productStepId, call.callId,
-        ));
+      if (prior.outcome === "DISPATCHED") {
+        throw executionFailure("failed", "PROVIDER_EFFECT_OUTCOME_UNPROVEN");
+      }
+      const active = await browsers.browserForConfirmedReadback(
+        call.sessionKey, call.productStepId, call.callId,
+      );
       if (!active.facade.readAtomicStepOutcome(atomicIdentity)) {
         throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
       }
@@ -221,57 +221,29 @@ export class ProductionGptChildTools {
   }
 
   public async reconcilePendingProviderRateLimitIncidents(
-    parentSpanId: string,
-    signal: AbortSignal,
+    _parentSpanId: string,
+    _signal: AbortSignal,
   ): Promise<void> {
     for (const pending of this.providerRateLimitControl.pendingIncidents()) {
-      const execution: ExecutionInput = {
-        jobId: pending.jobId,
-        productId: "runtime-provider-cooldown-recovery",
-        ownerRef: "production-runtime",
-        subjectRef: pending.jobId,
-        authorizationRef: "provider-cooldown-recovery",
-        resultRevision: pending.resultRevision,
-        attemptId: pending.attemptId,
-        deviceId: pending.deviceId,
-        leaseVersion: pending.leaseVersion,
-        executionFenceHash: pending.fenceHash,
-        capabilityManifestHash: pending.capabilityManifestHash,
-        maxProviderTurns: 1,
-        expiresAtMonotonic: performance.now() + 30_000,
-        commandTtlMs: 30_000,
-        abortSignal: signal,
-        parentSpanId,
-      };
-      const browsers = this.browserLifecycle(execution);
       const incident = await this.providerRateLimitControl.beginIncident(pending);
+      let terminal: Readonly<{ terminalAt: string }> | null;
       try {
-        const acknowledged = await this.executeOne(execution, browsers, {
-            child: "acknowledge_known_gpt_rate_limit",
-            sessionKey: pending.sessionKey,
-            productStepId: "gpt-rate-limit-control",
-            callId: incident.incidentRequestId,
-            actionOrdinal: 1,
-            input: {
-              incidentRequestId: incident.incidentRequestId,
-              dialogHash: pending.dialogHash,
-              observationHash: pending.observationHash,
-              targetRefHash: pending.targetRefHash,
-              documentRefHash: pending.documentRefHash,
-              observedAt: pending.observedAt,
-            },
-          }, { priorEffectKnown: true, rateLimitAckDispatchNotAfter: Date.parse(pending.observedAt) + 1_000 }).catch(async (error: unknown) => {
-          await incident.deliver(notClearedRateLimit(incident, pending.observedAt));
-          throw error;
+        terminal = this.browserAuthority.readConfirmedRateLimitAcknowledgement({
+          jobId: pending.jobId, attemptId: pending.attemptId,
+          resultRevision: pending.resultRevision, incidentRequestId: incident.incidentRequestId,
         });
-        await incident.deliver({
-          clearance: acknowledged.value.clearance,
-          acknowledgementReceiptHash: acknowledged.value.acknowledgementReceiptHash,
-          acknowledgedAt: acknowledged.value.acknowledgedAt,
-        });
-      } finally {
-        await browsers.settle(null);
+      } catch (error) {
+        await incident.deliver(notClearedRateLimit(incident, pending.observedAt));
+        throw error;
       }
+      if (!terminal) {
+        await incident.deliver(notClearedRateLimit(incident, pending.observedAt));
+        continue;
+      }
+      await incident.deliver({ clearance: "confirmed_absent",
+        acknowledgementReceiptHash: confirmedRateLimitAckHash(
+          incident.incidentRequestId, terminal.terminalAt,
+        ), acknowledgedAt: terminal.terminalAt });
     }
   }
 

@@ -162,12 +162,11 @@ export class ExtensionTargetAuthority {
     targetMode: "fresh" | "bound-observation" | "confirmed-readback" | "authorized-continuation",
     jobRefHash: `sha256:${string}`,
     parentConversationUrl?: string,
-    expectedTargetRef?: string,
   ): Promise<void> {
     return this.debuggerRuntime.withLogicalPageAccess(
       () => this.pageAccessGate.enter(),
       () => this.acquireJobBoundChatGptTargetCycle(
-        targetMode, jobRefHash, parentConversationUrl, expectedTargetRef,
+        targetMode, jobRefHash, parentConversationUrl,
       ),
     );
   }
@@ -176,15 +175,17 @@ export class ExtensionTargetAuthority {
     targetMode: "fresh" | "bound-observation" | "confirmed-readback" | "authorized-continuation",
     jobRefHash: `sha256:${string}`,
     parentConversationUrl?: string,
-    expectedTargetRef?: string,
   ): Promise<void> {
     const { continuationUrl, bound } = await preflightTargetAcquisition({
-      targetMode, jobRefHash, parentConversationUrl, expectedTargetRef,
+      targetMode, jobRefHash, parentConversationUrl,
       createdTarget: this.createdTarget, targets: this.targets, activeTarget: this.activeTarget,
     });
-    if (bound) return this.reacquireParkedTarget(
+    if (bound && await this.reacquireParkedTarget(
       bound.targetRef, targetMode === "fresh", continuationUrl,
-    );
+    )) return;
+    if (targetMode === "bound-observation") {
+      throw new Error("BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT");
+    }
     const candidate = await this.createdTarget.createProductionCandidate();
     if (candidate.tabId === undefined) throw new Error("BROWSER_TARGET_INVALID");
     try {
@@ -223,7 +224,7 @@ export class ExtensionTargetAuthority {
     }
   }
   public async releaseJobBoundChatGptTarget(
-    jobRefHash: `sha256:${string}`, targetRefs: readonly string[],
+    jobRefHash: `sha256:${string}`,
   ): Promise<void> {
     await releaseJobBoundTarget({
       targets: this.targets, debuggerRuntime: this.debuggerRuntime,
@@ -231,7 +232,7 @@ export class ExtensionTargetAuthority {
       readActiveJobRefHash: () => this.activeTarget?.jobRefHash ?? null,
       awaitOldCommandHandlers: this.awaitOldCommandHandlers,
       sendRevoke: (body) => this.send("TARGET_REVOKE", body),
-    }, jobRefHash, targetRefs);
+    }, jobRefHash);
   }
   public async releaseActiveTarget(notifyWorkbench = true): Promise<void> {
     await this.debuggerRuntime.awaitPageReadPermission();
@@ -333,7 +334,9 @@ export class ExtensionTargetAuthority {
   ): Promise<unknown> {
       if (command.kind === "dom-intent") {
         if (command.intent.kind === "selectExactGptConversation") {
-          return this.executeConversationSelection(target, command.intent.canonicalConversationUrl);
+          return this.executeConversationSelection(
+            target, command.intent.canonicalConversationUrl, assertCommandActive,
+          );
         }
         const assertCurrent = (): void => {
           assertCommandActive();
@@ -378,10 +381,16 @@ export class ExtensionTargetAuthority {
     targetRef: string,
     resetToStart = false,
     continuationUrl?: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const parked = this.targets.read(targetRef);
-    await this.debuggerRuntime.attach(parked.tabId);
     try {
+      const live = await this.debuggerRuntime.readTargets();
+      if (!live.some((item) => item.tabId === parked.tabId
+        && item.id === parked.chromeTargetId)) {
+        this.targets.invalidateTab(parked.tabId);
+        return false;
+      }
+      await this.debuggerRuntime.attach(parked.tabId);
       await this.debuggerRuntime.send(parked.tabId, "Page.enable");
       let tab = await this.debuggerRuntime.readTab(parked.tabId);
       if (tab.discarded === true || tab.status !== "complete") {
@@ -416,8 +425,17 @@ export class ExtensionTargetAuthority {
       await this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(target, {
         claimOrigin: gptWebClaimOriginForUrl(mainFrame.url),
       }));
+      return true;
     } catch (error) {
       this.activeTarget = null;
+      try {
+        const live = await this.debuggerRuntime.readTargets();
+        if (!live.some((item) => item.tabId === parked.tabId
+          && item.id === parked.chromeTargetId)) {
+          this.targets.invalidateTab(parked.tabId);
+          return false;
+        }
+      } catch { /* Keep the original error when Chrome state cannot be proved. */ }
       throw error;
     }
   }
@@ -438,19 +456,40 @@ export class ExtensionTargetAuthority {
   private async executeConversationSelection(
     target: ExtensionExactTarget,
     canonicalConversationUrl: string,
+    assertCommandActive: () => void,
   ): Promise<Record<string, unknown>> {
     const expected = requireCanonicalGptConversationUrl(canonicalConversationUrl);
+    assertCommandActive();
     this.targets.resolve(target.targetRef, target.documentRef);
     const currentFrame = await readExtensionMainFrame(this.debuggerRuntime, target.tabId);
+    assertCommandActive();
+    this.targets.resolve(target.targetRef, target.documentRef);
     requireGptWebPolicyForUrl(currentFrame.url);
     const current = new URL(currentFrame.url);
-    if (`${current.origin}${current.pathname}` === expected) return { targetRef: target.targetRef,
-      documentRef: target.documentRef, navigationEpoch: target.navigationEpoch };
+    if (`${current.origin}${current.pathname}` === expected) {
+      const fresh = await this.publishMainFrameNavigation(currentFrame.url, currentFrame.loaderId);
+      assertCommandActive();
+      return { targetRef: fresh.targetRef,
+        documentRef: fresh.documentRef, navigationEpoch: fresh.navigationEpoch };
+    }
     if (this.navigationPublication) throw new Error("BROWSER_TARGET_INVALID");
     let releasePublication!: () => void;
     const publication = new Promise<void>((resolve) => { releasePublication = resolve; });
     this.navigationPublication = publication;
     try {
+      const physicalTargets = await this.debuggerRuntime.readTargets();
+      assertCommandActive();
+      const currentTarget = this.targets.resolve(target.targetRef, target.documentRef);
+      if (this.activeTarget?.targetRef !== target.targetRef
+        || this.activeTarget.documentRef !== target.documentRef
+        || this.activeTarget.chromeTargetId !== target.chromeTargetId
+        || this.activeTarget.tabId !== target.tabId
+        || currentTarget.loaderId !== target.loaderId
+        || currentFrame.loaderId !== target.loaderId
+        || !physicalTargets.some((candidate) => candidate.tabId === target.tabId
+          && candidate.id === target.chromeTargetId && candidate.attached)) {
+        throw new Error("BROWSER_DOCUMENT_INVALID");
+      }
       await this.debuggerRuntime.send(target.tabId, "Page.navigate", { url: expected });
       const mainFrame = await readExtensionMainFrame(this.debuggerRuntime, target.tabId);
       if (requireCanonicalGptConversationUrl(mainFrame.url) !== expected) {

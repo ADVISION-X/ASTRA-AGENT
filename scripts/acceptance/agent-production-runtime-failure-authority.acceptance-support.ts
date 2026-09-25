@@ -171,7 +171,6 @@ const verifyMissingLocalAcceptedRecovery = async (): Promise<void> => {
       },
       browserAuthority: {
         readJobBrowserHistoryEvidence: () => ({ walHistoryVerified: true, rowCount: 1 }),
-        readUnreleasedTargetClaims: () => [],
       },
       evidenceStore: {}, providerRateLimitControl: {}, gpt: {},
       dataDir: recoveryDirectory,

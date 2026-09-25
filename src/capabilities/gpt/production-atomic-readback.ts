@@ -16,18 +16,6 @@ type AtomicReadbackInput = Readonly<{
   browser: BrowserTargetLease;
   priorOutcome: BrowserAtomicStepOutcome;
 }>;
-const dispatchedProviderEffectReadback = async (
-  input: AtomicReadbackInput,
-): Promise<GptChildCapabilityResult | null> => {
-  if (input.intent.childCapabilityId !== "submit_exact_gpt_turn_once"
-    || input.priorOutcome.state !== "dispatched"
-    || input.priorOutcome.mutationOutcome !== "dispatched"
-    || !input.priorOutcome.providerEffectIdentityHash || input.priorOutcome.terminalAt !== null) return null;
-  return await input.gpt.execute(input.intent, Object.freeze({
-    ...input.context, dispatchedProviderEffectReadback: input.priorOutcome,
-  }));
-};
-
 const confirmedProviderEffectReadback = async (
   input: AtomicReadbackInput,
 ): Promise<GptChildCapabilityResult | null> => {
@@ -122,8 +110,6 @@ const absentAcknowledgementReadback = async (
   if (input.intent.childCapabilityId !== "acknowledge_known_gpt_rate_limit") return null;
   const raw = await input.browser.executeDomIntent({
     kind: "readKnownGptRateLimitClearance",
-    targetRefHash: input.intent.input.targetRefHash,
-    documentRefHash: input.intent.input.documentRefHash,
   });
   if (!raw || typeof raw !== "object" || Array.isArray(raw)
     || !clearanceReadbackValid(raw as Readonly<Record<string, unknown>>, input.intent.input)) {
@@ -139,7 +125,6 @@ const absentAcknowledgementReadback = async (
 export const readPriorAtomicOutcome = async (
   input: AtomicReadbackInput,
 ): Promise<GptChildCapabilityResult | null> =>
-  await dispatchedProviderEffectReadback(input)
-  ?? await confirmedProviderEffectReadback(input)
+  await confirmedProviderEffectReadback(input)
   ?? await confirmedAcknowledgementReadback(input)
   ?? await absentAcknowledgementReadback(input);

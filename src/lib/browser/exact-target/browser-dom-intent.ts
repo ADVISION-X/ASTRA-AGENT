@@ -106,11 +106,7 @@ export type BrowserDomIntent =
     documentRefHash: `sha256:${string}`;
     dispatchNotAfter: string | null;
   }>
-  | Readonly<{
-    kind: "readKnownGptRateLimitClearance";
-    targetRefHash: `sha256:${string}`;
-    documentRefHash: `sha256:${string}`;
-  }>
+  | Readonly<{ kind: "readKnownGptRateLimitClearance" }>
   | Readonly<{ kind: "observe"; queries: readonly BrowserDomObservationQuery[] }>
   | Readonly<{ kind: "readExactAssistantTurn"; userTurnId: string; canonicalConversationUrl: string }>
   | Readonly<{ kind: "inspect"; selector: string; fields: readonly BrowserDomField[]; scope?: BrowserDomReadScope }>

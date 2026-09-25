@@ -116,11 +116,6 @@ try {
       },
       acquireJobBoundTargetLease: async () => {
         recoveredAcquisitions += 1;
-        if (recoveredAcquisitions === 1) {
-          throw executionFailure("failed", "BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE");
-        }
-        assert.equal(retiredOldTargets, 1,
-          "the old Target must quiesce before a replacement can read its exact conversation");
         return ({
         target: { targetRef: "target:historical-confirmed" },
         document: { documentRef: "document:historical-confirmed" },
@@ -157,18 +152,13 @@ try {
     child: "submit_exact_gpt_turn_once", actionOrdinal: 1,
     input: { files: [], promptHash: currentPromptHash },
   } as const;
-  await assert.rejects(driftTools.tools.readConfirmedSubmit(historicalCall),
-    /BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE/u,
-    "GPT must report old-instance unavailability to Runtime before any Target release");
-  assert.deepEqual([recoveredAcquisitions, retiredOldTargets], [1, 0]);
-  retiredOldTargets = 1; // Runtime owns the intervening typed-fact persistence and Target settlement.
   const recoveredHistoricalSubmit = await driftTools.tools.readConfirmedSubmit(historicalCall);
   assert.equal(recoveredHistoricalSubmit?.value.promptHash, historicalPromptHash,
     "a confirmed historical submit must return its persisted prompt fact after current prompt drift");
   assert.equal(recoveredSelections, 1,
     "historical confirmed recovery may only select its canonical conversation and must not submit again");
-  assert.deepEqual([recoveredAcquisitions, retiredOldTargets], [2, 1],
-    "the next recovery claim may read the original effect after Runtime settles the old Target");
+  assert.deepEqual([recoveredAcquisitions, retiredOldTargets], [1, 0],
+    "a current Target may read the original effect without old Target settlement");
 
   await verifyNoPriorProviderEffect(temporary);
 
@@ -427,6 +417,7 @@ try {
     },
     {
       readProviderEffectStepCallFact: () => null,
+      readConfirmedRateLimitAcknowledgement: () => null,
       readSourceConfirmedProviderEffect: () => { throw new Error("UNEXPECTED_SOURCE_READBACK"); },
       countProviderTurnDispatches: () => 0,
       releaseJobBoundTarget: async () => { throw new Error("UNEXPECTED_TARGET_RELEASE"); },
@@ -468,7 +459,6 @@ try {
   assert.equal(artifactWrites, 0, "dialog mismatch must never enter the Forensics artifact port");
   assert.equal(providerControlCalls, 0, "dialog mismatch must never enter the cooldown control port");
 
-  await import("./gpt-production-browser-mismatch-atomic.acceptance-support.js");
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }

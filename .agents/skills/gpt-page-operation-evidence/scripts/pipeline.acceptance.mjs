@@ -239,7 +239,9 @@ async function main() {
       documentTimeOrigin: 123,
       pageInputFacts: { exactComposerText: "", userPromptTexts: [], assistantSemanticTexts: [],
         attachmentLabels: [], modelTexts: [], reasoningScaleFacts: [], assistantTurnIds: [],
-        userTurnBindings: [], turnBindings: [] },
+        userTurnBindings: [], turnBindings: [], exactAdjacentTurnBindings: [],
+        latestUserTurn: { unique: false, eligible: false, structurallyValid: false,
+          promptText: null, userTurnId: null } },
       nodes: [{
         tag: "div", attributes: { "data-testid": "composer", "aria-label": "private aria" },
         domTree: { kind: "ELEMENT", tag: "div", attributes: { "data-testid": "composer" }, children: [
@@ -355,6 +357,7 @@ async function main() {
   const imageTurn = node({ "data-testid": "conversation-turn-6" });
   imageTurn.machineFacts.userRoleDescendants = 0;
   imageTurn.machineFacts.assistantRoleDescendants = 0;
+  imageTurn.machineFacts.imageDescendants = 1;
   const semanticImage = node({}, false, "conversation-turn-6");
   semanticImage.tag = "img";
   semanticImage.media = { complete: true, naturalWidth: 1672, naturalHeight: 941, altLength: 12 };

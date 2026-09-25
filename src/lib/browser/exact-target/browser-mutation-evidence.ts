@@ -23,43 +23,9 @@ export class BrowserMutationEvidence {
   protected provenanceVerified = false;
   public constructor(protected readonly database: Database.Database, protected readonly payloadKey: Buffer) {}
 
-  protected assertHistoricalTargetClaimCoverage(): void {
-    const historical = this.database.prepare(`select distinct job_id,target_ref from browser_mutations
-      where target_ref like 'target-tab-%'`).all() as Array<{ job_id: string; target_ref: string }>;
-    for (const row of historical) {
-      if (!/^target-tab-(\d+)$/u.test(row.target_ref)) throw new Error("BROWSER_REPAIR_REQUIRED");
-      const jobRefHash = `sha256:${createHash("sha256").update(row.job_id).digest("hex")}` as const;
-      const covered = this.database.prepare(`select 1 from browser_target_claims
-        where job_ref_hash=? and target_ref=? limit 1`).get(jobRefHash, row.target_ref);
-      if (!covered) throw new Error("BROWSER_LEGACY_TARGET_CLAIM_CUTOVER_REQUIRED");
-    }
-  }
-
-  public unreleasedTargetRefs(jobId: string, jobRefHash: `sha256:${string}`): readonly string[] {
-    if (!/^sha256:[a-f0-9]{64}$/u.test(jobRefHash)) throw new Error("BROWSER_TARGET_INVALID");
-    const expectedHash = `sha256:${createHash("sha256").update(jobId).digest("hex")}`;
-    if (jobRefHash !== expectedHash) throw new Error("BROWSER_TARGET_INVALID");
-    const refs = this.database.prepare(`select distinct target_ref from browser_target_claims
-      where job_ref_hash=? and released_at is null order by claimed_at,target_ref`).all(jobRefHash) as Array<{ target_ref: string }>;
-    return refs.map((row) => row.target_ref);
-  }
-
-  public unreleasedTargetClaims(): readonly Readonly<{
-    jobRefHash: `sha256:${string}`; targetRef: string;
-    claimSource: "authenticated_claim" | "legacy_wal";
-  }>[] {
-    const rows = this.database.prepare(`select distinct job_ref_hash,target_ref,claim_source from browser_target_claims
-      where released_at is null order by claimed_at,target_ref`).all() as Array<{
-        job_ref_hash: `sha256:${string}`; target_ref: string;
-        claim_source: "authenticated_claim" | "legacy_wal";
-      }>;
-    return rows.map((row) => ({ jobRefHash: row.job_ref_hash,
-      targetRef: row.target_ref, claimSource: row.claim_source }));
-  }
-
   public jobHistoryEvidence(jobId: string): Readonly<{
     historyHash: `sha256:${string}`; rowCount: number; walHistoryVerified: boolean;
-    targetSettlementHash: `sha256:${string}`; targetSettled: boolean;
+    unresolvedCommandSetHash: `sha256:${string}`; unresolvedCommandCount: number;
     replayCalls: readonly Readonly<{ productStepId: string; callId: string;
       childCapabilityId: string; sourceEffectSetHash: `sha256:${string}` }>[];
     replayEffects: readonly Readonly<{ attemptId: string; resultRevision: number;
@@ -68,30 +34,21 @@ export class BrowserMutationEvidence {
       productStepId: string; callId: string;
       childCapabilityId: string; sourceEffectSetHash: `sha256:${string}`;
       effectIdentityHash: `sha256:${string}`; authorityRef: string;
-      oldTargetRefHash: `sha256:${string}`;
-      oldDocumentRefHash: `sha256:${string}`; walAuthorityHash: `sha256:${string}`;
+      rawWalAuthorityHash: `sha256:${string}`;
+      rawAnchorProofHash: `sha256:${string}`;
+      walAuthorityHash: `sha256:${string}`;
       anchorState: "trusted" | "absent"; anchorProofHash: `sha256:${string}`;
       canonicalConversationHash: `sha256:${string}` | null;
       userTurnHash: `sha256:${string}` | null;
       physicalInputCount: number }>[];
-    targetSettlements: readonly Readonly<{ targetRefHash: `sha256:${string}`;
-      claimSource: "legacy_wal" | "authenticated_claim";
-      outcome: "physical_absent" | "quiesced"; proofHash: `sha256:${string}`;
-      releasedAt: string }>[];
   }> {
     const rows = this.database.prepare(`select command_id,job_id,attempt_id,result_revision,
-      target_ref,effect_scope,product_step_id,call_id,child_capability_id,
-      delivery_priority_replay_grant_hash,
-      state,mutation_outcome,physical_input_count,request_hash,payload_hash
+      effect_scope,product_step_id,call_id,child_capability_id,
+      state,mutation_outcome,physical_input_count,terminal_at
       from browser_mutations where job_id=? order by command_id`).all(jobId);
-    const jobRefHash = `sha256:${createHash("sha256").update(jobId).digest("hex")}`;
-    const claims = this.database.prepare(`select target_ref,claim_source,claimed_at,
-      released_at,release_outcome,release_proof_hash from browser_target_claims
-      where job_ref_hash=? order by claim_id`).all(jobRefHash) as Array<{
-        target_ref: string; claim_source: "legacy_wal" | "authenticated_claim";
-        released_at: string | null; release_outcome: string | null;
-        release_proof_hash: string | null;
-    }>;
+    const unresolvedCommandIds = (this.database.prepare(`select command_id from browser_mutations
+      where job_id=? and state='DISPATCHED' order by command_id`).all(jobId) as
+      Array<{ command_id: string }>).map((row) => row.command_id);
     const replayCalls = this.unresolvedProviderCalls(jobId);
     const replayEffects = readJobReplayEffects({
       database: this.database, payloadKey: this.payloadKey, jobId, replayCalls,
@@ -106,43 +63,29 @@ export class BrowserMutationEvidence {
     return Object.freeze({
       historyHash: `sha256:${createHash("sha256").update(JSON.stringify(rows)).digest("hex")}`,
       rowCount: rows.length, walHistoryVerified: this.provenanceVerified,
-      targetSettlementHash: `sha256:${createHash("sha256")
-        .update(JSON.stringify(claims)).digest("hex")}`,
-      targetSettled: (rows.length === 0 || claims.length > 0)
-        && claims.every((claim) => claim.released_at !== null
-          && ["physical_absent", "quiesced"].includes(claim.release_outcome ?? "")
-          && /^sha256:[a-f0-9]{64}$/u.test(claim.release_proof_hash ?? "")),
+      unresolvedCommandSetHash: `sha256:${createHash("sha256")
+        .update(JSON.stringify(unresolvedCommandIds)).digest("hex")}`,
+      unresolvedCommandCount: unresolvedCommandIds.length,
       replayCalls,
       replayEffects: Object.freeze(replayEffects),
-      targetSettlements: Object.freeze(claims.filter((claim) => claim.released_at !== null
-        && (claim.release_outcome === "physical_absent" || claim.release_outcome === "quiesced")
-        && /^sha256:[a-f0-9]{64}$/u.test(claim.release_proof_hash ?? ""))
-        .map((claim) => Object.freeze({
-          targetRefHash: `sha256:${createHash("sha256").update(claim.target_ref).digest("hex")}` as const,
-          claimSource: claim.claim_source,
-          outcome: claim.release_outcome as "physical_absent" | "quiesced",
-          proofHash: claim.release_proof_hash as `sha256:${string}`,
-          releasedAt: claim.released_at!,
-        }))),
     });
   }
 
   protected providerEffectSetRows(input: Readonly<{ jobId: string; productStepId: string;
     callId: string; childCapabilityId: string; beforeRevision?: number }>): readonly Readonly<{
-      command_id: string; attempt_id: string; result_revision: number; state: string;
-      mutation_outcome: string; physical_input_count: number; request_hash: string;
-      payload_hash: string; delivery_priority_replay_grant_hash: string | null;
+      command_id: string; logical_mutation_id: string | null;
+      attempt_id: string; result_revision: number; state: string;
+      mutation_outcome: string; physical_input_count: number; terminal_at: string | null;
     }>[] {
-    return this.database.prepare(`select command_id,attempt_id,result_revision,state,
-      mutation_outcome,physical_input_count,request_hash,payload_hash,
-      delivery_priority_replay_grant_hash from browser_mutations
+    return this.database.prepare(`select command_id,logical_mutation_id,attempt_id,result_revision,state,
+      mutation_outcome,physical_input_count,terminal_at from browser_mutations
       where job_id=? and product_step_id=? and call_id=? and child_capability_id=?
         and effect_scope='provider_effect' and (? is null or result_revision<?)
       order by command_id`).all(input.jobId, input.productStepId, input.callId,
       input.childCapabilityId, input.beforeRevision ?? null, input.beforeRevision ?? null) as readonly Readonly<{
-        command_id: string; attempt_id: string; result_revision: number; state: string;
-        mutation_outcome: string; physical_input_count: number; request_hash: string;
-        payload_hash: string; delivery_priority_replay_grant_hash: string | null;
+        command_id: string; logical_mutation_id: string | null;
+        attempt_id: string; result_revision: number; state: string;
+        mutation_outcome: string; physical_input_count: number; terminal_at: string | null;
       }>[];
   }
 
@@ -440,28 +383,11 @@ export class BrowserMutationEvidence {
     return mutationAuthorityHash(row);
   }
 
-  public countDispatched(): number {
-    const row = this.database.prepare(
-      "select count(*) as count from browser_mutations where state='DISPATCHED'",
-    ).get() as { count: number };
-    return Number(row.count);
-  }
-
-  public allDispatchedTargetsSettled(): boolean {
-    const rows = this.database.prepare(`select job_id,target_ref from browser_mutations
-      where state='DISPATCHED'`).all() as Array<{ job_id: string; target_ref: string }>;
-    if (rows.length === 0) return false;
-    return rows.every((row) => {
-      const jobRefHash = `sha256:${createHash("sha256").update(row.job_id).digest("hex")}`;
-      return Boolean(this.database.prepare(`select 1 from browser_target_claims
-        where job_ref_hash=? and target_ref=? and released_at is not null
-          and release_outcome in ('physical_absent','quiesced')
-          and release_proof_hash is not null
-          and not exists (select 1 from browser_target_claims live
-            where live.job_ref_hash=browser_target_claims.job_ref_hash
-              and live.target_ref=browser_target_claims.target_ref
-              and live.released_at is null) limit 1`).get(jobRefHash, row.target_ref));
-    });
+  public countDispatched(jobId?: string): number {
+    const row = jobId === undefined
+      ? this.database.prepare("select count(*) as count from browser_mutations where state='DISPATCHED'").get()
+      : this.database.prepare("select count(*) as count from browser_mutations where state='DISPATCHED' and job_id=?").get(jobId);
+    return Number((row as { count: number }).count);
   }
 
   public latestProviderInputTerminalAt(): string | null {

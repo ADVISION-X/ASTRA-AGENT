@@ -11,74 +11,40 @@ type ReleaseContext = Readonly<{
   sendRevoke: (body: Record<string, unknown>) => Promise<void>;
 }>;
 
-/** Retires old Target claims only after exact Chrome identity and physical absence checks. */
+/** Releases only the current live same-job Target. No historical ref is accepted. */
 export const releaseJobBoundTarget = async (
-  context: ReleaseContext,
-  jobRefHash: `sha256:${string}`,
-  targetRefs: readonly string[],
+  context: ReleaseContext, jobRefHash: `sha256:${string}`,
 ): Promise<void> => {
   if (!/^sha256:[a-f0-9]{64}$/u.test(jobRefHash)) throw new Error("BROWSER_TARGET_INVALID");
   await context.awaitOldCommandHandlers();
   await context.debuggerRuntime.awaitPageReadPermission();
   if (context.createdTarget.isPending() || context.readActiveJobRefHash() === jobRefHash) {
-    throw new Error("BROWSER_OLD_TARGET_RECONCILIATION_REQUIRED");
+    throw new Error("BROWSER_TARGET_INVALID");
   }
   const bound = context.targets.findByJobRefHash(jobRefHash);
-  if (bound && !targetRefs.includes(bound.targetRef)) {
-    throw new Error("BROWSER_TARGET_PHYSICAL_ABSENCE_UNPROVEN");
-  }
-  if (targetRefs.length === 0) {
-    await context.sendRevoke({ targetRef: null, jobRefHash,
-      releaseOutcome: "absent", targetRefs: [] });
+  if (!bound) {
+    await context.sendRevoke({ targetRef: null, jobRefHash, releaseOutcome: "absent" });
     return;
   }
-  let allPhysicallyAbsent = true;
-  for (const targetRef of targetRefs) {
-    if (!(await releaseOneTarget(context, jobRefHash, targetRef))) allPhysicallyAbsent = false;
+  const live = await context.debuggerRuntime.readTargets();
+  if (!live.some((target) => target.tabId === bound.tabId
+    && target.id === bound.chromeTargetId)) {
+    context.targets.invalidateTab(bound.tabId);
+    await context.sendRevoke({ targetRef: bound.targetRef, jobRefHash,
+      releaseOutcome: "absent" });
+    return;
   }
-  await context.sendRevoke({ targetRef: targetRefs[0], jobRefHash,
-    releaseOutcome: allPhysicallyAbsent ? "released" : "quiesced", targetRefs });
-};
-
-const releaseOneTarget = async (
-  context: ReleaseContext,
-  jobRefHash: `sha256:${string}`,
-  targetRef: string,
-): Promise<boolean> => {
-  const match = /^target-tab-(\d+)$/u.exec(targetRef);
-  const tabId = match ? Number(match[1]) : NaN;
-  if (!Number.isSafeInteger(tabId) || tabId < 0) throw new Error("BROWSER_TARGET_INVALID");
-  const current = context.targets.findByTabId(tabId);
-  if (current && (current.jobRefHash !== jobRefHash || current.targetRef !== targetRef)) {
-    // A reused numeric tab id belongs to its current job; never remove that tab.
-    return false;
+  await context.debuggerRuntime.removeTab(bound.tabId);
+  let tabAbsent = false;
+  try { await context.debuggerRuntime.readTab(bound.tabId); }
+  catch { tabAbsent = true; }
+  const after = await context.debuggerRuntime.readTargets();
+  if (!tabAbsent || after.some((target) => target.tabId === bound.tabId
+    && target.id === bound.chromeTargetId)) {
+    throw new Error("BROWSER_TARGET_CLEANUP_FAILED");
   }
-  if (!current) return false;
-  if (context.createdTarget.wasTabRemoved(tabId)) {
-    context.targets.invalidateTab(tabId);
-    return false;
-  }
-  const currentTargets = await context.debuggerRuntime.readTargets();
-  if (!currentTargets.some((target) => target.tabId === tabId
-    && target.id === current.chromeTargetId)) {
-    context.targets.invalidateTab(tabId);
-    return false;
-  }
-  const absent = await removeAndVerifyPhysicalAbsence(context, tabId);
-  context.targets.invalidateTab(tabId);
-  context.debuggerRuntime.forgetAttached(tabId);
-  return absent;
-};
-
-const removeAndVerifyPhysicalAbsence = async (
-  context: ReleaseContext, tabId: number,
-): Promise<boolean> => {
-  try { await context.debuggerRuntime.removeTab(tabId); }
-  catch { return false; }
-  let tabStillPresent = true;
-  try { await context.debuggerRuntime.readTab(tabId); }
-  catch { tabStillPresent = false; }
-  const targets = await context.debuggerRuntime.readTargets();
-  return context.createdTarget.wasTabRemoved(tabId)
-    && !tabStillPresent && !targets.some((target) => target.tabId === tabId);
+  context.targets.invalidateTab(bound.tabId);
+  context.debuggerRuntime.forgetAttached(bound.tabId);
+  await context.sendRevoke({ targetRef: bound.targetRef, jobRefHash,
+    releaseOutcome: "released" });
 };

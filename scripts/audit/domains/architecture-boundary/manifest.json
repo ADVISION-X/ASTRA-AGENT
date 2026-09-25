@@ -3,7 +3,7 @@
   "capabilityDomain": "architecture-boundary",
   "status": "active",
   "lawIds": [
-    "LAW-ARCHITECTURE-BOUNDARY-001-V16"
+    "LAW-ARCHITECTURE-BOUNDARY-001-V17"
   ],
   "ownedPaths": [
     "docs/项目方案/AGENT原attempt无失败事实恢复-完整实现方案.md",
@@ -22,6 +22,8 @@
     "docs/项目方案/GPT频率限制排空冷却-完整实现方案.md",
     "docs/项目方案/N 标签工单独占轮巡模式方案.md",
     "docs/项目方案/SEO文章同聊天五语翻译-完整实现方案.md",
+    "docs/项目方案/Target系统地位与强制边界-完整实现方案.md",
+    "docs/项目方案/current_reason诊断投影与状态权威分离-完整实现方案.md",
     "docs/项目方案/八字三产品结果契约校验对齐-完整实现方案.md",
     "docs/项目方案/八字栏目技能方案.md",
     "docs/项目方案/十小时连续运行事故分组根治-完整实现方案.md",

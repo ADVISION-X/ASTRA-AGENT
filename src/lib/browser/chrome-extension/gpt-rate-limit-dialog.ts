@@ -244,7 +244,7 @@ export const knownGptRateLimitAbsentEnvelope = (
 
 const assertRateLimitIdentity = async (
   target: ExtensionExactTarget,
-  intent: RateLimitIntent,
+  intent: Extract<RateLimitIntent, { kind: "acknowledgeKnownGptRateLimit" }>,
 ): Promise<void> => {
   const identity = await knownGptRateLimitTargetIdentity(target);
   if (identity.targetRefHash !== intent.targetRefHash
@@ -258,10 +258,13 @@ export const executeKnownGptRateLimitIntent = async (
   exactCallIdentityHash: `sha256:${string}`,
   assertCurrent: CurrentDocumentAssertion,
 ): Promise<unknown> => {
-  await assertRateLimitIdentity(target, intent);
   if (intent.kind === "readKnownGptRateLimitClearance") {
-    return readKnownGptRateLimitClearance(runtime, target, exactCallIdentityHash);
+    assertCurrent();
+    const result = await readKnownGptRateLimitClearance(runtime, target, exactCallIdentityHash);
+    assertCurrent();
+    return result;
   }
+  await assertRateLimitIdentity(target, intent);
   const fact = await observeKnownGptRateLimitDialog(runtime, target, exactCallIdentityHash);
   if (fact.state === "mismatch") return unrecognizedGptDialogReceipt(fact);
   if (fact.state === "absent") return Object.freeze({ candidateCount: 0, identityRevalidated: true,

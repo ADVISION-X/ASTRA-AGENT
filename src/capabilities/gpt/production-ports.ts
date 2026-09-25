@@ -64,6 +64,9 @@ export interface GptEvidenceStorePort {
 }
 
 export interface GptProductionBrowserAuthority {
+  readConfirmedRateLimitAcknowledgement(input: Readonly<{
+    jobId: string; attemptId: string; resultRevision: number; incidentRequestId: string;
+  }>): Readonly<{ terminalAt: string }> | null;
   readSourceConfirmedProviderEffect(input: Readonly<{
     jobId: string; sourceAttemptId: string; sourceResultRevision: number;
     productStepId: string; callId: string; childCapabilityId: string;
@@ -99,8 +102,6 @@ export type ProviderRateLimitIncidentInput = Readonly<{
   capabilityManifestHash: `sha256:${string}`;
   dialogHash: `sha256:${string}`;
   observationHash: `sha256:${string}`;
-  targetRefHash: `sha256:${string}`;
-  documentRefHash: `sha256:${string}`;
   sessionKey: string;
   observedAt: string;
 }>;

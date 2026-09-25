@@ -179,16 +179,16 @@ try {
     "every image read and park across two new physical leases must retain the full identity");
   assert.deepEqual(atomicCommandLeases.slice(5, 10), [3, 3, 4, 4, 5],
     "the image fixture must prove that facade commands use two distinct reacquired leases");
-  assert.deepEqual([acquisitions, selections, parks], [5, 0, 4],
+  assert.deepEqual([acquisitions, selections, parks], [5, 4, 4],
     "normal pending must park immediately and reacquire its exact Target through the one lane");
-  assert.equal(observationWaits.at(-1)?.targetMode, "bound-observation");
+  assert.equal(observationWaits.at(-1)?.targetMode, "confirmed-readback");
   assert.ok((observationWaits.at(-1)?.eligibleAt ?? 0) >= observationStartedAt + 69_000,
     "the Child must submit eligibility at least 70 seconds ahead instead of owning a local timer");
   await assert.rejects(
     lifecycle.browserFor("session:next", "research-next", "text-next"),
     /GPT_BROWSER_SESSION_TRANSITION_UNSETTLED/u,
   );
-  assert.deepEqual([acquisitions, selections, parks], [5, 0, 4],
+  assert.deepEqual([acquisitions, selections, parks], [5, 4, 4],
     "a later Provider turn must not acquire Browser while the current result is unsettled");
   lifecycle.recordSettledResult(active, HASH_B);
   const settledFailure = serializeTerminalFailure(
@@ -208,7 +208,7 @@ try {
   assert.equal(await lifecycle.browserFor(
     "session:next", "research-next", "text-next",
   ), next, "the same logical Provider turn must reuse its one active Browser lease");
-  assert.deepEqual([acquisitions, selections, parks], [6, 0, 5],
+  assert.deepEqual([acquisitions, selections, parks], [6, 4, 5],
     "a settled turn must park exactly once before the next turn acquires fresh Browser authority");
   assert.deepEqual(lifecycleEvents,
     ["acquire", "park", "acquire", "park", "acquire", "park", "acquire", "park", "acquire", "park", "acquire"],
@@ -217,11 +217,11 @@ try {
   assert.equal(lifecycle.decorateSettledResultFailure(nextFailure), nextFailure,
     "the prior settled result must not classify failures from the newly active Provider turn");
   await lifecycle.settle(nextFailure);
-  assert.deepEqual([acquisitions, selections, parks], [6, 0, 6],
+  assert.deepEqual([acquisitions, selections, parks], [6, 4, 6],
     "failed product settlement must park the active lease without closing the system Tab");
   await lifecycle.browserFor("session:final", "research-final", "text-final");
   await lifecycle.settle(null);
-  assert.deepEqual([acquisitions, selections, parks], [7, 0, 7],
+  assert.deepEqual([acquisitions, selections, parks], [7, 4, 7],
     "successful product settlement must park the active lease without closing the system Tab");
   assert.deepEqual(lifecycleEvents,
     ["acquire", "park", "acquire", "park", "acquire", "park", "acquire", "park", "acquire", "park", "acquire", "park", "acquire", "park"],

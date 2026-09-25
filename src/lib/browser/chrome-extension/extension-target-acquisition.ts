@@ -6,12 +6,11 @@ import { ExtensionExactTargetRegistry, type ExtensionExactTarget } from "./exact
 export type TargetAcquisitionMode = "fresh" | "bound-observation"
   | "confirmed-readback" | "authorized-continuation";
 
-/** Validates the single existing Target claim before any new tab is created. */
+/** Uses only the current live Extension registry before creating a tab. */
 export const preflightTargetAcquisition = async (input: Readonly<{
   targetMode: TargetAcquisitionMode;
   jobRefHash: `sha256:${string}`;
   parentConversationUrl?: string | undefined;
-  expectedTargetRef?: string | undefined;
   createdTarget: ExtensionCreatedTarget;
   targets: ExtensionExactTargetRegistry;
   activeTarget: ExtensionExactTarget | null;
@@ -30,12 +29,6 @@ export const preflightTargetAcquisition = async (input: Readonly<{
     throw new Error("BROWSER_TARGET_INVALID");
   }
   const bound = input.targets.findByJobRefHash(input.jobRefHash);
-  if (input.expectedTargetRef && !bound) {
-    throw new Error("BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE");
-  }
-  if (input.expectedTargetRef && bound?.targetRef !== input.expectedTargetRef) {
-    throw new Error("BROWSER_OLD_TARGET_RECONCILIATION_REQUIRED");
-  }
   if (!bound && input.targetMode === "bound-observation") {
     throw new Error("BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT");
   }

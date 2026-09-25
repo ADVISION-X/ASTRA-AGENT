@@ -3,7 +3,6 @@ import { BrowserMutationEvidence } from "./browser-mutation-evidence.js";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { mutationIdentity, type MutationRow } from "./browser-mutation-row.js";
 import { ensureCurrentSchema, identityColumns } from "./browser-mutation-schema.js";
 import { type ProviderEffectHistoryRow } from "./browser-mutation-authority.js";
 import type {
@@ -55,7 +54,6 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
       throw new Error("BROWSER_REPAIR_REQUIRED");
     }
     this.fileBirthtimeMs = statSync(file).birthtimeMs;
-    this.assertHistoricalTargetClaimCoverage();
     this.database.prepare(
       "update browser_mutations set state='FAILED',reason='BROWSER_COMMAND_NOT_DISPATCHED',updated_at=? where state='PREPARED'",
     ).run(new Date().toISOString());
@@ -76,49 +74,6 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
     if (!this.provenanceVerified) throw new Error("BROWSER_WAL_HISTORY_UNVERIFIED");
   }
 
-  public recordTargetClaim(input: Readonly<{
-    jobRefHash: `sha256:${string}`; targetRef: string;
-  }>): void {
-    this.assertRuntimeTaskProvenance();
-    const match = /^target-tab-(\d+)$/u.exec(input.targetRef);
-    const tabId = match ? Number(match[1]) : NaN;
-    if (!/^sha256:[a-f0-9]{64}$/u.test(input.jobRefHash)
-      || !Number.isSafeInteger(tabId) || tabId < 0) throw new Error("BROWSER_TARGET_INVALID");
-    this.database.transaction(() => {
-      const existing = this.database.prepare(`select job_ref_hash,claim_source from browser_target_claims
-        where target_ref=? and released_at is null`).all(input.targetRef) as Array<{
-          job_ref_hash: string; claim_source: string;
-        }>;
-      // The current authenticated Extension claim is the live authority. An
-      // older numeric tab id can be reused; its historical row remains for
-      // the original job's exact release/quiescence readback.
-      if (existing.some((row) => row.job_ref_hash === input.jobRefHash
-        && row.claim_source === "authenticated_claim")) return;
-      this.database.prepare(`insert into browser_target_claims(
-        target_ref,job_ref_hash,tab_id,claim_source,claimed_at,released_at
-      ) values(?,?,?,'authenticated_claim',?,null)`).run(
-        input.targetRef, input.jobRefHash, tabId, new Date().toISOString(),
-      );
-    })();
-  }
-
-  public markTargetReleased(input: Readonly<{
-    jobRefHash: `sha256:${string}`; targetRefs: readonly string[];
-    outcome: "physical_absent" | "quiesced"; proofHash: `sha256:${string}`;
-  }>): void {
-    if (!/^sha256:[a-f0-9]{64}$/u.test(input.proofHash)) throw new Error("BROWSER_TARGET_RELEASE_PROOF_INVALID");
-    this.database.transaction(() => {
-      for (const targetRef of input.targetRefs) {
-        const result = this.database.prepare(`update browser_target_claims set released_at=?,
-            release_outcome=?,release_proof_hash=?
-          where job_ref_hash=? and target_ref=? and released_at is null`).run(
-          new Date().toISOString(), input.outcome, input.proofHash, input.jobRefHash, targetRef,
-        );
-        if (result.changes < 1) throw new Error("BROWSER_TARGET_RELEASE_FENCE_MISMATCH");
-      }
-    })();
-  }
-
   public prepare(input: BrowserMutationIdentity): void {
     this.assertRuntimeTaskProvenance();
     if (input.deliveryPriorityReplayGrantHash !== null
@@ -136,6 +91,9 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
       throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_REQUIRED");
     }
     this.database.transaction(() => {
+      if (this.database.prepare("select 1 from browser_mutations where state='DISPATCHED' limit 1").get()) {
+        throw new Error("BROWSER_MUTATION_UNSETTLED");
+      }
       const rebindCommand = input.effectScope === "provider_effect"
         ? this.assertProviderEffectHistory(input) : null;
       const reusableNoInput = input.effectScope === "provider_effect"
@@ -261,6 +219,32 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
       inputHash: row.request_hash, mutation });
   }
 
+  public readConfirmedRateLimitAcknowledgement(input: Readonly<{
+    jobId: string; attemptId: string; resultRevision: number; incidentRequestId: string;
+  }>): Readonly<{ terminalAt: string }> | null {
+    const rows = this.database.prepare(`select state,mutation_outcome,physical_input_count,
+        terminal_at,proof_hash,effect_scope,action_id,reason from browser_mutations
+      where job_id=? and attempt_id=? and result_revision=?
+        and product_step_id='gpt-rate-limit-control' and call_id=?
+        and child_capability_id='acknowledge_known_gpt_rate_limit' limit 2`).all(
+      input.jobId, input.attemptId, input.resultRevision, input.incidentRequestId,
+    ) as readonly Readonly<{ state: string; mutation_outcome: string;
+      physical_input_count: number; terminal_at: string | null; proof_hash: string | null;
+      effect_scope: string; action_id: string; reason: string | null }> [];
+    if (rows.length === 0) return null;
+    if (rows.length !== 1) throw new Error("BROWSER_RATE_LIMIT_ACK_AMBIGUOUS");
+    const row = rows[0]!;
+    if (row.state !== "CONFIRMED"
+      || !(row.mutation_outcome === "confirmed" && row.physical_input_count === 1
+        || row.mutation_outcome === "no" && row.physical_input_count === 0)
+      || row.effect_scope !== "target_local"
+      || row.action_id !== "browser.dom.click.v1"
+      || row.reason !== "direct-postcondition-passed"
+      || !row.terminal_at || !Number.isFinite(Date.parse(row.terminal_at))
+      || !row.proof_hash || !/^sha256:[a-f0-9]{64}$/u.test(row.proof_hash)) return null;
+    return Object.freeze({ terminalAt: row.terminal_at });
+  }
+
   public readSourceConfirmedProviderEffect(input: Readonly<{
     jobId: string; sourceAttemptId: string; sourceResultRevision: number;
     productStepId: string; callId: string; childCapabilityId: string;
@@ -291,10 +275,16 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
       actionOrdinal: row.action_ordinal,
       targetRef: row.target_ref, effectScope: "provider_effect",
     });
+    const source = this.jobHistoryEvidence(input.jobId).replayEffects.filter((effect) =>
+      effect.effectIdentityHash === input.effectIdentityHash
+      && effect.attemptId === input.sourceAttemptId
+      && effect.resultRevision === input.sourceResultRevision);
     if (!outcome || outcome.state !== "confirmed" || outcome.mutationOutcome !== "confirmed"
       || outcome.physicalInputCount !== 1
       || outcome.providerEffectIdentityHash !== input.effectIdentityHash
-      || outcome.authorityHash !== input.walAuthorityHash || outcome.terminalPayload === null
+      || source.length !== 1 || source[0]!.walAuthorityHash !== input.walAuthorityHash
+      || source[0]!.rawWalAuthorityHash !== outcome.authorityHash
+      || outcome.terminalPayload === null
       || !outcome.terminalAt) {
       throw new Error("BROWSER_SOURCE_EFFECT_READBACK_INVALID");
     }
@@ -424,24 +414,6 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
       reason, nativeCauseCode: null, proofHash: null });
   }
 
-  public settleRetiredTargetLocal(input: Readonly<{ jobId: string; attemptId: string; writerFenceHash: string }>): BrowserMutationIdentity {
-    return this.database.transaction(() => {
-      const rows = this.database.prepare(`select ${identityColumns},state from browser_mutations
-        where state='DISPATCHED' order by updated_at,command_id limit 2`).all() as readonly MutationRow[];
-      const row = rows.length === 1 && rows[0]!.job_id === input.jobId ? rows[0]! : null;
-      if (!row) throw new Error("BROWSER_MUTATION_UNSETTLED");
-      if (row.effect_scope === "provider_effect" && row.attempt_id === input.attemptId) return mutationIdentity(row);
-      if (row.effect_scope === "provider_effect") throw new Error("BROWSER_MUTATION_UNSETTLED");
-      if (row.execution_fence_hash === input.writerFenceHash) throw new Error("BROWSER_MUTATION_UNSETTLED");
-      const identity = mutationIdentity(row);
-      const proofHash = `sha256:${createHash("sha256").update(JSON.stringify([identity.commandId,
-        identity.executionFenceHash, input.writerFenceHash])).digest("hex")}` as const;
-      this.resolve({ commandId: identity.commandId, targetRef: identity.targetRef, state: "REJECTED",
-        mutationOutcome: "dispatched", proofHash, reason: "BROWSER_TARGET_LOCAL_EXECUTION_RETIRED" });
-      return identity;
-    })();
-  }
-
   public resolve(input: Readonly<{
     commandId: string;
     targetRef: string;
@@ -464,6 +436,9 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
   public purgeJob(jobId: string): void {
     if (!jobId || /[\0]/u.test(jobId)) throw new Error("BROWSER_JOB_ID_INVALID");
     this.database.transaction(() => {
+      if (this.database.prepare("select 1 from browser_mutations where job_id=? and state='DISPATCHED' limit 1").get(jobId)) {
+        throw new Error("BROWSER_MUTATION_UNRESOLVED");
+      }
       this.database.prepare("delete from browser_mutations where job_id=?").run(jobId);
     })();
     if (this.hasMutationForJob(jobId)) throw new Error("BROWSER_JOB_PURGE_INCOMPLETE");

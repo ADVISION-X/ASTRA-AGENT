@@ -207,7 +207,6 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     targetMode: "fresh" | "bound-observation" | "confirmed-readback" | "authorized-continuation",
     jobRefHash: `sha256:${string}`,
     parentConversationUrl?: string,
-    expectedTargetRef?: string,
   ): number {
     if ((targetMode === "authorized-continuation") !== (typeof parentConversationUrl === "string")) {
       throw new Error("BROWSER_TARGET_INVALID");
@@ -222,8 +221,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       sequence,
       new Date(Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS).toISOString(),
       { action: "acquire", targetMode, jobRefHash,
-        ...(targetMode === "authorized-continuation" ? { parentConversationUrl } : {}),
-        ...(expectedTargetRef ? { expectedTargetRef } : {}) },
+        ...(targetMode === "authorized-continuation" ? { parentConversationUrl } : {}) },
     );
     this.active = { ...active, nextServerSequence: sequence + 1 };
     try {
@@ -236,7 +234,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
   }
 
   public requestPreauthorizedTargetRelease(
-    jobRefHash: `sha256:${string}`, targetRefs: readonly string[],
+    jobRefHash: `sha256:${string}`,
   ): void {
     this.assertLive();
     const active = this.active;
@@ -247,7 +245,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       "TARGET_ACQUIRE",
       sequence,
       new Date(Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS).toISOString(),
-      { action: "release", jobRefHash, targetRefs },
+      { action: "release", jobRefHash },
     );
     this.active = { ...active, nextServerSequence: sequence + 1 };
     try { active.socket.send(encodeBrowserAuthorityFrame(frame)); }

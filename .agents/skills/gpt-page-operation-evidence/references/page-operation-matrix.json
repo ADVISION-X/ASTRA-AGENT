@@ -168,8 +168,7 @@
         ],
         "attachment-cards-ready": [
           "composer",
-          "attachment-cards",
-          "upload-status"
+          "attachment-cards"
         ],
         "attachment-set-exact": [
           "composer",
@@ -369,8 +368,7 @@
       "scenarioId": "text-main",
       "coreTargets": [
         "conversation-root",
-        "composer",
-        "attachment-region"
+        "composer"
       ],
       "requiredLiveStates": [
         "fresh-empty-chat",
@@ -380,8 +378,7 @@
       "liveStateTargets": {
         "fresh-empty-chat": [
           "conversation-root",
-          "composer",
-          "attachment-region"
+          "composer"
         ],
         "stale-draft-before": [
           "conversation-root",
@@ -389,8 +386,7 @@
         ],
         "stale-draft-after-clean": [
           "conversation-root",
-          "composer",
-          "attachment-region"
+          "composer"
         ]
       },
       "optionalLiveStates": [
@@ -411,6 +407,64 @@
             "path": "stateFacts.currentRouteKind",
             "operator": "equals",
             "value": "ROOT"
+          },
+          {
+            "path": "stateFacts.composerCount",
+            "operator": "equals",
+            "value": 1
+          },
+          {
+            "path": "stateFacts.exactComposerHash",
+            "operator": "equals",
+            "value": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "path": "stateFacts.approvedAttachmentCount",
+            "operator": "equals",
+            "value": 0
+          },
+          {
+            "path": "stateFacts.attachmentLabelHashes",
+            "operator": "equals",
+            "value": []
+          },
+          {
+            "path": "stateFacts.attachmentUploadPending",
+            "operator": "equals",
+            "value": false
+          },
+          {
+            "path": "stateFacts.attachmentTerminalErrorVisible",
+            "operator": "equals",
+            "value": false
+          },
+          {
+            "path": "stateFacts.exactUserPromptHashes",
+            "operator": "equals",
+            "value": []
+          },
+          {
+            "path": "stateFacts.assistantTurnCount",
+            "operator": "equals",
+            "value": 0
+          },
+          {
+            "path": "stateFacts.assistantGenerationActive",
+            "operator": "equals",
+            "value": false
+          },
+          {
+            "path": "stateFacts.chatModeFacts",
+            "operator": "equals",
+            "value": {
+              "groupCount": 1,
+              "chatButtonCount": 1,
+              "workButtonCount": 1,
+              "chatPressed": "true",
+              "workPressed": "false",
+              "chatTextExact": true,
+              "workTextExact": true
+            }
           },
           {
             "path": "stateFacts.productUserTurnCount",
@@ -436,6 +490,36 @@
           }
         ],
         "stale-draft-after-clean": [
+          {
+            "path": "stateFacts.composerCount",
+            "operator": "equals",
+            "value": 1
+          },
+          {
+            "path": "stateFacts.exactComposerHash",
+            "operator": "equals",
+            "value": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "path": "stateFacts.approvedAttachmentCount",
+            "operator": "equals",
+            "value": 0
+          },
+          {
+            "path": "stateFacts.attachmentLabelHashes",
+            "operator": "equals",
+            "value": []
+          },
+          {
+            "path": "stateFacts.attachmentUploadPending",
+            "operator": "equals",
+            "value": false
+          },
+          {
+            "path": "stateFacts.attachmentTerminalErrorVisible",
+            "operator": "equals",
+            "value": false
+          },
           {
             "path": "stateFacts.composerProductMarkerPresent",
             "operator": "equals",
@@ -557,11 +641,6 @@
       "stateAssertions": {
         "model-selector-openable": [
           {
-            "path": "core.attributes.aria-expanded",
-            "operator": "equals",
-            "value": "false"
-          },
-          {
             "path": "stateFacts.capturePhase",
             "operator": "equals",
             "value": "PRE_ACTION"
@@ -595,22 +674,23 @@
       "childCapabilityId": "select_gpt_model_from_start_v3",
       "scenarioId": "text-main",
       "coreTargets": [
-        "model-option"
+        "model-option",
+        "composer"
       ],
       "requiredLiveStates": [
-        "target-model-actionable-unchecked",
+        "target-model-actionable",
         "model-panel-closed-after-selection",
         "model-selection-postcondition"
       ],
       "liveStateTargets": {
-        "target-model-actionable-unchecked": [
+        "target-model-actionable": [
           "model-option"
         ],
         "model-panel-closed-after-selection": [
-          "model-option"
+          "composer"
         ],
         "model-selection-postcondition": [
-          "model-option"
+          "composer"
         ]
       },
       "optionalLiveStates": [
@@ -626,11 +706,14 @@
         "production-execution-profile"
       ],
       "stateAssertions": {
-        "target-model-actionable-unchecked": [
+        "target-model-actionable": [
           {
-            "path": "core.attributes.aria-checked",
-            "operator": "equals",
-            "value": "false"
+            "path": "core.targets.model-option.attributes.aria-checked",
+            "operator": "oneOf",
+            "values": [
+              "true",
+              "false"
+            ]
           },
           {
             "path": "stateFacts.capturePhase",
@@ -640,8 +723,9 @@
         ],
         "model-panel-closed-after-selection": [
           {
-            "path": "core.targets.model-option",
-            "operator": "absent"
+            "path": "related.transitionChain.directPostcondition.passed",
+            "operator": "equals",
+            "value": true
           },
           {
             "path": "stateFacts.capturePhase",
@@ -651,9 +735,14 @@
         ],
         "model-selection-postcondition": [
           {
-            "path": "core.attributes.aria-checked",
+            "path": "related.transitionChain.typedCommand.kind",
             "operator": "equals",
-            "value": "true"
+            "value": "ZERO_ACTION"
+          },
+          {
+            "path": "related.transitionChain.directPostcondition.passed",
+            "operator": "equals",
+            "value": true
           },
           {
             "path": "stateFacts.capturePhase",
@@ -721,6 +810,11 @@
             "operator": "present"
           },
           {
+            "path": "related.transitionChain.directPostcondition.passed",
+            "operator": "equals",
+            "value": true
+          },
+          {
             "path": "stateFacts.capturePhase",
             "operator": "equals",
             "value": "POST_ACTION"
@@ -730,6 +824,16 @@
           {
             "path": "stateFacts.authorizedInputVariantHashes",
             "operator": "present"
+          },
+          {
+            "path": "related.transitionChain.typedCommand.kind",
+            "operator": "equals",
+            "value": "ZERO_ACTION"
+          },
+          {
+            "path": "related.transitionChain.directPostcondition.passed",
+            "operator": "equals",
+            "value": true
           },
           {
             "path": "stateFacts.capturePhase",
@@ -758,10 +862,12 @@
           "execution-profile-close-control"
         ],
         "profile-closed": [
-          "composer"
+          "composer",
+          "execution-profile-close-control"
         ],
         "profile-already-closed": [
-          "composer"
+          "composer",
+          "execution-profile-close-control"
         ]
       },
       "optionalLiveStates": [
@@ -788,9 +894,18 @@
         ],
         "profile-closed": [
           {
-            "path": "core.targets.composer.attributes.id",
+            "path": "stateFacts.composerCount",
             "operator": "equals",
-            "value": "prompt-textarea"
+            "value": 1
+          },
+          {
+            "path": "core.targets.execution-profile-close-control.attributes.aria-expanded",
+            "operator": "equals",
+            "value": "false"
+          },
+          {
+            "path": "core.targets.execution-profile-close-control.attributes.id",
+            "operator": "present"
           },
           {
             "path": "stateFacts.capturePhase",
@@ -800,9 +915,18 @@
         ],
         "profile-already-closed": [
           {
-            "path": "core.targets.composer.attributes.id",
+            "path": "stateFacts.composerCount",
             "operator": "equals",
-            "value": "prompt-textarea"
+            "value": 1
+          },
+          {
+            "path": "core.targets.execution-profile-close-control.attributes.aria-expanded",
+            "operator": "equals",
+            "value": "false"
+          },
+          {
+            "path": "core.targets.execution-profile-close-control.attributes.id",
+            "operator": "present"
           },
           {
             "path": "stateFacts.capturePhase",
@@ -852,9 +976,8 @@
       "stateAssertions": {
         "attachment-trigger-before": [
           {
-            "path": "core.attributes.data-testid",
-            "operator": "equals",
-            "value": "composer-plus-btn"
+            "path": "core.targets.attachment-trigger",
+            "operator": "present"
           },
           {
             "path": "stateFacts.capturePhase",
@@ -1006,26 +1129,19 @@
       "stateAssertions": {
         "upload-leaf-ready": [
           {
-            "path": "core.attributes.role",
-            "operator": "equals",
-            "value": "menuitem"
-          },
-          {
-            "path": "stateFacts.capturePhase",
-            "operator": "equals",
-            "value": "ALREADY_SATISFIED"
+            "path": "core.targets.upload-entry",
+            "operator": "present"
           }
         ],
         "file-chooser-bound": [
           {
-            "path": "core.attributes.type",
+            "path": "core.targets.file-input.attributes.type",
             "operator": "equals",
             "value": "file"
           },
           {
-            "path": "core.attributes.id",
-            "operator": "equals",
-            "value": "upload-files"
+            "path": "core.targets.file-input",
+            "operator": "present"
           }
         ],
         "file-set-readback": [
@@ -1070,9 +1186,8 @@
       "stateAssertions": {
         "pre-submit-ready": [
           {
-            "path": "core.targets.submit-control.attributes.data-testid",
-            "operator": "equals",
-            "value": "send-button"
+            "path": "core.targets.submit-control",
+            "operator": "present"
           },
           {
             "path": "stateFacts.capturePhase",

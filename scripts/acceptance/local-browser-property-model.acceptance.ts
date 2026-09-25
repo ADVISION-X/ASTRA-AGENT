@@ -340,6 +340,9 @@ try {
       permit.sequence + 1,
     )],
   ] as const) {
+    const forgedRoot = join(chainRoot, `forged-${caseName}`);
+    const forgedStore = new BrowserMutationStore(forgedRoot);
+    forgedStore.verifyRuntimeTaskProvenance(null);
     const forgedPermit = permitFor(
       caseName === "wrong-reply-token" ? 31 : 32,
       "browser.dom.click.v1",
@@ -355,7 +358,7 @@ try {
           throw terminalErrorFor(permit);
         },
       },
-      chainStore,
+      forgedStore,
       { assertCurrentAuthority: () => undefined },
       createRuntimeLogger({
         producer: `browser-reply-chain-${caseName}`,
@@ -366,10 +369,11 @@ try {
       }),
     );
     await assert.rejects(forgedActor.execute(forgedPermit, graceCommand), /BROWSER_COMMAND_RECEIPT_MISSING/u);
-    assert.equal(chainStore.readCommand(forgedPermit.commandId)?.state ?? null, "DISPATCHED");
-    assert.equal(chainStore.readMutationOutcome(forgedPermit.commandId), "dispatched");
+    assert.equal(forgedStore.readCommand(forgedPermit.commandId)?.state ?? null, "DISPATCHED");
+    assert.equal(forgedStore.readMutationOutcome(forgedPermit.commandId), "dispatched");
     assert.equal(forgedDispatches, 1,
       `${caseName} must not counterfeit terminal settlement or authorize a second dispatch`);
+    forgedStore.close();
   }
 
   const missingReplyPermit = {
@@ -387,4 +391,4 @@ try {
   await rm(chainRoot, { recursive: true, force: true });
 }
 console.log("LOCAL_BROWSER_PROPERTY_MODEL_ACCEPTANCE_PASS");
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V53", evidenceMode: "exam.property", clauses: ["forbidden:0"], locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 authenticated frame sequences round-trip exactly and missing terminal replies preserve a single DISPATCHED command without replay" });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V54", evidenceMode: "exam.property", clauses: ["forbidden:0"], locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 authenticated frame sequences round-trip exactly and missing terminal replies preserve a single DISPATCHED command without replay" });

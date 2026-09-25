@@ -349,7 +349,15 @@ mainFrameUrlByTab.set(3, "https://chatgpt.com/c/sidebar-target?messageId=message
 const alreadySelected = await selectConversation("https://chatgpt.com/c/sidebar-target");
 assert.deepEqual([alreadySelected.documentRef, providerInputMethods.length], [interactionTarget.documentRef,
   selectionBaseline[0]], "an exact current conversation must require zero clicks");
-const selected = await selectConversation("https://chatgpt.com/c/sidebar-next");
+mainFrameLoaderByTab.set(3, "loader-3-same-url-reload");
+const reloadedAtSameUrl = await selectConversation("https://chatgpt.com/c/sidebar-target");
+assert.notEqual(reloadedAtSameUrl.documentRef, interactionTarget.documentRef,
+  "the same canonical URL with a new main-frame loader must publish a current Document");
+assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length,
+  selectionBaseline[1], "same-URL Document refresh must not navigate");
+const reloadedTarget = targetAuthority.resolve(String(reloadedAtSameUrl.targetRef),
+  String(reloadedAtSameUrl.documentRef));
+const selected = await selectConversation("https://chatgpt.com/c/sidebar-next", reloadedTarget);
 assert.notEqual(selected.documentRef, interactionTarget.documentRef, "selection must publish a fresh Document");
 assert.equal(providerInputMethods.length, selectionBaseline[0], "conversation navigation must produce zero pointer input");
 assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length, selectionBaseline[1] + 1,
@@ -468,6 +476,38 @@ await exerciseAuthorizedContinuation({
   authority: targetAuthority, nextCreatedTabId, waitForCreatedTab, targetTabUpdated,
   targetFrames, debuggerMethods, mainFrameUrlByTab,
 });
+const closedJob = `sha256:${"f".repeat(64)}` as const;
+const closedTabId = nextCreatedTabId;
+const firstClosedTabClaim = targetAuthority.acquireJobBoundChatGptTarget("fresh", closedJob);
+await waitForCreatedTab(closedTabId);
+targetTabUpdated(closedTabId, { status: "complete" }, {
+  id: closedTabId, url: "https://chatgpt.com/", title: "ChatGPT",
+});
+await firstClosedTabClaim;
+const oldTargetRef = targetFrames.at(-1)?.body.targetRef;
+await targetAuthority.parkActiveTarget();
+removedTabs.push(closedTabId);
+const replacementTabId = nextCreatedTabId;
+const failuresBeforeClosedTabRecovery = targetFailures.length;
+await assert.rejects(
+  targetAuthority.acquireJobBoundChatGptTarget("bound-observation", closedJob),
+  /BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT/u,
+  "a stale bound observation must not replace its missing current Tab",
+);
+assert.equal(nextCreatedTabId, replacementTabId,
+  "a missing bound observation must not create a new system Tab");
+const replacement = targetAuthority.acquireJobBoundChatGptTarget("confirmed-readback", closedJob);
+await waitForCreatedTab(replacementTabId);
+targetTabUpdated(replacementTabId, { status: "complete" }, {
+  id: replacementTabId, url: "https://chatgpt.com/", title: "ChatGPT",
+});
+await replacement;
+assert.notEqual(targetFrames.at(-1)?.body.targetRef, oldTargetRef,
+  "a closed parked Tab must be replaced with a current Target on the next acquisition");
+assert.equal(targetFailures.length, failuresBeforeClosedTabRecovery,
+  "closed parked Tab recovery must not report an old Target failure first");
+await targetAuthority.parkActiveTarget();
+await targetAuthority.releaseJobBoundChatGptTarget(closedJob);
 await exerciseClaimBroker({ hashes: rotationHashes, activatedTabs, removedTabs });
 process.stdout.write("LOCAL_BROWSER_AUTO_PAIRING_AND_EXACT_CHATGPT_CLAIM_ACCEPTANCE_PASS\n");
 emitLocalBrowserAutoPairingProofs();

@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 
 import type {
   BrowserAtomicStepIdentity,
-  BrowserAtomicStepOutcome,
   BrowserTargetLease,
 } from "../../lib/browser/browser-authority-api.js";
 import type {
@@ -196,7 +195,6 @@ export type GptExecutionContext = Readonly<{
     providerEffectIdentityHash: `sha256:${string}`;
     mutationOutcome: "no" | "confirmed";
   }>;
-  dispatchedProviderEffectReadback?: BrowserAtomicStepOutcome;
   recordConfirmedProviderEffectReadback?: (proof: Readonly<{
     jobId: string;
     attemptId: string;

@@ -20,7 +20,7 @@ import {
   type RuntimeSpanHandle,
 } from "../../src/lib/runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
-import { executionFailure, executionFailureMetadata, oldTargetUnavailableFact,
+import { executionFailure, executionFailureMetadata,
   typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import type { BrowserExecutionArtifact } from "../../src/lib/browser/browser-authority-api.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
@@ -273,26 +273,18 @@ try {
     ),
     /PUBLIC_KNOWLEDGE_TOPIC_MANIFEST_INVALID/u,
   );
-  const oldTargetError = executionFailure("failed", "BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE") as
-    ReturnType<typeof executionFailure> & { oldTargetUnavailableFact?: Readonly<{
-      jobRefHash: `sha256:${string}`; targetRefHash: `sha256:${string}`;
-      proofHash: `sha256:${string}` }> };
-  oldTargetError.oldTargetUnavailableFact = {
-    jobRefHash: HASH_A, targetRefHash: HASH_B, proofHash: HASH_A,
-  };
-  const providerFailure = executionFailure("failed", "BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE", {
-    cause: oldTargetError, metadata: { browserEffect: {
+  const providerFailure = executionFailure("failed", "BROWSER_COMMAND_ADMISSION_SUSPENDED", {
+    metadata: { browserEffect: {
       effectScope: "provider_effect", childCapabilityId: "submit_exact_gpt_turn_once",
       browserOutcome: "CONFIRMED", providerEffectIdentityHash: HASH_B,
     } },
   });
   assert.throws(
     () => terminalizePluginFailure.call(
-      executor, startPluginSpan("old-target-provider-identity"), providerFailure,
+      executor, startPluginSpan("provider-identity"), providerFailure,
     ),
     (error: unknown) => error === providerFailure
-      && executionFailureMetadata(error)?.browserEffect?.providerEffectIdentityHash === HASH_B
-      && oldTargetUnavailableFact(error)?.proofHash === HASH_A,
+      && executionFailureMetadata(error)?.browserEffect?.providerEffectIdentityHash === HASH_B,
   );
   const childSpan = requireRuntimeLogWrite(pluginFailureLogger.startSpan({
     traceId: "job:plugin-failure-code", owner: "gpt", component: "gpt-child",
@@ -414,7 +406,7 @@ try {
     return [failure.code, failure.impact, failure.causedByEventId ?? null];
   }), [
     ["PUBLIC_KNOWLEDGE_TOPIC_MANIFEST_INVALID", RuntimeFailureImpact.BLOCKING, null],
-    ["BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE", RuntimeFailureImpact.BLOCKING, null],
+    ["BROWSER_COMMAND_ADMISSION_SUSPENDED", RuntimeFailureImpact.BLOCKING, null],
     ["GPT_CHILD_FAILED", RuntimeFailureImpact.CONSEQUENTIAL, childTerminal.eventId],
     ["PAYMENT_OBSERVATION_PROVIDER_FAILED", RuntimeFailureImpact.BLOCKING, null],
   ]);

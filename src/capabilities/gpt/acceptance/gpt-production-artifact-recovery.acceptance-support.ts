@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
-import { executionFailureMetadata, failureCode, oldTargetUnavailableFact } from
+import { executionFailureMetadata, failureCode } from
   "../../../lib/execution-failure.js";
 import { createGptAbilityGroup } from "../index.js";
 import { isProviderEffectReadbackProofV1 } from "../production-child-support.js";
@@ -290,12 +290,7 @@ try {
     "settled source reuse must read original WAL and Forensics with zero Browser acquisition");
   await sourceExecution.settle(null);
 
-  const unavailable = new Error("BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE") as Error & {
-    oldTargetUnavailableFact?: Readonly<{ jobRefHash: `sha256:${string}`;
-      targetRefHash: `sha256:${string}`; proofHash: `sha256:${string}` }>;
-  };
-  unavailable.oldTargetUnavailableFact = { jobRefHash: hash(jobId),
-    targetRefHash: hash("target:recovery"), proofHash: hash("old-instance-unavailable") };
+  const unavailable = new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
   const unavailableExecution = new ProductionGptChildTools(join(temporary, "unavailable-readback"), HASH_A,
     createGptAbilityGroup(), evidenceStore, {
       ...authority, acquireJobBoundTargetLease: async () => { throw browserExecutionFailure(unavailable); },
@@ -315,9 +310,8 @@ try {
   await assert.rejects(unavailableExecution.tools.readConfirmedSubmit({ sessionKey,
     productStepId: "research", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
     actionOrdinal: 1, input: submitInput }), (error: unknown) => {
-    assert.equal(failureCode(error), "BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE");
+    assert.equal(failureCode(error), "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
     assert.equal(executionFailureMetadata(error)?.browserEffect?.providerEffectIdentityHash, HASH_A);
-    assert.equal(oldTargetUnavailableFact(error)?.proofHash, unavailable.oldTargetUnavailableFact?.proofHash);
     return true;
   });
 

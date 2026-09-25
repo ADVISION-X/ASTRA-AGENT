@@ -50,8 +50,6 @@ const parseLocalProviderCooldownReceipt = (body: Buffer, response: unknown): unk
     payloadHash: hashCanonical(request),
     dialogHash: request.dialog_hash as ProductionHash,
     observationHash: request.observation_hash as ProductionHash,
-    targetRefHash: request.target_ref_hash as ProductionHash,
-    documentRefHash: request.document_ref_hash as ProductionHash,
   });
 };
 

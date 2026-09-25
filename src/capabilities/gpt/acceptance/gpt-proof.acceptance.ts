@@ -1,5 +1,7 @@
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 import { executionFailure } from "../../../lib/execution-failure.js";
+import { detectedKnownGptRateLimitExactFact } from
+  "../../../../scripts/acceptance/local-browser-rate-limit-detector.acceptance-support.js";
 
 import { buildGptExecutionProfile } from "../index.js";
 import {
@@ -9,6 +11,7 @@ import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
 import { executeProductionGptAtomicCall } from "../production-atomic-call.js";
 import { failedGptChildExecutionResult } from "../ability-group.js";
 import { closeKnownProviderRateLimit } from "../production-rate-limit-closure.js";
+import { ProductionGptChildTools } from "../production-child-tools.js";
 import type { ProductionGptBrowserCall } from "../production-browser-lifecycle.js";
 import { conversationUrl, promptHash } from "./gpt-conversation-fixture.js";
 import { verifyStoppedEmptyRecoveryContract } from "./gpt-stopped-empty.acceptance-support.js";
@@ -73,17 +76,15 @@ assert.equal(done.proof.browserFact, null);
 {
   const rateLimitHarness = createGptAcceptanceHarness("gpt-proof-known-rate-limit");
   const intent = rateLimitHarness.buildIntent("open_gpt_model_selector_v3", { profile });
-  const observedAt = "2026-09-21T00:00:00.000Z";
-  const exactCallHash = `sha256:${"1".repeat(64)}` as const;
-  const targetRefHash = `sha256:${"2".repeat(64)}` as const;
-  const documentRefHash = `sha256:${"3".repeat(64)}` as const;
-  const observationHash = `sha256:${"4".repeat(64)}` as const;
+  const preflight = await detectedKnownGptRateLimitExactFact();
+  const { observedAt, exactCallIdentityHash: exactCallHash,
+    targetRefHash, documentRefHash, observationHash } = preflight;
   const failed = await failedGptChildExecutionResult({
     intent,
     context: { dataDir: "/tmp/gpt-known-rate-limit" },
     startedAt: observedAt,
     error: executionFailure("failed", "BROWSER_KNOWN_GPT_RATE_LIMIT", {
-      metadata: { mutationOutcome: "no", evidence: {
+      metadata: { mutationOutcome: "no", knownGptRateLimitPreflightFact: preflight, evidence: {
         evidenceRef: ["browser-known-gpt-rate-limit", observedAt, exactCallHash,
           targetRefHash, documentRefHash].join("|"),
         evidenceHash: observationHash,
@@ -111,9 +112,9 @@ assert.equal(done.proof.browserFact, null);
     },
     executeAcknowledgement: async () => { throw new Error("ACK_NOT_RUN_IN_PARSE_ACCEPTANCE"); },
   }), /ACK_NOT_RUN_IN_PARSE_ACCEPTANCE/u);
-  assert.equal(Reflect.get(incidentInput ?? {}, "targetRefHash"), targetRefHash);
-  assert.equal(Reflect.get(incidentInput ?? {}, "documentRefHash"), documentRefHash);
-  assert.equal(Reflect.get(incidentInput ?? {}, "observationHash"), observationHash);
+  assert.equal(Reflect.has(incidentInput ?? {}, "targetRefHash"), false);
+  assert.equal(Reflect.has(incidentInput ?? {}, "documentRefHash"), false);
+  assert.notEqual(Reflect.get(incidentInput ?? {}, "observationHash"), observationHash);
   assert.equal(delivered, 1, "known exact dialog must still enter and close the current incident path");
   const clearanceWrites: string[] = [];
   await assert.rejects(closeKnownProviderRateLimit({
@@ -136,10 +137,27 @@ assert.equal(done.proof.browserFact, null);
     executeAcknowledgement: async () => ({ value: {
       clearance: "confirmed_absent", acknowledgementReceiptHash: observationHash,
       acknowledgedAt: observedAt,
+    }, exactCallIdentityHash: exactCallHash, effectReceipt: {
+      outcome: "CONFIRMED", mutationOutcome: "confirmed", terminalAt: observedAt,
     } }) as never,
   }), /CLEARANCE_RESPONSE_LOST/u);
   assert.deepEqual(clearanceWrites, ["confirmed_absent"],
     "a lost clearance response must not append not_cleared after an acknowledged absence");
+  for (const terminalAt of [null, observedAt]) {
+    const recovered: Readonly<Record<string, unknown>>[] = [];
+    const tools = new ProductionGptChildTools("/tmp", observationHash,
+      {} as never, {} as never, {
+        readConfirmedRateLimitAcknowledgement: () => terminalAt ? { terminalAt } : null,
+        acquireJobBoundTargetLease: () => { throw new Error("OLD_INCIDENT_MUST_NOT_ACQUIRE_TARGET"); },
+      } as never, {} as never, {
+        pendingIncidents: () => [incidentInput as never],
+        beginIncident: async () => ({ incidentRequestId: `aipcooldown_${"7".repeat(40)}`,
+          deliver: async (clearance: Readonly<Record<string, unknown>>) => { recovered.push(clearance); } }),
+      } as never);
+    await tools.reconcilePendingProviderRateLimitIncidents("parent:cooldown", new AbortController().signal);
+    assert.equal(recovered[0]?.clearance, terminalAt ? "confirmed_absent" : "not_cleared");
+    assert.equal(recovered.length, 1);
+  }
 }
 
 let open = false;
@@ -325,14 +343,10 @@ for (const promptMatches of [true, false]) {
   const browserCall: ProductionGptBrowserCall = { browser: fixture.browser, facade: fixture.browser,
     providerWaitLog: null, confirmedProviderEffect: null, settledResultPayloadHash: null,
     recoverySelectionRequired: false };
-  const recovered = await executeProductionGptAtomicCall({ dataDir: "/tmp/gpt-exact-target",
+  await assert.rejects(executeProductionGptAtomicCall({ dataDir: "/tmp/gpt-exact-target",
     gpt: harness.gpt, browsers: {} as never, intent, browserCall,
-    signal: new AbortController().signal, resultRevision: 0 });
-  assert.equal(recovered.status, promptMatches ? "success" : "failed",
-    recovered.failureCode ?? "DISPATCHED submit readback returned the wrong status");
-  assert.equal(recovered.proof.committedMutation, promptMatches ? "confirmed" : "dispatched");
-  assert.equal(recovered.proof.browserFact?.providerEffectIdentityHash,
-    dispatched.providerEffectIdentityHash);
+    signal: new AbortController().signal, resultRevision: 0 }),
+  /GPT_ATOMIC_STEP_ALREADY_ATTEMPTED/u);
   assert.equal(fixture.physicalMutations(), 0, "DISPATCHED submit readback must never resend");
 }
 

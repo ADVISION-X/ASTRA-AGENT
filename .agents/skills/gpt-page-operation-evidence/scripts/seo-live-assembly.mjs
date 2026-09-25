@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { gptAttachmentProviderDisplayName } from "../../../../src/capabilities/gpt/schema.ts";
 import { assertSceneBindings, makeLiveSpecimen } from "./assemble-live-capture.mjs";
+import { loadPinnedLocalizationTurn } from "./localization-live-turns.mjs";
 import { articlePreSubmitHasUnexpectedAttachment, fixedFieldValues, freezeSeoFlow, localeOrder, projectLocalizationSource,
   selectedSeoBranch, sealSeoRevision, seoActionConflicts, seoFlowGaps,
   validateSeoRevision } from "./seo-report-revisions.mjs";
@@ -92,6 +95,35 @@ export async function assembleSeoLiveRevision({ repo, inventory, matrix, scenes,
       }
     }
   }
+  const researchMaterial = sourceAdmission.task?.material_refs?.[0];
+  if (!researchMaterial || sourceAdmission.task.material_refs.length !== 1) {
+    die("SEO_RESEARCH_MATERIAL_SOURCE_INVALID");
+  }
+  const expectedAttachmentNamesByStep = new Map([["corpus_research", [
+    gptAttachmentProviderDisplayName(researchMaterial.display_name,
+      sourceAdmission.task.job_id, researchMaterial.material_id),
+  ]], ["article_synthesis", []], ["article_image_generation", []]]);
+  const expectedUploadFilesByStep = new Map([["corpus_research", [{
+    providerDisplayNameHash: sha(expectedAttachmentNamesByStep.get("corpus_research")[0]),
+    sha256: source.archiveHash, bytes: source.archiveBytes,
+  }]]]);
+  const assetsDir = join(repo, ".agents/skills/gpt-page-operation-evidence/assets");
+  for (const locale of localeOrder) {
+    const pinned = await loadPinnedLocalizationTurn({ repo, assetsDir, locale });
+    const projected = localizationSource.entries.find((entry) => entry.locale === locale);
+    if (!projected || digest(pinned.source) !== digest(projected)) {
+      die("SEO_LOCALIZATION_ATTACHMENT_SOURCE_DRIFT");
+    }
+    expectedAttachmentNamesByStep.set(`article_translation:${locale}`,
+      pinned.materialFiles.map((material) => gptAttachmentProviderDisplayName(
+        material.display_name, pinned.task.job_id, material.material_id)));
+    expectedUploadFilesByStep.set(`article_translation:${locale}`,
+      pinned.materialFiles.map((material) => ({
+        providerDisplayNameHash: sha(gptAttachmentProviderDisplayName(
+          material.display_name, pinned.task.job_id, material.material_id)),
+        sha256: material.sha256, bytes: material.bytes,
+      })).sort((left, right) => left.providerDisplayNameHash.localeCompare(right.providerDisplayNameHash)));
+  }
   const captureRunId = mapping.captureRunId;
   const captureEpoch = mapping.captureEpoch;
   if (!captureRunId || !/^sha256:[a-f0-9]{64}$/u.test(captureEpoch ?? "")
@@ -152,12 +184,23 @@ export async function assembleSeoLiveRevision({ repo, inventory, matrix, scenes,
       && !requirement.childSpecificDerivedStates.includes(stateId))) die("SEO_CALL_STATE_UNPLANNED");
     for (const sceneId of mappedIds) {
       if (!sceneById.has(sceneId) || sceneOwners.has(sceneId)) die("SEO_CALL_SCENE_REUSED_OR_MISSING");
+      if (sceneById.get(sceneId).transitionReceipt?.clickedCandidateAttributeReadback
+        && mapped.childCapabilityId !== "select_gpt_model_from_start_v3") {
+        die("SEO_MODEL_CLICK_READBACK_WRONG_CHILD");
+      }
       sceneOwners.add(sceneId);
     }
     calls.push({ observedCallId: id, stepId: mapped.stepId,
       childCapabilityId: mapped.childCapabilityId, sceneIds: [...mappedIds],
       stateIds,
       promptHash: mapped.promptHash, turnMarkerHash: mapped.turnMarkerHash,
+      ...(["attach_approved_gpt_files_once", "reconcile_gpt_attachment_set",
+        "submit_exact_gpt_turn_once"]
+        .includes(mapped.childCapabilityId)
+        ? { expectedAttachmentLabelHashes: expectedAttachmentNamesByStep
+          .get(mapped.stepId)?.map(sha).sort() ?? [] } : {}),
+      ...(mapped.childCapabilityId === "attach_approved_gpt_files_once"
+        ? { expectedUploadFiles: expectedUploadFilesByStep.get(mapped.stepId) ?? [] } : {}),
       ...(localeSegment ? { productStepId: "article_synthesis",
         sourceJobIdHash: localeSegment.jobIdHash,
         materialDigest: digest(localeSegment.materials) } : {}),
@@ -214,7 +257,7 @@ export async function assembleSeoLiveRevision({ repo, inventory, matrix, scenes,
     die("SEO_STAGE_RECEIPTS_INVALID");
   }
   const flowGaps = seoFlowGaps({ schemaVersion: "gpt-page-seo-capture-revision.v2",
-    calls, cells, frozenFlow, frozenPlan: plan, scenes });
+    calls, cells, frozenFlow, frozenPlan: plan, scenes, source });
   const actionConflicts = seoActionConflicts({ schemaVersion: "gpt-page-seo-capture-revision.v2",
     calls, cells });
   const complete = flowGaps.length === 0 && actionConflicts.length === 0

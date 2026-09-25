@@ -95,11 +95,11 @@ const inspectNonDestructiveTargetRelease = (
   ].every((token) => method.includes(token));
   const forbiddenReleaseFacts = ["close: async"].some((token) => method.includes(token));
   const requiredLaneFacts = [
-    "mutationBlocked && !this.mayCrossUnresolved(waiter)",
-    "settleRetiredTargetLocal(waiter.binding)",
-    'waiter.binding.kind === "production"',
-    'waiter.releaseAuthority === "website-admin-deletion"',
-  ].every((token) => laneText.includes(token));
+    "const mutationBlocked = this.hasUnresolvedMutation()",
+    "waiter.kind === \"acquire\"", "countDispatched(waiter.jobId)", "index += 1",
+  ].every((token) => laneText.includes(token))
+    && !laneText.includes("settleRetiredTargetLocal")
+    && !laneText.includes("allDispatchedTargetsSettled");
   const forbiddenPermanentRevocation = laneText.includes('website-permanent-revocation');
   const lifecycleSettles = lifecycle.includes("finally")
     && lifecycle.indexOf("this.active = false") > lifecycle.indexOf("finally");
@@ -110,7 +110,7 @@ const inspectNonDestructiveTargetRelease = (
     !lifecycle.includes("revokeOperatorTargetClaim")].every(Boolean)) return;
   findings.push(createLocalFinding({
     checkId: "browser-authority/dispatched-mutation-target-release", lawId, filePath: targetLeaseManagerPath,
-    message: "The one lane must permit only exact same-job production closure or Website-authorized deletion through unresolved DISPATCHED.",
+    message: "The one lane must block new physical work while any Browser WAL command remains DISPATCHED.",
   }));
 };
 
@@ -127,24 +127,17 @@ const inspectExactChatGptPolicy = (source: ReturnType<typeof requireSource>, fin
   }));
 };
 
-const acquisitionBindsOldTargetBeforeCreating = (acquisition: string, preflight: string): boolean =>
+const acquisitionUsesOnlyCurrentTargetBeforeCreating = (acquisition: string, preflight: string): boolean =>
   acquisition.includes('targetMode: "fresh" | "bound-observation" | "confirmed-readback" | "authorized-continuation"')
-  && acquisition.includes('targetMode === "fresh"')
   && preflight.includes('findByJobRefHash(input.jobRefHash)')
-  && preflight.includes('input.expectedTargetRef && bound?.targetRef !== input.expectedTargetRef')
-  && preflight.includes('if (input.expectedTargetRef && !bound)')
-  && acquisition.includes('if (bound) return this.reacquireParkedTarget(')
-  && acquisition.includes('const candidate = await this.createdTarget.createProductionCandidate()')
-  && acquisition.includes('activeTarget: this.activeTarget')
   && preflight.includes('if (!requestValid || input.activeTarget || input.createdTarget.isPending())')
-  && preflight.indexOf("const bound = input.targets.findByJobRefHash(input.jobRefHash)")
-    < preflight.indexOf("if (input.expectedTargetRef && !bound)")
-  && preflight.indexOf("if (input.expectedTargetRef && bound?.targetRef !== input.expectedTargetRef)")
-    < preflight.indexOf("return { continuationUrl, bound }")
-  && acquisition.indexOf("await preflightTargetAcquisition(")
-    < acquisition.indexOf("if (bound) return this.reacquireParkedTarget(")
-  && acquisition.indexOf("if (bound) return this.reacquireParkedTarget(")
-    < acquisition.indexOf("const candidate = await this.createdTarget.createProductionCandidate()");
+  && !preflight.includes('expectedTargetRef')
+  && acquisition.includes('if (bound && await this.reacquireParkedTarget(')
+  && acquisition.includes('const candidate = await this.createdTarget.createProductionCandidate()')
+  && acquisition.indexOf('await preflightTargetAcquisition(')
+    < acquisition.indexOf('if (bound && await this.reacquireParkedTarget(')
+  && acquisition.indexOf('if (bound && await this.reacquireParkedTarget(')
+    < acquisition.indexOf('const candidate = await this.createdTarget.createProductionCandidate()');
 
 const inspectTargetAcquisitionReadback = (
   targetAuthority: NonNullable<ReturnType<typeof requireSource>>,
@@ -155,7 +148,7 @@ const inspectTargetAcquisitionReadback = (
   const acquisition = targetClass?.getMethod("acquireJobBoundChatGptTargetCycle")?.getText() ?? "";
   const reacquire = targetClass?.getMethod("reacquireParkedTarget")?.getText() ?? "";
   const selection = targetClass?.getMethod("executeConversationSelection")?.getText() ?? "";
-  if (!acquisitionBindsOldTargetBeforeCreating(acquisition, targetAcquisition.getFullText())
+  if (!acquisitionUsesOnlyCurrentTargetBeforeCreating(acquisition, targetAcquisition.getFullText())
     || !readbackUsesCurrentTargetAndCanonicalUrl(reacquire, selection)
     || targetAuthority.getFullText().includes("readOrRecoverExactTarget")) findings.push(createLocalFinding({
     checkId: "browser-authority/job-bound-target-claim", lawId, filePath: targetAuthorityPath,
@@ -171,33 +164,22 @@ const inspectExactTargetRelease = (
   const delegate = targetAuthority.getClass("ExtensionTargetAuthority")
     ?.getMethod("releaseJobBoundChatGptTarget")?.getText() ?? "";
   const release = targetRelease.getVariableDeclaration("releaseJobBoundTarget")?.getText() ?? "";
-  const one = targetRelease.getVariableDeclaration("releaseOneTarget")?.getText() ?? "";
-  const absence = targetRelease.getVariableDeclaration("removeAndVerifyPhysicalAbsence")?.getText() ?? "";
   const delegateBound = ["await releaseJobBoundTarget({", "targets: this.targets",
     "createdTarget: this.createdTarget", "readActiveJobRefHash: () => this.activeTarget?.jobRefHash",
     "awaitOldCommandHandlers: this.awaitOldCommandHandlers",
     'sendRevoke: (body) => this.send("TARGET_REVOKE", body)',
-    "}, jobRefHash, targetRefs)"].every((token) => delegate.includes(token));
+    "}, jobRefHash)"].every((token) => delegate.includes(token));
   const releaseBound = ["await context.awaitOldCommandHandlers()",
     "await context.debuggerRuntime.awaitPageReadPermission()",
     "context.readActiveJobRefHash() === jobRefHash", "findByJobRefHash(jobRefHash)",
-    "for (const targetRef of targetRefs)",
-    "if (!(await releaseOneTarget(context, jobRefHash, targetRef))) allPhysicallyAbsent = false;",
-    'releaseOutcome: allPhysicallyAbsent ? "released" : "quiesced"',
+    "target.id === bound.chromeTargetId", "await context.debuggerRuntime.removeTab(bound.tabId)",
+    "await context.debuggerRuntime.readTab(bound.tabId)",
+    "await context.debuggerRuntime.readTargets()", 'releaseOutcome: "released"',
   ].every((token) => release.includes(token));
-  const exactIdentity = ["current.jobRefHash !== jobRefHash || current.targetRef !== targetRef",
-    "if (!current) return false", "target.id === current.chromeTargetId",
-    "const absent = await removeAndVerifyPhysicalAbsence(context, tabId)",
-    "return absent;",
-  ].every((token) => one.includes(token));
-  const physicalAbsence = ["await context.debuggerRuntime.removeTab(tabId)",
-    "await context.debuggerRuntime.readTab(tabId)", "await context.debuggerRuntime.readTargets()",
-    "return context.createdTarget.wasTabRemoved(tabId)\n    && !tabStillPresent && !targets.some((target) => target.tabId === tabId)",
-  ].every((token) => absence.includes(token));
-  if (delegateBound && releaseBound && exactIdentity && physicalAbsence) return;
+  if (delegateBound && releaseBound && !release.includes("targetRefs")) return;
   findings.push(createLocalFinding({ checkId: "browser-authority/job-bound-target-claim",
     lawId, filePath: targetReleasePath,
-    message: "Old Target release requires the exact live claim, Chrome identity and physical absence before released; otherwise quiesced.",
+    message: "Current Target release must verify live Chrome identity and physical absence without historical refs.",
   }));
 };
 
@@ -205,7 +187,7 @@ const readbackUsesCurrentTargetAndCanonicalUrl = (reacquire: string, selection: 
   reacquire.includes('activateTab(parked.tabId)')
   && selection.includes('"Page.navigate", { url: expected }')
   && selection.includes("publishMainFrameNavigation(mainFrame.url, mainFrame.loaderId, true)")
-  && !reacquire.includes("debuggerRuntime.readTargets()")
+  && reacquire.includes("debuggerRuntime.readTargets()")
   && !selection.includes("debuggerRuntime.readTargets()")
   && !selection.includes("nav a[href")
   && !selection.includes("tabs.query")
@@ -293,8 +275,8 @@ const inspectJobBoundClaimPolicy = (
   ], findings, lawId, "The fixed extension must create, validate, retain and release one exact system Target per active GPT job.");
   requireIdentifiers(createdTarget!, ["createProductionTab", "removeTab", "waitForCreatedTarget"],
     findings, lawId, "Created Target identity and orphan cleanup must remain in the Browser Owner.");
-  requireIdentifiers(targetAcquisition!, ["findByJobRefHash", "expectedTargetRef"],
-    findings, lawId, "Target acquisition must bind the old claim before creating a new tab.");
+  requireIdentifiers(targetAcquisition!, ["findByJobRefHash", "createdTarget"],
+    findings, lawId, "Target acquisition must inspect only the current live registry.");
   inspectProductionTabContract(debuggerRuntime!, findings, lawId);
   requireIdentifiers(supervisor!, [
     "requireGptWebClaimOrigin", "establishClaimBoundWorkspace", "pendingJobBoundTargetAcquisition",

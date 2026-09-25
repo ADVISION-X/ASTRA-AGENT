@@ -246,8 +246,10 @@ export class ProductionGptBrowserLifecycle {
     });
     try {
       active.browser = await this.acquireBrowserLease(
-        productStepId, callId, observationDeadlineAt, "bound-observation", eligibleAt,
+        productStepId, callId, observationDeadlineAt, "confirmed-readback", eligibleAt,
       );
+      await active.browser.executeDomIntent({ kind: "selectExactGptConversation",
+        canonicalConversationUrl: active.confirmedProviderEffect!.canonicalConversationUrl });
       return "reobserve";
     } catch (error) {
       if (this.activeBrowser?.call === active) this.activeBrowser = null;

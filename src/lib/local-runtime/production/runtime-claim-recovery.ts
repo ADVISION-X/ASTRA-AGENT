@@ -1,5 +1,5 @@
 import { executionFailure, executionFailureMetadata } from "../../execution-failure.js";
-import { hashCanonical, sha256 } from "./contracts.js";
+import { hashCanonical } from "./contracts.js";
 import { buildProductionLeaseRelease } from "./cloud-client.js";
 import { classifyAttemptFailure } from "./terminal-failure.js";
 import { attemptFailureAuthorityConflict, firstFact, postFailureAndReadback,
@@ -58,10 +58,7 @@ const authorizedHistoricalEffects = (
     effect.attemptId !== job.grant.attempt_id
     || effect.resultRevision !== job.grant.result_revision);
   if (historical.length === 0) return true;
-  if (historical.some((effect) => effect.resultRevision >= job.grant.result_revision
-    || !history.targetSettlements.some((settlement) =>
-      settlement.targetRefHash === effect.oldTargetRefHash
-      && (settlement.outcome === "physical_absent" || settlement.outcome === "quiesced")))) return false;
+  if (historical.some((effect) => effect.resultRevision >= job.grant.result_revision)) return false;
   if (job.grant.prior_result_rejection !== null) {
     return state.store.readIssuedSourceHandoffForAttempt(
       job.job_id, job.grant.attempt_id,
@@ -73,9 +70,9 @@ const authorizedHistoricalEffects = (
     job.job_id, job.grant.attempt_id, replay.source_seal_hash,
   );
   const proved = new Set(source?.readback_proofs.flatMap((proof) =>
-    proof.effects.map((effect) => effect.effect_identity_hash)) ?? []);
+    proof.effects.map((effect) => `${effect.effect_identity_hash}:${effect.source_effect_set_hash}:${effect.wal_authority_hash}`)) ?? []);
   return source?.kind === "delivery_priority_replay"
-    && historical.every((effect) => proved.has(effect.effectIdentityHash));
+    && historical.every((effect) => proved.has(`${effect.effectIdentityHash}:${effect.sourceEffectSetHash}:${effect.walAuthorityHash}`));
 };
 
 const provenZeroInputCallMatches = (
@@ -122,90 +119,10 @@ const canResumeRiskGrantAfterZeroInputFailure = async (
   const before = state.browserAuthority.readJobBrowserHistoryEvidence(job.job_id);
   if (!before.walHistoryVerified || before.replayEffects.some((effect) =>
     effect.attemptId === job.grant.attempt_id)) return false;
-  await state.browserAuthority.releaseJobBoundTarget(
-    job.job_id, "wait-new-attempt", state.abort.signal,
-  );
   const after = state.browserAuthority.readJobBrowserHistoryEvidence(job.job_id);
-  return after.walHistoryVerified && after.targetSettled
-    && authorizedHistoricalEffects(state, job, after)
-    && !state.browserAuthority.readUnreleasedTargetClaims().some((claim) =>
-      claim.jobRefHash === sha256(Buffer.from(job.job_id, "utf8")));
-};
-
-type BrowserHistory = ReturnType<RuntimeState["browserAuthority"]["readJobBrowserHistoryEvidence"]>;
-type BrowserEffect = BrowserHistory["replayEffects"][number];
-type TargetClaims = ReturnType<RuntimeState["browserAuthority"]["readUnreleasedTargetClaims"]>;
-
-const oldTargetEffectValid = (
-  effect: BrowserEffect, job: ClaimedProductionTask,
-  history: BrowserHistory, targetClaims: TargetClaims,
-): boolean => {
-  const live = targetClaims.length === 1
-    && sha256(Buffer.from(targetClaims[0]!.targetRef, "utf8")) === effect.oldTargetRefHash;
-  const settled = history.targetSettlements.some((settlement) =>
-    settlement.targetRefHash === effect.oldTargetRefHash
-    && (settlement.outcome === "physical_absent" || settlement.outcome === "quiesced"));
-  return effect.attemptId === job.grant.attempt_id
-    && effect.resultRevision === job.grant.result_revision
-    && effect.state === "CONFIRMED" && effect.mutationOutcome === "confirmed"
-    && effect.physicalInputCount === 1 && effect.anchorState === "trusted"
-    && effect.childCapabilityId === "submit_exact_gpt_turn_once" && (live || settled);
-};
-
-const oldTargetEffectSetValid = (
-  state: RuntimeState, job: ClaimedProductionTask, history: BrowserHistory,
-  effects: readonly BrowserEffect[], targetClaims: TargetClaims,
-): boolean => {
-  const keys = effects.map((effect) =>
-    [effect.productStepId, effect.callId, effect.childCapabilityId].join("\u0000"));
-  const currentCalls = history.replayCalls.filter((call) => effects.some((effect) =>
-    effect.productStepId === call.productStepId && effect.callId === call.callId
-    && effect.childCapabilityId === call.childCapabilityId));
-  return history.walHistoryVerified && effects.length > 0
-    && currentCalls.length === effects.length && new Set(keys).size === keys.length
-    && targetClaims.length <= 1 && authorizedHistoricalEffects(state, job, history)
-    && currentCalls.every((call) => effects.some((effect) =>
-      effect.productStepId === call.productStepId && effect.callId === call.callId
-      && effect.childCapabilityId === call.childCapabilityId
-      && effect.sourceEffectSetHash === call.sourceEffectSetHash))
-    && effects.every((effect) => oldTargetEffectValid(effect, job, history, targetClaims));
-};
-
-const oldTargetReadbackCalls = (
-  state: RuntimeState, job: ClaimedProductionTask,
-  failure: AttemptFailureFirstFact, sameAttempt: boolean,
-): readonly Readonly<{ productStepId: string; callId: string;
-  childCapabilityId: "submit_exact_gpt_turn_once" }>[] => {
-  if (failure.failure_core.code !== "BROWSER_OLD_TARGET_RECONCILIATION_REQUIRED"
-    || !sameAttempt || !job.grant.same_accepted_attempt) {
-    throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_REQUIRED");
-  }
-  const history = state.browserAuthority.readJobBrowserHistoryEvidence(job.job_id);
-  const effects = history.replayEffects.filter((effect) =>
-    effect.attemptId === job.grant.attempt_id
-    && effect.resultRevision === job.grant.result_revision);
-  const targetClaims = state.browserAuthority.readUnreleasedTargetClaims()
-    .filter((claim) => claim.jobRefHash === sha256(Buffer.from(job.job_id, "utf8")));
-  if (!oldTargetEffectSetValid(state, job, history, effects, targetClaims)) {
-    throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_REQUIRED");
-  }
-  for (const effect of effects) {
-    const prior = state.browserAuthority.readProviderEffectStepCallFact({
-      jobId: job.job_id, attemptId: job.grant.attempt_id,
-      resultRevision: job.grant.result_revision,
-      productStepId: effect.productStepId, callId: effect.callId,
-      childCapabilityId: effect.childCapabilityId,
-    });
-    if (prior?.mutation.providerEffectIdentityHash !== effect.effectIdentityHash
-      || prior.mutation.outcome !== "CONFIRMED"
-      || prior.mutation.mutationOutcome !== "confirmed") {
-      throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_REQUIRED");
-    }
-  }
-  return Object.freeze(effects.map((effect) => Object.freeze({
-    productStepId: effect.productStepId, callId: effect.callId,
-    childCapabilityId: "submit_exact_gpt_turn_once" as const,
-  })));
+  return after.walHistoryVerified && after.unresolvedCommandCount === 0
+    && after.unresolvedCommandSetHash === hashCanonical([])
+    && authorizedHistoricalEffects(state, job, after);
 };
 
 const bindRecordedFailureToRemote = async (
@@ -295,10 +212,9 @@ export const reconcileClaimAttemptFailure = async (
     return Object.freeze({ reconciledFailure: effectiveFailure, stopBeforeProduct: false,
       readbackOnlyCalls: null });
   }
-  if (disposition === "fail_closed") return Object.freeze({
-    reconciledFailure: effectiveFailure, stopBeforeProduct: false,
-    readbackOnlyCalls: oldTargetReadbackCalls(state, job, effectiveFailure, sameAttempt),
-  });
+  if (disposition === "fail_closed") {
+    throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_REQUIRED");
+  }
   if ((disposition === "same_attempt_provider_readback") !== sameAttempt)
     throw executionFailure("failed", "PRODUCTION_CLAIM_AFTER_FAILURE_IDENTITY_INVALID");
   return Object.freeze({ reconciledFailure: effectiveFailure, stopBeforeProduct: false,

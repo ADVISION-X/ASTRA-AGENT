@@ -31,7 +31,7 @@ await esbuild.build({
         if (start < 0 || end < 0 || !contents.slice(0, start).includes(readerAnchor)) {
           throw new Error("CHROME_COLLECTOR_BUILD_ANCHOR_DRIFT");
         }
-        contents = `${contents.slice(0, start)}    const rawPacket = await roots.evaluateAll(readPage,\n      { marker: productMarker, attachmentUploadArmed: attachmentUploadExpected });\n${contents.slice(end)}`;
+        contents = `${contents.slice(0, start)}    const rawPacket = await roots.evaluateAll(readPage,\n      { marker: productMarker, attachmentUploadArmed: attachmentUploadExpected, authorizedModelDisplayName });\n${contents.slice(end)}`;
         contents = contents.replace(readerAnchor,
           `${BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE}\n${readerAnchor}`);
         return { contents, loader: "js" };

@@ -2,15 +2,13 @@ import { executionFailure } from "../../execution-failure.js";
 import { hashCanonical, type ProductionHash } from "./contracts.js";
 
 export type ProviderCooldownReceipt = Readonly<{
-  schema_version: "xuanxue-ai-provider-cooldown-receipt.v6";
+  schema_version: "xuanxue-ai-provider-cooldown-receipt.v7";
   request_id: string;
   incident_request_id: string;
   payload_hash: ProductionHash;
   device_id: string;
   dialog_hash: ProductionHash;
   observation_hash: ProductionHash;
-  target_ref_hash: ProductionHash;
-  document_ref_hash: ProductionHash;
   level: number;
   current_n: number;
   baseline_n: number;
@@ -35,14 +33,12 @@ export type ProviderCooldownReceiptExpectation = Readonly<{
   deviceId?: string;
   dialogHash: ProductionHash;
   observationHash: ProductionHash;
-  targetRefHash: ProductionHash;
-  documentRefHash: ProductionHash;
 }>;
 
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const RECEIPT_KEYS = [
   "schema_version", "request_id", "incident_request_id", "payload_hash", "device_id",
-  "dialog_hash", "observation_hash", "target_ref_hash", "document_ref_hash", "level",
+  "dialog_hash", "observation_hash", "level",
   "current_n", "baseline_n", "server_now", "cooldown_until", "clearance",
   "claim_gate_open", "cohort_total", "cohort_admitted", "cohort_user_terminated",
   "cohort_pending", "cohort_effect_recovery", "cohort_unsent_resume",
@@ -51,15 +47,13 @@ const RECEIPT_KEYS = [
 
 const exactReceiptIdentity = (
   row: Record<string, unknown>, expected: ProviderCooldownReceiptExpectation,
-): boolean => row.schema_version === "xuanxue-ai-provider-cooldown-receipt.v6"
+): boolean => row.schema_version === "xuanxue-ai-provider-cooldown-receipt.v7"
   && row.request_id === expected.requestId
   && row.incident_request_id === expected.incidentRequestId
   && row.payload_hash === expected.payloadHash
   && (expected.deviceId === undefined || row.device_id === expected.deviceId)
   && row.dialog_hash === expected.dialogHash
-  && row.observation_hash === expected.observationHash
-  && row.target_ref_hash === expected.targetRefHash
-  && row.document_ref_hash === expected.documentRefHash;
+  && row.observation_hash === expected.observationHash;
 
 const validCooldownState = (row: Record<string, unknown>): boolean =>
   Number.isInteger(row.level) && Number(row.level) >= 1 && Number(row.level) <= 6

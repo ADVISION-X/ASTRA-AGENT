@@ -23,9 +23,7 @@ export const assertSpecialBrowserDomIntent = (intent: BrowserDomIntent): void =>
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }
   if (intent.kind === "readKnownGptRateLimitClearance"
-    && (invalidExactKeys(intent, ["kind", "targetRefHash", "documentRefHash"])
-      || !exactHash(intent.targetRefHash)
-      || !exactHash(intent.documentRefHash))) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+    && invalidExactKeys(intent, ["kind"])) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
 };
 
 const boundedText = (value: unknown, max: number): value is string =>

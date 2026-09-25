@@ -52,7 +52,7 @@ export type WorkbenchBrowserAuthority = Readonly<{
   hasBrowserMutationForJob(jobId: string): boolean;
   readJobBrowserHistoryEvidence(jobId: string): Readonly<{
     historyHash: `sha256:${string}`; rowCount: number; walHistoryVerified: boolean;
-    targetSettlementHash: `sha256:${string}`; targetSettled: boolean;
+    unresolvedCommandSetHash: `sha256:${string}`; unresolvedCommandCount: number;
     replayCalls: readonly Readonly<{ productStepId: string; callId: string;
       childCapabilityId: string; sourceEffectSetHash: `sha256:${string}` }>[];
     replayEffects: readonly Readonly<{ attemptId: string; resultRevision: number;
@@ -61,24 +61,18 @@ export type WorkbenchBrowserAuthority = Readonly<{
       productStepId: string; callId: string;
       childCapabilityId: string; sourceEffectSetHash: `sha256:${string}`;
       effectIdentityHash: `sha256:${string}`; authorityRef: string;
-      oldTargetRefHash: `sha256:${string}`;
-      oldDocumentRefHash: `sha256:${string}`; walAuthorityHash: `sha256:${string}`;
+      rawWalAuthorityHash: `sha256:${string}`;
+      rawAnchorProofHash: `sha256:${string}`;
+      walAuthorityHash: `sha256:${string}`;
       anchorState: "trusted" | "absent"; anchorProofHash: `sha256:${string}`;
       canonicalConversationHash: `sha256:${string}` | null;
       userTurnHash: `sha256:${string}` | null;
       physicalInputCount: number }>[];
-    targetSettlements: readonly Readonly<{ targetRefHash: `sha256:${string}`;
-      claimSource: "legacy_wal" | "authenticated_claim";
-      outcome: "physical_absent" | "quiesced"; proofHash: `sha256:${string}`;
-      releasedAt: string }>[];
   }>;
   readJobPhysicalInputState(jobId: string): "zero" | "possible" | "unknown";
   readAttemptPhysicalInputState(jobId: string, attemptId: string): "zero" | "possible" | "unknown";
   verifyRuntimeTaskProvenance(earliestTaskCreatedAt: string | null): void;
   readBoundJobRefHash(): `sha256:${string}` | null;
-  readUnreleasedTargetClaims(): readonly Readonly<{
-    jobRefHash: `sha256:${string}`; targetRef: string;
-  }>[];
   countProviderTurnDispatches(jobId: string, attemptId: string): number;
   readProviderEffectStepCallFact(input: Readonly<{
     jobId: string;
@@ -88,6 +82,9 @@ export type WorkbenchBrowserAuthority = Readonly<{
     callId: string;
     childCapabilityId: string;
   }>): BrowserProviderEffectStepCallFact | null;
+  readConfirmedRateLimitAcknowledgement(input: Readonly<{
+    jobId: string; attemptId: string; resultRevision: number; incidentRequestId: string;
+  }>): Readonly<{ terminalAt: string }> | null;
   readProvenZeroInputProviderCommand(input: Readonly<{
     authorityRef: string; authorityHash: `sha256:${string}`;
     jobId: string; attemptId: string; resultRevision: number;
@@ -211,11 +208,12 @@ export const createWorkbenchBrowserAuthority = async (
     verifyRuntimeTaskProvenance: (earliestTaskCreatedAt) =>
       supervisor.verifyRuntimeTaskProvenance(earliestTaskCreatedAt),
     readBoundJobRefHash: () => supervisor.evidence.readBoundJobRefHash(),
-    readUnreleasedTargetClaims: () => supervisor.evidence.readUnreleasedTargetClaims(),
     countProviderTurnDispatches: (jobId, attemptId) =>
       supervisor.evidence.countProviderTurnDispatches(jobId, attemptId),
     readProviderEffectStepCallFact: (input) =>
       supervisor.evidence.readProviderEffectStepCallFact(input),
+    readConfirmedRateLimitAcknowledgement: (input) =>
+      supervisor.evidence.readConfirmedRateLimitAcknowledgement(input),
     readProvenZeroInputProviderCommand: (input) =>
       supervisor.evidence.readProvenZeroInputProviderCommand(input),
     readSourceConfirmedProviderEffect: (input) =>

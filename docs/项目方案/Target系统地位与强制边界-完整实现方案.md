@@ -2,17 +2,17 @@
 document_type: project_scheme
 scheme_id: TARGET_ROLE_AND_HARD_BOUNDARY_V1
 scheme_name: Target系统地位与强制边界
-status: 可施工
+status: 施工中-生产切换阻断
 created_at: 2026-09-25
 updated_at: 2026-09-25
 owner_repo: ADVISION-X/AGENT
 owner_domain: local-browser-session
-candidate_agent_head: 70d41305ffc6864097c92bebce966376fb1e4319
+candidate_agent_head: 355800d0a6a0e1dc3448047a9213b10761b53b1a
 candidate_website_head: 695ddbbe004ba8919794251f81b80058a253035d
 current_control_contract_version: 43
 target_control_contract_version: 44
 skill: 闭环实现设计-SKILL
-skill_sha256: a715e615da78884faac275cf523d091bbdb8e0ae381bc84568c32e631538d3c4
+skill_sha256: 1d70caf4647c1c187514b27baeda1b8dd91d598888a3961afb585a3245b4b123
 ---
 
 # Target系统地位与强制边界-完整实现方案
@@ -55,14 +55,16 @@ provider_effect_identity 管“这条 Provider 输入到底发没发过”。
 
 ### 1.1 双仓候选
 
-本设计绑定以下云仓 `main`：
+本次就地审计在 AGENT `main@355800d0a6a0e1dc3448047a9213b10761b53b1a` 上读取唯一方案；该提交相对下表 AGENT 源码基线只新增本方案，未改变受影响的生产源码、法案或 Blueprint。Website 候选仍为下表 SHA。当前本地另有 `gpt-page-operation-evidence` 片区未提交改动，不在本方案施工面，不得覆盖。
 
-| 仓库 | HEAD | recursive tree | 文件 | 代码文件 | 质量相关 | Blueprint/项目方案 |
+原方案的受影响源码事实绑定如下；施工前必须重新绑定两仓相关路径及远端提交内容，不能用本表替代当时的 scoped candidate 检查：
+
+| 仓库 | 原源码基线 HEAD | recursive tree | 文件 | 代码文件 | 质量相关 | Blueprint/项目方案 |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
 | `ADVISION-X/AGENT` | `70d41305ffc6864097c92bebce966376fb1e4319` | 1175 entries, untruncated | 911 | 627 | 390 | 42 |
 | `ADVISION-X/xuanxue-web` | `695ddbbe004ba8919794251f81b80058a253035d` | 7411 entries, untruncated | 6389 | 2290 | 766 | 55 |
 
-本轮已按闭环 SKILL 对四带做闭合核对：
+原方案按闭环 SKILL 对四带做过核对；本次复审发现 §6、WO-A1/A4/A7 的合同与消费者分母未闭合，修订及复审结果以 §12 为准：
 
 1. 法案系统：AGENT Browser/GPT/Runtime；Website ai-acceptance/AI boundary 及反向依赖。
 2. 施工图：GPT、local-browser-session、Website-AGENT V6、Website SYSTEM/AI Acceptance，以及历史相关 Target/恢复方案。
@@ -79,7 +81,7 @@ provider_effect_identity 管“这条 Provider 输入到底发没发过”。
 
 ### 1.3 与既有方案的关系
 
-本方案只替代既有文档中“旧 Target 作为跨进程恢复锚点、旧 Target 路径作为 readback exhaustion、Target settlement 作为 source handoff/risk replay 前置”的重叠语义，不建立第二恢复状态机。
+本方案只替代既有文档中“旧 Target 作为跨进程恢复锚点、旧 Target 路径作为 readback exhaustion、Target settlement 作为 source handoff/risk replay 前置”的重叠语义，不建立第二恢复状态机。既有 `rejection_settled`、`risk_authorized`、`historical_settled` 及 `delivery_priority_replay` 的历史结算和来源关系不是旧 Target 语义，必须保留并改用 targetless 身份核验。
 
 以下既有正确能力继续保留：
 
@@ -281,6 +283,8 @@ BROWSER_OLD_TARGET_RECONCILIATION_REQUIRED
 - Runtime 用它决定 missing local task 是否存在旧本地 authority。
 - completed cleanup 依赖它做释放 readback。
 - recovery 验证用它判断 oldTargetEffect 是否 live/settled。
+- Browser lane 的 `readState()/mayCrossUnresolved()/settleRetiredMutation()` 用 `allDispatchedTargetsSettled()` 决定未决 mutation 能否跨过唯一 lane。
+- Browser WAL 启动前置的 `assertHistoricalTargetClaimCoverage()` 要求历史 mutation 有 claim 覆盖。
 - Browser history 把 target settlement 变成 V6 source evidence。
 
 因此它已经构成第二个持久 Target 身份系统，必须退出。
@@ -308,6 +312,7 @@ Website `job-claim-authority.ts` 还机械验证这些字段。
 现役质量系统仍有正向断言：
 
 - `target-claim-inspection.ts::acquisitionBindsOldTargetBeforeCreating`
+- Browser lane 与 WAL startup 对旧 claim settled/coverage 的正向断言
 - GPT acceptance 要求第一次先报 `BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE`
 - Runtime 结算 old Target 后，第二次 recovery claim 才允许读 canonical conversation
 - Website exam 要求 risk replay 同时具备 `old_path + exact_path`
@@ -353,53 +358,54 @@ Browser 只出具 `unaddressable` typed proof，说明“effect 可能存在，�
 
 ### 6.3 风险新输入的安全门不再叫 Target settlement
 
-本方案不取消“旧现实输入不能与新输入并发”的安全要求，但把安全对象改回真正需要保护的东西：**旧 command authority / writer path**。
+本轮只保留可由唯一 Browser WAL 机械证明的安全门：同一 job 的旧 `browser_mutations` 无任何 `DISPATCHED`，所有相关 command 已有可信 terminal；旧 writer fence 与当前 permit 仍按现役动作门验证。Browser 计算仅含 command/effect 身份、状态、输入数、终态且不含 Target/Document/request/payload/grant hash 的 `browser_history_hash`、同样 targetless 的完整 source-effect-set hash 与 `hashCanonicalJson([])` 未决集合，封成 `terminal_wal` input-quiescence proof。Website 精确核本次来源集合与 seal，Browser 发新物理 mutation 前重新读取 WAL 并验证当前 Target、Document、authority epoch/fence/permit。历史 `target_ref/document_ref` 只保留动作取证。
 
-新风险 mutation 消费前，Browser 本地必须证明：
+审查发现现役 WAL 不保存原认证 session/Extension actor incarnation，而 `websocket-actor.ts` 的异步帧入口可能在旧帧尚未登记 handler 时看到空集合。要证明跨会话的旧 `DISPATCHED` 已停稳，必须新增 actor 身份、逐帧接收顺序与回执绑定；仅 `awaitOldCommandHandlers()`、新 epoch、断线、新 actor 的空集合或旧 Tab 缺席都不足以证明。本轮按减法边界**删除拟议 `live_barrier` 分支**，不新增另一套 writer registry、证据表、协议帧或恢复器。任何旧 `DISPATCHED` 保持结果未知，Browser lane 阻断新物理输入；现役 DISPATCHED submit 尚无可信 canonical URL/userTurnId，故不得在新 Target 取得“同 effect exact readback”资格；取消 lane 对 `confirmed-readback` 字符串的泛化放行，所有新 acquisition 等原命令可信 terminal，旧 writer 的现役内存回执可原位结算。取得可靠原命令 terminal 前不自动重提，也不从新页面同文案观察伪造终态。`target_local` 亦不得仅凭换 fence、换 Tab 或换进程伪结算。
 
-```text
-旧 writer fence 已失效
-+ 旧 command handler 已结束
-+ page-read/action barrier 已清空
-+ 当前 authority epoch/permit 与旧路径互斥
-```
-
-现役可复用原语包括 `authorityEpoch`、`writerFenceHash`、command permit/MAC、`awaitOldCommandHandlers()`、page-read barrier。
-
-不得再把“某个旧 targetRef 是否 physical_absent/quiesced”当作这个安全门。
-
-V44 source evidence 若需要向 Website 表达此事实，只表达 **input quiescence proof/hash**，不携 Target/Document/tabId/chromeTargetId。Website 不解释 Browser 页面实例。
+该安全门证明旧 writer 已终结，不证明旧答案不存在；URL 仍只负责定位原聊天，能否发送仍由 Provider effect/WAL 与 Website grant 决定。
 
 ### 6.4 Website 的 targetless readback proof
 
-V44 将 effect proof 收敛为：
+V44 保留现役 `replay_calls` 全集、逐调用 `readback_proofs`、来源 seal、`rejected_call`、`readback_exhaustion_hash` 与两类 handoff。只替换每个 effect 中依赖旧 Target 的路径证明；不能把完整 effect 历史压成三值 readback：
+
+V44 `first_fact_raw_hash` 也必须只哈原 first failure 的 attempt、code、effect scope、Child、Browser outcome、mutation outcome、provider effect identity 与 settled result hash；不哈含旧 Target 的原 `evidence_hash`、DOM observation revision 或完整 raw JSON。AGENT 本地仍对原 first fact 原值与 Browser WAL raw authority 精确核验，Website 从原 failure ledger 复算该 targetless 投影并核原 rejection receipt。V43 已签 `first_fact_raw_hash` 保持原版本验签，不复制到 V44。
+
+V44 跨仓 effect 运输 targetless `effect_identity_hash`、`source_effect_set_hash`、`wal_authority_hash`、`anchor_state` 与 `anchor_proof_hash`。`wal_authority_hash` 在 V44 改为 Browser 从原 WAL 的 command/effect 身份、状态、物理输入数与 terminal 形成的无 Target 投影；不携 request/payload/grant hash；`anchor_proof_hash` 只绑定已在本地验真的 canonical conversation URL、exact userTurnId、prompt/call 身份或可信锚点缺席，不哈完整 recovery payload。原始 Browser WAL authority、完整 recovery payload 与其 Target/Document 只供本地完整性验证和历史动作取证。V43 已签事件仍按原版本验签；跨 V43→V44 不比较两个版本的 source-effect-set/WAL/anchor/history hash，先按原 seal 与本地 WAL 验真，再逐稳定 effect/call/checkpoint 语义核对。不得为此新增持久字段或第二链。
 
 ```text
 effect_identity_hash
 source_effect_set_hash
-wal_authority_hash
+wal_authority_hash  # V44 targetless projection
 anchor_state = trusted | absent
-anchor_proof_hash
+anchor_proof_hash  # V44 targetless projection
 
 readback =
   settled_checkpoint
   | exact_conversation_negative
   | unaddressable
+  | rejection_settled
+  | risk_authorized
 
 provider_input_delta = 0
 
 input_quiescence_proof =
-  required only when old physical input path is not already terminal
+  { kind: "terminal_wal", browser_history_hash, source_effect_set_hash,
+    unresolved_command_set_hash: hashCanonicalJson([]), proof_hash }
+
+call disposition = settled_reusable | replay_exhausted | historical_settled
 ```
 
 其中：
 
 - `settled_checkpoint`：原答案已完整读回，可零 submit 复用。
-- `exact_conversation_negative`：locator 可信，已在 canonical URL + userTurnId 做真实有界负读回。
-- `unaddressable`：WAL 可证没有可信 locator，不能机械定位旧答案。
-- `input_quiescence_proof`：证明旧 writer path 已失效，不证明任何旧 Target。
+- `exact_conversation_negative`：locator 可信，已在 canonical URL + userTurnId 做真实有界负读回。V44 的 `proof_hash` 由 Browser typed negative 的 targetless effect/source-set/WAL projection/anchor projection、canonical conversation hash、user-turn hash、pending cause、first/last observed_at、observation_count 与 `provider_input_delta=0` 重封，不直接透传含 current Target/Document 的 DOM observation revision hash；原 observation revision 只留 Browser 取证。Website 核该 targetless canonical body 与本次 source seal。
+- `unaddressable`：WAL 可证没有可信 locator，不能机械定位旧答案。V44 `proof_hash` 只绑定 targetless effect/source-set/WAL projection、`anchor_state=absent`、targetless anchor projection、形成时间与 `provider_input_delta=0`；不得拼旧 Target 缺席或 settlement。
+- `input_quiescence_proof`：仅在同一 Browser WAL 的全部相关旧 command 已 terminal、未决集合为空时出具 `terminal_wal`；`proof_hash` 对除自身外的 canonical body 计算并在 source seal 中读回。Website 精确核字段、全集 hash 与有效 grant；Browser 新 mutation 前重验 WAL/current permit。旧 `DISPATCHED` 不得用新 session、旧 Target 缺席或空 handler 集伪造此证明。
+- `rejection_settled`：仅在 Website 原 rejection receipt 与 effect、原 attempt、来源 seal 精确绑定时结算历史 effect。
+- `risk_authorized`：仅在 Website 原签发的 source event、seal、指定调用及 grant hash 精确绑定时结算历史 effect。
+- `historical_settled`：只由后两类历史结算组成的调用仍保留在完整调用集合中，不取得本次重提或答案复用资格。
 
-`replay_exhausted` 的分母不再包含“旧 Target 路径”。
+`settled_reusable` 仍要求原 WAL 与 Forensics checkpoint、artifact hash 持久读回；`replay_exhausted` 只允许可信 locator 的真实有界 exact-negative，或无可信 locator 且明确保留“旧答案可能存在”的 typed unaddressable，并另有原 WAL 全部相关旧 command terminal 的证明才可进入 Website 风险裁决。Website 行锁只对 `replay_exhausted` 子集签指定调用风险 grant，`readback_exhaustion_hash` 也只绑定该子集；其它历史 effect 仍在全集和 source seal 中。`replay_exhausted` 的分母不再包含“旧 Target 路径”，但不能删除 rejection/risk lineage 验证。
 
 ---
 
@@ -419,15 +425,17 @@ input_quiescence_proof =
 - `docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md`
 - generated law registry 由原生治理入口重建，禁止手改
 
-**当前已知直接 law replacement**：
+**当前已知直接 law replacement（2026-09-25 双仓 active block 逐条反查后）**：
 
 - `LAW-LOCAL-BROWSER-SESSION-003-V43 -> V44`
 - `LAW-LOCAL-BROWSER-SESSION-004-V53 -> V54`
+- `LAW-LOCAL-BROWSER-SESSION-006-V40 -> V41`（直接写有 Target claim 历史与 canonical URL 两类授权，不是上述法条的反向依赖）
 - `LAW-GPT-001-V62 -> V63`
 - `LAW-GPT-002-V28 -> V29`
 - `LAW-AGENT-PRODUCTION-RUNTIME-001-V71 -> V72`
+- `LAW-ARCHITECTURE-BOUNDARY-001-V16 -> V17`（其 tombstone 正文仍以旧 Target 缺席作为风险授权门）
 
-施工时必须由 canonical law parser 机械计算所有反向依赖并同步升版，不能只信本文手列清单。
+施工时必须按目标路径 applicability、直接语义引用和 canonical law parser 反向依赖三路核全并同步升版，不能只信本文手列清单。`FROZEN-GPT-CONVERSATION-LOCATOR-EFFECT-SEPARATION-001`、Browser 未决 mutation/旧输入静止条款及 Website 的 `FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT-001`、`FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001` 都在本次实质修改分母。授权人已于本轮明确授权两仓法案、施工图、代码、质检及数据库操作；冻结条款只按这条 URL/Target/effect 边界作精确替换，不能借机放宽其它约束。
 
 **必须写死的条款**：
 
@@ -437,6 +445,7 @@ input_quiescence_proof =
 4. `browser_mutations.target_ref/document_ref` 只作 action provenance。
 5. risk input 安全门只证明旧 writer path quiescence，不证明旧 Target。
 6. current command 仍严格校验 Target/Document/fence。
+7. 正常轮询每轮使用同一已确认 effect 的 canonical URL 做 exact selection；当前调用可沿已验证的内存值使用，跨进程只能从原 Browser WAL 读取。同 URL 零导航。此项明确替换现役“正常轮询不得读取 locator”的限制，同时保留唯一 FIFO、70—90 秒全局节拍、短 deadline 不 acquisition、pending park/release 以及 Provider 零重提。
 
 **完成验收**：active law、Blueprint、generated registry 无语义冲突；历史文档可保留事故原文，但不得再被 active law/spec 引用为现役恢复权威。
 
@@ -458,8 +467,11 @@ input_quiescence_proof =
 **已知直接语义 replacement**：
 
 - `LAW-AI-ACCEPTANCE-002-V30 -> V31`
+- `LAW-AI-ACCEPTANCE-004-V29 -> V30`
+- `LAW-AI-ACCEPTANCE-012-V39 -> V40`
 - `LAW-AI-ACCEPTANCE-013-V22 -> V23`
 - `LAW-AI-BOUNDARY-006-V9 -> V10`
+- `LAW-PUBLIC-KNOWLEDGE-CONTENT-005-V39 -> V40`（同样以旧 Target 缺席作为风险输入前提）
 - 任何业务 law 中“旧 Target physical_absent/quiesced 才可风险恢复”的传递引用由 canonical parser 计算后同步替换，不手工漏项。
 
 **新边界**：
@@ -473,7 +485,11 @@ Website 只验证：
 - 必要时 input quiescence proof；
 - result/outbox/admission facts。
 
-Website 不验证旧 targetRef、documentRef、tabId、Chrome Target、Target settlement。
+现役 `rejection_settled/risk_authorized/historical_settled`、完整 `replay_calls`、`rejected_call` 和仅对 `replay_exhausted` 子集签 grant 的行锁判定必须逐项保留；仅删除 Target/Document 路径字段。旧 V43 已签事件的 PostgreSQL `jsonb event_json` 对象保持不变，按其旧字段对象重算 canonical seal 与原身份；数据库不保存原始 JSON 字节，不能承诺原字节相等，也不能用 V44 targetless hash 回算或改写历史 seal。
+
+Website 不验证旧 targetRef、documentRef、tabId、Chrome Target、Target settlement。复审发现 `provider_cooldown` 把旧 Target/Document hash 持久写入 Outbox、跨仓 notice/receipt，并用于重启后的 ack 与 Website clearance 资格；其 `observation_hash` 亦包含旧 Target/Document，进而进入持久 `incident_request_id`。原豁免裁决撤销：本轮必须从持久 incident、跨仓 notice/receipt 和 incident identity 删除显式及派生 Target 身份。Browser 当前 coherent observation 和同一当前 lease 内 ack 仍以 current Target/Document/permit 精确校验；重启后不可从旧 Outbox 恢复旧 Target 或重放旧 ack。Website 同 incident clearance 只核 targetless incident request、原 job/attempt/revision、固定 dialog fact、targetless observation evidence、ack WAL/clearance receipt 与 session/device，不用旧 Target/Document 或其派生 hash。此替换须同步 cooldown notice/receipt 合同版本和双仓现役法案、施工图、验收；存量未交付 v6 cooldown intent 或 Website v6 cooldown receipt 若存在则切换阻断，禁止 dual-read 兼容桥。
+
+**冷却 clean cut 的精确分母**：原 `observationHash` 是 Browser 当前动作证明，包含 Target/Document，只留在当次 Browser/GPT 内部；跨仓 `observation_hash` 改为对 `exact_present` preflight 的 schema/state、冻结文案 hash、exact-call hash、observed_at、六个候选计数计算的 targetless canonical hash。`incident_request_id` 由 job/attempt/revision + 该 targetless hash 决定。`notice.v7/receipt.v7` 删除 `target_ref_hash/document_ref_hash`，Website clearance 重算 deterministic incident id 与 phase/request 后缀、按原 incident receipt 的 canonical payload hash 绑定原 session/job/attempt/revision/dialog/targetless observation，并按 acknowledged_at 重算 targetless ack/未清除 hash；AGENT 本地先核原 ack WAL 的 exact job/attempt/revision/incident、CONFIRMED terminal、输入数，再投影 clearance，Website 不虚称能独立读取 Browser WAL；无需也不得用旧页面证明。原 Browser 当前动作的 ack 仍消费包含 current Target/Document 的原 preflight hash；重启后原 ack 的 1 秒期限已逝，不能重新点击。若原 ack WAL 已有可信 `CONFIRMED` terminal，才可零输入读回原 terminal 完成同 incident；其余跨进程或旧页面已失的事故交付 `not_cleared` 并维持关闭。新 Target 的 fresh absent 只证明新页面当前没有弹窗，不能证明原事故的 ack、原页面或账户级限制已清除，不能单独签 `confirmed_absent`。`not_cleared→confirmed_absent` 只能由原 Browser WAL 按 job/attempt/revision/incident call 精确读得的可信 ack terminal 支持；读回只输出 terminal time，不输出旧 Target、Document 或其 authority hash。无该事实则失败关闭，禁止以旧 Target 或新页面缺席补资格。切换前必须逐条结清旧 v6 本地 Outbox/Website cooldown lineage，Website 已持久 v6 cooldown receipt 是否仍为 latest 亦须核实；有不能无损归属的行就阻断 cutover，绝不读旧 Target hash 作兼容恢复。
 
 ---
 
@@ -504,13 +520,13 @@ target_settlement_hash
 instance_unavailable 作为 readback path
 ```
 
-**替换为**：targetless `readback` union 与必要的 `input_quiescence_proof`。
+**替换为**：§6.4 的逐 effect targetless readback/历史结算 union 与必要的 `input_quiescence_proof`。本次已授权删除全部 31 个未完成 V43 job，因此新 V44 来源只可能拥有 V44 祖先；`settled_reusable | replay_exhausted | historical_settled`、原 rejection receipt、risk grant lineage、calls=[] 可复用来源和 `readback_exhaustion_hash` 只按 V44 合同严格核验。已完成 job 的 V43 事件保留原值，不再为活动恢复建立旧版本解析或跨版本比较路径。
 
 **合同版本**：`control_contract_version 43 -> 44`。
 
-**禁止**：兼容 parser、V43/V44 dual-read、default 填充、alias、shadow field。
+**禁止**：新 claim/source 写入的兼容 parser、V43/V44 dual-read、default 填充、alias、shadow field，以及为已完成历史保留活动恢复用的 V43 只读 parser。
 
-**历史边界**：completed 历史事件保持原字节，不迁移；切换前必须证明没有 active unfinished job 的下一恢复动作依赖 V43 Target-shaped source handoff。存在则先在 V43 下完成/收敛，不能靠 V44 兼容读取。
+**本次减法切换裁决**：授权人选择永久清除 Website 当前 31 个未完成 job 及 AGENT 对应本地数据；569 个已完成 job 与其历史事件原样保留。清除后 V44 claim 的活动祖先集合必须全为 V44，不能为已完成历史引入 V43 解析器。旧 `jsonb event_json` 原值仍为只读历史取证，但不参与新 claim、source handoff 或业务恢复；如有未完成 V43 job 残留，切换失败关闭，不能用兼容读取放行。
 
 ---
 
@@ -523,6 +539,7 @@ instance_unavailable 作为 readback path
 - `docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json`
 - `src/lib/local-runtime/production/source-readback-contract.ts`
 - `src/lib/local-runtime/production/runtime-source-readback-proofs.ts`
+- `src/lib/local-runtime/production/store-source-settlement.ts`
 - `src/lib/local-runtime/production/runtime-claim-source-readback-failure.ts`
 - `src/lib/local-runtime/production/runtime-source-handoff.ts`
 - `src/lib/local-runtime/production/runtime-claim-recovery.ts`
@@ -538,6 +555,7 @@ instance_unavailable 作为 readback path
 5. source handoff 不再调用 `releaseSourceTarget()` 以获取业务资格。
 6. source handoff 不再输出 `browser_target_settled/target_settlement_hash`。
 7. `replay_exhausted` 只由 targetless finite proof denominator 形成。
+8. `source-readback-contract.ts`、`runtime-source-readback-proofs.ts`、`store-source-settlement.ts` 对 `rejection_settled`、`risk_authorized`、`historical_settled` 保留逐 effect/call lineage；后者当前以 `effect.old_path !== null` 生成历史 risk 结算，必须改由 V44 targetless `replay_exhausted` 的精确 effect 集合驱动。删除旧 Target hash 对复用 checkpoint 与历史 risk 的比较，改用 targetless effect identity/source-effect-set/WAL/anchor projection、原 artifact/receipt/grant/seal 精确绑定。已签 V43 `source_manifest_json` 按原 seal 原版本只读解释，不能套 V44 shape；`store-source-readback.ts` 当前可返回旧 sealed manifest，`runtime-source-handoff.ts` 会直接重发：cutover 前必须逐份读回并清零未发/未接收的 V43 sealed handoff，无法证明清零即停止切换，不得送到 V44 新 claim 入口；`runtime-source-readback-proofs.ts` 当前直接返回 `reused.effect` 且 `store-source-settlement.ts` 保存整份旧 effect，必须在原 V43 seal 核真后只抽稳定 effect/checkpoint 语义字段，按 V44 无 Target 的公式重新形成新 proof，不得复制 V43 old Target/path 字段或改写原 manifest；`delivery_priority_replay` 的 calls=[] 仍须逐旧调用 settled checkpoint，不能借 targetless 变成零证据授权。
 
 **停止条件**：若任一消费者仍需要 old Target hash 才能决定 attempt/revision/replay，说明边界未闭合，不得进入下一 Work Order。
 
@@ -557,7 +575,7 @@ instance_unavailable 作为 readback path
 - `src/lib/browser/chrome-extension/extension-target-acquisition.ts`
 - `src/lib/browser/chrome-extension/extension-target-authority.ts`
 
-**物理删除**：
+**物理删除（A3+A4+A7 必须作为一个可编译、可验收的片区提交，不以单独 A3 声称完成）**：
 
 ```text
 expectedTargetRef
@@ -568,11 +586,11 @@ BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE
 **新 acquisition 语义**：
 
 - `fresh`：只看当前 live registry 和当前授权；无 live Target 就创建当前 system Target。
-- `confirmed-readback`：有当前 live same-job Target 就复用，没有就立即创建当前 Target；不先报 old-target failure。
+- `confirmed-readback`：有当前 live same-job Target 就复用，没有就立即创建当前 Target；Extension registry 中的 bound 必须在当前 Chrome tab/target identity 与 load 状态精确校验后才算 live。`reacquireParkedTarget()` 发现 Tab 已关闭时应失效该项 registry 并在同一 acquisition 创建当前 Target，而非先向上报旧 Target 错误；不先报 old-target failure。
 - `authorized-continuation`：始终为当前 job 取得当前独占 Target，再按唯一父 WAL canonical URL 导航。
 - `bound-observation`：若保留，只允许同一 authority epoch 的 target-local 临时 UI 观察，不得成为 Provider conversation 恢复模式；不能从数据库恢复 binding。
 
-**Provider 回答轮询**：每次取得 lease 后以已确认 effect 的 canonical URL 执行 exact selection。当前 URL 相等时 `Page.navigate=0`，因此 live Target 复用仍高效；Target 丢失时同一调用直接建立新 Target 并一次导航，不产生中间恢复状态。
+**Provider 回答轮询**：每次取得 lease 后以已确认 effect 的 canonical URL 执行 exact selection。当前 URL 相等时 `Page.navigate=0`，但仍须比对 fresh main-frame loader 与 registry 所持 Document，并经现役 `publishMainFrameNavigation/advanceDocument` 同步更新 current Document，不能把旧 documentRef 当 fresh 事实；Target 丢失时同一调用直接建立新 Target 并一次导航，不产生中间恢复状态。
 
 ---
 
@@ -587,7 +605,10 @@ BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE
 - `src/lib/browser/exact-target/browser-mutation-schema.ts`
 - `src/lib/browser/exact-target/browser-mutation-store.ts`
 - `src/lib/browser/exact-target/browser-mutation-evidence.ts`
+- `src/lib/browser/exact-target/browser-mutation-replay-evidence.ts`
+- `src/lib/browser/infrastructure/browser-lane-coordinator.ts`
 - `src/lib/browser/infrastructure/browser-infrastructure-evidence.ts`
+- `src/lib/browser/chrome-extension/extension-target-release.ts`
 - Runtime 所有 `readUnreleasedTargetClaims()` 消费者
 - 对应 audit/acceptance
 
@@ -610,24 +631,31 @@ unreleasedTargetRefs()
 targetSettlements
 targetSettlementHash
 targetSettled
+allDispatchedTargetsSettled()
+assertHistoricalTargetClaimCoverage()
+BROWSER_LEGACY_TARGET_CLAIM_CUTOVER_REQUIRED
 ```
+
+**未决 mutation 的原位替代**：删除 `allDispatchedTargetsSettled()`、`mayCrossUnresolved()` 与 `settleRetiredTargetLocal()` 的旧 Target 路径。唯一 Browser lane 对任何 `DISPATCHED` 阻断新物理输入，不因 job/Target/fence 变化开口；旧 `DISPATCHED` 无可信 URL/userTurn locator 时不得凭 mode 字符串取得新 lane lease；全局未决时所有新 acquisition 阻断，只有原 writer 已在途命令的可信回执可原位结算。已 CONFIRMED 且 WAL 有 locator 后的 `confirmed-readback` 才能取得当前 Target 并零输入精确定位。状态只能由原 WAL 可靠 terminal 更新。`target_local` 继续作为 effect_scope 分类，旧未决行不能凭 Target 消失伪终结。`readState()` 不得以旧 claim 缺席报告 idle；`blocked` 只表明新输入禁止，不否定受限只读读回。
+
+**启动前置替换**：`BrowserMutationStore` 构造器及 `browser-mutation-settlement-inspection.ts` 删除 `assertHistoricalTargetClaimCoverage()` 与 claim 覆盖正例；仍先只读验证 `browser_mutations` 精确 schema、indexes、integrity/WAL 和 Runtime task provenance，且保留 `PREPARED` 崩溃恢复顺序。`DISPATCHED` 在重启后保持未知并阻断新物理输入，不因历史 claim 表已删而降级、拒绝整个有效 WAL 或伪造终态。只在现役 Browser WAL 的读取边界解析历史 mutation provenance；不得按旧 targetRef/tabId 重新绑定或关闭页面。
 
 **release 语义重写**：
 
-`releaseJobBoundTarget(jobRefHash)` 只查当前 Extension live registry：
+`releaseJobBoundTarget(jobRefHash)` 只查当前 Extension live registry；同步收敛 `websocket-target-operation.ts`、`browser-authority-websocket.ts`、`browser-authority-frame-payload.ts`、`browser-infrastructure-state.ts` 和 supervisor pending correlation，只传 `jobRefHash`，`TARGET_REVOKE` 只确认当前 live cleanup，不再调用 `markTargetReleased()`：
 
-- exact current live Target 存在：等待 current old command handlers/page-read barrier，验证当前真实 Chrome identity 后关闭。
+- exact current live Target 存在：仅在原 WAL 相关 command 全部 terminal 且当前 lease/permit 重验通过后，验证当前真实 Chrome identity 并关闭。
 - 不存在：返回 `absent` 成功，不扫描历史 tabId，不读取持久 targetRef。
 
 **一次性生产 cutover**：
 
 本轮不在运行时代码保留旧 schema compatibility。正式施工发布采用离线 clean cut：
 
-1. 停止 AGENT 新 Browser 命令和新 claim。
-2. 备份原 Browser SQLite，备份只用于整版 rollback，不参与运行时读取。
-3. 核 `browser_mutations` integrity/WAL truth 完整。
+1. 停止 AGENT 新 Browser 命令和新 claim，排空当前 command；关闭 Browser SQLite writer 后才进入离线 DDL。
+2. 对 WAL mode 数据库做一致性整库备份并连同现役加密 key/版本身份封存，读回 `integrity_check`、行数与 Browser mutation authority hash；不得只复制可能尚未 checkpoint 的主 `.sqlite` 文件。备份只用于整版 rollback，不参与运行时读取。
+3. 在 Website 已按本方案授权永久删除 31 个未完成 job、AGENT 停写且精确确认这些 job 已不存在后，只对该已撤销集合离线清除本地 task、handoff、Outbox、材料、结果、Forensics 与 Browser WAL 行；原 `DISPATCHED` 保持未知取证，不写入虚假 terminal。随后核 `browser_mutations` integrity/WAL truth 完整，剩余任一未决旧 writer 即停止切换。
 4. 在单事务中 drop 两个 target claim indexes 与 `browser_target_claims`。
-5. 用新 schema reader readback：数据库对象只剩 `browser_mutations` + 现役 indexes，所有 mutation row/hash 数量不变。
+5. 用新 schema reader readback：数据库对象只剩 `browser_mutations` + 现役 indexes，所有 mutation row/identity/authority hash、各状态数量不变；旧 Target claim 及其 indexes 为零。
 6. 启动 V44 AGENT。
 
 不提交永久 legacy migration reader。若需回退，必须同时回退代码到 V43 并恢复 cutover 前整库备份，禁止单独回退一侧。
@@ -666,12 +694,13 @@ targetSettled
 
 - `src/capabilities/gpt/production-browser-lifecycle.ts`
 - `src/capabilities/gpt/production-child-support.ts`
+- `checkpoint_gpt_generated_image` 的同一轮询入口及 Browser authenticated-media observation
 - 对应 GPT acceptance
 
 **动作**：
 
 - confirmed submit 后保存的 `canonicalConversationUrl + userTurnId` 继续作为轮询输入。
-- `waitForProviderObservation()` 每轮 park 后重新取得 Browser lease，再执行 `selectExactGptConversation(canonical URL)`。
+- 文本回答与生成媒体的每轮 pending park 后都重新取得 Browser lease，再执行 `selectExactGptConversation(canonical URL)`；媒体 source 仍须位于 exact userTurnId 和下一个 user turn 之间。
 - live Target 仍在且 URL 相同：selection 是零导航。
 - live Target 丢失：Browser 直接创建当前 Target，selection 至多一次导航。
 - 不把 Target loss 升级成 Runtime source-recovery 事件。
@@ -685,21 +714,9 @@ targetSettled
 
 **Owner**：`local-browser-session`。
 
-**目标**：保留现实输入并发安全，但把证明对象从“旧页面”改成“旧 writer path”。
+**目标**：只从唯一 Browser WAL 证明旧 writer 已 terminal。`jobHistoryEvidence()` 保留完整旧 command/effect 集合与 WAL authority hash，并计算所有 `DISPATCHED` command ID 的 canonical 集合 hash；为空时由 Browser Owner 对 `terminal_wal` body 封 `proof_hash`。Runtime 只运输 typed proof，Website 只核 exact targetless source set/WAL/anchor projection、版本与原签名 lineage，不接收原始 WAL authority hash；原始 WAL hash 只留 Browser 内部取证。Browser 新物理 mutation 前重读未决 WAL 并按现役 permit、Target/Document 门再验。若有任何未决 `DISPATCHED`，返回 typed unknown，Browser lane 维持 blocked，不发新输入。
 
-**复用现役原语**：
-
-- `authorityEpoch`
-- `writerFenceHash`
-- execution binding
-- command permit/MAC
-- `awaitOldCommandHandlers()`
-- page-read/action barrier
-- Browser WAL terminal state
-
-**不得新增**：第二 writer registry、第二 fence 表、quiescence daemon、Target settlement 表。
-
-**V44 targetless proof** 只需证明旧输入路径已经 terminal 或 writer 已退役。Browser 最终执行新 mutation 时仍要本地重新验证；Website 的 grant 不是绕过 Browser 当前安全门的许可证。
+**审计裁决**：原拟议 `live_barrier` 所需的旧 actor incarnation 与旧 WAL/session 配对证据不存在；仅复用 handler Set 会漏异步解密中的已接收帧。为守住净删除和机械安全，本轮将该分支从合同、生产代码、质检和方案中物理删除。未来若确有独立授权与可验证必要性，须重新走法案、施工图和完整审计，不能在本轮暗加第二 writer registry、协议或恢复链。
 
 ---
 
@@ -710,10 +727,14 @@ targetSettled
 ### 必须删除/反转的旧正例
 
 - `target-claim-inspection.ts::acquisitionBindsOldTargetBeforeCreating`
+- `browser-lane-fifo-support.ts` 与 `browser-lane-fifo.acceptance.ts` 中旧 claim seed、`expectedTargetRef` 及 `allDispatchedTargetsSettled()` 正例
+- `gpt-frozen-attempt-inspection.ts` 中 acquisition 必带 `expectedTargetRef` 的正例
+- `agent-production-runtime-recovery-contract.acceptance.ts` 中 old Target hash 作为 source proof 必填的正例
 - 对 `expectedTargetRef` 的正向检查
 - `BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE` 的恢复正例
 - “Runtime 先 settle old Target，下一 recovery claim 才可读 conversation”断言
 - target-claim schema/currentObjects 质量要求
+- `allDispatchedTargetsSettled()` 及 `assertHistoricalTargetClaimCoverage()` 的旧正例；Browser lane 必须改验 WAL 未决集合为空及原 command terminal 事实
 - source readback `old_path` 必填断言
 
 ### 新静态禁令
@@ -725,6 +746,8 @@ expectedTargetRef = 0
 BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE = 0
 browser_target_claims = 0
 readUnreleasedTargetClaims = 0
+allDispatchedTargetsSettled = 0
+assertHistoricalTargetClaimCoverage = 0
 old_target_ref_hash = 0  // V44 source evidence/runtime proof
 old_document_ref_hash = 0
 old_path = 0
@@ -745,8 +768,12 @@ target_settlement_hash = 0
 7. trusted locator exact-negative：V44 proof 无任何 Target 字段。
 8. absent locator：产生 `unaddressable`，不扫描页面、不猜 conversation。
 9. Website 风险授权后旧 writer path 未 quiescent：Browser 新物理 input 仍为 0。
-10. quiescence 满足且 Website precise grant 有效：指定新 effect 至多一次。
+10. 原 WAL 全部 terminal 且 Website precise grant 有效：指定新 effect 至多一次。
 11. `target_local` effect_scope 仍保持原效果分类，不受 Target instance 退役影响。
+12. 旧 `DISPATCHED` 跨进程保留未知：重启后空 live registry、新 epoch 数字相同、socket 断线均不能放行新物理输入；原 WAL 未可靠 terminal 则持续 blocked。
+13. 删表后既有 Browser WAL 行的 identity/authority hash、状态数量、启动先验和原 Runtime task provenance 不变；`readState/mayCrossUnresolved/settleRetiredMutation` 不再查询 Target claim，未知旧 writer 不得越过唯一 lane。
+14. 原 Website rejection receipt 与已签 risk grant 各有一条历史 effect 时，V44 保留 `historical_settled`、完整 `replay_calls` 和原 seal/事件 lineage；只给另一个真实 `replay_exhausted` 调用发风险 grant。没有 `replay_exhausted` 且不满足精确 payload-slot 409 + 全调用 checkpoint 的 calls=[] 分支时拒绝风险 grant，绝不把历史结算重提。
+15. `delivery_priority_replay` 旧 payload 槽 409、全部调用 settled checkpoint 时，仍可按现役合同签 calls=[] 零输入来源 grant；缺任一原 checkpoint/Outbox/Website cloud receipt 则拒绝。旧 V43 已签 `jsonb event_json` 对象不变，V44 只以旧字段对象与原 canonical seal 核历史 lineage。
 
 ---
 
@@ -763,6 +790,7 @@ target_settlement_hash = 0
 - effect/source-set/WAL/anchor identity 缺失、篡改、多义全部 409 fail-close。
 - Website 不接收 raw canonical URL，只核 hash/proof。
 - input quiescence proof 若适用必须绑定 exact source effect set，不能作为通用“开门票”。
+- `rejection_settled/risk_authorized/historical_settled` 及旧 V43 事件的原版本 lineage 必须保留；`readback_exhaustion_hash` 与风险 grant 仅覆盖本轮 `replay_exhausted` 子集，calls=[] 可复用来源仍须全部 checkpoint/slot/receipt 成立。
 - V43 AGENT session 与 V44 Website、V44 AGENT 与 V43 Website 都必须 session/claim fail-close。
 
 ---
@@ -775,9 +803,9 @@ target_settlement_hash = 0
 
 1. 两仓候选重新绑定 HEAD、tracking、dirty，任何 scoped dirty 无法归属立即停止。
 2. 双仓 active laws/Blueprint/contract 均已 V44 对齐。
-3. 不存在 active unfinished job 的下一恢复动作依赖 V43 Target-shaped source evidence。
-4. Browser lane 无现役 command in flight，AGENT 停止新 claim。
-5. Browser SQLite exact backup 完成，仅用于整体 rollback。
+3. Website 授权的 31 个未完成 job 及其关联来源已精确删除，569 个已完成 job 保持不变；AGENT 对这些 Website 缺席的 job 完成离线清除，本地旧 sealed handoff 不得回流。
+4. Browser lane 无现役 command in flight，AGENT 停止新 claim；清除已撤销 job 后剩余 WAL 若仍有 `DISPATCHED`，停止切换并维持未知阻断。
+5. Browser SQLite WAL 一致性整库备份和加密 key 身份读回完成，仅用于整体 rollback。
 
 ### 切换顺序
 
@@ -787,7 +815,7 @@ target_settlement_hash = 0
 -> Browser SQLite 离线 drop browser_target_claims
 -> AGENT 部署 V44 consumer + Targetless Browser/Runtime
 -> session open 以 version=44 精确握手
--> native quality
+-> 两仓先前各自的 native CHANGE/READY 证据与本次部署身份核对
 -> dynamic Browser/Provider recovery proof
 -> Website result/admission/object readback
 ```
@@ -847,13 +875,13 @@ same original job
 | canonical conversation URL + userTurnId | 唯一恢复 locator |
 | Website recovery authority | attempt/revision/risk replay 的唯一业务 Owner |
 | Browser FIFO/lane | 当前现实页面串行安全 |
-| writer fence/authority epoch/command barrier | 风险新输入前的真正并发安全门 |
+| Browser WAL terminal + current writer fence/authority epoch/permit | 风险新输入前的并发安全门 |
 
 ### 8.3 删除反事实
 
 对每个候选做反事实：
 
-- 删除 `browser_target_claims` 后，实时 ownership 仍由 live registry 完成；历史副作用仍由 Browser WAL 完成；恢复 locator 仍由 URL/userTurnId 完成；因此无独立不可替代消费者。
+- 现役 `browser_target_claims` **确有** acquisition、Runtime source handoff、Browser lane 未决放行、WAL startup 覆盖检查、cleanup 和 V43 source proof 消费者，不能直接删表。只有 A3/A4/A5/A7 与 W2/A2 同候选替换这些消费者并验明零残留后，实时 ownership 由 live registry、历史副作用及未决集与 writer terminal 由 Browser WAL、恢复 locator 由 URL/userTurnId 分别承担；此时才失去独立必要性。
 - 删除 old-target path 后，CONFIRMED effect 的可读性仍由 exact canonical conversation readback 完整判定；无 locator 时由 unaddressable 完整表达；因此无需两条路径。
 - 删除 Target settlement V6 字段后，业务恢复仍由 effect/readback/outbox/admission 事实闭合；新物理 input 的并发安全由 Browser current writer path 本地强制；因此 Website 不需要 Target 生命周期。
 
@@ -870,15 +898,18 @@ same original job
 | TGT-003 | URL 是唯一 conversation locator | Target 丢失后 URL readback 直接成功 | BLOCK |
 | TGT-004 | 正常 poll 可复用 live Target | URL 相同 Page.navigate=0 | BLOCK |
 | TGT-005 | poll 不依赖 live Target | 关闭 Tab 后下一 poll 新建 Target 并一次导航 | BLOCK |
-| TGT-006 | Target 不进入 V44 source evidence | Website schema/serialized request 无 Target/Document 字段 | BLOCK |
+| TGT-006 | Target 不进入 V44 source evidence | Website schema/serialized request 无 Target/Document 显式字段；V44 WAL authority、anchor proof、source-effect-set hash 均为 targetless projection，旧原始哈希不跨仓 | BLOCK |
 | TGT-007 | Target cleanup 不控制业务完成 | completed + no live Target 仍直接 cleanup settled | BLOCK |
 | TGT-008 | WAL 仍防重复 Provider input | same effect physical submit <=1，除 Website 精确 risk grant | BLOCK |
 | TGT-009 | 当前动作仍强校验 Target/Document/fence | 漂移时 physical input delta=0 | BLOCK |
 | TGT-010 | 无 locator 不猜聊天 | 无 URL/userTurn -> typed unaddressable，零 scan/navigation guess | BLOCK |
-| TGT-011 | 风险新输入门是 writer quiescence | old writer 未停稳时新 input=0 | BLOCK |
+| TGT-011 | 风险新输入门是原 WAL terminal-only input-quiescence | 任一旧 DISPATCHED 未决时所有 job 新 input=0 | BLOCK |
 | TGT-012 | `target_local` 与 Target instance 分离 | effect_scope 行为保持原合同 | BLOCK |
 | TGT-013 | 无第二恢复器 | 无新 queue/store/manager/state machine | BLOCK |
 | TGT-014 | 最终业务闭环 | same job admission + object readback + completed | BLOCK |
+| TGT-015 | V43 活动祖先清零 | 精确删除 31 个未完成 job 后，V44 新 claim 不读取已完成 job 的旧事件、不解析 V43 proof | BLOCK |
+| TGT-016 | 本地 V43 sealed handoff 不回流 | Website exact absence 后连同该 job 本地数据物理删除；V44 新 claim 拒绝 V43 shape | BLOCK |
+| TGT-017 | 同 URL 重载仍更新 Document | Page.navigate=0 且 loader 漂移时同步推进 current Document，旧 documentRef 不用于观察 | BLOCK |
 
 ---
 
@@ -892,11 +923,11 @@ W1 Website laws/Blueprint ────┘              │
                                              │
                                              ├─> A3 Browser acquisition contraction
                                              │       │
-                                             │       ├─> A4 target claims retirement
-                                             │       └─> A6 URL-based polling
+                                             │       ├─> A6 URL-based polling
+                                             │       └─> A7 writer-path quiescence
+                                             │               └─> A4 target claims retirement + lane/startup replacement
                                              │
-                                             ├─> A5 Runtime targetless recovery
-                                             └─> A7 writer-path quiescence
+                                             └─> A5 Runtime targetless recovery
 
 A2+A3+A4+A5+A6+A7
   -> QA AGENT
@@ -944,11 +975,25 @@ stop claims
 
 ## 12. 方案状态
 
-**状态：可施工。**
+### 12.1 授权的一次性未完成需求清除（V44 前置）
 
-“可施工”只表示本轮闭环设计中的 Owner、法案、Blueprint、代码断点、合同 cutover、质量证据、删除边界和回退条件已经闭合，不表示任何生产代码、法案、数据库或服务已经被本轮修改。
+授权人已选择永久放弃 Website 当前 31 个未完成 job，并清除 AGENT 对应本地数据；完成的 569 个 job、6 个同单已收录文章 run、原事件及其历史取证保持原值。该选择只覆盖本次精确集合，不建立通用“失败即删除”业务规则。Website 先停止/围栏现役 worker 与新 claim，以事务锁定并重核 31 个 job、有效 admission、租约、cooldown cohort、下游引用及材料共享；公开知识 Work Order 先暂停，保留 6 个完成闭包。只按授权集合删除未完成 root 与独占子图；4 个私有材料 blob 中 2 个被其它 job 共享，必须保留，另 2 个仅在对象删除与独占性精确读回成立时清除。Website root 和全部关联行缺席、569 个完成 root 与 6 个 admission 保持不变，才算 Website 删除完成。失败不得部分宣称成功，也不得将已发 Provider 输入宣称为未发。
 
-施工前必须重新读取两仓 branch/HEAD/tracking/dirty，并以当时真实 candidate 重新跑 canonical law dependency、contract version 和 scoped change 检查。
+AGENT 在 Website exact absence 已读回、所有本地 writer 已停止后，按精确 job_id 清除其中 3 个本地 failed task 及其 24 个 handoff、关联 Outbox/材料/结果/Forensics/WAL。两条原 `target_local DISPATCHED` 仅随已撤销整个 job 身份删除，不修改其原状态、不给任何仍存在 job 新输入资格；清除前后其它 job 与剩余 WAL authority 保持不变。最后再离线 drop `browser_target_claims` 和两个索引；V44 新进程只从当前 live registry 取得 Target。此步骤是业务需求的授权撤销，不是旧 Target 的恢复或结算。
+
+**状态：施工中。双仓法案、施工图、V44 合同、代码与局部质检已迭代；生产数据库切换、CI-FULL 与最终业务闭环尚未通过。**
+
+主 Codex 在并入审计发现后重新完成两遍独立自检：先从双仓 active law、5 份相关 Blueprint、V44 provider/dependency、Browser WAL/Runtime source 到 Website admission 正向核主链；再从 17 条强制验收、历史 V43 source/zero-submit 祖先、Tab 关闭与同 URL 重载、Browser lane/startup/release、所有旧字段消费者逆向追到唯一 Work Order。两仓 active law corpus 全量机器遍历（AGENT 3+35 条，Website 1+567 条）和施工图全集遍历（AGENT 7、Website 3）后，对命中法条及其直接依赖、5 份相关施工图正文逐项人工核对。有限机械自检分母为 54 项，54/54 通过：13 条升版法案的正文/唯一 registry、10 份施工图中旧身份残留、两侧 V44 spec 版本、12 项新发现的关键消费者/方案落点、17 条验收入口。连同两遍主 Codex 语义核查，本轮阶段一自检达到要求的 98% 门槛。该比例不代表任何代码覆盖率或生产 PASS。两仓原生 `audit:build`、`audit:projection:check` 与 `git diff --check` 均通过；该阶段当时未对生产代码作保留修改。
+
+发现的 V43/V44 逐字 proof 比较、`jsonb` 事件对象、未接收 V43 sealed handoff、Tab 关闭同轮重建、同 URL loader 漂移、旧 lane/Target release 消费者及异步帧屏障竞态均已就地并入 WO-W2/A2/A3/A4/A7、切换门和 TGT-015..017。A7 随后经只读审查收敛为 WAL terminal-only；原阶段一比例仅对应当时版本，不冒充当前候选自检。阶段一代码门现在只取本方案当前候选，之后若命中相关漂移须重新自检，不能沿用本段结论。
+
+当前候选的法案/施工图已再次双向核对，双仓原生 `audit:build` 与 `audit:projection:check` 通过。AGENT 生产代码及质检移除了持久 Target 身份链；Website V44 新请求只接受 targetless 来源。两侧为 V43 活动恢复新写的解析器已删除，已完成历史不进入新 claim。受影响的双仓 typecheck、Website V44 Exam、AGENT GPT/Runtime 与 Browser 局部 acceptance 已通过；这些结果均不等于 READY、RELEASE 或生产闭环。主 Codex 已从三条权威轴正向、17 条验收反向自检两遍，子智能体最终只读审查和完整 CI-FULL 仍待闭合。
+
+获授权的 Website 原 31 个未完成 job 已按精确旧身份物理删除，公开知识同单 6 个已收录 run 与 Work Order 保留且 Work Order paused；569 个完成 job 保持原值。Website 自动 ensure 随后创建了 30 个**新**本地化 job ID；其 `accepted_attempt_count=0`、`attempt_id=null`，无旧 source/risk 事件，不是旧身份复活，也不需要 V43 恢复 parser。本次删旧不撤销持续存在的本地化业务需求。AGENT 对旧集合对应的 3 个本地 failed task、24 个 handoff、132 条 Browser WAL 行、786 条 `browser_target_claims` 及两个索引已离线物理删除，569 个完成 task 与剩余 WAL 不变，SQLite `quick_check=ok`。原两条 `target_local DISPATCHED` 随整项已撤销 job 删除，没有伪造 terminal；剩余 Browser WAL 没有 `DISPATCHED`。因此切换门以旧身份缺席、当前无 V43 活动祖先和剩余 WAL 未决为准，不以 `failed` 总数必须为零为准。
+
+跨 Extension 重启而原 WAL 仍有无可靠终局的 `DISPATCHED`，当前代码无法从新 actor 空 pending Set 证明旧 CDP 动作已终结。目标链对此明确失败关闭：只允许原 effect 零输入读回及有界对账，禁止自动新物理输入；只有原 WAL 全部可靠 terminal 才可出具 input-quiescence proof。V43 已签 `source_manifest_json` 由原 event JSON 与 seal 按原版本只读核 lineage，V44 新 source/new claim 严格按新合同；不保留 V43 写入或 Target 身份兼容链。
+
+进入最终 CI-FULL 前仍须重新读取两仓 branch/HEAD/tracking/dirty，并以实际候选重跑 canonical law dependency、contract version 和 scoped change 检查。
 
 本方案最终只保留一条 Target 原则：
 

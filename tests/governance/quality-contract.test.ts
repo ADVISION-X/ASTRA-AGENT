@@ -373,10 +373,10 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
   } as const;
   const routes = {
     browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", clauses: ["forbidden:6"] },
-    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V71", clauses: ["summary"] },
-    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V71", clauses: ["forbidden:0", "forbidden:2"] },
-    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V71", clauses: ["forbidden:2"] },
-    provider: { lawId: "LAW-GPT-001-V62", clauses: ["forbidden:0", "forbidden:3", "forbidden:7"] },
+    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V72", clauses: ["summary"] },
+    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V72", clauses: ["forbidden:0", "forbidden:2"] },
+    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V72", clauses: ["forbidden:2"] },
+    provider: { lawId: "LAW-GPT-001-V63", clauses: ["forbidden:0", "forbidden:3", "forbidden:7"] },
     authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V11", clauses: ["forbidden:1", "forbidden:2"] },
     recovery: { lawId: "LAW-RUNTIME-LOG-SPINE-001-V7", clauses: ["summary"] },
   } as const;
@@ -1108,7 +1108,7 @@ test("provider contracts reject malformed payloads before identity matching", ()
   )) as unknown;
   assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
     new Map([
-      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V71", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V72", "agent-production-runtime"],
       ["LAW-AGENT-PRODUCTION-RUNTIME-003-V41", "agent-production-runtime"],
     ]),
     (path) => path === "src/lib/local-runtime/production/catalog.ts"));
@@ -1350,7 +1350,7 @@ test("every active law scope is deterministic, owned, unique, and includes all c
 
 test("active mutation inspectors use one DISPATCHED chain inside each law scope", () => {
   const registry = buildRegistry();
-  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V71");
+  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V72");
   assert.ok(agentLaw);
   const agentTargets = computeTargetPaths(agentLaw, registry);
   const crossOwnerPaths = [
@@ -1464,7 +1464,7 @@ test("Browser inspectors require current WAL schema without startup migration an
   const schemaPath = "src/lib/browser/exact-target/browser-mutation-schema.ts";
   const schema = readFileSync(schemaPath, "utf8");
   assert.equal(browserMutationSchemaIsCurrent(inspectSource(schemaPath, schema)), true);
-  for (const mutant of [
+  for (const [mutantIndex, mutant] of [
     schema.replace("mutation_outcome text check(mutation_outcome in ('no','dispatched','confirmed'))", "mutation_outcome text"),
     schema.replace("native_cause_code text", "native_failure_text text"),
     schema.replace('"provider_recovery_payload",', '"provider_recovery_alias",'),
@@ -1472,27 +1472,22 @@ test("Browser inspectors require current WAL schema without startup migration an
       "lease_version,execution_fence_hash,"),
     schema.replace("columns.length !== requiredColumns.length", "columns.length === requiredColumns.length"),
     schema.replace("check(physical_input_count between 0 and 4)", "check(physical_input_count between 0 and 9)"),
-    schema.replace("columns.length !== targetClaimColumns.length", "columns.length === targetClaimColumns.length"),
     schema.replace("target_ref text not null", "target_ref text"),
     schema.replace("document_ref text not null", "document_ref text"),
     schema.replace("state text not null check(state in ('PREPARED','DISPATCHED','CONFIRMED','REJECTED','FAILED'))",
       "state text not null"),
-    schema.replace("job_ref_hash text not null", "job_ref_hash text"),
     schema.replace("rows.length === expected.size", "rows.length >= expected.size"),
     schema.replace("normalizedSql(row.sql) === normalizedSql(expected.get(row.name) ?? \"\")",
       "expected.has(row.name)"),
     schema.replace("actual.replace(grantColumn, \"\") === expected.replace(grantColumn, \"\")",
       "actual.includes(expected)"),
-    schema.replace("normalizedSql(table?.sql ?? \"\") !== normalizedSql(targetClaimTableSql)",
-      "!table"),
     schema.replace("!mutationTableMatches(table.sql)", "false"),
     schema.replace("type in ('table','view','index','trigger')", "type='table'"),
     schema.replace("if (objects.length > 0) throw new Error(\"BROWSER_REPAIR_REQUIRED\")",
       "if (objects.length > 0) return"),
     schema.replace("objects.some((object) => !currentObjects.has(object.name))", "false"),
-    schema.replace("assertTargetClaimSchema(database);", "createTargetClaimSchema(database);"),
     `${schema}\nconst forbiddenMigration = "alter table browser_mutations add column old_value text";`,
-  ]) assert.equal(browserMutationSchemaIsCurrent(inspectSource(schemaPath, mutant)), false);
+  ].entries()) assert.equal(browserMutationSchemaIsCurrent(inspectSource(schemaPath, mutant)), false, `mutant ${mutantIndex}`);
 
   const storePath = "src/lib/browser/exact-target/browser-mutation-store.ts";
   const store = readFileSync(storePath, "utf8");
@@ -1660,7 +1655,7 @@ test("Dynamic Proof routes are separated by native Owner", () => {
     ".catch(() => undefined)", "cleanupVerified: true", "dynamic.recovery",
     "old_attempt_after_restart_rejected", "new_attempt_fresh_started",
   ]) assert.equal(proof.includes(forbidden), false, forbidden);
-  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V71", "runtime_schema_exact", "runtime_orphan_directory_count",
+  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V72", "runtime_schema_exact", "runtime_orphan_directory_count",
     "AGENT_RUNTIME_OWNER_ISOLATED_RELEASE_PROOF_NOT_ADMITTED"]) assert.ok(proof.includes(token), token);
   for (const adjacentPrefix of ["LAW-GPT-", "LAW-LOCAL-BROWSER-SESSION-", "LAW-RUNTIME-LOG-SPINE-"]) {
     assert.equal(proof.includes(adjacentPrefix), false, adjacentPrefix);

@@ -10,6 +10,11 @@ const stable = (value) => Array.isArray(value) ? value.map(stable)
     .map((key) => [key, stable(value[key])])) : value;
 const digest = (value) => sha(JSON.stringify(stable(value)));
 const HASH = /^sha256:[a-f0-9]{64}$/u;
+const LEGACY_V2_REVISION_IDS = new Set([
+  "sha256:862fb91fc05db62bc0f11a703c5ae9372e5ed3442add65c9d5442bc93bed16cf",
+  "sha256:b9988c93afa4b65a08786582f71eebe2ae286d9e976ac092a967f36bb0bb55ae",
+  "sha256:93d6b50f006de36e92bef4464cf0bbbb77da3e12a884eac8b8b712d67a2b339f",
+]);
 const CELL_STATUS = new Set(["OBSERVED", "NOT_REACHED", "NOT_APPLICABLE", "CAPTURE_GAP", "CONFLICT"]);
 const FIELD_STATUS = new Set(["MATCH", "DRIFT", "UNOBSERVED", "CODE_ONLY", "REVIEW_REQUIRED"]);
 const REQUIRED_SOURCE_FILES = ["src/plugins/public-knowledge-article-pipeline/index.ts",
@@ -119,7 +124,7 @@ const stateBranches = {
   open_gpt_execution_profile: [["profile-collapsed-trigger", "profile-open"], ["profile-already-open"]],
   open_gpt_model_selector_v3: [["model-selector-openable", "model-selector-open"],
     ["model-selector-already-open"]],
-  select_gpt_model_from_start_v3: [["target-model-actionable-unchecked",
+  select_gpt_model_from_start_v3: [["target-model-actionable",
     "model-panel-closed-after-selection", "model-selection-postcondition"]],
   select_gpt_reasoning_from_start_v3: [["reasoning-scale-current-variant",
     "reasoning-target-selected", "reasoning-selection-postcondition"]],
@@ -149,6 +154,15 @@ export const freezeSeoFlow = (hasLocales = false) => ({ expectedCalls: [...seoEx
       "sha256:81206292fcfd0ac80daf48493a3a0c831d61be8bc40fc497e0b48ab96e4104a9",
   } });
 
+const legacyV2SeoFlow = () => {
+  const flow = freezeSeoFlow(true);
+  flow.stateBranches.select_gpt_model_from_start_v3 = [[
+    "target-model-actionable-unchecked", "model-panel-closed-after-selection",
+    "model-selection-postcondition",
+  ]];
+  return flow;
+};
+
 export function selectedSeoBranch(call, frozenFlow) {
   const branches = frozenFlow.stateBranches[call.childCapabilityId];
   if (!Array.isArray(branches) || branches.length === 0) return null;
@@ -166,9 +180,33 @@ export function selectedSeoBranch(call, frozenFlow) {
   return exclusiveElsewhere ? null : chosen;
 }
 
-export function seoFlowGaps(revision) {
+export function seoFlowGaps(revision, currentV2FlowOverride = null) {
   const frozen = revision.frozenFlow ?? freezeSeoFlow();
   const perCallCoverage = revision.schemaVersion === "gpt-page-seo-capture-revision.v2";
+  const currentV2Flow = perCallCoverage
+    && (currentV2FlowOverride ?? digest(frozen) === digest(freezeSeoFlow(true)));
+  const hasRealAttachCommand = (call, readback) => revision.scenes?.some((post) => {
+    const receipt = post.transitionReceipt;
+    if (!call.sceneIds.includes(post.sceneId)
+      || receipt?.outcome !== "DISPATCH_RETURNED"
+      || !["attachFile", "filechooser.setFiles", "fileChooser.setFiles"].includes(receipt.operation)
+      || receipt.uploadedArtifactProof?.source !== "SIGNED_COMMAND_ARGUMENTS"
+      || JSON.stringify(receipt.uploadedArtifactProof.items)
+        !== JSON.stringify(call.expectedUploadFiles)
+      || !call.sceneIds.includes(readback.sceneId)
+      || !Number.isFinite(Date.parse(readback.capturedAt))
+      || !Number.isFinite(Date.parse(post.capturedAt))
+      || Date.parse(readback.capturedAt) < Date.parse(post.capturedAt)
+      || readback.documentIdentityHash !== post.documentIdentityHash
+      || readback.activeTabIdentityHash !== post.activeTabIdentityHash) return false;
+    const pre = revision.scenes.find((scene) => scene.sceneId === receipt.preSceneId);
+    return pre && call.sceneIds.includes(pre.sceneId)
+      && pre.decisionReceipt?.kind === "ACTION_REQUIRED"
+      && pre.decisionReceipt.actionId === receipt.actionId
+      && pre.decisionReceipt.operation === receipt.operation
+      && receipt.preSceneSignature === pre.stateSignature
+      && receipt.postconditionPassed === true;
+  }) ?? false;
   const hasCoverage = (call, stateId) => revision.cells.some((cell) =>
     cell.childCapabilityId === call.childCapabilityId && cell.stateId === stateId
     && (perCallCoverage || cell.status === "OBSERVED")
@@ -177,6 +215,8 @@ export function seoFlowGaps(revision) {
       if (!perCallCoverage) return true;
       const targets = revision.frozenPlan.find((entry) =>
         entry.childCapabilityId === call.childCapabilityId)?.liveStateTargets?.[stateId];
+      const plan = revision.frozenPlan.find((entry) =>
+        entry.childCapabilityId === call.childCapabilityId);
       const chain = row.specimen?.related?.transitionChain;
       const commandKind = chain?.typedCommand?.kind;
       const validCommand = commandKind === "NOT_APPLICABLE" || commandKind === "ZERO_ACTION"
@@ -185,8 +225,271 @@ export function seoFlowGaps(revision) {
           && revision.scenes?.some((scene) => call.sceneIds.includes(scene.sceneId)
             && scene.stateSignature === chain.terminalReceipt.preSceneSignature)
           && call.sceneIds.includes(chain.directPostcondition?.sourceSceneId);
+      const scene = revision.scenes?.find((entry) => entry.sceneId === row.sceneId);
+      const phase = scene?.transitionReceipt?.outcome === "DISPATCH_RETURNED" ? "POST_ACTION"
+        : scene?.decisionReceipt?.kind === "ACTION_REQUIRED" ? "PRE_ACTION"
+          : scene?.decisionReceipt?.kind === "ALREADY_SATISFIED"
+            ? "ALREADY_SATISFIED" : "OBSERVATION_ONLY";
+      const signedStateFacts = !currentV2Flow || Boolean(scene && row.specimen?.stateFacts
+        && row.specimen.stateFacts.capturePhase === phase
+        && Object.entries(scene.pageFacts ?? {}).every(([key, value]) =>
+          JSON.stringify(stable(row.specimen.stateFacts[key])) === JSON.stringify(stable(value))));
+      const assertedState = !currentV2Flow || stateAssertionFailures(
+        row.specimen, plan?.stateAssertions?.[stateId] ?? []).length === 0;
+      const reasoningPost = call.childCapabilityId === "select_gpt_reasoning_from_start_v3"
+        && ["reasoning-target-selected", "reasoning-selection-postcondition"].includes(stateId);
+      const scale = scene?.pageFacts?.reasoningScaleFacts;
+      const currentScale = Array.isArray(scale) && scale.length === 1 ? scale[0] : null;
+      const integerField = (value) => typeof value === "string"
+        && /^(?:0|[1-9][0-9]*)$/u.test(value) ? Number(value) : null;
+      const minimum = integerField(currentScale?.minimum);
+      const maximum = integerField(currentScale?.maximum);
+      const current = integerField(currentScale?.current);
+      const reasoningPreRow = reasoningPost ? revision.cells.find((entry) =>
+        entry.childCapabilityId === call.childCapabilityId
+        && entry.stateId === "reasoning-scale-current-variant")?.observations.find((entry) =>
+          entry.observedCallId === call.observedCallId) : null;
+      const reasoningPreScene = reasoningPreRow ? revision.scenes.find((entry) =>
+        entry.sceneId === reasoningPreRow.sceneId) : null;
+      const preScale = reasoningPreScene?.pageFacts?.reasoningScaleFacts;
+      const preValues = Array.isArray(preScale) && preScale.length === 1 ? preScale[0] : null;
+      const preCurrent = integerField(preValues?.current);
+      const reasoningPre = call.childCapabilityId === "select_gpt_reasoning_from_start_v3"
+        && stateId === "reasoning-scale-current-variant";
+      const reasoningPreMatch = !currentV2Flow || !reasoningPre || Boolean(currentScale
+        && minimum === 0 && Number.isInteger(maximum) && maximum >= 0 && maximum <= 5
+        && Number.isInteger(current) && current >= 0 && current <= maximum
+        && scene.pageFacts?.reasoningControlFullDom?.rawCount === 1
+        && scene.pageFacts.reasoningControlFullDom.eligibleCount === 1
+        && scene.pageFacts?.profileTopologyFullDom?.reasoningValue?.rawCount === 1
+        && scene.pageFacts.profileTopologyFullDom.reasoningValue.eligibleCount === 1);
+      const reasoningMatch = !currentV2Flow || !reasoningPost || Boolean(currentScale
+        && minimum === 0
+        && Number.isInteger(maximum) && maximum >= 0 && maximum <= 5
+        && Number.isInteger(current)
+        && preValues && integerField(preValues.minimum) === minimum
+        && integerField(preValues.maximum) === maximum
+        && Number.isInteger(preCurrent) && preCurrent >= 0 && preCurrent <= maximum
+        && reasoningPreScene.pageFacts?.reasoningControlFullDom?.rawCount === 1
+        && reasoningPreScene.pageFacts.reasoningControlFullDom.eligibleCount === 1
+        && reasoningPreScene.pageFacts?.profileTopologyFullDom?.reasoningValue?.rawCount === 1
+        && reasoningPreScene.pageFacts.profileTopologyFullDom.reasoningValue.eligibleCount === 1
+        && scene.pageFacts?.reasoningControlFullDom?.rawCount === 1
+        && scene.pageFacts.reasoningControlFullDom.eligibleCount === 1
+        && scene.pageFacts?.profileTopologyFullDom?.reasoningValue?.rawCount === 1
+        && scene.pageFacts.profileTopologyFullDom.reasoningValue.eligibleCount === 1
+        && current === Math.min(revision.source.executionProfile.requestedReasoningValue, maximum));
+      const modelPost = call.childCapabilityId === "select_gpt_model_from_start_v3"
+        && ["model-panel-closed-after-selection", "model-selection-postcondition"].includes(stateId);
+      const modelPre = call.childCapabilityId === "select_gpt_model_from_start_v3"
+        && stateId === "target-model-actionable";
+      const preModelTarget = row.specimen?.core?.targets?.["model-option"];
+      const modelPreMatch = !currentV2Flow || !modelPre || Boolean(scene
+        && scene.pageFacts?.authorizedModelDisplayNameHash
+          === sha(revision.source.executionProfile.startModelDisplayName)
+        && scene.pageFacts.modelChoiceFullDom?.eligibleCount === 1
+        && scene.pageFacts.modelChoiceFullDom?.targetAncestorAriaDisabled === false
+        && Number.isInteger(scene.pageFacts.modelChoiceFullDom.selectedRawCount)
+        && scene.pageFacts.modelChoiceFullDom.selectedRawCount <= 1
+        && preModelTarget?.observed === true
+        && !Object.hasOwn(preModelTarget.attributes ?? {}, "disabled")
+        && preModelTarget.attributes?.["aria-disabled"] !== "true"
+        && (preModelTarget.attributes?.["aria-checked"] !== "true"
+          || scene.pageFacts.modelChoiceFullDom.selectedRawCount === 1));
+      const modelActionRow = modelPost ? revision.cells.find((entry) =>
+        entry.childCapabilityId === call.childCapabilityId
+        && entry.stateId === "model-panel-closed-after-selection")?.observations.find((entry) =>
+          entry.observedCallId === call.observedCallId) : null;
+      const modelActionScene = modelActionRow ? revision.scenes.find((entry) =>
+        entry.sceneId === modelActionRow.sceneId) : null;
+      const clickedModel = modelActionScene?.transitionReceipt?.clickedCandidateAttributeReadback;
+      const modelSelectorCall = call.childCapabilityId === "open_gpt_model_selector_v3";
+      const modelSelectorPre = modelSelectorCall && stateId === "model-selector-openable";
+      const modelSelectorPost = modelSelectorCall
+        && ["model-selector-open", "model-selector-already-open"].includes(stateId);
+      const selectorEntry = scene?.pageFacts?.modelSelectorOpenableEntryFullDom;
+      const selectorOption = scene?.pageFacts?.modelChoiceFullDom;
+      const modelSelectorMatch = !currentV2Flow || !modelSelectorPre && !modelSelectorPost
+        || Boolean(scene?.pageFacts?.authorizedModelDisplayNameHash
+          === sha(revision.source.executionProfile.startModelDisplayName)
+          && selectorOption
+          && (modelSelectorPre
+            ? selectorEntry?.rawCount === 1 && selectorEntry.eligibleCount === 1
+              && selectorOption.eligibleCount === 0
+            : selectorOption.eligibleCount === 1));
+      const modelMatch = !currentV2Flow || !modelPost || Boolean(scene
+        && scene.pageFacts?.authorizedModelDisplayNameHash
+          === sha(revision.source.executionProfile.startModelDisplayName)
+        && scene.pageFacts?.modelChoiceFullDom?.eligibleCount === 0
+        && Number.isInteger(scene.pageFacts.modelChoiceFullDom.rawCount)
+        && clickedModel?.name === "aria-checked" && clickedModel.value === "true"
+        && clickedModel.verified === true);
+      const profileClosed = call.childCapabilityId === "close_gpt_execution_profile"
+        && ["profile-closed", "profile-already-closed"].includes(stateId);
+      const profileMatch = !currentV2Flow || !profileClosed || Boolean(scene
+        && scene.pageFacts?.profilePopupFullDom?.eligibleCount === 0
+        && Number.isInteger(scene.pageFacts.profilePopupFullDom.rawCount)
+        && scene.pageFacts?.profileTopologyFullDom?.trigger?.rawCount === 1
+        && scene.pageFacts.profileTopologyFullDom.trigger.eligibleCount === 1
+        && scene.pageFacts.profileTopologyFullDom.triggerIdPresent === true
+        && scene.pageFacts.profileTopologyFullDom.triggerExpanded === "false"
+        && scene.pageFacts.profileTopologyFullDom.composer?.rawCount === 1
+        && scene.pageFacts.profileTopologyFullDom.composer.eligibleCount === 1);
+      const profileOpen = call.childCapabilityId === "open_gpt_execution_profile"
+        && ["profile-open", "profile-already-open"].includes(stateId);
+      const profilePre = call.childCapabilityId === "open_gpt_execution_profile"
+        && stateId === "profile-collapsed-trigger";
+      const topology = scene?.pageFacts?.profileTopologyFullDom;
+      const countIs = (name, count) => topology?.[name]?.rawCount === count
+        && topology?.[name]?.eligibleCount === count;
+      const profileTopologyMatch = !currentV2Flow || !profileOpen && !profilePre
+        || Boolean(topology && countIs("trigger", 1) && topology.triggerIdPresent === true
+          && (profileOpen
+            ? ["popup", "simplePanel", "reasoningControl", "enabledReasoningControl",
+              "reasoningValue"].every((name) => countIs(name, 1))
+              && topology.triggerExpanded === "true"
+              && topology.popupLabelledByMatchesTriggerId === true
+              && Array.isArray(scene.pageFacts?.reasoningScaleFacts)
+              && scene.pageFacts.reasoningScaleFacts.length === 1
+              && integerField(scene.pageFacts.reasoningScaleFacts[0].minimum) === 0
+              && Number.isInteger(integerField(scene.pageFacts.reasoningScaleFacts[0].maximum))
+              && integerField(scene.pageFacts.reasoningScaleFacts[0].maximum) <= 5
+              && Number.isInteger(integerField(scene.pageFacts.reasoningScaleFacts[0].current))
+              && integerField(scene.pageFacts.reasoningScaleFacts[0].current)
+                <= integerField(scene.pageFacts.reasoningScaleFacts[0].maximum)
+            : ["popup", "simplePanel", "reasoningControl", "enabledReasoningControl",
+              "reasoningValue"].every((name) => countIs(name, 0))
+              && topology.triggerExpanded === "false"));
+      const promptReadback = call.childCapabilityId === "write_exact_gpt_prompt"
+        && ["exact-prompt-after", "prompt-already-exact"].includes(stateId)
+        || call.childCapabilityId === "submit_exact_gpt_turn_once"
+          && stateId === "pre-submit-ready";
+      const promptMatch = !currentV2Flow || !promptReadback
+        || scene?.pageFacts?.exactComposerHash === call.promptHash
+          && scene.pageFacts?.profileTopologyFullDom?.composer?.rawCount === 1
+          && scene.pageFacts.profileTopologyFullDom.composer.eligibleCount === 1;
+      const cleanChat = call.childCapabilityId === "prepare_clean_gpt_chat"
+        && ["fresh-empty-chat", "stale-draft-after-clean"].includes(stateId);
+      const cleanFacts = scene?.pageFacts?.cleanConversationFullDom;
+      const cleanChatMatch = !currentV2Flow || !cleanChat || Boolean(cleanFacts
+        && scene.pageFacts.exactGptRootUrl === true
+        && scene.pageFacts.exactComposerHash === sha("")
+        && scene.pageFacts.profileTopologyFullDom?.composer?.rawCount === 1
+        && scene.pageFacts.profileTopologyFullDom.composer.eligibleCount === 1
+        && cleanFacts.userRawCount === 0 && cleanFacts.assistantRawCount === 0
+        && cleanFacts.attachmentsRawCount === 0 && cleanFacts.generatingRawCount === 0
+        && cleanFacts.chatMode?.rawCount === 1 && cleanFacts.chatMode.eligibleCount === 1
+        && cleanFacts.workMode?.rawCount === 1 && cleanFacts.workMode.eligibleCount === 1
+        && scene.pageFacts.chatModeFacts?.chatPressed === "true"
+        && scene.pageFacts.chatModeFacts?.workPressed === "false"
+        && scene.pageFacts.chatModeFacts.chatTextExact === true
+        && scene.pageFacts.chatModeFacts.workTextExact === true);
+      const textCheckpoint = call.childCapabilityId === "checkpoint_gpt_text_response"
+        && stateId === "stable-text-checkpoint";
+      const receipt = textCheckpoint ? revision.stageReceipts.find((entry) =>
+        entry.stepId === call.stepId) : null;
+      const textCheckpointMatch = !currentV2Flow || !textCheckpoint || Boolean(receipt
+        && cleanFacts?.generatingRawCount === 0
+        && scene.pageFacts.exactAdjacentTurnBindings?.some((entry) =>
+          entry.precedingPromptHash === call.promptHash
+          && entry.responseHash === receipt.responseHash
+          && entry.responseNonWhitespace === true
+          && entry.assistantTurnIdHash === receipt.assistantTurnIdHash));
+      const submitPre = call.childCapabilityId === "submit_exact_gpt_turn_once"
+        && stateId === "pre-submit-ready";
+      const submitPost = call.childCapabilityId === "submit_exact_gpt_turn_once"
+        && stateId === "post-submit-user-turn";
+      const submitLatest = call.childCapabilityId === "submit_exact_gpt_turn_once"
+        && ["post-submit-user-turn", "confirmed-submit-effect-readback"].includes(stateId);
+      const submitControlMatch = !currentV2Flow || !submitPre
+        || Number.isInteger(scene?.pageFacts?.submitControlFullDom?.rawCount)
+          && scene.pageFacts.submitControlFullDom.eligibleCount === 1;
+      const submitPostMatch = !currentV2Flow || !submitPost
+        || scene?.pageFacts?.exactCanonicalConversationUrl === true
+          && scene.pageFacts.emptyComposerFullDom?.eligibleCount === 1
+          && Number.isInteger(scene.pageFacts.emptyComposerFullDom.rawCount);
+      const submitLatestMatch = !currentV2Flow || !submitLatest
+        || scene?.pageFacts?.latestUserTurn?.unique === true
+          && scene.pageFacts.latestUserTurn.eligible === true
+          && scene.pageFacts.latestUserTurn.structurallyValid === true
+          && scene.pageFacts.latestUserTurn.userTurnIdIsUuid === true
+          && scene.pageFacts.latestUserTurn.promptHash === call.promptHash
+          && HASH.test(scene.pageFacts.latestUserTurn.userTurnIdHash ?? "");
+      const attachmentReadback = ["attach_approved_gpt_files_once",
+        "reconcile_gpt_attachment_set"].includes(call.childCapabilityId)
+          && ["file-set-readback", "attachment-set-exact"].includes(stateId)
+        || call.childCapabilityId === "submit_exact_gpt_turn_once"
+          && stateId === "pre-submit-ready";
+      const proof = scene?.pageFacts?.attachmentSetProof;
+      const expectedLabels = call.expectedAttachmentLabelHashes;
+      const attachmentMatch = !currentV2Flow || !attachmentReadback || Boolean(proof
+        && Array.isArray(expectedLabels)
+        && expectedLabels.every((value) => HASH.test(value))
+        && JSON.stringify(proof.expectedLabelHashes) === JSON.stringify(expectedLabels)
+        && JSON.stringify(proof.observedNormalizedLabelHashes)
+          === JSON.stringify(expectedLabels)
+        && proof.formCount === 1 && proof.expectedCount === expectedLabels.length
+        && proof.rawCount === expectedLabels.length
+        && proof.eligibleCount === expectedLabels.length
+        && proof.missingCount === 0 && proof.unexpectedCount === 0
+        && proof.duplicateCount === 0);
+      const terminalAttachmentState = call.childCapabilityId === "reconcile_gpt_attachment_set"
+        && ["attachment-cards-ready", "attachment-set-exact"].includes(stateId)
+        || call.childCapabilityId === "submit_exact_gpt_turn_once"
+          && stateId === "pre-submit-ready";
+      const terminalAttachmentMatch = !currentV2Flow || !terminalAttachmentState || Boolean(proof
+        && proof.formCount === 1 && proof.spinnerEligibleCount === 0
+        && proof.pendingEligibleCount === 0
+        && scene?.pageFacts?.attachmentTerminalErrorVisible === false);
+      const attachmentControlCall = call.childCapabilityId === "open_gpt_attachment_control";
+      const attachmentControlPre = attachmentControlCall && stateId === "attachment-trigger-before";
+      const attachmentControlReady = attachmentControlCall
+        && ["attachment-menu-after", "attachment-menu-already-open"].includes(stateId)
+        || call.childCapabilityId === "attach_approved_gpt_files_once"
+          && ["upload-leaf-ready", "file-chooser-bound"].includes(stateId);
+      const attachmentTopology = scene?.pageFacts?.attachmentControlTopology;
+      const attachmentControlMatch = !currentV2Flow || !attachmentControlPre && !attachmentControlReady
+        || Boolean(attachmentTopology
+          && attachmentTopology.formScopeRawCount === 1
+          && attachmentTopology.formScopeEligibleCount === 1
+          && attachmentTopology.controlRawCount === 1
+          && attachmentTopology.controlEligibleCount === 1
+          && (attachmentControlPre
+            ? attachmentTopology.activeMenuEligibleCount === 0
+              && attachmentTopology.uploadScopeEligibleCount === 0
+              && attachmentTopology.uploadChoiceRawCount === 0
+              && attachmentTopology.uploadChoiceEligibleCount === 0
+            : attachmentTopology.activeMenuEligibleCount === 1
+              && attachmentTopology.uploadScopeEligibleCount === 1
+              && attachmentTopology.uploadChoiceRawCount >= 1
+              && attachmentTopology.uploadChoiceEligibleCount === 1
+              && attachmentTopology.invalidUploadChoiceRejectionCount === 0));
+      const fileInputMatch = !currentV2Flow
+        || call.childCapabilityId !== "attach_approved_gpt_files_once"
+        || stateId !== "file-chooser-bound"
+        || scene?.pageFacts?.attachmentFileInputFullDom?.rawCount === 1;
+      const requiresConversation = call.stepId !== "corpus_research"
+        || call.childCapabilityId === "submit_exact_gpt_turn_once"
+          && ["post-submit-user-turn", "confirmed-submit-effect-readback"].includes(stateId)
+        || ["checkpoint_gpt_text_response", "checkpoint_gpt_generated_image"]
+          .includes(call.childCapabilityId);
+      const conversationRouteMatch = !currentV2Flow || !requiresConversation
+        || scene?.pageFacts?.exactCanonicalConversationUrl === true;
+      const attachCommandMatch = !currentV2Flow
+        || call.childCapabilityId !== "attach_approved_gpt_files_once"
+        || stateId !== "file-set-readback"
+        || expectedLabels?.length === 0
+        || hasRealAttachCommand(call, scene);
       return Array.isArray(targets) && targets.length > 0
         && validCommand
+        && signedStateFacts && assertedState && reasoningPreMatch && reasoningMatch && modelPreMatch
+        && modelSelectorMatch && modelMatch && profileMatch && profileTopologyMatch && promptMatch
+        && cleanChatMatch && textCheckpointMatch && submitControlMatch && submitPostMatch
+        && submitLatestMatch
+        && attachmentMatch && terminalAttachmentMatch && attachmentControlMatch
+        && fileInputMatch && attachCommandMatch && conversationRouteMatch
+        && (!currentV2Flow || (chain?.directPostcondition?.passed === true
+          && row.specimen?.core?.actionQualification?.qualified === true))
         && targets.every((target) => row.specimen?.core?.targets?.[target]?.observed === true
           && HASH.test(row.specimen.core.targets[target].identityHash ?? ""));
     }));
@@ -198,14 +501,42 @@ export function seoFlowGaps(revision) {
     if (!branch) return [`ambiguous-branch:${stepId}/${childCapabilityId}`];
     const missing = branch.filter((stateId) => !hasCoverage(call, stateId));
     const states = frozen.terminalStates[childCapabilityId];
-    if (missing.length > 0) return missing.map((stateId) =>
-      `missing-branch-state:${stepId}/${childCapabilityId}/${stateId}`);
+    if (missing.length > 0) return missing.map((stateId) => {
+      const observed = currentV2Flow && revision.cells.some((cell) =>
+        cell.childCapabilityId === childCapabilityId && cell.stateId === stateId
+        && cell.observations.some((row) => row.observedCallId === call.observedCallId));
+      return `${observed ? "unqualified" : "missing"}-branch-state:${stepId}/${childCapabilityId}/${stateId}`;
+    });
     if (!states || !states.some((stateId) => hasCoverage(call, stateId))) {
       return [`missing-terminal-state:${stepId}/${childCapabilityId}`];
     }
     return [];
   });
-  return [...callGaps, ...revision.cells.filter((cell) => !perCallCoverage
+  const chronologyGaps = currentV2Flow ? frozen.expectedCalls.flatMap((expected, index) => {
+    const call = revision.calls.find((entry) => entry.stepId === expected.stepId
+      && entry.childCapabilityId === expected.childCapabilityId);
+    if (!call) return [];
+    const times = call.sceneIds.map((id) => Date.parse(revision.scenes.find((scene) =>
+      scene.sceneId === id)?.capturedAt));
+    const branch = selectedSeoBranch(call, frozen);
+    const branchOrderInvalid = branch && JSON.stringify(call.stateIds.filter((state) =>
+      branch.includes(state))) !== JSON.stringify(branch);
+    const withinCallInvalid = times.length !== call.stateIds.length
+      || times.some((time, stateIndex) => !Number.isFinite(time)
+        || stateIndex > 0 && time <= times[stateIndex - 1]);
+    const nextExpected = frozen.expectedCalls[index + 1];
+    const nextCall = nextExpected && revision.calls.find((entry) =>
+      entry.stepId === nextExpected.stepId
+      && entry.childCapabilityId === nextExpected.childCapabilityId);
+    const nextFirstTime = nextCall && Date.parse(revision.scenes.find((scene) =>
+      scene.sceneId === nextCall.sceneIds[0])?.capturedAt);
+    const afterCallInvalid = nextCall && (!Number.isFinite(nextFirstTime)
+      || !Number.isFinite(times.at(-1)) || nextFirstTime <= times.at(-1));
+    return [...(withinCallInvalid || branchOrderInvalid
+      ? [`unqualified-call-state-order:${expected.stepId}/${expected.childCapabilityId}`] : []),
+      ...(afterCallInvalid ? [`unqualified-call-order:${expected.stepId}/${expected.childCapabilityId}`] : [])];
+  }) : [];
+  return [...callGaps, ...chronologyGaps, ...revision.cells.filter((cell) => !perCallCoverage
     && ["CAPTURE_GAP", "CONFLICT"].includes(cell.status))
     .map((cell) => `cell-${cell.status.toLowerCase()}:${cell.childCapabilityId}/${cell.stateId}`)];
 }
@@ -251,7 +582,10 @@ export function seoStageCoverageGaps(revision, stepId) {
   const inputGaps = prefix.includes("article_synthesis")
     && articlePreSubmitHasUnexpectedAttachment(revision)
     ? ["unexpected-stage-input:article_synthesis/unplanned-composer-attachment"] : [];
-  return [...receiptGaps, ...seoFlowGaps(scoped).filter((gap) => !gap.startsWith("cell-")), ...inputGaps];
+  const currentV2Flow = revision.schemaVersion === "gpt-page-seo-capture-revision.v2"
+    && digest(revision.frozenFlow) === digest(freezeSeoFlow(true));
+  return [...receiptGaps, ...seoFlowGaps(scoped, currentV2Flow)
+    .filter((gap) => !gap.startsWith("cell-")), ...inputGaps];
 }
 
 function sealedBody(revision) {
@@ -374,6 +708,8 @@ function validateV2Observation(revision, call, cell, observation, scene, scenesB
 
 export function validateSeoRevision(revision) {
   const hasLocales = revision?.localizationSource !== undefined;
+  const exactAdjacentRequired = revision?.schemaVersion === "gpt-page-seo-capture-revision.v2"
+    && !LEGACY_V2_REVISION_IDS.has(revision.evidenceRevisionId);
   if (revision?.schemaVersion === "gpt-page-seo-capture-revision.v2" && !hasLocales) {
     die("SEO_V2_FIVE_LOCALE_SOURCE_REQUIRED");
   }
@@ -426,6 +762,8 @@ export function validateSeoRevision(revision) {
   if (digest(revision.frozenFlow) !== revision.flowDigest
     || revision.schemaVersion === "gpt-page-seo-capture-revision.v2"
       && digest(revision.frozenFlow) !== digest(freezeSeoFlow(true))
+      && !(LEGACY_V2_REVISION_IDS.has(revision.evidenceRevisionId)
+        && digest(revision.frozenFlow) === digest(legacyV2SeoFlow()))
     || (hasLocales && JSON.stringify(revision.frozenFlow.expectedCalls)
       !== JSON.stringify(freezeSeoFlow(true).expectedCalls))
     || !Array.isArray(revision.frozenFlow.expectedCalls)
@@ -463,6 +801,8 @@ export function validateSeoRevision(revision) {
   }
   const callsById = new Map(revision.calls.map((call) => [call.observedCallId, call]));
   const scenesById = new Map(revision.scenes.map((scene) => [scene.sceneId, scene]));
+  const currentV2Flow = revision.schemaVersion === "gpt-page-seo-capture-revision.v2"
+    && digest(revision.frozenFlow) === digest(freezeSeoFlow(true));
   const expectedCallRoutes = new Set(revision.frozenFlow.expectedCalls.map((entry) =>
     `${entry.stepId}/${entry.childCapabilityId}`));
   for (const call of revision.calls) {
@@ -477,7 +817,32 @@ export function validateSeoRevision(revision) {
       || new Set(call.stateIds).size !== call.stateIds.length
       || call.stateIds.some((stateId) => !revision.frozenPlan.find((entry) =>
         entry.childCapabilityId === call.childCapabilityId)?.stateIds.includes(stateId))
-      || call.sceneIds.some((id) => !scenesById.has(id))) die("SEO_REVISION_CALL_INVALID");
+      || call.sceneIds.some((id) => !scenesById.has(id))
+      || currentV2Flow && call.sceneIds.some((id) =>
+        scenesById.get(id)?.transitionReceipt?.clickedCandidateAttributeReadback
+          && call.childCapabilityId !== "select_gpt_model_from_start_v3")
+      || currentV2Flow && ["attach_approved_gpt_files_once",
+        "reconcile_gpt_attachment_set", "submit_exact_gpt_turn_once"]
+        .includes(call.childCapabilityId)
+        && (!Array.isArray(call.expectedAttachmentLabelHashes)
+          || call.expectedAttachmentLabelHashes.length !== (call.stepId === "corpus_research"
+            ? 1 : call.stepId.startsWith("article_translation:") ? 4 : 0)
+          || call.expectedAttachmentLabelHashes.some((hash) => !HASH.test(hash))
+          || new Set(call.expectedAttachmentLabelHashes).size !== call.expectedAttachmentLabelHashes.length
+          || JSON.stringify(call.expectedAttachmentLabelHashes)
+            !== JSON.stringify([...call.expectedAttachmentLabelHashes].sort()))
+      || currentV2Flow && call.childCapabilityId === "attach_approved_gpt_files_once"
+        && (!Array.isArray(call.expectedUploadFiles)
+          || call.expectedUploadFiles.length !== call.expectedAttachmentLabelHashes.length
+          || call.expectedUploadFiles.some((item) => !exactKeys(item,
+            ["providerDisplayNameHash", "sha256", "bytes"])
+            || !HASH.test(item.providerDisplayNameHash ?? "")
+            || !HASH.test(item.sha256 ?? "")
+            || !Number.isSafeInteger(item.bytes) || item.bytes < 1)
+          || JSON.stringify(call.expectedUploadFiles.map((item) =>
+            item.providerDisplayNameHash)) !== JSON.stringify(call.expectedAttachmentLabelHashes))) {
+      die("SEO_REVISION_CALL_INVALID");
+    }
     const origin = call.identityOrigin ?? (() => {
       const scene = scenesById.get(call.sceneIds[0]);
       return scene && { sceneId: scene.sceneId,
@@ -625,6 +990,7 @@ export function validateSeoRevision(revision) {
       || call.promptHash !== receipt.promptHash
       || receipt.documentIdentityHash !== scene.documentIdentityHash
       || receipt.observationRevisionHash !== scene.observationRevisionHash
+      || exactAdjacentRequired && scene.pageFacts?.exactCanonicalConversationUrl !== true
       || !scene.pageFacts?.exactUserPromptHashes?.includes(receipt.promptHash)) {
       die("SEO_REVISION_STAGE_RECEIPT_INVALID");
     }
@@ -666,13 +1032,22 @@ export function validateSeoRevision(revision) {
       if (call.childCapabilityId !== expectedChild || !call.sceneIds.includes(receipt.sceneId)) {
         die("SEO_REVISION_STAGE_CHECKPOINT_MISMATCH");
       }
-      const users = scene.pageFacts?.userTurnBindings?.filter((entry) =>
+      const users = (exactAdjacentRequired && receipt.responseHash !== undefined
+        ? scene.pageFacts?.exactAdjacentTurnBindings?.map((entry) => ({
+          promptHash: entry.precedingPromptHash,
+          userTurnIdHash: entry.userTurnIdHash,
+          turnMarkerHashes: entry.turnMarkerHashes }))
+        : scene.pageFacts?.userTurnBindings)?.filter((entry) =>
         entry.promptHash === receipt.promptHash
         && entry.turnMarkerHashes?.includes(call.turnMarkerHash) && entry.userTurnIdHash) ?? [];
-      const assistants = scene.pageFacts?.conversationTurnBindings?.filter((entry) =>
+      const assistants = (exactAdjacentRequired && receipt.responseHash !== undefined
+        ? scene.pageFacts?.exactAdjacentTurnBindings
+        : scene.pageFacts?.conversationTurnBindings)?.filter((entry) =>
         entry.precedingPromptHash === receipt.promptHash
         && entry.turnMarkerHashes?.includes(call.turnMarkerHash)
         && entry.assistantTurnIdHash === receipt.assistantTurnIdHash
+        && (!exactAdjacentRequired || receipt.responseHash === undefined
+          || entry.responseNonWhitespace === true)
         && (receipt.responseHash === undefined || entry.responseHash === receipt.responseHash)) ?? [];
       if (users.length !== 1 || assistants.length !== 1) {
         die("SEO_REVISION_STAGE_TURN_BINDING_INVALID");
@@ -693,15 +1068,20 @@ export function validateSeoRevision(revision) {
     }
     if (receipt.stepId === "article_image_generation") {
       if (!scene.nodes.some((node) => node.media?.sourceHash === receipt.imageSourceHash
-        && node.media?.ownerTurnIdHash === receipt.assistantTurnIdHash && node.media?.complete === true)
+        && node.media?.ownerTurnIdHash === receipt.assistantTurnIdHash
+        && (!exactAdjacentRequired || node.media?.selectionOwnerProven === true)
+        && node.media?.complete === true)
         || !scene.pageFacts.conversationTurnBindings?.some((binding) =>
           binding.precedingPromptHash === receipt.promptHash
           && binding.assistantTurnIdHash === receipt.assistantTurnIdHash)) {
         die("SEO_REVISION_IMAGE_RECEIPT_INVALID");
       }
-    } else if (!scene.pageFacts.conversationTurnBindings?.some((binding) =>
+    } else if (!(exactAdjacentRequired
+      ? scene.pageFacts.exactAdjacentTurnBindings
+      : scene.pageFacts.conversationTurnBindings)?.some((binding) =>
       binding.precedingPromptHash === receipt.promptHash
       && binding.responseHash === receipt.responseHash
+      && (!exactAdjacentRequired || binding.responseNonWhitespace === true)
       && binding.assistantTurnIdHash === receipt.assistantTurnIdHash)) {
       die("SEO_REVISION_TEXT_RECEIPT_INVALID");
     }
@@ -716,9 +1096,14 @@ export function validateSeoRevision(revision) {
   if (hasLocales) {
     const receiptScenes = revision.stageReceipts.map((receipt) => scenesById.get(receipt.sceneId));
     const times = receiptScenes.map((scene) => Date.parse(scene.capturedAt));
-    const userIds = revision.stageReceipts.map((receipt, index) =>
-      receiptScenes[index].pageFacts.userTurnBindings.find((entry) =>
-        entry.promptHash === receipt.promptHash)?.userTurnIdHash);
+    const userIds = revision.stageReceipts.map((receipt, index) => {
+      const scene = receiptScenes[index];
+      return (exactAdjacentRequired && receipt.responseHash !== undefined
+        ? scene.pageFacts.exactAdjacentTurnBindings?.find((entry) =>
+          entry.precedingPromptHash === receipt.promptHash)?.userTurnIdHash
+        : scene.pageFacts.userTurnBindings.find((entry) =>
+          entry.promptHash === receipt.promptHash)?.userTurnIdHash);
+    });
     const assistantIds = revision.stageReceipts.map((receipt) => receipt.assistantTurnIdHash);
     const submitTimes = expectedSteps.slice(0, revision.stageReceipts.length).map((stepId) => {
       const submit = revision.calls.find((call) => call.stepId === stepId
@@ -744,16 +1129,27 @@ export function validateSeoRevision(revision) {
         .flatMap((call) => call.sceneIds.map((id) => scenesById.get(id)))
         .sort((left, right) => Date.parse(left.capturedAt) - Date.parse(right.capturedAt))[0];
       const priorCall = callsById.get(previous.observedCallId);
-      const priorUsers = firstScene?.pageFacts?.userTurnBindings?.filter((entry) =>
-        entry.promptHash === previous.promptHash && entry.userTurnIdHash
+      const exactPrior = exactAdjacentRequired && previous.responseHash !== undefined;
+      const priorUsers = (exactPrior
+        ? firstScene?.pageFacts?.exactAdjacentTurnBindings
+        : firstScene?.pageFacts?.userTurnBindings)?.filter((entry) =>
+        (exactPrior ? entry.precedingPromptHash : entry.promptHash) === previous.promptHash
+        && entry.userTurnIdHash
         && entry.turnMarkerHashes?.includes(priorCall?.turnMarkerHash)) ?? [];
-      const priorAssistants = firstScene?.pageFacts?.conversationTurnBindings?.filter((entry) =>
+      const priorAssistants = (exactPrior
+        ? firstScene?.pageFacts?.exactAdjacentTurnBindings
+        : firstScene?.pageFacts?.conversationTurnBindings)?.filter((entry) =>
         entry.precedingPromptHash === previous.promptHash
         && entry.assistantTurnIdHash === previous.assistantTurnIdHash
         && entry.turnMarkerHashes?.includes(priorCall?.turnMarkerHash)) ?? [];
-      const lastVisibleUser = firstScene?.pageFacts?.userTurnBindings?.at(-1);
+      const lastVisibleUser = exactAdjacentRequired
+        ? firstScene?.pageFacts?.latestUserTurn
+        : firstScene?.pageFacts?.userTurnBindings?.at(-1);
       if (priorUsers.length !== 1 || priorAssistants.length !== 1
-        || lastVisibleUser?.promptHash !== previous.promptHash) {
+        || lastVisibleUser?.promptHash !== previous.promptHash
+        || exactAdjacentRequired && (lastVisibleUser?.unique !== true
+          || lastVisibleUser?.eligible !== true
+          || lastVisibleUser?.structurallyValid !== true)) {
         die("SEO_REVISION_ADJACENT_CONVERSATION_LINK_MISSING");
       }
     }
@@ -899,17 +1295,143 @@ export async function withCanonicalReportLock(path, work) {
 
 async function atomicJson(path, value) {
   const temp = `${path}.tmp-${randomUUID()}`;
-  await writeFile(temp, `${JSON.stringify(value)}\n`);
+  const handle = await open(temp, "wx", 0o600);
+  try {
+    const write = async (value) => {
+      const bytes = Buffer.from(value, "utf8");
+      for (let offset = 0; offset < bytes.length;) {
+        const { bytesWritten } = await handle.write(bytes, offset,
+          Math.min(8 * 1024 * 1024, bytes.length - offset));
+        if (bytesWritten === 0) die("SEO_REPORT_WRITE_INCOMPLETE");
+        offset += bytesWritten;
+      }
+    };
+    await write("{");
+    let firstKey = true;
+    for (const [key, entry] of Object.entries(value)) {
+      if (!firstKey) await write(",");
+      firstKey = false;
+      await write(`${JSON.stringify(key)}:`);
+      if (Array.isArray(entry)) {
+        await write("[");
+        for (let index = 0; index < entry.length; index += 1) {
+          if (index > 0) await write(",");
+          const serialized = JSON.stringify(entry[index]);
+          if (serialized === undefined) die("SEO_REPORT_WRITE_VALUE_INVALID");
+          await write(serialized);
+        }
+        await write("]");
+      } else {
+        const serialized = JSON.stringify(entry);
+        if (serialized === undefined) die("SEO_REPORT_WRITE_VALUE_INVALID");
+        await write(serialized);
+      }
+    }
+    await write("}\n");
+    await handle.sync();
+  } catch (error) {
+    await handle.close();
+    await import("node:fs/promises").then(({ unlink }) => unlink(temp));
+    throw error;
+  }
+  await handle.close();
   await rename(temp, path);
+}
+
+export async function readSeoReport(path) {
+  const handle = await open(path, "r");
+  try {
+    const size = (await handle.stat()).size;
+    const marker = Buffer.from('"seoCaptureRevisions":[', "utf8");
+    const block = Buffer.allocUnsafe(1024 * 1024);
+    let prefix = Buffer.alloc(0);
+    let arrayStart = -1;
+    for (let position = 0; position < size && arrayStart < 0;) {
+      const { bytesRead } = await handle.read(block, 0, block.length, position);
+      if (bytesRead === 0) break;
+      prefix = Buffer.concat([prefix, block.subarray(0, bytesRead)]);
+      if (prefix.length > 64 * 1024 * 1024) die("SEO_REPORT_STREAM_PREFIX_TOO_LARGE");
+      let match = prefix.indexOf(marker);
+      while (match >= 0) {
+        try {
+          JSON.parse(`${prefix.subarray(0, match + marker.length).toString("utf8")}]}`);
+          arrayStart = match + marker.length;
+          break;
+        } catch { match = prefix.indexOf(marker, match + marker.length); }
+      }
+      position += bytesRead;
+    }
+    if (arrayStart < 0) die("SEO_REPORT_STREAM_ARRAY_MISSING");
+    const envelope = JSON.parse(`${prefix.subarray(0, arrayStart).toString("utf8")}]}`);
+    const ranges = [];
+    let start = -1, depth = 0, quoted = false, escaped = false, arrayEnd = -1;
+    let commaRequired = false;
+    for (let position = arrayStart; position < size && arrayEnd < 0;) {
+      const { bytesRead } = await handle.read(block, 0, block.length, position);
+      if (bytesRead === 0) break;
+      for (let index = 0; index < bytesRead; index += 1) {
+        const byte = block[index];
+        const absolute = position + index;
+        if (start < 0) {
+          if (byte === 0x7b && !commaRequired) { start = absolute; depth = 1; }
+          else if (byte === 0x2c && commaRequired) commaRequired = false;
+          else if (byte === 0x5d && (commaRequired || ranges.length === 0)) {
+            arrayEnd = absolute; break;
+          } else if (byte !== 0x20 && byte !== 0x0a && byte !== 0x0d && byte !== 0x09) {
+            die("SEO_REPORT_STREAM_ARRAY_INVALID");
+          }
+          continue;
+        }
+        if (quoted) {
+          if (escaped) escaped = false;
+          else if (byte === 0x5c) escaped = true;
+          else if (byte === 0x22) quoted = false;
+        } else if (byte === 0x22) quoted = true;
+        else if (byte === 0x7b || byte === 0x5b) depth += 1;
+        else if (byte === 0x7d || byte === 0x5d) {
+          depth -= 1;
+          if (depth === 0) { ranges.push([start, absolute + 1]); start = -1; commaRequired = true; }
+          if (depth < 0) die("SEO_REPORT_STREAM_ARRAY_INVALID");
+        }
+      }
+      position += bytesRead;
+    }
+    if (arrayEnd < 0 || start >= 0 || quoted || depth !== 0 || size - arrayEnd > 16) {
+      die("SEO_REPORT_STREAM_ARRAY_INVALID");
+    }
+    const suffix = Buffer.alloc(size - arrayEnd - 1);
+    await handle.read(suffix, 0, suffix.length, arrayEnd + 1);
+    if (!/^\}[\x20\x09\x0a\x0d]*$/u.test(suffix.toString("utf8"))) {
+      die("SEO_REPORT_STREAM_SUFFIX_INVALID");
+    }
+    envelope.seoCaptureRevisions = [];
+    for (const [from, to] of ranges) {
+      const bytes = Buffer.alloc(to - from);
+      for (let offset = 0; offset < bytes.length;) {
+        const { bytesRead } = await handle.read(bytes, offset,
+          Math.min(8 * 1024 * 1024, bytes.length - offset), from + offset);
+        if (bytesRead === 0) die("SEO_REPORT_STREAM_READ_INCOMPLETE");
+        offset += bytesRead;
+      }
+      envelope.seoCaptureRevisions.push(JSON.parse(bytes.toString("utf8")));
+    }
+    return envelope;
+  } finally { await handle.close(); }
 }
 
 export async function migrateCanonicalReport(path, validateLegacy) {
   return withCanonicalReportLock(path, async () => {
+    const headerHandle = await open(path, "r");
+    const header = Buffer.alloc(128);
+    try { await headerHandle.read(header, 0, header.length, 0); }
+    finally { await headerHandle.close(); }
+    if (header.toString("utf8").includes('"schemaVersion":"gpt-page-operation-evidence.v8"')) {
+      const report = await readSeoReport(path);
+      validateSeoReportExtension(report);
+      return { migrated: false, report };
+    }
     const originalBytes = await readFile(path);
     const report = JSON.parse(originalBytes.toString("utf8"));
-    if (report.schemaVersion === "gpt-page-operation-evidence.v8") {
-      validateSeoReportExtension(report); return { migrated: false, report };
-    }
     await validateLegacy();
     const migrated = migrateV7Envelope(report, originalBytes);
     await atomicJson(path, migrated);
@@ -935,10 +1457,18 @@ function assertionPassed(assertion, specimen) {
   const present = actual !== undefined && actual !== null && actual !== ""
     && (!Array.isArray(actual) || actual.length > 0);
   if (assertion.operator === "equals") return JSON.stringify(actual) === JSON.stringify(assertion.value);
+  if (assertion.operator === "oneOf") return Array.isArray(assertion.values)
+    && assertion.values.some((value) => JSON.stringify(actual) === JSON.stringify(value));
   if (assertion.operator === "present") return present;
   if (assertion.operator === "absent") return !present;
   if (assertion.operator === "sameAs") {
     return JSON.stringify(actual) === JSON.stringify(pathValue(specimen, assertion.valuePath));
+  }
+  if (assertion.operator === "differentFrom") {
+    return JSON.stringify(actual) !== JSON.stringify(pathValue(specimen, assertion.valuePath));
+  }
+  if (assertion.operator === "greaterThan") {
+    return typeof actual === "number" && actual > assertion.value;
   }
   return false;
 }
@@ -1180,7 +1710,10 @@ export async function compareSeoRevision(repo, revision) {
     for (const observation of modelCell?.observations ?? []) {
       const chain = observation.specimen?.related?.transitionChain;
       const scene = scenesById.get(observation.sceneId);
-      const modelTarget = observation.specimen?.core?.targets?.["model-option"];
+      const modelTarget = observation.specimen?.core?.targets?.["model-option"]
+        ?? (scene ? targetEvidence("model-option", scene, {
+          authorizedModelId: revision.source.executionProfile.startModelDisplayName,
+        }).record : null);
       const openMenuCount = scene?.nodes?.filter((node) =>
         node.attributes?.["data-state"] === "open"
         && node.attributes?.["aria-expanded"] === "true").length;
@@ -1366,6 +1899,9 @@ export async function appendSeoRevision({ repo, reportPath, comparisonPath, revi
     die("SEO_STAGE_PAUSE_NOT_PUBLISHABLE");
   }
   validateSeoRevision(revision);
+  const currentV2Flow = revision.schemaVersion === "gpt-page-seo-capture-revision.v2"
+    && digest(revision.frozenFlow) === digest(freezeSeoFlow(true));
+  const pinnedTurns = new Map();
   if (revision.localizationSource) {
     const assetsDir = join(repo, ".agents/skills/gpt-page-operation-evidence/assets");
     const currentSource = projectLocalizationSource(JSON.parse(await readFile(join(assetsDir,
@@ -1374,10 +1910,54 @@ export async function appendSeoRevision({ repo, reportPath, comparisonPath, revi
       die("SEO_LOCALIZATION_PINNED_MANIFEST_DRIFT");
     }
     const { loadPinnedLocalizationTurn } = await import("./localization-live-turns.mjs");
-    for (const locale of localeOrder) await loadPinnedLocalizationTurn({ repo, assetsDir, locale });
+    for (const locale of localeOrder) pinnedTurns.set(locale,
+      await loadPinnedLocalizationTurn({ repo, assetsDir, locale }));
+  }
+  if (currentV2Flow) {
+    const { loadPinnedSeoSource } = await import("./seo-live-source.mjs");
+    const { gptAttachmentProviderDisplayName } = await import(
+      "../../../../src/capabilities/gpt/schema.ts");
+    const assetsDir = join(repo, ".agents/skills/gpt-page-operation-evidence/assets");
+    const seo = await loadPinnedSeoSource({ repo, pinnedDir: assetsDir });
+    if (digest(seo.publicSource) !== digest(revision.source)) {
+      die("SEO_RESEARCH_PINNED_SOURCE_DRIFT");
+    }
+    const expectedByStep = new Map([["corpus_research", seo.task.material_refs.map((material) =>
+      gptAttachmentProviderDisplayName(material.display_name,
+        seo.task.job_id, material.material_id))],
+    ["article_synthesis", []], ["article_image_generation", []]]);
+    const expectedUploadByStep = new Map([["corpus_research", [{
+      providerDisplayNameHash: sha(expectedByStep.get("corpus_research")[0]),
+      sha256: seo.publicSource.archiveHash, bytes: seo.publicSource.archiveBytes,
+    }]]]);
+    for (const locale of localeOrder) {
+      const pinned = pinnedTurns.get(locale);
+      if (!pinned) die("SEO_LOCALIZATION_PINNED_TURN_MISSING");
+      expectedByStep.set(`article_translation:${locale}`,
+        pinned.materialFiles.map((material) => gptAttachmentProviderDisplayName(
+          material.display_name, pinned.task.job_id, material.material_id)));
+      expectedUploadByStep.set(`article_translation:${locale}`,
+        pinned.materialFiles.map((material) => ({
+          providerDisplayNameHash: sha(gptAttachmentProviderDisplayName(
+            material.display_name, pinned.task.job_id, material.material_id)),
+          sha256: material.sha256, bytes: material.bytes,
+        })).sort((left, right) => left.providerDisplayNameHash.localeCompare(right.providerDisplayNameHash)));
+    }
+    for (const call of revision.calls.filter((entry) => ["attach_approved_gpt_files_once",
+      "reconcile_gpt_attachment_set", "submit_exact_gpt_turn_once"]
+      .includes(entry.childCapabilityId))) {
+      const expected = expectedByStep.get(call.stepId)?.map(sha).sort();
+      if (!expected || JSON.stringify(call.expectedAttachmentLabelHashes)
+        !== JSON.stringify(expected)) die("SEO_ATTACHMENT_PINNED_SET_DRIFT");
+      if (call.childCapabilityId === "attach_approved_gpt_files_once"
+        && JSON.stringify(call.expectedUploadFiles)
+          !== JSON.stringify(expectedUploadByStep.get(call.stepId))) {
+        die("SEO_UPLOAD_PINNED_BYTES_DRIFT");
+      }
+    }
   }
   return withCanonicalReportLock(reportPath, async () => {
-    const current = JSON.parse(await readFile(reportPath, "utf8"));
+    const current = await readSeoReport(reportPath);
     validateSeoReportExtension(current);
     const sameKey = current.seoCaptureRevisions.find((prior) =>
       prior.captureRunId === revision.captureRunId
@@ -1402,7 +1982,7 @@ export async function appendSeoRevision({ repo, reportPath, comparisonPath, revi
       const next = { ...current, seoCaptureRevisions: [...current.seoCaptureRevisions, revision] };
       validateSeoReportExtension(next);
       await atomicJson(reportPath, next);
-      const readback = JSON.parse(await readFile(reportPath, "utf8"));
+      const readback = await readSeoReport(reportPath);
       validateSeoReportExtension(readback);
       if (!readback.seoCaptureRevisions.some((entry) => entry.evidenceRevisionId === revision.evidenceRevisionId
         && entry.captureRunId === revision.captureRunId)) die("SEO_REVISION_READBACK_MISSING");

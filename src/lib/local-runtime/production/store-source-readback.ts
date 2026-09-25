@@ -1,8 +1,9 @@
 import type { SourceAttemptHandoff, SourceReadbackObservation } from "./source-readback-contract.js";
-import { acceptedSourceSettlements, validSourceReadbackObservation,
+import { acceptedSourceSettlements, targetlessFirstFactHash, validSourceReadbackObservation,
+  validV44SourceHandoff,
   type AcceptedSourceSettlement } from "./store-source-settlement.js";
 import { executionFailure } from "../../execution-failure.js";
-import { hashCanonical, sha256 } from "./contracts.js";
+import { hashCanonical } from "./contracts.js";
 import { ProductionStoreFoundation, json, now,
   type StoredProductionTask } from "./store-foundation.js";
 
@@ -81,8 +82,8 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
     if (!current || current.status !== "failed" || current.current_attempt_id !== attemptId
       || current.staged_result !== null
       || manifest.source_task_hash !== hashCanonical(current.task)
-      || manifest.first_fact_raw_hash !== (firstRaw === null ? null : sha256(Buffer.from(firstRaw, "utf8")))
-      || hashCanonical(body) !== sealHash) {
+      || manifest.first_fact_raw_hash !== targetlessFirstFactHash(firstRaw)
+      || hashCanonical(body) !== sealHash || !validV44SourceHandoff(manifest)) {
       throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
     }
     const reason = `SOURCE_HANDOFF_SEALED|${sealHash}`;
@@ -142,6 +143,7 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
     const manifest = JSON.parse(row.source_manifest_json) as SourceAttemptHandoff;
     const { seal_hash: sealHash, ...body } = manifest;
     if (sealHash !== row.seal_hash || hashCanonical(body) !== sealHash
+      || !validV44SourceHandoff(manifest)
       || manifest.job_id !== jobId || manifest.source_attempt_id !== attemptId
       || manifest.source_task_hash !== hashCanonical(current.task)) {
       throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");

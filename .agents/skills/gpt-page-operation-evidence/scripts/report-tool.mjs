@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 import { createHash } from "node:crypto";
-import { readdir, readFile, rename, stat, writeFile, mkdir } from "node:fs/promises";
+import { readdir, readFile, rename, stat, writeFile, mkdir, open } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
-import { appendSeoRevision, migrateCanonicalReport, validateSeoReportExtension,
+import { appendSeoRevision, migrateCanonicalReport, readSeoReport, validateSeoReportExtension,
   withCanonicalReportLock }
   from "./seo-report-revisions.mjs";
 import {
@@ -112,6 +112,15 @@ async function walkFiles(root, predicate = () => true) {
 
 async function readJson(path) {
   try {
+    if (resolve(path).endsWith(CANONICAL_REPORT)) {
+      const handle = await open(path, "r");
+      const header = Buffer.alloc(128);
+      try { await handle.read(header, 0, header.length, 0); }
+      finally { await handle.close(); }
+      if (header.toString("utf8").includes('"schemaVersion":"gpt-page-operation-evidence.v8"')) {
+        return await readSeoReport(path);
+      }
+    }
     return JSON.parse(await readFile(path, "utf8"));
   } catch (error) {
     fail("JSON_READ_FAILED", `${path}:${error.message}`);

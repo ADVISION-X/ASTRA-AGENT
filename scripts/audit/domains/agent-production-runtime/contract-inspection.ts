@@ -7,7 +7,7 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 export const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V71", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V11",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V72", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V11",
   route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V41", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V41",
   database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V40", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V43",
   staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V43",

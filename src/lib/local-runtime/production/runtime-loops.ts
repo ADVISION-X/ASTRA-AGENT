@@ -219,31 +219,22 @@ const reconcilePendingBusinessAdmissions = async (state: RuntimeState): Promise<
 };
 
 const reconcileCompletedBrowserTargets = async (state: RuntimeState): Promise<void> => {
-  if (state.browserAuthority.readProductionRuntimeState().browserAuthorityState !== "present") return;
-  const boundJobRefHash = state.browserAuthority.readBoundJobRefHash();
-  const unclosed = state.browserAuthority.readUnreleasedTargetClaims();
-  const completedWithOldClaim = state.store.taskAuthorities()
-    .filter((task) => task.status === "completed"
-      && unclosed.some((claim) => claim.jobRefHash === sha256(Buffer.from(task.task.job_id, "utf8"))))
-    .map((task) => task.task.job_id);
-  const pending = [...new Set([
-    ...state.store.pendingBrowserCleanupJobIds(), ...completedWithOldClaim,
-  ])];
+  const pending = state.store.pendingBrowserCleanupJobIds();
   if (pending.length === 0) return;
+  const boundJobRefHash = state.browserAuthority.readBoundJobRefHash();
   const jobId = boundJobRefHash
     ? pending.find((candidate) => sha256(Buffer.from(candidate, "utf8")) === boundJobRefHash)
-    : pending[0];
-  if (!jobId) return;
+      ?? pending[0]!
+    : pending[0]!;
+  const jobRefHash = sha256(Buffer.from(jobId, "utf8"));
   try {
-    await state.browserAuthority.releaseJobBoundTarget(
-      jobId, "business-admitted", state.abort.signal,
-    );
-    const releasedJobRefHash = sha256(Buffer.from(jobId, "utf8"));
-    if (state.browserAuthority.readUnreleasedTargetClaims()
-      .some((claim) => claim.jobRefHash === releasedJobRefHash)
-      || (boundJobRefHash === releasedJobRefHash
-        && state.browserAuthority.readBoundJobRefHash() === boundJobRefHash)) {
-      throw new Error("BROWSER_ADMITTED_TARGET_RELEASE_READBACK_MISSING");
+    if (boundJobRefHash === jobRefHash) {
+      await state.browserAuthority.releaseJobBoundTarget(
+        jobId, "business-admitted", state.abort.signal,
+      );
+      if (state.browserAuthority.readBoundJobRefHash() === jobRefHash) {
+        throw new Error("BROWSER_ADMITTED_TARGET_RELEASE_READBACK_MISSING");
+      }
     }
     state.store.settleBrowserCleanup(jobId);
   } catch (error) {

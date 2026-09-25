@@ -127,6 +127,10 @@ export function stateAssertionFailures(specimen, assertions = []) {
     const actual = valueAtPath(specimen, assertion.path);
     if (assertion.operator === "equals" && JSON.stringify(actual) !== JSON.stringify(assertion.value)) {
       failures.push(`STATE_ASSERTION:${specimen.stateId}:${assertion.path}:equals`);
+    } else if (assertion.operator === "oneOf"
+      && (!Array.isArray(assertion.values) || !assertion.values.some((value) =>
+        JSON.stringify(actual) === JSON.stringify(value)))) {
+      failures.push(`STATE_ASSERTION:${specimen.stateId}:${assertion.path}:oneOf`);
     } else if (assertion.operator === "present" && !valuePresent(actual)) {
       failures.push(`STATE_ASSERTION:${specimen.stateId}:${assertion.path}:present`);
     } else if (assertion.operator === "absent" && valuePresent(actual)) {
@@ -140,7 +144,7 @@ export function stateAssertionFailures(specimen, assertions = []) {
     } else if (assertion.operator === "greaterThan"
       && !(typeof actual === "number" && actual > assertion.value)) {
       failures.push(`STATE_ASSERTION:${specimen.stateId}:${assertion.path}:greaterThan`);
-    } else if (!["equals", "present", "absent", "sameAs", "differentFrom", "greaterThan"]
+    } else if (!["equals", "oneOf", "present", "absent", "sameAs", "differentFrom", "greaterThan"]
       .includes(assertion.operator)) {
       failures.push(`STATE_ASSERTION:${specimen.stateId}:operator`);
     }

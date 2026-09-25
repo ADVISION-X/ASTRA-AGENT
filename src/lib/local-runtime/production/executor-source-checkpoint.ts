@@ -20,10 +20,13 @@ export const recordSourceCheckpoint = (input: Readonly<{
     throw executionFailure("failed", "PRODUCTION_SOURCE_EFFECT_IDENTITY_AMBIGUOUS");
   }
   const effect = effects[0]!;
+  const expectedAuthorityHash = checkpoint.browserAuthorityRef
+    === `browser-source:${checkpoint.providerEffectIdentityHash}`
+    ? effect.walAuthorityHash : effect.rawWalAuthorityHash;
   if (effect.state !== "CONFIRMED" || effect.mutationOutcome !== "confirmed"
     || effect.physicalInputCount !== 1 || effect.anchorState !== "trusted"
     || !effect.canonicalConversationHash || !effect.userTurnHash
-    || effect.walAuthorityHash !== checkpoint.browserAuthorityHash
+    || expectedAuthorityHash !== checkpoint.browserAuthorityHash
     || effect.canonicalConversationHash !== sha256(Buffer.from(
       checkpoint.canonicalConversationUrl, "utf8"))
     || effect.userTurnHash !== sha256(Buffer.from(checkpoint.userTurnId, "utf8"))) {
@@ -33,8 +36,6 @@ export const recordSourceCheckpoint = (input: Readonly<{
     kind: "settled_checkpoint" as const, path: "source_checkpoint" as const,
     effect_identity_hash: effect.effectIdentityHash,
     source_effect_set_hash: effect.sourceEffectSetHash,
-    old_target_ref_hash: effect.oldTargetRefHash,
-    old_document_ref_hash: effect.oldDocumentRefHash,
     wal_authority_hash: effect.walAuthorityHash,
     provider_input_delta: 0 as const,
     source_attempt_id: checkpoint.sourceAttemptId,

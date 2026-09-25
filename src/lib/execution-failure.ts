@@ -106,27 +106,6 @@ export const exactReadbackNegativeObservation = (
   return null;
 };
 
-export const oldTargetUnavailableFact = (
-  error: unknown,
-): Readonly<{ jobRefHash: `sha256:${string}`; targetRefHash: `sha256:${string}`;
-  proofHash: `sha256:${string}` }> | null => {
-  let current = error;
-  const seen = new Set<object>();
-  while (current && typeof current === "object" && !seen.has(current)) {
-    seen.add(current);
-    const fact = "oldTargetUnavailableFact" in current ? current.oldTargetUnavailableFact : null;
-    if (fact && typeof fact === "object" && "jobRefHash" in fact
-      && "targetRefHash" in fact && "proofHash" in fact
-      && [fact.jobRefHash, fact.targetRefHash, fact.proofHash]
-        .every((value) => typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value))) {
-      return fact as Readonly<{ jobRefHash: `sha256:${string}`;
-        targetRefHash: `sha256:${string}`; proofHash: `sha256:${string}` }>;
-    }
-    current = current instanceof Error ? current.cause : undefined;
-  }
-  return null;
-};
-
 export const executionFailureCause = (
   error: unknown,
 ): Readonly<{ name: string; code: string | null }> | null => {

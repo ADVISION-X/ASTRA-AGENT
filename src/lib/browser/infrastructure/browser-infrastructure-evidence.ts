@@ -21,7 +21,6 @@ export class BrowserInfrastructureEvidence {
   public readBoundJobRefHash(): `sha256:${string}` | null {
     return this.broker.currentOperatorTargetJobRefHash();
   }
-  public readUnreleasedTargetClaims() { return this.mutations().unreleasedTargetClaims(); }
   public hasUnresolvedBrowserMutation(): boolean { return this.lane.hasUnresolvedMutation(); }
   public hasBrowserMutationForJob(jobId: string): boolean { return this.lane.hasMutationForJob(jobId); }
   public readJobBrowserHistoryEvidence(jobId: string) { return this.mutations().jobHistoryEvidence(jobId); }
@@ -36,6 +35,9 @@ export class BrowserInfrastructureEvidence {
     jobId: string; attemptId: string; resultRevision: number;
     productStepId: string; callId: string; childCapabilityId: string;
   }>) { return this.lane.readProviderEffectStepCallFact(input); }
+  public readConfirmedRateLimitAcknowledgement(input: Parameters<
+    BrowserMutationStore["readConfirmedRateLimitAcknowledgement"]
+  >[0]) { return this.mutations().readConfirmedRateLimitAcknowledgement(input); }
   public readProvenZeroInputProviderCommand(input: Parameters<
     BrowserMutationStore["readProvenZeroInputProviderCommand"]
   >[0]) { return this.mutations().readProvenZeroInputProviderCommand(input); }

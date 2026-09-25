@@ -137,7 +137,7 @@ try {
   assert.throws(() => store.resolve({ commandId: "command-1", targetRef: "target-1", state: "CONFIRMED", mutationOutcome: "dispatched", proofHash: hash }), /BROWSER_MUTATION_STATE_CONFLICT/u);
   store.markDispatched("command-1");
   store.markReceiptMissing("command-1");
-  store.prepare({deliveryPriorityReplayGrantHash: null,
+  assert.throws(() => store.prepare({deliveryPriorityReplayGrantHash: null,
     commandId: "command-retry", logicalMutationId: `sha256:${"c".repeat(64)}`,
     exactCallIdentityHash: `sha256:${"d".repeat(64)}`,
     jobId: "job-1", resultRevision: 0, attemptId: "attempt-2", leaseVersion: 2,
@@ -146,7 +146,8 @@ try {
     effectScope: "target_local", actionOrdinal: 1,
     actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
-  });
+  }), /BROWSER_MUTATION_UNSETTLED/u,
+  "an unresolved physical input blocks every new mutation even after attempt or fence changes");
   assert.throws(() => store.resolve({ commandId: "command-1", targetRef: "target-2", state: "CONFIRMED", mutationOutcome: "dispatched", proofHash: hash }), /BROWSER_MUTATION_STATE_CONFLICT/u);
   assert.equal(store.readCommand("command-1")?.identity.childCapabilityId, "open_gpt_model_selector_v3");
   assert.equal(store.readAtomicStepOutcome({
@@ -255,6 +256,32 @@ try {
     actionOrdinal: 13, targetRef: "target-replacement", effectScope: "provider_effect",
   })?.state, "confirmed", "provider effects must recover across Target/attempt generations without replay");
   store.close();
+  const ackStore = new BrowserMutationStore(join(root, "ack"));
+  ackStore.verifyRuntimeTaskProvenance(null);
+  const ackIdentity = {
+    deliveryPriorityReplayGrantHash: null, commandId: "command:ack", logicalMutationId,
+    exactCallIdentityHash, jobId: "job:ack", attemptId: "attempt:ack", resultRevision: 0,
+    leaseVersion: 1, executionFenceHash: hash, targetRef: "target:old",
+    documentRef: "document:old", productStepId: "gpt-rate-limit-control",
+    callId: "aipcooldown_test", childCapabilityId: "acknowledge_known_gpt_rate_limit",
+    effectScope: "target_local" as const, actionOrdinal: 1, actionId: "browser.dom.click.v1",
+    positivePostconditionHash: hash, negativePostconditionHash: negativeHash,
+    requestHash: hash, payloadHash: hash,
+  };
+  ackStore.prepare(ackIdentity);
+  const ackQuery = { jobId: ackIdentity.jobId, attemptId: ackIdentity.attemptId,
+    resultRevision: 0, incidentRequestId: ackIdentity.callId };
+  assert.equal(ackStore.readConfirmedRateLimitAcknowledgement(ackQuery), null);
+  ackStore.markDispatched(ackIdentity.commandId);
+  assert.equal(ackStore.readConfirmedRateLimitAcknowledgement(ackQuery), null);
+  ackStore.markConfirmed(ackIdentity.commandId, hash, "confirmed", null, 1);
+  const ackTerminal = ackStore.readConfirmedRateLimitAcknowledgement(ackQuery);
+  assert.ok(ackTerminal?.terminalAt);
+  assert.deepEqual(Object.keys(ackTerminal), ["terminalAt"],
+    "recovered acknowledgement exposes only the target-independent WAL terminal time");
+  assert.equal(ackStore.readConfirmedRateLimitAcknowledgement({ ...ackQuery,
+    incidentRequestId: "aipcooldown_other" }), null);
+  ackStore.close();
   process.stdout.write("LOCAL_BROWSER_RULE_MUTANTS_PASS\n");
 } finally {
   await rm(root, { recursive: true, force: true });

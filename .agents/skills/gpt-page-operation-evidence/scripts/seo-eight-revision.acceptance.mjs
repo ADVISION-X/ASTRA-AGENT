@@ -50,4 +50,19 @@ reject('unplanned-locale-child-route', (body) => {
   body.calls.find((call) => call.stepId === 'article_translation:ko-KR'
     && call.childCapabilityId === 'open_gpt_execution_profile').childCapabilityId = 'prepare_clean_gpt_chat';
 });
+let rejectedWrongV5Scope = false;
+try {
+  validateSeoRevision(clone((body) => {
+    const scene = body.scenes.find((entry) =>
+      entry.observationScope?.collectorProfile === 'CURRENT_TURN_NULL_UNREAD_V4');
+    if (!scene) throw new Error('V4_SCENE_REQUIRED');
+    scene.observationScope.collectorProfile = 'CURRENT_TURN_TARGETED_FILE_INPUT_V5';
+    scene.observationScope.nodeCoverage =
+      'SELECTED_VISIBLE_TARGETS_AND_TARGETED_HIDDEN_FILE_INPUT_NOT_FULL_DOCUMENT';
+    // Its signed page fact still declares v1, so the V5 claim must fail closed.
+  }));
+} catch (error) {
+  rejectedWrongV5Scope = /SEO_REVISION_COLLECTOR_SCOPE_FACT_MISMATCH/u.test(String(error));
+}
+if (!rejectedWrongV5Scope) throw new Error('FALSE_ACCEPT:V5_WITH_V1_PAGE_FACT');
 console.log('seo-eight-revision-acceptance-ok');

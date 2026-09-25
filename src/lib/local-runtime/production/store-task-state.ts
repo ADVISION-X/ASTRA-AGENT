@@ -314,10 +314,13 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
     const transaction = this.database.transaction(() => {
       this.database.prepare("delete from production_outbox where instr(path,?)>0")
         .run(jobPathMarker(jobId));
+      this.database.prepare("delete from production_attempt_handoffs where job_id=?").run(jobId);
       this.database.prepare("delete from production_tasks where job_id=?").run(jobId);
     });
     transaction();
     if (this.readTask(jobId) || this.database.prepare(
+      "select 1 from production_attempt_handoffs where job_id=? limit 1",
+    ).get(jobId) || this.database.prepare(
       "select 1 from production_outbox where instr(path,?)>0 limit 1",
     ).get(jobPathMarker(jobId))) {
       throw executionFailure("failed", "PRODUCTION_JOB_PURGE_INCOMPLETE");

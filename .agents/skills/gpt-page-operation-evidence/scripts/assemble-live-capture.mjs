@@ -210,18 +210,21 @@ export function candidateEntries(target, scene, candidateContext = {}) {
         && knownValueEquals(attr(entry, "data-model-picker-view-toggle"), "true")
         && attr(entry, "role") === "menuitem");
       case "model-option": return entries.filter((entry) => attr(entry, "role") === "menuitemradio"
+        && entry.node.machineFacts?.advancedModelPickerAncestor === true
         && knownTextEquals(entry.node.subtreeTextProjection, candidateContext.authorizedModelId));
       case "reasoning-control": return entries.filter((entry) => attr(entry, "role") === "menuitem"
         && knownValueEquals(attr(entry, "data-reasoning-slider"), "true"));
       case "attachment-menu": {
         const uploadEntries = entries.filter((entry) => entry.node.tag === "button"
-          && knownTextEquals(entry.node.textProjection, "添加照片和文件")
+          && (knownTextEquals(entry.node.textProjection, "添加照片和文件")
+            || knownTextEquals(entry.node.subtreeTextProjection, "添加照片和文件"))
           && entry.node.machineFacts?.activeAttachmentPopoverAncestor === true);
         return uploadEntries.length === 1
           ? virtualAggregate("ACTIVE_ATTACHMENT_POPOVER", uploadEntries) : [];
       }
       case "upload-entry": return entries.filter((entry) => entry.node.tag === "button"
-        && knownTextEquals(entry.node.textProjection, "添加照片和文件")
+        && (knownTextEquals(entry.node.textProjection, "添加照片和文件")
+          || knownTextEquals(entry.node.subtreeTextProjection, "添加照片和文件"))
         && entry.node.machineFacts?.activeAttachmentPopoverAncestor === true);
       case "file-input": return entries.filter((entry) => entry.node.tag === "input"
         && attr(entry, "type") === "file"

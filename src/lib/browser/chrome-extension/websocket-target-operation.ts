@@ -3,13 +3,11 @@ import { asRecord } from "./websocket-actor-crypto.js";
 export type TargetOperation = Readonly<{
   action: "release";
   jobRefHash: `sha256:${string}`;
-  targetRefs: readonly string[];
 }> | Readonly<{
   action: "acquire";
   jobRefHash: `sha256:${string}`;
   targetMode: "fresh" | "bound-observation" | "confirmed-readback" | "authorized-continuation";
   parentConversationUrl?: string;
-  expectedTargetRef?: string;
 }>;
 
 const hasExactKeys = (value: Readonly<Record<string, unknown>>, keys: readonly string[]): boolean =>
@@ -26,14 +24,10 @@ const parseJobRefHash = (request: Readonly<Record<string, unknown>>): `sha256:${
 const parseRelease = (
   request: Readonly<Record<string, unknown>>, jobRefHash: `sha256:${string}`,
 ): Extract<TargetOperation, { action: "release" }> => {
-  const targetRefs = request.targetRefs;
-  if (!hasExactKeys(request, ["action", "jobRefHash", "targetRefs"])
-    || !Array.isArray(targetRefs)
-    || targetRefs.some((ref) => typeof ref !== "string" || !/^target-tab-\d+$/u.test(ref))
-    || new Set(targetRefs).size !== targetRefs.length) {
+  if (!hasExactKeys(request, ["action", "jobRefHash"])) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
-  return { action: "release", jobRefHash, targetRefs: targetRefs as string[] };
+  return { action: "release", jobRefHash };
 };
 
 const parseAcquire = (
@@ -45,18 +39,12 @@ const parseAcquire = (
   const continuation = targetMode === "authorized-continuation";
   if (request.action !== "acquire" || !validMode
     || typeof request.parentConversationUrl !== (continuation ? "string" : "undefined")
-    || (request.expectedTargetRef !== undefined
-      && (typeof request.expectedTargetRef !== "string"
-        || !/^target-tab-\d+$/u.test(request.expectedTargetRef)))
     || !hasExactKeys(request, ["action", "targetMode", "jobRefHash",
-      ...(continuation ? ["parentConversationUrl"] : []),
-      ...(request.expectedTargetRef ? ["expectedTargetRef"] : [])])) {
+      ...(continuation ? ["parentConversationUrl"] : [])])) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
   return { action: "acquire", jobRefHash, targetMode,
-    ...(continuation ? { parentConversationUrl: request.parentConversationUrl as string } : {}),
-    ...(request.expectedTargetRef
-      ? { expectedTargetRef: request.expectedTargetRef as string } : {}) };
+    ...(continuation ? { parentConversationUrl: request.parentConversationUrl as string } : {}) };
 };
 
 export const targetOperationFrom = (value: unknown): TargetOperation => {

@@ -33,6 +33,15 @@ function hash(value) {
   return `sha256:${createHash("sha256").update(String(value)).digest("hex")}`;
 }
 
+function normalizeApprovedAttachmentLabel(label, expectedLabels) {
+  const normalized = label.normalize("NFC");
+  if (expectedLabels.includes(normalized)) return normalized;
+  const duplicateSuffix = /\((?:\d+|\d{8}-\d{6})\)(?=(?:\.[^./]+)?$)/u;
+  const withoutSuffix = normalized.replace(duplicateSuffix, "");
+  return !duplicateSuffix.test(withoutSuffix) && expectedLabels.includes(withoutSuffix)
+    ? withoutSuffix : normalized;
+}
+
 function exactKeys(value, keys) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value)
     && JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...keys].sort());
@@ -52,14 +61,37 @@ function acceptedDecisionReceipt(receipt) {
 
 function acceptedTransitionReceipt(receipt, scenes) {
   if (receipt === null) return null;
+  const clickedCandidateAttributeReadback = receipt?.clickedCandidateAttributeReadback;
+  const hasClickedReadback = clickedCandidateAttributeReadback !== undefined;
+  const uploadedArtifactProof = receipt?.uploadedArtifactProof;
+  const hasUploadProof = uploadedArtifactProof !== undefined;
   if (!exactKeys(receipt, ["actionId", "operation", "issuedAt", "completedAt", "outcome",
-    "preSceneId", "preSceneSignature", "postconditionPassed"])
+    "preSceneId", "preSceneSignature", "postconditionPassed",
+    ...(hasClickedReadback ? ["clickedCandidateAttributeReadback"] : []),
+    ...(hasUploadProof ? ["uploadedArtifactProof"] : [])])
     || typeof receipt.actionId !== "string" || receipt.actionId.length === 0
     || typeof receipt.operation !== "string" || receipt.operation.length === 0
     || receipt.outcome !== "DISPATCH_RETURNED" || typeof receipt.postconditionPassed !== "boolean"
     || !Number.isFinite(Date.parse(receipt.issuedAt)) || !Number.isFinite(Date.parse(receipt.completedAt))
     || Date.parse(receipt.completedAt) < Date.parse(receipt.issuedAt)
-    || !/^sha256:[a-f0-9]{64}$/u.test(receipt.preSceneSignature ?? "")) {
+    || !/^sha256:[a-f0-9]{64}$/u.test(receipt.preSceneSignature ?? "")
+    || (hasClickedReadback && (!exactKeys(clickedCandidateAttributeReadback,
+      ["name", "value", "verified"])
+      || clickedCandidateAttributeReadback.name !== "aria-checked"
+      || clickedCandidateAttributeReadback.value !== "true"
+      || clickedCandidateAttributeReadback.verified !== true))
+    || (hasUploadProof && (!exactKeys(uploadedArtifactProof, ["source", "items"])
+      || uploadedArtifactProof.source !== "SIGNED_COMMAND_ARGUMENTS"
+      || !Array.isArray(uploadedArtifactProof.items)
+      || ![1, 4].includes(uploadedArtifactProof.items.length)
+      || uploadedArtifactProof.items.some((item) => !exactKeys(item,
+        ["providerDisplayNameHash", "sha256", "bytes"])
+        || !/^sha256:[a-f0-9]{64}$/u.test(item.providerDisplayNameHash)
+        || !/^sha256:[a-f0-9]{64}$/u.test(item.sha256)
+        || !Number.isSafeInteger(item.bytes) || item.bytes < 1)
+      || JSON.stringify(uploadedArtifactProof.items)
+        !== JSON.stringify([...uploadedArtifactProof.items].sort((a, b) =>
+          a.providerDisplayNameHash.localeCompare(b.providerDisplayNameHash)))))) {
     throw new Error("CHROME_SCENE_TRANSITION_RECEIPT_INVALID");
   }
   const pre = scenes.find((scene) => scene.sceneId === receipt.preSceneId);
@@ -71,7 +103,9 @@ function acceptedTransitionReceipt(receipt, scenes) {
   }
   return { actionId: receipt.actionId, operation: receipt.operation, issuedAt: receipt.issuedAt,
     completedAt: receipt.completedAt, outcome: receipt.outcome, preSceneId: receipt.preSceneId,
-    preSceneSignature: receipt.preSceneSignature, postconditionPassed: receipt.postconditionPassed };
+    preSceneSignature: receipt.preSceneSignature, postconditionPassed: receipt.postconditionPassed,
+    ...(hasClickedReadback ? { clickedCandidateAttributeReadback } : {}),
+    ...(hasUploadProof ? { uploadedArtifactProof } : {}) };
 }
 
 function sanitizeUrl(value) {
@@ -178,6 +212,7 @@ export async function createChromeSceneCollector({
   tab,
   outputPath,
   productMarker,
+  authorizedModelDisplayName = null,
   runId,
   captureEpoch,
   recaptureTrigger,
@@ -191,6 +226,10 @@ export async function createChromeSceneCollector({
   if (!outputPath || !productMarker || !runId || !captureEpoch
     || !recaptureTrigger || !qaTabIdentityHash) {
     throw new Error("CHROME_SCENE_COLLECTOR_CONFIGURATION_REQUIRED");
+  }
+  if (authorizedModelDisplayName !== null
+    && !["最新", "GPT-5.6 Sol"].includes(authorizedModelDisplayName)) {
+    throw new Error("CHROME_SCENE_AUTHORIZED_MODEL_INVALID");
   }
   if (!["PAGE_EVIDENCE_CONFLICT_CONFIRMED", "HUMAN_REQUESTED_RECAPTURE",
     "LIVE_SEO_CAPTURE_SESSION"].includes(recaptureTrigger.kind)) {
@@ -223,21 +262,33 @@ export async function createChromeSceneCollector({
   });
 
   async function collect(sceneId, { includeMedia = false, decisionReceipt = null,
-    transitionReceipt = null, attachmentUploadExpected = false, exactAssistantPromptHash = null } = {}) {
+    transitionReceipt = null, attachmentUploadExpected = false, exactAssistantPromptHash = null,
+    expectedAttachmentNames = null } = {}) {
     if (!sceneId || scenes.some((scene) => scene.sceneId === sceneId)) {
       throw new Error(`SCENE_ID_DUPLICATE_OR_EMPTY:${sceneId ?? ""}`);
     }
     const normalizedDecisionReceipt = acceptedDecisionReceipt(decisionReceipt);
     const normalizedTransitionReceipt = acceptedTransitionReceipt(transitionReceipt, scenes);
+    if (expectedAttachmentNames !== null && (!Array.isArray(expectedAttachmentNames)
+      || expectedAttachmentNames.some((name) => typeof name !== "string" || !name)
+      || new Set(expectedAttachmentNames).size !== expectedAttachmentNames.length)) {
+      throw new Error("CHROME_SCENE_EXPECTED_ATTACHMENT_SET_INVALID");
+    }
     const roots = activeTab.playwright.locator(rootSelector);
-    const readPage = (elements, context) => {
-      const { marker, attachmentUploadArmed } = context;
+    const readPage = async (elements, context) => {
+      const { marker, attachmentUploadArmed, authorizedModelDisplayName: modelName } = context;
+      const pageHash = async (value) => {
+        const bytes = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+        return `sha256:${Array.from(new Uint8Array(bytes))
+          .map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+      };
       const attributeNames = [
         "id",
         "role",
         "type",
         "aria-label",
         "aria-checked",
+        "aria-pressed",
         "aria-expanded",
         "aria-haspopup",
         "aria-selected",
@@ -311,9 +362,18 @@ export async function createChromeSceneCollector({
       const userPromptText = (turn) => {
         if (turn.hasAttribute("data-content-search-turn-key")
           && turn.querySelector("[data-chatgpt-search-unit-key$=':user']")) return null;
-        const newPromptLeaves = turn.querySelectorAll("[data-user-message-bubble] .whitespace-pre-wrap");
-        if (newPromptLeaves.length === 1) return browserCanonicalGptUserPromptText(newPromptLeaves[0]);
-        if (newPromptLeaves.length > 1) return null;
+        const bubbles = turn.querySelectorAll("[data-user-message-bubble='true']");
+        if (bubbles.length === 1) {
+          const longPrompts = bubbles[0].querySelectorAll(
+            "[data-testid='collapsible-user-message-content']");
+          if (longPrompts.length === 1) return browserCanonicalGptUserPromptText(longPrompts[0]);
+          if (longPrompts.length > 1) return null;
+          const shortPrompts = Array.from(bubbles[0].querySelectorAll(".whitespace-pre-wrap"))
+            .filter((node) => Array.from(node.childNodes).every((child) => child.nodeType !== 1));
+          return shortPrompts.length === 1
+            ? browserCanonicalGptUserPromptText(shortPrompts[0]) : null;
+        }
+        if (bubbles.length > 1) return null;
         const userRoles = turn.querySelectorAll("[data-message-author-role='user']");
         if (userRoles.length !== 1
           || turn.querySelectorAll("[data-message-author-role='assistant']").length !== 0) return null;
@@ -432,6 +492,9 @@ export async function createChromeSceneCollector({
               ownerTurnTestId: ownerTurn ? (ownerTurn.getAttribute("data-testid")
                 || ownerTurn.getAttribute("data-chatgpt-search-unit-key")
                 || `${ownerTurn.getAttribute("data-content-search-turn-key")}:image`) : null,
+              assistantSelectionMessageId: element.tagName === "IMG"
+                ? element.closest("[data-chatgpt-selection-message-id]")
+                  ?.getAttribute("data-chatgpt-selection-message-id") ?? null : null,
               inertAncestor: element.closest("[inert]") !== null,
               ariaHiddenAncestor: element.closest("[aria-hidden='true']") !== null,
               productionAttachmentGroupAncestor: element.closest("form [role='group'][aria-label], [class*='group/composer-attachment']") !== null,
@@ -441,6 +504,7 @@ export async function createChromeSceneCollector({
               attachmentUploadErrorAlert: attachmentUploadArmed
                 && element.getAttribute("role") === "alert" && subtreeText.length > 0,
               activeAttachmentPopoverAncestor: element.closest("[data-composer-overlay-floating-ui='true']") !== null,
+              advancedModelPickerAncestor: element.closest("[data-model-picker-view='advanced']") !== null,
               composerFormAncestor: element.closest("form:has(#prompt-textarea), form:has([data-composer-markdown][contenteditable='true'])") !== null,
             },
             media:
@@ -519,10 +583,155 @@ export async function createChromeSceneCollector({
       const reasoningScaleFacts = Array.from(ownerDocument?.querySelectorAll("[data-model-picker-power-slider] [role='slider']") ?? [])
         .map((node) => ({ minimum: node.getAttribute("aria-valuemin"), maximum: node.getAttribute("aria-valuemax"),
           current: node.getAttribute("aria-valuenow") }));
+      const mechanicallyEligible = (element, allowAriaHidden = false) => {
+        const rect = element.getBoundingClientRect();
+        if (!element.isConnected || element.getClientRects().length === 0
+          || rect.width <= 0 || rect.height <= 0
+          || element.closest(allowAriaHidden
+            ? "[hidden], [inert]" : "[hidden], [aria-hidden='true'], [inert]")) return false;
+        let opacity = 1;
+        for (let current = element; current instanceof Element; current = current.parentElement) {
+          const style = ownerDocument.defaultView.getComputedStyle(current);
+          if (style.display === "none" || ["hidden", "collapse"].includes(style.visibility)) return false;
+          const value = Number.parseFloat(style.opacity);
+          if (!Number.isFinite(value)) return false;
+          opacity *= value;
+        }
+        return opacity > 0;
+      };
+      const reasoningControls = Array.from(ownerDocument?.querySelectorAll(
+        "[role='menuitem'][data-reasoning-slider='true']:not([aria-disabled='true'])") ?? []);
+      const reasoningControlFullDom = { rawCount: reasoningControls.length,
+        eligibleCount: reasoningControls.filter(mechanicallyEligible).length };
+      const attachmentForms = Array.from(ownerDocument?.querySelectorAll(
+        "form[data-chatgpt-composer]") ?? []);
+      const fullAttachmentNodes = attachmentForms.flatMap((form) => Array.from(
+        form.querySelectorAll("button.composer-attachment-surface[aria-label]")));
+      const uploadSpinners = attachmentForms.flatMap((form) => Array.from(
+        form.querySelectorAll("[role='progressbar']")));
+      const pendingActions = attachmentForms.flatMap((form) => Array.from(
+        form.querySelectorAll("button.composer-attachment-surface[aria-label].cursor-wait")));
+      const fullAttachmentEligibleLabels = fullAttachmentNodes.filter(mechanicallyEligible)
+        .map((node) => (node.getAttribute("aria-label") || "").normalize("NFC"));
+      const fullAttachmentFacts = { formCount: attachmentForms.length,
+        rawCount: fullAttachmentNodes.length,
+        eligibleCount: fullAttachmentEligibleLabels.length,
+        spinnerRawCount: uploadSpinners.length,
+        spinnerEligibleCount: uploadSpinners.filter(mechanicallyEligible).length,
+        pendingRawCount: pendingActions.length,
+        pendingEligibleCount: pendingActions.filter(mechanicallyEligible).length,
+        eligibleLabels: fullAttachmentEligibleLabels };
+      const topologyCount = (selector, allowAriaHidden = false) => {
+        const nodes = Array.from(ownerDocument?.querySelectorAll(selector) ?? []);
+        return { rawCount: nodes.length,
+          eligibleCount: nodes.filter((node) => mechanicallyEligible(node, allowAriaHidden)).length };
+      };
+      const attachmentControlForms = Array.from(ownerDocument?.querySelectorAll(
+        "form[data-chatgpt-composer]") ?? []);
+      const eligibleControlForms = attachmentControlForms.filter(mechanicallyEligible);
+      const attachmentControls = eligibleControlForms.length === 1
+        ? Array.from(eligibleControlForms[0].querySelectorAll(
+          "button[aria-label='添加文件等内容']")) : [];
+      const activeAttachmentMenus = Array.from(ownerDocument?.querySelectorAll(
+        "[data-composer-overlay-floating-ui='true']") ?? []);
+      const eligibleAttachmentMenus = activeAttachmentMenus.filter(mechanicallyEligible);
+      const uploadChoices = eligibleAttachmentMenus.length === 1
+        ? Array.from(eligibleAttachmentMenus[0].querySelectorAll(
+          "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child")) : [];
+      const attachmentControlTopology = {
+        formScopeRawCount: attachmentControlForms.length,
+        formScopeEligibleCount: eligibleControlForms.length,
+        controlRawCount: attachmentControls.length,
+        controlEligibleCount: attachmentControls.filter(mechanicallyEligible).length,
+        activeMenuRawCount: activeAttachmentMenus.length,
+        activeMenuEligibleCount: eligibleAttachmentMenus.length,
+        uploadScopeEligibleCount: eligibleAttachmentMenus.length,
+        uploadChoiceRawCount: uploadChoices.length,
+        uploadChoiceEligibleCount: uploadChoices.filter((node) =>
+          mechanicallyEligible(node) && node.textContent?.trim() === "添加照片和文件").length,
+        invalidUploadChoiceRejectionCount: uploadChoices.filter((node) =>
+          !mechanicallyEligible(node)).length,
+      };
+      const attachmentFileInputFullDom = { rawCount: ownerDocument?.querySelectorAll(
+        "form[data-chatgpt-composer] input[type='file'][aria-label='附加文件']")?.length ?? 0 };
+      const allModelChoices = Array.from(ownerDocument?.querySelectorAll(
+        "[data-model-picker-view='advanced'] [role='menuitemradio']") ?? []);
+      const modelChoices = modelName === null ? null : allModelChoices
+        .filter((node) => node.textContent?.trim() === modelName);
+      const modelChoiceFullDom = modelChoices === null ? null
+        : { rawCount: modelChoices.length,
+          eligibleCount: modelChoices.filter(mechanicallyEligible).length,
+          selectedRawCount: ownerDocument?.querySelectorAll(
+            "[role='menuitemradio'][aria-checked='true']")?.length ?? 0,
+          targetAncestorAriaDisabled: modelChoices.length === 1
+            && modelChoices[0].closest("[aria-disabled=true]") !== null };
+      const modelSelectorOpenableEntryFullDom = topologyCount(
+        "[data-model-picker-view='simple'] [role='menuitem'][data-model-picker-view-toggle='true'][aria-label='选择模型']");
+      const profilePopups = Array.from(ownerDocument?.querySelectorAll(
+        "[role='menu'][data-radix-menu-content]:has([data-model-picker-view='simple'])") ?? []);
+      const profilePopupFullDom = { rawCount: profilePopups.length,
+        eligibleCount: profilePopups.filter(mechanicallyEligible).length };
+      const profileTriggers = Array.from(ownerDocument?.querySelectorAll(
+        "form[data-chatgpt-composer] button[aria-label='选择 ChatGPT 模型'][aria-haspopup='menu']") ?? []);
+      const profileTopologyFullDom = {
+        popup: profilePopupFullDom,
+        simplePanel: topologyCount("[data-model-picker-view='simple']:has(> [data-active='true']:not([inert]))"),
+        reasoningControl: topologyCount("[role='menuitem'][data-reasoning-slider='true']"),
+        enabledReasoningControl: reasoningControlFullDom,
+        reasoningValue: topologyCount("[data-model-picker-power-slider] [role='slider']", true),
+        composer: topologyCount("form[data-chatgpt-composer] [data-composer-markdown][role='textbox']"),
+        trigger: { rawCount: profileTriggers.length,
+          eligibleCount: profileTriggers.filter(mechanicallyEligible).length },
+        triggerExpanded: profileTriggers.length === 1
+          ? profileTriggers[0].getAttribute("aria-expanded") : null,
+        triggerIdPresent: profileTriggers.length === 1
+          && Boolean(profileTriggers[0].id),
+        popupLabelledByMatchesTriggerId: profileTriggers.length === 1
+          && profilePopups.length === 1
+          && Boolean(profileTriggers[0].id)
+          && profilePopups[0].getAttribute("aria-labelledby") === profileTriggers[0].id,
+      };
+      const cleanConversationFullDom = {
+        userRawCount: ownerDocument?.querySelectorAll(
+          "[data-turn-key]:has([data-chatgpt-search-unit-key$=':user'])")?.length ?? 0,
+        assistantRawCount: ownerDocument?.querySelectorAll(
+          "[data-turn-key]:has([data-chatgpt-search-unit-key$=':assistant'])")?.length ?? 0,
+        attachmentsRawCount: eligibleControlForms.length === 1
+          ? eligibleControlForms[0].querySelectorAll(
+            "button.composer-attachment-surface[aria-label]").length : null,
+        generatingRawCount: ownerDocument?.querySelectorAll(
+          "form[data-chatgpt-composer] button[aria-label='停止']")?.length ?? 0,
+        chatMode: topologyCount("[role='group'][aria-label='撰写器模式'] > button:first-of-type"),
+        workMode: topologyCount("[role='group'][aria-label='撰写器模式'] > button:nth-of-type(2)"),
+      };
+      const submitControlFullDom = topologyCount(
+        "form[data-chatgpt-composer] button[type='submit'][aria-label='发送']");
+      const emptyComposerFullDom = topologyCount(
+        "form[data-chatgpt-composer] [data-composer-markdown][role='textbox'][contenteditable='true']:has(> p[data-empty-paragraph='true'] > br.ProseMirror-trailingBreak)");
+      const modeGroups = Array.from(ownerDocument?.querySelectorAll(
+        "[role='group'][aria-label='撰写器模式']") ?? []);
+      const chatModeFacts = {
+        groupCount: modeGroups.length,
+        chatButtonCount: modeGroups.reduce((count, group) =>
+          count + group.querySelectorAll(":scope > button:first-of-type").length, 0),
+        workButtonCount: modeGroups.reduce((count, group) =>
+          count + group.querySelectorAll(":scope > button:nth-of-type(2)").length, 0),
+        chatPressed: modeGroups.length === 1
+          ? modeGroups[0].querySelector(":scope > button:first-of-type")?.getAttribute("aria-pressed") ?? null : null,
+        workPressed: modeGroups.length === 1
+          ? modeGroups[0].querySelector(":scope > button:nth-of-type(2)")?.getAttribute("aria-pressed") ?? null : null,
+        chatTextExact: modeGroups.length === 1
+          && modeGroups[0].querySelector(":scope > button:first-of-type")?.textContent?.trim() === "聊天",
+        workTextExact: modeGroups.length === 1
+          && modeGroups[0].querySelector(":scope > button:nth-of-type(2)")?.textContent?.trim() === "工作",
+      };
       const assistantTurnIds = conversationTurns.filter((turn) => isAssistantTurn(turn)
         || semanticMediaNodes(turn).length === 1)
-        .map((turn) => turn.getAttribute("data-testid") || turn.getAttribute("data-chatgpt-search-unit-key")
-          || `${turn.getAttribute("data-content-search-turn-key")}:image`);
+        .map((turn) => semanticMediaNodes(turn).length === 1
+          ? semanticMediaNodes(turn)[0].closest("[data-chatgpt-selection-message-id]")
+            ?.getAttribute("data-chatgpt-selection-message-id") ?? null
+          : turn.getAttribute("data-testid") || turn.getAttribute("data-chatgpt-search-unit-key")
+            || `${turn.getAttribute("data-content-search-turn-key")}:image`);
       const userTurnBindings = conversationTurns.flatMap((turn) => {
         const promptText = userPromptText(turn);
         if (promptText === null) return [];
@@ -543,13 +752,105 @@ export async function createChromeSceneCollector({
           }
         }
         const promptText = userTurn ? userPromptText(userTurn) : null;
-        return [{ assistantTurnId: turn.getAttribute("data-testid")
-          || turn.getAttribute("data-chatgpt-search-unit-key")
-          || `${turn.getAttribute("data-content-search-turn-key")}:image`, promptText,
+        return [{ assistantTurnId: semanticMedia.length === 1
+          ? semanticMedia[0].closest("[data-chatgpt-selection-message-id]")
+            ?.getAttribute("data-chatgpt-selection-message-id") ?? null
+          : turn.getAttribute("data-testid")
+            || turn.getAttribute("data-chatgpt-search-unit-key")
+            || `${turn.getAttribute("data-content-search-turn-key")}:image`, promptText,
           responseText: assistants.length === 1 && promptText?.includes(context.marker)
             ? semanticText(assistants[0]) : null,
           turnMarkers: promptText?.match(/\[GRASSEYE:[a-f0-9]{24}\]/gu) ?? [] }];
       });
+      const exactAdjacentTurnBindings = (await Promise.all(
+        Array.from(ownerDocument?.querySelectorAll("[data-turn-key]") ?? [])
+        .map(async (root) => {
+          const userTurnId = root.getAttribute("data-turn-key") || "";
+          if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(userTurnId)
+            || ownerDocument.querySelectorAll(`[data-turn-key='${userTurnId}']`).length !== 1) return null;
+          const units = Array.from(root.querySelectorAll("[data-chatgpt-search-unit-key]"));
+          const users = units.filter((unit) =>
+            (unit.getAttribute("data-chatgpt-search-unit-key") || "").endsWith(":user")
+            && unit.getAttribute("data-chatgpt-search-message-ids") === userTurnId);
+          if (users.length !== 1) return null;
+          const bubbles = users[0].querySelectorAll("[data-user-message-bubble='true']");
+          if (bubbles.length !== 1) return null;
+          const longPrompts = bubbles[0].querySelectorAll(
+            "[data-testid='collapsible-user-message-content']");
+          const shortPrompts = longPrompts.length === 0 ? Array.from(bubbles[0].querySelectorAll(
+            ".whitespace-pre-wrap")).filter((node) =>
+              Array.from(node.childNodes).every((child) => child.nodeType !== 1)) : [];
+          const promptNode = longPrompts.length === 1 ? longPrompts[0]
+            : shortPrompts.length === 1 ? shortPrompts[0] : null;
+          const promptText = promptNode ? browserCanonicalGptUserPromptText(promptNode) : null;
+          if (promptText === null) return null;
+          const assistant = units[units.indexOf(users[0]) + 1];
+          const key = assistant?.getAttribute("data-chatgpt-search-unit-key") || "";
+          const ids = (assistant?.getAttribute("data-chatgpt-search-message-ids") || "")
+            .split(/\s+/u).filter(Boolean);
+          const assistantTurnId = ids[0] || "";
+          const role = assistant?.querySelectorAll("h4[data-conversation-role='assistant']") ?? [];
+          const selection = assistant?.querySelectorAll("[data-chatgpt-selection-message-id]") ?? [];
+          const bodies = key.endsWith(":assistant")
+            ? Array.from(assistant.querySelectorAll("[data-markdown-text-style='assistant-message']")) : [];
+          if (bodies.length !== 1 || role.length !== 1 || selection.length !== 1
+            || !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(assistantTurnId)
+            || ids.some((id) => id !== assistantTurnId)
+            || selection[0].getAttribute("data-chatgpt-selection-message-id") !== assistantTurnId
+            || !selection[0].contains(bodies[0])) return null;
+          const responseText = semanticText(bodies[0]);
+          const isCurrent = promptText.includes(context.marker);
+          const markers = promptText.match(/\[GRASSEYE:[a-f0-9]{24}\]/gu) ?? [];
+          return { userTurnIdHash: await pageHash(userTurnId),
+            assistantTurnIdHash: await pageHash(assistantTurnId),
+            promptHash: await pageHash(promptText), responseHash: await pageHash(responseText),
+            responseNonWhitespace: responseText.trim().length > 0,
+            turnMarkerHashes: await Promise.all(markers.map(pageHash)),
+            userTurnId: isCurrent ? userTurnId : null,
+            assistantTurnId: isCurrent ? assistantTurnId : null,
+            promptText: isCurrent ? promptText : null,
+            responseText: isCurrent ? responseText : null };
+        }))).filter(Boolean);
+      const latestUserTurn = (() => {
+        const ranked = Array.from(ownerDocument?.querySelectorAll(
+          "[data-turn-key]:has([data-chatgpt-search-unit-key$=':user'])") ?? [])
+          .map((root) => {
+            const markers = root.querySelectorAll(
+              "[data-content-search-turn-key^='fallback-turn-']");
+            const match = markers.length === 1
+              ? /^fallback-turn-(0|[1-9][0-9]*)$/u.exec(
+                markers[0].getAttribute("data-content-search-turn-key") || "") : null;
+            const ordinal = match ? Number(match[1]) : -1;
+            return Number.isSafeInteger(ordinal) && ordinal >= 0 ? { root, ordinal } : null;
+          }).filter(Boolean).sort((a, b) => b.ordinal - a.ordinal);
+        if (!ranked.length || ranked.length > 1 && ranked[0].ordinal === ranked[1].ordinal) {
+          return { unique: false, eligible: false, structurallyValid: false,
+            promptText: null, userTurnId: null };
+        }
+        const root = ranked[0].root;
+        const userTurnId = root.getAttribute("data-turn-key") || "";
+        const users = root.querySelectorAll("[data-chatgpt-search-unit-key$=':user']");
+        const unit = users.length === 1 ? users[0] : null;
+        const ordinalKey = `fallback-turn-${ranked[0].ordinal}`;
+        const bubbles = unit?.querySelectorAll("[data-user-message-bubble='true']") ?? [];
+        const bubble = bubbles.length === 1 ? bubbles[0] : null;
+        const longPrompts = bubble?.querySelectorAll(
+          "[data-testid='collapsible-user-message-content']") ?? [];
+        const shortPrompts = longPrompts.length === 0 ? Array.from(bubble?.querySelectorAll(
+          ".whitespace-pre-wrap") ?? []).filter((node) =>
+          Array.from(node.childNodes).every((child) => child.nodeType !== 1)) : [];
+        const promptNode = longPrompts.length === 1 ? longPrompts[0]
+          : shortPrompts.length === 1 ? shortPrompts[0] : null;
+        const structurallyValid = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(userTurnId)
+          && ownerDocument.querySelectorAll(`[data-turn-key='${userTurnId}']`).length === 1
+          && unit !== null
+          && (unit.getAttribute("data-chatgpt-search-unit-key") || "").startsWith(`${ordinalKey}:`)
+          && unit.getAttribute("data-chatgpt-search-message-ids") === userTurnId
+          && bubble !== null && promptNode !== null;
+        return { unique: true, eligible: mechanicallyEligible(root), structurallyValid,
+          promptText: structurallyValid ? browserCanonicalGptUserPromptText(promptNode) : null,
+          userTurnId };
+      })();
       return {
         nodes: result,
         currentUrl: ownerDocument?.location?.href ?? "",
@@ -562,11 +863,25 @@ export async function createChromeSceneCollector({
           userPromptTexts,
           assistantSemanticTexts,
           attachmentLabels,
+          fullAttachmentFacts,
           modelTexts,
           reasoningScaleFacts,
+          reasoningControlFullDom,
+          modelChoiceFullDom,
+          modelSelectorOpenableEntryFullDom,
+          profilePopupFullDom,
+          profileTopologyFullDom,
+          attachmentControlTopology,
+          attachmentFileInputFullDom,
+          cleanConversationFullDom,
+          submitControlFullDom,
+          emptyComposerFullDom,
+          chatModeFacts,
           assistantTurnIds,
           userTurnBindings,
           turnBindings,
+          exactAdjacentTurnBindings,
+          latestUserTurn,
         },
       };
     };
@@ -577,14 +892,37 @@ export async function createChromeSceneCollector({
     if (callbackSource === readPage.toString()) throw new Error("CANONICAL_READER_INJECTION_FAILED");
     const rawPacket = await roots.evaluateAll(
       callbackSource,
-      { marker: productMarker, attachmentUploadArmed: attachmentUploadExpected },
+      { marker: productMarker, attachmentUploadArmed: attachmentUploadExpected,
+        authorizedModelDisplayName },
     );
     const semanticProjectionDrift = rawPacket.pageInputFacts.semanticProjectionDrift === true;
+    const attachmentSetProof = expectedAttachmentNames === null ? null : (() => {
+      const expected = expectedAttachmentNames.map((name) => name.normalize("NFC"));
+      const observed = rawPacket.pageInputFacts.fullAttachmentFacts.eligibleLabels
+        .map((name) => normalizeApprovedAttachmentLabel(name, expected));
+      const missing = expected.filter((name) => !observed.includes(name));
+      const unexpected = observed.filter((name) => !expected.includes(name));
+      const duplicates = observed.length - new Set(observed).size;
+      return {
+        expectedCount: expected.length,
+        rawCount: rawPacket.pageInputFacts.fullAttachmentFacts.rawCount,
+        eligibleCount: rawPacket.pageInputFacts.fullAttachmentFacts.eligibleCount,
+        formCount: rawPacket.pageInputFacts.fullAttachmentFacts.formCount,
+        spinnerRawCount: rawPacket.pageInputFacts.fullAttachmentFacts.spinnerRawCount,
+        spinnerEligibleCount: rawPacket.pageInputFacts.fullAttachmentFacts.spinnerEligibleCount,
+        pendingRawCount: rawPacket.pageInputFacts.fullAttachmentFacts.pendingRawCount,
+        pendingEligibleCount: rawPacket.pageInputFacts.fullAttachmentFacts.pendingEligibleCount,
+        expectedLabelHashes: expected.map(hash).sort(),
+        observedNormalizedLabelHashes: observed.map(hash).sort(),
+        missingCount: missing.length, unexpectedCount: unexpected.length,
+        duplicateCount: duplicates,
+      };
+    })();
     const exactAssistant = exactAssistantPromptHash === null ? null
-      : rawPacket.pageInputFacts.turnBindings.filter((entry) => entry.promptText !== null
+      : rawPacket.pageInputFacts.exactAdjacentTurnBindings.filter((entry) => entry.promptText !== null
         && hash(entry.promptText) === exactAssistantPromptHash
         && entry.promptText.includes(productMarker)
-        && typeof entry.responseText === "string" && entry.responseText.length > 0);
+        && typeof entry.responseText === "string" && entry.responseText.trim().length > 0);
     if (exactAssistant !== null && (exactAssistant.length !== 1
       || !exactAssistant[0].assistantTurnId || !exactAssistant[0].responseText)) {
       throw new Error("EXACT_ASSISTANT_TURN_AMBIGUOUS");
@@ -632,18 +970,48 @@ export async function createChromeSceneCollector({
         || Object.hasOwn(node.attributes, "data-composer-markdown"))
         && (node.subtreeText || "").includes(productMarker)),
       currentRouteKind: new URL(rawPacket.currentUrl).pathname.startsWith("/c/") ? "CONVERSATION" : "ROOT",
+      exactGptRootUrl: rawPacket.currentUrl === "https://chatgpt.com/",
+      exactCanonicalConversationUrl: (() => {
+        const url = new URL(rawPacket.currentUrl);
+        const parts = url.pathname.split("/");
+        return url.protocol === "https:" && url.origin === "https://chatgpt.com"
+          && url.username === "" && url.password === "" && url.search === "" && url.hash === ""
+          && parts.length === 3 && parts[0] === "" && parts[1] === "c"
+          && parts[2].length <= 256 && /^[A-Za-z0-9_-]+$/u.test(parts[2]);
+      })(),
       currentConversationUrlHash: hash((() => {
         const current = new URL(rawPacket.currentUrl); return `${current.origin}${current.pathname}`;
       })()),
       exactComposerHash: rawPacket.pageInputFacts.exactComposerText === null
         ? null : hash(rawPacket.pageInputFacts.exactComposerText),
-      exactUserPromptHashes: rawPacket.pageInputFacts.userPromptTexts.map(hash),
+      exactUserPromptHashes: [...new Set([
+        ...rawPacket.pageInputFacts.userPromptTexts.map(hash),
+        ...rawPacket.pageInputFacts.exactAdjacentTurnBindings.map((entry) => entry.promptHash),
+      ])],
       assistantSemanticTextHashes: rawPacket.pageInputFacts.assistantSemanticTexts.map(hash),
       attachmentLabelHashes: rawPacket.pageInputFacts.attachmentLabels.map(hash).sort(),
+      attachmentSetProof,
       visibleModelTextHashes: rawPacket.pageInputFacts.modelTexts.map(hash).sort(),
       reasoningScaleFacts: rawPacket.pageInputFacts.reasoningScaleFacts,
-      turnMarkerHashes: [...new Set(rawPacket.pageInputFacts.userPromptTexts
-        .flatMap((value) => value.match(/\[GRASSEYE:[a-f0-9]{24}\]/gu) ?? []).map(hash))].sort(),
+      reasoningControlFullDom: rawPacket.pageInputFacts.reasoningControlFullDom,
+      modelChoiceFullDom: rawPacket.pageInputFacts.modelChoiceFullDom,
+      modelSelectorOpenableEntryFullDom: rawPacket.pageInputFacts.modelSelectorOpenableEntryFullDom,
+      authorizedModelDisplayNameHash: authorizedModelDisplayName === null
+        ? null : hash(authorizedModelDisplayName),
+      profilePopupFullDom: rawPacket.pageInputFacts.profilePopupFullDom,
+      profileTopologyFullDom: rawPacket.pageInputFacts.profileTopologyFullDom,
+      attachmentControlTopology: rawPacket.pageInputFacts.attachmentControlTopology,
+      attachmentFileInputFullDom: rawPacket.pageInputFacts.attachmentFileInputFullDom,
+      cleanConversationFullDom: rawPacket.pageInputFacts.cleanConversationFullDom,
+      submitControlFullDom: rawPacket.pageInputFacts.submitControlFullDom,
+      emptyComposerFullDom: rawPacket.pageInputFacts.emptyComposerFullDom,
+      chatModeFacts: rawPacket.pageInputFacts.chatModeFacts,
+      turnMarkerHashes: [...new Set([
+        ...rawPacket.pageInputFacts.userPromptTexts.flatMap((value) =>
+          (value.match(/\[GRASSEYE:[a-f0-9]{24}\]/gu) ?? []).map(hash)),
+        ...rawPacket.pageInputFacts.exactAdjacentTurnBindings.flatMap((entry) =>
+          entry.turnMarkerHashes),
+      ])].sort(),
       assistantTurnIdHashes: rawPacket.pageInputFacts.assistantTurnIds.map(hash).sort(),
       userTurnBindings: rawPacket.pageInputFacts.userTurnBindings.map((entry) => ({
         userTurnIdHash: entry.userTurnId === null ? null : hash(entry.userTurnId),
@@ -656,6 +1024,23 @@ export async function createChromeSceneCollector({
         responseHash: entry.responseText === null ? null : hash(entry.responseText),
         turnMarkerHashes: [...new Set(entry.turnMarkers.map(hash))].sort(),
       })),
+      exactAdjacentTurnBindings: rawPacket.pageInputFacts.exactAdjacentTurnBindings.map((entry) => ({
+        userTurnIdHash: entry.userTurnIdHash, assistantTurnIdHash: entry.assistantTurnIdHash,
+        precedingPromptHash: entry.promptHash, responseHash: entry.responseHash,
+        responseNonWhitespace: entry.responseNonWhitespace,
+        turnMarkerHashes: [...new Set(entry.turnMarkerHashes)].sort(),
+      })),
+      latestUserTurn: {
+        unique: rawPacket.pageInputFacts.latestUserTurn.unique,
+        eligible: rawPacket.pageInputFacts.latestUserTurn.eligible,
+        structurallyValid: rawPacket.pageInputFacts.latestUserTurn.structurallyValid,
+        userTurnIdIsUuid: /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u
+          .test(rawPacket.pageInputFacts.latestUserTurn.userTurnId ?? ""),
+        promptHash: rawPacket.pageInputFacts.latestUserTurn.promptText === null
+          ? null : hash(rawPacket.pageInputFacts.latestUserTurn.promptText),
+        userTurnIdHash: rawPacket.pageInputFacts.latestUserTurn.userTurnId === null
+          ? null : hash(rawPacket.pageInputFacts.latestUserTurn.userTurnId),
+      },
     };
 
     const nodes = rawNodes.map((node) => {
@@ -665,8 +1050,11 @@ export async function createChromeSceneCollector({
         includeMedia && node.media
           ? {
               sourceHash: hash(node.media.source),
-              ownerTurnIdHash: node.machineFacts.ownerTurnTestId
-                ? hash(node.machineFacts.ownerTurnTestId) : null,
+              ownerTurnIdHash: /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u
+                .test(node.machineFacts.assistantSelectionMessageId ?? "")
+                ? hash(node.machineFacts.assistantSelectionMessageId) : null,
+              selectionOwnerProven: /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u
+                .test(node.machineFacts.assistantSelectionMessageId ?? ""),
               altHash: hash(node.media.alt),
               altLength: node.media.alt.length,
               naturalWidth: node.media.naturalWidth,
@@ -732,7 +1120,7 @@ export async function createChromeSceneCollector({
     await writeAtomic(outputPath, scenes);
     if (semanticProjectionDrift) throw new Error(`SEMANTIC_TEXT_PROJECTION_DRIFT_SCENE_SAVED:${sceneId}`);
     if (exactAssistant === null) return scene;
-    const bindingFact = pageFacts.conversationTurnBindings.filter((entry) =>
+    const bindingFact = pageFacts.exactAdjacentTurnBindings.filter((entry) =>
       entry.assistantTurnIdHash === hash(exactAssistant[0].assistantTurnId)
       && entry.precedingPromptHash === exactAssistantPromptHash
       && entry.responseHash === hash(exactAssistant[0].responseText));

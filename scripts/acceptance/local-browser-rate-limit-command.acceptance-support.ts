@@ -47,7 +47,7 @@ assert.equal(mismatchedAcknowledgement.physicalInputCount, 0,
   "acknowledgement mismatch must return the typed rejection without physical input");
 const mismatchedClearance = await executeRegisteredCommand({
   kind: "dom-intent",
-  intent: { kind: "readKnownGptRateLimitClearance", targetRefHash, documentRefHash },
+  intent: { kind: "readKnownGptRateLimitClearance" },
 }, interactionTarget, "observation") as Readonly<Record<string, unknown>>;
 assert.equal(mismatchedClearance.failureCode, "BROWSER_GPT_DIALOG_UNRECOGNIZED");
 assert.equal(mismatchedClearance.physicalInputCount, 0,

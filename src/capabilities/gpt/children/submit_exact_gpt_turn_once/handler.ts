@@ -126,26 +126,6 @@ export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_tu
     if (recovered) return recoveredSubmitResult(intent, context);
     const browser = requireBrowser(context);
     const submittedSelector = GPT_USER_TURN_SELECTOR;
-    const dispatched = context.dispatchedProviderEffectReadback;
-    if (dispatched) {
-      const submitted = submittedTurnObservation(await browser.executeDomIntent({ kind: "observe", queries: [{
-        queryId: "submitted-user-turn", selector: submittedSelector, maxMatches: 1,
-        fields: ["turnKey", "exactGptUserPromptHash"], latestGptUserTurn: true,
-      }, { queryId: "empty-composer", selector: GPT_EMPTY_COMPOSER_SELECTOR, maxMatches: 1, fields: [] }] }), submittedSelector);
-      if (submitted.promptHash !== promptHash) throw executionFailure("failed", "PROVIDER_EFFECT_OUTCOME_UNPROVEN");
-      const canonicalConversationUrl = canonicalConversationOrNull(submitted.observation.currentUrl);
-      if (!canonicalConversationUrl) throw executionFailure("failed", "PROVIDER_EFFECT_OUTCOME_UNPROVEN");
-      await browser.resolvePendingMutation({ schemaVersion: "grasseye.browser.outcome-resolution.v1",
-        outcome: "TERMINAL_SUCCESS", mutationOutcome: "confirmed",
-        positiveEvidenceRef: `gpt-dom-observation:${submitted.observation.observationRevisionHash}`,
-        negativeEvidenceRef: `gpt-dom-observation:${submitted.observation.observationRevisionHash}#prompt-mismatch-absent`,
-        uniqueTargetRef: browser.target.targetRef, boundedAt: submitted.observation.observedAt });
-      const facts = projectCoherentObservation(submitted.observation, "submitted-user-turn");
-      const browserFact = requireConfirmedBrowserFact(intent, context);
-      return success({ value: { status: "CONFIRMED", promptHash, mutationSent: true,
-        canonicalConversationUrl, userTurnId: submitted.userTurnId },
-      ...declaredFacts({ ...facts, decision: "DONE", mutationOutcome: "confirmed", browserFact, nativeFailureCode: null }) });
-    }
     context.assertProviderInputAllowed?.();
     const mutation = await browser.executeDomIntent({
       kind: "click", selector: GPT_SEND_SELECTOR, expectedMatches: 1,

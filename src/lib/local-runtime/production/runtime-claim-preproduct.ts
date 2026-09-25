@@ -2,7 +2,7 @@ import { executionFailure } from "../../execution-failure.js";
 import { requireRuntimeLogWrite, type RuntimeSpanHandle } from "../../runtime-logs/index.js";
 import { readProductionDeviceJobStatus, type RemoteProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import { buildTerminalProductionIntent, deliverTerminalProductionIntent } from "./cloud-terminal-intent.js";
-import { hashCanonical, sha256, type WebsiteAgentResult } from "./contracts.js";
+import { hashCanonical, type WebsiteAgentResult } from "./contracts.js";
 import { purgeDeletedJob, reconcileBusinessAdmission, websiteJobAbsent } from "./runtime-business-admission.js";
 import type { RuntimeState } from "./runtime-state.js";
 import { websiteAgentTaskFromClaim, type ClaimedProductionTask } from "./transport-protocol.js";
@@ -45,10 +45,7 @@ export const recoverMissingLocalTask = (
   if (browser && !browser.walHistoryVerified) {
     throw executionFailure("failed", "PRODUCTION_LOCAL_AUTHORITY_HISTORY_UNVERIFIED");
   }
-  const jobRefHash = sha256(Buffer.from(job.job_id, "utf8"));
-  const targetClaimed = browser ? state.browserAuthority.readUnreleasedTargetClaims()
-    .some((claim) => claim.jobRefHash === jobRefHash) : false;
-  if (outbox.rowCount === 0 && (browser?.rowCount ?? 0) === 0 && !targetClaimed
+  if (outbox.rowCount === 0 && (browser?.rowCount ?? 0) === 0
     && remote.staged_result === null && remote.staged_artifact_receipts.length === 0) return false;
   state.executor.accept(websiteAgentTaskFromClaim(job), job.grant.attempt_id);
   acceptance.durable = "accepted";

@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 
 import { BrowserCommandActor } from "../exact-target/browser-command-actor.js";
@@ -104,7 +104,7 @@ export class BrowserInfrastructureSupervisor {
         ),
     );
     this.lane = new BrowserLaneCoordinator(
-      () => this.broker, this.websocket, this.issuer, this.state, options.runtimeLogger,
+      () => this.broker, this.websocket, this.issuer, this.state,
     );
     this.evidence = new BrowserInfrastructureEvidence(this.lane, this.broker, this.state);
   }
@@ -118,7 +118,7 @@ export class BrowserInfrastructureSupervisor {
     }
     const mutations = this.state.mutationState;
     if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
-    mutations.recordTargetClaim({ jobRefHash: input.jobRefHash, targetRef: input.targetRef });
+    mutations.assertRuntimeTaskProvenance();
     this.establishClaimBoundWorkspace();
     this.broker.registerOperatorTargetClaim({ authorityEpoch: currentAuthorityEpoch(this.issuer), ...input });
     this.lane.observeCurrentTargetClaim(input);
@@ -128,29 +128,19 @@ export class BrowserInfrastructureSupervisor {
   private onTargetRevoke(input: BrowserAuthorityTargetRevoke): void {
     if (input.releaseOutcome) {
       const pending = this.state.pendingJobBoundTargetAcquisition;
-      if (!pending || pending.action !== "release" || pending.jobRefHash !== input.jobRefHash
-        || !pending.targetRefs) throw new Error("BROWSER_TARGET_INVALID");
-      if (input.releaseOutcome === "absent" && pending.targetRefs.length > 0) {
-        throw new Error("BROWSER_TARGET_PHYSICAL_ABSENCE_UNPROVEN");
+      if (!pending || pending.action !== "release" || pending.jobRefHash !== input.jobRefHash) {
+        throw new Error("BROWSER_TARGET_INVALID");
       }
-      if (input.targetRefs.length !== pending.targetRefs.length
-        || input.targetRefs.some((ref, index) => ref !== pending.targetRefs![index])
-        || (pending.targetRefs.length > 0 && input.targetRef !== pending.targetRefs[0])) {
-        throw new Error("BROWSER_TARGET_RELEASE_FENCE_MISMATCH");
-      }
-      const proofHash = `sha256:${createHash("sha256").update(JSON.stringify({
-        jobRefHash: input.jobRefHash, targetRefs: input.targetRefs,
-        releaseOutcome: input.releaseOutcome, authorityEpoch: currentAuthorityEpoch(this.issuer),
-      })).digest("hex")}` as const;
-      this.state.mutationState?.markTargetReleased({
-        jobRefHash: input.jobRefHash, targetRefs: pending.targetRefs,
-        outcome: input.releaseOutcome === "released" ? "physical_absent" : "quiesced",
-        proofHash,
-      });
-      if (input.targetRef !== null
-        && this.broker.currentOperatorTargetJobRefHash() === input.jobRefHash) {
+      const currentJob = this.broker.currentOperatorTargetJobRefHash();
+      if (currentJob !== null && currentJob !== input.jobRefHash) throw new Error("BROWSER_TARGET_INVALID");
+      if (input.targetRef !== null) {
         this.broker.revokeOperatorTargetClaim({ targetRef: input.targetRef,
           jobRefHash: input.jobRefHash });
+      } else if (currentJob === input.jobRefHash) {
+        this.broker.revokeOperatorTargetClaim();
+      }
+      if (this.broker.currentOperatorTargetJobRefHash() === input.jobRefHash) {
+        throw new Error("BROWSER_TARGET_RELEASE_FENCE_MISMATCH");
       }
       this.lane.resolvePending("release", input.jobRefHash);
       return;
