@@ -1529,3 +1529,222 @@ Target方案重新绑定当前HEAD
 ~~~
 
 若 Target 施工改变 production_attempt_handoffs 的 seal 语义、source evidence contract 或 Runtime capacity 分母，本方案自动回到审计阻断，必须重新审计，不得机械套用本次 PASS。
+
+
+---
+
+## 16. 用户授权自审后的最终审计
+
+授权人已明确改为“你自己审计”。因此本节由主智能体切换为只读审计者角色执行，不施工生产代码，只攻击方案是否可执行、是否伤害红线、是否遗漏隐式权威。
+
+### A1：P1 finding，source-handoff seal 与 result stage 必须机械互斥
+
+审计发现：现役 current_reason CAS 不只是文案耦合，它事实上还承担了并发互斥作用。
+
+现状：
+
+~~~text
+sealSourceHandoff
+  -> current_reason = SOURCE_HANDOFF_SEALED|...
+
+stageResult
+  -> only if current_reason = EXECUTING
+~~~
+
+因此删除 current_reason authority 后，不能只做“先读 handoff row 再 stage”的非原子替换。
+
+强制修正：
+
+1. sealSourceHandoff 的全部 precondition 必须在其 SQLite transaction 内重新读取：
+   - exact current task；
+   - exact source attempt；
+   - staged_result_json is null；
+   - first fact；
+   - exact handoff row；
+   - manifest hash / seal identity。
+
+2. stageResultAndEnqueueTerminal 已经是 SQLite transaction，必须在同一 transaction 内：
+   - 核 exact current attempt；
+   - 查询 exact production_attempt_handoffs(job_id,current_attempt_id)；
+   - 若该 row 已有 seal_hash + sealed_at，立即 fail-close；
+   - 只有未 sealed 才允许 stage result + terminal Outbox。
+
+3. 两条 transaction 依赖同一 Runtime SQLite 写串行化形成互斥：
+   - stage 先提交 -> seal 看到 staged_result，禁止 seal；
+   - seal 先提交 -> stage 看到 typed seal，禁止 late stage；
+   - 不存在第三种“双成立”状态。
+
+4. stageResult 不得继续作为可被生产路径绕过事务边界的独立 authority surface。
+   推荐收敛：
+   - 生产路径只允许 stageResultAndEnqueueTerminal；
+   - stageResult 改为 private/protected transaction primitive，或保证任何直接调用自己建立同样 atomic transaction；
+   - acceptance 不得用绕过 terminal transaction 的 public helper 证明生产安全。
+
+5. 新增 property/race acceptance：
+   - stage-first -> seal fail；
+   - seal-first -> stage fail；
+   - exact replay 幂等；
+   - current_reason 任意合法非空变化均不改变上述结果。
+
+该 finding 已被方案吸收，不需要新增表、列、fence 或状态机。
+
+### A2：task authority hash 包含 current_reason，只能保留为诊断 snapshot
+
+现役 Runtime Log 的 production-task authority hash 使用整个 StoredProductionTask，因此包含 current_reason。
+
+审计确认：
+- resolver 只被 Runtime Log diagnosis、Operations Snapshot 与 CLI inspection 消费；
+- 未进入 claim、recovery、Provider submit、stage、deletion、completed；
+- current_reason 变化导致旧日志 authority hash 与当前 mutable task 不同，只能解释为历史 snapshot 已不等于当前 task。
+
+因此：
+- 允许保留，不属于流程 authority；
+- 任何未来代码不得把该 mismatch 升级为业务恢复或停止资格；
+- 本轮不重构日志 authority schema，避免扩大施工面。
+
+级别：P2，非阻断。
+
+### A3：Provider cooldown 替代分母验证
+
+删除 providerCooldownPaused(current_reason) / pendingCooldownResumeJobIds 不会让 accepted cooldown job 丢失恢复资格，因为：
+
+- accepted 且未 active 的本地 task 已进入 hasAcceptedAttemptRecovery；
+- recovery-only claim 不依赖 cooldown reason；
+- claim request 是否允许由 ProviderRateLimitControl.canRequestClaimAuthority + durable Outbox 决定；
+- Provider submit 是否允许由 assertProviderSubmitAllowed + Website authority 决定；
+- Website gate 继续只放 cohort 内合法恢复，不由 current_reason 决定。
+
+不需要新增 cooldown job set/store。
+
+结论：PASS。
+
+### A4：factory-readiness historical sentinel 删除审计
+
+历史 0101 migration 曾以 automatic-recovery-cutover + retry_not_before non-null 作为 migration postcondition。
+
+现役 claim selection 和 next-action 已不读取该 reason：
+- retry / lease / control / attempt / accepted_at 决定可领取性；
+- retry_not_before=null 在现役模型中表示没有时间门，不是永久停工；
+- 历史 migration bytes 与 registry/hash 仍保留；
+- active factory readiness 不应继续把旧诊断 label 当现役状态 authority。
+
+因此删除 active readiness 对该 sentinel 的解释是正确的。
+
+硬门：
+- 保留 non-finite retry/lease、protocol/session、terminal/admission liveness 的 typed 检查；
+- 禁止把 sentinel 删除解释成删除 liveness 检查。
+
+结论：PASS。
+
+### A5：Demand→Result 红线
+
+PASS。
+
+~~~text
+局部动作失败
+-> fail-close 当前危险动作
+-> typed durable fact
+-> Website demand 仍 active
+-> Website next_action / bounded recheck
+-> same job 继续
+-> result
+-> admission
+-> completed
+~~~
+
+禁止：
+- current_reason 决定 permanent stop；
+- replacement job；
+- current_reason 产生 new attempt/revision；
+- current_reason 撤销机械有效结果。
+
+### A6：Provider safety
+
+PASS。
+
+本方案不修改：
+- provider_effect_identity；
+- Browser WAL at-most-once；
+- Website risk revision grant；
+- lease/fence/permit；
+- Target 方案冻结的 effect / locator / current-action 三轴。
+
+只改变 current_reason 时，Provider physical input delta 必须为 0。
+
+### A7：completed / result monotonicity
+
+PASS。
+
+- current_reason=null 只能是 completed projection shape；
+- terminal_status=completed 仍不是业务 completed；
+- staged result 不因 reason 改写而消失；
+- 只有 Domain admission/business consumption/object readback 可结束 demand。
+
+### A8：合同
+
+PASS，带施工前 checker 门。
+
+V43 canonical spec/manifest/dependency 未把 current_reason=LEASE_GRANTED literal 定义为 control authority。
+
+本轮：
+- Website producer bytes 不变；
+- wire field 不删除；
+- AGENT consumer只降级诊断 literal 的授权解释；
+- grant/attempt/lease/fence/request/session/version 仍严格核。
+
+因此默认不升 control contract version。
+
+### A9：删除反事实
+
+PASS。
+
+删掉 current_reason 的流程控制权后：
+- handoff -> production_attempt_handoffs；
+- stage -> exact attempt + typed seal + result identity；
+- cooldown -> ProviderRateLimitControl + Outbox + Website；
+- next action -> Website；
+- completed -> Domain admission。
+
+没有出现必须新增的新 authority。
+
+---
+
+## 17. 最终自审 verdict
+
+Finding closure：
+
+~~~text
+P0 = 0
+P1 = 1，已在第16节 A1 修正并成为施工硬门
+P2 = 1，仅诊断 authority hash 新鲜度，非流程权威
+未闭合 P0 = 0
+未闭合 P1 = 0
+~~~
+
+### Verdict
+
+PASS / 可施工。
+
+授权人已明确允许本轮由主智能体自行审计，因此此前等待独立子智能体的形式阻断由本次明确授权替代。
+
+放行只表示：
+- 本方案设计可进入施工；
+- 不表示生产代码已经修改；
+- 不表示 Target 方案已经完成；
+- 不允许两方案并行施工。
+
+施工顺序仍冻结：
+
+~~~text
+先完成 Target 系统地位与强制边界施工/验收
+-> 重新绑定 AGENT/Website 最新 HEAD 与合同版本
+-> 再施工 current_reason 正位
+~~~
+
+最终冻结：
+
+> current_reason 是解释，不是命令；是仪表盘，不是方向盘。
+
+> source-handoff seal 与 result stage 的互斥必须由同一 Runtime SQLite 的 typed facts + transaction 保证，不得再借诊断文案充当 fence。
+
+> Website demand 不死，AGENT 的交付责任不死。任何诊断文本都没有资格把工单判死。
