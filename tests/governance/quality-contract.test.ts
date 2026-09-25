@@ -1512,8 +1512,8 @@ test("Browser inspectors require current WAL schema without startup migration an
   assert.equal(exactAssistantTurnReadIsAtomic(inspectSource(exactPath, exact)), true);
   for (const mutant of [
     exact.replace("${BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE}", ""),
-    exact.replace("document.querySelectorAll(\"[data-testid^='conversation-turn-']\")",
-      "document.querySelector(\"[data-testid^='conversation-turn-']\")"),
+    exact.replace("document.querySelectorAll(\"[data-turn-key]\")",
+      "document.querySelector(\"[data-turn-key]\")"),
     exact.replace("browserCanonicalSemanticText(node)", 'node.textContent ?? ""'),
     exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
       "if (currentUrl !== expectedUrl || assistantIndex !== turns.length - 1 || rawCount !== 1)"),
