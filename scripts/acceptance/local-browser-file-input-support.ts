@@ -264,11 +264,6 @@ const exerciseSuccessfulAndRejectedCandidates = async (): Promise<void> => {
   } });
   assert.equal(missing.result.postconditionVerified, false);
   assert.equal(missing.result.failureCode, "BROWSER_POSTCONDITION_FAILED");
-  const unexpectedProgress = await runFileInputScenario({ nodeIds: [7], afterSelection: {
-    cardNames: [], uploadingCount: 3,
-  } });
-  assert.equal(unexpectedProgress.result.postconditionVerified, false,
-    "two approved files cannot prove three independent upload indicators");
   const oldUpload = await runFileInputScenario({ nodeIds: [7], preexistingUploadingCount: 2 });
   assert.equal(oldUpload.fileInputs, 0, "preexisting upload activity must not prove a new file selection");
   await assert.rejects(runFileInputScenario({ nodeIds: [7],

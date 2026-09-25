@@ -503,11 +503,17 @@ export function validateSeoRevision(revision) {
         "previousResponseEmptyHashMeaning", "pageTurnCoverage"])
       || scene.observationScope.schemaVersion !== "gpt-page-scene-observation-scope.v1"
       || !["WIDE_FULL_SEMANTIC_V1", "WIDE_CURRENT_LEGACY_EMPTY_V2",
-        "CURRENT_TURN_LEGACY_EMPTY_V3", "CURRENT_TURN_NULL_UNREAD_V4"]
+        "CURRENT_TURN_LEGACY_EMPTY_V3", "CURRENT_TURN_NULL_UNREAD_V4",
+        "CURRENT_TURN_TARGETED_FILE_INPUT_V5"]
         .includes(scene.observationScope.collectorProfile)
       || scene.observationScope.profileProvenance !== (scene.observationScope.collectorProfile
-        === "CURRENT_TURN_NULL_UNREAD_V4" ? "SIGNED_PAGE_FACT" : "RETROSPECTIVE_ASSEMBLY_ANNOTATION")
-      || scene.observationScope.nodeCoverage !== "SELECTED_VISIBLE_TARGETS_NOT_FULL_DOCUMENT"
+        === "CURRENT_TURN_NULL_UNREAD_V4" || scene.observationScope.collectorProfile
+        === "CURRENT_TURN_TARGETED_FILE_INPUT_V5"
+        ? "SIGNED_PAGE_FACT" : "RETROSPECTIVE_ASSEMBLY_ANNOTATION")
+      || scene.observationScope.nodeCoverage !== (scene.observationScope.collectorProfile
+        === "CURRENT_TURN_TARGETED_FILE_INPUT_V5"
+        ? "SELECTED_VISIBLE_TARGETS_AND_TARGETED_HIDDEN_FILE_INPUT_NOT_FULL_DOCUMENT"
+        : "SELECTED_VISIBLE_TARGETS_NOT_FULL_DOCUMENT")
       || scene.observationScope.assistantSemanticCoverage !== "NON_EXHAUSTIVE_CURRENT_MARKER_PROJECTION"
       || scene.observationScope.previousResponseEmptyHashMeaning !== "NOT_PROJECTED_OR_EMPTY"
       || scene.observationScope.pageTurnCoverage !== "CURRENTLY_MOUNTED_TURNS_ONLY")) {
@@ -518,6 +524,17 @@ export function validateSeoRevision(revision) {
         || scene.pageFacts.captureScope.nodeSampling !== "CURRENT_MARKER_VISIBLE_TREE_AND_SHARED_CONTROLS"
         || scene.pageFacts.captureScope.assistantSemanticProjection !== "CURRENT_MARKER_ONLY"
         || scene.pageFacts.captureScope.previousResponseHash !== "NULL_WHEN_NOT_PROJECTED")) {
+      die("SEO_REVISION_COLLECTOR_SCOPE_FACT_MISMATCH");
+    }
+    if (hasLocales && scene.observationScope.collectorProfile === "CURRENT_TURN_TARGETED_FILE_INPUT_V5"
+      && (scene.pageFacts?.captureScope?.schemaVersion !== "gpt-page-collector-scope.v2"
+        || scene.pageFacts.captureScope.nodeSampling
+          !== "CURRENT_MARKER_VISIBLE_TREE_SHARED_CONTROLS_AND_TARGETED_HIDDEN_FILE_INPUT"
+        || scene.pageFacts.captureScope.assistantSemanticProjection !== "CURRENT_MARKER_ONLY"
+        || scene.pageFacts.captureScope.previousResponseHash !== "NULL_WHEN_NOT_PROJECTED"
+        || !["data-composer-overlay-floating-ui", "data-mention-list-scroll-area",
+          "data-list-navigation-item"].every((name) =>
+          scene.pageFacts.capturedAttributeNames?.includes(name)))) {
       die("SEO_REVISION_COLLECTOR_SCOPE_FACT_MISMATCH");
     }
     if (!HASH.test(scene.stateSignature ?? "") || !HASH.test(scene.documentIdentityHash ?? "")

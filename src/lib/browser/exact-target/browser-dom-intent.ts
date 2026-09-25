@@ -462,7 +462,6 @@ const assertClickObservation = (
   }
   if (timeoutInvalid(observation.timeoutMs)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
 };
-
 const assertClickIntent = (intent: Extract<BrowserDomIntent, { kind: "click" }>): void => {
   assertTargetText(intent);
   assertPreClickExactOutgoingTurn(intent.preClickExactOutgoingTurn);

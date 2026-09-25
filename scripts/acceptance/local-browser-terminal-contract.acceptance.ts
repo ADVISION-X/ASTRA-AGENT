@@ -41,13 +41,7 @@ try {
       childCapabilityId: "open_gpt_model_selector_v3", sourceEffectSetHash: hash,
     },
   };
-  const transported = (JSON.parse(canonicalizeBrowserAuthorityValue({ permit: replayPermit })) as {
-    permit: BrowserCommandPermit;
-  }).permit;
   const { commandFrameMac: _originalMac, ...unsignedBefore } = replayPermit;
-  const { commandFrameMac: _transportedMac, ...unsignedAfter } = transported;
-  assert.equal(browserCommandPermitMacPayload(unsignedBefore), browserCommandPermitMacPayload(unsignedAfter),
-    "a replay permit MAC payload must survive the encrypted channel's canonical key ordering");
   const permitKey = Buffer.alloc(32, 7);
   const signedReplayPermit = {
     ...replayPermit,

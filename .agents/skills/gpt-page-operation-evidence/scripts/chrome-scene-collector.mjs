@@ -3,7 +3,7 @@ import { readFile, rename, writeFile } from "node:fs/promises";
 import { BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE } from "../../../../src/lib/browser/chrome-extension/dom-semantic-text.ts";
 
 const DEFAULT_ROOT_SELECTOR =
-  'main, body [role="menu"]:visible, body [role="dialog"]:visible, body [role="listbox"]:visible, body [role="alert"]:visible';
+  'main, body [role="menu"]:visible, body [role="dialog"]:visible, body [role="listbox"]:visible, body [role="alert"]:visible, body [data-composer-overlay-floating-ui="true"]:visible, body form[data-chatgpt-composer] input[type="file"][aria-label="附加文件"]';
 
 const DEFAULT_UI_ALLOWLIST = new Set([
   "GPT-5.6 Sol",
@@ -14,6 +14,11 @@ const DEFAULT_UI_ALLOWLIST = new Set([
   "高",
   "思考强度",
   "添加文件等",
+  "添加文件等内容",
+  "添加照片和文件",
+  "附加文件",
+  "发送",
+  "选择 ChatGPT 模型",
   "与 ChatGPT 聊天",
   "从电脑上传",
   "停止生成",
@@ -251,6 +256,9 @@ export async function createChromeSceneCollector({
         "data-content-search-turn-key",
         "data-chatgpt-composer",
         "data-composer-markdown",
+        "data-composer-overlay-floating-ui",
+        "data-mention-list-scroll-area",
+        "data-list-navigation-item",
         "data-user-message-bubble",
         "contenteditable",
         "accept",
@@ -369,13 +377,16 @@ export async function createChromeSceneCollector({
           seen.add(element);
           const style = getComputedStyle(element);
           const rect = element.getBoundingClientRect();
-          if (
+          const approvedHiddenFileInput = element.matches(
+            "form[data-chatgpt-composer] input[type='file'][aria-label='附加文件']",
+          );
+          if (!approvedHiddenFileInput && (
             style.display === "none" ||
             style.visibility === "hidden" ||
             Number(style.opacity) === 0 ||
             rect.width === 0 ||
             rect.height === 0
-          ) {
+          )) {
             continue;
           }
 
@@ -429,7 +440,7 @@ export async function createChromeSceneCollector({
               attachmentPendingAction: element.matches("button.cursor-wait"),
               attachmentUploadErrorAlert: attachmentUploadArmed
                 && element.getAttribute("role") === "alert" && subtreeText.length > 0,
-              activeAttachmentPopoverAncestor: element.closest("div.popover[aria-busy='false']") !== null,
+              activeAttachmentPopoverAncestor: element.closest("[data-composer-overlay-floating-ui='true']") !== null,
               composerFormAncestor: element.closest("form:has(#prompt-textarea), form:has([data-composer-markdown][contenteditable='true'])") !== null,
             },
             media:
@@ -586,8 +597,8 @@ export async function createChromeSceneCollector({
         && String(node.attributes.class ?? "").includes("composer-attachment-surface"))));
       const pageFacts = {
       captureScope: {
-        schemaVersion: "gpt-page-collector-scope.v1",
-        nodeSampling: "CURRENT_MARKER_VISIBLE_TREE_AND_SHARED_CONTROLS",
+        schemaVersion: "gpt-page-collector-scope.v2",
+        nodeSampling: "CURRENT_MARKER_VISIBLE_TREE_SHARED_CONTROLS_AND_TARGETED_HIDDEN_FILE_INPUT",
         assistantSemanticProjection: "CURRENT_MARKER_ONLY",
         previousResponseHash: "NULL_WHEN_NOT_PROJECTED",
         mountedTurnIdentity: "CURRENTLY_MOUNTED_TURNS_ONLY",

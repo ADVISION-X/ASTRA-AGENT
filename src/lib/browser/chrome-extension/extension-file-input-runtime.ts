@@ -298,6 +298,20 @@ const readComposerAttachmentPhase = async (input: ExtensionFileInput): Promise<R
     uploadingCount: uploading!.eligibleCount as number });
 };
 
+const composerUploadObserved = (
+  input: ExtensionFileInput,
+  before: Awaited<ReturnType<typeof readComposerAttachmentPhase>>,
+  after: Awaited<ReturnType<typeof readComposerAttachmentPhase>>,
+): boolean => {
+  const approvedNames = new Set(input.resolvedFilePaths.map((path) =>
+    path.slice(path.lastIndexOf("/") + 1).normalize("NFC")));
+  return after.valid && after.currentUrl === before.currentUrl
+    && new Set(after.cardNames).size === after.cardNames.length
+    && after.cardNames.every((name) => approvedNames.has(name))
+    && after.uploadingCount <= input.approvedFiles.length
+    && (after.uploadingCount > 0 || after.cardNames.length === input.approvedFiles.length);
+};
+
 export const executeExtensionFileInput = async (
   input: ExtensionFileInput,
 ): Promise<Readonly<Record<string, unknown>>> => {
@@ -325,14 +339,7 @@ export const executeExtensionFileInput = async (
   const selectionRejection = await selectApprovedFiles(input, candidate);
   if (selectionRejection) return selectionRejection;
   const after = await readComposerAttachmentPhase(input);
-  const expectedNames = new Set(input.resolvedFilePaths.map((path) =>
-    path.slice(path.lastIndexOf("/") + 1).normalize("NFC")));
-  const postconditionVerified = after.valid && after.currentUrl === before.currentUrl
-    && expectedNames.size === input.approvedFiles.length
-    && new Set(after.cardNames).size === after.cardNames.length
-    && after.cardNames.every((name) => expectedNames.has(name))
-    && after.uploadingCount <= input.approvedFiles.length
-    && (after.uploadingCount > 0 || after.cardNames.length === input.approvedFiles.length);
+  const postconditionVerified = composerUploadObserved(input, before, after);
   return Object.freeze({
     candidateCount: 1,
     identityRevalidated: true,

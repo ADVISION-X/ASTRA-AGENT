@@ -116,7 +116,7 @@ export async function assembleSeoLiveRevision({ repo, inventory, matrix, scenes,
   const observations = new Map();
   const sceneProfileNames = new Set(["WIDE_FULL_SEMANTIC_V1",
     "WIDE_CURRENT_LEGACY_EMPTY_V2", "CURRENT_TURN_LEGACY_EMPTY_V3",
-    "CURRENT_TURN_NULL_UNREAD_V4"]);
+    "CURRENT_TURN_NULL_UNREAD_V4", "CURRENT_TURN_TARGETED_FILE_INPUT_V5"]);
   for (const mapped of mapping.observedCalls) {
     const requirement = matrix.children.find((entry) => entry.childCapabilityId === mapped.childCapabilityId);
     const child = inventory.children.find((entry) => entry.childCapabilityId === mapped.childCapabilityId);
@@ -234,9 +234,12 @@ export async function assembleSeoLiveRevision({ repo, inventory, matrix, scenes,
       return { ...scene,
         observationScope: { schemaVersion: "gpt-page-scene-observation-scope.v1",
         collectorProfile,
-        profileProvenance: collectorProfile === "CURRENT_TURN_NULL_UNREAD_V4"
+        profileProvenance: ["CURRENT_TURN_NULL_UNREAD_V4", "CURRENT_TURN_TARGETED_FILE_INPUT_V5"]
+          .includes(collectorProfile)
           ? "SIGNED_PAGE_FACT" : "RETROSPECTIVE_ASSEMBLY_ANNOTATION",
-        nodeCoverage: "SELECTED_VISIBLE_TARGETS_NOT_FULL_DOCUMENT",
+        nodeCoverage: collectorProfile === "CURRENT_TURN_TARGETED_FILE_INPUT_V5"
+          ? "SELECTED_VISIBLE_TARGETS_AND_TARGETED_HIDDEN_FILE_INPUT_NOT_FULL_DOCUMENT"
+          : "SELECTED_VISIBLE_TARGETS_NOT_FULL_DOCUMENT",
         assistantSemanticCoverage: "NON_EXHAUSTIVE_CURRENT_MARKER_PROJECTION",
         previousResponseEmptyHashMeaning: "NOT_PROJECTED_OR_EMPTY",
         pageTurnCoverage: "CURRENTLY_MOUNTED_TURNS_ONLY" } };

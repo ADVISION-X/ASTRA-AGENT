@@ -434,7 +434,7 @@ const inspectMutationExecution = (
     "candidate.facts.ariaDisabled === false", "acceptPolicyValid",
     "Page.setInterceptFileChooserDialog", "captureFileChooserOpened",
     "chooser.backendNodeId !== candidate.backendNodeId", "mutationCount: 1",
-    "postconditionVerified: true", "assertCurrent(input.target.targetRef, input.target.documentRef)",
+    "const postconditionVerified = composerUploadObserved", "assertCurrent(input.target.targetRef, input.target.documentRef)",
   ], findings, lawId, extensionFileInputPath);
 };
 

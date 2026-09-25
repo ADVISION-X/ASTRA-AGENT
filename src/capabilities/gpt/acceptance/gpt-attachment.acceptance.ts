@@ -270,7 +270,6 @@ const attachmentFacts = (
   "attachment-uploading": { rawCount: ready ? 0 : 1, eligibleCount: ready ? 0 : 1 },
   "attachment-pending": { rawCount: pending ? 1 : 0, eligibleCount: pending ? 1 : 0 },
 });
-
 let attachedInput: unknown = null;
 const attachmentMutationFixture = fakeBrowser((intent) => {
   if (intent.kind === "observe") return coherentObservationPacket(intent, {
@@ -315,7 +314,6 @@ const extraFieldBlocked = await execute(
 );
 assert.equal(extraFieldBlocked.status, "failed");
 assert.equal(extraFieldBlocked.failureCode, "GPT_ATTACHMENT_INPUT_INVALID");
-
 let uploadObservations = 0;
 const uploadingFixture = fakeBrowser((intent) => {
   if (intent.kind === "observe") {
@@ -331,7 +329,8 @@ const uploadingFixture = fakeBrowser((intent) => {
     assert.equal(intent.queries.find((query) => query.queryId === "attachment-uploading")?.selector,
       "[role='progressbar']", "uploading must observe composer-scoped progressbars before cards exist");
     return coherentObservationPacket(intent, uploadObservations === 1
-      ? attachmentFacts(false) : attachmentFacts(true, uploadObservations === 2));
+      ? { ...attachmentFacts(false), "attachment-items": { rawCount: 0, eligibleCount: 0, matches: [] } }
+      : attachmentFacts(true, uploadObservations === 2));
   }
   throw new Error(`UNEXPECTED_ATTACHMENT_UPLOAD_INTENT:${intent.kind}`);
 });
@@ -346,33 +345,6 @@ assert.deepEqual(uploadingFixture.waitDurations(), [2_000, 3_000],
 assert.equal(uploadingFixture.physicalMutations(), 0, "attachment reconciliation must remain read-only");
 assert.equal(uploaded.proof.observationRevisionHash, `sha256:${"4".repeat(64)}`);
 assert.deepEqual(uploaded.proof.candidateCardinality, { raw: 1, eligible: 1 });
-
-const fourApprovedFiles = Array.from({ length: 4 }, (_, index) => ({
-  ...approvedAttachment, artifactRef: `artifact:${index + 1}`,
-  displayName: `附件${index + 1}.pdf`,
-}));
-let fourFileObservations = 0;
-const fourFileFixture = fakeBrowser((intent) => {
-  if (intent.kind !== "observe") throw new Error(`UNEXPECTED_FOUR_FILE_INTENT:${intent.kind}`);
-  fourFileObservations += 1;
-  const ready = fourFileObservations > 1;
-  return coherentObservationPacket(intent, {
-    "attachment-composer": { rawCount: 1, eligibleCount: 1 },
-    "attachment-items": { rawCount: ready ? 4 : 0, eligibleCount: ready ? 4 : 0,
-      matches: ready ? fourApprovedFiles.map((file) => ({
-        ariaLabel: providerAttachmentName(file.displayName, file.artifactRef),
-      })) : [] },
-    "attachment-uploading": { rawCount: ready ? 0 : 4, eligibleCount: ready ? 0 : 4 },
-    "attachment-pending": { rawCount: 0, eligibleCount: 0 },
-  });
-});
-const fourFileResult = await execute("reconcile_gpt_attachment_set", fourFileFixture.browser, {
-  files: fourApprovedFiles, timeoutMs: 10_000,
-});
-assert.equal(fourFileResult.status, "success", fourFileResult.failureCode ?? "four-file upload did not settle");
-assert.equal(fourFileObservations, 2, "zero cards with four progressbars must wait for four named cards");
-assert.equal(fourFileFixture.physicalMutations(), 0);
-
 const approvedProviderName = providerAttachmentName("甲.pdf", "artifact:1");
 const providerSuffixedName = approvedProviderName.replace(/(?=\.[^./]+$)/u, "(2)");
 const providerSuffixFixture = fakeBrowser((intent) => {

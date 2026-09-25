@@ -42,6 +42,12 @@ const sealedProductCall = (value) => {
 const attributesOf = (node) => node?.attributes ?? {};
 const textOf = (node) => node?.textProjection?.value ?? "";
 const subtreeTextOf = (node) => node?.subtreeTextProjection?.value ?? "";
+const knownValueEquals = (value, expected) => value === expected
+  || value?.kind === "HASH_ONLY" && value.sha256 === sha256(expected)
+    && value.length === expected.length;
+const knownTextEquals = (projection, expected) => projection?.value === expected
+  || projection?.kind === "HASH_ONLY" && projection.sha256 === sha256(expected)
+    && projection.length === expected.length;
 
 async function readJson(path) {
   try { return JSON.parse(await readFile(path, "utf8")); }
@@ -175,6 +181,59 @@ export function candidateEntries(target, scene, candidateContext = {}) {
       connected: true, textProjection: { kind: "HASH_ONLY", sha256: sha256(kind), length: candidates.length },
     },
   }];
+  if (scene.pageFacts?.captureScope?.schemaVersion === "gpt-page-collector-scope.v2") {
+    switch (target) {
+      case "attachment-region":
+      case "attachment-trigger": return entries.filter((entry) => entry.node.tag === "button"
+        && knownValueEquals(attr(entry, "aria-label"), "添加文件等内容")
+        && entry.node.machineFacts?.composerFormAncestor === true);
+      case "attachment-cards": return virtualAggregate("APPROVED_PRODUCTION_ATTACHMENT_SET",
+        entries.filter((entry) => entry.node.tag === "button"
+          && attr(entry, "aria-label") !== undefined
+          && entry.node.machineFacts?.productionAttachmentGroupAncestor === true));
+      case "upload-status": return scene.pageFacts?.composerCount === 1
+        && typeof scene.pageFacts.attachmentUploadPending === "boolean"
+        && typeof scene.pageFacts.attachmentTerminalErrorVisible === "boolean"
+        ? virtualAggregate("SCOPED_ATTACHMENT_UPLOAD_STATUS", entries.filter((entry) =>
+          attr(entry, "data-chatgpt-composer") !== undefined && entry.node.tag === "form")) : [];
+      case "user-turn": return entries.filter((entry) =>
+        (attr(entry, "data-message-author-role") === "user"
+          || knownValueEquals(attr(entry, "data-user-message-bubble"), "true"))
+        && userOwnerMatches(entry));
+      case "execution-profile-trigger":
+      case "execution-profile-close-control": return entries.filter((entry) => entry.node.tag === "button"
+        && attr(entry, "aria-expanded") !== undefined
+        && knownValueEquals(attr(entry, "aria-label"), "选择 ChatGPT 模型")
+        && entry.node.machineFacts?.composerFormAncestor === true);
+      case "model-selector-trigger": return entries.filter((entry) =>
+        knownValueEquals(attr(entry, "aria-label"), "选择模型")
+        && knownValueEquals(attr(entry, "data-model-picker-view-toggle"), "true")
+        && attr(entry, "role") === "menuitem");
+      case "model-option": return entries.filter((entry) => attr(entry, "role") === "menuitemradio"
+        && knownTextEquals(entry.node.subtreeTextProjection, candidateContext.authorizedModelId));
+      case "reasoning-control": return entries.filter((entry) => attr(entry, "role") === "menuitem"
+        && knownValueEquals(attr(entry, "data-reasoning-slider"), "true"));
+      case "attachment-menu": {
+        const uploadEntries = entries.filter((entry) => entry.node.tag === "button"
+          && knownTextEquals(entry.node.textProjection, "添加照片和文件")
+          && entry.node.machineFacts?.activeAttachmentPopoverAncestor === true);
+        return uploadEntries.length === 1
+          ? virtualAggregate("ACTIVE_ATTACHMENT_POPOVER", uploadEntries) : [];
+      }
+      case "upload-entry": return entries.filter((entry) => entry.node.tag === "button"
+        && knownTextEquals(entry.node.textProjection, "添加照片和文件")
+        && entry.node.machineFacts?.activeAttachmentPopoverAncestor === true);
+      case "file-input": return entries.filter((entry) => entry.node.tag === "input"
+        && attr(entry, "type") === "file"
+        && knownValueEquals(attr(entry, "aria-label"), "附加文件")
+        && entry.node.machineFacts?.composerFormAncestor === true);
+      case "submit-control": return entries.filter((entry) => entry.node.tag === "button"
+        && attr(entry, "type") === "submit"
+        && knownValueEquals(attr(entry, "aria-label"), "发送")
+        && entry.node.machineFacts?.composerFormAncestor === true);
+      default: break;
+    }
+  }
   switch (target) {
     case "page-root": return entries.filter((entry) => entry.node.tag === "main");
     case "conversation-root": return (scene.url === "https://chatgpt.com/"
