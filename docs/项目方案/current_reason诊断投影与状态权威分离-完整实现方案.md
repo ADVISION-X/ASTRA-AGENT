@@ -862,7 +862,8 @@ Website AI-ACCEPTANCE-BLUEPRINT 同步只描述 AGENT typed handoff proof，不�
 SYSTEM-BLUEPRINT：
 
 - 保留 current_reason 作为诊断入口；
-- 补一句“current_reason 不能代替 next_action/control/admission”；
+- 将“长期未 claim -> failed.current_reason -> eligibility”类排障文案改为：先读 next_action/retry/lease/control/capability/attestation/claim exclusion，current_reason 只解释最近原因；
+- 补一句“current_reason 不进入 claim eligibility 谓词，不能代替 next_action/control/admission”；
 - 保持四个运行真相及 Domain Consumer completed 边界不变。
 
 ---
@@ -1357,3 +1358,130 @@ P2 = 1（已澄清）
 ~~~
 
 因此方案仍保持：**设计阻断**。
+
+
+---
+
+## 16. 主设计反向审计 R2：Demand / Provider / Result 三红线攻击（非独立子智能体）
+
+本轮从三个不可退让终点反向攻击：
+
+1. Website demand 未终止时，同一 job 是否仍有自动下一动作；
+2. current_reason 降级后，Provider physical input 是否仍被 WAL/grant/gate 严格限制；
+3. 已机械成立的 staged/terminal/result 是否可能被诊断字段撤销。
+
+结论：没有发现 P0，但发现 3 个需要写死的边界。
+
+### R2-F1：completed 时 current_reason=null 只能是结构一致性，不是完成权威
+
+**级别：P1，已补边界。**
+
+AGENT store-authority-validation 和 worker-observation-client 目前会核：
+
+~~~text
+completed -> current_reason is null
+~~~
+
+该校验可以保留，但语义必须冻结为：
+
+> Website status=completed + valid business admission receipt 才证明业务完成；current_reason=null 只是 completed projection 的形状一致性。
+
+因此允许：
+
+- completed projection 要求 current_reason=null；
+- failed local task 要求 current_reason non-null。
+
+禁止：
+
+- 因 current_reason=null 推导 completed；
+- 因 current_reason 非 null 推翻已经存在的 admission/completed 权威；
+- 将 nullability 当作 Domain admission 替代品。
+
+质量测试必须分别证明“权威 -> nullability”成立，而“nullability -> 权威”不成立。
+
+### R2-F2：SYSTEM Blueprint 的故障定位文案必须去权威暗示
+
+**级别：P1，已补 Work Order。**
+
+SYSTEM-BLUEPRINT 当前症状导航存在类似：
+
+~~~text
+AI job 长期未被 claim
+-> failed.current_reason
+-> Capability eligibility
+-> attestation
+-> claim admission
+~~~
+
+作为排障顺序可以理解，但容易被未来实现误读成“先由 current_reason 决定 eligibility”。
+
+WO-D1 增补：
+
+~~~text
+长期未 claim
+-> 先读 Website next_action / retry / lease / control / capability / attestation / claim exclusion
+-> current_reason 只解释最近原因
+~~~
+
+必须在 Blueprint 明确写：
+
+> current_reason 可帮助人定位“为什么”，但不进入 claim eligibility 谓词。
+
+### R2-F3：typed source seal 必须复用一个 exact reader，不得复制 SQL 形成新漂移
+
+**级别：P1，已补实现纪律。**
+
+多个消费者都需要判断“当前 source attempt 是否 sealed”。禁止每个文件各写一份 SQL。
+
+优先复用/收敛现有 readSealedSourceHandoff(jobId, attemptId)：
+
+- Runtime 分支使用 public typed reader；
+- Store 内事务写 fence 若需要低层谓词，只允许一个 private exact-row predicate；
+- predicate 必须绑定 job_id + current source attempt；
+- 禁止 job-wide any sealed row；
+- 禁止返回新的流程 enum/status。
+
+该 reader 只回答“exact source handoff fact 是否成立”，不决定 Website next action。
+
+### R2 红线结果
+
+#### Demand Liveness
+
+PASS（主设计自审）：
+
+- current_reason 被降级后，Website next_action 仍是唯一恢复动作投影；
+- accepted-attempt recovery 仍由 current_attempt_id / Website grant 驱动；
+- sourceEvidence 仍可触发 recovery-only claim；
+- Provider cooldown 不依赖 current_reason 也仍由 ProviderRateLimitControl + Website authority 闭合；
+- 无 permanent local terminal。
+
+#### Provider at-most-once / controlled risk
+
+PASS（主设计自审）：
+
+- 本方案不修改 provider_effect_identity；
+- 不修改 Browser WAL replay policy；
+- 不修改 delivery_priority_replay_grant；
+- 不允许 current_reason 开 submit gate；
+- 删除 cooldown reason parser 反而减少错误授权源。
+
+#### Result Monotonicity
+
+PASS（主设计自审）：
+
+- stage 权威改为 exact attempt + typed seal + result identity；
+- stage+terminal Outbox 原子事务保留；
+- admission/completed 权威不变；
+- current_reason 不再能撤销有效结果。
+
+### R2 总结
+
+~~~text
+P0 = 0
+P1 = 3（均已补进方案边界）
+独立子智能体 = 未执行
+第三方 verdict = PENDING
+方案状态 = 设计阻断
+~~~
+
+主设计两轮审计均不能替代授权人要求的独立子智能体质检。
