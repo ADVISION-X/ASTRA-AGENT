@@ -275,9 +275,9 @@
         "LAW-LOCAL-BROWSER-SESSION-001-V4",
         "LAW-LOCAL-BROWSER-SESSION-002-V6",
         "LAW-LOCAL-BROWSER-SESSION-003-V43",
-        "LAW-LOCAL-BROWSER-SESSION-004-V52",
+        "LAW-LOCAL-BROWSER-SESSION-004-V53",
         "LAW-LOCAL-BROWSER-SESSION-005-V6",
-        "LAW-LOCAL-BROWSER-SESSION-006-V39"
+        "LAW-LOCAL-BROWSER-SESSION-006-V40"
       ],
       "manifestPath": "scripts/audit/domains/local-browser-session/manifest.json",
       "observedPaths": [
@@ -683,7 +683,7 @@
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V71",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V41",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V40",
-        "LAW-LOCAL-BROWSER-SESSION-004-V52"
+        "LAW-LOCAL-BROWSER-SESSION-004-V53"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -1281,8 +1281,8 @@
         "LAW-CAPABILITY-GOVERNANCE-001-V18",
         "LAW-LOCAL-BROWSER-SESSION-001-V4",
         "LAW-LOCAL-BROWSER-SESSION-003-V43",
-        "LAW-LOCAL-BROWSER-SESSION-004-V52",
-        "LAW-LOCAL-BROWSER-SESSION-006-V39"
+        "LAW-LOCAL-BROWSER-SESSION-004-V53",
+        "LAW-LOCAL-BROWSER-SESSION-006-V40"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -1337,7 +1337,7 @@
       ],
       "dependsOnLawIds": [
         "LAW-GPT-001-V62",
-        "LAW-LOCAL-BROWSER-SESSION-004-V52"
+        "LAW-LOCAL-BROWSER-SESSION-004-V53"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -1620,7 +1620,7 @@
         "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md"
       ],
       "dependsOnLawIds": [
-        "LAW-LOCAL-BROWSER-SESSION-006-V39"
+        "LAW-LOCAL-BROWSER-SESSION-006-V40"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -1641,7 +1641,7 @@
         "不得发生：mutation-capable typed command 在 Browser Authority 已验证 exact authority、Target/Document、typed permit 并把现役唯一 WAL row 推进为 DISPATCHED 后，未先通过唯一交互就绪闸门便发送 Provider 物理输入。mutation 与 Provider observation 的精确 Tab 激活都必须在现役唯一 FIFO/lane 内完成：若 job-bound system tab 已 active 则零次更新；若非 active 则只调用一次 `chrome.tabs.update(tabId, {active:true})`，复用现役唯一 2500ms 页面动作总闸门，满时重新读取并证明仍为同一 job-bound system tab/window、active=true、discarded=false、加载完成且 exact Target/current Document identity 均未漂移，再从 current Document fresh 重新定位和判定动作资格。`chrome.tabs.get` 只可证明 tabId、windowId、active、discarded 与 status；gpt-web Origin 必须且只能由当前已 attach debugger session 的 `Page.getFrameTree` 主 frame 精确证明。扩展必须以同一 window 的 `tabs.onActivated` 世代在每次 Provider 物理输入与 observation 前同步复核精确 system tab仍 active；用户在首次物理输入前切走必须返回 `BROWSER_TARGET_NOT_INTERACTIVE` 并以 `REJECTED + mutation_outcome=no` 结算，任何输入已开始或无法排除时必须保留 DISPATCHED/真实部分动作且绝不重放。不得调用 `windows.update({focused:true})`、`Page.bringToFront`、第二 timer/service/queue/store、后台硬点 fallback、宽 host permission 或循环抢回。",
         "不得发生：任一 unresolved DISPATCHED 被其它 job 或新 Target 页面 mutation 越过。Browser 只在原 FIFO/lane 内做同 effect 零输入读回与真实终态结算；旧 Target 的读回经固定有界次数耗尽、答案仍不可得时，必须由 Browser 使旧 fence 无效，并证明原 Target 已物理缺席，或在归属不可证时由已鉴权 Extension 等待旧 handler 和 CDP page action/read barrier 全部停稳、持久记录 typed quiescence proof，之后才可放行任何 job 的新 Target 页面 mutation。socket 断线、park、detach、空 registry 或新 fence 单独均不构成该证明；旧 v40 tabId 无实例绑定时不得按数字盲删当前 Tab。typed quiescence 必须证明旧 authenticated command epoch 已撤、旧 handler 全部结束且 CDP page action/read barrier 已停稳，Browser 在原 SQLite 保存 proof hash；仅旧已发输入与 Website 本轮一次新输入可能重叠，不许可旧 handler 新动作。风险重放还须 Website 持久签发当前指定调用的新 revision 授权；Browser 不决定业务下一步，也不把未知改写为 no。",
         "不得发生：substring identity used where exact text equality is required",
-        "不得发生：把长 Prompt 的 `[data-testid='collapsible-user-message-content']` 当成所有 user turn 的唯一结构。exact user turn 与唯一 user-role root 闭合后，Browser 只能机械裁决两个互斥实证结构：长 Prompt 恰好一个 collapsible 正文节点；或该节点为零时，短 Prompt 恰好一个无元素子节点 `.whitespace-pre-wrap` 正文叶子。长节点存在时不得再读短结构；长节点多项、短叶零项/多项、user-role root 零项/多项分别 typed missing/ambiguous fail-close，不得返回正文、自由 selector OR、启发式删除或兼容 fallback。Composer exact editable value与长短两种user Prompt正文的唯一user-only机械投影只能逐码元把editing host用于排版的U+00A0映射为U+0020；Tab、LF、CR、U+202F、全角空格、首尾空格与重复空格数量必须原样保留，禁止trim、通用空白折叠、NFKC或第二normalizer。assistant deterministic semantic text不得使用该映射；Product批准文本真实含U+00A0时也不得改写expected hash，Browser投影后的不等必须继续失败关闭。",
+        "不得发生：把长 Prompt 的 `[data-testid='collapsible-user-message-content']` 当成所有 user turn 的唯一结构。exact `data-turn-key` 外层与唯一 `:user` 单元、匹配 UUID 的 message ids、唯一用户气泡闭合后，Browser 只能机械裁决两个互斥正文结构：长 Prompt 恰好一个 collapsible 正文节点；或该节点为零时，短 Prompt 恰好一个无元素子节点 `.whitespace-pre-wrap` 正文叶子。长节点存在时不得再读短结构；长节点多项、短叶零项/多项、用户单元或气泡零项/多项分别 typed missing/ambiguous fail-close，不得返回正文、自由 selector OR、启发式删除或兼容 fallback。Composer exact editable value与长短两种user Prompt正文的唯一user-only机械投影只能逐码元把editing host用于排版的U+00A0映射为U+0020；Tab、LF、CR、U+202F、全角空格、首尾空格与重复空格数量必须原样保留，禁止trim、通用空白折叠、NFKC或第二normalizer。assistant deterministic semantic text不得使用该映射；Product批准文本真实含U+00A0时也不得改写expected hash，Browser投影后的不等必须继续失败关闭。",
         "不得发生：同一 Browser mutation command 发送超过一次 Provider 物理输入；任何结果 observation，包括生成图片原始媒体读取，均不得发送物理输入、建立 PREPARED/DISPATCHED 行或伪造 mutation receipt。",
         "不得发生：把 fixed sleep、elapsed time 或 Browser 动作后固定 2500ms 读回闸门本身当作成功条件；该闸门只签发首次动作后读取资格，成功或失败仍必须来自满时后的 fresh mechanical postcondition",
         "不得发生：任何改变 GPT 页面、页面会话、页面控件或页面 Document 的物理动作绕过 Browser Authority 唯一总闸门。最后一个物理页面输入完成后必须持有同一 Target/current Document/claim/FIFO 硬等待 2500ms；此前不得读取动作后的页面事实，满时第一次裁决必须来自 fresh coherent observation。该规则覆盖 click、fill、keyboard、file input、fresh start Page.navigate、Browser-owned canonical conversation URL Page.navigate、菜单、弹窗与未来新增动作；底层 dispatch ack 不是结果。等待失败不得盲目重放；confirmed readback 必须先 fresh 读取 currentUrl，已命中则零导航，否则仍只允许一次精确 Page.navigate。调用方不得覆盖延迟，Browser 不得建立第二 timer/service/queue/store。纯读取以及数据库、Website、日志和 artifact 写入不产生闸门。",
@@ -1651,13 +1651,13 @@
         "不得发生：Browser DOM 可见性把已识别的 DevTools no-layout/no-box 结果当成 BROWSER_DOM_READ_INVALID。该结果只表示当次节点无可见布局候选并可保留脱敏稳定原生 cause code；nodeId 重绘失效必须是 BROWSER_DOM_NODE_STALE，只有 record/number/coordinate 等 CDP payload 结构真实不合法才是 BROWSER_DOM_READ_INVALID。不得记录 selector、DOM 或 Provider 正文，不得建第二诊断链。",
         "不得发生：观察型后置条件（同一 typed command 内以多个 query 组成的 postcondition observation）失配时，`native_cause_code` 缺少首个失配 query 的序号。该 native cause 固定为 `BROWSER_POSTCONDITION_Q<i>__<C>`：`i` 为 0 起算、按现役 query 数量上限封闭的整数序号；`<C>` 为该 query 按现役规则得到的原生原因，即 `BROWSER_DOM_CANDIDATE_AMBIGUOUS`、`BROWSER_DOM_CANDIDATE_MISSING` 或既有 ineligible reason 之一。该机制与 candidate-set 阶段既有原生 cause 是两个正交事实，互不覆盖、互不替代；未知序号或未知 `<C>` 一律失败关闭，不得放宽为宽正则或建第二诊断链。",
         "不得发生：页面 Child 的动作资格或成功事实由多条独立 DOM 查询跨 React redraw 拼接，或只因 DocumentRef 相同就声称观察同一瞬间。Browser DOM observation 必须一次性切换为 BrowserDomObservationPacketV2，在同一 typed command 的扩展侧通过一次同步 Runtime.callFunctionOn 同时采集 current Document 的 sanitized currentUrl 与调用所需稀疏 mechanical facts，或机械证明读取期间 revision 未改变，并返回 exact_call_identity_hash、target_ref_hash、document_ref_hash、currentUrl、observation_revision_hash、observed_at、调用所需稀疏 facts 与 native_cause_code；observation_revision_hash 必须覆盖 currentUrl 与同包 facts，currentUrl 缺失、非法、整包 stale、Document/revision 改变或未完整返回时整包作废，只能 fresh observe。Observation V1 类型、decoder、caller 与测试必须在同一 CHANGE 物理删除，禁止 V1/V2 union、alias、optional currentUrl、dual-read、fallback；禁止从 TARGET_CLAIM、Page.getFrameTree、另一次 URL 读取或 snapshot registry 拼接，禁止持久 DOM 快照或第二事实库。",
-        "不得发生：Browser 以 connected=true 常量、box model 存在等于 visible/actionable、只读 HTML disabled、忽略 aria-disabled/hidden/aria-hidden/inert/computed display/visibility/opacity，或用 viewport/hit-test 要求拒绝屏幕外只读历史节点。每个 typed command 只能返回真实消费者最少充分的 raw/eligible cardinality、connected、layout、computed style、hidden/inert、HTML/ARIA disabled 以及该命令需要的 role/name/testId/label/value/checked/type。GPT Composer 可额外取得 hash-only `exactEditableTextHash`：Browser 只对 contenteditable 当前可编辑值使用与 fill 直接后置相同的唯一机械提取规范。GPT exact 外层 user turn 可额外取得 hash-only `exactGptUserPromptHash`：Browser 必须验证节点自身精确属于 `[data-testid^='conversation-turn-']:has([data-message-author-role='user'])` 且只含一个 user-role root，再机械裁决两个互斥正文结构；恰好一个 `[data-testid='collapsible-user-message-content']` 时对该长 Prompt 正文使用现役 deterministic semantic tree，只有该节点为零时才允许对恰好一个无元素子节点 `.whitespace-pre-wrap` 的短 Prompt 叶子使用同一规范。长节点存在时短结构不参与；长/短正文或 user root 零项、多项及身份不成立均 typed fail-close。真实 Chrome 已证明角色在内层且外层不再携带 `data-turn`。两种哈希都只进入同一 coherent observation revision，绝不得返回 Prompt 正文、包含附件卡片或页面控制文字、互作 fallback，或复用面向完整已渲染 user/assistant 容器的 `semanticTextHash`。viewport 与 hit-test 只在真实物理指针动作需要时采集，隐藏 file input 只按 exact input、type=file、connected、授权文件集合与 current Document 的专门 typed mutation 裁决。",
+        "不得发生：Browser 以 connected=true 常量、box model 存在等于 visible/actionable、只读 HTML disabled、忽略 aria-disabled/hidden/aria-hidden/inert/computed display/visibility/opacity，或用 viewport/hit-test 要求拒绝屏幕外只读历史节点。每个 typed command 只能返回真实消费者最少充分的 raw/eligible cardinality、connected、layout、computed style、hidden/inert、HTML/ARIA disabled 以及该命令需要的 role/name/testId/label/value/checked/type；GPT 提交后置可额外取得与唯一用户轮次匹配的精确 `turnKey` UUID。GPT Composer 可额外取得 hash-only `exactEditableTextHash`：Browser 只对 contenteditable 当前可编辑值使用与 fill 直接后置相同的唯一机械提取规范。GPT exact 外层 user turn 可额外取得 hash-only `exactGptUserPromptHash`：Browser 必须从当前页多个轮次中按最大有效 `fallback-turn-N` 序号选择唯一外层，验证该节点自身带 `[data-turn-key]` 精确 UUID 且此 UUID 在当前页唯一，内层 `[data-content-search-turn-key]` 与所选序号精确相等，且恰好一个 `data-chatgpt-search-unit-key` 后缀 `:user` 的角色单元，其 `data-chatgpt-search-message-ids` 精确等于外层 UUID；正文只在该单元唯一 `[data-user-message-bubble='true']` 内机械裁决两个互斥结构：恰好一个 `[data-testid='collapsible-user-message-content']` 时取长 Prompt，只有该节点为零时才取恰好一个无元素子节点 `.whitespace-pre-wrap` 短 Prompt 叶子。长节点存在时短结构不参与；轮次/角色/正文零项、多项或身份不等均 typed fail-close。发送后只以最大有效 `fallback-turn-N` 序号选唯一新用户轮次，重复最大序号失败关闭；历史轮次不得成为发送前置条件。两种哈希都只进入同一 coherent observation revision，绝不得返回 Prompt 正文、包含附件卡片或页面控制文字、互作 fallback，或复用面向完整已渲染 user/assistant 容器的 `semanticTextHash`。viewport 与 hit-test 只在真实物理指针动作需要时采集，隐藏 file input 只按 exact input、type=file、connected、授权文件集合与 current Document 的专门 typed mutation 裁决。",
         "不得发生：mutation-capable 命令未在 Browser Authority 验证 authority、exact call 与 typed permit 后先写 PREPARED，或在命令离开 Browser Authority 的不可逆边界前未把同一 WAL row 推进为 DISPATCHED；扩展必须在同一 typed command 内重新绑定 exact Target/current Document、机械重验冻结的 zero-action predicate、候选基数与动作资格。普通 mutation 只允许物理输入零次或一次；最后一个输入后都必须完整经过唯一硬编码 2500ms 读回总闸门，再按 fresh mechanical postcondition 结算 CONFIRMED 或 REJECTED。已鉴权 exact REPLY 明确携带 errorCode 时必须结算 REJECTED；普通命令 deadline 前完全没有终局 reply 仍保持 DISPATCHED。Browser outcome、物理输入事实与 GPT 语义后置必须正交。",
         "不得发生：任一 chatgpt.com 普通逻辑 DOM observation、Tab/page activation、navigation 或页面 mutation 不先通过 Browser 唯一账号级 `chatgptPageAccessNotBefore`，或相邻两个非同一 coherent 原子周期的起始单调时间差少于 1.5 秒。该门必须跨 job、Tab、Product 共用并在进程/扩展重启后的第一次普通访问前先等待 1.5 秒；50ms、25—250ms 与 deadline 尾部亚 1.5 秒重读必须物理退出。一次 coherent observation 内的 CDP primitives不拆分；菜单、菜单项、fill、Enter 是不同逻辑访问。唯一紧急例外是中央 preflight 精确命中已知限流弹窗后，同 Target/Document revalidate并在分类完成后 1 秒内 dispatch一次确认，确认后的 fresh postcondition仍服从2.5秒门。",
         "不得发生：Browser 中央 chatgpt.com site-policy preflight 未在每个既有逻辑页面周期的同一 coherent observation 中返回 `absent|exact_present|mismatch` 限流 blocker。`exact_present` 只能在唯一 role=dialog、标题‘请求过于频繁’、两段冻结正文、唯一启用且可交互按钮‘明白了’、Target/Document不漂移时成立；原请求物理输入必须为零。ack intent只能消费刚取得的固定枚举/计数/文案hash/Target/Document identity，在同一 lane revalidate后点击一次并用独立 WAL identity结算；零/多 dialog、零/多按钮、disabled、文案漂移或stale必须零点击 typed fail-close，不得扫描整页、输出DOM正文、坐标点击或盲目重试。",
         "不得发生：同一 provider_effect 在 DISPATCHED 后 fresh re-act、因新 Target/Document generation 获得重做资格，或任何 unresolved mutation 未先满足本法同工单收尾条款并原位取得真实终态就重做。target_local 只有旧 fence 已失效、当前 production binding fence 不同且全局恰好一条同 job unresolved target_local 时，才可先结算旧行 REJECTED + mutation_outcome=dispatched，再由当前 Target/Document fresh typed precondition裁决新的局部动作；caller 仍不得提供任意 JavaScript、坐标、通用 selector/strategy DSL、tab id、URL/target 选择策略和可循环动作。typed observation/mutation 只能消费 GPT Child 源码冻结并由 Browser permit 校验的有界 query/action spec，Browser 只判断机械资格和事实，不产生 DONE/ACT/WAIT/FAIL_CLOSED 或 Product next step。"
       ],
-      "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V52",
+      "lawId": "LAW-LOCAL-BROWSER-SESSION-004-V53",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 1083,
@@ -1666,7 +1666,7 @@
       },
       "status": "active",
       "summary": "必须由 Browser 唯一 FIFO/lane 与原 WAL 串行所有页面动作并守住每个 Provider effect 至多一次物理输入；全历史已证零输入可用当前 hash 普通执行，已有未决输入默认只读回；未被 Website 拒绝的原答案不可得时仅 Website 精确风险授权的新 revision 可一次输入，精确拒绝旧 result revision 后则沿原 rejection receipt 执行新 revision。未决旧 Target 可证物理缺席或旧输入可证静止前不放新 Target mutation；现役节拍、限流与无第二链保持不变。",
-      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-004-V51",
+      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-004-V52",
       "tier": "P0"
     },
     {
@@ -1723,12 +1723,12 @@
       "excludes": [],
       "forbidden": [
         "不得发生：凭证、cookie/token 或原始浏览器身份进入 Browser wire、日志、WAL、proof、错误或 task-owned artifact。TARGET_CLAIM 不得携带完整 URL、pathname、query、fragment 或 conversation identity，只允许携带精确等于 https://chatgpt.com 的 claimOrigin，且该事实只供 Browser Target admission，禁止进入 GPT 页面语义、submission-locator、跨任务会话状态或 recovery authorization。",
-        "不得发生：把下条封闭载荷中的第七项解释为 short Prompt 必须存在 collapsible 节点。第七项现役定义为 exact user turn 的 hash-only `exactGptUserPromptHash`：唯一 user-role root 内若恰好一个 `[data-testid='collapsible-user-message-content']` 则使用该长 Prompt 节点；仅当其为零时，才允许使用恰好一个无元素子节点 `.whitespace-pre-wrap` 的短 Prompt 叶子。两种结构互斥、只返回 hash，零项/多项 typed fail-close，不增加原文载荷或第二观察链。",
-        "不得发生：除以下封闭载荷外，DOM/HTML、Prompt、用户输入、资源 URL 或可变文件系统路径进入 Browser wire、日志、WAL、proof 或错误。许可载荷精确为：一、源码冻结 typed fill 的 exact approved text 作为 request-only 加密 payload；二、本次精确 user turn 紧邻 assistant 回答的完整 observed DOM HTML 与 deterministic semantic text 作为专用 exact-assistant-turn reply-only typed 加密 payload直接交现役 task-owned observed-response artifact Owner，禁止进入通用 coherent observation；三、Browser Authority 从同 execution binding 的已校验 file grant 调用期解析的完整本地路径集合，作为一次 batch file-input request-only 加密 payload；四、固定 gpt-web start URL 仅供 fresh acquisition 内部导航，或 current Document 同包清洗且仅按 LAW-LOCAL-BROWSER-SESSION-004-V52 与本法封闭持久化的 canonical conversation URL，作为同一 confirmed effect 恢复或Website签发的SEO文章严格前序或固定catalog同cohort严格前序provider_continuation时的Browser-owned request-only加密payload；该URL只允许一次精确`Page.navigate`，不得由调用方改写或授予Provider submit资格；五、由 current Document 的同一次 coherent Runtime.callFunctionOn 与 DOM mechanical facts 一并取得、清洗、绑定 observation revision 的 currentUrl，作为 BrowserDomObservationPacketV2 的 reply-only typed fact；六、GPT Composer 当前可编辑值按 fill 直接后置同一唯一机械提取规范生成的 hash-only `exactEditableTextHash`，作为同一 observation revision 内的 reply-only typed fact且绝不携带 Prompt 正文；七、exact GPT user turn 的唯一 user-role root 内，恰好一个 `[data-testid='collapsible-user-message-content']` 长 Prompt 正文，或仅当该节点为零时恰好一个无元素子节点 `.whitespace-pre-wrap` 短 Prompt 叶子，按同一 deterministic semantic tree 规范生成的 hash-only `exactGptUserPromptHash`，作为同一 observation revision 内的 reply-only typed fact且绝不包含附件卡片、页面控制文字或 Prompt 正文；八、每个既有ChatGPT逻辑访问同一 coherent observation 取得的 `KnownGptRateLimitDialogFact`，只允许固定 `absent|exact_present|mismatch`、候选计数、冻结文案hash、Target/Document/exact-call/observation identity和时间，不含DOM正文；九、仅供Product不可见内部ack Child使用的 incident_request_id、前述dialog observation identity及同Target/Document revalidation request，作为一次 `acknowledgeKnownGptRateLimit` request-only加密payload，其reply只含WAL identity、physical_input_count、clearance枚举与前后observation hash；该ack同一WAL已为非确认终态时，只允许在同一Browser lane按原Target/Document执行一次普通节流的`readKnownGptRateLimitClearance`只读请求，其reply只含固定dialog hash、Target/Document/observation identity、时间、零候选、零动作和absent后置证明，仍精确存在或任何身份不符必须失败关闭且不得重放点击；以及 LAW-LOCAL-BROWSER-SESSION-003-V43 许可的紧邻 assistant 回答唯一生成媒体原始 bytes reply。",
+        "不得发生：把下条封闭载荷中的第七项解释为 short Prompt 必须存在 collapsible 节点。第七项现役定义为 exact user turn 的 hash-only `exactGptUserPromptHash`：唯一 `data-turn-key` UUID、对应有效 `fallback-turn-N`、唯一 `:user` 单元及匹配 UUID 的 message ids 成立后，只在该单元唯一用户气泡内裁决正文；若恰好一个 `[data-testid='collapsible-user-message-content']` 则取长 Prompt，仅当其为零时才取恰好一个无元素子节点 `.whitespace-pre-wrap` 短 Prompt 叶子。两种结构互斥、只返回 hash，零项/多项 typed fail-close，不增加原文载荷或第二观察链。",
+        "不得发生：除以下封闭载荷外，DOM/HTML、Prompt、用户输入、资源 URL 或可变文件系统路径进入 Browser wire、日志、WAL、proof 或错误。许可载荷精确为：一、源码冻结 typed fill 的 exact approved text 作为 request-only 加密 payload；二、本次精确 user turn 紧邻 assistant 回答的完整 observed DOM HTML 与 deterministic semantic text 作为专用 exact-assistant-turn reply-only typed 加密 payload直接交现役 task-owned observed-response artifact Owner，禁止进入通用 coherent observation；三、Browser Authority 从同 execution binding 的已校验 file grant 调用期解析的完整本地路径集合，作为一次 batch file-input request-only 加密 payload；四、固定 gpt-web start URL 仅供 fresh acquisition 内部导航，或 current Document 同包清洗且仅按 LAW-LOCAL-BROWSER-SESSION-004-V53 与本法封闭持久化的 canonical conversation URL，作为同一 confirmed effect 恢复或Website签发的SEO文章严格前序或固定catalog同cohort严格前序provider_continuation时的Browser-owned request-only加密payload；该URL只允许一次精确`Page.navigate`，不得由调用方改写或授予Provider submit资格；五、由 current Document 的同一次 coherent Runtime.callFunctionOn 与 DOM mechanical facts 一并取得、清洗、绑定 observation revision 的 currentUrl，作为 BrowserDomObservationPacketV2 的 reply-only typed fact；六、GPT Composer 当前可编辑值按 fill 直接后置同一唯一机械提取规范生成的 hash-only `exactEditableTextHash`，作为同一 observation revision 内的 reply-only typed fact且绝不携带 Prompt 正文；七、exact GPT `data-turn-key` UUID 作为同包 reply-only 轮次身份，以及此外层内唯一 `:user` 单元、匹配的 message ids 与唯一用户气泡中，恰好一个 `[data-testid='collapsible-user-message-content']` 长 Prompt 正文，或仅当该节点为零时恰好一个无元素子节点 `.whitespace-pre-wrap` 短 Prompt 叶子，按同一 deterministic semantic tree 规范生成的 hash-only `exactGptUserPromptHash`，作为同一 observation revision 内的 reply-only typed fact且绝不包含附件卡片、页面控制文字或 Prompt 正文；八、每个既有ChatGPT逻辑访问同一 coherent observation 取得的 `KnownGptRateLimitDialogFact`，只允许固定 `absent|exact_present|mismatch`、候选计数、冻结文案hash、Target/Document/exact-call/observation identity和时间，不含DOM正文；九、仅供Product不可见内部ack Child使用的 incident_request_id、前述dialog observation identity及同Target/Document revalidation request，作为一次 `acknowledgeKnownGptRateLimit` request-only加密payload，其reply只含WAL identity、physical_input_count、clearance枚举与前后observation hash；该ack同一WAL已为非确认终态时，只允许在同一Browser lane按原Target/Document执行一次普通节流的`readKnownGptRateLimitClearance`只读请求，其reply只含固定dialog hash、Target/Document/observation identity、时间、零候选、零动作和absent后置证明，仍精确存在或任何身份不符必须失败关闭且不得重放点击；以及 LAW-LOCAL-BROWSER-SESSION-003-V43 许可的紧邻 assistant 回答唯一生成媒体原始 bytes reply。",
         "不得发生：currentUrl 来自 TARGET_CLAIM、Page.getFrameTree、另一次 Browser API/DOM 读取、caller、GPT 或持久 registry，或未在 Extension 离开前完成唯一清洗规则：protocol 必须是 https:，origin 必须精确等于 https://chatgpt.com，username 或 password 任一存在即 fail-close，pathname 只允许 / 或 /c/<单个、非空、由 typed contract 固定上限的 opaque segment>，query 必须物理丢弃，fragment 必须物理丢弃，并只重建 origin + pathname。不得解释 opaque segment 内部格式；清洗后的 currentUrl 必须与同包 DOM facts 一起进入 observationRevisionHash，缺失或非法即整包失败关闭。",
         "不得发生：上述许可载荷未绑定 authority epoch、exact call identity、Target/current Document、typed capability、方向与 payload hash，未在现役唯一加密 WebSocket 内完整传输，或发生静默裁切。Prompt、用户输入与本地路径不得进入 reply；DOM HTML/semantic text 只允许进入现役 task-owned observed-response artifact。canonical conversation URL 只允许来自同包 coherent observation 的现役清洗结果：调用期可瞬时使用；Provider submit CONFIRMED 后只可由唯一 Browser WAL 的同一 effect 行加密保存；同一进程内 settled-title cleanup 只可把 active call 已确认的同一canonical URL作为一次request-only输入，不持久化第二份。Browser只可按两种授权精确读回URL：当前job同一confirmed effect readback，或Website route policy签发的provider_continuation对应exact parent job、本地completed parent attempt与当前product step唯一CONFIRMED effect；后者只能为当前job的独占Target导航，且不读取父userTurnId/回答。parent attempt只收窄WAL locator选择，永不进入provider effect identity、跨仓载荷或第二持久化。除此之外 URL 不得进入日志、proof、普通 artifact、Outbox、Website task 或跨任务 GPT 状态，且不得建立 URL table/registry、continuation store、第二 resolver/store、lane 台账或兼容链。job-bound Target 的活动执行关系只可作为现役 Target registry 的进程内私有双向唯一字段；原 Browser SQLite 仅可在已鉴权 TARGET_CLAIM ack 前持久最小 jobRefHash、targetRef/tabId claim 历史证据，供 Browser Owner 核旧实例、旧 handler 与 release/quiescence，不得把该历史证据当作活动 Target registry、Provider effect 或 recovery 资格，不得越过 Browser Owner、另建第二 store 或凭旧数字 tabId 猜删操作者 Tab。两种授权都经唯一lane为当前job精确取得system Target并按canonical URL收敛；当前命中时零导航，不命中时最多一次Browser-owned `Page.navigate`，Provider submit增量恒为零，URL缺失、非法、多义或fresh readback不等均失败关闭。"
       ],
-      "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V39",
+      "lawId": "LAW-LOCAL-BROWSER-SESSION-006-V40",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 1150,
@@ -1737,7 +1737,7 @@
       },
       "status": "active",
       "summary": "必须保持凭证与原始浏览器身份绝不过线；canonical URL仍只在唯一confirmed effect WAL行持久化，Website签发的SEO文章或固定catalog同cohort顺序 continuation只可按父job+本地completed父attempt+当前product step取得唯一CONFIRMED submit URL，attempt只作locator且不进入effect identity。新增限流载荷仅允许固定枚举/计数/冻结文案hash和Target/Document/observation identity，以及内部一次ack的WAL/clearance receipt，绝不传DOM正文、Provider URL或原始对话；第二store与兼容链为零。",
-      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-006-V38",
+      "supersedesLawId": "LAW-LOCAL-BROWSER-SESSION-006-V39",
       "tier": "P0"
     },
     {
