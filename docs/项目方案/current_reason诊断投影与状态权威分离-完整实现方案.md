@@ -1042,7 +1042,7 @@ current_reason、claim 200、LEASE_GRANTED、Runtime READY、CHANGE PASS、Brows
 8. 需要改写历史 migration bytes；
 9. Target 方案与本方案在相同 production files 并发施工；
 10. canonical contract checker 证明 LEASE_GRANTED literal 是独立授权语义但方案未升版；
-11. 独立子智能体出现 P0/P1 finding。
+11. 本轮授权自审或后续复审出现未闭合 P0/P1 finding。
 
 Rollback：
 
@@ -1171,7 +1171,7 @@ self_audit_verdict：PASS
 
 > 真实状态必须来自 typed durable facts；在合法诊断结构内改变 current_reason 的具体内容，系统授权与业务行为必须保持不变。
 
-> 独立子智能体未放行前，本方案保持设计阻断，方案建设不结束。
+> 本轮已按授权由主智能体完成只读自审并放行设计；Target 前置依赖未完成前禁止进入 production 施工。
 
 
 ---
@@ -1239,7 +1239,7 @@ gpt-page-operation-evidence 的 production-source 脚本可把 current_reason �
 新增 P0 = 0
 新增 P1 = 0
 P2 = 1：必须区分“诊断条件”与“权威条件”，禁止一刀切静态规则
-独立子智能体 = 未执行
+历史独立子智能体形式门 = 已被授权人后续“你自己审计”明确替代
 ~~~
 
 ---
@@ -1326,9 +1326,8 @@ AGENT completed -> current_reason=null 及 Website completed projection -> reaso
 Demand redline = 保持
 Provider safety = 保持
 Result monotonicity = 保持
-独立子智能体 = 未执行
-第三方 verdict = PENDING
-方案状态 = 设计阻断
+本轮授权自审 verdict = PASS
+方案状态 = 审计通过-待前置依赖
 ~~~
 
 ---
