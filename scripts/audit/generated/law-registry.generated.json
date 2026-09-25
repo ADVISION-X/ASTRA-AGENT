@@ -52,6 +52,7 @@
         "scripts/acceptance/agent-production-runtime-session-rotation-support.ts",
         "scripts/acceptance/agent-production-runtime-startup-preflight.acceptance-support.ts",
         "scripts/acceptance/agent-production-runtime-startup.acceptance.ts",
+        "scripts/acceptance/agent-production-runtime-store-schema.acceptance-support.ts",
         "scripts/acceptance/agent-production-runtime.acceptance.ts",
         "scripts/acceptance/agent-production-runtime.real-proof-support.ts",
         "scripts/acceptance/agent-production-runtime.real-proof.ts",
