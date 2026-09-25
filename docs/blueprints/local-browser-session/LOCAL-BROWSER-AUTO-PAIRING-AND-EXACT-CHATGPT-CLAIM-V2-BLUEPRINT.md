@@ -1,7 +1,7 @@
-# Local Browser Authority V53 施工图
+# Local Browser Authority V54 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"local-browser-authority-v53","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V43","LAW-LOCAL-BROWSER-SESSION-004-V52","LAW-LOCAL-BROWSER-SESSION-006-V39"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"local-browser-authority-v54","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V43","LAW-LOCAL-BROWSER-SESSION-004-V53","LAW-LOCAL-BROWSER-SESSION-006-V40"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
 ```
 
 Website 已以精确 `RESULT_SETTLED_UNUSABLE` 或 `GPT_RESPONSE_STOPPED_EMPTY` 拒绝整个旧 result revision 时，Browser 仅在原 rejection receipt 授权的新 revision、旧 Target 已结算、旧 WAL 全历史已核的同 job 中允许新 effect 各至多一次输入。此分支由 Website 的 `prior_result_rejection` 授权，与“答案不可取得”的逐调用风险 grant 互斥；未被 Website 拒绝的旧结果仍先零输入读回。旧 effect 和 Target 证据原样保留，不将拒绝当作零输入证明。
@@ -31,6 +31,8 @@ Browser 在任何新页面准备或 Provider 输入前，从原 WAL 枚举同一
 风险 grant 的上一 command 已经精确终局为 `REJECTED + mutation_outcome=no + physical_input_count=0` 时，旧 terminal/proof 保持不可变；Browser 仅在同一 grant 的全部旧 WAL command 均已可信证明零 Provider 输入、无未决、且同 job/attempt/revision/调用/effect/grant/request/payload 完全不变时，才可于原 WAL 写下一 command 并重新校验当前 permit/Target。任一 DISPATCHED 未决、CONFIRMED、REJECTED dispatched/confirmed 或身份漂移都只许零输入对账。grant 限制的是现实 Provider 输入总次数至多一次，不能以零输入的终局行制造隐藏停机。
 
 永久删除只以 Website 对同一 exact job 返回权威不存在为授权，Runtime 才可签发 `website-admin-deletion`；lane 从唯一 Browser WAL 现场证明同一 jobId 的未决 `DISPATCHED`，在 active claim 已零输入 park 后，允许该 release 经唯一 FIFO、预授权 WebSocket 与 exact jobRefHash ack 删除其 system Tab，随后由原 Browser Owner 按同一 jobId 清除 WAL 并读回缺席。`PRIVACY_SUBJECT_CLOSED`、`business-admitted`、普通 `wait-new-attempt` 和其它 job 的普通 release 都不得取得永久删除资格；不得把未知 effect 改写为 `mutation_outcome=no`。新 attempt 不先释放旧 Target；它在 Runtime durable accept 后通过第一次 current production acquisition 进入唯一 lane，由现役同 job、不同 writer fence、单一旧 `target_local` 收尾规则先原位结算旧行，再取得或重建当前 Target。
+
+现役 GPT 轮次机械定位以所选 UUID 在当前页唯一对应的 `data-turn-key` 外层及有效 `fallback-turn-N` 顺序为准。提交后置选最大有效序号且不得有重复最大序号，核同外层唯一 `:user` 单元、匹配 UUID 的 message ids、唯一用户气泡内 Prompt hash；CONFIRMED WAL 只持久该 UUID 与同包 canonical URL。文本回答观察按同 UUID 外层的用户单元与真实紧邻唯一 `:assistant` 单元定位，其 message id 与正文节点必须精确绑定；文本 stop 与正文仍按原两门合同。图片只按 canonical URL、精确 userTurnId 后至下一个用户轮次前的范围读取 source，不等待 assistant role。旧 `conversation-turn-*` DOM 选择器和正则物理退出；旧 WAL 事实不删，无法以现役 DOM 定位的旧 effect 保持原输入事实并走现役 unaddressable/风险授权。
 
 `FROZEN-GPT-RESPONSE-NO-PROMPT-REHASH-001` 的 Browser 部分固定：回答读取只用 canonical conversation URL 和 submit 已确认的精确 `userTurnId` 定位其真实紧邻 assistant turn，并把当前 Target/Document、observation revision、回答内容 hash 或媒体 bytes hash 绑定到一次原子 observation。Browser 不得在回答 checkpoint 再读取、解析或 hash 历史 user prompt，不得返回 `precedingPromptHash`，也不得把 Provider 的折叠、展开、截断或重新渲染状态变成回答准入条件。删除或替代本边界必须由用户明确解冻，并同步替换 GPT/Browser 施工图、实现与唯一质检；普通修复或 CI 授权不构成解冻。
 

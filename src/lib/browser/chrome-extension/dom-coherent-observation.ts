@@ -14,10 +14,10 @@ import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 type BrowserRecord = Record<string, unknown>;
 const GPT_ORIGIN = "https://chatgpt.com";
 const GPT_CONVERSATION_SEGMENT_MAX_CHARS = 256;
-const GPT_TURN_TEST_ID = /^conversation-turn-[1-9][0-9]*$/u;
+const GPT_TURN_KEY = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u;
 const GPT_USER_PROMPT_CONTENT_SELECTOR = "[data-testid='collapsible-user-message-content']";
 const GPT_SHORT_USER_PROMPT_CONTENT_SELECTOR = ".whitespace-pre-wrap";
-const GPT_ASSISTANT_RESPONSE_SELECTOR = "[data-message-author-role='assistant']";
+const GPT_ASSISTANT_RESPONSE_SELECTOR = "[data-chatgpt-search-unit-key$=':assistant'] [data-markdown-text-style='assistant-message']";
 type CoherentObservationResult = Readonly<{
   schemaVersion: "grasseye.browser.dom-observation.v2";
   targetRefHash: `sha256:${string}`;
@@ -40,7 +40,8 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
       .map((byte) => byte.toString(16).padStart(2, "0")).join("");
   };
   const exactEmptyComposerMarker = (node) => {
-    if (!(node instanceof Element) || node.getAttribute("id") !== "prompt-textarea"
+    if (!(node instanceof Element) || !node.hasAttribute("data-composer-markdown")
+      || node.getAttribute("role") !== "textbox"
       || node.getAttribute("contenteditable") !== "true") return false;
     const rootChildren = Array.from(node.childNodes || []);
     if (rootChildren.length !== 1 || !(rootChildren[0] instanceof Element)
@@ -56,16 +57,28 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
     return browserCanonicalSemanticText(node);
   };
   const exactGptUserPromptText = (node) => {
-    if (!(node instanceof Element) || !/${GPT_TURN_TEST_ID.source}/.test(node.getAttribute("data-testid") || "")) {
+    const turnKey = node instanceof Element ? node.getAttribute("data-turn-key") || "" : "";
+    const markers = node instanceof Element
+      ? node.querySelectorAll("[data-content-search-turn-key^='fallback-turn-']") : [];
+    const ordinalKey = markers.length === 1
+      ? markers[0].getAttribute("data-content-search-turn-key") || "" : "";
+    if (!/${GPT_TURN_KEY.source}/.test(turnKey)
+      || document.querySelectorAll('[data-turn-key="' + turnKey + '"]').length !== 1
+      || !/^fallback-turn-(0|[1-9][0-9]*)$/.test(ordinalKey)) {
       throw new Error("BROWSER_DOM_READ_INVALID");
     }
-    const userRoots = Array.from(node.querySelectorAll("[data-message-author-role='user']"));
+    const userRoots = Array.from(node.querySelectorAll("[data-chatgpt-search-unit-key$=':user']"));
     if (userRoots.length === 0) throw new Error("BROWSER_DOM_CANDIDATE_MISSING");
     if (userRoots.length !== 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
-    const promptNodes = Array.from(node.querySelectorAll("${GPT_USER_PROMPT_CONTENT_SELECTOR}"));
+    if (!(userRoots[0].getAttribute("data-chatgpt-search-unit-key") || "").startsWith(ordinalKey + ":")
+      || userRoots[0].getAttribute("data-chatgpt-search-message-ids") !== turnKey
+      || userRoots[0].querySelectorAll("[data-user-message-bubble='true']").length !== 1)
+      throw new Error("BROWSER_DOM_READ_INVALID");
+    const bubble = userRoots[0].querySelector("[data-user-message-bubble='true']");
+    const promptNodes = Array.from(bubble.querySelectorAll("${GPT_USER_PROMPT_CONTENT_SELECTOR}"));
     if (promptNodes.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
     if (promptNodes.length === 1) return browserCanonicalGptUserPromptText(promptNodes[0]);
-    const shortPromptNodes = Array.from(userRoots[0].querySelectorAll("${GPT_SHORT_USER_PROMPT_CONTENT_SELECTOR}"))
+    const shortPromptNodes = Array.from(bubble.querySelectorAll("${GPT_SHORT_USER_PROMPT_CONTENT_SELECTOR}"))
       .filter((candidate) => candidate instanceof Element
         && Array.from(candidate.childNodes || []).every((child) => child.nodeType !== 1));
     if (shortPromptNodes.length === 0) throw new Error("BROWSER_DOM_CANDIDATE_MISSING");
@@ -74,10 +87,10 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
   };
   const gptAssistantResponseText = (node) => {
     if (!(node instanceof Element)
-      || !/${GPT_TURN_TEST_ID.source}/.test(node.getAttribute("data-testid") || "")) return null;
+      || !/${GPT_TURN_KEY.source}/.test(node.getAttribute("data-turn-key") || "")) return null;
     const responseNodes = Array.from(node.querySelectorAll("${GPT_ASSISTANT_RESPONSE_SELECTOR}"));
     if (responseNodes.length === 0) return null;
-    if (node.querySelectorAll("[data-message-author-role='user']").length !== 0) {
+    if (node.querySelectorAll("[data-chatgpt-search-unit-key$=':user']").length !== 1) {
       throw new Error("BROWSER_DOM_READ_INVALID");
     }
     if (responseNodes.length !== 1) throw new Error("BROWSER_DOM_READ_INVALID");
@@ -98,17 +111,14 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
   })();
   const fieldValue = async (node, facts, field) => {
     if (field === "id") return node.getAttribute("id") || "";
-    if (field === "dataTurn") {
-      const user = node.querySelectorAll("[data-message-author-role='user']").length;
-      const assistant = node.querySelectorAll("[data-message-author-role='assistant']").length;
-      return user === 1 && assistant === 0 ? "user" : assistant === 1 && user === 0 ? "assistant" : "";
-    }
+    if (field === "turnKey") return node.getAttribute("data-turn-key") || "";
     if (field === "tagName") return node.tagName;
     if (field === "ariaLabel") return node.getAttribute("aria-label") || "";
     if (field === "ariaLabelledBy") return node.getAttribute("aria-labelledby") || "";
     if (field === "ariaControls") return node.getAttribute("aria-controls") || "";
     if (field === "ariaExpanded") return node.getAttribute("aria-expanded") || "";
     if (field === "ariaChecked") return node.getAttribute("aria-checked") || "";
+    if (field === "ariaPressed") return node.getAttribute("aria-pressed") || "";
     if (field === "ariaValueMin") return node.getAttribute("aria-valuemin") || "";
     if (field === "ariaValueMax") return node.getAttribute("aria-valuemax") || "";
     if (field === "ariaValueNow") return node.getAttribute("aria-valuenow") || "";
@@ -160,12 +170,18 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
       node, candidateIndex, facts: browserMechanicalFacts(node, false)
     }));
   };
-  const latestGptUserTurn = (nodes) => nodes.reduce((latest, node) => {
-    const match = /^conversation-turn-([1-9][0-9]*)$/.exec(node.getAttribute("data-testid") || "");
-    if (!match) return latest;
-    const ordinal = Number(match[1]);
-    return latest === null || ordinal > latest.ordinal ? { node, ordinal } : latest;
-  }, null)?.node;
+  const latestGptUserTurn = (nodes) => {
+    const ordinals = nodes.map((node) => {
+      const marker = node.querySelectorAll("[data-content-search-turn-key^='fallback-turn-']");
+      const match = marker.length === 1
+        ? /^fallback-turn-(0|[1-9][0-9]*)$/.exec(marker[0].getAttribute("data-content-search-turn-key") || "") : null;
+      const ordinal = match ? Number(match[1]) : -1;
+      return Number.isSafeInteger(ordinal) ? { node, ordinal } : { node, ordinal: -1 };
+    }).filter((entry) => entry.ordinal >= 0).sort((a, b) => b.ordinal - a.ordinal);
+    if (ordinals.length > 1 && ordinals[0].ordinal === ordinals[1].ordinal)
+      throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
+    return ordinals[0]?.node || null;
+  };
   const observeQuery = async (spec) => {
     const scopeRaw = spec.scope ? Array.from(document.querySelectorAll(spec.scope.selector)) : [document.documentElement];
     const scopeObserved = observeNodes(scopeRaw);
@@ -217,8 +233,8 @@ const observationCount = (value: unknown): number => {
 };
 
 const stringObservationFields = new Set<BrowserDomObservationField>([
-  "id", "testId", "dataTurn", "tagName", "type", "role", "name", "label", "ariaLabel",
-  "ariaLabelledBy", "ariaControls", "ariaExpanded", "ariaChecked", "ariaValueMin", "ariaValueMax", "ariaValueNow", "semanticTextHash",
+  "id", "testId", "turnKey", "tagName", "type", "role", "name", "label", "ariaLabel",
+  "ariaLabelledBy", "ariaControls", "ariaExpanded", "ariaChecked", "ariaPressed", "ariaValueMin", "ariaValueMax", "ariaValueNow", "semanticTextHash",
   "exactEditableTextHash", "exactGptUserPromptHash",
   "value", "accept", "computedDisplay", "computedVisibility",
   "computedOpacity", "effectiveOpacity",

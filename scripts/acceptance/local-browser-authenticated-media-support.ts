@@ -9,6 +9,10 @@ type Runtime = (expression: string) => Promise<unknown>;
 class TestImage {
   public readonly currentSrc: string;
   public constructor(public readonly src: string) { this.currentSrc = src; }
+  public closest(selector: string) {
+    return selector === "[data-chatgpt-selection-message-id]"
+      ? { getAttribute: () => "00000000-0000-4000-8000-000000000006" } : null;
+  }
 }
 class TestTurn {
   public constructor(
@@ -16,9 +20,10 @@ class TestTurn {
     private readonly isUser: boolean,
     private readonly images: readonly TestImage[] = [],
   ) {}
-  public getAttribute(name: string) { return name === "data-testid" ? this.id : null; }
+  public getAttribute(name: string) { return name === "data-turn-key" ? this.id : null; }
   public querySelectorAll(selector: string): readonly unknown[] {
-    if (selector === "[data-message-author-role='user']") return this.isUser ? [{}] : [];
+    if (selector === "[data-chatgpt-search-unit-key$=':user']") return this.isUser
+      ? [{ getAttribute: () => this.id }] : [];
     return selector === "img" ? this.images : [];
   }
 }
@@ -26,12 +31,12 @@ class TestTurn {
 const command = {
   kind: "authenticated-media" as const,
   canonicalConversationUrl: `${GPT_WEB_ORIGIN}/c/authenticated-media`,
-  userTurnId: "conversation-turn-5",
+  userTurnId: "00000000-0000-4000-8000-000000000005",
   semanticMediaId: "gpt-generated-image-main" as const,
 };
 const user = () => new TestTurn(command.userTurnId, true);
 const response = (images: readonly TestImage[]) =>
-  new TestTurn("conversation-turn-6", false, images);
+  new TestTurn("00000000-0000-4000-8000-000000000006", false, images);
 
 const runtime = (input: Readonly<{
   turns: readonly TestTurn[];
@@ -111,7 +116,7 @@ const exerciseMediaSuccess = async (
   input.setRuntime(runtime({ turns: [user(), response([first, second])], bytes }));
   const authenticated = await execute(input, authority) as Record<string, unknown>;
   assert.equal(authenticated.sha256, `sha256:${createHash("sha256").update(bytes).digest("hex")}`);
-  assert.equal(authenticated.assistantTurnId, "conversation-turn-6");
+  assert.equal(authenticated.assistantTurnId, "00000000-0000-4000-8000-000000000006");
   assert.equal(authenticated.precedingUserTurnId, command.userTurnId);
   assert.equal(authenticated.currentUrl, command.canonicalConversationUrl);
   assert.equal(authenticated.authorityTargetHash,
@@ -122,7 +127,7 @@ const exerciseMediaSuccess = async (
   input.setRuntime(runtime({ turns: [user(), response([])],
     turnsAfterObserve: [user(), response([first])], observationCount, bytes }));
   const hydrated = await execute(input, authority) as Record<string, unknown>;
-  assert.equal(hydrated.assistantTurnId, "conversation-turn-6");
+  assert.equal(hydrated.assistantTurnId, "00000000-0000-4000-8000-000000000006");
   assert.equal(observationCount.value, 1,
     "authenticated media must wait on source hydration inside the same Browser observation");
 };
@@ -138,9 +143,9 @@ const exerciseMediaFailures = async (
     bytesForSource: (source) => source.endsWith("/a") ? bytes : new Uint8Array([1, 2, 3, 4]) }));
   await assert.rejects(execute(input, authority),
     /BROWSER_AUTHENTICATED_MEDIA_CONTENT_MULTIPLE/u);
-  const afterNextUser = new TestTurn("conversation-turn-8", false, [first]);
+  const afterNextUser = new TestTurn("00000000-0000-4000-8000-000000000008", false, [first]);
   for (const turns of [[] as readonly TestTurn[], [user(), response([])],
-    [user(), new TestTurn("conversation-turn-7", true), afterNextUser]]) {
+    [user(), new TestTurn("00000000-0000-4000-8000-000000000007", true), afterNextUser]]) {
     input.setRuntime(runtime({ turns }));
     await assert.rejects(execute(input, authority),
       /BROWSER_AUTHENTICATED_MEDIA_(?:USER_TURN|IMAGE_SOURCE)_ABSENT/u);

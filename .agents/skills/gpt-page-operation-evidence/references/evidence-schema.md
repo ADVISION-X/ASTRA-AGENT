@@ -1,168 +1,101 @@
-# 产品页面实证 Schema V6
+# GPT 页面证据 Schema V8
 
-## 1. 生产 source manifest
+## 唯一报告
 
-`production-source.mjs` 输出 `gpt-page-operation-production-source.v1`：
+`docs/项目方案/GPT页面操作子能力实证资料.json` 的 `schemaVersion` 为 `gpt-page-operation-evidence.v8`。原 `products[].runs[]` 是历史 Product attempt 证据；一次受检 v7→v8 转换保留原产品对象，并在 `legacyV7.reportHash`、`legacyV7.productDigests[]` 与 `legacyV7.runDigests[]` 记录原文件及每条旧 run 摘要。验证器继续使用旧 run 的冻结快照语义逐条重算；现役矩阵变化只使 projection stale，不许可旧 run 被静默改写。
+
+新共享 QA 页面样本只在顶层 `seoCaptureRevisions[]`；字段名为历史兼容，八轮版包含 SEO 三轮与五语五轮，不表示五语源文来自本次 SEO QA 文章：
 
 ```json
 {
-  "schemaVersion": "gpt-page-operation-production-source.v1",
-  "sourceKind": "PRODUCTION_RUNTIME_DURABLE_TASK",
-  "synthetic": false,
-  "productId": "public_knowledge_article_pipeline",
-  "actionId": "produce_article",
-  "sourceSnapshotId": "sha256:...",
-  "flowContractDigest": "sha256:...",
-  "materials": [{ "role": "ready_corpus_archive", "bytes": 1, "sha256": "sha256:..." }],
-  "actualTrace": [{
-    "traceEntryId": "sha256:...",
-    "productStepId": "corpus_research",
-    "actionOrdinal": 1,
-    "callId": null,
-    "childId": "prepare_clean_gpt_chat",
-    "exactCallIdentityHash": "sha256:...",
-    "inputBinding": {
-      "schemaVersion": "gpt-page-input-binding.v1",
-      "source": "FORENSICS_SAFE_PROJECTION",
-      "inputHash": "sha256:...",
-      "roleHashes": {
-        "promptHash": "sha256:...",
-        "responseHash": null,
-        "attachmentLabelHashes": ["sha256:..."],
-        "attachmentSetHash": "sha256:...",
-        "modelDisplayNameHash": null,
-        "reasoningRequirement": null,
-        "conversationUrlHash": null,
-        "turnMarkerHash": null,
-        "assistantTurnIdHash": null
-      }
-    },
-    "browserReceipts": []
-  }],
-  "flowStatus": "PARTIAL",
-  "flowProjectionStatus": "MATCHED_PREFIX",
-  "flowProjectionGaps": ["UNOBSERVED_CURRENT_PRODUCT_STAGE:article_synthesis"],
-  "terminalBranch": null,
-  "terminalBranchProof": null,
-  "flowGaps": ["UNOBSERVED_PRODUCT_STAGE:article_synthesis"]
+  "schemaVersion": "gpt-page-operation-evidence.v8",
+  "legacyV7": { "reportHash": "sha256:...", "productDigests": [], "runDigests": [] },
+  "products": [],
+  "seoCaptureRevisions": []
 }
 ```
 
-`sourceSnapshotId` 只由 task 投影与实际材料字节身份计算。`flowContractDigest` 只由目标产品合同、Product flow sources 和已存在的 trace Child sources 计算。两者都不得包含 Git HEAD、branch、clean 或全仓摘要。
-
-现役 artifact-only runtime 不提供 `actualTrace`；此时它固定为空数组，`flowStatus=PARTIAL`，且不得从 artifact、Browser receipt、当前源码或投影构造调用。`flowProjectionStatus/flowProjectionGaps` 只比较当前 Product 阶段投影，不构成历史事实。
-
-没有实际 trace 时没有 `inputBinding`；Browser mutation receipt 不能替代逐角色哈希或反向生成调用。
-
-指定历史 attempt 时，终态只绑定该 attempt 自己的 durable terminal。现行 runtime 的 durable failure 仅在当前 task 行的 `attempt_failure_json`；它只可用于该行 `current_attempt_id`，并在 `terminalBranchProof.durableFailureReceiptHash` 中绑定该字段。当前 task 行即使后来完成或失败都不能替历史 attempt 提供 status/result/failure。历史 attempt 无专属终态时必须是 `PARTIAL`，缺口为 `DURABLE_ATTEMPT_TERMINAL_UNAVAILABLE`。
-
-合法终点必须写 `flowStatus=OBSERVED_COMPLETE_PATH` 和非空 `terminalBranch`。`production-failure` 表示真实故障分支已经走到终点；若该分支的所有实际页面调用 DOM 齐全，采集完整不等于业务成功。尚未到终点时使用 `PARTIAL`、`terminalBranch=null` 和准确 `flowGaps`。
-
-`terminalBranchProof` 只在实际 trace 已足以形成合法分支时存在。失败 task 的 receipt 在无 trace 时只能形成 source terminal fact，不能推断 `production-failure` branch 或进入 Chrome 装配。公共报告只保留 source manifest 的安全投影和可复算 digest，不保留原始 job/attempt、材料名、reason、recordRef 或 commandId。
-
-## 2. Capture V6
-
-`gpt-page-operation-capture.v6` 必须包含完整 `productionSource` 和一个 `productRun`：
+共享 revision 沿用 `gpt-page-seo-capture-revision.v1`，`captureRunId + evidenceRevisionId` 为唯一键。`evidenceRevisionId`/`contentHash` 是排除这两个自哈希字段后的稳定内容摘要；重复键同内容是 no-op，同键异内容拒绝。`supersedesRevisionId + correctionReason` 只能指向同 run 已存的旧版，不能覆盖它。
 
 ```json
 {
-  "schemaVersion": "gpt-page-operation-capture.v6",
-  "captureEpoch": "sha256:...",
-  "productionSource": {},
-  "productRun": {
+  "schemaVersion": "gpt-page-seo-capture-revision.v1",
+  "captureRunId": "seo-capture-unique-id",
+  "evidenceRevisionId": "sha256:...",
+  "contentHash": "sha256:...",
+  "capturedAt": "2026-09-24T00:00:00.000Z",
+  "source": {
+    "sourceKind": "LIVE_SEO_CAPTURE_SESSION_INPUT",
     "productId": "public_knowledge_article_pipeline",
     "actionId": "produce_article",
-    "sourceSnapshotId": "sha256:...",
-    "flowContractDigest": "sha256:...",
-    "terminalBranch": "production-failure",
-    "calls": [{
-      "productStepId": "corpus_research",
-      "actionOrdinal": 13,
-      "childId": "submit_exact_gpt_turn_once",
-      "exactCallIdentityHash": "sha256:...",
-      "pageRequirementSnapshot": {
-        "matrixDigest": "sha256:...",
-        "childCandidateDigest": "sha256:...",
-        "requiredLiveStates": ["pre-submit-ready", "post-submit-user-turn", "confirmed-submit-effect-readback"],
-        "requiredInputRoles": ["promptHash", "attachmentSetHash"],
-        "liveStateTargets": {
-          "pre-submit-ready": ["composer", "submit-control"],
-          "post-submit-user-turn": ["user-turn"],
-          "confirmed-submit-effect-readback": ["user-turn"]
-        },
-        "stateAssertions": {
-          "pre-submit-ready": [{ "path": "stateFacts.capturePhase", "operator": "equals", "value": "PRE_ACTION" }],
-          "post-submit-user-turn": [{ "path": "stateFacts.capturePhase", "operator": "equals", "value": "POST_ACTION" }],
-          "confirmed-submit-effect-readback": [{ "path": "stateFacts.capturePhase", "operator": "equals", "value": "ALREADY_SATISFIED" }]
-        },
-        "childContract": { "contractVersion": 3, "profile": "TARGET_LOCAL_MUTATION", "allowedDocumentTransition": "forbidden" },
-        "derivationDigest": "sha256:..."
-      },
-      "inputBindingProof": {
-        "schemaVersion": "gpt-page-input-binding-proof.v1",
-        "inputHash": "sha256:...",
-        "inputHashBound": true,
-        "checks": [{ "role": "promptHash", "expected": "sha256:...", "matchedSceneIds": ["scene-..."], "status": "MATCHED" }],
-        "complete": true
-      },
-      "domEvidence": { "specimens": [] },
-      "captureComplete": false,
-      "gaps": ["PAGE_EVIDENCE_GAP:..."],
-      "derivationEnvelopeHash": "sha256:..."
-    }]
-  }
+    "requestHash": "sha256:...",
+    "archiveHash": "sha256:...",
+    "archiveBytes": 1,
+    "archiveEntries": [],
+    "sourceHashes": {}
+  },
+  "matrixDigest": "sha256:...",
+  "planDigest": "sha256:...",
+  "flowDigest": "sha256:...",
+  "frozenFlow": { "expectedCalls": [{ "stepId": "corpus_research",
+    "childCapabilityId": "prepare_clean_gpt_chat" }],
+    "terminalStates": { "prepare_clean_gpt_chat": ["fresh-empty-chat"] },
+    "stateBranches": { "prepare_clean_gpt_chat": [["fresh-empty-chat"]] },
+    "productSourceHashes": { "src/plugins/public-knowledge-article-pipeline/index.ts": "sha256:..." } },
+  "frozenPlan": [{
+    "childCapabilityId": "prepare_clean_gpt_chat",
+    "stateIds": ["fresh-empty-chat"],
+    "requiredLiveStates": ["fresh-empty-chat"],
+    "liveStateTargets": { "fresh-empty-chat": ["page-root"] },
+    "stateAssertions": { "fresh-empty-chat": [] },
+    "codeTargetSelectors": { "composer": "GPT_COMPOSER_SELECTOR" },
+    "fixedCaptureFields": ["captureRunId", "observedCallId", "childCapabilityId", "stateId"],
+    "codePaths": ["src/capabilities/gpt/children/prepare_clean_gpt_chat/selectors.ts"]
+  }],
+  "calls": [{
+    "observedCallId": "sha256:...",
+    "stepId": "corpus_research",
+    "childCapabilityId": "prepare_clean_gpt_chat",
+    "promptHash": "sha256:...",
+    "turnMarkerHash": "sha256:...",
+    "sceneIds": ["scene-id"]
+  }],
+  "scenes": [],
+  "cells": [{
+    "childCapabilityId": "prepare_clean_gpt_chat",
+    "stateId": "fresh-empty-chat",
+    "status": "OBSERVED",
+    "reason": "same-run-scene-bound",
+    "observations": [{ "observedCallId": "sha256:...", "sceneId": "scene-id", "specimen": {} }]
+  }],
+  "stageReceipts": [{
+    "observedCallId": "sha256:...",
+    "stepId": "corpus_research",
+    "sceneId": "scene-id",
+    "promptHash": "sha256:...",
+    "responseHash": "sha256:...",
+    "decision": "proceed"
+  }],
+  "terminalBranch": "qa-stopped",
+  "terminalReceipt": { "stepId": "corpus_research", "observedCallId": "sha256:...",
+    "sceneId": "scene-id", "providerEffect": "no", "reasonHash": "sha256:..." },
+  "flowGaps": ["missing-call:article_synthesis/..."],
+  "captureStatus": "CAPTURE_PARTIAL",
+  "supersedesRevisionId": null,
+  "correctionReason": null
 }
 ```
 
-`productRun.calls` 顺序来自实际 trace。每个 page call 的 specimens 只能来自 `productCalls.<traceEntryId>.states`；重复 Child、以及同一 exact call 的失败/重试记录不得共享证据。`exactCallIdentityHash` 继续标识逻辑调用，`traceEntryId` 标识实际 evidence record。
+示例仅展示形状，真实 revision 必须完整覆盖冻结的全部 14 个 Child、每个 required/optional/derived 状态和矩阵全部固定字段。`cells[]` 对每个 Child/state 恰有一格；重复调用放入该格不同的 `observations[]`，不得复用 scene。未观察格的 `observations` 必须为空。`OBSERVED/CONFLICT` 必须绑定同 run 的真实 scene/Document/revision/签名和 specimen；`NOT_REACHED/NOT_APPLICABLE/CAPTURE_GAP` 不填伪 DOM。scene 内只保留安全节点、清洗 URL 和 hash-only 业务文本。
 
-`pageRequirementSnapshot.requiredLiveStates` 不是 mapping 的自由输入，而是采集时矩阵按该 trace 分支派生的精确分母；同一快照还固定这些状态的 targets/assertions、required input roles 和 Child transition contract，并由 `derivationDigest` 封口。mutation `confirmed/dispatched` 取 pre/post；成功 `no` 取 already-satisfied/steady；失败 `no` 且无 Browser 观察取空集合，并以 `domEvidence.specimens=[]` + durable failure 表示页面证据不适用，不要求 input↔DOM 匹配。其它缺 mapping 调用仍必须保存同一分母并报缺口。`transitionReceipt.postconditionPassed` 为必填布尔；值为 `false` 或发现合同禁止的 document transition 时，scene/specimen 仍保留并产生 `PAGE_EVIDENCE_CONFLICT:*`，不得把失败 DOM 删除或改写为 PASS。
+旧三轮 revision 的 `stageReceipts` 顺序仅为 research → article → image，冻结分母 28 次 Child；旧版继续按自己的 `frozenFlow` 验证。八轮版在其后严格追加 `article_translation:zh-HK` → `zh-TW` → `en-US` → `ja-JP` → `ko-KR`，冻结分母为 SEO 28 次加五语各 11 次，共 83 次。每语 QA step 身份包含 locale；现役 Product 内部仍用 `productStepId=article_synthesis`，不得合并五语 call。`localizationSource` 只允许固定公开 manifest 的安全 hash-only 投影：五项 job/source/parent/resultRevision 哈希与四件材料的固定 role/ordinal/安全显示名/bytes/hash，禁止原始 task、对象 ref、材料正文和附加键。每语 receipt 绑定自己的 sourceJobIdHash、materialDigest、prompt/marker、唯一 user/assistant turn、Document/revision、解析 hash 和同一 QA URL；`translation-complete` 只表示八条真实阶段回执齐全，不自动授予 `CAPTURE_COMPLETE`。
 
-同一 Child 若有互斥的成功/失败终态，必须在矩阵同一条目用 `traceResultStatuses.<stateId>` 为全部 required state 声明适用的 `success`/`failed` trace 结果。状态分支只能由 durable trace 的 `resultStatus` 机械选择；采集 mapping、当前页面和报告编辑者都无权改变分母。
+八轮失败可保留 0～7 个完整阶段回执和现场 `terminalReceipt`。research `decline` 是合法单阶段终点，但仍为部分覆盖。`frozenFlow.stateBranches` 区分适用状态与互斥分支，未走的分支为 `NOT_APPLICABLE`；缺少适用前/后状态或任何 `CAPTURE_GAP/CONFLICT` 都不能标 `CAPTURE_COMPLETE`。即使八次真实发送完成，83 次计划 Child 有缺项仍须为 `CAPTURE_PARTIAL`。同一 revision 的 `scenes[]` 可带 `observationScope`：`collectorProfile` 区分旧宽采、长会话 current-turn 缩采与 v13 `null` 未读旧回复；旧 profile 是不在原 scene 签名内的事后标注，v13 `pageFacts.captureScope` 则进入 scene 签名。节点采样和当前挂载 turn ID 均不是 full Document 证明，旧空 response hash 不能推断真实空回复。此状态只代表跨文章 QA 同页页面取证，不代表 Website 接收结果、Browser WAL 或五语历史工单完成。
 
-Chrome scene 的 `documentIdentityHash` 使用专用 QA tab 身份与清洗后的 canonical route 绑定；同一路由的菜单展开、输入与弹层变化不得伪造 Document 切换，route 切换仍必须产生不同身份。执行配置控件还必须位于包含唯一 composer 的 form 内，不能把对话折叠按钮或侧栏按钮计入候选。白名单 `aria-label` 只有在节点本身具备 button/menuitem 等 UI 语义时才可明文保留。
+## 历史格式
 
-公共 `sceneManifest` 只保存 `productCalls.<traceEntryId>.states` 实际引用的 scene，以及被这些 scene 的 transition receipt 直接引用的 pre scene。重采时被替换、未映射且不属于 transition 链的 scene 不得进入唯一报告；装配器必须同时拒绝 mapping 或 receipt 指向不存在的 scene。
+`gpt-page-operation-production-source.v1` 和 `gpt-page-operation-capture.v6` 仅用于历史 Product attempt。它们需要该 attempt 的真实非空 `actualTrace`、逐角色 `gpt-page-input-binding-proof.v1` 及原 Product 终态回执。artifact-only source 的 `actualTrace=[]` 不能被新 SEO 入口填充。历史 `products[].runs[]` 的 `candidate/admit` 不消费 `seoCaptureRevisions[]`。
 
-每个 LIVE specimen 继续保存：core、related、peripheral、stateFacts、Document/revision、pre/command/post chain、source scene identity 和 state signature。UI 白名单以外文字只能是 `HASH_ONLY`。
+## 派生代码差距版
 
-当 required target 的 raw candidate 存在但资格失败时，`core.targets.<target>` 保存 `observed:false` 和 `diagnosticDom.{normalizedStructure,sanitizedOuterHtml}`；call 同时保存 `PAGE_EVIDENCE_CONFLICT:target-not-unique:*`。这是同一真实 scene 的失败现场，不是第二份报告，也不能满足完整采集。
-
-Capture 的 browser/environment/recapture trigger、scene binding、decision receipt、transition receipt 都是精确白名单对象，任何额外字段都使 capture 无效。公共报告给每个完整 specimen 增加可复算 envelope；报告合并和 validate 都重新检查 scene envelope、specimen envelope，以及 `sourceSceneId` 只能归属一个 `traceEntryId`。
-
-每个 page call 的 `pageRequirementSnapshot` 冻结采集当时的页面状态语义，仅用于历史 slice 自身一致性校验，不拥有 Product 步骤或顺序。`inputBindingProof` 必须由该 call 的生产 `inputBinding` 与其 specimens 中符合 Child/状态来源策略的 Chrome pageFacts 机械重算；所有必需角色 MATCHED 才能 complete。每个 call 另有覆盖 snapshot/proof/DOM/verdict/gaps 的 `derivationEnvelopeHash`。报告 stale 后按快照继续重算并检查公共 production source 精确投影、capture context 白名单和全部 envelope；只跳过当前投影相等检查。
-
-## 3. 唯一报告 V7
-
-Canonical 报告仍是 `docs/项目方案/GPT页面操作子能力实证资料.json`：
-
-```json
-{
-  "schemaVersion": "gpt-page-operation-evidence.v7",
-  "products": [{
-    "productKey": "public_knowledge_article_pipeline/produce_article",
-    "contractDigest": "sha256:...",
-    "captureStatus": "CAPTURE_PARTIAL",
-    "runs": []
-  }]
-}
-```
-
-`products` 必须覆盖 production Catalog 的全部路由。没有 Product 合同的路由仍存在，但固定缺口为 `PRODUCT_EVIDENCE_CONTRACT_NOT_IMPLEMENTED`。
-
-按 Child 查询时必须临时遍历 `products[].runs[].calls[]`；报告不得保存可由这些调用记录重建的反向索引。
-
-`children` 字段只保留当前 Child 的静态 demand，不保存 collection 或 DOM。所有 DOM 只存在于目标 `products[].runs[].calls[].domEvidence`；capture 阶段的 Child 需求校验也只能从 `productCalls.<traceEntryId>` 派生，mapping 不接受独立 `children` 输入。它没有 Child 级 candidate/admit。旧 v6 capture/report 和所有 synthetic fixture 固定失效，不做双读或迁移桥。
-
-定向合并只替换所选 `productKey`，未选产品对象原样保留；已从当前 Catalog 删除的历史对象也保留为 stale，当前 Catalog 新路由才追加为 `NOT_CAPTURED`。普通全报告 `validate` 返回 `projectionCurrent` 与 `staleProducts`，但不会因为未选产品或全局投影变化否决目标切片；`validate --require-complete` 才要求全局当前。产品 `candidate/admit` 始终只对所选 Product 做当前来源核对。
-
-## 4. 产品查询防串包
-
-产品 candidate 绑定：产品路由、目标 Product 投影与源码、step scope、sourceSnapshotId、flowContractDigest、captureEpoch 和实际 evidence brief hash。它不绑定全局 `projectionRevision`、其它产品或 HEAD。
-
-- 无 `--step`：要求至少一个完整合法 Product run，且每个页面调用完整。
-- 有 `--step`：要求该步骤实际出现，且该步骤的所有页面调用完整。
-- Product flow source 改变：`ADMISSION_PRODUCT_PROJECTION_STALE`。
-- 缺调用 DOM：`ADMISSION_PRODUCT_EVIDENCE_INCOMPLETE`。
-
-`admit` 只证明 candidate 属于同一次工具查询，不产生生产准入、质量或发布结论。
+`docs/项目方案/GPT页面DOM与代码差距报告.md` 是独立可审阅的派生报告，逐次追加 `comparisonId`、`captureRunId/evidenceRevisionId`、`codeDigest`，并逐计划字段记录 Child/state、实际 call/scene、源码路径/行/hash、`MATCH/DRIFT/UNOBSERVED/CODE_ONLY/REVIEW_REQUIRED`。不复制 DOM 事实；旧比较版保留。比较失败不删除已落盘证据版。

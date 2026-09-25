@@ -1,6 +1,6 @@
 const BROWSER_DOM_FIELD_VALUES = [
-  "id", "testId", "dataTurn", "tagName", "type", "role", "name", "label",
-  "ariaLabel", "ariaLabelledBy", "ariaControls", "ariaExpanded", "ariaChecked", "ariaValueMin", "ariaValueMax", "ariaValueNow",
+  "id", "testId", "turnKey", "tagName", "type", "role", "name", "label",
+  "ariaLabel", "ariaLabelledBy", "ariaControls", "ariaExpanded", "ariaChecked", "ariaPressed", "ariaValueMin", "ariaValueMax", "ariaValueNow",
   "text", "outerHtml", "semanticText", "semanticTextHash", "exactEditableTextHash",
   "exactGptUserPromptHash",
   "value", "checked", "accept", "multiple", "connected", "layout", "visible",
@@ -149,7 +149,7 @@ export type BrowserDomIntent =
     }>;
     /** Same-node state that must be true immediately after the one click. */
     postClickAttribute?: Readonly<{
-      name: "aria-checked" | "aria-expanded";
+      name: "aria-checked" | "aria-expanded" | "aria-pressed";
       equals: "true";
       timeoutMs?: number;
     }>;
@@ -167,7 +167,7 @@ export type BrowserDomIntent =
       timeoutMs?: number;
       /** Post-click state read from the exact candidate node retained by this command. */
       clickedCandidateAttribute?: Readonly<{
-        name: "aria-checked";
+        name: "aria-checked" | "aria-pressed";
         equals: "true";
       }>;
     }>;
@@ -306,7 +306,7 @@ const invalidExactOutgoingObservation = (
 ): boolean => observation.queries.length !== 2
   || observation.queries[0]!.selector !== exactOutgoingTurn.userTurnSelector
   || observation.queries[0]!.latestGptUserTurn !== true
-  || !observation.queries[0]!.fields.includes("testId")
+  || !observation.queries[0]!.fields.includes("turnKey")
   || !observation.queries[0]!.fields.includes("exactGptUserPromptHash")
   || observation.queries[1]!.selector !== `${exactOutgoingTurn.composerSelector}[contenteditable='true']:has(> p[data-empty-paragraph='true'] > br.ProseMirror-trailingBreak)`
   || observation.queries[1]!.fields.length !== 0;
@@ -315,7 +315,8 @@ const invalidClickedCandidateAttribute = (
   attribute: NonNullable<Extract<BrowserDomIntent, { kind: "click" }>["postClickObservation"]>["clickedCandidateAttribute"],
 ): boolean => attribute !== undefined && (
   Object.keys(attribute).sort().join("|") !== "equals|name"
-  || attribute.name !== "aria-checked" || attribute.equals !== "true");
+  || !(attribute.name === "aria-checked" || attribute.name === "aria-pressed")
+  || attribute.equals !== "true");
 
 const assertObserveIntent = (intent: Extract<BrowserDomIntent, { kind: "observe" }>): void =>
   assertObservationQueries(intent.queries, OBSERVATION_QUERY_KEYS);
@@ -407,7 +408,8 @@ const assertClickAttribute = (
   attribute: Extract<BrowserDomIntent, { kind: "click" }>["postClickAttribute"],
 ): void => {
   if (!attribute) return;
-  if (!(attribute.name === "aria-checked" || attribute.name === "aria-expanded")
+  if (!(attribute.name === "aria-checked" || attribute.name === "aria-expanded"
+    || attribute.name === "aria-pressed")
     || attribute.equals !== "true" || timeoutInvalid(attribute.timeoutMs)) {
     throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   }

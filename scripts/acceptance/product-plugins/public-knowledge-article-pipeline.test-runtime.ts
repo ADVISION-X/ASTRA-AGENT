@@ -36,8 +36,8 @@ for (let y = 0; y < 640; y += 1) for (let x = 0; x < 320; x += 1) {
 export const ORIENTED_IMAGE_FIXTURE = imageFixture(new Uint8Array(await sharp(orientedSourcePixels, {
   raw: { width: 320, height: 640, channels: 3 },
 }).jpeg({ quality: 100 }).withMetadata({ orientation: 6 }).toBuffer()), "image/jpeg");
-const userTurnId = (stepId: string): string => `conversation-turn-${
-  stepId === "corpus_research" ? 1 : stepId === "article_synthesis" ? 3 : 5}`;
+const userTurnId = (stepId: string): string => `00000000-0000-4000-8000-${String(
+  stepId === "corpus_research" ? 1 : stepId === "article_synthesis" ? 3 : 5).padStart(12, "0")}`;
 
 const outputForCall = (
   state: SeoHarness,
@@ -62,12 +62,13 @@ const outputForCall = (
     const payload = call.productStepId === "corpus_research" ? researchOutput(decision)
       : call.productStepId === "article_synthesis" ? articleOutput() : { decision: "no_issue", issues: [] };
     const semanticText = JSON.stringify(payload);
-    return { assistantTurnId: `conversation-turn-${Number(userTurnId(call.productStepId).slice(18)) + 1}`,
+    return { assistantTurnId: `00000000-0000-4000-8000-${String(
+      Number(userTurnId(call.productStepId).slice(-12)) + 1).padStart(12, "0")}`,
       rawDomHtml: `<article>${semanticText}</article>`,
       rawDomHash: HASH, semanticText, semanticTextHash: HASH };
   }
   if (call.child === "checkpoint_gpt_generated_image") return {
-    assistantTurnId: "conversation-turn-6", semanticMediaId: "gpt-generated-image-main",
+    assistantTurnId: "00000000-0000-4000-8000-000000000006", semanticMediaId: "gpt-generated-image-main",
     mediaHash: image.hash, authorityTargetHash: HASH, authorityDocumentHash: HASH,
     canonicalConversationUrl: SEO_CONVERSATION_URL,
     turnMarker: "marker", originalBytes: image.bytes,

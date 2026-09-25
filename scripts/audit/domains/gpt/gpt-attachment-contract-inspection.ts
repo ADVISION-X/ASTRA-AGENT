@@ -39,11 +39,11 @@ const inspectAttachmentSelectors = (
   };
   const expected = {
     GPT_ATTACHMENT_CONTROL_SELECTOR:
-      "button#composer-plus-btn[data-testid='composer-plus-btn'][aria-haspopup='menu']",
-    GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR: "#thread-bottom div.popover[aria-busy='false']",
-    GPT_UPLOAD_FROM_COMPUTER_SELECTOR: "div.__menu-item[tabindex='0'] span",
-    GPT_UPLOAD_FROM_COMPUTER_LABEL: "从电脑上传",
-    GPT_COMPOSER_FORM_SELECTOR: "form:has(#prompt-textarea)",
+      "button[aria-label='添加文件等内容']",
+    GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR: "[data-composer-overlay-floating-ui='true']",
+    GPT_UPLOAD_FROM_COMPUTER_SELECTOR: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child",
+    GPT_UPLOAD_FROM_COMPUTER_LABEL: "添加照片和文件",
+    GPT_COMPOSER_FORM_SELECTOR: "form[data-chatgpt-composer]",
     GPT_ATTACHMENT_ITEM_SELECTOR: "[role='group'][aria-label]",
   } as const;
   for (const [name, value] of Object.entries(expected)) if (literal(name) !== value) findings.push(finding(

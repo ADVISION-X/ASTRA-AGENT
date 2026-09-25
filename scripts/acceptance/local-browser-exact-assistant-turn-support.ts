@@ -23,6 +23,8 @@ import {
 } from "./local-browser-dom-function-fixture.js";
 
 const capturedAssistantFixture = () => {
+  const userTurnId = "00000000-0000-4000-8000-000000000001";
+  const assistantTurnId = "00000000-0000-4000-8000-000000000002";
   const text = (value: string) => new FakeTextNode(value);
   const paragraph = new FakeElement("bold", {}, {}, {}, "P", [
     new FakeElement("bold", {}, {}, {}, "STRONG", [text("bold")]),
@@ -32,28 +34,44 @@ const capturedAssistantFixture = () => {
   ]);
   const assistant = new FakeElement("bold item", { "pre code": [] }, {}, {}, "DIV", [paragraph, list]);
   const userMessage = new FakeElement("provider-folded-message", {}, {}, {}, "DIV", [text("provider-folded-message")]);
-  const user = new FakeElement("provider-folded-message", {
-    "[data-message-author-role='user']": [userMessage],
-  }, {}, { "data-testid": "conversation-turn-1" });
-  const assistantOuter = (node: FakeElement) => new FakeElement(node.textContent, {
-    "[data-message-author-role='assistant']": [node],
-  }, {}, { "data-testid": "conversation-turn-2" }, "SECTION", [node]);
-  const userSelector = "[data-testid='conversation-turn-1']:has([data-message-author-role='user'])";
-  const turnsSelector = "[data-testid^='conversation-turn-']";
-  const input = { kind: "readExactAssistantTurn", userTurnId: "conversation-turn-1",
+  const user = new FakeElement("provider-folded-message", {}, {}, {
+    "data-chatgpt-search-unit-key": "fallback-turn-0:0:user",
+    "data-chatgpt-search-message-ids": userTurnId,
+  }, "DIV", [userMessage]);
+  const assistantOuter = (node: FakeElement) => {
+    const role = new FakeElement("assistant", {}, {}, { "data-conversation-role": "assistant" }, "H4");
+    const selection = new FakeElement(node.textContent, {}, {}, {
+      "data-chatgpt-selection-message-id": assistantTurnId,
+    }, "DIV", [node]);
+    const assistantUnit = new FakeElement(node.textContent, {
+      "h4[data-conversation-role='assistant']": [role],
+      "[data-chatgpt-selection-message-id]": [selection],
+      "[data-markdown-text-style='assistant-message']": [node],
+    }, {}, {
+      "data-chatgpt-search-unit-key": "fallback-turn-0:1:assistant",
+      "data-chatgpt-search-message-ids": assistantTurnId,
+    }, "DIV", [role, selection]);
+    return new FakeElement(node.textContent, {
+      "[data-chatgpt-search-unit-key]": [user, assistantUnit],
+    }, {}, { "data-turn-key": userTurnId }, "SECTION", [user, assistantUnit]);
+  };
+  const emptyAssistantOuter = new FakeElement(userMessage.textContent, {
+    "[data-chatgpt-search-unit-key]": [user],
+  }, {}, { "data-turn-key": userTurnId }, "SECTION", [user]);
+  const turnsSelector = "[data-turn-key]";
+  const input = { kind: "readExactAssistantTurn", userTurnId,
     canonicalConversationUrl: exactConversationFixtureUrl };
   const exactAssistant = assistantOuter(assistant);
   const turns = (laterTurns: readonly FakeElement[], pointed: FakeElement | null) => ({
-    querySelectorAll: (value: string) => value === userSelector ? [user]
-      : value === turnsSelector ? [user, ...laterTurns] : [],
+    querySelectorAll: (value: string) => value === turnsSelector
+      ? laterTurns.length ? laterTurns : [emptyAssistantOuter] : [],
     elementFromPoint: () => pointed,
   });
   let queryCalls = 0;
   const document = {
     querySelectorAll: (value: string) => {
       queryCalls += 1;
-      return value === userSelector ? [user] : value === turnsSelector ? [user, exactAssistant]
-        : [];
+      return value === turnsSelector ? [exactAssistant] : [];
     },
     elementFromPoint: () => assistant,
   };
@@ -69,7 +87,7 @@ const exerciseCapturedAssistantBaseline = async (
     source, fixture.document, fixture.input, `${exactConversationFixtureUrl}?query=discarded#fragment`,
   ) as Readonly<{ rawCount: number; rawDomHtml: string; semanticText: string;
     currentUrl: string; nativeStage: string }>;
-  assert.equal(fixture.queryCalls(), 3,
+  assert.equal(fixture.queryCalls(), 2,
     "the assistant, exact predecessor, and stop state must share one async Runtime call");
   assert.equal(source.includes("assistantIndex"), false,
     "a task-owned adjacent assistant must not depend on being the page's final turn");
@@ -87,8 +105,13 @@ const exerciseCapturedAssistantBaseline = async (
   assert.equal(observed.currentUrl, exactConversationFixtureUrl);
   assert.equal(observed.nativeStage, "runtime-call-function-on");
   const generatingObserved = await executeCaptured(source, { ...fixture.document,
-    querySelectorAll: (value: string) => value === "#composer-submit-button[data-testid='stop-button']"
-      ? [fixture.assistant] : fixture.document.querySelectorAll(value),
+    querySelectorAll: (value: string) => {
+      if (value.includes("停止")) {
+        assert.equal(value, "form[data-chatgpt-composer] button[aria-label='停止']");
+        return [fixture.assistant];
+      }
+      return fixture.document.querySelectorAll(value);
+    },
   }, fixture.input, exactConversationFixtureUrl) as Readonly<{
     rawCount: number; rawDomHtml: string; semanticText: string; generatingRaw: number;
   }>;
@@ -134,17 +157,17 @@ const exerciseCapturedAssistantRejections = async (
   }>;
   assert.equal(missingAssistant.rawCount, 0);
   assert.equal(missingAssistant.pendingCause, "adjacent-assistant-missing");
-  const ambiguous = await executeCaptured(source, fixture.turns([new FakeElement("ambiguous", {
-    "[data-message-author-role='assistant']": [fixture.assistant, fixture.assistant],
-  }, {}, { "data-testid": "conversation-turn-2" })], fixture.assistant),
-  fixture.input, exactConversationFixtureUrl) as Readonly<{ rawCount: number }>;
-  assert.equal(ambiguous.rawCount, 2);
+  await assert.rejects(async () => executeCaptured(source, fixture.turns([
+    fixture.assistantOuter(fixture.assistant), fixture.assistantOuter(fixture.assistant),
+  ], fixture.assistant), fixture.input, exactConversationFixtureUrl),
+  /BROWSER_DOM_CANDIDATE_AMBIGUOUS/u,
+  "duplicate exact turn keys must fail closed");
   const rich = richSemanticTree();
   const richObserved = await executeCaptured(source, fixture.turns([fixture.assistantOuter(rich)], rich),
     fixture.input, exactConversationFixtureUrl) as Readonly<{ semanticText: string }>;
   assert.equal(richObserved.semanticText, RICH_SEMANTIC_TEXT,
     "exact assistant read must preserve headings, prose, lists, inline code, the code block, and trailing prose");
-  const laterTurn = new FakeElement("later", {}, {}, { "data-testid": "conversation-turn-3" });
+  const laterTurn = new FakeElement("later", {}, {}, { "data-turn-key": "00000000-0000-4000-8000-000000000003" });
   const drifted = await executeCaptured(source,
     fixture.turns([fixture.assistantOuter(fixture.assistant), laterTurn], fixture.assistant),
     fixture.input, exactConversationFixtureUrl) as Readonly<{
@@ -216,7 +239,7 @@ const exerciseAtomicFailureClosure = async (): Promise<void> => {
   await assert.rejects(executeRegisteredDomIntent(
     runtimeFor(successfulObservation).runtime,
     target,
-    { kind: "readExactAssistantTurn", userTurnId: "conversation-turn-1",
+    { kind: "readExactAssistantTurn", userTurnId: "00000000-0000-4000-8000-000000000001",
       canonicalConversationUrl: "https://chatgpt.com/c/exact" },
     () => undefined,
   ), /BROWSER_DOCUMENT_INVALID/u,
@@ -305,7 +328,7 @@ const materialize = (
 ): Promise<unknown> => executeRegisteredDomIntent(
   fixture.runtime,
   target,
-  { kind: "readExactAssistantTurn", userTurnId: "conversation-turn-1",
+  { kind: "readExactAssistantTurn", userTurnId: "00000000-0000-4000-8000-000000000001",
     canonicalConversationUrl: "https://chatgpt.com/c/exact" },
   () => undefined,
   "loader-current",

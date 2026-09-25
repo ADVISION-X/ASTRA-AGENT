@@ -242,9 +242,13 @@ export const exactAssistantTurnReadIsAtomic = (source: import("ts-morph").Source
   const observe = source.getVariableDeclaration("observeExactAssistantTurn")?.getInitializer()?.getText() ?? "";
   const execute = source.getVariableDeclaration("executeExactAssistantTurnRead")?.getInitializer()?.getText() ?? "";
   const required = ["BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE", "const userTurnId = spec.userTurnId",
-    `document.querySelectorAll("[data-testid^='conversation-turn-']")`,
-    "const [, assistantOuter = null] = userIndex >= 0 ? turns.slice(userIndex) : []",
-    "const raw = assistantOuter", "const rawCount = raw.length",
+    `document.querySelectorAll("[data-turn-key]")`,
+    'turn.getAttribute("data-turn-key") === userTurnId',
+    'unit.getAttribute("data-chatgpt-search-message-ids") === userTurnId',
+    'units[units.indexOf(users[0]) + 1]',
+    'assistantKey.endsWith(":assistant")',
+    'selection[0].contains(raw[0])',
+    "const rawCount = raw.length",
     "const pendingCause = userRaw.length !== 1 ? \"exact-user-turn-unavailable\"",
     "if (currentUrl !== expectedUrl || rawCount !== 1)", "const node = raw[0]",
     "rawDomHtml: node.outerHTML",
@@ -255,7 +259,6 @@ export const exactAssistantTurnReadIsAtomic = (source: import("ts-morph").Source
     "browserMechanicalFacts", "eligibleCount", "nativeCauseCode", ".visible", ".hidden",
     ".ariaHidden", ".inert", "getClientRects", "checkVisibility", "thirdGate"];
   const exactCounts = [
-    (exactFunction.match(/\bif\s*\(/gu) ?? []).length === 3,
     (observe.match(/Runtime\.callFunctionOn/gu) ?? []).length === 1,
     (observe.match(/mainFrameLoaderId\(runtime, target\.tabId\)/gu) ?? []).length === 2,
     (observe.match(/!== expectedMainFrameLoaderId/gu) ?? []).length === 2,

@@ -12,7 +12,7 @@ import { conversationUrl } from "./gpt-conversation-fixture.js";
 const original = new Uint8Array([1, 2, 3, 4, 5]);
 const originalHash = `sha256:${createHash("sha256").update(original).digest("hex")}` as const;
 const resultValue = {
-  assistantTurnId: "conversation-turn-6", semanticMediaId: "gpt-generated-image-main",
+  assistantTurnId: "00000000-0000-4000-8000-000000000006", semanticMediaId: "gpt-generated-image-main",
   mediaHash: originalHash, authorityTargetHash: `sha256:${"1".repeat(64)}`,
   authorityDocumentHash: `sha256:${"2".repeat(64)}`,
   canonicalConversationUrl: conversationUrl, turnMarker: "image-turn",
@@ -20,7 +20,7 @@ const resultValue = {
   originalSizeBytes: original.byteLength, originalMediaType: "image/png",
 };
 const intent = { executionId: "execution-image", childCapabilityId: "checkpoint_gpt_generated_image",
-  input: { canonicalConversationUrl: conversationUrl, userTurnId: "conversation-turn-5",
+  input: { canonicalConversationUrl: conversationUrl, userTurnId: "00000000-0000-4000-8000-000000000005",
     turnMarker: "image-turn" } } as never;
 
 const persistWith = (evidenceStore: GptEvidenceStorePort, suffix: string, value: unknown = resultValue) =>

@@ -1,8 +1,8 @@
-export const GPT_COMPOSER_SELECTOR = "#prompt-textarea";
+export const GPT_COMPOSER_SELECTOR = "form[data-chatgpt-composer] [data-composer-markdown][role='textbox']";
 export const GPT_EMPTY_COMPOSER_SELECTOR =
-  "#prompt-textarea[contenteditable='true']:has(> p[data-empty-paragraph='true'] > br.ProseMirror-trailingBreak)";
-export const GPT_SEND_SELECTOR = "#composer-submit-button[data-testid='send-button']";
+  `${GPT_COMPOSER_SELECTOR}[contenteditable='true']:has(> p[data-empty-paragraph='true'] > br.ProseMirror-trailingBreak)`;
+export const GPT_SEND_SELECTOR = "form[data-chatgpt-composer] button[type='submit'][aria-label='发送']";
 export const GPT_USER_TURN_SELECTOR =
-  "[data-testid^='conversation-turn-']:has([data-message-author-role='user'])";
-export const GPT_COMPOSER_FORM_SELECTOR = "form:has(#prompt-textarea)";
+  "[data-turn-key]:has([data-chatgpt-search-unit-key$=':user'])";
+export const GPT_COMPOSER_FORM_SELECTOR = "form[data-chatgpt-composer]";
 export const GPT_ATTACHMENT_ITEM_SELECTOR = "[role='group'][aria-label]";

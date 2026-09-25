@@ -297,7 +297,7 @@ const exactOutgoingRuntime = (state: ExactOutgoingRuntimeState) => ({
         : "https://chatgpt.com/c/durable-provider-route");
       return { result: { value: { ...observation, queries: [{
         ...observation.queries[0], queryId: "submitted-user-turn", rawCount: 1, eligibleCount: 1,
-        matches: [{ candidateIndex: 0, testId: "conversation-turn-7",
+        matches: [{ candidateIndex: 0, turnKey: "00000000-0000-4000-8000-000000000007",
           exactGptUserPromptHash: `sha256:${"a".repeat(64)}` }],
         rejections: [],
       }, {
@@ -330,7 +330,7 @@ const exerciseExactOutgoingNeverUsesZeroActionPostcondition = async (): Promise<
       expectedPromptHash: `sha256:${"a".repeat(64)}`, expectedAttachmentLabels: [],
     },
     postClickObservation: { queries: [{ queryId: "submitted-user-turn", selector: "user-turn",
-      maxMatches: 1, fields: ["testId", "exactGptUserPromptHash"], expectedEligibleCount: 1,
+      maxMatches: 1, fields: ["turnKey", "exactGptUserPromptHash"], expectedEligibleCount: 1,
       latestGptUserTurn: true }, { queryId: "empty-composer",
       selector: "composer[contenteditable='true']:has(> p[data-empty-paragraph='true'] > br.ProseMirror-trailingBreak)",
       maxMatches: 1, fields: [], expectedEligibleCount: 1 }],
@@ -447,7 +447,7 @@ const exerciseMutationDocumentGuard = async (): Promise<void> => {
       postDoubleClickMatch: { selector: "done", expectedMatches: 1 } },
     { kind: "keypress", selector: "button", key: "Enter", expectedMatches: 1,
       postKeypressMatch: { selector: "done", expectedMatches: 1 } },
-    { kind: "fill", selector: "#prompt-textarea", approvedText: "approved",
+    { kind: "fill", selector: "form[data-chatgpt-composer] [data-composer-markdown][contenteditable='true'][role='textbox']", approvedText: "approved",
       clearBeforeType: false, expectedMatches: 1 },
   ] as const;
   for (const [index, intent] of intents.entries()) {

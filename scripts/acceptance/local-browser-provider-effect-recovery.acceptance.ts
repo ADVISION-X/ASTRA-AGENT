@@ -43,7 +43,7 @@ const submitTerminalReply = (currentUrl: string) => ({ postconditionObservation:
   currentUrl,
   exactCallIdentityHash: hash("exact-call"), observationRevisionHash: hash("observation"),
   targetRefHash: hash("target"), documentRefHash: hash("document"),
-  queries: [{ rawCount: 1, eligibleCount: 1, matches: [{ testId: "conversation-turn-1",
+  queries: [{ rawCount: 1, eligibleCount: 1, matches: [{ turnKey: "00000000-0000-4000-8000-000000000001",
     exactGptUserPromptHash: hash("prompt") }] }],
 } });
 
@@ -134,7 +134,7 @@ try {
   const first = identity("attempt:1");
   const terminalPayload = {
     canonicalConversationUrl: "https://chatgpt.com/c/consultation-1",
-    promptHash: hash("prompt"), userTurnId: "conversation-turn-1",
+    promptHash: hash("prompt"), userTurnId: "00000000-0000-4000-8000-000000000001",
     exactCallIdentityHash: first.exactCallIdentityHash,
     observationRevisionHash: hash("observation"),
     targetRefHash: hash(first.targetRef), documentRefHash: hash(first.documentRef),
@@ -492,7 +492,7 @@ try {
 }
 process.stdout.write("LOCAL_BROWSER_ATTEMPT_FENCE_ACCEPTANCE_PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V52", evidenceMode: "exam.golden",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V53", evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "forbidden:3", "forbidden:4", "forbidden:5"],
   locator: "acceptance:local-browser-provider-effect-recovery:risk-grant",
   observedValue: "original Provider effect sets remain in WAL; a risk grant rebinds only proven zero-input PREPARED and retries only proven REJECTED/no commands until one physical input",

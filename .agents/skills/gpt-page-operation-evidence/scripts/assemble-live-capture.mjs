@@ -184,7 +184,8 @@ export function candidateEntries(target, scene, candidateContext = {}) {
       ? entries.filter((entry) => entry.node.tag === "main") : [];
     case "composer":
     case "composer-editable-leaf":
-    case "composer-text-projection": return entries.filter((entry) => attr(entry, "id") === "prompt-textarea");
+    case "composer-text-projection": return entries.filter((entry) => attr(entry, "id") === "prompt-textarea"
+      || (attr(entry, "data-composer-markdown") !== undefined && attr(entry, "contenteditable") === "true"));
     case "attachment-region":
     case "attachment-trigger": return entries.filter((entry) => attr(entry, "data-testid") === "composer-plus-btn");
     case "attachment-cards": return virtualAggregate("APPROVED_PRODUCTION_ATTACHMENT_SET", entries.filter((entry) =>
@@ -192,23 +193,29 @@ export function candidateEntries(target, scene, candidateContext = {}) {
     case "upload-status": return virtualAggregate("UPLOAD_STATUS", entries.filter((entry) =>
       (attr(entry, "role") === "group" && entry.node.machineFacts?.productionAttachmentGroupAncestor === true)
       || entry.node.machineFacts?.attachmentUploadErrorAlert === true));
-    case "user-turn": return entries.filter((entry) => attr(entry, "data-message-author-role") === "user"
+    case "user-turn": return entries.filter((entry) => (attr(entry, "data-message-author-role") === "user"
+        || attr(entry, "data-user-message-bubble") === "true")
       && userOwnerMatches(entry));
     case "source-turn":
-    case "rich-text-response": return entries.filter((entry) => attr(entry, "data-message-author-role") === "assistant"
+    case "rich-text-response": return entries.filter((entry) => (attr(entry, "data-message-author-role") === "assistant"
+        || entry.node.machineFacts?.assistantMarkdownRoot === true)
       && assistantOwnerMatches(entry));
     case "assistant-turn": {
       if (assistantBound) return candidateContext.imageChild
-        ? entries.filter((entry) => /^conversation-turn-[1-9][0-9]*$/u.test(String(attr(entry, "data-testid") ?? ""))
-          && entry.node.machineFacts?.userRoleDescendants === 0 && assistantOwnerMatches(entry))
-        : entries.filter((entry) => attr(entry, "data-message-author-role") === "assistant"
+        ? entries.filter((entry) => (/^conversation-turn-[1-9][0-9]*$/u.test(String(attr(entry, "data-testid") ?? ""))
+          || attr(entry, "data-content-search-turn-key") !== undefined)
+          && entry.node.machineFacts?.imageDescendants === 1 && assistantOwnerMatches(entry))
+        : entries.filter((entry) => (attr(entry, "data-message-author-role") === "assistant"
+          || entry.node.machineFacts?.assistantMarkdownRoot === true)
           && assistantOwnerMatches(entry));
       if (candidateContext.latestTextAssistantChild) {
-        const assistants = entries.filter((entry) => attr(entry, "data-message-author-role") === "assistant");
+        const assistants = entries.filter((entry) => attr(entry, "data-message-author-role") === "assistant"
+          || entry.node.machineFacts?.assistantMarkdownRoot === true);
         const latestOrdinal = Math.max(0, ...assistants.map((entry) => Number(String(entry.node.machineFacts?.ownerTurnTestId ?? "").slice("conversation-turn-".length))));
         return assistants.filter((entry) => entry.node.machineFacts?.ownerTurnTestId === `conversation-turn-${latestOrdinal}`);
       }
-      if (!candidateContext.imageChild) return entries.filter((entry) => attr(entry, "data-message-author-role") === "assistant");
+      if (!candidateContext.imageChild) return entries.filter((entry) => attr(entry, "data-message-author-role") === "assistant"
+        || entry.node.machineFacts?.assistantMarkdownRoot === true);
       const turns = entries.filter((entry) => /^conversation-turn-[1-9][0-9]*$/u.test(String(attr(entry, "data-testid") ?? ""))
         && entry.node.machineFacts?.userRoleDescendants === 0);
       const latestOrdinal = Math.max(0, ...turns.map((entry) => Number(String(attr(entry, "data-testid")).slice("conversation-turn-".length))));
@@ -216,7 +223,8 @@ export function candidateEntries(target, scene, candidateContext = {}) {
     }
     case "semantic-text-projection":
     case "response-text-region": {
-      const responses = entries.filter((entry) => attr(entry, "data-message-author-role") === "assistant"
+      const responses = entries.filter((entry) => (attr(entry, "data-message-author-role") === "assistant"
+          || entry.node.machineFacts?.assistantMarkdownRoot === true)
         && entry.node.subtreeTextProjection?.length > 0);
       if (assistantBound) return responses.filter(assistantOwnerMatches);
       if (!candidateContext.latestTextAssistantChild) return responses;
@@ -234,17 +242,19 @@ export function candidateEntries(target, scene, candidateContext = {}) {
     case "execution-profile-trigger":
     case "execution-profile-close-control": return entries.filter((entry) => entry.node.tag === "button"
       && attr(entry, "aria-expanded") !== undefined && attr(entry, "data-testid") !== "composer-plus-btn"
-      && attr(entry, "aria-label") === undefined
+      && (attr(entry, "aria-label") === undefined || attr(entry, "aria-label") === "选择 ChatGPT 模型")
       && entry.node.machineFacts?.composerFormAncestor === true);
     case "execution-profile-panel":
     case "model-selector-panel": return menus;
-    case "model-selector-trigger": return entries.filter((entry) => attr(entry, "aria-label") === "选择模型");
+    case "model-selector-trigger": return entries.filter((entry) => attr(entry, "aria-label") === "选择模型"
+      && attr(entry, "data-model-picker-view-toggle") === "true"
+      && attr(entry, "role") === "menuitem");
     case "model-option": return entries.filter((entry) => attr(entry, "role") === "menuitemradio"
       && subtreeTextOf(entry.node) === candidateContext.authorizedModelId);
     case "selected-model-indicator": return entries.filter((entry) => attr(entry, "role") === "menuitemradio"
       && attr(entry, "aria-checked") === "true");
     case "reasoning-control": return entries.filter((entry) => attr(entry, "role") === "menuitem"
-      && attr(entry, "aria-label") === "能力");
+      && attr(entry, "data-reasoning-slider") === "true");
     case "selected-reasoning-indicator": return entries.filter((entry) => attr(entry, "role") === "slider");
     case "attachment-menu": {
       const uploadEntries = exactText("从电脑上传");
@@ -385,7 +395,7 @@ function transitionChain(child, scene, observationId, capture) {
   };
 }
 
-function makeLiveSpecimen({ child, requirement, stateId, scene, capture, mapping, traceEntry = null }) {
+export function makeLiveSpecimen({ child, requirement, stateId, scene, capture, mapping, traceEntry = null }) {
   const requiredTargets = requirement.liveStateTargets[stateId];
   const candidateContext = {
     authorizedModelId: mapping.authorizedInputs?.["authorized-model-id"]?.values?.[0] ?? "",
@@ -514,7 +524,7 @@ function makeDerivedSpecimen(live, stateId) {
   };
 }
 
-function assertSceneBindings(scene, runId, captureEpoch, qaTabIdentityHash) {
+export function assertSceneBindings(scene, runId, captureEpoch, qaTabIdentityHash) {
   if (scene.stateSignature !== sceneContentSignature(scene)) fail("SCENE_SIGNATURE_INVALID", scene.sceneId);
   if (!/^sha256:[a-f0-9]{64}$/u.test(scene.activeTabIdentityHash ?? "")
     || !/^sha256:[a-f0-9]{64}$/u.test(scene.documentIdentityHash ?? "")
@@ -639,6 +649,30 @@ function authorizedInputs(mapping, inventory, matrix, selectedIds) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  if (args["seo-source"]) {
+    for (const required of ["repo", "matrix", "scenes", "mapping", "seo-source",
+      "browser-meta", "stage-receipts", "output"]) {
+      if (!args[required]) fail("ARGUMENT_REQUIRED", `--${required}`);
+    }
+    const [{ buildInventory }, { assembleSeoLiveRevision }, { loadSeoSourceFromCliArgs }, matrix, scenes, mapping, source,
+      browserMeta, stageReceipts] = await Promise.all([
+      import("./report-tool.mjs"), import("./seo-live-assembly.mjs"),
+      import("./seo-live-source.mjs"),
+      readJson(args.matrix), readJson(args.scenes), readJson(args.mapping),
+      readJson(args["seo-source"]), readJson(args["browser-meta"]), readJson(args["stage-receipts"]),
+    ]);
+    const inventory = await buildInventory(args.repo, args.matrix);
+    const sourceAdmission = await loadSeoSourceFromCliArgs(args, args.repo);
+    const localizationSource = args["localization-source"]
+      ? await readJson(args["localization-source"]) : null;
+    const revision = await assembleSeoLiveRevision({ repo: args.repo, inventory, matrix, scenes,
+      mapping, source, sourceAdmission, browserMeta, stageReceipts, localizationSource });
+    await writeJsonAtomic(args.output, revision);
+    process.stdout.write(`${JSON.stringify({ captureRunId: revision.captureRunId,
+      evidenceRevisionId: revision.evidenceRevisionId,
+      captureStatus: revision.captureStatus, output: args.output })}\n`);
+    return;
+  }
   for (const required of ["inventory", "matrix", "scenes", "mapping", "production-source", "browser-meta", "output"]) {
     if (!args[required]) fail("ARGUMENT_REQUIRED", `--${required}`);
   }

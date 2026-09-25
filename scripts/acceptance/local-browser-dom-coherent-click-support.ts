@@ -91,9 +91,9 @@ const coherentRuntimeFor = (
 
 const exerciseRequiredSliderClick = async (target: never): Promise<void> => {
   const alreadySelected = coherentRuntimeFor(true, 1);
-  const requiredClick = { kind: "click", selector: "[data-model-reasoning-effort-slider]",
+  const requiredClick = { kind: "click", selector: "[data-model-picker-power-slider]",
     expectedMatches: 1,
-    requiredClickPointSelector: "[data-model-reasoning-effort-slider-thumb]",
+    requiredClickPointSelector: "[data-model-picker-power-slider] [role='slider']",
     postClickMatch: { selector: "[role='slider'][aria-valuenow='3']", expectedMatches: 1,
       readEligibility: "non-actionable-aria-state" } } as const;
   const requiredResult = await executeRegisteredDomIntent(alreadySelected.runtime, target,

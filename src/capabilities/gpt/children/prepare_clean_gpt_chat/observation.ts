@@ -46,18 +46,18 @@ export type ConversationState = Readonly<{
   generatingRaw: number;
   chatModeRaw: number;
   chatModeEligible: number;
-  chatModeChecked: "true" | "false" | null;
+  chatModePressed: "true" | "false" | null;
   workModeRaw: number;
   workModeEligible: number;
-  workModeChecked: "true" | "false" | null;
+  workModePressed: "true" | "false" | null;
   facts: GptCoherentFactProjection;
 }>;
 
 export const CHAT_MODE_QUERIES = Object.freeze([
   { queryId: "chat-mode", selector: GPT_CHAT_MODE_CHAT_SELECTOR,
-    maxMatches: 2, fields: ["ariaChecked" as const] },
+    textEquals: "聊天", maxMatches: 2, fields: ["ariaPressed" as const] },
   { queryId: "work-mode", selector: GPT_CHAT_MODE_WORK_SELECTOR,
-    maxMatches: 2, fields: ["ariaChecked" as const] },
+    textEquals: "工作", maxMatches: 2, fields: ["ariaPressed" as const] },
 ]);
 
 const CONVERSATION_QUERIES = Object.freeze([
@@ -75,14 +75,14 @@ type ChatModeState = Readonly<{
   currentUrl: string;
   chatModeRaw: number;
   chatModeEligible: number;
-  chatModeChecked: "true" | "false" | null;
+  chatModePressed: "true" | "false" | null;
   workModeRaw: number;
   workModeEligible: number;
-  workModeChecked: "true" | "false" | null;
+  workModePressed: "true" | "false" | null;
   facts: GptCoherentFactProjection;
 }>;
 
-const checkedValue = (value: unknown): "true" | "false" | null =>
+const pressedValue = (value: unknown): "true" | "false" | null =>
   value === "true" || value === "false" ? value : null;
 
 export const projectChatModeState = (observation: GptCoherentObservation): ChatModeState => {
@@ -93,25 +93,25 @@ export const projectChatModeState = (observation: GptCoherentObservation): ChatM
     currentUrl: observation.currentUrl,
     chatModeRaw: chat.rawCount,
     chatModeEligible: chat.eligibleCount,
-    chatModeChecked: checkedValue(chat.matches[0]?.ariaChecked),
+    chatModePressed: pressedValue(chat.matches[0]?.ariaPressed),
     workModeRaw: work.rawCount,
     workModeEligible: work.eligibleCount,
-    workModeChecked: checkedValue(work.matches[0]?.ariaChecked),
+    workModePressed: pressedValue(work.matches[0]?.ariaPressed),
     facts: projectCoherentObservation(observation, "chat-mode"),
   });
 };
 
 export const exactChatModeSelected = (state: Pick<ChatModeState,
-  "chatModeRaw" | "chatModeEligible" | "chatModeChecked"
-  | "workModeRaw" | "workModeEligible" | "workModeChecked">): boolean =>
-  state.chatModeRaw === 1 && state.chatModeEligible === 1 && state.chatModeChecked === "true"
-  && state.workModeRaw === 1 && state.workModeEligible === 1 && state.workModeChecked === "false";
+  "chatModeRaw" | "chatModeEligible" | "chatModePressed"
+  | "workModeRaw" | "workModeEligible" | "workModePressed">): boolean =>
+  state.chatModeRaw === 1 && state.chatModeEligible === 1 && state.chatModePressed === "true"
+  && state.workModeRaw === 1 && state.workModeEligible === 1 && state.workModePressed === "false";
 
 export const exactWorkModeSelected = (state: Pick<ChatModeState,
-  "chatModeRaw" | "chatModeEligible" | "chatModeChecked"
-  | "workModeRaw" | "workModeEligible" | "workModeChecked">): boolean =>
-  state.chatModeRaw === 1 && state.chatModeEligible === 1 && state.chatModeChecked === "false"
-  && state.workModeRaw === 1 && state.workModeEligible === 1 && state.workModeChecked === "true";
+  "chatModeRaw" | "chatModeEligible" | "chatModePressed"
+  | "workModeRaw" | "workModeEligible" | "workModePressed">): boolean =>
+  state.chatModeRaw === 1 && state.chatModeEligible === 1 && state.chatModePressed === "false"
+  && state.workModeRaw === 1 && state.workModeEligible === 1 && state.workModePressed === "true";
 
 const projectConversationState = (observation: GptCoherentObservation): ConversationState => {
   const row = (queryId: string) => observation.rows.find((candidate) => candidate.queryId === queryId)!;
@@ -133,10 +133,10 @@ const projectConversationState = (observation: GptCoherentObservation): Conversa
     generatingRaw: row("generating").rawCount,
     chatModeRaw: mode.chatModeRaw,
     chatModeEligible: mode.chatModeEligible,
-    chatModeChecked: mode.chatModeChecked,
+    chatModePressed: mode.chatModePressed,
     workModeRaw: mode.workModeRaw,
     workModeEligible: mode.workModeEligible,
-    workModeChecked: mode.workModeChecked,
+    workModePressed: mode.workModePressed,
     facts: projectCoherentObservation(observation, "composer"),
   });
 };
@@ -146,8 +146,8 @@ const invalidConversation = (state: ConversationState): boolean =>
   || state.userRaw !== 0 || state.assistantRaw !== 0
   || state.attachmentsRaw !== 0 || state.generatingRaw !== 0
   || state.composerRaw > 1 || state.chatModeRaw > 1 || state.workModeRaw > 1
-  || (state.chatModeChecked !== null && state.workModeChecked !== null
-    && state.chatModeChecked === state.workModeChecked);
+  || (state.chatModePressed !== null && state.workModePressed !== null
+    && state.chatModePressed === state.workModePressed);
 
 const conversationModeUnsettled = (state: ConversationState): boolean =>
   state.chatModeRaw !== 1 || state.chatModeEligible !== 1
@@ -157,7 +157,7 @@ const conversationDisposition = (observation: GptCoherentObservation) => {
   const state = projectConversationState(observation);
   if (invalidConversation(state)) return "HARD_FAIL" as const;
   if (conversationModeUnsettled(state)) return "TRANSIENT_DOM" as const;
-  if (state.chatModeChecked === null || state.workModeChecked === null) return "HARD_FAIL" as const;
+  if (state.chatModePressed === null || state.workModePressed === null) return "HARD_FAIL" as const;
   return state.composerRaw === 1 && state.composerEligible === 1 && state.composerHash !== null
     ? exactChatModeSelected(state) && state.composerHash === hashConversationValue("")
       ? "STABLE_DONE" as const : "STABLE_ACT" as const

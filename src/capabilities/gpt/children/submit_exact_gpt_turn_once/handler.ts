@@ -30,16 +30,16 @@ import {
 const submittedTurnObservation = (packet: unknown, selector: string) => {
   const observation = decodeCoherentObservationPacket(packet, [{
     queryId: "submitted-user-turn", selector, maxMatches: 1,
-    fields: ["testId" as const, "exactGptUserPromptHash" as const], latestGptUserTurn: true,
+    fields: ["turnKey" as const, "exactGptUserPromptHash" as const], latestGptUserTurn: true,
   }, {
     queryId: "empty-composer", selector: GPT_EMPTY_COMPOSER_SELECTOR,
     maxMatches: 1, fields: [],
   }]);
   const row = observation.rows[0]!;
   const match = row.rawCount === 1 && row.eligibleCount === 1 ? row.matches[0] : undefined;
-  const userTurnId = match?.testId;
+  const userTurnId = match?.turnKey;
   const observedPromptHash = match?.exactGptUserPromptHash;
-  if (typeof userTurnId !== "string" || !/^conversation-turn-[1-9][0-9]*$/u.test(userTurnId)
+  if (typeof userTurnId !== "string" || !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(userTurnId)
   ) {
     throw executionFailure("failed", "GPT_SUBMITTED_USER_TURN_MISSING");
   }
@@ -66,7 +66,7 @@ const recoveredSubmittedTurn = (value: unknown): Readonly<Record<string, unknown
     "targetRefHash", "documentRefHash"] as const;
   if (typeof row.canonicalConversationUrl !== "string"
     || typeof row.userTurnId !== "string"
-    || !/^conversation-turn-[1-9][0-9]*$/u.test(row.userTurnId)
+    || !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(row.userTurnId)
     || row.rawCount !== 1 || row.eligibleCount !== 1
     || hashes.some((key) => typeof row[key] !== "string"
       || !/^sha256:[a-f0-9]{64}$/u.test(row[key] as string))) {
@@ -130,7 +130,7 @@ export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_tu
     if (dispatched) {
       const submitted = submittedTurnObservation(await browser.executeDomIntent({ kind: "observe", queries: [{
         queryId: "submitted-user-turn", selector: submittedSelector, maxMatches: 1,
-        fields: ["testId", "exactGptUserPromptHash"], latestGptUserTurn: true,
+        fields: ["turnKey", "exactGptUserPromptHash"], latestGptUserTurn: true,
       }, { queryId: "empty-composer", selector: GPT_EMPTY_COMPOSER_SELECTOR, maxMatches: 1, fields: [] }] }), submittedSelector);
       if (submitted.promptHash !== promptHash) throw executionFailure("failed", "PROVIDER_EFFECT_OUTCOME_UNPROVEN");
       const canonicalConversationUrl = canonicalConversationOrNull(submitted.observation.currentUrl);
@@ -159,7 +159,7 @@ export const submitExactGptTurnOnceHandler: GptChildHandler<"submit_exact_gpt_tu
       },
       postClickObservation: { queries: [{
         queryId: "submitted-user-turn", selector: submittedSelector,
-        maxMatches: 1, fields: ["testId", "exactGptUserPromptHash"], expectedEligibleCount: 1,
+        maxMatches: 1, fields: ["turnKey", "exactGptUserPromptHash"], expectedEligibleCount: 1,
         latestGptUserTurn: true,
       }, {
         queryId: "empty-composer", selector: GPT_EMPTY_COMPOSER_SELECTOR,

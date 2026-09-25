@@ -196,7 +196,7 @@ const wireCases: readonly Readonly<{
   rawFragments: readonly string[];
 }>[] = [
   { capabilityId: "browser.dom.fill.v1", mutationClass: "mutation",
-    command: { kind: "dom-intent", intent: { kind: "fill", selector: "#prompt-textarea",
+    command: { kind: "dom-intent", intent: { kind: "fill", selector: "form[data-chatgpt-composer] [data-composer-markdown][contenteditable='true'][role='textbox']",
       approvedText: "private prompt alpha", clearBeforeType: true } }, result: { retained: true },
     rawFragments: ["private prompt alpha"] },
   { capabilityId: "browser.dom.inspect.v1", mutationClass: "observation",
@@ -205,10 +205,10 @@ const wireCases: readonly Readonly<{
     result: { outerHtml: "<article>private answer beta</article>", semanticText: "private answer beta" },
     rawFragments: ["private answer beta"] },
   { capabilityId: "browser.file-input.v1", mutationClass: "mutation",
-    command: { kind: "file-input", selector: "#upload-files",
-      activation: { selector: "div.__menu-item[tabindex='0'] span",
-        scope: { selector: "#thread-bottom div.popover[aria-busy='false']" },
-        expectedTextEquals: "从电脑上传" },
+    command: { kind: "file-input", selector: "form[data-chatgpt-composer] input[type='file'][aria-label='附加文件']",
+      activation: { selector: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child",
+        scope: { selector: "[data-composer-overlay-floating-ui='true']" },
+        expectedTextEquals: "添加照片和文件" },
       approvedFiles: [{ grantRef: "grant-private", contentHash: `sha256:${"a".repeat(64)}`, maxBytes: 1_024 }],
       resolvedFilePaths: ["/private/tmp/private-upload-gamma.pdf"] }, result: { attached: true },
     rawFragments: ["private-upload-gamma.pdf"] },
@@ -219,7 +219,7 @@ const wireCases: readonly Readonly<{
   { capabilityId: "browser.authenticated-media.v1", mutationClass: "observation",
     command: { kind: "authenticated-media",
       canonicalConversationUrl: invocationPayloads[3].command.intent.canonicalConversationUrl,
-      userTurnId: "conversation-turn-5",
+      userTurnId: "00000000-0000-4000-8000-000000000005",
       semanticMediaId: "gpt-generated-image-main" },
     result: { bytesBase64: "cHJpdmF0ZS1tZWRpYS1lcHNpbG9u" },
     rawFragments: ["cHJpdmF0ZS1tZWRpYS1lcHNpbG9u"] },
@@ -387,4 +387,4 @@ try {
   await rm(chainRoot, { recursive: true, force: true });
 }
 console.log("LOCAL_BROWSER_PROPERTY_MODEL_ACCEPTANCE_PASS");
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V52", evidenceMode: "exam.property", clauses: ["forbidden:0"], locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 authenticated frame sequences round-trip exactly and missing terminal replies preserve a single DISPATCHED command without replay" });
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V53", evidenceMode: "exam.property", clauses: ["forbidden:0"], locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 authenticated frame sequences round-trip exactly and missing terminal replies preserve a single DISPATCHED command without replay" });

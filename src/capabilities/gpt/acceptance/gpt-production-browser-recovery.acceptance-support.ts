@@ -34,7 +34,7 @@ const verifySecondConfirmedReadback = async (
     resultRevision: 0, productStepId: "second-step", callId: "turn-submit",
     childCapabilityId: "submit_exact_gpt_turn_once", inputHash: HASH_B,
     actionOrdinal: 2, replayPolicy: "provider-effect-once",
-  }, secondUrl, "conversation-turn-2");
+  }, secondUrl, "00000000-0000-4000-8000-000000000002");
   assert.equal(selectedUrls.length, 2,
     "a second confirmed effect in the same Product session must select its own WAL URL");
   assert.deepEqual(selectedUrls, [firstUrl, secondUrl]);
@@ -91,7 +91,7 @@ export const verifyConfirmedReadbackLease = async (temporary: string): Promise<v
     resultRevision: 0, productStepId: "observe", callId: "turn-submit",
     childCapabilityId: "submit_exact_gpt_turn_once", inputHash: HASH_A,
     actionOrdinal: 1, replayPolicy: "provider-effect-once",
-  }, "https://chatgpt.com/c/confirmed-recovery", "conversation-turn-1");
+  }, "https://chatgpt.com/c/confirmed-recovery", "00000000-0000-4000-8000-000000000001");
   assert.deepEqual([targetMode, acquisitions, selectedUrls.length],
     ["confirmed-readback", 1, 1],
     "confirmed-effect recovery may acquire once and select the exact canonical URL once");

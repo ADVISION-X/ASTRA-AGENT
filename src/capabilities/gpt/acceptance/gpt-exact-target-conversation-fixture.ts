@@ -15,7 +15,7 @@ type ConversationOverrides = Readonly<{
 const countFacts = (count: number) => ({ rawCount: count, eligibleCount: count });
 const modeFacts = (raw: number, eligible: number, checked: "true" | "false") => ({
   rawCount: raw, eligibleCount: eligible,
-  matches: raw === 0 ? [] : [{ ariaChecked: checked }],
+  matches: raw === 0 ? [] : [{ ariaPressed: checked }],
 });
 
 export const conversationFacts = (

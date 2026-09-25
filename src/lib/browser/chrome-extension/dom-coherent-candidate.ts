@@ -195,17 +195,14 @@ const COHERENT_OBSERVATION_POINTER_FUNCTION = `function (request) {
   };
   const fieldValue = (node, facts, field) => {
     if (field === "id") return node.getAttribute("id") || "";
-    if (field === "dataTurn") {
-      const user = node.querySelectorAll("[data-message-author-role='user']").length;
-      const assistant = node.querySelectorAll("[data-message-author-role='assistant']").length;
-      return user === 1 && assistant === 0 ? "user" : assistant === 1 && user === 0 ? "assistant" : "";
-    }
+    if (field === "turnKey") return node.getAttribute("data-turn-key") || "";
     if (field === "tagName") return node.tagName;
     if (field === "ariaLabel") return node.getAttribute("aria-label") || "";
     if (field === "ariaLabelledBy") return node.getAttribute("aria-labelledby") || "";
     if (field === "ariaControls") return node.getAttribute("aria-controls") || "";
     if (field === "ariaExpanded") return node.getAttribute("aria-expanded") || "";
     if (field === "ariaChecked") return node.getAttribute("aria-checked") || "";
+    if (field === "ariaPressed") return node.getAttribute("aria-pressed") || "";
     if (field === "ariaValueMin") return node.getAttribute("aria-valuemin") || "";
     if (field === "ariaValueMax") return node.getAttribute("aria-valuemax") || "";
     if (field === "ariaValueNow") return node.getAttribute("aria-valuenow") || "";

@@ -102,7 +102,7 @@ const exerciseFillReadbackRejection = async (
     childCapabilityId: "prepare_clean_gpt_chat",
   };
   const fillCommand = { kind: "dom-intent" as const, intent: {
-    kind: "fill" as const, selector: "#prompt-textarea", approvedText: "",
+    kind: "fill" as const, selector: "form[data-chatgpt-composer] [data-composer-markdown][contenteditable='true'][role='textbox']", approvedText: "",
     clearBeforeType: true, expectedMatches: 1,
   } };
   const fillReadbackActor = actorFor(async (candidate, _command, onDispatched) => {

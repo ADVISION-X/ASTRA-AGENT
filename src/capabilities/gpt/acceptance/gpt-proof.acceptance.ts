@@ -262,7 +262,7 @@ for (const priorState of ["rejected", "dispatched"] as const) {
   const terminalPayload = {
     canonicalConversationUrl: conversationUrl,
     promptHash,
-    userTurnId: "conversation-turn-3",
+    userTurnId: "00000000-0000-4000-8000-000000000003",
     exactCallIdentityHash: `sha256:${"1".repeat(64)}`,
     observationRevisionHash: `sha256:${"2".repeat(64)}`,
     targetRefHash: `sha256:${"3".repeat(64)}`,
@@ -281,7 +281,7 @@ for (const priorState of ["rejected", "dispatched"] as const) {
     },
   );
   assert.equal(result.status, "success", result.failureCode ?? "recovered submit failed");
-  assert.equal(result.value?.userTurnId, "conversation-turn-3");
+  assert.equal(result.value?.userTurnId, "00000000-0000-4000-8000-000000000003");
   assert.equal(fixture.physicalMutations(), 0);
 
   const temporaryRoute = await createGptAcceptanceHarness("gpt-proof-recovered-temporary-route").execute(
@@ -315,7 +315,7 @@ for (const promptMatches of [true, false]) {
     assert.equal(intent.kind, "observe", "DISPATCHED submit recovery must be observation-only");
     return coherentObservationPacket({ queries: intent.kind === "observe" ? intent.queries : [] }, {
       "submitted-user-turn": { rawCount: 1, eligibleCount: 1, matches: [{
-        testId: "conversation-turn-9", exactGptUserPromptHash: promptMatches
+        turnKey: "00000000-0000-4000-8000-000000000009", exactGptUserPromptHash: promptMatches
           ? promptHash : `sha256:${"f".repeat(64)}`,
       }] }, "empty-composer": { rawCount: 1, eligibleCount: 1, matches: [{}] },
     }, conversationUrl);
@@ -390,8 +390,8 @@ for (const promptMatches of [true, false]) {
 }
 
 {
-  const userTurnId = "conversation-turn-3";
-  const assistantTurnId = "conversation-turn-4";
+  const userTurnId = "00000000-0000-4000-8000-000000000003";
+  const assistantTurnId = "00000000-0000-4000-8000-000000000004";
   const fixture = fakeBrowser((intent) => {
     if (intent.kind === "readExactAssistantTurn") {
       assert.equal(intent.userTurnId, userTurnId);
@@ -419,7 +419,7 @@ for (const promptMatches of [true, false]) {
 }
 
 {
-  const userTurnId = "conversation-turn-3";
+  const userTurnId = "00000000-0000-4000-8000-000000000003";
   let responseReadCount = 0;
   const fixture = fakeBrowser((intent) => {
     if (intent.kind !== "readExactAssistantTurn") {
@@ -451,7 +451,7 @@ for (const promptMatches of [true, false]) {
 }
 
 {
-  const userTurnId = "conversation-turn-3";
+  const userTurnId = "00000000-0000-4000-8000-000000000003";
   let responseReadCount = 0;
   const fixture = fakeBrowser((intent) => {
     if (intent.kind !== "readExactAssistantTurn") {

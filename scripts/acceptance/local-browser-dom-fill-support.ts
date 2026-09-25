@@ -66,7 +66,7 @@ export const exerciseContentEditableFill = async (): Promise<void> => {
     throw new Error(`UNEXPECTED_CONTENTEDITABLE_FILL_METHOD:${method}`);
   } } as ExtensionDebuggerRuntime;
   const cleared = await executeRegisteredDomIntent(runtime, { tabId: 103 } as never, {
-    kind: "fill", selector: "#prompt-textarea", approvedText: "", clearBeforeType: true, expectedMatches: 1,
+    kind: "fill", selector: "form[data-chatgpt-composer] [data-composer-markdown][contenteditable='true'][role='textbox']", approvedText: "", clearBeforeType: true, expectedMatches: 1,
   }, () => undefined);
   assert.deepEqual(cleared, { filled: true, candidateCount: 1, identityRevalidated: true,
     mutationCount: 1, retainedValueVerified: true, postconditionVerified: true });
@@ -103,7 +103,7 @@ export const exerciseFillReadbackRejection = async (): Promise<void> => {
     throw new Error(`UNEXPECTED_FILL_READBACK_METHOD:${method}`);
   } } as ExtensionDebuggerRuntime;
   const rejected = await executeRegisteredDomIntent(runtime, { tabId: 117 } as never, {
-    kind: "fill", selector: "#prompt-textarea", approvedText: "approved",
+    kind: "fill", selector: "form[data-chatgpt-composer] [data-composer-markdown][contenteditable='true'][role='textbox']", approvedText: "approved",
     clearBeforeType: false, expectedMatches: 1,
   }, () => undefined);
   assert.deepEqual(rejected, {

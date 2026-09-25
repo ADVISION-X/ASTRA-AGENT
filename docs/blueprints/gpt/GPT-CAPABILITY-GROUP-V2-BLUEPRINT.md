@@ -1,7 +1,7 @@
-# GPT 能力组 V65 施工图
+# GPT 能力组 V66 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"gpt-capability-group-v65","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V62","LAW-GPT-002-V28"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"gpt-capability-group-v66","status":"active","owner":"gpt","lawIds":["LAW-GPT-001-V62","LAW-GPT-002-V28"],"contractRefs":[],"dependencyEdges":[{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"capability-governance","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"forensics-persistence-capability","repo":"local"}},{"contractRef":null,"from":{"domain":"gpt","repo":"local"},"to":{"domain":"local-browser-session","repo":"local"}}],"prohibitedDependencyEdges":[]}
 ```
 
 ## 唯一 Owner 与职责
@@ -46,6 +46,10 @@ Static catalog localization: Website route relation=provider_continuation
 除上述 detection→ack 唯一紧急对外动作外，所有 ChatGPT 普通逻辑访问跨 job、Tab、Product 共用 Browser 一个账号级至少 1.5 秒起始节拍；50ms、25—250ms 和 deadline 尾部不足 1.5 秒的重读物理退出。一次 coherent observation 内的 CDP primitives不拆分计时，更长的2.5秒动作读回、40秒提交静默和Browser每轮一次抽取的70—90秒全局Provider observation间隔继续优先。GPT Child只提交至少70秒的typed资格请求，不保存随机值、第二timer或每Child节拍。
 
 GPT 准备动作对一次 fresh coherent observation 的裁决统一为 `STABLE_DONE|STABLE_ACT|TRANSIENT_DOM|HARD_FAIL`。正常 DONE/ACT 立即继续，零新增等待；只有候选当次缺席、节点 stale、`NO_LAYOUT_BOX` 或无矛盾 partial topology 可判为 `TRANSIENT_DOM`，并通过 Browser 唯一 typed stage 依次等待 1.5 秒、3 秒后各做一次整包 fresh 只读复核。任一复核恢复即继续；任一复核出现多候选、文案/模型/推理强度/Prompt/附件/URL/授权/Target/Document/effect mismatch 即立即失败；第三次仍 transient 才以最后 observation 正式失败。该协议只覆盖 `prepare_clean_gpt_chat`、profile/model/reasoning、attachment control/file input、Composer 准备以及非冻结普通动作的直接 DOM 后置证明；每次复核不点击、不输入、不上传、不导航、不换 Tab，动作已经发生后也绝不重放。submit 的现役 5 秒 actionability、附件 uploading、Provider generating、70—90 秒回答观察、限流确认、Tab/导航/授权/WAL/recovery 均不得叠加该 stage。
+
+ChatGPT 页面控件变更时，GPT Child 只在原有 coherent observation、一次 Browser action 与原后置读回链中替换经当前页面验证的精确控件合同；Browser 继续提供节点属性与原子 mutation fact，不解释聊天、模型或附件语义。根页的 Chat/Work 互斥状态以两个按钮的 `aria-pressed` 事实判定，Composer 以当前唯一可编辑节点及其空标记判定；配置弹层、模型候选、强度控件、附件入口与发送按钮各自以所在页面的当前唯一结构和原业务身份验证。旧 DOM selector 和与之绑定的质检在同一变更中物理退出，不保留双轨 selector、兼容猜测或额外恢复链。真实根页观察只证明根页控件；续聊、上传、发送后 user turn 与 Website admission 仍按各自现役门槛读回，不得由页面静态观察代替。
+
+现役发送后的轮次身份由当前页唯一匹配其 `data-turn-key` UUID 的外层与有效 `fallback-turn-N` 顺序共同证明；Browser 从 fresh 同包 DOM 选最大有效序号并核唯一用户单元、message ids 与批准 Prompt hash，GPT 只消费已确认的 UUID、canonical URL 和原 effect receipt。文本回答读取在同一外层证明唯一 `:user` 与其后唯一真实紧邻的 `:assistant` 单元，并以 assistant message id 绑定正文；图片只以 canonical URL 与 userTurnId 之后、下一个用户轮次之前为范围直接取原媒体，不等待 assistant role。旧 `conversation-turn-*` 身份不得留作运行时兼容。旧 WAL effect 不因新页面无旧标记就被当作未输入；无法读回时只沿现役 unaddressable 与 Website 风险授权收敛。
 
 `FROZEN-GPT-RESPONSE-NO-PROMPT-REHASH-001` 固定：提示词 hash 只属于发送 Child 的发送前内容身份和发送后新 user turn 证明。文本与图片回答读取 Child 不得接收 `expectedPromptHash`，不得从已折叠或重新渲染的历史 user message DOM 提取、规范化、重算或比较 `precedingPromptHash`，也不得把该二次 hash 写入回答或图片 receipt。回答身份只由发送 Child 已确认的 canonical conversation URL、精确 `userTurnId`、其真实紧邻 assistant turn，以及 Browser 当前 Target/Document/revision 共同确定；回答的 `rawDomHash`、`semanticTextHash` 与图片媒体 bytes hash 继续保留。改变或删除本冻结边界，必须由用户在未来任务中明确解冻，并同步替换施工图、实现与唯一质检；普通修复或 CI 授权不构成解冻。
 

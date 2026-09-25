@@ -58,8 +58,8 @@ const assertHarness = (
     const checkpoints = state.calls.filter((call) => call.child === "checkpoint_gpt_text_response"
       || call.child === "checkpoint_gpt_generated_image");
     assert.deepEqual(checkpoints.map((call) => call.input.userTurnId), checkpoints.map((call) =>
-      `conversation-turn-${call.productStepId === "corpus_research" ? 1
-        : call.productStepId === "article_synthesis" ? 3 : 5}`));
+      `00000000-0000-4000-8000-${String(call.productStepId === "corpus_research" ? 1
+        : call.productStepId === "article_synthesis" ? 3 : 5).padStart(12, "0")}`));
     assert.equal(new Set(checkpoints.map((call) => call.input.canonicalConversationUrl)).size, 1);
     assert.equal(state.providerNames.length, 1);
     assert.match(firstPrompt as string, /解压并读取本轮唯一 ZIP 附件/u);

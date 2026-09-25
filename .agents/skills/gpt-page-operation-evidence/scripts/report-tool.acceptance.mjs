@@ -256,8 +256,10 @@ async function main() {
   const directory = await mkdtemp(join(tmpdir(), "gpt-product-report-v6-"));
   const reportPath = join(directory, "report.json");
   run(["inventory", "--repo", REPO, "--matrix", MATRIX, "--output", reportPath]);
+  assert.match(run(["inventory", "--repo", REPO, "--matrix", MATRIX,
+    "--output", reportPath], 1).stderr, /REPORT_INVENTORY_OVERWRITE_FORBIDDEN/u);
   const report = JSON.parse(await readFile(reportPath, "utf8"));
-  assert.equal(report.schemaVersion, "gpt-page-operation-evidence.v7");
+  assert.equal(report.schemaVersion, "gpt-page-operation-evidence.v8");
   assert.equal(report.products.length, 40);
   assert.equal(hasForbiddenBinding(report), false);
   assert.ok(report.products.some((entry) => entry.productKey === "public_knowledge_article_pipeline/produce_article"

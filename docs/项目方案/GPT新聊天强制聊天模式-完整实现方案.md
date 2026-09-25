@@ -1,133 +1,33 @@
-# GPT 新聊天强制聊天模式－完整实现方案
+# GPT 页面 DOM 更新与工单恢复－完整实现方案
 
-## 0. 方案身份
+## 1. 候选与裁决
 
-- 状态：**可施工**。本文件是本需求的唯一施工方案；施工仍须重新绑定 candidate 并取得单独的代码变更授权，不代表 CHANGE、READY、RELEASE、Provider 提交或 Website 业务完成。
-- 需求：每个必须从全新 GPT 根页开始的 Product 调用，只能在 Provider 的“聊天”界面继续；若页面显示“工作”，必须由现役新聊天准备 Child 在发送任何业务输入前一次切换并读回“聊天”已选中。
-- 明确非目标：已有 conversation、`provider_continuation`、模型/推理档位、附件、提示词、提交、Browser Target 获取、Website task/attempt/retry/admission，以及新增 Child、队列、状态、持久化或兼容路径。
+- 候选：`/Users/nexgen/Documents/AGENT` 的 `main`，基线 `3823c8f8a181778330eac957aeeea9ab923d7e8c`；Website 的业务 Owner、父任务合同及 v4 cutover 不变。
+- 已证实断裂：新静态 root 与 public knowledge root 在 `prepare_clean_gpt_chat` 报 `GPT_CHAT_MODE_MISSING`；有父身份的文章任务在 `open_gpt_execution_profile` 报 `GPT_EXECUTION_PROFILE_OPEN_QUALIFICATION_INVALID`。三个错误均发生在 Provider submit 前，不能据此断言父 URL 错配或聊天丢失。
+- 页面实证：根页当前唯一 `role=group[aria-label=撰写器模式]` 含两个 `button[aria-pressed]`；Composer 是 `form[data-chatgpt-composer] [data-composer-markdown][role=textbox]` 下唯一 `contenteditable=true` 节点，无 `#prompt-textarea`；模型触发是 `button[aria-label=选择 ChatGPT 模型][aria-haspopup=menu]`，弹层为 `role=menu[data-radix-menu-content]`，有 `data-model-picker-view=simple|advanced`；强度控件为 `menuitem[data-reasoning-slider]` 和其当前滑杆；附件入口为 `button[aria-label=添加文件等内容]`，上传选择位于 `data-composer-overlay-floating-ui`；非空草稿时当前发送按钮为 `form[data-chatgpt-composer] button[type=submit][aria-label=发送]`。用户另行授权的一次无业务测试发送已完成，未删除聊天。
+- 发送后页面实证：现役 `/c/` 页已无旧 `conversation-turn-*` / `data-message-author-role`。五轮既有聊天与一次测试聊天重载后，每个用户轮次各有一个 `data-turn-key` UUID 外层，UUID 在当前页唯一，以及顺序为 `fallback-turn-N` 的 `data-content-search-turn-key`。同一外层内有唯一 `data-chatgpt-search-unit-key` 后缀 `:user` 的用户单元与唯一真实紧邻的 `:assistant` 单元；用户单元的 message ids 等于 UUID，用户正文位于唯一 `data-user-message-bubble=true`；助手单元的正文位于其 `data-chatgpt-selection-message-id` 所绑定的 `data-markdown-text-style=assistant-message`。生成期间存在 `form[data-chatgpt-composer] button[aria-label=停止]`，完成后消失。此证据只覆盖所见的短 Prompt 和文本回答；长 Prompt、图片以及业务 job 的真实交付仍须单独验收。
+- 现役 authority：`LAW-GPT-001-V62`、`LAW-GPT-002-V28`、`GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md`、Browser 唯一 Target/WAL 施工图与 `FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001`。法案的业务语义无变化；施工图明确 DOM 变更只替换原 Child 事实链，不增加第三 submit 前置门。
 
-## 1. scoped candidate 与施工门
+## 2. 唯一执行边界
 
-设计绑定仓库 `/Users/nexgen/Documents/AGENT`、分支 `main`、HEAD `10bf9ddc777b357b354cd2445f844d75b423a40f`、remote `origin=git@github.com:ADVISION-X/AGENT.git`。
+Website demand → Runtime 按原 job/attempt 领取 → Product 按原 Flow 调用 GPT Child → Browser 以原 Target/Document、FIFO 与 WAL 执行一次动作并返回同包事实 → Product 结果 → Runtime Outbox → Website Domain Consumer admission。DOM 更新只在 GPT 精确页面 Child 与 Browser 机械属性读回；不修改 Website 的父身份、Provider effect identity、重试授权、Outbox 或业务完成权。
 
-生产施工面当前干净：
+`prepare_clean_gpt_chat` 在 fresh root 的一个 coherent packet 中证明两按钮互斥状态、空 Composer、零历史 turn/附件/generating。Work→Chat 最多一次点击，同一 Browser mutation packet 证明被点击按钮 `aria-pressed=true` 且另一个为 false；旧草稿清空仍与模式切换互斥。continuation 不执行 root 模式切换。
 
-- `src/capabilities/gpt/children/prepare_clean_gpt_chat/{selectors,observation,handler}.ts`
-- `src/capabilities/gpt/{contract,child-types}.ts`
-- `src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts`
+发送后在原 Browser coherent observation 中以最大有效 `fallback-turn-N` 取得唯一新用户轮次，核其外层 UUID、唯一 user 单元和批准 Prompt hash；已发生输入而身份未知时保留原 WAL DISPATCHED，只走同 effect 零输入对账。CONFIRMED 后只保存同包 canonical URL 与该 UUID，文本回答用该 UUID 定位同一外层的唯一紧邻 assistant 单元；图片只在该用户轮次之后、下一个用户轮次之前查 source，不等待 assistant role；两者都不重新 hash 历史 Prompt。生成状态和非空正文仍遵守现役两门合同。旧轮次选择器、旧正则和对应夹具在同一片区物理删除；旧 WAL 事实保留，无法以现役 DOM 定位的旧 effect 走现役 unaddressable/risk grant 结算，不伪造未发送证明。
 
-`.agents/skills/gpt-page-operation-evidence/references/page-operation-matrix.json` 与 `docs/项目方案/GPT页面操作子能力实证资料.json` 已有其它未提交的工具改动；它们不属于本方案施工面，必须原样保留。本方案不把 mode switch 写入该矩阵的 required live transition：现役状态分母只凭 `resultStatus + mutationOutcome + capturePhase` 派生，不能区分本 Child 的“清旧草稿”和“工作→聊天”两个互斥 confirmed 分支。没有真实、可验证的 production trace 分支身份前，强行加入会制造永远无法 complete 的报告要求。
+配置开/关只证明当前唯一触发、弹层、活动 simple view 与强度读回；模型选择必须先打开当前 advanced view、选择 Product 指定的唯一 radio，并读回同一节点选中及弹层关闭；强度按当前滑杆最大值执行 `min(requested,max)` 并读回，仍只一次输入。附件入口、文件选择及现有附件集合对账继续由原 Child 执行；Composer 写入和提交只替换 DOM 地址，submit 的两项冻结前置条件与发送后精确 user turn 证明保持原样。页面标记不存在、多义或无法证明动作后的状态，当前动作 fail closed，工单仍由 Website 原恢复主链继续。
 
-## 2. 现役事实与第一直接断裂
+## 3. 施工片区与物理退出
 
-### 2.1 真实页面 DOM
+1. GPT Child 的 `prepare_clean_gpt_chat`、`open/close_gpt_execution_profile`、`open_gpt_model_selector_v3`、`select_gpt_model_from_start_v3`、`select_gpt_reasoning_from_start_v3`、`open_gpt_attachment_control`、`attach_approved_gpt_files_once`、`reconcile_gpt_attachment_set`、`write_exact_gpt_prompt`、`submit_exact_gpt_turn_once`：替换实际失效的 selector、状态投影和原后置条件。提交/回答/图片/恢复的直接消费者统一采用新的精确轮次身份。直接 consumer `contract.ts` 同步当前控件文字，Child 身份、schema、action ordinal 与结果合同不变。
+2. Browser 机械观察层补 `ariaPressed`/`aria-pressed` 的同一 typed 属性通路，将空 Composer 的旧 id 判定换成当前节点特征，并将 `exactGptUserPromptHash`、最新用户轮次、text/image exact answer 与 materialization 整体换到 `data-turn-key` / `fallback-turn-N` / 角色单元。保留模型 radio 所需 `ariaChecked`，不建第二观察或 mutation API。
+3. `gpt-exact-target`、profile/model/reasoning、attachment、write/submit 原验收及唯一 GPT audit inspector 同步替换旧 DOM 字面量和 fixture；覆盖成功、缺席、多义、不可操作、错误后置状态与零重放。物理删除本片区的旧 `#prompt-textarea`、旧 radio group、旧模型/附件菜单字面量和其只为旧 DOM 存在的质检断言；不留下兼容 selector 或双路径。
+4. 先把 Browser 004/006 规范升版及 GPT 001/002 的现役依赖指针、GPT/Browser 施工图、Manifest、registry 和审计 ID 对齐，主 Codex 正反各审一次，达到自检门槛后再继续代码。之后跑 GPT/Browser 定向验收及冻结 `ci-full-governance` 的 AGENT 原生 `quality:check -- CHANGE`、clean Git commit 与 `quality:check -- READY`。独立子智能体只读审计实际差异和剩余旧路径，发现阻断则继续迭代。用户已裁决停在 RELEASE 前，不把 READY 或页面检查称为业务完成。
+5. 原入口重启 AGENT 后先核 Website control、原任务/attempt/effect 与无在途 Provider submit，再受控恢复领取。对同一批任务读回：Provider submit 身份与增量、结果 artifact、Runtime Outbox、Website staging、Domain admission receipt、最终 completed。任何新 DOM 或身份错误即重新 draining，保留原身份修正；不删除已接纳结果或 GPT 聊天，不盲重发。
 
-Chrome 扩展会话在 `https://chatgpt.com/` 的新聊天根页读到：
+依赖版本裁决：GPT 001/002 与 Runtime 001/006 的义务、forbidden、Owner 和证据门槛未改变，仅把依赖 ID 指向现役 Browser 004/006。按母本 §72.1 的“依赖义务发生规范变化”判据，这些纯指针同步不触发连锁 major；只有 Browser 004/006 的 DOM 规范正文升级。
 
-- 唯一 `div[role="radiogroup"][aria-label="选择聊天界面"]`；
-- 其中唯一 `button[role="radio"][data-tpp-toggle-value="chatgpt"]`，`aria-checked="true"`；
-- 其中唯一 `button[role="radio"][data-tpp-toggle-value="work"]`，`aria-checked="false"`；
-- 这组控件不属于已有 `/c/<conversation>` 会话。
+## 4. 实证边界
 
-该观察是设计用真实 DOM，不是任何 Product 的 production trace，不能写入或替代唯一页面实证报告。
-
-### 2.2 当前实现
-
-`prepare_clean_gpt_chat` 是所有 fresh Product flow 的首个页面 Child。它同一 coherent observation 只读取根 URL、composer、历史 user/assistant turn、附件与 generating；只有其它状态已经 fresh 且 composer 有旧 draft 时才执行一次 `fill("")`。它没有读取或选择“聊天 / 工作”，因此把“工作”当成可继续的 fresh root 放行。这是本需求的第一直接断裂。
-
-`open_gpt_execution_profile`、`open_gpt_model_selector_v2` 与 `select_exact_gpt_model_v2` 只拥有 profile/model 控件，不能承担新聊天模式责任。Product 只决定 Child 顺序；Browser 只机械执行 typed action/WAL/readback。
-
-## 3. 四维裁决与唯一 Owner
-
-| 维度 | 当前依据 | 本次裁决 |
-| --- | --- | --- |
-| 法案 | `LAW-GPT-001-V56`、`LAW-GPT-002-V20`、`LAW-CAPABILITY-GOVERNANCE-001-V15` | 一个 Child 至多一次物理输入，且不得取得 Product Flow 或业务完成权。 |
-| Blueprint | `GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md`、`LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md` | 同一 coherent packet 判定；Browser 的点击必须经唯一 lane/WAL 和直接后置读回。 |
-| 实现 | `prepare_clean_gpt_chat` 的 selector/observation/handler、14-Child registry 和 Product 的 `fresh-chat` 调用 | 在原 Child 内补充根页模式判定与一次切换，不新增 Child 或 Product call。 |
-| 质检 | `acceptance:gpt` 与唯一 `quality:check` | 以 exact radio 拓扑、零/一次输入和同包 `aria-checked` 读回验收；静态通过不等于 Provider 或 Website 业务完成。 |
-
-原子责任记录：
-
-```text
-canonical_owner: gpt / prepare_clean_gpt_chat
-authority_inputs: Browser 同一 current Target/Document 的根页 coherent observation
-single_decision: 此 fresh root 是否已是聊天模式；必要时只切到聊天一次
-typed_output: 现役 success 或 typed failed
-consumer: 已有 Product fresh-chat 调用，之后才可继续 profile/attachment/prompt
-failure_owner: GPT Child；Browser action failure 仍由 Browser WAL/receipt 产生
-readback: 同包唯一 chat radio 的 aria-checked=true，work radio=false
-forbidden_adjacent_owners: Product 不点页面；Browser 不决定聊天语义；Runtime/Website 不持有页面模式
-```
-
-删除反事实：移除此判定后，`aria-checked="false"` 的“工作”页面会被现役 fresh Child 成功放行，后续 Product 输入可落入用户禁止的模式；故必须保留。新建 `ensure_gpt_chat_mode` 会重复同一 fresh-root 输入、Consumer 与成功判据，故禁止。
-
-## 4. 唯一目标链与状态分母
-
-```text
-Browser fresh acquisition
-  -> prepare_clean_gpt_chat coherent observation
-     -> 聊天已选：现役空聊天/旧草稿分支
-     -> 工作已选且其余条件完整：一次点击聊天 + 同包读回
-     -> 其它模式拓扑：typed failed，零输入
-  -> 既有 Product profile / attachment / prompt / submit 链
-```
-
-模式仅在根页是判据；`/c/...` conversation 与 continuation 绝不查询、点击或要求它。
-
-为遵守一次 Child 调用至多一次物理输入，分母严格如下：
-
-1. 聊天已选且 composer 为空：`DONE`，零输入。
-2. 聊天已选且仅旧 draft 非空：保留现役一次 `fill("")`，再读回。
-3. 工作已选、composer 已空且无 turn/附件/generating：一次点击“聊天”，同一 mutation packet 读回 chat=true/work=false；成功。
-4. 工作已选且旧 draft 同时存在：typed failed、零输入。不得在同一调用既点击 radio 又清 composer；由 Website 的现役 attempt/恢复 Owner 决定后续，不建立 GPT 自动重试。
-5. root 非法、任一 radio 缺失或多义、checked 非布尔、两项不是互补状态、点击后读回不等：typed failed、零输入或保留该一次已确认 Browser outcome；绝不盲点第二次。
-
-## 5. 原子工单
-
-### M1：在现役 Child 内补齐模式观察
-
-允许路径：
-
-- `src/capabilities/gpt/children/prepare_clean_gpt_chat/selectors.ts`
-- `src/capabilities/gpt/children/prepare_clean_gpt_chat/observation.ts`
-
-新增根页 chat-radio、work-radio 的两条冻结 selector；两者以当前 DOM 的互斥 `data-tpp-toggle-value` 精确定位，用已有 `BrowserDomObservationQuery` 的 `ariaChecked` 字段读取，不增加 Browser API、scope、任意 selector 输入或页面快照。观察投影只扩展 `ConversationState` 的局部机械事实。
-
-模式组暂缺、节点 stale、`NO_LAYOUT_BOX` 或无矛盾 partial topology 才可复用既有 stage 1/2 确认；多义、文本/checked 值失配或根 URL 失配直接 HARD_FAIL。
-
-完成门：每次裁决仍来自同一 observation revision；UI 原文不进入日志、任务、Outbox 或持久化。
-
-### M2：扩展 `prepare_clean_gpt_chat` 的唯一动作分支
-
-允许路径：
-
-- `src/capabilities/gpt/children/prepare_clean_gpt_chat/handler.ts`
-- `src/capabilities/gpt/contract.ts`
-- `src/capabilities/gpt/child-types.ts`（仅当已有结果结构必须表达现役事实；无真实 Consumer 时不新增结果字段）
-
-在现有 stale-draft `fill` 之前裁决模式。仅第 3 类状态允许发出：精确 chat radio、`expectedMatches=1` 的一次 click。postcondition 必须同包读取 chat/work 两行，并要求被点击节点 `aria-checked=true`、两项候选仍各一且 work=false。复用现役 target-local replay/WAL/failure 投影；不得把模式选择升级为 provider-effect-once。
-
-合同只更新 semantic intent、precondition、action qualification 与正/负后置文字；Child ID、输入 schema、Product action ordinal、Browser Target 身份和 provider-effect identity 均保持不变。
-
-### M3：现役验收与工具投影
-
-允许路径：
-
-- `src/capabilities/gpt/acceptance/gpt-exact-target.acceptance.ts`
-- `src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts`
-
-fixture 为 chat-radio、work-radio 提供可控 raw/eligible/`ariaChecked` facts；work-to-chat responder 必须返回现役 `clickedCandidateAttributeReadback` 与同包 `postconditionObservation`。验收必须覆盖：chat-selected zero-action、work-to-chat exactly-one click/readback、radio 缺失或多义、非法 checked、双选/双未选、切换后读回失败、work+draft zero-action failure，以及原有 hydration/dirty-draft 分支不退化。
-
-本工单不修改页面实证矩阵或唯一报告。work-to-chat 的点击/回读由 exact-target fixture 证明；真实页面证据只记录 future `actualTrace` 已实际出现的状态。只有 production source 未来提供不可推断、可验证的 mode-branch identity，才可另行设计矩阵分母的分支表达；不得拿 `mutationOutcome=confirmed`、当前 DOM 或手工点击猜测该身份。
-
-## 6. 验收、停止与动态证明
-
-施工顺序：目标 acceptance → `npm run acceptance:gpt` → `npm run audit:build` → `npm run audit:projection:check` → `npm run quality:check -- CHANGE`。
-
-真实 Browser proof 的前置条件是：`production-source.mjs` 已对同一真实 task/material/attempt 校验出 `sourceKind=PRODUCTION_RUNTIME_DURABLE_TASK`、`synthetic=false`、非空且可验证的 `actualTrace`，并且 Browser 已为该 job 创建 system-owned Target。任一前置不满足（尤其 artifact-only runtime 的 `actualTrace=[]`）即以 `PRODUCT_TRACE_UNAVAILABLE` 停在浏览器之前，只保留工具缺口。条件齐备时才只证明 fresh root 的 chat-selected 零输入和 work-to-chat 一次输入/读回，并在 prompt 写入、附件、submit 前停止。不得接管操作者标签页、创建业务夹具、发送 Provider 内容或把该 proof 说成 Website admission。
-
-任一模式拓扑、Browser receipt、Target/Document、candidate 或 scoped candidate 漂移即停止；已确认一次点击只按现役 WAL/readback 收尾，不重放。Website 业务闭环仍保持原链：Product result → Runtime Outbox → Website staging → Domain admission receipt/readback；本方案不改变它。
-
-## 7. 施工重新绑定要求
-
-进入 M1 前重新读取本文件、根 `AGENTS.md`、适用 law/Blueprint、目标文件 Git 状态、14-Child registry 和全部 fresh Product callers。页面证据工具的 dirty overlay 不得进入候选。若未来要求真实 Browser proof，还须重新确认同一 task/attempt 的 `production-source.mjs` trace gate；任一条件不成立即停止对应施工或证明，不创建平行方案或兼容实现。
+当前根页和弹层观察能证明模式、Composer、模型/强度与附件入口的形状；一次测试发送和五轮既有聊天的只读重载可证明当前短 Prompt 文本轮次身份、生成状态和助手正文形状。不能证明长 Prompt、图片、每个业务模型、文件真实上传、父会话续接或 Website admission。下一次真实提交只在现役授权 job 的原 Flow 中进行，前后必须按原 WAL/receipt 精确读回。若新页面没有足够稳定的精确身份或 action 后置事实，停在该 Child 的 typed failure 并报告缺口，不放宽 identity 或制造成功回执。

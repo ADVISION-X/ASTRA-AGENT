@@ -27,7 +27,7 @@ const recoveryRowsValid = (
   row: Record<string, unknown>,
   item: Record<string, unknown>,
 ): boolean => typeof observation.currentUrl === "string" && observation.currentUrl.length > 0
-  && typeof item.testId === "string" && /^conversation-turn-[1-9][0-9]*$/u.test(item.testId)
+  && typeof item.turnKey === "string" && /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(item.turnKey)
   && row.rawCount === 1 && row.eligibleCount === 1
   && isHash(item.exactGptUserPromptHash)
   && ["exactCallIdentityHash", "observationRevisionHash", "targetRefHash", "documentRefHash"]
@@ -40,7 +40,7 @@ export const submitRecoveryPayload = (value: unknown): Readonly<Record<string, u
   return Object.freeze({
     canonicalConversationUrl,
     promptHash: item.exactGptUserPromptHash,
-    userTurnId: item.testId,
+    userTurnId: item.turnKey,
     exactCallIdentityHash: observation.exactCallIdentityHash,
     observationRevisionHash: observation.observationRevisionHash,
     targetRefHash: observation.targetRefHash,

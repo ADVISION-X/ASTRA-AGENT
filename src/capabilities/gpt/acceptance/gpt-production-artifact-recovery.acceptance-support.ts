@@ -26,7 +26,7 @@ const attemptId = "attempt:artifact-recovery";
 const sessionKey = "session:artifact-recovery";
 const conversationUrl = "https://chatgpt.com/c/artifact-recovery";
 const checkpointInput = { canonicalConversationUrl: conversationUrl, probeBudgetMs: 200_000,
-  userTurnId: "conversation-turn-1", turnMarker: "artifact-recovery" } as const;
+  userTurnId: "00000000-0000-4000-8000-000000000001", turnMarker: "artifact-recovery" } as const;
 const checkpointCall = { sessionKey, productStepId: "research", callId: "text-checkpoint",
   child: "checkpoint_gpt_text_response", actionOrdinal: 2, input: checkpointInput } as const;
 const checkpointExactCallIdentityHash = gptExactCallIdentityHash({ jobId, attemptId,
@@ -35,7 +35,7 @@ const checkpointExactCallIdentityHash = gptExactCallIdentityHash({ jobId, attemp
 const rawDomHtml = "<article>saved response</article>";
 const semanticText = "saved response";
 const persistedContent = JSON.stringify({ schemaVersion: "agent-observed-response-artifact.v1",
-  assistantTurnId: "conversation-turn-2", rawDomHtml, rawDomHash: hash(rawDomHtml),
+  assistantTurnId: "00000000-0000-4000-8000-000000000002", rawDomHtml, rawDomHash: hash(rawDomHtml),
   semanticText, semanticTextHash: hash(semanticText) });
 const persistedArtifactKey = `gpt-call-artifact:v1:${checkpointExactCallIdentityHash}:observed-response`;
 const persistedArtifactRef = "artifact:persisted-response";
@@ -88,7 +88,7 @@ try {
     authorityHash: HASH_B, targetRef: "target:recovery", documentRef: "document:recovery",
     physicalInputCount: 0, downloadGuidHash: null, downloadCompleted: false,
     identityRevalidated: true, terminalPayload: { canonicalConversationUrl: conversationUrl,
-      promptHash: HASH_A, userTurnId: "conversation-turn-1", exactCallIdentityHash: HASH_A,
+      promptHash: HASH_A, userTurnId: "00000000-0000-4000-8000-000000000001", exactCallIdentityHash: HASH_A,
       observationRevisionHash: HASH_A, targetRefHash: HASH_A, documentRefHash: HASH_A,
       rawCount: 1, eligibleCount: 1 } } as const;
   const submitInput = { files: [], promptHash: HASH_A } as const;
@@ -118,7 +118,7 @@ try {
     readAuthenticatedMedia: async () => {
       authenticatedImageReads += 1;
       return { authorityTargetHash: HASH_A, authorityDocumentHash: HASH_B,
-        assistantTurnId: "conversation-turn-2", precedingUserTurnId: "conversation-turn-1",
+        assistantTurnId: "00000000-0000-4000-8000-000000000002", precedingUserTurnId: "00000000-0000-4000-8000-000000000001",
         currentUrl: conversationUrl, semanticMediaId: "gpt-generated-image-main",
         bytesBase64: Buffer.from(imageBytes).toString("base64"), sha256: imageHash,
         sizeBytes: imageBytes.byteLength, mediaType: "image/png" };
@@ -161,7 +161,7 @@ try {
   const recoveredSubmit = await execution.tools.readConfirmedSubmit({ sessionKey,
     productStepId: "research", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
     actionOrdinal: 1, input: submitInput });
-  assert.equal(recoveredSubmit?.value.userTurnId, "conversation-turn-1");
+  assert.equal(recoveredSubmit?.value.userTurnId, "00000000-0000-4000-8000-000000000001");
   const providerReadbackProof = execution.readProviderEffectReadbackProof();
   assert.equal(isProviderEffectReadbackProofV1(providerReadbackProof), true);
   assert.equal(providerReadbackProof?.provider_effect_identity_hash, HASH_A);
@@ -171,7 +171,7 @@ try {
   assert.equal(providerReadbackProof?.readback_provider_input_delta, 0,
     "a confirmed Provider effect recovery must add zero Browser input even when the original WAL input was one");
   await assert.rejects(execution.tools.execute({ ...checkpointCall,
-    input: { ...checkpointCall.input, userTurnId: "conversation-turn-999" } }),
+    input: { ...checkpointCall.input, userTurnId: "00000000-0000-4000-8000-000000000999" } }),
   (error: unknown) => failureCode(error) === "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
   const recovered = await execution.tools.execute(checkpointCall);
   assert.equal(recovered.value.semanticText, semanticText);
@@ -201,7 +201,7 @@ try {
         exactCallIdentityHash: submitExactCallIdentityHash, actionOrdinal: 1,
         inputHash: submitAtomicInputHash,
         terminalPayload: { canonicalConversationUrl: conversationUrl,
-          promptHash: sourcePromptHash, userTurnId: "conversation-turn-1",
+          promptHash: sourcePromptHash, userTurnId: "00000000-0000-4000-8000-000000000001",
           exactCallIdentityHash: submitExactCallIdentityHash,
           rawCount: 1, eligibleCount: 1 },
         authorityRef: "browser-mutation:old-submit",
@@ -275,7 +275,7 @@ try {
         checkpointExactCallIdentityHash, artifactRef: persistedArtifactRef,
         artifactContentHash: hash(new TextEncoder().encode(persistedContent)),
         submitPromptHash: sourcePromptHash, canonicalConversationHash: hash(conversationUrl),
-        userTurnHash: hash("conversation-turn-1") }],
+        userTurnHash: hash("00000000-0000-4000-8000-000000000001") }],
       recordSettledCheckpoint: (checkpoint) => { settledCheckpoints.push(checkpoint); },
     });
   const oldSubmit = await sourceExecution.tools.readConfirmedSubmit({ sessionKey,
@@ -331,7 +331,7 @@ try {
   const imageCall = { sessionKey, productStepId: "research",
     callId: "image-checkpoint", child: "checkpoint_gpt_generated_image", actionOrdinal: 4,
     input: { canonicalConversationUrl: conversationUrl, probeBudgetMs: 200_000,
-      userTurnId: "conversation-turn-1", turnMarker: "artifact-recovery-image" } } as const;
+      userTurnId: "00000000-0000-4000-8000-000000000001", turnMarker: "artifact-recovery-image" } } as const;
   const imageExactCallIdentityHash = gptExactCallIdentityHash({ jobId, attemptId,
     resultRevision: 0, productStepId: imageCall.productStepId, callId: imageCall.callId,
     childCapabilityId: imageCall.child, inputHash: gptCanonicalHash(imageCall.input) });
@@ -354,7 +354,7 @@ try {
   const realRecoveredSubmit = await realExecution.tools.readConfirmedSubmit({ sessionKey,
     productStepId: "research", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
     actionOrdinal: 1, input: submitInput });
-  assert.equal(realRecoveredSubmit?.value.userTurnId, "conversation-turn-1");
+  assert.equal(realRecoveredSubmit?.value.userTurnId, "00000000-0000-4000-8000-000000000001");
   const image = await realExecution.tools.execute(imageCall);
   assert.equal(image.value.originalSha256, imageHash,
     "the production facade must settle the generated image with originalSha256");
@@ -412,7 +412,7 @@ try {
         checkpointExactCallIdentityHash: imageExactCallIdentityHash,
         artifactRef: imageEvidence!.artifactRef, artifactContentHash: imageEvidence!.integrityHash,
         submitPromptHash: sourcePromptHash, canonicalConversationHash: hash(conversationUrl),
-        userTurnHash: hash("conversation-turn-1") }],
+        userTurnHash: hash("00000000-0000-4000-8000-000000000001") }],
       recordSettledCheckpoint: (checkpoint) => { settledCheckpoints.push(checkpoint); },
     });
   await assert.rejects(imageSourceExecution.tools.readConfirmedSubmit({ sessionKey,

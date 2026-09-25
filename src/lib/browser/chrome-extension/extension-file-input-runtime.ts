@@ -203,10 +203,10 @@ type ExtensionFileInput = Readonly<{
 }>;
 
 const assertFileInputRequest = (input: ExtensionFileInput): void => {
-  if (input.selector !== "#upload-files"
-    || input.activation?.selector !== "div.__menu-item[tabindex='0'] span"
-    || input.activation?.scope?.selector !== "#thread-bottom div.popover[aria-busy='false']"
-    || input.activation?.expectedTextEquals !== "从电脑上传"
+  if (input.selector !== "form[data-chatgpt-composer] input[type='file'][aria-label='附加文件']"
+    || input.activation?.selector !== "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child"
+    || input.activation?.scope?.selector !== "[data-composer-overlay-floating-ui='true']"
+    || input.activation?.expectedTextEquals !== "添加照片和文件"
     || input.approvedFiles.length < 1 || input.approvedFiles.length > 20
     || input.resolvedFilePaths.length !== input.approvedFiles.length
     || new Set(input.approvedFiles.map((file) => file.grantRef)).size !== input.approvedFiles.length

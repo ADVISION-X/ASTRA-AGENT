@@ -81,7 +81,7 @@ try {
     },
     postClickObservation: { ...coherentClick.postClickObservation,
       queries: [{ ...coherentClick.postClickObservation.queries[0]!,
-        fields: ["testId", "exactGptUserPromptHash"], latestGptUserTurn: true }, {
+        fields: ["turnKey", "exactGptUserPromptHash"], latestGptUserTurn: true }, {
         queryId: "empty-composer",
         selector: "composer[contenteditable='true']:has(> p[data-empty-paragraph='true'] > br.ProseMirror-trailingBreak)",
         maxMatches: 1, fields: [], expectedEligibleCount: 1,

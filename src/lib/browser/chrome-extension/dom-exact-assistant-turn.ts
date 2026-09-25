@@ -26,7 +26,7 @@ type ExactAssistantPendingCause =
 const EXACT_ASSISTANT_TURN_FUNCTION = `async function (spec) {
   ${BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE}
   const userTurnId = spec.userTurnId;
-  if (!/^conversation-turn-[1-9][0-9]*$/.test(userTurnId)) throw new Error("BROWSER_DOM_READ_INVALID");
+  if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(userTurnId)) throw new Error("BROWSER_DOM_READ_INVALID");
   const observedUrl = new URL(location.href);
   const currentUrl = observedUrl.origin + observedUrl.pathname;
   const expectedUrlValue = new URL(spec.canonicalConversationUrl);
@@ -39,20 +39,33 @@ const EXACT_ASSISTANT_TURN_FUNCTION = `async function (spec) {
     || observedUrl.username !== "" || observedUrl.password !== ""
     || (!root && !conversation)) throw new Error("BROWSER_DOM_READ_INVALID");
   const precedingUserTurnId = userTurnId;
-  const userRaw = Array.from(document.querySelectorAll(
-    "[data-testid='" + precedingUserTurnId + "']:has([data-message-author-role='user'])"
-  ));
-  const turns = Array.from(document.querySelectorAll("[data-testid^='conversation-turn-']"));
-  const userIndex = userRaw.length === 1 ? turns.indexOf(userRaw[0]) : -1;
-  const [, assistantOuter = null] = userIndex >= 0 ? turns.slice(userIndex) : [];
-  const assistantTurnId = assistantOuter?.getAttribute("data-testid") || "";
-  const raw = assistantOuter
-    ? Array.from(assistantOuter.querySelectorAll("[data-message-author-role='assistant']")) : [];
+  const turns = Array.from(document.querySelectorAll("[data-turn-key]"));
+  const userRaw = turns.filter((turn) => turn.getAttribute("data-turn-key") === userTurnId);
+  if (userRaw.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
+  const units = userRaw.length === 1
+    ? Array.from(userRaw[0].querySelectorAll("[data-chatgpt-search-unit-key]")) : [];
+  const users = units.filter((unit) => (unit.getAttribute("data-chatgpt-search-unit-key") || "").endsWith(":user")
+    && unit.getAttribute("data-chatgpt-search-message-ids") === userTurnId);
+  if (userRaw.length === 1 && users.length !== 1) throw new Error("BROWSER_DOM_READ_INVALID");
+  const assistant = users.length === 1 ? units[units.indexOf(users[0]) + 1] : null;
+  const assistantKey = assistant?.getAttribute("data-chatgpt-search-unit-key") || "";
+  const assistantIds = (assistant?.getAttribute("data-chatgpt-search-message-ids") || "").split(/\\s+/).filter(Boolean);
+  const assistantTurnId = assistantIds[0] || "";
+  const role = assistant?.querySelectorAll("h4[data-conversation-role='assistant']") || [];
+  const selection = assistant?.querySelectorAll("[data-chatgpt-selection-message-id]") || [];
+  const raw = assistantKey.endsWith(":assistant")
+    ? Array.from(assistant.querySelectorAll("[data-markdown-text-style='assistant-message']")) : [];
+  if (raw.length > 1 || (raw.length === 1 && (
+    role.length !== 1 || selection.length !== 1
+    || !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(assistantTurnId)
+    || assistantIds.some((id) => id !== assistantTurnId)
+    || selection[0].getAttribute("data-chatgpt-selection-message-id") !== assistantTurnId
+    || !selection[0].contains(raw[0])))) throw new Error("BROWSER_DOM_READ_INVALID");
   const pendingCause = userRaw.length !== 1 ? "exact-user-turn-unavailable"
     : raw.length === 0 ? "adjacent-assistant-missing" : null;
   const observedAt = new Date().toISOString();
   const generatingRaw = document.querySelectorAll(
-    "#composer-submit-button[data-testid='stop-button']"
+    "form[data-chatgpt-composer] button[aria-label='停止']"
   ).length;
   const rawCount = raw.length;
   if (currentUrl !== expectedUrl || rawCount !== 1) return { rawCount,
@@ -75,7 +88,7 @@ const MATERIALIZE_STEP_FUNCTION = `function (spec) {
   if (document.visibilityState !== "visible") {
     return { pageVisible: false, containerFound: false, hit: false, atTop: false };
   }
-  const turns = Array.from(document.querySelectorAll("[data-testid^='conversation-turn-']"));
+  const turns = Array.from(document.querySelectorAll("[data-turn-key]"));
   let container = null;
   if (turns.length > 0) {
     let candidate = turns[0].parentElement;
@@ -97,7 +110,7 @@ const MATERIALIZE_STEP_FUNCTION = `function (spec) {
     container.scrollTop = Math.max(0, container.scrollTop - 0.8 * container.clientHeight);
   }
   const hit = document.querySelectorAll(
-    "[data-testid='" + spec.userTurnId + "']"
+    "[data-turn-key='" + spec.userTurnId + "']"
   ).length >= 1;
   const atTop = container.scrollTop <= 0;
   return { pageVisible: true, containerFound: true, hit, atTop };

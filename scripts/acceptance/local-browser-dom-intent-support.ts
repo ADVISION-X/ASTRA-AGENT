@@ -111,7 +111,7 @@ const exerciseComposerReadiness = async (): Promise<void> => {
     throw new Error(`UNEXPECTED_DELAYED_COMPOSER_METHOD:${method}`);
   } } as ExtensionDebuggerRuntime;
   const found = await executeRegisteredDomIntent(delayed, { tabId: 99 } as never, {
-    kind: "find", selector: "#prompt-textarea", maxMatches: 2,
+    kind: "find", selector: "form[data-chatgpt-composer] [data-composer-markdown][contenteditable='true'][role='textbox']", maxMatches: 2,
     waitFor: { minimumMatches: 1, timeoutMs: 4_500 },
   }) as Readonly<{ count: number }>;
   assert.equal(found.count, 1);
@@ -124,7 +124,7 @@ const exerciseComposerReadiness = async (): Promise<void> => {
     throw new Error(`UNEXPECTED_MISSING_COMPOSER_METHOD:${method}`);
   } } as ExtensionDebuggerRuntime;
   const absent = await executeRegisteredDomIntent(missing, { tabId: 100 } as never, {
-    kind: "find", selector: "#prompt-textarea", maxMatches: 2,
+    kind: "find", selector: "form[data-chatgpt-composer] [data-composer-markdown][contenteditable='true'][role='textbox']", maxMatches: 2,
     waitFor: { minimumMatches: 1, timeoutMs: 1_500 },
   }) as Readonly<{ count: number }>;
   assert.equal(absent.count, 0);

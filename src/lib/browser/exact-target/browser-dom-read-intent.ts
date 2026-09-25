@@ -22,7 +22,7 @@ export const exactAssistantReadIntentValid = (
     canonical = requireCanonicalGptConversationUrl(intent.canonicalConversationUrl)
       === intent.canonicalConversationUrl;
   } catch { canonical = false; }
-  return /^conversation-turn-[1-9][0-9]*$/u.test(intent.userTurnId)
+  return /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(intent.userTurnId)
     && canonical;
 };
 

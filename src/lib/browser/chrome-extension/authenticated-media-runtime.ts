@@ -21,17 +21,22 @@ const authenticatedMediaExpression = (canonicalConversationUrl: string, userTurn
       const currentUrl = observedUrl.origin + observedUrl.pathname;
       if (currentUrl !== ${JSON.stringify(canonicalConversationUrl)})
         return { errorCode: "BROWSER_AUTHENTICATED_MEDIA_WRONG_DOCUMENT" };
-      const turns = [...document.querySelectorAll("[data-testid^='conversation-turn-']")];
-      const users = turns.filter((turn) => turn.getAttribute("data-testid") === ${JSON.stringify(userTurnId)}
-        && turn.querySelectorAll("[data-message-author-role='user']").length === 1);
+      const turns = [...document.querySelectorAll("[data-turn-key]")];
+      const users = turns.filter((turn) => turn.getAttribute("data-turn-key") === ${JSON.stringify(userTurnId)});
       if (users.length === 0) return { pendingCode: "BROWSER_AUTHENTICATED_MEDIA_USER_TURN_ABSENT" };
       if (users.length !== 1) return { errorCode: "BROWSER_AUTHENTICATED_MEDIA_USER_TURN_MULTIPLE" };
+      const userUnits = users[0].querySelectorAll("[data-chatgpt-search-unit-key$=':user']");
+      if (userUnits.length !== 1
+        || userUnits[0].getAttribute("data-chatgpt-search-message-ids") !== ${JSON.stringify(userTurnId)})
+        return { errorCode: "BROWSER_AUTHENTICATED_MEDIA_USER_TURN_MULTIPLE" };
       const sourceOwners = new Map();
-      for (const turn of turns.slice(turns.indexOf(users[0]) + 1)) {
-        if (turn.querySelectorAll("[data-message-author-role='user']").length > 0) break;
-        const assistantTurnId = turn.getAttribute("data-testid") || "";
-        if (!/^conversation-turn-[1-9][0-9]*$/.test(assistantTurnId)) continue;
+      for (const turn of turns.slice(turns.indexOf(users[0]))) {
+        if (turn !== users[0] && turn.querySelectorAll("[data-chatgpt-search-unit-key$=':user']").length > 0) break;
         for (const image of turn.querySelectorAll("img")) {
+          if (image.closest("[data-chatgpt-search-unit-key$=':user']")) continue;
+          const assistantTurnId = image.closest("[data-chatgpt-selection-message-id]")
+            ?.getAttribute("data-chatgpt-selection-message-id") || "";
+          if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(assistantTurnId)) continue;
           const source = image.currentSrc || image.src || "";
           if (source && !sourceOwners.has(source)) sourceOwners.set(source, assistantTurnId);
         }
@@ -98,7 +103,7 @@ export const executeAuthenticatedMedia = async (
   semanticMediaId: "gpt-generated-image-main",
   assertCurrent: () => void,
 ): Promise<AuthenticatedMediaValue> => {
-  if (!/^conversation-turn-[1-9][0-9]*$/u.test(userTurnId)
+  if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(userTurnId)
     || semanticMediaId !== "gpt-generated-image-main") throw new Error("BROWSER_TARGET_INVALID");
   assertCurrent();
   const evaluated = record(await runtime.send(target.tabId, "Runtime.evaluate", {
@@ -139,5 +144,5 @@ const validMediaPayload = (media: Record<string, unknown>): boolean =>
 const validMediaTurns = (media: Record<string, unknown>): boolean =>
   typeof media.assistantTurnId === "string"
   && typeof media.precedingUserTurnId === "string"
-  && /^conversation-turn-[1-9][0-9]*$/u.test(media.assistantTurnId)
-  && /^conversation-turn-[1-9][0-9]*$/u.test(media.precedingUserTurnId);
+  && /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(media.assistantTurnId)
+  && /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(media.precedingUserTurnId);

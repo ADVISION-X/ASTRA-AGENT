@@ -53,8 +53,8 @@ export const successfulAssistantObservation = Object.freeze({
   rawCount: 1,
   rawDomHtml: "<div><strong>complete</strong></div>", semanticText: "**complete**",
   currentUrl: "https://chatgpt.com/c/exact",
-  assistantTurnId: "conversation-turn-2",
-  precedingUserTurnId: "conversation-turn-1",
+  assistantTurnId: "00000000-0000-4000-8000-000000000002",
+  precedingUserTurnId: "00000000-0000-4000-8000-000000000001",
   generatingRaw: 0,
   observedAt: exactAssistantObservedAt, pendingCause: null, nativeStage: "runtime-call-function-on",
 });
@@ -87,7 +87,7 @@ export const exactAssistantRuntimeFor = (
       functionSource = String(parameters?.functionDeclaration ?? "");
       assert.equal(parameters?.objectId, "document-object");
       assert.deepEqual((parameters?.arguments as readonly Readonly<{ value: unknown }>[])?.[0]?.value,
-        { kind: "readExactAssistantTurn", userTurnId: "conversation-turn-1",
+        { kind: "readExactAssistantTurn", userTurnId: "00000000-0000-4000-8000-000000000001",
           canonicalConversationUrl: "https://chatgpt.com/c/exact" });
       assert.equal(parameters?.returnByValue, true);
       assert.equal(parameters?.awaitPromise, true);
@@ -106,7 +106,7 @@ export const executeExactAssistantFixture = (
 ): Promise<unknown> => executeRegisteredDomIntent(
   fixture.runtime,
   exactAssistantTarget,
-  { kind: "readExactAssistantTurn", userTurnId: "conversation-turn-1",
+  { kind: "readExactAssistantTurn", userTurnId: "00000000-0000-4000-8000-000000000001",
     canonicalConversationUrl: "https://chatgpt.com/c/exact" },
   () => undefined,
   "loader-current",

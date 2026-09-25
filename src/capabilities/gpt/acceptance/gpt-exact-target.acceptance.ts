@@ -97,19 +97,20 @@ for (const [field, failureCode] of [
   const fixture = fakeBrowser((intent) => {
     if (intent.kind === "observe") return coherentObservationPacket(intent, conversationFacts("", { mode }));
     if (intent.kind === "click") {
-      assert.equal(intent.expectedTextEquals, undefined);
-      assert.match(intent.selector, /data-tpp-toggle-value='chatgpt'/u);
+      assert.equal(intent.expectedTextEquals, "聊天");
+      assert.match(intent.selector, /aria-label='撰写器模式'.*button:first-of-type/u);
       assert.deepEqual(intent.postClickObservation?.queries.map((query) => [
-        query.queryId, query.expectedEligibleCount, query.fields,
+        query.queryId, query.expectedEligibleCount, query.textEquals, query.fields,
       ]), [
-        ["chat-mode", 1, ["ariaChecked"]], ["work-mode", 1, ["ariaChecked"]],
+        ["chat-mode", 1, "聊天", ["ariaPressed"]],
+        ["work-mode", 1, "工作", ["ariaPressed"]],
       ]);
       mode = "chat";
       const queries = intent.postClickObservation!.queries
         .map(({ expectedEligibleCount: _expected, ...query }) => query);
       return {
         postconditionVerified: true,
-        clickedCandidateAttributeReadback: { name: "aria-checked", value: "true", verified: true },
+        clickedCandidateAttributeReadback: { name: "aria-pressed", value: "true", verified: true },
         postconditionObservation: coherentObservationPacket({ queries }, conversationFacts("", { mode })),
       };
     }
@@ -132,8 +133,8 @@ for (const failure of ["wrong-attribute", "postcondition-not-chat"] as const) {
       return {
         postconditionVerified: true,
         clickedCandidateAttributeReadback: failure === "wrong-attribute"
-          ? { name: "aria-checked", value: "false", verified: false }
-          : { name: "aria-checked", value: "true", verified: true },
+          ? { name: "aria-pressed", value: "false", verified: false }
+          : { name: "aria-pressed", value: "true", verified: true },
         postconditionObservation: coherentObservationPacket({ queries }, conversationFacts("", { mode })),
       };
     }

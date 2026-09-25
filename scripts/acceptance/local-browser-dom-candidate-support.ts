@@ -184,11 +184,11 @@ const exerciseOutgoingRejections = async (source: string): Promise<void> => {
     `the Browser submit guard must reject a second Provider suffix: ${invalidLabel}`);
   }
   const historicalTurns = [1, 7, 3].map((ordinal) => new FakeElement("turn", {}, {}, {
-    "data-testid": `conversation-turn-${ordinal}` }));
+    "data-turn-key": `00000000-0000-4000-8000-${String(ordinal).padStart(12, "0")}` }));
   const historyDocument = { ...fixture.guardedDocument,
     querySelectorAll: (selector: string) => selector === "composer" ? [fixture.composer]
       : selector === "form" ? [fixture.form] : selector === "user-turn"
-        ? [...historicalTurns, new FakeElement("turn", {}, {}, { "data-testid": "conversation-turn-bad" })] : [] };
+        ? [...historicalTurns, new FakeElement("turn", {}, {}, { "data-turn-key": "invalid-turn-key" })] : [] };
   assert.equal(JSON.stringify(await execute(source, historyDocument, fixture.guardedInput)), JSON.stringify({ x: 5, y: 5 }));
   assert.equal(await execute(source, fixture.guardedDocument, { ...fixture.guardedInput, exactOutgoingTurn: {
     ...fixture.guardedInput.exactOutgoingTurn, expectedAttachmentLabels: [] } }),

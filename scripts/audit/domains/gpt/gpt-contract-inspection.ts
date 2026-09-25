@@ -293,7 +293,7 @@ const inspectProfileContracts = (
   }
   const reasoningContract = sourceFor(context, PROFILE_CONTRACT_PATH)?.getFullText() ?? "";
   inspectMissingTokens({ source: reasoningContract, required: [
-    "[role='menuitem'][aria-label='能力']", "[data-model-reasoning-effort-slider] [role='slider']",
+    "[role='menuitem'][data-reasoning-slider='true']", "[data-model-picker-power-slider] [role='slider']",
     "GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR",
     "GPT_PROFILE_REASONING_CLICK_SELECTOR", "GPT_PROFILE_REASONING_THUMB_SELECTOR",
   ], checkId: "gpt/reasoning-approved-scale-contract", filePath: PROFILE_CONTRACT_PATH,

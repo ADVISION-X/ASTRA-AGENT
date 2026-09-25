@@ -5,6 +5,9 @@ import { readdir, readFile, rename, stat, writeFile, mkdir } from "node:fs/promi
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
+import { appendSeoRevision, migrateCanonicalReport, validateSeoReportExtension,
+  withCanonicalReportLock }
+  from "./seo-report-revisions.mjs";
 import {
   derivePageInputBindingProof,
   pageInputBindingProofValid,
@@ -15,7 +18,8 @@ import { captureTimePageRequirementSnapshot, captureTimePageRequirementSnapshotV
   pageEvidenceNotApplicableForTrace, requiredLiveStatesForTrace, stateAssertionFailures,
   transitionEvidenceFailures } from "./trace-page-requirements.mjs";
 
-const REPORT_SCHEMA = "gpt-page-operation-evidence.v7";
+const REPORT_SCHEMA = "gpt-page-operation-evidence.v8";
+const LEGACY_REPORT_SCHEMA = "gpt-page-operation-evidence.v7";
 const CAPTURE_SCHEMA = "gpt-page-operation-capture.v6";
 const PRODUCTION_SOURCE_SCHEMA = "gpt-page-operation-production-source.v1";
 const MATRIX_SCHEMA = "gpt-page-operation-matrix.v4";
@@ -31,6 +35,12 @@ const DEMAND_CONTRACT_FIELDS = Object.freeze([
 const DEMAND_CHAIN_FACTS = Object.freeze([
   "document-and-revision-identity", "precondition-observation", "typed-command-and-terminal-receipt",
   "direct-postcondition-observation", "owner-and-linked-node-relations",
+]);
+const SEO_FIXED_CAPTURE_FIELDS = Object.freeze([
+  "captureRunId", "observedCallId", "childCapabilityId", "stateId", "capturedAt",
+  "documentIdentityHash", "observationRevisionHash", "sanitizedUrl", "candidateCount",
+  "candidates", "sanitizedOuterHtml", "attributes", "relatedNodes", "visibilityAndLayout",
+  "stateFacts", "inputRoleHashes", "decisionReceipt", "transitionReceipt", "directPostcondition",
 ]);
 
 const FORBIDDEN_CAPTURE_KEYS = /^(cookie|cookies|localstorage|sessionstorage|password|passwords|authorizationheader|accesstoken|refreshtoken)$/i;
@@ -124,6 +134,9 @@ async function loadMatrix(path) {
   const matrix = await readJson(path);
   if (matrix.schemaVersion !== MATRIX_SCHEMA || !Array.isArray(matrix.children)) {
     fail("MATRIX_SCHEMA_INVALID");
+  }
+  if (JSON.stringify(matrix.fixedCaptureFields) !== JSON.stringify(SEO_FIXED_CAPTURE_FIELDS)) {
+    fail("MATRIX_FIXED_CAPTURE_FIELDS_INVALID");
   }
   if (matrix.requiredLiveStateOrder !== "capturedAt-ascending-same-run") fail("MATRIX_STATE_ORDER_INVALID");
   const ids = matrix.children.map((child) => child.childCapabilityId);
@@ -526,7 +539,7 @@ function summarizeConsumers(productConsumers, pageIds) {
   return [...new Set(pageIds.flatMap((id) => productConsumers[id].map((entry) => entry.consumer)))].sort();
 }
 
-async function buildInventory(repo, matrixPath) {
+export async function buildInventory(repo, matrixPath) {
   const matrix = await loadMatrix(matrixPath);
   const { ids, contracts } = await loadContracts(repo);
   const references = await collectReferences(repo, ids);
@@ -579,6 +592,8 @@ async function buildInventory(repo, matrixPath) {
     productConsumers: summarizeConsumers(references.productConsumers, denominator.contractPageIds),
     products,
     captureMetadata: null,
+    legacyV7: { reportHash: sha256("new-v8-baseline"), runDigests: [], productDigests: [] },
+    seoCaptureRevisions: [],
     children
   };
 }
@@ -1848,7 +1863,11 @@ async function mergeProductRun(repo, inventory, matrix, base, capture) {
       reportTraceDigest: reportSource.reportTraceDigest,
       captureContext: captureContext(capture),
       productionSource: reportSource });
-    const runs = [...priorRuns.filter((entry) => entry.sourceSnapshotId !== run.sourceSnapshotId), run];
+    const priorSame = priorRuns.find((entry) => entry.sourceSnapshotId === run.sourceSnapshotId);
+    if (priorSame && JSON.stringify(priorSame) !== JSON.stringify(run)) {
+      fail("PRODUCT_HISTORICAL_RUN_REPLACEMENT_FORBIDDEN", run.sourceSnapshotId);
+    }
+    const runs = priorSame ? priorRuns : [...priorRuns, run];
     const projection = productCaptureProjection({ ...product, runs, gaps: run.gaps });
     return { ...product, runs, ...projection };
   });
@@ -1874,6 +1893,9 @@ async function mergeCapture(repo, matrixPath, capturePath, outputPath, baseRepor
   inventory.captureMetadata = null;
   inventory.captureEpoch = null;
   inventory.captureStatus = "NOT_CAPTURED";
+  inventory.legacyV7 = base?.legacyV7 ?? { reportHash: sha256("new-v8-baseline"), runDigests: [], productDigests: [] };
+  inventory.seoCaptureRevisions = base?.seoCaptureRevisions ?? [];
+  validateSeoReportExtension(inventory);
   await writeJsonAtomic(outputPath, inventory);
   return inventory;
 }
@@ -1910,16 +1932,21 @@ async function reprojectReport(repo, matrixPath, baseReportPath, outputPath, pro
   inventory.captureMetadata = null;
   inventory.captureEpoch = null;
   inventory.captureStatus = "NOT_CAPTURED";
+  inventory.legacyV7 = base.legacyV7;
+  inventory.seoCaptureRevisions = base.seoCaptureRevisions;
+  validateSeoReportExtension(inventory);
   await writeJsonAtomic(outputPath, inventory);
   return { report: inventory, gaps };
 }
 
-async function validateReport(repo, matrixPath, reportPath, requireComplete) {
+async function validateReport(repo, matrixPath, reportPath, requireComplete, allowLegacyV7 = false) {
   const report = await readJson(reportPath);
   if (["gpt-page-operation-evidence.v1", "gpt-page-operation-evidence.v2", "gpt-page-operation-evidence.v3", "gpt-page-operation-evidence.v4", "gpt-page-operation-evidence.v5", "gpt-page-operation-evidence.v6"].includes(report.schemaVersion)) {
     fail("REPORT_LEGACY_INVALIDATED");
   }
-  if (report.schemaVersion !== REPORT_SCHEMA) fail("REPORT_SCHEMA_INVALID");
+  if (report.schemaVersion !== REPORT_SCHEMA
+    && !(allowLegacyV7 && report.schemaVersion === LEGACY_REPORT_SCHEMA)) fail("REPORT_SCHEMA_INVALID");
+  if (report.schemaVersion === REPORT_SCHEMA) validateSeoReportExtension(report);
   assertNoRepositoryCandidateBinding(report);
   const matrix = await loadMatrix(matrixPath);
   const current = await buildInventory(repo, matrixPath);
@@ -2079,6 +2106,7 @@ function productAdmissionCandidate(report, product, stepId = "") {
 async function validateSelectedProduct(repo, matrixPath, reportPath, productId, actionId) {
   const report = await readJson(reportPath);
   if (report.schemaVersion !== REPORT_SCHEMA) fail("REPORT_SCHEMA_INVALID");
+  validateSeoReportExtension(report);
   if (!Array.isArray(report.products)) {
     fail("REPORT_ROLE_BOUNDARY_INVALID");
   }
@@ -2166,6 +2194,76 @@ async function assertNoSecondRepositoryReport(repo, outputPath) {
 async function main() {
   const { command, args } = parseArgs(process.argv.slice(2));
   const matrixPath = requiredArg(args, "matrix");
+  if (command === "migrate-v8") {
+    const repo = requiredArg(args, "repo");
+    const reportPath = requiredArg(args, "report");
+    assertCanonicalReportInput(repo, reportPath);
+    const result = await migrateCanonicalReport(reportPath,
+      () => validateReport(repo, matrixPath, reportPath, false, true));
+    process.stdout.write(`${JSON.stringify({ migrated: result.migrated,
+      legacyRunCount: result.report.legacyV7.runDigests.length,
+      seoRevisionCount: result.report.seoCaptureRevisions.length })}\n`);
+    return;
+  }
+  if (command === "append-seo") {
+    const repo = requiredArg(args, "repo");
+    const reportPath = requiredArg(args, "report");
+    const comparisonPath = requiredArg(args, "comparison");
+    const revisionPath = requiredArg(args, "revision");
+    assertCanonicalReportInput(repo, reportPath);
+    if (comparisonPath !== resolve(repo, "docs/项目方案/GPT页面DOM与代码差距报告.md")) {
+      fail("SEO_COMPARISON_PATH_INVALID");
+    }
+    const revision = await readJson(revisionPath);
+    const { loadSeoSourceFromCliArgs, assertSeoSourceAdmission } = await import("./seo-live-source.mjs");
+    const sourceAdmission = await loadSeoSourceFromCliArgs(args, repo);
+    assertSeoSourceAdmission(sourceAdmission, revision.source);
+    const matrix = await loadMatrix(matrixPath);
+    const current = await buildInventory(repo, matrixPath);
+    const { freezeSeoPlan } = await import("./seo-live-assembly.mjs");
+    const { freezeSeoFlow } = await import("./seo-report-revisions.mjs");
+    if (revision.matrixDigest !== current.matrixBinding.digest
+      || JSON.stringify(stable(revision.frozenPlan))
+        !== JSON.stringify(stable(freezeSeoPlan(matrix, current)))
+      || JSON.stringify(stable(revision.frozenFlow))
+        !== JSON.stringify(stable(freezeSeoFlow(Boolean(revision.localizationSource))))
+      || Object.entries(freezeSeoFlow().productSourceHashes).some(([path, hash]) =>
+        revision.source.sourceHashes[path] !== hash)) {
+      fail("SEO_CAPTURE_PLAN_CURRENT_DRIFT");
+    }
+    const result = await appendSeoRevision({ repo, reportPath, comparisonPath, revision });
+    process.stdout.write(`${JSON.stringify(result)}\n`);
+    return;
+  }
+  if (command === "seo-cell") {
+    const repo = requiredArg(args, "repo");
+    const reportPath = requiredArg(args, "report");
+    assertCanonicalReportInput(repo, reportPath);
+    if (typeof args["capture-run"] !== "string" || typeof args.revision !== "string"
+      || typeof args.child !== "string") fail("SEO_QUERY_IDENTITY_REQUIRED");
+    const report = await readJson(reportPath);
+    validateSeoReportExtension(report);
+    const revision = report.seoCaptureRevisions.find((entry) =>
+      entry.captureRunId === args["capture-run"] && entry.evidenceRevisionId === args.revision);
+    if (!revision) fail("SEO_REVISION_NOT_FOUND");
+    const cells = revision.cells.filter((cell) => cell.childCapabilityId === args.child
+      && (args.state === undefined || cell.stateId === args.state));
+    if (cells.length === 0) fail("SEO_CHILD_OR_STATE_NOT_FOUND");
+    process.stdout.write(`${JSON.stringify({ source: revision.localizationSource
+      ? "CROSS_ARTICLE_QA_SHARED_CHILD_SAMPLE" : "SEO_SHARED_CHILD_SAMPLE",
+      captureRunId: revision.captureRunId, evidenceRevisionId: revision.evidenceRevisionId,
+      captureStatus: revision.captureStatus, cells,
+      sceneObservationScopes: revision.scenes.filter((scene) => cells.some((cell) =>
+        cell.observations.some((row) => row.sceneId === scene.sceneId)))
+        .map((scene) => ({ sceneId: scene.sceneId,
+          observationScope: scene.observationScope ?? null })),
+      observedCalls: revision.calls.filter((call) => cells.some((cell) =>
+        cell.observations.some((row) => row.observedCallId === call.observedCallId)))
+        .map((call) => ({ observedCallId: call.observedCallId, stepId: call.stepId,
+          sourceJobIdHash: call.sourceJobIdHash ?? null })),
+      productCoverageGranted: false, websiteBusinessAdmissionGranted: false })}\n`);
+    return;
+  }
   if (command === "inventory") {
     const repo = requiredArg(args, "repo");
     const report = await buildInventory(repo, matrixPath);
@@ -2183,6 +2281,7 @@ async function main() {
     const outputPath = requiredArg(args, "output");
     assertCanonicalRepositoryOutput(repo, outputPath);
     await assertNoSecondRepositoryReport(repo, outputPath);
+    if (await isFile(outputPath)) fail("REPORT_INVENTORY_OVERWRITE_FORBIDDEN");
     await writeJsonAtomic(outputPath, report);
     process.stdout.write(`${JSON.stringify({ status: report.captureStatus, contracts: report.denominator.contractChildren,
       pageOperationChildren: report.denominator.pageOperationChildren, productRoutes: report.products.length,
@@ -2201,8 +2300,13 @@ async function main() {
     if (args.child !== undefined) fail("PRODUCT_CHILD_SCOPE_FORBIDDEN");
     const baseReportPath = typeof args["base-report"] === "string" ? args["base-report"] : null;
     if (baseReportPath === null) fail("TARGETED_MERGE_BASE_REPORT_REQUIRED");
-    const report = await mergeCapture(repo, matrixPath, capturePath, outputPath, baseReportPath,
-      args.product, args.action);
+    const report = await withCanonicalReportLock(outputPath, async () => {
+      if (await isFile(outputPath) && resolve(baseReportPath) !== resolve(outputPath)) {
+        fail("REPORT_WRITE_BASE_MUST_BE_CURRENT");
+      }
+      return mergeCapture(repo, matrixPath, capturePath, outputPath, baseReportPath,
+        args.product, args.action);
+    });
     process.stdout.write(`${JSON.stringify({ status: report.captureStatus, output: outputPath,
       requestedProduct: `${args.product}/${args.action}`, preservedUnselectedProducts: true })}\n`);
     return;
@@ -2217,7 +2321,12 @@ async function main() {
     if (args.child !== undefined) fail("PRODUCT_CHILD_SCOPE_FORBIDDEN");
     assertCanonicalRepositoryOutput(repo, outputPath);
     await assertNoSecondRepositoryReport(repo, outputPath);
-    const result = await reprojectReport(repo, matrixPath, baseReportPath, outputPath, args.product, args.action);
+    const result = await withCanonicalReportLock(outputPath, async () => {
+      if (await isFile(outputPath) && resolve(baseReportPath) !== resolve(outputPath)) {
+        fail("REPORT_WRITE_BASE_MUST_BE_CURRENT");
+      }
+      return reprojectReport(repo, matrixPath, baseReportPath, outputPath, args.product, args.action);
+    });
     process.stdout.write(`${JSON.stringify({
       status: result.report.captureStatus,
       output: outputPath,

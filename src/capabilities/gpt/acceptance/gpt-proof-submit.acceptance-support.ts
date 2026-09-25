@@ -24,13 +24,13 @@ const exerciseSubmit = async (
       return { postconditionVerified: true,
         postconditionObservation: coherentObservationPacket({ queries }, {
           "submitted-user-turn": { rawCount: 1, eligibleCount: 1,
-            matches: [{ testId: expectedUserTurnId, exactGptUserPromptHash: promptHash }] },
+            matches: [{ turnKey: expectedUserTurnId, exactGptUserPromptHash: promptHash }] },
           "empty-composer": { rawCount: 1, eligibleCount: 1, matches: [{}] },
         }, conversationUrl) };
     }
     if (intent.kind === "observe") return coherentObservationPacket(intent, {
       "latest-user-turn": latestUserTurnId === null ? { rawCount: 0, eligibleCount: 0 }
-        : { rawCount: 1, eligibleCount: 1, matches: [{ testId: latestUserTurnId }] },
+        : { rawCount: 1, eligibleCount: 1, matches: [{ turnKey: latestUserTurnId }] },
     }, conversationUrl);
     throw new Error(`UNEXPECTED_SUBMIT_PROOF_INTENT:${intent.kind}`);
   }, { initialUrl: conversationUrl });
@@ -53,11 +53,11 @@ const exerciseSubmit = async (
 };
 
 export const verifySubmitProofs = async (): Promise<void> => {
-  await exerciseSubmit("gpt-proof-submit-localization", [], [], null, "conversation-turn-1");
+  await exerciseSubmit("gpt-proof-submit-localization", [], [], null, "00000000-0000-4000-8000-000000000001");
   await exerciseSubmit("gpt-proof-submit-with-attachment", [approvedFile],
-    [approvedFile.providerDisplayName], "conversation-turn-1", "conversation-turn-7");
+    [approvedFile.providerDisplayName], "00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000007");
   await exerciseSubmit("gpt-proof-submit-third-turn", [], [],
-    "conversation-turn-7", "conversation-turn-12");
+    "00000000-0000-4000-8000-000000000007", "00000000-0000-4000-8000-000000000012");
 
   {
     const fixture = fakeBrowser((intent) => {
@@ -67,7 +67,7 @@ export const verifySubmitProofs = async (): Promise<void> => {
       return { postconditionVerified: true,
         postconditionObservation: coherentObservationPacket({ queries }, {
           "submitted-user-turn": { rawCount: 1, eligibleCount: 1,
-            matches: [{ testId: "conversation-turn-3", exactGptUserPromptHash: `sha256:${"f".repeat(64)}` }] },
+            matches: [{ turnKey: "00000000-0000-4000-8000-000000000003", exactGptUserPromptHash: `sha256:${"f".repeat(64)}` }] },
           "empty-composer": { rawCount: 1, eligibleCount: 1, matches: [{}] },
         }, conversationUrl) };
     }, { initialUrl: conversationUrl });

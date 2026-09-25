@@ -30,9 +30,9 @@ type FileInputScenario = Readonly<{
 }>;
 
 const activation = Object.freeze({
-  selector: "div.__menu-item[tabindex='0'] span",
-  scope: Object.freeze({ selector: "#thread-bottom div.popover[aria-busy='false']" }),
-  expectedTextEquals: "从电脑上传",
+  selector: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child",
+  scope: Object.freeze({ selector: "[data-composer-overlay-floating-ui='true']" }),
+  expectedTextEquals: "添加照片和文件",
 });
 
 const fileMechanicalFacts = (overrides: Readonly<Record<string, unknown>> = {}) => ({
@@ -171,7 +171,7 @@ const runFileInputScenario = async (input: FileInputScenario) => {
       state.targetChecks += 1;
       if (input.driftBeforeDispatch && state.targetChecks === 3) throw new Error("BROWSER_DOCUMENT_INVALID");
     },
-    selector: "#upload-files",
+    selector: "form[data-chatgpt-composer] input[type='file'][aria-label='附加文件']",
     activation: input.activationOverride ?? activation,
     approvedFiles: [
       { grantRef: "grant-a", contentHash: `sha256:${"a".repeat(64)}`, maxBytes: 10_000 },

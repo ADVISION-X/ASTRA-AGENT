@@ -1,9 +1,9 @@
 export const GPT_ATTACHMENT_CONTROL_SELECTOR =
-  "button#composer-plus-btn[data-testid='composer-plus-btn'][aria-haspopup='menu']";
+  "button[aria-label='添加文件等内容']";
 export const GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR =
-  "#thread-bottom div.popover[aria-busy='false']";
-export const GPT_UPLOAD_FROM_COMPUTER_SELECTOR = "div.__menu-item[tabindex='0'] span";
-export const GPT_UPLOAD_FROM_COMPUTER_LABEL = "从电脑上传";
-export const GPT_FILE_INPUT_SELECTOR = "#upload-files";
-export const GPT_COMPOSER_FORM_SELECTOR = "form:has(#prompt-textarea)";
+  "[data-composer-overlay-floating-ui='true']";
+export const GPT_UPLOAD_FROM_COMPUTER_SELECTOR = "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child";
+export const GPT_UPLOAD_FROM_COMPUTER_LABEL = "添加照片和文件";
+export const GPT_FILE_INPUT_SELECTOR = "form[data-chatgpt-composer] input[type='file'][aria-label='附加文件']";
+export const GPT_COMPOSER_FORM_SELECTOR = "form[data-chatgpt-composer]";
 export const GPT_ATTACHMENT_ITEM_SELECTOR = "[role='group'][aria-label]";

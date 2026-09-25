@@ -13,10 +13,10 @@ const clickCommand = { kind: "dom-intent" as const, intent: {
   postClickMatch: { selector: "done", expectedMatches: 1 },
 } };
 
-const fileCommand = { kind: "file-input" as const, selector: "#upload-files",
-  activation: { selector: "div.__menu-item[tabindex='0'] span",
-    scope: { selector: "#thread-bottom div.popover[aria-busy='false']" },
-    expectedTextEquals: "从电脑上传" },
+const fileCommand = { kind: "file-input" as const, selector: "form[data-chatgpt-composer] input[type='file'][aria-label='附加文件']",
+  activation: { selector: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child",
+    scope: { selector: "[data-composer-overlay-floating-ui='true']" },
+    expectedTextEquals: "添加照片和文件" },
   approvedFiles: [{ grantRef: "grant-one", contentHash: `sha256:${"a".repeat(64)}` as const,
     maxBytes: 64 }], resolvedFilePaths: ["/approved/one.txt"] };
 const keypressCommand = { kind: "dom-intent" as const, intent: {
@@ -24,7 +24,7 @@ const keypressCommand = { kind: "dom-intent" as const, intent: {
   postKeypressMatch: { selector: "done", expectedMatches: 1 },
 } };
 const fillCommand = { kind: "dom-intent" as const, intent: {
-  kind: "fill" as const, selector: "#prompt-textarea", approvedText: "approved",
+  kind: "fill" as const, selector: "form[data-chatgpt-composer] [data-composer-markdown][contenteditable='true'][role='textbox']", approvedText: "approved",
   clearBeforeType: false, expectedMatches: 1,
 } };
 const visibleMatchEvidence = {

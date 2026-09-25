@@ -296,13 +296,14 @@ const collectNodeText = (node: DevToolsRecord): string => {
 
 const staticFieldReaders: Readonly<Record<string, (node: DevToolsRecord) => unknown>> = {
   id: (node) => attribute(node, "id") ?? "",
-  dataTurn: (node) => attribute(node, "data-turn") ?? "",
+  turnKey: (node) => attribute(node, "data-turn-key") ?? "",
   tagName: (node) => stringValue(node.nodeName, DOM_READ_INVALID),
   ariaLabel: (node) => attribute(node, "aria-label") ?? "",
   ariaExpanded: (node) => attribute(node, "aria-expanded") ?? "",
   ariaLabelledBy: (node) => attribute(node, "aria-labelledby") ?? "",
   ariaControls: (node) => attribute(node, "aria-controls") ?? "",
   ariaChecked: (node) => attribute(node, "aria-checked") ?? "",
+  ariaPressed: (node) => attribute(node, "aria-pressed") ?? "",
   accept: (node) => attribute(node, "accept") ?? "",
   multiple: (node) => attribute(node, "multiple") !== undefined,
 };

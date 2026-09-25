@@ -32,6 +32,7 @@ export class FakeElement {
     return `<${this.tagName.toLowerCase()}>${this.childNodes.map((child) => child.outerHTML).join("")}</${this.tagName.toLowerCase()}>`;
   }
   public querySelectorAll(selector: string): readonly FakeElement[] { return this.queries[selector] ?? []; }
+  public querySelector(selector: string): FakeElement | null { return this.querySelectorAll(selector)[0] ?? null; }
   public getBoundingClientRect() { return { left: 0, top: 0, right: 10, bottom: 10, width: 10, height: 10 }; }
   public getClientRects(): readonly object[] { return [{}]; }
   public getAttribute(name: string): string | null { return this.attributes[name] ?? null; }
@@ -55,6 +56,28 @@ export class FakeTextNode extends FakeElement {
   public override get nodeValue(): string { return this.textContent; }
 }
 
+export const fakeGptUserTurn = (
+  id: string,
+  text: string,
+  longPromptNodes: readonly FakeElement[],
+  shortPromptNodes: readonly FakeElement[] = [],
+  extras: readonly FakeElement[] = [],
+): FakeElement => {
+  const bubble = new FakeElement(text, {
+    "[data-testid='collapsible-user-message-content']": longPromptNodes,
+    ".whitespace-pre-wrap": shortPromptNodes,
+  }, {}, { "data-user-message-bubble": "true" }, "DIV", [...longPromptNodes, ...shortPromptNodes]);
+  const unit = new FakeElement(text, { "[data-user-message-bubble='true']": [bubble] }, {}, {
+    "data-chatgpt-search-unit-key": "fallback-turn-0:0:user",
+    "data-chatgpt-search-message-ids": id,
+  }, "DIV", [bubble]);
+  const marker = new FakeElement("", {}, {}, { "data-content-search-turn-key": "fallback-turn-0" });
+  return new FakeElement(text, {
+    "[data-content-search-turn-key^='fallback-turn-']": [marker],
+    "[data-chatgpt-search-unit-key$=':user']": [unit],
+  }, {}, { "data-turn-key": id }, "ARTICLE", [marker, unit, ...extras]);
+};
+
 export const RICH_SEMANTIC_TEXT = "Title\nBody `inline`\n- item\n\n{\"ok\":true}\nend";
 
 export const richSemanticTree = (): FakeElement => new FakeElement("rich response", {}, {}, {}, "DIV", [
@@ -74,10 +97,17 @@ export const richSemanticTree = (): FakeElement => new FakeElement("rich respons
 
 export const execute = (source: string, document: Readonly<Record<string, unknown>>, input: unknown,
   href = "https://chatgpt.com/"): unknown => {
+  const originalQuery = document.querySelectorAll as ((selector: string) => readonly FakeElement[]);
+  const root = document.documentElement as FakeElement;
   const context = {
     Element: FakeElement,
     URL,
-    document,
+    document: { ...document, querySelectorAll: (selector: string) => {
+      const match = /^\[data-turn-key="([a-f0-9-]+)"\]$/.exec(selector);
+      if (match) return root.querySelectorAll(".user-turn")
+        .filter((turn) => turn.getAttribute("data-turn-key") === match[1]);
+      return originalQuery(selector);
+    } },
     location: Object.freeze({ href }),
     crypto: globalThis.crypto,
     TextEncoder,
@@ -100,19 +130,27 @@ type QueryResults<T> = Readonly<{ queries: readonly Readonly<{ matches: readonly
 const exerciseComposerExactHashes = async (source: string): Promise<void> => {
   const trailingBreak = new FakeElement("", {}, {}, { class: "ProseMirror-trailingBreak" }, "BR");
   const emptyParagraph = new FakeElement("", {}, {}, { "data-empty-paragraph": "true" }, "P", [trailingBreak]);
-  const emptyComposer = new FakeElement("", {}, {}, { id: "prompt-textarea", contenteditable: "true" }, "DIV", [emptyParagraph]);
-  const composerRoot = new FakeElement("", { "#prompt-textarea": [emptyComposer] });
+  const emptyComposer = new FakeElement("", {}, {}, { "data-composer-markdown": "", role: "textbox", contenteditable: "true" }, "DIV", [emptyParagraph]);
+  const composerRoot = new FakeElement("", { "form[data-chatgpt-composer] [data-composer-markdown][contenteditable='true'][role='textbox']": [emptyComposer] });
   emptyComposer.parentElement = composerRoot;
   const emptyResult = await execute(source, { documentElement: composerRoot, querySelectorAll: () => [],
-    elementFromPoint: () => emptyComposer }, [{ queryId: "composer", selector: "#prompt-textarea", maxMatches: 1,
+    elementFromPoint: () => emptyComposer }, [{ queryId: "composer", selector: "form[data-chatgpt-composer] [data-composer-markdown][contenteditable='true'][role='textbox']", maxMatches: 1,
     fields: ["semanticTextHash"] }]) as QueryResults<{ semanticTextHash: string }>;
   assert.equal(emptyResult.queries[0]?.matches[0]?.semanticTextHash,
     "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+  const chatMode = new FakeElement("聊天", {}, {}, { "aria-pressed": "true" }, "BUTTON");
+  const modeRoot = new FakeElement("", { "[role='group'] > button:first-of-type": [chatMode] });
+  chatMode.parentElement = modeRoot;
+  const modeResult = await execute(source, { documentElement: modeRoot, querySelectorAll: () => [],
+    elementFromPoint: () => chatMode }, [{ queryId: "chat-mode",
+    selector: "[role='group'] > button:first-of-type", maxMatches: 1,
+    fields: ["ariaPressed"] }]) as QueryResults<{ ariaPressed: string }>;
+  assert.equal(modeResult.queries[0]?.matches[0]?.ariaPressed, "true");
   const markdownPrompt = "# Heading\n- item\n`code`\n";
   const markdownBlocks = markdownPrompt.split("\n").map((value) =>
     new FakeElement(value, {}, {}, {}, "P", value.length === 0 ? [] : [new FakeTextNode(value)]));
-  const markdownComposer = new FakeElement(markdownPrompt, {}, {}, { id: "prompt-textarea", contenteditable: "true" }, "DIV", markdownBlocks);
-  const styledComposer = new FakeElement("bold", {}, {}, { id: "prompt-textarea", contenteditable: "true" }, "DIV",
+  const markdownComposer = new FakeElement(markdownPrompt, {}, {}, { "data-composer-markdown": "", role: "textbox", contenteditable: "true" }, "DIV", markdownBlocks);
+  const styledComposer = new FakeElement("bold", {}, {}, { "data-composer-markdown": "", role: "textbox", contenteditable: "true" }, "DIV",
     [new FakeElement("bold", {}, {}, {}, "P", [new FakeElement("bold", {}, {}, {}, "STRONG", [new FakeTextNode("bold")])])]);
   const richResponse = richSemanticTree();
   const root = new FakeElement("", { "#markdown": [markdownComposer], "#styled": [styledComposer], "#rich": [richResponse] });
@@ -130,7 +168,7 @@ const exerciseComposerExactHashes = async (source: string): Promise<void> => {
     ["approved\u2007prompt", "approved\u2007prompt"], ["approved\tprompt", "approved\tprompt"],
     ["approved  prompt", "approved  prompt"], ["approved\nprompt", "approved\nprompt"]] as const;
   for (const [index, [rendered, expected]] of cases.entries()) {
-    const editable = new FakeElement(rendered, {}, {}, { id: "prompt-textarea", contenteditable: "true" }, "DIV", [new FakeTextNode(rendered)]);
+    const editable = new FakeElement(rendered, {}, {}, { "data-composer-markdown": "", role: "textbox", contenteditable: "true" }, "DIV", [new FakeTextNode(rendered)]);
     const editableRoot = new FakeElement("", { [`#editable-${index}`]: [editable] });
     editable.parentElement = editableRoot;
     const observed = await execute(source, { documentElement: editableRoot, querySelectorAll: () => [],
@@ -144,7 +182,7 @@ const exerciseIncidentScalePromptProjection = async (source: string): Promise<vo
   const tail = "one two three four five six seven eight";
   const approved = `${"甲".repeat(111_075)}\n${tail}\n[GRASSEYE:prompt-end]`;
   const rendered = `${"甲".repeat(111_075)}\n${tail.replaceAll(" ", "\u00a0")}\n[GRASSEYE:prompt-end]`;
-  const editable = new FakeElement(rendered, {}, {}, { id: "prompt-textarea", contenteditable: "true" }, "DIV", [new FakeTextNode(rendered)]);
+  const editable = new FakeElement(rendered, {}, {}, { "data-composer-markdown": "", role: "textbox", contenteditable: "true" }, "DIV", [new FakeTextNode(rendered)]);
   const runtime = { async send(_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>) {
     if (method === "DOM.resolveNode") return { object: { objectId: "incident-editable" } };
     if (method === "Runtime.callFunctionOn") {
@@ -157,12 +195,11 @@ const exerciseIncidentScalePromptProjection = async (source: string): Promise<vo
   } } as ExtensionDebuggerRuntime;
   assert.equal(await readExactEditableText(runtime, 1, 1), approved);
   const body = new FakeElement(rendered, {}, {}, { "data-testid": "collapsible-user-message-content" }, "DIV", [new FakeTextNode(rendered)]);
-  const turn = new FakeElement(rendered, { "[data-testid='collapsible-user-message-content']": [body],
-    "[data-message-author-role='user']": [body] }, {}, { "data-testid": "conversation-turn-111074" }, "ARTICLE", [body]);
-  const root = new FakeElement("", { "#prompt-textarea": [editable], ".user-turn": [turn] });
+  const turn = fakeGptUserTurn("00000000-0000-4000-8000-000000111074", rendered, [body]);
+  const root = new FakeElement("", { "form[data-chatgpt-composer] [data-composer-markdown][contenteditable='true'][role='textbox']": [editable], ".user-turn": [turn] });
   editable.parentElement = root; turn.parentElement = root;
   const result = await execute(source, { documentElement: root, querySelectorAll: () => [], elementFromPoint: () => editable }, [
-    { queryId: "incident-editable", selector: "#prompt-textarea", maxMatches: 1, fields: ["exactEditableTextHash"] },
+    { queryId: "incident-editable", selector: "form[data-chatgpt-composer] [data-composer-markdown][contenteditable='true'][role='textbox']", maxMatches: 1, fields: ["exactEditableTextHash"] },
     { queryId: "incident-user-turn", selector: ".user-turn", maxMatches: 1, fields: ["exactGptUserPromptHash"] },
   ]) as QueryResults<{ exactEditableTextHash?: string; exactGptUserPromptHash?: string }>;
   assert.equal(result.queries[0]?.matches[0]?.exactEditableTextHash, hash(approved));

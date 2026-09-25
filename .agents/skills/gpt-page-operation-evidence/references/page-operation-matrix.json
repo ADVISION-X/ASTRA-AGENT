@@ -9,6 +9,27 @@
     "related",
     "peripheral"
   ],
+  "fixedCaptureFields": [
+    "captureRunId",
+    "observedCallId",
+    "childCapabilityId",
+    "stateId",
+    "capturedAt",
+    "documentIdentityHash",
+    "observationRevisionHash",
+    "sanitizedUrl",
+    "candidateCount",
+    "candidates",
+    "sanitizedOuterHtml",
+    "attributes",
+    "relatedNodes",
+    "visibilityAndLayout",
+    "stateFacts",
+    "inputRoleHashes",
+    "decisionReceipt",
+    "transitionReceipt",
+    "directPostcondition"
+  ],
   "authoritySources": [
     ".github/instructions/agent-rules/功能法案.md",
     "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md"
@@ -502,7 +523,7 @@
       }
     },
     {
-      "childCapabilityId": "open_gpt_model_selector_v2",
+      "childCapabilityId": "open_gpt_model_selector_v3",
       "scenarioId": "text-main",
       "coreTargets": [
         "model-selector-trigger",
@@ -531,7 +552,7 @@
         "target-model-ambiguous"
       ],
       "requiredInputRefs": [
-        "authorized-model-id"
+        "production-execution-profile"
       ],
       "stateAssertions": {
         "model-selector-openable": [
@@ -571,7 +592,7 @@
       }
     },
     {
-      "childCapabilityId": "select_exact_gpt_model_v2",
+      "childCapabilityId": "select_gpt_model_from_start_v3",
       "scenarioId": "text-main",
       "coreTargets": [
         "model-option"
@@ -602,7 +623,7 @@
         "different-model-selected"
       ],
       "requiredInputRefs": [
-        "authorized-model-id"
+        "production-execution-profile"
       ],
       "stateAssertions": {
         "target-model-actionable-unchecked": [
@@ -643,7 +664,7 @@
       }
     },
     {
-      "childCapabilityId": "ensure_gpt_reasoning_requirement",
+      "childCapabilityId": "select_gpt_reasoning_from_start_v3",
       "scenarioId": "text-main",
       "coreTargets": [
         "reasoning-control",
@@ -680,7 +701,7 @@
         "reasoning-scale-unsupported"
       ],
       "requiredInputRefs": [
-        "authorized-reasoning-requirement"
+        "production-execution-profile"
       ],
       "stateAssertions": {
         "reasoning-scale-current-variant": [

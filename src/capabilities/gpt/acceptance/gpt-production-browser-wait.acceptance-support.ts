@@ -45,7 +45,7 @@ try {
         state: "confirmed", mutationOutcome: "confirmed", providerEffectIdentityHash,
         terminalPayload: {
           canonicalConversationUrl: "https://chatgpt.com/c/provider-wait",
-          userTurnId: "conversation-turn-1",
+          userTurnId: "00000000-0000-4000-8000-000000000001",
         },
       }),
       executeDomIntent: async () => { selections += 1; },
@@ -54,7 +54,7 @@ try {
         captureCommandIdentity();
         return {
           authorityTargetHash: HASH_A, authorityDocumentHash: HASH_B,
-          assistantTurnId: "assistant:1", precedingUserTurnId: "conversation-turn-1",
+          assistantTurnId: "assistant:1", precedingUserTurnId: "00000000-0000-4000-8000-000000000001",
           currentUrl: "https://chatgpt.com/c/provider-wait",
           semanticMediaId: "gpt-generated-image-main", bytesBase64: "YQ==",
           sha256: HASH_A, sizeBytes: 1, mediaType: "image/png",
@@ -99,7 +99,7 @@ try {
     resultRevision: 0, productStepId: "research", callId: "turn-submit",
     childCapabilityId: "submit_exact_gpt_turn_once", inputHash: HASH_A,
     actionOrdinal: 1, replayPolicy: "provider-effect-once",
-  }, "https://chatgpt.com/c/provider-wait", "conversation-turn-1");
+  }, "https://chatgpt.com/c/provider-wait", "00000000-0000-4000-8000-000000000001");
   const observationStartedAt = Date.now();
   const originalAcquire = (lifecycle as never as { browserAuthority: {
     acquireJobBoundTargetLease: (...args: unknown[]) => Promise<TestBrowserLease>;
@@ -156,7 +156,7 @@ try {
   await active.facade.runAtomicStep(imageIdentity, async () => {
     await active.facade.readAuthenticatedMedia({
       canonicalConversationUrl: "https://chatgpt.com/c/provider-wait",
-      userTurnId: "conversation-turn-1", semanticMediaId: "gpt-generated-image-main",
+      userTurnId: "00000000-0000-4000-8000-000000000001", semanticMediaId: "gpt-generated-image-main",
     });
     assert.equal(await lifecycle.waitForProviderObservation(
       active, "research", "image-wait", "checkpoint_gpt_generated_image", Date.now() + 200_000,
@@ -164,7 +164,7 @@ try {
     ), "reobserve");
     await active.facade.readAuthenticatedMedia({
       canonicalConversationUrl: "https://chatgpt.com/c/provider-wait",
-      userTurnId: "conversation-turn-1", semanticMediaId: "gpt-generated-image-main",
+      userTurnId: "00000000-0000-4000-8000-000000000001", semanticMediaId: "gpt-generated-image-main",
     });
     assert.equal(await lifecycle.waitForProviderObservation(
       active, "research", "image-wait", "checkpoint_gpt_generated_image", Date.now() + 200_000,
@@ -172,7 +172,7 @@ try {
     ), "reobserve");
     await active.facade.readAuthenticatedMedia({
       canonicalConversationUrl: "https://chatgpt.com/c/provider-wait",
-      userTurnId: "conversation-turn-1", semanticMediaId: "gpt-generated-image-main",
+      userTurnId: "00000000-0000-4000-8000-000000000001", semanticMediaId: "gpt-generated-image-main",
     });
   });
   assert.deepEqual(atomicCommandIdentities.slice(5, 10), Array(5).fill(imageIdentity),

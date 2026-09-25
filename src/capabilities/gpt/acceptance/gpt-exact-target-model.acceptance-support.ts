@@ -44,7 +44,8 @@ const verifyModelOpen = async (): Promise<void> => {
       if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTOR_OPENABLE_ENTRY) {
         assert.equal(intent.postClickMinimumDelayMs, 2_500);
         assert.equal(intent.postClickMatch?.expectedMatches, 1);
-        assert.equal(intent.postClickMatch?.selector, "[role='menuitemradio']");
+        assert.equal(intent.postClickMatch?.selector,
+          "[data-model-picker-view='advanced'] [role='menuitemradio']");
         assert.equal(intent.postClickMatch?.textEquals, profile.startModelDisplayName);
         state = "open";
         return { postconditionVerified: true, postconditionRawCount: 2,

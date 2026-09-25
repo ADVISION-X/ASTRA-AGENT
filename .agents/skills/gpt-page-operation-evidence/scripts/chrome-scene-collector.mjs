@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { readFile, rename, writeFile } from "node:fs/promises";
+import { BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE } from "../../../../src/lib/browser/chrome-extension/dom-semantic-text.ts";
 
 const DEFAULT_ROOT_SELECTOR =
   'main, body [role="menu"]:visible, body [role="dialog"]:visible, body [role="listbox"]:visible, body [role="alert"]:visible';
@@ -7,6 +8,7 @@ const DEFAULT_ROOT_SELECTOR =
 const DEFAULT_UI_ALLOWLIST = new Set([
   "GPT-5.6 Sol",
   "GPT-5.5",
+  "最新",
   "选择模型",
   "能力",
   "高",
@@ -185,8 +187,13 @@ export async function createChromeSceneCollector({
     || !recaptureTrigger || !qaTabIdentityHash) {
     throw new Error("CHROME_SCENE_COLLECTOR_CONFIGURATION_REQUIRED");
   }
-  if (!["PAGE_EVIDENCE_CONFLICT_CONFIRMED", "HUMAN_REQUESTED_RECAPTURE"].includes(recaptureTrigger.kind)) {
+  if (!["PAGE_EVIDENCE_CONFLICT_CONFIRMED", "HUMAN_REQUESTED_RECAPTURE",
+    "LIVE_SEO_CAPTURE_SESSION"].includes(recaptureTrigger.kind)) {
     throw new Error("RECAPTURE_FORBIDDEN");
+  }
+  if (recaptureTrigger.kind === "LIVE_SEO_CAPTURE_SESSION"
+    && !/^sha256:[a-f0-9]{64}$/u.test(recaptureTrigger.sourceInputHash ?? "")) {
+    throw new Error("SEO_CAPTURE_SOURCE_BINDING_REQUIRED");
   }
 
   const scenes = await readExisting(outputPath);
@@ -206,17 +213,19 @@ export async function createChromeSceneCollector({
     runId,
     captureEpoch,
     qaTabIdentityHash,
+    ...(recaptureTrigger.kind === "LIVE_SEO_CAPTURE_SESSION"
+      ? { sourceInputHash: recaptureTrigger.sourceInputHash } : {}),
   });
 
   async function collect(sceneId, { includeMedia = false, decisionReceipt = null,
-    transitionReceipt = null, attachmentUploadExpected = false } = {}) {
+    transitionReceipt = null, attachmentUploadExpected = false, exactAssistantPromptHash = null } = {}) {
     if (!sceneId || scenes.some((scene) => scene.sceneId === sceneId)) {
       throw new Error(`SCENE_ID_DUPLICATE_OR_EMPTY:${sceneId ?? ""}`);
     }
     const normalizedDecisionReceipt = acceptedDecisionReceipt(decisionReceipt);
     const normalizedTransitionReceipt = acceptedTransitionReceipt(transitionReceipt, scenes);
     const roots = activeTab.playwright.locator(rootSelector);
-    const rawPacket = await roots.evaluateAll((elements, context) => {
+    const readPage = (elements, context) => {
       const { marker, attachmentUploadArmed } = context;
       const attributeNames = [
         "id",
@@ -225,6 +234,7 @@ export async function createChromeSceneCollector({
         "aria-label",
         "aria-checked",
         "aria-expanded",
+        "aria-haspopup",
         "aria-selected",
         "aria-disabled",
         "aria-valuemin",
@@ -233,7 +243,15 @@ export async function createChromeSceneCollector({
         "aria-busy",
         "data-state",
         "data-testid",
+        "data-model-picker-view",
+        "data-model-picker-view-toggle",
+        "data-reasoning-slider",
         "data-message-author-role",
+        "data-chatgpt-search-unit-key",
+        "data-content-search-turn-key",
+        "data-chatgpt-composer",
+        "data-composer-markdown",
+        "data-user-message-bubble",
         "contenteditable",
         "accept",
         "multiple",
@@ -277,19 +295,25 @@ export async function createChromeSceneCollector({
         if (name === "LI") return `${parent && String(parent.nodeName).toUpperCase() === "OL" ? "1. " : "- "}${body}\n`;
         return blockNames.has(name) ? `${body}\n` : body;
       };
-      const semanticText = (node) => {
+      const legacySemanticText = (node) => {
         const value = Array.from(node.childNodes || []).map((child) => semanticNode(child, node, false)).join("");
         return value.endsWith("\n") ? value.slice(0, -1) : value;
       };
+      const semanticText = browserCanonicalSemanticText;
       const userPromptText = (turn) => {
+        if (turn.hasAttribute("data-content-search-turn-key")
+          && turn.querySelector("[data-chatgpt-search-unit-key$=':user']")) return null;
+        const newPromptLeaves = turn.querySelectorAll("[data-user-message-bubble] .whitespace-pre-wrap");
+        if (newPromptLeaves.length === 1) return browserCanonicalGptUserPromptText(newPromptLeaves[0]);
+        if (newPromptLeaves.length > 1) return null;
         const userRoles = turn.querySelectorAll("[data-message-author-role='user']");
         if (userRoles.length !== 1
           || turn.querySelectorAll("[data-message-author-role='assistant']").length !== 0) return null;
         const collapsed = turn.querySelectorAll("[data-testid='collapsible-user-message-content']");
-        if (collapsed.length === 1) return semanticText(collapsed[0]);
+        if (collapsed.length === 1) return browserCanonicalGptUserPromptText(collapsed[0]);
         if (collapsed.length !== 0) return null;
         const shortPromptLeaves = userRoles[0].querySelectorAll(".whitespace-pre-wrap");
-        return shortPromptLeaves.length === 1 ? semanticText(shortPromptLeaves[0]) : null;
+        return shortPromptLeaves.length === 1 ? browserCanonicalGptUserPromptText(shortPromptLeaves[0]) : null;
       };
       const semanticMediaNodes = (turn) => [...turn.querySelectorAll("img[alt]")].filter((node) => {
         if (node.tagName !== "IMG" || !node.isConnected || !node.complete
@@ -300,11 +324,11 @@ export async function createChromeSceneCollector({
           && style.visibility !== "hidden" && style.visibility !== "collapse"
           && Number.parseFloat(style.opacity || "1") > 0;
       });
-      const domSnapshot = (root) => {
+      const domSnapshot = (root, limit) => {
         let count = 0;
         const visit = (node, depth) => {
           count += 1;
-          if (count > 200 || depth > 6) return { kind: "TRUNCATED" };
+          if (count > limit || depth > 6) return { kind: "TRUNCATED" };
           if (node.nodeType === 3) return { kind: "TEXT", value: node.textContent || "" };
           if (node.nodeType !== 1) return null;
           const attributes = {};
@@ -317,13 +341,27 @@ export async function createChromeSceneCollector({
         };
         return visit(root, 0);
       };
+      const pageDocument = elements[0]?.ownerDocument;
+      const liveTurnRoots = Array.from(pageDocument?.querySelectorAll("[data-chatgpt-search-unit-key]") ?? []);
+      const markerUserIndex = liveTurnRoots.findIndex((turn) => userPromptText(turn)?.includes(marker));
+      const activeOwnerTurns = new Set(Array.from(pageDocument
+        ?.querySelectorAll("[data-content-search-turn-key]:has(img[alt])") ?? []));
+      if (markerUserIndex >= 0) {
+        activeOwnerTurns.add(liveTurnRoots[markerUserIndex]);
+        for (let index = markerUserIndex + 1; index < liveTurnRoots.length; index += 1) {
+          if (userPromptText(liveTurnRoots[index]) !== null) break;
+          activeOwnerTurns.add(liveTurnRoots[index]);
+        }
+      }
 
       for (const root of elements) {
         for (const element of [root, ...root.querySelectorAll("*")]) {
+          const ownerTurn = element?.closest?.("[data-testid^='conversation-turn-'], [data-chatgpt-search-unit-key], [data-content-search-turn-key]");
           if (
             !element ||
             element.nodeType !== 1 ||
             seen.has(element) ||
+            (ownerTurn && !activeOwnerTurns.has(ownerTurn)) ||
             element.closest("nav,aside")
           ) {
             continue;
@@ -354,8 +392,6 @@ export async function createChromeSceneCollector({
             .trim();
           const subtreeText = (element.textContent || "").replace(/\s+/g, " ").trim();
           const parent = element.parentElement;
-          const ownerTurn = element.closest("[data-testid^='conversation-turn-']");
-
           result.push({
             tag: element.tagName.toLowerCase(),
             attributes,
@@ -370,24 +406,31 @@ export async function createChromeSceneCollector({
               visibility: style.visibility,
               opacity: style.opacity,
             },
+            connected: element.isConnected,
             directText,
             subtreeText,
-            domTree: domSnapshot(element),
+            domTree: domSnapshot(element, element.matches(
+              "[data-chatgpt-search-unit-key], [class*='MarkdownRoot'], [data-composer-markdown],"
+              + " form[data-chatgpt-composer], [role='menu'], [role='dialog'], [role='listbox'],"
+              + " [role='group'], button, img") ? 300 : 8),
             machineFacts: {
               userRoleDescendants: element.querySelectorAll("[data-message-author-role='user']").length,
               assistantRoleDescendants: element.querySelectorAll("[data-message-author-role='assistant']").length,
               imageDescendants: element.querySelectorAll("img").length,
-              ownerTurnTestId: ownerTurn ? ownerTurn.getAttribute("data-testid") : null,
+              assistantMarkdownRoot: [...element.classList].some((name) => name.startsWith("MarkdownRoot-")),
+              ownerTurnTestId: ownerTurn ? (ownerTurn.getAttribute("data-testid")
+                || ownerTurn.getAttribute("data-chatgpt-search-unit-key")
+                || `${ownerTurn.getAttribute("data-content-search-turn-key")}:image`) : null,
               inertAncestor: element.closest("[inert]") !== null,
               ariaHiddenAncestor: element.closest("[aria-hidden='true']") !== null,
-              productionAttachmentGroupAncestor: element.closest("[role='group'][aria-label]") !== null,
+              productionAttachmentGroupAncestor: element.closest("form [role='group'][aria-label], [class*='group/composer-attachment']") !== null,
               productTurnMarkerObserved: directText.includes(marker) || subtreeText.includes(marker),
               attachmentUploadSpinner: element.matches("svg[class*='animate-spin']"),
               attachmentPendingAction: element.matches("button.cursor-wait"),
               attachmentUploadErrorAlert: attachmentUploadArmed
                 && element.getAttribute("role") === "alert" && subtreeText.length > 0,
               activeAttachmentPopoverAncestor: element.closest("div.popover[aria-busy='false']") !== null,
-              composerFormAncestor: element.closest("form:has(#prompt-textarea)") !== null,
+              composerFormAncestor: element.closest("form:has(#prompt-textarea), form:has([data-composer-markdown][contenteditable='true'])") !== null,
             },
             media:
               element.tagName === "IMG"
@@ -399,15 +442,18 @@ export async function createChromeSceneCollector({
                     complete: element.complete,
                   }
                 : null,
-            ancestors: parent
-              ? [
-                  {
-                    tag: parent.tagName.toLowerCase(),
-                    role: parent.getAttribute("role"),
-                    testId: parent.getAttribute("data-testid"),
-                  },
-                ]
-              : [],
+            ancestors: (() => {
+              const chain = [];
+              for (let ancestor = parent; ancestor && chain.length < 12; ancestor = ancestor.parentElement) {
+                const ancestorAttributes = {};
+                for (const name of attributeNames) {
+                  const value = ancestor.getAttribute(name);
+                  if (value !== null) ancestorAttributes[name] = value;
+                }
+                chain.push({ tag: ancestor.tagName.toLowerCase(), attributes: ancestorAttributes });
+              }
+              return chain;
+            })(),
             siblings: parent
               ? [...parent.children].slice(0, 12).map((sibling) => ({
                   tag: sibling.tagName.toLowerCase(),
@@ -420,50 +466,77 @@ export async function createChromeSceneCollector({
         }
       }
       const ownerDocument = elements[0]?.ownerDocument;
-      const composer = ownerDocument?.querySelectorAll("#prompt-textarea[contenteditable='true']") ?? [];
-      const userPromptTexts = Array.from(ownerDocument?.querySelectorAll("[data-testid^='conversation-turn-']") ?? [])
+      const composer = ownerDocument?.querySelectorAll("#prompt-textarea[contenteditable='true'], [data-composer-markdown][contenteditable='true']") ?? [];
+      const liveUnits = ownerDocument?.querySelectorAll("[data-chatgpt-search-unit-key]");
+      const turnSelector = liveUnits?.length ? "[data-chatgpt-search-unit-key]" : "[data-testid^='conversation-turn-']";
+      const imageTurns = Array.from(ownerDocument?.querySelectorAll("[data-content-search-turn-key]") ?? [])
+        .filter((turn) => semanticMediaNodes(turn).length === 1
+          && turn.querySelector("[data-chatgpt-search-unit-key$=':assistant']") === null);
+      const conversationTurns = [...Array.from(ownerDocument?.querySelectorAll(turnSelector) ?? []), ...imageTurns];
+      const assistantBody = (turn) => turn.querySelector("[class*='MarkdownRoot']")
+        || turn.querySelector("[data-message-author-role='assistant']");
+      const isAssistantTurn = (turn) => turn.getAttribute("data-chatgpt-search-unit-key")?.endsWith(":assistant")
+        || turn.querySelectorAll("[data-message-author-role='assistant']").length === 1;
+      const isUserTurn = (turn) => turn.getAttribute("data-chatgpt-search-unit-key")?.endsWith(":user")
+        || turn.querySelectorAll("[data-message-author-role='user']").length === 1;
+      const userPromptTexts = conversationTurns
         .flatMap((turn) => {
           const promptText = userPromptText(turn);
           return promptText === null ? [] : [promptText];
         });
-      const conversationTurns = Array.from(ownerDocument?.querySelectorAll("[data-testid^='conversation-turn-']") ?? []);
-      const assistantSemanticTexts = Array.from(ownerDocument?.querySelectorAll("[data-message-author-role='assistant']") ?? [])
-        .map((node) => semanticText(node));
-      const attachmentLabels = Array.from(ownerDocument?.querySelectorAll("form:has(#prompt-textarea) [role='group'][aria-label]") ?? [])
+      // A long QA conversation retains earlier article and locale replies. Only the
+      // assistant bound to this capture marker needs a semantic text projection.
+      // Keep older turn identities for continuity without reparsing their bodies.
+      const currentAssistantBodies = conversationTurns.flatMap((turn, index) => {
+        if (!isAssistantTurn(turn)) return [];
+        let userTurn = null;
+        for (let prior = index - 1; prior >= 0; prior -= 1) {
+          if (isUserTurn(conversationTurns[prior]) && !isAssistantTurn(conversationTurns[prior])) {
+            userTurn = conversationTurns[prior];
+            break;
+          }
+        }
+        return userTurn && userPromptText(userTurn)?.includes(context.marker) && assistantBody(turn)
+          ? [assistantBody(turn)] : [];
+      });
+      const assistantSemanticTexts = currentAssistantBodies.map(semanticText);
+      const semanticProjectionDrift = currentAssistantBodies.some((node) => semanticText(node) !== legacySemanticText(node));
+      const attachmentLabels = Array.from(ownerDocument?.querySelectorAll("form:has(#prompt-textarea) [role='group'][aria-label], form:has([data-composer-markdown][contenteditable='true']) [role='group'][aria-label], [class*='group/composer-attachment'] button.composer-attachment-surface[aria-label]") ?? [])
         .map((node) => (node.getAttribute("aria-label") || "").normalize("NFC"));
-      const modelTexts = Array.from(ownerDocument?.querySelectorAll("[data-testid='composer-model-picker-slider-advanced-view'][data-active='true']:not([inert]) [role='menuitemradio']") ?? [])
+      const modelTexts = Array.from(ownerDocument?.querySelectorAll("[data-model-picker-view='advanced']:not([inert]) [role='menuitemradio'], [role='menu'][aria-label='选择 ChatGPT 模型'] [role='menuitemradio']") ?? [])
         .map((node) => (node.textContent || "").trim());
-      const reasoningScaleFacts = Array.from(ownerDocument?.querySelectorAll("[data-model-reasoning-effort-slider] [role='slider']") ?? [])
+      const reasoningScaleFacts = Array.from(ownerDocument?.querySelectorAll("[data-model-picker-power-slider] [role='slider']") ?? [])
         .map((node) => ({ minimum: node.getAttribute("aria-valuemin"), maximum: node.getAttribute("aria-valuemax"),
           current: node.getAttribute("aria-valuenow") }));
-      const assistantTurnIds = Array.from(ownerDocument?.querySelectorAll("[data-testid^='conversation-turn-']") ?? [])
-        .filter((turn) => turn.querySelectorAll("[data-message-author-role='user']").length === 0
-          && (turn.querySelectorAll("[data-message-author-role='assistant']").length === 1
-            || semanticMediaNodes(turn).length === 1))
-        .map((turn) => turn.getAttribute("data-testid") || "");
+      const assistantTurnIds = conversationTurns.filter((turn) => isAssistantTurn(turn)
+        || semanticMediaNodes(turn).length === 1)
+        .map((turn) => turn.getAttribute("data-testid") || turn.getAttribute("data-chatgpt-search-unit-key")
+          || `${turn.getAttribute("data-content-search-turn-key")}:image`);
       const userTurnBindings = conversationTurns.flatMap((turn) => {
         const promptText = userPromptText(turn);
         if (promptText === null) return [];
-        return [{ userTurnId: turn.getAttribute("data-testid") || null, promptText,
+        return [{ userTurnId: turn.getAttribute("data-testid")
+          || turn.getAttribute("data-chatgpt-search-unit-key") || null, promptText,
           turnMarkers: promptText.match(/\[GRASSEYE:[a-f0-9]{24}\]/gu) ?? [] }];
       });
       const turnBindings = conversationTurns.flatMap((turn, index) => {
-        const assistants = turn.querySelectorAll("[data-message-author-role='assistant']");
+        const assistants = isAssistantTurn(turn) && assistantBody(turn) ? [assistantBody(turn)] : [];
         const semanticMedia = semanticMediaNodes(turn);
-        if (turn.querySelectorAll("[data-message-author-role='user']").length !== 0
-          || (assistants.length !== 1 && semanticMedia.length !== 1)) return [];
+        if (!isAssistantTurn(turn) && semanticMedia.length !== 1) return [];
         let userTurn = null;
         for (let prior = index - 1; prior >= 0; prior -= 1) {
           const candidate = conversationTurns[prior];
-          if (candidate.querySelectorAll("[data-message-author-role='user']").length === 1
-            && candidate.querySelectorAll("[data-message-author-role='assistant']").length === 0) {
+          if (isUserTurn(candidate) && !isAssistantTurn(candidate)) {
             userTurn = candidate;
             break;
           }
         }
         const promptText = userTurn ? userPromptText(userTurn) : null;
-        return [{ assistantTurnId: turn.getAttribute("data-testid") || null, promptText,
-          responseText: assistants.length === 1 ? semanticText(assistants[0]) : "",
+        return [{ assistantTurnId: turn.getAttribute("data-testid")
+          || turn.getAttribute("data-chatgpt-search-unit-key")
+          || `${turn.getAttribute("data-content-search-turn-key")}:image`, promptText,
+          responseText: assistants.length === 1 && promptText?.includes(context.marker)
+            ? semanticText(assistants[0]) : null,
           turnMarkers: promptText?.match(/\[GRASSEYE:[a-f0-9]{24}\]/gu) ?? [] }];
       });
       return {
@@ -472,6 +545,8 @@ export async function createChromeSceneCollector({
         documentTimeOrigin: ownerDocument?.defaultView?.performance?.timeOrigin
           ?? ownerDocument?.lastModified,
         pageInputFacts: {
+          capturedAttributeNames: attributeNames,
+          semanticProjectionDrift,
           exactComposerText: composer.length === 1 ? exactEditableText(composer[0]) : null,
           userPromptTexts,
           assistantSemanticTexts,
@@ -483,12 +558,42 @@ export async function createChromeSceneCollector({
           turnBindings,
         },
       };
-    }, { marker: productMarker, attachmentUploadArmed: attachmentUploadExpected });
+    };
+    const callbackSource = readPage.toString().replace(
+      "const semanticText = browserCanonicalSemanticText;",
+      `${BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE}\n      const semanticText = browserCanonicalSemanticText;`,
+    );
+    if (callbackSource === readPage.toString()) throw new Error("CANONICAL_READER_INJECTION_FAILED");
+    const rawPacket = await roots.evaluateAll(
+      callbackSource,
+      { marker: productMarker, attachmentUploadArmed: attachmentUploadExpected },
+    );
+    const semanticProjectionDrift = rawPacket.pageInputFacts.semanticProjectionDrift === true;
+    const exactAssistant = exactAssistantPromptHash === null ? null
+      : rawPacket.pageInputFacts.turnBindings.filter((entry) => entry.promptText !== null
+        && hash(entry.promptText) === exactAssistantPromptHash
+        && entry.promptText.includes(productMarker)
+        && typeof entry.responseText === "string" && entry.responseText.length > 0);
+    if (exactAssistant !== null && (exactAssistant.length !== 1
+      || !exactAssistant[0].assistantTurnId || !exactAssistant[0].responseText)) {
+      throw new Error("EXACT_ASSISTANT_TURN_AMBIGUOUS");
+    }
     const rawNodes = rawPacket.nodes;
 
     const productionAttachmentNodes = rawNodes.filter((node) =>
-      node.attributes.role === "group" && node.machineFacts.productionAttachmentGroupAncestor === true);
-    const pageFacts = {
+      node.machineFacts.productionAttachmentGroupAncestor === true
+      && (node.attributes.role === "group" || (node.tag === "button"
+        && String(node.attributes.class ?? "").includes("composer-attachment-surface"))));
+      const pageFacts = {
+      captureScope: {
+        schemaVersion: "gpt-page-collector-scope.v1",
+        nodeSampling: "CURRENT_MARKER_VISIBLE_TREE_AND_SHARED_CONTROLS",
+        assistantSemanticProjection: "CURRENT_MARKER_ONLY",
+        previousResponseHash: "NULL_WHEN_NOT_PROJECTED",
+        mountedTurnIdentity: "CURRENTLY_MOUNTED_TURNS_ONLY",
+      },
+      capturedAttributeNames: rawPacket.pageInputFacts.capturedAttributeNames,
+      semanticProjectionDrift,
       assistantGenerationActive: rawNodes.some((node) => node.attributes["data-testid"] === "stop-button"
         || String(node.attributes["aria-label"] ?? "").includes("停止")),
       assistantTerminalErrorVisible: rawNodes.some((node) =>
@@ -506,11 +611,14 @@ export async function createChromeSceneCollector({
           && (node.attributes.role === "alert" || /error/u.test(String(node.attributes["data-testid"] ?? ""))))
         || node.machineFacts.attachmentUploadErrorAlert),
       productMarkerNodeCount: rawNodes.filter((node) => (node.directText || "").includes(productMarker)).length,
-      productUserTurnCount: rawNodes.filter((node) => node.attributes["data-message-author-role"] === "user"
+      productUserTurnCount: rawNodes.filter((node) => (node.attributes["data-message-author-role"] === "user"
+        || node.attributes["data-user-message-bubble"] === "true")
         && (node.subtreeText || "").includes(productMarker)).length,
-      assistantTurnCount: rawNodes.filter((node) => node.attributes["data-message-author-role"] === "assistant").length,
-      composerCount: rawNodes.filter((node) => node.attributes.id === "prompt-textarea").length,
-      composerProductMarkerPresent: rawNodes.some((node) => node.attributes.id === "prompt-textarea"
+      assistantTurnCount: rawPacket.pageInputFacts.assistantTurnIds.length,
+      composerCount: rawNodes.filter((node) => node.attributes.id === "prompt-textarea"
+        || Object.hasOwn(node.attributes, "data-composer-markdown")).length,
+      composerProductMarkerPresent: rawNodes.some((node) => (node.attributes.id === "prompt-textarea"
+        || Object.hasOwn(node.attributes, "data-composer-markdown"))
         && (node.subtreeText || "").includes(productMarker)),
       currentRouteKind: new URL(rawPacket.currentUrl).pathname.startsWith("/c/") ? "CONVERSATION" : "ROOT",
       currentConversationUrlHash: hash((() => {
@@ -534,7 +642,7 @@ export async function createChromeSceneCollector({
       conversationTurnBindings: rawPacket.pageInputFacts.turnBindings.map((entry) => ({
         assistantTurnIdHash: entry.assistantTurnId === null ? null : hash(entry.assistantTurnId),
         precedingPromptHash: entry.promptText === null ? null : hash(entry.promptText),
-        responseHash: hash(entry.responseText),
+        responseHash: entry.responseText === null ? null : hash(entry.responseText),
         turnMarkerHashes: [...new Set(entry.turnMarkers.map(hash))].sort(),
       })),
     };
@@ -546,6 +654,8 @@ export async function createChromeSceneCollector({
         includeMedia && node.media
           ? {
               sourceHash: hash(node.media.source),
+              ownerTurnIdHash: node.machineFacts.ownerTurnTestId
+                ? hash(node.machineFacts.ownerTurnTestId) : null,
               altHash: hash(node.media.alt),
               altLength: node.media.alt.length,
               naturalWidth: node.media.naturalWidth,
@@ -571,6 +681,10 @@ export async function createChromeSceneCollector({
         ])),
         directText: undefined,
         subtreeText: undefined,
+        ancestors: (node.ancestors ?? []).map((ancestor) => ({ tag: ancestor.tag,
+          attributes: Object.fromEntries(Object.entries(ancestor.attributes ?? {}).map(([name, value]) => [
+            name, safeAttributeValue(name, value, productMarker, uiAllowlist, false),
+          ])) })),
         siblings,
         media,
         textProjection: keepText
@@ -583,7 +697,10 @@ export async function createChromeSceneCollector({
     });
     const url = sanitizeUrl(rawPacket.currentUrl);
     const activeTabIdentityHash = tabIdentityHash(activeTab);
-    const documentIdentityHash = hash(`${activeTabIdentityHash}:${url}`);
+    if (rawPacket.documentTimeOrigin === undefined || rawPacket.documentTimeOrigin === null) {
+      throw new Error("DOCUMENT_IDENTITY_UNAVAILABLE");
+    }
+    const documentIdentityHash = hash(`${activeTabIdentityHash}:${url}:${rawPacket.documentTimeOrigin}`);
     const observationRevisionHash = hash(JSON.stringify({ documentIdentityHash, url, nodes, pageFacts }));
     const base = {
       sceneId,
@@ -602,7 +719,21 @@ export async function createChromeSceneCollector({
     const scene = { ...base, stateSignature: sceneContentSignature(base) };
     scenes.push(scene);
     await writeAtomic(outputPath, scenes);
-    return scene;
+    if (semanticProjectionDrift) throw new Error(`SEMANTIC_TEXT_PROJECTION_DRIFT_SCENE_SAVED:${sceneId}`);
+    if (exactAssistant === null) return scene;
+    const bindingFact = pageFacts.conversationTurnBindings.filter((entry) =>
+      entry.assistantTurnIdHash === hash(exactAssistant[0].assistantTurnId)
+      && entry.precedingPromptHash === exactAssistantPromptHash
+      && entry.responseHash === hash(exactAssistant[0].responseText));
+    if (bindingFact.length !== 1) throw new Error("EXACT_ASSISTANT_SCENE_BINDING_MISMATCH");
+    return { scene, exactAssistant: {
+      semanticText: exactAssistant[0].responseText,
+      semanticTextHash: bindingFact[0].responseHash,
+      assistantTurnIdHash: bindingFact[0].assistantTurnIdHash,
+      promptHash: exactAssistantPromptHash,
+      documentIdentityHash: scene.documentIdentityHash,
+      observationRevisionHash: scene.observationRevisionHash,
+    } };
   }
 
   async function collectHiddenTarget(sceneId, locator, { decisionReceipt = null } = {}) {
@@ -699,7 +830,10 @@ export async function createChromeSceneCollector({
     };
     const url = sanitizeUrl(rawPacket.currentUrl);
     const activeTabIdentityHash = tabIdentityHash(activeTab);
-    const documentIdentityHash = hash(`${activeTabIdentityHash}:${url}`);
+    if (rawPacket.documentTimeOrigin === undefined || rawPacket.documentTimeOrigin === null) {
+      throw new Error("DOCUMENT_IDENTITY_UNAVAILABLE");
+    }
+    const documentIdentityHash = hash(`${activeTabIdentityHash}:${url}:${rawPacket.documentTimeOrigin}`);
     const observationRevisionHash = hash(JSON.stringify({ documentIdentityHash, url, nodes, pageFacts }));
     const base = {
       sceneId,

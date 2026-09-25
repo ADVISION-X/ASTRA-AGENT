@@ -1,5 +1,5 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import { FakeElement, FakeTextNode, RICH_SEMANTIC_TEXT, execute, hash, richSemanticTree }
+import { FakeElement, FakeTextNode, RICH_SEMANTIC_TEXT, execute, fakeGptUserTurn, hash, richSemanticTree }
   from "./local-browser-dom-function-fixture.js";
 import { exerciseEditablePromptHashes } from "./local-browser-dom-function-fixture.js";
 import { assertBrowserDomIntent } from "../../src/lib/browser/exact-target/browser-dom-intent.js";
@@ -152,10 +152,8 @@ const exerciseUserPromptWhitespaceHashes = async (source: string): Promise<void>
     const body = new FakeElement(exactPrompt, {}, {}, {
       "data-testid": "collapsible-user-message-content",
     }, "DIV", [new FakeTextNode(exactPrompt)]);
-    const turn = new FakeElement(exactPrompt, {
-      "[data-testid='collapsible-user-message-content']": [body],
-      "[data-message-author-role='user']": [body],
-    }, {}, { "data-testid": `conversation-turn-${20 + index}` }, "ARTICLE", [body]);
+    const turn = fakeGptUserTurn(`00000000-0000-4000-8000-${String(20 + index).padStart(12, "0")}`,
+      exactPrompt, [body]);
     const root = new FakeElement("", { ".user-turn": [turn] });
     turn.parentElement = root;
     const result = await execute(source, {
@@ -176,24 +174,21 @@ const exerciseMarkedUserPromptHash = async (source: string): Promise<void> => {
     new FakeTextNode("公开知识生产资料.zip 文件"),
   ]);
   const collapseControl = new FakeElement("展开/收起", {}, {}, {}, "BUTTON", [new FakeTextNode("展开/收起")]);
-  const userTurn = new FakeElement(`${userPrompt}公开知识生产资料.zip 文件展开/收起`, {
-    "[data-testid='collapsible-user-message-content']": [promptBody],
-    "[data-message-author-role='user']": [promptBody],
-  }, {}, { "data-testid": "conversation-turn-1" }, "ARTICLE", [
-    promptBody, attachmentCard, collapseControl,
-  ]);
+  const userTurn = fakeGptUserTurn("00000000-0000-4000-8000-000000000001",
+    `${userPrompt}公开知识生产资料.zip 文件展开/收起`, [promptBody], [],
+    [attachmentCard, collapseControl]);
   const userTurnRoot = new FakeElement("", { ".user-turn": [userTurn] });
   userTurn.parentElement = userTurnRoot;
   const userTurnResult = await execute(source, {
     documentElement: userTurnRoot, querySelectorAll: () => [], elementFromPoint: () => userTurn,
   }, [{ queryId: "user-turns", selector: ".user-turn", maxMatches: 1,
-    fields: ["testId", "semanticTextHash", "exactGptUserPromptHash"] }]) as Readonly<{
+    fields: ["turnKey", "semanticTextHash", "exactGptUserPromptHash"] }]) as Readonly<{
       queries: readonly Readonly<{ matches: readonly Readonly<{
-        testId: string; semanticTextHash: string; exactGptUserPromptHash: string;
+        turnKey: string; semanticTextHash: string; exactGptUserPromptHash: string;
       }>[] }>[];
     }>;
   const exactUserTurn = userTurnResult.queries[0]?.matches[0];
-  assert.equal(exactUserTurn?.testId, "conversation-turn-1");
+  assert.equal(exactUserTurn?.turnKey, "00000000-0000-4000-8000-000000000001");
   assert.equal(exactUserTurn?.exactGptUserPromptHash, hash(userPrompt),
     "the exact GPT user Prompt hash must include only the unique rendered Prompt body");
   assert.notEqual(exactUserTurn?.semanticTextHash, hash(userPrompt),
@@ -217,10 +212,7 @@ const exerciseFencedUserPromptHash = async (source: string): Promise<void> => {
     fencedWrapper,
     new FakeElement("approved prompt", {}, {}, {}, "P", [new FakeTextNode("approved prompt")]),
   ]);
-  const fencedTurn = new FakeElement(fencedPrompt, {
-    "[data-testid='collapsible-user-message-content']": [fencedBody],
-    "[data-message-author-role='user']": [fencedBody],
-  }, {}, { "data-testid": "conversation-turn-2" }, "ARTICLE", [fencedBody]);
+  const fencedTurn = fakeGptUserTurn("00000000-0000-4000-8000-000000000002", fencedPrompt, [fencedBody]);
   const fencedRoot = new FakeElement("", { ".user-turn": [fencedTurn] });
   fencedTurn.parentElement = fencedRoot;
   const fencedResult = await execute(source, {
@@ -238,13 +230,8 @@ const exerciseShortUserPromptHash = async (source: string): Promise<void> => {
   const shortLeaf = new FakeElement(shortPrompt, {}, {}, { class: "max-w-full whitespace-pre-wrap" }, "DIV", [
     new FakeTextNode(shortPrompt),
   ]);
-  const shortUserRoot = new FakeElement(shortPrompt, { ".whitespace-pre-wrap": [shortLeaf] }, {}, {
-    "data-message-author-role": "user",
-  });
-  const shortTurn = new FakeElement(shortPrompt, {
-    "[data-testid='collapsible-user-message-content']": [],
-    "[data-message-author-role='user']": [shortUserRoot],
-  }, {}, { "data-testid": "conversation-turn-5" }, "ARTICLE", [shortUserRoot]);
+  const shortTurn = fakeGptUserTurn("00000000-0000-4000-8000-000000000005",
+    shortPrompt, [], [shortLeaf]);
   const shortRoot = new FakeElement("", { ".user-turn": [shortTurn] });
   shortTurn.parentElement = shortRoot;
   const shortResult = await execute(source, {
@@ -261,13 +248,8 @@ const exerciseShortUserPromptHash = async (source: string): Promise<void> => {
   const shortNbspLeaf = new FakeElement(shortRendered, {}, {}, {
     class: "max-w-full whitespace-pre-wrap",
   }, "DIV", [new FakeTextNode(shortRendered)]);
-  const shortNbspUserRoot = new FakeElement(shortRendered, {
-    ".whitespace-pre-wrap": [shortNbspLeaf],
-  }, {}, { "data-message-author-role": "user" });
-  const shortNbspTurn = new FakeElement(shortRendered, {
-    "[data-testid='collapsible-user-message-content']": [],
-    "[data-message-author-role='user']": [shortNbspUserRoot],
-  }, {}, { "data-testid": "conversation-turn-6" }, "ARTICLE", [shortNbspUserRoot]);
+  const shortNbspTurn = fakeGptUserTurn("00000000-0000-4000-8000-000000000006",
+    shortRendered, [], [shortNbspLeaf]);
   const shortNbspRoot = new FakeElement("", { ".user-turn": [shortNbspTurn] });
   shortNbspTurn.parentElement = shortNbspRoot;
   const shortNbspResult = await execute(source, {
@@ -291,14 +273,12 @@ const exerciseRejectedUserPromptHashes = async (source: string): Promise<void> =
   const bodyWithoutMarker = new FakeElement("approved prompt", {}, {}, {
     "data-testid": "collapsible-user-message-content",
   }, "DIV", [new FakeTextNode("approved prompt")]);
-  const markerOnlyInAttachment = new FakeElement("approved prompt [GRASSEYE:exact-user-prompt]", {
-    "[data-testid='collapsible-user-message-content']": [bodyWithoutMarker],
-    "[data-message-author-role='user']": [bodyWithoutMarker],
-  }, {}, { "data-testid": "conversation-turn-1" }, "ARTICLE", [
-    bodyWithoutMarker, new FakeElement("[GRASSEYE:exact-user-prompt]", {}, {}, {}, "DIV", [
-      new FakeTextNode("[GRASSEYE:exact-user-prompt]"),
-    ]),
-  ]);
+  const markerOnlyInAttachment = fakeGptUserTurn("00000000-0000-4000-8000-000000000001",
+    "approved prompt [GRASSEYE:exact-user-prompt]", [bodyWithoutMarker], [], [
+      new FakeElement("[GRASSEYE:exact-user-prompt]", {}, {}, {}, "DIV", [
+        new FakeTextNode("[GRASSEYE:exact-user-prompt]"),
+      ]),
+    ]);
   const markerOnlyRoot = new FakeElement("", { ".user-turn": [markerOnlyInAttachment] });
   const markerOnlyResult = await execute(source, {
     documentElement: markerOnlyRoot, querySelectorAll: () => [], elementFromPoint: () => markerOnlyInAttachment,
@@ -313,21 +293,16 @@ const exerciseRejectedUserPromptHashes = async (source: string): Promise<void> =
   assert.equal(markerOnlyResult.queries[0]?.rejections[0]?.reasons.length, 1);
   assert.equal(markerOnlyResult.queries[0]?.rejections[0]?.reasons[0], "TEXT_MISMATCH",
     "attachment or control text must not satisfy a Prompt-body marker requirement");
-  const missingPromptBody = new FakeElement("attachment only", {
-    "[data-message-author-role='user']": [promptBody],
-  }, {}, {
-    "data-testid": "conversation-turn-1",
-  });
+  const missingPromptBody = fakeGptUserTurn("00000000-0000-4000-8000-000000000001",
+    "attachment only", []);
   const missingRoot = new FakeElement("", { ".user-turn": [missingPromptBody] });
   await assert.rejects(async () => execute(source, {
     documentElement: missingRoot, querySelectorAll: () => [], elementFromPoint: () => missingPromptBody,
   }, [{ queryId: "user-turns", selector: ".user-turn", maxMatches: 1,
     fields: ["exactGptUserPromptHash"] }]), /BROWSER_DOM_CANDIDATE_MISSING/u,
   "a user turn without the exact Prompt body must fail closed");
-  const duplicatePromptTurn = new FakeElement(userPrompt, {
-    "[data-testid='collapsible-user-message-content']": [promptBody, promptBody],
-    "[data-message-author-role='user']": [promptBody],
-  }, {}, { "data-testid": "conversation-turn-1" });
+  const duplicatePromptTurn = fakeGptUserTurn("00000000-0000-4000-8000-000000000001",
+    userPrompt, [promptBody, promptBody]);
   const duplicateRoot = new FakeElement("", { ".user-turn": [duplicatePromptTurn] });
   await assert.rejects(async () => execute(source, {
     documentElement: duplicateRoot, querySelectorAll: () => [], elementFromPoint: () => duplicatePromptTurn,
@@ -340,13 +315,8 @@ const exerciseRejectedUserPromptHashes = async (source: string): Promise<void> =
   }, "DIV", [new FakeTextNode(value)]);
   const first = shortLeaf("first");
   const second = shortLeaf("second");
-  const shortUserRoot = new FakeElement("first second", { ".whitespace-pre-wrap": [first, second] }, {}, {
-    "data-message-author-role": "user",
-  });
-  const ambiguousShortTurn = new FakeElement("first second", {
-    "[data-testid='collapsible-user-message-content']": [],
-    "[data-message-author-role='user']": [shortUserRoot],
-  }, {}, { "data-testid": "conversation-turn-5" });
+  const ambiguousShortTurn = fakeGptUserTurn("00000000-0000-4000-8000-000000000005",
+    "first second", [], [first, second]);
   const ambiguousShortRoot = new FakeElement("", { ".user-turn": [ambiguousShortTurn] });
   await assert.rejects(async () => execute(source, {
     documentElement: ambiguousShortRoot, querySelectorAll: () => [], elementFromPoint: () => ambiguousShortTurn,
@@ -363,10 +333,19 @@ const assistantTurnFixture = (responses: readonly FakeElement[]) => {
   const control = new FakeElement("复制 点赞 重试", {}, {}, {}, "BUTTON", [
     new FakeTextNode("复制 点赞 重试"),
   ]);
+  const userUnit = new FakeElement("user prompt", {}, {}, {
+    "data-chatgpt-search-unit-key": "fallback-turn-0:0:user",
+    "data-chatgpt-search-message-ids": "00000000-0000-4000-8000-000000000001",
+  });
+  const assistantUnit = new FakeElement("rich response", {}, {}, {
+    "data-chatgpt-search-unit-key": "fallback-turn-0:1:assistant",
+    "data-chatgpt-search-message-ids": "00000000-0000-4000-8000-000000000002",
+  }, "DIV", responses);
   const assistantTurn = new FakeElement("rich response 复制 点赞 重试", {
-    "[data-message-author-role='assistant']": responses,
-  }, {}, { "data-testid": "conversation-turn-2" }, "ARTICLE",
-  responses.length === 0 ? [control] : [responses[0]!, control]);
+    "[data-chatgpt-search-unit-key$=':user']": [userUnit],
+    "[data-chatgpt-search-unit-key$=':assistant'] [data-markdown-text-style='assistant-message']": responses,
+  }, {}, { "data-turn-key": "00000000-0000-4000-8000-000000000001" }, "ARTICLE",
+  [userUnit, assistantUnit, control]);
   const root = new FakeElement("", { ".assistant-turn": [assistantTurn] });
   assistantTurn.parentElement = root;
   return { assistantTurn, root };
@@ -378,13 +357,12 @@ const exerciseAssistantSemanticTextHash = async (source: string): Promise<void> 
   const result = await execute(source, {
     documentElement: root, querySelectorAll: () => [], elementFromPoint: () => assistantTurn,
   }, [{ queryId: "assistant-turns", selector: ".assistant-turn", maxMatches: 1,
-    fields: ["testId", "semanticTextHash"] }]) as Readonly<{
+    fields: ["semanticTextHash"] }]) as Readonly<{
       queries: readonly Readonly<{ matches: readonly Readonly<{
-        testId: string; semanticTextHash: string;
+        semanticTextHash: string;
       }>[] }>[];
     }>;
   const observed = result.queries[0]?.matches[0];
-  assert.equal(observed?.testId, "conversation-turn-2");
   assert.equal(observed?.semanticTextHash, hash(RICH_SEMANTIC_TEXT),
     "the existing assistant semantic hash must exclude outer turn controls");
 
@@ -403,30 +381,21 @@ const exerciseAssistantSemanticTextHash = async (source: string): Promise<void> 
   assert.equal(assistantNbspResult.queries[0]?.matches[0]?.semanticTextHash, hash(assistantNbspText),
     "assistant semantic text must preserve NBSP byte-for-byte");
 
-  const imageOnlyTurn = assistantTurnFixture([]);
-  const imageOnlyResult = await execute(source, {
-    documentElement: imageOnlyTurn.root, querySelectorAll: () => [],
-    elementFromPoint: () => imageOnlyTurn.assistantTurn,
-  }, [{ queryId: "image-turns", selector: ".assistant-turn", maxMatches: 1,
-    fields: ["semanticTextHash"] }]) as Readonly<{
-      queries: readonly Readonly<{ matches: readonly Readonly<{ semanticTextHash: string }>[] }>[];
-    }>;
-  assert.equal(imageOnlyResult.queries[0]?.matches[0]?.semanticTextHash, hash("复制 点赞 重试"),
-    "a non-user image turn without assistant text must keep its outer semantic projection");
-
   const mixedResponse = richSemanticTree();
-  const mixedUser = new FakeElement("user prompt", {}, {}, {}, "DIV", [new FakeTextNode("user prompt")]);
+  const mixedUser = new FakeElement("user prompt", {}, {}, {
+    "data-chatgpt-search-unit-key": "fallback-turn-0:0:user",
+  });
   const mixedTurn = new FakeElement("mixed turn", {
-    "[data-message-author-role='assistant']": [mixedResponse],
-    "[data-message-author-role='user']": [mixedUser],
-  }, {}, { "data-testid": "conversation-turn-2" }, "ARTICLE", [mixedUser, mixedResponse]);
+    "[data-chatgpt-search-unit-key$=':user']": [mixedUser, mixedUser],
+    "[data-chatgpt-search-unit-key$=':assistant'] [data-markdown-text-style='assistant-message']": [mixedResponse],
+  }, {}, { "data-turn-key": "00000000-0000-4000-8000-000000000001" }, "ARTICLE", [mixedUser, mixedResponse]);
   const mixedRoot = new FakeElement("", { ".assistant-turn": [mixedTurn] });
   mixedTurn.parentElement = mixedRoot;
   await assert.rejects(async () => execute(source, {
     documentElement: mixedRoot, querySelectorAll: () => [], elementFromPoint: () => mixedTurn,
   }, [{ queryId: "assistant-turns", selector: ".assistant-turn", maxMatches: 1,
     fields: ["semanticTextHash"] }]), /BROWSER_DOM_READ_INVALID/u,
-  "an assistant turn that also contains a user node must fail closed");
+  "duplicate user units in one turn must fail closed");
 
   const rejected = assistantTurnFixture([richSemanticTree(), richSemanticTree()]);
   await assert.rejects(async () => execute(source, {

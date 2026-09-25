@@ -145,13 +145,13 @@ const observationExecutionValue = (input: ExecutionValueInput): ExecutionValue |
     return { value: { status: "CONFIRMED", promptHash: call.input.promptHash,
       mutationSent: true,
       canonicalConversationUrl: `https://chatgpt.com/c/${sha256(call.sessionKey).slice(7, 31)}`,
-      userTurnId: "conversation-turn-1" } };
+      userTurnId: "00000000-0000-4000-8000-000000000001" } };
   }
   if (call.child === "checkpoint_gpt_text_response") {
     const output = checkpointValue(fixture, call);
     const semanticText = JSON.stringify(output);
     return { value: {
-      assistantTurnId: "conversation-turn-2",
+      assistantTurnId: "00000000-0000-4000-8000-000000000002",
       rawDomHtml: `<article>${semanticText}</article>`, rawDomHash: FIXTURE_HASH,
       semanticText, semanticTextHash: FIXTURE_HASH,
     } };

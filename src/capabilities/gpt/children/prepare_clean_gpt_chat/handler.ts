@@ -30,7 +30,7 @@ const CHAT_MODE_POSTCONDITION = Object.freeze({
   queries: Object.freeze(CHAT_MODE_QUERIES.map((query) => Object.freeze({
     ...query, expectedEligibleCount: 1,
   }))),
-  clickedCandidateAttribute: Object.freeze({ name: "aria-checked", equals: "true" }),
+  clickedCandidateAttribute: Object.freeze({ name: "aria-pressed", equals: "true" }),
 });
 
 const freshChatTopology = (state: ConversationState): boolean => state.composerRaw === 1
@@ -50,8 +50,8 @@ const terminalFreshChatFailureCode = (state: ConversationState): string | null =
     [state.chatModeRaw === 0 || state.workModeRaw === 0, "GPT_CHAT_MODE_MISSING"],
     [state.chatModeRaw !== 1 || state.workModeRaw !== 1, "GPT_CHAT_MODE_AMBIGUOUS"],
     [state.chatModeEligible !== 1 || state.workModeEligible !== 1, "GPT_CHAT_MODE_NOT_ACTIONABLE"],
-    [state.chatModeChecked === null || state.workModeChecked === null
-      || state.chatModeChecked === state.workModeChecked, "GPT_CHAT_MODE_INVALID"],
+    [state.chatModePressed === null || state.workModePressed === null
+      || state.chatModePressed === state.workModePressed, "GPT_CHAT_MODE_INVALID"],
   ] as const;
   return failure.find(([matches]) => matches)?.[1] ?? null;
 };
@@ -83,7 +83,8 @@ const selectChatMode = async (
     throw executionFailure("failed", "GPT_CHAT_MODE_WORK_SELECTED_WITH_DRAFT");
   }
   const mutation = await browser.executeDomIntent({
-    kind: "click", selector: GPT_CHAT_MODE_CHAT_SELECTOR, expectedMatches: 1,
+    kind: "click", selector: GPT_CHAT_MODE_CHAT_SELECTOR,
+    expectedTextEquals: "聊天", expectedMatches: 1,
     postClickObservation: CHAT_MODE_POSTCONDITION,
   });
   const mutationRecord = mutation && typeof mutation === "object" && !Array.isArray(mutation)

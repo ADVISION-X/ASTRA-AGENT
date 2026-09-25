@@ -68,9 +68,9 @@ const authenticatedMediaShapeValid = (value: Readonly<Record<string, unknown>>):
   && typeof value.authorityDocumentHash === "string"
   && /^sha256:[a-f0-9]{64}$/u.test(value.authorityDocumentHash)
   && typeof value.assistantTurnId === "string"
-  && /^conversation-turn-[1-9][0-9]*$/u.test(value.assistantTurnId)
+  && /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(value.assistantTurnId)
   && typeof value.precedingUserTurnId === "string"
-  && /^conversation-turn-[1-9][0-9]*$/u.test(value.precedingUserTurnId)
+  && /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(value.precedingUserTurnId)
   && typeof value.currentUrl === "string"
   && value.semanticMediaId === "gpt-generated-image-main"
   && typeof value.mediaType === "string"
@@ -326,7 +326,7 @@ export class BrowserTargetLeaseManager {
     try {
       if (requireCanonicalGptConversationUrl(input.canonicalConversationUrl)
         !== input.canonicalConversationUrl
-        || !/^conversation-turn-[1-9][0-9]*$/u.test(input.userTurnId)
+        || !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(input.userTurnId)
         || input.semanticMediaId !== "gpt-generated-image-main") throw new Error();
     } catch {
       throw new Error("BROWSER_TARGET_INVALID");

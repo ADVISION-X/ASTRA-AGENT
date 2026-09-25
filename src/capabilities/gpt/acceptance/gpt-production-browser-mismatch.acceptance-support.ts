@@ -135,7 +135,7 @@ try {
             downloadGuidHash: null, downloadCompleted: false, identityRevalidated: false,
             terminalPayload: {
               canonicalConversationUrl: "https://chatgpt.com/c/historical-confirmed",
-              promptHash: historicalPromptHash, userTurnId: "conversation-turn-1",
+              promptHash: historicalPromptHash, userTurnId: "00000000-0000-4000-8000-000000000001",
               exactCallIdentityHash: driftedIdentity, observationRevisionHash: HASH_A,
               targetRefHash: HASH_A, documentRefHash: HASH_B, rawCount: 1, eligibleCount: 1,
             },
@@ -248,7 +248,7 @@ try {
             downloadGuidHash: null, downloadCompleted: false, identityRevalidated: false,
             terminalPayload: {
               canonicalConversationUrl: "https://chatgpt.com/c/confirmed-known-rate-limit",
-              promptHash: historicalPromptHash, userTurnId: "conversation-turn-1",
+              promptHash: historicalPromptHash, userTurnId: "00000000-0000-4000-8000-000000000001",
               exactCallIdentityHash: historicalExactHash(confirmedExactJobId),
               observationRevisionHash: HASH_A, targetRefHash: HASH_A,
               documentRefHash: HASH_B, rawCount: 1, eligibleCount: 1,

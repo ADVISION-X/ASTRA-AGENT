@@ -1,0 +1,285 @@
+{
+  "schemaVersion": "gpt-page-localization-pinned-sources.v1",
+  "observedAt": "2026-09-25T01:20:26.173Z",
+  "sourceRelationship": "different-article-from-current-seo-qa-turn",
+  "verification": [
+    "Website job/material/blob metadata",
+    "Website object original bytes",
+    "AGENT durable task",
+    "AGENT material original bytes",
+    "Website claim grant result revision"
+  ],
+  "websiteObjectBytesRead": true,
+  "routePolicyHash": "sha256:2a108ed1e777ac8a3aa9b373ae51f7a464548642887fd7b2a0caa9a42b1d8aa0",
+  "sourceCodeHashes": {
+    "src/plugins/localization-production/flow.ts": "sha256:3f7fc83586a372f7a3e03b146a68d66955fbf4ccd3532fc0f6c7b8d169a356fc",
+    "src/plugins/localization-production/result-contract.ts": "sha256:57b2629895e5f1fd3a1d3411f339a5154e6e2102e9eadf92279f591e3f595dc2",
+    "src/plugins/localization-production/SKILL.md": "sha256:e7ab5ee769346b98c61d0a46f858891e07095c3a8f8baa5ae069ea88b088b318",
+    "src/mediator/product-plugin-catalog.ts": "sha256:f2bc468424faffd228b95d07f40d116b2584332c57156d4dd5bad1daaeab3162",
+    "src/capabilities/gpt/schema.ts": "sha256:5e7c6e1ea2a636c5c682ef8ef4575345502c054ea434aab60706389f04311348",
+    "src/lib/local-runtime/production/website-agent-route-policies.v1.json": "sha256:dede74af7f97f6730612fa542de7487c74447a669f18edbfcab00ee97daf2cf3"
+  },
+  "rootArticleReadback": {
+    "articleIdHash": "sha256:0995aee624af12af44b6515cc039eb146645a25154bb7604387bf080a1748238",
+    "sourceVersionHash": "sha256:04223f0903960fbd16534e93ae2ed8491e66072a4d43d75e8210127db2185a98",
+    "articleMarkdownHash": "sha256:21c9bf0d8273d6a18bc3c50444495c801cae68ac30d52c29f8247c93150539be",
+    "admissionReceiptHash": "sha256:2d5df81b4ac07b2b77d628eee5e578449e15ed69978e56665bb1a4ec5fcafb39"
+  },
+  "entries": [
+    {
+      "locale": "zh-HK",
+      "jobIdHash": "sha256:185ced8bd0d70c85074c7ed2150dec768c3707dc063b99fce238f5f4f5579e95",
+      "requestHash": "sha256:691b238b7e941f92b0e78db4bccb7b018e437cb55c62704a6e28539808d0ad52",
+      "taskEnvelopeHash": "sha256:47d52f7f20c7373816cc5355fbc74bce6d33ceb51791fe9ff6312b94fdfb4e8f",
+      "parentJobIdHash": "sha256:78b7e67a1ff8f145deac1ab6542a5661d76d5ab2c6be243683d88a0b956c94f9",
+      "parentResultHash": "sha256:ae539ff6fe6f14adce7a4df1ac1e665f25ecdbe0b07c6789a9bca464a0375e6b",
+      "sourceResourceIdHash": "sha256:0995aee624af12af44b6515cc039eb146645a25154bb7604387bf080a1748238",
+      "parentReadbackHash": "sha256:7c9eb50144cda609b9a0327e6270792f86b99ad92b8105ab90a1ffc92710834b",
+      "sourceVersionHash": "sha256:04223f0903960fbd16534e93ae2ed8491e66072a4d43d75e8210127db2185a98",
+      "sourceSha256": "sha256:21c9bf0d8273d6a18bc3c50444495c801cae68ac30d52c29f8247c93150539be",
+      "resultRevisionHash": "sha256:61420482418fa09c89b138742c740a9cd30dcb98e661ae8643bd2cd96f98ad6d",
+      "materials": [
+        {
+          "role": "source_content",
+          "ordinal": 0,
+          "displayName": "source_content.json",
+          "bytes": 35507,
+          "sha256": "sha256:1ddf9da0cad6c53303e21d7e8a3e427dd13481be4f85fb1f8aab40453501da93",
+          "materialIdHash": "sha256:1efd005c23ce956e369025122d61b63f2188ba894603987b60f2ea768b8fedd2",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        },
+        {
+          "role": "terminology",
+          "ordinal": 1,
+          "displayName": "terminology.json",
+          "bytes": 91,
+          "sha256": "sha256:3c22b286785220aa4b0d952eab8fd37e06a68b22c0e8d4c4f9dd6e2eb60f5b4c",
+          "materialIdHash": "sha256:6e02239d69cdfa82e356708214f9e5ae0a30fa2e8254e829b2854a3b1fe4c452",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        },
+        {
+          "role": "locale_policy",
+          "ordinal": 2,
+          "displayName": "locale_policy.json",
+          "bytes": 20657,
+          "sha256": "sha256:7b736cd4b0e5bd94de1db50c14d43cd212b179ae8e4399c14a54112e0ce2fd90",
+          "materialIdHash": "sha256:80a0f4617038beb60559d0942d324c358e656922020becdc3d7022f6f9fd00ea",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        },
+        {
+          "role": "render_policy",
+          "ordinal": 3,
+          "displayName": "render_policy.json",
+          "bytes": 120,
+          "sha256": "sha256:692d9e009db1bbd6fd20b98b9d8d6cc2f6368d176fe757280c98babb8f4f6936",
+          "materialIdHash": "sha256:ac88f457f1427b5527092098b8a3eb4c6d389a0e25b1f9c5cfed710d2c0a4dc8",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        }
+      ]
+    },
+    {
+      "locale": "zh-TW",
+      "jobIdHash": "sha256:d9f5bad77c6603848ad6676c3e4ff55798cecb71f09776a54c09043019d774c8",
+      "requestHash": "sha256:f14ce77927b773013d77bce68548ef9c33ad26df32911a1cc7056e082d06cfc4",
+      "taskEnvelopeHash": "sha256:a458ef06a08f9dc5450ffb79abd5dfa0430b7d939f22cef4c662bac96a78dab5",
+      "parentJobIdHash": "sha256:185ced8bd0d70c85074c7ed2150dec768c3707dc063b99fce238f5f4f5579e95",
+      "parentResultHash": "sha256:387149bda080513a38d3b77f5a2479e97ddcf8861806eaf34abc5b5e23239571",
+      "sourceResourceIdHash": "sha256:0995aee624af12af44b6515cc039eb146645a25154bb7604387bf080a1748238",
+      "parentReadbackHash": "sha256:b0de2166471d32d3351a09d236603fae2aac5a502db5ab141bc39e9b8d2a0854",
+      "sourceVersionHash": "sha256:04223f0903960fbd16534e93ae2ed8491e66072a4d43d75e8210127db2185a98",
+      "sourceSha256": "sha256:21c9bf0d8273d6a18bc3c50444495c801cae68ac30d52c29f8247c93150539be",
+      "resultRevisionHash": "sha256:61420482418fa09c89b138742c740a9cd30dcb98e661ae8643bd2cd96f98ad6d",
+      "materials": [
+        {
+          "role": "source_content",
+          "ordinal": 0,
+          "displayName": "source_content.json",
+          "bytes": 35507,
+          "sha256": "sha256:51e8d30b6a6fbffea13fb4ad4540c39f5df1e02564b7a30ceb3c744ed1226e67",
+          "materialIdHash": "sha256:924d7e7f5f445fb02934e5aa26a15a42b9ab248bffe5e962eb1f710233709a53",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        },
+        {
+          "role": "terminology",
+          "ordinal": 1,
+          "displayName": "terminology.json",
+          "bytes": 91,
+          "sha256": "sha256:7f4001c58b387917fad67dcfe58f78a575f806df016d905f4a9f537e5a4050d7",
+          "materialIdHash": "sha256:c148b5ee50fe09d1aa97c39abeae55e5e1dfc55d3f5783dae4f13cd9cc94a58d",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        },
+        {
+          "role": "locale_policy",
+          "ordinal": 2,
+          "displayName": "locale_policy.json",
+          "bytes": 20657,
+          "sha256": "sha256:81afa7465ba046ad3e0a95944200265425eba80959d471c489a7311947232162",
+          "materialIdHash": "sha256:e396e7e1d91ef040c4fe3744d151ada6b097a239c720a223d274d218ef5034bc",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        },
+        {
+          "role": "render_policy",
+          "ordinal": 3,
+          "displayName": "render_policy.json",
+          "bytes": 120,
+          "sha256": "sha256:ecbe955fbc8d2903a03f7ee58a1db47a8bc173bfe1b300f1fb3eecdcf2890c6e",
+          "materialIdHash": "sha256:be01ab1ba908c4285059c2da6e659417c76de523311a2eb94a99da8d2c636857",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        }
+      ]
+    },
+    {
+      "locale": "en-US",
+      "jobIdHash": "sha256:bcfb7fa3ab6989c738192d3b5b2a8baa4e407e7d8f5958bc9f582520ee584056",
+      "requestHash": "sha256:b516366c793ce39f60eaa28211bf32a95d65135940fe54b6439fa44664fe32bc",
+      "taskEnvelopeHash": "sha256:e9492dfd7db1e2a92f440b1b800408201eabc404f9d26a874fa60182941646d9",
+      "parentJobIdHash": "sha256:d9f5bad77c6603848ad6676c3e4ff55798cecb71f09776a54c09043019d774c8",
+      "parentResultHash": "sha256:dea89fce7685b58680be22bf4bcda7e20e36658d894c6f089fc8c39b8fe5b859",
+      "sourceResourceIdHash": "sha256:0995aee624af12af44b6515cc039eb146645a25154bb7604387bf080a1748238",
+      "parentReadbackHash": "sha256:5fdbbcef1d6b76e8034e3d6a0e308edd2bd0710b2161e39610dd980b8c92dc09",
+      "sourceVersionHash": "sha256:04223f0903960fbd16534e93ae2ed8491e66072a4d43d75e8210127db2185a98",
+      "sourceSha256": "sha256:21c9bf0d8273d6a18bc3c50444495c801cae68ac30d52c29f8247c93150539be",
+      "resultRevisionHash": "sha256:61420482418fa09c89b138742c740a9cd30dcb98e661ae8643bd2cd96f98ad6d",
+      "materials": [
+        {
+          "role": "source_content",
+          "ordinal": 0,
+          "displayName": "source_content.json",
+          "bytes": 35507,
+          "sha256": "sha256:640024c754a5b4c64dfb1c30e4a003aeec0a19cfc17d67932a5a86a6c1f4b139",
+          "materialIdHash": "sha256:4de93fac954821798d38ebe87d4a615ef2949a3101f26a74612783a327244276",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        },
+        {
+          "role": "terminology",
+          "ordinal": 1,
+          "displayName": "terminology.json",
+          "bytes": 91,
+          "sha256": "sha256:7eb7cc27d4ab3234ab490cb9c7b48b2829f227ec18ee35a7a8891205e012ba8b",
+          "materialIdHash": "sha256:1067c88aed22138ec767d28d8e90da37ebe7059ca9ccf90d823d3d565a545d27",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        },
+        {
+          "role": "locale_policy",
+          "ordinal": 2,
+          "displayName": "locale_policy.json",
+          "bytes": 20657,
+          "sha256": "sha256:7785569004a2317c4cae4bc8e05a2acec96effa54f4d4b43747be317151d578b",
+          "materialIdHash": "sha256:1c96611fb9510b513e493f47e0a72418e0fb50de0560c35673b98efebf40e46f",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        },
+        {
+          "role": "render_policy",
+          "ordinal": 3,
+          "displayName": "render_policy.json",
+          "bytes": 120,
+          "sha256": "sha256:2b7fe12d217eb89b01bb44544a940a9c0c2a43f65f47aebf7e03a769a83c1b7c",
+          "materialIdHash": "sha256:a27e4ffc86f441fa04ad5f6974672943a6d26ea2fe97b1d50d5ec16e1718abe5",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        }
+      ]
+    },
+    {
+      "locale": "ja-JP",
+      "jobIdHash": "sha256:331db47a8bdc9e2e3230ee961ca25b3e3d69a4f4e691196ab9f3397f3b3e8ee9",
+      "requestHash": "sha256:d6f79acc0bb2d5a25b5095ddf8adb0562b281357915e262aeeac887ebd92e064",
+      "taskEnvelopeHash": "sha256:8029e33fa2f3a2054803a2db31132e5ce931935b2a2bf962af612929a439ae35",
+      "parentJobIdHash": "sha256:bcfb7fa3ab6989c738192d3b5b2a8baa4e407e7d8f5958bc9f582520ee584056",
+      "parentResultHash": "sha256:12aa9d0b5764b73b1ebdc9dcc5f74a28325c57e0f1544d11ec8126380b0b5772",
+      "sourceResourceIdHash": "sha256:0995aee624af12af44b6515cc039eb146645a25154bb7604387bf080a1748238",
+      "parentReadbackHash": "sha256:08d77b8499190edf29175d493d181971fdeec9caaa3f3214defd8862d48c4c25",
+      "sourceVersionHash": "sha256:04223f0903960fbd16534e93ae2ed8491e66072a4d43d75e8210127db2185a98",
+      "sourceSha256": "sha256:21c9bf0d8273d6a18bc3c50444495c801cae68ac30d52c29f8247c93150539be",
+      "resultRevisionHash": "sha256:61420482418fa09c89b138742c740a9cd30dcb98e661ae8643bd2cd96f98ad6d",
+      "materials": [
+        {
+          "role": "source_content",
+          "ordinal": 0,
+          "displayName": "source_content.json",
+          "bytes": 35507,
+          "sha256": "sha256:5a805e6a0d53bff70ca87b9ebec961f1c1cd247a729e71e630fc116deb750d22",
+          "materialIdHash": "sha256:052604b11c73034e541c336cf8ec4842b472dc14e5b761e048c3a863dfbd186b",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        },
+        {
+          "role": "terminology",
+          "ordinal": 1,
+          "displayName": "terminology.json",
+          "bytes": 91,
+          "sha256": "sha256:483c6845cd0a8df4a8c1c5159fc3fc6a0a8cc9ad6b91b4bc80fdfaa3a50ea3fd",
+          "materialIdHash": "sha256:13c7daf07b46ab0cf13290f04bb1bcadd107fb0db8fac14574df2fb30760f098",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        },
+        {
+          "role": "locale_policy",
+          "ordinal": 2,
+          "displayName": "locale_policy.json",
+          "bytes": 20657,
+          "sha256": "sha256:97fc92b6b4e5895e1b691e0d7ca39e157711024e559da4bdf8c67fb18d88ba86",
+          "materialIdHash": "sha256:cab92f60da2c6310c3839caaefb254c14f47afee8d1f0508359054f6ec810fc5",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        },
+        {
+          "role": "render_policy",
+          "ordinal": 3,
+          "displayName": "render_policy.json",
+          "bytes": 120,
+          "sha256": "sha256:b3460f8ace8b821e11eb50f7319b575f7fc798fd632082233b41d6e8151f4b2e",
+          "materialIdHash": "sha256:98edf1bcea8e6a140ee0f907b2db433a4bb41a6875a24aed2ab7daa2182dd748",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        }
+      ]
+    },
+    {
+      "locale": "ko-KR",
+      "jobIdHash": "sha256:f7c48dcf6bfe28eabc31ed358ed97e8d56efe912915004d8e4169f1d95725cad",
+      "requestHash": "sha256:fb64a99e95c33713d2aca9fbb2f663bdf5c441d1d6d16f6dc21adc802b9ab292",
+      "taskEnvelopeHash": "sha256:141f2732225d8f578d35a7279f7ff0662f0cb96fa954d66114874571f2f5449b",
+      "parentJobIdHash": "sha256:331db47a8bdc9e2e3230ee961ca25b3e3d69a4f4e691196ab9f3397f3b3e8ee9",
+      "parentResultHash": "sha256:ce4ff3c542c80553f11b4d9864f7a8c359258d6a4f539d31da92eff8cbc6310e",
+      "sourceResourceIdHash": "sha256:0995aee624af12af44b6515cc039eb146645a25154bb7604387bf080a1748238",
+      "parentReadbackHash": "sha256:293122bf57152877bad9ebf78ffe8ff3d5904b61bae79086a86b857c88091499",
+      "sourceVersionHash": "sha256:04223f0903960fbd16534e93ae2ed8491e66072a4d43d75e8210127db2185a98",
+      "sourceSha256": "sha256:21c9bf0d8273d6a18bc3c50444495c801cae68ac30d52c29f8247c93150539be",
+      "resultRevisionHash": "sha256:61420482418fa09c89b138742c740a9cd30dcb98e661ae8643bd2cd96f98ad6d",
+      "materials": [
+        {
+          "role": "source_content",
+          "ordinal": 0,
+          "displayName": "source_content.json",
+          "bytes": 35507,
+          "sha256": "sha256:6602e86dda78b46e48095dba3dcf5a6d8291cd71d9fb47da575b2134dc06f4ae",
+          "materialIdHash": "sha256:adcb636b6cdcf9f37711134d40b1353d4ec7403aeb790144e25947125ca348f1",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        },
+        {
+          "role": "terminology",
+          "ordinal": 1,
+          "displayName": "terminology.json",
+          "bytes": 91,
+          "sha256": "sha256:8869908e25edb1ee416dc5ba15349ffe813f65b971551d6ef947f14bd67e8bc3",
+          "materialIdHash": "sha256:7c106fb2fd6cde4aa2d40738389b7c83a39f945874472e713e129284faf7de70",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        },
+        {
+          "role": "locale_policy",
+          "ordinal": 2,
+          "displayName": "locale_policy.json",
+          "bytes": 20657,
+          "sha256": "sha256:b87fd1efa6e31b85e20d62cca71365174273b29b75ce578435146c0a41bea876",
+          "materialIdHash": "sha256:0d30599f5b67abc742feb92170ae547388c1ed2d1b40e8bb3f99375b4e252578",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        },
+        {
+          "role": "render_policy",
+          "ordinal": 3,
+          "displayName": "render_policy.json",
+          "bytes": 120,
+          "sha256": "sha256:a959ffcb6cb5fd5178128bd9aa65a90a8e088b2a10f448194ca187909e5cd6ea",
+          "materialIdHash": "sha256:e9ccbc58961c7773dc3eccfdf494fb9fcc9bfc0c69a3b01d1dab98f5b26c85ae",
+          "ownerScopeHashDigest": "sha256:1861fe7c32fe80ad90c319f6a3ab4c14304b825b18ceb68d5a522d55b109eb60"
+        }
+      ]
+    }
+  ]
+}

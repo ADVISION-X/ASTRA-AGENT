@@ -1,3 +1,2 @@
-const MODEL_SELECTOR_ENTRY = "[role='menuitem'][aria-label='选择模型']:not([aria-hidden='true'])";
-export const GPT_MODEL_SELECTOR_OPENABLE_ENTRY = `${MODEL_SELECTOR_ENTRY}[aria-expanded='false']`;
-export const GPT_MODEL_SELECTOR_OPTION = "[role='menuitemradio']";
+export const GPT_MODEL_SELECTOR_OPENABLE_ENTRY = "[data-model-picker-view='simple'] [role='menuitem'][data-model-picker-view-toggle='true'][aria-label='选择模型']";
+export const GPT_MODEL_SELECTOR_OPTION = "[data-model-picker-view='advanced'] [role='menuitemradio']";

@@ -37,12 +37,13 @@ const inspectExtensionExecutionBoundary = (
     ...stringLiterals(sources.actor), ...stringLiterals(sources.targetAuthority),
     ...stringLiterals(sources.fileInput),
   ]);
-  if (!actorStrings.has("DOM.setFileInputFiles") || !actorStrings.has("#upload-files")) {
+  if (!actorStrings.has("DOM.setFileInputFiles")
+    || !actorStrings.has("form[data-chatgpt-composer] input[type='file'][aria-label='附加文件']")) {
     findings.push(createLocalFinding({
       checkId: "browser-authority/terminal-authority",
       lawId,
       filePath: extensionFileInputPath,
-      message: "The extension file-input command must use one observed #upload-files target and DOM.setFileInputFiles.",
+      message: "The extension file-input command must use one observed ChatGPT file-input target and DOM.setFileInputFiles.",
     }));
   }
   if (identifiers(sources.domRuntime).has("DOMParser")) {

@@ -35,7 +35,8 @@ assert.match(worker, /Page\.fileChooserOpened/u,
   "The one file-input command must bind the Provider chooser event before setting files.");
 assert.match(worker, /Input\.dispatchMouseEvent/u,
   "The exact visible Provider upload leaf must be physically clicked inside the one file-input command.");
-assert.match(worker, /#upload-files/u, "The file-input executor must remain pinned to the observed ChatGPT document input.");
+assert.ok(worker.includes(String.raw`form[data-chatgpt-composer] input[type='file'][aria-label='\u9644\u52A0\u6587\u4EF6']`),
+  "The file-input executor must remain pinned to the observed ChatGPT document input.");
 assert.match(worker, /browser\.authenticated-media\.v1/u, "The registered authenticated media observation must remain on the one encrypted Browser chain.");
 assert.match(worker, /gpt-generated-image-main/u, "Authenticated media retrieval must remain pinned to the fixed generated-image semantic identity.");
 assert.match(worker, /Runtime\.evaluate/u, "The fixed authenticated media observation must execute inside the signed-in exact page session.");

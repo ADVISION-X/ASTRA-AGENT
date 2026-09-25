@@ -140,7 +140,7 @@ try {
   };
   const exactAssistantCommand = { kind: "dom-intent" as const, intent: {
     kind: "readExactAssistantTurn" as const,
-    userTurnId: "conversation-turn-1",
+    userTurnId: "00000000-0000-4000-8000-000000000001",
     canonicalConversationUrl: "https://chatgpt.com/c/exact-assistant",
   } };
   const exactAssistantRawDomHtml = "<div>answer</div>";
@@ -149,9 +149,9 @@ try {
     schemaVersion: "grasseye.browser.exact-assistant-turn.v3" as const,
     targetRefHash: exactHash(exactAssistantPermit.targetRef),
     documentRefHash: exactHash(exactAssistantPermit.documentRef),
-    assistantTurnId: "conversation-turn-2",
+    assistantTurnId: "00000000-0000-4000-8000-000000000002",
     currentUrl: "https://chatgpt.com/c/provider-canonicalized-after-submit",
-    precedingUserTurnId: "conversation-turn-1",
+    precedingUserTurnId: "00000000-0000-4000-8000-000000000001",
     generatingRaw: 0,
     rawDomHtml: exactAssistantRawDomHtml, rawDomHash: exactHash(exactAssistantRawDomHtml),
     semanticText: exactAssistantSemanticText, semanticTextHash: exactHash(exactAssistantSemanticText),
@@ -329,10 +329,10 @@ try {
   assert.equal(actorStore.readCommand(insufficientBudgetPermit.commandId)?.state ?? null, null,
     "insufficient reply budget must produce neither PREPARED nor DISPATCHED");
 
-  const fileCommand = { kind: "file-input" as const, selector: "#upload-files",
-    activation: { selector: "div.__menu-item[tabindex='0'] span",
-      scope: { selector: "#thread-bottom div.popover[aria-busy='false']" },
-      expectedTextEquals: "从电脑上传" },
+  const fileCommand = { kind: "file-input" as const, selector: "form[data-chatgpt-composer] input[type='file'][aria-label='附加文件']",
+    activation: { selector: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child",
+      scope: { selector: "[data-composer-overlay-floating-ui='true']" },
+      expectedTextEquals: "添加照片和文件" },
     approvedFiles: [{ grantRef: "grant-one", contentHash: hash, maxBytes: 64 }],
     resolvedFilePaths: ["/approved/one.txt"] };
   const forgedFilePermit: BrowserCommandPermit = {
