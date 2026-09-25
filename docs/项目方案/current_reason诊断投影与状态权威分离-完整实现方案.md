@@ -1901,3 +1901,150 @@ P1 未闭合 = 0
 > source-handoff typed seal 一旦成立，旧 source attempt 的 completion port 单调关闭，任何 generic regrant、late stage、late first-failure 或 release-descriptor rebind 都不得把它复活。
 
 > Website demand 不死，AGENT 的交付责任不死；source attempt 被关闭不等于 job demand 被关闭，Website 必须继续给同一 job 合法下一动作。
+
+
+---
+
+## 20. 最终自审补充 R9：暗权威与 claim diagnostic literal
+
+本轮继续按授权人的“你自己审计”执行只读攻击，不修改生产代码。
+
+### R9-F1：production-task authority hash 含 current_reason，允许但必须永久限制在诊断域
+
+现役：
+
+~~~text
+authorityRef = production-task:<jobId>
+authorityHash = hashCanonical(StoredProductionTask)
+~~~
+
+StoredProductionTask 包含 current_reason，因此 reason 改变会让旧 snapshot hash 与当前 task row 不同。
+
+已核当前消费者：
+- scripts/runtime-logs/inspect.ts 的 Runtime Log diagnosis authorityResolver；
+- operations-snapshot.ts 的诊断完整性；
+- Runtime span terminal 的诊断 evidence；
+- acceptance 对诊断 authority 的 readback。
+
+未发现该 authority hash 被用于：
+- claim admission；
+- next_action；
+- source handoff；
+- Provider submit；
+- business capacity；
+- result stage/terminal；
+- deletion control；
+- business completed。
+
+裁决：
+
+~~~text
+允许：
+current_reason -> historical diagnostic snapshot hash
+
+禁止：
+production-task snapshot hash -> execution eligibility / authorization
+~~~
+
+原生 audit 必须新增“production-task authority resolver consumer allowlist”或等价 AST/dependency 约束。未来任何 production control path 导入该 resolver，直接判 P0。
+
+### R9-F2：LEASE_GRANTED literal widening 不是为了容错授权，而是为了取消诊断反向授权
+
+复审 WO-B5 后维持原裁决。
+
+如果 AGENT consumer 继续：
+
+~~~text
+current_reason: literal("LEASE_GRANTED")
+~~~
+
+那么只要诊断文案漂移，即使 grant / attempt / lease / fence / request / session 全部有效，整个 claim 仍会被 parser 拒绝。
+
+这意味着诊断内容仍能决定“任务能不能进入 durable accept”，与本方案最高不变量冲突。
+
+因此目标仍是：
+
+~~~text
+Website producer:
+  继续严格生产 LEASE_GRANTED
+
+AGENT consumer:
+  只要求 current_reason 字段 shape 合法 / 非空
+  不把具体 code 当 admission gate
+
+若收到非标准诊断 code：
+  可记录 typed diagnostic mismatch
+  但在 grant/attempt/lease/fence/request/session/version 全部有效时
+  不得仅因此拒绝合法 Website demand
+~~~
+
+该诊断 mismatch 不允许：
+- 变 next_action；
+- 变 retry；
+- 变 Provider gate；
+- 变 attempt/revision；
+- 变 completed。
+
+canonical V43 manifest/spec 不声明该 literal 为 authority，Website wire bytes保持不变，因此默认不因本项单独升版。施工前仍执行 canonical checker 门。
+
+### R9-F3：source seal / stage / first-failure 三方竞态已形成完整单调关闭模型
+
+综合 A1 与 R8：
+
+~~~text
+source attempt OPEN
+  |
+  +-- stage + terminal transaction wins
+  |     -> result path wins
+  |     -> seal must fail
+  |
+  +-- typed source seal transaction wins
+        -> source attempt completion port permanently CLOSED
+        -> generic same-attempt regrant must fail
+        -> late stage must fail
+        -> late first-failure must fail
+        -> release-descriptor rebind must fail
+        -> only exact issued new attempt may reopen job execution
+~~~
+
+注意：
+
+> source attempt CLOSED != Website demand CLOSED。
+
+旧 source attempt 被单调关闭后，FROZEN-WEBSITE-RESULT-DEMAND-001 仍要求同一 job 由 Website 给出合法下一动作。
+
+### R9-F4：不新增任何替代状态
+
+R9 未发现必须增加：
+- 新表；
+- task phase；
+- handoff enum；
+- persistent fence；
+- diagnostic version；
+- compatibility reader；
+- recovery manager。
+
+现有 production_attempt_handoffs + production_tasks + production_outbox 足够闭合。
+
+### R9 verdict
+
+~~~text
+新增 P0 = 0
+新增 P1 = 0
+新增 P2 = 1
+  - production-task authority hash 必须永久限制在诊断 consumer
+未闭合 P0/P1 = 0
+最终 self_audit_verdict = PASS
+方案状态 = 审计通过-待前置依赖
+~~~
+
+最终施工顺序不变：
+
+~~~text
+Target方案施工 + 原生质检 + 动态验收
+-> current_reason方案重新绑定最新双仓 HEAD / contract
+-> 重跑 R1-R9 关键谓词
+-> current_reason施工
+~~~
+
+若 Target 方案改变 exact source seal、source evidence、Runtime capacity 或 V43/V44 contract，当前 PASS 自动失效，重新审计。
