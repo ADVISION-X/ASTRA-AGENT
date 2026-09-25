@@ -2,29 +2,29 @@
 document_type: project_scheme
 scheme_id: CURRENT_REASON_DIAGNOSTIC_PROJECTION_AUTHORITY_SEPARATION
 scheme_name: current_reason诊断投影与状态权威分离
-status: 审计通过-待前置依赖
+status: 设计阻断
 created_at: 2026-09-25
 updated_at: 2026-09-25
 owner_repo: ADVISION-X/AGENT
 candidate_branch: main
-candidate_head: 0f30f3e8ed308a3a2db742ecd477281a38e97d27
+candidate_head: ae5027d40df3aae588df4b7ec8e63e7727d58526
 website_baseline: 695ddbbe004ba8919794251f81b80058a253035d
 depends_on_scheme: docs/项目方案/Target系统地位与强制边界-完整实现方案.md
 implementation_mode: design_only
 independent_subagent_audit: superseded_by_explicit_user_self_audit
 audit_mode: primary_agent_read_only_self_audit
-self_audit_verdict: PASS
+self_audit_verdict: BLOCKED_BY_R10_CONTRACT_AND_TARGET_BASELINE
 ---
 
 # current_reason诊断投影与状态权威分离-完整实现方案
 
 ## 0. 状态、唯一结论与审计门
 
-本方案当前状态：**审计通过-待前置依赖**。
+本方案当前状态：**设计阻断**。第 21 节 R10 是本轮云仓候选复审的现役结论；前面 R1-R9 的 PASS 是各自当时的自审记录，不能覆盖本轮发现或 Target 前置基线。
 
 授权人已在后续明确改为“你自己审计”。因此原“必须等待独立子智能体”形式门由本轮最新明确指令替代。本轮由主智能体切换为只读审计角色，对双仓法案、施工图、现役实现与原生质检做独立于施工的反向攻击；审计阶段不修改生产代码、数据库、服务或跨仓合同实现。
 
-本轮自审 verdict：**PASS（P0=0，P1=0）**。该 PASS 只放行方案设计，不授权并行施工。
+R1-R9 曾给出设计自审 PASS；本轮 R10 发现跨仓 claim envelope 的合同裁决尚未闭合，当前不能宣称 P1=0 或可施工。
 
 仍存在一个真实前置依赖：Target 方案与本方案共改 Runtime/source-handoff/quality，必须先完成《Target系统地位与强制边界-完整实现方案》施工与验收，再把本方案重新绑定到新的 HEAD/contract baseline 后施工。两方案禁止并行开工。
 
@@ -133,12 +133,12 @@ AGENT 无权自行决定永久停止、replacement job、新 attempt 或 result 
 
 ### 2.1 当前双仓基线
 
-| 仓库 | main HEAD | recursive tree | 文件 | 代码 | Blueprint/项目方案 | 质量相关 |
-| --- | --- | ---: | ---: | ---: | ---: | ---: |
-| ADVISION-X/AGENT | 3283092c9aa2c70c7709a2bad4d94ed8764ab31c | 1177 entries，untruncated | 913 | 627 | 44 | 385 |
-| ADVISION-X/xuanxue-web | 695ddbbe004ba8919794251f81b80058a253035d | 7411 entries，untruncated | 6389 | 2290 | 55 | 631 |
+| 仓库 | 云仓 main HEAD | 本轮有关的 candidate 事实 |
+| --- | --- | --- |
+| ADVISION-X/AGENT | ae5027d40df3aae588df4b7ec8e63e7727d58526 | 相对 3283092c9 只更新本方案，Runtime/法案/Blueprint/quality 源码未漂移 |
+| ADVISION-X/xuanxue-web | 695ddbbe004ba8919794251f81b80058a253035d | 与旧方案绑定的云仓 HEAD 相同；Target 本地 overlay 未验收 |
 
-AGENT 相对上一轮 355800d0 的 3 个 commit 只新增本方案文件，本轮施工面代码、法案、Blueprint 与质量基线没有发生新的实现漂移。
+本轮直接读取云仓 `main=ae5027d40` 和方案 blob `caad2d925047a30687d81c43fd77fc336319a823`；相对 `3283092c9` 的实际 diff 只有本方案文件。原表中的文件分类计数属于旧候选，不作为本轮准入证据。Website 云仓 `main=695ddbbe004ba8919794251f81b80058a253035d`。两仓本地工作区另有 Target 相关未提交 overlay，均不计作云仓已验收代码或本方案的 source candidate。
 
 ### 2.2 唯一方案路径
 
@@ -572,14 +572,14 @@ current_reason 不能打开或关闭该 gate。
 
 ## 6. 跨仓合同裁决
 
-### 6.1 本方案单独施工不要求 V43 升版
+### 6.1 V43 升版裁决仍须核对 claim envelope
 
 已核：
 
 - xuanxue-ai-production-v6.contract.spec.json version=43；
 - xuanxue-ai-production-v6.manifest.json control_contract_version=43；
 - AGENT dependency version=43；
-- 三者都没有把 current_reason literal 声明为 contract authority。
+- 三者都没有把 current_reason literal 声明为 control authority；但 Website `services/api/src/ai-production/job-claim-result.ts` 的 `ClaimedWebsiteAgentTaskV1` 仍把 wire 字段声明为精确字面量 `"LEASE_GRANTED"`，AGENT `transport-protocol.ts` 也以 literal 解析。授权语义与 wire grammar 必须分开裁决。
 
 本轮目标：
 
@@ -589,11 +589,11 @@ current_reason 不能打开或关闭该 gate。
 - device-status shape 不变；
 - current_reason 字段不删除、不改名。
 
-因此单独施工时不需要仅因本轮升 control contract version。
+现役 provider 字节不变，consumer 接收集合放宽是目标；是否需要 contract version/类型同步，不能只凭 manifest 没声明该 literal 为授权语义得出结论。Target 将改动 V43/V44 相关合同，最终裁决必须绑定其验收后的版本。
 
 ### 6.2 施工前必须再过一次 canonical checker
 
-如果施工前任何 provider/consumer canonical checker 证明 current_reason literal 已被当成跨仓授权语义，则本 Work Order 立即回到设计阻断，重新裁决真实合同版本，不允许用宽松 parser 偷穿版本门。
+Target 验收后，按同一候选逐项核对 Website claim producer 类型和真实输出、AGENT claim parser、双仓 canonical spec/manifest/dependency、版本与兼容检查。必须得到一个明确结果：当前版本允许 consumer 只放宽诊断值，或者按现役合同规则同步升级 provider/consumer 版本与相应质检。任何 checker 未覆盖 wire grammar、版本不一致或非标准诊断值尚无合法 grant 的验收证明，都保持设计阻断；不得把 checker 对 authority 的沉默当成 wire 兼容证明。
 
 ### 6.3 与 Target 方案禁止并行施工
 
@@ -702,6 +702,8 @@ current_reason === EXECUTING
 - exact current source attempt 未被 typed handoff seal；
 - stage + terminal Outbox 原子事务。
 
+唯一施工落点：生产入口只保留 `stageResultAndEnqueueTerminal()`。把 `store-task-state.ts` 的 public `stageResult()` 收窄为 protected `stageResultInTerminalTransaction()`，仅供现有 `store-outbox.ts` 的外层 SQLite transaction 调用；原生 audit 校验它只有这一个调用点。其 exact typed seal 判断与 stage 写必须位于该事务内，不允许独立提交 stage。直接调用 `store.stageResult()` 的 acceptance 不得继续以无 terminal intent 的假 stage 代表合法生产状态；分别改为经原子入口建立带精确 terminal intent/receipt 的状态，或把刻意不一致的旧数据隔离成只供拒绝测试使用的 fixture，并断言不能完成。不得为测试保留 public 绕行入口。
+
 markExecuting 仍可写 current_reason=EXECUTING，纯诊断。
 
 ## WO-B3：capacity / readback 分母去 reason prefix
@@ -775,6 +777,7 @@ required non-empty diagnostic string
 真正 admission 继续精确验证 grant / attempt / lease / fence / request / session / control_contract_version。
 
 若 canonical checker 证明 literal 是合同授权义务，则停止并回到第 6.2 节。
+即使 checker 未把 literal 认作授权语义，也必须按第 6.2 节核对 Website provider TypeScript wire grammar 与版本；不能把授权判断等同于完整合同兼容判断。
 
 ## WO-B6：Website control intent 与 diagnostic reason 分离
 
@@ -865,6 +868,10 @@ Website SYSTEM / AI-ACCEPTANCE Blueprint：
    - 允许纯诊断展示和幂等诊断写；
    - 禁止其参与权威动作分支；
    - 不采用“出现 current_reason if 就全禁”的粗暴静态规则。
+
+9. `stageResult()` 入口收敛：生产调用图只能从 `stageResultAndEnqueueTerminal()` 进入同一事务；现有 browser-failure、ledger、business-admission、startup-preflight acceptance 的直接 `store.stageResult()` 调用必须逐个迁移或明确改为不一致数据的拒绝 fixture。验收要同时断言 stage 与 terminal intent 同时成立或同时缺席，seal-first/stage-first 无双赢。
+
+10. `production-task:` authority resolver 仍只在 Runtime Log diagnosis、Operations Snapshot 和只读 CLI 内消费。复用原生 runtime-log/production audit 的依赖检查和诊断结果 readback，不新增第二 resolver/allowlist 文件；改变诊断 reason 后 authority hash mismatch 不能改变 claim、capacity、source seal、Provider submit、stage 或 completed。
 
 ## WO-QW：Website 原生质检
 
@@ -1708,7 +1715,7 @@ PASS。
 
 ---
 
-## 17. 最终自审 verdict
+## 17. R7 时点自审 verdict（已被第 21 节取代）
 
 Finding closure：
 
@@ -1722,7 +1729,7 @@ P2 = 1，仅诊断 authority hash 新鲜度，非流程权威
 
 ### Verdict
 
-PASS / 可施工。
+R7 时点记录为 PASS / 可施工；该句不是当前施工准入，当前结论以第 21 节为准。
 
 授权人已明确允许本轮由主智能体自行审计，因此此前等待独立子智能体的形式阻断由本次明确授权替代。
 
@@ -1870,7 +1877,7 @@ current_reason NOT LIKE SOURCE_HANDOFF_SEALED
 
 ---
 
-## 19. 最终放行状态
+## 19. R8 时点放行状态（已被第 21 节取代）
 
 本轮用户已明确授权由主智能体自行审计。R1-R8 全部完成后：
 
@@ -1905,7 +1912,7 @@ P1 未闭合 = 0
 
 ---
 
-## 20. 最终自审补充 R9：暗权威与 claim diagnostic literal
+## 20. R9 时点自审补充：暗权威与 claim diagnostic literal
 
 本轮继续按授权人的“你自己审计”执行只读攻击，不修改生产代码。
 
@@ -2048,3 +2055,39 @@ Target方案施工 + 原生质检 + 动态验收
 ~~~
 
 若 Target 方案改变 exact source seal、source evidence、Runtime capacity 或 V43/V44 contract，当前 PASS 自动失效，重新审计。
+---
+
+## 21. R10：云仓候选反向审计与现役停止门
+
+本轮从 AGENT 云仓 main ae5027d40df3aae588df4b7ec8e63e7727d58526 取得同一方案，核 blob caad2d925047a30687d81c43fd77fc336319a823；Website 云仓 main 695ddbbe004ba8919794251f81b80058a253035d。AGENT 相对 3283092c9 的差异仅为本方案。两仓本地 checkout 的 Target 相关未提交改动未纳入云仓 candidate，不视为 Target 已施工或验收。以下结论只绑定这两个云仓候选。
+
+### R10-F1：公开 stageResult 仍可制造无 terminal intent 的结果槽（P1，方案内已收敛）
+
+现役 store-task-state.ts 的 stageResult() 是 public；生产仅由 store-outbox.ts 的 stageResultAndEnqueueTerminal() 在事务内调用，但 browser-failure、ledger、business-admission、startup-preflight acceptance 多处直接调用 public 方法。第 16 节 A1 已识别风险，却留下“private/protected 或直接调用自建 transaction”二选一，违反唯一施工落点。WO-B2 现固定为 protected primitive，唯一调用点是原子 stage+terminal 事务；WO-QA 第 9 项逐个处理旧 acceptance。验证以调用图、同事务 stage/terminal readback、seal-first/stage-first race 为准。禁止为了旧测试保留生产 public 入口。
+
+### R10-F2：LEASE_GRANTED 是 provider wire type 的字面量（P1，待 Target 后裁决）
+
+Website services/api/src/ai-production/job-claim-result.ts 的 ClaimedWebsiteAgentTaskV1.current_reason 类型与实际 producer 都是精确字面量 LEASE_GRANTED；AGENT transport-protocol.ts 的 ClaimedProductionTaskSchema 也用 z.literal(LEASE_GRANTED)。V43 spec/manifest/dependency 未声明这个字面量为授权决定，可以支持取消第二授权门，却不能单独证明放宽 consumer wire grammar 不涉及合同版本。第 6.1/6.2 节已改为独立裁决两件事：精确 grant 才是授权；provider/consumer 类型、兼容与版本必须同一候选闭合。Target 预定更新 V43/V44 合同，在其原生质检及动态验收完成前，不能替尚未形成的新合同作最终版本判断。最终验收至少要有 Website 正常 literal producer、AGENT 合法 grant + 非标准非空诊断值的接纳，以及相同 claim 身份/授权验证失败时诊断值不能救活的三向 readback。若现役 checker 不覆盖 wire grammar，必须由双仓 provider 类型和消费者协议测试补足，不得把 checker 静默当 PASS。
+
+### R10-F3：production-task hash 仍只作诊断（P2，保留 R9 的边界）
+
+store-foundation.ts 用整个 StoredProductionTask 计算 hash，故诊断 reason 变化可使旧 Runtime Log snapshot 与当前行不符。当前 resolveProductionAuthority / resolveStoredProductionAuthority 的调用只落在 Runtime Log diagnosis、Operations Snapshot、只读 CLI 与对应验收；生产 claim、source seal、stage、Provider submit 没有消费该 resolver。WO-QA 第 10 项复用原生依赖检查与 reason mutation readback；不为该风险新增状态、resolver 或独立 allowlist 文件。未来若生产控制调用图出现消费者，必须判 P0，不能继续援引本次只读观察。
+
+### R10-F4：权威修改与前置施工仍需分别获准
+
+AGENT LAW-AGENT-PRODUCTION-RUNTIME-001-V71 和 V6 Blueprint 仍明写 current_attempt_id + current_reason + staged_result_json is null 作旧 completion port CAS。本方案 WO-G0/WO-D1 需要改变这些现役权威，但本次用户只授权方案下载、审计与原位迭代；本轮不修改法案或 Blueprint。进入代码施工前必须由授权人分别明确批准对应权威修改，并先完成 Target 方案的现役原生质检与动态验收；不能用本方案自审替代任何一项。重新绑定时检查 Target 是否改变 typed seal、source proof、capacity 分母和 V43/V44 合同，重跑 R1-R10 受影响谓词。
+
+### R10 当前结论
+
+~~~text
+P0 未闭合：0
+P1 本轮发现：2
+P1 方案内已收敛：1（R10-F1）
+P1 未闭合：1（R10-F2，等 Target 后的同候选合同裁决）
+P2 边界：1（R10-F3）
+方案状态：设计阻断
+生产施工：禁止
+唯一方案路径：本文件
+~~~
+
+下一次只有在 Target 已验收、双仓新 HEAD/合同重新绑定、R10-F2 得到明确版本裁决、现役法案/Blueprint 修改分别获准且 R1-R10 反向验收无未闭合 finding 后，才可把方案状态改为 可施工。状态变更仍只是设计施工门，不是 CHANGE、READY、RELEASE 或生产闭环证明。
