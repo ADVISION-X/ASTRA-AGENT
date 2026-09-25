@@ -384,18 +384,22 @@ Website main = 01664ae8518eaec49ac0af5d142c758a1a219fd9
 
 如果原生治理工具因为 Blueprint/contract 文义变化只要求机械依赖指针更新，按工具最小结果执行；禁止顺手重写 law 义务。
 
-### W2 — GPT Blueprint / 拓扑文义
+### W2 — 施工图 / 冻结拓扑文义
 
-原位修改：
-- `docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md`
-- 仅当仍作为当前施工导航被原生质检消费时，同步现役 `AGENT运行拓扑图` 对 G03/G15/G16/G17 的描述。
+同一个假门当前被三处现役/冻结文档重复投影，施工时必须**同一 change 原位删除**，不能留一个旧副本继续反向约束代码：
+
+- `docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md`（GPT V66）；
+- `docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md`（Browser V54）；
+- `docs/项目方案/AGENT运行拓扑图-完整实现方案.md` 当前冻结 G16 行及其既有单一冻结 hash/version 记录。
 
 必须删除：
 - G16 “模型列表关闭”；
-- G03 把 reasoning topology 当作 open-profile 完成事实的文义；
+- G03/open-profile 把 reasoning topology 当作当前 Child 完成事实的文义；
 - 其它“当前 Child 替后继 Child 证明 ready”的描述。
 
-不得新增新 Blueprint。
+`docs/项目方案/模型和推理强度自动配型-完整实现方案.md` 中同样的旧 G16 句子属于历史方案语义；它不得作为第二施工方案继续竞争。本唯一方案在该冲突上明确 supersede 它。若现役 architecture-boundary 质检要求项目方案 projection 同步，只做最小 superseded 指针/旧句删除，不复制本方案正文。
+
+不得新增新 Blueprint、拓扑表或第四份规则。
 
 ### W3 — Child 合同
 
