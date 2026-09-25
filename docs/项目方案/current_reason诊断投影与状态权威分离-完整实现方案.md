@@ -7,24 +7,24 @@ created_at: 2026-09-25
 updated_at: 2026-09-25
 owner_repo: ADVISION-X/AGENT
 candidate_branch: main
-candidate_head: ae5027d40df3aae588df4b7ec8e63e7727d58526
+candidate_head: 8666ba40e76b1772c54328bac7e3eaca8cc91b16
 website_baseline: 695ddbbe004ba8919794251f81b80058a253035d
 depends_on_scheme: docs/项目方案/Target系统地位与强制边界-完整实现方案.md
 implementation_mode: design_only
 independent_subagent_audit: superseded_by_explicit_user_self_audit
 audit_mode: primary_agent_read_only_self_audit
-self_audit_verdict: BLOCKED_BY_R10_CONTRACT_AND_TARGET_BASELINE
+self_audit_verdict: PASS
 ---
 
 # current_reason诊断投影与状态权威分离-完整实现方案
 
 ## 0. 状态、唯一结论与审计门
 
-本方案当前状态：**设计阻断**。第 21 节 R10 是本轮云仓候选复审的现役结论；前面 R1-R9 的 PASS 是各自当时的自审记录，不能覆盖本轮发现或 Target 前置基线。
+本方案当前状态：**设计阻断（Target 前置施工、新候选重绑定及权威修改授权尚未完成）**。第 22 节 R11 是本轮云仓候选复审的现役设计结论；前面 R1-R10 的时点记录不得覆盖 R11。
 
 授权人已在后续明确改为“你自己审计”。因此原“必须等待独立子智能体”形式门由本轮最新明确指令替代。本轮由主智能体切换为只读审计角色，对双仓法案、施工图、现役实现与原生质检做独立于施工的反向攻击；审计阶段不修改生产代码、数据库、服务或跨仓合同实现。
 
-R1-R9 曾给出设计自审 PASS；本轮 R10 发现跨仓 claim envelope 的合同裁决尚未闭合，当前不能宣称 P1=0 或可施工。
+R11 将 R10-F2 的 consumer wire 泛化撤出施工范围；现候选设计自审未闭合 P0=0、P1=0。该结果只证明当前方案设计，不证明 Target 已施工、法案/Blueprint 已获修改授权或生产已完成。
 
 仍存在一个真实前置依赖：Target 方案与本方案共改 Runtime/source-handoff/quality，必须先完成《Target系统地位与强制边界-完整实现方案》施工与验收，再把本方案重新绑定到新的 HEAD/contract baseline 后施工。两方案禁止并行开工。
 
@@ -33,6 +33,8 @@ R1-R9 曾给出设计自审 PASS；本轮 R10 发现跨仓 claim envelope 的合
 ### 0.1 唯一冻结句
 
 > current_reason 是解释，不是命令；是仪表盘，不是方向盘。
+
+这条禁令针对通过现役 claim wire 解析后的持久诊断投影。Website claim envelope 中同名字段仍有 V43 精确 literal 格式；格式不合格可被协议 parser 拒绝，但 literal 本身不签发 grant、lease、fence 或业务下一步。不得把“wire 格式校验”偷换成“诊断内容拥有执行权”，也不得为消除后者而无谓放宽前者。
 
 current_reason 只回答：
 
@@ -135,10 +137,10 @@ AGENT 无权自行决定永久停止、replacement job、新 attempt 或 result 
 
 | 仓库 | 云仓 main HEAD | 本轮有关的 candidate 事实 |
 | --- | --- | --- |
-| ADVISION-X/AGENT | ae5027d40df3aae588df4b7ec8e63e7727d58526 | 相对 3283092c9 只更新本方案，Runtime/法案/Blueprint/quality 源码未漂移 |
+| ADVISION-X/AGENT | 8666ba40e76b1772c54328bac7e3eaca8cc91b16 | 相对 ae5027d40 只更新本方案，Runtime/法案/Blueprint/quality 源码未漂移 |
 | ADVISION-X/xuanxue-web | 695ddbbe004ba8919794251f81b80058a253035d | 与旧方案绑定的云仓 HEAD 相同；Target 本地 overlay 未验收 |
 
-本轮直接读取云仓 `main=ae5027d40` 和方案 blob `caad2d925047a30687d81c43fd77fc336319a823`；相对 `3283092c9` 的实际 diff 只有本方案文件。原表中的文件分类计数属于旧候选，不作为本轮准入证据。Website 云仓 `main=695ddbbe004ba8919794251f81b80058a253035d`。两仓本地工作区另有 Target 相关未提交 overlay，均不计作云仓已验收代码或本方案的 source candidate。
+本轮直接读取云仓 `main=8666ba40`；相对 `ae5027d40` 的实际 diff 只有本方案文件。Website 云仓 `main=695ddbbe004ba8919794251f81b80058a253035d`。两仓本地工作区另有 Target 相关未提交 overlay，均不计作云仓已验收代码或本方案的 source candidate。
 
 ### 2.2 唯一方案路径
 
@@ -366,7 +368,7 @@ Provider submit gate 的真正权威已经存在：
 
 诊断 reason 不能开关 Provider submit gate。
 
-### D5：claim consumer 把 LEASE_GRANTED literal 当第二授权
+### D5：claim envelope 的 LEASE_GRANTED 是精确 wire grammar，不是业务授权
 
 Website job-claim-result.ts 明确生产：
 
@@ -380,7 +382,7 @@ AGENT transport-protocol.ts 又要求：
 current_reason: literal LEASE_GRANTED
 ~~~
 
-但是 canonical V43 manifest/spec/dependency **没有把 current_reason literal 定义成 control contract authority**；真实授权已经由：
+该 literal 是现役 claim envelope 的格式约束。`cloud-client.ts` 在 durable accept 前解析整个 claim；非 literal 是当前协议的 malformed envelope，仍可由 parser 拒绝。它不因此取得业务授权权力；真实授权由：
 
 ~~~text
 job_id
@@ -395,7 +397,7 @@ control_contract_version
 
 完整闭合。
 
-因此 current_reason=LEASE_GRANTED 可以继续保持 wire 字节不变，但 AGENT consumer 不应把该 literal 作为第二授权门。
+本轮保留 Website producer 与 AGENT `z.literal("LEASE_GRANTED")`，不修改 V43 claim wire。施工要删除的是解析后把本地 `current_reason` 的值用于 source seal、recovery、stage、capacity 等控制的路径。`LEASE_GRANTED` 不能补救无效 grant；合法 wire + 有效 grant 才允许 durable accept。此前“非标准非空 reason 也必须接纳”的要求与保留精确 wire grammar 不相容，R11 按本轮提供的更短方案撤销该要求，并在验收中明确两层边界。
 
 ### D6：deletion/control authority 与 current_reason 双证明
 
@@ -572,28 +574,28 @@ current_reason 不能打开或关闭该 gate。
 
 ## 6. 跨仓合同裁决
 
-### 6.1 V43 升版裁决仍须核对 claim envelope
+### 6.1 本方案不改变 claim wire grammar
 
 已核：
 
 - xuanxue-ai-production-v6.contract.spec.json version=43；
 - xuanxue-ai-production-v6.manifest.json control_contract_version=43；
 - AGENT dependency version=43；
-- 三者都没有把 current_reason literal 声明为 control authority；但 Website `services/api/src/ai-production/job-claim-result.ts` 的 `ClaimedWebsiteAgentTaskV1` 仍把 wire 字段声明为精确字面量 `"LEASE_GRANTED"`，AGENT `transport-protocol.ts` 也以 literal 解析。授权语义与 wire grammar 必须分开裁决。
+- Website `services/api/src/ai-production/job-claim-result.ts` 的 `ClaimedWebsiteAgentTaskV1` 与实际 producer 固定 `"LEASE_GRANTED"`；AGENT `transport-protocol.ts` 用 `z.literal("LEASE_GRANTED")` 校验该 wire 字段。现役 provider/consumer 在此一致。
 
 本轮目标：
 
 - Website producer shape 不变；
 - Website 继续发 current_reason=LEASE_GRANTED；
-- AGENT 停止把 literal 当第二授权；
+- AGENT 保留 claim envelope 的 literal 格式检查，只从 grant/attempt/lease/fence/request/session/version 取得执行授权；
 - device-status shape 不变；
 - current_reason 字段不删除、不改名。
 
-现役 provider 字节不变，consumer 接收集合放宽是目标；是否需要 contract version/类型同步，不能只凭 manifest 没声明该 literal 为授权语义得出结论。Target 将改动 V43/V44 相关合同，最终裁决必须绑定其验收后的版本。
+consumer 不放宽接收集合，本方案不因此改变 claim wire 或单独升版。`current_reason` 从 claim envelope 投影为本地诊断后不得成为状态、资格或下一步的输入。Target 将改动 V43/V44 相关合同，本方案施工前仍须绑定其验收后的 provider/consumer 版本。
 
 ### 6.2 施工前必须再过一次 canonical checker
 
-Target 验收后，按同一候选逐项核对 Website claim producer 类型和真实输出、AGENT claim parser、双仓 canonical spec/manifest/dependency、版本与兼容检查。必须得到一个明确结果：当前版本允许 consumer 只放宽诊断值，或者按现役合同规则同步升级 provider/consumer 版本与相应质检。任何 checker 未覆盖 wire grammar、版本不一致或非标准诊断值尚无合法 grant 的验收证明，都保持设计阻断；不得把 checker 对 authority 的沉默当成 wire 兼容证明。
+Target 验收后，按同一候选逐项核对 Website claim producer 类型和真实输出、AGENT claim parser、双仓 canonical spec/manifest/dependency 与合同版本。若 Target 改变了 wire grammar，重新裁决本方案；若仍是精确 literal，则保持原 provider/consumer 格式，原生验收分别证明“literal + 无效 grant 必须拒绝”和“有效 grant + literal 可接纳”。不得用 wire literal 代替 grant 验证，也不得把本地 reason 的内容用于生产控制。
 
 ### 6.3 与 Target 方案禁止并行施工
 
@@ -748,13 +750,12 @@ submit gate 只消费：
 
 诊断 current_reason 仍可显示 cooldown。
 
-## WO-B5：claim current_reason literal 降级
+## WO-B5：保留 claim wire literal，只撤销其越权解释
 
 Owner：AGENT transport consumer。
 
 Affected：
-- transport-protocol.ts
-- fixtures / contract acceptance
+- claim contract acceptance / Runtime authority audit；`transport-protocol.ts` 无本轮修改。
 
 Website producer字节保持：
 
@@ -762,22 +763,13 @@ Website producer字节保持：
 current_reason = LEASE_GRANTED
 ~~~
 
-AGENT consumer 从：
+AGENT consumer 保留：
 
 ~~~text
 literal LEASE_GRANTED
 ~~~
 
-降级为：
-
-~~~text
-required non-empty diagnostic string
-~~~
-
-真正 admission 继续精确验证 grant / attempt / lease / fence / request / session / control_contract_version。
-
-若 canonical checker 证明 literal 是合同授权义务，则停止并回到第 6.2 节。
-即使 checker 未把 literal 认作授权语义，也必须按第 6.2 节核对 Website provider TypeScript wire grammar 与版本；不能把授权判断等同于完整合同兼容判断。
+该 literal 只验证现役 claim envelope 格式，不能在 grant / attempt / lease / fence / request / session / control_contract_version 任何一项无效时赋予授权。`websiteAgentTaskFromClaim()` 投影业务 task 后，Runtime/Store/Executor 不得再用 claim 或本地 `current_reason` 的值决定 source seal、恢复、stage、capacity、Provider submit 或业务完成。用原生 contract acceptance 和调用图证明这条边界，不新增泛化 parser、诊断 mismatch 类型或跨仓版本。
 
 ## WO-B6：Website control intent 与 diagnostic reason 分离
 
@@ -873,6 +865,8 @@ Website SYSTEM / AI-ACCEPTANCE Blueprint：
 
 10. `production-task:` authority resolver 仍只在 Runtime Log diagnosis、Operations Snapshot 和只读 CLI 内消费。复用原生 runtime-log/production audit 的依赖检查和诊断结果 readback，不新增第二 resolver/allowlist 文件；改变诊断 reason 后 authority hash mismatch 不能改变 claim、capacity、source seal、Provider submit、stage 或 completed。
 
+11. claim wire 与授权分离：Website 精确 `LEASE_GRANTED` + 有效 grant 可接纳；同一 literal + 无效 grant/attempt/lease/fence/request/session/version 必须拒绝；非 literal 仍按现役 wire schema 拒绝，不作为本方案的业务授权反例。accepted 后只改本地合法诊断文本，source seal、capacity、recovery、stage、Provider input 不变。
+
 ## WO-QW：Website 原生质检
 
 1. next action 独立：
@@ -911,7 +905,7 @@ Website SYSTEM / AI-ACCEPTANCE Blueprint：
 | reason prefix 参与 businessInFlight | 容量不能由文案决定 |
 | providerCooldownPaused(reason) | ProviderRateLimitControl 已有真实 gate |
 | cooldown resume 的 reason-only 分支 | Website/Outbox/control facts 已存在 |
-| claim consumer 的 LEASE_GRANTED literal 权威 | grant/lease/fence 已完整授权 |
+| claim literal 推导业务授权的解释 | wire 格式校验保留；执行授权只来自 grant/lease/fence 等 typed facts |
 | deletion control 的 reason 双证明 | control_intent 是唯一控制权威 |
 | factory readiness 的 historical reason sentinel | migration registry + typed liveness 已覆盖 |
 | 保护上述结构的旧 audit/acceptance | 质量系统不能保护字符串状态机 |
@@ -1048,7 +1042,7 @@ current_reason、claim 200、LEASE_GRANTED、Runtime READY、CHANGE PASS、Brows
 7. 需要 current_reason 语义双读兼容；
 8. 需要改写历史 migration bytes；
 9. Target 方案与本方案在相同 production files 并发施工；
-10. canonical contract checker 证明 LEASE_GRANTED literal 是独立授权语义但方案未升版；
+10. Target 后的新合同改变 claim wire grammar，而本方案未重新绑定 provider/consumer 类型和版本；
 11. 本轮授权自审或后续复审出现未闭合 P0/P1 finding。
 
 Rollback：
@@ -1149,7 +1143,7 @@ Result：
 8. 与 Target 方案是否有未定义并行施工面？
 9. quality 是否同时验证“伪 reason 不伪 authority”和“真 authority 不受 reason 篡改”？
 10. completed 是否仍只来自 Domain admission/business consumption/object readback？
-11. LEASE_GRANTED literal 降级是否真的不构成跨仓 contract semantic change？
+11. LEASE_GRANTED wire literal 是否只校验协议格式、没有被下游当作 grant/lease/fence 的替身？
 12. current_reason nullability 是否只作结构一致性而不反向授权？
 
 ### 12.3 当前审计状态
@@ -1497,16 +1491,9 @@ same active/authorized attempt execution
 
 正确替代均为 exact current source attempt typed seal。纯诊断写可以按 typed事实选择“不覆盖更重要诊断”，但不得反过来用诊断文本证明 seal。
 
-### R7-F7：LEASE_GRANTED consumer widening 的版本裁决
+### R7-F7：当时的 consumer widening 裁决（R11 已撤销）
 
-现役 canonical V43 spec/manifest/dependency 没有把 current_reason literal列为 control authority；Website provider继续发送完全相同字节。
-
-AGENT 将 literal parser 降为 non-empty diagnostic string 属于 consumer 接收集合放宽，不改变 provider wire bytes、grant identity或control manifest。
-
-本方案维持“不因这一项单独升版”，但施工前必须运行 canonical cross-repo checker。若治理 checker 将该 parser 语义认定为 contract semantic diff，则：
-- 停止施工；
-- 按真实 checker结果升版；
-- 禁止靠宽松 parser 绕过版本门。
+R7 曾建议放宽 AGENT literal parser。R11 核现役 Website provider wire 类型后，删除该施工动作；最终以第 6 节、WO-B5 和 R11 的“保留精确 wire grammar、取消下游控制权”裁决为准。
 
 ### R7 verdict
 
@@ -1955,44 +1942,9 @@ production-task snapshot hash -> execution eligibility / authorization
 
 原生 audit 必须新增“production-task authority resolver consumer allowlist”或等价 AST/dependency 约束。未来任何 production control path 导入该 resolver，直接判 P0。
 
-### R9-F2：LEASE_GRANTED literal widening 不是为了容错授权，而是为了取消诊断反向授权
+### R9-F2：当时的 literal widening 建议（R11 已撤销）
 
-复审 WO-B5 后维持原裁决。
-
-如果 AGENT consumer 继续：
-
-~~~text
-current_reason: literal("LEASE_GRANTED")
-~~~
-
-那么只要诊断文案漂移，即使 grant / attempt / lease / fence / request / session 全部有效，整个 claim 仍会被 parser 拒绝。
-
-这意味着诊断内容仍能决定“任务能不能进入 durable accept”，与本方案最高不变量冲突。
-
-因此目标仍是：
-
-~~~text
-Website producer:
-  继续严格生产 LEASE_GRANTED
-
-AGENT consumer:
-  只要求 current_reason 字段 shape 合法 / 非空
-  不把具体 code 当 admission gate
-
-若收到非标准诊断 code：
-  可记录 typed diagnostic mismatch
-  但在 grant/attempt/lease/fence/request/session/version 全部有效时
-  不得仅因此拒绝合法 Website demand
-~~~
-
-该诊断 mismatch 不允许：
-- 变 next_action；
-- 变 retry；
-- 变 Provider gate；
-- 变 attempt/revision；
-- 变 completed。
-
-canonical V43 manifest/spec 不声明该 literal 为 authority，Website wire bytes保持不变，因此默认不因本项单独升版。施工前仍执行 canonical checker 门。
+R9 把“非标准非空 reason 也接纳”误设为取消业务授权所必需。R11 将 wire 格式合法性与 grant 授权分开：Website 和 AGENT 保持精确 `LEASE_GRANTED` claim envelope；合法 wire 不能救活无效 grant；解析后的本地诊断不得参与任何生产控制。最终施工与验收以第 6 节、WO-B5 和 R11 为准。
 
 ### R9-F3：source seal / stage / first-failure 三方竞态已形成完整单调关闭模型
 
@@ -2065,9 +2017,9 @@ Target方案施工 + 原生质检 + 动态验收
 
 现役 store-task-state.ts 的 stageResult() 是 public；生产仅由 store-outbox.ts 的 stageResultAndEnqueueTerminal() 在事务内调用，但 browser-failure、ledger、business-admission、startup-preflight acceptance 多处直接调用 public 方法。第 16 节 A1 已识别风险，却留下“private/protected 或直接调用自建 transaction”二选一，违反唯一施工落点。WO-B2 现固定为 protected primitive，唯一调用点是原子 stage+terminal 事务；WO-QA 第 9 项逐个处理旧 acceptance。验证以调用图、同事务 stage/terminal readback、seal-first/stage-first race 为准。禁止为了旧测试保留生产 public 入口。
 
-### R10-F2：LEASE_GRANTED 是 provider wire type 的字面量（P1，待 Target 后裁决）
+### R10-F2：当时把 consumer widening 纳入目标的 P1（R11 已撤销）
 
-Website services/api/src/ai-production/job-claim-result.ts 的 ClaimedWebsiteAgentTaskV1.current_reason 类型与实际 producer 都是精确字面量 LEASE_GRANTED；AGENT transport-protocol.ts 的 ClaimedProductionTaskSchema 也用 z.literal(LEASE_GRANTED)。V43 spec/manifest/dependency 未声明这个字面量为授权决定，可以支持取消第二授权门，却不能单独证明放宽 consumer wire grammar 不涉及合同版本。第 6.1/6.2 节已改为独立裁决两件事：精确 grant 才是授权；provider/consumer 类型、兼容与版本必须同一候选闭合。Target 预定更新 V43/V44 合同，在其原生质检及动态验收完成前，不能替尚未形成的新合同作最终版本判断。最终验收至少要有 Website 正常 literal producer、AGENT 合法 grant + 非标准非空诊断值的接纳，以及相同 claim 身份/授权验证失败时诊断值不能救活的三向 readback。若现役 checker 不覆盖 wire grammar，必须由双仓 provider 类型和消费者协议测试补足，不得把 checker 静默当 PASS。
+R10 正确发现 Website provider 与 AGENT consumer 的 wire 字段都是精确 `LEASE_GRANTED`，却继续把“接纳非标准非空诊断值”当成必须实现的目标，因而制造了版本待决问题。R11 选择保留双方现役 literal，不执行该泛化，故 R10-F2 不再是现役 P1。Target 完工后的新合同仍须重新绑定，但不能把尚未出现的 wire 变化冒充当前设计 finding。
 
 ### R10-F3：production-task hash 仍只作诊断（P2，保留 R9 的边界）
 
@@ -2077,7 +2029,7 @@ store-foundation.ts 用整个 StoredProductionTask 计算 hash，故诊断 reaso
 
 AGENT LAW-AGENT-PRODUCTION-RUNTIME-001-V71 和 V6 Blueprint 仍明写 current_attempt_id + current_reason + staged_result_json is null 作旧 completion port CAS。本方案 WO-G0/WO-D1 需要改变这些现役权威，但本次用户只授权方案下载、审计与原位迭代；本轮不修改法案或 Blueprint。进入代码施工前必须由授权人分别明确批准对应权威修改，并先完成 Target 方案的现役原生质检与动态验收；不能用本方案自审替代任何一项。重新绑定时检查 Target 是否改变 typed seal、source proof、capacity 分母和 V43/V44 合同，重跑 R1-R10 受影响谓词。
 
-### R10 当前结论
+### R10 当时结论（R11 已取代）
 
 ~~~text
 P0 未闭合：0
@@ -2090,4 +2042,49 @@ P2 边界：1（R10-F3）
 唯一方案路径：本文件
 ~~~
 
-下一次只有在 Target 已验收、双仓新 HEAD/合同重新绑定、R10-F2 得到明确版本裁决、现役法案/Blueprint 修改分别获准且 R1-R10 反向验收无未闭合 finding 后，才可把方案状态改为 可施工。状态变更仍只是设计施工门，不是 CHANGE、READY、RELEASE 或生产闭环证明。
+以上数字仅记录 R10 时点；R10-F2 已由 R11 的范围收缩消除。当前数字和施工门见第 22 节。状态变更仍只是设计施工门，不是 CHANGE、READY、RELEASE 或生产闭环证明。
+---
+
+## 22. R11：补审用户提交的两仓分析，撤销 wire 泛化
+
+本轮输入是一份关于 Target、current_reason、completion/receipt 与其他高危词族的交叉分析。它是待核线索；本节以 AGENT 云仓 main 8666ba40e76b1772c54328bac7e3eaca8cc91b16、Website 云仓 main 695ddbbe004ba8919794251f81b80058a253035d 的现役代码和合同裁决。两仓本地 Target overlay 不进入已验收 candidate。
+
+### R11-A：Target 仍是唯一前置
+
+Target 方案 frontmatter 仍为 可施工、candidate_agent_head=70d41305ffc6864097c92bebce966376fb1e4319、目标 V44。AGENT 从该候选到本轮云仓 main 的 tracked diff 只命中 Target 方案和本方案两份文档，没有生产代码或权威源变更。这支持对 Target 做 scoped rebind 后继续原方案，但不等于 Target 已施工，也不能预先替其原生质检、动态验收或未来合同读回给 PASS。两方案仍禁止并行施工。
+
+### R11-B：诊断暗权威与错误质检是真实第一断裂
+
+store-source-readback.ts、store-task-state.ts、runtime-claim-recovery.ts、runtime-loops.ts 仍从 SOURCE_HANDOFF_SEALED/EXECUTING/cooldown reason 读出 seal、stage、recovery 或 capacity 决定。agent-production-runtime/inspector.ts 还明确要求 acceptTaskAfterSourceHandoff 包含 SOURCE_HANDOFF_SEALED 文本判断，recovery acceptance 也依赖旧行为。正确 typed handoff row 已存在。本方案 WO-B1/B2/B3/B4、WO-QA 必须同时物理删除越权分支和反转保护它们的质检；不能增加状态、表、恢复器或兼容入口。
+
+### R11-C：LEASE_GRANTED 字节不动，权力边界写清
+
+Website job-claim-result.ts 的 ClaimedWebsiteAgentTaskV1.current_reason 与 producer 固定为 LEASE_GRANTED；AGENT transport-protocol.ts 的 z.literal(LEASE_GRANTED) 是现役 claim envelope 格式门。cloud-client.ts 在 durable accept 前解析该 envelope；非 literal 会被拒绝，必须诚实表述为协议拒绝，不能声称“字符串完全没有任何门禁作用”。但这个格式门不签发 execution grant，也不能替代 attempt、lease、fence、request、session、contract version 的逐项验证。websiteAgentTaskFromClaim 只投影业务 task；后续本地 current_reason 必须是可变诊断而非控制输入。
+
+因此撤销 R7/R9 的 consumer widening 和 R10-F2 的非标准非空 reason 接纳目标；Website producer、AGENT parser 与 V43 wire 均不因本方案修改。验收改为：literal + 有效 typed grant 可接纳；literal + 任一无效授权事实必拒绝；非 literal 维持现役协议拒绝；durable accept 后只改变本地合法诊断值，不改变 seal、recovery、capacity、stage 或 Provider input。这个选择与前轮“非 literal 但 grant 有效也必须接纳”口径不同，本轮按已核双仓 wire 类型与更短完整方案明确替代前轮要求，不把两种互斥验收同时留给施工者。
+
+### R11-D：stage/seal 的事务互斥与 public 入口
+
+R10-F1 保留并已由 WO-B2、WO-QA 收敛：public stageResult 必须变为 stageResultAndEnqueueTerminal 同事务内的唯一 protected primitive；旧 acceptance 的直接调用逐个迁移或限定为故意损坏数据的拒绝 fixture。stage-first 与 seal-first 各只有一个胜者；sealed source attempt 的 late stage、first-failure、release-descriptor rebind 和 generic same-attempt regrant 均失败。旧 attempt 关闭不终止 Website demand。
+
+### R11-E：completion 与 receipt 是后续防回归边界，不加进本轮重构
+
+Website job-terminal-repository.ts 的 first terminal 明写 status=failed、terminal_status=completed，并追加 business_result_ready；business-result-consumer.ts 只在 terminal_status=completed 且 status=failed 的候选上运行，核领域结果后才写 status=completed 与 business_consumption_hash；job-device-status-repository.ts 要求 completed 与 business admission receipt 同时成立。故本次受影响的完成主链没有发现把 staged result、first terminal 或普通 receipt 单独升级为业务 completed 的断裂。receipt 的各类用途继续由各自 Owner 持有；本方案只在第 9.4 节保留最终业务 readback 和反例验收，不新增 completion manager、receipt hierarchy、状态或表。若未来另行冻结词义，应作为独立获授权范围，不借本方案扩张施工。
+
+### R11-F：其他词族不凭名称开工
+
+checkpoint、artifact、Browser WAL、Outbox、attempt、revision、lease/fence/session/epoch、Browser lane、parent attempt 和 first failure 的权威边界，以本方案受影响的真实调用图和现役法案为限复核；本轮未取得它们各自存在独立越权断裂的证据。不为“统一治理”新增项目、台账、状态机或通用质量入口。若未来具体生产消费者把其中某事实提升为上层决定，按该消费者与权威 readback 单独立案。
+
+### R11 现役结论
+
+~~~text
+P0 未闭合：0
+P1 未闭合：0
+R10-F1：已在同一方案固定唯一事务入口
+R10-F2：因撤销 consumer wire 泛化而不再构成 finding
+设计自审：PASS，仅绑定当前双仓云仓候选
+方案状态：设计阻断，Target 前置、candidate 重绑定与权威修改授权未完成
+生产施工：禁止
+~~~
+
+顺序仍为 Target scoped rebind -> Target 原生质检与动态验收 -> 本方案重新绑定双仓 HEAD/合同及相关 R1-R11 谓词 -> 按现役授权分别处理法案/Blueprint -> current_reason 施工。若另获授权做 completion/receipt 词义冻结，应排在本方案之后，只保护第 R11-E 所核的现役完成链。任何新的生产代码、合同、法案、Blueprint 或 quality 漂移都须重新核对受影响结论；本节不是 READY、RELEASE 或生产结果证明。
