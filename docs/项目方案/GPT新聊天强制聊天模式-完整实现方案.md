@@ -269,14 +269,14 @@ trigger expanded  -> ACT
 - Product 已冻结的 exact model name；
 - Browser click 的 exact selector + exact text + unique candidate；
 - Browser 对真实候选的 actionability 重验；
-- 点击的**同一 candidate `aria-checked=true`** 直接后置。
+- 现役 `postClickMatch` 对 **exact Product model + `aria-checked='true'`** 的唯一直接后置；不再为携带 `clickedCandidateAttribute` 额外保留一条 observation query。
 
 理由有两层：
 
 1. 现役 Capability law 已要求删除第三阻断判据，Browser 是 actionability 唯一机械 Owner。
 2. 当前仓库的真实 QA 采集已经明确记录：初态“最新”模型已选中；真实点击后 `aria-checked=true` 仍成立，但模型菜单持续 `data-state=open`。现役“选中且菜单关闭”因此被真实页面反证，且累计出现 14 条模型后置冲突。**菜单关闭不是“模型已选中”的必要事实。**
 
-本轮同步最小修正 GPT Blueprint V66 及现役拓扑说明中 “G16 必须模型列表关闭” 的旧文义，改为“唯一 exact candidate 被本次 click 读回 `aria-checked=true` 即完成；后继 G17 自己读取自己的控件”。
+本轮同步最小修正 GPT Blueprint V66 及现役拓扑说明中 “G16 必须模型列表关闭” 的旧文义，改为“本次 Browser click 后，`postClickMatch` 只证明 exact Product model 且 `aria-checked=true`；后继 G17 自己 fresh 读取自己的控件”。这样 G16 的 postcondition 只剩一个谓词，不新增 Browser API。
 
 如果未来动态验收证明 G17 在菜单保持 open 时根本无法读取其必要控件，才以该真实页面事实重新设计；**本方案禁止预先新增 close-model-menu Child/动作/状态来猜修。**
 
