@@ -7,7 +7,7 @@ created_at: 2026-09-25
 updated_at: 2026-09-25
 owner_repo: ADVISION-X/AGENT
 candidate_branch: main
-candidate_head: 873c975ffea6d30c139dbda4f1426ac65358c162
+candidate_head: 0f30f3e8ed308a3a2db742ecd477281a38e97d27
 website_baseline: 695ddbbe004ba8919794251f81b80058a253035d
 depends_on_scheme: docs/项目方案/Target系统地位与强制边界-完整实现方案.md
 implementation_mode: design_only
@@ -1747,3 +1747,157 @@ PASS / 可施工。
 > source-handoff seal 与 result stage 的互斥必须由同一 Runtime SQLite 的 typed facts + transaction 保证，不得再借诊断文案充当 fence。
 
 > Website demand 不死，AGENT 的交付责任不死。任何诊断文本都没有资格把工单判死。
+
+
+---
+
+## 18. 最终自审补充 R8：sealed source attempt 单调关闭（P1 已闭合）
+
+### R8-F1：generic same-attempt regrant 不得复活 sealed source attempt
+
+审计发现一个此前没有写成独立硬门的 P1：
+
+现役 generic \`acceptTask()\` 在 \`existing.current_attempt_id === attemptId\` 时会直接写 \`LEASE_REGRANTED\` 并继续；而 source-handoff 的“旧 completion port 已关闭”目前主要依赖 \`SOURCE_HANDOFF_SEALED|...\` 文案被后续路径识别。
+
+当 current_reason 被降级后，**typed source seal 必须成为单调关闭事实**：
+
+~~~text
+exact production_attempt_handoffs(job_id, current_attempt_id)
+AND seal_hash != null
+AND sealed_at != null
+=
+该 source attempt 的 Product completion port 永久关闭
+~~~
+
+因此：
+
+1. \`acceptTask()\` 处理 same-attempt regrant 前，必须在同一 store authority 内查询 exact current source attempt 的 typed seal。
+2. 若 exact current source attempt 已 sealed：
+   - generic \`acceptTask()\` 必须 fail-close；
+   - 不得写 \`LEASE_REGRANTED\`；
+   - 不得进入 Product；
+   - Provider physical input delta=0；
+   - 只能等待 Website 对该 source seal 的精确 next action / issued attempt。
+3. \`durableAcceptClaim\` 选择 \`acceptTaskAfterSourceHandoff\` 的条件必须改成：
+   - incoming grant 带 \`source_handoff_seal_hash\`；
+   - local exact typed seal 存在且 hash 精确相等；
+   - issued attempt / source attempt 关系精确成立；
+   - 绝不能再以 current_reason equality 选择分支。
+4. 若 local exact source seal 已成立，但 incoming grant：
+   - 缺少 source_handoff_seal_hash；
+   - hash 不匹配；
+   - 仍签 source old attempt；
+   则判 source-handoff authority mismatch，停止本次执行并重新对账 Website，不得 fallback 到 generic accept。
+
+### R8-F2：first-failure / release-descriptor 写入也必须与 seal 原子互斥
+
+现役 \`recordAttemptFailure()\` 用：
+
+~~~text
+current_reason NOT LIKE SOURCE_HANDOFF_SEALED
+~~~
+
+防止 seal 后写入 first fact。
+
+仅把它改成“写前读 typed seal”仍不够，因为 seal 与 failure write 可能竞态。
+
+强制规则：
+
+- \`recordAttemptFailure()\` 必须在一个 SQLite transaction 内同时：
+  - 读 exact current task / attempt；
+  - 读 exact source handoff row；
+  - 若 seal_hash + sealed_at 已成立则拒绝；
+  - 校验 first-fact immutable；
+  - 写 attempt_failure_json + diagnostic current_reason。
+- \`rebindAttemptFailureReleaseDescriptor()\` 同样必须在 transaction 内拒绝 exact sealed source attempt。
+- \`acceptTaskAfterFailureReconciled()\` 作为 same-attempt regrant surface，也必须拒绝 exact sealed source attempt。
+- seal-first 与 failure-first 的 race 必须由同一个 SQLite writer serialization 得到唯一 winner：
+  - failure-first 提交后，seal 捕获该 exact first fact/hash；
+  - seal-first 提交后，late failure/rebind 一律拒绝；
+  - 不允许 seal manifest 生成后 first fact 再漂移。
+
+### R8-F3：纯诊断写不需要成为 fence
+
+\`markExecuting()\`、\`setCurrentReason()\` 可以基于 typed seal 选择不覆盖“handoff sealed”这类更有价值的诊断文案，但这只是 UI/诊断优先级。
+
+无论它们是否写成功：
+- typed seal 不变；
+- completion port 不变；
+- claim/recovery/capacity/stage 不变。
+
+禁止再次用“没被覆盖的 sealed 文案”反向证明 seal。
+
+### R8-F4：新增机械验收
+
+必须增加以下原生 acceptance/property：
+
+1. **sealed + stale same-attempt regrant**
+   - generic accept 被拒；
+   - Product 未进入；
+   - Provider input delta=0。
+
+2. **sealed + missing/mismatched source seal grant**
+   - durable accept fail-close；
+   - 不 fallback 到 generic accept。
+
+3. **sealed + exact issued new attempt**
+   - 只允许 \`acceptTaskAfterSourceHandoff\`；
+   - current_attempt_id 原子切到 issued attempt；
+   - source row 写 accepted_at；
+   - 之后新 attempt 的 ordinary same-attempt regrant 正常。
+
+4. **seal vs first-failure race**
+   - failure-first：seal 使用该 exact first fact；
+   - seal-first：late failure/rebind 被拒；
+   - 无第三种双写成功状态。
+
+5. **seal vs stage race**
+   - 保持第16节 A1：stage-first 或 seal-first 只能一个成为 winner。
+
+### R8 verdict
+
+~~~text
+新增 P0 = 0
+新增 P1 = 2
+  - R8-F1 generic regrant revival
+  - R8-F2 first-failure/rebind race
+两项均已纳入施工硬门
+未闭合 P0/P1 = 0
+最终 self_audit_verdict = PASS
+~~~
+
+这两项不要求新增表、字段、状态机或恢复 Owner，只把已经存在的 exact \`production_attempt_handoffs\` typed seal 提升为旧 source attempt completion-port 的唯一单调关闭事实。
+
+---
+
+## 19. 最终放行状态
+
+本轮用户已明确授权由主智能体自行审计。R1-R8 全部完成后：
+
+~~~text
+P0 未闭合 = 0
+P1 未闭合 = 0
+设计审计 = PASS
+方案状态 = 审计通过-待前置依赖
+立即施工 = 否
+条件施工 = 是
+~~~
+
+“待前置依赖”只指：
+
+~~~text
+先完成 Target 系统地位与强制边界施工 + 原生质检 + 动态验收
+-> 本方案重新绑定新的 AGENT/Website HEAD 与 control contract
+-> 复核 typed source seal / source evidence / capacity 分母没有被 Target 施工改变
+-> 然后进入 current_reason 施工
+~~~
+
+如果 Target 施工改变上述任一前提，本方案自动回到审计阻断，重新执行 R1-R8。
+
+最终冻结：
+
+> current_reason 只负责解释；所有流程资格都由 typed durable facts 决定。
+
+> source-handoff typed seal 一旦成立，旧 source attempt 的 completion port 单调关闭，任何 generic regrant、late stage、late first-failure 或 release-descriptor rebind 都不得把它复活。
+
+> Website demand 不死，AGENT 的交付责任不死；source attempt 被关闭不等于 job demand 被关闭，Website 必须继续给同一 job 合法下一动作。
