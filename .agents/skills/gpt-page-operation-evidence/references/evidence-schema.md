@@ -90,7 +90,11 @@
 
 旧三轮 revision 的 `stageReceipts` 顺序仅为 research → article → image，冻结分母 28 次 Child；旧版继续按自己的 `frozenFlow` 验证。八轮版在其后严格追加 `article_translation:zh-HK` → `zh-TW` → `en-US` → `ja-JP` → `ko-KR`，冻结分母为 SEO 28 次加五语各 11 次，共 83 次。每语 QA step 身份包含 locale；现役 Product 内部仍用 `productStepId=article_synthesis`，不得合并五语 call。`localizationSource` 只允许固定公开 manifest 的安全 hash-only 投影：五项 job/source/parent/resultRevision 哈希与四件材料的固定 role/ordinal/安全显示名/bytes/hash，禁止原始 task、对象 ref、材料正文和附加键。每语 receipt 绑定自己的 sourceJobIdHash、materialDigest、prompt/marker、唯一 user/assistant turn、Document/revision、解析 hash 和同一 QA URL；`translation-complete` 只表示八条真实阶段回执齐全，不自动授予 `CAPTURE_COMPLETE`。
 
-八轮失败可保留 0～7 个完整阶段回执和现场 `terminalReceipt`。research `decline` 是合法单阶段终点，但仍为部分覆盖。`frozenFlow.stateBranches` 区分适用状态与互斥分支，未走的分支为 `NOT_APPLICABLE`；缺少适用前/后状态或任何 `CAPTURE_GAP/CONFLICT` 都不能标 `CAPTURE_COMPLETE`。即使八次真实发送完成，83 次计划 Child 有缺项仍须为 `CAPTURE_PARTIAL`。同一 revision 的 `scenes[]` 可带 `observationScope`：`collectorProfile` 区分旧宽采、长会话 current-turn 缩采与 v13 `null` 未读旧回复；旧 profile 是不在原 scene 签名内的事后标注，v13 `pageFacts.captureScope` 则进入 scene 签名。节点采样和当前挂载 turn ID 均不是 full Document 证明，旧空 response hash 不能推断真实空回复。此状态只代表跨文章 QA 同页页面取证，不代表 Website 接收结果、Browser WAL 或五语历史工单完成。
+八轮失败可保留 0～7 个完整阶段回执和现场 `terminalReceipt`。research `decline` 是合法单阶段终点，但仍为部分覆盖。`frozenFlow.stateBranches` 区分适用状态与互斥分支，未走的分支为 `NOT_APPLICABLE`；历史 v1 中缺少适用前/后状态或任何 `CAPTURE_GAP/CONFLICT` 都不能标 `CAPTURE_COMPLETE`。即使八次真实发送完成，83 次计划 Child 有缺项仍须为 `CAPTURE_PARTIAL`。同一 revision 的 `scenes[]` 可带 `observationScope`：`collectorProfile` 区分旧宽采、长会话 current-turn 缩采与 v13 `null` 未读旧回复；旧 profile 是不在原 scene 签名内的事后标注，v13 `pageFacts.captureScope` 则进入 scene 签名。节点采样和当前挂载 turn ID 均不是 full Document 证明，旧空 response hash 不能推断真实空回复。此状态只代表跨文章 QA 同页页面取证，不代表 Website 接收结果、Browser WAL 或五语历史工单完成。
+
+新 `gpt-page-seo-capture-revision.v2` 的 `flowGaps` 逐计划调用检查 `selectedSeoBranch` 的每个适用状态和终态是否有该调用的签名 scene 与 specimen，另核实际 stage receipt；全局 cell 状态不代替逐调用覆盖。`CONFLICT` 保留在 cell 和差距报告中，表示拍到了不符的 DOM；它本身不是未采集。`CAPTURE_GAP` 可含其它调用的有效 observation，缺失行仍由逐调用 gap 精确指出。v1 历史修订保持原校验语义。完成状态必须八轮 receipt、同一 QA URL、83 次计划调用各自覆盖且 `flowGaps=[]`；每轮发送前的 `--require-stage` 累计放行当前前缀，不代替最终完成判定。
+
+v2 中间阶段装配可使用 `terminalBranch=stage-paused`、`terminalReceipt=null`，必须已有至少一个真实 stage receipt 且尚未完成八阶段；只允许保存在仓库外临时文件，唯一 JSON 的 append 入口拒绝此分支。`--require-stage` 从 research 起累计检查至指定阶段，输出 `stageGaps`（证据缺失）和 `stageConflicts`（已签名命令后置失败）；任一非空均禁止下一轮物理发送。完成版还必须 `seoActionConflicts=[]`。差距 Markdown 将 `CAPTURE_GAP` 与 `CONFLICT` 分列，不能在漏采表混算已拍到的冲突。
 
 ## 历史格式
 

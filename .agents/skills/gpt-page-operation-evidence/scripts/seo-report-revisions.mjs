@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { open, readFile, rename, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { stateAssertionFailures } from "./trace-page-requirements.mjs";
+import { targetEvidence } from "./assemble-live-capture.mjs";
 
 const sha = (value) => `sha256:${createHash("sha256").update(value).digest("hex")}`;
 const stable = (value) => Array.isArray(value) ? value.map(stable)
@@ -167,29 +168,90 @@ export function selectedSeoBranch(call, frozenFlow) {
 
 export function seoFlowGaps(revision) {
   const frozen = revision.frozenFlow ?? freezeSeoFlow();
+  const perCallCoverage = revision.schemaVersion === "gpt-page-seo-capture-revision.v2";
+  const hasCoverage = (call, stateId) => revision.cells.some((cell) =>
+    cell.childCapabilityId === call.childCapabilityId && cell.stateId === stateId
+    && (perCallCoverage || cell.status === "OBSERVED")
+    && cell.observations.some((row) => {
+      if (row.observedCallId !== call.observedCallId) return false;
+      if (!perCallCoverage) return true;
+      const targets = revision.frozenPlan.find((entry) =>
+        entry.childCapabilityId === call.childCapabilityId)?.liveStateTargets?.[stateId];
+      const chain = row.specimen?.related?.transitionChain;
+      const commandKind = chain?.typedCommand?.kind;
+      const validCommand = commandKind === "NOT_APPLICABLE" || commandKind === "ZERO_ACTION"
+        || commandKind === "CAPTURED_BROWSER_COMMAND"
+          && chain?.terminalReceipt?.kind === "CAPTURED_DISPATCH_RETURN"
+          && revision.scenes?.some((scene) => call.sceneIds.includes(scene.sceneId)
+            && scene.stateSignature === chain.terminalReceipt.preSceneSignature)
+          && call.sceneIds.includes(chain.directPostcondition?.sourceSceneId);
+      return Array.isArray(targets) && targets.length > 0
+        && validCommand
+        && targets.every((target) => row.specimen?.core?.targets?.[target]?.observed === true
+          && HASH.test(row.specimen.core.targets[target].identityHash ?? ""));
+    }));
   const callGaps = frozen.expectedCalls.flatMap(({ stepId, childCapabilityId }) => {
     const call = revision.calls.find((entry) => entry.stepId === stepId
       && entry.childCapabilityId === childCapabilityId);
     if (!call) return [`missing-call:${stepId}/${childCapabilityId}`];
     const branch = selectedSeoBranch(call, frozen);
     if (!branch) return [`ambiguous-branch:${stepId}/${childCapabilityId}`];
-    const missing = branch.filter((stateId) => !revision.cells.some((cell) =>
-      cell.childCapabilityId === childCapabilityId && cell.stateId === stateId
-      && cell.status === "OBSERVED" && cell.observations.some((row) =>
-        row.observedCallId === call.observedCallId)));
+    const missing = branch.filter((stateId) => !hasCoverage(call, stateId));
     const states = frozen.terminalStates[childCapabilityId];
     if (missing.length > 0) return missing.map((stateId) =>
       `missing-branch-state:${stepId}/${childCapabilityId}/${stateId}`);
-    if (!states || !states.some((stateId) => revision.cells.some((cell) =>
-      cell.childCapabilityId === childCapabilityId && cell.stateId === stateId
-      && cell.status === "OBSERVED" && cell.observations.some((row) =>
-        row.observedCallId === call.observedCallId)))) {
+    if (!states || !states.some((stateId) => hasCoverage(call, stateId))) {
       return [`missing-terminal-state:${stepId}/${childCapabilityId}`];
     }
     return [];
   });
-  return [...callGaps, ...revision.cells.filter((cell) => ["CAPTURE_GAP", "CONFLICT"].includes(cell.status))
+  return [...callGaps, ...revision.cells.filter((cell) => !perCallCoverage
+    && ["CAPTURE_GAP", "CONFLICT"].includes(cell.status))
     .map((cell) => `cell-${cell.status.toLowerCase()}:${cell.childCapabilityId}/${cell.stateId}`)];
+}
+
+export function seoActionConflicts(revision, stepId = null) {
+  if (revision.schemaVersion !== "gpt-page-seo-capture-revision.v2") return [];
+  return revision.calls.filter((call) => stepId === null || call.stepId === stepId)
+    .flatMap((call) => revision.cells.filter((cell) =>
+      cell.childCapabilityId === call.childCapabilityId).flatMap((cell) =>
+      cell.observations.filter((row) => row.observedCallId === call.observedCallId
+        && row.specimen?.related?.transitionChain?.directPostcondition?.passed === false
+        && ["CAPTURED_BROWSER_COMMAND", "ZERO_ACTION"].includes(
+          row.specimen.related.transitionChain.typedCommand?.kind))
+        .map(() => `failed-postcondition:${call.stepId}/${call.childCapabilityId}/${cell.stateId}`)));
+}
+
+export function articlePreSubmitHasUnexpectedAttachment(revision) {
+  const call = revision.calls.find((entry) => entry.stepId === "article_synthesis"
+    && entry.childCapabilityId === "submit_exact_gpt_turn_once");
+  if (!call) return false;
+  const preSubmitSceneIds = revision.cells.find((cell) =>
+    cell.childCapabilityId === "submit_exact_gpt_turn_once"
+    && cell.stateId === "pre-submit-ready")?.observations.filter((row) =>
+    row.observedCallId === call.observedCallId).map((row) => row.sceneId) ?? [];
+  return preSubmitSceneIds.some((sceneId) => {
+    const scene = revision.scenes.find((entry) => entry.sceneId === sceneId);
+    return scene?.pageFacts?.approvedAttachmentCount > 0;
+  });
+}
+
+export function seoStageCoverageGaps(revision, stepId) {
+  const orderedSteps = [...new Set(revision.frozenFlow.expectedCalls.map((entry) => entry.stepId))];
+  const targetIndex = orderedSteps.indexOf(stepId);
+  if (targetIndex < 0) {
+    die("SEO_STAGE_NOT_PLANNED");
+  }
+  const prefix = orderedSteps.slice(0, targetIndex + 1);
+  const receiptGaps = prefix.filter((step) => !revision.stageReceipts.some((entry) =>
+    entry.stepId === step)).map((step) => `missing-stage-receipt:${step}`);
+  const scoped = { ...revision,
+    frozenFlow: { ...revision.frozenFlow, expectedCalls: revision.frozenFlow.expectedCalls
+      .filter((entry) => prefix.includes(entry.stepId)) } };
+  const inputGaps = prefix.includes("article_synthesis")
+    && articlePreSubmitHasUnexpectedAttachment(revision)
+    ? ["unexpected-stage-input:article_synthesis/unplanned-composer-attachment"] : [];
+  return [...receiptGaps, ...seoFlowGaps(scoped).filter((gap) => !gap.startsWith("cell-")), ...inputGaps];
 }
 
 function sealedBody(revision) {
@@ -236,8 +298,85 @@ export function fixedFieldValues({ captureRunId, observedCallId, childCapability
   };
 }
 
+function validateV2Observation(revision, call, cell, observation, scene, scenesById) {
+  const plan = revision.frozenPlan.find((entry) => entry.childCapabilityId === cell.childCapabilityId);
+  const receipt = revision.stageReceipts.find((entry) => entry.stepId === call.stepId);
+  const context = { authorizedModelId: revision.source.executionProfile.startModelDisplayName,
+    imageChild: ["checkpoint_gpt_generated_image", "wait_for_stable_gpt_image"].includes(call.childCapabilityId),
+    latestTextAssistantChild: ["checkpoint_gpt_text_response", "wait_for_stable_gpt_text"].includes(call.childCapabilityId),
+    expectedPageInputRoles: { promptHash: call.promptHash,
+      turnMarkerHash: call.turnMarkerHash,
+      assistantTurnIdHash: receipt?.assistantTurnIdHash ?? null,
+      responseHash: receipt?.responseHash ?? null } };
+  for (const target of plan.liveStateTargets[cell.stateId] ?? []) {
+    const found = targetEvidence(target, scene, context);
+    const expected = found.record ?? found.diagnostic?.record ?? { observed: false,
+      failure: "TARGET_NOT_FOUND" };
+    if (JSON.stringify(stable(observation.specimen.core.targets?.[target]))
+      !== JSON.stringify(stable(expected))) die("SEO_REVISION_V2_TARGET_FACT_INVALID");
+  }
+  const chain = observation.specimen.related?.transitionChain;
+  if (plan.profile === "DOM_OBSERVATION") {
+    if (chain?.typedCommand?.kind !== "NOT_APPLICABLE"
+      || chain.terminalReceipt?.kind !== "NOT_APPLICABLE"
+      || chain.directPostcondition?.passed !== true
+      || chain.directPostcondition.sourceSceneId !== scene.sceneId) {
+      die("SEO_REVISION_V2_COMMAND_FACT_INVALID");
+    }
+    return;
+  }
+  if (chain?.typedCommand?.kind === "ZERO_ACTION") {
+    if (scene.decisionReceipt?.kind !== "ALREADY_SATISFIED"
+      || chain.typedCommand.reason !== "ALREADY_SATISFIED"
+      || chain.terminalReceipt?.kind !== "COHERENT_READBACK"
+      || chain.terminalReceipt.sceneSignature !== scene.stateSignature
+      || chain.directPostcondition?.passed !== true
+      || chain.directPostcondition.sourceSceneId !== scene.sceneId
+      || chain.directPostcondition.sourceSceneSignature !== scene.stateSignature) {
+      die("SEO_REVISION_V2_COMMAND_FACT_INVALID");
+    }
+    return;
+  }
+  if (chain?.typedCommand?.kind !== "CAPTURED_BROWSER_COMMAND") {
+    if (chain?.typedCommand?.kind !== "EVIDENCE_MISSING"
+      || chain.terminalReceipt?.kind !== "EVIDENCE_MISSING"
+      || chain.directPostcondition?.passed !== false) {
+      die("SEO_REVISION_V2_COMMAND_FACT_INVALID");
+    }
+    return;
+  }
+  const pre = [...scenesById.values()].find((entry) =>
+    entry.stateSignature === chain.terminalReceipt?.preSceneSignature);
+  const post = scenesById.get(chain.directPostcondition?.sourceSceneId);
+  const actual = post?.transitionReceipt;
+  if (!pre || !post || !call.sceneIds.includes(pre.sceneId)
+    || !call.sceneIds.includes(post.sceneId)
+    || pre.decisionReceipt?.kind !== "ACTION_REQUIRED"
+    || actual?.outcome !== "DISPATCH_RETURNED"
+    || actual.preSceneId !== pre.sceneId || actual.preSceneSignature !== pre.stateSignature
+    || actual.actionId !== pre.decisionReceipt.actionId
+    || actual.operation !== pre.decisionReceipt.operation
+    || chain.typedCommand.actionId !== actual.actionId
+    || chain.typedCommand.operation !== actual.operation
+    || chain.typedCommand.issuedAt !== actual.issuedAt
+    || chain.terminalReceipt?.kind !== "CAPTURED_DISPATCH_RETURN"
+    || chain.terminalReceipt.actionId !== actual.actionId
+    || chain.terminalReceipt.operation !== actual.operation
+    || chain.terminalReceipt.completedAt !== actual.completedAt
+    || chain.directPostcondition.passed !== actual.postconditionPassed
+    || chain.directPostcondition.sourceSceneSignature !== post.stateSignature
+    || Date.parse(actual.issuedAt) < Date.parse(pre.capturedAt)
+    || Date.parse(actual.completedAt) < Date.parse(actual.issuedAt)
+    || Date.parse(post.capturedAt) < Date.parse(actual.completedAt)) {
+    die("SEO_REVISION_V2_COMMAND_FACT_INVALID");
+  }
+}
+
 export function validateSeoRevision(revision) {
   const hasLocales = revision?.localizationSource !== undefined;
+  if (revision?.schemaVersion === "gpt-page-seo-capture-revision.v2" && !hasLocales) {
+    die("SEO_V2_FIVE_LOCALE_SOURCE_REQUIRED");
+  }
   const localeSource = revision?.localizationSource;
   if (hasLocales && (localeSource?.schemaVersion !== "gpt-page-localization-pinned-sources.v1"
     || localeSource.sourceRelationship !== "different-article-from-current-seo-qa-turn"
@@ -252,7 +391,7 @@ export function validateSeoRevision(revision) {
   if (hasLocales && JSON.stringify(localeSource) !== JSON.stringify(projectLocalizationSource(localeSource))) {
     die("SEO_REVISION_LOCALIZATION_SOURCE_NOT_PUBLIC_PROJECTION");
   }
-  if (revision?.schemaVersion !== "gpt-page-seo-capture-revision.v1"
+  if (!["gpt-page-seo-capture-revision.v1", "gpt-page-seo-capture-revision.v2"].includes(revision?.schemaVersion)
     || typeof revision.captureRunId !== "string" || !revision.captureRunId
     || revision.source?.sourceKind !== "LIVE_SEO_CAPTURE_SESSION_INPUT"
     || revision.source.productId !== "public_knowledge_article_pipeline"
@@ -280,11 +419,13 @@ export function validateSeoRevision(revision) {
     || !Array.isArray(revision.calls) || !Array.isArray(revision.scenes)
     || !Array.isArray(revision.cells) || !Array.isArray(revision.stageReceipts)
     || !Array.isArray(revision.flowGaps)
-    || !["image-complete", "translation-complete", "research-decline", "qa-stopped", "qa-failure", "unknown-effect"].includes(revision.terminalBranch)
+    || !["image-complete", "translation-complete", "research-decline", "stage-paused", "qa-stopped", "qa-failure", "unknown-effect"].includes(revision.terminalBranch)
     || !["CAPTURE_COMPLETE", "CAPTURE_PARTIAL"].includes(revision.captureStatus)
     || !Number.isFinite(Date.parse(revision.capturedAt ?? ""))) die("SEO_REVISION_SHAPE_INVALID");
   if (digest(revision.frozenPlan) !== revision.planDigest) die("SEO_REVISION_PLAN_HASH_INVALID");
   if (digest(revision.frozenFlow) !== revision.flowDigest
+    || revision.schemaVersion === "gpt-page-seo-capture-revision.v2"
+      && digest(revision.frozenFlow) !== digest(freezeSeoFlow(true))
     || (hasLocales && JSON.stringify(revision.frozenFlow.expectedCalls)
       !== JSON.stringify(freezeSeoFlow(true).expectedCalls))
     || !Array.isArray(revision.frozenFlow.expectedCalls)
@@ -331,6 +472,8 @@ export function validateSeoRevision(revision) {
       || !expectedStageSteps(hasLocales).includes(call.stepId)
       || !Array.isArray(call.sceneIds) || call.sceneIds.length === 0
       || !Array.isArray(call.stateIds) || call.stateIds.length === 0
+      || revision.schemaVersion === "gpt-page-seo-capture-revision.v2"
+        && call.sceneIds.length !== call.stateIds.length
       || new Set(call.stateIds).size !== call.stateIds.length
       || call.stateIds.some((stateId) => !revision.frozenPlan.find((entry) =>
         entry.childCapabilityId === call.childCapabilityId)?.stateIds.includes(stateId))
@@ -410,13 +553,19 @@ export function validateSeoRevision(revision) {
       || cell.status === "CAPTURE_GAP" && !applicable && cellPlan.requiredLiveStates.includes(cell.stateId)) {
       die("SEO_REVISION_STATE_APPLICABILITY_INVALID");
     }
-    if (cell.status === "OBSERVED" || cell.status === "CONFLICT") {
-      if (cell.observations.length === 0) die("SEO_REVISION_OBSERVATION_EMPTY");
+    if (cell.status === "OBSERVED" || cell.status === "CONFLICT"
+      || revision.schemaVersion === "gpt-page-seo-capture-revision.v2"
+        && cell.status === "CAPTURE_GAP" && cell.observations.length > 0) {
+      if (cell.status !== "CAPTURE_GAP" && cell.observations.length === 0) {
+        die("SEO_REVISION_OBSERVATION_EMPTY");
+      }
       for (const observation of cell.observations) {
         const call = callsById.get(observation.observedCallId);
         const scene = scenesById.get(observation.sceneId);
         if (!call || !scene || call.childCapabilityId !== cell.childCapabilityId
           || !call.sceneIds.includes(observation.sceneId)
+          || revision.schemaVersion === "gpt-page-seo-capture-revision.v2"
+            && call.sceneIds[call.stateIds.indexOf(cell.stateId)] !== observation.sceneId
           || observation.specimen?.sourceSceneId !== observation.sceneId
           || observation.specimen?.sourceSceneSignature !== scene.stateSignature
           || observation.specimen?.documentIdentityHash !== scene.documentIdentityHash
@@ -431,6 +580,9 @@ export function validateSeoRevision(revision) {
           !== JSON.stringify([...plan.fixedCaptureFields].sort())
           || JSON.stringify(stable(observation.fieldValues)) !== JSON.stringify(stable(expected))) {
           die("SEO_REVISION_FIXED_FIELD_VALUES_INVALID");
+        }
+        if (revision.schemaVersion === "gpt-page-seo-capture-revision.v2") {
+          validateV2Observation(revision, call, cell, observation, scene, scenesById);
         }
         const failed = stateAssertionFailures(observation.specimen,
           plan.stateAssertions?.[cell.stateId] ?? []).length > 0
@@ -458,6 +610,38 @@ export function validateSeoRevision(revision) {
       || receipt.observationRevisionHash !== scene.observationRevisionHash
       || !scene.pageFacts?.exactUserPromptHashes?.includes(receipt.promptHash)) {
       die("SEO_REVISION_STAGE_RECEIPT_INVALID");
+    }
+    if (receipt.inputDeviation !== undefined) {
+      const deviation = receipt.inputDeviation;
+      const preSubmit = scenesById.get(deviation?.sceneId);
+      const submitCall = revision.calls.find((entry) =>
+        entry.stepId === receipt.stepId && entry.childCapabilityId === "submit_exact_gpt_turn_once"
+        && entry.sceneIds.includes(deviation.sceneId));
+      const preSubmitBound = revision.cells.some((cell) =>
+        cell.childCapabilityId === "submit_exact_gpt_turn_once"
+        && cell.stateId === "pre-submit-ready"
+        && cell.observations.some((row) => row.observedCallId === submitCall?.observedCallId
+          && row.sceneId === deviation.sceneId));
+      const preSubmitIndex = submitCall?.sceneIds.indexOf(deviation.sceneId) ?? -1;
+      const postSubmit = submitCall?.sceneIds.slice(preSubmitIndex + 1)
+        .map((sceneId) => scenesById.get(sceneId)).find((candidate) =>
+          candidate?.pageFacts?.exactUserPromptHashes?.includes(receipt.promptHash));
+      if (receipt.stepId !== "article_synthesis"
+        || deviation.kind !== "UNPLANNED_COMPOSER_ATTACHMENT"
+        || deviation.expectedAttachmentCount !== 0
+        || deviation.observedAttachmentCount !== 1
+        || !preSubmit || !submitCall || !preSubmitBound || preSubmitIndex < 0 || !postSubmit
+        || Date.parse(preSubmit.capturedAt) >= Date.parse(postSubmit.capturedAt)
+        || preSubmit.pageFacts?.approvedAttachmentCount !== deviation.observedAttachmentCount
+        || preSubmit.pageFacts?.attachmentUploadPending !== false
+        || !Array.isArray(deviation.observedLabelHashes)
+        || deviation.observedLabelHashes.length !== 1
+        || !HASH.test(deviation.observedLabelHashes[0])
+        || JSON.stringify(preSubmit.pageFacts?.attachmentLabelHashes)
+          !== JSON.stringify(deviation.observedLabelHashes)
+        || submitCall.promptHash !== receipt.promptHash) {
+        die("SEO_REVISION_INPUT_DEVIATION_INVALID");
+      }
     }
     if (hasLocales) {
       const expectedChild = receipt.stepId === "article_image_generation"
@@ -562,7 +746,7 @@ export function validateSeoRevision(revision) {
       !== scenesById.get(revision.stageReceipts[0]?.sceneId)?.pageFacts?.currentConversationUrlHash)) {
     die("SEO_REVISION_CONVERSATION_CONTINUITY_INVALID");
   }
-  if (hasLocales) {
+  if (hasLocales && revision.stageReceipts.length > 0) {
     const canonicalUrlHash = scenesById.get(revision.stageReceipts[0]?.sceneId)
       ?.pageFacts?.currentConversationUrlHash;
     if (!HASH.test(canonicalUrlHash ?? "") || revision.calls.some((call) =>
@@ -589,6 +773,11 @@ export function validateSeoRevision(revision) {
   }
   if (revision.terminalBranch === "research-decline"
     && (steps.length !== 1 || researchDecision !== "decline")) die("SEO_REVISION_DECLINE_INVALID");
+  if (revision.terminalBranch === "stage-paused"
+    && (revision.schemaVersion !== "gpt-page-seo-capture-revision.v2"
+      || steps.length === 0 || full || revision.terminalReceipt !== null)) {
+    die("SEO_REVISION_STAGE_PAUSE_INVALID");
+  }
   if (["qa-stopped", "qa-failure", "unknown-effect"].includes(revision.terminalBranch)) {
     const terminal = revision.terminalReceipt;
     if (!terminal || !expectedSteps.includes(terminal.stepId)
@@ -602,11 +791,15 @@ export function validateSeoRevision(revision) {
     }
   } else if (revision.terminalReceipt !== null) die("SEO_REVISION_UNEXPECTED_TERMINAL_RECEIPT");
   if (revision.captureStatus === "CAPTURE_COMPLETE" && (!full || revision.flowGaps.length !== 0
+    || seoActionConflicts(revision).length !== 0
+    || articlePreSubmitHasUnexpectedAttachment(revision)
     || revision.terminalBranch !== (hasLocales ? "translation-complete" : "image-complete")
     || researchDecision !== "proceed")) {
     die("SEO_REVISION_COMPLETENESS_INVALID");
   }
   if (revision.captureStatus === "CAPTURE_PARTIAL" && full && revision.flowGaps.length === 0
+    && seoActionConflicts(revision).length === 0
+    && !articlePreSubmitHasUnexpectedAttachment(revision)
     && revision.terminalBranch === (hasLocales ? "translation-complete" : "image-complete")) {
     die("SEO_REVISION_FALSE_PARTIAL");
   }
@@ -689,7 +882,7 @@ export async function withCanonicalReportLock(path, work) {
 
 async function atomicJson(path, value) {
   const temp = `${path}.tmp-${randomUUID()}`;
-  await writeFile(temp, `${JSON.stringify(value, null, 2)}\n`);
+  await writeFile(temp, `${JSON.stringify(value)}\n`);
   await rename(temp, path);
 }
 
@@ -957,6 +1150,41 @@ export async function compareSeoRevision(repo, revision) {
   }
   const rows = [];
   const scenesById = new Map(revision.scenes.map((scene) => [scene.sceneId, scene]));
+  // One signed dispatch is one code comparison. The same failed transition is
+  // projected into two state cells; counting both would invent a second click.
+  const modelHandlerPath = "src/capabilities/gpt/children/select_gpt_model_from_start_v3/handler.ts";
+  const modelHandler = code.get(modelHandlerPath);
+  const modelCloseLine = modelHandler?.lines.findIndex((line) =>
+    line.includes("expectedEligibleCount: 0")) ?? -1;
+  if (modelCloseLine >= 0) {
+    const modelCell = revision.cells.find((cell) => cell.childCapabilityId
+      === "select_gpt_model_from_start_v3" && cell.stateId
+      === "model-panel-closed-after-selection");
+    for (const observation of modelCell?.observations ?? []) {
+      const chain = observation.specimen?.related?.transitionChain;
+      const scene = scenesById.get(observation.sceneId);
+      const modelTarget = observation.specimen?.core?.targets?.["model-option"];
+      const openMenuCount = scene?.nodes?.filter((node) =>
+        node.attributes?.["data-state"] === "open"
+        && node.attributes?.["aria-expanded"] === "true").length;
+      if (chain?.typedCommand?.kind !== "CAPTURED_BROWSER_COMMAND"
+        || chain.directPostcondition?.passed !== false
+        || scene?.transitionReceipt?.outcome !== "DISPATCH_RETURNED"
+        || scene.transitionReceipt.postconditionPassed !== false
+        || modelTarget?.observed !== true
+        || modelTarget.attributes?.["aria-checked"] !== "true"
+        || openMenuCount !== 1) continue;
+      rows.push({ childCapabilityId: modelCell.childCapabilityId,
+        stateId: modelCell.stateId, field: "directPostcondition.model-menu-closed",
+        observedCallId: observation.observedCallId, sceneId: observation.sceneId,
+        verdict: "DRIFT", expectedValueHash: digest({ expectedEligibleCount: 0 }),
+        domValueHash: digest({ postconditionPassed: false, selected: true,
+          openMenuCount, stateSignature: scene.stateSignature }), codePath: modelHandlerPath,
+        codeLine: modelCloseLine + 1, codeHash: modelHandler.hash,
+        impact: "signed-model-click-returned-but-code-requires-menu-choice-to-disappear",
+        targetNodeIndex: null, targetIdentityHash: null });
+    }
+  }
   const userSelectorPath = "src/capabilities/gpt/children/submit_exact_gpt_turn_once/selectors.ts";
   const userSelectorSource = code.get(userSelectorPath);
   const userSelectorLine = userSelectorSource?.lines.findIndex((line) =>
@@ -1101,15 +1329,25 @@ export async function compareSeoRevision(repo, revision) {
 
 function markdownComparison(revision, result) {
   const rows = result.rows.map((row) => `| ${row.childCapabilityId} | ${row.stateId} | ${row.field} | ${row.verdict} | ${row.observedCallId ?? "—"} / ${row.sceneId ?? "—"} / ${row.targetNodeIndex ?? "—"} / ${row.targetIdentityHash ?? "—"} | ${row.expectedValueHash ?? "—"} | ${row.domValueHash ?? "—"} | ${row.codePath ?? "—"}:${row.codeLine ?? "—"} @ ${row.codeHash ?? "—"} | ${row.impact} |`).join("\n");
-  const gaps = revision.cells.filter((cell) => ["CAPTURE_GAP", "CONFLICT"].includes(cell.status))
+  const gaps = revision.cells.filter((cell) => cell.status === "CAPTURE_GAP")
+    .map((cell) => `| ${cell.childCapabilityId} | ${cell.stateId} | ${cell.status} | ${cell.reason} |`).join("\n");
+  const conflicts = revision.cells.filter((cell) => cell.status === "CONFLICT")
     .map((cell) => `| ${cell.childCapabilityId} | ${cell.stateId} | ${cell.status} | ${cell.reason} |`).join("\n");
   const flowGaps = revision.flowGaps.map((gap) => `- ${gap}`).join("\n");
+  const actionConflicts = seoActionConflicts(revision).map((item) => `- ${item}`).join("\n");
+  const inputDeviations = revision.stageReceipts.flatMap((receipt) =>
+    receipt.inputDeviation ? [`- ${receipt.stepId}: ${receipt.inputDeviation.kind}; expected attachments ${receipt.inputDeviation.expectedAttachmentCount}, observed ${receipt.inputDeviation.observedAttachmentCount}; signed pre-submit scene ${receipt.inputDeviation.sceneId}; label hashes ${receipt.inputDeviation.observedLabelHashes.join(", ")}. The article was sent with this extra attachment; source package fidelity is not established.`] : []).join("\n");
   const profiles = [...new Set(revision.scenes.map((scene) =>
     scene.observationScope?.collectorProfile).filter(Boolean))].join(", ");
-  return `\n## ${result.comparisonId}\n\n- captureRunId: ${revision.captureRunId}\n- evidenceRevisionId: ${revision.evidenceRevisionId}\n- matrixDigest: ${revision.matrixDigest}\n- planDigest: ${revision.planDigest}\n- codeDigest: ${result.codeDigest}\n- source relationship: ${revision.localizationSource?.sourceRelationship ?? "seo-only"}\n- planned calls: ${revision.frozenFlow.expectedCalls.length}; mapped calls: ${revision.calls.length}; stage receipts: ${revision.stageReceipts.length}; status: ${revision.captureStatus}\n- collector profiles: ${profiles || "legacy-unversioned"}; earlier profiles are retrospective assembly annotations, v4 scope is signed in scene pageFacts\n- scope: selected visible target nodes and currently mounted turn IDs, not full Document; prior assistant empty response hash can mean not projected; no Product/Website admission\n\n### DOM capture gaps\n\n| Child | State | Status | Reason |\n|---|---|---|---|\n${gaps}\n\n### Planned flow gaps\n\n${flowGaps}\n\n### DOM versus code\n\n| Child | State | Field | Result | Call / Scene / Node / Identity | Expected hash | Actual hash | Code | Impact |\n|---|---|---|---|---|---|---|---|---|\n${rows}\n`;
+  const verdictCounts = Object.fromEntries([...FIELD_STATUS].map((status) =>
+    [status, result.rows.filter((row) => row.verdict === status).length]));
+  return `\n## ${result.comparisonId}\n\n- captureRunId: ${revision.captureRunId}\n- evidenceRevisionId: ${revision.evidenceRevisionId}\n- matrixDigest: ${revision.matrixDigest}\n- planDigest: ${revision.planDigest}\n- codeDigest: ${result.codeDigest}\n- code basis: current repository working tree file bytes read during this comparison\n- verdict counts: ${JSON.stringify(verdictCounts)}\n- source relationship: ${revision.localizationSource?.sourceRelationship ?? "seo-only"}\n- planned calls: ${revision.frozenFlow.expectedCalls.length}; mapped calls: ${revision.calls.length}; stage receipts: ${revision.stageReceipts.length}; status: ${revision.captureStatus}\n- collector profiles: ${profiles || "legacy-unversioned"}; earlier profiles are retrospective assembly annotations, v4 scope is signed in scene pageFacts\n- scope: selected visible target nodes and currently mounted turn IDs, not full Document; prior assistant empty response hash can mean not projected; no Product/Website admission\n\n### Input deviations\n\n${inputDeviations || "- None recorded in stage receipts."}\n\n### DOM capture gaps\n\n| Child | State | Status | Reason |\n|---|---|---|---|\n${gaps}\n\n### Observed DOM conflicts\n\n| Child | State | Status | Reason |\n|---|---|---|---|\n${conflicts}\n\n### Observed action failures\n\n${actionConflicts}\n\n### Planned flow gaps\n\n${flowGaps}\n\n### DOM versus code\n\n| Child | State | Field | Result | Call / Scene / Node / Identity | Expected hash | Actual hash | Code | Impact |\n|---|---|---|---|---|---|---|---|---|---|\n${rows}\n`;
 }
 
 export async function appendSeoRevision({ repo, reportPath, comparisonPath, revision }) {
+  if (revision.terminalBranch === "stage-paused") {
+    die("SEO_STAGE_PAUSE_NOT_PUBLISHABLE");
+  }
   validateSeoRevision(revision);
   if (revision.localizationSource) {
     const assetsDir = join(repo, ".agents/skills/gpt-page-operation-evidence/assets");

@@ -42,6 +42,12 @@ SEO prompt 顺序由现役 `researchPrompt`、`articlePrompt`、`imagePrompt` �
 
 `assemble-live-capture.mjs --seo-source --localization-source <Skill public manifest> --pinned-source <Skill assets>` 在八轮版必须即时重读固定原包及来源摘要，不能仅凭传入的公共 JSON。旧三轮修订仍按其冻结的 28 次调用校验；八轮版分母为 SEO 28 次加五语各 11 次共 83 次。少一次或少终态即 `CAPTURE_PARTIAL`，即使八次真实 Provider turn 都完成也不能写假齐全。八轮失败可留 0～7 个完整阶段回执及现场失败/未知回执。未到达格不造 DOM。collector 保留候选清洗 DOM 和拒绝理由；raw body、Cookie、token、原会话 URL 禁止进入文件。
 
+新 revision v2 在每个 Child 后立即保存并回读 scene/mapping，在每轮回复后用 `--require-stage <本轮 stepId>` 装配并累计检查此前全部阶段。中间正常等待下轮时 mapping 写 `terminalBranch=stage-paused`、空 terminal receipt；只写仓库外临时证据版。`stageGaps`（缺目标、缺命令证据、缺回执）或 `stageConflicts`（已证实命令后置失败）非空仍使资格门失败。当前用户明确授权继续完成 83 项真实现场覆盖，故资格失败不阻断后续可安全执行的 QA 轮次；真实 Provider 效应未知、会话身份失联或重复发送风险仍须停止。覆盖按每个计划调用自己的 `observedCallId` 与适用状态计算；全局 cell 的 `CONFLICT` 只表达已拍到的 DOM/断言差距，不能抹掉其它调用的真实观察，也不能充作缺 scene。缺目标的 row 不得使同格其它有效 row 消失。历史 v1 证据继续按 v1 原规则验证。部分版只记录中断事实，不是完成目标。
+
+v2 SEO CLI 缺 `--require-stage` 直接拒绝。若在某轮真实中断，先保留门禁失败所写临时 scene/revision，再以真实终态和现场 terminalReceipt 装配可追加的部分版；禁止发布 `stage-paused` 或借省略门禁拿到 exit 0。
+
 `report-tool.mjs append-seo --pinned-source <Skill assets>` 也即时重读固定原包及来源摘要，在唯一 JSON 锁内重读、校验、追加和 readback。相同版本重试 no-op，补正追加，不删除旧版；随后立刻按刚落盘版本对照实际代码，向独立 Markdown 追加 comparison revision。差距报告只记录状态、身份、指针和代码 digest，不重复保存 DOM。比较失败时原证据保留并报告未闭合；重试比较不得重发 Provider。
+
+自动比较后由 Codex 逐个复核本版全部实际调用，再在同一 Markdown 追加人工判定。复核每项必须能回到 call/签名 scene/目标或后置/源码行；同一物理动作只计一次差异。把“当前工作区代码直接冲突”“冻结矩阵与现场不符”“发送输入偏差”“采集证据缺口”分开写，只以当前仓库工作区实字节及文件摘要作为代码基线；历史 HEAD 不进入当前差异计数。采样内找不到节点不能推出全 Document 为零；已签名的目标节点与代码选择器正面不匹配可以判定该节点上的差异。人工判定未覆盖全部实际调用或未解决机器表中的确定性反例时，本轮差距交付未完成。
 
 历史 `candidate/admit` 只验证 Product 原运行记录。同页八轮共享 Child 的状态不授予其它 Product 覆盖、Website 入库、生产质量、READY 或 RELEASE。

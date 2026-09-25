@@ -47,6 +47,8 @@ node --import tsx .agents/skills/gpt-page-operation-evidence/scripts/report-tool
 
 八轮正常路径的生产 Child 流程分母是 SEO 28 次加五语各 11 次，共 83 次。此数是清单，不是现场已证实次数。证据版必须逐 call 记录实际 pre/command/post，缺项保持 gap；只有八条真 stage receipt、同一 canonical URL 和零计划内 gap 才能记 `CAPTURE_COMPLETE`。旧 SEO 三轮版与比较版只追加新版本，不回写、不重判。
 
+本次起使用 revision v2 的逐调用覆盖规则。每完成一个 Child，就原子保存并回读本调用 scene/mapping；每轮拿到真实回复后、进入下一轮发送前，以 `--require-stage <当前 stepId>` 累计检查从 research 到当前轮的全部计划 Child、目标身份、合法命令前后回执及适用状态。缺调用、缺本调用的状态 scene、目标未拍到、命令证据缺失、缺 stage receipt 或已签名命令后置失败时，资格门仍返回失败并如实保留 gap/action conflict。用户本轮明确要求继续走完八轮现场覆盖，因此该资格失败不停止后续可安全执行的 QA 观察；不能改写事实、重发效应未知的提示词，亦不能宣称 `CAPTURE_COMPLETE`。真实页面/Provider 无法继续、会话身份未知或重复发送风险才停止。正常路径的异常分支未触发时如实标 `NOT_REACHED/NOT_APPLICABLE`，不得为凑齐 83 次伪造调用。旧 v1 修订维持原算法和内容，不重算。`CAPTURE_PARTIAL` 不是本任务的完成验收。
+
 `chrome-scene-collector.mjs` 的同一 QA run 参数 `recaptureTrigger={kind:"LIVE_SEO_CAPTURE_SESSION",sourceInputHash:<stable SEO publicSource digest>}`。它只绑定本次 QA run 的既有 scene，五语真实材料身份另由每个 locale source segment/receipt 绑定，不能把此 SEO digest 冒充五语输入。输出 scene、mapping 与八轮 hash-only stage receipts 均放仓库外临时目录；原文只在当前浏览器内存传递。每个实际 call 的 mapping 带本阶段 `promptHash/turnMarkerHash/source segment`；完整链分母为 83 次 Child。中途失败保留已观察 scene 与 0～7 个完整阶段回执，写明 `terminalBranch/terminalReceipt`；未知效应只读回，不重发。
 
 ## 装配、连续版本和立即对照
@@ -64,10 +66,17 @@ node --import tsx .agents/skills/gpt-page-operation-evidence/scripts/assemble-li
   --pinned-source /Users/nexgen/Documents/AGENT/.agents/skills/gpt-page-operation-evidence/assets \
   --browser-meta /absolute/outside-repo/browser-meta.json \
   --stage-receipts /absolute/outside-repo/seo-stage-receipts.json \
+  --require-stage corpus_research \
   --output /absolute/outside-repo/seo-revision.json
 ```
 
+每轮把 `--require-stage` 改为该轮 stepId。正常中间暂停时 mapping 设 `terminalBranch=stage-paused`、`terminalReceipt=null`，只用于仓库外临时装配，不作为完成版追加；真正异常停机改用现场真实终态。命令先写出可回看的证据版，再输出前缀 `stageGaps` 和 `stageConflicts`；任一非空仍以失败退出，作为资格结论保存，当前获授权的八轮现场采集继续按上一段执行。只有八轮各自资格门均通过，才允许追加完成版并立即生成独立 DOM 与代码比较；否则只可追加诚实部分版及对应独立比较版。
+
+v2 SEO CLI 的 `--require-stage` 为必填；省略时在读取现场文件之前失败。中断后的真实部分版可从失败门已写出的仓库外文件走追加入口，须将 mapping 终态改为真实 `qa-stopped/qa-failure/unknown-effect` 与现场 receipt 后重新装配，不能把 `stage-paused` 发到唯一报告。
+
 唯一 JSON 报告是 v8。一次受检 v7→v8 转换保留原 `products[].runs[]` 和逐 run 摘要；新的共享 SEO 样本只追加在 `seoCaptureRevisions[]`，不复制到任何 Product 切片、不改变其它路由的 `captureStatus`。同 `captureRunId + evidenceRevisionId` 相同内容重试 no-op，冲突拒绝；补正仅追加 `supersedesRevisionId + correctionReason`，旧版永不改写。追加在唯一文件独占锁内重读、校验、原子写入和 readback；两并发追加不得丢版。
+
+用户指定该约 293 MB 的唯一 JSON 和派生 Markdown 仅保存在本机，路径在 `.gitignore` 精确排除，不进 Git 或推送。后续同机运行必须先在下述绝对路径读取并验证已有 v8 与旧版本；文件缺失或版本链不完整时停在追加前，不能新建空报告或以其它文件代替历史事实。
 
 ```bash
 node --import tsx .agents/skills/gpt-page-operation-evidence/scripts/report-tool.mjs append-seo \
@@ -80,6 +89,8 @@ node --import tsx .agents/skills/gpt-page-operation-evidence/scripts/report-tool
 ```
 
 同一命令在证据版落盘后立即按该版及实际读取的相关代码文件 digest 生成独立派生差距版，并 readback comparisonId。每个计划字段逐项列 `MATCH/DRIFT/UNOBSERVED/CODE_ONLY/REVIEW_REQUIRED`、scene/call 身份、源码路径/行/hash。多义或无可机械比较合同就标 `REVIEW_REQUIRED`，不能写假一致；报告不复制原 DOM 事实。比较失败时已追加的证据版不回滚，交付状态是未闭合；用同 key 重试只补比较，不重发 Provider。
+
+机器比较只是候选表，不能作为最终差异结论。Codex 必须对本版每个实际调用逐一核 `observedCallId → pre/command/post scene → signed target/transition → 冻结状态断言 → 对应 Child/Browser 代码路径与行`，在同一派生报告追加人工复核章节，列出全部调用的结论与依据；每个调用须列出全部已映射 scene，代码锚点要覆盖本次判断所涉及的 selector、动作与后置行，不能只给文件名或无关声明行。pre scene 的 decision/dispatch 与整次调用的 transitionChain 要分别写，不能把后续命令回执说成 pre scene 已执行。没有观察或没有同义代码锚点就逐项写 `EVIDENCE_GAP/REVIEW_REQUIRED`，不得从 8 次发送成功推成 83 个 Child 均匹配，也不得从采样里没有节点推断全 Document 没有节点。已签名命令失败且与代码强制后置直接冲突时须列 `DRIFT`，同一次点击在多个状态格出现只算一次。附件卡、上传进度、发送前附件集合须用真实目标节点和实际代码 selector/作用域逐项复核；输入偏差独立列出并说明其是否被代码拦截。**本任务只对照当前仓库工作区代码实字节**，报告绑定实际读取的相关文件摘要；HEAD 历史内容不得混入当前差异结论，也不要求云仓或发布身份。机器表与人工结论矛盾时，以可复算的逐调用证据纠正并追加新章节，旧章保留并标明不再作为结论。人工复核没有覆盖全部实际调用、差异没有 scene/代码锚点，或把未证实项当 `MATCH`，则差异报告验收失败；不得声称“100% 无差异”。
 
 历史 Product 的 `candidate/admit` 继续只在 `products[].runs[]` 上工作。共享 Child 查询用 `report-tool.mjs seo-cell --capture-run <id> --revision <id> --child <id> [--state <id>]`，并传入上述 `--repo/--matrix/--report`；结果只陈述同一 QA 会话中的共享 Child 页面观察与缺口，并逐 call 标明 SEO 或具体语种及其来源哈希，不推断其它 Product。离线 refresh 不开 Chrome，不增加 SEO capture revision；代码变了可以产生新的比较版，旧比较版不改。
 
@@ -96,7 +107,7 @@ node --import tsx .agents/skills/gpt-page-operation-evidence/scripts/report-tool
 - 下一次开跑前先确认本次任务实际暴露 `chrome:control-chrome` Skill、Chrome 插件和可连接的 Node REPL。2026-09-25 后续核对时，可用 Skill 列表未列出 `chrome:control-chrome`；这只说明当时入口未暴露，不推断插件已卸载。若仍缺失，停在真实页面动作之前，不能用别的浏览器工具冒充本流程。
 - 首次附件上传在 `fileChooser.setFiles` 返回 `Not allowed`；用户开启 Chrome 插件的“Allow access to file URLs”后，原 ZIP 的字节同一副本已成功上传。页面把重名附件显示为 `公开知识生产资料-68b55e7c0290(1).zip`；只按现役后缀归一规则核对文件、字节哈希和上传终态，不要求 UI 显示无后缀原名。
 - research 提示词经撰写器 exact hash 核对后只发送一次；相邻 assistant 的生产语义读取与旧投影无漂移，绑定同一 prompt/turn/document，现役研究解析返回 `proceed`。文章提示词由该真实研究结果生成。
-- 当前页面对一次性粘贴约 10 KB 的文章提示词会自动生成 `粘贴的文本.txt` 附件，导致撰写器为空；必须先移除自动附件。已验证先 `fill` 前 5,000 字节，再以 `cua.type` 分段键入余文、按真实换行使用 `Shift+Enter`，最终撰写器哈希与现役完整文章 prompt 全等。直接逐字键入含 `**` 的前段会触发编辑器 Markdown 自动格式化、丢失星号；每次发送前必须以最终 exact hash 为准，失败绝不发送。
+- 当前页面对一次性粘贴约 10 KB 的文章提示词会自动生成 `粘贴的文本.txt` 附件，导致撰写器为空；必须先移除自动附件。首段可 `fill`，余文分段 `type`，每段读回并核对精确正文；本轮实测 `Shift+Enter` 产生双换行，不可用作精确输入。直接逐字键入含 `**` 的前段会触发编辑器 Markdown 自动格式化、丢失星号；每次发送前必须核最终 exact hash 与附件集合，失败绝不发送。
 - 当前 ChatGPT 对话轮次使用 `[data-chatgpt-search-unit-key]`，旧 `conversation-turn-*` 与 `data-message-author-role` 不存在；collector 只用页面实际单元建立 prompt 与相邻 assistant 绑定，并仅向内存返回语义正文。采集 scene 继续只保存哈希与清洗 DOM；生产选择器原样留在差距报告对照。
 - 图片回复另走 `[data-content-search-turn-key]` 容器，未生成普通 assistant unit；只在图片 `img[alt]` 完整、自然尺寸大于零、与此前用户 prompt 同 turn 相邻时绑定。实测图片为 1672×941；图片生成中一次全树 `Runtime.evaluate` 超过 Chrome 2.52 秒上限，未形成 scene，之后缩小非目标重复子树采样并在完成态重新读回。超时不能写成已观察的生成中格。
 - 同页长会话中，对全部历史 assistant 重跑 canonical semantic reader 会超出 Chrome 单次 `Runtime.evaluate` 时限。采集器现在只解析本轮 marker 绑定的 assistant 正文，旧轮只保留 user/assistant turn ID 与哈希用于连续性核验；老轮的空 responseHash 不能解释为老回复为空。模型生成时可能出现同 prompt 的空 assistant 容器；`exactAssistant` 只接纳唯一非空回复，必须等“停止”按钮消失后采终态。
@@ -108,4 +119,26 @@ node --import tsx .agents/skills/gpt-page-operation-evidence/scripts/report-tool
 - 旧 SEO checkpoint 在纠正读回 scene 后曾被错误算成新 `observedCallId`。八轮追加版以原物理调用的首 scene 为 identity origin，回查旧证据版相同 step/Child/prompt/marker、scene 签名与时间；纠正后的读回只增加观察，不增加 Provider 调用。代码比较器对旧 user-turn selector 在清洗采样内找不到候选时只能 `REVIEW_REQUIRED`，因为没有 full Document 基数；不能由采样 0 宣称真实生产 selector 0。
 - 八轮新版本 `evidenceRevisionId=sha256:754ae2ee3e00edabdf4ef9046edd379c0fa293431ee8950cd88d1aab043b384f`、即时比较版 `comparisonId=sha256:d5f854a93d8577ce3c17ec7870254200baf8cd546f20ce20ce1eae32502ef883`，旧版原样保留。八条阶段回执均有真实回复/图片与解析；83 次计划 Child 中仅 35 次有独立场景映射，131 条 flow gap，整体必须继续标 `CAPTURE_PARTIAL`。比较报告分别列 DOM 状态缺口和计划调用缺口；`0 DRIFT` 不等于无差距。
 
+## 2026-09-25 v2 实战停机记录
+
+- 新专用 Chrome QA run `seo-live-c5421990-fcff-42a7-bf54-9fe8179b2084` 在 research 发送前逐 Child 采 scene，真实资料包与来源摘要已本机校验，真实 SEO prompt hash 已由现役生成；**没有物理发送任何 SEO 或五语提示词**，stage receipt 为 0。此次不能作为 SEO+五语实测完成。
+- 页面初态“最新”模型已选中（`aria-checked=true`）。实际点击已选中项后，选中状态仍为真，但模型菜单持续 `data-state=open`；现役 `select_gpt_model_from_start_v3` 要求选择后菜单关闭，故如实记录 `postconditionPassed=false`。第一次短时 scene 误标为成功，已从待装配 scene 集中隔离到仓库外 `invalid-scenes.json`，没有进入唯一报告；真实失败 scene 单独签名保留。
+- research 前四个 Child 已记录；本版全八轮 flowGaps 共 84 条（79 个未映射调用、5 个已映射状态缺真实目标/命令）。正式 `--require-stage corpus_research` 只核 research 前缀，输出 14 条 stageGaps（含当轮缺 stage receipt）和同一次模型选择动作在两个状态观察形成的两条 action conflict。`prepare_clean_gpt_chat` 的 `attachment-region` 在空白新聊天没有唯一目标；执行配置触发器和已选模型项也有目标资格冲突，均保留真实 diagnostic 和独立差距，不补造成功。门禁以 `SEO_STAGE_NOT_READY` 退出，未推进 article/image/五语。
+- 本机唯一 JSON 已追加第 4 个不可覆盖版本 `sha256:862fb91fc05db62bc0f11a703c5ae9372e5ed3442add65c9d5442bc93bed16cf`，即时独立比较版为 `sha256:6b1d6c05bf458cf457c4c55b6473d53763dea55f4d51f5e031702dd579ae5cc6`，`report-tool validate` 读回 valid=true、complete=false。现役 Child/矩阵与当前页的目标/后置不符时，不得为了凑 83/83 改写现场事实或跳过门禁；需另行在授权范围内使合同与真实 UI 对齐，再从新的完整 QA 会话复采。
+
 报告不绑定 HEAD、branch 或 clean 工作区。所有旧 Product 运行记录、生产代码、Website 代码、法案和 Blueprint 均保持其原 Owner；本 Skill 不增加生产 hook、第二 Product runner、DOM DB、后台 Worker、重试服务或第二质量裁决。
+
+## 2026-09-25 v3 实战进行中记录
+
+- 专用 QA run `seo-live-da7f37c8-38b6-412f-a1c8-bfc398a975c2` 已在同一 Chrome 会话真实发送 SEO research 一次；Provider 初次显示“消息流中的错误”，只对原用户轮次点击一次“重试”，没有重发提示词。回复随后完成，现役研究解析器接纳 `proceed`，回执已逐步写入仓库外 `stage-receipts.json`。每完成一个 Child 立即保存并回读 `scenes.json` 与 `scene-map.json`，不能把观察留到轮次末尾堆积。
+- research 阶段 12 个 Child 均有独立映射和现场场景；即时装配仍报告 19 条阶段缺口与 2 条模型动作后置冲突。已选中的“最新”选项点击后菜单保持打开，真实后置为失败。当前任务授权继续采集八轮的实际结果；这些冲突必须保留，不能改成成功或据此宣称 `CAPTURE_COMPLETE`。
+- 文章提示词约 11.5 KB，一次 `fill` 后编辑器为空并自动产生“粘贴的文本”附件。分段 `fill` 首段、`type` 续段（包括真实换行）可以逐段得到精确 `innerText`；`Shift+Enter` 会在此编辑器形成双换行，不适合作为精确输入。首次失败留下的自动附件未在发送前清除，已随文章轮次发送；这是本 run 的真实输入偏差，必须在回执与差距报告披露，不能当作符合资料包清单的文章轮次。后续长提示词在发送前必须同时核对 exact prompt 和附件集合。
+- 每次换到新的 Provider 轮次，采集器必须用该轮的 exact marker 重建，但继续使用同一 run、QA 标签页、epoch 和 `scenes.json`；沿用上一轮 marker 会令本轮 `exactAssistant` 报 `EXACT_ASSISTANT_TURN_AMBIGUOUS`，即使页面已有唯一可见回复。本次文章检查点改用文章 marker 后才取得唯一绑定。前序按旧 marker 采得的 scene 不得事后改签或冒充本轮语义投影。
+
+## 2026-09-25 v3 八轮实战终态与下次采集注意事项
+
+- 同一 QA run 已真实完成 SEO 三轮及 zh-HK、zh-TW、en-US、ja-JP、ko-KR 五轮。83/83 个计划 Child 均有独立调用映射和逐调用保存/回读；8 张 stage receipt 均来自对应真实回复与现役解析，同一 canonical URL 哈希。唯一 JSON 已追加第 5 个版本 `sha256:b9988c93afa4b65a08786582f71eebe2ae286d9e976ac092a967f36bb0bb55ae`，独立差距版 `sha256:62d9508ddbd5744b376231c8a77cd68183551749c2c34c0a752db6bfddf32e08`。`report-tool validate` 为 `valid=true, complete=false`；最终资格仍为 `CAPTURE_PARTIAL`，136 条均为固定分支状态未满足，另有 14 条已观察模型选择后置冲突。83/83 是现场调用覆盖，不是固定 DOM 状态或生产业务验收通过。
+- 五语上传中实际为一个 `form[data-chatgpt-composer]` 内 0 个 `button.composer-attachment-surface[aria-label]`、4 个 `[role=progressbar]`，完成后为 4 个具名按钮、0 个 progressbar。当前工作区四个卡片消费者使用 `button.composer-attachment-surface[aria-label]`，reconcile 的上传中目标使用 `[role='progressbar']`，且已删除“进度条不得多于卡片”不变量；这些是当前仓库代码事实，不等于 Child 实际运行通过。旧 `[role='group'][aria-label]` 属于历史 HEAD 基线，不得列为当前工作区差异。该代码修复不属于本 Skill 的采集修改权限。
+- ja-JP 及 ko-KR 回复生成中曾出现 Chrome DOM 读取超时；只在原 QA 标签页只读回查，停止按钮消失且语义正文稳定后才采终态，未重发提示词。长会话的上一轮 user/assistant 可能仍可见，旧轮正文不重复投影；下一语发送前核最后可见上一轮 marker 与相邻回复、同 URL。
+- 第 5 版原始 revision 约 327 MB、旧本机 JSON 约 317 MB；整份 pretty JSON 序列化触发 Node `Invalid string length`。报告工具的原子写入改为紧凑 JSON，合并后约 324 MB，readback 校验通过且旧四版内容仍保留。后续追加前先测单个 JSON 字符串大小；若总量达到 Node 单字符串上限，必须先修原唯一报告工具的读取/写入能力，不得另建第二证据报告或丢旧版。当前本机文件不进入 Git。
+- 第 6 版 `sha256:93d6b50f006de36e92bef4464cf0bbbb77da3e12a884eac8b8b712d67a2b339f` 以 `supersedesRevisionId` 指向第 5 版，只在文章阶段回执追加签名 `a-submit-pre` 所证实的输入偏差：预期 0 件附件、实际 1 件，标签仅存哈希。独立比较版 `sha256:61952af8684c5948789f93b1feff3647bb8b0ff22450739df1b7c5dffcef8e46` 明列这一偏差；第 5 版与旧比较版不覆盖。最新仍为 83/83 调用、8 回执、136 条分支状态缺口、14 条模型后置冲突、`CAPTURE_PARTIAL`，原生读回 `valid=true, complete=false`。验证器从签名发送前 scene 独立判断额外附件，不能靠删掉回执注记变成 `CAPTURE_COMPLETE`。本机唯一 JSON 现为 498,456,139 字节，接近 Node 单字符串上限；下一次追加前先修原工具的大文件读写能力，禁止另建报告或丢弃旧版。

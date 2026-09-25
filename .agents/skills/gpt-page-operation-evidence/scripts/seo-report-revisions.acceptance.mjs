@@ -4,7 +4,8 @@ import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { appendSeoRevision, compareSeoRevision, fixedFieldValues, migrateV7Envelope, sealSeoRevision, validateSeoReportExtension,
-  validateSeoRevision, seoFlowGaps, selectedSeoBranch } from "./seo-report-revisions.mjs";
+  validateSeoRevision, seoActionConflicts, seoFlowGaps, seoStageCoverageGaps,
+  selectedSeoBranch } from "./seo-report-revisions.mjs";
 import { assertSeoSourceAdmission } from "./seo-live-source.mjs";
 
 const repo = resolve(new URL("../../../../", import.meta.url).pathname);
@@ -110,6 +111,60 @@ function sample(runId, supersedesRevisionId = null) {
 }
 
 async function main() {
+  const coveredSpecimen = { core: { targets: { composer: { observed: true,
+    identityHash: sha("target") } } }, related: { transitionChain: {
+    typedCommand: { kind: "NOT_APPLICABLE" },
+    directPostcondition: { passed: true } } } };
+  const coverage = { schemaVersion: "gpt-page-seo-capture-revision.v2",
+    frozenFlow: { expectedCalls: [{ stepId: "corpus_research", childCapabilityId: "child" }],
+      stateBranches: { child: [["pre", "post"]] }, terminalStates: { child: ["post"] } },
+    frozenPlan: [{ childCapabilityId: "child", liveStateTargets: {
+      pre: ["composer"], post: ["composer"] } }],
+    calls: [{ observedCallId: "call", stepId: "corpus_research",
+      childCapabilityId: "child", stateIds: ["pre", "post"] }],
+    cells: [{ childCapabilityId: "child", stateId: "pre", status: "CONFLICT",
+      observations: [{ observedCallId: "call", specimen: coveredSpecimen }] },
+    { childCapabilityId: "child", stateId: "post", status: "OBSERVED",
+      observations: [{ observedCallId: "call", specimen: structuredClone(coveredSpecimen) }] }],
+    stageReceipts: [{ stepId: "corpus_research" }] };
+  assert.deepEqual(seoStageCoverageGaps(coverage, "corpus_research"), []);
+  assert.deepEqual(seoStageCoverageGaps({ ...coverage, stageReceipts: [] },
+    "corpus_research"), ["missing-stage-receipt:corpus_research"]);
+  assert.deepEqual(seoStageCoverageGaps({ ...coverage, cells: coverage.cells.slice(0, 1) },
+    "corpus_research"), ["missing-branch-state:corpus_research/child/post"]);
+  const diagnostic = structuredClone(coverage);
+  diagnostic.cells[1].observations[0].specimen.core.targets.composer.observed = false;
+  assert.deepEqual(seoStageCoverageGaps(diagnostic, "corpus_research"),
+    ["missing-branch-state:corpus_research/child/post"]);
+  const noCommand = structuredClone(coverage);
+  noCommand.cells[1].observations[0].specimen.related.transitionChain.typedCommand.kind = "EVIDENCE_MISSING";
+  assert.deepEqual(seoStageCoverageGaps(noCommand, "corpus_research"),
+    ["missing-branch-state:corpus_research/child/post"]);
+  const failedAction = structuredClone(coverage);
+  failedAction.cells[1].observations[0].specimen.related.transitionChain.typedCommand.kind = "ZERO_ACTION";
+  failedAction.cells[1].observations[0].specimen.related.transitionChain.directPostcondition.passed = false;
+  assert.deepEqual(seoStageCoverageGaps(failedAction, "corpus_research"), []);
+  assert.deepEqual(seoActionConflicts(failedAction, "corpus_research"),
+    ["failed-postcondition:corpus_research/child/post"]);
+  const prefix = structuredClone(coverage);
+  prefix.frozenFlow.expectedCalls.push({ stepId: "article_synthesis", childCapabilityId: "child" });
+  prefix.calls.push({ observedCallId: "article-call", stepId: "article_synthesis",
+    childCapabilityId: "child", stateIds: ["pre", "post"] });
+  prefix.stageReceipts.push({ stepId: "article_synthesis" });
+  prefix.cells[0].observations.push({ observedCallId: "article-call",
+    specimen: structuredClone(coveredSpecimen) });
+  prefix.cells[1].observations.push({ observedCallId: "article-call",
+    specimen: structuredClone(coveredSpecimen) });
+  prefix.calls[0].stateIds = [];
+  assert(seoStageCoverageGaps(prefix, "article_synthesis").some((gap) =>
+    gap.startsWith("ambiguous-branch:corpus_research/")));
+  await assert.rejects(appendSeoRevision({ revision: { terminalBranch: "stage-paused" } }),
+    /SEO_STAGE_PAUSE_NOT_PUBLISHABLE/u);
+  assert.throws(() => validateSeoRevision(sealSeoRevision({ ...sample("v2-no-locales"),
+    schemaVersion: "gpt-page-seo-capture-revision.v2" })),
+  /SEO_V2_FIVE_LOCALE_SOURCE_REQUIRED/u);
+  assert.deepEqual(seoFlowGaps({ ...coverage, schemaVersion: "gpt-page-seo-capture-revision.v1" }),
+    ["missing-branch-state:corpus_research/child/pre", "cell-conflict:child/pre"]);
   assert.throws(() => migrateV7Envelope({ schemaVersion: "gpt-page-operation-evidence.v7",
     products: [], seoCaptureRevisions: [] }, Buffer.from("partial")), /SEO_V7_MIGRATION_SOURCE_INVALID/u);
   const legacyRun = { sourceSnapshotId: sha("old-source"), calls: [] };

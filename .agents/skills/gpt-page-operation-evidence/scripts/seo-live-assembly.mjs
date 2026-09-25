@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { assertSceneBindings, makeLiveSpecimen } from "./assemble-live-capture.mjs";
-import { fixedFieldValues, freezeSeoFlow, localeOrder, projectLocalizationSource,
-  selectedSeoBranch, sealSeoRevision, seoFlowGaps,
+import { articlePreSubmitHasUnexpectedAttachment, fixedFieldValues, freezeSeoFlow, localeOrder, projectLocalizationSource,
+  selectedSeoBranch, sealSeoRevision, seoActionConflicts, seoFlowGaps,
   validateSeoRevision } from "./seo-report-revisions.mjs";
 import { assertSeoSourceAdmission } from "./seo-live-source.mjs";
 
@@ -69,6 +69,7 @@ export function freezeSeoPlan(matrix, inventory) {
 export async function assembleSeoLiveRevision({ repo, inventory, matrix, scenes, mapping,
   source, sourceAdmission, browserMeta, stageReceipts, localizationSource = null }) {
   assertSeoSourceAdmission(sourceAdmission, source);
+  if (localizationSource === null) die("SEO_V2_FIVE_LOCALE_SOURCE_REQUIRED");
   if (source?.sourceKind !== "LIVE_SEO_CAPTURE_SESSION_INPUT"
     || source.productId !== "public_knowledge_article_pipeline" || source.actionId !== "produce_article"
     || !Array.isArray(scenes) || scenes.length === 0
@@ -199,7 +200,7 @@ export async function assembleSeoLiveRevision({ repo, inventory, matrix, scenes,
       reason: missingRequired ? "required-state-not-mapped" : noSpecimen ? "target-not-found-in-scene"
         : rows.length === 0 ? "not-observed-in-this-seo-run"
         : failed ? rows.flatMap((row) => row.failures).join(",") : "same-run-scene-bound",
-      observations: noSpecimen ? [] : rows.map(({ observedCallId: id, sceneId, specimen }) => ({ observedCallId: id,
+      observations: rows.filter((row) => row.specimen).map(({ observedCallId: id, sceneId, specimen }) => ({ observedCallId: id,
         sceneId, specimen, fieldValues: fixedFieldValues({ captureRunId, observedCallId: id,
           childCapabilityId: child.childCapabilityId, stateId, scene: sceneById.get(sceneId), specimen }) })) };
   }));
@@ -212,10 +213,15 @@ export async function assembleSeoLiveRevision({ repo, inventory, matrix, scenes,
   if (!allReceiptsBound || !legalPrefix || receiptStages.length > fullStages.length) {
     die("SEO_STAGE_RECEIPTS_INVALID");
   }
-  const flowGaps = seoFlowGaps({ calls, cells, frozenFlow });
-  const complete = flowGaps.length === 0 && receiptStages.length === fullStages.length
+  const flowGaps = seoFlowGaps({ schemaVersion: "gpt-page-seo-capture-revision.v2",
+    calls, cells, frozenFlow, frozenPlan: plan, scenes });
+  const actionConflicts = seoActionConflicts({ schemaVersion: "gpt-page-seo-capture-revision.v2",
+    calls, cells });
+  const complete = flowGaps.length === 0 && actionConflicts.length === 0
+    && !articlePreSubmitHasUnexpectedAttachment({ calls, cells, scenes })
+    && receiptStages.length === fullStages.length
     && mapping.terminalBranch === (localizationSource ? "translation-complete" : "image-complete");
-  const body = { schemaVersion: "gpt-page-seo-capture-revision.v1", captureRunId,
+  const body = { schemaVersion: "gpt-page-seo-capture-revision.v2", captureRunId,
     capturedAt: new Date(Math.max(...scenes.map((scene) => Date.parse(scene.capturedAt)))).toISOString(),
     source, ...(localizationSource ? { localizationSource } : {}),
     matrixDigest: inventory.matrixBinding.digest,
@@ -235,7 +241,7 @@ export async function assembleSeoLiveRevision({ repo, inventory, matrix, scenes,
         previousResponseEmptyHashMeaning: "NOT_PROJECTED_OR_EMPTY",
         pageTurnCoverage: "CURRENTLY_MOUNTED_TURNS_ONLY" } };
     }), cells,
-    stageReceipts, terminalBranch: mapping.terminalBranch ?? "unknown-effect",
+    stageReceipts, terminalBranch: mapping.terminalBranch ?? "stage-paused",
     terminalReceipt: mapping.terminalReceipt ?? null,
     flowGaps,
     captureStatus: complete ? "CAPTURE_COMPLETE" : "CAPTURE_PARTIAL",

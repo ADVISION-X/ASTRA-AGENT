@@ -92,7 +92,7 @@ Codex 操作前必须读 `chrome:control-chrome` Skill。只连接本次 QA/采�
 
 正向验收：对当前 Child 合同矩阵精确盘点；全部计划字段有固定 schema 和隐私白名单；无 trace 的历史 attempt 继续不能进入 Chrome；本次现场仅接受 SEO `produce_article` 三轮及固定五张 `localization_article_translation/article_translation` 历史任务。SEO 后续输入由同一 QA 会话真回复生成；五语分别由历史真实 task/四材料/route/resultRevision 和现役 Product probe 生成 exact prompt，并在同一 QA URL 顺序发送，每轮四附件、相邻 turn、现役 JSON/Product 解析可反查；五张历史任务彼此严格父链、同一源文，私有原件不进 Git。所有八轮不伪造 checkpoint；同 DOM 两 serializer 字节/hash 不等时下一次发送为零并记 `SEMANTIC_TEXT_PROJECTION_DRIFT`；合法 decline/失败分支诚实止步。一次正常流程未出现的内部限流 Child 和故障状态仍为 `NOT_REACHED`，其它 39 个产品路由不得因 SEO 样本变成已采；重复 Child 证据不串包，unknown submit 不二次发送。版本验收覆盖 v7 旧 run 逐项验证与保留、v8 追加、重复 no-op、并发两写不丢版、冲突拒绝、损坏/半迁移拒绝、补正留旧版及 readback。比较验收覆盖可机械比较的一致/冲突、未观察、代码无页面证据、语义多义需复核、代码变化后新比较版及旧版不变；每个差距可反查同一 revision 的 scene/field 和源码文件 digest/行。
 
-反向验收：从派生差距报告逐项反查代码、唯一八轮 DOM 证据版、scene/nodeIndex/identityHash、现场 call、冻结清单和真实材料身份；从五语逐项反查历史 job 的 direct parent、同源 article/version/hash、四份材料原字节及本机 Skill 固定件；验证 research 首次发送后冻结 canonical URL，后续 article/image/五语及各 post-submit 读回全等（research pre 允许根页），同时明确标注跨文章拼接，只是同页连续 DOM 样本，不构成单篇业务链或生产 continuation/admission；Child 样本查询只证明该场景真实观察，从 Product/Website 业务终点反查时明确标为“采集工具无 admission 权”，不得把 QA 会话的 Provider 回复写成生产结果或其它产品完成。失败后只读回已有事实，不重放副作用。原生检查只用本 Skill 的 `quick_validate.py`、三项现有 acceptance 加必要的版本/对照反例；仓库质量边界用唯一 `npm run quality:check`，其通过也不证明真实 Provider/Website 完成。本轮真实 Chrome 检验必须逐动作读回，按已达状态诚实记载，结束前接受独立只读审计。已有 SEO 三轮证据缺 64 个 flow gap；五语新增不能回填历史动作的 pre/command/post。本轮可以达成八次真实发送和五语同页连续实测，但除非无副作用的真实读回能补齐全部缺口，否则报告必须保持 `CAPTURE_PARTIAL`，不得声称 83/83 Child 调用已实证。
+反向验收：从派生差距报告逐项反查代码、唯一八轮 DOM 证据版、scene/nodeIndex/identityHash、现场 call、冻结清单和真实材料身份；从五语逐项反查历史 job 的 direct parent、同源 article/version/hash、四份材料原字节及本机 Skill 固定件；验证 research 首次发送后冻结 canonical URL，后续 article/image/五语及各 post-submit 读回全等（research pre 允许根页），同时明确标注跨文章拼接，只是同页连续 DOM 样本，不构成单篇业务链或生产 continuation/admission；Child 样本查询只证明该场景真实观察，从 Product/Website 业务终点反查时明确标为“采集工具无 admission 权”，不得把 QA 会话的 Provider 回复写成生产结果或其它产品完成。失败后只读回已有事实，不重放副作用。原生检查只用skill-creator 的 `quick_validate.py`、三项现有 acceptance 加必要的版本/对照反例；仓库质量边界用唯一 `npm run quality:check`，其通过也不证明真实 Provider/Website 完成。本轮真实 Chrome 检验必须逐动作读回，按已达状态诚实记载，结束前接受独立只读审计。已有 SEO 三轮证据缺 64 个 flow gap；五语新增不能回填历史动作的 pre/command/post。本轮可以达成八次真实发送和五语同页连续实测，但除非无副作用的真实读回能补齐全部缺口，否则报告必须保持 `CAPTURE_PARTIAL`，不得声称 83/83 Child 调用已实证。
 
 进入施工前，执行 Codex 必须重新检查本方案状态、独立审计结果、当前 Git/dirty scope、法案/Blueprint/矩阵/Child/产品源的内容身份、Manifest Owner、真实 Chrome 及 Provider 操作授权。相关漂移只重算受影响方案部分；未获授权的生产代码、法案或施工图变更一律停止。独立审计放行只证明方案可施工，不授予代码修改或真实发送权限。
 
@@ -101,3 +101,33 @@ Codex 操作前必须读 `chrome:control-chrome` Skill。只连接本次 QA/采�
 本次 SEO 三轮和五语五轮均在获授权的同一 Chrome QA 对话真实发送一次；五语各四份历史原字节材料上传完成、exact prompt hash 与现役 Product probe 相等、唯一相邻回复通过现役 Product 解析。ChatGPT 会虚拟化旧 turn，故连续性验收采用下一轮 pre scene 对上一轮 user/assistant/marker 的唯一相邻绑定、上一轮为最后可见 user，以及同 URL 与发送后场景时间序；不要求最终 ko-KR 页同时保留八轮。历史翻译文章与本次 SEO QA 文章不同，生产 Website/Browser 业务终态未由 QA 会话认领。
 
 唯一 v8 JSON 的新增 `evidenceRevisionId=sha256:754ae2ee3e00edabdf4ef9046edd379c0fa293431ee8950cd88d1aab043b384f` 已保留两条旧 SEO 版本，立即派生 `comparisonId=sha256:d5f854a93d8577ce3c17ec7870254200baf8cd546f20ce20ce1eae32502ef883`。八条阶段回执成立；83 次计划 Child 调用有 35 次独立 scene 映射，131 条 flow gap，状态为 `CAPTURE_PARTIAL`。这证明真实流程与 Skill 的缺口表达可以工作，不是 83/83 DOM 状态齐全。当前比较版把 DOM 状态缺口、计划调用缺口与代码逐字段差异独立列出；采样内 selector 候选为零而 full Document 基数未知时只能 `REVIEW_REQUIRED`。旧 scene 的 collector 范围版本为带来源说明的事后标注，v13 之后的采样范围与未读旧回复 `null` 则签入 scene 的 pageFacts；不得把旧空 response hash 解释成真实空回复。
+
+## 2026-09-25 实战复采修正（优先于上文旧轮次推进规则）
+
+旧八轮真实执行并未达到用户要求的清单采集：83 次计划调用只映射 35 次，131 条旧 v1 flow gap 包含缺调用、缺状态、全局 cell 冲突及目标缺失。旧版和原始 scene 保留，不伪造补录，也不将 Provider 八轮完成写成采集完成。旧报告恢复为唯一 v8 JSON 的连续三版；当前代码下的独立比较版重新生成，旧事实不覆盖。
+
+新执行仍只走一次 SEO 三轮加五语五轮，同一专用 Chrome QA 会话、相同固定真实包、相同 14 Child/固定字段清单。每轮必须在下一次物理发送前采齐该轮计划调用的适用 pre/command/post scene、实际 stage receipt，并调用装配器 `--require-stage <本轮 stepId>` 累计核前缀。中间正常暂停的临时装配用 v2 `terminalBranch=stage-paused`、空 terminalReceipt，仅保存在仓库外，唯一报告 append 拒绝此分支。命令写出临时证据后返回 `stageGaps` 和 `stageConflicts`；有缺调用、缺状态 scene、目标没拍到、缺命令证据、缺 receipt 或已签名行动后置失败，即停在当前轮。异常状态未触发就标未到达，不制造 Provider/Child 动作。逐阶段放行不代替最终 83 次调用和八回执的完整验收。
+
+新 revision 使用 v2 逐调用覆盖：同格在另一调用发生的 `CONFLICT` 不能抹掉本调用已签名 scene；一个缺目标 row 不能丢弃别的有效 row。validator 对每条 v2 observation 用原签名 scene 重算目标选择，并核命令前后 scene、动作身份和时间，拒绝只改 specimen 伪造覆盖。冲突本身保留为 DOM 与现役代码/断言的实际差距，已证实行动后置失败另列 action conflict；两者由独立 Markdown 报告呈现，不能混算成漏采。只有无逐调用 `flowGaps`、无 action conflict、八个真实回执及同一 QA URL 才为 `CAPTURE_COMPLETE`。任何中断只可诚实追加 `CAPTURE_PARTIAL`，不能作为本任务完成。审计只读检查新规则、场景绑定、漏采门和版本不覆盖；未放行不结束方案建设。范围限本 Skill、这份方案、唯一 JSON 和其独立报告，不碰生产代码、法案或 Website。
+
+唯一 JSON（约 293 MB）与派生 Markdown 按用户裁决仅在本机保存并被 `.gitignore` 精确排除，不跟踪、不推送。后续同机任务沿同一绝对路径先 readback 现有 v8/旧修订；缺文件或版本链不完整即停在追加前，不用新空报告替代。此本机范围限制应在交付中明确，不宣称跨 checkout 自动可用。v2 SEO CLI 还强制 `--require-stage`；省略参数在读取现场文件之前失败。
+
+## v2 现场验收结果与现役阻断
+
+设计/工具经两名独立只读审查者放行后，新专用 Chrome QA run `seo-live-c5421990-fcff-42a7-bf54-9fe8179b2084` 从 research 起按清单采真实 DOM；本轮在任何 Provider 发送前停止。页面“最新”模型已选中，但点击后菜单仍打开，违反现役 `select_gpt_model_from_start_v3` 的关闭后置；空白新聊天也缺 `prepare_clean_gpt_chat` 所需的唯一附件区目标。全八轮证据版有 84 个 flow gap；正式 research 前缀门禁报告 14 个 stageGaps 与一次模型选择动作的后置失败（两个状态观察形成两条 action conflict），拒绝推进 article/image/五语。第 4 个本机 JSON 证据版 `sha256:862fb91fc05db62bc0f11a703c5ae9372e5ed3442add65c9d5442bc93bed16cf` 与即时独立比较版 `sha256:6b1d6c05bf458cf457c4c55b6473d53763dea55f4d51f5e031702dd579ae5cc6` 已读回；`CAPTURE_PARTIAL`，0/8 stage receipt，不能宣称 SEO+五语闭环或 83/83。若要继续达到原目标，必须先在单一现役 Child/矩阵 Owner 下处理这些真实 UI 不匹配并重审本方案；本次授权未包含生产代码、法案或合同修改，不做旁路或伪造后置。
+
+## v3 实战修正：逐调用落盘与全链现场覆盖
+
+用户随后明确要求在同一真实 QA 会话拿回 83 个计划调用的现场结果，并在每个调用后立即更新、回读。此授权替换上节“出现合同缺口即停止下一轮采集”的推进规则；不替换 `CAPTURE_COMPLETE` 的严格判定。每个 Child 的 scene 与 mapping 一完成即原子保存、回读调用数和场景数；每个 Provider 轮次回复由现役解析器接受后立即保存 stage receipt，并运行 `--require-stage` 输出本轮累计缺口与冲突。`SEO_STAGE_NOT_READY` 是资格判定失败，继续现场覆盖时保留其事实，绝不改为放行或假成功；只有真实页面/Provider 无法继续、身份未知或重复发送风险时停下。唯一 JSON 仍只追加带真实终态的不可覆盖版本，进行中 `stage-paused` 仅留仓库外，避免每个 Child 复制约 293 MB 的旧报告。
+
+v3 run `seo-live-da7f37c8-38b6-412f-a1c8-bfc398a975c2` 已得到真实 research `proceed` 回执及 12/12 独立 Child 映射；即时对照为 19 条阶段缺口、2 条模型后置冲突。Provider 初次“消息流中的错误”后只对原用户轮次重试一次，没有新提示词发送。文章约 11.5 KB 提示词一次填充产生自动“粘贴的文本”附件；分段输入虽核准正文精确，首次失败附件随文章消息发送，须作为该轮输入偏差保留，不能认定资料包清单符合。后续每次发送同时核 exact prompt 与附件集合，全部旧失败 scene 留原样。方案范围仍限本 Skill、这份方案、唯一本机 JSON 和独立差距报告；子智能体只读审计，未通过不结束方案建设。
+
+### v3 最终现场核验与附件修复边界
+
+上述 run 后续完成 SEO 三轮和五语五轮真实 QA 操作：83/83 个计划 Child 各有独立 scene 映射，8/8 张真实阶段回执由现役解析接受，同一 canonical URL 哈希。第 5 个唯一 JSON 版本为 `sha256:b9988c93afa4b65a08786582f71eebe2ae286d9e976ac092a967f36bb0bb55ae`，即时独立比较版为 `sha256:62d9508ddbd5744b376231c8a77cd68183551749c2c34c0a752db6bfddf32e08`；读回 `valid=true, complete=false`。136 条 `missing-branch-state` 与 14 条模型选择后置冲突必须保留，整体为 `CAPTURE_PARTIAL`。83/83 不表示矩阵全部状态或 Product/Website 终态已合格。
+
+“附件完成、提示词前”的实战 DOM：上传中同一 composer 有 4 个 `role=progressbar`、0 个具名卡按钮；完成后恰有 4 个 `button.composer-attachment-surface[aria-label]`、0 个 progressbar、0 个旧 `[role='group'][aria-label]`。修复生产 Child 时，四个卡片消费者应统一读具名按钮并按现役重名后缀规则一一核文件集合；reconcile 单独读 composer 内的 progressbar，允许 4 个进度条与 0 张卡并存的等待态，取消 spinner 数小于等于卡片数的不实断言；只有进度/待处理/可见错误均为零且四卡精确匹配才交给提示词 Child。当前工作区四个卡片选择器的未提交改动不构成生产运行验证，spinner 仍挂在按钮后代，不能宣称修复完成。下一紧邻风险是 `write_exact_gpt_prompt` 对长文章整段 `fill` 会自动制造额外粘贴附件，发送前必须重新核提示词完整哈希与附件集合；本轮文章已带该额外附件发送，事实保留。此段是只读修复方案，不授权修改生产 Child、Browser Owner 或法案。
+
+唯一 JSON 首次追加 v3 时因整份 pretty 序列化超过 Node 单字符串上限报 `Invalid string length`；Skill 原报告工具改用紧凑 JSON 原子写入，合并后约 324 MB，旧四版保留且 readback 通过。后续容量达到相同上限时先修原工具的单文件读写，不能拆出第二证据台账。所有本机资料按原 `.gitignore` 精确排除，不推送。
+
+文章输入偏差随后以第 6 个不可覆盖补正版 `sha256:93d6b50f006de36e92bef4464cf0bbbb77da3e12a884eac8b8b712d67a2b339f` 追加，`supersedesRevisionId` 指向第 5 版 `b998...`。文章 stage receipt 现直接绑定签名 `a-submit-pre`：计划 0 件附件、页面实际 1 件且标签为 hash-only；同一次 submit 的后续 scene 证实发送。独立比较版 `sha256:61952af8684c5948789f93b1feff3647bb8b0ff22450739df1b7c5dffcef8e46` 单列输入偏差与场景指针，旧比较章保留。最新仍为 83/83 调用、8/8 回执、136 条固定状态缺口和 14 条模型后置冲突，`CAPTURE_PARTIAL`；原生读回 `valid=true, complete=false`。校验器从签名发送前场景直接拒绝“额外附件却标 COMPLETE”，即使回执注记被省略也不能绕过。唯一 JSON 现为 498,456,139 字节，接近 Node 单字符串上限；下次追加前必须先修原唯一报告工具的容量，不能增设第二证据存储或删除旧版。

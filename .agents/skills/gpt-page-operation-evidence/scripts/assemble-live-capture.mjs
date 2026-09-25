@@ -269,7 +269,7 @@ export function candidateEntries(target, scene, candidateContext = {}) {
   }
 }
 
-function targetEvidence(target, scene, candidateContext) {
+export function targetEvidence(target, scene, candidateContext) {
   const raw = candidateEntries(target, scene, candidateContext);
   const eligibility = {
     hiddenAllowed: target === "file-input",
@@ -651,13 +651,14 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args["seo-source"]) {
     for (const required of ["repo", "matrix", "scenes", "mapping", "seo-source",
-      "browser-meta", "stage-receipts", "output"]) {
+      "localization-source", "browser-meta", "stage-receipts", "require-stage", "output"]) {
       if (!args[required]) fail("ARGUMENT_REQUIRED", `--${required}`);
     }
-    const [{ buildInventory }, { assembleSeoLiveRevision }, { loadSeoSourceFromCliArgs }, matrix, scenes, mapping, source,
+    const [{ buildInventory }, { assembleSeoLiveRevision }, { loadSeoSourceFromCliArgs },
+      { seoActionConflicts, seoStageCoverageGaps }, matrix, scenes, mapping, source,
       browserMeta, stageReceipts] = await Promise.all([
       import("./report-tool.mjs"), import("./seo-live-assembly.mjs"),
-      import("./seo-live-source.mjs"),
+      import("./seo-live-source.mjs"), import("./seo-report-revisions.mjs"),
       readJson(args.matrix), readJson(args.scenes), readJson(args.mapping),
       readJson(args["seo-source"]), readJson(args["browser-meta"]), readJson(args["stage-receipts"]),
     ]);
@@ -668,9 +669,18 @@ async function main() {
     const revision = await assembleSeoLiveRevision({ repo: args.repo, inventory, matrix, scenes,
       mapping, source, sourceAdmission, browserMeta, stageReceipts, localizationSource });
     await writeJsonAtomic(args.output, revision);
+    const stageGaps = args["require-stage"]
+      ? seoStageCoverageGaps(revision, args["require-stage"]) : [];
+    const stageConflicts = args["require-stage"]
+      ? seoActionConflicts(revision) : [];
     process.stdout.write(`${JSON.stringify({ captureRunId: revision.captureRunId,
       evidenceRevisionId: revision.evidenceRevisionId,
-      captureStatus: revision.captureStatus, output: args.output })}\n`);
+      captureStatus: revision.captureStatus, output: args.output,
+      ...(args["require-stage"] ? { requiredStage: args["require-stage"], stageGaps,
+        stageConflicts } : {}) })}\n`);
+    if (stageGaps.length > 0 || stageConflicts.length > 0) {
+      fail("SEO_STAGE_NOT_READY", args["require-stage"]);
+    }
     return;
   }
   for (const required of ["inventory", "matrix", "scenes", "mapping", "production-source", "browser-meta", "output"]) {

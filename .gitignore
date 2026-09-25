@@ -17,6 +17,8 @@ runtime-evidence/
 tmp/
 .governance/runtime/
 scripts/audit/reports/
+/docs/项目方案/GPT页面操作子能力实证资料.json
+/docs/项目方案/GPT页面DOM与代码差距报告.md
 
 # Local AI-tooling configuration (Claude Code entry file + local skills).
 # Not a production path: kept out of the tracked tree so the native
