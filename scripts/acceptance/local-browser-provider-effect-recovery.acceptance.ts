@@ -9,12 +9,12 @@ import {
   BrowserMutationStore,
 } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
 import type { BrowserMutationIdentity } from "../../src/lib/browser/exact-target/browser-mutation-types.js";
-import { ensureCurrentSchema } from "../../src/lib/browser/exact-target/browser-mutation-schema.js";
 import { browserMutationPayloadKey, sealProviderRecoveryPayload } from
   "../../src/lib/browser/exact-target/browser-mutation-payload.js";
 import { submitRecoveryPayload } from
   "../../src/lib/browser/exact-target/browser-submit-recovery-payload.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
+import { verifyWalSchemaStartupRejections } from "./local-browser-mutation-store-support.js";
 
 const hash = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -62,61 +62,7 @@ assert.throws(() => submitRecoveryPayload(submitTerminalReply(
 "Browser WAL must reject a temporary client route before persisting confirmed recovery data");
 const root = await mkdtemp(path.join(tmpdir(), "browser-attempt-fence-"));
 try {
-  for (const forbiddenColumn of [
-    "consultation_identity_hash", "source_task_ref_hash", "continuation_checkpoint_hash",
-    "owner_plugin_id", "plugin_version",
-  ]) {
-    const forbiddenSchema = new Database(path.join(root, `${forbiddenColumn}.sqlite`));
-    ensureCurrentSchema(forbiddenSchema);
-    forbiddenSchema.exec(`alter table browser_mutations add column ${forbiddenColumn} text`);
-    assert.throws(() => ensureCurrentSchema(forbiddenSchema), /BROWSER_REPAIR_REQUIRED/u,
-      `Browser startup must reject a WAL that retains ${forbiddenColumn}`);
-    forbiddenSchema.close();
-  }
-  const incompleteSchema = new Database(path.join(root, "incomplete.sqlite"));
-  ensureCurrentSchema(incompleteSchema);
-  incompleteSchema.exec("alter table browser_mutations drop column mutation_outcome");
-  assert.throws(() => ensureCurrentSchema(incompleteSchema), /BROWSER_REPAIR_REQUIRED/u,
-    "Browser startup must reject an incomplete WAL instead of migrating it");
-  incompleteSchema.close();
-  const schemaReceipt = (database: Database.Database): string => JSON.stringify(database.prepare(
-    "select type,name,sql from sqlite_master where type in ('table','index') order by type,name").all());
-  const rejectWithoutChange = (database: Database.Database, reason: string): void => {
-    const before = schemaReceipt(database);
-    assert.throws(() => ensureCurrentSchema(database), /BROWSER_REPAIR_REQUIRED/u, reason);
-    assert.equal(schemaReceipt(database), before, `${reason}: schema must remain unchanged`);
-    database.close();
-  };
-  const currentFixture = new Database(path.join(root, "current-schema-source.sqlite"));
-  ensureCurrentSchema(currentFixture);
-  const currentDdl = currentFixture.prepare("select type,name,sql from sqlite_master where sql is not null and type in ('table','index') order by case type when 'table' then 0 else 1 end,name").all() as Array<{ type: string; name: string; sql: string }>;
-  currentFixture.close();
-  const alteredSchema = (name: string, alter: (entry: { type: string; name: string; sql: string }) => string) => {
-    const database = new Database(path.join(root, `${name}.sqlite`));
-    for (const entry of currentDdl) database.exec(alter(entry));
-    return database;
-  };
-  const nullableTarget = alteredSchema("nullable-target", (entry) => entry.name === "browser_mutations"
-    ? entry.sql.replace("target_ref text not null", "target_ref text") : entry.sql);
-  rejectWithoutChange(nullableTarget, "Browser startup must reject a nullable WAL target identity");
-  const wrongIndex = alteredSchema("wrong-index", (entry) => entry.name === "browser_mutations_unresolved"
-    ? entry.sql.replace("job_id,attempt_id,lease_version", "job_id,attempt_id,result_revision") : entry.sql);
-  rejectWithoutChange(wrongIndex, "Browser startup must reject an index name with different columns");
-  const viewOnly = new Database(path.join(root, "view-only.sqlite"));
-  viewOnly.exec("create view legacy_browser_view as select 1 as id");
-  assert.throws(() => ensureCurrentSchema(viewOnly), /BROWSER_REPAIR_REQUIRED/u,
-    "a database containing an old view must not be treated as empty");
-  assert.equal(viewOnly.prepare("select name from sqlite_master where name='browser_mutations'").get(), undefined);
-  viewOnly.close();
-  const oldClaimSchema = new Database(path.join(root, "old-target-claims.sqlite"));
-  ensureCurrentSchema(oldClaimSchema);
-  oldClaimSchema.exec("create table browser_target_claims (target_ref text, job_ref_hash text, tab_id integer, claimed_at text, released_at text)");
-  oldClaimSchema.exec("insert into browser_target_claims values ('target-tab-old','job-hash-old',12,'2026-01-01T00:00:00Z',null)");
-  rejectWithoutChange(oldClaimSchema, "Browser startup must reject a retained target identity table");
-  const missingGrantSchema = new Database(path.join(root, "missing-replay-grant.sqlite"));
-  ensureCurrentSchema(missingGrantSchema);
-  missingGrantSchema.exec("alter table browser_mutations drop column delivery_priority_replay_grant_hash");
-  rejectWithoutChange(missingGrantSchema, "Browser startup must reject a missing current grant column");
+  verifyWalSchemaStartupRejections(root);
   const store = new BrowserMutationStore(root);
   store.verifyRuntimeTaskProvenance(null);
   const schema = new Database(path.join(root, "browser", "browser-mutations.sqlite"), { readonly: true });

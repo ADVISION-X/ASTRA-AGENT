@@ -1,7 +1,5 @@
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 import { executionFailure } from "../../../lib/execution-failure.js";
-import { detectedKnownGptRateLimitExactFact } from
-  "../../../../scripts/acceptance/local-browser-rate-limit-detector.acceptance-support.js";
 
 import { buildGptExecutionProfile } from "../index.js";
 import {
@@ -10,13 +8,12 @@ import {
 import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
 import { executeProductionGptAtomicCall } from "../production-atomic-call.js";
 import { failedGptChildExecutionResult } from "../ability-group.js";
-import { closeKnownProviderRateLimit } from "../production-rate-limit-closure.js";
-import { ProductionGptChildTools } from "../production-child-tools.js";
 import type { ProductionGptBrowserCall } from "../production-browser-lifecycle.js";
 import { conversationUrl, promptHash } from "./gpt-conversation-fixture.js";
 import { verifyStoppedEmptyRecoveryContract } from "./gpt-stopped-empty.acceptance-support.js";
 import { verifyGeneratedImageEvidenceBoundary } from "./gpt-generated-image-evidence.acceptance-support.js";
 import { verifySubmitProofs } from "./gpt-proof-submit.acceptance-support.js";
+import { verifyKnownRateLimitClosure } from "./gpt-rate-limit-closure.acceptance-support.js";
 import {
   coherentObservationPacket,
   exactAssistantTurnReply,
@@ -73,92 +70,7 @@ assert.equal(done.proof.browserFact, null);
   assert.equal(failed.proof.committedMutation, "no");
 }
 
-{
-  const rateLimitHarness = createGptAcceptanceHarness("gpt-proof-known-rate-limit");
-  const intent = rateLimitHarness.buildIntent("open_gpt_model_selector_v3", { profile });
-  const preflight = await detectedKnownGptRateLimitExactFact();
-  const { observedAt, exactCallIdentityHash: exactCallHash,
-    targetRefHash, documentRefHash, observationHash } = preflight;
-  const failed = await failedGptChildExecutionResult({
-    intent,
-    context: { dataDir: "/tmp/gpt-known-rate-limit" },
-    startedAt: observedAt,
-    error: executionFailure("failed", "BROWSER_KNOWN_GPT_RATE_LIMIT", {
-      metadata: { mutationOutcome: "no", knownGptRateLimitPreflightFact: preflight, evidence: {
-        evidenceRef: ["browser-known-gpt-rate-limit", observedAt, exactCallHash,
-          targetRefHash, documentRefHash].join("|"),
-        evidenceHash: observationHash,
-      } },
-    }),
-  });
-  let delivered = 0;
-  let incidentInput: Readonly<Record<string, unknown>> | null = null;
-  await assert.rejects(closeKnownProviderRateLimit({
-    execution: {
-      jobId: "job:known-rate-limit", attemptId: "attempt:known-rate-limit", resultRevision: 0,
-      deviceId: "device:1", leaseVersion: 1, executionFenceHash: `sha256:${"5".repeat(64)}`,
-      capabilityManifestHash: `sha256:${"6".repeat(64)}`,
-    } as never,
-    call: { sessionKey: "session:known-rate-limit" },
-    result: failed,
-    providerRateLimitControl: {
-      assertProviderSubmitAllowed: () => undefined,
-      pendingIncidents: () => [],
-      beginIncident: async (input) => {
-        incidentInput = input;
-        return { incidentRequestId: `aipcooldown_${"7".repeat(40)}`,
-          deliver: async () => { delivered += 1; } };
-      },
-    },
-    executeAcknowledgement: async () => { throw new Error("ACK_NOT_RUN_IN_PARSE_ACCEPTANCE"); },
-  }), /ACK_NOT_RUN_IN_PARSE_ACCEPTANCE/u);
-  assert.equal(Reflect.has(incidentInput ?? {}, "targetRefHash"), false);
-  assert.equal(Reflect.has(incidentInput ?? {}, "documentRefHash"), false);
-  assert.notEqual(Reflect.get(incidentInput ?? {}, "observationHash"), observationHash);
-  assert.equal(delivered, 1, "known exact dialog must still enter and close the current incident path");
-  const clearanceWrites: string[] = [];
-  await assert.rejects(closeKnownProviderRateLimit({
-    execution: {
-      jobId: "job:known-rate-limit", attemptId: "attempt:known-rate-limit", resultRevision: 0,
-      deviceId: "device:1", leaseVersion: 1, executionFenceHash: `sha256:${"5".repeat(64)}`,
-      capabilityManifestHash: `sha256:${"6".repeat(64)}`,
-    } as never,
-    call: { sessionKey: "session:known-rate-limit" },
-    result: failed,
-    providerRateLimitControl: {
-      assertProviderSubmitAllowed: () => undefined,
-      pendingIncidents: () => [],
-      beginIncident: async () => ({ incidentRequestId: `aipcooldown_${"7".repeat(40)}`,
-        deliver: async (clearance) => {
-          clearanceWrites.push(clearance.clearance);
-          throw new Error("CLEARANCE_RESPONSE_LOST");
-        } }),
-    },
-    executeAcknowledgement: async () => ({ value: {
-      clearance: "confirmed_absent", acknowledgementReceiptHash: observationHash,
-      acknowledgedAt: observedAt,
-    }, exactCallIdentityHash: exactCallHash, effectReceipt: {
-      outcome: "CONFIRMED", mutationOutcome: "confirmed", terminalAt: observedAt,
-    } }) as never,
-  }), /CLEARANCE_RESPONSE_LOST/u);
-  assert.deepEqual(clearanceWrites, ["confirmed_absent"],
-    "a lost clearance response must not append not_cleared after an acknowledged absence");
-  for (const terminalAt of [null, observedAt]) {
-    const recovered: Readonly<Record<string, unknown>>[] = [];
-    const tools = new ProductionGptChildTools("/tmp", observationHash,
-      {} as never, {} as never, {
-        readConfirmedRateLimitAcknowledgement: () => terminalAt ? { terminalAt } : null,
-        acquireJobBoundTargetLease: () => { throw new Error("OLD_INCIDENT_MUST_NOT_ACQUIRE_TARGET"); },
-      } as never, {} as never, {
-        pendingIncidents: () => [incidentInput as never],
-        beginIncident: async () => ({ incidentRequestId: `aipcooldown_${"7".repeat(40)}`,
-          deliver: async (clearance: Readonly<Record<string, unknown>>) => { recovered.push(clearance); } }),
-      } as never);
-    await tools.reconcilePendingProviderRateLimitIncidents("parent:cooldown", new AbortController().signal);
-    assert.equal(recovered[0]?.clearance, terminalAt ? "confirmed_absent" : "not_cleared");
-    assert.equal(recovered.length, 1);
-  }
-}
+await verifyKnownRateLimitClosure(profile);
 
 let open = false;
 const actHarness = createGptAcceptanceHarness("gpt-proof-act");
