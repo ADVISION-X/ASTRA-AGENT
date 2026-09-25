@@ -1,5 +1,4 @@
 import type { BrowserMutationStore } from "../exact-target/browser-mutation-store.js";
-import type { BrowserAuthorityBroker } from "./browser-authority-broker.js";
 import type { BrowserInfrastructureState } from "./browser-infrastructure-state.js";
 import type { BrowserLaneCoordinator } from "./browser-lane-coordinator.js";
 
@@ -7,7 +6,6 @@ import type { BrowserLaneCoordinator } from "./browser-lane-coordinator.js";
 export class BrowserInfrastructureEvidence {
   public constructor(
     private readonly lane: BrowserLaneCoordinator,
-    private readonly broker: BrowserAuthorityBroker,
     private readonly state: BrowserInfrastructureState,
   ) {}
 
@@ -18,9 +16,6 @@ export class BrowserInfrastructureEvidence {
   }
 
   public readBrowserLaneState(): "idle" | "busy" | "blocked" { return this.lane.readState(); }
-  public readBoundJobRefHash(): `sha256:${string}` | null {
-    return this.broker.currentOperatorTargetJobRefHash();
-  }
   public hasUnresolvedBrowserMutation(): boolean { return this.lane.hasUnresolvedMutation(); }
   public hasBrowserMutationForJob(jobId: string): boolean { return this.lane.hasMutationForJob(jobId); }
   public readJobBrowserHistoryEvidence(jobId: string) { return this.mutations().jobHistoryEvidence(jobId); }

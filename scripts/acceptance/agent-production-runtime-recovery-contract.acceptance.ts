@@ -2,6 +2,7 @@ import { governanceAssert as assert } from "../audit/shared/governance-exam-asse
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import Database from "better-sqlite3";
 
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
@@ -260,7 +261,38 @@ try {
     seal_hash: hashCanonical(unquietOldBody) } as never), /PRODUCTION_SOURCE_HANDOFF_CONFLICT/u,
   "a possible-input V44 source requires terminal WAL quiescence");
   store.sealSourceHandoff({ ...oldBody, seal_hash: oldSeal } as never);
+  const oldManifest = JSON.stringify({ ...oldBody, seal_hash: oldSeal });
+  const v43Body = { ...oldBody, old_path: "instance_unavailable" };
+  const v43Seal = hashCanonical(v43Body);
+  const v43Manifest = JSON.stringify({ ...v43Body, seal_hash: v43Seal });
+  const sourceDatabase = new Database(path.join(directory, "production-runtime.sqlite"));
+  const setSourceManifest = (seal: string, manifest: string, reason: string): void => {
+    sourceDatabase.transaction(() => {
+      sourceDatabase.prepare(`update production_attempt_handoffs
+        set seal_hash=?,source_manifest_json=? where job_id=? and source_attempt_id=?`).run(
+        seal, manifest, inherited.job_id, "attempt:old");
+      sourceDatabase.prepare("update production_tasks set current_reason=? where job_id=?").run(
+        reason, inherited.job_id);
+    })();
+  };
+  try {
+    setSourceManifest(v43Seal, v43Manifest, `SOURCE_HANDOFF_SEALED|${v43Seal}`);
+    assert.throws(() => store.acceptTaskAfterSourceHandoff(inherited, "attempt:new", v43Seal),
+      /PRODUCTION_SOURCE_HANDOFF_CONFLICT/u,
+      "an exact-seal V43 source must not issue a V44 attempt");
+  } finally {
+    setSourceManifest(oldSeal, oldManifest, `SOURCE_HANDOFF_SEALED|${oldSeal}`);
+  }
   store.acceptTaskAfterSourceHandoff(inherited, "attempt:new", oldSeal);
+  try {
+    setSourceManifest(v43Seal, v43Manifest, "LEASE_GRANTED");
+    assert.throws(() => store.readIssuedSourceHandoff(
+      inherited.job_id, "attempt:new", v43Seal), /PRODUCTION_SOURCE_HANDOFF_CONFLICT/u,
+    "an exact-seal V43 source must not enter V44 claim recovery");
+  } finally {
+    setSourceManifest(oldSeal, oldManifest, "LEASE_GRANTED");
+    sourceDatabase.close();
+  }
   assert.deepEqual(store.readAcceptedSourceSettlements(inherited.job_id).map((item) =>
     [item.kind, item.effectIdentityHash, item.sourceHandoffSealHash]),
   [["rejection_settled", oldEffect, oldSeal]],

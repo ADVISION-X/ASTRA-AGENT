@@ -72,7 +72,6 @@ export type WorkbenchBrowserAuthority = Readonly<{
   readJobPhysicalInputState(jobId: string): "zero" | "possible" | "unknown";
   readAttemptPhysicalInputState(jobId: string, attemptId: string): "zero" | "possible" | "unknown";
   verifyRuntimeTaskProvenance(earliestTaskCreatedAt: string | null): void;
-  readBoundJobRefHash(): `sha256:${string}` | null;
   countProviderTurnDispatches(jobId: string, attemptId: string): number;
   readProviderEffectStepCallFact(input: Readonly<{
     jobId: string;
@@ -207,7 +206,6 @@ export const createWorkbenchBrowserAuthority = async (
       supervisor.evidence.readAttemptPhysicalInputState(jobId, attemptId),
     verifyRuntimeTaskProvenance: (earliestTaskCreatedAt) =>
       supervisor.verifyRuntimeTaskProvenance(earliestTaskCreatedAt),
-    readBoundJobRefHash: () => supervisor.evidence.readBoundJobRefHash(),
     countProviderTurnDispatches: (jobId, attemptId) =>
       supervisor.evidence.countProviderTurnDispatches(jobId, attemptId),
     readProviderEffectStepCallFact: (input) =>

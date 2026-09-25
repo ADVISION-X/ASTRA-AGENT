@@ -12,7 +12,7 @@ import { claimProductionTasks } from "./cloud-client.js";
 import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import { productionCatalogHash } from "./catalog.js";
 import { PRODUCTION_BUSINESS_CAPACITY_MAX } from "./control-contract-dependency.js";
-import { hashCanonical, sha256 } from "./contracts.js";
+import { hashCanonical } from "./contracts.js";
 import { prepareSourceHandoffs } from "./runtime-source-handoff.js";
 import type { ProductionRuntimeHealth } from "./runtime-contract.js";
 import { executeClaim, reconcilePendingAttemptFailures } from "./runtime-claim.js";
@@ -218,24 +218,14 @@ const reconcilePendingBusinessAdmissions = async (state: RuntimeState): Promise<
   }
 };
 
-const reconcileCompletedBrowserTargets = async (state: RuntimeState): Promise<void> => {
+export const reconcileCompletedBrowserTargets = async (state: RuntimeState): Promise<void> => {
   const pending = state.store.pendingBrowserCleanupJobIds();
   if (pending.length === 0) return;
-  const boundJobRefHash = state.browserAuthority.readBoundJobRefHash();
-  const jobId = boundJobRefHash
-    ? pending.find((candidate) => sha256(Buffer.from(candidate, "utf8")) === boundJobRefHash)
-      ?? pending[0]!
-    : pending[0]!;
-  const jobRefHash = sha256(Buffer.from(jobId, "utf8"));
+  const jobId = pending[0]!;
   try {
-    if (boundJobRefHash === jobRefHash) {
-      await state.browserAuthority.releaseJobBoundTarget(
-        jobId, "business-admitted", state.abort.signal,
-      );
-      if (state.browserAuthority.readBoundJobRefHash() === jobRefHash) {
-        throw new Error("BROWSER_ADMITTED_TARGET_RELEASE_READBACK_MISSING");
-      }
-    }
+    await state.browserAuthority.releaseJobBoundTarget(
+      jobId, "business-admitted", state.abort.signal,
+    );
     state.store.settleBrowserCleanup(jobId);
   } catch (error) {
     state.lastErrorCode = failureCode(error, "BROWSER_ADMITTED_TARGET_CLEANUP_PENDING");

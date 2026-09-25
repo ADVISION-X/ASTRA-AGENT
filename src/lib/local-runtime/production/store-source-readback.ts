@@ -165,6 +165,7 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
     const manifest = JSON.parse(row.source_manifest_json) as SourceAttemptHandoff;
     const { seal_hash: storedSeal, ...body } = manifest;
     if (storedSeal !== sealHash || hashCanonical(body) !== sealHash
+      || !validV44SourceHandoff(manifest)
       || manifest.job_id !== jobId || manifest.source_attempt_id !== row.source_attempt_id
       || manifest.source_task_hash !== hashCanonical(current.task)) {
       throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");

@@ -1,16 +1,18 @@
 import type { SourceAttemptHandoff } from "./source-readback-contract.js";
+import { validV44SourceHandoff } from "./store-source-settlement.js";
 import { ProductionStoreSourceReadback } from "./store-source-readback.js";
 import { executionFailure } from "../../execution-failure.js";
 import type { AttemptFailureFirstFact } from "./terminal-failure.js";
 import { hashCanonical, type WebsiteAgentResult, type WebsiteAgentTask } from "./contracts.js";
 import { WebsiteAgentResultSchema } from "./contracts.js";
-import { productionTaskRowValid } from "./store-authority-validation.js";
+import { productionOutboxAuthorityFromRow, productionTaskRowValid } from "./store-authority-validation.js";
 import {
   isAttemptFailureFirstFact,
   json,
   now,
   storedTaskFromRow,
   type StoredProductionTask,
+  type ProductionOutboxAuthorityRow,
   type TaskRow,
 } from "./store-foundation.js";
 
@@ -43,7 +45,7 @@ const taskAuthorityFromRow = (row: TaskRow): StoredProductionTask => {
 const sourceHandoffManifestValid = (
   manifest: SourceAttemptHandoff, task: WebsiteAgentTask, attemptId: string,
   sourceAttemptId: string, sealHash: `sha256:${string}`,
-): boolean => manifest.seal_hash === sealHash
+): boolean => validV44SourceHandoff(manifest) && manifest.seal_hash === sealHash
   && manifest.source_task_hash === hashCanonical(task)
   && manifest.source_attempt_id === sourceAttemptId
   && attemptId !== sourceAttemptId;
@@ -259,12 +261,17 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
   }
 
   public pendingBrowserCleanupJobIds(): readonly string[] {
-    const rows = this.database.prepare(`select distinct t.job_id from production_tasks t
-      join production_outbox o on o.kind='terminal'
-        and instr(o.path,'/jobs/' || t.job_id || '/')>0
-        and o.last_error='BROWSER_CLEANUP_PENDING'
-      where t.status='completed' order by t.job_id`).all() as Array<{ job_id: string }>;
-    return Object.freeze(rows.map((row) => row.job_id));
+    const rows = this.database.prepare(`select * from production_outbox
+      where kind='terminal' and last_error='BROWSER_CLEANUP_PENDING'`
+    ).all() as ProductionOutboxAuthorityRow[];
+    const jobs = rows.map((row) => {
+      const jobId = productionOutboxAuthorityFromRow(row).jobId;
+      if (!row.path.includes(jobPathMarker(jobId)) || this.readTask(jobId)?.status !== "completed") {
+        throw executionFailure("failed", "PRODUCTION_BROWSER_CLEANUP_AUTHORITY_INVALID");
+      }
+      return jobId;
+    });
+    return Object.freeze([...new Set(jobs)].sort());
   }
 
   public settleBrowserCleanup(jobId: string): void {

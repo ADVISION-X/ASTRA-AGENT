@@ -106,7 +106,7 @@ export class BrowserInfrastructureSupervisor {
     this.lane = new BrowserLaneCoordinator(
       () => this.broker, this.websocket, this.issuer, this.state,
     );
-    this.evidence = new BrowserInfrastructureEvidence(this.lane, this.broker, this.state);
+    this.evidence = new BrowserInfrastructureEvidence(this.lane, this.state);
   }
 
   private onTargetClaim(input: BrowserAuthorityTargetClaim): void {

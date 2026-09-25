@@ -9,7 +9,6 @@ import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js"
 import type { RuntimeState } from "./runtime-state.js";
 import type { StoredProductionTask } from "./store.js";
 import { productionRuntimeTaskPath } from "./runtime-storage-inventory.js";
-import { createHash } from "node:crypto";
 
 const nativeCode = (error: unknown): string | null =>
   error && typeof error === "object" && "code" in error && typeof error.code === "string"
@@ -102,15 +101,9 @@ export const reconcileBusinessAdmission = async (
   }
   state.store.completeTask(record.task.job_id, staged);
   try {
-    const jobRefHash = `sha256:${createHash("sha256").update(record.task.job_id).digest("hex")}`;
-    if (state.browserAuthority.readBoundJobRefHash() === jobRefHash) {
-      await state.browserAuthority.releaseJobBoundTarget(
-        record.task.job_id, "business-admitted", state.abort.signal,
-      );
-      if (state.browserAuthority.readBoundJobRefHash() === jobRefHash) {
-        throw executionFailure("failed", "BROWSER_ADMITTED_TARGET_RELEASE_READBACK_MISSING");
-      }
-    }
+    await state.browserAuthority.releaseJobBoundTarget(
+      record.task.job_id, "business-admitted", state.abort.signal,
+    );
     state.store.settleBrowserCleanup(record.task.job_id);
   } catch (error) {
     state.lastErrorCode = failureCode(error, "BROWSER_ADMISSION_CLEANUP_FAILED");

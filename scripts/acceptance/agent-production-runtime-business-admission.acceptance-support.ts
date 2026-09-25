@@ -7,7 +7,8 @@ import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.
 import { executionFailure } from "../../src/lib/execution-failure.js";
 import { reconcilePendingAttemptFailures } from "../../src/lib/local-runtime/production/runtime-claim.js";
 import { purgeDeletedJob, reconcileBusinessAdmission } from "../../src/lib/local-runtime/production/runtime-business-admission.js";
-import { businessInFlightCount, claimReusesExistingBusinessSlot } from "../../src/lib/local-runtime/production/runtime-loops.js";
+import { businessInFlightCount, claimReusesExistingBusinessSlot,
+  reconcileCompletedBrowserTargets } from "../../src/lib/local-runtime/production/runtime-loops.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { readProductionOperationsSnapshot } from "../../src/lib/local-runtime/production/operations-snapshot.js";
 import {
@@ -300,20 +301,50 @@ export const exerciseOperationsAndBusinessAdmission = async (
       store.acceptTask(accepted, `attempt:${kind}`);
       store.markExecuting(accepted.job_id);
       store.stageResult(accepted.job_id, `attempt:${kind}`, staged);
+      store.enqueue({ idempotency_key: `terminal:admission:${kind}`, kind: "terminal",
+        path: `/internal/ai-production/v6/jobs/${encodeURIComponent(accepted.job_id)}/terminal`,
+        method: "POST", headers: {}, body: JSON.stringify({
+          schema_version: "xuanxue-ai-terminal-cas.v6", job_id: accepted.job_id,
+          terminal_status: "completed", payload_hash: hashCanonical(staged), failure: null,
+          worker_session_id: "session:admission", worker_session_epoch: 1,
+          result_object_receipts: [],
+        }) });
       const typedReceipt = admissionReceiptFor(accepted.job_id, staged.result_payload_hash,
         kind === "bazi" ? {
           bazi_domain_admission_receipt_hash: HASH_A,
           delivery_manifest_id: "delivery-manifest:1",
           delivery_manifest_hash: HASH_B,
         } : kind === "review" ? { review_receipt_hash: HASH_A } : {});
+      let releaseCalls = 0;
       assert.equal(await reconcileBusinessAdmission({
         store,
         session: deviceStatusWithAdmission(typedReceipt, accepted.job_id, hashCanonical(staged)),
-        browserAuthority: { releaseJobBoundTarget: async () => undefined },
+        browserAuthority: { releaseJobBoundTarget: async () => {
+            releaseCalls += 1;
+            if (kind === "review") throw new Error("BROWSER_TARGET_CLEANUP_FAILED");
+          } },
         abort: new AbortController(),
       } as never, store.readTask(accepted.job_id)!), "completed");
+      assert.equal(releaseCalls, 1,
+        "parked Target and true absence must both use the Browser release readback");
       assert.equal(store.readTask(accepted.job_id)?.status, "completed");
+      assert.equal(store.pendingBrowserCleanupJobIds().includes(accepted.job_id),
+        kind === "review", "failed release must keep the completed job in cleanup retry");
     }
+    const cleanupJob = "job:admission:review";
+    await reconcileCompletedBrowserTargets({ store, abort: new AbortController(),
+      browserAuthority: {
+        releaseJobBoundTarget: async () => { throw new Error("BROWSER_TARGET_CLEANUP_FAILED"); } },
+    } as never);
+    assert.deepEqual(store.pendingBrowserCleanupJobIds(), [cleanupJob],
+      "failed background release must preserve the pending cleanup");
+    let retried = 0;
+    await reconcileCompletedBrowserTargets({ store, abort: new AbortController(),
+      browserAuthority: { releaseJobBoundTarget: async () => { retried += 1; } },
+    } as never);
+    assert.equal(retried, 1);
+    assert.equal(store.pendingBrowserCleanupJobIds().includes(cleanupJob), false,
+      "verified released or absent reply settles the existing cleanup state");
     const pending = task({ jobId: "job:admission:pending",
       productId: productionTask.product_id, actionId: productionTask.action_id,
       materialRefs: productionTask.material_refs,

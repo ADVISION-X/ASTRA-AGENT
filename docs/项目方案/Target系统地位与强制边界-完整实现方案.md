@@ -636,7 +636,7 @@ assertHistoricalTargetClaimCoverage()
 BROWSER_LEGACY_TARGET_CLAIM_CUTOVER_REQUIRED
 ```
 
-**未决 mutation 的原位替代**：删除 `allDispatchedTargetsSettled()`、`mayCrossUnresolved()` 与 `settleRetiredTargetLocal()` 的旧 Target 路径。唯一 Browser lane 对任何 `DISPATCHED` 阻断新物理输入，不因 job/Target/fence 变化开口；旧 `DISPATCHED` 无可信 URL/userTurn locator 时不得凭 mode 字符串取得新 lane lease；全局未决时所有新 acquisition 阻断，只有原 writer 已在途命令的可信回执可原位结算。已 CONFIRMED 且 WAL 有 locator 后的 `confirmed-readback` 才能取得当前 Target 并零输入精确定位。状态只能由原 WAL 可靠 terminal 更新。`target_local` 继续作为 effect_scope 分类，旧未决行不能凭 Target 消失伪终结。`readState()` 不得以旧 claim 缺席报告 idle；`blocked` 只表明新输入禁止，不否定受限只读读回。
+**未决 mutation 的原位替代**：删除 `allDispatchedTargetsSettled()`、`mayCrossUnresolved()` 与 `settleRetiredTargetLocal()` 的旧 Target 路径。唯一 Browser lane 对任何 `DISPATCHED` 阻断新物理输入，不因 job/Target/fence 变化开口；旧 `DISPATCHED` 无可信 URL/userTurn locator 时不得凭 mode 字符串取得新 lane lease；全局未决时所有新 acquisition 均阻断，包括其它已 CONFIRMED effect 的 `confirmed-readback` acquisition。原 writer 已在途命令的可信回执可原位结算，原 WAL 的受限只读查询不需新 acquisition；只有全局无 `DISPATCHED` 且该 CONFIRMED effect 的 WAL 有可信 locator 时，`confirmed-readback` 才能取得当前 Target 并零输入精确定位。状态只能由原 WAL 可靠 terminal 更新。`target_local` 继续作为 effect_scope 分类，旧未决行不能凭 Target 消失伪终结。`readState()` 不得以旧 claim 缺席报告 idle；`blocked` 不得被解释为可新建只读 acquisition 或新物理输入的资格。
 
 **启动前置替换**：`BrowserMutationStore` 构造器及 `browser-mutation-settlement-inspection.ts` 删除 `assertHistoricalTargetClaimCoverage()` 与 claim 覆盖正例；仍先只读验证 `browser_mutations` 精确 schema、indexes、integrity/WAL 和 Runtime task provenance，且保留 `PREPARED` 崩溃恢复顺序。`DISPATCHED` 在重启后保持未知并阻断新物理输入，不因历史 claim 表已删而降级、拒绝整个有效 WAL 或伪造终态。只在现役 Browser WAL 的读取边界解析历史 mutation provenance；不得按旧 targetRef/tabId 重新绑定或关闭页面。
 
@@ -981,7 +981,7 @@ stop claims
 
 AGENT 在 Website exact absence 已读回、所有本地 writer 已停止后，按精确 job_id 清除其中 3 个本地 failed task 及其 24 个 handoff、关联 Outbox/材料/结果/Forensics/WAL。两条原 `target_local DISPATCHED` 仅随已撤销整个 job 身份删除，不修改其原状态、不给任何仍存在 job 新输入资格；清除前后其它 job 与剩余 WAL authority 保持不变。最后再离线 drop `browser_target_claims` 和两个索引；V44 新进程只从当前 live registry 取得 Target。此步骤是业务需求的授权撤销，不是旧 Target 的恢复或结算。
 
-**状态：施工中。双仓法案、施工图、V44 合同、代码与局部质检已迭代；生产数据库切换、CI-FULL 与最终业务闭环尚未通过。**
+**状态：施工中。双仓法案、施工图、V44 合同、代码与局部质检已迭代；本机 SQLite 切换已有只读读回，Website 旧 job 精确集合仍待独立读回，CI-FULL 与最终业务闭环尚未通过。**
 
 主 Codex 在并入审计发现后重新完成两遍独立自检：先从双仓 active law、5 份相关 Blueprint、V44 provider/dependency、Browser WAL/Runtime source 到 Website admission 正向核主链；再从 17 条强制验收、历史 V43 source/zero-submit 祖先、Tab 关闭与同 URL 重载、Browser lane/startup/release、所有旧字段消费者逆向追到唯一 Work Order。两仓 active law corpus 全量机器遍历（AGENT 3+35 条，Website 1+567 条）和施工图全集遍历（AGENT 7、Website 3）后，对命中法条及其直接依赖、5 份相关施工图正文逐项人工核对。有限机械自检分母为 54 项，54/54 通过：13 条升版法案的正文/唯一 registry、10 份施工图中旧身份残留、两侧 V44 spec 版本、12 项新发现的关键消费者/方案落点、17 条验收入口。连同两遍主 Codex 语义核查，本轮阶段一自检达到要求的 98% 门槛。该比例不代表任何代码覆盖率或生产 PASS。两仓原生 `audit:build`、`audit:projection:check` 与 `git diff --check` 均通过；该阶段当时未对生产代码作保留修改。
 
