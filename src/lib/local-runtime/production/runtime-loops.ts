@@ -16,7 +16,6 @@ import { hashCanonical } from "./contracts.js";
 import { prepareSourceHandoffs } from "./runtime-source-handoff.js";
 import type { ProductionRuntimeHealth } from "./runtime-contract.js";
 import { executeClaim, reconcilePendingAttemptFailures } from "./runtime-claim.js";
-import { classifyAttemptFailure } from "./terminal-failure.js";
 import { purgeDeletedJob, reconcileBusinessAdmission, websiteJobAbsent } from "./runtime-business-admission.js";
 import { terminalSpanFailure } from "./runtime-logging.js";
 import {
@@ -26,30 +25,6 @@ import {
   type RuntimeState,
 } from "./runtime-state.js";
 
-const pendingAttemptFailureJobs = (state: RuntimeState) => state.store.pendingAttemptFailures()
-  .filter((row) => row.current_attempt_id !== null);
-
-const pendingProviderReadbackJobIds = (state: RuntimeState): ReadonlySet<string> => new Set(
-  pendingAttemptFailureJobs(state)
-    .filter((row) => row.attempt_failure !== null
-      && !row.current_reason?.startsWith("SOURCE_HANDOFF_SEALED|")
-      && (classifyAttemptFailure(row.attempt_failure.failure_core)
-        === "same_attempt_provider_readback"
-        || state.browserAuthority.readJobPhysicalInputState(row.task.job_id) !== "zero"))
-    .map((row) => row.task.job_id),
-);
-
-const providerCooldownPaused = (reason: string | null): boolean =>
-  reason === "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE"
-  || reason?.startsWith("PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE|") === true;
-
-const pendingCooldownResumeJobIds = (state: RuntimeState): ReadonlySet<string> => new Set(
-  state.store.taskAuthorities()
-    .filter((row) => row.status === "failed" && row.current_attempt_id !== null
-      && row.attempt_failure === null && providerCooldownPaused(row.current_reason))
-    .map((row) => row.task.job_id),
-);
-
 export const claimReusesExistingBusinessSlot = (
   state: RuntimeState,
   job: Readonly<{ job_id: string; grant: Readonly<{
@@ -58,15 +33,20 @@ export const claimReusesExistingBusinessSlot = (
   }> }>,
 ): boolean => {
   const durable = state.store.readTask(job.job_id);
-  if (durable?.current_attempt_id !== job.grant.attempt_id) return false;
-  return durable.status === "failed" && job.grant.same_accepted_attempt;
+  if (!durable || durable.status !== "failed" || !durable.current_attempt_id) return false;
+  if (durable.current_attempt_id === job.grant.attempt_id) {
+    return job.grant.same_accepted_attempt;
+  }
+  if (job.grant.same_accepted_attempt || !job.grant.source_handoff_seal_hash) return false;
+  return state.store.readSealedSourceHandoff(
+    job.job_id, durable.current_attempt_id,
+  )?.seal_hash === job.grant.source_handoff_seal_hash;
 };
 
 const businessInFlightJobIds = (state: RuntimeState): ReadonlySet<string> => new Set([
   ...state.active.keys(),
   ...state.store.taskAuthorities()
-    .filter((row) => row.status === "failed" && row.current_attempt_id !== null
-      && !row.current_reason?.startsWith("SOURCE_HANDOFF_SEALED|"))
+    .filter((row) => row.status === "failed" && row.current_attempt_id !== null)
     .map((row) => row.task.job_id),
 ]);
 
@@ -237,13 +217,7 @@ const reconcileUnfinishedExecutionsWithoutReceipt = async (state: RuntimeState):
   for (const task of state.store.unfinishedExecutionsWithoutReceipt()) {
     if (state.active.has(task.task.job_id)) continue;
     try {
-      const remote = await readProductionDeviceJobStatus(state.session, task.task.job_id);
-      if (remote.next_action_code === "WAIT_NEW_ATTEMPT"
-        && task.current_reason !== "SOURCE_HANDOFF_RECONCILIATION_PENDING"
-        && !task.current_reason?.startsWith("SOURCE_HANDOFF_SEALED|")) {
-        state.store.setCurrentReason(task.task.job_id,
-          "SOURCE_HANDOFF_RECONCILIATION_PENDING");
-      }
+      await readProductionDeviceJobStatus(state.session, task.task.job_id);
     } catch (error) {
       if (!websiteJobAbsent(error)) throw error;
       try {
@@ -304,11 +278,9 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
     PRODUCTION_BUSINESS_CAPACITY_MAX - businessInFlightCount(state),
     state.executor.availableCapacity(),
   );
-  const hasPendingProviderReadback = pendingProviderReadbackJobIds(state).size > 0;
   const hasAcceptedAttemptRecovery = state.store.taskAuthorities().some((row) =>
     row.status === "failed" && row.current_attempt_id !== null
       && !state.active.has(row.task.job_id));
-  const hasPendingCooldownResume = pendingCooldownResumeJobIds(state).size > 0;
   const hasPendingStagedResult = state.store.pendingBusinessAdmissions().length > 0;
   const deliveryCandidates = state.store.taskAuthorities()
     .filter((row) => row.status === "failed" && row.current_attempt_id !== null
@@ -317,7 +289,6 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
       attempt_id: row.current_attempt_id!,
       candidate_hash: hashCanonical(row.staged_result) }));
   const hasExistingAttemptRecovery = hasAcceptedAttemptRecovery
-    || hasPendingProviderReadback || hasPendingCooldownResume
     || hasPendingStagedResult || sourceEvidence.length > 0;
   const eligible = claimAdmissionEligible(state, availableNewSlots,
     hasExistingAttemptRecovery, hasPendingStagedResult, attestation.claim_eligible);

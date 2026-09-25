@@ -26,7 +26,7 @@ const exerciseLifecycleMutant = (): void => {
   inspectAgentProductionRuntime({
     project,
     sealedRoot: path.resolve("."),
-    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V72",
+    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V73",
     targetSet: { queryRef: "acceptance:runtime-lifecycle-mutant", count: 1 },
     targetPaths: [],
     lawRequirements: [],
@@ -35,7 +35,7 @@ const exerciseLifecycleMutant = (): void => {
       manifestPath: "scripts/audit/domains/agent-production-runtime/manifest.json",
       ownerInspectorPath: "scripts/audit/domains/agent-production-runtime/inspector.ts",
       executionGroup: "domain",
-      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V72"],
+      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V73"],
     },
     generatedPlan: [],
   }, findings);
@@ -68,7 +68,7 @@ const exerciseManifestAndLawOwnership = async (): Promise<void> => {
   const runtimeLawRecords = [...runtimeLawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
     .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden: string[] });
   const runtimeCoreLaw = runtimeLawRecords.find(
-    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V72",
+    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V73",
   );
   assert.ok(runtimeCoreLaw);
   for (const token of [
@@ -131,8 +131,10 @@ export const exerciseProductionRuntimeSourceBoundaries = async (): Promise<void>
   );
   assert.doesNotMatch(storeSource, /attempt_failure_json=null,current_reason='LEASE_REGRANTED'/u);
   assert.doesNotMatch(storeSource, /stageResultAfterProviderEffectReadback/u);
+  assert.doesNotMatch(storeSource,
+    /acceptTaskAfterSourceHandoff[\s\S]*?current_reason !== `SOURCE_HANDOFF_SEALED/u);
   assert.match(storeSource,
-    /acceptTaskAfterSourceHandoff[\s\S]*?SOURCE_HANDOFF_SEALED/u);
+    /acceptTaskAfterSourceHandoff[\s\S]*?archived\.sealed_at === null/u);
   assert.doesNotMatch(executeClaimSource, /recoverAcceptedClaim|reconcileStaleFenceCheckpoint/u);
   const mismatchBranch = executionFailureSource.indexOf(
     'code === "BROWSER_GPT_DIALOG_UNRECOGNIZED"',

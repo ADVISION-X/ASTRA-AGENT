@@ -104,12 +104,20 @@ export const acceptClaim = (
     action: () => {
       const local = state.store.readTask(job.job_id);
       const sourceSeal = job.grant.source_handoff_seal_hash;
-      if (sourceSeal && local?.current_reason === `SOURCE_HANDOFF_SEALED|${sourceSeal}`) {
-        const sealed = state.store.readSealedSourceHandoff(job.job_id, local.current_attempt_id!);
+      if (sourceSeal !== null) {
+        const issuedRegrant = job.grant.same_accepted_attempt
+          && local?.current_attempt_id === job.grant.attempt_id;
+        const sealed = issuedRegrant
+          ? state.store.readIssuedSourceHandoff(job.job_id, job.grant.attempt_id, sourceSeal)
+          : local?.current_attempt_id
+            ? state.store.readSealedSourceHandoff(job.job_id, local.current_attempt_id) : null;
+        if (!sealed || sealed.seal_hash !== sourceSeal) {
+          throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_REQUIRED");
+        }
         const replay = job.grant.delivery_priority_replay_grant;
-        const exhaustedCalls = sealed?.readback_proofs.filter((proof) =>
-          proof.disposition === "replay_exhausted") ?? [];
-        if (!sealed || (sealed.kind === "delivery_priority_replay") !== (replay !== null)
+        const exhaustedCalls = sealed.readback_proofs.filter((proof) =>
+          proof.disposition === "replay_exhausted");
+        if ((sealed.kind === "delivery_priority_replay") !== (replay !== null)
           || replay !== null && (exhaustedCalls.length !== replay.calls.length
             || exhaustedCalls.some((call, index) => {
               const issued = replay.calls[index];
@@ -120,7 +128,9 @@ export const acceptClaim = (
             }))) {
           throw executionFailure("failed", "PRODUCTION_REPLAY_GRANT_SOURCE_MISMATCH");
         }
-        return state.executor.acceptAfterSourceHandoff(task, job.grant.attempt_id, sourceSeal);
+        if (!issuedRegrant) {
+          return state.executor.acceptAfterSourceHandoff(task, job.grant.attempt_id, sourceSeal);
+        }
       }
       return reconciledFailure
         ? state.executor.acceptAfterFailureReconciled(task, job.grant.attempt_id, reconciledFailure)

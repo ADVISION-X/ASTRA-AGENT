@@ -79,17 +79,17 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
     this.database.transaction(() => {
       const current = this.readTask(task.job_id);
       const archived = this.database.prepare(`select source_attempt_id,issued_attempt_id,
-          seal_hash,source_manifest_json,first_fact_raw
+          seal_hash,source_manifest_json,first_fact_raw,sealed_at
         from production_attempt_handoffs where job_id=? and seal_hash=?`).get(
         task.job_id, sealHash,
       ) as { source_attempt_id: string; issued_attempt_id: string | null;
         seal_hash: string | null; source_manifest_json: string | null;
-        first_fact_raw: string | null } | undefined;
+        first_fact_raw: string | null; sealed_at: string | null } | undefined;
       if (!current || current.status !== "failed" || !archived
         || archived.source_manifest_json === null || archived.seal_hash !== sealHash
+        || archived.sealed_at === null
         || current.task.request_hash !== task.request_hash
         || current.current_attempt_id !== archived.source_attempt_id
-        || current.current_reason !== `SOURCE_HANDOFF_SEALED|${sealHash}`
         || current.staged_result !== null
         || this.readAttemptFailureRaw(task.job_id) !== archived.first_fact_raw
         || (archived.issued_attempt_id !== null && archived.issued_attempt_id !== attemptId)) {
@@ -105,9 +105,8 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
         set current_attempt_id=?,current_reason='LEASE_GRANTED',
           staged_result_json=null,attempt_failure_json=null,updated_at=?
         where job_id=? and status='failed' and current_attempt_id=?
-          and current_reason=? and staged_result_json is null`).run(
+          and staged_result_json is null`).run(
         attemptId, now(), task.job_id, archived.source_attempt_id,
-        `SOURCE_HANDOFF_SEALED|${sealHash}`,
       );
       if (changed.changes !== 1) {
         throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
@@ -126,6 +125,7 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
     task: WebsiteAgentTask,
     attemptId: string,
   ): StoredProductionTask {
+    return this.database.transaction(() => {
     const existing = this.readTask(task.job_id);
     if (existing) {
       if (existing.task.request_hash !== task.request_hash) {
@@ -135,14 +135,20 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
         if (existing.status !== "failed") {
           throw executionFailure("failed", "PRODUCTION_ACCEPTED_ATTEMPT_IDENTITY_CONFLICT");
         }
+        if (this.sourceAttemptClosed(task.job_id, attemptId)) {
+          throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_REQUIRED");
+        }
         if (existing.attempt_failure) {
           throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_RECONCILIATION_REQUIRED");
         }
-        this.database.prepare(`update production_tasks
+        const regranted = this.database.prepare(`update production_tasks
           set current_reason='LEASE_REGRANTED',updated_at=?
           where job_id=? and status='failed' and current_attempt_id=?`).run(
           now(), task.job_id, attemptId,
         );
+        if (regranted.changes !== 1) {
+          throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_REQUIRED");
+        }
         return this.readTask(task.job_id)!;
       }
       if (existing.status === "failed") {
@@ -158,6 +164,7 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
       "LEASE_GRANTED", timestamp, timestamp,
     );
     return this.readTask(task.job_id)!;
+    })();
   }
 
   public acceptTaskAfterFailureReconciled(
@@ -177,6 +184,9 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
       }
       if (current.current_attempt_id !== attemptId) {
         throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_RECONCILIATION_CONFLICT");
+      }
+      if (this.sourceAttemptClosed(task.job_id, attemptId)) {
+        throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_REQUIRED");
       }
       this.database.prepare(`update production_tasks
         set current_reason='LEASE_REGRANTED',updated_at=?
@@ -209,27 +219,30 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
   public markExecuting(jobId: string): void {
     this.database.prepare(
       `update production_tasks set current_reason='EXECUTING',updated_at=?
-        where job_id=? and status='failed'
-          and current_reason not like 'SOURCE_HANDOFF_SEALED|%'`,
+        where job_id=? and status='failed'`,
     ).run(now(), jobId);
   }
 
 
-  public stageResult(jobId: string, attemptId: string, result: WebsiteAgentResult): void {
+  protected stageResultInTerminalTransaction(
+    jobId: string, attemptId: string, result: WebsiteAgentResult,
+  ): void {
     WebsiteAgentResultSchema.parse(result);
     const accepted = this.readTask(jobId);
     assertResultIdentity(accepted, result);
     if (accepted!.current_attempt_id !== attemptId
-      || accepted!.current_reason !== "EXECUTING") {
+      || this.sourceAttemptClosed(jobId, attemptId)) {
       throw executionFailure("failed", "PRODUCTION_RESULT_ATTEMPT_FENCED");
     }
     if (accepted!.staged_result && json(accepted!.staged_result) !== json(result)) {
       throw executionFailure("failed", "PRODUCTION_STAGED_RESULT_CONFLICT");
     }
+    if (accepted!.staged_result) return;
     const changed = this.database.prepare(`update production_tasks
       set staged_result_json=?,current_reason='BUSINESS_ADMISSION_PENDING',updated_at=?
       where job_id=? and status='failed' and current_attempt_id=?
-        and current_reason='EXECUTING'`).run(json(result), now(), jobId, attemptId);
+        and staged_result_json is null`
+    ).run(json(result), now(), jobId, attemptId);
     if (changed.changes !== 1) {
       throw executionFailure("failed", "PRODUCTION_STAGED_RESULT_TERMINAL_CONFLICT");
     }
@@ -336,8 +349,7 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
 
   public setCurrentReason(jobId: string, reason: string): void {
     this.database.prepare(
-      `update production_tasks set current_reason=?,updated_at=? where job_id=? and status='failed'
-        and (current_reason is null or current_reason not like 'SOURCE_HANDOFF_SEALED|%')`,
+      `update production_tasks set current_reason=?,updated_at=? where job_id=? and status='failed'`,
     ).run(reason.slice(0, 1_000), now(), jobId);
   }
 
@@ -350,29 +362,35 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
       || failure.release_descriptor.attempt_id !== attemptId) {
       throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_INVALID");
     }
-    const existing = this.database.prepare(
-      "select current_attempt_id from production_tasks where job_id=? and status='failed'",
-    ).get(jobId) as { current_attempt_id: string } | undefined;
+    return this.database.transaction(() => {
+    if (this.sourceAttemptClosed(jobId, attemptId)) {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_IDENTITY_MISMATCH");
+    }
+    const existing = this.database.prepare(`select current_attempt_id,attempt_failure_json
+      from production_tasks where job_id=? and status='failed'`).get(jobId) as {
+        current_attempt_id: string; attempt_failure_json: string | null;
+      } | undefined;
     if (!existing || existing.current_attempt_id !== attemptId) {
       throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_IDENTITY_MISMATCH");
     }
     const serialized = json(failure);
-    const first = this.database.prepare("select attempt_failure_json from production_tasks where job_id=?")
-      .get(jobId) as { attempt_failure_json: string | null } | undefined;
-    if (first?.attempt_failure_json && first.attempt_failure_json !== serialized) {
+    if (existing.attempt_failure_json && existing.attempt_failure_json !== serialized) {
       throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_IMMUTABLE");
     }
-    this.database.prepare(`update production_tasks
+    const changed = this.database.prepare(`update production_tasks
       set attempt_failure_json=coalesce(attempt_failure_json,?),current_reason=?,updated_at=?
-      where job_id=? and status='failed' and current_attempt_id=?
-        and current_reason not like 'SOURCE_HANDOFF_SEALED|%'`).run(
+      where job_id=? and status='failed' and current_attempt_id=?`).run(
       serialized, failure.failure_core.code.slice(0, 1_000), now(), jobId, attemptId,
     );
+    if (changed.changes !== 1) {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_IDENTITY_MISMATCH");
+    }
     const persisted = this.readTask(jobId);
     if (!persisted || json(persisted.attempt_failure) !== serialized) {
       throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_READBACK_MISMATCH");
     }
     return persisted;
+    })();
   }
 
   public rebindAttemptFailureReleaseDescriptor(
@@ -385,6 +403,10 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
       || expected.release_descriptor.attempt_id !== replacement.release_descriptor.attempt_id
       || replacement.release_descriptor.lease_version <= expected.release_descriptor.lease_version) {
       throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_REBIND_INVALID");
+    }
+    return this.database.transaction(() => {
+    if (this.sourceAttemptClosed(jobId, replacement.release_descriptor.attempt_id)) {
+      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_REBIND_CONFLICT");
     }
     const changed = this.database.prepare(`update production_tasks
       set attempt_failure_json=?,current_reason=?,updated_at=?
@@ -400,5 +422,6 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
       throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_READBACK_MISMATCH");
     }
     return persisted;
+    })();
   }
 }

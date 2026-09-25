@@ -2,33 +2,26 @@
 document_type: project_scheme
 scheme_id: CURRENT_REASON_DIAGNOSTIC_PROJECTION_AUTHORITY_SEPARATION
 scheme_name: current_reason诊断投影与状态权威分离
-status: 设计阻断
+status: 可施工
 created_at: 2026-09-25
 updated_at: 2026-09-25
 owner_repo: ADVISION-X/AGENT
 candidate_branch: main
-candidate_head: 8666ba40e76b1772c54328bac7e3eaca8cc91b16
-website_baseline: 695ddbbe004ba8919794251f81b80058a253035d
-depends_on_scheme: docs/项目方案/Target系统地位与强制边界-完整实现方案.md
-implementation_mode: design_only
-independent_subagent_audit: superseded_by_explicit_user_self_audit
-audit_mode: primary_agent_read_only_self_audit
-self_audit_verdict: PASS
+candidate_head: 47afed5be0925f6494ff50aff620c37544f40f0c
+website_baseline: cb76c9658341f89920af125f6124f3ff40bcad0a
+implementation_mode: authorized_current_reason_construction
+independent_subagent_audit: required_after_implementation
+audit_mode: primary_agent_two_pass_then_independent_read_only
+self_audit_verdict: PASS_PHASE1_TWO_PASSES
 ---
 
 # current_reason诊断投影与状态权威分离-完整实现方案
 
 ## 0. 状态、唯一结论与审计门
 
-本方案当前状态：**设计阻断（Target 前置施工、新候选重绑定及权威修改授权尚未完成）**。第 22 节 R11 是本轮云仓候选复审的现役设计结论；前面 R1-R10 的时点记录不得覆盖 R11。
+本方案现役执行结论见第 23 节 R12：授权人已明确指定本轮只施工 `current_reason`，Target 暂不处理。双仓法案与施工图已先行对齐并经主 Codex 两遍自检；本轮正在执行代码、质检与独立只读审计。R1-R11 的 Target 前置、只读设计和审计形式记录仅为历史时点，不能覆盖 R12 或充当本轮验收结果。
 
-授权人已在后续明确改为“你自己审计”。因此原“必须等待独立子智能体”形式门由本轮最新明确指令替代。本轮由主智能体切换为只读审计角色，对双仓法案、施工图、现役实现与原生质检做独立于施工的反向攻击；审计阶段不修改生产代码、数据库、服务或跨仓合同实现。
-
-R11 将 R10-F2 的 consumer wire 泛化撤出施工范围；现候选设计自审未闭合 P0=0、P1=0。该结果只证明当前方案设计，不证明 Target 已施工、法案/Blueprint 已获修改授权或生产已完成。
-
-仍存在一个真实前置依赖：Target 方案与本方案共改 Runtime/source-handoff/quality，必须先完成《Target系统地位与强制边界-完整实现方案》施工与验收，再把本方案重新绑定到新的 HEAD/contract baseline 后施工。两方案禁止并行开工。
-
-本 Skill 仍只做施工前设计。本轮不修改生产法案、Blueprint、TypeScript、SQL、数据库、Browser、服务、V6 合同或原生质检代码。
+R11 将 R10-F2 的 consumer wire 泛化撤出施工范围；本轮继续保留 `LEASE_GRANTED` wire 字节与 V44 合同形状，只删除诊断内容的控制权。方案施工、原生质量门及生产交付各自需要独立证据，不能由设计自审代替。
 
 ### 0.1 唯一冻结句
 
@@ -2088,3 +2081,41 @@ R10-F2：因撤销 consumer wire 泛化而不再构成 finding
 ~~~
 
 顺序仍为 Target scoped rebind -> Target 原生质检与动态验收 -> 本方案重新绑定双仓 HEAD/合同及相关 R1-R11 谓词 -> 按现役授权分别处理法案/Blueprint -> current_reason 施工。若另获授权做 completion/receipt 词义冻结，应排在本方案之后，只保护第 R11-E 所核的现役完成链。任何新的生产代码、合同、法案、Blueprint 或 quality 漂移都须重新核对受影响结论；本节不是 READY、RELEASE 或生产结果证明。
+
+---
+
+## 23. R12：本次执行优先级、V44 重绑定与减法预算
+
+授权人本次明确要求先执行 `current_reason`，Target 暂停。此命令取代前文所有“Target 先完成才施工”的顺序句；Target 尚未完成动态验收，本方案也不声称它已完成。两仓只在现有 main 上施工，不创建分支。基线是 AGENT `47afed5be0925f6494ff50aff620c37544f40f0c` 与 Website `cb76c9658341f89920af125f6124f3ff40bcad0a`；两仓现役跨仓合同均为 V44。R1-R11 的 V43/旧候选叙述仅为历史审计记录，不能用于当前施工或 PASS。
+
+### R12-A：权威两遍复核与先决门
+
+第一遍沿需求→AGENT Runtime 法案→两仓 V6/AI Acceptance 施工图→V44 provider/consumer→typed handoff/Outbox/readback 正向核对；第二遍从生产消费者、质检 inspector 与结果终点反向查找 `current_reason` 的控制条件。结构遍历覆盖两仓 active law corpus 和全部现役 Blueprint，语义审读集中于命中的法条及直接依赖，不把文件计数冒充逐条理解。发现 AGENT Runtime 法案、AGENT V6 施工图、Website AI Acceptance 施工图的旧 `current_attempt_id + current_reason + staged_result_json is null` 与本方案 typed seal 冲突，故先改这三处权威；AGENT Runtime 法案依第 72 节升版并同步其六条直接/传递依赖、Manifest、registry 与原生检查。Website 现役法条仅要求 reason 投影和 typed grant，未发现必须新增法条；冻结说明书不修改。
+
+法案、施工图与 V44 合同对齐且主 Codex 两遍自检覆盖受影响真实调用图、无未闭合 P0/P1 后，才允许进入生产代码。当前诊断字段仍保存，Website claim `LEASE_GRANTED` wire literal 原字节不改；本轮不改变 provider contract version。source seal 只由精确 job/source attempt 的现有 `production_attempt_handoffs` typed sealed row 与同事务 `production_tasks` 条件决定，stage 与 seal 必须在原 SQLite 事务双向互斥，旧 attempt 永久关闭而 Website demand 仍活。
+
+### R12-B：物理删除与代码量核算
+
+本轮预期删除以下旧生产控制：source reason prefix/equality CAS、`EXECUTING` stage permit、reason-based capacity/recovery/cooldown、readiness 历史 sentinel、删除控制的 reason 双证明，以及只为这些分支存在的错误质检。不得新增 Runtime 表、phase/status、handoff enum、recovery manager、兼容读取、dual-write、cooldown 状态或 migration。既有 typed seal、Outbox、ProviderRateLimitControl、Website `next_action`/`control_intent` 是直接消费者与替代权威。
+
+代码量预算按本候选受影响生产文件的旧分支逐块估算：AGENT source/store/claim/loops/deletion 六组旧判断及 helper 可删约 70–130 行；typed seal/stage 事务互斥和精确 reader 预计补 35–75 行；Website readiness 预计删 4–8 行。因此**生产控制代码预期净减少约 20–100 行**，区间不是交付承诺。实际以两仓 `git diff --numstat` 分别统计生产、法案/施工图、质检新增/删除，并报告净值；质检反例可增加，全仓净行数不能冒充架构减法。若生产控制代码净增，必须逐项说明不可删除的真实消费者；若为一个诊断字段新增数百行生产基础设施或第二状态链，停止并重审。
+
+### R12-C：施工、审计与验收顺序
+
+法案/施工图对齐→主 Codex 两遍自检≥98%→主 Codex 独立逐片删除并重构生产代码与原生质检，期间两名只读前哨仅定位/审查→主 Codex 对实际 diff 两遍自检→独立只读审计者按本方案工单及反例覆盖≥95%、准确度≥95% 并放行→才使用冻结 `ci-full-governance` 依各仓唯一原生 `quality:check` 执行 CHANGE、READY、RELEASE。任何上一步未闭合不得追下一步。业务完成仍只认同一 Website job 的结果、领域 admission、consumer receipt 与对象读回；任何质量级别不代替此证明。
+
+### R12-D：第一阶段主 Codex 双遍自检记录
+
+第一遍正向覆盖：两仓 main/dirty 绑定、active law 依赖闭包、AGENT/Website 适用 Blueprint、V44 provider/consumer、source seal/stage/Outbox 的 Owner 与业务终点；AGENT `audit:build` 和 `audit:projection:check` 均通过，Website projection 检查通过。第二遍反向覆盖：六组 reason 控制消费者、错误 inspector/acceptance、Website readiness、claim literal 保留、历史 migration 不改、stage/seal 双向竞争及同一 job demand 不死；两仓 `git diff --check` 通过，旧 source reason CAS 权威文本零残留。有限核查分母 18 项已核 18 项（100%，高于 98% 门），未闭合 P0/P1 为 0。此处仅为施工前设计/权威自检，不是代码实现、CHANGE、READY 或动态业务 PASS。
+
+### R12-E：实际差异审计与行数纠偏
+
+本节代替 R12-B 的施工前粗估。当前 main 工作树以 `git diff --numstat` 按物理行统计：AGENT 生产文件新增 124、删除 112，净 **+12**；Website 生产文件新增 0、删除 4，净 **−4**；两仓生产合计新增 124、删除 116，净 **+8 行**。原预计“生产净减 20–100 行”没有实现，不能以架构减法冒充 LOC 净减。新增的 typed seal/`sealed_at` 一致性、事务内首失败和 regrant 保护、合法 continuingReplay 的 issued source 校验、stage/terminal 唯一入口均有现役消费者和反例；同时物理删除 reason prefix/equality CAS、reason cooldown 恢复 helper、重复的 provider readback 领取分支和错误的容量排除。新增 Runtime 表、状态、恢复 Owner、兼容路径均为 0。若后续还能在不削弱上述反例的条件下删掉代码，应继续删，不能为追求数字移除必需的 typed 不变量。
+
+当前质检代码 AGENT 新增 404、删除 140，净 +264；Website 新增 121、删除 3，净 +118。主要是七条法案升版引用投影、旧 stage 直调迁移、双向竞态、resolver 防回归门与 reason 篡改反例。AGENT 权威文档及合同元数据新增 61、删除 59；Website 施工图新增 5、删除 3。跨仓合同版本保持 V44，Website 历史 migration 原字节不动。全仓 LOC 增长不能冒充“减法”，本轮可验证的减法是旧字符串控制消费者归零与生产状态结构新增为零。
+
+生产代码正向自检：seal、stage、first-failure、rebind、same-attempt regrant 都在现有 SQLite 事务内按 exact source attempt typed row 竞争；Website issued new attempt 按同一 job 复用容量席位，已签发 replay attempt 的同 attempt grant 读回原 issued typed seal，`LEASE_GRANTED` wire 不变。反向自检：所有生产 `current_reason` 读取已逐处划分为诊断展示、结构完整性或协议格式，未见恢复、stage、capacity、删除、Provider submit、completed 控制消费者；历史 migration、固定文案控制室的纯展示过滤保留。两名只读前哨及后续独立只读审计者报告的半封口、缺 typed seal fallback、续租误拒和质检覆盖问题均已修复并加反例。AGENT Runtime acceptance、两仓 typecheck、Website 定向生产测试、隔离 PostgreSQL readiness 非 skipped 动态反例与两仓 registry projection 检查已通过；这些定向检查不等于 READY 或动态业务完成。
+
+### R12-F：代码阶段主 Codex 双遍自检
+
+第一遍沿 Website V44 grant → AGENT exact source/issued seal → SQLite stage+terminal → Outbox → Website admission 的正向调用图审查实际 diff。发现带 source hash 却无本地 typed seal 可落入普通 accept，以及已签发 replay attempt 同 attempt 重授会被错误拒绝，分别修复并覆盖缺本地行、伪造 reason、合法 continuingReplay 三种反例；确认本地已持久 stage+terminal 的旧结果可由其独立 typed 权威优先交付，不进入 Provider。第二遍从 AGENT、Website 全部 `current_reason` 读者和原生 inspector 反向查控制条件、SQL 谓词、resolver 消费、capacity、readiness、completed、Provider submit 与质检正反例；修复原字符串扫描门，使用 AST 与现有原生质检入口，补隔离 PostgreSQL 实测。两遍共核对 WO-G0、WO-B1–B6、WO-W1、WO-D1、WO-QA、WO-QW 全部 11 组及其直接调用点（11/11，覆盖 100%）；当前主 Codex 自检未闭合 P0=0、P1=0。该结论仍须独立只读审计正式放行，之后才能进入 CI-FULL。

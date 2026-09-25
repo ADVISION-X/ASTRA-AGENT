@@ -7,11 +7,11 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 export const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V72", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V11",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V41", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V41",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V40", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V43",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V43",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V44",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V73", credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V11",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V42", admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V42",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V41", storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V44",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V44",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V45",
 } as const;
 export const ALL_LAWS = Object.values(LAWS);
 const ROOT = "src/lib/local-runtime/production";
@@ -38,8 +38,8 @@ export const sourceFor = (context: InspectorContext, path: string): SourceFile |
 
 const inspectMinimalDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const [path, version, lawId, checkId] of [
-    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 43,
-      LAWS.route, "agent-production-runtime/v43-dependency"],
+    ["docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json", 44,
+      LAWS.route, "agent-production-runtime/v44-dependency"],
     ["docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json", 15,
       LAWS.route, "agent-production-runtime/v15-result-dependency"],
   ] as const) {
@@ -221,6 +221,73 @@ const inspectDurableState = (context: InspectorContext, findings: InspectorFindi
   if (!taskShape || taskFields.includes("identity") || !outboxShape) findings.push(finding(LAWS.core,
     "agent-production-runtime/durable-contract", PATHS.store,
     "Runtime durable task and Outbox contracts are incomplete."));
+  inspectCurrentReasonAuthority(context, findings);
+};
+
+const inspectCurrentReasonAuthority = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const controlPaths = [
+    `${ROOT}/store-source-readback.ts`, PATHS.taskState, `${ROOT}/store-outbox.ts`,
+    PATHS.runtimeLoops, `${ROOT}/runtime-claim-recovery.ts`,
+    `${ROOT}/runtime-claim-operations.ts`, PATHS.admission,
+  ];
+  for (const path of controlPaths) {
+    const source = sourceFor(context, path);
+    if (!source) continue;
+    const branches = [
+      ...source.getDescendantsOfKind(SyntaxKind.IfStatement).map((node) => node.getExpression()),
+      ...source.getDescendantsOfKind(SyntaxKind.ConditionalExpression).map((node) => node.getCondition()),
+    ];
+    const reasonBranch = branches.some((condition) => {
+      const accesses = condition.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
+        .filter((node) => node.getName() === "current_reason");
+      const reasonAccess = accesses.length > 0;
+      const reasonAlias = (Node.isIdentifier(condition) && condition.getText() === "currentReason")
+        || condition.getDescendantsOfKind(SyntaxKind.Identifier)
+          .some((node) => node.getText() === "currentReason");
+      if (!reasonAccess && !reasonAlias) return false;
+      if (path !== PATHS.admission) return true;
+      const owner = condition.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
+      if (owner?.getName() === "deviceStatusAuthorityFieldsValid" && !reasonAlias
+        && accesses.every((access) => {
+          const parent = access.getParent();
+          return Node.isTypeOfExpression(parent)
+            || Node.isBinaryExpression(parent) && parent.getOperatorToken().getKind() === SyntaxKind.EqualsEqualsEqualsToken
+              && parent.getRight().getKind() === SyntaxKind.NullKeyword
+            || Node.isCallExpression(parent) && parent.getExpression().getText() === "Array.isArray";
+        })) return false;
+      const projection = condition.getFirstAncestorByKind(SyntaxKind.PropertyAssignment);
+      return projection?.getName() !== "current_reason";
+    });
+    const reasonSqlGate = [
+      ...source.getDescendantsOfKind(SyntaxKind.TemplateExpression),
+      ...source.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral),
+    ].some((node) => /\bwhere\b[\s\S]*\bcurrent_reason\b/iu.test(node.getText()));
+    if (reasonBranch || reasonSqlGate) findings.push(finding(LAWS.core,
+      "agent-production-runtime/current-reason-diagnostic-only", path,
+      "Diagnostic current_reason must not authorize source seal, stage, recovery, capacity or deletion."));
+  }
+  const taskState = sourceFor(context, PATHS.taskState)?.getClass("ProductionStoreTaskState");
+  const hasProtectedStage = taskState?.getMethod("stageResultInTerminalTransaction")?.getScope() === "protected";
+  if (!hasProtectedStage || taskState?.getMethod("stageResult")) findings.push(finding(LAWS.core,
+    "agent-production-runtime/atomic-stage-owner", PATHS.taskState,
+    "Stage must only be available inside the atomic terminal transaction."));
+  const diagnosticResolverConsumers = new Set([
+    `${ROOT}/store-ledger.ts`, `${ROOT}/store-authority-reader.ts`,
+    `${ROOT}/operations-snapshot.ts`,
+  ]);
+  for (const source of context.project.getSourceFiles()) {
+    const relative = source.getFilePath().slice(context.sealedRoot.length + 1);
+    if (!relative.startsWith("src/") || diagnosticResolverConsumers.has(relative)) continue;
+    const importedResolver = source.getImportDeclarations().some((declaration) =>
+      declaration.getNamedImports().some((named) =>
+        ["resolveProductionAuthority", "resolveStoredProductionAuthority"].includes(named.getName())));
+    const referencedResolver = source.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
+      .some((node) => node.getName() === "resolveAuthority");
+    const consumesResolver = importedResolver || referencedResolver;
+    if (consumesResolver) findings.push(finding(LAWS.staticQuality,
+      "agent-production-runtime/diagnostic-authority-resolver-boundary", relative,
+      "production-task authority hash resolver is diagnostic only; production control consumption is P0."));
+  }
 };
 
 const inspectCredentialAndDurableTypes = (context: InspectorContext, findings: InspectorFinding[]): void => {

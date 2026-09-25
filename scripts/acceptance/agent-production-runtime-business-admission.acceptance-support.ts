@@ -5,6 +5,7 @@ import path from "node:path";
 
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { executionFailure } from "../../src/lib/execution-failure.js";
+import { readProductionDeviceJobStatus } from "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
 import { reconcilePendingAttemptFailures } from "../../src/lib/local-runtime/production/runtime-claim.js";
 import { purgeDeletedJob, reconcileBusinessAdmission } from "../../src/lib/local-runtime/production/runtime-business-admission.js";
 import { businessInFlightCount, claimReusesExistingBusinessSlot,
@@ -13,7 +14,7 @@ import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/s
 import { readProductionOperationsSnapshot } from "../../src/lib/local-runtime/production/operations-snapshot.js";
 import {
   HASH_A, HASH_B, admissionReceiptFor, attemptFailureFirstFact, claimTask, deviceStatusWithAdmission,
-  deviceStatusWithoutAdmission, resultFor, task,
+  deviceStatusWithoutAdmission, resultFor, stageResultForAcceptance, task,
 } from "./agent-production-runtime-fixtures.js";
 
 const readRuntimeSource = (relativePath: string) => readFile(
@@ -74,7 +75,7 @@ const exerciseWaitNewAndPrivacy = async (
     extra: { parameters: productionTask.parameters } });
   store.acceptTask(waitNew, "attempt:wait-new");
   store.markExecuting(waitNew.job_id);
-  store.stageResult(waitNew.job_id, "attempt:wait-new", resultFor(waitNew));
+  stageResultForAcceptance(store, waitNew.job_id, "attempt:wait-new", resultFor(waitNew));
   let releasedWaitNewTarget = 0;
   let waitNewReleaseAuthority = "";
   assert.equal(await reconcileBusinessAdmission({
@@ -100,7 +101,7 @@ const exerciseWaitNewAndPrivacy = async (
     extra: { parameters: productionTask.parameters } });
   store.acceptTask(privacyClosed, "attempt:privacy-closed");
   store.markExecuting(privacyClosed.job_id);
-  store.stageResult(privacyClosed.job_id, "attempt:privacy-closed", resultFor(privacyClosed));
+  stageResultForAcceptance(store, privacyClosed.job_id, "attempt:privacy-closed", resultFor(privacyClosed));
   let privacyReleaseAuthority = "";
   assert.equal(await reconcileBusinessAdmission({
     store,
@@ -120,6 +121,20 @@ const exerciseAdmissionDeletion = async (
   store: ProductionRuntimeStore, admissionTemporary: string,
   productionTask: ReturnType<typeof task>, pending: ReturnType<typeof task>,
 ): Promise<void> => {
+  const mislabelled = await readProductionDeviceJobStatus(
+    deviceStatusWithoutAdmission(pending.job_id, false, "ACTIVE_ATTEMPT",
+      "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED") as never,
+    pending.job_id,
+  );
+  assert.equal(mislabelled.control_intent.intent, "none",
+    "a deletion-looking diagnostic reason cannot manufacture Website control intent");
+  const controlled = await readProductionDeviceJobStatus(
+    deviceStatusWithoutAdmission(pending.job_id, true, "ACTIVE_ATTEMPT",
+      "UNRELATED_DIAGNOSTIC") as never,
+    pending.job_id,
+  );
+  assert.equal(controlled.control_intent.intent, "cancel_requested",
+    "valid Website control intent survives a mismatched diagnostic reason");
   assert.equal(await reconcileBusinessAdmission({
     store, session: deviceStatusWithoutAdmission(pending.job_id, true), activeAbort: new Map(),
   } as never, store.readTask(pending.job_id)!), "pending");
@@ -147,7 +162,7 @@ const exerciseAdmissionDeletion = async (
     extra: { parameters: productionTask.parameters } });
   store.acceptTask(retryable, "attempt:purge-retry");
   store.markExecuting(retryable.job_id);
-  store.stageResult(retryable.job_id, "attempt:purge-retry", resultFor(retryable));
+  stageResultForAcceptance(store, retryable.job_id, "attempt:purge-retry", resultFor(retryable));
   await assert.rejects(purgeDeletedJob({ store, dataDir: admissionTemporary,
     abort: new AbortController(),
     browserAuthority: { releaseJobBoundTarget: async () => undefined,
@@ -300,15 +315,7 @@ export const exerciseOperationsAndBusinessAdmission = async (
       const staged = resultFor(accepted);
       store.acceptTask(accepted, `attempt:${kind}`);
       store.markExecuting(accepted.job_id);
-      store.stageResult(accepted.job_id, `attempt:${kind}`, staged);
-      store.enqueue({ idempotency_key: `terminal:admission:${kind}`, kind: "terminal",
-        path: `/internal/ai-production/v6/jobs/${encodeURIComponent(accepted.job_id)}/terminal`,
-        method: "POST", headers: {}, body: JSON.stringify({
-          schema_version: "xuanxue-ai-terminal-cas.v6", job_id: accepted.job_id,
-          terminal_status: "completed", payload_hash: hashCanonical(staged), failure: null,
-          worker_session_id: "session:admission", worker_session_epoch: 1,
-          result_object_receipts: [],
-        }) });
+      stageResultForAcceptance(store, accepted.job_id, `attempt:${kind}`, staged);
       const typedReceipt = admissionReceiptFor(accepted.job_id, staged.result_payload_hash,
         kind === "bazi" ? {
           bazi_domain_admission_receipt_hash: HASH_A,
@@ -352,7 +359,7 @@ export const exerciseOperationsAndBusinessAdmission = async (
     const pendingResult = resultFor(pending);
     store.acceptTask(pending, "attempt:pending");
     store.markExecuting(pending.job_id);
-    store.stageResult(pending.job_id, "attempt:pending", pendingResult);
+    stageResultForAcceptance(store, pending.job_id, "attempt:pending", pendingResult);
     assert.equal(await reconcileBusinessAdmission({
       store, session: deviceStatusWithoutAdmission(pending.job_id),
     } as never, store.readTask(pending.job_id)!), "pending");

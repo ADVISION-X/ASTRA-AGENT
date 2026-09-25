@@ -44,6 +44,7 @@ import { browserMutationSchemaIsCurrent, browserMutationStoreStartupOrderIsCurre
 import { exactAssistantTurnReadIsAtomic } from "../../scripts/audit/domains/local-browser-session/dom-mechanical-facts-inspection.js";
 import { requireSource } from "../../scripts/audit/domains/local-browser-session/inspector-support.js";
 import { redactHashWriteOrderIsExact } from "../../scripts/audit/domains/runtime-log-spine/inspector.js";
+import { inspectAgentContracts } from "../../scripts/audit/domains/agent-production-runtime/contract-inspection.js";
 import { astExpressionPath, astIdentifierName } from "../../scripts/audit/shared/ast-node-identity.js";
 
 const zeroArgumentMethodCall = (node: MorphNode, ownerPath: string, method: string): boolean => {
@@ -373,9 +374,9 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
   } as const;
   const routes = {
     browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", clauses: ["forbidden:6"] },
-    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V72", clauses: ["summary"] },
-    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V72", clauses: ["forbidden:0", "forbidden:2"] },
-    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V72", clauses: ["forbidden:2"] },
+    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V73", clauses: ["summary"] },
+    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V73", clauses: ["forbidden:0", "forbidden:2"] },
+    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V73", clauses: ["forbidden:2"] },
     provider: { lawId: "LAW-GPT-001-V63", clauses: ["forbidden:0", "forbidden:3", "forbidden:7"] },
     authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V11", clauses: ["forbidden:1", "forbidden:2"] },
     recovery: { lawId: "LAW-RUNTIME-LOG-SPINE-001-V7", clauses: ["summary"] },
@@ -1108,8 +1109,8 @@ test("provider contracts reject malformed payloads before identity matching", ()
   )) as unknown;
   assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
     new Map([
-      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V72", "agent-production-runtime"],
-      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V41", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V73", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V42", "agent-production-runtime"],
     ]),
     (path) => path === "src/lib/local-runtime/production/catalog.ts"));
 });
@@ -1350,7 +1351,7 @@ test("every active law scope is deterministic, owned, unique, and includes all c
 
 test("active mutation inspectors use one DISPATCHED chain inside each law scope", () => {
   const registry = buildRegistry();
-  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V72");
+  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V73");
   assert.ok(agentLaw);
   const agentTargets = computeTargetPaths(agentLaw, registry);
   const crossOwnerPaths = [
@@ -1655,7 +1656,7 @@ test("Dynamic Proof routes are separated by native Owner", () => {
     ".catch(() => undefined)", "cleanupVerified: true", "dynamic.recovery",
     "old_attempt_after_restart_rejected", "new_attempt_fresh_started",
   ]) assert.equal(proof.includes(forbidden), false, forbidden);
-  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V72", "runtime_schema_exact", "runtime_orphan_directory_count",
+  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V73", "runtime_schema_exact", "runtime_orphan_directory_count",
     "AGENT_RUNTIME_OWNER_ISOLATED_RELEASE_PROOF_NOT_ADMITTED"]) assert.ok(proof.includes(token), token);
   for (const adjacentPrefix of ["LAW-GPT-", "LAW-LOCAL-BROWSER-SESSION-", "LAW-RUNTIME-LOG-SPINE-"]) {
     assert.equal(proof.includes(adjacentPrefix), false, adjacentPrefix);
@@ -1710,4 +1711,26 @@ test("CHANGE routes an ordinary Exam to every affected domain without running un
     assert.equal(relevantExamScripts([governedPath], registry).includes("acceptance:local-browser-terminal"), true,
       `${governedPath} must retain the automatic-claim regression route`);
   }
+});
+
+test("current_reason inspector rejects control branches and diagnostic resolver consumers", () => {
+  const project = new Project({ tsConfigFilePath: "tsconfig.json" });
+  const context = { sealedRoot: process.cwd(), project } as InspectorContext;
+  const inspect = () => {
+    const findings: import("../../scripts/audit/shared/inspector-contracts.js").InspectorFinding[] = [];
+    inspectAgentContracts(context, findings);
+    return findings.map((item) => item.checkId);
+  };
+  assert.equal(inspect().includes("agent-production-runtime/current-reason-diagnostic-only"), false);
+  const recovery = project.getSourceFileOrThrow(
+    "src/lib/local-runtime/production/runtime-claim-recovery.ts");
+  const recoverySource = recovery.getFullText();
+  recovery.replaceWithText(`${recoverySource}\nif (local.current_reason === "SOURCE_HANDOFF_SEALED") {}\n`);
+  assert.equal(inspect().includes("agent-production-runtime/current-reason-diagnostic-only"), true);
+  recovery.replaceWithText(recoverySource);
+  const claim = project.getSourceFileOrThrow(
+    "src/lib/local-runtime/production/runtime-claim-operations.ts");
+  const claimSource = claim.getFullText();
+  claim.replaceWithText(`${claimSource}\nimport { resolveStoredProductionAuthority as diagnosticAuthority } from "./store-authority-reader.js";\n`);
+  assert.equal(inspect().includes("agent-production-runtime/diagnostic-authority-resolver-boundary"), true);
 });

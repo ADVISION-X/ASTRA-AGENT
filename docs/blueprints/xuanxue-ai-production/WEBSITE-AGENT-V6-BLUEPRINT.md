@@ -7,14 +7,14 @@
   "status": "active",
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V72",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V73",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V11",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V41",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V41",
-    "LAW-AGENT-PRODUCTION-RUNTIME-005-V40",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V43",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V43",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V44"
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V42",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V42",
+    "LAW-AGENT-PRODUCTION-RUNTIME-005-V41",
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V44",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V44",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V45"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-route-capability-manifest.provider.spec.json",
@@ -35,9 +35,9 @@
     {"contractRef":null,"from":{"domain":"startup-entrypoint","repo":"local"},"to":{"domain":"agent-production-runtime","repo":"local"}}
   ],
   "prohibitedDependencyEdges": [
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V72","to":{"domain":"app-shell-ui","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V72","to":{"domain":"local-app-shell","repo":"local"}},
-    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V72","to":{"domain":"startup-entrypoint","repo":"local"}}
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V73","to":{"domain":"app-shell-ui","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V73","to":{"domain":"local-app-shell","repo":"local"}},
+    {"from":{"domain":"agent-production-runtime","repo":"local"},"lawId":"LAW-AGENT-PRODUCTION-RUNTIME-001-V73","to":{"domain":"startup-entrypoint","repo":"local"}}
   ]
 }
 ```
@@ -93,9 +93,9 @@ Browser preflight返回`BROWSER_GPT_DIALOG_UNRECOGNIZED`时，Runtime在唯一ac
 
 同一`(job_id, attempt_id)`的普通attempt failure只允许一份本地`AttemptFailureFirstFact`，仍原位保存在现役`production_tasks.attempt_failure_json`，不新增表、Outbox kind、ledger或worker。不可变`failure_core`必须保留完整`SerializedTerminalFailure/FailureFactsV6`；唯一`release_descriptor`绑定`attempt_id/lease_version/request_id/body_payload_hash/write_request_payload_hash`。现役唯一lease-release builder一次产生request、两种hash与request_id；顺序必须是serialize完整failure → builder → 空槽CAS持久完整first fact → authority reader逐字节回读 → 才允许POST。200、回复不明和稳定409都必须GET device-status，严格读回同一`lease_release` receipt或Website原始`attempt_failure + next_action_code`；request、双hash、attempt、lease与response任一不等均失败关闭。原lease/session仍有效时只可重投同descriptor；进程重启或旧fence/session不可证明时只GET，不得重建旧请求或重跑Provider。
 
-同 attempt regrant 与结果交付不得先清 first fact 或执行 Provider。Runtime 先核 Website admission/result/terminal 与原 task/Outbox；机械有效结果及必要 artifact receipt 闭合后，必须在同一 SQLite 事务写 stage + terminal intent，保留 first fact 原值供 `TerminalCasV6.terminal_source_first_fact` 运输。Website 原 terminal CAS 保存该原值及与既存旧 failure 的冲突诊断；冲突不否决机械合格结果。领域 admission receipt 与对象读回后，才以精确 CAS 从本地当前槽退休 first fact。若旧结果不存在，Website 对旧 failure 的任何不完整/矛盾事实只能禁止当前危险动作并继续有界对账；不能让 job 占槽而永不领取。新 attempt 的 source_evidence 必须在 Runtime 原 per-job Owner 停止旧 execution、以原 task current_attempt_id + current_reason + staged_result_json is null 及旧来源 hash 持久 CAS 封住旧 completion 入口（本地无持久 fence，Website 原行锁另核旧 fence）后出具；晚到旧上传回执不能 stage/terminal。旧 READY 已在封口前成立时必须交付原结果而不得换 attempt；新 accepted 后的旧字节仅是历史候选，不能用旧 fence 交付，当前 attempt 继续。
+同 attempt regrant 与结果交付不得先清 first fact 或执行 Provider。Runtime 先核 Website admission/result/terminal 与原 task/Outbox；机械有效结果及必要 artifact receipt 闭合后，必须在同一 SQLite 事务写 stage + terminal intent，保留 first fact 原值供 `TerminalCasV6.terminal_source_first_fact` 运输。Website 原 terminal CAS 保存该原值及与既存旧 failure 的冲突诊断；冲突不否决机械合格结果。领域 admission receipt 与对象读回后，才以精确 CAS 从本地当前槽退休 first fact。若旧结果不存在，Website 对旧 failure 的任何不完整/矛盾事实只能禁止当前危险动作并继续有界对账；不能让 job 占槽而永不领取。新 attempt 的 source_evidence 必须在 Runtime 原 per-job Owner 停止旧 execution、以原 task 精确 current_attempt_id、staged_result_json is null、旧来源 hash 与 production_attempt_handoffs 中 exact source_attempt_id 的 typed seal 在同一 SQLite 事务封住旧 completion 入口（本地无持久 fence，Website 原行锁另核旧 fence）后出具；晚到旧上传回执不能 stage/terminal。旧 READY 已在封口前成立时必须交付原结果而不得换 attempt；新 accepted 后的旧字节仅是历史候选，不能用旧 fence 交付，当前 attempt 继续。
 
-Website 已持久裁决 `WAIT_NEW_ATTEMPT` 且原 job 事件/claim receipt 已核 `source_evidence[]` 后，新 grant 必须是不同 attempt；旧 first fact 缺失、非法或矛盾仅作为原值/缺失证据留在该事件，不作新 attempt 资格门。device-status 在 runtime 没有当前 attempt 时只可投影历史 latest failure 供旧来源对账；存在当前 attempt 时只投影与 `runtime.attempt_id` 相同的 failure，合法新 attempt 尚无 failure 时返回 null，不把旧事实冒充新事实。Runtime 在原 per-job Owner 收束旧 executor 并以本地 `current_attempt_id + current_reason + staged_result_json is null` 及旧来源 hash 持久 CAS 封住旧完成端口后才出具 manifest；Website 原 job 行锁另核旧 fence/当前 attestation 并签 grant。Runtime 读回同一 receipt/event 后，只由 `acceptTaskAfterSourceHandoff` 对本地已封存 manifest、旧 first fact 原字节或明确缺失、source/issued attempt 与新 grant 作同一事务 CAS；旧 first fact 已保存在 Website 原事件，才可从本地当前槽退休，旧 Outbox/artifact/WAL 历史不删。封存的 Outbox history hash 只绑定不可变的 intent 身份、路径与 body hash，不绑定会随后落地的发送时间或回执；每轮 claim 复用原 SQLite 中同一封存 manifest，不因部分上传回执晚到而重算 seal。`acceptTaskAfterFailureReconciled` 只处理同 attempt regrant，不得跨 attempt。已接受 attempt 重授而本地 task 尚不存在时，Runtime 先核 Browser WAL、Outbox 与 Website staged result/artifact receipt；完全空白才正常 durable accept，已有历史则先恢复本地 task 身份并在下一轮对账，不得凭本地缺席推断 Provider 零输入。无完整 first fact 的可能输入历史只禁当前危险动作；原 worker 定时核 Browser/Outbox 无结果事实并持久化有限观测，满足 Website 风险授权门后走原 source handoff，不得盲目重跑 Product。任一身份或 CAS 不等只禁本次危险动作并自动对账，不能永久冻结 demand；禁止把旧 failure 重绑/POST 到新 attempt，不新增中间状态、第二恢复器或兼容路径。
+Website 已持久裁决 `WAIT_NEW_ATTEMPT` 且原 job 事件/claim receipt 已核 `source_evidence[]` 后，新 grant 必须是不同 attempt；旧 first fact 缺失、非法或矛盾仅作为原值/缺失证据留在该事件，不作新 attempt 资格门。device-status 在 runtime 没有当前 attempt 时只可投影历史 latest failure 供旧来源对账；存在当前 attempt 时只投影与 `runtime.attempt_id` 相同的 failure，合法新 attempt 尚无 failure 时返回 null，不把旧事实冒充新事实。Runtime 在原 per-job Owner 收束旧 executor 并以本地精确 `current_attempt_id`、`staged_result_json is null`、旧来源 hash 与 `production_attempt_handoffs` 中 exact source_attempt_id 的 typed seal 在同一 SQLite 事务封住旧完成端口后才出具 manifest；Website 原 job 行锁另核旧 fence/当前 attestation 并签 grant。Runtime 读回同一 receipt/event 后，只由 `acceptTaskAfterSourceHandoff` 对本地已封存 manifest、旧 first fact 原字节或明确缺失、source/issued attempt 与新 grant 作同一事务 CAS；旧 first fact 已保存在 Website 原事件，才可从本地当前槽退休，旧 Outbox/artifact/WAL 历史不删。封存的 Outbox history hash 只绑定不可变的 intent 身份、路径与 body hash，不绑定会随后落地的发送时间或回执；每轮 claim 复用原 SQLite 中同一封存 manifest，不因部分上传回执晚到而重算 seal。`acceptTaskAfterFailureReconciled` 只处理同 attempt regrant，不得跨 attempt。已接受 attempt 重授而本地 task 尚不存在时，Runtime 先核 Browser WAL、Outbox 与 Website staged result/artifact receipt；完全空白才正常 durable accept，已有历史则先恢复本地 task 身份并在下一轮对账，不得凭本地缺席推断 Provider 零输入。无完整 first fact 的可能输入历史只禁当前危险动作；原 worker 定时核 Browser/Outbox 无结果事实并持久化有限观测，满足 Website 风险授权门后走原 source handoff，不得盲目重跑 Product。任一身份或 CAS 不等只禁本次危险动作并自动对账，不能永久冻结 demand；禁止把旧 failure 重绑/POST 到新 attempt，不新增中间状态、第二恢复器或兼容路径。
 
 原 accepted attempt 的 Provider 输入可能已发生而结果未就绪时，Runtime 先保留旧 effect/WAL 与机械有效结果，Website 原 claim 重授同 attempt 的零输入读回 lease。Browser 对每个旧 effect 只从唯一 WAL 取得 canonical conversation URL + exact userTurnId；live Target 可复用则同 URL 零导航，Target 已丢失则当前 lease 直接创建当前 system Target 并最多一次精确导航，不先报 old-target failure。可信 locator 的真实有界 exact negative observation 才证明原答案不可机械取得；WAL 无可信 locator 时出具 typed unaddressable，明确保留旧答案可能存在，不扫描旧 Tab/标题/侧栏。读回成功优先沿原身份 stage/Outbox/Website admission；时间等待、空证据和旧 Target 缺席均不构成负读回。原 `production_attempt_handoffs` 仅按 source effect/call、原 WAL authority、checkpoint/Forensics artifact、exact readback 或 unaddressable 的 typed proof 保存来源 seal，不持久 Target 身份；完整 replay_calls 与逐 effect readback_proofs 一一对应，settled_reusable 调用仅归还原答案，replay_exhausted 子集才进入 Website 风险 grant，rejection_settled/risk_authorized/historical_settled 保留原事件血缘。`readback_exhaustion_hash` 只覆盖真实耗尽子集。旧 DISPATCHED 未决而准备新物理输入时，Browser 另按原 WAL command 集合取得原 WAL 全部相关旧 command 真实 terminal、未决集合为空的 input-quiescence 证明；这只证明原 WAL 相关旧 command 全部 terminal 且未决集合为空，不能证明答案不存在或给予 Provider submit 资格。Website 仍在原 job 行锁核旧结果/Outbox/admission 缺席、完整 source seal、风险授权调用集合与旧 fence 后持久签发新 revision；Browser 在真实输入前再核 current Target/Document/permit/原 WAL。本次已撤销未完成 V43 job 的来源不得进入 V44；已完成 job 的旧签事件仅作原值历史取证，不进入活动 claim。
 
@@ -110,6 +110,8 @@ generated image 只使用 task-result v15 的现役唯一运输链。GPT Child �
 GPT 页面 selector 的语义冻结只属于 GPT Child，Browser 只机械执行 typed query，Runtime 只消费 Child terminal。mutation 前是否自动选中精确 system Tab、激活后的 Target/Document 重验、输入前 activation generation 与 `BROWSER_TARGET_NOT_INTERACTIVE` 结算都只属于 Browser Authority；Runtime 不接收 tabId、不调用激活/窗口聚焦、不读取 Browser 私有状态，也不建立第二 precondition、WAL、恢复或重试。该变更不得进入 Runtime 配置、Manifest 字段或跨仓合同；Website 任务、Outbox、artifact receipt 与 business admission receipt 主链保持不变。
 
 Website 已持久拒绝原结果 revision 且原 first failure 精确绑定 `RESULT_SETTLED_UNUSABLE` 或 `GPT_RESPONSE_STOPPED_EMPTY` 时，同一 `source_evidence[]` 以空风险集合提交 `attempt_handoff`。AGENT 先核 Browser WAL 全历史、原 WAL 相关旧 command 全部 terminal 且未决集合为空与无 Outbox 结果候选；除本次被拒 effect 外，已由原 Website rejection 或原已签风险授权逐 effect 精确结算的旧输入保留原证据，其它未结算的旧可能输入 effect 须有 checkpoint/Forensics 正向结算证明；stopped-empty 的被拒 effect 用 Website 已核准的 observation fact，不伪造 checkpoint。Website 以原 rejection event、source attempt、effect 与独立结果/observation fact hash 行锁核验后签新普通 result revision，沿现役 `prior_result_rejection` 交 Product。原本地占槽、新 grant 分类及旧 attempt 的持久 CAS 必须随 handoff 同步闭合。
+
+`current_reason` 仅作可变诊断投影，不得决定 source handoff、stage、regrant、capacity、cooldown、删除或完成。旧 source attempt 的 typed seal 与 stage + terminal 在同一 SQLite 中互斥；stage 先成立则 seal 失败，seal 先成立则旧 attempt 的 late stage、first-failure、release-descriptor rebind 和普通同 attempt regrant 失败。旧 attempt 关闭不终止 Website 对同一 job 的未完成需求。Website claim envelope 的 `LEASE_GRANTED` 保留精确 wire 字节，但 grant、lease、fence、session、attempt、request 与 contract version 才构成实际执行授权。
 
 ## 2. 真实调用方向与内部结构
 

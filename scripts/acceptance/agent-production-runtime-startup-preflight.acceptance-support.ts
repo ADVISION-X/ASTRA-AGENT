@@ -21,7 +21,7 @@ import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import { typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { verifyProductionDependency } from "../startup/lib/production-contract-preflight.js";
-import { HASH_A, HASH_B, resultFor, task, validDeviceCredential } from "./agent-production-runtime-fixtures.js";
+import { HASH_A, HASH_B, resultFor, stageResultForAcceptance, task, validDeviceCredential } from "./agent-production-runtime-fixtures.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 
@@ -222,10 +222,11 @@ const seedHistoricalTerminalAttempt = async (dataDir: string): Promise<void> => 
   const historyTask = task({ jobId: "job:historical-terminal-new-attempt",
     productId: "payment_screenshot_observation", actionId: "observe" });
   historyStore.acceptTask(historyTask, "attempt:historical-terminal");
-  const historicalResult = { ...resultFor(historyTask),
+  const originalHistoricalResult = resultFor(historyTask);
+  const historicalResult = { ...originalHistoricalResult,
+    result_object_receipt: { ...originalHistoricalResult.result_object_receipt, receipt_hash: HASH_B },
     evidence_refs: [`art-${"a".repeat(64)}`] };
   historyStore.markExecuting(historyTask.job_id);
-  historyStore.stageResult(historyTask.job_id, "attempt:historical-terminal", historicalResult);
   for (const [key, receipt] of [["payload", HASH_A], ["envelope", HASH_B]] as const) {
     historyStore.enqueue({ idempotency_key: `artifact:historical-terminal:${key}`, kind: "artifact",
       path: `/internal/ai-production/v6/jobs/${historyTask.job_id}/artifacts/${key}`,
@@ -233,20 +234,12 @@ const seedHistoricalTerminalAttempt = async (dataDir: string): Promise<void> => 
     historyStore.markOutboxSent(`artifact:historical-terminal:${key}`, { receipt_hash: receipt });
   }
   const historicalPayloadHash = hashCanonical(historicalResult);
-  historyStore.enqueue({ idempotency_key: "terminal:historical-terminal", kind: "terminal",
-    path: `/internal/ai-production/v6/jobs/${historyTask.job_id}/terminal`,
-    method: "POST", headers: {}, body: JSON.stringify({
-      schema_version: "xuanxue-ai-terminal-cas.v6", job_id: historyTask.job_id,
-      terminal_status: "completed", payload_hash: historicalPayloadHash, failure: null,
-      worker_session_id: "session:historical-terminal",
-      worker_session_epoch: 1,
-      result_object_receipts: [HASH_A, HASH_B],
-    }) });
-  historyStore.markOutboxSent("terminal:historical-terminal", {
+  stageResultForAcceptance(historyStore, historyTask.job_id, "attempt:historical-terminal", historicalResult);
+  historyStore.markOutboxSent(`terminal:acceptance:${historyTask.job_id}:attempt:historical-terminal`, {
     schema_version: "xuanxue-ai-terminal-receipt.v6", job_id: historyTask.job_id,
     terminal_status: "completed", payload_hash: historicalPayloadHash, failure: null,
     first_terminal: true, device_id: "device:historical-terminal", device_epoch: 1,
-    worker_session_id: "session:historical-terminal",
+    worker_session_id: "session:acceptance",
     worker_session_epoch: 1,
     runtime_attestation_receipt_hash: HASH_A,
   });

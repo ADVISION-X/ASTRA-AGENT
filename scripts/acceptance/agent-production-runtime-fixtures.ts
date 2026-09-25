@@ -6,6 +6,7 @@ import {
   WebsiteAgentResultSchema,
   WebsiteAgentTaskSchema,
   hashCanonical,
+  sha256,
   type ProductionActionId,
   type ProductionHash,
   type ProductionProductId,
@@ -13,6 +14,7 @@ import {
   type WebsiteAgentTask,
 } from "../../src/lib/local-runtime/production/contracts.js";
 import { productionCatalogHash } from "../../src/lib/local-runtime/production/catalog.js";
+import type { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import {
   ClaimedProductionTaskSchema,
   type ClaimedProductionTask,
@@ -159,6 +161,33 @@ export const resultFor = (
     media_type: "application/json", receipt_hash: HASH_C },
   evidence_refs: ["evidence:provider"], execution_receipt_hash: HASH_A,
 }) as WebsiteAgentResult;
+
+export const stageResultForAcceptance = (
+  store: ProductionRuntimeStore, jobId: string, attemptId: string, result: WebsiteAgentResult,
+): void => {
+  const firstRaw = store.readAttemptFailureRaw(jobId);
+  const envelopeReceipt = result.result_object_receipt.receipt_hash === HASH_A ? HASH_B : HASH_A;
+  const receipts = [result.result_object_receipt.receipt_hash, envelopeReceipt];
+  const key = `terminal:acceptance:${jobId}:${attemptId}`;
+  store.stageResultAndEnqueueTerminal({
+    jobId, attemptId, result,
+    terminal: { idempotency_key: key, kind: "terminal",
+      path: `/internal/ai-production/v6/jobs/${encodeURIComponent(jobId)}/terminal`,
+      method: "POST", headers: {}, body: JSON.stringify({
+        schema_version: "xuanxue-ai-terminal-cas.v6", job_id: jobId,
+        attempt_id: attemptId, terminal_status: "completed",
+        payload_hash: hashCanonical(result), failure: null,
+        worker_session_id: "session:acceptance", worker_session_epoch: 1,
+        result_object_receipts: receipts,
+        terminal_source_first_fact: firstRaw === null ? null
+          : { raw_json: firstRaw, hash: sha256(Buffer.from(firstRaw, "utf8")) },
+      }) },
+    websiteStagedArtifactReceipts: [
+      { role: "result_payload", receipt_hash: receipts[0]! },
+      { role: "result_envelope", receipt_hash: receipts[1]! },
+    ],
+  });
+};
 
 const executionGrant = (base: WebsiteAgentTask) => {
   const route = {

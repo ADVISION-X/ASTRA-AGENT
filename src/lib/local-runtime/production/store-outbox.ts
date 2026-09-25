@@ -238,7 +238,7 @@ export abstract class ProductionStoreOutbox extends ProductionStoreCooldown {
             remoteReceipts: input.websiteStagedArtifactReceipts, result: input.result })) {
         throw executionFailure("failed", "PRODUCTION_TERMINAL_INTENT_INVALID");
       }
-      this.stageResult(input.jobId, input.attemptId, input.result);
+      this.stageResultInTerminalTransaction(input.jobId, input.attemptId, input.result);
       this.persistOutboxWrite(input.terminal);
     })();
     this.notifyOutbox(this.readOutboxAuthority(input.terminal.idempotency_key));

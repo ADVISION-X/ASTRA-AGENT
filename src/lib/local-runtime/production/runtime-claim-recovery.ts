@@ -177,7 +177,9 @@ export const reconcileClaimAttemptFailure = async (
 }>> => {
   const local = state.store.readTask(job.job_id);
   if (job.grant.source_handoff_seal_hash !== null
-    && local?.current_reason === `SOURCE_HANDOFF_SEALED|${job.grant.source_handoff_seal_hash}`
+    && local?.current_attempt_id
+    && state.store.readSealedSourceHandoff(job.job_id, local.current_attempt_id)?.seal_hash
+      === job.grant.source_handoff_seal_hash
     && local.current_attempt_id !== job.grant.attempt_id
     && remote.attempt_failure === null) {
     return Object.freeze({ reconciledFailure: null, stopBeforeProduct: false,

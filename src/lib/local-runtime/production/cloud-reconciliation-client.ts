@@ -265,10 +265,7 @@ const parseDeviceControlAuthority = (
   if (!parsed.success) throw executionFailure("failed", "V6_DEVICE_JOB_CONTROL_AUTHORITY_INVALID");
   const controlIntent = parsed.data;
   const currentReason = row.current_reason as Readonly<Record<string, unknown>> | null;
-  const deletionAuthorized = controlIntent.intent === "cancel_requested"
-    && controlIntent.reason_code === "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED";
-  if (controlIntent.job_id !== jobId
-    || deletionAuthorized !== (currentReason?.code === "PUBLIC_KNOWLEDGE_WORK_ORDER_DELETED")) {
+  if (controlIntent.job_id !== jobId) {
     throw executionFailure("failed", "V6_DEVICE_JOB_CONTROL_AUTHORITY_INVALID");
   }
   return { controlIntent, currentReason };

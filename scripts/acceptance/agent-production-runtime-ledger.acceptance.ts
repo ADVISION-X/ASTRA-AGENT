@@ -21,7 +21,7 @@ import {
 } from "../../src/lib/local-runtime/production/terminal-failure.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import {
-  HASH_A, HASH_B, attemptFailureFirstFact, claimTask, resultFor, task,
+  HASH_A, HASH_B, attemptFailureFirstFact, claimTask, resultFor, stageResultForAcceptance, task,
 } from "./agent-production-runtime-fixtures.js";
 import { verifyBrowserFailureStoreContract } from
   "./agent-production-runtime-browser-failure-store.acceptance-support.js";
@@ -166,6 +166,12 @@ try {
   assert.equal(resolveStoredProductionAuthority(
     dataDirectory, `production-task:${accepted.job_id}`, HASH_A,
   ), "mismatch");
+  store.setCurrentReason(accepted.job_id, "DIAGNOSTIC_HASH_DRIFT");
+  assert.equal(resolveStoredProductionAuthority(dataDirectory,
+    `production-task:${accepted.job_id}`, hashCanonical(taskAuthority)), "mismatch",
+  "production-task hash records the old diagnostic snapshot only");
+  assert.equal(resolveStoredProductionAuthority(dataDirectory,
+    `production-task:${accepted.job_id}`, hashCanonical(store.readTask(accepted.job_id))), "verified");
   const cleanProviderControl = new ProviderRateLimitControl(store, {
     device: { device_id: "device-1" },
   } as never);
@@ -174,6 +180,9 @@ try {
   });
   assert.doesNotThrow(() => cleanProviderControl.assertProviderSubmitAllowed(),
     "normal Website authority must keep submit open when no provider cooldown history exists");
+  store.setCurrentReason(accepted.job_id, "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE");
+  assert.doesNotThrow(() => cleanProviderControl.assertProviderSubmitAllowed(),
+    "local diagnostic cooldown text cannot close Provider submit without typed Website/Outbox facts");
   cleanProviderControl.observeWebsiteAuthority({
     serverNow: "2030-01-01T00:00:01.000Z",
     reasonCodes: ["PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE"],
@@ -214,6 +223,10 @@ try {
     "the worker must issue zero claim requests before the durable incident reaches Website");
   assert.throws(() => providerControl.assertProviderSubmitAllowed(),
     /PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE/u);
+  store.setCurrentReason(accepted.job_id, "LEASE_GRANTED");
+  assert.throws(() => providerControl.assertProviderSubmitAllowed(),
+    /PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE/u,
+    "changing local diagnostic reason cannot open Provider submit against durable cooldown facts");
   assert.deepEqual(store.pendingProviderCooldownRequestIds(), [],
     "the recovery sender must not deliver an incident before durable acknowledgement clearance");
   assert.equal(store.pendingProviderCooldownIncidentBodies().length, 1);
@@ -379,21 +392,20 @@ try {
   assert.ok(iteration.indexOf("providerRateLimitControl.reconcilePendingIntents()")
     < iteration.indexOf("executor.reconcilePendingProviderRateLimitIncidents"),
   "each recovery iteration must send old durable cooldown intents before Browser forms new clearance");
-  const staged = { ...resultFor(accepted), evidence_refs: [`art-${"a".repeat(64)}`] };
+  const originalStaged = resultFor(accepted);
+  const staged = { ...originalStaged,
+    result_object_receipt: { ...originalStaged.result_object_receipt, receipt_hash: HASH_B },
+    evidence_refs: [`art-${"a".repeat(64)}`] };
   store.markExecuting(accepted.job_id);
-  store.stageResult(accepted.job_id, secondAttempt, staged);
   store.enqueue({ idempotency_key: "artifact:envelope", kind: "artifact",
     path: `/internal/ai-production/v6/jobs/${encodeURIComponent(accepted.job_id)}/artifacts/envelope`,
     method: "PUT", headers: {}, body: Buffer.from("envelope") });
   store.markOutboxSent("artifact:envelope", { receipt_hash: HASH_A });
-  const terminalKey = "terminal:three-truths";
-  const terminal = { schema_version: "xuanxue-ai-terminal-cas.v6", job_id: accepted.job_id,
-    terminal_status: "completed", payload_hash: hashCanonical(staged), failure: null,
-    worker_session_id: "session:ledger", worker_session_epoch: 1,
-    result_object_receipts: [HASH_A, HASH_B] };
-  store.enqueue({ idempotency_key: terminalKey, kind: "terminal",
-    path: `/internal/ai-production/v6/jobs/${encodeURIComponent(accepted.job_id)}/terminal`,
-    method: "POST", headers: {}, body: JSON.stringify(terminal) });
+  stageResultForAcceptance(store, accepted.job_id, secondAttempt, staged);
+  const terminalKey = `terminal:acceptance:${accepted.job_id}:${secondAttempt}`;
+  const terminal = JSON.parse((database.prepare(`select body_blob from production_outbox
+    where idempotency_key=?`).get(terminalKey) as { body_blob: Buffer }).body_blob.toString("utf8")) as
+    Record<string, unknown>;
   assert.doesNotThrow(() => store.assertStartupDataIntegrity(),
     "forensics art-* evidence refs must not be reinterpreted as Website receipt hashes");
   database.prepare("update production_outbox set path='invalid' where idempotency_key=?").run(terminalKey);
@@ -415,7 +427,7 @@ try {
     schema_version: "xuanxue-ai-terminal-receipt.v6", job_id: accepted.job_id,
     terminal_status: "completed", payload_hash: hashCanonical(staged), failure: null,
     first_terminal: true, device_id: "device:ledger", device_epoch: 1,
-    worker_session_id: "session:ledger", worker_session_epoch: 1,
+    worker_session_id: "session:acceptance", worker_session_epoch: 1,
     runtime_attestation_receipt_hash: HASH_A,
   });
   const replacedKey = "artifact:replaced-before-completion";
@@ -485,7 +497,7 @@ try {
 
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V40",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V41",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:3", "summary"],
     locator: `acceptance:agent-production-runtime:three-table-authority:${evidenceMode}`,

@@ -1,21 +1,25 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
 
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
-import { businessInFlightCount } from "../../src/lib/local-runtime/production/runtime-loops.js";
+import { acceptClaim } from "../../src/lib/local-runtime/production/runtime-claim-operations.js";
+import { ClaimedProductionTaskSchema } from "../../src/lib/local-runtime/production/transport-protocol.js";
+import { createRuntimeLogger, requireRuntimeLogWrite } from "../../src/lib/runtime-logs/index.js";
+import { businessInFlightCount, claimReusesExistingBusinessSlot } from "../../src/lib/local-runtime/production/runtime-loops.js";
 import { historicalEffectsSettled } from "../../src/lib/local-runtime/production/runtime-source-readback-proofs.js";
-import { targetlessFirstFactHash } from "../../src/lib/local-runtime/production/store-source-settlement.js";
+import { targetlessFirstFactHash, validV44SourceHandoff } from "../../src/lib/local-runtime/production/store-source-settlement.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import {
   serializeTerminalFailure,
   serializeTerminalFailureTransport,
 } from "../../src/lib/local-runtime/production/terminal-failure.js";
-import { attemptFailureFirstFact, task } from "./agent-production-runtime-fixtures.js";
+import { attemptFailureFirstFact, claimTask, resultFor, stageResultForAcceptance,
+  task } from "./agent-production-runtime-fixtures.js";
 import { verifyPayloadSlotConflict } from "./agent-production-runtime-payload-slot.acceptance-support.js";
 import { verifyRecoveryFailureTransport } from "./agent-production-runtime-failure-transport.acceptance-support.js";
 
@@ -97,16 +101,111 @@ try {
   };
   const sourceSeal = hashCanonical(sourceBody);
   const beforeHandoffSlots = businessInFlightCount({ active: new Map(), store } as never);
-  store.sealSourceHandoff({ ...sourceBody, seal_hash: sourceSeal });
-  assert.equal(businessInFlightCount({ active: new Map(), store } as never), beforeHandoffSlots - 1,
-    "a sealed old attempt must release its local slot so the same job can obtain a new grant at N=1");
-  const fresh = store.acceptTaskAfterSourceHandoff(job, "attempt:2", sourceSeal);
+  store.setCurrentReason(job.job_id, `SOURCE_HANDOFF_SEALED|${sourceSeal}`);
   assert.equal(businessInFlightCount({ active: new Map(), store } as never), beforeHandoffSlots,
-    "the Website-authorized new attempt occupies one local slot again");
+    "changing only diagnostic reason cannot remove an unfinished business slot");
+  assert.equal(store.readSealedSourceHandoff(job.job_id, "attempt:1"), null,
+    "forged diagnostic text must not create a typed source seal");
+  await mkdir(path.join(directory, "missing-local"));
+  const missingLocalStore = new ProductionRuntimeStore(path.join(directory, "missing-local"));
+  const logger = createRuntimeLogger({ producer: "agent-source-seal-negative",
+    owner: "production-runtime", component: "production-runtime", terminalEnabled: false,
+    fileSink: { directoryPath: path.join(directory, "source-seal-logs") } });
+  const issuedClaim = claimTask(job);
+  const sealClaim = { ...issuedClaim, grant: { ...issuedClaim.grant,
+    source_handoff_seal_hash: sourceSeal } };
+  let acceptedByExecutor = 0;
+  for (const candidateStore of [store, missingLocalStore]) {
+    const span = requireRuntimeLogWrite(logger.startSpan({ traceId: job.job_id,
+      owner: "production-runtime", component: "production-runtime", operation: "job.execute",
+      typedIdentity: { kind: "lease", jobId: job.job_id, attemptId: sealClaim.grant.attempt_id,
+        leaseVersion: sealClaim.grant.lease_version,
+        fenceHash: sealClaim.grant.execution_fence.fence_hash } }));
+    assert.throws(() => acceptClaim({ store: candidateStore, runtimeLogger: logger,
+      executor: { accept: () => { acceptedByExecutor++; },
+        acceptAfterSourceHandoff: () => { acceptedByExecutor++; } } } as never,
+    sealClaim, new AbortController(), span, null, null),
+    /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u,
+    "a Website source hash and forged reason cannot authorize a missing typed seal");
+    assert.equal(candidateStore.readTask(job.job_id)?.current_attempt_id,
+      candidateStore === store ? "attempt:1" : undefined,
+      "failed grant must not create or rotate local task authority");
+  }
+  assert.equal(acceptedByExecutor, 0, "missing typed seal must reach no executor accept path");
+  missingLocalStore.close();
+  store.sealSourceHandoff({ ...sourceBody, seal_hash: sourceSeal });
+  const damagedSealDb = new Database(path.join(directory, "production-runtime.sqlite"));
+  const sealedAt = damagedSealDb.prepare(`select sealed_at from production_attempt_handoffs
+    where job_id=? and source_attempt_id=?`).get(job.job_id, "attempt:1") as { sealed_at: string };
+  damagedSealDb.prepare(`update production_attempt_handoffs set sealed_at=null
+    where job_id=? and source_attempt_id=?`).run(job.job_id, "attempt:1");
+  assert.throws(() => store.sealSourceHandoff({ ...sourceBody, seal_hash: sourceSeal }),
+    /PRODUCTION_SOURCE_HANDOFF_CONFLICT/u,
+  "a half-sealed row cannot be reported as a successful idempotent seal");
+  damagedSealDb.prepare(`update production_attempt_handoffs set sealed_at=?
+    where job_id=? and source_attempt_id=?`).run(sealedAt.sealed_at, job.job_id, "attempt:1");
+  damagedSealDb.close();
+  store.setCurrentReason(job.job_id, "DIAGNOSTIC_CHANGED_AFTER_SEAL");
+  assert.equal(store.readSealedSourceHandoff(job.job_id, "attempt:1")?.seal_hash, sourceSeal,
+    "typed source seal survives any legal diagnostic reason change");
+  store.setCurrentReason(job.job_id, "EXECUTING");
+  assert.throws(() => stageResultForAcceptance(
+    store, job.job_id, "attempt:1", resultFor(job)), /PRODUCTION_RESULT_ATTEMPT_FENCED/u,
+  "EXECUTING diagnostic text cannot reopen a typed sealed source attempt");
+  assert.equal(store.readOutboxAuthority(`terminal:acceptance:${job.job_id}:attempt:1`), null,
+    "failed late stage must leave the matching terminal intent absent");
+  assert.throws(() => store.recordAttemptFailure(job.job_id, "attempt:1", firstFailure),
+    /PRODUCTION_ATTEMPT_FAILURE_IDENTITY_MISMATCH/u,
+  "late first-failure cannot reopen a sealed source attempt");
+  assert.throws(() => store.rebindAttemptFailureReleaseDescriptor(
+    job.job_id, firstFailure, { ...firstFailure,
+      release_descriptor: { ...firstFailure.release_descriptor,
+        lease_version: firstFailure.release_descriptor.lease_version + 1 } },
+  ), /PRODUCTION_ATTEMPT_FAILURE_REBIND_CONFLICT/u,
+  "late release-descriptor rebind cannot reopen a sealed source attempt");
+  assert.throws(() => store.acceptTask(job, "attempt:1"),
+    /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u,
+  "generic same-attempt regrant cannot reopen a sealed source attempt");
+  assert.equal(businessInFlightCount({ active: new Map(), store } as never), beforeHandoffSlots,
+    "a sealed source attempt must retain the same job's business slot until Website demand closes");
+  assert.equal(claimReusesExistingBusinessSlot({ active: new Map(), store } as never, {
+    job_id: job.job_id, grant: { attempt_id: "attempt:2", same_accepted_attempt: false,
+      source_handoff_seal_hash: sourceSeal },
+  }), true, "a Website-issued new attempt with the exact typed seal reuses that job slot");
+  const fresh = store.acceptTaskAfterSourceHandoff(job, "attempt:2", sourceSeal);
+  const damagedIssuedDb = new Database(path.join(directory, "production-runtime.sqlite"));
+  damagedIssuedDb.prepare(`update production_attempt_handoffs set sealed_at=null
+    where job_id=? and source_attempt_id=?`).run(job.job_id, "attempt:1");
+  assert.throws(() => store.readIssuedSourceHandoff(job.job_id, "attempt:2", sourceSeal),
+    /PRODUCTION_SOURCE_HANDOFF_CONFLICT/u,
+  "an issued handoff cannot consume a half-sealed typed row");
+  assert.throws(() => store.readAcceptedSourceSettlements(job.job_id),
+    /PRODUCTION_SOURCE_HANDOFF_CONFLICT/u,
+  "settlement readback cannot consume a half-sealed typed row");
+  damagedIssuedDb.prepare(`update production_attempt_handoffs set sealed_at=?
+    where job_id=? and source_attempt_id=?`).run(sealedAt.sealed_at, job.job_id, "attempt:1");
+  damagedIssuedDb.close();
+  assert.equal(businessInFlightCount({ active: new Map(), store } as never), beforeHandoffSlots,
+    "the Website-authorized new attempt keeps the same local slot");
   assert.equal(fresh.current_attempt_id, "attempt:2");
   assert.equal(fresh.attempt_failure, null);
   assert.equal(fresh.staged_result, null);
   assert.equal(fresh.current_reason, "LEASE_GRANTED");
+  const beforeStage = store.readResultOutboxHistoryEvidence(job.job_id, "attempt:2");
+  const stageFirstBody = { ...sourceBody, source_attempt_id: "attempt:2",
+    first_fact_raw_hash: null, outbox_history_hash: beforeStage.historyHash,
+    outbox_candidate_count: beforeStage.candidateCount };
+  const stageFirstManifest = { ...stageFirstBody, seal_hash: hashCanonical(stageFirstBody) };
+  assert.equal(validV44SourceHandoff(stageFirstManifest), true);
+  store.setCurrentReason(job.job_id, "DIAGNOSTIC_NOT_EXECUTING");
+  stageResultForAcceptance(store, job.job_id, "attempt:2", resultFor(job));
+  assert.deepEqual(store.readTask(job.job_id)?.staged_result, resultFor(job),
+    "valid typed attempt can stage with any legal diagnostic reason");
+  assert.equal(store.readOutboxAuthority(`terminal:acceptance:${job.job_id}:attempt:2`)?.kind,
+    "terminal", "successful stage must atomically persist its terminal intent");
+  assert.throws(() => store.sealSourceHandoff(stageFirstManifest),
+    /PRODUCTION_SOURCE_HANDOFF_CONFLICT/u,
+  "stage plus terminal wins the transaction and prevents a later source seal");
   assert.equal(store.readOutboxAuthority(artifactKey)?.lastError, "WEBSITE_ATTEMPT_REPLACED");
   await assert.rejects(
     store.deliverOutbox(artifactKey, async () => {
@@ -464,6 +563,36 @@ try {
   const riskSeal = hashCanonical(riskBody);
   store.sealSourceHandoff({ ...riskBody, seal_hash: riskSeal } as never);
   store.acceptTaskAfterSourceHandoff(priorRisk, "attempt:risk-new", riskSeal);
+  assert.equal(store.readIssuedSourceHandoff(
+    priorRisk.job_id, "attempt:risk-new", riskSeal)?.seal_hash, riskSeal);
+  const replayGrantBase = { source_seal_hash: riskSeal, source_attempt_id: "attempt:risk-old",
+    result_revision: 1 };
+  const replayCall = { ...oldCall, call_grant_hash: hashCanonical({ job_id: priorRisk.job_id,
+    attempt_id: "attempt:risk-new", ...replayGrantBase, ...oldCall }) };
+  const replayGrantBody = { ...replayGrantBase, calls: [replayCall] };
+  const replayGrant = { ...replayGrantBody, grant_hash: hashCanonical({
+    job_id: priorRisk.job_id, attempt_id: "attempt:risk-new", ...replayGrantBody }) };
+  const replayClaimBase = claimTask(priorRisk);
+  const replayClaim = ClaimedProductionTaskSchema.parse({ ...replayClaimBase,
+    grant: { ...replayClaimBase.grant, attempt_id: "attempt:risk-new",
+      same_accepted_attempt: true, source_handoff_seal_hash: riskSeal,
+      result_revision: 1, delivery_priority_replay_grant: replayGrant,
+      execution_fence: { ...replayClaimBase.grant.execution_fence,
+        attempt_id: "attempt:risk-new" } } });
+  const replaySpan = requireRuntimeLogWrite(logger.startSpan({ traceId: priorRisk.job_id,
+    owner: "production-runtime", component: "production-runtime", operation: "job.execute",
+    typedIdentity: { kind: "lease", jobId: priorRisk.job_id,
+      attemptId: "attempt:risk-new", leaseVersion: replayClaim.grant.lease_version,
+      fenceHash: replayClaim.grant.execution_fence.fence_hash } }));
+  let replayAccepts = 0;
+  const replayAccepted = acceptClaim({ store, runtimeLogger: logger,
+    executor: { accept: () => { replayAccepts++;
+      return store.acceptTask(priorRisk, "attempt:risk-new"); },
+      acceptAfterSourceHandoff: () => { throw new Error("ISSUED_ATTEMPT_REGRANT_MUST_NOT_ROTATE"); } },
+  } as never, replayClaim, new AbortController(), replaySpan, null, null);
+  assert.equal(replayAccepted.record.current_attempt_id, "attempt:risk-new");
+  assert.equal(replayAccepts, 1,
+    "same accepted replay attempt must regrant against the issued typed seal without rotation");
   assert.deepEqual(store.readAcceptedSourceSettlements(priorRisk.job_id).map((item) =>
     [item.kind, item.effectIdentityHash, item.sourceHandoffSealHash]),
   [["risk_authorized", oldEffect, riskSeal]],

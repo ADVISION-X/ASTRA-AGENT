@@ -38,6 +38,7 @@ export const recoverMissingLocalTask = (
   acceptance: Acceptance, jobSpan: RuntimeSpanHandle,
 ): boolean => {
   if (state.store.readTask(job.job_id) || !job.grant.same_accepted_attempt
+    || job.grant.source_handoff_seal_hash !== null
     || remote.attempt_failure !== null) return false;
   const outbox = state.store.readResultOutboxHistoryEvidence(job.job_id, job.grant.attempt_id);
   const browser = job.grant.delivery_only && remote.staged_result !== null

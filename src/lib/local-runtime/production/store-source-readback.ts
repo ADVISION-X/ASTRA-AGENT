@@ -11,6 +11,11 @@ import { ProductionStoreFoundation, json, now,
 export abstract class ProductionStoreSourceReadback extends ProductionStoreFoundation {
   public abstract readTask(jobId: string): StoredProductionTask | null;
   public abstract readAttemptFailureRaw(jobId: string): string | null;
+  protected sourceAttemptClosed(jobId: string, attemptId: string): boolean {
+    return Boolean(this.database.prepare(`select 1 from production_attempt_handoffs
+      where job_id=? and source_attempt_id=?
+        and (seal_hash is not null or sealed_at is not null)`).get(jobId, attemptId));
+  }
   public recordSourceReadbackObservation(
     jobId: string, attemptId: string, observation: SourceReadbackObservation,
   ): void {
@@ -22,8 +27,7 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
       if (!current || current.current_attempt_id !== attemptId
         || observation.kind !== "settled_checkpoint" && current.status !== "failed"
         || observation.kind === "settled_checkpoint" && current.status === "completed"
-        || current.staged_result !== null
-        || current.current_reason?.startsWith("SOURCE_HANDOFF_SEALED|")) {
+        || current.staged_result !== null || this.sourceAttemptClosed(jobId, attemptId)) {
         throw executionFailure("failed", "PRODUCTION_SOURCE_READBACK_CONFLICT");
       }
       const existing = this.database.prepare(`select readback_observations_json
@@ -77,37 +81,33 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
     const { seal_hash: sealHash, ...body } = manifest;
     const jobId = manifest.job_id;
     const attemptId = manifest.source_attempt_id;
-    const current = this.readTask(jobId);
-    const firstRaw = this.readAttemptFailureRaw(jobId);
-    if (!current || current.status !== "failed" || current.current_attempt_id !== attemptId
-      || current.staged_result !== null
-      || manifest.source_task_hash !== hashCanonical(current.task)
-      || manifest.first_fact_raw_hash !== targetlessFirstFactHash(firstRaw)
-      || hashCanonical(body) !== sealHash || !validV44SourceHandoff(manifest)) {
-      throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
-    }
     const reason = `SOURCE_HANDOFF_SEALED|${sealHash}`;
     this.database.transaction(() => {
-      const existing = this.database.prepare(`select seal_hash,source_manifest_json,first_fact_raw
+      const current = this.readTask(jobId);
+      const firstRaw = this.readAttemptFailureRaw(jobId);
+      if (!current || current.status !== "failed" || current.current_attempt_id !== attemptId
+        || current.staged_result !== null
+        || manifest.source_task_hash !== hashCanonical(current.task)
+        || manifest.first_fact_raw_hash !== targetlessFirstFactHash(firstRaw)
+        || hashCanonical(body) !== sealHash || !validV44SourceHandoff(manifest)) {
+        throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
+      }
+      const existing = this.database.prepare(`select seal_hash,source_manifest_json,first_fact_raw,sealed_at
         from production_attempt_handoffs where job_id=? and source_attempt_id=?`).get(
         jobId, attemptId,
       ) as { seal_hash: string | null; source_manifest_json: string | null;
-        first_fact_raw: string | null } | undefined;
-      if (existing && existing.seal_hash !== null
-        && (existing.seal_hash !== sealHash
-          || existing.source_manifest_json !== json(manifest)
-          || existing.first_fact_raw !== firstRaw)) {
-        throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
-      }
-      if (current.current_reason === reason && existing?.seal_hash === sealHash) return;
-      if (current.current_reason?.startsWith("SOURCE_HANDOFF_SEALED|")) {
+        first_fact_raw: string | null; sealed_at: string | null } | undefined;
+      if (this.sourceAttemptClosed(jobId, attemptId)) {
+        if (existing?.seal_hash === sealHash && existing.sealed_at !== null
+          && existing.source_manifest_json === json(manifest)
+          && existing.first_fact_raw === firstRaw) return;
         throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
       }
       const changed = this.database.prepare(`update production_tasks
         set current_reason=?,updated_at=?
         where job_id=? and status='failed' and current_attempt_id=?
-          and current_reason is ? and staged_result_json is null`).run(
-        reason, now(), jobId, attemptId, current.current_reason,
+          and staged_result_json is null`).run(
+        reason, now(), jobId, attemptId,
       );
       if (changed.changes !== 1) {
         throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
@@ -128,15 +128,15 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
 
   public readSealedSourceHandoff(jobId: string, attemptId: string): SourceAttemptHandoff | null {
     const current = this.readTask(jobId);
-    if (!current || current.current_attempt_id !== attemptId
-      || !current.current_reason?.startsWith("SOURCE_HANDOFF_SEALED|")) return null;
-    const row = this.database.prepare(`select seal_hash,source_manifest_json,first_fact_raw
+    if (!current || current.current_attempt_id !== attemptId) return null;
+    const row = this.database.prepare(`select seal_hash,source_manifest_json,first_fact_raw,sealed_at
       from production_attempt_handoffs where job_id=? and source_attempt_id=?`).get(
       jobId, attemptId,
     ) as { seal_hash: string | null; source_manifest_json: string | null;
-      first_fact_raw: string | null } | undefined;
-    if (!row?.seal_hash || !row.source_manifest_json
-      || current.current_reason !== `SOURCE_HANDOFF_SEALED|${row.seal_hash}`
+      first_fact_raw: string | null; sealed_at: string | null } | undefined;
+    if (!row) return null;
+    if (!row.seal_hash && !row.sealed_at) return null;
+    if (!row.seal_hash || !row.sealed_at || !row.source_manifest_json
       || this.readAttemptFailureRaw(jobId) !== row.first_fact_raw) {
       throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
     }
@@ -155,13 +155,15 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
     jobId: string, issuedAttemptId: string, sealHash: `sha256:${string}`,
   ): SourceAttemptHandoff | null {
     const current = this.readTask(jobId);
-    const row = this.database.prepare(`select source_attempt_id,source_manifest_json,accepted_at
+    const row = this.database.prepare(`select source_attempt_id,source_manifest_json,accepted_at,sealed_at
       from production_attempt_handoffs where job_id=? and issued_attempt_id=? and seal_hash=?`).get(
       jobId, issuedAttemptId, sealHash,
     ) as { source_attempt_id: string; source_manifest_json: string | null;
-      accepted_at: string | null } | undefined;
-    if (!current || current.current_attempt_id !== issuedAttemptId || !row?.source_manifest_json
-      || !row.accepted_at) return null;
+      accepted_at: string | null; sealed_at: string | null } | undefined;
+    if (!current || current.current_attempt_id !== issuedAttemptId || !row) return null;
+    if (!row.source_manifest_json || !row.accepted_at || !row.sealed_at) {
+      throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
+    }
     const manifest = JSON.parse(row.source_manifest_json) as SourceAttemptHandoff;
     const { seal_hash: storedSeal, ...body } = manifest;
     if (storedSeal !== sealHash || hashCanonical(body) !== sealHash
@@ -179,22 +181,28 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
     const rows = this.database.prepare(`select seal_hash from production_attempt_handoffs
       where job_id=? and issued_attempt_id=? and accepted_at is not null limit 2`).all(
       jobId, issuedAttemptId,
-    ) as Array<{ seal_hash: `sha256:${string}` }>;
-    if (rows.length > 1) throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
-    return rows[0] ? this.readIssuedSourceHandoff(
-      jobId, issuedAttemptId, rows[0].seal_hash,
+    ) as Array<{ seal_hash: `sha256:${string}` | null }>;
+    const sealHash = rows[0]?.seal_hash;
+    if (rows.length > 1 || rows[0] && !sealHash) {
+      throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
+    }
+    return sealHash ? this.readIssuedSourceHandoff(
+      jobId, issuedAttemptId, sealHash,
     ) : null;
   }
 
   public readAcceptedSourceSettlements(jobId: string): readonly AcceptedSourceSettlement[] {
     const rows = this.database.prepare(`select source_attempt_id,issued_attempt_id,seal_hash,
-        source_manifest_json,first_fact_raw from production_attempt_handoffs
+        source_manifest_json,first_fact_raw,sealed_at from production_attempt_handoffs
       where job_id=? and accepted_at is not null and issued_attempt_id is not null
       order by source_attempt_id`).all(jobId) as Array<{
         source_attempt_id: string; issued_attempt_id: string;
         seal_hash: `sha256:${string}`;
-        source_manifest_json: string | null; first_fact_raw: string | null;
+        source_manifest_json: string | null; first_fact_raw: string | null; sealed_at: string | null;
       }>;
+    if (rows.some((row) => !row.seal_hash || !row.sealed_at)) {
+      throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
+    }
     const currentAttempt = this.readTask(jobId)?.current_attempt_id;
     if (!currentAttempt) throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
     return acceptedSourceSettlements(rows, currentAttempt, jobId);

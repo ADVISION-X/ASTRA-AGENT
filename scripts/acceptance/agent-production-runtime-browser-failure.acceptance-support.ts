@@ -1,3 +1,4 @@
+import { stageResultForAcceptance } from "./agent-production-runtime-fixtures.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 
 import { ProductionRuntimeStore as RuntimeStore } from "../../src/lib/local-runtime/production/store.js";
@@ -110,7 +111,7 @@ try {
   store.acceptTask(websiteTask, attemptId);
   const staged = resultFor(websiteTask);
   store.markExecuting(websiteTask.job_id);
-  store.stageResult(websiteTask.job_id, attemptId, staged);
+  stageResultForAcceptance(store, websiteTask.job_id, attemptId, staged);
   const failure = attemptFailureFirstFact(attemptId,
     serializeTerminalFailureTransport(executionFailure("failed", "BUSINESS_ADMISSION_INTERRUPTED")));
   store.recordAttemptFailure(websiteTask.job_id, attemptId, failure);
