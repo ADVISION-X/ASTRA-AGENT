@@ -5,6 +5,8 @@ import { ExtensionTargetAuthority } from
   "../../src/lib/browser/chrome-extension/extension-target-authority.js";
 import { ExtensionExactTargetRegistry } from
   "../../src/lib/browser/chrome-extension/exact-target-runtime.js";
+import { ExtensionTargetLoss } from
+  "../../src/lib/browser/chrome-extension/extension-target-loss.js";
 
 export const hash = (character: string) => `sha256:${character.repeat(64)}` as const;
 export const binding = (character: string) => ({
@@ -67,6 +69,14 @@ let releasePageBarrier!: () => void;
 let pageBarrier: Promise<void> = new Promise((resolve) => { releasePageBarrier = resolve; });
 const deliveredFrames: unknown[] = [];
 const extension = Object.create(ExtensionTargetAuthority.prototype) as Record<string, unknown>;
+const debuggerRuntime = {
+  awaitPageReadPermission: () => pageBarrier,
+  readTab: async () => ({ id: 19 }),
+  readTargets: async () => [{ id: "chrome-new", tabId: 19, attached: true }],
+};
+const createdTarget = { markTabRemoved: () => {
+  throw new Error("stale removal must not touch a newly created tab");
+} };
 Object.assign(extension, {
   chromeApi: {
     debugger: { onDetach: { addListener: (listener: typeof onDetach) => { onDetach = listener; } },
@@ -76,16 +86,18 @@ Object.assign(extension, {
       onRemoved: { addListener: (listener: typeof onRemoved) => { onRemoved = listener; } } },
   },
   targets: targetRegistry, activeTarget: oldTarget, navigationPublication: null,
-  debuggerRuntime: {
-    awaitPageReadPermission: () => pageBarrier,
-    readTab: async () => ({ id: 19 }),
-    readTargets: async () => [{ id: "chrome-new", tabId: 19, attached: true }],
-  },
+  debuggerRuntime,
   removedTabIds: new Set<number>(), orphanCandidates: new Map(),
-  orphanRetryTimers: new Map(), createdTarget: { markTabRemoved: () => {
-    throw new Error("stale removal must not touch a newly created tab");
-  } },
+  orphanRetryTimers: new Map(), createdTarget,
   send: async (_kind: string, body: unknown) => { deliveredFrames.push(body); },
+  targetLoss: new ExtensionTargetLoss({
+    debuggerRuntime: debuggerRuntime as never, targets: targetRegistry,
+    createdTarget: createdTarget as never,
+    readActiveTabId: () => (extension.activeTarget as { tabId: number } | null)?.tabId ?? null,
+    clearActiveTarget: () => { extension.activeTarget = null; extension.navigationPublication = null; },
+    reportTargetFailure: async () => { throw new Error("an old tab event must not report a Target failure"); },
+    sendRevoke: async (body) => { deliveredFrames.push(body); },
+  }),
 });
 (extension.start as () => void).call(extension);
 onRemoved(19);
