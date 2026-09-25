@@ -2,33 +2,33 @@
 document_type: project_scheme
 scheme_id: CURRENT_REASON_DIAGNOSTIC_PROJECTION_AUTHORITY_SEPARATION
 scheme_name: current_reason诊断投影与状态权威分离
-status: 设计阻断
+status: 审计通过-待前置依赖
 created_at: 2026-09-25
 updated_at: 2026-09-25
 owner_repo: ADVISION-X/AGENT
 candidate_branch: main
-candidate_head: 3283092c9aa2c70c7709a2bad4d94ed8764ab31c
+candidate_head: 873c975ffea6d30c139dbda4f1426ac65358c162
 website_baseline: 695ddbbe004ba8919794251f81b80058a253035d
 depends_on_scheme: docs/项目方案/Target系统地位与强制边界-完整实现方案.md
 implementation_mode: design_only
-independent_subagent_audit: pending
+independent_subagent_audit: superseded_by_explicit_user_self_audit
+audit_mode: primary_agent_read_only_self_audit
+self_audit_verdict: PASS
 ---
 
 # current_reason诊断投影与状态权威分离-完整实现方案
 
 ## 0. 状态、唯一结论与审计门
 
-本方案当前状态：**设计阻断**。
+本方案当前状态：**审计通过-待前置依赖**。
 
-阻断原因不是主设计未知，而是授权人明确要求：
+授权人已在后续明确改为“你自己审计”。因此原“必须等待独立子智能体”形式门由本轮最新明确指令替代。本轮由主智能体切换为只读审计角色，对双仓法案、施工图、现役实现与原生质检做独立于施工的反向攻击；审计阶段不修改生产代码、数据库、服务或跨仓合同实现。
 
-- 子智能体只允许做审计、审查、第三方质检；
-- 禁止子智能体并发写代码；
-- 独立子智能体未放行，方案建设不得结束。
+本轮自审 verdict：**PASS（P0=0，P1=0）**。该 PASS 只放行方案设计，不授权并行施工。
 
-当前会话环境没有暴露可调用的独立子智能体/审计代理接口。因此本轮可以完成主设计、主设计自审和方案落仓，但**不得伪造第三方 PASS，不得把方案状态改成可施工，不得宣称方案建设结束**。
+仍存在一个真实前置依赖：Target 方案与本方案共改 Runtime/source-handoff/quality，必须先完成《Target系统地位与强制边界-完整实现方案》施工与验收，再把本方案重新绑定到新的 HEAD/contract baseline 后施工。两方案禁止并行开工。
 
-本 Skill 只做施工前设计。本轮不修改生产法案、Blueprint、TypeScript、SQL、数据库、Browser、服务、V6 合同或原生质检代码。
+本 Skill 仍只做施工前设计。本轮不修改生产法案、Blueprint、TypeScript、SQL、数据库、Browser、服务、V6 合同或原生质检代码。
 
 ### 0.1 唯一冻结句
 
@@ -1114,17 +1114,19 @@ Result：
 
 ---
 
-## 12. 独立第三方审计门
+## 12. 审计门与本轮用户覆盖
 
 ### 12.1 权限约束
 
-授权人要求：
+原要求是：子智能体只能审计、审查、第三方质检，禁止参与生产施工。后续授权人明确改为“你自己审计”。
 
-- 子智能体只能审计、审查、第三方质检；
-- 禁止子智能体写代码；
-- 禁止子智能体修改方案、法案、数据库、仓库；
-- 子智能体只返回 findings / verdict；
-- 子智能体未放行，方案建设不得结束。
+因此本轮最终审计由主智能体执行，但继续保持同一隔离纪律：
+
+- 审计阶段只读生产代码/法案/数据库设计，不施工生产实现；
+- 审计只允许修改本唯一方案与迭代记录；
+- findings 先于 verdict；
+- P0/P1 未闭合不得 PASS；
+- 审计 PASS 不能越过 Target 前置依赖直接并行施工。
 
 ### 12.2 必审问题
 
@@ -1143,21 +1145,21 @@ Result：
 11. LEASE_GRANTED literal 降级是否真的不构成跨仓 contract semantic change？
 12. current_reason nullability 是否只作结构一致性而不反向授权？
 
-### 12.3 当前独立审计状态
+### 12.3 当前审计状态
 
 ~~~text
 主设计：已更新
 闭环 SKILL：已深读 >= 2 遍
 双仓四带：已重绑并复核
-主设计反向审计：R1-R4 完成
-独立子智能体审计：未执行
-独立第三方 verdict：PENDING
-方案状态：设计阻断
-可施工：否
-方案建设结束：否
-~~~
-
-当前工具环境没有独立子智能体执行接口，因此必须保持 PENDING。不得以主设计自审替代第三方放行。
+主设计反向审计：R1-R6 完成
+最终只读自审：R7 完成
+P0：0
+P1：0
+self_audit_verdict：PASS
+方案状态：审计通过-待前置依赖
+立即并行施工：禁止
+前置条件：Target方案施工+验收+本方案重新绑定baseline
+~~~text
 
 ---
 
@@ -1341,10 +1343,189 @@ Result monotonicity = 保持
 现役实现：完成
 原生质检：完成
 主设计审计 R1-R6：完成
-独立子智能体审计：未执行
-独立子智能体放行：PENDING
-可施工：否
-方案建设结束：否
+最终只读自审 R7：完成
+P0：0
+P1：0
+self_audit_verdict：PASS
+方案状态：审计通过-待前置依赖
+立即施工：否
+前置依赖：Target方案先施工并验收，然后本方案重新绑定baseline
 ~~~
 
-本方案继续保持 **设计阻断**。只有独立子智能体按第 12 节审计问题返回 P0=0、P1=0 的明确放行 verdict 后，才允许把方案状态改为“可施工”；子智能体不得参与代码施工或并发写入。
+本方案的**设计审计已经放行**。但 Target 方案与本方案存在真实施工重叠，因此在 Target 新 baseline 形成前，本方案不得进入生产施工。
+
+
+---
+
+## 16. 最终只读自审 R7：授权边界、活性与暗权威攻击
+
+本轮根据授权人“你自己审计”的最新指令执行最终只读审计。审计不修改生产代码，只允许修订本方案。
+
+### R7-F1：Runtime Log 的 task snapshot hash 可包含 current_reason，但只属于诊断证据
+
+现役 Runtime Log 可记录：
+
+~~~text
+authorityRef = production-task:<jobId>
+authorityHash = hashCanonical(StoredProductionTask)
+~~~
+
+StoredProductionTask 包含 current_reason，因此诊断快照 hash 会随 reason 变化。
+
+该行为**允许保留**，原因是现役唯一消费者是 Runtime Log/Operations Snapshot 的历史证据核验，不参与 claim、recovery、Provider submit、source handoff、capacity、stage、deletion 或 completed。
+
+冻结边界：
+
+~~~text
+current_reason 可以进入“这个诊断快照当时长什么样”的 hash
+current_reason 不得进入“系统现在允许做什么”的 authorization hash / eligibility
+~~~
+
+质量系统必须证明 production-task authority resolver 只被日志/诊断链消费，未来若被生产控制链读取即判 P0 越权。
+
+### R7-F2：business-in-flight 的精确替代公式必须写死
+
+现役 reason 逻辑：
+
+~~~text
+failed + current_attempt_id != null
++ current_reason NOT SOURCE_HANDOFF_SEALED
+-> count business in flight
+~~~
+
+目标不能简单删除 prefix 后把所有 failed/current attempt 都计入，也不能新增 business state。
+
+唯一替代：
+
+~~~text
+count(job) =
+  active execution
+  OR (
+    local task is failed
+    AND current_attempt_id exists
+    AND exact readSealedSourceHandoff(job_id, current_attempt_id) == null
+  )
+~~~
+
+其中 readSealedSourceHandoff 必须先按 WO-B1 去除 current_reason 依赖，只认 exact current source row 的 seal_hash/sealed_at/manifest identity。
+
+新 issued attempt 被 accept 后 current_attempt_id 已切换，历史 source seal 不再匹配当前 attempt，因此自然重新计入 business-in-flight。
+
+### R7-F3：pendingProviderReadback 使用同一个 exact typed seal
+
+现役：
+
+~~~text
+attempt_failure != null
+AND current_reason NOT SOURCE_HANDOFF_SEALED
+AND provider readback condition
+~~~
+
+替代为：
+
+~~~text
+attempt_failure != null
+AND readSealedSourceHandoff(job_id,current_attempt_id) == null
+AND provider readback condition
+~~~
+
+禁止复制第二套 SQL / prefix / enum。
+
+### R7-F4：cooldown reason-only job set 无需替代，应直接删除
+
+现役 pendingCooldownResumeJobIds 通过 current_reason=PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE 找任务。
+
+审计确认 workerIteration 已有：
+
+~~~text
+hasAcceptedAttemptRecovery =
+  any failed local task with current_attempt_id and not state.active
+~~~
+
+它已覆盖 cooldown 后需要 same-attempt regrant 的本地 accepted task；Provider gate 本身又由 ProviderRateLimitControl + provider_cooldown Outbox + Website authority 控制。
+
+因此：
+
+- 删除 providerCooldownPaused(reason)；
+- 删除 pendingCooldownResumeJobIds；
+- **不要新建 typed cooldown job index / table / status**；
+- recovery eligibility 继续复用 hasAcceptedAttemptRecovery；
+- submit gate 继续由现役 ProviderRateLimitControl 控制。
+
+必须用满 N + cooldown clearance 后 same-attempt regrant 动态验收证明无活性回退。
+
+### R7-F5：stage 去 EXECUTING 后的真实防迟到写安全门
+
+EXECUTING 不可继续做 permit，但删除后必须保留已有两层真实安全：
+
+1. Runtime per-job active execution：
+   - launchClaimJobs 拒绝同 job 并发 active；
+   - state.active 直到 executeClaim finally 才释放。
+
+2. source handoff seal：
+   - prepareSourceHandoffs 明确跳过 state.active.has(jobId)；
+   - 只有旧 execution 已退出后才可为 exact current source attempt seal；
+   - stageResult 必须拒绝 exact current source attempt 已 sealed 的 task。
+
+所以合法 stage 安全链冻结为：
+
+~~~text
+same active/authorized attempt execution
++ exact current_attempt_id
++ valid result identity
++ no conflicting staged result
++ exact current source attempt NOT sealed
+-> atomic stage + terminal Outbox
+~~~
+
+不得新增 execution phase/status/fence 表。
+
+### R7-F6：所有 SOURCE_HANDOFF_SEALED prefix 写保护都要改成 typed seal
+
+除读取分支外，以下写保护也属于旧权威，必须纳入 WO-B1/B2：
+
+- markExecuting() 的 NOT LIKE SOURCE_HANDOFF_SEALED；
+- setCurrentReason() 的 NOT LIKE SOURCE_HANDOFF_SEALED；
+- recordAttemptFailure() 的 NOT LIKE SOURCE_HANDOFF_SEALED；
+- acceptTaskAfterSourceHandoff() 的 current_reason equality CAS。
+
+正确替代均为 exact current source attempt typed seal。纯诊断写可以按 typed事实选择“不覆盖更重要诊断”，但不得反过来用诊断文本证明 seal。
+
+### R7-F7：LEASE_GRANTED consumer widening 的版本裁决
+
+现役 canonical V43 spec/manifest/dependency 没有把 current_reason literal列为 control authority；Website provider继续发送完全相同字节。
+
+AGENT 将 literal parser 降为 non-empty diagnostic string 属于 consumer 接收集合放宽，不改变 provider wire bytes、grant identity或control manifest。
+
+本方案维持“不因这一项单独升版”，但施工前必须运行 canonical cross-repo checker。若治理 checker 将该 parser 语义认定为 contract semantic diff，则：
+- 停止施工；
+- 按真实 checker结果升版；
+- 禁止靠宽松 parser 绕过版本门。
+
+### R7 verdict
+
+~~~text
+审计覆盖：法案 / Blueprint / Runtime / Website / Quality / Demand / Provider / Result / hidden hash
+发现 P0：0
+发现 P1：4（R7-F2/F4/F5/F6，均已在本次方案中闭合）
+发现 P2：2（R7-F1/F7，均已加机械边界）
+未闭合 P0/P1：0
+self_audit_verdict：PASS
+~~~
+
+### 放行边界
+
+**放行的是设计，不是并行施工。**
+
+下一步顺序保持：
+
+~~~text
+Target方案重新绑定当前HEAD
+-> Target施工
+-> Target原生质量 + 动态验收
+-> current_reason方案重新绑定新HEAD / 新contract version
+-> 再检查R7全部谓词仍成立
+-> current_reason施工
+~~~
+
+若 Target 施工改变 production_attempt_handoffs 的 seal 语义、source evidence contract 或 Runtime capacity 分母，本方案自动回到审计阻断，必须重新审计，不得机械套用本次 PASS。
