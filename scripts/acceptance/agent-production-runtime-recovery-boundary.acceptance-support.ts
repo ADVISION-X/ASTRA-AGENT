@@ -65,12 +65,12 @@ const exerciseLifecycleMutant = (): void => {
 const exerciseWorkerLoopSurvivesIterationFailure = async (): Promise<void> => {
   const controller = new AbortController();
   const observed: Record<string, unknown> = { abort: controller };
-  const state = new Proxy(observed, {
+  const state = new Proxy(observed as RuntimeState, {
     get: (target, property) => {
       if (property === "abort") return target.abort;
       throw new Error("INJECTED_ITERATION_FAILURE");
     },
-  }) as unknown as RuntimeState;
+  });
   let ended = false;
   const running = workerLoop(state).then(() => { ended = true; });
   await new Promise((resolve) => setTimeout(resolve, 100));
