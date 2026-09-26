@@ -874,9 +874,9 @@ same original job
    - 唯一例外：后 5 个 V44 旧字段只允许在 `src/lib/local-runtime/production/runtime-source-handoff.ts` 的 `assertV44SealedHandoff` 内作为 `Object.hasOwn(_, "<token>")` 的字符串字面量出现；且这 5 个字面量必须**全部存在**，缺失即 `architecture/target-v44-reject-missing`（防止有人把拒绝校验静默删掉）。
 3. **mutant 与字节钉**：扩展 `scripts/acceptance/architecture-boundary.acceptance.ts`：紧随 Tombstone 钉增加新条款 sha256 钉；对真实树断言零 finding；再注入 6 个 mutant，均必须命中——新文件含 `expectedTargetRef`；字符串含 `browser_target_claims`；字符串含 `BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE`；他处对象字面量含 `old_target_ref_hash`；他处 `Object.hasOwn(x,"old_path")`；从真实 `runtime-source-handoff.ts` 删去 `target_settlement_hash` 拒绝项。并为新法条发 `exam.golden` 观察。
 
-### 施工落点与状态
+### 施工落点
 
-已于 2026-09-26 落在本地工作树：`功能法案.md`（新增 `LAW-ARCHITECTURE-BOUNDARY-002-V1`）、`scripts/audit/generated/law-registry.generated.json`（`audit:build` 重建）、`scan-target-authority-boundary.ts`、`architecture-boundary/inspector.ts`、`architecture-boundary-shared.ts`、`architecture-boundary/manifest.json`、`architecture-boundary.acceptance.ts`。仅为 CHANGE 级本地候选：未提交、未 READY、未 RELEASE。
+WO-F 于 2026-09-26 落地：`功能法案.md`（新增 `LAW-ARCHITECTURE-BOUNDARY-002-V1`）、`scripts/audit/generated/law-registry.generated.json`（`audit:build` 重建）、`scan-target-authority-boundary.ts`、`architecture-boundary/inspector.ts`、`architecture-boundary-shared.ts`、`architecture-boundary/manifest.json`、`architecture-boundary.acceptance.ts`。本节不记录质量等级，等级只以各仓原生 `quality:check` 报告与其绑定的 Git commit 为准。
 
 ### 明确不做（删除审判结果）
 
