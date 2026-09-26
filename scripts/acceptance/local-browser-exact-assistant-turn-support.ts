@@ -40,17 +40,13 @@ const capturedAssistantFixture = () => {
   }, "DIV", [userMessage]);
   const assistantOuter = (node: FakeElement) => {
     const role = new FakeElement("assistant", {}, {}, { "data-conversation-role": "assistant" }, "H4");
-    const selection = new FakeElement(node.textContent, {}, {}, {
-      "data-chatgpt-selection-message-id": assistantTurnId,
-    }, "DIV", [node]);
     const assistantUnit = new FakeElement(node.textContent, {
       "h4[data-conversation-role='assistant']": [role],
-      "[data-chatgpt-selection-message-id]": [selection],
       "[data-markdown-text-style='assistant-message']": [node],
     }, {}, {
       "data-chatgpt-search-unit-key": "fallback-turn-0:1:assistant",
       "data-chatgpt-search-message-ids": assistantTurnId,
-    }, "DIV", [role, selection]);
+    }, "DIV", [role, node]);
     return new FakeElement(node.textContent, {
       "[data-chatgpt-search-unit-key]": [user, assistantUnit],
     }, {}, { "data-turn-key": userTurnId }, "SECTION", [user, assistantUnit]);
@@ -99,6 +95,8 @@ const exerciseCapturedAssistantBaseline = async (
     "response read must not parse or hash the already-confirmed user prompt DOM");
   assert.equal(source.includes("precedingPromptHash"), false,
     "response read must not create a second prompt identity");
+  assert.equal(source.includes("data-chatgpt-selection-message-id"), false,
+    "the selection wrapper ChatGPT adds only after completion must not gate a streaming read");
   assert.equal(observed.rawCount, 1);
   assert.match(observed.rawDomHtml, /<strong>bold<\/strong>/u);
   assert.equal(observed.semanticText, "**bold**\n- item\n");

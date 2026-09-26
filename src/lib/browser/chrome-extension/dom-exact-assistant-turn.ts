@@ -52,15 +52,12 @@ const EXACT_ASSISTANT_TURN_FUNCTION = `async function (spec) {
   const assistantIds = (assistant?.getAttribute("data-chatgpt-search-message-ids") || "").split(/\\s+/).filter(Boolean);
   const assistantTurnId = assistantIds[0] || "";
   const role = assistant?.querySelectorAll("h4[data-conversation-role='assistant']") || [];
-  const selection = assistant?.querySelectorAll("[data-chatgpt-selection-message-id]") || [];
   const raw = assistantKey.endsWith(":assistant")
     ? Array.from(assistant.querySelectorAll("[data-markdown-text-style='assistant-message']")) : [];
   if (raw.length > 1 || (raw.length === 1 && (
-    role.length !== 1 || selection.length !== 1
+    role.length !== 1
     || !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(assistantTurnId)
-    || assistantIds.some((id) => id !== assistantTurnId)
-    || selection[0].getAttribute("data-chatgpt-selection-message-id") !== assistantTurnId
-    || !selection[0].contains(raw[0])))) throw new Error("BROWSER_DOM_READ_INVALID");
+    || assistantIds.some((id) => id !== assistantTurnId)))) throw new Error("BROWSER_DOM_READ_INVALID");
   const pendingCause = userRaw.length !== 1 ? "exact-user-turn-unavailable"
     : raw.length === 0 ? "adjacent-assistant-missing" : null;
   const observedAt = new Date().toISOString();
