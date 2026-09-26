@@ -2,7 +2,7 @@
 document_type: project_scheme
 scheme_id: GPT_PAGE_DOM_MINIMUM_FACT_REDUCTION
 scheme_name: GPT页面DOM：submit 失败根因（P0）、最少充分事实减法（P1）与真实页面对齐缺陷（P2）
-status: 设计阻断（P0 根因已定位为 D2，其修复 WO-P2-2 待授权 U4；P1 的 WO-P1-1/P1-3 待授权 U2；P2 的 WO-P2-3 待设计；WO-P1-2/P1-4 不受阻断，WO-P2-1 已落地）
+status: 设计阻断（P0 根因已定位为 D2，其修复 WO-P2-2 已按 U4 施工（生产生效需重载扩展）；P1 的 WO-P1-1/P1-3 待授权 U2；P2 的 WO-P2-3 待设计；WO-P1-2/P1-4 不受阻断，WO-P2-1 已落地）
 created_at: 2026-09-25
 updated_at: 2026-09-26
 owner_repo: ADVISION-X/AGENT
@@ -15,7 +15,7 @@ scheme_blob_before_this_revision: f28cc400733dc79271604256244df2a8b3e23833
 website_baseline: 01664ae8518eaec49ac0af5d142c758a1a219fd9
 implementation_mode: evidence_first_then_subtraction
 skill: 闭环实现设计-SKILL + agent-flow-boundary-gatekeeper
-audit_verdict: 上一版 PASS_TWO_PASS 不成立；已在本文件内原位修正；P0 根因已由真实页面采集与 WAL 定位（§10.3）；WO-P2-2 未取得 U4、WO-P1-1/P1-3 未取得 U2 前不得施工对应工单
+audit_verdict: 上一版 PASS_TWO_PASS 不成立；已在本文件内原位修正；P0 根因已由真实页面采集与 WAL 定位（§10.3）；WO-P1-1/P1-3 未取得 U2 前不得施工对应工单
 ---
 
 # GPT 页面 DOM 更新与工单恢复－完整实现方案
@@ -28,7 +28,7 @@ audit_verdict: 上一版 PASS_TWO_PASS 不成立；已在本文件内原位修�
 
 | 账 | 内容 | 状态 | 与已发生故障的关系 |
 |---|---|---|---|
-| **P0** | `submit_exact_gpt_turn_once` 点击已发出，点击后读取“刚提交的用户回合”失败（§10.3；此前“点击前候选被拒”的判断已更正） | 根因已定位为 D2；修复 WO-P2-2 待授权 U4 | **是**当前唯一实证的第一直接断裂 |
+| **P0** | `submit_exact_gpt_turn_once` 点击已发出，点击后读取“刚提交的用户回合”失败（§10.3；此前“点击前候选被拒”的判断已更正） | 根因已定位为 D2；修复 WO-P2-2 已按 U4 施工 | **是**当前唯一实证的第一直接断裂 |
 | **P1** | profile / model / attachment 的复合判据瘦身（依 V18） | 分项：WO-P1-2、WO-P1-4 不触及任何冻结行，不受 U2 阻断；WO-P1-1、WO-P1-3 及文档同步需授权 U2 解冻拓扑图 G03/G07/G08 | **不声称**修复任何已发生的生产循环 |
 
 预算沿用并收紧：新表 0、新字段 0、新持久状态 0、新 Child 0、新 queue/manager/scheduler/recovery owner 0、新 Browser 通用 API 0、新 selector fallback/双读/兼容桥 0、新计数型 inspector 0、Website 生产改动 0、Provider submit 额外次数 0。
@@ -157,12 +157,12 @@ Child id、Product action ordinal、Website wire、Provider effect identity 不�
 |---|---|---|
 | **U2** | 解冻拓扑图 G03/G07/G08 与对应 Blueprint 句（G16 冻结句不改） | 仅 WO-P1-1、WO-P1-3 |
 | U3 | （暂不申请） | 删“模型列表关闭” |
-| **U4** | 修改 `LAW-LOCAL-BROWSER-SESSION-003-V44` 中“短 Prompt 恰好一个**无元素子节点** `.whitespace-pre-wrap` 叶子”的三处文义（`功能法案.md:1087/1097/1165`）：改为“恰好一个最内层 `.whitespace-pre-wrap`（其后代不再含 `.whitespace-pre-wrap`，允许含行内 code 等元素）”；升 V45 并同步被依赖法条/Manifest/检查器版本字面量，需 `GRASSEYE_LAW_AMENDMENT_AUTHORIZED=1` | 仅 WO-P2-2 |
+| **U4** | **已获授权人批准（2026-09-26）**：删除四处条文里的“无元素子节点”限定——`LAW-LOCAL-BROWSER-SESSION-004-V55`（`功能法案.md:1087/1097`）与 `-006-V41`（`:1165/1166`）；分别升 `-004-V55`、`-006-V42` 并 supersedes 前版；改法案需 `GRASSEYE_LAW_AMENDMENT_AUTHORIZED=1` | WO-P2-2 |
 | U5 | （待 WO-P2-3 设计后再申请，可能不需要） | WO-P2-3 |
 
 **候选绑定（W0）**：AGENT `main@5359d497c`（= origin/main）；`src/capabilities/gpt/children/**` 与 `src/lib/browser/**` 相对 `a66c3d2d0` **无差异**，两者之间仅 `gpt-proof.acceptance.ts`、新增 `gpt-rate-limit-closure.acceptance-support.ts`、`runtime-loops.ts`、若干验收支持文件与 `gpt-provider-contract-inspection.ts:78` 一个 token。Website `01664ae85`（干净）。Runtime/Website 侧无改动。施工前只重算 §4.4 所列路径及其直接 authority/质检依赖。
 
-现役法案：`LAW-CAPABILITY-GOVERNANCE-001-V18`、`LAW-GPT-001-V63`、`LAW-GPT-002-V29`、`LAW-LOCAL-BROWSER-SESSION-004-V54`、`…-006-V41`（均已核对为现役，版本一致）。
+现役法案：`LAW-CAPABILITY-GOVERNANCE-001-V18`、`LAW-GPT-001-V63`、`LAW-GPT-002-V29`、`LAW-LOCAL-BROWSER-SESSION-004-V55`、`…-006-V42`（均已核对为现役，版本一致）。
 
 ## 6. 动态验收（P0 优先）
 
@@ -193,7 +193,7 @@ same job_id + result + Runtime Outbox settled + Website result admission
 
 ## 8. 施工顺序与停止条件
 
-顺序：账互不依赖。P0：U4 → WO-P2-2。P1：WO-P1-2、WO-P1-4 可直接施工；U2 → WO-P1-1、WO-P1-3。各账均：AGENT 原生 `quality:check -- CHANGE` → clean commit → `READY` → §6 动态验收。P1 不得先于或代替 P0 宣称业务闭环。Website 不施工。
+顺序：账互不依赖。P0：WO-P2-2（U4 已批准）。P1：WO-P1-2、WO-P1-4 可直接施工；U2 → WO-P1-1、WO-P1-3。各账均：AGENT 原生 `quality:check -- CHANGE` → clean commit → `READY` → §6 动态验收。P1 不得先于或代替 P0 宣称业务闭环。Website 不施工。
 
 出现以下任一情况立即判方案被污染并停止：
 
@@ -211,7 +211,7 @@ same job_id + result + Runtime Outbox settled + Website result admission
 - 代码：P0 缺现场事实；P1 精确删除范围已锁定。
 - 质检：只反转现有断言，不新增质量系统。
 - Website：0 生产改动。新持久结构：0。
-- 状态：**设计阻断**——P0 待生产窗口现场事实；P1 中 WO-P1-2/P1-4 不受阻断，WO-P1-1/P1-3 待 U2；P2 中 WO-P2-1 不受阻断，WO-P2-2 待 U4，WO-P2-3 待设计。
+- 状态：**设计阻断**——P0 根因已定位为 D2、修复 WO-P2-2 已施工（生产生效需重载 Chrome 扩展并由真实 job 读回）；P1 中 WO-P1-2/P1-4 不受阻断，WO-P1-1/P1-3 待 U2；P2 中 WO-P2-1 已落地，WO-P2-3 待设计。
 
 ## 10. P2：真实页面采集实证的 DOM 对齐缺陷（2026-09-26，独立账）
 
@@ -224,7 +224,7 @@ same job_id + result + Runtime Outbox settled + Website result admission
 | # | 现场事实（真实 DOM） | 现役位置 | 授权 |
 |---|---|---|---|
 | D1 图片来源不可发现 | 生成图片位于 `button[data-testid=generated-image-preview]`→`div[data-testid=generated-image-gallery]`→`div[data-chatgpt-search-message-ids=<助手 UUID>]`，与用户单元同处一个 `[data-turn-key]` 容器；该回合内 `[data-chatgpt-selection-message-id]` 为 0。生产页面表达式返回 `BROWSER_AUTHENTICATED_MEDIA_IMAGE_SOURCE_ABSENT`，永远等不到图片（页面上图片 1672×941 可见） | `src/lib/browser/chrome-extension/authenticated-media-runtime.ts:36-38` | 无（冻结条款 `FROZEN-GPT-IMAGE-SOURCE-EVENT-WAIT-001` 未规定助手 id 来源） |
-| D2 含行内代码的提示词，提交后读取用户回合失败 | 提示词含反引号时，用户气泡内无 `collapsible-user-message-content`，唯一 `.whitespace-pre-wrap` 含 22 个 `<code>` 子元素；用生产同一序列化（`<code>`→反引号）还原后哈希与生产提示词哈希**逐字相等**。`exactGptUserPromptText` 只认无元素子节点叶子，得 0 候选，抛 `BROWSER_DOM_CANDIDATE_MISSING`。前 3 段提示词无反引号，同一读取成功；本地化 SKILL 提示词含反引号 | `dom-coherent-observation.ts:81-86`；法条 `功能法案.md:1087/1097/1165`（`LAW-LOCAL-BROWSER-SESSION-003-V44`）与检查器 token `dom-mechanical-facts-inspection.ts:190-193` | **U4**（现役法条明文写了“无元素子节点”） |
+| D2 含行内代码的提示词，提交后读取用户回合失败 | 提示词含反引号时，用户气泡内无 `collapsible-user-message-content`，唯一 `.whitespace-pre-wrap` 含 22 个 `<code>` 子元素；用生产同一序列化（`<code>`→反引号）还原后哈希与生产提示词哈希**逐字相等**。`exactGptUserPromptText` 只认无元素子节点叶子，得 0 候选，抛 `BROWSER_DOM_CANDIDATE_MISSING`。前 3 段提示词无反引号，同一读取成功；本地化 SKILL 提示词含反引号 | `dom-coherent-observation.ts:81-86`；法条 `LAW-LOCAL-BROWSER-SESSION-004-V55`（`功能法案.md:1087/1097`）与 `-006-V41`（`:1165/1166`）四处“无元素子节点”文义，检查器 token `dom-mechanical-facts-inspection.ts:193` | U4（已批准） |
 | D3 发送按钮出视口 | 新会话根页 + 4 个附件 + 4578 字提示词：composer form 高 560，发送按钮底边超出视口 52px，生产候选函数返回 `BROWSER_DOM_ACTION_OUTSIDE_VIEWPORT`；主容器滚动后通过。生产提交路径无“滚动到可见”步骤。前 3 段（≤1 附件）按钮在视口内，通过 | `dom-coherent-candidate.ts`（viewport 判据）、`dom-pointer-intent-runtime.ts`（无滚动） | 待设计：滚动属改变页面的物理动作，需过 Browser Authority 总闸门；先出方案再判 U5 |
 
 ### 10.3 P0 根因（三个独立可复核的事实）
@@ -246,6 +246,11 @@ same job_id + result + Runtime Outbox settled + Website result admission
 - 删除反事实：不要 UUID 校验则 `assistantTurnId` 可为空，`checkpoint` 值缺身份；保留。
 - 非目标：不改文本回答读取（`dom-exact-assistant-turn.ts` 已对真实 DOM 有效）、不新增 fallback/第二发现路径。
 
-**WO-P2-2 用户回合正文选择（D2；待 U4）**：`exactGptUserPromptText` 的短 Prompt 候选改为“最内层 `.whitespace-pre-wrap`”（其后代不含 `.whitespace-pre-wrap`），唯一性/缺失/多义 fail-close 与 NBSP 投影不变；序列化器已含 `<code>`→反引号，不改。同一变更内改三处法条文义与 V45 版本级联、检查器 token `child.nodeType !== 1`、夹具（新增“行内 code 子元素→哈希等于还原后 Prompt”，保留“多个叶子→AMBIGUOUS”“零→MISSING”）。真实读回：对第 4 段会话只读得到与生产提示词哈希相等的值。
+**WO-P2-2 用户回合正文选择（D2；U4 已批准）**：唯一动作是**删除** `exactGptUserPromptText` 短 Prompt 分支里“必须无元素子节点”的过滤条件——短 Prompt 取“气泡内恰好一个 `.whitespace-pre-wrap` 节点”，零个 typed missing、多个 typed ambiguous 不变；序列化器已含 `<code>`→反引号，NBSP 投影不变；不新增任何机制。
+- 允许路径：`src/lib/browser/chrome-extension/dom-coherent-observation.ts`；法条四处文义（004、006 两条，升 V55/V42）及其在 `scripts/audit/domains/local-browser-session/{manifest.json,inspector.ts,mutation-atomicity-inspection.ts,interaction-readiness-inspection.ts,dom-mechanical-facts-inspection.ts}`、`scripts/acceptance/{local-browser.real-proof.ts,local-browser-provider-effect-recovery.acceptance.ts,local-browser-property-model.acceptance.ts,local-browser-dom-function-support.ts}` 与施工图头部 `lawIds` 的版本字面量、生成的 law registry；无关法条不动。
+- 验收：新增一条夹具——唯一 `.whitespace-pre-wrap` 含行内 `<code>` 子元素→哈希等于还原反引号后的 Prompt；既有“多个叶子→AMBIGUOUS”“零→MISSING”保持。检查器删去已不存在的 token `child.nodeType !== 1`。
+- 删除反事实：该过滤条件唯一效果是拒绝含行内代码的真实回合（4 个真实回合，含 3 个无反引号回合，均恰好 1 个该节点；无反例）；删除后多节点仍 fail-close，故删除。
+- 真实读回：对第 4 段会话只读得到与生产提示词哈希相等的值。
+- 生产生效前提：浏览器扩展源码已变，须重建本地产物（原生 `ensureCurrentBrowserRuntimeArtifact`）并在 Chrome 重载未打包扩展。
 
 **WO-P2-3 发送按钮出视口（D3；待设计）**：候选方向只有两类——Product/GPT 层控制 composer 不被撑出视口，或 Browser 在动作前做一次受总闸门约束的滚动。二者都要先证明生产窗口尺寸下确实出视口（需要生产窗口尺寸），再裁决 Owner 与授权；它与 P0 无关，本版不动代码。

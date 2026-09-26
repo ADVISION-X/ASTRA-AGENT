@@ -1,7 +1,7 @@
 # Local Browser Authority V54 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"local-browser-authority-v54","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V44","LAW-LOCAL-BROWSER-SESSION-004-V54","LAW-LOCAL-BROWSER-SESSION-006-V41"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"local-browser-authority-v54","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V44","LAW-LOCAL-BROWSER-SESSION-004-V55","LAW-LOCAL-BROWSER-SESSION-006-V42"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
 ```
 
 Website 已以精确 `RESULT_SETTLED_UNUSABLE` 或 `GPT_RESPONSE_STOPPED_EMPTY` 拒绝整个旧 result revision 时，Browser 仅在原 rejection receipt 授权的新 revision、原 WAL 相关旧 command 全部 terminal 且未决集合为空、旧 WAL 全历史已核的同 job 中允许新 effect 各至多一次输入。此分支由 Website 的 `prior_result_rejection` 授权，与“答案不可取得”的逐调用风险 grant 互斥；未被 Website 拒绝的旧结果仍先零输入读回。旧 effect 与原 WAL 动作取证原样保留，不将拒绝当作零输入证明。

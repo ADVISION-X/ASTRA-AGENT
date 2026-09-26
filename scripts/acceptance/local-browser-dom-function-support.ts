@@ -243,6 +243,23 @@ const exerciseShortUserPromptHash = async (source: string): Promise<void> => {
   assert.equal(shortResult.queries[0]?.matches[0]?.exactGptUserPromptHash, hash(shortPrompt),
     "a real short Prompt must bind the unique uncollapsed whitespace-pre-wrap leaf");
 
+  const codePrompt = "写入 `zh-HK` 译文";
+  const codeLeaf = new FakeElement(codePrompt, {}, {}, { class: "max-w-full whitespace-pre-wrap" }, "DIV", [
+    new FakeTextNode("写入 "), new FakeElement("zh-HK", {}, {}, {}, "CODE", [new FakeTextNode("zh-HK")]),
+    new FakeTextNode(" 译文"),
+  ]);
+  const codeTurn = fakeGptUserTurn("00000000-0000-4000-8000-000000000007", codePrompt, [], [codeLeaf]);
+  const codeRoot = new FakeElement("", { ".user-turn": [codeTurn] });
+  codeTurn.parentElement = codeRoot;
+  const codeResult = await execute(source, {
+    documentElement: codeRoot, querySelectorAll: () => [], elementFromPoint: () => codeTurn,
+  }, [{ queryId: "code-user-turn", selector: ".user-turn", maxMatches: 1,
+    fields: ["exactGptUserPromptHash"] }]) as Readonly<{
+      queries: readonly Readonly<{ matches: readonly Readonly<{ exactGptUserPromptHash: string }>[] }>[];
+    }>;
+  assert.equal(codeResult.queries[0]?.matches[0]?.exactGptUserPromptHash, hash(codePrompt),
+    "a short Prompt rendered with inline code elements must restore its backticks and bind the same hash");
+
   const shortRendered = "生成一张\u00a0与本文主题一致的封面图";
   const shortApproved = "生成一张 与本文主题一致的封面图";
   const shortNbspLeaf = new FakeElement(shortRendered, {}, {}, {

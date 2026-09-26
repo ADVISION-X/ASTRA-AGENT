@@ -123,7 +123,7 @@ const inspectRateLimitGate = (
   context: InspectorContext, authorityText: string, detectorText: string,
   findings: InspectorFinding[], lawId: string,
 ): void => {
-  if (lawId !== "LAW-LOCAL-BROWSER-SESSION-004-V54") return;
+  if (lawId !== "LAW-LOCAL-BROWSER-SESSION-004-V55") return;
   const accessGate = requireSource(context, findings, lawId, pageAccessGatePath);
   const preflightContract = requireSource(context, findings, lawId, rateLimitContractPath);
   if (!accessGate || !preflightContract) return;

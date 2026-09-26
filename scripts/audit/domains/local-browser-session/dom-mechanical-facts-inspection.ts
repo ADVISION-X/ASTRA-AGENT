@@ -190,7 +190,6 @@ const inspectExactGptUserPromptProjection = (
     'const GPT_SHORT_USER_PROMPT_CONTENT_SELECTOR = ".whitespace-pre-wrap"',
     "if (promptNodes.length === 1) return browserCanonicalGptUserPromptText(promptNodes[0])",
     "shortPromptNodes.length === 0", "shortPromptNodes.length !== 1",
-    "child.nodeType !== 1",
   ], findings, lawId, domCoherentObservationPath,
   "The exact GPT user Prompt hash projection is missing");
   requireTokens(semanticText, ['return exactValue.split("\\\\u00a0").join(" ")',
