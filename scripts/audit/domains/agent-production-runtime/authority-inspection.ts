@@ -3,6 +3,7 @@ import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
+import { inspectWorkerLoopLiveness } from "./worker-loop-inspection.js";
 
 const DATABASE_LAW = "LAW-AGENT-PRODUCTION-RUNTIME-005-V41";
 const PROOF_LAW = "LAW-AGENT-PRODUCTION-RUNTIME-008-V45";
@@ -106,4 +107,5 @@ export const inspectAgentAuthorityAst = (
     findings.push(finding(PROOF_LAW, "agent-production-runtime/proof-outbox-job-boundary", PATHS.proofSupport,
       "Runtime proof checkpoint selection is not bound to one literal encoded job path segment."));
   }
+  inspectWorkerLoopLiveness(context, findings);
 };

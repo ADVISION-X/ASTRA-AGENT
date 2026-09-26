@@ -8,26 +8,25 @@ import {
 } from "../audit/domains/agent-production-runtime/inspector.js";
 import { runtimeManifestOwnershipDrift } from
   "../audit/domains/agent-production-runtime/contract-inspection.js";
+import { workerLoopStopViolations } from
+  "../audit/domains/agent-production-runtime/worker-loop-inspection.js";
+import { workerLoop } from "../../src/lib/local-runtime/production/runtime-loops.js";
+import type { RuntimeState } from "../../src/lib/local-runtime/production/runtime-state.js";
 
 const readRuntimeSource = (relativePath: string) => readFile(
   new URL(`../../src/lib/local-runtime/production/${relativePath}`, import.meta.url), "utf8",
 );
 
-const exerciseLifecycleMutant = (): void => {
-  const project = new Project({ tsConfigFilePath: path.resolve("tsconfig.json") });
-  const outbox = project.getSourceFileOrThrow(path.resolve(
-    "src/lib/local-runtime/production/store-outbox.ts",
-  ));
-  outbox.replaceWithText(outbox.getFullText().replace(
-    'executionFailure("failed", authority.lastError)',
-    'executionFailure("failed", "PRODUCTION_OUTBOX_ATTEMPT_ENDED")',
-  ));
+const WORKER_LOOP_DELAY_STATEMENT = "delay = Math.min(30_000, Math.max(1_000, delay * 2));";
+const WORKER_LOOP_WAIT_STATEMENT = "await wait(delay, state.abort.signal);";
+
+const inspectRuntimeSources = (project: Project, queryRef: string) => {
   const findings: Parameters<typeof inspectAgentProductionRuntime>[1] = [];
   inspectAgentProductionRuntime({
     project,
     sealedRoot: path.resolve("."),
     selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V73",
-    targetSet: { queryRef: "acceptance:runtime-lifecycle-mutant", count: 1 },
+    targetSet: { queryRef, count: 1 },
     targetPaths: [],
     lawRequirements: [],
     planEntry: {
@@ -39,9 +38,75 @@ const exerciseLifecycleMutant = (): void => {
     },
     generatedPlan: [],
   }, findings);
-  assert.ok(findings.some((finding) =>
+  return findings;
+};
+
+const exerciseLifecycleMutant = (): void => {
+  const project = new Project({ tsConfigFilePath: path.resolve("tsconfig.json") });
+  const outbox = project.getSourceFileOrThrow(path.resolve(
+    "src/lib/local-runtime/production/store-outbox.ts",
+  ));
+  outbox.replaceWithText(outbox.getFullText().replace(
+    'executionFailure("failed", authority.lastError)',
+    'executionFailure("failed", "PRODUCTION_OUTBOX_ATTEMPT_ENDED")',
+  ));
+  assert.ok(inspectRuntimeSources(project, "acceptance:runtime-lifecycle-mutant").some((finding) =>
     finding.checkId === "agent-production-runtime/no-local-business-lifecycle-adjudication"),
   "an Outbox mutant that converts a delivery fact into attempt-ended must fail closed");
+  const loops = project.getSourceFileOrThrow(path.resolve("src/lib/local-runtime/production/runtime-loops.ts"));
+  loops.replaceWithText(loops.getFullText().replace(WORKER_LOOP_DELAY_STATEMENT,
+    `${WORKER_LOOP_DELAY_STATEMENT}\n      return;`));
+  assert.ok(inspectRuntimeSources(project, "acceptance:runtime-worker-loop-mutant").some((finding) =>
+    finding.checkId === "agent-production-runtime/worker-loop-stops-on-failure"),
+  "the Runtime inspector must be wired to reject a workerLoop that returns after an iteration failure");
+};
+
+const exerciseWorkerLoopSurvivesIterationFailure = async (): Promise<void> => {
+  const controller = new AbortController();
+  const observed: Record<string, unknown> = { abort: controller };
+  const state = new Proxy(observed, {
+    get: (target, property) => {
+      if (property === "abort") return target.abort;
+      throw new Error("INJECTED_ITERATION_FAILURE");
+    },
+  }) as unknown as RuntimeState;
+  let ended = false;
+  const running = workerLoop(state).then(() => { ended = true; });
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  assert.equal(observed.lastErrorCode, "PRODUCTION_RUNTIME_FAILED");
+  assert.equal(observed.lastErrorReason, "INJECTED_ITERATION_FAILURE");
+  assert.equal(ended, false, "an ordinary iteration failure must return to the loop and its bounded wait");
+  controller.abort();
+  await running;
+  assert.equal(ended, true, "only the abort signal may end the worker loop");
+};
+
+const exerciseWorkerLoopStopMutants = async (): Promise<void> => {
+  const loopsText = await readRuntimeSource("runtime-loops.ts");
+  const violationsOf = (text: string): readonly string[] => workerLoopStopViolations(
+    new Project({ useInMemoryFileSystem: true }).createSourceFile("runtime-loops.ts", text)
+      .getVariableDeclaration("workerLoop")?.getInitializer());
+  assert.deepEqual(violationsOf(loopsText), []);
+  const inCatch = (statement: string): string =>
+    loopsText.replace(WORKER_LOOP_DELAY_STATEMENT, `${WORKER_LOOP_DELAY_STATEMENT}\n      ${statement}`);
+  const mutants: ReadonlyArray<readonly [string, string]> = [
+    ["a return in the catch", inCatch("return;")],
+    ["a break in the catch", inCatch("break;")],
+    ["a continue in the catch", inCatch("continue;")],
+    ["a rethrow in the catch", inCatch("throw error;")],
+    ["an unauthorised abort in the catch", inCatch("state.abort.abort();")],
+    ["a stop flag in the catch", inCatch("state.stopped = true;")],
+    ["a workerLoop without its bounded wait", loopsText.replace(WORKER_LOOP_WAIT_STATEMENT, "")],
+    ["an unbounded delay", loopsText.replace(WORKER_LOOP_DELAY_STATEMENT, "delay = delay * 2;")],
+    ["a raised delay ceiling", loopsText.replace(WORKER_LOOP_DELAY_STATEMENT,
+      "delay = Math.min(3_600_000, Math.max(1_000, delay * 2));")],
+    ["a loop that is no longer bounded by the abort signal",
+      loopsText.replace("while (!state.abort.signal.aborted) {\n    try {", "while (true) {\n    try {")],
+  ];
+  for (const [label, mutant] of mutants) {
+    assert.notEqual(mutant, loopsText, `${label} must actually change runtime-loops.ts`);
+    assert.ok(violationsOf(mutant).length > 0, `${label} must fail the worker loop inspection`);
+  }
 };
 
 const exerciseManifestAndLawOwnership = async (): Promise<void> => {
@@ -162,6 +227,8 @@ export const exerciseProductionRuntimeSourceBoundaries = async (): Promise<void>
   assert.doesNotMatch(`${storeSource}\n${outboxSource}`, /ATTEMPT_ENDED|PRODUCTION_OUTBOX_ATTEMPT_ENDED/u);
   assert.match(outboxSource, /executionFailure\("failed", authority\.lastError\)/u);
   exerciseLifecycleMutant();
+  await exerciseWorkerLoopStopMutants();
+  await exerciseWorkerLoopSurvivesIterationFailure();
   assert.match(storeSource, /purgeJob\(jobId: string\)/u);
   assert.match(storeSource, /delete from production_outbox/u);
   assert.match(outboxSource,
