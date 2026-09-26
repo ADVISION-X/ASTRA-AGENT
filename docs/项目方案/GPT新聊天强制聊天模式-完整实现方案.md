@@ -2,7 +2,7 @@
 document_type: project_scheme
 scheme_id: GPT_PAGE_DOM_MINIMUM_FACT_REDUCTION
 scheme_name: GPT页面DOM：submit 失败根因（P0）、最少充分事实减法（P1）与真实页面对齐缺陷（P2）
-status: 设计阻断（P0 根因已定位为 D2，其修复 WO-P2-2 已按 U4 施工（生产生效需重载扩展）；P1 的 WO-P1-1/P1-3 待授权 U2；P2 的 WO-P2-3 待设计；WO-P1-2/P1-4 不受阻断，WO-P2-1 已落地）
+status: 设计阻断（P0 根因已定位为 D2，其修复 WO-P2-2 已按 U4 施工并经 12:47–13:45 窗口读回生效；P1 的 WO-P1-1/P1-3 待授权 U2；P2 的 WO-P2-3 待设计、WO-P2-4 经回归裁决取消（不施工）；WO-P1-2/P1-4 不受阻断，WO-P2-1 已落地）
 created_at: 2026-09-25
 updated_at: 2026-09-26
 owner_repo: ADVISION-X/AGENT
@@ -226,6 +226,7 @@ same job_id + result + Runtime Outbox settled + Website result admission
 | D1 图片来源不可发现 | 生成图片位于 `button[data-testid=generated-image-preview]`→`div[data-testid=generated-image-gallery]`→`div[data-chatgpt-search-message-ids=<助手 UUID>]`，与用户单元同处一个 `[data-turn-key]` 容器；该回合内 `[data-chatgpt-selection-message-id]` 为 0。生产页面表达式返回 `BROWSER_AUTHENTICATED_MEDIA_IMAGE_SOURCE_ABSENT`，永远等不到图片（页面上图片 1672×941 可见） | `src/lib/browser/chrome-extension/authenticated-media-runtime.ts:36-38` | 无（冻结条款 `FROZEN-GPT-IMAGE-SOURCE-EVENT-WAIT-001` 未规定助手 id 来源） |
 | D2 含行内代码的提示词，提交后读取用户回合失败 | 提示词含反引号时，用户气泡内无 `collapsible-user-message-content`，唯一 `.whitespace-pre-wrap` 含 22 个 `<code>` 子元素；用生产同一序列化（`<code>`→反引号）还原后哈希与生产提示词哈希**逐字相等**。`exactGptUserPromptText` 只认无元素子节点叶子，得 0 候选，抛 `BROWSER_DOM_CANDIDATE_MISSING`。前 3 段提示词无反引号，同一读取成功；本地化 SKILL 提示词含反引号 | `dom-coherent-observation.ts:81-86`；法条 `LAW-LOCAL-BROWSER-SESSION-004-V55`（`功能法案.md:1087/1097`）与 `-006-V41`（`:1165/1166`）四处“无元素子节点”文义，检查器 token `dom-mechanical-facts-inspection.ts:193` | U4（已批准） |
 | D3 发送按钮出视口 | 新会话根页 + 4 个附件 + 4578 字提示词：composer form 高 560，发送按钮底边超出视口 52px，生产候选函数返回 `BROWSER_DOM_ACTION_OUTSIDE_VIEWPORT`；主容器滚动后通过。生产提交路径无“滚动到可见”步骤。前 3 段（≤1 附件）按钮在视口内，通过 | `dom-coherent-candidate.ts`（viewport 判据）、`dom-pointer-intent-runtime.ts`（无滚动） | 待设计：滚动属改变页面的物理动作，需过 Browser Authority 总闸门；先出方案再判 U5 |
+| D4 模型选择的“选中”证据取自会被替换的节点句柄 | 真实页面（2026-09-26 18:2x，新标签页、只点菜单）：选择模型后同一容器 `[data-model-picker-view]` 由 `advanced` 变 `simple`，选项节点**没有卸载**但整体 `inert`；被点击的 GPT-5.6 Sol 节点保持连接并读到 `aria-checked=true`，同一次点击里第 4 个选项（Pro）节点被重渲染替换（旧节点 `isConnected=false`）——证明“选择后节点会被替换”这一机制真实存在；生产中被替换的是否恰为被点击节点未被直接观察，但 `describeNode(retainedNodeId)` 是该命令内唯一按 `nodeId` 读页面的位置，`NODE_STALE` 只可能出自此处。生产在 2500ms 闸门后用点击前保留的 `nodeId` 调 `describeNode` 读 `aria-checked`，节点被替换时得 `BROWSER_DOM_NODE_STALE` 且 `mutation_outcome=dispatched`（12:47–13:45 窗口静态目录 `select_gpt_model_from_start_v3` 2/26） | `dom-pointer-intent-runtime.ts:336-338`；`select_gpt_model_from_start_v3/handler.ts:21,51`；`dom-coherent-observation.ts:144-150`（`non-actionable-aria-state` 只豁免 `ARIA_HIDDEN`，不豁免 `INERT`） | 不施工（回归裁决，见 WO-P2-4） |
 
 ### 10.3 P0 根因（三个独立可复核的事实）
 
@@ -254,3 +255,17 @@ same job_id + result + Runtime Outbox settled + Website result admission
 - 生产生效前提：浏览器扩展源码已变，须重建本地产物（原生 `ensureCurrentBrowserRuntimeArtifact`）并在 Chrome 重载未打包扩展。
 
 **WO-P2-3 发送按钮出视口（D3；待设计）**：候选方向只有两类——Product/GPT 层控制 composer 不被撑出视口，或 Browser 在动作前做一次受总闸门约束的滚动。二者都要先证明生产窗口尺寸下确实出视口（需要生产窗口尺寸），再裁决 Owner 与授权；它与 P0 无关，本版不动代码。
+
+**WO-P2-4 模型选中证据（D4）——回归裁决：取消，不施工**
+
+- 前轮连续性（本方案初稿漏筛，施工前核对时才发现）：`aa550261c`（“evidence-gated GPT model and reasoning selection v3”）曾有读取资格 `non-actionable-inert-state`，用 `explicit-selected` 查询读 `inert` 选项的 `aria-checked`，服务于“已选中则零输入成功”分支；`c439d4088`（“Complete GPT model and reasoning selection flow”）按授权人的减法裁决把该分支与该资格一并退休，G16 改为“无论此前是否选中都点击一次，核点击节点选中与列表关闭”，并把两条不变量写进现役验收：`exerciseHiddenStateRead`——`non-actionable-aria-state` “只忽略 ARIA_HIDDEN”；`exerciseInertStateRejection`——inert 选项在普通读取下 `eligible=0/INERT`，已退休取值 `non-actionable-inert-state` 必须被 `BROWSER_COMMAND_PERMIT_INVALID` 拒收（`scripts/acceptance/local-browser-dom-function-support.ts`）。
+- 本方案初稿的修法（三处页内实现让 `non-actionable-aria-state` 也豁免 `INERT`，并把选中证明改成新鲜观察查询）正是重新引入被退休的机制，推翻上述两条不变量，还要改两个检查器（`scripts/audit/domains/gpt/inspector.ts:273`、`gpt-contract-inspection.ts:279` 把 `clickedCandidateAttribute`/`selectedReadbackValid` 列为 handler 必需 token）与两句冻结施工图。其它备选也都不成立：改读对象句柄会读到被替换旧节点的过期值（假阴性）；删掉“选中”证明违反冻结句。
+- 裁决：删除本工单。D4 的证据（真实页面：选择后容器 `[data-model-picker-view]` 由 `advanced` 翻为 `simple`，选项节点保留但整体 `inert`，被点击选项读到 `aria-checked=true`，同次操作里另一选项节点被重渲染替换）与机理保留在本节作为事实；现役恢复（下一 attempt）代价≈1 分钟/次。重开条件：授权人显式推翻 `c439d4088` 的退休裁决。
+
+### 10.5 本日志窗口（2026-09-26 12:47–13:45，静态目录 24 个 job）第二批证据与不施工裁决
+
+- 19 个 job 的 WAL 中 7 个在首个 attempt 的 profile/model/reasoning 链失败，**7/7 由第二个 attempt 完整成功**（同一 job 的 WAL 同 `action_ordinal` 出现 REJECTED 与 CONFIRMED 两行=两个 attempt）。分类：`select_model` NODE_STALE×2（=D4，WO-P2-4 已取消）；`select_model` 点击前 `BROWSER_DOM_SELECTOR_ABSENT`×1；点击已确认（`physical_input_count=1`）而后置元素约 6 秒内始终缺失的 `CANDIDATE_MISSING`×4（`open_gpt_execution_profile`、`open_gpt_model_selector_v3`、`select_gpt_reasoning_from_start_v3`×2）。
+- 后两类**无决定性证据**：失败现场 DOM 未保留（WAL 只存哈希与原生原因码），接受到首次点击间隔在失败与成功 job 间无差别（≈8.6 s）。裁决：**不施工**——任何修复都是猜测；现役 attempt 级恢复已闭合（代价≈1 分钟/次）。解除条件只有一条：用页面采集 SKILL 在授权人在场时对菜单链循环取证，取得一次失败现场 DOM 后再开新工单。
+- `checkpoint_gpt_text_response` 的 `BROWSER_DOM_READ_INVALID`×2 同理：均发生在提交后 73 秒的首次回答读取（正常 job 76 秒完成；两次所在 job 分别耗时 364/277 秒），同一 attempt 被重领续读、无重复提交、最终成功。页内读取函数 `dom-exact-assistant-turn.ts:56-63` 对助手单元有多项严格相等判定并统一抛 READ_INVALID，外层 `coherentCandidateMachineError` 与 `:298` 又丢弃原因，故具体命中哪一项不可知——**这是假设，不是证据**，裁决同上：不施工，解除条件为取得一次“慢回答读取瞬间”的现场事实。
+- 更正：本文档此前及对话中曾称“点击模型后列表被卸载（raw=0）”。真实结构是容器属性翻转、选项节点保留且 inert；`raw=0` 只因生产选择器要求 `[data-model-picker-view='advanced']`。
+
