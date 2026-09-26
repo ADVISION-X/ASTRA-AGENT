@@ -1,8 +1,8 @@
 ---
 document_type: project_scheme
 scheme_id: GPT_PAGE_DOM_MINIMUM_FACT_REDUCTION
-scheme_name: GPT页面DOM：submit 候选缺失诊断（P0）与最少充分事实减法（P1）
-status: 设计阻断（P0 缺生产窗口现场事实；P1 的 WO-P1-1/P1-3 待授权 U2；P2 的 WO-P2-2 待授权 U4、WO-P2-3 待设计；WO-P1-2/P1-4/P2-1 不受阻断）
+scheme_name: GPT页面DOM：submit 失败根因（P0）、最少充分事实减法（P1）与真实页面对齐缺陷（P2）
+status: 设计阻断（P0 根因已定位为 D2，其修复 WO-P2-2 待授权 U4；P1 的 WO-P1-1/P1-3 待授权 U2；P2 的 WO-P2-3 待设计；WO-P1-2/P1-4 不受阻断，WO-P2-1 已落地）
 created_at: 2026-09-25
 updated_at: 2026-09-26
 owner_repo: ADVISION-X/AGENT
@@ -15,7 +15,7 @@ scheme_blob_before_this_revision: f28cc400733dc79271604256244df2a8b3e23833
 website_baseline: 01664ae8518eaec49ac0af5d142c758a1a219fd9
 implementation_mode: evidence_first_then_subtraction
 skill: 闭环实现设计-SKILL + agent-flow-boundary-gatekeeper
-audit_verdict: 上一版 PASS_TWO_PASS 不成立；已在本文件内原位修正；未取得 U1/U2 授权与 P0 现场事实前不得施工
+audit_verdict: 上一版 PASS_TWO_PASS 不成立；已在本文件内原位修正；P0 根因已由真实页面采集与 WAL 定位（§10.3）；WO-P2-2 未取得 U4、WO-P1-1/P1-3 未取得 U2 前不得施工对应工单
 ---
 
 # GPT 页面 DOM 更新与工单恢复－完整实现方案
@@ -28,7 +28,7 @@ audit_verdict: 上一版 PASS_TWO_PASS 不成立；已在本文件内原位修�
 
 | 账 | 内容 | 状态 | 与已发生故障的关系 |
 |---|---|---|---|
-| **P0** | `submit_exact_gpt_turn_once` 的发送按钮点击在 Browser 候选解析阶段被拒 | 设计阻断：缺现场 DOM 事实，待授权 U1 | **是**当前唯一实证的第一直接断裂 |
+| **P0** | `submit_exact_gpt_turn_once` 点击已发出，点击后读取“刚提交的用户回合”失败（§10.3；此前“点击前候选被拒”的判断已更正） | 根因已定位为 D2；修复 WO-P2-2 待授权 U4 | **是**当前唯一实证的第一直接断裂 |
 | **P1** | profile / model / attachment 的复合判据瘦身（依 V18） | 分项：WO-P1-2、WO-P1-4 不触及任何冻结行，不受 U2 阻断；WO-P1-1、WO-P1-3 及文档同步需授权 U2 解冻拓扑图 G03/G07/G08 | **不声称**修复任何已发生的生产循环 |
 
 预算沿用并收紧：新表 0、新字段 0、新持久状态 0、新 Child 0、新 queue/manager/scheduler/recovery owner 0、新 Browser 通用 API 0、新 selector fallback/双读/兼容桥 0、新计数型 inspector 0、Website 生产改动 0、Provider submit 额外次数 0。
@@ -73,7 +73,7 @@ audit_verdict: 上一版 PASS_TWO_PASS 不成立；已在本文件内原位修�
 
 ### 2.3 submit 的 12 次拒绝
 
-- 12/12：`reason=BROWSER_DOM_CANDIDATE_MISSING`，`native_cause_code=NULL`，`physical_input_count=0`；`action_ordinal` 10（无附件路径）×11、13（含附件路径）×1；动作均为 `browser.dom.click.v1`，`effect_scope=provider_effect`。
+- 12/12：`reason=BROWSER_DOM_CANDIDATE_MISSING`，`native_cause_code=NULL`，`mutation_outcome=dispatched`（点击已发出；`physical_input_count=0` 只是该拒绝路径不更新计数，**不是**“未点击”）；`action_ordinal` 10（无附件路径）×11、13（含附件路径）×1；动作均为 `browser.dom.click.v1`，`effect_scope=provider_effect`。
 - 最后一次 CONFIRMED submit：`2026-09-24T00:59:52Z`（旧选择器 `#composer-submit-button[data-testid='send-button']`）。`3016fe43e`（2026-09-25 07:13 +0400）把 submit/write 的选择器整体换成新 DOM 后，**没有一次真实 submit 成功**；首次生产运行为 `2026-09-25T19:51Z`。此前 09-24T01Z–09-25T19Z 无 submit 尝试。
 - 同一次执行里，submit 之前的 prepare → profile 开 → 模型入口开 → 模型选择（`GPT-5.6 Sol`）→ 推理 → profile 关 → 写入 Prompt **全部 CONFIRMED**（例：`a768dec0` 于 23:11–23:12Z 完整走完再在 submit 被拒）。
 - 时间特征无诊断价值：每个 Browser 变异的 DISPATCHED→终态本身约 4 秒（成功者同）。
@@ -88,48 +88,11 @@ profile open 点击前 GPT 层 `…OPEN_QUALIFICATION_INVALID` ×1（具体 `top
 2. 发送按钮在失败时刻的真实 DOM 状态：本机无该窗口的 exact-call 取证落盘。
 3. `PRODUCTION_SOURCE_HANDOFF_REQUIRED` 反复出现在旧 job（`614f7414`、`ba48dcd8`）：属 Runtime source seal 的独立账，本方案不触碰。
 
-## 3. P0：submit 发送按钮点击候选缺失
+## 3. P0：submit 点击后读取用户回合失败（根因见 §10.3）
 
-### 3.1 第一直接断裂
+### 3.1–3.4 已由 §10.3 取代
 
-- **Owner / 权威位置**：Browser 变异物理边界（`browser.dom.click.v1`，actionOrdinal 10/13，`provider_effect`）；被点击的选择器由 GPT `submit_exact_gpt_turn_once/selectors.ts::GPT_SEND_SELECTOR` 提供。
-- **实际值**：候选解析阶段被拒，reason `BROWSER_DOM_CANDIDATE_MISSING`，stage 为空，物理输入 0。
-- **期望值**：恰 1 个合格发送按钮候选（`expectedMatches:1`）。
-- **后果**：无 Provider submit → Child failed → Product → Runtime 释放租约 → Website demand 仍存活 → 重新 claim，反复 12 次；Browser fail-close 本身正确，**不得改成宽选择器/猜点**。
-
-### 3.2 已排除
-
-Website claim/capacity/admission；profile/model/attachment（同链路上反复成功）；Browser 零输入 fail-close 语义；submit 的“两项冻结前置”与 exact outgoing turn 校验（在候选解析之后才生效，且被拒时尚未进入）。
-
-### 3.3 有限假设集与唯一判别事实
-
-| 假设（推断，非事实） | 唯一判别事实 | 该事实的现有来源 |
-|---|---|---|
-| H1 `GPT_SEND_SELECTOR` 与真实页面不符（选择器含 `aria-label='发送'`；此前用 id/testid；`FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001` 明文“按钮标签不是发送前置条件”） | 失败时刻 `form[data-chatgpt-composer]` 内所有 button 的 type / aria-label / disabled / 可见性 | 无，需 WO-P0-1 |
-| H2 写入目标与编辑器状态不一致（`3016fe43e` 把 composer 选择器由 `#prompt-textarea` 改为 `[data-composer-markdown][role='textbox']`；write 只证明该节点可编辑文本 hash 精确，页面未必认为“有内容”，故发送按钮未渲染） | write 完成后 composer 节点是否仍带空占位 `p[data-empty-paragraph]`；页面按钮是否仍是语音/听写 | 无，需 WO-P0-1 |
-| H3 候选存在但机械不合格（scope/候选 `INELIGIBLE`：aria-hidden 祖先/inert/无 layout） | stage 值 | 当前为 NULL |
-| H4 按钮 disabled | 回执应为 `BROWSER_DOM_ACTION_NOT_QUALIFIED` + native `…DISABLED`（`FROZEN-GPT-SUBMIT-ACTIONABILITY-WAIT-001`），与观测码不符，**除非**回执映射另有路径 | 同 H3 |
-| H5 stage 在此路径未被携带，导致 H1–H4 无法区分（观测缺口） | 找出 stage 缺失点 | 只读代码未定，见 §2.5-1 |
-
-### 3.4 工单
-
-**WO-P0-1 取证（唯一前置，须先获 U1）**
-
-- 目标：得到 submit 被拒时刻的 (a) 候选解析 stage/native cause；(b) composer form 内 button 与 composer 节点的机械事实。
-- 允许方式（U1 由授权人二选一或组合）：
-  - **A 诊断修复**：找出 submit 拒绝回执缺 stage 的位置，仅使用现有 typed 字段（`nativeCauseCode`、`candidateMissingStage`、WAL 现有列 `native_cause_code`），**不新增列/事件/状态**；再用三类真实 job 重跑一次，只读 WAL。可能触及 `src/lib/browser/chrome-extension/{dom-coherent-candidate.ts(486 行), dom-pointer-intent-runtime.ts(474), dom-coherent-candidate-readback.ts}`、`src/lib/browser/exact-target/{browser-mutation-receipt.ts, browser-command-actor.ts}`；**500 行红线**（`基础法案.md:36`）要求这些文件净行数不增，或同一工单内先削减。
-  - **B 只读现场采集**：用 `.agents/skills/gpt-page-operation-evidence`（Claude in Chrome）在与失败一致的页面状态（write 完成后、**不点发送**）采集 composer 区 DOM；不产生 Provider effect。
-- 完成判据：下一次真实拒绝的 WAL 行 stage 非空，或 B 给出 H1–H4 的唯一判别。
-- 非目标：不放宽 selector、不加 fallback、不新增 retry/恢复状态。
-
-**WO-P0-2 按判别结果修（WO-P0-1 之后，由下表唯一裁决）**
-
-| 判别结果 | 唯一 Owner | 唯一动作 | 授权门 |
-|---|---|---|---|
-| H1 选择器不符 | GPT `submit_exact_gpt_turn_once/selectors.ts` | 依页面实证确定**唯一**稳定选择器并原位替换 `GPT_SEND_SELECTOR`，不叠第二选择器 | 若须以标签定位，触及 `FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001`，需授权 |
-| H2 写入目标/编辑器状态不符 | GPT `write_exact_gpt_prompt` 选择器与后置 | 修正写入目标及其后置证明 | 无冻结冲突（G11：retained editable hash） |
-| H3 候选存在但不合格 | 依 stage 定：页面准备（GPT/Product）或 Browser 机械事实（现役 `mechanicallyEligible`） | 只按 stage 指向的单一原因修 | 视 stage |
-| 瞬态（同一 Child fresh 观察后恢复） | 同一 Child | 仅**零 mutation** 的失败可回到现役 bounded re-observation；物理动作已发生则只读回不重放。submit 现役只允许 disabled 类等待，扩到 candidate-missing 需授权 | 是 |
+原“点击前候选缺失”的第一直接断裂、H1–H5 假设集、WO-P0-1 取证与 WO-P0-2 判别表，均建立在把 `physical_input_count=0` 误读为“未点击”之上，已物理删除。P0 唯一动作是 §10.4 的 WO-P2-2。
 
 ### 3.5 必须保留的防回归不变量
 
@@ -192,7 +155,6 @@ Child id、Product action ordinal、Website wire、Provider effect identity 不�
 
 | 编号 | 需授权人裁决 | 阻断 |
 |---|---|---|
-| **U1** | 采用 WO-P0-1 的 A（诊断修复，含一次真实重跑）、B（只读现场采集）或两者 | P0 全部 |
 | **U2** | 解冻拓扑图 G03/G07/G08 与对应 Blueprint 句（G16 冻结句不改） | 仅 WO-P1-1、WO-P1-3 |
 | U3 | （暂不申请） | 删“模型列表关闭” |
 | **U4** | 修改 `LAW-LOCAL-BROWSER-SESSION-003-V44` 中“短 Prompt 恰好一个**无元素子节点** `.whitespace-pre-wrap` 叶子”的三处文义（`功能法案.md:1087/1097/1165`）：改为“恰好一个最内层 `.whitespace-pre-wrap`（其后代不再含 `.whitespace-pre-wrap`，允许含行内 code 等元素）”；升 V45 并同步被依赖法条/Manifest/检查器版本字面量，需 `GRASSEYE_LAW_AMENDMENT_AUTHORIZED=1` | 仅 WO-P2-2 |
@@ -231,11 +193,11 @@ same job_id + result + Runtime Outbox settled + Website result admission
 
 ## 8. 施工顺序与停止条件
 
-顺序：两条账互不依赖。P0：U1 → WO-P0-1 → WO-P0-2。P1：WO-P1-2、WO-P1-4 可直接施工；U2 → WO-P1-1、WO-P1-3。各账均：AGENT 原生 `quality:check -- CHANGE` → clean commit → `READY` → §6 动态验收。P1 不得先于或代替 P0 宣称业务闭环。Website 不施工。
+顺序：账互不依赖。P0：U4 → WO-P2-2。P1：WO-P1-2、WO-P1-4 可直接施工；U2 → WO-P1-1、WO-P1-3。各账均：AGENT 原生 `quality:check -- CHANGE` → clean commit → `READY` → §6 动态验收。P1 不得先于或代替 P0 宣称业务闭环。Website 不施工。
 
 出现以下任一情况立即判方案被污染并停止：
 
-- 在 P0 现场事实取得前“猜修” submit（放宽 selector、fallback、加 retry、扩大 submit 等待）；
+- 为 P0 猜修 submit（放宽 selector、fallback、加 retry、扩大 submit 等待）——P0 的唯一动作是 WO-P2-2；
 - 未经 U2 修改拓扑图/Blueprint，或未经 U3 触碰 G16 冻结句；
 - 把 P1 表述为修复 submit 循环；
 - model select 改用 `postClickMatch/postClickAttribute`；
@@ -255,7 +217,7 @@ same job_id + result + Runtime Outbox settled + Website result admission
 
 ### 10.1 证据与口径
 
-授权人明确要求用真实页面采集定位子能力信息错误。采集在本机内置浏览器新开标签页完成：SEO 研究→文章→图片→ZH-HK 翻译共 4 次真实发送（U1 的 B 项实际已执行；发送前均先用生产 `COHERENT_CANDIDATE_FUNCTION` 通过 exact outgoing 校验）。页面函数为生产同一份源码逐字展开，读取项直接取各 Child `selectors.ts` 导出常量；Child 源码摘要 `sha256:8fce503740ac…`。采集产物只在本机（`.claude/skills/gpt-page-capture/runs/0926-real/`，gitignored），本方案只引用其中已用页面 DOM 逐条核对过的因果。数字口径：WAL 最近 13 次 submit REJECTED 中 12 次属 `static-catalog:*` 步骤、1 次 `article_synthesis`。
+授权人明确要求用真实页面采集定位子能力信息错误。采集在本机内置浏览器新开标签页完成：SEO 研究→文章→图片→ZH-HK 翻译共 4 次真实发送（发送前均先用生产 `COHERENT_CANDIDATE_FUNCTION` 通过 exact outgoing 校验）。页面函数为生产同一份源码逐字展开，读取项直接取各 Child `selectors.ts` 导出常量；Child 源码摘要 `sha256:8fce503740ac…`。采集产物只在本机（`.claude/skills/gpt-page-capture/runs/0926-real/`，gitignored），本方案只引用其中已用页面 DOM 逐条核对过的因果。数字口径：WAL 最近 13 次 submit REJECTED 中 12 次属 `static-catalog:*` 步骤、1 次 `article_synthesis`。
 
 ### 10.2 缺陷与裁决
 
@@ -265,10 +227,13 @@ same job_id + result + Runtime Outbox settled + Website result admission
 | D2 含行内代码的提示词，提交后读取用户回合失败 | 提示词含反引号时，用户气泡内无 `collapsible-user-message-content`，唯一 `.whitespace-pre-wrap` 含 22 个 `<code>` 子元素；用生产同一序列化（`<code>`→反引号）还原后哈希与生产提示词哈希**逐字相等**。`exactGptUserPromptText` 只认无元素子节点叶子，得 0 候选，抛 `BROWSER_DOM_CANDIDATE_MISSING`。前 3 段提示词无反引号，同一读取成功；本地化 SKILL 提示词含反引号 | `dom-coherent-observation.ts:81-86`；法条 `功能法案.md:1087/1097/1165`（`LAW-LOCAL-BROWSER-SESSION-003-V44`）与检查器 token `dom-mechanical-facts-inspection.ts:190-193` | **U4**（现役法条明文写了“无元素子节点”） |
 | D3 发送按钮出视口 | 新会话根页 + 4 个附件 + 4578 字提示词：composer form 高 560，发送按钮底边超出视口 52px，生产候选函数返回 `BROWSER_DOM_ACTION_OUTSIDE_VIEWPORT`；主容器滚动后通过。生产提交路径无“滚动到可见”步骤。前 3 段（≤1 附件）按钮在视口内，通过 | `dom-coherent-candidate.ts`（viewport 判据）、`dom-pointer-intent-runtime.ts`（无滚动） | 待设计：滚动属改变页面的物理动作，需过 Browser Authority 总闸门；先出方案再判 U5 |
 
-### 10.3 对 P0 的更新（不得当作已修）
+### 10.3 P0 根因（三个独立可复核的事实）
 
-- 采集环境中，submit 点击前候选检查：H1（`GPT_SEND_SELECTOR` 与页面不符）**不成立**（按钮 `type=submit aria-label=发送`，唯一、可见、未 disabled）；H2（写入后编辑器无内容）**不成立**（composer 哈希精确、按钮已渲染）；profile 用 Sol+推理 5（被 `Math.min(requested,maximum)` 限到 3）时亦无残留 `aria-hidden/inert`。
-- D2、D3 不能解释生产的“点击前、0 次物理输入、`CANDIDATE_MISSING`”：D2 发生在点击后的观察，D3 的码是 `OUTSIDE_VIEWPORT`。P0 仍缺**生产窗口**（`static-catalog`）的现场事实，采集需新增一段静态目录真实发送；在此之前不猜修 submit。
+1. **WAL**：12 次 submit 拒绝均为 `mutation_outcome=dispatched`（点击已发出）、`reason=BROWSER_DOM_CANDIDATE_MISSING`、`native_cause_code` 为空。空是因为该错误由点击后 `submitted-user-turn` 观察内抛出（`dom-coherent-observation.ts:84`，无阶段），不经带阶段的候选解析器。对照：模型入口的点击前拒绝行是 `mutation_outcome=no` 且阶段非空。
+2. **提示词**：静态目录提示词 = 本地化 SKILL 全文 + 指令 + ContextBundle；失败任务 `aiprod_8ef8d7a4…` 用生产函数生成为 85258 字，含 44 个反引号。
+3. **真实 DOM**：含反引号的提示词发送后，用户回合气泡内唯一 `.whitespace-pre-wrap` 含 `<code>` 子元素（第 4 段为 22 个），`exactGptUserPromptText` 得 0 候选并抛该错误；同一读取在无反引号的 3 个真实回合成功。85K 字长度本身不是原因（探针：发送按钮存在且在视口内，未被转附件）；Sol 档位亦不是。
+
+后果：每次“失败”实际已把消息发到 ChatGPT（Provider effect 已发生），随后重试又发——账户里存在按重试次数重复的真实会话。修复 D2 后这些重试才会停止。
 
 ### 10.4 工单
 
@@ -283,4 +248,4 @@ same job_id + result + Runtime Outbox settled + Website result admission
 
 **WO-P2-2 用户回合正文选择（D2；待 U4）**：`exactGptUserPromptText` 的短 Prompt 候选改为“最内层 `.whitespace-pre-wrap`”（其后代不含 `.whitespace-pre-wrap`），唯一性/缺失/多义 fail-close 与 NBSP 投影不变；序列化器已含 `<code>`→反引号，不改。同一变更内改三处法条文义与 V45 版本级联、检查器 token `child.nodeType !== 1`、夹具（新增“行内 code 子元素→哈希等于还原后 Prompt”，保留“多个叶子→AMBIGUOUS”“零→MISSING”）。真实读回：对第 4 段会话只读得到与生产提示词哈希相等的值。
 
-**WO-P2-3 发送按钮出视口（D3；待设计）**：候选方向只有两类——Product/GPT 层控制 composer 不被撑出视口，或 Browser 在动作前做一次受总闸门约束的滚动。二者都要先证明生产窗口尺寸下确实出视口（同样需要 static-catalog 段与窗口尺寸），再裁决 Owner 与授权；本版不动代码。
+**WO-P2-3 发送按钮出视口（D3；待设计）**：候选方向只有两类——Product/GPT 层控制 composer 不被撑出视口，或 Browser 在动作前做一次受总闸门约束的滚动。二者都要先证明生产窗口尺寸下确实出视口（需要生产窗口尺寸），再裁决 Owner 与授权；它与 P0 无关，本版不动代码。
