@@ -7,6 +7,7 @@ import { inspectActivePluginGate } from "./components/scan-active-plugin-gate.js
 import { inspectBusinessRecoveryAuthorityBoundaries, inspectProductAcceptanceBoundaries } from "./components/scan-product-acceptance-boundaries.js";
 import { inspectProjectSources } from "./components/scan-project-sources.js";
 import { inspectRootAllowlist } from "./components/scan-root-allowlist.js";
+import { inspectTargetAuthorityBoundary } from "./components/scan-target-authority-boundary.js";
 import { inspectTypesContractRelations, inspectTypesContractRoot } from "./components/scan-types-contract-root.js";
 import { inspectConstitutionalBoundary } from "./constitutional-boundary-inspector.js";
 import { producerModePassed, recordStaticCheck, staticForbiddenClauses, staticEvidenceRefs, validateStaticInspection } from "../../shared/static-inspection-contract.js";
@@ -145,6 +146,11 @@ const inspectDomainEvaluation = async (context: InspectorContext): Promise<Inspe
       lawId,
       project: context.project,
     }));
+  recordStaticCheck({ check: "inspectTargetAuthorityBoundary", findings, implementation: inspectTargetAuthorityBoundary,
+    lawIds: [lawIds.targetAuthorityLawId], receipts: staticCheckReceipts,
+    run: () => inspectTargetAuthorityBoundary({
+      findings, inspectedFiles, lawId: lawIds.targetAuthorityLawId, project: context.project,
+    }) });
   run("inspectPublicKnowledgeImageOwnership", inspectPublicKnowledgeImageOwnership, () =>
     inspectPublicKnowledgeImageOwnership(context, findings, inspectedFiles, lawId));
   run("inspectTypesContractRoot", inspectTypesContractRoot, () => inspectTypesContractRoot({
@@ -175,10 +181,13 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
   const evaluation = await inspectDomainEvaluation(context);
   const lawId = context.planEntry.lawIds[0]!;
   const findings = evaluation.findings.filter((finding) => finding.lawId === lawId);
-  const refs = (mode: string, clauses: string[], checks: string[]) => ({
-    passed: producerModePassed(evaluation.staticCheckReceipts, lawId, checks),
-    refs: staticEvidenceRefs(context, lawId, mode, clauses, evaluation.staticCheckReceipts, checks),
+  const targetLawId = resolveArchitectureLawIds(context.planEntry).targetAuthorityLawId;
+  const targetFindings = evaluation.findings.filter((finding) => finding.lawId === targetLawId);
+  const refsFor = (owner: string, mode: string, clauses: string[], checks: string[]) => ({
+    passed: producerModePassed(evaluation.staticCheckReceipts, owner, checks),
+    refs: staticEvidenceRefs(context, owner, mode, clauses, evaluation.staticCheckReceipts, checks),
   });
+  const refs = (mode: string, clauses: string[], checks: string[]) => refsFor(lawId, mode, clauses, checks);
   return validateStaticInspection(context, {
     capabilityDomain: evaluation.capabilityDomain,
     reportedLawIds: evaluation.reportedLawIds,
@@ -187,7 +196,9 @@ export const inspectDomain = async (context: InspectorContext): Promise<SessionI
       { clauses: staticForbiddenClauses(0), evidenceMode: "static.dependency", ...refs("static.dependency", staticForbiddenClauses(0), ["inspectActivePluginGate"]) },
       { clauses: staticForbiddenClauses(6), evidenceMode: "static.filesystem", ...refs("static.filesystem", staticForbiddenClauses(6), ["inspectRootAllowlist"]) },
       { clauses: staticForbiddenClauses(7), evidenceMode: "static.types", ...refs("static.types", staticForbiddenClauses(7), ["inspectTypesContractRelations"]) },
-    ], findings }],
+    ], findings }, { lawId: targetLawId, assertions: [
+      { clauses: staticForbiddenClauses(0), evidenceMode: "static.ast", ...refsFor(targetLawId, "static.ast", staticForbiddenClauses(0), ["inspectTargetAuthorityBoundary"]) },
+    ], findings: targetFindings }],
     inspectedFiles: evaluation.inspectedFiles,
   });
 };

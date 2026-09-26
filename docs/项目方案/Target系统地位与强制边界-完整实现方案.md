@@ -4,7 +4,7 @@ scheme_id: TARGET_ROLE_AND_HARD_BOUNDARY_V1
 scheme_name: Target系统地位与强制边界
 status: 施工中-生产切换阻断
 created_at: 2026-09-25
-updated_at: 2026-09-25
+updated_at: 2026-09-26
 owner_repo: ADVISION-X/AGENT
 owner_domain: local-browser-session
 candidate_agent_head: 355800d0a6a0e1dc3448047a9213b10761b53b1a
@@ -848,6 +848,58 @@ same original job
 
 ---
 
+## WO-F：Target 权威边界冻结
+
+**Owner**：AGENT architecture-boundary（冻结条款、全库反复活扫描、mutant）。被保护的 Target 权威本身仍只属 local-browser-session，不迁移。
+
+**授权与范围**：授权人 2026-09-26 指令“论证成立则立即冻结”。冻结对象是 Target 的**宪法地位与禁止式不变量**，不是 Browser 子系统、不是任何文件的字节，也不改变 WO-X/CI-FULL/RELEASE 仍未完成的事实。Website 侧无改动（见下“裁决”）。
+
+### 对外部 GPT 审计意见的裁决（按现役事实复核）
+
+| 论点 | 现役事实 | 裁决 |
+| --- | --- | --- |
+| Target 不是恢复身份/attempt/result revision/风险资格 | 003-V44 forbidden#3/#16/#17、Runtime V73 forbidden#2 已成文；代码 `preflightTargetAcquisition` 不含 `expectedTargetRef` | 成立；已成文，**未**字节冻结 |
+| Target 不是 source handoff 依据 | V73 forbidden#6；`runtime-source-handoff.ts::assertV44SealedHandoff` 拒绝 5 个旧字段；Website `v6-source-readback-proof.ts` 精确键校验 + exam 注入 `old_target_ref_hash` | 成立；AGENT 侧仅 `old_path` 有拒绝测试 |
+| Target 不是容量/冷却/完成依据 | V73 forbidden#8、Website AI-ACC-012 forbidden#19 | 成立；已成文 |
+| 缺席语义：bound-observation 失败关闭且不建 Tab；其余 mode 建当前 Target | `extension-target-acquisition.ts`、`extension-target-authority.ts`；`local-browser-target-lifecycle-support.ts` 已有 closed-tab 动态正例 | 成立；**已有动态正例，无需新增行为码** |
+| 归零 token 分母 | 本方案 WO-QA 已列 11 项。现状：`expectedTargetRef`、`browser_target_claims` 仅在点名文件做 includes；`BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE`、`readUnreleasedTargetClaims`、`assertHistoricalTargetClaimCoverage` 无任何守卫；5 个 V44 旧字段在 `src/` 唯一合法出现处是 `assertV44SealedHandoff` 的 `Object.hasOwn` 拒绝字面量 | 成立；这是真缺口。**“归零”必须定义为：除该拒绝字面量外 `src/` 零出现**，朴素 grep-零会误杀现役拒绝校验 |
+| 三层冻结：法案 / 施工图 / 核心代码 | 现役唯一字节冻结机制是 `LAW-ARCHITECTURE-BOUNDARY-001-V17` forbidden#10 Tombstone + `architecture-boundary.acceptance.ts` sha256；同域已有全库 ts-morph 扫描与 mutant 先例 | 法案层、代码层成立并复用该机制；**施工图层不做 hash 冻结**（无真实消费者，Tombstone 先例亦不 hash 施工图，施工图从属法案）；代码层按“语义冻结”，不做文件字节冻结、不建保护文件清单 |
+| 提交 `c4a9ea66…` 与《玄学网站迭代分析记录.md》 | 两仓本地均不存在该提交/文件 | 无法核实；不作为任何冻结依据 |
+
+### 冻结三件套（复用现役 Tombstone 机制，零新机制）
+
+1. **法**：在 `功能法案.md` 的 architecture-boundary 域新增独立法条 `LAW-ARCHITECTURE-BOUNDARY-002-V1`（`supersedesLawId: null`，`dependsOnLawIds: []`），唯一一条 forbidden：`TARGET-AUTHORITY-BOUNDARY-001`。不修改任何现役法条，因而不触发既有法条升版与依赖级联；不写版本号进条款正文。`architecture-boundary` manifest 追加该 lawId。
+2. **扫描**：新增 `scripts/audit/domains/architecture-boundary/components/scan-target-authority-boundary.ts`，导出 `inspectTargetAuthorityBoundary`，在 `architecture-boundary/inspector.ts` 与 `inspectBusinessRecoveryAuthorityBoundaries` 并列接线，并为新法条追加独立 `lawResults`；`architecture-boundary-shared.ts` 的 `resolveArchitectureLawIds` 仅追加 `targetAuthorityLawId` 一个解析字段。语义：
+   - 分母 = `src/` 下全部 active 源文件；11 个 WO-QA 归零 token（`expectedTargetRef`、`BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE`、`browser_target_claims`、`readUnreleasedTargetClaims`、`allDispatchedTargetsSettled`、`assertHistoricalTargetClaimCoverage`、`old_target_ref_hash`、`old_document_ref_hash`、`old_path`、`browser_target_settled`、`target_settlement_hash`）任一出现即 `architecture/target-retired-authority-resurrected`。
+   - 唯一例外：后 5 个 V44 旧字段只允许在 `src/lib/local-runtime/production/runtime-source-handoff.ts` 的 `assertV44SealedHandoff` 内作为 `Object.hasOwn(_, "<token>")` 的字符串字面量出现；且这 5 个字面量必须**全部存在**，缺失即 `architecture/target-v44-reject-missing`（防止有人把拒绝校验静默删掉）。
+3. **mutant 与字节钉**：扩展 `scripts/acceptance/architecture-boundary.acceptance.ts`：紧随 Tombstone 钉增加新条款 sha256 钉；对真实树断言零 finding；再注入 6 个 mutant，均必须命中——新文件含 `expectedTargetRef`；字符串含 `browser_target_claims`；字符串含 `BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE`；他处对象字面量含 `old_target_ref_hash`；他处 `Object.hasOwn(x,"old_path")`；从真实 `runtime-source-handoff.ts` 删去 `target_settlement_hash` 拒绝项。并为新法条发 `exam.golden` 观察。
+
+### 施工落点与状态
+
+已于 2026-09-26 落在本地工作树：`功能法案.md`（新增 `LAW-ARCHITECTURE-BOUNDARY-002-V1`）、`scripts/audit/generated/law-registry.generated.json`（`audit:build` 重建）、`scan-target-authority-boundary.ts`、`architecture-boundary/inspector.ts`、`architecture-boundary-shared.ts`、`architecture-boundary/manifest.json`、`architecture-boundary.acceptance.ts`。仅为 CHANGE 级本地候选：未提交、未 READY、未 RELEASE。
+
+### 明确不做（删除审判结果）
+
+- Blueprint 逐字 hash 冻结：无真实消费者，且会制造与法案并行的第二冻结真相。
+- 核心代码文件 hash/保护文件清单：会把合法重构（如 Target-loss consumer 抽取）误判为宪法变更；代码层锁由全库分母承担。
+- 对 Runtime/Mediator 的“`target_ref` 词汇归零”：`src/mediator/product-plugin-contract.ts` 的 review issue 字段 `target_ref` 与 Target 无关，词汇扫描不可行；该职责继续由 V73 forbidden#6 与 `inspectRuntimeBrowserPrivateImports` 承担。
+- Website 改动：V44 校验为精确键集合，exam 已含旧字段注入负例，无缺口。
+- 新增行为代码：缺席语义已有动态正例。
+
+### 验收
+
+- 真实树：新扫描零 finding，`assertV44SealedHandoff` 5 个拒绝字面量全在。
+- 6 个 mutant 全部命中对应 checkId；原 Tombstone 钉与既有 mutant 不受影响。
+- `npm run audit:build`、`npm run audit:projection:check`、`npm run typecheck` 通过；`quality:check`（CHANGE）在 `GRASSEYE_LAW_AMENDMENT_AUTHORIZED=1` 下命中的 architecture-boundary 考试通过。以上均不等于 READY/RELEASE。
+- 解冻仪式：改动 `TARGET-AUTHORITY-BOUNDARY-001` 字节须授权人明确解冻；本条款被改则 sha256 钉失败。
+
+### 停止
+
+- 真实树扫描出现 `assertV44SealedHandoff` 以外的旧 token，说明存在未记录的旧 Target 消费者：停止冻结，先定位归属，不放宽例外。
+- 新法条无法满足静态/考试证据覆盖：不得靠放宽 evidenceModes 通过。
+
+---
+
 ## 8. 删除审判
 
 ### 8.1 必须物理删除
@@ -933,6 +985,7 @@ A2+A3+A4+A5+A6+A7
   -> QA AGENT
 W2 -> QW Website
 QA + QW -> X coordinated clean cut -> production business closure
+QA -> F Target 权威边界冻结（仅 AGENT，先于后续 Browser DOM / source-handoff 施工）
 ```
 
 任何 Work Order 不得越权顺手修其它 Product、Prompt、DOM、模型、业务 consumer 或历史数据问题。

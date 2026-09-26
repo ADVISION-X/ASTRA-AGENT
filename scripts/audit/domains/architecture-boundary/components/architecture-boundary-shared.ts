@@ -23,6 +23,7 @@ export type ArchitectureLawIds = {
   productionBoundaryLawId: string;
   intakeLawId: string;
   lawFirstChangeLawId: string;
+  targetAuthorityLawId: string;
 };
 
 export const isPrivateCapabilityPath = isPrivateCapabilityRuntimePath;
@@ -59,6 +60,9 @@ export const isPlannerScope = (repoPath: string): boolean =>
 
 export const resolveArchitectureLawIds = (planEntry: InspectorContext["planEntry"]): ArchitectureLawIds => {
   const lawId = planEntry.lawIds[0]!;
+  const targetAuthorityLawId = planEntry.lawIds.find((candidate) =>
+    candidate.startsWith("LAW-ARCHITECTURE-BOUNDARY-002-"));
+  if (!targetAuthorityLawId) throw new Error("LAW-ARCHITECTURE-BOUNDARY-002 must be part of the architecture-boundary plan.");
   return {
     singleLineLawId: lawId,
     rootLawId: lawId,
@@ -72,5 +76,6 @@ export const resolveArchitectureLawIds = (planEntry: InspectorContext["planEntry
     productionBoundaryLawId: lawId,
     intakeLawId: lawId,
     lawFirstChangeLawId: lawId,
+    targetAuthorityLawId,
   };
 };

@@ -17,19 +17,28 @@ import {
 import { inspectProductAcceptanceBoundaries } from "../audit/domains/architecture-boundary/components/scan-product-acceptance-boundaries.js";
 import { inspectBusinessRecoveryAuthorityBoundaries } from "../audit/domains/architecture-boundary/components/scan-product-acceptance-boundaries.js";
 import { inspectRuntimeBrowserPrivateImports } from "../audit/domains/architecture-boundary/components/scan-plugin-capability-boundaries.js";
+import { inspectTargetAuthorityBoundary } from "../audit/domains/architecture-boundary/components/scan-target-authority-boundary.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V17";
 const lawSource = readFileSync(".github/instructions/agent-rules/功能法案.md", "utf8");
-const activeLaw = [...lawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
-  .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden?: string[] })
-  .find((law) => law.lawId === lawId);
+const lawRecords = [...lawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
+  .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden?: string[] });
+const activeLaw = lawRecords.find((law) => law.lawId === lawId);
 const frozenTombstone = activeLaw?.forbidden?.find((clause) =>
   clause.includes("TOMBSTONE-RECOVERY-AUTHORITY-001"));
 assert.equal(createHash("sha256").update(frozenTombstone ?? "").digest("hex"),
   "9f36f80ee1b9af803bed7b3dde2b5145ab6e61b1fc79d469bff17d18da0ea53e",
   "the frozen anti-resurrection Tombstone clause must remain byte-exact");
 assert.match(frozenTombstone ?? "", /本Tombstone已按授权精确解冻替换并重新冻结；未来改变仍须授权人再次明确解冻并授权双仓同步替换/u);
+const targetLawId = "LAW-ARCHITECTURE-BOUNDARY-002-V1";
+const targetAuthorityLaw = lawRecords.find((law) => law.lawId === targetLawId);
+const frozenTargetAuthority = targetAuthorityLaw?.forbidden?.[0] ?? "";
+assert.equal(createHash("sha256").update(frozenTargetAuthority).digest("hex"),
+  "93376b0a18ae8f960b9a644b13ffbd6865f7fc99daddbbc512e85fccfd81d431",
+  "the frozen Target authority boundary clause must remain byte-exact");
+assert.match(frozenTargetAuthority, /TARGET-AUTHORITY-BOUNDARY-001 被违反/u);
+assert.match(frozenTargetAuthority, /未来改变仍须授权人再次明确解冻/u);
 const testDirectory = resolve("scripts/acceptance/product-plugins");
 const catalogIds = productionPluginCatalog.map((plugin) => plugin.pluginId).sort();
 const testIds = readdirSync(testDirectory)
@@ -100,6 +109,51 @@ for (const [filePath, checkId, source] of authorityBoundaryCases) {
     `${filePath} must emit ${checkId}`);
 }
 
+type TargetFindings = Parameters<typeof inspectTargetAuthorityBoundary>[0]["findings"];
+const targetHandoffPath = "src/lib/local-runtime/production/runtime-source-handoff.ts";
+const targetResurrectionCases: ReadonlyArray<readonly [string, string, string]> = [
+  ["src/lib/browser/chrome-extension/target-resurrection-mutant.ts", "architecture/target-retired-authority-resurrected",
+    "export const expectedTargetRef = 'sha256:x';"],
+  ["src/lib/browser/exact-target/target-claims-mutant.ts", "architecture/target-retired-authority-resurrected",
+    "export const persistentTargetLedger = 'browser_target_claims';"],
+  ["src/lib/browser/exact-target/target-old-instance-mutant.ts", "architecture/target-retired-authority-resurrected",
+    "export const code = 'BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE';"],
+  ["src/lib/local-runtime/production/target-old-field-mutant.ts", "architecture/target-retired-authority-resurrected",
+    "export const proof = { old_target_ref_hash: 'sha256:x' };"],
+  ["src/lib/local-runtime/production/target-old-reject-mutant.ts", "architecture/target-retired-authority-resurrected",
+    "export const reject = (value: object) => Object.hasOwn(value, 'old_path');"],
+];
+{
+  const lawId = targetLawId;
+  const project = new Project({ tsConfigFilePath });
+  let findings: TargetFindings = [];
+  const inspectedFiles = new Set<string>();
+  inspectTargetAuthorityBoundary({ findings, inspectedFiles, lawId, project });
+  assert.deepEqual(findings, [],
+    "the real tree must keep every retired Target token at zero outside the V44 reject-only validator");
+  for (const [filePath, , source] of targetResurrectionCases) project.createSourceFile(resolve(filePath), source);
+  findings = [];
+  inspectTargetAuthorityBoundary({ findings, inspectedFiles, lawId, project });
+  for (const [filePath, checkId] of targetResurrectionCases) {
+    assert.ok(findings.some((finding) => finding.checkId === checkId && finding.filePath === filePath),
+      `${filePath} must emit ${checkId}`);
+  }
+}
+{
+  const lawId = targetLawId;
+  const project = new Project({ tsConfigFilePath });
+  const handoff = project.getSourceFileOrThrow(resolve(targetHandoffPath));
+  const rejectItem = '\n    || Object.hasOwn(source, "target_settlement_hash")';
+  assert.ok(handoff.getFullText().includes(rejectItem), "the V44 validator must currently reject target_settlement_hash");
+  handoff.replaceWithText(handoff.getFullText().replace(rejectItem, ""));
+  const findings: TargetFindings = [];
+  const inspectedFiles = new Set<string>();
+  inspectTargetAuthorityBoundary({ findings, inspectedFiles, lawId, project });
+  assert.ok(findings.some((finding) => finding.checkId === "architecture/target-v44-reject-missing"
+    && finding.evidence === "target_settlement_hash"),
+  "silently deleting a V44 old-field rejection must fail");
+}
+
 {
   const project = new Project({ tsConfigFilePath });
   const sourceFile = project.createSourceFile(
@@ -125,3 +179,13 @@ emitQualityProofObservation({
   locator: "acceptance:architecture-boundary",
   observedValue: "The byte-exact frozen Tombstone remained present; Catalog and Capability Manifest identities matched independent Product acceptances; central Product-content mutants and Product, Runtime, and GPT cross-attempt business-recovery authority mutants were rejected while same-attempt mechanisms remained in production",
 });
+{
+  const lawId = targetLawId;
+  emitQualityProofObservation({
+    lawId,
+    evidenceMode: "exam.golden",
+    clauses: ["forbidden:0", "summary"],
+    locator: "acceptance:architecture-boundary",
+    observedValue: "The byte-exact frozen Target authority clause remained present, the real src tree kept every retired Target recovery token at zero outside the V44 reject-only validator, and five resurrection mutants plus one deleted V44 rejection were rejected.",
+  });
+}
