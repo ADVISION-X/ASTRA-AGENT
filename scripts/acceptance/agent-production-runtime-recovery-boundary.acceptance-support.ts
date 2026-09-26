@@ -19,6 +19,7 @@ const readRuntimeSource = (relativePath: string) => readFile(
 
 const WORKER_LOOP_DELAY_STATEMENT = "delay = Math.min(30_000, Math.max(1_000, delay * 2));";
 const WORKER_LOOP_WAIT_STATEMENT = "await wait(delay, state.abort.signal);";
+const WORKER_LOOP_ITERATION_STATEMENT = "delay = await workerIteration(state);";
 
 const inspectRuntimeSources = (project: Project, queryRef: string) => {
   const findings: Parameters<typeof inspectAgentProductionRuntime>[1] = [];
@@ -89,6 +90,21 @@ const exerciseWorkerLoopStopMutants = async (): Promise<void> => {
   assert.deepEqual(violationsOf(loopsText), []);
   const inCatch = (statement: string): string =>
     loopsText.replace(WORKER_LOOP_DELAY_STATEMENT, `${WORKER_LOOP_DELAY_STATEMENT}\n      ${statement}`);
+  const inTry = (statement: string): string =>
+    loopsText.replace(WORKER_LOOP_ITERATION_STATEMENT, `${WORKER_LOOP_ITERATION_STATEMENT}\n      ${statement}`);
+  const benign: ReadonlyArray<readonly [string, string]> = [
+    ["a diagnostic log call in the catch", inCatch("logWorkerFailure(error);")],
+    ["a metrics call in the catch", inCatch('metrics.increment("worker.iteration_failed");')],
+    ["a callback with its own return in the catch", inCatch("[1].forEach((count) => { return count; });")],
+    ["an inner loop that breaks in the try", inTry("for (const item of []) { if (item) break; }")],
+    ["a throw that stays inside the try", inTry('if (state === undefined) throw new Error("caught by the catch");')],
+    ["a statement after the bounded wait",
+      loopsText.replace(WORKER_LOOP_WAIT_STATEMENT, `${WORKER_LOOP_WAIT_STATEMENT}\n    state.lastHeartbeat = state.lastHeartbeat;`)],
+  ];
+  for (const [label, text] of benign) {
+    assert.notEqual(text, loopsText, `${label} must actually change runtime-loops.ts`);
+    assert.deepEqual(violationsOf(text), [], `${label} does not change the control flow and must not be frozen`);
+  }
   const mutants: ReadonlyArray<readonly [string, string]> = [
     ["a return in the catch", inCatch("return;")],
     ["a break in the catch", inCatch("break;")],
@@ -96,6 +112,10 @@ const exerciseWorkerLoopStopMutants = async (): Promise<void> => {
     ["a rethrow in the catch", inCatch("throw error;")],
     ["an unauthorised abort in the catch", inCatch("state.abort.abort();")],
     ["a stop flag in the catch", inCatch("state.stopped = true;")],
+    ["a draining flag in the catch", inCatch("state.draining = true;")],
+    ["a process exit in the catch", inCatch("process.exit(1);")],
+    ["a return on the success path", inTry("if (delay > 0) return;")],
+    ["a continue that skips the wait", inTry("if (delay > 0) continue;")],
     ["a workerLoop without its bounded wait", loopsText.replace(WORKER_LOOP_WAIT_STATEMENT, "")],
     ["an unbounded delay", loopsText.replace(WORKER_LOOP_DELAY_STATEMENT, "delay = delay * 2;")],
     ["a raised delay ceiling", loopsText.replace(WORKER_LOOP_DELAY_STATEMENT,

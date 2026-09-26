@@ -6,9 +6,9 @@ import { LAWS, sourceFor } from "./contract-inspection.js";
 
 const RUNTIME_LOOPS = "src/lib/local-runtime/production/runtime-loops.ts";
 const BACKOFF_CEILING_MS = 30_000;
-const CATCH_MAY_ASSIGN = new Set(["state.lastErrorCode", "state.lastErrorReason", "delay"]);
-const LOOP_EXITS = [SyntaxKind.ReturnStatement, SyntaxKind.BreakStatement,
-  SyntaxKind.ContinueStatement, SyntaxKind.ThrowStatement] as const;
+const STOP_FLAGS = new Set(["state.stopped", "state.draining"]);
+const BREAKABLE = new Set([SyntaxKind.WhileStatement, SyntaxKind.DoStatement, SyntaxKind.ForStatement,
+  SyntaxKind.ForInStatement, SyntaxKind.ForOfStatement, SyntaxKind.SwitchStatement]);
 
 const assignment = (node: Node | undefined): Readonly<{ left: string; right: Node }> | undefined => {
   const expression = Node.isExpressionStatement(node) ? node.getExpression() : node;
@@ -29,34 +29,59 @@ const isBoundedDelay = (right: Node): boolean => {
   return Node.isNumericLiteral(ceiling) && Number(ceiling.getLiteralValue()) <= BACKOFF_CEILING_MS;
 };
 
-/** An ordinary iteration failure only records the error and waits a bounded time; solely the abort signal may end the loop. */
+/** Whether a break/continue leaves or skips the worker loop itself rather than an inner loop or switch. */
+const targetsWorkerLoop = (statement: Node, loop: Node): boolean => {
+  if ((Node.isBreakStatement(statement) || Node.isContinueStatement(statement)) && statement.getLabel()) return true;
+  const isBreak = Node.isBreakStatement(statement);
+  const target = statement.getFirstAncestor((ancestor) => BREAKABLE.has(ancestor.getKind())
+    && (isBreak || ancestor.getKind() !== SyntaxKind.SwitchStatement));
+  return target === loop;
+};
+
+/**
+ * Control-flow negative guard: an ordinary iteration failure must neither end the loop, skip its bounded wait
+ * nor stop the Runtime. What else a catch does (logging, metrics, diagnostics) is not frozen.
+ */
 export const workerLoopStopViolations = (workerLoop: Node | undefined): readonly string[] => {
   if (!workerLoop) return ["workerLoop is missing"];
-  const violations: string[] = [];
-  if (LOOP_EXITS.some((kind) => workerLoop.getDescendantsOfKind(kind).length > 0)) {
-    violations.push("workerLoop contains a return, break, continue or throw that can end or skip its bounded wait");
-  }
-  const loops = workerLoop.getDescendantsOfKind(SyntaxKind.WhileStatement);
+  const own = (node: Node): boolean => node.getFirstAncestor((ancestor) => Node.isFunctionLikeDeclaration(ancestor)) === workerLoop;
+  const loops = workerLoop.getDescendantsOfKind(SyntaxKind.WhileStatement).filter(own);
   const loop = loops[0];
   if (loops.length !== 1 || !loop || loop.getExpression().getText() !== "!state.abort.signal.aborted") {
-    return [...violations, "workerLoop must be exactly one while loop ended only by the abort signal"];
+    return ["workerLoop must be exactly one while loop ended only by the abort signal"];
   }
+  const violations: string[] = [];
   const body = loop.getStatement();
-  const [attempt, waited, ...rest] = Node.isBlock(body) ? body.getStatements() : [];
-  if (!Node.isTryStatement(attempt) || !isBoundedWait(waited) || rest.length > 0) {
-    return [...violations, "each workerLoop pass must be one try/catch followed by the bounded wait"];
+  const statements = Node.isBlock(body) ? body.getStatements() : [];
+  const attemptIndex = statements.findIndex((statement) => Node.isTryStatement(statement));
+  const attempt = statements[attemptIndex];
+  if (!Node.isTryStatement(attempt) || !attempt.getCatchClause()
+    || statements.findIndex(isBoundedWait) <= attemptIndex) {
+    return ["each workerLoop pass must run a try/catch and then reach the bounded wait unconditionally"];
   }
-  const iterated = attempt.getTryBlock().getStatements().map(assignment);
+  const tryBlock = attempt.getTryBlock();
+  if (workerLoop.getDescendantsOfKind(SyntaxKind.ReturnStatement).some(own)) {
+    violations.push("workerLoop returns, which ends the loop without the abort signal");
+  }
+  const exits = [...workerLoop.getDescendantsOfKind(SyntaxKind.BreakStatement),
+    ...workerLoop.getDescendantsOfKind(SyntaxKind.ContinueStatement)]
+    .filter((statement) => own(statement) && targetsWorkerLoop(statement, loop));
+  if (exits.length) violations.push("workerLoop breaks or continues its own loop, which ends it or skips the bounded wait");
+  if (workerLoop.getDescendantsOfKind(SyntaxKind.ThrowStatement)
+    .some((statement) => own(statement) && !statement.getAncestors().includes(tryBlock))) {
+    violations.push("workerLoop throws outside the try block, which escapes the loop");
+  }
+  const stops = workerLoop.getDescendants().filter((node) => own(node) && (
+    (Node.isCallExpression(node) && /(?:^|\.)abort$|^process\.exit$/u.test(node.getExpression().getText()))
+    || (Node.isBinaryExpression(node) && node.getOperatorToken().getKind() === SyntaxKind.EqualsToken
+      && STOP_FLAGS.has(node.getLeft().getText()))));
+  if (stops.length) violations.push("workerLoop aborts or stops the Runtime itself instead of leaving that to shutdown");
+  const iterated = tryBlock.getStatements().map(assignment);
   if (!iterated.some((entry) => entry?.left === "delay" && entry.right.getText() === "await workerIteration(state)")) {
     violations.push("the workerLoop try block must run workerIteration");
   }
-  const handler = attempt.getCatchClause()?.getBlock().getStatements() ?? [];
-  const recorded = handler.map(assignment);
-  if (attempt.getFinallyBlock() || !handler.length
-    || recorded.some((entry) => entry === undefined || !CATCH_MAY_ASSIGN.has(entry.left))) {
-    violations.push("the workerLoop catch may only record the error and set the next delay");
-  }
-  if (!recorded.some((entry) => entry?.left === "delay" && isBoundedDelay(entry.right))) {
+  const handler = attempt.getCatchClause()?.getBlock().getStatements().map(assignment) ?? [];
+  if (!handler.some((entry) => entry?.left === "delay" && isBoundedDelay(entry.right))) {
     violations.push(`the workerLoop catch must set a delay capped at ${BACKOFF_CEILING_MS}ms`);
   }
   return violations;
