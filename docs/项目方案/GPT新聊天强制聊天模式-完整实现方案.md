@@ -2,13 +2,13 @@
 document_type: project_scheme
 scheme_id: GPT_PAGE_DOM_MINIMUM_FACT_REDUCTION
 scheme_name: GPT页面DOM：submit 候选缺失诊断（P0）与最少充分事实减法（P1）
-status: 设计阻断（P0 缺现场 DOM 事实并待授权 U1；P1 的 WO-P1-1/P1-3 待授权 U2，WO-P1-2/P1-4 不受 U2 阻断）
+status: 设计阻断（P0 缺生产窗口现场事实；P1 的 WO-P1-1/P1-3 待授权 U2；P2 的 WO-P2-2 待授权 U4、WO-P2-3 待设计；WO-P1-2/P1-4/P2-1 不受阻断）
 created_at: 2026-09-25
 updated_at: 2026-09-26
 owner_repo: ADVISION-X/AGENT
 owner_domain: gpt
 candidate_branch: main
-candidate_agent_head: 5359d497cb80f20676f4a05bfb30aacc429dda5e
+candidate_agent_head: 73dee43c4dd2b3ff35deab434fc69855e3ad5963
 production_semantic_baseline: a66c3d2d0b9282d3ff029e5227d3976baa65b15a
 scheme_head_before_this_revision: c3d81c1df8d64139a5c9ed889da48119148c8f10
 scheme_blob_before_this_revision: f28cc400733dc79271604256244df2a8b3e23833
@@ -195,6 +195,8 @@ Child id、Product action ordinal、Website wire、Provider effect identity 不�
 | **U1** | 采用 WO-P0-1 的 A（诊断修复，含一次真实重跑）、B（只读现场采集）或两者 | P0 全部 |
 | **U2** | 解冻拓扑图 G03/G07/G08 与对应 Blueprint 句（G16 冻结句不改） | 仅 WO-P1-1、WO-P1-3 |
 | U3 | （暂不申请） | 删“模型列表关闭” |
+| **U4** | 修改 `LAW-LOCAL-BROWSER-SESSION-003-V44` 中“短 Prompt 恰好一个**无元素子节点** `.whitespace-pre-wrap` 叶子”的三处文义（`功能法案.md:1087/1097/1165`）：改为“恰好一个最内层 `.whitespace-pre-wrap`（其后代不再含 `.whitespace-pre-wrap`，允许含行内 code 等元素）”；升 V45 并同步被依赖法条/Manifest/检查器版本字面量，需 `GRASSEYE_LAW_AMENDMENT_AUTHORIZED=1` | 仅 WO-P2-2 |
+| U5 | （待 WO-P2-3 设计后再申请，可能不需要） | WO-P2-3 |
 
 **候选绑定（W0）**：AGENT `main@5359d497c`（= origin/main）；`src/capabilities/gpt/children/**` 与 `src/lib/browser/**` 相对 `a66c3d2d0` **无差异**，两者之间仅 `gpt-proof.acceptance.ts`、新增 `gpt-rate-limit-closure.acceptance-support.ts`、`runtime-loops.ts`、若干验收支持文件与 `gpt-provider-contract-inspection.ts:78` 一个 token。Website `01664ae85`（干净）。Runtime/Website 侧无改动。施工前只重算 §4.4 所列路径及其直接 authority/质检依赖。
 
@@ -247,4 +249,38 @@ same job_id + result + Runtime Outbox settled + Website result admission
 - 代码：P0 缺现场事实；P1 精确删除范围已锁定。
 - 质检：只反转现有断言，不新增质量系统。
 - Website：0 生产改动。新持久结构：0。
-- 状态：**设计阻断**——P0 待 U1 与现场事实；P1 中 WO-P1-2/P1-4 不受阻断，WO-P1-1/P1-3 待 U2。
+- 状态：**设计阻断**——P0 待生产窗口现场事实；P1 中 WO-P1-2/P1-4 不受阻断，WO-P1-1/P1-3 待 U2；P2 中 WO-P2-1 不受阻断，WO-P2-2 待 U4，WO-P2-3 待设计。
+
+## 10. P2：真实页面采集实证的 DOM 对齐缺陷（2026-09-26，独立账）
+
+### 10.1 证据与口径
+
+授权人明确要求用真实页面采集定位子能力信息错误。采集在本机内置浏览器新开标签页完成：SEO 研究→文章→图片→ZH-HK 翻译共 4 次真实发送（U1 的 B 项实际已执行；发送前均先用生产 `COHERENT_CANDIDATE_FUNCTION` 通过 exact outgoing 校验）。页面函数为生产同一份源码逐字展开，读取项直接取各 Child `selectors.ts` 导出常量；Child 源码摘要 `sha256:8fce503740ac…`。采集产物只在本机（`.claude/skills/gpt-page-capture/runs/0926-real/`，gitignored），本方案只引用其中已用页面 DOM 逐条核对过的因果。数字口径：WAL 最近 13 次 submit REJECTED 中 12 次属 `static-catalog:*` 步骤、1 次 `article_synthesis`。
+
+### 10.2 缺陷与裁决
+
+| # | 现场事实（真实 DOM） | 现役位置 | 授权 |
+|---|---|---|---|
+| D1 图片来源不可发现 | 生成图片位于 `button[data-testid=generated-image-preview]`→`div[data-testid=generated-image-gallery]`→`div[data-chatgpt-search-message-ids=<助手 UUID>]`，与用户单元同处一个 `[data-turn-key]` 容器；该回合内 `[data-chatgpt-selection-message-id]` 为 0。生产页面表达式返回 `BROWSER_AUTHENTICATED_MEDIA_IMAGE_SOURCE_ABSENT`，永远等不到图片（页面上图片 1672×941 可见） | `src/lib/browser/chrome-extension/authenticated-media-runtime.ts:36-38` | 无（冻结条款 `FROZEN-GPT-IMAGE-SOURCE-EVENT-WAIT-001` 未规定助手 id 来源） |
+| D2 含行内代码的提示词，提交后读取用户回合失败 | 提示词含反引号时，用户气泡内无 `collapsible-user-message-content`，唯一 `.whitespace-pre-wrap` 含 22 个 `<code>` 子元素；用生产同一序列化（`<code>`→反引号）还原后哈希与生产提示词哈希**逐字相等**。`exactGptUserPromptText` 只认无元素子节点叶子，得 0 候选，抛 `BROWSER_DOM_CANDIDATE_MISSING`。前 3 段提示词无反引号，同一读取成功；本地化 SKILL 提示词含反引号 | `dom-coherent-observation.ts:81-86`；法条 `功能法案.md:1087/1097/1165`（`LAW-LOCAL-BROWSER-SESSION-003-V44`）与检查器 token `dom-mechanical-facts-inspection.ts:190-193` | **U4**（现役法条明文写了“无元素子节点”） |
+| D3 发送按钮出视口 | 新会话根页 + 4 个附件 + 4578 字提示词：composer form 高 560，发送按钮底边超出视口 52px，生产候选函数返回 `BROWSER_DOM_ACTION_OUTSIDE_VIEWPORT`；主容器滚动后通过。生产提交路径无“滚动到可见”步骤。前 3 段（≤1 附件）按钮在视口内，通过 | `dom-coherent-candidate.ts`（viewport 判据）、`dom-pointer-intent-runtime.ts`（无滚动） | 待设计：滚动属改变页面的物理动作，需过 Browser Authority 总闸门；先出方案再判 U5 |
+
+### 10.3 对 P0 的更新（不得当作已修）
+
+- 采集环境中，submit 点击前候选检查：H1（`GPT_SEND_SELECTOR` 与页面不符）**不成立**（按钮 `type=submit aria-label=发送`，唯一、可见、未 disabled）；H2（写入后编辑器无内容）**不成立**（composer 哈希精确、按钮已渲染）；profile 用 Sol+推理 5（被 `Math.min(requested,maximum)` 限到 3）时亦无残留 `aria-hidden/inert`。
+- D2、D3 不能解释生产的“点击前、0 次物理输入、`CANDIDATE_MISSING`”：D2 发生在点击后的观察，D3 的码是 `OUTSIDE_VIEWPORT`。P0 仍缺**生产窗口**（`static-catalog`）的现场事实，采集需新增一段静态目录真实发送；在此之前不猜修 submit。
+
+### 10.4 工单
+
+**WO-P2-1 图片来源身份（D1；无需授权；可直接施工）**
+
+- 唯一 Owner：`local-browser-session` 的 authenticated-media observation；唯一消费者 `checkpoint_gpt_generated_image/handler.ts:56` 的 `media.assistantTurnId`（进入 `checkpoint` 值，Product `seo-image-call` 沿用）。
+- 唯一动作：助手回合 id 改由图片最近祖先 `[data-chatgpt-search-message-ids]` 提供，且必须是单个 UUID；不再要求 `[data-chatgpt-selection-message-id]`。范围（exact `userTurnId` 起至下一个 user turn 止）、跳过用户单元内图片、5000ms 单次 observer、按 `currentSrc/src` 与内容 hash 去重、体积/类型校验一律不动。
+- 允许路径：`src/lib/browser/chrome-extension/authenticated-media-runtime.ts`；`scripts/acceptance/local-browser-authenticated-media-support.ts`。
+- 验收：夹具加真实结构（图片与用户单元同处一个 turn 容器、无 selection-message-id、最近祖先带 message-ids）→ 成功且 `assistantTurnId` 等于该祖先 id；反例（祖先无 message-ids）→ `IMAGE_SOURCE_ABSENT`；既有失败反例保持。旧夹具中对 `selection-message-id` 的建模**物理删除**，零残留（`grep selection-message-id` 只允许出现在 `dom-exact-assistant-turn.ts` 及其夹具，文本回答链）。真实读回（已取得）：对本次第 3 段真实会话只读执行改后表达式，得到助手 UUID、`image/png`、2866004 字节、内容唯一。
+- 删除反事实：不要 UUID 校验则 `assistantTurnId` 可为空，`checkpoint` 值缺身份；保留。
+- 非目标：不改文本回答读取（`dom-exact-assistant-turn.ts` 已对真实 DOM 有效）、不新增 fallback/第二发现路径。
+
+**WO-P2-2 用户回合正文选择（D2；待 U4）**：`exactGptUserPromptText` 的短 Prompt 候选改为“最内层 `.whitespace-pre-wrap`”（其后代不含 `.whitespace-pre-wrap`），唯一性/缺失/多义 fail-close 与 NBSP 投影不变；序列化器已含 `<code>`→反引号，不改。同一变更内改三处法条文义与 V45 版本级联、检查器 token `child.nodeType !== 1`、夹具（新增“行内 code 子元素→哈希等于还原后 Prompt”，保留“多个叶子→AMBIGUOUS”“零→MISSING”）。真实读回：对第 4 段会话只读得到与生产提示词哈希相等的值。
+
+**WO-P2-3 发送按钮出视口（D3；待设计）**：候选方向只有两类——Product/GPT 层控制 composer 不被撑出视口，或 Browser 在动作前做一次受总闸门约束的滚动。二者都要先证明生产窗口尺寸下确实出视口（同样需要 static-catalog 段与窗口尺寸），再裁决 Owner 与授权；本版不动代码。

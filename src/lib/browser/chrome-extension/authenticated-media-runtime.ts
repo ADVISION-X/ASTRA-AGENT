@@ -33,8 +33,8 @@ const mediaSourceDiscoveryExpression = (canonicalConversationUrl: string, userTu
         if (turn !== users[0] && turn.querySelectorAll("[data-chatgpt-search-unit-key$=':user']").length > 0) break;
         for (const image of turn.querySelectorAll("img")) {
           if (image.closest("[data-chatgpt-search-unit-key$=':user']")) continue;
-          const assistantTurnId = image.closest("[data-chatgpt-selection-message-id]")
-            ?.getAttribute("data-chatgpt-selection-message-id") || "";
+          const assistantTurnId = image.closest("[data-chatgpt-search-message-ids]")
+            ?.getAttribute("data-chatgpt-search-message-ids") || "";
           if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(assistantTurnId)) continue;
           const source = image.currentSrc || image.src || "";
           if (source && !sourceOwners.has(source)) sourceOwners.set(source, assistantTurnId);

@@ -6,12 +6,15 @@ import type { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-exte
 import { GPT_WEB_ORIGIN } from "../../src/lib/browser/exact-target/browser-site-policy-registry.js";
 
 type Runtime = (expression: string) => Promise<unknown>;
+const assistantMessageId = "00000000-0000-4000-8000-000000000006";
 class TestImage {
   public readonly currentSrc: string;
-  public constructor(public readonly src: string) { this.currentSrc = src; }
+  public constructor(public readonly src: string, private readonly owner: string | null = assistantMessageId) {
+    this.currentSrc = src;
+  }
   public closest(selector: string) {
-    return selector === "[data-chatgpt-selection-message-id]"
-      ? { getAttribute: () => "00000000-0000-4000-8000-000000000006" } : null;
+    return selector === "[data-chatgpt-search-message-ids]" && this.owner !== null
+      ? { getAttribute: () => this.owner } : null;
   }
 }
 class TestTurn {
@@ -37,6 +40,8 @@ const command = {
 const user = () => new TestTurn(command.userTurnId, true);
 const response = (images: readonly TestImage[]) =>
   new TestTurn("00000000-0000-4000-8000-000000000006", false, images);
+/** Real ChatGPT DOM: the generated image lives inside the same turn container as the user unit. */
+const sameTurn = (images: readonly TestImage[]) => new TestTurn(command.userTurnId, true, images);
 
 const runtime = (input: Readonly<{
   turns: readonly TestTurn[];
@@ -123,6 +128,10 @@ const exerciseMediaSuccess = async (
     `sha256:${createHash("sha256").update(input.targetRef).digest("hex")}`);
   assert.equal(authenticated.authorityDocumentHash,
     `sha256:${createHash("sha256").update(input.documentRef).digest("hex")}`);
+  input.setRuntime(runtime({ turns: [sameTurn([first, second])], bytes }));
+  const sameContainer = await execute(input, authority) as Record<string, unknown>;
+  assert.equal(sameContainer.assistantTurnId, assistantMessageId,
+    "an image inside the user's turn container takes its assistant id from data-chatgpt-search-message-ids");
   const observationCount = { value: 0 };
   input.setRuntime(runtime({ turns: [user(), response([])],
     turnsAfterObserve: [user(), response([first])], observationCount, bytes }));
@@ -150,6 +159,9 @@ const exerciseMediaFailures = async (
     await assert.rejects(execute(input, authority),
       /BROWSER_AUTHENTICATED_MEDIA_(?:USER_TURN|IMAGE_SOURCE)_ABSENT/u);
   }
+  input.setRuntime(runtime({ turns: [sameTurn([new TestImage(`${GPT_WEB_ORIGIN}/content/a`, null)])] }));
+  await assert.rejects(execute(input, authority), /BROWSER_AUTHENTICATED_MEDIA_IMAGE_SOURCE_ABSENT/u,
+    "an image without an assistant message id owner is not a generated-image source");
   input.setRuntime(runtime({ turns: [user(), user(), response([first])] }));
   await assert.rejects(execute(input, authority),
     /BROWSER_AUTHENTICATED_MEDIA_USER_TURN_MULTIPLE/u);
