@@ -194,8 +194,9 @@ const inspectWebsiteAttemptLifecycle = (context: InspectorContext, findings: Ins
     Boolean(taskStateClass?.getMethod("discardStagedResult")),
     /ATTEMPT_ENDED|PRODUCTION_OUTBOX_ATTEMPT_ENDED/u.test(forbiddenLifecycleVerdict),
     !websiteAttemptSupersession?.hasModifier(SyntaxKind.PrivateKeyword),
-    supersessionOwners.length !== 1,
-    supersessionOwners.sort().join(",") !== "acceptTaskAfterSourceHandoff",
+    supersessionOwners.sort().join(",") !== "acceptTaskAfterSourceHandoff,closeAttemptRefusedByWebsite",
+    !variableDeclaration(businessAdmission, "websiteRefusedStagedResult")?.getText()
+      .includes("payload_hash === hashCanonical(record.staged_result)"),
     Boolean(websiteAttemptRelease),
     !acceptAfterHandoff?.getText().includes("current_attempt_id !== archived.source_attempt_id"),
     !acceptAfterHandoff?.getText().includes("archived.sealed_at === null"),

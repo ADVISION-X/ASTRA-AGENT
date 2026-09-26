@@ -11,6 +11,7 @@ import {
   json,
   now,
   storedTaskFromRow,
+  terminalBodyAttemptId,
   type StoredProductionTask,
   type ProductionOutboxAuthorityRow,
   type TaskRow,
@@ -69,6 +70,35 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
     ).run(jobPathMarker(jobId));
     this.notifyOutbox(null);
     return changed.changes;
+  }
+
+  /** The Website ended this attempt by refusing its delivered result: only its terminal row is left, the stage is gone. */
+  public attemptClosedByWebsite(jobId: string, attemptId: string): boolean {
+    const task = this.readTask(jobId);
+    if (task?.status !== "failed" || task.current_attempt_id !== attemptId
+      || task.staged_result !== null || task.attempt_failure) return false;
+    const terminals = this.database.prepare(`select body_blob from production_outbox
+      where instr(path,?)>0 and kind='terminal'`).all(jobPathMarker(jobId)) as Array<{ body_blob: Buffer }>;
+    return terminals.some((row) => terminalBodyAttemptId(row.body_blob) === attemptId);
+  }
+
+  /** Obey the Website's refusal: drop the dead candidate so its seat is freed and a fresh attempt can replace it. */
+  public closeAttemptRefusedByWebsite(jobId: string, attemptId: string, stagedHash: `sha256:${string}`): void {
+    this.database.transaction(() => {
+      const task = this.readTask(jobId);
+      const changed = task?.status === "failed" && task.current_attempt_id === attemptId
+        && !task.attempt_failure && task.staged_result !== null
+        && hashCanonical(task.staged_result) === stagedHash
+        ? this.database.prepare(`update production_tasks
+            set staged_result_json=null,current_reason='WEBSITE_REFUSED_RESULT',updated_at=?
+          where job_id=? and status='failed' and current_attempt_id=? and staged_result_json is not null`)
+          .run(now(), jobId, attemptId)
+        : null;
+      if (changed?.changes !== 1) {
+        throw executionFailure("failed", "PRODUCTION_REFUSED_RESULT_CLOSE_CONFLICT");
+      }
+      this.supersedeUnsentWritesForWebsiteAttempt(jobId);
+    })();
   }
 
   public acceptTaskAfterSourceHandoff(
@@ -152,7 +182,18 @@ export abstract class ProductionStoreTaskState extends ProductionStoreSourceRead
         return this.readTask(task.job_id)!;
       }
       if (existing.status === "failed") {
-        throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_REQUIRED");
+        if (!this.attemptClosedByWebsite(task.job_id, existing.current_attempt_id)) {
+          throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_REQUIRED");
+        }
+        const replaced = this.database.prepare(`update production_tasks
+          set current_attempt_id=?,current_reason='LEASE_GRANTED',updated_at=?
+          where job_id=? and status='failed' and current_attempt_id=? and staged_result_json is null`).run(
+          attemptId, now(), task.job_id, existing.current_attempt_id,
+        );
+        if (replaced.changes !== 1) {
+          throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_REQUIRED");
+        }
+        return this.readTask(task.job_id)!;
       }
       throw executionFailure("failed", "PRODUCTION_TASK_IDENTITY_CONFLICT");
     }

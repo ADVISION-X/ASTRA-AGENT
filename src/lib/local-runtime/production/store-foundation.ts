@@ -69,6 +69,17 @@ export type ProductionOutboxAuthorityRow = Readonly<{
 export const now = (): string => new Date().toISOString();
 export const json = (value: unknown): string => JSON.stringify(value);
 
+/** The attempt a queued terminal body belongs to; a corrupt body has none and stays an unresolved candidate. */
+export const terminalBodyAttemptId = (body: Buffer): string | null => {
+  try {
+    const parsed: unknown = JSON.parse(body.toString("utf8"));
+    return typeof parsed === "object" && parsed !== null && "attempt_id" in parsed
+      && typeof parsed.attempt_id === "string" && parsed.attempt_id.length > 0 ? parsed.attempt_id : null;
+  } catch {
+    return null;
+  }
+};
+
 const validSerializedCause = (cause: unknown): boolean => cause === null || (
   Boolean(cause) && typeof cause === "object" && !Array.isArray(cause)
   && JSON.stringify(Object.keys(cause as Record<string, unknown>).sort()) === JSON.stringify(["code", "name"])

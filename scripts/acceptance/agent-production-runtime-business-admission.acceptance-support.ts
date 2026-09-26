@@ -13,7 +13,7 @@ import { businessInFlightCount, claimReusesExistingBusinessSlot,
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { readProductionOperationsSnapshot } from "../../src/lib/local-runtime/production/operations-snapshot.js";
 import {
-  HASH_A, HASH_B, admissionReceiptFor, attemptFailureFirstFact, claimTask, deviceStatusWithAdmission,
+  HASH_A, HASH_B, HASH_C, admissionReceiptFor, attemptFailureFirstFact, claimTask, deviceStatusWithAdmission,
   deviceStatusWithoutAdmission, resultFor, stageResultForAcceptance, task,
 } from "./agent-production-runtime-fixtures.js";
 
@@ -373,6 +373,68 @@ const exercisePendingAdmission = async (
   return pending;
 };
 
+const withTerminalReceipt = (jobId: string, payloadHash: string) => {
+  const base = deviceStatusWithoutAdmission(jobId, false, "WAIT_NEW_ATTEMPT");
+  return { request: async () => ({ ...(await base.request()), write_receipts: [{
+    request_id: `receipt:${jobId}`, write_kind: "terminal", payload_hash: HASH_A,
+    response_json: { payload_hash: payloadHash } }] }) } as never;
+};
+
+const exerciseWebsiteRefusedResult = async (
+  admissionTemporary: string, productionTask: ReturnType<typeof task>,
+): Promise<void> => {
+  const refusedDir = path.join(admissionTemporary, "refused");
+  await mkdir(refusedDir);
+  const store = new ProductionRuntimeStore(refusedDir);
+  const refused = task({ jobId: "job:refused:domain",
+    productId: productionTask.product_id, actionId: productionTask.action_id,
+    materialRefs: productionTask.material_refs, extra: { parameters: productionTask.parameters } });
+  const staged = resultFor(refused);
+  store.acceptTask(refused, "attempt:refused-1");
+  store.markExecuting(refused.job_id);
+  stageResultForAcceptance(store, refused.job_id, "attempt:refused-1", staged);
+  const state = (session: never) => ({ store, session, active: new Map() }) as never;
+  await reconcileBusinessAdmission(state(withTerminalReceipt(refused.job_id, HASH_C)),
+    store.readTask(refused.job_id)!);
+  assert.deepEqual(store.readTask(refused.job_id)?.staged_result, staged,
+    "a Website terminal receipt for a different result cannot make this result refused");
+  const before = businessInFlightCount({ active: new Map(), store } as never);
+  await reconcileBusinessAdmission(state(withTerminalReceipt(refused.job_id, hashCanonical(staged))),
+    store.readTask(refused.job_id)!);
+  assert.equal(store.readTask(refused.job_id)?.staged_result, null,
+    "the Website signed this exact result yet reports no terminal: its refusal drops the dead candidate");
+  assert.equal(store.readTask(refused.job_id)?.current_reason, "WEBSITE_REFUSED_RESULT");
+  assert.equal(store.attemptClosedByWebsite(refused.job_id, "attempt:refused-1"), true);
+  assert.equal(businessInFlightCount({ active: new Map(), store } as never), before - 1,
+    "a refused result releases its business seat immediately");
+  assert.equal(store.pendingBusinessAdmissions().some((row) => row.task.job_id === refused.job_id), false);
+  assert.equal(store.isLedgerConsistent(new Set()), true, "a refused attempt leaves a consistent ledger");
+  assert.equal(store.acceptTask(refused, "attempt:refused-2").current_attempt_id, "attempt:refused-2",
+    "the Website's new attempt replaces the refused one without a source seal");
+  assert.equal(store.attemptClosedByWebsite(refused.job_id, "attempt:refused-2"), false);
+  store.assertStartupDataIntegrity();
+  store.markExecuting(refused.job_id);
+  stageResultForAcceptance(store, refused.job_id, "attempt:refused-2", staged);
+  assert.equal(store.pendingBusinessAdmissions().some((row) => row.task.job_id === refused.job_id), true,
+    "the replacing attempt stages its own result for Website admission");
+  const provider = task({ jobId: "job:refused:provider-level",
+    productId: productionTask.product_id, actionId: productionTask.action_id,
+    materialRefs: productionTask.material_refs, extra: { parameters: productionTask.parameters } });
+  store.acceptTask(provider, "attempt:provider-1");
+  store.recordAttemptFailure(provider.job_id, "attempt:provider-1",
+    failureFact(provider.job_id, "attempt:provider-1", {}));
+  assert.equal(store.attemptClosedByWebsite(provider.job_id, "attempt:provider-1"), false);
+  assert.throws(() => store.acceptTask(provider, "attempt:provider-2"), /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u,
+    "a Provider-level first failure still needs its source seal before a new attempt");
+  const unclosed = task({ jobId: "job:refused:unclosed",
+    productId: productionTask.product_id, actionId: productionTask.action_id,
+    materialRefs: productionTask.material_refs, extra: { parameters: productionTask.parameters } });
+  store.acceptTask(unclosed, "attempt:unclosed-1");
+  assert.throws(() => store.acceptTask(unclosed, "attempt:unclosed-2"), /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u,
+    "an attempt the Website did not refuse cannot be replaced without a source seal");
+  store.close();
+};
+
 export const exerciseOperationsAndBusinessAdmission = async (
   productionTask: ReturnType<typeof task>,
 ): Promise<void> => {
@@ -386,6 +448,7 @@ export const exerciseOperationsAndBusinessAdmission = async (
     await exerciseFailureCapacity(store, productionTask);
     await exerciseBackgroundDeletionSweep(admissionTemporary, productionTask);
     await exerciseWaitNewAndPrivacy(store, productionTask);
+    await exerciseWebsiteRefusedResult(admissionTemporary, productionTask);
     await exerciseAdmissionDeletion(store, admissionTemporary, productionTask, pending);
     store.close();
   } finally {

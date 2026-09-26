@@ -37,12 +37,13 @@ export const claimReusesExistingBusinessSlot = (
   return durable.status === "failed" && job.grant.same_accepted_attempt;
 };
 
-/** A typed-sealed source attempt releases its slot so the same job can obtain its Website-issued attempt. */
+/** A typed-sealed source attempt or an attempt whose result the Website refused releases its slot for the next attempt. */
 const businessInFlightJobIds = (state: RuntimeState): ReadonlySet<string> => new Set([
   ...state.active.keys(),
   ...state.store.taskAuthorities()
     .filter((row) => row.status === "failed" && row.current_attempt_id !== null
-      && state.store.readSealedSourceHandoff(row.task.job_id, row.current_attempt_id) === null)
+      && state.store.readSealedSourceHandoff(row.task.job_id, row.current_attempt_id) === null
+      && !state.store.attemptClosedByWebsite(row.task.job_id, row.current_attempt_id))
     .map((row) => row.task.job_id),
 ]);
 
@@ -276,7 +277,8 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
   );
   const hasAcceptedAttemptRecovery = state.store.taskAuthorities().some((row) =>
     row.status === "failed" && row.current_attempt_id !== null
-      && !state.active.has(row.task.job_id));
+      && !state.active.has(row.task.job_id)
+      && !state.store.attemptClosedByWebsite(row.task.job_id, row.current_attempt_id));
   const hasPendingStagedResult = state.store.pendingBusinessAdmissions().length > 0;
   const deliveryCandidates = state.store.taskAuthorities()
     .filter((row) => row.status === "failed" && row.current_attempt_id !== null

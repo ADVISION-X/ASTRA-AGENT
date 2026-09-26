@@ -14,6 +14,7 @@ import { parseProviderCooldownReceipt } from "./provider-cooldown-receipt.js";
 import {
   json,
   now,
+  terminalBodyAttemptId,
   type ProductionOutboxAuthority,
   type ProductionOutboxAuthorityRow,
   type ProductionOutboxWrite,
@@ -107,17 +108,7 @@ export abstract class ProductionStoreOutbox extends ProductionStoreCooldown {
       candidateCount: rows.filter((row) => {
         if (row.kind !== "terminal") return row.path.includes("/artifacts/result_envelope/")
           && row.path.includes(`_${attemptHash}_result_envelope_`);
-        let terminalAttemptId: unknown = null;
-        try {
-          const body: unknown = JSON.parse(row.body_blob.toString("utf8"));
-          if (typeof body === "object" && body !== null && "attempt_id" in body
-            && typeof body.attempt_id === "string" && body.attempt_id.length > 0) {
-            terminalAttemptId = body.attempt_id;
-          }
-        } catch {
-          // A corrupt terminal body remains an unresolved candidate for this job.
-          terminalAttemptId = null;
-        }
+        const terminalAttemptId = terminalBodyAttemptId(row.body_blob);
         return terminalAttemptId === null || terminalAttemptId === attemptId;
       }).length,
     });

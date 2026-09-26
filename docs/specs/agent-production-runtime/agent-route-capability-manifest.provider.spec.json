@@ -5,7 +5,7 @@
   "version": 4,
   "owner": "agent-production-runtime",
   "lawIds": [
-    "LAW-AGENT-PRODUCTION-RUNTIME-001-V73",
+    "LAW-AGENT-PRODUCTION-RUNTIME-001-V74",
     "LAW-AGENT-PRODUCTION-RUNTIME-003-V42"
   ],
   "specKind": "cross-repo-contract",

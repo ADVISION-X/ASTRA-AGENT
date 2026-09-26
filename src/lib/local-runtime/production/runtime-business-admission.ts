@@ -56,6 +56,15 @@ export const purgeDeletedJob = async (state: RuntimeState, jobId: string): Promi
   }
 };
 
+/** The Website signed for this very result yet reports no attempt, terminal or admission: its Consumer refused it. */
+const websiteRefusedStagedResult = (
+  record: StoredProductionTask,
+  remote: Awaited<ReturnType<typeof readProductionDeviceJobStatus>>,
+): boolean => record.attempt_failure === null && record.staged_result !== null
+  && remote.terminal_status === null && remote.terminal_payload_hash === null
+  && remote.write_receipts.some((receipt) => receipt.write_kind === "terminal"
+    && receipt.response_json.payload_hash === hashCanonical(record.staged_result));
+
 export const reconcileBusinessAdmission = async (
   state: RuntimeState,
   record: StoredProductionTask,
@@ -73,7 +82,10 @@ export const reconcileBusinessAdmission = async (
   const admission = remote.business_admission_receipt;
   if (!admission) {
     if (remote.next_action_code === "WAIT_NEW_ATTEMPT") {
-      state.store.setCurrentReason(record.task.job_id, "RESULT_AUTHORITY_RECONCILIATION_PENDING");
+      if (websiteRefusedStagedResult(record, remote)) {
+        state.store.closeAttemptRefusedByWebsite(
+          record.task.job_id, record.current_attempt_id, hashCanonical(staged));
+      } else state.store.setCurrentReason(record.task.job_id, "RESULT_AUTHORITY_RECONCILIATION_PENDING");
       return "pending";
     }
     state.store.setCurrentReason(
