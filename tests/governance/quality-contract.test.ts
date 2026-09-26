@@ -1529,6 +1529,8 @@ test("Browser inspectors require current WAL schema without startup migration an
       "if (currentUrl !== expectedUrl || precedingPromptHash !== expectedPromptHash || rawCount !== 1)"),
     exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
       "if (currentUrl !== expectedUrl || thirdGate || rawCount !== 1)"),
+    exact.replace("if (currentUrl !== expectedUrl || rawCount !== 1)",
+      "if (currentUrl !== expectedUrl || !assistant?.querySelector('[data-chatgpt-selection-message-id]') || rawCount !== 1)"),
     exact.replace("loaderAfter !== expectedMainFrameLoaderId", "loaderAfter === expectedMainFrameLoaderId"),
     exact.replaceAll("exact-user-turn-unavailable", "generic-candidate-missing"),
     exact.replaceAll("adjacent-assistant-missing", "generic-candidate-missing"),

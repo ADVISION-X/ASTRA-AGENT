@@ -249,7 +249,6 @@ export const exactAssistantTurnReadIsAtomic = (source: import("ts-morph").Source
     'unit.getAttribute("data-chatgpt-search-message-ids") === userTurnId',
     'units[units.indexOf(users[0]) + 1]',
     'assistantKey.endsWith(":assistant")',
-    'selection[0].contains(raw[0])',
     "const rawCount = raw.length",
     "const pendingCause = userRaw.length !== 1 ? \"exact-user-turn-unavailable\"",
     "if (currentUrl !== expectedUrl || rawCount !== 1)", "const node = raw[0]",
@@ -259,7 +258,8 @@ export const exactAssistantTurnReadIsAtomic = (source: import("ts-morph").Source
     "const ordinal =", "turnMarkerMatched", "expectedPromptHash", "precedingPromptHash",
     "collapsible-user-message-content", ".whitespace-pre-wrap", "assistantIndex", "composerRaw",
     "browserMechanicalFacts", "eligibleCount", "nativeCauseCode", ".visible", ".hidden",
-    ".ariaHidden", ".inert", "getClientRects", "checkVisibility", "thirdGate"];
+    ".ariaHidden", ".inert", "getClientRects", "checkVisibility", "thirdGate",
+    "data-chatgpt-selection-message-id"];
   const exactCounts = [
     (observe.match(/Runtime\.callFunctionOn/gu) ?? []).length === 1,
     (observe.match(/mainFrameLoaderId\(runtime, target\.tabId\)/gu) ?? []).length === 2,
