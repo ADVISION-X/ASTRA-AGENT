@@ -1,6 +1,6 @@
 # AGENT Demand–Result 收敛重构—完整实现方案
 
-状态：**实施中；本轮补充候选尚在双仓工作树，CHANGE/READY 未通过，未推送，生产恢复尚未闭环**。本轮复核三份外部分析后，先由主 Codex 两遍核对双仓法案与施工图，解决 Runtime 三表权威和启动迁移冲突，再进入代码；迭代后的相关条款继续冻结。旧版只补 `failure=null` 与 cleanup 的顺序已废止。
+状态：**可施工**。2026-09-26 已按《闭环实现设计-SKILL》两遍完整复核最新双仓、法案、施工图、生产代码、质检与新一轮生产日志；本节 R15 是当前唯一施工裁决，旧章节保留为历史设计与已落地不变量，不得覆盖 R15。
 
 ## 1. 用户红线与完成定义
 
@@ -154,3 +154,640 @@ stage 后、terminal/admission 前崩溃（包括 lease 过期与普通 release�
 施工裁决：Browser 原 Owner 公开当前 attempt 的零/可能/未知输入事实，Runtime 仍核全历史及当前旧 Target/Outbox；若当前 attempt 零输入而旧 revision 有输入，必须核旧输入所属的 Website rejection 与签出当前 attempt 的原 source handoff/event。Website 在原 job 行锁核同一签发事件和当前 attempt，才按同 revision 换 attempt。旧结果可恢复时仍优先交付。历史 effect 观察使用形成时稳定的前缀 hash，当前逐调用证明使用全体 effect 集合 hash；`runtime-claim` 的旧 Target 同 attempt 只读例外仅挑当前 attempt/revision 的 CONFIRMED effect，旧 revision 由原 Website rejection/来源交接覆盖，不得因跨 revision 重复调用键拒绝合法读回。无额外表、队列、兼容桥或恢复状态；两仓原生 CHANGE、主 Codex 两轮自检、独立只读审计、READY 重新验收。按用户裁决停在 RELEASE 前，母本 §43.3 保持原文。
 
 独立只读审计补充：风险 revision 的 `delivery_priority_replay_grant` 绑定其 issued attempt，不可因为当前 target-local/no 就复制到新 attempt。当前 attempt Provider 输入确证为零时，Website 原 `ACTIVE_ATTEMPT` 同 attempt 重授保留原 grant；Browser 结算旧 Target，Runtime 在新 fence/Target 重做 target-local 准备，仍仅允许原指定调用一次风险输入。当前 revision Provider 已输入时只能原 effect 零提交读回；此前风险 source seal 的每个历史 effect 必须在旧 Target 恢复路径中逐项核对。无需新事件、版本、表或第二恢复链。
+
+## 2026-09-26｜R15：当前八问题统一闭环施工裁决
+
+### R15.0 候选、SKILL 与唯一方案身份
+
+本轮不是新建第五份恢复方案，而是原位升级本文件。原因是八个问题最终都落在同一条现役主链：
+
+~~~text
+Website 有效 demand
+→ Website claim / attempt authority
+→ AGENT Runtime / source handoff
+→ Product / GPT / Browser
+→ exact result
+→ Runtime Outbox / terminal
+→ Website business admission
+→ Domain current truth / object readback
+~~~
+
+固定文案方案、GPT DOM 方案、current_reason 方案、Target 方案继续作为各自 Owner 的前轮不变量与精确子工单依据；它们不得再建立第二恢复 Owner、第二状态机或第二总 verdict。
+
+当前重新绑定的云仓基线：
+
+- AGENT main = 4b2e863f717264522be98b00bf47bbd1397580fb；recursive tree truncated=false，1182 entries / 918 files。
+- Website main = 642f631dcfa406d0e1d577e36cdd4c1c3a8f20d8；recursive tree truncated=false，7412 entries / 6390 files。
+- Website 的 Demand liveness W1/W2/W3 已完成现役加固；AGENT workerLoop A1 已收窄为 control-flow negative guard。三项不再作为当前缺口重复施工。
+- 本轮已对闭环 SKILL 完整深读两遍。采用深度设计模式：先业务终点、再第一直接断裂、再 Owner、消费者、删除反事实、有限分母、原生质检和真实业务读回。
+
+本轮预算：
+
+~~~text
+新数据库表 = 0
+新持久字段 = 0
+新业务状态 = 0
+新 queue = 0
+新 manager / coordinator = 0
+新 recovery Owner = 0
+第二 WAL / Outbox / ledger = 0
+dual-read / dual-write / compatibility bridge = 0
+replacement job 作为技术恢复 = 0
+Website 业务 next_action 新枚举 = 0
+Provider 额外 submit 资格 = 0
+~~~
+
+允许新增的只有纯诊断代码或现有错误码语义收窄；不能新增任何会改变业务资格的持久真相。
+
+### R15.1 八项问题重新裁决
+
+| # | 当前裁决 | 第一直接断裂 | 唯一 Owner | 本轮动作 |
+|---|---|---|---|---|
+| 1 | P0 已实证 | localization_static_catalog 已写 completed/business_consumed，但唯一 current catalog 未写，ensure 随即命中 LOCALIZATION_STATIC_COMPLETED_TASK_STILL_PENDING | Website Localization + Website business consumer | W-L10，修成同事务真原子闭环 |
+| 2 | P0 已实证 | Website 对 fail_closed accepted attempt 在没有 source evidence 时仍重授 lease；AGENT reconcileClaimAttemptFailure 只能立即抛 PRODUCTION_SOURCE_HANDOFF_REQUIRED | Website ai-acceptance + AGENT Runtime | W-SH10，删除无意义 lease 循环 |
+| 3 | P0 可观测性缺口 | runtime-source-handoff 多个不同 proof 缺口全部 return null，最终只剩一个总错误 | AGENT Runtime | A-SH11，仅增加 ephemeral typed diagnostic projection，不增加状态 |
+| 4 | P0 结构性风险 | device-status 404 同时表达“真实不存在”和“当前设备不可见”，AGENT 却把它直接当 purge 权威 | Website ai-acceptance / AGENT Runtime | W-A2/A-A2，拆开语义并只保留 exact absence 可 purge |
+| 5 | P1 假门 | WorkerObservation 把 WAIT_NEW_ATTEMPT + next_action_at=null 判非法，而 Website null 表示当前无时间阻断 | AGENT Runtime observation | A-O1，纯删除 |
+| 6 | P1 未闭合生产路径 | 历史 fresh submit 曾 12/12 candidate missing；当前 Browser 已具 stage typed cause，但当前 selector / write 页面事实尚未以新生产证据完成裁决 | GPT + Browser | G-P0，诊断优先、有限判别后单点修改；禁止猜修 |
+| 7 | 非独立故障 | BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT 在 bound-observation 上本来就应 fail-close；同一 job 后续已取得 business admission | Browser | T-NOOP，不改生产语义，只做“不升级成 demand stop”回归 |
+| 8 | P2 防复活缺口 | current_reason 已从控制链去权威，但其 diagnostic-only 语义尚未有 Target 同等级的窄 pin | AGENT Runtime quality | A-C1，只 pin 现有一句语义 + 现有 AST denominator，不改法案正文 |
+
+最终业务终点统一为：
+
+~~~text
+同一有效 job
++ exact Product result
++ Runtime 原 Outbox / terminal
++ Website business admission receipt
++ Domain current truth / object readback
+= completed
+~~~
+
+任何 source-handoff、Target、current_reason、Browser failure、观察错误或 cleanup 都不能替代这一终点。
+
+---
+
+### R15.2 W-L10：修复 fixed localization “completed 但仍 pending”
+
+#### 第一直接断裂
+
+现役 business-result-consumer 的 static 分支在同一事务中先调用 finalizeConsumptionWithClient，把 ai_production_job_runtime 写成：
+
+~~~text
+status = completed
+business_consumed_at != null
+business_consumption_hash != null
+~~~
+
+随后才调用 writeStaticCatalogAdmission。
+
+writeStaticCatalogAdmission 对两类 current snapshot 漂移目前直接 return：
+
+1. 当前 source_version / source_sha256 / policy_version 与冻结 input 不一致；
+2. 当前 expression / terminology / format policy hash 与冻结 context 不一致。
+
+因为 return 不是异常，事务会提交“business consumed”，但 localization_static_current 没有对应 current entry。下一轮 staticPendingIds 仍返回原 pending 集合，existingTask 又读到同 task 已 completed + consumed，于是精确抛出 LOCALIZATION_STATIC_COMPLETED_TASK_STILL_PENDING。
+
+这就是本轮现场新故障的完整代码闭环。不是 AGENT 生成失败，也不是 claim/capacity 问题。
+
+#### 唯一修改
+
+文件：
+- services/api/src/localization/localization-static-catalog-consumer.ts
+- tests/localization/static-catalog-transaction-boundary.test.ts
+- 现役 localization 原生动态/静态验收文件
+
+只改一件事：
+
+~~~text
+writeStaticCatalogAdmission 的两处 silent return
+→ 同一个 typed failure：
+LOCALIZATION_STATIC_CURRENT_SNAPSHOT_CHANGED
+~~~
+
+不调整 finalizeConsumptionWithClient 与 writeStaticCatalogAdmission 的顺序，不新增“pending current write”状态，不新增补偿事务。
+
+理由：两者已经在同一个 PostgreSQL 事务。后一步抛错即可让前面的 completed/business_consumed 更新原子 rollback。外层现役 recordConsumptionFailure 会继续让同一 job 保持未消费，写有限 retry_not_before，再由同一 consumer 自动检查。这样没有第二事务、第二队列、第二完成模型。
+
+#### 删除反事实
+
+- 删除 silent return：正确。它当前唯一效果是让 completed 与 current truth 分叉。
+- 删除 current source/policy guard：错误。会把旧冻结结果激活成当前译文。
+- 把 current catalog 写移到事务外：错误。会制造真正的双写窗口。
+- 新增 current_write_pending 字段/状态：错误。现有事务已经能表达原子成功/失败。
+- 直接把 LOCALIZATION_STATIC_COMPLETED_TASK_STILL_PENDING 改成忽略：错误。只隐藏已完成与业务真相分叉。
+
+#### 验收
+
+必须动态证明三组：
+
+1. 正常 current snapshot：
+   result consumer 同事务写 current entry + business_consumption_hash + status=completed，随后 staticPendingIds 不再包含已通过 ID。
+2. 在 prepare 后、commit 前制造 source identity 漂移：
+   transaction rollback；job 仍 status=failed、business_consumed_at=null；current catalog 不变；有限 retry 存在。
+3. 制造 policy hash 漂移：
+   同 2；绝不出现 completed + pending。
+
+现有 static-catalog-transaction-boundary 必须继续证明 finalize 与 current write 在同一事务，且新增反例必须让 silent return 复活时 FAIL。
+
+---
+
+### R15.3 W-SH10：删除 fail_closed accepted attempt 的无意义 lease 循环
+
+#### 第一直接断裂
+
+现场两张旧 job 每次能被 Website LEASE_GRANTED，但 AGENT 在约 0.3 秒内以 PRODUCTION_SOURCE_HANDOFF_REQUIRED 结束。
+
+代码对应关系是精确的：
+
+- Website failClosedAttempt 保留原 accepted attempt，只清 lease、写有限 retry；
+- Website selectV6ClaimableJobs 目前只验证 attempt_id / accepted_at 成对，没有用 failure disposition 判断这个 accepted attempt 是否真的能再次执行；
+- Website 因此在 source_evidence 尚未形成时仍把 fail_closed accepted row 重授同 attempt；
+- AGENT reconcileClaimAttemptFailure 对同一 remote ACTIVE_ATTEMPT 重新 classify；
+- disposition=fail_closed 时唯一合法行为就是抛 PRODUCTION_SOURCE_HANDOFF_REQUIRED。
+
+所以这不是“source-handoff 太严格”，而是 Website 在 proof 尚未形成时发了一张 AGENT 不可能消费的执行 lease。
+
+#### 唯一修改
+
+Website services/api/src/ai-production/job-claim-selection.ts：
+
+复用唯一 classifier job-lifecycle-core.ts::classifyAttemptFailure，不建第二矩阵。
+
+v6RecoveryCandidateAllowed 增加一个现有请求事实：本次 source_evidence 是否包含 exact job。
+
+规则固定为：
+
+~~~text
+fresh job pair 合法 → 现役逻辑
+staged_result_json != null → 允许 delivery
+accepted attempt + attempt_failure == null → 允许原 attempt 对账
+accepted attempt + same_attempt_provider_readback → 允许原 effect readback
+accepted attempt + fail_closed + exact source_evidence absent → 不授 lease
+accepted attempt + fail_closed + exact source_evidence present → 允许进入 grantJob，由现役 verifySourceHandoff 决定 replacement
+其它现役 disposition 保持当前语义，不借本工单重写风险 grant / result revision
+~~~
+
+只针对已经实证的 fail_closed 死循环，不扩大到没有现场证据的其它分类。
+
+AGENT workerIteration 已在 claim 前调用 prepareSourceHandoffs，所以被 Website 暂不重授并不会停止本机来源证明形成；proof 成立后，同一轮 claim request 自然带 exact source_evidence，Website 才签安全 replacement。
+
+#### 删除反事实
+
+- 删除 fail_closed 安全 proof：错误。
+- 让 AGENT 收到 lease 后“硬着头皮 Product”：错误，会绕 source seal。
+- 新增 SOURCE_HANDOFF 状态：错误，现有 attempt_failure + typed seal + source_evidence 已足够。
+- 给 fail_closed 加 attempt 数熔断：违法 FROZEN-WEBSITE-RESULT-DEMAND-001。
+- 创建 replacement job：错误，必须同 job。
+
+#### 验收
+
+- accepted fail_closed + 无 source evidence：Website claim 不返回该 job 的执行 lease。
+- 同 job 其它可执行/新 job 不被它占死。
+- AGENT 本地 source proof 后形成 exact seal；下一 claim 带 source evidence；Website 在原 job 行锁验证并签 replacement attempt。
+- 新 attempt 获得当前 Target/Document，最终走真实 Product → result → admission。
+- attempt count 只继续影响 finite backoff，不形成 stop。
+
+---
+
+### R15.4 A-SH11：把 source-handoff silent null 变成一个诊断字段，而不是新状态机
+
+runtime-source-handoff.ts 的所有安全门保留。问题是它们现在都投影成 null，现场无法知道是哪一项未闭合。
+
+本轮仅把现有函数内部返回值重构成 ephemeral result：
+
+~~~text
+ready: SourceEvidence
+或
+blocked: 单一 SourceHandoffBlockReason
+~~~
+
+SourceHandoffBlockReason 不是持久 schema，不出跨仓合同，不进 DB enum。只存在函数调用期。
+
+有限原因集合必须一一对应现有 gates，不得凭想象增加：
+
+- OUTBOX_CANDIDATE_PRESENT
+- INHERITED_PAYLOAD_CONFLICT_PENDING
+- HISTORICAL_INPUT_UNSETTLED
+- REJECTED_EFFECT_MISMATCH
+- HISTORY_READBACK_UNAVAILABLE
+- CHECKPOINT_ARTIFACT_UNAVAILABLE
+- WAL_HISTORY_UNVERIFIED
+- INPUT_NOT_QUIESCENT
+- READBACK_PROOFS_INCOMPLETE
+- HANDOFF_PROOF_INELIGIBLE
+- REJECTED_RESULT_FIRST_FACT_MISSING
+
+prepareSourceHandoffs 只把一个诊断值投影到现有 current_reason：
+
+~~~text
+SOURCE_HANDOFF_PENDING|<reason>
+~~~
+
+或者 Runtime Log 的现有诊断字段。不得新增列、事件类型或 Website 资格字段。
+
+current_reason 仍不能参与任何 if / SQL WHERE / CAS；seal 是否形成只由原 typed proof 决定。
+
+当 seal 成功后，诊断自然被后续 LEASE_GRANTED / EXECUTING 等现役诊断覆盖，不新增 clear API。
+
+500 行红线：runtime-source-handoff.ts 当前约 283 行，可原位承载；不得把诊断实现推到接近 500 行的 dom-coherent-candidate.ts / dom-pointer-intent-runtime.ts。
+
+验收必须把每个现役 null gate 逐一做 mutant，证明：
+- proof 不足时绝不 seal；
+- 诊断 reason 精确；
+- 只改 reason 不改变 seal、claim、capacity、stage 或 Provider submit；
+- proof 补齐后无需手工 Run，同一 job 自动形成 seal。
+
+---
+
+### R15.5 W-A2 / A-A2：只有 exact Website absence 才允许 purge
+
+#### 当前错误
+
+device-status SQL 把 device visibility 放进 WHERE。查不到 row 时统一抛 AI_V6_DEVICE_JOB_NOT_FOUND，语义为“job 不存在 OR 当前 device/session 不可见”。
+
+AGENT websiteJobAbsent 又把该码与 AI_V6_JOB_NOT_FOUND、AI_PRODUCTION_JOB_NOT_FOUND 并列为物理清算权威。
+
+因此一个仍真实存在的 Website job，只要设备可见性变化，就存在被 AGENT 当成永久不存在并 purge Browser/Forensics/local task/store 的风险。
+
+#### Website 最小修复：不新增错误码
+
+文件：services/api/src/ai-production/job-device-status-repository.ts
+
+把 exact job existence 与 device visibility 在同一个 SQL read 中分开：
+
+1. 按 job_id + V6 protocol 读 exact job，不再用 visibility 条件把 row 直接过滤掉；
+2. 在 SELECT 中计算一个仅调用期使用的 visible_to_device boolean；
+3. row 真不存在：抛现有 AI_V6_JOB_NOT_FOUND；
+4. row 存在但 visible_to_device=false：继续使用现有 AI_V6_DEVICE_JOB_NOT_FOUND，但语义收窄为“job exists but is not visible to this device session”；
+5. visible=true：正常投影 device status。
+
+不新增 DB 字段，不新增跨仓 wire 字段，不新建查询 endpoint。
+
+#### AGENT 最小修复
+
+runtime-business-admission.ts::websiteJobAbsent 删除：
+
+~~~text
+AI_V6_DEVICE_JOB_NOT_FOUND
+~~~
+
+永久清算只认现役 exact absence code：
+
+- AI_V6_JOB_NOT_FOUND
+- AI_PRODUCTION_JOB_NOT_FOUND（仅它的原 service exact job lookup 来源）
+
+滚动顺序必须先部署 AGENT 的“少删”语义，再部署 Website 的 exact/not-visible 分离。中间窗口最多遗留本地垃圾，绝不能误删有效 demand。
+
+#### 验收
+
+- job 存在但 wrong device/session：device-status 返回 DEVICE_JOB_NOT_FOUND；AGENT 不 abort、不 release、不 purge，本地 evidence 全保留。
+- exact job 已由 Website 授权删除：device-status 返回 AI_V6_JOB_NOT_FOUND；AGENT 先 release current live Target，再 purge Browser job、Forensics、task dir、Runtime row，并读回全零。
+- transport 5xx、无效 JSON、session 错误：永不 purge。
+- business admitted job 的正常 cleanup 不进入 websiteJobAbsent。
+
+修后在现役 ai-acceptance / agent-production-runtime acceptance 中冻结一句机械事实：只有 exact Website absence 才能授权 local purge；不新建第二法案。
+
+---
+
+### R15.6 A-O1：物理删除 Worker Observation 的 null 假门
+
+文件：src/lib/local-runtime/production/worker-observation-client.ts
+
+直接删除：
+
+~~~text
+WAIT_NEW_ATTEMPT && next_action_at === null
+→ V6_OBSERVED_JOB_TTL_INVALID
+~~~
+
+同时反转 agent-route-contract.acceptance 中对应必须 throw 的断言。
+
+理由：
+
+- Website worker observation 合同允许 next_action_at 为 string 或 null；
+- claim SQL 已以 retry_not_before is null or <= now() 表示当前没有时间阻断；
+- Operations Snapshot 只读观察不能凭 null 再创造第四套 eligibility 语义。
+
+不新增默认时间，不把 null 改成 9999 年时间，不在 AGENT 推导 Website 下一动作。
+
+验收：
+- WAIT_NEW_ATTEMPT + null 可解析；
+- 有非法 timestamp 仍失败；
+- observation 的变化不能直接触发 Product/Provider 输入；
+- Website claim 仍是唯一执行授权。
+
+---
+
+### R15.7 G-P0：fresh GPT submit 用现有 stage 证据闭环，禁止猜 selector
+
+当前生产代码已经具备 Browser candidate-missing stage 的 typed native cause；历史 12/12 submit failure 发生时 WAL native cause 为空，不能再用旧窗口猜今天页面。
+
+因此本轮不直接改 GPT_SEND_SELECTOR。
+
+#### G-P0-1：当前代码动态证明
+
+用现役 fresh chat 路径至少覆盖：
+- 无附件；
+- 有附件；
+- 已选中目标模型的路径。
+
+必须读 Browser WAL 的 exact submit mutation：
+
+~~~text
+CONFIRMED
+或
+REJECTED + BROWSER_DOM_CANDIDATE_MISSING + 非空 stage + physical_input_count=0
+~~~
+
+若当前三类均 CONFIRMED，本历史问题关闭，不改 selector。
+
+若再次 MISSING，当前 stage 已经成为唯一判别入口：
+
+- BROWSER_DOM_SCOPE_ABSENT / SCOPE_INELIGIBLE：修当前 page/context prep；
+- BROWSER_DOM_SELECTOR_ABSENT：只读采集 write 完成、未点击时 form 内 button 机械事实；
+- BROWSER_DOM_CANDIDATE_INELIGIBLE：只修 Browser 指出的机械资格事实；
+- disabled/aria-disabled：继续由现役 FROZEN-GPT-SUBMIT-ACTIONABILITY-WAIT-001 的 5 秒 bounded wait 负责，不扩 retry。
+
+#### G-P0-2：只有 SELECTOR_ABSENT 才允许换 selector
+
+若实证 selector 不符：
+- 只在 submit_exact_gpt_turn_once/selectors.ts 原位替换一个 GPT_SEND_SELECTOR；
+- 必须是现场证明的唯一稳定 locator；
+- 删除旧 selector，不叠 fallback、不建 selector registry、不 dual-read；
+- 优先 locale-independent structural/testid fact；
+- 不把按钮标签升级成业务前置。
+
+如果现场表明写入目标导致“页面仍认为 composer 为空”，则只修 write_exact_gpt_prompt 的唯一写入目标/后置，不碰 submit。
+
+现役 FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001、exact attachments、exact prompt、WAL once、Provider effect identity 全部保留。
+
+结构红线：
+- dom-coherent-candidate.ts 当前约 487 行；
+- dom-pointer-intent-runtime.ts 当前约 475 行；
+- browser-mutation-receipt.ts 当前约 434 行。
+除非现役 stage 传播出现真实缺口，否则本工单不向前两文件新增实现。若必须修改，要求净行数不增，先原位收敛重复代码。
+
+---
+
+### R15.8 T-NOOP：Target physically absent 不再作为问题施工
+
+新日志中 business result 已成功，而后出现 BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT，随后 Website admission readback 仍成功。
+
+这与已冻结 TARGET-AUTHORITY-BOUNDARY-001 一致：
+
+- bound-observation 的当前 Target 不存在必须 fail-close；
+- 不得因此创建替代 Tab；
+- Target 缺席不能决定 attempt、revision、永久停止或 completed。
+
+所以本轮生产修改 = 0。
+
+只补或复用回归证明：
+
+~~~text
+已有 READY / Website admission
++ cleanup 或 bound observation 报 Target physically absent
+→ completed/admission 不回退
+→ Provider submit 增量 0
+→ 不生成新 attempt / revision
+~~~
+
+不得为了“日志看起来 BLOCKING”去弱化 Browser fail-close。
+
+---
+
+### R15.9 A-C1：current_reason diagnostic-only 做窄冻结，不冻结整条 Runtime law
+
+现役 LAW-AGENT-PRODUCTION-RUNTIME-001-V73 已含精确句：
+
+~~~text
+current_reason 仅是可变诊断投影，不得参与授权、CAS、恢复、容量、stage、Provider submit、删除或完成决定
+~~~
+
+现役 contract-inspection 已有 current-reason-diagnostic-only AST denominator 和 mutants。
+
+本轮不修改法案正文，也不对包含大量 source-handoff 语义的整个长 forbidden clause 做 whole-clause hash，因为那会把正常恢复迭代一起冻死。
+
+只在 agent-production-runtime 现役 quality 中增加“语义片段 pin”：
+
+- active owner law family 必须为 LAW-AGENT-PRODUCTION-RUNTIME-001-V*；
+- capabilityDomain 必须 agent-production-runtime；
+- 上述精确句必须只出现一次；
+- 对精确句字节做 SHA-256 pin：
+  de816be2d6c039a7eb033d23e53bf77638d176d98a5d1a197b6aeecda6f9c31e
+- relocation / 删除 / 将“不得”弱化 / 复制第二份均 mutant FAIL；
+- 继续保留现有 AST 规则：current_reason 不得进入 authority branch、SQL gate 或非诊断 resolver consumer。
+
+这冻结的是权力，不是 current_reason 字段，也不冻结整份 Runtime law。
+
+---
+
+### R15.10 法案与施工图变更裁决
+
+本轮原则是“已有法条足够时不升版”。
+
+#### 不需要修改正文的现役权威
+
+- Website FROZEN-WEBSITE-RESULT-DEMAND-001：已经覆盖未完成 demand 不得被技术事实终止。
+- Website unfinished_delivery_liveness 7-key + 3 next action：保持。
+- AGENT TARGET-AUTHORITY-BOUNDARY-001：保持。
+- AGENT Runtime current_reason diagnostic-only 原句：保持，只加质检 pin。
+- GPT submit two-preconditions：保持。
+- Website Localization 现役 Blueprint 已要求合格字段与 business_consumption_hash 同事务写入唯一当前表：W-L10 是实现回归，不需要新法案。
+
+#### 只允许同步文义的地方
+
+本唯一总方案 R15 是施工入口。对应已有子方案只记录“由 R15 接管当前事故”的前向指针时，不得复制实现步骤；若无需文义修改则不动。
+
+禁止为本轮创建：
+- source-handoff law v2；
+- purge law v2；
+- localization completion manager；
+- recovery matrix v2。
+
+---
+
+### R15.11 有限状态与失败分支
+
+本轮不新增业务状态。仍只有现役事实投影：
+
+~~~text
+Demand active
+  ├─ exact result/current admission 已有 → 继续交付/读回
+  ├─ accepted attempt 可安全原位读回 → same attempt
+  ├─ source handoff proof 未齐 → 本地有限检查，不授无意义 execution lease
+  ├─ source handoff seal 已齐 → Website 原 job 签 replacement attempt
+  ├─ current Product execution → Result
+  └─ Website 明确持久终止 → demand 结束
+~~~
+
+Localization 的事务状态也不新增：
+
+~~~text
+current snapshot 一致
+→ current table + business consumed 同事务 commit
+
+current snapshot 不一致
+→ 整事务 rollback
+→ 原 job 仍未消费
+→ finite retry / Owner 修复
+~~~
+
+Purge：
+
+~~~text
+exact Website absence
+→ local purge
+
+job exists but device invisible
+→ 保留 local facts，零 purge
+~~~
+
+没有“可能有第四种状态”。
+
+---
+
+### R15.12 原子施工工单与顺序
+
+必须按下面顺序，不并发写同一恢复主链：
+
+#### WO-0：候选重绑
+- 再读两仓 HEAD、dirty、law registry、相关 Blueprint；
+- 若本节列出的目标文件发生并行语义漂移，先更新本节，不猜施工。
+
+#### WO-1：Website localization 原子完成
+- W-L10；
+- 先跑 localization 定向 test + DB transaction regression；
+- 证明 false completed 清零。
+
+#### WO-2：source-handoff liveness
+- Website W-SH10 先删除无 proof 的 fail_closed lease；
+- AGENT A-SH11 再加纯诊断；
+- 先用 fixture 证明“无 seal 零 lease，有 seal 才 replacement”。
+- 不在本工单碰 Browser/GPT selector。
+
+#### WO-3：exact absence / purge
+- 先 AGENT 删除 DEVICE_JOB_NOT_FOUND 的 purge 权；
+- 再 Website 把 exact absence 与 device invisibility 用现有两个 code 分开；
+- 最后跑 destructive-cleanup fixture。
+- 顺序不可反转。
+
+#### WO-4：observation 假门
+- 删除 WAIT_NEW_ATTEMPT + null guard；
+- 反转原 acceptance。
+- 不修改 Website next-action contract。
+
+#### WO-5：current_reason 窄冻结
+- 只改现役 quality/acceptance；
+- 生产代码 0；
+- 不改 Runtime law 文本。
+
+#### WO-6：GPT fresh-submit 动态闭环
+- 先跑现役 fresh submit；
+- 只有当前 failure 才进入 G-P0-2 的唯一分支。
+- 禁止先猜 selector。
+
+#### WO-7：整链动态验收
+至少跑以下场景：
+1. localization result 正常 admission → current catalog 非 pending；
+2. localization current snapshot 漂移 → 不允许 false completed；
+3. fail_closed old job 无 seal → 零执行 lease；seal 后同 job 自动 replacement → result → admission；
+4. device invisible → 零 purge；
+5. exact Website deleted → exact purge；
+6. WAIT_NEW_ATTEMPT + null observation 可读；
+7. fresh GPT submit 至少一条真实 CONFIRMED；
+8. business admitted 后 Target absent/cleanup failure 不回退 completed；
+9. 仅修改 current_reason 诊断文本，claim/source seal/capacity/stage/purge/completed 全不变。
+
+最终必须读回 Website Domain admission / current object，不得用测试 PASS、HTTP 200 或 AGENT job.execute succeeded 代替。
+
+---
+
+### R15.13 质检路由
+
+AGENT：
+- agent-production-runtime：source handoff、purge、observation、current_reason；
+- local-browser-session：只有 G-P0 当前证据证明 Browser stage 传播仍缺口时才进入；
+- gpt：fresh submit / selector 或 write exact 修复；
+- architecture-boundary：Target freeze 不得回退；
+- 原生 npm run quality:check CHANGE → READY。
+
+Website：
+- localization：W-L10；
+- ai-acceptance：W-SH10、exact absence、liveness freeze；
+- tests/exam/ai-production-v6-contract.test.ts 保持 anti-demand-stop denominator；
+- 原生 pnpm quality:check CHANGE → READY。
+
+不得创建跨仓总 quality verdict。
+
+当前 GitHub commit status / workflow run 不能替代本地原生 quality evidence；施工时必须保存实际命令结果。
+
+---
+
+### R15.14 删除清单
+
+本轮施工必须实际减少以下错误权力：
+
+1. localization-static-catalog-consumer 的两处 silent return；
+2. Website 对 fail_closed accepted attempt 在 source evidence 缺席时的 execution lease 资格；
+3. AGENT websiteJobAbsent 对 AI_V6_DEVICE_JOB_NOT_FOUND 的 purge 权；
+4. WorkerObservation 的 WAIT_NEW_ATTEMPT + null 假门；
+5. 任何试图让 source-handoff block reason 参与业务判断的代码；
+6. current_reason 重新成为控制分支的未来空间，由 pin + AST mutant 封死。
+
+明确不删：
+
+- source handoff WAL/history/readback/quiescence/checkpoint proof；
+- current_reason 字段与诊断写；
+- Target/current Document/fence/permit；
+- Browser candidate missing zero-input fail-close；
+- exact prompt / attachment / submit two-preconditions；
+- Provider effect WAL；
+- Website business admission；
+- 历史 migration / reject-only old-field literals。
+
+---
+
+### R15.15 施工停止条件
+
+出现任一项立即停止，不准用“加一层兼容”继续：
+
+- 为 localization false completed 新增第二事务补偿队列；
+- 为 source-handoff 新增状态列、manager 或人工 resume API；
+- 为两张旧 job 写 job-id 特判；
+- 让 Website fail_closed 继续发 AGENT 无法消费的 lease；
+- device invisibility 仍能走 purge；
+- 用 next_action_at 默认远未来时间掩盖 null；
+- GPT 当前现场证据未取得就直接换 selector；
+- 给 GPT_SEND_SELECTOR 叠第二 selector/fallback；
+- 放宽 Target/Brower/WAL 安全门以追求通过；
+- current_reason 进入任何业务 branch；
+- 任何改动造成 replacement job 代替原有效 demand；
+- 任何“失败次数 / wall clock”成为 permanent stop。
+
+### R15.16 最终裁决
+
+本轮八项问题不是八个恢复系统。
+
+真正需要施工的是六处现役边界：
+
+~~~text
+Website Localization transaction truth
+Website fail_closed claim eligibility
+AGENT source-handoff diagnostic projection
+Website exact absence ↔ AGENT purge authority
+AGENT observation false gate
+GPT fresh submit 当前事实
+~~~
+
+另外两项只需要治理收口：
+
+~~~text
+Target physically absent：保持现役 fail-close，不升级为 demand stop
+current_reason：保持诊断字段，只把 diagnostic-only 权力边界窄冻结
+~~~
+
+完成 R15 后，系统必须满足：
+
+> Website 只要 demand 还在，任何局部失败都只能决定“现在这一步不能做”；它不能让 job 消失、假完成、无意义反复领同一不可执行 lease，或要求用户重新 Run。最终只有真实 Result → Website business admission → Domain current truth 才结束义务。
+
