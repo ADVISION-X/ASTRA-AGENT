@@ -7,6 +7,8 @@ import { ExtensionExactTargetRegistry } from
   "../../src/lib/browser/chrome-extension/exact-target-runtime.js";
 import { ExtensionTargetLoss } from
   "../../src/lib/browser/chrome-extension/extension-target-loss.js";
+import { releaseJobBoundTarget } from
+  "../../src/lib/browser/chrome-extension/extension-target-release.js";
 
 export const hash = (character: string) => `sha256:${character.repeat(64)}` as const;
 export const binding = (character: string) => ({
@@ -123,7 +125,49 @@ assert.deepEqual(deliveredFrames, [],
 
 };
 
+const assertOwnReleaseIsNotReportedAsLoss = async (): Promise<void> => {
+  const registry = new ExtensionExactTargetRegistry();
+  const reported: unknown[] = [];
+  const frames: Readonly<{ releaseOutcome: string }>[] = [];
+  let tabOpen = true;
+  const debuggerRuntime = {
+    awaitPageReadPermission: async () => undefined,
+    readTab: async () => { if (!tabOpen) throw new Error("tab closed"); return { id: 23 }; },
+    readTargets: async () => (tabOpen ? [{ id: "chrome-a", tabId: 23, attached: true }] : []),
+    forgetAttached: () => undefined,
+  };
+  const loss = new ExtensionTargetLoss({ debuggerRuntime: debuggerRuntime as never, targets: registry,
+    createdTarget: { markTabRemoved: () => undefined } as never, readActiveTabId: () => null,
+    clearActiveTarget: () => undefined, reportTargetFailure: async (failure) => { reported.push(failure); },
+    sendRevoke: async (body) => { frames.push(body as never); } });
+  const release = (removeTab: () => Promise<void>) => releaseJobBoundTarget({
+    targets: registry, createdTarget: { isPending: () => false } as never,
+    readActiveJobRefHash: () => undefined, awaitOldCommandHandlers: async () => undefined,
+    debuggerRuntime: { ...debuggerRuntime, removeTab } as never,
+    sendRevoke: async (body: unknown) => { frames.push(body as never); },
+  } as never, hash("a"));
+  const bound = registry.claimOperatorTarget(23, hash("a"), "loader-a", "chrome-a");
+  await release(async () => {
+    tabOpen = false;
+    await loss.consumeTabRemoval(23, bound);
+    await loss.consumeDebuggerDetach(23, "target_closed", bound);
+  });
+  assert.deepEqual(reported, [],
+    "Chrome events for the deliberate release of a job Target must not be reported as a Target loss");
+  assert.deepEqual(frames.map((frame) => frame.releaseOutcome), ["released"],
+    "a deliberate release must revoke its Target exactly once");
+  assert.equal(registry.findByTabId(23), null);
+  tabOpen = true;
+  const kept = registry.claimOperatorTarget(23, hash("a"), "loader-a", "chrome-a");
+  frames.length = 0;
+  await assert.rejects(release(async () => undefined), /BROWSER_TARGET_CLEANUP_FAILED/u);
+  assert.equal(registry.findByJobRefHash(hash("a"))?.targetRef, kept.targetRef,
+    "a close that cannot be proven must leave the Target registered for the next release attempt");
+  assert.deepEqual(frames, [], "an unproven close must not revoke the Target");
+};
+
 export const runBrowserLaneTargetClaimAcceptance = async (): Promise<void> => {
   await assertReusedTabRevocation();
   await assertDelayedOldTabCallbacks();
+  await assertOwnReleaseIsNotReportedAsLoss();
 };

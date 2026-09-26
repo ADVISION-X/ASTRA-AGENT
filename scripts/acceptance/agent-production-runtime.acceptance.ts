@@ -120,8 +120,10 @@ const renewal = LeaseRenewReceiptSchema.parse({
 });
 assert.equal(renewal.control_intent.control_epoch, 0);
 
-assert.equal(websiteJobAbsent(executionFailure("failed", "AI_V6_DEVICE_JOB_NOT_FOUND")), true,
-  "a Website device-status 404 must authorize physical cleanup of the local job tree");
+assert.equal(websiteJobAbsent(executionFailure("failed", "AI_V6_JOB_NOT_FOUND")), true,
+  "Website exact job absence must authorize physical cleanup of the local job tree");
+assert.equal(websiteJobAbsent(executionFailure("failed", "AI_V6_DEVICE_JOB_NOT_FOUND")), false,
+  "a job this device cannot see still exists and must never be purged as deleted");
 assert.equal(websiteJobAbsent(executionFailure("failed", "CLOUD_TRANSPORT_UNAVAILABLE")), false,
   "transport failure must never be mistaken for Website job absence");
 const admissionVariants = [

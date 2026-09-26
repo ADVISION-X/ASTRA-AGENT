@@ -34,16 +34,23 @@ export const releaseJobBoundTarget = async (
       releaseOutcome: "absent" });
     return;
   }
-  await context.debuggerRuntime.removeTab(bound.tabId);
-  let tabAbsent = false;
-  try { await context.debuggerRuntime.readTab(bound.tabId); }
-  catch { tabAbsent = true; }
-  const after = await context.debuggerRuntime.readTargets();
-  if (!tabAbsent || after.some((target) => target.tabId === bound.tabId
-    && target.id === bound.chromeTargetId)) {
-    throw new Error("BROWSER_TARGET_CLEANUP_FAILED");
-  }
+  // Chrome reports this deliberate close through its own detach/removal events; unregister first so the
+  // loss consumers find no Target to retire, and re-register if the close cannot be proven.
   context.targets.invalidateTab(bound.tabId);
+  try {
+    await context.debuggerRuntime.removeTab(bound.tabId);
+    let tabAbsent = false;
+    try { await context.debuggerRuntime.readTab(bound.tabId); }
+    catch { tabAbsent = true; }
+    const after = await context.debuggerRuntime.readTargets();
+    if (!tabAbsent || after.some((target) => target.tabId === bound.tabId
+      && target.id === bound.chromeTargetId)) {
+      throw new Error("BROWSER_TARGET_CLEANUP_FAILED");
+    }
+  } catch (error) {
+    context.targets.restore(bound);
+    throw error;
+  }
   context.debuggerRuntime.forgetAttached(bound.tabId);
   await context.sendRevoke({ targetRef: bound.targetRef, jobRefHash,
     releaseOutcome: "released" });

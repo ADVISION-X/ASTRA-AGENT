@@ -253,7 +253,7 @@ const exerciseBackgroundDeletionSweep = async (
     abort: new AbortController(),
     session: { request: async (route: string) => {
       if (route.includes(encodeURIComponent(deleted.job_id))) {
-        throw executionFailure("failed", "AI_V6_DEVICE_JOB_NOT_FOUND");
+        throw executionFailure("failed", "AI_V6_JOB_NOT_FOUND");
       }
       observed.push(sibling.job_id);
       return deviceStatusWithoutAdmission(sibling.job_id).request();
@@ -281,7 +281,7 @@ const exerciseBackgroundDeletionSweep = async (
   const activeState = { store: activeStore, dataDir: activeDir, abort: new AbortController(),
     active: new Map([[activeJob.job_id, Promise.resolve()]]),
     activeAbort: new Map([[activeJob.job_id, activeAbort]]),
-    session: { request: async () => { throw executionFailure("failed", "AI_V6_DEVICE_JOB_NOT_FOUND"); } },
+    session: { request: async () => { throw executionFailure("failed", "AI_V6_JOB_NOT_FOUND"); } },
     browserAuthority: { releaseJobBoundTarget: async () => { releaseCalls += 1; },
       purgeBrowserJob: () => undefined },
     evidenceStore: { deleteArtifactsForMission: async () => undefined },

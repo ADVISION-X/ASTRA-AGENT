@@ -37,8 +37,7 @@ const purgeProductionRuntimeTask = async (dataDir: string, jobId: string): Promi
 
 export const websiteJobAbsent = (error: unknown): boolean => {
   const code = failureCode(error, "");
-  return code === "AI_V6_DEVICE_JOB_NOT_FOUND"
-    || code === "AI_V6_JOB_NOT_FOUND"
+  return code === "AI_V6_JOB_NOT_FOUND"
     || code === "AI_PRODUCTION_JOB_NOT_FOUND";
 };
 
