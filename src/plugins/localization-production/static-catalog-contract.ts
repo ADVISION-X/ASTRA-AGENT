@@ -8,7 +8,6 @@ import { executionFailure } from "../../lib/execution-failure.js";
 
 const TARGET_LOCALES = new Set(["zh-HK", "zh-TW", "en-US", "ja-JP", "ko-KR"]);
 const HASH = /^sha256:[a-f0-9]{64}$/u;
-const STATIC_POLICY_VERSION = "target-language-review-v6-20260924";
 const PUBLIC_VALUE_AUTHORITY_REFS = ["LAW-PROJECT-GOVERNANCE-010-V1", "LAW-USER-VALUE-INTERFACE-001-V4"] as const;
 const PUBLIC_VALUE_AUTHORITY_HASHES = [
   "sha256:79f430599798e5bb10d73dd70cd32dfa1b4254709a99f32c363e82b06679fbd3",
@@ -269,7 +268,6 @@ export function parseInput(value: unknown, task: WebsiteAgentTask): StaticCatalo
   if (input.schema_version !== "localization-static-catalog-input.v1"
     || !TARGET_LOCALES.has(String(input.target_locale))
     || input.source_resource_id !== "website-fixed-copy-catalog"
-    || input.policy_version !== STATIC_POLICY_VERSION
     || !Number.isSafeInteger(input.expected_message_count) || Number(input.expected_message_count) < 1
     || !Array.isArray(input.context_bundles) || input.context_bundles.length !== 1) {
     fail("LOCALIZATION_STATIC_INPUT_IDENTITY_INVALID");
