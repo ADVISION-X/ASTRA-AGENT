@@ -271,6 +271,9 @@ type ExactAssistantContent = Readonly<{
   observedAt: string;
 }>;
 
+const validObservedAt = (value: unknown): value is string =>
+  typeof value === "string" && !Number.isNaN(Date.parse(value));
+
 const exactAssistantContentValid = (
   value: Readonly<Record<string, unknown>>,
 ): value is Readonly<Record<string, unknown>> & ExactAssistantContent => {
@@ -282,7 +285,7 @@ const exactAssistantContentValid = (
     && nonNegativeInteger(value.generatingRaw)
     && hashText(value.rawDomHtml) === value.rawDomHash
     && hashText(value.semanticText) === value.semanticTextHash
-    && typeof value.observedAt === "string" && !Number.isNaN(Date.parse(value.observedAt));
+    && validObservedAt(value.observedAt);
 };
 
 export const readExactAssistantTurn = async (
@@ -304,9 +307,9 @@ export const readExactAssistantTurn = async (
       || (value.pendingCause === "exact-user-turn-unavailable"
         ? value.precedingUserTurnId !== ""
         : !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(String(value.precedingUserTurnId)))
-      || value.rawDomHtml !== "" || value.semanticText !== ""
+      || [value.rawDomHtml, value.semanticText].some((text) => text !== "")
       || !nonNegativeInteger(value.generatingRaw)
-      || typeof value.observedAt !== "string" || Number.isNaN(Date.parse(value.observedAt))
+      || !validObservedAt(value.observedAt)
       || [value.targetRefHash, value.documentRefHash, value.observationRevisionHash]
         .some((hash) => typeof hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(hash))) {
       throw executionFailure("failed", "GPT_EXACT_ASSISTANT_TURN_RESULT_INVALID");

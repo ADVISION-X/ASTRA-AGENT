@@ -127,6 +127,36 @@ const exerciseCapturedAssistantBaseline = async (
   "generation state must remain observable without erasing the exact adjacent assistant candidate");
 };
 
+const exerciseCapturedAssistantIdentityRejections = async (
+  source: string,
+  fixture: ReturnType<typeof capturedAssistantFixture>,
+): Promise<void> => {
+  const bubble = new FakeElement("fixture-marker", {}, {},
+    { "data-user-message-bubble": "true" });
+  const wrongMessageIdUser = new FakeElement("fixture-marker",
+    { "[data-user-message-bubble='true']": [bubble] }, {}, {
+      "data-chatgpt-search-unit-key": "fallback-turn-0:0:user",
+      "data-chatgpt-search-message-ids": "00000000-0000-4000-8000-000000000003",
+    });
+  const wrongMessageIdTurn = new FakeElement("fixture-marker",
+    { "[data-chatgpt-search-unit-key]": [wrongMessageIdUser] }, {},
+    { "data-turn-key": "00000000-0000-4000-8000-000000000001" });
+  await assert.rejects(async () => executeCaptured(source, fixture.turns([wrongMessageIdTurn], null),
+    fixture.input, exactConversationFixtureUrl), /BROWSER_DOM_READ_INVALID/u,
+  "a marker with mismatched user message ids must not produce an answer");
+  const wrongRoleUser = new FakeElement("fixture-marker",
+    { "[data-user-message-bubble='true']": [bubble] }, {}, {
+      "data-chatgpt-search-unit-key": "fallback-turn-0:0:assistant",
+      "data-chatgpt-search-message-ids": "00000000-0000-4000-8000-000000000001",
+    });
+  const wrongRoleTurn = new FakeElement("fixture-marker",
+    { "[data-chatgpt-search-unit-key]": [wrongRoleUser] }, {},
+    { "data-turn-key": "00000000-0000-4000-8000-000000000001" });
+  const wrongRole = await executeCaptured(source, fixture.turns([wrongRoleTurn], null),
+    fixture.input, exactConversationFixtureUrl) as Readonly<{ pendingCause: string }>;
+  assert.equal(wrongRole.pendingCause, "exact-user-turn-unavailable");
+};
+
 const exerciseCapturedAssistantRejections = async (
   source: string,
   fixture: ReturnType<typeof capturedAssistantFixture>,
@@ -166,30 +196,7 @@ const exerciseCapturedAssistantRejections = async (
   ], fixture.assistant), fixture.input, exactConversationFixtureUrl),
   /BROWSER_DOM_CANDIDATE_AMBIGUOUS/u,
   "duplicate exact turn keys must fail closed");
-  const bubble = new FakeElement("fixture-marker", {}, {},
-    { "data-user-message-bubble": "true" });
-  const wrongMessageIdUser = new FakeElement("fixture-marker",
-    { "[data-user-message-bubble='true']": [bubble] }, {}, {
-      "data-chatgpt-search-unit-key": "fallback-turn-0:0:user",
-      "data-chatgpt-search-message-ids": "00000000-0000-4000-8000-000000000003",
-    });
-  const wrongMessageIdTurn = new FakeElement("fixture-marker",
-    { "[data-chatgpt-search-unit-key]": [wrongMessageIdUser] }, {},
-    { "data-turn-key": "00000000-0000-4000-8000-000000000001" });
-  await assert.rejects(async () => executeCaptured(source, fixture.turns([wrongMessageIdTurn], null),
-    fixture.input, exactConversationFixtureUrl), /BROWSER_DOM_READ_INVALID/u,
-  "a marker with mismatched user message ids must not produce an answer");
-  const wrongRoleUser = new FakeElement("fixture-marker",
-    { "[data-user-message-bubble='true']": [bubble] }, {}, {
-      "data-chatgpt-search-unit-key": "fallback-turn-0:0:assistant",
-      "data-chatgpt-search-message-ids": "00000000-0000-4000-8000-000000000001",
-    });
-  const wrongRoleTurn = new FakeElement("fixture-marker",
-    { "[data-chatgpt-search-unit-key]": [wrongRoleUser] }, {},
-    { "data-turn-key": "00000000-0000-4000-8000-000000000001" });
-  const wrongRole = await executeCaptured(source, fixture.turns([wrongRoleTurn], null),
-    fixture.input, exactConversationFixtureUrl) as Readonly<{ pendingCause: string }>;
-  assert.equal(wrongRole.pendingCause, "exact-user-turn-unavailable");
+  await exerciseCapturedAssistantIdentityRejections(source, fixture);
   const rich = richSemanticTree();
   const richObserved = await executeCaptured(source, fixture.turns([fixture.assistantOuter(rich)], rich),
     fixture.input, exactConversationFixtureUrl) as Readonly<{ semanticText: string }>;
@@ -338,41 +345,7 @@ const scan = (fixture: ReturnType<typeof scanRuntimeFor>, deadlineAt: number) =>
       canonicalConversationUrl: exactConversationFixtureUrl },
     () => undefined, "loader-current", deadlineAt);
 
-export const exerciseExactAssistantMaterialization = async (): Promise<void> => {
-  await withFakeExtensionClock(async () => {
-    const start = Date.now();
-    const fixture = scanRuntimeFor([
-      step([], false, 1_000), step([observedUserTurnId], false, 800),
-      step([], false, 400), step([], true, 0), step([], false, 800),
-    ]);
-    const result = await scan(fixture, start + 20_000) as Readonly<Record<string, unknown>>;
-    assert.equal(fixture.scanCalls(), 5,
-      "a marker hit must not stop the scan before the whole accessible conversation is covered");
-    assert.equal(fixture.mainCalls(), 1);
-    assert.equal(result.precedingUserTurnId, observedUserTurnId);
-    assert.equal(result.semanticText, successfulObservation.semanticText);
-    assert.equal(fixture.methods.some((method) => method.startsWith("Input.")), false);
-    assert.doesNotMatch(fixture.scanSource(), /setTimeout|requestAnimationFrame|new Promise/u);
-  });
-  await withFakeExtensionClock(async () => {
-    const start = Date.now();
-    const duplicate = scanRuntimeFor([
-      step([], false, 1_000), step([observedUserTurnId], false, 800),
-      step([anotherUserTurnId], true, 0),
-    ]);
-    await assert.rejects(scan(duplicate, start + 20_000), /BROWSER_DOM_CANDIDATE_AMBIGUOUS/u);
-    assert.equal(duplicate.mainCalls(), 0, "duplicate marker must never reach answer settlement");
-  });
-  await withFakeExtensionClock(async () => {
-    const start = Date.now();
-    const incomplete = scanRuntimeFor(Array.from({ length: 80 },
-      (_, index) => step(index === 1 ? [observedUserTurnId] : [], false, 80 - index)),
-      unavailableObservation);
-    const result = await scan(incomplete, start + 20_000) as Readonly<Record<string, unknown>>;
-    assert.equal(result.pendingCause, "exact-user-turn-unavailable",
-      "a locally visible marker is not proof of whole-conversation uniqueness");
-    assert.ok(incomplete.scanCalls() <= 80);
-  });
+const exerciseReverseScrollMaterialization = async (): Promise<void> => {
   await withFakeExtensionClock(async () => {
     const fixture = scanRuntimeFor([step([observedUserTurnId], true, 0)]);
     await scan(fixture, Date.now() + 20_000);
@@ -414,6 +387,44 @@ export const exerciseExactAssistantMaterialization = async (): Promise<void> => 
         "an unknown or split scroll root cannot prove full marker uniqueness");
     }
   });
+};
+
+export const exerciseExactAssistantMaterialization = async (): Promise<void> => {
+  await withFakeExtensionClock(async () => {
+    const start = Date.now();
+    const fixture = scanRuntimeFor([
+      step([], false, 1_000), step([observedUserTurnId], false, 800),
+      step([], false, 400), step([], true, 0), step([], false, 800),
+    ]);
+    const result = await scan(fixture, start + 20_000) as Readonly<Record<string, unknown>>;
+    assert.equal(fixture.scanCalls(), 5,
+      "a marker hit must not stop the scan before the whole accessible conversation is covered");
+    assert.equal(fixture.mainCalls(), 1);
+    assert.equal(result.precedingUserTurnId, observedUserTurnId);
+    assert.equal(result.semanticText, successfulObservation.semanticText);
+    assert.equal(fixture.methods.some((method) => method.startsWith("Input.")), false);
+    assert.doesNotMatch(fixture.scanSource(), /setTimeout|requestAnimationFrame|new Promise/u);
+  });
+  await withFakeExtensionClock(async () => {
+    const start = Date.now();
+    const duplicate = scanRuntimeFor([
+      step([], false, 1_000), step([observedUserTurnId], false, 800),
+      step([anotherUserTurnId], true, 0),
+    ]);
+    await assert.rejects(scan(duplicate, start + 20_000), /BROWSER_DOM_CANDIDATE_AMBIGUOUS/u);
+    assert.equal(duplicate.mainCalls(), 0, "duplicate marker must never reach answer settlement");
+  });
+  await withFakeExtensionClock(async () => {
+    const start = Date.now();
+    const incomplete = scanRuntimeFor(Array.from({ length: 80 },
+      (_, index) => step(index === 1 ? [observedUserTurnId] : [], false, 80 - index)),
+      unavailableObservation);
+    const result = await scan(incomplete, start + 20_000) as Readonly<Record<string, unknown>>;
+    assert.equal(result.pendingCause, "exact-user-turn-unavailable",
+      "a locally visible marker is not proof of whole-conversation uniqueness");
+    assert.ok(incomplete.scanCalls() <= 80);
+  });
+  await exerciseReverseScrollMaterialization();
   await withFakeExtensionClock(async () => {
     const start = Date.now();
     const noScroll = scanRuntimeFor([{

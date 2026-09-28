@@ -3,6 +3,8 @@ import Database from "better-sqlite3";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { canonicalBrowserExactAssistantTurnRevision } from
+  "../../src/lib/browser/exact-target/exact-assistant-turn-revision.js";
 import { BrowserMutationStore } from
   "../../src/lib/browser/exact-target/browser-mutation-store.js";
 import { serializeTerminalFailure } from
@@ -15,6 +17,8 @@ import type { RuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { createBrowserActorFactory, createClickCommand, permit } from
   "./local-browser-terminal-fixture.js";
 import { permitAuthority, permitExecution } from "./local-browser-terminal-fixture.js";
+import { exactHash } from "./local-browser-mutation-store-support.js";
+import { exactConversationFixtureUrl } from "./local-browser-dom-runtime-fixture.js";
 
 type ActorRejectionContext = Readonly<{
   actorRoot: string;
@@ -22,6 +26,94 @@ type ActorRejectionContext = Readonly<{
   actorStore: BrowserMutationStore;
   clickCommand: ReturnType<typeof createClickCommand>;
 }>;
+
+const exactAssistantFixture = (observedAt: string) => {
+  const exactAssistantPermit: BrowserCommandPermit = {
+    ...permit("actor-exact-assistant"), capabilityId: "browser.dom.inspect.v1",
+    mutationClass: "observation", replayPolicy: "observation-only",
+  };
+  const exactAssistantCommand = { kind: "dom-intent" as const, intent: {
+    kind: "readExactAssistantTurn" as const,
+    turnMarker: "fixture-marker",
+    canonicalConversationUrl: new URL("/c/exact-assistant", exactConversationFixtureUrl).href,
+  } };
+  const rawDomHtml = "<div>answer</div>";
+  const semanticText = "answer";
+  const exactAssistantReply = {
+    schemaVersion: "grasseye.browser.exact-assistant-turn.v4" as const,
+    targetRefHash: exactHash(exactAssistantPermit.targetRef),
+    documentRefHash: exactHash(exactAssistantPermit.documentRef),
+    assistantTurnId: "00000000-0000-4000-8000-000000000002",
+    currentUrl: exactAssistantCommand.intent.canonicalConversationUrl,
+    precedingUserTurnId: "00000000-0000-4000-8000-000000000001",
+    generatingRaw: 0,
+    rawDomHtml, rawDomHash: exactHash(rawDomHtml),
+    semanticText, semanticTextHash: exactHash(semanticText),
+    observedAt,
+  };
+  const revisionHash = exactHash(canonicalBrowserExactAssistantTurnRevision({ ...exactAssistantReply,
+    turnMarkerHash: exactHash(exactAssistantCommand.intent.turnMarker) }));
+  return { exactAssistantPermit, exactAssistantCommand, exactAssistantReply, revisionHash };
+};
+
+export const exerciseExactAssistantActorBinding = async (
+  actorFor: ReturnType<typeof createBrowserActorFactory>,
+  observedAt: string,
+): Promise<void> => {
+  const { exactAssistantPermit, exactAssistantCommand, exactAssistantReply, revisionHash } =
+    exactAssistantFixture(observedAt);
+  const boundExactAssistant = await actorFor(async (candidate) => ({
+    replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+    permitSequence: candidate.sequence,
+    result: { ...exactAssistantReply, observationRevisionHash: revisionHash },
+  })).execute(exactAssistantPermit, exactAssistantCommand) as Readonly<Record<string, unknown>>;
+  assert.match(String(boundExactAssistant.exactCallIdentityHash), /^sha256:[a-f0-9]{64}$/u);
+  const wrongUrlExactAssistant = { ...exactAssistantReply,
+    currentUrl: new URL("/c/another-conversation", exactAssistantCommand.intent.canonicalConversationUrl).href };
+  const wrongUrlRevision = exactHash(canonicalBrowserExactAssistantTurnRevision({
+    ...wrongUrlExactAssistant, turnMarkerHash: exactHash(exactAssistantCommand.intent.turnMarker),
+  }));
+  await assert.rejects(actorFor(async (candidate) => ({
+    replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+    permitSequence: candidate.sequence,
+    result: { ...wrongUrlExactAssistant, observationRevisionHash: wrongUrlRevision },
+  })).execute(exactAssistantPermit, exactAssistantCommand), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
+  "a hash-consistent answer from another conversation must not bind to the requested URL");
+  const negativeExactAssistant = {
+    ...exactAssistantReply,
+    assistantTurnId: "", precedingUserTurnId: "",
+    rawDomHtml: "", rawDomHash: exactHash(""),
+    semanticText: "", semanticTextHash: exactHash(""),
+    pendingCause: "exact-user-turn-unavailable" as const,
+  };
+  const negativeRevision = exactHash(canonicalBrowserExactAssistantTurnRevision(
+    { ...negativeExactAssistant, turnMarkerHash: exactHash(exactAssistantCommand.intent.turnMarker) },
+    negativeExactAssistant.pendingCause,
+  ));
+  const boundNegative = await actorFor(async (candidate) => ({
+    replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+    permitSequence: candidate.sequence,
+    result: { ...negativeExactAssistant, observationRevisionHash: negativeRevision },
+  })).execute(exactAssistantPermit, exactAssistantCommand) as Readonly<Record<string, unknown>>;
+  assert.equal(boundNegative.pendingCause, "exact-user-turn-unavailable");
+  assert.match(String(boundNegative.exactCallIdentityHash), /^sha256:[a-f0-9]{64}$/u);
+  const tamperedExactAssistantPermit: BrowserCommandPermit = {
+    ...exactAssistantPermit,
+    ...permitAuthority("actor-exact-assistant-tampered"),
+    ...permitExecution("actor-exact-assistant-tampered"),
+    capabilityId: "browser.dom.inspect.v1", mutationClass: "observation", replayPolicy: "observation-only",
+  };
+  await assert.rejects(actorFor(async (candidate) => ({
+    replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+    permitSequence: candidate.sequence,
+    result: { ...exactAssistantReply,
+      targetRefHash: exactHash(tamperedExactAssistantPermit.targetRef),
+      documentRefHash: exactHash(tamperedExactAssistantPermit.documentRef),
+      semanticText: "tampered but hash-shaped", semanticTextHash: exactHash("tampered but hash-shaped"),
+      observationRevisionHash: revisionHash },
+  })).execute(tamperedExactAssistantPermit, exactAssistantCommand), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
+  "the Browser actor must reject source/assistant facts not bound into the exact observation revision");
+};
 
 const spanEvents = (logger: RuntimeLogger, commandId: string): Readonly<Record<string, unknown>>[] =>
   readFileSync(logger.currentSegmentPath()!, "utf8").trim().split("\n")
