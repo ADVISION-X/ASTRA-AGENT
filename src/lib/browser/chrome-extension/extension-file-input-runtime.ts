@@ -19,7 +19,7 @@ type Candidate = Readonly<{
 type FileInputActivation = Readonly<{
   selector: string;
   scope: Readonly<{ selector: string }>;
-  expectedTextEquals: string;
+  expectedText: string;
 }>;
 type ActivationPoint = Readonly<{ kind: "point"; point: PointerAction }>
   | Readonly<{ kind: "rejection"; value: Readonly<Record<string, unknown>> }>;
@@ -130,7 +130,7 @@ const assertFileInputRequest = (input: ExtensionFileInput): void => {
   if (input.selector !== "form[data-chatgpt-composer] input[type='file'][aria-label='附加文件']"
     || input.activation?.selector !== "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child"
     || input.activation?.scope?.selector !== "[data-composer-overlay-floating-ui='true']"
-    || input.activation?.expectedTextEquals !== "添加照片和文件"
+    || input.activation?.expectedText !== "上传"
     || input.approvedFiles.length < 1 || input.approvedFiles.length > 20
     || input.resolvedFilePaths.length !== input.approvedFiles.length
     || new Set(input.approvedFiles.map((file) => file.grantRef)).size !== input.approvedFiles.length
@@ -173,7 +173,7 @@ const activationPoint = async (
       const point = await resolveCoherentPointerAction(input.runtime, input.target, {
         selector: input.activation.selector,
         scope: input.activation.scope,
-        text: { value: input.activation.expectedTextEquals, exact: true },
+        text: { value: input.activation.expectedText, exact: false },
       });
         return { value: Object.freeze({ kind: "point" as const, point }), transient: false };
       } catch (error) {

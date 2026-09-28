@@ -45,7 +45,7 @@ const MODEL_PROFILE = buildGptExecutionProfile({
 const ARTICLE_TRANSLATION_MODEL_PROFILE = buildGptExecutionProfile({
   profileRef: `${PLUGIN_ID}:article-translation:chatgpt-latest-extra-high`,
   startModelDisplayName: "最新",
-  requestedReasoningValue: 4,
+  requestedReasoningValue: 3,
   executorIdentityRef: PLUGIN_ID,
   acceptanceRef: `${PLUGIN_ID}:production`,
   acceptanceVersion: "v1",

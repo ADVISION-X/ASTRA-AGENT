@@ -227,7 +227,13 @@ export class BrowserInfrastructureSupervisor {
     binding: BrowserExecutionArtifactBinding;
     artifacts: readonly BrowserExecutionArtifact[];
   }>): Promise<BrowserExecutionArtifactLease> { return this.broker.bindExecutionArtifacts(input); }
+  /** The extension's own pairing poll is the one place that decides whether to re-pair; answering it
+   * truthfully needs the same hard heartbeat-tolerance fact the three existing assertLive() call sites
+   * already use before dispatching, not a new idle-timeout or diagnostic-frame heuristic. */
   public readOperatorPairingState(): Readonly<{ authority: "present" | "absent"; pairingSecret: string | null }> {
+    if (this.issuer.current().kind === "PRESENT") {
+      try { this.websocket.assertLive(); } catch { /* stale authority revoked as a side effect above */ }
+    }
     return {
       authority: this.issuer.current().kind === "PRESENT" ? "present" : "absent",
       pairingSecret: this.websocket.readOperatorPairingSecret(),

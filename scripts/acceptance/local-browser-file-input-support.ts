@@ -22,7 +22,7 @@ type FileInputScenario = Readonly<{
   activationOverride?: Readonly<{
     selector: string;
     scope: Readonly<{ selector: string }>;
-    expectedTextEquals: string;
+    expectedText: string;
   }>;
   afterSelection?: Readonly<{ cardNames: readonly string[]; uploadingCount: number }>;
   preexistingUploadingCount?: number;
@@ -34,7 +34,7 @@ type FileInputScenario = Readonly<{
 const activation = Object.freeze({
   selector: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child",
   scope: Object.freeze({ selector: "[data-composer-overlay-floating-ui='true']" }),
-  expectedTextEquals: "添加照片和文件",
+  expectedText: "上传",
 });
 
 const fileMechanicalFacts = (overrides: Readonly<Record<string, unknown>> = {}) => ({
@@ -241,7 +241,7 @@ const exerciseFileChooserEventBinding = async (): Promise<void> => {
 
 const exerciseSuccessfulAndRejectedCandidates = async (): Promise<void> => {
   await assert.rejects(runFileInputScenario({ nodeIds: [7], activationOverride: {
-    ...activation, expectedTextEquals: "模糊上传",
+    ...activation, expectedText: "模糊上传",
   } }), /BROWSER_FILE_GRANT_INVALID/u,
   "Browser must reject caller-authored or drifted chooser activation semantics before physical input");
   const success = await runFileInputScenario({ nodeIds: [7] });

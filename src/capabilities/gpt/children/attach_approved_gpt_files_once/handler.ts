@@ -20,7 +20,7 @@ import {
 import {
   GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR,
   GPT_FILE_INPUT_SELECTOR,
-  GPT_UPLOAD_FROM_COMPUTER_LABEL,
+  GPT_UPLOAD_FROM_COMPUTER_KEYWORD,
   GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
 } from "./selectors.js";
 
@@ -53,7 +53,7 @@ export const attachApprovedGptFilesOnceHandler: GptChildHandler<"attach_approved
       activation: {
         selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
         scope: { selector: GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR },
-        expectedTextEquals: GPT_UPLOAD_FROM_COMPUTER_LABEL,
+        expectedText: GPT_UPLOAD_FROM_COMPUTER_KEYWORD,
       },
       approvedArtifacts: files.map((file) => ({
         artifactRef: file.artifactRef,

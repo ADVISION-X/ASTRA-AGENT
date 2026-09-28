@@ -56,7 +56,7 @@ export type BrowserGovernedCommand =
     activation: Readonly<{
       selector: string;
       scope: Readonly<{ selector: string }>;
-      expectedTextEquals: string;
+      expectedText: string;
     }>;
     approvedFiles: readonly Readonly<{
       grantRef: string;

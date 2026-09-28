@@ -125,17 +125,14 @@ const matchingCall = (manifest: SignedManifest, proof: SignedCallProof): Call | 
     && call.call_id === proof.call_id && call.child_capability_id === proof.child_capability_id
     && call.source_effect_set_hash === proof.source_effect_set_hash);
 
-const reusableSettlements = (row: Row, manifest: SignedManifest): AcceptedSourceSettlement[] => {
-  if (!manifest.payload_slot_conflict || manifest.replay_calls.length === 0
-    || manifest.readback_proofs.length !== manifest.replay_calls.length
-    || manifest.readback_proofs.some((proof) => proof.disposition !== "settled_reusable")) {
-    throw executionFailure("failed", "PRODUCTION_SOURCE_REPLAY_INVALID");
-  }
+const checkpointSettlements = (row: Row, manifest: SignedManifest): AcceptedSourceSettlement[] => {
   const settled: AcceptedSourceSettlement[] = [];
   for (const proof of manifest.readback_proofs) {
     const call = matchingCall(manifest, proof);
     const checkpoints = proof.effects.filter((effect) => effect.settled_checkpoint !== undefined);
-    if (!call || checkpoints.length !== proof.effects.length || checkpoints.length === 0) {
+    if (!call || (proof.disposition === "settled_reusable")
+      !== (checkpoints.length === proof.effects.length && checkpoints.length > 0)
+      || checkpoints.length > 0 && checkpoints.length !== proof.effects.length) {
       throw executionFailure("failed", "PRODUCTION_SOURCE_REPLAY_INVALID");
     }
     for (const effect of checkpoints) {
@@ -156,6 +153,15 @@ const reusableSettlements = (row: Row, manifest: SignedManifest): AcceptedSource
     }
   }
   return settled;
+};
+
+const reusableSettlements = (row: Row, manifest: SignedManifest): AcceptedSourceSettlement[] => {
+  if (!manifest.payload_slot_conflict || manifest.replay_calls.length === 0
+    || manifest.readback_proofs.length !== manifest.replay_calls.length
+    || manifest.readback_proofs.some((proof) => proof.disposition !== "settled_reusable")) {
+    throw executionFailure("failed", "PRODUCTION_SOURCE_REPLAY_INVALID");
+  }
+  return checkpointSettlements(row, manifest);
 };
 
 const riskSettlements = (
@@ -279,6 +285,7 @@ export const acceptedSourceSettlements = (
     }
     if (manifest.kind === "attempt_handoff" && manifest.browser_input_state === "possible") {
       settled.push(rejectionSettlement(row, manifest));
+      settled.push(...checkpointSettlements(row, manifest));
     }
   }
   return Object.freeze(settled);

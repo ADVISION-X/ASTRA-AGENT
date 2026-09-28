@@ -63,7 +63,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     requestedReasoningValue: reasoningCall.input.profile.requestedReasoningValue,
   }, articleTranslation ? {
     profileRef: "localization-production:article-translation:chatgpt-latest-extra-high",
-    startModelDisplayName: "最新", requestedReasoningValue: 4,
+    startModelDisplayName: "最新", requestedReasoningValue: 3,
   } : {
     profileRef: "localization-production:gpt-5.6-sol-pro-standard",
     startModelDisplayName: "GPT-5.6 Sol", requestedReasoningValue: 5,

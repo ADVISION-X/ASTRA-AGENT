@@ -17,6 +17,8 @@ import {
   "../../src/lib/browser/infrastructure/browser-infrastructure-supervisor.js";
 import type { BrowserAuthoritySocket } from
   "../../src/lib/browser/transport/browser-authority-websocket.js";
+import { BROWSER_MISSED_HEARTBEAT_TOLERANCE_MS } from
+  "../../src/lib/browser/protocol/generated/browser-protocol.generated.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 
 const repoRoot = resolve(import.meta.dirname, "../..");
@@ -141,6 +143,73 @@ assert.equal(
   1,
   "a rejected host recovery callback must emit exactly one BROWSER_HOST_UNAVAILABLE failure",
 );
+
+const exercisePairingStateLiveness = async (
+  lastHeartbeatAt: number,
+): Promise<Readonly<{ authority: "present" | "absent"; pairingSecret: string | null }>> => {
+  const root = await mkdtemp(join(tmpdir(), "grasseye-browser-pairing-liveness-"));
+  const runtimeLogger = createRuntimeLogger({
+    producer: "browser-pairing-liveness-acceptance", owner: "browser-session",
+    component: "browser-infrastructure", terminalEnabled: false,
+    fileSink: { directoryPath: join(root, "runtime-logs") },
+  });
+  const hash = `sha256:${"0".repeat(64)}` as const;
+  const supervisor = new BrowserInfrastructureSupervisor({
+    dataDir: root,
+    sourceFingerprint: "browser-pairing-liveness-acceptance",
+    profileConfig: {
+      profileRef: "acceptance-profile", profileDir: join(root, "profile"),
+      extensionId: "emkmbecadncngofidjgocmifhbonifgm",
+      unpackedExtensionDirectory: join(root, "extension"),
+    },
+    enrolledProfile: {
+      profileRef: "acceptance-profile", enrollmentHash: hash, policyHash: hash, extensionTreeHash: hash,
+      enrolledAt: new Date().toISOString(),
+    },
+    releaseIdentity: {
+      schemaVersion: "grasseye.browser.unpacked-release.v1",
+      releaseBuildId: "build-browser-pairing-liveness-acceptance",
+      extensionId: "emkmbecadncngofidjgocmifhbonifgm", version: "1.0.0",
+      extensionDirectoryHashV1: hash, manifestHash: hash, protocolHash: hash, sitePolicyHash: hash,
+      createdAt: new Date().toISOString(),
+    },
+    runtimeLogger,
+  });
+  const socket: BrowserAuthoritySocket = { send: () => {}, close: () => {} };
+  try {
+    await supervisor.start();
+    Reflect.set(Reflect.get(supervisor, "issuer"), "slot", {
+      kind: "PRESENT",
+      authority: { authorityRef: "authority-browser-pairing-liveness-acceptance" },
+    });
+    Reflect.set(supervisor.endpoints().websocket, "active", {
+      socket,
+      keys: { clientToServer: Buffer.alloc(32), serverToClient: Buffer.alloc(32) },
+      lastClientSequence: 1,
+      nextServerSequence: 1,
+      lastHeartbeatAt,
+      replies: new Map(),
+    });
+    return supervisor.readOperatorPairingState();
+  } finally {
+    await supervisor.stop();
+    await rm(root, { recursive: true, force: true });
+  }
+};
+
+const freshPairingState = await exercisePairingStateLiveness(Date.now());
+assert.equal(freshPairingState.authority, "present",
+  "a healthy, recently-heartbeating connection must not be reported as absent by the pairing readback");
+assert.equal(freshPairingState.pairingSecret, null,
+  "a still-present authority must not reveal a pairing secret to the pairing readback");
+
+const stalePairingState = await exercisePairingStateLiveness(
+  Date.now() - BROWSER_MISSED_HEARTBEAT_TOLERANCE_MS - 1,
+);
+assert.equal(stalePairingState.authority, "absent",
+  "a connection stale past BROWSER_MISSED_HEARTBEAT_TOLERANCE_MS must self-correct to absent on the next pairing readback, without waiting for a command dispatch");
+assert.match(stalePairingState.pairingSecret ?? "", /^[a-f0-9]{64}$/u,
+  "self-correcting a stale authority to absent must mint a fresh one-time operator pairing secret so the extension can re-pair");
 
 const project = new Project({ tsConfigFilePath: resolve(repoRoot, "tsconfig.json") });
 const assemblySource = project.getSourceFile(resolve(repoRoot, "src/lib/local-runtime/workbench-assembly.ts"));

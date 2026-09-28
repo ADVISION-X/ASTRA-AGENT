@@ -10,7 +10,8 @@ import { acceptClaim } from "../../src/lib/local-runtime/production/runtime-clai
 import { ClaimedProductionTaskSchema } from "../../src/lib/local-runtime/production/transport-protocol.js";
 import { createRuntimeLogger, requireRuntimeLogWrite } from "../../src/lib/runtime-logs/index.js";
 import { historicalEffectsSettled } from "../../src/lib/local-runtime/production/runtime-source-readback-proofs.js";
-import { targetlessFirstFactHash } from "../../src/lib/local-runtime/production/store-source-settlement.js";
+import { acceptedSourceSettlements, targetlessFirstFactHash } from
+  "../../src/lib/local-runtime/production/store-source-settlement.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import {
   serializeTerminalFailure,
@@ -306,6 +307,26 @@ try {
     rawAnchorProofHash: oldEffect, anchorState: "trusted" as const,
   })), articleSettlements, "attempt:article-new"), true,
   "the article handoff must settle research, article and image without replaying a Provider call");
+
+  const rejectedArticleFailure = JSON.stringify(rejectedFailure(
+    "attempt:article-old", articleHashes[2]!));
+  const rejectedArticleBody = { ...articleBody, kind: "attempt_handoff" as const,
+    first_fact_raw_hash: targetlessFirstFactHash(rejectedArticleFailure),
+    payload_slot_conflict: null, readback_exhaustion_hash: null,
+    rejected_call: { ...articleCalls[2]!, effect_identity_hash: articleHashes[2]! },
+    readback_proofs: articleProofs.slice(0, 2) };
+  const rejectedArticleSeal = hashCanonical(rejectedArticleBody);
+  const rejectedArticleSettlements = acceptedSourceSettlements([{
+    source_attempt_id: "attempt:article-old", issued_attempt_id: "attempt:article-new",
+    seal_hash: rejectedArticleSeal,
+    source_manifest_json: JSON.stringify({ ...rejectedArticleBody, seal_hash: rejectedArticleSeal }),
+    first_fact_raw: rejectedArticleFailure,
+  }], "attempt:article-new", article.job_id);
+  assert.deepEqual(rejectedArticleSettlements.map((item) =>
+    [item.kind, item.effectIdentityHash]).sort((a, b) => a[1]!.localeCompare(b[1]!)),
+  articleHashes.map((effect, index) => [index === 2 ? "rejection_settled" : "reused_checkpoint",
+    effect]).sort((a, b) => a[1]!.localeCompare(b[1]!)),
+  "a signed rejected image handoff keeps its two accepted text checkpoints settled");
 
   const priorRisk = task({ jobId: "job:historical-risk",
     productId: "payment_screenshot_observation", actionId: "observe" });

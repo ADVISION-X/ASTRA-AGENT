@@ -75,7 +75,7 @@ export type BrowserApprovedArtifactRef = Readonly<{
 export type BrowserFileInputActivation = Readonly<{
   selector: string;
   scope: Readonly<{ selector: string }>;
-  expectedTextEquals: string;
+  expectedText: string;
 }>;
 
 export type BrowserTargetLease = Readonly<{

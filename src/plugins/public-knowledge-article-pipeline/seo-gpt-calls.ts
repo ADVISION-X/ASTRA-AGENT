@@ -30,6 +30,14 @@ const MODEL_PROFILE = buildGptExecutionProfile({
   acceptanceRef: `${PLUGIN_ID}:seo-production`,
   acceptanceVersion: "v1",
 });
+const ARTICLE_MODEL_PROFILE = buildGptExecutionProfile({
+  profileRef: `${PLUGIN_ID}:article-production:chatgpt-latest-extra-high`,
+  startModelDisplayName: "最新",
+  requestedReasoningValue: 3,
+  executorIdentityRef: PLUGIN_ID,
+  acceptanceRef: `${PLUGIN_ID}:seo-production`,
+  acceptanceVersion: "v1",
+});
 const uploadedAttachmentFiles = (value: unknown, code: string): readonly SeoUploadedAttachment[] => {
   const files = objectValue(value, code).files;
   if (!Array.isArray(files) || files.length === 0) fail(code);
@@ -76,11 +84,13 @@ export const applyExactProfile = async (
   stepId: string,
   ordinals: SeoProfileOrdinals,
 ): Promise<void> => {
-  await execute({ sessionKey: "", productStepId: stepId, callId: "profile-open", child: "open_gpt_execution_profile", actionOrdinal: ordinals[0], input: { profile: MODEL_PROFILE } });
-  await execute({ sessionKey: "", productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v3", actionOrdinal: ordinals[1], input: { profile: MODEL_PROFILE } });
-  await execute({ sessionKey: "", productStepId: stepId, callId: "model-select", child: "select_gpt_model_from_start_v3", actionOrdinal: ordinals[2], input: { profile: MODEL_PROFILE } });
-  await execute({ sessionKey: "", productStepId: stepId, callId: "reasoning-select", child: "select_gpt_reasoning_from_start_v3", actionOrdinal: ordinals[3], input: { profile: MODEL_PROFILE } });
-  await execute({ sessionKey: "", productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[4], input: { profile: MODEL_PROFILE } });
+  const profile = stepId === "accuracy_challenge" || stepId === "quality_reflection"
+    ? MODEL_PROFILE : ARTICLE_MODEL_PROFILE;
+  await execute({ sessionKey: "", productStepId: stepId, callId: "profile-open", child: "open_gpt_execution_profile", actionOrdinal: ordinals[0], input: { profile } });
+  await execute({ sessionKey: "", productStepId: stepId, callId: "model-selector-open", child: "open_gpt_model_selector_v3", actionOrdinal: ordinals[1], input: { profile } });
+  await execute({ sessionKey: "", productStepId: stepId, callId: "model-select", child: "select_gpt_model_from_start_v3", actionOrdinal: ordinals[2], input: { profile } });
+  await execute({ sessionKey: "", productStepId: stepId, callId: "reasoning-select", child: "select_gpt_reasoning_from_start_v3", actionOrdinal: ordinals[3], input: { profile } });
+  await execute({ sessionKey: "", productStepId: stepId, callId: "profile-close", child: "close_gpt_execution_profile", actionOrdinal: ordinals[4], input: { profile } });
 };
 
 export type SeoTextTurnInput = Readonly<{

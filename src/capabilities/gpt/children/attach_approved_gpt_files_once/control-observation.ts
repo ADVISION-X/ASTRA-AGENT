@@ -14,7 +14,7 @@ import {
   GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR,
   GPT_ATTACHMENT_CONTROL_SELECTOR,
   GPT_COMPOSER_FORM_SELECTOR,
-  GPT_UPLOAD_FROM_COMPUTER_LABEL,
+  GPT_UPLOAD_FROM_COMPUTER_KEYWORD,
   GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
 } from "./selectors.js";
 import { attachmentObservationRowsCode } from "./attachment-observation.js";
@@ -35,7 +35,7 @@ const ATTACHMENT_CONTROL_QUERIES = Object.freeze([
   {
     queryId: "upload-choice", selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
     scope: { selector: GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR },
-    textEquals: GPT_UPLOAD_FROM_COMPUTER_LABEL, maxMatches: 2, fields: [],
+    textContains: GPT_UPLOAD_FROM_COMPUTER_KEYWORD, maxMatches: 2, fields: [],
   },
 ] satisfies readonly BrowserDomObservationQuery[]);
 const projectAttachmentControlState = (

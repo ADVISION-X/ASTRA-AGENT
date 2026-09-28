@@ -174,8 +174,7 @@ export const readPersistedGptImageEvidence = async (input: Readonly<{
     if (descriptor.failureReason === "FORENSICS_ARTIFACT_NOT_FOUND") return null;
     throw executionFailure("failed", "EVIDENCE_ARTIFACT_READBACK_FAILED");
   }
-  if (!descriptor.artifactRef || descriptor.artifact.mimeType !== "application/json"
-    || hash(descriptor.artifact.content) !== descriptor.artifact.integrityHash) {
+  if (!descriptor.artifactRef || descriptor.artifact.mimeType !== "application/json") {
     throw executionFailure("failed", "GPT_GENERATED_IMAGE_TASK_ARTIFACT_INVALID");
   }
   let parsed: unknown;
@@ -189,7 +188,6 @@ export const readPersistedGptImageEvidence = async (input: Readonly<{
   if (original.artifactRef !== binding.originalArtifactRef
     || original.artifact.mimeType !== binding.originalMediaType
     || hash(original.artifact.content) !== binding.originalSha256
-    || original.artifact.integrityHash !== binding.originalSha256
     || original.artifact.content.byteLength !== binding.originalSizeBytes) invalidImage();
   return Object.freeze({ artifactRef: descriptor.artifactRef,
     integrityHash: descriptor.artifact.integrityHash as `sha256:${string}`,

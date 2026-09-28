@@ -105,9 +105,9 @@ const reasoningProfileCalls = proceed.calls.filter(
 assert.equal(reasoningProfileCalls.length, 3);
 for (const call of reasoningProfileCalls) {
   assert.equal(call.input.profile.profileRef,
-    "public-knowledge-article-pipeline:chatgpt-latest-extra-high");
+    "public-knowledge-article-pipeline:article-production:chatgpt-latest-extra-high");
   assert.equal(call.input.profile.startModelDisplayName, "最新");
-  assert.equal(call.input.profile.requestedReasoningValue, 4);
+  assert.equal(call.input.profile.requestedReasoningValue, 3);
 }
 assert.deepEqual([...new Set(proceed.calls.map((call) => call.productStepId))], [
   "corpus_research", "article_synthesis", "article_image_generation",
@@ -305,6 +305,10 @@ for (const action of ["accuracy_challenge", "quality_reflection"] as const) {
   const review = await exerciseSeoFlow(plugin, action);
   assert.deepEqual(review.calls.map((call) => call.child), initialText);
   assert.equal(review.calls.some((call) => call.child.includes("continuation")), false);
+  const reasoningCall = review.calls.find((call) => call.child === "select_gpt_reasoning_from_start_v3");
+  assert.equal(reasoningCall?.input.profile.profileRef,
+    "public-knowledge-article-pipeline:chatgpt-latest-extra-high");
+  assert.equal(reasoningCall?.input.profile.requestedReasoningValue, 4);
 }
 /** The Sharp image owner of this Product must pass, and geometry, original leakage and second-owner mutants must fail. */
 const exerciseImageOwnership = (): void => {

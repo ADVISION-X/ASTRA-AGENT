@@ -292,7 +292,7 @@ assert.deepEqual(attachedInput, {
   activation: {
     selector: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child",
     scope: { selector: "[data-composer-overlay-floating-ui='true']" },
-    expectedTextEquals: "添加照片和文件",
+    expectedText: "上传",
   },
   approvedArtifacts: [{
     artifactRef: approvedAttachment.artifactRef,

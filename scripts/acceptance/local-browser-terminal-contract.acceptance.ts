@@ -359,7 +359,7 @@ try {
   const fileCommand = { kind: "file-input" as const, selector: "form[data-chatgpt-composer] input[type='file'][aria-label='附加文件']",
     activation: { selector: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child",
       scope: { selector: "[data-composer-overlay-floating-ui='true']" },
-      expectedTextEquals: "添加照片和文件" },
+      expectedText: "上传" },
     approvedFiles: [{ grantRef: "grant-one", contentHash: hash, maxBytes: 64 }],
     resolvedFilePaths: ["/approved/one.txt"] };
   const forgedFilePermit: BrowserCommandPermit = {

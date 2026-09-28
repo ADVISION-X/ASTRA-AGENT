@@ -12,6 +12,9 @@ import { isProviderEffectReadbackProofV1 } from "../production-child-support.js"
 import { gptCanonicalHash, gptExactCallIdentityHash } from "../contract.js";
 import { ProductionGptChildTools } from "../production-child-tools.js";
 import { readPersistedGptImageEvidence } from "../evidence-artifacts.js";
+import { createForensicsPersistenceAbilityGroupFromStorage } from
+  "../../forensics-persistence/index.js";
+import { createGrassEyeFileStorage } from "../../../lib/storage/index.js";
 import { exactAssistantTurnReply } from "./gpt-exact-target-browser-fixture.js";
 import { browserExactCallIdentityHash,
   type BrowserDomIntent } from "../../../lib/browser/browser-authority-api.js";
@@ -39,6 +42,7 @@ const persistedContent = JSON.stringify({ schemaVersion: "agent-observed-respons
   semanticText, semanticTextHash: hash(semanticText) });
 const persistedArtifactKey = `gpt-call-artifact:v1:${checkpointExactCallIdentityHash}:observed-response`;
 const persistedArtifactRef = "artifact:persisted-response";
+const persistedArtifactIntegrityHash = hash(`envelope:${persistedArtifactRef}:${hash(persistedContent)}`);
 const imageBytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
 const imageHash = hash(imageBytes);
 
@@ -48,7 +52,7 @@ try {
     mimeType: string; integrityHash: `sha256:${string}` }>>([
     [persistedArtifactKey, { artifactRef: persistedArtifactRef,
       content: new TextEncoder().encode(persistedContent), mimeType: "application/json",
-      integrityHash: hash(new TextEncoder().encode(persistedContent)) }],
+      integrityHash: persistedArtifactIntegrityHash }],
   ]);
   const corruptArtifacts = new Set<string>();
   let artifactAppends = 0;
@@ -62,7 +66,8 @@ try {
       const artifactRef = `artifact:${hash(input.idempotencyKey)}`;
       const mimeType = "mimeType" in input && typeof input.mimeType === "string"
         ? input.mimeType : "application/octet-stream";
-      artifacts.set(input.idempotencyKey, { artifactRef, content, mimeType, integrityHash: hash(content) });
+      artifacts.set(input.idempotencyKey, { artifactRef, content, mimeType,
+        integrityHash: hash(`envelope:${artifactRef}:${hash(content)}`) });
       artifactAppends += 1;
       return { status: "success" as const, artifactRef };
     },
@@ -273,7 +278,7 @@ try {
         sourceAttemptId: attemptId, sourceResultRevision: 0,
         effectIdentityHash: sourceEffectIdentityHash, walAuthorityHash: sourceWalAuthorityHash,
         checkpointExactCallIdentityHash, artifactRef: persistedArtifactRef,
-        artifactContentHash: hash(new TextEncoder().encode(persistedContent)),
+        artifactContentHash: persistedArtifactIntegrityHash,
         submitPromptHash: sourcePromptHash, canonicalConversationHash: hash(conversationUrl),
         userTurnHash: hash("00000000-0000-4000-8000-000000000001") }],
       recordSettledCheckpoint: (checkpoint) => { settledCheckpoints.push(checkpoint); },
@@ -371,6 +376,26 @@ try {
   const bindingKey = `gpt-call-artifact:v1:${imageExactCallIdentityHash}:source-binding`;
   const savedBinding = artifacts.get(bindingKey);
   assert.ok(savedBinding);
+  const realStore = createForensicsPersistenceAbilityGroupFromStorage(
+    createGrassEyeFileStorage(join(temporary, "forensics-readback")));
+  const realOriginal = await realStore.appendArtifact({ missionId: jobId, runId: attemptId,
+    artifactType: "ai_raw_output", mimeType: "image/png", content: imageBytes,
+    idempotencyKey: `gpt-call-artifact:v1:${imageExactCallIdentityHash}:original` });
+  assert.equal(realOriginal.status, "success");
+  const realBindingContent = new TextEncoder().encode(JSON.stringify({
+    ...JSON.parse(new TextDecoder().decode(savedBinding.content)) as Record<string, unknown>,
+    originalArtifactRef: realOriginal.artifactRef,
+  }));
+  const realBinding = await realStore.appendArtifact({ missionId: jobId, runId: attemptId,
+    artifactType: "other", mimeType: "application/json", content: realBindingContent,
+    idempotencyKey: bindingKey });
+  assert.equal(realBinding.status, "success");
+  const realEvidence = await readPersistedGptImageEvidence({ evidenceStore: realStore,
+    jobId, attemptId, exactCallIdentityHash: imageExactCallIdentityHash });
+  assert.equal(realEvidence?.originalArtifactRef, realOriginal.artifactRef);
+  assert.deepEqual(realEvidence?.originalBytes, imageBytes);
+  assert.notEqual(realEvidence?.integrityHash, hash(realBindingContent),
+    "Forensics envelope integrityHash must remain distinct from binding bytes SHA-256");
   artifacts.delete(bindingKey);
   assert.equal(await readPersistedGptImageEvidence({ evidenceStore, jobId, attemptId,
     exactCallIdentityHash: imageExactCallIdentityHash }), null,
