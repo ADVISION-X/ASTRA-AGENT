@@ -69,7 +69,7 @@ identity spine：Website `job_id + attempt_id + result_revision` → Product `pr
 - Owner：AGENT GPT；范围 `src/capabilities/gpt/children/checkpoint_gpt_text_response/handler.ts`、`src/capabilities/gpt/web/gpt-dom-observation.ts` 与既有 Browser/GPT acceptance fixture。只运输既有 `turnMarker`，核新单一 reply 身份，再沿原 stop/正文逻辑结算。不得把原提交 UUID 与当前 observed UUID 不同解释为重发资格。`src/plugins/localization-production/flow.ts` 的 marker 生成及 Prompt 零修改，Forensics/Outbox 零修改。
 - 定向验收：原 UUID 与当前 UUID 相等/不等均唯一读回；重载、Target 丢失后的 URL 精确导航、已确认 effect 恢复全部零 submit；marker 缺失/多义、相邻回答缺失、stop 存在、连续 20 分钟停止且空回答沿原事实与恢复链；原已完成 artifact 幂等读取。统计 `src` 改动行数和净行数，净增加即回到本文逐项说明不可删除的真实消费者后才可继续，不能新增包装层冲抵。原生质量入口决定 CHANGE/READY/RELEASE，测试不冒充 Website admission。
 
-源码减法复核（当前候选，对原基线 `7f69c3c`）：`git diff --numstat 7f69c3c -- src` 为新增 177、删除 92，净增 85 行；其中 `src/.../acceptance` 定向回归净增 18，生产源码净增 67。主要增量为原 Browser exact reader 净增 56：同一现有读取函数必须跨虚拟化滚动完整证明 marker 唯一、识别现场 `column-reverse` 的负顶部并恢复命中位置；不完整或未知滚动根必须返回 unavailable，否则会把局部唯一误作全会话唯一。其余生产净增 11 用于 marker 的请求/修订绑定、正向 canonical URL 校验、GPT 原字段传递与现役代码纯度门槛内的重复校验合并。已删除旧 UUID 定位及其重复判定；没有新增文件、Owner、状态、存储、兼容路径或第二读取链。此增量有当前 ko/ja 现场和原 Browser/GPT 消费者，不能为追求净行数而删掉完整性或错误会话的失败关闭；测试文件的删减不抵扣生产源码。
+源码减法复核（当前候选，对原基线 `7f69c3c`）：`git diff --numstat 7f69c3c -- src` 为新增 178、删除 92，净增 86 行；其中 `src/.../acceptance` 定向回归净增 18，生产源码净增 68。主要增量为原 Browser exact reader 净增 57：同一现有读取函数必须跨虚拟化滚动完整证明 marker 唯一、识别现场 `column-reverse` 的负顶部并恢复命中位置；不完整或未知滚动根必须返回 unavailable，否则会把局部唯一误作全会话唯一。其余生产净增 11 用于 marker 的请求/修订绑定、正向 canonical URL 校验、GPT 原字段传递与现役代码纯度门槛内的重复校验合并。已删除旧 UUID 定位及其重复判定；没有新增文件、Owner、状态、存储、兼容路径或第二读取链。此增量有当前 ko/ja 现场和原 Browser/GPT 消费者，不能为追求净行数而删掉完整性或错误会话的失败关闭；测试文件的删减不抵扣生产源码。
 
 ### W0：第三张零输入失败的证据门（无代码施工）
 

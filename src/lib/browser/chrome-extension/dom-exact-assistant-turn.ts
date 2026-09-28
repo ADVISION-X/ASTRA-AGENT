@@ -221,16 +221,17 @@ const materializeExactUserTurn = async (
     const result = await runStep(step);
     if (!result.pageVisible) return null;
     if (!result.containerFound && !result.atTop) return null;
+    if (result.ids.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
     for (const id of result.ids) {
       seen.add(id);
       hitScrollTop ??= result.scrollTop;
     }
-    if (Math.max(result.ids.length, seen.size) > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
+    if (seen.size > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
     if (result.atTop) {
       if (hitScrollTop !== null && hitScrollTop !== result.scrollTop) {
         if (Date.now() + MATERIALIZE_STEP_INTERVAL_MS + MATERIALIZE_STEP_INTERVAL_MARGIN_MS >= deadline) return null;
         const restored = await runStep(step, hitScrollTop);
-        if (!restored.pageVisible || !restored.containerFound) return null;
+        if ([restored.pageVisible, restored.containerFound].includes(false)) return null;
         await wait(MATERIALIZE_STEP_INTERVAL_MS);
       }
       return seen.values().next().value ?? null;
