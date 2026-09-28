@@ -258,12 +258,12 @@ export const projectCoherentObservation = (
 
 const exactAssistantIdentityValid = (
   value: Readonly<Record<string, unknown>>,
-  userTurnId: string,
-): boolean => value.schemaVersion === "grasseye.browser.exact-assistant-turn.v3"
+): boolean => value.schemaVersion === "grasseye.browser.exact-assistant-turn.v4"
   && typeof value.assistantTurnId === "string"
   && /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(value.assistantTurnId)
   && typeof value.currentUrl === "string"
-  && value.precedingUserTurnId === userTurnId;
+  && typeof value.precedingUserTurnId === "string"
+  && /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(value.precedingUserTurnId);
 
 type ExactAssistantContent = Readonly<{
   rawDomHtml: string;
@@ -288,19 +288,22 @@ const exactAssistantContentValid = (
 export const readExactAssistantTurn = async (
   browser: Pick<BrowserTargetLease, "executeDomIntent">,
   userTurnId: string,
+  turnMarker: string,
   canonicalConversationUrl: string,
 ): Promise<GptExactAssistantTurnObservation> => {
   if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(userTurnId)) {
     throw executionFailure("failed", "GPT_TURN_ID_INVALID");
   }
   const value = record(await browser.executeDomIntent({
-    kind: "readExactAssistantTurn", userTurnId, canonicalConversationUrl,
+    kind: "readExactAssistantTurn", turnMarker, canonicalConversationUrl,
   }));
   if (value.pendingCause === "exact-user-turn-unavailable"
     || value.pendingCause === "adjacent-assistant-missing") {
-    if (value.schemaVersion !== "grasseye.browser.exact-assistant-turn.v3"
+    if (value.schemaVersion !== "grasseye.browser.exact-assistant-turn.v4"
       || value.currentUrl !== canonicalConversationUrl
-      || value.precedingUserTurnId !== userTurnId
+      || (value.pendingCause === "exact-user-turn-unavailable"
+        ? value.precedingUserTurnId !== ""
+        : !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(String(value.precedingUserTurnId)))
       || value.rawDomHtml !== "" || value.semanticText !== ""
       || !nonNegativeInteger(value.generatingRaw)
       || typeof value.observedAt !== "string" || Number.isNaN(Date.parse(value.observedAt))
@@ -323,7 +326,7 @@ export const readExactAssistantTurn = async (
       }) },
     });
   }
-  if (!exactAssistantIdentityValid(value, userTurnId)
+  if (!exactAssistantIdentityValid(value) || value.currentUrl !== canonicalConversationUrl
     || !exactAssistantContentValid(value)) {
     throw executionFailure("failed", "GPT_EXACT_ASSISTANT_TURN_RESULT_INVALID");
   }
@@ -334,7 +337,7 @@ export const readExactAssistantTurn = async (
     observationRevisionHash: value.observationRevisionHash as `sha256:${string}`,
     assistantTurnId: value.assistantTurnId as string,
     currentUrl: value.currentUrl as string,
-    precedingUserTurnId: userTurnId,
+    precedingUserTurnId: value.precedingUserTurnId as string,
     generatingRaw: value.generatingRaw as number,
     rawDomHtml: value.rawDomHtml,
     rawDomHash: value.rawDomHash as `sha256:${string}`,

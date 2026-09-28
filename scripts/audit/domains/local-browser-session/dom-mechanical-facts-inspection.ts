@@ -219,7 +219,7 @@ const inspectMechanicalContract = (
   requireTokens(contractText, ["rawCount", "eligibleCount", "effectiveOpacity", "scopeRejections", "rejections",
     "nativeCauseCode", "nativeStage", "candidateIndex", "observationIdentityHash",
     "BrowserDomObservationPacketV2", "exactCallIdentityHash", "targetRefHash", "documentRefHash",
-    "currentUrl", "observationRevisionHash", "BrowserExactAssistantTurnReplyV3",
+    "currentUrl", "observationRevisionHash", "BrowserExactAssistantTurnReplyV4", "turnMarker",
     'kind: "readExactAssistantTurn"',
     'BrowserDomReadEligibility = "non-actionable-aria-state"',
     "readEligibility?: BrowserDomReadEligibility",
@@ -227,7 +227,8 @@ const inspectMechanicalContract = (
   INTENT_CONTRACT_PATH, "The bounded Browser DOM contract is missing");
   requireTokens(exactAssistantTurnText, ["executeExactAssistantTurnRead", "rawDomHtml", "rawDomHash",
     "semanticText", "semanticTextHash", "assistantTurnId", "exact-user-turn-unavailable",
-    "adjacent-assistant-missing", "pendingCause"], findings, lawId,
+    "adjacent-assistant-missing", "pendingCause", "browserMarkerUserId",
+    "BROWSER_DOM_CANDIDATE_AMBIGUOUS"], findings, lawId,
   EXACT_ASSISTANT_TURN_PATH, "The exact assistant-turn reply-only channel is missing");
   if (exactAssistantTurnText.includes(".slice(0, 1024)") || queryText.includes("value.slice(0, maxChars)")
     || contractText.includes("intent.maxChars > 65536")) finding(findings, lawId, domCoherentObservationPath,
@@ -240,13 +241,15 @@ const inspectMechanicalContract = (
 
 export const exactAssistantTurnReadIsAtomic = (source: import("ts-morph").SourceFile): boolean => {
   const text = source.getFullText();
+  const markerFunction = source.getVariableDeclaration("MARKER_USER_SOURCE")?.getInitializer()?.getText() ?? "";
   const exactFunction = source.getVariableDeclaration("EXACT_ASSISTANT_TURN_FUNCTION")?.getInitializer()?.getText() ?? "";
   const observe = source.getVariableDeclaration("observeExactAssistantTurn")?.getInitializer()?.getText() ?? "";
   const execute = source.getVariableDeclaration("executeExactAssistantTurnRead")?.getInitializer()?.getText() ?? "";
-  const required = ["BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE", "const userTurnId = spec.userTurnId",
+  const required = ["BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE", "MARKER_USER_SOURCE",
     `document.querySelectorAll("[data-turn-key]")`,
-    'turn.getAttribute("data-turn-key") === userTurnId',
-    'unit.getAttribute("data-chatgpt-search-message-ids") === userTurnId',
+    'browserMarkerUserId(turn, spec.turnMarker)',
+    'item.id === spec.observedUserTurnId',
+    'unit.getAttribute("data-chatgpt-search-message-ids") === precedingUserTurnId',
     'units[units.indexOf(users[0]) + 1]',
     'assistantKey.endsWith(":assistant")',
     "const rawCount = raw.length",
@@ -266,7 +269,10 @@ export const exactAssistantTurnReadIsAtomic = (source: import("ts-morph").Source
     (observe.match(/!== expectedMainFrameLoaderId/gu) ?? []).length === 2,
   ];
   return required.every((token) => exactFunction.includes(token))
-    && ['if (observed.pendingCause === "exact-user-turn-unavailable"',
+    && ["data-user-message-bubble", ".includes(marker)", "users.length !== 1"]
+      .every((token) => markerFunction.includes(token))
+    && ['const seen = new Set<string>()', 'if (seen.size > 1)',
+      'if (result.atTop)', 'await materializeExactUserTurn(',
       'pendingCause !== "adjacent-assistant-missing"',
       'pendingCause: observed.pendingCause']
       .every((token) => text.includes(token))

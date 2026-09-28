@@ -1,3 +1,4 @@
+import { runInNewContext } from "node:vm";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import type { ExtensionDebuggerRuntime } from
   "../../src/lib/browser/chrome-extension/debugger-runtime.js";
@@ -25,6 +26,7 @@ import {
 const capturedAssistantFixture = () => {
   const userTurnId = "00000000-0000-4000-8000-000000000001";
   const assistantTurnId = "00000000-0000-4000-8000-000000000002";
+  const turnMarker = "fixture-marker";
   const text = (value: string) => new FakeTextNode(value);
   const paragraph = new FakeElement("bold", {}, {}, {}, "P", [
     new FakeElement("bold", {}, {}, {}, "STRONG", [text("bold")]),
@@ -33,8 +35,12 @@ const capturedAssistantFixture = () => {
     new FakeElement("item", {}, {}, {}, "LI", [text("item")]),
   ]);
   const assistant = new FakeElement("bold item", { "pre code": [] }, {}, {}, "DIV", [paragraph, list]);
-  const userMessage = new FakeElement("provider-folded-message", {}, {}, {}, "DIV", [text("provider-folded-message")]);
-  const user = new FakeElement("provider-folded-message", {}, {}, {
+  const userMessage = new FakeElement(`provider-folded-message ${turnMarker}`, {}, {}, {
+    "data-user-message-bubble": "true",
+  }, "DIV", [text(`provider-folded-message ${turnMarker}`)]);
+  const user = new FakeElement(`provider-folded-message ${turnMarker}`, {
+    "[data-user-message-bubble='true']": [userMessage],
+  }, {}, {
     "data-chatgpt-search-unit-key": "fallback-turn-0:0:user",
     "data-chatgpt-search-message-ids": userTurnId,
   }, "DIV", [userMessage]);
@@ -55,7 +61,7 @@ const capturedAssistantFixture = () => {
     "[data-chatgpt-search-unit-key]": [user],
   }, {}, { "data-turn-key": userTurnId }, "SECTION", [user]);
   const turnsSelector = "[data-turn-key]";
-  const input = { kind: "readExactAssistantTurn", userTurnId,
+  const input = { kind: "readExactAssistantTurn", turnMarker, observedUserTurnId: userTurnId,
     canonicalConversationUrl: exactConversationFixtureUrl };
   const exactAssistant = assistantOuter(assistant);
   const turns = (laterTurns: readonly FakeElement[], pointed: FakeElement | null) => ({
@@ -160,6 +166,30 @@ const exerciseCapturedAssistantRejections = async (
   ], fixture.assistant), fixture.input, exactConversationFixtureUrl),
   /BROWSER_DOM_CANDIDATE_AMBIGUOUS/u,
   "duplicate exact turn keys must fail closed");
+  const bubble = new FakeElement("fixture-marker", {}, {},
+    { "data-user-message-bubble": "true" });
+  const wrongMessageIdUser = new FakeElement("fixture-marker",
+    { "[data-user-message-bubble='true']": [bubble] }, {}, {
+      "data-chatgpt-search-unit-key": "fallback-turn-0:0:user",
+      "data-chatgpt-search-message-ids": "00000000-0000-4000-8000-000000000003",
+    });
+  const wrongMessageIdTurn = new FakeElement("fixture-marker",
+    { "[data-chatgpt-search-unit-key]": [wrongMessageIdUser] }, {},
+    { "data-turn-key": "00000000-0000-4000-8000-000000000001" });
+  await assert.rejects(async () => executeCaptured(source, fixture.turns([wrongMessageIdTurn], null),
+    fixture.input, exactConversationFixtureUrl), /BROWSER_DOM_READ_INVALID/u,
+  "a marker with mismatched user message ids must not produce an answer");
+  const wrongRoleUser = new FakeElement("fixture-marker",
+    { "[data-user-message-bubble='true']": [bubble] }, {}, {
+      "data-chatgpt-search-unit-key": "fallback-turn-0:0:assistant",
+      "data-chatgpt-search-message-ids": "00000000-0000-4000-8000-000000000001",
+    });
+  const wrongRoleTurn = new FakeElement("fixture-marker",
+    { "[data-chatgpt-search-unit-key]": [wrongRoleUser] }, {},
+    { "data-turn-key": "00000000-0000-4000-8000-000000000001" });
+  const wrongRole = await executeCaptured(source, fixture.turns([wrongRoleTurn], null),
+    fixture.input, exactConversationFixtureUrl) as Readonly<{ pendingCause: string }>;
+  assert.equal(wrongRole.pendingCause, "exact-user-turn-unavailable");
   const rich = richSemanticTree();
   const richObserved = await executeCaptured(source, fixture.turns([fixture.assistantOuter(rich)], rich),
     fixture.input, exactConversationFixtureUrl) as Readonly<{ semanticText: string }>;
@@ -194,9 +224,9 @@ const exerciseCapturedExactAssistantTurnFunction = async (source: string): Promi
 const exerciseSingleAtomicRead = async (): Promise<void> => {
   const fixture = runtimeFor(successfulObservation);
   const reply = await execute(fixture) as Readonly<Record<string, unknown>>;
-  assert.equal(fixture.callCount(), 1,
-    "candidate identity, raw HTML, and semantic text must share one Runtime.callFunctionOn");
-  assert.equal(fixture.releases(), 1);
+  assert.equal(fixture.callCount(), 2,
+    "the bounded marker scan must precede one coherent answer observation");
+  assert.equal(fixture.releases(), 2);
   assert.deepEqual(fixture.methods.filter((method) => [
     "DOM.querySelectorAll", "DOM.describeNode", "DOM.getOuterHTML",
   ].includes(method)), [], "the exact reply must not splice independent DOM reads");
@@ -237,7 +267,7 @@ const exerciseAtomicFailureClosure = async (): Promise<void> => {
   await assert.rejects(executeRegisteredDomIntent(
     runtimeFor(successfulObservation).runtime,
     target,
-    { kind: "readExactAssistantTurn", userTurnId: "00000000-0000-4000-8000-000000000001",
+    { kind: "readExactAssistantTurn", turnMarker: "fixture-marker",
       canonicalConversationUrl: "https://chatgpt.com/c/exact" },
     () => undefined,
   ), /BROWSER_DOCUMENT_INVALID/u,
@@ -246,60 +276,46 @@ const exerciseAtomicFailureClosure = async (): Promise<void> => {
 
 
 const unavailableObservation = Object.freeze({ ...successfulObservation,
-  rawCount: 0, rawDomHtml: "", semanticText: "", pendingCause: "exact-user-turn-unavailable" });
+  rawCount: 0, rawDomHtml: "", semanticText: "", precedingUserTurnId: "",
+  pendingCause: "exact-user-turn-unavailable" });
 
-type MaterializeStepBehavior = Readonly<{
-  pageVisible: boolean; containerFound: boolean; hit: boolean; atTop: boolean;
+type ScanStep = Readonly<{
+  pageVisible: boolean; containerFound: boolean; atTop: boolean;
+  ids: readonly string[]; scrollTop: number;
 }>;
+const observedUserTurnId = "00000000-0000-4000-8000-000000000001";
+const anotherUserTurnId = "00000000-0000-4000-8000-000000000003";
+const step = (ids: readonly string[], atTop: boolean, scrollTop: number): ScanStep => ({
+  pageVisible: true, containerFound: true, ids, atTop, scrollTop,
+});
 
-const materializeRuntimeFor = (options: Readonly<{
-  steps: readonly MaterializeStepBehavior[];
-  finalObservation?: Readonly<Record<string, unknown>>;
-}>) => {
+const scanRuntimeFor = (
+  steps: readonly ScanStep[], finalObservation: Readonly<Record<string, unknown>> = successfulObservation,
+) => {
   const methods: string[] = [];
-  const materializeStepElapsedMs: number[] = [];
-  const startedAt = Date.now();
-  let mainCallCount = 0;
-  let materializeCallCount = 0;
-  let releases = 0;
-  let materializeFunctionSource = "";
-  const runtime = { async send(
-    _tabId: number,
-    method: string,
-    parameters?: Readonly<Record<string, unknown>>,
-  ) {
+  let scanCalls = 0;
+  let mainCalls = 0;
+  let scanSource = "";
+  const runtime = { async send(_tabId: number, method: string,
+    parameters?: Readonly<Record<string, unknown>>) {
     methods.push(method);
     if (method === "Page.getFrameTree") return { frameTree: { frame: { loaderId: "loader-current" } } };
     if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
     if (method === "DOM.resolveNode") return { object: { objectId: "document-object" } };
-    if (method === "Runtime.callFunctionOn") {
-      const argValue: Readonly<Record<string, unknown>> | undefined =
-        (parameters?.arguments as readonly Readonly<{ value: unknown }>[])?.[0]?.value as
-          Readonly<Record<string, unknown>> | undefined;
-      if (typeof argValue?.step === "number") {
-        materializeFunctionSource = String(parameters?.functionDeclaration ?? "");
-        materializeStepElapsedMs.push(Date.now() - startedAt);
-        const behavior = options.steps[materializeCallCount];
-        materializeCallCount += 1;
-        if (!behavior) throw new Error("UNEXPECTED_MATERIALIZE_STEP_CALL");
-        return { result: { value: behavior } };
-      }
-      mainCallCount += 1;
-      const observation = mainCallCount === 1 ? unavailableObservation
-        : (options.finalObservation ?? unavailableObservation);
-      return { result: { value: observation } };
+    if (method === "Runtime.releaseObject") return {};
+    if (method !== "Runtime.callFunctionOn") throw new Error(`UNEXPECTED_METHOD:${method}`);
+    const source = String(parameters?.functionDeclaration ?? "");
+    if (source.startsWith("function (spec)")) {
+      scanSource = source;
+      const value = steps[scanCalls++];
+      if (!value) throw new Error("UNEXPECTED_SCAN_STEP");
+      return { result: { value } };
     }
-    if (method === "Runtime.releaseObject") { releases += 1; return {}; }
-    throw new Error(`UNEXPECTED_EXACT_ASSISTANT_METHOD:${method}`);
+    mainCalls += 1;
+    return { result: { value: finalObservation } };
   } } as ExtensionDebuggerRuntime;
-  return Object.freeze({
-    runtime, methods,
-    mainCallCount: () => mainCallCount,
-    materializeCallCount: () => materializeCallCount,
-    materializeStepElapsedMs,
-    materializeFunctionSource: () => materializeFunctionSource,
-    releases: () => releases,
-  });
+  return { runtime, methods, scanCalls: () => scanCalls, mainCalls: () => mainCalls,
+    scanSource: () => scanSource };
 };
 
 const withFakeExtensionClock = async <T>(run: () => Promise<T>): Promise<T> => {
@@ -312,174 +328,108 @@ const withFakeExtensionClock = async <T>(run: () => Promise<T>): Promise<T> => {
     handler();
     return originalSetTimeout(() => undefined, 0);
   }) as typeof setTimeout;
-  try {
-    return await run();
-  } finally {
-    Date.now = originalNow;
-    globalThis.setTimeout = originalSetTimeout;
-  }
+  try { return await run(); }
+  finally { Date.now = originalNow; globalThis.setTimeout = originalSetTimeout; }
 };
 
-const materialize = (
-  fixture: ReturnType<typeof materializeRuntimeFor>,
-  commandDeadlineAt: number,
-): Promise<unknown> => executeRegisteredDomIntent(
-  fixture.runtime,
-  target,
-  { kind: "readExactAssistantTurn", userTurnId: "00000000-0000-4000-8000-000000000001",
-    canonicalConversationUrl: "https://chatgpt.com/c/exact" },
-  () => undefined,
-  "loader-current",
-  commandDeadlineAt,
-);
-
-// T3.1: a virtualized turn is found after stepping, and read back exactly as if it had been
-// mounted from the start; a materialization walk that never advances (never hits, never reaches
-// the top) still fails closed instead of looping forever.
-const exerciseMaterializationHit = async (): Promise<void> => {
-  await withFakeExtensionClock(async () => {
-    const start = Date.now();
-    const hitAtStep3 = materializeRuntimeFor({
-      steps: [
-        { pageVisible: true, containerFound: true, hit: false, atTop: false },
-        { pageVisible: true, containerFound: true, hit: false, atTop: false },
-        { pageVisible: true, containerFound: true, hit: true, atTop: false },
-      ],
-      finalObservation: successfulObservation,
-    });
-    const materialized = await materialize(hitAtStep3, start + 20_000);
-    assert.equal(hitAtStep3.materializeCallCount(), 3, "the walk must stop at the step that hits");
-    assert.equal(hitAtStep3.mainCallCount(), 2,
-      "an unavailable read followed by exactly one re-read after materialization");
-    const alreadyMounted = await execute(
-      runtimeFor(successfulObservation),
-    );
-    assert.deepEqual(materialized, alreadyMounted,
-      "T3.7: a hit-after-materialization reply must equal the already-mounted control exactly");
-  });
-  await withFakeExtensionClock(async () => {
-    const start = Date.now();
-    const neverHits = materializeRuntimeFor({
-      steps: Array.from({ length: 40 },
-        () => ({ pageVisible: true, containerFound: true, hit: false, atTop: false } as const)),
-    });
-    const reply = await materialize(neverHits, start + 20_000) as Readonly<Record<string, unknown>>;
-    assert.equal(reply.pendingCause, "exact-user-turn-unavailable",
-      "T3.1: a walk that never hits must return bound negative evidence");
-  });
-};
-
-// T3.2: less than 4s of remaining budget must skip stepping entirely.
-const exerciseMaterializationInsufficientBudget = async (): Promise<void> => {
-  await withFakeExtensionClock(async () => {
-    const start = Date.now();
-    const fixture = materializeRuntimeFor({ steps: [] });
-    const reply = await materialize(fixture, start + 5_000) as Readonly<Record<string, unknown>>;
-    assert.equal(reply.pendingCause, "exact-user-turn-unavailable");
-    assert.equal(fixture.materializeCallCount(), 0, "budget under 4s must trigger zero steps");
-    assert.equal(fixture.mainCallCount(), 2, "the unavailable observation is still re-read once");
-  });
-};
-
-// T3.3: no scroll container found must resolve unavailable after exactly one step.
-const exerciseMaterializationNoContainer = async (): Promise<void> => {
-  await withFakeExtensionClock(async () => {
-    const start = Date.now();
-    const fixture = materializeRuntimeFor({
-      steps: [{ pageVisible: true, containerFound: false, hit: false, atTop: false }],
-    });
-    const reply = await materialize(fixture, start + 20_000) as Readonly<Record<string, unknown>>;
-    assert.equal(reply.pendingCause, "exact-user-turn-unavailable");
-    assert.equal(fixture.materializeCallCount(), 1);
-  });
-};
-
-// T3.3b: a hidden document must stop after the first step with no further step calls.
-const exerciseMaterializationHiddenDocument = async (): Promise<void> => {
-  await withFakeExtensionClock(async () => {
-    const start = Date.now();
-    const fixture = materializeRuntimeFor({
-      steps: [{ pageVisible: false, containerFound: false, hit: false, atTop: false }],
-    });
-    const reply = await materialize(fixture, start + 20_000) as Readonly<Record<string, unknown>>;
-    assert.equal(reply.pendingCause, "exact-user-turn-unavailable");
-    assert.equal(fixture.materializeCallCount(), 1,
-      "a hidden document must not receive any step after the first observes it hidden");
-  });
-};
-
-// T3.4: exhausting the step cap or the deadline must resolve unavailable, and the extension-side
-// walk must not overrun the granted budget by more than 1s.
-const exerciseMaterializationBudgetExhausted = async (): Promise<void> => {
-  await withFakeExtensionClock(async () => {
-    const start = Date.now();
-    const budgetMs = 12_000;
-    const neverSettles = materializeRuntimeFor({
-      steps: Array.from({ length: 48 },
-        () => ({ pageVisible: true, containerFound: true, hit: false, atTop: false } as const)),
-    });
-    const reply = await materialize(neverSettles, start + budgetMs + 3_000) as Readonly<Record<string, unknown>>;
-    assert.equal(reply.pendingCause, "exact-user-turn-unavailable");
-    assert.ok(neverSettles.materializeCallCount() <= 48, "the walk must never exceed the step cap");
-    const elapsedMs = Date.now() - start;
-    assert.ok(elapsedMs <= budgetMs + 1_000,
-      `extension-side elapsed time ${elapsedMs}ms must stay within budget + 1s`);
-    assert.ok(elapsedMs >= budgetMs - 1_000, "the walk must actually consume close to its budget");
-  });
-};
-
-// T3.5: the walk advances purely on the extension's own clock; nothing about a step depends on a
-// page-owned timer or rAF firing, so a page whose own timers never fire cannot stall or skip it.
-const exerciseMaterializationExtensionOwnedClock = async (): Promise<void> => {
-  await withFakeExtensionClock(async () => {
-    const start = Date.now();
-    const hitAtStep5 = materializeRuntimeFor({
-      steps: [
-        { pageVisible: true, containerFound: true, hit: false, atTop: false },
-        { pageVisible: true, containerFound: true, hit: false, atTop: false },
-        { pageVisible: true, containerFound: true, hit: false, atTop: false },
-        { pageVisible: true, containerFound: true, hit: false, atTop: false },
-        { pageVisible: true, containerFound: true, hit: true, atTop: false },
-      ],
-      finalObservation: successfulObservation,
-    });
-    await materialize(hitAtStep5, start + 20_000);
-    assert.deepEqual([...hitAtStep5.materializeStepElapsedMs], [0, 400, 800, 1200, 1600],
-      "each step must be spaced by exactly the extension-owned interval, independent of page timers");
-  });
-};
-
-// T3.6: the walk must never dispatch a CDP input event or write a WAL row (readExactAssistantTurn
-// is never mutation-class, so no WAL path is even reachable here), and the page-injected step
-// function must be free of setTimeout/requestAnimationFrame/Promise so the extension owns every wait.
-const exerciseMaterializationNoSideEffects = async (): Promise<void> => {
-  await withFakeExtensionClock(async () => {
-    const start = Date.now();
-    const hitAtStep1 = materializeRuntimeFor({
-      steps: [{ pageVisible: true, containerFound: true, hit: true, atTop: false }],
-      finalObservation: successfulObservation,
-    });
-    await materialize(hitAtStep1, start + 20_000);
-    assert.equal(hitAtStep1.methods.some((method) => method.startsWith("Input.")), false,
-      "no CDP input event may be dispatched during materialization");
-    assert.deepEqual(new Set(hitAtStep1.methods), new Set([
-      "Page.getFrameTree", "DOM.getDocument", "DOM.resolveNode",
-      "Runtime.callFunctionOn", "Runtime.releaseObject",
-    ]), "only read-only CDP methods may be used; none of them are mutation-class");
-    assert.doesNotMatch(hitAtStep1.materializeFunctionSource(),
-      /setTimeout|requestAnimationFrame|new Promise|\.then\(/u,
-      "the page-injected step function must contain no timer, rAF, or Promise");
-  });
-};
+const scan = (fixture: ReturnType<typeof scanRuntimeFor>, deadlineAt: number) =>
+  executeRegisteredDomIntent(fixture.runtime, target,
+    { kind: "readExactAssistantTurn", turnMarker: "fixture-marker",
+      canonicalConversationUrl: exactConversationFixtureUrl },
+    () => undefined, "loader-current", deadlineAt);
 
 export const exerciseExactAssistantMaterialization = async (): Promise<void> => {
-  await exerciseMaterializationHit();
-  await exerciseMaterializationInsufficientBudget();
-  await exerciseMaterializationNoContainer();
-  await exerciseMaterializationHiddenDocument();
-  await exerciseMaterializationBudgetExhausted();
-  await exerciseMaterializationExtensionOwnedClock();
-  await exerciseMaterializationNoSideEffects();
+  await withFakeExtensionClock(async () => {
+    const start = Date.now();
+    const fixture = scanRuntimeFor([
+      step([], false, 1_000), step([observedUserTurnId], false, 800),
+      step([], false, 400), step([], true, 0), step([], false, 800),
+    ]);
+    const result = await scan(fixture, start + 20_000) as Readonly<Record<string, unknown>>;
+    assert.equal(fixture.scanCalls(), 5,
+      "a marker hit must not stop the scan before the whole accessible conversation is covered");
+    assert.equal(fixture.mainCalls(), 1);
+    assert.equal(result.precedingUserTurnId, observedUserTurnId);
+    assert.equal(result.semanticText, successfulObservation.semanticText);
+    assert.equal(fixture.methods.some((method) => method.startsWith("Input.")), false);
+    assert.doesNotMatch(fixture.scanSource(), /setTimeout|requestAnimationFrame|new Promise/u);
+  });
+  await withFakeExtensionClock(async () => {
+    const start = Date.now();
+    const duplicate = scanRuntimeFor([
+      step([], false, 1_000), step([observedUserTurnId], false, 800),
+      step([anotherUserTurnId], true, 0),
+    ]);
+    await assert.rejects(scan(duplicate, start + 20_000), /BROWSER_DOM_CANDIDATE_AMBIGUOUS/u);
+    assert.equal(duplicate.mainCalls(), 0, "duplicate marker must never reach answer settlement");
+  });
+  await withFakeExtensionClock(async () => {
+    const start = Date.now();
+    const incomplete = scanRuntimeFor(Array.from({ length: 80 },
+      (_, index) => step(index === 1 ? [observedUserTurnId] : [], false, 80 - index)),
+      unavailableObservation);
+    const result = await scan(incomplete, start + 20_000) as Readonly<Record<string, unknown>>;
+    assert.equal(result.pendingCause, "exact-user-turn-unavailable",
+      "a locally visible marker is not proof of whole-conversation uniqueness");
+    assert.ok(incomplete.scanCalls() <= 80);
+  });
+  await withFakeExtensionClock(async () => {
+    const fixture = scanRuntimeFor([step([observedUserTurnId], true, 0)]);
+    await scan(fixture, Date.now() + 20_000);
+    const body = new FakeElement("", {}, {}, {}, "BODY");
+    const turn = capturedAssistantFixture().assistantOuter(new FakeElement("answer"));
+    const container = new FakeElement("", {}, {}, {}, "DIV", [turn]);
+    container.parentElement = body;
+    let scrollTop = 0;
+    Object.defineProperty(container, "scrollTop", {
+      get: () => scrollTop,
+      set: (value: number) => { scrollTop = Math.max(-52_961, Math.min(0, value)); },
+    });
+    Object.assign(container, { clientHeight: 1_007, scrollHeight: 53_968 });
+    const implementation = runInNewContext(`(${fixture.scanSource()})`, {
+      document: { visibilityState: "visible", body,
+        querySelectorAll: () => [turn], scrollingElement: null },
+      getComputedStyle: () => ({ overflowY: "auto", flexDirection: "column-reverse" }),
+    }) as (spec: Readonly<Record<string, unknown>>) => ScanStep;
+    assert.equal(implementation({ turnMarker: "fixture-marker", step: 0 }).scrollTop, 0);
+    let reachedTop = false;
+    for (let index = 1; index < 80; index += 1) {
+      const result = implementation({ turnMarker: "fixture-marker", step: index });
+      if (result.atTop) { reachedTop = true; break; }
+      if (index === 1) assert.ok(scrollTop < 0, "reverse scroll must move toward negative top");
+      if (index === 48) assert.equal(result.atTop, false,
+        "the incident's long reverse-scroll page needs more than 48 viewport steps");
+    }
+    assert.equal(reachedTop, true, "the 80-step bound must cover the incident's scroll height");
+    for (const [overflow, mountedTurns] of [
+      ["hidden", [turn]], ["auto", [turn, new FakeElement("other turn")]],
+    ] as const) {
+      const blocked = runInNewContext(`(${fixture.scanSource()})`, {
+        document: { visibilityState: "visible", body,
+          querySelectorAll: () => mountedTurns,
+          scrollingElement: { scrollHeight: 2_000, clientHeight: 1_000 } },
+        getComputedStyle: () => ({ overflowY: overflow, flexDirection: "column-reverse" }),
+      }) as (spec: Readonly<Record<string, unknown>>) => ScanStep;
+      assert.equal(blocked({ turnMarker: "fixture-marker", step: 0 }).atTop, false,
+        "an unknown or split scroll root cannot prove full marker uniqueness");
+    }
+  });
+  await withFakeExtensionClock(async () => {
+    const start = Date.now();
+    const noScroll = scanRuntimeFor([{
+      pageVisible: true, containerFound: false, atTop: true,
+      ids: [observedUserTurnId], scrollTop: 0,
+    }]);
+    const result = await scan(noScroll, start + 20_000) as Readonly<Record<string, unknown>>;
+    assert.equal(result.semanticText, successfulObservation.semanticText);
+  });
+  await withFakeExtensionClock(async () => {
+    const start = Date.now();
+    const shortBudget = scanRuntimeFor([], unavailableObservation);
+    const result = await scan(shortBudget, start + 5_000) as Readonly<Record<string, unknown>>;
+    assert.equal(result.pendingCause, "exact-user-turn-unavailable");
+    assert.equal(shortBudget.scanCalls(), 0);
+  });
 };
 
 export const exerciseExactAssistantTurnRead = async (): Promise<void> => {

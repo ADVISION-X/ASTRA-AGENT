@@ -106,11 +106,11 @@ const settledTextResponse = (assistant: ExactAssistantObservation) => success({
 const checkpointInput = (intent: Parameters<GptChildHandler<"checkpoint_gpt_text_response">>[0]) => {
   requireExactInputKeys(intent, ["canonicalConversationUrl", "probeBudgetMs", "turnMarker", "userTurnId"]);
   const conversationUrl = canonicalGptConversationUrl(stringInput(intent, "canonicalConversationUrl"));
-  stringInput(intent, "turnMarker");
+  const turnMarker = stringInput(intent, "turnMarker");
   const userTurnId = stringInput(intent, "userTurnId");
   const probeBudgetMs = numberInput(intent, "probeBudgetMs");
   if (!Number.isSafeInteger(probeBudgetMs) || probeBudgetMs < 1 || probeBudgetMs > 3_600_000) throw executionFailure("failed", "GPT_RESPONSE_PROBE_BUDGET_INVALID");
-  return { conversationUrl, userTurnId, probeBudgetMs };
+  return { conversationUrl, userTurnId, turnMarker, probeBudgetMs };
 };
 
 const recordNegativeObservation = (
@@ -145,7 +145,7 @@ const requireObservationGate = (context: Parameters<GptChildHandler<"checkpoint_
 
 export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_text_response"> =
   async (intent, context) => {
-    const { conversationUrl, userTurnId, probeBudgetMs } = checkpointInput(intent);
+    const { conversationUrl, userTurnId, turnMarker, probeBudgetMs } = checkpointInput(intent);
     const browser = requireBrowser(context);
     const deadline = Date.now() + probeBudgetMs;
     let stoppedEmptyWindow: StoppedEmptyWindow | null = null;
@@ -162,7 +162,7 @@ export const checkpointGptTextResponseHandler: GptChildHandler<"checkpoint_gpt_t
       }
       let assistant: ExactAssistantObservation | null = null;
       try {
-        assistant = await readExactAssistantTurn(browser, userTurnId, conversationUrl);
+        assistant = await readExactAssistantTurn(browser, userTurnId, turnMarker, conversationUrl);
       } catch (error) {
         const code = failureCode(error);
         if (code === "BROWSER_EXACT_USER_TURN_UNAVAILABLE") {

@@ -316,11 +316,11 @@ for (const promptMatches of [true, false]) {
 }
 
 {
-  const userTurnId = "00000000-0000-4000-8000-000000000003";
+  const userTurnId = "00000000-0000-4000-8000-000000000001";
   const assistantTurnId = "00000000-0000-4000-8000-000000000004";
   const fixture = fakeBrowser((intent) => {
     if (intent.kind === "readExactAssistantTurn") {
-      assert.equal(intent.userTurnId, userTurnId);
+      assert.equal(intent.turnMarker, "exact");
       return exactAssistantTurnReply(intent, "exact response");
     }
     throw new Error(`UNEXPECTED_EXACT_CHECKPOINT_INTENT:${intent.kind}`);
@@ -342,6 +342,24 @@ for (const promptMatches of [true, false]) {
   assert.deepEqual(waitReasons, ["initial-observation"]);
   assert.equal(result.value?.assistantTurnId, assistantTurnId);
   assert.equal(result.value?.semanticText, "exact response");
+  assert.equal(fixture.physicalMutations(), 0,
+    "a confirmed submit UUID may drift from the current marker turn without another Provider input");
+}
+
+{
+  const fixture = fakeBrowser((intent) => {
+    if (intent.kind !== "readExactAssistantTurn") throw new Error("UNEXPECTED_EXACT_CHECKPOINT_INTENT");
+    return { ...exactAssistantTurnReply(intent, "wrong conversation"),
+      currentUrl: new URL("/c/another-conversation", conversationUrl).href };
+  }, { initialUrl: conversationUrl });
+  const result = await createGptAcceptanceHarness("gpt-proof-exact-wrong-url").execute(
+    "checkpoint_gpt_text_response", fixture.browser,
+    { canonicalConversationUrl: conversationUrl, probeBudgetMs: 200_000,
+      userTurnId: "00000000-0000-4000-8000-000000000003", turnMarker: "exact" }, {
+      waitForProviderObservation: async () => "reobserve",
+    },
+  );
+  assert.equal(result.failureCode, "GPT_EXACT_ASSISTANT_TURN_RESULT_INVALID");
 }
 
 {

@@ -31,11 +31,11 @@ assert.equal(createHash("sha256").update(frozenTombstone ?? "").digest("hex"),
   "9f36f80ee1b9af803bed7b3dde2b5145ab6e61b1fc79d469bff17d18da0ea53e",
   "the frozen anti-resurrection Tombstone clause must remain byte-exact");
 assert.match(frozenTombstone ?? "", /本Tombstone已按授权精确解冻替换并重新冻结；未来改变仍须授权人再次明确解冻并授权双仓同步替换/u);
-const targetLawId = "LAW-ARCHITECTURE-BOUNDARY-002-V1";
+const targetLawId = "LAW-ARCHITECTURE-BOUNDARY-002-V2";
 const targetAuthorityLaw = lawRecords.find((law) => law.lawId === targetLawId);
 const frozenTargetAuthority = targetAuthorityLaw?.forbidden?.[0] ?? "";
 assert.equal(createHash("sha256").update(frozenTargetAuthority).digest("hex"),
-  "93376b0a18ae8f960b9a644b13ffbd6865f7fc99daddbbc512e85fccfd81d431",
+  "e5736bfc412ab00484d1f368bec35e65d74d68a38490161078a8fc3b1db81db7",
   "the frozen Target authority boundary clause must remain byte-exact");
 assert.match(frozenTargetAuthority, /TARGET-AUTHORITY-BOUNDARY-001 被违反/u);
 assert.match(frozenTargetAuthority, /未来改变仍须授权人再次明确解冻/u);

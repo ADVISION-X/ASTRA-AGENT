@@ -86,8 +86,13 @@ export const exactAssistantRuntimeFor = (
       callCount += 1;
       functionSource = String(parameters?.functionDeclaration ?? "");
       assert.equal(parameters?.objectId, "document-object");
+      if (functionSource.startsWith("function (spec)")) {
+        return { result: { value: { pageVisible: true, containerFound: false,
+          atTop: true, ids: ["00000000-0000-4000-8000-000000000001"], scrollTop: 0 } } };
+      }
       assert.deepEqual((parameters?.arguments as readonly Readonly<{ value: unknown }>[])?.[0]?.value,
-        { kind: "readExactAssistantTurn", userTurnId: "00000000-0000-4000-8000-000000000001",
+        { kind: "readExactAssistantTurn", turnMarker: "fixture-marker",
+          observedUserTurnId: "00000000-0000-4000-8000-000000000001",
           canonicalConversationUrl: "https://chatgpt.com/c/exact" });
       assert.equal(parameters?.returnByValue, true);
       assert.equal(parameters?.awaitPromise, true);
@@ -106,7 +111,7 @@ export const executeExactAssistantFixture = (
 ): Promise<unknown> => executeRegisteredDomIntent(
   fixture.runtime,
   exactAssistantTarget,
-  { kind: "readExactAssistantTurn", userTurnId: "00000000-0000-4000-8000-000000000001",
+  { kind: "readExactAssistantTurn", turnMarker: "fixture-marker",
     canonicalConversationUrl: "https://chatgpt.com/c/exact" },
   () => undefined,
   "loader-current",

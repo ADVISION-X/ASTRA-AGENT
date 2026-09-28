@@ -307,7 +307,7 @@ export const inspectProviderWaitContract = (
     artifacts: sourceText(context, EVIDENCE_ARTIFACTS),
   };
   requireTokens(sources.textHandler, TEXT_HANDLER, [
-    "checkpointGptTextResponseHandler", "probeBudgetMs", "userTurnId",
+    "checkpointGptTextResponseHandler", "probeBudgetMs", "userTurnId", "turnMarker",
     "readExactAssistantTurn", "semanticText.trim().length > 0", "waitForProviderObservation",
     'throw executionFailure("failed", "GPT_RESPONSE_TIMEOUT")',
   ], findings, finding);
@@ -318,7 +318,7 @@ export const inspectProviderWaitContract = (
   ], findings, finding);
   inspectProviderObservationOrder(context, sources, findings, finding);
   requireTokens(sources.responseState, RESPONSE_STATE, [
-    "readExactAssistantTurn", "userTurnId", "precedingUserTurnId",
+    "readExactAssistantTurn", "userTurnId", "turnMarker", "precedingUserTurnId",
   ], findings, finding);
   requireTokens(sources.submit, SUBMIT_HANDLER, [
     "submitExactGptTurnOnceHandler", "requireConfirmedBrowserFact", 'status: "CONFIRMED"',

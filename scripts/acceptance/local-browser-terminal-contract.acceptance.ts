@@ -167,17 +167,17 @@ try {
   };
   const exactAssistantCommand = { kind: "dom-intent" as const, intent: {
     kind: "readExactAssistantTurn" as const,
-    userTurnId: "00000000-0000-4000-8000-000000000001",
+    turnMarker: "fixture-marker",
     canonicalConversationUrl: "https://chatgpt.com/c/exact-assistant",
   } };
   const exactAssistantRawDomHtml = "<div>answer</div>";
   const exactAssistantSemanticText = "answer";
   const exactAssistantReply = {
-    schemaVersion: "grasseye.browser.exact-assistant-turn.v3" as const,
+    schemaVersion: "grasseye.browser.exact-assistant-turn.v4" as const,
     targetRefHash: exactHash(exactAssistantPermit.targetRef),
     documentRefHash: exactHash(exactAssistantPermit.documentRef),
     assistantTurnId: "00000000-0000-4000-8000-000000000002",
-    currentUrl: "https://chatgpt.com/c/provider-canonicalized-after-submit",
+    currentUrl: exactAssistantCommand.intent.canonicalConversationUrl,
     precedingUserTurnId: "00000000-0000-4000-8000-000000000001",
     generatingRaw: 0,
     rawDomHtml: exactAssistantRawDomHtml, rawDomHash: exactHash(exactAssistantRawDomHtml),
@@ -185,7 +185,8 @@ try {
     observedAt,
   };
   const exactAssistantObservationRevisionHash = exactHash(
-    canonicalBrowserExactAssistantTurnRevision(exactAssistantReply),
+    canonicalBrowserExactAssistantTurnRevision({ ...exactAssistantReply,
+      turnMarkerHash: exactHash(exactAssistantCommand.intent.turnMarker) }),
   );
   const boundExactAssistant = await actorFor(async (candidate) => ({
     replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
@@ -193,16 +194,29 @@ try {
     result: { ...exactAssistantReply, observationRevisionHash: exactAssistantObservationRevisionHash },
   })).execute(exactAssistantPermit, exactAssistantCommand) as Readonly<Record<string, unknown>>;
   assert.match(String(boundExactAssistant.exactCallIdentityHash), /^sha256:[a-f0-9]{64}$/u);
+  const wrongUrlExactAssistant = { ...exactAssistantReply,
+    currentUrl: new URL("/c/another-conversation", exactAssistantCommand.intent.canonicalConversationUrl).href };
+  const wrongUrlRevision = exactHash(canonicalBrowserExactAssistantTurnRevision({
+    ...wrongUrlExactAssistant, turnMarkerHash: exactHash(exactAssistantCommand.intent.turnMarker),
+  }));
+  await assert.rejects(actorFor(async (candidate) => ({
+    replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+    permitSequence: candidate.sequence,
+    result: { ...wrongUrlExactAssistant, observationRevisionHash: wrongUrlRevision },
+  })).execute(exactAssistantPermit, exactAssistantCommand), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
+  "a hash-consistent answer from another conversation must not bind to the requested URL");
   const negativeExactAssistant = {
     ...exactAssistantReply,
     assistantTurnId: "",
+    precedingUserTurnId: "",
     currentUrl: exactAssistantCommand.intent.canonicalConversationUrl,
     rawDomHtml: "", rawDomHash: exactHash(""),
     semanticText: "", semanticTextHash: exactHash(""),
     pendingCause: "exact-user-turn-unavailable" as const,
   };
   const negativeRevision = exactHash(canonicalBrowserExactAssistantTurnRevision(
-    negativeExactAssistant, negativeExactAssistant.pendingCause,
+    { ...negativeExactAssistant, turnMarkerHash: exactHash(exactAssistantCommand.intent.turnMarker) },
+    negativeExactAssistant.pendingCause,
   ));
   const boundNegative = await actorFor(async (candidate) => ({
     replyChannelToken: candidate.replyChannelToken, transportSequence: 1,

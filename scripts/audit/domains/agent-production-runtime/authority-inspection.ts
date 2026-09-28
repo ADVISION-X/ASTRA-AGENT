@@ -5,8 +5,8 @@ import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { inspectWorkerLoopLiveness } from "./worker-loop-inspection.js";
 
-const DATABASE_LAW = "LAW-AGENT-PRODUCTION-RUNTIME-005-V41";
-const PROOF_LAW = "LAW-AGENT-PRODUCTION-RUNTIME-008-V45";
+const DATABASE_LAW = "LAW-AGENT-PRODUCTION-RUNTIME-005-V42";
+const PROOF_LAW = "LAW-AGENT-PRODUCTION-RUNTIME-008-V46";
 const ROOT = "src/lib/local-runtime/production";
 const PATHS = {
   authority: `${ROOT}/store-authority-reader.ts`, ledger: `${ROOT}/store-ledger.ts`,
