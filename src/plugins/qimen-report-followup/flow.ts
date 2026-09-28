@@ -101,6 +101,18 @@ const uploadedFiles = (context: SharedExecutionContext) => materialFiles(context
     bytes: file.bytes,
   }));
 
+const qualityReflectionInstruction = (): string => [
+  "执行 post-completion-production-audit.v1 分阶段审计；这是已完成工单的后置审计，禁止重新回答原业务问题，禁止生成第二正式结果。",
+  "A1 只从 subject 业务参数、当前 Product Skill 与 route contract 重建原业务目标、非目标与交付边界，不得从最终回答倒推目标。",
+  "A2 结合本 Prompt 开头的 Product Skill 正文与当前 route contract，判断当前 primary 指令的目标是否明确、约束是否冲突或重复、材料角色是否对齐、是否存在必须猜测的隐式要求；不得在本轮输出中复述或执行 primary 指令正文。",
+  "A3 检查本轮附件的 role/ordinal/display name/media type/hash 是否清楚；不得声称读取了本轮未附加的原始二进制正文，不得伪造内容级结论。",
+  "A4 检查 subject_result 相对 A1 目标的覆盖、重复、遗漏、表达阻力、条件/不确定性、引用使用与 result contract 摩擦。",
+  "A5 只用 review_context 中的冻结事实核对 frozen task -> Product -> result contract -> Website business completion 的交接链，不评价未观察源码。",
+  "A6 同一根因的多个症状只保留一条 finding，指向最早的直接断裂；没有可证问题时 decision=no_issue。",
+  "A7 严格返回 website-agent-review-output.v1：decision + issues[]，每条 issue 只含 category/target_type/target_ref/observation/evidence_refs/impact/confidence/suggested_inspection 八字段，不得新增第二结果字段。",
+  "本 Product 专属检查面：parent lineage、原盘局、当前 delta、是否重起新局或静默覆盖父结论。",
+].join("\n");
+
 const promptFor = (
   task: WebsiteAgentTask,
   context: SharedExecutionContext,
@@ -113,7 +125,7 @@ const promptFor = (
   const instruction = task.action_id === "accuracy_challenge"
     ? "只复核当前 subject result 的事实、证据、问题覆盖与推理，返回可核验 finding；不得改写结果或替 Website 裁决。"
     : task.action_id === "quality_reflection"
-      ? "只复核当前 subject result 的表达、完整性、合同摩擦与质量风险，返回可核验 finding；不得生成第二份正式结果。"
+      ? qualityReflectionInstruction()
       : PRODUCT_INSTRUCTION;
   return [
     context.productSkill.text, "", `当前 Product Plugin：${PLUGIN_ID}`, `当前授权动作：${task.action_id}`,

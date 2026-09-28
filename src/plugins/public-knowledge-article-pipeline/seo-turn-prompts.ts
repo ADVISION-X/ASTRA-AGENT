@@ -55,6 +55,19 @@ export const imagePrompt = (
     "本轮唯一业务输出是一张可下载的生成图片。",
   ].join("\n"));
 
+const qualityReflectionInstruction = (): string => [
+  "只检查独立性、表达、读者价值、合同摩擦与质量风险；不得改写文章或替 Website 裁决。",
+  "执行 post-completion-production-audit.v1 分阶段审计；这是已完成工单的后置审计，禁止重新回答原业务问题，禁止生成第二正式结果。",
+  "A1 只从 subject 业务参数与当前 Product Skill 重建原业务目标、非目标与交付边界，不得从最终文章倒推目标。",
+  "A2 当前 primary 是 research 与 article 两回合各自的 Prompt 与输出子合同（route contract）；检查两者目标是否明确、约束是否冲突、research -> article handoff 是否清楚、是否存在诱导 SEO 堆砌的隐式要求。",
+  "A3 检查本轮附件的 role/display name/media type/hash 是否清楚；不得声称读取了本轮未附加的原始正文，不得伪造内容级结论。",
+  "A4 检查 subject_result 相对 A1 目标的覆盖、重复、遗漏、表达阻力、条件/不确定性、引用与主张独立性、result contract 摩擦。",
+  "A5 只用 review_context 中的冻结事实核对 frozen task -> Product -> result contract -> Website business completion 的交接链，不评价未观察源码。",
+  "A6 同一根因的多个症状只保留一条 finding，指向最早的直接断裂；没有可证问题时 decision=no_issue。",
+  "A7 严格返回 website-agent-review-output.v1：decision + issues[]，每条 issue 只含 category/target_type/target_ref/observation/evidence_refs/impact/confidence/suggested_inspection 八字段，不得新增第二结果字段。",
+  "本 Product 专属检查面：READY corpus identity、主张/引用/独立性、研究到文章 handoff、Prompt/合同是否制造 SEO 堆砌。",
+].join("\n");
+
 export const reviewPrompt = (
   task: WebsiteAgentTask,
   marker: string,
@@ -62,7 +75,7 @@ export const reviewPrompt = (
   "读取且只读取本轮两个附件。",
   task.action_id === "accuracy_challenge"
     ? "只检查公开性、来源、主张、引文与事实准确性；不得改写文章或替 Website 裁决。"
-    : "只检查独立性、表达、读者价值、合同摩擦与质量风险；不得改写文章或替 Website 裁决。",
+    : qualityReflectionInstruction(),
   "严格返回 website-agent-review-output.v1：仅含 decision 与 issues；decision 只能是 no_issue 或 issues。",
   "只返回严格 JSON 对象，不要代码围栏，不要解释性前后缀。",
 ].join("\n"));
