@@ -232,7 +232,11 @@ export class BrowserInfrastructureSupervisor {
    * already use before dispatching, not a new idle-timeout or diagnostic-frame heuristic. */
   public readOperatorPairingState(): Readonly<{ authority: "present" | "absent"; pairingSecret: string | null }> {
     if (this.issuer.current().kind === "PRESENT") {
-      try { this.websocket.assertLive(); } catch (revoked) { void revoked; }
+      try {
+        this.websocket.assertLive();
+      } catch {
+        if (this.issuer.current().kind === "PRESENT") throw new Error("BROWSER_AUTHORITY_REVOKE_INCOMPLETE");
+      }
     }
     return {
       authority: this.issuer.current().kind === "PRESENT" ? "present" : "absent",
