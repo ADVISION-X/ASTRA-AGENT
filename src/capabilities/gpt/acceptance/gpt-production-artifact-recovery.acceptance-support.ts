@@ -12,9 +12,7 @@ import { isProviderEffectReadbackProofV1 } from "../production-child-support.js"
 import { gptCanonicalHash, gptExactCallIdentityHash } from "../contract.js";
 import { ProductionGptChildTools } from "../production-child-tools.js";
 import { readPersistedGptImageEvidence } from "../evidence-artifacts.js";
-import { createForensicsPersistenceAbilityGroupFromStorage } from
-  "../../forensics-persistence/index.js";
-import { createGrassEyeFileStorage } from "../../../lib/storage/index.js";
+import { createWorkbenchEvidenceStore } from "../../../lib/local-runtime/workbench-evidence-support.js";
 import { exactAssistantTurnReply } from "./gpt-exact-target-browser-fixture.js";
 import { browserExactCallIdentityHash,
   type BrowserDomIntent } from "../../../lib/browser/browser-authority-api.js";
@@ -376,8 +374,10 @@ try {
   const bindingKey = `gpt-call-artifact:v1:${imageExactCallIdentityHash}:source-binding`;
   const savedBinding = artifacts.get(bindingKey);
   assert.ok(savedBinding);
-  const realStore = createForensicsPersistenceAbilityGroupFromStorage(
-    createGrassEyeFileStorage(join(temporary, "forensics-readback")));
+  const realStore = createWorkbenchEvidenceStore(join(temporary, "forensics-readback"),
+    createRuntimeLogger({ producer: "gpt-artifact-recovery-real-forensics-store",
+      owner: "production-runtime", component: "forensics-persistence", terminalEnabled: false,
+      fileSink: { directoryPath: join(temporary, "real-forensics-runtime-logs") } }));
   const realOriginal = await realStore.appendArtifact({ missionId: jobId, runId: attemptId,
     artifactType: "ai_raw_output", mimeType: "image/png", content: imageBytes,
     idempotencyKey: `gpt-call-artifact:v1:${imageExactCallIdentityHash}:original` });
