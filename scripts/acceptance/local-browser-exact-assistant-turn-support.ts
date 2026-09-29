@@ -237,7 +237,7 @@ const exerciseSingleAtomicRead = async (): Promise<void> => {
   assert.deepEqual(fixture.methods.filter((method) => [
     "DOM.querySelectorAll", "DOM.describeNode", "DOM.getOuterHTML",
   ].includes(method)), [], "the exact reply must not splice independent DOM reads");
-  assert.equal(fixture.methods.filter((method) => method === "Page.getFrameTree").length, 2);
+  assert.equal(fixture.methods.filter((method) => method === "Page.getFrameTree").length, 3);
   assert.equal(reply.rawDomHtml, successfulObservation.rawDomHtml);
   assert.equal(reply.semanticText, successfulObservation.semanticText);
   assert.equal(reply.observedAt, observedAt);
@@ -271,6 +271,9 @@ const exerciseAtomicFailureClosure = async (): Promise<void> => {
   await assert.rejects(execute(runtimeFor(successfulObservation, ["loader-current", "loader-next"])),
     /BROWSER_DOCUMENT_INVALID/u,
     "a main-frame change during the single observation must invalidate the whole reply");
+  const wrongLoader = runtimeFor(successfulObservation, ["loader-next"]);
+  await assert.rejects(execute(wrongLoader), /BROWSER_DOCUMENT_INVALID/u);
+  assert.equal(wrongLoader.callCount(), 0, "loader drift must stop before scan or scroll");
   await assert.rejects(executeRegisteredDomIntent(
     runtimeFor(successfulObservation).runtime,
     target,
@@ -287,17 +290,19 @@ const unavailableObservation = Object.freeze({ ...successfulObservation,
   pendingCause: "exact-user-turn-unavailable" });
 
 type ScanStep = Readonly<{
-  pageVisible: boolean; containerFound: boolean; atTop: boolean;
-  ids: readonly string[]; scrollTop: number;
+  documentValid: boolean; containerFound: boolean; atTop: boolean; ids: readonly string[];
+  scrollTop: number; nextScrollTop: number;
 }>;
 const observedUserTurnId = "00000000-0000-4000-8000-000000000001";
 const anotherUserTurnId = "00000000-0000-4000-8000-000000000003";
-const step = (ids: readonly string[], atTop: boolean, scrollTop: number): ScanStep => ({
-  pageVisible: true, containerFound: true, ids, atTop, scrollTop,
+const step = (ids: readonly string[], atTop: boolean, scrollTop: number,
+  nextScrollTop = scrollTop): ScanStep => ({
+  documentValid: true, containerFound: true, ids, atTop, scrollTop, nextScrollTop,
 });
 
 const scanRuntimeFor = (
   steps: readonly ScanStep[], finalObservation: Readonly<Record<string, unknown>> = successfulObservation,
+  latencyMs = 0, liveStep?: (spec: Readonly<Record<string, unknown>>) => ScanStep,
 ) => {
   const methods: string[] = [];
   let scanCalls = 0;
@@ -305,6 +310,7 @@ const scanRuntimeFor = (
   let scanSource = "";
   const runtime = { async send(_tabId: number, method: string,
     parameters?: Readonly<Record<string, unknown>>) {
+    if (latencyMs > 0) await new Promise((resolve) => setTimeout(resolve, latencyMs));
     methods.push(method);
     if (method === "Page.getFrameTree") return { frameTree: { frame: { loaderId: "loader-current" } } };
     if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
@@ -314,7 +320,10 @@ const scanRuntimeFor = (
     const source = String(parameters?.functionDeclaration ?? "");
     if (source.startsWith("function (spec)")) {
       scanSource = source;
-      const value = steps[scanCalls++];
+      const value = liveStep
+        ? liveStep(((parameters?.arguments as readonly Readonly<{ value: Record<string, unknown> }>[])?.[0]?.value) ?? {})
+        : steps[scanCalls];
+      scanCalls += 1;
       if (!value) throw new Error("UNEXPECTED_SCAN_STEP");
       return { result: { value } };
     }
@@ -347,99 +356,128 @@ const scan = (fixture: ReturnType<typeof scanRuntimeFor>, deadlineAt: number) =>
 
 const exerciseReverseScrollMaterialization = async (): Promise<void> => {
   await withFakeExtensionClock(async () => {
-    const fixture = scanRuntimeFor([step([observedUserTurnId], true, 0)]);
+    const fixture = scanRuntimeFor([step([observedUserTurnId], false, 0)]);
     await scan(fixture, Date.now() + 20_000);
     const body = new FakeElement("", {}, {}, {}, "BODY");
-    const turn = capturedAssistantFixture().assistantOuter(new FakeElement("answer"));
+    const turn = new FakeElement("other turn", {}, {}, { "data-turn-key": anotherUserTurnId });
     const container = new FakeElement("", {}, {}, {}, "DIV", [turn]);
     container.parentElement = body;
     let scrollTop = 0;
+    let writes = 0;
     Object.defineProperty(container, "scrollTop", {
       get: () => scrollTop,
-      set: (value: number) => { scrollTop = Math.max(-52_961, Math.min(0, value)); },
+      set: (value: number) => { writes += 1; scrollTop = Math.max(-66_697, Math.min(0, value)); },
     });
-    Object.assign(container, { clientHeight: 1_007, scrollHeight: 53_968 });
+    Object.assign(container, { clientHeight: 955, scrollHeight: 67_652 });
+    const targetTurn = capturedAssistantFixture().assistantOuter(new FakeElement("answer"));
+    const pageDocument = { visibilityState: "hidden", body,
+      querySelectorAll: () => scrollTop <= -65_000 ? [targetTurn] : [turn], scrollingElement: null };
+    const spec = { turnMarker: "fixture-marker", canonicalConversationUrl: exactConversationFixtureUrl };
+    const expectedLocation = new URL(exactConversationFixtureUrl);
     const implementation = runInNewContext(`(${fixture.scanSource()})`, {
-      document: { visibilityState: "visible", body,
-        querySelectorAll: () => [turn], scrollingElement: null },
+      document: pageDocument,
+      URL,
+      location: { origin: expectedLocation.origin, pathname: expectedLocation.pathname },
       getComputedStyle: () => ({ overflowY: "auto", flexDirection: "column-reverse" }),
     }) as (spec: Readonly<Record<string, unknown>>) => ScanStep;
-    assert.equal(implementation({ turnMarker: "fixture-marker", step: 0 }).scrollTop, 0);
-    let reachedTop = false;
-    for (let index = 1; index < 80; index += 1) {
-      const result = implementation({ turnMarker: "fixture-marker", step: index });
-      if (result.atTop) { reachedTop = true; break; }
-      if (index === 1) assert.ok(scrollTop < 0, "reverse scroll must move toward negative top");
-      if (index === 48) assert.equal(result.atTop, false,
-        "the incident's long reverse-scroll page needs more than 48 viewport steps");
+    const mounted = capturedAssistantFixture().assistantOuter(new FakeElement("answer"));
+    const mountedDocument = { visibilityState: "hidden", body,
+      querySelectorAll: () => [mounted], scrollingElement: null };
+    const hiddenMounted = runInNewContext(`(${fixture.scanSource()})`, {
+      document: mountedDocument,
+      URL,
+      location: { origin: expectedLocation.origin, pathname: expectedLocation.pathname },
+    }) as (spec: Readonly<Record<string, unknown>>) => ScanStep;
+    assert.deepEqual([...hiddenMounted.call(mountedDocument, { ...spec, initial: true }).ids],
+      [observedUserTurnId], "a hidden tab with the exact turn mounted must be readable");
+    assert.equal(implementation.call(pageDocument, { ...spec, initial: true }).nextScrollTop, 0);
+    assert.equal(writes, 0, "initial read must not touch scrollTop even on a hidden tab");
+    implementation.call(pageDocument, { ...spec, resetBottom: true });
+    let samples = 0;
+    for (; samples < 100; samples += 1) {
+      const result = implementation.call(pageDocument, spec);
+      if (result.ids.length === 1) break;
+      assert.ok(result.nextScrollTop < result.scrollTop, "reverse scroll must advance toward the real top");
     }
-    assert.equal(reachedTop, true, "the 80-step bound must cover the incident's scroll height");
-    for (const [overflow, mountedTurns] of [
-      ["hidden", [turn]], ["auto", [turn, new FakeElement("other turn")]],
-    ] as const) {
-      const blocked = runInNewContext(`(${fixture.scanSource()})`, {
-        document: { visibilityState: "visible", body,
-          querySelectorAll: () => mountedTurns,
-          scrollingElement: { scrollHeight: 2_000, clientHeight: 1_000 } },
-        getComputedStyle: () => ({ overflowY: overflow, flexDirection: "column-reverse" }),
-      }) as (spec: Readonly<Record<string, unknown>>) => ScanStep;
-      assert.equal(blocked({ turnMarker: "fixture-marker", step: 0 }).atTop, false,
-        "an unknown or split scroll root cannot prove full marker uniqueness");
-    }
+    assert.ok(samples > 80 && samples < 100, "page geometry requires more than the retired 80-step cap");
+    assert.ok(scrollTop <= -65_000);
+    scrollTop = 0;
+    const live = scanRuntimeFor([], successfulObservation, 80,
+      (options) => implementation.call(pageDocument, options));
+    const observed = await scan(live, Date.now() + 20_000) as Readonly<Record<string, unknown>>;
+    assert.ok(live.scanCalls() > 80, "integrated scan must discover a marker mounted after 80 geometry steps");
+    assert.equal(observed.semanticText, successfulObservation.semanticText);
+    assert.equal(live.mainCalls(), 1);
+    assert.equal(live.methods.some((method) => method.startsWith("Input.")), false);
+    const priorWrites = writes;
+    const wrongUrl = runInNewContext(`(${fixture.scanSource()})`, {
+      document: pageDocument,
+      URL,
+      location: { origin: expectedLocation.origin, pathname: "/c/another" },
+    }) as (spec: Readonly<Record<string, unknown>>) => ScanStep;
+    assert.equal(wrongUrl.call(pageDocument, spec).documentValid, false);
+    assert.equal(implementation.call({}, spec).documentValid, false,
+      "a stale Document object must fail before a scroll mutation");
+    assert.equal(writes, priorWrites, "URL drift must fail before any scroll mutation");
   });
 };
 
 export const exerciseExactAssistantMaterialization = async (): Promise<void> => {
   await withFakeExtensionClock(async () => {
-    const start = Date.now();
-    const fixture = scanRuntimeFor([
-      step([], false, 1_000), step([observedUserTurnId], false, 800),
-      step([], false, 400), step([], true, 0), step([], false, 800),
-    ]);
-    const result = await scan(fixture, start + 20_000) as Readonly<Record<string, unknown>>;
-    assert.equal(fixture.scanCalls(), 5,
-      "a marker hit must not stop the scan before the whole accessible conversation is covered");
+    const fixture = scanRuntimeFor([step([observedUserTurnId], false, 0)]);
+    const result = await scan(fixture, Date.now() + 20_000) as Readonly<Record<string, unknown>>;
+    assert.equal(fixture.scanCalls(), 1, "a mounted answer needs no history scan");
     assert.equal(fixture.mainCalls(), 1);
-    assert.equal(result.precedingUserTurnId, observedUserTurnId);
     assert.equal(result.semanticText, successfulObservation.semanticText);
     assert.equal(fixture.methods.some((method) => method.startsWith("Input.")), false);
-    assert.doesNotMatch(fixture.scanSource(), /setTimeout|requestAnimationFrame|new Promise/u);
+    assert.doesNotMatch(fixture.scanSource(), /visibilityState|MATERIALIZE_STEP_MAX_COUNT/u);
   });
   await withFakeExtensionClock(async () => {
-    const start = Date.now();
-    const duplicate = scanRuntimeFor([
-      step([], false, 1_000), step([observedUserTurnId], false, 800),
-      step([anotherUserTurnId], true, 0),
-    ]);
-    await assert.rejects(scan(duplicate, start + 20_000), /BROWSER_DOM_CANDIDATE_AMBIGUOUS/u);
-    assert.equal(duplicate.mainCalls(), 0, "duplicate marker must never reach answer settlement");
+    const duplicate = scanRuntimeFor([step([observedUserTurnId, anotherUserTurnId], false, 0)]);
+    await assert.rejects(scan(duplicate, Date.now() + 20_000), /BROWSER_DOM_CANDIDATE_AMBIGUOUS/u);
+    assert.equal(duplicate.mainCalls(), 0);
   });
   await withFakeExtensionClock(async () => {
-    const start = Date.now();
-    const incomplete = scanRuntimeFor(Array.from({ length: 80 },
-      (_, index) => step(index === 1 ? [observedUserTurnId] : [], false, 80 - index)),
+    const drift = scanRuntimeFor([step([], false, 0), step([], false, 0),
+      { ...step([], false, 0), documentValid: false }]);
+    await assert.rejects(scan(drift, Date.now() + 20_000), /BROWSER_DOCUMENT_INVALID/u);
+    assert.equal(drift.mainCalls(), 0, "identity drift during scanning must stop before final read");
+  });
+  await withFakeExtensionClock(async () => {
+    const unavailable = scanRuntimeFor([step([], false, 0), step([], false, 0), step([], true, -100)],
       unavailableObservation);
-    const result = await scan(incomplete, start + 20_000) as Readonly<Record<string, unknown>>;
-    assert.equal(result.pendingCause, "exact-user-turn-unavailable",
-      "a locally visible marker is not proof of whole-conversation uniqueness");
-    assert.ok(incomplete.scanCalls() <= 80);
+    const result = await scan(unavailable, Date.now() + 20_000) as Readonly<Record<string, unknown>>;
+    assert.equal(result.pendingCause, "exact-user-turn-unavailable");
+  });
+  await withFakeExtensionClock(async () => {
+    const stalled = scanRuntimeFor([step([], false, 0), step([], false, 0),
+      step([], false, 0, 0), step([], false, 0)],
+      unavailableObservation);
+    const result = await scan(stalled, Date.now() + 20_000) as Readonly<Record<string, unknown>>;
+    assert.equal(result.pendingCause, "exact-user-turn-unavailable");
+  });
+  await withFakeExtensionClock(async () => {
+    const delayed = scanRuntimeFor([step([], false, 0), step([], false, 0),
+      step([], false, 0, 0), step([], false, -100), step([observedUserTurnId], false, -100)]);
+    const result = await scan(delayed, Date.now() + 20_000) as Readonly<Record<string, unknown>>;
+    assert.equal(result.semanticText, successfulObservation.semanticText,
+      "a delayed scroll update must be sampled before declaring no progress");
+  });
+  await withFakeExtensionClock(async () => {
+    const deadline = Date.now() + 3_100;
+    const shortBudget = scanRuntimeFor([step([], false, 0)], unavailableObservation);
+    const result = await scan(shortBudget, deadline) as Readonly<Record<string, unknown>>;
+    assert.equal(result.pendingCause, "exact-user-turn-unavailable");
+    assert.equal(shortBudget.scanCalls(), 1, "short budget permits only the initial mounted-DOM check");
   });
   await exerciseReverseScrollMaterialization();
   await withFakeExtensionClock(async () => {
-    const start = Date.now();
     const noScroll = scanRuntimeFor([{
-      pageVisible: true, containerFound: false, atTop: true,
-      ids: [observedUserTurnId], scrollTop: 0,
+      documentValid: true, containerFound: false, atTop: true, ids: [observedUserTurnId],
+      scrollTop: 0, nextScrollTop: 0,
     }]);
-    const result = await scan(noScroll, start + 20_000) as Readonly<Record<string, unknown>>;
+    const result = await scan(noScroll, Date.now() + 20_000) as Readonly<Record<string, unknown>>;
     assert.equal(result.semanticText, successfulObservation.semanticText);
-  });
-  await withFakeExtensionClock(async () => {
-    const start = Date.now();
-    const shortBudget = scanRuntimeFor([], unavailableObservation);
-    const result = await scan(shortBudget, start + 5_000) as Readonly<Record<string, unknown>>;
-    assert.equal(result.pendingCause, "exact-user-turn-unavailable");
-    assert.equal(shortBudget.scanCalls(), 0);
   });
 };
 

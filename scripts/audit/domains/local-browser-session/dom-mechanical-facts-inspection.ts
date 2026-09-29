@@ -262,7 +262,7 @@ export const exactAssistantTurnReadIsAtomic = (source: import("ts-morph").Source
     "collapsible-user-message-content", ".whitespace-pre-wrap", "assistantIndex", "composerRaw",
     "browserMechanicalFacts", "eligibleCount", "nativeCauseCode", ".visible", ".hidden",
     ".ariaHidden", ".inert", "getClientRects", "checkVisibility", "thirdGate",
-    "data-chatgpt-selection-message-id"];
+    "data-chatgpt-selection-message-id", "visibilityState", "MATERIALIZE_STEP_MAX_COUNT"];
   const exactCounts = [
     (observe.match(/Runtime\.callFunctionOn/gu) ?? []).length === 1,
     (observe.match(/mainFrameLoaderId\(runtime, target\.tabId\)/gu) ?? []).length === 2,
@@ -271,8 +271,8 @@ export const exactAssistantTurnReadIsAtomic = (source: import("ts-morph").Source
   return required.every((token) => exactFunction.includes(token))
     && ["data-user-message-bubble", ".includes(marker)", "users.length !== 1"]
       .every((token) => markerFunction.includes(token))
-    && ['const seen = new Set<string>()', 'if (seen.size > 1)',
-      'if (result.atTop)', 'await materializeExactUserTurn(',
+    && ['if (first.ids.length === 1)', 'if (result.ids.length === 1)',
+      'result.nextScrollTop === result.scrollTop', 'await materializeExactUserTurn(',
       'pendingCause !== "adjacent-assistant-missing"',
       'pendingCause: observed.pendingCause']
       .every((token) => text.includes(token))

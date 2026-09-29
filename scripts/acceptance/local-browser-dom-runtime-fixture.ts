@@ -87,8 +87,8 @@ export const exactAssistantRuntimeFor = (
       functionSource = String(parameters?.functionDeclaration ?? "");
       assert.equal(parameters?.objectId, "document-object");
       if (functionSource.startsWith("function (spec)")) {
-        return { result: { value: { pageVisible: true, containerFound: false,
-          atTop: true, ids: ["00000000-0000-4000-8000-000000000001"], scrollTop: 0 } } };
+        return { result: { value: { documentValid: true, containerFound: false, atTop: true,
+          ids: ["00000000-0000-4000-8000-000000000001"], scrollTop: 0, nextScrollTop: 0 } } };
       }
       assert.deepEqual((parameters?.arguments as readonly Readonly<{ value: unknown }>[])?.[0]?.value,
         { kind: "readExactAssistantTurn", turnMarker: "fixture-marker",

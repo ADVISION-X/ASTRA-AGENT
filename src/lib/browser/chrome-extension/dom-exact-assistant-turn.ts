@@ -96,16 +96,18 @@ const EXACT_ASSISTANT_TURN_FUNCTION = `async function (spec) {
     observedAt, pendingCause, nativeStage: "runtime-call-function-on" };
 }`;
 
-/**
- * One synchronous materialization step. The extension owns the bounded waits between samples.
- * Step 0 moves to the bottom; subsequent steps scan the mounted user turns before moving up.
- */
+/** One synchronous sample. A mounted marker is returned before any scroll mutation. */
 const MATERIALIZE_STEP_FUNCTION = `function (spec) {
   ${MARKER_USER_SOURCE}
-  if (document.visibilityState !== "visible") {
-    return { pageVisible: false, containerFound: false, atTop: false, ids: [], scrollTop: 0 };
+  const expectedUrl = new URL(spec.canonicalConversationUrl);
+  if (this !== document || location.origin + location.pathname !== expectedUrl.origin + expectedUrl.pathname) {
+    return { documentValid: false, containerFound: false, atTop: false, ids: [],
+      scrollTop: 0, nextScrollTop: 0 };
   }
   const turns = Array.from(document.querySelectorAll("[data-turn-key]"));
+  const ids = turns.map((turn) => browserMarkerUserId(turn, spec.turnMarker)).filter(Boolean);
+  if (ids.length > 0) return { documentValid: true, containerFound: true, atTop: false, ids,
+    scrollTop: 0, nextScrollTop: 0 };
   let container = null;
   let unknownScroll = false;
   if (turns.length > 0) {
@@ -122,123 +124,121 @@ const MATERIALIZE_STEP_FUNCTION = `function (spec) {
       candidate = candidate.parentElement;
     }
   }
-  if (unknownScroll) return { pageVisible: true, containerFound: false, atTop: false,
-    ids: [], scrollTop: 0 };
+  if (unknownScroll) return { documentValid: true, containerFound: false, atTop: false,
+    ids: [], scrollTop: 0, nextScrollTop: 0 };
   if (!container && document.scrollingElement?.scrollHeight > document.scrollingElement?.clientHeight) {
     container = document.scrollingElement;
   }
-  if (!container) return { pageVisible: true, containerFound: false, atTop: true,
-    ids: turns.map((turn) => browserMarkerUserId(turn, spec.turnMarker)).filter(Boolean), scrollTop: 0 };
+  if (!container) return { documentValid: true, containerFound: false, atTop: true,
+    ids: [], scrollTop: 0, nextScrollTop: 0 };
   const reverse = getComputedStyle(container).flexDirection === "column-reverse";
   const top = reverse ? container.clientHeight - container.scrollHeight : 0;
-  if (typeof spec.restoreTop === "number") {
-    container.scrollTop = spec.restoreTop;
-    return { pageVisible: true, containerFound: true, atTop: false, ids: [], scrollTop: container.scrollTop };
-  }
-  if (spec.step === 0) {
-    container.scrollTop = reverse ? 0 : container.scrollHeight;
-    return { pageVisible: true, containerFound: true, atTop: false, ids: [], scrollTop: container.scrollTop };
-  }
   const scrollTop = container.scrollTop;
-  const ids = turns.map((turn) => browserMarkerUserId(turn, spec.turnMarker)).filter(Boolean);
-  const atTop = scrollTop <= top + 1;
-  if (!atTop) container.scrollTop = Math.max(top, scrollTop - 0.8 * container.clientHeight);
-  return { pageVisible: true, containerFound: true, ids, atTop, scrollTop };
+  if (spec.resetBottom) container.scrollTop = reverse ? 0 : container.scrollHeight;
+  else if (!spec.initial && scrollTop > top + 1) {
+    container.scrollTop = Math.max(top, scrollTop - 0.8 * container.clientHeight);
+  }
+  return { documentValid: true, containerFound: true, atTop: scrollTop <= top + 1, ids: [],
+    scrollTop, nextScrollTop: container.scrollTop };
 }`;
 
 type MaterializeStepResult = Readonly<{
-  pageVisible: boolean;
+  documentValid: boolean;
   containerFound: boolean;
   atTop: boolean;
   ids: readonly string[];
   scrollTop: number;
+  nextScrollTop: number;
 }>;
 
 const decodeMaterializeStep = (value: unknown): MaterializeStepResult => {
   const observed = record(value);
-  if (typeof observed.pageVisible !== "boolean" || typeof observed.containerFound !== "boolean"
+  if (typeof observed.documentValid !== "boolean" || typeof observed.containerFound !== "boolean"
     || typeof observed.atTop !== "boolean" || !Array.isArray(observed.ids)
     || !observed.ids.every((id) => typeof id === "string"
       && /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(id))
-    || typeof observed.scrollTop !== "number" || !Number.isFinite(observed.scrollTop)) {
+    || typeof observed.scrollTop !== "number" || !Number.isFinite(observed.scrollTop)
+    || typeof observed.nextScrollTop !== "number" || !Number.isFinite(observed.nextScrollTop)) {
     throw new Error("BROWSER_DOM_READ_INVALID");
   }
   return Object.freeze({
-    pageVisible: observed.pageVisible, containerFound: observed.containerFound,
-    ids: observed.ids as string[], atTop: observed.atTop, scrollTop: observed.scrollTop,
+    documentValid: observed.documentValid, containerFound: observed.containerFound, ids: observed.ids as string[],
+    atTop: observed.atTop, scrollTop: observed.scrollTop, nextScrollTop: observed.nextScrollTop,
   });
 };
 
 const MATERIALIZE_STEP_BUDGET_MS = 12_000;
 const MATERIALIZE_STEP_DEADLINE_MARGIN_MS = 3_000;
-const MATERIALIZE_STEP_MIN_BUDGET_MS = 4_000;
-const MATERIALIZE_STEP_INTERVAL_MS = 100;
+const MATERIALIZE_STEP_INTERVAL_MS = 25;
+const MATERIALIZE_STALLED_WAIT_MS = 100;
 const MATERIALIZE_STEP_INTERVAL_MARGIN_MS = 500;
-const MATERIALIZE_STEP_MAX_COUNT = 80;
 
 const wait = async (durationMs: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, durationMs));
 
-/**
- * Scan the existing conversation from bottom to top. Only a complete walk can prove that
- * one Product marker belongs to one user turn; a partial walk returns unavailable.
- */
+/** Inspect the current Document first; only a missing marker starts a bounded scroll. */
 const materializeExactUserTurn = async (
   runtime: ExtensionDebuggerRuntime,
   target: ExtensionExactTarget,
   turnMarker: string,
+  canonicalConversationUrl: string,
   commandDeadlineAt: number,
 ): Promise<string | null> => {
   const budgetMs = Math.min(
     MATERIALIZE_STEP_BUDGET_MS, commandDeadlineAt - Date.now() - MATERIALIZE_STEP_DEADLINE_MARGIN_MS,
   );
-  if (budgetMs < MATERIALIZE_STEP_MIN_BUDGET_MS) return null;
   const deadline = Date.now() + budgetMs;
-  const runStep = async (step: number, restoreTop?: number): Promise<MaterializeStepResult> => {
-      let objectId: string | null = null;
-      try {
-        const document = record(await runtime.send(target.tabId, "DOM.getDocument", { depth: 0, pierce: true }));
-        const root = record(document.root);
-        if (!Number.isSafeInteger(root.nodeId)) throw new Error("BROWSER_DOM_READ_INVALID");
-        const resolved = record(await runtime.send(target.tabId, "DOM.resolveNode", { nodeId: root.nodeId }));
-        objectId = record(resolved.object).objectId as string;
-        if (typeof objectId !== "string" || objectId.length === 0) throw new Error("BROWSER_DOM_READ_INVALID");
-        const call = record(await runtime.send(target.tabId, "Runtime.callFunctionOn", {
-          objectId, functionDeclaration: MATERIALIZE_STEP_FUNCTION,
-          arguments: [{ value: { turnMarker, step, ...(restoreTop === undefined ? {} : { restoreTop }) } }],
-          returnByValue: true, awaitPromise: false, silent: true,
-        }));
-        if (call.exceptionDetails !== undefined) throw new Error("BROWSER_DOM_READ_INVALID");
-        return decodeMaterializeStep(record(call.result).value);
-      } finally {
-        if (objectId !== null) await runtime.send(target.tabId, "Runtime.releaseObject", { objectId });
-      }
+  const document = record(await runtime.send(target.tabId, "DOM.getDocument", { depth: 0, pierce: true }));
+  const root = record(document.root);
+  if (!Number.isSafeInteger(root.nodeId)) throw new Error("BROWSER_DOM_READ_INVALID");
+  const resolved = record(await runtime.send(target.tabId, "DOM.resolveNode", { nodeId: root.nodeId }));
+  const objectId = record(resolved.object).objectId;
+  if (typeof objectId !== "string" || objectId.length === 0) throw new Error("BROWSER_DOM_READ_INVALID");
+  const runStep = async (options: Readonly<{ initial?: boolean; resetBottom?: boolean }> = {}) => {
+    const call = record(await runtime.send(target.tabId, "Runtime.callFunctionOn", {
+      objectId, functionDeclaration: MATERIALIZE_STEP_FUNCTION,
+      arguments: [{ value: { turnMarker, canonicalConversationUrl, ...options } }],
+      returnByValue: true, awaitPromise: false, silent: true,
+    }));
+    if (call.exceptionDetails !== undefined) throw new Error("BROWSER_DOM_READ_INVALID");
+    const observed = decodeMaterializeStep(record(call.result).value);
+    if (!observed.documentValid) throw new Error("BROWSER_DOCUMENT_INVALID");
+    return observed;
   };
-  const seen = new Set<string>();
-  let hitScrollTop: number | null = null;
-  for (let step = 0; step < MATERIALIZE_STEP_MAX_COUNT; step += 1) {
-    if (Date.now() + MATERIALIZE_STEP_INTERVAL_MS + MATERIALIZE_STEP_INTERVAL_MARGIN_MS >= deadline) return null;
-    const result = await runStep(step);
-    if (!result.pageVisible) return null;
-    if (!result.containerFound && !result.atTop) return null;
-    if (result.ids.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
-    for (const id of result.ids) {
-      seen.add(id);
-      hitScrollTop ??= result.scrollTop;
-    }
-    if (seen.size > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
-    if (result.atTop) {
-      if (hitScrollTop !== null && hitScrollTop !== result.scrollTop) {
-        if (Date.now() + MATERIALIZE_STEP_INTERVAL_MS + MATERIALIZE_STEP_INTERVAL_MARGIN_MS >= deadline) return null;
-        const restored = await runStep(step, hitScrollTop);
-        if ([restored.pageVisible, restored.containerFound].includes(false)) return null;
-        await wait(MATERIALIZE_STEP_INTERVAL_MS);
+  let primaryFailure: unknown = null;
+  try {
+    const first = await runStep({ initial: true });
+    if (first.ids.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
+    if (first.ids.length === 1) return first.ids[0]!;
+    if (!first.containerFound) return null;
+    if (Date.now() + MATERIALIZE_STEP_INTERVAL_MARGIN_MS >= deadline) return null;
+    const reset = await runStep({ resetBottom: true });
+    if (reset.ids.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
+    if (reset.ids.length === 1) return reset.ids[0]!;
+    if (!reset.containerFound) return null;
+    while (Date.now() + MATERIALIZE_STEP_INTERVAL_MS + MATERIALIZE_STEP_INTERVAL_MARGIN_MS < deadline) {
+      const result = await runStep();
+      if (result.ids.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
+      if (result.ids.length === 1) return result.ids[0]!;
+      if (!result.containerFound || result.atTop) return null;
+      if (result.nextScrollTop === result.scrollTop) {
+        await wait(MATERIALIZE_STALLED_WAIT_MS);
+        const settled = await runStep({ initial: true });
+        if (settled.ids.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
+        if (settled.ids.length === 1) return settled.ids[0]!;
+        if (!settled.containerFound || settled.atTop || settled.scrollTop === result.scrollTop) return null;
+        continue;
       }
-      return seen.values().next().value ?? null;
+      await wait(MATERIALIZE_STEP_INTERVAL_MS);
     }
-    await wait(MATERIALIZE_STEP_INTERVAL_MS);
+    return null;
+  } catch (error) {
+    primaryFailure = error;
+    throw error;
+  } finally {
+    try { await runtime.send(target.tabId, "Runtime.releaseObject", { objectId }); }
+    catch (error) { if (primaryFailure === null) throw new Error("BROWSER_DOM_READ_INVALID", { cause: error }); }
   }
-  return null;
 };
 
 const sha256Text = async (value: string): Promise<`sha256:${string}`> => {
@@ -376,8 +376,12 @@ export const executeExactAssistantTurnRead = async (
   commandDeadlineAt?: number,
 ): Promise<unknown> => {
   assertCurrent();
+  if (await mainFrameLoaderId(debuggerRuntime, target.tabId) !== expectedMainFrameLoaderId) {
+    throw new Error("BROWSER_DOCUMENT_INVALID");
+  }
   const observedUserTurnId = await materializeExactUserTurn(
-    debuggerRuntime, target, intent.turnMarker, commandDeadlineAt ?? Date.now() + 15_000,
+    debuggerRuntime, target, intent.turnMarker, intent.canonicalConversationUrl,
+    commandDeadlineAt ?? Date.now() + 15_000,
   );
   assertCurrent();
   const observed = await observeExactAssistantTurn(
