@@ -176,6 +176,33 @@ const MATERIALIZE_STEP_INTERVAL_MARGIN_MS = 500;
 const wait = async (durationMs: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, durationMs));
 
+/** Continue the same exact read only when the marker is absent from the current DOM. */
+const scrollForExactUserTurn = async (
+  runStep: (options?: Readonly<{ initial?: boolean; resetBottom?: boolean }>) => Promise<MaterializeStepResult>,
+  deadline: number,
+): Promise<string | null> => {
+  const reset = await runStep({ resetBottom: true });
+  if (reset.ids.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
+  if (reset.ids.length === 1) return reset.ids[0]!;
+  if (!reset.containerFound) return null;
+  while (Date.now() + MATERIALIZE_STEP_INTERVAL_MS + MATERIALIZE_STEP_INTERVAL_MARGIN_MS < deadline) {
+    const result = await runStep();
+    if (result.ids.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
+    if (result.ids.length === 1) return result.ids[0]!;
+    if (!result.containerFound || result.atTop) return null;
+    if (result.nextScrollTop === result.scrollTop) {
+      await wait(MATERIALIZE_STALLED_WAIT_MS);
+      const settled = await runStep({ initial: true });
+      if (settled.ids.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
+      if (settled.ids.length === 1) return settled.ids[0]!;
+      if (!settled.containerFound || settled.atTop || settled.scrollTop === result.scrollTop) return null;
+      continue;
+    }
+    await wait(MATERIALIZE_STEP_INTERVAL_MS);
+  }
+  return null;
+};
+
 /** Inspect the current Document first; only a missing marker starts a bounded scroll. */
 const materializeExactUserTurn = async (
   runtime: ExtensionDebuggerRuntime,
@@ -212,26 +239,7 @@ const materializeExactUserTurn = async (
     if (first.ids.length === 1) return first.ids[0]!;
     if (!first.containerFound) return null;
     if (Date.now() + MATERIALIZE_STEP_INTERVAL_MARGIN_MS >= deadline) return null;
-    const reset = await runStep({ resetBottom: true });
-    if (reset.ids.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
-    if (reset.ids.length === 1) return reset.ids[0]!;
-    if (!reset.containerFound) return null;
-    while (Date.now() + MATERIALIZE_STEP_INTERVAL_MS + MATERIALIZE_STEP_INTERVAL_MARGIN_MS < deadline) {
-      const result = await runStep();
-      if (result.ids.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
-      if (result.ids.length === 1) return result.ids[0]!;
-      if (!result.containerFound || result.atTop) return null;
-      if (result.nextScrollTop === result.scrollTop) {
-        await wait(MATERIALIZE_STALLED_WAIT_MS);
-        const settled = await runStep({ initial: true });
-        if (settled.ids.length > 1) throw new Error("BROWSER_DOM_CANDIDATE_AMBIGUOUS");
-        if (settled.ids.length === 1) return settled.ids[0]!;
-        if (!settled.containerFound || settled.atTop || settled.scrollTop === result.scrollTop) return null;
-        continue;
-      }
-      await wait(MATERIALIZE_STEP_INTERVAL_MS);
-    }
-    return null;
+    return scrollForExactUserTurn(runStep, deadline);
   } catch (error) {
     primaryFailure = error;
     throw error;
