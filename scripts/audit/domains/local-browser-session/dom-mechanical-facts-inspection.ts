@@ -1,5 +1,6 @@
-import { Node, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
+import { astExpressionPath, astIdentifierName } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
 import { createLocalFinding, domCoherentObservationPath, domExactEditableTextPath, domMechanicalFactsPath,
   domMutationPostconditionPath, extensionFileInputPath, requireSource } from "./inspector-support.js";
@@ -8,11 +9,46 @@ const QUERY_RUNTIME_PATH = "src/lib/browser/chrome-extension/dom-query-runtime.t
 const INTENT_RUNTIME_PATH = "src/lib/browser/chrome-extension/dom-intent-runtime.ts";
 const INTENT_CONTRACT_PATH = "src/lib/browser/exact-target/browser-dom-intent.ts";
 const MUTATION_RECEIPT_PATH = "src/lib/browser/exact-target/browser-mutation-receipt.ts";
+const OBSERVATION_RECEIPT_PATH = "src/lib/browser/exact-target/browser-observation-receipt.ts";
 const COHERENT_CANDIDATE_PATH = "src/lib/browser/chrome-extension/dom-coherent-candidate.ts";
 const COHERENT_CANDIDATE_READBACK_PATH = "src/lib/browser/chrome-extension/dom-coherent-candidate-readback.ts";
 const EXACT_ASSISTANT_TURN_PATH = "src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts";
 const SEMANTIC_TEXT_PATH = "src/lib/browser/chrome-extension/dom-semantic-text.ts";
 const NATIVE_CAUSE_PATH = "src/lib/browser/exact-target/browser-interaction-native-cause.ts";
+
+export const exactTextMatcherIsStrict = (source: SourceFile): boolean => {
+  const matcher = source.getVariableDeclaration("queryCandidateSet")?.getInitializer();
+  const loop = matcher?.getDescendantsOfKind(SyntaxKind.ForOfStatement).find((statement) =>
+    statement.getExpression().getText() === "rawNodeIds.entries()");
+  const loopBody = loop?.getStatement();
+  if (!Node.isBlock(loopBody)) return false;
+  const guard = loopBody.getStatements().find((statement) =>
+    Node.isIfStatement(statement) && astIdentifierName(statement.getExpression()) === "text");
+  const body = Node.isIfStatement(guard) ? guard.getThenStatement() : undefined;
+  if (!Node.isBlock(body)) return false;
+  const actual = body.getVariableDeclaration("actual")?.getInitializer();
+  const matched = body.getVariableDeclaration("matched")?.getInitializer();
+  if (!Node.isAwaitExpression(actual) || !Node.isConditionalExpression(matched)) return false;
+  const read = actual.getExpression();
+  if (!Node.isCallExpression(read)) return false;
+  const mismatch = body.getStatements().find((statement) => Node.isIfStatement(statement)
+    && statement.getExpression().getText() === "!matched");
+  const rejection = loopBody.getStatements().find((statement) => Node.isIfStatement(statement)
+    && statement.getExpression().getText() === "reasons.length > 0");
+  const rejectionBody = Node.isIfStatement(rejection) ? rejection.getThenStatement() : undefined;
+  if (!Node.isIfStatement(mismatch) || !Node.isBlock(rejectionBody)) return false;
+  return [
+    astExpressionPath(read.getExpression()) === "nodeText",
+    astIdentifierName(read.getArguments()[2]) === "nodeId",
+    astExpressionPath(matched.getCondition()) === "text.exact",
+    matched.getWhenTrue().getText().replace(/\s+/gu, "")
+      === "(Array.isArray(text.value)?text.value:[text.value]).some((value)=>actual.trim()===value.trim())",
+    matched.getWhenFalse().getText().replace(/\s+/gu, "")
+      === 'typeoftext.value==="string"&&actual.includes(text.value)',
+    mismatch.getThenStatement().getText() === 'reasons.push("TEXT_MISMATCH");',
+    rejectionBody.getStatements().some((statement) => Node.isContinueStatement(statement)),
+  ].every(Boolean);
+};
 
 const finding = (
   findings: InspectorFinding[],
@@ -282,7 +318,7 @@ export const exactAssistantTurnReadIsAtomic = (source: import("ts-morph").Source
 };
 
 const inspectPostconditionEvidence = (
-  input: Readonly<{ postconditionText: string; receiptText: string;
+  input: Readonly<{ postconditionText: string; receiptText: string; observationReceiptText: string;
     nativeCauseText: string; runtimeText: string; fileInputText: string }>,
   findings: InspectorFinding[],
   lawId: string,
@@ -290,9 +326,9 @@ const inspectPostconditionEvidence = (
   requireTokens(input.postconditionText, ["postconditionRawCount", "postconditionEligibleCount",
     "postconditionRejections", "nativeCauseCode", "match.readEligibility"], findings, lawId,
   INTENT_RUNTIME_PATH, "The bounded postcondition readback receipt is missing");
-  requireTokens(input.receiptText, ["postconditionEvidenceValid", "postconditionRawCount",
+  requireTokens(input.observationReceiptText, ["postconditionEvidenceValid", "postconditionRawCount",
     "postconditionEligibleCount", "postconditionRejections", "POSTCONDITION_REJECTION_REASONS",
-    '"ARIA_HIDDEN"'], findings, lawId, MUTATION_RECEIPT_PATH,
+    '"ARIA_HIDDEN"'], findings, lawId, OBSERVATION_RECEIPT_PATH,
   "The Browser mutation receipt is not validating exact postcondition rejection evidence");
   requireTokens(input.postconditionText, ["queries.findIndex((query, index) =>",
     "browserPostconditionNativeCause(evidenceIndex", "mismatch!.eligibleCount > expected!"],
@@ -302,9 +338,11 @@ const inspectPostconditionEvidence = (
     "BROWSER_POSTCONDITION_NATIVE_CAUSES", "browserPostconditionNativeCauseValid"],
   findings, lawId, NATIVE_CAUSE_PATH, "Indexed postcondition causes must stay in the closed set");
   requireTokens(input.receiptText, ["browserPostconditionNativeCauseValid(value.nativeCauseCode)",
-    "value.nativeCauseCode === postconditionFailureCause(value, expected!)"],
+    "postconditionEvidenceValid(command, value)", "observationPostconditionEvidenceValid(command, value)"],
   findings, lawId, MUTATION_RECEIPT_PATH,
   "The Browser receipt must reject a forged indexed native cause");
+  requireTokens(input.observationReceiptText, ["value.nativeCauseCode === postconditionFailureCause(value, expected!)"],
+    findings, lawId, OBSERVATION_RECEIPT_PATH, "The original postcondition verifier must reject forged causes");
   requireTokens(`${input.runtimeText}\n${input.postconditionText}\n${input.fileInputText}`, [
     "readWithTransientDomConfirmation", "currentGptPageIdentity",
   ], findings, lawId, domMutationPostconditionPath,
@@ -319,13 +357,13 @@ export const inspectDomMechanicalFacts = (
   const sources = [domMechanicalFactsPath, domExactEditableTextPath, QUERY_RUNTIME_PATH, INTENT_RUNTIME_PATH,
     domMutationPostconditionPath, domCoherentObservationPath, INTENT_CONTRACT_PATH, COHERENT_CANDIDATE_PATH,
     COHERENT_CANDIDATE_READBACK_PATH, EXACT_ASSISTANT_TURN_PATH, MUTATION_RECEIPT_PATH,
-    extensionFileInputPath, SEMANTIC_TEXT_PATH, NATIVE_CAUSE_PATH]
+    extensionFileInputPath, SEMANTIC_TEXT_PATH, NATIVE_CAUSE_PATH, OBSERVATION_RECEIPT_PATH]
     .map((path) => requireSource(context, findings, lawId, path));
   if (!sources.every((source): source is SourceFile => source !== null)) return;
   const [facts, exactEditable, query, runtime, postcondition, observation, contract, candidate,
-    candidateReadback, exactAssistantTurn, mutationReceipt, fileInput, semanticText, nativeCause] = sources as [
+    candidateReadback, exactAssistantTurn, mutationReceipt, fileInput, semanticText, nativeCause, observationReceipt] = sources as [
       SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile,
-      SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile,
+      SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile, SourceFile,
     ];
 
   const readerInitializer = facts.getVariableDeclaration("BROWSER_MECHANICAL_FACTS_READER_SOURCE")?.getInitializer();
@@ -357,11 +395,11 @@ export const inspectDomMechanicalFacts = (
     observation.getFullText(), semanticText.getFullText(), contract.getFullText(), candidateText, findings, lawId,
   );
   requireTokens(observation.getFullText(), [
-    'spec.textEquals !== undefined && (node.textContent || "").trim() !== spec.textEquals.trim()',
+    'spec.textEquals !== undefined && !(Array.isArray(spec.textEquals) ? spec.textEquals : [spec.textEquals]).some((value) => (node.textContent || "").trim() === value.trim())',
   ], findings, lawId, domCoherentObservationPath,
   "Exact-text Browser observations must use equality rather than substring matching");
-  requireTokens(queryText, ["text.exact ? actual.trim() === text.value.trim() : actual.includes(text.value)"],
-    findings, lawId, QUERY_RUNTIME_PATH, "The direct Browser text query must preserve exact matching");
+  if (!exactTextMatcherIsStrict(query)) finding(findings, lawId, QUERY_RUNTIME_PATH,
+    "The direct Browser text query must preserve exact matching for every approved alternative.");
   inspectCoherentPointerAction(candidateText, queryText, findings, lawId);
   inspectAtomicObservationPointer(
     candidateText, runtime.getFullText(), findings, lawId,
@@ -369,7 +407,7 @@ export const inspectDomMechanicalFacts = (
   const runtimeText = `${runtime.getFullText()}\n${observation.getFullText()}\n${candidateText}`;
   inspectCoherentRuntime(runtimeText, findings, lawId);
   inspectPostconditionEvidence({ postconditionText: postcondition.getFullText(),
-    receiptText: mutationReceipt.getFullText(), nativeCauseText: nativeCause.getFullText(),
+    receiptText: mutationReceipt.getFullText(), observationReceiptText: observationReceipt.getFullText(), nativeCauseText: nativeCause.getFullText(),
     runtimeText: runtime.getFullText(), fileInputText: fileInput.getFullText() }, findings, lawId);
   const contractText = contract.getFullText();
   inspectMechanicalContract(

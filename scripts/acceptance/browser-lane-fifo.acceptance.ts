@@ -93,6 +93,7 @@ try {
 } finally { await rm(root, { recursive: true, force: true }); }
 
 const pendingManager = Object.create(BrowserTargetLeaseManager.prototype) as Record<string, unknown>;
+pendingManager.commandActor = { pendingMutationCommandIds: () => ["unknown-command"] };
 const pendingProvider = { closed: false, commandInFlight: false,
   pendingMutationCommandIds: ["unknown-command"],
   atomicStep: { replayPolicy: "provider-effect-once" } };

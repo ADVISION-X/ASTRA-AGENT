@@ -186,6 +186,59 @@ assert.equal(diagnosis.blockingRoots[0]?.count, 1);
 assert.deepEqual(diagnosis.blockingRoots[0]?.eventRefs, [diagnosis.blockingRoots[0]?.eventId]);
 assert.equal(diagnosis.blockingRoots[0]?.firstSeenAt, diagnosis.blockingRoots[0]?.lastSeenAt);
 
+
+const exerciseCrossRunMutationTerminal = (): void => {
+  const directory = mkdtempSync(path.join(tmpdir(), "runtime-log-cross-run-"));
+  const previous = createRuntimeLogger({ producer: "agent", producerRunId: "ffffffff-ffff-4fff-8fff-ffffffffffff",
+    owner: "browser-session", component: "browser-mutation-wal", terminalEnabled: false,
+    fileSink: { directoryPath: directory, maxTotalBytes: 2_000_000 } });
+  const current = createRuntimeLogger({ producer: "agent", producerRunId: "00000000-0000-4000-8000-000000000001",
+    owner: "browser-session", component: "browser-mutation-wal", terminalEnabled: false,
+    fileSink: { directoryPath: directory, maxTotalBytes: 2_000_000 } });
+  for (const writer of [previous, current]) requireRuntimeLogWrite(writer.emitEvent({
+    traceId: `producer:${writer.producerRunId}`, operation: "runtime.start", code: "PRODUCER_STARTED",
+    typedIdentity: { kind: "producer", producerId: writer.producerRunId } }));
+  const commandIds = ["reconnect-confirmed", "reconnect-rejected", "reconnect-missing"];
+  const expected = new Map<string, string>();
+  for (const [ordinal, commandId] of commandIds.entries()) {
+    const typedIdentity = browserIdentity(commandId, ordinal + 10);
+    requireRuntimeLogWrite(previous.startSpan({ traceId, operation: "browser.command", typedIdentity }));
+    for (const outcome of ["PREPARED", "DISPATCHED"]) requireRuntimeLogWrite(previous.emitEvent({
+      traceId, operation: "browser.command", code: `BROWSER_MUTATION_${outcome}`, typedIdentity,
+      authorityRef: `browser-mutation:${commandId}`, authorityHash: digest(`${commandId}:${outcome}`) }));
+    const outcome = ordinal === 0 ? "CONFIRMED" : ordinal === 1 ? "REJECTED" : null;
+    if (outcome) requireRuntimeLogWrite(current.emitEvent({ traceId, operation: "browser.command",
+      code: `BROWSER_MUTATION_${outcome}`, typedIdentity,
+      authorityRef: `browser-mutation:${commandId}`, authorityHash: digest(`${commandId}:${outcome}`) }));
+    expected.set(`browser-mutation:${commandId}`, digest(`${commandId}:${outcome ?? "DISPATCHED"}`));
+  }
+  const resolver = (ref: string, hash: `sha256:${string}`) => expected.get(ref) === hash ? "verified" as const : "mismatch" as const;
+  const recovered = diagnoseRuntimeLog({ sources: [directory], traceId, authorityResolver: resolver });
+  assert.equal(recovered.status, "DIAGNOSIS_INCOMPLETE", "recovered WAL must not fabricate old span terminals");
+  assert.deepEqual(recovered.atomicSteps.map(step => step.observedOutcome), ["CONFIRMED", "REJECTED", "DISPATCHED"]);
+  assert.deepEqual(recovered.atomicSteps.map(step => step.postcondition), ["passed", "failed", "pending_reconciliation"]);
+  assert.ok(recovered.atomicSteps.every(step => step.terminalEventId === null));
+  assert.equal(recovered.openSpans.length, 3);
+  assert.equal(recovered.interruptedSpans.length, 0);
+  assert.ok(recovered.findings.includes(`PRODUCER_STALE:${previous.producerRunId}`));
+  requireRuntimeLogWrite(previous.emitEvent({ traceId, operation: "runtime.shutdown", code: "PRODUCER_STOPPED",
+    typedIdentity: { kind: "producer", producerId: previous.producerRunId } }));
+  const interrupted = diagnoseRuntimeLog({ sources: [directory], traceId, authorityResolver: resolver });
+  assert.equal(interrupted.interruptedSpans.length, 3);
+  assert.deepEqual(interrupted.atomicSteps.map(step => step.observedOutcome), ["CONFIRMED", "REJECTED", "DISPATCHED"]);
+  assert.ok(recovered.atomicSteps.every(step => step.authorityHash === expected.get(step.authorityRef!)));
+  assert.equal(recovered.findings.some(finding => finding.startsWith("AUTHORITY_CROSS_RUN_ORDER_UNPROVEN:")), false);
+  assert.equal(recovered.findings.some(finding => finding.startsWith("AUTHORITY_HASH_MISMATCH:")), false);
+  const unverified = diagnoseRuntimeLog({ sources: [directory], traceId });
+  assert.ok(unverified.findings.some(finding => finding.startsWith("AUTHORITY_REF_UNVERIFIED:")), "terminal still requires durable authority readback");
+  requireRuntimeLogWrite(current.emitEvent({ traceId, operation: "browser.command", code: "BROWSER_MUTATION_REJECTED",
+    typedIdentity: browserIdentity(commandIds[0]!, 10), authorityRef: `browser-mutation:${commandIds[0]}`, authorityHash: digest("conflicting-terminal") }));
+  const conflict = diagnoseRuntimeLog({ sources: [directory], traceId, authorityResolver: resolver });
+  assert.equal(conflict.status, "DIAGNOSIS_INCOMPLETE");
+  assert.ok(conflict.findings.includes(`AUTHORITY_TERMINAL_CONFLICT:browser-mutation:${commandIds[0]}`));
+};
+exerciseCrossRunMutationTerminal();
+
 const discovered = discoverRuntimeLogScope({ sources: [root] });
 assert.deepEqual(discovered, { status: "SELECTED", selectedTraceId: traceId,
   candidates: [traceId], completeness: "COMPLETE" });

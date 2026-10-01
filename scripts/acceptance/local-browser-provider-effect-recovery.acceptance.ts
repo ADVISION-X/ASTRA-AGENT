@@ -1,3 +1,4 @@
+import { terminalFact } from "./local-browser-mutation-store-support.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import Database from "better-sqlite3";
 import { createHash } from "node:crypto";
@@ -85,7 +86,7 @@ try {
     new URL(`/c/${conversationId}`, terminalPayload.canonicalConversationUrl).href;
   store.prepare(first);
   store.markDispatched(first.commandId);
-  store.markConfirmed(first.commandId, hash("terminal-proof"), "confirmed", terminalPayload);
+  store.settleTerminalReceipt(terminalFact(store.readCommand(first.commandId)!.identity, { terminal: "confirmed", resultHash: hash("terminal-proof"), mutationOutcome: "confirmed", submitRecoveryPayload: terminalPayload }));
   const anchorDatabase = new Database(path.join(root, "browser", "browser-mutations.sqlite"));
   const anchorBefore = store.jobHistoryEvidence(first.jobId).replayEffects[0]!.anchorProofHash;
   anchorDatabase.prepare("update browser_mutations set target_ref=?,document_ref=? where command_id=?")
@@ -118,7 +119,7 @@ try {
   const firstAttachment = attachmentPreparation("attempt:1", 1);
   store.prepare(firstAttachment);
   store.markDispatched(firstAttachment.commandId);
-  store.markConfirmed(firstAttachment.commandId, hash("attachment-1"), "confirmed", null);
+  store.settleTerminalReceipt(terminalFact(store.readCommand(firstAttachment.commandId)!.identity, { terminal: "confirmed", resultHash: hash("attachment-1"), mutationOutcome: "confirmed" }));
   const secondAttachment = attachmentPreparation("attempt:2", 2);
   assert.doesNotThrow(() => store.prepare(secondAttachment),
     "a different attempt must receive its own target-local attachment preparation");
@@ -146,13 +147,13 @@ try {
     commandId: "command:risk:old", exactCallIdentityHash: hash("risk-old-call") });
   store.prepare(riskOld);
   store.markDispatched(riskOld.commandId);
-  store.markConfirmed(riskOld.commandId, hash("risk-old-proof"), "confirmed", null);
+  store.settleTerminalReceipt(terminalFact(store.readCommand(riskOld.commandId)!.identity, { terminal: "confirmed", resultHash: hash("risk-old-proof"), mutationOutcome: "confirmed" }));
   const riskOldSecond = withProviderIdentity({ ...riskOld, commandId: "command:risk:old-second",
     productStepId: "provider-submit-second",
     exactCallIdentityHash: hash("risk-old-second-call") });
   store.prepare(riskOldSecond);
   store.markDispatched(riskOldSecond.commandId);
-  store.markConfirmed(riskOldSecond.commandId, hash("risk-old-second-proof"), "confirmed", null);
+  store.settleTerminalReceipt(terminalFact(store.readCommand(riskOldSecond.commandId)!.identity, { terminal: "confirmed", resultHash: hash("risk-old-second-proof"), mutationOutcome: "confirmed" }));
   const replayCalls = store.jobHistoryEvidence(riskOld.jobId).replayCalls;
   assert.equal(replayCalls.length, 2,
     "the source must enumerate every old Provider call that may have received input");
@@ -188,7 +189,7 @@ try {
   assert.doesNotThrow(() => store.prepare(riskSecond),
     "a second old Provider call may use its own exact Website grant in the same revision");
   store.markDispatched(risk.commandId);
-  store.markConfirmed(risk.commandId, hash("risk-new-proof"), "confirmed", null);
+  store.settleTerminalReceipt(terminalFact(store.readCommand(risk.commandId)!.identity, { terminal: "confirmed", resultHash: hash("risk-new-proof"), mutationOutcome: "confirmed" }));
   const afterRisk = store.jobHistoryEvidence(riskOld.jobId);
   assert.equal(afterRisk.replayEffects.find((effect) =>
     effect.effectIdentityHash === riskOld.logicalMutationId)?.sourceEffectSetHash,
@@ -237,8 +238,9 @@ try {
     const mutation = continuationIdentity(jobId, suffix, productStepId, revision);
     store.prepare(mutation);
     store.markDispatched(mutation.commandId);
-    store.markConfirmed(mutation.commandId, hash(`continuation-proof:${jobId}:${suffix}`),
-      "confirmed", canonicalConversationUrl ? { ...terminalPayload, canonicalConversationUrl } : null);
+    store.settleTerminalReceipt(terminalFact(store.readCommand(mutation.commandId)!.identity, { terminal: "confirmed", resultHash: hash(`continuation-proof:${jobId}:${suffix}`), mutationOutcome: "confirmed", submitRecoveryPayload: { ...terminalPayload, exactCallIdentityHash: mutation.exactCallIdentityHash, targetRefHash: hash(mutation.targetRef), documentRefHash: hash(mutation.documentRef), canonicalConversationUrl: canonicalConversationUrl?.startsWith("https://chatgpt.com/c/") ? canonicalConversationUrl : conversationUrl("fixture-before-corruption") } }));
+    if (canonicalConversationUrl === null) (Reflect.get(store, "database") as Database.Database).prepare("update browser_mutations set provider_recovery_payload=null where command_id=?").run(mutation.commandId);
+    else if (!canonicalConversationUrl.startsWith("https://chatgpt.com/c/")) (Reflect.get(store, "database") as Database.Database).prepare("update browser_mutations set provider_recovery_payload=? where command_id=?").run(sealProviderRecoveryPayload(browserMutationPayloadKey(root), mutation.commandId, { terminalPayload: { ...terminalPayload, canonicalConversationUrl } }), mutation.commandId);
   };
   confirmContinuation("job:article:A", "a1", "https://chatgpt.com/c/article-A", "shared-step");
   confirmContinuation("job:article:A", "a2", conversationUrl("article-A-revision"), "shared-step", 1);
@@ -325,14 +327,14 @@ try {
   assert.throws(() => restarted.prepare({ ...identity("attempt:2", 1),
     domainRejectionRevision: true }), /BROWSER_MUTATION_UNSETTLED/u,
   "an unresolved physical input blocks even a Website-authorized new revision");
-  restarted.markRejected(unresolvedParent.commandId, hash("terminal-no-input"), "no");
+  restarted.settleTerminalReceipt(terminalFact(restarted.readCommand(unresolvedParent.commandId)!.identity, { terminal: "rejected", resultHash: hash("terminal-no-input"), mutationOutcome: "no" }));
   assert.doesNotThrow(() => restarted.prepare({ ...identity("attempt:2", 1),
     domainRejectionRevision: true }),
     "a new revision may proceed only after the old writer has a reliable terminal");
   const rejectedNoInput = { ...identity("attempt:1", 2), domainRejectionRevision: true };
   restarted.prepare(rejectedNoInput);
   restarted.markDispatched(rejectedNoInput.commandId);
-  restarted.markRejected(rejectedNoInput.commandId, hash("no-input"), "no", "BROWSER_DOM_READ_INVALID");
+  restarted.settleTerminalReceipt(terminalFact(restarted.readCommand(rejectedNoInput.commandId)!.identity, { terminal: "rejected", resultHash: hash("no-input"), mutationOutcome: "no", failureCode: "BROWSER_DOM_READ_INVALID" }));
   const noInputOutcome = (attemptId: string) => restarted.readAtomicStepOutcome({
     jobId: rejectedNoInput.jobId, attemptId,
     exactCallIdentityHash: rejectedNoInput.exactCallIdentityHash,
@@ -355,10 +357,10 @@ try {
   }), /BROWSER_PROVIDER_EFFECT_IDENTITY_DRIFT/u,
   "after the new attempt fixes its effect identity, a different identity must be rejected");
   restarted.markDispatched(retriedNoInput.commandId);
-  restarted.markConfirmed(retriedNoInput.commandId, hash("retried-terminal"), "confirmed", {
+  restarted.settleTerminalReceipt(terminalFact(restarted.readCommand(retriedNoInput.commandId)!.identity, { terminal: "confirmed", resultHash: hash("retried-terminal"), mutationOutcome: "confirmed", submitRecoveryPayload: {
     ...terminalPayload, exactCallIdentityHash: retriedNoInput.exactCallIdentityHash,
     targetRefHash: hash(retriedNoInput.targetRef), documentRefHash: hash(retriedNoInput.documentRef),
-  });
+  } }));
   assert.equal(noInputOutcome("attempt:3")?.state, "confirmed",
     "a consumed provider effect must block every later attempt");
   restarted.close();
@@ -370,7 +372,7 @@ try {
     commandId: "command:risk-source" });
   riskStore.prepare(source);
   riskStore.markDispatched(source.commandId);
-  riskStore.markConfirmed(source.commandId, hash("risk-source-confirmed"), "confirmed");
+  riskStore.settleTerminalReceipt(terminalFact(riskStore.readCommand(source.commandId)!.identity, { terminal: "confirmed", resultHash: hash("risk-source-confirmed"), mutationOutcome: "confirmed" }));
   const sourceCall = riskStore.jobHistoryEvidence(source.jobId).replayCalls[0]!;
   const firstRisk = withProviderIdentity({ ...identity("attempt:risk-issued", 1), jobId: source.jobId,
     commandId: "command:risk-prepared", deliveryPriorityReplayGrantHash: hash("risk-rebind-grant"),
@@ -396,8 +398,7 @@ try {
   assert.throws(() => afterCrash.prepare({ ...rebound, commandId: "command:risk-unsettled" }),
     /BROWSER_MUTATION_UNSETTLED/u,
     "an unresolved dispatch cannot obtain a second Provider command");
-  afterCrash.markRejected(rebound.commandId, hash("risk-zero-input-proof"), "no",
-    "BROWSER_TARGET_NOT_INTERACTIVE", null, 0);
+  afterCrash.settleTerminalReceipt(terminalFact(afterCrash.readCommand(rebound.commandId)!.identity, { terminal: "rejected", resultHash: hash("risk-zero-input-proof"), mutationOutcome: "no", failureCode: "BROWSER_TARGET_NOT_INTERACTIVE", nativeCauseCode: null, physicalInputCount: 0 }));
   const firstZeroAuthorityHash = afterCrash.authorityHash(rebound.commandId);
   const afterNoInput = { ...rebound, commandId: "command:risk-after-no-input",
     leaseVersion: 4, executionFenceHash: hash("risk-next-fence"),
@@ -407,8 +408,7 @@ try {
   assert.equal(grantRows().length, 2,
     "the old terminal proof must stay intact while the new command uses the one WAL");
   afterCrash.markDispatched(afterNoInput.commandId);
-  afterCrash.markRejected(afterNoInput.commandId, hash("risk-second-zero-proof"), "no",
-    "BROWSER_TARGET_NOT_INTERACTIVE", null, 0);
+  afterCrash.settleTerminalReceipt(terminalFact(afterCrash.readCommand(afterNoInput.commandId)!.identity, { terminal: "rejected", resultHash: hash("risk-second-zero-proof"), mutationOutcome: "no", failureCode: "BROWSER_TARGET_NOT_INTERACTIVE", nativeCauseCode: null, physicalInputCount: 0 }));
   assert.equal(afterCrash.readProvenZeroInputProviderCommand({
     authorityRef: `browser-mutation:${rebound.commandId}`,
     authorityHash: firstZeroAuthorityHash,
@@ -422,9 +422,8 @@ try {
     targetRef: "target:risk-third", documentRef: "document:risk-third" };
   afterCrash.prepare(eventual);
   afterCrash.markDispatched(eventual.commandId);
-  afterCrash.markConfirmed(eventual.commandId, hash("risk-eventual-input"),
-    "confirmed", { ...terminalPayload, exactCallIdentityHash: eventual.exactCallIdentityHash,
-      targetRefHash: hash(eventual.targetRef), documentRefHash: hash(eventual.documentRef) }, 1);
+  afterCrash.settleTerminalReceipt(terminalFact(afterCrash.readCommand(eventual.commandId)!.identity, { terminal: "confirmed", resultHash: hash("risk-eventual-input"), mutationOutcome: "confirmed", submitRecoveryPayload: { ...terminalPayload, exactCallIdentityHash: eventual.exactCallIdentityHash,
+      targetRefHash: hash(eventual.targetRef), documentRefHash: hash(eventual.documentRef) }, physicalInputCount: 1 }));
   assert.equal(afterCrash.readAtomicStepOutcome({
     jobId: afterNoInput.jobId, attemptId: afterNoInput.attemptId,
     exactCallIdentityHash: afterNoInput.exactCallIdentityHash,

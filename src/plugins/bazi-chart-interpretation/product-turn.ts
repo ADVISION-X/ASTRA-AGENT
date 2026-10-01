@@ -270,6 +270,12 @@ export const runTurn = async (
   marker: string,
 ): Promise<Checkpoint> => {
   const stepId = task.action_id;
+  if (context.routePolicy.relation_kind !== "review") {
+    const materials = context.materials.slice().sort((left, right) => left.ordinal - right.ordinal);
+    if (materials.length !== 2 || materials[0]?.role !== "bazi_formal_input"
+      || materials[0].ordinal !== 0 || materials[1]?.role !== "result_contract"
+      || materials[1].ordinal !== 1) fail("BAZI_CHART_INTERPRETATION_MATERIAL_ROLES_INVALID");
+  }
   const files = uploadedFiles(context);
   const promptHash = sha256(prompt);
   const submit = { productStepId: stepId, callId: "turn-submit",

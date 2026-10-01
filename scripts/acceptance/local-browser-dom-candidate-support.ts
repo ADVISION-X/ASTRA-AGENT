@@ -203,7 +203,23 @@ const exerciseOutgoingRejections = async (source: string): Promise<void> => {
   "BROWSER_DOM_ACTION_OUTGOING_STRUCTURE_MISMATCH");
 };
 
+const exerciseExactModelLabelOr = async (source: string): Promise<void> => {
+  for (const labels of [["最新"], ["Latest"], ["最新", "Latest"], ["Latest beta"], ["GPT-5.6 Sol"]]) {
+    const nodes = labels.map((label) => new FakeElement(label, {}, {}, {}, "BUTTON"));
+    const root = new FakeElement("root", { model: nodes });
+    for (const node of nodes) node.parentElement = root;
+    const result = await execute(source, { documentElement: root, querySelectorAll: () => [],
+      elementFromPoint: () => nodes[0] }, {
+      selector: "model", text: { value: ["最新", "Latest"], exact: true }, output: "pointer",
+    });
+    const count = labels.filter((label) => label === "最新" || label === "Latest").length;
+    if (count === 1) assert.equal(JSON.stringify(result), JSON.stringify({ x: 5, y: 5 }));
+    else assert.equal(result, count === 2 ? "BROWSER_DOM_CANDIDATE_AMBIGUOUS" : "BROWSER_DOM_ACTION_NOT_QUALIFIED");
+  }
+};
+
 export const exerciseCapturedCandidateFunction = async (source: string): Promise<void> => {
+  await exerciseExactModelLabelOr(source);
   await exercisePointerQualification(source);
   await exerciseRequiredClickPoint(source);
   await exerciseOutgoingAttachmentIdentity(source);

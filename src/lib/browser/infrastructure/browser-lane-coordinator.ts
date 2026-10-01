@@ -153,6 +153,7 @@ export class BrowserLaneCoordinator {
     this.activeJobRefHash = null;
     void this.pump();
   }
+  public notifyMutationSettled(): void { void this.pump(); }
   public hasUnresolvedMutation(): boolean { return (this.infrastructure.mutationState?.countDispatched() ?? 0) > 0; }
   public hasMutationForJob(jobId: string): boolean { return this.infrastructure.mutationState?.hasMutationForJob(jobId) ?? false; }
   public purgeJob(jobId: string): void {

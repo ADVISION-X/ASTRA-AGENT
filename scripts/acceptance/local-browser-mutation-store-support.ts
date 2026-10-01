@@ -1,3 +1,6 @@
+import type { BrowserMutationIdentity } from "../../src/lib/browser/exact-target/browser-mutation-types.js";
+import { browserMutationReceiptBindingProjection, browserMutationTerminalFactBytes, type BrowserMutationTerminalFact,
+  type BrowserMutationTerminalReceipt } from "../../src/lib/browser/exact-target/browser-observation-receipt.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { createHash } from "node:crypto";
 import path, { join } from "node:path";
@@ -67,8 +70,7 @@ export const exerciseBrowserMutationStore = (root: string): void => {
   assert.equal(provider.readCommand(providerIdentity.commandId)?.state ?? null, "DISPATCHED",
     "provider readback admission must not terminalize or rewrite the unknown effect");
   const dispatchedAuthorityHash = provider.authorityHash(providerIdentity.commandId);
-  provider.resolve({ commandId: providerIdentity.commandId, targetRef: providerIdentity.targetRef,
-    state: "CONFIRMED", mutationOutcome: "confirmed", proofHash: exactHash("fresh-provider-postcondition") });
+  provider.settleTerminalReceipt(terminalFact(providerIdentity));
   const terminal = provider.readAtomicStepOutcome({ jobId: providerIdentity.jobId,
     attemptId: providerIdentity.attemptId, exactCallIdentityHash: providerIdentity.exactCallIdentityHash,
     actionOrdinal: providerIdentity.actionOrdinal, targetRef: providerIdentity.targetRef,
@@ -87,8 +89,7 @@ export const exercisePostconditionNativeCauseWalRoundTrip = (root: string): void
   const walIdentity = identity("postcondition-command", "attempt-postcondition");
   store.prepare(walIdentity);
   store.markDispatched(walIdentity.commandId);
-  store.markRejected(walIdentity.commandId, exactHash("postcondition-rejection"), "confirmed",
-    "BROWSER_POSTCONDITION_FAILED", "BROWSER_POSTCONDITION_Q0__NO_LAYOUT_BOX");
+  store.settleTerminalReceipt(terminalFact(store.readCommand(walIdentity.commandId)!.identity, { terminal: "rejected", resultHash: exactHash("postcondition-rejection"), mutationOutcome: "confirmed", failureCode: "BROWSER_POSTCONDITION_FAILED", nativeCauseCode: "BROWSER_POSTCONDITION_Q0__NO_LAYOUT_BOX" }));
   const terminal = store.readAtomicStepOutcome({
     jobId: walIdentity.jobId, attemptId: walIdentity.attemptId,
     exactCallIdentityHash: walIdentity.exactCallIdentityHash, actionOrdinal: walIdentity.actionOrdinal,
@@ -158,4 +159,69 @@ export const verifyWalSchemaStartupRejections = (root: string): void => {
   ensureCurrentSchema(missingGrantSchema);
   missingGrantSchema.exec("alter table browser_mutations drop column delivery_priority_replay_grant_hash");
   rejectWithoutChange(missingGrantSchema, "Browser startup must reject a missing current grant column");
+};
+
+/** Builds original executor facts for fixtures; settlement always calls the production Store directly. */
+export const terminalFact = (identity: BrowserMutationIdentity,
+  fields: Partial<BrowserMutationTerminalReceipt> = {}): BrowserMutationTerminalFact => {
+  const terminal = fields.terminal ?? "confirmed";
+  const mutationOutcome = fields.mutationOutcome ?? "confirmed";
+  const payload = terminal === "confirmed" && mutationOutcome === "confirmed"
+    && identity.childCapabilityId === "submit_exact_gpt_turn_once" ? {
+      canonicalConversationUrl: "https://chatgpt.com/c/fixture-original-turn", promptHash: exactHash("fixture-prompt"),
+      userTurnId: "00000000-0000-4000-8000-000000000001", exactCallIdentityHash: identity.exactCallIdentityHash,
+      observationRevisionHash: exactHash("fixture-observation"), targetRefHash: exactHash(identity.targetRef),
+      documentRefHash: exactHash(identity.documentRef), rawCount: 1, eligibleCount: 1,
+    } : null;
+  const terminalReceipt: BrowserMutationTerminalReceipt = {
+    schemaVersion: "grasseye.browser.command-terminal-receipt.v1", terminal, mutationOutcome,
+    physicalInputCount: mutationOutcome === "no" ? 0 : 1,
+    failureCode: terminal === "rejected" ? "BROWSER_POSTCONDITION_FAILED" : null, nativeCauseCode: null,
+    completedAt: new Date().toISOString(), resultHash: exactHash("fixture-original-result"), submitRecoveryPayload: payload,
+    ...fields,
+  };
+  const fact = { commandId: identity.commandId, receiptBindingHash: exactHash(JSON.stringify(browserMutationReceiptBindingProjection(identity))), terminalReceipt };
+  return { type: "fact", ...fact, receiptHash: exactHash(browserMutationTerminalFactBytes(fact)) };
+};
+
+export const exerciseTerminalFactSettlement = (root: string): void => {
+  const store = new BrowserMutationStore(root);
+  store.verifyRuntimeTaskProvenance(null);
+  const original = identity("original-receipt", "original-attempt");
+  store.prepare(original); store.markDispatched(original.commandId);
+  const fact = terminalFact(original);
+  const before = store.authorityHash(original.commandId);
+  for (const key of ["commandId", "exactCallIdentityHash", "jobId", "attemptId", "resultRevision", "leaseVersion", "executionFenceHash",
+    "deliveryPriorityReplayGrantHash", "productStepId", "callId", "childCapabilityId", "effectScope", "actionOrdinal", "actionId",
+    "positivePostconditionHash", "negativePostconditionHash", "requestHash", "payloadHash"] as const) {
+    const value = original[key];
+    const mutated = { ...original, [key]: typeof value === "number" ? value + 1 : typeof value === "string" ? value + "-drift" : hash };
+    assert.throws(() => store.settleTerminalReceipt(terminalFact(mutated)), /BROWSER_MUTATION_RECORD_MISSING|BROWSER_RECONCILIATION_IDENTITY_MISMATCH/u);
+    assert.equal(store.authorityHash(original.commandId), before, key);
+  }
+  for (const count of [2, 3, 4] as const) assert.throws(() => store.settleTerminalReceipt(
+    terminalFact(original, { physicalInputCount: count })), /BROWSER_RECONCILIATION_RECEIPT_INVALID/u);
+  assert.throws(() => store.settleTerminalReceipt({ ...fact, terminalReceipt: { ...fact.terminalReceipt,
+    unexpected: true } } as BrowserMutationTerminalFact), /BROWSER_RECONCILIATION_IDENTITY_MISMATCH/u);
+  assert.equal(store.settleTerminalReceipt(fact).changed, true);
+  const committed = store.authorityHash(original.commandId);
+  assert.equal(store.settleTerminalReceipt(fact).changed, false);
+  store.markReceiptMissing(original.commandId);
+  assert.equal(store.authorityHash(original.commandId), committed, "late send catch cannot change committed facts");
+  const database = Reflect.get(store, "database") as Database.Database;
+  database.prepare("update browser_mutations set physical_input_count=0 where command_id=?").run(original.commandId);
+  assert.throws(() => store.settleTerminalReceipt(fact), /BROWSER_MUTATION_STATE_CONFLICT/u,
+    "duplicate proof cannot hide a drifted durable count");
+  database.prepare("update browser_mutations set physical_input_count=1 where command_id=?").run(original.commandId);
+  assert.equal(store.settleTerminalReceipt(fact).changed, false);
+  const provider = { ...identity("submit-receipt", "submit-attempt"), effectScope: "provider_effect" as const,
+    childCapabilityId: "submit_exact_gpt_turn_once", logicalMutationId: exactHash("receipt-provider") };
+  store.prepare(provider); store.markDispatched(provider.commandId);
+  assert.throws(() => store.settleTerminalReceipt(terminalFact(provider, { submitRecoveryPayload: null })),
+    /BROWSER_RECONCILIATION_RECEIPT_INVALID/u);
+  const submit = terminalFact(provider);
+  assert.equal(store.settleTerminalReceipt(submit).changed, true);
+  assert.equal(store.settleTerminalReceipt(submit).changed, false);
+  assert.equal(database.prepare("select physical_input_count from browser_mutations where command_id=?").pluck().get(provider.commandId), 1);
+  store.close();
 };

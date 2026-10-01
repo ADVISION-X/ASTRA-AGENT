@@ -314,29 +314,26 @@ const inspectStructureAst = (context: InspectorContext): InspectorFinding[] => {
   const failureRepoPath = "src/lib/browser/exact-target/browser-command-failure.ts";
   requireTokens(context, findings, LAW_STRUCTURE, "static.ast", "wal-before-log", actorRepoPath, [
       "this.mutations.prepare", "outcome: \"PREPARED\"", "this.mutations.markDispatched",
-      "outcome: \"DISPATCHED\"", "this.mutations.markRejected", "this.mutations.markConfirmed",
-      "this.mutations.resolve", "outcome: state",
+      "outcome: \"DISPATCHED\"",
     ]);
   requireTokens(context, findings, LAW_STRUCTURE, "static.ast", "wal-before-log", failureRepoPath, [
     "input.mutations.markReceiptMissing", "input.mutations.markFailedBeforeDispatch", "outcome: \"FAILED\"",
   ]);
   const actorSource = context.project.getSourceFile(resolve(context.sealedRoot, actorRepoPath));
   const failureSource = context.project.getSourceFile(resolve(context.sealedRoot, failureRepoPath));
+  const supervisorRepoPath = "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts";
+  requireTokens(context, findings, LAW_STRUCTURE, "static.ast", "wal-before-log", supervisorRepoPath,
+    ["mutations.settleTerminalReceipt(fact)", "if (settled.changed)", "acknowledge()", "this.lane.notifyMutationSettled()"]);
+  const terminalOwner = context.project.getSourceFile(resolve(context.sealedRoot, supervisorRepoPath))
+    ?.getClass("BrowserInfrastructureSupervisor")?.getMethod("settleMutationTerminal");
   const actorClass = actorSource?.getClass("BrowserCommandActor");
   for (const [owner, filePath, authorityCalls, emissionName, emission] of [
     [actorClass?.getMethod("prepareMutation"), actorRepoPath, ["this.mutations.prepare"],
       "emitBrowserMutationEvent", "outcome: \"PREPARED\""],
     [actorClass?.getMethod("execute"), actorRepoPath, ["this.mutations.markDispatched"],
       "emitBrowserMutationEvent", "outcome: \"DISPATCHED\""],
-    [actorClass?.getMethod("completeMutation"), actorRepoPath,
-      ["this.mutations.markRejected", "this.mutations.markConfirmed"], "emitBrowserMutationEvent",
-      "outcome: result.terminal === \"rejected\" ? \"REJECTED\" : \"CONFIRMED\""],
-    [actorClass?.getMethod("resolveDispatchedMutation"), actorRepoPath, ["this.mutations.resolve"],
-      "emitBrowserMutationEvent", "outcome: state"],
-    [failureSource?.getVariableDeclaration("rejectAuthenticatedTerminalReply")?.getInitializer(), failureRepoPath,
-      ["input.mutations.markRejected"], "emitRejected", ""],
-    [failureSource?.getVariableDeclaration("rejectAuthenticatedResult")?.getInitializer(), failureRepoPath,
-      ["input.mutations.markRejected"], "emitRejected", ""],
+    [terminalOwner, supervisorRepoPath, ["mutations.settleTerminalReceipt"],
+      "emitBrowserMutationEvent", "outcome: fact.terminalReceipt.terminal"],
     [failureSource?.getVariableDeclaration("recordUnsettledMutation")?.getInitializer(), failureRepoPath,
       ["input.mutations.markFailedBeforeDispatch"], "emitBrowserMutationEvent", "outcome: \"FAILED\""],
   ] as const) {

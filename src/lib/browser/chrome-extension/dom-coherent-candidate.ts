@@ -1,3 +1,4 @@
+import type { BrowserDomExactText } from "../exact-target/browser-dom-intent.js";
 import type {
   BrowserDomPostconditionQuery,
   BrowserDomReadScope,
@@ -22,7 +23,7 @@ type CandidateRequest = Readonly<{
   selector: string;
   clickPointSelector?: string;
   scope?: BrowserDomReadScope;
-  text?: Readonly<{ value: string; exact: boolean }>;
+  text?: Readonly<{ value: BrowserDomExactText; exact: boolean }>;
   exactOutgoingTurn?: Readonly<{
     composerSelector: string;
     composerFormSelector: string;
@@ -58,7 +59,7 @@ const COHERENT_CANDIDATE_FUNCTION = `async function (spec) {
   const textEligible = (node) => {
     const text = node.textContent || "";
     return !spec.text || (spec.text.exact
-      ? text.trim() === spec.text.value.trim() : text.includes(spec.text.value));
+      ? (Array.isArray(spec.text.value) ? spec.text.value : [spec.text.value]).some((value) => text.trim() === value.trim()) : text.includes(spec.text.value));
   };
   const scopeRaw = spec.scope
     ? Array.from(document.querySelectorAll(spec.scope.selector)) : [document.documentElement];
@@ -188,7 +189,7 @@ const COHERENT_OBSERVATION_POINTER_FUNCTION = `function (request) {
       reasons.push("INERT");
     }
     if (checkText && ((spec.textContains !== undefined && !(node.textContent || "").includes(spec.textContains))
-      || (spec.textEquals !== undefined && (node.textContent || "").trim() !== spec.textEquals.trim()))) {
+      || (spec.textEquals !== undefined && !(Array.isArray(spec.textEquals) ? spec.textEquals : [spec.textEquals]).some((value) => (node.textContent || "").trim() === value.trim())))) {
       reasons.push("TEXT_MISMATCH");
     }
     return reasons;
@@ -269,7 +270,7 @@ const COHERENT_OBSERVATION_POINTER_FUNCTION = `function (request) {
     if (!mechanicallyEligible(node)) return false;
     const text = node.textContent || "";
     return !request.candidate.text || (request.candidate.text.exact
-      ? text.trim() === request.candidate.text.value.trim()
+      ? (Array.isArray(request.candidate.text.value) ? request.candidate.text.value : [request.candidate.text.value]).some((value) => text.trim() === value.trim())
       : text.includes(request.candidate.text.value));
   };
   const scopeRaw = request.candidate.scope

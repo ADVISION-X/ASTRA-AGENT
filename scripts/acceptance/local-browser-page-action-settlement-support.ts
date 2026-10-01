@@ -155,9 +155,34 @@ export const exerciseUniversalPostActionReadGate = async (): Promise<void> => {
     exerciseTabRemoval(),
     exerciseRejectedMutation(),
     exerciseChooserMismatch(),
+    exerciseRevokedInputGuards(),
   ]);
   const unknown = createGateHarness();
   await assert.rejects(unknown.runtime.send(106, "Future.unclassifiedMethod"),
     /BROWSER_UNREGISTERED_DEVTOOLS_METHOD/u,
     "a future unclassified DevTools method must fail closed instead of bypassing the gate");
+};
+
+const exerciseRevokedInputGuards = async (): Promise<void> => {
+  for (const kind of ["click", "hover", "fill"]) {
+    const method = kind === "fill" ? "DOM.focus" : "Input.dispatchMouseEvent";
+    const harness = createGateHarness({ expectedMethod: method });
+    const state = { started: false, physicalInputCount: 0 as 0 | 1, mutationKind: kind };
+    let active = true;
+    await harness.runtime.withProviderInputGuard(state, () => {
+      if (!active) throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
+    }, async () => {
+      await harness.runtime.send(106, method, { type: "mouseMoved" });
+      active = false;
+      await assert.rejects(harness.runtime.send(106, kind === "fill" ? "Input.insertText" : method,
+        { type: "mousePressed", text: "must-not-input" }), /BROWSER_EXTENSION_CHANNEL_UNAVAILABLE/u);
+      await assert.rejects(harness.runtime.createProductionTab("https://chatgpt.com/"), /BROWSER_EXTENSION_CHANNEL_UNAVAILABLE/u);
+      await assert.rejects(harness.runtime.activateTab(106), /BROWSER_EXTENSION_CHANNEL_UNAVAILABLE/u);
+      assert.equal(harness.actionCount(), 1, "withdrawal forbids every not-yet-issued input and target activation");
+      assert.equal(state.physicalInputCount, kind === "hover" ? 1 : 0,
+        "focus and a click's preliminary move cannot impersonate logical command input");
+      await harness.runtime.send(106, "DOM.getDocument");
+      assertFullGate(kind, harness.actionCompletedAt(), harness.pageReadAt());
+    });
+  }
 };

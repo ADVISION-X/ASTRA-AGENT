@@ -15,6 +15,13 @@ import { detectHighImpactChanges, type HighImpactFinding } from '../../scripts/a
 
 const retiredDomains = ['audit-system', 'audit-truth', 'domain-registry', 'exam-system', 'law-system', 'project-governance'];
 
+// A fixture must exercise the current quality core along with its copied entry.
+const copyCurrentQualityCore = (repository: string): void => {
+  cpSync(resolve(process.cwd(), 'scripts/audit/shared'), resolve(repository, 'scripts/audit/shared'), { recursive: true });
+  copyFileSync(resolve(process.cwd(), 'scripts/audit/governance-git-state.ts'), resolve(repository, 'scripts/audit/governance-git-state.ts'));
+};
+
+
 test('builder source walk rejects case-fold path collisions', () => {
   assert.throws(() => assertNoCaseCollision(['docs/blueprints/Case.md', 'docs/blueprints/case.md']),
     (error: unknown) => error instanceof GovernanceError && error.code === 'SOURCE_PARSE_FAILED');
@@ -184,6 +191,7 @@ test('quality report isolation rejects removed, narrowed, and tracked report mut
       execFileSync('git', ['clone', '-q', '--local', '--no-hardlinks', process.cwd(), repository]);
       writeFileSync(resolve(repository, '.git/info/exclude'), 'node_modules\n');
       symlinkSync(resolve(process.cwd(), 'node_modules'), resolve(repository, 'node_modules'), 'dir');
+    copyCurrentQualityCore(repository);
       copyFileSync(resolve(process.cwd(), 'scripts/audit/governance-authority.ts'),
         resolve(repository, 'scripts/audit/governance-authority.ts'));
       copyFileSync(resolve(process.cwd(), 'AGENTS.md'), resolve(repository, 'AGENTS.md'));
@@ -281,6 +289,7 @@ test('real discovery rejects module, package-config, and filesystem consumption 
       execFileSync('git', ['clone', '-q', '--local', '--no-hardlinks', process.cwd(), repository]);
       writeFileSync(resolve(repository, '.git/info/exclude'), 'node_modules\n');
       symlinkSync(resolve(process.cwd(), 'node_modules'), resolve(repository, 'node_modules'), 'dir');
+    copyCurrentQualityCore(repository);
       copyFileSync(resolve(process.cwd(), 'scripts/audit/shared/governance-role-consumption.ts'),
         resolve(repository, 'scripts/audit/shared/governance-role-consumption.ts'));
       mutate(repository);
@@ -343,6 +352,7 @@ test('quality CHANGE rejects malformed touched law, Manifest, blueprint, and spe
       execFileSync('git', ['clone', '-q', '--local', '--no-hardlinks', process.cwd(), repository]);
       writeFileSync(resolve(repository, '.git/info/exclude'), 'node_modules\n');
       symlinkSync(resolve(process.cwd(), 'node_modules'), resolve(repository, 'node_modules'), 'dir');
+    copyCurrentQualityCore(repository);
       copyFileSync(resolve(process.cwd(), 'scripts/audit/governance-authority.ts'),
         resolve(repository, 'scripts/audit/governance-authority.ts'));
       copyFileSync(resolve(process.cwd(), 'scripts/audit/governance-change-authority.ts'),
@@ -385,6 +395,7 @@ test('quality CHANGE ignores malformed untouched authority while validating the 
     execFileSync('git', ['commit', '-q', '-m', 'current candidate baseline'], { cwd: repository });
     writeFileSync(resolve(repository, '.git/info/exclude'), 'node_modules\n');
     symlinkSync(resolve(process.cwd(), 'node_modules'), resolve(repository, 'node_modules'), 'dir');
+    copyCurrentQualityCore(repository);
     const fixtureSupportPath = resolve(repository, 'scripts/audit/shared/inspector-context-acceptance-support.ts');
     const clonedInspectorContract = readFileSync(
       resolve(repository, 'scripts/audit/shared/inspector-contracts.ts'), 'utf8',
@@ -429,6 +440,7 @@ test('quality CHANGE executes a changed governance test and rejects its failing 
     execFileSync('git', ['commit', '-q', '-m', 'current candidate baseline'], { cwd: repository });
     writeFileSync(resolve(repository, '.git/info/exclude'), 'node_modules\n');
     symlinkSync(resolve(process.cwd(), 'node_modules'), resolve(repository, 'node_modules'), 'dir');
+    copyCurrentQualityCore(repository);
     const changedPath = resolve(repository, 'tests/governance/quality-contract.test.ts');
     writeFileSync(changedPath, `${readFileSync(changedPath, 'utf8')}\ntest("focused failing mutant", () => assert.fail("mutant executed"));\n`);
     const execution = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/audit/governance.ts', 'quality', 'CHANGE'], {

@@ -15,10 +15,14 @@ import {
   shouldRestoreBrowserHostVisibility,
 } from
   "../../src/lib/browser/infrastructure/browser-infrastructure-supervisor.js";
-import type { BrowserAuthoritySocket } from
+import { BrowserAuthorityWebSocket, type BrowserAuthoritySocket } from
   "../../src/lib/browser/transport/browser-authority-websocket.js";
 import { BROWSER_MISSED_HEARTBEAT_TOLERANCE_MS } from
   "../../src/lib/browser/protocol/generated/browser-protocol.generated.js";
+import { canonicalizeBrowserAuthorityValue, encodeBrowserAuthorityFrame, decodeBrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
+import { encryptBrowserAuthorityFrame, decryptBrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-session-crypto.js";
+import { BROWSER_PROTOCOL_REVISION } from "../../src/lib/browser/protocol/generated/browser-protocol.generated.js";
+import { identity, terminalFact } from "./local-browser-mutation-store-support.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 
 const repoRoot = resolve(import.meta.dirname, "../..");
@@ -290,5 +294,100 @@ try {
 } finally {
   await rm(admissionRoot, { recursive: true, force: true });
 }
+
+
+const exerciseCommittedReceiptLogFailures = async (): Promise<void> => {
+  const root = await mkdtemp(join(tmpdir(), "browser-receipt-log-failure-"));
+  const store = new BrowserMutationStore(root);
+  store.verifyRuntimeTaskProvenance(null);
+  const logger = createRuntimeLogger({ producer: "receipt-acceptance", owner: "browser-session",
+    component: "browser-infrastructure", terminalEnabled: false, fileSink: { directoryPath: join(root, "logs") } });
+  let fault: "healthy" | "write" | "capacity" = "healthy";
+  let pumps = 0;
+  let writeFailed = false;
+  const owner = Object.create(BrowserInfrastructureSupervisor.prototype) as BrowserInfrastructureSupervisor;
+  Reflect.set(owner, "state", { started: true, mutationState: store });
+  Reflect.set(owner, "lane", { notifyMutationSettled: () => { pumps += 1; } });
+  Reflect.set(owner, "options", { runtimeLogger: new Proxy(logger, { get(target, key) {
+    if (key === "isWritable") return () => fault !== "capacity" && !writeFailed;
+    if (key === "getSinkState") return () => fault === "capacity" ? "capacity_blocked" : writeFailed ? "failed" : "ready";
+    if (key === "emitEvent") return (...args: Parameters<typeof logger.emitEvent>) => {
+      if (fault !== "write") return target.emitEvent(...args);
+      writeFailed = true; return { ok: false, code: "RUNTIME_LOG_SINK_WRITE_FAILED" }; };
+    return Reflect.get(target, key);
+  } }) });
+  const settle = Reflect.get(owner, "settleMutationTerminal").bind(owner) as BrowserInfrastructureSupervisorReceiptFixture;
+  try {
+    for (const scenario of ["healthy", "write", "capacity"] as const) {
+      const original = identity("receipt-" + scenario, "receipt-attempt-" + scenario);
+      store.prepare(original); store.markDispatched(original.commandId);
+      const fact = terminalFact(original);
+      const beforePumps = pumps;
+      let acks = 0;
+      fault = scenario; writeFailed = false;
+      const ack = () => { acks += 1;
+        assert.equal(store.readCommand(original.commandId)?.state, "CONFIRMED", "ACK follows durable commit"); };
+      if (scenario === "healthy") settle(fact, ack);
+      else assert.throws(() => settle(fact, ack), scenario === "write"
+        ? /RUNTIME_LOG_SINK_WRITE_FAILED/u : /RUNTIME_LOG_CAPACITY_BLOCKED/u);
+      assert.equal(acks, 1, "log faults cannot hold a committed fact hostage");
+      assert.equal(pumps - beforePumps, scenario === "healthy" ? 1 : 0);
+      const authority = store.authorityHash(original.commandId);
+      if (scenario === "healthy") settle(fact, ack);
+      else assert.throws(() => settle(fact, ack), /RUNTIME_LOG_/u);
+      assert.equal(acks, 2); assert.equal(store.authorityHash(original.commandId), authority);
+      assert.throws(() => settle(fact, () => { throw new Error("injected ACK loss"); }),
+        scenario === "healthy" ? /injected ACK loss/u : /RUNTIME_LOG_/u);
+      assert.equal(store.authorityHash(original.commandId), authority, "lost ACK cannot undo the terminal");
+      if (scenario !== "healthy") exerciseReceiptTransportCleanup(settle, fact);
+    }
+    fault = "healthy"; writeFailed = false;
+    const original = identity("write-failed-receipt", "write-failed-attempt");
+    store.prepare(original); store.markDispatched(original.commandId);
+    const database = Reflect.get(store, "database") as Database.Database;
+    database.exec("create trigger reject_terminal before update of terminal_at on browser_mutations begin select raise(abort, 'injected WAL commit failure'); end");
+    let acked = false;
+    assert.throws(() => settle(terminalFact(original), () => { acked = true; }), /injected WAL commit failure/u);
+    assert.equal(acked, false); assert.equal(store.readCommand(original.commandId)?.state, "DISPATCHED");
+    database.exec("drop trigger reject_terminal");
+  } finally { store.close(); await rm(root, { recursive: true, force: true }); }
+};
+type BrowserInfrastructureSupervisorReceiptFixture = (fact: ReturnType<typeof terminalFact>, acknowledge: () => void) => void;
+
+const exerciseReceiptTransportCleanup = (settle: BrowserInfrastructureSupervisorReceiptFixture,
+  fact: ReturnType<typeof terminalFact>): void => {
+  const frames: string[] = [];
+  let closes = 0;
+  const socket: BrowserAuthoritySocket = { send: encoded => { frames.push(encoded); },
+    close: () => { closes += 1; throw new Error("injected close failure"); } };
+  const channel = new BrowserAuthorityWebSocket({ pairingSecret: "a".repeat(64),
+    onMutationReceipt: settle, onPairingStarted: () => {}, onHeartbeat: () => {},
+    onAuthenticated: () => { throw new Error("unexpected authentication"); }, onTargetClaim: () => {},
+    onTargetRevoke: () => {}, onDiagnostic: () => {},
+    onRevoked: () => { throw new Error("injected revoke log failure"); } });
+  const key = Buffer.alloc(32, 1);
+  Reflect.set(channel, "active", { socket, keys: { clientToServer: key, serverToClient: key },
+    lastClientSequence: 1, nextServerSequence: 2, lastHeartbeatAt: Date.now(), replies: new Map() });
+  const header = { protocolVersion: BROWSER_PROTOCOL_REVISION, kind: "MUTATION_RECEIPT" as const,
+    epoch: 1, sequence: 2, deadline: new Date(Date.now() + 10_000).toISOString() };
+  const aad = canonicalizeBrowserAuthorityValue(header);
+  const encrypted = encryptBrowserAuthorityFrame({ key, direction: "client-to-server", epoch: 1,
+    sequence: 2, aad, plaintext: canonicalizeBrowserAuthorityValue(fact) });
+  assert.throws(() => channel.receive(socket, encodeBrowserAuthorityFrame({ ...header, body: { encrypted } })),
+    (error: unknown) => error instanceof Error && /^RUNTIME_LOG_/u.test(error.message)
+      && error.cause instanceof AggregateError, "cleanup faults preserve the original log failure");
+  assert.equal(closes, 1, "actual socket close is attempted despite a failed revoke log");
+  assert.equal(frames.length, 1, "committed receipt gets its encrypted ACK before channel revocation");
+  const ack = decodeBrowserAuthorityFrame(frames[0]!);
+  assert.equal(ack.kind, "MUTATION_RECEIPT");
+  const { body, ...ackHeader } = ack;
+  const plaintext = decryptBrowserAuthorityFrame({ key, direction: "server-to-client", epoch: ack.epoch,
+    sequence: ack.sequence, aad: canonicalizeBrowserAuthorityValue(ackHeader),
+    encrypted: body.encrypted as ReturnType<typeof encryptBrowserAuthorityFrame> });
+  assert.deepEqual(JSON.parse(plaintext), { type: "ack", commandId: fact.commandId,
+    receiptBindingHash: fact.receiptBindingHash, receiptHash: fact.receiptHash });
+};
+
+await exerciseCommittedReceiptLogFailures();
 
 console.log("LOCAL_RUNTIME_BROWSER_AUTHORITY_ACCEPTANCE_PASS");

@@ -34,12 +34,7 @@ import {
 import type { BrowserAtomicStepOutcome, BrowserMutationIdentity } from "./browser-mutation-types.js";
 import type { BrowserAtomicStepIdentity } from "./browser-target-lease.js";
 import type { TransientDomConfirmationStage } from "./browser-target-lease.js";
-import {
-  assertBrowserReconciliationEvidence,
-  type BrowserOutcomeResolutionReceipt,
-} from "./browser-outcome-resolver.js";
-import { decodeBrowserMutationReceipt } from "./browser-mutation-receipt.js";
-import { submitRecoveryPayload } from "./browser-submit-recovery-payload.js";
+import { browserMutationReceiptBindingProjection, type BrowserMutationTerminalFact } from "./browser-observation-receipt.js";
 import {
   decodeKnownGptRateLimitPreflightReply,
   knownGptRateLimitPreflightFactValid,
@@ -84,6 +79,7 @@ export type BrowserCommandPort = Readonly<{
     permit: BrowserCommandPermit,
     command: BrowserGovernedCommand,
     onDispatched?: () => void,
+    receiptBindingHash?: `sha256:${string}` | null,
   ): Promise<BrowserCommandReply>;
 }>;
 
@@ -92,6 +88,7 @@ export type BrowserCommandReply = Readonly<{
   transportSequence: number;
   permitSequence: number;
   result: unknown;
+  mutationReceipt: BrowserMutationTerminalFact | null;
 }>;
 
 /** An authenticated extension REPLY that explicitly terminalized the command as rejected. */
@@ -299,7 +296,7 @@ export class BrowserCommandActor {
     const commandSpan = startBrowserCommandSpan(this.runtimeLogger, permit);
     const mutation = isMutation(command);
     const state: BrowserCommandExecutionState = {
-      authenticatedReplyHash: null, budgetEntered: false, prepared: false,
+      budgetEntered: false, prepared: false,
       dispatched: false, terminalized: false,
     };
     try {
@@ -316,9 +313,9 @@ export class BrowserCommandActor {
           runtimeLogger: this.runtimeLogger, mutation: permit, outcome: "DISPATCHED",
           authorityHash: this.mutations.authorityHash(permit.commandId),
         });
-      } : undefined);
+      } : undefined, mutation ? hashValue(browserMutationReceiptBindingProjection(
+        this.mutations.readCommand(permit.commandId)!.identity)) : null);
       assertMatchingReply(permit, reply);
-      state.authenticatedReplyHash = hashValue(reply.result);
       this.authorityGuard.assertCurrentAuthority(permit);
       const preflight = decodeKnownGptRateLimitPreflightReply(permit, command, reply.result);
       const result = bindExactAssistantTurnReply(
@@ -326,7 +323,7 @@ export class BrowserCommandActor {
       );
       const boundReply = Object.freeze({ ...reply, result });
       if (mutation) this.completeMutation(
-        permit, command, boundReply, reply.result, commandSpan, state,
+        permit, boundReply, reply.result, commandSpan, state,
       );
       if (preflight.specialFailureCode) {
         throw gptDialogPreflightFailure(reply.result, preflight.specialFailureCode);
@@ -357,45 +354,26 @@ export class BrowserCommandActor {
 
   private completeMutation(
     permit: BrowserCommandPermit,
-    command: BrowserGovernedCommand,
     reply: BrowserCommandReply,
     authenticatedReplyResult: unknown,
     commandSpan: ReturnType<typeof startBrowserCommandSpan>,
     state: BrowserCommandExecutionState,
   ): void {
     if (!state.dispatched) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    const result = decodeBrowserMutationReceipt(command, reply.result);
-    const replyHash = hashValue(authenticatedReplyResult);
-    if (result.terminal === "rejected") {
-      this.mutations.markRejected(
-        permit.commandId,
-        replyHash,
-        result.mutationOutcome,
-        result.failureCode ?? "BROWSER_POSTCONDITION_FAILED",
-        result.nativeCauseCode,
-        result.physicalInputCount,
-      );
+    const fact = reply.mutationReceipt;
+    const settled = this.mutations.readCommand(permit.commandId);
+    if (!fact || fact.commandId !== permit.commandId || settled?.state !==
+      (fact.terminalReceipt.terminal === "confirmed" ? "CONFIRMED" : "REJECTED")) {
+      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     }
-    else this.mutations.markConfirmed(
-      permit.commandId,
-      replyHash,
-      result.mutationOutcome,
-      permit.childCapabilityId === "submit_exact_gpt_turn_once"
-        ? submitRecoveryPayload(reply.result) : null,
-      result.physicalInputCount,
-    );
-    emitBrowserMutationEvent({
-      runtimeLogger: this.runtimeLogger, mutation: permit,
-      outcome: result.terminal === "rejected" ? "REJECTED" : "CONFIRMED",
-      authorityHash: this.mutations.authorityHash(permit.commandId),
-    });
+    const result = fact.terminalReceipt;
     if (result.terminal !== "rejected") return;
     const failureCode = result.failureCode ?? "BROWSER_POSTCONDITION_FAILED";
     const nativeCause = result.nativeCauseCode
       ? Object.assign(new Error(result.nativeCauseCode), { code: result.nativeCauseCode }) : undefined;
     const failureEvent = failBrowserCommandSpan({
       span: commandSpan, permit, proofHash: this.mutations.authorityHash(permit.commandId),
-      failureCode, error: new Error(failureCode, { cause: nativeCause }), pendingReceipt: false,
+      failureCode, error: new Error(failureCode, { cause: nativeCause }),
     });
     state.terminalized = true;
     const rejected = failureCode === "BROWSER_KNOWN_GPT_RATE_LIMIT"
@@ -437,25 +415,4 @@ export class BrowserCommandActor {
     return state === "DISPATCHED" || state === "CONFIRMED" || state === "REJECTED" ? state : null;
   }
 
-  public async resolveDispatchedMutation(receipt: BrowserOutcomeResolutionReceipt): Promise<void> {
-    const command = this.mutations.readCommand(receipt.commandId);
-    if (command?.state !== "DISPATCHED") throw new Error("BROWSER_MUTATION_UNSETTLED");
-    const entry = command.identity;
-    assertBrowserReconciliationEvidence(receipt);
-    if (receipt.uniqueTargetRef !== entry.targetRef) throw new Error("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
-    const state = receipt.outcome === "TERMINAL_SUCCESS" ? "CONFIRMED" : "REJECTED";
-    this.mutations.resolve({
-      commandId: receipt.commandId,
-      targetRef: receipt.uniqueTargetRef,
-      state,
-      mutationOutcome: receipt.mutationOutcome,
-      proofHash: hashValue(receipt),
-    });
-    emitBrowserMutationEvent({
-      runtimeLogger: this.runtimeLogger,
-      mutation: entry,
-      outcome: state,
-      authorityHash: this.mutations.authorityHash(receipt.commandId),
-    });
-  }
 }

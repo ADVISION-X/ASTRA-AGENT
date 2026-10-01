@@ -140,3 +140,8 @@ export const deriveKeys = async (sharedSecret: Uint8Array, pairingSecret: string
     serverToClientKey: await globalThis.crypto.subtle.importKey("raw", cryptoBytes(material.slice(32, 64)), "AES-GCM", false, ["decrypt"]),
   };
 };
+
+export const hashBrowserExtensionText = async (text: string): Promise<`sha256:${string}`> => {
+  const digest = new Uint8Array(await globalThis.crypto.subtle.digest("SHA-256", cryptoBytes(encodeText(text))));
+  return `sha256:${Array.from(digest, byte => byte.toString(16).padStart(2, "0")).join("")}`;
+};

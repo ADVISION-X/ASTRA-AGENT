@@ -1,3 +1,4 @@
+import { preflightReceiptObservationHash } from "../../src/lib/browser/exact-target/browser-special-mutation-receipt.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import type { ExtensionDebuggerRuntime } from
   "../../src/lib/browser/chrome-extension/debugger-runtime.js";
@@ -102,14 +103,18 @@ const exerciseRequiredSliderClick = async (target: never): Promise<void> => {
     "an already satisfied reasoning value must still dispatch one complete mouse click");
   assert.equal(requiredResult.mutationCount, 1);
   const requiredCommand = { kind: "dom-intent", intent: requiredClick } as never;
-  const requiredReceipt = decodeBrowserMutationReceipt(requiredCommand, requiredResult);
+  const requiredReceipt = decodeBrowserMutationReceipt(requiredCommand, requiredResult, preflightReceiptObservationHash(requiredResult));
   assert.equal(requiredReceipt.mutationOutcome, "confirmed");
   assert.equal(requiredReceipt.physicalInputCount, 1);
   assert.throws(() => decodeBrowserMutationReceipt(requiredCommand, {
     candidateCount: 1, identityRevalidated: true, mutationCount: 0,
     postconditionVerified: true, zeroActionSatisfied: true,
     postconditionRawCount: 1, postconditionEligibleCount: 1, postconditionRejections: [],
-  }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
+  }, preflightReceiptObservationHash({
+    candidateCount: 1, identityRevalidated: true, mutationCount: 0,
+    postconditionVerified: true, zeroActionSatisfied: true,
+    postconditionRawCount: 1, postconditionEligibleCount: 1, postconditionRejections: [],
+  })), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
   "a required physical click cannot settle from a zero-input receipt");
 };
 

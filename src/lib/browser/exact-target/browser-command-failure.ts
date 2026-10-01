@@ -11,7 +11,6 @@ import type { BrowserMutationStore } from "./browser-mutation-store.js";
 import type { BrowserGovernedCommand } from "./browser-command-actor.js";
 
 export type BrowserCommandExecutionState = {
-  authenticatedReplyHash: `sha256:${string}` | null;
   budgetEntered: boolean;
   prepared: boolean;
   dispatched: boolean;
@@ -50,41 +49,13 @@ type FailureInput = Readonly<{
 }>;
 
 const emitRejected = (input: FailureInput, failureCode: string): never => {
-  emitBrowserMutationEvent({
-    runtimeLogger: input.runtimeLogger, mutation: input.permit, outcome: "REJECTED",
-    authorityHash: input.mutations.authorityHash(input.permit.commandId),
-  });
   const failureEvent = failBrowserCommandSpan({
     span: input.commandSpan, permit: input.permit,
     proofHash: input.mutations.authorityHash(input.permit.commandId),
-    failureCode, error: input.error, pendingReceipt: false,
+    failureCode, error: input.error,
   });
   input.state.terminalized = true;
   throw withRuntimeLogCause(new Error(failureCode, { cause: input.error }), failureEvent.eventId);
-};
-
-const rejectAuthenticatedTerminalReply = (
-  input: FailureInput,
-  reply: AuthenticatedTerminalReplyFailure,
-): never => {
-  input.mutations.markRejected(
-    input.permit.commandId,
-    hashBrowserCommandValue(reply),
-    "dispatched",
-    reply.failureCode,
-  );
-  return emitRejected(input, reply.failureCode);
-};
-
-const rejectAuthenticatedResult = (input: FailureInput): never => {
-  const code = causalBrowserFailureCode(input.error);
-  input.mutations.markRejected(
-    input.permit.commandId,
-    input.state.authenticatedReplyHash!,
-    "dispatched",
-    code,
-  );
-  return emitRejected(input, code);
 };
 
 const recordUnsettledMutation = (input: FailureInput, code: string): void => {
@@ -119,19 +90,21 @@ export const failBrowserCommandExecution = (input: FailureInput): never => {
     input.state.terminalized = true;
     throw input.error;
   }
-  if (input.terminalReply !== null) return rejectAuthenticatedTerminalReply(input, input.terminalReply);
-  if (input.mutation && input.state.dispatched && input.state.authenticatedReplyHash !== null) {
-    return rejectAuthenticatedResult(input);
+  const settled = input.mutation && input.state.prepared ? input.mutations.readCommand(input.permit.commandId) : null;
+  if (settled?.state === "CONFIRMED" || settled?.state === "REJECTED") {
+    if (!input.runtimeLogger.isWritable()) throw input.error;
+    if (input.terminalReply) return emitRejected(input, input.terminalReply.failureCode);
+    throw input.error;
   }
   const failureCode = input.mutation && input.state.dispatched
     ? "BROWSER_COMMAND_RECEIPT_MISSING" : code;
   recordUnsettledMutation(input, failureCode);
+  if (!input.runtimeLogger.isWritable()) throw input.error;
   const failureEvent = failBrowserCommandSpan({
     span: input.commandSpan, permit: input.permit,
     proofHash: input.mutation && input.state.prepared
       ? input.mutations.authorityHash(input.permit.commandId) : hashBrowserCommandValue(failureCode),
     failureCode, error: input.error,
-    pendingReceipt: input.mutation && input.state.dispatched,
   });
   throw withRuntimeLogCause(new Error(failureCode, { cause: input.error }), failureEvent.eventId);
 };

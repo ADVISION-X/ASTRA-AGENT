@@ -15,11 +15,13 @@ import {
   assertSelector,
   exactAssistantReadIntentValid,
   isBoundedText,
+  isBoundedExactText,
 } from "./browser-dom-read-intent.js";
 import {
   assertPreClickExactOutgoingTurn, assertSpecialBrowserDomIntent,
 } from "./browser-dom-special-intent.js";
 export type BrowserDomField = typeof BROWSER_DOM_FIELD_VALUES[number];
+export type BrowserDomExactText = string | readonly [string, string];
 export type BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">;
 export type BrowserDomPostconditionField = Exclude<BrowserDomObservationField,
   "semanticTextHash" | "exactEditableTextHash">;
@@ -38,7 +40,7 @@ export type BrowserDomObservationQuery = Readonly<{
   readEligibility?: BrowserDomReadEligibility;
   scope?: BrowserDomReadScope;
   textContains?: string;
-  textEquals?: string;
+  textEquals?: BrowserDomExactText;
   exactGptUserPromptContains?: string;
   latestGptUserTurn?: true;
 }>;
@@ -116,7 +118,7 @@ export type BrowserDomIntent =
     locator?: BrowserSemanticLocator;
     selector?: string;
     textContains?: string;
-    textEquals?: string;
+    textEquals?: BrowserDomExactText;
     maxMatches: number;
     /** Optional bounded readiness condition evaluated inside this one observation command. */
     waitFor?: Readonly<{ minimumMatches: number; timeoutMs: number }>;
@@ -130,7 +132,7 @@ export type BrowserDomIntent =
     kind: "click";
     selector: string;
     expectedText?: string;
-    expectedTextEquals?: string;
+    expectedTextEquals?: BrowserDomExactText;
     expectedMatches?: number;
     scope?: BrowserDomReadScope;
     requiredClickPointSelector?: string;
@@ -154,7 +156,7 @@ export type BrowserDomIntent =
       expectedMatches: number;
       readEligibility?: BrowserDomReadEligibility;
       textContains?: string;
-      textEquals?: string;
+      textEquals?: BrowserDomExactText;
       timeoutMs?: number;
     }>;
     /** One coherent mechanical query-set returned by this same click command. */
@@ -179,7 +181,7 @@ export type BrowserDomIntent =
     kind: "hover";
     selector: string;
     expectedText?: string;
-    expectedTextEquals?: string;
+    expectedTextEquals?: BrowserDomExactText;
     expectedMatches?: number;
     scope?: BrowserDomReadScope;
     /** Same-node state that must be true immediately after the one pointer hover. */
@@ -319,7 +321,7 @@ const assertObserveIntent = (intent: Extract<BrowserDomIntent, { kind: "observe"
 
 const assertObservationText = (query: BrowserDomObservationQuery): void => {
   if ((query.textContains !== undefined && !isBoundedText(query.textContains, 1_024))
-    || (query.textEquals !== undefined && !isBoundedText(query.textEquals, 1_024))
+    || (query.textEquals !== undefined && !isBoundedExactText(query.textEquals))
     || (query.exactGptUserPromptContains !== undefined
       && !isBoundedText(query.exactGptUserPromptContains, 1_024))
     || (query.textContains !== undefined && query.textEquals !== undefined)
@@ -390,10 +392,10 @@ const assertBoundedPostMatch = (match: Readonly<{
 
 const assertTargetText = (intent: Readonly<{
   expectedText?: string;
-  expectedTextEquals?: string;
+  expectedTextEquals?: BrowserDomExactText;
 }>): void => {
   if (intent.expectedText !== undefined && !isBoundedText(intent.expectedText, 1_024)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-  if (intent.expectedTextEquals !== undefined && !isBoundedText(intent.expectedTextEquals, 1_024)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  if (intent.expectedTextEquals !== undefined && !isBoundedExactText(intent.expectedTextEquals)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   if (intent.expectedText !== undefined && intent.expectedTextEquals !== undefined) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
 };
 
@@ -419,7 +421,7 @@ const assertClickMatch = (
   assertReadEligibility(match.readEligibility);
   assertOptionalRange(match.expectedMatches, 0, 20);
   if (match.textContains !== undefined && !isBoundedText(match.textContains, 1_024)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
-  if (match.textEquals !== undefined && !isBoundedText(match.textEquals, 1_024)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+  if (match.textEquals !== undefined && !isBoundedExactText(match.textEquals)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   if (match.textContains !== undefined && match.textEquals !== undefined) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   if (timeoutInvalid(match.timeoutMs)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
 };

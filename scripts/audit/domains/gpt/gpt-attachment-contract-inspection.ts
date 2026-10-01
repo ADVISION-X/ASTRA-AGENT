@@ -41,7 +41,7 @@ const inspectAttachmentSelectors = (
     GPT_ATTACHMENT_CONTROL_SELECTOR:
       "button[aria-label='添加文件等内容']",
     GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR: "[data-composer-overlay-floating-ui='true']",
-    GPT_UPLOAD_FROM_COMPUTER_SELECTOR: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child",
+    GPT_UPLOAD_FROM_COMPUTER_SELECTOR: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-actions'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child",
     GPT_UPLOAD_FROM_COMPUTER_KEYWORD: "上传",
     GPT_COMPOSER_FORM_SELECTOR: "form[data-chatgpt-composer]",
     GPT_ATTACHMENT_ITEM_SELECTOR: "button.composer-attachment-surface[aria-label]",

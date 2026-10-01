@@ -27,18 +27,15 @@ import {
   observeKnownGptRateLimitDialog,
   unrecognizedGptDialogReceipt,
 } from "./gpt-rate-limit-dialog.js";
-
 type TargetFrameSender = (
   kind: "TARGET_CLAIM" | "TARGET_REVOKE",
   body: Record<string, unknown>,
 ) => Promise<void>;
-
 /** The original failure stays authoritative; a failed Chrome-state probe is recorded as its cause. */
 const keepOriginalError = (error: unknown, probeError: unknown): unknown => {
   if (error instanceof Error && error.cause === undefined) error.cause = probeError;
   return error;
 };
-
 export class ExtensionTargetAuthority {
   private readonly targets = new ExtensionExactTargetRegistry();
   private readonly debuggerRuntime: ExtensionDebuggerRuntime;
@@ -48,7 +45,6 @@ export class ExtensionTargetAuthority {
   private readonly pageAccessGate = new ChatGptPageAccessGate();
   private readonly targetLoss: ExtensionTargetLoss;
   private navigationPublication: Promise<void> | null = null;
-
   public constructor(
     private readonly chromeApi: ExtensionChromeApi,
     private readonly send: TargetFrameSender,
@@ -71,7 +67,6 @@ export class ExtensionTargetAuthority {
       sendRevoke: (body) => this.send("TARGET_REVOKE", body),
     });
   }
-
   public start(): void {
     this.chromeApi.debugger.onDetach.addListener((target, reason) => {
       const known = this.targets.findByTabId(target.tabId);
@@ -92,12 +87,10 @@ export class ExtensionTargetAuthority {
       void this.targetLoss.consumeTabRemoval(tabId, known ?? null);
     });
   }
-
   private clearActiveTarget(): void {
     this.activeTarget = null;
     this.navigationPublication = null;
   }
-
   private async consumeFrameNavigationAfterBarrier(
     tabId: number,
   ): Promise<void> {
@@ -106,7 +99,6 @@ export class ExtensionTargetAuthority {
       () => this.consumeFrameNavigationCycle(tabId),
     );
   }
-
   private async consumeFrameNavigationCycle(tabId: number): Promise<void> {
     await this.debuggerRuntime.awaitPageReadPermission();
     if (this.activeTarget?.tabId !== tabId) return;
@@ -114,35 +106,35 @@ export class ExtensionTargetAuthority {
     const frame = await readExtensionMainFrame(this.debuggerRuntime, tabId);
     await this.publishMainFrameNavigation(frame.url, frame.loaderId);
   }
-
   public resolve(targetRef: string, documentRef: string): ExtensionExactTarget {
     return this.targets.resolve(targetRef, documentRef);
   }
-
   public async acquireJobBoundChatGptTarget(
     targetMode: "fresh" | "bound-observation" | "confirmed-readback" | "authorized-continuation",
     jobRefHash: `sha256:${string}`,
     parentConversationUrl?: string,
+    assertInput: () => void = () => undefined,
   ): Promise<void> {
     return this.debuggerRuntime.withLogicalPageAccess(
       () => this.pageAccessGate.enter(),
-      () => this.acquireJobBoundChatGptTargetCycle(
-        targetMode, jobRefHash, parentConversationUrl,
+      () => this.debuggerRuntime.withProviderInputGuard(
+        { started: false, physicalInputCount: 0, mutationKind: "target-acquisition" }, assertInput,
+        () => this.acquireJobBoundChatGptTargetCycle(targetMode, jobRefHash, parentConversationUrl, assertInput),
       ),
     );
   }
-
   private async acquireJobBoundChatGptTargetCycle(
     targetMode: "fresh" | "bound-observation" | "confirmed-readback" | "authorized-continuation",
     jobRefHash: `sha256:${string}`,
-    parentConversationUrl?: string,
+    parentConversationUrl: string | undefined,
+    assertInput: () => void,
   ): Promise<void> {
     const { continuationUrl, bound } = await preflightTargetAcquisition({
       targetMode, jobRefHash, parentConversationUrl,
       createdTarget: this.createdTarget, targets: this.targets, activeTarget: this.activeTarget,
     });
     if (bound && await this.reacquireParkedTarget(
-      bound.targetRef, targetMode === "fresh", continuationUrl,
+      bound.targetRef, targetMode === "fresh", continuationUrl, assertInput,
     )) return;
     if (targetMode === "bound-observation") {
       throw new Error("BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT");
@@ -161,6 +153,7 @@ export class ExtensionTargetAuthority {
           throw new Error("BROWSER_POSTCONDITION_FAILED");
         }
       }
+      assertInput();
       const target = this.targets.claimOperatorTarget(
         candidate.tabId, jobRefHash, mainFrame.loaderId, candidate.id,
       );
@@ -187,7 +180,6 @@ export class ExtensionTargetAuthority {
       throw new Error("BROWSER_DEVTOOLS_CONFLICT", { cause: error });
     }
   }
-
   public async releaseJobBoundChatGptTarget(
     jobRefHash: `sha256:${string}`,
   ): Promise<void> {
@@ -221,7 +213,6 @@ export class ExtensionTargetAuthority {
     await this.send("TARGET_REVOKE", { targetRef: target.targetRef,
       jobRefHash: target.jobRefHash, documentRef: target.documentRef });
   }
-
   public async executeRegisteredCommand(
     command: BrowserGovernedCommand,
     target: ExtensionExactTarget,
@@ -247,7 +238,6 @@ export class ExtensionTargetAuthority {
       acknowledgeRateLimit ? "rate-limit-ack" : "ordinary",
     );
   }
-
   private async executeRegisteredCommandCycle(
     command: BrowserGovernedCommand,
     target: ExtensionExactTarget,
@@ -256,7 +246,13 @@ export class ExtensionTargetAuthority {
     assertCommandActive: () => void,
     commandDeadlineAt?: number,
   ): Promise<unknown> {
-    const execute = async (): Promise<unknown> => {
+    const execute = async (assertMutationReadback: () => void = assertCommandActive): Promise<unknown> => {
+      const assertReadback = (): void => {
+        assertMutationReadback();
+        if (commandDeadlineAt !== undefined && Date.now() >= commandDeadlineAt) {
+          throw new Error("BROWSER_COMMAND_PERMIT_EXPIRED");
+        }
+      };
       assertCommandActive();
       if (!(command.kind === "dom-intent"
         && (command.intent.kind === "acknowledgeKnownGptRateLimit"
@@ -268,23 +264,21 @@ export class ExtensionTargetAuthority {
         if (preflight.state === "exact_present") return knownGptRateLimitBlockerReceipt(preflight);
         if (preflight.state === "mismatch") return unrecognizedGptDialogReceipt(preflight);
         const result = await this.executeRegisteredCommandBody(
-          command, target, exactCallIdentityHash, assertCommandActive, commandDeadlineAt,
+          command, target, exactCallIdentityHash, assertReadback, commandDeadlineAt,
         );
         return knownGptRateLimitAbsentEnvelope(preflight, result);
       }
       return this.executeRegisteredCommandBody(
-        command, target, exactCallIdentityHash, assertCommandActive, commandDeadlineAt,
+        command, target, exactCallIdentityHash, assertReadback, commandDeadlineAt,
       );
     };
-
     if (mutationClass === "mutation") {
-      return this.interactionReadiness.executeMutation(target, execute);
+      return this.interactionReadiness.executeMutation(target, execute, assertCommandActive, command.kind === "dom-intent" ? command.intent.kind : command.kind);
     }
     return mutationClass === "observation"
-      ? this.interactionReadiness.executeObservation(target, execute)
+      ? this.interactionReadiness.executeObservation(target, execute, assertCommandActive)
       : execute();
   }
-
   private async executeRegisteredCommandBody(
     command: BrowserGovernedCommand,
     target: ExtensionExactTarget,
@@ -324,7 +318,6 @@ export class ExtensionTargetAuthority {
         parkTarget: () => this.parkActiveTarget(),
       });
   }
-
   public async retireInvalidCommandTarget(
     error: unknown,
     intentKind: string | null,
@@ -336,11 +329,11 @@ export class ExtensionTargetAuthority {
         && intentKind === "selectExactGptConversation")) return;
     await this.parkActiveTarget();
   }
-
   private async reacquireParkedTarget(
     targetRef: string,
     resetToStart = false,
-    continuationUrl?: string,
+    continuationUrl: string | undefined,
+    assertInput: () => void,
   ): Promise<boolean> {
     const parked = this.targets.read(targetRef);
     try {
@@ -370,6 +363,7 @@ export class ExtensionTargetAuthority {
         throw new Error("BROWSER_POSTCONDITION_FAILED");
       }
       if (resetToStart) mainFrame = await this.resetParkedTabToStart(parked);
+      assertInput();
       const target = mainFrame.loaderId === parked.loaderId
         ? parked : this.targets.advanceDocument(targetRef, mainFrame.loaderId);
       await this.claimActiveTarget(target, mainFrame.url);
@@ -389,7 +383,6 @@ export class ExtensionTargetAuthority {
       throw error;
     }
   }
-
   /** Navigate the parked Tab to the fixed start URL and require a fresh Document. */
   private async resetParkedTabToStart(parked: ExtensionExactTarget) {
     await this.debuggerRuntime.send(parked.tabId, "Page.navigate", { url: GPT_WEB_START_URL });
@@ -398,7 +391,6 @@ export class ExtensionTargetAuthority {
     if (mainFrame.loaderId === parked.loaderId) throw new Error("BROWSER_DOCUMENT_INVALID");
     return mainFrame;
   }
-
   private async discardJobOwnedTarget(candidate: ExtensionDebugTarget): Promise<void> {
     const tabId = candidate.tabId;
     if (tabId === undefined) throw new Error("BROWSER_TARGET_CLEANUP_IDENTITY_MISMATCH");
@@ -411,7 +403,6 @@ export class ExtensionTargetAuthority {
     await this.createdTarget.removeExactCandidate(candidate).catch((error) => { cleanupErrors.push(error); });
     if (cleanupErrors.length) throw new AggregateError(cleanupErrors, "BROWSER_TARGET_CLEANUP_FAILED");
   }
-
   private async executeConversationSelection(
     target: ExtensionExactTarget,
     canonicalConversationUrl: string,
@@ -462,7 +453,6 @@ export class ExtensionTargetAuthority {
       if (this.navigationPublication === publication) this.navigationPublication = null;
     }
   }
-
   private async publishMainFrameNavigation(
     url: string,
     loaderId: string,
@@ -488,12 +478,10 @@ export class ExtensionTargetAuthority {
     await this.claimActiveTarget(next, url);
     return next;
   }
-
   private async claimActiveTarget(target: ExtensionExactTarget, url: string): Promise<void> {
     this.activeTarget = target;
     await this.send("TARGET_CLAIM", this.targets.describeOperatorClaim(target, {
       claimOrigin: gptWebClaimOriginForUrl(url),
     }));
   }
-
 }

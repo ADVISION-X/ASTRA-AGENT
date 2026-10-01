@@ -8,7 +8,7 @@ import {
   success,
   type GptChildHandler,
 } from "../../web/child-handler.js";
-import { profileFromIntent } from "../../web/execution-profile-input.js";
+import { GPT_LATEST_MODEL_LABELS, profileFromIntent } from "../../web/execution-profile-input.js";
 import { GPT_MODEL_SELECTOR_OPENABLE_ENTRY, GPT_MODEL_SELECTOR_OPTION } from "./selectors.js";
 import {
   modelSelectorOpenable,
@@ -35,7 +35,7 @@ export const openGptModelSelectorV3Handler: GptChildHandler<"open_gpt_model_sele
       kind: "click", selector: GPT_MODEL_SELECTOR_OPENABLE_ENTRY, expectedMatches: 1,
       postClickMinimumDelayMs: 2_500,
       postClickMatch: { selector: GPT_MODEL_SELECTOR_OPTION,
-        textEquals: profile.startModelDisplayName, expectedMatches: 1 },
+        textEquals: profile.startModelDisplayName === "最新" ? GPT_LATEST_MODEL_LABELS : profile.startModelDisplayName, expectedMatches: 1 },
     });
     const record = mutation && typeof mutation === "object" && !Array.isArray(mutation)
       ? mutation as Readonly<Record<string, unknown>> : {};

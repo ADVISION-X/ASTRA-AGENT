@@ -25,8 +25,11 @@ export class TargetClaimAwaiter {
       const timeout = globalThis.setTimeout(() => {
         this.fail("BROWSER_AUTHENTICATION_INCOMPLETE");
       }, BROWSER_COMMAND_DEFAULT_DEADLINE_MS);
-      this.completion = { ...input, resolve, reject, timeout };
-      void input.send().catch((error: unknown) => this.fail(browserCommandErrorCode(error)));
+      const completion = { ...input, resolve, reject, timeout };
+      this.completion = completion;
+      void input.send().catch((error: unknown) => {
+        if (this.completion === completion) this.fail(browserCommandErrorCode(error));
+      });
     });
   }
 
@@ -53,6 +56,8 @@ export class TargetClaimAwaiter {
 export const acceptTargetClaimAcknowledgement = async (input: {
   serverToClientKey: CryptoKey | null;
   claims: TargetClaimAwaiter;
+  isCurrent: (key: CryptoKey) => boolean;
+  consumeSequence: (frame: BrowserAuthorityFrame) => void;
   frame: BrowserAuthorityFrame;
   expectedEpoch: number;
 }): Promise<void> => {
@@ -60,5 +65,5 @@ export const acceptTargetClaimAcknowledgement = async (input: {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
   const body = await decrypt(input.serverToClientKey, "server-to-client", input.frame);
-  input.claims.accept(body);
+  if (input.isCurrent(input.serverToClientKey)) { input.consumeSequence(input.frame); input.claims.accept(body); }
 };

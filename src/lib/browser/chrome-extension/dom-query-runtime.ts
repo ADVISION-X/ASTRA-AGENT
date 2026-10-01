@@ -1,3 +1,4 @@
+import type { BrowserDomExactText } from "../exact-target/browser-dom-intent.js";
 import type {
   BrowserDomIneligibleCandidate,
   BrowserDomIneligibleReason,
@@ -81,7 +82,7 @@ export const queryCandidateSet = async (
   selector: string,
   limit: number,
   scope?: Readonly<{ selector: string }>,
-  text?: Readonly<{ value: string; exact: boolean }>,
+  text?: Readonly<{ value: BrowserDomExactText; exact: boolean }>,
   readEligibility?: BrowserDomReadEligibility,
 ): Promise<BrowserDomCandidateSet> => {
   const rawNodeIds = await queryNodeIds(runtime, tabId, selector, scope);
@@ -95,7 +96,7 @@ export const queryCandidateSet = async (
     const reasons = eligibilityReasons(facts, readEligibility);
     if (text) {
       const actual = await nodeText(runtime, tabId, nodeId);
-      const matched = text.exact ? actual.trim() === text.value.trim() : actual.includes(text.value);
+      const matched = text.exact ? (Array.isArray(text.value) ? text.value : [text.value]).some((value) => actual.trim() === value.trim()) : typeof text.value === "string" && actual.includes(text.value);
       if (!matched) reasons.push("TEXT_MISMATCH");
     }
     if (reasons.length > 0) {
@@ -143,7 +144,7 @@ export const queryVisibleTextMatches = async (
     runtime: ExtensionDebuggerRuntime;
     tabId: number;
     selector: string;
-    expectedText: string;
+    expectedText: BrowserDomExactText;
     exact: boolean;
     limit: number;
     scope?: Readonly<{ selector: string }>;

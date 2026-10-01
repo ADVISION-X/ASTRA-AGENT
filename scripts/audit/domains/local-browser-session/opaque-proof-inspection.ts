@@ -129,7 +129,7 @@ const inspectEncryptedRecoveryLocator = (
   findings: InspectorFinding[], lawId: string,
 ): void => {
   for (const [filePath, source, required] of [
-    [sourcePaths[7], journal, "sealProviderRecoveryPayload(this.payloadKey"],
+    [sourcePaths[7], journal, "sealProviderRecoveryPayload("],
     [journalEvidencePath, journalEvidence, "unsealProviderRecoveryPayload("],
     [journalEvidencePath, journalEvidence, "requireCanonicalGptConversationUrl(canonicalConversationUrl)"],
     [journalReplayPath, journalReplay, "unsealProviderRecoveryPayload("],
@@ -171,13 +171,13 @@ const inspectClosedInvocationPayloadBoundary = (
     commandDiagnostic, frameDiagnostic } = sources;
   const requiredByFile = [
     [sourcePaths[0], transport.getFullText(), [
-      "encryptedFrame(active, \"COMMAND\"", "{ permit, command }",
+      "encryptedFrame(active, \"COMMAND\"", "{ permit, command, receiptBindingHash }",
       "encryptBrowserAuthorityFrame", "canonicalBrowserAuthorityPlaintext(body)",
     ]],
     [extensionActorPath, extensionActor.getFullText(), [
       "decrypt(session.serverToClientKey, \"server-to-client\", frame)",
-      "commandFrom(payload.command)", "admitExtensionCommand({ command, permit })",
-      "registeredCommand.mutationClass", "this.sendEncrypted(socket, \"REPLY\"",
+      "readExtensionCommandPayload(payload, frame.deadline)", "this.commandDelivery.mutationSlot = { commandId: permit.commandId, receiptBindingHash, fact: null }",
+      "executeExtensionCommandReply", "this.sendEncrypted(socket, \"REPLY\"",
     ]],
     [extensionCryptoPath, extensionCrypto.getFullText(), [
       "name: \"AES-GCM\"", "additionalData", "canonicalizeBrowserAuthorityValue(body)",

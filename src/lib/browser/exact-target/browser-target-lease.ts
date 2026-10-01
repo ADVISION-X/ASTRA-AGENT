@@ -1,7 +1,6 @@
 import type { BrowserDomIntent } from "./browser-dom-intent.js";
 import type { BrowserDocumentRef, BrowserTargetRef } from "./browser-target-ref.js";
 import type { BrowserCapabilityId } from "../protocol/generated/browser-protocol.generated.js";
-import type { BrowserOutcomeResolutionReceipt } from "./browser-outcome-resolver.js";
 import type { BrowserPhysicalInputCount } from "./browser-mutation-types.js";
 export type TransientDomConfirmationStage = 1 | 2;
 
@@ -128,8 +127,5 @@ export type BrowserTargetLease = Readonly<{
     reason: string;
     mode: "product-call-settlement";
   }>): Promise<void>;
-  resolvePendingMutation(
-    input: Omit<BrowserOutcomeResolutionReceipt, "commandId">,
-  ): Promise<number>;
   pendingMutationCount(): number;
 }>;

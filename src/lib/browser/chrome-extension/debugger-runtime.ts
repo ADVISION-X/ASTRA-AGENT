@@ -37,6 +37,8 @@ const DEVTOOLS_CONTROL_METHODS = new Set([
 
 export type ProviderInputState = {
   started: boolean;
+  physicalInputCount: 0 | 1;
+  mutationKind: string;
 };
 
 type ProviderInputGuard = Readonly<{
@@ -119,8 +121,10 @@ export class ExtensionDebuggerRuntime {
         guard.state.started = true;
       }
       try {
-        return await this.executePageAction(() =>
+        const result = await this.executePageAction(() =>
           this.chromeApi.debugger.sendCommand(target(tabId), method, parameters));
+        if (guard && logicalInputAcknowledged(guard.state, method, parameters)) guard.state.physicalInputCount = 1;
+        return result;
       } catch (error) {
         await this.awaitPageReadPermission();
         throw error;
@@ -141,7 +145,10 @@ export class ExtensionDebuggerRuntime {
   }
 
   public async createProductionTab(url: string): Promise<Readonly<{ id?: number }>> {
-    try { return await this.executePageAction(() => this.chromeApi.tabs.create({ active: true, url })); }
+    try {
+      this.providerInputGuard?.assertInteractive();
+      return await this.executePageAction(() => this.chromeApi.tabs.create({ active: true, url }));
+    }
     catch (error) {
       await this.awaitPageReadPermission();
       throw error;
@@ -150,6 +157,7 @@ export class ExtensionDebuggerRuntime {
 
   public async activateTab(tabId: number): Promise<ExtensionTab> {
     try {
+      this.providerInputGuard?.assertInteractive();
       return await this.executePageAction(() => this.chromeApi.tabs.update(tabId, { active: true }));
     } catch (error) {
       await this.awaitPageReadPermission();
@@ -350,3 +358,9 @@ const monotonicNow = (): number => globalThis.performance.now();
 
 const waitForBarrier = (durationMs: number): Promise<void> =>
   new Promise((resolve) => globalThis.setTimeout(resolve, Math.max(1, Math.ceil(durationMs))));
+
+const logicalInputAcknowledged = (state: ProviderInputState, method: string, parameters?: Readonly<Record<string, unknown>>): boolean =>
+  method === "DOM.setFileInputFiles" || method === "Input.insertText"
+  || method === "Input.dispatchKeyEvent" && ["keyDown", "rawKeyDown"].includes(String(parameters?.type))
+  || method === "Input.dispatchMouseEvent" && (parameters?.type === "mousePressed"
+    || state.mutationKind === "hover" && parameters?.type === "mouseMoved");

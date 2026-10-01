@@ -1,3 +1,4 @@
+import { knownRateLimitBlockerReceiptValid, unrecognizedGptDialogReceiptValid } from "./browser-observation-receipt.js";
 import { createHash } from "node:crypto";
 
 import type { BrowserCommandPermit } from "../transport/command-permit.js";
@@ -30,44 +31,6 @@ export const knownGptRateLimitPreflightFactValid = (
   return value.observationHash === hashValue(knownGptRateLimitPreflightObservationInput(unsigned));
 };
 
-const receiptValid = (
-  value: Readonly<Record<string, unknown>>,
-  input: Readonly<{ schemaVersion: string; failureCode: string; state: "exact_present" | "mismatch" }>,
-): boolean => {
-  const fact = value.knownGptRateLimitPreflightFact;
-  return exactKeys(value, ["schemaVersion", "failureCode", "nativeCauseCode", "candidateCount",
-    "identityRevalidated", "mutationCount", "physicalInputCount", "postconditionVerified",
-    "qualificationRejected", "qualificationStage", "knownGptRateLimitPreflightFact"])
-    && value.schemaVersion === input.schemaVersion
-    && value.failureCode === input.failureCode
-    && value.nativeCauseCode === null
-    && value.identityRevalidated === true
-    && value.mutationCount === 0
-    && value.physicalInputCount === 0
-    && value.postconditionVerified === false
-    && value.qualificationRejected === true
-    && value.qualificationStage === "candidate-set"
-    && knownGptRateLimitPreflightFactValid(fact)
-    && fact.state === input.state
-    && value.candidateCount === fact.dialogEligibleCount;
-};
-
-export const knownRateLimitBlockerReceiptValid = (
-  value: Readonly<Record<string, unknown>>,
-): boolean => receiptValid(value, {
-  schemaVersion: "grasseye.browser.known-gpt-rate-limit-blocker.v2",
-  failureCode: "BROWSER_KNOWN_GPT_RATE_LIMIT",
-  state: "exact_present",
-});
-
-export const unrecognizedGptDialogReceiptValid = (
-  value: Readonly<Record<string, unknown>>,
-): boolean => receiptValid(value, {
-  schemaVersion: "grasseye.browser.gpt-dialog-unrecognized-rejection.v1",
-  failureCode: "BROWSER_GPT_DIALOG_UNRECOGNIZED",
-  state: "mismatch",
-});
-
 const rateLimitControlIntent = (command: BrowserGovernedCommand): boolean =>
   command.kind === "dom-intent"
   && (command.intent.kind === "acknowledgeKnownGptRateLimit"
@@ -94,11 +57,11 @@ export const decodeKnownGptRateLimitPreflightReply = (
   let fact: KnownGptRateLimitPreflightFact;
   let commandResult: unknown;
   let specialFailureCode: BrowserPreflightReply["specialFailureCode"] = null;
-  if (knownRateLimitBlockerReceiptValid(record)) {
+  if (knownRateLimitBlockerReceiptValid(record, preflightReceiptObservationHash(record))) {
     fact = record.knownGptRateLimitPreflightFact as KnownGptRateLimitPreflightFact;
     commandResult = value;
     specialFailureCode = "BROWSER_KNOWN_GPT_RATE_LIMIT";
-  } else if (unrecognizedGptDialogReceiptValid(record)) {
+  } else if (unrecognizedGptDialogReceiptValid(record, preflightReceiptObservationHash(record))) {
     fact = record.knownGptRateLimitPreflightFact as KnownGptRateLimitPreflightFact;
     commandResult = value;
     specialFailureCode = "BROWSER_GPT_DIALOG_UNRECOGNIZED";
@@ -120,4 +83,12 @@ export const decodeKnownGptRateLimitPreflightReply = (
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
   return Object.freeze({ commandResult, fact, specialFailureCode });
+};
+
+export const preflightReceiptObservationHash = (result: unknown): `sha256:${string}` | null => {
+  if (!result || typeof result !== "object") return null;
+  const fact = (result as Record<string, unknown>).knownGptRateLimitPreflightFact;
+  if (!knownGptRateLimitPreflightFactShapeValid(fact)) return null;
+  const { observationHash: _hash, ...unsigned } = fact;
+  return hashValue(knownGptRateLimitPreflightObservationInput(unsigned));
 };

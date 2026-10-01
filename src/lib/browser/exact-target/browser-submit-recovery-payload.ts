@@ -49,3 +49,15 @@ export const submitRecoveryPayload = (value: unknown): Readonly<Record<string, u
     eligibleCount: row.eligibleCount,
   });
 };
+
+export const assertSubmitRecoveryPayload = (value: unknown, identity: Pick<import("./browser-mutation-types.js").BrowserMutationIdentity, "exactCallIdentityHash">): void => {
+  if (!isRecord(value) || Object.keys(value).sort().join("|") !== ["canonicalConversationUrl", "promptHash", "userTurnId", "exactCallIdentityHash", "observationRevisionHash", "targetRefHash", "documentRefHash", "rawCount", "eligibleCount"].sort().join("|")
+    || value.exactCallIdentityHash !== identity.exactCallIdentityHash
+    || value.rawCount !== 1 || value.eligibleCount !== 1
+    || ![value.promptHash, value.observationRevisionHash, value.targetRefHash, value.documentRefHash].every(isHash)
+    || typeof value.userTurnId !== "string" || !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(value.userTurnId)
+    || typeof value.canonicalConversationUrl !== "string"
+    || requireCanonicalGptConversationUrl(value.canonicalConversationUrl) !== value.canonicalConversationUrl) {
+    throw new Error("BROWSER_RECONCILIATION_RECEIPT_INVALID");
+  }
+};

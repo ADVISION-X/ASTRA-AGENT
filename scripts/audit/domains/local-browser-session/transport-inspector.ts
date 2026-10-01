@@ -10,6 +10,7 @@ import {
   sourcePaths,
   stringLiterals,
   targetAuthorityPath,
+  extensionCommandRuntimePath,
 } from "./inspector-support.js";
 
 const inspectSocketShape = (
@@ -61,6 +62,7 @@ const inspectTransportIdentity = (
   actor: SourceFile,
   channel: SourceFile,
   broker: SourceFile,
+  commandRuntime: SourceFile,
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
@@ -73,7 +75,7 @@ const inspectTransportIdentity = (
       message: "Execution liveness must use the authenticated WebSocket heartbeat state, never an absolute certificate-age check.",
     }));
   }
-  const actorIdentifiers = identifiers(actor);
+  const actorIdentifiers = new Set([...identifiers(actor), ...identifiers(commandRuntime)]);
   const channelIdentifiers = identifiers(channel);
   if (actorIdentifiers.has("requestSequence") && actorIdentifiers.has("permitSequence")
     && channelIdentifiers.has("requestSequence") && channelIdentifiers.has("permitSequence")) return;
@@ -117,9 +119,10 @@ export const inspectSingleTransport = (
   const actor = requireSource(context, findings, lawId, sourcePaths[1]);
   const channel = requireSource(context, findings, lawId, sourcePaths[0]);
   const broker = requireSource(context, findings, lawId, brokerPath);
-  if (!actor || !channel || !broker) return;
+  const commandRuntime = requireSource(context, findings, lawId, extensionCommandRuntimePath);
+  if (!actor || !channel || !broker || !commandRuntime) return;
   inspectSocketShape(actor, findings, lawId);
   inspectTransportMethods(actor, channel, findings, lawId);
-  inspectTransportIdentity(actor, channel, broker, findings, lawId);
+  inspectTransportIdentity(actor, channel, broker, commandRuntime, findings, lawId);
   inspectTargetRefresh(context, findings, lawId);
 };

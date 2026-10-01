@@ -1,4 +1,5 @@
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
+import { parseProductResult } from "../../../src/plugins/bazi-chart-interpretation/result-contract.js";
 import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
 import { productionRoutePolicies } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { buildProductTask, exerciseConfirmedSubmitRecovery, exerciseProductFlow, FIXTURE_HASH, FIXTURE_HASH_B, routesForPlugin } from "../product-plugin-test-runtime.js";
@@ -35,13 +36,19 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   const output = {
     schema_version: route.result_schema_version,
     report_summary: { professional_markdown: "专业层", reader_explanation_markdown: "读者层" },
-    interpretation_blocks: [{ section: "one" }], chart_ref: task.parameters.chart_ref,
+    interpretation_blocks: [{ block_id: "one", professional_markdown: "# 自主标题\n专业层", reader_explanation_markdown: "# 自主标题\n读者层", semantic_anchor_refs: ["anchor:1"], candidate_scope: "all", evidence_refs: [], citation_ids: [] }], chart_ref: task.parameters.chart_ref,
     chart_version: task.parameters.chart_version, chart_hash: task.parameters.chart_hash,
     bazi_pdf_semantic_manifest_ref: "manifest:1", manifest_hash: FIXTURE_HASH,
     covered_semantic_anchor_refs: ["anchor:1"], citations: [], uncertainties: [], limitations: [], safety_notes: [],
   };
+  assert.deepEqual(parseProductResult(task, output, route), output);
+  assert.throws(() => parseProductResult(task, { ...output, runtime_metadata: "private" }, route), /RESULT_FIELDS_INVALID/u);
+  assert.throws(() => parseProductResult(task, { ...output, interpretation_blocks: [{ ...output.interpretation_blocks[0], title: "额外字段" }] }, route), /BLOCK_FIELDS_INVALID/u);
+  assert.throws(() => parseProductResult(task, { ...output, covered_semantic_anchor_refs: ["anchor:other"] }, route), /COVERAGE_INVALID/u);
+  const repeated = { ...output, interpretation_blocks: [...output.interpretation_blocks, { ...output.interpretation_blocks[0], block_id: "two", professional_markdown: "# 交叉综合\n同一命盘对象可再次参与综合解释。" }] };
+  assert.equal((parseProductResult(task, repeated, route).interpretation_blocks as unknown[]).length, 2);
   const flowFixture = {
-    task, output, materialContents: { bazi_formal_input: { schema_version: "bazi-formal-input.v1" },
+    task, output, materialContents: { bazi_formal_input: { schema_version: "bazi-formal-input.v2" },
       result_contract: route.result_contract },
   };
   const run = await exerciseProductFlow(plugin, flowFixture);

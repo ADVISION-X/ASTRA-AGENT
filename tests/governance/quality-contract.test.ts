@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFil
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import test from "node:test";
-import { Node, Project, SyntaxKind, type Node as MorphNode, type SourceFile } from "ts-morph";
+import { Project } from "ts-morph";
 
 import { assertProjectionEqual, blueprintValid, buildRegistry, parseLawSource } from "../../scripts/audit/governance-authority.js";
 import { assertBlueprintMarkdownContractAuthority } from "../../scripts/audit/governance-json.js";
@@ -26,9 +26,11 @@ import {
   requiredModes,
   validEvidenceRef,
   type LawExecutionResult,
+  type QualityReport,
 } from "../../scripts/audit/shared/quality-contract.js";
-import { assertCandidateStable, bindNativeProofObservations, computeTargetPaths, dynamicScriptFor, parseInspectorOutput } from "../../scripts/audit/shared/quality-runner.js";
+import { assertCandidateStable, computeTargetPaths, dynamicScriptFor, parseInspectorOutput } from "../../scripts/audit/shared/quality-runner.js";
 import { assertExactProviderContract, assertParticipantCommitIdentity } from "../../scripts/audit/shared/quality-participant-binding.js";
+import { bindNativeProofObservations } from "../../scripts/audit/shared/quality-proof-binding.js";
 import { mapWithConcurrency } from "../../scripts/audit/shared/quality-process-execution.js";
 import { sealedSnapshotDigest } from "../../scripts/audit/shared/sealed-target-snapshot.js";
 import { validateProviderContractSpec } from "../../scripts/audit/shared/provider-contract-authority.js";
@@ -41,59 +43,10 @@ import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRef
 import { containsPageMutation, gptPrivateInfrastructureViolations } from "../../scripts/audit/domains/gpt/gpt-inspection-support.js";
 import { providerWaitReasonProjectionIsFrozen, textResponseTwoGateSettlementIsFrozen } from "../../scripts/audit/domains/gpt/gpt-frozen-attempt-inspection.js";
 import { browserMutationSchemaIsCurrent, browserMutationStoreStartupOrderIsCurrent } from "../../scripts/audit/domains/local-browser-session/browser-mutation-settlement-inspection.js";
-import { exactAssistantTurnReadIsAtomic } from "../../scripts/audit/domains/local-browser-session/dom-mechanical-facts-inspection.js";
+import { exactAssistantTurnReadIsAtomic, exactTextMatcherIsStrict } from "../../scripts/audit/domains/local-browser-session/dom-mechanical-facts-inspection.js";
 import { requireSource } from "../../scripts/audit/domains/local-browser-session/inspector-support.js";
 import { redactHashWriteOrderIsExact } from "../../scripts/audit/domains/runtime-log-spine/inspector.js";
 import { inspectAgentContracts } from "../../scripts/audit/domains/agent-production-runtime/contract-inspection.js";
-import { astExpressionPath, astIdentifierName } from "../../scripts/audit/shared/ast-node-identity.js";
-
-const zeroArgumentMethodCall = (node: MorphNode, ownerPath: string, method: string): boolean => {
-  if (!Node.isCallExpression(node) || node.getArguments().length !== 0) return false;
-  const expression = node.getExpression();
-  return Node.isPropertyAccessExpression(expression) && expression.getName() === method
-    && astExpressionPath(expression.getExpression()) === ownerPath;
-};
-
-const exactTextMatcherIsStrict = (domRuntime: SourceFile): boolean => {
-  const matcher = domRuntime.getVariableDeclaration("queryCandidateSet")?.getInitializer();
-  const loop = matcher?.getDescendantsOfKind(SyntaxKind.ForOfStatement).find((statement) => {
-    const expression = statement.getExpression();
-    return Node.isCallExpression(expression) && expression.getArguments().length === 0
-      && astExpressionPath(expression.getExpression()) === "rawNodeIds.entries";
-  });
-  const loopBody = loop?.getStatement();
-  if (!Node.isBlock(loopBody)) return false;
-  const textGuard = loopBody.getStatements().find((statement) =>
-    Node.isIfStatement(statement) && astIdentifierName(statement.getExpression()) === "text");
-  const textBody = Node.isIfStatement(textGuard) ? textGuard.getThenStatement() : undefined;
-  if (!Node.isBlock(textBody)) return false;
-  const actual = textBody.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
-    .find((declaration) => declaration.getName() === "actual")?.getInitializer();
-  const matched = textBody.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
-    .find((declaration) => declaration.getName() === "matched")?.getInitializer();
-  if (!Node.isAwaitExpression(actual) || !Node.isConditionalExpression(matched)
-    || astExpressionPath(matched.getCondition()) !== "text.exact") return false;
-  const nodeTextCall = actual.getExpression();
-  const exact = matched.getWhenTrue();
-  const contains = matched.getWhenFalse();
-  if (!Node.isCallExpression(nodeTextCall) || astExpressionPath(nodeTextCall.getExpression()) !== "nodeText"
-    || astIdentifierName(nodeTextCall.getArguments()[2]) !== "nodeId"
-    || !Node.isBinaryExpression(exact) || exact.getOperatorToken().getKind() !== SyntaxKind.EqualsEqualsEqualsToken
-    || !zeroArgumentMethodCall(exact.getLeft(), "actual", "trim")
-    || !zeroArgumentMethodCall(exact.getRight(), "text.value", "trim")
-    || !Node.isCallExpression(contains) || astExpressionPath(contains.getExpression()) !== "actual.includes"
-    || astExpressionPath(contains.getArguments()[0]!) !== "text.value") return false;
-  const mismatch = textBody.getStatements().find((statement) => Node.isIfStatement(statement)
-    && statement.getExpression().getText() === "!matched");
-  const rejection = loopBody.getStatements().find((statement) => Node.isIfStatement(statement)
-    && statement.getExpression().getText() === "reasons.length > 0");
-  const rejectionBody = Node.isIfStatement(rejection) ? rejection.getThenStatement() : undefined;
-  return Node.isIfStatement(mismatch)
-    && mismatch.getThenStatement().getText() === 'reasons.push("TEXT_MISMATCH");'
-    && Node.isBlock(rejectionBody)
-    && rejectionBody.getStatements().some((statement) => Node.isContinueStatement(statement));
-};
-
 const fixtureLaw = (): Law => ({
   schemaVersion: 2,
   lawId: "LAW-FIXTURE-001-V1",
@@ -149,6 +102,12 @@ const resultFor = (law: Law): LawExecutionResult => {
   };
 };
 
+const assertReportFails = (build: () => QualityReport, code: string): void => {
+  const report = build();
+  assert.equal(report.outcome, "FAIL");
+  assert.ok(report.laws.some((law) => law.outcome === "FAIL" && law.findings.some((finding) => finding.code === code)));
+};
+
 test("READY requires static and exam evidence while deferring only dynamic evidence", () => {
   const law = fixtureLaw();
   assert.deepEqual(requiredModes(law, "READY"), ["exam.golden", "static.ast"]);
@@ -164,9 +123,9 @@ test("producer-owned evidence covers the exact clause denominator without blanke
   assert.equal(report.outcome, "PASS");
   assert.notDeepEqual(result.assertions[0]!.clauses, result.assertions[1]!.clauses);
   result.assertions.find((assertion) => assertion.evidenceMode === "exam.golden")!.clauses = ["summary"];
-  assert.throws(
+  assertReportFails(
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [result] }),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CLAUSE_DENOMINATOR_MISMATCH",
+    "LAW_CLAUSE_DENOMINATOR_MISMATCH",
   );
 });
 
@@ -174,16 +133,16 @@ test("quality report rejects missing evidence modes and unsupported PASS claims"
   const law = fixtureLaw();
   const missingMode = resultFor(law);
   missingMode.assertions.pop();
-  assert.throws(
+  assertReportFails(
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [missingMode] }),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+    "LAW_EVIDENCE_MISSING",
   );
 
   const falseWithoutFinding = resultFor(law);
   falseWithoutFinding.assertions[0]!.passed = false;
-  assert.throws(
+  assertReportFails(
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [falseWithoutFinding] }),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_FAILED",
+    "LAW_FAILED",
   );
 });
 
@@ -211,23 +170,23 @@ test("quality report rejects duplicate and extra required evidence modes", () =>
   const law = fixtureLaw();
   const duplicate = resultFor(law);
   duplicate.assertions.push({ ...duplicate.assertions[0]!, refs: [...duplicate.assertions[0]!.refs] });
-  assert.throws(
+  assertReportFails(
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [duplicate] }),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_DUPLICATE",
+    "LAW_EVIDENCE_DUPLICATE",
   );
   const extra = resultFor(law);
   extra.assertions.push({ clauses: ["summary"], evidenceMode: "exam.property", passed: true, refs: [externalFixtureRef("exam", "script=extra;exit=0")] });
-  assert.throws(
+  assertReportFails(
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [extra] }),
-    (error: unknown) => error instanceof GovernanceError && error.code === "UNDECLARED_EVIDENCE_MODE",
+    "UNDECLARED_EVIDENCE_MODE",
   );
 });
 
 test("RELEASE rejects a missing Dynamic Proof and missing or drifted participant commit", () => {
   const law = fixtureLaw();
-  assert.throws(
+  assertReportFails(
     () => buildQualityReport({ level: "RELEASE", gitCommit: "a".repeat(40), laws: [law], results: [resultFor(law)] }),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+    "LAW_EVIDENCE_MISSING",
   );
   assert.throws(
     () => buildQualityReport({ level: "RELEASE", gitCommit: "a".repeat(40), laws: [law], results: [{
@@ -249,16 +208,16 @@ test("quality report rejects wrong evidence types, duplicate clause claims, and 
   const law = fixtureLaw();
   const wrongKind = resultFor(law);
   wrongKind.assertions.find((assertion) => assertion.evidenceMode === "static.ast")!.refs = ["file:src/fixture/index.ts#fixture"];
-  assert.throws(
+  assertReportFails(
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [wrongKind] }),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+    "LAW_EVIDENCE_MISSING",
   );
 
   const duplicate = resultFor(law);
   duplicate.assertions.push({ ...duplicate.assertions[0]!, refs: [...duplicate.assertions[0]!.refs] });
-  assert.throws(
+  assertReportFails(
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [duplicate] }),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_DUPLICATE",
+    "LAW_EVIDENCE_DUPLICATE",
   );
 
   assert.throws(
@@ -271,15 +230,15 @@ test("quality report rejects empty and fixed-PASS evidence references", () => {
   const law = fixtureLaw();
   const empty = resultFor(law);
   empty.assertions[0]!.refs = [];
-  assert.throws(
+  assertReportFails(
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [empty] }),
-    (error: unknown) => error instanceof GovernanceError && error.code === "EMPTY_EVIDENCE_REFS",
+    "EMPTY_EVIDENCE_REFS",
   );
   const fixed = resultFor(law);
   fixed.assertions[0]!.refs = [externalFixtureRef("exam", "outcome=PASS")];
-  assert.throws(
+  assertReportFails(
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [fixed] }),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+    "LAW_EVIDENCE_MISSING",
   );
 });
 
@@ -287,9 +246,9 @@ test("Exam and Dynamic evidence both require native current-run receipt locators
   const law = fixtureLaw();
   const missingExamLocator = resultFor(law);
   missingExamLocator.assertions.find((assertion) => assertion.evidenceMode.startsWith("exam."))!.refs = ["exam:fixture#script%3Dfixture"];
-  assert.throws(
+  assertReportFails(
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [missingExamLocator] }),
-    (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING",
+    "LAW_EVIDENCE_MISSING",
   );
   assert.equal(validEvidenceRef("exam:package.json#script%3Dfixture"), false);
   assert.equal(validEvidenceRef(`dynamic:${encodeURIComponent(fixtureEvidencePath)}#script%3Dfixture`), false);
@@ -736,7 +695,17 @@ test("static evidence binds every object in the exact governed scope", () => {
   assert.equal(validatedRefs.includes("scope:LAW-FIXTURE-001-V1#appliesTo-minus-excludes"), true);
   assert.equal(validatedRefs.some((ref) => ref.includes(pathWithReservedCharacter)), false);
   assert.equal(validatedRefs.filter((ref) => !ref.startsWith("scope:")).length, 1);
-  assert.equal(validatedRefs.some((ref) => ref.includes("targetSetDigest%3D")), true);
+  for (const field of ["objectDigest", "targetSetDigest"]) {
+    assert.equal(validatedRefs.some((ref) => decodeURIComponent(ref).includes(`${field}=`)), false);
+    const refsWithForbiddenIdentity = refs.map((ref) => ref.startsWith("scope:") ? ref
+      : `${ref}%3B${encodeURIComponent(`${field}=${"a".repeat(64)}`)}`);
+    assert.throws(() => validateStaticInspection(context, {
+      ...output,
+      lawResults: [{ ...output.lawResults[0]!, assertions: [{
+        ...output.lawResults[0]!.assertions[0]!, refs: refsWithForbiddenIdentity,
+      }] }],
+    }), (error: unknown) => error instanceof GovernanceError && error.code === "LAW_CHECK_EXECUTION_INCOMPLETE");
+  }
 });
 
 test("static evidence rejects a governed wrong-object substitution", () => {
@@ -961,8 +930,8 @@ test("the active evidence-ownership blueprint rejects central clauses and mode s
   for (const field of ["clauses", "passed", "refs", "findings"]) assert.equal(proofContract.includes(`${field}:`), true);
   assert.equal(staticContract.includes("executionResult="), true);
   assert.equal(staticContract.includes("requirement.targetPaths.includes(objectPath)"), true);
-  assert.equal(staticContract.includes("objectDigest="), true);
-  assert.equal(staticContract.includes("targetSetDigest="), true);
+  assert.equal(staticContract.includes("objectDigest"), false);
+  assert.equal(staticContract.includes("targetSetDigest"), false);
   assert.equal(staticContract.includes("checkImplementations="), true);
   assert.equal(staticContract.includes("modeNativeObservation="), true);
   const retiredObservers = readFileSync("scripts/audit/shared/static-target-object-inspector.ts", "utf8");
@@ -1440,13 +1409,20 @@ test("active Browser and Runtime Log inspectors reject semantic decoys", () => {
   const domPath = "src/lib/browser/chrome-extension/dom-query-runtime.ts";
   const dom = readFileSync(domPath, "utf8");
   assert.equal(exactTextMatcherIsStrict(inspectSource(domPath, dom)), true);
-  for (const mutant of [
-    dom.replace("actual.trim() === text.value.trim()", "actual === text.value"),
-    dom.replace("actual.trim() === text.value.trim()", "actual.includes(text.value)"),
-    dom.replace("actual.trim() === text.value.trim()", "actual.trim() != text.value.trim()"),
-    dom.replace('reasons.push("TEXT_MISMATCH")', 'reasons.push("NOT_TEXT_MISMATCH")'),
-    dom.replace("reasons.length > 0", "reasons.length < 0"),
-  ]) assert.equal(exactTextMatcherIsStrict(inspectSource(domPath, mutant)), false);
+  for (const [original, replacement] of [
+    ["actual.trim() === value.trim()", "actual === value"],
+    ["actual.trim() === value.trim()", "actual.includes(value)"],
+    ["actual.trim() === value.trim()", "actual.trim() != value.trim()"],
+    [".some((value) => actual.trim()", ".every((value) => actual.trim()"],
+    ["text.value : [text.value]", "[text.value[0]] : [text.value]"],
+    ['typeof text.value === "string" && actual.includes(text.value)', 'actual.includes(text.value)'],
+    ['reasons.push("TEXT_MISMATCH")', 'reasons.push("NOT_TEXT_MISMATCH")'],
+    ["reasons.length > 0", "reasons.length < 0"],
+  ]) {
+    const mutant = dom.replace(original!, replacement!);
+    assert.notEqual(mutant, dom, `Mutation anchor missing: ${original}`);
+    assert.equal(exactTextMatcherIsStrict(inspectSource(domPath, mutant)), false, replacement);
+  }
 
   const loggerPath = "src/lib/runtime-logs/logger.ts";
   const logger = readFileSync(loggerPath, "utf8");

@@ -1,3 +1,4 @@
+import { GPT_LATEST_MODEL_LABELS } from "../../web/execution-profile-input.js";
 import type { BrowserDomObservationQuery, BrowserTargetLease } from "../../../../lib/browser/browser-authority-api.js";
 import {
   projectCoherentObservation,
@@ -28,7 +29,7 @@ type ModelChoiceState = Readonly<{
 export const modelChoiceQuery = (name: ModelName): BrowserDomObservationQuery => Object.freeze({
   queryId: name === "最新" ? "latest-model" : "sol-model",
   selector: GPT_MODEL_CHOICE_SELECTOR,
-  textEquals: name,
+  textEquals: name === "最新" ? GPT_LATEST_MODEL_LABELS : name,
   maxMatches: 2,
   fields: ["ariaChecked", "ariaDisabled", "disabled", "inert"] as const,
 });

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 import { createAuditProject } from "./project.js";
+import { GovernanceError } from "../governance-runtime.js";
 import type { InspectorContext, SessionInspectorOutput } from "./inspector-contracts.js";
 
 type DomainInspector = (context: InspectorContext) => Promise<SessionInspectorOutput>;
@@ -77,4 +78,9 @@ export const runInspectionWorker = async (): Promise<void> => {
   process.stdout.write(`GOVERNANCE_INSPECTOR_RESULT ${JSON.stringify(output)}\n`);
 };
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await runInspectionWorker();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  runInspectionWorker().catch((error: unknown) => {
+    process.stderr.write(`${error instanceof GovernanceError ? error.code : "CHECK_EXECUTION_FAILED"} ${error instanceof Error ? error.message : String(error)}\n`);
+    process.exitCode = 1;
+  });
+}

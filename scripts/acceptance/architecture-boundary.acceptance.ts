@@ -19,6 +19,9 @@ import { inspectBusinessRecoveryAuthorityBoundaries } from "../audit/domains/arc
 import { inspectRuntimeBrowserPrivateImports } from "../audit/domains/architecture-boundary/components/scan-plugin-capability-boundaries.js";
 import { inspectTargetAuthorityBoundary } from "../audit/domains/architecture-boundary/components/scan-target-authority-boundary.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
+import { worktreeCandidateFingerprint } from "../audit/governance-git-state.js";
+import { fail } from "../audit/governance-runtime.js";
+import { assertQualityCommandPassed, collectQualityCheck, writeQualityIssues, type QualityCheckIssue } from "../audit/shared/quality-process-execution.js";
 
 const lawId = "LAW-ARCHITECTURE-BOUNDARY-001-V17";
 const lawSource = readFileSync(".github/instructions/agent-rules/功能法案.md", "utf8");
@@ -59,16 +62,23 @@ for (const [index, route] of productPluginCatalogSnapshot.entries()) {
 assert.deepEqual(testIds, catalogIds,
   "every current Product Plugin must have exactly one independently named acceptance file");
 
-for (const testId of testIds) {
+const productIssues: QualityCheckIssue[] = [];
+const productCandidate = worktreeCandidateFingerprint();
+const assertProductCandidate = (): void => {
+  if (worktreeCandidateFingerprint() !== productCandidate) fail("CANDIDATE_DRIFT", "Product acceptances");
+};
+for (const testId of testIds) await collectQualityCheck(testId, () => {
   const testPath = resolve(testDirectory, `${testId}.acceptance.ts`);
   const child = spawnSync(process.execPath, ["--import", "tsx", testPath], {
     cwd: process.cwd(),
     encoding: "utf8",
     env: process.env,
   });
+  if (child.status !== 0 && child.stderr) process.stderr.write(child.stderr);
+  assertQualityCommandPassed(child, testId);
   assert.equal(child.status, 0,
     `${testId} acceptance failed\n${child.stdout}\n${child.stderr}`);
-}
+}, assertProductCandidate, productIssues);
 
 const mutants: ReadonlyArray<readonly [string, string]> = [
   ["architecture/central-product-sequence", "const centralSequence = [];"],
@@ -171,6 +181,9 @@ const targetResurrectionCases: ReadonlyArray<readonly [string, string, string]> 
     "Runtime Browser-private import mutant must fail");
 }
 
+assertProductCandidate();
+writeQualityIssues(productIssues);
+assert.deepEqual(productIssues, [], "all Product acceptances must pass");
 process.stdout.write("[ACCEPTANCE][architecture-boundary] PASS\n");
 emitQualityProofObservation({
   lawId,

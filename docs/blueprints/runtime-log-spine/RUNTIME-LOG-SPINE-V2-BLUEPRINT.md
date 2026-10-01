@@ -89,6 +89,10 @@ V6 control contract version 20 下，`NO_ELIGIBLE_JOB.reason_codes` 只允许 We
 
 Browser mutation 事件必须在 WAL durable write 之后产生，并绑定 `productStepId + callId + childId + commandId + authorityHash`。日志中的 dispatched 不许可重放。
 
+原终态交付由现役 Supervisor 装配：WAL commit/readback 后尝试日志并 ACK；日志失败仍 ACK 已提交事实，但不 notify lane，随后撤权/关闭，原 isWritable/getSinkState 禁止新 claim/input。重复 fact 只确认原行，不补造旧 span terminal。ACK 只确认持久化，不能推翻日志故障或授后续工作。
+
+跨 producer run 的同 command Browser WAL terminal 是不可倒退事实，现役 authority resolver 仍须只读核真；不得按随机 producerRunId 或墙钟选出旧 DISPATCHED。终态冲突或权威不可核真继续 DIAGNOSIS_INCOMPLETE，原开放 span 保持 Interrupted/Stale，不补造 span terminal。
+
 ## 4. 诊断读取
 
 启动摘要只做当前权威的只读快照：

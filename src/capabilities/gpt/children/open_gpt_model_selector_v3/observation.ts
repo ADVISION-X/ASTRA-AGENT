@@ -1,3 +1,4 @@
+import { GPT_LATEST_MODEL_LABELS } from "../../web/execution-profile-input.js";
 import type { BrowserDomObservationQuery, BrowserTargetLease } from "../../../../lib/browser/browser-authority-api.js";
 import {
   projectCoherentObservation,
@@ -18,7 +19,7 @@ const queries = (name: GptExecutionProfile["startModelDisplayName"]) => Object.f
   { queryId: "openable-entry", selector: GPT_MODEL_SELECTOR_OPENABLE_ENTRY,
     maxMatches: 2, fields: ["ariaExpanded"] as const },
   { queryId: "specified-model", selector: GPT_MODEL_SELECTOR_OPTION,
-    textEquals: name, maxMatches: 2, fields: [] },
+    textEquals: name === "最新" ? GPT_LATEST_MODEL_LABELS : name, maxMatches: 2, fields: [] },
 ] satisfies readonly BrowserDomObservationQuery[]);
 
 const projectModelSelectorState = (observation: GptCoherentObservation): ModelSelectorState => {

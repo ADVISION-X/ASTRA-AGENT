@@ -24,6 +24,23 @@ export const parseProductResult = (
     throw new Error("BAZI_CHART_INTERPRETATION_MANIFEST_HASH_LOCK_INVALID");
   }
   result.commonReport(output, "report_summary", "interpretation_blocks");
-  result.stringArray(output.covered_semantic_anchor_refs, "BAZI_CHART_INTERPRETATION_COVERAGE_INVALID", true);
+  const declared = result.stringArray(output.covered_semantic_anchor_refs, "BAZI_CHART_INTERPRETATION_COVERAGE_INVALID", true);
+  const anchors: string[] = [];
+  const blockIds: string[] = [];
+  for (const value of result.array(output.interpretation_blocks, "BAZI_CHART_INTERPRETATION_BLOCKS_INVALID", true)) {
+    const block = result.object(value, "BAZI_CHART_INTERPRETATION_BLOCK_INVALID");
+    result.exact(block, ["block_id", "semantic_anchor_refs", "candidate_scope", "evidence_refs", "citation_ids", "professional_markdown", "reader_explanation_markdown"], "BAZI_CHART_INTERPRETATION_BLOCK_FIELDS_INVALID");
+    blockIds.push(result.text(block.block_id, "BAZI_CHART_INTERPRETATION_BLOCK_ID_INVALID"));
+    result.text(block.professional_markdown, "AGENT_RESULT_DUAL_LAYER_INVALID");
+    result.text(block.reader_explanation_markdown, "AGENT_RESULT_DUAL_LAYER_INVALID");
+    anchors.push(...result.stringArray(block.semantic_anchor_refs, "BAZI_CHART_INTERPRETATION_ANCHORS_INVALID", true));
+    if (block.candidate_scope !== "all") result.stringArray(block.candidate_scope, "BAZI_CHART_INTERPRETATION_SCOPE_INVALID", true);
+    result.stringArray(block.evidence_refs, "BAZI_CHART_INTERPRETATION_EVIDENCE_INVALID");
+    result.stringArray(block.citation_ids, "BAZI_CHART_INTERPRETATION_CITATIONS_INVALID");
+  }
+  if (new Set(blockIds).size !== blockIds.length || new Set(declared).size !== declared.length
+    || JSON.stringify([...new Set(anchors)].sort()) !== JSON.stringify([...declared].sort())) {
+    throw new Error("BAZI_CHART_INTERPRETATION_COVERAGE_INVALID");
+  }
   return Object.freeze(output);
 };

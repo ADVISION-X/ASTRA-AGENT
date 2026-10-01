@@ -1,3 +1,7 @@
+import { canonicalizeBrowserAuthorityValue } from "../transport/browser-authority-frame-codec.js";
+import { browserMutationReceiptBindingProjection, browserMutationTerminalFactBytes, type BrowserMutationTerminalFact } from "./browser-observation-receipt.js";
+import { verifyBrowserMutationTerminalFact } from "./browser-mutation-receipt.js";
+import { unsealProviderRecoveryPayload } from "./browser-mutation-payload.js";
 import Database from "better-sqlite3";
 import { BrowserMutationEvidence } from "./browser-mutation-evidence.js";
 import { createHash } from "node:crypto";
@@ -8,8 +12,6 @@ import { type ProviderEffectHistoryRow } from "./browser-mutation-authority.js";
 import type {
   BrowserMutationIdentity,
   BrowserMutationOutcome,
-  BrowserPhysicalInputCount,
-  BrowserMutationState,
 } from "./browser-mutation-types.js";
 import {
   browserMutationPayloadKey, sealProviderRecoveryPayload,
@@ -375,38 +377,11 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
       `update browser_mutations set reason='BROWSER_COMMAND_RECEIPT_MISSING',
        proof_hash=coalesce(?,proof_hash),updated_at=? where command_id=? and state='DISPATCHED'`,
     ).run(proofHash, new Date().toISOString(), commandId);
-    if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
-  }
-
-  public markConfirmed(
-    commandId: string,
-    proofHash: `sha256:${string}`,
-    mutationOutcome: "no" | "confirmed" = "confirmed",
-    terminalPayload: unknown | null = null,
-    physicalInputCount: BrowserPhysicalInputCount = 0,
-  ): void {
-    const sealed = terminalPayload === null ? null
-      : sealProviderRecoveryPayload(this.payloadKey, commandId, { terminalPayload });
-    const timestamp = new Date().toISOString();
-    const result = this.database.prepare(
-      `update browser_mutations set state='CONFIRMED',mutation_outcome=?,reason='direct-postcondition-passed',
-       native_cause_code=null,proof_hash=?,provider_recovery_payload=?,physical_input_count=?,
-       terminal_at=coalesce(terminal_at,?),updated_at=?
-       where command_id=? and state='DISPATCHED'`,
-    ).run(mutationOutcome, proofHash, sealed, physicalInputCount, timestamp, timestamp, commandId);
-    if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
-  }
-
-  public markRejected(
-    commandId: string,
-    proofHash: `sha256:${string}`,
-    mutationOutcome: BrowserMutationOutcome = "confirmed",
-    reason = "BROWSER_POSTCONDITION_FAILED",
-    nativeCauseCode: string | null = null,
-    physicalInputCount: BrowserPhysicalInputCount = 0,
-  ): void {
-    this.transition({ commandId, from: "DISPATCHED", to: "REJECTED", mutationOutcome,
-      reason, nativeCauseCode, proofHash, physicalInputCount });
+    const current = this.readCommand(commandId);
+    if (!current) throw new Error("BROWSER_MUTATION_RECORD_MISSING");
+    if (result.changes !== 1 && current.state === "DISPATCHED") {
+      throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
+    }
   }
 
   public markFailedBeforeDispatch(commandId: string, reason: string): void {
@@ -414,23 +389,59 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
       reason, nativeCauseCode: null, proofHash: null });
   }
 
-  public resolve(input: Readonly<{
-    commandId: string;
-    targetRef: string;
-    state: "CONFIRMED" | "REJECTED";
-    mutationOutcome: "dispatched" | "confirmed";
-    proofHash: `sha256:${string}`;
-    reason?: string;
-  }>): void {
-    const terminalAt = new Date().toISOString();
-    const result = this.database.prepare(
-      `update browser_mutations set state=?,mutation_outcome=?,proof_hash=?,reason=?,native_cause_code=null,
-       terminal_at=coalesce(terminal_at,?),updated_at=?
-       where command_id=? and target_ref=? and state='DISPATCHED'`,
-    ).run(input.state, input.mutationOutcome, input.proofHash,
-      input.reason ?? "browser-validated-evidence",
-      terminalAt, terminalAt, input.commandId, input.targetRef);
-    if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
+  public settleTerminalReceipt(fact: BrowserMutationTerminalFact): Readonly<{
+    identity: BrowserMutationIdentity; changed: boolean;
+  }> {
+    const command = this.readCommand(fact.commandId);
+    if (!command) throw new Error("BROWSER_MUTATION_RECORD_MISSING");
+    const bindingHash = `sha256:${createHash("sha256").update(JSON.stringify(
+      browserMutationReceiptBindingProjection(command.identity))).digest("hex")}` as const;
+    const receiptHash = `sha256:${createHash("sha256").update(browserMutationTerminalFactBytes(fact)).digest("hex")}` as const;
+    const receipt = verifyBrowserMutationTerminalFact(command.identity, fact, bindingHash, receiptHash);
+    const changed = this.database.transaction(() => {
+      const current = this.readCommand(fact.commandId);
+      if (current?.state === "CONFIRMED" || current?.state === "REJECTED") {
+        this.assertTerminalReceiptReadback(fact);
+        return false;
+      }
+      if (current?.state !== "DISPATCHED") throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
+      const sealed = receipt.submitRecoveryPayload === null ? null : sealProviderRecoveryPayload(
+        this.payloadKey, fact.commandId, { terminalPayload: receipt.submitRecoveryPayload });
+      const result = this.database.prepare(`update browser_mutations set state=?,mutation_outcome=?,
+        reason=?,native_cause_code=?,proof_hash=?,provider_recovery_payload=?,physical_input_count=?,
+        terminal_at=?,updated_at=? where command_id=? and state='DISPATCHED'`).run(
+        receipt.terminal === "confirmed" ? "CONFIRMED" : "REJECTED", receipt.mutationOutcome,
+        receipt.failureCode ?? "direct-postcondition-passed", receipt.nativeCauseCode, fact.receiptHash,
+        sealed, receipt.physicalInputCount, receipt.completedAt, receipt.completedAt, fact.commandId,
+      );
+      if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
+      this.assertTerminalReceiptReadback(fact);
+      return true;
+    })();
+    this.assertTerminalReceiptReadback(fact);
+    return Object.freeze({ identity: command.identity, changed });
+  }
+
+  private assertTerminalReceiptReadback(fact: BrowserMutationTerminalFact): void {
+    const row = this.database.prepare(`select state,mutation_outcome,reason,native_cause_code,
+      proof_hash,physical_input_count,terminal_at,provider_recovery_payload
+      from browser_mutations where command_id=?`).get(fact.commandId) as {
+        state: string; mutation_outcome: string; reason: string; native_cause_code: string | null;
+        proof_hash: string; physical_input_count: number; terminal_at: string;
+        provider_recovery_payload: string | null;
+      } | undefined;
+    const receipt = fact.terminalReceipt;
+    if (!row) throw new Error("BROWSER_MUTATION_RECORD_MISSING");
+    const payload = row.provider_recovery_payload === null ? null : unsealProviderRecoveryPayload(
+      this.payloadKey, fact.commandId, row.provider_recovery_payload).terminalPayload;
+    if (row.state !== (receipt.terminal === "confirmed" ? "CONFIRMED" : "REJECTED")
+      || row.mutation_outcome !== receipt.mutationOutcome || row.proof_hash !== fact.receiptHash
+      || row.reason !== (receipt.failureCode ?? "direct-postcondition-passed")
+      || row.native_cause_code !== receipt.nativeCauseCode || row.physical_input_count !== receipt.physicalInputCount
+      || row.terminal_at !== receipt.completedAt
+      || canonicalizeBrowserAuthorityValue(payload) !== canonicalizeBrowserAuthorityValue(receipt.submitRecoveryPayload)) {
+      throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
+    }
   }
 
   public purgeJob(jobId: string): void {
@@ -446,18 +457,16 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
 
   public close(): void { this.database.close(); }
   private transition(input: Readonly<{
-    commandId: string; from: BrowserMutationState; to: BrowserMutationState;
+    commandId: string; from: "PREPARED"; to: "DISPATCHED" | "FAILED";
     mutationOutcome: BrowserMutationOutcome; reason: string | null; nativeCauseCode: string | null;
-    proofHash: `sha256:${string}` | null; physicalInputCount?: BrowserPhysicalInputCount;
+    proofHash: `sha256:${string}` | null;
   }>): void {
     const timestamp = new Date().toISOString();
     const result = this.database.prepare(
-      `update browser_mutations set state=?,mutation_outcome=?,reason=?,native_cause_code=?,proof_hash=?,physical_input_count=?,
-       terminal_at=case when ? in ('CONFIRMED','REJECTED') then coalesce(terminal_at,?) else terminal_at end,
-       updated_at=?
+      `update browser_mutations set state=?,mutation_outcome=?,reason=?,native_cause_code=?,proof_hash=?,physical_input_count=0,updated_at=?
        where command_id=? and state=?`,
     ).run(input.to, input.mutationOutcome, input.reason, input.nativeCauseCode, input.proofHash,
-      input.physicalInputCount ?? 0, input.to, timestamp, timestamp, input.commandId, input.from);
+      timestamp, input.commandId, input.from);
     if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
   }
 }

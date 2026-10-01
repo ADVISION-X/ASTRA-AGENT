@@ -12,7 +12,7 @@ import { browserCommandPostconditionPath, browserMutationSchemaPath, createLocal
 const DOM_RUNTIME_PATH = "src/lib/browser/chrome-extension/dom-intent-runtime.ts";
 const DOM_CONTRACT_PATH = "src/lib/browser/exact-target/browser-dom-intent.ts";
 const SPECIAL_DOM_CONTRACT_PATH = "src/lib/browser/exact-target/browser-dom-special-intent.ts";
-const OUTCOME_RESOLVER_PATH = "src/lib/browser/exact-target/browser-outcome-resolver.ts";
+const OBSERVATION_RECEIPT_PATH = "src/lib/browser/exact-target/browser-observation-receipt.ts";
 const MUTATION_RECEIPT_PATH = "src/lib/browser/exact-target/browser-mutation-receipt.ts";
 const SPECIAL_MUTATION_RECEIPT_PATH =
   "src/lib/browser/exact-target/browser-special-mutation-receipt.ts";
@@ -152,7 +152,7 @@ type SettlementSources = Readonly<{
   specialMutationReceipt: SettlementSource;
   postcondition: SettlementSource;
   pointerRuntime: SettlementSource;
-  resolver: SettlementSource;
+  observationReceipt: SettlementSource;
   runtime: SettlementSource;
   schema: SettlementSource;
   store: SettlementSource;
@@ -177,7 +177,7 @@ const requireSettlementSources = (
   const postcondition = requireSource(context, findings, lawId, domMutationPostconditionPath);
   const contract = requireSource(context, findings, lawId, DOM_CONTRACT_PATH);
   const specialContract = requireSource(context, findings, lawId, SPECIAL_DOM_CONTRACT_PATH);
-  const resolver = requireSource(context, findings, lawId, OUTCOME_RESOLVER_PATH);
+  const observationReceipt = requireSource(context, findings, lawId, OBSERVATION_RECEIPT_PATH);
   const fileInput = requireSource(context, findings, lawId, extensionFileInputPath);
   const failure = requireSource(context, findings, lawId, COMMAND_FAILURE_PATH);
   const mutationReceipt = requireSource(context, findings, lawId, MUTATION_RECEIPT_PATH);
@@ -195,7 +195,7 @@ const requireSettlementSources = (
   const targetObservation = requireSource(context, findings, lawId, extensionTargetObservationPath);
   const extensionActor = requireSource(context, findings, lawId, sourcePaths[1]);
   const required = [actor, store, mutationEvidence, schema, runtime, pointerRuntime, postcondition,
-    contract, specialContract, resolver,
+    contract, specialContract, observationReceipt,
     fileInput, failure, mutationReceipt, specialMutationReceipt, transport, commandPostcondition, manager,
     debuggerRuntime, createdTarget, targetAuthority, targetObservation, extensionActor];
   if (required.some((source) => source === null)) return null;
@@ -205,7 +205,7 @@ const requireSettlementSources = (
     debuggerRuntime: debuggerRuntime!,
     failure: failure!, fileInput: fileInput!, manager: manager!, mutationReceipt: mutationReceipt!,
     specialMutationReceipt: specialMutationReceipt!, postcondition: postcondition!,
-    pointerRuntime: pointerRuntime!, resolver: resolver!, runtime: runtime!, schema: schema!,
+    pointerRuntime: pointerRuntime!, observationReceipt: observationReceipt!, runtime: runtime!, schema: schema!,
     store: store!, mutationEvidence: mutationEvidence!, targetAuthority: targetAuthority!, targetObservation: targetObservation!,
     extensionActor: extensionActor!,
     transport: transport! };
@@ -337,14 +337,14 @@ const inspectMutationPersistence = (
 ): void => {
   const actorText = `${sources.actor.getFullText()}\n${sources.failure.getFullText()}`;
   requireText(sources.manager.getFullText(), [
-    'if (browserOutcome === "DISPATCHED") state.pendingMutationCommandIds.push(permit.commandId)',
+    'this.commandActor.pendingMutationCommandIds(this.executionBinding).length',
   ], findings, lawId, sourcePaths[5]);
   requireText(actorText, [
-    "readMutationOutcome", "decodeBrowserMutationReceipt", "result.failureCode",
-    "this.mutations.markRejected(",
-    "mutationOutcome: receipt.mutationOutcome",
+    "readMutationOutcome", "result.failureCode",
+    "this.mutations.readCommand(permit.commandId)",
+    "const result = fact.terminalReceipt",
     "BrowserCommandTerminalReplyError",
-    "reply.failureCode",
+    "input.terminalReply.failureCode",
   ], findings, lawId, sourcePaths[6]);
   requireText(`${sources.mutationReceipt.getFullText()}\n${sources.specialMutationReceipt.getFullText()}`, [
     "zeroActionSatisfied", "qualificationRejected", "mutationCount === 0",
@@ -354,7 +354,7 @@ const inspectMutationPersistence = (
     "POINTER_ACTIONABILITY_NATIVE_CAUSES", "KEYBOARD_ACTIONABILITY_NATIVE_CAUSES",
   ], findings, lawId, MUTATION_RECEIPT_PATH);
   requireText(sources.store.getFullText(), [
-    "BrowserMutationOutcome", "mutationOutcome", "mutation_outcome", "terminal_at=case when",
+    "BrowserMutationOutcome", "mutationOutcome", "mutation_outcome", "terminal_at=?,updated_at=?",
     "native_cause_code", "nativeCauseCode",
     "select 1 from browser_mutations where state='DISPATCHED' limit 1",
     "if (result.changes !== 1) throw new Error(\"BROWSER_MUTATION_STATE_CONFLICT\")",
@@ -406,18 +406,17 @@ const inspectMutationExecution = (
   ], findings, lawId, DOM_CONTRACT_PATH);
   requireText(sources.extensionActor.getFullText(), [
     "Date.parse(frame.deadline)", "assertCommandActive", "Date.now() >= deadline",
-    "socket !== this.socket", "this.session?.serverToClientKey !== commandSessionKey",
+    "socket !== this.connection.socket", "this.connection.session?.serverToClientKey !== session.serverToClientKey",
   ], findings, lawId, sourcePaths[1]);
   requireText(sources.targetAuthority.getFullText(), [
     "assertCommandActive", "const assertCurrent", "assertCommandActive();",
   ], findings, lawId, targetAuthorityPath);
-  requireText(sources.resolver.getFullText(), [
-    "mutationOutcome: \"dispatched\"", "receipt.mutationOutcome !== \"dispatched\"",
-  ], findings, lawId, OUTCOME_RESOLVER_PATH);
+
   requireText(sources.commandPostcondition.getFullText(), [
-    "value.qualificationRejected === true", "value.postconditionObservation === undefined",
-    "bindOneObservationPacket",
+    "bindBrowserMutationObservation", "bindBrowserObservationPacket",
   ], findings, lawId, browserCommandPostconditionPath);
+  requireText(sources.observationReceipt.getFullText(), ["value.qualificationRejected === true",
+    "record.postconditionObservation === undefined"], findings, lawId, OBSERVATION_RECEIPT_PATH);
   requireText(sources.fileInput.getFullText(), [
     "executeExtensionFileInput", "DOM.setFileInputFiles", "approvedFiles", "resolvedFilePaths",
     "candidate.facts.multiple === true", "candidate.facts.disabled === false",
@@ -429,19 +428,46 @@ const inspectMutationExecution = (
 };
 
 const inspectAuthenticatedMutationReply = (
+  context: InspectorContext,
   sources: SettlementSources,
   findings: InspectorFinding[],
   lawId: string,
 ): void => {
   requireText(sources.transport.getFullText(), [
     "BrowserCommandTerminalReplyError", "reply.reject(new BrowserCommandTerminalReplyError(",
-    "permitSequence !== reply.permitSequence",
-    "!compareReplyToken(replyChannelToken, reply.replyChannelToken)",
+    "parseBrowserCommandReply(body, reply.permit, reply.command, reply.receiptBindingHash)",
+    "if (parsed.fact) this.settleMutationReceipt(socket, parsed.fact)",
   ], findings, lawId, sourcePaths[0]);
   requireText(`${sources.actor.getFullText()}\n${sources.failure.getFullText()}`, [
     "error.replyChannelToken === permit.replyChannelToken",
     "error.permitSequence === permit.sequence",
   ], findings, lawId, sourcePaths[6]);
+  const supervisor = requireSource(context, findings, lawId, sourcePaths[3]);
+  const store = sources.store.getClass("BrowserMutationStore");
+  if (store?.getMethod("markConfirmed") || store?.getMethod("markRejected") || store?.getMethod("resolve")) {
+    findings.push(createLocalFinding({ checkId: "browser-authority/mutation-settlement", lawId,
+      filePath: sourcePaths[7], message: "Terminal writes must use only settleTerminalReceipt." }));
+  }
+  requireText(sources.transport.getClass("BrowserAuthorityWebSocket")?.getMethod("acceptAuthenticatedControl")?.getText() ?? "",
+    ["MUTATION_RECEIPT", "this.settleMutationReceipt(socket, parseBrowserMutationTerminalFact(body))"], findings, lawId, sourcePaths[0]);
+  requireText(store?.getMethod("settleTerminalReceipt")?.getText() ?? "",
+    ["verifyBrowserMutationTerminalFact", "this.database.transaction", "state='DISPATCHED'", "this.assertTerminalReceiptReadback(fact)"], findings, lawId, sourcePaths[7]);
+  requireText(supervisor?.getClass("BrowserInfrastructureSupervisor")?.getMethod("settleMutationTerminal")?.getText() ?? "",
+    ["mutations.settleTerminalReceipt(fact)", "acknowledge()", "if (logFailure !== null) throw logFailure", "this.lane.notifyMutationSettled()"], findings, lawId, sourcePaths[3]);
+  requireText(sources.extensionActor.getFullText(), ["disconnectedDrain", "pendingCommandHandlers",
+    "pendingTargetHandlers", "lastMutationDeliveryKey", "sendTail", "receiveTail",
+    "frame.sequence <= this.connection.lastServerSequence", "this.connection.lastServerSequence = frame.sequence",
+    "this.acceptServerSequence(frame)",
+    "this.commandDelivery.mutationSlot.fact = reply.body.mutationReceipt",
+    "await this.targetAuthority.releaseActiveTarget(false)", "await this.flushMutationReceipt()"], findings, lawId, sourcePaths[1]);
+  const completion = supervisor?.getClass("BrowserInfrastructureSupervisor")?.getMethod("settleMutationTerminal")?.getText() ?? "";
+  if (completion.indexOf("acknowledge()") < completion.indexOf("mutations.settleTerminalReceipt(fact)")
+    || completion.indexOf("acknowledge()") > completion.indexOf("if (logFailure !== null) throw logFailure"))
+    findings.push(createLocalFinding({ checkId: "browser-authority/mutation-settlement", lawId,
+      filePath: sourcePaths[3], message: "Committed facts must ACK before log failure blocks future work." }));
+  for (const source of [sources.actor, sources.failure]) if (source.getFullText().includes(".settleTerminalReceipt("))
+    findings.push(createLocalFinding({ checkId: "browser-authority/mutation-settlement", lawId,
+      filePath: sourcePaths[6], message: "Lease Actor and failure handler cannot become a second terminal writer." }));
   inspectDispatchPersistence(sources.transport, findings, lawId);
 };
 
@@ -454,6 +480,6 @@ export const inspectBrowserMutationSettlement = (
   if (!sources) return;
   inspectMutationPersistence(sources, findings, lawId);
   inspectMutationExecution(sources, findings, lawId);
-  inspectAuthenticatedMutationReply(sources, findings, lawId);
+  inspectAuthenticatedMutationReply(context, sources, findings, lawId);
   inspectUniversalPostActionReadGate(context, sources, findings, lawId);
 };

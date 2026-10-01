@@ -14,7 +14,6 @@ import type { BrowserDomIntent } from "./browser-dom-intent.js";
 import type { BrowserFileArtifactGrantV1 } from "./browser-file-artifact-grant.js";
 import type { BrowserExecutionBinding } from "../infrastructure/browser-authority-broker.js";
 import type { BrowserSessionWorkspace } from "./browser-session-workspace.js";
-import type { BrowserOutcomeResolutionReceipt } from "./browser-outcome-resolver.js";
 import { browserExecutionFailure } from "../browser-failure.js";
 import { requireCanonicalGptConversationUrl } from "./browser-site-policy-registry.js";
 export type { SessionWorkspaceBindingV6 } from "./browser-session-workspace.js";
@@ -33,7 +32,6 @@ type LeaseState = {
   closed: boolean;
   commandInFlight: boolean;
   sequence: number;
-  pendingMutationCommandIds: string[];
   atomicStep: Parameters<BrowserTargetLease["runAtomicStep"]>[0] | null;
 };
 
@@ -103,7 +101,6 @@ export class BrowserTargetLeaseManager {
       closed: false,
       commandInFlight: false,
       sequence: 0,
-      pendingMutationCommandIds: [...this.commandActor.pendingMutationCommandIds(this.executionBinding)],
       atomicStep: null,
     };
     const leaseRef = `target-lease-${randomUUID()}`;
@@ -136,7 +133,7 @@ export class BrowserTargetLeaseManager {
     if (state.commandInFlight) throw new Error("BROWSER_BACKPRESSURE");
     const mutationClass = this.mutationClass(value);
     if (mutationClass !== "observation" && value.kind !== "park-target"
-      && state.pendingMutationCommandIds.length > 0) {
+      && this.commandActor.pendingMutationCommandIds(this.executionBinding).length > 0) {
       throw new Error("BROWSER_MUTATION_UNSETTLED");
     }
     if (mutationClass === "mutation" && state.atomicStep === null) {
@@ -205,7 +202,6 @@ export class BrowserTargetLeaseManager {
         if (!permit) throw browserExecutionFailure(error);
         const mutationOutcome = this.commandActor.mutationOutcome(permit.commandId);
         const browserOutcome = this.commandActor.browserOutcome(permit.commandId);
-        if (browserOutcome === "DISPATCHED") state.pendingMutationCommandIds.push(permit.commandId);
         throw browserExecutionFailure(error, mutationOutcome, browserOutcome ? {
           effectScope: permit.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local",
           childCapabilityId: permit.childCapabilityId,
@@ -270,8 +266,7 @@ export class BrowserTargetLeaseManager {
         await command("browser.park-target.v1", { kind: "park-target", reason });
         state.closed = true;
       },
-      resolvePendingMutation: (receipt) => this.resolvePendingMutation(state, receipt),
-      pendingMutationCount: () => state.pendingMutationCommandIds.length,
+      pendingMutationCount: () => this.commandActor.pendingMutationCommandIds(this.executionBinding).length,
     };
   }
 
@@ -351,18 +346,6 @@ export class BrowserTargetLeaseManager {
       throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     }
     return value;
-  }
-
-  private async resolvePendingMutation(
-    state: LeaseState,
-    receipt: Omit<BrowserOutcomeResolutionReceipt, "commandId">,
-  ): Promise<number> {
-    const commandIds = [...state.pendingMutationCommandIds];
-    const commandId = commandIds[0];
-    if (commandIds.length !== 1 || commandId === undefined) throw new Error("BROWSER_MUTATION_UNSETTLED");
-    await this.commandActor.resolveDispatchedMutation({ ...receipt, commandId });
-    state.pendingMutationCommandIds.splice(state.pendingMutationCommandIds.indexOf(commandId), 1);
-    return 1;
   }
 
   private permit(input: Readonly<{

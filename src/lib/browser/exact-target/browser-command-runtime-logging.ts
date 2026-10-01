@@ -80,7 +80,6 @@ export const failBrowserCommandSpan = (input: Readonly<{
   permit: Pick<BrowserCommandPermit, "commandId" | "jobId" | "mutationClass">;
   failureCode: string;
   error?: unknown;
-  pendingReceipt: boolean;
   proofHash: `sha256:${string}`;
 }>): RuntimeSpanTerminalEvent =>
   requireRuntimeLogWrite(input.span.terminal({

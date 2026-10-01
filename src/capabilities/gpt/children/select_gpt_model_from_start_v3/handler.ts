@@ -10,7 +10,7 @@ import {
   type GptChildHandler,
 } from "../../web/child-handler.js";
 import { decodeCoherentObservationPacket, projectCoherentObservation } from "../../web/gpt-dom-observation.js";
-import { profileFromIntent } from "../../web/execution-profile-input.js";
+import { GPT_LATEST_MODEL_LABELS, profileFromIntent } from "../../web/execution-profile-input.js";
 import { GPT_MODEL_CHOICE_SELECTOR } from "./selectors.js";
 import { modelChoiceQuery, readModelChoiceState } from "./observation.js";
 
@@ -43,7 +43,7 @@ export const selectGptModelFromStartV3Handler: GptChildHandler<"select_gpt_model
     }
     const mutation = await browser.executeDomIntent({
       kind: "click", selector: GPT_MODEL_CHOICE_SELECTOR,
-      expectedTextEquals: chosen.name, expectedMatches: 1,
+      expectedTextEquals: chosen.name === "最新" ? GPT_LATEST_MODEL_LABELS : chosen.name, expectedMatches: 1,
       postClickObservation: postcondition(chosen.name),
     });
     const record = mutation && typeof mutation === "object" && !Array.isArray(mutation)

@@ -148,7 +148,7 @@ const COHERENT_OBSERVATION_FUNCTION = `async function (specs) {
       reasons.push("INERT");
     }
     if (checkText && ((spec.textContains !== undefined && !(node.textContent || "").includes(spec.textContains))
-      || (spec.textEquals !== undefined && (node.textContent || "").trim() !== spec.textEquals.trim())
+      || (spec.textEquals !== undefined && !(Array.isArray(spec.textEquals) ? spec.textEquals : [spec.textEquals]).some((value) => (node.textContent || "").trim() === value.trim()))
       || (spec.exactGptUserPromptContains !== undefined
         && !exactGptUserPromptText(node).includes(spec.exactGptUserPromptContains)))) {
       reasons.push("TEXT_MISMATCH");

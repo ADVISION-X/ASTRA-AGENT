@@ -263,7 +263,7 @@ const inspectExactCallContract = (context: InspectorContext, findings: Inspector
 };
 
 const inspectModelSelectionContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const handler = sourceTextForPaths(context, MODEL_SELECTION_V3_HANDLER_PATHS);
+  const handler = sourceTextForPaths(context, [...MODEL_SELECTION_V3_HANDLER_PATHS, `${ROOT}/web/execution-profile-input.ts`]);
   const contract = sourceFor(context, MODEL_SELECTION_V3_CONTRACT_PATH)?.getFullText() ?? "";
   for (const required of [
     "selector: GPT_MODEL_CHOICE_SELECTOR",
@@ -271,7 +271,8 @@ const inspectModelSelectionContract = (context: InspectorContext, findings: Insp
     "postClickObservation: postcondition(chosen.name)",
     "record.postconditionObservation", "readModelChoiceState",
     "clickedCandidateAttribute", "selectedReadbackValid",
-    "textEquals: profile.startModelDisplayName, expectedMatches: 1",
+    'textEquals: profile.startModelDisplayName === "最新" ? GPT_LATEST_MODEL_LABELS : profile.startModelDisplayName, expectedMatches: 1',
+    'GPT_LATEST_MODEL_LABELS = Object.freeze(["最新", "Latest"] as const)',
     "expectedEligibleCount", "decodeCoherentObservationPacket", "modelChoiceQuery",
     "chosen.name !== profile.startModelDisplayName", "selectedRawCount", "targetRefHash", "documentRefHash",
   ]) if (!handler.includes(required)) findings.push(finding(

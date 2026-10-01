@@ -5,6 +5,12 @@ export const isBoundedText = (value: unknown, limit: number): value is string =>
   typeof value === "string" && value.trim().length > 0 && value.length <= limit
   && !/[\u0000-\u001f]/u.test(value);
 
+export const isBoundedExactText = (value: unknown): boolean =>
+  isBoundedText(value, 1_024)
+  || (Array.isArray(value) && value.length === 2
+    && value.every((entry) => isBoundedText(entry, 1_024))
+    && value[0]!.trim() !== value[1]!.trim());
+
 export const assertOptionalRange = (value: number | undefined, minimum: number, maximum: number): void => {
   if (value !== undefined && (value < minimum || value > maximum)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
 };
@@ -34,7 +40,7 @@ export const assertSelector = (intent: BrowserDomIntent): void => {
 
 const findTextValid = (intent: Extract<BrowserDomIntent, { kind: "find" }>): boolean =>
   (intent.textContains === undefined || isBoundedText(intent.textContains, 1_024))
-  && (intent.textEquals === undefined || isBoundedText(intent.textEquals, 1_024))
+  && (intent.textEquals === undefined || isBoundedExactText(intent.textEquals))
   && !(intent.textContains !== undefined && intent.textEquals !== undefined);
 
 const findWaitValid = (intent: Extract<BrowserDomIntent, { kind: "find" }>): boolean => {

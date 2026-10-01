@@ -124,6 +124,68 @@ const verifyMissingStartFailsClosed = async (): Promise<void> => {
   assert.equal(fixture.physicalMutations(), 0);
 };
 
+const verifyLatestLabels = async (): Promise<void> => {
+  const latestProfile = buildGptExecutionProfile({
+    profileRef: "acceptance:gpt-latest-labels", startModelDisplayName: "最新",
+    requestedReasoningValue: 4, executorIdentityRef: "acceptance:executor",
+    acceptanceRef: "acceptance:gpt-exact-target", acceptanceVersion: "v1",
+  });
+  for (const labels of [["最新"], ["Latest"], ["最新", "Latest"], ["Latest beta"], []]) {
+    for (const checked of ["true", "false"] as const) {
+      const matching = labels.filter((label) => label === "最新" || label === "Latest");
+      let open = false;
+      const fixture = fakeBrowser((intent) => {
+        if (intent.kind === "observe") {
+          for (const query of intent.queries) {
+            if (query.queryId === "specified-model" || query.queryId === "latest-model") {
+              assert.deepEqual(query.textEquals, ["最新", "Latest"]);
+            }
+          }
+          return coherentObservationPacket(intent, {
+            "openable-entry": { rawCount: open ? 0 : 1, eligibleCount: open ? 0 : 1 },
+            "specified-model": { rawCount: labels.length, eligibleCount: open ? matching.length : 0 },
+            "latest-model": { rawCount: labels.length, eligibleCount: matching.length,
+              matches: matching.map(() => ({ ariaChecked: checked, ariaDisabled: false,
+                disabled: false, inert: false })) },
+            "selected-model-count": { rawCount: checked === "true" ? 1 : 0,
+              eligibleCount: checked === "true" ? 1 : 0 },
+          });
+        }
+        if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTOR_OPENABLE_ENTRY) {
+          assert.deepEqual(intent.postClickMatch?.textEquals, ["最新", "Latest"]);
+          assert.equal(intent.postClickMatch?.expectedMatches, 1);
+          open = true;
+          return { postconditionVerified: matching.length === 1,
+            postconditionEligibleCount: matching.length, postconditionRawCount: labels.length };
+        }
+        if (intent.kind === "click" && intent.selector === GPT_MODEL_CHOICE_SELECTOR) {
+          assert.equal(matching.length, 1, "both labels together must never cause model input");
+          assert.deepEqual(intent.expectedTextEquals, ["最新", "Latest"]);
+          assert.deepEqual(intent.postClickObservation?.queries[0]?.textEquals, ["最新", "Latest"]);
+          const queries = intent.postClickObservation!.queries
+            .map(({ expectedEligibleCount: _expected, ...query }) => query);
+          return { postconditionVerified: true,
+            clickedCandidateAttributeReadback: { name: "aria-checked", value: "true", verified: true },
+            postconditionObservation: coherentObservationPacket({ queries }, {
+              "latest-model": { rawCount: 0, eligibleCount: 0 },
+            }) };
+        }
+        throw new Error(`UNEXPECTED_LATEST_LABEL_INTENT:${intent.kind}`);
+      });
+      const opened = await execute("open_gpt_model_selector_v3", fixture.browser, { profile: latestProfile });
+      assert.equal(opened.status, matching.length === 1 ? "success" : "failed");
+      const before = fixture.physicalMutations();
+      const selected = await execute("select_gpt_model_from_start_v3", fixture.browser, { profile: latestProfile });
+      assert.equal(selected.status, matching.length === 1 ? "success" : "failed");
+      assert.equal(fixture.physicalMutations() - before, matching.length === 1 ? 1 : 0);
+      if (matching.length === 1) {
+        assert.equal(selected.value?.modelDisplayName, "最新", "Product model identity must stay unchanged");
+        assert.equal(selected.value?.previousChecked, checked);
+      }
+    }
+  }
+};
+
 const verifyLatestUnavailableFailsClosed = async (): Promise<void> => {
   const latestProfile = buildGptExecutionProfile({
     profileRef: "acceptance:gpt-latest-start",
@@ -164,6 +226,7 @@ export const exerciseExactModelSelection = async (): Promise<void> => {
   await verifySelectorTransitionFailsClosed();
   await verifyModelSelection();
   await verifyMissingStartFailsClosed();
+  await verifyLatestLabels();
   await verifyLatestUnavailableFailsClosed();
   await verifySelectedCountConflictFailsClosed();
 };

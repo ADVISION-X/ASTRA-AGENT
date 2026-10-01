@@ -1,4 +1,6 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import { ROOT, fail, norm, validGitObjectId } from "./governance-runtime.js";
 
@@ -34,3 +36,9 @@ export const diffPaths = (base = "HEAD"): Array<{ status: string; path: string }
   for (const path of untracked) if (!tracked.has(path)) changes.push({ status: "A", path });
   return changes.sort((left, right) => byteCompare(left.path, right.path) || byteCompare(left.status, right.status));
 };
+
+export const worktreeCandidateFingerprint = (): string => JSON.stringify([
+  gitCommit(),
+  diffPaths().map((change) => [change.status, change.path,
+    change.status === "D" ? null : readFileSync(resolve(ROOT, change.path)).toString("base64")]),
+]);

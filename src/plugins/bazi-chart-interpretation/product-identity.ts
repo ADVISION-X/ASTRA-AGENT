@@ -2,7 +2,7 @@ import { buildGptExecutionProfile } from "../../capabilities/gpt/index.js";
 
 export const PLUGIN_ID = "bazi-chart-interpretation";
 export const PRODUCT_INSTRUCTION =
-  "围绕锁定命盘完成全盘正式解读，覆盖候选范围、命盘语义对象、古籍证据、条件、反证与现实边界。";
+  "依当前 Product Skill 读完两个冻结附件：对来源 PDF 的实际语义对象作完整双层伴读，再自主组织全盘综合、证据、候选条件与现实边界。机器身份仅复制到结构字段。同轮自查后一次提交正式 v4 JSON。";
 export const MODEL_PROFILE = buildGptExecutionProfile({
   profileRef: `${PLUGIN_ID}:gpt-5.6-sol-pro-standard`,
   startModelDisplayName: "GPT-5.6 Sol",

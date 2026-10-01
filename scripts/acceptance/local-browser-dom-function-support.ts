@@ -434,8 +434,37 @@ const exerciseInvalidObservationUrls = async (
   }
 };
 
+const exerciseExactTextOr = async (source: string): Promise<void> => {
+  const query = { queryId: "latest", selector: "model", maxMatches: 2,
+    fields: ["ariaChecked"], textEquals: ["最新", "Latest"] } as const;
+  assertBrowserDomIntent({ kind: "observe", queries: [query] });
+  assertBrowserDomIntent({ kind: "click", selector: "model", expectedTextEquals: query.textEquals,
+    postClickMatch: { selector: "model", textEquals: query.textEquals, expectedMatches: 1 } });
+  for (const labels of [["最新"], ["Latest"], ["最新", "Latest"], ["Latest beta"], ["GPT-5.6 Sol"], []]) {
+    const nodes = labels.map((label) => new FakeElement(label));
+    const root = new FakeElement("root", { model: nodes });
+    for (const node of nodes) node.parentElement = root;
+    const result = await execute(source, { documentElement: root, querySelectorAll: () => [],
+      elementFromPoint: () => null }, [query]) as { queries: { eligibleCount: number }[] };
+    assert.equal(result.queries[0]?.eligibleCount,
+      labels.filter((label) => label === "最新" || label === "Latest").length);
+  }
+  for (const invalid of [[], ["Latest"], ["Latest", "Latest"], ["Latest", " Latest "],
+    ["最新", "Latest", "Sol"], ["最新", ""], ["最新", 3], ["最新", "x".repeat(1_025)]]) {
+    assert.throws(() => assertBrowserDomIntent({ kind: "observe", queries: [
+      { ...query, textEquals: invalid as never },
+    ] }), /BROWSER_COMMAND_PERMIT_INVALID/u);
+    assert.throws(() => assertBrowserDomIntent({ kind: "click", selector: "model",
+      expectedTextEquals: invalid as never }), /BROWSER_COMMAND_PERMIT_INVALID/u);
+    assert.throws(() => assertBrowserDomIntent({ kind: "click", selector: "model",
+      postClickMatch: { selector: "model", expectedMatches: 1, textEquals: invalid as never },
+    }), /BROWSER_COMMAND_PERMIT_INVALID/u);
+  }
+};
+
 export const exerciseCapturedObservationFunction = async (source: string): Promise<void> => {
   const observationDocument = await exerciseObservationRejections(source);
+  await exerciseExactTextOr(source);
   await exerciseHiddenStateRead(source);
   await exerciseInertStateRejection(source);
   await exerciseEditablePromptHashes(source);

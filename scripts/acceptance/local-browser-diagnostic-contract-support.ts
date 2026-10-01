@@ -53,6 +53,7 @@ export const exerciseBrowserDiagnosticContract = (): void => {
   const rejected: Error[] = [];
   const timeout = setTimeout(() => undefined, 10_000);
   const websocket = new BrowserAuthorityWebSocket({
+  onMutationReceipt: () => { throw new Error("UNEXPECTED_MUTATION_RECEIPT"); },
     pairingSecret: "a".repeat(64), onPairingStarted: () => {}, onHeartbeat: () => {},
     onAuthenticated: () => { throw new Error("UNUSED_AUTHENTICATION"); }, onTargetClaim: () => {},
     onTargetRevoke: () => {}, onDiagnostic: () => {}, onRevoked: () => {},

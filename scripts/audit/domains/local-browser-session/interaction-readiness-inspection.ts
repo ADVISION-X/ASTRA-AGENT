@@ -1,7 +1,7 @@
 import { Node, SyntaxKind } from "ts-morph";
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
 import { createLocalFinding, extensionDebuggerRuntimePath, requireSource, sourcePaths,
-  targetAuthorityPath } from "./inspector-support.js";
+  targetAuthorityPath, extensionCommandRuntimePath } from "./inspector-support.js";
 
 const interactionReadinessPath =
   "src/lib/browser/chrome-extension/extension-interaction-readiness.ts";
@@ -50,7 +50,7 @@ const inspectRuntimeActivation = (
     "The fixed runtime must activate once through the existing page-action gate and synchronously check interaction identity before marking Provider input started.");
   const commandChecks = [
     input.admit.getText().includes("mutationClass: expectedMutationClass"),
-    input.executeActor.getText().includes("registeredCommand.mutationClass"),
+    input.executeActor.getText().includes("registered.mutationClass"),
   ];
   if (!commandChecks.every(Boolean)) interactionReadinessFinding(findings, lawId, sourcePaths[8],
     "Command admission must preserve the actual mutation class through the sole encrypted actor into Browser Authority.");
@@ -161,10 +161,10 @@ export const inspectInteractionReadiness = (
   const authority = requireSource(context, findings, lawId, targetAuthorityPath);
   const readiness = requireSource(context, findings, lawId, interactionReadinessPath);
   const runtime = requireSource(context, findings, lawId, extensionDebuggerRuntimePath);
-  const actor = requireSource(context, findings, lawId, sourcePaths[1]);
+  const commandRuntime = requireSource(context, findings, lawId, extensionCommandRuntimePath);
   const commandRegistry = requireSource(context, findings, lawId, sourcePaths[8]);
   const gptRateLimitRuntime = requireSource(context, findings, lawId, gptRateLimitRuntimePath);
-  if ([authority, readiness, runtime, actor, commandRegistry, gptRateLimitRuntime]
+  if ([authority, readiness, runtime, commandRuntime, commandRegistry, gptRateLimitRuntime]
     .some((source) => !source)) return;
 
   const authorityClass = authority!.getClass("ExtensionTargetAuthority");
@@ -181,7 +181,7 @@ export const inspectInteractionReadiness = (
   const activate = runtime!.getClass("ExtensionDebuggerRuntime")?.getMethod("activateTab");
   const send = runtime!.getClass("ExtensionDebuggerRuntime")?.getMethod("send");
   const admit = commandRegistry!.getVariableDeclaration("admitExtensionCommand");
-  const executeActor = actor!.getClass("ExtensionWebSocketActor")?.getMethod("executeCommand");
+  const executeActor = commandRuntime!.getVariableDeclaration("executeExtensionCommandReply");
   if ([authorityClass, executeBoundary, execute, acquireBoundary, frameBoundary,
     constructor, readinessClass, executeMutation, ensure, assertReady, start,
     activate, send, admit, executeActor].some((value) => !value)) {

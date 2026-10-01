@@ -1,5 +1,5 @@
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
-import { createLocalFinding, requireIdentifiers, requireSource, sourcePaths, stringLiterals } from "./inspector-support.js";
+import { createLocalFinding, requireIdentifiers, requireSource, sourcePaths, stringLiterals, extensionCommandRuntimePath } from "./inspector-support.js";
 
 export const inspectAuthenticatedChannelGuards = (
   context: InspectorContext,
@@ -10,10 +10,11 @@ export const inspectAuthenticatedChannelGuards = (
   const actor = requireSource(context, findings, lawId, sourcePaths[1]);
   const crypto = requireSource(context, findings, lawId, sourcePaths[20]);
   const heartbeat = requireSource(context, findings, lawId, sourcePaths[22]);
+  const commandRuntime = requireSource(context, findings, lawId, extensionCommandRuntimePath);
   const diagnostic = requireSource(
     context, findings, lawId, "src/lib/browser/transport/browser-authority-diagnostic.ts",
   );
-  if (!channel || !actor || !crypto || !heartbeat || !diagnostic) return;
+  if (!channel || !actor || !crypto || !heartbeat || !diagnostic || !commandRuntime) return;
 
   requireIdentifiers(crypto, ["aad", "protocolVersion", "kind", "epoch", "sequence", "deadline"], findings, lawId,
     "Extension AES-GCM AAD must be reconstructed from the five authenticated header fields.");
@@ -23,7 +24,7 @@ export const inspectAuthenticatedChannelGuards = (
     "The MV3 heartbeat owner must invoke the Chrome API liveness pulse on the authenticated channel.");
   requireIdentifiers(actor, ["onSocketClosed", "releaseActiveTarget", "close", "reasonCode"], findings, lawId,
     "The MV3 socket owner must release stale debugger state after disconnect and expose every programmatic close reason.");
-  requireIdentifiers(actor, ["extensionCommandDiagnostic", "commandStage", "commandKind", "commandIntentKind", "capabilityId"], findings, lawId,
+  requireIdentifiers(commandRuntime, ["extensionCommandDiagnostic", "commandStage", "commandKind", "commandIntentKind", "capabilityId"], findings, lawId,
     "Every authenticated command failure must emit a non-fatal redacted diagnostic with command-stage and capability identity.");
   requireIdentifiers(diagnostic, ["commandStage", "commandKind", "commandIntentKind", "capabilityId"], findings, lawId,
     "The Workbench authority socket must retain the redacted authenticated-command diagnostic fields.");

@@ -27,24 +27,20 @@ const targetReleasePath = "src/lib/browser/chrome-extension/extension-target-rel
 
 const inspectJobBoundClaimOrder = (actor: ReturnType<typeof requireSource>, findings: InspectorFinding[], lawId: string): void => {
   const actorClass = actor?.getClass("ExtensionWebSocketActor");
-  const messageText = actorClass?.getMethod("onMessage")?.getText() ?? "";
-  const readyStart = messageText.indexOf('if (frame.kind === "READY")');
-  const readyEnd = messageText.indexOf('if (frame.kind === "TARGET_ACQUIRE")', readyStart);
-  const readyText = readyStart >= 0 && readyEnd > readyStart
-    ? messageText.slice(readyStart, readyEnd) : "";
+  const readyText = actorClass?.getMethod("acceptPairingFrame")?.getText() ?? "";
   const acquisitionText = actorClass?.getMethod("acceptTargetAcquire")?.getText() ?? "";
   const decryptIndex = acquisitionText.indexOf("await decrypt(");
   const claimIndex = acquisitionText.indexOf("this.targetAuthority.acquireJobBoundChatGptTarget(");
-  const awaitIndex = acquisitionText.indexOf("await handler;", claimIndex);
-  if (readyText.indexOf("readServerReadyPermit(this.session, frame, AUTH_EPOCH)") >= 0
-    && readyText.indexOf("this.commandReady = true") > readyText.indexOf("readServerReadyPermit(")
+  const completionIndex = acquisitionText.indexOf("void handler.then(", claimIndex);
+  if (readyText.indexOf("readServerReadyPermit(session, frame, AUTH_EPOCH)") >= 0
+    && readyText.indexOf("this.connection.commandReady = true") > readyText.indexOf("readServerReadyPermit(")
     && !readyText.includes("acquireJobBoundChatGptTarget")
-    && acquisitionText.includes("!this.commandReady")
+    && acquisitionText.includes("!this.connection.commandReady")
     && decryptIndex >= 0
     && claimIndex > decryptIndex
-    && acquisitionText.includes("this.pendingTargetHandlers.add(handler)")
-    && awaitIndex > claimIndex
-    && acquisitionText.includes("this.pendingTargetHandlers.delete(handler)")) return;
+    && acquisitionText.includes("this.commandDelivery.pendingTargetHandlers.add(handler)")
+    && completionIndex > claimIndex
+    && acquisitionText.includes("this.commandDelivery.pendingTargetHandlers.delete(handler)")) return;
   findings.push(createLocalFinding({
     checkId: "browser-authority/job-bound-target-claim", lawId, filePath: sourcePaths[1],
     message: "READY must leave Target absent; only one authenticated TARGET_ACQUIRE may invoke the exact target owner.",
@@ -91,7 +87,7 @@ const inspectNonDestructiveTargetRelease = (
   const settlementModeAt = method.indexOf('mode !== "product-call-settlement"', parkAt);
   const physicalParkAt = method.indexOf('command("browser.park-target.v1"', parkAt);
   const requiredReleaseFacts = [
-    "pendingMutationCount: () => state.pendingMutationCommandIds.length",
+    "pendingMutationCount: () => this.commandActor.pendingMutationCommandIds(this.executionBinding).length",
   ].every((token) => method.includes(token));
   const forbiddenReleaseFacts = ["close: async"].some((token) => method.includes(token));
   const requiredLaneFacts = [
@@ -365,12 +361,12 @@ export const inspectTargetClaimGuards = (
   const supervisor = requireSource(context, findings, lawId, sourcePaths[3]);
   const leaseContract = requireSource(context, findings, lawId, targetLeasePath);
   if (!channel || !framePayload || !actor || !awaiter || !supervisor || !leaseContract) return;
-  requireIdentifiers(channel, ["sendTargetClaimAcknowledgement", "parseBrowserAuthorityTargetClaim"], findings, lawId,
+  requireIdentifiers(channel, ["sendControlFrame", "parseBrowserAuthorityTargetClaim"], findings, lawId,
     "Workbench target admission must accept epoch zero and return one encrypted acknowledgement.");
   requireIdentifiers(framePayload, ["parseBrowserAuthorityTargetClaim", "integerField"], findings, lawId,
     "The Target claim payload owner must validate the complete exact wire identity.");
   if (!channel.getFullText().includes('integerField(body, "requestSequence", 1)')
-    || !channel.getFullText().includes('integerField(body, "permitSequence", 1)')) findings.push(createLocalFinding({
+    || !framePayload.getFullText().includes('integerField(body, "permitSequence", 1)')) findings.push(createLocalFinding({
     checkId: "browser-authority/terminal-authority", lawId, filePath: sourcePaths[0],
     message: "Socket request and permit sequences must retain the positive integer boundary.",
   }));

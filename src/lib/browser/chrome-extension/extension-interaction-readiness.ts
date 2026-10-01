@@ -64,37 +64,49 @@ export class ExtensionInteractionReadiness {
 
   public async executeMutation(
     target: ExtensionExactTarget,
-    execute: () => Promise<unknown>,
+    execute: (assertMutationReadback: () => void) => Promise<unknown>,
+    assertInput: () => void,
+    mutationKind: string,
   ): Promise<unknown> {
     let interactionLease: InteractionLease;
     try {
-      interactionLease = await this.ensureInteractionReady(target);
+      assertInput();
+      interactionLease = await this.ensureInteractionReady(target, assertInput);
     } catch (error) {
+      if (!(error instanceof Error) || error.message !== "BROWSER_TARGET_NOT_INTERACTIVE") throw error;
       return interactionRejectedReceipt(error);
     }
-    const inputState: ProviderInputState = { started: false };
+    const inputState: ProviderInputState = { started: false, physicalInputCount: 0, mutationKind };
+    const assertReadback = (): void => {
+      if (!inputState.started) assertInput();
+      this.assertInteractionReady(interactionLease);
+    };
     try {
       return await this.debuggerRuntime.withProviderInputGuard(
         inputState,
-        () => this.assertInteractionReady(interactionLease),
-        execute,
+        () => { assertInput(); this.assertInteractionReady(interactionLease); },
+        () => this.debuggerRuntime.withPageReadGuard(assertReadback, () => execute(assertReadback)),
       );
     } catch (error) {
+      await this.debuggerRuntime.awaitPageReadPermission();
       if (!inputState.started && error instanceof Error
         && error.message === "BROWSER_TARGET_NOT_INTERACTIVE") {
         return interactionRejectedReceipt(error);
       }
-      throw error;
+      throw Object.assign(error instanceof Error ? error : new Error("BROWSER_CAPABILITY_REJECTED"), {
+        browserInputStarted: inputState.started, browserPhysicalInputCount: inputState.physicalInputCount,
+      });
     }
   }
 
   public async executeObservation(
     target: ExtensionExactTarget,
     execute: () => Promise<unknown>,
+    assertInput: () => void,
   ): Promise<unknown> {
-    const interactionLease = await this.ensureInteractionReady(target);
+    const interactionLease = await this.ensureInteractionReady(target, assertInput);
     return this.debuggerRuntime.withPageReadGuard(
-      () => this.assertInteractionReady(interactionLease),
+      () => { assertInput(); this.assertInteractionReady(interactionLease); },
       execute,
     );
   }
@@ -107,7 +119,7 @@ export class ExtensionInteractionReadiness {
     return tab.windowId as number;
   }
 
-  private async ensureInteractionReady(target: ExtensionExactTarget): Promise<InteractionLease> {
+  private async ensureInteractionReady(target: ExtensionExactTarget, assertInput?: () => void): Promise<InteractionLease> {
     this.resolveExactTarget(target.targetRef, target.documentRef);
     let tab = await this.debuggerRuntime.readTab(target.tabId);
     if (tab.id !== target.tabId || tab.discarded !== false || tab.status !== "complete"
@@ -115,6 +127,7 @@ export class ExtensionInteractionReadiness {
       throw interactionFailure("BROWSER_TARGET_INVALID");
     }
     if (tab.active !== true) {
+      assertInput?.();
       await this.debuggerRuntime.activateTab(target.tabId);
       tab = await this.debuggerRuntime.readTab(target.tabId);
     }

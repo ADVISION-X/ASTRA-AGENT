@@ -1,17 +1,18 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { GovernanceError, ROOT, fail } from './governance-runtime.js';
 import { checkProjection, readRegistryProjection, verifyEntry, verifyProductionOwnership, writeRegistry } from './governance-authority.js';
 import type { Level, Registry } from './governance-contract.js';
-import { diffPaths, gitCommit } from './governance-git-state.js';
+import { diffPaths, gitCommit, worktreeCandidateFingerprint } from './governance-git-state.js';
 import { pathRole, REGISTRY } from './shared/governance-paths.js';
 import { validateChangedGovernanceSources, validateCommittedProviderContractVersionChanges } from './governance-change-authority.js';
 import { runFullQuality } from './shared/quality-runner.js';
 import { relevantExamScripts } from './shared/quality-routes.js';
 import { detectHighImpactChanges } from './shared/high-impact-detector.js';
+import { assertQualityCommandPassed, collectQualityCheck, writeQualityIssues, type QualityCheckIssue } from './shared/quality-process-execution.js';
 
 function assertAuthorization(changes: Array<{ status: string; path: string }>): void {
   if (changes.some((change) => change.path === 'docs/governance/法案系统建设说明书-冻结定稿版.md') && process.env.GRASSEYE_SOURCE_SPEC_AMENDMENT_AUTHORIZED !== '1') fail('SOURCE_SPEC_AMENDMENT_REQUIRED', 'mother spec');
@@ -83,26 +84,20 @@ function assertBaselineProductionDeleteAuthorization(changes: Array<{ status: st
     process.env.GRASSEYE_PRODUCTION_DELETE_AUTHORIZED === '1');
 }
 
-const changeDenominator = (): string => JSON.stringify(diffPaths().map((change) => [
-  change.status,
-  change.path,
-  change.status === 'D' ? null : readFileSync(resolve(ROOT, change.path)).toString('base64'),
-]));
-
-function run(command: string, args: string[]): void {
-  const before = changeDenominator();
-  const result = spawnSync(command, args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: process.env });
-  if (result.stdout) process.stdout.write(result.stdout);
-  if (result.stderr) process.stderr.write(result.stderr);
-  if (before !== changeDenominator()) fail('CANDIDATE_DRIFT', `${command} ${args.join(' ')}`);
-  if (result.status !== 0) fail('CHECK_EXECUTION_FAILED', `${command} ${args.join(' ')}`);
+async function run(command: string, args: string[], assertCandidate: () => void, issues: QualityCheckIssue[]): Promise<void> {
+  await collectQualityCheck(`${command} ${args.join(' ')}`, () => {
+    const result = spawnSync(command, args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: process.env });
+    if (result.stdout) process.stdout.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
+    assertQualityCommandPassed({ status: result.status, signal: result.signal, stdout: result.stdout ?? '', stderr: result.stderr ?? '' }, command);
+  }, assertCandidate, issues);
 }
 
 function projectionCheck(): void {
   const beforeCommit = gitCommit();
-  const before = changeDenominator();
+  const before = worktreeCandidateFingerprint();
   checkProjection();
-  assertProjectionStable(beforeCommit, before, gitCommit(), changeDenominator());
+  assertProjectionStable(beforeCommit, before, gitCommit(), worktreeCandidateFingerprint());
 }
 
 export function assertProjectionStable(
@@ -116,27 +111,36 @@ export function assertProjectionStable(
   }
 }
 
-function projectChecks(): void {
-  run('npm', ['run', 'typecheck']);
-  const tests = readdirSync('tests/governance').filter((name) => name.endsWith('.test.ts')).sort().map((name) => `tests/governance/${name}`);
-  if (!tests.length) fail('LAW_EVIDENCE_MISSING', 'governance tests');
-  run(process.execPath, ['--import', 'tsx', '--test', ...tests]);
+async function projectChecks(assertCandidate: () => void, issues: QualityCheckIssue[]): Promise<void> {
+  await run('npm', ['run', 'typecheck'], assertCandidate, issues);
+  const tests = await collectQualityCheck('governance test discovery', () => existsSync('tests/governance')
+    ? readdirSync('tests/governance').filter((name) => name.endsWith('.test.ts')).sort().map((name) => `tests/governance/${name}`)
+    : [], assertCandidate, issues);
+  if (!tests?.length) issues.push({ label: 'governance tests', status: 'BLOCKED', message: 'LAW_EVIDENCE_MISSING: governance tests unavailable' });
+  else await run(process.execPath, ['--import', 'tsx', '--test', ...tests], assertCandidate, issues);
 }
 
-function relevantChangeChecks(changes: Array<{ status: string; path: string }>, registry: Registry): void {
-  run('npm', ['run', 'typecheck']);
+async function relevantChangeChecks(changes: Array<{ status: string; path: string }>, registry: Registry,
+  assertCandidate: () => void, issues: QualityCheckIssue[]): Promise<void> {
+  await run('npm', ['run', 'typecheck'], assertCandidate, issues);
   const changedGovernanceTests = changes
     .filter((change) => change.status !== 'D' && /^tests\/governance\/[^/]+\.test\.ts$/u.test(change.path))
     .map((change) => change.path)
     .sort();
-  if (changedGovernanceTests.length) run(process.execPath, ['--import', 'tsx', '--test', ...changedGovernanceTests]);
-  for (const script of relevantExamScripts(changes.map((change) => change.path), registry)) run('npm', ['run', script]);
+  if (changedGovernanceTests.length) await run(process.execPath, ['--import', 'tsx', '--test', ...changedGovernanceTests], assertCandidate, issues);
+  for (const script of relevantExamScripts(changes.map((change) => change.path), registry)) {
+    await run('npm', ['run', script], assertCandidate, issues);
+  }
 }
 
 async function quality(level: Level): Promise<void> {
   if (!['CHANGE', 'READY', 'RELEASE'].includes(level)) fail('ENTRY_CONTRACT_MISMATCH', `invalid level ${level}`);
   verifyEntry();
-  const initial = level === 'CHANGE' ? changeDenominator() : gitCommit();
+  const initial = worktreeCandidateFingerprint();
+  const assertCandidate = (): void => {
+    if (initial !== worktreeCandidateFingerprint()) fail('CANDIDATE_DRIFT', level);
+  };
+  const issues: QualityCheckIssue[] = [];
   const changes = diffPaths();
   assertAuthorization(changes);
   assertDomainAdmission(changes);
@@ -145,18 +149,21 @@ async function quality(level: Level): Promise<void> {
   if (level === 'CHANGE') {
     if (!changes.length) fail('ENTRY_CONTRACT_MISMATCH', 'CHANGE requires an actual diff');
     validateChangedGovernanceSources(changes);
-    relevantChangeChecks(changes, readRegistryProjection());
-    if (initial !== changeDenominator()) fail('CANDIDATE_DRIFT', 'CHANGE candidate changed');
-    process.stdout.write('CHANGE_PASS\n');
+    await relevantChangeChecks(changes, readRegistryProjection(), assertCandidate, issues);
+    assertCandidate();
+    writeQualityIssues(issues);
+    process.stdout.write(`CHANGE_${issues.length ? 'FAIL' : 'PASS'}\n`);
+    if (issues.length) fail('CHECK_EXECUTION_FAILED', `${issues.length} CHANGE checks failed or blocked`);
     return;
   }
   if (changes.length) fail(level === 'READY' ? 'READY_GIT_COMMIT_REQUIRED' : 'RELEASE_GIT_COMMIT_REQUIRED', 'dirty worktree');
   validateCommittedProviderContractVersionChanges();
   const registry = checkProjection();
   verifyProductionOwnership(registry);
-  projectChecks();
-  if (initial !== gitCommit() || diffPaths().length) fail('CANDIDATE_DRIFT', level);
-  const result = await runFullQuality(level, registry);
+  assertCandidate();
+  await projectChecks(assertCandidate, issues);
+  assertCandidate();
+  const result = await runFullQuality(level, registry, issues);
   if (result.outcome !== 'PASS') fail('LAW_FAILED', result.reportPath);
 }
 

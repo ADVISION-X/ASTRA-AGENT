@@ -290,7 +290,7 @@ assert.equal(attachmentMutation.value?.mutationSent, true);
 assert.deepEqual(attachedInput, {
   selector: "form[data-chatgpt-composer] input[type='file'][aria-label='附加文件']",
   activation: {
-    selector: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child",
+    selector: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-actions'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child",
     scope: { selector: "[data-composer-overlay-floating-ui='true']" },
     expectedText: "上传",
   },

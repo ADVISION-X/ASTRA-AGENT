@@ -2,7 +2,7 @@ import { existsSync, lstatSync, realpathSync } from "node:fs";
 import { relative, resolve } from "node:path";
 
 import { exactKeys } from "../governance-json.js";
-import { ROOT, fail, validGitObjectId } from "../governance-runtime.js";
+import { GovernanceError, ROOT, fail, validGitObjectId } from "../governance-runtime.js";
 import type { Law, Level } from "../governance-contract.js";
 
 export type QualityAssertion = {
@@ -13,6 +13,10 @@ export type QualityAssertion = {
 };
 
 export type QualityFinding = { code: string; evidenceRefs: string[] };
+export const qualityFailureFinding = (law: Law, code: string, detail: string): QualityFinding => ({
+  code,
+  evidenceRefs: [`text:${law.source.path}#${encodeURIComponent(`lawId=${law.lawId};${detail}`)}`],
+});
 export type LawExecutionResult = { lawId: string; assertions: QualityAssertion[]; findings: QualityFinding[] };
 export type QualityEvidence = { evidenceMode: string; refs: string[] };
 export type QualityParticipant = { repo: string; gitCommit: string; contracts: Array<{ contractId: string; version: number }> };
@@ -157,7 +161,7 @@ const validateAssertion = (assertion: QualityAssertion, law: Law, required: read
   const expectedKind = evidenceKindByMode[assertion.evidenceMode];
   const scopeOnly = assertion.evidenceMode.startsWith("static.") && assertion.refs.length === 1
     && assertion.refs[0] === `scope:${law.lawId}#appliesTo-minus-excludes`;
-  if (!exactKeys(assertion, assertionKeys)) fail("LAW_EVIDENCE_MISSING", `${law.lawId}:shape`);
+  if (!exactKeys(assertion, assertionKeys) || typeof assertion.passed !== "boolean") fail("LAW_EVIDENCE_MISSING", `${law.lawId}:shape`);
   if (!required.includes(assertion.evidenceMode) || !expectedKind) fail("UNDECLARED_EVIDENCE_MODE", `${law.lawId}:${assertion.evidenceMode}`);
   if (!assertion.refs.length) fail("EMPTY_EVIDENCE_REFS", `${law.lawId}:${assertion.evidenceMode}`);
   if (!assertion.clauses.length || !exactOrdered(assertion.clauses)
@@ -191,14 +195,44 @@ const validateLawExecution = (result: LawExecutionResult, law: Law, level: "READ
 };
 
 const lawReport = (result: LawExecutionResult, law: Law, level: "READY" | "RELEASE"): QualityLawReport => {
-  validateLawExecution(result, law, level);
   const required = requiredModes(law, level);
-  const positive = result.assertions.filter((assertion) => assertion.passed);
+  const assertions: QualityAssertion[] = [];
+  const findings: QualityFinding[] = [];
+  const validate = (label: string, task: () => void): boolean => {
+    try { task(); return true; }
+    catch (error) {
+      findings.push(qualityFailureFinding(law, error instanceof GovernanceError ? error.code : "CHECK_EXECUTION_FAILED",
+        `${label};error=${error instanceof Error ? error.message : String(error)}`));
+      return false;
+    }
+  };
+  const shapeValid = validate("result-shape", () => {
+    if (!exactKeys(result, resultKeys) || result.lawId !== law.lawId
+      || !Array.isArray(result.assertions) || !Array.isArray(result.findings)) fail("LAW_DENOMINATOR_MISSING", law.lawId);
+  });
+  if (shapeValid) {
+    result.assertions.forEach((assertion, index) => {
+      if (validate(`assertion=${index}`, () => validateAssertion(assertion, law, required))) assertions.push(assertion);
+    });
+    result.findings.forEach((finding, index) => {
+      if (validate(`finding=${index}`, () => validateFinding(finding, law.lawId))) findings.push(finding);
+    });
+  }
+  for (const mode of required) {
+    if (!assertions.some((assertion) => assertion.evidenceMode === mode)) {
+      findings.push(qualityFailureFinding(law, "LAW_EVIDENCE_MISSING", `required-mode=${mode}`));
+    }
+  }
+  validate("law-execution", () => validateLawExecution({ lawId: law.lawId, assertions, findings }, law, level));
+  if (assertions.some((assertion) => !assertion.passed) && !findings.length) {
+    findings.push(qualityFailureFinding(law, "LAW_FAILED", "failed-assertion-without-finding"));
+  }
+  const positive = assertions.filter((assertion) => assertion.passed);
   const evidence = required.flatMap((mode) => {
     const refs = ordered(positive.filter((assertion) => assertion.evidenceMode === mode).flatMap((assertion) => assertion.refs));
     return refs.length ? [{ evidenceMode: mode, refs }] : [];
   });
-  const passed = result.findings.length === 0 && result.assertions.every((assertion) => assertion.passed)
+  const passed = findings.length === 0 && assertions.every((assertion) => assertion.passed)
     && evidence.length === required.length;
   return {
     lawId: law.lawId,
@@ -207,7 +241,7 @@ const lawReport = (result: LawExecutionResult, law: Law, level: "READY" | "RELEA
     deferredEvidenceModes: deferredModes(law, level),
     evidence,
     outcome: passed ? "PASS" : "FAIL",
-    findings: result.findings,
+    findings,
   };
 };
 
@@ -217,6 +251,7 @@ export const buildQualityReport = (input: {
   laws: Law[];
   results: LawExecutionResult[];
   participants?: QualityParticipant[];
+  projectChecksPassed?: boolean;
 }): QualityReport => {
   if (input.level === "CHANGE") fail("ENTRY_CONTRACT_MISMATCH", "CHANGE has no full law report");
   if (!validGitObjectId(input.gitCommit)) fail("QUALITY_REPORT_INVALID", "gitCommit");
@@ -234,6 +269,6 @@ export const buildQualityReport = (input: {
     gitCommit: input.gitCommit,
     laws,
     participants,
-    outcome: laws.every((law) => law.outcome === "PASS") ? "PASS" : "FAIL",
+    outcome: input.projectChecksPassed !== false && laws.every((law) => law.outcome === "PASS") ? "PASS" : "FAIL",
   };
 };

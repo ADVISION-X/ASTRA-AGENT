@@ -1,3 +1,4 @@
+import { emitBrowserMutationEvent } from "../exact-target/browser-command-runtime-logging.js";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 
@@ -5,10 +6,6 @@ import { BrowserCommandActor } from "../exact-target/browser-command-actor.js";
 import { BrowserMutationStore } from "../exact-target/browser-mutation-store.js";
 import { BrowserSessionWorkspace, type SessionWorkspaceBindingV6 } from "../exact-target/browser-session-workspace.js";
 import { requireGptWebClaimOrigin } from "../exact-target/browser-site-policy-registry.js";
-import type {
-  BrowserTargetLease,
-  BrowserTargetLeaseWait,
-} from "../exact-target/browser-target-lease.js";
 import { BrowserTargetLeaseManager, type BrowserExactTargetAcquisition } from "../exact-target/browser-target-lease-manager.js";
 import type { BrowserProfileConfig } from "../profile/browser-profile-config.js";
 import type { BrowserProfileState } from "../profile/browser-profile-state.js";
@@ -90,6 +87,7 @@ export class BrowserInfrastructureSupervisor {
         profileConfig: this.options.profileConfig, enrolledProfile: this.options.enrolledProfile,
         releaseIdentity: this.options.releaseIdentity,
       }),
+      onMutationReceipt: (fact, acknowledge) => this.settleMutationTerminal(fact, acknowledge),
       onTargetClaim: (input) => this.onTargetClaim(input),
       onTargetRevoke: (input) => this.onTargetRevoke(input),
       onDiagnostic: (reasonCode, refs) => this.onDiagnostic(reasonCode, refs),
@@ -107,6 +105,31 @@ export class BrowserInfrastructureSupervisor {
       () => this.broker, this.websocket, this.issuer, this.state,
     );
     this.evidence = new BrowserInfrastructureEvidence(this.lane, this.state);
+  }
+
+  private settleMutationTerminal(fact: Parameters<BrowserMutationStore["settleTerminalReceipt"]>[0], acknowledge: () => void): void {
+    const mutations = this.state.mutationState;
+    if (!this.state.started || !mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
+    const settled = mutations.settleTerminalReceipt(fact);
+    let logFailure: unknown = null;
+    if (!this.options.runtimeLogger.isWritable()) {
+      logFailure = new Error(this.options.runtimeLogger.getSinkState() === "capacity_blocked"
+        ? "RUNTIME_LOG_CAPACITY_BLOCKED" : "RUNTIME_LOG_SINK_WRITE_FAILED");
+    } else if (settled.changed) {
+      try {
+        emitBrowserMutationEvent({ runtimeLogger: this.options.runtimeLogger,
+          mutation: settled.identity, outcome: fact.terminalReceipt.terminal === "confirmed" ? "CONFIRMED" : "REJECTED",
+          authorityHash: mutations.authorityHash(fact.commandId) });
+      } catch (error) { logFailure = error; }
+    }
+    try { acknowledge(); }
+    catch (ackFailure) {
+      if (logFailure instanceof Error) throw new Error(logFailure.message,
+        { cause: new AggregateError([logFailure, ackFailure]) });
+      throw ackFailure;
+    }
+    if (logFailure !== null) throw logFailure;
+    this.lane.notifyMutationSettled();
   }
 
   private onTargetClaim(input: BrowserAuthorityTargetClaim): void {
@@ -269,8 +292,8 @@ export class BrowserInfrastructureSupervisor {
   public acquireJobBoundTargetLease(
     binding: BrowserExecutionBinding,
     ownerId: string,
-    wait: BrowserTargetLeaseWait,
-  ): Promise<BrowserTargetLease> { return this.lane.acquire(binding, ownerId, wait); }
+    wait: Parameters<BrowserLaneCoordinator["acquire"]>[2],
+  ): ReturnType<BrowserLaneCoordinator["acquire"]> { return this.lane.acquire(binding, ownerId, wait); }
 
   public releaseJobBoundTarget(
     jobId: string,

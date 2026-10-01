@@ -1,3 +1,7 @@
+import { Project } from "ts-morph";
+import { inspectBrowserMutationSettlement } from "../audit/domains/local-browser-session/browser-mutation-settlement-inspection.js";
+import type { InspectorContext, InspectorFinding } from "../audit/shared/inspector-contracts.js";
+import { terminalFact } from "./local-browser-mutation-store-support.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -5,6 +9,43 @@ import { join } from "node:path";
 
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
 import { assertBrowserDomIntent } from "../../src/lib/browser/exact-target/browser-dom-intent.js";
+
+
+const exerciseTerminalOwnerInspectorMutants = (): void => {
+  const project = new Project({ tsConfigFilePath: "tsconfig.json" });
+  const paths = project.getSourceFiles().map(source => source.getFilePath().slice(process.cwd().length + 1));
+  const lawId = "LAW-LOCAL-BROWSER-SESSION-004-V56";
+  const context: InspectorContext = { project, sealedRoot: process.cwd(), selectedLawId: lawId,
+    targetPaths: paths, targetSet: { queryRef: "fixture-terminal-owner", count: paths.length },
+    lawRequirements: [{ lawId, forbiddenCount: 24, requiredStaticModes: ["static.ast"], targetPaths: paths,
+      targetSet: { queryRef: "fixture-terminal-owner", count: paths.length } }],
+    planEntry: { capabilityDomain: "local-browser-session", executionGroup: "domain", lawIds: [lawId],
+      manifestPath: "scripts/audit/domains/local-browser-session/manifest.json", ownerInspectorPath:
+        "scripts/audit/domains/local-browser-session/inspector.ts" }, generatedPlan: [] };
+  const inspect = (): InspectorFinding[] => { const findings: InspectorFinding[] = [];
+    inspectBrowserMutationSettlement(context, findings, lawId); return findings; };
+  assert.deepEqual(inspect(), [], "native inspector must observe the actual current chain");
+  for (const [path, original, replacement] of [
+    ["src/lib/browser/transport/browser-authority-websocket.ts",
+      "this.settleMutationReceipt(socket, parseBrowserMutationTerminalFact(body))", "this.options.onHeartbeat()"],
+    ["src/lib/browser/exact-target/browser-mutation-store.ts", "verifyBrowserMutationTerminalFact(command.identity",
+      "unverifiedTerminalFact(command.identity"],
+    ["src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts", "const settled = mutations.settleTerminalReceipt(fact);",
+      "acknowledge(); const settled = mutations.settleTerminalReceipt(fact);"],
+    ["src/lib/browser/exact-target/browser-command-actor.ts", "const settled = this.mutations.readCommand(permit.commandId);",
+      "this.mutations.settleTerminalReceipt(fact); const settled = this.mutations.readCommand(permit.commandId);"],
+    ["src/lib/browser/chrome-extension/websocket-actor.ts", "frame.sequence <= this.connection.lastServerSequence",
+      "frame.sequence < 0"],
+    ["src/lib/browser/chrome-extension/websocket-actor.ts", "await this.targetAuthority.releaseActiveTarget(false)",
+      "await Promise.resolve()"],
+  ] as const) {
+    const source = project.getSourceFileOrThrow(path); const before = source.getFullText();
+    assert.ok(before.includes(original), original);
+    try { source.replaceWithText(before.replace(original, replacement));
+      assert.ok(inspect().length > 0, "native inspector must reject owner bypass: " + path);
+    } finally { source.replaceWithText(before); }
+  }
+};
 
 const root = await mkdtemp(join(tmpdir(), "browser-mutation-attacks-"));
 const hash = `sha256:${"b".repeat(64)}` as const;
@@ -134,7 +175,7 @@ try {
     actionId: "browser.dom.click.v1", positivePostconditionHash: hash,
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
   });
-  assert.throws(() => store.resolve({ commandId: "command-1", targetRef: "target-1", state: "CONFIRMED", mutationOutcome: "dispatched", proofHash: hash }), /BROWSER_MUTATION_STATE_CONFLICT/u);
+  assert.throws(() => store.settleTerminalReceipt(terminalFact(store.readCommand("command-1")!.identity)), /BROWSER_MUTATION_STATE_CONFLICT/u);
   store.markDispatched("command-1");
   store.markReceiptMissing("command-1");
   assert.throws(() => store.prepare({deliveryPriorityReplayGrantHash: null,
@@ -148,7 +189,7 @@ try {
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
   }), /BROWSER_MUTATION_UNSETTLED/u,
   "an unresolved physical input blocks every new mutation even after attempt or fence changes");
-  assert.throws(() => store.resolve({ commandId: "command-1", targetRef: "target-2", state: "CONFIRMED", mutationOutcome: "dispatched", proofHash: hash }), /BROWSER_MUTATION_STATE_CONFLICT/u);
+  assert.throws(() => store.settleTerminalReceipt(terminalFact({ ...store.readCommand("command-1")!.identity, requestHash: negativeHash })), /BROWSER_RECONCILIATION_IDENTITY_MISMATCH/u);
   assert.equal(store.readCommand("command-1")?.identity.childCapabilityId, "open_gpt_model_selector_v3");
   assert.equal(store.readAtomicStepOutcome({
     jobId: "job-1", attemptId: "attempt-1", exactCallIdentityHash,
@@ -158,7 +199,7 @@ try {
     jobId: "job-1", attemptId: "attempt-1", exactCallIdentityHash,
     actionOrdinal: 1, targetRef: "target-2", effectScope: "target_local",
   }), null, "target-local recovery identity must not cross Target generations");
-  store.resolve({ commandId: "command-1", targetRef: "target-1", state: "REJECTED", mutationOutcome: "dispatched", proofHash: hash });
+  store.settleTerminalReceipt(terminalFact(store.readCommand("command-1")!.identity, { terminal: "rejected", mutationOutcome: "dispatched" }));
   const rejectedFact = store.readExactCallMutationFact({
     jobId: "job-1", attemptId: "attempt-1", exactCallIdentityHash, actionOrdinal: 1,
   });
@@ -202,7 +243,7 @@ try {
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
   });
   store.markDispatched("command-provider-no-input-rejected");
-  store.markRejected("command-provider-no-input-rejected", hash, "no");
+  store.settleTerminalReceipt(terminalFact(store.readCommand("command-provider-no-input-rejected")!.identity, { terminal: "rejected", resultHash: hash, mutationOutcome: "no" }));
   assert.equal(store.readExactCallMutationFact({
     jobId: "job-1", attemptId: "attempt-2",
     exactCallIdentityHash: reusableProviderExactHash, actionOrdinal: 13,
@@ -218,7 +259,7 @@ try {
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
   }), "a prior-attempt provider rejection with zero physical input must permit one fresh retry");
   store.markDispatched("command-provider-retry-after-no-input");
-  store.markConfirmed("command-provider-retry-after-no-input", hash);
+  store.settleTerminalReceipt(terminalFact(store.readCommand("command-provider-retry-after-no-input")!.identity, { terminal: "confirmed", resultHash: hash, mutationOutcome: "confirmed" }));
   const confirmedProviderFact = store.readExactCallMutationFact({
     jobId: "job-1", attemptId: "attempt-2",
     exactCallIdentityHash: reusableProviderExactHash, actionOrdinal: 13,
@@ -238,7 +279,7 @@ try {
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
   });
   store.markDispatched("command-new-target");
-  store.markConfirmed("command-new-target", hash);
+  store.settleTerminalReceipt(terminalFact(store.readCommand("command-new-target")!.identity, { terminal: "confirmed", resultHash: hash, mutationOutcome: "confirmed" }));
   store.prepare({deliveryPriorityReplayGrantHash: null,
     commandId: "command-provider-effect", logicalMutationId: `sha256:${"f".repeat(64)}`,
     exactCallIdentityHash: `sha256:${"2".repeat(64)}`,
@@ -250,7 +291,7 @@ try {
     negativePostconditionHash: negativeHash, requestHash: hash, payloadHash: hash,
   });
   store.markDispatched("command-provider-effect");
-  store.markConfirmed("command-provider-effect", hash);
+  store.settleTerminalReceipt(terminalFact(store.readCommand("command-provider-effect")!.identity, { terminal: "confirmed", resultHash: hash, mutationOutcome: "confirmed" }));
   assert.equal(store.readAtomicStepOutcome({
     jobId: "job-1", attemptId: "attempt-2", exactCallIdentityHash: `sha256:${"2".repeat(64)}`,
     actionOrdinal: 13, targetRef: "target-replacement", effectScope: "provider_effect",
@@ -274,7 +315,7 @@ try {
   assert.equal(ackStore.readConfirmedRateLimitAcknowledgement(ackQuery), null);
   ackStore.markDispatched(ackIdentity.commandId);
   assert.equal(ackStore.readConfirmedRateLimitAcknowledgement(ackQuery), null);
-  ackStore.markConfirmed(ackIdentity.commandId, hash, "confirmed", null, 1);
+  ackStore.settleTerminalReceipt(terminalFact(ackStore.readCommand(ackIdentity.commandId)!.identity, { terminal: "confirmed", resultHash: hash, mutationOutcome: "confirmed", physicalInputCount: 1 }));
   const ackTerminal = ackStore.readConfirmedRateLimitAcknowledgement(ackQuery);
   assert.ok(ackTerminal?.terminalAt);
   assert.deepEqual(Object.keys(ackTerminal), ["terminalAt"],
@@ -282,6 +323,7 @@ try {
   assert.equal(ackStore.readConfirmedRateLimitAcknowledgement({ ...ackQuery,
     incidentRequestId: "aipcooldown_other" }), null);
   ackStore.close();
+  exerciseTerminalOwnerInspectorMutants();
   process.stdout.write("LOCAL_BROWSER_RULE_MUTANTS_PASS\n");
 } finally {
   await rm(root, { recursive: true, force: true });

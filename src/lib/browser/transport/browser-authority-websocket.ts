@@ -1,3 +1,4 @@
+import type { BrowserMutationTerminalFact } from "../exact-target/browser-observation-receipt.js";
 import { randomBytes } from "node:crypto";
 import {
   canonicalizeBrowserAuthorityValue,
@@ -23,7 +24,8 @@ import type { BrowserCommandPermit } from "./command-permit.js";
 import {
   authorityRecord,
   canonicalBrowserAuthorityPlaintext,
-  compareReplyToken,
+  parseBrowserCommandReply,
+  parseBrowserMutationTerminalFact,
   encryptedFrameBody,
   integerField,
   parseBrowserAuthorityTargetClaim,
@@ -55,6 +57,7 @@ export type BrowserAuthorityWebSocketOptions = Readonly<{
     sessionHash: `sha256:${string}`;
     commandPermitKey: string;
   }>): BrowserAuthorityReady;
+  onMutationReceipt(fact: BrowserMutationTerminalFact, acknowledge: () => void): void;
   onTargetClaim(input: BrowserAuthorityTargetClaim): void;
   onTargetRevoke(input: BrowserAuthorityTargetRevoke): void;
   onDiagnostic(reasonCode: string, refs: Readonly<Record<string, string>>): void;
@@ -70,6 +73,7 @@ export type BrowserAuthorityReady = Readonly<{
 }>;
 
 type AwaitingReply = Readonly<{
+  permit: BrowserCommandPermit; command: BrowserGovernedCommand; receiptBindingHash: `sha256:${string}` | null;
   targetRef: string;
   replyChannelToken: string;
   permitSequence: number;
@@ -106,7 +110,6 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
   private active: ActiveSocket | null = null;
   private pending: Readonly<{ socket: BrowserAuthoritySocket; state: BrowserAuthorityHandshakeState; frameCount: number }> | null = null;
   private pairingSecret: string | null;
-
   public constructor(private readonly options: BrowserAuthorityWebSocketOptions) {
     this.pairingSecret = options.pairingSecret ?? this.createPairingSecret();
   }
@@ -115,7 +118,6 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
   public readOperatorPairingSecret(): string | null {
     return this.active ? null : this.pairingSecret;
   }
-
   public receive(socket: BrowserAuthoritySocket, encoded: string): void {
     try {
       const frame = decodeBrowserAuthorityFrame(encoded);
@@ -124,15 +126,13 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       if (frame.kind === "PAIR_PROOF") return this.acceptProof(socket, frame);
       this.receiveAuthenticated(socket, frame);
     } catch (error) {
-      this.revoke(socket, error instanceof Error ? error.message : "BROWSER_AUTH_TRANSCRIPT_INVALID");
+      this.revoke(socket, error instanceof Error ? error.message : "BROWSER_AUTH_TRANSCRIPT_INVALID", error);
     }
   }
-
   public disconnect(socket: BrowserAuthoritySocket, reasonCode = "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", refs?: Readonly<Record<string, string>>): void {
     if (this.pending?.socket === socket) this.pending = null;
     if (this.active?.socket === socket) this.clearActive(reasonCode, refs);
   }
-
   public assertLive(now = Date.now()): void {
     const active = this.active;
     if (!active || now - active.lastHeartbeatAt > BROWSER_MISSED_HEARTBEAT_TOLERANCE_MS) {
@@ -140,7 +140,6 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       throw new Error("BROWSER_LIVENESS_EXPIRED");
     }
   }
-
   public rejectTargetCommands(targetRef: string, reasonCode: string, nativeCauseCode?: string): void {
     const active = this.active;
     if (!active) return;
@@ -155,12 +154,13 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     }
     this.active = { ...active, replies };
   }
-
   public async send(
     permit: BrowserCommandPermit,
     command: BrowserGovernedCommand,
     onDispatched?: () => void,
+    receiptBindingHash: `sha256:${string}` | null = null,
   ): Promise<BrowserCommandReply> {
+    if ((permit.mutationClass === "mutation") !== (receiptBindingHash !== null)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
     this.assertLive();
     const active = this.active;
     if (!active) throw new Error("BROWSER_LIVENESS_EXPIRED");
@@ -170,17 +170,19 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       permit.commandTtlMs,
     );
     const deadline = new Date(Date.now() + commandDeadlineMs).toISOString();
-    const frame = this.encryptedFrame(active, "COMMAND", sequence, deadline, { permit, command });
+    const frame = this.encryptedFrame(active, "COMMAND", sequence, deadline, { permit, command, receiptBindingHash });
     return new Promise<BrowserCommandReply>((resolve, reject) => {
       const replyDeadlineMs = commandDeadlineMs
         + (onDispatched === undefined ? 0 : MUTATION_TERMINAL_REPLY_GRACE_MS);
       const timeout = setTimeout(() => {
         this.removeReply(sequence);
-        this.revoke(active.socket, "BROWSER_COMMAND_RECEIPT_MISSING");
+        try { this.revoke(active.socket, "BROWSER_COMMAND_RECEIPT_MISSING"); }
+        catch (cause) { reject(new Error("BROWSER_COMMAND_RECEIPT_MISSING", { cause })); return; }
         reject(new Error("BROWSER_COMMAND_RECEIPT_MISSING"));
       }, replyDeadlineMs);
       const replies = new Map(active.replies);
       replies.set(sequence, {
+        permit, command, receiptBindingHash,
         targetRef: permit.targetRef,
         replyChannelToken: permit.replyChannelToken,
         permitSequence: permit.sequence,
@@ -193,16 +195,16 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
         onDispatched?.();
         active.socket.send(encodeBrowserAuthorityFrame(frame));
       } catch (error) {
-        const reasonCode = error instanceof Error && /^BROWSER_[A-Z_]+$/u.test(error.message)
+        const reasonCode = error instanceof Error && /^(?:BROWSER|RUNTIME_LOG)_[A-Z_]+$/u.test(error.message)
           ? error.message
           : "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE";
         this.removeReply(sequence);
-        this.revoke(active.socket, reasonCode);
-        reject(new Error(reasonCode));
+        try { this.revoke(active.socket, reasonCode); }
+        catch (revokeFailure) { reject(new Error(reasonCode, { cause: new AggregateError([error, revokeFailure]) })); return; }
+        reject(new Error(reasonCode, { cause: error }));
       }
     });
   }
-
   public requestPreauthorizedTargetAcquisition(
     targetMode: "fresh" | "bound-observation" | "confirmed-readback" | "authorized-continuation",
     jobRefHash: `sha256:${string}`,
@@ -232,7 +234,6 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
     }
   }
-
   public requestPreauthorizedTargetRelease(
     jobRefHash: `sha256:${string}`,
   ): void {
@@ -254,7 +255,6 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
     }
   }
-
   private acceptHello(socket: BrowserAuthoritySocket, frame: BrowserAuthorityFrame): void {
     if (this.active || this.pending || this.pairingSecret === null || frame.epoch !== 0 || frame.sequence !== 0) {
       throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
@@ -288,7 +288,6 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       body: state.challenge,
     }));
   }
-
   private acceptProof(socket: BrowserAuthoritySocket, frame: BrowserAuthorityFrame): void {
     const pending = this.pending;
     if (!pending || pending.socket !== socket || pending.frameCount >= MAX_PREAUTH_FRAMES || frame.epoch !== 0 || frame.sequence !== 1) {
@@ -327,7 +326,6 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     this.active = { ...this.active, nextServerSequence: 2 };
     socket.send(encodeBrowserAuthorityFrame(readyFrame));
   }
-
   private receiveAuthenticated(socket: BrowserAuthoritySocket, frame: BrowserAuthorityFrame): void {
     const active = this.active;
     if (!active || active.socket !== socket || frame.epoch !== AUTH_EPOCH || frame.sequence <= active.lastClientSequence || frame.kind === "PAIR_CHALLENGE" || frame.kind === "AUTHENTICATED") {
@@ -344,14 +342,17 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     const body = parseCanonicalPlaintext(plaintext);
     this.active = { ...active, lastClientSequence: frame.sequence, lastHeartbeatAt: Date.now() };
     if (this.acceptAuthenticatedControl(socket, frame, body)) return;
-    this.acceptReply(body);
+    this.acceptReply(socket, body);
   }
-
   private acceptAuthenticatedControl(
     socket: BrowserAuthoritySocket,
     frame: BrowserAuthorityFrame,
     body: Record<string, unknown>,
   ): boolean {
+    if (frame.kind === "MUTATION_RECEIPT") {
+      this.settleMutationReceipt(socket, parseBrowserMutationTerminalFact(body));
+      return true;
+    }
     if (frame.kind === "HEARTBEAT") {
       if (Object.keys(body).length !== 0) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
       this.options.onHeartbeat();
@@ -360,7 +361,9 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     if (frame.kind === "TARGET_CLAIM") {
       const claim = parseBrowserAuthorityTargetClaim(body);
       this.options.onTargetClaim(claim);
-      this.sendTargetClaimAcknowledgement(socket, claim);
+      this.sendControlFrame(socket, "TARGET_CLAIM", {
+        targetRef: claim.targetRef, documentRef: claim.documentRef, jobRefHash: claim.jobRefHash,
+      });
       return true;
     }
     if (frame.kind === "TARGET_REVOKE") {
@@ -381,48 +384,33 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     if (frame.kind !== "REPLY") throw new Error("BROWSER_CAPABILITY_REJECTED");
     return false;
   }
-
-  private acceptReply(body: Record<string, unknown>): void {
+  private acceptReply(socket: BrowserAuthoritySocket, body: Record<string, unknown>): void {
     const active = this.active;
     const requestSequence = integerField(body, "requestSequence", 1);
-    const permitSequence = integerField(body, "permitSequence", 1);
-    const replyChannelToken = stringField(body, "replyChannelToken");
     const reply = active?.replies.get(requestSequence);
-    if (!active || !reply
-      || permitSequence !== reply.permitSequence
-      || !compareReplyToken(replyChannelToken, reply.replyChannelToken)) {
-      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    }
-    const replyKeys = Object.keys(body);
-    if (typeof body.errorCode === "string") {
-      if (replyKeys.length !== 4 || Object.hasOwn(body, "result")
-        || !/^BROWSER_[A-Z0-9_]+$/u.test(body.errorCode)) {
-        throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-      }
-      this.removeReply(requestSequence);
-      reply.reject(new BrowserCommandTerminalReplyError(
-        body.errorCode,
-        replyChannelToken,
-        requestSequence,
-        permitSequence,
-      ));
-      return;
-    }
-    if (replyKeys.length !== 4 || !Object.hasOwn(body, "result")) {
-      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    }
+    if (!active || active.socket !== socket || !reply) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    const parsed = parseBrowserCommandReply(body, reply.permit, reply.command, reply.receiptBindingHash);
+    if (parsed.fact) this.settleMutationReceipt(socket, parsed.fact);
     this.removeReply(requestSequence);
-    reply.resolve({
-      replyChannelToken,
-      transportSequence: requestSequence,
-      permitSequence,
-      result: body.result,
+    if (parsed.errorCode !== null) {
+      reply.reject(new BrowserCommandTerminalReplyError(parsed.errorCode, reply.replyChannelToken,
+        requestSequence, reply.permitSequence));
+    } else reply.resolve({ replyChannelToken: reply.replyChannelToken, transportSequence: requestSequence,
+      permitSequence: reply.permitSequence, result: body.result, mutationReceipt: parsed.fact });
+  }
+  private settleMutationReceipt(socket: BrowserAuthoritySocket, fact: BrowserMutationTerminalFact): void {
+    const keys = this.active?.keys;
+    this.options.onMutationReceipt(fact, () => {
+      if (!keys || this.active?.socket !== socket || this.active.keys !== keys) {
+        throw new Error("BROWSER_LIVENESS_EXPIRED");
+      }
+      this.sendControlFrame(socket, "MUTATION_RECEIPT", { type: "ack", commandId: fact.commandId,
+        receiptBindingHash: fact.receiptBindingHash, receiptHash: fact.receiptHash });
     });
   }
-
   private encryptedFrame(
     active: ActiveSocket,
-    kind: Extract<BrowserAuthorityFrame["kind"], "COMMAND" | "READY" | "TARGET_ACQUIRE" | "TARGET_CLAIM" | "REVOKE">,
+    kind: Extract<BrowserAuthorityFrame["kind"], "COMMAND" | "READY" | "TARGET_ACQUIRE" | "TARGET_CLAIM" | "REVOKE" | "MUTATION_RECEIPT">,
     sequence: number,
     deadline: string,
     body: Record<string, unknown>,
@@ -442,25 +430,16 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       },
     };
   }
-
-  private sendTargetClaimAcknowledgement(
-    socket: BrowserAuthoritySocket,
-    claim: BrowserAuthorityTargetClaim,
-  ): void {
+  private sendControlFrame(socket: BrowserAuthoritySocket,
+    kind: "TARGET_CLAIM" | "MUTATION_RECEIPT", body: Record<string, unknown>): void {
     const active = this.active;
     if (!active || active.socket !== socket) throw new Error("BROWSER_LIVENESS_EXPIRED");
     const sequence = active.nextServerSequence;
-    const frame = this.encryptedFrame(
-      active,
-      "TARGET_CLAIM",
-      sequence,
-      new Date(Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS).toISOString(),
-      { targetRef: claim.targetRef, documentRef: claim.documentRef, jobRefHash: claim.jobRefHash },
-    );
+    const frame = this.encryptedFrame(active, kind, sequence,
+      new Date(Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS).toISOString(), body);
     this.active = { ...active, nextServerSequence: sequence + 1 };
     socket.send(encodeBrowserAuthorityFrame(frame));
   }
-
   private removeReply(sequence: number): void {
     const active = this.active;
     const reply = active?.replies.get(sequence);
@@ -470,27 +449,30 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     replies.delete(sequence);
     this.active = { ...active, replies };
   }
-
-  private clearActive(reasonCode: string, refs?: Readonly<Record<string, string>>): void {
+  private clearActive(reasonCode: string, refs?: Readonly<Record<string, string>>, cause?: unknown): void {
     const active = this.active;
     this.active = null;
     if (active) {
       for (const reply of active.replies.values()) {
         clearTimeout(reply.timeout);
-        reply.reject(new Error(reasonCode));
+        reply.reject(new Error(reasonCode, { cause }));
       }
     }
     this.pairingSecret = this.createPairingSecret();
     this.options.onRevoked(reasonCode, refs);
   }
-
-  private revoke(socket: BrowserAuthoritySocket, reasonCode: string): void {
+  private revoke(socket: BrowserAuthoritySocket, reasonCode: string, cause?: unknown): void {
     if (this.pending?.socket === socket) this.pending = null;
-    if (this.active?.socket === socket) this.clearActive(reasonCode);
-    else this.options.onRevoked(reasonCode);
-    try { socket.close(1008); } catch { this.options.onDiagnostic("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", { failedOperation: "socket-close" }); }
+    let cleanupFailure: unknown = null;
+    try {
+      if (this.active?.socket === socket) this.clearActive(reasonCode, undefined, cause);
+      else this.options.onRevoked(reasonCode);
+    } catch (error) { cleanupFailure = error; }
+    try { socket.close(1008); }
+    catch (error) { cleanupFailure = new AggregateError([cleanupFailure, error]); }
+    if (cleanupFailure !== null) throw new Error(reasonCode,
+      { cause: new AggregateError([cause, cleanupFailure]) });
   }
-
   private createPairingSecret(): string {
     return randomBytes(32).toString("hex");
   }

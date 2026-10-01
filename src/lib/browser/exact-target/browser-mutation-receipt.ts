@@ -1,3 +1,6 @@
+import type { BrowserMutationIdentity } from "./browser-mutation-types.js";
+import { BROWSER_ERROR_CODES } from "../protocol/generated/browser-protocol.generated.js";
+import { assertSubmitRecoveryPayload } from "./browser-submit-recovery-payload.js";
 import type { BrowserGovernedCommand } from "./browser-command-actor.js";
 import {
   browserDomCandidateMissingStage, browserInteractionNativeCauseCode,
@@ -6,8 +9,8 @@ import {
 import {
   knownRateLimitBlockerReceiptValid,
   unrecognizedGptDialogReceiptValid,
-} from "./browser-special-mutation-receipt.js";
-import { observationPostconditionEvidenceValid } from "./browser-observation-receipt.js";
+} from "./browser-observation-receipt.js";
+import { postconditionEvidenceValid, browserMutationTerminalFactShapeValid, type BrowserMutationTerminalFact, type BrowserMutationTerminalReceipt, observationPostconditionEvidenceValid } from "./browser-observation-receipt.js";
 
 export type BrowserMutationReceipt = Readonly<{
   terminal: "confirmed" | "rejected";
@@ -30,11 +33,6 @@ const POSTCONDITION_NATIVE_CAUSES = new Set([
   "BROWSER_DOM_NODE_STALE", "BROWSER_DOM_READ_INVALID", "DISCONNECTED", "NO_LAYOUT_BOX",
   "DISPLAY_HIDDEN", "VISIBILITY_HIDDEN", "OPACITY_HIDDEN", "HTML_HIDDEN", "ARIA_HIDDEN",
   "INERT", "TEXT_MISMATCH",
-]);
-
-const POSTCONDITION_REJECTION_REASONS = new Set([
-  "DISCONNECTED", "NO_LAYOUT_BOX", "DISPLAY_HIDDEN", "VISIBILITY_HIDDEN", "OPACITY_HIDDEN",
-  "HTML_HIDDEN", "ARIA_HIDDEN", "INERT", "TEXT_MISMATCH",
 ]);
 
 const POINTER_ACTIONABILITY_NATIVE_CAUSES = new Set([
@@ -124,70 +122,6 @@ const hasObservationPostcondition = (command: BrowserGovernedCommand): boolean =
 const postconditionEvidenceKeys = [
   "postconditionRawCount", "postconditionEligibleCount", "postconditionRejections",
 ] as const;
-
-const expectedMatchCount = (command: BrowserGovernedCommand): number | null => {
-  if (command.kind !== "dom-intent") return null;
-  if (command.intent.kind === "click") return command.intent.postClickMatch?.expectedMatches ?? null;
-  if (command.intent.kind === "doubleClick") return command.intent.postDoubleClickMatch.expectedMatches;
-  if (command.intent.kind === "keypress") return command.intent.postKeypressMatch.expectedMatches;
-  return null;
-};
-
-const postconditionCountsValid = (
-  value: Readonly<Record<string, unknown>>,
-  expected: number | null,
-): boolean => Number.isSafeInteger(value.postconditionRawCount)
-  && (value.postconditionRawCount as number) >= 0
-  && Number.isSafeInteger(value.postconditionEligibleCount)
-  && (value.postconditionEligibleCount as number) >= 0
-  && (value.postconditionEligibleCount as number) <= (value.postconditionRawCount as number)
-  && Array.isArray(value.postconditionRejections)
-  && value.postconditionRejections.length === (value.postconditionRawCount as number)
-    - (value.postconditionEligibleCount as number)
-  && expected !== null
-  && value.postconditionVerified === ((value.postconditionEligibleCount as number) === expected);
-
-const postconditionRejectionValid = (
-  candidate: unknown,
-  rawCount: number,
-  indices: Set<number>,
-): boolean => {
-  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return false;
-  const item = candidate as Readonly<Record<string, unknown>>;
-  const index = item.index;
-  if (!exactKeys(item, ["index", "reasons"]) || !Number.isSafeInteger(index)
-    || (index as number) < 0 || (index as number) >= rawCount || indices.has(index as number)
-    || !Array.isArray(item.reasons) || item.reasons.length < 1
-    || new Set(item.reasons).size !== item.reasons.length
-    || item.reasons.some((reason) => typeof reason !== "string"
-      || !POSTCONDITION_REJECTION_REASONS.has(reason))) return false;
-  indices.add(index as number);
-  return true;
-};
-
-const postconditionFailureCause = (
-  value: Readonly<Record<string, unknown>>,
-  expected: number,
-): string => {
-  const firstReason = (value.postconditionRejections as readonly Readonly<Record<string, unknown>>[])[0]
-    ?.reasons as readonly string[] | undefined;
-  if ((value.postconditionEligibleCount as number) > expected) return "BROWSER_DOM_CANDIDATE_AMBIGUOUS";
-  if ((value.postconditionRawCount as number) === 0) return "BROWSER_DOM_CANDIDATE_MISSING";
-  return firstReason?.[0] ?? "BROWSER_DOM_CANDIDATE_MISSING";
-};
-
-const postconditionEvidenceValid = (
-  command: BrowserGovernedCommand,
-  value: Readonly<Record<string, unknown>>,
-): boolean => {
-  const expected = expectedMatchCount(command);
-  if (!postconditionCountsValid(value, expected)) return false;
-  const indices = new Set<number>();
-  const rejectionsValid = (value.postconditionRejections as readonly unknown[]).every((candidate) =>
-    postconditionRejectionValid(candidate, value.postconditionRawCount as number, indices));
-  if (!rejectionsValid || value.postconditionVerified === true) return rejectionsValid;
-  return value.nativeCauseCode === postconditionFailureCause(value, expected!);
-};
 
 const actionKeys = (command: BrowserGovernedCommand, failed: boolean): readonly string[] => {
   const common = ["candidateCount", "identityRevalidated", "mutationCount", "postconditionVerified"];
@@ -309,13 +243,14 @@ const qualificationReceiptValid = (
 const decodeZeroMutationReceipt = (
   command: BrowserGovernedCommand,
   value: Readonly<Record<string, unknown>>,
+  preflightObservationHash: `sha256:${string}` | null,
 ): BrowserMutationReceipt => {
-  if (knownRateLimitBlockerReceiptValid(value)) {
+  if (knownRateLimitBlockerReceiptValid(value, preflightObservationHash)) {
     return Object.freeze({ terminal: "rejected", mutationOutcome: "no",
       failureCode: "BROWSER_KNOWN_GPT_RATE_LIMIT", nativeCauseCode: null,
       physicalInputCount: 0 });
   }
-  if (unrecognizedGptDialogReceiptValid(value)) {
+  if (unrecognizedGptDialogReceiptValid(value, preflightObservationHash)) {
     return Object.freeze({ terminal: "rejected", mutationOutcome: "no",
       failureCode: "BROWSER_GPT_DIALOG_UNRECOGNIZED", nativeCauseCode: null,
       physicalInputCount: 0 });
@@ -419,6 +354,7 @@ const decodeDispatchedMutationReceipt = (
 export const decodeBrowserMutationReceipt = (
   command: BrowserGovernedCommand,
   result: unknown,
+  preflightObservationHash: `sha256:${string}` | null,
 ): BrowserMutationReceipt => {
   if (!mutationCommandValid(command)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   const value = result && typeof result === "object" ? result as Record<string, unknown> : {};
@@ -428,6 +364,51 @@ export const decodeBrowserMutationReceipt = (
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
   return mutationCount === 0
-    ? decodeZeroMutationReceipt(command, value)
+    ? decodeZeroMutationReceipt(command, value, preflightObservationHash)
     : decodeDispatchedMutationReceipt(command, value);
+};
+
+export const verifyBrowserMutationTerminalFact = (
+  identity: BrowserMutationIdentity, fact: BrowserMutationTerminalFact,
+  expectedBindingHash: `sha256:${string}`, expectedReceiptHash: `sha256:${string}`,
+): BrowserMutationTerminalReceipt => {
+  if (!browserMutationTerminalFactShapeValid(fact) || fact.commandId !== identity.commandId
+    || fact.receiptBindingHash !== expectedBindingHash || fact.receiptHash !== expectedReceiptHash) {
+    throw new Error("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
+  }
+  const receipt = fact.terminalReceipt;
+  if (!terminalCommandFieldsValid(identity, receipt) || !terminalMechanicalFieldsValid(receipt)
+    || !terminalOutcomeFieldsValid(receipt) || !terminalNativeCauseValid(receipt.nativeCauseCode))
+    throw new Error("BROWSER_RECONCILIATION_RECEIPT_INVALID");
+  const confirmedSubmit = receipt.terminal === "confirmed" && receipt.mutationOutcome === "confirmed"
+    && identity.childCapabilityId === "submit_exact_gpt_turn_once" && identity.effectScope === "provider_effect";
+  if (confirmedSubmit) assertSubmitRecoveryPayload(receipt.submitRecoveryPayload, identity);
+  else if (receipt.submitRecoveryPayload !== null) throw new Error("BROWSER_RECONCILIATION_RECEIPT_INVALID");
+  return receipt;
+};
+
+const terminalMechanicalFieldsValid = (receipt: BrowserMutationTerminalReceipt): boolean =>
+  typeof receipt.completedAt === "string" && Number.isFinite(Date.parse(receipt.completedAt))
+  && new Date(receipt.completedAt).toISOString() === receipt.completedAt
+  && typeof receipt.resultHash === "string" && /^sha256:[a-f0-9]{64}$/u.test(receipt.resultHash)
+  && [0, 1].includes(receipt.physicalInputCount) && ["confirmed", "rejected"].includes(receipt.terminal)
+  && ["no", "confirmed", "dispatched"].includes(receipt.mutationOutcome);
+const terminalOutcomeFieldsValid = (receipt: BrowserMutationTerminalReceipt): boolean => {
+  if (receipt.mutationOutcome === "no" && receipt.physicalInputCount !== 0) return false;
+  if (receipt.mutationOutcome === "confirmed" && receipt.physicalInputCount !== 1) return false;
+  return receipt.terminal === "confirmed" ? receipt.failureCode === null && receipt.nativeCauseCode === null
+    && receipt.mutationOutcome !== "dispatched" : typeof receipt.failureCode === "string"
+    && (BROWSER_ERROR_CODES as readonly string[]).includes(receipt.failureCode);
+};
+const terminalNativeCauseValid = (code: string | null): boolean => code === null || typeof code === "string"
+  && (POSTCONDITION_NATIVE_CAUSES.has(code) || POINTER_ACTIONABILITY_NATIVE_CAUSES.has(code)
+    || browserInteractionNativeCauseCode(code) === code || browserPostconditionNativeCauseValid(code)
+    || browserDomCandidateMissingStage(code) === code);
+
+const terminalCommandFieldsValid = (identity: BrowserMutationIdentity, receipt: BrowserMutationTerminalReceipt): boolean => {
+  const mutationAction = identity.actionId === "browser.file-input.v1"
+    || /^browser\.dom\.(?:click|hover|double-click|keypress|fill)\.v1$/u.test(identity.actionId);
+  const confirmedNoInput = receipt.terminal === "confirmed" && receipt.mutationOutcome === "no";
+  return mutationAction && (!confirmedNoInput || (identity.actionId !== "browser.file-input.v1"
+    && identity.effectScope !== "provider_effect"));
 };

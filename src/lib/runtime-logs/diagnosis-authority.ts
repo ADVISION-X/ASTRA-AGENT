@@ -17,6 +17,14 @@ const latestWithinOneRun = (
   candidates: readonly RuntimeLogEventV2[],
   findings: string[],
 ): RuntimeLogEventV2 => {
+  const terminalFacts = candidates.filter(event => event.kind === "event" && event.operation === "browser.command"
+    && event.typedIdentity.kind === "browser-command" && authorityRef === `browser-mutation:${event.typedIdentity.commandId}`
+    && ["BROWSER_MUTATION_CONFIRMED", "BROWSER_MUTATION_REJECTED", "BROWSER_MUTATION_FAILED"].includes(event.code));
+  if (terminalFacts.length > 0) {
+    const facts = new Set(terminalFacts.map(event => event.kind === "event" ? `${event.code}:${event.authorityHash}` : ""));
+    if (facts.size === 1) return terminalFacts[0]!;
+    findings.push(`AUTHORITY_TERMINAL_CONFLICT:${authorityRef}`);
+  }
   const runs = new Set(candidates.map((event) => event.producerRunId));
   if (runs.size !== 1) findings.push(`AUTHORITY_CROSS_RUN_ORDER_UNPROVEN:${authorityRef}`);
   return [...candidates].sort((left, right) =>

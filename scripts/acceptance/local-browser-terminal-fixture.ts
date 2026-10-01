@@ -1,5 +1,14 @@
+import type { BrowserMutationIdentity } from "../../src/lib/browser/exact-target/browser-mutation-types.js";
+import { BrowserCommandTerminalReplyError } from "../../src/lib/browser/exact-target/browser-command-actor.js";
+import { decodeBrowserMutationReceipt } from "../../src/lib/browser/exact-target/browser-mutation-receipt.js";
+import { decodeKnownGptRateLimitPreflightReply, preflightReceiptObservationHash } from "../../src/lib/browser/exact-target/browser-special-mutation-receipt.js";
+import { bindBrowserCommandObservationPacket, verifyNormalBrowserMutationReply } from "../../src/lib/browser/exact-target/browser-command-postcondition.js";
+import { submitRecoveryPayload } from "../../src/lib/browser/exact-target/browser-submit-recovery-payload.js";
+import { canonicalizeBrowserAuthorityValue } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
+import { terminalFact } from "./local-browser-mutation-store-support.js";
+import { emitBrowserMutationEvent } from "../../src/lib/browser/exact-target/browser-command-runtime-logging.js";
 import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
-import { BrowserCommandActor } from "../../src/lib/browser/exact-target/browser-command-actor.js";
+import { type BrowserCommandReply, BrowserCommandActor } from "../../src/lib/browser/exact-target/browser-command-actor.js";
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
 import { BrowserCommandAdmissionBudget } from "../../src/lib/browser/transport/browser-command-admission-budget.js";
 import { hash } from "./local-browser-mutation-store-support.js";
@@ -79,16 +88,40 @@ export const createBrowserActorFactory = (
   store: BrowserMutationStore,
   logger: ConstructorParameters<typeof BrowserCommandActor>[4],
 ) => (
-  send: ConstructorParameters<typeof BrowserCommandActor>[1]["send"],
+  send: (...args: Parameters<ConstructorParameters<typeof BrowserCommandActor>[1]["send"]>) =>
+    Promise<Omit<BrowserCommandReply, "mutationReceipt">>,
   wrapPreflight = true,
 ): BrowserCommandActor =>
   new BrowserCommandActor(
     new BrowserCommandAdmissionBudget(),
     { send: async (...args) => {
       const reply = await send(...args);
-      return wrapPreflight
-        ? Object.freeze({ ...reply, result: absentPreflightEnvelope(args[0], reply.result) })
-        : reply;
+      const result = wrapPreflight ? absentPreflightEnvelope(args[0], reply.result) : reply.result;
+      let mutationReceipt = null;
+      if (args[0].mutationClass === "mutation") {
+        let projectionFailure: unknown = null;
+        try {
+          const preflight = decodeKnownGptRateLimitPreflightReply(args[0], args[1], result);
+          const bound = bindBrowserCommandObservationPacket(args[0], args[1], preflight.commandResult);
+          const mechanical = decodeBrowserMutationReceipt(args[1], bound, preflightReceiptObservationHash(preflight.commandResult));
+          mutationReceipt = terminalFact(store.readCommand(args[0].commandId)!.identity, { ...mechanical,
+            resultHash: sha(canonicalizeBrowserAuthorityValue(result)), submitRecoveryPayload:
+              mechanical.terminal === "confirmed" && mechanical.mutationOutcome === "confirmed"
+                && args[0].childCapabilityId === "submit_exact_gpt_turn_once" ? submitRecoveryPayload(bound) : null });
+          verifyNormalBrowserMutationReply(args[0], args[1], { result, mutationReceipt });
+        } catch (error) {
+          projectionFailure = error;
+          mutationReceipt = terminalFact(store.readCommand(args[0].commandId)!.identity, {
+            terminal: "rejected", mutationOutcome: "dispatched", physicalInputCount: 1,
+            failureCode: "BROWSER_AUTH_TRANSCRIPT_INVALID", resultHash: sha(canonicalizeBrowserAuthorityValue({ errorCode: "BROWSER_AUTH_TRANSCRIPT_INVALID" })) });
+          verifyNormalBrowserMutationReply(args[0], args[1], { errorCode: "BROWSER_AUTH_TRANSCRIPT_INVALID", mutationReceipt });
+        }
+        const settled = store.settleTerminalReceipt(mutationReceipt);
+        if (settled.changed) emitBrowserMutationEvent({ runtimeLogger: logger, mutation: settled.identity,
+          outcome: mutationReceipt.terminalReceipt.terminal === "confirmed" ? "CONFIRMED" : "REJECTED", authorityHash: store.authorityHash(args[0].commandId) });
+        if (projectionFailure !== null) throw new BrowserCommandTerminalReplyError("BROWSER_AUTH_TRANSCRIPT_INVALID", reply.replyChannelToken, reply.transportSequence, reply.permitSequence);
+      }
+      return { ...reply, result, mutationReceipt };
     } },
     store,
     { assertCurrentAuthority: () => {} },
@@ -138,3 +171,13 @@ export const createMatchClickCommand = () => ({
     postClickMatch: { selector: "[aria-hidden='true']", expectedMatches: 1 },
   },
 });
+
+export const originalFixtureFact = (permit: BrowserCommandPermit, command: Parameters<typeof verifyNormalBrowserMutationReply>[1],
+  result: unknown, identity: BrowserMutationIdentity) => {
+  const preflight = decodeKnownGptRateLimitPreflightReply(permit, command, result);
+  const bound = bindBrowserCommandObservationPacket(permit, command, preflight.commandResult);
+  const receipt = decodeBrowserMutationReceipt(command, bound, preflightReceiptObservationHash(preflight.commandResult));
+  return terminalFact(identity, { ...receipt, resultHash: sha(canonicalizeBrowserAuthorityValue(result)),
+    submitRecoveryPayload: receipt.terminal === "confirmed" && receipt.mutationOutcome === "confirmed"
+      && permit.childCapabilityId === "submit_exact_gpt_turn_once" ? submitRecoveryPayload(bound) : null });
+};

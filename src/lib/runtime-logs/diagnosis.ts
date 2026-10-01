@@ -44,7 +44,7 @@ const mutationEventsFor = (
     && event.typedIdentity.kind === "browser-command"
     && event.typedIdentity.commandId === identity.commandId
     && event.code.startsWith("BROWSER_MUTATION_"))
-    .sort((left, right) => left.producerRunId.localeCompare(right.producerRunId) || left.producerSeq - right.producerSeq);
+    .sort((left, right) => left.producerRunId === right.producerRunId ? left.producerSeq - right.producerSeq : 0);
 };
 
 const atomicPostcondition = (
@@ -72,11 +72,14 @@ const atomicBrowserStep = (
   started: RuntimeSpanStartedEvent,
   events: readonly RuntimeLogEventV2[],
   terminals: ReadonlyMap<string, RuntimeSpanTerminalEvent>,
+  authorityEvents: ReadonlyMap<string, RuntimeLogEventV2>,
 ): RuntimeDiagnosis["atomicSteps"][number] => {
   const identity = started.typedIdentity;
   if (identity.kind !== "browser-command") throw new Error("RUNTIME_BROWSER_IDENTITY_INVALID");
   const mutations = mutationEventsFor(started, events);
-  const latest = mutations.at(-1);
+  const authority = authorityEvents.get(`browser-mutation:${identity.commandId}`);
+  const latest = authority?.kind === "event" && authority.code.startsWith("BROWSER_MUTATION_")
+    ? authority : mutations.at(-1);
   const terminal = terminals.get(spanKey(started));
   const capabilityId = identity.capabilityCallId ?? null;
   const isMutation = mutations.length > 0 || (capabilityId !== null && MUTATION_CAPABILITIES.has(capabilityId));
@@ -99,12 +102,13 @@ const atomicBrowserStep = (
   };
 };
 
-const atomicBrowserSteps = (events: readonly RuntimeLogEventV2[]): RuntimeDiagnosis["atomicSteps"] => {
+const atomicBrowserSteps = (events: readonly RuntimeLogEventV2[],
+  authorityEvents: ReadonlyMap<string, RuntimeLogEventV2>): RuntimeDiagnosis["atomicSteps"] => {
   const terminals = new Map(events.filter((event): event is RuntimeSpanTerminalEvent => event.kind === "span.terminal")
     .map((event) => [spanKey(event), event]));
   const starts = events.filter((event): event is RuntimeSpanStartedEvent => event.kind === "span.started"
     && event.operation === "browser.command" && event.typedIdentity.kind === "browser-command");
-  return starts.map((started) => atomicBrowserStep(started, events, terminals))
+  return starts.map((started) => atomicBrowserStep(started, events, terminals, authorityEvents))
     .sort((left, right) => left.pluginStepId.localeCompare(right.pluginStepId)
       || left.actionOrdinal - right.actionOrdinal || left.commandId.localeCompare(right.commandId));
 };
@@ -383,7 +387,7 @@ export const diagnoseRuntimeLog = (input: Readonly<{
     blockingRoots: aggregateFailures(roots),
     consequentialFailures: aggregateFailures(failures.filter((event) => event.failure?.impact === "CONSEQUENTIAL")),
     cleanupFailures: aggregateFailures(failures.filter((event) => event.failure?.impact === "CLEANUP")),
-    atomicSteps: atomicBrowserSteps(events),
+    atomicSteps: atomicBrowserSteps(events, authorityEvents),
     authorityRefs: [...authorityEvents.keys()].sort(),
     warnings,
     findings: [...new Set(findings)],

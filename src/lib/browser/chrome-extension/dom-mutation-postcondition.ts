@@ -1,3 +1,4 @@
+import type { BrowserDomExactText } from "../exact-target/browser-dom-intent.js";
 import type {
   BrowserDomIneligibleCandidate,
   BrowserDomIneligibleReason,
@@ -116,7 +117,7 @@ export const waitForMatch = async (
     expectedMatches: number;
     readEligibility?: BrowserDomReadEligibility;
     textContains?: string;
-    textEquals?: string;
+    textEquals?: BrowserDomExactText;
     timeoutMs?: number;
   }>,
   timeoutMs?: number,
@@ -125,6 +126,7 @@ export const waitForMatch = async (
 ): Promise<MatchReadback> => {
   await debuggerRuntime.awaitPageReadPermission();
   const read = async (): Promise<MatchReadback> => {
+    assertCurrent?.();
     const candidates = await queryCandidateSet(
       debuggerRuntime, target.tabId, match.selector, match.expectedMatches + 1, undefined,
       match.textEquals !== undefined ? { value: match.textEquals, exact: true }

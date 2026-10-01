@@ -1,3 +1,7 @@
+import type { BrowserDomObservationQuery } from "./browser-dom-intent.js";
+import type { BrowserMutationIdentity } from "./browser-mutation-types.js";
+import { canonicalizeBrowserAuthorityValue } from "../transport/browser-authority-frame-codec.js";
+import { knownGptRateLimitPreflightFactShapeValid } from "./browser-gpt-rate-limit-preflight.js";
 import type { BrowserGovernedCommand } from "./browser-command-actor.js";
 import {
   browserPostconditionNativeCause,
@@ -97,3 +101,192 @@ export const observationPostconditionEvidenceValid = (
   return rowsValid && value.postconditionVerified === verified
     && (verified ? value.nativeCauseCode === undefined : value.nativeCauseCode === expectedCause);
 };
+
+export type BrowserMutationTerminalReceipt = Readonly<{
+  schemaVersion: "grasseye.browser.command-terminal-receipt.v1";
+  terminal: "confirmed" | "rejected";
+  mutationOutcome: "no" | "confirmed" | "dispatched";
+  physicalInputCount: 0 | 1 | 2 | 3 | 4;
+  failureCode: string | null;
+  nativeCauseCode: string | null;
+  completedAt: string;
+  resultHash: `sha256:${string}`;
+  submitRecoveryPayload: Readonly<Record<string, unknown>> | null;
+}>;
+export type BrowserMutationTerminalFact = Readonly<{
+  type: "fact"; commandId: string; receiptBindingHash: `sha256:${string}`;
+  terminalReceipt: BrowserMutationTerminalReceipt; receiptHash: `sha256:${string}`;
+}>;
+export const browserMutationReceiptBindingProjection = (identity: BrowserMutationIdentity): readonly unknown[] => [
+  identity.commandId, identity.exactCallIdentityHash, identity.jobId, identity.attemptId,
+  identity.resultRevision, identity.leaseVersion, identity.executionFenceHash,
+  identity.deliveryPriorityReplayGrantHash, identity.productStepId, identity.callId,
+  identity.childCapabilityId, identity.effectScope, identity.actionOrdinal, identity.actionId,
+  identity.positivePostconditionHash, identity.negativePostconditionHash,
+  identity.requestHash, identity.payloadHash,
+];
+export const browserMutationTerminalFactBytes = (
+  fact: Pick<BrowserMutationTerminalFact, "commandId" | "receiptBindingHash" | "terminalReceipt">,
+): string => canonicalizeBrowserAuthorityValue({ commandId: fact.commandId,
+  receiptBindingHash: fact.receiptBindingHash, terminalReceipt: fact.terminalReceipt });
+export const browserMutationTerminalFactShapeValid = (value: unknown): value is BrowserMutationTerminalFact => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const fact = value as Record<string, unknown>;
+  const receipt = fact.terminalReceipt as Record<string, unknown> | null;
+  return exactKeys(fact, ["type", "commandId", "receiptBindingHash", "terminalReceipt", "receiptHash"])
+    && fact.type === "fact" && typeof fact.commandId === "string" && fact.commandId.length > 0
+    && [fact.receiptBindingHash, fact.receiptHash].every(hash => typeof hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(hash))
+    && !!receipt && typeof receipt === "object" && !Array.isArray(receipt)
+    && exactKeys(receipt, ["schemaVersion", "terminal", "mutationOutcome", "physicalInputCount",
+      "failureCode", "nativeCauseCode", "completedAt", "resultHash", "submitRecoveryPayload"])
+    && receipt.schemaVersion === "grasseye.browser.command-terminal-receipt.v1";
+};
+export type BrowserObservationBinding = Readonly<{
+  exactCallIdentityHash: `sha256:${string}`; targetRefHash: `sha256:${string}`;
+  documentRefHash: `sha256:${string}`; observationRevisionHash: `sha256:${string}`;
+}>;
+export const browserObservationPacketRevisionBytes = (packet: Readonly<Record<string, unknown>>): string =>
+  canonicalizeBrowserAuthorityValue({ targetRefHash: packet.targetRefHash ?? null, documentRefHash: packet.documentRefHash ?? null,
+    currentUrl: packet.currentUrl ?? null, observedAt: packet.observedAt ?? null, queries: packet.queries ?? null });
+export const bindBrowserObservationPacket = (
+  value: unknown, specs: readonly BrowserDomObservationQuery[], hashes: BrowserObservationBinding,
+): Readonly<Record<string, unknown>> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  const packet = value as Record<string, unknown>;
+  if (!browserObservationPacketHeaderValid(packet, hashes)
+    || !Array.isArray(packet.queries) || packet.queries.length !== specs.length
+    || !packet.queries.every((row, index) => row && typeof row === "object" && !Array.isArray(row)
+      && row.queryId === specs[index]?.queryId)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  return Object.freeze({ ...packet, exactCallIdentityHash: hashes.exactCallIdentityHash });
+};
+export const bindBrowserMutationObservation = (
+  command: BrowserGovernedCommand, result: unknown, hashes: BrowserObservationBinding,
+): unknown => {
+  if (command.kind !== "dom-intent" || command.intent.kind !== "click"
+    || command.intent.postClickObservation === undefined) return result;
+  if (!result || typeof result !== "object" || Array.isArray(result)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  const record = result as Record<string, unknown>;
+  if (record.qualificationRejected === true && record.postconditionObservation === undefined) return result;
+  return Object.freeze({ ...record, postconditionObservation: bindBrowserObservationPacket(record.postconditionObservation,
+    command.intent.postClickObservation.queries, hashes) });
+};
+const receiptValid = (
+  value: Readonly<Record<string, unknown>>,
+  input: Readonly<{ schemaVersion: string; failureCode: string; state: "exact_present" | "mismatch" }>,
+  observationHash: `sha256:${string}` | null,
+): boolean => {
+  const fact = value.knownGptRateLimitPreflightFact;
+  return exactKeys(value, ["schemaVersion", "failureCode", "nativeCauseCode", "candidateCount",
+    "identityRevalidated", "mutationCount", "physicalInputCount", "postconditionVerified",
+    "qualificationRejected", "qualificationStage", "knownGptRateLimitPreflightFact"])
+    && value.schemaVersion === input.schemaVersion
+    && value.failureCode === input.failureCode
+    && value.nativeCauseCode === null
+    && value.identityRevalidated === true
+    && value.mutationCount === 0
+    && value.physicalInputCount === 0
+    && value.postconditionVerified === false
+    && value.qualificationRejected === true
+    && value.qualificationStage === "candidate-set"
+    && knownGptRateLimitPreflightFactShapeValid(fact)
+    && fact.observationHash === observationHash
+    && fact.state === input.state
+    && value.candidateCount === fact.dialogEligibleCount;
+};
+
+export const knownRateLimitBlockerReceiptValid = (
+  value: Readonly<Record<string, unknown>>,
+  observationHash: `sha256:${string}` | null,
+): boolean => receiptValid(value, {
+  schemaVersion: "grasseye.browser.known-gpt-rate-limit-blocker.v2",
+  failureCode: "BROWSER_KNOWN_GPT_RATE_LIMIT",
+  state: "exact_present",
+}, observationHash);
+
+export const unrecognizedGptDialogReceiptValid = (
+  value: Readonly<Record<string, unknown>>,
+  observationHash: `sha256:${string}` | null,
+): boolean => receiptValid(value, {
+  schemaVersion: "grasseye.browser.gpt-dialog-unrecognized-rejection.v1",
+  failureCode: "BROWSER_GPT_DIALOG_UNRECOGNIZED",
+  state: "mismatch",
+}, observationHash);
+
+const POSTCONDITION_REJECTION_REASONS = new Set([
+  "DISCONNECTED", "NO_LAYOUT_BOX", "DISPLAY_HIDDEN", "VISIBILITY_HIDDEN", "OPACITY_HIDDEN",
+  "HTML_HIDDEN", "ARIA_HIDDEN", "INERT", "TEXT_MISMATCH",
+]);
+
+const expectedMatchCount = (command: BrowserGovernedCommand): number | null => {
+  if (command.kind !== "dom-intent") return null;
+  if (command.intent.kind === "click") return command.intent.postClickMatch?.expectedMatches ?? null;
+  if (command.intent.kind === "doubleClick") return command.intent.postDoubleClickMatch.expectedMatches;
+  if (command.intent.kind === "keypress") return command.intent.postKeypressMatch.expectedMatches;
+  return null;
+};
+
+const postconditionCountsValid = (
+  value: Readonly<Record<string, unknown>>,
+  expected: number | null,
+): boolean => Number.isSafeInteger(value.postconditionRawCount)
+  && (value.postconditionRawCount as number) >= 0
+  && Number.isSafeInteger(value.postconditionEligibleCount)
+  && (value.postconditionEligibleCount as number) >= 0
+  && (value.postconditionEligibleCount as number) <= (value.postconditionRawCount as number)
+  && Array.isArray(value.postconditionRejections)
+  && value.postconditionRejections.length === (value.postconditionRawCount as number)
+    - (value.postconditionEligibleCount as number)
+  && expected !== null
+  && value.postconditionVerified === ((value.postconditionEligibleCount as number) === expected);
+
+const postconditionRejectionValid = (
+  candidate: unknown,
+  rawCount: number,
+  indices: Set<number>,
+): boolean => {
+  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return false;
+  const item = candidate as Readonly<Record<string, unknown>>;
+  const index = item.index;
+  if (!exactKeys(item, ["index", "reasons"]) || !Number.isSafeInteger(index)
+    || (index as number) < 0 || (index as number) >= rawCount || indices.has(index as number)
+    || !Array.isArray(item.reasons) || item.reasons.length < 1
+    || new Set(item.reasons).size !== item.reasons.length
+    || item.reasons.some((reason) => typeof reason !== "string"
+      || !POSTCONDITION_REJECTION_REASONS.has(reason))) return false;
+  indices.add(index as number);
+  return true;
+};
+
+const postconditionFailureCause = (
+  value: Readonly<Record<string, unknown>>,
+  expected: number,
+): string => {
+  const firstReason = (value.postconditionRejections as readonly Readonly<Record<string, unknown>>[])[0]
+    ?.reasons as readonly string[] | undefined;
+  if ((value.postconditionEligibleCount as number) > expected) return "BROWSER_DOM_CANDIDATE_AMBIGUOUS";
+  if ((value.postconditionRawCount as number) === 0) return "BROWSER_DOM_CANDIDATE_MISSING";
+  return firstReason?.[0] ?? "BROWSER_DOM_CANDIDATE_MISSING";
+};
+
+export const postconditionEvidenceValid = (
+  command: BrowserGovernedCommand,
+  value: Readonly<Record<string, unknown>>,
+): boolean => {
+  const expected = expectedMatchCount(command);
+  if (!postconditionCountsValid(value, expected)) return false;
+  const indices = new Set<number>();
+  const rejectionsValid = (value.postconditionRejections as readonly unknown[]).every((candidate) =>
+    postconditionRejectionValid(candidate, value.postconditionRawCount as number, indices));
+  if (!rejectionsValid || value.postconditionVerified === true) return rejectionsValid;
+  return value.nativeCauseCode === postconditionFailureCause(value, expected!);
+};
+
+
+const browserObservationPacketHeaderValid = (packet: Record<string, unknown>, hashes: BrowserObservationBinding): boolean =>
+  exactKeys(packet, ["schemaVersion", "targetRefHash", "documentRefHash", "currentUrl", "observationRevisionHash", "observedAt", "queries"])
+  && packet.schemaVersion === "grasseye.browser.dom-observation.v2"
+  && packet.targetRefHash === hashes.targetRefHash && packet.documentRefHash === hashes.documentRefHash
+  && packet.observationRevisionHash === hashes.observationRevisionHash
+  && typeof packet.currentUrl === "string" && packet.currentUrl.length > 0
+  && typeof packet.observedAt === "string" && Number.isFinite(Date.parse(packet.observedAt))
+  && new Date(packet.observedAt).toISOString() === packet.observedAt;

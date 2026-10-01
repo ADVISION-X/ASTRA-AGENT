@@ -61,7 +61,7 @@ export const sourcePaths = [
   domExactEditableTextPath,
   domCoherentObservationPath,
   browserMutationSchemaPath,
-  "src/lib/browser/exact-target/browser-outcome-resolver.ts",
+  "src/lib/browser/exact-target/browser-observation-receipt.ts",
   extensionFileInputPath,
   "scripts/acceptance/local-browser-dom-intent-support.ts",
   domMutationPostconditionPath,
@@ -80,6 +80,7 @@ export const sourcePaths = [
 ] as const;
 
 export const retiredPaths = [
+  "src/lib/browser/exact-target/browser-outcome-resolver.ts",
   "src/lib/browser/chrome-extension/external-port-actor.ts",
   "src/lib/browser/transport/workbench-extension-channel.ts",
   "src/lib/browser/release/cws-extension-release-identity.ts",

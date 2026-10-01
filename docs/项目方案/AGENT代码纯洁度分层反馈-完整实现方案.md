@@ -5,7 +5,7 @@
 需求 Owner：AGENT `code-purity` 及其现役 `quality:check` 主链
 
 方案范围：开发期 FAST 诊断、CHANGE 差异门禁、提交前 FULL 诊断、READY 原生裁决
-本文件只授权方案设计；不授权修改法案、冻结说明书、生产代码、提交或发布。
+原 FAST/FULL 与差异纯洁度工单只获方案设计授权。2026-10-02 授权人另行批准第 13 节质检完整诊断迭代及完成后一次只读子智能体审计；本轮施工只覆盖该节，不修改法案、冻结说明书或启动生产。
 
 ## 1. 需求、终点与边界
 
@@ -117,3 +117,28 @@ READY/RELEASE 的 `code-purity/inspector.ts` 仍用完整扫描结果构造现�
 5. **速度收益**：在同一机器、可比代码量上记录 FAST、FULL 与 READY 的实际墙钟时间，验收 FAST 比 FULL 明显短，且后续迭代由 READY 首次发现的结构预算 finding 数下降；不许用提前失败的次数或估算的“80%”当成功证明。
 
 施工 Codex 在动代码前必须重查本文件对应 scoped candidate、目标路径 Git 状态、active law/Blueprint/Manifest 和结构余量；任何相关 authority 或 Owner 漂移先重算受影响方案。遇到未获授权的用户改动、需要更改冻结说明书/基础法案、找不到唯一 Owner、模式证据失真或诊断取第二 verdict 时，停止该片区并报告第一断裂。后续修复留在原 Owner、原候选身份和原 quality 主链；不得靠放宽法案、复制扫描器或追加豁免继续。
+
+## 13. 2026-10-02 授权工单：质检完整诊断与唯一裁决
+
+状态：可施工。终点是同一有效候选的一次运行尽量收齐所有独立检查问题，由现有 `quality:check` 最后裁决；准入、权威和 candidate drift 仍立即终止且不得发布报告。95% 要求按以下有限验收分母核对，不以代码相似度或估算时间代替。
+
+### 当前绑定与连续性
+
+施工根 `/Users/nexgen/Documents/AGENT`，分支 `main`，HEAD `cb09a8e746d56b8e4995a77b901f352effd70693`，tracking `origin/main`。本节目标治理入口、quality core、package、Product 验收与本方案写前无差异；工作树已有 13 个 GPT/Browser 路径修改，保留其原始内容且不参与本轮写入。核心、法案、Manifest、Blueprint 的源码由该 HEAD 及目标写前无差异绑定。此前提交 `14dc228d6` 已落地 Static 3 / Exam 4 的有界并发及执行顺序保护，但只抛首条错误；保留有界并发、原生 receipt、sealed snapshot、等级分母与唯一 writer，修复结果丢失与错误优先级。原 P1–P4 的 FAST/FULL/旧债差异方案尚非当前实现，本节不以其目标为已验收事实，不新增诊断命令。
+
+四维依据：冻结说明书第 49–58、62–64 节允许 FAIL 报告保留真实正向 evidence、缺失证明写 findings，禁止漂移报告及第二 verdict；现役 code-purity Blueprint 禁止 core 补 clauses/locator/PASS，生产者仍拥有模式原生观察；Manifest 已拥有 `scripts/audit/shared/**`、治理入口、package 和本方案；architecture-boundary Owner 仍拥有自身 Product 验收。第一断裂是 `governance.ts:run/projectChecks/relevantChangeChecks` 普通失败抛出挡住后续独立检查，其次为并发器只抛首错、报告验证首错和验收组合首错。
+
+### 原子工单与唯一目标链
+
+1. **Q1，code-purity：项目诊断收集。** 原位修改 `scripts/audit/governance.ts`、`governance-git-state.ts`、`shared/quality-process-execution.ts`。候选绑定含 HEAD 与实际工作树差异，命令前后和失败后均核验；普通命令失败积累内部 FAILED，后续独立命令继续，最终 CHANGE 只产生一次 PASS 或非零 FAIL。READY 项目失败继续 Static/Exam，并通过内存项目结果使最终报告顶层 FAIL；原始详情留在终端，不挂到任意法条。相关测试仍只按实际差异选择。
+2. **Q2，code-purity：域执行与报告。** 原位修改 `shared/quality-runner.ts`、`quality-contract.ts`，复用有界并发并在致命错误后停止派发、收束已运行任务、作废结果。每个已知域普通异常仅影响其现役法条，保留其它域结果；缺失/错误/重复 evidence 转成确定性 finding，丢弃不可信 evidence，绝不补 assertions/clauses 或 native receipt。runner 当前 495/500 行，必要时把现有原生 proof receipt 验真整段移至同 Owner 的专职文件，原实现物理删除且真实 runner/tests 直接消费，不建转发包装。报告字段不变，只有全部必需项目检查与法条通过才 PASS。RELEASE 在静态/Exam 前置失败时将 Dynamic 标为内部 BLOCKED，deferred 仍为空、缺失 required mode 为 FAIL；参与仓身份缺失/漂移保持准入/完整性终止。
+3. **Q3，验收产生 Owner：组合完整诊断。** package 中现有六组 `&&` 验收复用共享的命令执行与候选核验，独立文件尽量执行，保留原生 proof 环境、stdout/receipt 和非零退出，不增加公共治理命令。architecture-boundary 的 `scripts/acceptance/architecture-boundary.acceptance.ts` 保留 Catalog/测试一一对应准入，再收集全部 Product child exit，最后原生断言失败；不搬走 Product 内容或新增业务 helper。
+4. **Q4，code-purity：验证与第三方只读审计。** 现有治理反例按新的 FAIL 结果验证原阻断语义；新增有限的执行行为测试，不扩大已达 1696 行的旧测试文件。运行类型检查、相关治理测试、原生 CHANGE；工作区若非 clean，READY 明确 BLOCKED，不提交其它人的修改来伪造准入。完成后启动且只启动一次只读子智能体审计，主智能体修复实际 finding。
+
+链路与分支分母：授权/authority/候选准入 -> 项目检查 -> Static -> Exam -> RELEASE 必需前置门及 Dynamic -> 完整性复核 -> 唯一报告/退出码。正常分支收集真实结果；普通失败收集 FAILED 并继续独立任务；依赖缺失收集 BLOCKED 和原因，最终 FAIL；候选/权威完整性异常停止派发且禁止报告；修复只回原 Owner 并对新候选重跑，不读取历史报告或诊断缓存。身份主线为 CHANGE 的 HEAD+工作树实际差异、READY/RELEASE 原生 clean commit、native proof 原有 run/candidate/receipt，以及 RELEASE participant 原生 commit。
+
+### 验收、删除裁决与停止边界
+
+有限验收共 10 项：①类型失败后独立治理测试继续；②项目失败后 Static/Exam 继续；③两个域失败均被收集且正常域证据保留；④组合验收首个文件失败不挡后续独立文件；⑤真实前置缺失标 BLOCKED 且不算通过；⑥普通错误与漂移并存时漂移优先且停止派发、不写报告；⑦CHANGE 仅差异相关且 CHANGE/READY 无 Dynamic；⑧READY 全量 law/mode 分母、RELEASE deferred 为空；⑨任一必需检查失败最终非零、全部通过才 PASS且报告格式唯一；⑩修改候选需重跑，既有无关修改不被覆盖。完整性、伪证据、等级、第二 verdict 任一违规均为关键失败，不以其它项抵扣到 95%。速度只考察同一失败运行发现的问题数和后续修复轮次；不更改现有命令 timeout，不宣称未实测速度。
+
+保留唯一 core、现有进程执行器、原生 proof 验真和唯一 writer，因为真实 quality 消费者不可缺失；只新增同 Owner 内存问题收集及必要的原生 receipt 验真职责分离，删除旧首错丢结果分支。组合执行由现有 package 六个真实消费者支撑，不新增服务、调度持久化、台账、缓存、兼容桥、第二规则/报告或业务编排。法案/说明书/Blueprint 无修改需求。无法证明真实 ref 的结果只能失败并列明缺失，不虚造 evidence；无关并行改动使 native gate 漂移时结果作废并如实报告，不能修无关代码或把 focused 测试升级为 READY/RELEASE。回退仅恢复本轮明确差异，保留用户 overlay。

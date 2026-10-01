@@ -1,3 +1,8 @@
+import type { BrowserCommandPermit } from "./command-permit.js";
+import type { BrowserGovernedCommand } from "../exact-target/browser-command-actor.js";
+import { verifyNormalBrowserMutationReply } from "../exact-target/browser-command-postcondition.js";
+import { browserMutationTerminalFactShapeValid, type BrowserMutationTerminalFact } from "../exact-target/browser-observation-receipt.js";
+import { BROWSER_ERROR_CODES } from "../protocol/generated/browser-protocol.generated.js";
 import { timingSafeEqual } from "node:crypto";
 
 import {
@@ -126,3 +131,26 @@ export const parseBrowserAuthorityTargetRevoke = (
   body: Readonly<Record<string, unknown>>,
 ): BrowserAuthorityTargetRevoke => Object.hasOwn(body, "releaseOutcome")
   ? parseTargetReleaseRevoke(body) : parseTargetFailureRevoke(body);
+
+export const parseBrowserMutationTerminalFact = (body: unknown): BrowserMutationTerminalFact => {
+  if (!browserMutationTerminalFactShapeValid(body)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  return body;
+};
+export const parseBrowserCommandReply = (
+  body: Record<string, unknown>, permit: BrowserCommandPermit, command: BrowserGovernedCommand,
+  receiptBindingHash: `sha256:${string}` | null,
+): Readonly<{ fact: BrowserMutationTerminalFact | null; errorCode: string | null }> => {
+  const failure = Object.hasOwn(body, "errorCode");
+  const expected = ["requestSequence", "permitSequence", "replyChannelToken", "mutationReceipt", failure ? "errorCode" : "result"];
+  if (Object.keys(body).length !== 5 || Object.keys(body).some(key => !expected.includes(key))
+    || integerField(body, "permitSequence", 1) !== permit.sequence || typeof body.replyChannelToken !== "string"
+    || !compareReplyToken(body.replyChannelToken, permit.replyChannelToken)
+    || (failure && (typeof body.errorCode !== "string" || !(BROWSER_ERROR_CODES as readonly string[]).includes(body.errorCode)))) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  const fact = receiptBindingHash === null ? null : verifyNormalBrowserMutationReply(permit, command, body);
+  if (fact ? fact.receiptBindingHash !== receiptBindingHash : body.mutationReceipt !== null) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  return { fact, errorCode: failure ? body.errorCode as string : null };
+};

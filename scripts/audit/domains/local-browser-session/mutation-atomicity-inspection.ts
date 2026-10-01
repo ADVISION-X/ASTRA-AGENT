@@ -107,8 +107,8 @@ const inspectV51ProofTopology = (
     checkId: "browser-authority/no-caller-proof-envelope", lawId, filePath: permitPath,
     message: "The Browser command permit must not accept a caller-authored proof envelope.",
   }));
-  requireTokens(actor.getFullText(), ["const replyHash = hashValue(authenticatedReplyResult)",
-    "this.mutations.markRejected(", "this.mutations.markConfirmed("], findings, lawId, actorPath,
+  requireTokens(actor.getFullText(), ["fact.terminalReceipt.terminal",
+    "this.mutations.readCommand(permit.commandId)", "const fact = reply.mutationReceipt"], findings, lawId, actorPath,
   "browser-authority/no-caller-proof-envelope");
   const browserSources = context.project.getSourceFiles().filter((source) =>
     source.getFilePath().replaceAll("\\", "/")

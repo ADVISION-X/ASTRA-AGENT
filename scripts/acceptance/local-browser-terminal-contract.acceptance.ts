@@ -15,7 +15,7 @@ import { verifyBrowserArtifactAndLockContracts } from "./local-browser-artifact-
 import { exerciseStrictMutationReceipts } from "./local-browser-mutation-receipt-support.js";
 import { exerciseBrowserDiagnosticContract } from "./local-browser-diagnostic-contract-support.js";
 import {
-  exactHash, exerciseBrowserMutationStore, exercisePostconditionNativeCauseWalRoundTrip, hash,
+  exactHash, exerciseTerminalFactSettlement, exerciseBrowserMutationStore, exercisePostconditionNativeCauseWalRoundTrip, hash,
 } from "./local-browser-mutation-store-support.js";
 import { createBrowserActorFactory, createClickCommand, createMatchClickCommand, permit,
   rateLimitSpecialReceipt } from "./local-browser-terminal-fixture.js";
@@ -54,6 +54,7 @@ try {
   try { await assertExtensionCommandPermit(receivedReplayPermit); }
   finally { clearExtensionPermitAuthority(); }
   exerciseBrowserMutationStore(root);
+  exerciseTerminalFactSettlement(join(root, "terminal-fact-settlement"));
   exercisePostconditionNativeCauseWalRoundTrip(join(root, "postcondition-native-cause"));
   const actorRoot = join(root, "actor");
   const actorStore = new BrowserMutationStore(actorRoot);
@@ -416,8 +417,8 @@ try {
     /new BrowserMutationStore\(this\.options\.dataDir\)/u,
   );
   assert.match(actor, /markDispatched/u);
-  assert.match(actor, /markConfirmed/u);
-  assert.match(actor, /markRejected/u);
+  assert.match(actor, /this\.mutations\.readCommand\(permit\.commandId\)/u);
+  assert.doesNotMatch(actor, /this\.mutations\.mark(?:Confirmed|Rejected)\(/u);
   assert.doesNotMatch(
     `${supervisor}\n${actor}`,
     /BrowserProofJournal|proof-events\.ndjson/u,
