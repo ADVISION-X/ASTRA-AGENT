@@ -29,6 +29,7 @@ const BROWSER_TARGET_LEASE_PATH = "src/lib/browser/exact-target/browser-target-l
 const inspectAttachmentSelectors = (
   contract: SourceFile | undefined,
   settlementContract: SourceFile | undefined,
+  browserContract: SourceFile | undefined,
   findings: InspectorFinding[],
   finding: FindingFactory,
 ): void => {
@@ -50,6 +51,17 @@ const inspectAttachmentSelectors = (
     "gpt/chrome-proven-attachment-dom", ATTACHMENT_CONTRACT_PATH,
     `${name} must equal the current Chrome-proven value ${value}.`,
   ));
+  const uploadChecks = browserContract?.getVariableDeclaration("assertFileInputRequest")
+    ?.getInitializer()?.getDescendantsOfKind(SyntaxKind.BinaryExpression).filter(node =>
+      node.getLeft().getText() === "input.activation?.selector"
+      && node.getOperatorToken().getKind() === SyntaxKind.ExclamationEqualsEqualsToken) ?? [];
+  const approvedSelector = uploadChecks[0]?.getRight();
+  if (uploadChecks.length !== 1 || !approvedSelector || !Node.isStringLiteral(approvedSelector)
+    || approvedSelector.getLiteralValue() !== literal("GPT_UPLOAD_FROM_COMPUTER_SELECTOR")) {
+    findings.push(finding("gpt/chrome-proven-attachment-dom",
+      "src/lib/browser/chrome-extension/extension-file-input-runtime.ts",
+      "Extension validator must approve the exact current GPT upload selector."));
+  }
   const contractText = contract?.getFullText() ?? "";
   const settlementContractText = settlementContract?.getFullText() ?? "";
   for (const required of [
@@ -177,6 +189,7 @@ export const inspectGptAttachmentContract = (
   inspectAttachmentSelectors(
     sourceFor(context, ATTACHMENT_CONTRACT_PATH),
     sourceFor(context, ATTACHMENT_SETTLEMENT_CONTRACT_PATH),
+    sourceFor(context, "src/lib/browser/chrome-extension/extension-file-input-runtime.ts"),
     findings,
     finding,
   );

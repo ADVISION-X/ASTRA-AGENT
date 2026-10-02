@@ -281,7 +281,7 @@ DISPATCHED仅过程事件；missing receipt报告原command/现役authorityRef/h
 
 候选：AGENT main 4029f00d87c5f839e1aca7edb5fa3b857a57d695；Website main da375c93bb44dab0bb50ea165b80ee39593b4a22，存在其它任务未提交改动，仅只读核对其现役删除授权。本轮不修改 Website，不挽救或重建已删除事故，不新增恢复机制。
 
-1. 附件：删除 Browser validator 旧单 selector 合同，批准 GPT 已存在的精确 OR；原 scope/text/grant/唯一可操作候选不变。原 Extension file-input acceptance 直接消耗真实 GPT selector。
+1. 附件：删除 Browser validator 旧单 selector 合同，批准 GPT 已存在的精确 OR；原 scope/text/grant/唯一可操作候选不变。现役 GPT attachment inspector 从既有观察范围读取 producer 与 Extension validator 的实际 AST 并核 selector 相等；原 Extension file-input acceptance 执行该批准字符串，不导入 GPT Child 私有模块。
 2. 删除：沿 Runtime→Supervisor→lane→acquirer→原 WebSocket→Extension 唯一路径传递已有 releaseAuthority；Browser-006-V45 窄许可三字段 release 控制载荷及权威删除清槽例外，协议 8→9 无兼容。立即阻止后续物理输入，排空原 handler，park 同 job 当前 Target 并按现役 live registry 验证释放或缺席，在 releaseOutcome 前才清同 job 槽；原 Store 仅在显式 website-admin-deletion 下 exact purge/readback 未决行，绝不伪造 terminal/no。保留其它 job 的槽、Target、WAL。普通 release 和全部 acquire 仍受原未决门禁；物理释放失败保槽、保 WAL。复用 pendingCommandHandlers/pendingTargetHandlers，不新增等待器或状态机，排空快照不得包含释放 handler 自身。
 3. 候选：CHANGE 保留原 HEAD→工作树差异语义；READY/RELEASE 与执行前后完整性核验改读原生 git status --porcelain -z，涵盖暂存区和未合并。原仅驻留内存的执行指纹纳入原生暂存差异，防止 MM 中暂存字节改变而工作树不变；不新增持久 digest、候选源或报告。
 4. 错误：同一 child stderr 解析器识别既有封闭完整性码的标准前缀与 Node 未捕获 GovernanceError 的 code 属性行；仍为原生完整性失败立即停止。普通文字提及错误码不升级，普通故障继续原有独立检查收集。

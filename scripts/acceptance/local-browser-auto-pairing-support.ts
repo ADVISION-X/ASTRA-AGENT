@@ -409,7 +409,10 @@ const exerciseReconnectedWithdrawal = async (chromeApi: ExtensionChromeApi): Pro
   for (const sameJob of [true, false]) {
     const fixture = await receiptActorFixture(chromeApi), { actor, delivery } = fixture;
     const fact = terminalFact(identity("reconnected-withdrawal", "reconnected-attempt"));
-    const jobId = "job-1", jobRefHash = await hashBrowserExtensionText(jobId);
+    const jobId = "job-1";
+    const [jobRefHash, otherJobRefHash] = await Promise.all([
+      hashBrowserExtensionText(jobId), hashBrowserExtensionText("another-job"),
+    ]);
     const registry = new ExtensionExactTargetRegistry();
     const target = registry.claimOperatorTarget(23, jobRefHash, "loader-23", "chrome-23");
     let finishHandler: () => void = () => undefined, finishPage: () => void = () => undefined;
@@ -432,7 +435,7 @@ const exerciseReconnectedWithdrawal = async (chromeApi: ExtensionChromeApi): Pro
     });
     const drain = Reflect.get(actor, "drainDisconnectedHandlers").call(actor) as Promise<void>;
     await acceptTargetOperation(fixture, { action: "release", jobRefHash: sameJob
-      ? jobRefHash : await hashBrowserExtensionText("another-job"), releaseAuthority: "website-admin-deletion" });
+      ? jobRefHash : otherJobRefHash, releaseAuthority: "website-admin-deletion" });
     const releases = [...delivery.pendingTargetHandlers];
     finishHandler(); await new Promise<void>(resolve => setImmediate(resolve));
     assert.equal(delivery.commandAdmissionSuspended, true); assert.equal(Reflect.get(authority, "activeTarget"), target);

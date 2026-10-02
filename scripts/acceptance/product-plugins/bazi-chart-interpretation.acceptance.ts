@@ -48,7 +48,7 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   const repeated = { ...output, interpretation_blocks: [...output.interpretation_blocks, { ...output.interpretation_blocks[0], block_id: "two", professional_markdown: "# 交叉综合\n同一命盘对象可再次参与综合解释。" }] };
   assert.equal((parseProductResult(task, repeated, route).interpretation_blocks as unknown[]).length, 2);
   const flowFixture = {
-    task, output, materialContents: { bazi_formal_input: { schema_version: "bazi-formal-input.v2" },
+    task, output, materialContents: { bazi_formal_input: { schema_version: "bazi-formal-input.v3" },
       result_contract: route.result_contract },
   };
   const run = await exerciseProductFlow(plugin, flowFixture);

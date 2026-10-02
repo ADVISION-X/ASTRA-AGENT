@@ -7,8 +7,6 @@ import type { ExtensionChromeApi } from
 import { executeExtensionFileInput } from
   "../../src/lib/browser/chrome-extension/extension-file-input-runtime.js";
 
-import { GPT_UPLOAD_FROM_COMPUTER_SELECTOR } from "../../src/capabilities/gpt/children/attach_approved_gpt_files_once/selectors.js";
-
 type FileInputScenario = Readonly<{
   nodeIds: readonly number[];
   facts?: Readonly<Record<string, unknown>>;
@@ -34,7 +32,7 @@ type FileInputScenario = Readonly<{
 }>;
 
 const activation = Object.freeze({
-  selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
+  selector: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-actions'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child",
   scope: Object.freeze({ selector: "[data-composer-overlay-floating-ui='true']" }),
   expectedText: "上传",
 });

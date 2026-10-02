@@ -120,9 +120,8 @@ const exerciseWaitNewAndPrivacy = async (
     "a diagnostic privacy reason cannot revoke an already valid result");
 };
 
-const exerciseAdmissionDeletion = async (
-  store: ProductionRuntimeStore, admissionTemporary: string,
-  productionTask: ReturnType<typeof task>, pending: ReturnType<typeof task>,
+const exerciseDeletionControlIntent = async (
+  store: ProductionRuntimeStore, pending: ReturnType<typeof task>,
 ): Promise<void> => {
   const mislabelled = await readProductionDeviceJobStatus(
     deviceStatusWithoutAdmission(pending.job_id, false, "ACTIVE_ATTEMPT",
@@ -143,6 +142,13 @@ const exerciseAdmissionDeletion = async (
   } as never, store.readTask(pending.job_id)!), "pending");
   assert.equal(store.readTask(pending.job_id)?.current_reason, "BUSINESS_ADMISSION_PENDING",
     "cancel_requested is not physical Website absence and cannot authorize local deletion");
+};
+
+const exerciseAdmissionDeletion = async (
+  store: ProductionRuntimeStore, admissionTemporary: string,
+  productionTask: ReturnType<typeof task>, pending: ReturnType<typeof task>,
+): Promise<void> => {
+  await exerciseDeletionControlIntent(store, pending);
   let browserPurges = 0, evidencePurges = 0, deletionReleaseAuthority = "";
   const browserStore = new BrowserMutationStore(path.join(admissionTemporary, "browser-delete"));
   browserStore.verifyRuntimeTaskProvenance(null);
