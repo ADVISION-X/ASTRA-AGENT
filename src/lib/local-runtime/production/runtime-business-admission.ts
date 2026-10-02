@@ -47,7 +47,7 @@ export const purgeDeletedJob = async (state: RuntimeState, jobId: string): Promi
     await state.browserAuthority.releaseJobBoundTarget(
       jobId, "website-admin-deletion", state.abort.signal,
     );
-    state.browserAuthority.purgeBrowserJob(jobId);
+    state.browserAuthority.purgeBrowserJob(jobId, "website-admin-deletion");
     await state.evidenceStore.deleteArtifactsForMission(jobId);
     await purgeProductionRuntimeTask(state.dataDir, jobId);
     await state.store.purgeJob(jobId);

@@ -7,10 +7,7 @@ import { ExtensionTargetAuthority } from "./extension-target-authority.js";
 import { ExtensionHeartbeat } from "./extension-heartbeat.js";
 import { PairingCompletionGate } from "./pairing-completion-gate.js";
 import { PairingAutoBootstrap } from "./pairing-auto-bootstrap.js";
-import {
-  BROWSER_COMMAND_DEFAULT_DEADLINE_MS,
-  BROWSER_PROTOCOL_REVISION,
-} from "../protocol/generated/browser-protocol.generated.js";
+import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS, BROWSER_PROTOCOL_REVISION } from "../protocol/generated/browser-protocol.generated.js";
 import {
   asRecord,
   base64Url,
@@ -18,6 +15,7 @@ import {
   decrypt,
   encrypt,
   hexSecret,
+  hashBrowserExtensionText,
   pairingErrorCode,
   publicSigningJwk,
 } from "./websocket-actor-crypto.js";
@@ -26,16 +24,12 @@ import { acceptTargetClaimAcknowledgement, TargetClaimAwaiter } from "./websocke
 import { targetOperationFrom } from "./websocket-target-operation.js";
 import { answerPairChallenge, readServerReadyPermit, verifyServerAuthenticated,
   type AuthenticatedSession, type PendingPairing } from "./websocket-pairing-proof.js";
-
 declare const __GRASSEYE_RELEASE_BUILD_ID__: string;
-
 const SOCKET_URL = "ws://127.0.0.1:4173/browser-authority/v1";
 const AUTH_EPOCH = 1;
-
 type SocketState = "IDLE" | "CONNECTING" | "PAIRING" | "CONNECTED" | "CLOSED";
 const canAttemptAutomaticPairing = (state: SocketState): boolean =>
   state !== "CONNECTING" && state !== "PAIRING" && state !== "CONNECTED";
-
 /** The extension actor is the sole socket owner; every authentication discontinuity requires a fresh automatic pairing. */
 export class ExtensionWebSocketActor {
   private readonly connection = { socket: null as WebSocket | null, state: "IDLE" as SocketState, commandReady: false, lastServerSequence: 0, session: null as AuthenticatedSession | null, pairingSecret: null as string | null, pending: null as PendingPairing | null };
@@ -47,7 +41,7 @@ export class ExtensionWebSocketActor {
   private readonly commandDelivery = {
     pendingCommandHandlers: new Set<Promise<void>>(), pendingTargetHandlers: new Set<Promise<void>>(),
     commandAdmissionSuspended: false,
-    mutationSlot: null as { commandId: string; receiptBindingHash: `sha256:${string}`; fact: BrowserMutationTerminalFact | null } | null,
+    mutationSlot: null as { jobId: string; commandId: string; receiptBindingHash: `sha256:${string}`; fact: BrowserMutationTerminalFact | null } | null,
     sendTail: Promise.resolve([] as PromiseSettledResult<void>[]), receiveTail: Promise.resolve() as Promise<void>,
     lastMutationDeliveryKey: null as CryptoKey | null, disconnectedDrain: null as Promise<void> | null,
   };
@@ -58,9 +52,11 @@ export class ExtensionWebSocketActor {
       (input) => this.reportTargetFailure(input),
       async () => {
         this.commandDelivery.commandAdmissionSuspended = true;
+        const disconnectedDrain = this.commandDelivery.disconnectedDrain;
         await Promise.allSettled([
           ...this.commandDelivery.pendingCommandHandlers, ...this.commandDelivery.pendingTargetHandlers,
         ]);
+        if (disconnectedDrain !== null) await disconnectedDrain;
       },
     );
     this.heartbeat = new ExtensionHeartbeat(
@@ -291,19 +287,31 @@ export class ExtensionWebSocketActor {
     const operation = targetOperationFrom(request);
     if (operation.action === "release") {
       this.commandDelivery.commandAdmissionSuspended = true;
-      const handler = this.targetAuthority.releaseJobBoundChatGptTarget(operation.jobRefHash);
+      const handler = this.targetAuthority.releaseJobBoundChatGptTarget(operation.jobRefHash, operation.releaseAuthority, async () => {
+        const slot = this.commandDelivery.mutationSlot;
+        if (operation.releaseAuthority !== "website-admin-deletion" || !slot
+          || await hashBrowserExtensionText(slot.jobId) !== operation.jobRefHash) return;
+        if (this.commandDelivery.mutationSlot !== slot) return;
+        this.commandDelivery.mutationSlot = null;
+        this.commandDelivery.lastMutationDeliveryKey = null;
+      });
       this.commandDelivery.pendingTargetHandlers.add(handler);
-      void handler.then(
-        () => { this.commandDelivery.pendingTargetHandlers.delete(handler);
-          if (socket === this.connection.socket) this.commandDelivery.commandAdmissionSuspended = false; },
-        error => { this.commandDelivery.pendingTargetHandlers.delete(handler);
-          this.reportRuntimeFailure(error, "job-bound-target-acquisition", frame.sequence, { jobRefHash: operation.jobRefHash }); },
-      );
+      void handler.then(() => {
+        this.commandDelivery.pendingTargetHandlers.delete(handler);
+        if (socket === this.connection.socket && this.commandDelivery.pendingTargetHandlers.size === 0) {
+          this.commandDelivery.commandAdmissionSuspended = false;
+          return this.flushMutationReceipt();
+        }
+      }).catch(error => {
+        this.commandDelivery.pendingTargetHandlers.delete(handler);
+        this.reportRuntimeFailure(error, "job-bound-target-acquisition", frame.sequence, { jobRefHash: operation.jobRefHash });
+      });
       return;
     }
     if (this.commandDelivery.commandAdmissionSuspended || this.commandDelivery.mutationSlot !== null) throw new Error("BROWSER_COMMAND_ADMISSION_SUSPENDED");
     const handler = this.targetAuthority.acquireJobBoundChatGptTarget(
       operation.targetMode, operation.jobRefHash, operation.parentConversationUrl, () => {
+        if (this.commandDelivery.commandAdmissionSuspended) throw new Error("BROWSER_COMMAND_ADMISSION_SUSPENDED");
         if (socket !== this.connection.socket || !this.connection.commandReady || this.connection.session?.serverToClientKey !== session.serverToClientKey)
           throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
         if (Date.now() >= Date.parse(frame.deadline)) throw new Error("BROWSER_COMMAND_PERMIT_EXPIRED");
@@ -312,7 +320,8 @@ export class ExtensionWebSocketActor {
     this.commandDelivery.pendingTargetHandlers.add(handler);
     void handler.then(() => {
       this.commandDelivery.pendingTargetHandlers.delete(handler);
-      if (socket === this.connection.socket) this.commandDelivery.commandAdmissionSuspended = false;
+      if (socket === this.connection.socket && this.commandDelivery.pendingTargetHandlers.size === 0)
+        this.commandDelivery.commandAdmissionSuspended = false;
     }, error => {
       this.commandDelivery.pendingTargetHandlers.delete(handler);
       this.reportRuntimeFailure(error, "job-bound-target-acquisition", frame.sequence, { jobRefHash: operation.jobRefHash });
@@ -337,8 +346,9 @@ export class ExtensionWebSocketActor {
     if (!session || !this.connection.commandReady || frame.epoch !== AUTH_EPOCH) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     const { permit, receiptBindingHash, deadline } = readExtensionCommandPayload(payload, frame.deadline);
     if (this.commandDelivery.commandAdmissionSuspended || this.commandDelivery.mutationSlot !== null) throw new Error("BROWSER_COMMAND_ADMISSION_SUSPENDED");
-    if (receiptBindingHash !== null) this.commandDelivery.mutationSlot = { commandId: permit.commandId, receiptBindingHash, fact: null };
+    if (receiptBindingHash !== null) this.commandDelivery.mutationSlot = { jobId: permit.jobId, commandId: permit.commandId, receiptBindingHash, fact: null };
     const assertCommandActive = (): void => {
+      if (this.commandDelivery.commandAdmissionSuspended) throw new Error("BROWSER_COMMAND_ADMISSION_SUSPENDED");
       if (socket !== this.connection.socket || !this.connection.commandReady || this.connection.session?.serverToClientKey !== session.serverToClientKey)
         throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
       if (Date.now() >= deadline) throw new Error("BROWSER_COMMAND_PERMIT_EXPIRED");
@@ -407,7 +417,7 @@ export class ExtensionWebSocketActor {
     const drain = (async () => {
       await Promise.allSettled([...this.commandDelivery.pendingCommandHandlers, ...this.commandDelivery.pendingTargetHandlers]);
       await this.targetAuthority.releaseActiveTarget(false);
-      this.commandDelivery.commandAdmissionSuspended = false;
+      if (this.commandDelivery.pendingTargetHandlers.size === 0) this.commandDelivery.commandAdmissionSuspended = false;
       await this.flushMutationReceipt();
     })();
     this.commandDelivery.disconnectedDrain = drain;
@@ -480,7 +490,6 @@ export class ExtensionWebSocketActor {
     return this.sendEncrypted(socket, "DIAGNOSTIC", body)
       .catch((sendError) => { if (socket === this.connection.socket && session.clientToServerKey === this.connection.session?.clientToServerKey) this.close(errorCode(sendError)); });
   }
-
 }
 
 const chrome = readExtensionChromeApi();

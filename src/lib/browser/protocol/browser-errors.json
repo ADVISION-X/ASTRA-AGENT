@@ -1,5 +1,5 @@
 {
-  "revision": 8,
+  "revision": 9,
   "codes": [
     "BROWSER_INSTALL_INVALID",
     "BROWSER_HOST_UNAVAILABLE",

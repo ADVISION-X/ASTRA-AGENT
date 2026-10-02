@@ -4,7 +4,7 @@ import { availableParallelism } from "node:os";
 import { dirname, resolve } from "node:path";
 import { buildRegistry, parseLawSource, providerDomainForDependencySpec } from "../governance-authority.js";
 import type { Law, Level, Registry } from "../governance-contract.js";
-import { diffPaths, gitCommit } from "../governance-git-state.js";
+import { gitWorktreeStatus, gitCommit } from "../governance-git-state.js";
 import { BASE, FUNCTIONAL, REPORT } from "./governance-paths.js";
 import { canonicalBytes, rejectDuplicateJsonKeys } from "../governance-json.js";
 import { ROOT, fail, repositoryPaths, sha } from "../governance-runtime.js";
@@ -251,7 +251,7 @@ export const assertCandidateStable = (expected: string, actual: string, label: s
 };
 const assertCleanCandidate = (expectedCommit: string, label: string): void => {
   assertCandidateStable(expectedCommit, gitCommit(), label);
-  if (diffPaths().length) fail("CANDIDATE_DRIFT", `${label}:dirty-worktree`);
+  if (gitWorktreeStatus().length) fail("CANDIDATE_DRIFT", `${label}:dirty-worktree`);
 };
 const proofResults = (input: ProofResultInput): Map<string, ProofResult> => {
   const results = new Map<string, ProofResult>();
@@ -391,7 +391,7 @@ export const runFullQuality = async (
   const registry = preparedRegistry ?? buildRegistry();
   const laws = registry.laws;
   const commit = gitCommit();
-  if (diffPaths().length) fail(level === "READY" ? "READY_GIT_COMMIT_REQUIRED" : "RELEASE_GIT_COMMIT_REQUIRED", "dirty worktree");
+  if (gitWorktreeStatus().length) fail(level === "READY" ? "READY_GIT_COMMIT_REQUIRED" : "RELEASE_GIT_COMMIT_REQUIRED", "dirty worktree");
   const candidate = commit;
   const runDirectory = createQualityOutputDirectory();
   const boundParticipants = level === "RELEASE" ? bindReleaseParticipants() : [];

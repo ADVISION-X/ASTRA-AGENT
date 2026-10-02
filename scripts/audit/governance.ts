@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { GovernanceError, ROOT, fail } from './governance-runtime.js';
 import { checkProjection, readRegistryProjection, verifyEntry, verifyProductionOwnership, writeRegistry } from './governance-authority.js';
 import type { Level, Registry } from './governance-contract.js';
-import { diffPaths, gitCommit, worktreeCandidateFingerprint } from './governance-git-state.js';
+import { diffPaths, gitCommit, gitWorktreeStatus, worktreeCandidateFingerprint } from './governance-git-state.js';
 import { pathRole, REGISTRY } from './shared/governance-paths.js';
 import { validateChangedGovernanceSources, validateCommittedProviderContractVersionChanges } from './governance-change-authority.js';
 import { runFullQuality } from './shared/quality-runner.js';
@@ -156,7 +156,7 @@ async function quality(level: Level): Promise<void> {
     if (issues.length) fail('CHECK_EXECUTION_FAILED', `${issues.length} CHANGE checks failed or blocked`);
     return;
   }
-  if (changes.length) fail(level === 'READY' ? 'READY_GIT_COMMIT_REQUIRED' : 'RELEASE_GIT_COMMIT_REQUIRED', 'dirty worktree');
+  if (gitWorktreeStatus().length) fail(level === 'READY' ? 'READY_GIT_COMMIT_REQUIRED' : 'RELEASE_GIT_COMMIT_REQUIRED', 'dirty worktree');
   validateCommittedProviderContractVersionChanges();
   const registry = checkProjection();
   verifyProductionOwnership(registry);

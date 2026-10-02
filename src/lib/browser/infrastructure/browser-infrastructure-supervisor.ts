@@ -155,7 +155,6 @@ export class BrowserInfrastructureSupervisor {
         throw new Error("BROWSER_TARGET_INVALID");
       }
       const currentJob = this.broker.currentOperatorTargetJobRefHash();
-      if (currentJob !== null && currentJob !== input.jobRefHash) throw new Error("BROWSER_TARGET_INVALID");
       if (input.targetRef !== null) {
         this.broker.revokeOperatorTargetClaim({ targetRef: input.targetRef,
           jobRefHash: input.jobRefHash });
@@ -308,7 +307,7 @@ export class BrowserInfrastructureSupervisor {
     if (!mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
     mutations.verifyRuntimeTaskProvenance(earliestTaskCreatedAt);
   }
-  public purgeBrowserJob(jobId: string): void { this.lane.purgeJob(jobId); }
+  public purgeBrowserJob(jobId: string, authority: "website-admin-deletion"): void { this.lane.purgeJob(jobId, authority); }
   public health(): BrowserHealthSnapshot {
     const state = this.transport.currentState();
     const current = this.issuer.current();

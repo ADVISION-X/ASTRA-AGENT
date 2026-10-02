@@ -1,7 +1,7 @@
 # 浏览器命令 WAL 原终态补交—原 Extension worker 存活范围完整实现方案
 
 更新：2026-10-02（Asia/Dubai）。需求 Owner：AGENT / local-browser-session。
-状态：**已取得施工授权，W0 已对齐并完成两轮主 Codex 权威核对；W1/W2/W3 代码与质检迭代已落实，已完成两轮主 Codex 代码自检；独立只读审计发现并闭合接收重放、跨进程终态排序及旧 claim 异步误清三项，按 18 项有限实现义务核查后已放行进入 CHANGE，原生 CI-FULL 尚未取得结果**。前轮设计修正断线 handler/activeTarget 竞争与日志失败扣押 ACK 两个缺口；此前自审不能作为施工依据。当前执行遵守主 Codex 唯一写入、W0 至少两轮主审且禁止子智能体、重要步骤及最终只读子审、冻结 ci-full-governance 的 CHANGE→READY→RELEASE。方案审计不构成质量 PASS、READY 或 RELEASE。
+状态：**基线 4029f00 已完成原生 READY 并推送；2026-10-02 全面回顾发现下述四项遗留，当前进入窄修订。W0 由主 Codex 完成两轮权限/竞态核对，已先对齐现役法案和施工图，尚未取得本轮代码与 READY 结果。最终按用户最新要求停在 READY 后推送，不执行 RELEASE。**
 
 ## 1. 目标与范围
 
@@ -81,7 +81,7 @@ physical_input_count=0 是未取得终态时的默认值，不是可信零输入
 
 第一断裂：**原 Extension 命令事实与当前 socket 交付资格耦合，真实终态没有可补交、可确认的保存责任。** 启动期缺少 DISPATCHED UPDATE 不是合法根因，不能据此制造 terminal。
 
-四维绑定：Browser-004-V56的terminal-only/global gate；Browser-003-V45的live Target；Browser-006-V44的窄载荷闭集（W0 从 V43 升版）；Architecture-002-V2的Target冻结；Runtime-Log-003-V6的真实span/WAL后提交，以及Runtime-Log-001-V7的“阻止新动作、继续已SENT确认清理”（功能法案.md:1216）。Browser Blueprint第11/27/33行给出原WAL终态门，V6/GPT Blueprint给出accepted attempt、once-submit与Outbox。代码落点如表。各现役Browser/Runtime/Log acceptance经唯一npm run quality:check裁决，业务终点仍是Website admission与领域readback。
+四维绑定：Browser-004-V56的terminal-only/global gate；Browser-003-V45的live Target；基线 Browser-006-V44 的窄载荷闭集（原 W0 从 V43 升版；现役 §9 从 V44 升为 V45）；Architecture-002-V2的Target冻结；Runtime-Log-003-V6的真实span/WAL后提交，以及Runtime-Log-001-V7的“阻止新动作、继续已SENT确认清理”（功能法案.md:1216）。Browser Blueprint第11/27/33行给出原WAL终态门，V6/GPT Blueprint给出accepted attempt、once-submit与Outbox。代码落点如表。各现役Browser/Runtime/Log acceptance经唯一npm run quality:check裁决，业务终点仍是Website admission与领域readback。
 
 ## 4. 唯一目标结构与合同
 
@@ -115,13 +115,13 @@ receiptHash固定为canonical JSON对象{commandId,receiptBindingHash,terminalRe
 
 正常 mutation REPLY 携同一 projection/hash，Browser仍用原 command验证 raw机械result并对照projection；补交只交原执行端已经形成的projection，不重执行旧command，不要求旧requestSequence有新Promise，不重新签发旧permit。跨Node/Extension的机械投影必须复用同一纯算法，不能从当前代码重新构造旧Prompt后再判旧事实。现役coherent packet的exactCallIdentityHash由Browser binder加入，不能直接让Extension把未绑定七字段raw packet交给要求八字段的现役decoder：将既有binder的纯数据绑定算法原位移入现有browser-observation-receipt.ts，以原permit生成exact-call hash并验证原packet；两个宿主分别提供已有SHA-256能力，raw REPLY保持原机械结果，projection只使用绑定后的工作副本。不改变packet版本/既有身份算法，不返回Prompt或新增Target恢复身份。
 
-仅两个现役事件触发：原 handler真正结束、当前 READY完成。有槽时在当前连接交付一次；断线保留，下一READY再交同一事实。普通 REPLY成功发送后等待ack，不并发再发一套fact；原reply通道已失效而新READY已发生时，在原handler结束事件直接使用当前通道补交。不增加timer、循环重发或第二reconnect Owner。
+普通回执链仅由原 handler 真正结束、当前 READY 完成两个现役事件触发；§9 管理员释放结束后只恢复因暂停而延迟的原事实交付，不新增定时或外部事件。有槽时在当前连接交付一次；断线保留，下一READY再交同一事实。普通 REPLY成功发送后等待ack，不并发再发一套fact；原reply通道已失效而新READY已发生时，在原handler结束事件直接使用当前通道补交。不增加timer、循环重发或第二reconnect Owner。
 
-Browser先提交原WAL，再ack；Extension只在精确ack后释放槽。重复相同fact对相同terminal/proof只ack，不重写terminal时间、计数或payload。不同hash/结果冲突拒绝，不ack、不覆盖；缺行不重建。重复ack或不属于当前槽的旧ack不改变槽，也不清掉下一命令；属于当前command却hash冲突时精确拒绝。socket.send/Promise resolve/新fence均不充当持久接纳。
+普通事实交付由 Browser 先提交原 WAL 再 ack，Extension 只在精确 ack 后释放槽；§9 Website exact absence 管理员撤回是唯一非结算清槽例外，须先证明资源撤回，不能伪造 ACK。重复相同fact对相同terminal/proof只ack，不重写terminal时间、计数或payload。不同hash/结果冲突拒绝，不ack、不覆盖；缺行不重建。重复ack或不属于当前槽的旧ack不改变槽，也不清掉下一命令；属于当前command却hash冲突时精确拒绝。socket.send/Promise resolve/新fence均不充当持久接纳。
 
-同一 READY 与 handler 结束竞争时，用原 Actor 内 lastMutationDeliveryKey 去重，标记只抑制同session重复发送，不作为接纳证据；新session仍须补交直到ack。在原socket Owner的发送函数中保证序列分配、异步加密和实际发送按同一会话顺序执行；ack的验证/清槽必须先于其后同连接COMMAND的mutation入场。原 Owner 的 sendTail/receiveTail 仅序列化加密/解密入场；长 handler detached，避免 TARGET_CLAIM ACK 自等待。断线共享一个 disconnectedDrain Promise，待既有 handler Set 收束后释放，不建恢复调度。只原位收束消息顺序，不加业务队列/调度器或第二socket。协议8的normal REPLY parser必须消费固定projection字段；原mutation异常reply也携同一可信终态projection，不能继续从裸errorCode猜物理输入计数。
+同一 READY 与 handler 结束竞争时，用原 Actor 内 lastMutationDeliveryKey 去重，标记只抑制同session重复发送，不作为接纳证据；普通事实交付在新 session 仍须补交直到 ack；§9 精确管理员撤回已释放并清除同 job 槽后不再补交已删除工单。在原socket Owner的发送函数中保证序列分配、异步加密和实际发送按同一会话顺序执行；ack的验证/清槽必须先于其后同连接COMMAND的mutation入场。原 Owner 的 sendTail/receiveTail 仅序列化加密/解密入场；长 handler detached，避免 TARGET_CLAIM ACK 自等待。断线共享一个 disconnectedDrain Promise，待既有 handler Set 收束后释放，不建恢复调度。只原位收束消息顺序，不加业务队列/调度器或第二socket。协议 8 引入、9 沿用的 normal REPLY parser必须消费固定projection字段；原mutation异常reply也携同一可信终态projection，不能继续从裸errorCode猜物理输入计数。
 
-协议8普通REPLY固定为requestSequence、permitSequence、replyChannelToken、result或errorCode二选一、mutationReceipt五字段。mutationReceipt为上述完整fact body；observation/lifecycle为null。成功raw result须按原decoder与projection逐项一致；异常errorCode须等于projection.failureCode，输入事实只来自原执行端projection，不由errorCode推断。mutation缺可信projection时整包不能结算WAL，保留未决；不得增加旧四字段reply兼容。该字段是同一事实交付，不是第二收据或第二判定器。
+协议 8 引入、9 沿用的普通 REPLY固定为requestSequence、permitSequence、replyChannelToken、result或errorCode二选一、mutationReceipt五字段。mutationReceipt为上述完整fact body；observation/lifecycle为null。成功raw result须按原decoder与projection逐项一致；异常errorCode须等于projection.failureCode，输入事实只来自原执行端projection，不由errorCode推断。mutation缺可信projection时整包不能结算WAL，保留未决；不得增加旧四字段reply兼容。该字段是同一事实交付，不是第二收据或第二判定器。
 
 ### 4.3 原 WAL 一次结算与唤醒
 
@@ -181,7 +181,7 @@ identity spine：原commandId/binding→原WAL业务调用/effect→Website job/
 
 ### W0：法案载荷许可与施工图先对齐
 
-Owner：local-browser-session。授权人已明确授权本次必要法案修改，Browser-006 已由 V43 升为 V44，许可本次 terminal projection/ACK。只加入原worker实例仍有原可信terminal时经当前认证连接补交、Supervisor装配唯一verifier/Store结算、commit后ACK、零新输入权；Browser-004-V56若需升版，只明确同一settleTerminalReceipt与terminal事实，不放宽global gate。Architecture-002-V2、GPT/Website attempt/risk边界不改。
+Owner：local-browser-session。基线施工授权使 Browser-006 由 V43 升为 V44，许可原 terminal projection/ACK；本轮 §9 按既有授权修订为现役 V45，只窄许可管理员资源撤回载荷及清槽例外。只加入原worker实例仍有原可信terminal时经当前认证连接补交、Supervisor装配唯一verifier/Store结算、commit后ACK、零新输入权；Browser-004-V56若需升版，只明确同一settleTerminalReceipt与terminal事实，不放宽global gate。Architecture-002-V2、GPT/Website attempt/risk边界不改。
 
 精确同步现役Browser Blueprint；registry由原parser/generator计算版本依赖闭包，不手改，不沿用旧方案版本表。完成门：law/Blueprint/protocol/test对窄合同一致。本次授权及两轮主 Codex 权威核对已完成，不以历史 W0 阻断代替当前事实；若需改Target冻结、Website业务合同或恢复策略，重开设计，不扩大本工单。
 
@@ -197,7 +197,7 @@ Actor当前457行，executeCommand约67行，先把受影响命令执行/termina
 
 Owner：local-browser-session Browser/transport。允许protocol/browser-protocol.schema.json及原generator/generated；transport的frame-codec/frame-payload/websocket；exact-target的command-actor/command-postcondition/mutation-receipt/special-mutation-receipt/observation-receipt/submit-recovery-payload/outcome-resolver/mutation-store及直接类型；infrastructure-supervisor/lane-coordinator；本方案列明的mutation-settlement/mutation-atomicity/target-claim inspector、三个Store fixture/acceptance、local-browser-mutation-receipt-support及GPT fake lease的直接同步调整。WebCrypto接线只在原websocket-actor-crypto内必要调整，不建crypto adapter或第二hash算法。
 
-施工顺序冻结：纯binding投影/terminal verifier与原Store.settleTerminalReceipt→Supervisor.settleMutationTerminal及onMutationReceipt装配→transport两入口共用callback/ACK闭包→lane.notifyMutationSettled→Actor/failure消费已结算fact、退休旧direct writer/resolve链→同步protocol7→8及相关验收。无旧reader/union/兼容flag；补交零页面权限，不放宽acquisition/prepare gate。启动/停机边界仅核state.started及原Store可用，不恢复旧Actor。
+施工顺序冻结：纯binding投影/terminal verifier与原Store.settleTerminalReceipt→Supervisor.settleMutationTerminal及onMutationReceipt装配→transport两入口共用callback/ACK闭包→lane.notifyMutationSettled→Actor/failure消费已结算fact、退休旧direct writer/resolve链→同步基线 protocol7→8 及相关验收；本轮 §9 现役 protocol8→9 沿用同一事实链。无旧reader/union/兼容flag；补交零页面权限，不放宽acquisition/prepare gate。启动/停机边界仅核state.started及原Store可用，不恢复旧Actor。
 
 WebSocket当前497行、CommandActor461行、Store463行：Node normal raw verifier放原command-postcondition，窄payload解析放原frame-payload，不堆在transport；Actor删除旧completeMutation里的直接写入和约21行resolve；Store删除markConfirmed/markRejected/resolve约54行后承载唯一事务入口，不保留转发兼容壳。Supervisor345行承载原装配回调，lane仅加窄通知，不新增状态字段。现有observation-receipt99行承载唯一binding投影、共享wire type、纯packet binder及原机械packet验证；mutation-receipt433行先移共享packet验证再承载terminal projection/verifyBrowserMutationTerminalFact。Extension命令收尾复用extension-command-runtime48行。相关legacy fixture及现役inspector同步改为完整fact/唯一入口验证，不删除保护性语义来通过预算。
 
@@ -240,11 +240,11 @@ DISPATCHED仅过程事件；missing receipt报告原command/现役authorityRef/h
 17. Store提交失败/读回失败：无ACK/notify，关闭当前连接、槽保留，下一READY重交。提交后log-spine写入失败单列：同一已认证连接仍ACK已commit fact、Extension清槽，无notify/pump、新COMMAND或claim，随后撤权/close；ACK也失败则槽保留，下一READY相同proof只ACK且logger仍failed时仍不notify。重复fact不重写已提交时间/计数/payload，不伪造terminal日志；logger不可写不得把旧fact确认挡在认证/控制帧入口，ACK成功也不清原logger失败状态。ACK/close故障与原日志根因均保留；实际close不依赖再次写日志。日志健康对照组ACK后原lane继续，pendingMutationCount无幽灵未决。
 18. 生命周期实证分两组：原worker/槽持续存在的断线补交，以及Chrome仍开着但worker已真实终止的缺事实阻断；原debugger active与detach条件分别记录，不把8分钟或30秒阈值当worker生死证明。真实Chrome实证另需动态授权；静态/mock验收不得冒充真实MV3生命周期证明。
 
-当前施工使用 Node24 执行定向 acceptance/typecheck 与 Extension build；这些仅为局部验证。最终按冻结 ci-full-governance 连续执行唯一 quality:check 的 CHANGE→READY→RELEASE，实际阻断如实报告。READY/RELEASE另按原生clean commit、active law Dynamic Proof与授权执行，不引用主AI自审作为质量证明。
+当前施工使用 Node24 执行定向 acceptance/typecheck 与 Extension build；这些仅为局部验证。本次最终按用户最新要求、冻结 ci-full-governance 执行唯一 quality:check 的 CHANGE→clean main commit→READY，再推送；不执行 RELEASE。未来另获生产发布授权时才按 active law 执行全部 required Dynamic Proof，不引用主 AI 自审作为质量证明。
 
-协议切换前停新claim，原handler/CDP/barrier收束、WAL无未决DISPATCHED、所有槽ack清空。不能靠重启丢槽满足排空。当前事故记录由授权人侧删除处置，部署前只读核验该处置和剩余分母，不由本次代码抢救、回填或清理。若仍有其它协议7存量未决，部署保持阻断。本机制只保障启用后确实进入槽的命令；生产实证使用另行获授权的新测试job，不复用当前删除工单。
+协议切换前停新claim，原handler/CDP/barrier收束、WAL无未决DISPATCHED、所有槽ack清空。不能靠重启丢槽满足排空。当前事故记录由授权人侧删除处置，部署前只读核验该处置和剩余分母，不由本次代码抢救、回填或清理。基线 7→8 为历史；当前 8→9 切换前任一旧 revision 存量仍未决，部署保持阻断。本机制只保障启用后确实进入槽的命令；生产实证使用另行获授权的新测试job，不复用当前删除工单。
 
-同一停写窗口更新AGENT与固定Extension产物，双方revision/build一致才恢复claim，不留7/8兼容。失败保持停写；回退只含本次授权commit/产物，保留WAL。若已存在协议8未确认槽，先按8结算原事实，不能先回退/reload销毁唯一内存证据；若worker已终止事实丢失则保持阻断，不能为了部署回填terminal或扩大到第二存储。
+同一停写窗口更新AGENT与固定Extension产物，双方revision/build一致才恢复claim，现役 8→9 不留任何旧 revision 兼容。失败保持停写；回退只含本次授权commit/产物，保留WAL。若已存在当前 revision 未确认槽，先按同 revision 结算原事实，或仅按 §9 已授权的 exact job 撤回清槽，不能先回退/reload销毁唯一内存证据；若worker已终止事实丢失则保持阻断，不能为了部署回填terminal或扩大到第二存储。
 
 ## 8. 删除反事实与设计阶段三轮复审（历史，不替代施工审计）
 
@@ -276,3 +276,18 @@ DISPATCHED仅过程事件；missing receipt报告原command/现役authorityRef/h
 本轮主AI复核MV3原worker/槽存活边界、唯一投影/原WAL/normal与reconnect同入口、Website immutable firstFact和合法grant、confirmed locator零submit读回。前轮69源码指纹未漂移，仅补9个输入guard/日志门/生命周期真实依赖形成78文件；W1在已有文件参数位置分开guard，W2不增加日志状态或计数registry，当时 W0 未授权仍阻断（本次已取得授权）。Website本地main与origin/main分别绑定，相关consumer无提交差异，未知云审计commit不冒称验证；工作区八字Blueprint overlay不触碰。验收1—18分别覆盖两个新故障及原不变量，主AI未在本次有限反查再发现需新增结构的设计缺口；此自审不构成原生质量或生产PASS，当时仍须 W0 授权和独立施工验证；当前授权已取得，施工验证尚未完成。
 
 施工Codex重读本文件、AGENTS、上述authority/Blueprint/协议与dirty状态，复核candidate及W0授权。任一可恢复分支缺原writer事实、consumer/readback或现役验收落点，必须失败关闭并重开设计。
+
+## 9. 2026-10-02 回顾遗留的窄闭合
+
+候选：AGENT main 4029f00d87c5f839e1aca7edb5fa3b857a57d695；Website main da375c93bb44dab0bb50ea165b80ee39593b4a22，存在其它任务未提交改动，仅只读核对其现役删除授权。本轮不修改 Website，不挽救或重建已删除事故，不新增恢复机制。
+
+1. 附件：删除 Browser validator 旧单 selector 合同，批准 GPT 已存在的精确 OR；原 scope/text/grant/唯一可操作候选不变。原 Extension file-input acceptance 直接消耗真实 GPT selector。
+2. 删除：沿 Runtime→Supervisor→lane→acquirer→原 WebSocket→Extension 唯一路径传递已有 releaseAuthority；Browser-006-V45 窄许可三字段 release 控制载荷及权威删除清槽例外，协议 8→9 无兼容。立即阻止后续物理输入，排空原 handler，park 同 job 当前 Target 并按现役 live registry 验证释放或缺席，在 releaseOutcome 前才清同 job 槽；原 Store 仅在显式 website-admin-deletion 下 exact purge/readback 未决行，绝不伪造 terminal/no。保留其它 job 的槽、Target、WAL。普通 release 和全部 acquire 仍受原未决门禁；物理释放失败保槽、保 WAL。复用 pendingCommandHandlers/pendingTargetHandlers，不新增等待器或状态机，排空快照不得包含释放 handler 自身。
+3. 候选：CHANGE 保留原 HEAD→工作树差异语义；READY/RELEASE 与执行前后完整性核验改读原生 git status --porcelain -z，涵盖暂存区和未合并。原仅驻留内存的执行指纹纳入原生暂存差异，防止 MM 中暂存字节改变而工作树不变；不新增持久 digest、候选源或报告。
+4. 错误：同一 child stderr 解析器识别既有封闭完整性码的标准前缀与 Node 未捕获 GovernanceError 的 code 属性行；仍为原生完整性失败立即停止。普通文字提及错误码不升级，普通故障继续原有独立检查收集。
+
+W0 第一轮：核对 mother、现役 Browser/GPT/Runtime/CodePurity 法案、施工图、真实消费者，唯一权限来自 Website exact absence；仅 Browser 封闭载荷需改法案，母说明书与冻结 Target 架构不修改。W0 第二轮：反向检查跨 job、普通释放、槽 ACK 竞争、输入撤权/只读收尾、自等待、物理释放失败、MM 暂存漂移、普通 stderr 误升级；设计均由上述原 Owner 收口，无第二链。此记录不冒充质量分数或原生 PASS。
+
+施工后验收必须覆盖真实 Extension upload 请求、原 Store/lane 管理员删除与普通拒绝、Extension 同 job 槽撤回及其它 job 保留、暂存区 MM 拒绝与漂移、bare GovernanceError 停止后续命令。主 Codex 两轮代码自检、只读子审放行后运行冻结 CI-FULL 的 CHANGE→clean main commit→READY，再按 Skill 要求对新候选执行独立治理审查；存在 finding 必须修正并重新取得 READY。READY 不代表生产部署、Chrome 实测或 RELEASE。
+
+§9 生命周期复审补充：原 release 回调在自身入 pending 前捕获现有 disconnectedDrain 并等待它完成；旧 drain 不得在仍有 target handler 时解除暂停，新 release 成功后复用原 flush 交付其它 job 的保留事实。该顺序同时避免重复清 activeTarget、提前准入、自等待及保留事实无触发的问题；验收覆盖同 job 撤回与其它 job 撤回两种重连重叠。

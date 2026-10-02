@@ -444,12 +444,10 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
     }
   }
 
-  public purgeJob(jobId: string): void {
+  public purgeJob(jobId: string, authority: "website-admin-deletion"): void {
+    if (authority !== "website-admin-deletion") throw new Error("BROWSER_TARGET_INVALID");
     if (!jobId || /[\0]/u.test(jobId)) throw new Error("BROWSER_JOB_ID_INVALID");
     this.database.transaction(() => {
-      if (this.database.prepare("select 1 from browser_mutations where job_id=? and state='DISPATCHED' limit 1").get(jobId)) {
-        throw new Error("BROWSER_MUTATION_UNRESOLVED");
-      }
       this.database.prepare("delete from browser_mutations where job_id=?").run(jobId);
     })();
     if (this.hasMutationForJob(jobId)) throw new Error("BROWSER_JOB_PURGE_INCOMPLETE");

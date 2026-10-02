@@ -97,7 +97,7 @@ export type WorkbenchBrowserAuthority = Readonly<{
   }>): Readonly<{ exactCallIdentityHash: `sha256:${string}`; actionOrdinal: number;
     inputHash: `sha256:${string}`; terminalPayload: unknown;
     authorityRef: string; authorityHash: `sha256:${string}`; terminalAt: string }>;
-  purgeBrowserJob(jobId: string): void;
+  purgeBrowserJob(jobId: string, authority: "website-admin-deletion"): void;
   releaseJobBoundTarget(
     jobId: string,
     releaseAuthority: BrowserTargetReleaseAuthority,
@@ -216,7 +216,7 @@ export const createWorkbenchBrowserAuthority = async (
       supervisor.evidence.readProvenZeroInputProviderCommand(input),
     readSourceConfirmedProviderEffect: (input) =>
       supervisor.evidence.readSourceConfirmedProviderEffect(input),
-    purgeBrowserJob: (jobId) => supervisor.purgeBrowserJob(jobId),
+    purgeBrowserJob: (jobId, authority) => supervisor.purgeBrowserJob(jobId, authority),
     releaseJobBoundTarget: (jobId, releaseAuthority, signal) =>
       supervisor.releaseJobBoundTarget(jobId, releaseAuthority, signal),
     acquireJobBoundTargetLease: (binding, ownerId, wait) =>

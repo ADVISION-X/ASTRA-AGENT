@@ -1,7 +1,7 @@
 # Local Browser Authority V56 施工图
 
 ```blueprint-record
-{"schemaVersion":1,"blueprintId":"local-browser-authority-v56","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V45","LAW-LOCAL-BROWSER-SESSION-004-V56","LAW-LOCAL-BROWSER-SESSION-006-V44"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
+{"schemaVersion":1,"blueprintId":"local-browser-authority-v56","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V45","LAW-LOCAL-BROWSER-SESSION-004-V56","LAW-LOCAL-BROWSER-SESSION-006-V45"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
 ```
 
 Website 已以精确 `RESULT_SETTLED_UNUSABLE` 或 `GPT_RESPONSE_STOPPED_EMPTY` 拒绝整个旧 result revision 时，Browser 仅在原 rejection receipt 授权的新 revision、原 WAL 相关旧 command 全部 terminal 且未决集合为空、旧 WAL 全历史已核的同 job 中允许新 effect 各至多一次输入。此分支由 Website 的 `prior_result_rejection` 授权，与“答案不可取得”的逐调用风险 grant 互斥；未被 Website 拒绝的旧结果仍先零输入读回。旧 effect 与原 WAL 动作取证原样保留，不将拒绝当作零输入证明。
@@ -67,12 +67,16 @@ pending park 只释放物理 lease，不释放本次 Product/Child 调用的原�
 
 Owner 链为 Extension 原命令单内存槽 → 现役认证 WebSocket → BrowserInfrastructureSupervisor.settleMutationTerminal → BrowserMutationStore.settleTerminalReceipt / 唯一 verifyBrowserMutationTerminalFact → 原 WAL CAS 与读回 → 原连接 ACK → 日志健康时 BrowserLaneCoordinator.notifyMutationSettled。normal REPLY 与 reconnect MUTATION_RECEIPT 经 onMutationReceipt 函数物理汇流；transport 不写 WAL，临时 lease Actor 只消费已结算事实。旧 markConfirmed/markRejected/resolve 和 resolvePendingMutation/resolveDispatchedMutation 同工单物理删除。
 
-断线立即撤所有未来输入及新 COMMAND/TARGET_ACQUIRE admission；复用 pendingCommandHandlers 等待已发 CDP、2500ms barrier 与原 Document 有界只读收尾，terminal 固定到槽、原 handler 退出后才 releaseActiveTarget(false)。handler 不等待自身或 ACK；READY 只开放鉴权和事实交付，旧收尾/释放结束且槽获 ACK 后才开放页面 acquisition。每个实际 CDP 输入仍核原 session/permit/deadline；只读收尾 guard 不依赖旧 socket，但继续核原 Target/Document/interaction generation 与读取界限。ProviderInputState.started 不等于可信计数或成功；无法证明后置时交真实 rejected/dispatched 与已知逻辑计数。
+断线立即撤所有未来输入及新 COMMAND/TARGET_ACQUIRE admission；复用 pendingCommandHandlers 等待已发 CDP、2500ms barrier 与原 Document 有界只读收尾，terminal 固定到槽、原 handler 退出后才 releaseActiveTarget(false)。handler 不等待自身或 ACK；READY 只开放鉴权和事实交付，普通回执链只在旧收尾/释放结束且槽获 ACK 后开放页面 acquisition；唯一例外是本图下述 Website exact absence 的管理员资源撤回，按其独立释放证明清同 job 槽，不生成 ACK。每个实际 CDP 输入仍核原 session/permit/deadline；只读收尾 guard 不依赖旧 socket，但继续核原 Target/Document/interaction generation 与读取界限。ProviderInputState.started 不等于可信计数或成功；无法证明后置时交真实 rejected/dispatched 与已知逻辑计数。
 
 receiptBindingHash 由 browserMutationReceiptBindingProjection 对现役 BrowserMutationIdentity 作唯一 canonical 投影，Extension 只回传认证 binding，不重拼 WAL 字段。terminal completedAt 固定一次，receiptHash 绑定完整 terminal；当前命令机械计数仅 0|1，wire 存储范围 0..4 不扩大动作许可。原 CONFIRMED submit locator 只在原 WAL 加密落盘，Target/Document 不成为跨时资格。
 
 提交失败不 ACK；相同完整 fact 重投只 ACK，不改历史。日志健康时 commit/readback → terminal log → ACK → notify lane；日志失败或已不可写时仍 ACK 已提交事实、不 notify/pump，随后 revoke/close，关闭不依赖再次写日志。ACK 失败保留槽，下一 READY 同 proof 只 ACK；原 logger.isWritable/getSinkState 继续禁止后续工作，不增加 gate 状态。
 
-仅覆盖原 MV3 worker 与单槽仍存活范围。worker 终止/reload 丢事实仍未决，不加 storage、保活、timer、队列或历史回填。协议 7→8 必须排空原 handler、未决 WAL 与未确认槽后同窗口切换，无兼容分支；旧事故工单由授权人处置。WAL 解锁只证明原命令结算，业务继续仍由 Website 当前 grant、first fact 与 source handoff 决定。
+仅覆盖原 MV3 worker 与单槽仍存活范围。worker 终止/reload 丢事实仍未决，不加 storage、保活、timer、队列或历史回填。基线 4029f00 的协议 7→8 属历史；现役协议为 9，本轮 8→9 同样必须先排空原 handler、未决 WAL 与未确认槽后同窗口切换，无任何旧 revision 兼容分支；旧事故工单由授权人处置。WAL 解锁只证明原命令结算，业务继续仍由 Website 当前 grant、first fact 与 source handoff 决定。
 
 现役 Extension 接收 Owner 在 AEAD 验证后、动作或清槽前消费当前会话严格递增 server sequence；READY/COMMAND/acquisition/claim ACK/receipt ACK/revoke 全部适用，ACK 清槽不重新授予旧 COMMAND 输入。配对阶段只接纳一次，新会话重置一个接收序列值；拒绝重放不建 command 历史或第二幂等存储。
+
+既有管理员删除链的资源撤回顺序固定为：Website exact job 缺席 → Runtime 中止该 job → 原 lane 仅对 website-admin-deletion 放行同 job 未决释放 → 同一认证控制帧携三字段 action/jobRefHash/releaseAuthority → Extension 暂停新输入、排空既有 handler、park 同 job activeTarget、按 live registry 验证物理释放或缺席 → 仅此授权清同 job 原内存槽 → TARGET_REVOKE releaseOutcome → 原 Store exact job purge/readback → 原 Runtime 清 task/Outbox/材料/结果/Forensics。普通 release 和 acquire 仍不能越过 DISPATCHED；其它 job 的当前 claim 与槽原样保留。release handler 的排空快照必须在它自身加入 pendingTargetHandlers 前取得，禁止自等待。协议 revision 9 拒收旧两字段 release，不设兼容桥；删除不产生 mutation terminal 或 ACK。验收在原 lane、Store 与 Extension 真实入口覆盖上述顺序、普通释放拒绝、失败保槽与跨 job 保留。
+
+重连管理员 release 与旧 disconnectedDrain 重叠时，原 awaitOldCommandHandlers 在 release 加入 pending 集合前同步捕获已有 drain Promise，排空旧 pending 后等待该捕获 drain；不等待后来创建且可能包含自身的 drain。旧 drain 仅在 pendingTargetHandlers 为空时解除暂停，避免与新 release 竞争清 activeTarget；新 release 成功排空后才解除暂停，并复用原 flushMutationReceipt 交付其它 job 保留的原事实，不新增定时或外部触发器、状态或队列。

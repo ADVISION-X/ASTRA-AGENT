@@ -47,7 +47,7 @@ const temporaryRepository = (): { directory: string; repo: string; save: (path: 
   return { directory, repo, save, commit };
 };
 
-const runCoreFixture = (scenario: "ordinary" | "drift" | "authority" | "duplicate" | "wrong-id") => {
+const runCoreFixture = (scenario: "ordinary" | "drift" | "authority" | "duplicate" | "wrong-id" | "index") => {
   const fixture = temporaryRepository();
   const commands = resolve(fixture.directory, "commands.log");
   const registry = structuredClone(fixtureRegistry);
@@ -76,10 +76,51 @@ else process.stdout.write('GOVERNANCE_INSPECTOR_RESULT '+JSON.stringify({
   const script = resolve(fixture.directory, "run.mts");
   writeFileSync(script, `import {runFullQuality} from ${JSON.stringify(resolve(root, "scripts/audit/shared/quality-runner.ts"))};\ntry {const r=await runFullQuality('READY',${JSON.stringify(registry)},[{label:'typecheck',status:'FAILED',message:'fixture type error'}]);process.exitCode=r.outcome==='PASS'?0:1;} catch(e){console.error(e.code,e.message);process.exitCode=1;}\n`);
   fixture.commit();
+  if (scenario === "index") {
+    fixture.save("src/fixture.ts", "export const fixture = 2;\n");
+    execFileSync("git", ["add", "src/fixture.ts"], { cwd: fixture.repo });
+    fixture.save("src/fixture.ts", "export const fixture = 1;\n");
+    assert.equal(execFileSync("git", ["diff", "HEAD"], { cwd: fixture.repo, encoding: "utf8" }), "");
+    assert.match(execFileSync("git", ["status", "--porcelain"], { cwd: fixture.repo, encoding: "utf8" }), /^MM src\/fixture.ts/mu);
+  }
   const output = spawnSync(process.execPath, ["--import", loader, script], { cwd: fixture.repo, encoding: "utf8",
     env: { ...process.env, CI: "", GRASSEYE_QUALITY_OUTPUT_DIR: "", PATH: `${resolve(fixture.repo, "bin")}:${process.env.PATH}` } });
   return { ...fixture, commands, output, laws: registry.laws };
 };
+
+test("native READY refuses a staged change even when the worktree equals HEAD", () => {
+  const fixture = runCoreFixture("index");
+  try {
+    assert.notEqual(fixture.output.status, 0);
+    assert.match(fixture.output.stderr, /READY_GIT_COMMIT_REQUIRED/u);
+    assert.equal(readFileSync(resolve(fixture.repo, "scripts/audit/reports/law-quality.report.json"), "utf8"),
+      "prior report must remain on integrity failure\n");
+    assert.equal(fixture.output.stdout, "");
+  } finally { rmSync(fixture.directory, { recursive: true, force: true }); }
+});
+
+test("the existing candidate fingerprint sees index-only byte changes in an MM worktree", () => {
+  const fixture = temporaryRepository();
+  try {
+    fixture.save("src/fixture.ts", "export const fixture = 1;\n"); fixture.commit();
+    const script = resolve(fixture.directory, "fingerprint.mts");
+    writeFileSync(script, `import {worktreeCandidateFingerprint} from ${JSON.stringify(resolve(root, "scripts/audit/governance-git-state.ts"))}; console.log(worktreeCandidateFingerprint());`);
+    const fingerprint = () => execFileSync(process.execPath, ["--import", loader, script], { cwd: fixture.repo, encoding: "utf8" });
+    fixture.save("src/fixture.ts", "export const fixture = 2;\n");
+    execFileSync("git", ["add", "src/fixture.ts"], { cwd: fixture.repo });
+    fixture.save("src/fixture.ts", "export const fixture = 1;\n"); const before = fingerprint();
+    fixture.save("src/fixture.ts", "export const fixture = 3;\n");
+    execFileSync("git", ["add", "src/fixture.ts"], { cwd: fixture.repo });
+    fixture.save("src/fixture.ts", "export const fixture = 1;\n");
+    assert.notEqual(fingerprint(), before);
+  } finally { rmSync(fixture.directory, { recursive: true, force: true }); }
+});
+
+test("ordinary stderr mentioning an integrity code does not acquire authority", () => {
+  assert.throws(() => assertQualityCommandPassed({ status: 1, signal: null, stdout: "",
+    stderr: "ordinary explanation about SOURCE_PARSE_FAILED\n" }, "ordinary"),
+    (error: unknown) => error instanceof GovernanceError && error.code === "CHECK_EXECUTION_FAILED");
+});
 
 test("ordinary concurrent failures retain every issue and successful independent result", async () => {
   const issues: QualityCheckIssue[] = [];
@@ -151,7 +192,7 @@ test("the actual Product acceptance entry preserves child authority failures for
     }
     const products = readdirSync(resolve(repo, "scripts/acceptance/product-plugins")).filter((path) => path.endsWith(".acceptance.ts")).sort();
     assert.ok(products.length > 1);
-    writeFileSync(resolve(repo, "scripts/acceptance/product-plugins", products[0]!), "process.stderr.write('SOURCE_PARSE_FAILED Product authority unreadable\\n');process.exitCode=1;\n");
+    writeFileSync(resolve(repo, "scripts/acceptance/product-plugins", products[0]!), "import { fail } from '../../audit/governance-runtime.js'; fail('SOURCE_PARSE_FAILED', 'Product authority unreadable');\n");
     writeFileSync(resolve(repo, "scripts/acceptance/product-plugins", products[1]!), "console.log('LATER_PRODUCT_MUST_NOT_RUN');\n");
     const receipts = resolve(directory, "native-receipts");
     mkdirSync(receipts, { mode: 0o700 });
@@ -161,7 +202,7 @@ test("the actual Product acceptance entry preserves child authority failures for
         GOVERNANCE_PROOF_CANDIDATE: candidate, GOVERNANCE_PROOF_SCRIPT: "acceptance:architecture-boundary", GOVERNANCE_PROOF_TIMEOUT_MS: "300000", GOVERNANCE_PROOF_RECEIPT_DIR: receipts },
     });
     assert.notEqual(output.status, 0);
-    assert.match(output.stderr, /^SOURCE_PARSE_FAILED Product authority unreadable$/mu);
+    assert.match(output.stderr, /code: 'SOURCE_PARSE_FAILED'/u);
     assert.doesNotMatch(output.stdout, /LATER_PRODUCT_MUST_NOT_RUN|QUALITY_PROOF_OBSERVATION/u);
     const issues: QualityCheckIssue[] = [];
     await assert.rejects(collectQualityCheck("Product Exam", () => assertQualityCommandPassed(output, "acceptance:architecture-boundary"),
@@ -210,6 +251,8 @@ test("native READY entry records missing governance tests as BLOCKED and still r
     writeFileSync(resolve(repo, ".git/info/exclude"), "node_modules\n");
     symlinkSync(resolve(root, "node_modules"), resolve(repo, "node_modules"), "dir");
     cpSync(resolve(root, "scripts/audit"), resolve(repo, "scripts/audit"), { recursive: true });
+    cpSync(resolve(root, ".github/instructions/agent-rules"), resolve(repo, ".github/instructions/agent-rules"), { recursive: true });
+    cpSync(resolve(root, "docs/blueprints"), resolve(repo, "docs/blueprints"), { recursive: true });
     writeFileSync(resolve(repo, "package.json"), readFileSync(resolve(root, "package.json")));
     rmSync(resolve(repo, "tests/governance"), { recursive: true });
     mkdirSync(resolve(directory, "bin"));

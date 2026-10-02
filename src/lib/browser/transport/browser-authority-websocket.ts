@@ -1,3 +1,4 @@
+import type { BrowserTargetReleaseAuthority } from "../exact-target/browser-target-lease.js";
 import type { BrowserMutationTerminalFact } from "../exact-target/browser-observation-receipt.js";
 import { randomBytes } from "node:crypto";
 import {
@@ -236,6 +237,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
   }
   public requestPreauthorizedTargetRelease(
     jobRefHash: `sha256:${string}`,
+    releaseAuthority: BrowserTargetReleaseAuthority,
   ): void {
     this.assertLive();
     const active = this.active;
@@ -246,7 +248,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       "TARGET_ACQUIRE",
       sequence,
       new Date(Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS).toISOString(),
-      { action: "release", jobRefHash },
+      { action: "release", jobRefHash, releaseAuthority },
     );
     this.active = { ...active, nextServerSequence: sequence + 1 };
     try { active.socket.send(encodeBrowserAuthorityFrame(frame)); }

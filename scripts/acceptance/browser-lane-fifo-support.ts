@@ -48,10 +48,10 @@ Object.assign(revoker, {
 });
 assert.equal(currentClaim?.jobRefHash, hash("a"),
   "a delayed old ordinary revoke must not clear a new claim reusing the same numeric tab id");
-assert.throws(() => (revoker.onTargetRevoke as (input: unknown) => void).call(revoker, {
+assert.doesNotThrow(() => (revoker.onTargetRevoke as (input: unknown) => void).call(revoker, {
   targetRef: "target-tab-19", jobRefHash: hash("b"),
   releaseOutcome: "absent",
-}), /BROWSER_TARGET_INVALID/u);
+}));
 assert.equal(currentClaim?.jobRefHash, hash("a"),
   "an old job's release for a reused tab id must not revoke another job's live broker claim");
 (revoker.onTargetRevoke as (input: unknown) => void).call(revoker, {

@@ -4,7 +4,7 @@ import { BrowserAuthorityIssuer } from "./browser-authority-issuer.js";
 import type { createBrowserInfrastructureState } from "./browser-infrastructure-state.js";
 import { BrowserAuthorityWebSocket } from "../transport/browser-authority-websocket.js";
 import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS } from "../protocol/generated/browser-protocol.generated.js";
-import type { BrowserTargetLeaseWait } from "../exact-target/browser-target-lease.js";
+import type { BrowserTargetLeaseWait, BrowserTargetReleaseAuthority } from "../exact-target/browser-target-lease.js";
 
 type TargetWaiter = Readonly<{
   binding: BrowserExecutionBinding;
@@ -57,13 +57,10 @@ export class BrowserTargetAcquirer {
   public async releaseJobBoundTarget(
     commandTtlMs: number,
     jobRefHash: `sha256:${string}`,
+    releaseAuthority: BrowserTargetReleaseAuthority,
   ): Promise<void> {
-    const currentJobRefHash = this.resolveBroker().currentOperatorTargetJobRefHash();
-    if (currentJobRefHash !== null && currentJobRefHash !== jobRefHash) {
-      throw new Error("BROWSER_TARGET_INVALID");
-    }
     await this.awaitTargetOperation(commandTtlMs, "release", jobRefHash, () => {
-      this.websocket.requestPreauthorizedTargetRelease(jobRefHash);
+      this.websocket.requestPreauthorizedTargetRelease(jobRefHash, releaseAuthority);
     });
   }
 

@@ -162,8 +162,8 @@ const inspectExactTargetRelease = (
   const release = targetRelease.getVariableDeclaration("releaseJobBoundTarget")?.getText() ?? "";
   const delegateBound = ["await releaseJobBoundTarget({", "targets: this.targets",
     "createdTarget: this.createdTarget", "readActiveJobRefHash: () => this.activeTarget?.jobRefHash",
-    "awaitOldCommandHandlers: this.awaitOldCommandHandlers",
-    'sendRevoke: (body) => this.send("TARGET_REVOKE", body)',
+    "await this.awaitOldCommandHandlers()", "await this.parkActiveTarget()",
+    'await onReleased(); await this.send("TARGET_REVOKE", body)',
     "}, jobRefHash)"].every((token) => delegate.includes(token));
   const releaseBound = ["await context.awaitOldCommandHandlers()",
     "await context.debuggerRuntime.awaitPageReadPermission()",

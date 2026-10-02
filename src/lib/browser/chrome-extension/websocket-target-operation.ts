@@ -1,7 +1,9 @@
+import type { BrowserTargetReleaseAuthority } from "../exact-target/browser-target-lease.js";
 import { asRecord } from "./websocket-actor-crypto.js";
 
 export type TargetOperation = Readonly<{
   action: "release";
+  releaseAuthority: BrowserTargetReleaseAuthority;
   jobRefHash: `sha256:${string}`;
 }> | Readonly<{
   action: "acquire";
@@ -24,10 +26,12 @@ const parseJobRefHash = (request: Readonly<Record<string, unknown>>): `sha256:${
 const parseRelease = (
   request: Readonly<Record<string, unknown>>, jobRefHash: `sha256:${string}`,
 ): Extract<TargetOperation, { action: "release" }> => {
-  if (!hasExactKeys(request, ["action", "jobRefHash"])) {
+  if (!hasExactKeys(request, ["action", "jobRefHash", "releaseAuthority"])
+    || (request.releaseAuthority !== "business-admitted" && request.releaseAuthority !== "wait-new-attempt"
+      && request.releaseAuthority !== "website-admin-deletion")) {
     throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   }
-  return { action: "release", jobRefHash };
+  return { action: "release", jobRefHash, releaseAuthority: request.releaseAuthority };
 };
 
 const parseAcquire = (

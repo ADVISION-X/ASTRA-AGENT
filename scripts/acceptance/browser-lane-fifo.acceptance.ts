@@ -85,10 +85,23 @@ try {
   assert.equal((coordinator.nextWaiter as () => unknown).call(coordinator), null,
     "the DISPATCHED writer's own Target must remain held until original terminal readback");
   assert.equal(store.readCommand("unknown-command")?.state, "DISPATCHED");
-  assert.throws(() => store.purgeJob(old.jobId), /BROWSER_MUTATION_UNRESOLVED/u,
+  assert.throws(() => store.purgeJob(old.jobId, "business-admitted" as never), /BROWSER_TARGET_INVALID/u,
     "purge must not delete the WAL row that enforces the global input barrier");
   assert.equal(store.readCommand("unknown-command")?.state, "DISPATCHED",
     "a new attempt must not fabricate terminal state for the old command");
+  const adminRelease = { ...sameRelease, releaseAuthority: "website-admin-deletion" };
+  coordinator.queue = [sameRelease, adminRelease];
+  assert.equal((coordinator.nextWaiter as () => unknown).call(coordinator), adminRelease,
+    "only exact Website deletion may release a same-job unresolved lane");
+  assert.equal((coordinator.nextWaiter as () => unknown).call(coordinator), null);
+  db.prepare("update browser_mutations set state='PREPARED' where command_id=?").run("unknown-command");
+  store.prepare({ ...mutationInput, commandId: "retained-command", jobId: "retained-job",
+    attemptId: "retained-attempt", exactCallIdentityHash: hash("8") });
+  db.prepare("update browser_mutations set state='DISPATCHED' where command_id=?").run("unknown-command");
+  assert.throws(() => store.purgeJob(old.jobId, undefined as never), /BROWSER_TARGET_INVALID/u);
+  store.purgeJob(old.jobId, "website-admin-deletion");
+  assert.equal(store.hasMutationForJob(old.jobId), false, "admin deletion physically purges the unknown fact without settling it");
+  assert.equal(store.readCommand("retained-command")?.state, "PREPARED", "other job WAL must survive exact deletion");
   store.close();
 } finally { await rm(root, { recursive: true, force: true }); }
 

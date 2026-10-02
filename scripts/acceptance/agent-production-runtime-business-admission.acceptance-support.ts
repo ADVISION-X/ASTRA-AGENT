@@ -8,6 +8,9 @@ import { executionFailure } from "../../src/lib/execution-failure.js";
 import { readProductionDeviceJobStatus } from "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
 import { reconcilePendingAttemptFailures } from "../../src/lib/local-runtime/production/runtime-claim.js";
 import { purgeDeletedJob, reconcileBusinessAdmission } from "../../src/lib/local-runtime/production/runtime-business-admission.js";
+import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
+import { BrowserLaneCoordinator } from "../../src/lib/browser/infrastructure/browser-lane-coordinator.js";
+import { identity, exactHash } from "./local-browser-mutation-store-support.js";
 import { businessInFlightCount, claimReusesExistingBusinessSlot,
   reconcileCompletedBrowserTargets } from "../../src/lib/local-runtime/production/runtime-loops.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
@@ -141,16 +144,32 @@ const exerciseAdmissionDeletion = async (
   assert.equal(store.readTask(pending.job_id)?.current_reason, "BUSINESS_ADMISSION_PENDING",
     "cancel_requested is not physical Website absence and cannot authorize local deletion");
   let browserPurges = 0, evidencePurges = 0, deletionReleaseAuthority = "";
+  const browserStore = new BrowserMutationStore(path.join(admissionTemporary, "browser-delete"));
+  browserStore.verifyRuntimeTaskProvenance(null);
+  browserStore.prepare({ ...identity("admin-deleted-command", "admin-attempt"), jobId: pending.job_id });
+  browserStore.prepare({ ...identity("retained-command", "retained-attempt"), jobId: "retained-job" });
+  browserStore.markDispatched("admin-deleted-command");
+  let lane: BrowserLaneCoordinator;
+  lane = new BrowserLaneCoordinator(() => ({ currentOperatorTargetJobRefHash: () => exactHash("retained-job") }) as never,
+    { requestPreauthorizedTargetRelease: (jobRefHash: string, authority: string) => {
+      assert.equal(jobRefHash, exactHash(pending.job_id)); assert.equal(authority, "website-admin-deletion");
+      deletionReleaseAuthority = authority;
+      queueMicrotask(() => Reflect.get(lane, "targetAcquirer").resolvePending("release", jobRefHash));
+    } } as never, { current: () => ({ kind: "PRESENT", authority: { authorityEpoch: 1 } }) } as never,
+    { mutationState: browserStore, pendingJobBoundTargetAcquisition: null } as never);
   await purgeDeletedJob({ store, dataDir: admissionTemporary,
     abort: new AbortController(),
-    browserAuthority: { releaseJobBoundTarget: async (_jobId: string, authority: string) => {
-      deletionReleaseAuthority = authority;
-    },
-      purgeBrowserJob: () => { browserPurges += 1; } },
+    browserAuthority: { releaseJobBoundTarget: lane.releaseJobBoundTarget.bind(lane),
+      purgeBrowserJob: (jobId: string, authority: string) => {
+        assert.equal(jobId, pending.job_id); assert.equal(authority, "website-admin-deletion");
+        lane.purgeJob(jobId, authority as "website-admin-deletion"); browserPurges += 1; } },
     evidenceStore: { deleteArtifactsForMission: async () => { evidencePurges += 1; } },
   } as never, pending.job_id);
   assert.equal(store.readTask(pending.job_id), null);
   assert.equal(browserPurges, 1);
+  assert.equal(browserStore.hasMutationForJob(pending.job_id), false);
+  assert.equal(browserStore.readCommand("retained-command")?.state, "PREPARED");
+  browserStore.close();
   assert.equal(evidencePurges, 1);
   assert.equal(deletionReleaseAuthority, "website-admin-deletion",
     "Website 404 deletion must use the only exact admin-deletion release authority");

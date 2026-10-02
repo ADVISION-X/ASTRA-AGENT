@@ -53,7 +53,8 @@ export type CapturedExecution = {
 export const assertQualityCommandPassed = (execution: CapturedExecution, label: string): void => {
   if (execution.status === 0 && execution.signal === null) return;
   const code = [...integrityCodes].find((candidate) => execution.stderr.split("\n")
-    .some((line) => line.startsWith(`${candidate} `)));
+    .some((line) => line.startsWith(`${candidate} `)
+      || /^\s+code:\s*['"]([A-Z_]+)['"],?\s*$/u.exec(line)?.[1] === candidate));
   fail(code ?? "CHECK_EXECUTION_FAILED", label);
 };
 

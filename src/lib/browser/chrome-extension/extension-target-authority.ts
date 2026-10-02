@@ -1,3 +1,4 @@
+import type { BrowserTargetReleaseAuthority } from "../exact-target/browser-target-lease.js";
 import type { BrowserGovernedCommand } from "../exact-target/browser-command-actor.js";
 import {
   GPT_WEB_START_URL,
@@ -182,13 +183,19 @@ export class ExtensionTargetAuthority {
   }
   public async releaseJobBoundChatGptTarget(
     jobRefHash: `sha256:${string}`,
+    releaseAuthority: BrowserTargetReleaseAuthority,
+    onReleased: () => Promise<void>,
   ): Promise<void> {
     await releaseJobBoundTarget({
       targets: this.targets, debuggerRuntime: this.debuggerRuntime,
       createdTarget: this.createdTarget,
       readActiveJobRefHash: () => this.activeTarget?.jobRefHash ?? null,
-      awaitOldCommandHandlers: this.awaitOldCommandHandlers,
-      sendRevoke: (body) => this.send("TARGET_REVOKE", body),
+      awaitOldCommandHandlers: async () => {
+        await this.awaitOldCommandHandlers();
+        if (releaseAuthority === "website-admin-deletion" && this.activeTarget?.jobRefHash === jobRefHash)
+          await this.parkActiveTarget();
+      },
+      sendRevoke: async (body) => { await onReleased(); await this.send("TARGET_REVOKE", body); },
     }, jobRefHash);
   }
   public async releaseActiveTarget(notifyWorkbench = true): Promise<void> {

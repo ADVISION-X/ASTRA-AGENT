@@ -10,7 +10,8 @@ import type { ExtensionChromeApi } from
   "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
 import { TargetClaimAwaiter } from "../../src/lib/browser/chrome-extension/websocket-target-claim-awaiter.js";
 import { ExtensionWebSocketActor } from "../../src/lib/browser/chrome-extension/websocket-actor.js";
-import { encrypt, decrypt } from "../../src/lib/browser/chrome-extension/websocket-actor-crypto.js";
+import { encrypt, decrypt, hashBrowserExtensionText } from "../../src/lib/browser/chrome-extension/websocket-actor-crypto.js";
+import { ExtensionExactTargetRegistry } from "../../src/lib/browser/chrome-extension/exact-target-runtime.js";
 import { decodeBrowserAuthorityFrame, encodeBrowserAuthorityFrame, type BrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
 import type { AuthenticatedSession } from "../../src/lib/browser/chrome-extension/websocket-pairing-proof.js";
 import { BROWSER_PROTOCOL_REVISION } from "../../src/lib/browser/protocol/generated/browser-protocol.generated.js";
@@ -143,7 +144,7 @@ export const exerciseAutomaticPairing = async (): Promise<ExtensionChromeApi> =>
 
 type DeliveryFixture = {
   pendingCommandHandlers: Set<Promise<void>>; pendingTargetHandlers: Set<Promise<void>>;
-  commandAdmissionSuspended: boolean; mutationSlot: { commandId: string; receiptBindingHash: string; fact: ReturnType<typeof terminalFact> } | null;
+  commandAdmissionSuspended: boolean; mutationSlot: { jobId: string; commandId: string; receiptBindingHash: string; fact: ReturnType<typeof terminalFact> | null } | null;
 };
 const receiptActorFixture = async (chromeApi: ExtensionChromeApi) => {
   Reflect.set(globalThis, "__GRASSEYE_RELEASE_BUILD_ID__", "build-receipt-acceptance");
@@ -177,7 +178,7 @@ const exerciseOriginalWorkerReceiptDelivery = async (chromeApi: ExtensionChromeA
   const handler = new Promise<void>(resolve => { finishHandler = resolve; });
   delivery.pendingCommandHandlers.add(handler);
   void handler.then(() => { delivery.pendingCommandHandlers.delete(handler);
-    delivery.mutationSlot = { commandId: fact.commandId, receiptBindingHash: fact.receiptBindingHash, fact }; });
+    delivery.mutationSlot = { jobId: "job-1", commandId: fact.commandId, receiptBindingHash: fact.receiptBindingHash, fact }; });
   const order: string[] = [];
   Reflect.set(Reflect.get(actor, "targetAuthority"), "releaseActiveTarget", async () => {
     assert.equal(delivery.mutationSlot?.fact, fact, "terminal must be fixed before Target release"); order.push("release"); });
@@ -207,7 +208,7 @@ const exerciseMutationAcknowledgements = async (fixture: Awaited<ReturnType<type
   const ack = { ...header, body: { encrypted: await encrypt(session.serverToClientKey, "server-to-client", header, body) } };
   await accept(socket, ack); assert.equal(delivery.mutationSlot, null);
   const next = terminalFact(identity("next-receipt", "next-attempt"));
-  delivery.mutationSlot = { commandId: next.commandId, receiptBindingHash: next.receiptBindingHash, fact: next };
+  delivery.mutationSlot = { jobId: "job-1", commandId: next.commandId, receiptBindingHash: next.receiptBindingHash, fact: next };
   const repeatedHeader = { ...header, sequence: 3 };
   const repeatedAck = { ...repeatedHeader, body: { encrypted: await encrypt(session.serverToClientKey, "server-to-client", repeatedHeader, body) } };
   await accept(socket, repeatedAck); assert.equal(delivery.mutationSlot.fact, next, "duplicate old ACK cannot erase the next slot");
@@ -227,7 +228,7 @@ const exerciseOrderedReceiptFrames = async (fixture: Awaited<ReturnType<typeof r
   assert.deepEqual(fixture.frames.map(value => decodeBrowserAuthorityFrame(value).sequence), [2, 3],
     "asynchronous encryption cannot reorder frame nonces");
   const fact = terminalFact(identity("unsent-receipt", "unsent-attempt"));
-  fixture.delivery.mutationSlot = { commandId: fact.commandId, receiptBindingHash: fact.receiptBindingHash, fact };
+  fixture.delivery.mutationSlot = { jobId: "job-1", commandId: fact.commandId, receiptBindingHash: fact.receiptBindingHash, fact };
   Reflect.set(fixture.socket, "send", () => { throw new Error("injected socket failure"); });
   const flush = Reflect.get(fixture.actor, "flushMutationReceipt").bind(fixture.actor) as () => Promise<void>;
   await assert.rejects(flush(), /injected socket failure/u);
@@ -241,7 +242,7 @@ const exerciseReplacedSessionDelivery = async (fixture: Awaited<ReturnType<typeo
   const blockedSend = new Promise<void>(resolve => { unblock = resolve; });
   Reflect.set(Reflect.get(fixture.actor, "commandDelivery"), "sendTail", blockedSend);
   const fact = terminalFact(identity("replaced-session", "replaced-attempt"));
-  fixture.delivery.mutationSlot = { commandId: fact.commandId, receiptBindingHash: fact.receiptBindingHash, fact };
+  fixture.delivery.mutationSlot = { jobId: "job-1", commandId: fact.commandId, receiptBindingHash: fact.receiptBindingHash, fact };
   const flush = Reflect.get(fixture.actor, "flushMutationReceipt").bind(fixture.actor) as () => Promise<void>;
   const oldDelivery = flush();
   const replacement = await receiptActorFixture(chromeApi);
@@ -257,7 +258,7 @@ const exerciseCommandReplayAfterAck = async (fixture: Awaited<ReturnType<typeof 
   const fact = terminalFact(identity("replay-command", "replay-attempt"));
   let executions = 0;
   Reflect.set(actor, "executeCommand", async () => { executions += 1;
-    delivery.mutationSlot = { commandId: fact.commandId, receiptBindingHash: fact.receiptBindingHash, fact }; });
+    delivery.mutationSlot = { jobId: "job-1", commandId: fact.commandId, receiptBindingHash: fact.receiptBindingHash, fact }; });
   const receive = Reflect.get(actor, "onMessage").bind(actor) as (socket: WebSocket, data: unknown) => Promise<void>;
   const header = { protocolVersion: BROWSER_PROTOCOL_REVISION, kind: "COMMAND" as const, epoch: 1,
     sequence: 2, deadline: new Date(Date.now() + 10_000).toISOString() };
@@ -309,4 +310,146 @@ const exerciseReceiptSessionBoundaries = async (chromeApi: ExtensionChromeApi): 
   await exerciseCommandReplayAfterAck(await receiptActorFixture(chromeApi));
   await exerciseReplacedDiagnostics(chromeApi);
   await exerciseReplacedTargetClaim();
+  await exerciseAdminReceiptWithdrawal(chromeApi);
+  await exerciseAcquisitionWithdrawal(chromeApi);
+  await exerciseReconnectedWithdrawal(chromeApi);
+};
+
+const acceptTargetOperation = async (fixture: Awaited<ReturnType<typeof receiptActorFixture>>,
+  body: Record<string, unknown>, sequence = 2): Promise<void> => {
+  const header = { protocolVersion: BROWSER_PROTOCOL_REVISION, kind: "TARGET_ACQUIRE" as const,
+    epoch: 1, sequence, deadline: new Date(Date.now() + 10_000).toISOString() };
+  const frame = { ...header, body: { encrypted: await encrypt(fixture.session.serverToClientKey,
+    "server-to-client", header, body) } };
+  await Reflect.get(fixture.actor, "acceptTargetAcquire").call(fixture.actor, fixture.socket, frame);
+};
+
+const exerciseAdminReceiptWithdrawal = async (chromeApi: ExtensionChromeApi): Promise<void> => {
+  for (const scenario of ["admin", "ordinary", "other-job", "failed"] as const) {
+    const fixture = await receiptActorFixture(chromeApi);
+    const { actor, delivery } = fixture, jobId = "job-1";
+    const jobRefHash = await hashBrowserExtensionText(jobId);
+    const fact = terminalFact(identity("withdraw-command", "withdraw-attempt"));
+    delivery.mutationSlot = { jobId, commandId: fact.commandId, receiptBindingHash: fact.receiptBindingHash, fact };
+    const registry = new ExtensionExactTargetRegistry();
+    const target = registry.claimOperatorTarget(23, jobRefHash, "loader-23", "chrome-23");
+    let tabOpen = true, removeCount = 0, finishHandler: () => void = () => undefined;
+    const handler = new Promise<void>(resolve => { finishHandler = resolve; });
+    delivery.pendingCommandHandlers.add(handler);
+    void handler.then(() => delivery.pendingCommandHandlers.delete(handler));
+    const authority = Reflect.get(actor, "targetAuthority");
+    const otherTarget = registry.claimOperatorTarget(24, await hashBrowserExtensionText("job-other"), "loader-24", "chrome-24");
+    Reflect.set(authority, "targets", registry);
+    Reflect.set(authority, "activeTarget", scenario === "other-job" ? otherTarget : scenario === "ordinary" ? null : target);
+    Reflect.set(authority, "createdTarget", { isPending: () => false });
+    Reflect.set(authority, "debuggerRuntime", {
+      awaitPageReadPermission: async () => undefined,
+      readTargets: async () => tabOpen ? [{ id: "chrome-23", tabId: 23 }] : [],
+      removeTab: async () => { assert.equal(delivery.pendingCommandHandlers.size, 0);
+        assert.equal(delivery.mutationSlot?.fact, fact, "physical release must precede slot withdrawal");
+        if (scenario === "failed") throw new Error("BROWSER_TARGET_CLEANUP_FAILED");
+        removeCount += 1; tabOpen = false; },
+      readTab: async () => { if (!tabOpen) throw new Error("tab absent"); return { id: 23 }; },
+      forgetAttached: () => undefined,
+    });
+    await acceptTargetOperation(fixture, { action: "release", jobRefHash: scenario === "other-job"
+      ? await hashBrowserExtensionText("unrelated-job") : jobRefHash,
+    releaseAuthority: scenario === "ordinary" ? "business-admitted" : "website-admin-deletion" });
+    assert.equal(delivery.commandAdmissionSuspended, true);
+    assert.equal(removeCount, 0, "release must await the original handler");
+    assert.equal(delivery.mutationSlot?.fact, fact);
+    const releases = [...delivery.pendingTargetHandlers]; finishHandler();
+    const results = await Promise.allSettled(releases);
+    assert.equal(delivery.pendingTargetHandlers.size, 0, "release handler must not wait for itself");
+    if (scenario === "failed") {
+      assert.equal(results[0]?.status, "rejected"); assert.equal(delivery.mutationSlot?.fact, fact);
+      assert.equal(registry.findByJobRefHash(jobRefHash)?.targetRef, target.targetRef);
+    } else {
+      assert.equal(results[0]?.status, "fulfilled");
+      assert.equal(delivery.mutationSlot === null, scenario === "admin");
+      assert.equal(removeCount, scenario === "other-job" ? 0 : 1);
+      const frames = await Promise.all(fixture.frames.map(async value => {
+        const frame = decodeBrowserAuthorityFrame(value);
+        return decrypt(fixture.session.clientToServerKey, "client-to-server", frame);
+      }));
+      assert.ok(frames.some(body => body.releaseOutcome === (scenario === "other-job" ? "absent" : "released")));
+    }
+    assert.equal(registry.findByTabId(24), otherTarget, "another job's Target survives withdrawal");
+    if (scenario === "other-job") assert.equal(Reflect.get(authority, "activeTarget"), otherTarget);
+  }
+};
+
+const exerciseAcquisitionWithdrawal = async (chromeApi: ExtensionChromeApi): Promise<void> => {
+  const fixture = await receiptActorFixture(chromeApi);
+  const authority = Reflect.get(fixture.actor, "targetAuthority");
+  let assertInput: () => void = () => undefined, finishAcquire: () => void = () => undefined;
+  Reflect.set(authority, "acquireJobBoundChatGptTarget", (_mode: string, _job: string, _url: unknown, guard: () => void) => {
+    assertInput = guard; return new Promise<void>(resolve => { finishAcquire = resolve; });
+  });
+  const jobRefHash = await hashBrowserExtensionText("job-1");
+  await acceptTargetOperation(fixture, { action: "acquire", jobRefHash, targetMode: "fresh" });
+  assert.doesNotThrow(assertInput);
+  let finishCommand: () => void = () => undefined;
+  const command = new Promise<void>(resolve => { finishCommand = resolve; });
+  fixture.delivery.pendingCommandHandlers.add(command);
+  void command.then(() => fixture.delivery.pendingCommandHandlers.delete(command));
+  await acceptTargetOperation(fixture, { action: "release", jobRefHash, releaseAuthority: "website-admin-deletion" }, 3);
+  assert.throws(assertInput, /BROWSER_COMMAND_ADMISSION_SUSPENDED/u,
+    "withdrawal must revoke future inputs of an already admitted acquisition");
+  const handlers = [...fixture.delivery.pendingTargetHandlers]; finishAcquire();
+  await new Promise<void>(resolve => setImmediate(resolve));
+  assert.equal(fixture.delivery.commandAdmissionSuspended, true,
+    "an older acquisition completing cannot resume admission while release is still draining");
+  finishCommand(); await Promise.all(handlers);
+  await assert.rejects(acceptTargetOperation(fixture, { action: "release", jobRefHash }, 4),
+    /BROWSER_AUTH_TRANSCRIPT_INVALID/u, "protocol 9 must reject the old release payload without a compatibility path");
+};
+
+const exerciseReconnectedWithdrawal = async (chromeApi: ExtensionChromeApi): Promise<void> => {
+  for (const sameJob of [true, false]) {
+    const fixture = await receiptActorFixture(chromeApi), { actor, delivery } = fixture;
+    const fact = terminalFact(identity("reconnected-withdrawal", "reconnected-attempt"));
+    const jobId = "job-1", jobRefHash = await hashBrowserExtensionText(jobId);
+    const registry = new ExtensionExactTargetRegistry();
+    const target = registry.claimOperatorTarget(23, jobRefHash, "loader-23", "chrome-23");
+    let finishHandler: () => void = () => undefined, finishPage: () => void = () => undefined;
+    let finishRemoval: () => void = () => undefined, startedRemoval: () => void = () => undefined;
+    const removalStarted = new Promise<void>(resolve => { startedRemoval = resolve; });
+    const removal = new Promise<void>(resolve => { finishRemoval = resolve; });
+    const page = new Promise<void>(resolve => { finishPage = resolve; });
+    const handler = new Promise<void>(resolve => { finishHandler = resolve; });
+    delivery.pendingCommandHandlers.add(handler);
+    delivery.mutationSlot = { jobId, commandId: fact.commandId, receiptBindingHash: fact.receiptBindingHash, fact: null };
+    void handler.then(() => { delivery.pendingCommandHandlers.delete(handler); delivery.mutationSlot!.fact = fact; });
+    const authority = Reflect.get(actor, "targetAuthority"); let tabOpen = true;
+    Object.assign(authority, { targets: registry, activeTarget: target,
+      createdTarget: { isPending: () => false, rejectPendingCreatedTarget: async () => undefined },
+      debuggerRuntime: { awaitPageReadPermission: () => page, forgetAttached: () => undefined,
+        readTargets: async () => tabOpen ? [{ id: "chrome-23", tabId: 23 }] : [],
+        readTab: async () => { if (!tabOpen) throw new Error("tab absent"); return { id: 23 }; },
+        removeTab: async () => { startedRemoval(); await removal; tabOpen = false; },
+      },
+    });
+    const drain = Reflect.get(actor, "drainDisconnectedHandlers").call(actor) as Promise<void>;
+    await acceptTargetOperation(fixture, { action: "release", jobRefHash: sameJob
+      ? jobRefHash : await hashBrowserExtensionText("another-job"), releaseAuthority: "website-admin-deletion" });
+    const releases = [...delivery.pendingTargetHandlers];
+    finishHandler(); await new Promise<void>(resolve => setImmediate(resolve));
+    assert.equal(delivery.commandAdmissionSuspended, true); assert.equal(Reflect.get(authority, "activeTarget"), target);
+    finishPage(); await drain;
+    if (sameJob) {
+      await removalStarted;
+      assert.equal(delivery.commandAdmissionSuspended, true, "old drain cannot reopen admission during a newer release");
+      assert.equal(delivery.mutationSlot?.fact, fact, "old drain cannot erase an unacknowledged fact");
+      finishRemoval();
+    }
+    await Promise.all(releases); await new Promise<void>(resolve => setImmediate(resolve));
+    await Reflect.get(delivery, "sendTail");
+    assert.equal(delivery.pendingTargetHandlers.size, 0, "capture the previous drain without a self-wait cycle");
+    assert.equal(delivery.commandAdmissionSuspended, false);
+    assert.equal(delivery.mutationSlot === null, sameJob);
+    const receipts = fixture.frames.map(value => decodeBrowserAuthorityFrame(value)).filter(frame => frame.kind === "MUTATION_RECEIPT");
+    assert.equal(receipts.length, sameJob ? 0 : 1, "release must resume delivery of another job's preserved fact");
+    if (!sameJob) assert.deepEqual(await decrypt(fixture.session.clientToServerKey, "client-to-server", receipts[0]!), fact);
+  }
 };

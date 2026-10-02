@@ -156,8 +156,8 @@ export class BrowserLaneCoordinator {
   public notifyMutationSettled(): void { void this.pump(); }
   public hasUnresolvedMutation(): boolean { return (this.infrastructure.mutationState?.countDispatched() ?? 0) > 0; }
   public hasMutationForJob(jobId: string): boolean { return this.infrastructure.mutationState?.hasMutationForJob(jobId) ?? false; }
-  public purgeJob(jobId: string): void {
-    this.infrastructure.mutationState?.purgeJob(jobId);
+  public purgeJob(jobId: string, authority: "website-admin-deletion"): void {
+    this.infrastructure.mutationState?.purgeJob(jobId, authority);
     void this.pump();
   }
   public countProviderTurnDispatches(jobId: string, attemptId: string): number {
@@ -189,7 +189,8 @@ export class BrowserLaneCoordinator {
         continue;
       }
       if (mutationBlocked && (waiter.kind === "acquire"
-        || (this.infrastructure.mutationState?.countDispatched(waiter.jobId) ?? 0) > 0)) {
+        || (waiter.releaseAuthority !== "website-admin-deletion"
+          && (this.infrastructure.mutationState?.countDispatched(waiter.jobId) ?? 0) > 0))) {
         index += 1;
         continue;
       }
@@ -247,7 +248,7 @@ export class BrowserLaneCoordinator {
 
   private async serveRelease(waiter: ReleaseLaneWaiter): Promise<void> {
     await this.targetAcquirer.releaseJobBoundTarget(
-      waiter.remainingMs(), waiter.jobRefHash,
+      waiter.remainingMs(), waiter.jobRefHash, waiter.releaseAuthority,
     );
     waiter.complete();
     this.active = false;

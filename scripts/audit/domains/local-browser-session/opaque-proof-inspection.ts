@@ -176,7 +176,7 @@ const inspectClosedInvocationPayloadBoundary = (
     ]],
     [extensionActorPath, extensionActor.getFullText(), [
       "decrypt(session.serverToClientKey, \"server-to-client\", frame)",
-      "readExtensionCommandPayload(payload, frame.deadline)", "this.commandDelivery.mutationSlot = { commandId: permit.commandId, receiptBindingHash, fact: null }",
+      "readExtensionCommandPayload(payload, frame.deadline)", "this.commandDelivery.mutationSlot = { jobId: permit.jobId, commandId: permit.commandId, receiptBindingHash, fact: null }",
       "executeExtensionCommandReply", "this.sendEncrypted(socket, \"REPLY\"",
     ]],
     [extensionCryptoPath, extensionCrypto.getFullText(), [

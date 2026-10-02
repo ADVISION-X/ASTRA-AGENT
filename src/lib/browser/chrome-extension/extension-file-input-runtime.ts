@@ -128,7 +128,7 @@ const assertFileInputRequest = (input: ExtensionFileInput): void => {
   const approvedNames = input.resolvedFilePaths.map((path) =>
     path.slice(path.lastIndexOf("/") + 1).normalize("NFC"));
   if (input.selector !== "form[data-chatgpt-composer] input[type='file'][aria-label='附加文件']"
-    || input.activation?.selector !== "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child"
+    || input.activation?.selector !== "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-actions'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child"
     || input.activation?.scope?.selector !== "[data-composer-overlay-floating-ui='true']"
     || input.activation?.expectedText !== "上传"
     || input.approvedFiles.length < 1 || input.approvedFiles.length > 20

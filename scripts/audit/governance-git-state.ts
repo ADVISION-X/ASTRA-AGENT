@@ -37,8 +37,12 @@ export const diffPaths = (base = "HEAD"): Array<{ status: string; path: string }
   return changes.sort((left, right) => byteCompare(left.path, right.path) || byteCompare(left.status, right.status));
 };
 
+export const gitWorktreeStatus = (): string => execFileSync("git",
+  ["status", "--porcelain=v1", "-z", "--untracked-files=all"], { cwd: ROOT }).toString();
+
 export const worktreeCandidateFingerprint = (): string => JSON.stringify([
-  gitCommit(),
+  gitCommit(), gitWorktreeStatus(),
+  execFileSync("git", ["diff", "--cached", "--binary", "HEAD", "--"], { cwd: ROOT }).toString("base64"),
   diffPaths().map((change) => [change.status, change.path,
     change.status === "D" ? null : readFileSync(resolve(ROOT, change.path)).toString("base64")]),
 ]);
