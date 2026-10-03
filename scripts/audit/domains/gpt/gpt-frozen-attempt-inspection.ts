@@ -1,197 +1,318 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-
+import { Node, Project, SyntaxKind } from "ts-morph";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
+import { sourceFor } from "./gpt-inspection-support.js";
 
-const LAW_ID = "LAW-GPT-002-V31";
-const ROOT = "src/capabilities/gpt";
-const read = (context: InspectorContext, path: string): string =>
-  readFileSync(resolve(context.sealedRoot, path), "utf8");
-
+const LAW_ID = "LAW-GPT-002-V31", ROOT = "src/capabilities/gpt";
+const compact = (source: string): string => source.replace(/\s+/gu, "");
+// The executable module binds the nine immutable response functions, their
+// real parameter/import references, the two gates and the original 20-minute
+// clock. AST tokens preserve control ancestry and literal contents; comments
+// and formatting are trivia; kind and semantic child count retain the tree. This is static evidence, never a runtime gate/hash.
+const frozenTextResponseSource = [
+  "import { executionFailure, executionFailureMetadata, failureCode } from \"../../../../lib/execution-failure.js\";",
+  "import { gptExecutionFailure } from \"../../execution-fault.js\";",
+  "import { gptCanonicalHash, type GptProviderObservationWaitReason } from \"../../contract.js\";",
+  "import type { ExactReadbackNegativeObservation, ProviderStoppedEmptyProof } from \"../../../../lib/execution-failure.js\";",
+  "",
+  "import { declaredFacts, numberInput, requireBrowser, requireExactInputKeys, stringInput, success, type GptChildHandler } from \"../../web/child-handler.js\";",
+  "import {",
+  "  projectExactAssistantTurn,",
+  "  readExactAssistantTurn,",
+  "} from \"../../web/gpt-dom-observation.js\";",
+  "import { canonicalGptConversationUrl } from \"../../web/contracts/target-document.contract.js\";",
+  "",
+  "export const GPT_STOPPED_EMPTY_CONFIRMATION_MS = 20 * 60 * 1_000;",
+  "",
+  "type StoppedEmptyWindow = Readonly<{",
+  "  sinceMonotonicMs: number;",
+  "  firstObservedAt: string;",
+  "  observationCount: number;",
+  "  identityHash: `sha256:${string}`;",
+  "}>;",
+  "",
+  "type ExactAssistantObservation = Awaited<ReturnType<typeof readExactAssistantTurn>>;",
+  "",
+  "const throwStoppedEmptyFailure = (",
+  "  assistant: ExactAssistantObservation,",
+  "  window: StoppedEmptyWindow,",
+  "  observedAt: number,",
+  "): never => {",
+  "  const facts = projectExactAssistantTurn(assistant);",
+  "  const evidenceRef = facts.factResultIds[0];",
+  "  if (!evidenceRef || !facts.observationRevisionHash) {",
+  "    throw executionFailure(\"failed\", \"GPT_STOPPED_EMPTY_EVIDENCE_INVALID\");",
+  "  }",
+  "  const stoppedEmptyProof: ProviderStoppedEmptyProof = Object.freeze({",
+  "    firstObservedAt: window.firstObservedAt,",
+  "    terminalObservedAt: assistant.observedAt,",
+  "    continuousMonotonicMs: Math.floor(observedAt - window.sinceMonotonicMs),",
+  "    observationCount: window.observationCount,",
+  "    identityHash: window.identityHash,",
+  "    terminalObservationRevisionHash: facts.observationRevisionHash,",
+  "  });",
+  "  throw gptExecutionFailure(\"GPT_RESPONSE_STOPPED_EMPTY\", {",
+  "    mutationOutcome: \"no\", evidence: { evidenceRef, evidenceHash: facts.observationRevisionHash },",
+  "    proofFacts: Object.freeze({ ...facts, decision: \"FAIL_CLOSED\", mutationOutcome: \"no\",",
+  "      browserFact: null, nativeFailureCode: \"GPT_RESPONSE_STOPPED_EMPTY\", stoppedEmptyProof }),",
+  "  });",
+  "};",
+  "",
+  "export const advanceStoppedEmptyWindow = (",
+  "  current: StoppedEmptyWindow | null,",
+  "  observation: Readonly<{",
+  "    generatingRaw: number;",
+  "    semanticText: string;",
+  "    observedAt: string;",
+  "    identityHash: `sha256:${string}`;",
+  "  }>,",
+  "  observedAt: number,",
+  "): Readonly<{ window: null; confirmed: false }> | Readonly<{ window: StoppedEmptyWindow; confirmed: boolean }> => {",
+  "  if (observation.generatingRaw > 0 || observation.semanticText.trim().length > 0) {",
+  "    return Object.freeze({ window: null, confirmed: false });",
+  "  }",
+  "  const window = current === null || current.identityHash !== observation.identityHash",
+  "    ? Object.freeze({",
+  "        sinceMonotonicMs: observedAt,",
+  "        firstObservedAt: observation.observedAt,",
+  "        observationCount: 1,",
+  "        identityHash: observation.identityHash,",
+  "      })",
+  "    : Object.freeze({ ...current, observationCount: current.observationCount + 1 });",
+  "  return Object.freeze({",
+  "    window,",
+  "    confirmed: observedAt - window.sinceMonotonicMs >= GPT_STOPPED_EMPTY_CONFIRMATION_MS,",
+  "  });",
+  "};",
+  "",
+  "/** Advances the stopped-empty window for an observed, not yet settled assistant turn. */",
+  "const advanceObservedAssistant = (",
+  "  assistant: ExactAssistantObservation,",
+  "  current: StoppedEmptyWindow | null,",
+  "): StoppedEmptyWindow | null => {",
+  "  const observedAt = performance.now();",
+  "  const stoppedEmpty = advanceStoppedEmptyWindow(current, {",
+  "    generatingRaw: assistant.generatingRaw,",
+  "    semanticText: assistant.semanticText,",
+  "    observedAt: assistant.observedAt,",
+  "    identityHash: gptCanonicalHash({",
+  "      canonicalConversationUrl: assistant.currentUrl,",
+  "      userTurnId: assistant.precedingUserTurnId,",
+  "      assistantTurnId: assistant.assistantTurnId,",
+  "      targetRefHash: assistant.targetRefHash,",
+  "      documentRefHash: assistant.documentRefHash,",
+  "    }),",
+  "  }, observedAt);",
+  "  if (stoppedEmpty.confirmed) throwStoppedEmptyFailure(assistant, stoppedEmpty.window, observedAt);",
+  "  return stoppedEmpty.window;",
+  "};",
+  "",
+  "const settledTextResponse = (assistant: ExactAssistantObservation) => success({",
+  "  value: { assistantTurnId: assistant.assistantTurnId, rawDomHtml: assistant.rawDomHtml,",
+  "    rawDomHash: assistant.rawDomHash, semanticText: assistant.semanticText,",
+  "    semanticTextHash: assistant.semanticTextHash },",
+  "  ...declaredFacts({ ...projectExactAssistantTurn(assistant), decision: \"DONE\", mutationOutcome: \"no\",",
+  "    browserFact: null, nativeFailureCode: null }),",
+  "});",
+  "",
+  "const checkpointInput = (intent: Parameters<GptChildHandler<\"checkpoint_gpt_text_response\">>[0]) => {",
+  "  requireExactInputKeys(intent, [\"canonicalConversationUrl\", \"probeBudgetMs\", \"turnMarker\", \"userTurnId\"]);",
+  "  const conversationUrl = canonicalGptConversationUrl(stringInput(intent, \"canonicalConversationUrl\"));",
+  "  const turnMarker = stringInput(intent, \"turnMarker\");",
+  "  const userTurnId = stringInput(intent, \"userTurnId\");",
+  "  const probeBudgetMs = numberInput(intent, \"probeBudgetMs\");",
+  "  if (!Number.isSafeInteger(probeBudgetMs) || probeBudgetMs < 1 || probeBudgetMs > 3_600_000) throw executionFailure(\"failed\", \"GPT_RESPONSE_PROBE_BUDGET_INVALID\");",
+  "  return { conversationUrl, userTurnId, turnMarker, probeBudgetMs };",
+  "};",
+  "",
+  "const recordNegativeObservation = (",
+  "  current: ExactReadbackNegativeObservation | null,",
+  "  error: unknown,",
+  "): ExactReadbackNegativeObservation | null => {",
+  "  const negative = executionFailureMetadata(error)?.exactReadbackNegativeObservation;",
+  "  if (!negative || negative.generatingRaw !== 0) return null;",
+  "  const same = current !== null",
+  "    && current.canonicalConversationUrl === negative.canonicalConversationUrl",
+  "    && current.userTurnId === negative.userTurnId",
+  "    && current.targetRefHash === negative.targetRefHash",
+  "    && current.documentRefHash === negative.documentRefHash",
+  "    && current.pendingCause === negative.pendingCause;",
+  "  return Object.freeze({ ...negative,",
+  "    firstObservedAt: same ? current.firstObservedAt : negative.observedAt,",
+  "    observationCount: same ? current.observationCount + 1 : 1,",
+  "  });",
+  "};",
+  "",
+  "const confirmedNegativeWindow = (",
+  "  observation: ExactReadbackNegativeObservation | null,",
+  "): observation is ExactReadbackNegativeObservation => observation !== null",
+  "  && observation.observationCount >= 2",
+  "  && Date.parse(observation.observedAt) > Date.parse(observation.firstObservedAt);",
+  "",
+  "const requireObservationGate = (context: Parameters<GptChildHandler<\"checkpoint_gpt_text_response\">>[1]) => {",
+  "  const gate = context.waitForProviderObservation;",
+  "  if (!gate) throw executionFailure(\"failed\", \"GPT_PROVIDER_OBSERVATION_GATE_REQUIRED\");",
+  "  return gate;",
+  "};",
+  "",
+  "export const checkpointGptTextResponseHandler: GptChildHandler<\"checkpoint_gpt_text_response\"> =",
+  "  async (intent, context) => {",
+  "    const { conversationUrl, userTurnId, turnMarker, probeBudgetMs } = checkpointInput(intent);",
+  "    const browser = requireBrowser(context);",
+  "    const deadline = Date.now() + probeBudgetMs;",
+  "    let stoppedEmptyWindow: StoppedEmptyWindow | null = null;",
+  "    let exactResponseObserved = false;",
+  "    let nextWaitReason: GptProviderObservationWaitReason = \"initial-observation\";",
+  "    const negativeWindow: { current: ExactReadbackNegativeObservation | null } = { current: null };",
+  "    while (Date.now() < deadline || exactResponseObserved) {",
+  "      const waitForProviderObservation = requireObservationGate(context);",
+  "      const observationDeadline = exactResponseObserved",
+  "        ? Date.now() + GPT_STOPPED_EMPTY_CONFIRMATION_MS : deadline;",
+  "      if (await waitForProviderObservation(observationDeadline, nextWaitReason) === \"deadline\") {",
+  "        if (exactResponseObserved) continue;",
+  "        break;",
+  "      }",
+  "      let assistant: ExactAssistantObservation | null = null;",
+  "      try {",
+  "        assistant = await readExactAssistantTurn(browser, userTurnId, turnMarker, conversationUrl);",
+  "      } catch (error) {",
+  "        const code = failureCode(error);",
+  "        if (code === \"BROWSER_EXACT_USER_TURN_UNAVAILABLE\") {",
+  "          nextWaitReason = \"exact-user-turn-unavailable\";",
+  "        } else if (code === \"BROWSER_ADJACENT_ASSISTANT_TURN_MISSING\") {",
+  "          nextWaitReason = \"adjacent-assistant-missing\";",
+  "        } else {",
+  "          throw error;",
+  "        }",
+  "        negativeWindow.current = recordNegativeObservation(negativeWindow.current, error);",
+  "      }",
+  "      exactResponseObserved = assistant !== null;",
+  "      if (assistant && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0) {",
+  "        return settledTextResponse(assistant);",
+  "      }",
+  "      if (!assistant) {",
+  "        stoppedEmptyWindow = null;",
+  "        continue;",
+  "      }",
+  "      negativeWindow.current = null;",
+  "      nextWaitReason = assistant.generatingRaw > 0",
+  "        ? \"stop-present\" : \"stopped-empty-confirming\";",
+  "      stoppedEmptyWindow = advanceObservedAssistant(assistant, stoppedEmptyWindow);",
+  "    }",
+  "    const lastNegative = negativeWindow.current;",
+  "    if (confirmedNegativeWindow(lastNegative)) {",
+  "      throw executionFailure(\"failed\", \"GPT_EXACT_READBACK_UNAVAILABLE\", {",
+  "        metadata: { exactReadbackNegativeObservation: lastNegative },",
+  "      });",
+  "    }",
+  "    throw executionFailure(\"failed\", \"GPT_RESPONSE_TIMEOUT\");",
+  "  };",
+].join("\n");
+const responseExecutionTokens = (file: import("ts-morph").SourceFile): readonly (readonly [number, number, string])[] =>
+  file.getStatements().filter(statement => !Node.isTypeAliasDeclaration(statement)).flatMap(statement =>
+    [statement, ...statement.getDescendants()].filter(node =>
+      ![node, ...node.getAncestors()].some(ancestor =>
+        ancestor.getKind() >= SyntaxKind.FirstJSDocNode && ancestor.getKind() <= SyntaxKind.LastJSDocNode))
+      .map(node => {
+        const children = node.getChildren().filter(child =>
+          child.getKind() < SyntaxKind.FirstJSDocNode || child.getKind() > SyntaxKind.LastJSDocNode);
+        return [node.getKind(), children.length, children.length === 0 ? node.getText() : ""] as const;
+      }));
 export const textResponseTwoGateSettlementIsFrozen = (source: string): boolean => {
-  const required = [
-    "if (observation.generatingRaw > 0 || observation.semanticText.trim().length > 0)",
-    "let exactResponseObserved = false",
-    "while (Date.now() < deadline || exactResponseObserved)",
-    "Date.now() + GPT_STOPPED_EMPTY_CONFIRMATION_MS : deadline",
-    "let nextWaitReason: GptProviderObservationWaitReason = \"initial-observation\"",
-    "observationDeadline, nextWaitReason",
-    "nextWaitReason = \"exact-user-turn-unavailable\"",
-    "nextWaitReason = \"adjacent-assistant-missing\"",
-    'assistant.generatingRaw > 0\n        ? "stop-present" : "stopped-empty-confirming"',
-    "if (exactResponseObserved) continue",
-    "exactResponseObserved = assistant !== null",
-    "assistant && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0",
-  ];
-  const forbidden = ["assistant.visible", "assistant.layout", "assistant.hidden",
-    "assistant.ariaHidden", "assistant.inert", "assistant.composerRaw", "assistant.assistantIndex",
-    "assistant.precedingPromptHash", "if (nextWaitReason", "switch (nextWaitReason"];
-  return required.every((token) => source.includes(token))
-    && forbidden.every((token) => !source.includes(token));
+  const project = new Project({ useInMemoryFileSystem: true });
+  const actual = project.createSourceFile("checkpoint.ts", source);
+  const expected = project.createSourceFile("frozen-checkpoint.ts", frozenTextResponseSource);
+  return JSON.stringify(responseExecutionTokens(actual)) === JSON.stringify(responseExecutionTokens(expected));
 };
-
-export const providerWaitReasonProjectionIsFrozen = (
-  contract: string,
-  lifecycle: string,
-  textHandler: string,
-  imageHandler: string,
-): boolean => [
-  'reason: GptProviderObservationWaitReason',
-  '"initial-observation"',
-  '"exact-user-turn-unavailable"',
-  '"adjacent-assistant-missing"',
-  '"stop-present"',
-  '"stopped-empty-confirming"',
-  '"generated-image-source-pending"',
-].every((token) => contract.includes(token))
-  && [
-    '"initial-observation": "GPT_PROVIDER_WAIT_INITIAL_OBSERVATION"',
-    '"exact-user-turn-unavailable": "GPT_PROVIDER_WAIT_EXACT_USER_TURN_UNAVAILABLE"',
-    '"adjacent-assistant-missing": "GPT_PROVIDER_WAIT_ADJACENT_ASSISTANT_MISSING"',
-    '"stop-present": "GPT_PROVIDER_WAIT_STOP_PRESENT"',
-    '"stopped-empty-confirming": "GPT_PROVIDER_WAIT_STOPPED_EMPTY_CONFIRMING"',
-    'reason === "generated-image-source-pending"',
-    '"GPT_PROVIDER_WAIT_ACTIVE"',
-    "reason in textCodes",
-  ].every((token) => lifecycle.includes(token))
-  && [
-    'nextWaitReason: GptProviderObservationWaitReason = "initial-observation"',
-    "observationDeadline, nextWaitReason",
-    'nextWaitReason = "exact-user-turn-unavailable"',
-    'nextWaitReason = "adjacent-assistant-missing"',
-    '? "stop-present" : "stopped-empty-confirming"',
-  ].every((token) => textHandler.includes(token))
-  && imageHandler.includes('deadline, "generated-image-source-pending"')
-  && !textHandler.includes("if (nextWaitReason")
-  && !textHandler.includes("switch (nextWaitReason");
-
-const contractChecks = (sources: Readonly<Record<string, string>>): boolean[] => [
-  /attach_approved_gpt_files_once:[^\n]+profile: "TARGET_LOCAL_MUTATION"[^\n]+replayPolicy: "target-local-per-generation"/u.test(sources.contract!),
-  /submit_exact_gpt_turn_once:[^\n]+profile: "PROVIDER_EFFECT_ONCE"[^\n]+replayPolicy: "provider-effect-once"/u.test(sources.contract!),
-  sources.atomic!.includes("gptCanonicalHash([resultRevision, intent.inputHash])"),
-  sources.contract!.includes("browserAtomicIdentity?: BrowserAtomicStepIdentity"),
-  sources.atomic!.includes("executionContext(input, browser, atomicIdentity)"),
-  sources.childHandler!.includes("readAtomicStepOutcome(context.browserAtomicIdentity)"),
-  sources.group!.includes("readAtomicStepOutcome(context.browserAtomicIdentity)"),
-  !sources.childHandler!.includes("inputHash: intent.inputHash"),
-  !sources.group!.includes("inputHash: intent.inputHash"),
-];
-
-const productChecks = (sources: Readonly<Record<string, string>>): boolean[] => [
-  sources.productApi!.includes("readConfirmedSubmit("),
-  sources.seoFlow!.includes("context.gpt.readConfirmedSubmit"),
-  sources.seoReadback!.indexOf("await input.read()") < sources.seoReadback!.indexOf("await input.prepare()"),
-  sources.seoReadback!.indexOf("await input.prepare()") < sources.seoReadback!.indexOf("await input.execute()"),
-  sources.submit!.includes("userTurnSelector: GPT_USER_TURN_SELECTOR"),
-  sources.submit!.includes("latestGptUserTurn: true"),
-  sources.submit!.includes("GPT_EMPTY_COMPOSER_SELECTOR"),
-];
-
-const frozenBlueprintChecks = (sources: Readonly<Record<string, string>>): boolean[] => [
-  sources.blueprint!.includes("FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001"),
-  sources.blueprint!.includes("FROZEN-GPT-ATTACHMENT-PROVIDER-DUPLICATE-SUFFIX-001"),
-  sources.browserBlueprint!.includes("FROZEN-GPT-ATTACHMENT-PROVIDER-DUPLICATE-SUFFIX-001"),
-  sources.blueprint!.includes("(<8位十进制日期>-<6位十进制时间>)"),
-  sources.browserBlueprint!.includes("(<8位十进制日期>-<6位十进制时间>)"),
-  sources.attachmentSchema!.includes("normalizeGptProviderAttachmentLabel"),
-  sources.attachmentReconciliation!.includes("normalizeGptProviderAttachmentLabel(label, expectedLabels)"),
-  sources.candidate!.includes("expectedLabels.includes(providerLabel(label))"),
-  sources.blueprint!.includes("FROZEN-GPT-RESPONSE-NO-PROMPT-REHASH-001"),
-  sources.blueprint!.includes("FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001"),
-  sources.browserBlueprint!.includes("FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001"),
-  sources.blueprint!.includes("FROZEN-GPT-ATOMIC-IDENTITY-ROUNDTRIP-001"),
-  sources.blueprint!.includes("FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001"),
-  sources.blueprint!.includes("GPT_RESPONSE_STOPPED_EMPTY"),
-  sources.blueprint!.includes("连续消失且回答连续为空满20分钟"),
-  sources.blueprint!.includes("账号级至少 1.5 秒起始节拍"),
-  sources.blueprint!.includes("detection→ack 唯一紧急对外动作"),
-  sources.browserBlueprint!.includes("chatgptPageAccessNotBefore"),
-  sources.browserBlueprint!.includes("detection→dispatch可豁免1.5秒"),
-];
-
-const lifecycleChecks = (sources: Readonly<Record<string, string>>): boolean[] => {
-  const probeWalRead = sources.lifecycle!.indexOf("active.browser.readAtomicStepOutcome(confirmed.submitIdentity)");
-  return [
-    sources.lifecycle!.includes('"confirmed-readback"'),
-    probeWalRead >= 0,
-    sources.lifecycle!.includes("PROVIDER_OBSERVATION_MIN_INTERVAL_MS = 70_000"),
-    sources.lifecycle!.includes("GPT_PROVIDER_WAIT_INITIAL_OBSERVATION"),
-    sources.lifecycle!.includes("GPT_PROVIDER_WAIT_EXACT_USER_TURN_UNAVAILABLE"),
-    sources.lifecycle!.includes("GPT_PROVIDER_WAIT_ADJACENT_ASSISTANT_MISSING"),
-    sources.lifecycle!.includes("GPT_PROVIDER_WAIT_STOP_PRESENT"),
-    sources.lifecycle!.includes("GPT_PROVIDER_WAIT_STOPPED_EMPTY_CONFIRMING"),
-    sources.lifecycle!.includes('reason === "generated-image-source-pending"'),
-    sources.lifecycle!.includes('"GPT_PROVIDER_WAIT_ACTIVE"'),
-    sources.lifecycle!.includes("recoverySelectionRequired: targetMode === \"confirmed-readback\""),
-    !sources.lifecycle!.includes('"provider-probe"'),
-    !sources.lifecycle!.includes("startProviderProbeCooldown"),
-    !sources.lifecycle!.includes("BROWSER_RECONCILIATION_IDENTITY_MISMATCH"),
-    sources.targetAcquirer!.includes(
-      "requestPreauthorizedTargetAcquisition(\n        targetMode, jobRefHash, parentConversationUrl,",
-    ),
-    !sources.targetAcquirer!.includes("expectedTargetRef"),
-    sources.mutationEvidence!.includes("providerEffectIdentityHash: input.effectScope === \"provider_effect\""),
-    !sources.candidate!.includes("priorTurns.length > 1"),
-    !sources.candidate!.includes("querySelectorAll(outgoing.userTurnSelector)"),
-    !sources.candidate!.includes("baselineOrdinal + 2"),
-    sources.store!.includes("row.attempt_id !== input.attemptId"),
-    sources.checkpoint!.includes("GPT_STOPPED_EMPTY_CONFIRMATION_MS = 20 * 60 * 1_000"),
-    sources.checkpoint!.includes("observation.generatingRaw > 0"),
-    sources.checkpoint!.includes('gptExecutionFailure("GPT_RESPONSE_STOPPED_EMPTY"'),
-    sources.checkpoint!.includes("stoppedEmptyWindow = null"),
-    sources.checkpoint!.includes("let exactResponseObserved = false"),
-    sources.checkpoint!.includes("Date.now() < deadline || exactResponseObserved"),
-    sources.checkpoint!.includes("Date.now() + GPT_STOPPED_EMPTY_CONFIRMATION_MS : deadline"),
-    sources.checkpoint!.includes("if (exactResponseObserved) continue"),
-    sources.checkpoint!.includes("exactResponseObserved = assistant !== null"),
-    sources.checkpoint!.includes("continuousMonotonicMs"),
-    sources.checkpoint!.includes("observationCount"),
-    sources.checkpoint!.includes("terminalObservationRevisionHash"),
-    textResponseTwoGateSettlementIsFrozen(sources.checkpoint!),
-    providerWaitReasonProjectionIsFrozen(
-      sources.contract!, sources.lifecycle!, sources.checkpoint!, sources.imageCheckpoint!,
-    ),
-  ];
+export const providerWaitReasonProjectionIsFrozen = (contract: string, lifecycle: string, textHandler: string, imageHandler: string): boolean => {
+  const reasons = ["initial-observation", "exact-user-turn-unavailable", "adjacent-assistant-missing", "stop-present", "stopped-empty-confirming", "generated-image-source-pending"];
+  const codes = ["GPT_PROVIDER_WAIT_INITIAL_OBSERVATION", "GPT_PROVIDER_WAIT_EXACT_USER_TURN_UNAVAILABLE", "GPT_PROVIDER_WAIT_ADJACENT_ASSISTANT_MISSING", "GPT_PROVIDER_WAIT_STOP_PRESENT", "GPT_PROVIDER_WAIT_STOPPED_EMPTY_CONFIRMING"];
+  return contract.includes("reason: GptProviderObservationWaitReason") && reasons.every(reason => contract.includes(JSON.stringify(reason)))
+    && reasons.slice(0, 5).every((reason, index) => lifecycle.includes(`${JSON.stringify(reason)}: ${JSON.stringify(codes[index])}`))
+    && lifecycle.includes('reason === "generated-image-source-pending"') && lifecycle.includes('"GPT_PROVIDER_WAIT_ACTIVE"') && lifecycle.includes("reason in textCodes")
+    && textHandler.includes('nextWaitReason: GptProviderObservationWaitReason = "initial-observation"') && textHandler.includes("observationDeadline, nextWaitReason")
+    && textHandler.includes('nextWaitReason = "exact-user-turn-unavailable"') && textHandler.includes('nextWaitReason = "adjacent-assistant-missing"')
+    && compact(textHandler).includes('?"stop-present":"stopped-empty-confirming"') && imageHandler.includes('deadline, "generated-image-source-pending"');
 };
-
-const sources = (context: InspectorContext): Readonly<Record<string, string>> => ({
-  contract: read(context, `${ROOT}/contract.ts`),
-  atomic: read(context, `${ROOT}/production-atomic-call.ts`),
-  group: read(context, `${ROOT}/ability-group.ts`),
-  childHandler: read(context, `${ROOT}/web/child-handler.ts`),
-  productApi: read(context, `${ROOT}/product-api.ts`),
-  seoReadback: read(context, "src/plugins/public-knowledge-article-pipeline/seo-submit-readback.ts"),
-  seoFlow: read(context, "src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts"),
-  submit: read(context, `${ROOT}/children/submit_exact_gpt_turn_once/handler.ts`),
-  candidate: read(context, "src/lib/browser/chrome-extension/dom-coherent-candidate.ts"),
-  attachmentSchema: read(context, `${ROOT}/schema.ts`),
-  attachmentReconciliation: read(context, `${ROOT}/children/reconcile_gpt_attachment_set/observation.ts`),
-  store: read(context, "src/lib/browser/exact-target/browser-mutation-store.ts"),
-  mutationEvidence: read(context, "src/lib/browser/exact-target/browser-mutation-evidence.ts"),
-  lifecycle: read(context, `${ROOT}/production-browser-lifecycle.ts`),
-  targetAcquirer: read(context, "src/lib/browser/infrastructure/browser-target-acquirer.ts"),
-  checkpoint: read(context, `${ROOT}/children/checkpoint_gpt_text_response/handler.ts`),
-  imageCheckpoint: read(context, `${ROOT}/children/checkpoint_gpt_generated_image/handler.ts`),
-  blueprint: read(context, "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md"),
-  browserBlueprint: read(context,
-    "docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md"),
-});
-
-export const inspectFrozenAttemptBoundary = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  evidenceMode: "static.ast" | "static.contract",
-): void => {
-  const current = sources(context);
-  const valid = [...contractChecks(current), ...productChecks(current),
-    ...frozenBlueprintChecks(current), ...lifecycleChecks(current)].every(Boolean);
-  if (!valid) findings.push(createFinding({
-    evidenceMode,
-    lawId: LAW_ID,
-    clauseId: `${LAW_ID.toLowerCase()}-requirement`,
-    checkId: "gpt/frozen-job-attempt-provider-effect",
-    filePath: `${ROOT}/contract.ts`,
-    message: "Frozen attempt-local preparation and cross-attempt submit boundary is incomplete.",
-  }));
+const atomicExecutionIsFrozen = (context: InspectorContext): boolean => {
+  const atomic = sourceFor(context, `${ROOT}/production-atomic-call.ts`);
+  const identity = atomic?.getVariableDeclaration("productionGptAtomicIdentity")?.getInitializer()?.getText() ?? "";
+  const execution = atomic?.getVariableDeclaration("executeProductionGptAtomicCall")?.getInitializer(), body = execution?.getText() ?? "";
+  const absent = execution?.getDescendantsOfKind(SyntaxKind.IfStatement).find(statement => statement.getExpression().getText() === "!priorOutcome");
+  const run = absent?.getThenStatement().getDescendantsOfKind(SyntaxKind.CallExpression).find(call => call.getExpression().getText() === "browser.runAtomicStep");
+  const calls = execution?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
+  const reads = calls.filter(call => call.getExpression().getText() === "browser.readAtomicStepOutcome");
+  const runs = calls.filter(call => call.getExpression().getText() === "browser.runAtomicStep");
+  return identity.includes("gptCanonicalHash([resultRevision, intent.inputHash])")
+    && ["resultRevision", "productStepId", "callId", "childCapabilityId", "inputHash", "actionOrdinal", "replayPolicy"].every(field => identity.includes(field))
+    && ["const identity = input.browserAtomicIdentity ?? productionGptAtomicIdentity(input.intent, input.resultRevision)",
+      "executionContext(input, browser, identity)",
+      "readPriorAtomicOutcome({ gpt: input.gpt, intent: input.intent, context, browser, priorOutcome })"].every(token => body.includes(token))
+    && reads.length === 1 && reads[0]?.getArguments()[0]?.getText() === "identity"
+    && runs.length === 1 && run?.getArguments()[0]?.getText() === "identity"
+    && run?.getArguments()[1]?.getText().includes("input.gpt.execute(input.intent, context)") === true;
+};
+const atomicProjectionIsFrozen = (context: InspectorContext): boolean => {
+  const projection = sourceFor(context, `${ROOT}/web/child-handler.ts`)?.getVariableDeclaration("projectBrowserFact")?.getInitializer();
+  const expected = projection?.getDescendantsOfKind(SyntaxKind.VariableDeclaration).find(node => node.getName() === "expected")?.getInitializerIfKind(SyntaxKind.ObjectLiteralExpression);
+  const keys = expected?.getProperties().flatMap(property => Node.isPropertyAssignment(property) ? [property.getName()] : []).sort() ?? [];
+  const reject = projection?.getDescendantsOfKind(SyntaxKind.IfStatement).find(statement =>
+    compact(statement.getExpression().getText()) === "!HASH.test(identity.inputHash)||Object.entries(expected).some(([key,value])=>identity[keyaskeyoftypeofidentity]!==value)");
+  const consumers = context.project.getSourceFiles().filter(source => source.getFilePath().includes("/src/capabilities/gpt/children/"))
+    .flatMap(source => source.getDescendantsOfKind(SyntaxKind.CallExpression).filter(call => call.getExpression().getText() === "projectBrowserFact"));
+  const body = projection?.getText() ?? "";
+  return JSON.stringify(keys) === JSON.stringify(["actionOrdinal", "callId", "childCapabilityId", "inputHash", "productStepId", "replayPolicy", "resultRevision"])
+    && reject?.getThenStatement().getText().includes('throw gptExecutionFailure("GPT_BROWSER_TERMINAL_FACT_REQUIRED")') === true
+    && new Set(consumers.map(call => call.getSourceFile().getFilePath())).size === 11
+    && consumers.every(call => compact(call.getText()) === "projectBrowserFact(intent,context)")
+    && ["readAtomicStepOutcome(identity)", "const identity = context.browserAtomicIdentity",
+      'contract.replayPolicy === "provider-effect-once" ? identity.inputHash : intent.inputHash'].every(token => body.includes(token));
+};
+const atomicReadbackIsFrozen = (context: InspectorContext): boolean => {
+  const group = sourceFor(context, `${ROOT}/ability-group.ts`)?.getFullText() ?? "";
+  const readback = sourceFor(context, `${ROOT}/production-atomic-readback.ts`)?.getFullText() ?? "";
+  return group.includes("projectBrowserFact(") && !group.includes("readAtomicStepOutcome(")
+    && ["readbackProviderInputDelta: 0", "...context.browserAtomicIdentity", "priorOutcome.physicalInputCount !== 1"].every(token => readback.includes(token))
+    && !readback.includes("runAtomicStep(");
+};
+const frozenBlueprints = (read: (path: string) => string): boolean => {
+  const gpt = read("docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md");
+  const browser = read("docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md");
+  return ["FROZEN-GPT-SUBMIT-TWO-PRECONDITIONS-001", "FROZEN-GPT-ATTACHMENT-PROVIDER-DUPLICATE-SUFFIX-001", "FROZEN-GPT-RESPONSE-NO-PROMPT-REHASH-001",
+    "FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001", "FROZEN-GPT-ATOMIC-IDENTITY-ROUNDTRIP-001", "FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001",
+    "GPT_RESPONSE_STOPPED_EMPTY", "连续消失且回答连续为空满20分钟", "账号级至少 1.5 秒起始节拍", "detection→ack 唯一紧急对外动作"].every(token => gpt.includes(token))
+    && ["FROZEN-GPT-ATTACHMENT-PROVIDER-DUPLICATE-SUFFIX-001", "FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001", "chatgptPageAccessNotBefore", "detection→dispatch可豁免1.5秒"].every(token => browser.includes(token))
+    && [gpt, browser].every(value => value.includes("(<8位十进制日期>-<6位十进制时间>)"));
+};
+const submitAndAttachmentPoliciesAreFrozen = (read: (path: string) => string): boolean => {
+  const contract = read(`${ROOT}/contract.ts`), submit = read(`${ROOT}/children/submit_exact_gpt_turn_once/handler.ts`);
+  const candidate = read("src/lib/browser/chrome-extension/dom-coherent-candidate.ts");
+  return /attach_approved_gpt_files_once:[^\n]+profile: "TARGET_LOCAL_MUTATION"[^\n]+replayPolicy: "target-local-per-generation"/u.test(contract)
+    && /submit_exact_gpt_turn_once:[^\n]+profile: "PROVIDER_EFFECT_ONCE"[^\n]+replayPolicy: "provider-effect-once"/u.test(contract)
+    && ["expectedPromptHash: promptHash", "expectedAttachmentLabels: files.map(file => file.providerDisplayName)",
+      "userTurnSelector: GPT_USER_TURN_SELECTOR", "latestGptUserTurn: true", "GPT_EMPTY_COMPOSER_SELECTOR"].every(token => submit.includes(token))
+    && read(`${ROOT}/schema.ts`).includes("normalizeGptProviderAttachmentLabel")
+    && read(`${ROOT}/children/reconcile_gpt_attachment_set/observation.ts`).includes("normalizeGptProviderAttachmentLabel(label, expectedLabels)")
+    && candidate.includes("expectedLabels.includes(providerLabel(label))")
+    && !/priorTurns\.length > 1|querySelectorAll\(outgoing\.userTurnSelector\)|baselineOrdinal \+ 2/u.test(candidate);
+};
+export const inspectFrozenAttemptBoundary = (context: InspectorContext, findings: InspectorFinding[], evidenceMode: "static.ast" | "static.contract"): void => {
+  const read = (path: string): string => { const absolute = resolve(context.sealedRoot, path);
+    return sourceFor(context, path)?.getFullText() ?? (existsSync(absolute) ? readFileSync(absolute, "utf8") : ""); };
+  const contract = read(`${ROOT}/contract.ts`), lifecycle = read(`${ROOT}/production-browser-lifecycle.ts`);
+  const checkpoint = read(`${ROOT}/children/checkpoint_gpt_text_response/handler.ts`), image = read(`${ROOT}/children/checkpoint_gpt_generated_image/handler.ts`);
+  const seo = read("src/plugins/public-knowledge-article-pipeline/seo-submit-readback.ts");
+  const valid = atomicExecutionIsFrozen(context) && atomicProjectionIsFrozen(context) && atomicReadbackIsFrozen(context)
+    && frozenBlueprints(read) && submitAndAttachmentPoliciesAreFrozen(read)
+    && textResponseTwoGateSettlementIsFrozen(checkpoint) && providerWaitReasonProjectionIsFrozen(contract, lifecycle, checkpoint, image)
+    && contract.includes("browserAtomicIdentity?: BrowserAtomicStepIdentity") && read(`${ROOT}/product-api.ts`).includes("readConfirmedSubmit(")
+    && read("src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts").includes("context.gpt.readConfirmedSubmit")
+    && /await input\.read\(\)[\s\S]*await input\.prepare\(\)[\s\S]*await input\.execute\(\)/u.test(seo)
+    && read("src/lib/browser/exact-target/browser-mutation-evidence.ts").includes('providerEffectIdentityHash: input.effectScope === "provider_effect"')
+    && read("src/lib/browser/exact-target/browser-mutation-store.ts").includes("row.attempt_id !== input.attemptId")
+    && !/BROWSER_RECONCILIATION_IDENTITY_MISMATCH|"provider-probe"|startProviderProbeCooldown/u.test(lifecycle);
+  if (!valid) findings.push(createFinding({ evidenceMode, lawId: LAW_ID, clauseId: `${LAW_ID.toLowerCase()}-requirement`, checkId: "gpt/frozen-job-attempt-provider-effect",
+    filePath: `${ROOT}/contract.ts`, message: "The frozen original atomic identity, two submit preconditions, readback-first order, attachment normalization or two response gates are incomplete." }));
 };

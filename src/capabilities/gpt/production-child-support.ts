@@ -1,13 +1,8 @@
-import { gptCanonicalHash } from "./contract.js";
-import type { GptAnyChildCapabilityIntent, GptChildBrowserFact, GptChildCapabilityResult,
-  GptExecutionContext, GptHash,
-} from "./contract.js";
-import {
-  RuntimeFailureImpact, requireRuntimeLogWrite, runtimeLogCauseEventId,
-  runtimeFailureFromError, withRuntimeLogCause, type RuntimeSpanHandle,
-} from "../../lib/runtime-logs/index.js";
-import { executionFailure, executionFailureMetadata, failureCode, typedExecutionFailure,
-} from "../../lib/execution-failure.js";
+import { gptCanonicalHash, type GptAnyChildCapabilityIntent, type GptChildBrowserFact,
+  type GptChildCapabilityResult, type GptExecutionContext, type GptHash } from "./contract.js";
+import { RuntimeFailureImpact, requireRuntimeLogWrite, runtimeLogCauseEventId, runtimeFailureFromError,
+  withRuntimeLogCause, type RuntimeSpanHandle } from "../../lib/runtime-logs/index.js";
+import { executionFailure, executionFailureMetadata, failureCode, typedExecutionFailure } from "../../lib/execution-failure.js";
 import { gptExecutionFailure, typedGptExecutionFailure } from "./execution-fault.js";
 import type { ProductGptTools } from "./product-api.js";
 import type { ProductionGptBrowserCall } from "./production-browser-lifecycle.js";
@@ -16,226 +11,88 @@ import { productionGptAtomicIdentity } from "./production-atomic-call.js";
 import { failedGptChildExecutionResult } from "./ability-group.js";
 import type { GptProductionExecutionInput } from "./production-ports.js";
 
-export type ProviderEffectReadbackProofV1 = Readonly<{
-  schema_version: "provider-effect-readback-proof.v1";
-  job_id: string;
-  attempt_id: string;
-  result_revision: number;
-  provider_effect_identity_hash: GptHash;
-  exact_call_identity_hash: GptHash;
-  browser_authority_ref: string;
-  browser_authority_hash: GptHash;
-  readback_provider_input_delta: 0;
-  proof_hash: GptHash;
-}>;
-
-const providerEffectReadbackProofKeys = [
-  "attempt_id", "browser_authority_hash", "browser_authority_ref", "exact_call_identity_hash",
-  "job_id", "proof_hash", "provider_effect_identity_hash", "readback_provider_input_delta",
-  "result_revision", "schema_version",
-];
-
-export const providerEffectReadbackProofHash = (
-  proof: Omit<ProviderEffectReadbackProofV1, "proof_hash">,
-): GptHash => gptCanonicalHash(proof);
-
-export const isProviderEffectReadbackProofV1 = (
-  value: unknown,
-): value is ProviderEffectReadbackProofV1 => {
+export type ProviderEffectReadbackProofV1 = Readonly<{ schema_version: "provider-effect-readback-proof.v1"; job_id: string;
+  attempt_id: string; result_revision: number; provider_effect_identity_hash: GptHash; exact_call_identity_hash: GptHash;
+  browser_authority_ref: string; browser_authority_hash: GptHash; readback_provider_input_delta: 0; proof_hash: GptHash }>;
+const readbackKeys = ["attempt_id", "browser_authority_hash", "browser_authority_ref", "exact_call_identity_hash",
+  "job_id", "proof_hash", "provider_effect_identity_hash", "readback_provider_input_delta", "result_revision", "schema_version"];
+export const providerEffectReadbackProofHash = (proof: Omit<ProviderEffectReadbackProofV1, "proof_hash">): GptHash => gptCanonicalHash(proof);
+export const isProviderEffectReadbackProofV1 = (value: unknown): value is ProviderEffectReadbackProofV1 => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const row = value as Record<string, unknown>;
-  if (JSON.stringify(Object.keys(row).sort()) !== JSON.stringify(providerEffectReadbackProofKeys)) return false;
-  const withoutHash = Object.freeze({
-    schema_version: row.schema_version,
-    job_id: row.job_id,
-    attempt_id: row.attempt_id,
-    result_revision: row.result_revision,
-    provider_effect_identity_hash: row.provider_effect_identity_hash,
-    exact_call_identity_hash: row.exact_call_identity_hash,
-    browser_authority_ref: row.browser_authority_ref,
-    browser_authority_hash: row.browser_authority_hash,
-    readback_provider_input_delta: row.readback_provider_input_delta,
-  }) as Omit<ProviderEffectReadbackProofV1, "proof_hash">;
-  return row.schema_version === "provider-effect-readback-proof.v1"
-    && typeof row.job_id === "string" && row.job_id.length > 0
-    && typeof row.attempt_id === "string" && row.attempt_id.length > 0
+  const row = value as Readonly<Record<string, unknown>>;
+  if (JSON.stringify(Object.keys(row).sort()) !== JSON.stringify(readbackKeys)) return false;
+  const valid = row.schema_version === "provider-effect-readback-proof.v1"
+    && [row.job_id, row.attempt_id, row.browser_authority_ref].every(field => typeof field === "string" && field.length > 0)
     && Number.isSafeInteger(row.result_revision) && Number(row.result_revision) >= 0
     && [row.provider_effect_identity_hash, row.exact_call_identity_hash, row.browser_authority_hash, row.proof_hash]
-      .every((hash) => typeof hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(hash))
-    && typeof row.browser_authority_ref === "string" && row.browser_authority_ref.length > 0
-    && row.readback_provider_input_delta === 0
-    && row.proof_hash === providerEffectReadbackProofHash(withoutHash);
+      .every(field => typeof field === "string" && /^sha256:[a-f0-9]{64}$/u.test(field))
+    && row.readback_provider_input_delta === 0;
+  if (!valid) return false;
+  const unsigned = { schema_version: row.schema_version, job_id: row.job_id, attempt_id: row.attempt_id,
+    result_revision: row.result_revision, provider_effect_identity_hash: row.provider_effect_identity_hash,
+    exact_call_identity_hash: row.exact_call_identity_hash, browser_authority_ref: row.browser_authority_ref,
+    browser_authority_hash: row.browser_authority_hash, readback_provider_input_delta: row.readback_provider_input_delta };
+  return row.proof_hash === providerEffectReadbackProofHash(unsigned as Omit<ProviderEffectReadbackProofV1, "proof_hash">);
 };
-
-export type ProductGptExecution = Readonly<{
-  tools: ProductGptTools;
-  readProviderEffectReadbackProof(): ProviderEffectReadbackProofV1 | null;
-  decorateSettledResultFailure(error: unknown): unknown;
-  settle(error: unknown | null): Promise<void>;
-}>;
-
-const nativeFailureCause = (result: GptChildCapabilityResult): Error | undefined =>
-  result.failureCause ? Object.assign(new Error(result.failureCause.name), {
-    name: result.failureCause.name,
-    ...(result.failureCause.code ? { code: result.failureCause.code } : {}),
-  }) : undefined;
-
-const stoppedEmptyEvidence = (result: GptChildCapabilityResult) =>
-  result.failureCode === "GPT_RESPONSE_STOPPED_EMPTY" && result.proof.stoppedEmptyProof
-    ? Object.freeze({
-        evidenceRef: result.proof.factResultIds[0] ?? result.proof.evidenceRef,
-        evidenceHash: result.proof.stoppedEmptyProof.terminalObservationRevisionHash,
-      })
-    : null;
-
-const failureEvidence = (
-  result: GptChildCapabilityResult,
-  evidenceRef: string,
-  browserFact: GptChildBrowserFact | null,
-  confirmedProviderEffect?: GptChildBrowserFact | null,
-) => confirmedProviderEffect ? Object.freeze({
-  evidenceRef: confirmedProviderEffect.evidenceRef,
-  evidenceHash: confirmedProviderEffect.evidenceHash,
-}) : browserFact ? Object.freeze({
-  evidenceRef: browserFact.evidenceRef,
-  evidenceHash: browserFact.evidenceHash,
-}) : stoppedEmptyEvidence(result) ?? Object.freeze({ evidenceRef, evidenceHash: result.proof.evidenceHash });
-
-const failureProofFacts = (result: GptChildCapabilityResult) => Object.freeze({
-  decision: result.proof.internalDecisionCode ?? "FAIL_CLOSED",
-  factResultIds: result.proof.factResultIds,
-  candidateCardinality: result.proof.candidateCardinality,
-  authorityRefHashes: result.proof.authorityRefHashes,
-  observationRevisionHash: result.proof.observationRevisionHash,
-  mutationOutcome: result.proof.committedMutation,
-  browserFact: result.proof.browserFact,
-  nativeFailureCode: result.proof.nativeFailureCode,
-  ...(result.proof.stoppedEmptyProof
-    ? { stoppedEmptyProof: result.proof.stoppedEmptyProof } : {}),
-});
-
-export const throwGptChildFailure = (
-  result: GptChildCapabilityResult,
-  evidenceRef: string = result.proof.evidenceRef,
-  causeEventId?: string,
-  confirmedProviderEffect?: GptChildBrowserFact | null,
-): never => {
-  const native = nativeFailureCause(result);
-  const browserFact = result.proof.browserFact ?? confirmedProviderEffect ?? null;
-  const proofFacts = failureProofFacts(result);
-  const confirmedReadbackMismatch = confirmedProviderEffect
-    && result.proof.browserFact?.knownGptRateLimitPreflightFact
-    ? Object.freeze({
-        ...proofFacts,
-        mutationOutcome: confirmedProviderEffect.mutationOutcome,
-        browserFact: Object.freeze({
-          ...confirmedProviderEffect,
-          knownGptRateLimitPreflightFact:
-            result.proof.browserFact.knownGptRateLimitPreflightFact,
-        }),
-      })
-    : proofFacts;
-  const error = gptExecutionFailure(result.failureCode ?? "GPT_CHILD_FAILED", {
-    mutationOutcome: confirmedReadbackMismatch.mutationOutcome,
-    evidence: failureEvidence(result, evidenceRef, browserFact,
-      confirmedReadbackMismatch.browserFact?.knownGptRateLimitPreflightFact
-        ? null : confirmedProviderEffect),
-    browserEffect: confirmedProviderEffect ?? result.failureBrowserEffect ?? null,
-    proofFacts: confirmedReadbackMismatch,
-    childProof: result.failureCode === "GPT_RESPONSE_STOPPED_EMPTY"
-      ? Object.freeze({ evidenceRef, evidenceHash: result.proof.evidenceHash }) : null,
-    ...(native ? { cause: native } : {}),
-  });
-  const propagated = causeEventId ? withRuntimeLogCause(error, causeEventId) : error;
-  throw propagated;
+export type ProductGptExecution = Readonly<{ tools: ProductGptTools; readProviderEffectReadbackProof(): ProviderEffectReadbackProofV1 | null;
+  decorateSettledResultFailure(error: unknown): unknown; settle(error: unknown | null): Promise<void> }>;
+const nativeFailureCause = (result: GptChildCapabilityResult): Error | undefined => result.failureCause
+  ? Object.assign(new Error(result.failureCause.name), { name: result.failureCause.name,
+    ...(result.failureCause.code ? { code: result.failureCause.code } : {}) }) : undefined;
+const proofFacts = (result: GptChildCapabilityResult) => ({ decision: result.proof.internalDecisionCode ?? "FAIL_CLOSED",
+  factResultIds: result.proof.factResultIds, candidateCardinality: result.proof.candidateCardinality,
+  authorityRefHashes: result.proof.authorityRefHashes, observationRevisionHash: result.proof.observationRevisionHash,
+  mutationOutcome: result.proof.committedMutation, browserFact: result.proof.browserFact, nativeFailureCode: result.proof.nativeFailureCode,
+  ...(result.proof.stoppedEmptyProof ? { stoppedEmptyProof: result.proof.stoppedEmptyProof } : {}) });
+export const throwGptChildFailure = (result: GptChildCapabilityResult, evidenceRef: string = result.proof.evidenceRef,
+  causeEventId?: string, confirmedProviderEffect?: GptChildBrowserFact | null): never => {
+  const native = nativeFailureCause(result), original = proofFacts(result), preflight = result.proof.browserFact?.knownGptRateLimitPreflightFact;
+  const facts = confirmedProviderEffect && preflight ? { ...original, mutationOutcome: confirmedProviderEffect.mutationOutcome,
+    browserFact: Object.freeze({ ...confirmedProviderEffect, knownGptRateLimitPreflightFact: preflight }) } : original;
+  const effect = confirmedProviderEffect ?? facts.browserFact;
+  const evidence = effect ? { evidenceRef: effect.evidenceRef, evidenceHash: effect.evidenceHash }
+    : result.failureCode === "GPT_RESPONSE_STOPPED_EMPTY" && result.proof.stoppedEmptyProof
+      ? { evidenceRef: result.proof.factResultIds[0] ?? evidenceRef, evidenceHash: result.proof.stoppedEmptyProof.terminalObservationRevisionHash }
+      : { evidenceRef, evidenceHash: result.proof.evidenceHash };
+  const error = gptExecutionFailure(result.failureCode ?? "GPT_CHILD_FAILED", { mutationOutcome: facts.mutationOutcome, evidence,
+    browserEffect: confirmedProviderEffect ?? result.failureBrowserEffect ?? null, proofFacts: facts,
+    childProof: result.failureCode === "GPT_RESPONSE_STOPPED_EMPTY" ? { evidenceRef, evidenceHash: result.proof.evidenceHash } : null,
+    ...(native ? { cause: native } : {}) });
+  throw causeEventId ? withRuntimeLogCause(error, causeEventId) : error;
 };
-
-export const terminalizeGptChildResult = (
-  span: RuntimeSpanHandle, result: GptChildCapabilityResult,
-): string => {
-  const native = nativeFailureCause(result);
-  const failure = executionFailure("failed", result.failureCode ?? "GPT_CHILD_FAILED", {
-    ...(native ? { cause: native } : {}),
-  });
-  const causedByEventId = runtimeLogCauseEventId(result);
-  const terminal = result.status === "success"
-    ? requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }))
-    : requireRuntimeLogWrite(span.terminal({ outcome: "failed",
-      failure: runtimeFailureFromError({ error: failure,
-        code: result.failureCode ?? "GPT_CHILD_FAILED", responsibleOwner: "gpt",
-        impact: causedByEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
-        ...(causedByEventId ? { causedByEventId } : {}),
-      }),
-    }));
+export const terminalizeGptChildResult = (span: RuntimeSpanHandle, result: GptChildCapabilityResult): string => {
+  const native = nativeFailureCause(result), causeEventId = runtimeLogCauseEventId(result);
+  const error = executionFailure("failed", result.failureCode ?? "GPT_CHILD_FAILED", { ...(native ? { cause: native } : {}) });
+  const terminal = requireRuntimeLogWrite(result.status === "success" ? span.terminal({ outcome: "succeeded" })
+    : span.terminal({ outcome: "failed", failure: runtimeFailureFromError({ error, code: result.failureCode ?? "GPT_CHILD_FAILED",
+      responsibleOwner: "gpt", impact: causeEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
+      ...(causeEventId ? { causedByEventId: causeEventId } : {}) }) }));
   return terminal.eventId;
 };
-
-export const terminalizeGptChildError = (
-  span: RuntimeSpanHandle, error: unknown,
-  confirmedProviderEffect?: ProductionGptBrowserCall["confirmedProviderEffect"],
-): never => {
-  const causedByEventId = runtimeLogCauseEventId(error);
-  const original = typedExecutionFailure(error) ?? executionFailure("failed",
-    failureCode(error, "GPT_CHILD_RUNTIME_FAILED"), { cause: error });
-  const gptFailure = typedGptExecutionFailure(error);
-  const failure = confirmedProviderEffect ? gptExecutionFailure(original.code, {
-    mutationOutcome: "confirmed",
-    evidence: { evidenceRef: confirmedProviderEffect.evidenceRef,
-      evidenceHash: confirmedProviderEffect.evidenceHash },
-    browserEffect: confirmedProviderEffect,
-    proofFacts: gptFailure?.proofFacts ?? null,
-    childProof: executionFailureMetadata(original)?.childProof ?? null,
-    cause: original,
-  }) : original;
-  const terminal = requireRuntimeLogWrite(span.terminal({ outcome: "failed",
-    failure: runtimeFailureFromError({ error: failure,
-      code: failureCode(failure, "GPT_CHILD_RUNTIME_FAILED"), responsibleOwner: "gpt",
-      impact: causedByEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
-      ...(causedByEventId ? { causedByEventId } : {}),
-    }),
-  }));
-  const propagated = error instanceof AggregateError && error.cause !== undefined ? error : failure;
-  throw withRuntimeLogCause(propagated, terminal.eventId);
+export const terminalizeGptChildError = (span: RuntimeSpanHandle, error: unknown,
+  confirmedProviderEffect?: ProductionGptBrowserCall["confirmedProviderEffect"]): never => {
+  const causeEventId = runtimeLogCauseEventId(error), original = typedExecutionFailure(error)
+    ?? executionFailure("failed", failureCode(error, "GPT_CHILD_RUNTIME_FAILED"), { cause: error });
+  const gpt = typedGptExecutionFailure(error);
+  const failure = confirmedProviderEffect ? gptExecutionFailure(original.code, { mutationOutcome: confirmedProviderEffect.mutationOutcome,
+    evidence: { evidenceRef: confirmedProviderEffect.evidenceRef, evidenceHash: confirmedProviderEffect.evidenceHash },
+    browserEffect: confirmedProviderEffect, proofFacts: gpt?.proofFacts ?? null,
+    childProof: executionFailureMetadata(original)?.childProof ?? null, cause: original }) : original;
+  const terminal = requireRuntimeLogWrite(span.terminal({ outcome: "failed", failure: runtimeFailureFromError({ error: failure,
+    code: failureCode(failure, "GPT_CHILD_RUNTIME_FAILED"), responsibleOwner: "gpt",
+    impact: causeEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
+    ...(causeEventId ? { causedByEventId: causeEventId } : {}) }) }));
+  throw withRuntimeLogCause(error instanceof AggregateError && error.cause !== undefined ? error : failure, terminal.eventId);
 };
-
-const recoverGptBrowserFailure = async (input: Readonly<{
-  dataDir: string; execution: GptProductionExecutionInput;
-  intent: GptAnyChildCapabilityIntent; startedAt: string; error: unknown;
-  browserCall: ProductionGptBrowserCall | undefined;
-  browserAtomicIdentity: BrowserAtomicStepIdentity | undefined;
-}>): Promise<GptChildCapabilityResult> => {
-  const atomicIdentity = input.browserCall
-    ? input.browserAtomicIdentity ?? productionGptAtomicIdentity(input.intent, input.execution.resultRevision)
-    : undefined;
-  const context: GptExecutionContext = {
-    dataDir: input.dataDir, signal: input.execution.abortSignal,
-    ...(input.browserCall ? { browser: input.browserCall.facade } : {}),
-    ...(atomicIdentity ? { browserAtomicIdentity: atomicIdentity } : {}),
-  };
-  return await failedGptChildExecutionResult({
-    intent: input.intent, context, startedAt: input.startedAt, error: input.error,
-  });
-};
-
-export const handleGptChildExecutionError = async (input: Readonly<{
-  dataDir: string; execution: GptProductionExecutionInput;
-  intent: GptAnyChildCapabilityIntent; startedAt: string; error: unknown;
-  browserCall: ProductionGptBrowserCall | undefined;
-  browserAtomicIdentity: BrowserAtomicStepIdentity | undefined;
-  span: RuntimeSpanHandle; childCapabilityId: string;
-  closeKnownRateLimit: (result: GptChildCapabilityResult) => Promise<unknown | null>;
-}>): Promise<GptChildCapabilityResult> => {
-  const code = failureCode(input.error);
-  if (code !== "BROWSER_GPT_DIALOG_UNRECOGNIZED" && code !== "BROWSER_KNOWN_GPT_RATE_LIMIT") {
-    return terminalizeGptChildError(input.span, input.error,
-      input.browserCall?.confirmedProviderEffect ?? null);
+/** Return a known preflight result; the caller owns its one incident closure and terminal point. */
+export const handleGptChildExecutionError = async (input: Readonly<{ dataDir: string; execution: GptProductionExecutionInput;
+  intent: GptAnyChildCapabilityIntent; startedAt: string; error: unknown; browserCall: ProductionGptBrowserCall | undefined;
+  browserAtomicIdentity: BrowserAtomicStepIdentity | undefined; span: RuntimeSpanHandle; childCapabilityId: string }>): Promise<GptChildCapabilityResult> => {
+  if (!["BROWSER_GPT_DIALOG_UNRECOGNIZED", "BROWSER_KNOWN_GPT_RATE_LIMIT"].includes(failureCode(input.error))) {
+    return terminalizeGptChildError(input.span, input.error, input.browserCall?.confirmedProviderEffect ?? null);
   }
-  const result = await recoverGptBrowserFailure(input);
-  if (code === "BROWSER_KNOWN_GPT_RATE_LIMIT"
-    && input.childCapabilityId !== "acknowledge_known_gpt_rate_limit") {
-    const closureError = await input.closeKnownRateLimit(result);
-    if (closureError) return terminalizeGptChildError(input.span, closureError,
-      input.browserCall?.confirmedProviderEffect ?? null);
-  }
-  return result;
+  const atomicIdentity = input.browserCall ? input.browserAtomicIdentity ?? productionGptAtomicIdentity(input.intent, input.execution.resultRevision) : undefined;
+  const context: GptExecutionContext = { dataDir: input.dataDir, signal: input.execution.abortSignal,
+    ...(input.browserCall ? { browser: input.browserCall.facade } : {}), ...(atomicIdentity ? { browserAtomicIdentity: atomicIdentity } : {}) };
+  return failedGptChildExecutionResult({ intent: input.intent, context, startedAt: input.startedAt, error: input.error });
 };

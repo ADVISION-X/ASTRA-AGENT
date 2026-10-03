@@ -1,130 +1,62 @@
-import type {
-  BrowserAtomicStepOutcome, BrowserTargetLease,
-} from "../../lib/browser/browser-authority-api.js";
-import { browserExactCallIdentityHash } from "../../lib/browser/browser-authority-api.js";
+import { browserExactCallIdentityHash, type BrowserAtomicStepOutcome, type BrowserTargetLease } from "../../lib/browser/browser-authority-api.js";
 import { executionFailure } from "../../lib/execution-failure.js";
-import type {
-  GptAbilityGroup, GptAnyChildCapabilityIntent, GptChildBrowserFact,
-  GptChildCapabilityResult, GptExecutionContext,
-} from "./contract.js";
-import { gptExactCallIdentityHash } from "./contract.js";
+import { gptExactCallIdentityHash, type GptAbilityGroup, type GptAnyChildCapabilityIntent,
+  type GptChildBrowserFact, type GptChildCapabilityResult, type GptExecutionContext } from "./contract.js";
+import { projectBrowserFact } from "./web/child-handler.js";
 
-type AtomicReadbackInput = Readonly<{
-  gpt: GptAbilityGroup;
-  intent: GptAnyChildCapabilityIntent;
-  context: GptExecutionContext;
-  browser: BrowserTargetLease;
-  priorOutcome: BrowserAtomicStepOutcome;
-}>;
-const confirmedProviderEffectReadback = async (
-  input: AtomicReadbackInput,
-): Promise<GptChildCapabilityResult | null> => {
-  const { intent, priorOutcome } = input;
-  if (intent.childCapabilityId !== "submit_exact_gpt_turn_once"
-    || priorOutcome.state !== "confirmed"
-    || (priorOutcome.mutationOutcome !== "no" && priorOutcome.mutationOutcome !== "confirmed")
-    || !priorOutcome.providerEffectIdentityHash || !priorOutcome.terminalAt
+type AtomicReadbackInput = Readonly<{ gpt: GptAbilityGroup; intent: GptAnyChildCapabilityIntent; context: GptExecutionContext;
+  browser: BrowserTargetLease; priorOutcome: BrowserAtomicStepOutcome }>;
+const clearanceReadbackValid = (row: Readonly<Record<string, unknown>>,
+  input: Extract<GptAnyChildCapabilityIntent, { childCapabilityId: "acknowledge_known_gpt_rate_limit" }>["input"]): boolean => {
+  const expected = { schemaVersion: "grasseye.browser.known-gpt-rate-limit-clearance.v1", state: "confirmed_absent",
+    dialogHash: input.dialogHash, targetRefHash: input.targetRefHash, documentRefHash: input.documentRefHash,
+    candidateCount: 0, identityRevalidated: true, mutationCount: 0, postconditionVerified: true, zeroActionSatisfied: true };
+  return Object.entries(expected).every(([key, value]) => row[key] === value)
+    && [row.dialogHash, row.targetRefHash, row.documentRefHash, row.observationHash]
+      .every(value => typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value))
+    && typeof row.observedAt === "string" && Number.isFinite(Date.parse(row.observedAt))
+    && new Date(row.observedAt).toISOString() === row.observedAt && Date.parse(row.observedAt) <= Date.now();
+};
+const readConfirmedSubmit = async (input: AtomicReadbackInput): Promise<GptChildCapabilityResult | null> => {
+  const { intent, context, priorOutcome, browser } = input;
+  if (intent.childCapabilityId !== "submit_exact_gpt_turn_once") return null;
+  const projected = projectBrowserFact(intent, context);
+  if (!projected || projected.fact.browserOutcome !== "CONFIRMED" || projected.fact.mutationOutcome !== "confirmed"
+    || priorOutcome.physicalInputCount !== 1 || !priorOutcome.terminalAt || !priorOutcome.providerEffectIdentityHash
     || priorOutcome.terminalPayload == null) return null;
-  const result = await input.gpt.execute(intent, Object.freeze({
-      ...input.context,
-      confirmedProviderEffectReadback: Object.freeze({
-        terminalPayload: priorOutcome.terminalPayload, terminalAt: priorOutcome.terminalAt,
-        authorityRef: priorOutcome.authorityRef, authorityHash: priorOutcome.authorityHash,
-        providerEffectIdentityHash: priorOutcome.providerEffectIdentityHash,
-        mutationOutcome: priorOutcome.mutationOutcome,
-      }),
-    }));
+  const result = await input.gpt.execute(intent, Object.freeze({ ...context, confirmedProviderEffectReadback: Object.freeze({
+    terminalPayload: priorOutcome.terminalPayload, terminalAt: priorOutcome.terminalAt, authorityRef: priorOutcome.authorityRef,
+    authorityHash: priorOutcome.authorityHash, providerEffectIdentityHash: priorOutcome.providerEffectIdentityHash, mutationOutcome: "confirmed" }) }));
   if (result.status === "success") {
-    if (!input.context.browserAtomicIdentity) {
-      throw executionFailure("failed", "PROVIDER_EFFECT_READBACK_IDENTITY_MISSING");
-    }
-    input.context.recordConfirmedProviderEffectReadback?.(Object.freeze({
-      jobId: intent.jobId,
-      attemptId: intent.attemptId,
-      resultRevision: intent.resultRevision,
-      providerEffectIdentityHash: priorOutcome.providerEffectIdentityHash,
-      exactCallIdentityHash: browserExactCallIdentityHash({
-        jobId: intent.jobId,
-        attemptId: intent.attemptId,
-        writerFenceHash: input.browser.writerFenceHash,
-        ...input.context.browserAtomicIdentity,
-      }),
-      browserAuthorityRef: priorOutcome.authorityRef,
-      browserAuthorityHash: priorOutcome.authorityHash,
-      readbackProviderInputDelta: 0,
-    }));
+    if (!context.browserAtomicIdentity) throw executionFailure("failed", "PROVIDER_EFFECT_READBACK_IDENTITY_MISSING");
+    context.recordConfirmedProviderEffectReadback?.(Object.freeze({ jobId: intent.jobId, attemptId: intent.attemptId,
+      resultRevision: intent.resultRevision, providerEffectIdentityHash: priorOutcome.providerEffectIdentityHash,
+      exactCallIdentityHash: browserExactCallIdentityHash({ jobId: intent.jobId, attemptId: intent.attemptId,
+        writerFenceHash: browser.writerFenceHash, ...context.browserAtomicIdentity }),
+      browserAuthorityRef: priorOutcome.authorityRef, browserAuthorityHash: priorOutcome.authorityHash, readbackProviderInputDelta: 0 }));
   }
   return result;
 };
-
-const confirmedAcknowledgementReadback = async (
-  input: AtomicReadbackInput,
-): Promise<GptChildCapabilityResult | null> => {
-  const { intent, priorOutcome } = input;
-  if (intent.childCapabilityId !== "acknowledge_known_gpt_rate_limit"
-    || priorOutcome.state !== "confirmed" || priorOutcome.mutationOutcome !== "confirmed"
-    || priorOutcome.physicalInputCount !== 1 || !priorOutcome.terminalPayload
-    || typeof priorOutcome.terminalPayload !== "object"
-    || Array.isArray(priorOutcome.terminalPayload)) return null;
-  return await input.gpt.execute(intent, Object.freeze({
-      ...input.context,
-      confirmedRateLimitAcknowledgementReadback: Object.freeze({
-        terminalPayload: priorOutcome.terminalPayload,
-      }),
-    }));
-};
-
-const clearanceFact = (
-  intent: Extract<GptAnyChildCapabilityIntent, { childCapabilityId: "acknowledge_known_gpt_rate_limit" }>,
-  readback: Readonly<Record<string, unknown>>,
-): GptChildBrowserFact => Object.freeze({
-  exactCallIdentityHash: gptExactCallIdentityHash(intent), providerEffectIdentityHash: null,
-  childCapabilityId: intent.childCapabilityId, effectScope: "target_local",
-  browserOutcome: "CONFIRMED", mutationOutcome: "no", terminalAt: readback.observedAt as string,
-  evidenceRef: `browser-rate-limit-clearance:${readback.observationHash}`,
-  evidenceHash: readback.observationHash as `sha256:${string}`,
-});
-
-const clearanceReadbackValid = (
-  readback: Readonly<Record<string, unknown>>,
-  acknowledgement: Extract<GptAnyChildCapabilityIntent,
-  { childCapabilityId: "acknowledge_known_gpt_rate_limit" }>["input"],
-): boolean => {
-  const hashes = [readback.dialogHash, readback.targetRefHash,
-    readback.documentRefHash, readback.observationHash];
-  const identity = readback.schemaVersion === "grasseye.browser.known-gpt-rate-limit-clearance.v1"
-    && readback.state === "confirmed_absent" && readback.dialogHash === acknowledgement.dialogHash
-    && readback.targetRefHash === acknowledgement.targetRefHash
-    && readback.documentRefHash === acknowledgement.documentRefHash;
-  const postcondition = readback.candidateCount === 0 && readback.identityRevalidated === true
-    && readback.mutationCount === 0 && readback.postconditionVerified === true
-    && readback.zeroActionSatisfied === true;
-  return identity && postcondition
-    && hashes.every((hash) => typeof hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(hash))
-    && typeof readback.observedAt === "string" && Number.isFinite(Date.parse(readback.observedAt));
-};
-
-const absentAcknowledgementReadback = async (
-  input: AtomicReadbackInput,
-): Promise<GptChildCapabilityResult | null> => {
+const readAcknowledgement = async (input: AtomicReadbackInput): Promise<GptChildCapabilityResult | null> => {
   if (input.intent.childCapabilityId !== "acknowledge_known_gpt_rate_limit") return null;
-  const raw = await input.browser.executeDomIntent({
-    kind: "readKnownGptRateLimitClearance",
-  });
+  const projected = projectBrowserFact(input.intent, input.context);
+  if (projected?.fact.browserOutcome === "CONFIRMED" && projected.fact.mutationOutcome === "confirmed"
+    && projected.outcome.physicalInputCount === 1 && projected.outcome.terminalPayload != null) {
+    return await input.gpt.execute(input.intent, Object.freeze({ ...input.context,
+      confirmedRateLimitAcknowledgementReadback: { terminalPayload: projected.outcome.terminalPayload } }));
+  }
+  const raw = await input.browser.executeDomIntent({ kind: "readKnownGptRateLimitClearance" });
   if (!raw || typeof raw !== "object" || Array.isArray(raw)
     || !clearanceReadbackValid(raw as Readonly<Record<string, unknown>>, input.intent.input)) {
     throw executionFailure("failed", "GPT_RATE_LIMIT_CLEARANCE_READBACK_INVALID");
   }
-  const browserFact = clearanceFact(input.intent, raw as Readonly<Record<string, unknown>>);
-  return await input.gpt.execute(input.intent, Object.freeze({
-      ...input.context,
-      confirmedRateLimitAcknowledgementReadback: Object.freeze({ terminalPayload: raw, browserFact }),
-    }));
+  const row = raw as Readonly<Record<string, unknown>>;
+  const fact: GptChildBrowserFact = Object.freeze({ exactCallIdentityHash: gptExactCallIdentityHash(input.intent),
+    providerEffectIdentityHash: null, childCapabilityId: input.intent.childCapabilityId, effectScope: "target_local", browserOutcome: "CONFIRMED",
+    mutationOutcome: "no", terminalAt: row.observedAt as string, evidenceRef: `browser-rate-limit-clearance:${row.observationHash}`,
+    evidenceHash: row.observationHash as `sha256:${string}` });
+  return await input.gpt.execute(input.intent, Object.freeze({ ...input.context,
+    confirmedRateLimitAcknowledgementReadback: { terminalPayload: raw, browserFact: fact } }));
 };
-
-export const readPriorAtomicOutcome = async (
-  input: AtomicReadbackInput,
-): Promise<GptChildCapabilityResult | null> =>
-  await confirmedProviderEffectReadback(input)
-  ?? await confirmedAcknowledgementReadback(input)
-  ?? await absentAcknowledgementReadback(input);
+export const readPriorAtomicOutcome = async (input: AtomicReadbackInput): Promise<GptChildCapabilityResult | null> =>
+  await readConfirmedSubmit(input) ?? await readAcknowledgement(input);

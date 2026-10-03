@@ -1,156 +1,83 @@
+import { timingSafeEqual } from "node:crypto";
 import type { BrowserCommandPermit } from "./command-permit.js";
 import type { BrowserGovernedCommand } from "../exact-target/browser-command-actor.js";
 import { verifyNormalBrowserMutationReply } from "../exact-target/browser-command-postcondition.js";
 import { browserMutationTerminalFactShapeValid, type BrowserMutationTerminalFact } from "../exact-target/browser-observation-receipt.js";
 import { BROWSER_ERROR_CODES } from "../protocol/generated/browser-protocol.generated.js";
-import { timingSafeEqual } from "node:crypto";
-
-import {
-  canonicalizeBrowserAuthorityValue,
-  type BrowserAuthorityFrame,
-} from "./browser-authority-frame-codec.js";
+import { canonicalizeBrowserAuthorityValue, type BrowserAuthorityFrame } from "./browser-authority-frame-codec.js";
 import { requireGptWebClaimOrigin } from "../exact-target/browser-site-policy-registry.js";
 
-export type BrowserAuthorityTargetClaim = Readonly<{
-  targetRef: string;
-  documentRef: string;
-  navigationEpoch: number;
-  claimOrigin: "https://chatgpt.com";
-  jobRefHash: `sha256:${string}`;
-}>;
-export type BrowserAuthorityTargetRevoke = Readonly<{
-  targetRef: string;
-  jobRefHash: `sha256:${string}`;
-  documentRef: string;
-  releaseOutcome?: never;
-}> | Readonly<{
-  targetRef: string | null;
-  jobRefHash: `sha256:${string}`;
-  releaseOutcome: "released" | "absent";
-}>;
-
+export type BrowserAuthorityTargetClaim = Readonly<{ targetRef: string; documentRef: string; navigationEpoch: number;
+  claimOrigin: "https://chatgpt.com"; jobRefHash: `sha256:${string}` }>;
+export type BrowserAuthorityTargetRevoke = Readonly<{ targetRef: string; documentRef: string;
+  jobRefHash: `sha256:${string}`; releaseOutcome?: never }>
+  | Readonly<{ targetRef: string | null; jobRefHash: `sha256:${string}`; releaseOutcome: "released" | "absent" }>;
 export const authorityRecord = (value: unknown): Record<string, unknown> | null =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : null;
-
-export const encryptedFrameBody = (
-  frame: BrowserAuthorityFrame,
-): Readonly<{ nonce: string; ciphertext: string; tag: string }> => {
-  const body = authorityRecord(frame.body);
-  const encrypted = body ? authorityRecord(body.encrypted) : null;
-  if (!encrypted || typeof encrypted.nonce !== "string"
-    || typeof encrypted.ciphertext !== "string" || typeof encrypted.tag !== "string") {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
-  return { nonce: encrypted.nonce, ciphertext: encrypted.ciphertext, tag: encrypted.tag };
+  typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : null;
+export const canonicalBrowserAuthorityPlaintext = (value: unknown): string => canonicalizeBrowserAuthorityValue(value);
+export const encryptedFrameBody = (frame: BrowserAuthorityFrame): Readonly<{ nonce: string; ciphertext: string; tag: string }> => {
+  const encrypted = authorityRecord(authorityRecord(frame.body)?.encrypted);
+  if (!encrypted || ![encrypted.nonce, encrypted.ciphertext, encrypted.tag].every(field => typeof field === "string")) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  return encrypted as { nonce: string; ciphertext: string; tag: string };
 };
-
-export const canonicalBrowserAuthorityPlaintext = (value: unknown): string =>
-  canonicalizeBrowserAuthorityValue(value);
-
 export const parseCanonicalPlaintext = (value: string): Record<string, unknown> => {
   try {
     const body = authorityRecord(JSON.parse(value) as unknown);
-    if (!body || canonicalBrowserAuthorityPlaintext(body) !== value) throw new Error("invalid canonical plaintext");
+    if (!body || canonicalBrowserAuthorityPlaintext(body) !== value) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     return body;
-  } catch {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
+  } catch { throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID"); }
 };
-
 export const compareReplyToken = (actual: string, expected: string): boolean => {
-  const left = Buffer.from(actual, "utf8");
-  const right = Buffer.from(expected, "utf8");
+  const left = Buffer.from(actual, "utf8"), right = Buffer.from(expected, "utf8");
   return left.byteLength === right.byteLength && timingSafeEqual(left, right);
 };
-
 export const stringField = (body: Readonly<Record<string, unknown>>, name: string): string => {
   const value = body[name];
   if (typeof value !== "string" || value.length === 0) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   return value;
 };
-
-export const integerField = (
-  body: Readonly<Record<string, unknown>>, name: string, minimum = 0,
-): number => {
+export const integerField = (body: Readonly<Record<string, unknown>>, name: string, minimum = 0): number => {
   const value = body[name];
-  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < minimum) {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < minimum) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   return value;
 };
-
-export const parseBrowserAuthorityTargetClaim = (
-  body: Readonly<Record<string, unknown>>,
-): BrowserAuthorityTargetClaim => {
-  const targetRef = stringField(body, "targetRef");
-  const documentRef = stringField(body, "documentRef");
-  const navigationEpoch = integerField(body, "navigationEpoch");
-  const claimOrigin = stringField(body, "claimOrigin");
+export const parseBrowserAuthorityTargetClaim = (body: Readonly<Record<string, unknown>>): BrowserAuthorityTargetClaim => {
+  if (Object.keys(body).sort().join("|") !== "claimOrigin|documentRef|jobRefHash|navigationEpoch|targetRef") throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   const jobRefHash = stringField(body, "jobRefHash");
-  if (!/^sha256:[a-f0-9]{64}$/u.test(jobRefHash) || Object.keys(body).length !== 5
-    || Object.keys(body).some((key) => !["targetRef", "documentRef", "navigationEpoch", "claimOrigin", "jobRefHash"].includes(key))) {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
-  return { targetRef, documentRef, navigationEpoch, claimOrigin: requireGptWebClaimOrigin(claimOrigin),
+  if (!/^sha256:[a-f0-9]{64}$/u.test(jobRefHash)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  return { targetRef: stringField(body, "targetRef"), documentRef: stringField(body, "documentRef"),
+    navigationEpoch: integerField(body, "navigationEpoch"), claimOrigin: requireGptWebClaimOrigin(stringField(body, "claimOrigin")),
     jobRefHash: jobRefHash as `sha256:${string}` };
 };
-
-const parseTargetFailureRevoke = (
-  body: Readonly<Record<string, unknown>>,
-): BrowserAuthorityTargetRevoke => {
-  const targetRef = stringField(body, "targetRef");
+export const parseBrowserAuthorityTargetRevoke = (body: Readonly<Record<string, unknown>>): BrowserAuthorityTargetRevoke => {
   const jobRefHash = stringField(body, "jobRefHash");
-  const documentRef = stringField(body, "documentRef");
-  if (!/^sha256:[a-f0-9]{64}$/u.test(jobRefHash)
-    || Object.keys(body).sort().join("|") !== "documentRef|jobRefHash|targetRef") {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  if (!/^sha256:[a-f0-9]{64}$/u.test(jobRefHash)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  if (!Object.hasOwn(body, "releaseOutcome")) {
+    if (Object.keys(body).sort().join("|") !== "documentRef|jobRefHash|targetRef") throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    return { jobRefHash: jobRefHash as `sha256:${string}`, targetRef: stringField(body, "targetRef"), documentRef: stringField(body, "documentRef") };
   }
-  return { targetRef, jobRefHash: jobRefHash as `sha256:${string}`, documentRef };
-};
-
-const parseTargetReleaseRevoke = (
-  body: Readonly<Record<string, unknown>>,
-): BrowserAuthorityTargetRevoke => {
-  const targetRef = body.targetRef;
-  const jobRefHash = body.jobRefHash;
-  const releaseOutcome = body.releaseOutcome;
+  const targetRef = body.targetRef, releaseOutcome = body.releaseOutcome;
   if (Object.keys(body).sort().join("|") !== "jobRefHash|releaseOutcome|targetRef"
     || (targetRef !== null && (typeof targetRef !== "string" || targetRef.length === 0))
-    || typeof jobRefHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(jobRefHash)
-    || (releaseOutcome !== "released" && releaseOutcome !== "absent")
-    || (releaseOutcome === "absent") !== (targetRef === null)) {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
-  return { targetRef: targetRef as string | null, jobRefHash: jobRefHash as `sha256:${string}`,
-    releaseOutcome };
+    || !["released", "absent"].includes(String(releaseOutcome))
+    || (releaseOutcome === "absent") !== (targetRef === null)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  return { targetRef: targetRef as string | null, jobRefHash: jobRefHash as `sha256:${string}`, releaseOutcome: releaseOutcome as "released" | "absent" };
 };
-
-export const parseBrowserAuthorityTargetRevoke = (
-  body: Readonly<Record<string, unknown>>,
-): BrowserAuthorityTargetRevoke => Object.hasOwn(body, "releaseOutcome")
-  ? parseTargetReleaseRevoke(body) : parseTargetFailureRevoke(body);
-
 export const parseBrowserMutationTerminalFact = (body: unknown): BrowserMutationTerminalFact => {
   if (!browserMutationTerminalFactShapeValid(body)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   return body;
 };
-export const parseBrowserCommandReply = (
-  body: Record<string, unknown>, permit: BrowserCommandPermit, command: BrowserGovernedCommand,
-  receiptBindingHash: `sha256:${string}` | null,
+/** Authenticate the existing five-key reply; the original Store remains the sole terminal CAS owner. */
+export const parseBrowserCommandReply = (body: Record<string, unknown>, permit: BrowserCommandPermit,
+  command: BrowserGovernedCommand, receiptBindingHash: `sha256:${string}` | null,
 ): Readonly<{ fact: BrowserMutationTerminalFact | null; errorCode: string | null }> => {
   const failure = Object.hasOwn(body, "errorCode");
-  const expected = ["requestSequence", "permitSequence", "replyChannelToken", "mutationReceipt", failure ? "errorCode" : "result"];
-  if (Object.keys(body).length !== 5 || Object.keys(body).some(key => !expected.includes(key))
-    || integerField(body, "permitSequence", 1) !== permit.sequence || typeof body.replyChannelToken !== "string"
-    || !compareReplyToken(body.replyChannelToken, permit.replyChannelToken)
-    || (failure && (typeof body.errorCode !== "string" || !(BROWSER_ERROR_CODES as readonly string[]).includes(body.errorCode)))) {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
+  const keys = ["requestSequence", "permitSequence", "replyChannelToken", "mutationReceipt", failure ? "errorCode" : "result"];
+  if (Object.keys(body).length !== 5 || Object.keys(body).some(key => !keys.includes(key))
+    || integerField(body, "requestSequence", 1) < 1 || integerField(body, "permitSequence", 1) !== permit.sequence
+    || typeof body.replyChannelToken !== "string" || !compareReplyToken(body.replyChannelToken, permit.replyChannelToken)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  if (failure && (typeof body.errorCode !== "string" || !(BROWSER_ERROR_CODES as readonly string[]).includes(body.errorCode))) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   const fact = receiptBindingHash === null ? null : verifyNormalBrowserMutationReply(permit, command, body);
-  if (fact ? fact.receiptBindingHash !== receiptBindingHash : body.mutationReceipt !== null) {
-    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  }
+  if (fact ? fact.receiptBindingHash !== receiptBindingHash : body.mutationReceipt !== null) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   return { fact, errorCode: failure ? body.errorCode as string : null };
 };

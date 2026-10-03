@@ -1,484 +1,298 @@
 import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
-
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
-
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
-import {
-  inspectMissingTokens,
-  sourceFor,
-  sourceTextForPaths,
-  type FindingFactory,
-} from "./gpt-inspection-support.js";
+import { sourceFor, type FindingFactory } from "./gpt-inspection-support.js";
+
 const ROOT = "src/capabilities/gpt";
-const CONTRACT_PATH = `${ROOT}/contract.ts`;
-const CHILD_TYPES_PATH = `${ROOT}/child-types.ts`;
-const SCHEMA_PATH = `${ROOT}/schema.ts`;
-const CHILDREN_PATH = `${ROOT}/children`;
-const GROUP_PATH = `${ROOT}/ability-group.ts`;
-const HANDLER_REGISTRY_PATH = `${ROOT}/handler-registry.ts`;
-const childFilePath = (id: string, file: string): string => `${CHILDREN_PATH}/${id}/${file}`;
-const MODEL_HANDLER_PATH = `${CHILDREN_PATH}/select_gpt_model_from_start_v3/handler.ts`;
-const MODEL_HANDLER_PATHS = [
-  `${CHILDREN_PATH}/open_gpt_model_selector_v3/handler.ts`,
-  childFilePath("open_gpt_model_selector_v3", "observation.ts"),
-  childFilePath("open_gpt_model_selector_v3", "selectors.ts"),
-  MODEL_HANDLER_PATH,
-  childFilePath("select_gpt_model_from_start_v3", "observation.ts"),
-  childFilePath("select_gpt_model_from_start_v3", "selectors.ts"),
-] as const;
-const MODEL_CONTRACT_PATH = childFilePath("select_gpt_model_from_start_v3", "selectors.ts");
-const PROFILE_HANDLER_PATH = `${CHILDREN_PATH}/select_gpt_reasoning_from_start_v3/handler.ts`;
-const PROFILE_HANDLER_PATHS = [
-  `${CHILDREN_PATH}/open_gpt_execution_profile/handler.ts`,
-  childFilePath("open_gpt_execution_profile", "observation.ts"),
-  childFilePath("open_gpt_execution_profile", "selectors.ts"),
-  PROFILE_HANDLER_PATH,
-  childFilePath("select_gpt_reasoning_from_start_v3", "observation.ts"),
-  childFilePath("select_gpt_reasoning_from_start_v3", "selectors.ts"),
-  `${CHILDREN_PATH}/close_gpt_execution_profile/handler.ts`,
-  childFilePath("close_gpt_execution_profile", "observation.ts"),
-  childFilePath("close_gpt_execution_profile", "selectors.ts"),
-  `${ROOT}/web/execution-profile-input.ts`,
-] as const;
-const PROFILE_CONTRACT_PATH = childFilePath("select_gpt_reasoning_from_start_v3", "selectors.ts");
-const GPT_DOM_OBSERVATION_PATH = `${ROOT}/web/gpt-dom-observation.ts`;
-const PAGE_ACCESS_GATE_PATH = "src/lib/browser/chrome-extension/chatgpt-page-access-gate.ts";
-const childIdsFromContract = (contract: SourceFile): string[] => {
-  const initializer = contract.getVariableDeclaration("GPT_CHILD_CONTRACTS")?.getInitializer();
-  const object = initializer && Node.isObjectLiteralExpression(initializer)
-    ? initializer
-    : initializer?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
-  return object ? object.getProperties().flatMap((property) =>
-    Node.isPropertyAssignment(property) ? [property.getName().replace(/^['"]|['"]$/gu, "")] : []).sort() : [];
+const CHILDREN = `${ROOT}/children`;
+const CONTRACT = `${ROOT}/contract.ts`;
+const REGISTRY = `${ROOT}/handler-registry.ts`;
+// The law freezes each Child, rather than merely the total number of profiles.
+const CHILDREN_CONTRACT = {
+  acknowledge_known_gpt_rate_limit: [2, 1, "TARGET_LOCAL_MUTATION"],
+  attach_approved_gpt_files_once: [3, 1, "TARGET_LOCAL_MUTATION"],
+  checkpoint_gpt_generated_image: [6, 3, "DOM_OBSERVATION"],
+  checkpoint_gpt_text_response: [6, 3, "DOM_OBSERVATION"],
+  close_gpt_execution_profile: [4, 2, "TARGET_LOCAL_MUTATION"],
+  open_gpt_attachment_control: [3, 1, "TARGET_LOCAL_MUTATION"],
+  open_gpt_execution_profile: [3, 2, "TARGET_LOCAL_MUTATION"],
+  open_gpt_model_selector_v3: [4, 2, "TARGET_LOCAL_MUTATION"],
+  prepare_clean_gpt_chat: [5, 1, "TARGET_LOCAL_MUTATION"],
+  reconcile_gpt_attachment_set: [3, 1, "DOM_OBSERVATION"],
+  select_gpt_model_from_start_v3: [5, 2, "TARGET_LOCAL_MUTATION"],
+  select_gpt_reasoning_from_start_v3: [5, 3, "TARGET_LOCAL_MUTATION"],
+  submit_exact_gpt_turn_once: [6, 2, "PROVIDER_EFFECT_ONCE"],
+  write_exact_gpt_prompt: [4, 1, "TARGET_LOCAL_MUTATION"],
+} as const;
+const expectedIds = Object.keys(CHILDREN_CONTRACT).sort();
+const objectInitializer = (source: SourceFile | undefined, name: string) => {
+  const value = source?.getVariableDeclaration(name)?.getInitializer();
+  return Node.isObjectLiteralExpression(value) ? value : value?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
 };
-
-const childDirectoryIds = (context: InspectorContext): string[] => {
-  const root = resolve(context.sealedRoot, CHILDREN_PATH);
-  return existsSync(root) ? readdirSync(root, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort() : [];
+const names = (members: readonly Node[]): string[] => members.flatMap(member =>
+  Node.isPropertyAssignment(member) || Node.isPropertySignature(member) || Node.isShorthandPropertyAssignment(member)
+    ? [member.getName().replace(/^['"]|['"]$/gu, "")] : []).sort();
+const initializerText = (object: import("ts-morph").ObjectLiteralExpression | undefined, name: string): string => {
+  const property = object?.getProperty(name);
+  return Node.isPropertyAssignment(property) ? property.getInitializer()?.getText() ?? "" : "";
 };
-
-const handlerIds = (context: InspectorContext, directories: readonly string[]): string[] => directories
-  .flatMap((directory) => {
-    const source = sourceFor(context, `${CHILDREN_PATH}/${directory}/handler.ts`);
-    return source?.getVariableDeclarations().flatMap((declaration) => {
-      if (!declaration.isExported()) return [];
-      const match = declaration.getTypeNode()?.getText().match(/GptChildHandler<\s*["']([^"']+)["']\s*>/u);
-      return match?.[1] ? [match[1]] : [];
-    }) ?? [];
-  })
-  .sort();
-
-const mappedHandlerIds = (context: InspectorContext): string[] => {
-  const initializer = sourceFor(context, HANDLER_REGISTRY_PATH)?.getVariableDeclaration("gptChildHandlers")?.getInitializer();
-  const object = initializer && Node.isObjectLiteralExpression(initializer)
-    ? initializer : initializer?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
-  return object?.getProperties().flatMap((property) =>
-    Node.isPropertyAssignment(property) ? [property.getName().replace(/^['"]|['"]$/gu, "")] : []).sort() ?? [];
+const check = (ok: boolean, id: string, path: string, message: string,
+  findings: InspectorFinding[], finding: FindingFactory): void => {
+  if (!ok) findings.push(finding(id, path, message));
 };
+const text = (context: InspectorContext, path: string): string => sourceFor(context, path)?.getFullText() ?? "";
+const child = (id: string, file = "handler.ts"): string => `${CHILDREN}/${id}/${file}`;
 
-const privateSupportConsumers = (
-  context: InspectorContext,
-  directory: string,
-  support: SourceFile,
-): Readonly<{ importers: number; names: ReadonlySet<string> }> => {
-  const prefix = resolve(context.sealedRoot, CHILDREN_PATH, directory);
-  const names = new Set<string>();
-  let importers = 0;
-  for (const source of context.project.getSourceFiles()) {
-    if (source === support || !source.getFilePath().startsWith(`${prefix}/`)) continue;
-    for (const declaration of source.getImportDeclarations()) {
-      if (declaration.getModuleSpecifierSourceFile() !== support) continue;
-      importers += 1;
-      for (const named of declaration.getNamedImports()) names.add(named.getName());
-      if (declaration.getNamespaceImport()) names.add("*");
-    }
+const inspectPrivateFile = (context: InspectorContext, id: string, file: string, findings: InspectorFinding[], finding: FindingFactory): void => {
+  const directory = resolve(context.sealedRoot, CHILDREN);
+  const path = child(id, file), source = sourceFor(context, path);
+  if (!source) { check(false, "gpt/child-source-present", path, "Child source is absent from the sealed candidate.", findings, finding); return; }
+  for (const imported of source.getImportDeclarations()) {
+    const target = imported.getModuleSpecifierSourceFile()?.getFilePath();
+    check(!target?.includes(`/${CHILDREN}/`) || target.startsWith(`${directory}/${id}/`),
+      "gpt/child-private-exact-intent", path, "A Child cannot import another Child's private responsibility.", findings, finding);
   }
-  return Object.freeze({ importers, names });
-};
-
-const inspectPrivateSupportSource = (
-  context: InspectorContext,
-  directory: string,
-  file: string,
-  findings: InspectorFinding[],
-  finding: FindingFactory,
-): void => {
-  const path = `${CHILDREN_PATH}/${directory}/${file}`;
-  const source = sourceFor(context, path);
-  if (!source) return;
-  const consumers = privateSupportConsumers(context, directory, source);
-  if (consumers.importers === 0) findings.push(finding(
-    "gpt/child-private-support-consumer", path,
-    `Child private support ${file} has no importer inside ${directory}.`,
-  ));
-  for (const [name, declarations] of source.getExportedDeclarations()) {
-    if (consumers.names.has(name) || consumers.names.has("*")) continue;
-    findings.push(finding(
-      "gpt/child-private-export-consumer", path,
-      `Child private export ${name} has no importer inside ${directory}.`,
-      declarations[0]?.getStartLineNumber(),
-    ));
-  }
+  check(!/GptAnyChildCapabilityIntent|GptChildHandlerMap\[keyof|includeSend|includeTurns|includeAttachments/u.test(source.getFullText()),
+    "gpt/child-private-exact-intent", path, "Private support cannot aggregate sibling semantics.", findings, finding);
+  if (file === "handler.ts") return;
+  const consumers = context.project.getSourceFiles().filter(candidate => candidate !== source
+    && candidate.getFilePath().startsWith(`${directory}/${id}/`)).flatMap(candidate => candidate.getImportDeclarations()
+    .filter(imported => imported.getModuleSpecifierSourceFile() === source));
+  check(consumers.length > 0, "gpt/child-private-support-consumer", path, "Private support requires a real same-Child consumer.", findings, finding);
+  for (const [name] of source.getExportedDeclarations()) check(consumers.some(imported =>
+    imported.getNamespaceImport() || imported.getNamedImports().some(named => named.getName() === name)),
+  "gpt/child-private-export-consumer", path, `Private export ${name} has no same-Child consumer.`, findings, finding);
   for (const declaration of source.getVariableDeclarations()) {
-    const statement = declaration.getVariableStatement();
-    if (statement?.isExported()) continue;
-    const name = declaration.getNameNode();
-    if (!Node.isIdentifier(name) || name.findReferencesAsNodes().length > 0) continue;
-    findings.push(finding(
-      "gpt/child-private-dead-declaration", path,
-      `Child private declaration ${declaration.getName()} has no runtime or type consumer.`,
-      declaration.getStartLineNumber(),
-    ));
+    const node = declaration.getNameNode();
+    if (!declaration.getVariableStatement()?.isExported() && Node.isIdentifier(node)) check(node.findReferencesAsNodes().length > 0,
+      "gpt/child-private-dead-declaration", path, `Private declaration ${node.getText()} has no consumer.`, findings, finding);
   }
-  for (const forbidden of [
-    "GptAnyChildCapabilityIntent", "GptChildHandlerMap[keyof",
-    "includeSend", "includeTurns", "includeAttachments",
-  ]) if (source.getFullText().includes(forbidden)) findings.push(finding(
-    "gpt/child-private-exact-intent", path,
-    `Child private support retains generic sibling-semantic token ${forbidden}.`,
-  ));
 };
 
-const inspectRequiredChildIds = (
-  ids: readonly string[],
-  findings: InspectorFinding[],
-  finding: FindingFactory,
-): void => {
-  for (const required of [
-    "open_gpt_model_selector_v3", "select_gpt_model_from_start_v3", "select_gpt_reasoning_from_start_v3",
-  ]) if (!ids.includes(required)) findings.push(finding(
-    "gpt/model-selection-v2-required", CONTRACT_PATH, `The public denominator is missing ${required}.`,
-  ));
-};
-
-const profileDenominator = (contract: SourceFile): Readonly<Record<string, number>> => {
-  const profileCounts = new Map<string, number>();
-  const contracts = contract.getVariableDeclaration("GPT_CHILD_CONTRACTS")?.getInitializer();
-  const contractObject = contracts && Node.isObjectLiteralExpression(contracts)
-    ? contracts : contracts?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
-  for (const property of contractObject?.getProperties() ?? []) {
-    if (!Node.isPropertyAssignment(property)) continue;
-    const profile = property.getInitializerIfKind(SyntaxKind.ObjectLiteralExpression)?.getProperty("profile");
-    const value = Node.isPropertyAssignment(profile)
-      ? profile.getInitializerIfKind(SyntaxKind.StringLiteral)?.getLiteralValue() : undefined;
-    if (value) profileCounts.set(value, (profileCounts.get(value) ?? 0) + 1);
-  }
-  return Object.fromEntries([...profileCounts].sort());
-};
-
-const inspectChildDirectories = (
-  context: InspectorContext,
-  directories: readonly string[],
-  findings: InspectorFinding[],
-  finding: FindingFactory,
-): void => {
-  for (const directory of directories) {
-    const path = resolve(context.sealedRoot, CHILDREN_PATH, directory);
-    const files = readdirSync(path).filter((name) => name !== ".DS_Store").sort();
-    const handlers = files.filter((name) => name === "handler.ts");
-    const invalid = files.filter((name) => !name.endsWith(".ts") || name === "index.ts"
-      || /(?:^|[-_.])(common|shared|utils?|service|manager|facade|bridge|adapter)(?:[-_.]|$)/u.test(name));
-    if (handlers.length !== 1 || invalid.length > 0) findings.push(finding(
-      "gpt/one-private-slice-per-child", `${CHILDREN_PATH}/${directory}`,
-      `Child directory ${directory} must contain one handler.ts and only explicit private TypeScript support; found ${files.join(",") || "none"}.`,
-    ));
-    for (const file of files.filter((name) => name.endsWith(".ts") && name !== "handler.ts")) {
-      inspectPrivateSupportSource(context, directory, file, findings, finding);
+const inspectPrivateSlices = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
+  const directory = resolve(context.sealedRoot, CHILDREN);
+  const directories = existsSync(directory) ? readdirSync(directory, { withFileTypes: true })
+    .filter(entry => entry.isDirectory()).map(entry => entry.name).sort() : [];
+  check(JSON.stringify(directories) === JSON.stringify(expectedIds), "gpt/one-directory-per-child", CHILDREN,
+    "The physical Child denominator must equal the fourteen frozen contracts.", findings, finding);
+  const handlerIds: string[] = [];
+  for (const id of directories) {
+    const files = readdirSync(resolve(directory, id)).filter(name => name !== ".DS_Store");
+    check(files.includes("handler.ts") && files.every(file => file.endsWith(".ts") && file !== "index.ts"
+      && !/(?:^|[-_.])(common|shared|utils?|service|manager|facade|bridge|adapter)(?:[-_.]|$)/u.test(file)),
+    "gpt/one-private-slice-per-child", `${CHILDREN}/${id}`, "A Child has one handler and explicitly named private TypeScript support.", findings, finding);
+    const handler = sourceFor(context, child(id));
+    for (const declaration of handler?.getVariableDeclarations() ?? []) {
+      if (!declaration.isExported()) continue;
+      const match = declaration.getTypeNode()?.getText().match(/^GptChildHandler<\s*["']([^"']+)["']\s*>$/u);
+      if (match) handlerIds.push(match[1]!);
     }
+    for (const file of files.filter(file => file.endsWith(".ts"))) inspectPrivateFile(context, id, file, findings, finding);
+  }
+  check(JSON.stringify(handlerIds.sort()) === JSON.stringify(expectedIds), "gpt/one-handler-per-child", CHILDREN,
+    "Every exported typed handler, including foreign or duplicate handlers, participates in the denominator.", findings, finding);
+  const registry = sourceFor(context, REGISTRY);
+  check(JSON.stringify(names(objectInitializer(registry, "gptChildHandlers")?.getProperties() ?? [])) === JSON.stringify(expectedIds),
+    "gpt/one-ability-group-mapping-per-child", REGISTRY, "The one registry maps every Child exactly once.", findings, finding);
+  const imports = registry?.getImportDeclarations().filter(entry => entry.getModuleSpecifierValue().startsWith("./children/")) ?? [];
+  const importedIds = imports.map(entry => entry.getModuleSpecifierValue().match(/^\.\/children\/([^/]+)\/handler\.js$/u)?.[1] ?? "").sort();
+  check(JSON.stringify(importedIds) === JSON.stringify(expectedIds), "gpt/ability-group-direct-child-imports", REGISTRY,
+    "The registry imports the actual fourteen handlers directly.", findings, finding);
+  const groupImports = sourceFor(context, `${ROOT}/ability-group.ts`)?.getImportDeclarations().map(entry => entry.getModuleSpecifierValue()) ?? [];
+  check(groupImports.includes("./handler-registry.js") && !groupImports.some(value => value.startsWith("./children/")),
+    "gpt/ability-group-direct-child-imports", `${ROOT}/ability-group.ts`, "Ability-group consumes the sole handler registry.", findings, finding);
+};
+
+const inspectShapes = (context: InspectorContext, source: SourceFile, findings: InspectorFinding[], finding: FindingFactory): void => {
+  const fields = ["actionQualification", "boundedWait", "childCapabilityId", "contractVersion", "decisions", "evidenceBoundary",
+    "evidenceSchema", "failureClassification", "inputSchema", "mutationBudget", "negativePostcondition", "oneObservationOrMutation",
+    "owner", "positivePostcondition", "precondition", "profile", "replayPolicy", "requiredTargetKind", "semanticIntent"].sort();
+  check(JSON.stringify(names(source.getInterface("ChildCapabilityContract")?.getMembers() ?? [])) === JSON.stringify(fields),
+    "gpt/child-contract-exact-shape", CONTRACT, "The public nineteen-field Child contract is frozen.", findings, finding);
+  const proof = source.getInterface("GptChildCapabilityProof");
+  for (const field of ["schemaVersion", "childCapabilityId", "childContractVersion", "childStatus", "childReasonCode", "exactCallIdentityHash",
+    "internalDecisionCode", "executionId", "jobId", "attemptId", "productStepId", "callId", "inputHash", "actionOrdinal", "resultRevision",
+    "authorityRefHashes", "factResultIds", "candidateCardinality", "observationRevisionHash", "committedMutation", "postconditionResult",
+    "browserFact", "nativeFailureCode", "stoppedEmptyProof", "startedAt", "endedAt", "evidenceRef", "evidenceHash"]) check(!!proof?.getProperty(field),
+  "gpt/proof-field-required", CONTRACT, `Proof requires ${field}.`, findings, finding);
+  check(!proof?.getProperty("candidateCount") && !proof?.getProperty("observedSemantics"), "gpt/proof-retired-field", CONTRACT,
+    "Retired surrogate facts cannot return to the proof.", findings, finding);
+  for (const name of ["GptChildInputMap", "GptChildOutputMap"]) check(JSON.stringify(names(sourceFor(context, `${ROOT}/child-types.ts`)
+    ?.getInterface(name)?.getProperties() ?? [])) === JSON.stringify(expectedIds), "gpt/exact-child-type-map", `${ROOT}/child-types.ts`,
+  `${name} must map the same fourteen identities.`, findings, finding);
+};
+
+const inspectModelEntry = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
+  const openPath = child("open_gpt_model_selector_v3"), open = sourceFor(context, openPath);
+  const openCalls = open?.getDescendantsOfKind(SyntaxKind.CallExpression).filter(call => call.getExpression().getText() === "browser.executeDomIntent") ?? [];
+  const action = openCalls[0]?.getArguments()[0];
+  check(openCalls.length === 1 && Node.isObjectLiteralExpression(action)
+    && initializerText(action, "kind") === '"click"' && initializerText(action, "selector") === "GPT_MODEL_SELECTOR_OPENABLE_ENTRY"
+    && initializerText(action, "expectedMatches") === "1" && initializerText(action, "postClickMinimumDelayMs") === "2_500"
+    && initializerText(action, "postClickMatch").includes("selector: GPT_MODEL_SELECTOR_OPTION, expectedMatches: 1")
+    && initializerText(action, "postClickMatch").includes('profile.startModelDisplayName === "最新" ? GPT_LATEST_MODEL_LABELS : profile.startModelDisplayName'),
+  "gpt/model-entry-direct-postcondition", openPath, "The model entry confirms the exact Product option after the governed delay.", findings, finding);
+};
+const inspectModelSelection = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
+  const modelPath = child("select_gpt_model_from_start_v3"), model = sourceFor(context, modelPath);
+  const modelBody = model?.getVariableDeclaration("selectGptModelFromStartV3Handler")?.getInitializer()?.getText() ?? "";
+  const modelCalls = model?.getDescendantsOfKind(SyntaxKind.CallExpression).filter(call => call.getExpression().getText() === "browser.executeDomIntent") ?? [];
+  const argument = modelCalls[0]?.getArguments()[0];
+  const post = Node.isObjectLiteralExpression(argument) ? argument.getProperty("postClickObservation") : undefined;
+  const postText = Node.isPropertyAssignment(post) ? post.getInitializer()?.getText() ?? "" : "";
+  check(modelCalls.length === 1 && Node.isObjectLiteralExpression(argument) && initializerText(argument, "kind") === '"click"'
+    && initializerText(argument, "expectedMatches") === "1"
+    && [/name: profile\.startModelDisplayName, count: 1, ariaDisabled: false, disabled: false, inert: false/u, /Object\.entries\(expected\)\.some/u, /observed\.selectedRawCount !== 1/u, /if \(!selectedReadbackValid\(record\.clickedCandidateAttributeReadback\)\) throw/u, /decodeCoherentObservationPacket\(record\.postconditionObservation, \[query\]\)/u, /if \(packet\.rows\[0\]!\.eligibleCount !== 0\) throw/u, /physicalInputCount !== 1/u, /browserOutcome !== "CONFIRMED"/u, /mutationOutcome !== "confirmed"/u, /decision: "ACT"/u].every(pattern => pattern.test(modelBody))
+
+
+    && /clickedCandidateAttribute:\s*\{ name: "aria-checked", equals: "true" \}/u.test(postText)
+    && /expectedEligibleCount: 0/u.test(postText)
+
+
+
+
+
+    && !/decision: "DONE"/u.test(modelBody), "gpt/model-selection-v3-handler", modelPath,
+  "Model selection requires one qualified click and the same packet's checked-state and closed-menu readback, even when already selected.", findings, finding);
+  const selected = model?.getVariableDeclaration("selectedReadbackValid")?.getInitializer()?.getText() ?? "";
+  check(/Object\.keys\(row\)\.sort\(\)\.join\("\|"\) === "name\|value\|verified"/u.test(selected)
+    && /name: "aria-checked", value: "true", verified: true/u.test(selected), "gpt/model-selection-v3-visible-contract", modelPath,
+  "Selected-state readback is the exact verified attribute contract.", findings, finding);
+};
+const inspectReasoningAction = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
+  const reasoningPath = child("select_gpt_reasoning_from_start_v3"), reasoning = text(context, reasoningPath);
+  const observation = text(context, child("select_gpt_reasoning_from_start_v3", "observation.ts"));
+  check([/Math\.min\(profile\.requestedReasoningValue, observedScale\.max!\)/u, /delta === 0\s*\? \{ kind: "click"/u, /requiredClickPointSelector: GPT_PROFILE_REASONING_THUMB_SELECTOR/u, /kind: "keypress", selector: GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR/u, /repeat: Math\.abs\(delta\)/u, /physicalInputCount !== 1/u, /browserOutcome !== "CONFIRMED"/u, /mutationOutcome !== "confirmed"/u, /readbackScale\.min !== observedScale\.min/u, /readbackScale\.max !== observedScale\.max/u, /readbackScale\.currentBefore !== resolvedValue/u, /decision: "ACT"/u].every(pattern => pattern.test(reasoning))
+
+
+
+
+
+
+
+
+
+     && !/decision: "DONE"/u.test(reasoning)
+    && observation.includes('value.reasoningMinimum === "0"') && observation.includes('/^(?:0|[1-5])$/u.test(max)')
+    && observation.includes('/^(?:0|[1-5])$/u.test(now)') && observation.includes("Number(now) <= Number(max)"),
+  "gpt/reasoning-requirement-resolution", reasoningPath, "Reasoning requires an approved bounded scale, one action and fresh exact resolved-value readback.", findings, finding);
+  const selectors = text(context, child("select_gpt_reasoning_from_start_v3", "selectors.ts"));
+  check(["GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR", "GPT_PROFILE_REASONING_CLICK_SELECTOR", "GPT_PROFILE_REASONING_THUMB_SELECTOR",
+    "[role='menuitem'][data-reasoning-slider='true']", "[data-model-picker-power-slider] [role='slider']"].every(token => selectors.includes(token)),
+  "gpt/reasoning-approved-scale-contract", child("select_gpt_reasoning_from_start_v3", "selectors.ts"), "Reasoning uses the frozen enabled-control and thumb selectors.", findings, finding);
+};
+const inspectProfileSchema = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
+  const schema = text(context, `${ROOT}/schema.ts`);
+  check(['z.literal("gpt-execution-profile.v3")', 'startModelDisplayName: z.enum(["最新", "GPT-5.6 Sol"])',
+    "requestedReasoningValue: z.number().int().min(0).max(5)"].every(token => schema.includes(token))
+    && !/gpt-execution-profile\.v[12]|selectionPolicy|accountCapabilityRef|modelFamily|pro_extended/u.test(schema),
+  "gpt/profile-v3-start-target", `${ROOT}/schema.ts`, "Execution profile uses only the frozen V3 closed model and numeric requirement.", findings, finding);
+};
+
+const inspectCoherentContracts = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
+  const path = `${ROOT}/web/gpt-dom-observation.ts`, source = sourceFor(context, path);
+  const coherent = source?.getTypeAlias("GptCoherentObservation")?.getTypeNode()?.getText() ?? "";
+  const assistant = source?.getTypeAlias("GptExactAssistantTurnObservation")?.getTypeNode()?.getText() ?? "";
+  check(["exactCallIdentityHash", "targetRefHash", "documentRefHash", "currentUrl", "observationRevisionHash"].every(field => coherent.includes(`${field}:`))
+    && !/claimOrigin|rawDomHtml|semanticText/u.test(coherent)
+    && ["rawDomHtml", "rawDomHash", "semanticText", "semanticTextHash"].every(field => assistant.includes(`${field}:`)),
+  "gpt/coherent-page-fact-contract", path, "Coherent DOM facts and exact assistant raw content retain their distinct frozen contracts.", findings, finding);
+};
+const inspectExactAssistantChannel = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
+  const path = `${ROOT}/web/gpt-dom-observation.ts`, source = sourceFor(context, path);
+  const readAssistant = source?.getVariableDeclaration("readExactAssistantTurn")?.getInitializer();
+  const request = readAssistant?.getDescendantsOfKind(SyntaxKind.CallExpression).find(call => call.getExpression().getText() === "browser.executeDomIntent")?.getArguments()[0];
+  const validContent = source?.getVariableDeclaration("exactAssistantContentValid")?.getInitializer()?.getText() ?? "";
+  check(Node.isObjectLiteralExpression(request) && names(request.getProperties()).join("|") === "canonicalConversationUrl|kind|turnMarker"
+    && initializerText(request, "kind") === '"readExactAssistantTurn"'
+    && ["turnMarker", "canonicalConversationUrl"].every(name => {
+      const property = request.getProperty(name);
+      return Node.isShorthandPropertyAssignment(property) || Node.isPropertyAssignment(property) && property.getInitializer()?.getText() === name;
+    })
+    && readAssistant?.getDescendantsOfKind(SyntaxKind.ReturnStatement).some(statement => {
+      const expression = statement.getExpression(), argument = Node.isCallExpression(expression) ? expression.getArguments()[0] : undefined;
+      if (!Node.isObjectLiteralExpression(argument)) return false;
+      return ["rawDomHtml", "rawDomHash", "semanticText", "semanticTextHash", "targetRefHash", "documentRefHash",
+        "observationRevisionHash", "assistantTurnId", "precedingUserTurnId", "currentUrl", "observedAt", "generatingRaw", "exactCallIdentityHash"]
+        .every(name => initializerText(argument, name).split(" as ")[0] === `value.${name}`);
+    }) === true
+    && readAssistant?.getText().includes("!exactAssistantIdentityValid(value) || value.currentUrl !== canonicalConversationUrl") === true
+    && readAssistant.getText().includes("!exactAssistantContentValid(value)")
+    && ["hashText(value.rawDomHtml) === value.rawDomHash", "hashText(value.semanticText) === value.semanticTextHash",
+      "nonNegativeInteger(value.generatingRaw)", "validObservedAt(value.observedAt)"].every(token => validContent.includes(token)),
+  "gpt/exact-assistant-channel", path, "The assistant reader uses its dedicated marker-bound channel and validates raw and semantic hashes.", findings, finding);
+};
+export const inspectGptCoherentPageProofs = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
+  inspectCoherentContracts(context, findings, finding);
+  inspectExactAssistantChannel(context, findings, finding);
+  const path = `${ROOT}/web/gpt-dom-observation.ts`, source = sourceFor(context, path);
+  const group = text(context, `${ROOT}/ability-group.ts`);
+  check(group.includes('child !== "checkpoint_gpt_generated_image" && observation.observationRevisionHash === null')
+    && group.includes("GPT_OBSERVATION_REVISION_REQUIRED"), "gpt/success-revision-required", `${ROOT}/ability-group.ts`,
+  "Successful DOM proofs require a revision; authenticated image byte evidence keeps its distinct contract.", findings, finding);
+  const decoder = source?.getVariableDeclaration("decodeCoherentObservationPacket")?.getInitializer()?.getText() ?? "";
+  check(/packet\.schemaVersion !== "grasseye\.browser\.dom-observation\.v2"/u.test(decoder)
+    && /packet\.currentUrl\.length === 0/u.test(decoder) && /packet\.queries\.length !== queries\.length/u.test(decoder)
+    && decoder.includes("packet.observationRevisionHash].every") && decoder.includes("/^sha256:[a-f0-9]{64}$/u.test")
+    && /throw executionFailure\("failed", "GPT_DOM_COHERENT_PACKET_INVALID"\)/u.test(decoder),
+  "gpt/coherent-page-decoder", path, "Coherent packets require exact schema, hashes, URL, revision and query cardinality.", findings, finding);
+  const confirm = source?.getVariableDeclaration("readConfirmedCoherentObservation")?.getInitializer()?.getText() ?? "";
+  check(/for \(const stage of \[0, 1, 2\] as const\)/u.test(confirm)
+    && confirm.indexOf("await awaitConfirmationStage(browser, stage, signal)") < confirm.indexOf("await readConfirmationStage(browser, queries, stage)")
+    && /browser\.target\.targetRef !== targetRef \|\| browser\.document\.documentRef !== documentRef/u.test(confirm)
+    && /baseline !== null && !sameObservationIdentity\(baseline, observation\)/u.test(confirm)
+    && /GPT_DOM_CONFIRMATION_IDENTITY_CHANGED/u.test(confirm), "gpt/transient-dom-confirmation-owner", path,
+  "Transient observations use three Browser-owned stages under unchanged exact Target, Document and observation identity.", findings, finding);
+  const pageGate = text(context, "src/lib/browser/chrome-extension/chatgpt-page-access-gate.ts");
+  check(pageGate.includes("TRANSIENT_DOM_CONFIRMATION_DELAYS_MS") && pageGate.includes("1_500") && pageGate.includes("3_000"),
+    "gpt/transient-dom-confirmation-owner", path, "The Browser owns both confirmation delays.", findings, finding);
+  for (const current of context.project.getSourceFiles().filter(file => file.getFilePath().startsWith(`${resolve(context.sealedRoot, CHILDREN)}/`))) {
+    const legacy = current.getDescendantsOfKind(SyntaxKind.CallExpression).some(call =>
+      /(?:^|\.)(?:findCount|readExactAttribute|readExactCanonicalPromptText|readExactObservedResponse|readExactSemanticText|readExactText)$/u.test(call.getExpression().getText()));
+    check(!legacy, "gpt/no-legacy-page-proof", current.getFilePath(), "Current Child slices cannot assemble page proof through retired scalar reads.", findings, finding);
   }
 };
 
-const inspectHandlerRegistryProjection = (
-  context: InspectorContext,
-  ids: readonly string[],
-  directories: readonly string[],
-  findings: InspectorFinding[],
-  finding: FindingFactory,
-): void => {
-  const implemented = handlerIds(context, directories);
-  const mapped = mappedHandlerIds(context);
-  const registryImports = sourceFor(context, HANDLER_REGISTRY_PATH)?.getImportDeclarations()
-    .map((declaration) => declaration.getModuleSpecifierValue())
-    .filter((specifier) => specifier.startsWith("./children/")) ?? [];
-  const reportMismatch = (checkId: string, path: string, actual: readonly string[], label: string): void => {
-    if (JSON.stringify(ids) !== JSON.stringify(actual)) findings.push(finding(
-      checkId, path, `${label} differs from contract: contract=${ids.join(",")}; actual=${actual.join(",")}.`,
-    ));
+export const inspectGptContractDenominator = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
+  const source = sourceFor(context, CONTRACT), contracts = objectInitializer(source, "GPT_CHILD_CONTRACTS");
+  check(!!source && !!contracts, "gpt/contract-present", CONTRACT, "The unique public GPT contract must exist.", findings, finding);
+  if (!source || !contracts) return;
+  check(JSON.stringify(names(contracts.getProperties())) === JSON.stringify(expectedIds), "gpt/exact-child-denominator", CONTRACT,
+    "The public denominator is the fourteen frozen Child identities.", findings, finding);
+  check(source.getVariableDeclaration("GPT_CHILD_CAPABILITY_CONTRACTS")?.getInitializer()?.getText() === "Object.freeze(GPT_CHILD_CONTRACTS)",
+    "gpt/denominator-derived-once", CONTRACT, "The public projection derives only from GPT_CHILD_CONTRACTS.", findings, finding);
+  const decisions: Record<string, readonly string[]> = {
+    acknowledge_known_gpt_rate_limit: ["ACT", "FAIL_CLOSED"], attach_approved_gpt_files_once: ["DONE", "ACT", "FAIL_CLOSED"],
+    checkpoint_gpt_generated_image: ["DONE", "FAIL_CLOSED"], checkpoint_gpt_text_response: ["DONE", "FAIL_CLOSED"],
+    close_gpt_execution_profile: ["DONE", "ACT", "FAIL_CLOSED"], open_gpt_attachment_control: ["DONE", "ACT", "WAIT", "FAIL_CLOSED"],
+    open_gpt_execution_profile: ["DONE", "ACT", "WAIT", "FAIL_CLOSED"], open_gpt_model_selector_v3: ["DONE", "ACT", "FAIL_CLOSED"],
+    prepare_clean_gpt_chat: ["DONE", "ACT", "WAIT", "FAIL_CLOSED"], reconcile_gpt_attachment_set: ["DONE", "WAIT", "FAIL_CLOSED"],
+    select_gpt_model_from_start_v3: ["ACT", "FAIL_CLOSED"], select_gpt_reasoning_from_start_v3: ["ACT", "FAIL_CLOSED"],
+    submit_exact_gpt_turn_once: ["ACT", "FAIL_CLOSED"], write_exact_gpt_prompt: ["DONE", "ACT", "WAIT", "FAIL_CLOSED"],
   };
-  reportMismatch("gpt/one-directory-per-child", CHILDREN_PATH, directories, "Child directory denominator");
-  reportMismatch("gpt/one-handler-per-child", CONTRACT_PATH, implemented, "Handler denominator");
-  reportMismatch("gpt/one-ability-group-mapping-per-child", HANDLER_REGISTRY_PATH, mapped, "Handler registry mapping");
-  const directlyImported = registryImports.flatMap((specifier) =>
-    specifier.match(/^\.\/children\/([^/]+)\/handler\.js$/u)?.[1] ?? []).sort();
-  if (registryImports.length !== ids.length || JSON.stringify(directlyImported) !== JSON.stringify(ids)) {
-    findings.push(finding("gpt/ability-group-direct-child-imports", HANDLER_REGISTRY_PATH,
-      "The unique handler registry must import each Child directly with no forwarding sheet."));
+  for (const [id, [version, inputVersion, profile]] of Object.entries(CHILDREN_CONTRACT)) {
+    const property = contracts.getProperty(id), value = Node.isPropertyAssignment(property)
+      ? property.getInitializerIfKind(SyntaxKind.ObjectLiteralExpression) : undefined;
+    const observation = profile === "DOM_OBSERVATION";
+    const exactOne = ["acknowledge_known_gpt_rate_limit", "select_gpt_model_from_start_v3",
+      "select_gpt_reasoning_from_start_v3", "submit_exact_gpt_turn_once"].includes(id);
+    const budget = observation ? "zero" : exactOne ? "exactly-one-browser-input" : "zero-or-one-browser-input";
+    const replay = observation ? "observation-only" : profile === "PROVIDER_EFFECT_ONCE" ? "provider-effect-once" : "target-local-per-generation";
+    check(initializerText(value, "mutationBudget") === JSON.stringify(budget)
+      && initializerText(value, "replayPolicy") === JSON.stringify(replay)
+      && initializerText(value, "oneObservationOrMutation") === JSON.stringify(observation ? "bounded-observation" : "at-most-one-mutation")
+      && initializerText(value, "decisions").replace(/\s/gu, "") === JSON.stringify(decisions[id]),
+    "gpt/child-action-budget-frozen", CONTRACT, `${id} action budget, decisions and replay policy are frozen.`, findings, finding);
+    check(initializerText(value, "contractVersion") === String(version)
+      && initializerText(value, "inputSchema").endsWith(`.input.v${inputVersion}"`)
+      && initializerText(value, "profile") === JSON.stringify(profile), "gpt/profile-v2-contract-cutover", CONTRACT,
+    `${id} must retain contract/input/profile ${version}/${inputVersion}/${profile}.`, findings, finding);
   }
-  const groupImports = sourceFor(context, GROUP_PATH)?.getImportDeclarations()
-    .map((declaration) => declaration.getModuleSpecifierValue()) ?? [];
-  if (!groupImports.includes("./handler-registry.js") || groupImports.some((specifier) => specifier.startsWith("./children/"))) {
-    findings.push(finding("gpt/ability-group-direct-child-imports", GROUP_PATH,
-      "Ability-group must consume the one complete handler registry and must not import Child handlers directly."));
-  }
-};
-
-const inspectChildDenominator = (
-  context: InspectorContext,
-  contract: SourceFile,
-  findings: InspectorFinding[],
-  finding: FindingFactory,
-): string[] => {
-  const ids = childIdsFromContract(contract);
-  if (ids.length !== 14 || new Set(ids).size !== 14) findings.push(finding(
-    "gpt/exact-child-denominator", CONTRACT_PATH,
-    `GPT_CHILD_CONTRACTS must define exactly 14 unique child ids; found ${ids.length}/${new Set(ids).size}.`,
-  ));
-  inspectRequiredChildIds(ids, findings, finding);
-  if (ids.includes("ensure_exact_gpt_model")) findings.push(finding(
-    "gpt/model-selection-v1-retired", CONTRACT_PATH,
-    "V1 ensure_exact_gpt_model must not remain production-reachable.",
-  ));
-  if (ids.includes("ensure_exact_gpt_reasoning_tier")) findings.push(finding(
-    "gpt/reasoning-requirement-v2-retired", CONTRACT_PATH,
-    "The retired exact-only reasoning Child must not remain production-reachable.",
-  ));
-  const denominator = contract.getVariableDeclaration("GPT_CHILD_CAPABILITY_CONTRACTS")?.getInitializer()?.getText() ?? "";
-  if (!denominator.includes("Object.freeze(GPT_CHILD_CONTRACTS)")) findings.push(finding(
-    "gpt/denominator-derived-once", CONTRACT_PATH,
-    "The public Child contract projection must derive only from the unique GPT_CHILD_CONTRACTS registry.",
-  ));
-  const directories = childDirectoryIds(context);
-  inspectChildDirectories(context, directories, findings, finding);
-  inspectHandlerRegistryProjection(context, ids, directories, findings, finding);
-  const actualProfiles = profileDenominator(contract);
-  const expectedProfiles = { DOM_OBSERVATION: 3, PROVIDER_EFFECT_ONCE: 1, TARGET_LOCAL_MUTATION: 10 };
-  if (JSON.stringify(actualProfiles) !== JSON.stringify(expectedProfiles)) findings.push(finding(
-    "gpt/exact-child-profile-denominator", CONTRACT_PATH,
-    `GPT Child profiles must be exactly 3/1/10; found ${JSON.stringify(actualProfiles)}.`,
-  ));
-  return ids;
-};
-
-const inspectProfileContracts = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  finding: FindingFactory,
-): void => {
-  const modelContract = sourceFor(context, MODEL_CONTRACT_PATH)?.getFullText() ?? "";
-  inspectMissingTokens({ source: modelContract, required: [
-    "GPT_MODEL_CHOICE_SELECTOR", "[role='menuitemradio']",
-  ], checkId: "gpt/model-selection-v3-visible-contract", filePath: MODEL_CONTRACT_PATH,
-  findings, finding, message: (required) => `Model selection V3 contract is missing ${required}.` });
-  const modelHandler = sourceTextForPaths(context, MODEL_HANDLER_PATHS);
-  inspectMissingTokens({ source: modelHandler, required: [
-    "openGptModelSelectorV3Handler", "selectGptModelFromStartV3Handler",
-    "readModelChoiceState", "clickedCandidateAttribute", "selectedReadbackValid",
-    "postClickObservation: postcondition(chosen.name)", "record.postconditionObservation",
-    "expectedEligibleCount", "decodeCoherentObservationPacket", "modelChoiceQuery",
-    "chosen.ariaDisabled !== false", "selectedRawCount", "modelDisplayName",
-  ], checkId: "gpt/model-selection-v3-handler", filePath: MODEL_HANDLER_PATH,
-  findings, finding, message: (required) => `Model selection V3 handler is missing ${required}.` });
-  for (const retired of [
-    "GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR", "SELECTION_POSTCONDITION",
-    "profile.modelDisplayName", "modelSelectorTopology",
-  ]) {
-    if (modelContract.includes(retired) || modelHandler.includes(retired)) findings.push(finding(
-      "gpt/model-selection-v2-retired", MODEL_HANDLER_PATH,
-      `The obsolete exact-model path remains reachable through ${retired}.`,
-    ));
-  }
-  const reasoningContract = sourceFor(context, PROFILE_CONTRACT_PATH)?.getFullText() ?? "";
-  inspectMissingTokens({ source: reasoningContract, required: [
-    "[role='menuitem'][data-reasoning-slider='true']", "[data-model-picker-power-slider] [role='slider']",
-    "GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR",
-    "GPT_PROFILE_REASONING_CLICK_SELECTOR", "GPT_PROFILE_REASONING_THUMB_SELECTOR",
-  ], checkId: "gpt/reasoning-approved-scale-contract", filePath: PROFILE_CONTRACT_PATH,
-  findings, finding, message: (required) => `Reasoning contract is missing ${required}.` });
-  const reasoningHandler = sourceTextForPaths(context, PROFILE_HANDLER_PATHS);
-  inspectMissingTokens({ source: reasoningHandler, required: [
-    "selectGptReasoningFromStartV3Handler", "requireExactInputKeys", "profileFromIntent",
-    "requireBrowser(context)", "ariaValueMin", "ariaValueMax", "ariaValueNow",
-    "postKeypressMatch", "requireConfirmedBrowserFact", "readConfirmedCoherentObservation",
-    "profileTopologyQueries", "profileOpenReady", "profileOpenable", "profileDisposition",
-    "postClickObservation: PROFILE_OPEN_POSTCONDITION", "mutationRecord.postconditionObservation",
-    "decodeCoherentObservationPacket", "scopeRejections", "observationRevisionHash",
-    'max !== null && /^(?:0|[1-5])$/u.test(max)',
-    "resolveReasoningRequirement", 'code: "GPT_REASONING_SCALE_INVALID"',
-    "Math.min(profile.requestedReasoningValue, maximum)",
-    "requestedValue", "observedScale", "resolvedValue",
-    "reasoningControlReady", "enabled-reasoning-control", "reasoning-value",
-    "currentValue", "mutationOutcome", "browserOutcome", "gptPostcondition",
-  ], checkId: "gpt/reasoning-requirement-resolution", filePath: PROFILE_HANDLER_PATH,
-  findings, finding,
-  message: (required) => `Reasoning Child must qualify and read back the Browser-owned numeric control; missing ${required}.` });
-  inspectMissingTokens({ source: sourceTextForPaths(context, [
-    GPT_DOM_OBSERVATION_PATH, PAGE_ACCESS_GATE_PATH,
-  ]), required: [
-    "readConfirmedCoherentObservation", "awaitTransientDomConfirmation",
-    "sameObservationIdentity", "GPT_DOM_CONFIRMATION_IDENTITY_CHANGED",
-    "readWithTransientDomConfirmation", "TRANSIENT_DOM_CONFIRMATION_DELAYS_MS",
-    "1_500", "3_000",
-  ], checkId: "gpt/transient-dom-confirmation-owner", filePath: GPT_DOM_OBSERVATION_PATH,
-  findings, finding,
-  message: (required) => `GPT transient DOM confirmation is missing ${required}.` });
-  if (reasoningHandler.includes("postClickMatch: { selector: GPT_PROFILE_REASONING_VALUE_SELECTOR")) {
-    findings.push(finding(
-      "gpt/profile-open-second-readback-retired", PROFILE_HANDLER_PATH,
-      "Profile open must consume one coherent Browser postcondition packet instead of a match plus second DOM readback.",
-    ));
-  }
-};
-
-const PROFILE_CONSUMERS = new Set([
-  "open_gpt_execution_profile", "open_gpt_model_selector_v3", "select_gpt_model_from_start_v3",
-  "select_gpt_reasoning_from_start_v3", "close_gpt_execution_profile",
-]);
-const CONTRACT_V6_CHILDREN = new Set([
-  "checkpoint_gpt_generated_image", "checkpoint_gpt_text_response", "submit_exact_gpt_turn_once",
-]);
-const CONTRACT_V4_CHILDREN = new Set([
-  "open_gpt_model_selector_v3", "write_exact_gpt_prompt", "close_gpt_execution_profile",
-]);
-const CONTRACT_V5_CHILDREN = new Set([
-  "prepare_clean_gpt_chat", "select_gpt_model_from_start_v3",
-  "select_gpt_reasoning_from_start_v3",
-]);
-const CONTRACT_V3_CHILDREN = new Set([
-  ...PROFILE_CONSUMERS, "reconcile_gpt_attachment_set", "open_gpt_attachment_control",
-  "attach_approved_gpt_files_once",
-]);
-
-const expectedContractVersion = (id: string): string => {
-  if (CONTRACT_V6_CHILDREN.has(id)) return "6";
-  if (CONTRACT_V5_CHILDREN.has(id)) return "5";
-  if (CONTRACT_V4_CHILDREN.has(id)) return "4";
-  return CONTRACT_V3_CHILDREN.has(id) ? "3" : "2";
-};
-
-const INPUT_V2_CHILDREN = new Set([
-  ...PROFILE_CONSUMERS, "submit_exact_gpt_turn_once",
-]);
-const INPUT_V3_CHILDREN = new Set([
-  "checkpoint_gpt_text_response", "checkpoint_gpt_generated_image",
-  "select_gpt_reasoning_from_start_v3",
-]);
-
-const inspectProfileSchema = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  finding: FindingFactory,
-): void => {
-  const schema = sourceFor(context, SCHEMA_PATH)?.getFullText() ?? "";
-  inspectMissingTokens({ source: schema, required: [
-    'z.literal("gpt-execution-profile.v3")',
-    'startModelDisplayName: z.enum(["最新", "GPT-5.6 Sol"])',
-    "requestedReasoningValue: z.number().int().min(0).max(5)",
-  ], checkId: "gpt/profile-v3-start-target", filePath: SCHEMA_PATH,
-  findings, finding, message: (required) => `Execution Profile V3 is missing ${required}.` });
-  for (const retired of ["gpt-execution-profile.v1", "gpt-execution-profile.v2", "selectionPolicy", "accountCapabilityRef", "modelFamily", "pro_extended"]) {
-    if (schema.includes(retired)) findings.push(finding(
-      "gpt/profile-v1-reader-retired", SCHEMA_PATH,
-      `Execution Profile schema retains retired token ${retired}.`,
-    ));
-  }
-};
-
-const inspectChildContractVersions = (
-  contract: SourceFile,
-  findings: InspectorFinding[],
-  finding: FindingFactory,
-): void => {
-  const contractObject = contract.getVariableDeclaration("GPT_CHILD_CONTRACTS")?.getInitializer();
-  const contracts = contractObject && Node.isObjectLiteralExpression(contractObject)
-    ? contractObject : contractObject?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
-  for (const property of contracts?.getProperties() ?? []) {
-    if (!Node.isPropertyAssignment(property)) continue;
-    const id = property.getName().replace(/^['"]|['"]$/gu, "");
-    const value = property.getInitializerIfKind(SyntaxKind.ObjectLiteralExpression);
-    const version = value?.getProperty("contractVersion");
-    const inputSchema = value?.getProperty("inputSchema");
-    const versionText = Node.isPropertyAssignment(version) ? version.getInitializer()?.getText() : null;
-    const inputText = Node.isPropertyAssignment(inputSchema) ? inputSchema.getInitializer()?.getText() : null;
-    const expectedVersion = expectedContractVersion(id);
-    const expectedInputVersion = INPUT_V3_CHILDREN.has(id) ? "v3" : INPUT_V2_CHILDREN.has(id) ? "v2" : "v1";
-    const expectedInputSuffix = `.input.${expectedInputVersion}\"`;
-    if (versionText !== expectedVersion || !inputText?.endsWith(expectedInputSuffix)) findings.push(finding(
-      "gpt/profile-v2-contract-cutover", CONTRACT_PATH,
-      `${id} must use contract/input ${expectedVersion}/${expectedInputVersion}; found ${versionText}/${inputText}.`,
-      property.getStartLineNumber(),
-    ));
-  }
-};
-
-const inspectProfileVersionCutover = (
-  context: InspectorContext,
-  contract: SourceFile,
-  findings: InspectorFinding[],
-  finding: FindingFactory,
-): void => {
+  inspectPrivateSlices(context, findings, finding);
+  inspectShapes(context, source, findings, finding);
+  inspectModelEntry(context, findings, finding);
+  inspectModelSelection(context, findings, finding);
+  inspectReasoningAction(context, findings, finding);
   inspectProfileSchema(context, findings, finding);
-  inspectChildContractVersions(contract, findings, finding);
-};
-
-const inspectContractShape = (
-  contract: SourceFile,
-  findings: InspectorFinding[],
-  finding: FindingFactory,
-): void => {
-  const actualFields = contract.getInterface("ChildCapabilityContract")?.getMembers().flatMap((member) =>
-    Node.isPropertySignature(member) ? [member.getName()] : []).sort() ?? [];
-  const requiredFields = [
-    "actionQualification", "boundedWait", "childCapabilityId",
-    "contractVersion", "decisions", "evidenceBoundary", "evidenceSchema", "failureClassification",
-    "inputSchema", "mutationBudget", "negativePostcondition", "oneObservationOrMutation", "owner",
-    "positivePostcondition", "precondition", "profile", "replayPolicy", "requiredTargetKind",
-    "semanticIntent",
-  ].sort();
-  if (JSON.stringify(actualFields) !== JSON.stringify(requiredFields)) findings.push(finding(
-    "gpt/child-contract-exact-shape", CONTRACT_PATH,
-    `ChildCapabilityContract fields must remain exact; found ${actualFields.join(",")}.`,
-  ));
-  for (const proofField of [
-    "schemaVersion", "childCapabilityId", "childContractVersion", "childStatus", "childReasonCode",
-    "exactCallIdentityHash", "internalDecisionCode", "executionId", "jobId", "attemptId",
-    "productStepId", "callId", "inputHash", "actionOrdinal", "authorityRefHashes", "factResultIds",
-    "candidateCardinality", "observationRevisionHash", "committedMutation", "postconditionResult",
-    "browserFact", "nativeFailureCode", "stoppedEmptyProof", "startedAt", "endedAt", "evidenceRef", "evidenceHash",
-  ]) if (!contract.getInterface("GptChildCapabilityProof")?.getProperty(proofField)) findings.push(finding(
-    "gpt/proof-field-required", CONTRACT_PATH, `GptChildCapabilityProof is missing ${proofField}.`,
-  ));
-  for (const retired of ["candidateCount", "observedSemantics"]) {
-    if (contract.getInterface("GptChildCapabilityProof")?.getProperty(retired)) findings.push(finding(
-      "gpt/proof-retired-field", CONTRACT_PATH, `GptChildCapabilityProof retains retired field ${retired}.`,
-    ));
-  }
-  const childTypes = contract.getProject().getSourceFiles().find((source) =>
-    source.getFilePath().split("\\").join("/").endsWith(`/${CHILD_TYPES_PATH}`));
-  for (const mapName of ["GptChildInputMap", "GptChildOutputMap"]) {
-    const count = childTypes?.getInterface(mapName)?.getProperties().length ?? 0;
-    if (count !== 14) findings.push(finding(
-      "gpt/exact-child-type-map", CHILD_TYPES_PATH, `${mapName} must define exactly 14 properties; found ${count}.`,
-    ));
-  }
-};
-
-
-export const inspectGptContractDenominator = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  finding: FindingFactory,
-): void => {
-  const contract = sourceFor(context, CONTRACT_PATH);
-  if (!contract) {
-    findings.push(finding("gpt/contract-present", CONTRACT_PATH, "The unique GPT public contract is missing."));
-    return;
-  }
-  inspectChildDenominator(context, contract, findings, finding);
-  inspectProfileContracts(context, findings, finding);
-  inspectProfileVersionCutover(context, contract, findings, finding);
-  inspectContractShape(contract, findings, finding);
 };

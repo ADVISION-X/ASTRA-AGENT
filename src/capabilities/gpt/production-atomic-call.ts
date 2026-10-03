@@ -1,111 +1,43 @@
-import {
-  GPT_CHILD_CAPABILITY_CONTRACTS,
-  type GptAbilityGroup,
-  type GptAnyChildCapabilityIntent,
-  type GptChildCapabilityResult,
-  type GptExecutionContext,
-  gptCanonicalHash,
-} from "./contract.js";
-import { ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
-import type { ProductionGptBrowserCall } from "./production-browser-lifecycle.js";
+import { GPT_CHILD_CAPABILITY_CONTRACTS, gptCanonicalHash, type GptAbilityGroup, type GptAnyChildCapabilityIntent,
+  type GptChildCapabilityResult, type GptExecutionContext } from "./contract.js";
+import type { ProductionGptBrowserCall, ProductionGptBrowserLifecycle } from "./production-browser-lifecycle.js";
 import { executionFailure } from "../../lib/execution-failure.js";
 import type { BrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
 import { readPriorAtomicOutcome } from "./production-atomic-readback.js";
+import { projectBrowserFact } from "./web/child-handler.js";
 
-type AtomicGptCallInput = Readonly<{
-  dataDir: string;
-  gpt: GptAbilityGroup;
-  browsers: ProductionGptBrowserLifecycle;
-  intent: GptAnyChildCapabilityIntent;
-  browserCall: ProductionGptBrowserCall | undefined;
-  signal: AbortSignal;
-  resultRevision: number;
-  browserAtomicIdentity?: BrowserAtomicStepIdentity;
-  assertProviderInputAllowed?: () => void;
-  rateLimitAckDispatchNotAfter?: number;
-  recordConfirmedProviderEffectReadback?: NonNullable<
-    GptExecutionContext["recordConfirmedProviderEffectReadback"]
-  >;
-}>;
-
+type AtomicGptCallInput = Readonly<{ dataDir: string; gpt: GptAbilityGroup; browsers: ProductionGptBrowserLifecycle;
+  intent: GptAnyChildCapabilityIntent; browserCall: ProductionGptBrowserCall | undefined; signal: AbortSignal;
+  resultRevision: number; browserAtomicIdentity?: BrowserAtomicStepIdentity; assertProviderInputAllowed?: () => void;
+  rateLimitAckDispatchNotAfter?: number; recordConfirmedProviderEffectReadback?: NonNullable<GptExecutionContext["recordConfirmedProviderEffectReadback"]> }>;
 export type ProductionGptAtomicCallResult = GptChildCapabilityResult;
-
-export const productionGptAtomicIdentity = (
-  intent: GptAnyChildCapabilityIntent,
-  resultRevision: number,
-): BrowserAtomicStepIdentity => {
+export const productionGptAtomicIdentity = (intent: GptAnyChildCapabilityIntent, resultRevision: number): BrowserAtomicStepIdentity => {
   const replayPolicy = GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId].replayPolicy;
-  if (replayPolicy === "transaction-identical-readback") {
-    throw new Error("GPT_TRANSACTION_CHILD_CANNOT_ACQUIRE_BROWSER");
-  }
-  return Object.freeze({
-    resultRevision,
-    productStepId: intent.productStepId,
-    callId: intent.callId,
-    childCapabilityId: intent.childCapabilityId,
-    inputHash: replayPolicy === "provider-effect-once"
-      ? gptCanonicalHash([resultRevision, intent.inputHash])
-      : intent.inputHash,
-    actionOrdinal: intent.actionOrdinal,
-    replayPolicy,
-  });
+  if (replayPolicy === "transaction-identical-readback") throw new Error("GPT_TRANSACTION_CHILD_CANNOT_ACQUIRE_BROWSER");
+  return Object.freeze({ resultRevision, productStepId: intent.productStepId, callId: intent.callId,
+    childCapabilityId: intent.childCapabilityId, inputHash: replayPolicy === "provider-effect-once"
+      ? gptCanonicalHash([resultRevision, intent.inputHash]) : intent.inputHash, actionOrdinal: intent.actionOrdinal, replayPolicy });
 };
+const executionContext = (input: AtomicGptCallInput, browser: ProductionGptBrowserCall["facade"] | undefined,
+  browserAtomicIdentity?: BrowserAtomicStepIdentity): GptExecutionContext => ({ dataDir: input.dataDir, signal: input.signal,
+  ...(browser ? { browser } : {}), ...(browserAtomicIdentity ? { browserAtomicIdentity } : {}),
+  ...(input.assertProviderInputAllowed ? { assertProviderInputAllowed: input.assertProviderInputAllowed } : {}),
+  ...(input.rateLimitAckDispatchNotAfter === undefined ? {} : { rateLimitAckDispatchNotAfter: input.rateLimitAckDispatchNotAfter }),
+  ...(input.recordConfirmedProviderEffectReadback ? { recordConfirmedProviderEffectReadback: input.recordConfirmedProviderEffectReadback } : {}),
+  ...(input.browserCall ? { waitForProviderObservation: (deadlineAt, reason) => input.browsers.waitForProviderObservation(
+    input.browserCall!, input.intent.productStepId, input.intent.callId, input.intent.childCapabilityId, deadlineAt, reason) } : {}) });
 
-const executionContext = (
-  input: AtomicGptCallInput,
-  browser: ProductionGptBrowserCall["facade"] | undefined,
-  browserAtomicIdentity?: BrowserAtomicStepIdentity,
-): GptExecutionContext => ({
-  dataDir: input.dataDir,
-  ...(browser ? { browser } : {}),
-  ...(browserAtomicIdentity ? { browserAtomicIdentity } : {}),
-  signal: input.signal,
-  ...(input.assertProviderInputAllowed
-    ? { assertProviderInputAllowed: input.assertProviderInputAllowed } : {}),
-  ...(input.rateLimitAckDispatchNotAfter === undefined ? {}
-    : { rateLimitAckDispatchNotAfter: input.rateLimitAckDispatchNotAfter }),
-  ...(input.recordConfirmedProviderEffectReadback
-    ? { recordConfirmedProviderEffectReadback: input.recordConfirmedProviderEffectReadback } : {}),
-  ...(input.browserCall ? {
-    waitForProviderObservation: (probeDeadlineAt, reason) =>
-      input.browsers.waitForProviderObservation(
-      input.browserCall!, input.intent.productStepId, input.intent.callId,
-      input.intent.childCapabilityId, probeDeadlineAt, reason,
-      ),
-  } : {}),
-});
-
-export const executeProductionGptAtomicCall = async (
-  input: AtomicGptCallInput,
-): Promise<ProductionGptAtomicCallResult> => {
-  const { gpt, intent, browserCall } = input;
-  const browser = browserCall?.facade;
-  if (!browser) {
-    return await gpt.execute(intent, executionContext(input, browser));
-  }
-  const replayPolicy = GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId].replayPolicy;
-  const atomicIdentity = input.browserAtomicIdentity
-    ?? productionGptAtomicIdentity(intent, input.resultRevision);
-  const context = executionContext(input, browser, atomicIdentity);
-  const priorOutcome = browser.readAtomicStepOutcome(atomicIdentity);
-  if (!priorOutcome) {
-    return await browser.runAtomicStep(atomicIdentity, () => gpt.execute(intent, context));
-  }
-  const readback = await readPriorAtomicOutcome({ gpt, intent, context, browser, priorOutcome });
+export const executeProductionGptAtomicCall = async (input: AtomicGptCallInput): Promise<ProductionGptAtomicCallResult> => {
+  const browser = input.browserCall?.facade;
+  if (!browser) return await input.gpt.execute(input.intent, executionContext(input, undefined));
+  const identity = input.browserAtomicIdentity ?? productionGptAtomicIdentity(input.intent, input.resultRevision);
+  const context = executionContext(input, browser, identity), priorOutcome = browser.readAtomicStepOutcome(identity);
+  if (!priorOutcome) return await browser.runAtomicStep(identity, () => input.gpt.execute(input.intent, context));
+  const readback = await readPriorAtomicOutcome({ gpt: input.gpt, intent: input.intent, context, browser, priorOutcome });
   if (readback) return readback;
-  throw executionFailure("failed", "GPT_ATOMIC_STEP_ALREADY_ATTEMPTED", {
-    metadata: {
-      mutationOutcome: priorOutcome.mutationOutcome,
-      evidence: {
-        evidenceRef: priorOutcome.authorityRef,
-        evidenceHash: priorOutcome.authorityHash,
-      },
-      browserEffect: {
-        effectScope: replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local",
-        childCapabilityId: intent.childCapabilityId,
-        browserOutcome: priorOutcome.state.toUpperCase() as "DISPATCHED" | "CONFIRMED" | "REJECTED",
-        providerEffectIdentityHash: priorOutcome.providerEffectIdentityHash,
-      },
-    },
-  });
+  const projected = projectBrowserFact(input.intent, context);
+  throw executionFailure("failed", "GPT_ATOMIC_STEP_ALREADY_ATTEMPTED", { metadata: {
+    mutationOutcome: priorOutcome.mutationOutcome, evidence: { evidenceRef: priorOutcome.authorityRef, evidenceHash: priorOutcome.authorityHash },
+    ...(projected ? { browserEffect: { effectScope: projected.fact.effectScope, childCapabilityId: projected.fact.childCapabilityId,
+      browserOutcome: projected.fact.browserOutcome, providerEffectIdentityHash: projected.fact.providerEffectIdentityHash } } : {}) } });
 };

@@ -2,463 +2,193 @@ import { governanceAssert as assert } from "../../../../scripts/audit/shared/gov
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-
 import { ProductionGptChildTools } from "../production-child-tools.js";
-import { verifyConfirmedReadbackLease, verifyHistoricalReadbackOnlyCall,
-  verifyNoPriorProviderEffect } from
-  "./gpt-production-browser-recovery.acceptance-support.js";
-import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
-import { serializeTerminalFailureTransport } from
-  "../../../lib/local-runtime/production/terminal-failure.js";
-import { executionFailure } from "../../../lib/execution-failure.js";
-import { typedGptExecutionFailure } from "../execution-fault.js";
-import { browserExactCallIdentityHash } from "../../../lib/browser/browser-authority-api.js";
 import { createGptAbilityGroup } from "../ability-group.js";
+import { typedGptExecutionFailure } from "../execution-fault.js";
+import { executionFailure } from "../../../lib/execution-failure.js";
+import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
+import { serializeTerminalFailureTransport } from "../../../lib/local-runtime/production/terminal-failure.js";
+import { browserExactCallIdentityHash, type BrowserAtomicStepIdentity } from "../../../lib/browser/browser-authority-api.js";
 import { HASH_A, HASH_B } from "../../../../scripts/acceptance/agent-production-runtime-fixtures.js";
-import {
-  detectedKnownGptRateLimitExactFact,
-  detectedKnownGptRateLimitMismatchFact,
-} from
+import { detectedKnownGptRateLimitExactFact, detectedKnownGptRateLimitMismatchFact } from
   "../../../../scripts/acceptance/local-browser-rate-limit-detector.acceptance-support.js";
-import type { BrowserAtomicStepIdentity } from
-  "../../../lib/browser/browser-authority-api.js";
+import { verifyConfirmedReadbackLease, verifyHistoricalReadbackOnlyCall, verifyNoPriorProviderEffect } from
+  "./gpt-production-browser-recovery.acceptance-support.js";
 
-const executionInput = (
-  jobId: string, attemptId: string, executionFenceHash: typeof HASH_A | typeof HASH_B,
-) => ({
-  jobId, attemptId, resultRevision: 0, productId: "public_knowledge_article_pipeline",
-  ownerRef: "owner:1", subjectRef: "subject:1", authorizationRef: "authorization:1",
-  deviceId: "device:1", leaseVersion: 1, executionFenceHash,
-  capabilityManifestHash: HASH_B, expiresAtMonotonic: performance.now() + 10_000,
-  commandTtlMs: 1_000, abortSignal: new AbortController().signal, parentSpanId: "parent",
-  maxProviderTurns: 1,
-});
+const effectHash = `sha256:${"8".repeat(64)}` as const;
+const inputHash = `sha256:${"7".repeat(64)}` as const;
+const originalIdentity: BrowserAtomicStepIdentity = { resultRevision: 0, productStepId: "observe", callId: "turn-submit",
+  childCapabilityId: "submit_exact_gpt_turn_once", inputHash, actionOrdinal: 1, replayPolicy: "provider-effect-once" };
+const originalMutation = { effectScope: "provider_effect" as const, providerEffectIdentityHash: effectHash, outcome: "CONFIRMED" as const,
+  mutationOutcome: "confirmed" as const, terminalAt: "2026-09-12T00:00:00.000Z", failureCode: null, nativeFailureCode: null,
+  authorityRef: "browser-mutation:submit", authorityHash: HASH_B, targetRef: "target:old", documentRef: "document:old",
+  productStepId: "observe", callId: "turn-submit", childCapabilityId: "submit_exact_gpt_turn_once", actionOrdinal: 1,
+  physicalInputCount: 1 as const, downloadGuidHash: null, downloadCompleted: false, identityRevalidated: false };
+const originalHash = (jobId: string) => browserExactCallIdentityHash({ jobId, attemptId: "attempt:original",
+  writerFenceHash: HASH_A, ...originalIdentity });
+const execution = (jobId: string) => ({ jobId, attemptId: `attempt:${jobId}`, resultRevision: 0,
+  productId: "public_knowledge_article_pipeline", ownerRef: "owner:1", subjectRef: "subject:1", authorizationRef: "authorization:1",
+  deviceId: "device:1", leaseVersion: 1, executionFenceHash: HASH_B, capabilityManifestHash: HASH_B,
+  expiresAtMonotonic: performance.now() + 60_000, commandTtlMs: 1_000, abortSignal: new AbortController().signal,
+  parentSpanId: "parent", maxProviderTurns: 1 });
+const historicalCall = { sessionKey: "session:readback", productStepId: "observe", callId: "turn-submit",
+  child: "submit_exact_gpt_turn_once" as const, actionOrdinal: 1, input: { files: [], promptHash: HASH_B } };
+const prepareCall = { sessionKey: "session:prepare", productStepId: "prepare", callId: "prepare:1",
+  child: "prepare_clean_gpt_chat" as const, actionOrdinal: 1, input: { timeoutMs: 60_000 } };
+const captureFailure = async (action: () => Promise<unknown>): Promise<unknown> => {
+  try { await action(); } catch (error) { return error; }
+  assert.fail("expected the original failure to close the call");
+};
+const temporary = await mkdtemp(path.join(tmpdir(), "agent-browser-recovery-rebuild-"));
+const logger = (name: string) => createRuntimeLogger({ producer: name, owner: "production-runtime", component: "gpt-child",
+  terminalEnabled: false, fileSink: { directoryPath: path.join(temporary, name) } });
+const noArtifacts = { appendArtifact: async () => { throw new Error("FORBIDDEN_ARTIFACT_WRITE"); },
+  readArtifact: async () => { throw new Error("FORBIDDEN_ARTIFACT_READ"); } };
+const noControl = { assertProviderSubmitAllowed: () => {}, pendingIncidents: () => [],
+  beginIncident: async (): Promise<never> => { throw new Error("FORBIDDEN_COOLDOWN_INCIDENT"); } };
+type Preflight = Awaited<ReturnType<typeof detectedKnownGptRateLimitExactFact>>;
+const dialogFailure = (fact: Preflight, code: "BROWSER_KNOWN_GPT_RATE_LIMIT" | "BROWSER_GPT_DIALOG_UNRECOGNIZED") =>
+  executionFailure("failed", code, { metadata: { mutationOutcome: "no", knownGptRateLimitPreflightFact: fact,
+    evidence: { evidenceRef: [code === "BROWSER_KNOWN_GPT_RATE_LIMIT" ? "browser-known-gpt-rate-limit" : "browser-gpt-dialog-unrecognized",
+      fact.observedAt, fact.exactCallIdentityHash, fact.targetRefHash, fact.documentRefHash].join("|"), evidenceHash: fact.observationHash } } });
 
-const mismatchPreflightFact = await detectedKnownGptRateLimitMismatchFact();
-const mismatchAuthorityRef = ["browser-gpt-dialog-unrecognized",
-  mismatchPreflightFact.observedAt, mismatchPreflightFact.exactCallIdentityHash,
-  mismatchPreflightFact.targetRefHash, mismatchPreflightFact.documentRefHash].join("|");
-const exactPreflightFact = await detectedKnownGptRateLimitExactFact();
-const exactAuthorityRef = ["browser-known-gpt-rate-limit",
-  exactPreflightFact.observedAt, exactPreflightFact.exactCallIdentityHash,
-  exactPreflightFact.targetRefHash, exactPreflightFact.documentRefHash].join("|");
-
-const temporary = await mkdtemp(path.join(tmpdir(), "agent-confirmed-recovery-"));
 try {
   await verifyConfirmedReadbackLease(temporary);
   await verifyHistoricalReadbackOnlyCall(temporary);
-
-  const providerEffectIdentityHash = `sha256:${"8".repeat(64)}` as const;
-  const historicalAtomicInputHash = `sha256:${"7".repeat(64)}` as const;
-  const confirmedMutation = (productStepId = "observe") => ({
-    effectScope: "provider_effect" as const, providerEffectIdentityHash, outcome: "CONFIRMED" as const,
-    mutationOutcome: "confirmed" as const, terminalAt: "2026-09-12T00:00:00.000Z",
-    failureCode: null, nativeFailureCode: null, authorityRef: "browser-mutation:submit",
-    authorityHash: HASH_B, targetRef: "target:old", documentRef: "document:old",
-    productStepId, callId: "turn-submit",
-    childCapabilityId: "submit_exact_gpt_turn_once", actionOrdinal: 1,
-    physicalInputCount: 1 as const, downloadGuidHash: null, downloadCompleted: false,
-    identityRevalidated: false,
-  });
-  const historicalExactHash = (jobId: string, productStepId = "observe") =>
-    browserExactCallIdentityHash({
-      jobId, attemptId: "attempt:ignored", writerFenceHash: HASH_A, resultRevision: 0,
-      productStepId, callId: "turn-submit", childCapabilityId: "submit_exact_gpt_turn_once",
-      inputHash: historicalAtomicInputHash,
-      replayPolicy: "provider-effect-once",
-    });
-  const failingTools = new ProductionGptChildTools(
-    temporary, HASH_A, {} as never, {} as never, {
-      readProviderEffectStepCallFact: () => ({
-        exactCallIdentityHash: historicalExactHash("job:confirmed-recovery"),
-        inputHash: historicalAtomicInputHash,
-        mutation: confirmedMutation(),
-      }),
-      acquireJobBoundTargetLease: async () => {
-        throw executionFailure("failed", "BROWSER_ORIGIN_REJECTED");
-      },
-    } as never, createRuntimeLogger({
-      producer: "agent-confirmed-origin-rejection-acceptance", owner: "production-runtime",
-      component: "gpt-child", terminalEnabled: false,
-      fileSink: { directoryPath: path.join(temporary, "runtime-logs-origin") },
-    }), {} as never,
-  ).createExecution(executionInput("job:confirmed-recovery", "attempt:confirmed-recovery", HASH_A));
-  let recoveryFailure: unknown = null;
-  try {
-    await failingTools.tools.readConfirmedSubmit({ sessionKey: "session:failed-origin",
-      productStepId: "observe", callId: "turn-submit", child: "submit_exact_gpt_turn_once",
-      actionOrdinal: 1, input: {} as never });
-  } catch (error) { recoveryFailure = error; }
-  const serialized = serializeTerminalFailureTransport(recoveryFailure);
-  assert.equal(serialized.code, "BROWSER_ORIGIN_REJECTED");
-  assert.equal(serialized.mutation_outcome, "confirmed");
-  assert.equal(serialized.provider_effect_identity_hash, providerEffectIdentityHash,
-    "confirmed-effect Browser acquisition failure must retain the original effect identity");
-
-  let recoveredSelections = 0;
-  let recoveredAcquisitions = 0;
-  let retiredOldTargets = 0;
-  const historicalPromptHash = HASH_A;
-  const currentPromptHash = HASH_B;
-  const driftJobId = "job:step-identity-drift";
-  const driftedIdentity = historicalExactHash(driftJobId);
-  const driftTools = new ProductionGptChildTools(
-    temporary, HASH_A, createGptAbilityGroup(), {} as never, {
-      readProviderEffectStepCallFact: () => ({
-        exactCallIdentityHash: driftedIdentity, inputHash: historicalAtomicInputHash,
-        mutation: confirmedMutation(),
-      }),
-      countProviderTurnDispatches: () => 0,
-      releaseJobBoundTarget: async (jobId: string, authority: string) => {
-        assert.equal(jobId, driftJobId);
-        assert.equal(authority, "wait-new-attempt");
-        retiredOldTargets += 1;
-      },
-      acquireJobBoundTargetLease: async () => {
-        recoveredAcquisitions += 1;
-        return ({
-        target: { targetRef: "target:historical-confirmed" },
-        document: { documentRef: "document:historical-confirmed" },
-        pendingMutationCount: () => 0,
-        readAtomicStepOutcome: (identity: Readonly<{ inputHash: string }>) => {
-          assert.equal(identity.inputHash, historicalAtomicInputHash);
-          return {
-            state: "confirmed", mutationOutcome: "confirmed", providerEffectIdentityHash,
-            terminalAt: "2026-09-12T00:00:00.000Z", failureCode: null, nativeFailureCode: null,
-            authorityRef: "browser-mutation:submit", authorityHash: HASH_B,
-            targetRef: "target:old", documentRef: "document:old", physicalInputCount: 1,
-            downloadGuidHash: null, downloadCompleted: false, identityRevalidated: false,
-            terminalPayload: {
-              canonicalConversationUrl: "https://chatgpt.com/c/historical-confirmed",
-              promptHash: historicalPromptHash, userTurnId: "00000000-0000-4000-8000-000000000001",
-              exactCallIdentityHash: driftedIdentity, observationRevisionHash: HASH_A,
-              targetRefHash: HASH_A, documentRefHash: HASH_B, rawCount: 1, eligibleCount: 1,
-            },
-          };
-        },
-        executeDomIntent: async () => { recoveredSelections += 1; },
-        park: async () => undefined,
-        });
-      },
-    } as never,
-    createRuntimeLogger({
-      producer: "agent-step-identity-drift-acceptance", owner: "production-runtime",
-      component: "gpt-child", terminalEnabled: false,
-      fileSink: { directoryPath: path.join(temporary, "runtime-logs-drift") },
-    }), {} as never,
-  ).createExecution(executionInput(driftJobId, "attempt:step-identity-drift", HASH_B));
-  const historicalCall = {
-    sessionKey: "session:step-identity-drift", productStepId: "observe", callId: "turn-submit",
-    child: "submit_exact_gpt_turn_once", actionOrdinal: 1,
-    input: { files: [], promptHash: currentPromptHash },
-  } as const;
-  const recoveredHistoricalSubmit = await driftTools.tools.readConfirmedSubmit(historicalCall);
-  assert.equal(recoveredHistoricalSubmit?.value.promptHash, historicalPromptHash,
-    "a confirmed historical submit must return its persisted prompt fact after current prompt drift");
-  assert.equal(recoveredSelections, 1,
-    "historical confirmed recovery may only select its canonical conversation and must not submit again");
-  assert.deepEqual([recoveredAcquisitions, retiredOldTargets], [1, 0],
-    "a current Target may read the original effect without old Target settlement");
-
   await verifyNoPriorProviderEffect(temporary);
 
-  const confirmedMismatchJobId = "job:confirmed-dialog-mismatch";
-  const confirmedMismatchEvidenceRef = mismatchAuthorityRef;
-  const confirmedMismatchTools = new ProductionGptChildTools(
-    temporary, HASH_A, createGptAbilityGroup(), {} as never, {
-      readProviderEffectStepCallFact: () => ({
-        exactCallIdentityHash: historicalExactHash(confirmedMismatchJobId),
-        inputHash: historicalAtomicInputHash,
-        mutation: confirmedMutation(),
-      }),
-      countProviderTurnDispatches: () => 0,
-      acquireJobBoundTargetLease: async () => {
-        throw executionFailure("failed", "BROWSER_GPT_DIALOG_UNRECOGNIZED", {
-          metadata: { mutationOutcome: "no",
-            knownGptRateLimitPreflightFact: mismatchPreflightFact, evidence: {
-              evidenceRef: confirmedMismatchEvidenceRef,
-              evidenceHash: mismatchPreflightFact.observationHash,
-            } },
-        });
-      },
-    } as never,
-    createRuntimeLogger({
-      producer: "agent-confirmed-dialog-mismatch-acceptance", owner: "production-runtime",
-      component: "gpt-child", terminalEnabled: false,
-      fileSink: { directoryPath: path.join(temporary, "runtime-logs-confirmed-dialog-mismatch") },
-    }), {} as never,
-  ).createExecution(executionInput(confirmedMismatchJobId, "attempt:confirmed-dialog-mismatch", HASH_A));
-  let confirmedMismatchFailure: unknown = null;
-  try {
-    await confirmedMismatchTools.tools.readConfirmedSubmit({
-      sessionKey: "session:confirmed-dialog-mismatch", productStepId: "observe",
-      callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 1,
-      input: { files: [], promptHash: HASH_B },
-    });
-  } catch (error) { confirmedMismatchFailure = error; }
-  const normalizedConfirmedMismatch = typedGptExecutionFailure(confirmedMismatchFailure);
-  assert.equal(normalizedConfirmedMismatch?.code, "BROWSER_GPT_DIALOG_UNRECOGNIZED");
-  assert.equal(normalizedConfirmedMismatch?.browserEffect?.providerEffectIdentityHash,
-    providerEffectIdentityHash,
-    "confirmed readback mismatch must retain the historical provider-effect identity");
-  assert.deepEqual(
-    normalizedConfirmedMismatch?.proofFacts?.browserFact?.knownGptRateLimitPreflightFact,
-    mismatchPreflightFact,
-    "confirmed readback acquisition mismatch must enter the same typed proof chain",
-  );
+  const original = (jobId: string) => ({ exactCallIdentityHash: originalHash(jobId), inputHash, mutation: originalMutation });
+  const unavailable = new ProductionGptChildTools(temporary, HASH_A, createGptAbilityGroup(), noArtifacts, {
+    readProviderEffectStepCallFact: () => original("job:unavailable"),
+    acquireJobBoundTargetLease: async () => { throw executionFailure("failed", "BROWSER_ORIGIN_REJECTED"); },
+  } as never, logger("origin-rejection"), noControl).createExecution(execution("job:unavailable"));
+  const unavailableFailure = serializeTerminalFailureTransport(await captureFailure(() => unavailable.tools.readConfirmedSubmit(historicalCall)));
+  assert.deepEqual([unavailableFailure.code, unavailableFailure.mutation_outcome, unavailableFailure.provider_effect_identity_hash],
+    ["BROWSER_ORIGIN_REJECTED", "confirmed", effectHash]);
 
-  let exactAcquisitions = 0;
-  let exactIncidents = 0;
-  let exactClearances = 0;
-  let exactGateClosed = false;
-  let exactIncidentPersistenceFails = false;
-  const confirmedExactJobId = "job:confirmed-known-rate-limit";
-  const confirmedExactToolOwner = new ProductionGptChildTools(
-    temporary, HASH_A, createGptAbilityGroup(), {} as never, {
-      readProviderEffectStepCallFact: () => ({
-        exactCallIdentityHash: historicalExactHash(confirmedExactJobId),
-        inputHash: historicalAtomicInputHash,
-        mutation: confirmedMutation(),
-      }),
-      countProviderTurnDispatches: () => 0,
-      acquireJobBoundTargetLease: async () => {
-        exactAcquisitions += 1;
-        if (exactAcquisitions > 1) {
-          throw executionFailure("failed", "ACK_BROWSER_UNAVAILABLE");
-        }
-        return {
-          target: { targetRef: "target:confirmed-known-rate-limit" },
-          document: { documentRef: "document:confirmed-known-rate-limit" },
-          pendingMutationCount: () => 0,
-          readAtomicStepOutcome: () => ({
-            state: "confirmed", mutationOutcome: "confirmed", providerEffectIdentityHash,
-            terminalAt: "2026-09-12T00:00:00.000Z", failureCode: null, nativeFailureCode: null,
-            authorityRef: "browser-mutation:submit", authorityHash: HASH_B,
-            targetRef: "target:old", documentRef: "document:old", physicalInputCount: 1,
-            downloadGuidHash: null, downloadCompleted: false, identityRevalidated: false,
-            terminalPayload: {
-              canonicalConversationUrl: "https://chatgpt.com/c/confirmed-known-rate-limit",
-              promptHash: historicalPromptHash, userTurnId: "00000000-0000-4000-8000-000000000001",
-              exactCallIdentityHash: historicalExactHash(confirmedExactJobId),
-              observationRevisionHash: HASH_A, targetRefHash: HASH_A,
-              documentRefHash: HASH_B, rawCount: 1, eligibleCount: 1,
-            },
-          }),
-          executeDomIntent: async () => {
-            throw executionFailure("failed", "BROWSER_KNOWN_GPT_RATE_LIMIT", {
-              metadata: { mutationOutcome: "no",
-                knownGptRateLimitPreflightFact: exactPreflightFact,
-                evidence: { evidenceRef: exactAuthorityRef,
-                  evidenceHash: exactPreflightFact.observationHash } },
-            });
-          },
-          park: async () => undefined,
-        };
-      },
-    } as never,
-    createRuntimeLogger({
-      producer: "agent-confirmed-known-rate-limit-acceptance", owner: "production-runtime",
-      component: "gpt-child", terminalEnabled: false,
-      fileSink: { directoryPath: path.join(temporary, "runtime-logs-confirmed-known-rate-limit") },
-    }), {
-      assertProviderSubmitAllowed: () => {
-        if (exactGateClosed) {
-          throw executionFailure("failed", "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE");
-        }
-      },
-      pendingIncidents: () => [],
-      beginIncident: async () => {
-        exactIncidents += 1;
-        if (exactIncidentPersistenceFails) {
-          throw executionFailure("failed", "PROVIDER_COOLDOWN_OUTBOX_WRITE_FAILED");
-        }
-        exactGateClosed = true;
-        return {
-          incidentRequestId: `aipcooldown_${"7".repeat(40)}`,
-          deliver: async () => { exactClearances += 1; },
-        };
-      },
-    },
-  );
-  const confirmedExactTools = confirmedExactToolOwner.createExecution(executionInput(confirmedExactJobId, "attempt:confirmed-known-rate-limit", HASH_A));
-  let confirmedExactFailure: unknown = null;
-  try {
-    await confirmedExactTools.tools.readConfirmedSubmit({
-      sessionKey: "session:confirmed-known-rate-limit", productStepId: "observe",
-      callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 1,
-      input: { files: [], promptHash: HASH_B },
-    });
-  } catch (error) { confirmedExactFailure = error; }
-  const normalizedConfirmedExact = typedGptExecutionFailure(confirmedExactFailure);
-  assert.equal(normalizedConfirmedExact?.code, "BROWSER_KNOWN_GPT_RATE_LIMIT");
-  assert.equal(normalizedConfirmedExact?.browserEffect?.providerEffectIdentityHash,
-    providerEffectIdentityHash,
-    "post-atomic rate-limit closure must retain the confirmed provider-effect identity");
-  assert.deepEqual(
-    normalizedConfirmedExact?.proofFacts?.browserFact?.knownGptRateLimitPreflightFact,
-    exactPreflightFact,
-    "post-atomic exact dialog must retain its complete Browser mechanical fact",
-  );
-  assert.deepEqual([exactIncidents, exactClearances, exactGateClosed], [1, 1, true],
-    "post-atomic exact dialog must close the existing incident/clearance/cooldown gate once");
-  assert.equal(exactAcquisitions, 1,
-    "confirmed recovery and its acknowledgement must stay on the one bound Browser lease");
+  let reads = 0, acquisitions = 0, releases = 0, canonicalSelections = 0;
+  const driftJob = "job:prompt-drift";
+  const payload = (jobId: string) => ({ canonicalConversationUrl: "https://chatgpt.com/c/historical-confirmed", promptHash: HASH_A,
+    userTurnId: "00000000-0000-4000-8000-000000000001", exactCallIdentityHash: originalHash(jobId), observationRevisionHash: HASH_A,
+    targetRefHash: HASH_A, documentRefHash: HASH_B, rawCount: 1, eligibleCount: 1 });
+  const outcome = (jobId: string) => ({ ...originalMutation, state: "confirmed" as const, terminalPayload: payload(jobId) });
+  const readOriginalOutcome = (identity: BrowserAtomicStepIdentity, jobId: string) =>
+    Object.entries(originalIdentity).every(([field, value]) => identity[field as keyof BrowserAtomicStepIdentity] === value) ? outcome(jobId) : null;
+  const foreignIdentities: readonly BrowserAtomicStepIdentity[] = [
+    { ...originalIdentity, resultRevision: 1 }, { ...originalIdentity, productStepId: "other-step" },
+    { ...originalIdentity, callId: "other-call" }, { ...originalIdentity, childCapabilityId: "prepare_clean_gpt_chat" },
+    { ...originalIdentity, inputHash: HASH_B }, { ...originalIdentity, actionOrdinal: 2 },
+    { ...originalIdentity, replayPolicy: "target-local-per-generation" },
+  ];
+  const verifyOriginalOutcome = (read: (identity: BrowserAtomicStepIdentity) => ReturnType<typeof outcome> | null): void => {
+    assert.deepEqual(read(originalIdentity), outcome("job:confirmed-exact"));
+    for (const foreign of foreignIdentities) assert.equal(read(foreign), null, "A historical receipt belongs to all seven original identity fields.");
+    assert.deepEqual(read(originalIdentity), outcome("job:confirmed-exact"));
+    assert.equal(read({ ...originalIdentity, inputHash: HASH_B }), null, "Reading A cannot make B receive A.");
+  };
+  const drift = new ProductionGptChildTools(temporary, HASH_A, createGptAbilityGroup(), noArtifacts, {
+    readProviderEffectStepCallFact: () => original(driftJob), countProviderTurnDispatches: () => 0,
+    releaseJobBoundTarget: async () => { releases += 1; },
+    acquireJobBoundTargetLease: async () => { acquisitions += 1; return {
+      target: { targetRef: "target:current" }, document: { documentRef: "document:current" }, writerFenceHash: HASH_B,
+      pendingMutationCount: () => 0, readAtomicStepOutcome: (identity: BrowserAtomicStepIdentity) => {
+        reads += 1; return readOriginalOutcome(identity, driftJob);
+      }, executeDomIntent: async (intent: { kind: string; canonicalConversationUrl?: string }) => {
+        assert.equal(intent.kind, "selectExactGptConversation"); assert.equal(intent.canonicalConversationUrl, payload(driftJob).canonicalConversationUrl);
+        canonicalSelections += 1;
+      }, runAtomicStep: async () => { throw new Error("FORBIDDEN_NEW_INPUT_AFTER_CONFIRMED_SUBMIT"); }, park: async () => {},
+    }; },
+  } as never, logger("historical-prompt-drift"), noControl).createExecution(execution(driftJob));
+  const recovered = await drift.tools.readConfirmedSubmit(historicalCall);
+  assert.equal(recovered?.value.promptHash, HASH_A);
+  assert.equal(recovered?.effectReceipt?.mutationOutcome, "confirmed");
+  assert.equal(recovered?.effectReceipt?.providerEffectIdentityHash, effectHash);
+  assert.equal(outcome(driftJob).physicalInputCount, 1);
+  assert.ok(reads > 1);
+  assert.deepEqual([acquisitions, canonicalSelections, releases], [1, 1, 0]);
 
-  exactAcquisitions = 0;
-  exactGateClosed = false;
-  exactIncidentPersistenceFails = true;
-  const closureFailureTools = confirmedExactToolOwner.createExecution(executionInput(confirmedExactJobId, "attempt:confirmed-known-rate-limit", HASH_A));
-  let closureFailure: unknown = null;
-  try {
-    await closureFailureTools.tools.readConfirmedSubmit({
-      sessionKey: "session:confirmed-known-rate-limit", productStepId: "observe",
-      callId: "turn-submit", child: "submit_exact_gpt_turn_once", actionOrdinal: 1,
-      input: { files: [], promptHash: HASH_B },
-    });
-  } catch (error) { closureFailure = error; }
-  const normalizedClosureFailure = typedGptExecutionFailure(closureFailure);
-  assert.equal(normalizedClosureFailure?.code, "PROVIDER_COOLDOWN_OUTBOX_WRITE_FAILED");
-  assert.equal(normalizedClosureFailure?.mutationOutcome, "confirmed");
-  assert.equal(normalizedClosureFailure?.browserEffect?.providerEffectIdentityHash,
-    providerEffectIdentityHash,
-    "closure persistence failure must retain the already-confirmed provider effect");
-  assert.equal(exactGateClosed, false,
-    "a failed incident persistence must not claim that the submit gate was durably closed");
+  const mismatchFact = await detectedKnownGptRateLimitMismatchFact();
+  const mismatchJob = "job:confirmed-mismatch";
+  const mismatch = new ProductionGptChildTools(temporary, HASH_A, createGptAbilityGroup(), noArtifacts, {
+    readProviderEffectStepCallFact: () => original(mismatchJob), countProviderTurnDispatches: () => 0,
+    acquireJobBoundTargetLease: async () => { throw dialogFailure(mismatchFact, "BROWSER_GPT_DIALOG_UNRECOGNIZED"); },
+  } as never, logger("confirmed-mismatch"), noControl).createExecution(execution(mismatchJob));
+  const mismatchError = typedGptExecutionFailure(await captureFailure(() => mismatch.tools.readConfirmedSubmit(historicalCall)));
+  assert.equal(mismatchError?.code, "BROWSER_GPT_DIALOG_UNRECOGNIZED");
+  assert.equal(mismatchError?.browserEffect?.providerEffectIdentityHash, effectHash);
+  assert.deepEqual(mismatchError?.proofFacts?.browserFact?.knownGptRateLimitPreflightFact, mismatchFact);
 
-  let freshExactArtifactWrites = 0;
-  let freshExactIncidents = 0;
-  let freshExactClearances = 0;
-  let freshExactGateClosed = false;
-  const freshExactTools = new ProductionGptChildTools(
-    temporary, HASH_A, createGptAbilityGroup(), {
-      appendArtifact: async () => { freshExactArtifactWrites += 1;
-        return { status: "failed", failureReason: "forbidden" }; },
-      readArtifact: async () => { freshExactArtifactWrites += 1;
-        return { status: "failed", failureReason: "forbidden" }; },
-    }, {
-      readProviderEffectStepCallFact: () => null,
-      countProviderTurnDispatches: () => 0,
-      acquireJobBoundTargetLease: async () => ({
-        target: { targetRef: "target:fresh-known-rate-limit" },
-        document: { documentRef: "document:fresh-known-rate-limit" },
-        pendingMutationCount: () => 0,
-        readAtomicStepOutcome: () => null,
-        runAtomicStep: async <T>(_identity: BrowserAtomicStepIdentity, action: () => Promise<T>) =>
-          await action(),
-        executeDomIntent: async () => {
-          throw executionFailure("failed", "BROWSER_KNOWN_GPT_RATE_LIMIT", {
-            metadata: { mutationOutcome: "no",
-              knownGptRateLimitPreflightFact: exactPreflightFact,
-              evidence: { evidenceRef: exactAuthorityRef,
-                evidenceHash: exactPreflightFact.observationHash } },
-          });
-        },
-        park: async () => undefined,
-      }),
-    } as never,
-    createRuntimeLogger({
-      producer: "agent-fresh-known-rate-limit-acceptance", owner: "production-runtime",
-      component: "gpt-child", terminalEnabled: false,
-      fileSink: { directoryPath: path.join(temporary, "runtime-logs-fresh-known-rate-limit") },
-    }), {
-      assertProviderSubmitAllowed: () => {
-        if (freshExactGateClosed) {
-          throw executionFailure("failed", "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE");
-        }
-      },
-      pendingIncidents: () => [],
-      beginIncident: async () => {
-        freshExactIncidents += 1;
-        freshExactGateClosed = true;
-        return {
-          incidentRequestId: `aipcooldown_${"9".repeat(40)}`,
-          deliver: async () => { freshExactClearances += 1; },
-        };
-      },
+  let gateClosed = false, incidents = 0, clearances = 0, exactAcquisitions = 0, persistenceFails = false;
+  const exactJob = "job:confirmed-exact";
+  let exactFact = await detectedKnownGptRateLimitExactFact();
+  const controls = {
+    assertProviderSubmitAllowed: () => { if (gateClosed) throw executionFailure("failed", "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE"); },
+    pendingIncidents: () => [], beginIncident: async () => {
+      incidents += 1; if (persistenceFails) throw executionFailure("failed", "PROVIDER_COOLDOWN_OUTBOX_WRITE_FAILED");
+      gateClosed = true; return { incidentRequestId: `aipcooldown_${"7".repeat(40)}`,
+        deliver: async (receipt: { clearance: string }) => { assert.equal(receipt.clearance, "not_cleared"); clearances += 1; } };
     },
-  ).createExecution(executionInput("job:fresh-known-rate-limit", "attempt:fresh-known-rate-limit", HASH_A));
-  let freshExactFailure: unknown = null;
-  try {
-    await freshExactTools.tools.execute({
-      sessionKey: "session:fresh-known-rate-limit", productStepId: "prepare",
-      callId: "prepare:known-rate-limit", child: "prepare_clean_gpt_chat", actionOrdinal: 1,
-      input: { timeoutMs: 60_000 },
-    });
-  } catch (error) { freshExactFailure = error; }
-  const normalizedFreshExact = typedGptExecutionFailure(freshExactFailure);
-  assert.equal(normalizedFreshExact?.code, "BROWSER_KNOWN_GPT_RATE_LIMIT");
-  assert.deepEqual(
-    normalizedFreshExact?.proofFacts?.browserFact?.knownGptRateLimitPreflightFact,
-    exactPreflightFact,
-  );
-  assert.deepEqual([freshExactIncidents, freshExactClearances, freshExactGateClosed], [1, 1, true]);
-  assert.equal(freshExactArtifactWrites, 0,
-    "an exact dialog and its acknowledgement failure must not enter the Forensics artifact port");
-  await assert.rejects(freshExactTools.tools.execute({
-    sessionKey: "session:fresh-known-rate-limit", productStepId: "prepare",
-    callId: "prepare:concurrent-known-rate-limit", child: "prepare_clean_gpt_chat",
-    actionOrdinal: 2, input: { timeoutMs: 60_000 },
-  }), (error: unknown) => typedGptExecutionFailure(error)?.code
-    === "BROWSER_KNOWN_GPT_RATE_LIMIT");
-  assert.deepEqual([freshExactIncidents, freshExactClearances], [1, 1],
-    "a closed submit gate must absorb concurrent exact blockers without a second incident or ack");
+  };
+  const exactRead = (identity: BrowserAtomicStepIdentity) => readOriginalOutcome(identity, exactJob);
+  verifyOriginalOutcome(exactRead);
+  const exactOwner = new ProductionGptChildTools(temporary, HASH_A, createGptAbilityGroup(), noArtifacts, {
+    readProviderEffectStepCallFact: () => original(exactJob), countProviderTurnDispatches: () => 0,
+    acquireJobBoundTargetLease: async () => { exactAcquisitions += 1; assert.equal(exactAcquisitions, 1); return {
+      target: { targetRef: "target:exact" }, document: { documentRef: "document:exact" }, pendingMutationCount: () => 0,
+      readAtomicStepOutcome: exactRead,
+      runAtomicStep: async <T>(_identity: BrowserAtomicStepIdentity, action: () => Promise<T>) => await action(),
+      executeDomIntent: async () => { throw dialogFailure(exactFact, "BROWSER_KNOWN_GPT_RATE_LIMIT"); }, park: async () => {},
+    }; },
+  } as never, logger("confirmed-exact"), controls);
+  const exactError = typedGptExecutionFailure(await captureFailure(() => exactOwner.createExecution(execution(exactJob)).tools.readConfirmedSubmit(historicalCall)));
+  assert.equal(exactError?.code, "BROWSER_KNOWN_GPT_RATE_LIMIT");
+  assert.equal(exactError?.browserEffect?.providerEffectIdentityHash, effectHash);
+  assert.deepEqual(exactError?.proofFacts?.browserFact?.knownGptRateLimitPreflightFact, exactFact);
+  assert.deepEqual([incidents, clearances, gateClosed, exactAcquisitions], [1, 1, true, 1]);
+  gateClosed = false; exactAcquisitions = 0; persistenceFails = true;
+  exactFact = await detectedKnownGptRateLimitExactFact();
+  const persistenceError = typedGptExecutionFailure(await captureFailure(() => exactOwner.createExecution(execution(exactJob)).tools.readConfirmedSubmit(historicalCall)));
+  assert.deepEqual([persistenceError?.code, persistenceError?.mutationOutcome, persistenceError?.browserEffect?.providerEffectIdentityHash, gateClosed],
+    ["PROVIDER_COOLDOWN_OUTBOX_WRITE_FAILED", "confirmed", effectHash, false]);
 
-  let artifactWrites = 0;
-  let providerControlCalls = 0;
-  const mismatchEvidenceRef = mismatchAuthorityRef;
-  const mismatchEvidenceHash = mismatchPreflightFact.observationHash;
-  const mismatchTools = new ProductionGptChildTools(
-    temporary,
-    HASH_A,
-    createGptAbilityGroup(),
-    {
-      appendArtifact: async () => { artifactWrites += 1; return { status: "failed", failureReason: "forbidden" }; },
-      readArtifact: async () => { artifactWrites += 1; return { status: "failed", failureReason: "forbidden" }; },
-    },
-    {
-      readProviderEffectStepCallFact: () => null,
-      readConfirmedRateLimitAcknowledgement: () => null,
-      readSourceConfirmedProviderEffect: () => { throw new Error("UNEXPECTED_SOURCE_READBACK"); },
-      countProviderTurnDispatches: () => 0,
-      releaseJobBoundTarget: async () => { throw new Error("UNEXPECTED_TARGET_RELEASE"); },
-      acquireJobBoundTargetLease: async () => {
-        throw executionFailure("failed", "BROWSER_GPT_DIALOG_UNRECOGNIZED", {
-          metadata: { mutationOutcome: "no",
-            knownGptRateLimitPreflightFact: mismatchPreflightFact, evidence: {
-            evidenceRef: mismatchEvidenceRef, evidenceHash: mismatchEvidenceHash,
-          } },
-        });
-      },
-    },
-    createRuntimeLogger({
-      producer: "agent-dialog-mismatch-acceptance", owner: "production-runtime",
-      component: "gpt-child", terminalEnabled: false,
-      fileSink: { directoryPath: path.join(temporary, "runtime-logs-dialog-mismatch") },
-    }),
-    {
-      assertProviderSubmitAllowed: () => { providerControlCalls += 1; },
-      pendingIncidents: () => { providerControlCalls += 1; return []; },
-      beginIncident: async () => { providerControlCalls += 1; throw new Error("forbidden"); },
-    },
-  ).createExecution(executionInput("job:dialog-mismatch", "attempt:dialog-mismatch", HASH_A));
-  let mismatchFailure: unknown = null;
-  try {
-    await mismatchTools.tools.execute({
-      sessionKey: "session:dialog-mismatch", productStepId: "prepare", callId: "prepare:1",
-      child: "prepare_clean_gpt_chat", actionOrdinal: 1, input: { timeoutMs: 60_000 },
-    });
-  } catch (error) { mismatchFailure = error; }
-  const normalizedMismatch = typedGptExecutionFailure(mismatchFailure);
-  assert.equal(normalizedMismatch?.code, "BROWSER_GPT_DIALOG_UNRECOGNIZED");
-  assert.equal(normalizedMismatch?.proofFacts?.browserFact?.browserOutcome, "REJECTED");
-  assert.equal(normalizedMismatch?.proofFacts?.browserFact?.evidenceRef, mismatchEvidenceRef);
-  assert.equal(normalizedMismatch?.proofFacts?.browserFact?.evidenceHash, mismatchEvidenceHash);
-  assert.deepEqual(normalizedMismatch?.proofFacts?.browserFact?.knownGptRateLimitPreflightFact,
-    mismatchPreflightFact,
-    "the complete mismatch mechanical fact must survive acquisition normalization");
-  assert.equal(artifactWrites, 0, "dialog mismatch must never enter the Forensics artifact port");
-  assert.equal(providerControlCalls, 0, "dialog mismatch must never enter the cooldown control port");
+  let freshArtifacts = 0, freshIncidents = 0, freshClearances = 0, freshGate = false;
+  const freshFact = await detectedKnownGptRateLimitExactFact();
+  const fresh = new ProductionGptChildTools(temporary, HASH_A, createGptAbilityGroup(), {
+    appendArtifact: async () => { freshArtifacts += 1; throw new Error("FORBIDDEN_ARTIFACT_WRITE"); },
+    readArtifact: async () => { freshArtifacts += 1; throw new Error("FORBIDDEN_ARTIFACT_READ"); },
+  }, {
+    readProviderEffectStepCallFact: () => null, countProviderTurnDispatches: () => 0,
+    acquireJobBoundTargetLease: async () => ({ target: { targetRef: "target:fresh" }, document: { documentRef: "document:fresh" },
+      pendingMutationCount: () => 0, readAtomicStepOutcome: () => null,
+      runAtomicStep: async <T>(_identity: BrowserAtomicStepIdentity, action: () => Promise<T>) => await action(),
+      executeDomIntent: async () => { throw dialogFailure(freshFact, "BROWSER_KNOWN_GPT_RATE_LIMIT"); }, park: async () => {} }),
+  } as never, logger("fresh-exact"), {
+    assertProviderSubmitAllowed: () => { if (freshGate) throw executionFailure("failed", "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE"); },
+    pendingIncidents: () => [], beginIncident: async () => { freshIncidents += 1; freshGate = true;
+      return { incidentRequestId: `aipcooldown_${"9".repeat(40)}`, deliver: async () => { freshClearances += 1; } }; },
+  }).createExecution(execution("job:fresh-exact"));
+  const freshError = typedGptExecutionFailure(await captureFailure(() => fresh.tools.execute(prepareCall)));
+  assert.equal(freshError?.code, "BROWSER_KNOWN_GPT_RATE_LIMIT");
+  assert.deepEqual(freshError?.proofFacts?.browserFact?.knownGptRateLimitPreflightFact, freshFact);
+  assert.deepEqual([freshArtifacts, freshIncidents, freshClearances, freshGate], [0, 1, 1, true]);
+  const concurrent = typedGptExecutionFailure(await captureFailure(() => fresh.tools.execute({ ...prepareCall, callId: "prepare:concurrent", actionOrdinal: 2 })));
+  assert.equal(concurrent?.code, "BROWSER_KNOWN_GPT_RATE_LIMIT");
+  assert.deepEqual([freshArtifacts, freshIncidents, freshClearances], [0, 1, 1]);
 
-} finally {
-  await rm(temporary, { recursive: true, force: true });
-}
+  let mismatchArtifacts = 0, mismatchControl = 0;
+  const freshMismatch = new ProductionGptChildTools(temporary, HASH_A, createGptAbilityGroup(), {
+    appendArtifact: async () => { mismatchArtifacts += 1; throw new Error("FORBIDDEN_ARTIFACT_WRITE"); },
+    readArtifact: async () => { mismatchArtifacts += 1; throw new Error("FORBIDDEN_ARTIFACT_READ"); },
+  }, { readProviderEffectStepCallFact: () => null, countProviderTurnDispatches: () => 0,
+    acquireJobBoundTargetLease: async () => { throw dialogFailure(mismatchFact, "BROWSER_GPT_DIALOG_UNRECOGNIZED"); },
+  } as never, logger("fresh-mismatch"), {
+    assertProviderSubmitAllowed: () => { mismatchControl += 1; }, pendingIncidents: () => { mismatchControl += 1; return []; },
+    beginIncident: async (): Promise<never> => { mismatchControl += 1; throw new Error("FORBIDDEN_INCIDENT"); },
+  }).createExecution(execution("job:fresh-mismatch"));
+  const freshMismatchError = typedGptExecutionFailure(await captureFailure(() => freshMismatch.tools.execute(prepareCall)));
+  assert.equal(freshMismatchError?.code, "BROWSER_GPT_DIALOG_UNRECOGNIZED");
+  assert.equal(freshMismatchError?.proofFacts?.browserFact?.browserOutcome, "REJECTED");
+  assert.equal(freshMismatchError?.proofFacts?.browserFact?.evidenceHash, mismatchFact.observationHash);
+  assert.deepEqual(freshMismatchError?.proofFacts?.browserFact?.knownGptRateLimitPreflightFact, mismatchFact);
+  assert.deepEqual([mismatchArtifacts, mismatchControl], [0, 0]);
+} finally { await rm(temporary, { recursive: true, force: true }); }

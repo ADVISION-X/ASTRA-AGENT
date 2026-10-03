@@ -1,211 +1,154 @@
-import { Node, SyntaxKind } from "ts-morph";
-import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
+import { SyntaxKind, type SourceFile } from "ts-morph";
+import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { createLocalFinding, extensionDebuggerRuntimePath, requireSource, sourcePaths,
   targetAuthorityPath, extensionCommandRuntimePath } from "./inspector-support.js";
 
-const interactionReadinessPath =
-  "src/lib/browser/chrome-extension/extension-interaction-readiness.ts";
-const gptRateLimitRuntimePath = "src/lib/browser/chrome-extension/gpt-rate-limit-dialog.ts";
-const pageAccessGatePath = "src/lib/browser/chrome-extension/chatgpt-page-access-gate.ts";
-const rateLimitContractPath = "src/lib/browser/exact-target/browser-gpt-rate-limit-preflight.ts";
-
-const interactionReadinessFinding = (
-  findings: InspectorFinding[],
-  lawId: string,
-  filePath: string,
-  message: string,
-): void => {
-  findings.push(createLocalFinding({
-    checkId: "browser-authority/interaction-readiness",
-    lawId,
-    filePath,
-    message,
+const paths = {
+  authority: targetAuthorityPath,
+  readiness: "src/lib/browser/chrome-extension/extension-interaction-readiness.ts",
+  runtime: extensionDebuggerRuntimePath,
+  commands: extensionCommandRuntimePath,
+  registry: sourcePaths[8],
+  detector: "src/lib/browser/chrome-extension/gpt-rate-limit-dialog.ts",
+  access: "src/lib/browser/chrome-extension/chatgpt-page-access-gate.ts",
+  dialog: "src/lib/browser/exact-target/browser-gpt-rate-limit-preflight.ts",
+} as const;
+type Sources = Record<keyof typeof paths, SourceFile>;
+const method = (source: SourceFile, owner: string, name: string): string =>
+  source.getClass(owner)?.getMethod(name)?.getText() ?? "";
+const has = (text: string, facts: readonly string[]): boolean =>
+  facts.every(fact => text.replace(/\s/gu, "").includes(fact.replace(/\s/gu, "")));
+const requireContract = (condition: boolean, findings: InspectorFinding[], lawId: string,
+  filePath: string, message: string): void => {
+  if (!condition) findings.push(createLocalFinding({
+    checkId: "browser-authority/interaction-readiness", lawId, filePath, message,
   }));
 };
+const countCalls = (source: SourceFile, owner: string, name: string, callee: string): number =>
+  source.getClass(owner)?.getMethod(name)?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter(call => call.getExpression().getText() === callee).length ?? 0;
 
-const exactCallCount = (source: Node, expressionText: string): number =>
-  source.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .filter((call) => call.getExpression().getText() === expressionText).length;
-
-const inspectRuntimeActivation = (
-  input: Readonly<{ activate: Node; send: Node; admit: Node; executeActor: Node }>,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  const activateText = input.activate.getText();
-  const sendText = input.send.getText();
-  const updateCalls = input.activate.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .filter((call) => call.getExpression().getText() === "this.chromeApi.tabs.update");
-  const updateArguments = updateCalls[0]?.getArguments() ?? [];
-  const runtimeChecks = [
-    updateCalls.length === 1,
-    updateArguments[0]?.getText() === "tabId",
-    updateArguments[1]?.getText().replace(/\s/gu, "") === "{active:true}",
-    activateText.includes("this.executePageAction"),
-    sendText.indexOf("guard.assertInteractive()") >= 0,
-    sendText.indexOf("guard.state.started = true") > sendText.indexOf("guard.assertInteractive()"),
-    sendText.indexOf("this.chromeApi.debugger.sendCommand") > sendText.indexOf("guard.state.started = true"),
+const inspectInteractionLease = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
+  const owner = "ExtensionInteractionReadiness", authority = "ExtensionTargetAuthority";
+  const ensure = method(s.readiness, owner, "ensureInteractionReady");
+  const ready = method(s.readiness, owner, "assertInteractionReady");
+  const capture = method(s.readiness, owner, "captureTabActivation");
+  const noTabUrl = s.readiness.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
+    .filter(property => property.getName() === "url" && property.getExpression().getText() !== "frame").length === 0;
+  const facts = [
+    has(method(s.authority, authority, "executeRegisteredCommandCycle"), ['mutationClass === "mutation"',
+      "this.interactionReadiness.executeMutation(target, execute, assertCommandActive",
+      'mutationClass === "observation"', "this.interactionReadiness.executeObservation(target, execute, assertCommandActive)"]),
+    countCalls(s.authority, authority, "executeRegisteredCommandCycle", "this.interactionReadiness.executeMutation") === 1,
+    countCalls(s.authority, authority, "executeRegisteredCommandCycle", "this.interactionReadiness.executeObservation") === 1,
+    countCalls(s.readiness, owner, "executeMutation", "this.ensureInteractionReady") === 1,
+    countCalls(s.readiness, owner, "executeObservation", "this.ensureInteractionReady") === 1,
+    countCalls(s.readiness, owner, "executeMutation", "this.debuggerRuntime.withProviderInputGuard") === 1,
+    has(ensure, ["if (tab.active !== true)", "this.captureTabActivation(tab, target.tabId)",
+      "active.target?.targetRef !== target.targetRef", "active.target.documentRef !== target.documentRef",
+      "active.target.tabId !== target.tabId", "active.loaderId === null", "frame.loaderId !== active.loaderId",
+      "this.assertInteractionReady(lease)"]),
+    countCalls(s.readiness, owner, "ensureInteractionReady", "this.debuggerRuntime.activateTab") === 1,
+    countCalls(s.readiness, owner, "ensureInteractionReady", "this.debuggerRuntime.readTab") === 3,
+    countCalls(s.readiness, owner, "ensureInteractionReady", "readExtensionMainFrame") === 1,
+    countCalls(s.readiness, owner, "ensureInteractionReady", "requireGptWebPolicyForUrl") === 1,
+    ensure.indexOf("this.captureTabActivation(tab, target.tabId)") < ensure.indexOf("await readExtensionMainFrame("),
+    has(method(s.readiness, owner, "requireInteractiveTab"), ["tab.id !== target.tabId",
+      "!Number.isSafeInteger(tab.windowId)", "tab.active !== true", "tab.discarded !== false", 'tab.status !== "complete"']),
+    has(capture, ["this.requireInteractiveTab(tab, { tabId })",
+      "if (!this.activeTabsByWindow.has(windowId)) this.recordActiveTab(windowId, tabId)",
+      "const generation = this.activeTabsByWindow.get(windowId)!.generation",
+      "activation?.tabId !== tabId || activation.generation !== generation",
+      'throw interactionFailure("BROWSER_TARGET_INVALID")', "assertActivation();", "return assertActivation"]),
+    has(ready, ["lease.assertActivation()",
+      "current?.targetRef !== lease.targetRef", "current.documentRef !== lease.documentRef", "current.tabId !== lease.tabId"]),
+    countCalls(s.readiness, owner, "assertInteractionReady", "this.resolveExactTarget") === 1,
+    countCalls(s.authority, authority, "start", "this.chromeApi.tabs.onActivated.addListener") === 1,
+    has(method(s.authority, authority, "start"), ["this.interactionReadiness.recordActiveTab(info.windowId, info.tabId)"]),
+    noTabUrl,
   ];
-  if (!runtimeChecks.every(Boolean)) interactionReadinessFinding(findings, lawId, extensionDebuggerRuntimePath,
-    "The fixed runtime must activate once through the existing page-action gate and synchronously check interaction identity before marking Provider input started.");
-  const commandChecks = [
-    input.admit.getText().includes("mutationClass: expectedMutationClass"),
-    input.executeActor.getText().includes("registered.mutationClass"),
+  requireContract(facts.every(Boolean), findings, lawId, paths.readiness,
+    "Every mutation and observation must qualify the exact Tab/current Document and synchronously reuse the one window activation-generation guard.");
+};
+
+const inspectLogicalAccess = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
+  const owner = "ExtensionTargetAuthority", boundary = method(s.authority, owner, "executeRegisteredCommand");
+  const send = method(s.runtime, "ExtensionDebuggerRuntime", "send");
+  const facts = [
+    has(s.authority.getClass(owner)?.getConstructors()[0]?.getText() ?? "", ["this.debuggerRuntime.requireLogicalPageAccessCycles()"]),
+    countCalls(s.authority, owner, "executeRegisteredCommand", "this.debuggerRuntime.withLogicalPageAccess") === 1,
+    countCalls(s.authority, owner, "acquireJobBoundChatGptTarget", "this.debuggerRuntime.withLogicalPageAccess") === 1,
+    countCalls(s.authority, owner, "consumeFrameNavigationAfterBarrier", "this.debuggerRuntime.withLogicalPageAccess") === 1,
+    has(boundary, ['const ack = command.kind === "dom-intent" && command.intent.kind === "acknowledgeKnownGptRateLimit"',
+      'ack ? "rate-limit-ack" : "ordinary"', "ack ? async () => undefined",
+      "this.pageAccessGate.enter()", "this.pageAccessGate.awaitTransientDomConfirmationStage(transient)"]),
+    has(send, ["this.logicalPageAccess.required && !this.logicalPageAccess.active", "BROWSER_PAGE_ACCESS_CYCLE_REQUIRED"]),
+    has(s.runtime.getText(), ["urgentLogicalPageAccessQueue.shift()", "ordinaryLogicalPageAccessQueue.shift()"]),
+    has(s.detector.getText(), ["intent.dispatchNotAfter === null", "Date.parse(intent.dispatchNotAfter)"]),
   ];
-  if (!commandChecks.every(Boolean)) interactionReadinessFinding(findings, lawId, sourcePaths[8],
-    "Command admission must preserve the actual mutation class through the sole encrypted actor into Browser Authority.");
+  requireContract(facts.every(Boolean), findings, lawId, paths.authority,
+    "All CDP page work must use the sole logical-access cycle; only the exact deadline-bound rate-limit acknowledgement may bypass the shared delay.");
 };
 
-const inspectNoFocusFallback = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  const forbidden = context.project.getSourceFiles().filter((source) => {
-    const path = source.getFilePath().replaceAll("\\", "/");
-    if (!path.includes("/src/lib/browser/chrome-extension/")) return false;
-    const callsWindowFocus = source.getDescendantsOfKind(SyntaxKind.CallExpression)
-      .some((call) => call.getExpression().getText().endsWith("windows.update"));
-    const callsBringToFront = source.getDescendantsOfKind(SyntaxKind.StringLiteral)
-      .some((literal) => literal.getLiteralValue() === "Page.bringToFront");
-    return callsWindowFocus || callsBringToFront;
-  });
-  for (const source of forbidden) interactionReadinessFinding(findings, lawId,
-    source.getFilePath().slice(context.sealedRoot.length + 1).replaceAll("\\", "/"),
-    "The unique interaction gate must not add window focus or Page.bringToFront fallback authority.");
+const inspectPhysicalInput = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
+  const activate = s.runtime.getClass("ExtensionDebuggerRuntime")?.getMethod("activateTab");
+  const updates = activate?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter(call => call.getExpression().getText() === "this.chromeApi.tabs.update") ?? [];
+  const args = updates[0]?.getArguments() ?? [];
+  const send = method(s.runtime, "ExtensionDebuggerRuntime", "send");
+  const facts = [
+    updates.length === 1, args[0]?.getText() === "tabId", (args[1]?.getText() ?? "").replace(/\s/gu, "") === "{active:true}",
+    has(activate?.getText() ?? "", ["this.executePageAction"]),
+    send.indexOf("guard.assertInteractive()") >= 0,
+    send.indexOf("guard.state.started = true") > send.indexOf("guard.assertInteractive()"),
+    send.indexOf("this.chromeApi.debugger.sendCommand") > send.indexOf("guard.state.started = true"),
+    has(s.registry.getVariableDeclaration("admitExtensionCommand")?.getText() ?? "", ["mutationClass: expectedMutationClass"]),
+    has(s.commands.getVariableDeclaration("executeExtensionCommandReply")?.getText() ?? "", ["registered.mutationClass"]),
+  ];
+  requireContract(facts.every(Boolean), findings, lawId, paths.runtime,
+    "Activate only the exact Tab once through the existing action gate; preserve mutation class and assert interaction identity before marking physical input started.");
 };
 
-const interactionAuthorityExact = (input: Readonly<{
-  execute: Node; executeBoundary: Node; executeMutation: Node; ensure: Node; assertReady: Node;
-  acquireBoundary: Node; frameBoundary: Node; start: Node; constructor: Node;
-  runtimeText: string; runtimeSendText: string; rateLimitText: string;
-  nonFrameUrlReadCount: number;
-}>): boolean => {
-  const executeText = input.execute.getText();
-  const ensureText = input.ensure.getText();
-  const assertText = input.assertReady.getText();
-  const startText = input.start.getText();
-  return [executeText.includes('mutationClass === "mutation"'),
-    exactCallCount(input.execute, "this.interactionReadiness.executeMutation") === 1,
-    exactCallCount(input.executeMutation, "this.ensureInteractionReady") === 1,
-    exactCallCount(input.executeMutation, "this.debuggerRuntime.withProviderInputGuard") === 1,
-    ensureText.includes("tab.active !== true"),
-    exactCallCount(input.ensure, "this.debuggerRuntime.activateTab") === 1,
-    exactCallCount(input.ensure, "this.debuggerRuntime.readTab") === 3,
-    exactCallCount(input.ensure, "readExtensionMainFrame") === 1,
-    ensureText.includes("activeState.target?.targetRef !== target.targetRef"),
-    ensureText.includes("frame.loaderId !== activeState.loaderId"),
-    exactCallCount(input.ensure, "requireGptWebPolicyForUrl") === 1,
-    input.nonFrameUrlReadCount === 0,
-    ensureText.indexOf("this.recordActiveTab(windowId, target.tabId)")
-      < ensureText.indexOf("readExtensionMainFrame(this.debuggerRuntime, target.tabId)"),
-    ensureText.includes("active.generation !== activationGeneration"),
-    assertText.includes("active.generation !== lease.generation"),
-    exactCallCount(input.assertReady, "this.resolveExactTarget") === 1,
-    exactCallCount(input.start, "this.chromeApi.tabs.onActivated.addListener") === 1,
-    startText.includes("this.interactionReadiness.recordActiveTab"),
-    input.constructor.getText().includes("this.debuggerRuntime.requireLogicalPageAccessCycles()"),
-    exactCallCount(input.executeBoundary, "this.debuggerRuntime.withLogicalPageAccess") === 1,
-    input.executeBoundary.getText().includes('acknowledgeRateLimit ? "rate-limit-ack" : "ordinary"'),
-    exactCallCount(input.acquireBoundary, "this.debuggerRuntime.withLogicalPageAccess") === 1,
-    exactCallCount(input.frameBoundary, "this.debuggerRuntime.withLogicalPageAccess") === 1,
-    input.runtimeSendText.includes("this.logicalPageAccess.required && !this.logicalPageAccess.active"),
-    input.runtimeSendText.includes("BROWSER_PAGE_ACCESS_CYCLE_REQUIRED"),
-    input.runtimeText.includes("urgentLogicalPageAccessQueue.shift()"),
-    input.runtimeText.includes("ordinaryLogicalPageAccessQueue.shift()"),
-    input.executeBoundary.getText().includes("acknowledgeRateLimit ? async () => undefined"),
-    input.rateLimitText.includes("intent.dispatchNotAfter === null"),
-    input.rateLimitText.includes("Date.parse(intent.dispatchNotAfter)"),
-  ].every(Boolean);
-};
-
-const inspectRateLimitGate = (
-  context: InspectorContext, authorityText: string, detectorText: string,
-  findings: InspectorFinding[], lawId: string,
-): void => {
+const inspectRateLimitGate = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
   if (lawId !== "LAW-LOCAL-BROWSER-SESSION-004-V56") return;
-  const accessGate = requireSource(context, findings, lawId, pageAccessGatePath);
-  const preflightContract = requireSource(context, findings, lawId, rateLimitContractPath);
-  if (!accessGate || !preflightContract) return;
-  const gateFacts = [
-    "CHATGPT_LOGICAL_ACCESS_INTERVAL_MS = 1_500",
-    "private lastAccessStartedAt = performance.now()",
-    "this.lastAccessStartedAt + CHATGPT_LOGICAL_ACCESS_INTERVAL_MS",
-    "this.tail = entered.then(() => undefined, () => undefined)",
-  ];
-  if (!gateFacts.every((fact) => accessGate.getFullText().includes(fact))
-    || !authorityText.includes("private readonly pageAccessGate = new ChatGptPageAccessGate()")) {
-    interactionReadinessFinding(findings, lawId, pageAccessGatePath,
-      "All ChatGPT logical page accesses must share the 1.5-second extension-process gate.");
-  }
-  const exactDialogFacts = ["KNOWN_GPT_RATE_LIMIT_TITLE = \"请求过于频繁\"",
-    "KNOWN_GPT_RATE_LIMIT_BODY = Object.freeze([", "KNOWN_GPT_RATE_LIMIT_ACK = \"明白了\"",
-    'state === "exact_present"'];
-  const detectorFacts = ["lines.length === exactLines.length",
-    "line === exactLines[index]", "rawDialogs.length === 1",
-    "rawButtons.length === 1", "actionableButtons.length === 1",
-    'const state = eligibleDialogs.length === 0 ? "absent" : exact ? "exact_present" : "mismatch"'];
-  if (!exactDialogFacts.every((fact) => preflightContract.getFullText().includes(fact))
-    || !detectorFacts.every((fact) => detectorText.includes(fact))
-    || !authorityText.includes("if (preflight.state === \"exact_present\") return knownGptRateLimitBlockerReceipt(preflight)")) {
-    interactionReadinessFinding(findings, lawId, gptRateLimitRuntimePath,
-      "The central preflight must match one exact rate-limit dialog and block the original action.");
+  requireContract(has(s.access.getText(), ["CHATGPT_LOGICAL_ACCESS_INTERVAL_MS = 1_500",
+    "private lastAccessStartedAt = performance.now()", "this.lastAccessStartedAt + CHATGPT_LOGICAL_ACCESS_INTERVAL_MS",
+    "this.tail = entered.then(() => undefined, () => undefined)"])
+    && has(s.authority.getText(), ["private readonly pageAccessGate = new ChatGptPageAccessGate()"]),
+  findings, lawId, paths.access, "All jobs and Tabs must share the extension-process 1.5-second logical-access gate, including its initial wait.");
+  requireContract(has(s.dialog.getText(), ['KNOWN_GPT_RATE_LIMIT_TITLE = "请求过于频繁"',
+    "KNOWN_GPT_RATE_LIMIT_BODY = Object.freeze([", 'KNOWN_GPT_RATE_LIMIT_ACK = "明白了"', 'state === "exact_present"'])
+    && has(s.detector.getText(), ["lines.length === exactLines.length", "line === exactLines[index]",
+      "rawDialogs.length === 1", "rawButtons.length === 1", "actionableButtons.length === 1",
+      'const state = eligibleDialogs.length === 0 ? "absent" : exact ? "exact_present" : "mismatch"'])
+    && has(s.authority.getText(), ['if (preflight.state === "exact_present") return knownGptRateLimitBlockerReceipt(preflight)']),
+  findings, lawId, paths.detector, "Only one exact known dialog with its unique actionable acknowledgement may block the original request and enter the urgent acknowledgement path.");
+};
+
+const inspectNoFocus = (context: InspectorContext, findings: InspectorFinding[], lawId: string): void => {
+  for (const source of context.project.getSourceFiles()) {
+    if (!source.getFilePath().replaceAll("\\", "/").includes("/src/lib/browser/chrome-extension/")) continue;
+    const windowFocus = source.getDescendantsOfKind(SyntaxKind.CallExpression)
+      .some(call => call.getExpression().getText().endsWith("windows.update"));
+    const front = source.getDescendantsOfKind(SyntaxKind.StringLiteral)
+      .some(literal => literal.getLiteralValue() === "Page.bringToFront");
+    requireContract(!windowFocus && !front, findings, lawId,
+      source.getFilePath().slice(context.sealedRoot.length + 1).replaceAll("\\", "/"),
+      "The sole interaction gate must never add window focus or Page.bringToFront fallback authority.");
   }
 };
 
-export const inspectInteractionReadiness = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  const authority = requireSource(context, findings, lawId, targetAuthorityPath);
-  const readiness = requireSource(context, findings, lawId, interactionReadinessPath);
-  const runtime = requireSource(context, findings, lawId, extensionDebuggerRuntimePath);
-  const commandRuntime = requireSource(context, findings, lawId, extensionCommandRuntimePath);
-  const commandRegistry = requireSource(context, findings, lawId, sourcePaths[8]);
-  const gptRateLimitRuntime = requireSource(context, findings, lawId, gptRateLimitRuntimePath);
-  if ([authority, readiness, runtime, commandRuntime, commandRegistry, gptRateLimitRuntime]
-    .some((source) => !source)) return;
-
-  const authorityClass = authority!.getClass("ExtensionTargetAuthority");
-  const executeBoundary = authorityClass?.getMethod("executeRegisteredCommand");
-  const execute = authorityClass?.getMethod("executeRegisteredCommandCycle");
-  const acquireBoundary = authorityClass?.getMethod("acquireJobBoundChatGptTarget");
-  const frameBoundary = authorityClass?.getMethod("consumeFrameNavigationAfterBarrier");
-  const constructor = authorityClass?.getConstructors()[0];
-  const start = authorityClass?.getMethod("start");
-  const readinessClass = readiness!.getClass("ExtensionInteractionReadiness");
-  const executeMutation = readinessClass?.getMethod("executeMutation");
-  const ensure = readinessClass?.getMethod("ensureInteractionReady");
-  const assertReady = readinessClass?.getMethod("assertInteractionReady");
-  const activate = runtime!.getClass("ExtensionDebuggerRuntime")?.getMethod("activateTab");
-  const send = runtime!.getClass("ExtensionDebuggerRuntime")?.getMethod("send");
-  const admit = commandRegistry!.getVariableDeclaration("admitExtensionCommand");
-  const executeActor = commandRuntime!.getVariableDeclaration("executeExtensionCommandReply");
-  if ([authorityClass, executeBoundary, execute, acquireBoundary, frameBoundary,
-    constructor, readinessClass, executeMutation, ensure, assertReady, start,
-    activate, send, admit, executeActor].some((value) => !value)) {
-    interactionReadinessFinding(findings, lawId, interactionReadinessPath,
-      "The existing Browser Authority must own the complete interaction-readiness gate.");
-    return;
+export const inspectInteractionReadiness = (context: InspectorContext,
+  findings: InspectorFinding[], lawId: string): void => {
+  const sources = {} as Sources;
+  for (const [key, path] of Object.entries(paths)) {
+    const source = requireSource(context, findings, lawId, path);
+    if (!source) return;
+    sources[key as keyof Sources] = source;
   }
-
-  const runtimeSendText = send!.getText();
-  const runtimeText = runtime!.getFullText();
-  const nonFrameUrlReads = readinessClass!.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-    .filter((property) => property.getName() === "url"
-      && property.getExpression().getText() !== "frame");
-  const authorityExact = interactionAuthorityExact({ execute: execute!, executeBoundary: executeBoundary!,
-    executeMutation: executeMutation!, ensure: ensure!, assertReady: assertReady!,
-    acquireBoundary: acquireBoundary!, frameBoundary: frameBoundary!, start: start!,
-    constructor: constructor!, runtimeText,
-    runtimeSendText, rateLimitText: gptRateLimitRuntime!.getFullText(),
-    nonFrameUrlReadCount: nonFrameUrlReads.length });
-  if (!authorityExact) interactionReadinessFinding(findings, lawId, interactionReadinessPath,
-    "Mutation execution and every CDP page read must use one exact-tab logical-access cycle, with only the exact rate-limit acknowledgement bypassing the 1.5-second wait.");
-
-  inspectRuntimeActivation({ activate: activate!, send: send!, admit: admit!,
-    executeActor: executeActor! }, findings, lawId);
-  inspectNoFocusFallback(context, findings, lawId);
-  inspectRateLimitGate(context, authority!.getFullText(), gptRateLimitRuntime!.getFullText(), findings, lawId);
+  inspectInteractionLease(sources, findings, lawId);
+  inspectLogicalAccess(sources, findings, lawId);
+  inspectPhysicalInput(sources, findings, lawId);
+  inspectRateLimitGate(sources, findings, lawId);
+  inspectNoFocus(context, findings, lawId);
 };

@@ -1,485 +1,194 @@
 import { SyntaxKind, type SourceFile } from "ts-morph";
+import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
+import { browserCommandPostconditionPath, browserMutationSchemaPath, createLocalFinding, domPointerIntentRuntimePath,
+  domMutationPostconditionPath, extensionCreatedTargetPath, extensionDebuggerRuntimePath, extensionFileInputPath,
+  requireSource, sourcePaths, targetAuthorityPath, extensionTargetObservationPath } from "./inspector-support.js";
 
-import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
-import { browserCommandPostconditionPath, browserMutationSchemaPath, createLocalFinding,
-  domPointerIntentRuntimePath,
-  domMutationPostconditionPath,
-  extensionCreatedTargetPath,
-  extensionDebuggerRuntimePath,
-  extensionFileInputPath, requireSource,
-  sourcePaths, targetAuthorityPath, extensionTargetObservationPath } from "./inspector-support.js";
-
-const DOM_RUNTIME_PATH = "src/lib/browser/chrome-extension/dom-intent-runtime.ts";
-const DOM_CONTRACT_PATH = "src/lib/browser/exact-target/browser-dom-intent.ts";
-const SPECIAL_DOM_CONTRACT_PATH = "src/lib/browser/exact-target/browser-dom-special-intent.ts";
-const OBSERVATION_RECEIPT_PATH = "src/lib/browser/exact-target/browser-observation-receipt.ts";
-const MUTATION_RECEIPT_PATH = "src/lib/browser/exact-target/browser-mutation-receipt.ts";
-const SPECIAL_MUTATION_RECEIPT_PATH =
-  "src/lib/browser/exact-target/browser-special-mutation-receipt.ts";
-const COMMAND_FAILURE_PATH = "src/lib/browser/exact-target/browser-command-failure.ts";
-const MUTATION_EVIDENCE_PATH = "src/lib/browser/exact-target/browser-mutation-evidence.ts";
-
-const requireText = (
-  text: string,
-  required: readonly string[],
-  findings: InspectorFinding[],
-  lawId: string,
-  filePath: string,
-): void => {
-  for (const token of required) {
-    if (text.includes(token)) continue;
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/mutation-settlement",
-      lawId,
-      filePath,
-      message: `The Browser mutation settlement is missing ${token}.`,
-    }));
-  }
+const paths = { transport: sourcePaths[0], worker: sourcePaths[1], supervisor: sourcePaths[3], manager: sourcePaths[5],
+  actor: sourcePaths[6], store: sourcePaths[7], schema: browserMutationSchemaPath, runtime: extensionDebuggerRuntimePath,
+  created: extensionCreatedTargetPath, authority: targetAuthorityPath, observation: extensionTargetObservationPath,
+  pointer: domPointerIntentRuntimePath, postcondition: domMutationPostconditionPath, files: extensionFileInputPath,
+  commandPostcondition: browserCommandPostconditionPath, dom: "src/lib/browser/chrome-extension/dom-intent-runtime.ts",
+  contract: "src/lib/browser/exact-target/browser-dom-intent.ts", special: "src/lib/browser/exact-target/browser-dom-special-intent.ts",
+  receipt: "src/lib/browser/exact-target/browser-mutation-receipt.ts", specialReceipt: "src/lib/browser/exact-target/browser-special-mutation-receipt.ts",
+  evidence: "src/lib/browser/exact-target/browser-mutation-evidence.ts", failure: "src/lib/browser/exact-target/browser-command-failure.ts",
+  observationReceipt: "src/lib/browser/exact-target/browser-observation-receipt.ts" } as const;
+type Sources = Record<keyof typeof paths, SourceFile>;
+const text = (source: SourceFile, name: string): string => source.getVariableDeclaration(name)?.getInitializer()?.getText() ?? "";
+const method = (source: SourceFile, owner: string, name: string): string => source.getClass(owner)?.getMethod(name)?.getBody()?.getText() ?? "";
+const has = (body: string, tokens: readonly string[]): boolean => tokens.every(token => body.includes(token));
+const order = (body: string, tokens: readonly string[]): boolean => {
+  let offset = -1;
+  for (const token of tokens) { offset = body.indexOf(token, offset + 1); if (offset < 0) return false; }
+  return true;
 };
-
-const inspectDispatchPersistence = (
-  transport: NonNullable<ReturnType<typeof requireSource>>,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  const sendMethod = transport.getClass("BrowserAuthorityWebSocket")?.getMethod("send")?.getText() ?? "";
-  if (sendMethod.indexOf("onDispatched?.()") >= 0
-    && sendMethod.indexOf("onDispatched?.()") < sendMethod.indexOf("active.socket.send")) return;
-  findings.push(createLocalFinding({
-    checkId: "browser-authority/mutation-settlement", lawId, filePath: sourcePaths[0],
-    message: "The production Browser socket must persist DISPATCHED before the mutation frame leaves Authority.",
-  }));
+const check = (valid: boolean, findings: InspectorFinding[], lawId: string, path: string, message: string): void => {
+  if (!valid) findings.push(createLocalFinding({ checkId: "browser-authority/mutation-settlement", lawId, filePath: path, message }));
 };
-
-type SettlementSource = NonNullable<ReturnType<typeof requireSource>>;
-
-const requiredIdentityConstraints = ["command_id text primary key",
-  "exact_call_identity_hash text not null", "job_id text not null", "attempt_id text not null",
-  "execution_fence_hash text not null", "product_step_id text not null", "call_id text not null",
-  "child_capability_id text not null", "target_ref text not null", "document_ref text not null",
-  "action_id text not null", "positive_postcondition_hash text not null",
-  "negative_postcondition_hash text not null", "request_hash text not null", "payload_hash text not null",
-  "state text not null check(state in ('prepared','dispatched','confirmed','rejected','failed'))"];
 
 export const browserMutationSchemaIsCurrent = (schema: SourceFile): boolean => {
-  const text = schema.getFullText().toLowerCase();
-  const table = schema.getVariableDeclaration("currentTableSql")
-    ?.getInitializer()?.getText().toLowerCase() ?? "";
-  const columns = schema.getVariableDeclaration("requiredColumns")
-    ?.getInitializer()?.getText().toLowerCase() ?? "";
-  const identity = schema.getVariableDeclaration("identityColumns")
-    ?.getInitializer()?.getText().toLowerCase() ?? "";
-  const mutationIndexes = schema.getVariableDeclaration("mutationIndexSql")
-    ?.getInitializer()?.getText().toLowerCase() ?? "";
-  const objects = schema.getVariableDeclaration("currentObjects")
-    ?.getInitializer()?.getText() ?? "";
-  const admission = schema.getVariableDeclaration("ensureCurrentSchema")?.getInitializer()?.getText() ?? "";
-  const shape = schema.getVariableDeclaration("currentColumnsAndIndexes")
-    ?.getInitializer()?.getText() ?? "";
-  const indexes = schema.getVariableDeclaration("indexesMatch")
-    ?.getInitializer()?.getText() ?? "";
-  const tableShape = schema.getVariableDeclaration("mutationTableMatches")
-    ?.getInitializer()?.getText() ?? "";
-  return [
-    requiredIdentityConstraints.every((constraint) => table.includes(constraint)),
-    table.includes("mutation_outcome text check(mutation_outcome in ('no','dispatched','confirmed'))"),
-    table.includes("check(physical_input_count between 0 and 4)"),
-    table.includes("native_cause_code text"), table.includes("provider_recovery_payload text"),
-    table.includes("delivery_priority_replay_grant_hash text"),
-    table.includes("target_ref text not null"),
-    mutationIndexes.includes("on browser_mutations(job_id,attempt_id,lease_version,execution_fence_hash,state)"),
-    mutationIndexes.includes("on browser_mutations(job_id,logical_mutation_id,state)"),
-    mutationIndexes.includes("on browser_mutations(job_id,exact_call_identity_hash,state)"),
-    objects.includes('"browser_mutations"'),
-    objects.includes('"sqlite_autoindex_browser_mutations_1"'),
-    objects.includes("...mutationIndexSql.keys()"),
-    columns.includes('"mutation_outcome"'), columns.includes('"native_cause_code"'),
-    columns.includes('"provider_recovery_payload"'),
-    identity.includes("delivery_priority_replay_grant_hash"),
-    shape.includes("columns.length !== requiredColumns.length"),
-    shape.includes("requiredColumns.some((column) => !columns.includes(column))"),
-    shape.includes('indexesMatch(database, "browser_mutations", mutationIndexSql)'),
-    indexes.includes("rows.length === expected.size"),
-    indexes.includes("normalizedSql(row.sql) === normalizedSql(expected.get(row.name) ?? \"\")"),
-    tableShape.includes("actual.replace(grantColumn, \"\") === expected.replace(grantColumn, \"\")"),
-    admission.includes("type in ('table','view','index','trigger')"),
-    admission.includes("if (objects.length > 0) throw new Error(\"BROWSER_REPAIR_REQUIRED\")"),
-    admission.includes("objects.length !== currentObjects.size"),
-    admission.includes("objects.some((object) => !currentObjects.has(object.name))"),
-    !text.includes("targetclaimschema"),
-    !text.includes("browser_target_claims"),
-    admission.includes("!mutationTableMatches(table.sql)"),
-    admission.includes('throw new Error("BROWSER_REPAIR_REQUIRED")'),
-    !text.includes("alter table"), !text.includes("drop table"),
-    !text.includes("migratephysicalinputconstraint"),
-    !text.includes("browser_mutation_schema_rebuild_requires_empty_store"),
-  ].every(Boolean);
+  const table = text(schema, "currentTableSql").toLowerCase(), columns = text(schema, "requiredColumns").toLowerCase();
+  const indexes = text(schema, "mutationIndexSql").toLowerCase(), identity = text(schema, "identityColumns").toLowerCase();
+  const admission = text(schema, "ensureCurrentSchema"), objects = text(schema, "currentObjects");
+  const exact = text(schema, "currentColumnsAndIndexes"), match = text(schema, "mutationTableMatches");
+  const identityNames = ["exact_call_identity_hash", "job_id", "attempt_id", "execution_fence_hash", "product_step_id",
+    "call_id", "child_capability_id", "target_ref", "document_ref", "action_id", "positive_postcondition_hash",
+    "negative_postcondition_hash", "request_hash", "payload_hash"];
+  return has(table, ["command_id text primary key", ...identityNames.map(name => `${name} text not null`),
+    "state text not null check(state in ('prepared','dispatched','confirmed','rejected','failed'))",
+    "mutation_outcome text check(mutation_outcome in ('no','dispatched','confirmed'))", "check(physical_input_count between 0 and 4)",
+    "native_cause_code text", "provider_recovery_payload text", "delivery_priority_replay_grant_hash text"])
+    && has(columns, ['"mutation_outcome"', '"native_cause_code"', '"provider_recovery_payload"'])
+    && identity.includes("delivery_priority_replay_grant_hash")
+    && has(indexes, ["on browser_mutations(job_id,attempt_id,lease_version,execution_fence_hash,state)",
+      "on browser_mutations(job_id,logical_mutation_id,state)", "on browser_mutations(job_id,exact_call_identity_hash,state)"])
+    && has(objects, ['"browser_mutations"', '"sqlite_autoindex_browser_mutations_1"', "...mutationIndexSql.keys()"])
+    && has(exact, ["columns.length !== requiredColumns.length", "requiredColumns.some((column) => !columns.includes(column))",
+      'indexesMatch(database, "browser_mutations", mutationIndexSql)'])
+    && has(text(schema, "indexesMatch"), ["rows.length === expected.size", 'normalizedSql(row.sql) === normalizedSql(expected.get(row.name) ?? "")'])
+    && match.includes('actual.replace(grantColumn, "") === expected.replace(grantColumn, "")')
+    && has(admission, ["type in ('table','view','index','trigger')", "objects.length !== currentObjects.size",
+      "objects.some((object) => !currentObjects.has(object.name))", "!mutationTableMatches(table.sql)",
+      'if (objects.length > 0) throw new Error("BROWSER_REPAIR_REQUIRED")', 'throw new Error("BROWSER_REPAIR_REQUIRED")'])
+    && !/alter table|drop table|browser_target_claims|targetclaimschema|migratephysicalinputconstraint|browser_mutation_schema_rebuild_requires_empty_store/iu.test(schema.getText());
 };
-
 export const browserMutationStoreStartupOrderIsCurrent = (store: SourceFile): boolean => {
-  const constructor = store.getClass("BrowserMutationStore")?.getConstructors()[0]?.getText() ?? "";
-  const ordered = [
-    "new Database(file, { readonly: true, fileMustExist: true })",
-    "ensureCurrentSchema(inspection)",
-    'inspection.pragma("journal_mode", { simple: true })',
-    "inspection.close()",
-    "browserMutationPayloadKey(dataDir)",
-    "new Database(file)",
-    'this.database.pragma("journal_mode = WAL")',
-    "ensureCurrentSchema(this.database)",
-    "update browser_mutations set state='FAILED'",
-  ];
-  const locations = ordered.map((token) => constructor.indexOf(token));
-  return locations.every((location, index) => location >= 0
-    && (index === 0 || location > locations[index - 1]!))
-    && constructor.includes('inspection.prepare("select 1 from sqlite_master limit 1").get()')
-    && constructor.includes("if (objects) {")
-    && constructor.includes("hadCurrentWalAtOpen = true")
-    && constructor.includes("this.existedAtOpen = hadCurrentWalAtOpen");
+  const constructor = store.getClass("BrowserMutationStore")?.getConstructors()[0]?.getBody()?.getText() ?? "";
+  return order(constructor, ['new Database(file, { readonly: true, fileMustExist: true })', "ensureCurrentSchema(inspection)",
+    'inspection.pragma("journal_mode", { simple: true })', "inspection.close()", "browserMutationPayloadKey(dataDir)",
+    "new Database(file)", 'this.database.pragma("journal_mode = WAL")', "ensureCurrentSchema(this.database)",
+    "update browser_mutations set state='FAILED'"])
+    && has(constructor, ['inspection.prepare("select 1 from sqlite_master limit 1").get()', "if (objects) {",
+      "hadCurrentWalAtOpen = true", "this.existedAtOpen = hadCurrentWalAtOpen"]);
 };
 
-type SettlementSources = Readonly<{
-  actor: SettlementSource;
-  commandPostcondition: SettlementSource;
-  contract: SettlementSource;
-  specialContract: SettlementSource;
-  createdTarget: SettlementSource;
-  debuggerRuntime: SettlementSource;
-  fileInput: SettlementSource;
-  failure: SettlementSource;
-  manager: SettlementSource;
-  mutationReceipt: SettlementSource;
-  specialMutationReceipt: SettlementSource;
-  postcondition: SettlementSource;
-  pointerRuntime: SettlementSource;
-  observationReceipt: SettlementSource;
-  runtime: SettlementSource;
-  schema: SettlementSource;
-  store: SettlementSource;
-  mutationEvidence: SettlementSource;
-  transport: SettlementSource;
-  targetAuthority: SettlementSource;
-  targetObservation: SettlementSource;
-  extensionActor: SettlementSource;
-}>;
-
-const requireSettlementSources = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  lawId: string,
-): SettlementSources | null => {
-  const actor = requireSource(context, findings, lawId, sourcePaths[6]);
-  const store = requireSource(context, findings, lawId, sourcePaths[7]);
-  const mutationEvidence = requireSource(context, findings, lawId, MUTATION_EVIDENCE_PATH);
-  const schema = requireSource(context, findings, lawId, browserMutationSchemaPath);
-  const runtime = requireSource(context, findings, lawId, DOM_RUNTIME_PATH);
-  const pointerRuntime = requireSource(context, findings, lawId, domPointerIntentRuntimePath);
-  const postcondition = requireSource(context, findings, lawId, domMutationPostconditionPath);
-  const contract = requireSource(context, findings, lawId, DOM_CONTRACT_PATH);
-  const specialContract = requireSource(context, findings, lawId, SPECIAL_DOM_CONTRACT_PATH);
-  const observationReceipt = requireSource(context, findings, lawId, OBSERVATION_RECEIPT_PATH);
-  const fileInput = requireSource(context, findings, lawId, extensionFileInputPath);
-  const failure = requireSource(context, findings, lawId, COMMAND_FAILURE_PATH);
-  const mutationReceipt = requireSource(context, findings, lawId, MUTATION_RECEIPT_PATH);
-  const specialMutationReceipt = requireSource(
-    context, findings, lawId, SPECIAL_MUTATION_RECEIPT_PATH,
-  );
-  const transport = requireSource(context, findings, lawId, sourcePaths[0]);
-  const manager = requireSource(context, findings, lawId, sourcePaths[5]);
-  const commandPostcondition = requireSource(
-    context, findings, lawId, browserCommandPostconditionPath,
-  );
-  const debuggerRuntime = requireSource(context, findings, lawId, extensionDebuggerRuntimePath);
-  const createdTarget = requireSource(context, findings, lawId, extensionCreatedTargetPath);
-  const targetAuthority = requireSource(context, findings, lawId, targetAuthorityPath);
-  const targetObservation = requireSource(context, findings, lawId, extensionTargetObservationPath);
-  const extensionActor = requireSource(context, findings, lawId, sourcePaths[1]);
-  const required = [actor, store, mutationEvidence, schema, runtime, pointerRuntime, postcondition,
-    contract, specialContract, observationReceipt,
-    fileInput, failure, mutationReceipt, specialMutationReceipt, transport, commandPostcondition, manager,
-    debuggerRuntime, createdTarget, targetAuthority, targetObservation, extensionActor];
-  if (required.some((source) => source === null)) return null;
-  return { actor: actor!, commandPostcondition: commandPostcondition!, contract: contract!,
-    specialContract: specialContract!,
-    createdTarget: createdTarget!,
-    debuggerRuntime: debuggerRuntime!,
-    failure: failure!, fileInput: fileInput!, manager: manager!, mutationReceipt: mutationReceipt!,
-    specialMutationReceipt: specialMutationReceipt!, postcondition: postcondition!,
-    pointerRuntime: pointerRuntime!, observationReceipt: observationReceipt!, runtime: runtime!, schema: schema!,
-    store: store!, mutationEvidence: mutationEvidence!, targetAuthority: targetAuthority!, targetObservation: targetObservation!,
-    extensionActor: extensionActor!,
-    transport: transport! };
+const inspectTerminalOwner = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
+  check(browserMutationSchemaIsCurrent(s.schema) && browserMutationStoreStartupOrderIsCurrent(s.store),
+    findings, lawId, paths.schema, "Existing WAL must pass exact read-only schema/provenance admission before key/journal writes; startup repair is forbidden.");
+  const store = s.store.getClass("BrowserMutationStore"), settle = method(s.store, "BrowserMutationStore", "settleTerminalReceipt");
+  const completionNode = s.supervisor.getClass("BrowserInfrastructureSupervisor")?.getMethod("settleMutationTerminal");
+  const completion = completionNode?.getBody()?.getText() ?? "";
+  const completionCalls = completionNode?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
+  const cas = completionCalls.find(call => call.getExpression().getText() === "mutations.settleTerminalReceipt");
+  const acknowledgements = completionCalls.filter(call => call.getExpression().getText() === "acknowledge");
+  const acknowledgementAfterCas = !!cas && acknowledgements.length === 1 && acknowledgements.every(call => call.getStart() > cas.getEnd());
+  check(!["markConfirmed", "markRejected", "resolve"].some(name => store?.getMethod(name))
+    && has(settle, ["verifyBrowserMutationTerminalFact", "this.database.transaction", "state='DISPATCHED'", "this.assertTerminalReceiptReadback(fact)"])
+    && acknowledgementAfterCas && order(completion, ["mutations.settleTerminalReceipt(fact)", "acknowledge()", "if (logFailure !== null) throw logFailure", "this.lane.notifyMutationSettled()"])
+    && ![s.actor, s.failure].some(source => source.getText().includes(".settleTerminalReceipt(")),
+    findings, lawId, paths.store, "The Store is the sole terminal CAS/readback writer; committed facts ACK before logging failure blocks subsequent work.");
+  check(has(s.store.getText(), ["BrowserMutationOutcome", "mutation_outcome", "native_cause_code", "nativeCauseCode",
+    "terminal_at=?,updated_at=?", "select 1 from browser_mutations where state='DISPATCHED' limit 1",
+    'if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT")'])
+    && has(s.evidence.getText(), ["readMutationOutcome", "requireMutationOutcome", "mutationOutcome: requireMutationOutcome(row.mutation_outcome)", "terminalFailureFields", "nativeFailureCode"])
+    && !/legacyMutationOutcome|settleRetiredTargetLocal|BROWSER_TARGET_LOCAL_EXECUTION_RETIRED/u.test(`${s.store.getText()}\n${s.evidence.getText()}`),
+    findings, lawId, paths.evidence, "Terminal outcome/count/native cause must come from current immutable WAL facts, with no retired-target settlement or legacy fallback.");
+  const send = method(s.transport, "BrowserAuthorityWebSocket", "send"), normal = method(s.transport, "BrowserAuthorityWebSocket", "acceptReply");
+  check(order(send, ["onDispatched?.()", "active.socket.send"])
+    && order(normal, ["parseBrowserCommandReply(", "this.settleMutationReceipt(socket, parsed.fact)", "this.removeReply(sequence)"])
+    && has(normal, ["BrowserCommandTerminalReplyError", "reply.reject("])
+    && method(s.transport, "BrowserAuthorityWebSocket", "acceptAuthenticatedControl")
+      .includes("this.settleMutationReceipt(socket, parseBrowserMutationTerminalFact(body))"),
+    findings, lawId, paths.transport, "DISPATCHED precedes socket input; authenticated normal/error/late receipts converge on the same Store CAS before resolving the caller.");
 };
 
-const inspectUniversalPostActionReadGate = (
-  context: InspectorContext,
-  sources: SettlementSources,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  const runtime = sources.debuggerRuntime.getFullText();
-  const authority = sources.targetAuthority.getFullText();
-  const observation = sources.targetObservation.getFullText();
-  const createdTarget = sources.createdTarget.getFullText();
-  requireText(runtime, [
-    "PAGE_ACTION_READ_SETTLEMENT_MS = 2500",
-    "PAGE_MUTATION_METHODS",
-    "PAGE_READ_METHODS",
-    "DEVTOOLS_CONTROL_METHODS",
-    "executePageAction",
-    "awaitPageReadPermission",
-    "pageReadNotBefore",
-    "monotonicNow() + PAGE_ACTION_READ_SETTLEMENT_MS",
-    'throw new Error("BROWSER_UNREGISTERED_DEVTOOLS_METHOD")',
-    '"DOM.focus"',
-    '"DOM.setFileInputFiles"',
-    '"DOM.requestNode"',
-    '"Input.dispatchKeyEvent"',
-    '"Input.dispatchMouseEvent"',
-    '"Input.insertText"',
-    '"Page.navigate"',
-    "createProductionTab",
-    "removeTab",
-    "readTab",
-    "readTargets",
-    "await this.awaitPageReadPermission();\n      throw error;",
-  ], findings, lawId, extensionDebuggerRuntimePath);
-  requireText(`${authority}\n${createdTarget}\n${observation}\n${sources.postcondition.getFullText()}`, [
-    "awaitPageReadPermission",
-    "createProductionTab",
-    "removeTab",
-    "startCreatedTargetDeadlineAfterBarrier",
-    "await this.createdTarget.rejectPendingCreatedTarget",
-  ], findings, lawId, targetAuthorityPath);
-  requireText(createdTarget, [
-    "await this.debuggerRuntime.removeTab",
-    "pending.reject(new Error(reasonCode))",
-  ], findings, lawId, extensionCreatedTargetPath);
-  requireText(sources.transport.getFullText(), [
-    "MUTATION_TERMINAL_REPLY_GRACE_MS = 4_000",
-  ], findings, lawId, sourcePaths[0]);
-  requireText(sources.commandPostcondition.getFullText(), [
-    "BROWSER_TERMINAL_REPLY_MARGIN_MS = 4_000",
-  ], findings, lawId, browserCommandPostconditionPath);
-  const constantCount = runtime.match(/PAGE_ACTION_READ_SETTLEMENT_MS\s*=\s*2500/gu)?.length ?? 0;
-  if (constantCount !== 1) findings.push(createLocalFinding({
-    checkId: "browser-authority/mutation-settlement", lawId, filePath: extensionDebuggerRuntimePath,
-    message: `The Browser Authority must own exactly one hard-coded 2500ms page-read gate; found ${constantCount}.`,
-  }));
-  if (/constructor\([^)]*(?:delay|settlement|timing)/iu.test(runtime)) findings.push(createLocalFinding({
-    checkId: "browser-authority/mutation-settlement", lawId, filePath: extensionDebuggerRuntimePath,
-    message: "The Browser post-action delay must not be caller-configurable.",
-  }));
-  for (const [path, text] of [[targetAuthorityPath, authority], [extensionTargetObservationPath, observation]] as const) {
-    if (/chromeApi\.(?:debugger\.getTargets|tabs\.(?:create|get|remove))/u.test(text)) findings.push(createLocalFinding({
-      checkId: "browser-authority/mutation-settlement", lawId, filePath: path,
-      message: "Page mutation and Target reads must pass through the sole ExtensionDebuggerRuntime gate.",
-    }));
-  }
-  if (/navigationResult|asRecord\(await[^)]*Page\.navigate/su.test(authority)) findings.push(createLocalFinding({
-    checkId: "browser-authority/mutation-settlement", lawId, filePath: targetAuthorityPath,
-    message: "Navigation postconditions must use a fresh frame read after the gate, never the Page.navigate acknowledgement.",
-  }));
-
-  inspectRegisteredPageCallGraph(context, sources, findings, lawId);
+const inspectReceiptConsumer = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
+  const complete = method(s.actor, "BrowserCommandActor", "completeMutation");
+  const fail = method(s.actor, "BrowserCommandActor", "failExecution");
+  check(order(complete, ["verifyNormalBrowserMutationReply(", "this.mutations.readCommand(permit.commandId)", "this.mutations.readExactCallMutationFact("])
+    && has(complete, ["receiptBindingHash", "authorityRef:", "mutationOutcome:", "physicalInputCount:", "terminalAt:", "nativeFailureCode:"])
+    && !complete.includes("assertCurrentAuthority") && !complete.includes("currentOperatorTarget")
+    && has(fail, ["error.replyChannelToken === permit.replyChannelToken", "error.permitSequence === permit.sequence"])
+    && has(s.failure.getText(), ["readExactCallMutationFact", "fact.nativeFailureCode", "input.terminalReply", 'row?.state !== "REJECTED"'])
+    && has(s.actor.getText(), ["else this.authorityGuard.assertCurrentAuthority(permit)", "this.authorityGuard.assertCurrentAuthority(permit)", "assertValidCommandPermit(permit)"])
+    && s.manager.getText().includes("this.commandActor.pendingMutationCommandIds(this.executionBinding).length"),
+    findings, lawId, paths.actor, "Mutation consumers must read the authenticated original terminal fact without a retired live-claim gate; observations and new input retain authority guards.");
+  const execute = method(s.worker, "ExtensionWebSocketActor", "executeCommand");
+  const ack = method(s.worker, "ExtensionWebSocketActor", "acceptMutationAck");
+  check(order(execute, ["this.commandDelivery.mutationSlot =", "await executeExtensionCommandReply(", "slot.fact = fact",
+    'await this.sendEncrypted(socket, "REPLY", reply.body)', "retireInvalidCommandTarget(", 'this.sendEncrypted(socket, "DIAGNOSTIC"'])
+    && has(execute, ["browserMutationTerminalFactShapeValid(fact)", "slot?.commandId !== permit.commandId", "receiptBindingHash",
+      "socket !== this.connection.socket", "session.serverToClientKey", "Date.now() >= deadline"])
+    && has(ack, ['"commandId|receiptBindingHash|receiptHash|type"', "ack.commandId !== fact.commandId",
+      "ack.receiptBindingHash !== fact.receiptBindingHash", "ack.receiptHash !== fact.receiptHash", "this.commandDelivery.mutationSlot = null"])
+    && has(s.worker.getText(), ["disconnectedDrain", "pendingCommandHandlers", "pendingTargetHandlers", "lastMutationDeliveryKey", "sendTail", "receiveTail",
+      "frame.sequence <= this.connection.lastServerSequence", "this.connection.lastServerSequence = frame.sequence", "this.acceptServerSequence(frame)"])
+    && order(method(s.worker, "ExtensionWebSocketActor", "drainDisconnectedHandlers"),
+      ["await Promise.allSettled(", "await this.targetAuthority.releaseActiveTarget(false)", "await this.flushMutationReceipt()"]),
+    findings, lawId, paths.worker, "The extension must preserve a bound terminal slot before REPLY/retirement and retain it through disconnect until the exact authenticated ACK.");
 };
 
-const inspectRegisteredPageCallGraph = (
-  context: InspectorContext,
-  sources: SettlementSources,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  const methodRegistry = new Set(["PAGE_MUTATION_METHODS", "PAGE_READ_METHODS", "DEVTOOLS_CONTROL_METHODS"]
-    .flatMap((name) => sources.debuggerRuntime.getVariableDeclaration(name)?.getInitializer()
-      ?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((literal) => literal.getLiteralValue()) ?? []));
-  const rawPageApi = /(?:^|\.)(?:chromeApi|this\.chromeApi)\.(?:debugger\.(?:sendCommand|getTargets)|tabs\.(?:create|get|remove))$/u;
-  for (const source of context.project.getSourceFiles()) {
-    const extensionMarker = "/src/lib/browser/chrome-extension/";
-    const markerAt = source.getFilePath().indexOf(extensionMarker);
-    const repositoryPath = markerAt < 0 ? source.getFilePath()
-      : source.getFilePath().slice(markerAt + 1);
-    if (!repositoryPath.startsWith("src/lib/browser/chrome-extension/")) continue;
+const inspectMechanicalQualification = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
+  check(has(`${s.receipt.getText()}\n${s.specialReceipt.getText()}`, ["zeroActionSatisfied", "qualificationRejected", "mutationCount === 0",
+    'mutationOutcome: "no"', 'mutationOutcome: "confirmed"', 'command.kind === "file-input"', "REJECTION_CODES", "qualificationStage",
+    "qualificationFactsConsistent", "exactKeys", "POINTER_ACTIONABILITY_NATIVE_CAUSES", "KEYBOARD_ACTIONABILITY_NATIVE_CAUSES"])
+    && has(`${s.dom.getText()}\n${s.pointer.getText()}\n${s.postcondition.getText()}`, ["qualificationReceipt", "qualifiedNode", "pointerAction",
+      "resolveCoherentPointerAction", "zeroActionReceipt", "verifyClickPostcondition", "candidate-set", "actionability", "mutationCount: 0",
+      "identityRevalidated: false", "postconditionVerified: false"])
+    && has(`${s.contract.getText()}\n${s.special.getText()}`, ["intent.expectedMatches !== undefined && intent.expectedMatches !== 1", "exactKeys",
+      "Object.keys(intent).length !== exactKeys.size", "!exactKeys.has(key)"])
+    && has(s.observationReceipt.getText(), ["value.qualificationRejected === true", "record.postconditionObservation === undefined"]),
+    findings, lawId, paths.receipt, "Qualified zero input, rejected qualification and confirmed physical input must retain their distinct original mechanical receipts and exact DOM contracts.");
+  check(has(s.files.getText(), ["executeExtensionFileInput", "DOM.setFileInputFiles", "approvedFiles", "resolvedFilePaths", "candidate.facts.multiple === true",
+    "candidate.facts.disabled === false", "candidate.facts.ariaDisabled === false", "acceptPolicyValid", "Page.setInterceptFileChooserDialog",
+    "captureFileChooserOpened", "chooser.backendNodeId !== candidate.backendNodeId", "mutationCount: 1",
+    "const postconditionVerified = composerUploadObserved", "assertCurrent(input.target.targetRef, input.target.documentRef)"])
+    && has(s.commandPostcondition.getText(), ["bindBrowserMutationObservation", "bindBrowserObservationPacket"]),
+    findings, lawId, paths.files, "File input must consume the one complete approved batch and exact chooser identity, then read the composer upload postcondition.");
+};
+
+const inspectPageMethodAdmission = (s: Sources, context: InspectorContext, findings: InspectorFinding[], lawId: string,
+  classifications: Record<string, string[]>): void => {
+  const registry = new Set(Object.values(classifications).flat());
+  for (const source of context.project.getSourceFiles().filter(row => row.getFilePath().includes("/src/lib/browser/chrome-extension/"))) {
     for (const call of source.getDescendantsOfKind(SyntaxKind.CallExpression)) {
-      const callee = call.getExpression().getText();
-      if (rawPageApi.test(callee) && repositoryPath !== extensionDebuggerRuntimePath) {
-        findings.push(createLocalFinding({
-          checkId: "browser-authority/mutation-settlement", lawId, filePath: repositoryPath,
-          line: call.getStartLineNumber(),
-          message: "A production Chrome page mutation/read bypasses the sole ExtensionDebuggerRuntime gate.",
-        }));
-      }
-      const [targetArgument, methodArgument] = call.getArguments();
-      if (!targetArgument || !methodArgument || !/(?:^|\.)(?:debuggerRuntime|runtime)\.send$/u.test(callee)) continue;
-      if (!methodArgument.isKind(SyntaxKind.StringLiteral)) {
-        findings.push(createLocalFinding({
-          checkId: "browser-authority/mutation-settlement", lawId, filePath: repositoryPath,
-          line: call.getStartLineNumber(),
-          message: "A production DevTools call must use one literal method classified by the sole runtime registry.",
-        }));
-        continue;
-      }
-      const method = methodArgument.getLiteralValue();
-      if (methodRegistry.has(method)) continue;
-      findings.push(createLocalFinding({
-        checkId: "browser-authority/mutation-settlement", lawId, filePath: repositoryPath,
-        line: call.getStartLineNumber(),
-        message: `The production DevTools method ${method} is not classified by the sole runtime gate.`,
-      }));
+      const callee = call.getExpression().getText(), methodArgument = call.getArguments()[1];
+      const raw = /(?:^|\.)chromeApi\.(?:debugger\.(?:sendCommand|getTargets)|tabs\.(?:create|get|remove))$/u.test(callee);
+      if (raw) check(source === s.runtime, findings, lawId, source.getFilePath(), "Raw page APIs must exist only in the runtime read/action gate.");
+      if (!/(?:^|\.)(?:debuggerRuntime|runtime)\.send$/u.test(callee) || !methodArgument) continue;
+      check(methodArgument.isKind(SyntaxKind.StringLiteral) && registry.has(methodArgument.getLiteralValue()),
+        findings, lawId, source.getFilePath(), "Each production DevTools call must use a literal method classified by the sole runtime registry.");
     }
   }
 };
 
-const inspectMutationPersistence = (
-  sources: SettlementSources,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  const actorText = `${sources.actor.getFullText()}\n${sources.failure.getFullText()}`;
-  requireText(sources.manager.getFullText(), [
-    'this.commandActor.pendingMutationCommandIds(this.executionBinding).length',
-  ], findings, lawId, sourcePaths[5]);
-  requireText(actorText, [
-    "readMutationOutcome", "result.failureCode",
-    "this.mutations.readCommand(permit.commandId)",
-    "const result = fact.terminalReceipt",
-    "BrowserCommandTerminalReplyError",
-    "input.terminalReply.failureCode",
-  ], findings, lawId, sourcePaths[6]);
-  requireText(`${sources.mutationReceipt.getFullText()}\n${sources.specialMutationReceipt.getFullText()}`, [
-    "zeroActionSatisfied", "qualificationRejected", "mutationCount === 0",
-    "mutationOutcome: \"no\"", "mutationOutcome: \"confirmed\"",
-    "command.kind === \"file-input\"", "REJECTION_CODES",
-    "qualificationStage", "qualificationFactsConsistent", "exactKeys",
-    "POINTER_ACTIONABILITY_NATIVE_CAUSES", "KEYBOARD_ACTIONABILITY_NATIVE_CAUSES",
-  ], findings, lawId, MUTATION_RECEIPT_PATH);
-  requireText(sources.store.getFullText(), [
-    "BrowserMutationOutcome", "mutationOutcome", "mutation_outcome", "terminal_at=?,updated_at=?",
-    "native_cause_code", "nativeCauseCode",
-    "select 1 from browser_mutations where state='DISPATCHED' limit 1",
-    "if (result.changes !== 1) throw new Error(\"BROWSER_MUTATION_STATE_CONFLICT\")",
-  ], findings, lawId, sourcePaths[7]);
-  if (sources.store.getFullText().includes("settleRetiredTargetLocal")
-    || sources.store.getFullText().includes("BROWSER_TARGET_LOCAL_EXECUTION_RETIRED")) {
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/mutation-settlement", lawId, filePath: sourcePaths[7],
-      message: "A retired Target must not settle an unresolved WAL mutation.",
-    }));
+const inspectReadGate = (s: Sources, context: InspectorContext, findings: InspectorFinding[], lawId: string): void => {
+  const runtime = s.runtime.getText();
+  check(has(runtime, ["PAGE_ACTION_READ_SETTLEMENT_MS = 2500", "PAGE_MUTATION_METHODS", "PAGE_READ_METHODS", "DEVTOOLS_CONTROL_METHODS",
+    "executePageAction", "awaitPageReadPermission", "pageReadNotBefore", "monotonicNow() + PAGE_ACTION_READ_SETTLEMENT_MS",
+    'throw new Error("BROWSER_UNREGISTERED_DEVTOOLS_METHOD")', "createProductionTab", "removeTab", "readTab", "readTargets",
+    "await this.awaitPageReadPermission();\n      throw error;"])
+    && (runtime.match(/PAGE_ACTION_READ_SETTLEMENT_MS\s*=\s*2500/gu)?.length ?? 0) === 1
+    && !/constructor\([^)]*(?:delay|settlement|timing)/iu.test(runtime)
+    && s.transport.getText().includes("MUTATION_TERMINAL_REPLY_GRACE_MS = 4_000")
+    && s.commandPostcondition.getText().includes("BROWSER_TERMINAL_REPLY_MARGIN_MS = 4_000")
+    && method(s.created, "ExtensionCreatedTarget", "waitForCreatedTarget").includes("deadlineAt - Date.now()")
+    && method(s.created, "ExtensionCreatedTarget", "consumeTabUpdateAfterBarrier").includes("await this.debuggerRuntime.awaitPageReadPermission()")
+    && s.authority.getText().includes("await this.createdTarget.rejectPendingCreatedTarget"),
+    findings, lawId, paths.runtime, "One non-configurable 2500ms Browser read gate and the original terminal reply margins must govern every page action and failed action.");
+  const classifications = {
+    PAGE_MUTATION_METHODS: ["DOM.focus", "DOM.setFileInputFiles", "Input.dispatchKeyEvent", "Input.dispatchMouseEvent", "Input.insertText", "Page.navigate"],
+    PAGE_READ_METHODS: ["DOM.describeNode", "DOM.getDocument", "DOM.getOuterHTML", "DOM.querySelectorAll", "DOM.requestNode", "DOM.resolveNode", "Page.getFrameTree", "Page.getNavigationHistory", "Runtime.callFunctionOn", "Runtime.evaluate"],
+    DEVTOOLS_CONTROL_METHODS: ["Page.enable", "Page.setInterceptFileChooserDialog", "Runtime.releaseObject"],
+  };
+  for (const [name, expected] of Object.entries(classifications)) {
+    const actual = s.runtime.getVariableDeclaration(name)?.getInitializer()?.getDescendantsOfKind(SyntaxKind.StringLiteral).map(row => row.getLiteralValue()) ?? [];
+    check(JSON.stringify(actual.sort()) === JSON.stringify([...expected].sort()), findings, lawId, paths.runtime,
+      `DevTools methods must keep their exact ${name} classification.`);
   }
-  requireText(sources.mutationEvidence.getFullText(), ["readMutationOutcome",
-    "requireMutationOutcome", "mutationOutcome: requireMutationOutcome(row.mutation_outcome)",
-    "terminalFailureFields", "nativeFailureCode",
-  ], findings, lawId, MUTATION_EVIDENCE_PATH);
-  requireText(actorText, [
-    "result.nativeCauseCode",
-  ], findings, lawId, sourcePaths[6]);
-  if (!browserMutationSchemaIsCurrent(sources.schema)) findings.push(createLocalFinding({
-    checkId: "browser-authority/mutation-settlement", lawId, filePath: browserMutationSchemaPath,
-    message: "Existing Browser WAL schema must be validated without startup migration or repair DDL.",
-  }));
-  if (!browserMutationStoreStartupOrderIsCurrent(sources.store)) findings.push(createLocalFinding({
-    checkId: "browser-authority/mutation-settlement", lawId, filePath: sourcePaths[7],
-    message: "The Browser Store must validate existing WAL read-only before key or journal writes.",
-  }));
-  if (`${sources.store.getFullText()}\n${sources.mutationEvidence.getFullText()}`
-    .includes("legacyMutationOutcome")) findings.push(createLocalFinding({
-    checkId: "browser-authority/mutation-settlement", lawId, filePath: sourcePaths[7],
-    message: "The current Browser WAL reader must not retain a legacy outcome fallback.",
-  }));
+  const dispatch = method(s.runtime, "ExtensionDebuggerRuntime", "send");
+  check(order(dispatch, ["PAGE_MUTATION_METHODS.has(method)", "guard.assertInteractive()", "this.executePageAction(", "PAGE_READ_METHODS.has(method)",
+    "await this.awaitPageReadPermission()", "DEVTOOLS_CONTROL_METHODS.has(method)"]), findings, lawId, paths.runtime,
+  "Physical input cannot bypass its provider guard and read settlement gate through a control/read classification.");
+  inspectPageMethodAdmission(s, context, findings, lawId, classifications);
+  check(!/navigationResult|asRecord\(await[^)]*Page\.navigate/su.test(s.authority.getText()),
+    findings, lawId, paths.authority, "Navigation completion must use fresh frame readback after the gate, never the navigation acknowledgement.");
 };
 
-const inspectMutationExecution = (
-  sources: SettlementSources,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  requireText(`${sources.runtime.getFullText()}\n${sources.pointerRuntime.getFullText()}\n${sources.postcondition.getFullText()}`, [
-    "qualificationReceipt", "qualifiedNode", "pointerAction", "resolveCoherentPointerAction",
-    "zeroActionReceipt", "verifyClickPostcondition",
-    "candidate-set", "actionability",
-    "mutationCount: 0", "identityRevalidated: false", "postconditionVerified: false",
-  ], findings, lawId, domMutationPostconditionPath);
-  requireText(`${sources.contract.getFullText()}\n${sources.specialContract.getFullText()}`, [
-    "intent.expectedMatches !== undefined && intent.expectedMatches !== 1",
-    "exactKeys",
-    "Object.keys(intent).length !== exactKeys.size", "!exactKeys.has(key)",
-  ], findings, lawId, DOM_CONTRACT_PATH);
-  requireText(sources.extensionActor.getFullText(), [
-    "Date.parse(frame.deadline)", "assertCommandActive", "Date.now() >= deadline",
-    "socket !== this.connection.socket", "this.connection.session?.serverToClientKey !== session.serverToClientKey",
-  ], findings, lawId, sourcePaths[1]);
-  requireText(sources.targetAuthority.getFullText(), [
-    "assertCommandActive", "const assertCurrent", "assertCommandActive();",
-  ], findings, lawId, targetAuthorityPath);
-
-  requireText(sources.commandPostcondition.getFullText(), [
-    "bindBrowserMutationObservation", "bindBrowserObservationPacket",
-  ], findings, lawId, browserCommandPostconditionPath);
-  requireText(sources.observationReceipt.getFullText(), ["value.qualificationRejected === true",
-    "record.postconditionObservation === undefined"], findings, lawId, OBSERVATION_RECEIPT_PATH);
-  requireText(sources.fileInput.getFullText(), [
-    "executeExtensionFileInput", "DOM.setFileInputFiles", "approvedFiles", "resolvedFilePaths",
-    "candidate.facts.multiple === true", "candidate.facts.disabled === false",
-    "candidate.facts.ariaDisabled === false", "acceptPolicyValid",
-    "Page.setInterceptFileChooserDialog", "captureFileChooserOpened",
-    "chooser.backendNodeId !== candidate.backendNodeId", "mutationCount: 1",
-    "const postconditionVerified = composerUploadObserved", "assertCurrent(input.target.targetRef, input.target.documentRef)",
-  ], findings, lawId, extensionFileInputPath);
-};
-
-const inspectAuthenticatedMutationReply = (
-  context: InspectorContext,
-  sources: SettlementSources,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  requireText(sources.transport.getFullText(), [
-    "BrowserCommandTerminalReplyError", "reply.reject(new BrowserCommandTerminalReplyError(",
-    "parseBrowserCommandReply(body, reply.permit, reply.command, reply.receiptBindingHash)",
-    "if (parsed.fact) this.settleMutationReceipt(socket, parsed.fact)",
-  ], findings, lawId, sourcePaths[0]);
-  requireText(`${sources.actor.getFullText()}\n${sources.failure.getFullText()}`, [
-    "error.replyChannelToken === permit.replyChannelToken",
-    "error.permitSequence === permit.sequence",
-  ], findings, lawId, sourcePaths[6]);
-  const supervisor = requireSource(context, findings, lawId, sourcePaths[3]);
-  const store = sources.store.getClass("BrowserMutationStore");
-  if (store?.getMethod("markConfirmed") || store?.getMethod("markRejected") || store?.getMethod("resolve")) {
-    findings.push(createLocalFinding({ checkId: "browser-authority/mutation-settlement", lawId,
-      filePath: sourcePaths[7], message: "Terminal writes must use only settleTerminalReceipt." }));
-  }
-  requireText(sources.transport.getClass("BrowserAuthorityWebSocket")?.getMethod("acceptAuthenticatedControl")?.getText() ?? "",
-    ["MUTATION_RECEIPT", "this.settleMutationReceipt(socket, parseBrowserMutationTerminalFact(body))"], findings, lawId, sourcePaths[0]);
-  requireText(store?.getMethod("settleTerminalReceipt")?.getText() ?? "",
-    ["verifyBrowserMutationTerminalFact", "this.database.transaction", "state='DISPATCHED'", "this.assertTerminalReceiptReadback(fact)"], findings, lawId, sourcePaths[7]);
-  requireText(supervisor?.getClass("BrowserInfrastructureSupervisor")?.getMethod("settleMutationTerminal")?.getText() ?? "",
-    ["mutations.settleTerminalReceipt(fact)", "acknowledge()", "if (logFailure !== null) throw logFailure", "this.lane.notifyMutationSettled()"], findings, lawId, sourcePaths[3]);
-  requireText(sources.extensionActor.getFullText(), ["disconnectedDrain", "pendingCommandHandlers",
-    "pendingTargetHandlers", "lastMutationDeliveryKey", "sendTail", "receiveTail",
-    "frame.sequence <= this.connection.lastServerSequence", "this.connection.lastServerSequence = frame.sequence",
-    "this.acceptServerSequence(frame)",
-    "this.commandDelivery.mutationSlot.fact = reply.body.mutationReceipt",
-    "await this.targetAuthority.releaseActiveTarget(false)", "await this.flushMutationReceipt()"], findings, lawId, sourcePaths[1]);
-  const completion = supervisor?.getClass("BrowserInfrastructureSupervisor")?.getMethod("settleMutationTerminal")?.getText() ?? "";
-  if (completion.indexOf("acknowledge()") < completion.indexOf("mutations.settleTerminalReceipt(fact)")
-    || completion.indexOf("acknowledge()") > completion.indexOf("if (logFailure !== null) throw logFailure"))
-    findings.push(createLocalFinding({ checkId: "browser-authority/mutation-settlement", lawId,
-      filePath: sourcePaths[3], message: "Committed facts must ACK before log failure blocks future work." }));
-  for (const source of [sources.actor, sources.failure]) if (source.getFullText().includes(".settleTerminalReceipt("))
-    findings.push(createLocalFinding({ checkId: "browser-authority/mutation-settlement", lawId,
-      filePath: sourcePaths[6], message: "Lease Actor and failure handler cannot become a second terminal writer." }));
-  inspectDispatchPersistence(sources.transport, findings, lawId);
-};
-
-export const inspectBrowserMutationSettlement = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  const sources = requireSettlementSources(context, findings, lawId);
-  if (!sources) return;
-  inspectMutationPersistence(sources, findings, lawId);
-  inspectMutationExecution(sources, findings, lawId);
-  inspectAuthenticatedMutationReply(context, sources, findings, lawId);
-  inspectUniversalPostActionReadGate(context, sources, findings, lawId);
+export const inspectBrowserMutationSettlement = (context: InspectorContext, findings: InspectorFinding[], lawId: string): void => {
+  const entries = Object.entries(paths).map(([name, path]) => [name, requireSource(context, findings, lawId, path)] as const);
+  if (entries.some(([, source]) => source === null)) return;
+  const sources = Object.fromEntries(entries) as Sources;
+  inspectTerminalOwner(sources, findings, lawId); inspectReceiptConsumer(sources, findings, lawId);
+  inspectMechanicalQualification(sources, findings, lawId); inspectReadGate(sources, context, findings, lawId);
 };

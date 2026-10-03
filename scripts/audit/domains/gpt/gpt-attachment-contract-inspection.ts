@@ -1,227 +1,164 @@
-import { Node, SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind } from "ts-morph";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
-import { inspectMissingTokens, sourceFor, type FindingFactory } from "./gpt-inspection-support.js";
+import { sourceFor, type FindingFactory } from "./gpt-inspection-support.js";
 
 const ROOT = "src/capabilities/gpt";
-const CHILDREN_PATH = `${ROOT}/children`;
-const childFilePath = (id: string, file: string): string => `${CHILDREN_PATH}/${id}/${file}`;
-const CONTRACT_PATH = `${ROOT}/contract.ts`;
-const SCHEMA_PATH = `${ROOT}/schema.ts`;
-const PRODUCT_API_PATH = `${ROOT}/product-api.ts`;
-const ATTACHMENT_HANDLER_PATH = `${CHILDREN_PATH}/open_gpt_attachment_control/handler.ts`;
-const ATTACHMENT_HANDLER_PATHS = [
-  ATTACHMENT_HANDLER_PATH,
-  childFilePath("open_gpt_attachment_control", "observation.ts"),
-  childFilePath("open_gpt_attachment_control", "selectors.ts"),
-  `${CHILDREN_PATH}/attach_approved_gpt_files_once/handler.ts`,
-  childFilePath("attach_approved_gpt_files_once", "attachment-observation.ts"),
-  childFilePath("attach_approved_gpt_files_once", "control-observation.ts"),
-  childFilePath("attach_approved_gpt_files_once", "selectors.ts"),
-  `${CHILDREN_PATH}/reconcile_gpt_attachment_set/handler.ts`,
-  childFilePath("reconcile_gpt_attachment_set", "observation.ts"),
-  childFilePath("reconcile_gpt_attachment_set", "selectors.ts"),
-] as const;
-const ATTACHMENT_CONTRACT_PATH = childFilePath("attach_approved_gpt_files_once", "selectors.ts");
-const ATTACHMENT_SETTLEMENT_CONTRACT_PATH = childFilePath("reconcile_gpt_attachment_set", "selectors.ts");
-const ATTACHMENT_SETTLEMENT_OBSERVATION_PATH =
-  childFilePath("reconcile_gpt_attachment_set", "observation.ts");
-const BROWSER_TARGET_LEASE_PATH = "src/lib/browser/exact-target/browser-target-lease.ts";
-const inspectAttachmentSelectors = (
-  contract: SourceFile | undefined,
-  settlementContract: SourceFile | undefined,
-  browserContract: SourceFile | undefined,
-  findings: InspectorFinding[],
-  finding: FindingFactory,
-): void => {
-  const literal = (name: string): string | null => {
-    const initializer = contract?.getVariableDeclaration(name)?.getInitializer();
-    return initializer && (Node.isStringLiteral(initializer) || Node.isNoSubstitutionTemplateLiteral(initializer))
-      ? initializer.getLiteralValue() : null;
-  };
-  const expected = {
-    GPT_ATTACHMENT_CONTROL_SELECTOR:
-      "button[aria-label='添加文件等内容']",
-    GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR: "[data-composer-overlay-floating-ui='true']",
-    GPT_UPLOAD_FROM_COMPUTER_SELECTOR: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-actions'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child",
-    GPT_UPLOAD_FROM_COMPUTER_KEYWORD: "上传",
-    GPT_COMPOSER_FORM_SELECTOR: "form[data-chatgpt-composer]",
-    GPT_ATTACHMENT_ITEM_SELECTOR: "button.composer-attachment-surface[aria-label]",
-  } as const;
-  for (const [name, value] of Object.entries(expected)) if (literal(name) !== value) findings.push(finding(
-    "gpt/chrome-proven-attachment-dom", ATTACHMENT_CONTRACT_PATH,
-    `${name} must equal the current Chrome-proven value ${value}.`,
-  ));
-  const uploadChecks = browserContract?.getVariableDeclaration("assertFileInputRequest")
-    ?.getInitializer()?.getDescendantsOfKind(SyntaxKind.BinaryExpression).filter(node =>
-      node.getLeft().getText() === "input.activation?.selector"
-      && node.getOperatorToken().getKind() === SyntaxKind.ExclamationEqualsEqualsToken) ?? [];
-  const approvedSelector = uploadChecks[0]?.getRight();
-  if (uploadChecks.length !== 1 || !approvedSelector || !Node.isStringLiteral(approvedSelector)
-    || approvedSelector.getLiteralValue() !== literal("GPT_UPLOAD_FROM_COMPUTER_SELECTOR")) {
-    findings.push(finding("gpt/chrome-proven-attachment-dom",
-      "src/lib/browser/chrome-extension/extension-file-input-runtime.ts",
-      "Extension validator must approve the exact current GPT upload selector."));
-  }
-  const contractText = contract?.getFullText() ?? "";
-  const settlementContractText = settlementContract?.getFullText() ?? "";
-  for (const required of [
-    "GPT_ATTACHMENT_PENDING_ACTION_SELECTOR", "${GPT_ATTACHMENT_ITEM_SELECTOR}.cursor-wait",
-  ]) if (!settlementContractText.includes(required)) findings.push(finding(
-    "gpt/chrome-proven-attachment-dom", ATTACHMENT_SETTLEMENT_CONTRACT_PATH,
-    `Attachment DOM contract is missing current Chrome-proven pending state ${required}.`,
-  ));
-  for (const stale of [
-    'button[aria-label="添加文件和更多内容"]', "[role='menuitem']",
-    "[class*='grid-area:header']", "library-file-icon",
-  ]) {
-    if (contractText.includes(stale)) findings.push(finding(
-      "gpt/stale-attachment-dom-absent", ATTACHMENT_CONTRACT_PATH,
-      `Attachment DOM contract retains stale selector ${stale}.`,
-    ));
-  }
+const compact = (value: string): string => value.replace(/\s/gu, "");
+const child = (id: string, file = "handler.ts"): string => `${ROOT}/children/${id}/${file}`;
+const text = (context: InspectorContext, path: string): string => sourceFor(context, path)?.getFullText() ?? "";
+const check = (valid: boolean, id: string, path: string, message: string, findings: InspectorFinding[], finding: FindingFactory): void => {
+  if (!valid) findings.push(finding(id, path, message));
 };
+const expectedSelectors = {
+  GPT_ATTACHMENT_CONTROL_SELECTOR: "button[aria-label='添加文件等内容']",
+  GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR: "[data-composer-overlay-floating-ui='true']",
+  GPT_UPLOAD_FROM_COMPUTER_SELECTOR: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-actions'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child",
+  GPT_UPLOAD_FROM_COMPUTER_KEYWORD: "上传",
+  GPT_COMPOSER_FORM_SELECTOR: "form[data-chatgpt-composer]",
+  GPT_ATTACHMENT_ITEM_SELECTOR: "button.composer-attachment-surface[aria-label]",
+} as const;
 
-const inspectAttachmentHandler = (
-  handlerSources: readonly SourceFile[],
-  findings: InspectorFinding[],
-  finding: FindingFactory,
-): void => {
-  const handlerText = handlerSources.map((source) => source.getFullText()).join("\n");
-  if (!handlerText.includes('Math.max(1_500, numberInput(intent, "timeoutMs"))')
-    || /Math\.min\([^\n]*timeoutMs[^\n]*(?:60_000|60000)|Math\.min\([^\n]*numberInput\([^\n]*(?:60_000|60000)/u.test(handlerText)) {
-    findings.push(finding(
-      "gpt/attachment-product-timeout-preserved", ATTACHMENT_HANDLER_PATH,
-      "Attachment reconciliation must preserve the Product timeout instead of applying a public 60-second ceiling.",
-    ));
+const inspectAttachmentSelectors = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
+  const selectorPath = child("attach_approved_gpt_files_once", "selectors.ts"), selectors = sourceFor(context, selectorPath);
+  for (const [name, value] of Object.entries(expectedSelectors)) {
+    const initializer = selectors?.getVariableDeclaration(name)?.getInitializer();
+    check((Node.isStringLiteral(initializer) || Node.isNoSubstitutionTemplateLiteral(initializer)) && initializer.getLiteralValue() === value,
+      "gpt/chrome-proven-attachment-dom", selectorPath, `${name} must retain the exact approved Chrome selector.`, findings, finding);
   }
-  inspectMissingTokens({ source: handlerText, required: [
-    "readConfirmedAttachmentControlState", "readConfirmedCoherentObservation", 'queryId: "attachment-control"',
-    'queryId: "upload-choice"', "scope: { selector: GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR }",
-    "attachmentControlOpenable",
-    "attachmentControlReady",
-    "scopeRejections", "observationRevisionHash",
-    "attachmentSetState", 'queryId: "attachment-composer"', 'queryId: "attachment-items"',
-    'queryId: "attachment-uploading"', 'queryId: "attachment-pending"',
-    "itemRawCount", "itemEligibleCount", "pendingActionCount", "failAttachmentSet",
-  ], checkId: "gpt/attachment-entry-coherent-facts", filePath: ATTACHMENT_HANDLER_PATH,
-  findings, finding,
-  message: () => "Attachment control and upload leaf must be qualified by one coherent Browser packet." });
-  const calls = handlerSources.flatMap((source) => source.getDescendantsOfKind(SyntaxKind.CallExpression));
-  const postcondition = calls.find((call) => call.getExpression().getText().endsWith(".executeDomIntent")
-    && call.getText().includes("GPT_ATTACHMENT_CONTROL_SELECTOR"));
-  if (!postcondition || !postcondition.getText().includes("ATTACHMENT_CONTROL_OPEN_POSTCONDITION")
-    || !handlerText.includes("mutationRecord.postconditionObservation")
-    || !handlerText.includes("decodeCoherentObservationPacket")
-    || !handlerText.includes("GPT_UPLOAD_FROM_COMPUTER_SELECTOR")
-    || !handlerText.includes("GPT_UPLOAD_FROM_COMPUTER_KEYWORD")) findings.push(finding(
-    "gpt/attachment-entry-direct-postcondition", ATTACHMENT_HANDLER_PATH,
-    "Attachment entry click must consume one coherent Browser postcondition packet for the scoped exact upload leaf.",
-  ));
-  for (const retired of [
-    "observed.choiceRaw === 1", "observed.choiceRaw !== 0", "readback.choiceRaw !== 1",
-    "postClickMatch: {\n        selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR",
-    'queryId: "attachment-region"', 'queryId: "attachment-ready"',
-    "GPT_ATTACHMENT_READY_ICON_SELECTOR", "readyCount",
-  ]) if (handlerText.includes(retired)) findings.push(finding(
-    "gpt/attachment-global-raw-or-second-readback-retired", ATTACHMENT_HANDLER_PATH,
-    `Attachment control retains the retired unscoped/immediate path ${retired}.`,
-  ));
-  for (const forbidden of ["filePath", "readFile", "registerFileArtifact", "issueFileArtifactGrant"]) {
-    if (handlerText.includes(forbidden)) findings.push(finding(
-      "gpt/attachment-physical-path-owner", ATTACHMENT_HANDLER_PATH,
-      `GPT attachment Child must not own Browser physical-path operation ${forbidden}.`,
-    ));
-  }
-  inspectMissingTokens({ source: handlerText,
-    required: ["gptAttachmentProviderDisplayName", "artifactRef", "providerDisplayName",
-      "approvedArtifacts", "browser.attachFile", "readCoherentObservation"],
-    checkId: "gpt/attachment-artifact-boundary", filePath: ATTACHMENT_HANDLER_PATH,
-    findings, finding, message: (required) => `GPT attachment artifact boundary is missing ${required}.` });
+  const browserPath = "src/lib/browser/chrome-extension/extension-file-input-runtime.ts";
+  const checks = sourceFor(context, browserPath)?.getVariableDeclaration("assertFileInputRequest")?.getInitializer()
+    ?.getDescendantsOfKind(SyntaxKind.BinaryExpression).filter(expression => expression.getLeft().getText() === "input.activation?.selector"
+      && expression.getOperatorToken().getKind() === SyntaxKind.ExclamationEqualsEqualsToken) ?? [];
+  const approved = checks[0]?.getRight();
+  check(checks.length === 1 && Node.isStringLiteral(approved) && approved.getLiteralValue() === expectedSelectors.GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
+    "gpt/chrome-proven-attachment-dom", browserPath, "Browser must qualify the same exact upload leaf used by GPT.", findings, finding);
+  const settlementSelectors = text(context, child("reconcile_gpt_attachment_set", "selectors.ts"));
+  check(settlementSelectors.includes("GPT_ATTACHMENT_PENDING_ACTION_SELECTOR") && settlementSelectors.includes("${GPT_ATTACHMENT_ITEM_SELECTOR}.cursor-wait"),
+    "gpt/chrome-proven-attachment-dom", selectorPath, "Attachment reconciliation reads the approved scoped pending cursor state.", findings, finding);
+  check(!/button\[aria-label="添加文件和更多内容"\]|\[role='menuitem'\]|\[class\*='grid-area:header'\]|library-file-icon/u.test(selectors?.getFullText() ?? ""),
+    "gpt/stale-attachment-dom-absent", selectorPath, "Retired attachment selectors remain absent.", findings, finding);
+
 };
-
-const inspectAttachmentIdentityContract = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  finding: FindingFactory,
-): void => {
-  const attachmentIdentitySource = [
-    sourceFor(context, SCHEMA_PATH)?.getFullText() ?? "",
-    sourceFor(context, childFilePath("attach_approved_gpt_files_once", "attachment-observation.ts"))
-      ?.getFullText() ?? "",
-    sourceFor(context, childFilePath("reconcile_gpt_attachment_set", "observation.ts"))
-      ?.getFullText() ?? "",
-    sourceFor(context, PRODUCT_API_PATH)?.getFullText() ?? "",
-  ].join("\n");
-  inspectMissingTokens({ source: attachmentIdentitySource, required: [
-    "jobId: string", "businessFileToken", "`${jobId}\\u0000${artifactRef}`",
-    "intent.jobId", "readonly jobId: string",
-  ], checkId: "gpt/attachment-job-stable-provider-name", filePath: SCHEMA_PATH,
-  findings, finding,
-  message: (required) => `GPT attachment Provider name is missing job-stable identity token ${required}.` });
-  if (attachmentIdentitySource.includes("`${attemptId}\\u0000${artifactRef}`")) findings.push(finding(
-    "gpt/attachment-job-stable-provider-name", SCHEMA_PATH,
-    "GPT attachment Provider name must not vary with attempt identity.",
-  ));
-  const attachmentSchema = sourceFor(context, SCHEMA_PATH)?.getFullText() ?? "";
-  inspectMissingTokens({ source: attachmentSchema, required: [
-    "normalizeGptProviderAttachmentLabel", "expectedLabels.includes(normalized)",
+const inspectAttachmentEntry = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
+  const openPath = child("open_gpt_attachment_control"), open = sourceFor(context, openPath);
+  const openBody = open?.getVariableDeclaration("openGptAttachmentControlHandler")?.getInitializer();
+  const clicks = openBody?.getDescendantsOfKind(SyntaxKind.CallExpression).filter(call => call.getExpression().getText() === "browser.executeDomIntent") ?? [];
+  const click = clicks[0]?.getArguments()[0];
+  const openText = openBody?.getText() ?? "";
+  const observation = text(context, child("open_gpt_attachment_control", "observation.ts"));
+  check(clicks.length === 1 && Node.isObjectLiteralExpression(click)
+    && click.getText().includes("postClickObservation: ATTACHMENT_CONTROL_OPEN_POSTCONDITION")
+    && openText.includes("readConfirmedAttachmentControlState(browser, context.signal)")
+    && /if \(attachmentControlReady\(observed\)\) return success/u.test(openText)
+    && openText.includes(".postconditionObservation") && openText.includes("decodeAttachmentControlState(packet)")
+    && /if \(!attachmentControlReady\(readback\)\) failAttachmentControl/u.test(openText)
+    && ["readConfirmedCoherentObservation", 'queryId: "attachment-control"', 'queryId: "upload-choice"',
+      "scope: { selector: GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR }", "scopeRejections", "observationRevisionHash"].every(token => observation.includes(token)),
+  "gpt/attachment-entry-direct-postcondition", openPath, "Attachment opening qualifies and consumes one coherent same-click packet for the scoped upload choice.", findings, finding);
+};
+const inspectApprovedBatch = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
+  const uploadPath = child("attach_approved_gpt_files_once"), upload = sourceFor(context, uploadPath), uploadText = upload?.getFullText() ?? "";
+  const uploads = upload?.getDescendantsOfKind(SyntaxKind.CallExpression).filter(call => call.getExpression().getText() === "browser.attachFile") ?? [];
+  const empty = upload?.getDescendantsOfKind(SyntaxKind.IfStatement).find(statement => statement.getExpression().getText() === "files.length === 0");
+  check(uploads.length === 1 && empty?.getThenStatement().getText().includes("return success(") === true
+    && empty?.getThenStatement().getText().includes("browserFact: null") === true
+    && !empty?.getThenStatement().getText().includes("browser.attachFile(")
+    && uploads[0]?.getArguments()[0]?.getText().includes("approvedArtifacts: files.map(file => ({ artifactRef: file.artifactRef, providerDisplayName: file.providerDisplayName,") === true
+    && uploads[0]?.getArguments()[0]?.getText().includes("expectedSha256: file.sha256, bytes: file.bytes") === true
+    && upload?.getDescendantsOfKind(SyntaxKind.CallExpression).filter(call => call.getExpression().getText() === "assertNoForeignComposerAttachments"
+      && call.getArguments().map(argument => argument.getText()).join("|") === "browser|files" && Node.isAwaitExpression(call.getParent())).length === 1
+    && uploadText.indexOf("await assertNoForeignComposerAttachments(browser, files)") < uploadText.indexOf("await browser.attachFile(")
+    && uploadText.includes("physicalInputCount !== 1") && uploadText.includes('mutationOutcome !== "confirmed"'),
+  "gpt/attachment-artifact-boundary", uploadPath, "A nonempty approved batch is one Browser input; an empty batch is read-only and no foreign cards are admitted.", findings, finding);
+  const paths = [child("open_gpt_attachment_control"), uploadPath, child("reconcile_gpt_attachment_set"), child("attach_approved_gpt_files_once", "attachment-observation.ts"),
+    child("attach_approved_gpt_files_once", "control-observation.ts"), child("reconcile_gpt_attachment_set", "observation.ts")];
+  for (const path of paths) check(!/filePath|readFile|registerFileArtifact|issueFileArtifactGrant|GPT_ATTACHMENT_READY_ICON_SELECTOR|readyCount|queryId: "attachment-region"|queryId: "attachment-ready"/u.test(text(context, path)),
+    "gpt/attachment-physical-path-owner", path, "GPT keeps artifact references and coherent facts; Browser alone owns physical upload paths.", findings, finding);
+};
+const attachmentSettlementHelpersAreFrozen = (file: import("ts-morph").SourceFile | undefined): boolean => {
+  const validation = file?.getVariableDeclaration("assertAttachmentObservationValid")?.getInitializer();
+  const ready = file?.getVariableDeclaration("attachmentSetReady")?.getInitializerIfKind(SyntaxKind.ArrowFunction);
+  const timeout = file?.getVariableDeclaration("attachmentSettlementTimeout")?.getInitializer();
+  if (!validation || !ready || !timeout) return false;
+  const conditions = validation.getDescendantsOfKind(SyntaxKind.IfStatement).map(branch => compact(branch.getExpression().getText()));
+  const calls = validation.getDescendantsOfKind(SyntaxKind.CallExpression).map(call => compact(call.getText()));
+  const timeoutCondition = timeout.getDescendantsOfKind(SyntaxKind.IfStatement).map(branch => compact(branch.getExpression().getText()));
+  return JSON.stringify(conditions) === JSON.stringify([
+    "state.composerRawCount>1||state.composerEligibleCount>1||(state.composerRawCount>0&&state.composerRawCount!==state.composerEligibleCount)",
+    "state.pendingActionCount>state.itemEligibleCount"])
+    && JSON.stringify(calls) === JSON.stringify(['failAttachmentSet("GPT_ATTACHMENT_COMPOSER_INVALID",state)',
+      'failAttachmentSet("GPT_ATTACHMENT_VISIBILITY_COUNT_INVALID",state)'])
+    && compact(ready.getBody().getText()) ===
+      "state.composerRawCount===1&&state.composerEligibleCount===1&&state.itemRawCount===expectedCount&&state.itemEligibleCount===expectedCount&&state.observedLabels.length===expectedCount&&missingCount===0&&state.uploadingCount===0&&state.pendingActionCount===0"
+    && JSON.stringify(timeoutCondition) === JSON.stringify([
+      "state.itemRawCount!==expectedLabels.length||state.itemEligibleCount!==expectedLabels.length||state.observedLabels.length!==expectedLabels.length||newSet(normalizedObservedLabels).size!==normalizedObservedLabels.length||missing.length>0||unexpected.length>0"])
+    && JSON.stringify(timeout.getDescendantsOfKind(SyntaxKind.CallExpression).map(call => compact(call.getText()).replace(/,(?=\))/gu, ""))) ===
+      JSON.stringify(["attachmentSetDifference(files,state.observedLabels)",
+        'failAttachmentSet("GPT_ATTACHMENT_SET_MISMATCH",state,attachmentLabelsCode(files,state.observedLabels))',
+        "attachmentLabelsCode(files,state.observedLabels)",
+        'failAttachmentSet(`GPT_ATTACHMENT_UPLOAD_TIMEOUT:cards=${state.itemEligibleCount}:uploading=${state.uploadingCount}`+`:pending=${state.pendingActionCount}:expected=${files.length}`,state)']);
+};
+const inspectAttachmentSettlement = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
+  const reconciliationPath = child("reconcile_gpt_attachment_set"), reconciliation = text(context, reconciliationPath);
+  check(reconciliation.includes('Math.max(1_500, numberInput(intent, "timeoutMs"))')
+    && !/Math\.min\([^\n]*timeoutMs[^\n]*(?:60_000|60000)/u.test(reconciliation),
+  "gpt/attachment-product-timeout-preserved", reconciliationPath, "Reconciliation preserves the Product deadline without a public sixty-second cap.", findings, finding);
+  const settlement = sourceFor(context, child("reconcile_gpt_attachment_set", "observation.ts"));
+  const wait = settlement?.getVariableDeclaration("waitForUploadedAttachmentSet")?.getInitializer();
+  const loop = wait?.getDescendantsOfKind(SyntaxKind.WhileStatement)[0];
+  const branches = loop?.getDescendantsOfKind(SyntaxKind.IfStatement) ?? [];
+  const terminalCalls = loop?.getDescendantsOfKind(SyntaxKind.CallExpression).filter(call => call.getExpression().getText() === "attachmentSettlementTimeout") ?? [];
+  const allowedConditions = ["signal?.aborted", 'failureCode(error)!=="BROWSER_DOM_NODE_STALE"',
+    "deadline<=Date.now()", "!awaitwaitForNextAttachmentObservation(browser,deadline,waitOrdinal)",
+    "attachmentSetReady(last,expectedLabels.length,missing.length)", "deadline<=Date.now()",
+    "!awaitwaitForNextAttachmentObservation(browser,deadline,waitOrdinal)"];
+  check(attachmentSettlementHelpersAreFrozen(settlement)
+    && JSON.stringify(branches.map(branch => compact(branch.getExpression().getText())).sort()) === JSON.stringify(allowedConditions.sort())
+    && !loop?.getDescendantsOfKind(SyntaxKind.CallExpression).some(call => call.getExpression().getText() === "failAttachmentSet")
+    && branches.some(branch => branch.getExpression().getText() === "attachmentSetReady(last, expectedLabels.length, missing.length)"
+      && branch.getThenStatement().getText().includes("return success("))
+    && terminalCalls.length === 4 && terminalCalls.every(call => {
+      const branch = call.getFirstAncestorByKind(SyntaxKind.IfStatement);
+      return ["deadline <= Date.now()", "!await waitForNextAttachmentObservation(browser, deadline, waitOrdinal)"].includes(branch?.getExpression().getText() ?? "");
+    })
+,
+  "gpt/attachment-readiness-terminal", reconciliationPath, "Only ready cards settle; mismatched or pending cards fail at the Product deadline.", findings, finding);
+  const reconcileObservation = text(context, child("reconcile_gpt_attachment_set", "observation.ts"));
+  check(["attachmentSetState", 'queryId: "attachment-composer"', 'queryId: "attachment-items"', 'queryId: "attachment-uploading"',
+    'queryId: "attachment-pending"', "itemRawCount", "itemEligibleCount", "pendingActionCount", "failAttachmentSet",
+    "normalizeGptProviderAttachmentLabel(label, expectedLabels)", "new Set(normalizedObservedLabels).size !== normalizedObservedLabels.length"].every(token => reconcileObservation.includes(token)),
+  "gpt/attachment-entry-coherent-facts", reconciliationPath, "Reconciliation qualifies the exact complete card set and rejects duplicate normalized identities.", findings, finding);
+};
+const inspectAttachmentIdentity = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
+  const reconcileObservation = text(context, child("reconcile_gpt_attachment_set", "observation.ts"));
+  const schemaPath = `${ROOT}/schema.ts`, schema = text(context, schemaPath);
+  const identity = [schema, text(context, child("attach_approved_gpt_files_once", "attachment-observation.ts")),
+    reconcileObservation, text(context, `${ROOT}/product-api.ts`)].join("\n");
+  check(["jobId: string", "businessFileToken", "`${jobId}\\u0000${artifactRef}`", "intent.jobId", "readonly jobId: string"].every(token => identity.includes(token))
+    && !identity.includes("`${attemptId}\\u0000${artifactRef}`"), "gpt/attachment-job-stable-provider-name", schemaPath,
+  "Provider display names bind the job and artifact, independent of retry attempts.", findings, finding);
+  check(["normalizeGptProviderAttachmentLabel", 'normalize("NFC")', "expectedLabels.includes(normalized)",
     "const providerDuplicateSuffix = /\\((?:\\d+|\\d{8}-\\d{6})\\)(?=(?:\\.[^./]+)?$)/u",
-    "normalized.replace(providerDuplicateSuffix, \"\")",
-    "!providerDuplicateSuffix.test(withoutProviderDuplicateSuffix)",
-    "expectedLabels.includes(withoutProviderDuplicateSuffix)",
-  ], checkId: "gpt/provider-duplicate-suffix-normalization", filePath: SCHEMA_PATH,
-  findings, finding,
-  message: (required) => `GPT attachment Provider duplicate-suffix normalization is missing ${required}.` });
-  const reconciliation = sourceFor(context, ATTACHMENT_SETTLEMENT_OBSERVATION_PATH)?.getFullText() ?? "";
-  inspectMissingTokens({ source: reconciliation, required: [
-    "normalizeGptProviderAttachmentLabel", "normalizedObservedLabels",
-    "new Set(normalizedObservedLabels).size !== normalizedObservedLabels.length",
-  ], checkId: "gpt/provider-duplicate-suffix-reconciliation",
-  filePath: ATTACHMENT_SETTLEMENT_OBSERVATION_PATH, findings, finding,
-  message: (required) => `GPT attachment reconciliation is missing Provider suffix rule ${required}.` });
+    'normalized.replace(providerDuplicateSuffix, "")', "!providerDuplicateSuffix.test(withoutProviderDuplicateSuffix)",
+    "expectedLabels.includes(withoutProviderDuplicateSuffix)"].every(token => schema.includes(token)),
+  "gpt/provider-duplicate-suffix-normalization", schemaPath, "Normalization prefers exact NFC identity and permits exactly one approved numeric or date-time suffix.", findings, finding);
+  const contract = text(context, `${ROOT}/contract.ts`);
+  check(contract.includes('reconcile_gpt_attachment_set: { childCapabilityId: "reconcile_gpt_attachment_set", contractVersion: 3')
+    && contract.includes('positivePostcondition: "one composer exact visible approved attachment card set and zero scoped spinner and pending action"')
+    && contract.includes('negativePostcondition: "composer or attachment ambiguity unexpected duplicate card or Product deadline fails closed"')
+    && !contract.includes("one region exact label set all ready and zero spinner"), "gpt/attachment-readiness-child-contract", `${ROOT}/contract.ts`,
+  "Reconciliation retains the frozen positive and negative postconditions.", findings, finding);
+  const leasePath = "src/lib/browser/exact-target/browser-target-lease.ts", lease = text(context, leasePath);
+  check(!(lease.includes("attachFile(input:") && lease.includes("grants:") && lease.includes("registerFileArtifact") && lease.includes("filePath:")),
+    "gpt/browser-artifact-grant-handoff", leasePath, "Public attachment input cannot expose a second registration/grant path.", findings, finding);
 };
 
-export const inspectGptAttachmentContract = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  finding: FindingFactory,
-): void => {
-  inspectAttachmentSelectors(
-    sourceFor(context, ATTACHMENT_CONTRACT_PATH),
-    sourceFor(context, ATTACHMENT_SETTLEMENT_CONTRACT_PATH),
-    sourceFor(context, "src/lib/browser/chrome-extension/extension-file-input-runtime.ts"),
-    findings,
-    finding,
-  );
-  inspectAttachmentHandler(
-    ATTACHMENT_HANDLER_PATHS.flatMap((path) => {
-      const source = sourceFor(context, path);
-      return source ? [source] : [];
-    }),
-    findings,
-    finding,
-  );
-  const capabilityContract = sourceFor(context, CONTRACT_PATH)?.getFullText() ?? "";
-  inspectMissingTokens({ source: capabilityContract, required: [
-    'reconcile_gpt_attachment_set: { childCapabilityId: "reconcile_gpt_attachment_set", contractVersion: 3',
-    'positivePostcondition: "one composer exact visible approved attachment card set and zero scoped spinner and pending action"',
-    'negativePostcondition: "composer or attachment ambiguity unexpected duplicate card or Product deadline fails closed"',
-  ], checkId: "gpt/attachment-readiness-child-contract", filePath: CONTRACT_PATH,
-  findings, finding,
-  message: (required) => `GPT attachment readiness Child contract is missing ${required}.` });
-  if (capabilityContract.includes("one region exact label set all ready and zero spinner")) {
-    findings.push(finding(
-      "gpt/attachment-readiness-child-contract", CONTRACT_PATH,
-      "GPT attachment readiness Child contract retains the retired region/ready semantic.",
-    ));
-  }
-  const browserLease = sourceFor(context, BROWSER_TARGET_LEASE_PATH)?.getFullText() ?? "";
-  if (browserLease.includes("attachFile(input:") && browserLease.includes("grants:")
-    && browserLease.includes("registerFileArtifact") && browserLease.includes("filePath:")) {
-    findings.push(finding(
-      "gpt/browser-artifact-grant-handoff", BROWSER_TARGET_LEASE_PATH,
-      "Browser public attachment contract still requires a physical-path registration/grant step outside GPT artifactRef input.",
-    ));
-  }
-  inspectAttachmentIdentityContract(context, findings, finding);
+
+
+export const inspectGptAttachmentContract = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
+  inspectAttachmentSelectors(context, findings, finding);
+  inspectAttachmentEntry(context, findings, finding);
+  inspectApprovedBatch(context, findings, finding);
+  inspectAttachmentSettlement(context, findings, finding);
+  inspectAttachmentIdentity(context, findings, finding);
 };

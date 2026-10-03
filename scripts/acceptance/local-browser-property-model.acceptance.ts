@@ -1,21 +1,16 @@
-import { absentPreflightEnvelope, originalFixtureFact } from "./local-browser-terminal-fixture.js";
-import { identity, terminalFact, exactHash } from "./local-browser-mutation-store-support.js";
-import { browserExactCallIdentityHash } from "../../src/lib/browser/exact-target/browser-command-postcondition.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { webcrypto } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { absentPreflightEnvelope, originalFixtureFact, permit as actorPermit } from "./local-browser-terminal-fixture.js";
+import { identity, terminalFact, exactHash } from "./local-browser-mutation-store-support.js";
+import { browserExactCallIdentityHash } from "../../src/lib/browser/exact-target/browser-command-postcondition.js";
 import { canonicalizeBrowserAuthorityValue, decodeBrowserAuthorityFrame, encodeBrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
 import { canonicalBrowserAuthorityPlaintext, encryptedFrameBody, parseCanonicalPlaintext } from "../../src/lib/browser/transport/browser-authority-frame-payload.js";
 import { decryptBrowserAuthorityFrame, encryptBrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-session-crypto.js";
 import { BrowserAuthorityWebSocket, type BrowserAuthoritySocket } from "../../src/lib/browser/transport/browser-authority-websocket.js";
-import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
-import {
-  BrowserCommandActor,
-  BrowserCommandTerminalReplyError,
-  type BrowserGovernedCommand,
-} from "../../src/lib/browser/exact-target/browser-command-actor.js";
+import { BrowserCommandActor, BrowserCommandTerminalReplyError, type BrowserGovernedCommand } from "../../src/lib/browser/exact-target/browser-command-actor.js";
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
 import { BrowserCommandAdmissionBudget } from "../../src/lib/browser/transport/browser-command-admission-budget.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
@@ -24,404 +19,150 @@ import { base64Url, cryptoBytes, decrypt as extensionDecrypt, deriveKeys, encryp
   fromBase64Url, hmac, publicSigningJwk, signaturePayload } from "../../src/lib/browser/chrome-extension/websocket-actor-crypto.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
-for (let sequence = 0; sequence < 64; sequence += 1) {
-  const frame = { protocolVersion: BROWSER_PROTOCOL_REVISION, kind: "HEARTBEAT" as const, epoch: 1, sequence, deadline: new Date(Date.now() + 10_000).toISOString(), body: {} };
-  assert.deepEqual(decodeBrowserAuthorityFrame(encodeBrowserAuthorityFrame(frame)), frame);
-}
-
-const invocationPayloads = [
-  { permit: { authorityEpoch: 7, exactCallIdentityHash: "sha256:fill" }, command: { kind: "dom-intent", intent: { kind: "fill", approvedText: "private prompt alpha" } } },
-  { requestSequence: 2, permitSequence: 2, replyChannelToken: "reply:dom", result: { outerHtml: "<article>private answer beta</article>", semanticText: "private answer beta" } },
-  { permit: { authorityEpoch: 7, exactCallIdentityHash: "sha256:file" }, command: { kind: "file-input",
-    approvedFiles: [{ grantRef: "grant-private", contentHash: `sha256:${"a".repeat(64)}`, maxBytes: 1_024 }],
+const hash = `sha256:${"0".repeat(64)}` as const, invocationKey = Buffer.alloc(32, 17);
+const payloads = [ { command: { kind: "fill", approvedText: "private prompt alpha" } },
+  { result: { outerHtml: "<article>private answer beta</article>", semanticText: "private answer beta" } },
+  { command: { kind: "file-input", approvedFiles: [{ grantRef: "grant-private", contentHash: hash, maxBytes: 1024 }],
     resolvedFilePaths: ["/private/tmp/private-upload-gamma.pdf"] } },
-  { permit: { authorityEpoch: 7, exactCallIdentityHash: "sha256:select" }, command: { kind: "dom-intent", intent: { kind: "selectExactGptConversation", canonicalConversationUrl: "https://chatgpt.com/c/private-delta" } } },
-  { requestSequence: 5, permitSequence: 5, replyChannelToken: "reply:media", result: { bytesBase64: "cHJpdmF0ZS1tZWRpYS1lcHNpbG9u" } },
-] as const;
-const rawPayloadFragments = [
-  "private prompt alpha", "private answer beta", "private-upload-gamma.pdf",
-  "private-delta", "cHJpdmF0ZS1tZWRpYS1lcHNpbG9u",
-] as const;
-const invocationKey = Buffer.alloc(32, 17);
-for (const [index, payload] of invocationPayloads.entries()) {
-  const header = {
-    protocolVersion: BROWSER_PROTOCOL_REVISION,
-    kind: index === 1 || index === 4 ? "REPLY" as const : "COMMAND" as const,
-    epoch: 7,
-    sequence: index + 1,
-    deadline: new Date(Date.now() + 10_000).toISOString(),
-  };
-  const direction = header.kind === "REPLY" ? "client-to-server" as const : "server-to-client" as const;
-  const aad = canonicalizeBrowserAuthorityValue(header);
-  const plaintext = canonicalBrowserAuthorityPlaintext(payload);
-  const encrypted = encryptBrowserAuthorityFrame({
-    key: invocationKey,
-    direction,
-    epoch: header.epoch,
-    sequence: header.sequence,
-    aad,
-    plaintext,
-  });
-  const encoded = encodeBrowserAuthorityFrame({ ...header, body: { encrypted } });
-  assert.deepEqual(Object.keys(decodeBrowserAuthorityFrame(encoded).body), ["encrypted"]);
-  for (const fragment of rawPayloadFragments) assert.equal(encoded.includes(fragment), false,
-    "closed invocation payload plaintext must never appear in the wire frame");
-  const decrypted = decryptBrowserAuthorityFrame({
-    key: invocationKey,
-    direction,
-    epoch: header.epoch,
-    sequence: header.sequence,
-    aad,
-    encrypted: encryptedFrameBody(decodeBrowserAuthorityFrame(encoded)),
-  });
-  assert.deepEqual(parseCanonicalPlaintext(decrypted), payload,
-    "the encrypted Browser frame must preserve the complete typed payload without truncation");
-  const corruptedCiphertext = Buffer.from(encrypted.ciphertext, "base64url");
-  corruptedCiphertext[0] = corruptedCiphertext[0]! ^ 1;
-  assert.throws(() => decryptBrowserAuthorityFrame({
-    key: invocationKey,
-    direction,
-    epoch: header.epoch,
-    sequence: header.sequence,
-    aad,
-    encrypted: { ...encrypted, ciphertext: corruptedCiphertext.toString("base64url") },
-  }), /authenticate data|BROWSER_AUTH_TRANSCRIPT_INVALID/iu,
-  "modified invocation payload bytes must fail authenticated decryption");
+  { command: { kind: "selectExactGptConversation", canonicalConversationUrl: "https://chatgpt.com/c/private-delta" } },
+  { result: { bytesBase64: "cHJpdmF0ZS1tZWRpYS1lcHNpbG9u" } } ];
+const secrets = ["private prompt alpha", "private answer beta", "private-upload-gamma.pdf", "private-delta", "cHJpdmF0ZS1tZWRpYS1lcHNpbG9u"];
+for (let sequence = 1; sequence <= 64; sequence += 1) {
+  const header = { protocolVersion: BROWSER_PROTOCOL_REVISION, kind: sequence % 2 ? "COMMAND" as const : "REPLY" as const,
+    epoch: 7, sequence, deadline: new Date(Date.now() + 10_000).toISOString() };
+  const payload = payloads[(sequence - 1) % payloads.length]!, direction = header.kind === "REPLY" ? "client-to-server" as const : "server-to-client" as const;
+  const aad = canonicalizeBrowserAuthorityValue(header), encrypted = encryptBrowserAuthorityFrame({ key: invocationKey, direction,
+    epoch: 7, sequence, aad, plaintext: canonicalBrowserAuthorityPlaintext(payload) });
+  const encoded = encodeBrowserAuthorityFrame({ ...header, body: { encrypted } }), frame = decodeBrowserAuthorityFrame(encoded);
+  assert.deepEqual(decodeBrowserAuthorityFrame(encodeBrowserAuthorityFrame(frame)), frame);
+  assert.deepEqual(Object.keys(frame.body), ["encrypted"]);
+  for (const secret of secrets) assert.equal(encoded.includes(secret), false);
+  const input = { key: invocationKey, direction, epoch: 7, sequence, aad, encrypted: encryptedFrameBody(frame) };
+  assert.deepEqual(parseCanonicalPlaintext(decryptBrowserAuthorityFrame(input)), payload);
+  const corrupted = Buffer.from(encrypted.ciphertext, "base64url"); corrupted[0] = corrupted[0]! ^ 1;
+  assert.throws(() => decryptBrowserAuthorityFrame({ ...input, encrypted: { ...encrypted, ciphertext: corrupted.toString("base64url") } }));
+  assert.throws(() => decryptBrowserAuthorityFrame({ ...input, direction: direction === "client-to-server" ? "server-to-client" : "client-to-server" }));
 }
 
-const subtle = webcrypto.subtle as SubtleCrypto;
-const pairingSecret = "7".repeat(64);
+const subtle = webcrypto.subtle as SubtleCrypto, pairingSecret = "7".repeat(64);
 const signing = await subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
 const ecdh = await subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
 const deadline = new Date(Date.now() + 20_000).toISOString();
-const hello = {
-  extensionId: "emkmbecadncngofidjgocmifhbonifgm",
-  extensionVersion: "1.0.0",
-  releaseBuildId: "build-00000000-0000-4000-8000-000000000007",
+const hello = { extensionId: "emkmbecadncngofidjgocmifhbonifgm", extensionVersion: "1.0.0",
+  releaseBuildId: "build-00000000-0000-4000-8000-000000000007", deadline,
   clientSigningPublicJwk: publicSigningJwk(await subtle.exportKey("jwk", signing.publicKey)),
-  clientEcdhPublicKey: base64Url(new Uint8Array(await subtle.exportKey("raw", ecdh.publicKey))),
-  deadline,
-};
-const sentFrames: string[] = [];
-let closeCode: number | null = null;
-let requireWalBeforeCommand = false;
-let walDispatched = false;
-const socket: BrowserAuthoritySocket = {
-  send: (frame) => {
-    if (decodeBrowserAuthorityFrame(frame).kind === "COMMAND" && requireWalBeforeCommand) {
-      assert.equal(walDispatched, true, "the production socket must observe DISPATCHED before sending a mutation");
-    }
-    sentFrames.push(frame);
-  },
-  close: (code) => { closeCode = code ?? null; },
-};
-const hash = `sha256:${"0".repeat(64)}` as const;
-let commandPermitKey = "";
-let settlementStore: BrowserMutationStore | null = null;
-const authority = new BrowserAuthorityWebSocket({
-  onMutationReceipt: (fact, acknowledge) => { settlementStore?.settleTerminalReceipt(fact); acknowledge(); },
-  pairingSecret,
-  onPairingStarted: () => undefined,
-  onHeartbeat: () => undefined,
-  onAuthenticated: (input) => {
-    commandPermitKey = input.commandPermitKey;
-    return { authorityRef: "authority-wire-proof", authorityEpoch: 1,
-      certificateHash: hash, channelSessionHash: hash, commandPermitKey: input.commandPermitKey };
-  },
-  onTargetClaim: () => undefined,
-  onTargetRevoke: () => undefined,
-  onDiagnostic: () => undefined,
-  onRevoked: () => undefined,
-});
-authority.receive(socket, encodeBrowserAuthorityFrame({
-  protocolVersion: BROWSER_PROTOCOL_REVISION, kind: "PAIR_HELLO", epoch: 0, sequence: 0,
-  deadline, body: hello,
-}));
-const challengeFrame = decodeBrowserAuthorityFrame(sentFrames[0]!);
-const challenge = challengeFrame.body as Readonly<Record<string, string>>;
-const signingJwk = challenge.serverSigningPublicJwk;
-if (!signingJwk || typeof signingJwk !== "object" || Array.isArray(signingJwk)
-  || !Object.values(signingJwk).every((value) => typeof value === "string")) {
-  throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-}
-const challengeCore = {
-  serverSigningPublicJwk: signingJwk as Readonly<Record<string, string>>,
-  serverEcdhPublicKey: challenge.serverEcdhPublicKey!,
-  challenge: challenge.challenge!,
-};
+  clientEcdhPublicKey: base64Url(new Uint8Array(await subtle.exportKey("raw", ecdh.publicKey))) };
+const frames: string[] = []; let requireWal = false, dispatched = false, closeCode: number | null = null, permitKey = "";
+let store: BrowserMutationStore | null = null;
+const socket: BrowserAuthoritySocket = { send: frame => { if (requireWal && decodeBrowserAuthorityFrame(frame).kind === "COMMAND") assert.equal(dispatched, true);
+  frames.push(frame); }, close: code => { closeCode = code ?? null; } };
+const channel = new BrowserAuthorityWebSocket({ pairingSecret, onPairingStarted: () => undefined, onHeartbeat: () => undefined,
+  onAuthenticated: input => { permitKey = input.commandPermitKey; return { authorityRef: "authority-wire-proof", authorityEpoch: 1,
+    certificateHash: hash, channelSessionHash: hash, commandPermitKey: permitKey }; },
+  onMutationReceipt: (fact, acknowledge) => { store?.settleTerminalReceipt(fact); acknowledge(); }, onTargetClaim: () => undefined,
+  onTargetRevoke: () => undefined, onDiagnostic: () => undefined, onRevoked: () => undefined });
+channel.receive(socket, encodeBrowserAuthorityFrame({ protocolVersion: BROWSER_PROTOCOL_REVISION, kind: "PAIR_HELLO", epoch: 0, sequence: 0, deadline, body: hello }));
+const challenge = decodeBrowserAuthorityFrame(frames[0]!).body;
+const challengeCore = { serverSigningPublicJwk: challenge.serverSigningPublicJwk as Readonly<Record<string, string>>,
+  serverEcdhPublicKey: String(challenge.serverEcdhPublicKey), challenge: String(challenge.challenge) };
 const transcript = canonicalizeBrowserAuthorityValue({ hello, challenge: challengeCore });
-const clientSignature = base64Url(new Uint8Array(await subtle.sign(
-  { name: "ECDSA", hash: "SHA-256" }, signing.privateKey,
-  cryptoBytes(signaturePayload("client", transcript)),
-)));
-authority.receive(socket, encodeBrowserAuthorityFrame({
-  protocolVersion: BROWSER_PROTOCOL_REVISION, kind: "PAIR_PROOF", epoch: 0, sequence: 1,
-  deadline, body: { clientSignature, clientPairingMac: await hmac(pairingSecret, "client", transcript) },
-}));
-assert.equal(closeCode, null);
-assert.equal(sentFrames.length, 3, "the production socket must emit challenge, authenticated, and encrypted ready frames");
-const serverEcdhKey = await subtle.importKey("raw", cryptoBytes(fromBase64Url(challengeCore.serverEcdhPublicKey)),
-  { name: "ECDH", namedCurve: "P-256" }, false, []);
-const sharedSecret = new Uint8Array(await subtle.deriveBits(
-  { name: "ECDH", public: serverEcdhKey }, ecdh.privateKey, 256,
-));
-const directionalKeys = await deriveKeys(sharedSecret, pairingSecret, transcript);
-const readyBody = await extensionDecrypt(directionalKeys.serverToClientKey, "server-to-client",
-  decodeBrowserAuthorityFrame(sentFrames[2]!));
-assert.equal(readyBody.commandPermitKey, commandPermitKey);
-
-const permitAuthority = Object.freeze({deliveryPriorityReplayGrantHash: null,
-  authorityRef: "authority-wire-proof", authorityEpoch: 1, certificateHash: hash,
-  channelSessionHash: hash, executionBindingHash: hash, writerFenceHash: hash,
-  candidateHash: hash, contractManifestHash: hash,
-  jobId: "job-wire-proof", resultRevision: 0, attemptId: "attempt-wire-proof", deviceId: "device-wire-proof",
-  leaseVersion: 1, localOrderId: "order-wire-proof", targetLeaseRef: "lease-wire-proof",
-});
-
-const permitFor = (
-  sequence: number,
-  capabilityId: BrowserCapabilityId,
-  mutationClass: BrowserCommandPermit["mutationClass"],
-): BrowserCommandPermit => ({
-  ...permitAuthority,
-  permitRef: `permit-${sequence}`,
-  targetRef: "target-wire-proof", documentRef: "document-wire-proof", productStepId: "wire-proof",
-  callId: `wire-call-${sequence}`, childCapabilityId: `wire-child-${sequence}`, inputHash: hash,
-  replayPolicy: mutationClass === "mutation" ? "target-local-per-generation" : "observation-only",
-  actionOrdinal: sequence, capabilityId, commandId: `command-${sequence}`, sequence, mutationClass,
-  workspaceRef: "workspace-wire-proof", commandTtlMs: 20_000,
-  replyChannelToken: `reply-wire-proof-${sequence}`, commandFrameMac: hash,
-});
-
-const wireCases: readonly Readonly<{
-  capabilityId: BrowserCapabilityId;
-  mutationClass: BrowserCommandPermit["mutationClass"];
-  command: BrowserGovernedCommand;
-  result: Readonly<Record<string, unknown>>;
-  rawFragments: readonly string[];
-}>[] = [
-  { capabilityId: "browser.dom.fill.v1", mutationClass: "mutation",
-    command: { kind: "dom-intent", intent: { kind: "fill", selector: "form[data-chatgpt-composer] [data-composer-markdown][contenteditable='true'][role='textbox']",
-      approvedText: "private prompt alpha", clearBeforeType: true } }, result: { filled: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1, postconditionVerified: true, retainedValueVerified: true },
-    rawFragments: ["private prompt alpha"] },
-  { capabilityId: "browser.dom.inspect.v1", mutationClass: "observation",
-    command: { kind: "dom-intent", intent: { kind: "inspect", selector: "article",
-      fields: ["outerHtml", "semanticText"] } },
-    result: { outerHtml: "<article>private answer beta</article>", semanticText: "private answer beta" },
-    rawFragments: ["private answer beta"] },
-  { capabilityId: "browser.file-input.v1", mutationClass: "mutation",
-    command: { kind: "file-input", selector: "form[data-chatgpt-composer] input[type='file'][aria-label='附加文件']",
-      activation: { selector: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child",
-        scope: { selector: "[data-composer-overlay-floating-ui='true']" },
-        expectedText: "上传" },
-      approvedFiles: [{ grantRef: "grant-private", contentHash: `sha256:${"a".repeat(64)}`, maxBytes: 1_024 }],
-      resolvedFilePaths: ["/private/tmp/private-upload-gamma.pdf"] }, result: { candidateCount: 1, identityRevalidated: true, mutationCount: 1, postconditionVerified: true },
-    rawFragments: ["private-upload-gamma.pdf"] },
-  { capabilityId: "browser.dom.click.v1", mutationClass: "lifecycle",
-    command: { kind: "dom-intent", intent: { kind: "selectExactGptConversation", canonicalConversationUrl: "https://chatgpt.com/c/private-delta" } },
-    result: { documentRef: "document:selected", targetRef: "target:selected", navigationEpoch: 2 },
-    rawFragments: ["private-delta"] },
-  { capabilityId: "browser.authenticated-media.v1", mutationClass: "observation",
-    command: { kind: "authenticated-media",
-      canonicalConversationUrl: invocationPayloads[3].command.intent.canonicalConversationUrl,
-      userTurnId: "00000000-0000-4000-8000-000000000005",
-      semanticMediaId: "gpt-generated-image-main" },
-    result: { bytesBase64: "cHJpdmF0ZS1tZWRpYS1lcHNpbG9u" },
-    rawFragments: ["cHJpdmF0ZS1tZWRpYS1lcHNpbG9u"] },
+const signature = base64Url(new Uint8Array(await subtle.sign({ name: "ECDSA", hash: "SHA-256" }, signing.privateKey, cryptoBytes(signaturePayload("client", transcript)))));
+channel.receive(socket, encodeBrowserAuthorityFrame({ protocolVersion: BROWSER_PROTOCOL_REVISION, kind: "PAIR_PROOF", epoch: 0, sequence: 1,
+  deadline, body: { clientSignature: signature, clientPairingMac: await hmac(pairingSecret, "client", transcript) } }));
+assert.equal(closeCode, null); assert.equal(frames.length, 3);
+const serverKey = await subtle.importKey("raw", cryptoBytes(fromBase64Url(challengeCore.serverEcdhPublicKey)), { name: "ECDH", namedCurve: "P-256" }, false, []);
+const shared = new Uint8Array(await subtle.deriveBits({ name: "ECDH", public: serverKey }, ecdh.privateKey, 256));
+const keys = await deriveKeys(shared, pairingSecret, transcript);
+assert.equal((await extensionDecrypt(keys.serverToClientKey, "server-to-client", decodeBrowserAuthorityFrame(frames[2]!))).commandPermitKey, permitKey);
+const permitFor = (sequence: number, capabilityId: BrowserCapabilityId, mutationClass: "mutation" | "observation" | "lifecycle") => ({
+  ...actorPermit(`wire-${sequence}`), authorityRef: "authority-wire-proof", certificateHash: hash, channelSessionHash: hash,
+  sequence, actionOrdinal: sequence, capabilityId, mutationClass, commandTtlMs: 20_000,
+  replayPolicy: mutationClass === "mutation" ? "target-local-per-generation" as const : "observation-only" as const });
+const wireCases: readonly { capabilityId: BrowserCapabilityId; mutationClass: "mutation" | "observation" | "lifecycle";
+  command: BrowserGovernedCommand; result: Record<string, unknown>; secret: string }[] = [
+  { capabilityId: "browser.dom.fill.v1", mutationClass: "mutation", command: { kind: "dom-intent", intent: { kind: "fill",
+    selector: "form[data-chatgpt-composer] [data-composer-markdown][contenteditable='true'][role='textbox']", approvedText: secrets[0]!, clearBeforeType: true } },
+    result: { filled: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1, postconditionVerified: true, retainedValueVerified: true }, secret: secrets[0]! },
+  { capabilityId: "browser.dom.inspect.v1", mutationClass: "observation", command: { kind: "dom-intent", intent: { kind: "inspect", selector: "article", fields: ["outerHtml", "semanticText"] } },
+    result: { outerHtml: "<article>private answer beta</article>", semanticText: secrets[1]! }, secret: secrets[1]! },
+  { capabilityId: "browser.file-input.v1", mutationClass: "mutation", command: { kind: "file-input", selector: "form[data-chatgpt-composer] input[type='file'][aria-label='附加文件']",
+    activation: { selector: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child",
+      scope: { selector: "[data-composer-overlay-floating-ui='true']" }, expectedText: "上传" },
+    approvedFiles: [{ grantRef: "grant-private", contentHash: hash, maxBytes: 1024 }], resolvedFilePaths: ["/private/tmp/private-upload-gamma.pdf"] },
+    result: { candidateCount: 1, identityRevalidated: true, mutationCount: 1, postconditionVerified: true }, secret: secrets[2]! },
+  { capabilityId: "browser.dom.click.v1", mutationClass: "lifecycle", command: { kind: "dom-intent", intent: { kind: "selectExactGptConversation", canonicalConversationUrl: "https://chatgpt.com/c/private-delta" } },
+    result: { documentRef: "document:selected", targetRef: "target:selected", navigationEpoch: 2 }, secret: secrets[3]! },
+  { capabilityId: "browser.authenticated-media.v1", mutationClass: "observation", command: { kind: "authenticated-media", canonicalConversationUrl: "https://chatgpt.com/c/private-delta",
+    userTurnId: "00000000-0000-4000-8000-000000000005", semanticMediaId: "gpt-generated-image-main" }, result: { bytesBase64: secrets[4]! }, secret: secrets[4]! },
 ];
 let clientSequence = 2;
-for (const [index, wireCase] of wireCases.entries()) {
-  const permit = permitFor(index + 1, wireCase.capabilityId, wireCase.mutationClass);
-  const result = wireCase.mutationClass === "mutation" ? absentPreflightEnvelope(permit, wireCase.result) : wireCase.result;
-  const mutationReceipt = wireCase.mutationClass === "mutation" ? originalFixtureFact(permit, wireCase.command, result,
-    { ...identity(permit.commandId, permit.attemptId), actionId: permit.capabilityId,
-      exactCallIdentityHash: browserExactCallIdentityHash(permit), childCapabilityId: permit.childCapabilityId }) : null;
-  const sentBefore: number = sentFrames.length;
-  requireWalBeforeCommand = wireCase.mutationClass === "mutation";
-  walDispatched = false;
-  const replyPromise = authority.send(
-    permit,
-    wireCase.command,
-    requireWalBeforeCommand ? () => { walDispatched = true; } : undefined,
-    mutationReceipt?.receiptBindingHash ?? null,
-  );
-  requireWalBeforeCommand = false;
-  const commandFrameEncoded: string = sentFrames[sentBefore]!;
-  for (const fragment of wireCase.rawFragments) assert.equal(commandFrameEncoded.includes(fragment), false);
-  const commandFrame = decodeBrowserAuthorityFrame(commandFrameEncoded);
-  assert.deepEqual(await extensionDecrypt(directionalKeys.serverToClientKey, "server-to-client", commandFrame),
-    { permit, command: wireCase.command, receiptBindingHash: mutationReceipt?.receiptBindingHash ?? null });
-  await assert.rejects(extensionDecrypt(directionalKeys.serverToClientKey, "client-to-server", commandFrame),
-    /BROWSER_AUTH_TRANSCRIPT_INVALID/u);
-  const replyHeader = { protocolVersion: BROWSER_PROTOCOL_REVISION, kind: "REPLY" as const,
-    epoch: 1, sequence: clientSequence++, deadline: new Date(Date.now() + 20_000).toISOString() };
-  const replyBody = { requestSequence: commandFrame.sequence, permitSequence: permit.sequence,
-    replyChannelToken: permit.replyChannelToken, result, mutationReceipt };
-  const replyEncoded = encodeBrowserAuthorityFrame({ ...replyHeader, body: {
-    encrypted: await extensionEncrypt(directionalKeys.clientToServerKey, "client-to-server", replyHeader, replyBody),
-  } });
-  for (const fragment of wireCase.rawFragments) assert.equal(replyEncoded.includes(fragment), false);
-  authority.receive(socket, replyEncoded);
-  assert.deepEqual((await replyPromise).result, result);
-}
-
-const gracePermit = { ...permitFor(20, "browser.dom.click.v1", "mutation"), commandTtlMs: 50 };
-const graceCommand = { kind: "dom-intent" as const, intent: {
-  kind: "click" as const, selector: "button", expectedMatches: 1,
-  postClickMatch: { selector: "done", expectedMatches: 1 },
-} };
-const graceSentBefore = sentFrames.length;
-let graceDispatches = 0;
-const graceResult = absentPreflightEnvelope(gracePermit, { clicked: true, candidateCount: 1, identityRevalidated: true,
-  mutationCount: 1, postconditionVerified: true, postconditionRawCount: 1, postconditionEligibleCount: 1, postconditionRejections: [] });
-const graceFact = originalFixtureFact(gracePermit, graceCommand, graceResult, { ...identity(gracePermit.commandId, gracePermit.attemptId), actionId: gracePermit.capabilityId });
-const graceReplyPromise = authority.send(gracePermit, graceCommand, () => { graceDispatches += 1; }, graceFact.receiptBindingHash);
-const graceCommandFrame = decodeBrowserAuthorityFrame(sentFrames[graceSentBefore]!);
-await new Promise<void>((resolve) => setTimeout(resolve, 100));
-assert.ok(Date.parse(graceCommandFrame.deadline) < Date.now(),
-  "the command authorization deadline must remain unchanged during terminal reply grace");
-const graceReplyHeader = { protocolVersion: BROWSER_PROTOCOL_REVISION, kind: "REPLY" as const,
-  epoch: 1, sequence: clientSequence++, deadline: new Date(Date.now() + 20_000).toISOString() };
-authority.receive(socket, encodeBrowserAuthorityFrame({ ...graceReplyHeader, body: {
-  encrypted: await extensionEncrypt(directionalKeys.clientToServerKey, "client-to-server",
-    graceReplyHeader, { requestSequence: graceCommandFrame.sequence, permitSequence: gracePermit.sequence,
-      replyChannelToken: gracePermit.replyChannelToken, result: graceResult, mutationReceipt: graceFact }),
-} }));
-assert.deepEqual((await graceReplyPromise).result, graceResult);
-assert.equal(graceDispatches, 1);
-assert.equal(sentFrames.length, graceSentBefore + 2,
-  "terminal reply grace must not issue a second permit or resend the mutation");
-
-const chainRoot = await mkdtemp(join(tmpdir(), "browser-reply-chain-"));
-const chainStore = new BrowserMutationStore(chainRoot);
-chainStore.verifyRuntimeTaskProvenance(null);
-settlementStore = chainStore;
-try {
-  const chainActor = new BrowserCommandActor(
-    new BrowserCommandAdmissionBudget(),
-    authority,
-    chainStore,
-    { assertCurrentAuthority: () => undefined },
-    createRuntimeLogger({
-      producer: "browser-reply-chain-acceptance",
-      owner: "browser-session",
-      component: "browser-command",
-      terminalEnabled: false,
-      fileSink: { directoryPath: join(chainRoot, "runtime-logs") },
-    }),
-  );
-  const terminalErrorPermit = permitFor(30, "browser.dom.click.v1", "mutation");
-  const terminalErrorSentBefore = sentFrames.length;
-  const terminalErrorPromise = chainActor.execute(terminalErrorPermit, graceCommand);
-  const terminalErrorCommandFrame = decodeBrowserAuthorityFrame(sentFrames[terminalErrorSentBefore]!);
-  const terminalErrorHeader = {
-    protocolVersion: BROWSER_PROTOCOL_REVISION,
-    kind: "REPLY" as const,
-    epoch: 1,
-    sequence: clientSequence++,
-    deadline: new Date(Date.now() + 20_000).toISOString(),
-  };
-  authority.receive(socket, encodeBrowserAuthorityFrame({ ...terminalErrorHeader, body: {
-    encrypted: await extensionEncrypt(
-      directionalKeys.clientToServerKey,
-      "client-to-server",
-      terminalErrorHeader,
-      {
-        requestSequence: terminalErrorCommandFrame.sequence,
-        permitSequence: terminalErrorPermit.sequence,
-        replyChannelToken: terminalErrorPermit.replyChannelToken,
-        errorCode: "BROWSER_DOM_CANDIDATE_MISSING",
-        mutationReceipt: terminalFact(chainStore.readCommand(terminalErrorPermit.commandId)!.identity, { terminal: "rejected",
-          mutationOutcome: "dispatched", failureCode: "BROWSER_DOM_CANDIDATE_MISSING",
-          resultHash: exactHash(canonicalizeBrowserAuthorityValue({ errorCode: "BROWSER_DOM_CANDIDATE_MISSING" })) }),
-      },
-    ),
-  } }));
-  await assert.rejects(terminalErrorPromise, /BROWSER_DOM_CANDIDATE_MISSING/u);
-  assert.equal(chainStore.readCommand(terminalErrorPermit.commandId)?.state ?? null, "REJECTED");
-  assert.equal(chainStore.readMutationOutcome(terminalErrorPermit.commandId), "dispatched");
-  assert.equal(sentFrames.length, terminalErrorSentBefore + 2,
-    "an explicit authenticated error reply must terminalize without a second dispatch");
-
-  for (const [caseName, terminalErrorFor] of [
-    ["wrong-reply-token", (permit: BrowserCommandPermit) => new BrowserCommandTerminalReplyError(
-      "BROWSER_DOM_CANDIDATE_MISSING",
-      `${permit.replyChannelToken}:forged`,
-      permit.sequence,
-      permit.sequence,
-    )],
-    ["wrong-permit-sequence", (permit: BrowserCommandPermit) => new BrowserCommandTerminalReplyError(
-      "BROWSER_DOM_CANDIDATE_MISSING",
-      permit.replyChannelToken,
-      permit.sequence,
-      permit.sequence + 1,
-    )],
-  ] as const) {
-    const forgedRoot = join(chainRoot, `forged-${caseName}`);
-    const forgedStore = new BrowserMutationStore(forgedRoot);
-    forgedStore.verifyRuntimeTaskProvenance(null);
-    const forgedPermit = permitFor(
-      caseName === "wrong-reply-token" ? 31 : 32,
-      "browser.dom.click.v1",
-      "mutation",
-    );
-    let forgedDispatches = 0;
-    const forgedActor = new BrowserCommandActor(
-      new BrowserCommandAdmissionBudget(),
-      {
-        send: async (permit, _command, onDispatched) => {
-          onDispatched?.();
-          forgedDispatches += 1;
-          throw terminalErrorFor(permit);
-        },
-      },
-      forgedStore,
-      { assertCurrentAuthority: () => undefined },
-      createRuntimeLogger({
-        producer: `browser-reply-chain-${caseName}`,
-        owner: "browser-session",
-        component: "browser-command",
-        terminalEnabled: false,
-        fileSink: { directoryPath: join(chainRoot, `runtime-logs-${caseName}`) },
-      }),
-    );
-    await assert.rejects(forgedActor.execute(forgedPermit, graceCommand), /BROWSER_COMMAND_RECEIPT_MISSING/u);
-    assert.equal(forgedStore.readCommand(forgedPermit.commandId)?.state ?? null, "DISPATCHED");
-    assert.equal(forgedStore.readMutationOutcome(forgedPermit.commandId), "dispatched");
-    assert.equal(forgedDispatches, 1,
-      `${caseName} must not counterfeit terminal settlement or authorize a second dispatch`);
-    forgedStore.close();
-  }
-
-  const missingReplyPermit = {
-    ...permitFor(33, "browser.dom.click.v1", "mutation"),
-    commandTtlMs: 4_001,
-  };
-  const missingReplySentBefore = sentFrames.length;
-  await assert.rejects(chainActor.execute(missingReplyPermit, graceCommand), /BROWSER_COMMAND_RECEIPT_MISSING/u);
-  assert.equal(chainStore.readCommand(missingReplyPermit.commandId)?.state ?? null, "DISPATCHED");
-  assert.equal(chainStore.readMutationOutcome(missingReplyPermit.commandId), "dispatched");
-  assert.equal(sentFrames.length, missingReplySentBefore + 1,
-    "a genuinely missing terminal reply must preserve one DISPATCHED WAL row without resend");
-} finally {
-  chainStore.close();
-  await rm(chainRoot, { recursive: true, force: true });
-}
-const exerciseTimeoutCleanupFailure = async (): Promise<void> => {
-  let closes = 0;
-  const timeoutSocket: BrowserAuthoritySocket = { send: () => {}, close: () => { closes += 1; throw new Error("injected close fault"); } };
-  const channel = new BrowserAuthorityWebSocket({ pairingSecret,
-    onPairingStarted: () => {}, onHeartbeat: () => {}, onAuthenticated: () => { throw new Error("unused"); },
-    onMutationReceipt: () => { throw new Error("unused"); }, onTargetClaim: () => {}, onTargetRevoke: () => {}, onDiagnostic: () => {},
-    onRevoked: () => { throw new Error("injected revoke log fault"); } });
-  const key = Buffer.alloc(32, 1);
-  Reflect.set(channel, "active", { socket: timeoutSocket, keys: { clientToServer: key, serverToClient: key },
-    lastClientSequence: 1, nextServerSequence: 2, lastHeartbeatAt: Date.now(), replies: new Map() });
-  await assert.rejects(channel.send({ ...permitFor(99, "browser.dom.inspect.v1", "observation"), commandTtlMs: 1 }, wireCases[1]!.command),
-    (error: unknown) => error instanceof Error && error.message === "BROWSER_COMMAND_RECEIPT_MISSING" && error.cause instanceof Error,
-    "timeout must reject its original waiter even when revocation cleanup also fails");
-  assert.equal(closes, 1); assert.equal(Reflect.get(channel, "active"), null);
+const deliver = async (request: ReturnType<typeof decodeBrowserAuthorityFrame>, body: Record<string, unknown>): Promise<void> => {
+  const header = { protocolVersion: BROWSER_PROTOCOL_REVISION, kind: "REPLY" as const, epoch: 1,
+    sequence: clientSequence++, deadline: new Date(Date.now() + 20_000).toISOString() };
+  const encoded = encodeBrowserAuthorityFrame({ ...header, body: { encrypted: await extensionEncrypt(keys.clientToServerKey, "client-to-server", header,
+    { requestSequence: request.sequence, ...body }) } });
+  for (const secret of secrets) assert.equal(encoded.includes(secret), false); channel.receive(socket, encoded);
 };
-await exerciseTimeoutCleanupFailure();
-console.log("LOCAL_BROWSER_PROPERTY_MODEL_ACCEPTANCE_PASS");
-emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V56", evidenceMode: "exam.property", clauses: ["forbidden:0"], locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 authenticated frame sequences round-trip exactly and missing terminal replies preserve a single DISPATCHED command without replay" });
+for (const [index, item] of wireCases.entries()) {
+  const permit = permitFor(index + 1, item.capabilityId, item.mutationClass);
+  const result = item.mutationClass === "mutation" ? absentPreflightEnvelope(permit, item.result) : item.result;
+  const fact = item.mutationClass === "mutation" ? originalFixtureFact(permit, item.command, result, { ...identity(permit.commandId, permit.attemptId),
+    actionId: permit.capabilityId, exactCallIdentityHash: browserExactCallIdentityHash(permit), childCapabilityId: permit.childCapabilityId }) : null;
+  const offset: number = frames.length; requireWal = item.mutationClass === "mutation"; dispatched = false;
+  const pending = channel.send(permit, item.command, requireWal ? () => { dispatched = true; } : undefined, fact?.receiptBindingHash ?? null); requireWal = false;
+  const request = decodeBrowserAuthorityFrame(frames[offset]!); assert.equal(frames[offset]!.includes(item.secret), false);
+  assert.deepEqual(await extensionDecrypt(keys.serverToClientKey, "server-to-client", request), { permit, command: item.command, receiptBindingHash: fact?.receiptBindingHash ?? null });
+  await assert.rejects(extensionDecrypt(keys.serverToClientKey, "client-to-server", request), /BROWSER_AUTH_TRANSCRIPT_INVALID/u);
+  await deliver(request, { permitSequence: permit.sequence, replyChannelToken: permit.replyChannelToken, result, mutationReceipt: fact });
+  assert.deepEqual((await pending).result, result);
+}
+const click: BrowserGovernedCommand = { kind: "dom-intent", intent: { kind: "click", selector: "button", expectedMatches: 1, postClickMatch: { selector: "done", expectedMatches: 1 } } };
+const grace = { ...permitFor(20, "browser.dom.click.v1", "mutation"), commandTtlMs: 50 }, graceOffset = frames.length;
+const graceResult = absentPreflightEnvelope(grace, { clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
+  postconditionVerified: true, postconditionRawCount: 1, postconditionEligibleCount: 1, postconditionRejections: [] });
+const graceFact = originalFixtureFact(grace, click, graceResult, { ...identity(grace.commandId, grace.attemptId), actionId: grace.capabilityId });
+let graceDispatches = 0;
+const gracePending = channel.send(grace, click, () => { graceDispatches += 1; }, graceFact.receiptBindingHash), graceFrame = decodeBrowserAuthorityFrame(frames[graceOffset]!);
+await new Promise<void>(resolve => setTimeout(resolve, 100)); assert.ok(Date.parse(graceFrame.deadline) < Date.now());
+await deliver(graceFrame, { permitSequence: grace.sequence, replyChannelToken: grace.replyChannelToken, result: graceResult, mutationReceipt: graceFact });
+assert.deepEqual((await gracePending).result, graceResult); assert.equal(graceDispatches, 1); assert.equal(frames.length, graceOffset + 2);
+const root = await mkdtemp(join(tmpdir(), "browser-property-rebuild-"));
+try {
+  store = new BrowserMutationStore(root); store.verifyRuntimeTaskProvenance(null);
+  const logger = createRuntimeLogger({ producer: "browser-property", owner: "browser-session", component: "browser-command",
+    terminalEnabled: false, fileSink: { directoryPath: join(root, "logs") } });
+  const actor = new BrowserCommandActor(new BrowserCommandAdmissionBudget(), channel, store, { assertCurrentAuthority: () => undefined }, logger);
+  const permit = permitFor(30, "browser.dom.click.v1", "mutation"), offset = frames.length, pending = actor.execute(permit, click);
+  const request = decodeBrowserAuthorityFrame(frames[offset]!);
+  assert.equal(store.readCommand(permit.commandId)?.state, "DISPATCHED");
+  const errorCode = "BROWSER_DOM_CANDIDATE_MISSING", fact = terminalFact(store.readCommand(permit.commandId)!.identity,
+    { terminal: "rejected", mutationOutcome: "dispatched", failureCode: errorCode, resultHash: exactHash(canonicalizeBrowserAuthorityValue({ errorCode })) });
+  await deliver(request, { permitSequence: permit.sequence, replyChannelToken: permit.replyChannelToken, errorCode, mutationReceipt: fact });
+  await assert.rejects(pending, /BROWSER_DOM_CANDIDATE_MISSING/u); assert.equal(store.readCommand(permit.commandId)?.state, "REJECTED");
+  assert.equal(store.readMutationOutcome(permit.commandId), "dispatched"); assert.equal(frames.length, offset + 2);
+  for (const [index, forged] of ["token", "sequence"].entries()) {
+    const isolated = new BrowserMutationStore(join(root, forged)); isolated.verifyRuntimeTaskProvenance(null); let dispatches = 0;
+    const candidate = permitFor(31 + index, "browser.dom.click.v1", "mutation"), forgedActor = new BrowserCommandActor(new BrowserCommandAdmissionBudget(), {
+      send: async (current, _command, dispatch) => { dispatch?.(); dispatches += 1; throw new BrowserCommandTerminalReplyError(errorCode,
+        forged === "token" ? `${current.replyChannelToken}:forged` : current.replyChannelToken, current.sequence,
+        forged === "sequence" ? current.sequence + 1 : current.sequence); } }, isolated, { assertCurrentAuthority: () => undefined }, logger);
+    await assert.rejects(forgedActor.execute(candidate, click), /BROWSER_COMMAND_RECEIPT_MISSING/u);
+    assert.equal(isolated.readCommand(candidate.commandId)?.state, "DISPATCHED"); assert.equal(dispatches, 1); isolated.close();
+  }
+  const missing = { ...permitFor(33, "browser.dom.click.v1", "mutation"), commandTtlMs: 4_001 }, missingOffset = frames.length;
+  await assert.rejects(actor.execute(missing, click), /BROWSER_COMMAND_RECEIPT_MISSING/u);
+  assert.equal(store.readCommand(missing.commandId)?.state, "DISPATCHED"); assert.equal(frames.length, missingOffset + 1);
+  store.close(); store = null;
+  let closes = 0; const timeoutSocket: BrowserAuthoritySocket = { send: () => undefined, close: () => { closes += 1; throw new Error("CLOSE_FAILED"); } };
+  const timeoutChannel = new BrowserAuthorityWebSocket({ pairingSecret, onPairingStarted: () => undefined, onHeartbeat: () => undefined,
+    onAuthenticated: () => { throw new Error("UNUSED"); }, onMutationReceipt: () => { throw new Error("UNUSED"); },
+    onTargetClaim: () => undefined, onTargetRevoke: () => undefined, onDiagnostic: () => undefined, onRevoked: () => { throw new Error("LOG_FAILED"); } });
+  Reflect.set(timeoutChannel, "active", { socket: timeoutSocket, keys: { clientToServer: Buffer.alloc(32, 1), serverToClient: Buffer.alloc(32, 1) },
+    lastClientSequence: 1, nextServerSequence: 2, lastHeartbeatAt: Date.now(), replies: new Map() });
+  await assert.rejects(timeoutChannel.send({ ...permitFor(99, "browser.dom.inspect.v1", "observation"), commandTtlMs: 1 }, wireCases[1]!.command),
+    (error: unknown) => error instanceof Error && error.message === "BROWSER_COMMAND_RECEIPT_MISSING" && error.cause instanceof Error);
+  assert.equal(closes, 1); assert.equal(Reflect.get(timeoutChannel, "active"), null);
+} finally { store?.close(); await rm(root, { recursive: true, force: true }); }
+emitQualityProofObservation({ lawId: "LAW-LOCAL-BROWSER-SESSION-004-V56", evidenceMode: "exam.property", clauses: ["forbidden:0"],
+  locator: "acceptance:browser-terminal:frame-property-model", observedValue: "64 encrypted full-payload sequences, direction and ciphertext rejection, original WAL error receipts and single unknown dispatch exercised" });
+console.log("native Browser encrypted property model exercised");

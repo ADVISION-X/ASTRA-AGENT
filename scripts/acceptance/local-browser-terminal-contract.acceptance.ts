@@ -14,417 +14,125 @@ import { serializeTerminalFailure } from "../../src/lib/local-runtime/production
 import { verifyBrowserArtifactAndLockContracts } from "./local-browser-artifact-and-lock.acceptance-support.js";
 import { exerciseStrictMutationReceipts } from "./local-browser-mutation-receipt-support.js";
 import { exerciseBrowserDiagnosticContract } from "./local-browser-diagnostic-contract-support.js";
-import {
-  exactHash, exerciseTerminalFactSettlement, exerciseBrowserMutationStore, exercisePostconditionNativeCauseWalRoundTrip, hash,
-} from "./local-browser-mutation-store-support.js";
-import { createBrowserActorFactory, createClickCommand, createMatchClickCommand, permit,
-  rateLimitSpecialReceipt } from "./local-browser-terminal-fixture.js";
-import type { BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
-import { browserCommandPermitMacPayload } from "../../src/lib/browser/transport/command-permit.js";
-import { assertExtensionCommandPermit, clearExtensionPermitAuthority,
-  setExtensionPermitAuthority } from "../../src/lib/browser/chrome-extension/command-permit-validator.js";
-import { exerciseActorRejections, exerciseCheckpointObservationFailures,
-  exerciseExactAssistantActorBinding } from "./local-browser-terminal-rejection-support.js";
-import { decodeKnownGptRateLimitPreflightReply } from
-  "../../src/lib/browser/exact-target/browser-special-mutation-receipt.js";
-import { absentPreflightEnvelope } from "./local-browser-terminal-fixture.js";
-const root = await mkdtemp(join(tmpdir(), "browser-mutation-state-"));
-try {
-  const replayPermit: BrowserCommandPermit = {
-    ...permit("risk-replay-mac"), resultRevision: 2, replayPolicy: "provider-effect-once",
-    deliveryPriorityReplayGrantHash: hash,
-    deliveryPriorityReplayCall: {
-      productStepId: "report_translation:candidate_a", callId: "gpt-turn-flow.v3",
-      childCapabilityId: "open_gpt_model_selector_v3", sourceEffectSetHash: hash,
-    },
-  };
-  const { commandFrameMac: _originalMac, ...unsignedBefore } = replayPermit;
-  const permitKey = Buffer.alloc(32, 7);
-  const signedReplayPermit = {
-    ...replayPermit,
-    commandFrameMac: `sha256:${createHmac("sha256", permitKey)
-      .update(browserCommandPermitMacPayload(unsignedBefore)).digest("hex")}` as `sha256:${string}`,
-  };
-  const receivedReplayPermit = (JSON.parse(canonicalizeBrowserAuthorityValue({
-    permit: signedReplayPermit,
-  })) as { permit: BrowserCommandPermit }).permit;
-  setExtensionPermitAuthority({ authorityRef: replayPermit.authorityRef,
-    authorityEpoch: replayPermit.authorityEpoch, certificateHash: replayPermit.certificateHash,
-    channelSessionHash: replayPermit.channelSessionHash, commandPermitKey: permitKey.toString("base64") });
-  try { await assertExtensionCommandPermit(receivedReplayPermit); }
-  finally { clearExtensionPermitAuthority(); }
-  exerciseBrowserMutationStore(root);
-  exerciseTerminalFactSettlement(join(root, "terminal-fact-settlement"));
-  exercisePostconditionNativeCauseWalRoundTrip(join(root, "postcondition-native-cause"));
-  const actorRoot = join(root, "actor");
-  const actorStore = new BrowserMutationStore(actorRoot);
-  actorStore.verifyRuntimeTaskProvenance(null);
-  const actorLogger = createRuntimeLogger({
-    producer: "browser-actor-acceptance",
-    producerRunId: "browser-actor-acceptance-run",
-    owner: "browser-session",
-    component: "browser-command",
-    terminalEnabled: false,
-    fileSink: { directoryPath: join(root, "actor-logs"), maxTotalBytes: 1_048_576 },
-  });
-  const actorFor = createBrowserActorFactory(actorStore, actorLogger);
-  const clickCommand = createClickCommand();
-  const matchClickCommand = createMatchClickCommand();
-  const confirmedPermit = permit("actor-confirmed");
-  const validPreflight = absentPreflightEnvelope(confirmedPermit, { ok: true });
-  assert.deepEqual(
-    decodeKnownGptRateLimitPreflightReply(confirmedPermit, clickCommand, validPreflight).commandResult,
-    { ok: true },
-  );
-  assert.throws(() => decodeKnownGptRateLimitPreflightReply(
-    confirmedPermit, clickCommand, { ok: true },
-  ), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
-  "a bare command result must not survive after the v2 preflight cutover");
-  const validRecord = validPreflight as Readonly<Record<string, unknown>>;
-  const validFact = validRecord.knownGptRateLimitPreflightFact as Readonly<Record<string, unknown>>;
-  for (const tamperedFact of [
-    { ...validFact, exactCallIdentityHash: `sha256:${"f".repeat(64)}` },
-    { ...validFact, observationHash: `sha256:${"f".repeat(64)}` },
-  ]) assert.throws(() => decodeKnownGptRateLimitPreflightReply(
-    confirmedPermit, clickCommand, { ...validRecord, knownGptRateLimitPreflightFact: tamperedFact },
-  ), /BROWSER_AUTH_TRANSCRIPT_INVALID/u);
-  await actorFor(async (candidate, _command, onDispatched) => {
-    onDispatched?.();
-    return {
-      replyChannelToken: candidate.replyChannelToken,
-      transportSequence: 1,
-      permitSequence: candidate.sequence,
-      result: { clicked: true, candidateCount: 1, identityRevalidated: true,
-        mutationCount: 1, postconditionVerified: true },
-    };
-  }).execute(confirmedPermit, clickCommand);
-  assert.equal(actorStore.readCommand(confirmedPermit.commandId)?.state ?? null, "CONFIRMED");
-  assert.equal(actorStore.readMutationOutcome(confirmedPermit.commandId), "confirmed");
-  const zeroActionPermit = permit("actor-zero-action");
-  await actorFor(async (candidate, _command, onDispatched) => {
-    onDispatched?.();
-    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
-      permitSequence: candidate.sequence, result: { candidateCount: 1, identityRevalidated: true,
-        mutationCount: 0, postconditionVerified: true, zeroActionSatisfied: true } };
-  }).execute(zeroActionPermit, clickCommand);
-  assert.equal(actorStore.readCommand(zeroActionPermit.commandId)?.state ?? null, "CONFIRMED");
-  assert.equal(actorStore.readMutationOutcome(zeroActionPermit.commandId), "no");
-  for (const special of [
-    { id: "actor-known-rate-limit", state: "exact_present" as const,
-      code: "BROWSER_KNOWN_GPT_RATE_LIMIT" },
-    { id: "actor-unrecognized-gpt-dialog", state: "mismatch" as const,
-      code: "BROWSER_GPT_DIALOG_UNRECOGNIZED" },
-  ]) {
-    const specialPermit = permit(special.id);
-    const specialActor = actorFor(async (candidate, _command, onDispatched) => {
-      onDispatched?.();
-      return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
-        permitSequence: candidate.sequence,
-        result: rateLimitSpecialReceipt(candidate, special.state) };
-    }, false);
-    await assert.rejects(specialActor.execute(specialPermit, clickCommand), new RegExp(special.code, "u"));
-    assert.equal(actorStore.readCommand(specialPermit.commandId)?.state ?? null, "REJECTED");
-    assert.equal(actorStore.readMutationOutcome(specialPermit.commandId), "no");
-  }
-  await exerciseActorRejections(actorRoot, actorFor, actorStore, clickCommand);
+import { exactHash, exerciseTerminalFactSettlement, exerciseBrowserMutationStore, exercisePostconditionNativeCauseWalRoundTrip, hash } from "./local-browser-mutation-store-support.js";
+import { createBrowserActorFactory, createClickCommand, createMatchClickCommand, permit, rateLimitSpecialReceipt, absentPreflightEnvelope } from "./local-browser-terminal-fixture.js";
+import { browserCommandPermitMacPayload, type BrowserCommandPermit } from "../../src/lib/browser/transport/command-permit.js";
+import { assertExtensionCommandPermit, clearExtensionPermitAuthority, setExtensionPermitAuthority } from "../../src/lib/browser/chrome-extension/command-permit-validator.js";
+import { exerciseActorRejections, exerciseCheckpointObservationFailures, exerciseExactAssistantActorBinding } from "./local-browser-terminal-rejection-support.js";
+import { decodeKnownGptRateLimitPreflightReply } from "../../src/lib/browser/exact-target/browser-special-mutation-receipt.js";
 
-  const observationPermit: BrowserCommandPermit = {
-    ...permit("actor-observation"), capabilityId: "browser.dom.inspect.v1",
-    mutationClass: "observation", replayPolicy: "observation-only",
-  };
+const packetFor = (candidate: BrowserCommandPermit, fields: Readonly<Record<string, unknown>>) => {
+  const targetRefHash = exactHash(candidate.targetRef), documentRefHash = exactHash(candidate.documentRef), currentUrl = "https://chatgpt.com/";
+  const observedAt = "2026-09-02T12:34:56.789Z";
+  const observationIdentityHash = exactHash(canonicalizeBrowserAuthorityValue({ targetRefHash, documentRefHash, observedAt, queryId: "model", candidateIndex: 0 }));
+  const queries = [{ queryId: "model", scopeRawCount: 1, scopeEligibleCount: 1, rawCount: 1, eligibleCount: 1,
+    matches: [{ candidateIndex: 0, observationIdentityHash, ...fields }], nativeCauseCode: null, nativeCauseCount: 0,
+    nativeStage: "runtime-call-function-on", scopeRejections: [], rejections: [] }];
+  return { schemaVersion: "grasseye.browser.dom-observation.v2", targetRefHash, documentRefHash, currentUrl, observedAt, queries,
+    observationRevisionHash: exactHash(canonicalizeBrowserAuthorityValue({ targetRefHash, documentRefHash, currentUrl, observedAt, queries })) };
+};
+const root = await mkdtemp(join(tmpdir(), "browser-terminal-rebuild-"));
+try {
+  const replay = { ...permit("replay-mac"), resultRevision: 2, replayPolicy: "provider-effect-once" as const,
+    deliveryPriorityReplayGrantHash: hash, deliveryPriorityReplayCall: { productStepId: "report_translation:candidate_a",
+      callId: "gpt-turn-flow.v3", childCapabilityId: "open_gpt_model_selector_v3", sourceEffectSetHash: hash } };
+  const key = Buffer.alloc(32, 7), { commandFrameMac: _unused, ...unsigned } = replay;
+  const signed = { ...replay, commandFrameMac: `sha256:${createHmac("sha256", key).update(browserCommandPermitMacPayload(unsigned)).digest("hex")}` as `sha256:${string}` };
+  const received = JSON.parse(canonicalizeBrowserAuthorityValue(signed)) as BrowserCommandPermit;
+  setExtensionPermitAuthority({ authorityRef: replay.authorityRef, authorityEpoch: replay.authorityEpoch,
+    certificateHash: replay.certificateHash, channelSessionHash: replay.channelSessionHash, commandPermitKey: key.toString("base64") });
+  try { await assertExtensionCommandPermit(received); } finally { clearExtensionPermitAuthority(); }
+  exerciseBrowserMutationStore(root); exerciseTerminalFactSettlement(join(root, "terminal"));
+  exercisePostconditionNativeCauseWalRoundTrip(join(root, "native-cause"));
+  const actorRoot = join(root, "actor"), store = new BrowserMutationStore(actorRoot); store.verifyRuntimeTaskProvenance(null);
+  const logger = createRuntimeLogger({ producer: "browser-actor-acceptance", producerRunId: "terminal-rebuild", owner: "browser-session",
+    component: "browser-command", terminalEnabled: false, fileSink: { directoryPath: join(root, "logs"), maxTotalBytes: 1_048_576 } });
+  const actorFor = createBrowserActorFactory(store, logger), click = createClickCommand(), match = createMatchClickCommand();
+  const initial = permit("confirmed"), envelope = absentPreflightEnvelope(initial, { ok: true });
+  assert.deepEqual(decodeKnownGptRateLimitPreflightReply(initial, click, envelope).commandResult, { ok: true });
+  assert.throws(() => decodeKnownGptRateLimitPreflightReply(initial, click, { ok: true }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u);
+  const fact = envelope.knownGptRateLimitPreflightFact as Record<string, unknown>;
+  for (const field of ["exactCallIdentityHash", "observationHash"]) assert.throws(() => decodeKnownGptRateLimitPreflightReply(initial, click,
+    { ...envelope, knownGptRateLimitPreflightFact: { ...fact, [field]: `sha256:${"f".repeat(64)}` } }), /BROWSER_AUTH_TRANSCRIPT_INVALID/u);
+  for (const count of [1, 0] as const) {
+    const candidate = count === 1 ? initial : permit("zero-input");
+    await actorFor(async (current, _command, dispatch) => { dispatch?.(); return { replyChannelToken: current.replyChannelToken,
+      transportSequence: 1, permitSequence: current.sequence, result: { candidateCount: 1, identityRevalidated: true,
+        mutationCount: count, postconditionVerified: true, ...(count === 0 ? { zeroActionSatisfied: true } : { clicked: true }) } }; }).execute(candidate, click);
+    assert.equal(store.readCommand(candidate.commandId)?.state, "CONFIRMED"); assert.equal(store.readMutationOutcome(candidate.commandId), count ? "confirmed" : "no");
+  }
+  for (const state of ["exact_present", "mismatch"] as const) {
+    const candidate = permit(state), actor = actorFor(async (current, _command, dispatch) => { dispatch?.(); return {
+      replyChannelToken: current.replyChannelToken, transportSequence: 1, permitSequence: current.sequence, result: rateLimitSpecialReceipt(current, state) }; }, false);
+    await assert.rejects(actor.execute(candidate, click), new RegExp(state === "mismatch" ? "BROWSER_GPT_DIALOG_UNRECOGNIZED" : "BROWSER_KNOWN_GPT_RATE_LIMIT", "u"));
+    assert.equal(store.readCommand(candidate.commandId)?.state, "REJECTED"); assert.equal(store.readMutationOutcome(candidate.commandId), "no");
+  }
+  await exerciseActorRejections(actorRoot, actorFor, store, click);
+  const observationPermit: BrowserCommandPermit = { ...permit("observation"), capabilityId: "browser.dom.inspect.v1", mutationClass: "observation", replayPolicy: "observation-only" };
   const observationCommand = { kind: "dom-intent" as const, intent: { kind: "observe" as const,
     queries: [{ queryId: "model", selector: "button", maxMatches: 1, fields: ["visible" as const] }] } };
-  const observedAt = "2026-09-02T12:34:56.789Z";
-  const observationIdentityHash = exactHash(canonicalizeBrowserAuthorityValue({
-    targetRefHash: exactHash(observationPermit.targetRef),
-    documentRefHash: exactHash(observationPermit.documentRef), observedAt, queryId: "model", candidateIndex: 0,
-  }));
-  const observationQueries = [{ queryId: "model", scopeRawCount: 1, scopeEligibleCount: 1,
-    rawCount: 1, eligibleCount: 1, matches: [{ candidateIndex: 0, observationIdentityHash, visible: true }], nativeCauseCode: null,
-    nativeCauseCount: 0, nativeStage: "runtime-call-function-on", scopeRejections: [], rejections: [] }];
-  const targetRefHash = exactHash(observationPermit.targetRef);
-  const documentRefHash = exactHash(observationPermit.documentRef);
-  const currentUrl = "https://chatgpt.com/";
-  const observationRevisionHash = exactHash(canonicalizeBrowserAuthorityValue({
-    targetRefHash, documentRefHash, currentUrl, observedAt, queries: observationQueries,
-  }));
-  const observationResult = await actorFor(async (candidate) => ({
-    replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
-    permitSequence: candidate.sequence, result: { schemaVersion: "grasseye.browser.dom-observation.v2",
-      targetRefHash, documentRefHash, currentUrl, observationRevisionHash, observedAt, queries: observationQueries },
-  })).execute(observationPermit, observationCommand) as Readonly<Record<string, unknown>>;
-  assert.equal(observationResult.exactCallIdentityHash, browserExactCallIdentityHash(observationPermit));
-  assert.equal(actorStore.readCommand(observationPermit.commandId)?.state ?? null, null);
-
-  await exerciseCheckpointObservationFailures({ actorFor, actorLogger,
-    observationPermit, observationCommand, clickCommand });
-
-  await exerciseExactAssistantActorBinding(actorFor, observedAt);
-
-  const coherentClickPermit: BrowserCommandPermit = {
-    ...permit("actor-coherent-click"), commandTtlMs: 10_000,
-  };
-  const coherentClickCommand = { kind: "dom-intent" as const, intent: {
-    kind: "click" as const, selector: "button[aria-label='Model selector']", expectedMatches: 1,
-    postClickObservation: { timeoutMs: 5_000, queries: [{
-      queryId: "model", selector: "button", maxMatches: 1, fields: ["ariaExpanded"] as const,
-      expectedEligibleCount: 1,
-    }] },
-  } };
-  const coherentTargetRefHash = exactHash(coherentClickPermit.targetRef);
-  const coherentDocumentRefHash = exactHash(coherentClickPermit.documentRef);
-  const coherentObservationIdentityHash = exactHash(canonicalizeBrowserAuthorityValue({
-    targetRefHash: coherentTargetRefHash, documentRefHash: coherentDocumentRefHash,
-    observedAt, queryId: "model", candidateIndex: 0,
-  }));
-  const coherentObservationQueries = [{ queryId: "model", scopeRawCount: 1, scopeEligibleCount: 1,
-    rawCount: 1, eligibleCount: 1,
-    matches: [{ candidateIndex: 0, observationIdentityHash: coherentObservationIdentityHash,
-      ariaExpanded: "true" }],
-    nativeCauseCode: null, nativeCauseCount: 0, nativeStage: "runtime-call-function-on",
-    scopeRejections: [], rejections: [] }];
-  const coherentRevisionHash = exactHash(canonicalizeBrowserAuthorityValue({
-    targetRefHash: coherentTargetRefHash, documentRefHash: coherentDocumentRefHash,
-    currentUrl, observedAt, queries: coherentObservationQueries,
-  }));
-  const coherentClickResult = await actorFor(async (candidate, _command, onDispatched) => {
-    onDispatched?.();
-    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
-      permitSequence: candidate.sequence, result: {
-        clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
-        postconditionVerified: true,
-        postconditionObservation: {
-          schemaVersion: "grasseye.browser.dom-observation.v2", targetRefHash: coherentTargetRefHash,
-          documentRefHash: coherentDocumentRefHash, currentUrl, observationRevisionHash: coherentRevisionHash,
-          observedAt, queries: coherentObservationQueries,
-        },
-      } };
-  }).execute(coherentClickPermit, coherentClickCommand) as Readonly<Record<string, unknown>>;
-  assert.equal((coherentClickResult.postconditionObservation as Readonly<Record<string, unknown>>)
-    .exactCallIdentityHash, browserExactCallIdentityHash(coherentClickPermit),
-  "the post-click coherent packet must be exact-call bound before WAL confirmation and GPT consumption");
-  assert.equal((((coherentClickResult.postconditionObservation as Readonly<Record<string, unknown>>)
-    .queries as readonly Readonly<Record<string, unknown>>[])[0]?.matches as readonly Readonly<Record<string, unknown>>[])[0]
-    ?.ariaExpanded, "true", "the exact-call-bound packet must preserve its permitted mechanical field");
-  assert.equal(actorStore.readCommand(coherentClickPermit.commandId)?.state ?? null, "CONFIRMED");
-
-  const forgedSelectedPermit: BrowserCommandPermit = {
-    ...permit("actor-forged-selected-candidate"), commandTtlMs: 10_000,
-  };
-  const selectedCandidateCommand = { kind: "dom-intent" as const, intent: {
-    ...coherentClickCommand.intent,
-    postClickObservation: {
-      ...coherentClickCommand.intent.postClickObservation,
-      clickedCandidateAttribute: { name: "aria-checked" as const, equals: "true" as const },
-    },
-  } };
-  const selectedCandidatePermit: BrowserCommandPermit = {
-    ...permit("actor-selected-candidate"), commandTtlMs: 10_000,
-  };
-  await actorFor(async (candidate, _command, onDispatched) => {
-    onDispatched?.();
-    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
-      permitSequence: candidate.sequence, result: {
-        clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
-        postconditionVerified: true,
-        clickedCandidateAttributeReadback: { name: "aria-checked", value: "true", verified: true },
-        postconditionObservation: {
-          schemaVersion: "grasseye.browser.dom-observation.v2", targetRefHash: coherentTargetRefHash,
-          documentRefHash: coherentDocumentRefHash, currentUrl,
-          observationRevisionHash: coherentRevisionHash, observedAt, queries: coherentObservationQueries,
-        },
-      } };
-  }).execute(selectedCandidatePermit, selectedCandidateCommand);
-  assert.equal(actorStore.readCommand(selectedCandidatePermit.commandId)?.state ?? null, "CONFIRMED",
-    "the exact selected-candidate readback must survive the Browser receipt decoder");
-  await assert.rejects(actorFor(async (candidate, _command, onDispatched) => {
-    onDispatched?.();
-    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
-      permitSequence: candidate.sequence, result: {
-        clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
-        postconditionVerified: true,
-        clickedCandidateAttributeReadback: { name: "aria-checked", value: "false", verified: false },
-        postconditionObservation: {
-          schemaVersion: "grasseye.browser.dom-observation.v2", targetRefHash: coherentTargetRefHash,
-          documentRefHash: coherentDocumentRefHash, currentUrl,
-          observationRevisionHash: coherentRevisionHash, observedAt, queries: coherentObservationQueries,
-        },
-      } };
-  }).execute(forgedSelectedPermit, selectedCandidateCommand), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
-  "the Browser actor must reject a claimed success when the exact clicked candidate is still unchecked");
-  assert.equal(actorStore.readCommand(forgedSelectedPermit.commandId)?.state ?? null, "REJECTED");
-  assert.equal(actorStore.readMutationOutcome(forgedSelectedPermit.commandId), "dispatched");
-
-  const coherentQualificationPermit: BrowserCommandPermit = {
-    ...permit("actor-coherent-click-qualification-rejected"), commandTtlMs: 10_000,
-  };
-  const coherentQualificationActor = actorFor(async (candidate, _command, onDispatched) => {
-    onDispatched?.();
-    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
-      permitSequence: candidate.sequence, result: {
-        candidateCount: 0, identityRevalidated: false, mutationCount: 0,
-        postconditionVerified: false, qualificationRejected: true,
-        qualificationStage: "candidate-set",
-        failureCode: "BROWSER_DOM_CANDIDATE_MISSING", nativeCauseCode: null,
-      } };
-  });
-  await assert.rejects(
-    coherentQualificationActor.execute(coherentQualificationPermit, coherentClickCommand),
-    /BROWSER_DOM_CANDIDATE_MISSING/u,
-  );
-  assert.equal(actorStore.readCommand(coherentQualificationPermit.commandId)?.state ?? null, "REJECTED",
-    "a coherent-click qualification terminal must not be misclassified as a missing receipt");
-  assert.equal(coherentQualificationActor.mutationOutcome(coherentQualificationPermit.commandId), "no");
-
-  let insufficientBudgetSends = 0;
-  const insufficientBudgetPermit: BrowserCommandPermit = {
-    ...permit("actor-insufficient-postcondition-budget"), commandTtlMs: 5_999,
-  };
-  await assert.rejects(actorFor(async () => {
-    insufficientBudgetSends += 1;
-    throw new Error("MUST_NOT_SEND");
-  }).execute(insufficientBudgetPermit, coherentClickCommand), /BROWSER_COMMAND_PERMIT_INVALID/u);
-  assert.equal(insufficientBudgetSends, 0,
-    "a command without postcondition timeout plus terminal-reply margin must fail before send");
-  assert.equal(actorStore.readCommand(insufficientBudgetPermit.commandId)?.state ?? null, null,
-    "insufficient reply budget must produce neither PREPARED nor DISPATCHED");
-
-  const fileCommand = { kind: "file-input" as const, selector: "form[data-chatgpt-composer] input[type='file'][aria-label='附加文件']",
+  const observed = await actorFor(async candidate => ({ replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
+    permitSequence: candidate.sequence, result: packetFor(candidate, { visible: true }) })).execute(observationPermit, observationCommand) as Record<string, unknown>;
+  assert.equal(observed.exactCallIdentityHash, browserExactCallIdentityHash(observationPermit)); assert.equal(store.readCommand(observationPermit.commandId), null);
+  await exerciseCheckpointObservationFailures({ actorFor, actorLogger: logger, observationPermit, observationCommand, clickCommand: click });
+  await exerciseExactAssistantActorBinding(actorFor, "2026-09-02T12:34:56.789Z");
+  const coherent = { kind: "dom-intent" as const, intent: { kind: "click" as const, selector: "button[aria-label='Model selector']", expectedMatches: 1,
+    postClickObservation: { timeoutMs: 5_000, queries: [{ queryId: "model", selector: "button", maxMatches: 1,
+      fields: ["ariaExpanded"] as const, expectedEligibleCount: 1 }] } } };
+  for (const selected of [null, true, false] as const) {
+    const candidate = permit(`coherent-${selected}`), command = selected === null ? coherent : { ...coherent, intent: { ...coherent.intent,
+      postClickObservation: { ...coherent.intent.postClickObservation, clickedCandidateAttribute: { name: "aria-checked" as const, equals: "true" as const } } } };
+    const execution = actorFor(async (current, _command, dispatch) => { dispatch?.(); return { replyChannelToken: current.replyChannelToken,
+      transportSequence: 1, permitSequence: current.sequence, result: { clicked: true, candidateCount: 1, identityRevalidated: true,
+        mutationCount: 1, postconditionVerified: true, postconditionObservation: packetFor(current, { ariaExpanded: "true" }),
+        ...(selected === null ? {} : { clickedCandidateAttributeReadback: { name: "aria-checked", value: String(selected), verified: selected } }) } }; }).execute(candidate, command);
+    if (selected === false) { await assert.rejects(execution, /BROWSER_AUTH_TRANSCRIPT_INVALID/u); assert.equal(store.readMutationOutcome(candidate.commandId), "dispatched"); }
+    else { const result = await execution as Record<string, unknown>;
+      assert.equal((result.postconditionObservation as Record<string, unknown>).exactCallIdentityHash, browserExactCallIdentityHash(candidate));
+      assert.equal(store.readCommand(candidate.commandId)?.state, "CONFIRMED"); }
+  }
+  const qualificationPermit = permit("coherent-qualification");
+  await assert.rejects(actorFor(async (candidate, _command, dispatch) => { dispatch?.(); return { replyChannelToken: candidate.replyChannelToken,
+    transportSequence: 1, permitSequence: candidate.sequence, result: { candidateCount: 0, identityRevalidated: false, mutationCount: 0,
+      postconditionVerified: false, qualificationRejected: true, qualificationStage: "candidate-set",
+      failureCode: "BROWSER_DOM_CANDIDATE_MISSING", nativeCauseCode: null } }; }).execute(qualificationPermit, coherent), /BROWSER_DOM_CANDIDATE_MISSING/u);
+  assert.equal(store.readCommand(qualificationPermit.commandId)?.state, "REJECTED"); assert.equal(store.readMutationOutcome(qualificationPermit.commandId), "no");
+  let insufficientSends = 0; const insufficient = { ...permit("margin"), commandTtlMs: 5_999 };
+  await assert.rejects(actorFor(async () => { insufficientSends += 1; throw new Error("MUST_NOT_SEND"); }).execute(insufficient, coherent), /BROWSER_COMMAND_PERMIT_INVALID/u);
+  assert.equal(insufficientSends, 0); assert.equal(store.readCommand(insufficient.commandId), null);
+  const file = { kind: "file-input" as const, selector: "form[data-chatgpt-composer] input[type='file'][aria-label='附加文件']",
     activation: { selector: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child",
-      scope: { selector: "[data-composer-overlay-floating-ui='true']" },
-      expectedText: "上传" },
-    approvedFiles: [{ grantRef: "grant-one", contentHash: hash, maxBytes: 64 }],
-    resolvedFilePaths: ["/approved/one.txt"] };
-  const forgedFilePermit: BrowserCommandPermit = {
-    ...permit("actor-file-forged-success"), capabilityId: "browser.file-input.v1",
-  };
-  await assert.rejects(actorFor(async (candidate, _command, onDispatched) => {
-    onDispatched?.();
-    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
-      permitSequence: candidate.sequence, result: { candidateCount: 1, identityRevalidated: false,
-        mutationCount: 1, postconditionVerified: true } };
-  }).execute(forgedFilePermit, fileCommand), /BROWSER_AUTH_TRANSCRIPT_INVALID/u,
-  "file-input may not be confirmed without the exact Target and Document still bound");
-  assert.equal(actorStore.readCommand(forgedFilePermit.commandId)?.state ?? null, "REJECTED",
-    "an authenticated malformed result must retain its exact rejection instead of impersonating a missing reply");
-  assert.equal(actorStore.readMutationOutcome(forgedFilePermit.commandId), "dispatched");
-
-  const confirmedFilePermit: BrowserCommandPermit = {
-    ...permit("actor-file-confirmed"), capabilityId: "browser.file-input.v1",
-  };
-  await actorFor(async (candidate, _command, onDispatched) => {
-    onDispatched?.();
-    return { replyChannelToken: candidate.replyChannelToken, transportSequence: 1,
-      permitSequence: candidate.sequence, result: { candidateCount: 1, identityRevalidated: true,
-        mutationCount: 1, postconditionVerified: true } };
-  }).execute(confirmedFilePermit, fileCommand);
-  assert.equal(actorStore.readCommand(confirmedFilePermit.commandId)?.state ?? null, "CONFIRMED");
-
-  const rejectedPermit = permit("actor-rejected");
-  const rejectedActor = actorFor(async (candidate, _command, onDispatched) => {
-    onDispatched?.();
-    return {
-      replyChannelToken: candidate.replyChannelToken,
-      transportSequence: 2,
-      permitSequence: candidate.sequence,
-      result: {
-        clicked: true,
-        candidateCount: 1,
-        identityRevalidated: true,
-        mutationCount: 1,
-        postconditionVerified: false,
-        postconditionRawCount: 1,
-        postconditionEligibleCount: 0,
-        postconditionRejections: [{ index: 0, reasons: ["ARIA_HIDDEN"] }],
-        failureCode: "BROWSER_POSTCONDITION_FAILED",
-        nativeCauseCode: "ARIA_HIDDEN",
-      },
-    };
-  });
-  await assert.rejects(
-    rejectedActor.execute(rejectedPermit, matchClickCommand),
-    /BROWSER_POSTCONDITION_FAILED/u,
-  );
-  assert.equal(actorStore.readCommand(rejectedPermit.commandId)?.state ?? null, "REJECTED");
-  assert.equal(rejectedActor.mutationOutcome(rejectedPermit.commandId), "confirmed");
-  const rejectedDatabase = new Database(join(actorRoot, "browser", "browser-mutations.sqlite"), { readonly: true });
-  assert.deepEqual(rejectedDatabase.prepare(
-    "select reason,native_cause_code from browser_mutations where command_id=?",
-  ).get(rejectedPermit.commandId), {
-    reason: "BROWSER_POSTCONDITION_FAILED", native_cause_code: "ARIA_HIDDEN",
-  }, "the Browser WAL must retain the exact postcondition rejection cause");
-  rejectedDatabase.close();
-  exerciseStrictMutationReceipts();
-  exerciseBrowserDiagnosticContract();
-  assert.equal(rejectedActor.browserOutcome(rejectedPermit.commandId), "REJECTED");
-  assert.deepEqual(
-    serializeTerminalFailure(browserExecutionFailure(
-      new Error("BROWSER_POSTCONDITION_FAILED"),
-      rejectedActor.mutationOutcome(rejectedPermit.commandId),
-      {
-        effectScope: rejectedPermit.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local",
-        childCapabilityId: rejectedPermit.childCapabilityId,
-        browserOutcome: rejectedActor.browserOutcome(rejectedPermit.commandId)!,
-      },
-    )),
-    {
-      code: "BROWSER_POSTCONDITION_FAILED",
-      mutation_outcome: "confirmed",
-      effect_scope: "target_local",
-      child_capability_id: "open_gpt_model_selector_v3",
-      browser_outcome: "REJECTED",
-      evidence_ref: null,
-      evidence_hash: null,
-      child_proof_ref: null,
-      child_proof_hash: null,
-      stopped_empty_proof: null,
-      cause: { name: "Error", code: null },
-    },
-    "Browser terminal facts must survive typed-failure serialization without promoting REJECTED to CONFIRMED",
-  );
-
-  let dispatchCount = 0;
-  const receiptMissingPermit = permit("actor-receipt-missing");
-  const nativeSocketFailure = Object.assign(new Error("socket reset"), { code: "ECONNRESET" });
-  const receiptMissingActor = actorFor(async (_candidate, _command, onDispatched) => {
-    onDispatched?.();
-    dispatchCount += 1;
-    throw new Error("SOCKET_CLOSED_AFTER_SEND", { cause: nativeSocketFailure });
-  });
-  let wrappedBrowserFailure: unknown = null;
-  try { await receiptMissingActor.execute(receiptMissingPermit, clickCommand); }
-  catch (error) { wrappedBrowserFailure = error; }
-  assert.match(String(wrappedBrowserFailure), /BROWSER_COMMAND_RECEIPT_MISSING/u);
-  assert.equal(serializeTerminalFailure(wrappedBrowserFailure).cause?.code, "ECONNRESET",
-    "the real Browser command wrapper must preserve the innermost native cause");
-  assert.equal(dispatchCount, 1);
-  assert.equal(actorStore.readCommand(receiptMissingPermit.commandId)?.state ?? null, "DISPATCHED");
-  assert.equal(receiptMissingActor.hasDispatchedMutation(receiptMissingPermit.commandId), true);
-  assert.equal(receiptMissingActor.mutationOutcome(receiptMissingPermit.commandId), "dispatched");
-  assert.equal(receiptMissingActor.browserOutcome(receiptMissingPermit.commandId), "DISPATCHED");
-  actorStore.close();
-
-  const supervisor = readFileSync(
-    "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts",
-    "utf8",
-  );
-  const actor = readFileSync(
-    "src/lib/browser/exact-target/browser-command-actor.ts",
-    "utf8",
-  );
-  assert.match(
-    supervisor,
-    /new BrowserMutationStore\(this\.options\.dataDir\)/u,
-  );
-  assert.match(actor, /markDispatched/u);
-  assert.match(actor, /this\.mutations\.readCommand\(permit\.commandId\)/u);
-  assert.doesNotMatch(actor, /this\.mutations\.mark(?:Confirmed|Rejected)\(/u);
-  assert.doesNotMatch(
-    `${supervisor}\n${actor}`,
-    /BrowserProofJournal|proof-events\.ndjson/u,
-  );
-  await verifyBrowserArtifactAndLockContracts();
-  process.stdout.write("LOCAL_BROWSER_TERMINAL_CONTRACT_PASS\n");
-} finally {
-  await rm(root, { recursive: true, force: true });
-}
+      scope: { selector: "[data-composer-overlay-floating-ui='true']" }, expectedText: "上传" },
+    approvedFiles: [{ grantRef: "grant-one", contentHash: hash, maxBytes: 64 }], resolvedFilePaths: ["/approved/one.txt"] };
+  for (const identity of [false, true]) {
+    const candidate: BrowserCommandPermit = { ...permit(`file-${identity}`), capabilityId: "browser.file-input.v1" };
+    const execution = actorFor(async (current, _command, dispatch) => { dispatch?.(); return { replyChannelToken: current.replyChannelToken,
+      transportSequence: 1, permitSequence: current.sequence, result: { candidateCount: 1, identityRevalidated: identity, mutationCount: 1, postconditionVerified: true } }; }).execute(candidate, file);
+    if (identity) await execution; else await assert.rejects(execution, /BROWSER_AUTH_TRANSCRIPT_INVALID/u);
+    assert.equal(store.readCommand(candidate.commandId)?.state, identity ? "CONFIRMED" : "REJECTED");
+  }
+  const failedPermit = permit("postcondition-failed"), failedActor = actorFor(async (candidate, _command, dispatch) => { dispatch?.(); return {
+    replyChannelToken: candidate.replyChannelToken, transportSequence: 2, permitSequence: candidate.sequence, result: { clicked: true, candidateCount: 1,
+      identityRevalidated: true, mutationCount: 1, postconditionVerified: false, postconditionRawCount: 1, postconditionEligibleCount: 0,
+      postconditionRejections: [{ index: 0, reasons: ["ARIA_HIDDEN"] }], failureCode: "BROWSER_POSTCONDITION_FAILED", nativeCauseCode: "ARIA_HIDDEN" } }; });
+  await assert.rejects(failedActor.execute(failedPermit, match), /BROWSER_POSTCONDITION_FAILED/u);
+  assert.equal(failedActor.mutationOutcome(failedPermit.commandId), "confirmed"); assert.equal(failedActor.browserOutcome(failedPermit.commandId), "REJECTED");
+  const database = new Database(join(actorRoot, "browser", "browser-mutations.sqlite"), { readonly: true });
+  assert.deepEqual(database.prepare("select reason,native_cause_code from browser_mutations where command_id=?").get(failedPermit.commandId),
+    { reason: "BROWSER_POSTCONDITION_FAILED", native_cause_code: "ARIA_HIDDEN" }); database.close();
+  const serialized = serializeTerminalFailure(browserExecutionFailure(new Error("BROWSER_POSTCONDITION_FAILED"), "confirmed",
+    { effectScope: "target_local", childCapabilityId: failedPermit.childCapabilityId, browserOutcome: "REJECTED" }));
+  assert.equal(serialized.mutation_outcome, "confirmed"); assert.equal(serialized.browser_outcome, "REJECTED");
+  let dispatches = 0; const missing = permit("missing"), native = Object.assign(new Error("socket reset"), { code: "ECONNRESET" });
+  const missingActor = actorFor(async (_candidate, _command, dispatch) => { dispatch?.(); dispatches += 1; throw new Error("SOCKET_CLOSED_AFTER_SEND", { cause: native }); });
+  let error: unknown; try { await missingActor.execute(missing, click); } catch (failure) { error = failure; }
+  assert.match(String(error), /BROWSER_COMMAND_RECEIPT_MISSING/u); assert.equal(serializeTerminalFailure(error).cause?.code, "ECONNRESET");
+  assert.equal(dispatches, 1); assert.equal(store.readCommand(missing.commandId)?.state, "DISPATCHED");
+  assert.equal(missingActor.hasDispatchedMutation(missing.commandId), true); assert.equal(missingActor.browserOutcome(missing.commandId), "DISPATCHED");
+  store.close(); exerciseStrictMutationReceipts(); exerciseBrowserDiagnosticContract(); await verifyBrowserArtifactAndLockContracts();
+  const supervisor = readFileSync("src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts", "utf8"), actor = readFileSync("src/lib/browser/exact-target/browser-command-actor.ts", "utf8");
+  assert.match(supervisor, /new BrowserMutationStore\(this\.options\.dataDir\)/u); assert.match(actor, /markDispatched/u);
+  assert.match(actor, /this\.mutations\.readCommand\(permit\.commandId\)/u); assert.doesNotMatch(actor, /this\.mutations\.mark(?:Confirmed|Rejected)\(/u);
+  assert.doesNotMatch(`${supervisor}\n${actor}`, /BrowserProofJournal|proof-events\.ndjson/u);
+  console.log("native Browser terminal contract exercised");
+} finally { await rm(root, { recursive: true, force: true }); }

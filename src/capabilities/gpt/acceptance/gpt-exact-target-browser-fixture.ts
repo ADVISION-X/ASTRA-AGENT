@@ -1,388 +1,115 @@
 import { createHash } from "node:crypto";
-
-import type {
-  BrowserAtomicStepIdentity,
-  BrowserAtomicStepOutcome,
-  BrowserDomIntent,
-  BrowserDomObservationQuery,
-  BrowserTargetLease,
-} from "../../../lib/browser/browser-authority-api.js";
+import type { BrowserAtomicStepIdentity, BrowserAtomicStepOutcome, BrowserDomIntent, BrowserDomObservationQuery, BrowserTargetLease } from "../../../lib/browser/browser-authority-api.js";
 import { browserExecutionFailure } from "../../../lib/browser/browser-authority-api.js";
 
-export const coherentObservationPacket = (
-  intent: Readonly<{ queries: readonly BrowserDomObservationQuery[] }>,
-  facts: Readonly<Record<string, Readonly<{
-    scopeRawCount?: number;
-    scopeEligibleCount?: number;
-    rawCount: number;
-    eligibleCount: number;
-    matches?: readonly Readonly<Record<string, unknown>>[];
-    scopeRejections?: readonly Readonly<{ index: number; reasons: readonly string[] }>[];
-    rejections?: readonly Readonly<{ index: number; reasons: readonly string[] }>[];
-    nativeCauseCode?: "NO_LAYOUT_BOX" | null;
-    nativeCauseCount?: number;
-  }>>>,
-  currentUrl = "https://chatgpt.com/",
-) => Object.freeze({
-  schemaVersion: "grasseye.browser.dom-observation.v2" as const,
-  exactCallIdentityHash: `sha256:${"1".repeat(64)}` as `sha256:${string}`,
-  targetRefHash: `sha256:${"2".repeat(64)}` as `sha256:${string}`,
-  documentRefHash: `sha256:${"3".repeat(64)}` as `sha256:${string}`,
-  currentUrl,
-  observationRevisionHash: `sha256:${"4".repeat(64)}` as `sha256:${string}`,
-  observedAt: "2026-09-02T00:00:00.000Z",
-  queries: intent.queries.map((query) => {
-    const fact = facts[query.queryId] ?? { rawCount: 0, eligibleCount: 0 };
-    return Object.freeze({
-      queryId: query.queryId,
-      scopeRawCount: fact.scopeRawCount ?? (query.scope ? 1 : 0),
-      scopeEligibleCount: fact.scopeEligibleCount ?? (query.scope ? 1 : 0),
-      rawCount: fact.rawCount,
-      eligibleCount: fact.eligibleCount,
-      matches: Object.freeze([...(fact.matches ?? [])]),
-      scopeRejections: Object.freeze([...(fact.scopeRejections ?? [])]),
-      rejections: Object.freeze([...(fact.rejections ?? [])]),
-      nativeCauseCode: fact.nativeCauseCode ?? null,
-      nativeCauseCount: fact.nativeCauseCount ?? 0,
-      nativeStage: "runtime-call-function-on" as const,
-    });
+const digest = (text: string): `sha256:${string}` => `sha256:${createHash("sha256").update(text).digest("hex")}`;
+const fixtureHash = (digit: string): `sha256:${string}` => `sha256:${digit.repeat(64)}`;
+type Fact = Readonly<{ scopeRawCount?: number; scopeEligibleCount?: number; rawCount: number; eligibleCount: number;
+  matches?: readonly Readonly<Record<string, unknown>>[]; scopeRejections?: readonly Readonly<{ index: number; reasons: readonly string[] }>[];
+  rejections?: readonly Readonly<{ index: number; reasons: readonly string[] }>[]; nativeCauseCode?: "NO_LAYOUT_BOX" | null; nativeCauseCount?: number }>;
+export const coherentObservationPacket = (intent: Readonly<{ queries: readonly BrowserDomObservationQuery[] }>, facts: Readonly<Record<string, Fact>>, currentUrl = "https://chatgpt.com/") => ({
+  schemaVersion: "grasseye.browser.dom-observation.v2" as const, exactCallIdentityHash: fixtureHash("1"), targetRefHash: fixtureHash("2"), documentRefHash: fixtureHash("3"),
+  currentUrl, observationRevisionHash: fixtureHash("4"), observedAt: "2026-09-02T00:00:00.000Z",
+  queries: intent.queries.map(query => {
+    const row = facts[query.queryId] ?? { rawCount: 0, eligibleCount: 0 };
+    return { queryId: query.queryId, scopeRawCount: row.scopeRawCount ?? (query.scope ? 1 : 0), scopeEligibleCount: row.scopeEligibleCount ?? (query.scope ? 1 : 0),
+      rawCount: row.rawCount, eligibleCount: row.eligibleCount, matches: [...(row.matches ?? [])], scopeRejections: [...(row.scopeRejections ?? [])], rejections: [...(row.rejections ?? [])],
+      nativeCauseCode: row.nativeCauseCode ?? null, nativeCauseCount: row.nativeCauseCount ?? 0, nativeStage: "runtime-call-function-on" as const };
   }),
 });
-
-const hashText = (value: string): `sha256:${string}` =>
-  `sha256:${createHash("sha256").update(value).digest("hex")}`;
-
-export const exactAssistantTurnReply = (
-  intent: Extract<BrowserDomIntent, { kind: "readExactAssistantTurn" }>,
-  semanticText: string,
-  rawDomHtml = `<div data-markdown-text-style="assistant-message">${semanticText}</div>`,
-) => Object.freeze({
-  schemaVersion: "grasseye.browser.exact-assistant-turn.v4" as const,
-  exactCallIdentityHash: `sha256:${"5".repeat(64)}` as `sha256:${string}`,
-  targetRefHash: `sha256:${"2".repeat(64)}` as `sha256:${string}`,
-  documentRefHash: `sha256:${"3".repeat(64)}` as `sha256:${string}`,
-  observationRevisionHash: `sha256:${"6".repeat(64)}` as `sha256:${string}`,
-  assistantTurnId: "00000000-0000-4000-8000-000000000004",
-  currentUrl: intent.canonicalConversationUrl,
-  precedingUserTurnId: "00000000-0000-4000-8000-000000000003",
-  generatingRaw: 0,
-  rawDomHtml,
-  rawDomHash: hashText(rawDomHtml),
-  semanticText,
-  semanticTextHash: hashText(semanticText),
-  observedAt: "2026-09-02T00:00:00.000Z",
+export const exactAssistantTurnReply = (intent: Extract<BrowserDomIntent, { kind: "readExactAssistantTurn" }>, semanticText: string,
+  rawDomHtml = `<div data-markdown-text-style="assistant-message">${semanticText}</div>`) => ({
+  schemaVersion: "grasseye.browser.exact-assistant-turn.v4" as const, exactCallIdentityHash: fixtureHash("5"), targetRefHash: fixtureHash("2"), documentRefHash: fixtureHash("3"),
+  observationRevisionHash: fixtureHash("6"), assistantTurnId: "00000000-0000-4000-8000-000000000004", currentUrl: intent.canonicalConversationUrl,
+  precedingUserTurnId: "00000000-0000-4000-8000-000000000003", generatingRaw: 0, rawDomHtml, rawDomHash: digest(rawDomHtml),
+  semanticText, semanticTextHash: digest(semanticText), observedAt: "2026-09-02T00:00:00.000Z",
 });
-
-export const EXPECTED_GPT_CHILD_IDS = Object.freeze([
-  "acknowledge_known_gpt_rate_limit", "attach_approved_gpt_files_once", "checkpoint_gpt_generated_image",
-  "checkpoint_gpt_text_response", "close_gpt_execution_profile",
-  "select_gpt_reasoning_from_start_v3",
-  "open_gpt_attachment_control",
-  "open_gpt_execution_profile", "open_gpt_model_selector_v3",
-  "prepare_clean_gpt_chat", "reconcile_gpt_attachment_set",
-  "select_gpt_model_from_start_v3", "submit_exact_gpt_turn_once", "write_exact_gpt_prompt",
-].sort());
-
-type DomResponder = (intent: BrowserDomIntent, callNumber: number) => unknown | Promise<unknown>;
-type FakeBrowserOptions = Readonly<{
-  initialPending?: number;
-  initialRecovery?: BrowserAtomicStepOutcome;
-  exposeInitialRecoveryOutsideAtomic?: boolean;
-  initialUrl?: string;
-  navigationEpochAdvanceOnMutation?: number;
-  navigationEpochAdvanceOnWait?: number;
+export const EXPECTED_GPT_CHILD_IDS = Object.freeze(["acknowledge_known_gpt_rate_limit", "attach_approved_gpt_files_once", "checkpoint_gpt_generated_image",
+  "checkpoint_gpt_text_response", "close_gpt_execution_profile", "open_gpt_attachment_control", "open_gpt_execution_profile", "open_gpt_model_selector_v3",
+  "prepare_clean_gpt_chat", "reconcile_gpt_attachment_set", "select_gpt_model_from_start_v3", "select_gpt_reasoning_from_start_v3", "submit_exact_gpt_turn_once", "write_exact_gpt_prompt"].sort());
+type Options = Readonly<{ initialPending?: number; initialRecovery?: BrowserAtomicStepOutcome; initialRecoveryIdentity?: BrowserAtomicStepIdentity; exposeInitialRecoveryOutsideAtomic?: boolean;
+  initialUrl?: string; navigationEpochAdvanceOnMutation?: number; navigationEpochAdvanceOnWait?: number;
   authenticatedMedia?: Awaited<ReturnType<BrowserTargetLease["readAuthenticatedMedia"]>>;
-  onAttachFile?: (input: Parameters<BrowserTargetLease["attachFile"]>[0]) => void;
-  onWait?: (durationMs: number) => void;
-  enforceClickedAttributeReadback?: boolean;
-}>;
-type FakeBrowserState = {
-  pending: number;
-  documentRef: string;
-  navigationEpoch: number;
-  url: string;
-  domCalls: number;
-  physicalMutations: number;
-  authenticatedMediaDownloads: number;
-  waitDurations: number[];
-  atomicIdentity: BrowserAtomicStepIdentity | null;
-  recovery: BrowserAtomicStepOutcome | null;
+  onAttachFile?: (input: Parameters<BrowserTargetLease["attachFile"]>[0]) => void; onWait?: (durationMs: number) => void; enforceClickedAttributeReadback?: boolean }>;
+const record = (value: unknown): Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+const same = (left: BrowserAtomicStepIdentity, right: BrowserAtomicStepIdentity): boolean =>
+  ["resultRevision", "productStepId", "callId", "childCapabilityId", "inputHash", "actionOrdinal", "replayPolicy"]
+    .every(key => left[key as keyof BrowserAtomicStepIdentity] === right[key as keyof BrowserAtomicStepIdentity]);
+
+const throwFixtureTerminalFailure = (active: BrowserAtomicStepIdentity, next: BrowserAtomicStepOutcome): void => {
+    if (next.failureCode) throw browserExecutionFailure(new Error(next.failureCode, {
+      ...(next.nativeFailureCode ? { cause: Object.assign(new Error(next.nativeFailureCode), { code: next.nativeFailureCode }) } : {}) }), next.mutationOutcome, {
+      effectScope: active.replayPolicy === "provider-effect-once" ? "provider_effect" : "target_local", childCapabilityId: active.childCapabilityId,
+      browserOutcome: next.state === "dispatched" ? "DISPATCHED" : "REJECTED", providerEffectIdentityHash: next.providerEffectIdentityHash });
 };
 
-const markConfirmedMutation = (
-  state: FakeBrowserState,
-  mutationOutcome: "no" | "confirmed" = "confirmed",
-): void => {
-  if (!state.atomicIdentity) return;
-  state.recovery = Object.freeze({
-    state: "confirmed",
-    mutationOutcome,
-    providerEffectIdentityHash: state.atomicIdentity.replayPolicy === "provider-effect-once"
-      ? `sha256:${"8".repeat(64)}` : null,
-    terminalAt: "2026-09-02T00:00:01.000Z",
-    failureCode: null,
-    nativeFailureCode: null,
-    authorityRef: `browser-mutation:${state.atomicIdentity.callId}`,
-    authorityHash: `sha256:${"9".repeat(64)}`,
-    targetRef: "target:1",
-    documentRef: state.documentRef,
-    physicalInputCount: 0,
-    downloadGuidHash: null,
-    downloadCompleted: false,
-    identityRevalidated: false,
-  });
-};
-
-const markRejectedMutation = (
-  state: FakeBrowserState,
-  mutationOutcome: "no" | "dispatched" | "confirmed",
-  failureCode: string,
-  nativeFailureCode: string | null,
-): void => {
-  if (!state.atomicIdentity) return;
-  state.recovery = Object.freeze({
-    state: "rejected",
-    mutationOutcome,
-    providerEffectIdentityHash: state.atomicIdentity.replayPolicy === "provider-effect-once"
-      ? `sha256:${"8".repeat(64)}` : null,
-    terminalAt: "2026-09-02T00:00:01.000Z",
-    failureCode,
-    nativeFailureCode,
-    authorityRef: `browser-mutation:${state.atomicIdentity.callId}`,
-    authorityHash: `sha256:${"9".repeat(64)}`,
-    targetRef: "target:1",
-    documentRef: state.documentRef,
-    physicalInputCount: 0,
-    downloadGuidHash: null,
-    downloadCompleted: false,
-    identityRevalidated: false,
-  });
-};
-
-const markDispatchedMutation = (state: FakeBrowserState): void => {
-  if (!state.atomicIdentity) return;
-  state.recovery = Object.freeze({
-    state: "dispatched",
-    mutationOutcome: "dispatched",
-    providerEffectIdentityHash: state.atomicIdentity.replayPolicy === "provider-effect-once"
-      ? `sha256:${"8".repeat(64)}` : null,
-    terminalAt: null,
-    failureCode: null,
-    nativeFailureCode: null,
-    authorityRef: `browser-mutation:${state.atomicIdentity.callId}`,
-    authorityHash: `sha256:${"9".repeat(64)}`,
-    targetRef: "target:1",
-    documentRef: state.documentRef,
-    physicalInputCount: 0,
-    downloadGuidHash: null,
-    downloadCompleted: false,
-    identityRevalidated: false,
-  });
-};
-
-const throwFakeMutationFailure = (
-  state: FakeBrowserState,
-  mutationOutcome: "no" | "dispatched" | "confirmed",
-  browserOutcome: "DISPATCHED" | "REJECTED",
-  failureCode: string,
-  nativeCauseCode: string | null,
-): never => {
-  const cause = nativeCauseCode
-    ? Object.assign(new Error(nativeCauseCode), { code: nativeCauseCode }) : undefined;
-  throw browserExecutionFailure(new Error(failureCode, { ...(cause ? { cause } : {}) }), mutationOutcome, {
-    effectScope: state.atomicIdentity?.replayPolicy === "provider-effect-once"
-      ? "provider_effect" : "target_local",
-    childCapabilityId: state.atomicIdentity?.childCapabilityId ?? "unknown",
-    browserOutcome,
-    providerEffectIdentityHash: state.atomicIdentity?.replayPolicy === "provider-effect-once"
-      ? `sha256:${"8".repeat(64)}` : null,
-  });
-};
-
-const fakeResultRecord = (value: unknown): Readonly<Record<string, unknown>> | null =>
-  value && typeof value === "object" && !Array.isArray(value)
-    ? value as Readonly<Record<string, unknown>> : null;
-
-const fakeMutationCount = (result: Readonly<Record<string, unknown>> | null): number => {
-  const declared = result?.mutationCount;
-  return Number.isSafeInteger(declared) ? Number(declared) : 1;
-};
-
-const fakeFailureDetails = (
-  result: Readonly<Record<string, unknown>>,
-  fallback: string,
-): Readonly<{ failureCode: string; nativeCauseCode: string | null }> => ({
-  failureCode: typeof result.failureCode === "string" ? result.failureCode : fallback,
-  nativeCauseCode: typeof result.nativeCauseCode === "string" ? result.nativeCauseCode : null,
-});
-
-const rejectFakeMutation = (
-  state: FakeBrowserState,
-  result: Readonly<Record<string, unknown>>,
-  mutationOutcome: "no" | "dispatched" | "confirmed",
-  fallback: string,
-): never => {
-  const { failureCode, nativeCauseCode } = fakeFailureDetails(result, fallback);
-  markRejectedMutation(state, mutationOutcome, failureCode, nativeCauseCode);
-  return throwFakeMutationFailure(state, mutationOutcome, "REJECTED", failureCode, nativeCauseCode);
-};
-
-const settleFakeMutation = (state: FakeBrowserState, value: unknown): void => {
-  const result = fakeResultRecord(value);
-  const mutationCount = fakeMutationCount(result);
-  state.physicalMutations += mutationCount;
-  const mutationOutcome = mutationCount === 0 ? "no" as const : "confirmed" as const;
-  if (result?.terminalRejectedDispatched === true) {
-    rejectFakeMutation(state, result, "dispatched", "BROWSER_CAPABILITY_REJECTED");
-  }
-  if (result?.receiptMissing === true) {
-    markDispatchedMutation(state);
-    throwFakeMutationFailure(state, "dispatched", "DISPATCHED", "BROWSER_COMMAND_RECEIPT_MISSING", null);
-  }
-  if (result?.postconditionVerified === false) {
-    rejectFakeMutation(state, result, mutationOutcome, "BROWSER_POSTCONDITION_FAILED");
-  }
-  markConfirmedMutation(state, mutationOutcome);
-};
-
-const clickedAttributeReadbackValid = (intent: Extract<BrowserDomIntent, { kind: "click" }>, value: unknown): boolean => {
-  if (intent.postClickObservation?.clickedCandidateAttribute === undefined) return true;
-  const result = fakeResultRecord(value);
-  const readback = result?.clickedCandidateAttributeReadback;
-  const expected = intent.postClickObservation.clickedCandidateAttribute;
-  return Boolean(readback && typeof readback === "object" && !Array.isArray(readback)
-    && Object.keys(readback).sort().join("|") === "name|value|verified"
-    && Reflect.get(readback, "name") === expected.name && Reflect.get(readback, "value") === expected.equals
-    && Reflect.get(readback, "verified") === true);
-};
-
-const advanceFakeDocument = (state: FakeBrowserState, advance: number): void => {
-  if (advance <= 0) return;
-  state.navigationEpoch += advance;
-  state.documentRef = `document:${state.navigationEpoch}`;
-};
-
-const executeFakeDomIntent = async (
-  responder: DomResponder,
-  state: FakeBrowserState,
-  intent: BrowserDomIntent,
-  options: FakeBrowserOptions,
-): Promise<unknown> => {
-  state.domCalls += 1;
-  const mutates = ["click", "hover", "doubleClick", "keypress", "fill",
-    "acknowledgeKnownGptRateLimit"].includes(intent.kind);
-  const value = intent.kind === "document"
-    ? { url: state.url, title: "ChatGPT" }
-    : await responder(intent, state.domCalls);
-  if (mutates) {
-    if (options.enforceClickedAttributeReadback === true && intent.kind === "click"
-      && !clickedAttributeReadbackValid(intent, value)) {
-      return rejectFakeMutation(state, { failureCode: "BROWSER_AUTH_TRANSCRIPT_INVALID" }, "no",
-        "BROWSER_AUTH_TRANSCRIPT_INVALID");
-    }
-    settleFakeMutation(state, value);
-    advanceFakeDocument(state, options.navigationEpochAdvanceOnMutation ?? 0);
-  }
-  if (intent.kind !== "document" || !value || typeof value !== "object" || Array.isArray(value)) return value;
-  const nextUrl = Reflect.get(value, "url");
-  if (typeof nextUrl === "string" && nextUrl !== state.url) {
-    state.url = nextUrl;
-    advanceFakeDocument(state, 1);
-  }
-  return value;
-};
-
-const createFakeBrowserLease = (
-  responder: DomResponder, state: FakeBrowserState, options: FakeBrowserOptions,
-): BrowserTargetLease => ({
-  leaseRef: "lease:1", authorityRef: "authority:1", authorityEpoch: 1,
-  executionBindingHash: `sha256:${"a".repeat(64)}`,
-  ownerId: "gpt-acceptance", agentJobRefHash: `sha256:${"b".repeat(64)}`,
-  agentExecutionRefHash: `sha256:${"c".repeat(64)}`,
-  writerLeaseEpoch: 1,
-  writerFenceHash: `sha256:${"d".repeat(64)}`,
-  target: { targetRef: "target:1", authorityEpoch: 1, executionBindingHash: `sha256:${"a".repeat(64)}` },
-  get document() {
-    return { documentRef: state.documentRef, targetRef: "target:1", navigationEpoch: state.navigationEpoch };
-  },
-  async runAtomicStep(identity, action) {
-    state.atomicIdentity = identity;
-    try { return await action(); } finally { state.atomicIdentity = null; }
-  },
-  readAtomicStepOutcome: (identity) =>
-    (options.exposeInitialRecoveryOutsideAtomic && state.atomicIdentity === null)
-      || JSON.stringify(identity) === JSON.stringify(state.atomicIdentity)
-      ? state.recovery : null,
-  executeDomIntent: async (intent: BrowserDomIntent) => {
-    if (intent.kind !== "selectExactGptConversation") {
-      return executeFakeDomIntent(responder, state, intent, options);
-    }
-    if (state.url !== intent.canonicalConversationUrl) {
-      state.physicalMutations += 1;
-      state.url = intent.canonicalConversationUrl;
-      state.navigationEpoch += 1;
-      state.documentRef = `document:${state.navigationEpoch}`;
-    }
-    return { documentRef: state.documentRef, targetRef: "target:1", navigationEpoch: state.navigationEpoch };
-  },
-  async observeCapability() { return {}; },
-  async captureScreenshot() { return { artifactRef: "screenshot:1", contentHash: `sha256:${"e".repeat(64)}` }; },
-  async attachFile(input) {
-    options.onAttachFile?.(input);
-    state.physicalMutations += 1;
-    markConfirmedMutation(state);
-  },
-  async readAuthenticatedMedia(_input) {
-    state.authenticatedMediaDownloads += 1;
-    if (!options.authenticatedMedia) throw new Error("FIXTURE_AUTHENTICATED_MEDIA_MISSING");
-    return options.authenticatedMedia;
-  },
-  async wait(input) {
-    state.waitDurations.push(input.durationMs);
-    options.onWait?.(input.durationMs);
-    const advance = options.navigationEpochAdvanceOnWait ?? 0;
-    if (advance > 0) {
-      state.navigationEpoch += advance;
-      state.documentRef = `document:${state.navigationEpoch}`;
-    }
-  },
-  async awaitTransientDomConfirmation(input) {
-    const durationMs = input.stage === 1 ? 1_500 : 3_000;
-    state.waitDurations.push(durationMs);
-    options.onWait?.(durationMs);
-    if (input.signal?.aborted) throw new Error("BROWSER_COMMAND_ABORTED");
-    const advance = options.navigationEpochAdvanceOnWait ?? 0;
-    if (advance > 0) {
-      state.navigationEpoch += advance;
-      state.documentRef = `document:${state.navigationEpoch}`;
-    }
-  },
-  async park() { state.physicalMutations += 1; },
-  pendingMutationCount: () => state.pending,
-});
-
-export const fakeBrowser = (responder: DomResponder, input: FakeBrowserOptions = {}) => {
-  const state: FakeBrowserState = {
-    pending: input.initialPending ?? 0,
-    documentRef: "document:1",
-    navigationEpoch: 1,
-    url: input.initialUrl ?? "https://chatgpt.com/",
-    domCalls: 0,
-    physicalMutations: 0,
-    authenticatedMediaDownloads: 0,
-    waitDurations: [],
-    atomicIdentity: null,
-    recovery: input.initialRecovery ?? null,
+export const fakeBrowser = (respond: (intent: BrowserDomIntent, callNumber: number) => unknown | Promise<unknown>, options: Options = {}) => {
+  let active: BrowserAtomicStepIdentity | null = null, origin: BrowserAtomicStepIdentity | null = options.initialRecoveryIdentity ?? null;
+  let outcome = options.initialRecovery ?? null, epoch = 1, url = options.initialUrl ?? "https://chatgpt.com/", inputs = 0, reads = 0, downloads = 0;
+  if (!!options.initialRecovery !== !!options.initialRecoveryIdentity) throw new Error("FIXTURE_ORIGINAL_ATOMIC_IDENTITY_REQUIRED");
+  const waits: number[] = [];
+  const settle = (value: unknown): void => {
+    if (!active) throw new Error("FIXTURE_MUTATION_OUTSIDE_ATOMIC_CALL");
+    const row = record(value), declared = row.mutationCount ?? 1;
+    if (![0, 1, 2, 3, 4].includes(declared as number)) throw new Error("FIXTURE_PHYSICAL_INPUT_COUNT_INVALID");
+    const count = declared as 0 | 1 | 2 | 3 | 4;
+    inputs += count;
+    const missing = row.receiptMissing === true, rejected = row.postconditionVerified === false || row.terminalRejectedDispatched === true;
+    const state = missing ? "dispatched" : rejected ? "rejected" : "confirmed";
+    const mutationOutcome = missing || row.terminalRejectedDispatched === true ? "dispatched" : count === 0 ? "no" : "confirmed";
+    const failureCode = missing ? "BROWSER_COMMAND_RECEIPT_MISSING" : rejected ? typeof row.failureCode === "string" ? row.failureCode : "BROWSER_POSTCONDITION_FAILED" : null;
+    const nativeFailureCode = typeof row.nativeCauseCode === "string" ? row.nativeCauseCode : null;
+    const next: BrowserAtomicStepOutcome = { state, mutationOutcome, providerEffectIdentityHash: active.replayPolicy === "provider-effect-once" ? fixtureHash("8") : null,
+      terminalAt: missing ? null : "2026-09-02T00:00:01.000Z", failureCode, nativeFailureCode, authorityRef: `browser-mutation:${active.callId}`,
+      authorityHash: fixtureHash("9"), targetRef: "target:1", documentRef: `document:${epoch}`, physicalInputCount: count,
+      downloadGuidHash: null, downloadCompleted: false, identityRevalidated: false };
+    origin = active; outcome = next;
+    throwFixtureTerminalFailure(active, next);
   };
-  return {
-    browser: createFakeBrowserLease(responder, state, input),
-    normalReacquire: () => {
-      state.navigationEpoch += 1;
-      state.documentRef = `document:${state.navigationEpoch}`;
+  const advance = (count: number): void => { epoch += Math.max(0, count); };
+  const browser: BrowserTargetLease = {
+    leaseRef: "lease:1", authorityRef: "authority:1", authorityEpoch: 1, executionBindingHash: fixtureHash("a"), ownerId: "gpt-acceptance",
+    agentJobRefHash: digest("job:gpt-exact-target"), agentExecutionRefHash: digest("attempt:gpt-exact-target"), writerLeaseEpoch: 1, writerFenceHash: fixtureHash("d"),
+    target: { targetRef: "target:1", authorityEpoch: 1, executionBindingHash: fixtureHash("a") },
+    get document() { return { documentRef: `document:${epoch}`, targetRef: "target:1", navigationEpoch: epoch }; },
+    async runAtomicStep(identity, action) {
+      if (active) throw new Error("FIXTURE_OVERLAPPING_ATOMIC_CALL");
+      active = identity; try { return await action(); } finally { active = null; }
     },
-    physicalMutations: () => state.physicalMutations,
-    authenticatedMediaDownloads: () => state.authenticatedMediaDownloads,
-    documentCalls: () => state.domCalls,
-    waitDurations: () => [...state.waitDurations],
+    readAtomicStepOutcome(identity) {
+      if (!active && !options.exposeInitialRecoveryOutsideAtomic || active && !same(identity, active)) return null;
+      return origin && same(identity, origin) ? outcome : null;
+    },
+    async executeDomIntent(intent) {
+      reads += 1;
+      if (intent.kind === "document") return { url, title: "ChatGPT" };
+      if (intent.kind === "selectExactGptConversation") {
+        if (url !== intent.canonicalConversationUrl) { inputs += 1; url = intent.canonicalConversationUrl; advance(1); }
+        return { targetRef: "target:1", documentRef: `document:${epoch}`, navigationEpoch: epoch };
+      }
+      const value = await respond(intent, reads);
+      if (["click", "hover", "doubleClick", "keypress", "fill", "acknowledgeKnownGptRateLimit"].includes(intent.kind)) {
+        if (options.enforceClickedAttributeReadback && intent.kind === "click" && intent.postClickObservation?.clickedCandidateAttribute) {
+          const required = intent.postClickObservation.clickedCandidateAttribute, actual = record(record(value).clickedCandidateAttributeReadback);
+          if (actual.name !== required.name || actual.value !== required.equals || actual.verified !== true)
+            settle({ mutationCount: record(value).mutationCount ?? 1, terminalRejectedDispatched: true,
+              failureCode: "BROWSER_AUTH_TRANSCRIPT_INVALID" });
+        }
+        settle(value); advance(options.navigationEpochAdvanceOnMutation ?? 0);
+      }
+      return value;
+    },
+    async attachFile(input) { options.onAttachFile?.(input); settle({ mutationCount: 1, postconditionVerified: true }); },
+    async readAuthenticatedMedia() { downloads += 1; if (!options.authenticatedMedia) throw new Error("FIXTURE_AUTHENTICATED_MEDIA_REQUIRED"); return options.authenticatedMedia; },
+    async awaitTransientDomConfirmation(input) {
+      const duration = input.stage === 1 ? 1500 : 3000; waits.push(duration); options.onWait?.(duration);
+      if (input.signal?.aborted) throw new Error("BROWSER_COMMAND_ABORTED"); advance(options.navigationEpochAdvanceOnWait ?? 0);
+    },
+    async wait(input) { waits.push(input.durationMs); options.onWait?.(input.durationMs); advance(options.navigationEpochAdvanceOnWait ?? 0); },
+    async observeCapability() { return {}; },
+    async captureScreenshot() { return { artifactRef: "screenshot:1", contentHash: fixtureHash("e") }; },
+    async park() {}, pendingMutationCount: () => options.initialPending ?? 0,
   };
+  return { browser, normalReacquire: () => advance(1), physicalMutations: () => inputs, authenticatedMediaDownloads: () => downloads,
+    documentCalls: () => reads, waitDurations: () => [...waits] };
 };

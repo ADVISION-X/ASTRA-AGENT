@@ -19,102 +19,82 @@ import type { ExtensionExactTarget } from "./exact-target-runtime.js";
 import { executeExtensionFileInput } from "./extension-file-input-runtime.js";
 import { executeBoundedBrowserWait } from "./extension-target-observation.js";
 
-type CommandLifecycle = Readonly<{
-  assertCurrent(): void;
-  parkTarget(): Promise<void>;
-}>;
+type CommandLifecycle = Readonly<{ assertCurrent(): void; parkTarget(): Promise<void> }>;
 
 export const executeRegisteredExtensionCommand = async (
-  debuggerRuntime: ExtensionDebuggerRuntime,
-  target: ExtensionExactTarget,
-  command: Exclude<BrowserGovernedCommand, { kind: "dom-intent" }>,
-  lifecycle: CommandLifecycle,
+  runtime: ExtensionDebuggerRuntime, target: ExtensionExactTarget,
+  command: Exclude<BrowserGovernedCommand, { kind: "dom-intent" }>, lifecycle: CommandLifecycle,
 ): Promise<unknown> => {
-  if (command.kind === "observe") {
-    const result = await executeRegisteredDomIntent(
-      debuggerRuntime, target, { kind: "document" }, lifecycle.assertCurrent,
-    );
-    lifecycle.assertCurrent();
-    return result;
+  switch (command.kind) {
+    case "observe": {
+      const result = await executeRegisteredDomIntent(runtime, target, { kind: "document" }, lifecycle.assertCurrent);
+      lifecycle.assertCurrent(); return result;
+    }
+    case "wait": return command.transientDomConfirmationStage === undefined ? executeBoundedBrowserWait(command.durationMs)
+      : { stage: command.transientDomConfirmationStage, waitedMs: command.transientDomConfirmationStage === 1 ? 1_500 : 3_000 };
+    case "park-target": await lifecycle.parkTarget(); return { parked: true };
+    case "file-input": return executeExtensionFileInput({ runtime, target, assertCurrent: lifecycle.assertCurrent,
+      selector: command.selector, activation: command.activation, approvedFiles: command.approvedFiles, resolvedFilePaths: command.resolvedFilePaths });
+    case "authenticated-media": return executeAuthenticatedMedia(runtime, target, command.canonicalConversationUrl,
+      command.userTurnId, command.semanticMediaId, lifecycle.assertCurrent);
+    default: throw new Error("BROWSER_FILE_GRANT_INVALID");
   }
-  if (command.kind === "wait") return command.transientDomConfirmationStage === undefined
-    ? executeBoundedBrowserWait(command.durationMs)
-    : { stage: command.transientDomConfirmationStage,
-      waitedMs: command.transientDomConfirmationStage === 1 ? 1_500 : 3_000 };
-  if (command.kind === "park-target") {
-    await lifecycle.parkTarget();
-    return { parked: true };
-  }
-  if (command.kind === "file-input") return executeExtensionFileInput({
-    runtime: debuggerRuntime, target, assertCurrent: lifecycle.assertCurrent,
-    selector: command.selector, activation: command.activation,
-    approvedFiles: command.approvedFiles, resolvedFilePaths: command.resolvedFilePaths,
-  });
-  if (command.kind === "authenticated-media") {
-    return executeAuthenticatedMedia(
-      debuggerRuntime, target, command.canonicalConversationUrl, command.userTurnId,
-      command.semanticMediaId,
-      lifecycle.assertCurrent,
-    );
-  }
-  throw new Error("BROWSER_FILE_GRANT_INVALID");
 };
 
+/** Constructs the original wire fact; claim disposal belongs after the worker fixes and sends it. */
 export const executeExtensionCommandReply = async (input: Readonly<{
   payload: Readonly<Record<string, unknown>>; permit: BrowserCommandPermit;
   receiptBindingHash: `sha256:${string}` | null; targetAuthority: ExtensionTargetAuthority;
   assertCommandActive(): void; deadline: number; requestSequence: number;
 }>): Promise<Readonly<{ body: Record<string, unknown>; diagnostic: Record<string, unknown> | null }>> => {
-  const { permit, payload } = input;
-  let command: BrowserGovernedCommand | null = null;
-  let commandStage: ExtensionCommandStage = "command-shape";
-  let result: unknown;
-  let failure: unknown = null;
+  const { permit } = input;
+  let command: BrowserGovernedCommand | null = null, stage: ExtensionCommandStage = "command-shape";
+  let result: unknown, failure: unknown = null;
   let mechanical: Omit<BrowserMutationTerminalReceipt, "schemaVersion" | "completedAt" | "resultHash" | "submitRecoveryPayload"> | null = null;
   let recoveryPayload: Readonly<Record<string, unknown>> | null = null;
   try {
     input.assertCommandActive();
-    const candidate = asRecord(payload.command);
-    if (!candidate || !["dom-intent", "observe", "screenshot", "file-input", "authenticated-media", "wait", "park-target"].includes(String(candidate.kind))) throw new Error("BROWSER_CAPABILITY_REJECTED");
+    const candidate = asRecord(input.payload.command);
+    if (!candidate || !["dom-intent", "observe", "screenshot", "file-input", "authenticated-media", "wait", "park-target"].includes(String(candidate.kind))) {
+      throw new Error("BROWSER_CAPABILITY_REJECTED");
+    }
     command = candidate as BrowserGovernedCommand;
-    commandStage = "command-admission";
+    stage = "command-admission";
     const registered = await admitExtensionCommand({ command, permit });
-    commandStage = "target-resolution";
+    stage = "target-resolution";
     const target = input.targetAuthority.resolve(permit.targetRef, permit.documentRef);
-    commandStage = "registered-command";
-    const exactCallIdentityHash = await knownGptRateLimitExactCallIdentityHash(permit);
+    stage = "registered-command";
+    const identity = await knownGptRateLimitExactCallIdentityHash(permit);
     result = await input.targetAuthority.executeRegisteredCommand(command, target, registered.mutationClass,
-      exactCallIdentityHash, input.assertCommandActive, input.deadline);
+      identity, input.assertCommandActive, input.deadline);
     if (input.receiptBindingHash !== null) {
-      const projection = await projectExtensionMutation(permit, command, result, exactCallIdentityHash);
-      mechanical = projection.receipt;
-      recoveryPayload = projection.payload;
+      const projection = await projectExtensionMutation(permit, command, result, identity);
+      mechanical = projection.receipt; recoveryPayload = projection.payload;
     }
   } catch (error) {
     failure = error;
-    if (input.receiptBindingHash !== null) {
-      mechanical = mutationExceptionReceipt(error, result);
-    }
+    if (input.receiptBindingHash !== null) mechanical = mutationExceptionReceipt(error, result);
   }
-  const terminalRaw = failure === null ? result : { errorCode: browserCommandErrorCode(failure) };
+  const code = input.receiptBindingHash === null
+    ? browserInteractionNativeCauseCode(failure) ?? browserCommandErrorCode(failure) : browserCommandErrorCode(failure);
+  const terminalRaw = failure === null ? result : { errorCode: code };
   let mutationReceipt: BrowserMutationTerminalFact | null = null;
   if (input.receiptBindingHash !== null && mechanical !== null) {
     const terminalReceipt: BrowserMutationTerminalReceipt = Object.freeze({
       schemaVersion: "grasseye.browser.command-terminal-receipt.v1", ...mechanical,
-      completedAt: new Date().toISOString(), resultHash: await hashBrowserExtensionText(canonicalizeBrowserAuthorityValue(terminalRaw)),
-      submitRecoveryPayload: recoveryPayload,
+      completedAt: new Date().toISOString(),
+      resultHash: await hashBrowserExtensionText(canonicalizeBrowserAuthorityValue(terminalRaw)), submitRecoveryPayload: recoveryPayload,
     });
     const unsigned = { commandId: permit.commandId, receiptBindingHash: input.receiptBindingHash, terminalReceipt };
     mutationReceipt = Object.freeze({ type: "fact", ...unsigned,
       receiptHash: await hashBrowserExtensionText(browserMutationTerminalFactBytes(unsigned)) });
   }
-  await settleInvalidTargetCleanup(input.targetAuthority, failure, command);
   return { body: { requestSequence: input.requestSequence, permitSequence: permit.sequence,
     replyChannelToken: permit.replyChannelToken, mutationReceipt,
-    ...(failure === null ? { result } : { errorCode: browserCommandErrorCode(failure) }) },
-    diagnostic: failure === null ? null : extensionCommandDiagnostic({ error: failure,
-      failedFrameSequence: input.requestSequence, commandStage, commandKind: command?.kind ?? null,
-      commandIntentKind: command?.kind === "dom-intent" ? command.intent.kind : null, capabilityId: permit.capabilityId }) };
+    ...(failure === null ? { result } : { errorCode: code }) },
+  diagnostic: failure === null ? null : extensionCommandDiagnostic({ error: failure, failedFrameSequence: input.requestSequence,
+    commandStage: stage, commandKind: command?.kind ?? null,
+    commandIntentKind: command?.kind === "dom-intent" ? command.intent.kind : null, capabilityId: permit.capabilityId }) };
 };
 
 export const readExtensionCommandPayload = (payload: Readonly<Record<string, unknown>>, frameDeadline: string) => {
@@ -123,18 +103,17 @@ export const readExtensionCommandPayload = (payload: Readonly<Record<string, unk
   if (!permit) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
   assertValidCommandPermit(permit);
   const binding = payload.receiptBindingHash;
-  const isBindingHash = typeof binding === "string" && /^sha256:[a-f0-9]{64}$/u.test(binding);
-  if (permit.mutationClass === "mutation" ? !isBindingHash : binding !== null) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  const valid = typeof binding === "string" && /^sha256:[a-f0-9]{64}$/u.test(binding);
+  if (permit.mutationClass === "mutation" ? !valid : binding !== null) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   const deadline = Date.parse(frameDeadline);
   if (!Number.isFinite(deadline) || new Date(deadline).toISOString() !== frameDeadline) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   return { permit, receiptBindingHash: binding as `sha256:${string}` | null, deadline };
 };
 
-const projectExtensionMutation = async (permit: BrowserCommandPermit, command: BrowserGovernedCommand,
-  result: unknown, exactCallIdentityHash: `sha256:${string}`) => {
-  const record = asRecord(result);
-  const raw = record?.schemaVersion === "grasseye.browser.command-preflight.v1"
-    ? record.commandResult : result;
+const projectExtensionMutation = async (
+  permit: BrowserCommandPermit, command: BrowserGovernedCommand, result: unknown, exactCallIdentityHash: `sha256:${string}`,
+) => {
+  const record = asRecord(result), raw = record?.schemaVersion === "grasseye.browser.command-preflight.v1" ? record.commandResult : result;
   const fact = asRecord(raw)?.knownGptRateLimitPreflightFact;
   const observationHash = knownGptRateLimitPreflightFactShapeValid(fact)
     ? await hashBrowserExtensionText(JSON.stringify(knownGptRateLimitPreflightObservationInput(fact))) : null;
@@ -149,18 +128,12 @@ const projectExtensionMutation = async (permit: BrowserCommandPermit, command: B
     && permit.childCapabilityId === "submit_exact_gpt_turn_once" ? submitRecoveryPayload(bound) : null;
   return { receipt, payload };
 };
+
 const mutationExceptionReceipt = (error: unknown, result: unknown) => {
   const details = error as { browserInputStarted?: boolean; browserPhysicalInputCount?: number } | null;
-  const record = asRecord(result);
-  const raw = asRecord(record?.commandResult) ?? record;
-  const count: 0 | 1 = details?.browserPhysicalInputCount === 1 || raw?.mutationCount === 1 ? 1 : 0;
-  const started = details?.browserInputStarted === true || count === 1;
+  const record = asRecord(result), raw = asRecord(record?.commandResult) ?? record;
+  const physicalInputCount: 0 | 1 = details?.browserPhysicalInputCount === 1 || raw?.mutationCount === 1 ? 1 : 0;
+  const started = details?.browserInputStarted === true || physicalInputCount === 1;
   return { terminal: "rejected" as const, mutationOutcome: started ? "dispatched" as const : "no" as const,
-    physicalInputCount: count, failureCode: browserCommandErrorCode(error), nativeCauseCode: browserInteractionNativeCauseCode(error) };
-};
-
-const settleInvalidTargetCleanup = async (authority: ExtensionTargetAuthority, failure: unknown, command: BrowserGovernedCommand | null): Promise<void> => {
-  if (failure === null) return;
-  try { await authority.retireInvalidCommandTarget(failure, command?.kind === "dom-intent" ? command.intent.kind : null); }
-  catch (cleanupError) { if (failure instanceof Error && failure.cause === undefined) failure.cause = cleanupError; }
+    physicalInputCount, failureCode: browserCommandErrorCode(error), nativeCauseCode: browserInteractionNativeCauseCode(error) };
 };

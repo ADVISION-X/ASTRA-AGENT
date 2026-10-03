@@ -1,188 +1,93 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { createHash } from "node:crypto";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import path from "node:path";
-
-import {
-  RuntimeFailureImpact,
-  RuntimeFailureKind,
-  createRuntimeLogger,
-  diagnoseRuntimeLog,
-  requireRuntimeLogWrite,
-  runtimeFailureFromError,
-  type RuntimeLogOwner,
-  type RuntimeOperation,
-} from "../../src/lib/runtime-logs/index.js";
+import { join } from "node:path";
+import { RuntimeFailureImpact, RuntimeFailureKind, createRuntimeLogger, diagnoseRuntimeLog,
+  requireRuntimeLogWrite, runtimeFailureFromError, type RuntimeLogOwner, type RuntimeOperation } from "../../src/lib/runtime-logs/index.js";
 import type { RuntimeTypedIdentity } from "../../src/lib/runtime-logs/runtime-identity-contract.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
-const digest = (value: string): `sha256:${string}` =>
-  `sha256:${createHash("sha256").update(value).digest("hex")}`;
-
-type Scenario = Readonly<{
-  name: string;
-  code: string;
-  operation: RuntimeOperation;
-  owner: RuntimeLogOwner;
-  kind: (typeof RuntimeFailureKind)[keyof typeof RuntimeFailureKind];
-  nativeCause?: string;
-  httpStatus?: number;
-  identity?: RuntimeTypedIdentity;
-}>;
-
+const digest = (value: string): `sha256:${string}` => `sha256:${createHash("sha256").update(value).digest("hex")}`;
+type Scenario = Readonly<{ name: string; code: string; operation: RuntimeOperation; owner: RuntimeLogOwner;
+  kind: (typeof RuntimeFailureKind)[keyof typeof RuntimeFailureKind]; nativeCause?: string; httpStatus?: number; identity?: RuntimeTypedIdentity }>;
+const browserIdentity: RuntimeTypedIdentity = { kind: "browser-command", jobId: "job-browser", attemptId: "attempt-1",
+  leaseVersion: 1, fenceHash: digest("fence"), commandId: "command-browser", capabilityCallId: "browser.dom.click.v1",
+  pluginStepId: "step-browser", childCapabilityId: "submit_exact_gpt_turn_once", actionOrdinal: 1 };
 const scenarios: readonly Scenario[] = [
   { name: "transport", code: "FETCH_FAILED", operation: "outbox.flush", owner: "outbox", kind: RuntimeFailureKind.TRANSPORT, nativeCause: "ECONNRESET" },
   { name: "authentication", code: "SESSION_STALE", operation: "gpt.child", owner: "gpt", kind: RuntimeFailureKind.AUTHENTICATION },
   { name: "contract", code: "FENCE_HASH_MISMATCH", operation: "job.checkpoint", owner: "production-runtime", kind: RuntimeFailureKind.CONTRACT },
   { name: "storage", code: "CHECKPOINT_STORAGE_FAILED", operation: "job.checkpoint", owner: "production-runtime", kind: RuntimeFailureKind.STORAGE },
   { name: "provider", code: "PROVIDER_REJECTED", operation: "gpt.child", owner: "gpt", kind: RuntimeFailureKind.PROVIDER, httpStatus: 409 },
-  {
-    name: "browser",
-    code: "BROWSER_COMMAND_RECEIPT_MISSING",
-    operation: "browser.command",
-    owner: "browser-session",
-    kind: RuntimeFailureKind.BROWSER,
-    identity: {
-      kind: "browser-command",
-      jobId: "job-browser",
-      attemptId: "attempt-1",
-      leaseVersion: 1,
-      fenceHash: digest("fence"),
-      commandId: "command-browser",
-      capabilityCallId: "browser.dom.click.v1",
-      pluginStepId: "step-browser",
-      childCapabilityId: "submit_exact_gpt_turn_once",
-      actionOrdinal: 1,
-    },
-  },
+  { name: "browser", code: "BROWSER_COMMAND_RECEIPT_MISSING", operation: "browser.command", owner: "browser-session", kind: RuntimeFailureKind.BROWSER, identity: browserIdentity },
 ];
-
-for (const scenario of scenarios) {
-  const root = mkdtempSync(path.join(tmpdir(), `runtime-log-matrix-${scenario.name}-`));
-  const traceId = scenario.identity && "jobId" in scenario.identity ? scenario.identity.jobId : `job-${scenario.name}`;
-  const logger = createRuntimeLogger({
-    producer: "agent",
-    producerRunId: `matrix-${scenario.name}`,
-    owner: scenario.owner,
-    component: "failure-matrix",
-    terminalEnabled: false,
-    fileSink: { directoryPath: root, maxTotalBytes: 1_000_000 },
-  });
-  const span = requireRuntimeLogWrite(logger.startSpan({
-    traceId,
-    operation: scenario.operation,
-    typedIdentity: scenario.identity ?? { kind: "job", jobId: traceId },
-  }));
-  requireRuntimeLogWrite(span.terminal({
-    outcome: "failed",
-    failure: runtimeFailureFromError({
-      error: new Error(scenario.nativeCause ?? scenario.code),
-      code: scenario.code,
-      responsibleOwner: scenario.owner,
-      kind: scenario.kind,
-      impact: RuntimeFailureImpact.BLOCKING,
-      ...(scenario.httpStatus === undefined ? {} : { httpStatus: scenario.httpStatus }),
-    }),
-  }));
-  const diagnosis = diagnoseRuntimeLog({ sources: [root], traceId });
-  assert.deepEqual(diagnosis.blockingRoots.map((failure) => failure.code), [scenario.code], scenario.name);
-  assert.equal(diagnosis.blockingRoots[0]?.kind, scenario.kind, scenario.name);
-  assert.equal(diagnosis.blockingRoots[0]?.responsibleOwner, scenario.owner, scenario.name);
-  assert.equal("recovery" in diagnosis.blockingRoots[0]!, false, scenario.name);
-  assert.equal("currentStates" in diagnosis, false, scenario.name);
-}
-
-const causeRoot = mkdtempSync(path.join(tmpdir(), "runtime-log-cause-matrix-"));
-const causeLogger = createRuntimeLogger({
-  producer: "agent",
-  producerRunId: "cause-matrix",
-  owner: "production-runtime",
-  component: "failure-matrix",
-  terminalEnabled: false,
-  fileSink: { directoryPath: causeRoot, maxTotalBytes: 1_000_000 },
-});
-const causeTrace = "job-cause-matrix";
-const blocking = requireRuntimeLogWrite(causeLogger.startSpan({
-  traceId: causeTrace,
-  operation: "job.checkpoint",
-  typedIdentity: { kind: "checkpoint", jobId: causeTrace, attemptId: "attempt-1", checkpointId: "failure" },
-}));
-const blockingTerminal = requireRuntimeLogWrite(blocking.terminal({
-  outcome: "failed",
-  failure: runtimeFailureFromError({
-    error: new Error("CHECKPOINT_STORAGE_FAILED"),
-    code: "CHECKPOINT_STORAGE_FAILED",
-    responsibleOwner: "production-runtime",
-    impact: RuntimeFailureImpact.BLOCKING,
-  }),
-}));
-const repeatedBlocking = requireRuntimeLogWrite(causeLogger.startSpan({
-  traceId: causeTrace,
-  operation: "job.checkpoint",
-  typedIdentity: { kind: "checkpoint", jobId: causeTrace, attemptId: "attempt-1", checkpointId: "failure-repeat" },
-}));
-const repeatedBlockingTerminal = requireRuntimeLogWrite(repeatedBlocking.terminal({
-  outcome: "failed",
-  failure: runtimeFailureFromError({
-    error: new Error("CHECKPOINT_STORAGE_FAILED"),
-    code: "CHECKPOINT_STORAGE_FAILED",
-    responsibleOwner: "production-runtime",
-    impact: RuntimeFailureImpact.BLOCKING,
-  }),
-}));
-const cleanup = requireRuntimeLogWrite(causeLogger.startSpan({
-  traceId: causeTrace,
-  operation: "job.lease-release",
-  typedIdentity: { kind: "job-attempt", jobId: causeTrace, attemptId: "attempt-1" },
-}));
-requireRuntimeLogWrite(cleanup.terminal({
-  outcome: "failed",
-  failure: runtimeFailureFromError({
-    error: new Error("LEASE_RELEASE_FAILED"),
-    code: "LEASE_RELEASE_FAILED",
-    responsibleOwner: "production-runtime",
-    impact: RuntimeFailureImpact.CLEANUP,
-    causedByEventId: blockingTerminal.eventId,
-  }),
-}));
-const causeDiagnosis = diagnoseRuntimeLog({ sources: [causeRoot], traceId: causeTrace });
-assert.deepEqual(causeDiagnosis.blockingRoots.map((failure) => failure.code), ["CHECKPOINT_STORAGE_FAILED"]);
-assert.equal(causeDiagnosis.blockingRoots[0]?.count, 2);
-assert.deepEqual(causeDiagnosis.blockingRoots[0]?.eventRefs,
-  [blockingTerminal.eventId, repeatedBlockingTerminal.eventId]);
-assert.deepEqual(causeDiagnosis.cleanupFailures.map((failure) => failure.code), ["LEASE_RELEASE_FAILED"]);
-
-const walRoot = mkdtempSync(path.join(tmpdir(), "runtime-log-wal-matrix-"));
-const walLogger = createRuntimeLogger({
-  producer: "agent",
-  producerRunId: "wal-matrix",
-  owner: "browser-session",
-  component: "browser-mutation-wal",
-  terminalEnabled: false,
-  fileSink: { directoryPath: walRoot, maxTotalBytes: 1_000_000 },
-});
-const walIdentity = scenarios.at(-1)!.identity!;
-for (const outcome of ["PREPARED", "DISPATCHED"] as const) {
-  requireRuntimeLogWrite(walLogger.emitEvent({
-    traceId: "job-browser",
-    operation: "browser.command",
-    code: `BROWSER_MUTATION_${outcome}`,
-    typedIdentity: walIdentity,
-    authorityRef: "browser-mutation:command-browser",
-    authorityHash: digest(outcome),
-  }));
-}
-const walDiagnosis = diagnoseRuntimeLog({
-  sources: [walRoot],
-  traceId: "job-browser",
-  authorityResolver: (_ref, authorityHash) => authorityHash === digest("DISPATCHED") ? "verified" : "mismatch",
-});
-assert.equal(walDiagnosis.observedEvents.at(-1)?.code, "BROWSER_MUTATION_DISPATCHED");
-assert.equal("mutationState" in walDiagnosis, false);
-assert.equal("recoveries" in walDiagnosis, false);
-
-process.stdout.write("runtime log spine failure matrix acceptance: PASS\n");
-emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-003-V6", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:3","forbidden:4","forbidden:5","forbidden:7","summary"], locator: "acceptance:runtime-log:failure-matrix-golden", observedValue: "typed event span terminal causal failure and browser mutation identities diagnosed through one event grammar" });
-emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-003-V6", evidenceMode: "exam.property", clauses: ["forbidden:0","forbidden:1","forbidden:3","forbidden:4","forbidden:6","forbidden:7","summary"], locator: "acceptance:runtime-log:failure-matrix-properties", observedValue: "owner operation identity hash chain capacity and WAL authority variants fail closed" });
-emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-003-V6", evidenceMode: "exam.state-machine", clauses: ["forbidden:0","forbidden:1","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","summary"], locator: "acceptance:runtime-log:producer-state-machine", observedValue: "producer sequence span causality stale interruption shutdown and dispatched mutation transitions exercised" });
+const directories: string[] = [];
+const loggerFor = (name: string, owner: RuntimeLogOwner) => {
+  const directory = mkdtempSync(join(tmpdir(), `log-matrix-${name}-`)); directories.push(directory);
+  return { directory, logger: createRuntimeLogger({ producer: "agent", producerRunId: name, owner,
+    component: "failure-matrix", terminalEnabled: false, fileSink: { directoryPath: directory, maxTotalBytes: 1_000_000 } }) };
+};
+try {
+  for (const scenario of scenarios) {
+    const { directory, logger } = loggerFor(scenario.name, scenario.owner);
+    const traceId = scenario.identity && "jobId" in scenario.identity ? scenario.identity.jobId : `job-${scenario.name}`;
+    const span = requireRuntimeLogWrite(logger.startSpan({ traceId, operation: scenario.operation,
+      typedIdentity: scenario.identity ?? { kind: "job", jobId: traceId } }));
+    requireRuntimeLogWrite(span.terminal({ outcome: "failed", failure: runtimeFailureFromError({
+      error: new Error(scenario.nativeCause ?? scenario.code), code: scenario.code, responsibleOwner: scenario.owner,
+      kind: scenario.kind, impact: RuntimeFailureImpact.BLOCKING,
+      ...(scenario.httpStatus === undefined ? {} : { httpStatus: scenario.httpStatus }) }) }));
+    const diagnosis = diagnoseRuntimeLog({ sources: [directory], traceId });
+    assert.deepEqual(diagnosis.blockingRoots.map(row => row.code), [scenario.code]);
+    assert.equal(diagnosis.blockingRoots[0]?.kind, scenario.kind); assert.equal(diagnosis.blockingRoots[0]?.responsibleOwner, scenario.owner);
+    assert.equal("recovery" in diagnosis.blockingRoots[0]!, false); assert.equal("currentStates" in diagnosis, false);
+  }
+  const { directory, logger } = loggerFor("causal", "production-runtime"), traceId = "job-causal";
+  const terminalRefs: string[] = [];
+  for (const checkpointId of ["first", "repeated"]) {
+    const span = requireRuntimeLogWrite(logger.startSpan({ traceId, operation: "job.checkpoint",
+      typedIdentity: { kind: "checkpoint", jobId: traceId, attemptId: "attempt-1", checkpointId } }));
+    terminalRefs.push(requireRuntimeLogWrite(span.terminal({ outcome: "failed", failure: runtimeFailureFromError({
+      error: new Error("CHECKPOINT_STORAGE_FAILED"), code: "CHECKPOINT_STORAGE_FAILED", responsibleOwner: "production-runtime",
+      impact: RuntimeFailureImpact.BLOCKING }) })).eventId);
+  }
+  const cleanup = requireRuntimeLogWrite(logger.startSpan({ traceId, operation: "job.lease-release",
+    typedIdentity: { kind: "job-attempt", jobId: traceId, attemptId: "attempt-1" } }));
+  requireRuntimeLogWrite(cleanup.terminal({ outcome: "failed", failure: runtimeFailureFromError({ error: new Error("LEASE_RELEASE_FAILED"),
+    code: "LEASE_RELEASE_FAILED", responsibleOwner: "production-runtime", impact: RuntimeFailureImpact.CLEANUP, causedByEventId: terminalRefs[0]! }) }));
+  const diagnosis = diagnoseRuntimeLog({ sources: [directory], traceId });
+  assert.deepEqual(diagnosis.blockingRoots.map(row => row.code), ["CHECKPOINT_STORAGE_FAILED"]);
+  assert.equal(diagnosis.blockingRoots[0]?.count, 2); assert.deepEqual(diagnosis.blockingRoots[0]?.eventRefs, terminalRefs);
+  assert.deepEqual(diagnosis.cleanupFailures.map(row => row.code), ["LEASE_RELEASE_FAILED"]);
+  const wal = loggerFor("wal", "browser-session");
+  for (const state of ["PREPARED", "DISPATCHED"] as const) requireRuntimeLogWrite(wal.logger.emitEvent({ traceId: "job-browser",
+    operation: "browser.command", code: `BROWSER_MUTATION_${state}`, typedIdentity: browserIdentity,
+    authorityRef: "browser-mutation:command-browser", authorityHash: digest(state) }));
+  const walDiagnosis = diagnoseRuntimeLog({ sources: [wal.directory], traceId: "job-browser",
+    authorityResolver: (_ref, hash) => hash === digest("DISPATCHED") ? "verified" : "mismatch" });
+  assert.equal(walDiagnosis.observedEvents.at(-1)?.code, "BROWSER_MUTATION_DISPATCHED");
+  assert.equal("mutationState" in walDiagnosis, false); assert.equal("recoveries" in walDiagnosis, false);
+  for (const nativeCode of ["NO_LAYOUT_BOX", "SUBMIT_BUTTON_DISABLED", "COMPOSER_DOM_DISABLED"]) {
+    const error = new Error("OUTER", { cause: new Error("MIDDLE", { cause: Object.assign(new Error("native"), { code: nativeCode }) }) });
+    const failure = runtimeFailureFromError({ error, code: "BROWSER_POSTCONDITION_FAILED", responsibleOwner: "browser-session" });
+    assert.equal(failure.nativeCause, nativeCode);
+  }
+  for (const invalid of ["ARBITRARY_NATIVE", "pointer hint NO_LAYOUT_BOX", "NO_LAYOUT_BOX_EXTRA"]) {
+    const failure = runtimeFailureFromError({ error: Object.assign(new Error(invalid), { code: invalid }),
+      code: "BROWSER_POSTCONDITION_FAILED", responsibleOwner: "browser-session" });
+    assert.equal(failure.nativeCause, undefined);
+  }
+  const cyclic = new Error("NO_LAYOUT_BOX"); Object.defineProperty(cyclic, "cause", { value: cyclic });
+  assert.equal(runtimeFailureFromError({ error: cyclic, code: "BROWSER_POSTCONDITION_FAILED", responsibleOwner: "browser-session" }).nativeCause, "NO_LAYOUT_BOX");
+} finally { for (const directory of directories) rmSync(directory, { recursive: true, force: true }); }
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-003-V6", evidenceMode: "exam.golden",
+  clauses: ["forbidden:0", "forbidden:1", "forbidden:3", "forbidden:4", "forbidden:5", "forbidden:7", "summary"],
+  locator: "acceptance:runtime-log:failure-matrix-golden", observedValue: "typed failures preserve their Owner, identity and causal terminal event" });
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-003-V6", evidenceMode: "exam.property",
+  clauses: ["forbidden:0", "forbidden:1", "forbidden:3", "forbidden:4", "forbidden:6", "forbidden:7", "summary"],
+  locator: "acceptance:runtime-log:failure-matrix-properties", observedValue: "nested native causes, exact closed codes, cycle protection and WAL authority variants exercised" });
+emitQualityProofObservation({ lawId: "LAW-RUNTIME-LOG-SPINE-003-V6", evidenceMode: "exam.state-machine",
+  clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:4", "forbidden:5", "forbidden:6", "forbidden:7", "summary"],
+  locator: "acceptance:runtime-log:producer-state-machine", observedValue: "duplicate blocking terminals remain causal evidence; cleanup and unknown dispatch do not fabricate recovery" });
+console.log("runtime log failure matrix exercised");

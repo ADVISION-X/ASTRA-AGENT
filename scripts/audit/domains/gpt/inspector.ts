@@ -1,63 +1,26 @@
 import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
-
 import { createFinding } from "../../shared/finding-utils.js";
-import type {
-  InspectorContext,
-  InspectorEvaluation,
-  InspectorFinding,
-  SessionInspectorOutput,
-} from "../../shared/inspector-contracts.js";
-import {
-  producerModePassed,
-  recordStaticCheck,
-  staticClauses,
-  staticForbiddenClauses,
-  staticEvidenceRefs,
-  validateStaticInspection,
-} from "../../shared/static-inspection-contract.js";
+import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import { producerModePassed, recordStaticCheck, staticClauses, staticForbiddenClauses, staticEvidenceRefs, validateStaticInspection }
+  from "../../shared/static-inspection-contract.js";
 import { observeStaticMode } from "../../shared/static-target-object-inspector.js";
-import { inspectGptContractDenominator } from "./gpt-contract-inspection.js";
+import { inspectGptContractDenominator, inspectGptCoherentPageProofs } from "./gpt-contract-inspection.js";
 import { inspectGptAttachmentContract } from "./gpt-attachment-contract-inspection.js";
-import {
-  inspectGptEndedAttemptContract,
-  inspectGptDirectMutationSettlementContract,
-} from "./gpt-recovery-contract-inspection.js";
-import { inspectGptCurrentPageProofs } from "./gpt-page-proof-inspection.js";
+import { inspectGptEndedAttemptContract, inspectGptDirectMutationSettlementContract } from "./gpt-recovery-contract-inspection.js";
 import { inspectFrozenAttemptBoundary } from "./gpt-frozen-attempt-inspection.js";
-import {
-  inspectGptCrossTaskStateAbsence,
-  inspectGptProviderProbeOwnerContract,
-  inspectProviderWaitContract,
-} from "./gpt-provider-contract-inspection.js";
-import {
-  GPT_CHILDREN_PATH as CHILDREN_PATH, GPT_CHILD_TYPES_PATH as CHILD_TYPES_PATH, GPT_CONTRACT_PATH as CONTRACT_PATH,
-  GPT_FACADE_PATH as FACADE_PATH, GPT_GROUP_PATH as GROUP_PATH,
-  GPT_PRODUCTION_BROWSER_LIFECYCLE_PATH as PRODUCTION_BROWSER_LIFECYCLE_PATH,
-  GPT_PRODUCTION_CHILD_TOOLS_PATH as PRODUCTION_CHILD_TOOLS_PATH,
-  GPT_ROOT as ROOT, GPT_SCHEMA_PATH as SCHEMA_PATH,
-  gptChildHandlerPath as childHandlerPath,
-} from "./gpt-inspection-core-paths.js";
-import {
-  GPT_ATTACHMENT_CONTRACT_PATH as ATTACHMENT_CONTRACT_PATH,
-  GPT_ATTACHMENT_HANDLER_PATHS as ATTACHMENT_HANDLER_PATHS,
-  GPT_CONVERSATION_HANDLER_PATHS as CONVERSATION_HANDLER_PATHS,
-  GPT_EXECUTION_PROFILE_CONTRACT_PATH as EXECUTION_PROFILE_CONTRACT_PATH,
-  GPT_EXECUTION_PROFILE_HANDLER_PATHS as EXECUTION_PROFILE_HANDLER_PATHS,
-  GPT_IMAGE_RESPONSE_HANDLER_PATHS as IMAGE_RESPONSE_HANDLER_PATHS,
-  GPT_MODEL_SELECTION_V3_CONTRACT_PATH as MODEL_SELECTION_V3_CONTRACT_PATH,
-  GPT_MODEL_SELECTION_V3_HANDLER_PATHS as MODEL_SELECTION_V3_HANDLER_PATHS,
-  GPT_RESPONSE_PAGE_PATH as RESPONSE_PAGE_PATH,
-  GPT_RETIRED_SHARED_SEMANTIC_PATHS as RETIRED_SHARED_SEMANTIC_PATHS,
-  GPT_TEXT_RESPONSE_HANDLER_PATHS as TEXT_RESPONSE_HANDLER_PATHS,
-  GPT_TURN_EXECUTOR_PATH as TURN_EXECUTOR_PATH,
-} from "./gpt-inspection-child-paths.js";
-import { containsPageMutation, gptPrivateInfrastructureViolations, sourceFor, sourceTextForPaths }
-  from "./gpt-inspection-support.js";
+import { inspectGptCrossTaskStateAbsence, inspectGptProviderProbeOwnerContract, inspectProviderWaitContract } from "./gpt-provider-contract-inspection.js";
+import { GPT_ROOT as ROOT, GPT_CONTRACT_PATH as CONTRACT, GPT_FACADE_PATH as FACADE, GPT_GROUP_PATH as GROUP,
+  GPT_SCHEMA_PATH as SCHEMA, GPT_CHILD_TYPES_PATH as TYPES, GPT_PRODUCTION_CHILD_TOOLS_PATH as TOOLS,
+  GPT_PRODUCTION_BROWSER_LIFECYCLE_PATH as LIFECYCLE } from "./gpt-inspection-core-paths.js";
+import { GPT_TEXT_RESPONSE_HANDLER_PATHS, GPT_IMAGE_RESPONSE_HANDLER_PATHS, GPT_CONVERSATION_HANDLER_PATHS,
+  GPT_RESPONSE_PAGE_PATH, GPT_MODEL_SELECTION_V3_HANDLER_PATHS, GPT_MODEL_SELECTION_V3_CONTRACT_PATH,
+  GPT_EXECUTION_PROFILE_HANDLER_PATHS, GPT_EXECUTION_PROFILE_CONTRACT_PATH, GPT_ATTACHMENT_HANDLER_PATHS,
+  GPT_ATTACHMENT_CONTRACT_PATH, GPT_RETIRED_SHARED_SEMANTIC_PATHS, GPT_TURN_EXECUTOR_PATH } from "./gpt-inspection-child-paths.js";
+import { containsPageMutation, gptPrivateInfrastructureViolations, sourceFor } from "./gpt-inspection-support.js";
 
-const LAW_ID = "LAW-GPT-001-V64";
-const FROZEN_ATTEMPT_LAW_ID = "LAW-GPT-002-V31";
+const LAW_ID = "LAW-GPT-001-V64", FROZEN_ID = "LAW-GPT-002-V31";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 2, 4, 7, 8),
   "static.ast": staticClauses(0, 2, 3, 4, 5, 6, 7, 8),
@@ -66,415 +29,152 @@ const MODE_CLAUSES = {
   "static.dependency": staticForbiddenClauses(0, 2, 7, 8),
 } as const;
 const MODE_CHECKS = {
-  "static.filesystem": ["inspectGptFilesystem"], "static.ast": ["inspectGptAst"],
-  "static.types": ["inspectGptTypes"], "static.contract": ["inspectGptContracts"],
-  "static.dependency": ["inspectGptDependencies"],
+  "static.filesystem": ["inspectGptFilesystem"], "static.ast": ["inspectGptAst"], "static.types": ["inspectGptTypes"],
+  "static.contract": ["inspectGptContracts"], "static.dependency": ["inspectGptDependencies"],
 } as const;
+const finding = (checkId: string, filePath: string, message: string, line?: number): InspectorFinding => createFinding({
+  evidenceMode: "static.ast", lawId: LAW_ID, clauseId: `${LAW_ID.toLowerCase()}-requirement`, checkId, filePath, message,
+  ...(line === undefined ? {} : { line }) });
+const pathOf = (context: InspectorContext, source: SourceFile): string => source.getFilePath().slice(resolve(context.sealedRoot).length + 1).split("\\").join("/");
+const owned = (context: InspectorContext): SourceFile[] => context.project.getSourceFiles().filter(source => {
+  const path = pathOf(context, source); return path.startsWith(`${ROOT}/`) && !path.includes("/acceptance/");
+});
 
-const finding = (checkId: string, filePath: string, message: string, line?: number): InspectorFinding =>
-  createFinding({
-    evidenceMode: "static.ast",
-    lawId: LAW_ID,
-    clauseId: `${LAW_ID.toLowerCase()}-requirement`,
-    checkId,
-    filePath,
-    message,
-    ...(line === undefined ? {} : { line }),
-  });
-
-const repoPath = (context: InspectorContext, source: SourceFile): string =>
-  source.getFilePath().slice(resolve(context.sealedRoot).length + 1).split("\\").join("/");
-const inspectImportOwnership = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  for (const source of context.project.getSourceFiles()) {
-    const path = repoPath(context, source);
-    for (const declaration of source.getImportDeclarations()) {
-      const target = declaration.getModuleSpecifierValue();
-      if (path.startsWith(`${ROOT}/`) && !path.includes("/acceptance/")
-        && (target.includes("/plugins/") || target.includes("local-runtime/production"))) {
-        findings.push(finding("gpt/no-product-authority-import", path,
-          `GPT owner imports forbidden product/runtime authority ${target}.`, declaration.getStartLineNumber()));
-      }
-      if (!path.startsWith(`${ROOT}/`) && target.includes("capabilities/gpt/") && !target.endsWith("/index.js")) {
-        findings.push(finding("gpt/private-boundary", path,
-          `External consumer imports GPT private implementation ${target}.`, declaration.getStartLineNumber()));
-      }
-    }
-  }
+const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const required = [CONTRACT, FACADE, GROUP, SCHEMA, TYPES, TOOLS, LIFECYCLE, ...GPT_TEXT_RESPONSE_HANDLER_PATHS,
+    ...GPT_IMAGE_RESPONSE_HANDLER_PATHS, ...GPT_CONVERSATION_HANDLER_PATHS, GPT_RESPONSE_PAGE_PATH,
+    ...GPT_MODEL_SELECTION_V3_HANDLER_PATHS, GPT_MODEL_SELECTION_V3_CONTRACT_PATH, ...GPT_EXECUTION_PROFILE_HANDLER_PATHS,
+    GPT_EXECUTION_PROFILE_CONTRACT_PATH, ...GPT_ATTACHMENT_HANDLER_PATHS, GPT_ATTACHMENT_CONTRACT_PATH];
+  for (const path of new Set(required)) if (!existsSync(resolve(context.sealedRoot, path))) findings.push(finding(
+    "gpt/filesystem-required-owner-file", path, "Required current Owner file is physically absent."));
+  for (const path of GPT_RETIRED_SHARED_SEMANTIC_PATHS) if (existsSync(resolve(context.sealedRoot, path))) findings.push(finding(
+    "gpt/filesystem-retired-fallback-file", path, "Retired shared semantic implementation must remain physically absent."));
+  for (const path of context.targetPaths) if (/(?:gemini|claude|gateway|adapter|fallback)/iu.test(path)) findings.push(finding(
+    "gpt/filesystem-secondary-provider", path, "A secondary Provider or compatibility path is forbidden."));
 };
-
-const inspectAcyclicCapabilityGraph = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const ownedSources = context.project.getSourceFiles().filter((source) => {
-    const path = repoPath(context, source);
-    return path.startsWith(`${ROOT}/`) && !path.includes("/acceptance/");
-  });
-  const edges = new Map(ownedSources.map((source) => {
-    const path = repoPath(context, source);
-    const targets = source.getImportDeclarations().flatMap((declaration) => {
-      const target = declaration.getModuleSpecifierSourceFile();
-      if (!target) return [];
-      const targetPath = repoPath(context, target);
-      return targetPath.startsWith(`${ROOT}/`) && !targetPath.includes("/acceptance/") ? [targetPath] : [];
-    });
-    return [path, targets] as const;
-  }));
-  const visited = new Set<string>();
-  const visiting = new Set<string>();
-  const stack: string[] = [];
-  let cycle: string[] | null = null;
-  const visit = (path: string): void => {
-    if (cycle || visited.has(path)) return;
-    if (visiting.has(path)) {
-      const start = stack.indexOf(path);
-      cycle = [...stack.slice(start), path];
-      return;
-    }
-    visiting.add(path);
-    stack.push(path);
-    for (const target of edges.get(path) ?? []) visit(target);
-    stack.pop();
-    visiting.delete(path);
-    visited.add(path);
-  };
-  for (const path of edges.keys()) visit(path);
-  if (cycle) findings.push(finding(
-    "gpt/import-cycle-forbidden", GROUP_PATH,
-    `GPT capability import graph must be acyclic; found ${(cycle as string[]).join(" -> ")}.`,
-  ));
-};
-
-const inspectFacadeAndOwnership = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const contract = sourceFor(context, CONTRACT_PATH);
-  const group = sourceFor(context, GROUP_PATH);
-  const facade = sourceFor(context, FACADE_PATH);
-  const ability = contract?.getInterface("GptAbilityGroup");
-  const fields = ability?.getMembers().flatMap((member) => {
-    if (Node.isMethodSignature(member) || Node.isPropertySignature(member)) return [member.getName()];
-    return [];
-  }).sort() ?? [];
-  if (JSON.stringify(fields) !== JSON.stringify(["execute"])) {
-    findings.push(finding("gpt/public-facade-shape", CONTRACT_PATH,
-      `GptAbilityGroup may expose only execute; found ${fields.join(",")}.`));
-  }
+const inspectFacade = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const contract = sourceFor(context, CONTRACT), facade = sourceFor(context, FACADE);
+  const members = contract?.getInterface("GptAbilityGroup")?.getMembers().flatMap(member =>
+    Node.isMethodSignature(member) || Node.isPropertySignature(member) ? [member.getName()] : []).sort() ?? [];
+  if (JSON.stringify(members) !== JSON.stringify(["execute"])) findings.push(finding("gpt/public-facade-shape", CONTRACT, "GptAbilityGroup exposes only execute."));
   const publicText = `${contract?.getFullText() ?? ""}\n${facade?.getFullText() ?? ""}`;
-  for (const token of ["selector:", "coordinate", "tabId", "nativePicker", "fallbackPolicy", "providerKind"]) {
-    if (publicText.includes(token)) findings.push(finding(
-      "gpt/public-page-control-forbidden", FACADE_PATH, `GPT public facade exposes forbidden page control ${token}.`,
-    ));
-  }
-  const groupText = group?.getFullText() ?? "";
-  for (const required of [
-    "GPT_CHILD_CAPABILITY_CONTRACTS", "pendingMutationCount",
-    "GptChildCapabilityProof", "evidenceHash", "onProof",
-  ]) if (!groupText.includes(required)) findings.push(finding(
-    "gpt/group-proof-boundary", GROUP_PATH, `GPT ability group is missing ${required}.`,
-  ));
-
+  for (const forbidden of ["selector:", "coordinate", "tabId", "nativePicker", "fallbackPolicy", "providerKind"]) if (publicText.includes(forbidden)) findings.push(finding(
+    "gpt/public-page-control-forbidden", FACADE, `Public GPT contract exposes forbidden page control ${forbidden}.`));
+  const group = sourceFor(context, GROUP)?.getFullText() ?? "";
+  for (const required of ["GPT_CHILD_CAPABILITY_CONTRACTS", "pendingMutationCount", "GptChildCapabilityProof", "evidenceHash", "onProof"]) if (!group.includes(required)) findings.push(finding(
+    "gpt/group-proof-boundary", GROUP, `Ability group is missing its existing proof boundary ${required}.`));
 };
-
-const inspectAtomicSafety = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const sources = context.project.getSourceFiles().filter((source) => repoPath(context, source).startsWith(`${ROOT}/`));
-  for (const forbidden of [
-    "feed-provider-once", "gpt-web-chat", "gemini", "claude", "document.cookie",
-    "localStorage", "sessionStorage", "location.reload",
-  ]) for (const source of sources) {
-    if (!source.getFullText().toLocaleLowerCase("en-US").includes(forbidden.toLocaleLowerCase("en-US"))) continue;
-    findings.push(finding("gpt/forbidden-secondary-or-unsafe-path", repoPath(context, source),
-      `GPT implementation retains forbidden token ${forbidden}.`));
-  }
-  for (const source of sources) {
-    const path = repoPath(context, source);
-    const sourceChild = path.match(new RegExp(`^${CHILDREN_PATH}/([^/]+)/`, "u"))?.[1];
-    const siblingImports = source.getImportDeclarations().filter((declaration) => {
-      if (!sourceChild) return false;
-      const target = declaration.getModuleSpecifierSourceFile();
-      if (!target) return false;
-      const targetPath = repoPath(context, target);
-      const targetChild = targetPath.match(new RegExp(`^${CHILDREN_PATH}/([^/]+)/`, "u"))?.[1];
-      return targetChild !== undefined && targetChild !== sourceChild;
-    });
-    for (const declaration of siblingImports) findings.push(finding(
-      "gpt/child-cannot-call-child", path,
-      `Child private implementation imports sibling Child module ${declaration.getModuleSpecifierValue()}.`,
-      declaration.getStartLineNumber(),
-    ));
-    for (const concurrent of source.getDescendantsOfKind(SyntaxKind.CallExpression)
-      .filter((call) => call.getExpression().getText() === "Promise.all")) {
-      if (!containsPageMutation(concurrent)) continue;
-      findings.push(finding(
-        "gpt/no-concurrent-page-mutation", path,
-        "GPT page mutation must not be dispatched concurrently.", concurrent.getStartLineNumber(),
-      ));
-    }
-    for (const loop of [
-      ...source.getDescendantsOfKind(SyntaxKind.ForStatement),
-      ...source.getDescendantsOfKind(SyntaxKind.ForOfStatement),
-      ...source.getDescendantsOfKind(SyntaxKind.WhileStatement),
-      ...source.getDescendantsOfKind(SyntaxKind.DoStatement),
-    ]) {
-      if (containsPageMutation(loop)) findings.push(finding(
-        "gpt/no-looped-page-mutation", path,
-        "GPT page mutation must not be dispatched from a loop.", loop.getStartLineNumber(),
-      ));
-    }
-  }
-};
-
-const inspectUniqueRuntimeChain = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  for (const retired of [
-    TURN_EXECUTOR_PATH,
-    "src/lib/local-runtime/production/gpt-turn-state.ts",
-    "src/lib/local-runtime/production/production-gpt-executor.ts",
-    "src/lib/local-runtime/production/production-gpt-turn-flow.ts",
-    "src/plugins/product-gpt-call.ts",
-  ]) if (existsSync(resolve(context.sealedRoot, retired))) findings.push(finding(
-    "gpt/central-turn-owner-retired", retired,
-    `Retired shared GPT turn owner must be physically absent: ${retired}.`,
-  ));
+const inspectUniqueChain = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  for (const path of [GPT_TURN_EXECUTOR_PATH, "src/lib/local-runtime/production/gpt-turn-state.ts", "src/lib/local-runtime/production/production-gpt-executor.ts",
+    "src/lib/local-runtime/production/production-gpt-turn-flow.ts", "src/plugins/product-gpt-call.ts"]) if (existsSync(resolve(context.sealedRoot, path))) findings.push(finding(
+    "gpt/central-turn-owner-retired", path, "The retired central turn Owner cannot remain reachable."));
   const pluginRoot = resolve(context.sealedRoot, "src/plugins");
-  for (const pluginId of existsSync(pluginRoot) ? readdirSync(pluginRoot) : []) {
-    const flowPath = resolve(pluginRoot, pluginId, "gpt-flow.ts");
-    if (existsSync(flowPath)) findings.push(finding(
-      "gpt/product-flow-retired", `src/plugins/${pluginId}/gpt-flow.ts`,
-      "Product Plugins must not own provider-page step arrays.",
-    ));
-  }
+  for (const id of existsSync(pluginRoot) ? readdirSync(pluginRoot) : []) if (existsSync(resolve(pluginRoot, id, "gpt-flow.ts"))) findings.push(finding(
+    "gpt/product-flow-retired", `src/plugins/${id}/gpt-flow.ts`, "A Product cannot own a second provider-page step flow."));
 };
-
-const inspectExactCallContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const contract = sourceFor(context, CONTRACT_PATH);
-  const identity = contract?.getVariableDeclaration("gptExactCallIdentityHash")?.getFullText() ?? "";
-  for (const required of [
-    "jobId", "attemptId", "productStepId", "callId",
-    "childCapabilityId", "inputHash",
-  ]) if (!identity.includes(required)) findings.push(finding(
-    "gpt/exact-call-identity", CONTRACT_PATH, `Exact GPT call identity is missing ${required}.`,
-  ));
-  for (const forbidden of ["pluginId", "pluginVersion"]) if (identity.includes(forbidden)) findings.push(finding(
-    "gpt/exact-call-identity", CONTRACT_PATH, `Exact GPT call identity retains forbidden ${forbidden}.`,
-  ));
-  if (identity.includes("actionOrdinal")) findings.push(finding(
-    "gpt/ordinal-separated-from-effect-identity", CONTRACT_PATH,
-    "actionOrdinal must remain a Product ordering proof outside the exact effect identity hash.",
-  ));
-  if (!contract?.getTypeAlias("GptExecutionContext")?.getFullText().includes("waitForProviderObservation")) findings.push(finding(
-    "gpt/cooperative-provider-yield-contract", CONTRACT_PATH,
-    "GptExecutionContext must expose the Product-neutral cooperative Provider wait yield hook.",
-  ));
+const inspectExactCall = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const contract = sourceFor(context, CONTRACT), identity = contract?.getVariableDeclaration("gptExactCallIdentityHash")?.getText() ?? "";
+  if (!["jobId", "attemptId", "productStepId", "callId", "childCapabilityId", "inputHash"].every(field => identity.includes(field))
+    || /pluginId|pluginVersion|actionOrdinal/u.test(identity)) findings.push(finding("gpt/exact-call-identity", CONTRACT, "GPT exact identity retains its frozen fields and separate Product action ordinal."));
+  if (!contract?.getTypeAlias("GptExecutionContext")?.getText().includes("waitForProviderObservation")) findings.push(finding(
+    "gpt/cooperative-provider-yield-contract", CONTRACT, "Execution context requires the existing Product-neutral Browser observation gate."));
 };
-
-const inspectModelSelectionContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const handler = sourceTextForPaths(context, [...MODEL_SELECTION_V3_HANDLER_PATHS, `${ROOT}/web/execution-profile-input.ts`]);
-  const contract = sourceFor(context, MODEL_SELECTION_V3_CONTRACT_PATH)?.getFullText() ?? "";
-  for (const required of [
-    "selector: GPT_MODEL_CHOICE_SELECTOR",
-    "expectedTextEquals: chosen.name",
-    "postClickObservation: postcondition(chosen.name)",
-    "record.postconditionObservation", "readModelChoiceState",
-    "clickedCandidateAttribute", "selectedReadbackValid",
-    'textEquals: profile.startModelDisplayName === "最新" ? GPT_LATEST_MODEL_LABELS : profile.startModelDisplayName, expectedMatches: 1',
-    'GPT_LATEST_MODEL_LABELS = Object.freeze(["最新", "Latest"] as const)',
-    "expectedEligibleCount", "decodeCoherentObservationPacket", "modelChoiceQuery",
-    "chosen.name !== profile.startModelDisplayName", "selectedRawCount", "targetRefHash", "documentRefHash",
-  ]) if (!handler.includes(required)) findings.push(finding(
-    "gpt/model-selection-exact-model", childHandlerPath("select_gpt_model_from_start_v3"),
-    `Exact model selection is missing ${required}.`,
-  ));
-  for (const retired of [
-    "GPT_MODEL_SELECTION_V2_CHOICE_SELECTOR", "SELECTION_POSTCONDITION",
-    "profile.modelDisplayName", "modelSelectorTopology",
-  ]) {
-    if (handler.includes(retired) || contract.includes(retired)) findings.push(finding(
-      "gpt/model-selection-v2-retired", childHandlerPath("select_gpt_model_from_start_v3"),
-      `The obsolete exact-model path remains reachable through ${retired}.`,
-    ));
-  }
-  for (const required of [
-    "GPT_MODEL_CHOICE_SELECTOR", "[role='menuitemradio']",
-  ]) if (!contract.includes(required)) findings.push(finding(
-    "gpt/model-selection-direct-postcondition", MODEL_SELECTION_V3_CONTRACT_PATH,
-    `The model selection contract is missing ${required}.`,
-  ));
-};
-
-const inspectExecutionProfileStateReadContract = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-): void => {
-  const handler = sourceTextForPaths(context, EXECUTION_PROFILE_HANDLER_PATHS);
-  for (const required of [
-    "selector: GPT_PROFILE_REASONING_ENABLED_CONTROL_SELECTOR",
-    'readEligibility: "non-actionable-aria-state"',
-    "GPT_PROFILE_REASONING_VALUE_SELECTOR}[aria-valuenow=",
-  ]) if (!handler.includes(required)) findings.push(finding(
-    "gpt/profile-non-actionable-state-read", childHandlerPath("select_gpt_reasoning_from_start_v3"),
-    `The execution-profile Child is missing ${required}.`,
-  ));
-  if ((handler.match(/readEligibility:\s*"non-actionable-aria-state"/gu) ?? []).length !== 4) findings.push(finding(
-    "gpt/profile-non-actionable-state-read", childHandlerPath("select_gpt_reasoning_from_start_v3"),
-    "The reasoning slider read mode must exist on both Child observations and both action postconditions.",
-  ));
-  if (/kind:\s*"keypress"[\s\S]{0,160}selector:\s*GPT_PROFILE_REASONING_VALUE_SELECTOR\s*,/u.test(handler)) {
-    findings.push(finding(
-      "gpt/profile-hidden-slider-action-forbidden", childHandlerPath("select_gpt_reasoning_from_start_v3"),
-      "The aria-hidden reasoning slider must never become the keypress action target.",
-    ));
-  }
-};
-
-const inspectIntelligentExecutionContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  inspectExactCallContract(context, findings);
-  inspectProviderWaitContract(context, findings, finding);
-};
-
 const inspectGptContracts = (context: InspectorContext, findings: InspectorFinding[]): void => {
   inspectGptContractDenominator(context, findings, finding);
-  inspectFacadeAndOwnership(context, findings);
+  inspectFacade(context, findings);
   inspectGptAttachmentContract(context, findings, finding);
-  inspectUniqueRuntimeChain(context, findings);
-  inspectIntelligentExecutionContracts(context, findings);
-  inspectModelSelectionContract(context, findings);
-  inspectExecutionProfileStateReadContract(context, findings);
+  inspectUniqueChain(context, findings);
+  inspectExactCall(context, findings);
+  inspectProviderWaitContract(context, findings, finding);
   inspectGptEndedAttemptContract(context, findings, finding);
   inspectGptDirectMutationSettlementContract(context, findings, finding);
   inspectGptCrossTaskStateAbsence(context, findings, finding);
 };
-
-const inspectGptFilesystem = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  for (const path of [
-    CONTRACT_PATH, FACADE_PATH, GROUP_PATH, SCHEMA_PATH, CHILD_TYPES_PATH,
-    ...TEXT_RESPONSE_HANDLER_PATHS, ...IMAGE_RESPONSE_HANDLER_PATHS,
-    ...CONVERSATION_HANDLER_PATHS,
-    RESPONSE_PAGE_PATH,
-    ...MODEL_SELECTION_V3_HANDLER_PATHS, MODEL_SELECTION_V3_CONTRACT_PATH,
-    ...EXECUTION_PROFILE_HANDLER_PATHS, EXECUTION_PROFILE_CONTRACT_PATH,
-    ...ATTACHMENT_HANDLER_PATHS, ATTACHMENT_CONTRACT_PATH,
-    PRODUCTION_CHILD_TOOLS_PATH, PRODUCTION_BROWSER_LIFECYCLE_PATH,
-  ])
-    if (!existsSync(resolve(context.sealedRoot, path))) findings.push(finding(
-      "gpt/filesystem-required-owner-file", path, `${path} is missing.`));
-  for (const retired of RETIRED_SHARED_SEMANTIC_PATHS) {
-    if (existsSync(resolve(context.sealedRoot, retired))) findings.push(finding(
-      "gpt/filesystem-retired-fallback-file", retired,
-      `${retired} must remain physically absent after Child private-slice cutover.`,
-    ));
-  }
-  const forbidden = context.targetPaths.find((path) => /(?:gemini|claude|gateway|adapter|fallback)/iu.test(path));
-  if (forbidden) findings.push(finding("gpt/filesystem-secondary-provider", forbidden,
-    `Secondary provider or compatibility path is forbidden: ${forbidden}.`));
-};
-
-const inspectGptTypes = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const contract = sourceFor(context, CONTRACT_PATH);
-  const group = contract?.getInterface("GptAbilityGroup");
-  const proof = contract?.getInterface("GptChildCapabilityProof");
-  const checks = [[group, "execute", (value: string) => value === "Promise<GptChildCapabilityResult<K>>"],
-    [proof, "evidenceHash", (value: string) => value === "`sha256:${string}`"]] as const;
-  for (const [owner, name, valid] of checks) {
-    const member = owner?.getMembers().find((candidate) => "getName" in candidate && candidate.getName() === name);
-    const actual = member && "getReturnType" in member ? member.getReturnType().getText(member)
-      : member && "getType" in member ? member.getType().getText(member) : "missing";
-    if (!valid(actual)) findings.push(finding("gpt/typed-public-contract", CONTRACT_PATH,
-      `${name} has an invalid resolved TypeChecker relation: ${actual}.`));
-  }
-};
-
 const inspectGptAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  inspectAtomicSafety(context, findings);
-  for (const source of context.project.getSourceFiles().filter((candidate) => {
-    const path = repoPath(context, candidate);
-    return path.startsWith(`${ROOT}/`) && !path.includes("/acceptance/");
-  })) for (const violation of gptPrivateInfrastructureViolations(source)) findings.push(finding(
-    "gpt/private-infrastructure-forbidden", repoPath(context, source),
-    `GPT must reuse the governed persistence, log and mutation Owners; found ${violation}.`,
-  ));
-  inspectGptCurrentPageProofs(context, findings);
+  for (const source of owned(context)) {
+    const path = pathOf(context, source), body = source.getFullText().toLocaleLowerCase("en-US");
+    for (const forbidden of ["feed-provider-once", "gpt-web-chat", "gemini", "claude", "document.cookie", "localstorage", "sessionstorage", "location.reload"]) if (body.includes(forbidden)) findings.push(finding(
+      "gpt/forbidden-secondary-or-unsafe-path", path, `Unsafe or secondary Provider path ${forbidden} is forbidden.`));
+    for (const call of source.getDescendantsOfKind(SyntaxKind.CallExpression).filter(call => ["Promise.all", "Promise.allSettled"].includes(call.getExpression().getText()))) if (containsPageMutation(call)) findings.push(finding(
+      "gpt/no-concurrent-page-mutation", path, "Page input cannot be dispatched concurrently.", call.getStartLineNumber()));
+    for (const loop of source.getDescendants().filter(node => Node.isForStatement(node) || Node.isForOfStatement(node) || Node.isWhileStatement(node) || Node.isDoStatement(node))) if (containsPageMutation(loop)) findings.push(finding(
+      "gpt/no-looped-page-mutation", path, "A loop cannot dispatch page mutation.", loop.getStartLineNumber()));
+    for (const violation of gptPrivateInfrastructureViolations(source)) findings.push(finding(
+      "gpt/private-infrastructure-forbidden", path, `GPT must consume the existing persistence, log and mutation Owners: ${violation}.`));
+  }
+  inspectGptCoherentPageProofs(context, findings, finding);
   inspectGptProviderProbeOwnerContract(context, findings, finding);
 };
+const inspectGptTypes = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const contract = sourceFor(context, CONTRACT), group = contract?.getInterface("GptAbilityGroup"), proof = contract?.getInterface("GptChildCapabilityProof");
+  const method = group?.getMethod("execute"), hash = proof?.getProperty("evidenceHash");
+  if (method?.getReturnType().getText(method) !== "Promise<GptChildCapabilityResult<K>>") findings.push(finding(
+    "gpt/typed-public-contract", CONTRACT, "execute must resolve to the generic Child result through the native TypeChecker."));
+  if (hash?.getType().getText(hash) !== "`sha256:${string}`") findings.push(finding(
+    "gpt/typed-public-contract", CONTRACT, "Evidence hash must resolve to the frozen sha256 type through the native TypeChecker."));
+};
 const inspectGptDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  inspectImportOwnership(context, findings);
-  inspectAcyclicCapabilityGraph(context, findings);
+  const sources = owned(context), edges = new Map<string, string[]>();
+  for (const source of context.project.getSourceFiles()) {
+    const path = pathOf(context, source), targets: string[] = [];
+    for (const imported of source.getImportDeclarations()) {
+      const specifier = imported.getModuleSpecifierValue();
+      if (sources.includes(source) && (specifier.includes("/plugins/") || specifier.includes("local-runtime/production"))) findings.push(finding(
+        "gpt/no-product-authority-import", path, `GPT cannot import Product/runtime authority ${specifier}.`, imported.getStartLineNumber()));
+      if (!path.startsWith(`${ROOT}/`) && specifier.includes("capabilities/gpt/") && !specifier.endsWith("/index.js")) findings.push(finding(
+        "gpt/private-boundary", path, `External consumer imports private GPT implementation ${specifier}.`, imported.getStartLineNumber()));
+      const target = imported.getModuleSpecifierSourceFile();
+      if (target && sources.includes(target)) targets.push(pathOf(context, target));
+    }
+    if (sources.includes(source)) edges.set(path, targets);
+  }
+  const visited = new Set<string>(), visiting = new Set<string>();
+  const visit = (path: string): void => {
+    if (visited.has(path)) return;
+    if (visiting.has(path)) { findings.push(finding("gpt/import-cycle-forbidden", path, "The owned GPT import graph contains a cycle.")); return; }
+    visiting.add(path);
+    for (const target of edges.get(path) ?? []) visit(target);
+    visiting.delete(path); visited.add(path);
+  };
+  for (const path of edges.keys()) visit(path);
 };
-
-const inspectFrozenAttemptAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  inspectFrozenAttemptBoundary(context, findings, "static.ast");
-};
-
-const inspectFrozenAttemptContract = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  inspectFrozenAttemptBoundary(context, findings, "static.contract");
-};
+const inspectFrozenAttemptAst = (context: InspectorContext, findings: InspectorFinding[]): void => inspectFrozenAttemptBoundary(context, findings, "static.ast");
+const inspectFrozenAttemptContract = (context: InspectorContext, findings: InspectorFinding[]): void => inspectFrozenAttemptBoundary(context, findings, "static.contract");
 
 const evaluate = (context: InspectorContext): InspectorEvaluation => {
-  const findings: InspectorFinding[] = [];
-  const staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
-  recordStaticCheck({ check: "inspectGptFilesystem", findings, implementation: inspectGptFilesystem,
-    lawIds: [LAW_ID], receipts: staticCheckReceipts,
+  const findings: InspectorFinding[] = [], staticCheckReceipts: InspectorEvaluation["staticCheckReceipts"] = [];
+  recordStaticCheck({ check: "inspectGptFilesystem", implementation: inspectGptFilesystem, findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
     run: () => inspectGptFilesystem(context, findings) });
-  recordStaticCheck({ check: "inspectGptAst", findings, implementation: inspectGptAst,
-    lawIds: [LAW_ID], receipts: staticCheckReceipts,
+  recordStaticCheck({ check: "inspectGptAst", implementation: inspectGptAst, findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
     run: () => inspectGptAst(context, findings) });
-  recordStaticCheck({ check: "inspectGptTypes", findings, implementation: inspectGptTypes,
-    lawIds: [LAW_ID], observe: () => observeStaticMode(context, "static.types"),
-    receipts: staticCheckReceipts,
+  recordStaticCheck({ check: "inspectGptTypes", implementation: inspectGptTypes, findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
+    observe: () => observeStaticMode(context, "static.types"),
     run: () => inspectGptTypes(context, findings) });
-  recordStaticCheck({ check: "inspectGptContracts", findings, implementation: inspectGptContracts,
-    lawIds: [LAW_ID], receipts: staticCheckReceipts,
+  recordStaticCheck({ check: "inspectGptContracts", implementation: inspectGptContracts, findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
     run: () => inspectGptContracts(context, findings) });
-  recordStaticCheck({ check: "inspectGptDependencies", findings, implementation: inspectGptDependencies,
-    lawIds: [LAW_ID], receipts: staticCheckReceipts,
+  recordStaticCheck({ check: "inspectGptDependencies", implementation: inspectGptDependencies, findings, lawIds: [LAW_ID], receipts: staticCheckReceipts,
     run: () => inspectGptDependencies(context, findings) });
-  recordStaticCheck({ check: "inspectFrozenAttemptAst", findings,
-    implementation: inspectFrozenAttemptAst, lawIds: [FROZEN_ATTEMPT_LAW_ID],
-    receipts: staticCheckReceipts,
+  recordStaticCheck({ check: "inspectFrozenAttemptAst", implementation: inspectFrozenAttemptAst, findings, lawIds: [FROZEN_ID], receipts: staticCheckReceipts,
     run: () => inspectFrozenAttemptAst(context, findings) });
-  recordStaticCheck({ check: "inspectFrozenAttemptContract", findings,
-    implementation: inspectFrozenAttemptContract, lawIds: [FROZEN_ATTEMPT_LAW_ID],
-    receipts: staticCheckReceipts,
+  recordStaticCheck({ check: "inspectFrozenAttemptContract", implementation: inspectFrozenAttemptContract, findings, lawIds: [FROZEN_ID], receipts: staticCheckReceipts,
     run: () => inspectFrozenAttemptContract(context, findings) });
-  return {
-    capabilityDomain: context.planEntry.capabilityDomain,
-    reportedLawIds: context.planEntry.lawIds,
-    findings,
-    inspectedFiles: [...context.targetPaths],
-    staticCheckReceipts,
-  };
+  return { capabilityDomain: context.planEntry.capabilityDomain, reportedLawIds: context.planEntry.lawIds,
+    findings, inspectedFiles: [...context.targetPaths], staticCheckReceipts };
 };
-
 export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> => {
   const evaluation = evaluate(context);
-  const checks = (evidenceMode: keyof typeof MODE_CLAUSES): string[] => [...MODE_CHECKS[evidenceMode]];
-  const assertions = ([
-    "static.filesystem", "static.ast", "static.types", "static.contract", "static.dependency",
-  ] as const).map((evidenceMode) => ({
-    clauses: [...MODE_CLAUSES[evidenceMode]],
-    evidenceMode,
-    passed: producerModePassed(evaluation.staticCheckReceipts, LAW_ID, checks(evidenceMode)),
-    refs: staticEvidenceRefs(
-      context,
-      LAW_ID,
-      evidenceMode,
-      MODE_CLAUSES[evidenceMode],
-      evaluation.staticCheckReceipts,
-      checks(evidenceMode),
-    ),
-  }));
-  const frozenAssertions = (["static.ast", "static.contract"] as const).map((evidenceMode) => ({
-    clauses: evidenceMode === "static.ast" ? staticClauses(0, 2, 3, 4) : staticClauses(1, 5, 6, 7, 8),
-    evidenceMode,
-    passed: producerModePassed(evaluation.staticCheckReceipts, FROZEN_ATTEMPT_LAW_ID,
-      evidenceMode === "static.ast" ? ["inspectFrozenAttemptAst"] : ["inspectFrozenAttemptContract"]),
-    refs: staticEvidenceRefs(context, FROZEN_ATTEMPT_LAW_ID, evidenceMode,
-      evidenceMode === "static.ast" ? staticClauses(0, 2, 3, 4) : staticClauses(1, 5, 6, 7, 8),
-      evaluation.staticCheckReceipts,
-      evidenceMode === "static.ast" ? ["inspectFrozenAttemptAst"] : ["inspectFrozenAttemptContract"]),
-  }));
-  return validateStaticInspection(context, {
-    capabilityDomain: evaluation.capabilityDomain,
-    reportedLawIds: evaluation.reportedLawIds,
-    lawResults: [
-      { lawId: LAW_ID, assertions, findings: evaluation.findings.filter((item) => item.lawId === LAW_ID) },
-      { lawId: FROZEN_ATTEMPT_LAW_ID, assertions: frozenAssertions,
-        findings: evaluation.findings.filter((item) => item.lawId === FROZEN_ATTEMPT_LAW_ID) },
-    ],
-    inspectedFiles: evaluation.inspectedFiles,
+  const assertions = Object.entries(MODE_CLAUSES).map(([mode, clauses]) => {
+    const evidenceMode = mode as keyof typeof MODE_CLAUSES, checks = [...MODE_CHECKS[evidenceMode]];
+    return { clauses: [...clauses], evidenceMode, passed: producerModePassed(evaluation.staticCheckReceipts, LAW_ID, checks),
+      refs: staticEvidenceRefs(context, LAW_ID, evidenceMode, clauses, evaluation.staticCheckReceipts, checks) };
   });
+  const frozen = (["static.ast", "static.contract"] as const).map(evidenceMode => {
+    const clauses = evidenceMode === "static.ast" ? staticClauses(0, 2, 3, 4) : staticClauses(1, 5, 6, 7, 8);
+    const checks = evidenceMode === "static.ast" ? ["inspectFrozenAttemptAst"] : ["inspectFrozenAttemptContract"];
+    return { clauses, evidenceMode, passed: producerModePassed(evaluation.staticCheckReceipts, FROZEN_ID, checks),
+      refs: staticEvidenceRefs(context, FROZEN_ID, evidenceMode, clauses, evaluation.staticCheckReceipts, checks) };
+  });
+  return validateStaticInspection(context, { capabilityDomain: evaluation.capabilityDomain, reportedLawIds: evaluation.reportedLawIds,
+    lawResults: [{ lawId: LAW_ID, assertions, findings: evaluation.findings.filter(item => item.lawId === LAW_ID) },
+      { lawId: FROZEN_ID, assertions: frozen, findings: evaluation.findings.filter(item => item.lawId === FROZEN_ID) }], inspectedFiles: evaluation.inspectedFiles });
 };

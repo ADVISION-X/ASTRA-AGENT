@@ -1,485 +1,200 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-
 import { ExtensionTargetAuthority } from "../../src/lib/browser/chrome-extension/extension-target-authority.js";
-import { ChatGptPageAccessGate } from
-  "../../src/lib/browser/chrome-extension/chatgpt-page-access-gate.js";
+import { ChatGptPageAccessGate } from "../../src/lib/browser/chrome-extension/chatgpt-page-access-gate.js";
 import type { ExtensionChromeApi } from "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
 import { exerciseAuthenticatedMedia } from "./local-browser-authenticated-media-support.js";
 import { exerciseLocalBrowserDomIntent } from "./local-browser-dom-intent-support.js";
 import { emitLocalBrowserAutoPairingProofs } from "./local-browser-proof-support.js";
 import { browserDomFacts } from "./local-browser-dom-runtime-fixture.js";
 import { exerciseAutomaticPairing } from "./local-browser-auto-pairing-support.js";
-import {
-  exerciseAuthorizedContinuation, exerciseClaimBroker, exerciseClosedParkedTabRecovery,
-  exerciseLogicalPageAccessPriority, exerciseTargetRotation,
-} from "./local-browser-target-lifecycle-support.js";
-import { rateLimitDetectorCdpResult, verifyKnownGptRateLimitDetector } from
-  "./local-browser-rate-limit-detector.acceptance-support.js";
+import { exerciseAuthorizedContinuation, exerciseClaimBroker, exerciseClosedParkedTabRecovery, exerciseLogicalPageAccessPriority,
+  exerciseTargetRotation } from "./local-browser-target-lifecycle-support.js";
+import { rateLimitDetectorCdpResult, verifyKnownGptRateLimitDetector } from "./local-browser-rate-limit-detector.acceptance-support.js";
 import { verifyRateLimitCommandAdmission } from "./local-browser-rate-limit-command.acceptance-support.js";
+import { permit } from "./local-browser-terminal-fixture.js";
+import { hashBrowserExtensionText } from "../../src/lib/browser/chrome-extension/websocket-actor-crypto.js";
 
-type TabActivatedListener = Parameters<ExtensionChromeApi["tabs"]["onActivated"]["addListener"]>[0];
-type TabUpdatedListener = Parameters<ExtensionChromeApi["tabs"]["onUpdated"]["addListener"]>[0];
-type DebuggerDetachListener = Parameters<ExtensionChromeApi["debugger"]["onDetach"]["addListener"]>[0];
-const chromeApi = await exerciseAutomaticPairing();
-await verifyKnownGptRateLimitDetector();
-
-let createdTab: Readonly<{ active: true; url: string }> | null = null;
-let debuggerEvent: Parameters<ExtensionChromeApi["debugger"]["onEvent"]["addListener"]>[0] | null = null;
-let debuggerDetach: DebuggerDetachListener = () => { throw new Error("debugger detach listener was not installed"); };
-let targetTabUpdated: TabUpdatedListener = () => { throw new Error("target tab listener was not installed"); };
-let targetTabRemoved: (tabId: number) => void = () => undefined;
-let nextCreatedTabId = 3;
-let getTargetsCalls = 0;
-let attachFailureTabId: number | null = null;
-let removeFailureTabId: number | null = null;
-let evaluateRuntime: ((expression: string) => Promise<unknown>) | null = null;
-let basicPointerClick = false;
-let basicPointerDestinationUrl = "https://chatgpt.com/c/interaction-ready";
-let basicPointerResult: unknown = { x: 5, y: 5 };
-let rateLimitDetectorState: Readonly<Record<string, unknown>> = { state: "absent" };
-const rateLimitDetectorStartedAt: number[] = [];
-let switchBeforeProviderInput = false;
-let switchAfterProviderInput = false;
-let switchAwayAndBackTabReadCountdown = 0;
-let navigateSerial = 0;
-let emitFrameNavigationDuringNextNavigate = false;
-let activeTabId = 99;
-let targetTabActivated: TabActivatedListener = () => { throw new Error("target activation listener was not installed"); };
-const activatedTabs: number[] = [];
-const discardedTabIds = new Set<number>();
-const providerInputMethods: string[] = [];
-const attachedTabs: number[] = [];
-const detachedCurrentTabIds = new Set<number>();
-const detachedTabs: number[] = [];
-const debuggerMethods: string[] = [];
-const removedTabs: number[] = [];
-const mainFrameUrlByTab = new Map<number, string>();
-const mainFrameLoaderByTab = new Map<number, string>();
-const targetFrames: Array<Readonly<{ kind: "TARGET_CLAIM" | "TARGET_REVOKE"; body: Record<string, unknown> }>> = [];
-const targetFailures: Array<Readonly<Record<string, unknown>>> = [];
-const targetFailureOrder: string[] = [];
-
-const sendPointerCommand = (
-  method: string,
-  parameters: Readonly<Record<string, unknown>> | undefined,
-): Readonly<Record<string, unknown>> | null => {
-  if (!basicPointerClick) return null;
-  if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
-  if (method === "DOM.resolveNode") return { object: { objectId: "candidate-root" } };
-  if (method === "Runtime.callFunctionOn" && String(parameters?.functionDeclaration ?? "").includes("spec.output")) {
-    if (switchBeforeProviderInput) {
-      switchBeforeProviderInput = false;
-      activeTabId = 99;
-      targetTabActivated({ tabId: activeTabId, windowId: 1 });
-    }
-    return { result: { value: basicPointerResult } };
-  }
-  if (method === "Runtime.callFunctionOn") return { result: { value: browserDomFacts() } };
-  if (method === "Runtime.releaseObject") return {};
-  if (method !== "Input.dispatchMouseEvent") return null;
-  providerInputMethods.push(String(parameters?.type));
-  if (switchAfterProviderInput) {
-    switchAfterProviderInput = false;
-    activeTabId = 99;
-    targetTabActivated({ tabId: activeTabId, windowId: 1 });
-  }
-  if (parameters?.type === "mouseReleased") {
-    mainFrameUrlByTab.set(3, basicPointerDestinationUrl);
-  }
+const chrome = await exerciseAutomaticPairing(); await verifyKnownGptRateLimitDetector();
+const state = { nextId: 3, activeId: 99, navigationCount: 0, physicalTargetsReads: 0, pointer: false,
+  holdNavigation: false, frameNavigationDuringNavigate: false, switchBeforeInput: false, switchAfterInput: false,
+  switchReadCountdown: 0, switchDuringTargets: null as "away" | "away-back" | null, attachFailure: null as number | null, removeFailure: null as number | null,
+  created: null as Readonly<{ active: true; url: string }> | null, pointerResult: { x: 5, y: 5 } as unknown,
+  detector: { state: "absent" } as Readonly<Record<string, unknown>>, runtime: null as ((expression: string) => Promise<unknown>) | null };
+const attached: number[] = [], detached: number[] = [], activated: number[] = [], removed: number[] = [], inputs: string[] = [], methods: string[] = [], detectorStarts: number[] = [];
+const chromeIdentities = new Map<number, string>();
+const discarded = new Set<number>(), lostDebugger = new Set<number>(), urls = new Map<number, string>(), loaders = new Map<number, string>(), statuses = new Map<number, "loading" | "complete">();
+const frames: { kind: "TARGET_CLAIM" | "TARGET_REVOKE"; body: Record<string, unknown> }[] = [], failures: Record<string, unknown>[] = [], failureOrder: string[] = [];
+let event: Parameters<ExtensionChromeApi["debugger"]["onEvent"]["addListener"]>[0] = () => undefined;
+let detach: Parameters<ExtensionChromeApi["debugger"]["onDetach"]["addListener"]>[0] = () => undefined;
+let activation: Parameters<ExtensionChromeApi["tabs"]["onActivated"]["addListener"]>[0] = () => undefined;
+let update: Parameters<ExtensionChromeApi["tabs"]["onUpdated"]["addListener"]>[0] = () => undefined;
+let removal: (id: number) => void = () => undefined;
+const switchTab = (id: number): void => { state.activeId = id; activation({ tabId: id, windowId: 1 }); };
+const tabUpdated: typeof update = (id, changes, tab) => { if (changes.status === "loading" || changes.status === "complete") statuses.set(id, changes.status); update(id, changes, tab); };
+const tabValue = (id: number) => ({ active: id === state.activeId, discarded: discarded.has(id), id,
+  status: statuses.get(id) ?? "complete", title: "ChatGPT", windowId: 1 });
+const simulateDomReadAndInput = async (_tabId: number, method: string, parameters?: Readonly<Record<string, unknown>>): Promise<unknown> => {
+      if (method === "Runtime.callFunctionOn" && String(parameters?.functionDeclaration).includes("known-gpt-rate-limit-preflight.v2"))
+        return rateLimitDetectorCdpResult(parameters, state.detector, detectorStarts);
+      if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
+      if (method === "DOM.resolveNode") return { object: { objectId: "candidate-root" } };
+      if (method === "Runtime.callFunctionOn" && state.pointer) {
+        if (String(parameters?.functionDeclaration).includes("spec.output")) {
+          if (state.switchBeforeInput) { state.switchBeforeInput = false; switchTab(99); }
+          return { result: { value: state.pointerResult } };
+        }
+        return { result: { value: browserDomFacts() } };
+      }
+      if (method === "Input.dispatchMouseEvent" && state.pointer) {
+        inputs.push(String(parameters?.type)); if (state.switchAfterInput) { state.switchAfterInput = false; switchTab(99); }
+        if (parameters?.type === "mouseReleased") urls.set(3, "https://chatgpt.com/c/interaction-ready"); return {};
+      }
+      if (method === "Runtime.evaluate" && state.runtime) return { result: { value: await state.runtime(String(parameters?.expression)) } };
   return {};
 };
-
-const sendTargetChromeCommand: ExtensionChromeApi["debugger"]["sendCommand"] = async (
-  { tabId }, method, parameters,
-) => {
-  debuggerMethods.push(method);
-  if (method === "Runtime.callFunctionOn"
-    && String(parameters?.functionDeclaration).includes("known-gpt-rate-limit-preflight.v2")) {
-    return rateLimitDetectorCdpResult(parameters, rateLimitDetectorState, rateLimitDetectorStartedAt);
-  }
-  const pointerResult = sendPointerCommand(method, parameters);
-  if (pointerResult) return pointerResult;
-  if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
-  if (method === "DOM.resolveNode") return { object: { objectId: "document-root" } };
-  if (method === "Runtime.evaluate" && evaluateRuntime) {
-    return { result: { value: await evaluateRuntime(String(parameters?.expression)) } };
-  }
-  if (method === "Page.getNavigationHistory") {
-    return { currentIndex: 0, entries: [{ id: 1,
-      url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/", title: "ChatGPT" }] };
-  }
-  if (method === "Page.navigate" && typeof parameters?.url === "string") {
-    mainFrameUrlByTab.set(tabId, parameters.url);
-    navigateSerial += 1;
-    const loaderId = `loader-${tabId}-navigate-${navigateSerial}`;
-    mainFrameLoaderByTab.set(tabId, loaderId);
-    if (emitFrameNavigationDuringNextNavigate) {
-      emitFrameNavigationDuringNextNavigate = false;
-      debuggerEvent?.({ tabId }, "Page.frameNavigated");
-    }
-    return { loaderId };
-  }
-  return method === "Page.getFrameTree"
-    ? { frameTree: { frame: { loaderId: mainFrameLoaderByTab.get(tabId) ?? `loader-${tabId}`,
-      url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/" } } }
-    : {};
-};
-
-const targetChromeApi: ExtensionChromeApi = {
-  runtime: chromeApi.runtime,
-  debugger: {
-    attach: async ({ tabId }) => {
-      if (tabId === attachFailureTabId) throw new Error("another debugger owns the new task tab");
-      detachedCurrentTabIds.delete(tabId);
-      attachedTabs.push(tabId);
-    },
-    detach: async ({ tabId }) => { detachedCurrentTabIds.add(tabId); detachedTabs.push(tabId); },
-    getTargets: async () => {
-      getTargetsCalls += 1;
-      return Array.from({ length: nextCreatedTabId - 3 }, (_, index) => index + 3)
-        .filter((tabId) => !removedTabs.includes(tabId))
-        .map((tabId) => ({ attached: attachedTabs.includes(tabId)
-          && !detachedCurrentTabIds.has(tabId),
-          id: `chrome-target-${tabId}`, tabId, title: "ChatGPT", type: "page" as const,
-          url: mainFrameUrlByTab.get(tabId) ?? "https://chatgpt.com/" }));
-    },
-    sendCommand: sendTargetChromeCommand,
-    onDetach: { addListener: (listener) => { debuggerDetach = (target, reason) => {
-      detachedCurrentTabIds.add(target.tabId);
-      listener(target, reason);
-    }; } },
-    onEvent: { addListener: (listener) => { debuggerEvent = listener; } },
-  },
-  tabs: {
-    create: async (input) => {
-      createdTab = input;
-      const id = nextCreatedTabId++;
-      activeTabId = id;
-      targetTabActivated({ tabId: id, windowId: 1 });
-      return { id };
-    },
-    get: async (tabId) => {
-      if (removedTabs.includes(tabId)) throw new Error("No tab with id");
-      if (switchAwayAndBackTabReadCountdown > 0) {
-        switchAwayAndBackTabReadCountdown -= 1;
-        if (switchAwayAndBackTabReadCountdown === 0) {
-          activeTabId = 99;
-          targetTabActivated({ tabId: activeTabId, windowId: 1 });
-          activeTabId = tabId;
-          targetTabActivated({ tabId: activeTabId, windowId: 1 });
-        }
+const targetChrome: ExtensionChromeApi = { runtime: chrome.runtime, alarms: chrome.alarms,
+  debugger: { attach: async ({ tabId }) => { if (state.attachFailure === tabId) throw new Error("DEBUGGER_CONFLICT"); lostDebugger.delete(tabId); attached.push(tabId); },
+    detach: async ({ tabId }) => { lostDebugger.add(tabId); detached.push(tabId); },
+    getTargets: async () => { state.physicalTargetsReads += 1;
+      if (state.switchDuringTargets) { const mode = state.switchDuringTargets, original = state.activeId;
+        state.switchDuringTargets = null; switchTab(99); if (mode === "away-back") switchTab(original); }
+      return Array.from({ length: state.nextId - 3 }, (_, index) => index + 3)
+      .filter(id => !removed.includes(id)).map(id => ({ id: chromeIdentities.get(id) ?? `chrome-target-${id}`, tabId: id, attached: attached.includes(id) && !lostDebugger.has(id),
+        title: "ChatGPT", type: "page" as const, url: urls.get(id) ?? "https://chatgpt.com/" })); },
+    sendCommand: async ({ tabId }, method, parameters) => {
+      methods.push(method);
+      if (method === "Page.getNavigationHistory") return { currentIndex: 0, entries: [{ id: 1, url: urls.get(tabId) ?? "https://chatgpt.com/", title: "ChatGPT" }] };
+      if (method === "Page.navigate") {
+        state.navigationCount += 1; urls.set(tabId, String(parameters?.url)); loaders.set(tabId, `loader-${tabId}-navigation-${state.navigationCount}`); statuses.set(tabId, "loading");
+        if (state.frameNavigationDuringNavigate) { state.frameNavigationDuringNavigate = false; event({ tabId }, "Page.frameNavigated"); }
+        if (!state.holdNavigation) setTimeout(() => tabUpdated(tabId, { status: "complete" }, { id: tabId, url: urls.get(tabId)! }), 1);
+        return { loaderId: loaders.get(tabId) };
       }
-      return { active: tabId === activeTabId, discarded: discardedTabIds.has(tabId), id: tabId,
-        status: "complete", title: "ChatGPT", windowId: 1 };
-    },
-    remove: async (tabId) => {
-      if (tabId === removeFailureTabId) {
-        removeFailureTabId = null;
-        throw new Error("ambiguous exact tab removal");
-      }
-      removedTabs.push(tabId);
-      targetTabRemoved(tabId);
-    },
-    update: async (tabId) => {
-      activatedTabs.push(tabId);
-      activeTabId = tabId;
-      targetTabActivated({ tabId, windowId: 1 });
-      return { active: true, discarded: false, id: tabId, status: "complete",
-        title: "ChatGPT", windowId: 1 };
-    },
-    onActivated: { addListener: (listener) => { targetTabActivated = listener; } },
-    onUpdated: { addListener: (listener) => { targetTabUpdated = listener; } },
-    onRemoved: { addListener: (listener) => { targetTabRemoved = listener; } },
-  },
-  alarms: chromeApi.alarms,
+      if (method === "Page.getFrameTree") return { frameTree: { frame: { loaderId: loaders.get(tabId) ?? `loader-${tabId}`, url: urls.get(tabId) ?? "https://chatgpt.com/" } } };
+      return simulateDomReadAndInput(tabId, method, parameters);
+    }, onDetach: { addListener: callback => { detach = (target, reason) => { lostDebugger.add(target.tabId); callback(target, reason); }; } },
+    onEvent: { addListener: callback => { event = callback; } } },
+  tabs: { create: async input => { state.created = input; const id = state.nextId++; statuses.set(id, "loading"); switchTab(id); return { id }; },
+    get: async id => { if (removed.includes(id)) throw new Error("TAB_ABSENT"); if (state.switchReadCountdown > 0 && --state.switchReadCountdown === 0) { switchTab(99); switchTab(id); } return tabValue(id); },
+    remove: async id => { if (state.removeFailure === id) { state.removeFailure = null; throw new Error("REMOVE_UNPROVEN"); } removed.push(id); removal(id); },
+    update: async id => { activated.push(id); switchTab(id); return tabValue(id); },
+    onActivated: { addListener: callback => { activation = callback; } }, onUpdated: { addListener: callback => { update = callback; } },
+    onRemoved: { addListener: callback => { removal = callback; } } } };
+await exerciseLogicalPageAccessPriority(targetChrome);
+const authority = new ExtensionTargetAuthority(targetChrome, async (kind, body) => { frames.push({ kind, body }); if (kind === "TARGET_REVOKE") failureOrder.push(kind); },
+  failure => { failures.push({ ...failure }); failureOrder.push("DIAGNOSTIC"); }, async () => undefined);
+authority.start();
+const until = async (condition: () => boolean): Promise<void> => { const deadline = Date.now() + 10_000;
+  while (!condition()) { if (Date.now() >= deadline) throw new Error("FIXTURE_CONDITION_TIMEOUT"); await new Promise<void>(resolve => setTimeout(resolve, 1)); } };
+const waitForCreatedTab = (id: number) => until(() => state.nextId > id);
+const job = `sha256:${"a".repeat(64)}` as const;
+const first = authority.acquireJobBoundChatGptTarget("fresh", job); await waitForCreatedTab(3);
+assert.deepEqual(attached, []); assert.deepEqual([...frames], []);
+tabUpdated(3, { status: "complete" }, { id: 3, url: "https://chatgpt.com/" }); await first;
+assert.deepEqual(attached, [3]); assert.ok(state.physicalTargetsReads > 0); assert.deepEqual(state.created, { active: true, url: "https://chatgpt.com/" });
+assert.equal(state.activeId, 3); assert.deepEqual(Object.keys(frames[0]!.body).sort(), ["claimOrigin", "documentRef", "jobRefHash", "navigationEpoch", "targetRef"]);
+assert.equal(frames[0]!.body.claimOrigin, "https://chatgpt.com"); const initialClaim = frames[0]!.body;
+const targetRef = String(initialClaim.targetRef), documentRef = String(initialClaim.documentRef), target = authority.resolve(targetRef, documentRef);
+const execute = async (command: Parameters<ExtensionTargetAuthority["executeRegisteredCommand"]>[0], current = target,
+  kind: Parameters<ExtensionTargetAuthority["executeRegisteredCommand"]>[2] = "mutation") => {
+  const result = await authority.executeRegisteredCommand(command, current, kind, `sha256:${"e".repeat(64)}`);
+  const row = result as Record<string, unknown>; return row?.schemaVersion === "grasseye.browser.command-preflight.v1" ? row.commandResult : result;
 };
-
-await exerciseLogicalPageAccessPriority(targetChromeApi);
-
-const targetAuthority = new ExtensionTargetAuthority(
-  targetChromeApi,
-  async (kind, body) => { targetFrames.push({ kind, body }); if (kind === "TARGET_REVOKE") targetFailureOrder.push(kind); },
-  (failure) => { targetFailures.push(failure); targetFailureOrder.push("DIAGNOSTIC"); },
-  async () => undefined,
-);
-const acceptanceExactCallIdentityHash = `sha256:${"e".repeat(64)}` as const;
-const executeRegisteredCommand = (
-  command: Parameters<ExtensionTargetAuthority["executeRegisteredCommand"]>[0],
-  target: Parameters<ExtensionTargetAuthority["executeRegisteredCommand"]>[1],
-  mutationClass: Parameters<ExtensionTargetAuthority["executeRegisteredCommand"]>[2],
-) => targetAuthority.executeRegisteredCommand(
-  command, target, mutationClass, acceptanceExactCallIdentityHash,
-).then((result) => {
-  if (!result || typeof result !== "object" || Array.isArray(result)) return result;
-  const record = result as Readonly<Record<string, unknown>>;
-  return record.schemaVersion === "grasseye.browser.command-preflight.v1"
-    ? record.commandResult : result;
-});
-const jobRefHash = `sha256:${"a".repeat(64)}` as const;
-targetAuthority.start();
-const waitForCreatedTab = async (tabId: number): Promise<void> => {
-  while (nextCreatedTabId <= tabId) {
-    await new Promise<void>((resolve) => globalThis.setTimeout(resolve, 0));
-  }
-};
-const firstAcquisition = targetAuthority.acquireJobBoundChatGptTarget("fresh", jobRefHash);
-await waitForCreatedTab(3);
-assert.deepEqual(attachedTabs, [], "the task-owned tab must not attach before Chrome reports page completion");
-targetTabUpdated(3, { status: "complete" }, { id: 3, url: "https://chatgpt.com/", title: "ChatGPT" });
-await firstAcquisition;
-assert.deepEqual(attachedTabs, [3]);
-assert.ok(getTargetsCalls > 0, "the new task Tab must bind its exact Chrome target identity");
-assert.deepEqual(createdTab, { active: true, url: "https://chatgpt.com/" });
-assert.equal(activeTabId, 3, "the first production Tab must be selected in its existing Chrome window");
-assert.equal(targetFrames[0]?.kind, "TARGET_CLAIM");
-assert.deepEqual(Object.keys(targetFrames[0]?.body ?? {}).sort(),
-  ["claimOrigin", "documentRef", "jobRefHash", "navigationEpoch", "targetRef"],
-  "the Target claim wire must not contain a full page URL");
-assert.equal(targetFrames[0]?.body.claimOrigin, "https://chatgpt.com");
-const firstTargetRef = String(targetFrames[0]?.body.targetRef);
-const firstDocumentRef = String(targetFrames[0]?.body.documentRef);
-await exerciseAuthenticatedMedia({
-  authority: targetAuthority,
-  targetRef: firstTargetRef,
-  documentRef: firstDocumentRef,
-  setRuntime: (runtime) => { evaluateRuntime = runtime; },
-});
-assert.deepEqual(activatedTabs, [], "authenticated-media probe must not activate the production Tab");
-const interactionTarget = targetAuthority.resolve(firstTargetRef, firstDocumentRef);
-activeTabId = 99;
-targetTabActivated({ tabId: 99, windowId: 1 });
-await executeRegisteredCommand(
-  { kind: "wait", durationMs: 1 }, interactionTarget, "observation",
-);
-assert.deepEqual(activatedTabs, [3],
-  "an observation must reselect and revalidate its exact system Tab immediately before reading");
-const simpleClick = {
-  kind: "dom-intent" as const,
-  intent: {
-    kind: "click" as const,
-    selector: "button[data-testid='interaction-ready']",
-    expectedMatches: 1,
-    postClickUrl: { equals: "https://chatgpt.com/c/interaction-ready" },
-  },
-};
-basicPointerClick = true;
-await verifyRateLimitCommandAdmission({
-  executeRegisteredCommand, simpleClick, interactionTarget, firstTargetRef, firstDocumentRef,
-  providerInputMethods, rateLimitDetectorStartedAt,
-  setRateLimitDetectorState: (state) => { rateLimitDetectorState = state; },
-});
-const pageAccessGate = new ChatGptPageAccessGate();
-const gateStarts: number[] = [];
-for (let index = 0; index < 3; index += 1) {
-  await pageAccessGate.enter();
-  gateStarts.push(performance.now());
+await exerciseAuthenticatedMedia({ authority, targetRef, documentRef, setRuntime: callback => { state.runtime = callback; } }); assert.deepEqual(activated, []);
+switchTab(99); await execute({ kind: "wait", durationMs: 1 }, target, "observation"); assert.deepEqual(activated, [3]);
+const click = { kind: "dom-intent" as const, intent: { kind: "click" as const, selector: "button[data-testid='interaction-ready']", expectedMatches: 1,
+  postClickUrl: { equals: "https://chatgpt.com/c/interaction-ready" } } };
+state.pointer = true;
+await verifyRateLimitCommandAdmission({ executeRegisteredCommand: execute, simpleClick: click, interactionTarget: target, firstTargetRef: targetRef,
+  firstDocumentRef: documentRef, providerInputMethods: inputs, rateLimitDetectorStartedAt: detectorStarts,
+  setRateLimitDetectorState: value => { state.detector = value; } });
+const gate = new ChatGptPageAccessGate(), starts: number[] = [];
+for (let index = 0; index < 3; index += 1) { await gate.enter(); starts.push(performance.now()); }
+assert.ok(starts.slice(1).every((value, index) => value - starts[index]! >= 1500));
+switchTab(99); await execute(click); const activationCount = activated.length; await execute(click); assert.equal(activated.length, activationCount);
+for (const mode of ["origin", "away-back", "before-input", "discarded"] as const) {
+  const before = inputs.length; urls.set(3, mode === "origin" ? "http://127.0.0.1:4173/" : "https://chatgpt.com/");
+  if (mode === "away-back") state.switchReadCountdown = 2;
+  if (mode === "before-input") state.switchBeforeInput = true;
+  if (mode === "discarded") discarded.add(3);
+  const result = await execute(click) as Record<string, unknown>; assert.equal(result.failureCode, "BROWSER_TARGET_NOT_INTERACTIVE"); assert.equal(result.mutationCount, 0);
+  if (mode === "origin") assert.equal(result.nativeCauseCode, "BROWSER_ORIGIN_REJECTED");
+  assert.equal(inputs.length, before); discarded.delete(3); switchTab(3);
 }
-assert.ok(gateStarts.slice(1).every((startedAt, index) =>
-  startedAt - gateStarts[index]! >= 1_500),
-"ordinary ChatGPT logical access starts must be at least 1500ms apart");
-assert.deepEqual(activatedTabs, [3], "the first mutation must reuse the Tab selected by the observation gate");
-activeTabId = 99;
-targetTabActivated({ tabId: 99, windowId: 1 });
-await executeRegisteredCommand(simpleClick, interactionTarget, "mutation");
-assert.deepEqual(activatedTabs, [3, 3], "a mutation after the user switches away must reselect only the exact system Tab");
-await executeRegisteredCommand(simpleClick, interactionTarget, "mutation");
-assert.deepEqual(activatedTabs, [3, 3], "an already-active system Tab must not call tabs.update again");
+urls.set(3, "https://chatgpt.com/"); state.switchAfterInput = true; const beforeLateSwitch = inputs.length;
+await assert.rejects(execute(click), /BROWSER_TARGET_NOT_INTERACTIVE/u); assert.equal(inputs.length, beforeLateSwitch + 1); switchTab(3);
+state.pointer = false;
+const select = (url: string, current = target) => execute({ kind: "dom-intent", intent: { kind: "selectExactGptConversation", canonicalConversationUrl: url } }, current, "lifecycle") as Promise<Record<string, unknown>>;
+urls.set(3, "https://chatgpt.com/c/sidebar-target?messageId=one#tail"); const baselineNavigation = state.navigationCount;
+const same = await select("https://chatgpt.com/c/sidebar-target"); assert.equal(same.documentRef, target.documentRef); assert.equal(state.navigationCount, baselineNavigation);
+loaders.set(3, "same-url-new-loader"); const reloaded = await select("https://chatgpt.com/c/sidebar-target"); assert.notEqual(reloaded.documentRef, target.documentRef); assert.equal(state.navigationCount, baselineNavigation);
+const reloadedTarget = authority.resolve(String(reloaded.targetRef), String(reloaded.documentRef)), beforeNavigationClaims = frames.length;
+loaders.set(3, "unannounced-document");
+await assert.rejects(select("https://chatgpt.com/c/foreign-document", reloadedTarget), /BROWSER_DOCUMENT_INVALID/u);
+assert.equal(state.navigationCount, baselineNavigation); assert.equal(frames.length, beforeNavigationClaims);
+loaders.set(3, reloadedTarget.loaderId);
+chromeIdentities.set(3, "replacement-chrome-target");
+await assert.rejects(select("https://chatgpt.com/c/foreign-target", reloadedTarget), /BROWSER_TARGET_INVALID/u);
+assert.equal(state.navigationCount, baselineNavigation); assert.equal(frames.length, beforeNavigationClaims);
+chromeIdentities.delete(3);
+for (const mode of ["away", "away-back"] as const) {
+  state.switchDuringTargets = mode;
+  await assert.rejects(select("https://chatgpt.com/c/inactive-during-qualification", reloadedTarget), /BROWSER_TARGET_NOT_INTERACTIVE/u);
+  assert.equal(state.navigationCount, baselineNavigation); assert.equal(frames.length, beforeNavigationClaims); switchTab(3);
+}
+state.holdNavigation = true; state.frameNavigationDuringNavigate = true;
+const selecting = select("https://chatgpt.com/c/sidebar-next", reloadedTarget); await until(() => state.navigationCount === baselineNavigation + 1);
+assert.equal(statuses.get(3), "loading"); assert.equal(frames.length, beforeNavigationClaims, "A new loader acknowledgement with a loading Tab cannot publish a claim.");
+tabUpdated(99, { status: "complete" }, { id: 99, url: "https://chatgpt.com/" }); await Promise.resolve(); assert.equal(frames.length, beforeNavigationClaims);
+tabUpdated(3, { status: "complete" }, { id: 3, url: urls.get(3)! }); const selected = await selecting; state.holdNavigation = false;
+assert.deepEqual(frames.slice(beforeNavigationClaims).map(frame => frame.kind), ["TARGET_CLAIM"]); assert.notEqual(selected.documentRef, reloadedTarget.documentRef);
+const selectedTarget = authority.resolve(String(selected.targetRef), String(selected.documentRef)); await select("https://chatgpt.com/c/sidebar-absent", selectedTarget);
+assert.equal(state.navigationCount, baselineNavigation + 2); assert.equal(inputs.length, beforeLateSwitch + 1);
+const currentClaim = frames.at(-1)!.body, current = authority.resolve(String(currentClaim.targetRef), String(currentClaim.documentRef));
+const removedBefore = removed.length; await authority.retireInvalidCommandTarget({ message: "BROWSER_DOCUMENT_INVALID" },
+  { ...permit("unknown-cause"), targetRef: current.targetRef, documentRef: current.documentRef }, "click"); assert.equal(removed.length, removedBefore);
+await authority.parkActiveTarget(); assert.equal(frames.at(-1)?.kind, "TARGET_REVOKE"); assert.deepEqual(detached, []);
+await authority.acquireJobBoundChatGptTarget("confirmed-readback", job); assert.deepEqual(attached, [3]); assert.equal(state.nextId, 4);
+assert.equal(frames.at(-1)?.body.targetRef, targetRef); assert.equal(methods.includes("Page.bringToFront"), false); await authority.releaseActiveTarget(false); assert.deepEqual(detached, []);
+await exerciseLocalBrowserDomIntent(); const beforeFresh = state.navigationCount; await authority.acquireJobBoundChatGptTarget("fresh", job);
+assert.equal(state.navigationCount, beforeFresh + 1); assert.equal(state.nextId, 4); assert.equal(frames.at(-1)?.body.targetRef, targetRef);
+assert.notEqual(frames.at(-1)?.body.documentRef, documentRef);
+failureOrder.length = 0; detach({ tabId: 3 }, "target_closed"); await new Promise<void>(resolve => setTimeout(resolve, 0));
+assert.deepEqual(failureOrder, ["DIAGNOSTIC", "TARGET_REVOKE"]); assert.equal(failures.at(-1)?.nativeCauseCode, "CHROME_DEBUGGER_TARGET_CLOSED");
+const replacement = authority.acquireJobBoundChatGptTarget("confirmed-readback", job); await waitForCreatedTab(4);
+tabUpdated(4, { status: "complete" }, { id: 4, url: "https://chatgpt.com/" }); await replacement; assert.equal(frames.at(-1)?.body.targetRef, "target-tab-4");
+const replacementClaim = frames.at(-1)!.body; await select("https://chatgpt.com/c/replacement-readback", authority.resolve(String(replacementClaim.targetRef), String(replacementClaim.documentRef)));
+assert.equal(state.nextId, 5); assert.equal(state.activeId, 4); detach({ tabId: 4 }, "canceled_by_user"); await new Promise<void>(resolve => setTimeout(resolve, 0));
+assert.equal(failures.at(-1)?.reasonCode, "BROWSER_DEVTOOLS_CONFLICT"); assert.equal(failures.at(-1)?.nativeCauseCode, "CHROME_DEBUGGER_CANCELED_BY_USER");
+for (const bad of ["origin", "debugger"] as const) {
+  const id = state.nextId; if (bad === "debugger") state.attachFailure = id;
+  const attempt = authority.acquireJobBoundChatGptTarget("fresh", job); await waitForCreatedTab(id);
+  if (bad === "origin") urls.set(id, "https://example.com/");
+  tabUpdated(id, { status: "complete" }, { id, url: urls.get(id) ?? "https://chatgpt.com/" });
+  await assert.rejects(attempt, new RegExp(bad === "origin" ? "BROWSER_ORIGIN_REJECTED" : "BROWSER_DEVTOOLS_CONFLICT", "u"));
+  assert.ok(removed.includes(id)); state.attachFailure = null;
+}
+const rotation = await exerciseTargetRotation({ authority, waitForCreatedTab, targetTabUpdated: tabUpdated, targetFrames: frames,
+  debuggerMethods: methods, activatedTabs: activated, removedTabs: removed, setRemoveFailureTabId: value => { state.removeFailure = value; } });
+await exerciseAuthorizedContinuation({ authority, nextCreatedTabId: state.nextId, waitForCreatedTab, targetTabUpdated: tabUpdated,
+  targetFrames: frames, debuggerMethods: methods, mainFrameUrlByTab: urls });
+await exerciseClosedParkedTabRecovery({ authority, readNextCreatedTabId: () => state.nextId, waitForCreatedTab, targetTabUpdated: tabUpdated,
+  targetFrames: frames, targetFailures: failures, removedTabs: removed });
+await exerciseClaimBroker({ hashes: rotation, activatedTabs: activated, removedTabs: removed });
 
-const providerInputsBeforeOriginRejection = providerInputMethods.length;
-const acceptedInteractionOrigin = mainFrameUrlByTab.get(3);
-mainFrameUrlByTab.set(3, "http://127.0.0.1:4173/");
-const rejectedInteractionOrigin = await executeRegisteredCommand(
-  simpleClick, interactionTarget, "mutation",
-) as Readonly<Record<string, unknown>>;
-assert.equal(rejectedInteractionOrigin.failureCode, "BROWSER_TARGET_NOT_INTERACTIVE");
-assert.equal(rejectedInteractionOrigin.nativeCauseCode, "BROWSER_ORIGIN_REJECTED");
-assert.equal(rejectedInteractionOrigin.mutationCount, 0);
-assert.equal(providerInputMethods.length, providerInputsBeforeOriginRejection,
-  "a rejected DevTools main-frame Origin must produce zero physical input");
-mainFrameUrlByTab.set(3, acceptedInteractionOrigin!);
-
-const providerInputsBeforeQualificationSwitch = providerInputMethods.length;
-mainFrameUrlByTab.set(3, "https://chatgpt.com/");
-switchAwayAndBackTabReadCountdown = 2;
-const switchedAwayAndBackDuringQualification = await executeRegisteredCommand(
-  simpleClick, interactionTarget, "mutation",
-) as Readonly<Record<string, unknown>>;
-assert.equal(switchedAwayAndBackDuringQualification.failureCode, "BROWSER_TARGET_NOT_INTERACTIVE");
-assert.equal(switchedAwayAndBackDuringQualification.mutationCount, 0);
-assert.equal(providerInputMethods.length, providerInputsBeforeQualificationSwitch,
-  "a user switch away and back during qualification must permanently invalidate that interaction lease");
-
-const providerInputsBeforeSwitch = providerInputMethods.length;
-mainFrameUrlByTab.set(3, "https://chatgpt.com/");
-switchBeforeProviderInput = true;
-const switchedBeforeInput = await executeRegisteredCommand(
-  simpleClick, interactionTarget, "mutation",
-) as Readonly<Record<string, unknown>>;
-assert.equal(switchedBeforeInput.failureCode, "BROWSER_TARGET_NOT_INTERACTIVE");
-assert.equal(switchedBeforeInput.mutationCount, 0);
-assert.equal(providerInputMethods.length, providerInputsBeforeSwitch,
-  "a user tab switch before Provider input must produce zero physical input");
-
-activeTabId = 3;
-targetTabActivated({ tabId: 3, windowId: 1 });
-mainFrameUrlByTab.set(3, "https://chatgpt.com/");
-switchAfterProviderInput = true;
-const providerInputsBeforeLateSwitch = providerInputMethods.length;
-await assert.rejects(
-  executeRegisteredCommand(simpleClick, interactionTarget, "mutation"),
-  /BROWSER_TARGET_NOT_INTERACTIVE/u,
-  "a user tab switch after Provider input starts must preserve an uncertain dispatched result",
-);
-assert.equal(providerInputMethods.length, providerInputsBeforeLateSwitch + 1,
-  "a post-input tab switch must not replay or finish the remaining pointer sequence");
-
-activeTabId = 3;
-targetTabActivated({ tabId: 3, windowId: 1 });
-discardedTabIds.add(3);
-const discardedReceipt = await executeRegisteredCommand(
-  simpleClick, interactionTarget, "mutation",
-) as Readonly<Record<string, unknown>>;
-discardedTabIds.delete(3);
-assert.equal(discardedReceipt.failureCode, "BROWSER_TARGET_NOT_INTERACTIVE");
-assert.equal(discardedReceipt.mutationCount, 0, "a discarded system Tab must fail before physical input");
-const selectConversation = (url: string, target = interactionTarget) => executeRegisteredCommand(
-  { kind: "dom-intent", intent: { kind: "selectExactGptConversation", canonicalConversationUrl: url } }, target, "lifecycle") as Promise<Readonly<Record<string, unknown>>>;
-const selectionBaseline = [providerInputMethods.length, debuggerMethods.filter((method) => method === "Page.navigate").length] as const;
-mainFrameUrlByTab.set(3, "https://chatgpt.com/c/sidebar-target?messageId=message-1#tail");
-const alreadySelected = await selectConversation("https://chatgpt.com/c/sidebar-target");
-assert.deepEqual([alreadySelected.documentRef, providerInputMethods.length], [interactionTarget.documentRef,
-  selectionBaseline[0]], "an exact current conversation must require zero clicks");
-mainFrameLoaderByTab.set(3, "loader-3-same-url-reload");
-const reloadedAtSameUrl = await selectConversation("https://chatgpt.com/c/sidebar-target");
-assert.notEqual(reloadedAtSameUrl.documentRef, interactionTarget.documentRef,
-  "the same canonical URL with a new main-frame loader must publish a current Document");
-assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length,
-  selectionBaseline[1], "same-URL Document refresh must not navigate");
-const reloadedTarget = targetAuthority.resolve(String(reloadedAtSameUrl.targetRef),
-  String(reloadedAtSameUrl.documentRef));
-const selected = await selectConversation("https://chatgpt.com/c/sidebar-next", reloadedTarget);
-assert.notEqual(selected.documentRef, interactionTarget.documentRef, "selection must publish a fresh Document");
-assert.equal(providerInputMethods.length, selectionBaseline[0], "conversation navigation must produce zero pointer input");
-assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length, selectionBaseline[1] + 1,
-  "a different conversation must use one exact direct navigation");
-const selectedTarget = targetAuthority.resolve(String(selected.targetRef), String(selected.documentRef));
-const framesBeforeAtomicSelection = targetFrames.length;
-emitFrameNavigationDuringNextNavigate = true;
-await selectConversation("https://chatgpt.com/c/sidebar-absent", selectedTarget);
-assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length, selectionBaseline[1] + 2,
-  "each different authoritative URL must produce exactly one direct navigation");
-assert.deepEqual(targetFrames.slice(framesBeforeAtomicSelection).map((frame) => frame.kind), ["TARGET_CLAIM"],
-  "the Page.frameNavigated event must join the same navigation publication without revoke or duplicate claim");
-basicPointerClick = false;
-const removedBeforeInvalidDocument = removedTabs.length;
-await targetAuthority.retireInvalidCommandTarget(new Error("BROWSER_DOCUMENT_INVALID"), null);
-assert.equal(removedTabs.length, removedBeforeInvalidDocument,
-  "a Document failure before Website decision must park without orphaning the system Tab");
-await targetAuthority.acquireJobBoundChatGptTarget("bound-observation", jobRefHash);
-assert.equal(targetFrames.at(-1)?.body.targetRef, firstTargetRef,
-  "the exact binding must survive a Document failure for Website-authorized later release");
-await targetAuthority.parkActiveTarget();
-assert.equal(targetFrames.at(-1)?.kind, "TARGET_REVOKE");
-assert.deepEqual(detachedTabs, [], "logical park must keep the one debugger session alive across local restarts");
-await targetAuthority.acquireJobBoundChatGptTarget("confirmed-readback", jobRefHash);
-assert.deepEqual(attachedTabs, [3],
-  "confirmed readback may reuse the current system Tab without historical Target identity");
-assert.equal(nextCreatedTabId, 4);
-assert.equal(targetFrames.at(-1)?.body.targetRef, firstTargetRef);
-assert.equal(debuggerMethods.filter((method) => method === "Page.bringToFront").length, 0,
-  "initial claim and confirmed readback must never call Page.bringToFront");
-await targetAuthority.releaseActiveTarget(false);
-assert.deepEqual(detachedTabs, [], "socket suspension must preserve the one production debugger session");
-
-await exerciseLocalBrowserDomIntent();
-const navigateBeforeFreshReuse = debuggerMethods.filter((method) => method === "Page.navigate").length;
-const secondAcquisition = targetAuthority.acquireJobBoundChatGptTarget("fresh", jobRefHash);
-await Promise.resolve();
-await secondAcquisition;
-assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length, navigateBeforeFreshReuse + 1,
-  "a fresh job must navigate the fixed root even when the parked target is already on that URL");
-assert.equal(attachedTabs.at(-1), 3, "every turn must reuse the one visible production tab");
-assert.equal(nextCreatedTabId, 4, "single-Tab reuse must not create a second physical page");
-assert.equal(targetFrames.at(-1)?.body.targetRef, firstTargetRef,
-  "single-Tab reuse must preserve physical target identity");
-assert.notEqual(targetFrames.at(-1)?.body.documentRef, firstDocumentRef,
-  "a fresh job must publish a new Document instead of inheriting residual composer attachments");
-assert.equal(targetFrames.at(-1)?.body.claimOrigin, "https://chatgpt.com",
-  "the debugger-owned main frame may publish only the exact admitted origin");
-targetFailureOrder.length = 0;
-debuggerDetach({ tabId: 3 }, "target_closed");
-await new Promise<void>((resolve) => globalThis.setTimeout(resolve, 0));
-assert.deepEqual(targetFailureOrder, ["DIAGNOSTIC", "TARGET_REVOKE"]);
-assert.deepEqual(targetFailures.at(-1), {
-  targetRef: firstTargetRef, jobRefHash, documentRef: String(targetFrames.at(-2)?.body.documentRef),
-  runtimeEventType: "debugger-detach",
-  reasonCode: "BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT",
-  nativeCauseCode: "CHROME_DEBUGGER_TARGET_CLOSED",
-});
-const activationCountBeforeReadbackReplacement = activatedTabs.length;
-const navigationCountBeforeReadbackReplacement = debuggerMethods
-  .filter((method) => method === "Page.navigate").length;
-const replacementAcquisition = targetAuthority.acquireJobBoundChatGptTarget("confirmed-readback", jobRefHash);
-await waitForCreatedTab(4);
-targetTabUpdated(4, { status: "complete" }, { id: 4, url: "https://chatgpt.com/", title: "ChatGPT" });
-await replacementAcquisition;
-assert.equal(targetFrames.at(-1)?.body.targetRef, "target-tab-4",
-  "after authoritative physical loss, the existing acquisition path must create one replacement Target");
-const replacementClaim = targetFrames.at(-1)!.body;
-const replacementTarget = targetAuthority.resolve(
-  String(replacementClaim.targetRef), String(replacementClaim.documentRef),
-);
-await selectConversation("https://chatgpt.com/c/replacement-readback", replacementTarget);
-assert.equal(debuggerMethods.filter((method) => method === "Page.navigate").length,
-  navigationCountBeforeReadbackReplacement + 1,
-  "a confirmed readback replacement must navigate exactly once from root to the WAL conversation URL");
-assert.equal(activatedTabs.length, activationCountBeforeReadbackReplacement,
-  "active replacement creation and canonical navigation must not add a tabs.update activation");
-assert.deepEqual(createdTab, { active: true, url: "https://chatgpt.com/" },
-  "replacement acquisition must select only its new system Tab");
-assert.equal(activeTabId, 4, "the replacement system Tab must be selected in its existing Chrome window");
-assert.equal(nextCreatedTabId, 5, "physical loss must create exactly one replacement production Tab");
-const replacementCurrentDocumentRef = String(targetFrames.at(-1)?.body.documentRef);
-debuggerDetach({ tabId: 4 }, "canceled_by_user");
-await new Promise<void>((resolve) => globalThis.setTimeout(resolve, 0));
-assert.deepEqual(targetFailures.at(-1), {
-  targetRef: "target-tab-4", jobRefHash, documentRef: replacementCurrentDocumentRef,
-  runtimeEventType: "debugger-detach",
-  reasonCode: "BROWSER_DEVTOOLS_CONFLICT",
-  nativeCauseCode: "CHROME_DEBUGGER_CANCELED_BY_USER",
-});
-
-const rejectedOrigin = targetAuthority.acquireJobBoundChatGptTarget("fresh", jobRefHash);
-await waitForCreatedTab(5);
-mainFrameUrlByTab.set(5, "https://example.com/");
-targetTabUpdated(5, { status: "complete" }, { id: 5, url: "https://example.com/", title: "Wrong Origin" });
-await assert.rejects(rejectedOrigin, /BROWSER_ORIGIN_REJECTED/u);
-assert.equal(Number(attachedTabs.at(-1)), 5, "origin verification may attach only to the exact tab just created for this job");
-assert.ok(removedTabs.includes(5), "a rejected task-owned page must be removed");
-
-attachFailureTabId = 6;
-const debuggerConflict = targetAuthority.acquireJobBoundChatGptTarget("fresh", jobRefHash);
-await waitForCreatedTab(6);
-targetTabUpdated(6, { status: "complete" }, { id: 6, url: "https://chatgpt.com/", title: "ChatGPT" });
-await assert.rejects(debuggerConflict, /BROWSER_DEVTOOLS_CONFLICT/u,
-  "debugger conflict on the new task-owned tab must fail without touching another page");
-assert.ok(removedTabs.includes(6), "a conflicted task-owned page must be removed");
-attachFailureTabId = null;
-assert.ok(debuggerEvent, "the exact target owner must observe main-frame navigation");
-
-const rotationHashes = await exerciseTargetRotation({
-  authority: targetAuthority, waitForCreatedTab, targetTabUpdated, targetFrames,
-  debuggerMethods, activatedTabs, removedTabs,
-  setRemoveFailureTabId: (value) => { removeFailureTabId = value; },
-});
-await exerciseAuthorizedContinuation({
-  authority: targetAuthority, nextCreatedTabId, waitForCreatedTab, targetTabUpdated,
-  targetFrames, debuggerMethods, mainFrameUrlByTab,
-});
-await exerciseClosedParkedTabRecovery({
-  authority: targetAuthority, readNextCreatedTabId: () => nextCreatedTabId,
-  waitForCreatedTab, targetTabUpdated, targetFrames, targetFailures, removedTabs,
-});
-await exerciseClaimBroker({ hashes: rotationHashes, activatedTabs, removedTabs });
-process.stdout.write("LOCAL_BROWSER_AUTO_PAIRING_AND_EXACT_CHATGPT_CLAIM_ACCEPTANCE_PASS\n");
-emitLocalBrowserAutoPairingProofs();
+const compareAfterBarrier = async (): Promise<void> => {
+  for (const field of ["jobRefHash", "targetRef", "documentRef", "chromeTargetId", "tabId"] as const) {
+    const fixture = Object.create(ExtensionTargetAuthority.prototype) as ExtensionTargetAuthority;
+    const targets = Reflect.get(authority, "targets") as import("../../src/lib/browser/chrome-extension/exact-target-runtime.js").ExtensionExactTargetRegistry;
+    const original = targets.claimOperatorTarget(100, await hashBrowserExtensionText("job-retire"), "loader", "chrome-original");
+    let release!: () => void; const barrier = new Promise<void>(resolve => { release = resolve; }); let revocations = 0;
+    Object.assign(fixture, { targets, activeTarget: original, navigationPublication: null,
+      debuggerRuntime: { awaitPageReadPermission: () => barrier }, send: async () => { revocations += 1; } });
+    const retiring = fixture.retireInvalidCommandTarget({ errorCode: "BROWSER_ORIGIN_REJECTED" }, { ...permit("retire"), jobId: "job-retire",
+      targetRef: original.targetRef, documentRef: original.documentRef }, "click");
+    await Promise.resolve(); const current = { ...original, [field]: field === "tabId" ? 101 : field === "jobRefHash" ? `sha256:${"f".repeat(64)}` : "replacement" };
+    Reflect.set(fixture, "activeTarget", current); release(); await retiring;
+    assert.equal(Reflect.get(fixture, "activeTarget"), current); assert.equal(revocations, 0); targets.remove(original.targetRef);
+  }
+};
+await compareAfterBarrier(); emitLocalBrowserAutoPairingProofs(); console.log("automatic pairing and exact Target navigation exercised");

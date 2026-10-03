@@ -1,82 +1,40 @@
-import type { GptChildCapabilityIntent, GptExecutionContext } from "../../contract.js";
+import type { GptChildBrowserFact } from "../../contract.js";
 import { gptExecutionFailure } from "../../execution-fault.js";
-import {
-  declaredFacts,
-  requireBrowser,
-  requireConfirmedBrowserFact,
-  requireExactInputKeys,
-  stringInput,
-  success,
-  type GptChildHandler,
-} from "../../web/child-handler.js";
-import {
-  gptComposerHash,
-  promptIdentity,
-  readDraftState,
-  requireExactComposer,
-  type DraftState,
-} from "./observation.js";
+import { declaredFacts, projectBrowserFact, requireBrowser, requireExactInputKeys, stringInput, success,
+  type GptChildHandler } from "../../web/child-handler.js";
+import { gptComposerHash, promptIdentity, readDraftState, requireExactComposer, type DraftState } from "./observation.js";
 import { GPT_COMPOSER_SELECTOR } from "./selectors.js";
 
-const mismatchFailure = (
-  intent: GptChildCapabilityIntent<"write_exact_gpt_prompt">,
-  context: GptExecutionContext,
-  expectedHash: `sha256:${string}`,
-  observed: DraftState,
-) => {
-  const browserFact = requireConfirmedBrowserFact(intent, context);
-  const observedHash = observed.composerHash ?? "missing";
-  return gptExecutionFailure("GPT_PROMPT_WRITE_UNCONFIRMED", {
-    mutationOutcome: browserFact.mutationOutcome,
-    evidence: { evidenceRef: browserFact.evidenceRef, evidenceHash: browserFact.evidenceHash },
-    browserEffect: {
-      effectScope: browserFact.effectScope,
-      childCapabilityId: browserFact.childCapabilityId,
-      browserOutcome: browserFact.browserOutcome,
-    },
-    proofFacts: Object.freeze({
-      ...observed.facts,
-      decision: "FAIL_CLOSED",
-      factResultIds: Object.freeze([
-        ...observed.facts.factResultIds,
-        `gpt-composer-expected-hash:${expectedHash.slice(7)}`,
-        `gpt-composer-observed-hash:${observedHash.startsWith("sha256:") ? observedHash.slice(7) : observedHash}`,
-        browserFact.evidenceRef,
-      ]),
-      authorityRefHashes: Object.freeze([...observed.facts.authorityRefHashes, browserFact.evidenceHash]),
-      mutationOutcome: browserFact.mutationOutcome,
-      browserFact,
-      nativeFailureCode: "GPT_PROMPT_WRITE_UNCONFIRMED",
-    }),
-  });
+const mismatchFailure = (expectedHash: `sha256:${string}`, state: DraftState, fact: GptChildBrowserFact): never => {
+  const observedHash = state.composerHash ?? "missing";
+  throw gptExecutionFailure("GPT_PROMPT_WRITE_UNCONFIRMED", { mutationOutcome: fact.mutationOutcome,
+    evidence: { evidenceRef: fact.evidenceRef, evidenceHash: fact.evidenceHash },
+    browserEffect: { effectScope: fact.effectScope, childCapabilityId: fact.childCapabilityId, browserOutcome: fact.browserOutcome },
+    proofFacts: { ...state.facts, decision: "FAIL_CLOSED", mutationOutcome: fact.mutationOutcome,
+      factResultIds: [...state.facts.factResultIds, `gpt-composer-expected-hash:${expectedHash.slice(7)}`,
+        `gpt-composer-observed-hash:${observedHash.startsWith("sha256:") ? observedHash.slice(7) : observedHash}`, fact.evidenceRef],
+      authorityRefHashes: [...state.facts.authorityRefHashes, fact.evidenceHash], browserFact: fact,
+      nativeFailureCode: "GPT_PROMPT_WRITE_UNCONFIRMED" } });
 };
 
-export const writeExactGptPromptHandler: GptChildHandler<"write_exact_gpt_prompt"> =
-  async (intent, context) => {
-    requireExactInputKeys(intent, ["prompt"]);
-    const prompt = stringInput(intent, "prompt");
-    const promptHash = gptComposerHash(prompt);
-    const browser = requireBrowser(context);
-    const observed = await readDraftState(browser, context.signal);
-    requireExactComposer(observed);
-    if (observed.composerHash === promptHash) return success({
-      value: promptIdentity(prompt),
-      ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no",
-        browserFact: null, nativeFailureCode: null }),
-    });
-    await browser.executeDomIntent({
-      kind: "fill", selector: GPT_COMPOSER_SELECTOR, approvedText: prompt,
-      clearBeforeType: true, expectedMatches: 1,
-    });
-    const readback = await readDraftState(browser, context.signal);
-    requireExactComposer(readback);
-    if (readback.composerHash !== promptHash) throw mismatchFailure(intent, context, promptHash, readback);
-    const browserFact = requireConfirmedBrowserFact(intent, context);
-    return success({
-      value: promptIdentity(prompt),
-      ...declaredFacts({ ...readback.facts, decision: "ACT",
-        factResultIds: Object.freeze([...readback.facts.factResultIds, browserFact.evidenceRef]),
-        authorityRefHashes: Object.freeze([...readback.facts.authorityRefHashes, browserFact.evidenceHash]),
-        mutationOutcome: "confirmed", browserFact, nativeFailureCode: null }),
-    });
-  };
+export const writeExactGptPromptHandler: GptChildHandler<"write_exact_gpt_prompt"> = async (intent, context) => {
+  requireExactInputKeys(intent, ["prompt"]);
+  const prompt = stringInput(intent, "prompt"), expectedHash = gptComposerHash(prompt), browser = requireBrowser(context);
+  const observed = await readDraftState(browser, context.signal);
+  requireExactComposer(observed);
+  if (observed.composerHash === expectedHash) return success({ value: promptIdentity(prompt),
+    ...declaredFacts({ ...observed.facts, decision: "DONE", mutationOutcome: "no", browserFact: null, nativeFailureCode: null }) });
+  await browser.executeDomIntent({ kind: "fill", selector: GPT_COMPOSER_SELECTOR, approvedText: prompt,
+    clearBeforeType: true, expectedMatches: 1 });
+  const projected = projectBrowserFact(intent, context);
+  if (!projected || projected.fact.browserOutcome !== "CONFIRMED" || projected.outcome.physicalInputCount > 1) {
+    throw gptExecutionFailure("GPT_BROWSER_TERMINAL_FACT_REQUIRED");
+  }
+  const readback = await readDraftState(browser, context.signal), { fact } = projected;
+  requireExactComposer(readback);
+  if (readback.composerHash !== expectedHash) mismatchFailure(expectedHash, readback, fact);
+  return success({ value: promptIdentity(prompt), ...declaredFacts({ ...readback.facts,
+    decision: fact.mutationOutcome === "no" ? "DONE" : "ACT", mutationOutcome: fact.mutationOutcome,
+    factResultIds: [...readback.facts.factResultIds, fact.evidenceRef],
+    authorityRefHashes: [...readback.facts.authorityRefHashes, fact.evidenceHash], browserFact: fact, nativeFailureCode: null }) });
+};

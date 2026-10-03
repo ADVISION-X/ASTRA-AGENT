@@ -1,402 +1,230 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
-import { astIdentifierName } from "../../shared/ast-node-identity.js";
-import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
-import {
-  brokerPath,
-  createLocalFinding,
-  extensionCreatedTargetPath,
-  extensionDebuggerRuntimePath,
-  requireIdentifiers,
-  requireSource,
-  sourcePaths,
-  stringLiterals,
-  targetAuthorityPath,
-} from "./inspector-support.js";
+import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
+import { brokerPath, createLocalFinding, extensionCreatedTargetPath, extensionDebuggerRuntimePath,
+  requireSource, sourcePaths, stringLiterals, targetAuthorityPath } from "./inspector-support.js";
 
-const targetClaimAwaiterPath = "src/lib/browser/chrome-extension/websocket-target-claim-awaiter.ts";
-const sitePolicyPath = "src/lib/browser/exact-target/browser-site-policy-registry.ts";
-const targetLeaseManagerPath = "src/lib/browser/exact-target/browser-target-lease-manager.ts";
-const targetLeasePath = "src/lib/browser/exact-target/browser-target-lease.ts";
-const laneCoordinatorPath = "src/lib/browser/infrastructure/browser-lane-coordinator.ts";
-const mutationStorePath = "src/lib/browser/exact-target/browser-mutation-store.ts";
-const mutationEvidencePath = "src/lib/browser/exact-target/browser-mutation-evidence.ts";
-const targetAcquirerPath = "src/lib/browser/infrastructure/browser-target-acquirer.ts";
-const framePayloadPath = "src/lib/browser/transport/browser-authority-frame-payload.ts";
-const targetAcquisitionPath = "src/lib/browser/chrome-extension/extension-target-acquisition.ts";
-const targetReleasePath = "src/lib/browser/chrome-extension/extension-target-release.ts";
-
-const inspectJobBoundClaimOrder = (actor: ReturnType<typeof requireSource>, findings: InspectorFinding[], lawId: string): void => {
-  const actorClass = actor?.getClass("ExtensionWebSocketActor");
-  const readyText = actorClass?.getMethod("acceptPairingFrame")?.getText() ?? "";
-  const acquisitionText = actorClass?.getMethod("acceptTargetAcquire")?.getText() ?? "";
-  const decryptIndex = acquisitionText.indexOf("await decrypt(");
-  const claimIndex = acquisitionText.indexOf("this.targetAuthority.acquireJobBoundChatGptTarget(");
-  const completionIndex = acquisitionText.indexOf("void handler.then(", claimIndex);
-  if (readyText.indexOf("readServerReadyPermit(session, frame, AUTH_EPOCH)") >= 0
-    && readyText.indexOf("this.connection.commandReady = true") > readyText.indexOf("readServerReadyPermit(")
-    && !readyText.includes("acquireJobBoundChatGptTarget")
-    && acquisitionText.includes("!this.connection.commandReady")
-    && decryptIndex >= 0
-    && claimIndex > decryptIndex
-    && acquisitionText.includes("this.commandDelivery.pendingTargetHandlers.add(handler)")
-    && completionIndex > claimIndex
-    && acquisitionText.includes("this.commandDelivery.pendingTargetHandlers.delete(handler)")) return;
-  findings.push(createLocalFinding({
-    checkId: "browser-authority/job-bound-target-claim", lawId, filePath: sourcePaths[1],
-    message: "READY must leave Target absent; only one authenticated TARGET_ACQUIRE may invoke the exact target owner.",
-  }));
+const paths = {
+  channel: sourcePaths[0], worker: sourcePaths[1], supervisor: sourcePaths[3], manager: sourcePaths[5],
+  store: sourcePaths[7], broker: brokerPath, authority: targetAuthorityPath,
+  created: extensionCreatedTargetPath, interaction: "src/lib/browser/chrome-extension/extension-interaction-readiness.ts", runtime: extensionDebuggerRuntimePath,
+  parser: "src/lib/browser/transport/browser-authority-frame-payload.ts",
+  awaiter: "src/lib/browser/chrome-extension/websocket-target-claim-awaiter.ts",
+  policy: "src/lib/browser/exact-target/browser-site-policy-registry.ts",
+  lease: "src/lib/browser/exact-target/browser-target-lease.ts",
+  lane: "src/lib/browser/infrastructure/browser-lane-coordinator.ts",
+  acquirer: "src/lib/browser/infrastructure/browser-target-acquirer.ts",
+  acquisition: "src/lib/browser/chrome-extension/extension-target-acquisition.ts",
+  release: "src/lib/browser/chrome-extension/extension-target-release.ts",
+  evidence: "src/lib/browser/exact-target/browser-mutation-evidence.ts",
+} as const;
+type Sources = Record<keyof typeof paths, SourceFile>;
+const body = (source: SourceFile, owner: string, method: string): string =>
+  source.getClass(owner)?.getMethod(method)?.getBody()?.getText() ?? "";
+const declaration = (source: SourceFile, name: string): string => source.getVariableDeclaration(name)?.getText() ?? "";
+const ordered = (text: string, tokens: readonly string[]): boolean => {
+  let cursor = -1;
+  for (const token of tokens) { cursor = text.indexOf(token, cursor + 1); if (cursor < 0) return false; }
+  return true;
 };
-
-const inspectServerClaimOrder = (serverClaim: string, findings: InspectorFinding[], lawId: string): void => {
-  const policyIndex = serverClaim.indexOf("requireGptWebClaimOrigin(input.claimOrigin)");
-  const workspaceIndex = serverClaim.indexOf("this.establishClaimBoundWorkspace()");
-  if (policyIndex >= 0 && workspaceIndex > policyIndex) return;
-  findings.push(createLocalFinding({
-    checkId: "browser-authority/job-bound-target-claim", lawId, filePath: sourcePaths[3],
-    message: "The server must validate the exact ChatGPT policy before Session Workspace establishment.",
-  }));
+const requireContract = (condition: boolean, findings: InspectorFinding[], lawId: string,
+  filePath: string, message: string): void => {
+  if (!condition) findings.push(createLocalFinding({ checkId: "browser-authority/job-bound-target-claim", lawId, filePath, message }));
 };
+const includesAll = (text: string, tokens: readonly string[]): boolean => tokens.every(token => text.includes(token));
 
-const inspectBrokerClaimMonotonicity = (brokerText: string, findings: InspectorFinding[], lawId: string): void => {
-  if (brokerText.includes("current.targetRef !== claim.targetRef")
-    && brokerText.includes("current.jobRefHash !== claim.jobRefHash")
-    && brokerText.includes("claim.jobRefHash !== binding.jobRefHash")
-    && brokerText.includes("claim.navigationEpoch !== current.navigationEpoch + 1")) return;
-  findings.push(createLocalFinding({
-    checkId: "browser-authority/job-bound-target-claim", lawId, filePath: brokerPath,
-    message: "The Broker must reject cross-job target reuse, target replacement and non-monotonic Document claims on one authority epoch.",
-  }));
+const inspectWire = (sources: Sources, findings: InspectorFinding[], lawId: string): void => {
+  const claim = declaration(sources.parser, "parseBrowserAuthorityTargetClaim");
+  const epoch = sources.parser.getVariableDeclaration("parseBrowserAuthorityTargetClaim")?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .find(call => call.getExpression().getText() === "integerField" && call.getArguments()[1]?.getText() === '"navigationEpoch"');
+  const integer = sources.parser.getVariableDeclaration("integerField")?.getInitializer();
+  requireContract(includesAll(claim, ['"claimOrigin|documentRef|jobRefHash|navigationEpoch|targetRef"',
+    'requireGptWebClaimOrigin(stringField(body, "claimOrigin"))']) && epoch?.getArguments().length === 2
+    && Node.isArrowFunction(integer) && integer.getParameters()[2]?.getInitializer()?.getText() === "0"
+    && includesAll(integer.getBody().getText(), ["Number.isSafeInteger(value)", "value < minimum"]),
+  findings, lawId, paths.parser, "TARGET_CLAIM must have exactly five origin identity fields and accept navigation epoch zero.");
+  requireContract(!/stringField\(body,\s*["'](?:url|currentUrl)["']/u.test(claim)
+    && includesAll(sources.channel.getText(), ['integerField(body, "requestSequence", 1)', "parseBrowserAuthorityTargetClaim"])
+    && sources.parser.getText().includes('integerField(body, "permitSequence", 1)'),
+  findings, lawId, paths.parser, "Claim URLs are forbidden; command and permit sequences must remain strictly positive.");
+  const revoke = declaration(sources.parser, "parseBrowserAuthorityTargetRevoke");
+  requireContract(includesAll(revoke, ['"jobRefHash|releaseOutcome|targetRef"',
+    '(releaseOutcome === "absent") !== (targetRef === null)', '"documentRef|jobRefHash|targetRef"']),
+  findings, lawId, paths.parser, "Release absence requires null targetRef; physical release requires the original targetRef.");
 };
-
-const inspectNonDestructiveTargetRelease = (
-  context: InspectorContext,
-  leaseManager: ReturnType<typeof requireSource>,
-  lane: ReturnType<typeof requireSource>,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  const method = leaseManager?.getClass("BrowserTargetLeaseManager")?.getMethod("createTargetLease")?.getText() ?? "";
-  const admission = leaseManager?.getClass("BrowserTargetLeaseManager")
-    ?.getMethod("assertCommandAdmission")?.getText() ?? "";
-  const lifecycle = lane?.getClass("BrowserLaneCoordinator")?.getMethod("withLifecycle")?.getText() ?? "";
-  const laneText = lane?.getFullText() ?? "";
-  const destructiveClose = context.project.getSourceFiles().some((source) =>
-    source.getFilePath().includes("/src/lib/browser/")
-    && stringLiterals(source).some((literal) => literal === "Page.close" || literal === "browser.close-target.v1"));
-  const parkAt = method.indexOf("park: async");
-  const settlementModeAt = method.indexOf('mode !== "product-call-settlement"', parkAt);
-  const physicalParkAt = method.indexOf('command("browser.park-target.v1"', parkAt);
-  const requiredReleaseFacts = [
-    "pendingMutationCount: () => this.commandActor.pendingMutationCommandIds(this.executionBinding).length",
-  ].every((token) => method.includes(token));
-  const forbiddenReleaseFacts = ["close: async"].some((token) => method.includes(token));
-  const requiredLaneFacts = [
-    "const mutationBlocked = this.hasUnresolvedMutation()",
-    "waiter.kind === \"acquire\"", "countDispatched(waiter.jobId)", "index += 1",
-  ].every((token) => laneText.includes(token))
-    && !laneText.includes("settleRetiredTargetLocal")
-    && !laneText.includes("allDispatchedTargetsSettled");
-  const forbiddenPermanentRevocation = laneText.includes('website-permanent-revocation');
-  const lifecycleSettles = lifecycle.includes("finally")
-    && lifecycle.indexOf("this.active = false") > lifecycle.indexOf("finally");
-  if ([parkAt >= 0, settlementModeAt > parkAt, physicalParkAt > settlementModeAt,
-    requiredReleaseFacts, !forbiddenReleaseFacts, !destructiveClose,
-    admission.includes('value.kind !== "park-target"'), lifecycleSettles,
-    requiredLaneFacts, !forbiddenPermanentRevocation,
-    !lifecycle.includes("revokeOperatorTargetClaim")].every(Boolean)) return;
-  findings.push(createLocalFinding({
-    checkId: "browser-authority/dispatched-mutation-target-release", lawId, filePath: targetLeaseManagerPath,
-    message: "The one lane must block new physical work while any Browser WAL command remains DISPATCHED.",
-  }));
-};
-
-const inspectExactChatGptPolicy = (source: ReturnType<typeof requireSource>, findings: InspectorFinding[], lawId: string): void => {
-  const text = source?.getFullText() ?? "";
-  const claimOrigin = source?.getVariableDeclaration("requireGptWebClaimOrigin")?.getText() ?? "";
-  if (text.includes('export const GPT_WEB_ORIGIN = "https://chatgpt.com" as const')
-    && text.includes('export const GPT_WEB_START_URL = "https://chatgpt.com/" as const')
-    && /siteId: "gpt-web",\s*allowedOrigins: \[GPT_WEB_ORIGIN\]/u.test(text)
-    && claimOrigin.includes("value !== GPT_WEB_ORIGIN")) return;
-  findings.push(createLocalFinding({
-    checkId: "browser-authority/job-bound-target-claim", lawId, filePath: sitePolicyPath,
-    message: "The gpt-web policy must own one exact https://chatgpt.com/ start URL.",
-  }));
-};
-
-const acquisitionUsesOnlyCurrentTargetBeforeCreating = (acquisition: string, preflight: string): boolean =>
-  acquisition.includes('targetMode: "fresh" | "bound-observation" | "confirmed-readback" | "authorized-continuation"')
-  && preflight.includes('findByJobRefHash(input.jobRefHash)')
-  && preflight.includes('if (!requestValid || input.activeTarget || input.createdTarget.isPending())')
-  && !preflight.includes('expectedTargetRef')
-  && acquisition.includes('if (bound && await this.reacquireParkedTarget(')
-  && acquisition.includes('const candidate = await this.createdTarget.createProductionCandidate()')
-  && acquisition.indexOf('await preflightTargetAcquisition(')
-    < acquisition.indexOf('if (bound && await this.reacquireParkedTarget(')
-  && acquisition.indexOf('if (bound && await this.reacquireParkedTarget(')
-    < acquisition.indexOf('const candidate = await this.createdTarget.createProductionCandidate()');
-
-const inspectTargetAcquisitionReadback = (
-  targetAuthority: NonNullable<ReturnType<typeof requireSource>>,
-  targetAcquisition: NonNullable<ReturnType<typeof requireSource>>,
-  findings: InspectorFinding[], lawId: string,
-): void => {
-  const targetClass = targetAuthority.getClass("ExtensionTargetAuthority");
-  const acquisition = targetClass?.getMethod("acquireJobBoundChatGptTargetCycle")?.getText() ?? "";
-  const reacquire = targetClass?.getMethod("reacquireParkedTarget")?.getText() ?? "";
-  const selection = targetClass?.getMethod("executeConversationSelection")?.getText() ?? "";
-  if (!acquisitionUsesOnlyCurrentTargetBeforeCreating(acquisition, targetAcquisition.getFullText())
-    || !readbackUsesCurrentTargetAndCanonicalUrl(reacquire, selection)
-    || targetAuthority.getFullText().includes("readOrRecoverExactTarget")) findings.push(createLocalFinding({
-    checkId: "browser-authority/job-bound-target-claim", lawId, filePath: targetAuthorityPath,
-    message: "Confirmed readback must use the current system Target and one exact canonical URL navigation without scanning historical Targets or foregrounding the Tab.",
-  }));
-};
-
-const inspectExactTargetRelease = (
-  targetAuthority: NonNullable<ReturnType<typeof requireSource>>,
-  targetRelease: NonNullable<ReturnType<typeof requireSource>>,
-  findings: InspectorFinding[], lawId: string,
-): void => {
-  const delegate = targetAuthority.getClass("ExtensionTargetAuthority")
-    ?.getMethod("releaseJobBoundChatGptTarget")?.getText() ?? "";
-  const release = targetRelease.getVariableDeclaration("releaseJobBoundTarget")?.getText() ?? "";
-  const delegateBound = ["await releaseJobBoundTarget({", "targets: this.targets",
-    "createdTarget: this.createdTarget", "readActiveJobRefHash: () => this.activeTarget?.jobRefHash",
-    "await this.awaitOldCommandHandlers()", "await this.parkActiveTarget()",
-    'await onReleased(); await this.send("TARGET_REVOKE", body)',
-    "}, jobRefHash)"].every((token) => delegate.includes(token));
-  const releaseBound = ["await context.awaitOldCommandHandlers()",
-    "await context.debuggerRuntime.awaitPageReadPermission()",
-    "context.readActiveJobRefHash() === jobRefHash", "findByJobRefHash(jobRefHash)",
-    "target.id === bound.chromeTargetId", "await context.debuggerRuntime.removeTab(bound.tabId)",
-    "await context.debuggerRuntime.readTab(bound.tabId)",
-    "await context.debuggerRuntime.readTargets()", 'releaseOutcome: "released"',
-  ].every((token) => release.includes(token));
-  if (delegateBound && releaseBound && !release.includes("targetRefs")) return;
-  findings.push(createLocalFinding({ checkId: "browser-authority/job-bound-target-claim",
-    lawId, filePath: targetReleasePath,
-    message: "Current Target release must verify live Chrome identity and physical absence without historical refs.",
-  }));
-};
-
-const readbackUsesCurrentTargetAndCanonicalUrl = (reacquire: string, selection: string): boolean =>
-  reacquire.includes('activateTab(parked.tabId)')
-  && selection.includes('"Page.navigate", { url: expected }')
-  && selection.includes("publishMainFrameNavigation(mainFrame.url, mainFrame.loaderId, true)")
-  && reacquire.includes("debuggerRuntime.readTargets()")
-  && selection.indexOf("readExtensionMainFrame(") < selection.indexOf("debuggerRuntime.readTargets()")
-  && selection.indexOf("debuggerRuntime.readTargets()") < selection.indexOf('"Page.navigate", { url: expected }')
-  && selection.includes("candidate.id === target.chromeTargetId && candidate.attached")
-  && !selection.includes("nav a[href")
-  && !selection.includes("tabs.query")
-  && !selection.includes("Page.bringToFront");
-
-const inspectCanonicalConversationPolicy = (
-  sitePolicyText: string,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  for (const required of ["requireCanonicalGptConversationUrl", 'segments[1] === "c"',
-    'url.search !== ""', 'url.hash !== ""']) if (!sitePolicyText.includes(required)) {
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/canonical-gpt-conversation", lawId,
-      filePath: sitePolicyPath,
-      message: `The Browser-owned canonical conversation policy is missing ${required}.`,
-    }));
-  }
-};
-
-const inspectExactParentStepContinuation = (
-  sourceText: string,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  for (const required of ["parentAttemptId?: never", "parentAttemptId: wait.parentAttemptId",
-    "waiter.parentAttemptId!, waiter.binding.productStepId", "parentAttemptId: string",
-    "where job_id=? and attempt_id=? and product_step_id=?",
-    "product_step_id=? and call_id='turn-submit'",
-    "child_capability_id='submit_exact_gpt_turn_once'", "rows.length !== 1",
-    ").all(parentJobId, parentAttemptId, parentProductStepId)"])
-    if (!sourceText.includes(required)) findings.push(createLocalFinding({
-      checkId: "browser-authority/exact-parent-step-continuation", lawId, filePath: mutationStorePath,
-      message: `Authorized continuation is missing exact completed-parent-attempt fact ${required}.`,
-    }));
-};
-
-const inspectProductionTabContract = (
-  debuggerRuntime: ReturnType<typeof requireSource>,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  const productionTabCreation = debuggerRuntime?.getClass("ExtensionDebuggerRuntime")
-    ?.getMethod("createProductionTab")?.getText() ?? "";
-  const productionTabContract = [
-    productionTabCreation.includes("this.chromeApi.tabs.create({ active: true, url })"),
-    !productionTabCreation.includes("active: false"),
-    !debuggerRuntime?.getFullText().includes("createBackgroundTab"),
-  ].every(Boolean);
-  if (!productionTabContract) findings.push(createLocalFinding({
-    checkId: "browser-authority/job-bound-target-claim",
-    lawId,
-    filePath: extensionDebuggerRuntimePath,
-    message: "The sole production Tab creation path must select the new system Tab with active=true and physically delete the background-tab contract.",
-  }));
-};
-
-const inspectJobBoundClaimPolicy = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  const targetAuthority = requireSource(context, findings, lawId, targetAuthorityPath);
-  const createdTarget = requireSource(context, findings, lawId, extensionCreatedTargetPath);
-  const targetAcquisition = requireSource(context, findings, lawId, targetAcquisitionPath);
-  const targetRelease = requireSource(context, findings, lawId, targetReleasePath);
-  const debuggerRuntime = requireSource(context, findings, lawId, extensionDebuggerRuntimePath);
-  const sitePolicy = requireSource(context, findings, lawId, sitePolicyPath);
-  const actor = requireSource(context, findings, lawId, sourcePaths[1]);
-  const supervisor = requireSource(context, findings, lawId, sourcePaths[3]);
-  const broker = requireSource(context, findings, lawId, brokerPath);
-  const leaseManager = requireSource(context, findings, lawId, targetLeaseManagerPath);
-  const leaseContract = requireSource(context, findings, lawId, targetLeasePath);
-  const lane = requireSource(context, findings, lawId, laneCoordinatorPath);
-  const mutationStore = requireSource(context, findings, lawId, mutationStorePath);
-  const mutationEvidence = requireSource(context, findings, lawId, mutationEvidencePath);
-  const targetAcquirer = requireSource(context, findings, lawId, targetAcquirerPath);
-  if (![targetAuthority, createdTarget, targetAcquisition, targetRelease, debuggerRuntime, sitePolicy, actor, supervisor, broker,
-    leaseManager, leaseContract, lane, mutationStore, mutationEvidence, targetAcquirer].every(Boolean)) return;
-  requireIdentifiers(targetAuthority!, [
-    "acquireJobBoundChatGptTarget", "GPT_WEB_START_URL",
-    "requireGptWebPolicyForUrl", "navigationPublication",
-    "parkActiveTarget", "releaseJobBoundChatGptTarget", "jobRefHash",
-    "publishMainFrameNavigation", "activateTab",
-  ], findings, lawId, "The fixed extension must create, validate, retain and release one exact system Target per active GPT job.");
-  requireIdentifiers(createdTarget!, ["createProductionTab", "removeTab", "waitForCreatedTarget"],
-    findings, lawId, "Created Target identity and orphan cleanup must remain in the Browser Owner.");
-  requireIdentifiers(targetAcquisition!, ["findByJobRefHash", "createdTarget"],
-    findings, lawId, "Target acquisition must inspect only the current live registry.");
-  inspectProductionTabContract(debuggerRuntime!, findings, lawId);
-  requireIdentifiers(supervisor!, [
-    "requireGptWebClaimOrigin", "establishClaimBoundWorkspace", "pendingJobBoundTargetAcquisition",
-    "acquireJobBoundTargetLease",
-  ], findings, lawId,
-  "The server must bind initial Target acquisition to one current job request before establishing Session Workspace.");
-  requireIdentifiers(lane!, ["BrowserTargetAcquirer", "targetAcquirer", "ensureAvailableTarget"], findings, lawId,
-    "The sole Browser lane must delegate target acquisition to its one private target acquirer.");
-  const requestClassificationPrivate = !leaseContract!.getFullText().includes("requestKind")
-    && lane!.getFullText().includes('requestKind: wait.targetMode === "confirmed-readback"');
-  if (!requestClassificationPrivate) {
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/job-bound-target-claim", lawId, filePath: targetLeasePath,
-      message: "The public lease wait contract must not expose requestKind; the Browser lane must derive it from the governed target mode.",
-    }));
-  }
-  requireIdentifiers(targetAcquirer!, [
-    "acquireJobBoundTarget", "requestPreauthorizedTargetAcquisition", "pendingJobBoundTargetAcquisition",
-    "releaseJobBoundTarget", "requestPreauthorizedTargetRelease", "targetMode", "jobRefHash",
-    "currentOperatorTargetJobRefHash", "resolvePending", "rejectPending",
-  ], findings, lawId, "The target acquirer must bind acquire/release to the current queued job and explicit fresh/observation/readback mode.");
-  requireIdentifiers(broker!, ["current", "targetRef", "navigationEpoch", "jobRefHash",
-    "currentOperatorTargetJobRefHash"], findings, lawId,
-    "The sole Broker must reject cross-job target reuse, target replacement and non-monotonic Document claims.");
-  inspectJobBoundClaimOrder(actor!, findings, lawId);
-  inspectServerClaimOrder(supervisor!.getClass("BrowserInfrastructureSupervisor")?.getMethod("onTargetClaim")?.getText() ?? "", findings, lawId);
-  inspectBrokerClaimMonotonicity(broker!.getFullText(), findings, lawId);
-  inspectTargetAcquisitionReadback(targetAuthority!, targetAcquisition!, findings, lawId);
-  inspectExactTargetRelease(targetAuthority!, targetRelease!, findings, lawId);
-  inspectNonDestructiveTargetRelease(context, leaseManager!, lane!, findings, lawId);
-  inspectExactChatGptPolicy(sitePolicy!, findings, lawId);
-  inspectCanonicalConversationPolicy(sitePolicy!.getFullText(), findings, lawId);
-  inspectExactParentStepContinuation(
-    `${leaseContract!.getFullText()}\n${lane!.getFullText()}\n${mutationStore!.getFullText()}\n${mutationEvidence!.getFullText()}`,
-    findings,
-    lawId,
-  );
-};
-
-/** TARGET_CLAIM carries only claimOrigin identity and parses epoch zero as a valid first claim. */
-const inspectTargetClaimPayload = (framePayload: SourceFile, findings: InspectorFinding[], lawId: string): void => {
-  const parseClaim = framePayload.getVariableDeclaration("parseBrowserAuthorityTargetClaim");
-  const parseClaimText = parseClaim?.getText() ?? "";
-  const originFinding = (message: string) => createLocalFinding({
-    checkId: "browser-authority/target-claim-origin-only", lawId, filePath: framePayloadPath, message,
+const inspectAcquisitionWire = (sources: Sources, findings: InspectorFinding[], lawId: string): void => {
+  const transportAcquire = sources.channel.getClass("BrowserAuthorityWebSocket")?.getMethod("requestPreauthorizedTargetAcquisition");
+  const targetSend = transportAcquire?.getDescendantsOfKind(SyntaxKind.CallExpression).find(call => call.getExpression().getText() === "this.sendControlFrame");
+  const control = body(sources.channel, "BrowserAuthorityWebSocket", "sendControlFrame");
+  const deadlineMutated = transportAcquire?.getDescendants().some(expression => {
+    if (Node.isBinaryExpression(expression)) return expression.getLeft().getText() === "deadlineAt"
+      && expression.getOperatorToken().getKind() >= SyntaxKind.FirstAssignment && expression.getOperatorToken().getKind() <= SyntaxKind.LastAssignment;
+    return (Node.isPrefixUnaryExpression(expression) || Node.isPostfixUnaryExpression(expression))
+      && expression.getOperand().getText() === "deadlineAt"
+      && [SyntaxKind.PlusPlusToken, SyntaxKind.MinusMinusToken].includes(expression.getOperatorToken());
   });
-  for (const required of [
-    'stringField(body, "claimOrigin")', "requireGptWebClaimOrigin(claimOrigin)",
-    '["targetRef", "documentRef", "navigationEpoch", "claimOrigin", "jobRefHash"]',
-  ]) if (!parseClaimText.includes(required)) {
-    findings.push(originFinding(`TARGET_CLAIM must carry exact claimOrigin only; missing ${required}.`));
-  }
-  if (/stringField\(body,\s*["'](?:url|currentUrl)["']\)/u.test(parseClaimText)) {
-    findings.push(originFinding("TARGET_CLAIM must not carry current or canonical conversation URL."));
-  }
-  const epochCall = parseClaim?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
-    .find((declaration) => declaration.getName() === "navigationEpoch")
-    ?.getInitializerIfKind(SyntaxKind.CallExpression);
-  const integerParser = framePayload.getVariableDeclaration("integerField")
-    ?.getInitializerIfKind(SyntaxKind.ArrowFunction);
-  const epochArguments = epochCall?.getArguments().map((argument) => argument.getText()) ?? [];
-  if (!epochCall || !Node.isIdentifier(epochCall.getExpression())
-    || astIdentifierName(epochCall.getExpression()) !== "integerField"
-    || JSON.stringify(epochArguments) !== JSON.stringify(["body", '"navigationEpoch"'])
-    || integerParser?.getParameters()[2]?.getInitializer()?.getText() !== "0"
-    || !integerParser.getBody().getText().includes("Number.isSafeInteger(value)")
-    || !integerParser.getBody().getText().includes("value < minimum")) {
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/terminal-authority", lawId, filePath: framePayloadPath,
-      message: "The first target claim must parse navigationEpoch with the non-negative integer boundary so epoch zero remains valid.",
-    }));
-  }
+
+  requireContract(transportAcquire?.getParameters().at(-1)?.getName() === "deadlineAt"
+    && !deadlineMutated && targetSend?.getArguments().at(-1)?.getText() === "deadlineAt"
+    && control.includes("!Number.isFinite(deadlineAt) || deadlineAt <= Date.now()")
+    && control.includes("new Date(deadlineAt).toISOString()"), findings, lawId, paths.channel,
+  "Acquisition carries the same absolute deadline through the authenticated encrypted frame.");
+  const ready = body(sources.worker, "ExtensionWebSocketActor", "acceptPairingFrame");
+  const acquire = body(sources.worker, "ExtensionWebSocketActor", "acceptTargetAcquire");
+  requireContract(ordered(ready, ["readServerReadyPermit(", "this.connection.commandReady = true"])
+    && !ready.includes("acquireJobBoundChatGptTarget")
+    && ordered(acquire, ["await decrypt(", "this.targetAuthority.acquireJobBoundChatGptTarget(", "pendingTargetHandlers.add(handler)"])
+    && includesAll(acquire, ["!this.connection.commandReady", "pendingTargetHandlers.delete(handler)", "Date.parse(frame.deadline)"])
+    && includesAll(sources.awaiter.getText(), ["TargetClaimAwaiter", "begin(", "accept(", "fail("])
+    && includesAll(sources.worker.getText(), ["sendTargetFrame", "acceptTargetClaimAcknowledgement"])
+    && stringLiterals(sources.worker).includes("job-bound-target-acquisition")
+    && !/GRASSEYE_CLAIM_ACTIVE_TARGET|claimActiveTarget/u.test(sources.worker.getText()),
+  findings, lawId, paths.worker, "READY must leave Target absent; authenticated acquisition must use the frame deadline and await the encrypted claim acknowledgement.");
 };
 
-export const inspectTargetClaimGuards = (
-  context: InspectorContext,
-  findings: InspectorFinding[],
-  lawId: string,
-): void => {
-  const channel = requireSource(context, findings, lawId, sourcePaths[0]);
-  const framePayload = requireSource(context, findings, lawId, framePayloadPath);
-  const actor = requireSource(context, findings, lawId, sourcePaths[1]);
-  const awaiter = requireSource(context, findings, lawId, targetClaimAwaiterPath);
-  const supervisor = requireSource(context, findings, lawId, sourcePaths[3]);
-  const leaseContract = requireSource(context, findings, lawId, targetLeasePath);
-  if (!channel || !framePayload || !actor || !awaiter || !supervisor || !leaseContract) return;
-  requireIdentifiers(channel, ["sendControlFrame", "parseBrowserAuthorityTargetClaim"], findings, lawId,
-    "Workbench target admission must accept epoch zero and return one encrypted acknowledgement.");
-  requireIdentifiers(framePayload, ["parseBrowserAuthorityTargetClaim", "integerField"], findings, lawId,
-    "The Target claim payload owner must validate the complete exact wire identity.");
-  if (!channel.getFullText().includes('integerField(body, "requestSequence", 1)')
-    || !framePayload.getFullText().includes('integerField(body, "permitSequence", 1)')) findings.push(createLocalFinding({
-    checkId: "browser-authority/terminal-authority", lawId, filePath: sourcePaths[0],
-    message: "Socket request and permit sequences must retain the positive integer boundary.",
-  }));
-  requireIdentifiers(actor, ["TargetClaimAwaiter", "targetClaims", "sendTargetFrame", "acceptTargetClaimAcknowledgement"], findings, lawId,
-    "The extension actor must route target claims through the one acknowledgement awaiter.");
-  requireIdentifiers(actor, ["acceptTargetAcquire", "acquireJobBoundChatGptTarget"], findings, lawId,
-    "The authenticated job-bound frame must trigger the fixed extension target owner and report a non-fatal diagnostic on failure.");
-  if (!stringLiterals(actor).includes("job-bound-target-acquisition")) findings.push(createLocalFinding({
-    checkId: "browser-authority/job-bound-target-claim", lawId, filePath: sourcePaths[1],
-    message: "Job-bound target acquisition failure must remain a non-fatal authenticated diagnostic.",
-  }));
-  requireIdentifiers(awaiter, ["TargetClaimAwaiter", "begin", "accept", "fail"], findings, lawId,
-    "The extension must not report target success before the Workbench acknowledgement.");
-  inspectTargetClaimPayload(framePayload, findings, lawId);
-  if (/GRASSEYE_CLAIM_ACTIVE_TARGET|claimActiveTarget/u.test(actor.getFullText())) findings.push(createLocalFinding({
-    checkId: "browser-authority/job-bound-target-claim", lawId, filePath: sourcePaths[1],
-    message: "The retired manual active-tab claim handler must be physically absent.",
-  }));
-  const supervisorText = supervisor.getFullText();
-  const hostRestoreContract = ["shouldRestoreBrowserHostVisibility",
+const inspectAdmission = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
+  requireContract(ordered(body(s.supervisor, "BrowserInfrastructureSupervisor", "onTargetClaim"),
+    ["requireGptWebClaimOrigin(input.claimOrigin)", "this.establishClaimBoundWorkspace()"])
+    && includesAll(s.broker.getText(), ["current.targetRef !== claim.targetRef", "current.jobRefHash !== claim.jobRefHash",
+      "claim.jobRefHash !== binding.jobRefHash", "claim.navigationEpoch !== current.navigationEpoch + 1"]),
+  findings, lawId, paths.broker, "The server must validate origin before workspace establishment and reject foreign jobs, replaced Targets and non-monotonic Document claims.");
+  requireContract(includesAll(s.policy.getText(), ['GPT_WEB_ORIGIN = "https://chatgpt.com"',
+    'GPT_WEB_START_URL = "https://chatgpt.com/"', "allowedOrigins: [GPT_WEB_ORIGIN]", "value !== GPT_WEB_ORIGIN",
+    "requireCanonicalGptConversationUrl", 'segments[1] === "c"', 'url.search !== ""', 'url.hash !== ""']),
+  findings, lawId, paths.policy, "Only the Browser Owner may decide the exact GPT origin, start URL and canonical conversation URL.");
+  const create = body(s.runtime, "ExtensionDebuggerRuntime", "createProductionTab");
+  requireContract(create.includes("this.chromeApi.tabs.create({ active: true, url })")
+    && !s.runtime.getText().includes("createBackgroundTab") && !create.includes("active: false"),
+  findings, lawId, paths.runtime, "The one production Tab creation path must create and select the system-owned Tab.");
+  const acquire = body(s.acquirer, "BrowserTargetAcquirer", "ensureAvailableTarget");
+  const operation = body(s.acquirer, "BrowserTargetAcquirer", "awaitTargetOperation");
+  requireContract(includesAll(acquire, ["waiter.remainingMs()", "requestPreauthorizedTargetAcquisition(", "deadlineAt"])
+    && ordered(operation, ["const deadlineAt = Date.now() + Math.min(budgetMs, BROWSER_COMMAND_DEFAULT_DEADLINE_MS)",
+      "pendingJobBoundTargetAcquisition =", "dispatch(deadlineAt)"])
+    && !s.lease.getText().includes("requestKind")
+    && s.lane.getText().includes('requestKind: wait.targetMode === "confirmed-readback"'),
+  findings, lawId, paths.acquirer, "One queued operation must bind the absolute deadline before dispatch; lease request classification stays private to the one lane.");
+  requireContract(includesAll(s.supervisor.getText(), ["shouldRestoreBrowserHostVisibility",
     'reasonCode === "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"', '"peer_close", "tcp_close", "tcp_error"',
     'this.issuer.current().kind === "PRESENT"', "void this.restoreBrowserHostVisibility()",
-    '"BROWSER_HOST_UNAVAILABLE", "browser-host-restore"'].every((token) => supervisorText.includes(token));
-  if (!hostRestoreContract || leaseContract.getFullText().includes("attempt-replaced")) {
-    findings.push(createLocalFinding({
-      checkId: "browser-authority/authenticated-transport-host-restore",
-      lawId,
-      filePath: sourcePaths[3],
-      message: "Only an authenticated Browser transport terminal may invoke the existing host restore callback, and the retired attempt-replaced release authority must remain absent.",
-    }));
-  }
-  inspectJobBoundClaimPolicy(context, findings, lawId);
+    '"BROWSER_HOST_UNAVAILABLE", "browser-host-restore"']) && !s.lease.getText().includes("attempt-replaced"),
+  findings, lawId, paths.supervisor, "Only the authenticated transport terminal may invoke the host restoration callback.");
+};
+
+const inspectNavigation = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
+  const acquire = body(s.authority, "ExtensionTargetAuthority", "acquireJobBoundChatGptTargetCycle");
+  const qualify = body(s.authority, "ExtensionTargetAuthority", "qualifyCandidateNavigation");
+  const complete = body(s.created, "ExtensionCreatedTarget", "completeNavigation");
+  const wait = body(s.created, "ExtensionCreatedTarget", "waitForCreatedTarget");
+  const consume = body(s.created, "ExtensionCreatedTarget", "consumeTabUpdateAfterBarrier");
+  const selection = body(s.authority, "ExtensionTargetAuthority", "executeConversationSelection");
+  requireContract(ordered(acquire, ["await preflightTargetAcquisition(", "await this.qualifyBoundTarget(preflight.bound, targetMode, assertCurrent)",
+    "createProductionCandidate(deadlineAt, assertCurrent)", "await this.qualifyCandidateNavigation(candidate, bound, targetMode, preflight.continuationUrl, assertCurrent, deadlineAt)", "claimActiveTarget(target, frame.url, assertCurrent)"])
+    && includesAll(s.acquisition.getText(), ["findByJobRefHash(input.jobRefHash)", "input.activeTarget", "input.createdTarget.isPending()"])
+    && includesAll(body(s.authority, "ExtensionTargetAuthority", "qualifyBoundTarget"), ["await this.debuggerRuntime.readTargets()", "target.tabId === bound.tabId", "target.id === bound.chromeTargetId", 'targetMode === "bound-observation"'])
+    && acquire.includes("advanceDocument(")
+    && includesAll(qualify, ['targetMode === "fresh"', "activateTab(bound.tabId)", "completeNavigation(candidate, deadlineAt",
+      "bound ? undefined : continuationUrl", "requireCanonicalGptConversationUrl(frame.url) !== continuationUrl"])
+    && !/readOrRecoverExactTarget|tabs\.query|Page\.bringToFront/u.test(s.authority.getText()),
+  findings, lawId, paths.authority, "Acquisition must inspect only the current registry/physical Target and qualify navigation before publishing a claim.");
+  requireContract(ordered(complete, ["const [before, assertActivation] = await this.qualifyCurrentFrame(target, deadlineAt, assertCurrent)",
+    "expectedLoaderId !== undefined && before.loaderId !== expectedLoaderId", "assertCurrent(); assertActivation()",
+    "Date.now() >= deadlineAt", '"Page.navigate"', "waitForCreatedTarget(",
+    "const [frame, assertReadback] = await this.qualifyCurrentFrame(target, deadlineAt, assertCurrent)", "assertCurrent(); assertReadback()", "return frame"])
+    && includesAll(complete, ["const beforeUrl = new URL(before.url)", "const afterUrl = new URL(frame.url)", "`${afterUrl.origin}${afterUrl.pathname}` !== destination", "frame.loaderId === before.loaderId", "Date.now() >= deadlineAt"])
+    && includesAll(wait, ["deadlineAt - Date.now()", "this.pendingTarget =", "void this.consumeTabUpdateAfterBarrier(tabId)"])
+    && includesAll(consume, ['tab.status !== "complete"', "pending.requireAttached", "this.pendingTarget !== pending", "globalThis.clearTimeout(pending.timeout)"])
+    && includesAll(selection, ["completeNavigation(", "deadlineAt, assertCurrent, expected, false, target.loaderId", "publishMainFrameNavigation(frame.url, frame.loaderId)"])
+    && body(s.authority, "ExtensionTargetAuthority", "start").includes("this.createdTarget.onTabUpdated(tabId)")
+    && !body(s.authority, "ExtensionTargetAuthority", "start").includes("this.createdTarget.markTabRemoved("),
+  findings, lawId, paths.created, "Fresh, continuation and reset navigation must share one absolute deadline, direct event wake-up and fresh complete/non-discarded/attached frame readback.");
+};
+const inspectNavigationInput = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
+  const input = body(s.created, "ExtensionCreatedTarget", "qualifyCurrentFrame");
+  requireContract(ordered(input, ["await this.debuggerRuntime.readTab(", "this.interactionReadiness.captureTabActivation(tab, target.tabId!)", "await readExtensionMainFrame(",
+    "await this.debuggerRuntime.readTargets()",
+    "if (physical.length !== 1 || !physical[0]!.attached)", "assertCurrent()", "Date.now() >= deadlineAt", "return [frame, assertActivation]"])
+    && includesAll(body(s.interaction, "ExtensionInteractionReadiness", "captureTabActivation"), ["this.requireInteractiveTab(tab, { tabId })",
+      "this.recordActiveTab(windowId, tabId)", "return assertActivation", "activation?.tabId !== tabId", "activation.generation !== generation"])
+    && body(s.interaction, "ExtensionInteractionReadiness", "ensureInteractionReady").includes("this.captureTabActivation(tab, target.tabId)")
+    && body(s.interaction, "ExtensionInteractionReadiness", "assertInteractionReady").includes("lease.assertActivation()")
+    && includesAll(input, [
+      "row.tabId === target.tabId && row.id === target.id", "requireGptWebPolicyForUrl(frame.url)"]),
+  findings, lawId, paths.created, "Before navigation input, the current complete active Tab, fresh Document and exact attached Chrome identity must still qualify.");
+};
+const inspectRetirement = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
+  const cancel = body(s.created, "ExtensionCreatedTarget", "rejectPendingCreatedTarget");
+  const retire = body(s.authority, "ExtensionTargetAuthority", "retireInvalidCommandTarget");
+  requireContract(ordered(cancel, ["this.pendingTarget = null", "globalThis.clearTimeout(pending.timeout)", "pending.reject(new Error(reasonCode))"])
+    && !cancel.includes("removeTab") && !cancel.includes("awaitPageReadPermission")
+    && ordered(retire, ["this.targets.resolve(permit.targetRef, permit.documentRef)", "await hashBrowserExtensionText(permit.jobId)",
+      "await this.debuggerRuntime.awaitPageReadPermission()", "const current = this.activeTarget", "this.clearActiveTarget()"])
+    && includesAll(retire, ["current.jobRefHash !== jobRefHash", "targetRef: failed.targetRef", "documentRef: failed.documentRef",
+      "chromeTargetId: failed.chromeTargetId", "tabId: failed.tabId", "jobRefHash: failed.jobRefHash"])
+    && !retire.slice(retire.indexOf("const current = this.activeTarget"), retire.indexOf("this.clearActiveTarget()")).includes("await "),
+  findings, lawId, paths.authority, "Cancellation must wake the original waiter without deleting a bound Target; retirement must compare the whole original identity after the last await.");
+};
+
+const inspectRelease = (s: Sources, context: InspectorContext, findings: InspectorFinding[], lawId: string): void => {
+  const release = declaration(s.release, "releaseJobBoundTarget");
+  const delegate = body(s.authority, "ExtensionTargetAuthority", "releaseJobBoundChatGptTarget");
+  requireContract(includesAll(delegate, ["await this.awaitOldCommandHandlers()", 'releaseAuthority === "website-admin-deletion"',
+    "await this.parkActiveTarget()", 'await onReleased(); await this.send("TARGET_REVOKE", body)'])
+    && ordered(release, ["await context.awaitOldCommandHandlers()", "await context.debuggerRuntime.awaitPageReadPermission()",
+      "findByJobRefHash(jobRefHash)", "await context.debuggerRuntime.readTargets()", "await context.debuggerRuntime.removeTab(bound.tabId)"])
+    && includesAll(release, ['targetRef: null', 'releaseOutcome: "absent"', 'releaseOutcome: "released"',
+      "target.id === bound.chromeTargetId", "context.targets.restore(bound)", "context.createdTarget.isPending()"]),
+  findings, lawId, paths.release, "Release must drain handlers, prove current physical identity and absence, distinguish absent/released and restore the registry on close failure.");
+  inspectPhysicalReleaseProof(s, context, findings, lawId);
+};
+const inspectPhysicalReleaseProof = (s: Sources, context: InspectorContext, findings: InspectorFinding[], lawId: string): void => {
+  const release = declaration(s.release, "releaseJobBoundTarget");
+  const producer = s.release.getVariableDeclaration("releaseJobBoundTarget")?.getInitializer();
+  const revokes = producer?.getDescendantsOfKind(SyntaxKind.CallExpression).filter(call => call.getExpression().getText() === "context.sendRevoke") ?? [];
+  const pairs = revokes.map(call => {
+    const argument = call.getArguments()[0];
+    if (!Node.isObjectLiteralExpression(argument)) return "";
+    const value = (name: string): string => {
+      const property = argument.getProperty(name);
+      return Node.isPropertyAssignment(property) ? property.getInitializer()?.getText() ?? "" : "";
+    };
+    return `${value("targetRef")}|${value("releaseOutcome")}`;
+  });
+  const failure = producer?.getDescendantsOfKind(SyntaxKind.IfStatement).find(statement =>
+    statement.getExpression().getText().startsWith("!tabAbsent || after.some("));
+  const failureBranch = failure?.getThenStatement();
+  const failureThrows = Node.isThrowStatement(failureBranch) || Node.isBlock(failureBranch)
+    && failureBranch.getStatements().length === 1 && Node.isThrowStatement(failureBranch.getStatements()[0]);
+  requireContract(failureThrows && JSON.stringify(pairs) === JSON.stringify(['null|"absent"', 'null|"absent"', 'bound.targetRef|"released"'])
+    && ordered(release, ["await context.debuggerRuntime.removeTab(bound.tabId)", "await context.debuggerRuntime.readTab(bound.tabId)",
+      "await context.debuggerRuntime.readTargets()", 'if (!tabAbsent || after.some(', 'targetRef: bound.targetRef, jobRefHash, releaseOutcome: "released"'])
+    && release.includes("context.targets.findByJobRefHash(jobRefHash) !== bound"), findings, lawId, paths.release,
+  "Only fresh physical close readback may emit released; both absent producers must emit a null reference.");
+  const lease = body(s.manager, "BrowserTargetLeaseManager", "createTargetLease");
+  const admission = body(s.manager, "BrowserTargetLeaseManager", "assertCommandAdmission");
+  const lifecycle = body(s.lane, "BrowserLaneCoordinator", "withLifecycle");
+  const lane = s.lane.getText();
+  const close = context.project.getSourceFiles().filter(source => source.getFilePath().includes("/src/lib/browser/"))
+    .some(source => stringLiterals(source).some(value => ["Page.close", "browser.close-target.v1"].includes(value)));
+  requireContract(ordered(lease, ["park: async", 'mode !== "product-call-settlement"', 'command("browser.park-target.v1"'])
+    && lease.includes("pendingMutationCount: () => this.commandActor.pendingMutationCommandIds(this.executionBinding).length")
+    && admission.includes('value.kind !== "park-target"') && !lease.includes("close: async") && !close
+    && ordered(lifecycle, ["finally", "this.active = false"])
+    && includesAll(lane, ["this.hasUnresolvedMutation()", 'waiter.kind === "acquire"', "countDispatched(waiter.jobId)",
+      'waiter.releaseAuthority !== "website-admin-deletion"', "index += 1"])
+    && !/settleRetiredTargetLocal|allDispatchedTargetsSettled|website-permanent-revocation/u.test(lane),
+  findings, lawId, paths.manager, "Product settlement must park without closing; unresolved WAL blocks all new physical work except authorized Website deletion.");
+  const continuation = `${s.lease.getText()}\n${s.lane.getText()}\n${s.store.getText()}\n${s.evidence.getText()}`;
+  requireContract(includesAll(continuation, ["parentAttemptId?: never", "parentAttemptId: wait.parentAttemptId", "parentAttemptId: string",
+    "waiter.parentAttemptId!, waiter.binding.productStepId", "where job_id=? and attempt_id=? and product_step_id=?",
+    "product_step_id=? and call_id='turn-submit'", "child_capability_id='submit_exact_gpt_turn_once'", "rows.length !== 1",
+    ").all(parentJobId, parentAttemptId, parentProductStepId)"]),
+  findings, lawId, paths.evidence, "Continuation must use exactly one completed submit from the approved parent job/attempt/Product step.");
+};
+
+export const inspectTargetClaimGuards = (context: InspectorContext, findings: InspectorFinding[], lawId: string): void => {
+  const entries = Object.entries(paths).map(([name, path]) => [name, requireSource(context, findings, lawId, path)] as const);
+  if (entries.some(([, source]) => source === null)) return;
+  const sources = Object.fromEntries(entries) as Sources;
+  inspectWire(sources, findings, lawId); inspectAcquisitionWire(sources, findings, lawId); inspectAdmission(sources, findings, lawId);
+  inspectNavigation(sources, findings, lawId); inspectNavigationInput(sources, findings, lawId); inspectRetirement(sources, findings, lawId); inspectRelease(sources, context, findings, lawId);
 };
