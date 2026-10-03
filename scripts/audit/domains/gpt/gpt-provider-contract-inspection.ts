@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { Node, SyntaxKind } from "ts-morph";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { sourceFor, type FindingFactory } from "./gpt-inspection-support.js";
+import { textResponseTwoGateSettlementIsFrozen } from "./gpt-frozen-attempt-inspection.js";
 
 const ROOT = "src/capabilities/gpt", LANE = "src/lib/browser/infrastructure/browser-lane-coordinator.ts";
 const LIFECYCLE = `${ROOT}/production-browser-lifecycle.ts`, TEXT = `${ROOT}/children/checkpoint_gpt_text_response/handler.ts`;
@@ -37,6 +38,8 @@ const inspectGlobalObservationLane = (context: InspectorContext, findings: Inspe
   "gpt/no-second-wait-scheduler", LIFECYCLE, "GPT cannot own a second scheduler or random interval.", findings, finding);
 };
 export const inspectGptProviderProbeOwnerContract = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
+  check(textResponseTwoGateSettlementIsFrozen(text(context, TEXT)),
+    "gpt/provider-observation-gate-first", TEXT, "Text readback must execute the sole frozen observation gate and exact response settlement.", findings, finding);
   inspectGlobalObservationLane(context, findings, finding);
   const lifecycleOwner = sourceFor(context, LIFECYCLE)?.getClass("ProductionGptBrowserLifecycle");
   const lifecycleText = text(context, LIFECYCLE);
@@ -62,16 +65,6 @@ export const inspectGptProviderProbeOwnerContract = (context: InspectorContext, 
   "gpt/historical-provider-effect-authority", evidencePath, "Parent lookup requires the unique original job/attempt/step submit.", findings, finding);
 };
 
-const inspectObservationOrder = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
-  const textSource = sourceFor(context, TEXT);
-  const textLoop = textSource?.getDescendantsOfKind(SyntaxKind.WhileStatement).find(loop => calls(loop, "readExactAssistantTurn").length > 0);
-  const body = textLoop?.getText() ?? "", gate = textLoop?.getDescendantsOfKind(SyntaxKind.IfStatement)
-    .find(statement => statement.getExpression().getText().includes("await waitForProviderObservation("));
-  check(!!gate && gate.getExpression().getText().endsWith('=== "deadline"') && gate.getThenStatement().getDescendantsOfKind(SyntaxKind.BreakStatement).length === 1
-    && before(body, "await waitForProviderObservation(", "await readExactAssistantTurn(")
-    && textSource?.getVariableDeclaration("requireObservationGate")?.getInitializer()?.getText().includes("GPT_PROVIDER_OBSERVATION_GATE_REQUIRED") === true,
-  "gpt/provider-observation-gate-first", TEXT, "The exact deadline result stops Browser readback at the original gate.", findings, finding);
-};
 const inspectImageObservationOrder = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
   const imageSource = sourceFor(context, IMAGE);
   const imageLoop = imageSource?.getDescendantsOfKind(SyntaxKind.ForStatement).find(loop => calls(loop, "browser.readAuthenticatedMedia").length > 0);
@@ -123,7 +116,8 @@ const inspectRawImageArtifact = (context: InspectorContext, findings: InspectorF
 };
 
 export const inspectProviderWaitContract = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
-  inspectObservationOrder(context, findings, finding);
+  check(textResponseTwoGateSettlementIsFrozen(text(context, TEXT)),
+    "gpt/provider-observation-gate-first", TEXT, "Text readback must execute the sole frozen observation gate and exact response settlement.", findings, finding);
   inspectImageObservationOrder(context, findings, finding);
   inspectPersistedCheckpointOrder(context, findings, finding);
   inspectGeneratedImageRawBoundary(context, findings, finding);
@@ -133,6 +127,10 @@ export const inspectProviderWaitContract = (context: InspectorContext, findings:
     "latestGptUserTurn: true", "selector: GPT_EMPTY_COMPOSER_SELECTOR", "match.exactGptUserPromptHash !== promptHash", "canonicalConversationOrNull(packet.currentUrl)",
     "UUID.test(match.turnKey)", 'status: "CONFIRMED", promptHash', "physicalInputCount !== 1"].every(token => submit.includes(token)),
   "gpt/current-provider-chain", submitPath, "Submit uses the two approved preconditions and exact latest turn/empty composer readback.", findings, finding);
+  const outgoing = text(context, "src/lib/browser/chrome-extension/dom-coherent-candidate.ts");
+  check(outgoing.includes("expectedLabels.includes(providerLabel(label))")
+    && !/priorTurns\.length > 1|querySelectorAll\(outgoing\.userTurnSelector\)|baselineOrdinal \+ 2/u.test(outgoing),
+  "gpt/current-provider-chain", submitPath, "The single outgoing click retains exact approved labels and no retired turn shortcut.", findings, finding);
   const tools = text(context, TOOLS), result = text(context, `${ROOT}/production-child-result.ts`), ports = text(context, `${ROOT}/production-ports.ts`);
   check(tools.includes("readProviderEffectStepCallFact({") && tools.includes("confirmedSubmitIdentity(input, call, existing)")
     && result.includes("inputHash: existing.inputHash") && result.includes("browserExactCallIdentityHash({") && result.includes("exactCallIdentityHash !== existing.exactCallIdentityHash")

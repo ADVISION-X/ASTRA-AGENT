@@ -1,4 +1,5 @@
-import { SyntaxKind } from "ts-morph";
+import { Project, SyntaxKind } from "ts-morph";
+import { astExecutableTree } from "../../shared/ast-node-identity.js";
 import { type InspectorContext, type InspectorFinding } from "../../shared/inspector-contracts.js";
 import { createLocalFinding, requireSource, sourcePaths } from "./inspector-support.js";
 
@@ -90,6 +91,16 @@ export const inspectDisposableAttemptBoundary = (
     "browser-authority/single-fifo");
 };
 
+const verifiedTerminalReadbackIsExact = (actor: NonNullable<ReturnType<typeof requireSource>>): boolean => {
+  const owner = actor.getClass("BrowserCommandActor");
+  const project = new Project({ useInMemoryFileSystem: true });
+  const expected = project.createSourceFile("terminal.ts", "class BoundTerminal {\npublic async execute(permit: BrowserCommandPermit, command: BrowserGovernedCommand): Promise<unknown> {\n    const span = startBrowserCommandSpan(this.runtimeLogger, permit), mutation = isMutation(command);\n    const state: BrowserCommandExecutionState = { budgetEntered: false, prepared: false, dispatched: false, terminalized: false };\n    try {\n      assertValidCommandPermit(permit); if (command.kind === \"dom-intent\") assertBrowserDomIntent(command.intent);\n      this.authorityGuard.assertCurrentAuthority(permit); assertBrowserCommandTerminalReplyMargin(permit, command);\n      this.budget.enter(); state.budgetEntered = true;\n      if (mutation) this.prepareMutation(permit, command, state);\n      const bindingHash = mutation ? hashValue(browserMutationReceiptBindingProjection(this.mutations.readCommand(permit.commandId)!.identity)) : null;\n      const reply = await this.port.send(permit, command, mutation ? () => {\n        this.mutations.markDispatched(permit.commandId); state.dispatched = true;\n        emitBrowserMutationEvent({ runtimeLogger: this.runtimeLogger, mutation: permit, outcome: \"DISPATCHED\",\n          authorityHash: this.mutations.authorityHash(permit.commandId) });\n      } : undefined, bindingHash);\n      if (reply.replyChannelToken !== permit.replyChannelToken || reply.permitSequence !== permit.sequence) throw new Error(\"BROWSER_AUTH_TRANSCRIPT_INVALID\");\n      if (mutation) this.completeMutation(permit, command, reply, span, state);\n      else this.authorityGuard.assertCurrentAuthority(permit);\n      const preflight = decodeKnownGptRateLimitPreflightReply(permit, command, reply.result);\n      if (preflight.specialFailureCode) throw gptDialogPreflightFailure(reply.result, preflight.specialFailureCode);\n      const result = bindExactAssistantTurnReply(permit, command, bindBrowserCommandObservationPacket(permit, command, preflight.commandResult));\n      completeBrowserCommandSpan({ span }); state.terminalized = true; return result;\n    } catch (error) { return this.failExecution(permit, command, span, mutation, state, error); }\n    finally { if (state.budgetEntered) this.budget.leave(); }\n  }\nprivate completeMutation(permit: BrowserCommandPermit, command: BrowserGovernedCommand, reply: BrowserCommandReply,\n    span: ReturnType<typeof startBrowserCommandSpan>, state: BrowserCommandExecutionState): void {\n    if (!state.dispatched) throw new Error(\"BROWSER_AUTH_TRANSCRIPT_INVALID\");\n    const fact = verifyNormalBrowserMutationReply(permit, command, { result: reply.result, mutationReceipt: reply.mutationReceipt });\n    const row = this.mutations.readCommand(permit.commandId), receipt = fact.terminalReceipt;\n    if (!row || row.state !== (receipt.terminal === \"confirmed\" ? \"CONFIRMED\" : \"REJECTED\")\n      || fact.receiptBindingHash !== hashValue(browserMutationReceiptBindingProjection(row.identity))) throw new Error(\"BROWSER_AUTH_TRANSCRIPT_INVALID\");\n    const readback = this.mutations.readExactCallMutationFact({ jobId: permit.jobId, attemptId: permit.attemptId,\n      exactCallIdentityHash: row.identity.exactCallIdentityHash, actionOrdinal: permit.actionOrdinal });\n    const expected = { authorityRef: `browser-mutation:${permit.commandId}`, mutationOutcome: receipt.mutationOutcome,\n      physicalInputCount: receipt.physicalInputCount, terminalAt: receipt.completedAt,\n      failureCode: receipt.failureCode, nativeFailureCode: receipt.nativeCauseCode };\n    if (!readback || Object.entries(expected).some(([key, value]) => readback[key as keyof typeof readback] !== value)) throw new Error(\"BROWSER_AUTH_TRANSCRIPT_INVALID\");\n    if (receipt.terminal !== \"rejected\") return;\n    const code = receipt.failureCode ?? \"BROWSER_POSTCONDITION_FAILED\";\n    const cause = receipt.nativeCauseCode ? Object.assign(new Error(receipt.nativeCauseCode), { code: receipt.nativeCauseCode }) : undefined;\n    const event = failBrowserCommandSpan({ span, permit, proofHash: this.mutations.authorityHash(permit.commandId), failureCode: code, error: new Error(code, { cause }) });\n    state.terminalized = true;\n    const rejected = [\"BROWSER_KNOWN_GPT_RATE_LIMIT\", \"BROWSER_GPT_DIALOG_UNRECOGNIZED\"].includes(code)\n      ? gptDialogPreflightFailure(reply.result, code as Exclude<BrowserPreflightReply[\"specialFailureCode\"], null>) : new Error(code, { cause });\n    throw withRuntimeLogCause(rejected, event.eventId);\n  }\n}").getClassOrThrow("BoundTerminal");
+  return expected.getMethods().every(reference => {
+    const actual = owner?.getMethod(reference.getName());
+    return actual !== undefined && astExecutableTree(actual) === astExecutableTree(reference);
+  });
+};
+
 const inspectV51ProofTopology = (
   context: InspectorContext, findings: InspectorFinding[], lawId: string,
 ): void => {
@@ -107,9 +118,10 @@ const inspectV51ProofTopology = (
     checkId: "browser-authority/no-caller-proof-envelope", lawId, filePath: permitPath,
     message: "The Browser command permit must not accept a caller-authored proof envelope.",
   }));
-  requireTokens(actor.getFullText(), ["fact.terminalReceipt.terminal",
-    "this.mutations.readCommand(permit.commandId)", "const fact = reply.mutationReceipt"], findings, lawId, actorPath,
-  "browser-authority/no-caller-proof-envelope");
+  if (!verifiedTerminalReadbackIsExact(actor)) findings.push(createLocalFinding({
+    checkId: "browser-authority/no-caller-proof-envelope", lawId, filePath: actorPath,
+    message: "The actor must verify the authenticated receipt once and compare its exact terminal with the already committed WAL; it must not settle a second time.",
+  }));
   const browserSources = context.project.getSourceFiles().filter((source) =>
     source.getFilePath().replaceAll("\\", "/")
       .startsWith(`${context.sealedRoot.replaceAll("\\", "/")}/src/lib/browser/`));

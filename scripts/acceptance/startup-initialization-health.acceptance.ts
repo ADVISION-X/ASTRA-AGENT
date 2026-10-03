@@ -1,15 +1,14 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import Database from "better-sqlite3";
-import { readFile } from "node:fs/promises";
-import { chmod, mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { chmod, cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { spawn, type ChildProcess } from "node:child_process";
+import { execFileSync, spawn, type ChildProcess } from "node:child_process";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 
 import { getHealthReport } from "../../src/lib/local-runtime/workbench-status.js";
-import { runBrowserRuntimePreflight } from "../startup/lib/browser-runtime-preflight.mjs";
+import type { BrowserRuntimePreflightResult } from "../startup/lib/browser-runtime-preflight.mjs";
 import { GRASSEYE_TOOL_EXTENSION_ID_HEADER } from "../../src/app/workbench-api-boundary.js";
 import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
 import { clearPortListeners } from "../startup/lib/process-control.mjs";
@@ -323,11 +322,36 @@ const verifyStartupEntrypointAcceptsDiagnosticShell = async (): Promise<void> =>
 };
 
 const verifyUnpackedWebSocketPreflight = async (): Promise<void> => {
-  const preflight = await runBrowserRuntimePreflight();
-  assert.equal(preflight.status, "READY");
-  assert.equal(preflight.releaseState, "UNPACKED_WEBSOCKET_AUTHORITY");
-  assert.equal(preflight.authorityState, "BROWSER_AUTHORITY_ABSENT");
-  assert.equal(preflight.failureReason, "BROWSER_CHROME_PROFILE_READBACK_NOT_PRODUCTION_VERIFIED");
+  const root = process.cwd(), fixture = await mkdtemp(path.join(tmpdir(), "grasseye-artifact-preflight-"));
+  const builder = path.resolve("src/lib/browser/chrome-extension/build.mjs");
+  const preflightUrl = new URL("../startup/lib/browser-runtime-preflight.mjs", import.meta.url).href;
+  const probe = (): BrowserRuntimePreflightResult => JSON.parse(execFileSync(process.execPath,
+    ["--input-type=module", "-e", "const {runBrowserRuntimePreflight}=await import(process.argv[1]);process.stdout.write(JSON.stringify(await runBrowserRuntimePreflight()));", preflightUrl],
+    { cwd: fixture, encoding: "utf8", timeout: 15_000 }));
+  const build = (): void => { execFileSync(process.execPath, [builder], { cwd: fixture, timeout: 30_000, stdio: "pipe" }); };
+  try {
+    await cp(path.join(root, "src"), path.join(fixture, "src"), { recursive: true });
+    await symlink(path.join(root, "node_modules"), path.join(fixture, "node_modules"), "dir");
+    build();
+    const current = probe();
+    assert.equal(current.status, "READY");
+    assert.equal(current.releaseState, "UNPACKED_WEBSOCKET_AUTHORITY");
+    assert.equal(current.authorityState, "BROWSER_AUTHORITY_ABSENT");
+    assert.equal(current.failureReason, "BROWSER_CHROME_PROFILE_READBACK_NOT_PRODUCTION_VERIFIED");
+    const source = path.join(fixture, "src/lib/browser/chrome-extension/service-worker.ts");
+    await writeFile(source, (await readFile(source, "utf8")) + "\n// fixture input drift\n");
+    const stale = probe();
+    assert.equal(stale.releaseState, "REPAIR_REQUIRED");
+    assert.equal(stale.failureReason, "BROWSER_UNPACKED_ARTIFACT_READBACK_MISMATCH");
+    assert.equal(stale.authorityState, "BROWSER_AUTHORITY_ABSENT");
+    build();
+    const rebuilt = probe();
+    assert.equal(rebuilt.releaseState, "UNPACKED_WEBSOCKET_AUTHORITY");
+    assert.equal(rebuilt.authorityState, "BROWSER_AUTHORITY_ABSENT");
+    assert.notEqual(rebuilt.releaseBuildId, current.releaseBuildId);
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
 };
 
 const verifyStartupFailureClosesExactSteps = async (): Promise<void> => {

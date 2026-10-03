@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFil
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import test from "node:test";
-import { Project } from "ts-morph";
+import { Project, SyntaxKind } from "ts-morph";
 
 import { assertProjectionEqual, blueprintValid, buildRegistry, parseLawSource } from "../../scripts/audit/governance-authority.js";
 import { assertBlueprintMarkdownContractAuthority } from "../../scripts/audit/governance-json.js";
@@ -41,9 +41,12 @@ import { retiredAuthorityExamContractViolations } from "../../scripts/audit/doma
 import { relevantExamScripts } from "../../scripts/audit/shared/quality-routes.js";
 import { producerModePassed, recordStaticCheck, staticClauses, staticEvidenceRefs, staticImplementationDigest, validateStaticInspection } from "../../scripts/audit/shared/static-inspection-contract.js";
 import { containsPageMutation, gptPrivateInfrastructureViolations } from "../../scripts/audit/domains/gpt/gpt-inspection-support.js";
-import { providerWaitReasonProjectionIsFrozen, textResponseTwoGateSettlementIsFrozen } from "../../scripts/audit/domains/gpt/gpt-frozen-attempt-inspection.js";
+import { providerWaitReasonProjectionIsFrozen } from "../../scripts/audit/domains/gpt/gpt-frozen-attempt-inspection.js";
 import { browserMutationSchemaIsCurrent, browserMutationStoreStartupOrderIsCurrent } from "../../scripts/audit/domains/local-browser-session/browser-mutation-settlement-inspection.js";
 import { exactAssistantTurnReadIsAtomic, exactTextMatcherIsStrict } from "../../scripts/audit/domains/local-browser-session/dom-mechanical-facts-inspection.js";
+import { inspectSingleTransport } from "../../scripts/audit/domains/local-browser-session/transport-inspector.js";
+import { inspectProviderEffectAttemptGuard } from "../../scripts/audit/domains/local-browser-session/mutation-atomicity-inspection.js";
+import { inspectOpaqueAuthorityBoundary } from "../../scripts/audit/domains/local-browser-session/opaque-proof-inspection.js";
 import { requireSource } from "../../scripts/audit/domains/local-browser-session/inspector-support.js";
 import { redactHashWriteOrderIsExact } from "../../scripts/audit/domains/runtime-log-spine/inspector.js";
 import { inspectAgentContracts } from "../../scripts/audit/domains/agent-production-runtime/contract-inspection.js";
@@ -1366,11 +1369,21 @@ test("active mutation inspectors use one DISPATCHED chain inside each law scope"
     assert.equal(browserLane.includes(retired), false, retired);
   }
   for (const current of [
-    "targetMode", "ensureAvailableTarget(waiter, parentConversationUrl)",
+    "targetMode",
     'const park: BrowserTargetLease["park"]',
   ]) {
     assert.equal(browserLane.includes(current), true, current);
   }
+  const laneProject = new Project();
+  const lane = laneProject.addSourceFileAtPath("src/lib/browser/infrastructure/browser-lane-coordinator.ts");
+  const acquire = lane.getClassOrThrow("BrowserLaneCoordinator").getMethodOrThrow("serveAcquire");
+  const targetCalls = acquire.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter(call => call.getExpression().getText() === "this.targetAcquirer.ensureAvailableTarget");
+  assert.equal(targetCalls.length, 1);
+  assert.deepEqual(targetCalls[0]!.getArguments().map(node => node.getText()), ["waiter", "parent"]);
+  const parent = acquire.getDescendantsOfKind(SyntaxKind.VariableDeclaration).find(node => node.getName() === "parent");
+  assert.equal(parent?.getInitializer()?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some(call => call.getExpression().getText() === "this.infrastructure.mutationState?.readUniqueConfirmedConversationUrl"), true);
   const browserStaticInspectors = [
     "browser-mutation-settlement-inspection.ts", "dom-mechanical-facts-inspection.ts",
     "mutation-atomicity-inspection.ts", "mutation-registry-inspection.ts",
@@ -1399,6 +1412,80 @@ test("local Browser static source lookup fails closed outside the law target set
   assert.equal(requireSource(context, findings, lawId, "scripts/acceptance/outside.ts"), null);
   assert.equal(findings.length, 1);
   assert.equal(findings[0]!.checkId, "browser-authority/static-source-scope");
+});
+
+const verifyBrowserBoundaryMutants = (
+  lawId: string, inspect: typeof inspectSingleTransport, mutations: readonly (readonly [string, string, string])[],
+): void => {
+  const registry = buildRegistry(), law = registry.laws.find(entry => entry.lawId === lawId)!;
+  const targetPaths = computeTargetPaths(law, registry), project = new Project({ useInMemoryFileSystem: true });
+  for (const path of targetPaths.filter(entry => entry.endsWith(".ts"))) {
+    project.createSourceFile(resolve(path), readFileSync(path, "utf8"));
+  }
+  const context = { project, sealedRoot: process.cwd(), targetPaths,
+    lawRequirements: [{ lawId, targetPaths }] } as unknown as InspectorContext;
+  const run = () => {
+    const findings: import("../../scripts/audit/shared/inspector-contracts.js").InspectorFinding[] = [];
+    inspect(context, findings, lawId);
+    return findings;
+  };
+  assert.deepEqual(run(), [], "current exact chain");
+  for (const [path, original, replacement] of mutations) {
+    const source = project.getSourceFileOrThrow(resolve(path)), baseline = source.getFullText();
+    const mutant = baseline.replace(original, replacement);
+    assert.notEqual(mutant, baseline, original);
+    source.replaceWithText(mutant);
+    assert.notDeepEqual(run(), [], path + ":" + replacement);
+    source.replaceWithText(baseline);
+  }
+};
+
+test("Browser reply inspection rejects mixed transport and permit identities", () => {
+  const path = "src/lib/browser/transport/browser-authority-websocket.ts";
+  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-001-V4", inspectSingleTransport, [
+    [path, 'integerField(body, "requestSequence", 1)', 'integerField(body, "permitSequence", 1)'],
+    [path, "active?.replies.get(sequence)", "active?.replies.get(1)"],
+    [path, "const sequence = active.nextServerSequence;", "const sequence = permit.sequence;"],
+    [path, "const sequence = active.nextServerSequence;", "const sequence = 1;"],
+    [path, 'this.encryptedFrame(active, "COMMAND", sequence,', 'this.encryptedFrame(active, "COMMAND", permit.sequence,'],
+    [path, "nextServerSequence: sequence + 1", "nextServerSequence: sequence"],
+    [path, "private acceptReply(socket: BrowserAuthoritySocket, body: Record<string, unknown>): void", "private async acceptReply(socket: BrowserAuthoritySocket, body: Record<string, unknown>): Promise<void>"],
+    [path, "if (!this.acceptAuthenticatedControl(socket, frame, body)) this.acceptReply(socket, body);", "if (false) this.acceptReply(socket, body);"],
+    [path, "else this.receiveAuthenticated(socket, frame);", "else void frame;"],
+    [path, "public receive(socket: BrowserAuthoritySocket, encoded: string): void", "public async receive(socket: BrowserAuthoritySocket, encoded: string): Promise<void>"],
+    [path, "transportSequence: sequence", "transportSequence: reply.permitSequence"],
+    [path, "permitSequence: reply.permitSequence, result", "permitSequence: sequence, result"],
+    [path, "permitSequence: permit.sequence, resolve", "permitSequence: sequence, resolve"],
+    [path, "if (!active || active.socket !== socket || !reply)", "if (!active || !reply)"],
+  ]);
+});
+
+test("Browser receipt inspection rejects raw caller facts and unbound WAL readback", () => {
+  const path = "src/lib/browser/exact-target/browser-command-actor.ts";
+  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-004-V56", inspectProviderEffectAttemptGuard, [
+    [path, "verifyNormalBrowserMutationReply(permit, command, { result: reply.result, mutationReceipt: reply.mutationReceipt })", "reply.mutationReceipt!"],
+    [path, "receipt.terminal === \"confirmed\" ? \"CONFIRMED\" : \"REJECTED\"", "\"CONFIRMED\""],
+    [path, "private completeMutation(permit: BrowserCommandPermit, command: BrowserGovernedCommand, reply: BrowserCommandReply,\n    span: ReturnType<typeof startBrowserCommandSpan>, state: BrowserCommandExecutionState): void", "private async completeMutation(permit: BrowserCommandPermit, command: BrowserGovernedCommand, reply: BrowserCommandReply,\n    span: ReturnType<typeof startBrowserCommandSpan>, state: BrowserCommandExecutionState): Promise<void>"],
+    [path, "if (mutation) this.completeMutation(permit, command, reply, span, state);", "if (false) this.completeMutation(permit, command, reply, span, state);"],
+    [path, "fact.receiptBindingHash !== hashValue(browserMutationReceiptBindingProjection(row.identity))", "false"],
+    [path, "readback[key as keyof typeof readback] !== value", "false"],
+    [path, "physicalInputCount: receipt.physicalInputCount, terminalAt: receipt.completedAt", "physicalInputCount: 0, terminalAt: receipt.completedAt"],
+  ]);
+});
+
+test("Browser media inspection rejects alternate identities, missing guards and duplicate input", () => {
+  const path = "src/lib/browser/chrome-extension/extension-command-runtime.ts";
+  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-006-V45", inspectOpaqueAuthorityBoundary, [
+    [path, 'case "authenticated-media": return', 'case "other-media": return'],
+    [path, "switch (command.kind) {", 'switch ("never-media") {'],
+    [path, "switch (command.kind) {", "if (false) switch (command.kind) {"],
+    ["src/lib/browser/chrome-extension/extension-target-authority.ts", "() => this.executeRegisteredCommandCycle(command, target, mutationClass, exactCallIdentityHash, assertCommandActive, commandDeadlineAt)", "() => Promise.resolve(undefined)"],
+    [path, "switch (command.kind) {", "executeAuthenticatedMedia(runtime, target, command.canonicalConversationUrl, command.userTurnId, command.semanticMediaId, lifecycle.assertCurrent); switch (command.kind) {"],
+    [path, "command.userTurnId, command.semanticMediaId, lifecycle.assertCurrent", "command.userTurnId, command.semanticMediaId, () => undefined"],
+    [path, "command.userTurnId, command.semanticMediaId, lifecycle.assertCurrent", "command.semanticMediaId, command.userTurnId, lifecycle.assertCurrent"],
+    [path, 'case "authenticated-media": return executeAuthenticatedMedia', 'case "authenticated-media": executeAuthenticatedMedia(runtime, target, command.canonicalConversationUrl, command.userTurnId, command.semanticMediaId, lifecycle.assertCurrent); return executeAuthenticatedMedia'],
+    ["src/lib/browser/chrome-extension/extension-target-authority.ts", 'if (command.kind !== "dom-intent") return executeRegisteredExtensionCommand', 'if (false) return executeRegisteredExtensionCommand'],
+  ]);
 });
 
 test("active Browser and Runtime Log inspectors reject semantic decoys", () => {
@@ -1514,27 +1601,54 @@ test("Browser inspectors require current WAL schema without startup migration an
   ]) assert.equal(exactAssistantTurnReadIsAtomic(inspectSource(exactPath, mutant)), false);
 });
 
-test("GPT text-response settlement keeps stop and text inside the frozen second gate", () => {
-  const path = "src/capabilities/gpt/children/checkpoint_gpt_text_response/handler.ts";
-  const source = readFileSync(path, "utf8");
-  assert.equal(textResponseTwoGateSettlementIsFrozen(source), true);
-  for (const mutant of [
-    source.replace("while (Date.now() < deadline || exactResponseObserved)",
-      "while (Date.now() < deadline)"),
-    source.replace("Date.now() + GPT_STOPPED_EMPTY_CONFIRMATION_MS : deadline", "deadline"),
-    source.replace("if (exactResponseObserved) continue", "if (exactResponseObserved) break"),
-    source.replace("nextWaitReason = \"exact-user-turn-unavailable\"",
-      "nextWaitReason = \"adjacent-assistant-missing\""),
-    source.replace("observationDeadline, nextWaitReason", "observationDeadline, \"initial-observation\""),
-    source.replace(
-      "assistant && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0",
-      "assistant && assistant.hidden === false && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0",
-    ),
-    source.replace(
-      "observation.generatingRaw > 0 || observation.semanticText.trim().length > 0",
-      "observation.generatingRaw > 0 || observation.composerRaw > 0 || observation.semanticText.trim().length > 0",
-    ),
-  ]) assert.equal(textResponseTwoGateSettlementIsFrozen(mutant), false);
+test("GPT001 native AST and contract routes reject text settlement drift under their own law", () => {
+  const registry = buildRegistry(), laws = registry.laws.filter(law => law.capabilityDomain === "gpt");
+  const lawRequirements = laws.map(law => {
+    const targetPaths = computeTargetPaths(law, registry);
+    return { lawId: law.lawId, forbiddenCount: law.forbidden.length,
+      requiredStaticModes: law.evidenceModes.filter(mode => mode.startsWith("static.")), targetPaths,
+      targetSet: { queryRef: `scope:${law.lawId}#appliesTo-minus-excludes`, count: targetPaths.length } };
+  });
+  const targetPaths = [...new Set(lawRequirements.flatMap(law => law.targetPaths))].sort();
+  const root = mkdtempSync(resolve(tmpdir(), "gpt-native-contract-"));
+  symlinkSync(resolve("node_modules"), resolve(root, "node_modules"), "dir");
+  for (const path of targetPaths) {
+    mkdirSync(resolve(root, path, ".."), { recursive: true });
+    writeFileSync(resolve(root, path), readFileSync(path));
+  }
+  const requestPath = resolve(root, "inspection-request.json");
+  writeFileSync(requestPath, JSON.stringify({ capabilityDomain: "gpt", laws: lawRequirements, sealedRoot: root,
+    targetPaths, ownerInspectorPath: "scripts/audit/domains/gpt/inspector.ts", ownerInspectorPlan: registry.domains }));
+  const inspect = () => parseInspectorOutput(execFileSync(process.execPath,
+    ["--import", "tsx", resolve("scripts/audit/shared/quality-inspector-worker.ts")],
+    { encoding: "utf8", maxBuffer: 10 * 1024 * 1024, env: { ...process.env,
+      GOVERNANCE_SEALED_ROOT: root, GOVERNANCE_INSPECTION_REQUEST: requestPath } }), "gpt")
+    .lawResults.find(law => law.lawId === "LAW-GPT-001-V64")!;
+  const ownModes = (law: ReturnType<typeof inspect>) => law.assertions
+    .filter(assertion => ["static.ast", "static.contract"].includes(assertion.evidenceMode))
+    .map(assertion => assertion.passed);
+  assert.deepEqual(ownModes(inspect()), [true, true]);
+  const path = resolve(root, "src/capabilities/gpt/children/checkpoint_gpt_text_response/handler.ts");
+  const baseline = readFileSync(path, "utf8");
+  for (const [original, replacement] of [
+    ["while (Date.now() < deadline || exactResponseObserved)", "while (Date.now() < deadline)"],
+    ["Date.now() + GPT_STOPPED_EMPTY_CONFIRMATION_MS : deadline", "deadline"],
+    ["if (exactResponseObserved) continue", "if (exactResponseObserved) break"],
+    ['nextWaitReason = "exact-user-turn-unavailable"', 'nextWaitReason = "adjacent-assistant-missing"'],
+    ["observationDeadline, nextWaitReason", 'observationDeadline, "initial-observation"'],
+    ["assistant && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0", "assistant && assistant.hidden === false && assistant.generatingRaw === 0 && assistant.semanticText.trim().length > 0"],
+    ["observation.generatingRaw > 0 || observation.semanticText.trim().length > 0", "observation.generatingRaw > 0 || observation.composerRaw > 0 || observation.semanticText.trim().length > 0"],
+    ["readExactAssistantTurn(browser, userTurnId, turnMarker, conversationUrl)", 'readExactAssistantTurn(browser, userTurnId, "constant-marker", conversationUrl)'],
+    ["const waitForProviderObservation = requireObservationGate(context);", "await readExactAssistantTurn(browser, userTurnId, turnMarker, conversationUrl); const waitForProviderObservation = requireObservationGate(context);"],
+  ]) {
+    const mutant = baseline.replace(original!, replacement!);
+    assert.notEqual(mutant, baseline, original);
+    writeFileSync(path, mutant);
+    const own = inspect();
+    assert.deepEqual(ownModes(own), [false, false]);
+    assert.equal(own.findings.some(finding => finding.checkId === "gpt/provider-observation-gate-first"), true);
+    writeFileSync(path, baseline);
+  }
 });
 
 test("GPT Provider wait reasons remain a closed diagnostic projection", () => {

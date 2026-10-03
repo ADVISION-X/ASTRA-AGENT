@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Node, Project, SyntaxKind } from "ts-morph";
+import { astExecutableTree } from "../../shared/ast-node-identity.js";
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { sourceFor } from "./gpt-inspection-support.js";
@@ -210,16 +211,8 @@ const frozenTextResponseSource = [
   "    throw executionFailure(\"failed\", \"GPT_RESPONSE_TIMEOUT\");",
   "  };",
 ].join("\n");
-const responseExecutionTokens = (file: import("ts-morph").SourceFile): readonly (readonly [number, number, string])[] =>
-  file.getStatements().filter(statement => !Node.isTypeAliasDeclaration(statement)).flatMap(statement =>
-    [statement, ...statement.getDescendants()].filter(node =>
-      ![node, ...node.getAncestors()].some(ancestor =>
-        ancestor.getKind() >= SyntaxKind.FirstJSDocNode && ancestor.getKind() <= SyntaxKind.LastJSDocNode))
-      .map(node => {
-        const children = node.getChildren().filter(child =>
-          child.getKind() < SyntaxKind.FirstJSDocNode || child.getKind() > SyntaxKind.LastJSDocNode);
-        return [node.getKind(), children.length, children.length === 0 ? node.getText() : ""] as const;
-      }));
+const responseExecutionTokens = (file: import("ts-morph").SourceFile): readonly string[] =>
+  file.getStatements().filter(statement => !Node.isTypeAliasDeclaration(statement)).map(astExecutableTree);
 export const textResponseTwoGateSettlementIsFrozen = (source: string): boolean => {
   const project = new Project({ useInMemoryFileSystem: true });
   const actual = project.createSourceFile("checkpoint.ts", source);
@@ -232,9 +225,7 @@ export const providerWaitReasonProjectionIsFrozen = (contract: string, lifecycle
   return contract.includes("reason: GptProviderObservationWaitReason") && reasons.every(reason => contract.includes(JSON.stringify(reason)))
     && reasons.slice(0, 5).every((reason, index) => lifecycle.includes(`${JSON.stringify(reason)}: ${JSON.stringify(codes[index])}`))
     && lifecycle.includes('reason === "generated-image-source-pending"') && lifecycle.includes('"GPT_PROVIDER_WAIT_ACTIVE"') && lifecycle.includes("reason in textCodes")
-    && textHandler.includes('nextWaitReason: GptProviderObservationWaitReason = "initial-observation"') && textHandler.includes("observationDeadline, nextWaitReason")
-    && textHandler.includes('nextWaitReason = "exact-user-turn-unavailable"') && textHandler.includes('nextWaitReason = "adjacent-assistant-missing"')
-    && compact(textHandler).includes('?"stop-present":"stopped-empty-confirming"') && imageHandler.includes('deadline, "generated-image-source-pending"');
+    && textResponseTwoGateSettlementIsFrozen(textHandler) && imageHandler.includes('deadline, "generated-image-source-pending"');
 };
 const atomicExecutionIsFrozen = (context: InspectorContext): boolean => {
   const atomic = sourceFor(context, `${ROOT}/production-atomic-call.ts`);
@@ -286,18 +277,6 @@ const frozenBlueprints = (read: (path: string) => string): boolean => {
     && ["FROZEN-GPT-ATTACHMENT-PROVIDER-DUPLICATE-SUFFIX-001", "FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001", "chatgptPageAccessNotBefore", "detection→dispatch可豁免1.5秒"].every(token => browser.includes(token))
     && [gpt, browser].every(value => value.includes("(<8位十进制日期>-<6位十进制时间>)"));
 };
-const submitAndAttachmentPoliciesAreFrozen = (read: (path: string) => string): boolean => {
-  const contract = read(`${ROOT}/contract.ts`), submit = read(`${ROOT}/children/submit_exact_gpt_turn_once/handler.ts`);
-  const candidate = read("src/lib/browser/chrome-extension/dom-coherent-candidate.ts");
-  return /attach_approved_gpt_files_once:[^\n]+profile: "TARGET_LOCAL_MUTATION"[^\n]+replayPolicy: "target-local-per-generation"/u.test(contract)
-    && /submit_exact_gpt_turn_once:[^\n]+profile: "PROVIDER_EFFECT_ONCE"[^\n]+replayPolicy: "provider-effect-once"/u.test(contract)
-    && ["expectedPromptHash: promptHash", "expectedAttachmentLabels: files.map(file => file.providerDisplayName)",
-      "userTurnSelector: GPT_USER_TURN_SELECTOR", "latestGptUserTurn: true", "GPT_EMPTY_COMPOSER_SELECTOR"].every(token => submit.includes(token))
-    && read(`${ROOT}/schema.ts`).includes("normalizeGptProviderAttachmentLabel")
-    && read(`${ROOT}/children/reconcile_gpt_attachment_set/observation.ts`).includes("normalizeGptProviderAttachmentLabel(label, expectedLabels)")
-    && candidate.includes("expectedLabels.includes(providerLabel(label))")
-    && !/priorTurns\.length > 1|querySelectorAll\(outgoing\.userTurnSelector\)|baselineOrdinal \+ 2/u.test(candidate);
-};
 export const inspectFrozenAttemptBoundary = (context: InspectorContext, findings: InspectorFinding[], evidenceMode: "static.ast" | "static.contract"): void => {
   const read = (path: string): string => { const absolute = resolve(context.sealedRoot, path);
     return sourceFor(context, path)?.getFullText() ?? (existsSync(absolute) ? readFileSync(absolute, "utf8") : ""); };
@@ -305,8 +284,8 @@ export const inspectFrozenAttemptBoundary = (context: InspectorContext, findings
   const checkpoint = read(`${ROOT}/children/checkpoint_gpt_text_response/handler.ts`), image = read(`${ROOT}/children/checkpoint_gpt_generated_image/handler.ts`);
   const seo = read("src/plugins/public-knowledge-article-pipeline/seo-submit-readback.ts");
   const valid = atomicExecutionIsFrozen(context) && atomicProjectionIsFrozen(context) && atomicReadbackIsFrozen(context)
-    && frozenBlueprints(read) && submitAndAttachmentPoliciesAreFrozen(read)
-    && textResponseTwoGateSettlementIsFrozen(checkpoint) && providerWaitReasonProjectionIsFrozen(contract, lifecycle, checkpoint, image)
+    && frozenBlueprints(read)
+    && providerWaitReasonProjectionIsFrozen(contract, lifecycle, checkpoint, image)
     && contract.includes("browserAtomicIdentity?: BrowserAtomicStepIdentity") && read(`${ROOT}/product-api.ts`).includes("readConfirmedSubmit(")
     && read("src/plugins/public-knowledge-article-pipeline/seo-gpt-calls.ts").includes("context.gpt.readConfirmedSubmit")
     && /await input\.read\(\)[\s\S]*await input\.prepare\(\)[\s\S]*await input\.execute\(\)/u.test(seo)

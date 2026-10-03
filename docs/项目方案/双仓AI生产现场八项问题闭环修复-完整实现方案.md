@@ -1,6 +1,6 @@
 # 双仓 AI 生产现场八项问题闭环修复：完整实现方案
 
-状态：**已获施工授权，处于代码与质检重构阶段。施工前双仓现役法案/施工图完整遍历及两遍主审已完成；片区扩面至61个完整文件，均已整文件删除读回，60份必要实现/验收重建，1份失效检查器永久删除。第4轮ASI finding已按整文件清场纪律重建完整AST结构投影，主AI完成两遍自检，当前第5轮整候选待三名审查者复核；原生CHANGE、READY、RELEASE尚未取得当前源码候选的通过结果。片区行数、函数数及圈复杂度均下降，圈复杂度降幅很小；四项RELEASE原生证明缺口保留。**
+状态（2026-10-03 施工记录）：**已获施工授权，69个完整文件已按先整份删除、确认ABSENT、再重建执行；68份必要实现/验收保留，1份失效检查器永久删除。原main `92bb5a97c36bc5375940a1c6b84cd52d34102fd2` 的READY失败已按三层鉴权处理；主AI两遍法案/BP复核和两遍实现自检完成，三名只读审查已完成实质代码审查。法案/BP/合同及原预算未改。后续CHANGE、READY、RELEASE结果只认对应原生Git commit和唯一质量报告，本方案施工记录不构成质量结论。**
 
 本文原位取代 2026-09-26 的施工指令。历史内容可在 `0838ca195` 的同路径读取；历史施工事实不倒写，历史未关闭事项见 §3。授权人于本会话随后明确授权按照既定方案执行，范围为必要的法案、施工图、代码、质检和数据库操作，并要求冻结 ci-full-governance 连续治理、只在主仓 main 施工。文档通过审计不代表代码已修复，也不代表 CHANGE、READY、RELEASE 或生产成功。
 
@@ -18,10 +18,10 @@
 
 ## 2. 当前 authority 与候选绑定
 
-| 对象 | 本轮绑定 |
+| 对象 | 原始施工准入绑定及当前只读读回 |
 | --- | --- |
-| AGENT | realpath `/Users/nexgen/Documents/AGENT`；`main`；HEAD `aa626f987bad9af4bef74fc1405b2edf1bc912d6`；tracking `origin/main`；HEAD 与 origin/main 相同；仅本文有未提交修改，授权人已于本会话明确指定继续审计并更新该版本；其他路径干净 |
-| Website | realpath `/Users/nexgen/Documents/xuanxue-web`；`main`；HEAD `3f81a8c70578e9edb6558ff2379b430d783bac68`；tracking `origin/main`；只读，工作树干净 |
+| AGENT | realpath `/Users/nexgen/Documents/AGENT`；`main`；原始重构基线HEAD `aa626f987bad9af4bef74fc1405b2edf1bc912d6`，当时与origin/main相同、仅本文dirty；2026-10-03最终修订审查时HEAD `92bb5a97c36bc5375940a1c6b84cd52d34102fd2`，本轮授权的唯一方案及10份实现/质检/验收文件dirty，未经原生提交不得宣称clean READY |
+| Website | realpath `/Users/nexgen/Documents/xuanxue-web`；`main`；HEAD `3f81a8c70578e9edb6558ff2379b430d783bac68`；tracking `origin/main`；2026-10-03最终审查时behind 2且存在另一Bazi工单并发D/M，包含SYSTEM-BLUEPRINT的Bazi段落；两份active法案、ai-acceptance Blueprint、V6/task-result合同、registry及本次admission/localization consumer只读核无变。保留全部并发改动，不称Website clean；本轮只交付AGENT本仓READY，不外推跨仓动态成立 |
 | 两仓根入口 | `AGENTS.md` 同字节 SHA256 `861569b40c535f2180511885df05d53ec893e4e746475c16e182a395bbd7e91e`；命中源码与验收目录未发现更具体 AGENTS.md |
 | 两仓顶层说明书 | `docs/governance/法案系统建设说明书-冻结定稿版.md` 同字节 SHA256 `27a143ecd7016887d056255e106f49caa29d83d06245ff21ea5c0ffd62b98c3a`；完整读取源头，generated registry 仅定位 |
 | AGENT 基础法案 | `.github/instructions/agent-rules/基础法案.md` SHA256 `f1970c2416127f8bcdf560d0fd81105895924c4ed2cdd23f6a08ae910998d2f3`；`LAW-CODE-PURITY-001-V6/-002-V2/-003-V3`；存在性冻结要求不因重构削弱 |
@@ -269,7 +269,7 @@ L 整文件重写后维持既有 formatter 合同：`failure.code` 由当前 Own
 
 清单不是修改几行的许可。以下 **所有 production files 和命中验收文件** 在构建新主链前整文件删除；按既有路径重写有事实依据的责任，禁止 git checkout/restore、旧文件整体复制、改名复活或先覆盖再说已删除。合法的 domain public contract 和持久事实是边界输入，不为清场删除数据或修改 law。
 
-全清场61个完整文件：33生产、8现役inspector重建、1失效inspector永久删除、19验收。生产文件按完整路径列在附录。G清场共享事实映射→11个实际调用者→ability proof→atomic执行/readback→production result/support/tools；T清场现役lane预算→target request签发→preflight→created target→target authority→interaction guard及同 job release 回执直接生产者；N清场extension reply/worker→strict transport→actor/failure；L清场现役 failure formatter；Q清场八个现役inspector整文件重建、一份失效inspector整文件永久删除及相关mutants。前后方不是只删三个报错 handler。
+全清场69个完整文件：33生产、13现役质检实现重建、1失效inspector永久删除、21验收、1治理测试。生产文件按完整路径列在附录。G清场共享事实映射→11个实际调用者→ability proof→atomic执行/readback→production result/support/tools；T清场现役lane预算→target request签发→preflight→created target→target authority→interaction guard及同 job release 回执直接生产者；N清场extension reply/worker→strict transport→actor/failure；L清场现役 failure formatter；Q清场十三个现役inspector整文件重建、一份失效inspector整文件永久删除及相关mutants。前后方不是只删三个报错 handler。
 
 | 重建单元 | 当前必要性与真实消费者 | 删除后具体坏处 / 验证 | 重建与削减裁决 |
 | --- | --- | --- | --- |
@@ -468,7 +468,13 @@ GPT执法重建统一九函数同一语义分母：真实完整call实参、bran
 
 本次主审第1遍正向核该唯一静态投影与现役GPT冻结两门、九函数、20分钟、完整原literal/import/声明绑定；无新增运行期gate/hash、第二质量Owner或新文件。第2遍逆向沿原native静态调用及exact-target验收实际执行、Browser原Authority恰一次mutation/observation反例和完整原法条分母读回，确认没有以ASI修订缩减其它检查。两遍未发现新的已知finding；不宣称百分比准确度或原生PASS。当前typecheck与GPT exact-target全部正负反例exit0，61文件原生结构原语为15367→7537行、1246→1205函数、3257→3246圈复杂度，原预算无越线；62个实际差异路径仍为61TS+唯一方案，Website clean，authority/contract/dependency不变。当前第5轮候选重新冻结，前三轮及第4轮旧候选放行均不覆盖它，三名只读审查者未全体放行前不进入原生CHANGE。
 
+本轮扩面与质检收敛实际完成：十份文件再次同时unlink、逐个ABSENT后整份Add，末尾空行同样通过整文件清场修正；媒体case外重复调用反例补齐，并保持总native调用恰一次。唯一AST原语静态记录kind/arity/leaf，GPT排除原纯TypeAlias，JSDoc/trivia不改变树，ASI与literal内容不可合并。全69原始分母18259→10567行、1618→1598函数、3835→3834圈复杂度，降幅不外推；src/scripts原预算不变且无越线，治理tests是母本78的既有反例承载，不套用基础法案src/scripts范围预算。主AI第1遍正向核当前完整69文件责任及shared AST四个真实消费者；第2遍逆向核原唯一native调用/所有mode-clause、原治理反例、未变生产CAS/ACK/业务admission与四项Dynamic NOT_ADMITTED。无新增Owner/字段/协议/存储/文件/入口，未操作生产Chrome、DB、服务或运行扩展bundle。普通类型及目标GPT/Browser负向验证通过，startup真实临时nativebuild当前/漂移/重建三分支已exit0；这些结果不产生质量verdict。三名只读审查开始前冻结整个overlay，任何finding使放行失效并由主AI整文件清场修订，未全体放行不进入CHANGE。
+
 ## 附录：精确清场路径与候选
+
+复杂度复核将全部69文件作为同一前后分母：上一中间候选圈复杂度3815→3853不满足仅降低规则，未进入审计或原生CHANGE。主AI两遍正反权威复核确认GPT Provider重复文本顺序检查已由同Owner原完整AST承担，提交/附件前置已由原contract/provider/attachment各自完整承担；其余独有coherent候选约束留在Provider。既有ast-node-identity为四个实际静态Inspector提供同义kind/arity/leaf树比较，删除并行分组扫描，不新建工具文件/Owner/运行门/字段。Browser只静态绑定本次认证reply、唯一verified terminal和受guard媒体分支，原函数及方法仍是唯一真实执行者；语义反例和原质量路由不删。该工具文件完整删除后重建，相关十份文件再次整文件清场，随后重新核算整个分母。
+
+首轮原生READY在main `92bb5a97c36bc5375940a1c6b84cd52d34102fd2` exit1。CODE-PURITY-003-V3发现两份原消费者退役后留下四个无消费者导出；Browser001/004/006的三份检查器分别仍要求旧requestSequence变量、旧raw receipt赋值、旧if形态。两项治理测试分别钉旧parent局部名，以及证明Provider诊断检查漏拒handler末尾第三门。Startup001/002验收直接读取本机正在使用的旧build，无法作为当前clean commit的确定性Exam。主AI完整读取直接法条/BP与真实native消费者，正反两遍确认不必修改任何法案/BP：七份直接消费者扩面并整文件删除重建，frozen inspector再次清场；删除四个死导出、原静态投影复用到诊断检查、移除重复两门调用，三份Browser检查按真实AST绑定原合同并用漂移反例验证。Startup在本测试已有临时目录中复制当前src、只读复用node_modules，调用原唯一builder与preflight，证明当前/源漂移拒绝/重建后三种事实，并finally清理；不得改生产build目录、运行Chrome、改静态质量等级或伪造Dynamic。完整原治理反例、原mode/clause分母和结构预算均保留。新增状态/Owner/字段/协议/入口/治理文件为零，当前新候选尚无原生通过结果。
 
 下列路径属于AGENT根；每条都是完整文件，实际清场不使用目录通配符，以免删除未证明职责。计划文件自身不在清场集合。
 
@@ -508,11 +514,16 @@ GPT执法重建统一九函数同一语义分母：真实完整call实参、bran
 - `src/lib/browser/exact-target/browser-mutation-authority.ts`
 - `src/lib/runtime-logs/failure.ts`
 
-现役质检实现（8 个，整文件删除重构）：
+现役质检实现（13 个，整文件删除重构）：
 
 - `scripts/audit/domains/gpt/gpt-contract-inspection.ts`
 - `scripts/audit/domains/gpt/gpt-provider-contract-inspection.ts`
 - `scripts/audit/domains/gpt/gpt-frozen-attempt-inspection.ts`
+- `scripts/audit/domains/gpt/gpt-inspection-support.ts`
+- `scripts/audit/shared/ast-node-identity.ts`
+- `scripts/audit/domains/local-browser-session/transport-inspector.ts`
+- `scripts/audit/domains/local-browser-session/mutation-atomicity-inspection.ts`
+- `scripts/audit/domains/local-browser-session/opaque-proof-inspection.ts`
 - `scripts/audit/domains/gpt/inspector.ts`
 - `scripts/audit/domains/gpt/gpt-attachment-contract-inspection.ts`
 - `scripts/audit/domains/local-browser-session/target-claim-inspection.ts`
@@ -523,7 +534,7 @@ GPT执法重建统一九函数同一语义分母：真实完整call实参、bran
 
 - `scripts/audit/domains/gpt/gpt-page-proof-inspection.ts`
 
-命中验收文件（19 个，同样先整文件删除再重写有效验收）：
+命中验收文件（21 个，同样先整文件删除再重写有效验收）：
 
 - `src/capabilities/gpt/acceptance/gpt-exact-target-browser-fixture.ts`
 - `src/capabilities/gpt/acceptance/gpt-exact-target-source-support.ts`
@@ -544,16 +555,24 @@ GPT执法重建统一九函数同一语义分母：真实完整call实参、bran
 - `scripts/acceptance/browser-lane-fifo-support.ts`
 - `scripts/acceptance/browser-lane-fifo.acceptance.ts`
 - `scripts/acceptance/runtime-log-spine-failure-matrix.acceptance.ts`
+- `src/capabilities/gpt/acceptance/gpt-page-fixture-selectors.ts`
+- `scripts/acceptance/startup-initialization-health.acceptance.ts`
+
+原生治理测试直接消费者（1 个，整文件删除重建；所有无关反例原样保留）：
+
+- `tests/governance/quality-contract.test.ts`
 
 以上精确清场路径绑定§2两仓原生HEAD；没有第二候选hash/receipt。这不是全仓穷尽审查或原生质量结果。
 
 
 只读稳定边界（不在代码清场范围；均绑定§2同一仓HEAD及clean source）：
 
-- AGENT `AGENTS.md`、两份active law、母说明书、`scripts/audit/generated/law-registry.generated.json`、§2/四维表四份Blueprint、两个V6/task-result dependency、`package.json`、相关domain manifests和code-purity结构扫描器；定义authority和唯一quality，不因本轮代码重构修改。附录八份直接inspector及一份失效inspector分别按Q工单整文件重建或永久删除，其余原生quality边界不变。
+- AGENT `AGENTS.md`、两份active law、母说明书、`scripts/audit/generated/law-registry.generated.json`、§2/四维表四份Blueprint、两个V6/task-result dependency、`package.json`、相关domain manifests和code-purity结构扫描器；定义authority和唯一quality，不因本轮代码重构修改。附录十三份现役质检实现及一份失效inspector分别按Q工单整文件重建或永久删除，其余原生quality边界不变。
 - Browser `src/lib/browser/browser-authority-api.ts`、`exact-target/browser-target-lease.ts`、`browser-mutation-{store,receipt,types}.ts`、`browser-observation-receipt.ts`、`browser-command-postcondition.ts`、`browser-interaction-native-cause.ts`、`browser-site-policy-registry.ts`、`chrome-extension/{debugger-runtime,extension-target-observation,extension-target-loss,chatgpt-page-access-gate,exact-target-runtime,websocket-actor-crypto,service-worker}.ts`、`transport/browser-authority-frame-codec.ts`、现役protocol/schema/errors/generated：原物理事实与安全primitive、原槽hash/序列、当前registry；已定位没有本次G的第二语义判定，N只复用允许code，T不改变低层节拍/primitive或持久化。删除它们会丢公开原事实、现实identity或唯一加密通道，真实consumer与§8正反验收证明必要；不是保留旧业务包装层。`extension-target-release.ts` 已因施工发现的同链生产合同断裂移入59文件清场，不再属于本保留集合。
 - GPT `src/capabilities/gpt/{contract,handler-registry,product-api,production-ports,production-browser-lifecycle,production-call-preparation,production-execution-session,production-execution-source-reuse,evidence-artifacts}.ts` 与命中Child的 observation/selectors、`src/plugins/localization-production/{index,flow,static-catalog-flow}.ts`：当前任务/语义输入、真实调用注册、实时Document getter、原一次Product Flow及完整回答读回；不改变它们合同/选择策略，无第二Browser成功解释或本轮根因决定。单独删除会断真实入口或原结果，保持原Owner边界。执行若发现实际责任重复与本裁决相反，按§7扩整文件片区并重新审计，不能边写边猜。
 - Runtime `src/lib/local-runtime/production/{runtime-claim,runtime-claim-recovery,runtime-source-handoff,runtime-business-admission,store,cloud-reconciliation-client}.ts` 与唯一Outbox消费者：真实durable accept、fence、immutable first fact、源证明与domain receipt机械读回；不因日志code变化改恢复授权。
 - Website两份active law/registry、`docs/blueprints/{SYSTEM-BLUEPRINT.md,domains/ai-acceptance/AI-ACCEPTANCE-BLUEPRINT.md}`、provider specs与`packages/ai-contracts/src/{agent-task,production-control}/`实际schema、`services/api/src/ai-production/{job-lifecycle-core,job-lifecycle-repository,job-claim-authority,job-claim-repository,business-result-consumer}.ts`、`services/api/src/localization/{localization-completion-worker,localization-static-catalog-consumer,localization-static-current}.ts`、对应现役合同exam：独立domain完成Owner及attempt/retry权威；不接Target/URL，不修改这些边界。删它们会失去领域admission、当前源资格或唯一授权，B1–B3精确readback是保留证据。
 
 边界条目用于有界读取，不授权通配符删除、全目录重写或新增治理结构。执行时将目录内实际合同artifact按provider spec精确展开，相关候选仍以原生Git commit和实际dirty绑定，不另生成清单文件。
+
+本轮只读审查发现的质检责任同属上述Q片区：局部CaseClause、pending写入或方法body不足以证明真实执行控制归属。transport检查须在既有文件绑定send的socket序号产生、frame、pending、递增及同步reply接纳/调用；mutation检查须绑定原completeMutation同步声明及其execute异常责任；media检查须绑定dispatcher的真实switch和Authority返回/调用完整根。它们替换原局部拼接和重复计数，不增加运行Owner、门、存储或质量入口。GPT完整文本判据继续只有一份，但001的static.ast/contract现役callback与002专属callback必须分别实际消费并形成各自逐法结果，不能用002失败替代001。五份现役checker/治理测试再次先整文件删除并确认ABSENT，再按这些原法案要求重建；原生产33文件、法案/BP/预算不因检查器修复改变。反例必须覆盖外层switch漂移、socket序号改用permit或常量、完整调用/返回责任及同步改async、原marker漂移与observation前额外读取，并以现役原生checker实际拒绝证明；仅文字或手工总体判断不成立。

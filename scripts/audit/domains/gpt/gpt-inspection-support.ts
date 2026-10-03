@@ -9,25 +9,8 @@ export type FindingFactory = (
   line?: number,
 ) => InspectorFinding;
 
-export const inspectMissingTokens = (input: Readonly<{
-  source: string;
-  required: readonly string[];
-  checkId: string;
-  filePath: string;
-  findings: InspectorFinding[];
-  finding: FindingFactory;
-  message(required: string): string;
-}>): void => {
-  for (const required of input.required) if (!input.source.includes(required)) {
-    input.findings.push(input.finding(input.checkId, input.filePath, input.message(required)));
-  }
-};
-
 export const sourceFor = (context: InspectorContext, path: string): SourceFile | undefined =>
   context.project.getSourceFile(resolve(context.sealedRoot, path));
-
-export const sourceTextForPaths = (context: InspectorContext, paths: readonly string[]): string =>
-  paths.map((path) => sourceFor(context, path)?.getFullText() ?? "").join("\n");
 
 const readOnlyDomIntents = new Set([
   "document", "observe", "readExactAssistantTurn", "find", "inspect", "readAttribute", "readText",

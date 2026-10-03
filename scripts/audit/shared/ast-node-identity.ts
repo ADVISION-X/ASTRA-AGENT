@@ -31,3 +31,15 @@ export const astExpressionPath = (node: MorphNode | undefined): string | undefin
   }
   return undefined;
 };
+
+/** Static syntax facts retain control ancestry, arity and exact literal text; trivia is excluded. */
+export const astExecutableTree = (root: MorphNode): string => JSON.stringify(
+  [root, ...root.getDescendants()].filter(node =>
+    ![node, ...node.getAncestors()].some(ancestor =>
+      ancestor.getKind() >= SyntaxKind.FirstJSDocNode && ancestor.getKind() <= SyntaxKind.LastJSDocNode))
+    .map(node => {
+      const children = node.getChildren().filter(child =>
+        child.getKind() < SyntaxKind.FirstJSDocNode || child.getKind() > SyntaxKind.LastJSDocNode);
+      return [node.getKind(), children.length, children.length === 0 ? node.getText() : ""];
+    }),
+);
