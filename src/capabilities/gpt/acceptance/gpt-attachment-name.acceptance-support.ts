@@ -7,10 +7,71 @@ import {
 import type { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
 import { coherentObservationPacket, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
 import { providerAttachmentName } from "./gpt-exact-target-source-support.js";
+import { withSyntheticDom } from "../../../../scripts/acceptance/local-browser-dom-function-fixture.js";
+import { conversationFacts } from "./gpt-exact-target-conversation-fixture.js";
 
 export const attachmentSha256 = `sha256:${"1".repeat(64)}` as const;
 export const approvedAttachment = Object.freeze({
   artifactRef: "artifact:1", displayName: "甲.pdf", sha256: attachmentSha256, bytes: 10,
+});
+
+export const exerciseNativeAttachmentCardConsumers = async (
+  execute: ReturnType<typeof createGptAcceptanceHarness>["execute"],
+): Promise<void> => withSyntheticDom(async page => {
+  const files = [
+    { ...approvedAttachment, displayName: "payment.png" },
+    { ...approvedAttachment, artifactRef: "artifact:json", displayName: "contract.json" },
+  ];
+  const names = files.map(file => providerAttachmentName(file.displayName, file.artifactRef));
+  for (const scenario of ["image", "json", "mixed", "missing", "foreign", "duplicate", "image-pending", "json-pending", "empty"] as const) {
+    const selected = files.filter((_file, index) => scenario !== "empty"
+      && (scenario !== "image" || index === 0) && (scenario !== "json" || index === 1));
+    const image = ["json", "missing", "empty"].includes(scenario) ? "" : `<div role="button"
+      class="composer-attachment-surface ${scenario === "image-pending" ? "cursor-wait" : ""}"
+      aria-label="${scenario === "foreign" ? "foreign.png" : names[0]}">Image</div>`;
+    const json = ["image", "empty"].includes(scenario) ? "" : `<button
+      class="composer-attachment-surface ${scenario === "json-pending" ? "cursor-wait" : ""}"
+      aria-label="${scenario === "duplicate" ? names[0] : names[1]}">JSON</button>`;
+    await page.setContent(`<form data-chatgpt-composer>${image}${json}
+      <span class="composer-attachment-surface">decoration</span>
+      <div class="composer-attachment-surface" aria-label="decoration">decoration</div></form>
+      <div role="button" class="composer-attachment-surface" aria-label="outside.png">Outside</div>`);
+    const fixture = fakeBrowser(async intent => {
+      if (intent.kind !== "observe") throw new Error("CARD_RECONCILIATION_MUST_NOT_ACT");
+      const facts = await page.evaluate(queries => Object.fromEntries(queries.map(query => {
+        const scopes = query.scope ? Array.from(document.querySelectorAll(query.scope.selector)) : [document.documentElement];
+        const nodes = scopes.flatMap(scope => Array.from(scope.querySelectorAll(query.selector)));
+        const eligible = nodes.filter(node => node.getClientRects().length > 0);
+        return [query.queryId, { rawCount: nodes.length, eligibleCount: eligible.length,
+          matches: eligible.map(node => ({ ariaLabel: node.getAttribute("aria-label") ?? "" })) }];
+      })), intent.queries.filter(query => ["attachments", "attachment-items", "attachment-pending", "attachment-uploading"].includes(query.queryId)));
+      return coherentObservationPacket(intent, { ...conversationFacts(""), ...attachmentControlFacts("open"),
+        "attachment-composer": { rawCount: 1, eligibleCount: 1 }, ...facts });
+    }, { onWait: duration => { now += duration; } });
+    let now = 0;
+    const native = Date.now;
+    Date.now = () => now;
+    try {
+      const result = await execute("reconcile_gpt_attachment_set", fixture.browser, { files: selected, timeoutMs: 1500 });
+      const valid = ["image", "json", "mixed", "empty"].includes(scenario);
+      assert.equal(result.status, valid ? "success" : "failed", scenario);
+      if (!valid) assert.ok(result.failureCode?.startsWith(scenario.endsWith("pending")
+        ? "GPT_ATTACHMENT_UPLOAD_TIMEOUT:" : "GPT_ATTACHMENT_SET_MISMATCH:"), scenario);
+      if (scenario === "image") {
+        assert.equal((await execute("prepare_clean_gpt_chat", fixture.browser, { timeoutMs: 1500 })).failureCode, "GPT_CHAT_ATTACHMENT_PRESENT");
+        const foreign = await execute("attach_approved_gpt_files_once", fixture.browser, { files: [] });
+        assert.ok(foreign.failureCode?.startsWith("GPT_ATTACHMENT_SET_MISMATCH:"), scenario);
+      }
+      if (scenario === "foreign") {
+        assert.ok((await execute("attach_approved_gpt_files_once", fixture.browser, { files })).failureCode
+          ?.startsWith("GPT_ATTACHMENT_COMPOSER_FOREIGN_CARDS:"));
+      }
+      if (scenario === "empty") {
+        assert.equal((await execute("attach_approved_gpt_files_once", fixture.browser, { files: [] })).status, "success");
+      }
+      assert.equal(fixture.physicalMutations(), 0, scenario);
+    } finally { Date.now = native; }
+  }
 });
 export const hiddenPopoverRejections = Object.freeze(Array.from({ length: 22 }, (_, index) => Object.freeze({
   index, reasons: Object.freeze(["NO_LAYOUT_BOX"]),

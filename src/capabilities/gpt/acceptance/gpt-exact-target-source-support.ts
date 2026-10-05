@@ -95,6 +95,8 @@ const assertAttachmentInspectorCounterexamples = (baseUrl: string): void => {
   const root = fileURLToPath(new URL("../../../../", baseUrl)), project = new Project({ useInMemoryFileSystem: true });
   const gpt = "src/capabilities/gpt";
   const files = [
+    "src/capabilities/gpt/children/prepare_clean_gpt_chat/selectors.ts",
+    "src/capabilities/gpt/children/submit_exact_gpt_turn_once/selectors.ts",
     "src/capabilities/gpt/schema.ts", "src/capabilities/gpt/contract.ts", "src/capabilities/gpt/product-api.ts",
     "src/capabilities/gpt/children/attach_approved_gpt_files_once/handler.ts", "src/capabilities/gpt/children/attach_approved_gpt_files_once/selectors.ts",
     "src/capabilities/gpt/children/attach_approved_gpt_files_once/attachment-observation.ts", "src/capabilities/gpt/children/attach_approved_gpt_files_once/control-observation.ts",
@@ -116,6 +118,19 @@ const assertAttachmentInspectorCounterexamples = (baseUrl: string): void => {
       ({ checkId, filePath, message, lawId, clauseId: lawId, evidenceMode: "static.ast", severity: "fatal" }));
     return findings;
   };
+  assert.deepEqual(inspect(), []);
+  for (const path of files.filter(path => path.endsWith("/selectors.ts") && !path.includes("open_gpt_attachment_control"))
+    .concat("src/lib/browser/chrome-extension/extension-file-input-runtime.ts")) {
+    const source = project.getSourceFileOrThrow(resolve(root, path)), before = source.getFullText();
+    for (const obsolete of ["button.composer-attachment-surface[aria-label]", ".composer-attachment-surface"]) {
+      const mutant = before.replace(":is(button, div[role='button']).composer-attachment-surface[aria-label]", obsolete);
+      assert.notEqual(mutant, before, path);
+      try {
+        source.replaceWithText(mutant);
+        assert.ok(inspect().some(finding => finding.checkId === "gpt/chrome-proven-attachment-dom" && finding.filePath === path), path);
+      } finally { source.replaceWithText(before); }
+    }
+  }
   assert.deepEqual(inspect(), []);
   const source = project.getSourceFileOrThrow(resolve(root, gpt + "/children/reconcile_gpt_attachment_set/observation.ts"));
   const before = source.getFullText(), original = "if (state.composerRawCount > 1";

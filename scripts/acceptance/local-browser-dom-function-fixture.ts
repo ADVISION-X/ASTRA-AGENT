@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { runInNewContext } from "node:vm";
+import { chromium, type Page } from "playwright";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import type { ExtensionDebuggerRuntime } from
   "../../src/lib/browser/chrome-extension/debugger-runtime.js";
@@ -7,6 +8,17 @@ import { readExactEditableText } from
   "../../src/lib/browser/chrome-extension/dom-exact-editable-text.js";
 
 type Style = Readonly<{ display?: string; visibility?: string; opacity?: string; pointerEvents?: string }>;
+
+// Native Exam only: an ephemeral, intercepted loopback page supplies real CSS and Web Crypto.
+export const withSyntheticDom = async (exercise: (page: Page) => Promise<void>): Promise<void> => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.route("**/*", route => route.fulfill({ contentType: "text/html", body: "<!doctype html><body></body>" }));
+    await page.goto("http://127.0.0.1/native-exam");
+    await exercise(page);
+  } finally { await browser.close(); }
+};
 
 export class FakeElement {
   public isConnected = true;

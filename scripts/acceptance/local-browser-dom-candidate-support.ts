@@ -3,7 +3,7 @@ import type { ExtensionDebuggerRuntime } from
   "../../src/lib/browser/chrome-extension/debugger-runtime.js";
 import { executeRegisteredDomIntent } from
   "../../src/lib/browser/chrome-extension/dom-intent-runtime.js";
-import { FakeElement, FakeTextNode, execute, hash } from "./local-browser-dom-function-fixture.js";
+import { FakeElement, FakeTextNode, execute, hash, withSyntheticDom } from "./local-browser-dom-function-fixture.js";
 import { mutationInfrastructureReply } from "./local-browser-dom-runtime-fixture.js";
 
 const noPageReadBarrier = async (): Promise<void> => undefined;
@@ -224,7 +224,35 @@ export const exerciseCapturedCandidateFunction = async (source: string): Promise
   await exerciseRequiredClickPoint(source);
   await exerciseOutgoingAttachmentIdentity(source);
   await exerciseOutgoingRejections(source);
+  await exerciseNativeOutgoingAttachments(source);
 };
+
+const exerciseNativeOutgoingAttachments = async (source: string): Promise<void> => withSyntheticDom(async page => {
+  const input = { selector: "button[type='submit']", output: "pointer", exactOutgoingTurn: {
+    composerSelector: "form[data-chatgpt-composer] [data-composer-markdown][role='textbox']",
+    composerFormSelector: "form[data-chatgpt-composer]",
+    attachmentSelector: ":is(button, div[role='button']).composer-attachment-surface[aria-label]",
+    userTurnSelector: "[data-turn-key]", expectedPromptHash: hash("approved prompt"),
+    expectedAttachmentLabels: ["payment.png", "contract.json"],
+  } };
+  for (const scenario of ["mixed", "missing", "foreign", "duplicate", "wrong-prompt"] as const) {
+    const image = scenario === "missing" ? "" : `<div role="button" class="composer-attachment-surface"
+      aria-label="${scenario === "foreign" ? "foreign.png" : "payment.png"}">Image</div>`;
+    const json = `<button class="composer-attachment-surface" aria-label="${scenario === "duplicate" ? "payment.png" : "contract.json"}">JSON</button>`;
+    await page.setContent(`<form data-chatgpt-composer><div data-composer-markdown role="textbox" contenteditable="true">${scenario === "wrong-prompt" ? "wrong prompt" : "approved prompt"}</div>
+      ${image}${json}<span class="composer-attachment-surface">decoration</span>
+      <div class="composer-attachment-surface" aria-label="decoration">decoration</div>
+      <button type="submit">Send</button></form>
+      <div role="button" class="composer-attachment-surface" aria-label="outside.png">Outside</div>`);
+    const result = await page.evaluate(async ({ source, input }) =>
+      Reflect.apply((0, eval)(`(${source})`), document.documentElement, [input]), { source, input });
+    if (scenario === "mixed") {
+      assert.ok(result !== null && typeof result === "object" && "x" in result && "y" in result
+        && typeof result.x === "number" && typeof result.y === "number");
+    } else assert.equal(result, scenario === "wrong-prompt" ? "BROWSER_DOM_ACTION_OUTGOING_PROMPT_HASH_MISMATCH"
+      : "BROWSER_DOM_ACTION_OUTGOING_ATTACHMENT_SET_MISMATCH", scenario);
+  }
+});
 
 export const exerciseNativePointerSequences = async (): Promise<void> => {
   const run = async (intent: PointerClickIntent): Promise<readonly Readonly<Record<string, unknown>>[]> => {

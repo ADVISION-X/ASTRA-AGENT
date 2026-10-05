@@ -9,6 +9,7 @@
   "ownedPaths": [
     ".agents/skills/gpt-page-operation-evidence/**",
     "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
+    "docs/项目方案/GPT图片附件首次识别替换-完整实现方案.md",
     "docs/项目方案/GPT文本回答扫描门禁根治-完整实现方案.md",
     "docs/项目方案/GPT附件入口OR精确迭代-完整实现方案.md",
     "docs/项目方案/GPT页面DOM与代码差距报告.md",

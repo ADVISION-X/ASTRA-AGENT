@@ -15,15 +15,14 @@ const expectedSelectors = {
   GPT_UPLOAD_FROM_COMPUTER_SELECTOR: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-actions'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-context'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child",
   GPT_UPLOAD_FROM_COMPUTER_KEYWORD: "上传",
   GPT_COMPOSER_FORM_SELECTOR: "form[data-chatgpt-composer]",
-  GPT_ATTACHMENT_ITEM_SELECTOR: "button.composer-attachment-surface[aria-label]",
+  GPT_ATTACHMENT_ITEM_SELECTOR: ":is(button, div[role='button']).composer-attachment-surface[aria-label]",
 } as const;
 
-const inspectAttachmentSelectors = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
-  const selectorPath = child("attach_approved_gpt_files_once", "selectors.ts");
+const inspectAttachmentEntrySelectors = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
   for (const id of ["open_gpt_attachment_control", "attach_approved_gpt_files_once"]) {
     const path = child(id, "selectors.ts"), selectors = sourceFor(context, path);
     for (const [name, value] of Object.entries(expectedSelectors)) {
-      if (id === "open_gpt_attachment_control" && name === "GPT_ATTACHMENT_ITEM_SELECTOR") continue;
+      if (name === "GPT_ATTACHMENT_ITEM_SELECTOR") continue;
       const initializer = selectors?.getVariableDeclaration(name)?.getInitializer();
       check((Node.isStringLiteral(initializer) || Node.isNoSubstitutionTemplateLiteral(initializer)) && initializer.getLiteralValue() === value,
         "gpt/chrome-proven-attachment-dom", path, `${name} must retain the exact approved Chrome selector.`, findings, finding);
@@ -38,7 +37,31 @@ const inspectAttachmentSelectors = (context: InspectorContext, findings: Inspect
   const approved = checks[0]?.getRight();
   check(checks.length === 1 && Node.isStringLiteral(approved) && approved.getLiteralValue() === expectedSelectors.GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
     "gpt/chrome-proven-attachment-dom", browserPath, "Browser must qualify the same exact upload leaf used by GPT.", findings, finding);
-  const settlementSelectors = text(context, child("reconcile_gpt_attachment_set", "selectors.ts"));
+};
+const inspectAttachmentCardSelectors = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
+  for (const id of ["prepare_clean_gpt_chat", "attach_approved_gpt_files_once", "reconcile_gpt_attachment_set", "submit_exact_gpt_turn_once"]) {
+    const path = child(id, "selectors.ts"), selectors = sourceFor(context, path);
+    for (const name of ["GPT_COMPOSER_FORM_SELECTOR", "GPT_ATTACHMENT_ITEM_SELECTOR"] as const) {
+      const value = selectors?.getVariableDeclaration(name)?.getInitializer();
+      check(Node.isStringLiteral(value) && value.getLiteralValue() === expectedSelectors[name],
+        "gpt/chrome-proven-attachment-dom", path, `${name} must match the current scoped card contract.`, findings, finding);
+    }
+  }
+  const browserPath = "src/lib/browser/chrome-extension/extension-file-input-runtime.ts";
+  const phase = sourceFor(context, browserPath)?.getVariableDeclaration("readComposerAttachmentPhase")?.getInitializer();
+  const observations = phase?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter(call => call.getExpression().getText() === "executeCoherentObservation") ?? [];
+  const queries = observations[0]?.getArguments()[2];
+  const cards = Node.isArrayLiteralExpression(queries) ? queries.getElements().filter(Node.isObjectLiteralExpression)
+    .filter(query => query.getProperty("queryId")?.getText() === 'queryId: "attachment-cards"') : [];
+  const selector = cards[0]?.getProperty("selector");
+  const value = Node.isPropertyAssignment(selector) ? selector.getInitializer() : undefined;
+  check(observations.length === 1 && cards.length === 1 && Node.isStringLiteral(value)
+    && value.getLiteralValue() === expectedSelectors.GPT_ATTACHMENT_ITEM_SELECTOR
+    && cards[0]?.getProperty("scope")?.getText() === 'scope: { selector: "form[data-chatgpt-composer]" }',
+  "gpt/chrome-proven-attachment-dom", browserPath, "Browser upload must read the same card contract in its actual scoped phase query.", findings, finding);
+  const selectorPath = child("reconcile_gpt_attachment_set", "selectors.ts");
+  const settlementSelectors = text(context, selectorPath);
   check(settlementSelectors.includes("GPT_ATTACHMENT_PENDING_ACTION_SELECTOR") && settlementSelectors.includes("${GPT_ATTACHMENT_ITEM_SELECTOR}.cursor-wait"),
     "gpt/chrome-proven-attachment-dom", selectorPath, "Attachment reconciliation reads the approved scoped pending cursor state.", findings, finding);
 };
@@ -159,7 +182,8 @@ const inspectAttachmentIdentity = (context: InspectorContext, findings: Inspecto
 
 
 export const inspectGptAttachmentContract = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
-  inspectAttachmentSelectors(context, findings, finding);
+  inspectAttachmentEntrySelectors(context, findings, finding);
+  inspectAttachmentCardSelectors(context, findings, finding);
   inspectAttachmentEntry(context, findings, finding);
   inspectApprovedBatch(context, findings, finding);
   inspectAttachmentSettlement(context, findings, finding);

@@ -29,6 +29,16 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   await exerciseConfirmedSubmitRecovery(plugin, { task, output });
   assert.deepEqual(run.calls.map((call) => call.child), sequence);
   assert.match(String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt), /当前 Product Plugin：payment-screenshot-observation/u);
+  const model = run.calls.find(call => call.child === "select_gpt_model_from_start_v3")!;
+  const reasoning = run.calls.find(call => call.child === "select_gpt_reasoning_from_start_v3")!;
+  assert.deepEqual({ profileRef: model.input.profile.profileRef,
+    startModelDisplayName: model.input.profile.startModelDisplayName,
+    requestedReasoningValue: reasoning.input.profile.requestedReasoningValue }, {
+    profileRef: "payment-screenshot-observation:chatgpt-latest-reasoning-2",
+    startModelDisplayName: "最新", requestedReasoningValue: 2,
+  });
+  assert.deepEqual(model.input.profile, reasoning.input.profile,
+    "payment model and reasoning must consume the same Product profile");
   assert.equal(run.physicalSubmitDispatches, 1);
 }
 process.stdout.write("[ACCEPTANCE][payment-screenshot-observation] PASS\n");

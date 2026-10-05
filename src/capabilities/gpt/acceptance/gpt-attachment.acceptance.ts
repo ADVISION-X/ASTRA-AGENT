@@ -4,7 +4,7 @@ import { createGptAcceptanceHarness } from "./gpt-acceptance-harness.js";
 import { coherentObservationPacket, fakeBrowser } from "./gpt-exact-target-browser-fixture.js";
 import { providerAttachmentName } from "./gpt-exact-target-source-support.js";
 import { approvedAttachment, attachmentControlFacts, exerciseAttachmentLabelDiagnostics, exerciseAttachmentNameNormalization,
-  exerciseForeignComposerCardGate, hiddenPopoverRejections } from "./gpt-attachment-name.acceptance-support.js";
+  exerciseForeignComposerCardGate, exerciseNativeAttachmentCardConsumers, hiddenPopoverRejections } from "./gpt-attachment-name.acceptance-support.js";
 import { GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR, GPT_COMPOSER_FORM_SELECTOR, GPT_ATTACHMENT_PENDING_ACTION_SELECTOR,
   GPT_UPLOAD_FROM_COMPUTER_SELECTOR } from "./gpt-page-fixture-selectors.js";
 const { execute } = createGptAcceptanceHarness("gpt-attachment");
@@ -141,3 +141,4 @@ const verifyDeadline = async (): Promise<void> => {
 };
 exerciseAttachmentNameNormalization(); await verifyMenu(); await verifyMenuConflicts(); await verifyBatch(); await verifyReconciliation(); await verifyDeadline();
 await exerciseAttachmentLabelDiagnostics(execute, attachmentFacts); await exerciseForeignComposerCardGate(execute);
+await exerciseNativeAttachmentCardConsumers(execute);

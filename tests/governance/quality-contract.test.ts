@@ -1664,6 +1664,26 @@ test("GPT001 native AST and contract routes reject text settlement and attachmen
     assert.equal(ownModes(own).includes(false), true);
     writeFileSync(absolutePath, original);
   }
+  for (const selectorPath of [
+    "src/capabilities/gpt/children/prepare_clean_gpt_chat/selectors.ts",
+    "src/capabilities/gpt/children/attach_approved_gpt_files_once/selectors.ts",
+    "src/capabilities/gpt/children/reconcile_gpt_attachment_set/selectors.ts",
+    "src/capabilities/gpt/children/submit_exact_gpt_turn_once/selectors.ts",
+    "src/lib/browser/chrome-extension/extension-file-input-runtime.ts",
+  ]) {
+    const absolutePath = resolve(root, selectorPath), original = readFileSync(absolutePath, "utf8");
+    for (const obsolete of ["button.composer-attachment-surface[aria-label]", ".composer-attachment-surface"]) {
+      const mutant = original.replace(":is(button, div[role='button']).composer-attachment-surface[aria-label]", obsolete);
+      assert.notEqual(mutant, original, selectorPath);
+      try {
+        writeFileSync(absolutePath, mutant);
+        const own = inspect();
+        assert.equal(own.findings.some(finding => finding.checkId === "gpt/chrome-proven-attachment-dom"
+          && finding.filePath === selectorPath), true, selectorPath);
+        assert.equal(ownModes(own).includes(false), true);
+      } finally { writeFileSync(absolutePath, original); }
+    }
+  }
 });
 
 test("GPT Provider wait reasons remain a closed diagnostic projection", () => {

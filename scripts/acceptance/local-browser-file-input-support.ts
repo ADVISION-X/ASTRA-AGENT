@@ -6,6 +6,7 @@ import type { ExtensionChromeApi } from
   "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
 import { executeExtensionFileInput } from
   "../../src/lib/browser/chrome-extension/extension-file-input-runtime.js";
+import { withSyntheticDom } from "./local-browser-dom-function-fixture.js";
 
 type FileInputScenario = Readonly<{
   nodeIds: readonly number[];
@@ -29,6 +30,7 @@ type FileInputScenario = Readonly<{
   resolvedFilePaths?: readonly string[];
   afterSelectionUrl?: string;
   failPostObservation?: boolean;
+  coherentReply?: (parameters: Readonly<Record<string, unknown>>, selected: boolean, currentUrl: string) => Promise<unknown>;
 }>;
 
 const activation = Object.freeze({
@@ -86,16 +88,20 @@ const fileDomReply = (
   return undefined;
 };
 
-const runtimeFunctionReply = (
+const runtimeFunctionReply = async (
   input: FileInputScenario,
   state: ScenarioState,
   parameters?: Readonly<Record<string, unknown>>,
-): unknown => {
+): Promise<unknown> => {
   const argument = Array.isArray(parameters?.arguments)
     ? parameters.arguments[0] as { value?: { output?: unknown } } | undefined : undefined;
   if (Array.isArray(argument?.value)) {
     if (input.failPostObservation && state.fileInputs > 0) throw new Error("POST_OBSERVATION_FAILED");
     state.observations += 1;
+    if (input.coherentReply) {
+      const navigation = fileDomReply(input, state, "Page.getNavigationHistory") as { entries: readonly { url: string }[] };
+      return input.coherentReply(parameters!, state.fileInputs > 0, navigation.entries[0]!.url);
+    }
     const phase = state.fileInputs > 0
       ? input.afterSelection ?? { cardNames: [], uploadingCount: 2 }
       : { cardNames: [], uploadingCount: input.preexistingUploadingCount ?? 0 };
@@ -370,4 +376,38 @@ export const exerciseFileInput = async (): Promise<void> => {
   await exerciseActivationFailures();
   await exerciseChooserFailures();
   await exerciseAfterActionInputReplacement();
+  await exerciseNativeAttachmentCards();
 };
+
+const exerciseNativeAttachmentCards = async (): Promise<void> => withSyntheticDom(async page => {
+  const card = (name: string, tag = "div") =>
+    `<${tag} role="button" class="composer-attachment-surface" aria-label="${name}">${name}</${tag}>`;
+  for (const scenario of ["mixed", "missing", "foreign", "duplicate", "preexisting", "uploading"] as const) {
+    const names = scenario === "missing" ? ["contract.json"] : scenario === "foreign"
+      ? ["foreign.png", "contract.json"] : scenario === "duplicate"
+        ? ["payment.png", "payment.png"] : ["payment.png", "contract.json"];
+    const run = await runFileInputScenario({ nodeIds: [7],
+      resolvedFilePaths: ["/approved/payment.png", "/approved/contract.json"],
+      coherentReply: async (parameters, selected, currentUrl) => {
+        const cards = selected ? names.map((name, index) => card(name, index === 1 ? "button" : "div")).join("")
+          : scenario === "preexisting" ? card("foreign.png") : "";
+        await page.setContent(`<form data-chatgpt-composer>${cards}
+          ${selected && scenario === "uploading" ? '<div role="progressbar">uploading</div>' : ""}
+          <span class="composer-attachment-surface">decoration</span>
+          <div class="composer-attachment-surface" aria-label="not-a-card">decoration</div></form>
+          ${card("outside.png")}`);
+        const result = await page.evaluate(async ({ source, args, currentUrl }) =>
+          Reflect.apply(new Function("location", `return (${source})`)({ href: currentUrl }),
+            document.documentElement, args), {
+          source: String(parameters.functionDeclaration),
+          args: (parameters.arguments as { value: unknown }[]).map(argument => argument.value),
+          currentUrl,
+        });
+        return { result: { value: result } };
+      },
+    });
+    assert.equal(run.fileInputs, scenario === "preexisting" ? 0 : 1);
+    assert.equal(run.result.postconditionVerified, ["mixed", "uploading"].includes(scenario), scenario);
+    assert.equal(run.observations, scenario === "preexisting" ? 1 : 2);
+  }
+});

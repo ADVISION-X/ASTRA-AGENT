@@ -280,7 +280,7 @@ const readComposerAttachmentPhase = async (input: ExtensionFileInput): Promise<R
   input.assertCurrent(input.target.targetRef, input.target.documentRef);
   const observed = await executeCoherentObservation(input.runtime, input.target, [
     { queryId: "attachment-composer", selector: "form[data-chatgpt-composer]", maxMatches: 2, fields: [] },
-    { queryId: "attachment-cards", selector: "button.composer-attachment-surface[aria-label]",
+    { queryId: "attachment-cards", selector: ":is(button, div[role='button']).composer-attachment-surface[aria-label]",
       scope: { selector: "form[data-chatgpt-composer]" }, maxMatches: 20, fields: ["ariaLabel"] },
     { queryId: "attachment-uploading",
       selector: "[role='progressbar']",

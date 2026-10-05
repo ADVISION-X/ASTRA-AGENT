@@ -20,9 +20,9 @@ const PLUGIN_ID = "payment-screenshot-observation";
 const PRODUCT_INSTRUCTION = "只观察当前付款截图的可见像素和文字，区分明确事实、异常迹象和无法确认事项，绝不作到账或订单裁决。";
 const WAIT_TIMEOUT_MS = 3_600_000;
 const MODEL_PROFILE = buildGptExecutionProfile({
-  profileRef: `${PLUGIN_ID}:gpt-5.6-sol-pro-standard`,
-  startModelDisplayName: "GPT-5.6 Sol",
-  requestedReasoningValue: 5,
+  profileRef: `${PLUGIN_ID}:chatgpt-latest-reasoning-2`,
+  startModelDisplayName: "最新",
+  requestedReasoningValue: 2,
   executorIdentityRef: PLUGIN_ID,
   acceptanceRef: `${PLUGIN_ID}:production`,
   acceptanceVersion: "v1",

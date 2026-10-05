@@ -7,12 +7,14 @@ export const verifySubmitProofs = async (): Promise<void> => {
   for (const [name, files, userTurnId] of [
     ["localization", [], "00000000-0000-4000-8000-000000000001"],
     ["approved-batch", [approvedFile], "00000000-0000-4000-8000-000000000007"],
+    ["image-json", [{ ...approvedFile, providerDisplayName: "payment.png" }, { ...approvedFile, artifactRef: "artifact:json", providerDisplayName: "result_contract.json" }], "00000000-0000-4000-8000-000000000008"],
     ["third-turn", [], "00000000-0000-4000-8000-000000000012"],
   ] as const) {
     let outgoing = 0, gate = 0;
     const fixture = fakeBrowser(intent => {
       assert.equal(intent.kind, "click");
       if (intent.kind !== "click") throw new Error("SUBMIT_MUST_ONLY_CLICK");
+      assert.equal(intent.preClickExactOutgoingTurn?.attachmentSelector, ":is(button, div[role='button']).composer-attachment-surface[aria-label]");
       assert.equal(intent.preClickExactOutgoingTurn?.expectedPromptHash, promptHash);
       assert.deepEqual(intent.preClickExactOutgoingTurn?.expectedAttachmentLabels, files.map(file => file.providerDisplayName));
       assert.equal(intent.postClickObservation?.queries[0]?.selector, intent.preClickExactOutgoingTurn?.userTurnSelector);
