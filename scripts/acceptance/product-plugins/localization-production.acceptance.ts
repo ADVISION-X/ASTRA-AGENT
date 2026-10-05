@@ -8,7 +8,7 @@ import {
   parseInput,
 } from "../../../src/plugins/localization-production/static-catalog-contract.js";
 import { STATIC_CATALOG_PRODUCTION_INSTRUCTION } from "../../../src/plugins/localization-production/static-catalog-flow.js";
-import { buildProductTask, exerciseProductFlow, FIXTURE_HASH, routesForPlugin } from "../product-plugin-test-runtime.js";
+import { buildProductTask, exerciseConfirmedSubmitRecovery, exerciseProductFlow, FIXTURE_HASH, routesForPlugin } from "../product-plugin-test-runtime.js";
 
 const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "localization-production");
 assert(plugin);
@@ -242,6 +242,26 @@ const staticRootRun = await exerciseProductFlow(plugin, {
 });
 assert.equal(staticRootRun.physicalSubmitDispatches, 1);
 assert.equal(staticRootRun.calls.filter((call) => call.child === "prepare_clean_gpt_chat").length, 1);
+for (const run of [staticRootRun, staticRun]) {
+  const modelCall = run.calls.find((call) => call.child === "select_gpt_model_from_start_v3");
+  const reasoningCall = run.calls.find((call) => call.child === "select_gpt_reasoning_from_start_v3");
+  assert(modelCall?.child === "select_gpt_model_from_start_v3");
+  assert(reasoningCall?.child === "select_gpt_reasoning_from_start_v3");
+  assert.deepEqual({
+    profileRef: modelCall.input.profile.profileRef,
+    startModelDisplayName: modelCall.input.profile.startModelDisplayName,
+    requestedReasoningValue: reasoningCall.input.profile.requestedReasoningValue,
+  }, {
+    profileRef: "localization-production:static-catalog:production:chatgpt-latest-extra-high",
+    startModelDisplayName: "最新", requestedReasoningValue: 3,
+  });
+  assert.deepEqual(modelCall.input.profile, reasoningCall.input.profile,
+    "fixed-copy model and reasoning selection must consume the same profile");
+}
+for (const task of [staticRootTask, staticTask]) await exerciseConfirmedSubmitRecovery(plugin, {
+  task, materialContents: { static_catalog_input: staticInput }, output: {},
+  expectedSessionCount: 1, checkpointOutput: () => candidate,
+});
 const staticPrompt = String(staticRun.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt);
 assert.match(staticPrompt, /read_only_siblings/u);
 assert.doesNotMatch(staticPrompt, /"finding_codes"\s*:|五个 locale turn/u);

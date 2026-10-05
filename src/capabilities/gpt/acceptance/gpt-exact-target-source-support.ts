@@ -99,6 +99,7 @@ const assertAttachmentInspectorCounterexamples = (baseUrl: string): void => {
     "src/capabilities/gpt/children/attach_approved_gpt_files_once/handler.ts", "src/capabilities/gpt/children/attach_approved_gpt_files_once/selectors.ts",
     "src/capabilities/gpt/children/attach_approved_gpt_files_once/attachment-observation.ts", "src/capabilities/gpt/children/attach_approved_gpt_files_once/control-observation.ts",
     "src/capabilities/gpt/children/open_gpt_attachment_control/handler.ts", "src/capabilities/gpt/children/open_gpt_attachment_control/observation.ts",
+    "src/capabilities/gpt/children/open_gpt_attachment_control/selectors.ts",
     "src/capabilities/gpt/children/reconcile_gpt_attachment_set/handler.ts", "src/capabilities/gpt/children/reconcile_gpt_attachment_set/selectors.ts",
     "src/capabilities/gpt/children/reconcile_gpt_attachment_set/observation.ts",
   ];

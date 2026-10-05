@@ -1601,7 +1601,7 @@ test("Browser inspectors require current WAL schema without startup migration an
   ]) assert.equal(exactAssistantTurnReadIsAtomic(inspectSource(exactPath, mutant)), false);
 });
 
-test("GPT001 native AST and contract routes reject text settlement drift under their own law", () => {
+test("GPT001 native AST and contract routes reject text settlement and attachment selector drift under their own law", () => {
   const registry = buildRegistry(), laws = registry.laws.filter(law => law.capabilityDomain === "gpt");
   const lawRequirements = laws.map(law => {
     const targetPaths = computeTargetPaths(law, registry);
@@ -1648,6 +1648,21 @@ test("GPT001 native AST and contract routes reject text settlement drift under t
     assert.deepEqual(ownModes(own), [false, false]);
     assert.equal(own.findings.some(finding => finding.checkId === "gpt/provider-observation-gate-first"), true);
     writeFileSync(path, baseline);
+  }
+  for (const selectorPath of [
+    "src/capabilities/gpt/children/open_gpt_attachment_control/selectors.ts",
+    "src/capabilities/gpt/children/attach_approved_gpt_files_once/selectors.ts",
+    "src/lib/browser/chrome-extension/extension-file-input-runtime.ts",
+  ]) {
+    const absolutePath = resolve(root, selectorPath), original = readFileSync(absolutePath, "utf8");
+    const mutant = original.replace(", [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-context'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child", "");
+    assert.notEqual(mutant, original, selectorPath);
+    writeFileSync(absolutePath, mutant);
+    const own = inspect();
+    assert.equal(own.findings.some(finding => finding.checkId === "gpt/chrome-proven-attachment-dom"
+      && finding.filePath === selectorPath), true, selectorPath);
+    assert.equal(ownModes(own).includes(false), true);
+    writeFileSync(absolutePath, original);
   }
 });
 

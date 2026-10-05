@@ -12,18 +12,24 @@ const check = (valid: boolean, id: string, path: string, message: string, findin
 const expectedSelectors = {
   GPT_ATTACHMENT_CONTROL_SELECTOR: "button[aria-label='添加文件等内容']",
   GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR: "[data-composer-overlay-floating-ui='true']",
-  GPT_UPLOAD_FROM_COMPUTER_SELECTOR: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-actions'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child",
+  GPT_UPLOAD_FROM_COMPUTER_SELECTOR: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-actions'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-context'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child",
   GPT_UPLOAD_FROM_COMPUTER_KEYWORD: "上传",
   GPT_COMPOSER_FORM_SELECTOR: "form[data-chatgpt-composer]",
   GPT_ATTACHMENT_ITEM_SELECTOR: "button.composer-attachment-surface[aria-label]",
 } as const;
 
 const inspectAttachmentSelectors = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
-  const selectorPath = child("attach_approved_gpt_files_once", "selectors.ts"), selectors = sourceFor(context, selectorPath);
-  for (const [name, value] of Object.entries(expectedSelectors)) {
-    const initializer = selectors?.getVariableDeclaration(name)?.getInitializer();
-    check((Node.isStringLiteral(initializer) || Node.isNoSubstitutionTemplateLiteral(initializer)) && initializer.getLiteralValue() === value,
-      "gpt/chrome-proven-attachment-dom", selectorPath, `${name} must retain the exact approved Chrome selector.`, findings, finding);
+  const selectorPath = child("attach_approved_gpt_files_once", "selectors.ts");
+  for (const id of ["open_gpt_attachment_control", "attach_approved_gpt_files_once"]) {
+    const path = child(id, "selectors.ts"), selectors = sourceFor(context, path);
+    for (const [name, value] of Object.entries(expectedSelectors)) {
+      if (id === "open_gpt_attachment_control" && name === "GPT_ATTACHMENT_ITEM_SELECTOR") continue;
+      const initializer = selectors?.getVariableDeclaration(name)?.getInitializer();
+      check((Node.isStringLiteral(initializer) || Node.isNoSubstitutionTemplateLiteral(initializer)) && initializer.getLiteralValue() === value,
+        "gpt/chrome-proven-attachment-dom", path, `${name} must retain the exact approved Chrome selector.`, findings, finding);
+    }
+    check(!/button\[aria-label="添加文件和更多内容"\]|\[role='menuitem'\]|\[class\*='grid-area:header'\]|library-file-icon/u.test(selectors?.getFullText() ?? ""),
+      "gpt/stale-attachment-dom-absent", path, "Retired attachment selectors remain absent.", findings, finding);
   }
   const browserPath = "src/lib/browser/chrome-extension/extension-file-input-runtime.ts";
   const checks = sourceFor(context, browserPath)?.getVariableDeclaration("assertFileInputRequest")?.getInitializer()
@@ -35,9 +41,6 @@ const inspectAttachmentSelectors = (context: InspectorContext, findings: Inspect
   const settlementSelectors = text(context, child("reconcile_gpt_attachment_set", "selectors.ts"));
   check(settlementSelectors.includes("GPT_ATTACHMENT_PENDING_ACTION_SELECTOR") && settlementSelectors.includes("${GPT_ATTACHMENT_ITEM_SELECTOR}.cursor-wait"),
     "gpt/chrome-proven-attachment-dom", selectorPath, "Attachment reconciliation reads the approved scoped pending cursor state.", findings, finding);
-  check(!/button\[aria-label="添加文件和更多内容"\]|\[role='menuitem'\]|\[class\*='grid-area:header'\]|library-file-icon/u.test(selectors?.getFullText() ?? ""),
-    "gpt/stale-attachment-dom-absent", selectorPath, "Retired attachment selectors remain absent.", findings, finding);
-
 };
 const inspectAttachmentEntry = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
   const openPath = child("open_gpt_attachment_control"), open = sourceFor(context, openPath);

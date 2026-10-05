@@ -28,9 +28,9 @@ items 是 message_items 的有序非空子集。全部无法翻译时只输出�
 {"schema_version":"target-language-failure.v3","locale":"<ContextBundle.locale>","context_bundle_hash":"<输入 hash>","failure_code":"TRANSLATION_UNAVAILABLE"}`;
 
 const productionProfile = buildGptExecutionProfile({
-  profileRef: "localization-production:static-catalog:production:pro-standard",
-  startModelDisplayName: "GPT-5.6 Sol",
-  requestedReasoningValue: 5,
+  profileRef: "localization-production:static-catalog:production:chatgpt-latest-extra-high",
+  startModelDisplayName: "最新",
+  requestedReasoningValue: 3,
   executorIdentityRef: "localization-production:static-catalog:production",
   acceptanceRef: "localization-production:static-catalog",
   acceptanceVersion: "v3",

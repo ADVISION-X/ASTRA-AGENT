@@ -32,7 +32,7 @@ type FileInputScenario = Readonly<{
 }>;
 
 const activation = Object.freeze({
-  selector: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-actions'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child",
+  selector: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-actions'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-context'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child",
   scope: Object.freeze({ selector: "[data-composer-overlay-floating-ui='true']" }),
   expectedText: "上传",
 });
@@ -298,6 +298,20 @@ const exerciseSuccessfulAndRejectedCandidates = async (): Promise<void> => {
   }
 };
 
+const exerciseActivationContract = async (): Promise<void> => {
+  let fileInputs = 0;
+  const branches = activation.selector.split(", ");
+  for (const rejected of [
+    { ...activation, selector: branches.slice(0, 2).join(", ") },
+    { ...activation, selector: branches[2]! },
+    { ...activation, selector: "button[data-list-navigation-item='true']" },
+    { ...activation, scope: { selector: "body" } },
+    { ...activation, expectedText: "添加照片和文件" },
+  ]) await assert.rejects(runFileInputScenario({ nodeIds: [7], activationOverride: rejected,
+    onFileInput: () => { fileInputs += 1; } }), /BROWSER_FILE_GRANT_INVALID/u);
+  assert.equal(fileInputs, 0, "only the complete approved OR activation can reach physical file input");
+};
+
 const exerciseActivationFailures = async (): Promise<void> => {
   await assert.rejects(runFileInputScenario({ nodeIds: [7], driftBeforeDispatch: true }), /BROWSER_DOCUMENT_INVALID/u);
   for (const [activationResult, expected] of [
@@ -352,6 +366,7 @@ const exerciseAfterActionInputReplacement = async (): Promise<void> => {
 export const exerciseFileInput = async (): Promise<void> => {
   await exerciseFileChooserEventBinding();
   await exerciseSuccessfulAndRejectedCandidates();
+  await exerciseActivationContract();
   await exerciseActivationFailures();
   await exerciseChooserFailures();
   await exerciseAfterActionInputReplacement();

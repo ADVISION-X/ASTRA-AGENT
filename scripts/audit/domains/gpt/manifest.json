@@ -10,6 +10,7 @@
     ".agents/skills/gpt-page-operation-evidence/**",
     "docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md",
     "docs/项目方案/GPT文本回答扫描门禁根治-完整实现方案.md",
+    "docs/项目方案/GPT附件入口OR精确迭代-完整实现方案.md",
     "docs/项目方案/GPT页面DOM与代码差距报告.md",
     "docs/项目方案/GPT页面操作子能力实证资料.json",
     "scripts/acceptance/gpt.real-proof.ts",
