@@ -49,7 +49,7 @@ import { inspectProviderEffectAttemptGuard } from "../../scripts/audit/domains/l
 import { inspectOpaqueAuthorityBoundary } from "../../scripts/audit/domains/local-browser-session/opaque-proof-inspection.js";
 import { requireSource } from "../../scripts/audit/domains/local-browser-session/inspector-support.js";
 import { redactHashWriteOrderIsExact } from "../../scripts/audit/domains/runtime-log-spine/inspector.js";
-import { inspectAgentContracts } from "../../scripts/audit/domains/agent-production-runtime/contract-inspection.js";
+import { inspectAgentAuthorityAst } from "../../scripts/audit/domains/agent-production-runtime/authority-inspection.js";
 import { executeExtensionCommandReply } from "../../src/lib/browser/chrome-extension/extension-command-runtime.js";
 import { parseBrowserAuthorityDiagnostic } from "../../src/lib/browser/transport/browser-authority-diagnostic.js";
 import { permit as browserFixturePermit, createClickCommand } from "../../scripts/acceptance/local-browser-terminal-fixture.js";
@@ -958,10 +958,15 @@ test("the active evidence-ownership blueprint rejects central clauses and mode s
     const checks = [...body.matchAll(/"static\.[a-z]+": \["([A-Za-z]+)"\]/gu)].map((match) => match[1]!);
     return checks.length === expectedCount && new Set(checks).size === expectedCount;
   };
-  assert.equal(uniqueModeChecks(agent, 6), true);
+  const uniqueRuntimeModeChecks = (source: string): boolean => {
+    const body = /const producers = \{([\s\S]*?)\} as const;/u.exec(source)?.[1] ?? "";
+    const checks = [...body.matchAll(/"static\.[a-z]+": "([A-Za-z]+)"/gu)].map((match) => match[1]!);
+    return checks.length === 6 && new Set(checks).size === 6;
+  };
+  assert.equal(uniqueRuntimeModeChecks(agent), true);
   assert.equal(uniqueModeChecks(gpt, 5), true);
-  assert.equal(uniqueModeChecks(agent.replace('"static.types": ["inspectAgentTypes"]',
-    '"static.types": ["inspectAgentProductionRuntime"]'), 6), false);
+  assert.equal(uniqueRuntimeModeChecks(agent.replace('"static.types": "inspectAgentTypes"',
+    '"static.types": "inspectAgentProductionRuntime"')), false);
   assert.equal(capability.includes('mode === "static.types" ? ["inspectCapabilityFacadeTypes"]'), true);
   assert.equal(capability.replace('mode === "static.types" ? ["inspectCapabilityFacadeTypes"]',
     'mode === "static.types" ? ["pushMissingFacadeExportConsumers"]')
@@ -1085,7 +1090,7 @@ test("provider contracts reject malformed payloads before identity matching", ()
   assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
     new Map([
       ["LAW-AGENT-PRODUCTION-RUNTIME-001-V75", "agent-production-runtime"],
-      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V44", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V45", "agent-production-runtime"],
     ]),
     (path) => path === "src/lib/local-runtime/production/catalog.ts"));
 });
@@ -1877,10 +1882,13 @@ test("CHANGE routes an ordinary Exam to every affected domain without running un
 
 test("current_reason inspector rejects control branches and diagnostic resolver consumers", () => {
   const project = new Project({ tsConfigFilePath: "tsconfig.json" });
-  const context = { sealedRoot: process.cwd(), project } as InspectorContext;
+  const registry = buildRegistry();
+  const targetPaths = [...new Set(registry.laws.filter((law) => law.capabilityDomain === "agent-production-runtime")
+    .flatMap((law) => computeTargetPaths(law, registry)))].sort();
+  const context = { sealedRoot: process.cwd(), project, targetPaths } as InspectorContext;
   const inspect = () => {
     const findings: import("../../scripts/audit/shared/inspector-contracts.js").InspectorFinding[] = [];
-    inspectAgentContracts(context, findings);
+    inspectAgentAuthorityAst(context, findings);
     return findings.map((item) => item.checkId);
   };
   assert.equal(inspect().includes("agent-production-runtime/current-reason-diagnostic-only"), false);
@@ -1895,4 +1903,13 @@ test("current_reason inspector rejects control branches and diagnostic resolver 
   const claimSource = claim.getFullText();
   claim.replaceWithText(`${claimSource}\nimport { resolveStoredProductionAuthority as diagnosticAuthority } from "./store-authority-reader.js";\n`);
   assert.equal(inspect().includes("agent-production-runtime/diagnostic-authority-resolver-boundary"), true);
+  for (const acquisition of [
+    'import * as diagnostic from "./store.js"; const readDiagnostic = diagnostic["resolveStoredProductionAuthority"];',
+    'const diagnostic = await import("./store.js"); const readDiagnostic = diagnostic["resolveStoredProductionAuthority"];',
+  ]) {
+    claim.replaceWithText(`${claimSource}\n${acquisition}\n`);
+    assert.equal(inspect().includes("agent-production-runtime/diagnostic-authority-resolver-boundary"), true);
+  }
+  claim.replaceWithText(claimSource);
+  assert.deepEqual(inspect(), []);
 });

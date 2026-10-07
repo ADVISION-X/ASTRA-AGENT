@@ -1,5 +1,7 @@
 import { Node, SyntaxKind } from "ts-morph";
+import { relative } from "node:path";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
+import { collectResolvedModuleBindings } from "../../shared/source-module-targets.js";
 import { inspectWorkerLoopLiveness } from "./worker-loop-inspection.js";
 import { LAWS, RUNTIME_ROOT, bodyFor, booleanTerms, callNames, calls, compare, literal, reject, rejectingComparison, runtimePath, sourceFor } from "./contract-inspection.js";
 
@@ -23,6 +25,62 @@ const method = (context: InspectorContext, file: string, className: string, name
 const hasCall = (node: Node | undefined, name: string): boolean => callNames(node).has(name);
 const productionSources = (context: InspectorContext) => context.targetPaths.filter((path) =>
   path.startsWith(`${RUNTIME_ROOT}/`) && path.endsWith(".ts")).map((path) => sourceFor(context, path));
+
+const derivesCurrentReason = (node: Node | undefined, seen = new Set<Node>()): boolean => {
+  if (!node || seen.has(node)) return false;
+  seen.add(node);
+  const entries = [node, ...node.getDescendants()];
+  if (entries.some((entry) => Node.isPropertyAccessExpression(entry) && entry.getName() === "current_reason"
+    || Node.isElementAccessExpression(entry) && literal(entry.getArgumentExpression()) === "current_reason")) return true;
+  return entries.filter(Node.isIdentifier).some((identifier) => identifier.getSymbol()?.getDeclarations().some((declaration) => {
+    if (Node.isVariableDeclaration(declaration)) {
+      const value = declaration.getInitializer();
+      return !Node.isArrowFunction(value) && !Node.isFunctionExpression(value) && derivesCurrentReason(value, seen);
+    }
+    return Node.isBindingElement(declaration)
+      && (declaration.getPropertyNameNode()?.getText() ?? declaration.getName()) === "current_reason";
+  }) === true);
+};
+const readonlyReasonProjection = (node: Node): boolean => {
+  if (!Node.isConditionalExpression(node) || node.getWhenFalse().getKind() !== SyntaxKind.NullKeyword) return false;
+  const value = node.getWhenTrue();
+  const argument = Node.isCallExpression(value) && value.getExpression().getText() === "Object.freeze"
+    && value.getArguments().length === 1 ? value.getArguments()[0] : undefined;
+  return Node.isObjectLiteralExpression(argument) && argument.getProperties().length === 1
+    && Node.isSpreadAssignment(argument.getProperties()[0])
+    && argument.getProperties()[0]!.getText() === `...${node.getCondition().getText()}`;
+};
+const inspectDiagnosticAuthorityBoundary = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const resolver = "resolveStoredProductionAuthority";
+  const diagnosticModules = new Set([runtimePath("store-authority-reader"), runtimePath("store")]);
+  for (const source of productionSources(context)) {
+    const path = relative(context.sealedRoot, source.getFilePath()).replaceAll("\\", "/");
+    const conditions = source.getDescendants().flatMap((node) => {
+      if (Node.isConditionalExpression(node)) return readonlyReasonProjection(node) ? [] : [node.getCondition()];
+      if (Node.isIfStatement(node) || Node.isWhileStatement(node) || Node.isDoStatement(node)
+        || Node.isSwitchStatement(node)) return [node.getExpression()];
+      return Node.isForStatement(node) && node.getCondition() ? [node.getCondition()!] : [];
+    });
+    reject(findings, LAWS.core, "static.ast", path, "current-reason-diagnostic-only",
+      !conditions.some((condition) => derivesCurrentReason(condition)),
+      "Mutable current_reason may be projected or mechanically validated, but cannot select Runtime control branches.");
+    if (diagnosticModules.has(path)) continue;
+    const imported = collectResolvedModuleBindings(source).some((binding) => !binding.isTypeOnly
+      && diagnosticModules.has(binding.targetPath) && binding.importedSymbolName === resolver);
+    const symbolRead = source.getDescendants().some((node) => {
+      const member = Node.isElementAccessExpression(node)
+        ? node.getArgumentExpression()?.getType().getLiteralValue() : undefined;
+      const symbol = Node.isIdentifier(node) ? node.getSymbol()
+        : Node.isElementAccessExpression(node) && typeof member === "string"
+          ? node.getExpression().getType().getProperty(member) : undefined;
+      return (symbol?.getAliasedSymbol() ?? symbol)?.getDeclarations().some((declaration) =>
+        Node.isVariableDeclaration(declaration) && declaration.getName() === resolver
+        && declaration.getSourceFile() === sourceFor(context, runtimePath("store-authority-reader"))) === true;
+    });
+    reject(findings, LAWS.core, "static.ast", path, "diagnostic-authority-resolver-boundary", !imported && !symbolRead,
+      "Runtime control consumers cannot obtain the diagnostic authority resolver; normal store exports remain available.");
+  }
+};
 
 const inspectResultStaging = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const path = runtimePath("store-outbox");
@@ -321,6 +379,7 @@ const inspectOutboxJobBoundaries = (context: InspectorContext, findings: Inspect
 };
 
 export const inspectAgentAuthorityAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  inspectDiagnosticAuthorityBoundary(context, findings);
   inspectResultStaging(context, findings);
   inspectAdmissionCompletion(context, findings);
   inspectWebsiteLifecycle(context, findings);
