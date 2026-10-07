@@ -32,7 +32,8 @@ import { assertCandidateStable, computeTargetPaths, dynamicScriptFor, parseInspe
 import { assertExactProviderContract, assertParticipantCommitIdentity } from "../../scripts/audit/shared/quality-participant-binding.js";
 import { bindNativeProofObservations } from "../../scripts/audit/shared/quality-proof-binding.js";
 import { mapWithConcurrency } from "../../scripts/audit/shared/quality-process-execution.js";
-import { sealedSnapshotDigest } from "../../scripts/audit/shared/sealed-target-snapshot.js";
+import { copyTargets, sealedSnapshotDigest } from "../../scripts/audit/shared/sealed-target-snapshot.js";
+import { createAuditProject } from "../../scripts/audit/shared/project.js";
 import { validateProviderContractSpec } from "../../scripts/audit/shared/provider-contract-authority.js";
 import type { InspectorContext } from "../../scripts/audit/shared/inspector-contracts.js";
 import { producerClaimRoutesFor, proofObservationPrefix, validateDynamicReceiptPayload, validateExamReceiptPayload } from "../../scripts/audit/shared/proof-observation.js";
@@ -50,6 +51,7 @@ import { inspectOpaqueAuthorityBoundary } from "../../scripts/audit/domains/loca
 import { requireSource } from "../../scripts/audit/domains/local-browser-session/inspector-support.js";
 import { redactHashWriteOrderIsExact } from "../../scripts/audit/domains/runtime-log-spine/inspector.js";
 import { inspectAgentAuthorityAst } from "../../scripts/audit/domains/agent-production-runtime/authority-inspection.js";
+import { inspectAgentTypes } from "../../scripts/audit/domains/agent-production-runtime/inspector.js";
 import { executeExtensionCommandReply } from "../../src/lib/browser/chrome-extension/extension-command-runtime.js";
 import { parseBrowserAuthorityDiagnostic } from "../../src/lib/browser/transport/browser-authority-diagnostic.js";
 import { permit as browserFixturePermit, createClickCommand } from "../../scripts/acceptance/local-browser-terminal-fixture.js";
@@ -1877,6 +1879,49 @@ test("CHANGE routes an ordinary Exam to every affected domain without running un
   ]) {
     assert.equal(relevantExamScripts([governedPath], registry).includes("acceptance:local-browser-terminal"), true,
       `${governedPath} must retain the automatic-claim regression route`);
+  }
+});
+
+test("Runtime types bind their actual schema and native imports inside the sealed denominator", () => {
+  const registry = buildRegistry();
+  const targetPaths = [...new Set(registry.laws.filter((law) => law.capabilityDomain === "agent-production-runtime")
+    .flatMap((law) => computeTargetPaths(law, registry)))].sort();
+  const sealedRoot = copyTargets(targetPaths, mkdtempSync(resolve(tmpdir(), "runtime-types-")), "runtime");
+  const project = createAuditProject(sealedRoot, targetPaths);
+  const context = { sealedRoot, project, targetPaths } as InspectorContext;
+  const inspect = () => {
+    const findings: import("../../scripts/audit/shared/inspector-contracts.js").InspectorFinding[] = [];
+    inspectAgentTypes(context, findings);
+    return findings.map((finding) => finding.checkId);
+  };
+  assert.deepEqual(inspect(), []);
+  const mutations = [
+    ["src/lib/local-runtime/production/transport-protocol.ts", "z.infer<typeof DeviceCredentialSchema>", "z.infer<typeof WorkerSessionCredentialSchema>", "resolved-owner-type"],
+    ["src/lib/local-runtime/production/transport-protocol.ts", "z.infer<typeof DeviceCredentialSchema>", "any", "resolved-owner-type"],
+    ["src/lib/local-runtime/production/transport-protocol.ts", 'from "zod"', 'from "wrong-zod"', "resolved-owner-type"],
+    ["src/lib/local-runtime/production/transport-protocol.ts", "}).strict();", "}).strict().transform(() => ({}));", "credential-type-exact-identity"],
+    ["src/lib/local-runtime/production/transport-protocol.ts", "  enrolled_at: z.string().datetime(),", "", "credential-type-exact-identity"],
+    ["src/lib/local-runtime/production/transport-protocol.ts", "DeviceCredentialSchema =", "DeviceCredentialSchema: any =", "resolved-owner-type"],
+    ["src/lib/local-runtime/production/contracts.ts", "z.infer<typeof WebsiteAgentTaskSchema>", "z.infer<typeof WebsiteAgentTaskBaseSchema>", "resolved-owner-type"],
+    ["src/lib/local-runtime/production/contracts.ts", "WebsiteAgentTaskSchema =", "WebsiteAgentTaskSchema: any =", "resolved-owner-type"],
+    ["src/lib/local-runtime/production/contracts.ts", "WebsiteAgentTaskBaseSchema =", "WebsiteAgentTaskBaseSchema: any =", "resolved-owner-type"],
+    ["src/lib/local-runtime/production/contracts.ts", "}).strict();\n\nexport const WebsiteAgentTaskSchema", "}).strict() as any;\n\nexport const WebsiteAgentTaskSchema", "resolved-owner-type"],
+    ["src/lib/local-runtime/production/contracts.ts", "});\n\nexport type WebsiteAgentTask", "}) as any;\n\nexport type WebsiteAgentTask", "resolved-owner-type"],
+    ["src/lib/local-runtime/production/contracts.ts", "WebsiteAgentTaskBaseSchema.superRefine", "ProductionMaterialSchema.superRefine", "resolved-owner-type"],
+    ["src/lib/local-runtime/production/contracts.ts", "WebsiteAgentTaskBaseSchema.superRefine", "z.any().superRefine", "resolved-owner-type"],
+    ["src/lib/local-runtime/production/contracts.ts", "WebsiteAgentTaskBaseSchema.superRefine", "(() => ({superRefine: () => ({})}))().superRefine", "resolved-owner-type"],
+    ["scripts/audit/domains/agent-production-runtime/inspector.ts", "inspectAgentProductionRuntime(context: InspectorContext", "inspectAgentProductionRuntime(context: any", "typed-native-inspector"],
+    ["scripts/audit/domains/agent-production-runtime/inspector.ts", "inspectAgentProductionRuntime(context: InspectorContext, findings: InspectorFinding[])", "inspectAgentProductionRuntime(context: InspectorContext, findings: any[])", "typed-native-inspector"],
+    ["scripts/audit/domains/agent-production-runtime/inspector.ts", 'from "../../shared/inspector-contracts.js"', 'from "../../shared/wrong-contracts.js"', "typed-native-inspector"],
+  ] as const;
+  for (const [path, before, after, check] of mutations) {
+    const source = project.getSourceFileOrThrow(resolve(sealedRoot, path));
+    const original = source.getFullText();
+    assert.equal(original.includes(before), true, before);
+    source.replaceWithText(original.replace(before, after));
+    try { assert.equal(inspect().includes(`agent-production-runtime/${check}`), true, check); }
+    finally { source.replaceWithText(original); }
+    assert.deepEqual(inspect(), []);
   }
 });
 

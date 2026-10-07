@@ -64,6 +64,69 @@ export function inspectAgentProductionRuntime(context: InspectorContext, finding
     "Each law assertion must derive from one actual native producer receipt and validation, never a fixed PASS.");
 }
 
+const importedTypeBinding = (source: SourceFile, reference: Node | undefined, modulePath: string, name: string): boolean => {
+  if (!Node.isIdentifier(reference)) return false;
+  const bindings = source.getImportDeclarations().filter((entry) => entry.getModuleSpecifierValue() === modulePath)
+    .flatMap((entry) => entry.getNamedImports()).filter((entry) => entry.getName() === name);
+  const symbol = reference.getSymbol();
+  return bindings.length === 1 && symbol !== undefined && symbol.getDeclarations().length === 1
+    && symbol.getDeclarations()[0] === bindings[0]
+    && symbol === (bindings[0]?.getAliasNode() ?? bindings[0]?.getNameNode())?.getSymbol();
+};
+const inferredSchemaBinding = (source: SourceFile, name: string, schemaName: string): boolean => {
+  const alias = source.getTypeAlias(name);
+  const type = alias?.getTypeNode();
+  const schema = source.getVariableDeclaration(schemaName);
+  if (!alias?.isExported() || !schema?.isExported() || schema.getTypeNode() !== undefined
+    || !Node.isCallExpression(schema.getInitializer()) || !Node.isTypeReference(type)) return false;
+  const reference = type.getTypeName();
+  const arguments_ = type.getTypeArguments();
+  const query = arguments_[0];
+  return Node.isQualifiedName(reference) && reference.getRight().getText() === "infer"
+    && importedTypeBinding(source, reference.getLeft(), "zod", "z")
+    && arguments_.length === 1 && Node.isTypeQuery(query)
+    && query.getExprName().getSymbol() === schema.getNameNode().getSymbol()
+    && schema.getNameNode().getSymbol()?.getDeclarations().length === 1;
+};
+const strictSchemaTypeProperties = (source: SourceFile, name: "DeviceCredentialSchema" | "WebsiteAgentTaskBaseSchema"): string[] | undefined => {
+  const schema = source.getVariableDeclaration(name);
+  if (!schema || schema.getTypeNode() !== undefined || schema.getNameNode().getSymbol()?.getDeclarations().length !== 1) return undefined;
+  const initializer = schema.getInitializer();
+  if (!Node.isCallExpression(initializer) || initializer.getArguments().length !== 0) return undefined;
+  const strict = initializer.getExpression();
+  if (!Node.isPropertyAccessExpression(strict) || strict.getName() !== "strict") return undefined;
+  const objectCall = strict.getExpression();
+  if (!Node.isCallExpression(objectCall) || objectCall.getArguments().length !== 1) return undefined;
+  const factory = objectCall.getExpression();
+  const object = objectCall.getArguments()[0];
+  if (!Node.isPropertyAccessExpression(factory) || factory.getName() !== "object"
+    || !importedTypeBinding(source, factory.getExpression(), "zod", "z")
+    || !Node.isObjectLiteralExpression(object) || !object.getProperties().every(Node.isPropertyAssignment)) return undefined;
+  const properties = object.getType().getProperties();
+  return properties.length === object.getProperties().length ? properties.map((property) => property.getName()).sort() : undefined;
+};
+const taskSchemaTypeBinding = (source: SourceFile): boolean => {
+  const initializer = source.getVariableDeclaration("WebsiteAgentTaskSchema")?.getInitializer();
+  if (!Node.isCallExpression(initializer) || initializer.getArguments().length !== 1
+    || !Node.isArrowFunction(initializer.getArguments()[0])) return false;
+  const refine = initializer.getExpression();
+  if (!Node.isPropertyAccessExpression(refine) || refine.getName() !== "superRefine") return false;
+  const base = source.getVariableDeclaration("WebsiteAgentTaskBaseSchema");
+  return base !== undefined && refine.getExpression().getSymbol() === base.getNameNode().getSymbol()
+    && strictSchemaTypeProperties(source, "WebsiteAgentTaskBaseSchema") !== undefined;
+};
+const nativeInspectorTypeBindings = (source: SourceFile): boolean => {
+  const parameters = source.getFunction("inspectAgentProductionRuntime")?.getParameters();
+  if (!parameters || parameters.length !== 2) return false;
+  const context = parameters[0]?.getTypeNode();
+  const findings = parameters[1]?.getTypeNode();
+  const element = Node.isArrayTypeNode(findings) ? findings.getElementTypeNode() : undefined;
+  return Node.isTypeReference(context) && context.getTypeArguments().length === 0
+    && importedTypeBinding(source, context.getTypeName(), "../../shared/inspector-contracts.js", "InspectorContext")
+    && Node.isTypeReference(element) && element.getTypeArguments().length === 0
+    && importedTypeBinding(source, element.getTypeName(), "../../shared/inspector-contracts.js", "InspectorFinding");
+};
+
 export function inspectAgentTypes(context: InspectorContext, findings: InspectorFinding[]): void {
   const aliases = [
     [LAWS.core, "store-foundation", "ProductionTaskStatus"],
@@ -74,18 +137,21 @@ export function inspectAgentTypes(context: InspectorContext, findings: Inspector
     [LAWS.storage, "runtime-storage-inventory", "ProductionRuntimeStorageInventory"],
   ] as const;
   for (const [lawId, file, name] of aliases) {
-    const type = sourceFor(context, runtimePath(file)).getTypeAlias(name);
+    const source = sourceFor(context, runtimePath(file));
+    const type = source.getTypeAlias(name);
+    const valid = name === "DeviceCredential" ? inferredSchemaBinding(source, name, "DeviceCredentialSchema")
+      : name === "WebsiteAgentTask" ? inferredSchemaBinding(source, name, "WebsiteAgentTaskSchema") && taskSchemaTypeBinding(source)
+        : type?.isExported() === true && !type.getType().isAny() && !type.getType().isUnknown();
     reject(findings, lawId, "static.types", runtimePath(file), "resolved-owner-type",
-      type?.isExported() === true && !type.getType().isAny() && !type.getType().isUnknown(),
-      `The original ${name} must remain an exported resolved Owner type.`);
+      valid, `The original ${name} must retain its actual exported Owner type and schema symbol binding.`);
   }
   const taskStatus = sourceFor(context, runtimePath("store-foundation")).getTypeAliasOrThrow("ProductionTaskStatus").getType();
   reject(findings, LAWS.core, "static.types", runtimePath("store-foundation"), "two-public-task-states",
     taskStatus.isUnion() && JSON.stringify(taskStatus.getUnionTypes().map((type) => type.getLiteralValue()).sort())
       === JSON.stringify(["completed", "failed"]), "Only failed/completed may be exposed as persisted task states.");
-  const credential = sourceFor(context, runtimePath("transport-protocol")).getTypeAliasOrThrow("DeviceCredential").getType();
+  const credential = strictSchemaTypeProperties(sourceFor(context, runtimePath("transport-protocol")), "DeviceCredentialSchema");
   reject(findings, LAWS.credential, "static.types", runtimePath("transport-protocol"), "credential-type-exact-identity",
-    JSON.stringify(credential.getProperties().map((property) => property.getName()).sort()) === JSON.stringify([
+    JSON.stringify(credential) === JSON.stringify([
       "credential", "device_epoch", "device_id", "enrolled_at", "environment_id", "origin", "protocol_version", "server_base_url"]),
     "Device credential type must retain only its own eight long-lived fields.");
   const admissionType = sourceFor(context, runtimePath("cloud-reconciliation-client")).getTypeAliasOrThrow("BusinessAdmissionReceipt").getType();
@@ -104,8 +170,7 @@ export function inspectAgentTypes(context: InspectorContext, findings: Inspector
   const path = "scripts/audit/domains/agent-production-runtime/inspector.ts";
   const own = sourceFor(context, path);
   reject(findings, LAWS.staticQuality, "static.types", path, "typed-native-inspector",
-    own.getFunction("inspectAgentProductionRuntime")?.getParameters().every((parameter) =>
-      parameter.getTypeNode() !== undefined && !parameter.getType().isAny()) === true,
+    nativeInspectorTypeBindings(own),
     "The sole Runtime inspector must use the original native context and finding contracts.");
 }
 
