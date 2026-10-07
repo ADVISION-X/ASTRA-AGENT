@@ -1,4 +1,4 @@
-import { CONTROLLED_VALUES } from "../transport/browser-authority-diagnostic.js";
+import { BROWSER_DIAGNOSTIC_COMMAND_INTENT_KINDS } from "../transport/browser-authority-diagnostic.js";
 
 export type ExtensionCommandStage =
   | "payload"
@@ -22,7 +22,7 @@ export const extensionCommandDiagnostic = (input: Readonly<{
   runtimeEventType: "command-handler",
   commandStage: input.commandStage,
   ...(input.commandKind ? { commandKind: input.commandKind } : {}),
-  ...(typeof input.commandIntentKind === "string" && CONTROLLED_VALUES.commandIntentKind!.has(input.commandIntentKind)
+  ...(typeof input.commandIntentKind === "string" && BROWSER_DIAGNOSTIC_COMMAND_INTENT_KINDS.has(input.commandIntentKind)
     ? { commandIntentKind: input.commandIntentKind } : {}),
   ...(input.capabilityId ? { capabilityId: input.capabilityId } : {}),
   encodedByteLength: 0,

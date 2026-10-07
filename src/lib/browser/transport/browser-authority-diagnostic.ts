@@ -11,15 +11,17 @@ const FRAME_KINDS = new Set([
   "REPLY", "TARGET_ACQUIRE", "TARGET_CLAIM", "TARGET_REVOKE", "DIAGNOSTIC", "REVOKE",
   "ARTIFACT_CHUNK", "UNDECODED", "EXTENSION_RUNTIME",
 ]);
-export const CONTROLLED_VALUES: Readonly<Record<string, ReadonlySet<string>>> = {
+export const BROWSER_DIAGNOSTIC_COMMAND_INTENT_KINDS: ReadonlySet<string> = new Set(["document", "observe", "readExactAssistantTurn", "inspect", "find", "readText",
+    "readAttribute", "selectExactGptConversation", "click", "hover", "doubleClick", "keypress", "fill"]);
+
+const CONTROLLED_VALUES: Readonly<Record<string, ReadonlySet<string>>> = {
   diagnosticSource: new Set(["extension-frame", "extension-runtime"]),
   runtimeEventType: new Set(["message-handler", "command-handler", "unhandledrejection", "worker-error",
     "liveness-pulse", "job-bound-target-acquisition", "debugger-detach", "tab-remove"]),
   commandStage: new Set(["payload", "command-shape", "command-admission", "target-resolution", "registered-command"]),
   commandKind: new Set(["dom-intent", "observe", "screenshot", "file-input",
     "authenticated-media", "wait", "park-target"]),
-  commandIntentKind: new Set(["document", "observe", "readExactAssistantTurn", "inspect", "find", "readText",
-    "readAttribute", "selectExactGptConversation", "click", "hover", "doubleClick", "keypress", "fill"]),
+  commandIntentKind: BROWSER_DIAGNOSTIC_COMMAND_INTENT_KINDS,
   nativeCauseCode: new Set(["CHROME_DEBUGGER_TARGET_CLOSED", "CHROME_DEBUGGER_CANCELED_BY_USER"]),
 };
 
