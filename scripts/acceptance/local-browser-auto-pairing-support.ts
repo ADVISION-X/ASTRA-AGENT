@@ -103,7 +103,7 @@ const originalCommandDiagnostics = async (chrome: ExtensionChromeApi): Promise<v
         const parsed = parseBrowserAuthorityDiagnostic(diagnostic);
         assert.equal(parsed.reasonCode, reply.errorCode);
         assert.equal(parsed.refs.commandStage, "target-resolution");
-        assert.equal(Object.hasOwn(diagnostic, "commandIntentKind"), false);
+        assert.equal(parsed.refs.commandIntentKind, command.intent.kind);
       }
     } finally { clearExtensionPermitAuthority(); }
   }

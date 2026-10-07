@@ -50,6 +50,9 @@ import { inspectOpaqueAuthorityBoundary } from "../../scripts/audit/domains/loca
 import { requireSource } from "../../scripts/audit/domains/local-browser-session/inspector-support.js";
 import { redactHashWriteOrderIsExact } from "../../scripts/audit/domains/runtime-log-spine/inspector.js";
 import { inspectAgentContracts } from "../../scripts/audit/domains/agent-production-runtime/contract-inspection.js";
+import { executeExtensionCommandReply } from "../../src/lib/browser/chrome-extension/extension-command-runtime.js";
+import { parseBrowserAuthorityDiagnostic } from "../../src/lib/browser/transport/browser-authority-diagnostic.js";
+import { permit as browserFixturePermit, createClickCommand } from "../../scripts/acceptance/local-browser-terminal-fixture.js";
 const fixtureLaw = (): Law => ({
   schemaVersion: 2,
   lawId: "LAW-FIXTURE-001-V1",
@@ -1082,7 +1085,7 @@ test("provider contracts reject malformed payloads before identity matching", ()
   assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
     new Map([
       ["LAW-AGENT-PRODUCTION-RUNTIME-001-V75", "agent-production-runtime"],
-      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V43", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V44", "agent-production-runtime"],
     ]),
     (path) => path === "src/lib/local-runtime/production/catalog.ts"));
 });
@@ -1444,7 +1447,7 @@ test("Browser reply inspection rejects mixed transport and permit identities", (
   const path = "src/lib/browser/transport/browser-authority-websocket.ts";
   verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-001-V4", inspectSingleTransport, [
     [path, 'integerField(body, "requestSequence", 1)', 'integerField(body, "permitSequence", 1)'],
-    [path, "active?.replies.get(sequence)", "active?.replies.get(1)"],
+    [path, "reply = active?.replies.get(sequence)", "reply = active?.replies.get(1)"],
     [path, "const sequence = active.nextServerSequence;", "const sequence = permit.sequence;"],
     [path, "const sequence = active.nextServerSequence;", "const sequence = 1;"],
     [path, 'this.encryptedFrame(active, "COMMAND", sequence,', 'this.encryptedFrame(active, "COMMAND", permit.sequence,'],
@@ -1455,9 +1458,41 @@ test("Browser reply inspection rejects mixed transport and permit identities", (
     [path, "public receive(socket: BrowserAuthoritySocket, encoded: string): void", "public async receive(socket: BrowserAuthoritySocket, encoded: string): Promise<void>"],
     [path, "transportSequence: sequence", "transportSequence: reply.permitSequence"],
     [path, "permitSequence: reply.permitSequence, result", "permitSequence: sequence, result"],
-    [path, "permitSequence: permit.sequence, resolve", "permitSequence: sequence, resolve"],
+    [path, "permitSequence: permit.sequence, diagnostic: null, resolve", "permitSequence: sequence, diagnostic: null, resolve"],
     [path, "if (!active || active.socket !== socket || !reply)", "if (!active || !reply)"],
+    [path, "diagnostic: null, resolve", 'diagnostic: { reasonCode: "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", commandStage: "command-admission" }, resolve'],
+    [path, "reply.diagnostic?.reasonCode === parsed.errorCode", "reply.diagnostic !== null"],
   ]);
+});
+
+test("Extension command failure preserves its original redacted intent identity", async () => {
+  for (const input of [
+    { command: createClickCommand(), intentKind: "click" },
+    { command: { kind: "dom-intent", intent: { kind: "acknowledgeKnownGptRateLimit" } }, intentKind: null },
+    { command: { kind: "dom-intent", intent: { kind: "readKnownGptRateLimitClearance" } }, intentKind: null },
+    { command: { kind: "dom-intent" }, intentKind: null },
+    { command: { kind: "dom-intent", intent: null }, intentKind: null },
+    { command: { kind: "dom-intent", intent: { kind: 123 } }, intentKind: null },
+    { command: { kind: ["dom-intent"], intent: { kind: "click" } }, intentKind: null },
+  ]) {
+    const candidate = { ...browserFixturePermit("diagnostic-intent"), capabilityId: "browser.dom.inspect.v1" as const };
+    const reply = await executeExtensionCommandReply({
+      payload: { command: input.command }, permit: candidate, receiptBindingHash: null,
+      targetAuthority: { resolve: () => { assert.fail("Rejected command cannot resolve a Target"); } } as Parameters<typeof executeExtensionCommandReply>[0]["targetAuthority"],
+      assertCommandActive: () => undefined, deadline: Date.now() + 10_000, requestSequence: 7,
+    });
+    assert.equal(reply.body.errorCode, "BROWSER_CAPABILITY_REJECTED");
+    assert(reply.diagnostic !== null);
+    assert.equal(reply.diagnostic.reasonCode, reply.body.errorCode);
+    assert.deepEqual(parseBrowserAuthorityDiagnostic(reply.diagnostic).refs, {
+      failedFrameKind: "COMMAND", failedFrameSequence: "7", encodedByteLength: "0",
+      diagnosticSource: "extension-runtime", runtimeEventType: "command-handler",
+      commandStage: typeof input.command.kind === "string" ? "command-admission" : "command-shape",
+      ...(typeof input.command.kind === "string" ? { commandKind: "dom-intent" } : {}),
+      ...(input.intentKind === null ? {} : { commandIntentKind: input.intentKind }),
+      capabilityId: candidate.capabilityId,
+    });
+  }
 });
 
 test("Browser receipt inspection rejects raw caller facts and unbound WAL readback", () => {

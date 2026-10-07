@@ -1,3 +1,5 @@
+import { CONTROLLED_VALUES } from "../transport/browser-authority-diagnostic.js";
+
 export type ExtensionCommandStage =
   | "payload"
   | "command-shape"
@@ -10,6 +12,7 @@ export const extensionCommandDiagnostic = (input: Readonly<{
   failedFrameSequence: number;
   commandStage: ExtensionCommandStage;
   commandKind: string | null;
+  commandIntentKind: unknown;
   capabilityId: string | null;
 }>): Record<string, unknown> => ({
   reasonCode: input.reasonCode,
@@ -19,6 +22,8 @@ export const extensionCommandDiagnostic = (input: Readonly<{
   runtimeEventType: "command-handler",
   commandStage: input.commandStage,
   ...(input.commandKind ? { commandKind: input.commandKind } : {}),
+  ...(typeof input.commandIntentKind === "string" && CONTROLLED_VALUES.commandIntentKind!.has(input.commandIntentKind)
+    ? { commandIntentKind: input.commandIntentKind } : {}),
   ...(input.capabilityId ? { capabilityId: input.capabilityId } : {}),
   encodedByteLength: 0,
 });

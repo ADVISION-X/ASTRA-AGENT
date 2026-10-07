@@ -55,7 +55,7 @@ export const executeExtensionCommandReply = async (input: Readonly<{
   try {
     input.assertCommandActive();
     const candidate = asRecord(input.payload.command);
-    if (!candidate || !["dom-intent", "observe", "screenshot", "file-input", "authenticated-media", "wait", "park-target"].includes(String(candidate.kind))) {
+    if (!candidate || typeof candidate.kind !== "string" || !["dom-intent", "observe", "screenshot", "file-input", "authenticated-media", "wait", "park-target"].includes(candidate.kind)) {
       throw new Error("BROWSER_CAPABILITY_REJECTED");
     }
     command = candidate as BrowserGovernedCommand;
@@ -94,7 +94,7 @@ export const executeExtensionCommandReply = async (input: Readonly<{
     ...(failure === null ? { result } : { errorCode: code }) },
   diagnostic: failure === null ? null : extensionCommandDiagnostic({ reasonCode: code!, failedFrameSequence: input.requestSequence,
     commandStage: stage, commandKind: command?.kind ?? null,
-    capabilityId: permit.capabilityId }) };
+    commandIntentKind: command?.kind === "dom-intent" ? asRecord(command.intent)?.kind : null, capabilityId: permit.capabilityId }) };
 };
 
 export const readExtensionCommandPayload = (payload: Readonly<Record<string, unknown>>, frameDeadline: string) => {

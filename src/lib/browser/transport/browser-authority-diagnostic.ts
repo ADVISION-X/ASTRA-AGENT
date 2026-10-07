@@ -11,7 +11,7 @@ const FRAME_KINDS = new Set([
   "REPLY", "TARGET_ACQUIRE", "TARGET_CLAIM", "TARGET_REVOKE", "DIAGNOSTIC", "REVOKE",
   "ARTIFACT_CHUNK", "UNDECODED", "EXTENSION_RUNTIME",
 ]);
-const CONTROLLED_VALUES: Readonly<Record<string, ReadonlySet<string>>> = {
+export const CONTROLLED_VALUES: Readonly<Record<string, ReadonlySet<string>>> = {
   diagnosticSource: new Set(["extension-frame", "extension-runtime"]),
   runtimeEventType: new Set(["message-handler", "command-handler", "unhandledrejection", "worker-error",
     "liveness-pulse", "job-bound-target-acquisition", "debugger-detach", "tab-remove"]),
