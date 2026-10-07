@@ -85,10 +85,10 @@ const projection = JSON.parse(await readFile(new URL(
 }>;
 
 assert.equal(productionRoutePolicies.length, 40);
-assert.equal(projection.contract_version, 15);
+assert.equal(projection.contract_version, 16);
 assert.equal(projection.routes.length, 40);
 assert.equal(Object.keys(projection.parameter_types).length, 48);
-assert.equal(projection.routes.filter((route) => route.result_contract !== undefined).length, 33);
+assert.equal(projection.routes.filter((route) => route.result_contract !== undefined).length, 34);
 const articleImage = projection.routes.find((route) =>
   route.product_id === "public_knowledge_article_pipeline" && route.action_id === "produce_article")
   ?.result_contract?.image;
@@ -175,10 +175,10 @@ assert.throws(() => assertProductionTaskRoutePolicy({
   parameters: { ...sample.parameters, forbidden_extra: true },
 }), /AGENT_ROUTE_PARAMETER_SET_INVALID/u);
 
-process.stdout.write("[ACCEPTANCE][agent-route-contract] PASS 40/48/33/0\n");
+process.stdout.write("[ACCEPTANCE][agent-route-contract] PASS 40/48/34/0\n");
 for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V43",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-003-V44",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "summary"],
     locator: `acceptance:agent-production-runtime:route-contract:${evidenceMode}`,

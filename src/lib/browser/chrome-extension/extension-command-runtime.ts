@@ -92,9 +92,9 @@ export const executeExtensionCommandReply = async (input: Readonly<{
   return { body: { requestSequence: input.requestSequence, permitSequence: permit.sequence,
     replyChannelToken: permit.replyChannelToken, mutationReceipt,
     ...(failure === null ? { result } : { errorCode: code }) },
-  diagnostic: failure === null ? null : extensionCommandDiagnostic({ error: failure, failedFrameSequence: input.requestSequence,
+  diagnostic: failure === null ? null : extensionCommandDiagnostic({ reasonCode: code!, failedFrameSequence: input.requestSequence,
     commandStage: stage, commandKind: command?.kind ?? null,
-    commandIntentKind: command?.kind === "dom-intent" ? command.intent.kind : null, capabilityId: permit.capabilityId }) };
+    capabilityId: permit.capabilityId }) };
 };
 
 export const readExtensionCommandPayload = (payload: Readonly<Record<string, unknown>>, frameDeadline: string) => {

@@ -1,373 +1,139 @@
 ---
 name: agent-flow-boundary-gatekeeper
-description: 审查 AGENT 生产链内部以及 AGENT—Website 跨仓接口的原子职责、唯一 Owner 与端到端闭环，并以当前需求和系统必要性两层证据裁决结构能否新增或保留；不能证明则禁止新增或在授权片区物理删除。仅用于生产链架构设计、Owner/边界审查，以及会提出或实施生产链代码修改的诊断与重构；不用于纯运行、纯日志、普通页面观察、一般 UI/文案或实际 Product 执行。本 Skill 不定义或执行 Product Flow，也不取代任一仓的法案或 Blueprint。
+description: 审查或建设 AGENT 生产链、专业 Product Skill 及 AGENT—Website 接口时，核对授权片区、专业语义主权、Child 局部合同、唯一 Owner 和真实交付闭环；非 Skill 基础设施默认冻结。用于设计、边界审查和会提出实现修改的诊断重构，不执行 Product Flow，不替代两仓现役权威或原生质量裁决。
 ---
 
 # AGENT—Website 原子职责守门
 
-本 Skill 只负责证明每项生产责任是否原子、唯一并位于正确 Owner，绝不负责告诉生产系统“下一步该做什么”。它同时审查：
+## 1. 唯一职责与适用范围
 
-- AGENT 内部的 Runtime、Mediator、Product、GPT、Browser、Forensics 等边界；
-- Website 内部的业务发起、V6 接受面、领域消费、完成和发布边界；
-- 两仓之间的 provider/consumer 合同、attempt、结果与业务回执边界。
+指导 Codex 在当前授权内建设和审查：专业模型能完成应有的解释，Child 能完成强而窄的局部判断，现实动作和交付由各自唯一 Owner 证明。结果必须能沿真实消费者追到当前需求终点。
 
-本 Skill 不得作为运行时解释器，不得定义或执行任何 Product Flow。为了审查 Owner 边界，可以读取、理解和比较现役 Product Flow。
+本 Skill 是开发指令，不是 Product 运行依赖、流程解释器、法案、机器合同、恢复控制器或质量入口。可以理解现役 Product Flow 来核对边界，不能定义或执行第二份 Flow。
 
-它不是任何一侧的 canonical authority，没有状态、流程表、registry、quality verdict 或生产身份。
+适用于生产链设计、Owner/接口审查、专业 Product Skill 更新，以及会提出生产实现修改的诊断、删除和重构。纯状态、日志、页面观察、普通 UI/文案或实际 Product 执行退出本 Skill；退出只解除本 Skill 流程，不豁免任务本来适用的冻结索引和目标仓治理规则。没有相关项目的闲聊、翻译等不因本 Skill 新增治理步骤。
 
-## 适用性检查
+## 2. 总授权与基础设施冻结先决门
 
-仅在以下任务中继续使用本 Skill：
+进入冻结说明书适用范围，先实际读取现役 $frozen-spec-index，按其入口回读目标项目母本、确定 READ_ONLY / CHANGE / READY / RELEASE，再形成本 Skill 的判断。本机入口为 /Users/nexgen/.codex/skills/frozen-spec-index/SKILL.md；入口缺失则报告缺口，不借用旧摘要制造规范。
 
-- AGENT 生产链架构设计；
-- Owner 或跨层边界审查；
-- 将提出生产链代码修改的故障诊断；
-- 生产链实现、删除、重构或接口调整。
+未获非 Skill 对象的精确例外授权时，只在本次明确授权的 Skill 路径内写入。AGENT 非 Skill 基础设施默认冻结：Product TypeScript、Prompt builder、模型策略、结果解析、Catalog/Mediator、Runtime、GPT/Child、Browser/WAL、Forensics、数据库/存储、日志、UI/API、启动/安全、测试/审计、package/配置及法案、Blueprint、spec、Manifest、registry。Skill 目录中的可执行脚本也不能成为迂回修改基础设施的通道。
 
-如果当前任务只是以下事项，立即退出本 Skill 流程，按普通任务处理，不加载治理文件：
+冻结是授权边界，先于存在性审判和删除。发现基础设施 GAP、认为修改不可分割、原生检查失败、通过若干轮审计或声称“100%确认”，都不扩大权限。未获该对象的明确授权，只报告具体必要性、Owner、允许路径与验证方式，停止对应修改；不补辅助脚本、兼容路径、测试豁免或临时 Owner。
 
-- 纯运行或状态查看；
-- 纯日志读取和故障现场说明；
-- 不提出代码修改的 Browser/DOM 页面观察；
-- 一般 UI、文案或非生产工具修改；
-- 实际 Product 任务执行。
+授权人已经明确批准某个基础设施对象或方案登记的精确例外时，继承该范围，不重复请示，也不扩张到相邻对象。修改冻结法条仍须其原文要求的明确解冻及对应规范授权。修改本 Skill 不解冻任何法案或基础设施。
 
-## 第一性存在性门
+其他 Product Skill、Website、其他仓库和未获授权的用户改动均不自动进入施工面。沿用本地 main 为唯一施工来源；不建/切/推分支，不用 worktree 绕过范围。读取和修改分别按目标仓权威绑定，跨仓先使用现役 $switch-repo-authority。
 
-“生产级”只表示：用满足现役合同的最少部件、最少状态、最少 Owner 和最短调用链，真实完成当前需求，并对已经证实的故障给出明确失败、正确归属和可验证恢复。它不授权扩大需求、预演假设未来，或为了显得完整而增加机制。
+## 3. 当前来源、候选与冲突
 
-在绑定当前 authority 和候选以后、提出方案或施工以前，对本次获授权变更片区内每个拟新增、修改，或因本次方案而继续依赖的结构单元执行存在性审判。结构单元包括抽象、层级、模块、接口、字段、状态、持久化、队列、缓存、重试/恢复路径、配置、兼容/回退路径和证据机制。未被本次变更及其直接替代关系触及的全仓对象不自动进入删除范围；不得以“删除审判”为由扩大施工授权或覆盖用户改动。
+绑定真实项目根、branch、HEAD、tracking ref、实际目标和 dirty/untracked overlay；读取根与目标路径适用的 AGENTS、母本、当前法案、Manifest、相关 Blueprint/spec、provider/consumer 及真实实现。相关对象漂移只重算受影响结论；无关并行变化保留，不扩大任务。拟写目标有未获授权改动时停止，不覆盖、reset、stash、移动或借副本绕过。
 
-每个结构单元必须同时闭合以下两层证据：
+本仓原文入口：
 
-1. **当前需求证据**：绑定用户本次明确要求、当前真实 GAP、没有该单元时具体无法完成的结果、当前真实调用方或消费者，以及可观察的验收方式。还必须说明更简单方案为什么不能完成同一要求。
-2. **系统必要性证据**：绑定现役 law、Blueprint、合同或已证实系统不变量，指出唯一 Owner、删除后会在哪条当前调用链或状态真相上发生什么具体错误、哪个真实消费者会受影响，以及用什么 readback、后置条件或测试证明。还必须排除已有 Owner、已有机制或更短路径已经承担同一责任。
+- [冻结说明书](../../../docs/governance/法案系统建设说明书-冻结定稿版.md)：按冻结索引回读当前章节。
+- [基础法案](../../../.github/instructions/agent-rules/基础法案.md)与[功能法案](../../../.github/instructions/agent-rules/功能法案.md)：核对 appliesTo、excludes、dependsOnLawIds 和当前正文，按任务等级及命中责任读取。
+- [唯一 Owner Manifest](../../../scripts/audit/domains/code-purity/manifest.json)与[唯一 registry](../../../scripts/audit/generated/law-registry.generated.json)：registry 只定位并投影，不能替代原文。
+- [Website—AGENT Blueprint](../../../docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md)：生产链运输、结果和恢复边界。
+- GPT/Child/Provider 页面涉及 [GPT Blueprint](../../../docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md)；Target、输入、WAL、FIFO、媒体涉及 [Browser Blueprint](../../../docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md)。
+- 原生质量职责涉及 [质量证据 Blueprint](../../../docs/blueprints/code-purity/QUALITY-EVIDENCE-OWNERSHIP-V1-BLUEPRINT.md)。下级正文与当前上级法案冲突时，不照抄旧口径，也不能未经授权修源。
+- 跨仓合同从 [本仓现役 specs](../../../docs/specs/agent-production-runtime/) 回到实际 authorityArtifact；不能仅比较 contractId/version 或 hash 就宣称语义相等。
 
-两层证据必须分别成立并绑定当前候选。存在本身、代码历史、命名、注释、方案文档、测试仅在该单元存在时通过、行业惯例、“最佳实践”、“更安全”、“更稳定”、“以后可能扩展”、“方便统一”、“生产级”或整洁美观，都不能单独证明该单元不能删除。没有反例、暂未发现问题或口头推测也不构成证据。
+任何判定涉及 Website 的责任，先绑定其 workspace 显式路径或现役 providerRepo 映射，读取它自己的 AGENTS、母本、命中法案、AI acceptance Blueprint、provider 与对应 dependency。不得猜个人机器路径或以一仓规则取得另一仓主权。不可读、Owner 或合同冲突分别报告 CROSS_REPO_AUTHORITY_UNBOUND、CANONICAL_OWNER_CONFLICT、CANONICAL_CONTRACT_CONFLICT，停止依赖决定。
 
-对每个单元提出反事实问题：“现在删除它，当前需求和现役系统具体坏在哪里？”优先使用受控删除后的目标验收、真实 consumer/import 图、当前合同和运行 readback；不能安全执行删除试验时，必须明确区分已验证事实与推论，不得把推论写成 PASS。
+同仓按母本权威顺序解释；跨仓接口回唯一 provider 与最小 dependency，不自选一侧覆盖另一侧。历史会议、旧方案、Git 提交和记忆只追溯；代码不能降低法案义务。
 
-裁决只有以下动作：
+当旧方案或已落地修复命中当前责任，查实际落地、仍适用的不变量、偏离位置和当前消费者。保留仍有效的端到端 handoff/readback 门；不恢复旧 continuation CAS/controller 模型。版本、route/Child 数量、Schema 和机器分母从本次来源取得，不在 Skill 保存第二清单或字段真源。
 
-- 两层证据都闭合，且不存在能满足同一要求的更简单完整方案：允许新增或保留；
-- 任一层不能闭合：拟新增单元禁止增加，授权片区内因本次变更触及的现有单元必须物理删除；
-- 应删除对象超出授权路径、属于未获授权的用户改动或无法安全分离：输出 `EXISTENCE_UNPROVEN`，停止对应施工并请求精确授权，不得保留后宣告通过；
-- 更简单方案满足相同当前要求和系统不变量：淘汰复杂方案，并在授权片区内删除它直接替代的旧路径、残留入口和失效消费者。
+## 4. 专业语义与机械真相
 
-存在性记录只服务本次审查，不得落成新的 registry、台账、持久化状态、质量入口或第二 verdict。
+Product 独占当前专业 Skill 和自身静态执行策略；文件治理 Owner 不取得运行决策权。专业 Skill 描述目标、材料性质、依据、推理义务和解释边界；Product 代码拥有实际 Prompt 组装、精确模型/推理目标、Child 顺序与当前授权内分支。Skill 不保存第二套可执行步骤、checkpoint、状态机或恢复政策。
 
-## 绑定当前 authority
+先核真实消费：Catalog 读取同根 Skill 并注入执行 context，不证明某条 Prompt 实际使用其正文。沿命中 Product 的 Prompt builder 核正文、批准材料与 route 子合同。保留专项例外；公开知识文章的 FROZEN-PUBLIC-KNOWLEDGE-PROVIDER-FORMAT-ONLY-001 明确 Skill 不复制进 Prompt，不能擅自增加统一注入链、统一模型或共享 Product workflow。
 
-先读取仓库根 `AGENTS.md` 以及目标路径适用的更具体 `AGENTS.md`。
+专业规则由命中 Product 的现役原文决定，不把一项产品的规则推广给全部产品。八字涉及 L0/L1 冻结事实、原典和 L2 方法解释时，核完整授权材料与全部候选、真实原文与引用、支持和反证、条件/分歧/未知、专业层与通俗层等值；未知是解释边界，不能用笼统“无法确定”代替仍能完成的解释。模型判断不得反写原计算事实，不能以目录/hash/引用声明代替真实阅读。这些专业细节继续由对应 Product Skill 唯一承载。
 
-对每个进入审查范围的仓库，先绑定：
+按现役 capability-governance 的机械合同与模型语义主权法案：
 
-- 仓库 realpath、当前 branch、`HEAD`、tracking ref 和目标路径 dirty state；
-- 现有目标、拟新增路径、真实调用方与消费者；
-- 适用的 `AGENTS.md`、canonical law、Blueprint、provider 合同和 consumer dependency。
+- 禁止代码以关键词、regex、长度/比例、词表、相似度、分数或启发式布尔判断专业正确、忠实、自然、完整或风险强度，再据此 failed、拒上传、重试或要求重生成。不能包装成 schema、安全门、Child eligibility 或 postcondition。
+- 模型可按完整上下文在同轮自检并修正；不得暗加 Provider 回合、问卷、第二报告或隐藏质量流程。独立复核只能按现役明确业务授权和合同形成 finding。
+- 身份、结构、hash、授权、状态、附件、locale、immutable fields、WAL、effect-once 和真实收据仍按机械合同失败关闭。满足已公布机械结果合同的答案沿原链交付；不新增隐藏 exact fields、嵌套数量或内容门。
+- unknown-field、字段表现归一、引用等按当前具体合同；不发明公共 parser 或第二 normalize Owner。输出请求不自动授权接收器扩张 hard gate。
+- 源码搜索、AST 和机械字符串比较可以定位事实；只有以自然语言含义作确定性内容裁决才触犯上述边界，不能仅凭出现 regex 就判违。
 
-任一 authority 或候选在审查期间漂移，既有结论立即失效，必须重新绑定。dirty authority 只能得到 candidate-bound 结论，不能被表述为全仓或未来永久结论。
+## 5. Child：内部极强，外部极窄
 
-完整读取：
+每个 Child 只有一个可独立验收的原子语义意图，依据自己的当前显式合同核：身份版本、原子意图、唯一权威边界、精确输入、能力画像/等待资格、局部事实/裁决、动作/结算、最小安全证据。核 [现役 Child 合同](../../../src/capabilities/gpt/contract.ts) 与具体 handler，而不是通用默认模板或历史成功。
 
-- `.github/instructions/agent-rules/基础法案.md`
+局部可以判断 DONE、ACT、WAIT、FAIL_CLOSED；只在当前调用内存在，公开仅 success 或 typed failed。不能把 Browser terminal 当第三种 Child 公开终态，不能使局部判断持久为下一步位置、统一恢复状态或业务完成。
 
-不得把本 Skill、历史记录、generated registry、旧报告或记忆中的数量当成 authority。
+页面动作资格与直接后置来自同 exact call、当前 Target/Document 的 coherent observation。不能拼旧节点、不同瞬间或无 revision 的读取；stale/revision 改变则丢包，按自身合同 fresh observe。页面 mutation 至多一次物理输入；其它原子事务按其现役合同。不以“已满足必零动作”覆盖模型/推理选择的冻结一次确认；不以“总要动作”覆盖已有 DONE 的零输入分支。
 
-## 跨仓 authority 强制绑定
+bounded WAIT 只在该 Child 画像与当前调用内按原文成立，不是第四 Owner、公共 wait engine、持久位置或新 timer。GPT 准备瞬态复核不扩到 submit、Provider generating、限流、WAL 或业务恢复。普通全局节拍、动作后读回、submit 静默、Provider observation 间隔与连续 stopped-empty 窗口及重置条件，均回 GPT/Browser 当前冻结原文；保留 Browser 唯一计时 Owner、pending 释放 lane、短 deadline 不 acquire，不能另建 per-Child/job/Tab 节拍。
 
-只要任务会判定、改变或否定 Website 的责任，必须同时读取 Website 仓库的：
+阻断判据按实际独立决定计算，不能按 DOM 字段数计算：
 
-- 根和目标路径适用的 `AGENTS.md`；
-- 命中目标的 canonical active law 及其直接依赖；
-- 当前 AI acceptance/V6 Blueprint；
-- Website provider 合同和 AGENT 侧对应 consumer dependency。
+- 一个由本 Child Owner 产生并被真实下游整体消费的完成判据；只有防重复副作用、越权、串任务/Target/Document、错误结果接收不可替代时才增加一个安全判据。
+- 第三个独立判据默认删除；保留必须同时证明当前真实消费者、删除后的可复现错误、现役 readback/测试及更简单方案无法维持同一不变量。冻结 submit/text-response 的两门禁另按其精确合同，不借此例外扩张。
+- canonical identity 多字段只有同 Owner 同一原子 observation/transaction 产生、整体消费且不重复相邻 Child 已证明条件才算一门。boolean/helper/hash/状态名不能掩盖独立门。
+- 文本回答按原 canonical URL、原 Product marker、当前 Document 的唯一 user 与真实紧邻 assistant 关系定位；stop 存在仍 pending，消失且正文非空才完成，停空按原连续窗口。不能加入 UI 外壳第三门或 response Prompt rehash；图片保持其精确 user-turn 合同。
+- NFC 附件精确名优先、唯一合法 Provider 重复尾缀、允许空批准集合及 submit Prompt 展示投影，按当前冻结原文，不做模糊匹配，也不恢复已退役的硬比对。
 
-Website 仓库位置只能来自当前 workspace 的显式路径或 canonical contract 的 `providerRepo` 映射；不得猜测相邻目录、个人机器路径或旧 checkout。provider checkout 不可读时直接输出 `CROSS_REPO_AUTHORITY_UNBOUND`。
+共享原语必须有至少两个现役严格同义 Product 消费者；单消费者逻辑留在对应 Plugin。公共 facade 只有产品中性的静态类型调用面；不得带 Product Prompt/Flow/result Schema，不导入私有 runtime，不新增 classifier、planner、executor、selector registry、snapshot store、DSL、第二 proof schema 或兼容桥。
 
-同理，Website 的法案不能单方面定义 AGENT 内部实现责任，AGENT 的法案也不能单方面定义 Website 内部业务责任。跨仓接口以 provider 合同为准，consumer 只能声明最小依赖；两侧 authority 未同时闭合时输出 `CROSS_REPO_AUTHORITY_UNBOUND`，Owner 声明冲突时输出 `CANONICAL_OWNER_CONFLICT`，contract identity/version/body 冲突时输出 `CANONICAL_CONTRACT_CONFLICT`。不得自行选择一侧覆盖另一侧，也不得用当前代码碰巧兼容来掩盖 authority 冲突。
+## 6. 恢复、现实输入与交付 Owner
 
-## 精确读取适用法条
+下列仅是回原文的职责定位，不是独立控制规则或完整 Owner 清单：
 
-1. 先定位本次现有目标路径、拟新增路径、调用方、消费者和拟改变的责任。
+| 边界 | 权威责任与禁止转移 |
+| --- | --- |
+| Website 业务域 | canonical route、业务输入/材料/授权、领域消费与结果；最终记录必须替换成命中的具体 domain/模块 |
+| Website.ai-acceptance | 唯一业务恢复、accepted attempt、result revision、精确风险授权、远端 lease/fence、容量与公开完成；不能指挥 Product 步骤 |
+| Runtime | durable accept、当前授权运输、本地必要绑定、唯一 Outbox 与 admission readback；不能签业务恢复或拥有 Product checkpoint planner |
+| Catalog/Mediator | 唯一路由并只调用一个 Product；文件治理不等于 Prompt、模型或流程运行权 |
+| 命中 Product | 专业 Skill、Prompt、模型策略、自身静态 Flow、一次合法无损归一与结果组装；不能自签恢复/attempt/revision或窥 Browser 私有状态 |
+| GPT/具体 Child | 当前 Provider turn 与局部语义合同；不拥有业务下一步、continuation controller或恢复位置 |
+| Browser | 当前物理 Target/Document、唯一 FIFO/lane、WAL、permit、现实输入和 canonical locator；不决定业务恢复 |
+| Forensics | 已完成回答 raw artifact 的 appendArtifact/readArtifact与完整性；图片可同端口附加绑定原图的现役最小身份描述，不存 URL、图片副本或逐 Child lifecycle/failure账本 |
+| Runtime Logs | 诊断与 authority ref/hash，不是状态、恢复或完成真相 |
 
-2. 从 canonical active law source 中确定：
+核相应架构、Runtime、GPT、Browser、Forensics 法案和 Blueprint 的正文、条件及例外：
 
-   - 哪些 active `law-record` 的 `appliesTo` 命中目标路径；
-   - 哪些记录被 `excludes` 排除；
-   - 命中法条声明了哪些直接 `dependsOnLawIds`。
+- job/request、accepted attempt、result revision、Provider effect、当前 Target/Document、locator、内容 hash 与 receipt 不能互代。Provider effect 不含 attempt/process/lease/fence/Target/Document；Target 仅是当前物理坐标，URL 只指去哪读，不授 submit。
+- Product 先核已确认提交事实再决定首次准备；同 effect 已可能输入先经 GPT 公开 facade 取得 Browser 原 Owner 的 typed fact，核原 WAL/权威后置，不能重跑 fresh/profile/files/write/submit。未知不等于零输入；全部相关旧 command 的 terminal/input-quiescence 由 Browser 原 Owner 证明，未决 DISPATCHED 不给新输入。
+- 原答案有界不可得时，只有 Website 已持久签的精确新 revision/指定调用风险 grant 才能有一次受控可能重复输入，旧 WAL 事实保留。新 Target、相同 Prompt、旧页面缺席或新 attempt 不推导风险资格。
+- 跨任务 continuation 只在当前授权 SEO 文章、固定 catalog 的严格 direct-parent 关系内成立。Runtime机械核父 result ref/hash与本地 completed父任务，只取其 current attempt用于 Browser locator选择；父 attempt不进入 effect identity，不读父回答/复用父Tab，不建 continuation store/frontier/CAS/controller。八字父报告只能来自本轮 Website 已入库 locked-fact材料且任务 fresh。
+- “禁止旧checkpoint”不能覆盖现役两种精确零提交来源：风险来源中 settled_reusable 的指定调用；原 Outbox精确409、完整结果缺席、Website原对象/receipt及全部settled checkpoint共同证明后签 calls=[]来源 grant。只按已签 seal与精确调用复用原完成回答，旧 staged payload/执行位置不成为新 Product输入。
+- Runtime 旧 stage与terminal intent先成立则原结果优先交付，旧来源封口不能夺取它；seal先成立则旧完成端口封住。current_reason只是诊断，不作授权、CAS、恢复、容量或完成条件。
+- 领域拒收关闭的例外回 Runtime原文：Website已签 completed terminal写回执且response hash等于该stage规范hash，现役status为WAIT_NEW_ATTEMPT且当前attempt/terminal/admission缺席，Runtime同事务丢该attempt stage并释放席位；随后Website不同attempt/new revision grant以精确CAS接纳，不要求source seal/evidence。不能扩到Provider first failure、stopped-empty或未决effect。
+- lease续租的运输暂故障仅在已签剩余预算内按原lease、新request_id规则处理；4xx/回执schema拒绝立即停。它不授权新attempt、Product恢复或第二retry worker。
+- 已知限流只走 Runtime注入的窄控制端口→原Outbox先关无关新claim/未发生submit→GPT唯一内部ack→Browser原WAL与Website原receipt。保留原文唯一紧急时间例外、fresh后置、targetless事故事实及重启不重放ack；未知dialog不按已知限流处理；原CONFIRMED effect不能降级，在途lease、零submit读回、交付与admission继续。控制反转不成为第二业务恢复链。
+- 完整 mechanically valid result与terminal Outbox intent先在 Runtime同一SQLite事务落地，再做Browser/GPT诊断清理。清理或日志失败不能撤结果；同identity可合法重消费时先交付原结果，不重跑Provider。
+- Website领域consumer幂等领域事务/receipt与ai-acceptance接纳按该域当前同client规则闭合；核实际transaction context，不凭嵌套调用外观判断第二事务。领域transient与result revision拒收分别沿原Owner处理；Runtime核同结果admission receipt后写local completed。业务Manifest/发布/履约及公开完成先后回具体域，不造跨仓事务或第二完成Owner。
+- Runtime只用当前法案规定的持久真相和原Outbox，普通启动不补schema/迁移或造新store；capacity/健康/worker存活、HTTP200、staging、terminal、Outbox送达均不能替代业务readback。
 
-3. 只读取：
+“每步可展示proof”与“每步必须持久ledger”分开核真：追 typed fact、原 WAL、完成artifact及实际消费者。Forensics存储与Website证据措辞不闭合时报告精确来源与受影响决定，不能自行发明账本或据措辞差异断言生产故障。
 
-   - 目标路径实际适用的功能法条；
-   - 这些法条的直接依赖法条；
-   - 解决当前 Owner 冲突不可分割地需要的相邻法条。
+## 7. 受影响闭环与存在性删除
 
-4. generated law registry 只能作为 lawId、source path 和行号的定位器。任何结论都必须回到以下 canonical source 中读取原始 `law-record`：
+从当前变化依赖的最后一个权威输入沿真实consumer追到需求终点；从终点反查入口。开发Skill终点是Codex实际读取正文并正确应用边界，不伪造运行import证明活性。生产链方案至少核到领域幂等存储/admission，业务附加终点按具体Owner；不得扩大到无关Product或以静态图证明生产完成。
 
-   - `.github/instructions/agent-rules/基础法案.md`
-   - `.github/instructions/agent-rules/功能法案.md`
+每项责任写成可独立证伪的记录并闭合：具体唯一Owner、权威输入/provider、一个决定/动作/事务、权威输出、全部真实消费者、失败Owner/位置、接收readback、禁止取得它的相邻Owner。记录含多个独立决定、writer、状态真相、恢复裁决或完成标准时继续拆分；同原子事务的绑定 receipt 是证明，不是第二真相，多字段或多消费者不自动构成拆分。不要停在“Website/AGENT/系统”泛称；一个成熟Product可有有序Child，不因多步骤把静态Flow拆给其它层。
 
-5. 如果是拟新增路径，或者现有路径没有命中任何功能法条：
+每条相邻handoff核producer/consumer方向、canonical合同identity/version、字段与类型/基数/关系/顺序、null/default/unknown-field、编码/归一/hash、各自identity、状态/幂等/事务/lease/fence、receipt、失败/拒绝/未知、恢复授权和原链回接。语义按canonical compatibility完整满足，不是无条件字节等；exact bytes/identity/hash仅在合同明确要求时成立。
 
-   - 不得把零命中解释为不受约束；
-   - 沿真实 importer、consumer、合同和预期职责反推唯一 Owner；
-   - 读取该 Owner 对应的现役功能法条；
-   - 无法证明覆盖或 Owner 时停止施工并报告缺口。
+有限分母只取当前需求、合同、代码与已证实结果：成功、拒绝、失败、取消、Owner管理的未知/人工阻断均须有终态/readback/恢复回接。不发明统一恢复图、第二状态机或未来故障。缺关键authority就停止依赖动作，仍完成不依赖它的已授权工作。
 
-只有以下情况才扩大到完整《功能法案》：
+先确认可写范围，再对本次新增、修改、替代或继续依赖的结构执行删除反事实：当前需求/GAP、真实消费者、唯一Owner/输出、删后哪条真实分支具体坏、更短现有方案、可执行验证、被替代旧路和零残留。分开核需求层必要性与系统层存在性：当前需求为什么必须完成该责任；当前系统为什么仍须由此唯一结构承担。依次裁决复用→现Owner内修改→删除旧路后替换；新增必须证明前三者不满足。整理、未来复用、行业习惯、命名、测试自证或未发现问题不够。
 
-- 修改法案系统或治理 authority；
-- Owner 无法通过目标路径和调用图唯一确定；
-- 出现跨 capabilityDomain 责任冲突；
-- canonical applicability 无法闭合；
-- 用户明确要求全量治理审查。
+两层任一证据不足，新结构禁止新增；本次触及或继续依赖的现有结构，在授权允许且可安全分离时物理删除，否则报告 EXISTENCE_UNPROVEN 并停止对应施工，不能保留后宣告合格。更简单方案直接替代的旧路及其独占入口、导出、配置、残留消费者须在授权内同时物理退休。超出授权、冻结基础设施或用户改动的对象只能报告 EXISTENCE_UNPROVEN并停对应删除。明确要求整片删除重构时实际delete→缺席readback→同一路径唯一重建，不能覆盖写、改名、壳或迁移桥代替。
 
-## 按需读取 Blueprint
+## 8. 实际差异、验收与输出
 
-任何进入本 Skill 的 AGENT 生产链任务都读取：
+施工前核目标状态与现役结构约束；施工后核完整实际diff、唯一身份/path、真实消费、受影响handoff、来源/引用、旧语义残留及授权外对象。新文件不代表所有会话自动重载；实际取得完整正文才可声称本次已读取。
 
-- `docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md`
+输出当前需求、授权/冻结边界、scoped候选、现役实现与前轮不变量、第一直接断裂及Owner/位置/后果、具体责任和handoff/readback、存在性裁决、实际改动、验证与未闭合项。记录只在当前回答或获授权的唯一方案，不能新建registry、台账、评分器、第二report或质量入口。
 
-任务涉及以下任一 GPT 对象时，读取：
+Owner不明报 OWNER_BOUNDARY_UNPROVEN；handoff/终点不闭合报 END_TO_END_CLOSURE_UNPROVEN。这些只是具体finding，不是第二verdict。计数、目录遍历、日志或几轮审查不替代当前证据；“100%”至多指已定义有限分母无未闭合分支，不能保证未知基础设施永远正确。
 
-- `docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md`
-
-GPT 对象包括：
-
-- Product Plugin 的 GPT 调用或 Child sequence；
-- GPT Child、GPT Facade 或 GPT Session；
-- GPT Provider 页面 DOM 合同；
-- Product、Child 与 Browser 之间的接口。
-
-任务涉及以下任一 Browser Authority 对象时，读取：
-
-- `docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md`
-
-Browser Authority 对象包括：
-
-- Target、Document、claim、park、reacquire 或任务专属页面生命周期；
-- 物理 mutation、WAL、effect identity、dispatch 后置对账或恢复查询；
-- Browser FIFO、已具备资格请求的顺序、normal/recovery 共用入口或旁路；
-- Browser permit/MAC、Extension validator、pluginVersion 或已鉴权页面媒体 bytes。
-
-同一任务同时涉及 GPT 页面语义与 Browser 物理边界时，两份 Blueprint 都读取。纯 Runtime transport、非 GPT/Browser 能力或 Website-only 边界不自动加载它们；出现跨域冲突时再扩大读取。
-
-`docs/history/**`、迭代会议记录和旧 Blueprint 不得成为现役施工依据。
-
-## 原子职责判定合同
-
-每一项被审查的责任都必须写成一条可独立证伪的原子记录，并同时闭合：
-
-1. 一个 canonical Owner；
-2. authority inputs 及其 provider；
-3. 一个可独立验收的决定、动作或原子事务；
-4. 一个 authoritative output/persisted-truth boundary；同一原子事务的绑定 receipt 是该真相的证明，不是第二真相；
-5. 全部当前真实 consumers；
-6. 失败由谁产生、写在哪里；
-7. consumer 用什么 readback 或后置条件验收；
-8. 哪些相邻 Owner 明确不得取得该责任。
-
-若一句职责同时含有多个可独立发生的决定、writer、状态真相、恢复裁决或完成标准，必须继续拆分。一个输出包含多个绑定字段，或同一原子真相具有多个 consumers，不构成拆分理由，但必须逐项列全。不得以“Website”“AGENT”“Runtime”或“系统”这类宽泛主体结束判定。
-
-一个 Product 业务要求可以包含多个有序 Child，但只要其唯一决定仍是“如何完成这一项成熟业务要求”、唯一结果仍由同一 Product Plugin 组装，它就是一项原子业务责任；不得因为内部多步骤就把 Product Flow 拆到 Runtime、GPT 或 Browser。
-
-## 方案级端到端闭环门
-
-本 Skill 一旦用于制定生产链方案、跨仓接口方案、生产故障修复方案或施工方案，不能在原子责任分别正确后停止。提出方案或施工以前，必须从现役 authority 和当前真实调用链重建本次受影响的唯一端到端闭环，证明每项上游责任的权威输出都由下游唯一消费者按合同接收，直到当前需求的权威业务终点。
-
-闭环范围从本次变化所依赖的最后一个权威输入开始，沿全部受影响的真实 consumer 追到业务终点；不得跳过中间 Owner，也不得扩大到不受本次变化影响的 Product、route 或业务域。对 AGENT—Website 结果链，业务终点至少包含 Website Domain Consumer 对同一结果的幂等领域存储及其 admission receipt；Website public completion、AGENT local completion、发布或履约是否以及按什么顺序进入终点，必须逐业务域读取现役 Website authority，不得由本 Skill 猜测。
-
-闭环中的每一项责任必须引用本次已经闭合的原子责任记录。每两个相邻责任之间形成一条可独立证伪的 handoff，并同时证明：
-
-1. producer 的 authoritative output 或 persisted truth 真实存在；
-2. consumer 是当前活动调用链中的真实消费者；
-3. consumer 所需的 schema、version、字段、基数、关系、状态和 receipt 条件与 producer 输出精确相等；
-4. `job_id`、`request_hash`、accepted attempt、effect identity、result revision、payload hash 和 admission receipt 等身份按各自现役合同连续绑定，且不得互相冒充；
-5. consumer 有独立 readback 或后置条件证明接受，日志、发送动作、HTTP 成功、Provider terminal、Outbox delivered 或 staging 不得替代后续 Owner 的接受；
-6. 拒绝、失败或结果未知由唯一 Owner 产生 typed fact 并写入其权威位置；
-7. 恢复 Owner、恢复输入和重新接回原主链的位置明确，已发送或结果未知的外部动作在 receipt、WAL 或权威后置条件读回以前不得重放。
-
-只审查现役合同、代码和真实 typed outcome 已存在的成功、失败与结果未知分支，不得为了“完整”发明假设分支、统一恢复图、第二状态机或额外持久化。Product Flow、业务完成标准或恢复政策在 authority 中缺失时，报告缺口并停止，不得由本 Skill 补写。
-
-若原子责任各自可闭合，但任一 handoff、身份连续性、失败归属、恢复回接或业务终点不能闭合，输出 `END_TO_END_CLOSURE_UNPROVEN`，停止把当前内容称为完整方案，并停止对应施工。报告必须先指出第一处直接断裂、责任 Owner、权威错误位置与下游后果，再列出其余已证实的独立断裂；不得把下游报错冒充第一故障。
-
-`END_TO_END_CLOSURE_UNPROVEN` 只是本次审查的失败关闭 finding。闭环全部有证据时只表示可以继续进入仓库原生施工和质量流程，不得产生 `CLOSURE_PASS`、第二 report、第二 verdict、READY、RELEASE 或生产完成结论。闭环记录只存在于本次回答，不得落成 registry、台账、配置、运行状态或持久化结构。
-
-## Website 侧原子职责基线
-
-以下基线只用于检查定位，最终仍须以本次绑定的 Website canonical source 和实际合同为准。
-
-| 原子责任 | 唯一 Owner | 拥有 | 明确不拥有 |
-| --- | --- | --- | --- |
-| canonical route/business contract | 命中业务域的 Website Canonical Route Provider | 定义 route、参数类型、材料 role/基数/relation 和 result schema | task 实例值、Product Flow、领域入库 |
-| 业务任务实例与授权 | 命中业务域的 Website Domain Sender | 按 canonical route 校验并冻结 subject、参数值、业务授权和 contract identity；请求创建或撤销 | 定义第二份 route/result contract、Product Flow、Browser 动作、领域验收 |
-| V6 控制面与未完成公开状态 | `ai-acceptance` | provider contract、设备/会话/attestation、claim eligibility 与顺序、grant、远端 lease/renew/fence、control、`failed + current_reason` 与容量 | Product 步骤、Browser 页面动作、领域内容解释、无回执完成 |
-| accepted attempt | `ai-acceptance` | 签发、计数、保留、终止或替换 attempt；`retry_not_before`、是否创建新 attempt、自动下一动作和永久撤销 | AGENT 本地步骤、物理页面重放 |
-| 业务材料实例与授权 | 命中业务域的 Website Domain Sender | 按 canonical route 冻结实际材料引用、关系、hash、授权和业务完整性 | 定义第二份材料合同、V6 传输实现、AGENT 本地路径、Browser 页面步骤 |
-| 材料对象绑定与传输合同 | `ai-acceptance` | 把获授权材料对象稳定绑定到 `job_id + request_hash + business task` 并提供 V6 传输合同 | 用 attempt 改写业务材料身份、重解释材料、决定 Product Flow、指定 AGENT 本地路径 |
-| 完成 staging | `ai-acceptance` | 仅检查外层机械合同并暂存；任务保持 `status=failed`，`current_reason.code=AWAITING_BUSINESS_ADMISSION` | 解释内层业务内容、签发领域回执、宣告业务完成、创建第三状态 |
-| 领域验收与入库 | 命中业务域的 Website Domain Consumer | 对一份 staged result 做 `job_id + result_payload_hash` 幂等解释、领域存储并签发 admission receipt | Product/Browser 恢复、第二套规范化、第二任务状态 |
-| AI job 公开完成转换 | `ai-acceptance` | 只在有效 domain admission receipt 与该业务域规定的附加完成门均闭合后写入 `completed` | 解释领域内容；用 Runtime terminal、Outbox、上传成功或 staging 代替领域回执 |
-| 业务结果完成、发布或履约 | 命中业务域的 Website Domain Owner | 仅消费已领域验收的数据，并按本业务域 canonical 顺序完成 Manifest、业务结果、发布或履约 | 反向决定 accepted attempt、V6 调度、Product Flow 或伪造 admission receipt |
-
-`Website Canonical Route Provider`、`Website Domain Sender/Consumer/Owner` 只是定位角色，不是可直接写进最终记录的 Owner 名。最终记录必须用命中 law/Blueprint 和真实路径把它替换为具体 Website capabilityDomain/模块；无法替换即为 `OWNER_BOUNDARY_UNPROVEN`。
-
-## AGENT 侧原子职责基线
-
-| 原子责任 | 唯一 Owner | 拥有 | 明确不拥有 |
-| --- | --- | --- | --- |
-| 架构边界 | `architecture-boundary` | 文件归属、Catalog/Manifest/Mediator/acceptance 的结构关系 | 运行时业务决定、任务状态、恢复动作 |
-| V6 consumer 接入 | `agent-production-runtime` | 请求并验证 Website session/claim/grant/lease/fence，消费 Website 已签发的 attempt identity，durable accept 后形成本地绑定 | 签发 attempt、业务授权、Browser 物理 permit |
-| 本地生命线 | `agent-production-runtime` | 现役持久化表、同一 accepted attempt 的 product-opaque re-entry、heartbeat/renew、opaque checkpoint receipt 的运输/持久绑定/机械读回、release、下载材料与当前 job/attempt/execution 的本地绑定、材料库存与 receipt 机械校验 | 改写 Website 业务材料身份、Product 业务 checkpoint 语义或下一步、新 attempt 策略、Browser WAL、领域验收 |
-| 结果 Outbox | `agent-production-runtime` 的唯一 Outbox 子边界 | 一份发送 intent、idempotency key、投递及 transport receipt readback | Website 重试政策、Browser 物理重放、领域 admission receipt、第二业务完成状态 |
-| AGENT 本地完成 | `agent-production-runtime` | 完整机械校验当前 `job_id + result_payload_hash` 的 Website domain admission receipt 后，原子写本地 task `completed` | 解释领域内容、签发 admission receipt、以 staging/Outbox/Provider terminal 代替回执 |
-| 一次路由 | `architecture-boundary` 拥有的 Mediator | durable accept 后按 product/action/contract 精确解析 Catalog，并且只调用一个 Product Plugin 一次 | transport、任务状态、恢复、业务步骤、Browser 动作、第二 registry |
-| 成熟业务要求 | 命中 route 的具体 Product Plugin | Product Flow、Prompt、模型策略、Child 顺序/分支/重复/跳过、业务 checkpoint、依据公开 typed facts 的 Product recovery、业务 artifact/base receive、一次无损 normalize 和结果组装 | Website 业务授权/公开状态/领域验收；Browser 私有状态 |
-| 单个 GPT 原子能力 | `gpt` 的具体 Child/Capability | 页面语义 Child：一个局部决定、零或一次 Browser 动作、直接后置证明；continuation transaction Child：一次 opaque continuation transaction/CAS 与一致 readback；返回 success 或 typed failed | Child 排序、fresh/continuation 业务选择、Product recovery、业务终态、Target 选择 |
-| continuation 会话并发 | `gpt` 内部 Session Controller 子边界 | opaque continuation identity、origin/current binding 和独立 CAS | 独立 capability/Manifest Owner、Product Flow、Product recovery |
-| Browser Target | `local-browser-session` | durable accept 后创建、绑定或精确重领唯一 system Target/Document/workspace，并签发 target claim receipt | 从既存页面猜选、fresh/continuation 业务选择、Website business claim |
-| Browser Observation | `local-browser-session` | typed query、current document 和 coherent mechanical observation packet | 页面业务语义、快照业务真相、Product 决策 |
-| Browser Mutation/WAL | `local-browser-session` | effect identity、pre-dispatch fence、零或一次 dispatch、同次固定 after-read gate、机械后置条件、Browser terminal 与 mutation outcome | attempt、Product 下一步、GPT 页面语义、业务完成 |
-| Browser FIFO | `local-browser-session` 内部子边界 | 已具备资格请求的唯一排序；normal release；未决 `DISPATCHED` 的 recovery isolate 保持同一 lane | 独立 canonical Owner、Product priority、入队资格、新 attempt、恢复分支 |
-| exact-call 取证 | `forensics-persistence-capability` | exact-call evidence 生命周期、受控证据引用、append/readback/完整性事实 | Runtime 材料、Product 结果、Website 业务对象、permit、排序、恢复解释 |
-| 诊断日志 | `runtime-log-spine` | 追加诊断事实 | 任务状态、恢复决定、业务完成、任何 canonical truth |
-
-“命中 route 的具体 Product Plugin”也必须在最终记录中替换为精确 Plugin identity、路径和适用 Product authority；只知道它属于 Product 层仍不足以施工。
-
-以上不是封闭枚举。必须从本次命中的现役法条、Blueprint、实际代码和调用方向确定唯一 Owner；不得因为表中没有某个 canonical Owner，就把责任改派给相邻层。
-
-Product 自己的 `SKILL.md` 可以拥有产品语义和输出要求，但不得与 Product TypeScript 分别维护两套 Child 顺序、状态机、恢复规则或业务 Flow。
-
-## 同名责任的强制区分
-
-- **claim**：Website business job claim 只属于 Website V6；Browser target claim 只证明本地页面资源归属。两者不得互认。
-- **fence**：Website 签发 execution fence；Runtime 只验证、绑定并执行机械约束；Browser WAL 单独拥有物理 pre-dispatch fence。任何一层不得因此取得另外两层的决策权。
-- **attempt**：Website 签发、计数、终止或替换 accepted attempt；Runtime durable bind；Product、GPT、Browser、Forensics 只能携带和校验该 identity。process、lease、target、build、error 或 deadline 都不得自行创造新 attempt。
-- **contract/Manifest**：Website 是 task/result/route/V6 provider；AGENT consumer 只声明最小 dependency。AGENT capability Manifest 是 Runtime provider，但解析所用 Catalog 仍是 Architecture Boundary 拥有的纯数据。Manifest ownership 不等于 Product runtime ownership。
-
-恢复必须按事实所在层原子化：
-
-- `ai-acceptance`：永久撤销、`retry_not_before`、是否签发新的 accepted attempt；
-- `agent-production-runtime`：同一 accepted attempt 的 product-opaque re-entry、lease/fence、opaque checkpoint receipt 的运输/持久绑定/机械读回和 Outbox；
-- 命中 route 的具体 Product Plugin：只根据公开 typed facts 决定下一个 Child、skip/repeat 或 Product recovery；
-- `local-browser-session`：只根据 WAL 决定首次物理 `PREPARED`、只读 reconcile 或禁止重放；
-- `gpt` 的具体 Child：只做本 Child 的局部 probe/reconcile，返回 success 或 typed failed；
-- `forensics-persistence-capability`：只提供证据事实，不解释业务恢复。
-
-结果主链必须保持单向：Product result → Runtime Outbox → Website staging → Domain Consumer admission receipt。取得 receipt 后，Website 业务域按自己的 canonical 附加门完成业务结果/Manifest/发布/履约，Website `ai-acceptance` 再按该域规定的完成门写 public `completed`；Runtime 只机械校验同一 receipt 后写 AGENT local `completed`。任何前一阶段的成功都不能替代后一阶段的 Owner 结论；各业务域附加门的先后不得由本 Skill 猜测，Website public completion 与 AGENT local completion 也不得合并成第二套跨仓状态。
-
-## 跨 Owner 修改
-
-跨 Owner 修改只有在确属接口变化时才能继续。必须证明：
-
-- 当前任务不可分割地需要接口变化；
-- producer、consumer、合同 Owner 及双方当前候选身份已定位；
-- 接口只传递事实、命令或 typed result，不转移业务 Flow；
-- 多 Owner 只读投影只组合各唯一 Owner 已持久化并验证的正交事实，不创建统一恢复状态、历史失败系统或第二持久化真相；
-- 事实投影不写入、不调度、不决定 Product 下一步，也不向非 Owner 泄漏 Target、Document、WAL row 等物理私有身份；
-- 任一侧没有取得另一侧的决策权；
-- 真实现役消费者和验证方式存在。
-
-若需要修改 Website、active law、Blueprint 或其他仓库：
-
-- 当前用户任务已经明确包含该修改授权时，直接继承授权，不得重复请示；
-- 当前授权未包含时，停止并请求对应授权；
-- 不得为了绕过授权把责任临时放进 AGENT。
-
-修改本 Skill 本身不会修改或取代任何一侧的 authority，也不能授权生产代码、Website、active law 或 Blueprint 变更。
-
-## 施工边界
-
-施工前为每项责任形成以下范围绑定，不得合并省略：
-
-```yaml
-responsibility:
-canonical_owner:
-authority_inputs_and_providers:
-single_decision_or_action:
-typed_output_or_persisted_truth:
-consumers:
-failure_owner_and_location:
-readback_acceptance:
-forbidden_adjacent_owners:
-canonical_refs_and_candidate_identity:
-allowed_change_paths:
-existence_proof:
-  unit:
-  current_requirement_gap_and_acceptance:
-  system_invariant_owner_and_failure:
-  current_consumers_and_readback:
-  deletion_trial:
-  simpler_complete_alternative:
-  decision: KEEP | ADD | DELETE
-
-end_to_end_closure:
-  demand_source:
-  authoritative_business_terminal:
-  affected_chain:
-  identity_spine:
-  handoffs:
-    - producer_responsibility:
-      authoritative_output_or_truth:
-      identity_and_contract_binding:
-      consumer_responsibility:
-      consumer_acceptance_readback:
-      rejection_failure_or_unknown_fact:
-      failure_owner_and_location:
-      recovery_owner_and_reentry:
-      duplicate_or_omission_prevention:
-      current_evidence:
-  success_terminal_readback:
-  uncovered_handoffs:
-```
-
-每份方案只形成一份 `end_to_end_closure`，其 handoffs 引用前面的原子责任，不复制或改写各 Owner 的 Flow。任一职责边界字段不能由当前证据闭合，输出 `OWNER_BOUNDARY_UNPROVEN` 并停止对应施工。任一存在性字段不能由当前证据闭合，输出 `EXISTENCE_UNPROVEN`，按第一性存在性门禁止新增、执行授权内删除或停止越界删除。任一闭环字段、受影响责任或 handoff 不能闭合，输出 `END_TO_END_CLOSURE_UNPROVEN` 并停止对应施工。
-
-只修改合法 Owner 和完成当前任务不可分割的直接关联对象。
-
-## 完成后删除式反查
-
-先对实际差异、本次方案继续依赖的现有单元和被直接替代的旧路径重跑存在性审判，证明每个新增与保留单元的两层证据仍然成立；未证明单元不得留在候选中。再按实际差异重建受影响闭环，逐条重验 handoff、身份连续性、成功终点、失败/结果未知归属和恢复回接；修改后新出现的断裂必须输出 `END_TO_END_CLOSURE_UNPROVEN`，不得以局部测试通过保留候选。删除一个单元时同步清除只为它存在的入口、导出、配置、状态、持久化、测试夹具和消费者，不得留下换名包装、空壳或兼容路径。然后检查实际差异、import 图、调用方、消费者、导出和持久化结构，寻找：
-
-- 一个宽泛 Owner 同时拥有业务输入、transport、执行、领域验收或发布中的多项独立决定；
-- Website Domain Sender 持有 Product Flow、Prompt、Child 顺序或 Browser 页面动作；
-- Website staging 解释内层业务内容，或没有 Domain Consumer receipt 就写 `completed`；
-- Runtime 签发 accepted attempt、决定 Website 业务重试/新 attempt、取得 Browser 物理 permit，或用 terminal/Outbox 替代领域验收；
-- Product 决定 Website 业务授权/公开完成状态，或读取 Target、Document、WAL row 等 Browser 私有状态；
-- GPT Child、Browser、Forensics 或 GPT Session Controller 决定 Product 下一步或业务恢复；
-- shared Product Flow；
-- 通用 executor、planner、graph、workflow、bus 或 DSL；
-- 中央 Scheduler、Traffic Arbiter、Product priority/weight、recovery queue/bypass 或第二 Browser lane；
-- Provider wait table/ticket、持久化 nextCheckAt、统一 call/recovery state 或第二恢复状态机；
-- stage、nextStep、stepIndex、resumePoint、flowVersion、reconcileOnly；
-- Runtime 或 Mediator 决定下一个 Child；
-- Browser 根据业务状态推进 Product 步骤；
-- Child 理解 Product 终态；
-- `readCallFacts` 或同类事实 Facade 写状态、安排动作、返回统一 state/phase/nextStep、历史 per-call failure，或泄漏 Target/Document/WAL row；
-- Forensics Persistence 或 GPT Session Controller 解释 Product 恢复分支，或出现第二 evidence writer/table/manifest、第二 continuation store/controller；
-- Product Skill 与 Product TypeScript 各自维护 Flow；
-- 第二任务状态、第二 mutation store、第二恢复结论或第二业务 verdict；
-- Browser FIFO 取得 Product priority、入队资格、新 attempt 或恢复裁决；
-- 事实投影、Facade 或日志取得写状态、调度、恢复或完成权；
-- 无当前真实消费者，或仅由同一待删除链自我引用的结构。
-
-这些词只用于发现候选问题。必须根据其真实决策权、状态和调用方向判断，不得仅凭名称判违。
-
-## 输出边界
-
-只向用户报告：
-
-- 本次明确需求、当前 GAP、授权片区和明确非目标；
-- 双方仓库的候选与 authority 是否闭合；
-- 本次受影响的端到端闭环、权威业务终点、身份主线和每条 handoff 的 producer/consumer/readback；
-- 每项原子责任的完整范围绑定记录；
-- 每个新增、保留或删除单元的两层存在性证据、删除试验和唯一动作；
-- 唯一 Owner 及 canonical 依据；
-- 第一处直接断裂、责任 Owner、权威错误位置、下游后果，以及其余已证实的独立断裂；
-- 越界责任、当前错误位置与唯一应迁回位置；
-- 允许修改路径；
-- 每个 consumer 的 readback 和已完成验证；
-- 任何未闭合项及 `CROSS_REPO_AUTHORITY_UNBOUND`、`CANONICAL_OWNER_CONFLICT`、`CANONICAL_CONTRACT_CONFLICT`、`OWNER_BOUNDARY_UNPROVEN`、`EXISTENCE_UNPROVEN`、`END_TO_END_CLOSURE_UNPROVEN` 或 candidate drift。
-
-本 Skill 的结论只是 Owner 边界结论，不是新的 quality PASS、READY、RELEASE 或生产完成结论。
+按实际等级使用本仓唯一 quality:check，必要普通验证只证明所观察内容。CHANGE不等READY；READY不等RELEASE；发现失败关闭，不能修冻结基础设施来凑PASS。不存在source范围授权或无法保护用户改动时停止对应动作，取消即停止。方案设计需要现役 $closed-loop-implementation-design 时按其双遍阅读与唯一产物要求执行；既定合格方案未漂移则复用，不建立竞争方案。

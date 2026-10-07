@@ -1,4 +1,9 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
+import { createHmac } from "node:crypto";
+import { createClickCommand, permit } from "./local-browser-terminal-fixture.js";
+import { browserCommandPermitMacPayload } from "../../src/lib/browser/transport/command-permit.js";
+import { setExtensionPermitAuthority, clearExtensionPermitAuthority } from "../../src/lib/browser/chrome-extension/command-permit-validator.js";
+import { parseBrowserAuthorityDiagnostic } from "../../src/lib/browser/transport/browser-authority-diagnostic.js";
 import { GRASSEYE_AUTO_PAIRING_ALARM, GRASSEYE_TOOL_EXTENSION_ID, PairingAutoBootstrap, type WorkbenchPairingState } from "../../src/lib/browser/chrome-extension/pairing-auto-bootstrap.js";
 import type { ExtensionChromeApi } from "../../src/lib/browser/chrome-extension/extension-runtime-types.js";
 import { TargetClaimAwaiter } from "../../src/lib/browser/chrome-extension/websocket-target-claim-awaiter.js";
@@ -57,7 +62,55 @@ const nextTick = () => new Promise<void>(resolve => setImmediate(resolve));
 const operation = async (fixture: Worker, body: Record<string, unknown>, sequence = 2): Promise<void> =>
   fixture.invoke("acceptTargetAcquire", fixture.socket, await fixture.frame("TARGET_ACQUIRE", sequence, body));
 
+
+const originalCommandDiagnostics = async (chrome: ExtensionChromeApi): Promise<void> => {
+  for (const diagnosticSendFails of [false, true]) {
+    const fixture = await workerFixture(chrome), candidate = permit("extension-diagnostic-" + diagnosticSendFails);
+    const key = Buffer.alloc(32, 7), { commandFrameMac: _unused, ...unsigned } = candidate;
+    const signed = { ...candidate, commandFrameMac: `sha256:${createHmac("sha256", key).update(browserCommandPermitMacPayload(unsigned)).digest("hex")}` };
+    setExtensionPermitAuthority({ authorityRef: candidate.authorityRef, authorityEpoch: candidate.authorityEpoch,
+      certificateHash: candidate.certificateHash, channelSessionHash: candidate.channelSessionHash, commandPermitKey: key.toString("base64") });
+    let retirements = 0, sends = 0;
+    fixture.authority.resolve = () => { throw new Error("BROWSER_TARGET_INVALID"); };
+    fixture.authority.retireInvalidCommandTarget = async () => {
+      retirements += 1;
+      assert.equal(decodeBrowserAuthorityFrame(fixture.frames.at(-1)!).kind, "REPLY");
+      assert.ok(fixture.delivery.mutationSlot?.fact, "terminal fact is retained before target retirement");
+    };
+    const send = fixture.socket.send.bind(fixture.socket);
+    Reflect.set(fixture.socket, "send", (value: unknown) => {
+      sends += 1;
+      if (diagnosticSendFails && sends === 1) throw new Error("INJECTED_DIAGNOSTIC_SEND_FAILURE");
+      send(String(value));
+    });
+    try {
+      const command = createClickCommand(), frame = await fixture.frame("COMMAND", 7, {});
+      const execution = fixture.invoke("executeCommand", fixture.socket, frame,
+        { permit: signed, command, receiptBindingHash: `sha256:${"a".repeat(64)}` });
+      if (diagnosticSendFails) await assert.rejects(execution, /INJECTED_DIAGNOSTIC_SEND_FAILURE/u);
+      else await execution;
+      assert.equal(retirements, 1, "a delivered reply retains its original target retirement even if diagnostic sending failed");
+      assert.equal(sends, 2, "diagnostic failure cannot skip the original reply attempt");
+      assert.deepEqual(fixture.frames.map(value => decodeBrowserAuthorityFrame(value).kind),
+        diagnosticSendFails ? ["REPLY"] : ["DIAGNOSTIC", "REPLY"]);
+      const replyFrame = decodeBrowserAuthorityFrame(fixture.frames.at(-1)!);
+      const reply = await decrypt(fixture.session.clientToServerKey, "client-to-server", replyFrame);
+      assert.equal(reply.errorCode, "BROWSER_TARGET_INVALID");
+      assert.deepEqual(reply.mutationReceipt, fixture.delivery.mutationSlot?.fact);
+      if (!diagnosticSendFails) {
+        const diagnosticFrame = decodeBrowserAuthorityFrame(fixture.frames[0]!);
+        const diagnostic = await decrypt(fixture.session.clientToServerKey, "client-to-server", diagnosticFrame);
+        const parsed = parseBrowserAuthorityDiagnostic(diagnostic);
+        assert.equal(parsed.reasonCode, reply.errorCode);
+        assert.equal(parsed.refs.commandStage, "target-resolution");
+        assert.equal(Object.hasOwn(diagnostic, "commandIntentKind"), false);
+      }
+    } finally { clearExtensionPermitAuthority(); }
+  }
+};
+
 const originalDelivery = async (chrome: ExtensionChromeApi): Promise<void> => {
+  await originalCommandDiagnostics(chrome);
   const fixture = await workerFixture(chrome), slot = () => fixture.delivery.mutationSlot, fact = terminalFact(identity("original-worker", "original-attempt"));
   let finish!: () => void; const handler = new Promise<void>(resolve => { finish = resolve; });
   fixture.delivery.pendingCommandHandlers.add(handler); void handler.then(() => { fixture.delivery.pendingCommandHandlers.delete(handler); putFact(fixture, fact); });

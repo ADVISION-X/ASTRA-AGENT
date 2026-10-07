@@ -234,7 +234,7 @@ const inspectCredentialAst = (context: InspectorContext, findings: InspectorFind
 const inspectContractAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const generator = sourceFor(context, PATHS.routeGenerator);
   if (generator?.getVariableDeclaration("resultContractRoutes")
-    || !hasNumericInequality(generator, "resultContractCount", 33)
+    || !hasNumericInequality(generator, "resultContractCount", 34)
     || !hasNumericInequality(generator, "reusableBaseReservationRouteCount", 0)) {
     findings.push(finding(LAWS.route, "static.ast", "agent-production-runtime/provider-derived-route-contract",
       PATHS.routeGenerator, "Route generator retains a route allowlist or misses current provider denominators."));

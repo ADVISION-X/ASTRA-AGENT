@@ -129,7 +129,7 @@ try {
   assert.match(String(error), /BROWSER_COMMAND_RECEIPT_MISSING/u); assert.equal(serializeTerminalFailure(error).cause?.code, "ECONNRESET");
   assert.equal(dispatches, 1); assert.equal(store.readCommand(missing.commandId)?.state, "DISPATCHED");
   assert.equal(missingActor.hasDispatchedMutation(missing.commandId), true); assert.equal(missingActor.browserOutcome(missing.commandId), "DISPATCHED");
-  store.close(); exerciseStrictMutationReceipts(); exerciseBrowserDiagnosticContract(); await verifyBrowserArtifactAndLockContracts();
+  store.close(); exerciseStrictMutationReceipts(); await exerciseBrowserDiagnosticContract(); await verifyBrowserArtifactAndLockContracts();
   const supervisor = readFileSync("src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts", "utf8"), actor = readFileSync("src/lib/browser/exact-target/browser-command-actor.ts", "utf8");
   assert.match(supervisor, /new BrowserMutationStore\(this\.options\.dataDir\)/u); assert.match(actor, /markDispatched/u);
   assert.match(actor, /this\.mutations\.readCommand\(permit\.commandId\)/u); assert.doesNotMatch(actor, /this\.mutations\.mark(?:Confirmed|Rejected)\(/u);

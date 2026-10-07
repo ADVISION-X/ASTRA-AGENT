@@ -1,5 +1,3 @@
-import { browserCommandErrorCode as errorCode } from "./websocket-actor-crypto.js";
-
 export type ExtensionCommandStage =
   | "payload"
   | "command-shape"
@@ -8,21 +6,19 @@ export type ExtensionCommandStage =
   | "registered-command";
 
 export const extensionCommandDiagnostic = (input: Readonly<{
-  error: unknown;
+  reasonCode: string;
   failedFrameSequence: number;
   commandStage: ExtensionCommandStage;
   commandKind: string | null;
-  commandIntentKind: string | null;
   capabilityId: string | null;
 }>): Record<string, unknown> => ({
-  reasonCode: errorCode(input.error),
+  reasonCode: input.reasonCode,
   failedFrameKind: "COMMAND",
   failedFrameSequence: input.failedFrameSequence,
   diagnosticSource: "extension-runtime",
   runtimeEventType: "command-handler",
   commandStage: input.commandStage,
   ...(input.commandKind ? { commandKind: input.commandKind } : {}),
-  ...(input.commandIntentKind ? { commandIntentKind: input.commandIntentKind } : {}),
   ...(input.capabilityId ? { capabilityId: input.capabilityId } : {}),
   encodedByteLength: 0,
 });

@@ -40,5 +40,17 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   assert.deepEqual(model.input.profile, reasoning.input.profile,
     "payment model and reasoning must consume the same Product profile");
   assert.equal(run.physicalSubmitDispatches, 1);
+  const prompt = String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt);
+  assert.ok(prompt.includes(JSON.stringify(route.result_contract)), "the actual prompt must consume the unique public format");
+  if (!review) {
+    for (const observed of [
+      { ...output, page_kind: "other", payment_app: "unknown", success_visible: false, visible_amount_minor_units: null, extra_observation: { untouched: true } },
+      { ...output, page_kind: "unrecognized_other", payment_app: null, success_visible: false, visible_amount_minor_units: null },
+    ]) {
+      const received = await exerciseProductFlow(plugin, { task, output: observed });
+      assert.deepEqual(received.completed.payload, observed, "basic reception preserves raw values and unknown fields");
+      await exerciseConfirmedSubmitRecovery(plugin, { task, output: observed });
+    }
+  }
 }
 process.stdout.write("[ACCEPTANCE][payment-screenshot-observation] PASS\n");

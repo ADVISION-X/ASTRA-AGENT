@@ -33,6 +33,7 @@ export type BrowserAuthorityWebSocketOptions = Readonly<{
 type AwaitingReply = Readonly<{
   permit: BrowserCommandPermit; command: BrowserGovernedCommand; receiptBindingHash: `sha256:${string}` | null;
   targetRef: string; replyChannelToken: string; permitSequence: number;
+  diagnostic: Readonly<{ reasonCode: string; commandStage: string }> | null;
   resolve(reply: BrowserCommandReply): void; reject(error: Error): void; timeout: ReturnType<typeof setTimeout>;
 }>;
 type ActiveSocket = Readonly<{
@@ -105,7 +106,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       }, budget + (onDispatched === undefined ? 0 : MUTATION_TERMINAL_REPLY_GRACE_MS));
       const replies = new Map(active.replies);
       replies.set(sequence, { permit, command, receiptBindingHash, targetRef: permit.targetRef,
-        replyChannelToken: permit.replyChannelToken, permitSequence: permit.sequence, resolve, reject, timeout });
+        replyChannelToken: permit.replyChannelToken, permitSequence: permit.sequence, diagnostic: null, resolve, reject, timeout });
       this.active = { ...active, replies, nextServerSequence: sequence + 1 };
       try { onDispatched?.(); active.socket.send(encodeBrowserAuthorityFrame(frame)); }
       catch (error) {
@@ -189,7 +190,16 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
       }
       case "TARGET_REVOKE": this.options.onTargetRevoke(parseBrowserAuthorityTargetRevoke(body)); return true;
       case "DIAGNOSTIC": {
-        const diagnostic = parseBrowserAuthorityDiagnostic(body); this.options.onDiagnostic(diagnostic.reasonCode, diagnostic.refs); return true;
+        const diagnostic = parseBrowserAuthorityDiagnostic(body), refs = diagnostic.refs, active = this.active;
+        const sequence = Number(refs.failedFrameSequence), pending = active?.replies.get(sequence);
+        const origin = [refs.failedFrameKind, refs.diagnosticSource, refs.runtimeEventType].join("\0");
+        if (active && pending && pending.diagnostic === null && origin === "COMMAND\0extension-runtime\0command-handler"
+          && refs.commandStage) {
+          const replies = new Map(active.replies);
+          replies.set(sequence, { ...pending, diagnostic: Object.freeze({ reasonCode: diagnostic.reasonCode, commandStage: refs.commandStage }) });
+          this.active = { ...active, replies };
+        }
+        this.options.onDiagnostic(diagnostic.reasonCode, refs); return true;
       }
       case "REVOKE": {
         const diagnostic = parseBrowserAuthorityDiagnostic(body); this.clearActive(diagnostic.reasonCode, diagnostic.refs);
@@ -207,7 +217,8 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     if (parsed.fact) this.settleMutationReceipt(socket, parsed.fact);
     this.removeReply(sequence);
     if (parsed.errorCode !== null) reply.reject(new BrowserCommandTerminalReplyError(parsed.errorCode,
-      reply.replyChannelToken, sequence, reply.permitSequence));
+      reply.replyChannelToken, sequence, reply.permitSequence,
+      reply.diagnostic?.reasonCode === parsed.errorCode ? reply.diagnostic.commandStage : null));
     else reply.resolve({ replyChannelToken: reply.replyChannelToken, transportSequence: sequence,
       permitSequence: reply.permitSequence, result: body.result, mutationReceipt: parsed.fact });
   }

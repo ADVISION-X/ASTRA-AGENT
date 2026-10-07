@@ -24,7 +24,7 @@ const exactKeys = (value: Record<string, unknown>, keys: readonly string[]): boo
   JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...keys].sort());
 if (artifact.schema_version !== "website-agent-route-policies.v1"
   || artifact.contract_id !== "ai-acceptance.website-agent-task-result"
-  || artifact.contract_version !== 15
+  || artifact.contract_version !== 16
   || !isRecord(artifact.parameter_types)
   || !Array.isArray(artifact.routes) || artifact.routes.length !== 40) {
   throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_INVALID");
@@ -67,7 +67,7 @@ for (const route of artifact.routes) {
   }
 }
 if (identities.size !== 40 || Object.keys(artifact.parameter_types).length !== 48
-  || resultContractCount !== 33
+  || resultContractCount !== 34
   || reusableBaseReservationRouteCount !== 0
   || JSON.stringify([...usedParameters].sort()) !== JSON.stringify(Object.keys(artifact.parameter_types).sort())) {
   throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_DENOMINATOR_INVALID");
@@ -75,4 +75,4 @@ if (identities.size !== 40 || Object.keys(artifact.parameter_types).length !== 4
 const temporary = `${destination}.tmp-${process.pid}`;
 await writeFile(temporary, source, { mode: 0o644 });
 await rename(temporary, destination);
-process.stdout.write("WEBSITE_AGENT_ROUTE_POLICY_PROJECTION_SYNCED 40/48/33\n");
+process.stdout.write("WEBSITE_AGENT_ROUTE_POLICY_PROJECTION_SYNCED 40/48/34\n");

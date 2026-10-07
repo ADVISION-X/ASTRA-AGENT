@@ -104,9 +104,23 @@ const inspectReceiptConsumer = (s: Sources, findings: InspectorFinding[], lawId:
     && s.manager.getText().includes("this.commandActor.pendingMutationCommandIds(this.executionBinding).length"),
     findings, lawId, paths.actor, "Mutation consumers must read the authenticated original terminal fact without a retired live-claim gate; observations and new input retain authority guards.");
   const execute = method(s.worker, "ExtensionWebSocketActor", "executeCommand");
+  const worker = s.worker.getClass("ExtensionWebSocketActor"), sender = worker?.getMethod("sendEncrypted")?.getName();
+  const senderReferences = worker?.getMethod("executeCommand")?.getDescendants().filter(node =>
+    node.asKind(SyntaxKind.Identifier)?.getText() === sender || node.asKind(SyntaxKind.StringLiteral)?.getLiteralValue() === sender
+      || node.isKind(SyntaxKind.ThisKeyword) && node.getParentIfKind(SyntaxKind.PropertyAccessExpression)?.getName() !== sender
+        && worker?.getProperty(node.getParentIfKind(SyntaxKind.PropertyAccessExpression)?.getName() ?? "") === undefined);
+  const delivery = s.worker.getClass("ExtensionWebSocketActor")?.getMethod("executeCommand")
+    ?.getDescendantsOfKind(SyntaxKind.TryStatement).find(block => block.getTryBlock().getDescendantsOfKind(SyntaxKind.CallExpression)
+      .some(call => call.getExpression().getText() === "this.sendEncrypted"
+        && call.getArguments()[1]?.asKind(SyntaxKind.StringLiteral)?.getLiteralValue() === "DIAGNOSTIC"));
+  const terminalCalls = delivery?.getFinallyBlock()?.getStatements().map(statement => statement.asKind(SyntaxKind.ExpressionStatement)
+    ?.getExpression().asKind(SyntaxKind.AwaitExpression)?.getExpression().asKind(SyntaxKind.CallExpression)) ?? [];
   const ack = method(s.worker, "ExtensionWebSocketActor", "acceptMutationAck");
   check(order(execute, ["this.commandDelivery.mutationSlot =", "await executeExtensionCommandReply(", "slot.fact = fact",
-    'await this.sendEncrypted(socket, "REPLY", reply.body)', "retireInvalidCommandTarget(", 'this.sendEncrypted(socket, "DIAGNOSTIC"'])
+    'this.sendEncrypted(socket, "DIAGNOSTIC"', 'await this.sendEncrypted(socket, "REPLY", reply.body)', "retireInvalidCommandTarget("])
+    && senderReferences?.length === 2
+    && terminalCalls.map(call => call?.getExpression().getText()).join("\0") === "this.sendEncrypted\0this.targetAuthority.retireInvalidCommandTarget"
+    && JSON.stringify(terminalCalls[0]?.getArguments().map(argument => argument.asKind(SyntaxKind.StringLiteral)?.getLiteralValue() ?? argument.getText())) === JSON.stringify(["socket", "REPLY", "reply.body"])
     && has(execute, ["browserMutationTerminalFactShapeValid(fact)", "slot?.commandId !== permit.commandId", "receiptBindingHash",
       "socket !== this.connection.socket", "session.serverToClientKey", "Date.now() >= deadline"])
     && has(ack, ['"commandId|receiptBindingHash|receiptHash|type"', "ack.commandId !== fact.commandId",

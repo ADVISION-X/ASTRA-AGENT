@@ -5,7 +5,7 @@
       "lawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V75",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V11",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V43",
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V44",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V43",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V42",
         "LAW-AGENT-PRODUCTION-RUNTIME-006-V45",
@@ -181,6 +181,7 @@
         ".vscode/tasks.json",
         "docs/blueprints/code-purity/QUALITY-EVIDENCE-OWNERSHIP-V1-BLUEPRINT.md",
         "docs/项目方案/AGENT代码纯洁度分层反馈-完整实现方案.md",
+        "docs/项目方案/AGENT原子职责守门Skill删除重构-完整实现方案.md",
         "package-lock.json",
         "package.json",
         "pnpm-workspace.yaml",
@@ -570,11 +571,11 @@
       "excludes": [],
       "forbidden": [
         "不得发生：Website ai-acceptance 之外出现第二 task-result、V6 transport、route policy 或 Route Capability Manifest provider，或 AGENT dependency 复制 provider bytes、authorityArtifact、commit、hash、generator 或字段定义；consumer dependency 只能发布 contractId、version、providerRepo 三字段，普通 Runtime 启动不得读取未绑定 Website 工作树。",
-        "不得发生：唯一 projection generator 未精确消费 Website 当前 40 routes、48 parameter types 与 33 result contracts，或未知、缺失、额外、重复、顺序漂移、material/relation/result_contract 语义不等仍被接受；八字 primary route 必须只有 BZ05，BZ03/BZ04 必须显式携带 consultation_root_ref 与 direct parent relation；`localization_article_translation/article_translation`保持provider_continuation且五语都携带Website签发的direct parent；`localization_static_catalog/produce_locale_catalog`必须由Website按同cohort顺序签发provider_continuation；首任务parent triple全空，后继携精确direct parent triple；Runtime只能机械运输relationKind与parent task triple，不得按locale或action自行推导；bazi_private_base_input 和 result_contract.private_base 必须为零；AGENT 不得手写第二份 route 支持表、reservation route、compatibility、alias、fallback、bridge 或 shadow projection。",
+        "不得发生：唯一 projection generator 未精确消费 Website 当前 40 routes、48 parameter types 与 34 result contracts，或未知、缺失、额外、重复、顺序漂移、material/relation/result_contract 语义不等仍被接受；八字 primary route 必须只有 BZ05，BZ03/BZ04 必须显式携带 consultation_root_ref 与 direct parent relation；`localization_article_translation/article_translation`保持provider_continuation且五语都携带Website签发的direct parent；`localization_static_catalog/produce_locale_catalog`必须由Website按同cohort顺序签发provider_continuation；首任务parent triple全空，后继携精确direct parent triple；Runtime只能机械运输relationKind与parent task triple，不得按locale或action自行推导；bazi_private_base_input 和 result_contract.private_base 必须为零；AGENT 不得手写第二份 route 支持表、reservation route、compatibility、alias、fallback、bridge 或 shadow projection。",
         "不得发生：Runtime 对 Website 已在任务签发前裁定的业务参数值再次维护枚举、白名单、Product package/version、Bazi reusable candidate、localization resource kind 或 action-name 语义，或以 `routeProducesGeneratedImage`、手写 Product/Action 支持表、硬编码 primary 数量形成第二次业务审判；Runtime 只可把 product_id/action_id 解析为有界字符串后按 current route projection 与当前 Route Capability Manifest 精确解析，并校验 authenticated transport、wire/schema/hash、当前 contract/projection/control_contract_version 与 route/key/material/relation/result-contract 的机械一致性。跨仓 task、grant、result、artifact、terminal、attempt、session、credential、Manifest 与 Browser effect 中的 plugin_id、plugin_version、expected_plugin_id、expected_plugin_version 字段数必须恒为零；AGENT 内部实现名称、目录、Skill hash 或版本不得形成跨系统身份、领取门或持久任务绑定。",
-        "不得发生：Runtime 为 generated image 设置固定宽高、范围、长宽比、总像素、resize、crop 或其它几何门禁，上传 Provider 原图或原图身份字段，或在 V6 uploaded receipt 接受、返回、比较 width/height 或未知字段；Runtime 只能消费 task-result v15 中 Product 已生成的无 metadata WebP、绑定 sha256、bytes 与实际解码整数 width/height，并只把 WebP bytes、hash、bytes 与 media type 交给 Website 上传端，V6 receipt 必须严格限定为 schema_version、artifact_id、role、object_ref、sha256、byte_length、media_type、state、receipt_hash。"
+        "不得发生：Runtime 为 generated image 设置固定宽高、范围、长宽比、总像素、resize、crop 或其它几何门禁，上传 Provider 原图或原图身份字段，或在 V6 uploaded receipt 接受、返回、比较 width/height 或未知字段；Runtime 只能消费 task-result v16 中 Product 已生成的无 metadata WebP、绑定 sha256、bytes 与实际解码整数 width/height，并只把 WebP bytes、hash、bytes 与 media type 交给 Website 上传端，V6 receipt 必须严格限定为 schema_version、artifact_id、role、object_ref、sha256、byte_length、media_type、state、receipt_hash。"
       ],
-      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V43",
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V44",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 149,
@@ -582,8 +583,8 @@
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须只消费Website ai-acceptance发布的唯一task-result v15、V6与route policy，由唯一generator精确投影40 routes、48 parameter types、33 result contracts；generated image只机械运输无metadata WebP、实际解码宽高及绑定hash，不得设置尺寸、长宽比或像素总量门禁；文章保留provider_continuation，固定catalog同cohort首任务fresh、后继经Website direct parent顺序续聊。",
-      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V42",
+      "summary": "必须只消费Website ai-acceptance发布的唯一task-result v16、V6与route policy，由唯一generator精确投影40 routes、48 parameter types、34 result contracts；generated image只机械运输无metadata WebP、实际解码宽高及绑定hash，不得设置尺寸、长宽比或像素总量门禁；文章保留provider_continuation，固定catalog同cohort首任务fresh、后继经Website direct parent顺序续聊。",
+      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V43",
       "tier": "P0"
     },
     {
@@ -601,7 +602,7 @@
       ],
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V75",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V43"
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V44"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -736,7 +737,7 @@
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V75",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V11",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V43",
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V44",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V43",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V42",
         "LAW-AGENT-PRODUCTION-RUNTIME-006-V45"
@@ -780,7 +781,7 @@
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V75",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V11",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V43",
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V44",
         "LAW-AGENT-PRODUCTION-RUNTIME-004-V43",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V42",
         "LAW-AGENT-PRODUCTION-RUNTIME-006-V45",

@@ -21,6 +21,12 @@ export const verifyRecoveryFailureTransport = async (
     mutation_outcome: "confirmed", effect_scope: "provider_effect",
     child_capability_id: "submit_exact_gpt_turn_once", browser_outcome: "CONFIRMED",
     provider_effect_identity_hash: providerEffectHash, settled_result_payload_hash: null });
+  const early = serializeTerminalFailureTransport(executionFailure("failed", "BROWSER_JOB_TARGET_ACQUISITION_TIMEOUT", {
+    cause: new Error("BROWSER_JOB_TARGET_ACQUISITION_TIMEOUT"),
+  }));
+  assert.deepEqual([early.child_capability_id, early.effect_scope, early.browser_outcome, early.evidence_ref, early.evidence_hash],
+    [null, null, null, null, null], "V6 Browser fact fields remain empty when no Browser effect exists");
+  assert.deepEqual(early.cause, { name: "Error", code: null });
   const remoteFailureCore = serializeTerminalFailureTransport(
     executionFailure("failed", "REMOTE_FAILURE_FACT"),
   );

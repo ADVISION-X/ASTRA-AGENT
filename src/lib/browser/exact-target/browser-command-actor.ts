@@ -8,7 +8,7 @@ import { assertBrowserDomIntent, type BrowserDomIntent } from "./browser-dom-int
 import { bindExactAssistantTurnReply } from "./browser-exact-assistant-turn-reply.js";
 import { awaitBrowserPostSubmitQuiet, assertBrowserCommandTerminalReplyMargin, bindBrowserCommandObservationPacket,
   browserExactCallIdentityHash, browserProviderEffectIdentityHash, verifyNormalBrowserMutationReply } from "./browser-command-postcondition.js";
-import { completeBrowserCommandSpan, emitBrowserMutationEvent, failBrowserCommandSpan, startBrowserCommandSpan } from "./browser-command-runtime-logging.js";
+import { completeBrowserCommandSpan, emitBrowserCommandDiagnostic, emitBrowserMutationEvent, failBrowserCommandSpan, startBrowserCommandSpan } from "./browser-command-runtime-logging.js";
 import { failBrowserCommandExecution, hashBrowserCommandValue as hashValue,
   type AuthenticatedTerminalReplyFailure, type BrowserCommandExecutionState } from "./browser-command-failure.js";
 import { BrowserMutationStore } from "./browser-mutation-store.js";
@@ -35,7 +35,8 @@ export type BrowserCommandPort = Readonly<{ send(permit: BrowserCommandPermit, c
   onDispatched?: () => void, receiptBindingHash?: `sha256:${string}` | null): Promise<BrowserCommandReply> }>;
 export class BrowserCommandTerminalReplyError extends Error {
   public constructor(public readonly failureCode: string, public readonly replyChannelToken: string,
-    public readonly transportSequence: number, public readonly permitSequence: number) {
+    public readonly transportSequence: number, public readonly permitSequence: number,
+    public readonly commandStage: string | null = null) {
     super(failureCode); this.name = "BrowserCommandTerminalReplyError";
   }
 }
@@ -163,7 +164,15 @@ export class BrowserCommandActor {
     const terminalReply: AuthenticatedTerminalReplyFailure | null = mutation && state.dispatched
       && error instanceof BrowserCommandTerminalReplyError && error.replyChannelToken === permit.replyChannelToken
       && error.permitSequence === permit.sequence ? error : null;
-    return failBrowserCommandExecution({ permit, command, commandSpan: span, mutation, state, error, terminalReply,
+    let failure = error;
+    if (error instanceof BrowserCommandTerminalReplyError && error.commandStage !== null
+      && error.replyChannelToken === permit.replyChannelToken && error.permitSequence === permit.sequence) {
+      try { emitBrowserCommandDiagnostic(this.runtimeLogger, permit, error.commandStage); }
+      catch (logError) {
+        failure = new AggregateError([logError], error.failureCode, { cause: error });
+      }
+    }
+    return failBrowserCommandExecution({ permit, command, commandSpan: span, mutation, state, error: failure, terminalReply,
       mutations: this.mutations, runtimeLogger: this.runtimeLogger });
   }
   public hasDispatchedMutation(commandId: string): boolean { return this.mutations.readCommand(commandId)?.state === "DISPATCHED"; }

@@ -1,7 +1,7 @@
 {
   "schema_version": "website-agent-route-policies.v1",
   "contract_id": "ai-acceptance.website-agent-task-result",
-  "contract_version": 15,
+  "contract_version": 16,
   "parameter_types": {
     "admitted_identity_catalog_hash": "sha256",
     "analysis_kind": "bazi_analysis_kind",
@@ -1067,8 +1067,14 @@
           "policy_version",
           "decision"
         ],
-        "candidate_submitted_fields": ["message_count", "selected_messages", "selected_catalog_hash"],
-        "translation_failed_fields": ["failure_code"],
+        "candidate_submitted_fields": [
+          "message_count",
+          "selected_messages",
+          "selected_catalog_hash"
+        ],
+        "translation_failed_fields": [
+          "failure_code"
+        ],
         "evidence_transport": "website-agent-result.evidence_refs",
         "internal_cohort_topology": "agent_private",
         "candidate_set_admission": "per-message-mechanical-current-catalog"
@@ -1106,7 +1112,53 @@
         }
       ],
       "result_schema_version": "payment-screenshot-observation-v1",
-      "relation_kind": "primary"
+      "relation_kind": "primary",
+      "result_contract": {
+        "schema_version": "payment-observation-result-contract.v1",
+        "output_schema_version": "payment-screenshot-observation-v1",
+        "requested_fields": [
+          "schema_version",
+          "page_kind",
+          "payment_app",
+          "success_visible",
+          "visible_amount_minor_units",
+          "reason_code"
+        ],
+        "field_types": {
+          "schema_version": {
+            "const": "payment-screenshot-observation-v1"
+          },
+          "page_kind": {
+            "enum": [
+              "payment_success",
+              "other"
+            ]
+          },
+          "payment_app": {
+            "enum": [
+              "alipay",
+              "wechat",
+              "unknown"
+            ]
+          },
+          "success_visible": {
+            "type": "boolean"
+          },
+          "visible_amount_minor_units": {
+            "type": "safe_integer_or_null"
+          },
+          "reason_code": {
+            "type": "non_empty_string"
+          }
+        },
+        "unknown_field_policy": "preserve",
+        "forbidden_verdicts": [
+          "accepted",
+          "rejected",
+          "payment_received",
+          "order_approved"
+        ]
+      }
     },
     {
       "product_id": "bazi_chart_interpretation",

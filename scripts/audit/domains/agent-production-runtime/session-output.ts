@@ -34,7 +34,7 @@ const LAW_MODE_CLAUSES: Readonly<Record<string, Readonly<Partial<Record<Evidence
     "static.types": staticForbiddenClauses(0),
     "static.contract": staticClauses(1),
   },
-  "LAW-AGENT-PRODUCTION-RUNTIME-003-V43": {
+  "LAW-AGENT-PRODUCTION-RUNTIME-003-V44": {
     "static.ast": staticForbiddenClauses(1, 2, 3),
     "static.types": staticForbiddenClauses(1),
     "static.contract": staticForbiddenClauses(0, 1, 3),

@@ -20,6 +20,8 @@ import type { RuntimeLogEventV2, RuntimeSpanFailureEvent, RuntimeSpanTerminalEve
 import { shouldProjectRuntimeEvent } from "../../src/lib/runtime-logs/sinks.js";
 import { BrowserRuntimeLogEmitter } from "../../src/lib/browser/infrastructure/browser-runtime-log-emitter.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
+import { emitBrowserCommandDiagnostic } from "../../src/lib/browser/exact-target/browser-command-runtime-logging.js";
+import { permit } from "./local-browser-terminal-fixture.js";
 
 const digest = (value: string): `sha256:${string}` =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -299,9 +301,15 @@ new BrowserRuntimeLogEmitter(browserFailureLogger, () => 7)
   .failure("BROWSER_DOM_CANDIDATE_MISSING", "command-handler");
 new BrowserRuntimeLogEmitter(browserFailureLogger, () => 7)
   .failure("BROWSER_DEVTOOLS_CONFLICT", "extension-runtime", "CHROME_DEBUGGER_CANCELED_BY_USER");
+emitBrowserCommandDiagnostic(browserFailureLogger, permit("stage-readback"), "target-resolution");
 const browserFailureEvents = readFileSync(browserFailureLogger.currentSegmentPath()!, "utf8").trim().split("\n")
   .map((line) => JSON.parse(line) as RuntimeLogEventV2);
-assert.equal(browserFailureEvents.length, 2, "command-handler diagnostic must not duplicate the command failure");
+assert.equal(browserFailureEvents.length, 3, "controlled command stage is one event, while command-handler remains suppressed");
+const stageEvent = browserFailureEvents.find(event => event.kind === "event" && event.code === "BROWSER_COMMAND_DIAGNOSTIC_TARGET_RESOLUTION");
+assert(stageEvent?.kind === "event");
+assert.equal(stageEvent.typedIdentity.kind, "browser-command");
+assert.equal(stageEvent.typedIdentity.kind === "browser-command" ? stageEvent.typedIdentity.commandId : null, "stage-readback");
+assert.equal(browserFailureEvents.filter(event => event.kind === "span.terminal" && event.failure).length, 1);
 const browserFailureTerminal = browserFailureEvents.find((event) => event.kind === "span.terminal");
 assert.equal(browserFailureTerminal?.kind, "span.terminal");
 assert.equal(browserFailureTerminal?.kind === "span.terminal"

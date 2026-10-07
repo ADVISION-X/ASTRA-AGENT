@@ -261,10 +261,13 @@ export class ExtensionWebSocketActor {
     }
     if (socket !== this.connection.socket || this.connection.session?.serverToClientKey !== session.serverToClientKey) return;
     if (receiptBindingHash !== null) this.commandDelivery.lastMutationDeliveryKey = session.clientToServerKey;
-    await this.sendEncrypted(socket, "REPLY", reply.body);
     const intentKind = asRecord(asRecord(payload.command)?.intent)?.kind;
-    await this.targetAuthority.retireInvalidCommandTarget(reply.body, permit, typeof intentKind === "string" ? intentKind : null);
-    if (reply.diagnostic) await this.sendEncrypted(socket, "DIAGNOSTIC", reply.diagnostic);
+    try {
+      if (reply.diagnostic) await this.sendEncrypted(socket, "DIAGNOSTIC", reply.diagnostic);
+    } finally {
+      await this.sendEncrypted(socket, "REPLY", reply.body);
+      await this.targetAuthority.retireInvalidCommandTarget(reply.body, permit, typeof intentKind === "string" ? intentKind : null);
+    }
   }
   private async flushMutationReceipt(): Promise<void> {
     const fact = this.commandDelivery.mutationSlot?.fact;

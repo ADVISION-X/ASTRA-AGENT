@@ -39,6 +39,14 @@ export const startBrowserCommandSpan = (
   visibility: "TRACE",
 }));
 
+export const emitBrowserCommandDiagnostic = (runtimeLogger: RuntimeLogger, permit: BrowserCommandPermit, stage: string): void => {
+  requireRuntimeLogWrite(runtimeLogger.emitEvent({
+    traceId: permit.jobId, owner: "browser-session", component: "exact-target", operation: "browser.command",
+    code: `BROWSER_COMMAND_DIAGNOSTIC_${stage.toUpperCase().replaceAll("-", "_")}`,
+    typedIdentity: identityFor(permit), visibility: "TRACE",
+  }));
+};
+
 export const emitBrowserMutationEvent = (input: Readonly<{
   runtimeLogger: RuntimeLogger;
   mutation: BrowserCommandPermit | BrowserMutationIdentity;
