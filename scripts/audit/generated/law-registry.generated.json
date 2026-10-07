@@ -5,12 +5,12 @@
       "lawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V75",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V11",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V44",
-        "LAW-AGENT-PRODUCTION-RUNTIME-004-V43",
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V45",
+        "LAW-AGENT-PRODUCTION-RUNTIME-004-V44",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V42",
-        "LAW-AGENT-PRODUCTION-RUNTIME-006-V45",
-        "LAW-AGENT-PRODUCTION-RUNTIME-007-V45",
-        "LAW-AGENT-PRODUCTION-RUNTIME-008-V46"
+        "LAW-AGENT-PRODUCTION-RUNTIME-006-V46",
+        "LAW-AGENT-PRODUCTION-RUNTIME-007-V46",
+        "LAW-AGENT-PRODUCTION-RUNTIME-008-V47"
       ],
       "manifestPath": "scripts/audit/domains/agent-production-runtime/manifest.json",
       "observedPaths": [
@@ -573,9 +573,9 @@
         "不得发生：Website ai-acceptance 之外出现第二 task-result、V6 transport、route policy 或 Route Capability Manifest provider，或 AGENT dependency 复制 provider bytes、authorityArtifact、commit、hash、generator 或字段定义；consumer dependency 只能发布 contractId、version、providerRepo 三字段，普通 Runtime 启动不得读取未绑定 Website 工作树。",
         "不得发生：唯一 projection generator 未精确消费 Website 当前 40 routes、48 parameter types 与 34 result contracts，或未知、缺失、额外、重复、顺序漂移、material/relation/result_contract 语义不等仍被接受；八字 primary route 必须只有 BZ05，BZ03/BZ04 必须显式携带 consultation_root_ref 与 direct parent relation；`localization_article_translation/article_translation`保持provider_continuation且五语都携带Website签发的direct parent；`localization_static_catalog/produce_locale_catalog`必须由Website按同cohort顺序签发provider_continuation；首任务parent triple全空，后继携精确direct parent triple；Runtime只能机械运输relationKind与parent task triple，不得按locale或action自行推导；bazi_private_base_input 和 result_contract.private_base 必须为零；AGENT 不得手写第二份 route 支持表、reservation route、compatibility、alias、fallback、bridge 或 shadow projection。",
         "不得发生：Runtime 对 Website 已在任务签发前裁定的业务参数值再次维护枚举、白名单、Product package/version、Bazi reusable candidate、localization resource kind 或 action-name 语义，或以 `routeProducesGeneratedImage`、手写 Product/Action 支持表、硬编码 primary 数量形成第二次业务审判；Runtime 只可把 product_id/action_id 解析为有界字符串后按 current route projection 与当前 Route Capability Manifest 精确解析，并校验 authenticated transport、wire/schema/hash、当前 contract/projection/control_contract_version 与 route/key/material/relation/result-contract 的机械一致性。跨仓 task、grant、result、artifact、terminal、attempt、session、credential、Manifest 与 Browser effect 中的 plugin_id、plugin_version、expected_plugin_id、expected_plugin_version 字段数必须恒为零；AGENT 内部实现名称、目录、Skill hash 或版本不得形成跨系统身份、领取门或持久任务绑定。",
-        "不得发生：Runtime 为 generated image 设置固定宽高、范围、长宽比、总像素、resize、crop 或其它几何门禁，上传 Provider 原图或原图身份字段，或在 V6 uploaded receipt 接受、返回、比较 width/height 或未知字段；Runtime 只能消费 task-result v16 中 Product 已生成的无 metadata WebP、绑定 sha256、bytes 与实际解码整数 width/height，并只把 WebP bytes、hash、bytes 与 media type 交给 Website 上传端，V6 receipt 必须严格限定为 schema_version、artifact_id、role、object_ref、sha256、byte_length、media_type、state、receipt_hash。"
+        "不得发生：Runtime 为 generated image 设置固定宽高、范围、长宽比、总像素、resize、crop 或其它几何门禁，上传 Provider 原图或原图身份字段，或在 V6 uploaded receipt 接受、返回、比较 width/height 或未知字段；Runtime 只能消费 task-result v17 中 Product 已生成的无 metadata WebP、绑定 sha256、bytes 与实际解码整数 width/height，并只把 WebP bytes、hash、bytes 与 media type 交给 Website 上传端，V6 receipt 必须严格限定为 schema_version、artifact_id、role、object_ref、sha256、byte_length、media_type、state、receipt_hash。"
       ],
-      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V44",
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V45",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 149,
@@ -583,8 +583,8 @@
         "path": ".github/instructions/agent-rules/功能法案.md"
       },
       "status": "active",
-      "summary": "必须只消费Website ai-acceptance发布的唯一task-result v16、V6与route policy，由唯一generator精确投影40 routes、48 parameter types、34 result contracts；generated image只机械运输无metadata WebP、实际解码宽高及绑定hash，不得设置尺寸、长宽比或像素总量门禁；文章保留provider_continuation，固定catalog同cohort首任务fresh、后继经Website direct parent顺序续聊。",
-      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V43",
+      "summary": "必须只消费Website ai-acceptance发布的唯一task-result v17、V6与route policy，由唯一generator精确投影40 routes、48 parameter types、34 result contracts；generated image只机械运输无metadata WebP、实际解码宽高及绑定hash，不得设置尺寸、长宽比或像素总量门禁；文章保留provider_continuation，固定catalog同cohort首任务fresh、后继经Website direct parent顺序续聊。",
+      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-003-V44",
       "tier": "P0"
     },
     {
@@ -602,7 +602,7 @@
       ],
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V75",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V44"
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V45"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -619,7 +619,7 @@
         "不得发生：Runtime 丢弃 Website business admission receipt 的权威字段、只用基础字段子集重算 consumption_hash、允许 Bazi 三字段部分出现、混合 Bazi 与 review receipt，或解释领域内容；只允许 base、Bazi primary、review 三种互斥结构，必须对完整字段、当前 job/result identity 与 canonical hash 机械闭合。",
         "不得发生：Runtime 把 staged result、Outbox delivered、terminal receipt 或 Runtime PASS 当成业务完成；只有 Website domain consumer 对当前 job_id + result_hash 完成幂等入库并签发已校验的 business admission receipt 后，本地任务才可原子 completed，失败、404、权限不足、hash mismatch 或多义时完成增量必须为零。"
       ],
-      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-004-V43",
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-004-V44",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 189,
@@ -628,7 +628,7 @@
       },
       "status": "active",
       "summary": "必须完整校验 Website 签发的 base、Bazi primary、review 三种互斥 business admission receipt，并且只有当前 job 与 result 的领域入库回执闭合后才允许本地任务 completed；generic base receipt 不是八字 private base。",
-      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-004-V42",
+      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-004-V43",
       "tier": "P0"
     },
     {
@@ -693,7 +693,7 @@
       ],
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V75",
-        "LAW-AGENT-PRODUCTION-RUNTIME-004-V43",
+        "LAW-AGENT-PRODUCTION-RUNTIME-004-V44",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V42",
         "LAW-LOCAL-BROWSER-SESSION-004-V56"
       ],
@@ -714,7 +714,7 @@
         "不得发生：Runtime 已持久接受的 exact job 在 Website 权威读回中不存在后，仍保留、轮询、交付或复用该 job 的本地 task、Outbox、task-owned material/result 目录、Browser WAL 或 Forensics artifact。Website job absence 是该本地 job 的唯一删除授权；Runtime 必须按 exact job_id 在同一清算中删除本系统持有的全部上述对象并逐项读回缺席，且不得触及其它 job。Forensics 旧写序留下的无索引原始字节已无可读 Owner；仅在已授权的 exact job 清算中，Forensics 原 Owner 可在完整索引盘点后物理清除全部无索引 artifact 字节并读回缺席，所有有索引兄弟 artifact 保持不变，不得借此清理其它 job 的有主对象。已发送到外部 Provider 的消息、Provider 自有日志或备份不属于本系统可删除范围，但删除后不得再读取、接纳、入库或复用其结果。",
         "不得发生：无主存储或单 task 结构损坏阻断无关 task 的只读诊断，或 Runtime 用全局清空、启动时清理、批量模糊目标、replacement job 或兼容链代替任务局部失败关闭。"
       ],
-      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-006-V45",
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-006-V46",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 278,
@@ -723,7 +723,7 @@
       },
       "status": "active",
       "summary": "必须在普通启动只读盘点 task-owned storage；Website 权威中已不存在的 exact job 必须在 AGENT 内按 job_id 无痕清除 task、Outbox、材料、结果、Browser WAL 与 Forensics artifact；仅 Forensics 原 Owner 在该清算中可删无索引孤儿字节，有索引兄弟保持不变。",
-      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-006-V44",
+      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-006-V45",
       "tier": "P0"
     },
     {
@@ -737,10 +737,10 @@
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V75",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V11",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V44",
-        "LAW-AGENT-PRODUCTION-RUNTIME-004-V43",
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V45",
+        "LAW-AGENT-PRODUCTION-RUNTIME-004-V44",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V42",
-        "LAW-AGENT-PRODUCTION-RUNTIME-006-V45"
+        "LAW-AGENT-PRODUCTION-RUNTIME-006-V46"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -756,7 +756,7 @@
         "不得发生：agent-production-runtime 的 Manifest primary-own Product、GPT、Browser、Website、Runtime Log、App Shell、Startup 或历史项目方案，或用 observedPaths 取得文件治理主权；ownedPaths 只登记 Runtime 的 Manifest primary ownership，仅对当前候选已获明确授权的相邻路径，才可在文件拆分完成后由接收域增加路径、Runtime 同时删除越界路径的一次原子修改完成，并立即证明无无主、无重叠与 manifest-owner-drift 为零，不得分阶段修改、建立临时 Manifest 或形成中间质量结论。",
         "不得发生：Runtime inspector 以路径名、字符串包含、文件存在、fixture 数量、历史 report、self-check 或另一份 verdict 产生 PASS；静态证据必须来自 AST、JSON、resolved import、实际 symbol consumer、合同与状态机结果。"
       ],
-      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-007-V45",
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-007-V46",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 317,
@@ -765,7 +765,7 @@
       },
       "status": "active",
       "summary": "必须由 agent-production-runtime Manifest 只登记本域 Manifest primary ownership，并由现役静态 inspector 基于真实 AST、JSON、合同、resolved import 与实际 consumer 检查本域，使当前候选获明确授权的相邻路径在唯一一次原子归位后保持无无主、无重叠且不取得相邻域或历史方案主权。",
-      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-007-V44",
+      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-007-V45",
       "tier": "P0"
     },
     {
@@ -781,11 +781,11 @@
       "dependsOnLawIds": [
         "LAW-AGENT-PRODUCTION-RUNTIME-001-V75",
         "LAW-AGENT-PRODUCTION-RUNTIME-002-V11",
-        "LAW-AGENT-PRODUCTION-RUNTIME-003-V44",
-        "LAW-AGENT-PRODUCTION-RUNTIME-004-V43",
+        "LAW-AGENT-PRODUCTION-RUNTIME-003-V45",
+        "LAW-AGENT-PRODUCTION-RUNTIME-004-V44",
         "LAW-AGENT-PRODUCTION-RUNTIME-005-V42",
-        "LAW-AGENT-PRODUCTION-RUNTIME-006-V45",
-        "LAW-AGENT-PRODUCTION-RUNTIME-007-V45"
+        "LAW-AGENT-PRODUCTION-RUNTIME-006-V46",
+        "LAW-AGENT-PRODUCTION-RUNTIME-007-V46"
       ],
       "enforcementMode": "composite",
       "evidenceModes": [
@@ -804,7 +804,7 @@
         "不得发生：agent-production-runtime 拥有第二 checker、第二 real-proof、第二 receipt、第二候选 hash 或第二 quality verdict；唯一入口必须服从全仓原生 quality:check，CHANGE、READY、RELEASE 证据阶段不得混称，GPT、local-browser-session、runtime-log-spine 与 Runtime proof 必须分别独立启动、只声明自身 lawId 且不得共享 assertion、Website job、Chrome journey、时间线、coordinator、proof bus、scenario 或 adapter，任一动态路由未归位都必须阻断 RELEASE。",
         "不得发生：Runtime 的静态或动态 PASS 被升级为 Website 业务完成、Product/GPT/Browser 已生产接纳、全系统 READY、RELEASE 或 SYSTEM_PROVEN。"
       ],
-      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-008-V46",
+      "lawId": "LAW-AGENT-PRODUCTION-RUNTIME-008-V47",
       "schemaVersion": 2,
       "source": {
         "lineEnd": 362,
@@ -813,7 +813,7 @@
       },
       "status": "active",
       "summary": "必须由 agent-production-runtime 在全仓唯一 quality:check 中使用可独立运行的唯一专属 proof 及其同域辅助读取，只证明本域的 service、database、storage 与 authorization，不复制相邻域证明、不依赖共享旅程、不产生第二裁决或冒充业务完成。",
-      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-008-V45",
+      "supersedesLawId": "LAW-AGENT-PRODUCTION-RUNTIME-008-V46",
       "tier": "P0"
     },
     {

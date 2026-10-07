@@ -1,499 +1,184 @@
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
-import { createFinding } from "../../shared/finding-utils.js";
-import type { InspectorContext, InspectorEvaluation, InspectorFinding, SessionInspectorOutput } from "../../shared/inspector-contracts.js";
+import type { InspectorContext, InspectorEvaluation, InspectorFinding } from "../../shared/inspector-contracts.js";
 import { recordStaticCheck } from "../../shared/static-inspection-contract.js";
 import { observeStaticMode } from "../../shared/static-target-object-inspector.js";
-import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
-import { inspectAgentAuthorityAst } from "./authority-inspection.js";
-import { ALL_LAWS, LAWS, inspectAgentContracts, read, runtimeManifestOwnershipDrift,
-  sourceFor } from "./contract-inspection.js";
+import { collectDynamicImportProblems, collectResolvedModuleTargets } from "../../shared/source-module-targets.js";
+import { inspectAgentAuthorityAst, inspectAgentSql } from "./authority-inspection.js";
+import { ALL_LAWS, LAWS, RUNTIME_ROOT, bodyFor, calls, inspectAgentContracts, objectFor,
+  read, reject, runtimeManifestOwnershipDrift, runtimePath, scopedPath, sourceFor } from "./contract-inspection.js";
 import { buildAgentProductionSessionOutput } from "./session-output.js";
-const ROOT = "src/lib/local-runtime/production";
-const PATHS = {
-  startup: `${ROOT}/runtime-startup.ts`,
-  runtimeState: `${ROOT}/runtime-state.ts`,
-  runtimeClaim: `${ROOT}/runtime-claim.ts`,
-  runtimeClaimOperations: `${ROOT}/runtime-claim-operations.ts`,
-  businessAdmission: `${ROOT}/runtime-business-admission.ts`,
-  taskState: `${ROOT}/store-task-state.ts`,
-  outbox: `${ROOT}/store-outbox.ts`,
-  credential: `${ROOT}/credential.ts`,
-  contracts: `${ROOT}/contracts.ts`,
-  routePolicy: `${ROOT}/route-policy.ts`,
-  routeProjection: `${ROOT}/website-agent-route-policies.v1.json`,
-  routeGenerator: "scripts/generate/sync-website-agent-route-policy-projection.ts",
-  preflight: "scripts/startup/lib/production-contract-preflight.ts",
-  admission: `${ROOT}/cloud-reconciliation-client.ts`,
-  runtimeContract: `${ROOT}/runtime-contract.ts`,
-  store: `${ROOT}/store-foundation.ts`,
-  authority: `${ROOT}/store-authority-reader.ts`,
-  inventory: `${ROOT}/runtime-storage-inventory.ts`,
-  maintenance: "scripts/maintenance/production-runtime-storage-reconcile.ts",
-  manifest: "scripts/audit/domains/agent-production-runtime/manifest.json",
-  proof: "scripts/acceptance/agent-production-runtime.real-proof.ts",
-} as const;
-type StaticMode = "static.ast" | "static.contract" | "static.dependency" | "static.filesystem" | "static.sql" | "static.types";
-const finding = (
-  lawId: string,
-  evidenceMode: StaticMode,
-  checkId: string,
-  filePath: string,
-  message: string,
-): InspectorFinding => createFinding({
-  evidenceMode, lawId, clauseId: `${lawId.toLowerCase()}-requirement`,
-  checkId, filePath, message,
-});
-const stringLiterals = (source: SourceFile | undefined): Set<string> => new Set(
-  source?.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralValue()) ?? [],
-);
-const calledStringArguments = (source: SourceFile | undefined,
-  functionName: string, argumentIndex = 0,
-): Set<string> => new Set(
-  (source?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? []).flatMap((call) => {
-    if (call.getExpression().getText() !== functionName) return [];
-    const argument = call.getArguments()[argumentIndex];
-    return argument && Node.isStringLiteral(argument) ? [argument.getLiteralValue()] : [];
-  }),
-);
-const calledArgumentStringLiterals = (
-  source: Node | undefined,
-  functionName: string,
-  argumentIndex = 0,
-): Set<string> => new Set(
-  (source?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? []).flatMap((call) => {
-    if (call.getExpression().getText() !== functionName) return [];
-    const argument = call.getArguments()[argumentIndex];
-    if (!argument) return [];
-    return [
-      ...(Node.isStringLiteral(argument) ? [argument.getLiteralValue()] : []),
-      ...argument.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => node.getLiteralValue()),
-    ];
-  }),
-);
-const calledLiteralSources = (
-  source: Node | undefined,
-  methodName: string,
-): string[] => (source?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? []).flatMap((call) => {
-  const expression = call.getExpression();
-  if (!Node.isPropertyAccessExpression(expression) || expression.getName() !== methodName) return [];
-  const argument = call.getArguments()[0];
-  if (!argument) return [];
-  if (Node.isStringLiteral(argument) || Node.isNoSubstitutionTemplateLiteral(argument)) {
-    return [argument.getLiteralValue()];
+
+export function inspectAgentFilesystem(context: InspectorContext, findings: InspectorFinding[]): void {
+  for (const path of context.targetPaths) {
+    const exists = existsSync(scopedPath(context, path));
+    for (const law of context.lawRequirements.filter((requirement) => requirement.targetPaths.includes(path))) {
+      reject(findings, law.lawId, "static.filesystem", path, "native-scope-file-discovery", exists,
+        "Every file in the native current-candidate denominator must remain discoverable.");
+    }
   }
-  if (Node.isTemplateExpression(argument)) return [argument.getText()];
-  return [];
-});
-const variableDeclaration = (source: SourceFile | undefined, name: string) =>
-  source?.getDescendantsOfKind(SyntaxKind.VariableDeclaration)
-    .find((declaration) => declaration.getName() === name);
-const hasNumericInequality = (
-  source: SourceFile | undefined,
-  identifier: string,
-  value: number,
-): boolean => (source?.getDescendantsOfKind(SyntaxKind.BinaryExpression) ?? []).some((expression) => {
-  if (expression.getOperatorToken().getText() !== "!==") return false;
-  const left = expression.getLeft();
-  const right = expression.getRight();
-  return (Node.isIdentifier(left) && left.getText() === identifier
-      && Node.isNumericLiteral(right) && Number(right.getLiteralValue()) === value)
-    || (Node.isIdentifier(right) && right.getText() === identifier
-      && Node.isNumericLiteral(left) && Number(left.getLiteralValue()) === value);
-});
-export function inspectAgentFilesystem(
-  context: InspectorContext,
-  findings: InspectorFinding[],
-): void {
-  const required = [
-    [LAWS.credential, PATHS.credential],
-    [LAWS.storage, PATHS.inventory], [LAWS.storage, PATHS.maintenance],
-    [LAWS.staticQuality, PATHS.manifest], [LAWS.dynamicProof, PATHS.proof],
-  ] as const;
-  for (const [lawId, path] of required) if (!existsSync(resolve(context.sealedRoot, path))) {
-    findings.push(finding(lawId, "static.filesystem", "agent-production-runtime/required-object", path,
-      `Required Runtime object is absent: ${path}.`));
-  }
-  const manifest = JSON.parse(read(context, PATHS.manifest)) as { ownedPaths?: unknown };
-  if (!Array.isArray(manifest.ownedPaths)) {
-    findings.push(finding(LAWS.staticQuality, "static.filesystem",
-      "agent-production-runtime/manifest-shape", PATHS.manifest, "Runtime Manifest ownedPaths is invalid."));
-  }
+  const manifestPath = "scripts/audit/domains/agent-production-runtime/manifest.json";
+  const manifest = JSON.parse(read(context, manifestPath)) as { ownedPaths: string[]; observedPaths: string[]; schemaVersion: number };
+  reject(findings, LAWS.staticQuality, "static.filesystem", manifestPath, "single-runtime-primary-owner",
+    manifest.schemaVersion === 5 && Array.isArray(manifest.observedPaths)
+    && runtimeManifestOwnershipDrift(manifest.ownedPaths).length === 0
+    && new Set(manifest.ownedPaths).size === manifest.ownedPaths.length,
+    "The actual Manifest must have one Runtime ownership declaration without adjacent primary paths.");
 }
-const inspectCoreAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const startup = sourceFor(context, PATHS.startup);
-  const state = sourceFor(context, PATHS.runtimeState);
-  const startupTokens = stringLiterals(startup);
-  for (const token of ["GPT_CONTINUATION_CURRENT_CHECKPOINT_MISSING", "GPT_CONTINUATION_FRONTIER_INVALID"]) {
-    if (startupTokens.has(token)) findings.push(finding(LAWS.core, "static.ast",
-      "agent-production-runtime/product-startup-token", PATHS.startup,
-      `Runtime startup retains Product-specific token ${token}.`));
-  }
-  if (startup?.getFunction("failClosedInvalidContinuationFrontiers")
-    || startup?.getDescendantsOfKind(SyntaxKind.Identifier)
-      .some((node) => node.getText() === "failClosedInvalidContinuationFrontiers")) {
-    findings.push(finding(LAWS.core, "static.ast", "agent-production-runtime/product-startup-recovery",
-      PATHS.startup, "Runtime startup retains Product frontier reconstruction."));
-  }
-  if (state?.getImportDeclarations().some((declaration) =>
-    declaration.getModuleSpecifierValue().includes("/browser/exact-target/"))) {
-    findings.push(finding(LAWS.core, "static.ast", "agent-production-runtime/no-browser-private-store",
-      PATHS.runtimeState, "Runtime diagnosis imports Browser private authority state."));
-  }
-  for (const path of [PATHS.runtimeClaim,
-    "src/lib/local-runtime/production/runtime-claim-recovery.ts",
-    "src/lib/local-runtime/production/runtime-claim-source-readback-failure.ts",
-    "src/lib/local-runtime/production/runtime-claim-preproduct.ts"]) {
-    const claimSource = sourceFor(context, path);
-    if (!claimSource || claimSource.getImportDeclarations().some((declaration) =>
-      declaration.getNamedImports().some((entry) => entry.getName() === "rm"))) {
-      findings.push(finding(LAWS.storage, "static.ast", "agent-production-runtime/no-automatic-storage-delete",
-        path, "Business admission still triggers automatic task storage deletion."));
-    }
-  }
-};
-const inspectWebsiteAttemptLifecycle = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const startup = sourceFor(context, PATHS.startup);
-  const claim = sourceFor(context, PATHS.runtimeClaim);
-  const businessAdmission = sourceFor(context, PATHS.businessAdmission);
-  const taskState = sourceFor(context, PATHS.taskState);
-  const outbox = sourceFor(context, PATHS.outbox);
-  const startupReconciliation = startup?.getFunction("reconcileTaskRecord");
-  const startupReconciliationCalls = new Set(startupReconciliation?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .map((call) => call.getExpression().getText()) ?? []);
-  const boundaryFailure = variableDeclaration(
-    sourceFor(context, PATHS.runtimeClaimOperations), "handleRuntimeBoundaryFailure",
-  )?.getInitializer();
-  const admissionCalls = new Set(businessAdmission?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .map((call) => call.getExpression().getText()) ?? []);
-  const taskStateClass = taskState?.getClass("ProductionStoreTaskState");
-  const websiteAttemptSupersession = taskStateClass?.getMethod("supersedeUnsentWritesForWebsiteAttempt");
-  const websiteAttemptRelease = taskStateClass?.getMethod("releaseAttemptForWebsiteDecision");
-  const acceptAfterHandoff = taskStateClass?.getMethod("acceptTaskAfterSourceHandoff");
-  const supersessionOwners = (taskStateClass?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .filter((call) => call.getExpression().getText() === "this.supersedeUnsentWritesForWebsiteAttempt") ?? [])
-    .map((call) => call.getFirstAncestorByKind(SyntaxKind.MethodDeclaration)?.getName());
-  const deliverOutbox = outbox?.getClass("ProductionStoreOutbox")?.getMethod("deliverOutbox");
-  const failureDisposition = variableDeclaration(claim, "applyRemoteFailureDisposition")?.getInitializer()?.getText();
-  const persistFailure = variableDeclaration(claim, "persistAttemptFailure")?.getInitializer()?.getText();
-  const reconcileFailures = variableDeclaration(claim, "reconcilePendingAttemptFailures")?.getInitializer()?.getText();
-  const forbiddenLifecycleVerdict = `${taskState?.getFullText() ?? ""}\n${outbox?.getFullText() ?? ""}`;
-  const projectSources = context.project.getSourceFiles().filter((source) => !source.isDeclarationFile());
-  const runtimeHostRecoveryText = projectSources.filter((source) =>
-    source.getFilePath().replaceAll("\\", "/").includes(`/${ROOT}/`)).map((source) => source.getFullText()).join("\n");
-  const retiredAttemptReleaseInActiveSource = projectSources.filter((source) =>
-    source.getFilePath().replaceAll("\\", "/").includes("/src/")).some((source) => stringLiterals(source).has("attempt-replaced"));
-  const lifecycleViolations = [
-    startupReconciliationCalls.has("state.store.endUnsentAttemptWrites"),
-    startupReconciliationCalls.has("state.store.setCurrentReason"),
-    startupReconciliation?.getText().includes("PROCESS_RESTART_ATTEMPT_ENDED"),
-    boundaryFailure?.getText().includes("ATTEMPT_ENDED"),
-    admissionCalls.has("state.store.discardStagedResult"),
-    admissionCalls.has("state.store.endUnsentAttemptWrites"),
-    Boolean(taskStateClass?.getMethod("discardStagedResult")),
-    /ATTEMPT_ENDED|PRODUCTION_OUTBOX_ATTEMPT_ENDED/u.test(forbiddenLifecycleVerdict),
-    !websiteAttemptSupersession?.hasModifier(SyntaxKind.PrivateKeyword),
-    supersessionOwners.sort().join(",") !== "acceptTaskAfterSourceHandoff,closeAttemptRefusedByWebsite",
-    !variableDeclaration(businessAdmission, "websiteRefusedStagedResult")?.getText().includes("payload_hash === hashCanonical(record.staged_result)"),
-    Boolean(websiteAttemptRelease),
-    !acceptAfterHandoff?.getText().includes("current_attempt_id !== archived.source_attempt_id"),
-    !acceptAfterHandoff?.getText().includes("archived.sealed_at === null"),
-    acceptAfterHandoff?.getText().includes("current_reason !==") ?? false,
-    !acceptAfterHandoff?.getText().includes("this.supersedeUnsentWritesForWebsiteAttempt(task.job_id)"),
-    !businessAdmission?.getText().includes('remote.next_action_code === "WAIT_NEW_ATTEMPT"'),
-    !failureDisposition?.includes('remote.next_action_code === "WAIT_NEW_ATTEMPT"'),
-    !failureDisposition?.includes('"SOURCE_HANDOFF_RECONCILIATION_PENDING"'),
-    !persistFailure?.includes("applyRemoteFailureDisposition(state, persisted, remote)"),
-    !reconcileFailures?.includes("applyRemoteFailureDisposition(state, task, remote)"),
-    runtimeHostRecoveryText.includes("restoreBrowserHostVisibility"),
-    retiredAttemptReleaseInActiveSource,
-    !deliverOutbox?.getText().includes('executionFailure("failed", authority.lastError)'),
-  ];
-  if (lifecycleViolations.some(Boolean)) {
-    findings.push(finding(LAWS.core, "static.ast",
-      "agent-production-runtime/no-local-business-lifecycle-adjudication", PATHS.runtimeClaim,
-      "Runtime still converts restart, local failure, or absent Website admission into an ended-attempt decision."));
-  }
-};
-const inspectCredentialAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const credential = sourceFor(context, PATHS.credential);
-  const failureCodes = new Set([
-    ...calledStringArguments(credential, "credentialFailure"),
-    ...stringLiterals(credential),
-  ]);
-  for (const code of [
-    "PRODUCTION_CREDENTIAL_PARENT_MISSING", "PRODUCTION_CREDENTIAL_MISSING",
-    "PRODUCTION_CREDENTIAL_PARENT_PERMISSIONS_INVALID", "PRODUCTION_CREDENTIAL_FILE_PERMISSIONS_INVALID",
-    "PRODUCTION_CREDENTIAL_SYMLINK_INVALID", "PRODUCTION_CREDENTIAL_JSON_INVALID",
-    "PRODUCTION_CREDENTIAL_SCHEMA_INVALID", "PRODUCTION_CREDENTIAL_ORIGIN_INVALID",
-  ]) if (!failureCodes.has(code)) findings.push(finding(LAWS.credential, "static.ast",
-    "agent-production-runtime/credential-failure-code", PATHS.credential,
-    `Credential reader is missing typed failure ${code}.`));
-};
-const inspectContractAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const generator = sourceFor(context, PATHS.routeGenerator);
-  if (generator?.getVariableDeclaration("resultContractRoutes")
-    || !hasNumericInequality(generator, "resultContractCount", 34)
-    || !hasNumericInequality(generator, "reusableBaseReservationRouteCount", 0)) {
-    findings.push(finding(LAWS.route, "static.ast", "agent-production-runtime/provider-derived-route-contract",
-      PATHS.routeGenerator, "Route generator retains a route allowlist or misses current provider denominators."));
-  }
-  const routePolicy = sourceFor(context, PATHS.routePolicy);
-  const contracts = sourceFor(context, PATHS.contracts);
-  const retiredRuntimeDecisions = ["parameterValidators", "primaryProducts", "routeProducesGeneratedImage"]
-    .filter((name) => routePolicy?.getVariableDeclaration(name) || routePolicy?.getFunction(name));
-  const boundedStringSchema = (name: string): boolean => {
-    const initializer = contracts?.getVariableDeclaration(name)?.getInitializer();
-    const calls = [
-      ...(Node.isCallExpression(initializer) ? [initializer] : []),
-      ...(initializer?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? []),
-    ];
-    const callNamed = (name: string): boolean => calls.some((call) => {
-      const expression = call.getExpression();
-      return Node.isPropertyAccessExpression(expression) && expression.getName() === name;
-    });
-    return calls.some((call) => call.getExpression().getText() === "z.string")
-      && callNamed("min") && callNamed("max");
-  };
-  const taskSchema = contracts?.getVariableDeclaration("WebsiteAgentTaskSchema")?.getInitializer();
-  const actionDerivedRelation = taskSchema?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)
-    .some((access) => access.getName() === "action_id") ?? false;
-  if (retiredRuntimeDecisions.length
-    || !boundedStringSchema("ProductionProductIdSchema")
-    || !boundedStringSchema("ProductionActionIdSchema") || actionDerivedRelation) {
-    findings.push(finding(LAWS.route, "static.ast", "agent-production-runtime/no-business-route-adjudication",
-      PATHS.routePolicy, "Runtime retains Product/Action tables, parameter-value adjudication or action-derived relation semantics."));
-  }
-  const admission = stringLiterals(sourceFor(context, PATHS.admission));
-  for (const field of ["bazi_domain_admission_receipt_hash", "delivery_manifest_id",
-    "delivery_manifest_hash", "review_receipt_hash"]) if (!admission.has(field)) {
-    findings.push(finding(LAWS.admission, "static.ast", "agent-production-runtime/admission-receipt-field",
-      PATHS.admission, `Admission parser is missing ${field}.`));
-  }
-};
-const inspectDatabaseAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const store = sourceFor(context, PATHS.store);
-  const sqlCalls = [...calledLiteralSources(store, "prepare"), ...calledLiteralSources(store, "pragma")];
-  for (const token of ["select sql from sqlite_master", "pragma table_info", "pragma index_list",
-    "pragma index_info", "pragma foreign_key_list", "integrity_check", "foreign_key_check"]) {
-    if (!sqlCalls.some((call) => call.includes(token))) {
-    findings.push(finding(LAWS.database, "static.ast", "agent-production-runtime/exact-schema-readback",
-      PATHS.store, `Runtime schema validator is missing ${token}.`));
-    }
-  }
-  const startup = sourceFor(context, PATHS.startup);
-  const startupCalls = startup?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .map((call) => call.getExpression().getText()) ?? [];
-  if (!startupCalls.includes("store.assertStartupDataIntegrity")) {
-    findings.push(finding(LAWS.database, "static.ast", "agent-production-runtime/data-integrity-startup",
-      PATHS.startup, "Runtime startup does not fail closed on generic persisted-data corruption."));
-  }
-  const authoritySource = sourceFor(context, PATHS.authority);
-  const authorityFailures = calledArgumentStringLiterals(authoritySource, "executionFailure", 1);
-  for (const code of ["PRODUCTION_AUTHORITY_STORE_MISSING", "PRODUCTION_AUTHORITY_STORE_UNREADABLE",
-    "PRODUCTION_AUTHORITY_STORE_CORRUPT"]) if (!authorityFailures.has(code)) {
-    findings.push(finding(LAWS.database, "static.ast", "agent-production-runtime/authority-failure",
-      PATHS.authority, `Authority reader is missing ${code}.`));
-  }
-  const swallowsAsMissing = (authoritySource?.getDescendantsOfKind(SyntaxKind.CatchClause) ?? [])
-    .some((clause) => clause.getBlock().getDescendantsOfKind(SyntaxKind.ReturnStatement)
-      .some((statement) => {
-        const expression = statement.getExpression();
-        return Node.isStringLiteral(expression) && expression.getLiteralValue() === "missing";
-      }));
-  if (swallowsAsMissing) {
-    findings.push(finding(LAWS.database, "static.ast", "agent-production-runtime/no-authority-swallow",
-      PATHS.authority, "Authority reader still converts read failures to missing."));
-  }
-};
 
-const inspectStorageAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const inventory = sourceFor(context, PATHS.inventory);
-  const maintenance = sourceFor(context, PATHS.maintenance);
-  const writeImports = new Set(["mkdir", "open", "rename", "rm", "unlink", "writeFile"]);
-  const importsMutation = (source: SourceFile | undefined): boolean =>
-    source?.getImportDeclarations().some((declaration) =>
-      declaration.getNamedImports().some((entry) => writeImports.has(entry.getName()))) ?? false;
-  if (importsMutation(inventory) || importsMutation(maintenance)) {
-    findings.push(finding(LAWS.storage, "static.ast", "agent-production-runtime/storage-inventory-read-only",
-      PATHS.inventory, "Storage inventory imports a filesystem mutation primitive."));
-  }
-  const startup = sourceFor(context, PATHS.startup);
-  const startupCalls = new Set(startup?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .map((call) => call.getExpression().getText()) ?? []);
-  const startupFailures = calledArgumentStringLiterals(startup, "executionFailure", 1);
-  if (!startupCalls.has("readProductionRuntimeStorageInventory") || !startupCalls.has("store.storageResponsibilities")
-    || !startupFailures.has("PRODUCTION_ORPHAN_STORAGE_RECONCILIATION_REQUIRED")) {
-    findings.push(finding(LAWS.storage, "static.ast", "agent-production-runtime/storage-startup-gate",
-      PATHS.startup, "Runtime startup does not bind DB responsibilities and fail closed on orphan storage."));
-  }
-  const taskPath = inventory?.getFunction("productionRuntimeTaskPath");
-  const taskPathFailures = calledArgumentStringLiterals(taskPath, "executionFailure", 1);
-  const claimUsesTaskPath = sourceFor(context, PATHS.runtimeClaim)?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .some((call) => call.getExpression().getText() === "productionRuntimeTaskPath") ?? false;
-  if (!taskPathFailures.has("PRODUCTION_STORAGE_JOB_ID_INVALID") || !claimUsesTaskPath) {
-    findings.push(finding(LAWS.storage, "static.ast", "agent-production-runtime/storage-path-boundary",
-      PATHS.inventory, "Runtime task storage is not bound to one validated root child."));
-  }
-  const maintenanceTokens = stringLiterals(maintenance);
-  const readonlyDatabase = maintenance?.getDescendantsOfKind(SyntaxKind.NewExpression)
-    .some((expression) => {
-      if (expression.getExpression().getText() !== "Database") return false;
-      const options = expression.getArguments()[1];
-      if (!Node.isObjectLiteralExpression(options)) return false;
-      return ["readonly", "fileMustExist"].every((name) => {
-        const property = options.getProperty(name);
-        return Node.isPropertyAssignment(property) && property.getInitializer()?.getText() === "true";
-      });
-    }) ?? false;
-  if (!maintenanceTokens.has("--dry-run")
-    || !maintenanceTokens.has("PRODUCTION_STORAGE_MAINTENANCE_DRY_RUN_ONLY")
-    || !readonlyDatabase) {
-    findings.push(finding(LAWS.storage, "static.ast", "agent-production-runtime/storage-maintenance-guard",
-      PATHS.maintenance, "Storage maintenance is not an exact read-only dry-run command."));
-  }
-};
-
-const inspectQualityAst = (context: InspectorContext, findings: InspectorFinding[]): void => {
-  const inspector = sourceFor(context, "scripts/audit/domains/agent-production-runtime/inspector.ts");
-  if (inspector?.getImportDeclarations().some((declaration) => {
-    const module = declaration.getModuleSpecifierValue();
-    return module.includes("/plugins/") || module.includes("agent-product")
-      || module.includes("/gpt/") || module.includes("/browser/");
-  })) {
-    findings.push(finding(LAWS.staticQuality, "static.ast", "agent-production-runtime/no-product-quality",
-      "scripts/audit/domains/agent-production-runtime/inspector.ts",
-      "Runtime inspector still enumerates Product implementation."));
-  }
-  const proof = stringLiterals(sourceFor(context, PATHS.proof));
-  const retiredCoreLaw = LAWS.core.replace(/V([0-9]+)$/u, (_, version: string) =>
-    `V${Number(version) - 1}`);
-  if (proof.has(retiredCoreLaw)) {
-    findings.push(finding(LAWS.dynamicProof, "static.ast", "agent-production-runtime/proof-law-current",
-      PATHS.proof, "Runtime proof still asserts retired V31."));
-  }
-};
-
-export function inspectAgentProductionRuntime(
-  context: InspectorContext,
-  findings: InspectorFinding[],
-): void {
-  inspectCoreAst(context, findings);
-  inspectWebsiteAttemptLifecycle(context, findings);
-  inspectCredentialAst(context, findings);
-  inspectContractAst(context, findings);
-  inspectDatabaseAst(context, findings);
+export function inspectAgentProductionRuntime(context: InspectorContext, findings: InspectorFinding[]): void {
   inspectAgentAuthorityAst(context, findings);
-  inspectStorageAst(context, findings);
-  inspectQualityAst(context, findings);
+  const contracts = sourceFor(context, runtimePath("contracts"));
+  for (const name of ["ProductionProductIdSchema", "ProductionActionIdSchema"]) {
+    const schema = bodyFor(contracts, name);
+    const members = calls(schema).map((call) => call.getExpression().getText());
+    reject(findings, LAWS.route, "static.ast", runtimePath("contracts"), "opaque-product-action",
+      members.includes("z.string") && members.some((member) => member.endsWith(".min"))
+      && members.some((member) => member.endsWith(".max"))
+      && members.length === 3 && members.every((member) =>
+        member === "z.string" || member.endsWith(".min") || member.endsWith(".max")),
+      "Product and action must be bounded opaque strings; Runtime cannot re-adjudicate their business values.");
+  }
+  const route = sourceFor(context, runtimePath("route-policy"));
+  reject(findings, LAWS.route, "static.ast", runtimePath("route-policy"), "no-second-business-route-table",
+    ["parameterValidators", "primaryProducts", "routeProducesGeneratedImage"].every((name) =>
+      route.getVariableDeclaration(name) === undefined && route.getFunction(name) === undefined),
+    "Runtime may resolve only the unique provider-derived projection, without a second business support table.");
+  const task = bodyFor(contracts, "WebsiteAgentTaskSchema");
+  reject(findings, LAWS.route, "static.ast", runtimePath("contracts"), "no-action-derived-relation",
+    !(task?.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression) ?? []).some((access) => access.getName() === "action_id"),
+    "Task relation authority is transported from Website, not inferred from action or locale.");
+  const proofPath = "scripts/acceptance/agent-production-runtime.real-proof.ts";
+  const proof = sourceFor(context, proofPath);
+  reject(findings, LAWS.dynamicProof, "static.ast", proofPath, "runtime-proof-no-adjacent-execution",
+    proof.getImportDeclarations().length === 0 && calls(proof, "emitQualityProofObservation").length === 0
+    && proof.getStatements().some(Node.isThrowStatement),
+    "An unadmitted Runtime-only proof must fail closed and never run neighboring Product/GPT/Browser business.");
+  const sessionPath = "scripts/audit/domains/agent-production-runtime/session-output.ts";
+  const session = sourceFor(context, sessionPath);
+  reject(findings, LAWS.staticQuality, "static.ast", sessionPath, "native-fact-derived-assertions",
+    calls(session, "validateStaticInspection").length === 1 && calls(session, "producerModePassed").length === 1
+    && !session.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) =>
+      property.getName() === "passed" && property.getInitializer()?.getKind() === SyntaxKind.TrueKeyword),
+    "Each law assertion must derive from one actual native producer receipt and validation, never a fixed PASS.");
 }
 
-export function inspectAgentTypes(
-  context: InspectorContext,
-  findings: InspectorFinding[],
-): void {
-  const admissionReceipt = sourceFor(context, PATHS.admission)
-    ?.getTypeAlias("BusinessAdmissionReceipt");
-  if (!admissionReceipt?.isExported() || admissionReceipt.getType().isAny()) {
-    findings.push(finding(LAWS.admission, "static.types", "agent-production-runtime/admission-type",
-      PATHS.admission, "BusinessAdmissionReceipt is not an exported, resolved type."));
+export function inspectAgentTypes(context: InspectorContext, findings: InspectorFinding[]): void {
+  const aliases = [
+    [LAWS.core, "store-foundation", "ProductionTaskStatus"],
+    [LAWS.credential, "transport-protocol", "DeviceCredential"],
+    [LAWS.route, "contracts", "WebsiteAgentTask"],
+    [LAWS.admission, "cloud-reconciliation-client", "BusinessAdmissionReceipt"],
+    [LAWS.database, "store-foundation", "ProductionAuthorityReader"],
+    [LAWS.storage, "runtime-storage-inventory", "ProductionRuntimeStorageInventory"],
+  ] as const;
+  for (const [lawId, file, name] of aliases) {
+    const type = sourceFor(context, runtimePath(file)).getTypeAlias(name);
+    reject(findings, lawId, "static.types", runtimePath(file), "resolved-owner-type",
+      type?.isExported() === true && !type.getType().isAny() && !type.getType().isUnknown(),
+      `The original ${name} must remain an exported resolved Owner type.`);
   }
-  const storageInventory = sourceFor(context, PATHS.inventory)
-    ?.getTypeAlias("ProductionRuntimeStorageInventory");
-  if (!storageInventory?.isExported() || storageInventory.getType().isAny()) {
-    findings.push(finding(LAWS.storage, "static.types", "agent-production-runtime/storage-type",
-      PATHS.inventory, "ProductionRuntimeStorageInventory is not an exported, resolved type."));
-  }
+  const taskStatus = sourceFor(context, runtimePath("store-foundation")).getTypeAliasOrThrow("ProductionTaskStatus").getType();
+  reject(findings, LAWS.core, "static.types", runtimePath("store-foundation"), "two-public-task-states",
+    taskStatus.isUnion() && JSON.stringify(taskStatus.getUnionTypes().map((type) => type.getLiteralValue()).sort())
+      === JSON.stringify(["completed", "failed"]), "Only failed/completed may be exposed as persisted task states.");
+  const credential = sourceFor(context, runtimePath("transport-protocol")).getTypeAliasOrThrow("DeviceCredential").getType();
+  reject(findings, LAWS.credential, "static.types", runtimePath("transport-protocol"), "credential-type-exact-identity",
+    JSON.stringify(credential.getProperties().map((property) => property.getName()).sort()) === JSON.stringify([
+      "credential", "device_epoch", "device_id", "enrolled_at", "environment_id", "origin", "protocol_version", "server_base_url"]),
+    "Device credential type must retain only its own eight long-lived fields.");
+  const admissionType = sourceFor(context, runtimePath("cloud-reconciliation-client")).getTypeAliasOrThrow("BusinessAdmissionReceipt").getType();
+  const admissionBase = ["schema_version", "job_id", "result_payload_hash", "consumer_ref", "outcome", "consumption_hash", "consumed_at"];
+  const expectedVariants = [admissionBase, [...admissionBase, "bazi_domain_admission_receipt_hash", "delivery_manifest_id", "delivery_manifest_hash"],
+    [...admissionBase, "review_receipt_hash"]].map((fields) => [...fields].sort().join(",")).sort();
+  reject(findings, LAWS.admission, "static.types", runtimePath("cloud-reconciliation-client"), "three-exclusive-admission-types",
+    admissionType.isUnion() && JSON.stringify(admissionType.getUnionTypes().map((type) =>
+      type.getProperties().map((property) => property.getName()).sort().join(",")).sort()) === JSON.stringify(expectedVariants),
+    "The actual admission type must expose exactly base, complete Bazi or review variants.");
+  const taskShape = sourceFor(context, runtimePath("store-foundation")).getInterfaceOrThrow("StoredProductionTask").getType();
+  reject(findings, LAWS.database, "static.types", runtimePath("store-foundation"), "no-persisted-implementation-or-fence-identity",
+    ["identity", "identity_json", "plugin_id", "plugin_version", "catalog_hash", "lease_version", "execution_fence_hash"]
+      .every((field) => taskShape.getProperty(field) === undefined),
+    "Persistent task shape must not reintroduce implementation or Website execution identity.");
+  const path = "scripts/audit/domains/agent-production-runtime/inspector.ts";
+  const own = sourceFor(context, path);
+  reject(findings, LAWS.staticQuality, "static.types", path, "typed-native-inspector",
+    own.getFunction("inspectAgentProductionRuntime")?.getParameters().every((parameter) =>
+      parameter.getTypeNode() !== undefined && !parameter.getType().isAny()) === true,
+    "The sole Runtime inspector must use the original native context and finding contracts.");
 }
 
-export function inspectAgentDependencies(
-  context: InspectorContext,
-  findings: InspectorFinding[],
-): void {
-  const stateImports = sourceFor(context, PATHS.runtimeState)?.getImportDeclarations() ?? [];
-  if (stateImports.some((declaration) => declaration.getModuleSpecifierValue().includes("/browser/"))) {
-    findings.push(finding(LAWS.core, "static.dependency", "agent-production-runtime/no-browser-private-import",
-      PATHS.runtimeState, "Runtime state depends on Browser implementation."));
-  }
-  const manifest = JSON.parse(read(context, PATHS.manifest)) as { ownedPaths: string[] };
-  const forbiddenOwnership = runtimeManifestOwnershipDrift(manifest.ownedPaths);
-  if (forbiddenOwnership.length > 0) findings.push(finding(LAWS.staticQuality, "static.dependency",
-    "agent-production-runtime/manifest-owner-drift", PATHS.manifest,
-    `Runtime Manifest still owns adjacent paths: ${forbiddenOwnership.join(", ")}.`));
-  const dynamicRoutes = producerClaimRoutesFor("acceptance:agent-production-runtime:real-proof", PATHS.proof) ?? [];
-  const adjacentRoutes = dynamicRoutes.filter((route) =>
-    !route.startsWith("LAW-AGENT-PRODUCTION-RUNTIME-"));
-  if (adjacentRoutes.length > 0) findings.push(finding(LAWS.dynamicProof, "static.dependency",
-    "agent-production-runtime/shared-proof-owner-drift", PATHS.proof,
-    `Runtime proof remains shared with ${adjacentRoutes.length} adjacent dynamic routes.`));
-}
-
-export function inspectAgentSql(
-  context: InspectorContext,
-  findings: InspectorFinding[],
-): void {
-  const store = sourceFor(context, PATHS.store);
-  const schemaInitializer = variableDeclaration(store, "productionSchemaSql")?.getInitializer();
-  const schemaSql = (Node.isNoSubstitutionTemplateLiteral(schemaInitializer)
-    ? schemaInitializer.getLiteralValue() : "").toLowerCase().replace(/\s+/gu, " ");
-  const tableShapesInitializer = store?.getVariableDeclaration("tableShapes")?.getInitializer();
-  const tableShapes = Node.isObjectLiteralExpression(tableShapesInitializer)
-    ? tableShapesInitializer
-    : tableShapesInitializer?.getFirstDescendantByKind(SyntaxKind.ObjectLiteralExpression);
-  for (const table of ["production_tasks", "production_outbox"]) {
-    if (!schemaSql.includes(`create table ${table}(`) || !tableShapes?.getProperty(table)) {
-      findings.push(finding(LAWS.database, "static.sql", "agent-production-runtime/schema-table",
-      PATHS.store, `Exact schema declaration is missing ${table}.`));
+const inspectQualityOwnerImports = (source: SourceFile, path: string, findings: InspectorFinding[]): void => {
+  if (!path.startsWith("scripts/audit/domains/agent-production-runtime/")) return;
+  for (const edge of collectResolvedModuleTargets(source)) reject(findings, LAWS.staticQuality, "static.dependency", path,
+    "native-quality-owner-isolation", !edge.targetPath.startsWith("src/plugins/")
+      && !edge.targetPath.startsWith("src/capabilities/gpt/") && !edge.targetPath.startsWith("src/lib/browser/"),
+    "Runtime quality must examine source facts without executing neighboring Product/GPT/Browser business implementations.");
+};
+const inspectRuntimeResolvedEdges = (context: InspectorContext, findings: InspectorFinding[]): void => {
+  const root = resolve(context.sealedRoot);
+  const sources = context.targetPaths.filter((path) => path.endsWith(".ts")).map((path) => sourceFor(context, path));
+  for (const source of sources) {
+    const path = relative(root, source.getFilePath()).replaceAll("\\", "/");
+    inspectQualityOwnerImports(source, path, findings);
+    if (path.startsWith(`${RUNTIME_ROOT}/`)) reject(findings, LAWS.core, "static.dependency", path,
+      "no-unresolved-runtime-import", collectDynamicImportProblems(source).length === 0,
+      "Runtime dynamic module edges must resolve a literal target through the original Native module resolver.");
+    if (path.startsWith(`${RUNTIME_ROOT}/`)) for (const edge of collectResolvedModuleTargets(source)) {
+      const catalog = edge.targetPath === "src/mediator/product-plugin-catalog.ts";
+      const pureCatalog = !catalog || edge.edgeKind === "import" && !edge.namespaceImport && edge.namedBindings.length > 0
+        && edge.namedBindings.every((name) => ["productPluginCatalogSnapshot", "productionCatalogHash"].includes(name));
+      reject(findings, LAWS.core, "static.dependency", path, "resolved-runtime-owner-boundary",
+        pureCatalog && !edge.targetPath.startsWith("src/plugins/")
+        && !(edge.targetPath.startsWith("src/lib/browser/") && edge.targetPath !== "src/lib/browser/browser-authority-api.ts"),
+        "Native resolved import edges must remain on public typed ports; Catalog is data-only without a Product-object exemption.");
     }
   }
-  const schemaRequirements = ["check(status in ('failed','completed'))", "check((status='failed'"];
-  if (!schemaRequirements.every((requirement) => schemaSql.includes(requirement))) {
-    findings.push(finding(LAWS.database, "static.sql", "agent-production-runtime/schema-constraints",
-      PATHS.store, "Runtime schema declaration does not contain the exact state, uniqueness and FK constraints."));
-  }
-  const exactShape = store?.getVariableDeclaration("exactTableShape")?.getInitializer();
-  const shapeCalls = new Set(exactShape?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .map((call) => call.getExpression().getText()) ?? []);
-  const initializer = store?.getVariableDeclaration("initializeOrAssertCurrentSchema")?.getInitializer();
-  const initializerCalls = new Set(initializer?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .map((call) => call.getExpression().getText()) ?? []);
-  if (!["canonicalSql", "database.prepare"].every((call) => shapeCalls.has(call))
-    || !["invalidJsonCount", "stateInvariantFailureCount"].every((call) => initializerCalls.has(call))) {
-    findings.push(finding(LAWS.database, "static.sql", "agent-production-runtime/schema-data-readback",
-      PATHS.store, "Runtime schema or persisted-data readback is not wired into startup validation."));
-  }
-  const stateInvariant = store?.getVariableDeclaration("stateInvariantFailureCount")?.getInitializer()
-    ?.getText().toLowerCase().replace(/\s+/gu, " ") ?? "";
-  const authorityInvariants = ["current_attempt_id=''", "response_hash is not null and sent_at is null"];
-  if (!authorityInvariants.every((token) => stateInvariant.includes(token))) {
-    findings.push(finding(LAWS.database, "static.sql", "agent-production-runtime/data-authority-invariants",
-      PATHS.store, "Startup SQL does not reject invalid task identity or Outbox receipt state."));
-  }
+};
+export function inspectAgentDependencies(context: InspectorContext, findings: InspectorFinding[]): void {
+  inspectRuntimeResolvedEdges(context, findings);
+  const catalog = sourceFor(context, runtimePath("catalog"));
+  const route = bodyFor(catalog, "manifestRoutes");
+  const manifest = bodyFor(catalog, "agentRouteCapabilityManifest");
+  reject(findings, LAWS.route, "static.dependency", runtimePath("catalog"), "one-pure-route-manifest-publisher",
+    calls(route, "productPluginCatalogSnapshot.map").length === 1
+    && calls(manifest, "AgentRouteCapabilityManifestSchema.parse").length === 1
+    && catalog.getImportDeclarations().every((declaration) =>
+      !declaration.getModuleSpecifierValue().split("/").includes("plugins")),
+    "The only Runtime publisher must mechanically consume the architecture-owned pure route snapshot.");
+  const protocol = sourceFor(context, runtimePath("transport-protocol"));
+  const fields = objectFor(bodyFor(protocol, "ExecutionGrantSchema"));
+  reject(findings, LAWS.core, "static.dependency", runtimePath("transport-protocol"), "no-plugin-transport-identity",
+    fields !== undefined && ["plugin_id", "plugin_version", "expected_plugin_id", "expected_plugin_version"]
+      .every((name) => fields.getProperty(name) === undefined),
+    "Transport identity must remain product-opaque rather than couple to Product implementation names.");
+  const proofPath = "scripts/acceptance/agent-production-runtime.real-proof.ts";
+  const proof = sourceFor(context, proofPath);
+  reject(findings, LAWS.dynamicProof, "static.dependency", proofPath, "independent-runtime-proof",
+    proof.getImportDeclarations().length === 0 && calls(proof, "emitQualityProofObservation").length === 0,
+    "The currently unadmitted proof must not execute adjacent business or manufacture an independent verdict.");
 }
+
 const evaluate = (context: InspectorContext): InspectorEvaluation => {
-  const findings: InspectorFinding[] = [];
-  const receipts: InspectorEvaluation["staticCheckReceipts"] = [];
-  recordStaticCheck({ check: "inspectAgentFilesystem", findings, implementation: inspectAgentFilesystem,
-    lawIds: [LAWS.credential, LAWS.storage, LAWS.staticQuality, LAWS.dynamicProof], receipts,
+  const findings: InspectorFinding[] = [], receipts: InspectorEvaluation["staticCheckReceipts"] = [];
+  recordStaticCheck({ check: "inspectAgentFilesystem", implementation: inspectAgentFilesystem,
+    lawIds: [LAWS.credential, LAWS.storage, LAWS.staticQuality, LAWS.dynamicProof], findings, receipts,
     run: () => inspectAgentFilesystem(context, findings) });
-  recordStaticCheck({ check: "inspectAgentProductionRuntime", findings, implementation: inspectAgentProductionRuntime,
-    lawIds: ALL_LAWS, receipts, run: () => inspectAgentProductionRuntime(context, findings) });
-  recordStaticCheck({ check: "inspectAgentTypes", findings, implementation: inspectAgentTypes,
-    lawIds: ALL_LAWS.filter((lawId) => lawId !== LAWS.dynamicProof), receipts,
-    observe: () => observeStaticMode(context, "static.types"),
-    run: () => inspectAgentTypes(context, findings) });
-  recordStaticCheck({ check: "inspectAgentContracts", findings, implementation: inspectAgentContracts,
-    lawIds: [LAWS.core, LAWS.credential, LAWS.route, LAWS.admission, LAWS.storage,
-      LAWS.staticQuality, LAWS.dynamicProof], receipts,
-    run: () => inspectAgentContracts(context, findings) });
-  recordStaticCheck({ check: "inspectAgentDependencies", findings, implementation: inspectAgentDependencies,
-    lawIds: [LAWS.core, LAWS.route, LAWS.staticQuality, LAWS.dynamicProof], receipts,
+  recordStaticCheck({ check: "inspectAgentProductionRuntime", implementation: inspectAgentProductionRuntime,
+    lawIds: ALL_LAWS, findings, receipts, run: () => inspectAgentProductionRuntime(context, findings) });
+  recordStaticCheck({ check: "inspectAgentTypes", implementation: inspectAgentTypes,
+    lawIds: ALL_LAWS.filter((lawId) => lawId !== LAWS.dynamicProof), findings, receipts,
+    observe: () => observeStaticMode(context, "static.types"), run: () => inspectAgentTypes(context, findings) });
+  recordStaticCheck({ check: "inspectAgentContracts", implementation: inspectAgentContracts,
+    lawIds: [LAWS.core, LAWS.credential, LAWS.route, LAWS.admission, LAWS.storage, LAWS.staticQuality, LAWS.dynamicProof],
+    findings, receipts, run: () => inspectAgentContracts(context, findings) });
+  recordStaticCheck({ check: "inspectAgentDependencies", implementation: inspectAgentDependencies,
+    lawIds: [LAWS.core, LAWS.route, LAWS.staticQuality, LAWS.dynamicProof], findings, receipts,
     run: () => inspectAgentDependencies(context, findings) });
-  recordStaticCheck({ check: "inspectAgentSql", findings, implementation: inspectAgentSql,
-    lawIds: [LAWS.database], receipts, run: () => inspectAgentSql(context, findings) });
-  return { capabilityDomain: context.planEntry.capabilityDomain, reportedLawIds: context.planEntry.lawIds,
+  recordStaticCheck({ check: "inspectAgentSql", implementation: inspectAgentSql, lawIds: [LAWS.database], findings, receipts,
+    run: () => inspectAgentSql(context, findings) });
+  return { capabilityDomain: context.planEntry.capabilityDomain, reportedLawIds: [...context.planEntry.lawIds],
     findings, inspectedFiles: [...context.targetPaths], staticCheckReceipts: receipts };
 };
-export const inspectDomain = async (context: InspectorContext): Promise<SessionInspectorOutput> =>
-  buildAgentProductionSessionOutput(context, evaluate(context));
+export const inspectDomain = async (context: InspectorContext) => buildAgentProductionSessionOutput(context, evaluate(context));

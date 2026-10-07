@@ -1,6 +1,7 @@
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { isTopLevelPluginFile } from "../../../shared/no-regex.js";
+import { getRepoSourcePath } from "../../../shared/source-files.js";
 import {
   collectResolvedModuleTargets,
   type SourceModuleTarget,
@@ -222,7 +223,28 @@ const inspectRuntimePrivateImports = (
   repoPath: string,
   sourceFile: ArchitectureSourceFile,
 ): void => {
-  for (const target of collectResolvedModuleTargets(sourceFile)) {
+  const scopedSources = new Map(sourceFile.getProject().getSourceFiles()
+    .map((source) => [getRepoSourcePath(source), source]));
+  const visited = new Set<string>([repoPath]);
+  const pending = [sourceFile];
+  const targets: SourceModuleTarget[] = [];
+  while (pending.length) {
+    const current = pending.pop()!;
+    for (const target of collectResolvedModuleTargets(current)) {
+      targets.push(target);
+      const path = target.targetPath;
+      const shared = path.startsWith("src/lib/") || path.startsWith("src/types/")
+        || path.startsWith("src/mediator/");
+      if (!shared || visited.has(path) || path.startsWith("src/lib/local-runtime/production/")
+        || path === "src/lib/browser/browser-authority-api.ts"
+        || path === "src/mediator/product-plugin-catalog.ts") continue;
+      visited.add(path);
+      const next = scopedSources.get(path);
+      if (!next) throw new Error(`ARCHITECTURE_SHARED_IMPORT_OUTSIDE_SOURCE_SCOPE:${path}`);
+      pending.push(next);
+    }
+  }
+  for (const target of targets) {
     if (target.targetPath === "src/mediator/product-plugin-catalog.ts") {
       pushBoundaryFinding(findings, {
         checkId: "architecture/product-imports-catalog",

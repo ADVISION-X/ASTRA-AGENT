@@ -1,13 +1,16 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { Project } from "ts-morph";
+import { Project, SyntaxKind } from "ts-morph";
 
 import {
   inspectAgentProductionRuntime,
 } from "../audit/domains/agent-production-runtime/inspector.js";
-import { runtimeManifestOwnershipDrift } from
+import { inspectAgentContracts, runtimeManifestOwnershipDrift } from
   "../audit/domains/agent-production-runtime/contract-inspection.js";
+import { buildRegistry } from "../audit/governance-authority.js";
+import { computeTargetPaths } from "../audit/shared/quality-runner.js";
+import { createAuditProject } from "../audit/shared/project.js";
 import { workerLoopStopViolations } from
   "../audit/domains/agent-production-runtime/worker-loop-inspection.js";
 import { workerLoop } from "../../src/lib/local-runtime/production/runtime-loops.js";
@@ -27,8 +30,8 @@ const inspectRuntimeSources = (project: Project, queryRef: string) => {
     project,
     sealedRoot: path.resolve("."),
     selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V75",
-    targetSet: { queryRef, count: 1 },
-    targetPaths: [],
+    targetSet: { queryRef, count: project.getSourceFiles().length },
+    targetPaths: project.getSourceFiles().map((source) => path.relative(path.resolve("."), source.getFilePath()).replaceAll("\\", "/")),
     lawRequirements: [],
     planEntry: {
       capabilityDomain: "agent-production-runtime",
@@ -60,6 +63,80 @@ const exerciseLifecycleMutant = (): void => {
   assert.ok(inspectRuntimeSources(project, "acceptance:runtime-worker-loop-mutant").some((finding) =>
     finding.checkId === "agent-production-runtime/worker-loop-stops-on-failure"),
   "the Runtime inspector must be wired to reject a workerLoop that returns after an iteration failure");
+};
+
+const exerciseAuthorityGuardMutants = (): void => {
+  const project = new Project({ tsConfigFilePath: path.resolve("tsconfig.json") });
+  assert.deepEqual(inspectRuntimeSources(project, "acceptance:runtime-authority-baseline"), []);
+  const guardCases = [
+    ["runtime-business-admission", "BUSINESS_ADMISSION_RESULT_HASH_MISMATCH", "admission-before-completion"],
+    ["executor", "PRODUCTION_PARENT_RESULT_BINDING_INVALID", "completed-parent-exact-locator"],
+  ] as const;
+  for (const [file, code, check] of guardCases) {
+    const source = project.getSourceFileOrThrow(path.resolve(`src/lib/local-runtime/production/${file}.ts`));
+    const original = source.getFullText();
+    const guard = source.getDescendantsOfKind(SyntaxKind.IfStatement)
+      .find((statement) => statement.getThenStatement().getText().includes(code));
+    assert.ok(guard, "the actual rejecting authority branch must exist");
+    guard!.setExpression(`false && (${guard!.getExpression().getText()})`);
+    assert.ok(inspectRuntimeSources(project, "acceptance:disabled-authority-guard").some((finding) =>
+      finding.checkId === `agent-production-runtime/${check}`));
+    source.replaceWithText(original);
+  }
+  const renewal = project.getSourceFileOrThrow(path.resolve("src/lib/local-runtime/production/runtime-execution-heartbeat.ts"));
+  const originalRenewal = renewal.getFullText();
+  renewal.replaceWithText(originalRenewal.replace("  const transport = typedRuntimeTransportFailure(error);",
+    "  if (typedRuntimeTransportFailure(error)?.httpStatus === 409) return true;\n  const transport = typedRuntimeTransportFailure(error);"));
+  assert.notEqual(renewal.getFullText(), originalRenewal);
+  assert.ok(inspectRuntimeSources(project, "acceptance:renewal-4xx-retry").some((finding) =>
+    finding.checkId === "agent-production-runtime/same-lease-monotonic-renewal"));
+  renewal.replaceWithText(originalRenewal);
+  const taskState = project.getSourceFileOrThrow(path.resolve("src/lib/local-runtime/production/store-task-state.ts"));
+  const originalTaskState = taskState.getFullText();
+  const immutable = taskState.getClassOrThrow("ProductionStoreTaskState").getMethodOrThrow("recordAttemptFailure")
+    .getDescendantsOfKind(SyntaxKind.IfStatement).find((statement) =>
+      statement.getThenStatement().getText().includes("PRODUCTION_ATTEMPT_FAILURE_IMMUTABLE"));
+  assert.ok(immutable);
+  immutable!.remove();
+  assert.ok(taskState.getFullText().includes("attempt_failure_json=coalesce(attempt_failure_json,?)"));
+  taskState.replaceWithText(taskState.getFullText().replace("attempt_failure_json=coalesce(attempt_failure_json,?)", "attempt_failure_json=?"));
+  assert.ok(inspectRuntimeSources(project, "acceptance:first-fact-overwrite").some((finding) =>
+    finding.checkId === "agent-production-runtime/immutable-first-fact-cas"));
+  taskState.replaceWithText(originalTaskState);
+  assert.deepEqual(inspectRuntimeSources(project, "acceptance:runtime-authority-restored"), []);
+};
+
+const exerciseProviderAndOpaqueRouteMutants = (): void => {
+  const registry = buildRegistry();
+  const targetPaths = [...new Set(registry.laws.filter((law) => law.capabilityDomain === "agent-production-runtime")
+    .flatMap((law) => computeTargetPaths(law, registry)))].sort();
+  const project = createAuditProject(process.cwd(), targetPaths);
+  const context = { project, sealedRoot: process.cwd(), targetPaths } as never;
+  const findings: Parameters<typeof inspectAgentContracts>[1] = [];
+  inspectAgentContracts(context, findings);
+  inspectAgentProductionRuntime(context, findings);
+  assert.equal(findings.length, 0, "the actual Native Runtime scope must establish the original contracts");
+  const generator = project.getSourceFileOrThrow(path.resolve("scripts/generate/sync-website-agent-route-policy-projection.ts"));
+  const originalGenerator = generator.getFullText();
+  generator.getVariableDeclarationOrThrow("bytes").setInitializer("await readFile(destination)");
+  findings.length = 0;
+  inspectAgentContracts(context, findings);
+  assert.ok(findings.some((finding) => finding.checkId === "agent-production-runtime/provider-generator"),
+    "consumer self-reading must not masquerade as the Website provider source");
+  generator.replaceWithText(originalGenerator);
+  const contracts = project.getSourceFileOrThrow(path.resolve("src/lib/local-runtime/production/contracts.ts"));
+  const originalContracts = contracts.getFullText();
+  const product = contracts.getVariableDeclarationOrThrow("ProductionProductIdSchema");
+  product.setInitializer(`${product.getInitializerOrThrow().getText()}.refine(value => value === "bazi_ai_full_analysis")`);
+  findings.length = 0;
+  inspectAgentProductionRuntime(context, findings);
+  assert.ok(findings.some((finding) => finding.checkId === "agent-production-runtime/opaque-product-action"),
+    "a bounded transport string cannot gain a second business product selector");
+  contracts.replaceWithText(originalContracts);
+  findings.length = 0;
+  inspectAgentContracts(context, findings);
+  inspectAgentProductionRuntime(context, findings);
+  assert.deepEqual(findings, [], "ordinary in-memory mutants must leave the original Native scope intact");
 };
 
 const exerciseWorkerLoopSurvivesIterationFailure = async (): Promise<void> => {
@@ -247,6 +324,8 @@ export const exerciseProductionRuntimeSourceBoundaries = async (): Promise<void>
   assert.doesNotMatch(`${storeSource}\n${outboxSource}`, /ATTEMPT_ENDED|PRODUCTION_OUTBOX_ATTEMPT_ENDED/u);
   assert.match(outboxSource, /executionFailure\("failed", authority\.lastError\)/u);
   exerciseLifecycleMutant();
+  exerciseAuthorityGuardMutants();
+  exerciseProviderAndOpaqueRouteMutants();
   await exerciseWorkerLoopStopMutants();
   await exerciseWorkerLoopSurvivesIterationFailure();
   assert.match(storeSource, /purgeJob\(jobId: string\)/u);

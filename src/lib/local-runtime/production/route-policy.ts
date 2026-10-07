@@ -1,102 +1,62 @@
-import { type ProductionActionId, type ProductionProductId, type WebsiteAgentTask } from "./contracts.js";
+import projection from "./website-agent-route-policies.v1.json" with { type: "json" };
+import type { ProductionProductId, ProductionActionId, WebsiteAgentTask } from "./contracts.js";
 import type { ProductionRoutePolicy } from "../../../mediator/product-plugin-contract.js";
-import routePolicyArtifact from "./website-agent-route-policies.v1.json" with { type: "json" };
-
 export type { ProductionRoutePolicy } from "../../../mediator/product-plugin-contract.js";
 
-type RoutePolicyProjection = Readonly<{
-  schema_version: "website-agent-route-policies.v1";
-  contract_id: "ai-acceptance.website-agent-task-result";
-  contract_version: 16;
-  parameter_types: Readonly<Record<string, string>>;
-  routes: readonly ProductionRoutePolicy[];
-}>;
-
-const projection = routePolicyArtifact as RoutePolicyProjection;
-if (projection.schema_version !== "website-agent-route-policies.v1"
-  || projection.contract_id !== "ai-acceptance.website-agent-task-result"
-  || projection.contract_version !== 16
-  || !projection.parameter_types
-  || Object.keys(projection.parameter_types).length !== 48
-  || projection.routes.length !== 40) {
+if (projection.schema_version !== "website-agent-route-policies.v1" || projection.contract_id !== "ai-acceptance.website-agent-task-result"
+  || projection.contract_version !== 17 || Object.keys(projection.parameter_types).length !== 48 || projection.routes.length !== 40) {
   throw new Error("PRODUCTION_ROUTE_POLICY_PROJECTION_INVALID");
 }
-
-export const productionRoutePolicies = Object.freeze(projection.routes.map((entry) => Object.freeze({
-  ...entry,
-  required_parameter_keys: Object.freeze([...entry.required_parameter_keys]),
-  material_roles: Object.freeze(entry.material_roles.map((material) => Object.freeze({ ...material }))),
+export const productionRoutePolicies: readonly ProductionRoutePolicy[] = Object.freeze(projection.routes.map((route) => Object.freeze({
+  ...route, relation_kind: route.relation_kind as ProductionRoutePolicy["relation_kind"],
+  required_parameter_keys: Object.freeze([...route.required_parameter_keys]),
+  material_roles: Object.freeze(route.material_roles.map((material) => Object.freeze({
+    ...material, trust_class: material.trust_class as ProductionRoutePolicy["material_roles"][number]["trust_class"],
+    storage_class: material.storage_class as "shared_static" | "private_owner_scoped",
+    owner_scope_policy: material.owner_scope_policy as "required" | "forbidden", media_types: Object.freeze([...material.media_types]),
+  }))),
 })));
-export const productionRoutePolicyMap = new Map(
-  productionRoutePolicies.map((entry) => [`${entry.product_id}\0${entry.action_id}`, entry] as const),
-);
-const resultContractCount = productionRoutePolicies.filter((entry) => entry.result_contract !== undefined).length;
-if (productionRoutePolicies.length !== 40 || productionRoutePolicyMap.size !== 40
-  || resultContractCount !== 34) {
+export const productionRoutePolicyMap = new Map(productionRoutePolicies.map((route) => [`${route.product_id}\0${route.action_id}`, route]));
+if (productionRoutePolicyMap.size !== 40 || productionRoutePolicies.filter((route) => route.result_contract !== undefined).length !== 34) {
   throw new Error("PRODUCTION_ROUTE_POLICY_DENOMINATOR_INVALID");
 }
-
-export function productionRoutePolicy(
-  productId: ProductionProductId,
-  actionId: ProductionActionId,
-): ProductionRoutePolicy {
-  const resolved = productionRoutePolicyMap.get(`${productId}\0${actionId}`);
-  if (!resolved) throw new Error(`PRODUCTION_ROUTE_POLICY_MISSING:${productId}:${actionId}`);
-  return resolved;
+export function productionRoutePolicy(product: ProductionProductId, action: ProductionActionId): ProductionRoutePolicy {
+  const route = productionRoutePolicyMap.get(`${product}\0${action}`);
+  if (!route) throw new Error(`PRODUCTION_ROUTE_POLICY_MISSING:${product}:${action}`);
+  return route;
 }
-
-const assertRouteParameters = (task: WebsiteAgentTask, expected: ProductionRoutePolicy): void => {
-  if (Object.keys(task.parameters).sort().join("\0")
-    !== [...expected.required_parameter_keys].sort().join("\0")) {
-    throw new Error("AGENT_ROUTE_PARAMETER_SET_INVALID");
-  }
-};
-
-const assertRouteMaterials = (task: WebsiteAgentTask, expected: ProductionRoutePolicy): void => {
-  const materials = [...task.material_refs].sort((left, right) => left.ordinal - right.ordinal);
-  if (materials.length !== expected.material_roles.length) throw new Error("AGENT_ROUTE_MATERIAL_SET_INVALID");
-  for (const [index, role] of expected.material_roles.entries()) {
-    const material = materials[index];
-    if (!material || material.ordinal !== index || material.role !== role.role
-      || material.trust_class !== role.trust_class
-      || material.may_issue_instruction !== role.may_issue_instruction
-      || !role.media_types.includes(material.media_type)
-      || material.storage_class !== role.storage_class
-      || (role.owner_scope_policy === "required") !== (material.owner_scope_hash !== null)) {
+function assertParameters(task: WebsiteAgentTask, route: ProductionRoutePolicy): void {
+  const actual = Object.keys(task.parameters).sort();
+  const expected = [...route.required_parameter_keys].sort();
+  if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) throw new Error("AGENT_ROUTE_PARAMETER_SET_INVALID");
+}
+function assertMaterials(task: WebsiteAgentTask, route: ProductionRoutePolicy): void {
+  const ordered = [...task.material_refs].sort((a, b) => a.ordinal - b.ordinal);
+  if (ordered.length !== route.material_roles.length) throw new Error("AGENT_ROUTE_MATERIAL_SET_INVALID");
+  for (const [ordinal, required] of route.material_roles.entries()) {
+    const entry = ordered[ordinal];
+    if (!entry || entry.ordinal !== ordinal || entry.role !== required.role || entry.trust_class !== required.trust_class
+      || entry.may_issue_instruction !== required.may_issue_instruction || !required.media_types.includes(entry.media_type)
+      || entry.storage_class !== required.storage_class || (required.owner_scope_policy === "required") !== (entry.owner_scope_hash !== null)) {
       throw new Error("AGENT_ROUTE_MATERIAL_SET_INVALID");
     }
   }
-};
-
-const assertRouteRelation = (task: WebsiteAgentTask, expected: ProductionRoutePolicy): void => {
-  const materials = [...task.material_refs].sort((left, right) => left.ordinal - right.ordinal);
-  const parentIdentity = [task.parent_task_ref, task.parent_result_ref, task.parent_result_hash];
-  const reviewIdentity = [task.subject_task_ref, task.subject_result_ref, task.subject_result_hash,
-    task.review_policy];
-  const staticRoot = task.product_id === "localization_static_catalog"
-    && task.action_id === "produce_locale_catalog";
-  const parentRequired = !staticRoot
-    && ["followup", "provider_continuation"].includes(expected.relation_kind);
-  const hasAnyParent = parentIdentity.some((value) => value !== undefined);
-  const hasFullParent = parentIdentity.every((value) => value !== undefined);
-  const parentRelationValid = staticRoot ? !hasAnyParent || hasFullParent
-    : parentRequired ? hasFullParent : !hasAnyParent;
-  if (!parentRelationValid
-    || (expected.relation_kind === "review") !== reviewIdentity.every((value) => value !== undefined)
-    || (expected.relation_kind !== "review" && reviewIdentity.some((value) => value !== undefined))) {
-    throw new Error("AGENT_ROUTE_RELATION_KIND_INVALID");
+}
+function assertRelation(task: WebsiteAgentTask, route: ProductionRoutePolicy): void {
+  const ordered = [...task.material_refs].sort((a, b) => a.ordinal - b.ordinal);
+  const parentCount = [task.parent_task_ref, task.parent_result_ref, task.parent_result_hash].filter((value) => value !== undefined).length;
+  const reviewCount = [task.subject_task_ref, task.subject_result_ref, task.subject_result_hash, task.review_policy].filter((value) => value !== undefined).length;
+  const catalog = task.product_id === "localization_static_catalog" && task.action_id === "produce_locale_catalog";
+  const continuation = ["followup", "provider_continuation"].includes(route.relation_kind);
+  if ((catalog ? parentCount !== 0 && parentCount !== 3 : continuation ? parentCount !== 3 : parentCount !== 0)
+    || (route.relation_kind === "review" ? reviewCount !== 4 : reviewCount !== 0)) throw new Error("AGENT_ROUTE_RELATION_KIND_INVALID");
+  if (route.relation_kind === "review" && !ordered.some((entry) => entry.role === "subject_result" && entry.sha256 === task.subject_result_hash)) {
+    throw new Error("AGENT_REVIEW_SUBJECT_MATERIAL_INVALID");
   }
-  if (expected.relation_kind === "review") {
-    const subject = materials.find((material) => material.role === "subject_result");
-    if (!subject || subject.sha256 !== task.subject_result_hash) {
-      throw new Error("AGENT_REVIEW_SUBJECT_MATERIAL_INVALID");
-    }
-  }
-};
-
+}
 export function assertProductionTaskRoutePolicy(task: WebsiteAgentTask): void {
-  const expected = productionRoutePolicy(task.product_id, task.action_id);
-  assertRouteParameters(task, expected);
-  assertRouteMaterials(task, expected);
-  assertRouteRelation(task, expected);
+  const route = productionRoutePolicy(task.product_id, task.action_id);
+  assertParameters(task, route);
+  assertMaterials(task, route);
+  assertRelation(task, route);
 }

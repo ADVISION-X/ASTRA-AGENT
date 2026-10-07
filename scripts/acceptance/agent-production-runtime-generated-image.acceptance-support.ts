@@ -143,12 +143,22 @@ const exerciseGeneratedImageInspectorMutants = (): void => {
     replaceIn("cloud-client.ts", "bytes.byteLength !== image.bytes", "false"),
     replaceIn("cloud-client.ts", "sha256(bytes) !== image.sha256", "false"),
     replaceIn("cloud-client.ts", 'image.media_type !== "image/webp"', "false"),
+    replaceIn("cloud-client.ts", "bytes.byteLength !== image.bytes", "false && bytes.byteLength !== image.bytes"),
+    replaceIn("cloud-client.ts", "  const bytes = Buffer.from(image.webp_bytes);",
+      '  if (image.width > 2000 || image.height < 1000) throw new Error("GEOMETRY_GATE");\n  const bytes = Buffer.from(image.webp_bytes);'),
+    replaceIn("cloud-client.ts", "  const bytes = Buffer.from(image.webp_bytes);",
+      '  const { width: w } = image; if (w > 2000) throw new Error("GEOMETRY_GATE");\n  const bytes = Buffer.from(image.webp_bytes);'),
+    replaceIn("cloud-client.ts", "  const bytes = Buffer.from(image.webp_bytes);",
+      '  const longest = Math.max(image.width, image.height); if (longest > 2000) throw new Error("GEOMETRY_GATE");\n  const bytes = Buffer.from(image.webp_bytes);'),
     swapIdentityAfterDeliveredShortcut,
   ]) {
     const project = new Project({ tsConfigFilePath: "tsconfig.json" });
     mutate(project);
     const findings: Parameters<typeof inspectGeneratedImageTransport>[1] = [];
-    inspectGeneratedImageTransport({ project, sealedRoot: process.cwd() } as never, findings);
+    inspectGeneratedImageTransport({ project, sealedRoot: process.cwd(), targetPaths: [
+      ...project.getSourceFiles().map((source) => path.relative(process.cwd(), source.getFilePath()).replaceAll("\\", "/")),
+      `${RUNTIME_ROOT}/website-agent-route-policies.v1.json`,
+    ] } as never, findings);
     assert.ok(findings.some((finding) =>
       finding.checkId === "agent-production-runtime/generated-image-transport-boundary"),
     "receipt, Provider-original, local WebP identity and delivered-shortcut mutants must fail the Runtime inspector");

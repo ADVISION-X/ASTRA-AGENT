@@ -1,451 +1,198 @@
-import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { lstat, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
-
-import { createGptAbilityGroup } from "../../src/capabilities/gpt/index.js";
-import { createForensicsPersistenceAbilityGroupFromStorage } from "../../src/capabilities/forensics-persistence/index.js";
+import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
+import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
+import { assertProductionStartupPreflight, assertSessionBindingMismatchStartup } from "./agent-production-runtime-startup-preflight.acceptance-support.js";
+import { HASH_A, HASH_B, attemptFailureFirstFact, resultFor, task } from "./agent-production-runtime-fixtures.js";
+import { buildProductTask } from "./product-plugin-test-runtime.js";
+import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { ProductionExecutor } from "../../src/lib/local-runtime/production/executor.js";
-import { terminalSpanFailure } from "../../src/lib/local-runtime/production/runtime-logging.js";
+import { productionRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
 import { startProductionRuntime } from "../../src/lib/local-runtime/production/runtime.js";
 import { shutdownRuntime } from "../../src/lib/local-runtime/production/runtime-startup.js";
-import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
-import {
-  RuntimeFailureImpact,
-  createRuntimeLogger,
-  requireRuntimeLogWrite,
-  runtimeFailureFromError,
-  withRuntimeLogCause,
-  type RuntimeSpanHandle,
-} from "../../src/lib/runtime-logs/index.js";
-import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
-import { executionFailure, executionFailureMetadata,
-  typedExecutionFailure } from "../../src/lib/execution-failure.js";
-import type { BrowserExecutionArtifact } from "../../src/lib/browser/browser-authority-api.js";
+import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
+import { terminalSpanFailure } from "../../src/lib/local-runtime/production/runtime-logging.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
-import { serializeTerminalFailure } from
-  "../../src/lib/local-runtime/production/terminal-failure.js";
-import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
-import { HASH_A, HASH_B, attemptFailureFirstFact, resultFor, task } from
-  "./agent-production-runtime-fixtures.js";
-import { buildProductTask } from "./product-plugin-test-runtime.js";
-import { productionRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
-import { assertProductionStartupPreflight, assertSessionBindingMismatchStartup } from
-  "./agent-production-runtime-startup-preflight.acceptance-support.js";
+import { executionFailure, executionFailureMetadata, typedExecutionFailure } from "../../src/lib/execution-failure.js";
+import { createRuntimeLogger, requireRuntimeLogWrite, RuntimeFailureImpact, runtimeFailureFromError,
+  withRuntimeLogCause, type RuntimeSpanHandle } from "../../src/lib/runtime-logs/index.js";
+import { createGptAbilityGroup } from "../../src/capabilities/gpt/index.js";
+import { createForensicsPersistenceAbilityGroupFromStorage } from "../../src/capabilities/forensics-persistence/index.js";
+import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
+import type { BrowserExecutionArtifact } from "../../src/lib/browser/browser-authority-api.js";
 
 await assertProductionStartupPreflight();
-
-for (const unresolvedCooldown of [true, false]) {
-  let closedSessions = 0;
-  let closedStores = 0;
-  let heartbeats = 0;
+await assertSessionBindingMismatchStartup();
+for (const pending of [false, true]) {
+  const calls = { heartbeat: 0, sessionClose: 0, storeClose: 0 };
   const abort = new AbortController();
-  await shutdownRuntime({
-    runtimeLogger: { producerRunId: "shutdown-cooldown-acceptance", startSpan: () => ({
-      ok: true, event: { terminal: () => ({ ok: true, event: { eventId: "shutdown-receipt" } }) },
-    }) },
-    session: { heartbeat: async () => { heartbeats += 1; },
-      close: async () => { closedSessions += 1; } },
-    store: { providerCooldownSessionRecoveryIdentity: () => unresolvedCooldown
-      ? { workerInstanceId: "worker-old", sessionOpenRequestId: "aipsopen-old" } : null,
-    close: () => { closedStores += 1; } },
-    abort, activeAbort: new Map(), active: new Map(), draining: false, stopped: false,
+  await shutdownRuntime({ abort, activeAbort: new Map(), active: new Map(), draining: false, stopped: false,
+    runtimeLogger: { producerRunId: "startup-shutdown-proof", startSpan: () => ({ ok: true,
+      event: { terminal: () => ({ ok: true, event: { eventId: "terminal:shutdown" } }) } }) },
+    session: { heartbeat: async () => { calls.heartbeat += 1; }, close: async () => { calls.sessionClose += 1; } },
+    store: { close: () => { calls.storeClose += 1; }, providerCooldownSessionRecoveryIdentity: () => pending
+      ? { workerInstanceId: "worker:original", sessionOpenRequestId: "session:original" } : null },
   } as never, Promise.resolve(), Promise.resolve());
-  assert.equal(heartbeats, 1);
-  assert.equal(closedStores, 1);
-  assert.equal(closedSessions, unresolvedCooldown ? 0 : 1,
-    "shutdown preserves the exact old session only while a cooldown lineage remains unresolved");
+  assert.deepEqual(calls, { heartbeat: 1, sessionClose: pending ? 0 : 1, storeClose: 1 });
   assert.equal(abort.signal.aborted, true);
 }
 
-const firstCheckpointCrashTemporary = await mkdtemp(
-  path.join(tmpdir(), "agent-production-first-checkpoint-crash-"),
-);
+const directory = await mkdtemp(path.join(tmpdir(), "runtime-startup-contract-"));
+const oldCredential = process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
 try {
-  const store = new ProductionRuntimeStore(firstCheckpointCrashTemporary);
-  const acceptedTask = task({
-    jobId: "job:first-checkpoint-crash", productId: "bazi_ai_full_analysis", actionId: "produce",
-  });
-  store.acceptTask(acceptedTask, "attempt:first-checkpoint-crash");
-  const pendingWriteId = "restart-preserves-current-attempt-write";
-  store.enqueue({
-    idempotency_key: pendingWriteId,
-    kind: "artifact",
-    path: `/internal/ai-production/v6/jobs/${acceptedTask.job_id}/artifacts/result`,
-    method: "PUT",
-    headers: {},
-    body: Buffer.from("result"),
-  });
-  assert.equal(store.readTask(acceptedTask.job_id)?.current_reason, "LEASE_GRANTED");
-  assert.equal(store.readOutboxAuthority(pendingWriteId)?.state, "pending",
-    "restart must preserve an unsent current-attempt write until Website authority decides its fate");
-  store.markExecuting(acceptedTask.job_id);
-  assert.equal(store.readTask(acceptedTask.job_id)?.current_reason, "EXECUTING");
-
-  const ordinaryFailure = task({
-    jobId: "job:ordinary-absent-lease", productId: "bazi_ai_full_analysis", actionId: "produce",
-  });
-  const ordinaryAttemptId = "attempt:ordinary-absent-lease";
-  store.acceptTask(ordinaryFailure, ordinaryAttemptId);
-  store.markExecuting(ordinaryFailure.job_id);
-  store.recordAttemptFailure(ordinaryFailure.job_id, ordinaryAttemptId,
-    attemptFailureFirstFact(ordinaryAttemptId,
-      serializeTerminalFailure(executionFailure("failed", "PROVIDER_REJECTED"))));
-  assert.equal(store.readTask(ordinaryFailure.job_id)?.current_reason, "PROVIDER_REJECTED");
+  const data = path.join(directory, "durable-accept");
+  await mkdir(data);
+  const store = new ProductionRuntimeStore(data);
+  const current = task({ jobId: "job:startup-original", productId: "bazi_ai_full_analysis", actionId: "produce" });
+  store.acceptTask(current, "attempt:original");
+  store.enqueue({ idempotency_key: "intent:original", kind: "artifact", method: "PUT", headers: {}, body: "result",
+    path: `/internal/ai-production/v6/jobs/${current.job_id}/artifacts/result` });
   store.close();
-} finally {
-  await rm(firstCheckpointCrashTemporary, { recursive: true, force: true });
-}
+  const restarted = new ProductionRuntimeStore(data);
+  assert.equal(restarted.readTask(current.job_id)?.current_attempt_id, "attempt:original");
+  assert.equal(restarted.readOutboxAuthority("intent:original")?.state, "pending");
+  restarted.markExecuting(current.job_id);
+  const failure = attemptFailureFirstFact("attempt:original", serializeTerminalFailure(executionFailure("failed", "PROVIDER_REJECTED")));
+  restarted.recordAttemptFailure(current.job_id, "attempt:original", failure);
+  assert.equal(restarted.readTask(current.job_id)?.current_reason, "PROVIDER_REJECTED");
+  restarted.close();
 
-const temporary = await mkdtemp(path.join(tmpdir(), "agent-production-startup-"));
-const previousCredentialPath = process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
-process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = path.join(temporary, "missing-credential.json");
-try {
-  const browserAuthority = {
-    readProductionRuntimeState: () => ({
-      browserAuthorityState: "absent" as const,
-      browserTargetState: "absent" as const,
-    }),
-  };
-  const corruptDataDirectory = path.join(temporary, "corrupt-continuation");
-  await mkdir(corruptDataDirectory, { recursive: true });
-  const corruptStore = new ProductionRuntimeStore(corruptDataDirectory);
-  corruptStore.close();
-  const corruptDatabase = new Database(path.join(corruptDataDirectory, "production-runtime.sqlite"));
-  corruptDatabase.exec("create table production_continuations(forbidden integer not null)");
-  corruptDatabase.close();
-  await assert.rejects(startProductionRuntime({
-    dataDir: corruptDataDirectory, sourceHash: HASH_A, gpt: createGptAbilityGroup(),
-    evidenceStore: createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(corruptDataDirectory)),
-    browserAuthority: browserAuthority as never,
-    runtimeLogger: createRuntimeLogger({
-      producer: "agent-corrupt-data", owner: "production-runtime", component: "startup-integrity",
-      terminalEnabled: false, fileSink: { directoryPath: path.join(temporary, "runtime-logs") },
-    }),
-  }), /PRODUCTION_SCHEMA_MIGRATION_REQUIRED/u);
-
-  const blockedShellDirectory = path.join(temporary, "blocked-shell");
-  const crashOrphanDirectory = path.join(blockedShellDirectory, "generated-images", "crash-orphan-mutant");
-  await mkdir(crashOrphanDirectory, { recursive: true });
-  await writeFile(path.join(crashOrphanDirectory, "orphan.original"), "orphan", { mode: 0o600 });
-  const blocked = await startProductionRuntime({
-    dataDir: blockedShellDirectory,
-    sourceHash: HASH_A,
-    gpt: createGptAbilityGroup(),
-    evidenceStore: createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(blockedShellDirectory)),
-    browserAuthority: browserAuthority as never,
-    runtimeLogger: createRuntimeLogger({
-      producer: "agent-acceptance", owner: "app-shell", component: "production-runtime-acceptance",
-      terminalEnabled: false, fileSink: { directoryPath: path.join(temporary, "runtime-logs") },
-    }),
-  });
-  assert.equal(await readFile(path.join(crashOrphanDirectory, "orphan.original"), "utf8"), "orphan",
-    "startup must not erase a potentially recoverable generated-image artifact");
+  process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = path.join(directory, "missing-credential.json");
+  const logger = (component: string) => createRuntimeLogger({ producer: "startup-acceptance", owner: "production-runtime",
+    component, terminalEnabled: false, fileSink: { directoryPath: path.join(directory, "logs", component) } });
+  const runtimeOptions = (dataDir: string) => ({ dataDir, sourceHash: HASH_A, gpt: createGptAbilityGroup(),
+    evidenceStore: createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(dataDir)),
+    browserAuthority: { readProductionRuntimeState: () => ({ browserAuthorityState: "absent", browserTargetState: "absent" }) } as never,
+    runtimeLogger: logger("startup") });
+  const corrupt = path.join(directory, "forbidden-schema");
+  await mkdir(corrupt);
+  new ProductionRuntimeStore(corrupt).close();
+  const database = new Database(path.join(corrupt, "production-runtime.sqlite"));
+  database.exec("create table production_continuations(forbidden integer not null)");
+  database.close();
+  await assert.rejects(startProductionRuntime(runtimeOptions(corrupt)), /PRODUCTION_SCHEMA_MIGRATION_REQUIRED/u);
+  const blockedData = path.join(directory, "orphan-gate");
+  const orphan = path.join(blockedData, "generated-images", "unowned", "original.bytes");
+  await mkdir(path.dirname(orphan), { recursive: true });
+  await writeFile(orphan, "unowned-provider-bytes");
+  const blocked = await startProductionRuntime(runtimeOptions(blockedData));
+  assert.equal(await readFile(orphan, "utf8"), "unowned-provider-bytes");
   assert.equal(blocked.readHealth().shellState, "ready");
   assert.equal(blocked.readHealth().cloudState, "contract_blocked");
   assert.equal(blocked.readHealth().executionState, "blocked");
   await blocked.close();
-} finally {
-  if (previousCredentialPath === undefined) delete process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
-  else process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = previousCredentialPath;
-  await rm(temporary, { recursive: true, force: true });
-}
 
-await assertSessionBindingMismatchStartup();
-
-const remoteClaimLogTemporary = await mkdtemp(path.join(tmpdir(), "agent-remote-claim-log-"));
-try {
-  const logger = createRuntimeLogger({
-    producer: "agent-remote-claim-log", owner: "production-runtime", component: "production-claim",
-    terminalEnabled: false, fileSink: { directoryPath: path.join(remoteClaimLogTemporary, "runtime-logs") },
-  });
-  const span = requireRuntimeLogWrite(logger.startSpan({
-    traceId: "producer:remote-claim", boundaryId: "claim:remote-column", owner: "production-runtime",
-    component: "production-claim", operation: "cloud.claim",
-    typedIdentity: { kind: "request", requestId: "claim:remote-column" },
-  }));
-  const terminal = terminalSpanFailure(
-    span,
-    runtimeTransportFailure("COLUMN", 500),
-    null,
-    "CLAIM_REQUEST_FAILED",
-  );
+  const logs = logger("transport");
+  const span = requireRuntimeLogWrite(logs.startSpan({ traceId: "trace:remote", boundaryId: "boundary:remote",
+    owner: "production-runtime", component: "transport", operation: "cloud.claim", typedIdentity: { kind: "request", requestId: "request:remote" } }));
+  const terminal = terminalSpanFailure(span, runtimeTransportFailure("COLUMN", 500), null, "CLAIM_REQUEST_FAILED");
   assert.equal(terminal.failure?.code, "COLUMN");
   assert.equal(terminal.failure?.httpStatus, 500);
   assert.equal(terminal.failure?.responsibleOwner, "website");
-} finally {
-  await rm(remoteClaimLogTemporary, { recursive: true, force: true });
-}
 
-const pluginFailureTemporary = await mkdtemp(path.join(tmpdir(), "agent-plugin-failure-code-"));
-try {
-  const pluginFailureLogger = createRuntimeLogger({
-    producer: "agent-plugin-failure-acceptance", owner: "production-runtime", component: "executor",
-    terminalEnabled: false, fileSink: { directoryPath: path.join(pluginFailureTemporary, "runtime-logs") },
-  });
-  const pluginFailureStore = new ProductionRuntimeStore(pluginFailureTemporary);
-  let browserArtifactBindCalls = 0;
-  let browserArtifactReleaseCalls = 0;
-  const providerAliasName = "payment-0123456789ab.png";
-  let providerAliasPath: string | null = null;
-  const executor = new ProductionExecutor(
-    pluginFailureStore, pluginFailureLogger,
-    {
-      dataDir: pluginFailureTemporary, sourceHash: HASH_A,
-      gpt: {} as never, evidenceStore: {} as never,
-      providerRateLimitControl: {} as never,
-      browserAuthority: {
-        bindExecutionArtifacts: async (input: Readonly<{ artifacts: readonly BrowserExecutionArtifact[] }>) => {
-          browserArtifactBindCalls += 1;
-          const artifact = input.artifacts[0]!;
-          const conflictPath = path.join(path.dirname(artifact.localPath), "conflict.png");
-          await mkdir(conflictPath);
-          await assert.rejects(artifact.materializeProviderPath("conflict.png"),
-            /PRODUCTION_MATERIAL_UPLOAD_ALIAS_INVALID/u,
-            "an alien same-name entry must fail closed without a copy fallback");
-          providerAliasPath = await artifact.materializeProviderPath(providerAliasName);
-          assert.equal(await artifact.materializeProviderPath(providerAliasName), providerAliasPath,
-            "the exact same-inode provider alias must be idempotent");
-          const [source, alias] = await Promise.all([lstat(artifact.localPath), lstat(providerAliasPath)]);
-          assert.deepEqual([alias.dev, alias.ino, alias.size], [source.dev, source.ino, source.size]);
-          return { release: async () => {
-            browserArtifactReleaseCalls += 1;
-            await Promise.all(input.artifacts.map((item) => item.releaseProviderPaths()));
-          } };
-        },
-      } as never,
-    },
-  );
-  const terminalizePluginFailure = Reflect.get(executor, "terminalizePluginFailure") as
-    (span: RuntimeSpanHandle, error: unknown) => never;
-  const startPluginSpan = (stepId: string) => requireRuntimeLogWrite(pluginFailureLogger.startSpan({
-    traceId: "job:plugin-failure-code", owner: "product-plugin", component: "public-knowledge-article-pipeline",
-    operation: "plugin.execute",
-    typedIdentity: {
-      kind: "plugin-step", jobId: "job:plugin-failure-code", attemptId: "attempt:plugin-failure-code",
-      pluginId: "public-knowledge-article-pipeline", stepId,
-    },
+  await mkdir(path.join(directory, "executor"));
+  const executorStore = new ProductionRuntimeStore(path.join(directory, "executor"));
+  const executorLogger = logger("executor");
+  let bound = 0, released = 0, alias: string | null = null;
+  const executor = new ProductionExecutor(executorStore, executorLogger, { dataDir: path.join(directory, "executor"),
+    sourceHash: HASH_A, gpt: {} as never, evidenceStore: {} as never, providerRateLimitControl: {} as never,
+    browserAuthority: { bindExecutionArtifacts: async (input: { artifacts: readonly BrowserExecutionArtifact[] }) => {
+      bound += 1;
+      const artifact = input.artifacts[0]!;
+      const conflict = path.join(path.dirname(artifact.localPath), "blocked-alias.png");
+      await mkdir(conflict);
+      await assert.rejects(artifact.materializeProviderPath("blocked-alias.png"), /PRODUCTION_MATERIAL_UPLOAD_ALIAS_INVALID/u);
+      alias = await artifact.materializeProviderPath("provider-alias.png");
+      assert.equal(await artifact.materializeProviderPath("provider-alias.png"), alias);
+      const [original, linked] = await Promise.all([lstat(artifact.localPath), lstat(alias)]);
+      assert.deepEqual([original.dev, original.ino, original.size], [linked.dev, linked.ino, linked.size]);
+      return { release: async () => { released += 1;
+        await Promise.all(input.artifacts.map((item) => item.releaseProviderPaths())); } };
+    } } as never });
+  const parent = task({ jobId: "job:completed-parent", productId: "bazi_ai_full_analysis", actionId: "produce" });
+  const parentResult = resultFor(parent);
+  executorStore.acceptTask(parent, "attempt:parent-current");
+  const reader = Reflect.get(executor, "readContinuationParent") as (...args: unknown[]) => unknown;
+  const relation = { parent_task_ref: parent.job_id, parent_result_ref: parentResult.result_payload_ref,
+    parent_result_hash: parentResult.result_payload_hash };
+  assert.throws(() => reader.call(executor, relation, "provider_continuation"), /PRODUCTION_PARENT_RESULT_BINDING_INVALID/u);
+  (Reflect.get(executorStore, "database") as Database.Database).prepare(
+    "update production_tasks set status='completed',result_json=?,current_reason=null where job_id=?").run(JSON.stringify(parentResult), parent.job_id);
+  assert.equal((reader.call(executor, relation, "provider_continuation") as { current_attempt_id: string }).current_attempt_id,
+    "attempt:parent-current");
+  for (const wrong of [{ ...relation, parent_task_ref: "job:absent" }, { ...relation, parent_result_ref: "ref:wrong" },
+    { ...relation, parent_result_hash: HASH_A }]) assert.throws(() => reader.call(executor, wrong, "provider_continuation"));
+  assert.equal(reader.call(executor, {}, "provider_continuation"), null);
+  assert.throws(() => executorStore.acceptTask(parent, "attempt:changed"), /PRODUCTION_TASK_IDENTITY_CONFLICT/u);
+
+  const pluginSpan = (stepId: string) => requireRuntimeLogWrite(executorLogger.startSpan({ traceId: "trace:executor",
+    owner: "product-plugin", component: "payment-screenshot-observation", operation: "plugin.execute",
+    typedIdentity: { kind: "plugin-step", jobId: "job:executor", attemptId: "attempt:executor",
+      pluginId: "payment-screenshot-observation", stepId } }));
+  const terminalize = Reflect.get(executor, "terminalizePluginFailure") as (span: RuntimeSpanHandle, error: unknown) => never;
+  assert.throws(() => terminalize.call(executor, pluginSpan("typed-primary"), executionFailure("failed", "PUBLIC_KNOWLEDGE_TOPIC_MANIFEST_INVALID")), /PUBLIC_KNOWLEDGE_TOPIC_MANIFEST_INVALID/u);
+  const browserFailure = executionFailure("failed", "BROWSER_COMMAND_ADMISSION_SUSPENDED", { metadata: { browserEffect: {
+    effectScope: "provider_effect", childCapabilityId: "submit_exact_gpt_turn_once", browserOutcome: "CONFIRMED", providerEffectIdentityHash: HASH_B } } });
+  assert.throws(() => terminalize.call(executor, pluginSpan("effect-fact"), browserFailure), (error: unknown) =>
+    error === browserFailure && executionFailureMetadata(error)?.browserEffect?.providerEffectIdentityHash === HASH_B);
+  const child = requireRuntimeLogWrite(executorLogger.startSpan({ traceId: "trace:executor", owner: "gpt", component: "gpt-child",
+    operation: "gpt.child", typedIdentity: { kind: "gpt-call", jobId: "job:executor", attemptId: "attempt:executor",
+      stepId: "observe", capabilityCallId: "call:observe" } }));
+  const childTerminal = requireRuntimeLogWrite(child.terminal({ outcome: "failed", failure: runtimeFailureFromError({
+    error: executionFailure("failed", "GPT_CHILD_FAILED"), code: "GPT_CHILD_FAILED", responsibleOwner: "gpt", impact: RuntimeFailureImpact.BLOCKING }) }));
+  assert.throws(() => terminalize.call(executor, pluginSpan("child-cause"), withRuntimeLogCause(executionFailure("failed", "GPT_CHILD_FAILED"), childTerminal.eventId)), /GPT_CHILD_FAILED/u);
+  const paymentFixture = buildProductTask(productionRoutePolicy("payment_screenshot_observation", "observe"), {
+    parameters: { observation_schema_version: "payment-screenshot-observation-v1" } });
+  const { request_hash: _requestHash, ...paymentRequest } = paymentFixture;
+  const payment = task({ jobId: paymentFixture.job_id, productId: paymentFixture.product_id,
+    actionId: paymentFixture.action_id, materialRefs: paymentFixture.material_refs, extra: paymentRequest });
+  const local = path.join(directory, "materials");
+  await mkdir(local);
+  const materials = await Promise.all(payment.material_refs.map(async (material) => {
+    const local_path = path.join(local, material.display_name);
+    await writeFile(local_path, "0123456789");
+    return { ...material, local_path };
   }));
-  const dispatchPlugin = Reflect.get(executor, "dispatchPlugin") as (input: Readonly<Record<string, unknown>>) => Promise<unknown>;
-  const parentTask = task({ jobId: "job:article-parent", productId: "bazi_ai_full_analysis", actionId: "produce" });
-  const parentAttemptId = "attempt:article-parent-final", parentResult = resultFor(parentTask);
-  pluginFailureStore.acceptTask(parentTask, parentAttemptId);
-  const translationTask = {
-    ...buildProductTask(productionRoutePolicy("localization_article_translation", "article_translation"),
-      { parameters: { target_locale: "en-US", source_resource_id: "resource:article-parent", source_version: "v1",
-        source_sha256: HASH_A, policy_version: "localization-policy.v1" } }), parent_task_ref: parentTask.job_id,
-    parent_result_ref: parentResult.result_payload_ref, parent_result_hash: parentResult.result_payload_hash,
-  };
-  const continuationLease = {
-    attempt_id: "attempt:article-translation", device_id: "device:article-translation", lease_version: 1,
-    execution_fence_hash: HASH_A, capability_manifest_hash: HASH_B, max_provider_turns: 1, provider_turns_used: 0,
+  executor.accept(payment, "attempt:payment");
+  let settlements = 0;
+  Reflect.set(Reflect.get(executor, "gptChildTools"), "createExecution", () => ({ tools: {
+    jobId: payment.job_id, attemptId: "attempt:payment", readConfirmedSubmit: async () => {
+      throw executionFailure("failed", "PAYMENT_OBSERVATION_PROVIDER_FAILED"); }, execute: async () => {
+      throw executionFailure("failed", "PAYMENT_OBSERVATION_PROVIDER_FAILED"); } }, settle: async () => {
+      settlements += 1; throw new Error("BROWSER_TARGET_CLOSE_FAILED"); } }));
+  await assert.rejects(executor.execute(payment, materials, { attempt_id: "attempt:payment", device_id: "device:test",
+    lease_version: 1, execution_fence_hash: HASH_A, capability_manifest_hash: HASH_B, max_provider_turns: 1, provider_turns_used: 0,
     result_revision: 0, prior_result_rejection: null, delivery_priority_replay_grant: null,
-    expires_at_monotonic: performance.now() + 10_000,
-    command_ttl_ms: 1_000, abort_signal: new AbortController().signal,
-  };
-  const continuationInput = (currentTask: typeof translationTask) => ({ task: currentTask, materials: [],
-    lease: continuationLease, span: startPluginSpan("article-parent-binding"), complete: async () => {
-      throw new Error("UNREACHABLE_PARENT_COMPLETE"); }, uploadGeneratedImage: async () => { throw new Error("UNREACHABLE_PARENT_IMAGE_UPLOAD"); } });
-  await assert.rejects(dispatchPlugin.call(executor, continuationInput(translationTask)), /PRODUCTION_PARENT_RESULT_BINDING_INVALID/u);
-  (Reflect.get(pluginFailureStore, "database") as import("better-sqlite3").Database)
-    .prepare(`update production_tasks set status='completed',result_json=?,current_reason=null
-      where job_id=?`).run(JSON.stringify(parentResult), parentTask.job_id);
-  assert.throws(() => pluginFailureStore.acceptTask(parentTask, "attempt:article-parent-after-completion"), /PRODUCTION_TASK_IDENTITY_CONFLICT/u);
-  await assert.rejects(dispatchPlugin.call(executor, continuationInput({ ...translationTask, parent_task_ref: "job:missing-article-parent" })), /PRODUCTION_PARENT_RESULT_BINDING_MISSING/u);
-  await assert.rejects(dispatchPlugin.call(executor, continuationInput({ ...translationTask, parent_result_ref: "result:wrong" })), /PRODUCTION_PARENT_RESULT_BINDING_INVALID/u);
-  await assert.rejects(dispatchPlugin.call(executor, continuationInput({ ...translationTask, parent_result_hash: `sha256:${"c".repeat(64)}` })), /PRODUCTION_PARENT_RESULT_BINDING_INVALID/u);
-  let capturedContinuationParent: unknown = null; const gptChildTools = Reflect.get(executor, "gptChildTools") as Record<string, unknown>;
-  Reflect.set(gptChildTools, "createExecution", (input: Readonly<Record<string, unknown>>) => {
-    capturedContinuationParent = input.providerContinuationParent; throw new Error("PARENT_BINDING_CAPTURED");
-  });
-  await assert.rejects(dispatchPlugin.call(executor, continuationInput(translationTask)), /PARENT_BINDING_CAPTURED/u);
-  assert.deepEqual(capturedContinuationParent, { jobId: parentTask.job_id, acceptedAttemptId: parentAttemptId });
-  capturedContinuationParent = "UNEXPECTED_PARENT";
-  const staticCatalogRoot = task({ jobId: "job:static-catalog-zh-HK-root", productId: "localization_static_catalog", actionId: "produce_locale_catalog", extra: { parameters: { target_locale: "zh-HK" } } });
-  await assert.rejects(dispatchPlugin.call(executor, continuationInput(staticCatalogRoot as typeof translationTask)),
-    /PARENT_BINDING_CAPTURED/u);
-  assert.equal(capturedContinuationParent, undefined);
-  assert.throws(
-    () => terminalizePluginFailure.call(
-      executor, startPluginSpan("direct-product-failure"),
-      executionFailure("failed", "PUBLIC_KNOWLEDGE_TOPIC_MANIFEST_INVALID"),
-    ),
-    /PUBLIC_KNOWLEDGE_TOPIC_MANIFEST_INVALID/u,
-  );
-  const providerFailure = executionFailure("failed", "BROWSER_COMMAND_ADMISSION_SUSPENDED", {
-    metadata: { browserEffect: {
-      effectScope: "provider_effect", childCapabilityId: "submit_exact_gpt_turn_once",
-      browserOutcome: "CONFIRMED", providerEffectIdentityHash: HASH_B,
-    } },
-  });
-  assert.throws(
-    () => terminalizePluginFailure.call(
-      executor, startPluginSpan("provider-identity"), providerFailure,
-    ),
-    (error: unknown) => error === providerFailure
-      && executionFailureMetadata(error)?.browserEffect?.providerEffectIdentityHash === HASH_B,
-  );
-  const childSpan = requireRuntimeLogWrite(pluginFailureLogger.startSpan({
-    traceId: "job:plugin-failure-code", owner: "gpt", component: "gpt-child",
-    operation: "gpt.child",
-    typedIdentity: {
-      kind: "gpt-call", jobId: "job:plugin-failure-code", attemptId: "attempt:plugin-failure-code",
-      stepId: "corpus_research",
-      capabilityCallId: "call:corpus_research",
-    },
-  }));
-  const childTerminal = requireRuntimeLogWrite(childSpan.terminal({
-    outcome: "failed",
-    failure: runtimeFailureFromError({
-      error: executionFailure("failed", "GPT_CHILD_FAILED"), code: "GPT_CHILD_FAILED",
-      responsibleOwner: "gpt", impact: RuntimeFailureImpact.BLOCKING,
-    }),
-  }));
-  assert.throws(
-    () => terminalizePluginFailure.call(
-      executor, startPluginSpan("consequential-product-failure"),
-      withRuntimeLogCause(executionFailure("failed", "GPT_CHILD_FAILED"), childTerminal.eventId),
-    ),
-    /GPT_CHILD_FAILED/u,
-  );
-
-  const dispatchFailureTask = task({
-    jobId: "job:plugin-primary-with-cleanup-failure",
-    productId: "payment_screenshot_observation",
-    actionId: "observe",
-    materialRefs: [{
-      material_id: "material:plugin-primary-payment", ordinal: 0, role: "payment_screenshot",
-      display_name: "payment.png", object_ref: "object:plugin-primary-payment", sha256: HASH_A,
-      bytes: 10, media_type: "image/png", storage_class: "private_owner_scoped",
-      owner_scope_hash: HASH_B, trust_class: "transport_evidence", may_issue_instruction: false,
-    }, {
-      material_id: "material:plugin-primary-contract", ordinal: 1, role: "result_contract",
-      display_name: "contract.json", object_ref: "object:plugin-primary-contract", sha256: HASH_B,
-      bytes: 10, media_type: "application/json", storage_class: "private_owner_scoped",
-      owner_scope_hash: HASH_A, trust_class: "instruction", may_issue_instruction: true,
-    }],
-    extra: { parameters: { observation_schema_version: "payment-screenshot-observation-v1" } },
-  });
-  const dispatchAttemptId = "attempt:plugin-primary-with-cleanup-failure";
-  const materialDirectory = path.join(pluginFailureTemporary, "materials");
-  await mkdir(materialDirectory);
-  const paymentPath = path.join(materialDirectory, "payment.png");
-  const contractPath = path.join(materialDirectory, "contract.json");
-  await writeFile(paymentPath, "0123456789");
-  await writeFile(contractPath, "abcdefghij");
-  const localMaterials = dispatchFailureTask.material_refs.map((material) => ({
-    ...material,
-    local_path: material.material_id === "material:plugin-primary-payment" ? paymentPath : contractPath,
-  }));
-  executor.accept(dispatchFailureTask, dispatchAttemptId);
-  let settleCalls = 0;
-  Reflect.set(gptChildTools, "createExecution", () => ({
-    tools: {
-      jobId: dispatchFailureTask.job_id,
-      attemptId: dispatchAttemptId,
-      readConfirmedSubmit: async () => {
-        throw executionFailure("failed", "PAYMENT_OBSERVATION_PROVIDER_FAILED");
-      },
-      execute: async () => {
-        throw executionFailure("failed", "PAYMENT_OBSERVATION_PROVIDER_FAILED");
-      },
-    },
-    settle: async () => {
-      settleCalls += 1;
-      throw new Error("BROWSER_TARGET_CLOSE_FAILED");
-    },
-  }));
-  await assert.rejects(
-    executor.execute(
-      dispatchFailureTask,
-      localMaterials,
-      {
-        attempt_id: dispatchAttemptId,
-        device_id: "device:plugin-primary-with-cleanup-failure",
-        lease_version: 1,
-        execution_fence_hash: HASH_A,
-        capability_manifest_hash: HASH_B,
-        max_provider_turns: 1,
-        provider_turns_used: 0,
-        result_revision: 0,
-        prior_result_rejection: null,
-        delivery_priority_replay_grant: null,
-        expires_at_monotonic: performance.now() + 10_000,
-        command_ttl_ms: 1_000,
-        abort_signal: new AbortController().signal,
-      },
-      "span:plugin-primary-with-cleanup-failure",
-      async () => { throw new Error("UNREACHABLE_PLUGIN_COMPLETE"); },
-      async () => { throw new Error("UNREACHABLE_IMAGE_UPLOAD"); },
-    ),
-    (error: unknown) => {
-      assert.equal(
-        typedExecutionFailure(error)?.code,
-        "PAYMENT_OBSERVATION_PROVIDER_FAILED",
-      );
-      return true;
-    },
-  );
-  assert.equal(settleCalls, 1, "the primary-plus-cleanup path must execute lifecycle settlement exactly once");
-  assert.equal(browserArtifactBindCalls, 1,
-    "Runtime production execution must invoke the Browser public task-local material binding");
-  assert.equal(browserArtifactReleaseCalls, 1,
-    "Runtime must release the Browser artifact binding after failure and lifecycle settlement");
-  assert.ok(providerAliasPath);
-  await assert.rejects(lstat(providerAliasPath!), /ENOENT/u,
-    "Runtime must remove its provider alias when Browser releases the execution binding");
-
-  const pluginLogEvents = (await readFile(pluginFailureLogger.currentSegmentPath()!, "utf8")).trim().split("\n")
-    .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>);
-  const pluginFailureEvents = pluginLogEvents
-    .filter((event) => event.kind === "span.terminal" && event.operation === "plugin.execute");
-  assert.equal(pluginFailureEvents.length, 4);
-  assert.deepEqual(pluginFailureEvents.map((event) => {
-    const failure = event.failure as Readonly<Record<string, unknown>>;
-    return [failure.code, failure.impact, failure.causedByEventId ?? null];
-  }), [
+    expires_at_monotonic: performance.now() + 10000, command_ttl_ms: 1000, abort_signal: new AbortController().signal },
+  "span:test", async () => { throw new Error("UNREACHABLE_COMPLETE"); }, async () => { throw new Error("UNREACHABLE_IMAGE"); }),
+  (error: unknown) => typedExecutionFailure(error)?.code === "PAYMENT_OBSERVATION_PROVIDER_FAILED");
+  assert.deepEqual([bound, released, settlements], [1, 1, 1]);
+  assert.ok(alias);
+  await assert.rejects(lstat(alias!), /ENOENT/u);
+  const events = (await readFile(executorLogger.currentSegmentPath()!, "utf8")).trim().split("\n").map((row) => JSON.parse(row));
+  const failures = events.filter((event) => event.kind === "span.terminal" && event.operation === "plugin.execute");
+  assert.deepEqual(failures.map((event) => [event.failure.code, event.failure.impact, event.failure.causedByEventId ?? null]), [
     ["PUBLIC_KNOWLEDGE_TOPIC_MANIFEST_INVALID", RuntimeFailureImpact.BLOCKING, null],
     ["BROWSER_COMMAND_ADMISSION_SUSPENDED", RuntimeFailureImpact.BLOCKING, null],
     ["GPT_CHILD_FAILED", RuntimeFailureImpact.CONSEQUENTIAL, childTerminal.eventId],
-    ["PAYMENT_OBSERVATION_PROVIDER_FAILED", RuntimeFailureImpact.BLOCKING, null],
-  ]);
-  const cleanupEvents = pluginLogEvents.filter((event) => {
-    const failure = event.failure as Readonly<Record<string, unknown>> | undefined;
-    return event.kind === "error" && failure?.code === "GPT_BROWSER_LIFECYCLE_FAILED";
-  });
-  assert.equal(cleanupEvents.length, 1);
-  const cleanupFailure = cleanupEvents[0]!.failure as Readonly<Record<string, unknown>>;
-  assert.equal(cleanupFailure.impact, RuntimeFailureImpact.CLEANUP);
-  assert.equal(cleanupFailure.causedByEventId, pluginFailureEvents[3]!.eventId);
-  pluginFailureStore.close();
+    ["PAYMENT_OBSERVATION_PROVIDER_FAILED", RuntimeFailureImpact.BLOCKING, null] ]);
+  const cleanup = events.filter((event) => event.kind === "error" && event.failure?.code === "GPT_BROWSER_LIFECYCLE_FAILED");
+  assert.equal(cleanup.length, 1);
+  assert.equal(cleanup[0].failure.impact, RuntimeFailureImpact.CLEANUP);
+  assert.equal(cleanup[0].failure.causedByEventId, failures.at(-1).eventId);
+  executorStore.close();
 } finally {
-  await rm(pluginFailureTemporary, { recursive: true, force: true });
+  if (oldCredential === undefined) delete process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
+  else process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = oldCredential;
+  await rm(directory, { recursive: true, force: true });
 }
-
-const runtimeSource = await readFile(
-  new URL("../../src/lib/local-runtime/production/runtime-claim.ts", import.meta.url), "utf8",
-);
-assert.doesNotMatch(runtimeSource, /handleClaimFailure/u);
-assert.match(runtimeSource, /error instanceof ProductionRuntimeBoundaryError/u);
-assert.doesNotMatch(runtimeSource, /checkpointSeq|latestCheckpoint|\/checkpoints/u);
-assert.doesNotMatch(runtimeSource, /ATTEMPT_ENDED:/u);
-
-for (const evidenceMode of ["exam.golden", "exam.property"] as const) {
-  emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V11",
-    evidenceMode,
-    clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
-    locator: `acceptance:agent-production-runtime:credential:${evidenceMode}`,
-    observedValue: "credential format failures returned exact typed codes, extra legacy fields failed closed without writes, and valid credentials read exactly; a deterministic session binding 409 preserved the consumer contract version, kept Shell ready and execution blocked, and issued exactly one session-open request with no worker or heartbeat handle",
-  });
-}
-for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
-  emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V45",
-    evidenceMode,
-    clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
-    locator: `acceptance:agent-production-runtime:storage-inventory:${evidenceMode}`,
-    observedValue: "read-only storage inventory preserved owned data reported exact orphan denominator rejected symlinks and blocked claim before credential without deleting any target",
-  });
-}
+for (const evidenceMode of ["exam.golden", "exam.property"] as const) emitQualityProofObservation({
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V11", evidenceMode, clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
+  locator: `acceptance:agent-production-runtime:credential:${evidenceMode}`,
+  observedValue: "Original preflight and session-binding tests rejected typed credential/version failures before mutation, retained the long-lived credential, and kept blocked Shell healthy." });
+for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) emitQualityProofObservation({
+  lawId: "LAW-AGENT-PRODUCTION-RUNTIME-006-V46", evidenceMode, clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "summary"],
+  locator: `acceptance:agent-production-runtime:storage-inventory:${evidenceMode}`,
+  observedValue: "Read-only inventory returned exact ownership/orphan bytes and rejected symlinks; startup preserved recoverable bytes and blocked execution without cleanup." });

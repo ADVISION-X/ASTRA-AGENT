@@ -1,7 +1,7 @@
 {
   "schema_version": "website-agent-route-policies.v1",
   "contract_id": "ai-acceptance.website-agent-task-result",
-  "contract_version": 16,
+  "contract_version": 17,
   "parameter_types": {
     "admitted_identity_catalog_hash": "sha256",
     "analysis_kind": "bazi_analysis_kind",
@@ -527,16 +527,6 @@
         },
         {
           "role": "naming_requirement_brief",
-          "trust_class": "user_provided_data",
-          "may_issue_instruction": false,
-          "media_types": [
-            "application/json"
-          ],
-          "storage_class": "private_owner_scoped",
-          "owner_scope_policy": "required"
-        },
-        {
-          "role": "naming_prior_feedback",
           "trust_class": "user_provided_data",
           "may_issue_instruction": false,
           "media_types": [

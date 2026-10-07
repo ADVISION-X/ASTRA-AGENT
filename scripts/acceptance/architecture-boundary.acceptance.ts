@@ -16,7 +16,7 @@ import {
 } from "../../src/mediator/product-plugin-catalog.js";
 import { inspectProductAcceptanceBoundaries } from "../audit/domains/architecture-boundary/components/scan-product-acceptance-boundaries.js";
 import { inspectBusinessRecoveryAuthorityBoundaries } from "../audit/domains/architecture-boundary/components/scan-product-acceptance-boundaries.js";
-import { inspectRuntimeBrowserPrivateImports } from "../audit/domains/architecture-boundary/components/scan-plugin-capability-boundaries.js";
+import { inspectPluginBoundaries, inspectRuntimeBrowserPrivateImports } from "../audit/domains/architecture-boundary/components/scan-plugin-capability-boundaries.js";
 import { inspectTargetAuthorityBoundary } from "../audit/domains/architecture-boundary/components/scan-target-authority-boundary.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { worktreeCandidateFingerprint } from "../audit/governance-git-state.js";
@@ -87,6 +87,30 @@ const mutants: ReadonlyArray<readonly [string, string]> = [
   ["architecture/central-product-business-content", "const x = { businessField: true };"],
 ];
 const tsConfigFilePath = "tsconfig.json";
+{
+  const project = new Project({ tsConfigFilePath });
+  const productPath = `src/plugins/${catalogIds[0]!}/index.ts`;
+  const product = project.getSourceFileOrThrow(resolve(productPath));
+  const shared = project.getSourceFileOrThrow(resolve("src/lib/execution-failure.ts"));
+  const originalProduct = product.getFullText(), originalShared = shared.getFullText();
+  const inspect = () => {
+    const findings: Parameters<typeof inspectPluginBoundaries>[0] = [];
+    inspectPluginBoundaries(findings, lawId, productPath, product);
+    return findings;
+  };
+  assert.deepEqual(inspect(), [], "the actual Product import tree must respect Runtime ownership");
+  for (const statement of [
+    "export { ProductionRuntimeStore as RuntimeStoreAlias } from './local-runtime/production/store.js';",
+    "export * from './local-runtime/production/store.js';",
+    "void import('./local-runtime/production/store.js');",
+    "import './local-runtime/production/store.js';",
+  ]) {
+    shared.replaceWithText(`${originalShared}\n${statement}\n`);
+    product.replaceWithText(`${originalProduct}\nimport * as hiddenRuntime from '../../lib/execution-failure.js';\nvoid hiddenRuntime;\n`);
+    assert.ok(inspect().some((finding) => finding.checkId === "architecture/product-imports-runtime-private"),
+      "shared alias, export-star, dynamic and side-effect edges cannot conceal Runtime private code");
+  }
+}
 for (const [checkId, source] of mutants) {
   const project = new Project({ tsConfigFilePath });
   const sourceFile = project.getSourceFileOrThrow(resolve("scripts/acceptance/architecture-boundary.acceptance.ts"));

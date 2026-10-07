@@ -9,12 +9,12 @@
   "lawIds": [
     "LAW-AGENT-PRODUCTION-RUNTIME-001-V75",
     "LAW-AGENT-PRODUCTION-RUNTIME-002-V11",
-    "LAW-AGENT-PRODUCTION-RUNTIME-003-V44",
-    "LAW-AGENT-PRODUCTION-RUNTIME-004-V43",
+    "LAW-AGENT-PRODUCTION-RUNTIME-003-V45",
+    "LAW-AGENT-PRODUCTION-RUNTIME-004-V44",
     "LAW-AGENT-PRODUCTION-RUNTIME-005-V42",
-    "LAW-AGENT-PRODUCTION-RUNTIME-006-V45",
-    "LAW-AGENT-PRODUCTION-RUNTIME-007-V45",
-    "LAW-AGENT-PRODUCTION-RUNTIME-008-V46"
+    "LAW-AGENT-PRODUCTION-RUNTIME-006-V46",
+    "LAW-AGENT-PRODUCTION-RUNTIME-007-V46",
+    "LAW-AGENT-PRODUCTION-RUNTIME-008-V47"
   ],
   "contractRefs": [
     "docs/specs/agent-production-runtime/agent-route-capability-manifest.provider.spec.json",
@@ -105,7 +105,7 @@ Runtime 对外只发布 Agent Route Capability Manifest。它从 Mediator 取得
 
 Product、GPT、Browser、Forensics、Runtime Log、App Shell、Startup、Website 继续由各自 active law、blueprint、spec 与唯一 Manifest primary Owner 守住文件及接口边界。Runtime 文档只记录上表接口边，不复制其业务流程、DOM、模型策略、Provider 操作或发布裁决。
 
-generated image 只使用 task-result v16 的现役唯一运输链。GPT Child 交付的已鉴权原始 Provider bytes 必须先以原字节与 hash 写入 task-owned Forensics evidence；Product 只在该 raw artifact 读回成功后，一次性生成仅应用 EXIF 方向且剥离 metadata 的 WebP，输出几何必须等于应用方向后的原图几何。Runtime 与 cloud client 只机械校验 Product 交付的媒体类型、字节、hash、integer 宽高和现役 V6 回执；Runtime 不自行解码图片，不增加 V6 宽高收据字段。任何层都不得 resize、crop、pad，不得以宽高、长宽比或像素总量拒绝交付。Website staging 独立解码出实际宽高，再与 task/result envelope v1 的当前 result payload 等值绑定；领域 consumer、对象存储和公开读取仍是同一原有闭环，不新增第二图片链、兼容分支、回退图或另一份原图上传。
+generated image 只使用 task-result v17 的现役唯一运输链。GPT Child 交付的已鉴权原始 Provider bytes 必须先以原字节与 hash 写入 task-owned Forensics evidence；Product 只在该 raw artifact 读回成功后，一次性生成仅应用 EXIF 方向且剥离 metadata 的 WebP，输出几何必须等于应用方向后的原图几何。Runtime 与 cloud client 只机械校验 Product 交付的媒体类型、字节、hash、integer 宽高和现役 V6 回执；Runtime 不自行解码图片，不增加 V6 宽高收据字段。任何层都不得 resize、crop、pad，不得以宽高、长宽比或像素总量拒绝交付。Website staging 独立解码出实际宽高，再与 task/result envelope v1 的当前 result payload 等值绑定；领域 consumer、对象存储和公开读取仍是同一原有闭环，不新增第二图片链、兼容分支、回退图或另一份原图上传。
 
 GPT 页面 selector 的语义冻结只属于 GPT Child，Browser 只机械执行 typed query，Runtime 只消费 Child terminal。mutation 前是否自动选中精确 system Tab、激活后的 Target/Document 重验、输入前 activation generation 与 `BROWSER_TARGET_NOT_INTERACTIVE` 结算都只属于 Browser Authority；Runtime 不接收 tabId、不调用激活/窗口聚焦、不读取 Browser 私有状态，也不建立第二 precondition、WAL、恢复或重试。该变更不得进入 Runtime 配置、Manifest 字段或跨仓合同；Website 任务、Outbox、artifact receipt 与 business admission receipt 主链保持不变。
 
@@ -184,7 +184,7 @@ Runtime 自身代码保持 production 目录内的直接模块关系。不得新
 Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为：
 
 - Agent Route Capability Manifest provider：version 4；只发布 current session 支持的 `product_id + action_id + task_contract_version + result_contract_version`；Product Profile、Skill、Prompt、Flow、实现名称、版本和 hash 均不得对外发布或参与任务身份；
-- Website Agent Task Result consumer dependency：version 16；generated image 只接收 Product 格式化后的无 metadata WebP、绑定 hash/bytes 与实际解码整数宽高，不设固定尺寸、范围、长宽比或总像素门禁，V6 uploaded receipt 不扩展 width/height；文章翻译 primary route 仍以 provider_continuation 携带 Website 已验证的 direct-parent triple；固定catalog同cohort首任务fresh且parent triple全空，后继携Website已接纳直接前驱三元组并顺序续聊，Provider URL仍不跨仓；Website逐字段机械接纳并将合格译文立即作为本地在用版本，失败ID单独补译；旧v13结果合同不兼容读取。
+- Website Agent Task Result consumer dependency：version 17；generated image 只接收 Product 格式化后的无 metadata WebP、绑定 hash/bytes 与实际解码整数宽高，不设固定尺寸、范围、长宽比或总像素门禁，V6 uploaded receipt 不扩展 width/height；文章翻译 primary route 仍以 provider_continuation 携带 Website 已验证的 direct-parent triple；固定catalog同cohort首任务fresh且parent triple全空，后继携Website已接纳直接前驱三元组并顺序续聊，Provider URL仍不跨仓；Website逐字段机械接纳并将合格译文立即作为本地在用版本，失败ID单独补译；旧v13结果合同不兼容读取。
 - Xuanxue AI Production V6 consumer dependency：version 44。保留 v39 的 `same_accepted_attempt` grant 语义，永久停止只消费 Website exact job absence，包含管理员未完成 Work Order 清除与获授权的隐私未完成质量反思清除。false 是 fresh attempt，true 必须同时命中 AGENT 本地同 attempt durable authority，否则在 Product 与任何 Website 写入前失败关闭。v44 切换须逐 job 在原 Website 行锁保全旧 accepted attempt、first fact、结果/Outbox/Browser 来源 manifest 与旧 session/fence，禁止把未完成 attempt 当清空条件；旧 session supersede 后，其旧 claim receipt 失去动作授权，新 session 只经 v44 同一 claim 的已鉴权 `source_evidence[]` 对账并取得原 attempt 的当前 lease/fence 或旧结果交付授权。旧 session/receipt 只作历史证据，不提供旧版兼容写入或第二撤权路径。Website 的`ai_production_devices.max_in_flight`仍是当前N的唯一持久Owner并唯一持有限流cohort；Runtime不保存或配置当前N/权威cohort。心跳只报告去重本地在途数，claim请求只按合同安全上限、本地in-flight和executor可用量提出，Website在设备事实行锁内收紧最终grant。Browser action capacity始终为1；Runtime只消费Website当前授权、有限`retry_not_before`、三个next action、typed effect outcome、provider_cooldown receipt与admission receipt。 v44 grant 校验中 `result_revision>0` 可由真实领域 `prior_result_rejection` 或同一 Website claim/event 的 exact `delivery_priority_replay_grant` 支撑；当前 grant 来源互斥：真实领域 rejection 对应 `prior_result_rejection`，风险 replay 对应 exact 风险 grant 且 `prior_result_rejection=null`；旧 rejection 只留原 Website job events，不下发为本轮 Product 修正指令。Product 风险 revision 从原入口执行；已完成的旧调用只按来源 seal 复用原 submit/checkpoint 产物，新的 revision promptHash 可变化，耗尽调用才用当前 prompt 与风险 grant fresh 输入；Website claim 与 provider cooldown notice 复用同一原 job revision reader。
 - v44 风险 revision 的 target-local 重新准备：既有 `delivery_priority_replay_grant` 精确绑定当前 attempt，若其 Provider 输入仍为零而页面准备失败，Website 继续重授同一 attempt/原 grant；Browser 先证原 WAL 未决 writer path 输入静止，再以当前 fence/Target 重做 target-local 准备。旧风险来源的全部 effect 仍按原 source seal 与 readback proof 核对；Provider 一旦有本轮输入则只按同 effect 零提交读回。此分支不签新 attempt、不复制 grant、不增加事件或恢复状态。
 - v44 跨 revision 接力：`browser_input_state=zero` 只描述当前 `source_attempt_id` 的 Provider 输入；Browser 全历史仍须核验，旧 revision 的可能输入必须已由 Website 精确 rejection receipt 或原已签风险授权事件及签出当前 attempt 的 source handoff/event 逐 effect 结算。旧 effect 不因当前 attempt 的 target-local 失败重新进入本轮读回或重提集合。Website 验当前 accepted attempt、前次签发事件、旧 fence 与原结果/Outbox 缺席，才可签同 revision 新 attempt。每个历史 effect 的观察绑定其形成时不再漂移的 effect-set 前缀 hash；本次逐调用 proof 另绑定包含当前全体旧 effect 的集合 hash，新增 revision 不得使旧观察失效。
@@ -192,6 +192,12 @@ Website ai-acceptance 是唯一 provider。AGENT 三份 spec 的现役身份为�
 - 连续 revision 的同一 rejected call 可同时含更早的已结算 effect：`source_evidence.rejected_call` 精确指出本次 first failure/Website rejection 对应调用及当前完整 effect-set hash；该调用的 readback proof 只覆盖旧 effect，本次被拒 effect 由原 failure/receipt 核，Browser 必须证明该调用除此之外没有遗漏的可能输入。旧 effect 可以由原 Website 精确 rejection receipt 结算，也可以由此前已签 `delivery_priority_replay_authorized_v6` event 的原 source seal、指定调用 grant hash 与逐 effect 耗尽证明结算；后者不冒充本次 rejection 或当前风险重提。旧风险授权结算不因观察证明超过 24 小时而失效，Website 须读回原已签事件，Browser 仍核完整 WAL/调用集合；普通未结算旧 effect 仍须当前逐 effect 证明。
 - 调用级 `historical_settled` 只汇总 effect 级 `rejection_settled` 与 `risk_authorized`，既不复用旧答案，也不进入本次风险 grant；`settled_reusable` 只由未拒绝 checkpoint 决定，`replay_exhausted` 只由本次未结算 effect 的适用路径耗尽决定。所有调用仍留在完整 replay_calls 与历史 hash 中。
 - V44 切换前仍需旧来源恢复的未完成 job，须按原合同收敛或在用户明确撤销后由 Website 原领域 Owner 清除；AGENT 只按 exact Website absence 清除对应 task、handoff、Outbox、材料、结果与 Browser WAL。未知 `DISPATCHED` 不伪造 terminal；已完成 job 与历史事件不改写。活动来源祖先读回只需 V44 后，不建立 V43 解析器或旧协议 claim/写入授权。
+
+Naming 的材料语义在 task-result v17 唯一 provider/dependency/projection 对齐。NM01 ordered roles 为 bazi_input_bundle、naming_business_input、result_contract；NM02 为 naming_context_package、naming_requirement_brief、result_contract。Product 消费 Website 冻结的完整 NamingRequirementManifestV2、全部原文/HARD/SOFT/VERIFY、累计反馈及精确来源，不消费独立 naming_prior_feedback role，不重选人物、报告或需求分母。两条 primary 均单次 fresh；NM01 返回独立 Bazi 与 Naming 正式输出，NM02 仅 Naming；review 仅返回 finding。原十二 Plugin、40/48/34、wire v1、V6 v44、Capability v4 不扩。Runtime staging 只核公开运输合同和身份，Naming 内层规则归 Website 唯一领域 Consumer，不复制专业 validator。
+
+Website Naming 接纳由原 coordinator 的 A 领域真实提交→B 商业与最终 admission 同事务闭合；AGENT 只消费既有 generic consumer_ref/outcome receipt，不运输 Naming business_object_ref 或 Bazi/review 扩展字段。A 成功 B 未闭合仍占业务席位；原 task/attempt/payload 重交付或读回，不能重做 Product、创建第二 Outbox 或自裁 completed。其他三十八条 route 的原领域 receipt 和完成边界保持。
+
+v17 无桥切换须先在双仓原 Owner 下排空全部四十条 route 的在途 job/lease/attempt/staged/Outbox、Provider 未决及商业未决；停止旧 durable writers 并确认零在途事务后取得 exact backup，才安装同语义双仓候选。新 session epoch 淘汰旧动作凭据，不重 device enrollment，不保留 v16 parser/claim/写入兼容支路。此为材料合同切换，不改写历史 V44 source handoff/WAL/风险重放证据或已完成成果；任一旧未决不能假造零值。
 
 consumer dependency 的 contract body 只能包含 contractId、version、providerRepo。普通启动只校验本仓最小 dependency，不读取未绑定 Website 工作树；跨仓 participant commit 只属于 RELEASE 证据。
 
@@ -302,7 +308,7 @@ CHANGE、READY、RELEASE 是不同候选阶段。Runtime 的静态或动态 PASS
 每次候选都必须重新证明：
 
 1. 八条 Runtime law、稳定 blueprintId、三份 active contractRef 与 Runtime 唯一 Manifest 的 lawIds 相互一致；Architecture Boundary law 与 Manifest 独立保持其现役一一对应；越界 `ownedPaths` 只在同一候选的一次原子修改中归位，并立即证明无无主、无重叠、无 Runtime manifest-owner-drift。
-2. Website task-result v16、V6 v44 与 AGENT dependency 精确一致；generated image 保留原始 Provider bytes 作 task-owned evidence，交付的 WebP 只做方向应用与 metadata 剥离，无几何转换或尺寸门禁；grant 不携带 Provider locator/checkpoint 或 Product Plugin 身份，只绑定当前 task/attempt/lease/fence；attempt failure 必须同时运输 Browser 已持有的 `provider_effect_identity_hash + effect_scope + browser_outcome + mutation_outcome + lease_version + submit receipt/evidence` 与 stopped-empty 独立 observation proof。`provider_cooldown`只运输由弹窗固定文案、exact-call、观察时间与候选计数计算的targetless事故hash及ack WAL/Website receipt，不运输Target/Document原值、hash、派生observation身份、DOM/URL/N；notice/receipt版本前向切换，存量旧cooldown lineage须先结清。`RESULT_SETTLED_UNUSABLE + CONFIRMED + confirmed + effect hash + evidence + settled result hash` 只允许 Website 拒绝该结果并签发新 result revision；`GPT_RESPONSE_STOPPED_EMPTY` 只使用独立 observation proof 的终态 revision hash形成新拒绝事实，不覆盖提交回执。其它 provider_effect+DISPATCHED/CONFIRMED 默认按同 accepted attempt 零提交读回；原答案有界不可得且Browser 已证原 WAL 相关旧 command 全部 terminal 且未决集合为空后，仅 Website 持久风险 grant 的新 revision/指定调用可一次受控风险输入。八字仅携带 consultation_root_ref 与 direct parent；文章翻译五个locale都携带Website签发的provider_continuation direct parent且链首指向zh-CN生成任务；固定catalog同cohort首任务fresh且parent triple全空、后继携已接纳直接前驱三元组；明确新result revision才可携带hash-bound rejection，其可选 `validation_failure` 只被 strict 机械接收并原样运输。
+2. Website task-result v17、V6 v44 与 AGENT dependency 精确一致；generated image 保留原始 Provider bytes 作 task-owned evidence，交付的 WebP 只做方向应用与 metadata 剥离，无几何转换或尺寸门禁；grant 不携带 Provider locator/checkpoint 或 Product Plugin 身份，只绑定当前 task/attempt/lease/fence；attempt failure 必须同时运输 Browser 已持有的 `provider_effect_identity_hash + effect_scope + browser_outcome + mutation_outcome + lease_version + submit receipt/evidence` 与 stopped-empty 独立 observation proof。`provider_cooldown`只运输由弹窗固定文案、exact-call、观察时间与候选计数计算的targetless事故hash及ack WAL/Website receipt，不运输Target/Document原值、hash、派生observation身份、DOM/URL/N；notice/receipt版本前向切换，存量旧cooldown lineage须先结清。`RESULT_SETTLED_UNUSABLE + CONFIRMED + confirmed + effect hash + evidence + settled result hash` 只允许 Website 拒绝该结果并签发新 result revision；`GPT_RESPONSE_STOPPED_EMPTY` 只使用独立 observation proof 的终态 revision hash形成新拒绝事实，不覆盖提交回执。其它 provider_effect+DISPATCHED/CONFIRMED 默认按同 accepted attempt 零提交读回；原答案有界不可得且Browser 已证原 WAL 相关旧 command 全部 terminal 且未决集合为空后，仅 Website 持久风险 grant 的新 revision/指定调用可一次受控风险输入。八字仅携带 consultation_root_ref 与 direct parent；文章翻译五个locale都携带Website签发的provider_continuation direct parent且链首指向zh-CN生成任务；固定catalog同cohort首任务fresh且parent triple全空、后继携已接纳直接前驱三元组；明确新result revision才可携带hash-bound rejection，其可选 `validation_failure` 只被 strict 机械接收并原样运输。
 3. route projection 精确为 40 routes、48 parameter types、34 result contracts、0 reservation routes；bazi_private_base_input 与 result_contract.private_base 为零。
 4. base、Bazi primary、review admission receipt 的互斥字段与完整 canonical hash 全部闭合，未闭合时本地 completed 增量为零。
 5. credential 失败类别分别得到稳定脱敏 typed code，且 claim/Provider mutation 增量为零。
