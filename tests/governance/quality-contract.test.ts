@@ -93,8 +93,10 @@ const staticReceipt = (lawId: string, check: string, passed = true) => [{
   check, implementationDigest: sha(Buffer.from(check)), lawId,
   nativeObservation: `typechecker:${sha(Buffer.from(`typechecker:${check}`))}`, passed,
 }];
-const externalFixtureRef = (kind: "exam" | "dynamic", selector: string): string =>
-  `${kind}:${encodeURIComponent(fixtureEvidencePath)}#${encodeURIComponent(selector)}@${fixtureEvidenceDigest}`;
+const fixtureReportRef = (kind: "exam" | "dynamic", selector: string): string =>
+  kind === "exam"
+    ? `exam:tests/governance/quality-contract.test.ts#${encodeURIComponent(selector)}`
+    : `dynamic:${encodeURIComponent(fixtureEvidencePath)}#${encodeURIComponent(selector)}@${fixtureEvidenceDigest}`;
 const resultFor = (law: Law): LawExecutionResult => {
   const required = requiredModes(law, "READY");
   const denominator = [...law.forbidden.map((_, index) => `forbidden:${index}`), "summary"].sort();
@@ -104,7 +106,7 @@ const resultFor = (law: Law): LawExecutionResult => {
       clauses: mode.startsWith("exam.") ? denominator : ["summary"],
       evidenceMode: mode,
       passed: true,
-      refs: [mode.startsWith("exam.") ? externalFixtureRef("exam", "script=fixture;exit=0") : "ast:scripts/audit/shared/quality-contract.ts#fixture"],
+      refs: [mode.startsWith("exam.") ? fixtureReportRef("exam", "script=fixture;exit=0") : "ast:scripts/audit/shared/quality-contract.ts#fixture"],
     })),
     findings: [],
   };
@@ -183,7 +185,7 @@ test("quality report rejects duplicate and extra required evidence modes", () =>
     "LAW_EVIDENCE_DUPLICATE",
   );
   const extra = resultFor(law);
-  extra.assertions.push({ clauses: ["summary"], evidenceMode: "exam.property", passed: true, refs: [externalFixtureRef("exam", "script=extra;exit=0")] });
+  extra.assertions.push({ clauses: ["summary"], evidenceMode: "exam.property", passed: true, refs: [fixtureReportRef("exam", "script=extra;exit=0")] });
   assertReportFails(
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [extra] }),
     "UNDECLARED_EVIDENCE_MODE",
@@ -201,7 +203,7 @@ test("RELEASE rejects a missing Dynamic Proof and missing or drifted participant
       ...resultFor(law),
       assertions: [...resultFor(law).assertions, {
         clauses: ["summary"], evidenceMode: "dynamic.service", passed: true,
-        refs: [externalFixtureRef("dynamic", "script=service;exit=0")],
+        refs: [fixtureReportRef("dynamic", "script=service;exit=0")],
       }],
     }], participants: [{ repo: "ADVISION-X/provider", gitCommit: "", contracts: [{ contractId: "fixture", version: 1 }] }] }),
     (error: unknown) => error instanceof GovernanceError && error.code === "QUALITY_PARTICIPANTS_INVALID",
@@ -243,14 +245,14 @@ test("quality report rejects empty and fixed-PASS evidence references", () => {
     "EMPTY_EVIDENCE_REFS",
   );
   const fixed = resultFor(law);
-  fixed.assertions[0]!.refs = [externalFixtureRef("exam", "outcome=PASS")];
+  fixed.assertions[0]!.refs = [fixtureReportRef("exam", "outcome=PASS")];
   assertReportFails(
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [fixed] }),
     "LAW_EVIDENCE_MISSING",
   );
 });
 
-test("Exam and Dynamic evidence both require native current-run receipt locators", () => {
+test("Exam report refs bind repository cases while Dynamic requires native receipt locators", () => {
   const law = fixtureLaw();
   const missingExamLocator = resultFor(law);
   missingExamLocator.assertions.find((assertion) => assertion.evidenceMode.startsWith("exam."))!.refs = ["exam:fixture#script%3Dfixture"];
@@ -258,10 +260,11 @@ test("Exam and Dynamic evidence both require native current-run receipt locators
     () => buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [missingExamLocator] }),
     "LAW_EVIDENCE_MISSING",
   );
-  assert.equal(validEvidenceRef("exam:package.json#script%3Dfixture"), false);
+  assert.equal(validEvidenceRef("exam:package.json#script%3Dfixture"), true);
+  assert.equal(validEvidenceRef(`exam:${encodeURIComponent(fixtureEvidencePath)}#script%3Dfixture@${fixtureEvidenceDigest}`), false);
   assert.equal(validEvidenceRef(`dynamic:${encodeURIComponent(fixtureEvidencePath)}#script%3Dfixture`), false);
   assert.equal(validEvidenceRef(`dynamic:${encodeURIComponent(fixtureEvidencePath)}#script%3Dfixture@${"a".repeat(64)}`), true);
-  assert.equal(validEvidenceRef(externalFixtureRef("exam", "script=fixture")), true);
+  assert.equal(validEvidenceRef(fixtureReportRef("exam", "script=fixture")), true);
 });
 
 test("evidence refs reject absolute repository objects and raw or noncanonical reserved characters", () => {
@@ -435,6 +438,32 @@ test("Exam receipts bind executed semantic assertion callsites and reject fixed 
   assert.equal(validateExamReceiptPayload({ ...payload, assertion_traces: [] }, binding), false);
   assert.equal(validateExamReceiptPayload({ ...payload,
     assertion_traces: [{ ...trace, source_line_digest: "d".repeat(64) }] }, binding), false);
+  const directory = mkdtempSync(resolve(tmpdir(), "quality-executed-exam-"));
+  const receiptPath = resolve(directory, "receipt.json");
+  writeFileSync(receiptPath, JSON.stringify(payload));
+  const selector = [
+    `lawId=${binding.lawId}`, `mode=${binding.evidenceMode}`, `command=npm run ${binding.producerScript}`,
+    `case=${binding.caseLocator}`, `run=${binding.proofRunId}`, `candidate=${binding.candidate}`,
+    "timeoutMs=300000", `observedValue=${binding.observedValue}`,
+  ].join(";");
+  const request: QualityProofRequest = {
+    lawId: binding.lawId, evidenceMode: binding.evidenceMode, proofRunId: binding.proofRunId,
+    candidate: binding.candidate, proofKind: "exam",
+  };
+  const reference = `exam:${encodeURIComponent(receiptPath)}#${encodeURIComponent(selector)}@${sha(readFileSync(receiptPath))}`;
+  const stdout = `${proofObservationPrefix}${JSON.stringify(directObservation(request, binding.clauses, [reference]))}`;
+  const bound = bindNativeProofObservations(stdout, [{ law: { ...fixtureLaw(), lawId: binding.lawId },
+    mode: binding.evidenceMode }], [request], binding.producerScript, "exam", directory);
+  const refs = bound.get(`${binding.lawId}\0${binding.evidenceMode}`)!.refs;
+  assert.equal(refs.length, 1);
+  assert.equal(refs[0]!.startsWith("exam:scripts/acceptance/system-security.acceptance.ts#"), true);
+  assert.equal(refs[0]!.includes("@"), false);
+  assert.equal(validEvidenceRef(refs[0]!), true);
+  assert.equal(decodeURIComponent(refs[0]!).includes(`assertion=${trace.source_line}:${trace.source_column}`), true);
+  writeFileSync(receiptPath, JSON.stringify({ ...payload, assertion_traces: [] }));
+  assert.throws(() => bindNativeProofObservations(stdout, [{ law: { ...fixtureLaw(), lawId: binding.lawId },
+    mode: binding.evidenceMode }], [request], binding.producerScript, "exam", directory),
+  (error: unknown) => error instanceof GovernanceError && error.code === "LAW_EVIDENCE_MISSING");
 });
 
 test("a fixed or unauthenticated stdout marker cannot mint evidence for unexecuted law routes", () => {
@@ -998,7 +1027,7 @@ test("a finding propagates from one law result to the only top-level verdict", (
   const law = fixtureLaw();
   const result = resultFor(law);
   result.assertions[0]!.passed = false;
-  result.findings = [{ code: "FIXTURE_MUTATION_FOUND", evidenceRefs: [externalFixtureRef("exam", "mutation=1")] }];
+  result.findings = [{ code: "FIXTURE_MUTATION_FOUND", evidenceRefs: [fixtureReportRef("exam", "mutation=1")] }];
   const report = buildQualityReport({ level: "READY", gitCommit: "a".repeat(40), laws: [law], results: [result] });
   assert.equal(report.laws[0]!.outcome, "FAIL");
   assert.equal(report.outcome, "FAIL");

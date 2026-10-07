@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 import type { Law } from "../governance-contract.js";
 import { fail, sha } from "../governance-runtime.js";
 import { dynamicReceiptFileValid, examReceiptFileValid, parseQualityProofObservations, type QualityProofObservation, type QualityProofRequest } from "./proof-observation.js";
@@ -65,6 +65,29 @@ const observationAuthenticatesRequest = (
         }));
   });
 };
+const repositoryExamObservation = (observation: QualityProofObservation): QualityProofObservation => {
+  const match = /^exam:([^#@]+)#([^#@]+)@([a-f0-9]{64})$/u.exec(observation.refs[0]!);
+  if (!match) return fail("LAW_EVIDENCE_MISSING", "exam-source-reference");
+  const payload = JSON.parse(readFileSync(decodeURIComponent(match[1]!), "utf8")) as {
+    case_locator: string;
+    producer_script: string;
+    observed_value: string;
+    assertion_traces: Array<{ source_path: string; source_line: number; source_column: number; method: string }>;
+  };
+  const timeout = /;timeoutMs=([1-9][0-9]*);observedValue=/u.exec(decodeURIComponent(match[2]!))?.[1];
+  if (!timeout) return fail("LAW_EVIDENCE_MISSING", "exam-execution-timeout");
+  const refs = payload.assertion_traces.map((trace) => {
+    const source = relative(resolve(), trace.source_path);
+    const selector = encodeURIComponent([
+      `lawId=${observation.lawId}`, `mode=${observation.evidenceMode}`,
+      `command=npm run ${payload.producer_script}`, `case=${payload.case_locator}`,
+      `timeoutMs=${timeout}`, `observedValue=${payload.observed_value}`,
+      `assertion=${trace.source_line}:${trace.source_column}`, `method=${trace.method}`,
+    ].join(";"));
+    return `exam:${source}#${selector}`;
+  });
+  return { ...observation, refs: [...new Set(refs)].sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right))) };
+};
 export const bindNativeProofObservations = (
   stdout: string,
   routes: readonly ProofRoute[],
@@ -95,7 +118,7 @@ export const bindNativeProofObservations = (
       if (nativeLocators.has(decoded)) fail("LAW_EVIDENCE_DUPLICATE", `native-receipt-locator:${decoded}`);
       nativeLocators.add(decoded);
     }
-    bound.set(key, observation);
+    bound.set(key, kind === "exam" ? repositoryExamObservation(observation) : observation);
   }
   return bound;
 };
