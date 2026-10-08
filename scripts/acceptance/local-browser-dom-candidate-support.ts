@@ -203,18 +203,39 @@ const exerciseOutgoingRejections = async (source: string): Promise<void> => {
   "BROWSER_DOM_ACTION_OUTGOING_STRUCTURE_MISMATCH");
 };
 
+
 const exerciseExactModelLabelOr = async (source: string): Promise<void> => {
-  for (const labels of [["最新"], ["Latest"], ["最新", "Latest"], ["Latest beta"], ["GPT-5.6 Sol"]]) {
+  const approved = ["最新", "Latest", "GPT-6"];
+  const rejected: readonly (readonly [Readonly<Record<string, string>>, string])[] = [
+    [{ disabled: "" }, "BROWSER_DOM_ACTION_DISABLED"],
+    [{ "aria-disabled": "true" }, "BROWSER_DOM_ACTION_ARIA_DISABLED"],
+    [{ hidden: "" }, "BROWSER_DOM_CANDIDATE_MISSING:BROWSER_DOM_CANDIDATE_INELIGIBLE"],
+    [{ inert: "" }, "BROWSER_DOM_CANDIDATE_MISSING:BROWSER_DOM_CANDIDATE_INELIGIBLE"],
+  ];
+  for (const labels of [["最新"], ["Latest"], ["GPT-6"], ["最新", "Latest"], ["最新", "GPT-6"],
+    ["Latest", "GPT-6"], approved, ["GPT-6", "GPT-6"], ["Latest beta"], ["GPT-5.6 Sol"],
+    ["GPT-5.5"], ["GPT-6 Pro"], ["GPT-6.1"], ["GPT6"], []]) {
     const nodes = labels.map((label) => new FakeElement(label, {}, {}, {}, "BUTTON"));
     const root = new FakeElement("root", { model: nodes });
     for (const node of nodes) node.parentElement = root;
     const result = await execute(source, { documentElement: root, querySelectorAll: () => [],
       elementFromPoint: () => nodes[0] }, {
-      selector: "model", text: { value: ["最新", "Latest"], exact: true }, output: "pointer",
+      selector: "model", text: { value: approved, exact: true }, output: "pointer",
     });
-    const count = labels.filter((label) => label === "最新" || label === "Latest").length;
+    const count = labels.filter((label) => approved.includes(label)).length;
     if (count === 1) assert.equal(JSON.stringify(result), JSON.stringify({ x: 5, y: 5 }));
-    else assert.equal(result, count === 2 ? "BROWSER_DOM_CANDIDATE_AMBIGUOUS" : "BROWSER_DOM_ACTION_NOT_QUALIFIED");
+    else if (labels.length === 0) assert.equal(result, "BROWSER_DOM_CANDIDATE_MISSING:BROWSER_DOM_SELECTOR_ABSENT");
+    else assert.equal(result, count > 1 ? "BROWSER_DOM_CANDIDATE_AMBIGUOUS" : "BROWSER_DOM_ACTION_NOT_QUALIFIED");
+  }
+  for (const label of approved) {
+    for (const [attributes, expected] of rejected) {
+      const node = new FakeElement(label, {}, {}, attributes, "BUTTON");
+      const root = new FakeElement("root", { model: [node] }); node.parentElement = root;
+      const result = await execute(source, { documentElement: root, elementFromPoint: () => node }, {
+        selector: "model", text: { value: approved, exact: true }, output: "pointer",
+      });
+      assert.equal(result, expected, "an exact approved label must not bypass action qualification");
+    }
   }
 };
 

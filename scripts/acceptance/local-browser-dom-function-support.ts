@@ -435,30 +435,42 @@ const exerciseInvalidObservationUrls = async (
 };
 
 const exerciseExactTextOr = async (source: string): Promise<void> => {
-  const query = { queryId: "latest", selector: "model", maxMatches: 2,
-    fields: ["ariaChecked"], textEquals: ["最新", "Latest"] } as const;
-  assertBrowserDomIntent({ kind: "observe", queries: [query] });
-  assertBrowserDomIntent({ kind: "click", selector: "model", expectedTextEquals: query.textEquals,
-    postClickMatch: { selector: "model", textEquals: query.textEquals, expectedMatches: 1 } });
-  for (const labels of [["最新"], ["Latest"], ["最新", "Latest"], ["Latest beta"], ["GPT-5.6 Sol"], []]) {
+  const query = { queryId: "latest", selector: "model", maxMatches: 3,
+    fields: ["ariaChecked"], textEquals: ["最新", "Latest", "GPT-6"] } as const;
+  for (const textEquals of ["最新", ["最新", "Latest"], ["最新", "Latest", "Sol"], ["a", "b", "x".repeat(1_024)]] as const) {
+    assertBrowserDomIntent({ kind: "observe", queries: [{ ...query, textEquals }] });
+    assertBrowserDomIntent({ kind: "find", selector: "model", maxMatches: 3, textEquals });
+    assertBrowserDomIntent({ kind: "click", selector: "model", expectedTextEquals: textEquals,
+      postClickMatch: { selector: "model", textEquals, expectedMatches: 1 } });
+    assertBrowserDomIntent({ kind: "click", selector: "model", expectedTextEquals: textEquals,
+      postClickObservation: { queries: [{ ...query, textEquals, expectedEligibleCount: 0 }] } });
+  }
+  for (const labels of [["最新"], ["Latest"], ["GPT-6"], ["最新", "Latest"], ["最新", "GPT-6"],
+    ["Latest", "GPT-6"], ["最新", "Latest", "GPT-6"], ["GPT-6", "GPT-6"],
+    ["Latest beta"], ["GPT-5.6 Sol"], ["GPT-5.5"], ["GPT-6 Pro"], ["GPT-6.1"], ["GPT6"], []]) {
     const nodes = labels.map((label) => new FakeElement(label));
     const root = new FakeElement("root", { model: nodes });
     for (const node of nodes) node.parentElement = root;
     const result = await execute(source, { documentElement: root, querySelectorAll: () => [],
       elementFromPoint: () => null }, [query]) as { queries: { eligibleCount: number }[] };
     assert.equal(result.queries[0]?.eligibleCount,
-      labels.filter((label) => label === "最新" || label === "Latest").length);
+      labels.filter((label) => ["最新", "Latest", "GPT-6"].includes(label)).length);
   }
   for (const invalid of [[], ["Latest"], ["Latest", "Latest"], ["Latest", " Latest "],
-    ["最新", "Latest", "Sol"], ["最新", ""], ["最新", 3], ["最新", "x".repeat(1_025)]]) {
-    assert.throws(() => assertBrowserDomIntent({ kind: "observe", queries: [
-      { ...query, textEquals: invalid as never },
-    ] }), /BROWSER_COMMAND_PERMIT_INVALID/u);
-    assert.throws(() => assertBrowserDomIntent({ kind: "click", selector: "model",
-      expectedTextEquals: invalid as never }), /BROWSER_COMMAND_PERMIT_INVALID/u);
-    assert.throws(() => assertBrowserDomIntent({ kind: "click", selector: "model",
-      postClickMatch: { selector: "model", expectedMatches: 1, textEquals: invalid as never },
-    }), /BROWSER_COMMAND_PERMIT_INVALID/u);
+    ["最新", "Latest", "GPT-6", "Sol"], ["最新", ""], ["最新", " "], ["最新", 3],
+    ["最新", "x".repeat(1_025)], ["最新", "GPT-6\n"], ["最新", "Latest", " 最新 "],
+    ["最新", "Latest", " Latest "], ["最新", "最新", "GPT-6"],
+    ["最新", "Latest", ""], ["最新", "Latest", 3], ["最新", "Latest", "x".repeat(1_025)],
+    ["最新", "Latest", null], ["最新", "Latest", "GPT-6\n"], Array(2),
+    Object.assign(Array(3), { 0: "最新", 2: "GPT-6" })]) {
+    for (const intent of [
+      { kind: "observe", queries: [{ ...query, textEquals: invalid }] },
+      { kind: "find", selector: "model", maxMatches: 3, textEquals: invalid },
+      { kind: "click", selector: "model", expectedTextEquals: invalid,
+        postClickMatch: { selector: "model", expectedMatches: 1 } },
+      { kind: "click", selector: "model", postClickMatch: { selector: "model", expectedMatches: 1, textEquals: invalid } },
+      { kind: "click", selector: "model", postClickObservation: { queries: [{ ...query, textEquals: invalid, expectedEligibleCount: 0 }] } },
+    ]) assert.throws(() => assertBrowserDomIntent(intent as never), /BROWSER_COMMAND_PERMIT_INVALID/u);
   }
 };
 

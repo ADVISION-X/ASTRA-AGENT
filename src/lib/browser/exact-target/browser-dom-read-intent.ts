@@ -7,9 +7,9 @@ export const isBoundedText = (value: unknown, limit: number): value is string =>
 
 export const isBoundedExactText = (value: unknown): boolean =>
   isBoundedText(value, 1_024)
-  || (Array.isArray(value) && value.length === 2
-    && value.every((entry) => isBoundedText(entry, 1_024))
-    && value[0]!.trim() !== value[1]!.trim());
+  || (Array.isArray(value) && (value.length === 2 || value.length === 3)
+    && Array.from(value).every((entry) => isBoundedText(entry, 1_024))
+    && new Set(value.map((entry: string) => entry.trim())).size === value.length);
 
 export const assertOptionalRange = (value: number | undefined, minimum: number, maximum: number): void => {
   if (value !== undefined && (value < minimum || value > maximum)) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");

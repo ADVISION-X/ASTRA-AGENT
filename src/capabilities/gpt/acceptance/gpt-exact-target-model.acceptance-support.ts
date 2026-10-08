@@ -87,29 +87,70 @@ const verifySelectorTransitionFailsClosed = async (): Promise<void> => {
 };
 
 const verifyModelSelection = async (): Promise<void> => {
-  for (const checked of ["true", "false"] as const) {
-    const fixture = fakeBrowser((intent) => {
-      if (intent.kind === "observe") return coherentObservationPacket(intent, choiceFacts({ checked }));
-      if (intent.kind === "click" && intent.selector === GPT_MODEL_CHOICE_SELECTOR) {
-        assert.equal(intent.expectedTextEquals, "GPT-5.6 Sol");
-        assert.deepEqual(intent.postClickObservation?.clickedCandidateAttribute,
-          { name: "aria-checked", equals: "true" });
-        const queries = intent.postClickObservation!.queries
-          .map(({ expectedEligibleCount: _expected, ...query }) => query);
-        return { postconditionVerified: true,
-          clickedCandidateAttributeReadback: { name: "aria-checked", value: "true", verified: true },
-          postconditionObservation: coherentObservationPacket({ queries }, {
-            "sol-model": { rawCount: 0, eligibleCount: 0 },
-          }) };
+  for (const startModelDisplayName of ["最新", "GPT-5.6 Sol"] as const) {
+    const configured = buildGptExecutionProfile({ ...profile, startModelDisplayName });
+    const expected = startModelDisplayName === "最新" ? ["最新", "Latest", "GPT-6"] : "GPT-5.6 Sol";
+    const queryId = startModelDisplayName === "最新" ? "latest-model" : "sol-model";
+    for (const checked of ["true", "false"] as const) {
+      for (const scenario of ["valid", "wrong-attribute", "menu-open", "pending"] as const) {
+        const fixture = fakeBrowser((intent) => {
+          if (intent.kind === "observe") {
+            assert.deepEqual(intent.queries[0]?.textEquals, expected);
+            const facts = choiceFacts({ checked });
+            return coherentObservationPacket(intent, { ...facts,
+              [queryId]: { rawCount: 1, eligibleCount: 1, matches: [{ ariaChecked: checked,
+                ariaDisabled: false, disabled: false, inert: false }] } });
+          }
+          if (intent.kind === "click" && intent.selector === GPT_MODEL_CHOICE_SELECTOR) {
+            assert.deepEqual(intent.expectedTextEquals, expected);
+            assert.deepEqual(intent.postClickObservation?.clickedCandidateAttribute,
+              { name: "aria-checked", equals: "true" });
+            const queries = intent.postClickObservation!.queries
+              .map(({ expectedEligibleCount: _expected, ...query }) => query);
+            return { postconditionVerified: true, receiptMissing: scenario === "pending",
+              clickedCandidateAttributeReadback: { name: "aria-checked",
+                value: scenario === "wrong-attribute" ? "false" : "true", verified: true },
+              postconditionObservation: coherentObservationPacket({ queries }, {
+                [queryId]: { rawCount: scenario === "menu-open" ? 1 : 0,
+                  eligibleCount: scenario === "menu-open" ? 1 : 0,
+                  matches: scenario === "menu-open" ? [{ ariaChecked: "true", ariaDisabled: false,
+                    disabled: false, inert: false }] : [] },
+              }) };
+          }
+          throw new Error(`UNEXPECTED_MODEL_SELECT_INTENT:${intent.kind}`);
+        });
+        const result = await execute("select_gpt_model_from_start_v3", fixture.browser, { profile: configured });
+        assert.equal(result.status, scenario === "valid" ? "success" : "failed");
+        assert.equal(fixture.physicalMutations(), 1, "failed fresh postconditions must never replay model input");
+        if (scenario === "valid") {
+          assert.equal(result.value?.modelDisplayName, startModelDisplayName);
+          assert.equal(result.value?.previousChecked, checked);
+          assert.equal(result.value?.state, "model-selected");
+        }
       }
-      throw new Error(`UNEXPECTED_MODEL_SELECT_INTENT:${intent.kind}`);
-    });
-    const result = await execute("select_gpt_model_from_start_v3", fixture.browser, { profile });
-    assert.equal(result.status, "success", result.failureCode ?? "model selection failed");
-    assert.equal(result.value?.modelDisplayName, "GPT-5.6 Sol");
-    assert.equal(result.value?.previousChecked, checked);
-    assert.equal(result.value?.state, "model-selected");
-    assert.equal(fixture.physicalMutations(), 1);
+    }
+  }
+};
+
+const verifyLatestUnavailableFailsClosed = async (): Promise<void> => {
+  for (const startModelDisplayName of ["最新", "GPT-5.6 Sol"] as const) {
+    const configured = buildGptExecutionProfile({ ...profile, startModelDisplayName });
+    const queryId = startModelDisplayName === "最新" ? "latest-model" : "sol-model";
+    for (const reason of ["disabled", "ariaDisabled", "inert", "hidden"] as const) {
+      const fixture = fakeBrowser((intent) => {
+        if (intent.kind === "observe") return coherentObservationPacket(intent, {
+          ...choiceFacts({ checked: "true" }),
+          [queryId]: { rawCount: 1, eligibleCount: reason === "hidden" ? 0 : 1,
+            matches: reason === "hidden" ? [] : [{ ariaChecked: "true",
+              ariaDisabled: reason === "ariaDisabled", disabled: reason === "disabled", inert: reason === "inert" }] },
+        });
+        throw new Error(`EXPLICIT_DOWNGRADE_MUST_NOT_CLICK:${intent.kind}`);
+      });
+      const result = await execute("select_gpt_model_from_start_v3", fixture.browser, { profile: configured });
+      assert.equal(result.status, "failed", "an unavailable exact model must never select another model");
+      assert.equal(result.value, null);
+      assert.equal(fixture.physicalMutations(), 0);
+    }
   }
 };
 
@@ -130,15 +171,18 @@ const verifyLatestLabels = async (): Promise<void> => {
     requestedReasoningValue: 4, executorIdentityRef: "acceptance:executor",
     acceptanceRef: "acceptance:gpt-exact-target", acceptanceVersion: "v1",
   });
-  for (const labels of [["最新"], ["Latest"], ["最新", "Latest"], ["Latest beta"], []]) {
+  const approved = ["最新", "Latest", "GPT-6"];
+  for (const labels of [["最新"], ["Latest"], ["GPT-6"], ["最新", "Latest"], ["最新", "GPT-6"],
+    ["Latest", "GPT-6"], approved, ["GPT-6", "GPT-6"], ["Latest beta"], ["GPT-5.6 Sol"],
+    ["GPT-5.5"], ["GPT-6 Pro"], ["GPT-6.1"], ["GPT6"], []]) {
     for (const checked of ["true", "false"] as const) {
-      const matching = labels.filter((label) => label === "最新" || label === "Latest");
+      const matching = labels.filter((label) => approved.includes(label));
       let open = false;
       const fixture = fakeBrowser((intent) => {
         if (intent.kind === "observe") {
           for (const query of intent.queries) {
             if (query.queryId === "specified-model" || query.queryId === "latest-model") {
-              assert.deepEqual(query.textEquals, ["最新", "Latest"]);
+              assert.deepEqual(query.textEquals, approved);
             }
           }
           return coherentObservationPacket(intent, {
@@ -152,16 +196,17 @@ const verifyLatestLabels = async (): Promise<void> => {
           });
         }
         if (intent.kind === "click" && intent.selector === GPT_MODEL_SELECTOR_OPENABLE_ENTRY) {
-          assert.deepEqual(intent.postClickMatch?.textEquals, ["最新", "Latest"]);
+          assert.deepEqual(intent.postClickMatch?.textEquals, approved);
+          assert.equal(intent.postClickMinimumDelayMs, 2_500);
           assert.equal(intent.postClickMatch?.expectedMatches, 1);
           open = true;
           return { postconditionVerified: matching.length === 1,
             postconditionEligibleCount: matching.length, postconditionRawCount: labels.length };
         }
         if (intent.kind === "click" && intent.selector === GPT_MODEL_CHOICE_SELECTOR) {
-          assert.equal(matching.length, 1, "both labels together must never cause model input");
-          assert.deepEqual(intent.expectedTextEquals, ["最新", "Latest"]);
-          assert.deepEqual(intent.postClickObservation?.queries[0]?.textEquals, ["最新", "Latest"]);
+          assert.equal(matching.length, 1, "ambiguous labels must never cause model input");
+          assert.deepEqual(intent.expectedTextEquals, approved);
+          assert.deepEqual(intent.postClickObservation?.queries[0]?.textEquals, approved);
           const queries = intent.postClickObservation!.queries
             .map(({ expectedEligibleCount: _expected, ...query }) => query);
           return { postconditionVerified: true,
@@ -174,6 +219,7 @@ const verifyLatestLabels = async (): Promise<void> => {
       });
       const opened = await execute("open_gpt_model_selector_v3", fixture.browser, { profile: latestProfile });
       assert.equal(opened.status, matching.length === 1 ? "success" : "failed");
+      assert.equal(fixture.physicalMutations(), 1, "G15 opening input must remain accounted for");
       const before = fixture.physicalMutations();
       const selected = await execute("select_gpt_model_from_start_v3", fixture.browser, { profile: latestProfile });
       assert.equal(selected.status, matching.length === 1 ? "success" : "failed");
@@ -184,26 +230,6 @@ const verifyLatestLabels = async (): Promise<void> => {
       }
     }
   }
-};
-
-const verifyLatestUnavailableFailsClosed = async (): Promise<void> => {
-  const latestProfile = buildGptExecutionProfile({
-    profileRef: "acceptance:gpt-latest-start",
-    startModelDisplayName: "最新",
-    requestedReasoningValue: 4,
-    executorIdentityRef: "acceptance:executor",
-    acceptanceRef: "acceptance:gpt-exact-target",
-    acceptanceVersion: "v1",
-  });
-  const fixture = fakeBrowser((intent) => {
-    if (intent.kind === "observe") return coherentObservationPacket(intent,
-      choiceFacts({ checked: "true", latestDisabled: true }));
-    throw new Error(`EXPLICIT_DOWNGRADE_MUST_NOT_CLICK:${intent.kind}`);
-  });
-  const result = await execute("select_gpt_model_from_start_v3", fixture.browser, { profile: latestProfile });
-  assert.equal(result.status, "failed", "latest unavailable must never select Sol");
-  assert.equal(result.value, null);
-  assert.equal(fixture.physicalMutations(), 0);
 };
 
 const verifySelectedCountConflictFailsClosed = async (): Promise<void> => {

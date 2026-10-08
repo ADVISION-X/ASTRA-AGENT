@@ -20,8 +20,8 @@ import {
 import {
   assertPreClickExactOutgoingTurn, assertSpecialBrowserDomIntent,
 } from "./browser-dom-special-intent.js";
+export type BrowserDomExactText = string | readonly [string, string] | readonly [string, string, string];
 export type BrowserDomField = typeof BROWSER_DOM_FIELD_VALUES[number];
-export type BrowserDomExactText = string | readonly [string, string];
 export type BrowserDomObservationField = Exclude<BrowserDomField, "outerHtml" | "semanticText" | "text">;
 export type BrowserDomPostconditionField = Exclude<BrowserDomObservationField,
   "semanticTextHash" | "exactEditableTextHash">;
