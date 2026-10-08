@@ -1,6 +1,6 @@
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
 import { executionFailure } from "../../../lib/execution-failure.js";
-import type { BrowserAtomicStepOutcome } from "../../../lib/browser/browser-authority-api.js";
+import { browserExactCallIdentityHash, type BrowserAtomicStepOutcome } from "../../../lib/browser/browser-authority-api.js";
 import { buildGptExecutionProfile } from "../index.js";
 import { failedGptChildExecutionResult } from "../ability-group.js";
 import { executeProductionGptAtomicCall, productionGptAtomicIdentity } from "../production-atomic-call.js";
@@ -96,7 +96,8 @@ for (const temporary of [false, true]) {
   const harness = createGptAcceptanceHarness(`gpt-proof-original-submit-${temporary}`), intent = harness.buildIntent("submit_exact_gpt_turn_once", { files: [], promptHash });
   const identity = productionGptAtomicIdentity(intent, 0);
   const payload = { canonicalConversationUrl: temporary ? "https://chatgpt.com/c/WEB:temporary-client-route" : conversationUrl,
-    promptHash, userTurnId: "00000000-0000-4000-8000-000000000003", exactCallIdentityHash: hash("1"), observationRevisionHash: hash("2"),
+    promptHash, userTurnId: "00000000-0000-4000-8000-000000000003", exactCallIdentityHash: browserExactCallIdentityHash({
+      jobId: intent.jobId, attemptId: intent.attemptId, writerFenceHash: hash("d"), ...identity }), observationRevisionHash: hash("2"),
     targetRefHash: hash("3"), documentRefHash: hash("4"), rawCount: 1, eligibleCount: 1 };
   const prior = outcome("confirmed", true, payload);
   const fixture = fakeBrowser(command => { throw new Error(`RECOVERY_MUST_NOT_TOUCH_PROVIDER:${command.kind}`); },

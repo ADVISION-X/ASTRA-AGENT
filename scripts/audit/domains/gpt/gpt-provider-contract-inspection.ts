@@ -20,16 +20,32 @@ const objectKeys = (node: Node | undefined): string[] => Node.isObjectLiteralExp
 const inspectGlobalObservationLane = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
   const lane = sourceFor(context, LANE), owner = lane?.getClass("BrowserLaneCoordinator"), laneText = lane?.getFullText() ?? "";
   const park = owner?.getMethod("withLifecycle"), parkText = park?.getText() ?? "", samples = calls(lane, "Math.random");
+  const terminal = owner?.getMethod("notifyProviderObservationTerminal");
   const eligible = ["nextWaiter", "scheduleWake"].every(name => {
     const body = owner?.getMethod(name)?.getText() ?? "";
     return body.includes("Math.max(waiter.eligibleAt, this.observationNotBefore)") && body.includes('waiter.requestKind === "provider-observation"');
   });
+  const actorPath = "src/lib/browser/exact-target/browser-command-actor.ts";
+  const actor = sourceFor(context, actorPath)?.getClass("BrowserCommandActor")?.getMethod("execute");
+  const dispatch = calls(actor, "this.port.send")[0]?.getArguments()[2]?.getText() ?? "";
+  const actorTerminal = actor?.getDescendantsOfKind(SyntaxKind.TryStatement)
+    .some(node => calls(node.getFinallyBlock(), "this.onProviderObservationTerminal").length === 1) ?? false;
+  const actorBody = actor?.getText() ?? "";
+  const wiring = text(context, "src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts");
+  const transport = sourceFor(context, "src/lib/browser/transport/browser-authority-websocket.ts")?.getClass("BrowserAuthorityWebSocket")?.getMethod("send");
+  const timeoutBudget = calls(transport, "setTimeout")[0]?.getArguments()[1]?.getText() ?? "";
   check(laneText.includes("private readonly queue: LaneWaiter[] = []") && laneText.includes("PROVIDER_OBSERVATION_MIN_INTERVAL_MS = 70_000")
     && laneText.includes("PROVIDER_OBSERVATION_RANDOM_SPAN_MS = 20_001") && samples.length === 1
-    && samples[0]?.getFirstAncestorByKind(SyntaxKind.MethodDeclaration) === park
-    && /if \(kind === "provider-observation"\) this\.observationNotBefore = Date\.now\(\) \+ PROVIDER_OBSERVATION_MIN_INTERVAL_MS\s*\+ Math\.floor\(Math\.random\(\) \* PROVIDER_OBSERVATION_RANDOM_SPAN_MS\)/u.test(parkText)
-    && parkText.includes("finally") && eligible && owner?.getProperties().filter(property => /Timer$/u.test(property.getName())).length === 1,
-  "gpt/no-browser-poll-scheduler", LANE, "One Browser FIFO and wake timer own the global interval sampled once after a provider observation parks.", findings, finding);
+    && samples[0]?.getFirstAncestorByKind(SyntaxKind.MethodDeclaration) === terminal
+    && !parkText.includes("observationNotBefore") && eligible
+    && owner?.getProperties().filter(property => /Timer$/u.test(property.getName())).length === 1
+    && actorBody.includes('command.kind === "authenticated-media"')
+    && actorBody.includes('command.intent.kind === "readExactAssistantTurn"')
+    && dispatch.includes("observationDispatched = true") && actorTerminal
+    && actorBody.includes("if (observationDispatched) this.onProviderObservationTerminal?.()")
+    && wiring.includes("() => this.lane.notifyProviderObservationTerminal()")
+    && timeoutBudget.includes('permit.mutationClass === "mutation"') && !timeoutBudget.includes("onDispatched"),
+  "gpt/no-browser-poll-scheduler", LANE, "The one clock advances once at a dispatched real observation terminal, never at park; observation hooks do not extend mutation grace.", findings, finding);
   check(parkText.includes("new Proxy(lease") && !laneText.includes("...lease"), "gpt/live-browser-document", LANE, "The wrapper must retain the live Document getter.", findings, finding);
   const lifecycle = sourceFor(context, LIFECYCLE), lifecycleText = lifecycle?.getFullText() ?? "";
   check(!existsSync(resolve(context.sealedRoot, `${ROOT}/provider-wait-cross-conversation-cadence.ts`))
@@ -81,9 +97,15 @@ const inspectImageObservationOrder = (context: InspectorContext, findings: Inspe
 const inspectPersistedCheckpointOrder = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {
   const method = sourceFor(context, TOOLS)?.getClass("ProductionGptChildTools")?.getMethod("executeOne")?.getText() ?? "";
   const preparation = text(context, `${ROOT}/production-call-preparation.ts`);
-  check(before(method, "recoverPersistedTextCheckpoint(", "runProductionAtomicPhase(") && method.includes("if (recovered) return recovered")
-    && preparation.includes("readPersistedGptTextResponse({") && preparation.includes("executeProductionGptAtomicCall("),
-  "gpt/persisted-checkpoint-before-browser", TOOLS, "Same-call persisted response recovery returns before the actual unique atomic phase.", findings, finding);
+  check(before(method, "recoverPersistedCheckpoint(", "acquireProductionBrowserCall(")
+    && method.includes("if (recovered) return recovered")
+    && preparation.includes('input.call.child !== "checkpoint_gpt_text_response"')
+    && preparation.includes('input.call.child !== "checkpoint_gpt_generated_image"')
+    && preparation.includes("readPersistedGptTextResponse(identity)")
+    && preparation.includes("readPersistedGptImageEvidence(identity)")
+    && preparation.includes("executeProductionGptAtomicCall("),
+  "gpt/persisted-checkpoint-before-browser", TOOLS,
+  "Exact text and image artifacts return before acquiring Browser or entering the unique atomic phase.", findings, finding);
 };
 
 export const inspectGeneratedImageRawBoundary = (context: InspectorContext, findings: InspectorFinding[], finding: FindingFactory): void => {

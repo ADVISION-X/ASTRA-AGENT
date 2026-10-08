@@ -196,6 +196,7 @@ const reconcilePendingBusinessAdmissions = async (state: RuntimeState): Promise<
 };
 
 export const reconcileCompletedBrowserTargets = async (state: RuntimeState): Promise<void> => {
+  if (state.store.pendingBusinessAdmissions().some(task => state.store.hasUnsentOutbox(task.task.job_id))) return;
   const pending = state.store.pendingBrowserCleanupJobIds();
   if (pending.length === 0) return;
   const jobId = pending[0]!;
@@ -242,8 +243,8 @@ const claimAdmissionEligible = (
 };
 
 const workerIteration = async (state: RuntimeState): Promise<number> => {
+  try {
   await reconcilePendingBusinessAdmissions(state);
-  await reconcileCompletedBrowserTargets(state);
   const hasDeliveryCandidate = state.store.pendingBusinessAdmissions().length > 0;
   try {
     await state.providerRateLimitControl.reconcilePendingIntents();
@@ -298,6 +299,9 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
   );
   launchClaimJobs(state, batch.jobs);
   return batch.outcome === "LEASE_GRANTED" ? 1_000 : batch.next_claim_after_ms;
+  } finally {
+    await reconcileCompletedBrowserTargets(state);
+  }
 };
 
 export const workerLoop = async (state: RuntimeState): Promise<void> => {

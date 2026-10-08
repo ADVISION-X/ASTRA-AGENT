@@ -179,24 +179,24 @@ export class BrowserLaneCoordinator {
     const code = waiterExpiryCode(waiter);
     if (code) throw new Error(code);
     const lease = await this.resolveBroker().acquireOperatorClaimedTargetLease(waiter.binding, waiter.ownerId);
-    waiter.complete(this.withLifecycle(lease, waiter.requestKind));
+    waiter.complete(this.withLifecycle(lease));
   }
 
-  private withLifecycle(lease: BrowserTargetLease, kind: "interaction" | "provider-observation"): BrowserTargetLease {
+  private withLifecycle(lease: BrowserTargetLease): BrowserTargetLease {
     const park: BrowserTargetLease["park"] = async input => {
       try { await lease.park(input); }
       catch (error) { throw browserExecutionFailure(new Error("BROWSER_TARGET_LIFECYCLE_UNSETTLED", { cause: error })); }
-      finally {
-        if (kind === "provider-observation") this.observationNotBefore = Date.now() + PROVIDER_OBSERVATION_MIN_INTERVAL_MS
-          + Math.floor(Math.random() * PROVIDER_OBSERVATION_RANDOM_SPAN_MS);
-        this.active = false; this.activeJobRefHash = null; void this.pump();
-      }
+      finally { this.active = false; this.activeJobRefHash = null; void this.pump(); }
     };
     return new Proxy(lease, { get(target, property) {
       if (property === "park") return park;
       const value = Reflect.get(target, property, target) as unknown;
       return typeof value === "function" ? value.bind(target) : value;
     } });
+  }
+  public notifyProviderObservationTerminal(): void {
+    this.observationNotBefore = Date.now() + PROVIDER_OBSERVATION_MIN_INTERVAL_MS
+      + Math.floor(Math.random() * PROVIDER_OBSERVATION_RANDOM_SPAN_MS);
   }
 
   private scheduleWake(): void {

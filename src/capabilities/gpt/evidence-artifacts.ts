@@ -171,8 +171,12 @@ export const readPersistedGptImageEvidence = async (input: Readonly<{
   const descriptor = await input.evidenceStore.readArtifact({ ...identity,
     idempotencyKey: artifactKey(input.exactCallIdentityHash, "source-binding") });
   if (descriptor.status !== "success") {
-    if (descriptor.failureReason === "FORENSICS_ARTIFACT_NOT_FOUND") return null;
-    throw executionFailure("failed", "EVIDENCE_ARTIFACT_READBACK_FAILED");
+    if (descriptor.failureReason !== "FORENSICS_ARTIFACT_NOT_FOUND") throw executionFailure("failed", "EVIDENCE_ARTIFACT_READBACK_FAILED");
+    const original = await input.evidenceStore.readArtifact({ ...identity,
+      idempotencyKey: artifactKey(input.exactCallIdentityHash, "original") });
+    if (original.status !== "success" && original.failureReason === "FORENSICS_ARTIFACT_NOT_FOUND") return null;
+    if (original.status !== "success") throw executionFailure("failed", "EVIDENCE_ARTIFACT_READBACK_FAILED");
+    return invalidImage();
   }
   if (!descriptor.artifactRef || descriptor.artifact.mimeType !== "application/json") {
     throw executionFailure("failed", "GPT_GENERATED_IMAGE_TASK_ARTIFACT_INVALID");

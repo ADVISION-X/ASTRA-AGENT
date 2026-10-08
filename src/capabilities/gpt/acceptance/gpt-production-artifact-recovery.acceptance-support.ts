@@ -3,8 +3,13 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { governanceAssert as assert } from "../../../../scripts/audit/shared/governance-exam-assert.js";
-import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
-import { executionFailureMetadata, failureCode } from "../../../lib/execution-failure.js";
+import { createRuntimeLogger, requireRuntimeLogWrite, runtimeFailureFromError, runtimeLogCauseEventId, withRuntimeLogCause } from "../../../lib/runtime-logs/index.js";
+import { runtimeTransportFailure } from "../../../lib/local-runtime/production/transport-failure.js";
+import { executionFailure, executionFailureMetadata, failureCode } from "../../../lib/execution-failure.js";
+import { serializeTerminalFailure } from "../../../lib/local-runtime/production/terminal-failure.js";
+import { ProductionGptExecutionSession } from "../production-execution-session.js";
+import { ProductionGptSourceReuse } from "../production-execution-source-reuse.js";
+import { ProductionGptBrowserLifecycle } from "../production-browser-lifecycle.js";
 import { createGptAbilityGroup } from "../index.js";
 import { isProviderEffectReadbackProofV1 } from "../production-child-support.js";
 import { gptCanonicalHash, gptExactCallIdentityHash } from "../contract.js";
@@ -65,7 +70,7 @@ try {
       assistantTurnId: "00000000-0000-4000-8000-000000000002", precedingUserTurnId: user, currentUrl: url,
       semanticMediaId: "gpt-generated-image-main", bytesBase64: Buffer.from(bytes).toString("base64"), sha256: imageHash, sizeBytes: bytes.byteLength, mediaType: "image/png" }; },
     pendingMutationCount: () => 0, park: async () => undefined };
-  const authority = { readProviderEffectStepCallFact: () => ({ exactCallIdentityHash: exact, inputHash: original.inputHash, mutation: {
+  const authority = { readProviderEffectStepCallFact: () => ({ exactCallIdentityHash: exact, inputHash: original.inputHash, confirmedOutcome: outcome, mutation: {
     effectScope: "provider_effect", providerEffectIdentityHash: A, outcome: "CONFIRMED", mutationOutcome: "confirmed", terminalAt: outcome.terminalAt,
     failureCode: null, nativeFailureCode: null, authorityRef: outcome.authorityRef, authorityHash: B, targetRef: outcome.targetRef, documentRef: outcome.documentRef,
     productStepId: original.productStepId, callId: original.callId, childCapabilityId: original.childCapabilityId, actionOrdinal: 1,
@@ -87,7 +92,35 @@ try {
   await assert.rejects(execution.tools.execute({ ...textCall, input: { ...textCall.input, userTurnId: "00000000-0000-4000-8000-000000000999" } }),
     (error: unknown) => failureCode(error) === "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
   const restored = await execution.tools.execute(textCall); assert.equal(restored.value.semanticText, savedText); assert.equal(restored.artifactRefs[0], textRef);
-  assert.deepEqual([selections, atomicReads, pageReads], [1, 0, 0]);
+  assert.deepEqual([acquisitions, selections, atomicReads, pageReads], [0, 0, 0, 0]);
+  for (const cause of [new Error("AGENT_RESULT_SCHEMA_VERSION_INVALID"), executionFailure("failed", "LOCALIZATION_STATIC_SELECTOR_SELECTION_INVALID")]) {
+    const failure = serializeTerminalFailure(execution.decorateSettledResultFailure(cause));
+    assert.equal(failure.code, "RESULT_SETTLED_UNUSABLE"); assert.equal(failure.cause?.code, cause.message);
+    const facts = executionFailureMetadata(execution.decorateSettledResultFailure(cause));
+    assert.equal(facts?.settledResultPayloadHash, digest(savedText)); assert.equal(facts?.browserEffect?.providerEffectIdentityHash, A);
+  }
+  const causeLogger = logger("settled-cause");
+  const nativeError = runtimeTransportFailure("LOCALIZATION_SOURCE_READ_FAILED", 503,
+    Object.assign(new Error("socket reset"), { code: "ECONNRESET" }));
+  const rootFailure = requireRuntimeLogWrite(causeLogger.emitError({ traceId: jobId, owner: "gpt", component: "gpt-child",
+    operation: "gpt.child", typedIdentity: { kind: "gpt-call", jobId, attemptId, stepId: "research", capabilityCallId: "call:source" },
+    failure: runtimeFailureFromError({ error: nativeError, code: nativeError.code, responsibleOwner: "gpt" }) }));
+  const decoratedNative = execution.decorateSettledResultFailure(withRuntimeLogCause(nativeError, rootFailure.eventId));
+  assert.equal(failureCode(decoratedNative), "RESULT_SETTLED_UNUSABLE");
+  assert.equal(runtimeLogCauseEventId(decoratedNative), rootFailure.eventId);
+  const nativeDetails = runtimeFailureFromError({ error: decoratedNative, code: failureCode(decoratedNative), responsibleOwner: "product-plugin" });
+  assert.equal(nativeDetails.nativeCause, "ECONNRESET"); assert.equal(nativeDetails.httpStatus, 503);
+  const live = new ProductionGptBrowserLifecycle(authority as never, logger("live-cache"), A, input);
+  const liveCall = await live.browserFor(sessionKey, original.productStepId, original.callId);
+  await live.recordConfirmedProviderEffect(liveCall, { exactCallIdentityHash: submit!.exactCallIdentityHash, childCapabilityId: "submit_exact_gpt_turn_once",
+    providerEffectIdentityHash: A, effectScope: "provider_effect", browserOutcome: "CONFIRMED", mutationOutcome: "confirmed",
+    terminalAt: outcome.terminalAt, evidenceRef: outcome.authorityRef, evidenceHash: B }, original, url, user);
+  const liveSession = new ProductionGptExecutionSession(input, live, evidence, new ProductionGptSourceReuse(input, evidence, authority as never), () => {},
+    async () => restored as never, async (_call, _recorder, recordIdentity) => { recordIdentity(original); return submit; }).createExecution();
+  await liveSession.tools.readConfirmedSubmit(submitCall); const liveAcquisitions = acquisitions;
+  await liveSession.tools.execute(textCall); assert.equal(liveCall.settledResultPayloadHash, digest(savedText)); assert.equal(acquisitions, liveAcquisitions);
+  await liveSession.tools.execute({ ...submitCall, sessionKey: "next-live", productStepId: "next-live", child: "prepare_clean_gpt_chat", input: { timeoutMs: 1_000 } });
+  await liveSession.settle(null);
   const missing = await execution.tools.execute({ ...textCall, callId: "text-checkpoint-missing", actionOrdinal: 3 });
   assert.equal(missing.value.semanticText, "first observed response"); assert.notEqual(missing.artifactRefs[0], textRef);
   assert.deepEqual([atomicReads, pageReads, appends], [1, 1, 1]);
@@ -113,13 +146,28 @@ try {
     deliveryPriorityReplayCalls: [{ productStepId: "other-step", callId: "other-submit", childCapabilityId: "submit_exact_gpt_turn_once", sourceEffectSetHash: A, callGrantHash: B }],
     sourceReusableCalls: [grant], recordSettledCheckpoint: checkpoint => { checkpoints.push(checkpoint); } });
   assert.equal((await reuse.tools.readConfirmedSubmit({ ...submitCall, input: { files: [], promptHash: newPrompt } }))?.value.promptHash, sourcePrompt);
-  assert.equal((await reuse.tools.execute(textCall)).artifactRefs[0], textRef); assert.deepEqual([sourceReads, sourceAcquisitions, checkpoints.length], [1, 0, 1]); await reuse.settle(null);
+  assert.equal((await reuse.tools.execute(textCall)).artifactRefs[0], textRef); assert.deepEqual([sourceReads, sourceAcquisitions, checkpoints.length], [1, 0, 1]);
+  assert.equal(executionFailureMetadata(reuse.decorateSettledResultFailure(new Error("SOURCE_SCHEMA_INVALID")))?.settledResultPayloadHash, digest(savedText));
+  assert.equal(executionFailureMetadata(reuse.decorateSettledResultFailure(new Error("SOURCE_SCHEMA_INVALID")))?.browserEffect?.providerEffectIdentityHash, sourceEffect);
+  await reuse.settle(null);
   const unavailable = new ProductionGptChildTools(join(root, "unavailable"), A, createGptAbilityGroup(), evidence,
     { ...authority, acquireJobBoundTargetLease: async () => { throw browserExecutionFailure(new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE")); } } as never,
     logger("unavailable"), control).createExecution(input);
-  await assert.rejects(unavailable.tools.readConfirmedSubmit(submitCall), (error: unknown) => { assert.equal(failureCode(error), "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
-    assert.equal(executionFailureMetadata(error)?.browserEffect?.providerEffectIdentityHash, A); return true; });
-  corrupt.add(textKey); await assert.rejects(execution.tools.execute(textCall), (error: unknown) => failureCode(error) === "EVIDENCE_ARTIFACT_READBACK_FAILED");
+  assert.equal((await unavailable.tools.readConfirmedSubmit(submitCall))?.value.userTurnId, user);
+  assert.equal((await unavailable.tools.execute(textCall)).artifactRefs[0], textRef);
+  assert.equal(failureCode(unavailable.decorateSettledResultFailure(new Error("AGENT_RESULT_SCHEMA_VERSION_INVALID"))), "RESULT_SETTLED_UNUSABLE");
+  for (const scope of [sessionKey, "different-session"]) {
+    await unavailable.tools.readConfirmedSubmit(submitCall); await unavailable.tools.execute(textCall);
+    await assert.rejects(unavailable.tools.execute({ ...submitCall, sessionKey: scope, productStepId: "next-turn", child: "prepare_clean_gpt_chat", input: { timeoutMs: 1_000 } }),
+      (error: unknown) => unavailable.decorateSettledResultFailure(error) === error);
+  }
+  corrupt.add(textKey); await assert.rejects(execution.tools.execute(textCall), (error: unknown) => {
+    const decorated = execution.decorateSettledResultFailure(error), facts = executionFailureMetadata(decorated);
+    assert.equal(failureCode(decorated), "EVIDENCE_ARTIFACT_READBACK_FAILED"); assert.equal(facts?.mutationOutcome, "confirmed");
+    assert.equal(facts?.browserEffect?.providerEffectIdentityHash, A); assert.equal(facts?.evidence?.evidenceHash, B);
+    assert.equal(facts?.settledResultPayloadHash, undefined);
+    assert.ok(runtimeLogCauseEventId(error)); assert.equal(runtimeLogCauseEventId(decorated), runtimeLogCauseEventId(error)); return true;
+  });
   assert.equal(pageReads, 1); assert.equal(appends, 1); await execution.settle(null);
   const imageCall = { ...textCall, callId: "image-checkpoint", child: "checkpoint_gpt_generated_image", actionOrdinal: 4,
     input: { ...textCall.input, turnMarker: "artifact-recovery-image" } } as const;
@@ -133,6 +181,11 @@ try {
   const imageEvidence = await readPersistedGptImageEvidence({ evidenceStore: evidence, jobId, attemptId, exactCallIdentityHash: imageExact });
   assert.equal(imageEvidence?.originalArtifactRef, image.artifactRefs[0]); assert.equal(imageEvidence?.binding.originalSha256, imageHash);
   const bindingKey = `gpt-call-artifact:v1:${imageExact}:source-binding`, binding = artifacts.get(bindingKey)!; assert.ok(binding);
+  const coldImage = imageTools.createExecution(input); await coldImage.tools.readConfirmedSubmit(submitCall);
+  const imageBefore = [acquisitions, imageReads, appends, selections, atomicReads];
+  assert.deepEqual((await coldImage.tools.execute(imageCall)).value.originalBytes, bytes);
+  assert.deepEqual([acquisitions, imageReads, appends, selections, atomicReads], imageBefore);
+  assert.equal(executionFailureMetadata(coldImage.decorateSettledResultFailure(new Error("IMAGE_SCHEMA_INVALID")))?.settledResultPayloadHash, imageHash);
   const real = createWorkbenchEvidenceStore(join(root, "forensics"), logger("forensics"));
   const realOriginal = await real.appendArtifact({ missionId: jobId, runId: attemptId, artifactType: "ai_raw_output", mimeType: "image/png", content: bytes,
     idempotencyKey: `gpt-call-artifact:v1:${imageExact}:original` }); assert.equal(realOriginal.status, "success");
@@ -140,9 +193,18 @@ try {
   assert.equal((await real.appendArtifact({ missionId: jobId, runId: attemptId, artifactType: "other", mimeType: "application/json", content: realBindingBytes, idempotencyKey: bindingKey })).status, "success");
   const realEvidence = await readPersistedGptImageEvidence({ evidenceStore: real, jobId, attemptId, exactCallIdentityHash: imageExact });
   assert.deepEqual(realEvidence?.originalBytes, bytes); assert.equal(realEvidence?.originalArtifactRef, realOriginal.artifactRef); assert.notEqual(realEvidence?.integrityHash, digest(realBindingBytes));
-  artifacts.delete(bindingKey); assert.equal(await readPersistedGptImageEvidence({ evidenceStore: evidence, jobId, attemptId, exactCallIdentityHash: imageExact }), null);
+  artifacts.delete(bindingKey);
+  await assert.rejects(coldImage.tools.execute(imageCall), (error: unknown) => {
+    const decorated = coldImage.decorateSettledResultFailure(error), facts = executionFailureMetadata(decorated);
+    assert.equal(failureCode(decorated), "GPT_GENERATED_IMAGE_TASK_ARTIFACT_INVALID"); assert.equal(facts?.mutationOutcome, "confirmed");
+    assert.equal(facts?.settledResultPayloadHash, undefined);
+    assert.ok(runtimeLogCauseEventId(error)); assert.equal(runtimeLogCauseEventId(decorated), runtimeLogCauseEventId(error)); return true;
+  });
+  assert.deepEqual([acquisitions, imageReads, appends, selections, atomicReads], imageBefore);
+  await assert.rejects(readPersistedGptImageEvidence({ evidenceStore: evidence, jobId, attemptId, exactCallIdentityHash: imageExact }),
+    (error: unknown) => failureCode(error) === "GPT_GENERATED_IMAGE_TASK_ARTIFACT_INVALID");
   await assert.rejects(imageTools.verifySourceCheckpointArtifact({ jobId, sourceAttemptId: attemptId, checkpointExactCallIdentityHash: imageExact,
-    artifactRef: imageEvidence!.artifactRef, artifactContentHash: imageEvidence!.integrityHash }), (error: unknown) => failureCode(error) === "PRODUCTION_SOURCE_CHECKPOINT_ARTIFACT_UNAVAILABLE");
+    artifactRef: imageEvidence!.artifactRef, artifactContentHash: imageEvidence!.integrityHash }), (error: unknown) => failureCode(error) === "GPT_GENERATED_IMAGE_TASK_ARTIFACT_INVALID");
   artifacts.set(bindingKey, binding); assert.equal(appends, 3);
   const imageReuse = new ProductionGptChildTools(join(root, "image-reuse"), A, createGptAbilityGroup(), evidence, sourceAuthority as never, logger("image-reuse"), control).createExecution({
     ...input, attemptId: "image-reuse-attempt", resultRevision: 1, leaseVersion: 2, sourceReuseZeroSubmitGrant: true, deliveryPriorityReplayCalls: [],
@@ -154,6 +216,15 @@ try {
   assert.deepEqual([sourceReads, sourceAcquisitions], [1, 0]);
   assert.equal((await imageReuse.tools.readConfirmedSubmit({ ...submitCall, input: { files: [], promptHash: newPrompt } }))?.value.promptHash, sourcePrompt);
   const restoredImage = await imageReuse.tools.execute(imageCall); assert.deepEqual(restoredImage.value.originalBytes, bytes); assert.equal(restoredImage.artifactRefs[0], image.artifactRefs[0]);
-  assert.deepEqual([sourceReads, sourceAcquisitions, checkpoints.length], [2, 0, 2]); await imageReuse.settle(null); await imageExecution.settle(null);
+  assert.deepEqual([sourceReads, sourceAcquisitions, checkpoints.length], [2, 0, 2]);
+  assert.equal(executionFailureMetadata(imageReuse.decorateSettledResultFailure(new Error("SOURCE_IMAGE_SCHEMA_INVALID")))?.settledResultPayloadHash, imageHash);
+  await assert.rejects(imageReuse.tools.execute({ ...submitCall, sessionKey: "next-source", productStepId: "next-source", child: "prepare_clean_gpt_chat", input: { timeoutMs: 1_000 } }),
+    (error: unknown) => { assert.equal(failureCode(error), "PRODUCTION_SOURCE_REUSE_IDENTITY_MISMATCH"); return imageReuse.decorateSettledResultFailure(error) === error; });
+  const abort = new AbortController(), aborted = imageTools.createExecution({ ...input, abortSignal: abort.signal });
+  await aborted.tools.readConfirmedSubmit(submitCall); await aborted.tools.execute(imageCall); abort.abort("NEXT_TURN_ABORTED");
+  await assert.rejects(aborted.tools.execute({ ...submitCall, child: "prepare_clean_gpt_chat", input: { timeoutMs: 1_000 } }),
+    (error: unknown) => { assert.equal(failureCode(error), "NEXT_TURN_ABORTED"); return aborted.decorateSettledResultFailure(error) === error; });
+  await aborted.settle(null);
+  await imageReuse.settle(null); await imageExecution.settle(null); await coldImage.settle(null);
   assert.ok(acquisitions > 0);
 } finally { await rm(root, { recursive: true, force: true }); }

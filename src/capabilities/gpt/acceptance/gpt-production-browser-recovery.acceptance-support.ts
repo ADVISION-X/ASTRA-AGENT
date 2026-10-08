@@ -39,6 +39,13 @@ const verifySecondConfirmedReadback = async (
     "a second confirmed effect in the same Product session must select its own WAL URL");
   assert.deepEqual(selectedUrls, [firstUrl, secondUrl]);
   lifecycle.recordSettledResult(second, HASH_B);
+  await lifecycle.recordConfirmedProviderEffect(second, {
+    ...second.confirmedProviderEffect!, providerEffectIdentityHash: HASH_A,
+  }, { ...second.confirmedProviderEffect!.submitIdentity, callId: "third-submit" }, secondUrl, "00000000-0000-4000-8000-000000000002");
+  assert.throws(() => lifecycle.assertProviderTurnSettled(), /GPT_BROWSER_SESSION_TRANSITION_UNSETTLED/u,
+    "recording a new same-session effect cannot borrow the previous settled hash");
+  lifecycle.recordSettledResult(second, HASH_A);
+  assert.doesNotThrow(() => lifecycle.assertProviderTurnSettled());
   await lifecycle.settle(null);
 };
 

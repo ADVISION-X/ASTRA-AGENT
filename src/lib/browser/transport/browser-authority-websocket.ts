@@ -103,7 +103,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
         try { this.revoke(active.socket, "BROWSER_COMMAND_RECEIPT_MISSING"); }
         catch (cause) { reject(new Error("BROWSER_COMMAND_RECEIPT_MISSING", { cause })); return; }
         reject(new Error("BROWSER_COMMAND_RECEIPT_MISSING"));
-      }, budget + (onDispatched === undefined ? 0 : MUTATION_TERMINAL_REPLY_GRACE_MS));
+      }, budget + (permit.mutationClass === "mutation" ? MUTATION_TERMINAL_REPLY_GRACE_MS : 0));
       const replies = new Map(active.replies);
       replies.set(sequence, { permit, command, receiptBindingHash, targetRef: permit.targetRef,
         replyChannelToken: permit.replyChannelToken, permitSequence: permit.sequence, diagnostic: null, resolve, reject, timeout });

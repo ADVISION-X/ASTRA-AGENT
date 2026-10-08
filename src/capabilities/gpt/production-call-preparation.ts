@@ -5,7 +5,7 @@ import type {
   GptChildCapabilityIntent,
 } from "./contract.js";
 import { gptExactCallIdentityHash } from "./contract.js";
-import { readPersistedGptTextResponse } from "./evidence-artifacts.js";
+import { imageResponseFromEvidence, readPersistedGptImageEvidence, readPersistedGptTextResponse } from "./evidence-artifacts.js";
 import type { ProductGptCallInput, ProductGptChildResult } from "./product-api.js";
 import {
   executeProductionGptAtomicCall, type ProductionGptAtomicCallResult,
@@ -15,46 +15,52 @@ import type {
 } from "./production-browser-lifecycle.js";
 import type { BrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
 import type { GptProductionExecutionInput as ExecutionInput } from "./production-ports.js";
-import { productChildResult, recordSettledProviderResult } from "./production-child-result.js";
+import { productChildResult } from "./production-child-result.js";
 
 export const acquireProductionBrowserCall = async (
   browsers: ProductionGptBrowserLifecycle,
   call: ProductGptCallInput<GptChildCapabilityId> & Readonly<{ sessionKey: string }>,
   requiredTargetKind: "chatgpt" | "none",
   priorEffectKnown: boolean,
+  confirmedSubmission?: ProductionGptBrowserCall["confirmedProviderEffect"],
 ): Promise<ProductionGptBrowserCall | undefined> => {
   if (requiredTargetKind !== "chatgpt") return undefined;
+  if (confirmedSubmission) {
+    const active = await browsers.browserForConfirmedReadback(call.sessionKey, call.productStepId, call.callId,
+      confirmedSubmission.providerEffectIdentityHash!);
+    await browsers.recordConfirmedProviderEffect(active, confirmedSubmission, confirmedSubmission.submitIdentity,
+      confirmedSubmission.canonicalConversationUrl, confirmedSubmission.userTurnId);
+    return active;
+  }
   return priorEffectKnown && call.child === "acknowledge_known_gpt_rate_limit"
     ? await browsers.browserForRateLimitRecovery(call.sessionKey, call.productStepId, call.callId)
     : await browsers.browserFor(call.sessionKey, call.productStepId, call.callId);
 };
 
-export const recoverPersistedTextCheckpoint = async <K extends GptChildCapabilityId>(input: Readonly<{
+export const recoverPersistedCheckpoint = async <K extends GptChildCapabilityId>(input: Readonly<{
   evidenceStore: Parameters<typeof readPersistedGptTextResponse>[0]["evidenceStore"];
-  execution: ExecutionInput;
-  intent: GptChildCapabilityIntent<K>;
-  call: ProductGptCallInput<K>;
-  browsers: ProductionGptBrowserLifecycle;
-  browserCall: ProductionGptBrowserCall | undefined;
-  span: RuntimeSpanHandle;
+  execution: ExecutionInput; intent: GptChildCapabilityIntent<K>; call: ProductGptCallInput<K>; span: RuntimeSpanHandle;
 }>): Promise<ProductGptChildResult<K> | null> => {
-  if (input.call.child !== "checkpoint_gpt_text_response"
-    || !input.browserCall?.confirmedProviderEffect) return null;
-  const recovered = await readPersistedGptTextResponse({ evidenceStore: input.evidenceStore,
-    jobId: input.execution.jobId, attemptId: input.execution.attemptId,
-    exactCallIdentityHash: gptExactCallIdentityHash(input.intent) });
+  if (input.call.child !== "checkpoint_gpt_text_response" && input.call.child !== "checkpoint_gpt_generated_image") return null;
+  const identity = { evidenceStore: input.evidenceStore, jobId: input.execution.jobId, attemptId: input.execution.attemptId,
+    exactCallIdentityHash: gptExactCallIdentityHash(input.intent) };
+  const image = input.call.child === "checkpoint_gpt_generated_image" ? await readPersistedGptImageEvidence(identity) : null;
+  const text = input.call.child === "checkpoint_gpt_text_response" ? await readPersistedGptTextResponse(identity) : null;
+  const recovered = image ?? text;
   if (!recovered) return null;
-  recordSettledProviderResult(input.call, recovered.value, input.browsers, input.browserCall);
+  const value = image ? imageResponseFromEvidence(image, input.call.input as Readonly<{
+    canonicalConversationUrl: string; userTurnId: string; turnMarker: string;
+  }>) : text!.value;
   requireRuntimeLogWrite(input.span.terminal({ outcome: "succeeded" }));
-  return productChildResult({ execution: input.execution, intent: input.intent,
-    value: recovered.value, browserFact: null, evidenceRef: recovered.artifactRef,
-    evidenceHash: recovered.integrityHash, artifactRefs: Object.freeze([recovered.artifactRef]) });
+  return productChildResult({ execution: input.execution, intent: input.intent, value,
+    browserFact: null, evidenceRef: recovered.artifactRef, evidenceHash: recovered.integrityHash,
+    artifactRefs: Object.freeze([image?.originalArtifactRef ?? recovered.artifactRef]) });
 };
-
 export const runProductionAtomicPhase = async (input: Readonly<{
   dataDir: string; gpt: GptAbilityGroup; browsers: ProductionGptBrowserLifecycle;
   intent: GptAnyChildCapabilityIntent; browserCall: ProductionGptBrowserCall | undefined;
   signal: AbortSignal; resultRevision: number; childCapabilityId: GptChildCapabilityId;
+  confirmedProviderEffectReadback?: import("./contract.js").GptExecutionContext["confirmedProviderEffectReadback"];
   browserAtomicIdentity?: BrowserAtomicStepIdentity;
   assertProviderInputAllowed: () => void; rateLimitAckDispatchNotAfter?: number;
   recordConfirmedProviderEffectReadback?: NonNullable<
@@ -63,6 +69,7 @@ export const runProductionAtomicPhase = async (input: Readonly<{
 }>): Promise<ProductionGptAtomicCallResult> => executeProductionGptAtomicCall({
   dataDir: input.dataDir, gpt: input.gpt, browsers: input.browsers, intent: input.intent,
   browserCall: input.browserCall, signal: input.signal, resultRevision: input.resultRevision,
+  ...(input.confirmedProviderEffectReadback ? { confirmedProviderEffectReadback: input.confirmedProviderEffectReadback } : {}),
   ...(input.browserAtomicIdentity ? { browserAtomicIdentity: input.browserAtomicIdentity } : {}),
   ...(input.childCapabilityId === "submit_exact_gpt_turn_once"
     ? { assertProviderInputAllowed: input.assertProviderInputAllowed } : {}),

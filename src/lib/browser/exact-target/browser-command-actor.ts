@@ -96,7 +96,7 @@ const gptDialogPreflightFailure = (value: unknown, code: Exclude<BrowserPrefligh
 export class BrowserCommandActor {
   public constructor(private readonly budget: BrowserCommandAdmissionBudget, private readonly port: BrowserCommandPort,
     private readonly mutations: BrowserMutationStore, private readonly authorityGuard: BrowserCommandAuthorityGuard,
-    private readonly runtimeLogger: RuntimeLogger) {}
+    private readonly runtimeLogger: RuntimeLogger, private readonly onProviderObservationTerminal?: () => void) {}
   public pendingMutationCommandIds(binding: BrowserExecutionBinding): readonly string[] {
     return this.mutations.dispatchedForBinding({ jobId: binding.jobId, attemptId: binding.attemptId,
       leaseVersion: binding.leaseVersion, executionFenceHash: binding.writerFenceHash });
@@ -110,6 +110,9 @@ export class BrowserCommandActor {
   }
   public async execute(permit: BrowserCommandPermit, command: BrowserGovernedCommand): Promise<unknown> {
     const span = startBrowserCommandSpan(this.runtimeLogger, permit), mutation = isMutation(command);
+    const observation = command.kind === "authenticated-media"
+      || command.kind === "dom-intent" && command.intent.kind === "readExactAssistantTurn";
+    let observationDispatched = false;
     const state: BrowserCommandExecutionState = { budgetEntered: false, prepared: false, dispatched: false, terminalized: false };
     try {
       assertValidCommandPermit(permit); if (command.kind === "dom-intent") assertBrowserDomIntent(command.intent);
@@ -117,10 +120,13 @@ export class BrowserCommandActor {
       this.budget.enter(); state.budgetEntered = true;
       if (mutation) this.prepareMutation(permit, command, state);
       const bindingHash = mutation ? hashValue(browserMutationReceiptBindingProjection(this.mutations.readCommand(permit.commandId)!.identity)) : null;
-      const reply = await this.port.send(permit, command, mutation ? () => {
-        this.mutations.markDispatched(permit.commandId); state.dispatched = true;
-        emitBrowserMutationEvent({ runtimeLogger: this.runtimeLogger, mutation: permit, outcome: "DISPATCHED",
-          authorityHash: this.mutations.authorityHash(permit.commandId) });
+      const reply = await this.port.send(permit, command, mutation || observation ? () => {
+        if (observation) observationDispatched = true;
+        if (mutation) {
+          this.mutations.markDispatched(permit.commandId); state.dispatched = true;
+          emitBrowserMutationEvent({ runtimeLogger: this.runtimeLogger, mutation: permit, outcome: "DISPATCHED",
+            authorityHash: this.mutations.authorityHash(permit.commandId) });
+        }
       } : undefined, bindingHash);
       if (reply.replyChannelToken !== permit.replyChannelToken || reply.permitSequence !== permit.sequence) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
       if (mutation) this.completeMutation(permit, command, reply, span, state);
@@ -130,8 +136,12 @@ export class BrowserCommandActor {
       const result = bindExactAssistantTurnReply(permit, command, bindBrowserCommandObservationPacket(permit, command, preflight.commandResult));
       completeBrowserCommandSpan({ span }); state.terminalized = true; return result;
     } catch (error) { return this.failExecution(permit, command, span, mutation, state, error); }
-    finally { if (state.budgetEntered) this.budget.leave(); }
+    finally {
+      if (state.budgetEntered) this.budget.leave();
+      if (observationDispatched) this.onProviderObservationTerminal?.();
+    }
   }
+
   private prepareMutation(permit: BrowserCommandPermit, command: BrowserGovernedCommand, state: BrowserCommandExecutionState): void {
     this.mutations.prepare(mutationIdentity(permit, command)); state.prepared = true;
     emitBrowserMutationEvent({ runtimeLogger: this.runtimeLogger, mutation: permit, outcome: "PREPARED", authorityHash: this.mutations.authorityHash(permit.commandId) });

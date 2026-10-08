@@ -42,7 +42,7 @@ export const recordConfirmedSubmission = async (call: ProductGptCallInput<GptChi
   }
   const value = result.value as Readonly<Record<string, unknown>>;
   if (typeof value.canonicalConversationUrl !== "string" || typeof value.userTurnId !== "string") throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
-  if (!browserCall) throw executionFailure("failed", "GPT_BROWSER_REQUIRED");
+  if (!browserCall) return;
   await browsers.recordConfirmedProviderEffect(browserCall, effect, browserAtomicIdentity ?? productionGptAtomicIdentity(intent, execution.resultRevision),
     value.canonicalConversationUrl, value.userTurnId);
 };

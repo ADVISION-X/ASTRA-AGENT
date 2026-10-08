@@ -4,6 +4,7 @@ import { verifyBrowserMutationTerminalFact } from "./browser-mutation-receipt.js
 import { unsealProviderRecoveryPayload } from "./browser-mutation-payload.js";
 import Database from "better-sqlite3";
 import { BrowserMutationEvidence } from "./browser-mutation-evidence.js";
+import { executionFailure, failureCode } from "../../execution-failure.js";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -217,8 +218,27 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
       || mutation.childCapabilityId !== input.childCapabilityId) {
       throw new Error("BROWSER_PROVIDER_EFFECT_FACT_INVALID");
     }
+    try {
+    const confirmedOutcome = mutation.outcome === "CONFIRMED" ? this.readAtomicStepOutcome({
+      jobId: input.jobId, attemptId: row.attempt_id, exactCallIdentityHash: row.exact_call_identity_hash,
+      actionOrdinal: row.action_ordinal, targetRef: mutation.targetRef, effectScope: "provider_effect",
+    }) : null;
+    if (mutation.outcome === "CONFIRMED" && (!confirmedOutcome || confirmedOutcome.state !== "confirmed"
+      || confirmedOutcome.mutationOutcome !== mutation.mutationOutcome || confirmedOutcome.physicalInputCount !== mutation.physicalInputCount
+      || confirmedOutcome.physicalInputCount !== 1 || confirmedOutcome.terminalAt !== mutation.terminalAt
+      || confirmedOutcome.providerEffectIdentityHash !== mutation.providerEffectIdentityHash
+      || confirmedOutcome.authorityRef !== mutation.authorityRef || confirmedOutcome.authorityHash !== mutation.authorityHash
+      || confirmedOutcome.terminalPayload == null)) throw new Error("BROWSER_PROVIDER_EFFECT_FACT_INVALID");
     return Object.freeze({ exactCallIdentityHash: row.exact_call_identity_hash,
-      inputHash: row.request_hash, mutation });
+      inputHash: row.request_hash, mutation, confirmedOutcome });
+    } catch (error) {
+      throw executionFailure("failed", failureCode(error, error instanceof Error ? error.message : "BROWSER_PROVIDER_EFFECT_FACT_INVALID"), {
+        cause: error, metadata: { mutationOutcome: mutation.mutationOutcome,
+          evidence: { evidenceRef: mutation.authorityRef, evidenceHash: mutation.authorityHash },
+          browserEffect: { effectScope: mutation.effectScope, childCapabilityId: mutation.childCapabilityId,
+            browserOutcome: mutation.outcome, providerEffectIdentityHash: mutation.providerEffectIdentityHash } },
+      });
+    }
   }
 
   public readConfirmedRateLimitAcknowledgement(input: Readonly<{

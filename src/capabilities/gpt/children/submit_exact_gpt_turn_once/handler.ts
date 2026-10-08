@@ -1,6 +1,5 @@
 import { executionFailure } from "../../../../lib/execution-failure.js";
 import type { BrowserDomObservationQuery } from "../../../../lib/browser/browser-authority-api.js";
-import { gptCanonicalHash } from "../../contract.js";
 import { gptExecutionFailure } from "../../execution-fault.js";
 import { declaredFacts, projectBrowserFact, requireBrowser, requireExactInputKeys, success,
   type GptChildHandler } from "../../web/child-handler.js";
@@ -18,16 +17,14 @@ const submittedQueries = Object.freeze([
 ] satisfies readonly BrowserDomObservationQuery[]);
 const recoveredResult = (context: SubmitContext, projected: NonNullable<ReturnType<typeof projectBrowserFact>>) => {
   const recovered = context.confirmedProviderEffectReadback!, { fact, outcome } = projected;
-  if (fact.browserOutcome !== "CONFIRMED" || fact.mutationOutcome !== "confirmed" || outcome.physicalInputCount !== 1
-    || Object.entries({ authorityRef: fact.evidenceRef, authorityHash: fact.evidenceHash, terminalAt: fact.terminalAt,
-      providerEffectIdentityHash: fact.providerEffectIdentityHash, mutationOutcome: fact.mutationOutcome })
-      .some(([key, value]) => recovered[key as keyof typeof recovered] !== value)
-    || gptCanonicalHash(outcome.terminalPayload) !== gptCanonicalHash(recovered.terminalPayload)) {
+  if (recovered.outcome !== outcome || fact.browserOutcome !== "CONFIRMED"
+    || fact.mutationOutcome !== "confirmed" || outcome.physicalInputCount !== 1) {
     throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
   }
-  const raw = recovered.terminalPayload;
+  const raw = outcome.terminalPayload;
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw executionFailure("failed", "GPT_SUBMIT_BROWSER_RECEIPT_INVALID");
   const row = raw as Readonly<Record<string, unknown>>;
+  if (row.exactCallIdentityHash !== recovered.exactCallIdentityHash) throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
   if (typeof row.userTurnId !== "string" || !UUID.test(row.userTurnId) || row.rawCount !== 1 || row.eligibleCount !== 1
     || ["promptHash", "exactCallIdentityHash", "observationRevisionHash", "targetRefHash", "documentRefHash"]
       .some(key => typeof row[key] !== "string" || !HASH.test(row[key] as string))) throw executionFailure("failed", "GPT_SUBMIT_BROWSER_RECEIPT_INVALID");

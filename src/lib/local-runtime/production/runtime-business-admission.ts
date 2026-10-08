@@ -3,7 +3,6 @@ import { lstat, rm } from "node:fs/promises";
 
 import { executionFailure } from "../../execution-failure.js";
 import { failureCode } from "../../execution-failure.js";
-import { RuntimeFailureImpact, requireRuntimeLogWrite, runtimeFailureFromError } from "../../runtime-logs/index.js";
 import { hashCanonical } from "./contracts.js";
 import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import type { RuntimeState } from "./runtime-state.js";
@@ -111,28 +110,5 @@ export const reconcileBusinessAdmission = async (
     state.lastErrorReason = "Website admission is authoritative; local artifact receipt reconciliation remains pending.";
   }
   state.store.completeTask(record.task.job_id, staged);
-  try {
-    await state.browserAuthority.releaseJobBoundTarget(
-      record.task.job_id, "business-admitted", state.abort.signal,
-    );
-    state.store.settleBrowserCleanup(record.task.job_id);
-  } catch (error) {
-    state.lastErrorCode = failureCode(error, "BROWSER_ADMISSION_CLEANUP_FAILED");
-    state.lastErrorReason = "Business result was admitted; Browser Target cleanup remains pending.";
-    try {
-      requireRuntimeLogWrite(state.runtimeLogger.emitError({
-        traceId: record.task.job_id,
-        owner: "browser-session", component: "business-admission-cleanup",
-        operation: "browser.infrastructure",
-        typedIdentity: { kind: "job", jobId: record.task.job_id },
-        failure: runtimeFailureFromError({ error,
-          code: state.lastErrorCode, responsibleOwner: "browser-session",
-          impact: RuntimeFailureImpact.CLEANUP }),
-      }));
-    } catch (logError) {
-      state.lastErrorCode = failureCode(logError, "BROWSER_ADMISSION_CLEANUP_LOG_FAILED");
-      state.lastErrorReason = "Business result was admitted; Browser cleanup and its diagnostic log remain pending.";
-    }
-  }
   return "completed";
 };

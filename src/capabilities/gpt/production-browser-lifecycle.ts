@@ -14,7 +14,7 @@ import type {
 } from "../../lib/browser/browser-authority-api.js";
 import { assertBrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
 import { requireRuntimeLogWrite, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
-import { executionFailure, typedExecutionFailure } from "../../lib/execution-failure.js";
+import { executionFailure } from "../../lib/execution-failure.js";
 import type { GptProductionExecutionInput } from "./production-ports.js";
 
 type GptBrowserLeaseAuthority = Readonly<{
@@ -98,8 +98,9 @@ export class ProductionGptBrowserLifecycle {
     sessionKey: string,
     productStepId: string,
     callId: string,
+    expectedProviderEffectIdentityHash?: GptHash,
   ): Promise<ProductionGptBrowserCall> {
-    return this.browserForMode(sessionKey, productStepId, callId, "confirmed-readback");
+    return this.browserForMode(sessionKey, productStepId, callId, "confirmed-readback", expectedProviderEffectIdentityHash);
   }
 
   public async browserForRateLimitRecovery(
@@ -115,11 +116,13 @@ export class ProductionGptBrowserLifecycle {
     productStepId: string,
     callId: string,
     targetMode: "fresh" | "authorized-continuation" | "confirmed-readback" | "bound-observation",
+    expectedProviderEffectIdentityHash?: GptHash,
   ): Promise<ProductionGptBrowserCall> {
     if (!sessionKey) throw executionFailure("failed", "GPT_SESSION_KEY_REQUIRED");
     if (this.activeBrowser?.sessionKey === sessionKey) {
       const active = this.activeBrowser.call;
-      if (targetMode === "confirmed-readback" && active.confirmedProviderEffect) {
+      if (targetMode === "confirmed-readback" && active.confirmedProviderEffect
+        && active.confirmedProviderEffect.providerEffectIdentityHash !== expectedProviderEffectIdentityHash) {
         if (!active.settledResultPayloadHash) {
           throw executionFailure("failed", "GPT_BROWSER_SESSION_TRANSITION_UNSETTLED");
         }
@@ -185,6 +188,9 @@ export class ProductionGptBrowserLifecycle {
     canonicalConversationUrl: string,
     userTurnId: string,
   ): Promise<void> {
+    if (active.confirmedProviderEffect?.providerEffectIdentityHash !== effect.providerEffectIdentityHash) {
+      active.settledResultPayloadHash = null;
+    }
     active.confirmedProviderEffect = Object.freeze({ ...effect, submitIdentity,
       canonicalConversationUrl, userTurnId });
     if (active.recoverySelectionRequired) {
@@ -195,28 +201,22 @@ export class ProductionGptBrowserLifecycle {
     }
   }
 
-  public recordSettledResult(active: ProductionGptBrowserCall, payloadHash: GptHash): void {
+  public recordSettledResult(activeOrEffect: ProductionGptBrowserCall | GptHash, payloadHash: GptHash): void {
+    const active = typeof activeOrEffect === "string"
+      ? this.activeBrowser?.call.confirmedProviderEffect?.providerEffectIdentityHash === activeOrEffect
+        ? this.activeBrowser.call : null : activeOrEffect;
+    if (!active) return;
     if (!active.confirmedProviderEffect) {
       throw executionFailure("failed", "GPT_SETTLED_PROVIDER_EFFECT_MISSING");
     }
     active.settledResultPayloadHash = payloadHash;
   }
 
-  public decorateSettledResultFailure(error: unknown): unknown {
-    const typed = typedExecutionFailure(error);
-    if (typed?.code === "RESULT_SETTLED_UNUSABLE") return error;
-    const call = this.activeBrowser?.call;
-    if (!call?.confirmedProviderEffect || !call.settledResultPayloadHash) return error;
-    const effect = call.confirmedProviderEffect!;
-    return executionFailure("failed", "RESULT_SETTLED_UNUSABLE", {
-      cause: typed ? new Error(typed.code) : error,
-      metadata: {
-        mutationOutcome: "confirmed",
-        evidence: { evidenceRef: effect.evidenceRef, evidenceHash: effect.evidenceHash },
-        browserEffect: effect,
-        settledResultPayloadHash: call.settledResultPayloadHash!,
-      },
-    });
+  public assertProviderTurnSettled(): void {
+    const active = this.activeBrowser?.call;
+    if (active?.confirmedProviderEffect && !active.settledResultPayloadHash) {
+      throw executionFailure("failed", "GPT_BROWSER_SESSION_TRANSITION_UNSETTLED");
+    }
   }
 
   public async waitForProviderObservation(

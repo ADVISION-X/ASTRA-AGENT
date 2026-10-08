@@ -6,8 +6,6 @@ import path from "node:path";
 import { ProductionGptBrowserLifecycle } from "../production-browser-lifecycle.js";
 import type { BrowserAtomicStepIdentity } from "../../../lib/browser/browser-authority-api.js";
 import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
-import { serializeTerminalFailure } from "../../../lib/local-runtime/production/terminal-failure.js";
-import { executionFailure } from "../../../lib/execution-failure.js";
 import { HASH_A, HASH_B } from "../../../../scripts/acceptance/agent-production-runtime-fixtures.js";
 
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-provider-wait-progress-"));
@@ -191,18 +189,6 @@ try {
   assert.deepEqual([acquisitions, selections, parks], [5, 4, 4],
     "a later Provider turn must not acquire Browser while the current result is unsettled");
   lifecycle.recordSettledResult(active, HASH_B);
-  const settledFailure = serializeTerminalFailure(
-    lifecycle.decorateSettledResultFailure(new Error("AGENT_RESULT_SCHEMA_VERSION_INVALID")),
-  );
-  assert.equal(settledFailure.code, "RESULT_SETTLED_UNUSABLE");
-  assert.equal(settledFailure.cause?.code, "AGENT_RESULT_SCHEMA_VERSION_INVALID",
-    "the Website-facing settled-result classification must retain the atomic parser cause");
-  const typedSettledFailure = serializeTerminalFailure(lifecycle.decorateSettledResultFailure(
-    executionFailure("failed", "LOCALIZATION_STATIC_SELECTOR_SELECTION_INVALID"),
-  ));
-  assert.equal(typedSettledFailure.code, "RESULT_SETTLED_UNUSABLE",
-    "a typed Product rejection after a settled GPT answer must remain Website-revision eligible");
-  assert.equal(typedSettledFailure.cause?.code, "LOCALIZATION_STATIC_SELECTOR_SELECTION_INVALID");
   const next = await lifecycle.browserFor("session:next", "research-next", "text-next");
   assert.notEqual(next, active);
   assert.equal(await lifecycle.browserFor(
@@ -213,10 +199,7 @@ try {
   assert.deepEqual(lifecycleEvents,
     ["acquire", "park", "acquire", "park", "acquire", "park", "acquire", "park", "acquire", "park", "acquire"],
     "the next Provider turn must acquire only after the settled prior turn releases Browser");
-  const nextFailure = new Error("NEXT_PROVIDER_TURN_FAILED");
-  assert.equal(lifecycle.decorateSettledResultFailure(nextFailure), nextFailure,
-    "the prior settled result must not classify failures from the newly active Provider turn");
-  await lifecycle.settle(nextFailure);
+  await lifecycle.settle(new Error("NEXT_PROVIDER_TURN_FAILED"));
   assert.deepEqual([acquisitions, selections, parks], [6, 4, 6],
     "failed product settlement must park the active lease without closing the system Tab");
   await lifecycle.browserFor("session:final", "research-final", "text-final");

@@ -233,6 +233,24 @@ export const handleRuntimeBoundaryFailure = async (input: Readonly<{
   }
 };
 
+const sendStagedTerminal = async (input: Readonly<{ state: RuntimeState; job: ClaimedProductionTask;
+  jobSpan: RuntimeSpanHandle; terminalIntent: ReturnType<typeof buildTerminalProductionIntent> }>): Promise<void> => {
+  try {
+    const span = requireRuntimeLogWrite(input.state.runtimeLogger.startSpan({
+      traceId: input.job.job_id, parentSpanId: input.jobSpan.spanId, boundaryId: input.job.grant.claim_batch_id,
+      owner: "production-runtime", component: "production-runtime", operation: "job.terminal", typedIdentity: jobIdentity(input.job),
+    }));
+    await runRuntimeSpan({ span, failureCode: "JOB_TERMINAL_FAILED", action: async () => {
+      await deliverTerminalProductionIntent(input.state.session, input.state.store, input.terminalIntent);
+      const current = input.state.store.readTask(input.job.job_id)!;
+      if (current.status !== "completed") input.state.store.setCurrentReason(input.job.job_id, "BUSINESS_ADMISSION_PENDING");
+      return input.state.store.readTask(input.job.job_id)!;
+    }, success: record => ({ authorityRef: `production-task:${input.job.job_id}`, authorityHash: hashCanonical(record) }) });
+  } catch (error) {
+    input.state.lastErrorCode = failureCode(error, "JOB_TERMINAL_FAILED"); input.state.lastErrorReason = safeReason(error);
+  }
+};
+
 export const executeAndUpload = async (input: Readonly<{
   state: RuntimeState;
   job: ClaimedProductionTask;
@@ -277,6 +295,7 @@ export const executeAndUpload = async (input: Readonly<{
           if (isResultTransportBoundary(error)) uploadBoundaryFailure = error;
           throw error;
         }
+        await sendStagedTerminal({ state: input.state, job: input.job, jobSpan: input.jobSpan, terminalIntent });
         return uploaded.envelope;
         },
         async (artifact) => {
@@ -290,12 +309,12 @@ export const executeAndUpload = async (input: Readonly<{
     });
   } catch (error) {
     const durable = input.state.store.readTask(input.job.job_id);
-    if (uploaded && terminalIntent && durable?.staged_result
-      && durable.current_attempt_id === input.job.grant.attempt_id
-      && hashCanonical(durable.staged_result) === hashCanonical(uploaded.envelope)
-      && input.state.store.readOutboxAuthority(terminalIntent.requestId)) {
-      execution = { record: durable, result: durable.staged_result,
-        providerEffectReadbackProof: null };
+    const result = durable?.staged_result ?? (durable?.status === "completed" ? durable.result : null);
+    const authority = terminalIntent ? input.state.store.readOutboxAuthority(terminalIntent.requestId) : null;
+    if (uploaded && terminalIntent && durable && result && authority?.jobId === input.job.job_id
+      && durable.task.request_hash === input.task.request_hash && durable.current_attempt_id === input.job.grant.attempt_id
+      && hashCanonical(result) === hashCanonical(uploaded.envelope)) {
+      execution = { record: durable, result, providerEffectReadbackProof: null };
     } else {
     if (uploadBoundaryFailure !== undefined) {
       throw new ProductionRuntimeBoundaryError(uploadBoundaryFailure);
@@ -316,24 +335,10 @@ export const completeClaim = async (input: Readonly<{
   materialDir: string;
   jobSpan: RuntimeSpanHandle;
 }>): Promise<void> => {
-  const span = requireRuntimeLogWrite(input.state.runtimeLogger.startSpan({
-    traceId: input.job.job_id, parentSpanId: input.jobSpan.spanId, boundaryId: input.job.grant.claim_batch_id,
-    owner: "production-runtime", component: "production-runtime", operation: "job.terminal",
-    typedIdentity: jobIdentity(input.job),
-  }));
-  await runRuntimeSpan({
-    span, failureCode: "JOB_TERMINAL_FAILED", action: async () => {
-      await deliverTerminalProductionIntent(
-        input.state.session, input.state.store, input.terminalIntent,
-      );
-      input.state.store.setCurrentReason(input.job.job_id, "BUSINESS_ADMISSION_PENDING");
-      return input.state.store.readTask(input.job.job_id)!;
-    },
-    success: (record) => ({
-      authorityRef: `production-task:${input.job.job_id}`, authorityHash: hashCanonical(record),
-    }),
-  });
   const record = input.state.store.readTask(input.job.job_id)!;
+  const result = record.staged_result ?? (record.status === "completed" ? record.result : null);
+  if (record.current_attempt_id !== input.job.grant.attempt_id || !result
+    || hashCanonical(result) !== hashCanonical(input.uploaded.envelope)) throw executionFailure("failed", "PRODUCTION_TASK_COMPLETION_CONFLICT");
   await reconcileBusinessAdmission(input.state, record);
   const current = input.state.store.readTask(input.job.job_id)!;
   requireRuntimeLogWrite(input.jobSpan.terminal({

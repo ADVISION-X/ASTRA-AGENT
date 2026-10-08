@@ -278,8 +278,8 @@ export abstract class ProductionStoreOutbox extends ProductionStoreCooldown {
       }
       if (existing.headers_json !== headers && !existing.sent_at
         && existing.last_error !== "WEBSITE_ATTEMPT_REPLACED") {
-        this.database.prepare(`update production_outbox set headers_json=?,last_error=null
-          where idempotency_key=? and sent_at is null`).run(headers, write.idempotency_key);
+        this.database.prepare(`update production_outbox set headers_json=?,last_error=?
+          where idempotency_key=? and sent_at is null`).run(headers, this.admittedMarkerFor(write.idempotency_key), write.idempotency_key);
       }
       return;
     }
@@ -313,9 +313,9 @@ export abstract class ProductionStoreOutbox extends ProductionStoreCooldown {
         return;
       }
       this.database.prepare(`update production_outbox set response_json=?,response_hash=?,receipt_hash=?,
-        sent_at=?,last_error=null
+        sent_at=?,last_error=?
         where idempotency_key=? and sent_at is null`
-      ).run(responseJson, responseHash, receiptHash, now(), idempotencyKey);
+      ).run(responseJson, responseHash, receiptHash, now(), this.admittedMarkerFor(idempotencyKey), idempotencyKey);
     });
     transaction();
     this.notifyOutbox(this.readOutboxAuthority(idempotencyKey));
@@ -357,9 +357,9 @@ export abstract class ProductionStoreOutbox extends ProductionStoreCooldown {
     }
     assertHydratedReceipt(local, receipt.response_json);
     this.database.prepare(`update production_outbox set response_json=?,response_hash=?,receipt_hash=?,
-      sent_at=coalesce(sent_at,?),last_error=null
+      sent_at=coalesce(sent_at,?),last_error=?
       where idempotency_key=? and response_hash is null`).run(
-      responseJson, responseHash, receiptHashOf(receipt.response_json), now(), receipt.request_id,
+      responseJson, responseHash, receiptHashOf(receipt.response_json), now(), this.admittedMarkerFor(receipt.request_id), receipt.request_id,
     );
     return true;
   }
@@ -388,11 +388,26 @@ export abstract class ProductionStoreOutbox extends ProductionStoreCooldown {
       : failureCode(error, "OUTBOX_DELIVERY_FAILED");
     const changed = this.database.prepare(`update production_outbox
       set last_error=? where idempotency_key=? and sent_at is null`
-    ).run(code, idempotencyKey);
+    ).run(this.admittedMarkerFor(idempotencyKey) ?? code, idempotencyKey);
     if (changed.changes === 0 && !this.readOutboxAuthority(idempotencyKey)) {
       throw new Error("PRODUCTION_OUTBOX_INTENT_MISSING");
     }
     this.notifyOutbox(this.readOutboxAuthority(idempotencyKey));
+  }
+
+  private admittedMarkerFor(idempotencyKey: string): string | null {
+    const authority = this.readOutboxAuthority(idempotencyKey);
+    if (!authority?.lastError || !["BUSINESS_ADMITTED", "BROWSER_CLEANUP_PENDING", "BROWSER_CLEANUP_SETTLED"].includes(authority.lastError)) return null;
+    const task = this.readTask(authority.jobId);
+    if (task?.status !== "completed" || !task.result) throw executionFailure("failed", "PRODUCTION_BROWSER_CLEANUP_AUTHORITY_INVALID");
+    if (authority.kind === "terminal" && authority.lastError !== "BUSINESS_ADMITTED") {
+      const row = this.database.prepare("select body_blob from production_outbox where idempotency_key=?").get(idempotencyKey) as { body_blob: Buffer };
+      const body = JSON.parse(row.body_blob.toString("utf8")) as Record<string, unknown>;
+      if (body.attempt_id !== task.current_attempt_id || body.payload_hash !== hashCanonical(task.result)) {
+        throw executionFailure("failed", "PRODUCTION_BROWSER_CLEANUP_AUTHORITY_INVALID");
+      }
+    }
+    return authority.lastError;
   }
 
   public deliverOutbox<T>(

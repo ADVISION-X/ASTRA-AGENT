@@ -57,6 +57,7 @@ export type BrowserProviderEffectStepCallFact = Readonly<{
   exactCallIdentityHash: `sha256:${string}`;
   inputHash: `sha256:${string}`;
   mutation: BrowserExactCallMutationFact;
+  confirmedOutcome: BrowserAtomicStepOutcome | null;
 }>;
 
 export type BrowserAtomicStepOutcome = Readonly<{

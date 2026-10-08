@@ -8,6 +8,7 @@ import { projectBrowserFact } from "./web/child-handler.js";
 
 type AtomicGptCallInput = Readonly<{ dataDir: string; gpt: GptAbilityGroup; browsers: ProductionGptBrowserLifecycle;
   intent: GptAnyChildCapabilityIntent; browserCall: ProductionGptBrowserCall | undefined; signal: AbortSignal;
+  confirmedProviderEffectReadback?: GptExecutionContext["confirmedProviderEffectReadback"];
   resultRevision: number; browserAtomicIdentity?: BrowserAtomicStepIdentity; assertProviderInputAllowed?: () => void;
   rateLimitAckDispatchNotAfter?: number; recordConfirmedProviderEffectReadback?: NonNullable<GptExecutionContext["recordConfirmedProviderEffectReadback"]> }>;
 export type ProductionGptAtomicCallResult = GptChildCapabilityResult;
@@ -20,6 +21,7 @@ export const productionGptAtomicIdentity = (intent: GptAnyChildCapabilityIntent,
 };
 const executionContext = (input: AtomicGptCallInput, browser: ProductionGptBrowserCall["facade"] | undefined,
   browserAtomicIdentity?: BrowserAtomicStepIdentity): GptExecutionContext => ({ dataDir: input.dataDir, signal: input.signal,
+  ...(input.confirmedProviderEffectReadback ? { confirmedProviderEffectReadback: input.confirmedProviderEffectReadback } : {}),
   ...(browser ? { browser } : {}), ...(browserAtomicIdentity ? { browserAtomicIdentity } : {}),
   ...(input.assertProviderInputAllowed ? { assertProviderInputAllowed: input.assertProviderInputAllowed } : {}),
   ...(input.rateLimitAckDispatchNotAfter === undefined ? {} : { rateLimitAckDispatchNotAfter: input.rateLimitAckDispatchNotAfter }),
@@ -29,6 +31,13 @@ const executionContext = (input: AtomicGptCallInput, browser: ProductionGptBrows
 
 export const executeProductionGptAtomicCall = async (input: AtomicGptCallInput): Promise<ProductionGptAtomicCallResult> => {
   const browser = input.browserCall?.facade;
+  if (input.confirmedProviderEffectReadback) {
+    const context = executionContext(input, undefined, input.browserAtomicIdentity);
+    const result = await readPriorAtomicOutcome({ gpt: input.gpt, intent: input.intent, context, browser: undefined,
+      priorOutcome: input.confirmedProviderEffectReadback.outcome });
+    if (!result) throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
+    return result;
+  }
   if (!browser) return await input.gpt.execute(input.intent, executionContext(input, undefined));
   const identity = input.browserAtomicIdentity ?? productionGptAtomicIdentity(input.intent, input.resultRevision);
   const context = executionContext(input, browser, identity), priorOutcome = browser.readAtomicStepOutcome(identity);

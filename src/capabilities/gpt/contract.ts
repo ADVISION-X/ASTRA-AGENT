@@ -8,6 +8,7 @@ import type {
   GptChildCapabilityId,
   GptChildInputMap,
   GptChildOutputMap,
+  GptHash,
   GptReasoningRequirementResult,
 } from "./child-types.js";
 import type { ProviderStoppedEmptyProof } from "../../lib/execution-failure.js";
@@ -188,12 +189,8 @@ export type GptExecutionContext = Readonly<{
   assertProviderInputAllowed?: () => void;
   rateLimitAckDispatchNotAfter?: number;
   confirmedProviderEffectReadback?: Readonly<{
-    terminalPayload: unknown;
-    terminalAt: string;
-    authorityRef: string;
-    authorityHash: `sha256:${string}`;
-    providerEffectIdentityHash: `sha256:${string}`;
-    mutationOutcome: "no" | "confirmed";
+    outcome: import("../../lib/browser/browser-authority-api.js").BrowserAtomicStepOutcome;
+    exactCallIdentityHash: GptHash;
   }>;
   recordConfirmedProviderEffectReadback?: (proof: Readonly<{
     jobId: string;

@@ -98,4 +98,16 @@ export const inspectWorkerLoopLiveness = (
       checkId: "agent-production-runtime/worker-loop-stops-on-failure", filePath: RUNTIME_LOOPS, message,
     }));
   }
+  const source = sourceFor(context, RUNTIME_LOOPS);
+  const iteration = source?.getVariableDeclaration("workerIteration")?.getInitializer();
+  const calls = iteration?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter(call => call.getExpression().getText() === "reconcileCompletedBrowserTargets") ?? [];
+  const cleanup = source?.getVariableDeclaration("reconcileCompletedBrowserTargets")?.getInitializer()?.getText() ?? "";
+  if (calls.length !== 1 || !calls[0]?.getFirstAncestorByKind(SyntaxKind.TryStatement)?.getFinallyBlock()?.containsRange(
+    calls[0].getStart(), calls[0].getEnd())
+    || !cleanup.includes("pendingBusinessAdmissions().some(task => state.store.hasUnsentOutbox(task.task.job_id))")) {
+    findings.push(createFinding({ evidenceMode: "static.ast", lawId: LAWS.core,
+      clauseId: `${LAWS.core.toLowerCase()}-requirement`, checkId: "agent-production-runtime/delivery-before-cleanup",
+      filePath: RUNTIME_LOOPS, message: "The original cleanup must run once after the delivery pass and recheck ready staged Outbox work before acquiring its Browser lane." }));
+  }
 };

@@ -7,7 +7,6 @@ import { createGptAbilityGroup } from "../ability-group.js";
 import { typedGptExecutionFailure } from "../execution-fault.js";
 import { executionFailure } from "../../../lib/execution-failure.js";
 import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
-import { serializeTerminalFailureTransport } from "../../../lib/local-runtime/production/terminal-failure.js";
 import { browserExactCallIdentityHash, type BrowserAtomicStepIdentity } from "../../../lib/browser/browser-authority-api.js";
 import { HASH_A, HASH_B } from "../../../../scripts/acceptance/agent-production-runtime-fixtures.js";
 import { detectedKnownGptRateLimitExactFact, detectedKnownGptRateLimitMismatchFact } from
@@ -43,7 +42,7 @@ const temporary = await mkdtemp(path.join(tmpdir(), "agent-browser-recovery-rebu
 const logger = (name: string) => createRuntimeLogger({ producer: name, owner: "production-runtime", component: "gpt-child",
   terminalEnabled: false, fileSink: { directoryPath: path.join(temporary, name) } });
 const noArtifacts = { appendArtifact: async () => { throw new Error("FORBIDDEN_ARTIFACT_WRITE"); },
-  readArtifact: async () => { throw new Error("FORBIDDEN_ARTIFACT_READ"); } };
+  readArtifact: async () => ({ status: "failed" as const, failureReason: "FORENSICS_ARTIFACT_NOT_FOUND" }) };
 const noControl = { assertProviderSubmitAllowed: () => {}, pendingIncidents: () => [],
   beginIncident: async (): Promise<never> => { throw new Error("FORBIDDEN_COOLDOWN_INCIDENT"); } };
 type Preflight = Awaited<ReturnType<typeof detectedKnownGptRateLimitExactFact>>;
@@ -57,21 +56,24 @@ try {
   await verifyHistoricalReadbackOnlyCall(temporary);
   await verifyNoPriorProviderEffect(temporary);
 
-  const original = (jobId: string) => ({ exactCallIdentityHash: originalHash(jobId), inputHash, mutation: originalMutation });
-  const unavailable = new ProductionGptChildTools(temporary, HASH_A, createGptAbilityGroup(), noArtifacts, {
-    readProviderEffectStepCallFact: () => original("job:unavailable"),
-    acquireJobBoundTargetLease: async () => { throw executionFailure("failed", "BROWSER_ORIGIN_REJECTED"); },
-  } as never, logger("origin-rejection"), noControl).createExecution(execution("job:unavailable"));
-  const unavailableFailure = serializeTerminalFailureTransport(await captureFailure(() => unavailable.tools.readConfirmedSubmit(historicalCall)));
-  assert.deepEqual([unavailableFailure.code, unavailableFailure.mutation_outcome, unavailableFailure.provider_effect_identity_hash],
-    ["BROWSER_ORIGIN_REJECTED", "confirmed", effectHash]);
-
-  let reads = 0, acquisitions = 0, releases = 0, canonicalSelections = 0;
-  const driftJob = "job:prompt-drift";
   const payload = (jobId: string) => ({ canonicalConversationUrl: "https://chatgpt.com/c/historical-confirmed", promptHash: HASH_A,
     userTurnId: "00000000-0000-4000-8000-000000000001", exactCallIdentityHash: originalHash(jobId), observationRevisionHash: HASH_A,
     targetRefHash: HASH_A, documentRefHash: HASH_B, rawCount: 1, eligibleCount: 1 });
   const outcome = (jobId: string) => ({ ...originalMutation, state: "confirmed" as const, terminalPayload: payload(jobId) });
+  const original = (jobId: string) => ({ exactCallIdentityHash: originalHash(jobId), inputHash, mutation: originalMutation, confirmedOutcome: outcome(jobId) });
+  const checkpoint = { ...historicalCall, child: "checkpoint_gpt_text_response" as const, callId: "readback", actionOrdinal: 2,
+    input: { canonicalConversationUrl: payload("unused").canonicalConversationUrl, userTurnId: payload("unused").userTurnId,
+      turnMarker: "historical-readback", probeBudgetMs: 200_000 } };
+  const unavailable = new ProductionGptChildTools(temporary, HASH_A, createGptAbilityGroup(), noArtifacts, {
+    readProviderEffectStepCallFact: () => original("job:unavailable"),
+    acquireJobBoundTargetLease: async () => { throw executionFailure("failed", "BROWSER_ORIGIN_REJECTED"); },
+  } as never, logger("origin-rejection"), noControl).createExecution(execution("job:unavailable"));
+  assert.equal((await unavailable.tools.readConfirmedSubmit(historicalCall))?.effectReceipt?.providerEffectIdentityHash, effectHash,
+    "a complete original receipt succeeds without acquiring an unavailable Browser");
+
+  let reads = 0, acquisitions = 0, releases = 0, canonicalSelections = 0;
+  const driftJob = "job:prompt-drift";
+
   const readOriginalOutcome = (identity: BrowserAtomicStepIdentity, jobId: string) =>
     Object.entries(originalIdentity).every(([field, value]) => identity[field as keyof BrowserAtomicStepIdentity] === value) ? outcome(jobId) : null;
   const foreignIdentities: readonly BrowserAtomicStepIdentity[] = [
@@ -104,8 +106,13 @@ try {
   assert.equal(recovered?.effectReceipt?.mutationOutcome, "confirmed");
   assert.equal(recovered?.effectReceipt?.providerEffectIdentityHash, effectHash);
   assert.equal(outcome(driftJob).physicalInputCount, 1);
-  assert.ok(reads > 1);
-  assert.deepEqual([acquisitions, canonicalSelections, releases], [1, 1, 0]);
+  assert.deepEqual([reads, acquisitions, canonicalSelections, releases], [0, 0, 0, 0]);
+  const wrongOrdinal = new ProductionGptChildTools(temporary, HASH_A, createGptAbilityGroup(), noArtifacts, {
+    readProviderEffectStepCallFact: () => original(driftJob), acquireJobBoundTargetLease: async () => { throw new Error("FORBIDDEN_BROWSER"); },
+  } as never, logger("wrong-ordinal"), noControl).createExecution(execution(driftJob));
+  const identityError = typedGptExecutionFailure(await captureFailure(() => wrongOrdinal.tools.readConfirmedSubmit({ ...historicalCall, actionOrdinal: 9 })));
+  assert.equal(identityError?.code, "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH"); assert.equal(identityError?.mutationOutcome, "confirmed");
+  assert.equal(identityError?.browserEffect?.providerEffectIdentityHash, effectHash);
 
   const mismatchFact = await detectedKnownGptRateLimitMismatchFact();
   const mismatchJob = "job:confirmed-mismatch";
@@ -113,7 +120,8 @@ try {
     readProviderEffectStepCallFact: () => original(mismatchJob), countProviderTurnDispatches: () => 0,
     acquireJobBoundTargetLease: async () => { throw dialogFailure(mismatchFact, "BROWSER_GPT_DIALOG_UNRECOGNIZED"); },
   } as never, logger("confirmed-mismatch"), noControl).createExecution(execution(mismatchJob));
-  const mismatchError = typedGptExecutionFailure(await captureFailure(() => mismatch.tools.readConfirmedSubmit(historicalCall)));
+  await mismatch.tools.readConfirmedSubmit(historicalCall);
+  const mismatchError = typedGptExecutionFailure(await captureFailure(() => mismatch.tools.execute(checkpoint)));
   assert.equal(mismatchError?.code, "BROWSER_GPT_DIALOG_UNRECOGNIZED");
   assert.equal(mismatchError?.browserEffect?.providerEffectIdentityHash, effectHash);
   assert.deepEqual(mismatchError?.proofFacts?.browserFact?.knownGptRateLimitPreflightFact, mismatchFact);
@@ -140,14 +148,16 @@ try {
       executeDomIntent: async () => { throw dialogFailure(exactFact, "BROWSER_KNOWN_GPT_RATE_LIMIT"); }, park: async () => {},
     }; },
   } as never, logger("confirmed-exact"), controls);
-  const exactError = typedGptExecutionFailure(await captureFailure(() => exactOwner.createExecution(execution(exactJob)).tools.readConfirmedSubmit(historicalCall)));
+  const exactExecution = exactOwner.createExecution(execution(exactJob)); await exactExecution.tools.readConfirmedSubmit(historicalCall);
+  const exactError = typedGptExecutionFailure(await captureFailure(() => exactExecution.tools.execute(checkpoint)));
   assert.equal(exactError?.code, "BROWSER_KNOWN_GPT_RATE_LIMIT");
   assert.equal(exactError?.browserEffect?.providerEffectIdentityHash, effectHash);
   assert.deepEqual(exactError?.proofFacts?.browserFact?.knownGptRateLimitPreflightFact, exactFact);
   assert.deepEqual([incidents, clearances, gateClosed, exactAcquisitions], [1, 1, true, 1]);
   gateClosed = false; exactAcquisitions = 0; persistenceFails = true;
   exactFact = await detectedKnownGptRateLimitExactFact();
-  const persistenceError = typedGptExecutionFailure(await captureFailure(() => exactOwner.createExecution(execution(exactJob)).tools.readConfirmedSubmit(historicalCall)));
+  const persistenceExecution = exactOwner.createExecution(execution(exactJob)); await persistenceExecution.tools.readConfirmedSubmit(historicalCall);
+  const persistenceError = typedGptExecutionFailure(await captureFailure(() => persistenceExecution.tools.execute(checkpoint)));
   assert.deepEqual([persistenceError?.code, persistenceError?.mutationOutcome, persistenceError?.browserEffect?.providerEffectIdentityHash, gateClosed],
     ["PROVIDER_COOLDOWN_OUTBOX_WRITE_FAILED", "confirmed", effectHash, false]);
 

@@ -24,6 +24,7 @@ import type {
   LocalProductionMaterial, ProductionExecutionLease, ProductionHash,
   WebsiteAgentResult, WebsiteAgentTask,
 } from "./contracts.js";
+import { hashCanonical } from "./contracts.js";
 import { PRODUCTION_BUSINESS_CAPACITY_MAX } from "./control-contract-dependency.js";
 import { recordSourceCheckpoint } from "./executor-source-checkpoint.js";
 import { gptLeaseInput } from "./executor-gpt-input.js";
@@ -289,16 +290,17 @@ export class ProductionExecutor {
   private logBrowserCleanup(input: Readonly<{
     jobId: string; attemptId: string; pluginId: string;
     stepId: "browser.settle" | "browser.release"; error: unknown;
-  }>): void {
-    requireRuntimeLogWrite(this.runtimeLogger.emitError({
-      traceId: input.jobId,
-      owner: "browser-session", component: "gpt-browser-lifecycle",
+  }>) {
+    const causedByEventId = runtimeLogCauseEventId(input.error);
+    return requireRuntimeLogWrite(this.runtimeLogger.emitError({
+      traceId: input.jobId, owner: "browser-session", component: "gpt-browser-lifecycle",
       operation: "browser.infrastructure",
       typedIdentity: { kind: "plugin-step", jobId: input.jobId,
         attemptId: input.attemptId, pluginId: input.pluginId, stepId: input.stepId },
       failure: runtimeFailureFromError({ error: input.error,
-        code: failureCode(input.error, "GPT_BROWSER_LIFECYCLE_FAILED"),
-        responsibleOwner: "browser-session", impact: RuntimeFailureImpact.CLEANUP }),
+        code: failureCode(input.error, "GPT_BROWSER_LIFECYCLE_FAILED"), responsibleOwner: "browser-session",
+        impact: causedByEventId ? RuntimeFailureImpact.CLEANUP : RuntimeFailureImpact.BLOCKING,
+        ...(causedByEventId ? { causedByEventId } : {}) }),
     }));
   }
 
@@ -311,6 +313,7 @@ export class ProductionExecutor {
     providerEffectReadbackProof: ProviderEffectReadbackProofV1 | null;
   }>> {
     let completed = false;
+    let completedEnvelope: WebsiteAgentResult | null = null;
     let readProviderEffectReadbackProof: () => ProviderEffectReadbackProofV1 | null = () => null;
     const gptLifecycle: GptExecutionLifecycle = { decorateFailure: null, settle: null };
     let primaryError: unknown = null;
@@ -351,19 +354,21 @@ export class ProductionExecutor {
             }
             if (completed) throw new Error("PLUGIN_RESULT_ALREADY_COMPLETED");
             const envelope = await input.complete(output);
+            completedEnvelope = envelope;
             completed = true;
             return envelope;
           },
         };
       });
     } catch (error) {
-      primaryError = gptLifecycle.decorateFailure?.(error) ?? error;
+      primaryError = this.readInvocationResult(input.task, input.lease.attempt_id, completedEnvelope)
+        ? error : gptLifecycle.decorateFailure?.(error) ?? error;
       throw primaryError;
     } finally {
       try {
         await settleGptExecution(gptLifecycle, primaryError);
       } catch (cleanupError) {
-        if (!completed || !this.store.readTask(input.task.job_id)?.staged_result) throw cleanupError;
+        if (!this.readInvocationResult(input.task, input.lease.attempt_id, completedEnvelope)) throw cleanupError;
         this.logBrowserCleanup({ jobId: input.task.job_id, attemptId: input.lease.attempt_id,
           pluginId: input.task.product_id, stepId: "browser.settle", error: cleanupError });
       }
@@ -392,6 +397,26 @@ export class ProductionExecutor {
     return parent;
   }
 
+  private readInvocationResult(task: WebsiteAgentTask, attemptId: string, envelope: WebsiteAgentResult | null): WebsiteAgentResult | null {
+    const durable = this.store.readTask(task.job_id);
+    const result = durable?.staged_result ?? (durable?.status === "completed" ? durable.result : null);
+    return envelope && result && durable?.current_attempt_id === attemptId && durable.task.request_hash === task.request_hash
+      && hashCanonical(result) === hashCanonical(envelope) ? result : null;
+  }
+
+  private finishDurableInvocation(input: Readonly<{ record: StoredProductionTask; result: WebsiteAgentResult;
+    span: RuntimeSpanHandle; error: unknown; terminalAttempted: boolean }>): ProductionExecutionResult {
+    if (!input.terminalAttempted && this.runtimeLogger.isWritable()) {
+      const causedByEventId = runtimeLogCauseEventId(input.error);
+      requireRuntimeLogWrite(input.span.terminal({ outcome: "failed", failure: runtimeFailureFromError({
+        error: input.error, code: failureCode(input.error, "PRODUCT_POST_COMPLETION_FAILED"),
+        responsibleOwner: "product-plugin", impact: causedByEventId ? RuntimeFailureImpact.CONSEQUENTIAL : RuntimeFailureImpact.BLOCKING,
+        ...(causedByEventId ? { causedByEventId } : {}),
+      }) }));
+    }
+    return { record: input.record, result: input.result, providerEffectReadbackProof: null };
+  }
+
   public async execute(
     task: WebsiteAgentTask,
     materials: readonly LocalProductionMaterial[],
@@ -411,6 +436,8 @@ export class ProductionExecutor {
     }
     const span = this.startPluginSpan(task, lease, parentSpanId, task.product_id);
     let browserArtifactLease: Awaited<ReturnType<WorkbenchBrowserAuthority["bindExecutionArtifacts"]>> | null = null;
+    let completedEnvelope: WebsiteAgentResult | null = null;
+    let terminalAttempted = false;
     try {
       browserArtifactLease = await this.browserAuthority.bindExecutionArtifacts({
         binding: {
@@ -424,15 +451,15 @@ export class ProductionExecutor {
         artifacts: materials.map(productionMaterialBrowserArtifact),
       });
       const dispatched = await this.dispatchPlugin({
-        task, materials, lease, span, complete, uploadGeneratedImage,
+        task, materials, lease, span, uploadGeneratedImage,
+        complete: async output => { completedEnvelope = await complete(output); return completedEnvelope; },
       });
-      try {
-        await browserArtifactLease.release();
-      } catch (cleanupError) {
-        this.logBrowserCleanup({ jobId: task.job_id, attemptId: lease.attempt_id,
-          pluginId: task.product_id, stepId: "browser.release", error: cleanupError });
-      }
+      const completedLease = browserArtifactLease;
       browserArtifactLease = null;
+      try { await completedLease.release(); }
+      catch (cleanupError) { this.logBrowserCleanup({ jobId: task.job_id, attemptId: lease.attempt_id,
+        pluginId: task.product_id, stepId: "browser.release", error: cleanupError }); }
+      terminalAttempted = true;
       requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
       return {
         record: this.store.readTask(task.job_id)!,
@@ -440,22 +467,24 @@ export class ProductionExecutor {
         providerEffectReadbackProof: dispatched.providerEffectReadbackProof,
       };
     } catch (error) {
-      const durableResult = this.store.readTask(task.job_id);
-      if (durableResult?.staged_result && durableResult.current_attempt_id === lease.attempt_id) {
-        requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
-        return { record: durableResult, result: durableResult.staged_result,
-          providerEffectReadbackProof: null };
-      }
       let failure = error;
       if (browserArtifactLease) {
-        try {
-          await browserArtifactLease.release();
-        } catch (cleanupError) {
-          if (!this.store.readTask(task.job_id)?.staged_result) failure = new AggregateError(
-            [cleanupError], "GPT_BROWSER_LIFECYCLE_FAILED", { cause: error },
-          );
+        const failedLease = browserArtifactLease;
+        browserArtifactLease = null;
+        try { await failedLease.release(); }
+        catch (cleanupError) {
+          failure = new AggregateError([cleanupError], "GPT_BROWSER_LIFECYCLE_FAILED", { cause: error });
+          if (this.readInvocationResult(task, lease.attempt_id, completedEnvelope)) {
+            try { this.logBrowserCleanup({ jobId: task.job_id, attemptId: lease.attempt_id,
+              pluginId: task.product_id, stepId: "browser.release", error: cleanupError }); }
+            catch (logError) { failure = new AggregateError([logError], "GPT_BROWSER_LIFECYCLE_FAILED", { cause: failure }); }
+          }
         }
       }
+      const durableResult = this.store.readTask(task.job_id);
+      const result = this.readInvocationResult(task, lease.attempt_id, completedEnvelope);
+      if (result && durableResult) return this.finishDurableInvocation({ record: durableResult, result,
+        span, error, terminalAttempted });
       return this.terminalizePluginFailure(span, failure, {
         attemptId: lease.attempt_id,
         pluginId: task.product_id,

@@ -1,14 +1,19 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { mkdir } from "node:fs/promises";
+import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
+import { transpileModule, ModuleKind } from "typescript";
 import path from "node:path";
 import Database from "better-sqlite3";
 
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { acceptClaim } from "../../src/lib/local-runtime/production/runtime-claim-operations.js";
+import { buildTerminalProductionIntent, deliverTerminalProductionIntent } from "../../src/lib/local-runtime/production/cloud-terminal-intent.js";
+import { ProductionRuntimeBoundaryError } from "../../src/lib/local-runtime/production/runtime-execution-heartbeat.js";
 import type { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { requireRuntimeLogWrite } from "../../src/lib/runtime-logs/index.js";
-import { businessInFlightCount } from "../../src/lib/local-runtime/production/runtime-loops.js";
+import { businessInFlightCount, reconcileCompletedBrowserTargets } from "../../src/lib/local-runtime/production/runtime-loops.js";
 import { targetlessFirstFactHash, validV44SourceHandoff } from "../../src/lib/local-runtime/production/store-source-settlement.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
@@ -318,4 +323,138 @@ export const verifyOutboxRegrantFenceAndReadbackProof = async (
   await exerciseRegrantFenceForRecordedWrite(store, fixture);
   await exerciseStaleAndReplacedWrites(store, fixture, providerEffectHash);
   exerciseNegativeReadbackProofInterval(store, fixture, providerEffectHash);
+  await exerciseAdmittedOutboxLateWrites(store, providerEffectHash);
+  await exerciseFirstTerminalBeforeProducerCleanup(store);
+};
+
+/** Real SQLite: each original late writer must preserve pending/settled cleanup authority. */
+const exerciseAdmittedOutboxLateWrites = async (store: ProductionRuntimeStore, hash: Hash): Promise<void> => {
+  const directory = path.join(Reflect.get(store, "dataDir") as string, "late-writes");
+  await mkdir(directory); store = new ProductionRuntimeStore(directory);
+  const db = Reflect.get(store, "database") as Database.Database;
+  for (const settled of [false, true]) for (const writer of ["headers", "sent", "hydrate", "failure"] as const) {
+    const job = task({ jobId: `job:late-${settled}-${writer}`,
+      productId: "payment_screenshot_observation", actionId: "observe" });
+    const result = resultFor(job), attempt = "attempt:late", key = `terminal:acceptance:${job.job_id}:${attempt}`;
+    store.acceptTask(job, attempt); stageResultForAcceptance(store, job.job_id, attempt, result);
+    const write = (Reflect.get(store, "readPendingOutboxWrite") as (key: string) =>
+      Parameters<typeof store.enqueue>[0]).call(store, key);
+    let fail: (() => void) | undefined;
+    let started: (() => void) | undefined;
+    const dispatched = new Promise<void>(resolve => { started = resolve; });
+    const delivery = writer === "failure" ? store.deliverOutbox(key, async () => {
+      started!(); await new Promise<void>(resolve => { fail = resolve; });
+      throw executionFailure("failed", "CLOUD_TRANSPORT_UNAVAILABLE");
+    }) : null;
+    if (delivery) await dispatched;
+    store.completeTask(job.job_id, result);
+    if (settled) store.settleBrowserCleanup(job.job_id);
+    const marker = settled ? "BROWSER_CLEANUP_SETTLED" : "BROWSER_CLEANUP_PENDING";
+    const response = { schema_version: "xuanxue-ai-terminal-receipt.v6", job_id: job.job_id,
+      terminal_status: "completed", payload_hash: hashCanonical(result), failure: null, first_terminal: true,
+      device_id: "device:test", device_epoch: 1, worker_session_id: "session:acceptance",
+      worker_session_epoch: 1, runtime_attestation_receipt_hash: hash };
+    if (writer === "headers") store.enqueue({ ...write, headers: { "x-ai-execution-fence-hash": "fence:new" } });
+    if (writer === "sent") store.markOutboxSent(key, response);
+    if (writer === "hydrate") assert.equal(store.hydrateRemoteOutboxReceipts(job.job_id, [{
+      request_id: key, write_kind: "terminal", payload_hash: hashCanonical(JSON.parse(String(write.body))),
+      response_json: response,
+    }]), 1);
+    if (delivery) { fail!(); await assert.rejects(delivery, /CLOUD_TRANSPORT_UNAVAILABLE/u); }
+    assert.equal(store.readOutboxAuthority(key)?.lastError, marker, `${writer} cannot undo ${marker}`);
+    assert.equal(store.readTask(job.job_id)?.status, "completed");
+    if (writer === "sent" || writer === "hydrate") {
+      assert.deepEqual(store.readOutboxResponse(key), response, "preserving a marker must not suppress the real receipt");
+      assert.equal(store.readOutboxAuthority(key)?.state, "delivered");
+    }
+    if (writer === "headers") for (const corrupt of ["attempt_id", "payload_hash"] as const) {
+      const original = Buffer.from(write.body);
+      const body = JSON.parse(original.toString("utf8")); body[corrupt] = corrupt === "attempt_id" ? "attempt:foreign" : hash;
+      db.prepare("update production_outbox set body_blob=? where idempotency_key=?").run(Buffer.from(JSON.stringify(body)), key);
+      assert.throws(() => store.markOutboxSent(key, response), (error: unknown) => typedExecutionFailure(error)?.code ===
+        (corrupt === "attempt_id" ? "PRODUCTION_BROWSER_CLEANUP_AUTHORITY_INVALID" : "V6_TERMINAL_RECEIPT_MISMATCH"),
+        "a cleanup marker cannot authorize a different attempt or payload");
+      db.prepare("update production_outbox set body_blob=? where idempotency_key=?").run(original, key);
+    }
+  }
+  const ready = task({ jobId: "job:just-staged-before-cleanup", productId: "payment_screenshot_observation", actionId: "observe" });
+  const result = resultFor(ready), attempt = "attempt:ready", key = `terminal:acceptance:${ready.job_id}:${attempt}`;
+  store.acceptTask(ready, attempt); stageResultForAcceptance(store, ready.job_id, attempt, result);
+  let releases = 0;
+  const state = { store, abort: new AbortController(), browserAuthority: { releaseJobBoundTarget: async () => { releases++; } } };
+  const pendingBefore = store.pendingBrowserCleanupJobIds().length;
+  assert.ok(pendingBefore > 0);
+  await reconcileCompletedBrowserTargets(state as never);
+  assert.equal(releases, 0, "a just-staged sendable terminal wins over old completed cleanup");
+  assert.equal(store.pendingBrowserCleanupJobIds().length, pendingBefore);
+  store.markOutboxSent(key, { schema_version: "xuanxue-ai-terminal-receipt.v6", job_id: ready.job_id,
+    terminal_status: "completed", payload_hash: hashCanonical(result), failure: null, first_terminal: true,
+    device_id: "device:test", device_epoch: 1, worker_session_id: "session:acceptance",
+    worker_session_epoch: 1, runtime_attestation_receipt_hash: hash });
+  await reconcileCompletedBrowserTargets(state as never);
+  assert.equal(releases, 1); assert.equal(store.pendingBrowserCleanupJobIds().length, pendingBefore - 1);
+  store.close();
+};
+
+/** Execute the original claim-operation source against native SQLite/Outbox with controlled transport. */
+const exerciseFirstTerminalBeforeProducerCleanup = async (store: ProductionRuntimeStore): Promise<void> => {
+  const source = readFileSync(new URL("../../src/lib/local-runtime/production/runtime-claim-operations.ts", import.meta.url), "utf8");
+  const code = transpileModule(source.slice(source.indexOf("const sendStagedTerminal =")), {
+    compilerOptions: { module: ModuleKind.CommonJS },
+  }).outputText;
+  for (const mode of ["completed-race", "send-unknown", "stage-failure", "foreign-attempt", "foreign-result"] as const) {
+    const job = task({ jobId: `job:first-send-${mode}`, productId: "payment_screenshot_observation", actionId: "observe" });
+    const claim = claimTask(job), result = resultFor(job), order: string[] = [];
+    const envelopeHash = hashCanonical("fixture:envelope");
+    const receipts = [{ role: "result_payload", receipt_hash: result.result_object_receipt.receipt_hash },
+      { role: "result_envelope", receipt_hash: envelopeHash }];
+    store.acceptTask(job, claim.grant.attempt_id);
+    let terminalId: string | undefined;
+    const state = { lastErrorCode: null, lastErrorReason: null,
+      store: new Proxy(store, { get: (target, key) => key === "stageResultAndEnqueueTerminal" ?
+        (input: Parameters<typeof store.stageResultAndEnqueueTerminal>[0]) => {
+          if (mode === "stage-failure") throw executionFailure("failed", "PRODUCTION_STAGED_RESULT_TERMINAL_CONFLICT");
+          store.stageResultAndEnqueueTerminal({ ...input, websiteStagedArtifactReceipts: receipts });
+          terminalId = input.terminal.idempotency_key; order.push("stage");
+        } : typeof Reflect.get(target, key) === "function" ? Reflect.get(target, key).bind(target) : Reflect.get(target, key) }),
+      runtimeLogger: { startSpan: () => ({ ok: true, event: { spanId: "span:fixture" } }) },
+      session: { workerSessionId: "session:fixture", workerSessionEpoch: 1, request: async () => {
+        order.push("send"); assert.equal(order.includes("cleanup"), false);
+        assert.deepEqual(store.readTask(job.job_id)?.staged_result, result);
+        assert.equal(store.readOutboxAuthority(terminalId!)?.kind, "terminal");
+        if (mode === "send-unknown") throw executionFailure("failed", "CLOUD_TRANSPORT_UNAVAILABLE");
+        store.completeTask(job.job_id, result);
+        return { schema_version: "xuanxue-ai-terminal-receipt.v6", job_id: job.job_id, terminal_status: "completed",
+          payload_hash: hashCanonical(result), failure: null, first_terminal: true, device_id: "device:1", device_epoch: 1,
+          worker_session_id: "session:fixture", worker_session_epoch: 1, runtime_attestation_receipt_hash: envelopeHash };
+      } },
+      executor: { execute: async (_task: unknown, _materials: unknown, _budget: unknown, _parent: unknown,
+        complete: (output: unknown) => Promise<unknown>) => {
+        await complete({ payload: {}, evidence_refs: ["evidence:original"] }); order.push("cleanup");
+        const db = Reflect.get(store, "database") as Database.Database;
+        if (mode === "foreign-attempt") db.prepare("update production_tasks set current_attempt_id='attempt:foreign' where job_id=?").run(job.job_id);
+        if (mode === "foreign-result") db.prepare("update production_tasks set result_json=? where job_id=?").run(
+          JSON.stringify({ ...result, execution_receipt_hash: envelopeHash }), job.job_id);
+        if (mode !== "send-unknown") throw executionFailure("failed", "LATE_PRODUCER_CLEANUP_FAILED");
+        return { record: store.readTask(job.job_id), result, providerEffectReadbackProof: null };
+      } },
+    };
+    const api: Record<string, (input: unknown) => Promise<{ execution: { result: unknown } }>> = {};
+    runInNewContext(code, { exports: api, heartbeatWhileRunning: ({ execution }: { execution: Promise<unknown> }) => execution,
+      uploadProductionResult: async () => ({ envelope: result, artifact_receipts: receipts }),
+      buildTerminalProductionIntent, deliverTerminalProductionIntent, hashCanonical, executionFailure, ProductionRuntimeBoundaryError,
+      requireRuntimeLogWrite: (write: { event: unknown }) => write.event, runRuntimeSpan: ({ action }: { action: () => unknown }) => action(),
+      jobIdentity: () => ({}), failureCode: (error: { code?: string }, fallback: string) => error.code ?? fallback,
+      safeReason: (error: Error) => error.message, isResultTransportBoundary: () => false,
+    });
+    const execution = api.executeAndUpload!({ state, job: claim, task: job, budget: {}, materials: [], abort: new AbortController(), jobSpan: { spanId: "span:fixture" } });
+    if (mode === "stage-failure" || mode.startsWith("foreign-")) await assert.rejects(execution);
+    else assert.deepEqual((await execution).execution.result, result);
+    assert.deepEqual(order, mode === "stage-failure" ? [] : ["stage", "send", "cleanup"]);
+    if (mode === "stage-failure") assert.equal(store.readTask(job.job_id)?.staged_result, null);
+    if (mode === "send-unknown") { assert.deepEqual(store.readTask(job.job_id)?.staged_result, result);
+      assert.equal(store.readOutboxAuthority(terminalId!)?.lastError, "CLOUD_TRANSPORT_UNAVAILABLE"); }
+    if (mode === "completed-race") { assert.equal(store.readTask(job.job_id)?.current_reason, null);
+      assert.equal(store.readOutboxAuthority(terminalId!)?.lastError, "BROWSER_CLEANUP_PENDING"); }
+  }
 };

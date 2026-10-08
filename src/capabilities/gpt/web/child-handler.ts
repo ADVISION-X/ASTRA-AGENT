@@ -40,22 +40,21 @@ const atomicOutcomeValid = (outcome: BrowserAtomicStepOutcome, replayPolicy: str
     && typeof outcome.authorityRef === "string" && outcome.authorityRef.length > 0 && HASH.test(outcome.authorityHash)
     && effectValid && terminalOutcomeValid(outcome);
 };
-/** The public read binds the seven origin fields to the lease; GPT and Browser hashes retain their own namespaces. */
+/** Project the one current lease outcome or the original typed confirmed receipt, using the same immutable identity. */
 export const projectBrowserFact = <K extends GptChildCapabilityId>(intent: GptChildCapabilityIntent<K>,
-  context: Pick<GptExecutionContext, "browser" | "browserAtomicIdentity">,
+  context: Pick<GptExecutionContext, "browser" | "browserAtomicIdentity" | "confirmedProviderEffectReadback">,
 ): Readonly<{ fact: GptChildBrowserFact; outcome: BrowserAtomicStepOutcome }> | null => {
   const contract = GPT_CHILD_CAPABILITY_CONTRACTS[intent.childCapabilityId];
   if (["observation-only", "transaction-identical-readback"].includes(contract.replayPolicy)) return null;
   const identity = context.browserAtomicIdentity;
-  if (!context.browser || !identity) return null;
-  // Provider inputHash is the original revision-bound hash admitted by atomic-call, including historical readback.
+  if (!identity || !context.browser && !context.confirmedProviderEffectReadback) return null;
   const expected = { resultRevision: intent.resultRevision, productStepId: intent.productStepId, callId: intent.callId,
     childCapabilityId: intent.childCapabilityId, inputHash: contract.replayPolicy === "provider-effect-once" ? identity.inputHash : intent.inputHash,
     actionOrdinal: intent.actionOrdinal, replayPolicy: contract.replayPolicy };
   if (!HASH.test(identity.inputHash) || Object.entries(expected).some(([key, value]) => identity[key as keyof typeof identity] !== value)) {
     throw gptExecutionFailure("GPT_BROWSER_TERMINAL_FACT_REQUIRED");
   }
-  const outcome = context.browser.readAtomicStepOutcome(identity);
+  const outcome = context.confirmedProviderEffectReadback?.outcome ?? context.browser!.readAtomicStepOutcome(identity);
   if (!outcome) return null;
   if (!atomicOutcomeValid(outcome, contract.replayPolicy)) throw gptExecutionFailure("GPT_BROWSER_TERMINAL_FACT_REQUIRED", { mutationOutcome: outcome.mutationOutcome });
   const fact: GptChildBrowserFact = Object.freeze({ exactCallIdentityHash: gptExactCallIdentityHash(intent),

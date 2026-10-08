@@ -5,7 +5,7 @@ import { gptExactCallIdentityHash, type GptAbilityGroup, type GptAnyChildCapabil
 import { projectBrowserFact } from "./web/child-handler.js";
 
 type AtomicReadbackInput = Readonly<{ gpt: GptAbilityGroup; intent: GptAnyChildCapabilityIntent; context: GptExecutionContext;
-  browser: BrowserTargetLease; priorOutcome: BrowserAtomicStepOutcome }>;
+  browser: BrowserTargetLease | undefined; priorOutcome: BrowserAtomicStepOutcome }>;
 const clearanceReadbackValid = (row: Readonly<Record<string, unknown>>,
   input: Extract<GptAnyChildCapabilityIntent, { childCapabilityId: "acknowledge_known_gpt_rate_limit" }>["input"]): boolean => {
   const expected = { schemaVersion: "grasseye.browser.known-gpt-rate-limit-clearance.v1", state: "confirmed_absent",
@@ -24,21 +24,24 @@ const readConfirmedSubmit = async (input: AtomicReadbackInput): Promise<GptChild
   if (!projected || projected.fact.browserOutcome !== "CONFIRMED" || projected.fact.mutationOutcome !== "confirmed"
     || priorOutcome.physicalInputCount !== 1 || !priorOutcome.terminalAt || !priorOutcome.providerEffectIdentityHash
     || priorOutcome.terminalPayload == null) return null;
-  const result = await input.gpt.execute(intent, Object.freeze({ ...context, confirmedProviderEffectReadback: Object.freeze({
-    terminalPayload: priorOutcome.terminalPayload, terminalAt: priorOutcome.terminalAt, authorityRef: priorOutcome.authorityRef,
-    authorityHash: priorOutcome.authorityHash, providerEffectIdentityHash: priorOutcome.providerEffectIdentityHash, mutationOutcome: "confirmed" }) }));
+  if (!context.browserAtomicIdentity) throw executionFailure("failed", "PROVIDER_EFFECT_READBACK_IDENTITY_MISSING");
+  const exactCallIdentityHash = context.confirmedProviderEffectReadback?.exactCallIdentityHash
+    ?? (browser ? browserExactCallIdentityHash({ jobId: intent.jobId, attemptId: intent.attemptId,
+      writerFenceHash: browser.writerFenceHash, ...context.browserAtomicIdentity }) : null);
+  if (!exactCallIdentityHash) throw executionFailure("failed", "PROVIDER_EFFECT_READBACK_IDENTITY_MISSING");
+  const result = await input.gpt.execute(intent, Object.freeze({ ...context,
+    confirmedProviderEffectReadback: Object.freeze({ outcome: priorOutcome, exactCallIdentityHash }) }));
   if (result.status === "success") {
-    if (!context.browserAtomicIdentity) throw executionFailure("failed", "PROVIDER_EFFECT_READBACK_IDENTITY_MISSING");
     context.recordConfirmedProviderEffectReadback?.(Object.freeze({ jobId: intent.jobId, attemptId: intent.attemptId,
       resultRevision: intent.resultRevision, providerEffectIdentityHash: priorOutcome.providerEffectIdentityHash,
-      exactCallIdentityHash: browserExactCallIdentityHash({ jobId: intent.jobId, attemptId: intent.attemptId,
-        writerFenceHash: browser.writerFenceHash, ...context.browserAtomicIdentity }),
-      browserAuthorityRef: priorOutcome.authorityRef, browserAuthorityHash: priorOutcome.authorityHash, readbackProviderInputDelta: 0 }));
+      exactCallIdentityHash, browserAuthorityRef: priorOutcome.authorityRef,
+      browserAuthorityHash: priorOutcome.authorityHash, readbackProviderInputDelta: 0 }));
   }
   return result;
 };
 const readAcknowledgement = async (input: AtomicReadbackInput): Promise<GptChildCapabilityResult | null> => {
   if (input.intent.childCapabilityId !== "acknowledge_known_gpt_rate_limit") return null;
+  if (!input.browser) throw executionFailure("failed", "GPT_BROWSER_TARGET_REQUIRED");
   const projected = projectBrowserFact(input.intent, input.context);
   if (projected?.fact.browserOutcome === "CONFIRMED" && projected.fact.mutationOutcome === "confirmed"
     && projected.outcome.physicalInputCount === 1 && projected.outcome.terminalPayload != null) {

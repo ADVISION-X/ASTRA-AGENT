@@ -53,12 +53,15 @@ Website claim + lease/grant/fence
   -> 命中的 Product Plugin 按自身 Product runtime authority 执行
   -> exact mechanically valid result + artifact receipts
   -> one SQLite transaction: staged result + terminal Outbox intent
-  -> Browser/GPT cleanup as diagnosis only
-  -> Website domain consumer admission
-  -> Runtime 校验 admission receipt
-  -> local completed
-  -> 释放当前 job 的一个本地在途席位；其余已授权 job 不受影响
+  -> 当前 grant/fence 下立即由原 Outbox 首次交付原 terminal body
+  -> Website 实际领域 commit + admission receipt
+  -> Runtime 原 receipt/hash 读回并同身份 local completed
+  -> 释放业务席位；原唯一 worker 按原标记收束 completed Target cleanup
 ```
+
+stage 事务及读回成功后的 completed callback 先调用原 deliverTerminalProductionIntent，随后才返回 Executor 进入 finally；不在 completeClaim 再首发。未知回执/运输故障保留原 durable result/Outbox，仍经原同身份读回/regrant，不转成 Product 拒收或重跑 Provider。Executor 三个错误/清理出口核同 request、accepted attempt 与原 callback envelope/hash：同身份 staged_result 或 completed.result 均是不可撤销的既成成功，不凭 status 或 completed 布尔吞掉异身份故障。completed 后不重写 BUSINESS_ADMISSION_PENDING，不补造日志成功覆盖原真实故障。
+
+原 Outbox 的 regrant headers、markOutboxSent、hydrate 与 recordDeliveryFailure 四处写者仍写真实 receipt/response/sent；已 business admitted/completed 的 BUSINESS_ADMITTED、BROWSER_CLEANUP_PENDING、BROWSER_CLEANUP_SETTLED 不被迟到运输事实覆盖，只有原 cleanup Owner 推进。真实未接纳的同 attempt 失败清除与 FROZEN-SAME-ATTEMPT-RESULT-REDELIVERY-001 保持。admission loop 完成本地接纳后不 await Browser release；reconcileCompletedBrowserTargets 是唯一清理入口，当前 iteration 优先核可推进 terminal/admission 后最多一次清理，旧快照不能使新 stage 等清理。清理安全门、1—30秒未知结果再检查及业务完成权威不变；不新增 worker/store/表/列或完成 Owner。
 
 | Runtime 运行职责 | 只通过 typed interface 消费 | 明确不拥有 |
 |---|---|---|

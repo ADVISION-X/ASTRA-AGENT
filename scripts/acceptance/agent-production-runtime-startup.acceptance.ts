@@ -5,7 +5,7 @@ import Database from "better-sqlite3";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { assertProductionStartupPreflight, assertSessionBindingMismatchStartup } from "./agent-production-runtime-startup-preflight.acceptance-support.js";
-import { HASH_A, HASH_B, attemptFailureFirstFact, resultFor, task } from "./agent-production-runtime-fixtures.js";
+import { HASH_A, HASH_B, attemptFailureFirstFact, resultFor, stageResultForAcceptance, task } from "./agent-production-runtime-fixtures.js";
 import { buildProductTask } from "./product-plugin-test-runtime.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { ProductionExecutor } from "../../src/lib/local-runtime/production/executor.js";
@@ -19,6 +19,8 @@ import { executionFailure, executionFailureMetadata, typedExecutionFailure } fro
 import { createRuntimeLogger, requireRuntimeLogWrite, RuntimeFailureImpact, runtimeFailureFromError,
   withRuntimeLogCause, type RuntimeSpanHandle } from "../../src/lib/runtime-logs/index.js";
 import { createGptAbilityGroup } from "../../src/capabilities/gpt/index.js";
+import { ProductionGptExecutionSession } from "../../src/capabilities/gpt/production-execution-session.js";
+import { ProductionGptSourceReuse } from "../../src/capabilities/gpt/production-execution-source-reuse.js";
 import { createForensicsPersistenceAbilityGroupFromStorage } from "../../src/capabilities/forensics-persistence/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import type { BrowserExecutionArtifact } from "../../src/lib/browser/browser-authority-api.js";
@@ -143,6 +145,28 @@ try {
   const childTerminal = requireRuntimeLogWrite(child.terminal({ outcome: "failed", failure: runtimeFailureFromError({
     error: executionFailure("failed", "GPT_CHILD_FAILED"), code: "GPT_CHILD_FAILED", responsibleOwner: "gpt", impact: RuntimeFailureImpact.BLOCKING }) }));
   assert.throws(() => terminalize.call(executor, pluginSpan("child-cause"), withRuntimeLogCause(executionFailure("failed", "GPT_CHILD_FAILED"), childTerminal.eventId)), /GPT_CHILD_FAILED/u);
+  const causalInput = { resultRevision: 0 };
+  const causalSession = new ProductionGptExecutionSession(causalInput as never,
+    { recordSettledResult: () => {} } as never, {} as never,
+    new ProductionGptSourceReuse(causalInput as never, {} as never, {} as never), () => {},
+    (async () => ({ value: { semanticTextHash: HASH_A } })) as never,
+    (async () => ({ value: { canonicalConversationUrl: "https://chatgpt.com/c/causal", userTurnId: "user:causal", promptHash: HASH_A },
+      sourceAttemptId: "attempt:executor", exactCallIdentityHash: HASH_A,
+      effectReceipt: { outcome: "CONFIRMED", mutationOutcome: "confirmed", providerEffectIdentityHash: HASH_B,
+        evidenceRef: "browser-mutation:causal", evidenceHash: HASH_A, terminalAt: new Date().toISOString() } })) as never).createExecution();
+  const causalCall = { sessionKey: "session:causal", productStepId: "observe", callId: "call:submit",
+    child: "submit_exact_gpt_turn_once", actionOrdinal: 1, input: { files: [], promptHash: HASH_A } } as const;
+  await causalSession.tools.readConfirmedSubmit(causalCall);
+  await causalSession.tools.execute({ ...causalCall, child: "checkpoint_gpt_text_response", callId: "call:checkpoint",
+    input: { canonicalConversationUrl: "https://chatgpt.com/c/causal", userTurnId: "user:causal", turnMarker: "causal", probeBudgetMs: 1000 } });
+  const causalSpan = requireRuntimeLogWrite(executorLogger.startSpan({ traceId: "trace:executor", owner: "gpt", component: "gpt-child",
+    operation: "gpt.child", typedIdentity: { kind: "gpt-call", jobId: "job:executor", attemptId: "attempt:executor", stepId: "observe", capabilityCallId: "call:causal" } }));
+  const nativeCause = runtimeTransportFailure("LOCALIZATION_SOURCE_READ_FAILED", 503, Object.assign(new Error("reset"), { code: "ECONNRESET" }));
+  const causalTerminal = requireRuntimeLogWrite(causalSpan.terminal({ outcome: "failed",
+    failure: runtimeFailureFromError({ error: nativeCause, code: nativeCause.code, responsibleOwner: "gpt" }) }));
+  const causalFailure = causalSession.decorateSettledResultFailure(withRuntimeLogCause(nativeCause, causalTerminal.eventId));
+  assert.equal(serializeTerminalFailure(causalFailure).code, "RESULT_SETTLED_UNUSABLE");
+  assert.throws(() => terminalize.call(executor, pluginSpan("settled-cause"), causalFailure), /RESULT_SETTLED_UNUSABLE/u);
   const paymentFixture = buildProductTask(productionRoutePolicy("payment_screenshot_observation", "observe"), {
     parameters: { observation_schema_version: "payment-screenshot-observation-v1" } });
   const { request_hash: _requestHash, ...paymentRequest } = paymentFixture;
@@ -177,11 +201,78 @@ try {
     ["PUBLIC_KNOWLEDGE_TOPIC_MANIFEST_INVALID", RuntimeFailureImpact.BLOCKING, null],
     ["BROWSER_COMMAND_ADMISSION_SUSPENDED", RuntimeFailureImpact.BLOCKING, null],
     ["GPT_CHILD_FAILED", RuntimeFailureImpact.CONSEQUENTIAL, childTerminal.eventId],
+    ["RESULT_SETTLED_UNUSABLE", RuntimeFailureImpact.CONSEQUENTIAL, causalTerminal.eventId],
     ["PAYMENT_OBSERVATION_PROVIDER_FAILED", RuntimeFailureImpact.BLOCKING, null] ]);
+  assert.equal(failures[3].failure.nativeCause, "ECONNRESET"); assert.equal(failures[3].failure.httpStatus, 503);
   const cleanup = events.filter((event) => event.kind === "error" && event.failure?.code === "GPT_BROWSER_LIFECYCLE_FAILED");
   assert.equal(cleanup.length, 1);
   assert.equal(cleanup[0].failure.impact, RuntimeFailureImpact.CLEANUP);
   assert.equal(cleanup[0].failure.causedByEventId, failures.at(-1).eventId);
+  // Exercise the real Product dispatch/finally and outer Executor after admission clears staged_result.
+  const browser = Reflect.get(executor, "browserAuthority");
+  let lateReleases = 0;
+  Reflect.set(browser, "bindExecutionArtifacts", async () => ({ release: async () => {
+    lateReleases++;
+    throw executionFailure("failed", "LATE_ARTIFACT_RELEASE_FAILED");
+  } }));
+  for (const mode of ["staged", "completed", "post-product", "log-failure", "foreign-attempt", "foreign-payload"] as const) {
+    const releasesBefore = lateReleases;
+    const candidate = task({ jobId: `job:executor-${mode}`, productId: payment.product_id, actionId: payment.action_id,
+      materialRefs: payment.material_refs, extra: { ...paymentRequest, job_id: `job:executor-${mode}` } });
+    executor.accept(candidate, "attempt:late");
+    let decorations = 0, settledAfterComplete = false, completedCallback = false;
+    Reflect.set(Reflect.get(executor, "gptChildTools"), "createExecution", () => ({ tools: {
+      jobId: candidate.job_id, attemptId: "attempt:late", readConfirmedSubmit: async (call: { input: { promptHash: string } }) => ({
+        value: { promptHash: call.input.promptHash, canonicalConversationUrl: "https://chatgpt.com/c/original", userTurnId: "user:original" },
+        artifactRefs: [], effectReceipt: { effectScope: "provider_effect", outcome: "CONFIRMED", terminalAt: new Date().toISOString() },
+      }), execute: async () => ({ value: { semanticText: JSON.stringify({ schema_version: "payment-screenshot-observation-v1" }),
+        rawDomHash: HASH_A, semanticTextHash: HASH_B }, artifactRefs: ["artifact:original"] }),
+    }, readProviderEffectReadbackProof: () => null,
+    decorateSettledResultFailure: (error: unknown) => { decorations++; return error; }, settle: async () => {
+      settledAfterComplete = completedCallback; throw executionFailure("failed", "LATE_GPT_SETTLE_FAILED");
+    } }));
+    const originalCleanupLog = Reflect.get(executor, "logBrowserCleanup");
+    const originalDispatch = Reflect.get(executor, "dispatchPlugin");
+    if (mode === "post-product") Reflect.set(executor, "dispatchPlugin", async (input: unknown) => {
+      await originalDispatch.call(executor, input); throw executionFailure("failed", "LATE_PRODUCT_FINALIZER_FAILED");
+    });
+    if (mode === "log-failure") Reflect.set(executor, "logBrowserCleanup", () => { throw new Error("LATE_LOG_FAILED"); });
+    const execution = executor.execute(candidate, materials, { attempt_id: "attempt:late", device_id: "device:test",
+      lease_version: 1, execution_fence_hash: HASH_A, capability_manifest_hash: HASH_B, max_provider_turns: 1, provider_turns_used: 0,
+      result_revision: 0, prior_result_rejection: null, delivery_priority_replay_grant: null,
+      expires_at_monotonic: performance.now() + 10000, command_ttl_ms: 1000, abort_signal: new AbortController().signal },
+    "span:test", async () => {
+      const envelope = resultFor(candidate);
+      stageResultForAcceptance(executorStore, candidate.job_id, "attempt:late", envelope);
+      if (mode !== "staged") executorStore.completeTask(candidate.job_id, envelope);
+      if (mode === "foreign-attempt") (Reflect.get(executorStore, "database") as Database.Database).prepare(
+        "update production_tasks set current_attempt_id='attempt:foreign' where job_id=?").run(candidate.job_id);
+      if (mode === "foreign-payload") (Reflect.get(executorStore, "database") as Database.Database).prepare(
+        "update production_tasks set result_json=? where job_id=?").run(JSON.stringify({ ...envelope, execution_receipt_hash: HASH_B }), candidate.job_id);
+      completedCallback = true; return envelope;
+    }, async () => { throw new Error("UNREACHABLE_IMAGE"); });
+    if (mode.startsWith("foreign-")) await assert.rejects(execution, (error: unknown) => error instanceof AggregateError
+      && typedExecutionFailure(error.cause)?.code === "LATE_GPT_SETTLE_FAILED"
+      && typedExecutionFailure(error.errors[0])?.code === "LATE_ARTIFACT_RELEASE_FAILED");
+    else assert.deepEqual((await execution).result, resultFor(candidate), "late cleanup/log errors preserve this invocation's original result");
+    assert.equal(settledAfterComplete, true); assert.equal(decorations, 0, "cleanup cannot classify a new Product rejection");
+    assert.equal(lateReleases - releasesBefore, 1, "the original artifact lease must release exactly once even on late errors");
+    if (mode !== "staged" && !mode.startsWith("foreign-")) assert.equal(executorStore.readTask(candidate.job_id)?.staged_result, null);
+    Reflect.set(executor, "logBrowserCleanup", originalCleanupLog);
+    Reflect.set(executor, "dispatchPlugin", originalDispatch);
+    const lateEvents = (await readFile(executorLogger.currentSegmentPath()!, "utf8")).trim().split("\n").map(row => JSON.parse(row))
+      .filter(event => event.traceId === candidate.job_id && event.operation === "plugin.execute");
+    assert.equal(lateEvents.filter(event => event.kind === "span.started").length, 1);
+    assert.equal(lateEvents.filter(event => event.kind === "span.terminal").length, 1,
+      "a healthy logger closes the original plugin span exactly once on absorbed late errors");
+    if (mode === "post-product") {
+      assert.equal(lateEvents.at(-1).failure.code, "LATE_PRODUCT_FINALIZER_FAILED");
+      assert.equal(lateEvents.at(-1).failure.impact, RuntimeFailureImpact.BLOCKING);
+      assert.equal(lateEvents.at(-1).failure.causedByEventId, undefined,
+        "an earlier independent Product finalizer fault cannot be caused by a later artifact release fault");
+    }
+    assert.equal(executorStore.readTask(candidate.job_id)?.attempt_failure, null);
+  }
   executorStore.close();
 } finally {
   if (oldCredential === undefined) delete process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;

@@ -1,5 +1,6 @@
 import { terminalFact } from "./local-browser-mutation-store-support.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
+import { executionFailureMetadata } from "../../src/lib/execution-failure.js";
 import Database from "better-sqlite3";
 import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -215,6 +216,31 @@ try {
     childCapabilityId: second.childCapabilityId,
   });
   assert.equal(historicalFact?.exactCallIdentityHash, first.exactCallIdentityHash);
+  assert.deepEqual(historicalFact?.confirmedOutcome, recovered,
+    "the existing typed WAL fact returns the original decrypted outcome without acquiring a page");
+  const receiptDatabase = new Database(path.join(root, "browser", "browser-mutations.sqlite"));
+  const originalSeal = receiptDatabase.prepare("select provider_recovery_payload from browser_mutations where command_id=?")
+    .pluck().get(first.commandId) as string;
+  const originalAuthority = store.authorityHash(first.commandId);
+  const readOriginalFact = () => store.readProviderEffectStepCallFact({ jobId: second.jobId, attemptId: second.attemptId,
+    resultRevision: second.resultRevision, productStepId: second.productStepId, callId: second.callId, childCapabilityId: second.childCapabilityId });
+  receiptDatabase.prepare("update browser_mutations set provider_recovery_payload=null where command_id=?").run(first.commandId);
+  assert.throws(readOriginalFact, (error: unknown) => {
+    const facts = executionFailureMetadata(error);
+    assert.equal(facts?.mutationOutcome, "confirmed"); assert.equal(facts?.browserEffect?.providerEffectIdentityHash, first.logicalMutationId);
+    assert.equal(facts?.evidence?.evidenceRef, `browser-mutation:${first.commandId}`);
+    return error instanceof Error && error.message === "BROWSER_PROVIDER_EFFECT_FACT_INVALID";
+  }, "a confirmed row with missing payload cannot become fresh or lose the original effect");
+  receiptDatabase.prepare("update browser_mutations set provider_recovery_payload=? where command_id=?").run("corrupt", first.commandId);
+  assert.throws(readOriginalFact, (error: unknown) => {
+    assert.equal(executionFailureMetadata(error)?.mutationOutcome, "confirmed");
+    assert.equal(executionFailureMetadata(error)?.browserEffect?.providerEffectIdentityHash, first.logicalMutationId);
+    return error instanceof Error && /^BROWSER_/u.test(error.message);
+  }, "corrupt ciphertext retains its read error and confirmed effect");
+  receiptDatabase.prepare("update browser_mutations set provider_recovery_payload=? where command_id=?").run(originalSeal, first.commandId);
+  assert.equal(store.authorityHash(first.commandId), originalAuthority);
+  assert.deepEqual(readOriginalFact()?.confirmedOutcome?.terminalPayload, terminalPayload);
+  receiptDatabase.close();
   assert.equal(historicalFact?.inputHash, first.requestHash,
     "confirmed recovery must return the persisted atomic input identity, not rebuild the current one");
   const continuationIdentity = (
