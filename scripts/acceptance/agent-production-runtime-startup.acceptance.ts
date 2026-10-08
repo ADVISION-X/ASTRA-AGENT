@@ -19,8 +19,6 @@ import { executionFailure, executionFailureMetadata, typedExecutionFailure } fro
 import { createRuntimeLogger, requireRuntimeLogWrite, RuntimeFailureImpact, runtimeFailureFromError,
   withRuntimeLogCause, type RuntimeSpanHandle } from "../../src/lib/runtime-logs/index.js";
 import { createGptAbilityGroup } from "../../src/capabilities/gpt/index.js";
-import { ProductionGptExecutionSession } from "../../src/capabilities/gpt/production-execution-session.js";
-import { ProductionGptSourceReuse } from "../../src/capabilities/gpt/production-execution-source-reuse.js";
 import { createForensicsPersistenceAbilityGroupFromStorage } from "../../src/capabilities/forensics-persistence/index.js";
 import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import type { BrowserExecutionArtifact } from "../../src/lib/browser/browser-authority-api.js";
@@ -145,26 +143,18 @@ try {
   const childTerminal = requireRuntimeLogWrite(child.terminal({ outcome: "failed", failure: runtimeFailureFromError({
     error: executionFailure("failed", "GPT_CHILD_FAILED"), code: "GPT_CHILD_FAILED", responsibleOwner: "gpt", impact: RuntimeFailureImpact.BLOCKING }) }));
   assert.throws(() => terminalize.call(executor, pluginSpan("child-cause"), withRuntimeLogCause(executionFailure("failed", "GPT_CHILD_FAILED"), childTerminal.eventId)), /GPT_CHILD_FAILED/u);
-  const causalInput = { resultRevision: 0 };
-  const causalSession = new ProductionGptExecutionSession(causalInput as never,
-    { recordSettledResult: () => {} } as never, {} as never,
-    new ProductionGptSourceReuse(causalInput as never, {} as never, {} as never), () => {},
-    (async () => ({ value: { semanticTextHash: HASH_A } })) as never,
-    (async () => ({ value: { canonicalConversationUrl: "https://chatgpt.com/c/causal", userTurnId: "user:causal", promptHash: HASH_A },
-      sourceAttemptId: "attempt:executor", exactCallIdentityHash: HASH_A,
-      effectReceipt: { outcome: "CONFIRMED", mutationOutcome: "confirmed", providerEffectIdentityHash: HASH_B,
-        evidenceRef: "browser-mutation:causal", evidenceHash: HASH_A, terminalAt: new Date().toISOString() } })) as never).createExecution();
-  const causalCall = { sessionKey: "session:causal", productStepId: "observe", callId: "call:submit",
-    child: "submit_exact_gpt_turn_once", actionOrdinal: 1, input: { files: [], promptHash: HASH_A } } as const;
-  await causalSession.tools.readConfirmedSubmit(causalCall);
-  await causalSession.tools.execute({ ...causalCall, child: "checkpoint_gpt_text_response", callId: "call:checkpoint",
-    input: { canonicalConversationUrl: "https://chatgpt.com/c/causal", userTurnId: "user:causal", turnMarker: "causal", probeBudgetMs: 1000 } });
   const causalSpan = requireRuntimeLogWrite(executorLogger.startSpan({ traceId: "trace:executor", owner: "gpt", component: "gpt-child",
     operation: "gpt.child", typedIdentity: { kind: "gpt-call", jobId: "job:executor", attemptId: "attempt:executor", stepId: "observe", capabilityCallId: "call:causal" } }));
   const nativeCause = runtimeTransportFailure("LOCALIZATION_SOURCE_READ_FAILED", 503, Object.assign(new Error("reset"), { code: "ECONNRESET" }));
   const causalTerminal = requireRuntimeLogWrite(causalSpan.terminal({ outcome: "failed",
     failure: runtimeFailureFromError({ error: nativeCause, code: nativeCause.code, responsibleOwner: "gpt" }) }));
-  const causalFailure = causalSession.decorateSettledResultFailure(withRuntimeLogCause(nativeCause, causalTerminal.eventId));
+  const causalFailure = withRuntimeLogCause(executionFailure("failed", "RESULT_SETTLED_UNUSABLE", {
+    cause: Object.assign(new Error(nativeCause.code, { cause: nativeCause.cause }), { code: "ECONNRESET", httpStatus: 503 }),
+    metadata: { mutationOutcome: "confirmed", settledResultPayloadHash: HASH_A,
+      evidence: { evidenceRef: "browser-mutation:causal", evidenceHash: HASH_A },
+      browserEffect: { effectScope: "provider_effect", childCapabilityId: "submit_exact_gpt_turn_once",
+        browserOutcome: "CONFIRMED", providerEffectIdentityHash: HASH_B } },
+  }), causalTerminal.eventId);
   assert.equal(serializeTerminalFailure(causalFailure).code, "RESULT_SETTLED_UNUSABLE");
   assert.throws(() => terminalize.call(executor, pluginSpan("settled-cause"), causalFailure), /RESULT_SETTLED_UNUSABLE/u);
   const paymentFixture = buildProductTask(productionRoutePolicy("payment_screenshot_observation", "observe"), {

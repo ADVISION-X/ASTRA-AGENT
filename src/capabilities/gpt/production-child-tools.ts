@@ -119,11 +119,7 @@ export class ProductionGptChildTools {
       boundaryId: intent.executionId, owner: "gpt", component: "gpt-child", operation: "gpt.child", typedIdentity: { kind: "gpt-call",
         jobId: input.jobId, attemptId: input.attemptId, stepId: intent.productStepId, capabilityCallId: `${intent.callId}:${intent.childCapabilityId}` } }));
   }
-  private assertProviderTurnBudget(execution: ExecutionInput, call: ProductGptCallInput<GptChildCapabilityId>): void {
-    if (call.child !== "submit_exact_gpt_turn_once") return;
-    this.providerRateLimitControl.assertProviderSubmitAllowed();
-    if (this.browserAuthority.countProviderTurnDispatches(execution.jobId, execution.attemptId) >= execution.maxProviderTurns) throw executionFailure("failed", "PROVIDER_TURN_BUDGET_EXHAUSTED");
-  }
+
   private async closeKnownRateLimitAndReadGate(execution: ExecutionInput, browsers: ProductionGptBrowserLifecycle,
     call: Readonly<{ sessionKey: string }>, result: GptChildCapabilityResult): Promise<unknown | null> {
     if (result.status === "success" || result.failureCode !== "BROWSER_KNOWN_GPT_RATE_LIMIT") return null;
@@ -137,52 +133,54 @@ export class ProductionGptChildTools {
     catch (error) { if (failureCode(error) === "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE") return null; }
     return closureError;
   }
-  private async executeOne<K extends GptChildCapabilityId>(execution: ExecutionInput, browsers: ProductionGptBrowserLifecycle,
-    call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>, options: ExecuteOneOptions = {}): Promise<ProductGptChildResult<K>> {
-    const intent = this.intentFor(execution, call), contract = GPT_CHILD_CAPABILITY_CONTRACTS[call.child];
-    const startedAt = new Date().toISOString(), span = this.childSpan(execution, intent), priorEffectKnown = options.priorEffectKnown ?? false;
-    let result: GptChildCapabilityResult;
-    let browserCall: Awaited<ReturnType<ProductionGptBrowserLifecycle["browserFor"]>> | undefined;
-    try {
-      const recovered = await recoverPersistedCheckpoint({ evidenceStore: this.evidenceStore, execution, intent, call, span });
-      if (recovered) return recovered;
-      if (!options.confirmedProviderEffectReadback) {
-        browserCall = await acquireProductionBrowserCall(browsers, call, contract.requiredTargetKind, priorEffectKnown,
-          options.confirmedSubmission);
+
+    private assertProviderTurnBudget(execution: ExecutionInput, call: ProductGptCallInput<GptChildCapabilityId>, priorEffectKnown: boolean): void {
+        if (priorEffectKnown || call.child !== "submit_exact_gpt_turn_once") return;
+        this.providerRateLimitControl.assertProviderSubmitAllowed();
+        if (this.browserAuthority.countProviderTurnDispatches(execution.jobId, execution.attemptId) >= execution.maxProviderTurns) throw executionFailure("failed", "PROVIDER_TURN_BUDGET_EXHAUSTED");
       }
-      if (!priorEffectKnown) this.assertProviderTurnBudget(execution, call);
-      result = await runProductionAtomicPhase({ dataDir: this.dataDir, gpt: this.gpt, browsers, intent: intent as GptAnyChildCapabilityIntent,
-        browserCall, signal: execution.abortSignal, resultRevision: execution.resultRevision, childCapabilityId: call.child,
-        ...(options.confirmedProviderEffectReadback ? { confirmedProviderEffectReadback: options.confirmedProviderEffectReadback } : {}),
-        ...(options.browserAtomicIdentity ? { browserAtomicIdentity: options.browserAtomicIdentity } : {}),
-        ...(options.recordConfirmedProviderEffectReadback ? { recordConfirmedProviderEffectReadback: options.recordConfirmedProviderEffectReadback } : {}),
-        assertProviderInputAllowed: () => this.providerRateLimitControl.assertProviderSubmitAllowed(),
-        ...(options.rateLimitAckDispatchNotAfter === undefined ? {} : { rateLimitAckDispatchNotAfter: options.rateLimitAckDispatchNotAfter }) });
-    } catch (error) {
-      if (options.confirmedSubmission && !["BROWSER_GPT_DIALOG_UNRECOGNIZED", "BROWSER_KNOWN_GPT_RATE_LIMIT"].includes(failureCode(error))) {
-        return terminalizeGptChildError(span, error, options.confirmedSubmission);
+
+    private async executeOne<K extends GptChildCapabilityId>(execution: ExecutionInput, browsers: ProductionGptBrowserLifecycle,
+        call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>, options: ExecuteOneOptions = {}): Promise<ProductGptChildResult<K>> {
+        const intent = this.intentFor(execution, call), contract = GPT_CHILD_CAPABILITY_CONTRACTS[call.child];
+        const startedAt = new Date().toISOString(), span = this.childSpan(execution, intent), priorEffectKnown = options.priorEffectKnown ?? false;
+        let result: GptChildCapabilityResult;
+        let browserCall: Awaited<ReturnType<ProductionGptBrowserLifecycle["browserFor"]>> | undefined;
+        try {
+          const recovered = await recoverPersistedCheckpoint({ evidenceStore: this.evidenceStore, execution, intent, call, span });
+          if (recovered) return recovered;
+          if (!options.confirmedProviderEffectReadback) {
+            browserCall = await acquireProductionBrowserCall(browsers, call, contract.requiredTargetKind, priorEffectKnown,
+              options.confirmedSubmission);
+          }
+          this.assertProviderTurnBudget(execution, call, priorEffectKnown);
+          result = await runProductionAtomicPhase({ ...options, dataDir: this.dataDir, gpt: this.gpt, browsers, intent: intent as GptAnyChildCapabilityIntent,
+            browserCall, signal: execution.abortSignal, resultRevision: execution.resultRevision, childCapabilityId: call.child,
+            assertProviderInputAllowed: () => this.providerRateLimitControl.assertProviderSubmitAllowed() });
+        } catch (error) {
+          if (options.confirmedSubmission && !["BROWSER_GPT_DIALOG_UNRECOGNIZED", "BROWSER_KNOWN_GPT_RATE_LIMIT"].includes(failureCode(error))) {
+            return terminalizeGptChildError(span, error, options.confirmedSubmission);
+          }
+          result = await handleGptChildExecutionError({ dataDir: this.dataDir, execution, intent: intent as GptAnyChildCapabilityIntent,
+            startedAt, error, browserCall, browserAtomicIdentity: options.browserAtomicIdentity, span, childCapabilityId: call.child });
+        }
+        const confirmedEffect = browserCall?.confirmedProviderEffect ?? options.confirmedSubmission ?? null;
+        if (call.child !== "acknowledge_known_gpt_rate_limit") {
+          const closureError = await this.closeKnownRateLimitAndReadGate(execution, browsers, call, result);
+          if (closureError) return terminalizeGptChildError(span, closureError, confirmedEffect);
+        }
+        let persisted: Awaited<ReturnType<typeof persistGptChildOutcome>>;
+        try { persisted = await persistGptChildOutcome({ ...options, call, result, intent: intent as GptAnyChildCapabilityIntent,
+          execution, browsers, browserCall, evidenceStore: this.evidenceStore }); }
+        catch (error) { return terminalizeGptChildError(span, error, confirmedEffect); }
+        const terminalEventId = terminalizeGptChildResult(span, result);
+        if (result.status !== "success") throwGptChildFailure(result, persisted.evidenceRef, terminalEventId, confirmedEffect);
+        recordSettledProviderResult(call, result.value, browsers, browserCall);
+        if (call.child === "submit_exact_gpt_turn_once") {
+          const identity = options.browserAtomicIdentity ?? browserCall?.confirmedProviderEffect?.submitIdentity;
+          if (identity) options.recordSubmitIdentity?.(identity);
+        }
+        return productChildResult({ execution, intent, value: result.value, browserFact: result.proof.browserFact, ...persisted });
       }
-      result = await handleGptChildExecutionError({ dataDir: this.dataDir, execution, intent: intent as GptAnyChildCapabilityIntent,
-        startedAt, error, browserCall, browserAtomicIdentity: options.browserAtomicIdentity, span, childCapabilityId: call.child });
-    }
-    const confirmedEffect = browserCall?.confirmedProviderEffect ?? options.confirmedSubmission ?? null;
-    if (call.child !== "acknowledge_known_gpt_rate_limit") {
-      const closureError = await this.closeKnownRateLimitAndReadGate(execution, browsers, call, result);
-      if (closureError) return terminalizeGptChildError(span, closureError, confirmedEffect);
-    }
-    let persisted: Awaited<ReturnType<typeof persistGptChildOutcome>>;
-    try { persisted = await persistGptChildOutcome({ call, result, intent: intent as GptAnyChildCapabilityIntent,
-      execution, browsers, browserCall, evidenceStore: this.evidenceStore,
-      ...(options.browserAtomicIdentity ? { browserAtomicIdentity: options.browserAtomicIdentity } : {}) }); }
-    catch (error) { return terminalizeGptChildError(span, error, confirmedEffect); }
-    const terminalEventId = terminalizeGptChildResult(span, result);
-    if (result.status !== "success") throwGptChildFailure(result, persisted.evidenceRef, terminalEventId, confirmedEffect);
-    recordSettledProviderResult(call, result.value, browsers, browserCall);
-    if (call.child === "submit_exact_gpt_turn_once") {
-      const identity = options.browserAtomicIdentity ?? browserCall?.confirmedProviderEffect?.submitIdentity;
-      if (identity) options.recordSubmitIdentity?.(identity);
-    }
-    return productChildResult({ execution, intent, value: result.value, browserFact: result.proof.browserFact, ...persisted });
-  }
 }
 export const createProductionGptChildTools = (...input: ConstructorParameters<typeof ProductionGptChildTools>): ProductionGptChildTools => new ProductionGptChildTools(...input);

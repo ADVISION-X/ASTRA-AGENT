@@ -184,63 +184,6 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
       input.childCapabilityId) as readonly ProviderEffectHistoryRow[];
   }
 
-  public readProviderEffectStepCallFact(input: Readonly<{
-    jobId: string; attemptId: string; resultRevision: number; productStepId: string;
-    callId: string; childCapabilityId: string;
-  }>): import("./browser-mutation-types.js").BrowserProviderEffectStepCallFact | null {
-    const rows = this.database.prepare(
-      `select exact_call_identity_hash,request_hash,action_ordinal,attempt_id from browser_mutations
-       where job_id=? and result_revision=? and product_step_id=? and call_id=? and child_capability_id=? and effect_scope='provider_effect'
-         and state in ('DISPATCHED','CONFIRMED','REJECTED')
-         and not (state='REJECTED' and mutation_outcome='no' and physical_input_count=0
-           and (attempt_id<>? or exists(select 1 from browser_mutations newer
-             where newer.job_id=browser_mutations.job_id
-               and newer.logical_mutation_id=browser_mutations.logical_mutation_id
-               and newer.rowid>browser_mutations.rowid
-               and newer.state in ('DISPATCHED','CONFIRMED','REJECTED'))))
-       order by updated_at desc,command_id desc limit 2`,
-    ).all(input.jobId, input.resultRevision, input.productStepId, input.callId,
-      input.childCapabilityId, input.attemptId) as ReadonlyArray<{
-        exact_call_identity_hash: `sha256:${string}`;
-        request_hash: `sha256:${string}`;
-        action_ordinal: number;
-        attempt_id: string;
-      }>;
-    if (rows.length === 0) return null;
-    if (rows.length !== 1) throw new Error("BROWSER_PROVIDER_EFFECT_FACT_AMBIGUOUS");
-    const row = rows[0]!;
-    const mutation = this.readExactCallMutationFact({
-      jobId: input.jobId, attemptId: row.attempt_id,
-      exactCallIdentityHash: row.exact_call_identity_hash, actionOrdinal: row.action_ordinal,
-    });
-    if (!mutation || mutation.effectScope !== "provider_effect"
-      || mutation.productStepId !== input.productStepId || mutation.callId !== input.callId
-      || mutation.childCapabilityId !== input.childCapabilityId) {
-      throw new Error("BROWSER_PROVIDER_EFFECT_FACT_INVALID");
-    }
-    try {
-    const confirmedOutcome = mutation.outcome === "CONFIRMED" ? this.readAtomicStepOutcome({
-      jobId: input.jobId, attemptId: row.attempt_id, exactCallIdentityHash: row.exact_call_identity_hash,
-      actionOrdinal: row.action_ordinal, targetRef: mutation.targetRef, effectScope: "provider_effect",
-    }) : null;
-    if (mutation.outcome === "CONFIRMED" && (!confirmedOutcome || confirmedOutcome.state !== "confirmed"
-      || confirmedOutcome.mutationOutcome !== mutation.mutationOutcome || confirmedOutcome.physicalInputCount !== mutation.physicalInputCount
-      || confirmedOutcome.physicalInputCount !== 1 || confirmedOutcome.terminalAt !== mutation.terminalAt
-      || confirmedOutcome.providerEffectIdentityHash !== mutation.providerEffectIdentityHash
-      || confirmedOutcome.authorityRef !== mutation.authorityRef || confirmedOutcome.authorityHash !== mutation.authorityHash
-      || confirmedOutcome.terminalPayload == null)) throw new Error("BROWSER_PROVIDER_EFFECT_FACT_INVALID");
-    return Object.freeze({ exactCallIdentityHash: row.exact_call_identity_hash,
-      inputHash: row.request_hash, mutation, confirmedOutcome });
-    } catch (error) {
-      throw executionFailure("failed", failureCode(error, error instanceof Error ? error.message : "BROWSER_PROVIDER_EFFECT_FACT_INVALID"), {
-        cause: error, metadata: { mutationOutcome: mutation.mutationOutcome,
-          evidence: { evidenceRef: mutation.authorityRef, evidenceHash: mutation.authorityHash },
-          browserEffect: { effectScope: mutation.effectScope, childCapabilityId: mutation.childCapabilityId,
-            browserOutcome: mutation.outcome, providerEffectIdentityHash: mutation.providerEffectIdentityHash } },
-      });
-    }
-  }
-
   public readConfirmedRateLimitAcknowledgement(input: Readonly<{
     jobId: string; attemptId: string; resultRevision: number; incidentRequestId: string;
   }>): Readonly<{ terminalAt: string }> | null {
@@ -487,4 +430,61 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
       timestamp, input.commandId, input.from);
     if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT");
   }
+
+    public readProviderEffectStepCallFact(input: Readonly<{
+        jobId: string; attemptId: string; resultRevision: number; productStepId: string;
+        callId: string; childCapabilityId: string;
+      }>): import("./browser-mutation-types.js").BrowserProviderEffectStepCallFact | null {
+        const rows = this.database.prepare(
+          `select exact_call_identity_hash,request_hash,action_ordinal,attempt_id from browser_mutations
+       where job_id=? and result_revision=? and product_step_id=? and call_id=? and child_capability_id=? and effect_scope='provider_effect'
+         and state in ('DISPATCHED','CONFIRMED','REJECTED')
+         and not (state='REJECTED' and mutation_outcome='no' and physical_input_count=0
+           and (attempt_id<>? or exists(select 1 from browser_mutations newer
+             where newer.job_id=browser_mutations.job_id
+               and newer.logical_mutation_id=browser_mutations.logical_mutation_id
+               and newer.rowid>browser_mutations.rowid
+               and newer.state in ('DISPATCHED','CONFIRMED','REJECTED'))))
+       order by updated_at desc,command_id desc limit 2`,
+        ).all(input.jobId, input.resultRevision, input.productStepId, input.callId,
+          input.childCapabilityId, input.attemptId) as ReadonlyArray<{
+            exact_call_identity_hash: `sha256:${string}`;
+            request_hash: `sha256:${string}`;
+            action_ordinal: number;
+            attempt_id: string;
+          }>;
+        if (rows.length === 0) return null;
+        if (rows.length !== 1) throw new Error("BROWSER_PROVIDER_EFFECT_FACT_AMBIGUOUS");
+        const row = rows[0]!;
+        const mutation = this.readExactCallMutationFact({
+          jobId: input.jobId, attemptId: row.attempt_id,
+          exactCallIdentityHash: row.exact_call_identity_hash, actionOrdinal: row.action_ordinal,
+        });
+        if (!mutation || Object.entries({ effectScope: "provider_effect", productStepId: input.productStepId,
+          callId: input.callId, childCapabilityId: input.childCapabilityId })
+          .some(([key, value]) => mutation[key as keyof typeof mutation] !== value)) {
+          throw new Error("BROWSER_PROVIDER_EFFECT_FACT_INVALID");
+        }
+        try {
+        const confirmedOutcome = mutation.outcome === "CONFIRMED" ? this.readAtomicStepOutcome({
+          jobId: input.jobId, attemptId: row.attempt_id, exactCallIdentityHash: row.exact_call_identity_hash,
+          actionOrdinal: row.action_ordinal, targetRef: mutation.targetRef, effectScope: "provider_effect",
+        }) : null;
+        if (mutation.outcome === "CONFIRMED" && (!confirmedOutcome || confirmedOutcome.state !== "confirmed"
+          || confirmedOutcome.physicalInputCount !== 1 || Object.entries({ mutationOutcome: mutation.mutationOutcome,
+            physicalInputCount: mutation.physicalInputCount, terminalAt: mutation.terminalAt,
+            providerEffectIdentityHash: mutation.providerEffectIdentityHash, authorityRef: mutation.authorityRef, authorityHash: mutation.authorityHash })
+            .some(([key, value]) => confirmedOutcome[key as keyof typeof confirmedOutcome] !== value)
+          || confirmedOutcome.terminalPayload == null)) throw new Error("BROWSER_PROVIDER_EFFECT_FACT_INVALID");
+        return Object.freeze({ exactCallIdentityHash: row.exact_call_identity_hash,
+          inputHash: row.request_hash, mutation, confirmedOutcome });
+        } catch (error) {
+          throw executionFailure("failed", failureCode(error, error instanceof Error ? error.message : "BROWSER_PROVIDER_EFFECT_FACT_INVALID"), {
+            cause: error, metadata: { mutationOutcome: mutation.mutationOutcome,
+              evidence: { evidenceRef: mutation.authorityRef, evidenceHash: mutation.authorityHash },
+              browserEffect: { effectScope: mutation.effectScope, childCapabilityId: mutation.childCapabilityId,
+                browserOutcome: mutation.outcome, providerEffectIdentityHash: mutation.providerEffectIdentityHash } },
+          });
+        }
+      }
 }

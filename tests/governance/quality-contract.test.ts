@@ -1478,7 +1478,6 @@ const verifyBrowserBoundaryMutants = (
     source.replaceWithText(baseline);
   }
 };
-
 test("Browser reply inspection rejects mixed transport and permit identities", () => {
   const path = "src/lib/browser/transport/browser-authority-websocket.ts";
   verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-001-V4", inspectSingleTransport, [
@@ -1498,6 +1497,29 @@ test("Browser reply inspection rejects mixed transport and permit identities", (
     [path, "if (!active || active.socket !== socket || !reply)", "if (!active || !reply)"],
     [path, "diagnostic: null, resolve", 'diagnostic: { reasonCode: "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", commandStage: "command-admission" }, resolve'],
     [path, "reply.diagnostic?.reasonCode === parsed.errorCode", "reply.diagnostic !== null"],
+    [path, "budget + (permit.mutationClass === \"mutation\" ? MUTATION_TERMINAL_REPLY_GRACE_MS : 0)", "budget + (onDispatched === undefined ? 0 : MUTATION_TERMINAL_REPLY_GRACE_MS)"],
+    [path, "budget + (permit.mutationClass === \"mutation\" ? MUTATION_TERMINAL_REPLY_GRACE_MS : 0)", "budget + MUTATION_TERMINAL_REPLY_GRACE_MS"],
+    [path, "budget + (permit.mutationClass === \"mutation\" ? MUTATION_TERMINAL_REPLY_GRACE_MS : 0)", "budget"],
+    [path, "budget + (permit.mutationClass === \"mutation\" ? MUTATION_TERMINAL_REPLY_GRACE_MS : 0)", "budget + (permit.mutationClass !== \"mutation\" ? MUTATION_TERMINAL_REPLY_GRACE_MS : 0)"],
+  ]);
+});
+
+test("Browser receipt inspection rejects raw caller facts and unbound WAL readback", () => {
+  const path = "src/lib/browser/exact-target/browser-command-actor.ts";
+  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-004-V56", inspectProviderEffectAttemptGuard, [
+    [path, "verifyNormalBrowserMutationReply(permit, command, { result: reply.result, mutationReceipt: reply.mutationReceipt })", "reply.mutationReceipt!"],
+    [path, "receipt.terminal === \"confirmed\" ? \"CONFIRMED\" : \"REJECTED\"", "\"CONFIRMED\""],
+    [path, "private completeMutation(permit: BrowserCommandPermit, command: BrowserGovernedCommand, reply: BrowserCommandReply,\n    span: ReturnType<typeof startBrowserCommandSpan>, state: BrowserCommandExecutionState): void", "private async completeMutation(permit: BrowserCommandPermit, command: BrowserGovernedCommand, reply: BrowserCommandReply,\n    span: ReturnType<typeof startBrowserCommandSpan>, state: BrowserCommandExecutionState): Promise<void>"],
+    [path, "if (mutation) this.completeMutation(permit, command, reply, span, state);", "if (false) this.completeMutation(permit, command, reply, span, state);"],
+    [path, "fact.receiptBindingHash !== hashValue(browserMutationReceiptBindingProjection(row.identity))", "false"],
+    [path, "readback[key as keyof typeof readback] !== value", "false"],
+    [path, "physicalInputCount: receipt.physicalInputCount, terminalAt: receipt.completedAt", "physicalInputCount: 0, terminalAt: receipt.completedAt"],
+    [path, "if (mutation) this.completeMutation(permit, command, reply, span, state);", "if (mutation) { this.completeMutation(permit, command, reply, span, state); this.completeMutation(permit, command, reply, span, state); }"],
+    [path, "if (mutation) this.completeMutation(permit, command, reply, span, state);", "if (mutation || observation) this.completeMutation(permit, command, reply, span, state);"],
+    [path, "mutation || observation ? () => {", "mutation ? () => {"],
+    [path, "if (observation) observationDispatched = true;", "if (observation) observationDispatched = false;"],
+    [path, "if (observationDispatched) this.onProviderObservationTerminal?.();", "this.onProviderObservationTerminal?.();"],
+    [path, "const bindingHash = mutation ? hashValue(", "const bindingHash = mutation || observation ? hashValue("],
   ]);
 });
 
@@ -1530,20 +1552,6 @@ test("Extension command failure preserves its original redacted intent identity"
     });
   }
 });
-
-test("Browser receipt inspection rejects raw caller facts and unbound WAL readback", () => {
-  const path = "src/lib/browser/exact-target/browser-command-actor.ts";
-  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-004-V56", inspectProviderEffectAttemptGuard, [
-    [path, "verifyNormalBrowserMutationReply(permit, command, { result: reply.result, mutationReceipt: reply.mutationReceipt })", "reply.mutationReceipt!"],
-    [path, "receipt.terminal === \"confirmed\" ? \"CONFIRMED\" : \"REJECTED\"", "\"CONFIRMED\""],
-    [path, "private completeMutation(permit: BrowserCommandPermit, command: BrowserGovernedCommand, reply: BrowserCommandReply,\n    span: ReturnType<typeof startBrowserCommandSpan>, state: BrowserCommandExecutionState): void", "private async completeMutation(permit: BrowserCommandPermit, command: BrowserGovernedCommand, reply: BrowserCommandReply,\n    span: ReturnType<typeof startBrowserCommandSpan>, state: BrowserCommandExecutionState): Promise<void>"],
-    [path, "if (mutation) this.completeMutation(permit, command, reply, span, state);", "if (false) this.completeMutation(permit, command, reply, span, state);"],
-    [path, "fact.receiptBindingHash !== hashValue(browserMutationReceiptBindingProjection(row.identity))", "false"],
-    [path, "readback[key as keyof typeof readback] !== value", "false"],
-    [path, "physicalInputCount: receipt.physicalInputCount, terminalAt: receipt.completedAt", "physicalInputCount: 0, terminalAt: receipt.completedAt"],
-  ]);
-});
-
 test("Browser media inspection rejects alternate identities, missing guards and duplicate input", () => {
   const path = "src/lib/browser/chrome-extension/extension-command-runtime.ts";
   verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-006-V45", inspectOpaqueAuthorityBoundary, [
