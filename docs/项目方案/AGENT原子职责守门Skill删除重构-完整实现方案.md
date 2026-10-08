@@ -1,6 +1,9 @@
 # AGENT原子职责守门Skill删除重构—完整实现方案
 
-状态：可施工。授权人已明确批准既定方案执行，范围为目标 Skill 整文件删除重建，以及本方案精确路径的 code-purity Manifest 登记、由现役 audit:build 生成唯一 registry 并保存本方案。可施工不等于质量通过或生产发布。两仓证据冲突保留原位置；新 Skill 能表达受影响决定的停止门，不承诺冻结基础设施现已符合全部法案。
+状态：已获授权执行 §10 阶段性冻结方案 F1/F2，施工范围为守门 Skill §2 及本方案活动状态；按本次要求完成规范审计、删除重建、施工自检/只读子审查和原生 CI-FULL。质量与推送结论以当前原生候选、唯一质量报告及云仓读回为准，不继承旧 READY。§§1–9 原文保留，仅为前轮已完成记录，旧授权和证据不用于扩大本轮范围。
+
+
+
 
 1. 需求、终点与边界
 需求 Owner 为 AGENT.code-purity；真实消费者是进入 AGENT 生产链建设、专业 Skill 边界审查的 Codex。终点是它完整读取唯一重建 Skill 后，能够正确界定本次授权、回到现役来源、保护专业模型与 Child 的局部判断、关闭重复现实动作和错误恢复权限，并把未闭合项交回对应 Owner。这个终点不等于任何 Product 已完成生产。
@@ -104,3 +107,110 @@ A16 新方案path单一code-purity ownership及生成registry faithful；本次�
 正文反查发现并在唯一重建正文纠正：存在性门需明确覆盖本次继续依赖的旧结构，两层证据任一不闭合仍失败关闭；提交事实通过 GPT 公开 facade 取得 Browser typed fact，不授权 Product 直读私有 WAL。原子责任补明可独立证伪记录及多决定拆分，保持 receipt 证明与唯一真相区分。
 按 A1–A18 的有限案例人工演练：A1–A2 对应正文§1–2治理退出与精确授权；A3–A5 对应§4专业事实/解释、同轮模型自检与机械拒绝条件；A6–A8 对应§5实际独立门、局部 WAIT 和一次确认例外；A9–A12 对应§6恢复 Owner、两种零提交来源、direct-parent 与未决输入屏障；A13–A14 对应§6完成 artifact 取证与同事务结果/真实 admission；A15 对应§3–4现役来源及 SEO 例外；A16由实际 Manifest/registry 的唯一 ownership 读回；A17–A18 对应§6领域拒收关闭、lease 运输例外及已知限流窄控制链。对明确允许和明确阻断分支分别应用，未再发现这些已定义案例的新增正文问题。此为本次 Codex 全文消费与边界核对，不是独立机器 verdict 或生产动态证明。
 原生 quality:check CHANGE 在全部实际文件最终冻结后执行，其真实结果只在本次最终回答报告，不为回填结果改动已检查候选。其它会话是否取得新正文需分别实读；源头已知差异保持原报告位置，未修冻结源。
+
+## 10. 阶段性冻结：当前唯一活动方案
+
+### 10.1 目标、授权与事实等级
+
+需求 Owner 为 AGENT.code-purity；消费者是以后在本仓分析、方案建设和施工的 Codex。交付终点是：它实际读取守门 Skill 后，能区分已证实规则、已验证实现和未证实生产效果；先向授权人讲清改法、收益和风险，再按精确授权修改唯一片区。本方案不执行业务任务、不决定 Website 的恢复授权。
+
+本次授权执行既定 F1/F2，唯一施工仓库为 /Users/nexgen/Documents/AGENT，本地 main、tracking=origin/main；目标为守门 Skill §2 和本方案活动状态。开始时 Skill clean，本方案只有上一轮已完成设计的未提交差异，授权人现已批准在该方案上继续执行。写前及验收在当前对话重新核对 HEAD、目标 overlay 与相关来源，不保存候选路径集合、任务回执或冻结 hash。按本次要求遍历双仓现役法案和施工图；Website 仅只读核规范及接口，不施工、不代做 READY，保留对方 Codex 并行改动。
+
+上一轮方案设计已完整取得闭环设计 Skill 正文两遍并完成三轮自审。本次明确施工授权继承 §10.5 的具体改法、收益、风险及 F1/F2 范围，并要求冻结 ci-full-governance 连续执行 CHANGE→READY→RELEASE；先按冻结索引回读双仓母本及现役规范，由只读子智能体做规范层深度审计，确认对齐后才删除重建。前轮 W0–W2 授权不复活，本次也不修改任何 active law、Blueprint、运行代码、质检实现或数据库；宽泛类别授权不扩大已有具体方案。
+
+前轮基线事实：当时本地与云仓 main 相等，原生 READY/PASS 的39条法案无 finding，20条仍有 deferred dynamic evidence；只证明当时 clean commit 的 READY。当前施工后候选必须重新形成 clean main commit，依次运行原生 CHANGE、READY；RELEASE 另核当前参与仓、合同与真实动态输入。旧证据不证明本次候选、真实旧工单、浏览器加载或 Website 已拿结果。缺失动态事实继续保留，不计算“系统百分之百可靠”。
+
+
+当前权威入口只复用现役文件：docs/governance/法案系统建设说明书-冻结定稿版.md，.github/instructions/agent-rules/基础法案.md、.github/instructions/agent-rules/功能法案.md；docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md，docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md，docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md，docs/blueprints/code-purity/QUALITY-EVIDENCE-OWNERSHIP-V1-BLUEPRINT.md；.agents/skills/agent-flow-boundary-gatekeeper/SKILL.md；scripts/audit/domains/code-purity/manifest.json 与 scripts/audit/generated/law-registry.generated.json。原生质量证据仅在 scripts/audit/reports/law-quality.report.json，不复制报告/Schema或保存冻结快照。
+
+### 10.2 现役链、前轮连续性与第一直接缺口
+
+现役开发链是“当前任务授权 → frozen-spec-index → 本仓母本/现役法案 → 同一守门 Skill → 当前片区实际差异 → 原生 quality:check”。唯一 Skill 的 name/path、Manifest 归属与 registry 投影已经存在。它是 Codex 开发指导，没有生产 runtime import，也不能假造 import 证明活性。
+
+守门 Skill §2 已有非 Skill 默认冻结、精确例外、已有授权继承及法条解冻门；§3 已有相关漂移反查；§7 已有授权先于存在性删除；§8 已有有限证明与等级区分。因此复用这些成熟规则，不另建冻结服务、状态表或审批器。施工前的第一直接缺口仅在该开发入口：原 §2 尚未明确规定，在新一轮授权前必须给授权人通俗说明具体改法、收益、风险和关联范围。它不证明当前冻结已经导致或解决某个生产故障。
+
+
+本轮按受影响图做深度核对，回归信号来自用户连续报告、既有两门冻结方案、守门 Skill 重建以及刚落地的 D01/A01 修复。连续性裁决如下：旧两门方案仅作历史线索，其 exact userTurnId 文本定位口径已经由当前 LAW-GPT-002-V31 的原 marker 定位取代，不能恢复；前次守门整文件重建已完成，其中唯一 Owner 和恢复边界仍有效，原施工授权仅属于已完成的那次范围；D01 的异步对象生命周期与 A01 的 marker/旧回执规则在当前代码和原验收中存在，继续保护，不重新重构。不能据提交信息或 Naming 建设过程直接断言某个事故根因。
+
+### 10.3 哪些可以锁住、锁住到什么程度
+
+
+冻结约束修改行为，合法 claim、合法读取、结果交付和 Website 已签授权下的恢复继续按现役主链运行。下面是本次有限保护分母及来源定位，不是第二份法案、全仓冻结清单或机器 registry；来源变化后回原 Owner 重新核真。 合格答案立即取得、stage 后当前 grant/fence 合法则原 Outbox 立即首发；缺发送授权、传输故障或回执未知仍按原 Owner 的同身份查询/regrant与有限再检查接回。禁止新增成果后固定等待，不等于删除现役 lease/fence、回执核验或未知结果再检查；Browser 缺席/Provider cooldown 不得阻断已 stage 原结果的 delivery-only 授权和交付。
+
+
+| 保护片区 | 现役来源、唯一责任与实际验证位置 | 本次可确认及保护边界 |
+|---|---|---|
+| 文本回答身份与结算两门 | LAW-GPT-002-V31 forbidden[6] 的 FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001；GPT/Browser 当前施工图；scripts/audit/domains/gpt/gpt-frozen-attempt-inspection.ts::textResponseTwoGateSettlementIsFrozen | 规则、当前实现及原 Static/Exam 证据可确认；保留 canonical URL、原 marker、当前 coherent Document 的真实相邻回答和 stop/非空结算，不能恢复 UI 外壳、Prompt rehash 或第三门。真实 Provider 页面全部适配仍未证明。 |
+| D01 读取对象生命周期 | local-browser-session；src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts::materializeExactUserTurn；scripts/acceptance/local-browser-exact-assistant-turn-support.ts::scanRuntimeFor/exerciseExactAssistantMaterialization | 保留 await 滚动读取后才 release、对象只释放一次、原读取错误不被清理错误覆盖，以及命中立即取答。代码与原异步验收可确认；不承诺未来页面布局。 |
+| A01 本地化 marker 与已确认回读 | 文件治理 architecture-boundary，业务策略由 localization-production 拥有；src/plugins/localization-production/flow.ts::promptFor/executeIsolatedLocalizationJsonTurn；scripts/acceptance/product-plugins/localization-production.acceptance.ts | 保留新 Prompt 首行原 marker；已 CONFIRMED 先回读、沿原 promptHash，零 fresh/profile/write/submit。原长 Prompt 与旧 hash 不同的验收存在；所有真实本地化工单完成未证明。 |
+| Provider 等候边界与合格成果快走 | LAW-GPT-002-V31 forbidden[5/8]；GPT/Browser Blueprint；BrowserLaneCoordinator 唯一计时，现役 GPT inspector 与 Browser 验收 | 保护当前合法读取前的保护节拍，不新增 timer；同次合法 observation 已满足两门就立即取答，已完整落地结果按原 Outbox 快走。不能把“立即”改成绕过 Provider 保护节拍，也不能在合格结果后叠加固定等候。 |
+| 同 effect 与恢复授权 | LAW-GPT-001-V64、LAW-GPT-002-V31 forbidden[0–4]、LAW-ARCHITECTURE-BOUNDARY-001-V17 的 TOMBSTONE-RECOVERY-AUTHORITY-001；Browser WAL、GPT facade、Website—AGENT Blueprint；scripts/acceptance/architecture-boundary.acceptance.ts | 保留已可能输入先零 submit 回读、未知不等零输入、Browser 原 WAL 全历史终结证明及 Website 唯一精确风险授权；Agent 不自签新 attempt/revision。规则/原验收可确认，真实重启事故恢复效果未证明。 |
+| 不复活旧结构及专业边界 | LAW-CODE-PURITY-003-V3 的 FROZEN-EXISTENCE-PROOF-001；LAW-ARCHITECTURE-BOUNDARY-002-V2 的 TARGET-AUTHORITY-BOUNDARY-001；LAW-AGENT-PRODUCTION-RUNTIME-005-V42 的 TOMBSTONE-RUNTIME-LEGACY-MIGRATION-001；守门 Skill §4–7 与各 Owner 原验收 | 保留存在性证明、Target 仅物理坐标、无启动迁移及唯一运行真相。专业 Skill 更新不能暗改 Runtime、Browser、Prompt builder、parser、合同或质检。未核实生产结构只维持默认禁止写入，不称其成熟、必要或合格，也不越权删除。 |
+| 有效结果持久化及原链交付 | LAW-AGENT-PRODUCTION-RUNTIME-001-V75 forbidden[4/5/7]；Website—AGENT Blueprint 的 stage/delivery/admission 与 FROZEN-SAME-ATTEMPT-RESULT-REDELIVERY-001；src/lib/local-runtime/production/executor.ts；scripts/acceptance/agent-production-runtime-ledger.acceptance.ts、scripts/acceptance/agent-production-runtime.acceptance.ts | 保留同 SQLite 事务 stage+terminal intent、原结果优先、cleanup/日志不撤结果、未知回执先同身份对账；未撤权需求继续有原 worker 的有界下一动作。Website 的真实领域接纳/结果完成不由 Agent READY 代证。 |
+| 唯一质量与等级 | 母本 §35/44/48–64/78–79/85；QUALITY-EVIDENCE-OWNERSHIP-V1-BLUEPRINT；scripts/audit/governance.ts；现役生成 registry/原生报告 | 唯一 quality:check、各 Owner 原证据及真实分母继续生效；CHANGE、READY、RELEASE 和客户结果各自核真。禁止放宽原检查来凑 PASS，禁止另建冻结 verdict。 |
+
+当前不能确认的内容不纳入“生产已证明”：Provider 页面今后不会变、所有旧工单已恢复、Website 所有消费者闭环、20 条法案的缺失动态证明，以及云仓 main 的服务端保护是否能防止所有直接推送。前次 GitHub API 查询未取得登录鉴权，不能从 SSH 推送成功推断云端保护已启用或未启用；本方案不改云仓策略、不把它作为本地方案完成门。
+
+### 10.4 怎么冻结：唯一目标与减法裁决
+
+已生效的默认冻结继续来自现役守门 Skill §2；现役冻结法条及原 Static/Exam 继续由各 Owner 原检查保护。本方案只设计一个补全动作：在原 Skill 的 §2 内完整删除该节正文、确认缺席，再于同节重建，保留原全部边界，增加“授权前通俗说明”和“阶段证据不等全系统生产证明”的开发义务。name、description、§1、§3–8 原样保留；不改其他 Skill，不把本节保护表复制为永久新清单。
+
+
+这项重建预期达到的 1+1 是：现有精确授权保护继续存在，加上授权人能够理解并拒绝不值得的迭代；由 F2 的通俗说明、窄授权/越界拒绝及保留原边界的正反案例确认，不预先宣称已经提升。没有 Runtime 输入、存储、调度或通信变化，不能声称吞吐或工单速度已提升。若重建反而删掉当前授权继承、法条解冻或冻结先于删除的边界，则未达到收益门，停止交付。
+
+唯一开发消费链仍是 Codex 实读同一 Skill → 根据当前用户授权决定是否施工 → 实际 diff 和原生质量。Skill 是指令，不是文件系统写拦截器；现役 governance.ts::assertAuthorization 主要检查母本/法案的环境标记，assertHighImpactAuthorization 检查新增高影响 surface，均不能验证真实人类授权，也不能拦住所有普通内部重写。原两门 AST/架构字节冻结等原生测试保护各自不变量，不能冒充全仓强制写锁。拥有直接写/推送权限的执行者仍可能违令；本轮不以假“100%机械锁定”掩盖该限制。
+
+删除反事实：去掉原 Skill 则 Codex 丢当前开发入口；去掉新增说明义务则授权人仍无法据通俗收益/风险作决定，故保留同入口最小补全。新增审批服务、台账/JSON、第二 hash 清单、状态/期限表、数据库、Git hook、云端 workflow、chmod 写锁、统一审批 token 或第二质量门均无当前不可替代消费者，从目标中删除。已有 Manifest/registry 精确拥有本方案和该 Skill，直接复用，不新增登记，不改生成器。用户已要求删除重建的片区才执行该动作；其余成熟生产结构不触碰。不能证明必要的结构按现役存在性条款处理，但冻结或未授权对象仅报告并停止相应删除。
+
+### 10.5 真要迭代时：先解释、再精确授权
+
+每次拟修改新的冻结片区，Codex 先交付一段脱离技术术语也能看懂的说明，必须回答：
+
+1. 现在具体坏在哪里，证据是什么；为何已有能力不能完成；没有真实缺口就不动成熟部分。
+2. 准备删掉哪块、重建成什么，用户能看到什么变化；精确到文件及函数/章节，必要测试和文档逐项说明。
+3. 收益是什么；把已证实收益和预计收益分开，说明用什么实际 readback 验证 1+1。
+4. 风险是什么，最坏会影响哪项成熟能力；当前哪些事实仍未知，失败怎样停、原数据/结果/未决 WAL 怎样保全和回接。
+5. 哪些现役冻结语义保持、哪些确实需要改变；完成等级和验收是什么，是否涉及推送、发布或 Website 的独立施工。
+
+授权必须能对应这段具体方案、片区和关联对象。已有明确精确授权且事实未实质漂移时继承执行，不重复索要；扩大到新对象或相关漂移改变改法/收益/风险时，先说明新的决定，再申请新增范围。普通“继续/修复/全权授权”不能被自行解释为全 Agent 永久解冻；当前具体说明已列完整范围且授权人明确批准该说明时，按该范围继承，不要求重复抄路径或填写新审批表。
+
+实现修复若保持冻结法条语义，仅申请对应文件/函数与原测试的精确修改例外，不要求无意义地解冻法案。确需改变冻结法条语义时，按原文要求的精确“解冻 <现役冻结 ID>”及 law-amendment 授权；母本变化另需 source-spec-amendment。法案/施工图对齐先于代码。双仓合同冻结语义必须取得双方所需授权并由各仓 Owner 同步对齐，本仓 Codex 只负责 Agent；无跨仓切换证明则阻断该改变，不发明兼容桥。开发修改权限也不能代替 Website 对业务 attempt/revision/风险输入的运行授权。
+
+本次 F1 的通俗授权说明已经具体化：只把同一开发 Skill §2 改成“修改前讲清具体范围、收益和风险”；收益是你能在动手前判断值不值得，风险是文字写错可能让后续 Codex 停错范围或误以为生产已证实。它不改 agent 的运行代码，不能解决尚未验证的工单事故；原 §2 全部保护及 §3–8 的成熟边界必须保持。本次授权已明确批准这份既定说明，按 F1/F2 执行，不重复索要批准。
+
+窄授权表达示例（本次具体授权已成立，不要求复述）：“我理解上述改法、收益和风险，批准 F1 仅重建 /Users/nexgen/Documents/AGENT/.agents/skills/agent-flow-boundary-gatekeeper/SKILL.md 的 §2，并按 F2 核对及原生 CHANGE 验收；其它片区继续冻结。”这只是便于表达的例句，不是审批 token 或机器授权真源；人类可以用明确同义语言批准。授权只覆盖这一次具体任务，完成、取消或撤回后无下一轮写权限；没有时钟到期自动放行，没有全仓 unlock flag。授权不因单纯时间经过失效；事实仍适用的同一未完任务可继续。
+
+### 10.6 原子工单、有限分母与回接
+
+P0（前轮已完成方案设计）：Owner=code-purity；只重建本方案开篇状态并添加本节。独立删除原开篇活动状态 → 读取确认缺席 → 同位重建，旧 §§1–9 字节不改且仅作前轮记录；本节是新设计，不伪称有旧片区可删。验收为当前目标实际差异、主AI三轮审计、所有引用存在、唯一 Owner 及授权外零修改。失败或取消停止方案编辑，不宣称已冻结新 Skill。
+
+F1（本次已授权）：Owner=code-purity；唯一目标为 /Users/nexgen/Documents/AGENT/.agents/skills/agent-flow-boundary-gatekeeper/SKILL.md 的 §2。先核用户对 §10.5 具体说明的批准、目标 Git 状态、当前母本/法案及正文来源；存在未获授权 overlay 或影响决定的来源冲突则停止。先在当前上下文准备完整新 §2，再物理删除原 §2 全部正文并读回缺席，再在原标题下重建。只增加 §10.4–10.5 规定的两个义务，完整保留原治理入口、默认范围、授权先于删除、精确例外继承、法条解冻、其他仓不扩权及 main-only；不复制保护表、不加入审批流程解释器。删除后中断则保持“§2 缺席、未交付”事实，在同一仍有效授权中重新绑定并重建；不能加载缺节正文或擅自恢复旧生产代码。§1/3–8 与 metadata 的字节相等由 Git 原对象读回，不建立备份文件。
+
+F2（本次已授权）：Owner=code-purity；读回完整唯一 Skill，沿 B1–B10 人工审查，核实际差异及授权外字节。真实消费者是当前 Codex 实读后的决定；其他会话须各自实读，不称自动重载。主Codex完成不少于两轮自检后，子智能体只读审查实际 F1 与方案，未放行不交付。唯一机器质量入口按本次 CI-FULL 授权依次执行 npm run quality:check -- CHANGE、clean commit 后 READY、资格成立后的 RELEASE；不新写测试脚本、报告或冻结机制。失败只在获准 §2 内纠正重建并重查受影响案例；冻结基础设施故障报精确 finding 并停关联施工，不自动修它。外部输入或参与仓不可用只阻断相应 RELEASE 调用，不伪造质量结论。
+
+分母只取当前开发授权与原运行边界的十个案例；每个开发决定的 Owner 为 code-purity/Codex，授权输入为当前用户具体任务，输出为当前回答/唯一方案及实际 diff，消费者为授权人或执行 Codex。没有新增持久化状态/Schema；“停止”只停止依赖该决定的修改，不停原业务 demand。
+
+| 案例 | 必须得到的决定、readback 与原链回接 |
+|---|---|
+| B1 只读诊断或方案 | 按当前等级读取；方案仅写获准唯一方案。不得运行生产重试或改变基础设施。重新请求施工时重新绑定；本次只在既定 F1/F2 范围施工。 |
+| B2 Skill 专业建设 | 仅获准具体 Skill；Prompt builder/parser/Runtime 属非 Skill，不能借需求扩大。取得必要对象精确授权后才从原工单接回。 |
+| B3 精确实现修复 | 保持冻结语义；通俗说明完整并获具体批准后在该范围施工，所有关联对象有授权；失败保持原事实并修同范围，未覆盖对象停止。 |
+| B4 真正改变冻结规范 | 对应原文解冻、law-amendment/母本授权及相关 Owner 对齐不足则设计阻断；补齐后从法案/施工图先行位置接回，不越级进入代码。 |
+| B5 仅有旧授权/环境标记/质量通过 | 它们不能证明本轮新范围授权；明确获准的同一未完工单可继承。伪授权拒绝在当前回答说明；从授权人的具体批准接回。 |
+| B6 来源漂移、未知或用户 overlay | 不覆盖用户改动；只重算相关决定，未知不能转 PASS/零输入。缺口澄清并重新核权限后接回原片区；无关变化保留。 |
+| B7 失败、取消、撤权或删除窗口中断 | 取消/撤权立即停止；删除缺席不是完成。同一未完授权内重绑定后完成同片区重建；撤权后的新修改需新批准。不得盲目重放外部效果。 |
+| B8 等待期间已合法读到合格成果 | 两门已满足同次立即取答；已 stage 且发送授权有效即原 Outbox 首发，不等 Browser cleanup/Provider cooldown，不叠加成果后计时。缺 grant 或回执未知只走原同身份查询/regrant和有限再检查，不能盲发或重跑 Provider。真实页面验证不足仍明确。 |
+| B9 原结果、未决输入、限流或恢复 | 原结果先交付；未知/未决 WAL 不授输入；原限流控制继续允许在途读回/交付/admission；新风险输入只服从 Website 精确 grant。开发冻结不成为第二恢复门，禁止永久停未撤权 demand。 |
+| B10 验收结束或证据缺失 | 当前 Skill 消费与 CHANGE 只报实际已取得结论；动态缺失不称生产完成。本次已要求 CI-FULL/READY及通过后推云仓，使用新 clean main commit 的原生 READY，通过后再推送；RELEASE 和 Website 完成分别由自身证据证明。 |
+
+后续确有运行代码迭代，必须另有具体方案授权；法案/施工图先对齐并由主AI不少于两遍审计后再施工，代码按获准因果片区 delete→absent→唯一重建，先证明 1+1 收益与成熟不变量不退化。重要步骤及最终施工审查按用户规定由子智能体只读审计，不并发写代码，未放行不结束。上一轮仅方案的三轮自审由主AI完成；本次按明确要求先做子智能体规范审计，再做施工后只读审查，不把开发审查叠加成运行读取门禁。
+
+### 10.7 主AI三轮设计审计与交付边界
+
+第1轮：逐项核 authority→真实消费者→修改片区→原生验证。发现活动节的 Blueprint 入口和一处 Runtime 验收用了简称，补为当前完整路径；预期 1+1 收益误用了既成表达，改为 F2 实读正反案例后核真。复核旧 §§1–9 原文相等、方案已有唯一 code-purity Owner、实际差异只有该方案，无新增登记或源文件修改。
+
+第2轮：逐项反查 B1–B10 的成功/拒绝/失败/取消/未知及恢复回接。发现“快走”可能被误读为绕过发送授权或删除未知回执再检查，按 Runtime Blueprint 补明当前 grant/fence、delivery-only 与原同身份查询/regrant 边界；已 stage 结果不被 Browser 缺席/cooldown/cleanup 阻断。核对实现例外与法条解冻、旧授权继承与新范围、Skill 指令与机器写锁、开发撤权与 Website 运行 grant 均分别处理，没有新增 timer/状态/第二恢复链。
+
+第3轮：从授权人能否判断与 Codex 实际全文消费的终点，反查唯一入口、旧记录、删除窗口、权限、证据和原生质量。发现连续性表述把“前次授权”与仍有效的不变量并列，改成旧授权仅属已完成范围，避免把历史授权复活；B8/B9 恢复自然顺序。重新核八个保护片区、B1–B10、精确引用、原文保留、目标唯一 Owner 与零新文件/零授权外修改；当前有限设计分母未再发现新增设计问题。
+
+本次授权消除了原 F1/F2 权限阻断；当前执行沿本节唯一方案，保持 §§1–9 历史原文。前置双仓遍历、规范子审计及主Codex两轮对齐核对发现的问题只在本节和 §2 收束；不以百分比自评或子审查代替原生质量。施工必须展示 §2 全文删除、缺席读取和唯一重建；质量及云仓状态只由当前原生 Git commit、唯一质量报告和真实推送读回证明，不在本方案保存候选身份、并行审计报告或未来 PASS。
