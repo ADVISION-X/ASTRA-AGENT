@@ -239,7 +239,7 @@ const materializeExactUserTurn = async (
     if (first.ids.length === 1) return first.ids[0]!;
     if (!first.containerFound) return null;
     if (Date.now() + MATERIALIZE_STEP_INTERVAL_MARGIN_MS >= deadline) return null;
-    return scrollForExactUserTurn(runStep, deadline);
+    return await scrollForExactUserTurn(runStep, deadline);
   } catch (error) {
     primaryFailure = error;
     throw error;

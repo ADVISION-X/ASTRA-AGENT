@@ -8,6 +8,7 @@ import {
   parseInput,
 } from "../../../src/plugins/localization-production/static-catalog-contract.js";
 import { STATIC_CATALOG_PRODUCTION_INSTRUCTION } from "../../../src/plugins/localization-production/static-catalog-flow.js";
+import { executeIsolatedLocalizationJsonTurn } from "../../../src/plugins/localization-production/flow.js";
 import { buildProductTask, exerciseConfirmedSubmitRecovery, exerciseProductFlow, FIXTURE_HASH, routesForPlugin } from "../product-plugin-test-runtime.js";
 
 const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "localization-production");
@@ -69,6 +70,10 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     startModelDisplayName: "GPT-5.6 Sol", requestedReasoningValue: 5,
   });
   const prompt = String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt);
+  const marker = `[GRASSEYE:${hashCanonical({ job_id: task.job_id,
+    product_step_id: task.action_id }).slice(7, 31)}]`;
+  assert.equal(prompt.split("\n")[0],
+    `把此不可变标记原样保留在本次用户消息中，不要写入 JSON 结果：${marker}`);
   assert.doesNotMatch(prompt, /Product Plugin|result_contract attachment/u);
   assert.match(prompt, /Website route result_contract/u);
   if (!review) {
@@ -135,6 +140,7 @@ const incidentShapeTask = buildProductTask(incidentShapeRoute, { parameters: {
 } });
 const incidentShapeRun = await exerciseProductFlow(plugin, {
   task: incidentShapeTask,
+  productSkillText: "fixture product skill ".repeat(4_000),
   materialContents: {
     source_content: { schema_version: "incident-shape.v1", source_refs: incidentSourceRefs },
     terminology: { terms: [] },
@@ -159,6 +165,9 @@ assert.equal(incidentSourceRefs[15]?.label, "事故等形受保护中文标签")
 const incidentShapePrompt = String(incidentShapeRun.calls.find(
   (call) => call.child === "write_exact_gpt_prompt",
 )?.input.prompt);
+assert.ok(Buffer.byteLength(incidentShapePrompt) > 63_412);
+assert.ok(incidentShapePrompt.length > 10_201);
+assert.match(incidentShapePrompt.slice(0, 10_201), /^把此不可变标记.*\[GRASSEYE:[a-f0-9]{24}\]/u);
 assert.match(incidentShapePrompt, /即使它是中文、可读 label\/title/u);
 assert.match(incidentShapePrompt, /protected_json_pointers.*逐值完全相同/u,
   "a high-cardinality protected Chinese label fixture must remain outside the translation whitelist");
@@ -243,6 +252,12 @@ const staticRootRun = await exerciseProductFlow(plugin, {
 assert.equal(staticRootRun.physicalSubmitDispatches, 1);
 assert.equal(staticRootRun.calls.filter((call) => call.child === "prepare_clean_gpt_chat").length, 1);
 for (const run of [staticRootRun, staticRun]) {
+  const write = run.calls.find((call) => call.child === "write_exact_gpt_prompt");
+  assert(write?.child === "write_exact_gpt_prompt");
+  const marker = `[GRASSEYE:${hashCanonical({ job_id: staticTask.job_id,
+    product_step_id: write.productStepId }).slice(7, 31)}]`;
+  assert.equal(write.input.prompt.split("\n")[0],
+    `把此不可变标记原样保留在本次用户消息中，不要写入 JSON 结果：${marker}`);
   const modelCall = run.calls.find((call) => call.child === "select_gpt_model_from_start_v3");
   const reasoningCall = run.calls.find((call) => call.child === "select_gpt_reasoning_from_start_v3");
   assert(modelCall?.child === "select_gpt_model_from_start_v3");
@@ -263,6 +278,23 @@ for (const task of [staticRootTask, staticTask]) await exerciseConfirmedSubmitRe
   expectedSessionCount: 1, checkpointOutput: () => candidate,
 });
 const staticPrompt = String(staticRun.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt);
+const profileCall = staticRun.calls.find((call) => call.child === "select_gpt_model_from_start_v3");
+assert(profileCall?.child === "select_gpt_model_from_start_v3");
+const oldConfirmed = await exerciseProductFlow({ ...plugin, execute: async (task, context) => {
+  const turn = await executeIsolatedLocalizationJsonTurn(task, context, {
+    stepId: "old-confirmed-fixture", sessionSuffix: "old-confirmed-fixture",
+    prompt: staticPrompt, profile: profileCall.input.profile,
+  });
+  return context.complete({ payload: { promptHash: turn.checkpoint.promptHash }, evidence_refs: turn.evidenceRefs });
+} }, { task: staticTask, output: candidate, confirmedSubmit: true, confirmedPromptHash: FIXTURE_HASH });
+const oldSubmitRead = oldConfirmed.confirmedSubmitReads[0];
+assert(oldSubmitRead?.child === "submit_exact_gpt_turn_once");
+assert.notEqual(oldSubmitRead.input.promptHash, FIXTURE_HASH);
+const oldConfirmedPayload = oldConfirmed.completed.payload;
+assert(oldConfirmedPayload && typeof oldConfirmedPayload === "object" && "promptHash" in oldConfirmedPayload);
+assert.equal(oldConfirmedPayload.promptHash, FIXTURE_HASH);
+assert.deepEqual(oldConfirmed.calls.map((call) => call.child), ["checkpoint_gpt_text_response"]);
+assert.equal(oldConfirmed.physicalSubmitDispatches, 0);
 assert.match(staticPrompt, /read_only_siblings/u);
 assert.doesNotMatch(staticPrompt, /"finding_codes"\s*:|五个 locale turn/u);
 const staticPayload = staticRun.completed.payload as Readonly<Record<string, unknown>>;

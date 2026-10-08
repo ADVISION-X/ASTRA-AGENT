@@ -89,7 +89,7 @@ Provider 对已发送 user-role Prompt 的 DOM 展示只允许一项确定性投
 
 八字 consultation root 与 direct predecessor 只属于 Website 业务关系。Website 在新任务签发前验证 owner/person/chart/root/predecessor、父授权、父 Delivery Manifest 与已入库父结果，并把完整父报告作为本轮 locked-fact material 下发；缺失、多义或身份不等一律 fail closed。八字仍逐任务fresh。SEO文章本地化及固定catalog同cohort后继的provider_continuation只属于Website业务关系；Runtime只用本地completed父结果机械核对Website parent ref/hash并读取该父任务current attempt，GPT不复制或解释父子关系，Browser只按当前授权从父job、该completed parent attempt与当前product step的唯一WAL瞬时读取canonical URL，不保存业务continuation，parent attempt也不进入provider effect identity。
 
-动态本地化 Product 的现役单次提示词必须把 Website 下发的 locale policy 转成一份穷尽式自检清单：所有可翻译 JSON pointer 均使用目标语言，所有 safety pointer 在完成翻译的同时保留原义与约束，所有 protected pointer 保持逐值不变，并在只输出一个完整 JSON object 前逐项自检。该清单只提高首次 Provider 输出通过唯一 Website 领域 validator 的概率，不在 AGENT 增设语义 validator、第二 GPT 回合、修复提示或兼容结果路径。
+动态本地化 Product 的现役单次提示词必须把 Website 下发的 locale policy 转成一份穷尽式自检清单：所有可翻译 JSON pointer 均使用目标语言，所有 safety pointer 在完成翻译的同时保留原义与约束，所有 protected pointer 保持逐值不变，并在只输出一个完整 JSON object 前逐项自检。该清单只提高首次 Provider 输出通过唯一 Website 领域 validator 的概率，不在 AGENT 增设语义 validator、第二 GPT 回合、修复提示或兼容结果路径。 localization-production两个现役Prompt入口把原turnMarker置首行，marker值、材料及Child合同不变；已CONFIRMED的effect仍先消费原收据、原promptHash和原marker，当前新Prompt不能取得重发资格。
 
 该 stopped-empty 终态复用 `gpt-child-capability-proof.v2`，额外绑定首次合格 observation 时间、终态 observation 时间、连续单调毫秒、observation 次数、位点 identity hash 与终态 observation revision hash；这些字段只对 `GPT_RESPONSE_STOPPED_EMPTY` 出现。
 

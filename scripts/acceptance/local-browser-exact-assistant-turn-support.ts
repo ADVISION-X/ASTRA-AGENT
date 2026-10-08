@@ -302,21 +302,31 @@ const step = (ids: readonly string[], atTop: boolean, scrollTop: number,
 
 const scanRuntimeFor = (
   steps: readonly ScanStep[], finalObservation: Readonly<Record<string, unknown>> = successfulObservation,
-  latencyMs = 0, liveStep?: (spec: Readonly<Record<string, unknown>>) => ScanStep,
+  latencyMs = 0, liveStep?: (spec: Readonly<Record<string, unknown>>) => ScanStep, releaseFailure?: Error,
 ) => {
   const methods: string[] = [];
+  const liveObjects = new Set<string>();
+  let objectSequence = 0;
   let scanCalls = 0;
   let mainCalls = 0;
   let scanSource = "";
   const runtime = { async send(_tabId: number, method: string,
     parameters?: Readonly<Record<string, unknown>>) {
+    if (method === "Runtime.releaseObject") {
+      methods.push(method); assert.ok(liveObjects.delete(String(parameters?.objectId)), "release each resolved object once");
+      if (releaseFailure) throw releaseFailure;
+      return {};
+    }
     if (latencyMs > 0) await new Promise((resolve) => setTimeout(resolve, latencyMs));
     methods.push(method);
     if (method === "Page.getFrameTree") return { frameTree: { frame: { loaderId: "loader-current" } } };
     if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
-    if (method === "DOM.resolveNode") return { object: { objectId: "document-object" } };
-    if (method === "Runtime.releaseObject") return {};
+    if (method === "DOM.resolveNode") {
+      const objectId = `document-object-${++objectSequence}`; liveObjects.add(objectId); return { object: { objectId } };
+    }
     if (method !== "Runtime.callFunctionOn") throw new Error(`UNEXPECTED_METHOD:${method}`);
+    await Promise.resolve();
+    assert.ok(liveObjects.has(String(parameters?.objectId)), "CDP object must remain live until the asynchronous read settles");
     const source = String(parameters?.functionDeclaration ?? "");
     if (source.startsWith("function (spec)")) {
       scanSource = source;
@@ -439,7 +449,7 @@ export const exerciseExactAssistantMaterialization = async (): Promise<void> => 
   });
   await withFakeExtensionClock(async () => {
     const drift = scanRuntimeFor([step([], false, 0), step([], false, 0),
-      { ...step([], false, 0), documentValid: false }]);
+      { ...step([], false, 0), documentValid: false }], successfulObservation, 0, undefined, new Error("fixture-release-failure"));
     await assert.rejects(scan(drift, Date.now() + 20_000), /BROWSER_DOCUMENT_INVALID/u);
     assert.equal(drift.mainCalls(), 0, "identity drift during scanning must stop before final read");
   });

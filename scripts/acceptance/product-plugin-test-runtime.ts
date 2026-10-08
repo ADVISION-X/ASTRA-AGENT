@@ -39,6 +39,7 @@ export type ProductFlowFixture = Readonly<{
   materialContents?: Readonly<Record<string, unknown>>;
   checkpointOutput?: (call: ProductCall) => Readonly<Record<string, unknown>>;
   confirmedSubmit?: boolean;
+  confirmedPromptHash?: ProductionHash;
   expectedSessionCount?: number;
   resultRevision?: SharedExecutionContext["resultRevision"];
   productSkillText?: string;
@@ -142,7 +143,7 @@ const observationExecutionValue = (input: ExecutionValueInput): ExecutionValue |
   } };
   if (call.child === "reconcile_gpt_attachment_set") return attachmentExecutionValue(input);
   if (call.child === "submit_exact_gpt_turn_once") {
-    return { value: { status: "CONFIRMED", promptHash: call.input.promptHash,
+    return { value: { status: "CONFIRMED", promptHash: fixture.confirmedPromptHash ?? call.input.promptHash,
       mutationSent: true,
       canonicalConversationUrl: `https://chatgpt.com/c/${sha256(call.sessionKey).slice(7, 31)}`,
       userTurnId: "00000000-0000-4000-8000-000000000001" } };
