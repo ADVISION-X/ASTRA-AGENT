@@ -27,13 +27,13 @@ SEO article localization: Website route relation=provider_continuation
 
 Static catalog localization: Website route relation=provider_continuation
   -> 同 cohort 首任务无 parent triple 且 fresh；后继和失败 ID 补译各为独立 job，但顺序复用直接父任务的一个聊天
-  -> 每个 job 只消费 Website 本轮冻结的 ContextBundle 与已合格 siblings 只读材料
+  -> 每个 job 只消费 Website 本轮冻结的唯一 static_catalog_input JSON批准附件；短Prompt引用该附件的context_bundles[0].context_bundle_json与原外层context_bundle_hash，全部message_items/政策/siblings只来自原文件，不复制inline正文、不按长度分流。附件沿现役open/attach/reconcile，名称仍由GPT原算法产生
   -> 后继只凭 Website 已接纳的直接父三元组，由现役 Browser 从父 job、已完成父 attempt 和相同 product step 的唯一 CONFIRMED WAL 读取 URL；不读父回答或父 Tab
 ```
 
 上述 SEO 文章链不把父回答作为翻译源：五次翻译始终消费Website下发的同一份zh-CN canonical article material。Runtime先用本地completed父任务机械核对Website parent ref/hash，再读取该父任务的current attempt；GPT只把route-authorized exact parent job、该completed parent attempt与当前Product给出的`article_synthesis` step整体交给Browser acquisition，不接触父URL、父Target、父userTurnId或父回答。parent attempt只用于WAL locator只读选择，永不进入provider effect identity。任何父结果绑定缺失或不等、父attempt缺失、WAL缺失/多义/未决都在Provider输入前失败关闭。
 
-`submit_exact_gpt_turn_once` 首次现实输入仍沿原 Child、Browser WAL 和直接后置返回 CONFIRMED、canonical conversation URL、精确 user turn 与 effect receipt。已有 CONFIRMED 的原收据先由 Browser 现役 typed fact 携原解密 outcome，GPT 复用原 Submit Child、projectBrowserFact 与 readPriorAtomicOutcome 核原不可变调用身份；仅读 WAL，不取得 live Browser、不选择页面、不刷新观察钟。历史 Target/Document 是证据而非当前页面资格，缺失、多义、密文损坏及可能输入事实均 typed fail-close，不伪造 fresh 资格。原恢复 proof 仍只在当前 execution 内存，绑定原 exact-call/WAL authority/hash，Provider input delta=0。
+`submit_exact_gpt_turn_once` 首次现实输入仍沿原 Child、Browser WAL 和直接后置返回 CONFIRMED、canonical conversation URL、精确 user turn 与 effect receipt。已有 CONFIRMED 的原收据先由 Browser 现役 typed fact 携原解密 outcome，GPT从该唯一事实恢复原actionOrdinal/inputHash及完整BrowserAtomicStepIdentity，并把原ordinal贯穿同一Submit Child intent；current Product动作序号/Prompt/files不成为否决原提交的第二身份来源，当前readonly请求也不得伪写为旧输入。原 Submit Child、projectBrowserFact 与 readPriorAtomicOutcome 核同一原不可变调用身份，checkpoint使用原收据promptHash。仅读 WAL，不取得 live Browser、不选择页面、不刷新观察钟。历史 Target/Document 是证据而非当前页面资格，缺失、多义、密文损坏、错step/call/Child/hash及可能输入事实均 typed fail-close，不伪造 fresh 资格。原恢复 proof 仍只在当前 execution 内存，绑定原 exact-call/WAL authority/hash，Provider input delta=0。
 
 文本和图片 checkpoint 必须先按已核验的原提交事实或 Website 已签 source、exact job/attempt/call 读取现役 Forensics artifact，再决定是否取得 Browser。有效缓存直接返回原 ref/hash/bytes，acquisition/navigation/prepare/submit/observation/钟重置均为零；不新增 WAL/cache 资格门。文本确证缺席才进入原观察；图片 descriptor 和 original 两份均确证 NOT_FOUND 才进入原观察，半组、读取故障、hash/身份不等沿原 typed integrity failure，原图不覆盖。signed source 仍只消费原签名范围，不移植跨 attempt 授权。
 

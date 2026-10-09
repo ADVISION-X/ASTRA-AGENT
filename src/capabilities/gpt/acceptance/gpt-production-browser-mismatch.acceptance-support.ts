@@ -107,12 +107,39 @@ try {
   assert.equal(recovered?.effectReceipt?.providerEffectIdentityHash, effectHash);
   assert.equal(outcome(driftJob).physicalInputCount, 1);
   assert.deepEqual([reads, acquisitions, canonicalSelections, releases], [0, 0, 0, 0]);
-  const wrongOrdinal = new ProductionGptChildTools(temporary, HASH_A, createGptAbilityGroup(), noArtifacts, {
-    readProviderEffectStepCallFact: () => original(driftJob), acquireJobBoundTargetLease: async () => { throw new Error("FORBIDDEN_BROWSER"); },
-  } as never, logger("wrong-ordinal"), noControl).createExecution(execution(driftJob));
-  const identityError = typedGptExecutionFailure(await captureFailure(() => wrongOrdinal.tools.readConfirmedSubmit({ ...historicalCall, actionOrdinal: 9 })));
-  assert.equal(identityError?.code, "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH"); assert.equal(identityError?.mutationOutcome, "confirmed");
-  assert.equal(identityError?.browserEffect?.providerEffectIdentityHash, effectHash);
+  const ordinalGroup = createGptAbilityGroup();
+  let restoredOrdinal = 0;
+  const oldStatic = { ...original(driftJob), mutation: { ...originalMutation, actionOrdinal: 10 } };
+  const currentSubmit = { ...historicalCall, actionOrdinal: 13, input: { promptHash: HASH_B,
+    files: [{ artifactRef: "approved:static", displayName: "catalog.json", providerDisplayName: "catalog.json", sha256: HASH_B, bytes: 63_412 }] } };
+  const moved = new ProductionGptChildTools(temporary, HASH_A, {
+    ...ordinalGroup, execute: async (intent, context) => {
+      restoredOrdinal = intent.actionOrdinal;
+      assert.equal(context.browserAtomicIdentity?.actionOrdinal, 10);
+      assert.equal(context.browserAtomicIdentity?.inputHash, inputHash);
+      assert.deepEqual(intent.input, currentSubmit.input, "the read-only request must not pretend to be the historical input");
+      return ordinalGroup.execute(intent, context);
+    },
+  }, noArtifacts, { readProviderEffectStepCallFact: () => oldStatic,
+    acquireJobBoundTargetLease: async () => { throw new Error("FORBIDDEN_BROWSER"); },
+  } as never, logger("original-static-ordinal"), noControl).createExecution(execution(driftJob));
+  assert.equal((await moved.tools.readConfirmedSubmit(currentSubmit))?.value.promptHash, HASH_A);
+  assert.equal(restoredOrdinal, 10, "new attachments may change current ordinal, never the original WAL call");
+  for (const invalid of [
+    { ...oldStatic, mutation: { ...oldStatic.mutation, actionOrdinal: 0 } },
+    { ...oldStatic, exactCallIdentityHash: HASH_B },
+    { ...oldStatic, inputHash: HASH_B },
+    { ...oldStatic, mutation: { ...oldStatic.mutation, callId: "foreign-submit" } },
+  ]) {
+    const damaged = new ProductionGptChildTools(temporary, HASH_A, createGptAbilityGroup(), noArtifacts, {
+      readProviderEffectStepCallFact: () => invalid,
+      acquireJobBoundTargetLease: async () => { throw new Error("FORBIDDEN_BROWSER"); },
+    } as never, logger("damaged-original-identity"), noControl).createExecution(execution(driftJob));
+    const error = typedGptExecutionFailure(await captureFailure(() => damaged.tools.readConfirmedSubmit(currentSubmit)));
+    assert.equal(error?.code, "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
+    assert.equal(error?.mutationOutcome, "confirmed");
+    assert.equal(error?.browserEffect?.providerEffectIdentityHash, effectHash);
+  }
 
   const mismatchFact = await detectedKnownGptRateLimitMismatchFact();
   const mismatchJob = "job:confirmed-mismatch";

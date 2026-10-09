@@ -216,6 +216,17 @@ const exerciseIncidentScalePromptProjection = async (source: string): Promise<vo
   ]) as QueryResults<{ exactEditableTextHash?: string; exactGptUserPromptHash?: string }>;
   assert.equal(result.queries[0]?.matches[0]?.exactEditableTextHash, hash(approved));
   assert.equal(result.queries[1]?.matches[0]?.exactGptUserPromptHash, hash(approved));
+  const clipped = approved.slice(0, 10_196);
+  const shortLeaf = new FakeElement(clipped, {}, {}, {}, "DIV", [new FakeTextNode(clipped)]);
+  const folded = fakeGptUserTurn("00000000-0000-4000-8000-000000111074", clipped, [], [shortLeaf]);
+  const foldedRoot = new FakeElement("", { ".user-turn": [folded] });
+  folded.parentElement = foldedRoot;
+  const foldedResult = await execute(source, { documentElement: foldedRoot,
+    querySelectorAll: () => [], elementFromPoint: () => folded }, [{ queryId: "folded-user-turn",
+    selector: ".user-turn", maxMatches: 1, fields: ["exactGptUserPromptHash"] }]) as QueryResults<{ exactGptUserPromptHash: string }>;
+  assert.equal(foldedResult.queries[0]?.matches[0]?.exactGptUserPromptHash, hash(clipped));
+  assert.notEqual(foldedResult.queries[0]?.matches[0]?.exactGptUserPromptHash, hash(approved),
+    "zero long nodes and a truncated short leaf cannot prove the complete outgoing prompt");
 };
 
 export const exerciseEditablePromptHashes = async (source: string): Promise<void> => {

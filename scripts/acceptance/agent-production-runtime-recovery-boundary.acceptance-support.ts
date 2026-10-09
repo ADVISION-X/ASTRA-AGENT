@@ -15,10 +15,113 @@ import { workerLoopStopViolations } from
   "../audit/domains/agent-production-runtime/worker-loop-inspection.js";
 import { workerLoop } from "../../src/lib/local-runtime/production/runtime-loops.js";
 import type { RuntimeState } from "../../src/lib/local-runtime/production/runtime-state.js";
+import { reconcileClaimAttemptFailure } from "../../src/lib/local-runtime/production/runtime-claim-recovery.js";
+import { buildProductionLeaseRelease } from "../../src/lib/local-runtime/production/cloud-client.js";
+import { serializeTerminalFailure, type SerializedTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
+import { executionFailure } from "../../src/lib/execution-failure.js";
+import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
+import { claimTask, task, failureStatus } from "./agent-production-runtime-fixtures.js";
+import { ClaimedProductionTaskSchema } from "../../src/lib/local-runtime/production/transport-protocol.js";
 
 const readRuntimeSource = (relativePath: string) => readFile(
   new URL(`../../src/lib/local-runtime/production/${relativePath}`, import.meta.url), "utf8",
 );
+
+const riskRecoveryFixture = () => {
+  const job = claimTask(task({ jobId: "job:zero-risk-regrant", productId: "payment_screenshot_observation", actionId: "observe" }));
+  const seal = hashCanonical("signed-source");
+  const callIdentity = { product_step_id: "observe", call_id: "turn-submit", child_capability_id: "submit_exact_gpt_turn_once",
+    source_effect_set_hash: hashCanonical("effect-set") };
+  const replayIdentity = { source_seal_hash: seal, source_attempt_id: "attempt:prior", result_revision: 6 };
+  const call = { ...callIdentity, call_grant_hash: hashCanonical({ job_id: job.job_id,
+    attempt_id: job.grant.attempt_id, ...replayIdentity, ...callIdentity }) };
+  const replayBody = { ...replayIdentity, calls: [call] };
+  const grant = { ...job.grant, result_revision: 6, source_handoff_seal_hash: seal,
+    same_accepted_attempt: true, delivery_priority_replay_grant: { ...replayBody,
+      grant_hash: hashCanonical({ job_id: job.job_id, attempt_id: job.grant.attempt_id, ...replayBody }) } };
+  const claimed = ClaimedProductionTaskSchema.parse({ ...job, grant });
+  const session = { workerSessionId: job.grant.worker_session_id, workerSessionEpoch: job.grant.worker_session_epoch };
+  const core: SerializedTerminalFailure = { ...serializeTerminalFailure(executionFailure("failed", "BROWSER_TARGET_INVALID")),
+    provider_effect_identity_hash: null, settled_result_payload_hash: null };
+  const failure = { failure_core: core, release_descriptor: buildProductionLeaseRelease(session, claimed, {
+    reasonCode: "ATTEMPT_FAILED", attemptFailure: core }).descriptor };
+  const effects = Array.from({ length: 6 }, (_, index) => ({ attemptId: `attempt:old-${index}`, resultRevision: index,
+    state: "REJECTED" as const, mutationOutcome: "confirmed" as const, physicalInputCount: 1,
+    productStepId: call.product_step_id, callId: call.call_id, childCapabilityId: call.child_capability_id,
+    sourceEffectSetHash: call.source_effect_set_hash, effectIdentityHash: hashCanonical(`effect:${index}`),
+    authorityRef: `browser:${index}`, walAuthorityHash: hashCanonical(`wal:${index}`),
+    rawWalAuthorityHash: hashCanonical(`wal:${index}`), anchorState: "absent" as const,
+    anchorProofHash: hashCanonical(`anchor:${index}`) }));
+  const history = { historyHash: hashCanonical(effects), rowCount: 42, walHistoryVerified: true,
+    unresolvedCommandCount: 0, unresolvedCommandSetHash: hashCanonical([]), replayCalls: [], replayEffects: effects };
+  const settlements = effects.map(effect => ({ kind: "risk_authorized" as const,
+    effectIdentityHash: effect.effectIdentityHash, sourceEffectSetHash: effect.sourceEffectSetHash,
+    productStepId: effect.productStepId, callId: effect.callId, childCapabilityId: effect.childCapabilityId,
+    sourceAnchorState: effect.anchorState, sourceWalAuthorityHash: effect.walAuthorityHash,
+    sourceAnchorProofHash: effect.anchorProofHash, sourceHandoffSealHash: seal }));
+  const remote = failureStatus(job.job_id, { ...core, attempt_id: grant.attempt_id,
+    lease_version: grant.lease_version, from_status: "failed", to_status: "failed" }, []);
+  return { claimed, session, failure, history, settlements, remote, seal };
+};
+
+const exerciseRiskGrantZeroInputRegrant = async (): Promise<void> => {
+  const fixture = riskRecoveryFixture();
+  const { claimed, failure, history, settlements, remote, seal } = fixture;
+  const originalCore = JSON.stringify(failure.failure_core);
+  let inputState = "zero", provenance = true, unresolved = 0, drift = false, badSource = false, reads = 0, anchorDrift = false;
+  let emptyEffects = false;
+  let accepted = settlements, recorded = failure;
+  let zeroProof: Readonly<{ productStepId: string; callId: string; childCapabilityId: string; grantHash: string }> | null = null;
+  const state = { session: fixture.session, store: {
+    readTask: () => ({ current_attempt_id: claimed.grant.attempt_id, attempt_failure: recorded }),
+    readAttemptFailureRaw: () => JSON.stringify(failure),
+    readIssuedSourceHandoff: (jobId: string, attemptId: string, hash: string) => {
+      assert.deepEqual([jobId, attemptId, hash], [claimed.job_id, claimed.grant.attempt_id, seal]);
+      return badSource ? null : { kind: "delivery_priority_replay" };
+    }, readAcceptedSourceSettlements: () => accepted,
+  }, browserAuthority: {
+    readAttemptPhysicalInputState: () => inputState,
+    readJobBrowserHistoryEvidence: () => {
+      const second = ++reads % 2 === 0;
+      return { ...history, walHistoryVerified: provenance, unresolvedCommandCount: unresolved,
+        rowCount: emptyEffects ? 0 : history.rowCount,
+        historyHash: emptyEffects ? hashCanonical([]) : drift && second ? hashCanonical("drift") : history.historyHash,
+        replayEffects: emptyEffects ? [] : anchorDrift && second ? history.replayEffects.map(effect =>
+          ({ ...effect, anchorProofHash: hashCanonical("changed-anchor") })) : history.replayEffects };
+    }, readProvenZeroInputProviderCommand: () => zeroProof,
+  } } as unknown as RuntimeState;
+  const execute = (candidate = claimed, status = remote) => reconcileClaimAttemptFailure(state, candidate,
+    status as never, "parent", async () => { throw new Error("FORBIDDEN_SECOND_RELEASE"); });
+  assert.equal((await execute()).stopBeforeProduct, false,
+    "null diagnostic scope cannot override the current zero proof and six signed historical settlements");
+  for (const variant of ["possible", "unknown", "provenance", "unresolved", "drift", "anchor", "source", "settlement", "empty-settlements", "empty-effects"]) {
+    inputState = variant === "possible" || variant === "unknown" ? variant : "zero";
+    provenance = variant !== "provenance"; unresolved = variant === "unresolved" ? 1 : 0;
+    drift = variant === "drift"; anchorDrift = variant === "anchor"; reads = 0; badSource = variant === "source";
+    emptyEffects = variant === "empty-effects";
+    accepted = variant === "settlement" ? settlements.slice(1) : variant === "empty-settlements" ? [] : settlements;
+    await assert.rejects(execute, /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u, variant);
+  }
+  inputState = "zero"; provenance = true; unresolved = 0; drift = false; anchorDrift = false; badSource = false; accepted = settlements;
+  emptyEffects = false;
+  await assert.rejects(() => execute({ ...claimed, grant: { ...claimed.grant, same_accepted_attempt: false } }), /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u);
+  await assert.rejects(() => execute(claimed, { ...remote, next_action_code: "RECONCILE" }), /PRODUCTION_CLAIM_AFTER_FAILURE_NEXT_ACTION_INVALID/u);
+  const providerCore = { ...failure.failure_core, effect_scope: "provider_effect" as const, browser_outcome: "REJECTED" as const,
+    mutation_outcome: "no" as const, provider_effect_identity_hash: hashCanonical("current-zero-effect"),
+    evidence_ref: "browser:current-zero", evidence_hash: hashCanonical("current-zero-authority") };
+  recorded = { failure_core: providerCore, release_descriptor: buildProductionLeaseRelease(fixture.session, claimed,
+    { reasonCode: "ATTEMPT_FAILED", attemptFailure: providerCore }).descriptor };
+  const providerRemote = failureStatus(claimed.job_id, { ...providerCore, attempt_id: claimed.grant.attempt_id,
+    lease_version: claimed.grant.lease_version, from_status: "failed", to_status: "failed" }, []);
+  await assert.rejects(() => execute(claimed, providerRemote), /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u);
+  const authorized = claimed.grant.delivery_priority_replay_grant!.calls[0]!;
+  zeroProof = { productStepId: authorized.product_step_id, callId: authorized.call_id,
+    childCapabilityId: authorized.child_capability_id, grantHash: authorized.call_grant_hash };
+  assert.equal((await execute(claimed, providerRemote)).stopBeforeProduct, false);
+  zeroProof = { ...zeroProof, grantHash: hashCanonical("wrong-grant") };
+  await assert.rejects(() => execute(claimed, providerRemote), /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u);
+  assert.equal(JSON.stringify(failure.failure_core), originalCore, "regrant never patches the immutable first fact");
+};
 
 const WORKER_LOOP_DELAY_STATEMENT = "delay = Math.min(30_000, Math.max(1_000, delay * 2));";
 const WORKER_LOOP_WAIT_STATEMENT = "await wait(delay, state.abort.signal);";
@@ -267,6 +370,7 @@ const assertClaimAndAdmissionSourceBoundaries = (
 };
 
 export const exerciseProductionRuntimeSourceBoundaries = async (): Promise<void> => {
+  await exerciseRiskGrantZeroInputRegrant();
   const [runtimeSource, runtimeStartupSource, businessAdmissionSource, runtimeLoopsSource,
     outboxSource, storeFoundationSource, reconciliationSource, executorSource, storeSource,
     workerSessionSource, cloudClientSource] =

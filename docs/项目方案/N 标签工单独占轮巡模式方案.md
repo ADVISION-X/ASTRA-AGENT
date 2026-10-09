@@ -1833,74 +1833,159 @@ AND P0/P1=0、第二链路数量=0
 
 ## 22. 快速获取成果与同工单恢复交付
 
-### 22.1 本轮授权与证据裁决
+### 22.1 当前状态、范围与终点
 
-2026-10-08授权人已明确批准既定方案的法案、施工图、代码、质检和数据库操作；仅两仓本地主main施工，主Codex写，子智能体仅审查。Website仅CHANGE；AGENT按冻结ci-full-governance执行原生CHANGE与clean commit READY。母本、Skill、冻结回答两门、Provider保护时间和跨仓wire/task-result/V6合同不改。第1—21节保持历史原字节，本节是唯一当前方案；不另建报告、台账、恢复链或候选hash。
+**状态：已获授权，五文件重建、主 Codex两轮实现自检及独立审查完成；原生CHANGE/READY待执行。**授权人已明确批准本节既定方案，并要求根因片区重新设计、整文件删除后重新建设；该授权涵盖下列五个承载文件及直接关联施工图、质检。主 Codex 写代码，子智能体仅审查；文档阶段两轮自检未启动子智能体。第1—21节保持历史原字节，不新建竞争方案、报告或台账。只在 AGENT 本地 main施工；网站由其 Codex负责，本轮仅只读核对网站权威和消费者。
 
-本轮新增已复现首因：dom-exact-assistant-turn.ts::materializeExactUserTurn在try中直接return异步scrollForExactUserTurn Promise，finally先执行Runtime.releaseObject。第一次挂载样本成功，第二次Runtime.callFunctionOn尚在途时对象已释放，实际当前源码隔离复现报Could not find object with given id。必须等待同一物化过程结算再释放对象，异步异常进入原catch并保留原首异常。历史registered-command只留下BROWSER_CAPABILITY_REJECTED，不能据此追认它当时的确切原生异常；源码缺陷及复现因果已经成立。
+需求是“保护等待有明确边界，合格成果一路快走”：Provider 访问仍守唯一保护节拍；一旦原机械合同合格，立即 checkpoint、原子 stage/Outbox、Website 原领域接纳。既有失败必须沿 Website 精确授权持续恢复，不能永久空转。完成必须由同一 job_id/result_payload_hash 的 Website admission receipt、领域对象和真实读取证明，页面答案、Agent Child、上传200、CHANGE或READY均不代替完成。
 
-前两job的REJECTED/物理输入1没有可信locator；全文hash是脆弱依赖，但没有证明其为两单首因，也没有证明DOM新增UUID可排除历史节点重新挂载。撤出此前B00/B01/G01拟议全文校验删除，不施工对应Browser/GPT字段、decoder、收据、合同和质检退休。保留成熟的原提交两前置与直接后置。删除反事实要求既证明旧片区问题，也证明替代者更好；不以授权冒充证据，不为未知异常增加日志schema。
+本轮精确施工面只有下列 P01、G01、R01、Q01 和其施工图节点。AGENT 母本、冻结 Skill、Browser/WAL、两个发送前置、全文发送后置、文本 marker 两门、UUID不可作历史文本定位、保护节拍、跨仓 task/result/V6版本、网站法案/代码/数据库均保持。若施工要求改变其中任一语义，停止对应工单并回本文重新裁决。
 
-已证另外两个问题：长本地化Prompt的原marker在末尾，当前历史user气泡被截断后找不到；Website consumer按全局source/policy身份不同整批跳过current，尽管三单14字段中9字段当前source与三政策hash仍吻合、当前membership仍在且待译。故本轮只重构D01读取生命周期、A01原marker头部组装、C01逐字段激活，S00明确原冻结需求恢复边界。W01共享SQL修复只复核复用，不覆盖他项修改。
+### 22.2 两遍权威遍历与历史连续性
 
-### 22.2 36小时前、当前及重构后
+主 Codex在本轮完整读取闭环 Skill 两遍；AGENT两份 active law完整39条各两遍；Website 基础法案及涉及AGENT/AI生产的106条完整record各两遍，包含 AI acceptance/boundary、Localization全域、公开知识全域、Naming相关合同、付费履约、专业任务及传递依赖，连同显式禁止调用AGENT的边界。逐条读取 summary、forbidden、appliesTo、excludes、evidenceModes及dependsOnLawIds，不以registry计数代替正文。Website范围不是其全部510条不相关业务法案。两仓母本入口§0/4/35与命中章节按 frozen-spec-index回读；闭环 Skill、agent-flow-boundary-gatekeeper仅指导开发，均不是运行门。
 
-事故锚2026-10-08 18:44:15 Dubai；36小时前界限2026-10-07 06:44:15 Dubai。源码基线A=0f3c11a480081af5f9be8732eda24cbcf04377d1，W=d30eb7ab9c5513074700c8f06e58613d11939088。授权开始A main=58288daa4916f8db6928c8750b66a529dfb2c176，W main=5c16061a9531dea394703c5579b0b697b7ae2ab5。历史commit不是生产部署、页面或数据库快照；旧远端读值不是本轮发布证明。
+| 对象 | 本轮绑定 |
+|---|---|
+| AGENT根、main、origin/main | /Users/nexgen/Documents/AGENT；方案原锚及本次施工起点为db8aa1ad8baf1b412599b92e1159b343348c2dc6；本次写前已有获准继续建设的本文差异，最终候选以原生Git commit绑定 |
+| Website根、main | /Users/nexgen/Documents/xuanxue-web；双遍阅读锚d3e08f311cb970d90435de50d8193b34ed882fb4；本次施工只读快照为a728fcce8353cfe498be488394c8ce2264e1bcb9并有其它Codex的dirty施工，全部保护 |
+| 两仓母本 | docs/governance/法案系统建设说明书-冻结定稿版.md，同字节SHA256=27a143ecd7016887d056255e106f49caa29d83d06245ff21ea5c0ffd62b98c3a，冻结 |
+| Agent两份law顺序组合 | SHA256=76024594be4692ae9617cf33235258ea678872f335a5803db780ef4d09c85658 |
+| Website相关原文遍历样本 | 199318字符，SHA256=9b942c7a004a81eaeb74fe07965f28a048b845509ed057c5c16fc9d4bfc573ec；这是阅读来源标识，不是新质量候选或verdict |
+| 本文历史§1—21 | 写前128575 bytes，SHA256=1289f838f7e5a5cd1d4f2ad9a891dbbbaded3060a48d6e53d7a93e351028d678 |
 
-| 环节 | 36小时前源码 | 当前事故事实 | 重构后 |
-|---|---|---|---|
-| exact读取 | 核心extension与当前相同 | marker未挂载触发异步物化，当前源码提前释放对象已复现 | 原物化完整结算后唯一释放，挂载即同包读取；不加等待或重试 |
-| Prompt定位 | 原marker置长Prompt末尾 | 当前气泡10201字符、marker0，assistant931字符/stop0；机械JSON含8items | 新合法输入原marker放头部；旧effect仍原marker/hash零submit恢复 |
-| 提交/WAL | 原真实Composer hash与附件、原直接后置 | 两job输入1且REJECTED；不是已证全文门首因 | 原校验及九字段收据不变，不伪CONFIRMED、不补locator |
-| 保护与交付 | 历史版本存在多余推进观察钟/等待 | 上轮已修真实观察计时、先stage交付、原consumer唤醒 | 保留，Provider保护只约束实际页面访问，不挡有效成果 |
-| Website current | 9月22日已有全局整批激活门 | 三单原source 2ba805…/policy v26/v27，当前仓源45f97…/v62；9字段仍合格待译 | 旧结果冻结消费；当前原cohort逐字段source/三政策/现有entry判断，不覆盖已有合格译文 |
-| 截图SQL | 独立维护片区 | 原PG参数text/timestamptz冲突，共享改动已明确转换 | 直接复用原Owner修改；不称已生产验收 |
+主审第3轮重绑定时Website HEAD不变，已有另一Codex的Bazi页面/CSS、付款客户端及《全球付款-完整实现方案.md》未提交修改；相关Agent law、task/result合同、Localization消费和claim授权源码未出现在其差异中。只读取并保留该overlay，不将Website称为当前clean，不把这些修改纳入本轮候选或施工。
 
-不能归因为全部由起名或Provider升级造成。原日志agent/ee2d6b8c-6cb8-4d3d-aac2-982d9a9bc115-0001.jsonl第49—55行、原mode=ro Browser WAL、三份原材料实际GET/hash/bytes与现役parse、Website READ ONLY事务为事故证据。未生成新的取证存储。原材料47bf=13229bytes/2items、814a=63412/4、1d0c=19398/8均VALID；VALID不等AI结果合格。
+方案独立审查期间上述16条无关路径由其Owner提交为a8fd53af6038dd2d3071e1d5a0e1dec47162ee22，Website当时main/clean。按scoped candidate只复核相关对象：母本、active law、AI BP、Agent route policies、claim authority、Localization consumer/current均与阅读锚原字节相同；相关设计不失效，不回滚对方提交、不重复其施工。此处clean仅为当时观察；本次施工以表内只读快照和当前Git状态为准。
 
-### 22.3 权威、Owner与先行对齐
+现役入口：两仓 .github/instructions/agent-rules/{基础法案,功能法案}.md；AGENT LAW-AGENT-PRODUCTION-RUNTIME-001-V75/004-V44/005-V42、LAW-GPT-001-V64/002-V31、LAW-LOCAL-BROWSER-SESSION-004-V56/006-V45、LAW-ARCHITECTURE-BOUNDARY-001-V17/002-V2；Website LAW-AI-ACCEPTANCE-004-V30/012-V40/013-V24、LAW-LOCALIZATION-009-V9/020-V27、LAW-COMMERCIAL-FULFILLMENT-DELIVERY-007-V5。施工图为AGENT docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md、docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md、docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md，以及Website docs/blueprints/domains/ai-acceptance/AI-ACCEPTANCE-BLUEPRINT.md；合同回AGENT docs/specs/agent-production-runtime与Website packages/ai-contracts/src/agent-task/website-agent-route-policies.v1.json真实provider，不复制另立规范。
 
-两仓法案容器均.github/instructions/agent-rules/{基础法案,功能法案}.md。主Codex逐条机读遍历完整active集合、summary/forbidden、appliesTo/excludes和显式依赖，并全文回读当前相关法条及施工图节点；A39 law/310 summary+forbidden，W510/2772，无重复active ID或悬空依赖。此遍历不冒充逐法质量PASS。相关原文为A Runtime001/004、GPT001/002、Browser003/004/006、Architecture001/002、基础纯净度与Forensics/日志安全；W AI004/009/012/013、AI Boundary011、Localization009/020及其依赖。完整现役BP关系按原blueprint-record遍历，正文按主权、来源、恢复、交付、启动与质量边界核对；本轮只改下列节点，不动他项startup Blueprint。
+| 历史节点 | 已做、仍须保留 | 当前裁决 |
+|---|---|---|
+| 36小时源码锚：2026-10-07 06:44:15 Dubai；A=0f3c11a480081af5f9be8732eda24cbcf04377d1、W=d30eb7ab9c5513074700c8f06e58613d11939088 | 源码历史，只是比较锚，不是当时运行或页面快照 | 全文发送后置至今未变，不能说由最近起名建设新加，也不能凭此证明页面何日变化 |
+| 9月28日轮次身份实证及GPT回答轮次身份漂移阻断方案 | 两个旧URL的原WAL UUID已消失、原marker仍可定位 | 禁止改回UUID-only或UUID→marker双读；本轮1d UUID暂相等不能推翻历史反例 |
+| 13a0a249f、58288daa4 | 实际观察才推进保护钟；合格结果先stage/交付；质量Owner收敛 | 保留，不增加结果等待 |
+| 31f807e99 | D01异步物化await再release；A01新Prompt marker置首行 | 已落地；不是本轮待施工。A01不修复旧尾部marker，也未修复长Prompt发送后全文hash |
+| Website d3e08f311及前轮C01/S00 | 旧冻结输入消费、当前逐字段source/三政策/membership激活与恢复边界 | 只读复核原消费者，不重复施工、不改policy版本凑新任务 |
+| db8aa1ad8 | 阶段性冻结说明 | 约束开发修改，不成为运行恢复或读取门 |
 
-D01由local-browser-session原Owner在原Browser BP明确调用期对象生命周期；A01由localization-production私有Prompt实现，GPT BP只导航原marker前置/旧收据不变。两者已有法案允许，不改A法案、冻结条款或spec版本。
+原§22撤出的“删除发送全文hash/靠新增UUID确认”仍撤出：本次虽已证明折叠全文hash断点，替代者仍不能排除历史节点重新挂载。自动展开、改UUID、nonce框架和新定位库均不进入目标链。此次选择更短的原材料附件链，不弱化成熟Browser发送证明。
 
-S00精确替换W LAW-LOCALIZATION-020-V26为V27并supersedes V26，其唯一语义变化为forbidden:7：未取消/撤权/领域接纳的原job按原冻结输入完成交付；原结果先零输入读回，真正有界不可得且原WAL结算/来源seal成立时仅原Website逐调用risk grant授权新effect，原consumer机械拒收仅原rejection授权新revision。恢复不得追加ID、改材料ref/hash/source/policy或新建旧链增量ContextBundle；原材料不合格、未知WAL仍typed阻断和有限对账。领域接纳后原job停止生产，当前余缺只由原ensure新身份计算。此为原需求恢复，不能解释为漂移后追加补译。所有其他forbidden、依赖与evidenceModes保持，Manifest/BP/原check引用同步，registry仅原generator投影。W SYSTEM §8与AI Acceptance原固定catalog段对齐，不改母本或命名冻结边界。
+### 22.3 事故、第一直接断裂与未知事实
 
-C01按现役逐字段法案重构，无跨仓接口语义变更；sourceFacts只是公开现有同一次获批active源样本，不新增源Owner/reader/缓存。原producer校验保持。法案/BP先删除命中旧片区→实读ABSENT→同位重建；主Codex两轮对齐无未解本轮施工finding才进入代码。原source drift不是输入不合法，也不能替新effect生成权限。
+原生日志 .grasseye-local/runtime-logs/agent/a74d22ac-69ef-4290-8040-283f9d5a07d4-0001.jsonl 和授权人最新40行日志附件 /Users/nexgen/.codex/attachments/d1aab981-8501-41a2-ad38-3bf31e07652d/已粘贴的文本.txt，与原生产SQLite、Browser WAL和前轮当前DOM只读实证相互对照。三单本轮SQLite复查 result_json/staged_result_json均null，不能宣称交付。独立读取失败不得当零值；不保存第二事故证据库。
 
-### 22.4 原子施工与物理删除范围
+| 原job、attempt | 第一直接断裂及证据 | 必须恢复的路径 |
+|---|---|---|
+| aiprod_814a20e4-7f08-4e98-ade7-f83a53cf5354；65c6a423-68b7-4e2f-9f79-ecb787894e72 | WAL ab650a18-c8da-4ae9-a447-f2dead6a8243，REJECTED、physical_input_count=1、mutation_outcome=confirmed，无可信locator。批准ContextBundle为50416字符；当前气泡截断为10201、实际文本10196、long-content节点0，原marker在头且assistant已有769字符/4items。dom-coherent-observation.ts::exactGptUserPromptText将该截断leaf当完整文本，dom-mutation-postcondition.ts::exactOutgoingTurnVerified全文hash必不等；通用MISSING遮住差异 | 不改旧WAL为CONFIRMED、不从手看URL补locator。原source seal 42ffdcc57e1cafd1bb897ea609c5bc4a789bf621ad31691d47a20ebcaa47b015已封存；原Owner/Website核完整历史后授权一次新revision；P01使首次合法新输入不再复制巨型正文 |
+| aiprod_1d0c387f-388c-4c98-8dcb-cb4bee456449；c4178280-72ba-45b6-9e6b-941deb3189a1 | 原CONFIRMED WAL a9cbc755-444e-4015-a11a-353bd3ab6a84、physical input=1、原userTurnId=5e00a740-0771-4c0a-8599-569756e1834a；当前原URL/UUID相等但尾marker 2ac52e8ce7c977de19dfe1d5未挂载，assistant非空931字符/8items、stop=0。marker读取/物化按现役规则只能pending；D01修复已存在，当前await正确 | 原WAL/有效artifact优先零输入恢复；确实无法按原marker取得时只通过原有界exact negative证明、Website精确风险授权进入新revision。不得手工取看见的答案伪造artifact/admission；不承诺旧尾marker会因改新Prompt自动出现 |
+| aiprod_47bf8e37-2b8b-48b9-ac69-d0d8bbc9347b；7d50aeae-6b9e-41a6-a16e-a576dd68acae | 原BROWSER_TARGET_INVALID发生在prepare_clean_gpt_chat观察、尚未submit；首因core的scope/Child/outcome/effect为null且原值不可变。当前attempt的Provider WAL零行；旧rev0—5六次实际输入均须在原已签来源血缘结算。源seal 223e48afc871c0a389925289b40aa6ebc964b15bc4e366acfa8d1c5a3a2a6e33签出本attempt。runtime-claim-recovery.ts::canResumeRiskGrantAfterZeroInputFailure因scope门拒绝，即使Browser可独立证明当前zero、Website保留原风险grant；随后SOURCE_HANDOFF_REQUIRED。Website job-claim-authority.ts::verifyPriorRejectedRevisionHandoff明确拒绝把zero风险attempt换为普通handoff：必须原grant/attempt | R01删除对首因scope的重复授权门，仅在原同attempt grant、独立Browser零输入、完整旧历史和源授权闭合后继续原Product入口；不再提交网站必拒绝的替代attempt-handoff。不能把原首因null补写为target_local/REJECTED |
 
-**D01：** src/lib/browser/chrome-extension/dom-exact-assistant-turn.ts::materializeExactUserTurn完整函数删除、读回ABSENT、原位重建，仅让原scrollForExactUserTurn在try内await后返回；finally只在全部该对象Runtime调用结算后释放一次。原初始挂载零滚动、实时几何/时间截止前3秒、Document/URL/marker唯一性、stop+非空两门及返回合同不变。原scripts/acceptance/local-browser-exact-assistant-turn-support.ts的scanRuntimeFor/物化验收补真实异步对象生命周期行为：挂载成功、有界缺失、物化中主异常与release异常共存均保留首异常、对象释放后不再调用、原错误拒绝，修复前反例必须实际失败。不新增文件或诊断字段。
+47bf初始BROWSER_TARGET_INVALID究竟是哪个Target/Document/permit字段失真，原日志和首因不足以确定。R01只修复可证的恢复死锁，不声称修好未证的原生触发器。授权后的首次同job执行若再次出现该原生失败，保留本次原typed fact与安全终态，进入其原Owner取证；禁止增加selector OR或盲重试“修好”它。P01/G01/R01的静态或隔离证明不等于三单真实完成。
 
-**A01：** src/plugins/localization-production/flow.ts::promptFor与executeIsolatedLocalizationJsonTurn原尾marker组装片区删除、读回ABSENT、头部原位重建。markerFor算法/值、Skill、材料/Profile、Child顺序、resultRevisionFact保持；动态与static catalog两个已有入口共同覆盖。readConfirmedSubmit先核全历史，CONFIRMED沿原promptHash与原marker零write/submit；当前新Prompt不能改旧WAL或产生重发资格。原Product acceptance覆盖长Prompt首行marker、两个入口、新合法effect、旧CONFIRMED hash不同仍零输入恢复；不得新增通用Prompt框架或公共marker机制。
+### 22.4 减法目标链与删除审判
 
+唯一目标链：Website原冻结需求/当前grant → Mediator原route/批准材料 → localization-production以原JSON附件加短Prompt执行 → GPT原Child和Browser两前置/全文后置 → 原marker两门checkpoint/Forensics → Runtime原子stage与Outbox → Website原冻结消费/逐字段激活 → 同job admission和网站读取。已CONFIRMED先恢复原收据/完成artifact；有旧可能输入不准备新页面，只有Website原授权解除指定调用的风险输入限制。R01只使合法同attempt grant能回接这条链。
 
-**C01：** W services/api/src/localization/localization-static-catalog-consumer.ts::writeStaticCatalogAdmission完整删除、读回ABSENT、原位重构；删除其独占readStaticCatalogProductionIdentity与ensureStaticCurrentCohort消费，后者仍为原ensure真实消费者保留。scripts/localization/prepare-static-review.ts::sourceFacts原函数删除/ABSENT后以同一本体export重建，其原inventory/六语/approval/hash/active数量校验不变。复用readStaticCurrentCohorts(client,true)/writeStaticCurrentLocale原锁/写者，不新增激活服务、表或分区创建路径。 LAW-LOCALIZATION-009-V9 forbidden:4及原生版本检查要求同步将packages/i18n/src/target-language-review-contract.ts现有targetLanguageReviewPolicyVersion从v62单调升至v63；只改现有常量，新ensure身份前进，旧job冻结输入不改，不新增字段或恢复链。
+| 单元 | 当前必要性、真实消费者与删后失败 | 更短处理与零残留验收 |
+|---|---|---|
+| 巨型ContextBundle inline Prompt | 折叠使发送全文确认必失败，材料已有唯一批准文件，不需要第二份正文 | 删除builder末尾完整JSON插入和静态入口files=[]；原文件ref/hash/bytes不变，禁止inline/attachment并存或按长度双轨 |
+| 原附件三Child、批准材料 | GPT必须取得完整message_items、siblings、locale三政策和public_value_binding；删材料会使翻译失去冻结分母 | 保留现役附件Child公共合同与GPT名称算法；在全新flow内按合同重建材料投影及三Child调用，不将已删除文件内helper称为原位复用。零新文件、derived artifact、文件名规则或接口；材料消费正确性由原hash及真实结果验证 |
+| 原CONFIRMED ordinal | 新首次执行增加附件动作会改变current静态动作序号；用新call序号拒绝原WAL会破坏旧零输入恢复 | G01所有CONFIRMED统一取原WAL actionOrdinal，保持step/call/Child/revision/exact identity。不是先旧后新双读；不恢复旧Target或拓扑 |
+| 风险重授的首因scope重复门 | Website已有精确风险授权、Browser可独立证明当前zero；null首因不是当前输入权威，继续依赖它产生死锁 | R01只重构原函数并复用既有历史结算/已签来源读取，无新恢复Owner、状态或来源seal格式 |
+| Browser全文发送证明、原marker两门、WAL、唯一lane、Forensics、Outbox、Websiteconsumer | 分别防错误提交、串回答、重复输入、拉爆Provider、证据损坏和假完成；删任一均破坏明确真实分支 | 全部复用，不改Browser，不降质量分母，不新增第三门、timer、队列、校验器或失败ledger |
+| 首因原值、source seal与历史风险/rejection | 跨恢复必须能证旧输入及Website授权；删会丢恢复主权和at-most-once证据 | 保留原记录；null/unknown不伪零、不改旧source/WAL，不用current_reason或旧revision编号替代证明 |
 
-同一次sourceFacts样本须messages.length===byId.size，结合原active数量排除重复A/缺B。原三政策实际文件hash、锁定全current cohorts的membership必须唯一，同locale既有entry.text_hash必须与原text实算一致，矛盾typed抛出回滚。原cohort缺席不复活；逐原message只有当前原cohort membership仍在、当前获批active源实算source_hash相等、locale三政策hash相等才可能写current。已有source/policy合格entry原字节不动；合格待译passed写原entry+消费/result来源并清同字段failure，failed仅仍具当前资格且无合格entry时写原failure。retired/moved/source变/policy变字段entry与failure均零写。零可激活字段仍完成原冻结消费；读源/锁/政策失败不是零字段，原事务回滚，不伪completed。
+同call Provider input次数不增加。附件会增加现有准备动作和上传耗时，这是与避免永久失败之间的明确交换；它不增加GPT回答回合，不改变N、全局观察频率或结果交付等待。附件读取质量仍须真实Provider结果验证，不能仅因文件上传成功就宣布1+1。
 
-原prepareStaticCatalogCandidate/原strict结果验证/finalizeConsumption同一原事务保留。函数≤75行、文件≤500行等现役预算不变。原tests/localization/static-catalog-{current,reuse,transaction-boundary}.test.ts与原localization inspector覆盖真实函数、逐字段漂移、完整/部分/零资格、已有entry保护、源/分区损坏、同client回滚与即时page reader；不削弱原合法输入、身份/hash/locale、保护token、一次生产和incremental ensure分母。
+### 22.5 先对齐法案施工图，再按完整片区删除重建
 
-**W01：** 共享payment-evidence-retention.ts/simple-screenshot-payment.test.ts只读复核现有($2::text)::timestamptz修复。保留全部他项dirty文件，禁止提交/撤销/隐藏他项来制造clean。
+全部路径以/Users/nexgen/Documents/AGENT为根，Website路径以22.2的显式根为准。施工前重新核完整实际Git diff、Owner Manifest、authority与相关文件hash；未授权用户改动不reset/stash/覆盖/隐藏。本轮不要求修改active law：法案已允许Product自主选择批准材料载体、原WAL身份恢复、Website原风险重授，现有缺口在实现和施工图落点。不能为了“优先法案”增加重复法条。
 
-### 22.5 同工单恢复与生产切换
+**S01，文档先行。**GPT Owner只替换GPT BP“static catalog材料载体”和“CONFIRMED原WAL身份恢复”命中完整段；Runtime Owner只替换WEBSITE-AGENT-V6-BLUEPRINT.md同attempt risk regrant原完整段，明确首因不完整不能夺去经独立事实核验的当前授权。Browser BP只读，网站AI BP/代码只读。两遍法案/施工图自检逐项达到下述有限分母且无未解施工finding，再进入代码；规范语义不变不升law版本，不改母本、冻结条款或registry来制造通过。
 
-三原job：aiprod_47bf8e37-2b8b-48b9-ac69-d0d8bbc9347b（rev0—5六输入/无locator）、aiprod_814a20e4-7f08-4e98-ade7-f83a53cf5354（rev0—2三输入/无locator）、aiprod_1d0c387f-388c-4c98-8dcb-cb4bee456449（原CONFIRMED、attempt c417…有locator）。原SQLite/Website事实目前均无领域admission，不能宣称恢复。必须纳入全部旧effect及Website risk/rejection事件，不以最新行/旧revision号自动豁免。
+本次按授权人新增纪律采用下列五个文件为物理删除边界，不再只删除命中函数：static-catalog-flow.ts、flow.ts、production-child-tools.ts、production-child-result.ts、runtime-claim-recovery.ts。主 Codex先删除五个文件，读回五者均ABSENT及其旧函数缺席，再按下述合同设计手写新文件；禁止加工旧源码、临时副本、Git历史恢复或复制改名。现有程序进程核对未发现Agent executor运行；删除窗口不启动生产。文件外独立模块只按22.5.1预裁决直接使用。测试和施工图按完整命中用例/段落局部修改，如实列作局部修改，不能统称整文件重构。
 
-唯一链：原result/artifact/Outbox有则立即交付原字节；有可信CONFIRMED locator则按原marker exact零submit读回；当前不可定位只能由原Owner真实有界negative_exact/unaddressable证明；原WAL全相关command terminal、未决空、原source seal闭合且Website当前指定grant成立，才一次新effect。原字段/Prompt/hash不更改旧输入事实，unknown不能伪no，REJECTED不能升级CONFIRMED；结果被原consumer拒收则原rejection恢复，不强行completed。旧冻源消费与当前字段激活分开，ensure新job不能冒充旧job完成。
+承载核验采用现役code-purity约束：执行文件≤500行，函数≤75行、参数≤7、return≤8、await≤10、嵌套≤5、复杂度≤16，不发明新预算。当前flow/static-catalog-flow分别391/135行，production-child-tools/result为186/76行，runtime-claim-recovery为230行；附件复用只增加原isolated执行的三次现役调用，不新增框架。Q01 recovery-contract现460行、boundary现338行，新增零输入/非法分支放回boundary对应现役完整测试片区，contract只替换原身份fixture及原断言，不把新分支继续堆到460行文件再切割。每个重建函数在其现有职责内满足原红线，不调高上限，不用转发包装绕行。
 
-保护1.5秒访问、2.5秒动作读回、40秒submit静默、Child≥70秒、全局70—90秒、停空20分钟及原probeBudget保持；有效artifact/stage/合法结果不增加硬编码等候。新前置、自动展开、备用定位、nonce/signature框架、第二timer/队列/store/retry/validator为零。
+**P01，Owner=localization-production。**
+- 整文件删除src/plugins/localization-production/static-catalog-flow.ts和src/plugins/localization-production/flow.ts，ABSENT后按专业输出合同与统一执行链重建；不加工旧文件写回。
+- 先以原material.local_path/ref/hash/bytes读取并parseInput/parseContext，保留全部现役合法性和唯一ContextBundle判断。短Prompt保留原Product Skill、STATIC_CATALOG_PRODUCTION_INSTRUCTION、拒收事实、原外层context_bundle_hash、resultRevisionFact和头部原marker；用gptAttachmentProviderDisplayName显式指向唯一批准文件，说明从该文件context_bundles[0].context_bundle_json读取冻结ContextBundle，只翻译message_items，siblings只读，wrapper身份不得成为指令。删除全文JSON复制，不截断/摘要/重新分区材料，不新增长度上限或字节门。
+- 静态isolated入口采用现役附件open→attach once→reconcile合同，files来自新私有approvedAttachments对原批准材料的投影，不是空集合；profile、父URL/fresh分支和原result schema保持。统一runAuthorizedTurn直接服务static/dynamic，使用现役附件和Prompt/submit/checkpoint编号；没有“短输入仍inline”的兼容分支。dynamic/report/article/review各入口维持原行为，不借本轮改变其它Product。
+- 任何prepare/profile/files/write前仍先readConfirmedSubmit；旧CONFIRMED无论当前Prompt、文件集合或顺序变化，都用原收据零prepare/attach/write/submit进入原checkpoint。新效应只在原全历史/当前Website授权成立后执行，旧effect不因当前附件变了消失。
+- 验收：三原材料原字节/ContextBundle hash等同；actual attach入参精确一份原JSON，实际Prompt不含JSON副本，所有政策/待译ID/siblings来自同文件；相同冻结输入产生确定Prompt。Provider文件不可读/错hash/错附件停止当前动作，仍沿原Owner有限恢复，禁止inline回退。
 
-切换仍严格遵循AI Acceptance §F：全部四十route排空、旧durable writers停止、零在途事务、exact backup、新session epoch；旧输入unknown不强杀凑零，保留原WAL/Forensics/Outbox/事件和需求。Website本轮只CHANGE，未切换前不得冒称它已加载新consumer。Agent扩展实际loaded release须与当前governed artifact一致，source hash不是loaded证明。只读源码和隔离反例不是生产动作；恢复操作只通过原Owner，不手改job状态，不复制/删事故job。切换门不能达到时如实报告生产恢复未完成。
+**G01，Owner=gpt。**
+- 整文件删除src/capabilities/gpt/production-child-tools.ts和src/capabilities/gpt/production-child-result.ts，ABSENT后按公共tools合同、原Browser事实和证据输出合同重建；不恢复旧文件骨架。
+- 从唯一Browser公共readProviderEffectStepCallFact取得旧事实；先核job/revision/product_step/call/Child、唯一合法CONFIRMED、原encrypted outcome、physical input=1与exactCallIdentityHash。该readonly分支统一使用原WAL actionOrdinal及原inputHash构造同一不可变atomic identity，并使executeOne的Child intent也使用同一原ordinal；current Product call.actionOrdinal不是否决旧提交的第二来源。所有fresh调用仍使用current Product序号。
+- Browser历史submit atomic identity与此次GPT readonly请求intent是现役正交事实：Browser原inputHash/exact identity不得变，此次请求的当前Prompt/files不得伪写为历史输入，也不得以其变化授权再submit。原加密terminalPayload归还原promptHash/URL/userTurnId，checkpoint使用原返回promptHash；不修改Child contract或新增历史输入解码。
+- 不修改Browser接口、WAL schema、原promptHash、URL/user ID或terminal；不借重建ordinal接受错step/call/Child/revision，不以null/REJECTED替CONFIRMED，不设置fallback或兼容版。原已签source复用仍按其独立精确范围，不能移植成当前direct收据。
+- 验收：旧static submit ordinal10对新序号、已确认原files=[]对新一附件、原Prompt与新短Prompt不同，均restore同一原完整调用身份、零Browser acquisition/prepare/submit；新一附件submit确认后重启也从其原ordinal恢复。错scope/identity/密文/多义/outcome继续失败关闭。
 
-### 22.6 审查、质量与完成分层
+**R01，Owner=agent-production-runtime。**
+- 整文件删除src/lib/local-runtime/production/runtime-claim-recovery.ts，ABSENT后重建唯一claim失败恢复链；旧authorizedHistoricalEffects与永远返回false的分支消失，直接使用现有runtime-source-readback-proofs.ts::historicalEffectsSettled及store现役已签source读取，不新增分类器或恢复路径。
+- 仅在前序原claim/release读回已经证same_accepted_attempt、local/current/remote attempt相等、remote ACTIVE_ATTEMPT、当前原risk grant/schema/hash有效，原issued source和grant.source_seal_hash精确闭合时进入此函数。Browser自己的完整authority须证当前attempt input_state=zero且无当前possible effect；前后完整job history核真、不漂移、所有相关command已terminal、unresolved集合为空。全部旧possible effect用acceptedSourceSettlements/historicalEffectsSettled逐effect核call/Child/effect-set/WAL/anchor及原已签rejection/risk血缘；旧revision号小不够。
+- 不完整首因scope/Child/outcome为原诊断，不再作为已获授权当前零输入attempt的重复许可门；完整provider zero failure仍保留原provenZeroInputCallMatches的指定调用证明。现役Browser真实submit前仍限制原风险call且同revision跨进程至多输入一次。任一独立条件不足返回原阻断、有限对账，UNKNOWN绝不转zero。
+- 当前合法risk grant必须有原已签possible effects；historicalEffectsSettled([])现役返回false，不能删空集拒绝使无原risk来源的任意零输入attempt冒充风险重授。无旧effects的普通零输入恢复仍走现役一般矩阵，R01不接管、不增加它的恢复门。Q01分别核有效六effect血缘与伪空风险来源拒绝，不以空数组代替读取失败。
+- 不改变classifyAttemptFailure一般矩阵、first-fact序列化、source-handoff/kind、Website授新attempt规则或风险revision。不可变的是failure_core原字节；release_descriptor仍只由现役bindRecordedFailureToRemote按原授权绑定当前lease/fence，不能把合法descriptor更新误当首因篡改，亦不能借它补core。尤其不把47bf zero risk伪装ordinary attempt_handoff，不改runtime-source-handoff.ts或网站代码来放过它。
+- 验收：47bf型nullscope+独立zero+完整原grant能重授回原Product入口；有current input、unknown provenance、DISPATCHED、坏seal、错attempt、缺旧effect settlement、历史漂移或remote非ACTIVE均不得进入Product。failure_core原字节保持、descriptor只按现役授权重绑定；已有机械结果优先交付；late stage/seal CAS和旧fence不复活。
 
-先主Codex完成两轮法案/BP对齐审查（禁止子agent），设计义务以具体20项检查分母核对：1精确授权；2main/他项保护；3双仓现役容器；4唯一Owner；5D01复现；6对象await/释放；7两门；8原保护时间；9原marker位置；10旧收据原hash；11S00冻结范围；12risk/rejection互斥；13全WAL与seal；14当前源获批样本；15源ID唯一；16current分区唯一/entry hash；17逐字段资格；18合格entry不覆盖；19原消费事务；20质量/生产分层。全部已对齐且无本轮施工未解finding才满足≥98%的设计前置；不把检查覆盖率当质量PASS或历史原异常确认率。
+**Q01，质检按各原Owner现役文件修建。**P01在scripts/acceptance/product-plugins/localization-production.acceptance.ts补实际调用/材料/旧CONFIRMED回归；G01在src/capabilities/gpt/acceptance/gpt-production-browser-recovery.acceptance-support.ts及gpt-production-artifact-recovery.acceptance-support.ts核真实原identity；R01在scripts/acceptance/agent-production-runtime-recovery-contract.acceptance-support.ts及recovery-boundary.acceptance-support.ts核实际reconcile、Browser authority和readback，禁止无视identity的假Browser。仅原inspector/scripts/audit/domains/{gpt,agent-production-runtime}/命中检查必要对齐，不新增质量入口或报告，不削弱39条现役法案及40条生产route的原分母。Browser旧长全文fixture不是现场截断样本；补现有local-browser-dom-function-fixture.ts原注入函数的“long节点0+short leaf截断”失败反例，Browser生产实现不变。每项新增断言须能抓真实本轮风险，不以源码字符串匹配代替发送/恢复行为。
 
-代码完成后主Codex再做至少两轮具体自检：一轮生产者→消费者及异常释放/事务回滚，一轮旧收据/旧材料/当前资格/重复输入反向攻击。之后仅audit-only子agent对照本节审查D01/A01与C01/S00及全链，无放行不结束代码建设；其finding须回到同一片区闭环，旧子审结论不复用为新candidate放行。子agent不得并发写代码。
+G01直接关联的src/capabilities/gpt/acceptance/gpt-production-browser-mismatch.acceptance-support.ts现204行，其wrongOrdinal完整测试片区仍把current Product序号变化认作旧收据身份错误，必须先删除该完整片区、ABSENT后重建为“current序号变化仍取原WAL身份”正向证明及“原WAL ordinal/exact hash被篡改”负向证明。其余错误scope、known rate-limit、dialog mismatch及未settled阻断原例保留；不能只删旧拒绝断言制造通过，也不能扩大成重写整个测试文件。
 
-原生质量仅各仓quality:check：AGENT CHANGE→clean当前main commit→npm run quality:check ready；W仅其完整dirty候选原生CHANGE，不把本轮局部测试升级为WebsiteREADY。他项导致全仓失败也如实保留，不能靠删他项/减分母。CI失败按冻结Skill完成同一故障1/5/10公里鉴权再修。母本/Skill冻结，不新增第二verdict/报告/receipt/候选摘要。§79仅现役触发时执行全新独立审查，不借本轮用户audit要求自动触发治理审计。
+#### 22.5.1 整文件重建的上游、下游与复用裁决
 
-最终分别报告：法案/BP对齐、代码及原生CHANGE、AGENT READY、Website CHANGE、实际loaded/cutover、三job领域admission/current/page读回。收益证明须同N/同工作量/同保护比较观察终结→artifact→stage→Website commit→领域admission四段，无额外等候、同effect输入不增、字段真正可读才可称生产1+1。未得实际成果不能宣称事故已恢复。
+根因片区跨三个原Owner，仍只有一条生产链。上游是Website原claim/route/approved material与Runtime accepted task；五个文件是本轮真正重建对象；下游是GPT公共Child、Browser原WAL/Forensics、Runtime原stage/Outbox与Website admission/Localization消费。以下独立职责均在删除前裁决，文件外模块原位保留并直接调用，不复制实现、不建立转发模块。
 
-主Codex本轮权威对齐第1轮：逐record核唯一active major与依赖、实际law diff仅V27的forbidden:7/lawId/supersedes；核两仓BP、原事务/收据及phase边界，修正了历史§21尾部换行误差，§1—21恢复逐字节相同。第2轮从错source/policy、重复membership、坏entry hash、旧CONFIRMED新Prompt、unknown WAL、主异常+清理异常反向核；命名冻结段、A law及跨仓spec未变，无本轮施工设计未解finding。20项设计义务20项已对齐（覆盖100%，满足98%前置），这不是质量或生产完成率；历史两单首因和三job实际成果仍未取得。进入D01/A01/C01代码与原质检片区施工。
+| 保留对象/独立职责 | 现有合同与真实消费者 | 不可删除理由 |
+|---|---|---|
+| static-catalog-contract.ts、result-contract.ts | Static input/context/candidate v1/v3及动态六字段route；两种Localization输出入口 | 文件身份、冻结分母和专业输出语义由原Product负责，删除会错收身份或越权裁决译文 |
+| GPT index/product-api/contract/production-ports | Mediator给Product的批准材料/Child/tools/profile合同；五个重建文件和全部其它Product | 保留现役公共API、名称算法、input/hash/type，禁止新API或第二附件命名规则 |
+| production-execution-session/source-reuse/browser-lifecycle | tools消费者、Website签名source复用、同effect后续checkpoint | 源授权、session及已有提交状态有独立真实消费者，不归本轮重签；直接复用 |
+| production-call-preparation/production-atomic-call、ability-group | 原checkpoint先读、唯一Browser atomic identity、原Child执行 | 防重复输入/缓存损坏失败关闭由现役模块实现，本轮只把原WAL ordinal贯穿同一次调用 |
+| production-child-support/execution-fault、evidence-artifacts | 日志终态、typed失败、Forensics持久结果；GPT executor和Runtime | 错误必须携原effect，合格结果必须持久且可读回，不能用本轮另一个错误或存储链替代 |
+| production-rate-limit-closure/Runtime control port | 原known blocker →唯一cooldown Outbox/ack Owner；所有Production Child | 不得丢已发送事实或重新打开submit门；不改窗口、计时或确认动作 |
+| runtime-attempt-failure-readback/cloud-client/terminal-failure | 原release receipt/first fact、lease descriptor授权重绑、一般失败矩阵；runtime-claim.ts | failure_core不可变；合法当前lease仍需绑定；零风险例外不能替代一般恢复 |
+| runtime-source-readback-proofs.ts::historicalEffectsSettled及store-source-readback.ts | 逐effect核旧WAL/anchor/call/已签source；来源封存与本轮同attempt风险恢复 | 是现役更强唯一来源，删除旧弱authorizedHistoricalEffects后直接调用；不复制证明算法 |
+| Browser authority/WAL/DOM/Coordinator、Runtime store/stage/Outbox、Website claim/admission/consumer | 现实输入、唯一保护节拍、持久结果和网站最终消费 | 当前根因没有证据要求改这些文件；全部保留现役合同。Website整个仓只读 |
+
+五个新文件的职责来自合同，而非旧函数布局：
+
+1. static-catalog-flow.ts只负责批准文件校验/专业身份、短材料引用Prompt和v3结果运输。原专业指令义务、稳定productionStep及失败/成功envelope按合同保留；删除inline正文来源。buildStaticCatalogProductionPrompt的参数改为批准文件显示名与原外层hash，不再接受JSON正文。直接使用GPT现有providerDisplayName算法；文件完整内容只来自原附件。
+2. flow.ts以一个私有authorized-turn执行入口消费step/profile/prompt/fresh资格，顺序统一为原收据先读→必要fresh→profile→原附件三Child→write→submit→checkpoint。static和动态入口都直接消费此链；删除两套prepare/submit调度与无附件静态分支。static首任务的parent空值与动态provider_continuation是各自现役合同，作为已裁决fresh布尔输入，不转成新的运行门。各专业Prompt义务、model profile、marker、session/evidence和结果接收保留原消费者语义。
+3. production-child-result.ts统一把Browser原事实核验为原immutable atomic identity，再运输原effect/terminal和持久artifact。confirmed身份核原step/call/Child、原ordinal/exact hash、原input与合法CONFIRMED；current请求Prompt/files只能作为此次readonly intent，不能伪造旧输入。其它Child结果投影、settled结果记录和artifact持久职责必须保持。
+4. production-child-tools.ts公共API保持，唯一调用执行器统一处理cache优先、Browser acquisition、预算、atomic、错误终态、cooldown和artifact；confirmed入口先恢复原WAL身份，并以该ordinal交同一执行器，完全跳过live Browser。pending cooldown对账与source artifact验证属于独立真实调用者，按原合同重建；不复制这些外部模块。
+5. runtime-claim-recovery.ts唯一链为原local/remote失败权威→原failure_core对应release/readback→ACTIVE资格→原同attempt风险例外或一般矩阵。风险例外先读完整历史及原source/accepted settlements，再读历史验证未漂移与zero；只以Browser当前zero和已签逐effect结算决定，不以诊断scope签权。完整provider zero仍核指定call proof。移除永不成立的local return分支与弱历史来源副本；不新增恢复kind。
+
+质检保留原39条law/40route及反例分母；P01核完整一附件/无JSON副本/旧收据零输入，G01核原ordinal变化正例和原WAL篡改负例，R01直接执行reconcile核nullscope风险恢复与当前input/unknown/漂移/坏来源/未决反例。测试fixture可复用现役独立helper；不把生产实现复制成期待值。施工纪律另查五文件ABSENT窗口、新唯一链和旧分支消失；native READY只裁决功能/法案质量，不能替代这些施工事实。
+
+### 22.6 原工单回接、切换和风险
+
+顺序：精确授权 → S01两遍对齐 → 主Codex依次完成G01、P01、R01和Q01 → 主Codex至少两轮实现自检 → audit-only独立审查放行 → Agent原生npm run quality:check -- CHANGE → clean当前main commit执行npm run quality:check -- READY。现役CLI等级参数为大写，按冻结ci-full-governance执行，不改Skill；Website只读，无网站READY。推送继承用户“READY通过后推云仓”要求，只推本轮已通过的AGENT main，不推Website、不冒称RELEASE。
+
+切换使用原Owner既有停止/收束，确认旧executor及在途Browser command terminal，不能强杀未知输入凑零；保留事故job、原材料、WAL、Forensics、Outbox、risk/rejection/event，不手改status，不删单重建、不创建测试身份或第二数据库。本轮无跨仓wire/schema切换，不套用整套四十route合同迁移；仅确认新Agent与扩展实际loaded身份，Browser扩展未改亦不得说代码hash等于loaded证据。若相关真实合同漂移则重新匹配母本/依赖，不继续本方案。
+
+814a只按既有已封来源及Website下一授权；1d0c只按原收据/marker先读，原artifact不存在、可信locator真实有界negative才签新的风险effect；47bf保留原risk grant/同attempt，在R01独立证明闭合后首次未输入执行。新Prompt不能代替旧数据、补旧marker或制造重发许可。各job只按Website最终同身份domain admission结案；旧冻源消费与current逐字段资格分开，零字段激活也不伪作源读取成功。
+
+三单原task顶层parent三元组均不存在，本轮恢复首次合法新输入仍走原fresh分支。其它static catalog后继必须保留Website已接纳直接前驱和同一父URL；新增附件不得自动切新聊天。反向验收包含不同后继job marker各自唯一，以及同job在同URL出现重复marker时保持原多义拒绝，不能挑最后一条、改UUID或伪造完成。后者是现役定位边界的潜在恢复阻断，当前三单尚无该现场；本轮不宣称解决所有续聊风险revision。若实际触发，回原GPT证据/Website授权Owner取得原事实并重新裁决对应定位或续聊权限，不能把本节授权扩展为改变LAW-LOCALIZATION-009-V9或Browser冻结。该既有边界不成为新的运行门。
+
+主要风险：附件解析可能仍无法产出机械合格译文；上传增加有限准备耗时；1d/814可能需要Website显式许可的重复输入；原TargetInvalid具体触发器未知，重授后可能再现。每项失败保持原安全事实并回原Owner，不加秘密备用链。回退只回尚未执行的新代码候选；有新effect/已接纳结果后先核原WAL/Outbox/Websitereceipt，不回滚业务事实或抹历史。
+
+### 22.7 三轮主审、第三方审查和分层验收
+
+有限设计分母为24项：1两仓权威双遍；2Skill双遍；3当前main/他项保护；4历史UUID反例；5D01/A01既成不变量；6发送全文证明；7原marker两门；8唯一计时Owner；9原JSON材料无损；10附件身份；11旧ordinal；12旧files/Prompt先收据；13当前zero独立证明；14旧possible全历史；15原risk grant/同attempt；16首因不可变；17UNKNOWN禁止输入；18机械成果优先；19旧冻结消费与current区分；20实际domain终点；21完整片区delete/ABSENT/rebuild；22唯一质检/证据分层；23精确授权边界；24真实切换与回退。三轮逐项核本文工单和负分支，无遗漏才交独立audit-only审查；覆盖率仅指这24项，不称生产正确率或未知缺口已修复。
+
+主审第1轮已完成，核法案/施工图/源码/网站恢复主权：禁止UUID回退；用原批准附件代替inline JSON；识别网站zero风险attempt必须保留原grant的要求。第2轮已完成，核原WAL/ordinal/files/Prompt恢复及未知/并发攻击：G01必须恢复完整原ordinal到Child intent，不能只删比较；R01保留完整provider zero的指定call proof、全历史结算与未知阻断。第3轮已完成，核删除反事实/范围/最终消费和结构承载：纠正首因不可变对象为failure_core，保留现役descriptor授权重绑定；分配Q01到有余量的原测试片区；明确当前三单fresh和续聊重复marker未证边界。实际复查历史前缀原字节、双仓main/HEAD及Git差异，Browser/Website均零施工，无新恢复kind和第二链，原TargetInvalid不冒称已修。24项均已有设计落点；这不是生产正确率自评分。
+
+两名audit-only子智能体已独立审查并复读修订后放行本节方案审查：authority审查逐项覆盖24/24；runtime审查对18项直接核源码或事故证据，其余6项与authority审查交叉覆盖。审查发现的旧wrongOrdinal测试遗漏已补Q01完整删除重建；Browser/GPT身份歧义、风险源空集边界和Website来源漂移均已闭合。复查当时47bf零Provider行、无DISPATCHED和六effect已签血缘；复查附件准备权限，未发现需要修改Browser/session/source-handoff或网站的隐藏门。方案审查当时无未关闭设计finding，但尚未取得精确施工授权；该历史授权阻断已被本次用户明确授权关闭。方案放行不是生产准确率、代码完成、CHANGE/READY或三单完成；审查员没有写代码。原TargetInvalid、真实附件翻译、续聊重复marker边界和同job Website最终接纳不冒称已验证。全部结论归本文，不建立第二审计文件或verdict。
+
+后续原生CHANGE/READY只由npm run quality:check裁决；本轮方案文件可运行原生CHANGE，但不把文档CHANGE冒充实现验收。RELEASE真实Provider/数据库Dynamic Proof和三单实际完成另取现役证据。1+1验收必须对照旧同N、同保护、同冻结材料：发送能确认；旧收据零输入；合法恢复无永久空转；合格回答观察终结→artifact→stage→Websiteadmission不添加等候；原三job与当前eligible字段在网站真实可读取，错误候选/未知输入仍安全拒绝。没有这些读回不宣称事故已恢复。
+
+上文三轮主审和两名审查者为方案阶段历史记录；其中“精确施工授权仍未取得”已被授权人最新授权关闭，不代表本次施工已验收。本次重新遍历Agent全部现役law/七份BP及Website相关law/AI BP，补核AI BP依赖的隐私007-V2；Website当前另有其Codex未提交改动，全部只读保护。当前建设身份仍为Agent db8aa1ad8baf1b412599b92e1159b343348c2dc6/main。文档第1轮核上级法条/Owner/新链/24项设计落点，第2轮核全文件删除边界、独立职责消费者、旧事实/UNKNOWN反例、scope缺失与Browser独立zero、附件及历史序号变化；24项都有落点，无未关闭文档finding，历史前缀128575 bytes/hash不变，不把该覆盖率自称生产准确率。五文件删除重建、实现两轮主审、第三方审查和原生质量结果须随实际完成更新，不能预写完成。冻结Skill和active law未修改，无数据库施工必要。
+
+本次五文件已实际DeleteFile→逐文件ABSENT读回→主Codex手写AddFile；不读取旧源码作字符串加工、暂存副本或Git恢复。文件外独立模块按22.5.1保留直接使用，四份测试与两处施工图、本文为局部修改。新五文件共843行，原承载文件1018行；没有新增文件、API、表、Owner或运行计时器。施工边界子智能体只读核实删除窗口、新唯一链及无兼容桥，关闭附件helper复用分类歧义和新建录入语法错误后放行施工边界；该结论不是功能READY。
+
+实现第1轮主自检核公共API/专业合同、统一调用顺序、原ordinal贯穿与历史来源，修正新建附件对象键顺序及测试fixture缺少占位符等录入问题；typecheck、Localization专业调用、GPT整组与Runtime验收已通过。第2轮主自检核24项落点及负分支：原identity/密文错误沿既有拒绝；nullscope+六旧effect成功；当前possible/unknown、provenance不明、未决、history/anchor漂移、缺source/settlement、错same-attempt/remote及完整provider zero缺指定call proof均阻断。历史前缀保持，Website相关law/AI BP/route provider相对原锚无差异，其其它施工全部保护。Browser自动配对/DOM验收exit0，覆盖折叠叶节点不构成全文证明；这些局部命令不替代原生质量链或真实Provider翻译/三个job接纳。
+
+最终独立审查逐项核24/24有限义务，施工纪律与当前功能合同均放行，无未关闭finding；不以此宣称生产准确率。审查发现原empty反例只清空settlements，主Codex补建同risk grant而Browser replayEffects真实为空的empty-effects场景，两种空集分别执行reconcile拒绝；复位正确，补后typecheck、Runtime验收、diff-check exit0，审查者复读并放行。没有改生产规则或降低分母。五生产文件为真正重建，九组外部职责为经论证保留，四测试/两施工图/本文为局部修改。原生CHANGE/READY结果只由随后唯一quality:check及当前原生commit裁决，不在本文预写通过；RELEASE所需独立动态proof与Website clean参与仓当前不可用，三个事故job的实际最终接纳另需生产读回。

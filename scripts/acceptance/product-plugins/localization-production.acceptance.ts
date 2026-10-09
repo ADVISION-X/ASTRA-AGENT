@@ -241,6 +241,15 @@ const staticRun = await exerciseProductFlow(plugin, {
 });
 assert.equal(staticRun.physicalSubmitDispatches, 1);
 assert.equal(staticRun.calls.filter((call) => call.child === "prepare_clean_gpt_chat").length, 0);
+const staticAttach = staticRun.calls.find(call => call.child === "attach_approved_gpt_files_once");
+assert(staticAttach?.child === "attach_approved_gpt_files_once");
+assert.deepEqual(staticAttach.input.files.map(file => [file.sha256, file.bytes]),
+  [[sha256(JSON.stringify(staticInput)), Buffer.byteLength(JSON.stringify(staticInput))]],
+  "the one approved outer JSON must be uploaded intact, with no derived material");
+const staticSubmit = staticRun.calls.find(call => call.child === "submit_exact_gpt_turn_once");
+assert(staticSubmit?.child === "submit_exact_gpt_turn_once");
+assert.equal(staticSubmit.actionOrdinal, 13);
+assert.equal(staticSubmit.input.files.length, 1);
 const staticRootTask = { ...staticTask };
 delete (staticRootTask as Partial<typeof staticRootTask>).parent_task_ref;
 delete (staticRootTask as Partial<typeof staticRootTask>).parent_result_ref;
@@ -278,6 +287,32 @@ for (const task of [staticRootTask, staticTask]) await exerciseConfirmedSubmitRe
   expectedSessionCount: 1, checkpointOutput: () => candidate,
 });
 const staticPrompt = String(staticRun.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt);
+assert.equal(staticPrompt.includes(contextBundleJson), false);
+assert.equal(staticPrompt.includes(JSON.stringify(staticInput)), false);
+assert.match(staticPrompt, /context_bundles\[0\]\.context_bundle_json/u);
+assert.match(staticPrompt, new RegExp(contextBundleHash, "u"));
+assert.ok(staticSubmit.input.files[0]?.providerDisplayName
+  && staticPrompt.includes(staticSubmit.input.files[0].providerDisplayName));
+assert.deepEqual(staticRun.calls.map(call => call.child), sequence.slice(1));
+const staticRepeated = await exerciseProductFlow(plugin, { task: staticTask,
+  materialContents: { static_catalog_input: staticInput }, output: {},
+  expectedSessionCount: 1, checkpointOutput: () => candidate });
+assert.equal(staticRepeated.calls.find(call => call.child === "write_exact_gpt_prompt")?.input.prompt, staticPrompt);
+const largeSource = `${"原冻结完整材料".repeat(8_000)} {name}`;
+const largeContextJson = JSON.stringify({ ...contextBundle, message_items: [
+  { ...sourceItems[0], source_text: largeSource, source_hash: sha256(largeSource) }, sourceItems[1],
+] });
+const largeInput = { ...staticInput, context_bundles: [{ ...staticInput.context_bundles[0],
+  context_bundle_json: largeContextJson, context_bundle_hash: sha256(largeContextJson) }] };
+assert.ok(Buffer.byteLength(JSON.stringify(largeInput)) > 63_412);
+const largeRun = await exerciseProductFlow(plugin, { task: staticTask,
+  materialContents: { static_catalog_input: largeInput }, output: {}, expectedSessionCount: 1,
+  checkpointOutput: () => ({ ...candidate, context_bundle_hash: sha256(largeContextJson) }) });
+const largeWrite = largeRun.calls.find(call => call.child === "write_exact_gpt_prompt");
+assert(largeWrite?.child === "write_exact_gpt_prompt");
+assert.equal(largeWrite.input.prompt.includes(largeSource), false);
+assert.ok(largeWrite.input.prompt.length < 10_201, "incident-sized material stays in its one complete attachment");
+assert.equal(largeRun.physicalSubmitDispatches, 1);
 const profileCall = staticRun.calls.find((call) => call.child === "select_gpt_model_from_start_v3");
 assert(profileCall?.child === "select_gpt_model_from_start_v3");
 const oldConfirmed = await exerciseProductFlow({ ...plugin, execute: async (task, context) => {
