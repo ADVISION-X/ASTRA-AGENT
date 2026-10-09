@@ -1835,7 +1835,7 @@ AND P0/P1=0、第二链路数量=0
 
 ### 22.1 当前状态、范围与终点
 
-**状态：已获授权，五文件重建、主 Codex两轮实现自检及独立审查完成；原生CHANGE/READY待执行。**授权人已明确批准本节既定方案，并要求根因片区重新设计、整文件删除后重新建设；该授权涵盖下列五个承载文件及直接关联施工图、质检。主 Codex 写代码，子智能体仅审查；文档阶段两轮自检未启动子智能体。第1—21节保持历史原字节，不新建竞争方案、报告或台账。只在 AGENT 本地 main施工；网站由其 Codex负责，本轮仅只读核对网站权威和消费者。
+**状态：已获授权，五文件重建完成；首轮原生CHANGE通过、READY失败，后续修复与重新验收事实见22.7。**授权人已明确批准本节既定方案，并要求根因片区重新设计、整文件删除后重新建设；该授权涵盖下列五个承载文件及直接关联施工图、质检。主 Codex 写代码，子智能体仅审查；文档阶段两轮自检未启动子智能体。第1—21节保持历史原字节，不新建竞争方案、报告或台账。只在 AGENT 本地 main施工；网站由其 Codex负责，本轮仅只读核对网站权威和消费者。
 
 需求是“保护等待有明确边界，合格成果一路快走”：Provider 访问仍守唯一保护节拍；一旦原机械合同合格，立即 checkpoint、原子 stage/Outbox、Website 原领域接纳。既有失败必须沿 Website 精确授权持续恢复，不能永久空转。完成必须由同一 job_id/result_payload_hash 的 Website admission receipt、领域对象和真实读取证明，页面答案、Agent Child、上传200、CHANGE或READY均不代替完成。
 
@@ -1984,8 +1984,12 @@ G01直接关联的src/capabilities/gpt/acceptance/gpt-production-browser-mismatc
 
 上文三轮主审和两名审查者为方案阶段历史记录；其中“精确施工授权仍未取得”已被授权人最新授权关闭，不代表本次施工已验收。本次重新遍历Agent全部现役law/七份BP及Website相关law/AI BP，补核AI BP依赖的隐私007-V2；Website当前另有其Codex未提交改动，全部只读保护。当前建设身份仍为Agent db8aa1ad8baf1b412599b92e1159b343348c2dc6/main。文档第1轮核上级法条/Owner/新链/24项设计落点，第2轮核全文件删除边界、独立职责消费者、旧事实/UNKNOWN反例、scope缺失与Browser独立zero、附件及历史序号变化；24项都有落点，无未关闭文档finding，历史前缀128575 bytes/hash不变，不把该覆盖率自称生产准确率。五文件删除重建、实现两轮主审、第三方审查和原生质量结果须随实际完成更新，不能预写完成。冻结Skill和active law未修改，无数据库施工必要。
 
-本次五文件已实际DeleteFile→逐文件ABSENT读回→主Codex手写AddFile；不读取旧源码作字符串加工、暂存副本或Git恢复。文件外独立模块按22.5.1保留直接使用，四份测试与两处施工图、本文为局部修改。新五文件共843行，原承载文件1018行；没有新增文件、API、表、Owner或运行计时器。施工边界子智能体只读核实删除窗口、新唯一链及无兼容桥，关闭附件helper复用分类歧义和新建录入语法错误后放行施工边界；该结论不是功能READY。
+本次五文件已实际DeleteFile→逐文件ABSENT读回→主Codex手写AddFile；不读取旧源码作字符串加工、暂存副本或Git恢复。文件外独立模块按22.5.1保留直接使用，四份测试与两处施工图、本文为局部修改。新五文件经后续修正共842行，原承载文件1018行；没有新增文件、API、表、Owner或运行计时器。施工边界子智能体只读核实删除窗口、新唯一链及无兼容桥，关闭附件helper复用分类歧义和新建录入语法错误后放行施工边界；该结论不是功能READY。
 
 实现第1轮主自检核公共API/专业合同、统一调用顺序、原ordinal贯穿与历史来源，修正新建附件对象键顺序及测试fixture缺少占位符等录入问题；typecheck、Localization专业调用、GPT整组与Runtime验收已通过。第2轮主自检核24项落点及负分支：原identity/密文错误沿既有拒绝；nullscope+六旧effect成功；当前possible/unknown、provenance不明、未决、history/anchor漂移、缺source/settlement、错same-attempt/remote及完整provider zero缺指定call proof均阻断。历史前缀保持，Website相关law/AI BP/route provider相对原锚无差异，其其它施工全部保护。Browser自动配对/DOM验收exit0，覆盖折叠叶节点不构成全文证明；这些局部命令不替代原生质量链或真实Provider翻译/三个job接纳。
 
 最终独立审查逐项核24/24有限义务，施工纪律与当前功能合同均放行，无未关闭finding；不以此宣称生产准确率。审查发现原empty反例只清空settlements，主Codex补建同risk grant而Browser replayEffects真实为空的empty-effects场景，两种空集分别执行reconcile拒绝；复位正确，补后typecheck、Runtime验收、diff-check exit0，审查者复读并放行。没有改生产规则或降低分母。五生产文件为真正重建，九组外部职责为经论证保留，四测试/两施工图/本文为局部修改。原生CHANGE/READY结果只由随后唯一quality:check及当前原生commit裁决，不在本文预写通过；RELEASE所需独立动态proof与Website clean参与仓当前不可用，三个事故job的实际最终接纳另需生产读回。
+
+首轮原生CHANGE实际返回CHANGE_PASS并提交main ba15b253098159b4602a0ab314d824d7c26cf802；该clean候选READY实际返回READY_FAIL，39条中LAW-CODE-PURITY-001-V6报告执行函数圈复杂度17超过16和本轮测试as unknown as。尚未推送。此前审查不能替代该原生失败，也不继续沿用为修复后候选放行。主Codex只局部修正新建承载：删除执行器外层确认Child判断，合并到现役唯一限流策略的直接guard，确认动作不递归、其它调用路径不变，不新增helper或wrapper；新fixture改用当前类型/ControlIntent schema和原有有界Proxy取证模式，明确只允许session/store/browserAuthority，越界访问直接失败，同时强类型核完整Browser历史、同job/attempt以及合法WAIT_NEW_ATTEMPT反例。旧双重断言与never状态强转已物理退出，所有反例保留；此处如实属于重建后局部修正，不再次冒称全文件重建。
+
+修复主自检第1轮核当前真实AST指标：executeOne复杂度16、限流策略9，文件/函数均在原预算内；第2轮核调用语义、确认Child不递归、原effect不改、typed历史缺失字段不再被断言隐藏、空历史和未知仍拒绝。补后typecheck、GPT整组、Runtime验收与diff-check通过，不修改预算、checker、法案、Browser、Website或冻结Skill。新的audit-only独立审查复读ba15及当前三路径修复差异，逐项核24/24义务并放行，无未关闭finding；明确有界Proxy仅为受限测试消费，缺失历史字段、非法协议状态不再被断言隐藏，施工分类保持五文件真正重建/九组保留/其余局部修改。原生CHANGE→clean commit→READY仍须对修复后候选重新执行；质量结果仍只认当前唯一报告，不把本段作为CI临时鉴权报告或第二verdict。审查时Website HEAD为ec5a907fc001333b0b1703fa4355a9dba5b4def1且有他项dirty，相关法案/AI施工图/route provider/claim authority/Localization consumer相对原锚未漂移，Website真实接纳仍待生产读回。

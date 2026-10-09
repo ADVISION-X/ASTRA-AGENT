@@ -21,14 +21,16 @@ import { serializeTerminalFailure, type SerializedTerminalFailure } from "../../
 import { executionFailure } from "../../src/lib/execution-failure.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { claimTask, task, failureStatus } from "./agent-production-runtime-fixtures.js";
-import { ClaimedProductionTaskSchema } from "../../src/lib/local-runtime/production/transport-protocol.js";
+import { ClaimedProductionTaskSchema, ControlIntentSchema } from "../../src/lib/local-runtime/production/transport-protocol.js";
+import type { RemoteProductionDeviceJobStatus } from "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
 
 const readRuntimeSource = (relativePath: string) => readFile(
   new URL(`../../src/lib/local-runtime/production/${relativePath}`, import.meta.url), "utf8",
 );
 
 const riskRecoveryFixture = () => {
-  const job = claimTask(task({ jobId: "job:zero-risk-regrant", productId: "payment_screenshot_observation", actionId: "observe" }));
+  const base = task({ jobId: "job:zero-risk-regrant", productId: "payment_screenshot_observation", actionId: "observe" });
+  const job = claimTask(base);
   const seal = hashCanonical("signed-source");
   const callIdentity = { product_step_id: "observe", call_id: "turn-submit", child_capability_id: "submit_exact_gpt_turn_once",
     source_effect_set_hash: hashCanonical("effect-set") };
@@ -51,6 +53,7 @@ const riskRecoveryFixture = () => {
     sourceEffectSetHash: call.source_effect_set_hash, effectIdentityHash: hashCanonical(`effect:${index}`),
     authorityRef: `browser:${index}`, walAuthorityHash: hashCanonical(`wal:${index}`),
     rawWalAuthorityHash: hashCanonical(`wal:${index}`), anchorState: "absent" as const,
+    rawAnchorProofHash: hashCanonical(`anchor:${index}`), canonicalConversationHash: null, userTurnHash: null,
     anchorProofHash: hashCanonical(`anchor:${index}`) }));
   const history = { historyHash: hashCanonical(effects), rowCount: 42, walHistoryVerified: true,
     unresolvedCommandCount: 0, unresolvedCommandSetHash: hashCanonical([]), replayCalls: [], replayEffects: effects };
@@ -59,29 +62,40 @@ const riskRecoveryFixture = () => {
     productStepId: effect.productStepId, callId: effect.callId, childCapabilityId: effect.childCapabilityId,
     sourceAnchorState: effect.anchorState, sourceWalAuthorityHash: effect.walAuthorityHash,
     sourceAnchorProofHash: effect.anchorProofHash, sourceHandoffSealHash: seal }));
-  const remote = failureStatus(job.job_id, { ...core, attempt_id: grant.attempt_id,
-    lease_version: grant.lease_version, from_status: "failed", to_status: "failed" }, []);
-  return { claimed, session, failure, history, settlements, remote, seal };
+  const remoteFor = (current: SerializedTerminalFailure): RemoteProductionDeviceJobStatus => {
+    const attempt_failure = { ...current, attempt_id: grant.attempt_id,
+      lease_version: grant.lease_version, from_status: "failed", to_status: "failed" };
+    const raw = failureStatus(job.job_id, attempt_failure, []);
+    return { ...raw, attempt_failure, control_intent: ControlIntentSchema.parse(raw.control_intent),
+      next_action_code: "ACTIVE_ATTEMPT", write_receipts: [] };
+  };
+  return { base, claimed, session, failure, history, settlements, remote: remoteFor(core), remoteFor, seal };
 };
 
 const exerciseRiskGrantZeroInputRegrant = async (): Promise<void> => {
   const fixture = riskRecoveryFixture();
   const { claimed, failure, history, settlements, remote, seal } = fixture;
   const originalCore = JSON.stringify(failure.failure_core);
-  let inputState = "zero", provenance = true, unresolved = 0, drift = false, badSource = false, reads = 0, anchorDrift = false;
+  let inputState: "zero" | "possible" | "unknown" = "zero";
+  let provenance = true, unresolved = 0, drift = false, badSource = false, reads = 0, anchorDrift = false;
   let emptyEffects = false;
   let accepted = settlements, recorded = failure;
-  let zeroProof: Readonly<{ productStepId: string; callId: string; childCapabilityId: string; grantHash: string }> | null = null;
-  const state = { session: fixture.session, store: {
-    readTask: () => ({ current_attempt_id: claimed.grant.attempt_id, attempt_failure: recorded }),
+  let zeroProof: ReturnType<RuntimeState["browserAuthority"]["readProvenZeroInputProviderCommand"]> = null;
+  const observed: Record<string, unknown> = { session: fixture.session, store: {
+    readTask: (): NonNullable<ReturnType<RuntimeState["store"]["readTask"]>> => ({ task: fixture.base, status: "failed",
+      result: null, staged_result: null, current_reason: null, updated_at: "2030-01-01T00:00:00.000Z",
+      current_attempt_id: claimed.grant.attempt_id, attempt_failure: recorded }),
     readAttemptFailureRaw: () => JSON.stringify(failure),
     readIssuedSourceHandoff: (jobId: string, attemptId: string, hash: string) => {
       assert.deepEqual([jobId, attemptId, hash], [claimed.job_id, claimed.grant.attempt_id, seal]);
       return badSource ? null : { kind: "delivery_priority_replay" };
     }, readAcceptedSourceSettlements: () => accepted,
   }, browserAuthority: {
-    readAttemptPhysicalInputState: () => inputState,
-    readJobBrowserHistoryEvidence: () => {
+    readAttemptPhysicalInputState: (jobId, attemptId) => {
+      assert.deepEqual([jobId, attemptId], [claimed.job_id, claimed.grant.attempt_id]); return inputState;
+    },
+    readJobBrowserHistoryEvidence: jobId => {
+      assert.equal(jobId, claimed.job_id);
       const second = ++reads % 2 === 0;
       return { ...history, walHistoryVerified: provenance, unresolvedCommandCount: unresolved,
         rowCount: emptyEffects ? 0 : history.rowCount,
@@ -89,9 +103,13 @@ const exerciseRiskGrantZeroInputRegrant = async (): Promise<void> => {
         replayEffects: emptyEffects ? [] : anchorDrift && second ? history.replayEffects.map(effect =>
           ({ ...effect, anchorProofHash: hashCanonical("changed-anchor") })) : history.replayEffects };
     }, readProvenZeroInputProviderCommand: () => zeroProof,
-  } } as unknown as RuntimeState;
+  } satisfies Pick<RuntimeState["browserAuthority"], "readAttemptPhysicalInputState" | "readJobBrowserHistoryEvidence" | "readProvenZeroInputProviderCommand"> };
+  const state = new Proxy(observed as RuntimeState, { get: (_target, property) => {
+    if (property === "session" || property === "store" || property === "browserAuthority") return observed[property];
+    throw new Error(`UNEXPECTED_RUNTIME_ACCESS:${String(property)}`);
+  } });
   const execute = (candidate = claimed, status = remote) => reconcileClaimAttemptFailure(state, candidate,
-    status as never, "parent", async () => { throw new Error("FORBIDDEN_SECOND_RELEASE"); });
+    status, "parent", async () => { throw new Error("FORBIDDEN_SECOND_RELEASE"); });
   assert.equal((await execute()).stopBeforeProduct, false,
     "null diagnostic scope cannot override the current zero proof and six signed historical settlements");
   for (const variant of ["possible", "unknown", "provenance", "unresolved", "drift", "anchor", "source", "settlement", "empty-settlements", "empty-effects"]) {
@@ -105,14 +123,13 @@ const exerciseRiskGrantZeroInputRegrant = async (): Promise<void> => {
   inputState = "zero"; provenance = true; unresolved = 0; drift = false; anchorDrift = false; badSource = false; accepted = settlements;
   emptyEffects = false;
   await assert.rejects(() => execute({ ...claimed, grant: { ...claimed.grant, same_accepted_attempt: false } }), /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u);
-  await assert.rejects(() => execute(claimed, { ...remote, next_action_code: "RECONCILE" }), /PRODUCTION_CLAIM_AFTER_FAILURE_NEXT_ACTION_INVALID/u);
+  await assert.rejects(() => execute(claimed, { ...remote, next_action_code: "WAIT_NEW_ATTEMPT" }), /PRODUCTION_CLAIM_AFTER_FAILURE_NEXT_ACTION_INVALID/u);
   const providerCore = { ...failure.failure_core, effect_scope: "provider_effect" as const, browser_outcome: "REJECTED" as const,
     mutation_outcome: "no" as const, provider_effect_identity_hash: hashCanonical("current-zero-effect"),
     evidence_ref: "browser:current-zero", evidence_hash: hashCanonical("current-zero-authority") };
   recorded = { failure_core: providerCore, release_descriptor: buildProductionLeaseRelease(fixture.session, claimed,
     { reasonCode: "ATTEMPT_FAILED", attemptFailure: providerCore }).descriptor };
-  const providerRemote = failureStatus(claimed.job_id, { ...providerCore, attempt_id: claimed.grant.attempt_id,
-    lease_version: claimed.grant.lease_version, from_status: "failed", to_status: "failed" }, []);
+  const providerRemote = fixture.remoteFor(providerCore);
   await assert.rejects(() => execute(claimed, providerRemote), /PRODUCTION_SOURCE_HANDOFF_REQUIRED/u);
   const authorized = claimed.grant.delivery_priority_replay_grant!.calls[0]!;
   zeroProof = { productStepId: authorized.product_step_id, callId: authorized.call_id,

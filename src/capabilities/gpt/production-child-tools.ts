@@ -130,10 +130,8 @@ export class ProductionGptChildTools {
       });
     }
     const confirmedEffect = browserCall?.confirmedProviderEffect ?? options.confirmedSubmission ?? null;
-    if (call.child !== "acknowledge_known_gpt_rate_limit") {
-      const closureError = await this.closeKnownRateLimitAndReadGate(execution, browsers, call, result);
-      if (closureError) return terminalizeGptChildError(span, closureError, confirmedEffect);
-    }
+    const closureError = await this.closeKnownRateLimitAndReadGate(execution, browsers, call, result);
+    if (closureError) return terminalizeGptChildError(span, closureError, confirmedEffect);
     let persisted: Awaited<ReturnType<typeof persistGptChildOutcome>>;
     try {
       persisted = await persistGptChildOutcome({
@@ -180,9 +178,10 @@ export class ProductionGptChildTools {
 
   private async closeKnownRateLimitAndReadGate(
     execution: ExecutionInput, browsers: ProductionGptBrowserLifecycle,
-    call: Readonly<{ sessionKey: string }>, result: GptChildCapabilityResult,
+    call: Readonly<{ child: GptChildCapabilityId; sessionKey: string }>, result: GptChildCapabilityResult,
   ): Promise<unknown | null> {
-    if (result.status === "success" || result.failureCode !== "BROWSER_KNOWN_GPT_RATE_LIMIT") return null;
+    if (call.child === "acknowledge_known_gpt_rate_limit"
+      || result.status === "success" || result.failureCode !== "BROWSER_KNOWN_GPT_RATE_LIMIT") return null;
     try { this.providerRateLimitControl.assertProviderSubmitAllowed(); }
     catch (error) { return failureCode(error) === "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE" ? null : error; }
     let closureError: unknown = executionFailure("failed", "PROVIDER_RATE_LIMIT_CLOSURE_DID_NOT_TERMINATE");
