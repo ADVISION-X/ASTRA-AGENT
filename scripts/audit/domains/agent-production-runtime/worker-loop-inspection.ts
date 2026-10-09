@@ -1,4 +1,4 @@
-import { Node, SyntaxKind } from "ts-morph";
+import { Node, SyntaxKind, type Block } from "ts-morph";
 
 import { createFinding } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding } from "../../shared/inspector-contracts.js";
@@ -37,51 +37,53 @@ const targetsWorkerLoop = (statement: Node, loop: Node): boolean => {
     && (isBreak || ancestor.getKind() !== SyntaxKind.SwitchStatement));
   return target === loop;
 };
+const isRuntimeStop = (node: Node): boolean => {
+  if (Node.isCallExpression(node)) return /(?:^|\.)abort$|^process\.exit$/u.test(node.getExpression().getText());
+  const written = assignment(node);
+  return written !== undefined && STOP_FLAGS.has(written.left);
+};
 
-/**
- * Control-flow negative guard: an ordinary iteration failure must neither end the loop, skip its bounded wait
- * nor stop the Runtime. What else a catch does (logging, metrics, diagnostics) is not frozen.
- */
+const runsWorkerIteration = (tryBlock: Block): boolean => {
+  const writes = tryBlock.getStatements().map(assignment);
+  if (writes.some(entry => entry?.left === "delay" && entry.right.getText() === "await workerIteration(state)")) return true;
+  return writes.some(entry => entry?.left === "state.iteration" && entry.right.getText() === "workerIteration(state)")
+    && writes.some(entry => entry?.left === "delay" && entry.right.getText() === "await state.iteration");
+};
+
 export const workerLoopStopViolations = (workerLoop: Node | undefined): readonly string[] => {
   if (!workerLoop) return ["workerLoop is missing"];
-  const own = (node: Node): boolean => node.getFirstAncestor((ancestor) => Node.isFunctionLikeDeclaration(ancestor)) === workerLoop;
+  const own = (node: Node): boolean => node.getFirstAncestor(Node.isFunctionLikeDeclaration) === workerLoop;
   const loops = workerLoop.getDescendantsOfKind(SyntaxKind.WhileStatement).filter(own);
   const loop = loops[0];
   if (loops.length !== 1 || !loop || loop.getExpression().getText() !== "!state.abort.signal.aborted") {
     return ["workerLoop must be exactly one while loop ended only by the abort signal"];
   }
-  const violations: string[] = [];
-  const body = loop.getStatement();
-  const statements = Node.isBlock(body) ? body.getStatements() : [];
-  const attemptIndex = statements.findIndex((statement) => Node.isTryStatement(statement));
-  const attempt = statements[attemptIndex];
-  if (!Node.isTryStatement(attempt) || !attempt.getCatchClause()
-    || statements.findIndex(isBoundedWait) <= attemptIndex) {
+  const statements = Node.isBlock(loop.getStatement()) ? loop.getStatement().asKindOrThrow(SyntaxKind.Block).getStatements() : [];
+  const index = statements.findIndex(Node.isTryStatement);
+  const attempt = statements[index];
+  if (!Node.isTryStatement(attempt) || !attempt.getCatchClause() || statements.findIndex(isBoundedWait) <= index) {
     return ["each workerLoop pass must run a try/catch and then reach the bounded wait unconditionally"];
   }
-  const tryBlock = attempt.getTryBlock();
+  const violations: string[] = [];
   if (workerLoop.getDescendantsOfKind(SyntaxKind.ReturnStatement).some(own)) {
     violations.push("workerLoop returns, which ends the loop without the abort signal");
   }
-  const exits = [...workerLoop.getDescendantsOfKind(SyntaxKind.BreakStatement),
-    ...workerLoop.getDescendantsOfKind(SyntaxKind.ContinueStatement)]
-    .filter((statement) => own(statement) && targetsWorkerLoop(statement, loop));
-  if (exits.length) violations.push("workerLoop breaks or continues its own loop, which ends it or skips the bounded wait");
+  const exits = [SyntaxKind.BreakStatement, SyntaxKind.ContinueStatement]
+    .flatMap(kind => workerLoop.getDescendantsOfKind(kind));
+  if (exits.some(node => own(node) && targetsWorkerLoop(node, loop))) {
+    violations.push("workerLoop breaks or continues its own loop, which ends it or skips the bounded wait");
+  }
+  const tryBlock = attempt.getTryBlock();
   if (workerLoop.getDescendantsOfKind(SyntaxKind.ThrowStatement)
-    .some((statement) => own(statement) && !statement.getAncestors().includes(tryBlock))) {
+    .some(node => own(node) && !node.getAncestors().includes(tryBlock))) {
     violations.push("workerLoop throws outside the try block, which escapes the loop");
   }
-  const stops = workerLoop.getDescendants().filter((node) => own(node) && (
-    (Node.isCallExpression(node) && /(?:^|\.)abort$|^process\.exit$/u.test(node.getExpression().getText()))
-    || (Node.isBinaryExpression(node) && node.getOperatorToken().getKind() === SyntaxKind.EqualsToken
-      && STOP_FLAGS.has(node.getLeft().getText()))));
-  if (stops.length) violations.push("workerLoop aborts or stops the Runtime itself instead of leaving that to shutdown");
-  const iterated = tryBlock.getStatements().map(assignment);
-  if (!iterated.some((entry) => entry?.left === "delay" && entry.right.getText() === "await workerIteration(state)")) {
-    violations.push("the workerLoop try block must run workerIteration");
+  if (workerLoop.getDescendants().some(node => own(node) && isRuntimeStop(node))) {
+    violations.push("workerLoop aborts or stops the Runtime itself instead of leaving that to shutdown");
   }
-  const handler = attempt.getCatchClause()?.getBlock().getStatements().map(assignment) ?? [];
-  if (!handler.some((entry) => entry?.left === "delay" && isBoundedDelay(entry.right))) {
+  if (!runsWorkerIteration(tryBlock)) violations.push("the workerLoop try block must run workerIteration");
+  const recovery = attempt.getCatchClause()?.getBlock().getStatements().map(assignment) ?? [];
+  if (!recovery.some(entry => entry?.left === "delay" && isBoundedDelay(entry.right))) {
     violations.push(`the workerLoop catch must set a delay capped at ${BACKOFF_CEILING_MS}ms`);
   }
   return violations;

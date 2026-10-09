@@ -5,13 +5,15 @@ import Database from "better-sqlite3";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { assertProductionStartupPreflight, assertSessionBindingMismatchStartup } from "./agent-production-runtime-startup-preflight.acceptance-support.js";
-import { HASH_A, HASH_B, attemptFailureFirstFact, resultFor, stageResultForAcceptance, task } from "./agent-production-runtime-fixtures.js";
+import { HASH_A, HASH_B,
+  attemptFailureFirstFact, resultFor, stageResultForAcceptance, task } from "./agent-production-runtime-fixtures.js";
 import { buildProductTask } from "./product-plugin-test-runtime.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { ProductionExecutor } from "../../src/lib/local-runtime/production/executor.js";
 import { productionRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
 import { startProductionRuntime } from "../../src/lib/local-runtime/production/runtime.js";
-import { shutdownRuntime } from "../../src/lib/local-runtime/production/runtime-startup.js";
+import { GrassEyeWorkbench } from "../../src/lib/local-runtime/workbench.js";
+import { assertShutdownFailureOutcomes } from "./agent-production-runtime-session-rotation-support.js";
 import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
 import { terminalSpanFailure } from "../../src/lib/local-runtime/production/runtime-logging.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
@@ -25,20 +27,80 @@ import type { BrowserExecutionArtifact } from "../../src/lib/browser/browser-aut
 
 await assertProductionStartupPreflight();
 await assertSessionBindingMismatchStartup();
-for (const pending of [false, true]) {
-  const calls = { heartbeat: 0, sessionClose: 0, storeClose: 0 };
-  const abort = new AbortController();
-  await shutdownRuntime({ abort, activeAbort: new Map(), active: new Map(), draining: false, stopped: false,
-    runtimeLogger: { producerRunId: "startup-shutdown-proof", startSpan: () => ({ ok: true,
-      event: { terminal: () => ({ ok: true, event: { eventId: "terminal:shutdown" } }) } }) },
-    session: { heartbeat: async () => { calls.heartbeat += 1; }, close: async () => { calls.sessionClose += 1; } },
-    store: { close: () => { calls.storeClose += 1; }, providerCooldownSessionRecoveryIdentity: () => pending
-      ? { workerInstanceId: "worker:original", sessionOpenRequestId: "session:original" } : null },
-  } as never, Promise.resolve(), Promise.resolve());
-  assert.deepEqual(calls, { heartbeat: 1, sessionClose: pending ? 0 : 1, storeClose: 1 });
-  assert.equal(abort.signal.aborted, true);
-}
+await assertShutdownFailureOutcomes();
 
+const shutdownDirectory = await mkdtemp(path.join(tmpdir(), "runtime-drain-"));
+try {
+  for (const scenario of ["blocked-stop", "empty-stop", "blocked-replacement", "late-init-stop", "late-retry-error"] as const) {
+    const dataDir = path.join(shutdownDirectory, scenario); await mkdir(dataDir);
+    const store = new ProductionRuntimeStore(dataDir);
+    const candidate = task({ jobId: "old-pending", productId: "bazi_ai_full_analysis", actionId: "produce" });
+    if (scenario !== "empty-stop") {
+      store.acceptTask(candidate, "attempt:old");
+      store.enqueue({ idempotency_key: "old:outbox", kind: "artifact", method: "PUT", headers: {}, body: "result",
+        path: `/internal/ai-production/v6/jobs/${candidate.job_id}/artifacts/result` });
+    }
+    const before = store.taskAuthorities(); store.close();
+    const logger = createRuntimeLogger({ producer: "blocked-stop-acceptance", owner: "production-runtime",
+      component: "production-runtime", terminalEnabled: false, fileSink: { directoryPath: path.join(dataDir, "logs") } });
+    let browserClosed = 0, httpClosed = 0;
+    const browser = { hasUnresolvedBrowserMutation: () => false, verifyRuntimeTaskProvenance: () => {},
+      readProductionRuntimeState: () => ({ browserAuthorityState: "absent", browserTargetState: "absent" }),
+      shutdown: async () => { browserClosed++; } };
+    const evidenceStore = createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(dataDir));
+    const gpt = createGptAbilityGroup(), stop = new AbortController();
+    if (scenario.startsWith("blocked") || scenario === "empty-stop") {
+      if (scenario !== "blocked-replacement") stop.abort();
+      const oldCredential = process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
+      process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = path.join(dataDir, "fixture-missing-credential");
+      try {
+        const runtime = await startProductionRuntime({ dataDir, sourceHash: HASH_A, gpt, evidenceStore,
+          browserAuthority: browser as never, runtimeLogger: logger, stopSignal: stop.signal });
+        if (scenario === "blocked-stop") {
+          const closing = runtime.close(); assert.equal(closing, runtime.close());
+          await assert.rejects(closing, /RUNTIME_SHUTDOWN_INCOMPLETE/u);
+        } else await runtime.close();
+      } finally {
+        if (oldCredential === undefined) delete process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
+        else process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = oldCredential;
+      }
+      if (scenario === "empty-stop") {
+        const events = (await readFile(logger.currentSegmentPath()!, "utf8")).trim().split("\n").map(row => JSON.parse(row));
+        assert.equal(events.filter(event => event.failure?.impact === RuntimeFailureImpact.BLOCKING).length, 0);
+      }
+    } else {
+      const lifecycle = new GrassEyeWorkbench({ dataDir });
+      Reflect.set(lifecycle, "assembly", { dataDir, runtimeLogger: logger, browserAuthority: browser,
+        gptAbilityGroup: gpt, evidenceStore });
+      const previousHash = process.env.GRASSEYE_SOURCE_FINGERPRINT;
+      process.env.GRASSEYE_SOURCE_FINGERPRINT = HASH_A;
+      try {
+        let initialize: Promise<void>;
+        if (scenario === "late-retry-error") {
+          const database = new Database(path.join(dataDir, "production-runtime.sqlite"));
+          database.exec("create table production_forbidden(extra integer)"); database.close();
+          Reflect.set(lifecycle, "productionRuntime", { blocked: true, close: async () => {} });
+          initialize = Reflect.get(lifecycle, "retryBlockedRuntime").call(lifecycle);
+          Reflect.set(lifecycle, "retryPromise", initialize);
+        } else initialize = lifecycle.init();
+        const closing = lifecycle.shutdown(async () => { httpClosed++; });
+        if (scenario === "late-init-stop") await initialize;
+        else await assert.rejects(initialize, /PRODUCTION_SCHEMA_MIGRATION_REQUIRED/u);
+        await assert.rejects(closing, /WORKBENCH_SHUTDOWN_INCOMPLETE/u);
+        assert.equal(browserClosed, 1); assert.equal(httpClosed, 1);
+      } finally {
+        if (previousHash === undefined) delete process.env.GRASSEYE_SOURCE_FINGERPRINT;
+        else process.env.GRASSEYE_SOURCE_FINGERPRINT = previousHash;
+      }
+    }
+    if (scenario !== "late-retry-error") {
+      const reopened = new ProductionRuntimeStore(dataDir);
+      assert.deepEqual(reopened.taskAuthorities(), before);
+      assert.equal(reopened.pendingOutboxCount(), scenario === "empty-stop" ? 0 : 1);
+      reopened.close();
+    }
+  }
+} finally { await rm(shutdownDirectory, { recursive: true, force: true }); }
 const directory = await mkdtemp(path.join(tmpdir(), "runtime-startup-contract-"));
 const oldCredential = process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
 try {
@@ -64,7 +126,8 @@ try {
     component, terminalEnabled: false, fileSink: { directoryPath: path.join(directory, "logs", component) } });
   const runtimeOptions = (dataDir: string) => ({ dataDir, sourceHash: HASH_A, gpt: createGptAbilityGroup(),
     evidenceStore: createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(dataDir)),
-    browserAuthority: { readProductionRuntimeState: () => ({ browserAuthorityState: "absent", browserTargetState: "absent" }) } as never,
+    browserAuthority: { hasUnresolvedBrowserMutation: () => false,
+      readProductionRuntimeState: () => ({ browserAuthorityState: "absent", browserTargetState: "absent" }) } as never,
     runtimeLogger: logger("startup") });
   const corrupt = path.join(directory, "forbidden-schema");
   await mkdir(corrupt);

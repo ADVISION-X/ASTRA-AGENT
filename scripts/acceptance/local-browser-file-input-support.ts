@@ -34,7 +34,7 @@ type FileInputScenario = Readonly<{
 }>;
 
 const activation = Object.freeze({
-  selector: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-actions'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-context'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child",
+  selector: "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-actions'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-context'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child, [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-primary'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child",
   scope: Object.freeze({ selector: "[data-composer-overlay-floating-ui='true']" }),
   expectedText: "上传",
 });
@@ -309,7 +309,9 @@ const exerciseActivationContract = async (): Promise<void> => {
   const branches = activation.selector.split(", ");
   for (const rejected of [
     { ...activation, selector: branches.slice(0, 2).join(", ") },
+    { ...activation, selector: branches.slice(0, 3).join(", ") },
     { ...activation, selector: branches[2]! },
+    { ...activation, selector: branches[3]! },
     { ...activation, selector: "button[data-list-navigation-item='true']" },
     { ...activation, scope: { selector: "body" } },
     { ...activation, expectedText: "添加照片和文件" },

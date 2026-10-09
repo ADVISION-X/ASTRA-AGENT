@@ -15,8 +15,17 @@ import {
 } from "../../src/lib/local-runtime/production/contracts.js";
 import { productionCatalogHash } from "../../src/lib/local-runtime/production/catalog.js";
 import type { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
+import { ProductionExecutor } from "../../src/lib/local-runtime/production/executor.js";
+import { ProductionWorkerSession } from "../../src/lib/local-runtime/production/worker-session.js";
+import { ProviderRateLimitControl } from "../../src/lib/local-runtime/production/provider-rate-limit-control.js";
+import { runtimeState } from "../../src/lib/local-runtime/production/runtime-loops.js";
+import type { RuntimeState } from "../../src/lib/local-runtime/production/runtime-state.js";
+import { createGptAbilityGroup } from "../../src/capabilities/gpt/index.js";
+import { createForensicsPersistenceAbilityGroupFromStorage } from "../../src/capabilities/forensics-persistence/index.js";
+import { createGrassEyeFileStorage } from "../../src/lib/storage/index.js";
 import {
   ClaimedProductionTaskSchema,
+  DeviceCredentialSchema,
   type ClaimedProductionTask,
 } from "../../src/lib/local-runtime/production/transport-protocol.js";
 import { authorizeWebsiteAgentTask } from "../../src/mediator/agent-production-route.js";
@@ -128,6 +137,63 @@ export const validDeviceCredential = {
   credential: `aidc_v6_${"a".repeat(32)}`,
   enrolled_at: new Date().toISOString(),
 } as const;
+
+const unusedRuntimeFixtureOperation = (): never => { throw new Error("UNEXPECTED_RUNTIME_FIXTURE_OPERATION"); };
+
+export const shutdownRuntimeFixture = (input: Readonly<{
+  store: ProductionRuntimeStore;
+  dataDir: string;
+  runtimeLogger: RuntimeState["runtimeLogger"];
+  session?: ProductionWorkerSession;
+  browser?: Partial<RuntimeState["browserAuthority"]>;
+}>): RuntimeState => {
+  const browserAuthority: RuntimeState["browserAuthority"] = {
+    broker: { currentStatus: unusedRuntimeFixtureOperation },
+    health: unusedRuntimeFixtureOperation,
+    readOperatorPairingState: unusedRuntimeFixtureOperation,
+    readReleaseBuildId: unusedRuntimeFixtureOperation,
+    readProductionRuntimeState: () => ({ browserAuthorityState: "present", browserTargetState: "absent" }),
+    readBrowserLaneState: () => "idle",
+    bindExecutionArtifacts: unusedRuntimeFixtureOperation,
+    hasUnresolvedBrowserMutation: () => false,
+    hasBrowserMutationForJob: unusedRuntimeFixtureOperation,
+    readJobBrowserHistoryEvidence: unusedRuntimeFixtureOperation,
+    readJobPhysicalInputState: unusedRuntimeFixtureOperation,
+    readAttemptPhysicalInputState: unusedRuntimeFixtureOperation,
+    verifyRuntimeTaskProvenance: unusedRuntimeFixtureOperation,
+    countProviderTurnDispatches: unusedRuntimeFixtureOperation,
+    readProviderEffectStepCallFact: unusedRuntimeFixtureOperation,
+    readConfirmedRateLimitAcknowledgement: unusedRuntimeFixtureOperation,
+    readProvenZeroInputProviderCommand: unusedRuntimeFixtureOperation,
+    readSourceConfirmedProviderEffect: unusedRuntimeFixtureOperation,
+    purgeBrowserJob: unusedRuntimeFixtureOperation,
+    releaseJobBoundTarget: unusedRuntimeFixtureOperation,
+    acquireJobBoundTargetLease: unusedRuntimeFixtureOperation,
+    acceptBrowserAuthoritySocket: unusedRuntimeFixtureOperation,
+    shutdown: unusedRuntimeFixtureOperation,
+    ...input.browser,
+  };
+  const session = input.session ?? new ProductionWorkerSession(DeviceCredentialSchema.parse(validDeviceCredential),
+    () => runtimeState(state), HASH_A, "worker:shutdown-fixture");
+  if (!input.session) {
+    session.request = unusedRuntimeFixtureOperation;
+    session.close = unusedRuntimeFixtureOperation;
+  }
+  const providerRateLimitControl = new ProviderRateLimitControl(input.store, session);
+  const gpt = createGptAbilityGroup();
+  const evidenceStore = createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(input.dataDir));
+  const executor = new ProductionExecutor(input.store, input.runtimeLogger, {
+    dataDir: input.dataDir, sourceHash: HASH_A, gpt, evidenceStore, browserAuthority, providerRateLimitControl,
+  });
+  const state: RuntimeState = {
+    abort: new AbortController(), active: new Map(), activeAbort: new Map(),
+    store: input.store, executor, session, providerRateLimitControl, browserAuthority, gpt, evidenceStore,
+    dataDir: input.dataDir, runtimeLogger: input.runtimeLogger,
+    draining: false, iteration: null, drainJobIds: null, lastHeartbeat: null,
+    lastErrorCode: null, lastErrorReason: null, stopped: false, ledgerReconciled: false,
+  };
+  return state;
+};
 
 export const task = (input: Readonly<{
   jobId: string;

@@ -7,7 +7,7 @@ import {
   runtimeLogCauseEventId,
   withRuntimeLogCause,
 } from "../../runtime-logs/index.js";
-import { failureCode } from "../../execution-failure.js";
+import { failureCode, typedExecutionFailure } from "../../execution-failure.js";
 import { claimProductionTasks } from "./cloud-client.js";
 import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import { productionCatalogHash } from "./catalog.js";
@@ -50,7 +50,7 @@ const businessInFlightJobIds = (state: RuntimeState): ReadonlySet<string> => new
 export const businessInFlightCount = (state: RuntimeState): number =>
   businessInFlightJobIds(state).size;
 
-export const runtimeState = async (state: RuntimeState) => {
+export const runtimeState = (state: RuntimeState) => {
   refreshLedgerReconciled(state);
   const browser = state.browserAuthority.readProductionRuntimeState();
   const observedLane = state.browserAuthority.readBrowserLaneState();
@@ -133,6 +133,10 @@ const requestClaimBatch = async (
     } else requireRuntimeLogWrite(span.terminal({ outcome: "succeeded", claimDiagnostics }));
     return batch;
   } catch (error) {
+    if (state.draining && typedExecutionFailure(error)?.code === "PRODUCTION_CLAIM_STOPPED") {
+      requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
+      throw error;
+    }
     const terminal = terminalSpanFailure(
       span, error, runtimeLogCauseEventId(error), "CLAIM_REQUEST_FAILED", undefined, "website",
     );
@@ -155,6 +159,7 @@ const launchClaimJobs = (
     throw new Error("V6_CLAIM_BATCH_INVALID");
   }
   for (const job of jobs) {
+    state.drainJobIds?.add(job.job_id);
     const abort = new AbortController();
     state.activeAbort.set(job.job_id, abort);
     const tracked = executeClaim(state, job).catch((error) => {
@@ -263,6 +268,7 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
     state.lastErrorReason = safeReason(error);
   }
   refreshLedgerReconciled(state);
+  if (state.draining) return 1_000;
   const sourceEvidence = hasDeliveryCandidate
     && state.browserAuthority.readProductionRuntimeState().browserAuthorityState !== "present"
     ? [] : await prepareSourceHandoffs(state);
@@ -304,11 +310,12 @@ const workerIteration = async (state: RuntimeState): Promise<number> => {
   }
 };
 
-export const workerLoop = async (state: RuntimeState): Promise<void> => {
+export const workerLoop = async (state: RuntimeState, onIterationSettled?: () => void): Promise<void> => {
   let delay = 1_000;
   while (!state.abort.signal.aborted) {
     try {
-      delay = await workerIteration(state);
+      state.iteration = workerIteration(state);
+      delay = await state.iteration;
       if (state.lastErrorCode !== "BROWSER_HOST_UNAVAILABLE") {
         state.lastErrorCode = null;
         state.lastErrorReason = null;
@@ -318,6 +325,8 @@ export const workerLoop = async (state: RuntimeState): Promise<void> => {
       state.lastErrorReason = safeReason(error);
       delay = Math.min(30_000, Math.max(1_000, delay * 2));
     }
+    state.iteration = null;
+    onIterationSettled?.();
     await wait(delay, state.abort.signal);
   }
 };

@@ -31,3 +31,9 @@ Target claim 与审计副作用；验收必须证明一致时不写入、漂移�
 普通启动的 dependency preflight 只读取 `package.json` 声明、实际安装路径、Node engine 与必须的 native
 load/query 结果；`package.json`、lockfile、`node_modules/.package-lock.json` 的 mtime 不是 dependency 身份，
 不得因为仅修改 scripts 等非 dependency 字段要求操作员重装依赖或阻断 production Shell。
+
+启动器只管理直接spawn的本仓实际Node App进程；spawn时即登记started/closed Promise，快速退出也必须可回读。
+停止信号同步禁止后续启动步骤、spawn与开页；只转发一次并等待实际App收尾，不经npm/tsx CLI包装，
+不按固定秒数强杀。子进程非零或被signal终止必须报告失败，不能因启动器已在停止就认定成功。
+App保持唯一诊断HTTP直到原任务收尾，重复信号加入同一次关闭；初始化中的迟到资源也必须纳入关闭。
+验收由现役Startup与Runtime入口证明迟到初始化、快速exit、超过旧五秒的实际子进程及重复停止。

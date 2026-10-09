@@ -7,7 +7,7 @@ import {
 } from "./lib/dependency-check.mjs";
 import { openWorkbenchPage } from "./lib/open-workbench-page.mjs";
 import { clearPortListeners } from "./lib/process-control.mjs";
-import { startLocalService, stopLocalService } from "./lib/service-process.mjs";
+import { startLocalService } from "./lib/service-process.mjs";
 import { waitForWorkbenchHealth } from "./lib/service-readiness.mjs";
 import { buildStartupSourceFingerprint } from "./lib/source-fingerprint.mjs";
 import { runBrowserRuntimePreflight } from "./lib/browser-runtime-preflight.mjs";
@@ -108,25 +108,6 @@ async function prepareBrowserRuntimeArtifact(root) {
   completeStartupStep("browser_artifact_sync");
 }
 
-async function startService(root) {
-  startStartupStep("app_server");
-  const serviceHandle = await startLocalService({
-    rootDir: root,
-    preStartScripts: [],
-    scriptName: "internal:app-server:dev",
-    env: {
-      GRASSEYE_LOG_MODE: "TRACE",
-      GRASSEYE_HOST: host,
-      GRASSEYE_PORT: String(port),
-      GRASSEYE_SOURCE_FINGERPRINT: expectedSourceFingerprint,
-    },
-    onStdoutLine: relayServiceStdoutLine,
-    onStderrLine: relayServiceStderrLine,
-  });
-  completeStartupStep("app_server");
-  return serviceHandle;
-}
-
 async function verifyAppHealth() {
   await waitForWorkbenchHealth({
     baseUrl,
@@ -135,55 +116,6 @@ async function verifyAppHealth() {
     onStarted: () => startStartupStep("health_check"),
     onPassed: () => completeStartupStep("health_check"),
   });
-}
-
-function isControlledServiceExit(exit, shuttingDown) {
-  return shuttingDown || exit.signal === "SIGTERM" || exit.code === 143;
-}
-
-function toExitFailureReason(exit) {
-  return exit.signal ? `signal ${exit.signal}` : `code ${exit.code ?? "unknown"}`;
-}
-
-function createShutdownHandler(state) {
-  return async function shutdown(signal) {
-    if (state.shuttingDown) {
-      return;
-    }
-    state.shuttingDown = true;
-    startStartupStep("service_shutdown");
-    if (state.serviceHandle) {
-      await stopLocalService(state.serviceHandle.child, signal);
-    }
-    completeStartupStep("service_shutdown");
-  };
-}
-
-function classifyServiceExit(exit, shuttingDown) {
-  if (!isControlledServiceExit(exit, shuttingDown)) {
-    const failureReason = toExitFailureReason(exit);
-    failStartupStep("service_exit", new Error(failureReason));
-    process.exitCode = exit.code ?? 1;
-    return;
-  }
-  if (!shuttingDown) {
-    completeStartupStep("service_exit");
-  }
-}
-
-async function performLaunch(flags, root, onServiceStarted) {
-  await verifyProductionContract(root);
-  await ensureDependencies(root);
-  await runUpdatePreflight(root, flags);
-  await clearWorkbenchPort();
-  await prepareBrowserRuntimeArtifact(root);
-  await verifyBrowserRuntime();
-  const serviceHandle = await startService(root);
-  onServiceStarted(serviceHandle);
-  await verifyAppHealth();
-  await openReadyPage(flags);
-  logStartupShellReady();
-  return serviceHandle;
 }
 
 async function openReadyPage(flags) {
@@ -204,30 +136,80 @@ async function openReadyPage(flags) {
   }
 }
 
-async function main() {
-  const flags = parseFlags(process.argv.slice(2));
-  const state = { serviceHandle: undefined, shuttingDown: false };
-  const shutdown = createShutdownHandler(state);
+function startService(root) {
+  startStartupStep("app_server");
+  return startLocalService({
+    rootDir: root,
+    env: { GRASSEYE_LOG_MODE: "TRACE", GRASSEYE_HOST: host, GRASSEYE_PORT: String(port),
+      GRASSEYE_SOURCE_FINGERPRINT: expectedSourceFingerprint },
+    onStdoutLine: relayServiceStdoutLine, onStderrLine: relayServiceStderrLine,
+  });
+}
 
-  registerSignalHandlers(shutdown);
+function classifyServiceExit(exit) {
+  if (exit.code === 0 && exit.signal === null) {
+    completeStartupStep("service_exit");
+    return;
+  }
+  failStartupStep("service_exit", new Error(`SERVICE_EXIT_INCOMPLETE:${exit.signal ?? exit.code ?? "unknown"}`));
+  process.exitCode = exit.code && exit.code > 0 ? exit.code : 1;
+}
 
-  try {
-    state.serviceHandle = await performLaunch(flags, rootDir, (serviceHandle) => {
-      state.serviceHandle = serviceHandle;
+function createShutdownHandler(state) {
+  return signal => {
+    state.shuttingDown = true;
+    state.signal ??= signal;
+    if (!state.serviceHandle) return Promise.resolve();
+    state.closing ??= state.serviceHandle.stop(state.signal).then(exit => {
+      classifyServiceExit(exit);
+      if (exit.code === 0 && exit.signal === null) completeStartupStep("service_shutdown");
+      else failStartupStep("service_shutdown", new Error("SERVICE_SHUTDOWN_INCOMPLETE"));
     });
-    if (!state.serviceHandle) {
+    return state.closing;
+  };
+}
+
+async function performLaunch(flags, root, state, shutdown) {
+  const stages = [() => verifyProductionContract(root), () => ensureDependencies(root),
+    () => runUpdatePreflight(root, flags), clearWorkbenchPort,
+    () => prepareBrowserRuntimeArtifact(root), verifyBrowserRuntime];
+  for (const stage of stages) {
+    if (state.shuttingDown) return;
+    await stage();
+  }
+  if (state.shuttingDown) return;
+  state.serviceHandle = startService(root);
+  await state.serviceHandle.started;
+  completeStartupStep("app_server");
+  if (state.shuttingDown) { await shutdown(state.signal); return; }
+  await verifyAppHealth();
+  if (state.shuttingDown) return;
+  await openReadyPage(flags);
+  if (!state.shuttingDown) logStartupShellReady();
+}
+
+async function main() {
+  const state = { serviceHandle: undefined, shuttingDown: false, closing: undefined, signal: undefined };
+  const shutdown = createShutdownHandler(state);
+  registerSignalHandlers(shutdown);
+  try {
+    await performLaunch(parseFlags(process.argv.slice(2)), rootDir, state, shutdown);
+    if (state.serviceHandle) {
+      const exit = await state.serviceHandle.waitForExit();
+      if (state.closing) await state.closing;
+      else classifyServiceExit(exit);
+    }
+  } catch (error) {
+    if (state.shuttingDown) {
+      await shutdown(state.signal);
+      failOpenStartupSteps(new Error("STARTUP_STOP_REQUESTED"));
+      if (!process.exitCode) logStartupStopped();
       return;
     }
-    const exit = await state.serviceHandle.waitForExit();
-    classifyServiceExit(exit, state.shuttingDown);
-    return;
-  } catch (error) {
-    await handleStartupBootstrapFailure({
-      rootDir, runId: startupRunId, baseUrl, failureReason: toFailureReason(error),
-      failOpenStartupSteps, failStartupStep, shutdown,
-    });
+    await handleStartupBootstrapFailure({ rootDir, runId: startupRunId, baseUrl,
+      failureReason: toFailureReason(error), failOpenStartupSteps, failStartupStep, shutdown });
   }
+  if (!process.exitCode) logStartupStopped();
 }
 
 await main();
-logStartupStopped();

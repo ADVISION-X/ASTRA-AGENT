@@ -142,7 +142,7 @@ const exerciseRiskGrantZeroInputRegrant = async (): Promise<void> => {
 
 const WORKER_LOOP_DELAY_STATEMENT = "delay = Math.min(30_000, Math.max(1_000, delay * 2));";
 const WORKER_LOOP_WAIT_STATEMENT = "await wait(delay, state.abort.signal);";
-const WORKER_LOOP_ITERATION_STATEMENT = "delay = await workerIteration(state);";
+const WORKER_LOOP_ITERATION_STATEMENT = "delay = await state.iteration;";
 
 const inspectRuntimeSources = (project: Project, queryRef: string) => {
   const findings: Parameters<typeof inspectAgentProductionRuntime>[1] = [];
@@ -264,7 +264,7 @@ const exerciseWorkerLoopSurvivesIterationFailure = async (): Promise<void> => {
   const observed: Record<string, unknown> = { abort: controller };
   const state = new Proxy(observed as RuntimeState, {
     get: (target, property) => {
-      if (property === "abort") return target.abort;
+      if (property === "abort" || property === "iteration") return Reflect.get(target, property);
       throw new Error("INJECTED_ITERATION_FAILURE");
     },
   });

@@ -92,7 +92,7 @@ const renewSessionFetch = (
 const openedSession = async (): Promise<ProductionWorkerSession> => {
   const session = new ProductionWorkerSession(
     DeviceCredentialSchema.parse(validDeviceCredential),
-    async () => ({ agent_attested_in_flight: 0, browser_action_in_flight: 0, browser_authority_state: "present",
+    () => ({ agent_attested_in_flight: 0, browser_action_in_flight: 0, browser_authority_state: "present",
       browser_target_state: "absent", browser_lane_state: "idle", drain_state: "open", ledger_reconciled: true }),
     HASH_B, "worker-instance:renew-retry",
   );

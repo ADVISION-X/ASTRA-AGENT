@@ -52,7 +52,7 @@ export class ProductionWorkerSession {
 
   public constructor(
     public readonly device: DeviceCredential,
-    private readonly runtimeState: () => Promise<ProductionRuntimeState>,
+    private readonly runtimeState: () => ProductionRuntimeState,
     private readonly agentBuildHash: ProductionHash,
     public readonly workerInstanceId = `worker_${randomUUID()}`,
     public readonly sessionOpenRequestId = `aipsopen_${randomUUID()}`,
@@ -133,7 +133,7 @@ export class ProductionWorkerSession {
 
   private async performHeartbeat(): Promise<RuntimeAttestationReceipt> {
     await this.open();
-    const state = await this.runtimeState();
+    const state = this.runtimeState();
     const next = this.sequence + 1;
     try {
       const data = await this.request(`/internal/ai-production/v6/sessions/${encodeURIComponent(this.workerSessionId)}/heartbeat`, {
@@ -230,15 +230,17 @@ export class ProductionWorkerSession {
 
   public async request(pathname: string, init: RequestInit): Promise<unknown> {
     await this.open();
+    const headers = { ...(await this.authorizationHeaders({ "content-type": "application/json" })),
+      ...(init.headers ?? {}) };
+    // Recheck after all queued authentication work, immediately before physical fetch.
+    if (pathname === "/internal/ai-production/v6/jobs/claim"
+      && this.runtimeState().drain_state === "draining") {
+      throw executionFailure("failed", "PRODUCTION_CLAIM_STOPPED");
+    }
     let response: Response;
     try {
       response = await fetch(`${this.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {
-        ...init,
-        headers: {
-          ...(await this.authorizationHeaders({ "content-type": "application/json" })),
-          ...(init.headers ?? {}),
-        },
-        signal: init.signal ?? AbortSignal.timeout(CLOUD_REQUEST_TIMEOUT_MS),
+        ...init, headers, signal: init.signal ?? AbortSignal.timeout(CLOUD_REQUEST_TIMEOUT_MS),
       });
     } catch (cause) {
       throw executionFailure("failed", "CLOUD_TRANSPORT_UNAVAILABLE", { cause });

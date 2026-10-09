@@ -2,6 +2,7 @@ import { governanceAssert as assert } from "../audit/shared/governance-exam-asse
 import Database from "better-sqlite3";
 import { chmod, cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
+import { connect } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { execFileSync, spawn, type ChildProcess } from "node:child_process";
@@ -9,13 +10,16 @@ import { emitQualityProofObservation } from "../audit/shared/proof-observation.j
 
 import { getHealthReport } from "../../src/lib/local-runtime/workbench-status.js";
 import type { BrowserRuntimePreflightResult } from "../startup/lib/browser-runtime-preflight.mjs";
-import { GRASSEYE_TOOL_EXTENSION_ID_HEADER } from "../../src/app/workbench-api-boundary.js";
+import { GRASSEYE_TOOL_EXTENSION_ID_HEADER, GRASSEYE_BROWSER_EXTENSION_ORIGIN } from "../../src/app/workbench-api-boundary.js";
 import { GRASSEYE_UNPACKED_EXTENSION_ID } from "../../src/lib/browser/release/unpacked-extension-release-identity.js";
 import { clearPortListeners } from "../startup/lib/process-control.mjs";
 import { waitForWorkbenchHealth } from "../startup/lib/service-readiness.mjs";
 import { createStartupLogHelpers } from "../startup/lib/startup-log-helpers.mjs";
 import { diagnoseRuntimeLog } from "../../src/lib/runtime-logs/index.js";
 import { createWorkbenchAssembly } from "../../src/lib/local-runtime/workbench-assembly.js";
+import { startLocalService } from "../startup/lib/service-process.mjs";
+import { GrassEyeWorkbench } from "../../src/lib/local-runtime/workbench.js";
+import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 
 const waitForChildReady = (child: ChildProcess): Promise<void> => new Promise((resolve, reject) => {
   let output = "";
@@ -280,6 +284,18 @@ const verifyDiagnosticShellSurvivesExecutionDependencyFailure = async (): Promis
     await waitForDiagnosticShell(port);
     await new Promise((resolve) => setTimeout(resolve, 100));
     await assertDiagnosticShellHealth(port);
+    const socket = connect(port, "127.0.0.1");
+    const socketClosed = new Promise<void>(resolve => socket.once("close", () => resolve()));
+    const upgraded = new Promise<string>(resolve => socket.once("data", data => resolve(data.toString())));
+    socket.write(["GET /browser-authority/v1 HTTP/1.1", `Host: 127.0.0.1:${port}`, "Upgrade: websocket",
+      "Connection: Upgrade", "Sec-WebSocket-Version: 13", "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==",
+      `Origin: ${GRASSEYE_BROWSER_EXTENSION_ORIGIN}`, "", ""].join("\r\n"));
+    assert.match(await upgraded, /^HTTP\/1.1 101/u);
+    const exited = new Promise<number | null>(resolve => child.once("exit", code => resolve(code)));
+    child.kill("SIGINT"); child.kill("SIGINT");
+    assert.equal(await exited, 0, "actual App must close a pre-HELLO upgraded socket on graceful stop");
+    await socketClosed;
+    assert.equal(socket.destroyed, true);
   } finally {
     await stopFixture(child);
     await rm(dataDir, { recursive: true, force: true });
@@ -419,3 +435,50 @@ await runStartupInitializationHealthAcceptance();
 process.stdout.write("startup initialization health acceptance: PASS\n");
 emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-001-V4", evidenceMode: "exam.golden", clauses: ["forbidden:0","forbidden:1","forbidden:10","forbidden:2","forbidden:3","forbidden:4","forbidden:5","forbidden:6","forbidden:7","forbidden:8","forbidden:9","summary"], locator: "acceptance:startup:shell-survives-dependency-failure", observedValue: "diagnostic Shell remains ready while execution dependency is blocked" });
 emitQualityProofObservation({ lawId: "LAW-STARTUP-ENTRYPOINT-002-V4", evidenceMode: "exam.golden", clauses: ["forbidden:3","forbidden:4","forbidden:5","forbidden:6","summary"], locator: "acceptance:startup:local-port-and-artifact-boundary", observedValue: "current-source artifact sync, unpacked preflight and repository-owned listener cleanup verified" });
+
+const serviceRoot = await mkdtemp(path.join(tmpdir(), "owned-node-shutdown-"));
+try {
+  const lifecycle = new GrassEyeWorkbench({ dataDir: serviceRoot });
+  const calls: string[] = [];
+  let finishInit!: () => void;
+  const pendingInit = new Promise<void>(resolve => { finishInit = resolve; });
+  const logger = createRuntimeLogger({ producer: "shutdown-race", owner: "app-shell", component: "workbench",
+    terminalEnabled: false, fileSink: { directoryPath: path.join(serviceRoot, "logs") } });
+  Reflect.set(lifecycle, "initializeOnce", async () => {
+    await pendingInit;
+    Reflect.set(lifecycle, "assembly", { runtimeLogger: logger,
+      browserAuthority: { shutdown: async () => { calls.push("browser"); } } });
+    Reflect.set(lifecycle, "productionRuntime", { close: async () => { calls.push("runtime"); } });
+  });
+  const init = lifecycle.init();
+  const close = lifecycle.shutdown(async () => { calls.push("http"); });
+  assert.equal(lifecycle.shutdown(), close, "a repeated signal joins the same Workbench close");
+  assert.deepEqual(calls, []);
+  finishInit(); await init; await close;
+  await lifecycle.init();
+  assert.deepEqual(calls, ["runtime", "browser", "http"], "late init is joined; stop intent cannot be reset");
+  await mkdir(path.join(serviceRoot, "src/app"), { recursive: true });
+  await symlink(path.resolve("node_modules"), path.join(serviceRoot, "node_modules"));
+  await writeFile(path.join(serviceRoot, "package.json"), '{"type":"module"}');
+  await writeFile(path.join(serviceRoot, "src/app/server.ts"), `
+    process.on('SIGINT', () => setTimeout(() => process.exit(0), 5500));
+    process.stdout.write('READY\\n');
+    setInterval(() => {}, 1000);
+  `);
+  let ready!: () => void;
+  const readiness = new Promise<void>(resolve => { ready = resolve; });
+  const service = startLocalService({ rootDir: serviceRoot, onStdoutLine: line => {
+    if (line === "READY") ready();
+  } });
+  await service.started;
+  await readiness;
+  const first = service.stop("SIGINT");
+  assert.equal(service.stop("SIGTERM"), first, "duplicate signals share the actual child close");
+  assert.deepEqual(await first, { code: 0, signal: null }, "the actual Node child survives past the old five-second kill");
+  assert.deepEqual(await service.waitForExit(), { code: 0, signal: null }, "a closed child result is cached");
+  await writeFile(path.join(serviceRoot, "src/app/server.ts"), "process.exit(7);");
+  const rapid = startLocalService({ rootDir: serviceRoot });
+  await rapid.started;
+  await new Promise(resolve => setTimeout(resolve, 250));
+  assert.deepEqual(await rapid.waitForExit(), { code: 7, signal: null }, "rapid exit cannot be missed by a late listener");
+} finally { await rm(serviceRoot, { recursive: true, force: true }); }

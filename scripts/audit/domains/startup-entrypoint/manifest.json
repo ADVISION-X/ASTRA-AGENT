@@ -7,6 +7,7 @@
     "LAW-STARTUP-ENTRYPOINT-002-V4"
   ],
   "ownedPaths": [
+    "docs/项目方案/AGENT停止接单与在途工单完整收尾-完整实现方案.md",
     "scripts/acceptance/startup-browser-artifact-sync.acceptance.ts",
     "scripts/acceptance/startup-initialization-health.acceptance.ts",
     "scripts/audit/domains/startup-entrypoint/**",

@@ -1,5 +1,18 @@
 # production-runtime 生产级施工图 V65
 
+正常停止沿现役单链：App信号→Workbench停止接单→Runtime同步draining→原iteration与active任务收尾→原Store/网站status读回→原资源关闭。
+停止意图仅约束新claim，绝不abort在途Product；原claim在实际fetch前检查drain_state，停止前已经发送的合法grant仍由原worker执行。
+结束对象是每张已领取Agent任务的独立成果步骤，以原hash和领域admission为成功；不等待网站未领取后继任务。
+真实失败核原first fact与同身份release receipt/attempt failure，业务需求及恢复记录保留；需要重新claim的恢复留给下一次原worker。
+Browser未决、未接纳成果、未结清冷却、关闭不明或资源失败只能异常收尾，禁止报告完整退出成功；冷却原Website session仍不得close。
+不增加表、Outbox、恢复worker、派单合同或超时体系。Workbench等待迟到init/retry并保持资源引用，Browser和原HTTP关闭后才封producer。
+原Runtime与Startup验收覆盖不abort任务、立即禁止物理claim、同身份失败、未决不改写、资源关闭顺序及重复close。
+关闭的临时jobId分母仅由原active/未完成Store行及原已发送claim响应派生，原shutdown唯一读取；不持久化、不授权、不恢复。
+领取后未落库不能因空Store算成功，须由现役网站status的精确absence证明删除，否则异常。claim发送前同步读原drain_state，不使用异步旧快照。
+active结束后先由原admission函数核尚待接纳结果，再通过原worker每轮结束通知等待有限次原cleanup/交付轮次（待清理及待admission的job并集数量，至少一轮）；停循环后的核验只读，不得新置cleanup。关闭日志使用原失败终态函数保留原cause、CONSEQUENTIAL及Owner，已确认任务失败引用原first fact与Store authority；不新建worker、timer或cleanup入口。
+blocked实例在真实停机时由原Store关闭入口只读核未完成任务/Outbox/cleanup/冷却/Browser未决并非零；普通blocked换代关闭仍让原重试接续。迟到assembly和换代间隙携现役已abort stopSignal进入原startup，只组成原Store/blocked handle，在session门前停止，不建新读取/恢复入口。原claim fetch前预期未发送停止只正常封原准入周期span，不写未取得的Website claimDiagnostics，不制造Website失败根；真实Website回执的诊断完整保留。
+原blocked retry的真实异常在停机阶段传给原shutdown等待者；session门前无工作早停正常封原启动span，不制造BLOCKING假根；真实依赖/凭据/session异常不豁免。
+
 ```blueprint-record
 {
   "schemaVersion": 1,

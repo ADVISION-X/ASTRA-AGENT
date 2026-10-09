@@ -55,19 +55,10 @@ for (const input of [
     "pending, invalid, non-transport, and stopped revocations must not request browser-host recovery");
 }
 
-const exerciseAuthenticatedTransportTerminal = async (input: Readonly<{
-  transportEvents: readonly string[];
-  rejectRestore?: boolean;
-}>): Promise<Readonly<{ restoreCalls: number; logText: string }>> => {
-  const root = await mkdtemp(join(tmpdir(), "grasseye-browser-host-restore-"));
-  const runtimeLogger = createRuntimeLogger({
-    producer: "browser-host-restore-acceptance", owner: "browser-session",
-    component: "browser-infrastructure", terminalEnabled: false,
-    fileSink: { directoryPath: join(root, "runtime-logs") },
-  });
-  let restoreCalls = 0;
+const createTransportTerminalFixture = (root: string, runtimeLogger: ReturnType<typeof createRuntimeLogger>,
+  restoreBrowserHostVisibility: () => Promise<void>): BrowserInfrastructureSupervisor => {
   const hash = `sha256:${"0".repeat(64)}` as const;
-  const supervisor = new BrowserInfrastructureSupervisor({
+  return new BrowserInfrastructureSupervisor({
     dataDir: root,
     sourceFingerprint: "browser-host-restore-acceptance",
     profileConfig: {
@@ -87,14 +78,37 @@ const exerciseAuthenticatedTransportTerminal = async (input: Readonly<{
       createdAt: new Date().toISOString(),
     },
     runtimeLogger,
-    restoreBrowserHostVisibility: async () => {
-      restoreCalls += 1;
-      if (input.rejectRestore) throw new Error("injected browser-host restore failure");
-    },
+    restoreBrowserHostVisibility,
   });
-  const socket: BrowserAuthoritySocket = { send: () => {}, close: () => {} };
+};
+
+const exerciseAuthenticatedTransportTerminal = async (input: Readonly<{
+  transportEvents: readonly string[];
+  rejectRestore?: boolean;
+  shutdownFault?: boolean;
+  unresolved?: boolean;
+}>): Promise<Readonly<{ restoreCalls: number; logText: string }>> => {
+  const root = await mkdtemp(join(tmpdir(), "grasseye-browser-host-restore-"));
+  const runtimeLogger = createRuntimeLogger({
+    producer: "browser-host-restore-acceptance", owner: "browser-session",
+    component: "browser-infrastructure", terminalEnabled: false,
+    fileSink: { directoryPath: join(root, "runtime-logs") },
+  });
+  let restoreCalls = 0;
+  const supervisor = createTransportTerminalFixture(root, runtimeLogger, async () => {
+    restoreCalls += 1;
+    if (input.rejectRestore) throw new Error("injected browser-host restore failure");
+  });
+  const closed: string[] = [];
+  const socket: BrowserAuthoritySocket = { send: () => {}, close: () => {
+    closed.push("socket"); if (input.shutdownFault) throw new Error("injected socket close failure");
+  } };
   try {
     await supervisor.start();
+    if (input.unresolved) {
+      await exerciseUnresolvedShutdown(supervisor, root);
+      return { restoreCalls, logText: "" };
+    }
     Reflect.set(Reflect.get(supervisor, "issuer"), "slot", {
       kind: "PRESENT",
       authority: { authorityRef: "authority-browser-host-restore-acceptance" },
@@ -107,6 +121,10 @@ const exerciseAuthenticatedTransportTerminal = async (input: Readonly<{
       lastHeartbeatAt: Date.now(),
       replies: new Map(),
     });
+    if (input.shutdownFault) {
+      await exerciseShutdownFault(supervisor, root, closed);
+      return { restoreCalls, logText: "" };
+    }
     for (const transportEvent of input.transportEvents) {
       supervisor.endpoints().websocket.disconnect(
         socket,
@@ -121,10 +139,44 @@ const exerciseAuthenticatedTransportTerminal = async (input: Readonly<{
       logText: segmentPath ? await readFile(segmentPath, "utf8") : "",
     };
   } finally {
-    await supervisor.stop();
+    await supervisor.stop().catch(error => { if (!input.shutdownFault && !input.unresolved) throw error; });
     await rm(root, { recursive: true, force: true });
   }
 };
+
+const exerciseUnresolvedShutdown = async (supervisor: BrowserInfrastructureSupervisor, root: string): Promise<void> => {
+  const store = Reflect.get(supervisor, "state").mutationState as BrowserMutationStore;
+  store.verifyRuntimeTaskProvenance(null);
+  const mutation = identity("stop-dispatched", "attempt:stop");
+  store.prepare(mutation); store.markDispatched(mutation.commandId);
+  await assert.rejects(supervisor.stop(), /BROWSER_SHUTDOWN_INCOMPLETE/u);
+  const reopened = new BrowserMutationStore(root);
+  assert.equal(reopened.readCommand(mutation.commandId)?.state, "DISPATCHED");
+  reopened.close();
+};
+const exerciseShutdownFault = async (supervisor: BrowserInfrastructureSupervisor, root: string, closed: string[]): Promise<void> => {
+  const state = Reflect.get(supervisor, "state");
+  state.workspace = { revoke: () => { closed.push("workspace"); throw new Error("injected workspace failure"); } };
+  const storeClose = state.mutationState.close.bind(state.mutationState);
+  state.mutationState.close = () => { closed.push("wal"); storeClose(); };
+  const lock = Reflect.get(supervisor, "ownerLock"), release = lock.release.bind(lock);
+  lock.release = async () => { closed.push("lock"); await release(); };
+  const stopping = supervisor.stop();
+  assert.equal(stopping, supervisor.stop(), "repeat stop must join the same actual resources");
+  await assert.rejects(stopping, /BROWSER_SHUTDOWN_INCOMPLETE/u);
+  assert.deepEqual(closed, ["socket", "workspace", "wal", "lock"]);
+  assert.equal(state.mutationState, null); assert.equal(state.ownerLockHeld, false);
+  assert.equal(existsSync(join(root, "browser", "owner.lock")), false);
+  assert.equal(supervisor.endpoints().websocket.readOperatorPairingSecret(), null);
+  let lateClosed = 0;
+  supervisor.endpoints().websocket.receive({ send: () => { throw new Error("LATE_AUTH_FORBIDDEN"); },
+    close: () => { lateClosed++; } }, "PAIR_HELLO");
+  assert.equal(lateClosed, 1, "closed authority must reject late unauthenticated input");
+  await assert.rejects(supervisor.start(), /BROWSER_INFRASTRUCTURE_STOPPED/u);
+};
+
+assert.equal((await exerciseAuthenticatedTransportTerminal({ transportEvents: [], shutdownFault: true })).restoreCalls, 0);
+assert.equal((await exerciseAuthenticatedTransportTerminal({ transportEvents: [], unresolved: true })).restoreCalls, 0);
 
 for (const transportEvent of ["peer_close", "tcp_close", "tcp_error"] as const) {
   const result = await exerciseAuthenticatedTransportTerminal({ transportEvents: [transportEvent] });
