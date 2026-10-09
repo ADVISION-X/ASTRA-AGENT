@@ -1,5 +1,11 @@
 # Local Browser Authority V56 施工图
 
+正常停止由原Runtime先等待在途调用链与真实终态，Browser supervisor随后关闭同一WebSocket的active/pending socket，
+再释放workspace、lane、owner lock与原WAL连接；不新建终态协议，不撤销已发出的输入，不将DISPATCHED改成no。
+未知原WAL原样持久保留，Runtime只能报告未决异常退出；重复关闭不重复释放资源，不触发正常stop的宿主窗口恢复。
+原Owner独立尝试每项资源关闭并聚合失败；WebSocket正常关闭后拒绝新HELLO并停止发pairing secret。唯一HTTP Owner登记并实际收束全部TCP连接（含101后未HELLO者），等待真实close后才封producer；该进程内资源集合不持久化、不授业务动作权、不新增Listener或协议。
+原supervisor关WAL前只读核DISPATCHED未决；存在未决则聚合异常但仍尝试全部资源关闭，保留原WAL值，覆盖尚未构成Runtime实例的迟到初始化；不新增恢复或终态入口。
+
 ```blueprint-record
 {"schemaVersion":1,"blueprintId":"local-browser-authority-v56","status":"active","owner":"local-browser-session","lawIds":["LAW-LOCAL-BROWSER-SESSION-001-V4","LAW-LOCAL-BROWSER-SESSION-003-V45","LAW-LOCAL-BROWSER-SESSION-004-V56","LAW-LOCAL-BROWSER-SESSION-006-V45"],"contractRefs":[],"dependencyEdges":[],"prohibitedDependencyEdges":[]}
 ```

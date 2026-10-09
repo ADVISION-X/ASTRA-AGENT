@@ -1,4 +1,14 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
+import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
+import { workerLoop } from "../../src/lib/local-runtime/production/runtime-loops.js";
+import { shutdownRuntime } from "../../src/lib/local-runtime/production/runtime-startup.js";
+import { executionFailure } from "../../src/lib/execution-failure.js";
+import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
+import type { RuntimeState } from "../../src/lib/local-runtime/production/runtime-state.js";
 
 import { claimProductionTasks } from "../../src/lib/local-runtime/production/cloud-client.js";
 import { DeviceCredentialSchema } from
@@ -6,12 +16,99 @@ import { DeviceCredentialSchema } from
 import { ProductionWorkerSession } from
   "../../src/lib/local-runtime/production/worker-session.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
-import { HASH_A, HASH_B, HASH_C } from "./agent-production-runtime-fixtures.js";
+import { HASH_A, HASH_B, HASH_C, task, resultFor, stageResultForAcceptance,
+  attemptFailureFirstFact, failureStatus } from "./agent-production-runtime-fixtures.js";
 
 const deferred = () => {
   let release: (() => void) | undefined;
   const promise = new Promise<void>((resolve) => { release = resolve; });
   return { promise, release: (): void => release!() };
+};
+
+export const assertShutdownFailureOutcomes = async (): Promise<void> => {
+  for (const scenario of ["cooldown", "session-close", "failure-matches", "failure-unconfirmed", "failure-conflict"]) {
+    const directory = await mkdtemp(path.join(tmpdir(), "shutdown-failure-outcome-"));
+    const store = new ProductionRuntimeStore(directory);
+    const candidate = task({ jobId: "shutdown-failure", productId: "bazi_ai_full_analysis", actionId: "produce" });
+    store.acceptTask(candidate, "attempt:failure");
+    const fact = attemptFailureFirstFact("attempt:failure", serializeTerminalFailure(executionFailure("failed", "PROVIDER_REJECTED")));
+    if (scenario.startsWith("failure")) store.recordAttemptFailure(candidate.job_id, "attempt:failure", fact);
+    else {
+      const result = resultFor(candidate); stageResultForAcceptance(store, candidate.job_id, "attempt:failure", result);
+      store.completeTask(candidate.job_id, result); store.settleBrowserCleanup(candidate.job_id);
+    }
+    const cooldownKey = "aipcooldown_0123456789abcdef0123456789abcdef01234567";
+    if (scenario === "cooldown") store.enqueue({ idempotency_key: cooldownKey, kind: "provider_cooldown", method: "POST",
+      path: `/internal/ai-production/v6/jobs/${candidate.job_id}/provider-cooldown`, headers: {},
+      body: JSON.stringify({ schema_version: "xuanxue-ai-provider-cooldown-notice.v7",
+        request_id: cooldownKey, incident_request_id: cooldownKey, phase: "incident", clearance: "pending_unknown",
+        job_id: candidate.job_id, attempt_id: "attempt:failure", result_revision: 0, lease_version: 1,
+        fence_hash: HASH_A, capability_manifest_hash: HASH_A, gpt_session_key: "product:shutdown",
+        observed_at: "2030-01-01T00:00:00.000Z", worker_instance_id: "worker:shutdown",
+        session_open_request_id: "aipsopen-shutdown", dialog_hash: HASH_A, observation_hash: HASH_A }) });
+    const originalIdentity = store.providerCooldownSessionRecoveryIdentity();
+    const before = store.taskAuthorities(); let closed = false, sessionClosed = 0;
+    const realClose = store.close.bind(store); store.close = () => { closed = true; realClose(); };
+    const logger = createRuntimeLogger({ producer: "shutdown-failure", owner: "production-runtime",
+      component: "production-runtime", terminalEnabled: false, fileSink: { directoryPath: path.join(directory, "logs") } });
+    const remote = scenario === "failure-unconfirmed" ? null : { ...fact.failure_core, from_status: "failed", to_status: "failed",
+      attempt_id: scenario === "failure-conflict" ? "attempt:foreign" : "attempt:failure", lease_version: 1 };
+    const state = { store, runtimeLogger: logger, abort: new AbortController(), active: new Map(), iteration: null,
+      session: { request: async () => failureStatus(candidate.job_id, remote, []), close: async () => {
+        sessionClosed++; if (scenario === "session-close") throw executionFailure("failed", "CLOUD_SESSION_CLOSE_UNKNOWN");
+      } }, browserAuthority: { hasUnresolvedBrowserMutation: () => false } } as unknown as RuntimeState;
+    try {
+      await assert.rejects(shutdownRuntime(state, Promise.resolve(), Promise.resolve(), async () => {}), /RUNTIME_SHUTDOWN_INCOMPLETE/u);
+      assert.equal(closed, true); assert.equal(sessionClosed, scenario === "cooldown" ? 0 : 1);
+      const events = (await readFile(logger.currentSegmentPath()!, "utf8")).trim().split("\n").map(row => JSON.parse(row));
+      const terminal = events.find(event => event.kind === "span.terminal" && event.operation === "runtime.shutdown");
+      assert.equal(terminal.outcome, "failed");
+      const expected = scenario === "failure-matches" ? "PROVIDER_REJECTED"
+        : scenario === "failure-unconfirmed" ? "RUNTIME_SHUTDOWN_FAILURE_UNCONFIRMED"
+          : scenario === "failure-conflict" ? "PRODUCTION_ATTEMPT_FAILURE_AUTHORITY_CONFLICT"
+            : scenario === "cooldown" ? "RUNTIME_SHUTDOWN_OUTBOX_PENDING" : "CLOUD_SESSION_CLOSE_UNKNOWN";
+      assert.equal(terminal.failure.code, expected);
+      if (scenario === "failure-matches") {
+        assert.equal(terminal.authorityRef, `production-task:${candidate.job_id}`);
+        assert.equal(terminal.authorityHash, hashCanonical(before[0]));
+      }
+      const reopened = new ProductionRuntimeStore(directory);
+      assert.deepEqual(reopened.taskAuthorities(), before);
+      assert.deepEqual(reopened.providerCooldownSessionRecoveryIdentity(), originalIdentity);
+      if (scenario === "cooldown") assert.equal(reopened.readOutboxAuthority(cooldownKey)?.state, "pending");
+      reopened.close();
+    } finally { if (!closed) realClose(); await rm(directory, { recursive: true, force: true }); }
+  }
+};
+
+const exerciseStoppedClaimRuntime = async (session: ProductionWorkerSession,
+  rotation: RotationState, stop: () => void): Promise<void> => {
+  const directory = await mkdtemp(path.join(tmpdir(), "stopped-claim-runtime-"));
+  const store = new ProductionRuntimeStore(directory);
+  const logger = createRuntimeLogger({ producer: "stopped-claim-runtime", owner: "production-runtime",
+    component: "production-runtime", terminalEnabled: false, fileSink: { directoryPath: path.join(directory, "logs") } });
+  const runtime = { store, runtimeLogger: logger, session, abort: new AbortController(), active: new Map(),
+    draining: false, iteration: null, drainJobIds: null, activeAbort: new Map(),
+    browserAuthority: { readProductionRuntimeState: () => ({ browserAuthorityState: "present", browserTargetState: "absent" }),
+      readBrowserLaneState: () => "idle" },
+    providerRateLimitControl: { reconcilePendingIntents: async () => {}, observeWebsiteAuthority: () => {},
+      canRequestClaimAuthority: () => true },
+    executor: { reconcilePendingProviderRateLimitIncidents: async () => {}, availableCapacity: () => 4 },
+  } as unknown as RuntimeState;
+  const original = session.requestClaim.bind(session), sent = rotation.claimCount;
+  session.requestClaim = (...args) => {
+    const pending = original(...args); stop(); runtime.draining = true; return pending;
+  };
+  try {
+    await workerLoop(runtime, () => runtime.abort.abort());
+    assert.equal(rotation.claimCount, sent, "the original Runtime claim also sends zero HTTP after stopping");
+    const events = (await readFile(logger.currentSegmentPath()!, "utf8")).trim().split("\n").map(row => JSON.parse(row));
+    const terminal = events.filter(event => event.kind === "span.terminal" && event.operation === "cloud.claim");
+    assert.equal(terminal.length, 1); assert.equal(terminal[0].outcome, "succeeded");
+    assert.equal(Object.hasOwn(terminal[0], "claimDiagnostics"), false,
+      "an unsent claim has no Website receipt and must not invent Website diagnostics");
+    assert.equal(events.filter(event => event.failure).length, 0, "a local unsent stop is never a Website failure root");
+  } finally { session.requestClaim = original; store.close(); await rm(directory, { recursive: true, force: true }); }
 };
 
 const credentialFor = (generation: number) => ({
@@ -211,10 +308,11 @@ export const exerciseWorkerSessionRotation = async (): Promise<void> => {
       device_epoch: 1, credential: `aidc_v6_${"d".repeat(40)}`,
       enrolled_at: "2026-09-03T00:00:00.000Z",
     });
-    const session = new ProductionWorkerSession(device, async () => ({
+    let stopping = false;
+    const session = new ProductionWorkerSession(device, () => ({
       agent_attested_in_flight: state.attestedInFlight,
       browser_action_in_flight: 0, browser_authority_state: "present",
-      browser_target_state: "absent", browser_lane_state: "idle", drain_state: "open",
+      browser_target_state: "absent", browser_lane_state: "idle", drain_state: stopping ? "draining" : "open",
       ledger_reconciled: true,
     }), HASH_B, "worker-instance:atomic-claim");
     await exerciseClaimOrdering(session, state, signals);
@@ -224,6 +322,14 @@ export const exerciseWorkerSessionRotation = async (): Promise<void> => {
       /V6_CLAIM_RECEIPT_MISMATCH/u,
       "a receipt for a different canonical claim request must fail closed",
     );
+    state.tamperClaimHash = false;
+    const sentBeforeStop = state.claimCount;
+    const queued = session.requestClaim("claim:stop-queued", 1);
+    stopping = true;
+    await assert.rejects(queued, /PRODUCTION_CLAIM_STOPPED/u);
+    assert.equal(state.claimCount, sentBeforeStop, "a queued claim cannot send HTTP after stop intent");
+    stopping = false;
+    await exerciseStoppedClaimRuntime(session, state, () => { stopping = true; });
   } finally {
     Date.now = originalDateNow;
     globalThis.fetch = originalFetch;
@@ -272,7 +378,7 @@ export const exerciseHeartbeatResponseLossRecovery = async (): Promise<void> => 
       device_epoch: 1, credential: `aidc_v6_${"d".repeat(40)}`,
       enrolled_at: "2026-09-03T00:00:00.000Z",
     });
-    const session = new ProductionWorkerSession(device, async () => ({
+    const session = new ProductionWorkerSession(device, () => ({
       agent_attested_in_flight: 0, browser_action_in_flight: 0,
       browser_authority_state: "present", browser_target_state: "absent",
       browser_lane_state: "idle", drain_state: "open", ledger_reconciled: true,

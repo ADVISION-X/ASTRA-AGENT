@@ -6,11 +6,7 @@ export function parseFlags(argv) {
 }
 
 export function registerSignalHandlers(shutdown) {
-  process.on("SIGINT", () => {
-    void shutdown("SIGINT");
-  });
-
-  process.on("SIGTERM", () => {
-    void shutdown("SIGTERM");
-  });
+  const stop = signal => { void shutdown(signal).catch(() => { process.exitCode = 1; }); };
+  process.on("SIGINT", () => stop("SIGINT"));
+  process.on("SIGTERM", () => stop("SIGTERM"));
 }

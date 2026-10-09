@@ -171,7 +171,7 @@ const assertOccupiedStorageInventory = async (
       sourceHash: HASH_A,
       gpt: createGptAbilityGroup(),
       evidenceStore: createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(dataDir)),
-      browserAuthority: { verifyRuntimeTaskProvenance: () => undefined,
+      browserAuthority: { hasUnresolvedBrowserMutation: () => false, verifyRuntimeTaskProvenance: () => undefined,
         readProductionRuntimeState: () => ({
         browserAuthorityState: "absent" as const, browserTargetState: "absent" as const,
       }) } as never,
@@ -281,6 +281,7 @@ try {
     gpt: createGptAbilityGroup(),
     evidenceStore: createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(dataDir)),
     browserAuthority: {
+      hasUnresolvedBrowserMutation: () => false,
       verifyRuntimeTaskProvenance: () => undefined,
       readProductionRuntimeState: () => ({
         browserAuthorityState: "absent" as const,
@@ -300,12 +301,13 @@ try {
   assert.equal(health.controlContractVersion, 44,
     "blocked diagnostics must retain only the consumer contract version needed for exact comparison");
   assert.equal(health.lastErrorCode, "AI_SESSION_BINDING_MISMATCH");
-  await bindingMismatchRuntime.close();
+  await assert.rejects(bindingMismatchRuntime.close(), /RUNTIME_SHUTDOWN_INCOMPLETE/u,
+    "blocked shutdown cannot report complete while an original task is unfinished");
   bindingMismatchRuntime = null;
   assert.deepEqual(bindingMismatchRequestPaths, ["/internal/ai-production/v6/sessions/open"],
     "a deterministic session binding 409 must not create a worker or heartbeat handle that reopens on shutdown");
 } finally {
-  if (bindingMismatchRuntime) await bindingMismatchRuntime.close();
+  if (bindingMismatchRuntime) await assert.rejects(bindingMismatchRuntime.close(), /RUNTIME_SHUTDOWN_INCOMPLETE/u);
   globalThis.fetch = bindingMismatchOriginalFetch;
   if (bindingMismatchOriginalCredentialPath === undefined) delete process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
   else process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = bindingMismatchOriginalCredentialPath;

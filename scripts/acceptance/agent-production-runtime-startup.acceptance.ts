@@ -5,13 +5,20 @@ import Database from "better-sqlite3";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { emitQualityProofObservation } from "../audit/shared/proof-observation.js";
 import { assertProductionStartupPreflight, assertSessionBindingMismatchStartup } from "./agent-production-runtime-startup-preflight.acceptance-support.js";
-import { HASH_A, HASH_B, attemptFailureFirstFact, resultFor, stageResultForAcceptance, task } from "./agent-production-runtime-fixtures.js";
+import { HASH_A, HASH_B, admissionReceiptFor, deviceStatusWithAdmission, deviceStatusWithoutAdmission,
+  attemptFailureFirstFact, resultFor, stageResultForAcceptance, task } from "./agent-production-runtime-fixtures.js";
 import { buildProductTask } from "./product-plugin-test-runtime.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { ProductionExecutor } from "../../src/lib/local-runtime/production/executor.js";
 import { productionRoutePolicy } from "../../src/lib/local-runtime/production/route-policy.js";
 import { startProductionRuntime } from "../../src/lib/local-runtime/production/runtime.js";
 import { shutdownRuntime } from "../../src/lib/local-runtime/production/runtime-startup.js";
+import { reconcileBusinessAdmission } from "../../src/lib/local-runtime/production/runtime-business-admission.js";
+import { reconcileCompletedBrowserTargets } from "../../src/lib/local-runtime/production/runtime-loops.js";
+import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
+import type { RuntimeState } from "../../src/lib/local-runtime/production/runtime-state.js";
+import { GrassEyeWorkbench } from "../../src/lib/local-runtime/workbench.js";
+import { assertShutdownFailureOutcomes } from "./agent-production-runtime-session-rotation-support.js";
 import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
 import { terminalSpanFailure } from "../../src/lib/local-runtime/production/runtime-logging.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
@@ -25,20 +32,179 @@ import type { BrowserExecutionArtifact } from "../../src/lib/browser/browser-aut
 
 await assertProductionStartupPreflight();
 await assertSessionBindingMismatchStartup();
-for (const pending of [false, true]) {
-  const calls = { heartbeat: 0, sessionClose: 0, storeClose: 0 };
-  const abort = new AbortController();
-  await shutdownRuntime({ abort, activeAbort: new Map(), active: new Map(), draining: false, stopped: false,
-    runtimeLogger: { producerRunId: "startup-shutdown-proof", startSpan: () => ({ ok: true,
-      event: { terminal: () => ({ ok: true, event: { eventId: "terminal:shutdown" } }) } }) },
-    session: { heartbeat: async () => { calls.heartbeat += 1; }, close: async () => { calls.sessionClose += 1; } },
-    store: { close: () => { calls.storeClose += 1; }, providerCooldownSessionRecoveryIdentity: () => pending
-      ? { workerInstanceId: "worker:original", sessionOpenRequestId: "session:original" } : null },
-  } as never, Promise.resolve(), Promise.resolve());
-  assert.deepEqual(calls, { heartbeat: 1, sessionClose: pending ? 0 : 1, storeClose: 1 });
-  assert.equal(abort.signal.aborted, true);
-}
+await assertShutdownFailureOutcomes();
 
+const shutdownDirectory = await mkdtemp(path.join(tmpdir(), "runtime-drain-"));
+try {
+  for (const unresolved of [false, true]) {
+    await mkdir(path.join(shutdownDirectory, String(unresolved)), { recursive: true });
+    const store = new ProductionRuntimeStore(path.join(shutdownDirectory, String(unresolved)));
+    for (const jobId of ["original", "late-grant"]) {
+      const candidate = task({ jobId, productId: "bazi_ai_full_analysis", actionId: "produce" });
+      store.acceptTask(candidate, "attempt:shutdown");
+      const result = resultFor(candidate);
+      stageResultForAcceptance(store, jobId, "attempt:shutdown", result);
+      store.completeTask(jobId, result);
+      store.settleBrowserCleanup(jobId);
+    }
+    const logger = createRuntimeLogger({ producer: "shutdown-acceptance", owner: "production-runtime",
+      component: "production-runtime", producerRunId: `shutdown:${unresolved}`, terminalEnabled: false,
+      fileSink: { directoryPath: path.join(shutdownDirectory, "logs", String(unresolved)) } });
+    const inputAbort = new AbortController();
+    const loopAbort = new AbortController();
+    let finishTask!: () => void;
+    const active = new Map([["original", new Promise<void>(resolve => { finishTask = resolve; })]]);
+    let closed = false;
+    const originalClose = store.close.bind(store);
+    store.close = () => { closed = true; originalClose(); };
+    let sessionClosed = 0;
+    let finishIteration!: (value: number) => void;
+    const iteration = new Promise<number>(resolve => { finishIteration = resolve; });
+    const state = { draining: false, stopped: false, iteration,
+      abort: loopAbort, active, activeAbort: new Map([["original", inputAbort]]), store,
+      runtimeLogger: logger, session: { close: async () => { sessionClosed++; } },
+      browserAuthority: { hasUnresolvedBrowserMutation: () => unresolved } } as never;
+    let finalPasses = 0;
+    const closing = shutdownRuntime(state, Promise.resolve(), Promise.resolve(), async () => { finalPasses++; });
+    const assertion = unresolved
+      ? assert.rejects(closing, /RUNTIME_SHUTDOWN_INCOMPLETE/u) : closing;
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(closed, false, "an executing original task must finish before Store close");
+    assert.equal(sessionClosed, 0);
+    assert.equal(inputAbort.signal.aborted, false, "stopping claims must never abort Product");
+    let finishLateTask!: () => void;
+    active.set("late-grant", new Promise<void>(resolve => { finishLateTask = resolve; }));
+    finishIteration(0);
+    finishTask();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(closed, false, "the original in-flight claim's late grant is also drained");
+    finishLateTask();
+    await assertion;
+    assert.equal(closed, true); assert.equal(sessionClosed, 1);
+    assert.equal(finalPasses, 1, "the original worker receives a final drain pass before loops stop");
+    assert.equal(inputAbort.signal.aborted, false);
+    const rows = (await readFile(logger.currentSegmentPath()!, "utf8")).trim().split("\n").map(row => JSON.parse(row));
+    const terminal = rows.find(row => row.kind === "span.terminal" && row.operation === "runtime.shutdown");
+    assert.equal(terminal.outcome, unresolved ? "failed" : "succeeded");
+    if (unresolved) assert.equal(terminal.failure.code, "RUNTIME_SHUTDOWN_BROWSER_UNRESOLVED");
+  }
+  for (const scenario of ["last-admission", "original-cause"] as const) {
+    const dataDir = path.join(shutdownDirectory, scenario); await mkdir(dataDir);
+    const store = new ProductionRuntimeStore(dataDir);
+    for (const jobId of ["last-a", "last-b"]) {
+      const candidate = task({ jobId, productId: "bazi_ai_full_analysis", actionId: "produce" });
+      store.acceptTask(candidate, "attempt:final");
+      stageResultForAcceptance(store, jobId, "attempt:final", resultFor(candidate));
+      if (scenario === "original-cause") { store.completeTask(jobId, resultFor(candidate)); store.settleBrowserCleanup(jobId); }
+    }
+    const logger = createRuntimeLogger({ producer: "shutdown-acceptance", owner: "production-runtime",
+      component: "production-runtime", terminalEnabled: false,
+      fileSink: { directoryPath: path.join(dataDir, "logs") } });
+    const prior = requireRuntimeLogWrite(logger.startSpan({ traceId: "prior-claim", owner: "production-runtime",
+      component: "production-session", operation: "cloud.claim", typedIdentity: { kind: "producer", producerId: logger.producerRunId } }));
+    const originalError = runtimeTransportFailure("CLAIM_CONNECTION_RESET", 503,
+      Object.assign(new Error("reset"), { code: "ECONNRESET" }));
+    const priorTerminal = terminalSpanFailure(prior, originalError, null, originalError.code, undefined, "website");
+    let passes = 0, cleanup = 0;
+    const session = { close: async () => {}, request: async (requestPath: string) => {
+      const jobId = decodeURIComponent(requestPath.split("/").at(-2)!);
+      const result = resultFor(store.readTask(jobId)!.task);
+      const fixture = passes === 0 ? deviceStatusWithoutAdmission(jobId)
+        : deviceStatusWithAdmission(admissionReceiptFor(jobId, result.result_payload_hash), jobId, hashCanonical(result));
+      return await (fixture as { request(): Promise<unknown> }).request();
+    } };
+    const state = { store, runtimeLogger: logger, session, abort: new AbortController(), active: new Map(),
+      iteration: scenario === "original-cause" ? Promise.reject(withRuntimeLogCause(originalError, priorTerminal.eventId)) : null,
+      browserAuthority: { hasUnresolvedBrowserMutation: () => false,
+        releaseJobBoundTarget: async () => { cleanup++; } } } as unknown as RuntimeState;
+    const closing = shutdownRuntime(state, Promise.resolve(), Promise.resolve(), async () => {
+      passes++;
+      for (const record of store.pendingBusinessAdmissions()) await reconcileBusinessAdmission(state, record);
+      await reconcileCompletedBrowserTargets(state);
+    });
+    if (scenario === "original-cause") await assert.rejects(closing, /RUNTIME_SHUTDOWN_INCOMPLETE/u); else await closing;
+    const rows = (await readFile(logger.currentSegmentPath()!, "utf8")).trim().split("\n").map(row => JSON.parse(row));
+    const terminal = rows.find(row => row.kind === "span.terminal" && row.operation === "runtime.shutdown");
+    if (scenario === "last-admission") {
+      assert.equal(terminal.outcome, "succeeded"); assert.equal(passes, 2); assert.equal(cleanup, 2);
+    } else {
+      assert.equal(terminal.failure.code, originalError.code);
+      assert.equal(terminal.failure.impact, RuntimeFailureImpact.CONSEQUENTIAL);
+      assert.equal(terminal.failure.causedByEventId, priorTerminal.eventId);
+      assert.equal(terminal.failure.nativeCause, "ECONNRESET");
+      assert.equal(terminal.failure.responsibleOwner, "website");
+    }
+  }
+  for (const scenario of ["blocked-stop", "empty-stop", "blocked-replacement", "late-init-stop", "late-retry-error"] as const) {
+    const dataDir = path.join(shutdownDirectory, scenario); await mkdir(dataDir);
+    const store = new ProductionRuntimeStore(dataDir);
+    const candidate = task({ jobId: "old-pending", productId: "bazi_ai_full_analysis", actionId: "produce" });
+    if (scenario !== "empty-stop") {
+      store.acceptTask(candidate, "attempt:old");
+      store.enqueue({ idempotency_key: "old:outbox", kind: "artifact", method: "PUT", headers: {}, body: "result",
+        path: `/internal/ai-production/v6/jobs/${candidate.job_id}/artifacts/result` });
+    }
+    const before = store.taskAuthorities(); store.close();
+    const logger = createRuntimeLogger({ producer: "blocked-stop-acceptance", owner: "production-runtime",
+      component: "production-runtime", terminalEnabled: false, fileSink: { directoryPath: path.join(dataDir, "logs") } });
+    let browserClosed = 0, httpClosed = 0;
+    const browser = { hasUnresolvedBrowserMutation: () => false, verifyRuntimeTaskProvenance: () => {},
+      readProductionRuntimeState: () => ({ browserAuthorityState: "absent", browserTargetState: "absent" }),
+      shutdown: async () => { browserClosed++; } };
+    const evidenceStore = createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(dataDir));
+    const gpt = createGptAbilityGroup(), stop = new AbortController();
+    if (scenario.startsWith("blocked") || scenario === "empty-stop") {
+      if (scenario !== "blocked-replacement") stop.abort();
+      const oldCredential = process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
+      process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = path.join(dataDir, "fixture-missing-credential");
+      try {
+        const runtime = await startProductionRuntime({ dataDir, sourceHash: HASH_A, gpt, evidenceStore,
+          browserAuthority: browser as never, runtimeLogger: logger, stopSignal: stop.signal });
+        if (scenario === "blocked-stop") {
+          const closing = runtime.close(); assert.equal(closing, runtime.close());
+          await assert.rejects(closing, /RUNTIME_SHUTDOWN_INCOMPLETE/u);
+        } else await runtime.close();
+      } finally {
+        if (oldCredential === undefined) delete process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
+        else process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = oldCredential;
+      }
+      if (scenario === "empty-stop") {
+        const events = (await readFile(logger.currentSegmentPath()!, "utf8")).trim().split("\n").map(row => JSON.parse(row));
+        assert.equal(events.filter(event => event.failure?.impact === RuntimeFailureImpact.BLOCKING).length, 0);
+      }
+    } else {
+      const lifecycle = new GrassEyeWorkbench({ dataDir });
+      Reflect.set(lifecycle, "assembly", { dataDir, runtimeLogger: logger, browserAuthority: browser,
+        gptAbilityGroup: gpt, evidenceStore });
+      const previousHash = process.env.GRASSEYE_SOURCE_FINGERPRINT;
+      process.env.GRASSEYE_SOURCE_FINGERPRINT = HASH_A;
+      try {
+        let initialize: Promise<void>;
+        if (scenario === "late-retry-error") {
+          const database = new Database(path.join(dataDir, "production-runtime.sqlite"));
+          database.exec("create table production_forbidden(extra integer)"); database.close();
+          Reflect.set(lifecycle, "productionRuntime", { blocked: true, close: async () => {} });
+          initialize = Reflect.get(lifecycle, "retryBlockedRuntime").call(lifecycle);
+          Reflect.set(lifecycle, "retryPromise", initialize);
+        } else initialize = lifecycle.init();
+        const closing = lifecycle.shutdown(async () => { httpClosed++; });
+        if (scenario === "late-init-stop") await initialize;
+        else await assert.rejects(initialize, /PRODUCTION_SCHEMA_MIGRATION_REQUIRED/u);
+        await assert.rejects(closing, /WORKBENCH_SHUTDOWN_INCOMPLETE/u);
+        assert.equal(browserClosed, 1); assert.equal(httpClosed, 1);
+      } finally {
+        if (previousHash === undefined) delete process.env.GRASSEYE_SOURCE_FINGERPRINT;
+        else process.env.GRASSEYE_SOURCE_FINGERPRINT = previousHash;
+      }
+    }
+    if (scenario !== "late-retry-error") {
+      const reopened = new ProductionRuntimeStore(dataDir);
+      assert.deepEqual(reopened.taskAuthorities(), before);
+      assert.equal(reopened.pendingOutboxCount(), scenario === "empty-stop" ? 0 : 1);
+      reopened.close();
+    }
+  }
+} finally { await rm(shutdownDirectory, { recursive: true, force: true }); }
 const directory = await mkdtemp(path.join(tmpdir(), "runtime-startup-contract-"));
 const oldCredential = process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
 try {
@@ -64,7 +230,8 @@ try {
     component, terminalEnabled: false, fileSink: { directoryPath: path.join(directory, "logs", component) } });
   const runtimeOptions = (dataDir: string) => ({ dataDir, sourceHash: HASH_A, gpt: createGptAbilityGroup(),
     evidenceStore: createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(dataDir)),
-    browserAuthority: { readProductionRuntimeState: () => ({ browserAuthorityState: "absent", browserTargetState: "absent" }) } as never,
+    browserAuthority: { hasUnresolvedBrowserMutation: () => false,
+      readProductionRuntimeState: () => ({ browserAuthorityState: "absent", browserTargetState: "absent" }) } as never,
     runtimeLogger: logger("startup") });
   const corrupt = path.join(directory, "forbidden-schema");
   await mkdir(corrupt);

@@ -17,7 +17,7 @@ import { requireRuntimeLogWrite } from "../runtime-logs/index.js";
 const buildWorkbenchHandle = (
   assembly: WorkbenchAssembly,
   init: () => Promise<void>,
-  shutdown: () => Promise<void>,
+  shutdown: GrassEyeWorkbenchHandle["shutdown"],
   productionRuntime: ProductionRuntimeHandle,
   getInitializationState: () => WorkbenchInitializationState,
 ): GrassEyeWorkbenchHandle => {
@@ -62,6 +62,9 @@ export class GrassEyeWorkbench {
   private initializationPromise: Promise<void> | null = null;
   private blockedRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private shuttingDown = false;
+  private readonly stopIntent = new AbortController();
+  private shutdownPromise: Promise<void> | null = null;
+  private retryPromise: Promise<void> | null = null;
   private initializationState: WorkbenchInitializationState = {
     status: "initializing",
     failureReason: null,
@@ -69,116 +72,92 @@ export class GrassEyeWorkbench {
 
   constructor(private readonly options: GrassEyeWorkbenchOptions) {}
 
-  async init(): Promise<void> {
-    this.shuttingDown = false;
-    if (this.initializationState.status === "ready") return;
-    if (this.initializationPromise) return this.initializationPromise;
-    this.initializationState = { status: "initializing", failureReason: null };
-    this.initializationPromise = this.initializeOnce();
-    try {
-      await this.initializationPromise;
-    } finally {
-      this.initializationPromise = null;
-    }
-  }
-
-  private async initializeOnce(): Promise<void> {
-    try {
-      if (!this.assembly) {
-        this.assembly = await createWorkbenchAssembly(this.options);
-      }
-      const assembly = this.assembly;
-      if (!this.productionRuntime) {
-        this.productionRuntime = await startProductionRuntime({
-          dataDir: assembly.dataDir,
-          gpt: assembly.gptAbilityGroup,
-          browserAuthority: assembly.browserAuthority,
-          evidenceStore: assembly.evidenceStore,
-          sourceHash: requireSourceCandidateHash(),
-          runtimeLogger: assembly.runtimeLogger,
-        });
-      }
-      const productionRuntime = this.productionRuntime;
-      this.activeHandle = buildWorkbenchHandle(
-        assembly,
-        () => this.init(),
-        () => this.shutdown(),
-        productionRuntime,
-        () => this.initializationState,
-      );
-      this.initializationState = { status: "ready", failureReason: null };
-      if (productionRuntime.blocked) this.scheduleBlockedRuntimeRetry();
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      this.initializationState = {
-        status: "failed",
-        failureReason: reason.slice(0, 1_000),
-      };
-      throw error;
-    }
-  }
-
   private scheduleBlockedRuntimeRetry(): void {
     if (this.blockedRetryTimer || this.shuttingDown) return;
     this.blockedRetryTimer = setTimeout(() => {
       this.blockedRetryTimer = null;
-      void this.retryBlockedRuntime();
+      this.retryPromise = this.retryBlockedRuntime().finally(() => { this.retryPromise = null; });
     }, 5_000);
+  }
+
+  async init(): Promise<void> {
+    if (this.shuttingDown || this.initializationState.status === "ready") return;
+    this.initializationPromise ??= this.initializeOnce();
+    try { await this.initializationPromise; }
+    finally { this.initializationPromise = null; }
+  }
+
+  private async initializeOnce(): Promise<void> {
+    try {
+      this.assembly ??= await createWorkbenchAssembly(this.options);
+      const assembly = this.assembly;
+      this.productionRuntime = await startProductionRuntime({
+        dataDir: assembly.dataDir, sourceHash: requireSourceCandidateHash(),
+        gpt: assembly.gptAbilityGroup, evidenceStore: assembly.evidenceStore,
+        browserAuthority: assembly.browserAuthority, runtimeLogger: assembly.runtimeLogger,
+        stopSignal: this.stopIntent.signal,
+      });
+      if (this.shuttingDown) return;
+      this.activeHandle = buildWorkbenchHandle(assembly, () => this.init(),
+        closeShell => this.shutdown(closeShell), this.productionRuntime, () => this.initializationState);
+      this.initializationState = { status: "ready", failureReason: null };
+      if (this.productionRuntime.blocked) this.scheduleBlockedRuntimeRetry();
+    } catch (error) {
+      this.initializationState = { status: "failed",
+        failureReason: error instanceof Error ? error.message.slice(0, 1_000) : String(error).slice(0, 1_000) };
+      throw error;
+    }
   }
 
   private async retryBlockedRuntime(): Promise<void> {
     const assembly = this.assembly;
-    const blocked = this.productionRuntime;
-    if (this.shuttingDown || !assembly || !blocked?.blocked) return;
+    if (this.shuttingDown || !assembly || !this.productionRuntime?.blocked) return;
     try {
-      await blocked.close();
-      if (this.shuttingDown) return;
-      const replacement = await startProductionRuntime({
-        dataDir: assembly.dataDir,
-        gpt: assembly.gptAbilityGroup,
-        browserAuthority: assembly.browserAuthority,
-        evidenceStore: assembly.evidenceStore,
-        sourceHash: requireSourceCandidateHash(),
-        runtimeLogger: assembly.runtimeLogger,
+      await this.productionRuntime.close();
+      this.productionRuntime = await startProductionRuntime({
+        dataDir: assembly.dataDir, sourceHash: requireSourceCandidateHash(),
+        gpt: assembly.gptAbilityGroup, evidenceStore: assembly.evidenceStore,
+        browserAuthority: assembly.browserAuthority, runtimeLogger: assembly.runtimeLogger,
+        stopSignal: this.stopIntent.signal,
       });
-      if (this.shuttingDown) {
-        await replacement.close();
-        return;
-      }
-      this.productionRuntime = replacement;
+      if (this.shuttingDown) return;
       this.activeHandle = buildWorkbenchHandle(assembly, () => this.init(),
-        () => this.shutdown(), this.productionRuntime, () => this.initializationState);
+        closeShell => this.shutdown(closeShell), this.productionRuntime, () => this.initializationState);
       this.initializationState = { status: "ready", failureReason: null };
     } catch (error) {
       this.initializationState = { status: "failed",
         failureReason: error instanceof Error ? error.message : String(error) };
+      if (this.shuttingDown) throw error;
     }
-    if (!this.shuttingDown && (this.productionRuntime?.blocked || !this.productionRuntime)) {
-      this.scheduleBlockedRuntimeRetry();
-    }
+    if (this.productionRuntime?.blocked) this.scheduleBlockedRuntimeRetry();
   }
 
-  async shutdown(): Promise<void> {
+  shutdown(closeShell?: () => Promise<void>): Promise<void> {
     this.shuttingDown = true;
+    this.stopIntent.abort();
     if (this.blockedRetryTimer) clearTimeout(this.blockedRetryTimer);
     this.blockedRetryTimer = null;
-    const productionRuntime = this.productionRuntime;
+    this.shutdownPromise ??= this.closeResources(closeShell);
+    return this.shutdownPromise;
+  }
+
+  private async closeResources(closeShell?: () => Promise<void>): Promise<void> {
+    const errors: unknown[] = [];
+    await this.initializationPromise?.catch(error => { errors.push(error); });
+    await this.retryPromise?.catch(error => { errors.push(error); });
+    await this.productionRuntime?.close().catch(error => { errors.push(error); });
     const assembly = this.assembly;
+    await assembly?.browserAuthority.shutdown().catch(error => { errors.push(error); });
+    await closeShell?.().catch(error => { errors.push(error); });
+    if (assembly && errors.length === 0) requireRuntimeLogWrite(assembly.runtimeLogger.emitEvent({
+      traceId: `producer:${assembly.runtimeLogger.producerRunId}`, operation: "runtime.shutdown",
+      code: "PRODUCER_STOPPED",
+      typedIdentity: { kind: "producer", producerId: assembly.runtimeLogger.producerRunId },
+    }));
     this.activeHandle = null;
     this.productionRuntime = null;
     this.assembly = null;
-    const cleanupErrors: unknown[] = [];
-    await productionRuntime?.close().catch((error) => { cleanupErrors.push(error); });
-    await assembly?.browserAuthority.shutdown().catch((error) => { cleanupErrors.push(error); });
-    if (assembly && cleanupErrors.length === 0) {
-      requireRuntimeLogWrite(assembly.runtimeLogger.emitEvent({
-        traceId: `producer:${assembly.runtimeLogger.producerRunId}`,
-        operation: "runtime.shutdown",
-        code: "PRODUCER_STOPPED",
-        typedIdentity: { kind: "producer", producerId: assembly.runtimeLogger.producerRunId },
-      }));
-    }
-    if (cleanupErrors[0] !== undefined) throw cleanupErrors[0];
+    if (errors.length) throw new AggregateError(errors, "WORKBENCH_SHUTDOWN_INCOMPLETE");
   }
 
   createHandle(): GrassEyeWorkbenchHandle {
@@ -192,7 +171,7 @@ export class GrassEyeWorkbench {
     if (property === "then") return undefined;
     const fixed = new Map<string | symbol, () => unknown>([
       ["init", () => () => this.init()],
-      ["shutdown", () => () => this.shutdown()],
+      ["shutdown", () => (closeShell?: () => Promise<void>) => this.shutdown(closeShell)],
       ["getHealthReport", () => () => this.getHealthReport()],
       ["recordWorkbenchApiBoundaryEvent", () => (input: Parameters<GrassEyeWorkbenchHandle["recordWorkbenchApiBoundaryEvent"]>[0]) => {
         if (!this.assembly) return;

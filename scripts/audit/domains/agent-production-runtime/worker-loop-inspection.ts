@@ -77,7 +77,10 @@ export const workerLoopStopViolations = (workerLoop: Node | undefined): readonly
       && STOP_FLAGS.has(node.getLeft().getText()))));
   if (stops.length) violations.push("workerLoop aborts or stops the Runtime itself instead of leaving that to shutdown");
   const iterated = tryBlock.getStatements().map(assignment);
-  if (!iterated.some((entry) => entry?.left === "delay" && entry.right.getText() === "await workerIteration(state)")) {
+  const directIteration = iterated.some(entry => entry?.left === "delay" && entry.right.getText() === "await workerIteration(state)");
+  const trackedIteration = iterated.some(entry => entry?.left === "state.iteration" && entry.right.getText() === "workerIteration(state)")
+    && iterated.some(entry => entry?.left === "delay" && entry.right.getText() === "await state.iteration");
+  if (!directIteration && !trackedIteration) {
     violations.push("the workerLoop try block must run workerIteration");
   }
   const handler = attempt.getCatchClause()?.getBlock().getStatements().map(assignment) ?? [];

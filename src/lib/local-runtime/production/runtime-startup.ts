@@ -5,18 +5,16 @@ import type { GptAbilityGroup } from "../../../capabilities/gpt/index.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../../capabilities/forensics-persistence/index.js";
 import type { WorkbenchBrowserAuthority } from "../workbench-browser-authority-support.js";
 import {
-  RuntimeFailureImpact,
   requireRuntimeLogWrite,
-  runtimeFailureFromError,
   runtimeLogCauseEventId,
   withRuntimeLogCause,
   type RuntimeLogger,
   type RuntimeSpanHandle,
 } from "../../runtime-logs/index.js";
-import { executionFailure, failureCode } from "../../execution-failure.js";
+import { executionFailure, executionFailureMetadata, failureCode } from "../../execution-failure.js";
 import { productionCatalogHash } from "./catalog.js";
 import { productionControlContractVersion } from "./control-contract-dependency.js";
-import type { ProductionHash } from "./contracts.js";
+import { hashCanonical, type ProductionHash } from "./contracts.js";
 import { readProductionCredential } from "./credential.js";
 import { ProductionExecutor } from "./executor.js";
 import { ProductionRuntimeStore } from "./store.js";
@@ -32,6 +30,9 @@ import {
   workerLoop,
 } from "./runtime-loops.js";
 import { terminalSpanFailure } from "./runtime-logging.js";
+import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
+import { releaseReceiptMatches, remoteFailureMatches } from "./runtime-attempt-failure-readback.js";
+import { reconcileBusinessAdmission, websiteJobAbsent } from "./runtime-business-admission.js";
 import { readProductionRuntimeStorageInventory } from "./runtime-storage-inventory.js";
 import {
   refreshLedgerReconciled,
@@ -46,6 +47,7 @@ export type ProductionRuntimeStartInput = Readonly<{
   evidenceStore: ForensicsPersistenceAbilityGroup;
   browserAuthority: WorkbenchBrowserAuthority;
   runtimeLogger: RuntimeLogger;
+  stopSignal?: AbortSignal;
 }>;
 
 const blockedHealth = (
@@ -77,22 +79,27 @@ const closeBlockedStore = (
   store: ProductionRuntimeStore,
   traceId: string,
 ): void => {
-  const span = requireRuntimeLogWrite(input.runtimeLogger.startSpan({
-    traceId, owner: "production-runtime", component: "production-runtime", operation: "runtime.shutdown",
-    typedIdentity: { kind: "producer", producerId: input.runtimeLogger.producerRunId },
-  }));
+  const errors: unknown[] = [];
+  let span: RuntimeSpanHandle | null = null;
   try {
-    store.close();
-    requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
-  } catch (error) {
-    const terminal = requireRuntimeLogWrite(span.terminal({
-      outcome: "failed", failure: runtimeFailureFromError({
-        error, code: "RUNTIME_SHUTDOWN_FAILED", responsibleOwner: "production-runtime",
-        impact: RuntimeFailureImpact.BLOCKING,
-      }),
+    span = requireRuntimeLogWrite(input.runtimeLogger.startSpan({
+      traceId, owner: "production-runtime", component: "production-runtime", operation: "runtime.shutdown",
+      typedIdentity: { kind: "producer", producerId: input.runtimeLogger.producerRunId },
     }));
-    throw withRuntimeLogCause(error, terminal.eventId);
+  } catch (error) { errors.push(error); }
+  if (!input.stopSignal || input.stopSignal.aborted) {
+    try {
+      if (store.taskAuthorities().some(task => task.status !== "completed")) {
+        errors.push(executionFailure("failed", "RUNTIME_SHUTDOWN_RESULT_UNCONFIRMED"));
+      }
+      if (store.pendingOutboxCount() > 0) errors.push(executionFailure("failed", "RUNTIME_SHUTDOWN_OUTBOX_PENDING"));
+      if (store.pendingBrowserCleanupJobIds().length) errors.push(executionFailure("failed", "RUNTIME_SHUTDOWN_BROWSER_CLEANUP_PENDING"));
+      if (store.providerCooldownSessionRecoveryIdentity() !== null) errors.push(executionFailure("failed", "RUNTIME_SHUTDOWN_COOLDOWN_PENDING"));
+      if (input.browserAuthority.hasUnresolvedBrowserMutation()) errors.push(executionFailure("failed", "RUNTIME_SHUTDOWN_BROWSER_UNRESOLVED"));
+    } catch (error) { errors.push(error); }
   }
+  try { store.close(); } catch (error) { errors.push(error); }
+  finishShutdown(span, errors);
 };
 
 const blockedRuntimeHandle = (
@@ -103,6 +110,7 @@ const blockedRuntimeHandle = (
 ): ProductionRuntimeHandle => {
   const traceId = `producer:${input.runtimeLogger.producerRunId}`;
   let stopped = false;
+  let closing: Promise<void> | null = null;
   return {
     blocked: true,
     readHealth: () => blockedHealth(input, store, error, stopped, controlContractVersion),
@@ -111,11 +119,9 @@ const blockedRuntimeHandle = (
       health: () => blockedHealth(input, store, error, stopped, controlContractVersion),
       session: null, jobId,
     }),
-    close: async () => {
-      if (stopped) return;
-      closeBlockedStore(input, store, traceId);
-      stopped = true;
-    },
+    close: () => closing ??= Promise.resolve().then(() => {
+      closeBlockedStore(input, store, traceId); stopped = true;
+    }),
   };
 };
 
@@ -160,10 +166,11 @@ const createRuntimeState = (
     browserAuthority: input.browserAuthority, gpt: input.gpt, evidenceStore: input.evidenceStore,
     dataDir: input.dataDir,
     runtimeLogger: input.runtimeLogger,
-    draining: false, lastHeartbeat: null,
+    draining: input.stopSignal?.aborted ?? false, iteration: null, drainJobIds: null, lastHeartbeat: null,
     lastErrorCode: null, lastErrorReason: null, stopped: false, ledgerReconciled: false,
   };
   stateRef = state;
+  input.stopSignal?.addEventListener("abort", () => { state.draining = true; }, { once: true });
   store.setOutboxObserver(() => refreshLedgerReconciled(state));
   return state;
 };
@@ -197,70 +204,126 @@ const establishCloudSession = async (
     return error;
   }
 };
-
-const finishShutdown = (
-  span: RuntimeSpanHandle,
-  errors: readonly unknown[],
-): void => {
-  const error = errors[0];
-  if (error === undefined) {
-    requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
-    return;
+const inspectDrainedTasks = async (state: RuntimeState): Promise<readonly unknown[]> => {
+  const errors: unknown[] = [];
+  for (const jobId of state.drainJobIds ?? []) {
+    if (state.store.readTask(jobId)) continue;
+    try {
+      await readProductionDeviceJobStatus(state.session, jobId);
+      errors.push(executionFailure("failed", "RUNTIME_SHUTDOWN_CLAIM_UNRECORDED"));
+    } catch (error) { if (!websiteJobAbsent(error)) errors.push(error); }
   }
-  const terminal = requireRuntimeLogWrite(span.terminal({
-    outcome: "failed", failure: runtimeFailureFromError({
-      error, code: "RUNTIME_SHUTDOWN_FAILED", responsibleOwner: "production-runtime",
-      impact: RuntimeFailureImpact.BLOCKING,
-    }),
-  }));
-  throw withRuntimeLogCause(error, terminal.eventId);
+  for (const task of state.store.taskAuthorities()) {
+    if (task.status === "completed") continue;
+    try {
+      const current = state.store.readTask(task.task.job_id);
+      if (!current || current.status === "completed") continue;
+      if (!current.attempt_failure) {
+        throw executionFailure("failed", "RUNTIME_SHUTDOWN_RESULT_UNCONFIRMED");
+      }
+      const remote = await readProductionDeviceJobStatus(state.session, current.task.job_id);
+      if (remote.attempt_failure && !remoteFailureMatches(remote, current.attempt_failure)) {
+        throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_AUTHORITY_CONFLICT");
+      }
+      if (!releaseReceiptMatches(remote, current.attempt_failure)
+        && !remoteFailureMatches(remote, current.attempt_failure)) {
+        throw executionFailure("failed", "RUNTIME_SHUTDOWN_FAILURE_UNCONFIRMED");
+      }
+      errors.push(executionFailure("failed", current.attempt_failure.failure_core.code, {
+        cause: current.attempt_failure.failure_core.cause,
+        metadata: { evidence: { evidenceRef: `production-task:${current.task.job_id}`,
+          evidenceHash: hashCanonical(current) } },
+      }));
+    } catch (error) { errors.push(error); }
+  }
+  if (state.browserAuthority.hasUnresolvedBrowserMutation()) {
+    errors.push(executionFailure("failed", "RUNTIME_SHUTDOWN_BROWSER_UNRESOLVED"));
+  }
+  if (state.store.pendingOutboxCount() > 0) {
+    errors.push(executionFailure("failed", "RUNTIME_SHUTDOWN_OUTBOX_PENDING"));
+  }
+  if (state.store.pendingBrowserCleanupJobIds().length > 0) {
+    errors.push(executionFailure("failed", "RUNTIME_SHUTDOWN_BROWSER_CLEANUP_PENDING"));
+  }
+  if (state.store.providerCooldownSessionRecoveryIdentity() !== null) {
+    errors.push(executionFailure("failed", "RUNTIME_SHUTDOWN_COOLDOWN_PENDING"));
+  }
+  return errors;
+};
+
+const finishShutdown = (span: RuntimeSpanHandle | null, errors: readonly unknown[]): void => {
+  if (errors.length) {
+    const failure = new AggregateError(errors, "RUNTIME_SHUTDOWN_INCOMPLETE");
+    if (!span) throw failure;
+    const evidence = executionFailureMetadata(errors[0])?.evidence;
+    const terminal = terminalSpanFailure(span, errors[0], runtimeLogCauseEventId(errors[0]),
+      failureCode(errors[0], "RUNTIME_SHUTDOWN_INCOMPLETE"), evidence
+        ? { authorityRef: evidence.evidenceRef, authorityHash: evidence.evidenceHash } : undefined);
+    throw withRuntimeLogCause(failure, terminal.eventId);
+  }
+  if (!span) throw new Error("RUNTIME_SHUTDOWN_LOG_MISSING");
+  requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
 };
 
 export const shutdownRuntime = async (
-  state: RuntimeState,
-  loop: Promise<void>,
-  heartbeat: Promise<void>,
+  state: RuntimeState, loop: Promise<void>, heartbeat: Promise<void>, drainPass: () => Promise<void>,
 ): Promise<void> => {
-  const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
-    traceId: `producer:${state.runtimeLogger.producerRunId}`, owner: "production-runtime",
-    component: "production-runtime", operation: "runtime.shutdown",
-    typedIdentity: { kind: "producer", producerId: state.runtimeLogger.producerRunId },
-  }));
   state.draining = true;
+  state.drainJobIds = new Set([...state.active.keys(), ...state.store.taskAuthorities()
+    .filter(task => task.status !== "completed").map(task => task.task.job_id)]);
   const errors: unknown[] = [];
-  await state.session.heartbeat().catch((error) => errors.push(error));
-  state.abort.abort();
-  for (const controller of state.activeAbort.values()) controller.abort("PRODUCTION_RUNTIME_STOPPED");
-  await Promise.all([loop, heartbeat]).catch((error) => errors.push(error));
-  await Promise.allSettled([...state.active.values()]);
-  let retainCooldownSession = true;
+  let span: RuntimeSpanHandle | null = null;
   try {
-    retainCooldownSession = state.store.providerCooldownSessionRecoveryIdentity() !== null;
-  } catch (error) {
-    errors.push(error);
+    span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
+      traceId: `producer:${state.runtimeLogger.producerRunId}`, owner: "production-runtime",
+      component: "production-runtime", operation: "runtime.shutdown",
+      typedIdentity: { kind: "producer", producerId: state.runtimeLogger.producerRunId },
+    }));
+  } catch (error) { errors.push(error); }
+  await state.iteration?.catch(error => {
+    if (failureCode(error) !== "PRODUCTION_CLAIM_STOPPED") errors.push(error);
+  });
+  const tasks = await Promise.allSettled([...state.active.values()]);
+  for (const task of tasks) if (task.status === "rejected") errors.push(task.reason);
+  await state.iteration?.catch(error => {
+    if (failureCode(error) !== "PRODUCTION_CLAIM_STOPPED") errors.push(error);
+  });
+  for (const task of state.store.pendingBusinessAdmissions()) {
+    try { await reconcileBusinessAdmission(state, task); } catch (error) { errors.push(error); }
   }
-  if (!retainCooldownSession) {
-    await state.session.close().catch((error) => errors.push(error));
-  }
-  state.stopped = true;
+  const finalPasses = Math.max(1, new Set([...state.store.pendingBrowserCleanupJobIds(),
+    ...state.store.pendingBusinessAdmissions().map(task => task.task.job_id)]).size);
+  for (let pass = 0; pass < finalPasses; pass++) await drainPass();
+  // Only loop waits are interrupted. Product controllers remain untouched.
+  state.abort.abort();
+  const loops = await Promise.allSettled([loop, heartbeat]);
+  for (const settled of loops) if (settled.status === "rejected") errors.push(settled.reason);
+  try { errors.push(...await inspectDrainedTasks(state)); } catch (error) { errors.push(error); }
+  let retainSession = true;
+  try { retainSession = state.store.providerCooldownSessionRecoveryIdentity() !== null; }
+  catch (error) { errors.push(error); }
+  if (!retainSession) await state.session.close().catch(error => { errors.push(error); });
   try { state.store.close(); } catch (error) { errors.push(error); }
+  state.stopped = true;
   finishShutdown(span, errors);
 };
 
 const createRuntimeHandle = (
-  input: ProductionRuntimeStartInput,
-  state: RuntimeState,
+  input: ProductionRuntimeStartInput, state: RuntimeState,
 ): ProductionRuntimeHandle => {
-  const loop = workerLoop(state);
+  let drainPassFinished: (() => void) | null = null;
+  const loop = workerLoop(state, () => { drainPassFinished?.(); drainPassFinished = null; });
   const heartbeat = sessionHeartbeatLoop(state);
+  const drainPass = (): Promise<void> => new Promise(resolve => { drainPassFinished = resolve; });
+  let closing: Promise<void> | null = null;
   return {
     blocked: false,
     readHealth: () => readHealth(state),
-    readOperationsSnapshot: (jobId) => readProductionOperationsSnapshot({
+    readOperationsSnapshot: jobId => readProductionOperationsSnapshot({
       dataDir: input.dataDir, store: state.store, browser: input.browserAuthority,
       health: () => readHealth(state), session: state.session, jobId,
     }),
-    close: () => shutdownRuntime(state, loop, heartbeat),
+    close: () => { state.draining = true; closing ??= shutdownRuntime(state, loop, heartbeat, drainPass); return closing; },
   };
 };
 
@@ -287,6 +350,11 @@ export const startProductionRuntime = async (
     return blockedRuntimeHandle(input, store, error);
   }
   let credential: Awaited<ReturnType<typeof readProductionCredential>>;
+  if (input.stopSignal?.aborted) {
+    const stopped = executionFailure("failed", "PRODUCTION_RUNTIME_STOPPED_BEFORE_SESSION");
+    requireRuntimeLogWrite(startSpan.terminal({ outcome: "succeeded" }));
+    return blockedRuntimeHandle(input, store, stopped);
+  }
   try { credential = await readProductionCredential(input.dataDir); }
   catch (error) {
     terminalSpanFailure(startSpan, error, runtimeLogCauseEventId(error), "RUNTIME_START_FAILED");

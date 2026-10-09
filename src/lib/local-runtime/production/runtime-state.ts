@@ -24,6 +24,8 @@ export type RuntimeState = {
   readonly dataDir: string;
   readonly runtimeLogger: RuntimeLogger;
   draining: boolean;
+  iteration: Promise<number> | null;
+  drainJobIds: Set<string> | null;
   lastHeartbeat: string | null;
   lastErrorCode: string | null;
   lastErrorReason: string | null;

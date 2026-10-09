@@ -5,7 +5,7 @@ import type { ProductionOperationsSnapshot } from "./production/operations-snaps
 
 export type GrassEyeWorkbenchHandle = {
   init: () => Promise<void>;
-  shutdown: () => Promise<void>;
+  shutdown: (closeShell?: () => Promise<void>) => Promise<void>;
   recordWorkbenchApiBoundaryEvent: (input: {
     decision: "allowed" | "blocked";
     reason: string;

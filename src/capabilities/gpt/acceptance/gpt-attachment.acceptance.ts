@@ -15,14 +15,20 @@ const attachmentFacts = (ready: boolean, pending = false, observedLabel = provid
   "attachment-pending": { rawCount: Number(pending), eligibleCount: Number(pending) },
 });
 const verifyMenu = async (): Promise<void> => {
-  for (const scenario of ["hydrate", "done", "bad-post"] as const) {
+  for (const scenario of ["hydrate", "done", "mixed", "bad-post"] as const) {
     let reads = 0;
     const fixture = fakeBrowser(intent => {
       const queries = intent.kind === "observe" ? intent.queries : intent.kind === "click" ? intent.postClickObservation?.queries : undefined;
       assert.equal(queries?.find(query => query.queryId === "upload-choice")?.selector, GPT_UPLOAD_FROM_COMPUTER_SELECTOR);
       assert.equal(queries?.find(query => query.queryId === "upload-choice")?.textContains, "上传");
-      if (intent.kind === "observe") { reads += 1; return coherentObservationPacket(intent, attachmentControlFacts(
-        scenario === "done" ? "open" : scenario === "hydrate" && reads === 1 ? "absent" : "closed")); }
+      if (intent.kind === "observe") {
+        reads += 1;
+        const facts = attachmentControlFacts(["done", "mixed"].includes(scenario)
+          ? "open" : scenario === "hydrate" && reads === 1 ? "absent" : "closed");
+        return coherentObservationPacket(intent, scenario === "mixed" ? { ...facts,
+          "upload-choice": { scopeRawCount: 1, scopeEligibleCount: 1, rawCount: 2, eligibleCount: 1,
+            matches: [{}], rejections: [{ index: 1, reasons: ["TEXT_MISMATCH"] }] } } : facts);
+      }
       if (intent.kind !== "click" || !intent.postClickObservation) throw new Error("ATTACHMENT_MENU_MUST_ONLY_CLICK");
       assert.deepEqual(intent.scope, { selector: GPT_COMPOSER_FORM_SELECTOR });
       assert.deepEqual(intent.postClickObservation.queries.map(query => [query.queryId, query.scope?.selector, query.expectedEligibleCount]),
@@ -35,10 +41,10 @@ const verifyMenu = async (): Promise<void> => {
     });
     const result = await execute("open_gpt_attachment_control", fixture.browser, {});
     assert.equal(result.status, scenario === "bad-post" ? "failed" : "success");
-    assert.equal(fixture.physicalMutations(), scenario === "done" ? 0 : 1);
+    assert.equal(fixture.physicalMutations(), ["done", "mixed"].includes(scenario) ? 0 : 1);
     assert.equal(reads, scenario === "hydrate" ? 2 : 1);
     if (scenario === "bad-post") { assert.equal(result.proof.committedMutation, "confirmed"); assert.equal(result.proof.postconditionResult, "failed"); }
-    if (scenario === "done") { assert.equal(result.proof.internalDecisionCode, "DONE"); assert.equal(result.proof.browserFact, null); }
+    if (["done", "mixed"].includes(scenario)) { assert.equal(result.proof.internalDecisionCode, "DONE"); assert.equal(result.proof.browserFact, null); }
   }
 };
 const verifyMenuConflicts = async (): Promise<void> => {
@@ -72,28 +78,32 @@ const verifyMenuConflicts = async (): Promise<void> => {
   }
 };
 const verifyBatch = async (): Promise<void> => {
-  let batch: unknown, controlReads = 0;
-  const fixture = fakeBrowser(intent => {
-    if (intent.kind !== "observe") throw new Error("APPROVED_BATCH_MUST_ONLY_ATTACH");
-    const choice = intent.queries.find(query => query.queryId === "upload-choice");
-    if (choice) {
-      controlReads += 1;
-      assert.equal(choice.selector, GPT_UPLOAD_FROM_COMPUTER_SELECTOR);
-      assert.deepEqual(choice.scope, { selector: GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR });
-      assert.equal(choice.textContains, "上传");
-    }
-    return coherentObservationPacket(intent, { "attachment-control": { rawCount: 1, eligibleCount: 1 }, "upload-choice": { rawCount: 1, eligibleCount: 1 } });
-  }, { onAttachFile: input => { batch = input; } });
-  const result = await execute("attach_approved_gpt_files_once", fixture.browser, { files: [approvedAttachment] });
-  assert.equal(result.status, "success", result.failureCode ?? "batch"); assert.equal(result.value?.mutationSent, true);
-  assert.equal(controlReads, 1, "the batch must qualify the approved control exactly once");
-  assert.deepEqual(Reflect.get(batch as object, "activation"), { selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
-    scope: { selector: GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR }, expectedText: "上传" });
-  const approvedArtifacts = Reflect.get(batch as object, "approvedArtifacts");
-  assert.deepEqual(approvedArtifacts, [{ artifactRef: approvedAttachment.artifactRef, providerDisplayName: providerAttachmentName("甲.pdf", "artifact:1"),
-    expectedSha256: approvedAttachment.sha256, bytes: approvedAttachment.bytes }]);
-  assert.equal(fixture.documentCalls(), 2); assert.equal(fixture.physicalMutations(), 1); assert.equal(result.proof.committedMutation, "confirmed");
-  assert.equal((await execute("attach_approved_gpt_files_once", fixture.browser, { files: [{ ...approvedAttachment, filePath: "/forbidden/path" }] } as never)).failureCode, "GPT_ATTACHMENT_INPUT_INVALID");
+  for (const mixed of [false, true]) {
+    let batch: unknown, controlReads = 0;
+    const fixture = fakeBrowser(intent => {
+      if (intent.kind !== "observe") throw new Error("APPROVED_BATCH_MUST_ONLY_ATTACH");
+      const choice = intent.queries.find(query => query.queryId === "upload-choice");
+      if (choice) {
+        controlReads += 1;
+        assert.equal(choice.selector, GPT_UPLOAD_FROM_COMPUTER_SELECTOR);
+        assert.deepEqual(choice.scope, { selector: GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR });
+        assert.equal(choice.textContains, "上传");
+      }
+      return coherentObservationPacket(intent, { "attachment-control": { rawCount: 1, eligibleCount: 1 },
+        "upload-choice": mixed ? { rawCount: 2, eligibleCount: 1, matches: [{}],
+          rejections: [{ index: 1, reasons: ["TEXT_MISMATCH"] }] } : { rawCount: 1, eligibleCount: 1 } });
+    }, { onAttachFile: input => { batch = input; } });
+    const result = await execute("attach_approved_gpt_files_once", fixture.browser, { files: [approvedAttachment] });
+    assert.equal(result.status, "success", result.failureCode ?? "batch"); assert.equal(result.value?.mutationSent, true);
+    assert.equal(controlReads, 1, "the batch must qualify the approved control exactly once");
+    assert.deepEqual(Reflect.get(batch as object, "activation"), { selector: GPT_UPLOAD_FROM_COMPUTER_SELECTOR,
+      scope: { selector: GPT_ATTACHMENT_ACTIVE_MENU_SCOPE_SELECTOR }, expectedText: "上传" });
+    const approvedArtifacts = Reflect.get(batch as object, "approvedArtifacts");
+    assert.deepEqual(approvedArtifacts, [{ artifactRef: approvedAttachment.artifactRef, providerDisplayName: providerAttachmentName("甲.pdf", "artifact:1"),
+      expectedSha256: approvedAttachment.sha256, bytes: approvedAttachment.bytes }]);
+    assert.equal(fixture.documentCalls(), 2); assert.equal(fixture.physicalMutations(), 1); assert.equal(result.proof.committedMutation, "confirmed");
+    assert.equal((await execute("attach_approved_gpt_files_once", fixture.browser, { files: [{ ...approvedAttachment, filePath: "/forbidden/path" }] } as never)).failureCode, "GPT_ATTACHMENT_INPUT_INVALID");
+  }
 };
 const verifyReconciliation = async (): Promise<void> => {
   let reads = 0;

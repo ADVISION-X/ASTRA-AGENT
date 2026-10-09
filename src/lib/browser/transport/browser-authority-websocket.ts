@@ -50,12 +50,26 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
   private active: ActiveSocket | null = null;
   private pending: Readonly<{ socket: BrowserAuthoritySocket; state: BrowserAuthorityHandshakeState; frameCount: number }> | null = null;
   private pairingSecret: string | null;
+  private closed = false;
   public constructor(private readonly options: BrowserAuthorityWebSocketOptions) {
     this.pairingSecret = options.pairingSecret ?? this.createPairingSecret();
   }
-  public readOperatorPairingSecret(): string | null { return this.active ? null : this.pairingSecret; }
+  public readOperatorPairingSecret(): string | null { return this.closed || this.active ? null : this.pairingSecret; }
+
+  public close(reasonCode: string): void {
+    this.closed = true;
+    const sockets = new Set([this.active?.socket, this.pending?.socket]);
+    const errors: unknown[] = [];
+    try { this.detachActive(reasonCode); } catch (error) { errors.push(error); }
+    this.pending = null;
+    for (const socket of sockets) {
+      try { socket?.close(1000); } catch (error) { errors.push(error); }
+    }
+    if (errors.length) throw new AggregateError(errors, "BROWSER_SOCKET_CLOSE_INCOMPLETE");
+  }
 
   public receive(socket: BrowserAuthoritySocket, encoded: string): void {
+    if (this.closed) { socket.close(1000); return; }
     try {
       const frame = decodeBrowserAuthorityFrame(encoded);
       if (Date.parse(frame.deadline) <= Date.now()) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
@@ -258,9 +272,14 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     clearTimeout(reply.timeout); const replies = new Map(active.replies); replies.delete(sequence); this.active = { ...active, replies };
   }
   private clearActive(reasonCode: string, refs?: Readonly<Record<string, string>>, cause?: unknown): void {
+    this.detachActive(reasonCode, cause);
+    this.options.onRevoked(reasonCode, refs);
+  }
+  private detachActive(reasonCode: string, cause?: unknown): BrowserAuthoritySocket | null {
     const active = this.active; this.active = null;
     if (active) for (const reply of active.replies.values()) { clearTimeout(reply.timeout); reply.reject(new Error(reasonCode, { cause })); }
-    this.pairingSecret = this.createPairingSecret(); this.options.onRevoked(reasonCode, refs);
+    this.pairingSecret = this.createPairingSecret();
+    return active?.socket ?? null;
   }
   private revoke(socket: BrowserAuthoritySocket, reasonCode: string, cause?: unknown): void {
     if (this.pending?.socket === socket) this.pending = null;

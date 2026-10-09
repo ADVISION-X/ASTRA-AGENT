@@ -85,7 +85,7 @@ export const verifyGptDialogMismatchRuntimeContract = async (): Promise<void> =>
       evidenceStore: {} as never,
       dataDir: temporary,
       runtimeLogger,
-      draining: false,
+      draining: false, iteration: null, drainJobIds: null,
       lastHeartbeat: null,
       lastErrorCode: null,
       lastErrorReason: null,
@@ -143,7 +143,7 @@ const verifyCooldownSibling = async (
       },
     } as never,
     browserAuthority: {} as never, gpt: {} as never, evidenceStore: {} as never,
-    dataDir: temporary, runtimeLogger, draining: false, lastHeartbeat: null,
+    dataDir: temporary, runtimeLogger, draining: false, iteration: null, drainJobIds: null, lastHeartbeat: null,
     lastErrorCode: null, lastErrorReason: null, stopped: false, ledgerReconciled: true,
   }, siblingJob);
   const siblingRecord = store.readTask(siblingJob.job_id);
@@ -218,7 +218,7 @@ export const verifyKnownGptRateLimitRuntimeContract = async (): Promise<void> =>
         },
       } as never,
       browserAuthority: {} as never, gpt: {} as never, evidenceStore: {} as never,
-      dataDir: temporary, runtimeLogger, draining: false, lastHeartbeat: null,
+      dataDir: temporary, runtimeLogger, draining: false, iteration: null, drainJobIds: null, lastHeartbeat: null,
       lastErrorCode: null, lastErrorReason: null, stopped: false, ledgerReconciled: true,
     }, job);
     const record = store.readTask(job.job_id);

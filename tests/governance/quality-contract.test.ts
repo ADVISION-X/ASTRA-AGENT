@@ -1481,6 +1481,8 @@ const verifyBrowserBoundaryMutants = (
 test("Browser reply inspection rejects mixed transport and permit identities", () => {
   const path = "src/lib/browser/transport/browser-authority-websocket.ts";
   verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-001-V4", inspectSingleTransport, [
+    [path, "if (this.closed) { socket.close(1000); return; }", "if (this.closed) { return; }"],
+    [path, "if (this.closed) { socket.close(1000); return; }", "if (false) { socket.close(1000); return; }"],
     [path, 'integerField(body, "requestSequence", 1)', 'integerField(body, "permitSequence", 1)'],
     [path, "reply = active?.replies.get(sequence)", "reply = active?.replies.get(1)"],
     [path, "const sequence = active.nextServerSequence;", "const sequence = permit.sequence;"],
@@ -1734,14 +1736,21 @@ test("GPT001 native AST and contract routes reject text settlement and attachmen
     "src/lib/browser/chrome-extension/extension-file-input-runtime.ts",
   ]) {
     const absolutePath = resolve(root, selectorPath), original = readFileSync(absolutePath, "utf8");
-    const mutant = original.replace(", [data-mention-list-scroll-area] > div[data-mention-section-id='chatgpt-context'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child", "");
-    assert.notEqual(mutant, original, selectorPath);
-    writeFileSync(absolutePath, mutant);
-    const own = inspect();
-    assert.equal(own.findings.some(finding => finding.checkId === "gpt/chrome-proven-attachment-dom"
-      && finding.filePath === selectorPath), true, selectorPath);
-    assert.equal(ownModes(own).includes(false), true);
-    writeFileSync(absolutePath, original);
+    for (const branch of [
+      "[data-mention-list-scroll-area] > div:first-child > button[data-list-navigation-item='true']:first-child",
+      ...["chatgpt-actions", "chatgpt-context", "chatgpt-primary"].map(section =>
+        `[data-mention-list-scroll-area] > div[data-mention-section-id='${section}'] > div[data-mention-section-items='true'] > button[data-list-navigation-item='true']:first-child`),
+    ]) {
+      const mutant = original.includes(`${branch}, `)
+        ? original.replace(`${branch}, `, "") : original.replace(`, ${branch}`, "");
+      assert.notEqual(mutant, original, selectorPath);
+      writeFileSync(absolutePath, mutant);
+      const own = inspect();
+      assert.equal(own.findings.some(finding => finding.checkId === "gpt/chrome-proven-attachment-dom"
+        && finding.filePath === selectorPath), true, selectorPath);
+      assert.equal(ownModes(own).includes(false), true);
+      writeFileSync(absolutePath, original);
+    }
   }
   for (const selectorPath of [
     "src/capabilities/gpt/children/prepare_clean_gpt_chat/selectors.ts",

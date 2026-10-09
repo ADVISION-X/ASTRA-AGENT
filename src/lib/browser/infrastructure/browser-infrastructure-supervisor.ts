@@ -74,6 +74,7 @@ export class BrowserInfrastructureSupervisor {
   private readonly websocket: BrowserAuthorityWebSocket;
   private readonly state = createBrowserInfrastructureState();
   private readonly lane: BrowserLaneCoordinator;
+  private stopping: Promise<void> | null = null;
   public readonly evidence: BrowserInfrastructureEvidence;
 
   public constructor(private readonly options: BrowserInfrastructureSupervisorOptions) {
@@ -210,6 +211,7 @@ export class BrowserInfrastructureSupervisor {
   }
 
   public async start(): Promise<void> {
+    if (this.stopping) throw new Error("BROWSER_INFRASTRUCTURE_STOPPED");
     if (this.state.started) return;
     await this.ownerLock.acquire();
     this.state.ownerLockHeld = true;
@@ -227,18 +229,34 @@ export class BrowserInfrastructureSupervisor {
     }
   }
 
-  public async stop(reasonCode = "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"): Promise<void> {
-    this.state.workspace?.revoke();
-    this.state.workspace = undefined;
-    this.lane.reset(reasonCode);
-    this.transport.disconnect(reasonCode);
-    if (this.state.ownerLockHeld) {
-      await this.ownerLock.release();
-      this.state.ownerLockHeld = false;
-    }
-    this.state.mutationState?.close();
-    this.state.mutationState = null;
+  public stop(reasonCode = "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"): Promise<void> {
     this.state.started = false;
+    this.stopping ??= this.closeResources(reasonCode);
+    return this.stopping;
+  }
+
+  private async closeResources(reasonCode: string): Promise<void> {
+    const errors: unknown[] = [];
+    try {
+      if ((this.state.mutationState?.countDispatched() ?? 0) > 0) {
+        errors.push(new Error("BROWSER_SHUTDOWN_UNRESOLVED"));
+      }
+    } catch (error) { errors.push(error); }
+    const closeActions = [
+      () => this.websocket.close(reasonCode),
+      () => { this.state.workspace?.revoke(); this.state.workspace = undefined; },
+      () => this.lane.reset(reasonCode),
+      () => this.transport.disconnect(reasonCode),
+      () => { this.state.mutationState?.close(); this.state.mutationState = null; },
+    ];
+    for (const close of closeActions) {
+      try { close(); } catch (error) { errors.push(error); }
+    }
+    if (this.state.ownerLockHeld) {
+      try { await this.ownerLock.release(); this.state.ownerLockHeld = false; }
+      catch (error) { errors.push(error); }
+    }
+    if (errors.length) throw new AggregateError(errors, "BROWSER_SHUTDOWN_INCOMPLETE");
   }
 
   public endpoints(): Readonly<{
