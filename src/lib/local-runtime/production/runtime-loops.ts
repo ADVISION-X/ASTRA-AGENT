@@ -66,7 +66,6 @@ export const runtimeState = (state: RuntimeState) => {
     ledger_reconciled: state.ledgerReconciled,
   };
 };
-
 export const readHealth = (state: RuntimeState): ProductionRuntimeHealth => {
   refreshLedgerReconciled(state);
   const browser = state.browserAuthority.readProductionRuntimeState();
@@ -80,12 +79,12 @@ export const readHealth = (state: RuntimeState): ProductionRuntimeHealth => {
   return {
     shellState: "ready", cloudState,
     browserState: browser.browserAuthorityState === "present" ? "ready" : "blocked",
-    executionState: ready ? state.draining ? "draining" : "ready" : "blocked",
+    executionState: !ready ? "blocked" : state.draining ? "draining"
+      : claimEligible && browserLane !== "blocked" ? "ready" : "blocked",
     claimAdmissionState: claimEligible ? state.draining ? "draining" : "eligible" : "blocked",
     logSinkState: state.runtimeLogger.getSinkState(), browserAuthorityState: browser.browserAuthorityState,
     browserTargetState: browser.browserTargetState,
-    browserLaneState: browser.browserAuthorityState !== "present"
-      ? "blocked" : browserLane,
+    browserLaneState: browser.browserAuthorityState !== "present" ? "blocked" : browserLane,
     controlContractVersion: state.session.controlContractVersion,
     catalogHash: productionCatalogHash, activeCount: state.active.size,
     pendingOutboxCount: state.store.pendingOutboxCount(),

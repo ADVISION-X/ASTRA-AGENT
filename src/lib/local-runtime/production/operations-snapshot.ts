@@ -94,12 +94,20 @@ const websiteRows = (observation: WorkerObservationV6, selectedJobId: string | n
     authority_ref: job.authority_ref, evidence_ref: job.business_admission_receipt_hash }));
   return rows;
 };
-
 const localRows = (input: Readonly<{
   observedAt: string; health: ProductionRuntimeHealth; store: ProductionRuntimeStore;
   browser: WorkbenchBrowserAuthority; jobId: string | null;
 }>): OperationsObservationRow[] => {
   const { health, observedAt, jobId } = input;
+  const execution = health.executionState !== "blocked"
+    ? { reason_code: null, completeness: "COMPLETE" as const }
+    : health.browserAuthorityState === "absent"
+      ? { reason_code: "BROWSER_AUTHORITY_ABSENT", completeness: "COMPLETE" as const }
+      : health.logSinkState !== "ready"
+        ? { reason_code: "RUNTIME_LOG_SINK_UNAVAILABLE", completeness: "COMPLETE" as const }
+        : health.browserLaneState === "blocked"
+          ? { reason_code: "BROWSER_LANE_BLOCKED", completeness: "COMPLETE" as const }
+          : { reason_code: null, completeness: "DIAGNOSIS_INCOMPLETE" as const };
   const rows = [
     row({ axis: "contract", owner: "agent-production-runtime", current_value: health.controlContractVersion,
       reason_code: reasonUnless(health.controlContractVersion === productionControlContractVersion,
@@ -112,7 +120,7 @@ const localRows = (input: Readonly<{
       reason_code: health.lastErrorCode, observed_at: observedAt,
       authority_ref: "agent:production-runtime-health" }),
     row({ axis: "execution", owner: "agent-production-runtime", current_value: { state: health.executionState,
-      active_count: health.activeCount }, reason_code: health.lastErrorCode, observed_at: observedAt,
+      active_count: health.activeCount }, ...execution, observed_at: observedAt,
       authority_ref: "agent:production-runtime-health" }),
     row({ axis: "runtime_log_sink", owner: "runtime-logs", current_value: health.logSinkState,
       reason_code: reasonUnless(health.logSinkState === "ready", "RUNTIME_LOG_SINK_UNAVAILABLE"),

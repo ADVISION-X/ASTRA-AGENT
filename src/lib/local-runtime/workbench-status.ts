@@ -46,11 +46,11 @@ const readRuntimeInitializationComponent = (
     ownerResponsible: state.status === "failed" ? disposition.ownerResponsible : "local-runtime",
   };
 };
-
 const readAiProductionComponents = (
   health: AiProductionHealthSnapshot,
 ): readonly WorkbenchHealthComponent[] => {
   if (!health) return [];
+  const browserReady = health.browserState === "ready" && health.browserLaneState !== "blocked";
   return [
     {
       name: "productionRuntimeShell",
@@ -73,16 +73,19 @@ const readAiProductionComponents = (
     },
     {
       name: "productionRuntimeBrowser",
-      ok: health.browserState === "ready",
+      ok: browserReady,
       detail: `Browser state=${health.browserState}; authority=${health.browserAuthorityState}; target=${health.browserTargetState}; lane=${health.browserLaneState}.`,
-      actionableMessage: health.browserState === "ready" ? null : "Restore Browser Authority and claim the exact HTTPS target.",
+      actionableMessage: browserReady ? null : health.browserState !== "ready"
+        ? "Restore the fixed extension's authenticated Browser Authority; Target creation belongs to authorized execution."
+        : "Preserve existing jobs and the unresolved Browser WAL. Obtain the original command's trusted terminal receipt through the existing settlement chain; never replay unknown input.",
       ownerResponsible: "Browser",
     },
     {
       name: "productionRuntimeExecution",
       ok: health.executionState === "ready",
       detail: `Execution state=${health.executionState}; claim_admission=${health.claimAdmissionState}; active=${health.activeCount}.`,
-      actionableMessage: health.executionState === "ready" ? null : "Resolve the named Cloud or Browser block before admitting production work.",
+      actionableMessage: health.executionState === "ready" ? null
+        : "Inspect the separate Cloud, Browser lane, log sink and draining facts; preserve accepted work and deliver existing results under current authority.",
       ownerResponsible: "production-runtime",
     },
   ];
