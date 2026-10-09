@@ -2,7 +2,7 @@
 
 ## 0. 状态与授权边界
 
-**已获完整施工授权，代码与质检已完成定向验证（2026-10-09）。** 用户已明确目标语义：五个阶级永久固定，低层工单没有等待晋级、aging 或防饿死通道；只要全局仍存在更高阶级的未完成工单，任何较低阶级工单都不得取得**新开始授权**。用户已明确授权修改法案、施工图、代码、质检系统与数据库操作，并要求先完成双仓法案/施工图全量遍历、两遍主 AI 审计和不低于 98% 的有限清单核验，未过门前禁止进入代码施工。权威阶段两轮分别达到 55/55 与 60/60；最新稳定修复候选的主 AI 正向与反向复审分别达到 61/61 与 55/55，现重新进入最终第三方只读审计门，尚不得把定向测试称为 READY 或 RELEASE。
+**已获完整施工授权，现因生产日志揭示的数据库权限断点回到源头重审（2026-10-09）。** 用户已明确目标语义：五个阶级永久固定，低层工单没有等待晋级、aging 或防饿死通道；只要全局仍存在更高阶级的未完成工单，任何较低阶级工单都不得取得**新开始授权**。用户已明确授权修改法案、施工图、代码、质检系统与数据库操作，并要求先完成双仓法案/施工图全量遍历、两遍主 Codex 审计和不低于 98% 的有限清单核验，未过门前禁止进入代码施工。此前静态与数据库夹具验证不能替代真实 worker 角色建单；本轮先补齐该源头权限合同，重新通过两轮门禁后再进入代码。
 
 “新开始”以 Website 为 job 签发 fresh attempt/grant 为唯一边界。已经 durable accept 的 attempt、已经取得或可能取得的 Provider effect、staged result、Outbox 与领域接纳必须继续沿原链收尾；它们不是新的低层开始。否则新出现的高层工单会冻结既有低层结果，破坏现役恢复和 admission 闭环。未来尚未创建的工单不能追溯撤销已经签发的 grant；新高层工单一旦持久创建，就阻断此后的所有低层 fresh grant。
 
@@ -32,12 +32,12 @@
 
 | 仓库 | 2026-10-09 绑定 | 工作树 |
 |---|---|---|
-| AGENT | `/Users/nexgen/Documents/AGENT`, `main@54fad8ebefb6f87f85861589f5562751a68a0b96`，tracking `origin/main` 同 SHA | 本方案写前 clean；写前 SHA-256 `d650934df367c9fac1c08c93f4d98c67055fd3a95fc39892bd36abd455dea004`。 |
-| Website | `/Users/nexgen/Documents/xuanxue-web`, `main@cf6853ba9566dbd270acbdf49fa7b8f6f470eab2`，tracking `origin/main@d3e08f311cb970d90435de50d8193b34ed882fb4`，本地 ahead 6 | 存在与本任务无关的 `docs/项目方案/全球付款-完整实现方案.md` 既有修改；本轮始终保留，不覆盖、不提交、不隐藏。施工不得把本地 ahead 提交误当作已进入远端。 |
+| AGENT | `/Users/nexgen/Documents/AGENT`, `main@5ae4bb4cf6939bab2a70d16f69509fd4582bbfe1`，tracking `origin/main` 同 SHA | 当前只保留本方案差异。 |
+| Website | `/Users/nexgen/Documents/xuanxue-web`, `main@24c9739f0a918c754819d7581ebee96d37ffd5c6`，tracking `origin/main` 同 SHA | 存在与本任务无关的 `docs/项目方案/全球付款-完整实现方案.md` 既有修改；本轮始终保留，不覆盖、不提交、不隐藏。 |
 
-现役权威为双仓 `AGENTS.md`；Website `.github/instructions/agent-rules/功能法案.md` 的 `LAW-AI-ACCEPTANCE-003-V10` 以及本轮续升的 `004-V31`、`012-V41`、`013-V25`、`LAW-PUBLIC-KNOWLEDGE-CONTENT-005-V41`；Website `docs/blueprints/SYSTEM-BLUEPRINT.md` 与 `docs/blueprints/domains/ai-acceptance/AI-ACCEPTANCE-BLUEPRINT.md` V47；AGENT `docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md` V65 与 `.agents/skills/agent-flow-boundary-gatekeeper/SKILL.md` 的 Owner 边界。Website 唯一质量入口为 `npm run quality:check -- <LEVEL>`。
+现役权威为双仓 `AGENTS.md`；Website `.github/instructions/agent-rules/功能法案.md` 的 `LAW-AI-ACCEPTANCE-002-V35`、`003-V10`、`004-V31`、`012-V44`、`013-V28` 与 `LAW-PUBLIC-KNOWLEDGE-CONTENT-005-V44`；Website `docs/blueprints/SYSTEM-BLUEPRINT.md`、`docs/blueprints/domains/ai-acceptance/AI-ACCEPTANCE-BLUEPRINT.md` V50 与 System Security Blueprint；AGENT `docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md` V65 与 `.agents/skills/agent-flow-boundary-gatekeeper/SKILL.md` 的 Owner 边界。Website 唯一质量入口为 `npm run quality:check -- <LEVEL>`。
 
-Website 相关 source 写前 SHA-256：法条 `a4556cebadb3416483971e90fffeacddadc6f002799eb206e0bb25bc3680c7bc`；选择器 `3b8c3d6a49d109a4cabef35d94a28f2fedeb514a90dde64cd02a45fe390ad27b`；领取调用方 `c52b261e3198072dd0fa628e3308fbce7482c3b881cab8265a61807baa3bad92`；ai-acceptance `check.ts` 为 `91498d02f169624f5fe04f5bf36158c98957859ad78cc02277a08ecb33318943`，`manifest.json` 为 `0d736d3cf409744a6ac0fe27dbe23c01337241cf6cc97124a1c48756d3abebb5`；exam 测试 `237b4b0c112c668881c578df612e146556d820a93f99c51afa23087940e5fdcf`；localization 静态测试 `125671cefdf692b107c2ce11e146a67509a1daa43451e5768c896a662ae85623`。施工前重算；任一相关事实漂移只重审受影响部分。
+候选身份只绑定双仓原生 Git `HEAD → 工作树` 实际差异。施工和审计前现场重读受影响文件；任一相关事实漂移只重审受影响部分，不建立自定义候选散列或第二份文件 hash 清单。
 
 ## 3. 现役链与第一直接断裂
 
@@ -51,7 +51,7 @@ Website 相关 source 写前 SHA-256：法条 `a4556cebadb3416483971e90fffeacdda
 
 ## 4. 唯一目标链与有限分母
 
-1. 所有创建 V6 job 的现役入口在插入新 job/runtime 前取得现役 control protocol singleton 行锁；claim 已取得同一锁。锁的先后次序定义事实：高层创建先提交则低层不能 grant；低层 grant 先提交则其发生在高层 job 存在之前，后到高层只阻断后续低层 fresh grant。
+1. 所有创建 V6 job 的现役入口在插入新 job/runtime 前，通过唯一 `ai_production_lock_task_ordering()` 数据库函数取得现役 control protocol singleton 行锁；claim 继续直接取得同一行锁。该函数只执行并验证 `singleton=true FOR UPDATE`，不返回控制行数据、不写控制状态；只向当前真实建单消费者 `xuanshu_api_runtime`、`xuanshu_bazi_worker`、`xuanshu_hehun_worker`、`xuanshu_public_knowledge_worker`、`xuanshu_commercial_outbox_worker` 授予 `EXECUTE`。`xuanshu_api_runtime` 为现役 claim Owner，保留原控制表直接权限；其余四个受限 worker 对控制表的直接权限保持为零。锁的先后次序定义事实：高层创建先提交则低层不能 grant；低层 grant 先提交则其发生在高层 job 存在之前，后到高层只阻断后续低层 fresh grant。
 2. claim 在 singleton 锁内，从全部未完成 durable job 计算唯一 `open_tier=min(staticTier(product_id))`。分母不受 retry、lease、device、capability、material、control intent、cooldown cohort、terminal pending admission 或当前请求设备过滤。
 3. selector 保留已经 durable accept/staged/delivery 的现役恢复分支；这些分支可跨 tier 收尾。fresh branch 额外要求 `staticTier(candidate.product_id)=open_tier`。同一 claim batch 的 fresh jobs 只能来自一个 tier；容量有剩余也不得用低层补满。
 4. 若开放 tier 有可领取 job，按原 `(created_at,job_id)` FIFO grant。若开放 tier 全部暂不可领取，返回零 fresh grant，并由现役 observation 只以开放 tier cohort 计算精确 exclusion reasons；不新增 reason code 或第二诊断 Owner，不把低层本来可领取误报为并发选择。
@@ -73,13 +73,18 @@ Website 相关 source 写前 SHA-256：法条 `a4556cebadb3416483971e90fffeacdda
 ### 工单 1｜Website 法条与施工图
 
 - 将 `LAW-AI-ACCEPTANCE-004-V30` 原子升为 V31，`supersedesLawId=V30`；只修订领取顺序主题及不可分割 summary。同步把直接依赖闭包 `012-V40→V41`、`013-V24→V25`、`LAW-PUBLIC-KNOWLEDGE-CONTENT-005-V40→V41`，后三条仅更新 `dependsOnLawIds`、`lawId` 与 `supersedesLawId`。
+- 最新生产日志触发最小权限补充修订：`LAW-AI-ACCEPTANCE-002-V32→V33` 明确共享 Material Blob 只能由一份最窄安全定义函数原子 ensure+row-lock；依赖闭包 `012-V41→V42`、`013-V25→V26`、`LAW-PUBLIC-KNOWLEDGE-CONTENT-005-V41→V42` 只续升引用。`004-V31` 的固定五阶语义不变。同步 Website AI Acceptance Blueprint V48 与 System Security Blueprint；AGENT V65 不改 wire、Runtime 或调度。
+- 真实建单继续执行后，再将 `002-V33→V34` 精确扩展为同一函数内核 exact 付款退休 tombstone；依赖闭包续升 `012-V42→V43`、`013-V26→V27`、`PUBLIC-KNOWLEDGE-CONTENT-005-V42→V43`，AI Acceptance Blueprint 升 V49。不得把这次续升解释为新 Owner、第二函数或跨仓 wire 变更。
 - V31 对现役 forbidden 第 4 项的精确替换为：“不得先发 lease 再用 Browser 缺失回滚；不得在全局仍存在更高固定阶级未完成 V6 job 时，为低阶 job 签发 fresh attempt/grant。固定阶级只能由 Website ai-acceptance 的唯一静态 product_id→1..5 映射决定，未命中固定为第 5 阶；只有领域接纳闭包已持久完成或现役永久终止 authority 已物理删除的 job 才离开未完成分母。等待时长、aging、registration order、retry、device、capability、material、cooldown、动态权重或低层保底容量均不得改变阶级或允许跨阶补位；同一开放阶级内 fresh grant 仍按最早 eligible created_at + job_id。已 durable accept 的原 attempt 恢复、同 effect 读回、staged result 交付与领域接纳不是 fresh grant，不得被后到高阶 job 阻断。”
 - V31 必须明确：静态 1..5 阶级；全局未完成最小 tier 是 fresh grant 唯一开放 tier；任一高层未完成时低层 fresh grant 为零；禁止 aging、晋级、动态权重、低层保底与容量补位；已 durable accept 的原 attempt 仍可恢复和接纳；完成只认 admission 闭包或现役永久 authority 的物理删除。
 - 同步 Website `AI-ACCEPTANCE-BLUEPRINT.md` V47、`SYSTEM-BLUEPRINT.md` 与 AGENT Runtime Blueprint V65 的 claim/order 导航，保持 Website `ai-acceptance` 为唯一 Owner；不修改 AGENT Browser FIFO、Product Owner 或跨仓 wire。
 
-### 工单 2｜创建与领取的单锁线性化
+### 工单 2｜创建与领取的单锁线性化及最小权限
 
-- 在 `website-agent-task-repository.ts::createWebsiteAgentTaskWithClient` 新 job 分支复用 `ai_production_control_protocol_state` singleton 行锁；所有现役 task 创建调用继续复用该唯一函数。幂等读回已有 job 不制造新需求，不需要改变返回合同；不得借本次锁改动新增现役创建合同没有要求的 admission 判定。
+- 新增唯一前向迁移 `0161_ai_production_task_ordering_lock.sql`：创建 `public.ai_production_lock_task_ordering()` 零参数、返回 `void` 的 `SECURITY DEFINER` 函数，固定 `search_path=pg_catalog,public`，函数体只锁定并验证 `public.ai_production_control_protocol_state(singleton=true)`；缺行必须失败关闭。撤销 `PUBLIC` 默认执行权，只给 `xuanshu_api_runtime`、`xuanshu_bazi_worker`、`xuanshu_hehun_worker`、`xuanshu_public_knowledge_worker`、`xuanshu_commercial_outbox_worker` 精确 `EXECUTE`。迁移后逐角色读回函数权限为真；`xuanshu_api_runtime` 保留现役 claim 所需的控制表权限，另外四个 worker 的控制表 `SELECT/UPDATE` 均为假。不修改历史 migration。编号 0160 已由共享主仓中另一项获授权的 Bazi task 权限迁移占用，本任务不得覆盖或混入该迁移。
+- 在 `website-agent-task-repository.ts::createWebsiteAgentTaskWithClient` 新 job 分支删除原直接控制表查询，改为调用该唯一窄函数；所有现役 task 创建调用继续复用该唯一 repository 函数。幂等读回已有 job 不制造新需求，不需要改变返回合同；不得借本次锁改动新增现役创建合同没有要求的 admission 判定。
+- 新增后继前向迁移 `0162_ai_production_material_blob_ensure_lock.sql`：创建唯一 `public.ai_production_ensure_material_blob(text,text,text,text,integer,text,text)` 安全定义函数，固定 `search_path=pg_catalog,public`，在调用者现有事务内执行原 `INSERT ... ON CONFLICT DO NOTHING` 后按 canonical ref `FOR UPDATE` 并返回全部身份字段；撤销 PUBLIC，只向同五个真实建单角色授予 EXECUTE。`ensureAiProductionMaterialBlob` 删除应用层直接 INSERT 与冲突后直接 `FOR UPDATE`，只调用该函数并保留既有身份冲突与付款材料退休校验。不得授予受限 worker 材料表 UPDATE/DELETE，不复制角色专用函数，不改变删除 Owner。
+- `0162` 已应用后，真实函数调用暴露 `ON CONFLICT(canonical_object_ref)` 与 RETURNS TABLE 输出变量同名歧义；不可改写历史 migration，`0163` 已按删除→缺席验证→同名重建修正为 `ON CONFLICT ON CONSTRAINT`。随后公共知识真实建单继续暴露应用层 tombstone 直读 `42501`。最终前向 `0164_ai_production_material_blob_ensure_lock_retirement_rebuild.sql` 必须再次删除同一函数、验证缺席并按 V34/V49 重建：在持有 Blob 行锁时检查 exact `payment_screenshot_retention_delete_attempt`，命中即失败关闭；应用 `ensureAiProductionMaterialBlob` 删除外部 `assertPaymentMaterialNotRetired` 调用。不得改 0162/0163 字节，不新增第二函数或授 tombstone 表权限。
 - 保留 `job-claim-repository.ts::lockClaimAdmission` 现役 singleton 锁；不得新增表、列、队列、advisory lock、scheduler 或 tier 状态。
 - 并发验收：高层创建先取得锁时低层 claim 等待并在提交后被挡；低层 claim 先取得锁时其 grant 先于高层 job 存在，高层提交后所有后续低层 fresh grant 被挡；无死锁、无重复 job/grant。
 
@@ -94,7 +99,7 @@ Website 相关 source 写前 SHA-256：法条 `a4556cebadb3416483971e90fffeacdda
 
 - 不新增跨仓 reason code，V6 wire 不因阶级门升版；AGENT 无代码工单。若施工发现现役 reason 集合无法如实表达开放阶级阻断，停止回到设计，不能静默扩张跨仓合同。
 - 更新 `scripts/audit/domains/ai-acceptance/check.ts`、`manifest.json` 与 generated registry 的 V31 引用；审计静态映射唯一性、默认 Tier 5、无 aging/阈值/动态状态、singleton 双入口锁和 fresh-only gate。修订 exam/localization 中旧全局 FIFO 断言，不删除其它恢复保护。
-- 数据库 Exam 覆盖：每层单独、跨层、开放层暂不可领、terminal 待 admission、完成后逐层开放、同层 FIFO、N>1 不跨层补位、低层旧 attempt 在高层出现后继续收尾、冷却 cohort、source evidence、并发创建/claim 两种锁顺序、未知 product 默认 Tier 5。
+- 数据库 Exam 覆盖：每层单独、跨层、开放层暂不可领、terminal 待 admission、完成后逐层开放、同层 FIFO、N>1 不跨层补位、低层旧 attempt 在高层出现后继续收尾、冷却 cohort、source evidence、并发创建/claim 两种锁顺序、未知 product 默认 Tier 5；逐角色 ACL 读回证明五个真实建单角色均可执行窄函数、四个受限 worker 不能直接读取或更新控制表、API 仍保留现役 claim 直锁权限，并以 API 及本次生产日志实际失败的 public-knowledge、commercial-outbox 三份现役 profile 完成真实函数调用。Bazi/Hehun profile 若被常驻 worker 占满连接，只以 ACL 与共用 repository 的结构证明验收，不中断生产 worker 制造测试连接。
 - CHANGE 只运行与实际差异相交的普通测试和 `npm run quality:check -- CHANGE`；READY/RELEASE 另按现役冻结说明书和 active law 执行，不把 CHANGE 冒充发布。
 
 施工顺序：工单 1 → 工单 2 → 工单 3 → 工单 4，同一 Website 候选闭合。禁止出现代码已执行固定阶级而 active law 仍要求全局 FIFO 的候选。AGENT 没有代码部署依赖；跨仓只需在 RELEASE 核对现役 V6 wire 未变化及 Website grant 仍符合 AGENT 当前合同。
@@ -122,7 +127,7 @@ Website 相关 source 写前 SHA-256：法条 `a4556cebadb3416483971e90fffeacdda
 
 - `job-claim-selection.ts` 的 fresh 领取片区已重构为唯一静态 product tier 映射、全局未完成最小 tier 门和原同阶二元 FIFO；旧“所有 eligible job 共用全局 FIFO”语义已退出该片区。默认未命中固定为 Tier 5，无时间晋级、动态权重、低层配额或持久 tier 状态。
 - `job-claim-observation.ts` 复用同一映射和未完成谓词，只观察当前开放阶级；缺失 runtime 的高阶 durable job 仍进入未完成分母，全局 exclusion 精确只报 `CURRENT_NEXT_ACTION_NOT_CLAIM`，exact job 查询命中后以 `AI_PRODUCTION_RUNTIME_MISSING` 失败关闭，不伪装成不存在，也不虚报 control intent；没有第二份映射或第二调度 Owner。
-- `website-agent-task-repository.ts` 的新建分支与 claim 复用同一 control singleton 行锁；未新增表、列、迁移、队列、服务、跨仓字段、兼容桥或第二链。
+- `website-agent-task-repository.ts` 的新建分支与 claim 复用同一 control singleton 行锁；原实现直接查询控制表，真实受限 worker 因 `POSTGRES_SQLSTATE_42501` 无法建单。该断点必须由一份前向最小权限迁移与唯一窄锁函数修复，不能通过直接扩大控制表权限、删除创建锁或增加第二锁链绕过。
 - 领域完成门要求 `status`、`terminal_status`、`business_consumed_at`、`business_consumption_hash` 四项同时闭合。已 durable accept 的恢复、同 effect 读回、staged delivery 和 admission 收尾保留原链。
 
 ### 7.3 当前验证事实
@@ -139,3 +144,59 @@ Website 相关 source 写前 SHA-256：法条 `a4556cebadb3416483971e90fffeacdda
 - 该最终候选重新完成两遍主 Codex 自检：正向法案→施工图→映射→未完成分母→单锁→恢复→路由→质检为 61/61（100%）；反向唯一调用链、禁止晋级/aging/补位、无迁移/依赖/Skill/wire 扩张及 AGENT 仅两份文档差异为 55/55（100%）。`npm run typecheck`、`npm run project:code-purity`、非数据库 V6 Exam 71/71（另 5 项按门跳过）以及受控 PostgreSQL V6 Exam 56/56 均通过。
 - 首次 `npm run exam:check -- ci` 因验证进行期间测试夹具发生本任务候选漂移，最终按设计报 `EXAM_CANDIDATE_DRIFT`；该结果不是实现失败，稳定候选必须从头重跑，不能复用漂移前结果。
 - 尚待门禁：只读子智能体对稳定修复候选复审、CI-FULL CHANGE→READY→RELEASE。Website 的无关付款方案修改可能阻断 clean-commit READY，本任务不得擅自处理该文件。
+
+### 7.4 第一轮生产日志后的修复事实
+
+- 第一轮日志暴露 task-create 直接锁控制表的 `42501`；`0161_ai_production_task_ordering_lock.sql` 已通过唯一 `ai_production_lock_task_ordering()` 修复。生产 registry 中该迁移 hash 为 `sha256:2e0279694bcce2b84646be6434795d9f0363671ecea7c2a1cd7f9c5cc73f2055`、Owner 为 `ai-acceptance`。
+- 生产读回证明函数 `SECURITY DEFINER=true`、`search_path=pg_catalog,public`，ACL 除 Owner 外精确为五个建单角色；受控 PostgreSQL V6 Exam 57/57 通过。该事实只证明创建与 claim 共用排序锁的权限缺口已经关闭。
+
+### 7.5 最新生产日志后的第二次源头重审
+
+- 最新日志时段 `2026-10-09T18:45:54.274Z` 至 `18:48:07.277Z` 共解析 823 条 JSON：362 succeeded、29 failed；其中 14 个底层 `POSTGRES_SQLSTATE_42501`。migration verify 已读到 164 个迁移且 head 为 `0161_ai_production_task_ordering_lock.sql`，证明第一轮排序锁迁移已加载。
+- `xuanshu_public_knowledge_worker` 至少 10 次 task-create 在 `ensureAiProductionMaterialBlob` 失败；用其现役数据库 profile 复现得到 `permission denied for table ai_production_material_blobs`。根因是共享 Blob 已存在时应用层执行 `SELECT ... FOR UPDATE`，PostgreSQL 要求 UPDATE 权限，而该角色只有 SELECT+INSERT。八字 worker 的日志同样出现 42501；权限矩阵又证明 Bazi 与 Hehun 两个真实建单角色对材料表均无权限，因此 Hehun 也处于同一结构风险。
+- 日志中的一次 claim 确实只发出 3 个 `localization_static_catalog` Tier 3 job，证明 durable job selector 的固定阶级门在工作；但 Tier 2 八字与 Tier 4 公共知识需求先在材料 ensure 阶段回滚，未成为 durable job，selector 无法看到它们。当前只能裁决“已入库工单排序成功”，不能裁决“网站源头全部工单稳定严格排序”。
+- 删除性裁决：直接给受限 worker 材料表 UPDATE 会连带获得非本任务写能力；删除 `FOR UPDATE` 会削弱与 tombstone/隐私删除/付款删除的并发门；按角色复制函数、增加新表、fallback 或第二建单链都没有真实必要。唯一保留对象是一个完成现有 ensure+row-lock 的窄安全定义函数，真实消费者仍是五个建单角色。
+- 现回到法案/施工图阶段：`002-V33` 与依赖闭包 `012-V42→013-V26→PUBLIC-KNOWLEDGE-CONTENT-005-V42`、AI Acceptance Blueprint V48、System Security Blueprint 和本方案必须先通过主 Codex 两遍有限审计且各自不低于 98%，之后才允许施工 `0162`、应用代码与质检。此前代码自检、子审计、CHANGE/READY 均因本次新事实失效，不可复用。
+- 日志另有两个与本派单链分离的事实：commercial outbox 的 `SET ROLE qimen_app` 权限失败继续保持 retryable；一次 task-create 在 claim 持有 singleton 时触发 `55P03`。前者不并入本方案 Owner；后者按锁先后次序未证明越序，但仍需在后续真实建单验证中确认有限重试能够收敛。
+
+### 7.6 第二次源头门结果
+
+- 主 Codex 第一遍正向审计完整解析 Website 510 条、AGENT 39 条 active law record，逐字节读取 Website 3 份、AGENT 7 份 Blueprint，并核 dependency closure、V33/V42/V26/V42 successor、spec/manifest 投影、V48 Blueprint 与阶段差异边界。初跑 65/67（97.01%）失败关闭：法条缺少唯一函数名，Git 中文路径被审计脚本误判。补齐函数名并改用 NUL 路径读取后复跑 67/67（100%）；registry/projection hash 同为 `55e8f14fdd7c7d89576d9d81dae73f25b944e08cb0558048979a4b52163c89e4`。
+- 主 Codex 第二遍反向审计从最新日志故障回查现役代码、删除竞态、五角色 ACL、法案正文差异和 AGENT wire。初跑 58/62（93.55%）失败关闭：四项把后续数据库复现事实误当日志原文或把删除 Owner 错限在单文件。纠正证据归属后复跑 65/65（100%）：`004-V31` 字节语义未变；三个依赖 successor 只改身份/依赖；`002-V33` 只改一项最小权限条款；公共知识 profile 的真实 `FOR UPDATE` 为 `42501`；Bazi/Hehun 材料表四项权限均为零；无表、列、wire、AGENT Blueprint 或第二链扩张。
+- 两遍均达到代码门要求，允许进入 `0162`、应用代码与质检施工；这些百分比只证明有限源头设计分母，不是 CHANGE、READY 或 RELEASE。
+
+### 7.7 数据库施工的两次失败关闭与第三次源头回退
+
+- `0162` 经原生 runner 应用后首次真实执行失败为 `42702 column reference "canonical_object_ref" is ambiguous`。历史迁移保持不可变；`0163` 在同一事务执行函数 DROP、`to_regprocedure` 缺席验证和同名 CREATE，改用唯一约束名，五角色函数调用测试随后越过 Blob ensure。
+- 公共知识现役 profile 用一份已存在公开知识任务材料在事务内真实克隆建单，下一条失败变为 `42501 permission denied for table ai_production_material_tombstones`。这证明旧应用层 `assertPaymentMaterialNotRetired` 仍要求受限 producer 直接读取 tombstone 表，源头链仍未闭合。
+- 最简单完整方案继续只有一份函数：把 exact 付款退休 reason 的 EXISTS 检查并入同一 Blob 行锁事务，函数命中退休即抛 `AI_PRODUCTION_MATERIAL_BINDING_UNRESOLVED`；应用层删除该次外部查询。直接授 tombstone SELECT、跳过退休门、按角色建函数、增加 fallback 或第二材料链全部删除。
+- 现役法案续升为 `002-V34`，依赖闭包为 `012-V43→013-V27→PUBLIC-KNOWLEDGE-CONTENT-005-V43`，AI Acceptance Blueprint 为 V49；`004-V31` 固定阶级语义与 AGENT V65 wire 仍不变。必须重新完成两遍主 Codex 源头审计后才可施工 `0164`。
+
+### 7.8 V34/V49 施工与定向验证
+
+- 第三次源头门第一遍初跑 75/76（98.68%），发现 System Security Blueprint 未锁定 exact retirement reason；补入 `payment_screenshot_retention_delete_attempt` 后复跑 76/76（100%）。第二遍从生产 DB 与失败点反查 48/48（100%），确认 0162/0163 ledger hash 与本地不可变字节一致、单函数仍是唯一对象、公共知识 tombstone 直读精确 `42501`，代码门重新打开。
+- `0164_ai_production_material_blob_ensure_lock_retirement_rebuild.sql` 已由原生 runner 应用，migration 总数 167。它在同一事务 DROP 旧函数、核 `to_regprocedure` 缺席、CREATE 同名函数；insert-on-conflict 后锁 canonical Blob，检查 exact 付款退休 tombstone，命中抛 `AI_PRODUCTION_MATERIAL_BINDING_UNRESOLVED`，最后才返回身份。ACL 仍精确为五角色 EXECUTE，未授材料或 tombstone 表权限。
+- 应用 `ensureAiProductionMaterialBlob` 只调用该函数并核返回身份，已删除该建单路径的外部 `assertPaymentMaterialNotRetired`；resolver 等非建单路径仍保留原退休门，没有扩大删除 Owner。
+- 五角色 PostgreSQL 函数验收通过；Bazi/Hehun 常驻连接饱和时按既定方案使用精确 ACL 与共用 repository 结构证明。公共知识现役 profile 用已存在公开知识材料在事务内完整克隆建单成功：`public_knowledge_article_pipeline`、1 份材料、status=failed（现役未接纳初态），随后 rollback。额外查询 `ai_production_job_materials` 曾因该角色按合同只有 INSERT 而返回 42501，已从审计脚本删除，不把审计器越权误判为生产失败。
+- `npm run typecheck` 通过；受控 PostgreSQL `npm run ai:production:v6:exam` 为 80/80；`npm run project:code-purity` 初跑发现本次 import 增行导致 500 行预算超限，压回原 499 行后复跑 `status=PASS`，未提高预算。
+
+### 7.9 代码主审结果
+
+- 主 Codex 第一遍正向代码审计初跑 59/60（98.33%），唯一失败是对 `pg_get_functiondef` 大小写格式的错误假设；改为规范化读回后复跑 60/60（100%）。链路已覆盖 V34/V49 → 0164 delete/rebuild → 单函数调用 → exact tombstone → 五角色 EXECUTE → 三份迁移 ledger hash → 原生 registry projection。
+- 主 Codex 第二遍反向代码审计 44/44（100%）：0162–0164 无表、列、角色、advisory lock、兼容/fallback、第二状态或表权限 grant；现役 DB 只有一个函数 overload；Bazi/Hehun/Public Knowledge 均可 EXECUTE，且对 Blob 无 UPDATE/DELETE、对 tombstone 无 SELECT/UPDATE/DELETE；建单 ensure 无直接 Blob/tombstone SQL，resolver 原退休门保留；`004-V31` 与跨仓 V6 wire 未变。
+- 两遍代码自检均已达到门槛，下一步只允许独立子智能体对**当前建设差异与方案要求**做只读审计；不得让子智能体改代码或重复审计空方案。
+
+### 7.10 独立审计退回与 V35/V50 源头回退
+
+- 独立一致性审查先发现付款截图留存夹具仍识别已删除的直接 Blob INSERT；夹具已改为唯一 `ai_production_ensure_material_blob(...)` 调用，相关三文件整组回归 33/33 通过。该变更只修正质检消费者，没有恢复旧生产路径。
+- 两名只读审查者继续证明三项阻断：0162/0163 可藏入永久表权限而静态检查不失败；0164 可追加额外函数授权或第二 routine 而静态检查仍通过；生产 `public` schema 预存 PUBLIC CREATE，五个运行角色可在部署后创建同名前缀 shadow routine，导致“唯一函数持续成立”不可证明。审查者同时指出 AI Acceptance Blueprint 曾把 public-knowledge 既有 Blob SELECT 错写为绝对不存在，已改为“本轮不新增或扩大”，并锁定 Blob UPDATE/DELETE 与 tombstone SELECT/UPDATE/DELETE 为零。
+- 因第三项是现役权限事实而非 0162–0164 新增权限，代码阶段再次关闭。现役源头续升为 `LAW-AI-ACCEPTANCE-002-V35`，依赖闭包为 `LAW-AI-ACCEPTANCE-012-V44 → LAW-AI-ACCEPTANCE-013-V28 → LAW-PUBLIC-KNOWLEDGE-CONTENT-005-V44`，AI Acceptance Blueprint 为 V50；固定阶级法 `LAW-AI-ACCEPTANCE-004-V31` 与跨仓 V6 wire 仍不变。
+- 最简单完整方案新增唯一前向权限迁移 `0165_ai_production_public_schema_create_revoke.sql`：只执行 `REVOKE CREATE ON SCHEMA public FROM PUBLIC`，读回 PUBLIC 与五个运行角色 CREATE 均为假、USAGE 保持真、schema Owner/migration Owner 不转移；不新建 schema、角色、表、函数、状态或第二链。质检必须同时读取 0162–0165，要求每份函数迁移只有一份 routine 与唯一五角色函数 GRANT、禁止其它 GRANT 和表权限；数据库 Exam 必须精确读回函数族唯一、Owner=`xuanshu_migrate`、函数 ACL=Owner+五角色，以及五角色 Blob/tombstone 完整权限矩阵。
+- 在 0165、静态质检、动态 ACL Exam 施工前，主 Codex 必须重新完成两遍有限源头审计且各自不低于 98%；此前子智能体 FAIL 不可冒充放行，修复后必须让只读审查者重审最终工作树。
+- V35/V50 源头门已由主 Codex重新执行：正向初跑因只解析功能法案而漏掉基础法案依赖，36/37（97.30%）失败关闭；纳入双法案 corpus 后复跑 37/37（100%）。反向初跑因审计器误用 spec 字段名且未剔除 `lawIds`，20/26（76.92%）失败关闭；按三份真实 spec 结构重算后 26/26（100%），确认只变 law reference，route v4、task-result v17、V6 v44 均未升版。
+- `0165_ai_production_public_schema_create_revoke.sql` 首次由原生 runner 执行时因错误限定 `pg_catalog.coalesce` 失败并完整回滚；删除该无效限定后同一迁移成功应用，商业迁移总数 168。迁移只撤销 `public` schema 的 PUBLIC CREATE，并在同一事务读回 PUBLIC 无 CREATE、五角色 CREATE 为假且 USAGE 为真、schema Owner 仍为 `xuanshu_migrate`。
+- 独立 Material Blob inspector 现同时读取 0162–0165：0162–0164 各只允许一份 routine 与唯一精确五角色函数 GRANT，任何第二 GRANT、`GRANT ALL`、schema-wide function GRANT、表权限或第二 routine mutation 均失败；0165 禁止 GRANT、CREATE/ALTER routine/table/schema/role。LAW-002-V35 的 `summary` 与 `forbidden:10` 分别获得 lifecycle AST、migration runner 与四份 SQL 的精确 evidence refs，不再用通用 token refs 冒充新义务。
+- 受控 PostgreSQL V6 Exam 初跑 79/80：数据库实际 ACL 已精确，但驱动把 `text[]` 返回为字符串导致测试断言类型错误；查询改为显式 JSON 文本并按真实排序解析后完整复跑 80/80。最终动态读回证明函数族只有 exact signature 一项、Owner=`xuanshu_migrate`、SECURITY DEFINER=true、EXECUTE ACL=Owner+五角色；五角色 schema USAGE 全真、CREATE 全假，并精确锁定 Blob/tombstone 八项权限矩阵。
+- 第二次独立终审又以 mutation 证明静态检查会漏过 0162/0165 追加 `DROP TABLE`，以及 0163/0164 追加第二个 `DROP FUNCTION`。最终检查把 0162/0165 固定为零 DROP，把 0163/0164 固定为只允许精确一次目标签名 DROP FUNCTION；任何其它 DROP FUNCTION/PROCEDURE/TABLE/SCHEMA/ROLE 均失败。对应表删除、第二函数删除反例已加入 Exam，定向测试、typecheck、code-purity 与 diff check 重新通过。
+- 同一轮终审随后证明 0162–0165 仍可能追加表级写入复活或清空退休材料而保持静态 PASS。函数迁移 shape 现只允许唯一一次、唯一目标 `INSERT INTO public.ai_production_material_blobs`，并统一拒绝 `DELETE FROM`、表级 `UPDATE ... SET`、`MERGE INTO`、`TRUNCATE` 与 `COPY ... FROM`；0165 权限迁移连 `INSERT INTO` 也全部拒绝。四份迁移对应 mutation 已加入 Exam，定向测试、typecheck、code-purity 与 diff check 再次通过。该收口只加强现役迁移审计，不改变生产 SQL、角色权限、函数合同或阶级派单主链。
+- 终审继续证明 quoted identifier、SQL 注释分隔、`CREATE RULE` 与 `CALL` 等合法语法仍可绕过多词正则。冻结母本 §49 禁止建立第二份文件 hash 清单，因此最终门复用现役 SQL statement splitter 固定每份 migration 的顶层语句序列，再剔除注释与单引号数据后核内部控制词的精确次数；函数迁移只允许既有一份 Blob INSERT 与一处 `FOR UPDATE`，0165 只允许既有 schema REVOKE/读回。quoted、comment-separated、RULE、CALL、MERGE、COPY 等反例均进入 Exam；历史不可变性继续只由原生 migration runner 对生产 ledger name/hash 的 drift 拒绝和 PostgreSQL Exam 的本地字节精确读回证明，不复制 ledger 或文件 hash 清单。
