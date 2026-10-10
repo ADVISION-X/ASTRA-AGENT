@@ -94,9 +94,6 @@ export class BrowserMutationStore extends BrowserMutationEvidence {
       throw new Error("BROWSER_ATOMIC_STEP_IDENTITY_REQUIRED");
     }
     this.database.transaction(() => {
-      if (this.database.prepare("select 1 from browser_mutations where state='DISPATCHED' limit 1").get()) {
-        throw new Error("BROWSER_MUTATION_UNSETTLED");
-      }
       const rebindCommand = input.effectScope === "provider_effect"
         ? this.assertProviderEffectHistory(input) : null;
       const reusableNoInput = input.effectScope === "provider_effect"

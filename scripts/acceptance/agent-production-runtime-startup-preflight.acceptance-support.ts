@@ -14,7 +14,7 @@ import { startProductionRuntime } from "../../src/lib/local-runtime/production/r
 import {
   productionRuntimeTaskRoot,
   productionRuntimeTaskPath,
-  readProductionRuntimeStorageInventory,
+  readProductionRuntimeStorageInventory, ProductionRuntimeTaskStorageFailure,
 } from "../../src/lib/local-runtime/production/runtime-storage-inventory.js";
 import { DeviceCredentialSchema } from "../../src/lib/local-runtime/production/transport-protocol.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
@@ -57,7 +57,7 @@ const assertDependencyProjection = async (): Promise<void> => {
     await writeFile(dependencyPath, JSON.stringify(dependency), { mode: 0o600 });
     assert.deepEqual(await verifyProductionDependency({
       agentDependencyPath: dependencyPath,
-    }), { status: "READY", version: 44 });
+    }), { status: "READY", version: 45 });
   
     const contract = dependency.contract as Record<string, unknown>;
     await writeFile(dependencyPath, JSON.stringify({
@@ -150,6 +150,47 @@ const assertEmptyStorageInventory = async (inventoryTemporary: string): Promise<
     }
 };
 
+const assertInventoryStartup = async (dataDir: string, root: string): Promise<void> => {
+    const priorCredential = process.env.AGENT_PRODUCTION_CREDENTIAL_FILE, priorFetch = globalThis.fetch;
+    process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = await writeCredential(dataDir, validDeviceCredential);
+    let requests = 0;
+    globalThis.fetch = (async () => {
+      requests += 1;
+      return new Response(JSON.stringify({ ok: false, error: { code: "FIXTURE_CLOUD_UNAVAILABLE",
+        message: "Fixture cloud unavailable", status: 503, request_id: "request:orphan" } }),
+      { status: 503, headers: { "content-type": "application/json" } });
+    }) as typeof globalThis.fetch;
+    let runtime: Awaited<ReturnType<typeof startProductionRuntime>> | null = null;
+    try {
+      runtime = await startProductionRuntime({
+      dataDir,
+      sourceHash: HASH_A,
+      gpt: createGptAbilityGroup(),
+      evidenceStore: createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(dataDir)),
+      browserAuthority: { hasUnresolvedBrowserMutation: () => false, verifyRuntimeTaskProvenance: () => undefined,
+        readBrowserLaneState: () => "idle",
+        readProductionRuntimeState: () => ({
+        browserAuthorityState: "absent" as const, browserTargetState: "absent" as const,
+      }) } as never,
+      runtimeLogger: createRuntimeLogger({
+        producer: "agent-storage-inventory", owner: "production-runtime", component: "storage-inventory",
+        terminalEnabled: false, fileSink: { directoryPath: path.join(dataDir, "runtime-logs") },
+      }),
+    });
+      assert.equal(runtime.blocked, false, "orphan inventory must reach the original worker even while cloud reconnects");
+      assert.ok(requests > 0, "startup must proceed to the current cloud session action");
+      assert.notEqual(runtime.readHealth().lastErrorCode, "PRODUCTION_ORPHAN_STORAGE_RECONCILIATION_REQUIRED");
+      assert.equal(await readFile(path.join(root, "job:orphan", "materials", "orphan.txt"), "utf8"), "orphan");
+    } finally {
+      try { await runtime?.close(); }
+      finally {
+        globalThis.fetch = priorFetch;
+        if (priorCredential === undefined) delete process.env.AGENT_PRODUCTION_CREDENTIAL_FILE;
+        else process.env.AGENT_PRODUCTION_CREDENTIAL_FILE = priorCredential;
+      }
+    }
+};
+
 const assertOccupiedStorageInventory = async (
   inventoryTemporary: string,
 ): Promise<Readonly<{ dataDir: string; root: string }>> => {
@@ -166,23 +207,7 @@ const assertOccupiedStorageInventory = async (
     assert.deepEqual(inventory.orphan_job_ids, ["job:orphan"]);
     assert.ok(inventory.orphan_bytes >= Buffer.byteLength("orphan"));
   
-    const blockedByInventory = await startProductionRuntime({
-      dataDir,
-      sourceHash: HASH_A,
-      gpt: createGptAbilityGroup(),
-      evidenceStore: createForensicsPersistenceAbilityGroupFromStorage(createGrassEyeFileStorage(dataDir)),
-      browserAuthority: { hasUnresolvedBrowserMutation: () => false, verifyRuntimeTaskProvenance: () => undefined,
-        readProductionRuntimeState: () => ({
-        browserAuthorityState: "absent" as const, browserTargetState: "absent" as const,
-      }) } as never,
-      runtimeLogger: createRuntimeLogger({
-        producer: "agent-storage-inventory", owner: "production-runtime", component: "storage-inventory",
-        terminalEnabled: false, fileSink: { directoryPath: path.join(inventoryTemporary, "runtime-logs") },
-      }),
-    });
-    assert.equal(blockedByInventory.readHealth().lastErrorCode,
-      "PRODUCTION_ORPHAN_STORAGE_RECONCILIATION_REQUIRED");
-    await blockedByInventory.close();
+    await assertInventoryStartup(dataDir, root);
   return { dataDir, root };
 };
 
@@ -197,7 +222,16 @@ const assertStorageSymlinkRejected = async (
     await assert.rejects(readProductionRuntimeStorageInventory(
       dataDir, responsibilities(["job:owned", "job:orphan"]),
     ),
-      (error: unknown) => typedExecutionFailure(error)?.code === "PRODUCTION_STORAGE_SYMLINK_INVALID");
+      (error: unknown) => error instanceof ProductionRuntimeTaskStorageFailure
+        && error.jobId === "job:owned" && error.code === "PRODUCTION_STORAGE_SYMLINK_INVALID");
+    await assertInventoryStartup(dataDir, root);
+    assert.equal(await readFile(path.join(root, "job:orphan", "materials", "orphan.txt"), "utf8"), "orphan");
+    const sharedData = path.join(inventoryTemporary, "shared-root-link");
+    await mkdir(path.dirname(productionRuntimeTaskRoot(sharedData)), { recursive: true });
+    await symlink(root, productionRuntimeTaskRoot(sharedData));
+    await assert.rejects(readProductionRuntimeStorageInventory(sharedData, responsibilities([])),
+      (error: unknown) => !(error instanceof ProductionRuntimeTaskStorageFailure)
+        && typedExecutionFailure(error)?.code === "PRODUCTION_STORAGE_SYMLINK_INVALID");
 };
 
 const assertStorageInventoryBoundary = async (): Promise<void> => {
@@ -298,7 +332,7 @@ try {
   assert.equal(health.cloudState, "contract_blocked");
   assert.equal(health.executionState, "blocked");
   assert.equal(health.claimAdmissionState, "blocked");
-  assert.equal(health.controlContractVersion, 44,
+  assert.equal(health.controlContractVersion, 45,
     "blocked diagnostics must retain only the consumer contract version needed for exact comparison");
   assert.equal(health.lastErrorCode, "AI_SESSION_BINDING_MISMATCH");
   await assert.rejects(bindingMismatchRuntime.close(), /RUNTIME_SHUTDOWN_INCOMPLETE/u,

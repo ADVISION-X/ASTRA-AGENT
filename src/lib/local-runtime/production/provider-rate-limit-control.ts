@@ -4,7 +4,7 @@ import type {
   ProviderRateLimitIncidentHandle,
   ProviderRateLimitIncidentInput,
 } from "../../../capabilities/gpt/index.js";
-import { executionFailure } from "../../execution-failure.js";
+import { executionFailure, failureCode, typedExecutionFailure } from "../../execution-failure.js";
 import { hashCanonical, type ProductionHash } from "./contracts.js";
 import {
   parseProviderCooldownReceipt,
@@ -12,6 +12,8 @@ import {
 } from "./provider-cooldown-receipt.js";
 import type { ProductionRuntimeStore } from "./store.js";
 import type { ProductionWorkerSession } from "./worker-session.js";
+
+import { typedRuntimeTransportFailure } from "./transport-failure.js";
 
 export class ProviderRateLimitControl implements ProviderRateLimitControlPort {
   private submitGateOpen: boolean;
@@ -30,7 +32,18 @@ export class ProviderRateLimitControl implements ProviderRateLimitControlPort {
   }
 
   public canRequestClaimAuthority(): boolean {
-    return !this.store.hasUndeliveredProviderCooldown();
+    return true;
+  }
+
+  public assertIncidentFailureIsolated(error: unknown): void {
+    const transport = typedRuntimeTransportFailure(error);
+    if (transport) {
+      if ([401, 403].includes(transport.httpStatus)) throw error;
+      return;
+    }
+    const typed = typedExecutionFailure(error);
+    if (!typed || !["CLOUD_TRANSPORT_UNAVAILABLE", "PROVIDER_COOLDOWN_RECEIPT_INVALID",
+      "PROVIDER_COOLDOWN_INCIDENT_DELIVERY_PENDING"].includes(typed.code)) throw error;
   }
 
   public observeWebsiteAuthority(input: Readonly<{
@@ -47,8 +60,7 @@ export class ProviderRateLimitControl implements ProviderRateLimitControlPort {
     if (latestIncidentServerNow === null) return;
     if (latestIncidentServerNow
       && Date.parse(input.serverNow) < Date.parse(latestIncidentServerNow)) return;
-    this.submitGateOpen = this.store.latestProviderCooldownClearance() === "confirmed_absent"
-      && !cooldownActive;
+    this.submitGateOpen = !cooldownActive;
   }
 
   public pendingIncidents(): readonly ProviderRateLimitIncidentInput[] {
@@ -82,27 +94,39 @@ export class ProviderRateLimitControl implements ProviderRateLimitControlPort {
   }
 
   public async reconcilePendingIntents(): Promise<void> {
+    const failedIncidents = new Set<string>();
+    let firstFailure: unknown = null;
     for (const requestId of this.store.pendingProviderCooldownRequestIds()) {
-      await this.store.deliverOutbox(requestId, async (write) => {
-        const body = JSON.parse(Buffer.from(write.body).toString("utf8")) as Record<string, unknown>;
-        const incidentRequestId = body.incident_request_id;
-        if (typeof incidentRequestId !== "string" || !incidentRequestId) {
-          throw executionFailure("failed", "PROVIDER_COOLDOWN_INTENT_INVALID");
-        }
-        return parseProviderCooldownReceipt(await this.session.request(write.path, {
-          method: write.method,
-          headers: write.headers,
-          body: Buffer.from(write.body),
-        }), {
-          requestId,
-          incidentRequestId,
-          payloadHash: hashCanonical(body),
-          deviceId: this.session.device.device_id,
-          dialogHash: body.dialog_hash as ProductionHash,
-          observationHash: body.observation_hash as ProductionHash,
+      let incidentId: string | null = null;
+      try {
+        await this.store.deliverOutbox(requestId, async (write) => {
+          const body = JSON.parse(Buffer.from(write.body).toString("utf8")) as Record<string, unknown>;
+          const incidentRequestId = body.incident_request_id;
+          if (typeof incidentRequestId !== "string" || !incidentRequestId) {
+            throw executionFailure("failed", "PROVIDER_COOLDOWN_INTENT_INVALID");
+          }
+          incidentId = incidentRequestId;
+          if (failedIncidents.has(incidentRequestId)) {
+            throw executionFailure("failed", "PROVIDER_COOLDOWN_INCIDENT_DELIVERY_PENDING");
+          }
+          return parseProviderCooldownReceipt(await this.session.request(write.path, {
+            method: write.method, headers: write.headers, body: Buffer.from(write.body),
+          }), {
+            requestId, incidentRequestId, payloadHash: hashCanonical(body),
+            deviceId: this.session.device.device_id,
+            dialogHash: body.dialog_hash as ProductionHash,
+            observationHash: body.observation_hash as ProductionHash,
+          });
         });
-      });
+      } catch (error) {
+        this.assertIncidentFailureIsolated(error);
+        const authority = this.store.readOutboxAuthority(requestId);
+        if (!authority || authority.lastError !== failureCode(error, "OUTBOX_DELIVERY_FAILED")) throw error;
+        if (incidentId) failedIncidents.add(incidentId);
+        firstFailure ??= error;
+      }
     }
+    if (firstFailure !== null) throw firstFailure;
   }
 
   public async beginIncident(
@@ -121,7 +145,7 @@ export class ProviderRateLimitControl implements ProviderRateLimitControlPort {
       acknowledgedAt: null,
     });
     this.store.enqueue(incident.write);
-    this.submitGateOpen = false;
+    if (this.store.hasUndeliveredProviderCooldown()) this.submitGateOpen = false;
     return Object.freeze({
       incidentRequestId,
       deliver: async (clearance: ProviderRateLimitClearance): Promise<void> => {

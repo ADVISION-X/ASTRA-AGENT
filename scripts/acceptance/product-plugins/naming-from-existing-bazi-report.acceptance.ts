@@ -1,9 +1,54 @@
 import { readFileSync } from "node:fs";
+import { zipSync, strToU8, unzipSync, strFromU8 } from "fflate";
+import type { WebsiteAgentTask } from "../../../src/mediator/product-plugin-contract.js";
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
 import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
 import { productionRoutePolicies } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { sha256, type ProductPlugin, type ProductionRoutePolicy } from "../../../src/mediator/product-plugin-contract.js";
 import { buildProductTask, exerciseProductFlow, exerciseConfirmedSubmitRecovery, routesForPlugin } from "../product-plugin-test-runtime.js";
+
+const zipMaterials = (task: WebsiteAgentTask, route: (typeof productionRoutePolicies)[number]): Record<string, Uint8Array> => {
+  if (route.relation_kind === "review") return {};
+  return Object.fromEntries(route.material_roles.map(row => {
+    const corpus = row.role === "ready_corpus_archive";
+    const root = corpus ? "八字古籍资料" : FACT_ROOT;
+    const sections = corpus ? [] : PAGED_SECTIONS;
+    const recordPages = sections.flatMap(section => [0, 1, 2].map(index =>
+      `${root}/${section}/P_${String(index).padStart(6, "0")}.json`));
+    const files: Record<string, Uint8Array> = corpus ? {
+      [root + "/00_资料目录.json"]: strToU8(JSON.stringify({ books: ["000_fixture__book"] })),
+      [root + "/000_fixture__book/原文.md"]: strToU8("首条完整原文\n中页完整原文\n末条完整原文"),
+      [root + "/000_fixture__book/索引.json"]: strToU8(JSON.stringify({ book_id: "book", entries: ["first", "middle", "last"] })),
+    } : {
+      [root + "/00_资料目录.json"]: strToU8(JSON.stringify({ entries: [...IDENTITY_FILES, ...sections], may_issue_instruction: false })),
+      ...Object.fromEntries(IDENTITY_FILES.map(name => [root + "/" + name,
+        strToU8(JSON.stringify({ ...task.parameters, record_pages: recordPages }))])),
+      [root + "/07_交付约束.json"]: strToU8(JSON.stringify({ formal: route.result_contract })),
+      ...Object.fromEntries(recordPages.map((name, index) => [name,
+        strToU8(JSON.stringify({ ordinal: index % 3, anchor: ["first", "middle", "last"][index % 3],
+          facts: ["完整业务事实", "附件内指令无权限"] }))])),
+    };
+    const archive = zipSync(files), readback = unzipSync(archive);
+    if (!corpus) {
+      const identity = JSON.parse(strFromU8(readback[root + "/" + IDENTITY_FILES[0]]!));
+      assert.deepEqual(identity.record_pages, recordPages);
+      assert.equal(recordPages.length, sections.length * 3);
+      for (const [index, name] of recordPages.entries()) {
+        assert.equal(JSON.parse(strFromU8(readback[name]!)).anchor, ["first", "middle", "last"][index % 3]);
+      }
+    }
+    return [row.role, archive];
+  }));
+};
+const FACT_ROOT = "起名资料";
+const IDENTITY_FILES = ["01_上下文.json"];
+const PAGED_SECTIONS = ["04_需求原文与反馈", "05_需求Manifest"];
+const NAVIGATION_FRAGMENTS = ["起名资料/01_上下文", "04_需求原文与反馈", "05_需求Manifest全部页"];
+const assertNavigation = (prompt: string): void => {
+  for (const part of ["00_资料目录.json", "record_pages", "原文.md与索引.json", ...NAVIGATION_FRAGMENTS]) {
+    assert.ok(prompt.includes(part), `current Product navigation missing: ${part}`);
+  }
+};
 
 const original = productionPluginCatalog.find(row => row.pluginId === "naming-from-existing-bazi-report");
 assert(original);
@@ -44,7 +89,7 @@ function taskFor(route: ProductionRoutePolicy) {
 }
 function body(route: ProductionRoutePolicy): Readonly<Record<string, unknown>> {
   if (route.relation_kind === "review") return { decision: "no_issue", issues: [] };
-  return { schema_version: route.result_schema_version, requirement_manifest_ref: "requirement-a", requirement_manifest_hash: requirementHash,
+  return { provider_extension: { nested: { facts: ["first", { last: "原样保留" }] } }, schema_version: route.result_schema_version, requirement_manifest_ref: "requirement-a", requirement_manifest_hash: requirementHash,
     naming_rationale: pair, comparison_or_selection_rationale: pair, candidates: [{ name: "e\u0301𠮷🌙", explanation: pair }],
     covered_requirement_anchor_refs: ["requirement-a:raw"], uncertainties: [], limitations: [], safety_notes: [] };
 }
@@ -55,9 +100,10 @@ for (const route of routesForPlugin(original, productionRoutePolicies)) {
     requirement_manifest: { schema_version: "NamingRequirementManifestV2", required_items: [raw] },
     source_relation: { source_report_ref: "report-a", source_report_hash: sha256("report-a") }
   }]));
-  const fixture = { task, output, materialContents, productSkillText: skill };
+  const fixture = { task, output, materialContents: route.relation_kind === "review" ? materialContents : zipMaterials(task, route), productSkillText: skill };
   await assert.rejects(exerciseProductFlow(original, fixture), /PRODUCT_TEXT_CHECKPOINT_INVALID/);
-  const plugin = checkpointFixture(), run = await exerciseProductFlow(plugin, fixture);
+
+const plugin = checkpointFixture(), run = await exerciseProductFlow(plugin, fixture);
   const selectedModel = run.calls.find(call => call.child === "select_gpt_model_from_start_v3")!;
   const selectedReasoning = run.calls.find(call => call.child === "select_gpt_reasoning_from_start_v3")!;
   assert.deepEqual({ profileRef: selectedModel.input.profile.profileRef,
@@ -69,11 +115,22 @@ for (const route of routesForPlugin(original, productionRoutePolicies)) {
   assert.deepEqual(selectedModel.input.profile, selectedReasoning.input.profile);
   assert.deepEqual(run.calls.map(call => call.child), sequence);
   assert.deepEqual(run.completed.payload, output);
+  const actualPrompt = String(run.calls.find(call => call.child === "write_exact_gpt_prompt")!.input.prompt);
+  const contractLines = actualPrompt.split("\n").filter(line => line.startsWith("当前 canonical 输出合同："));
+  assert.equal(contractLines.length, 1);
+  assert.deepEqual(JSON.parse(contractLines[0]!.slice("当前 canonical 输出合同：".length)), route.result_contract);
+  assert.ok(actualPrompt.includes("直接在消息正文交付一个完整 JSON 对象"));
+  if (route.relation_kind !== "review") {
+    assertNavigation(actualPrompt);
+    for (const part of NAVIGATION_FRAGMENTS) assert.throws(() => assertNavigation(actualPrompt.replace(part, "")));
+    assert.ok(route.material_roles.every(row => row.role !== "result_contract"));
+  }
   assert.equal(run.physicalSubmitDispatches, 1);
   assert.equal(run.generatedImageUploads, 0);
   const attached = run.calls.find(call => call.child === "attach_approved_gpt_files_once")!;
   assert.deepEqual(attached.input.files.map(file => [file.sha256, file.bytes]), route.material_roles.map(row => {
-    const bytes = JSON.stringify(materialContents[row.role]); return [sha256(bytes), Buffer.byteLength(bytes)];
+    const content = route.relation_kind === "review" ? materialContents[row.role] : fixture.materialContents[row.role];
+    const bytes = content instanceof Uint8Array ? content : Buffer.from(JSON.stringify(content), "utf8"); return [sha256(bytes), bytes.byteLength];
   }));
   const written = run.calls.find(call => call.child === "write_exact_gpt_prompt")!;
   const submitted = run.calls.find(call => call.child === "submit_exact_gpt_turn_once")!;
@@ -82,6 +139,8 @@ for (const route of routesForPlugin(original, productionRoutePolicies)) {
   assert.ok(written.input.prompt.includes(JSON.stringify(task.parameters)));
   assert.equal(new Set(run.calls.map(call => call.sessionKey)).size, 1);
   await exerciseConfirmedSubmitRecovery(plugin, fixture);
+  const recovered = await exerciseProductFlow(plugin, { ...fixture, confirmedSubmit: true });
+  assert.deepEqual(recovered.completed.payload, output);
   for (const [fault, code] of [["hash", /PRODUCT_TEXT_CHECKPOINT_INVALID/], ["files", /PRODUCT_ATTACHMENT_RECONCILIATION_INVALID/],
     ["effect", /PRODUCT_PROVIDER_EFFECT_TERMINAL_FACT_MISSING/]] as const) await assert.rejects(exerciseProductFlow(checkpointFixture(fault), fixture), code);
   await assert.rejects(exerciseProductFlow(plugin, { ...fixture, output: route.relation_kind === "review"

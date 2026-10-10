@@ -1,8 +1,8 @@
-import { timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import type { BrowserCommandPermit } from "./command-permit.js";
 import type { BrowserGovernedCommand } from "../exact-target/browser-command-actor.js";
 import { verifyNormalBrowserMutationReply } from "../exact-target/browser-command-postcondition.js";
-import { browserMutationTerminalFactShapeValid, type BrowserMutationTerminalFact } from "../exact-target/browser-observation-receipt.js";
+import { browserMutationTerminalFactShapeValid, type BrowserMutationTerminalFact, type BrowserMutationDisposeRequest } from "../exact-target/browser-observation-receipt.js";
 import { BROWSER_ERROR_CODES } from "../protocol/generated/browser-protocol.generated.js";
 import { canonicalizeBrowserAuthorityValue, type BrowserAuthorityFrame } from "./browser-authority-frame-codec.js";
 import { requireGptWebClaimOrigin } from "../exact-target/browser-site-policy-registry.js";
@@ -63,9 +63,18 @@ export const parseBrowserAuthorityTargetRevoke = (body: Readonly<Record<string, 
     || (releaseOutcome === "absent") !== (targetRef === null)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
   return { targetRef: targetRef as string | null, jobRefHash: jobRefHash as `sha256:${string}`, releaseOutcome: releaseOutcome as "released" | "absent" };
 };
-export const parseBrowserMutationTerminalFact = (body: unknown): BrowserMutationTerminalFact => {
-  if (!browserMutationTerminalFactShapeValid(body)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  return body;
+export const parseBrowserMutationReceiptMessage = (body: unknown): BrowserMutationTerminalFact | BrowserMutationDisposeRequest => {
+  if (browserMutationTerminalFactShapeValid(body)) return body;
+  const request = authorityRecord(body);
+  if (!request || Object.keys(request).sort().join("|") !== "commandId|receiptBindingHash|rejectedFact|rejectedFactHash|type"
+    || request.type !== "dispose" || typeof request.commandId !== "string" || !request.commandId
+    || typeof request.receiptBindingHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(request.receiptBindingHash)) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  const hash = request.rejectedFact === null ? null
+    : `sha256:${createHash("sha256").update(canonicalBrowserAuthorityPlaintext(request.rejectedFact)).digest("hex")}`;
+  if (hash !== request.rejectedFactHash) throw new Error("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
+  return request as BrowserMutationDisposeRequest;
 };
 /** Authenticate the existing five-key reply; the original Store remains the sole terminal CAS owner. */
 export const parseBrowserCommandReply = (body: Record<string, unknown>, permit: BrowserCommandPermit,

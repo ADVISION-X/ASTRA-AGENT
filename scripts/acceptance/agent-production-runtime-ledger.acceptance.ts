@@ -10,6 +10,7 @@ import { resolveStoredProductionAuthority } from
   "../../src/lib/local-runtime/production/store-authority-reader.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { targetlessFirstFactHash } from "../../src/lib/local-runtime/production/store-source-settlement.js";
+import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import { ProviderRateLimitControl } from
   "../../src/lib/local-runtime/production/provider-rate-limit-control.js";
 import { buildProductionLeaseRelease } from
@@ -174,6 +175,33 @@ try {
   "production-task hash records the old diagnostic snapshot only");
   assert.equal(resolveStoredProductionAuthority(dataDirectory,
     `production-task:${accepted.job_id}`, hashCanonical(store.readTask(accepted.job_id))), "verified");
+  for (const errors of [
+    [runtimeTransportFailure("LOCAL_503", 503), runtimeTransportFailure("AUTH_401", 401)],
+    [runtimeTransportFailure("AUTH_401", 401)],
+    [runtimeTransportFailure("LOCAL_503", 503), runtimeTransportFailure("AUTH_403", 403)],
+    [runtimeTransportFailure("LOCAL_503", 503), new Error("RAW_STORE_FAILED")],
+    [runtimeTransportFailure("LOCAL_503", 503), executionFailure("failed", "PRODUCTION_STORE_CORRUPTED")],
+    [runtimeTransportFailure("LOCAL_503", 503)],
+  ]) {
+    const isolated = new ProductionRuntimeStore(await mkdtemp(path.join(temporary, "incident-scope-")));
+    let sent = 0;
+    const control = new ProviderRateLimitControl(isolated, { device: { device_id: "device-1" },
+      workerSessionId: "session-1", workerSessionEpoch: 1, workerInstanceId: "worker-1",
+      sessionOpenRequestId: "open-1", request: async () => { const index = sent++; throw errors[index] ?? errors[0]; } } as never);
+    try {
+      for (let index = 0; index < 3; index++) {
+        const job = task({ jobId: `job:incident-${index}`, productId: "payment_screenshot_observation", actionId: "observe" });
+        isolated.acceptTask(job, "attempt:incident");
+        await control.beginIncident({ jobId: job.job_id, attemptId: "attempt:incident", resultRevision: 0,
+          deviceId: "device-1", leaseVersion: 1, fenceHash: HASH_A, capabilityManifestHash: HASH_A,
+          dialogHash: hashCanonical(index), observationHash: HASH_B, sessionKey: `session:${index}`, observedAt: "2030-01-01T00:00:00.000Z" });
+      }
+      const localOnly = errors.length === 1 && typedExecutionFailure(errors[0])?.code === "LOCAL_503";
+      await assert.rejects(control.reconcilePendingIntents(), (error: unknown) => error === (errors[1] ?? errors[0]));
+      assert.equal(sent, localOnly ? 3 : errors.length, "shared faults must exit before the next incident and cannot be masked by prior 503");
+      assert.equal(isolated.pendingProviderCooldownRequestIds().length, 3);
+    } finally { isolated.close(); }
+  }
   const cleanProviderControl = new ProviderRateLimitControl(store, {
     device: { device_id: "device-1" },
   } as never);
@@ -221,16 +249,16 @@ try {
   const providerControl = new ProviderRateLimitControl(store, {
     device: { device_id: "device-1" },
   } as never);
-  assert.equal(providerControl.canRequestClaimAuthority(), false,
-    "the worker must issue zero claim requests before the durable incident reaches Website");
+  assert.equal(providerControl.canRequestClaimAuthority(), true,
+    "the original Website authority query stays reachable while a new incident still closes dangerous input");
   assert.throws(() => providerControl.assertProviderSubmitAllowed(),
     /PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE/u);
   store.setCurrentReason(accepted.job_id, "LEASE_GRANTED");
   assert.throws(() => providerControl.assertProviderSubmitAllowed(),
     /PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE/u,
     "changing local diagnostic reason cannot open Provider submit against durable cooldown facts");
-  assert.deepEqual(store.pendingProviderCooldownRequestIds(), [],
-    "the recovery sender must not deliver an incident before durable acknowledgement clearance");
+  assert.deepEqual(store.pendingProviderCooldownRequestIds(), [cooldownKey],
+    "the incident must be deliverable before a missing old clearance can strand it");
   assert.equal(store.pendingProviderCooldownIncidentBodies().length, 1);
   assert.deepEqual(store.providerCooldownSessionRecoveryIdentity(), {
     workerInstanceId: "worker-recoverable", sessionOpenRequestId: "aipsopen-recoverable",
@@ -270,8 +298,8 @@ try {
   store.markOutboxSent(cooldownKey, {
     ...receiptCore, receipt_hash: hashCanonical(receiptCore),
   });
-  assert.equal(store.hasUndeliveredProviderCooldown(), true,
-    "the matching durable clearance remains a fail-closed claim barrier until Website delivery");
+  assert.equal(store.hasUndeliveredProviderCooldown(), false,
+    "an accounted incident's pending historical clearance is not a new incident admission barrier");
   providerControl.observeWebsiteAuthority({
     serverNow: new Date(Date.now() + 3_600_000).toISOString(), reasonCodes: [],
   });
@@ -455,7 +483,7 @@ try {
 
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
   emitQualityProofObservation({
-    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V42",
+    lawId: "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
     evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:3", "summary"],
     locator: `acceptance:agent-production-runtime:three-table-authority:${evidenceMode}`,

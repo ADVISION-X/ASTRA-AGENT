@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type { BrowserTargetReleaseAuthority } from "../exact-target/browser-target-lease.js";
-import type { BrowserMutationTerminalFact } from "../exact-target/browser-observation-receipt.js";
+import { browserMutationTerminalFactShapeValid, type BrowserMutationTerminalFact, type BrowserMutationDisposeRequest, type BrowserMutationDisposed } from "../exact-target/browser-observation-receipt.js";
 import { canonicalizeBrowserAuthorityValue, decodeBrowserAuthorityFrame, encodeBrowserAuthorityFrame,
   type BrowserAuthorityFrame } from "./browser-authority-frame-codec.js";
 import { createBrowserAuthorityHandshake, decryptBrowserAuthorityFrame, encryptBrowserAuthorityFrame,
@@ -9,7 +9,7 @@ import { BrowserCommandTerminalReplyError, type BrowserGovernedCommand, type Bro
   type BrowserCommandPort } from "../exact-target/browser-command-actor.js";
 import type { BrowserCommandPermit } from "./command-permit.js";
 import { authorityRecord, canonicalBrowserAuthorityPlaintext, parseBrowserCommandReply,
-  parseBrowserMutationTerminalFact, encryptedFrameBody, integerField, parseBrowserAuthorityTargetClaim,
+  parseBrowserMutationReceiptMessage, encryptedFrameBody, integerField, parseBrowserAuthorityTargetClaim,
   parseBrowserAuthorityTargetRevoke, parseCanonicalPlaintext, stringField,
   type BrowserAuthorityTargetClaim, type BrowserAuthorityTargetRevoke } from "./browser-authority-frame-payload.js";
 import { BROWSER_COMMAND_DEFAULT_DEADLINE_MS, BROWSER_MISSED_HEARTBEAT_TOLERANCE_MS,
@@ -25,7 +25,7 @@ export type BrowserAuthorityWebSocketOptions = Readonly<{
   pairingSecret: string | null; onPairingStarted(): void; onHeartbeat(): void;
   onAuthenticated(input: Readonly<{ extensionId: string; extensionVersion: string; releaseBuildId: string;
     sessionHash: `sha256:${string}`; commandPermitKey: string }>): BrowserAuthorityReady;
-  onMutationReceipt(fact: BrowserMutationTerminalFact, acknowledge: () => void): void;
+  onMutationReceipt(fact: BrowserMutationTerminalFact | BrowserMutationDisposeRequest, acknowledge: (disposed?: BrowserMutationDisposed) => void): void;
   onTargetClaim(input: BrowserAuthorityTargetClaim): void; onTargetRevoke(input: BrowserAuthorityTargetRevoke): void;
   onDiagnostic(reasonCode: string, refs: Readonly<Record<string, string>>): void;
   onRevoked(reasonCode: string, refs?: Readonly<Record<string, string>>): void;
@@ -192,7 +192,7 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
   }
   private acceptAuthenticatedControl(socket: BrowserAuthoritySocket, frame: BrowserAuthorityFrame, body: Record<string, unknown>): boolean {
     switch (frame.kind) {
-      case "MUTATION_RECEIPT": this.settleMutationReceipt(socket, parseBrowserMutationTerminalFact(body)); return true;
+      case "MUTATION_RECEIPT": this.settleMutationReceipt(socket, parseBrowserMutationReceiptMessage(body)); return true;
       case "HEARTBEAT":
         if (Object.keys(body).length !== 0) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
         this.options.onHeartbeat(); return true;
@@ -236,10 +236,13 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     else reply.resolve({ replyChannelToken: reply.replyChannelToken, transportSequence: sequence,
       permitSequence: reply.permitSequence, result: body.result, mutationReceipt: parsed.fact });
   }
-  private settleMutationReceipt(socket: BrowserAuthoritySocket, fact: BrowserMutationTerminalFact): void {
+  private settleMutationReceipt(socket: BrowserAuthoritySocket, message: BrowserMutationTerminalFact | BrowserMutationDisposeRequest): void {
     const keys = this.active?.keys;
-    this.options.onMutationReceipt(fact, () => {
+    this.options.onMutationReceipt(message, disposed => {
       if (!keys || this.active?.socket !== socket || this.active.keys !== keys) throw new Error("BROWSER_LIVENESS_EXPIRED");
+      if (disposed) { this.sendControlFrame(socket, "MUTATION_RECEIPT", disposed); return; }
+      const fact = message.type === "fact" ? message : message.rejectedFact;
+      if (!browserMutationTerminalFactShapeValid(fact)) throw new Error("BROWSER_RECONCILIATION_RECEIPT_INVALID");
       this.sendControlFrame(socket, "MUTATION_RECEIPT", { type: "ack", commandId: fact.commandId,
         receiptBindingHash: fact.receiptBindingHash, receiptHash: fact.receiptHash });
     });

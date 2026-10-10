@@ -1,5 +1,5 @@
-import { decodeBrowserAuthorityFrame, encodeBrowserAuthorityFrame, type BrowserAuthorityFrame } from "../transport/browser-authority-frame-codec.js";
-import { browserMutationTerminalFactShapeValid, type BrowserMutationTerminalFact } from "../exact-target/browser-observation-receipt.js";
+import { canonicalizeBrowserAuthorityValue, decodeBrowserAuthorityFrame, encodeBrowserAuthorityFrame, type BrowserAuthorityFrame } from "../transport/browser-authority-frame-codec.js";
+import { browserMutationTerminalFactShapeValid } from "../exact-target/browser-observation-receipt.js";
 import { executeExtensionCommandReply, readExtensionCommandPayload } from "./extension-command-runtime.js";
 import { clearExtensionPermitAuthority, setExtensionPermitAuthority } from "./command-permit-validator.js";
 import { readExtensionChromeApi, type ExtensionChromeApi } from "./extension-runtime-types.js";
@@ -33,9 +33,9 @@ export class ExtensionWebSocketActor {
   private readonly autoBootstrap: PairingAutoBootstrap;
   private readonly commandDelivery = {
     pendingCommandHandlers: new Set<Promise<void>>(), pendingTargetHandlers: new Set<Promise<void>>(), commandAdmissionSuspended: false,
-    mutationSlot: null as { jobId: string; commandId: string; receiptBindingHash: `sha256:${string}`; fact: BrowserMutationTerminalFact | null } | null,
+    mutationSlot: null as { jobId: string; commandId: string; receiptBindingHash: `sha256:${string}`; fact: unknown } | null,
     sendTail: Promise.resolve([] as PromiseSettledResult<void>[]), receiveTail: Promise.resolve() as Promise<void>,
-    lastMutationDeliveryKey: null as CryptoKey | null, disconnectedDrain: null as Promise<void> | null,
+    disconnectedDrain: null as Promise<void> | null,
   };
   public constructor(private readonly chromeApi: ExtensionChromeApi) {
     this.targetAuthority = new ExtensionTargetAuthority(chromeApi, (kind, body) => this.sendTargetFrame(kind, body),
@@ -45,7 +45,9 @@ export class ExtensionWebSocketActor {
         await Promise.allSettled([...this.commandDelivery.pendingCommandHandlers, ...this.commandDelivery.pendingTargetHandlers]);
         if (drain !== null) await drain;
       });
-    this.heartbeat = new ExtensionHeartbeat(chromeApi, socket => this.sendEncrypted(socket, "HEARTBEAT", {}),
+    this.heartbeat = new ExtensionHeartbeat(chromeApi, async socket => {
+      await this.sendEncrypted(socket, "HEARTBEAT", {}); await this.flushMutationReceipt();
+    },
       error => this.reportRuntimeFailure(error, "liveness-pulse"));
     this.autoBootstrap = new PairingAutoBootstrap(chromeApi, {
       canAttemptAutomaticPairing: () => canAttemptAutomaticPairing(this.connection.state), pair: secret => this.pair(secret),
@@ -176,16 +178,29 @@ export class ExtensionWebSocketActor {
   private async acceptMutationAck(socket: WebSocket, frame: BrowserAuthorityFrame): Promise<void> {
     const session = this.connection.session;
     if (!session || !this.connection.commandReady || frame.epoch !== AUTH_EPOCH) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    const ack = await decrypt(session.serverToClientKey, "server-to-client", frame);
+    const response = await decrypt(session.serverToClientKey, "server-to-client", frame);
     if (socket !== this.connection.socket || this.connection.session?.serverToClientKey !== session.serverToClientKey) return;
     this.acceptServerSequence(frame);
-    if (Object.keys(ack).sort().join("|") !== "commandId|receiptBindingHash|receiptHash|type" || ack.type !== "ack"
-      || typeof ack.commandId !== "string" || ack.commandId.length === 0
-      || ![ack.receiptBindingHash, ack.receiptHash].every(hash => typeof hash === "string" && /^sha256:[a-f0-9]{64}$/u.test(hash))) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    const fact = this.commandDelivery.mutationSlot?.fact;
-    if (!fact || ack.commandId !== fact.commandId) return;
-    if (ack.receiptBindingHash !== fact.receiptBindingHash || ack.receiptHash !== fact.receiptHash) throw new Error("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
-    this.commandDelivery.mutationSlot = null; this.commandDelivery.lastMutationDeliveryKey = null;
+    const disposed = response.type === "disposed";
+    const expected = disposed ? "commandId|reasonCode|receiptBindingHash|rejectedFactHash|type" : "commandId|receiptBindingHash|receiptHash|type";
+    if (Object.keys(response).sort().join("|") !== expected || !["ack", "disposed"].includes(String(response.type))
+      || typeof response.commandId !== "string" || !response.commandId
+      || typeof response.receiptBindingHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(response.receiptBindingHash)
+      || disposed && !["BROWSER_RECONCILIATION_RECEIPT_INVALID", "BROWSER_COMMAND_RECEIPT_MISSING", "BROWSER_MUTATION_STATE_CONFLICT"].includes(String(response.reasonCode))) {
+      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    }
+    const slot = this.commandDelivery.mutationSlot;
+    if (!slot || response.commandId !== slot.commandId) return;
+    if (response.receiptBindingHash !== slot.receiptBindingHash) throw new Error("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
+    if (disposed) {
+      const hash = slot.fact === null ? null : await hashBrowserExtensionText(canonicalizeBrowserAuthorityValue(slot.fact));
+      if (response.rejectedFactHash !== hash) throw new Error("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
+      if (this.commandDelivery.mutationSlot !== slot || this.commandDelivery.pendingCommandHandlers.size > 0
+        || this.commandDelivery.pendingTargetHandlers.size > 0 || this.commandDelivery.disconnectedDrain !== null) return;
+    } else {
+      if (!browserMutationTerminalFactShapeValid(slot.fact) || response.receiptHash !== slot.fact.receiptHash) throw new Error("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
+    }
+    this.commandDelivery.mutationSlot = null;
   }
   private async acceptTargetAcquire(socket: WebSocket, frame: BrowserAuthorityFrame): Promise<void> {
     const session = this.connection.session;
@@ -200,7 +215,7 @@ export class ExtensionWebSocketActor {
         const slot = this.commandDelivery.mutationSlot;
         if (operation.releaseAuthority !== "website-admin-deletion" || !slot || await hashBrowserExtensionText(slot.jobId) !== operation.jobRefHash) return;
         if (this.commandDelivery.mutationSlot !== slot) return;
-        this.commandDelivery.mutationSlot = null; this.commandDelivery.lastMutationDeliveryKey = null;
+        this.commandDelivery.mutationSlot = null;
       });
       this.commandDelivery.pendingTargetHandlers.add(handler);
       void handler.then(() => {
@@ -213,7 +228,7 @@ export class ExtensionWebSocketActor {
         this.reportRuntimeFailure(error, "job-bound-target-acquisition", frame.sequence, { jobRefHash: operation.jobRefHash });
       }); return;
     }
-    if (this.commandDelivery.commandAdmissionSuspended || this.commandDelivery.mutationSlot !== null) throw new Error("BROWSER_COMMAND_ADMISSION_SUSPENDED");
+    if (this.commandDelivery.commandAdmissionSuspended || this.commandDelivery.mutationSlot !== null || this.commandDelivery.pendingCommandHandlers.size > 0) throw new Error("BROWSER_COMMAND_ADMISSION_SUSPENDED");
     const handler = this.targetAuthority.acquireJobBoundChatGptTarget(operation.targetMode, operation.jobRefHash, operation.parentConversationUrl, () => {
       if (this.commandDelivery.commandAdmissionSuspended) throw new Error("BROWSER_COMMAND_ADMISSION_SUSPENDED");
       if (socket !== this.connection.socket || !this.connection.commandReady || this.connection.session?.serverToClientKey !== session.serverToClientKey) throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
@@ -229,14 +244,14 @@ export class ExtensionWebSocketActor {
     });
   }
   private async acceptCommand(socket: WebSocket, frame: BrowserAuthorityFrame): Promise<void> {
-    if (this.commandDelivery.commandAdmissionSuspended || this.commandDelivery.mutationSlot !== null) throw new Error("BROWSER_COMMAND_ADMISSION_SUSPENDED");
+    if (this.commandDelivery.commandAdmissionSuspended || this.commandDelivery.mutationSlot !== null || this.commandDelivery.pendingCommandHandlers.size > 0) throw new Error("BROWSER_COMMAND_ADMISSION_SUSPENDED");
     const session = this.connection.session;
     if (!session) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
     const payload = await decrypt(session.serverToClientKey, "server-to-client", frame);
     if (socket !== this.connection.socket || this.connection.session?.serverToClientKey !== session.serverToClientKey) return;
     this.acceptServerSequence(frame);
     const handler = this.executeCommand(socket, frame, payload); this.commandDelivery.pendingCommandHandlers.add(handler);
-    void handler.then(() => { this.commandDelivery.pendingCommandHandlers.delete(handler); }, error => {
+    void handler.then(() => { this.commandDelivery.pendingCommandHandlers.delete(handler); return this.flushMutationReceipt(); }, error => {
       this.commandDelivery.pendingCommandHandlers.delete(handler); if (socket === this.connection.socket) this.close(errorCode(error));
     });
   }
@@ -255,12 +270,10 @@ export class ExtensionWebSocketActor {
       assertCommandActive, deadline, requestSequence: frame.sequence });
     if (receiptBindingHash !== null) {
       const fact = reply.body.mutationReceipt, slot = this.commandDelivery.mutationSlot;
-      if (!browserMutationTerminalFactShapeValid(fact) || slot?.commandId !== permit.commandId
-        || Object.entries({ commandId: permit.commandId, receiptBindingHash }).some(([key, value]) => fact[key as keyof BrowserMutationTerminalFact] !== value)) throw new Error("BROWSER_RECONCILIATION_RECEIPT_INVALID");
+      if (slot?.commandId !== permit.commandId || slot.receiptBindingHash !== receiptBindingHash) throw new Error("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
       slot.fact = fact;
     }
     if (socket !== this.connection.socket || this.connection.session?.serverToClientKey !== session.serverToClientKey) return;
-    if (receiptBindingHash !== null) this.commandDelivery.lastMutationDeliveryKey = session.clientToServerKey;
     const intentKind = asRecord(asRecord(payload.command)?.intent)?.kind;
     try {
       if (reply.diagnostic) await this.sendEncrypted(socket, "DIAGNOSTIC", reply.diagnostic);
@@ -270,13 +283,15 @@ export class ExtensionWebSocketActor {
     }
   }
   private async flushMutationReceipt(): Promise<void> {
-    const fact = this.commandDelivery.mutationSlot?.fact;
-    if (!fact || !this.connection.commandReady || this.commandDelivery.commandAdmissionSuspended || this.commandDelivery.pendingCommandHandlers.size > 0) return;
-    const key = this.connection.session?.clientToServerKey;
-    if (!key || this.commandDelivery.lastMutationDeliveryKey === key) return;
-    this.commandDelivery.lastMutationDeliveryKey = key;
-    const socket = this.connection.socket;
-    try { await this.sendEncrypted(socket, "MUTATION_RECEIPT", fact); }
+    const slot = this.commandDelivery.mutationSlot;
+    if (!slot || !this.connection.commandReady || this.commandDelivery.commandAdmissionSuspended
+      || this.commandDelivery.pendingCommandHandlers.size > 0 || this.commandDelivery.pendingTargetHandlers.size > 0) return;
+    const socket = this.connection.socket, key = this.connection.session?.clientToServerKey;
+    if (!key) return;
+    const rejectedFactHash = slot.fact === null ? null : await hashBrowserExtensionText(canonicalizeBrowserAuthorityValue(slot.fact));
+    if (this.commandDelivery.mutationSlot !== slot || this.connection.session?.clientToServerKey !== key) return;
+    try { await this.sendEncrypted(socket, "MUTATION_RECEIPT", { type: "dispose", commandId: slot.commandId,
+      receiptBindingHash: slot.receiptBindingHash, rejectedFact: slot.fact, rejectedFactHash }); }
     catch (error) {
       if (socket === this.connection.socket && this.connection.session?.clientToServerKey === key) this.close(errorCode(error)); throw error;
     }

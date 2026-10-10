@@ -169,7 +169,7 @@ export interface ProductionExecutionLease {
     canonical_conversation_hash: ProductionHash; user_turn_hash: ProductionHash;
   }>[];
   readonly readback_only_calls?: readonly Readonly<{ product_step_id: string; call_id: string;
-    child_capability_id: "submit_exact_gpt_turn_once" }>[];
+    child_capability_id: "submit_exact_gpt_turn_once"; source?: Readonly<{ sourceAttemptId: string; sourceResultRevision: number; effectIdentityHash: `sha256:${string}`; walAuthorityHash: `sha256:${string}` }> }>[];
   readonly attempt_id: string;
   readonly device_id: string;
   readonly lease_version: number;

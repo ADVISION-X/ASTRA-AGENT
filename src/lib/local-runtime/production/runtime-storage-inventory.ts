@@ -2,7 +2,7 @@ import type { Dirent, Stats } from "node:fs";
 import { lstat, readdir } from "node:fs/promises";
 import path from "node:path";
 
-import { executionFailure } from "../../execution-failure.js";
+import { executionFailure, TypedExecutionFailure, typedExecutionFailure } from "../../execution-failure.js";
 
 export type ProductionRuntimeStorageInventory = Readonly<{
   root: string;
@@ -37,6 +37,12 @@ const nativeCode = (error: unknown): string | null =>
 const storageFailure = (code: string, cause?: unknown): never => {
   throw executionFailure("failed", code, cause === undefined ? {} : { cause });
 };
+
+export class ProductionRuntimeTaskStorageFailure extends TypedExecutionFailure {
+  public constructor(public readonly jobId: string, code: string, cause: unknown) {
+    super("failed", code, cause);
+  }
+}
 
 const entryBytes = async (entryPath: string): Promise<number> => {
   let metadata: Stats;
@@ -77,9 +83,6 @@ export async function readProductionRuntimeStorageInventory(
   let entries: Dirent[];
   try { entries = await readdir(root, { withFileTypes: true }); }
   catch (error) { return storageFailure("PRODUCTION_STORAGE_INVENTORY_UNREADABLE", error); }
-  if (entries.some((entry) => !entry.isDirectory() || entry.isSymbolicLink())) {
-    storageFailure("PRODUCTION_STORAGE_STRUCTURE_INVALID");
-  }
   const owners = new Set(responsibilities.task_ids.map((jobId) => {
     productionRuntimeTaskPath(dataDir, jobId);
     return jobId;
@@ -89,8 +92,17 @@ export async function readProductionRuntimeStorageInventory(
   const orphanSet = new Set(orphanJobIds);
   let orphanBytes = 0;
   for (const jobId of directoryNames) {
-    const bytes = await entryBytes(productionRuntimeTaskPath(dataDir, jobId));
-    if (orphanSet.has(jobId)) orphanBytes += bytes;
+    try {
+      const entry = entries.find((candidate) => candidate.name === jobId)!;
+      if (!entry.isDirectory() || entry.isSymbolicLink()) storageFailure("PRODUCTION_STORAGE_STRUCTURE_INVALID");
+      const bytes = await entryBytes(productionRuntimeTaskPath(dataDir, jobId));
+      if (orphanSet.has(jobId)) orphanBytes += bytes;
+    } catch (error) {
+      const typed = typedExecutionFailure(error);
+      if (!typed || !["PRODUCTION_STORAGE_SYMLINK_INVALID", "PRODUCTION_STORAGE_STRUCTURE_INVALID",
+        "PRODUCTION_STORAGE_INVENTORY_UNREADABLE"].includes(typed.code)) throw error;
+      throw new ProductionRuntimeTaskStorageFailure(jobId, typed.code, error);
+    }
   }
   return Object.freeze({
     root,

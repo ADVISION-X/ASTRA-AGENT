@@ -105,7 +105,7 @@ bounded WAIT 只在该 Child 画像与当前调用内按原文成立，不是第
 核相应架构、Runtime、GPT、Browser、Forensics 法案和 Blueprint 的正文、条件及例外：
 
 - job/request、accepted attempt、result revision、Provider effect、当前 Target/Document、locator、内容 hash 与 receipt 不能互代。Provider effect 不含 attempt/process/lease/fence/Target/Document；Target 仅是当前物理坐标，URL 只指去哪读，不授 submit。
-- Product 先核已确认提交事实再决定首次准备；同 effect 已可能输入先经 GPT 公开 facade 取得 Browser 原 Owner 的 typed fact，核原 WAL/权威后置，不能重跑 fresh/profile/files/write/submit。未知不等于零输入；全部相关旧 command 的 terminal/input-quiescence 由 Browser 原 Owner 证明，未决 DISPATCHED 不给新输入。
+- Product先核完整Browser effect历史；同effect已输入/未知只原身份读回，未知不等zero。历史DISPATCHED及quiescence缺席不挡其它获准effect；当前物理操作仍由唯一lane/逐次guard串行，原答案不可得只由Website签新revision/指定调用风险grant。
 - 原答案有界不可得时，只有 Website 已持久签的精确新 revision/指定调用风险 grant 才能有一次受控可能重复输入，旧 WAL 事实保留。新 Target、相同 Prompt、旧页面缺席或新 attempt 不推导风险资格。
 - 跨任务 continuation 只在当前授权 SEO 文章、固定 catalog 的严格 direct-parent 关系内成立。Runtime机械核父 result ref/hash与本地 completed父任务，只取其 current attempt用于 Browser locator选择；父 attempt不进入 effect identity，不读父回答/复用父Tab，不建 continuation store/frontier/CAS/controller。八字父报告只能来自本轮 Website 已入库 locked-fact材料且任务 fresh。
 - “禁止旧checkpoint”不能覆盖现役两种精确零提交来源：风险来源中 settled_reusable 的指定调用；原 Outbox精确409、完整结果缺席、Website原对象/receipt及全部settled checkpoint共同证明后签 calls=[]来源 grant。只按已签 seal与精确调用复用原完成回答，旧 staged payload/执行位置不成为新 Product输入。

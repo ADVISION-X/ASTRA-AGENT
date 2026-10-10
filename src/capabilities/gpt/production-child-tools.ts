@@ -69,6 +69,9 @@ export class ProductionGptChildTools {
     recorder: ReadbackRecorder, recordSubmitIdentity: (identity: BrowserAtomicStepIdentity) => void,
   ): Promise<ProductGptChildResult<"submit_exact_gpt_turn_once"> | null> {
     this.assertExecutionActive(input);
+    const readback = input.readbackOnlyCalls?.find((entry) => entry.productStepId === call.productStepId
+      && entry.callId === call.callId && entry.childCapabilityId === call.child);
+    if (readback?.source) return this.readSourceSubmit(input, call, readback.source, recordSubmitIdentity);
     const startedAt = new Date().toISOString();
     const existing = this.browserAuthority.readProviderEffectStepCallFact({
       jobId: input.jobId, attemptId: input.attemptId, resultRevision: input.resultRevision,
@@ -96,6 +99,36 @@ export class ProductionGptChildTools {
     }
   }
 
+  private readSourceSubmit(input: ExecutionInput, call: SubmitCall,
+    source: NonNullable<NonNullable<ExecutionInput["readbackOnlyCalls"]>[number]["source"]>,
+    recordSubmitIdentity: (identity: BrowserAtomicStepIdentity) => void,
+  ): ProductGptChildResult<"submit_exact_gpt_turn_once"> {
+    const original = this.browserAuthority.readSourceConfirmedProviderEffect({
+      jobId: input.jobId, ...source, productStepId: call.productStepId,
+      callId: call.callId, childCapabilityId: call.child,
+    });
+    const raw = original.terminalPayload;
+    const value = raw && typeof raw === "object" && !Array.isArray(raw)
+      ? raw as Readonly<Record<string, unknown>> : null;
+    if (!value || !Number.isSafeInteger(original.actionOrdinal) || original.actionOrdinal < 1
+      || typeof value.promptHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(value.promptHash)
+      || typeof value.canonicalConversationUrl !== "string" || typeof value.userTurnId !== "string"
+      || value.exactCallIdentityHash !== original.exactCallIdentityHash
+      || value.rawCount !== 1 || value.eligibleCount !== 1) {
+      throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_IDENTITY_MISMATCH");
+    }
+    recordSubmitIdentity(Object.freeze({ resultRevision: source.sourceResultRevision,
+      productStepId: call.productStepId, callId: call.callId, childCapabilityId: call.child,
+      actionOrdinal: original.actionOrdinal, inputHash: original.inputHash, replayPolicy: "provider-effect-once" }));
+    return Object.freeze({ value: Object.freeze({ status: "CONFIRMED", promptHash: value.promptHash as GptHash,
+      mutationSent: true, canonicalConversationUrl: value.canonicalConversationUrl, userTurnId: value.userTurnId }),
+      sourceAttemptId: source.sourceAttemptId, exactCallIdentityHash: original.exactCallIdentityHash,
+      evidenceRef: original.authorityRef, evidenceHash: original.authorityHash, artifactRefs: Object.freeze([]),
+      effectReceipt: Object.freeze({ effectScope: "provider_effect", providerEffectIdentityHash: source.effectIdentityHash,
+        outcome: "CONFIRMED", mutationOutcome: "confirmed", terminalAt: original.terminalAt,
+        evidenceRef: original.authorityRef, evidenceHash: original.authorityHash }) });
+  }
+
   private async executeOne<K extends GptChildCapabilityId>(
     execution: ExecutionInput, browsers: ProductionGptBrowserLifecycle,
     call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>, options: ExecuteOptions = {},
@@ -105,7 +138,15 @@ export class ProductionGptChildTools {
     let browserCall: ProductionGptBrowserCall | undefined;
     let result: GptChildCapabilityResult;
     try {
-      const recovered = await recoverPersistedCheckpoint({ evidenceStore: this.evidenceStore, execution, intent, call, span });
+      const source = options.confirmedSubmission?.sourceReadback;
+      if (source) this.browserAuthority.readSourceConfirmedProviderEffect({
+        jobId: execution.jobId, ...source,
+        productStepId: options.confirmedSubmission!.submitIdentity.productStepId,
+        callId: options.confirmedSubmission!.submitIdentity.callId,
+        childCapabilityId: "submit_exact_gpt_turn_once",
+      });
+      const recovered = await recoverPersistedCheckpoint({ evidenceStore: this.evidenceStore, execution, intent, call, span,
+        ...(options.confirmedSubmission ? { confirmedSubmission: options.confirmedSubmission } : {}) });
       if (recovered) return recovered;
       if (!options.confirmedProviderEffectReadback) browserCall = await acquireProductionBrowserCall(
         browsers, call, GPT_CHILD_CAPABILITY_CONTRACTS[call.child].requiredTargetKind,
@@ -210,19 +251,23 @@ export class ProductionGptChildTools {
   }
 
   public async reconcilePendingProviderRateLimitIncidents(_parentSpanId: string, _signal: AbortSignal): Promise<void> {
+    let firstFailure: unknown = null;
     for (const pending of this.providerRateLimitControl.pendingIncidents()) {
-      const incident = await this.providerRateLimitControl.beginIncident(pending);
-      let terminal: Readonly<{ terminalAt: string }> | null;
       try {
-        terminal = this.browserAuthority.readConfirmedRateLimitAcknowledgement({
+        const incident = await this.providerRateLimitControl.beginIncident(pending);
+        const terminal = this.browserAuthority.readConfirmedRateLimitAcknowledgement({
           jobId: pending.jobId, attemptId: pending.attemptId, resultRevision: pending.resultRevision,
           incidentRequestId: incident.incidentRequestId,
         });
-      } catch (error) { await incident.deliver(notClearedRateLimit(incident, pending.observedAt)); throw error; }
-      if (!terminal) { await incident.deliver(notClearedRateLimit(incident, pending.observedAt)); continue; }
-      await incident.deliver({ clearance: "confirmed_absent", acknowledgedAt: terminal.terminalAt,
-        acknowledgementReceiptHash: confirmedRateLimitAckHash(incident.incidentRequestId, terminal.terminalAt) });
+        await incident.deliver(terminal ? { clearance: "confirmed_absent", acknowledgedAt: terminal.terminalAt,
+          acknowledgementReceiptHash: confirmedRateLimitAckHash(incident.incidentRequestId, terminal.terminalAt) }
+          : notClearedRateLimit(incident, pending.observedAt));
+      } catch (error) {
+        this.providerRateLimitControl.assertIncidentFailureIsolated(error);
+        firstFailure ??= error;
+      }
     }
+    if (firstFailure !== null) throw firstFailure;
   }
 
   private assertExecutionActive(input: ExecutionInput): void {

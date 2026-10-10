@@ -14,7 +14,7 @@ import { ProductionRuntimeBoundaryError } from "../../src/lib/local-runtime/prod
 import type { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { requireRuntimeLogWrite } from "../../src/lib/runtime-logs/index.js";
 import { businessInFlightCount, reconcileCompletedBrowserTargets } from "../../src/lib/local-runtime/production/runtime-loops.js";
-import { targetlessFirstFactHash, validV44SourceHandoff } from "../../src/lib/local-runtime/production/store-source-settlement.js";
+import { targetlessFirstFactHash, validSourceHandoff } from "../../src/lib/local-runtime/production/store-source-settlement.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import { serializeTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
@@ -155,7 +155,7 @@ const exerciseIssuedAttemptAndStageRace = (context: SourceSealContext, sealedAt:
     first_fact_raw_hash: null, outbox_history_hash: beforeStage.historyHash,
     outbox_candidate_count: beforeStage.candidateCount };
   const stageFirstManifest = { ...stageFirstBody, seal_hash: hashCanonical(stageFirstBody) };
-  assert.equal(validV44SourceHandoff(stageFirstManifest), true);
+  assert.equal(validSourceHandoff(stageFirstManifest), true);
   store.setCurrentReason(job.job_id, "DIAGNOSTIC_NOT_EXECUTING");
   stageResultForAcceptance(store, job.job_id, "attempt:2", resultFor(job));
   assert.deepEqual(store.readTask(job.job_id)?.staged_result, resultFor(job),
@@ -380,19 +380,27 @@ const exerciseAdmittedOutboxLateWrites = async (store: ProductionRuntimeStore, h
   const ready = task({ jobId: "job:just-staged-before-cleanup", productId: "payment_screenshot_observation", actionId: "observe" });
   const result = resultFor(ready), attempt = "attempt:ready", key = `terminal:acceptance:${ready.job_id}:${attempt}`;
   store.acceptTask(ready, attempt); stageResultForAcceptance(store, ready.job_id, attempt, result);
-  let releases = 0;
-  const state = { store, abort: new AbortController(), browserAuthority: { releaseJobBoundTarget: async () => { releases++; } } };
-  const pendingBefore = store.pendingBrowserCleanupJobIds().length;
-  assert.ok(pendingBefore > 0);
+  const pendingBefore = store.pendingBrowserCleanupJobIds();
+  const eligible = pendingBefore.filter(jobId => !store.hasUnsentOutbox(jobId));
+  assert.ok(eligible.length > 1);
+  const attempted: string[] = [];
+  let failFirst = true;
+  const state = { store, abort: new AbortController(), browserAuthority: { releaseJobBoundTarget: async (jobId: string) => {
+    attempted.push(jobId);
+    if (failFirst && jobId === eligible[0]) throw executionFailure("failed", "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
+  } } };
   await reconcileCompletedBrowserTargets(state as never);
-  assert.equal(releases, 0, "a just-staged sendable terminal wins over old completed cleanup");
-  assert.equal(store.pendingBrowserCleanupJobIds().length, pendingBefore);
+  assert.deepEqual(attempted, eligible, "a failed first cleanup must leave later eligible jobs reachable");
+  assert.equal(store.pendingBrowserCleanupJobIds().length, pendingBefore.length - eligible.length + 1);
+  assert.ok(store.pendingBrowserCleanupJobIds().includes(eligible[0]!));
   store.markOutboxSent(key, { schema_version: "xuanxue-ai-terminal-receipt.v6", job_id: ready.job_id,
     terminal_status: "completed", payload_hash: hashCanonical(result), failure: null, first_terminal: true,
     device_id: "device:test", device_epoch: 1, worker_session_id: "session:acceptance",
     worker_session_epoch: 1, runtime_attestation_receipt_hash: hash });
+  failFirst = false; attempted.length = 0;
   await reconcileCompletedBrowserTargets(state as never);
-  assert.equal(releases, 1); assert.equal(store.pendingBrowserCleanupJobIds().length, pendingBefore - 1);
+  assert.deepEqual(attempted, [eligible[0]], "the previously failed cleanup remains recoverable");
+  assert.equal(store.pendingBrowserCleanupJobIds().length, pendingBefore.length - eligible.length);
   store.close();
 };
 

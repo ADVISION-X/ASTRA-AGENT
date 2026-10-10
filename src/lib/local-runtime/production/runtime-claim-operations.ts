@@ -127,7 +127,7 @@ export const acceptClaim = (
   jobSpan: RuntimeSpanHandle,
   reconciledFailure: AttemptFailureFirstFact | null,
   readbackOnlyCalls: readonly Readonly<{ productStepId: string; callId: string;
-    childCapabilityId: "submit_exact_gpt_turn_once" }>[] | null,
+    childCapabilityId: "submit_exact_gpt_turn_once"; source?: Readonly<{ sourceAttemptId: string; sourceResultRevision: number; effectIdentityHash: `sha256:${string}`; walAuthorityHash: `sha256:${string}` }> }>[] | null,
 ) => {
   const task = websiteAgentTaskFromClaim(job);
   assertClaimIdentity(job);
@@ -163,12 +163,15 @@ export const acceptClaim = (
     || source.source_attempt_id !== replay.source_attempt_id)) {
     throw executionFailure("failed", "PRODUCTION_REPLAY_GRANT_SOURCE_MISMATCH");
   }
-  const reusableCalls = reusableCallsFor(source);
+  const reusableCalls = reusableCallsFor(source).filter((call) => !readbackOnlyCalls?.some((readback) =>
+    readback.productStepId === call.product_step_id && readback.callId === call.call_id
+    && readback.childCapabilityId === call.child_capability_id));
   const budget: ProductionExecutionLease = {
     ...baseBudget,
     ...(readbackOnlyCalls ? { readback_only_calls: readbackOnlyCalls.map((call) => ({
       product_step_id: call.productStepId, call_id: call.callId,
       child_capability_id: call.childCapabilityId,
+      ...(call.source ? { source: call.source } : {}),
     })) } : {}),
     ...(reusableCalls.length > 0 ? { source_reusable_calls: reusableCalls } : {}),
   };

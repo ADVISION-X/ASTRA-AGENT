@@ -1,6 +1,6 @@
 import type { SourceAttemptHandoff, SourceReadbackObservation } from "./source-readback-contract.js";
 import { acceptedSourceSettlements, targetlessFirstFactHash, validSourceReadbackObservation,
-  validV44SourceHandoff,
+  validSourceHandoff, parseSourceHandoffJson,
   type AcceptedSourceSettlement } from "./store-source-settlement.js";
 import { executionFailure } from "../../execution-failure.js";
 import { hashCanonical } from "./contracts.js";
@@ -35,18 +35,21 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
         jobId, attemptId,
       ) as { readback_observations_json: string } | undefined;
       const observations = existing
-        ? JSON.parse(existing.readback_observations_json) as SourceReadbackObservation[] : [];
+        ? this.parseSourceObservations(existing.readback_observations_json) : [];
       if (!Array.isArray(observations)) throw executionFailure("failed", "PRODUCTION_SOURCE_READBACK_CORRUPT");
       const prior = observations.findIndex((item) => item.effect_identity_hash === observation.effect_identity_hash
         && item.path === observation.path);
       if (prior >= 0) {
         const previous = observations[prior]!;
         if (observation.kind === "settled_checkpoint") {
-          if (previous.kind !== "settled_checkpoint"
-            || previous.proof_hash !== observation.proof_hash) {
+          if (previous.kind !== "settled_checkpoint") throw executionFailure("failed", "PRODUCTION_SOURCE_READBACK_CONFLICT");
+          if (previous.proof_hash === observation.proof_hash) return;
+          if (previous.source_attempt_id !== observation.source_attempt_id
+            || previous.source_result_revision !== observation.source_result_revision
+            || previous.wal_authority_hash === observation.wal_authority_hash
+              && previous.source_effect_set_hash === observation.source_effect_set_hash) {
             throw executionFailure("failed", "PRODUCTION_SOURCE_READBACK_CONFLICT");
           }
-          return;
         }
         observations.splice(prior, 1);
       }
@@ -72,8 +75,17 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
       jobId, attemptId,
     ) as { readback_observations_json: string } | undefined;
     if (!row) return [];
-    const parsed: unknown = JSON.parse(row.readback_observations_json);
-    if (!Array.isArray(parsed)) throw executionFailure("failed", "PRODUCTION_SOURCE_READBACK_CORRUPT");
+    return this.parseSourceObservations(row.readback_observations_json);
+  }
+
+  private parseSourceObservations(json: string): SourceReadbackObservation[] {
+    let parsed: unknown;
+    try { parsed = JSON.parse(json); }
+    catch (error) { throw executionFailure("failed", "PRODUCTION_SOURCE_READBACK_CORRUPT", { cause: error }); }
+    if (!Array.isArray(parsed) || !parsed.every(item => item && typeof item === "object"
+      && !Array.isArray(item) && validSourceReadbackObservation(item))) {
+      throw executionFailure("failed", "PRODUCTION_SOURCE_READBACK_CORRUPT");
+    }
     return parsed as SourceReadbackObservation[];
   }
 
@@ -89,7 +101,7 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
         || current.staged_result !== null
         || manifest.source_task_hash !== hashCanonical(current.task)
         || manifest.first_fact_raw_hash !== targetlessFirstFactHash(firstRaw)
-        || hashCanonical(body) !== sealHash || !validV44SourceHandoff(manifest)) {
+        || hashCanonical(body) !== sealHash || !validSourceHandoff(manifest)) {
         throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
       }
       const existing = this.database.prepare(`select seal_hash,source_manifest_json,first_fact_raw,sealed_at
@@ -140,10 +152,10 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
       || this.readAttemptFailureRaw(jobId) !== row.first_fact_raw) {
       throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
     }
-    const manifest = JSON.parse(row.source_manifest_json) as SourceAttemptHandoff;
+    const manifest = parseSourceHandoffJson(row.source_manifest_json);
     const { seal_hash: sealHash, ...body } = manifest;
     if (sealHash !== row.seal_hash || hashCanonical(body) !== sealHash
-      || !validV44SourceHandoff(manifest)
+      || !validSourceHandoff(manifest)
       || manifest.job_id !== jobId || manifest.source_attempt_id !== attemptId
       || manifest.source_task_hash !== hashCanonical(current.task)) {
       throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
@@ -164,10 +176,10 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
     if (!row.source_manifest_json || !row.accepted_at || !row.sealed_at) {
       throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
     }
-    const manifest = JSON.parse(row.source_manifest_json) as SourceAttemptHandoff;
+    const manifest = parseSourceHandoffJson(row.source_manifest_json);
     const { seal_hash: storedSeal, ...body } = manifest;
     if (storedSeal !== sealHash || hashCanonical(body) !== sealHash
-      || !validV44SourceHandoff(manifest)
+      || !validSourceHandoff(manifest)
       || manifest.job_id !== jobId || manifest.source_attempt_id !== row.source_attempt_id
       || manifest.source_task_hash !== hashCanonical(current.task)) {
       throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");

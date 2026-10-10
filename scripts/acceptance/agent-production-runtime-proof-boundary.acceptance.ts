@@ -104,18 +104,18 @@ try {
   const command = identity("health-unresolved-command", "health-old-attempt");
   mutationStore.prepare(command); mutationStore.markDispatched(command.commandId);
   const walBefore = mutationStore.readCommand(command.commandId);
-  assert.equal(lane.readState(), "blocked");
+  assert.equal(lane.readState(), "idle");
   assert.equal(readHealth(state).browserState, "ready", "Authority presence remains its own dimension");
-  assert.equal(readHealth(state).executionState, "blocked", "real unresolved WAL cannot produce execution green");
+  assert.equal(readHealth(state).executionState, "ready", "historical unknown remains diagnostic and cannot veto the current idle lane");
   assert.equal(readHealth(state).claimAdmissionState, "eligible", "health must not change claim admission");
   for (const lastErrorCode of [null, "OLD_UNRELATED_FAILURE"]) {
     const health = { ...readHealth(state), lastErrorCode };
     const row = await executionRow(health);
-    assert.equal(row.reason_code, "BROWSER_LANE_BLOCKED"); assert.equal(row.completeness, "COMPLETE");
+    assert.equal(row.reason_code, null); assert.equal(row.completeness, "COMPLETE");
     const axes = (await snapshot(health)).rows;
     assert.equal(axes.find(entry => entry.axis === "browser_authority")?.current_value, "present");
     assert.equal(axes.find(entry => entry.axis === "runtime_log_sink")?.current_value, "ready");
-    assert.equal(axes.find(entry => entry.axis === "browser_lane")?.current_value, "blocked");
+    assert.equal(axes.find(entry => entry.axis === "browser_lane")?.current_value, "idle");
     assert.deepEqual(axes.find(entry => entry.axis === "browser_wal")?.current_value,
       { job_effect_present: null, unresolved_effect_present: true });
   }
@@ -167,7 +167,7 @@ try {
   const deliveryCommand = identity("health-unresolved-delivery", "health-delivery-attempt");
   mutationStore.prepare(deliveryCommand); mutationStore.markDispatched(deliveryCommand.commandId);
   const deliveryWalBefore = mutationStore.readCommand(deliveryCommand.commandId);
-  assert.equal(readHealth(state).executionState, "blocked");
+  assert.equal(readHealth(state).executionState, "ready", "historical unknown does not veto existing result delivery");
   const accepted = task({ jobId: "job:health:delivery", productId: "payment_screenshot_observation", actionId: "observe" });
   runtimeStore.acceptTask(accepted, "attempt:delivery"); runtimeStore.markExecuting(accepted.job_id);
   stageResultForAcceptance(runtimeStore, accepted.job_id, "attempt:delivery", resultFor(accepted));

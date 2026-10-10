@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 
 import {
-  requireRuntimeLogWrite,
+  requireRuntimeLogWrite, runtimeFailureFromError, RuntimeFailureImpact,
   runtimeLogCauseEventId,
   withRuntimeLogCause,
   type RuntimeSpanHandle,
@@ -29,7 +29,7 @@ import { terminalSpanFailure } from "./runtime-logging.js";
 import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import { releaseReceiptMatches, remoteFailureMatches } from "./runtime-attempt-failure-readback.js";
 import { reconcileBusinessAdmission, websiteJobAbsent } from "./runtime-business-admission.js";
-import { readProductionRuntimeStorageInventory } from "./runtime-storage-inventory.js";
+import { readProductionRuntimeStorageInventory, ProductionRuntimeTaskStorageFailure } from "./runtime-storage-inventory.js";
 import {
   refreshLedgerReconciled,
   safeReason,
@@ -147,6 +147,7 @@ const createRuntimeState = (
     credential,
     () => runtimeState(stateRef!),
     input.sourceHash,
+    () => input.runtimeLogger.isWritable(),
     recoverySession?.workerInstanceId,
     recoverySession?.sessionOpenRequestId,
   );
@@ -334,11 +335,17 @@ export const startProductionRuntime = async (
   try {
     store.assertStartupDataIntegrity();
     input.browserAuthority.verifyRuntimeTaskProvenance(store.earliestTaskCreatedAt());
-    const inventory = await readProductionRuntimeStorageInventory(
-      input.dataDir, store.storageResponsibilities(),
-    );
-    if (inventory.orphan_directory_count > 0) {
-      throw executionFailure("failed", "PRODUCTION_ORPHAN_STORAGE_RECONCILIATION_REQUIRED");
+    try {
+      await readProductionRuntimeStorageInventory(input.dataDir, store.storageResponsibilities());
+    } catch (error) {
+      if (!(error instanceof ProductionRuntimeTaskStorageFailure)) throw error;
+      requireRuntimeLogWrite(input.runtimeLogger.emitError({
+        traceId: `producer:${input.runtimeLogger.producerRunId}`,
+        owner: "production-runtime", component: "storage-inventory", operation: "runtime.start",
+        typedIdentity: { kind: "job", jobId: error.jobId },
+        failure: runtimeFailureFromError({ error, code: error.code,
+          responsibleOwner: "production-runtime", impact: RuntimeFailureImpact.BLOCKING }),
+      }));
     }
   } catch (error) {
     terminalSpanFailure(startSpan, error, runtimeLogCauseEventId(error), "RUNTIME_START_FAILED");

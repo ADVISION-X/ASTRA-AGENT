@@ -321,13 +321,13 @@ const verifyUnresolvedBrowserMutationDoesNotStarveClaimRecovery = async (): Prom
       abort: new AbortController(),
     } as never;
     await reconcilePendingAttemptFailures(state);
-    assert.equal(released, 0,
-      "an unrelated unresolved Browser mutation must not make pre-claim recovery wait for target release");
+    assert.equal(released, 1,
+      "an unrelated historical Browser mutation cannot postpone Website-authorized target release");
     assert.deepEqual(store.readTask(job.job_id)?.attempt_failure, failure,
-      "deferred release must retain the immutable failed-attempt authority");
+      "resource release must retain the immutable failed-attempt authority");
     unresolved = false;
     await reconcilePendingAttemptFailures(state);
-    assert.equal(released, 1, "the deferred release must resume after the Browser mutation settles");
+    assert.equal(released, 2, "the next original reconciliation remains reachable without a historical gate");
     assert.equal(store.readTask(job.job_id)?.current_reason,
       "SOURCE_HANDOFF_RECONCILIATION_PENDING");
   } finally {

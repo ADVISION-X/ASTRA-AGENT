@@ -6,6 +6,7 @@ import {
   runtimeFailureFromError,
   runtimeLogCauseEventId,
   withRuntimeLogCause,
+  type RuntimeSpanHandle,
 } from "../../runtime-logs/index.js";
 import { failureCode, typedExecutionFailure } from "../../execution-failure.js";
 import { claimProductionTasks } from "./cloud-client.js";
@@ -18,6 +19,7 @@ import type { ProductionRuntimeHealth } from "./runtime-contract.js";
 import { executeClaim, reconcilePendingAttemptFailures } from "./runtime-claim.js";
 import { purgeDeletedJob, reconcileBusinessAdmission, websiteJobAbsent } from "./runtime-business-admission.js";
 import { terminalSpanFailure } from "./runtime-logging.js";
+import { typedRuntimeTransportFailure } from "./transport-failure.js";
 import {
   refreshLedgerReconciled,
   safeReason,
@@ -41,9 +43,17 @@ export const claimReusesExistingBusinessSlot = (
 const businessInFlightJobIds = (state: RuntimeState): ReadonlySet<string> => new Set([
   ...state.active.keys(),
   ...state.store.taskAuthorities()
-    .filter((row) => row.status === "failed" && row.current_attempt_id !== null
-      && state.store.readSealedSourceHandoff(row.task.job_id, row.current_attempt_id) === null
-      && !state.store.attemptClosedByWebsite(row.task.job_id, row.current_attempt_id))
+    .filter((row) => {
+      if (row.status !== "failed" || row.current_attempt_id === null) return false;
+      try {
+        return state.store.readSealedSourceHandoff(row.task.job_id, row.current_attempt_id) === null
+          && !state.store.attemptClosedByWebsite(row.task.job_id, row.current_attempt_id);
+      } catch (error) {
+        if (typedExecutionFailure(error)?.code !== "PRODUCTION_SOURCE_HANDOFF_CONFLICT") throw error;
+        state.store.setCurrentReason(row.task.job_id, "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
+        return true;
+      }
+    })
     .map((row) => row.task.job_id),
 ]);
 
@@ -176,42 +186,59 @@ const launchClaimJobs = (
 
 const reconcilePendingBusinessAdmissions = async (state: RuntimeState): Promise<void> => {
   for (const task of state.store.pendingBusinessAdmissions()) {
-    const span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
-      traceId: task.task.job_id, owner: "production-runtime", component: "production-admission-readback",
-      operation: "website.v6-request",
-      typedIdentity: { kind: "job", jobId: task.task.job_id },
-    }));
+    let span: RuntimeSpanHandle | null = null;
     try {
-      const outcome = await reconcileBusinessAdmission(state, task);
-      if (outcome === "deleted") {
-        requireRuntimeLogWrite(span.terminal({ outcome: "succeeded" }));
-        continue;
-      }
-      const current = state.store.readTask(task.task.job_id)!;
-      requireRuntimeLogWrite(span.terminal(outcome === "completed" ? {
-        outcome: "succeeded", authorityRef: `production-task:${task.task.job_id}`,
-        authorityHash: hashCanonical(current),
-      } : { outcome: "succeeded" }));
+      span = requireRuntimeLogWrite(state.runtimeLogger.startSpan({
+        traceId: task.task.job_id, owner: "production-runtime", component: "production-admission-readback",
+        operation: "website.v6-request",
+        typedIdentity: { kind: "job", jobId: task.task.job_id },
+      }));
     } catch (error) {
-      terminalSpanFailure(span, error, runtimeLogCauseEventId(error),
-        "BUSINESS_ADMISSION_RECONCILIATION_FAILED");
+      state.lastErrorCode = failureCode(error, "RUNTIME_LOG_SINK_WRITE_FAILED");
+      state.lastErrorReason = safeReason(error);
+    }
+    let outcome: Awaited<ReturnType<typeof reconcileBusinessAdmission>> | null = null;
+    let admissionError: unknown = null;
+    try { outcome = await reconcileBusinessAdmission(state, task); }
+    catch (error) {
+      const transport = typedRuntimeTransportFailure(error);
+      if (!typedExecutionFailure(error) || transport && [401, 403].includes(transport.httpStatus)) throw error;
+      admissionError = error;
+      state.lastErrorCode = failureCode(error, "BUSINESS_ADMISSION_RECONCILIATION_FAILED");
+      state.lastErrorReason = safeReason(error);
+      state.store.setCurrentReason(task.task.job_id, state.lastErrorCode);
+    }
+    if (!span) continue;
+    try {
+      if (admissionError !== null) {
+        terminalSpanFailure(span, admissionError, runtimeLogCauseEventId(admissionError),
+          "BUSINESS_ADMISSION_RECONCILIATION_FAILED");
+      } else {
+        const current = outcome === "completed" ? state.store.readTask(task.task.job_id) : null;
+        requireRuntimeLogWrite(span.terminal({ outcome: "succeeded",
+          ...(current ? { authorityRef: `production-task:${task.task.job_id}`,
+            authorityHash: hashCanonical(current) } : {}) }));
+      }
+    } catch (error) {
+      state.lastErrorCode = failureCode(error, "RUNTIME_LOG_SINK_WRITE_FAILED");
+      state.lastErrorReason = safeReason(error);
     }
   }
 };
 
 export const reconcileCompletedBrowserTargets = async (state: RuntimeState): Promise<void> => {
-  if (state.store.pendingBusinessAdmissions().some(task => state.store.hasUnsentOutbox(task.task.job_id))) return;
-  const pending = state.store.pendingBrowserCleanupJobIds();
-  if (pending.length === 0) return;
-  const jobId = pending[0]!;
-  try {
-    await state.browserAuthority.releaseJobBoundTarget(
-      jobId, "business-admitted", state.abort.signal,
-    );
-    state.store.settleBrowserCleanup(jobId);
-  } catch (error) {
-    state.lastErrorCode = failureCode(error, "BROWSER_ADMITTED_TARGET_CLEANUP_PENDING");
-    state.lastErrorReason = safeReason(error);
+  for (const jobId of state.store.pendingBrowserCleanupJobIds()) {
+    if (state.store.hasUnsentOutbox(jobId)) continue;
+    try {
+      await state.browserAuthority.releaseJobBoundTarget(
+        jobId, "business-admitted", state.abort.signal,
+      );
+      state.store.settleBrowserCleanup(jobId);
+    } catch (error) {
+      if (!failureCode(error).startsWith("BROWSER_")) throw error;
+      state.lastErrorCode = failureCode(error, "BROWSER_ADMITTED_TARGET_CLEANUP_PENDING");
+      state.lastErrorReason = safeReason(error);
+    }
   }
 };
 
@@ -221,7 +248,14 @@ const reconcileUnfinishedExecutionsWithoutReceipt = async (state: RuntimeState):
     try {
       await readProductionDeviceJobStatus(state.session, task.task.job_id);
     } catch (error) {
-      if (!websiteJobAbsent(error)) throw error;
+      if (!websiteJobAbsent(error)) {
+        const transport = typedRuntimeTransportFailure(error);
+        if (!typedExecutionFailure(error) || transport && [401, 403].includes(transport.httpStatus)) throw error;
+        state.lastErrorCode = failureCode(error, "EXECUTION_RECONCILIATION_PENDING");
+        state.lastErrorReason = safeReason(error);
+        state.store.setCurrentReason(task.task.job_id, state.lastErrorCode);
+        continue;
+      }
       try {
         await purgeDeletedJob(state, task.task.job_id);
       } catch (purgeError) {
@@ -249,22 +283,22 @@ const claimAdmissionEligible = (
 const workerIteration = async (state: RuntimeState): Promise<number> => {
   try {
   await reconcilePendingBusinessAdmissions(state);
+  if (!state.runtimeLogger.isWritable()) return 1_000;
   const hasDeliveryCandidate = state.store.pendingBusinessAdmissions().length > 0;
-  try {
-    await state.providerRateLimitControl.reconcilePendingIntents();
-    await state.executor.reconcilePendingProviderRateLimitIncidents(state.abort.signal);
-    await reconcilePendingAttemptFailures(state);
-  } catch (error) {
-    if (!hasDeliveryCandidate) throw error;
-    state.lastErrorCode = failureCode(error, "PROVIDER_RECOVERY_PENDING");
-    state.lastErrorReason = safeReason(error);
-  }
-  try {
-    await reconcileUnfinishedExecutionsWithoutReceipt(state);
-  } catch (error) {
-    if (!hasDeliveryCandidate) throw error;
-    state.lastErrorCode = failureCode(error, "EXECUTION_RECONCILIATION_PENDING");
-    state.lastErrorReason = safeReason(error);
+  for (const reconcile of [
+    () => state.providerRateLimitControl.reconcilePendingIntents(),
+    () => state.executor.reconcilePendingProviderRateLimitIncidents(state.abort.signal),
+    () => reconcilePendingAttemptFailures(state),
+    () => reconcileUnfinishedExecutionsWithoutReceipt(state),
+  ]) {
+    try { await reconcile(); }
+    catch (error) {
+      if (!typedExecutionFailure(error) && !failureCode(error).startsWith("BROWSER_")) throw error;
+      const transport = typedRuntimeTransportFailure(error);
+      if (transport && [401, 403].includes(transport.httpStatus)) throw error;
+      state.lastErrorCode = failureCode(error, "PROVIDER_RECOVERY_PENDING");
+      state.lastErrorReason = safeReason(error);
+    }
   }
   refreshLedgerReconciled(state);
   if (state.draining) return 1_000;
@@ -334,6 +368,7 @@ export const sessionHeartbeatLoop = async (state: RuntimeState): Promise<void> =
   while (!state.abort.signal.aborted) {
     await wait(20_000, state.abort.signal);
     if (state.abort.signal.aborted) return;
+    if (!state.runtimeLogger.isWritable()) continue;
     try {
       const receipt = await state.session.heartbeat();
       state.providerRateLimitControl.observeWebsiteAuthority({

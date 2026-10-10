@@ -6,7 +6,7 @@
 
 ## 材料与事实
 
-- `produce` 动作必须逐项消费本轮 `qimen_business_input` 与 `result_contract` 中冻结的 question snapshot、全部 question unit、全部 candidate、anchor manifest、rule evaluation matrix 和全部 READY books/receipt denominator。不得以父执行、历史对话、记忆或当前仓库扫描结果替代本轮附件。
+- `produce` 动作必须逐项消费本轮核真的奇门案卷与逐书古籍资料中冻结的 question snapshot、全部 question unit、全部 candidate、anchor manifest、rule evaluation matrix 和全部 READY books/receipt denominator；输出格式只取当前任务对应的唯一 route result_contract。不得以父执行、历史对话、记忆或当前仓库扫描结果替代本轮附件。
 - 每个 answer block 都要显式绑定适用的问题单元、候选范围、semantic anchor、evidence ref 与 citation；所有引用只能来自本轮冻结分母。严格按当前 result contract 返回全部且仅有字段，不得自创兼容字段或第二结果格式。
 - 精确区分锁定盘面事实、候选共识与差异、Method/Rule identity、类型化规则评估、古籍原文、用户背景和当前推断。
 - 用户问题只规定要回答什么，不能充当门、星、神、宫、干支或规则成立的证据。
@@ -30,3 +30,11 @@
 ## 复核动作
 
 `accuracy_challenge` 与 `quality_reflection` 只复核当前 subject result 的盘面、候选范围、规则依据、推理和表达，返回可复现 finding。不得重排盘、改写原结果或替网站作质量裁决。
+
+## 资料定位与结果提交
+
+先定位 QM03 原始问事、全部问题单元和完整候选；盘面、锚点、类型化规则与古籍依据分别核对。
+
+资料载体、数量与顺序以本轮任务合同为准；本 Skill 不改程序的上传、恢复或调度规则。收到拆分压缩资料时，先读目录、身份、用途与交付说明，再按目录读对应事实、条件、问题、既有报告和完整有序记录页；逐页覆盖本轮强制分母，不把分页当成截取或摘要。古籍按书独立保留原文与原索引，索引用于定位所需原文，不合并书籍、不把索引当正文。不将压缩包、整库或超长 JSON 一次全部打印进对话；先定位再读取所需文件或记录，禁止用大小、前若干项或代表候选裁掉资料。
+
+正式结果必须是当前结果合同接受的一份完整 JSON 正文。不得把附件卡片、下载链接、sandbox 路径、代码文件或压缩包当成结果；不得只说“已生成”而省略正文。PDF 面向客户的制作与交付由网站原链路承担。复核动作仍只返回其原合同要求的 finding，不套用正式生产资料包或重新研究。

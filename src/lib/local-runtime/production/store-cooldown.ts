@@ -12,6 +12,7 @@ export abstract class ProductionStoreCooldown extends ProductionStoreTaskState {
   public hasUndeliveredProviderCooldown(): boolean {
     return Boolean(this.database.prepare(`select 1 from production_outbox
       where kind='provider_cooldown' and sent_at is null
+        and json_extract(cast(body_blob as text),'$.phase')='incident'
         and coalesce(last_error,'')<>'BUSINESS_ADMITTED' limit 1`).get());
   }
 
@@ -41,12 +42,6 @@ export abstract class ProductionStoreCooldown extends ProductionStoreTaskState {
     const rows = this.database.prepare(`select idempotency_key from production_outbox
       where kind='provider_cooldown' and sent_at is null
         and coalesce(last_error,'')<>'BUSINESS_ADMITTED'
-        and (json_extract(cast(body_blob as text),'$.phase')='clearance'
-          or exists(select 1 from production_outbox clearance
-            where clearance.kind='provider_cooldown'
-              and json_extract(cast(clearance.body_blob as text),'$.phase')='clearance'
-              and json_extract(cast(clearance.body_blob as text),'$.incident_request_id')=
-                json_extract(cast(production_outbox.body_blob as text),'$.incident_request_id')))
       order by production_outbox.rowid`).all() as Array<{ idempotency_key: string }>;
     return Object.freeze(rows.map((row) => row.idempotency_key));
   }

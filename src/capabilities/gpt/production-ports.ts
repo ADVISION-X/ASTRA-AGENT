@@ -25,7 +25,7 @@ export type GptProductionExecutionInput = Readonly<{
     canonicalConversationUrl: string; userTurnId: string;
   }>) => void;
   readbackOnlyCalls?: readonly Readonly<{ productStepId: string; callId: string;
-    childCapabilityId: "submit_exact_gpt_turn_once" }>[];
+    childCapabilityId: "submit_exact_gpt_turn_once"; source?: Readonly<{ sourceAttemptId: string; sourceResultRevision: number; effectIdentityHash: `sha256:${string}`; walAuthorityHash: `sha256:${string}` }> }>[];
   jobId: string;
   productId: string;
   ownerRef: string;
@@ -120,6 +120,7 @@ export interface ProviderRateLimitIncidentHandle {
 /** Runtime-owned narrow control port; GPT never imports Runtime implementation or state. */
 export interface ProviderRateLimitControlPort {
   assertProviderSubmitAllowed(): void;
+  assertIncidentFailureIsolated(error: unknown): void;
   pendingIncidents(): readonly ProviderRateLimitIncidentInput[];
   beginIncident(input: ProviderRateLimitIncidentInput): Promise<ProviderRateLimitIncidentHandle>;
 }

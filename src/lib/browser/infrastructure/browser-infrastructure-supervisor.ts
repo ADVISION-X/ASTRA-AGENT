@@ -1,9 +1,12 @@
 import { emitBrowserMutationEvent } from "../exact-target/browser-command-runtime-logging.js";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { join } from "node:path";
 
 import { BrowserCommandActor } from "../exact-target/browser-command-actor.js";
 import { BrowserMutationStore } from "../exact-target/browser-mutation-store.js";
+import { browserMutationReceiptBindingProjection, browserMutationTerminalFactBytes, browserMutationTerminalFactShapeValid,
+  type BrowserMutationDisposeRequest, type BrowserMutationDisposed } from "../exact-target/browser-observation-receipt.js";
+import { verifyBrowserMutationTerminalFact } from "../exact-target/browser-mutation-receipt.js";
 import { BrowserSessionWorkspace, type SessionWorkspaceBindingV6 } from "../exact-target/browser-session-workspace.js";
 import { requireGptWebClaimOrigin } from "../exact-target/browser-site-policy-registry.js";
 import { BrowserTargetLeaseManager, type BrowserExactTargetAcquisition } from "../exact-target/browser-target-lease-manager.js";
@@ -108,7 +111,35 @@ export class BrowserInfrastructureSupervisor {
     this.evidence = new BrowserInfrastructureEvidence(this.lane, this.state);
   }
 
-  private settleMutationTerminal(fact: Parameters<BrowserMutationStore["settleTerminalReceipt"]>[0], acknowledge: () => void): void {
+  private settleMutationDisposition(request: BrowserMutationDisposeRequest, acknowledge: (disposed?: BrowserMutationDisposed) => void): void {
+    const mutations = this.state.mutationState;
+    if (!this.state.started || !mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
+    const command = mutations.readCommand(request.commandId);
+    if (!command) throw new Error("BROWSER_MUTATION_RECORD_MISSING");
+    const bindingHash = `sha256:${createHash("sha256").update(JSON.stringify(
+      browserMutationReceiptBindingProjection(command.identity))).digest("hex")}` as const;
+    if (request.receiptBindingHash !== bindingHash) throw new Error("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
+    const fact = request.rejectedFact;
+    let reason: BrowserMutationDisposed["reasonCode"] | null = fact === null
+      ? "BROWSER_COMMAND_RECEIPT_MISSING" : "BROWSER_RECONCILIATION_RECEIPT_INVALID";
+    if (browserMutationTerminalFactShapeValid(fact)) {
+      const receiptHash = `sha256:${createHash("sha256").update(browserMutationTerminalFactBytes(fact)).digest("hex")}` as const;
+      try { verifyBrowserMutationTerminalFact(command.identity, fact, bindingHash, receiptHash); reason = null; }
+      catch { reason = "BROWSER_RECONCILIATION_RECEIPT_INVALID"; }
+      if (reason === null) {
+        try { this.settleMutationTerminal(fact, acknowledge); return; }
+        catch (error) {
+          if (!(error instanceof Error && error.message === "BROWSER_MUTATION_STATE_CONFLICT")) throw error;
+          reason = "BROWSER_MUTATION_STATE_CONFLICT";
+        }
+      }
+    }
+    acknowledge({ type: "disposed", commandId: request.commandId, receiptBindingHash: bindingHash,
+      rejectedFactHash: request.rejectedFactHash, reasonCode: reason! });
+  }
+
+  private settleMutationTerminal(fact: Parameters<BrowserAuthorityWebSocketOptions["onMutationReceipt"]>[0], acknowledge: (disposed?: BrowserMutationDisposed) => void): void {
+    if (fact.type === "dispose") { this.settleMutationDisposition(fact, acknowledge); return; }
     const mutations = this.state.mutationState;
     if (!this.state.started || !mutations) throw new Error("BROWSER_MUTATION_STATE_UNAVAILABLE");
     const settled = mutations.settleTerminalReceipt(fact);

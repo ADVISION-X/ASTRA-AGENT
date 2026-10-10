@@ -79,6 +79,7 @@ const exerciseDiagnosticWalAndLogFailure = async (): Promise<void> => {
       const logger = createRuntimeLogger({ producer: "diagnostic-contract", owner: "browser-session", component: "exact-target",
         terminalEnabled: false, fileSink: { directoryPath: logDirectory } });
       const fixture = authenticatedDiagnosticChannel((fact, acknowledge) => {
+        if (fact.type !== "fact") throw new Error("TEST_EXPECTED_TERMINAL_FACT");
         store.settleTerminalReceipt(fact); phases.push("WAL"); acknowledge(); phases.push("ACK");
         if (logFailure) { rmSync(logDirectory, { recursive: true, force: true }); writeFileSync(logDirectory, "blocked"); }
       });

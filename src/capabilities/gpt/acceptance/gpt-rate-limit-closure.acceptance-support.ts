@@ -55,7 +55,7 @@ const verifyIncidentEntersCurrentPath = async (
     result: known.failed,
     providerRateLimitControl: {
       assertProviderSubmitAllowed: () => undefined,
-      pendingIncidents: () => [],
+      assertIncidentFailureIsolated: (error: unknown) => { throw error; }, pendingIncidents: () => [],
       beginIncident: async (input) => {
         incidentInput = input;
         return { incidentRequestId, deliver: async () => { delivered += 1; } };
@@ -79,7 +79,7 @@ const verifyLostClearanceResponse = async (known: KnownRateLimit): Promise<void>
     result: known.failed,
     providerRateLimitControl: {
       assertProviderSubmitAllowed: () => undefined,
-      pendingIncidents: () => [],
+      assertIncidentFailureIsolated: (error: unknown) => { throw error; }, pendingIncidents: () => [],
       beginIncident: async () => ({ incidentRequestId,
         deliver: async (clearance) => {
           clearanceWrites.push(clearance.clearance);
@@ -108,13 +108,31 @@ const verifyOldIncidentRecovery = async (
         readConfirmedRateLimitAcknowledgement: () => terminalAt ? { terminalAt } : null,
         acquireJobBoundTargetLease: () => { throw new Error("OLD_INCIDENT_MUST_NOT_ACQUIRE_TARGET"); },
       } as never, {} as never, {
-        pendingIncidents: () => [incidentInput as never],
+        assertIncidentFailureIsolated: (error: unknown) => { throw error; }, pendingIncidents: () => [incidentInput as never],
         beginIncident: async () => ({ incidentRequestId,
           deliver: async (clearance: Readonly<Record<string, unknown>>) => { recovered.push(clearance); } }),
       } as never);
     await tools.reconcilePendingProviderRateLimitIncidents("parent:cooldown", new AbortController().signal);
     assert.equal(recovered[0]?.clearance, terminalAt ? "confirmed_absent" : "not_cleared");
     assert.equal(recovered.length, 1);
+  }
+};
+
+const verifyIncidentFailurePortBoundary = async (incidentInput: Readonly<Record<string, unknown>> | null): Promise<void> => {
+  const local = executionFailure("failed", "FIXTURE_INCIDENT_LOCAL"), shared = executionFailure("failed", "FIXTURE_SHARED_AUTH");
+  for (const errors of [[local], [local, shared], [shared], [local, new Error("RAW_STORE_FAILED")]]) {
+    let visits = 0, classifications = 0;
+    const tools = new ProductionGptChildTools("/tmp", `sha256:${"8".repeat(64)}`, {} as never, {} as never,
+      { readConfirmedRateLimitAcknowledgement: () => null } as never, {} as never, {
+        pendingIncidents: () => [incidentInput, incidentInput, incidentInput],
+        assertIncidentFailureIsolated: (error: unknown) => { classifications++; if (error !== local) throw error; },
+        beginIncident: async () => { const index = visits++; return { incidentRequestId,
+          deliver: async () => { throw errors[index] ?? local; } }; },
+      } as never);
+    await assert.rejects(tools.reconcilePendingProviderRateLimitIncidents("parent:cooldown", new AbortController().signal),
+      (error: unknown) => error === (errors[1] ?? errors[0]));
+    assert.equal(visits, errors.length === 1 && errors[0] === local ? 3 : errors.length);
+    assert.equal(classifications, visits, "every incident failure is classified by the existing Runtime-owned port before advancing");
   }
 };
 
@@ -126,4 +144,5 @@ export const verifyKnownRateLimitClosure = async (
   const incidentInput = await verifyIncidentEntersCurrentPath(known);
   await verifyLostClearanceResponse(known);
   await verifyOldIncidentRecovery(known, incidentInput);
+  await verifyIncidentFailurePortBoundary(incidentInput);
 };

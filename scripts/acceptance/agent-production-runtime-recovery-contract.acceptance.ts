@@ -18,7 +18,7 @@ import {
   serializeTerminalFailureTransport,
 } from "../../src/lib/local-runtime/production/terminal-failure.js";
 import { attemptFailureFirstFact, claimTask, task } from "./agent-production-runtime-fixtures.js";
-import { verifyPayloadSlotConflict } from "./agent-production-runtime-payload-slot.acceptance-support.js";
+import { verifyPayloadSlotConflict, verifyRepeatedCheckpointSourceHandoff } from "./agent-production-runtime-payload-slot.acceptance-support.js";
 import { verifyRecoveryFailureTransport } from "./agent-production-runtime-failure-transport.acceptance-support.js";
 import { verifyOutboxRegrantFenceAndReadbackProof, verifyTypedSourceSealAuthority } from
   "./agent-production-runtime-recovery-contract.acceptance-support.js";
@@ -125,13 +125,14 @@ try {
     browser_history_hash: providerEffectHash, browser_row_count: 1,
     browser_input_state: "possible" as const, replay_calls: [oldCall],
     rejected_call: { ...oldCall, effect_identity_hash: oldEffect },
-    readback_proofs: [], input_quiescence_proof: terminalQuiescence(providerEffectHash, [oldCall]),
+    readback_proofs: [], input_quiescence_proof: null,
     readback_exhaustion_hash: null };
   const oldSeal = hashCanonical(oldBody);
-  const unquietOldBody = { ...oldBody, input_quiescence_proof: null };
-  assert.throws(() => store.sealSourceHandoff({ ...unquietOldBody,
-    seal_hash: hashCanonical(unquietOldBody) } as never), /PRODUCTION_SOURCE_HANDOFF_CONFLICT/u,
-  "a possible-input V44 source requires terminal WAL quiescence");
+  const invalidProofBody = { ...oldBody, input_quiescence_proof: {
+    ...terminalQuiescence(providerEffectHash, [oldCall]), proof_hash: oldEffect } };
+  assert.throws(() => store.sealSourceHandoff({ ...invalidProofBody,
+    seal_hash: hashCanonical(invalidProofBody) } as never), /PRODUCTION_SOURCE_HANDOFF_CONFLICT/u,
+    "a non-null terminal WAL proof must still be mechanically valid; null never proves zero input");
   store.sealSourceHandoff({ ...oldBody, seal_hash: oldSeal } as never);
   const oldManifest = JSON.stringify({ ...oldBody, seal_hash: oldSeal });
   const v43Body = { ...oldBody, old_path: "instance_unavailable" };
@@ -263,6 +264,18 @@ try {
     anchorState: "trusted" }], store.readAcceptedSourceSettlements(zeroReuse.job_id),
   "attempt:zero-third"), true, "a second object-slot conflict preserves the same zero-submit lineage");
 
+  await verifyRepeatedCheckpointSourceHandoff(store, zeroReuse.job_id, {
+    historyHash: oldEffect, rowCount: 3, walHistoryVerified: true, unresolvedCommandCount: 0,
+    unresolvedCommandSetHash: hashCanonical([]), replayCalls: [{ productStepId: oldCall.product_step_id,
+      callId: oldCall.call_id, childCapabilityId: oldCall.child_capability_id, sourceEffectSetHash: oldEffect }],
+    replayEffects: [{ attemptId: "attempt:zero-old", resultRevision: 0, effectIdentityHash: oldEffect,
+      sourceEffectSetHash: oldEffect, productStepId: oldCall.product_step_id, callId: oldCall.call_id,
+      childCapabilityId: oldCall.child_capability_id, authorityRef: "browser:old", walAuthorityHash: providerEffectHash,
+      rawWalAuthorityHash: providerEffectHash, anchorProofHash: oldEffect, rawAnchorProofHash: oldEffect,
+      anchorState: "trusted", state: "CONFIRMED", mutationOutcome: "confirmed", physicalInputCount: 1,
+      canonicalConversationHash: oldEffect, userTurnHash: oldEffect }],
+  } as never, { ...zeroConflict, old_request_id: "third-old", new_request_id: "third-new" });
+
   const article = task({ jobId: "job:article-three-step-reuse",
     productId: "public_knowledge_article_pipeline", actionId: "produce_article" });
   store.acceptTask(article, "attempt:article-old");
@@ -390,6 +403,29 @@ try {
     [item.kind, item.effectIdentityHash, item.sourceHandoffSealHash]),
   [["risk_authorized", oldEffect, riskSeal]],
   "an accepted risk decision remains durable beyond the original observation window");
+  const mixedCall = { ...oldCall, source_effect_set_hash: nextEffect };
+  const mixedCheckpointBody = { ...checkpointBody, effect_identity_hash: nextEffect,
+    source_effect_set_hash: nextEffect, source_attempt_id: "attempt:risk-new", source_result_revision: 1 };
+  const mixedProof = { ...mixedCall, disposition: "settled_reusable" as const, effects: [
+    { effect_identity_hash: oldEffect, source_effect_set_hash: oldEffect, wal_authority_hash: providerEffectHash,
+      anchor_state: "absent" as const, anchor_proof_hash: oldEffect, risk_authorized: { source_handoff_seal_hash: riskSeal } },
+    { ...zeroEffect, effect_identity_hash: nextEffect, source_effect_set_hash: nextEffect,
+      settled_checkpoint: { ...zeroEffect.settled_checkpoint, source_attempt_id: "attempt:risk-new",
+        source_result_revision: 1, proof_hash: hashCanonical(mixedCheckpointBody) } } ] };
+  const mixedBody = { ...zeroBody, job_id: priorRisk.job_id, source_attempt_id: "attempt:risk-new",
+    source_task_hash: hashCanonical(priorRisk), replay_calls: [mixedCall], readback_proofs: [mixedProof],
+    browser_row_count: 2, input_quiescence_proof: null };
+  const mixedSeal = hashCanonical(mixedBody), mixedRows = [
+    { source_attempt_id: "attempt:risk-old", issued_attempt_id: "attempt:risk-new", seal_hash: riskSeal,
+      source_manifest_json: JSON.stringify({ ...riskBody, seal_hash: riskSeal }),
+      first_fact_raw: JSON.stringify(attemptFailureFirstFact("attempt:risk-old", serializeTerminalFailure(
+        executionFailure("failed", "SOURCE_RESULT_RECONCILIATION_PENDING")))) },
+    { source_attempt_id: "attempt:risk-new", issued_attempt_id: "attempt:mixed-next", seal_hash: mixedSeal,
+      source_manifest_json: JSON.stringify({ ...mixedBody, seal_hash: mixedSeal }), first_fact_raw: null } ];
+  const mixedSettlements = acceptedSourceSettlements(mixedRows, "attempt:mixed-next", priorRisk.job_id);
+  assert.deepEqual(mixedSettlements.map(item => [item.kind, item.effectIdentityHash]).sort(),
+    [["risk_authorized", oldEffect], ["reused_checkpoint", nextEffect]].sort(),
+    "the Store consumes only the real checkpoint subset and retains the signed old risk ancestor");
   store.recordAttemptFailure(priorRisk.job_id, "attempt:risk-new",
     rejectedFailure("attempt:risk-new", nextEffect));
   const riskNewOutbox = store.readResultOutboxHistoryEvidence(

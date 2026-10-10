@@ -116,14 +116,13 @@ export class ExtensionDebuggerRuntime {
     if (!this.attached.has(tabId)) throw new Error("BROWSER_DEVTOOLS_CONFLICT");
     if (PAGE_MUTATION_METHODS.has(method)) {
       const guard = this.providerInputGuard;
-      if (guard) {
-        guard.assertInteractive();
-        guard.state.started = true;
-      }
+      if (!guard) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+      guard.assertInteractive();
+      guard.state.started = true;
       try {
         const result = await this.executePageAction(() =>
           this.chromeApi.debugger.sendCommand(target(tabId), method, parameters));
-        if (guard && logicalInputAcknowledged(guard.state, method, parameters)) guard.state.physicalInputCount = 1;
+        if (logicalInputAcknowledged(guard.state, method, parameters)) guard.state.physicalInputCount = 1;
         return result;
       } catch (error) {
         await this.awaitPageReadPermission();
@@ -146,7 +145,8 @@ export class ExtensionDebuggerRuntime {
 
   public async createProductionTab(url: string): Promise<Readonly<{ id?: number }>> {
     try {
-      this.providerInputGuard?.assertInteractive();
+      if (!this.providerInputGuard) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+      this.providerInputGuard.assertInteractive();
       return await this.executePageAction(() => this.chromeApi.tabs.create({ active: true, url }));
     }
     catch (error) {
@@ -157,7 +157,8 @@ export class ExtensionDebuggerRuntime {
 
   public async activateTab(tabId: number): Promise<ExtensionTab> {
     try {
-      this.providerInputGuard?.assertInteractive();
+      if (!this.providerInputGuard) throw new Error("BROWSER_COMMAND_PERMIT_INVALID");
+      this.providerInputGuard.assertInteractive();
       return await this.executePageAction(() => this.chromeApi.tabs.update(tabId, { active: true }));
     } catch (error) {
       await this.awaitPageReadPermission();

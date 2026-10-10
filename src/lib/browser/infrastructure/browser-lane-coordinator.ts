@@ -100,7 +100,7 @@ export class BrowserLaneCoordinator {
     void this.pump();
   }
 
-  public readState(): "idle" | "busy" | "blocked" { return this.active ? "busy" : this.hasUnresolvedMutation() ? "blocked" : "idle"; }
+  public readState(): "idle" | "busy" | "blocked" { return this.active ? "busy" : "idle"; }
   public reset(reasonCode?: string): void {
     if (this.wakeTimer) clearTimeout(this.wakeTimer);
     this.wakeTimer = null;
@@ -127,16 +127,14 @@ export class BrowserLaneCoordinator {
   public rejectPending(reasonCode: string, refs?: Readonly<Record<string, string>>): void { this.targetAcquirer.rejectPending(reasonCode, refs); }
 
   private nextWaiter(): LaneWaiter | null {
-    const now = Date.now(), blocked = this.hasUnresolvedMutation();
+    const now = Date.now();
     for (let index = 0; index < this.queue.length;) {
       const waiter = this.queue[index]!;
       const expired = waiterExpiryCode(waiter);
       if (expired) { this.queue.splice(index, 1); waiter.reject(browserExecutionFailure(new Error(expired))); continue; }
-      const mutationBlocked = blocked && (waiter.kind === "acquire" ||
-        (waiter.releaseAuthority !== "website-admin-deletion" && (this.infrastructure.mutationState?.countDispatched(waiter.jobId) ?? 0) > 0));
       const eligibility = waiter.kind === "acquire" && waiter.requestKind === "provider-observation"
         ? Math.max(waiter.eligibleAt, this.observationNotBefore) : waiter.eligibleAt;
-      if (mutationBlocked || eligibility > now) { index += 1; continue; }
+      if (eligibility > now) { index += 1; continue; }
       this.queue.splice(index, 1);
       waiter.stopAbortMonitor();
       return waiter;
@@ -204,14 +202,11 @@ export class BrowserLaneCoordinator {
     const now = Date.now();
     let nextAt = Number.POSITIVE_INFINITY;
     try {
-      const blocked = this.hasUnresolvedMutation();
       for (const waiter of this.queue) {
         const expiry = now + Math.max(0, waiter.remainingMs());
-        const mutationBlocked = blocked && (waiter.kind === "acquire" ||
-          (waiter.releaseAuthority !== "website-admin-deletion" && (this.infrastructure.mutationState?.countDispatched(waiter.jobId) ?? 0) > 0));
         const eligibility = waiter.kind === "acquire" && waiter.requestKind === "provider-observation"
           ? Math.max(waiter.eligibleAt, this.observationNotBefore) : waiter.eligibleAt;
-        nextAt = Math.min(nextAt, expiry, mutationBlocked ? expiry : eligibility);
+        nextAt = Math.min(nextAt, expiry, eligibility);
       }
     } catch { nextAt = now + PROVIDER_OBSERVATION_MIN_INTERVAL_MS; }
     this.wakeTimer = setTimeout(() => { this.wakeTimer = null; void this.pump(); }, Math.max(1, Math.ceil(nextAt - now)));

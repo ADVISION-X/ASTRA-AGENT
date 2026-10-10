@@ -40,9 +40,11 @@ export const acquireProductionBrowserCall = async (
 export const recoverPersistedCheckpoint = async <K extends GptChildCapabilityId>(input: Readonly<{
   evidenceStore: Parameters<typeof readPersistedGptTextResponse>[0]["evidenceStore"];
   execution: ExecutionInput; intent: GptChildCapabilityIntent<K>; call: ProductGptCallInput<K>; span: RuntimeSpanHandle;
+  confirmedSubmission?: ProductionGptBrowserCall["confirmedProviderEffect"];
 }>): Promise<ProductGptChildResult<K> | null> => {
   if (input.call.child !== "checkpoint_gpt_text_response" && input.call.child !== "checkpoint_gpt_generated_image") return null;
-  const identity = { evidenceStore: input.evidenceStore, jobId: input.execution.jobId, attemptId: input.execution.attemptId,
+  const identity = { evidenceStore: input.evidenceStore, jobId: input.execution.jobId,
+    attemptId: input.confirmedSubmission?.sourceReadback?.sourceAttemptId ?? input.execution.attemptId,
     exactCallIdentityHash: gptExactCallIdentityHash(input.intent) };
   const image = input.call.child === "checkpoint_gpt_generated_image" ? await readPersistedGptImageEvidence(identity) : null;
   const text = input.call.child === "checkpoint_gpt_text_response" ? await readPersistedGptTextResponse(identity) : null;

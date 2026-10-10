@@ -22,6 +22,7 @@ type SubmittedStep = Readonly<{
   canonicalConversationUrl: string; userTurnId: string;
   sourceAttemptId: string; sourceResultRevision: number;
   submitIdentity: BrowserAtomicStepIdentity | null; submitExactCallIdentityHash: GptHash;
+  sourceReadback?: NonNullable<NonNullable<ExecutionInput["readbackOnlyCalls"]>[number]["source"]>;
   terminalAt: string | null; settledResultPayloadHash: GptHash | null;
 }>;
 
@@ -110,6 +111,10 @@ export class ProductionGptExecutionSession {
 
   private assertExecutionCall<K extends ProductGptChildCapabilityId>(call: SessionCall<K>): void {
     const sourceForStep = this.source.pendingForStep(call.productStepId);
+    if (call.child === "submit_exact_gpt_turn_once" && this.input.readbackOnlyCalls?.some((entry) =>
+      entry.productStepId === call.productStepId && entry.callId === call.callId && entry.childCapabilityId === call.child)) {
+      throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_ONLY");
+    }
     if (this.input.sourceReuseZeroSubmitGrant === true && !sourceForStep) {
       throw executionFailure("failed", "PRODUCTION_SOURCE_REUSE_IDENTITY_MISMATCH");
     }
@@ -117,7 +122,7 @@ export class ProductionGptExecutionSession {
       && (call.child === "submit_exact_gpt_turn_once"
         && !this.riskCalls.has(productionCallKey({ productStepId: call.productStepId,
           callId: call.callId, childCapabilityId: call.child }))
-        || ![...this.riskCalls.values(), ...this.source.calls.values()].some((historical) =>
+        || ![...this.riskCalls.values(), ...this.source.calls.values(), ...this.pendingReadbacks.values()].some((historical) =>
           historical.productStepId === call.productStepId))) {
       throw executionFailure("failed", "PRODUCTION_REPLAY_GRANT_SOURCE_MISMATCH");
     }
@@ -209,6 +214,7 @@ export class ProductionGptExecutionSession {
       evidenceRef: submit.browserAuthorityRef, evidenceHash: submit.browserAuthorityHash,
       terminalAt: submit.terminalAt, submitIdentity: submit.submitIdentity,
       canonicalConversationUrl: submit.canonicalConversationUrl, userTurnId: submit.userTurnId,
+      ...(submit.sourceReadback ? { sourceReadback: submit.sourceReadback } : {}),
     }) : null;
     let submitIdentity: BrowserAtomicStepIdentity | null = null;
     const result = await this.executeOne(call, this.recordConfirmedProviderEffectReadback, {
@@ -264,7 +270,8 @@ export class ProductionGptExecutionSession {
     }
     if (submit && this.input.recordSettledCheckpoint) {
       const identity = { evidenceStore: this.evidenceStore, jobId: this.input.jobId,
-        attemptId: this.input.attemptId, exactCallIdentityHash: result.exactCallIdentityHash };
+        attemptId: submit.sourceReadback?.sourceAttemptId ?? this.input.attemptId,
+        exactCallIdentityHash: result.exactCallIdentityHash };
       const image = call.child === "checkpoint_gpt_generated_image"
         ? await readPersistedGptImageEvidence(identity) : null;
       const text = call.child === "checkpoint_gpt_text_response"
@@ -302,12 +309,16 @@ export class ProductionGptExecutionSession {
     }
     const source = [...this.source.calls.values()].find((row) =>
       row.productStepId === productStepId && row.sourceAttemptId === result.sourceAttemptId);
+    const sourceReadback = [...this.pendingReadbacks.values()].find((entry) => entry.productStepId === productStepId
+      && entry.source?.effectIdentityHash === receipt.providerEffectIdentityHash)?.source;
     this.submittedByStep.set(`${sessionKey}\u0000${productStepId}`, Object.freeze({
       providerEffectIdentityHash: receipt.providerEffectIdentityHash,
       browserAuthorityHash: receipt.evidenceHash, browserAuthorityRef: receipt.evidenceRef,
       submitPromptHash: value.promptHash,
       canonicalConversationUrl: value.canonicalConversationUrl, userTurnId: value.userTurnId,
-      sourceAttemptId: result.sourceAttemptId, sourceResultRevision: source?.sourceResultRevision ?? this.input.resultRevision,
+      sourceAttemptId: result.sourceAttemptId,
+      sourceResultRevision: sourceReadback?.sourceResultRevision ?? source?.sourceResultRevision ?? this.input.resultRevision,
+      ...(sourceReadback ? { sourceReadback } : {}),
       submitIdentity, submitExactCallIdentityHash: result.exactCallIdentityHash,
       terminalAt: receipt.terminalAt, settledResultPayloadHash: null,
     }));
@@ -348,7 +359,8 @@ export class ProductionGptExecutionSession {
     if (this.input.sourceReuseZeroSubmitGrant === true) {
       throw executionFailure("failed", "PRODUCTION_SOURCE_REUSE_IDENTITY_MISMATCH");
     }
-    if (this.riskCalls.size > 0 && this.historicalCallsPending() && !this.riskCalls.has(key)) {
+    if (this.riskCalls.size > 0 && this.historicalCallsPending() && !this.riskCalls.has(key)
+      && !this.pendingReadbacks.has(key)) {
       throw executionFailure("failed", "PRODUCTION_REPLAY_GRANT_SOURCE_MISMATCH");
     }
     if (this.source.hasPendingStep(call.productStepId)) {

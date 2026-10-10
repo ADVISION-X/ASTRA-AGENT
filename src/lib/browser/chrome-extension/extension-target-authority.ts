@@ -78,7 +78,7 @@ export class ExtensionTargetAuthority {
     });
   }
   public async acquireJobBoundChatGptTarget(targetMode: TargetAcquisitionMode, jobRefHash: `sha256:${string}`,
-    parentConversationUrl?: string, assertInput: () => void = () => undefined, deadlineAt = Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS): Promise<void> {
+    parentConversationUrl: string | undefined, assertInput: () => void, deadlineAt = Date.now() + BROWSER_COMMAND_DEFAULT_DEADLINE_MS): Promise<void> {
     const assertCurrent = (): void => { assertInput(); if (Date.now() >= deadlineAt) throw new Error("BROWSER_TARGET_ACQUISITION_TIMEOUT"); };
     await this.debuggerRuntime.withLogicalPageAccess(() => this.pageAccessGate.enter(), () => this.debuggerRuntime.withProviderInputGuard(
       { started: false, physicalInputCount: 0, mutationKind: "target-acquisition" }, assertCurrent,
@@ -173,7 +173,7 @@ export class ExtensionTargetAuthority {
   }
   public async executeRegisteredCommand(command: BrowserGovernedCommand, target: ExtensionExactTarget,
     mutationClass: RegisteredExtensionCommand["mutationClass"], exactCallIdentityHash: `sha256:${string}`,
-    assertCommandActive: () => void = () => undefined, commandDeadlineAt?: number): Promise<unknown> {
+    assertCommandActive: () => void, commandDeadlineAt?: number): Promise<unknown> {
     const ack = command.kind === "dom-intent" && command.intent.kind === "acknowledgeKnownGptRateLimit";
     const transient = command.kind === "wait" ? command.transientDomConfirmationStage : undefined;
     return this.debuggerRuntime.withLogicalPageAccess(ack ? async () => undefined : transient === undefined ? () => this.pageAccessGate.enter()
@@ -198,7 +198,11 @@ export class ExtensionTargetAuthority {
     if (mutationClass === "mutation") return this.interactionReadiness.executeMutation(target, execute, assertCommandActive,
       command.kind === "dom-intent" ? command.intent.kind : command.kind);
     if (mutationClass === "observation") return this.interactionReadiness.executeObservation(target, execute, assertCommandActive);
-    return execute();
+    return this.debuggerRuntime.withProviderInputGuard(
+      { started: false, physicalInputCount: 0, mutationKind: command.kind },
+      () => { assertCommandActive(); this.targets.resolve(target.targetRef, target.documentRef);
+        if (deadlineAt !== undefined && Date.now() >= deadlineAt) throw new Error("BROWSER_COMMAND_PERMIT_EXPIRED"); },
+      execute);
   }
   private async executeRegisteredCommandBody(command: BrowserGovernedCommand, target: ExtensionExactTarget,
     exactCallIdentityHash: `sha256:${string}`, assertCommandActive: () => void, deadlineAt?: number): Promise<unknown> {

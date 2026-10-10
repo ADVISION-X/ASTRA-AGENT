@@ -96,12 +96,14 @@ const acceptedProof = (effect: BrowserEffect, call: BrowserCall,
     && item.productStepId === call.productStepId && item.callId === call.callId
     && item.childCapabilityId === call.childCapabilityId
     && (item.kind === "risk_authorized" || item.sourceAttemptId === effect.attemptId));
-  if (matching.length > 1) return null;
   const item = matching[0];
   if (!item) return undefined;
+  if (matching.length > 1 && (item.kind !== "reused_checkpoint"
+    || matching.some((other) => other.kind !== "reused_checkpoint"
+      || hashCanonical(other.effect) !== hashCanonical(item.effect)))) return null;
   if (item.kind === "reused_checkpoint") return reusedCheckpointProof(effect, item);
   if (item.kind === "rejection_settled") return rejectionSettledProof(effect, item);
-  return riskAuthorizedProof(effect, item);
+  return riskAuthorizedProof(effect, item) ?? undefined;
 };
 
 const observedCheckpoint = (effect: BrowserEffect, observations: Observations):

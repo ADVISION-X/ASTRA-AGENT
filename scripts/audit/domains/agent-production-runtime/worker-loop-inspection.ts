@@ -104,12 +104,18 @@ export const inspectWorkerLoopLiveness = (
   const iteration = source?.getVariableDeclaration("workerIteration")?.getInitializer();
   const calls = iteration?.getDescendantsOfKind(SyntaxKind.CallExpression)
     .filter(call => call.getExpression().getText() === "reconcileCompletedBrowserTargets") ?? [];
-  const cleanup = source?.getVariableDeclaration("reconcileCompletedBrowserTargets")?.getInitializer()?.getText() ?? "";
+  const cleanup = source?.getVariableDeclaration("reconcileCompletedBrowserTargets")?.getInitializer();
+  const sweep = cleanup?.getDescendantsOfKind(SyntaxKind.ForOfStatement).find(node =>
+    node.getExpression().getText() === "state.store.pendingBrowserCleanupJobIds()");
+  const guard = sweep?.getDescendantsOfKind(SyntaxKind.IfStatement).find(node =>
+    node.getExpression().getText() === "state.store.hasUnsentOutbox(jobId)"
+    && node.getThenStatement().getKind() === SyntaxKind.ContinueStatement);
+  const globalAdmissionRead = cleanup?.getDescendantsOfKind(SyntaxKind.CallExpression).some(node =>
+    node.getExpression().getText() === "state.store.pendingBusinessAdmissions");
   if (calls.length !== 1 || !calls[0]?.getFirstAncestorByKind(SyntaxKind.TryStatement)?.getFinallyBlock()?.containsRange(
-    calls[0].getStart(), calls[0].getEnd())
-    || !cleanup.includes("pendingBusinessAdmissions().some(task => state.store.hasUnsentOutbox(task.task.job_id))")) {
+    calls[0].getStart(), calls[0].getEnd()) || !sweep || !guard || globalAdmissionRead) {
     findings.push(createFinding({ evidenceMode: "static.ast", lawId: LAWS.core,
       clauseId: `${LAWS.core.toLowerCase()}-requirement`, checkId: "agent-production-runtime/delivery-before-cleanup",
-      filePath: RUNTIME_LOOPS, message: "The original cleanup must run once after the delivery pass and recheck ready staged Outbox work before acquiring its Browser lane." }));
+      filePath: RUNTIME_LOOPS, message: "The original finally pass must visit every pending cleanup once and guard only that job's unsent Outbox; unrelated delivery cannot veto the sweep." }));
   }
 };

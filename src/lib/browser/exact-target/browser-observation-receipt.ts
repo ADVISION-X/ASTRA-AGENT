@@ -117,6 +117,15 @@ export type BrowserMutationTerminalFact = Readonly<{
   type: "fact"; commandId: string; receiptBindingHash: `sha256:${string}`;
   terminalReceipt: BrowserMutationTerminalReceipt; receiptHash: `sha256:${string}`;
 }>;
+export type BrowserMutationDisposeRequest = Readonly<{
+  type: "dispose"; commandId: string; receiptBindingHash: `sha256:${string}`;
+  rejectedFact: unknown; rejectedFactHash: `sha256:${string}` | null;
+}>;
+export type BrowserMutationDisposed = Readonly<{
+  type: "disposed"; commandId: string; receiptBindingHash: `sha256:${string}`;
+  rejectedFactHash: `sha256:${string}` | null;
+  reasonCode: "BROWSER_RECONCILIATION_RECEIPT_INVALID" | "BROWSER_COMMAND_RECEIPT_MISSING" | "BROWSER_MUTATION_STATE_CONFLICT";
+}>;
 export const browserMutationReceiptBindingProjection = (identity: BrowserMutationIdentity): readonly unknown[] => [
   identity.commandId, identity.exactCallIdentityHash, identity.jobId, identity.attemptId,
   identity.resultRevision, identity.leaseVersion, identity.executionFenceHash,

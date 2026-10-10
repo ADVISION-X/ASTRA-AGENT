@@ -213,7 +213,7 @@ try {
   pendingMutations = 1;
   await lifecycle.settle(new Error("UNRESOLVED_BROWSER_EFFECT"));
   assert.deepEqual([acquisitions, parks], [8, 8],
-    "unresolved DISPATCHED must permit zero-input park while WAL continues blocking every acquisition");
+    "historical DISPATCHED permits zero-input park and retains its facts independently of current acquisition");
   const waitEvents = (await readFile(runtimeLogger.currentSegmentPath()!, "utf8")).trim().split("\n")
     .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>)
     .filter((event) => String(event.code).startsWith("GPT_PROVIDER_WAIT_"));

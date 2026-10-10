@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "grasseye.browser.authority.websocket.v1",
-  "revision": 9,
+  "revision": 10,
   "transport": {
     "kind": "single-authenticated-loopback-websocket",
     "path": "/browser-authority/v1",

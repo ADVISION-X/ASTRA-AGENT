@@ -4,7 +4,7 @@ import type { ProductionRoutePolicy } from "../../../mediator/product-plugin-con
 export type { ProductionRoutePolicy } from "../../../mediator/product-plugin-contract.js";
 
 if (projection.schema_version !== "website-agent-route-policies.v1" || projection.contract_id !== "ai-acceptance.website-agent-task-result"
-  || projection.contract_version !== 17 || Object.keys(projection.parameter_types).length !== 48 || projection.routes.length !== 40) {
+  || projection.contract_version !== 18 || Object.keys(projection.parameter_types).length !== 48 || projection.routes.length !== 40) {
   throw new Error("PRODUCTION_ROUTE_POLICY_PROJECTION_INVALID");
 }
 export const productionRoutePolicies: readonly ProductionRoutePolicy[] = Object.freeze(projection.routes.map((route) => Object.freeze({
@@ -17,7 +17,7 @@ export const productionRoutePolicies: readonly ProductionRoutePolicy[] = Object.
   }))),
 })));
 export const productionRoutePolicyMap = new Map(productionRoutePolicies.map((route) => [`${route.product_id}\0${route.action_id}`, route]));
-if (productionRoutePolicyMap.size !== 40 || productionRoutePolicies.filter((route) => route.result_contract !== undefined).length !== 34) {
+if (productionRoutePolicyMap.size !== 40 || productionRoutePolicies.filter((route) => route.result_contract !== undefined).length !== 40) {
   throw new Error("PRODUCTION_ROUTE_POLICY_DENOMINATOR_INVALID");
 }
 export function productionRoutePolicy(product: ProductionProductId, action: ProductionActionId): ProductionRoutePolicy {

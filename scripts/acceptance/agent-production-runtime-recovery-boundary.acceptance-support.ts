@@ -17,60 +17,12 @@ import { workerLoop } from "../../src/lib/local-runtime/production/runtime-loops
 import type { RuntimeState } from "../../src/lib/local-runtime/production/runtime-state.js";
 import { reconcileClaimAttemptFailure } from "../../src/lib/local-runtime/production/runtime-claim-recovery.js";
 import { buildProductionLeaseRelease } from "../../src/lib/local-runtime/production/cloud-client.js";
-import { serializeTerminalFailure, type SerializedTerminalFailure } from "../../src/lib/local-runtime/production/terminal-failure.js";
-import { executionFailure } from "../../src/lib/execution-failure.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
-import { claimTask, task, failureStatus } from "./agent-production-runtime-fixtures.js";
-import { ClaimedProductionTaskSchema, ControlIntentSchema } from "../../src/lib/local-runtime/production/transport-protocol.js";
-import type { RemoteProductionDeviceJobStatus } from "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
+import { riskRecoveryFixture } from "./agent-production-runtime-payload-slot.acceptance-support.js";
 
 const readRuntimeSource = (relativePath: string) => readFile(
   new URL(`../../src/lib/local-runtime/production/${relativePath}`, import.meta.url), "utf8",
 );
-
-const riskRecoveryFixture = () => {
-  const base = task({ jobId: "job:zero-risk-regrant", productId: "payment_screenshot_observation", actionId: "observe" });
-  const job = claimTask(base);
-  const seal = hashCanonical("signed-source");
-  const callIdentity = { product_step_id: "observe", call_id: "turn-submit", child_capability_id: "submit_exact_gpt_turn_once",
-    source_effect_set_hash: hashCanonical("effect-set") };
-  const replayIdentity = { source_seal_hash: seal, source_attempt_id: "attempt:prior", result_revision: 6 };
-  const call = { ...callIdentity, call_grant_hash: hashCanonical({ job_id: job.job_id,
-    attempt_id: job.grant.attempt_id, ...replayIdentity, ...callIdentity }) };
-  const replayBody = { ...replayIdentity, calls: [call] };
-  const grant = { ...job.grant, result_revision: 6, source_handoff_seal_hash: seal,
-    same_accepted_attempt: true, delivery_priority_replay_grant: { ...replayBody,
-      grant_hash: hashCanonical({ job_id: job.job_id, attempt_id: job.grant.attempt_id, ...replayBody }) } };
-  const claimed = ClaimedProductionTaskSchema.parse({ ...job, grant });
-  const session = { workerSessionId: job.grant.worker_session_id, workerSessionEpoch: job.grant.worker_session_epoch };
-  const core: SerializedTerminalFailure = { ...serializeTerminalFailure(executionFailure("failed", "BROWSER_TARGET_INVALID")),
-    provider_effect_identity_hash: null, settled_result_payload_hash: null };
-  const failure = { failure_core: core, release_descriptor: buildProductionLeaseRelease(session, claimed, {
-    reasonCode: "ATTEMPT_FAILED", attemptFailure: core }).descriptor };
-  const effects = Array.from({ length: 6 }, (_, index) => ({ attemptId: `attempt:old-${index}`, resultRevision: index,
-    state: "REJECTED" as const, mutationOutcome: "confirmed" as const, physicalInputCount: 1,
-    productStepId: call.product_step_id, callId: call.call_id, childCapabilityId: call.child_capability_id,
-    sourceEffectSetHash: call.source_effect_set_hash, effectIdentityHash: hashCanonical(`effect:${index}`),
-    authorityRef: `browser:${index}`, walAuthorityHash: hashCanonical(`wal:${index}`),
-    rawWalAuthorityHash: hashCanonical(`wal:${index}`), anchorState: "absent" as const,
-    rawAnchorProofHash: hashCanonical(`anchor:${index}`), canonicalConversationHash: null, userTurnHash: null,
-    anchorProofHash: hashCanonical(`anchor:${index}`) }));
-  const history = { historyHash: hashCanonical(effects), rowCount: 42, walHistoryVerified: true,
-    unresolvedCommandCount: 0, unresolvedCommandSetHash: hashCanonical([]), replayCalls: [], replayEffects: effects };
-  const settlements = effects.map(effect => ({ kind: "risk_authorized" as const,
-    effectIdentityHash: effect.effectIdentityHash, sourceEffectSetHash: effect.sourceEffectSetHash,
-    productStepId: effect.productStepId, callId: effect.callId, childCapabilityId: effect.childCapabilityId,
-    sourceAnchorState: effect.anchorState, sourceWalAuthorityHash: effect.walAuthorityHash,
-    sourceAnchorProofHash: effect.anchorProofHash, sourceHandoffSealHash: seal }));
-  const remoteFor = (current: SerializedTerminalFailure): RemoteProductionDeviceJobStatus => {
-    const attempt_failure = { ...current, attempt_id: grant.attempt_id,
-      lease_version: grant.lease_version, from_status: "failed", to_status: "failed" };
-    const raw = failureStatus(job.job_id, attempt_failure, []);
-    return { ...raw, attempt_failure, control_intent: ControlIntentSchema.parse(raw.control_intent),
-      next_action_code: "ACTIVE_ATTEMPT", write_receipts: [] };
-  };
-  return { base, claimed, session, failure, history, settlements, remote: remoteFor(core), remoteFor, seal };
-};
 
 const exerciseRiskGrantZeroInputRegrant = async (): Promise<void> => {
   const fixture = riskRecoveryFixture();
@@ -78,7 +30,7 @@ const exerciseRiskGrantZeroInputRegrant = async (): Promise<void> => {
   const originalCore = JSON.stringify(failure.failure_core);
   let inputState: "zero" | "possible" | "unknown" = "zero";
   let provenance = true, unresolved = 0, drift = false, badSource = false, reads = 0, anchorDrift = false;
-  let emptyEffects = false;
+  let emptyEffects = false, localPreparationRow = false;
   let accepted = settlements, recorded = failure;
   let zeroProof: ReturnType<RuntimeState["browserAuthority"]["readProvenZeroInputProviderCommand"]> = null;
   const observed: Record<string, unknown> = { session: fixture.session, store: {
@@ -88,8 +40,9 @@ const exerciseRiskGrantZeroInputRegrant = async (): Promise<void> => {
     readAttemptFailureRaw: () => JSON.stringify(failure),
     readIssuedSourceHandoff: (jobId: string, attemptId: string, hash: string) => {
       assert.deepEqual([jobId, attemptId, hash], [claimed.job_id, claimed.grant.attempt_id, seal]);
-      return badSource ? null : { kind: "delivery_priority_replay" };
-    }, readAcceptedSourceSettlements: () => accepted,
+      return badSource ? null : { kind: "delivery_priority_replay", source_attempt_id: "attempt:prior",
+        browser_history_hash: history.historyHash, readback_proofs: [] };
+    }, readAcceptedSourceSettlements: () => accepted, readSourceReadbackObservations: () => [],
   }, browserAuthority: {
     readAttemptPhysicalInputState: (jobId, attemptId) => {
       assert.deepEqual([jobId, attemptId], [claimed.job_id, claimed.grant.attempt_id]); return inputState;
@@ -98,8 +51,9 @@ const exerciseRiskGrantZeroInputRegrant = async (): Promise<void> => {
       assert.equal(jobId, claimed.job_id);
       const second = ++reads % 2 === 0;
       return { ...history, walHistoryVerified: provenance, unresolvedCommandCount: unresolved,
-        rowCount: emptyEffects ? 0 : history.rowCount,
-        historyHash: emptyEffects ? hashCanonical([]) : drift && second ? hashCanonical("drift") : history.historyHash,
+        rowCount: emptyEffects ? 0 : history.rowCount + Number(localPreparationRow),
+        historyHash: emptyEffects ? hashCanonical([]) : localPreparationRow ? hashCanonical("current-zero-target-local-row")
+          : drift && second ? hashCanonical("drift") : history.historyHash,
         replayEffects: emptyEffects ? [] : anchorDrift && second ? history.replayEffects.map(effect =>
           ({ ...effect, anchorProofHash: hashCanonical("changed-anchor") })) : history.replayEffects };
     }, readProvenZeroInputProviderCommand: () => zeroProof,
@@ -112,9 +66,14 @@ const exerciseRiskGrantZeroInputRegrant = async (): Promise<void> => {
     status, "parent", async () => { throw new Error("FORBIDDEN_SECOND_RELEASE"); });
   assert.equal((await execute()).stopBeforeProduct, false,
     "null diagnostic scope cannot override the current zero proof and six signed historical settlements");
-  for (const variant of ["possible", "unknown", "provenance", "unresolved", "drift", "anchor", "source", "settlement", "empty-settlements", "empty-effects"]) {
+  unresolved = 1;
+  assert.equal((await execute()).stopBeforeProduct, false, "stable approved history may retain unknown rows");
+  unresolved = 0; localPreparationRow = true;
+  assert.equal((await execute()).stopBeforeProduct, false, "current zero-input preparation cannot revoke unchanged old Provider bindings");
+  localPreparationRow = false;
+  for (const variant of ["possible", "unknown", "provenance", "drift", "anchor", "source", "settlement", "empty-settlements", "empty-effects"]) {
     inputState = variant === "possible" || variant === "unknown" ? variant : "zero";
-    provenance = variant !== "provenance"; unresolved = variant === "unresolved" ? 1 : 0;
+    provenance = variant !== "provenance"; unresolved = 0;
     drift = variant === "drift"; anchorDrift = variant === "anchor"; reads = 0; badSource = variant === "source";
     emptyEffects = variant === "empty-effects";
     accepted = variant === "settlement" ? settlements.slice(1) : variant === "empty-settlements" ? [] : settlements;
@@ -149,7 +108,7 @@ const inspectRuntimeSources = (project: Project, queryRef: string) => {
   inspectAgentProductionRuntime({
     project,
     sealedRoot: path.resolve("."),
-    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V75",
+    selectedLawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V76",
     targetSet: { queryRef, count: project.getSourceFiles().length },
     targetPaths: project.getSourceFiles().map((source) => path.relative(path.resolve("."), source.getFilePath()).replaceAll("\\", "/")),
     lawRequirements: [],
@@ -158,7 +117,7 @@ const inspectRuntimeSources = (project: Project, queryRef: string) => {
       manifestPath: "scripts/audit/domains/agent-production-runtime/manifest.json",
       ownerInspectorPath: "scripts/audit/domains/agent-production-runtime/inspector.ts",
       executionGroup: "domain",
-      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V75"],
+      lawIds: ["LAW-AGENT-PRODUCTION-RUNTIME-001-V76"],
     },
     generatedPlan: [],
   }, findings);
@@ -223,6 +182,17 @@ const exerciseAuthorityGuardMutants = (): void => {
   assert.ok(inspectRuntimeSources(project, "acceptance:first-fact-overwrite").some((finding) =>
     finding.checkId === "agent-production-runtime/immutable-first-fact-cas"));
   taskState.replaceWithText(originalTaskState);
+  const loops = project.getSourceFileOrThrow(path.resolve("src/lib/local-runtime/production/runtime-loops.ts"));
+  const originalLoops = loops.getFullText();
+  for (const mutation of [
+    originalLoops.replace("if (state.store.hasUnsentOutbox(jobId)) continue;", "if (false && state.store.hasUnsentOutbox(jobId)) continue;"),
+    originalLoops.replace("for (const jobId of state.store.pendingBrowserCleanupJobIds())", "for (const jobId of state.store.pendingBrowserCleanupJobIds().slice(0, 1))"),
+  ]) {
+    assert.notEqual(mutation, originalLoops); loops.replaceWithText(mutation);
+    assert.ok(inspectRuntimeSources(project, "acceptance:cleanup-own-job-and-finite-sweep").some(finding =>
+      finding.checkId === "agent-production-runtime/delivery-before-cleanup"));
+  }
+  loops.replaceWithText(originalLoops);
   assert.deepEqual(inspectRuntimeSources(project, "acceptance:runtime-authority-restored"), []);
 };
 
@@ -350,7 +320,7 @@ const exerciseManifestAndLawOwnership = async (): Promise<void> => {
   const runtimeLawRecords = [...runtimeLawSource.matchAll(/```law-record\n([\s\S]*?)\n```/gu)]
     .map((match) => JSON.parse(match[1]!) as { lawId: string; forbidden: string[] });
   const runtimeCoreLaw = runtimeLawRecords.find(
-    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V75",
+    (record) => record.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V76",
   );
   assert.ok(runtimeCoreLaw);
   for (const token of [
@@ -380,7 +350,7 @@ const assertClaimAndAdmissionSourceBoundaries = (
   assert.doesNotMatch(runtimeLoopsSource,
     /operation: "website\.result-consume"[\s\S]{0,900}reconcileBusinessAdmission/u);
   assert.match(runtimeLoopsSource,
-    /span\.terminal\(outcome === "completed"[\s\S]{0,260}: \{ outcome: "succeeded" \}\)/u);
+    /span\.terminal\(\{ outcome: "succeeded"[\s\S]{0,200}authorityHash: hashCanonical\(current\)/u);
   assert.doesNotMatch(runtimeSource, /emitState|stateKey:|currentStates|reconciledFromAuthority/u);
   assert.doesNotMatch(executorSource, /runTurn|ProductionGptExecutor|GPT_TURN_FLOW/u);
   assert.match(executorSource, /gpt: gptExecution\.tools/u);

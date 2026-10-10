@@ -1,5 +1,5 @@
 import type { SourceAttemptHandoff } from "./source-readback-contract.js";
-import { validV44SourceHandoff } from "./store-source-settlement.js";
+import { validSourceHandoff } from "./store-source-settlement.js";
 import { ProductionStoreSourceReadback } from "./store-source-readback.js";
 import { executionFailure } from "../../execution-failure.js";
 import type { AttemptFailureFirstFact } from "./terminal-failure.js";
@@ -46,7 +46,7 @@ const taskAuthorityFromRow = (row: TaskRow): StoredProductionTask => {
 const sourceHandoffManifestValid = (
   manifest: SourceAttemptHandoff, task: WebsiteAgentTask, attemptId: string,
   sourceAttemptId: string, sealHash: `sha256:${string}`,
-): boolean => validV44SourceHandoff(manifest) && manifest.seal_hash === sealHash
+): boolean => validSourceHandoff(manifest) && manifest.seal_hash === sealHash
   && manifest.source_task_hash === hashCanonical(task)
   && manifest.source_attempt_id === sourceAttemptId
   && attemptId !== sourceAttemptId;

@@ -98,17 +98,17 @@ await verifyKnownGptRateLimitRuntimeContract();
 await verifyAttemptFailureReadbackRuntimeContract();
 await exerciseProductionRuntimeSourceBoundaries();
 for (const evidenceMode of ["exam.property", "exam.state-machine"] as const) {
-  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V75", evidenceMode,
+  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V76", evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "forbidden:2", "forbidden:3", "forbidden:5", "summary"],
     locator: `acceptance:agent-production-runtime:runtime-authority:${evidenceMode}`,
     observedValue: "Original durable ledger, immutable failure readback, same-attempt delivery, bounded lease renewal, session rotation and pending Website admission exercised without a second lifecycle." });
 }
 for (const evidenceMode of ["exam.golden", "exam.property", "exam.state-machine"] as const) {
-  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V44", evidenceMode,
+  emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-004-V45", evidenceMode,
     clauses: ["forbidden:0", "forbidden:1", "summary"], locator: `acceptance:agent-production-runtime:business-admission:${evidenceMode}`,
     observedValue: "Original business admission consumer accepted base/Bazi/review full hashes and refused partial, mixed, mismatched or unadmitted results before completion." });
 }
-emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V46", evidenceMode: "exam.golden",
+emitQualityProofObservation({ lawId: "LAW-AGENT-PRODUCTION-RUNTIME-007-V47", evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "summary"], locator: "acceptance:agent-production-runtime:manifest-owner-fail-closed",
   observedValue: "Original ownership and recovery support accepted Runtime primary scope and rejected adjacent Product/Mediator ownership." });
 process.stdout.write("[ACCEPTANCE][agent-production-runtime] Runtime contracts exercised\n");

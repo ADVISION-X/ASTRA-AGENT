@@ -49,9 +49,10 @@ export const exerciseBrowserMutationStore = (root: string): void => {
   assert.equal(restarted.readCommand("old-command")?.state ?? null, "DISPATCHED",
     "a new fence must not terminalize a command from the old attempt");
   assert.equal(restarted.readMutationOutcome("old-command"), "dispatched");
-  assert.throws(() => restarted.prepare(identity("new-command", "attempt-2", nextFence)),
-    /BROWSER_MUTATION_UNSETTLED/u,
-    "a new fence must not bypass a globally unresolved Browser writer");
+  const oldPending = restarted.readCommand("old-command");
+  assert.doesNotThrow(() => restarted.prepare(identity("new-command", "attempt-2", nextFence)),
+    "a distinct target-local command stays reachable while the old unknown fact is preserved");
+  assert.deepEqual(restarted.readCommand("old-command"), oldPending);
   assert.deepEqual(restarted.dispatchedForBinding({
     jobId: "job-1", attemptId: "attempt-2", leaseVersion: 1, executionFenceHash: nextFence,
   }), []);

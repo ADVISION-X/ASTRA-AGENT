@@ -139,14 +139,13 @@ try {
   const before = mutationStore.readCommand(command.commandId);
   const blocked = await report();
   for (const name of ["productionRuntimeBrowser", "productionRuntimeExecution"]) {
-    assert.equal(blocked.components.find(component => component.name === name)?.ok, false,
-      "real Runtime blocked health must not become a green Shell component");
+    assert.equal(blocked.components.find(component => component.name === name)?.ok, true,
+      "an old unresolved WAL row must not make the current shared lane unavailable");
   }
   assert.equal(blocked.status, "healthy", "overall health retains the Shell/Cloud diagnostic definition");
-  const browserMessage = blocked.components.find(component => component.name === "productionRuntimeBrowser")!.actionableMessage!;
-  assert.match(browserMessage, /original command's trusted terminal receipt/u);
-  assert.match(browserMessage, /Preserve existing jobs/u);
-  assert.doesNotMatch(browserMessage, /restart|reload|delete|claim.*target/iu);
+  assert.equal(lane.readState(), "idle");
+  assert.equal(mutationStore.readCommand(command.commandId)?.state, "DISPATCHED",
+    "shared readiness must preserve the unknown old command without fabricating its receipt");
   assert.deepEqual(mutationStore.readCommand(command.commandId), before);
   mutationStore.settleTerminalReceipt(terminalFact(command));
   assert.equal((await report()).components.find(component => component.name === "productionRuntimeExecution")?.ok, true);

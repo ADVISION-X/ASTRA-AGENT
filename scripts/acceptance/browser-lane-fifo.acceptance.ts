@@ -34,8 +34,9 @@ try {
     targetRef: "historic-target", documentRef: "historic-document", actionId: "browser.dom.click.v1",
     positivePostconditionHash: hash("3"), negativePostconditionHash: hash("4"), requestHash: hash("5"), payloadHash: hash("6") } as const;
   store.prepare(input); store.markDispatched(input.commandId);
-  assert.throws(() => store.prepare({ ...input, commandId: "other", jobId: "other-job", attemptId: "other-attempt",
-    exactCallIdentityHash: hash("7"), logicalMutationId: null }), /BROWSER_MUTATION_UNSETTLED/u);
+  assert.doesNotThrow(() => store.prepare({ ...input, commandId: "other", jobId: "other-job", attemptId: "other-attempt",
+    exactCallIdentityHash: hash("7"), logicalMutationId: null }));
+  assert.equal(store.readCommand(input.commandId)?.state, "DISPATCHED", "independent work cannot forge an old completion");
   const history = store.jobHistoryEvidence(original.jobId).historyHash;
   database.prepare("update browser_mutations set target_ref=?,document_ref=? where command_id=?").run("changed-target", "changed-document", input.commandId);
   assert.equal(store.jobHistoryEvidence(original.jobId).historyHash, history);
@@ -54,13 +55,13 @@ try {
     remainingMs: () => 5_000, stopAbortMonitor: () => undefined, complete: () => undefined, reject: () => undefined };
   Object.assign(coordinator, { queue: [waiter], active: false, observationNotBefore: 0, infrastructure: { mutationState: store } });
   const next = (): unknown => (coordinator.nextWaiter as () => unknown).call(coordinator);
-  assert.equal(next(), null); assert.equal((coordinator.queue as unknown[]).length, 1);
-  coordinator.queue = [{ ...waiter, targetMode: "confirmed-readback", requestKind: "provider-observation" }];
-  assert.equal(next(), null);
+  assert.equal(next(), waiter); assert.equal((coordinator.queue as unknown[]).length, 0);
+  const readbackWaiter = { ...waiter, targetMode: "confirmed-readback", requestKind: "provider-observation" };
+  coordinator.queue = [readbackWaiter]; assert.equal(next(), readbackWaiter);
   const sameRelease = { ...waiter, kind: "release", jobId: original.jobId, releaseAuthority: "business-admitted" };
   const otherRelease = { ...sameRelease, jobId: "other-job" }, adminRelease = { ...sameRelease, releaseAuthority: "website-admin-deletion" };
-  coordinator.queue = [sameRelease, otherRelease]; assert.equal(next(), otherRelease); assert.equal(next(), null);
-  coordinator.queue = [sameRelease, adminRelease]; assert.equal(next(), adminRelease); assert.equal(next(), null);
+  coordinator.queue = [sameRelease, otherRelease]; assert.equal(next(), sameRelease); assert.equal(next(), otherRelease);
+  coordinator.queue = [sameRelease, adminRelease]; assert.equal(next(), sameRelease); assert.equal(next(), adminRelease);
   assert.throws(() => store.purgeJob(original.jobId, "business-admitted" as never), /BROWSER_TARGET_INVALID/u);
   assert.equal(store.readCommand(input.commandId)?.state, "DISPATCHED");
   database.prepare("update browser_mutations set state='PREPARED' where command_id=?").run(input.commandId);

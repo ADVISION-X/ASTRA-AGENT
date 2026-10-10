@@ -256,7 +256,7 @@ const createSessionFetch = (
   if (url.endsWith("/internal/ai-production/v6/sessions/open")) return successfulJsonResponse({
     session: {
       device_id: "device:atomic-claim", worker_session_id: "worker-session:atomic-claim",
-      worker_session_epoch: 1, control_contract_version: 44, attestation_seq: 0,
+      worker_session_epoch: 1, control_contract_version: 45, attestation_seq: 0,
     },
     session_credential: credentialFor(1),
   });
@@ -406,7 +406,7 @@ export const exerciseWorkerSessionRotation = async (): Promise<void> => {
       browser_action_in_flight: 0, browser_authority_state: "present",
       browser_target_state: "absent", browser_lane_state: "idle", drain_state: stopping ? "draining" : "open",
       ledger_reconciled: true,
-    }), HASH_B, "worker-instance:atomic-claim");
+    }), HASH_B, () => true, "worker-instance:atomic-claim");
     await exerciseClaimOrdering(session, state, signals);
     state.tamperClaimHash = true;
     await assert.rejects(
@@ -442,7 +442,7 @@ export const exerciseHeartbeatResponseLossRecovery = async (): Promise<void> => 
       opens += 1;
       return successfulJsonResponse({
         session: { device_id: "device:atomic-claim", worker_session_id: "worker-session:atomic-claim",
-          worker_session_epoch: 1, control_contract_version: 44, attestation_seq: serverSequence },
+          worker_session_epoch: 1, control_contract_version: 45, attestation_seq: serverSequence },
         session_credential: credentialFor(serverGeneration),
       });
     }
@@ -474,7 +474,7 @@ export const exerciseHeartbeatResponseLossRecovery = async (): Promise<void> => 
       agent_attested_in_flight: 0, browser_action_in_flight: 0,
       browser_authority_state: "present", browser_target_state: "absent",
       browser_lane_state: "idle", drain_state: "open", ledger_reconciled: true,
-    }), HASH_B, "worker-instance:atomic-claim");
+    }), HASH_B, () => true, "worker-instance:atomic-claim");
     await assert.rejects(session.heartbeat(), /CLOUD_TRANSPORT_UNAVAILABLE/u);
     assert.equal(opens, 2, "the same open request must resynchronize the original session");
     assert.equal(serverSequence, 1);

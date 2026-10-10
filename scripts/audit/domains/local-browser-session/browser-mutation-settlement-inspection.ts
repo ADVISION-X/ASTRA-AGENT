@@ -12,7 +12,8 @@ const paths = { transport: sourcePaths[0], worker: sourcePaths[1], supervisor: s
   contract: "src/lib/browser/exact-target/browser-dom-intent.ts", special: "src/lib/browser/exact-target/browser-dom-special-intent.ts",
   receipt: "src/lib/browser/exact-target/browser-mutation-receipt.ts", specialReceipt: "src/lib/browser/exact-target/browser-special-mutation-receipt.ts",
   evidence: "src/lib/browser/exact-target/browser-mutation-evidence.ts", failure: "src/lib/browser/exact-target/browser-command-failure.ts",
-  observationReceipt: "src/lib/browser/exact-target/browser-observation-receipt.ts" } as const;
+  observationReceipt: "src/lib/browser/exact-target/browser-observation-receipt.ts",
+  framePayload: "src/lib/browser/transport/browser-authority-frame-payload.ts" } as const;
 type Sources = Record<keyof typeof paths, SourceFile>;
 const text = (source: SourceFile, name: string): string => source.getVariableDeclaration(name)?.getInitializer()?.getText() ?? "";
 const method = (source: SourceFile, owner: string, name: string): string => source.getClass(owner)?.getMethod(name)?.getBody()?.getText() ?? "";
@@ -78,8 +79,10 @@ const inspectTerminalOwner = (s: Sources, findings: InspectorFinding[], lawId: s
     && ![s.actor, s.failure].some(source => source.getText().includes(".settleTerminalReceipt(")),
     findings, lawId, paths.store, "The Store is the sole terminal CAS/readback writer; committed facts ACK before logging failure blocks subsequent work.");
   check(has(s.store.getText(), ["BrowserMutationOutcome", "mutation_outcome", "native_cause_code", "nativeCauseCode",
-    "terminal_at=?,updated_at=?", "select 1 from browser_mutations where state='DISPATCHED' limit 1",
+    "terminal_at=?,updated_at=?", "where job_id=? and exact_call_identity_hash=?",
     'if (result.changes !== 1) throw new Error("BROWSER_MUTATION_STATE_CONFLICT")'])
+    && has(method(s.store, "BrowserMutationStore", "prepare"), ["this.assertRuntimeTaskProvenance()", "this.assertProviderEffectHistory(input)", "BROWSER_EXACT_CALL_REPLAY_FORBIDDEN", "BROWSER_LOGICAL_MUTATION_REPLAY_FORBIDDEN"])
+    && !method(s.store, "BrowserMutationStore", "prepare").includes("BROWSER_MUTATION_UNSETTLED")
     && has(s.evidence.getText(), ["readMutationOutcome", "requireMutationOutcome", "mutationOutcome: requireMutationOutcome(row.mutation_outcome)", "terminalFailureFields", "nativeFailureCode"])
     && !/legacyMutationOutcome|settleRetiredTargetLocal|BROWSER_TARGET_LOCAL_EXECUTION_RETIRED/u.test(`${s.store.getText()}\n${s.evidence.getText()}`),
     findings, lawId, paths.evidence, "Terminal outcome/count/native cause must come from current immutable WAL facts, with no retired-target settlement or legacy fallback.");
@@ -88,8 +91,18 @@ const inspectTerminalOwner = (s: Sources, findings: InspectorFinding[], lawId: s
     && order(normal, ["parseBrowserCommandReply(", "this.settleMutationReceipt(socket, parsed.fact)", "this.removeReply(sequence)"])
     && has(normal, ["BrowserCommandTerminalReplyError", "reply.reject("])
     && method(s.transport, "BrowserAuthorityWebSocket", "acceptAuthenticatedControl")
-      .includes("this.settleMutationReceipt(socket, parseBrowserMutationTerminalFact(body))"),
+      .includes("this.settleMutationReceipt(socket, parseBrowserMutationReceiptMessage(body))"),
     findings, lawId, paths.transport, "DISPATCHED precedes socket input; authenticated normal/error/late receipts converge on the same Store CAS before resolving the caller.");
+  const disposition = method(s.supervisor, "BrowserInfrastructureSupervisor", "settleMutationDisposition");
+  check(has(disposition, ["mutations.readCommand(request.commandId)", "browserMutationReceiptBindingProjection(command.identity)",
+    "request.receiptBindingHash !== bindingHash", "browserMutationTerminalFactShapeValid(fact)",
+    "verifyBrowserMutationTerminalFact(command.identity, fact, bindingHash, receiptHash)",
+    "this.settleMutationTerminal(fact, acknowledge); return", 'error.message === "BROWSER_MUTATION_STATE_CONFLICT"',
+    'type: "disposed"', "commandId: request.commandId", "receiptBindingHash: bindingHash", "rejectedFactHash: request.rejectedFactHash"])
+    && has(s.framePayload.getText(), ['"commandId|receiptBindingHash|rejectedFact|rejectedFactHash|type"',
+      'request.type !== "dispose"', "canonicalBrowserAuthorityPlaintext(request.rejectedFact)", "hash !== request.rejectedFactHash"])
+    && !disposition.includes("mutations.settleTerminalReceipt("), findings, lawId, paths.supervisor,
+    "Disposition verifies the original command/binding and raw fact hash; valid facts use the original CAS and invalid facts never forge WAL completion.");
 };
 
 const inspectReceiptConsumer = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
@@ -116,20 +129,32 @@ const inspectReceiptConsumer = (s: Sources, findings: InspectorFinding[], lawId:
   const terminalCalls = delivery?.getFinallyBlock()?.getStatements().map(statement => statement.asKind(SyntaxKind.ExpressionStatement)
     ?.getExpression().asKind(SyntaxKind.AwaitExpression)?.getExpression().asKind(SyntaxKind.CallExpression)) ?? [];
   const ack = method(s.worker, "ExtensionWebSocketActor", "acceptMutationAck");
+  const flush = method(s.worker, "ExtensionWebSocketActor", "flushMutationReceipt");
   check(order(execute, ["this.commandDelivery.mutationSlot =", "await executeExtensionCommandReply(", "slot.fact = fact",
     'this.sendEncrypted(socket, "DIAGNOSTIC"', 'await this.sendEncrypted(socket, "REPLY", reply.body)', "retireInvalidCommandTarget("])
     && senderReferences?.length === 2
     && terminalCalls.map(call => call?.getExpression().getText()).join("\0") === "this.sendEncrypted\0this.targetAuthority.retireInvalidCommandTarget"
     && JSON.stringify(terminalCalls[0]?.getArguments().map(argument => argument.asKind(SyntaxKind.StringLiteral)?.getLiteralValue() ?? argument.getText())) === JSON.stringify(["socket", "REPLY", "reply.body"])
-    && has(execute, ["browserMutationTerminalFactShapeValid(fact)", "slot?.commandId !== permit.commandId", "receiptBindingHash",
+    && has(execute, ["slot?.commandId !== permit.commandId", "slot.receiptBindingHash !== receiptBindingHash",
       "socket !== this.connection.socket", "session.serverToClientKey", "Date.now() >= deadline"])
-    && has(ack, ['"commandId|receiptBindingHash|receiptHash|type"', "ack.commandId !== fact.commandId",
-      "ack.receiptBindingHash !== fact.receiptBindingHash", "ack.receiptHash !== fact.receiptHash", "this.commandDelivery.mutationSlot = null"])
-    && has(s.worker.getText(), ["disconnectedDrain", "pendingCommandHandlers", "pendingTargetHandlers", "lastMutationDeliveryKey", "sendTail", "receiveTail",
-      "frame.sequence <= this.connection.lastServerSequence", "this.connection.lastServerSequence = frame.sequence", "this.acceptServerSequence(frame)"])
+    && has(ack, ['"commandId|receiptBindingHash|receiptHash|type"', '"commandId|reasonCode|receiptBindingHash|rejectedFactHash|type"',
+      "response.commandId !== slot.commandId", "response.receiptBindingHash !== slot.receiptBindingHash",
+      "browserMutationTerminalFactShapeValid(slot.fact)", "response.receiptHash !== slot.fact.receiptHash",
+      "canonicalizeBrowserAuthorityValue(slot.fact)", "response.rejectedFactHash !== hash",
+      "this.commandDelivery.mutationSlot !== slot", "this.commandDelivery.pendingCommandHandlers.size > 0",
+      "this.commandDelivery.pendingTargetHandlers.size > 0 || this.commandDelivery.disconnectedDrain !== null",
+      "this.commandDelivery.mutationSlot = null"])
+    && has(flush, ["this.commandDelivery.pendingCommandHandlers.size > 0", "this.commandDelivery.pendingTargetHandlers.size > 0",
+      "canonicalizeBrowserAuthorityValue(slot.fact)", "this.commandDelivery.mutationSlot !== slot",
+      "this.connection.session?.clientToServerKey !== key", 'this.sendEncrypted(socket, "MUTATION_RECEIPT", { type: "dispose"',
+      "commandId: slot.commandId", "receiptBindingHash: slot.receiptBindingHash", "rejectedFact: slot.fact", "rejectedFactHash"])
+    && has(s.worker.getText(), ["disconnectedDrain", "pendingCommandHandlers", "pendingTargetHandlers", "sendTail", "receiveTail",
+      "frame.sequence <= this.connection.lastServerSequence", "this.connection.lastServerSequence = frame.sequence", "this.acceptServerSequence(frame)",
+      'await this.sendEncrypted(socket, "HEARTBEAT", {}); await this.flushMutationReceipt();'])
+    && !s.worker.getText().includes("lastMutationDeliveryKey")
     && order(method(s.worker, "ExtensionWebSocketActor", "drainDisconnectedHandlers"),
       ["await Promise.allSettled(", "await this.targetAuthority.releaseActiveTarget(false)", "await this.flushMutationReceipt()"]),
-    findings, lawId, paths.worker, "The extension must preserve a bound terminal slot before REPLY/retirement and retain it through disconnect until the exact authenticated ACK.");
+    findings, lawId, paths.worker, "The original slot retains full raw facts through disconnect and heartbeat redelivery; exact normal ACK or bound disposition after handler drain alone releases it.");
 };
 
 const inspectMechanicalQualification = (s: Sources, findings: InspectorFinding[], lawId: string): void => {

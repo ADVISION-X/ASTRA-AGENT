@@ -5,7 +5,7 @@ import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../../shared/source-files.js";
 
 const handoffPath = "src/lib/local-runtime/production/runtime-source-handoff.ts";
-const handoffValidator = "assertV44SealedHandoff";
+const handoffValidator = "assertSealedSourceHandoff";
 const retiredTargetTokens = [
   "expectedTargetRef", "BROWSER_OLD_TARGET_INSTANCE_UNAVAILABLE", "browser_target_claims",
   "readUnreleasedTargetClaims", "allDispatchedTargetsSettled", "assertHistoricalTargetClaimCoverage",

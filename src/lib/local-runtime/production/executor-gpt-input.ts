@@ -15,6 +15,7 @@ export const gptLeaseInput = (
   ...(lease.readback_only_calls ? { readbackOnlyCalls: lease.readback_only_calls.map((call) => ({
     productStepId: call.product_step_id, callId: call.call_id,
     childCapabilityId: call.child_capability_id,
+    ...(call.source ? { source: call.source } : {}),
   })) } : {}),
   ...(lease.source_reusable_calls ? { sourceReusableCalls: lease.source_reusable_calls.map((call) => ({
     productStepId: call.product_step_id, callId: call.call_id,

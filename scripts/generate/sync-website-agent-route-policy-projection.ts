@@ -24,7 +24,7 @@ function exact(input: Record<string, unknown>, keys: readonly string[]): void {
 const artifact = object(projection);
 exact(artifact, ["schema_version", "contract_id", "contract_version", "parameter_types", "routes"]);
 if (artifact.schema_version !== "website-agent-route-policies.v1" || artifact.contract_id !== "ai-acceptance.website-agent-task-result"
-  || artifact.contract_version !== 17 || !Array.isArray(artifact.routes) || artifact.routes.length !== 40) {
+  || artifact.contract_version !== 18 || !Array.isArray(artifact.routes) || artifact.routes.length !== 40) {
   throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_INVALID");
 }
 const parameters = object(artifact.parameter_types);
@@ -69,10 +69,10 @@ for (const raw of artifact.routes) {
     }
   }
 }
-if (identities.size !== 40 || Object.keys(parameters).length !== 48 || contracts !== 34 || used.size !== 48
+if (identities.size !== 40 || Object.keys(parameters).length !== 48 || contracts !== 40 || used.size !== 48
   || Object.keys(parameters).some((key) => !used.has(key))) throw new Error("WEBSITE_AGENT_ROUTE_POLICY_PROVIDER_DENOMINATOR_INVALID");
 // The consumer receives the provider's exact bytes, including order and result contracts.
 const pending = `${destination}.tmp-${process.pid}`;
 await writeFile(pending, bytes, { mode: 0o644 });
 await rename(pending, destination);
-process.stdout.write("WEBSITE_AGENT_ROUTE_POLICY_PROJECTION_SYNCED 40/48/34\n");
+process.stdout.write("WEBSITE_AGENT_ROUTE_POLICY_PROJECTION_SYNCED 40/48/40\n");

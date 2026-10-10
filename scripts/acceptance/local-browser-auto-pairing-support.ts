@@ -1,5 +1,13 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { createHmac } from "node:crypto";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
+import { BrowserInfrastructureSupervisor } from "../../src/lib/browser/infrastructure/browser-infrastructure-supervisor.js";
+import { parseBrowserMutationReceiptMessage } from "../../src/lib/browser/transport/browser-authority-frame-payload.js";
+import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
+import type { BrowserMutationDisposed } from "../../src/lib/browser/exact-target/browser-observation-receipt.js";
 import { createClickCommand, permit } from "./local-browser-terminal-fixture.js";
 import { browserCommandPermitMacPayload } from "../../src/lib/browser/transport/command-permit.js";
 import { setExtensionPermitAuthority, clearExtensionPermitAuthority } from "../../src/lib/browser/chrome-extension/command-permit-validator.js";
@@ -10,7 +18,7 @@ import { TargetClaimAwaiter } from "../../src/lib/browser/chrome-extension/webso
 import { ExtensionWebSocketActor } from "../../src/lib/browser/chrome-extension/websocket-actor.js";
 import { encrypt, decrypt, hashBrowserExtensionText } from "../../src/lib/browser/chrome-extension/websocket-actor-crypto.js";
 import { ExtensionExactTargetRegistry } from "../../src/lib/browser/chrome-extension/exact-target-runtime.js";
-import { decodeBrowserAuthorityFrame, encodeBrowserAuthorityFrame, type BrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
+import { canonicalizeBrowserAuthorityValue, decodeBrowserAuthorityFrame, encodeBrowserAuthorityFrame, type BrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
 import type { AuthenticatedSession } from "../../src/lib/browser/chrome-extension/websocket-pairing-proof.js";
 import { BROWSER_PROTOCOL_REVISION } from "../../src/lib/browser/protocol/generated/browser-protocol.generated.js";
 import { identity, terminalFact } from "./local-browser-mutation-store-support.js";
@@ -35,7 +43,7 @@ const chromeFixture = () => {
     alarm: (...args: Parameters<typeof alarm>) => alarm(...args), reloads: () => reloads, configuration: () => alarmConfiguration };
 };
 type Delivery = { pendingCommandHandlers: Set<Promise<void>>; pendingTargetHandlers: Set<Promise<void>>; commandAdmissionSuspended: boolean;
-  mutationSlot: { jobId: string; commandId: string; receiptBindingHash: string; fact: ReturnType<typeof terminalFact> | null } | null };
+  mutationSlot: { jobId: string; commandId: string; receiptBindingHash: string; fact: unknown } | null };
 const workerFixture = async (chrome: ExtensionChromeApi) => {
   Reflect.set(globalThis, "__GRASSEYE_RELEASE_BUILD_ID__", "build-receipt-acceptance");
   const actor = new ExtensionWebSocketActor(chrome), key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
@@ -119,8 +127,13 @@ const originalDelivery = async (chrome: ExtensionChromeApi): Promise<void> => {
   await fixture.invoke("flushMutationReceipt"); assert.equal(fixture.frames.length, 0); finish(); await drain;
   assert.equal(releases, 1); assert.equal(fixture.frames.length, 1);
   const delivered = decodeBrowserAuthorityFrame(fixture.frames[0]!); assert.equal(delivered.kind, "MUTATION_RECEIPT");
-  assert.deepEqual(await decrypt(fixture.session.clientToServerKey, "client-to-server", delivered), fact);
-  await fixture.invoke("flushMutationReceipt"); assert.equal(fixture.frames.length, 1);
+  const receiptMessage = { type: "dispose", commandId: fact.commandId, receiptBindingHash: fact.receiptBindingHash,
+    rejectedFact: fact, rejectedFactHash: await hashBrowserExtensionText(canonicalizeBrowserAuthorityValue(fact)) };
+  assert.deepEqual(await decrypt(fixture.session.clientToServerKey, "client-to-server", delivered), receiptMessage);
+  await fixture.invoke("flushMutationReceipt"); assert.equal(fixture.frames.length, 2,
+    "lost ACK must redeliver the full exact fact on the same authenticated connection");
+  assert.deepEqual(await decrypt(fixture.session.clientToServerKey, "client-to-server",
+    decodeBrowserAuthorityFrame(fixture.frames[1]!)), receiptMessage);
   await receiptAcknowledgements(fixture, fact);
   assert.equal((await workerFixture(chrome)).delivery.mutationSlot, null);
 };
@@ -135,6 +148,60 @@ const receiptAcknowledgements = async (fixture: Worker, fact: ReturnType<typeof 
   const late = fixture.invoke("acceptMutationAck", fixture.socket, ack); fixture.connection.socket = null; fixture.connection.session = null;
   await late; assert.equal(slot()?.fact, next);
 };
+const dispositionRoundTrips = async (chrome: ExtensionChromeApi): Promise<void> => {
+  const root = await mkdtemp(join(tmpdir(), "browser-disposition-"));
+  const store = new BrowserMutationStore(join(root, "wal")); store.verifyRuntimeTaskProvenance(null);
+  const supervisor = Object.create(BrowserInfrastructureSupervisor.prototype) as BrowserInfrastructureSupervisor;
+  const logger = createRuntimeLogger({ producer: "disposition-exam", owner: "browser-session", component: "receipt",
+    terminalEnabled: false, fileSink: { directoryPath: join(root, "logs") } });
+  Object.assign(supervisor, { state: { started: true, mutationState: store }, options: { runtimeLogger: logger },
+    lane: { notifyMutationSettled: () => undefined } });
+  const settle = (message: unknown): Record<string, unknown> => {
+    let response: BrowserMutationDisposed | undefined; let acknowledged = false;
+    Reflect.get(supervisor, "settleMutationTerminal").call(supervisor, parseBrowserMutationReceiptMessage(message),
+      (disposed?: BrowserMutationDisposed) => { response = disposed; acknowledged = true; });
+    assert.equal(acknowledged, true);
+    if (response) return { ...response };
+    const request = message as { rejectedFact: ReturnType<typeof terminalFact> };
+    const fact = request.rejectedFact;
+    return { type: "ack", commandId: fact.commandId, receiptBindingHash: fact.receiptBindingHash, receiptHash: fact.receiptHash };
+  };
+  try {
+    for (const mode of ["bad-code", "bad-identity", "missing", "valid", "conflict"] as const) {
+      const worker = await workerFixture(chrome), command = identity(`dispose-${mode}`, `attempt-${mode}`);
+      store.prepare(command); store.markDispatched(command.commandId);
+      const good = terminalFact(command);
+      if (mode === "conflict") store.settleTerminalReceipt(good);
+      const raw = mode === "missing" ? null : mode === "bad-code" ? { ...good, terminalReceipt: { ...good.terminalReceipt, failureCode: "UNDEFINED_PRODUCER_CODE" } }
+        : mode === "bad-identity" ? { ...good, commandId: "unrelated-command" }
+        : mode === "conflict" ? terminalFact(command, { resultHash: `sha256:${"f".repeat(64)}` }) : good;
+      putFact(worker, good); worker.delivery.mutationSlot!.fact = raw;
+      const before = store.readCommand(command.commandId);
+      await worker.invoke("flushMutationReceipt"); await worker.invoke("flushMutationReceipt");
+      const messages = await Promise.all(worker.frames.map(value => decrypt(worker.session.clientToServerKey, "client-to-server", decodeBrowserAuthorityFrame(value))));
+      assert.deepEqual(messages[0], messages[1], "lost disposition redelivers the complete same slot fact");
+      assert.throws(() => parseBrowserMutationReceiptMessage({ ...messages[0], rejectedFactHash: `sha256:${"0".repeat(64)}` }), /BROWSER_RECONCILIATION_IDENTITY_MISMATCH/u);
+      assert.throws(() => settle({ ...messages[0], receiptBindingHash: `sha256:${"0".repeat(64)}` }), /BROWSER_RECONCILIATION_IDENTITY_MISMATCH/u);
+      const first = settle(messages[0]), repeated = settle(messages[1]); assert.deepEqual(repeated, first);
+      if (mode === "valid") { assert.equal(first.type, "ack"); assert.equal(store.readCommand(command.commandId)?.state, "CONFIRMED"); }
+      else {
+        assert.equal(first.type, "disposed");
+        assert.equal(first.reasonCode, mode === "missing" ? "BROWSER_COMMAND_RECEIPT_MISSING" : mode === "conflict" ? "BROWSER_MUTATION_STATE_CONFLICT" : "BROWSER_RECONCILIATION_RECEIPT_INVALID");
+        assert.deepEqual(store.readCommand(command.commandId), before, "disposition never fabricates or replaces WAL completion");
+        await assert.rejects(worker.invoke("acceptMutationAck", worker.socket, await worker.frame("MUTATION_RECEIPT", 2,
+          { ...first, rejectedFactHash: `sha256:${"0".repeat(64)}` })), /BROWSER_RECONCILIATION_IDENTITY_MISMATCH/u);
+        const pending = Promise.resolve(); worker.delivery.pendingCommandHandlers.add(pending);
+        await worker.invoke("acceptMutationAck", worker.socket, await worker.frame("MUTATION_RECEIPT", 3, first));
+        assert.equal(worker.delivery.mutationSlot?.fact, raw, "live handlers retain the slot"); worker.delivery.pendingCommandHandlers.delete(pending);
+      }
+      await worker.invoke("acceptMutationAck", worker.socket, await worker.frame("MUTATION_RECEIPT", 4, first));
+      assert.equal(worker.delivery.mutationSlot, null);
+      const next = terminalFact(identity(`next-${mode}`, `next-attempt-${mode}`)); putFact(worker, next);
+      await worker.invoke("acceptMutationAck", worker.socket, await worker.frame("MUTATION_RECEIPT", 5, first));
+      assert.equal((worker.delivery.mutationSlot as Delivery["mutationSlot"])?.fact, next, "late disposition cannot clear another command");
+    }
+  } finally { store.close(); await rm(root, { recursive: true, force: true }); }
+};
 const sessionBoundaries = async (chrome: ExtensionChromeApi): Promise<void> => {
   const ordered = await workerFixture(chrome);
   await Promise.all([ordered.invoke("sendEncrypted", ordered.socket, "HEARTBEAT", {}), ordered.invoke("sendEncrypted", ordered.socket, "MUTATION_RECEIPT", {})]);
@@ -145,7 +212,9 @@ const sessionBoundaries = async (chrome: ExtensionChromeApi): Promise<void> => {
   const obsolete = await workerFixture(chrome), replacement = await workerFixture(chrome); let unblock!: () => void;
   Reflect.set(Reflect.get(obsolete.actor, "commandDelivery"), "sendTail", new Promise<void>(resolve => { unblock = resolve; })); putFact(obsolete, fact);
   const sending = obsolete.invoke("flushMutationReceipt"); Object.assign(obsolete.connection, { socket: replacement.socket, session: replacement.session });
-  unblock(); await assert.rejects(sending, /BROWSER_EXTENSION_CHANNEL_UNAVAILABLE/u); assert.equal(replacement.closes(), 0);
+  unblock(); await sending; assert.equal(replacement.closes(), 0);
+  assert.equal(replacement.frames.length, 0); assert.equal(obsolete.frames.length, 0);
+  assert.equal(obsolete.delivery.mutationSlot?.fact, fact, "a stale session returns before sending and preserves the original slot");
   await obsolete.invoke("flushMutationReceipt"); assert.equal(replacement.frames.length, 1); assert.equal(obsolete.delivery.mutationSlot?.fact, fact);
   await obsoleteDiagnostics(chrome); await replayAdmission(chrome, fact); await claimHandoff();
 };
@@ -237,9 +306,18 @@ const reconnectedWithdrawal = async (chrome: ExtensionChromeApi, job: `sha256:${
     if (sameJob) { await started; assert.equal(old.delivery.commandAdmissionSuspended, true); assert.equal(old.delivery.mutationSlot?.fact, fact); finishRemove(); }
     await Promise.all(releases); await nextTick(); await Reflect.get(Reflect.get(old.actor, "commandDelivery"), "sendTail");
     assert.equal(old.delivery.pendingTargetHandlers.size, 0); assert.equal(old.delivery.commandAdmissionSuspended, false); assert.equal(old.delivery.mutationSlot === null, sameJob);
+    await old.invoke("flushMutationReceipt");
     const receipts = old.frames.map(value => decodeBrowserAuthorityFrame(value)).filter(frame => frame.kind === "MUTATION_RECEIPT");
-    assert.equal(receipts.length, sameJob ? 0 : 1);
-    if (!sameJob) assert.deepEqual(await decrypt(old.session.clientToServerKey, "client-to-server", receipts[0]!), fact);
+    if (sameJob) assert.equal(receipts.length, 0);
+    else {
+      assert.ok(receipts.length >= 1);
+      for (const frame of receipts) {
+        const message = parseBrowserMutationReceiptMessage(await decrypt(old.session.clientToServerKey, "client-to-server", frame));
+        assert.equal(message.type, "dispose");
+        assert.deepEqual(message.type === "dispose" ? message.rejectedFact : null, fact);
+        assert.equal(message.commandId, fact.commandId); assert.equal(message.receiptBindingHash, fact.receiptBindingHash);
+      }
+    }
   }
 };
 
@@ -268,6 +346,6 @@ export const exerciseAutomaticPairing = async (): Promise<ExtensionChromeApi> =>
     async () => { throw new Error("MUST_NOT_FETCH"); }).attempt();
   const rejected = new PairingAutoBootstrap(fixture.chrome, { canAttemptAutomaticPairing: () => true, pair: async () => { throw new Error("MUST_NOT_PAIR"); } }, build,
     async () => { throw new Error("BROWSER_PAIRING_ORIGIN_REJECTED"); }); await rejected.attempt(); assert.equal(rejected.currentFailureCode(), "BROWSER_PAIRING_ORIGIN_REJECTED");
-  await originalDelivery(fixture.chrome); await sessionBoundaries(fixture.chrome); await authorizedWithdrawal(fixture.chrome); await withdrawalRaces(fixture.chrome);
+  await originalDelivery(fixture.chrome); await dispositionRoundTrips(fixture.chrome); await sessionBoundaries(fixture.chrome); await authorizedWithdrawal(fixture.chrome); await withdrawalRaces(fixture.chrome);
   return fixture.chrome;
 };

@@ -102,9 +102,7 @@ const execute = async (
   input: MediaExerciseInput,
   authority: ReturnType<MediaExerciseInput["authority"]["resolve"]>,
 ): Promise<unknown> => {
-  const result = await input.authority.executeRegisteredCommand(
-    command, authority, "observation", acceptanceExactCallIdentityHash,
-  );
+  const result = await input.authority.executeRegisteredCommand(command, authority, "observation", acceptanceExactCallIdentityHash, () => { assert.deepEqual(input.authority.resolve(authority.targetRef, authority.documentRef), authority); });
   if (!result || typeof result !== "object" || Array.isArray(result)) return result;
   const record = result as Readonly<Record<string, unknown>>;
   return record.schemaVersion === "grasseye.browser.command-preflight.v1"

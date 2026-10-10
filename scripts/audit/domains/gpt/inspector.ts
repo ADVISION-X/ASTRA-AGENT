@@ -20,7 +20,7 @@ import { GPT_TEXT_RESPONSE_HANDLER_PATHS, GPT_IMAGE_RESPONSE_HANDLER_PATHS, GPT_
   GPT_ATTACHMENT_CONTRACT_PATH, GPT_RETIRED_SHARED_SEMANTIC_PATHS, GPT_TURN_EXECUTOR_PATH } from "./gpt-inspection-child-paths.js";
 import { containsPageMutation, gptPrivateInfrastructureViolations, sourceFor } from "./gpt-inspection-support.js";
 
-const LAW_ID = "LAW-GPT-001-V64", FROZEN_ID = "LAW-GPT-002-V31";
+const LAW_ID = "LAW-GPT-001-V65", FROZEN_ID = "LAW-GPT-002-V32";
 const MODE_CLAUSES = {
   "static.filesystem": staticForbiddenClauses(1, 2, 4, 7, 8),
   "static.ast": staticClauses(0, 2, 3, 4, 5, 6, 7, 8),

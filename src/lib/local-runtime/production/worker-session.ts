@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { executionFailure } from "../../execution-failure.js";
+import { executionFailure, failureCode } from "../../execution-failure.js";
 
 import { agentRouteCapabilityManifest } from "./catalog.js";
 import { hashCanonical, type ProductionHash } from "./contracts.js";
@@ -54,6 +54,7 @@ export class ProductionWorkerSession {
     public readonly device: DeviceCredential,
     private readonly runtimeState: () => ProductionRuntimeState,
     private readonly agentBuildHash: ProductionHash,
+    private readonly cloudMutationsAllowed: () => boolean,
     public readonly workerInstanceId = `worker_${randomUUID()}`,
     public readonly sessionOpenRequestId = `aipsopen_${randomUUID()}`,
   ) {}
@@ -167,6 +168,7 @@ export class ProductionWorkerSession {
       this.sequence = next;
       return receipt;
     } catch (error) {
+      if (failureCode(error) === "RUNTIME_LOG_SINK_WRITE_FAILED") throw error;
       await this.resynchronizeHeartbeatSession();
       throw error;
     }
@@ -237,6 +239,10 @@ export class ProductionWorkerSession {
       && this.runtimeState().drain_state === "draining") {
       throw executionFailure("failed", "PRODUCTION_CLAIM_STOPPED");
     }
+    const method = (init.method ?? "GET").toUpperCase();
+    const existingSessionClose = method === "POST" && init.body === "{}" && this.credential !== null
+      && pathname === `/internal/ai-production/v6/sessions/${encodeURIComponent(this.workerSessionId)}/close`;
+    if (!["GET", "HEAD"].includes(method) && !existingSessionClose) this.assertCloudMutationAllowed();
     let response: Response;
     try {
       response = await fetch(`${this.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {
@@ -257,7 +263,12 @@ export class ProductionWorkerSession {
     this.attestation = null;
   }
 
+  private assertCloudMutationAllowed(): void {
+    if (!this.cloudMutationsAllowed()) throw executionFailure("failed", "RUNTIME_LOG_SINK_WRITE_FAILED");
+  }
+
   private async deviceRequest(pathname: string, body: Record<string, unknown>): Promise<unknown> {
+    this.assertCloudMutationAllowed();
     let response: Response;
     try {
       response = await fetch(`${this.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {

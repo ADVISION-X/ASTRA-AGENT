@@ -76,7 +76,7 @@ try {
     productStepId: original.productStepId, callId: original.callId, childCapabilityId: original.childCapabilityId, actionOrdinal: 1,
     physicalInputCount: 1, downloadGuidHash: null, downloadCompleted: false, identityRevalidated: true } }), countProviderTurnDispatches: () => 0,
     acquireJobBoundTargetLease: async () => { acquisitions += 1; return browser; } };
-  const control = { assertProviderSubmitAllowed: () => undefined, pendingIncidents: () => Object.freeze([]), beginIncident: async () => { throw new Error("UNEXPECTED_RATE_LIMIT"); } };
+  const control = { assertProviderSubmitAllowed: () => undefined, assertIncidentFailureIsolated: (error: unknown) => { throw error; }, pendingIncidents: () => Object.freeze([]), beginIncident: async () => { throw new Error("UNEXPECTED_RATE_LIMIT"); } };
   const input = { jobId, attemptId, resultRevision: 0, productId: "public_knowledge_article_pipeline", ownerRef: "owner:1", subjectRef: "subject:1", authorizationRef: "authorization:1",
     deviceId: "device:1", leaseVersion: 1, executionFenceHash: A, capabilityManifestHash: B, expiresAtMonotonic: performance.now() + 60_000,
     commandTtlMs: 1_000, abortSignal: new AbortController().signal, parentSpanId: "parent", maxProviderTurns: 1 };

@@ -43,6 +43,7 @@ export type ProductFlowFixture = Readonly<{
   expectedSessionCount?: number;
   resultRevision?: SharedExecutionContext["resultRevision"];
   productSkillText?: string;
+  onChildCall?: (call: ProductCall) => void;
 }>;
 
 const exactKeys = (value: Readonly<Record<string, unknown>>): readonly string[] =>
@@ -75,7 +76,7 @@ export const buildProductTask = (
       material_id: `material:${ordinal}`,
       ordinal,
       role: material.role,
-      display_name: `material-${ordinal}.json`,
+      display_name: `material-${ordinal}.${material.media_types[0] === "application/zip" ? "zip" : "json"}`,
       object_ref: material.role === "subject_result" ? "result:subject" : `object:${ordinal}`,
       sha256: FIXTURE_HASH,
       bytes: 10,
@@ -193,9 +194,12 @@ const createMaterials = (root: string, fixture: ProductFlowFixture) =>
     const content = fixture.materialContents?.[material.role]
       ?? (material.role === "result_contract" ? { schema_version: "fixture-result-contract.v1" }
         : { schema_version: `${material.role}.fixture.v1` });
-    const bytes = JSON.stringify(content);
-    writeFileSync(localPath, bytes, "utf8");
-    return { ...material, sha256: sha256(bytes), bytes: Buffer.byteLength(bytes), local_path: localPath };
+    if (material.media_type === "application/zip" && !(content instanceof Uint8Array)) {
+      throw new Error("ZIP_FIXTURE_BYTES_REQUIRED");
+    }
+    const bytes = content instanceof Uint8Array ? content : Buffer.from(JSON.stringify(content), "utf8");
+    writeFileSync(localPath, bytes);
+    return { ...material, sha256: sha256(bytes), bytes: bytes.byteLength, local_path: localPath };
   });
 
 const createGptFixture = (
@@ -206,12 +210,14 @@ const createGptFixture = (
   attemptId: "attempt-1",
   readConfirmedSubmit: async (call) => {
     const productCall = call as ProductCall;
+    fixture.onChildCall?.(productCall);
     state.confirmedSubmitReads.push(productCall);
     return fixture.confirmedSubmit
       ? productGptResult(productCall, fixture, "evidence:confirmed-submit") : null;
   },
   execute: async (call: ProductExecuteInput) => {
     const productCall = call as ProductCall;
+    fixture.onChildCall?.(productCall);
     state.calls.push(productCall);
     if (productCall.child === "submit_exact_gpt_turn_once") state.physicalSubmitDispatches += 1;
     const evidenceRef = `evidence:${state.calls.length}`;

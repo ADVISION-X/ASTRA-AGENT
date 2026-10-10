@@ -93,7 +93,10 @@ export class ExtensionInteractionReadiness {
       || !Number.isSafeInteger(tab.windowId)) throw interactionFailure("BROWSER_TARGET_INVALID");
     assertInput();
     if (tab.active !== true) {
-      await this.debuggerRuntime.activateTab(target.tabId);
+      const state: ProviderInputState = { started: false, physicalInputCount: 0, mutationKind: "activation" };
+      await this.debuggerRuntime.withProviderInputGuard(state,
+        () => { assertInput(); this.resolveExactTarget(target.targetRef, target.documentRef); },
+        () => this.debuggerRuntime.activateTab(target.tabId));
       tab = await this.debuggerRuntime.readTab(target.tabId);
     }
     const assertActivation = this.captureTabActivation(tab, target.tabId);

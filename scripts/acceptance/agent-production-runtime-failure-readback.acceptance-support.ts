@@ -1,18 +1,24 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, readFile } from "node:fs/promises";
+import { runInNewContext } from "node:vm";
+import { transpileModule, ModuleKind } from "typescript";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ProductionRuntimeStore as RuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { executeClaim, reconcilePendingAttemptFailures } from
   "../../src/lib/local-runtime/production/runtime-claim.js";
-import { executionFailure } from "../../src/lib/execution-failure.js";
-import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
+import { executionFailure, failureCode, typedExecutionFailure } from "../../src/lib/execution-failure.js";
+import { createRuntimeLogger, requireRuntimeLogWrite, runtimeLogCauseEventId } from "../../src/lib/runtime-logs/index.js";
+import { terminalSpanFailure } from "../../src/lib/local-runtime/production/runtime-logging.js";
+import { readProductionDeviceJobStatus } from "../../src/lib/local-runtime/production/cloud-reconciliation-client.js";
+import { reconcileBusinessAdmission, websiteJobAbsent, purgeDeletedJob } from "../../src/lib/local-runtime/production/runtime-business-admission.js";
+import { ProviderRateLimitControl } from "../../src/lib/local-runtime/production/provider-rate-limit-control.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
-import { runtimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
+import { runtimeTransportFailure, typedRuntimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import { classifyAttemptFailure,
   type SerializedTerminalFailure } from
   "../../src/lib/local-runtime/production/terminal-failure.js";
-import { HASH_A, claimTask, failureStatus, task } from
+import { HASH_A, claimTask, failureStatus, task, attemptFailureFirstFact, resultFor, stageResultForAcceptance, admissionReceiptFor, deviceStatusWithAdmission } from
   "./agent-production-runtime-fixtures.js";
 
 const SCENARIOS = ["success", "response_unknown", "success_missing_receipt",
@@ -131,7 +137,166 @@ const assertReadbackDisposition = (input: Readonly<{
   }
 };
 
+const verifyFailureReadbackIsolation = async (): Promise<void> => {
+  const directory = await mkdtemp(join(tmpdir(), "pending-failure-isolation-"));
+  const store = new RuntimeStore(directory);
+  try {
+    const jobs = ["job:failure-A", "job:failure-B"].map((jobId) => task({
+      jobId, productId: "payment_screenshot_observation", actionId: "observe" }));
+    for (const job of jobs) {
+      store.acceptTask(job, "attempt:1");
+      store.recordAttemptFailure(job.job_id, "attempt:1", attemptFailureFirstFact("attempt:1", {
+        code: "PRODUCT_EXECUTION_FAILED", mutation_outcome: "no", effect_scope: null,
+        child_capability_id: null, browser_outcome: null, evidence_ref: null, evidence_hash: null,
+        child_proof_ref: null, child_proof_hash: null, stopped_empty_proof: null, cause: null,
+        provider_effect_identity_hash: null, settled_result_payload_hash: null }));
+    }
+    for (const [error, shouldContinue] of [
+      [runtimeTransportFailure("OWN_JOB_REMOTE_FAILED", 503), true],
+      [runtimeTransportFailure("SESSION_UNAUTHORIZED", 401), false],
+      [runtimeTransportFailure("SESSION_FORBIDDEN", 403), false],
+      [new Error("STORE_OR_UNKNOWN_FAILURE"), false],
+    ] as const) {
+      const reads: string[] = [];
+      const state = { store, session: { request: async (url: string) => {
+        reads.push(url);
+        if (reads.length === 1) throw error;
+        return failureStatus(jobs[1]!.job_id, null, []);
+      } }, lastErrorCode: null, lastErrorReason: null } as never;
+      if (shouldContinue) {
+        await reconcilePendingAttemptFailures(state);
+        assert.equal(reads.length, 2, "own-job failure must preserve the next job's readback");
+        assert.equal(store.readTask(jobs[0]!.job_id)?.current_reason, "OWN_JOB_REMOTE_FAILED");
+      } else {
+        await assert.rejects(reconcilePendingAttemptFailures(state), (actual: unknown) => actual === error);
+        assert.equal(reads.length, 1, "shared authorization and raw errors must reach the shared exit");
+      }
+    }
+  } finally { store.close(); await rm(directory, { recursive: true, force: true }); }
+};
+
+const verifySuccessfulFailureReadbackIsolation = async (): Promise<void> => {
+  for (const action of ["WAIT_NEW_ATTEMPT", "CONSUME_CURRENT_RESULT"] as const) {
+    const root = await mkdtemp(join(tmpdir(), "failure-disposition-")), store = new RuntimeStore(root);
+    try {
+      const jobs = ["A", "B"].map(id => task({ jobId: `job:disposition-${id}`, productId: "payment_screenshot_observation", actionId: "observe" }));
+      for (const job of jobs) {
+        store.acceptTask(job, "attempt:disposition");
+        if (job === jobs[0] && action === "CONSUME_CURRENT_RESULT") stageResultForAcceptance(store, job.job_id, "attempt:disposition", resultFor(job));
+        store.recordAttemptFailure(job.job_id, "attempt:disposition", attemptFailureFirstFact("attempt:disposition", {
+          code: "PRODUCT_EXECUTION_FAILED", mutation_outcome: "no", effect_scope: null,
+          child_capability_id: null, browser_outcome: null, evidence_ref: null, evidence_hash: null,
+          child_proof_ref: null, child_proof_hash: null, stopped_empty_proof: null, cause: null,
+          provider_effect_identity_hash: null, settled_result_payload_hash: null }));
+      }
+      for (const [error, continues] of [[executionFailure("failed", "BROWSER_TARGET_CLEANUP_FAILED"), true],
+        [runtimeTransportFailure("LOCAL_ADMISSION_503", 503), true], [runtimeTransportFailure("AUTH_401", 401), false],
+        [new Error("RAW_STORE_FAILED"), false], [executionFailure("failed", "PRODUCTION_STORE_CORRUPTED"), false]] as const) {
+        const reads: string[] = []; let aReads = 0;
+        const state = { store, abort: new AbortController(), active: new Map(), browserAuthority: {
+          readJobPhysicalInputState: () => "zero", releaseJobBoundTarget: async () => { throw error; } },
+          session: { request: async (url: string) => {
+            const job = decodeURIComponent(url).includes(jobs[0]!.job_id) ? jobs[0]! : jobs[1]!; reads.push(job.job_id);
+            if (job === jobs[0] && aReads++ > 0) throw error;
+            const failure = store.readTask(job.job_id)!.attempt_failure!;
+            return { ...failureStatus(job.job_id, { ...failure.failure_core,
+              attempt_id: "attempt:disposition", lease_version: 1, from_status: "failed", to_status: "failed" }, []), next_action_code: action };
+          } }, lastErrorCode: null, lastErrorReason: null };
+        if (continues) { await reconcilePendingAttemptFailures(state as never); assert.ok(reads.includes(jobs[1]!.job_id)); }
+        else { await assert.rejects(reconcilePendingAttemptFailures(state as never), (actual: unknown) => actual === error); assert.equal(reads.includes(jobs[1]!.job_id), false); }
+        assert.equal(store.readTask(jobs[0]!.job_id)?.attempt_failure?.failure_core.code, "PRODUCT_EXECUTION_FAILED");
+      }
+    } finally { store.close(); await rm(root, { recursive: true, force: true }); }
+  }
+};
+
+const verifyAdmissionLogFailureAndReadbackIsolation = async (): Promise<void> => {
+  const source = await readFile(new URL("../../src/lib/local-runtime/production/runtime-loops.ts", import.meta.url), "utf8");
+  const admission = source.slice(source.indexOf("const reconcilePendingBusinessAdmissions ="),
+    source.indexOf("export const reconcileCompletedBrowserTargets ="));
+  const unfinished = source.slice(source.indexOf("const reconcileUnfinishedExecutionsWithoutReceipt ="),
+    source.indexOf("const workerIteration ="));
+  const worker = source.slice(source.indexOf("const workerIteration ="), source.indexOf("export const workerLoop ="));
+  const api: Record<string, (state: unknown) => Promise<unknown>> = {};
+  runInNewContext(transpileModule(admission + unfinished + worker +
+    "\nexport { reconcilePendingBusinessAdmissions, reconcileUnfinishedExecutionsWithoutReceipt, workerIteration };", {
+    compilerOptions: { module: ModuleKind.CommonJS },
+  }).outputText, { exports: api, requireRuntimeLogWrite, failureCode, typedExecutionFailure,
+    typedRuntimeTransportFailure, runtimeLogCauseEventId, terminalSpanFailure, hashCanonical,
+    reconcileBusinessAdmission, readProductionDeviceJobStatus, websiteJobAbsent, purgeDeletedJob,
+    safeReason: (error: Error) => error.message,
+    reconcileCompletedBrowserTargets: async (state: { cleanups: number }) => { state.cleanups++; } });
+  const root = await mkdtemp(join(tmpdir(), "admission-log-isolation-")), store = new RuntimeStore(root);
+  try {
+    const jobs = ["A", "B", "C"].map(id => task({ jobId: `job:sink-${id}`,
+      productId: "payment_screenshot_observation", actionId: "observe" }));
+    for (const job of jobs) {
+      const result = resultFor(job); store.acceptTask(job, "attempt:sink");
+      stageResultForAcceptance(store, job.job_id, "attempt:sink", result);
+      store.markOutboxSent(`terminal:acceptance:${job.job_id}:attempt:sink`, {
+        schema_version: "xuanxue-ai-terminal-receipt.v6", job_id: job.job_id, terminal_status: "completed",
+        payload_hash: hashCanonical(result), failure: null, first_terminal: true, device_id: "device:test", device_epoch: 1,
+        worker_session_id: "session:acceptance", worker_session_epoch: 1, runtime_attestation_receipt_hash: HASH_A });
+    }
+    let reads = 0, spans = 0;
+    let firstError: unknown = runtimeTransportFailure("OWN_ADMISSION_REMOTE_FAILED", 503);
+    const session = { device: { device_id: "device:sink" }, workerSessionId: "session:sink", workerSessionEpoch: 1,
+        workerInstanceId: "worker:sink", sessionOpenRequestId: "open:sink", request: async (url: string, init?: RequestInit) => {
+      assert.equal(init?.method, "GET", "bad sink only permits existing result readback");
+      const job = jobs.find(entry => decodeURIComponent(url).includes(entry.job_id));
+      assert.ok(job); reads += 1;
+      if (reads === 1) throw firstError;
+      const result = resultFor(job);
+      return (deviceStatusWithAdmission(admissionReceiptFor(job.job_id, result.result_payload_hash),
+        job.job_id, hashCanonical(result)) as { request: () => Promise<unknown> }).request();
+    } };
+    const control = new ProviderRateLimitControl(store, session as never);
+    const state = { store, active: new Map(), runtimeLogger: { startSpan: () => {
+      spans += 1; throw executionFailure("failed", "RUNTIME_LOG_SINK_WRITE_FAILED");
+    }, isWritable: () => false }, cleanups: 0, providerRateLimitControl: control, session };
+    await control.beginIncident({ jobId: jobs[0]!.job_id,
+      attemptId: "attempt:sink", resultRevision: 0, deviceId: "device:sink", leaseVersion: 1,
+      fenceHash: HASH_A, capabilityManifestHash: HASH_A, dialogHash: HASH_A, observationHash: HASH_A,
+      sessionKey: "session:sink", observedAt: "2030-01-01T00:00:00.000Z" });
+    assert.equal(await api.workerIteration!(state), 1_000);
+    assert.equal(store.pendingProviderCooldownRequestIds().length, 1);
+    assert.equal(reads, 3); assert.equal(spans, 3);
+    assert.equal(store.readTask(jobs[0]!.job_id)?.current_reason, "OWN_ADMISSION_REMOTE_FAILED");
+    assert.equal(store.readTask(jobs[1]!.job_id)?.status, "completed");
+    assert.equal(store.readTask(jobs[2]!.job_id)?.status, "completed");
+    assert.equal(store.pendingBrowserCleanupJobIds().includes(jobs[1]!.job_id), true);
+    for (const error of [runtimeTransportFailure("SESSION_UNAUTHORIZED", 401),
+      runtimeTransportFailure("SESSION_FORBIDDEN", 403), new Error("RAW_STORE_FAILURE")]) {
+      reads = 0; firstError = error;
+      await assert.rejects(api.reconcilePendingBusinessAdmissions!(state), (actual: unknown) => actual === error);
+      assert.equal(reads, 1, "shared authorization and raw failures retain the shared exit");
+    }
+    reads = 0; firstError = runtimeTransportFailure("OWN_ADMISSION_REMOTE_FAILED", 503);
+    const sinkDelay = await api.workerIteration!(state);
+    assert.equal(sinkDelay, 1_000); assert.equal(state.cleanups, 2);
+    assert.equal(store.readTask(jobs[0]!.job_id)?.status, "failed");
+    const unfinishedJobs = ["A", "B"].map(id => task({ jobId: `job:unfinished-${id}`,
+      productId: "payment_screenshot_observation", actionId: "observe" }));
+    for (const job of unfinishedJobs) store.acceptTask(job, "attempt:unfinished");
+    state.session.request = async (url: string) => {
+      const job = unfinishedJobs.find(entry => decodeURIComponent(url).includes(entry.job_id));
+      assert.ok(job); reads += 1;
+      if (reads === 1) throw firstError;
+      return failureStatus(job.job_id, null, []);
+    };
+    reads = 0; firstError = runtimeTransportFailure("OWN_UNFINISHED_REMOTE_FAILED", 503);
+    await api.reconcileUnfinishedExecutionsWithoutReceipt!(state);
+    assert.equal(reads, 2); assert.equal(store.readTask(unfinishedJobs[0]!.job_id)?.current_reason, "OWN_UNFINISHED_REMOTE_FAILED");
+    reads = 0; firstError = runtimeTransportFailure("SESSION_UNAUTHORIZED", 401);
+    await assert.rejects(api.reconcileUnfinishedExecutionsWithoutReceipt!(state), (actual: unknown) => actual === firstError);
+    assert.equal(reads, 1);
+  } finally { store.close(); await rm(root, { recursive: true, force: true }); }
+};
+
 export const verifyFailureReleaseReadbackScenarios = async (): Promise<void> => {
+  await verifyAdmissionLogFailureAndReadbackIsolation();
+  await verifyFailureReadbackIsolation();
+  await verifySuccessfulFailureReadbackIsolation();
   for (const scenario of SCENARIOS) {
     const temporary = await mkdtemp(join(tmpdir(), `agent-failure-readback-${scenario}-`));
     let store = new RuntimeStore(temporary);
@@ -182,11 +347,11 @@ export const verifyFailureReleaseReadbackScenarios = async (): Promise<void> => 
       store.close();
       store = new RuntimeStore(temporary);
       const restartedState = { ...(state as object), store } as never;
+      await reconcilePendingAttemptFailures(restartedState);
       if (scenario === "duplicate_receipt") {
-        await assert.rejects(reconcilePendingAttemptFailures(restartedState),
-          /PRODUCTION_ATTEMPT_FAILURE_RECEIPT_CONFLICT/u);
-      } else {
-        await reconcilePendingAttemptFailures(restartedState);
+        assert.equal(store.readTask(job.job_id)?.current_reason, "PRODUCTION_ATTEMPT_FAILURE_RECEIPT_CONFLICT");
+        assert.equal(store.readTask(job.job_id)?.attempt_failure?.failure_core.code, executionCode,
+          "receipt conflict isolates this job and preserves its immutable first fact");
       }
       assert.equal(counts().postCount, 1,
         `${scenario} restart reconciliation must remain GET-only and never replay the POST`);

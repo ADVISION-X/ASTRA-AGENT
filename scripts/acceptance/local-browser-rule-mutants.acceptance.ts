@@ -13,7 +13,7 @@ import { assertBrowserDomIntent } from "../../src/lib/browser/exact-target/brows
 
 const hash = (digit: string): `sha256:${string}` => `sha256:${digit.repeat(64)}`;
 const exerciseInspectors = (): void => {
-  const project = new Project({ tsConfigFilePath: "tsconfig.json" }), lawId = "LAW-LOCAL-BROWSER-SESSION-004-V56";
+  const project = new Project({ tsConfigFilePath: "tsconfig.json" }), lawId = "LAW-LOCAL-BROWSER-SESSION-004-V57";
   const paths = project.getSourceFiles().map(source => source.getFilePath().slice(process.cwd().length + 1));
   const context: InspectorContext = { project, sealedRoot: process.cwd(), selectedLawId: lawId, targetPaths: paths,
     targetSet: { queryRef: "terminal-owner-mutants", count: paths.length }, lawRequirements: [{ lawId, forbiddenCount: 24,
@@ -39,7 +39,13 @@ const exerciseInspectors = (): void => {
     ["src/lib/browser/chrome-extension/websocket-actor.ts", '} finally {\n      await this.sendEncrypted(socket, "REPLY", reply.body);', '} catch {\n      await this.sendEncrypted(socket, "REPLY", reply.body);'],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", 'await this.sendEncrypted(socket, "REPLY", reply.body);', 'if (false) await this.sendEncrypted(socket, "REPLY", reply.body);'],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", 'await this.sendEncrypted(socket, "REPLY", reply.body);', 'await this.targetAuthority.retireInvalidCommandTarget(reply.body, permit, null);\n      await this.sendEncrypted(socket, "REPLY", reply.body);'],
-    ["src/lib/browser/transport/browser-authority-websocket.ts", "this.settleMutationReceipt(socket, parseBrowserMutationTerminalFact(body))", "this.options.onHeartbeat()"],
+    ["src/lib/browser/transport/browser-authority-websocket.ts", "this.settleMutationReceipt(socket, parseBrowserMutationReceiptMessage(body))", "this.options.onHeartbeat()"],
+    ["src/lib/browser/chrome-extension/websocket-actor.ts", "response.rejectedFactHash !== hash", "false"],
+    ["src/lib/browser/chrome-extension/websocket-actor.ts", "this.commandDelivery.disconnectedDrain !== null) return;", "false) return;"],
+    ["src/lib/browser/chrome-extension/websocket-actor.ts", "this.commandDelivery.pendingTargetHandlers.size > 0 || this.commandDelivery.disconnectedDrain", "false || this.commandDelivery.disconnectedDrain"],
+    ["src/lib/browser/chrome-extension/websocket-actor.ts", 'await this.sendEncrypted(socket, "HEARTBEAT", {}); await this.flushMutationReceipt();', 'await this.sendEncrypted(socket, "HEARTBEAT", {});'],
+    ["src/lib/browser/transport/browser-authority-frame-payload.ts", "hash !== request.rejectedFactHash", "false"],
+    ["src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts", "request.receiptBindingHash !== bindingHash", "false"],
     ["src/lib/browser/exact-target/browser-mutation-store.ts", "verifyBrowserMutationTerminalFact(command.identity", "unverifiedTerminalFact(command.identity"],
     ["src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts", "const settled = mutations.settleTerminalReceipt(fact);", "acknowledge(); const settled = mutations.settleTerminalReceipt(fact);"],
     ["src/lib/browser/exact-target/browser-command-actor.ts", "const row = this.mutations.readCommand(permit.commandId), receipt = fact.terminalReceipt;", "this.mutations.settleTerminalReceipt(fact); const row = this.mutations.readCommand(permit.commandId), receipt = fact.terminalReceipt;"],
@@ -123,7 +129,10 @@ try {
     actionId: "browser.dom.click.v1", positivePostconditionHash: hash("b"), negativePostconditionHash: hash("d"), requestHash: hash("b"), payloadHash: hash("b") };
   store.prepare(original); assert.throws(() => store.settleTerminalReceipt(terminalFact(store.readCommand(original.commandId)!.identity)), /BROWSER_MUTATION_STATE_CONFLICT/u);
   store.markDispatched(original.commandId); store.markReceiptMissing(original.commandId);
-  assert.throws(() => store.prepare({ ...original, commandId: "replay", attemptId: "attempt-2", leaseVersion: 2, exactCallIdentityHash: hash("d") }), /BROWSER_MUTATION_UNSETTLED/u);
+  const originalUnknown = store.readCommand(original.commandId);
+  assert.doesNotThrow(() => store.prepare({ ...original, commandId: "replay", attemptId: "attempt-2", leaseVersion: 2, exactCallIdentityHash: hash("d") }));
+  assert.deepEqual(store.readCommand(original.commandId), originalUnknown,
+    "a new target-local identity must not rewrite the original unresolved command");
   assert.throws(() => store.settleTerminalReceipt(terminalFact({ ...store.readCommand(original.commandId)!.identity, requestHash: hash("d") })), /BROWSER_RECONCILIATION_IDENTITY_MISMATCH/u);
   const lookup = { jobId: original.jobId, attemptId: original.attemptId, exactCallIdentityHash: original.exactCallIdentityHash, actionOrdinal: 1, effectScope: "target_local" as const };
   assert.equal(store.readAtomicStepOutcome({ ...lookup, targetRef: original.targetRef })?.state, "dispatched");

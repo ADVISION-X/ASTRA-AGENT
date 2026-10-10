@@ -1,319 +1,508 @@
-# 单一恢复权威与历史未决故障隔离完整实现方案
+# 十二项恢复故障及九个分析产品接力完整实现方案
 
-更新：2026-10-10，Asia/Dubai。唯一文件沿用本路径，需求 Owner 为 AGENT/local-browser-session；业务恢复唯一 Owner 仍为 Website.ai-acceptance。
+更新：2026-10-10，Asia/Dubai。唯一文件沿用原路径。需求 Owner：AGENT；网站恢复授权 Owner：Website.ai-acceptance；Browser 只拥有现实操作和回执事实。
 
-**状态：设计阻断。** 本轮完成方案文档 CHANGE，尚未修改法案、施工图、代码、数据库或服务，未运行 CHANGE/READY/RELEASE。阻断的是完整方案施工准入，不是给运行系统增加门。现役V44的Provider输入可证zero分支已有null证明合法交接；非zero分支只有terminal_wal，不能诚实表达“旧输入结果未知，但旧执行已失去再次发出操作的能力”。非zero新证明生产者及网站接纳合同尚未闭合，见§7，不能把它施加到已有合法结果、无关job或可证zero分支。不得把这份方案称为已根治或可施工。
+**方案状态：可施工。AGENT施工范围见§11；质量结论仅以当前原生quality:check及其唯一报告为准。** 最新授权将本聊天收口到 AGENT 的 CHANGE、READY；Website 的建设、质检、旧工单删除和原订单重派均交其 Owner。本聊天继续完成十二项恢复修复的 AGENT 责任片区与九个分析 Product 合同18消费者，执行实际代码主审、只读子审和冻结 CI-FULL 的 CHANGE → clean commit → READY。部署门只限制运行版本切换，不要求旧任务先完成才能建设；本轮不执行 RELEASE 或生产切换。
 
-## 1. 需求、终点和边界
+## 1. 终点、授权与不变边界
 
-本次删除重复裁决、相互矛盾的恢复条款，以及“一个历史未决记录使所有工单停止”的控制路径。恢复原则只在既有 Website AI Acceptance 恢复法条说一次，下游执行它，不再各写一套恢复政策。旧故障必须有原 Owner 的有限下一动作；机械有效结果优先沿原结果链送到网站。
+目标同时成立：旧未决故障不连坐其它具备当前合法资格的工单；故障工单先找回并交付已有结果，确实取不到时由网站接回同一 job 并授权适当的新 attempt/revision，最终经领域 Consumer 入库；全程不依赖人工删单。终点必须读回同一 job 的业务 admission receipt、结果 hash 和业务对象。Provider 回答、HTTP 200、已发 Outbox、READY、取消、删除都不替代该终点。
 
-成功终点是同一 job 的领域 admission receipt、对应业务对象和持久化读回。Provider 回答、Browser 回执、HTTP 200、Outbox delivered、健康绿灯和 READY 均不是业务完成。取消、删除、撤权单独如实记账，不能冒充成功。
+这12项不建立12套恢复设施。沿现役 Website claim → Runtime durable accept → Product → Child → 单 Browser lane/WAL → stage/Outbox → Website Domain Consumer 主链，逐项删除真实断裂。每个独立决定拆成原子工单；一个工单只归一个 Owner。
 
-只在 AGENT/main 施工；Website 由其现有 Codex/Owner 建设，本执行者只读。不改变 Website 固定五阶派单、N、现役任务创建与领域入库主权。不得盲重放可能已发送的 Provider 输入，不得伪造旧命令 terminal/no/零输入，不得恢复旧 lease/fence，不得把未知记录批量删除来制造恢复。保留成熟 Ctrl+C、附件入口 OR、回答两门、精确 URL/turn 定位和保护等待。各冻结边界只修改本轮用户明确要求删除的重复恢复语义；无关冻结不解冻。
+此前用户明确授权法案、施工图、代码、质检和数据库施工，并要求清除 Browser 历史强制阻断、接力九个分析 Product。规范阶段已先完成本方案的 AGENT 窄范围 law-amendment、Blueprint/spec 对齐及主执行者两遍审查，再进入代码；最新指令收口为 AGENT 的 CHANGE、READY，Website 后续工作由其 Owner 负责。母本、基础法案、AGENTS 和冻结 CI-FULL/闭环 Skill 不修改；无关共享改动原样保护，不 reset/stash/移动、提交他人文件。
 
-预期增量：旧故障不连坐其它合法工作；旧回执丢失也有诚实的恢复接回；法案、合同、实现和原生检查只有一个恢复裁决来源。风险：同一 Provider 调用确证无法取得旧答案后，经 Website 新 revision 精确风险授权可能再次输入；未知旧输入永远不能被宣称未发生。不能保证机器断电、数据库损坏、认证失效或 Provider 永久不可用时立刻成功；这些真实依赖恢复后必须自动接回原链。
+保留：网站独占业务恢复/新 revision 风险授权；同 effect 至多一次；旧 UNKNOWN 不伪造 zero/terminal；完整 WAL 历史验真；原材料/任务不可变快照；原租约、fence、身份/hash；真实当前物理串行；附件 OR 及提交两门；Target 只表达当前物理绑定；1.5秒普通/2.5秒输入后读取、40秒静默、70—90秒全局 Provider 观察节拍、20分钟持续空回答保护；限流 N/时钟/cohort 惩罚；真实日志；成熟 Ctrl+C 停新 claim、在途收束和资源 close。
 
-## 2. 权威、候选与文件保护
+永久外部依赖故障不能承诺立即成功。方案必须给其原 Owner 有界单轮处理、保留事实、明确下一动作和回接；不能把网络断开、当前 Native API 仍在途、凭证无效、Store 损坏也叫作应删除的历史阻断。
 
-按双仓母本 §§0、4、35、37—39、46—47、14—16、21—25、72、78—85 绑定：母本→基础法案→功能法案→Blueprint/spec→Manifest→唯一 registry→实现→证据。母本 SHA-256 两仓相同，为 27a143ecd7016887d056255e106f49caa29d83d06245ff21ea5c0ffd62b98c3a。母本、冻结 ci-full-governance Skill、AGENTS 不在修改面。
+## 2. 设计阶段权威遍历与基线候选
 
-两仓基础及功能 law-record 已实际全文读取两遍，截断处分别补齐；AGENT 功能36条/基础3条，Website 功能509条/基础1条。closed-loop-implementation-design 的当前完整正文已双遍取得并按当前任务反查；frozen-spec-index、agent-flow-boundary-gatekeeper 已读取。守门 Skill 引用的 switch-repo-authority 在现役目录缺失，本轮不声称执行，也不据此进行 Website 写入。
+按各仓自己的 docs/governance/法案系统建设说明书-冻结定稿版.md §0/4/35 定级：本轮含唯一方案写入，为 CHANGE；§46/47 要求相关法案、registry、目标文件，用户另要求双遍源头遍历，已执行。两仓母本 SHA-256 均为 27a143ecd7016887d056255e106f49caa29d83d06245ff21ea5c0ffd62b98c3a。
 
-| 仓库 | realpath / branch | HEAD / origin/main（本地缓存，未 fetch） | scoped SHA-256 |
-|---|---|---|---|
-| AGENT | /Users/nexgen/Documents/AGENT / main | 07a8c4bb273035bf503553de8dbb8b5ab7a65f09 / fba36cf6390ea9d5f98018f3d593eb99a44b3451 | 70cf2fdb8d55a44860b1bbc9dc0d4f50acafa025ba5aaecd18c242ad6c91183d |
-| Website | /Users/nexgen/Documents/xuanxue-web / main | d728762d597b630dd70897831d0c195f608a89cf / 2a22a286345d8082c72291d82a200399096de576 | 41b05c183b98e6aed7c1f1fb036ac51c7a8a91965a4201ababc3360af31e4a77 |
+双仓基础法案和功能法案已两遍逐条核对：AGENT 36 个功能 law-record，Website 509 个；第一遍核正文/边界，第二遍反查每条 summary、forbidden 和本次12项关系，截断段均补齐。不把重复命令、历史摘要或无关目录数量冒充深度。closed-loop-implementation-design 本轮取得至少两次完整正文；压缩后恢复完整双遍核对。frozen-spec-index、现役 agent-flow-boundary-gatekeeper 已激活。其缺失的 switch-repo-authority 引用不产生 Website 写权限；方案仅在 AGENT 落盘。
 
-各 scoped hash 按下方文件相对路径字典序，对当前 bytes 算 SHA-256，再将 path+TAB+hash+LF 拼接后求 SHA-256；方案自身不入 source candidate，文档 hash 单独回读。AGENT 基础/功能 hash 分别为 f1970c2416127f8bcdf560d0fd81105895924c4ed2cdd23f6a08ae910998d2f3、401925ea9abfa880875ed3a2b8f1c551471c2659ae5a10411ed62f236b4560b1。Website 基础/功能分别为 6ad826fb1980f78f1bfbffca3417fc4636332596b489d181c607e1032bfaa85f、9b1a72f99e60985d955d17d400a9c4d380e90d65aec6f8a023368d09309b5323。
+母本 §14/22/24/35—44/46—47/74/79 约束：只有一个 active corpus/registry/Owner/quality verdict；不创建兼容桥；机器合同变化提升 provider version；实际法条变化同 lawKey +1并精确 supersedes；无规范变化不涨 law 版本。每个仓自己的原生入口均为 npm run quality:check，计划验收分 CHANGE、READY、RELEASE，不能互相替代。
 
-AGENT 有别人未提交的 agent-production-runtime-proof-boundary.acceptance.ts、local-app-shell.acceptance.ts，本轮原样保护。Website 功能法案、registry 和商业/UI 多路径 dirty；当前法案漂移为订单价格快照/促销条款，已定向复核，不影响已核恢复规则。任何未来命中共享写面必须重新核当前 diff，不能覆盖、reset、stash、另建分支或制造干净候选。
+源头 SHA-256：
+- AGENT 基础：f1970c2416127f8bcdf560d0fd81105895924c4ed2cdd23f6a08ae910998d2f3；功能：401925ea9abfa880875ed3a2b8f1c551471c2659ae5a10411ed62f236b4560b1。
+- Website 基础：6ad826fb1980f78f1bfbffca3417fc4636332596b489d181c607e1032bfaa85f；功能：cfe47625aea23fcb0f54c87cc532a2bbdec70050699d6450baee482fce51f426。
+- Website 现役004-V32、012-V45、013-V29、Blueprint V51；provider44、Website task-result18（AGENT dependency仍17，属于并行现役版本差异，按§6.6九个专业消费者及机械合同对齐处理）。本轮不改五阶 fresh 优先级、keyset、单层行锁或派单治理，不覆盖另一 Codex 的施工。
 
-AGENT source candidate（57路径）：
-```text
-.github/instructions/agent-rules/基础法案.md
-.github/instructions/agent-rules/功能法案.md
-AGENTS.md
-docs/governance/法案系统建设说明书-冻结定稿版.md
-docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md
-docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md
-docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md
-docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json
-docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json
-scripts/audit/domains/local-browser-session/manifest.json
-scripts/audit/domains/agent-production-runtime/manifest.json
-scripts/audit/generated/law-registry.generated.json
-package.json
-src/lib/browser/exact-target/browser-mutation-store.ts
-src/lib/browser/exact-target/browser-mutation-schema.ts
-src/lib/browser/exact-target/browser-mutation-evidence.ts
-src/lib/browser/exact-target/browser-mutation-receipt.ts
-src/lib/browser/exact-target/browser-mutation-replay-evidence.ts
-src/lib/browser/infrastructure/browser-lane-coordinator.ts
-src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts
-src/lib/browser/chrome-extension/websocket-actor.ts
-src/lib/browser/chrome-extension/extension-target-authority.ts
-src/lib/browser/chrome-extension/extension-target-release.ts
-src/lib/browser/chrome-extension/extension-heartbeat.ts
-src/lib/browser/protocol/browser-protocol.schema.json
-src/lib/browser/transport/browser-authority-websocket.ts
-src/lib/local-runtime/production/runtime-source-handoff.ts
-src/lib/local-runtime/production/runtime-source-readback-proofs.ts
-src/lib/local-runtime/production/runtime-claim.ts
-src/lib/local-runtime/production/runtime-claim-recovery.ts
-src/lib/local-runtime/production/runtime-loops.ts
-src/lib/local-runtime/production/runtime-startup.ts
-src/lib/local-runtime/production/runtime-storage-inventory.ts
-src/lib/local-runtime/production/provider-rate-limit-control.ts
-src/lib/local-runtime/production/provider-cooldown-receipt.ts
-src/lib/local-runtime/production/runtime-business-admission.ts
-src/lib/local-runtime/production/store-source-settlement.ts
-src/lib/local-runtime/workbench-browser-authority-support.ts
-scripts/audit/domains/local-browser-session/target-claim-inspection.ts
-scripts/audit/domains/local-browser-session/browser-mutation-settlement-inspection.ts
-scripts/acceptance/local-browser-provider-effect-recovery.acceptance.ts
-scripts/acceptance/local-browser-auto-pairing-support.ts
-scripts/acceptance/agent-production-runtime-recovery-contract.acceptance.ts
-scripts/acceptance/agent-production-runtime-proof-boundary.acceptance.ts
-scripts/acceptance/local-app-shell.acceptance.ts
-src/lib/local-runtime/production/store-cooldown.ts
-src/lib/local-runtime/production/store-outbox.ts
-src/lib/local-runtime/production/store.ts
-src/lib/local-runtime/production/runtime-state.ts
-src/lib/local-runtime/production/runtime-contract.ts
-src/lib/browser/chrome-extension/extension-command-runtime.ts
-src/lib/browser/chrome-extension/debugger-runtime.ts
-src/lib/browser/chrome-extension/exact-target-runtime.ts
-src/lib/browser/chrome-extension/command-permit-validator.ts
-src/lib/browser/chrome-extension/websocket-actor-crypto.ts
-scripts/acceptance/agent-production-runtime-session-rotation-support.ts
-scripts/audit/domains/agent-production-runtime/worker-loop-inspection.ts
-```
-
-Website source candidate（21路径，只读）：
-```text
-.github/instructions/agent-rules/基础法案.md
-.github/instructions/agent-rules/功能法案.md
-AGENTS.md
-docs/governance/法案系统建设说明书-冻结定稿版.md
-docs/blueprints/domains/ai-acceptance/AI-ACCEPTANCE-BLUEPRINT.md
-docs/specs/ai-acceptance/xuanxue-ai-production-v6.contract.spec.json
-docs/specs/ai-acceptance/website-agent-task-result.provider.spec.json
-scripts/audit/domains/ai-acceptance/manifest.json
-scripts/audit/generated/law-registry.generated.json
-package.json
-packages/ai-contracts/src/production-control/v6-source-readback-proof.ts
-services/api/src/ai-production/job-claim-authority.ts
-services/api/src/ai-production/job-claim-source-lineage.ts
-services/api/src/ai-production/provider-cooldown-repository.ts
-services/api/src/ai-production/provider-cooldown-receipt.ts
-services/api/src/ai-production/provider-cooldown-claim-policy.ts
-services/api/src/ai-production/business-result-consumer.ts
-services/api/src/ai-production/job-claim-selection.ts
-scripts/audit/domains/ai-boundary/manifest.json
-scripts/audit/domains/ai-boundary/check.ts
-scripts/audit/domains/ai-acceptance/check.ts
-```
+候选表及有限 source 路径见文末。hash 按相对路径字典序，将 path+TAB+SHA256(bytes)+LF 拼接后计算；方案文件另验 hash，不进入 source hash。这是设计事实绑定，不是原生质量候选回执。写前、主审后、子审后复核相关事实；无关变动不扩大范围，相关漂移只重核被影响链。Website 已在本轮由 d728762d 移至2c400957，功能法案 bytes 未变；已重新绑定实际工作树、spec 和相关质检，不拿旧 HEAD 覆盖现役 overlay。
 
 ## 3. 实证与前轮连续性
 
-第一直接断裂有两个生产拒绝点：browser-lane-coordinator.ts 的 hasUnresolvedMutation/readState/nextWaiter/pump 把全局历史未决数当成当前物理占用；browser-mutation-store.ts:prepare 的事务又以 select 1 ... state='DISPATCHED' limit 1 对所有 job 拒绝。Runtime runtime-claim.ts:reconcilePendingAttemptFailures 在 WAIT_NEW_ATTEMPT 后第三次使用同一全局布尔值。上游要求同 job 自动恢复，下游却要求已丢失的原 terminal 才准恢复；有界循环本身无法消除这个逻辑死锁。
+原现场命令044eab8b-c456-4fdb-8750-a1dafc8f0052，job aiprod_704b4d2a-7d31-407c-9738-b70eaadb3f1c，attempt8eeb2f4b-261f-4341-aced-211aab4feabb，revision0，target_local/browser.dom.click.v1，停在 DISPATCHED、terminal_at=null。日志只有 started/prepared/dispatched/shutdown started，不能判定 Ctrl+C 或强杀；默认 physical_input_count=0 不证明零输入。
 
-本轮前段只读SQLite mode=ro/query_only取证快照为CONFIRMED=13893、REJECTED=496、DISPATCHED=1。唯一未决command=044eab8b-c456-4fdb-8750-a1dafc8f0052，job=aiprod_704b4d2a-7d31-407c-9738-b70eaadb3f1c，attempt=8eeb2f4b-261f-4341-aced-211aab4feabb，revision=0，scope=target_local，action=browser.dom.click.v1，mutation_outcome=dispatched，physical_input_count=0，terminal_at=null，updated_at=2026-10-09T19:47:11.261Z。未决行默认0不证明未输入，也不证明Provider已submit。对应producer 751ce92e-8367-4b39-b01d-44b8f399a1ea-0001.jsonl最后四条为started/prepared/dispatched/shutdown started，没有可信原terminal。2026-10-10T01:02:05.595303Z复查为CONFIRMED=13868、REJECTED=487、DISPATCHED=0，原command/job WAL行已缺席；本轮没有数据库写入，缺席原因/清理Owner未取证，不能称故障已根治。相关代码与法案scoped hash未变，根因控制条件仍在。现象不能证明历次20余起均同根因，也不能证明这次一定是Ctrl+C还是强制杀进程。
+当前代码证实三道全局门：BrowserLaneCoordinator 用 countDispatched 驱动 readState/nextWaiter/scheduleWake；BrowserMutationStore.prepare 在事务里查询任意 DISPATCHED；Runtime 的 WAIT_NEW_ATTEMPT和风险grant恢复再核全集未决为空。原回执生产者丢失时，等待不能自行变成结果。
 
-readPhysicalInputState只核effect_scope='provider_effect'的完整行集合，target_local未知不能被改写成Provider已输入，也不能由某行默认count=0推导完整历史zero。本现场分类必须在原行存在且provenanceVerified的同快照下核完整Provider集合；当前行缺席后不能倒推原快照为zero。现役sealSourceHandoff/prepareOneSourceHandoff允许真实browser_input_state=zero、input_quiescence_proof=null、replay_calls=[]且首事实缺失的合法source；因此不能把Q1/Q2扩大成所有target_local故障的前提。
+另一个独立实证：Extension 抛 BROWSER_COMMAND_ADMISSION_SUSPENDED，canonical browser-errors.json 未定义，strict decoder 拒绝；这不是对原事故唯一首因的倒推。Actor 只在 exact commit ACK或 exact 网站删单 release清 mutationSlot；close/drain不会清槽；lastMutationDeliveryKey 又抑制同连接重发，heartbeat只送心跳。
 
-| 前轮 / 当前能力 | 实际边界 | 本轮裁决与防回归 |
-|---|---|---|
-| 07a8c4bb 的 H1/H2 执行状态修复 | Runtime/Shell 能显示 lane blocked；没有去掉全局历史门 | 保留当前事实投影能力；物理占用语义改变后同步读同一新事实。禁止只改健康为绿 |
-| fba36cf 的 Ctrl+C 及附件 OR | 已在当前代码；本事故未决产生早于该收尾修复 | 保留停新claim、等待在途、网站接纳/明确失败接收、实际资源收束和未知退出报告；保留附件批准集合/OR，不归因 DOM 回归 |
-| 原attempt无失败事实恢复方案 WO-SH1/SH2 | 尚有无 failure/null 分支及原 source handoff 缺口 | 本文件接管其与本事故有关的恢复 GAP；代码和引用未零残留前不声称旧方案已物理退休 |
-| 浏览器退出恢复与未决命令解锁方案 | 用新 fence/新 Target 合成旧 terminal 的做法已被拒绝 | 明确废止该做法；新证明仅说明不能再 dispatch，不补造旧输入或答案事实 |
-| 13a0a249f 合格成果快取 | 现役 fast delivery、结果和领域消费主链 | 原 stage+Outbox 优先；禁止恢复逻辑、cleanup 或旧 failure 将其退回 Provider |
-| Provider效果/冷却根治、精确URL/Target-local恢复、稳定会话地址方案 | 同 effect 至多一次、原URL读取、来源seal及原惩罚身份有真实消费者 | 保留这些不变量；原 terminal-only 和必须原ACK才能解除历史冷却的重复裁决由本轮源头修订接管 |
+此前三个指定 job 已经用户授权沿网站 exact unfinished purge 删除，本地消费 exact absence 清理。这是止血证据，不能充当自动恢复验收，已删身份永不复用。本轮不重复删单。
 
-## 4. 同类阻断普查与保留边界
+本地此前只读盘点：1105条source行，801为SQL NULL，304有body（16旧shape、288当前V44）；均accepted。未完成任务当前source无待发seal，一个failed任务的当前issued祖先是V44 zero/null。该快照不证明所有祖先可读或网站不存在历史来源，不作现在生产状态结论。
 
-除第一项现场已证，其余是代码/法案已证的风险路径，未声称全部在现场发生。
+相关有限Git筛查命中反复恢复设计。07a8c4bb改善blocked可见性，13a0a249f改善已有结果快取；92bb5a97c重建GPT/Browser；4029f00d8处理回执/DOM契约。实际代码仍保留本轮断裂。保留结果优先、原效应身份/全历史、附件OR、Ctrl+C、日志真实与Website唯一授权；废止历史WAL全集充当当前资格。旧方案仍未施工的“大规模迁移恢复政策、退役整条AI-BOUNDARY-006、新runtime-shutdown模块、Q1—Q4待另一Owner补定义”均从目标删除，不作为已落地不变量恢复。
 
-| 编号 | 已核路径 / 危害 | 修复落点 | 保留的真实边界 |
+## 4. 十二项四维闭环
+
+法案精确修改见§5；B=现役local-browser-session/GPT Blueprint，R=现役WEBSITE-AGENT-V6-BLUEPRINT，W=Website AI-ACCEPTANCE-BLUEPRINT。验收证据见§10；下表固定编号不另换G/D分母。
+
+| 问题 | 第一直接断裂、现役路径/符号 | 唯一负责方与工单 | 转换、输出、Consumer/readback；失败和恢复 |
 |---|---|---|---|
-| G1 | lane、WAL prepare、Runtime WAIT 使用全局历史未决数 | B1、B2、R1 | 当前真实执行串行和同 effect 不盲重发 |
-| G2 | websocket-actor 的 acquire/command/execute 因 mutationSlot 非空全部拒绝；ACK积压与当前handler占用混同 | B1 | 有效终态交付、commit后ACK、不得覆盖未交付事实 |
-| G3 | 一个 job remote read/error 使 reconcilePendingAttemptFailures、unfinished executions整批throw，反复饿死后续job | R1 | 同一job原事实、有限退避和远端当前授权 |
-| G4 | startup 孤儿目录计数直接返回静态 blockedRuntimeHandle，没有原worker下一动作 | R2 | 真正 Store损坏、未知schema/来源、认证失败不冒充安全可写 |
-| G5 | 原限流ACK/WAL不可得令 confirmed_absent 永远不可达；本地旧notice阻claim | C1 | Website惩罚时钟/N/cohort、当前真实弹窗保护，不拿到期时间当清除证明 |
-| G6 | cleanup 全局有任一未交付Outbox便全部return，随后只试pending[0] | R1 | 原result先交付；清理不能争抢当前物理操作或撤销业务接纳 |
-| G7 | admission 在开始时 requireRuntimeLogWrite，日志不可写可能先挡住旧结果接纳读回 | R1调用顺序；日志法不改 | 停新claim/新外部mutation；已SENT或已Website staged/admitted的原身份允许只读确认及必要收尾，不把未SENT的旧Outbox当可发送 |
+| 1 旧操作没有可靠回执 | websocket-actor的command handler/flush；browser-authority-websocket.settleMutationReceipt；WAL DISPATCHED不能到terminal | Browser，B1/B2/B3；法Browser006；B | 有真实fact则strict验真→原WAL CAS→commit ACK；无fact则保留旧unknown，撤原执行许可后进入R1→W1，不能等不存在的terminal；旧effect绝不重发。取消只撤许可、不补结果 |
+| 2 旧未决拖其它工单 | lane readState/nextWaiter/scheduleWake；Store.prepare全局SQL；Runtime WAIT分支 | Browser B4/B5、Runtime R2；法Browser003/004、Runtime001；B/R | 物理资格只由此刻lane/permit决定；Store只做exact/effect历史去重；Runtime只消费该job当前网站next_action。其它合格job继续。认证/真正当前在途限制对应现实动作，历史unknown仅诊断 |
+| 3 恢复等不到旧回执 | runtime-source-handoff terminalWriterQuiescence/prepareOneSourceHandoff；双方严格source校验及lineage | Runtime R1、Website W1；法Runtime001、AI004/012/013；R/W | 先成果交付，再现役有界exact readback；无锚点产原unaddressable、负读回产原exact_negative；source seal保留unknown→网站原行锁签指定新revision风险grant→原Product入口。依赖失效本轮停止该job，下轮原worker重查 |
+| 4 错误枚举不一致 | browser-errors.json→generator→browserCommandErrorCode→strict receipt decoder | Browser B1；法Browser006；B | 唯一枚举定义ADMISSION_SUSPENDED，处置拒绝复用既有码；唯一generator投影，strict receiver仍拒未知码/字段；不能靠放宽任意string修复 |
+| 5 坏回执占唯一槽 | Actor slot不清、接收端不ACK，断连后再交坏fact | Browser B2；法Browser006；B | 真实fact非法不commit，不伪ACK；受认证的原command/binding读回WAL后签拒收处置，匹配slot且handler已退才清槽；fact缺失走同一dispose通道的null输入。unknown WAL不删；处置失联由原heartbeat重交 |
+| 6 合法fact ACK丢失 | lastMutationDeliveryKey缓存同连接投递；heartbeat不flush | Browser B3；法Browser006；B | 删除该抑制键，原heartbeat每轮最多重交当前单fact/处置请求；新frame sequence、原fact hash。WAL同hash重复为幂等，重新ACK；不同hash拒收。不能重发COMMAND/REPLY冒充事实重送 |
+| 7 单job远端失败断批 | reconcileUnfinishedExecutionsWithoutReceipt非absence直接throw；prepareSourceHandoffs单job抛错 | Runtime R3；法Runtime001；R | 按job有限快照逐个处理；该job保留typed原因/原退避，continue其它job。只有共享凭证/会话/Store损坏停止共享危险输入；exact absence仍原purge；不吞异常假成功 |
+| 8 孤儿目录停worker | startProductionRuntime把inventory.orphan_directory_count>0直接blocked handle | Runtime R4；法Runtime006；R | 删除目录计数的整体启动门；Store/凭证/来源正常则原worker启动，孤儿诊断保留；相关job文件不可信只隔离该读取，不擅删。exact网站absence才允许原清理；真正Store结构坏仍blocked |
+| 9 旧限流确认永久门 | ProviderRateLimitControl.submitGate/canRequestClaimAuthority；Website decideProviderCooldownGate及历史receipt重算 | Runtime R5、Website W2；法AI003/004/012、Browser004；R/W/B | 历史clearance如实保存；当前资格取网站服务器时钟/设备惩罚/cohort，当前每次危险输入取原Browser中央preflight。旧ACK不再必需。真正exact_present生成原incident，mismatch拒本次；原notice/receipt同身份续交 |
+| 10 交付清理连坐/第一张饥饿 | reconcileCompletedBrowserTargets任一unsent就return，随后pending[0] | Runtime R6；法Runtime001/004；R | 每job先核自己的结果/Outbox，再遍历现有pending快照各一次，单lane串行清理；A暂失败继续B/C，本轮不再追A，下轮原列表重查；只有真实release/absent读回才settleCleanup |
+| 11 日志挡已SENT收尾 | reconcilePendingBusinessAdmissions先require startSpan，未到reconcileBusinessAdmission就throw | Runtime R7；法LOG001-V7 forbidden5；R | 已SENT/admitted路径先只读签回执并原Store完成/Cleanup；坏日志保留sink故障，停新claim/未发mutation/新的云写；不造成功span。未SENT原bytes留存，日志恢复后原Outbox续交 |
+| 12 故障占满N | lease释放与业务seat混同；前置故障使recoverable入口不可达 | Website W3（复用验收）、Runtime R8（复用/修相关条件）；法AI003/004；W/R | 原recoverableLimit=MAX+1独立于newLimit，N满仍接回原seat的job；完成admission或Website权威终止才释放，不假WAIT/删单/本地leaseclear释放。逐个完成故障job腾出fresh资格，不为旧故障保留空座位 |
 
-不属于本轮可删除的停工条件：当前仍在运行的物理操作、合法撤权、无法认证的命令、真实账号限流、Store不可写/完整性失败。它们限制对应危险动作，仍允许合法诊断、已提交回执及结果收尾。Website 固定五阶按剩余容量递补：高阶 claimable fresh job 足够时低阶不得领取；高阶不足或当前不可领取时，低阶使用仍空闲的 fresh 名额。本方案不承诺所有 waiting 均消失。N去重占槽也不能靠忽略旧accepted job释放；释放必须来自 Website 原决定。
+12是分母，不是已完成生产声明。每条都覆盖成功、拒绝、失败、取消/失联；终端故障事实继续由原Owner保留下一动作，domain admission才是客户完成。其它合格job指当前原法案允许的工作，真实单lane占用不被伪报成并行三lane。
 
-## 5. 删除“七嘴八舌”的法案
+## 5. 只改造成断裂的法条片区
 
-两仓各自只保留一份active law corpus；本次规范差异只落各仓现役功能法案.md中的相应law-record，不是把全部法案缩成两条。Blueprint写执行落位，spec写唯一机器合同，不再复制恢复政策。一份canonical恢复规则不等于一个全局控制器，更不等于一个全局数据库。
+不新建恢复law、law目录、总控制器，不退役整条边界法、不搬迁18项004条款，不改八字/合婚/商业订单专业法。现有不同Owner的正交职责继续分属原法条；修的是明确写死的历史门。下表保留设计基线 ID 与精确修订范围。AGENT 已按同 lawKey 的后继版本对齐；当前有效 ID 以其现役法案和原 builder registry 为准，不将表内旧 ID 当作当前法条。Website 后续规范和建设由其 Owner 负责。
 
-唯一恢复政策落在既有 LAW-AI-ACCEPTANCE-001-V7 的后继版本：唯一规范主题是“未撤权任务需求持续到领域接纳”，failed的含义、自动下一动作和completed终点共同关闭这一风险。001现役forbidden:0的Prompt/Skill/模型/内部Flow边界副本删除，直接由既有LAW-AI-ACCEPTANCE-010-V13 forbidden:0/1及LAW-AI-BOUNDARY-003-V8 forbidden:0/2执法，网站不得下发Selector/Browser指令的独立约束继续由现役003-V10 forbidden:1承担，不复制进新001。业务主体/材料授权的专业Owner不变，001只引用已冻结任务身份。004剥离任务生命周期/恢复副本，仅保留fresh grant选择约束；固定五阶原语义、选择实现与验收不变。003保留容量与惩罚事实，不另定任务恢复政策。这样遵守母本14.3，不让派单排序、专业执行边界与恢复继续混在一条法案里。同仓下游用当前active dependsOnLawIds；跨仓下游仅引用provider spec的contractId/version/providerRepo，不跨仓复制法条或维护第二法案索引。
+| 源头law-record | 精确片区与目标；保持的义务 |
+|---|---|
+| Website LAW-AI-ACCEPTANCE-001-V7、004-V32 | 001保留持续需求/最终领域接纳，在原同主题约束中明确单job故障不连坐；004 forbidden10及相关“全原WAL terminal/未决为空”条件替换为原结果优先、exact读回、Website指定revision授权；不动排序/领取字段/session/SEO purge条款 |
+| Website LAW-AI-ACCEPTANCE-003-V10、004-V32、012-V45 | 003/004冷却片区取消旧confirmed_absent作为当前claim和下一真实incident永久条件；保留N惩罚序列、server clock、当前cohort、6小时恢复；012原机械source/receipt合同同步§6，不搬入专业Product恢复算法 |
+| Website LAW-AI-ACCEPTANCE-013-V29、LAW-AI-BOUNDARY-006-V10 | 仅原attempt恢复/poll/terminal全集资格句同步指定revision grant；保留专业边界、Provider effect禁盲重放、Target排除、所有非本次条款；006不整条退役 |
+| Website LAW-PUBLIC-KNOWLEDGE-CONTENT-005-V45 | summary及forbidden7/16中的“原WAL相关command全terminal/未决为空”资格片区替换，保留SEO三轮、run/入库、原raw/插件、prepared截止/取消池和exact unfinished purge冻结字节 |
+| Website LAW-LOCALIZATION-020-V27 | forbidden7旧job恢复全terminal资格句替换；保留冻结原材料/source/cohort/policy/current译文激活、控制室只读和ensure唯一 |
+| AGENT LAW-AGENT-PRODUCTION-RUNTIME-001-V75 | forbidden5及原恢复资格片区取消历史全集门，forbidden8仅替换旧clearance缺失永久关门句、保留新incident本地durable与Website落账/N惩罚，执行§4的该job next_action；保留durable accept、结果先交付、三表、Website唯一授权、source/result CAS与自动下一动作 |
+| AGENT LAW-AGENT-PRODUCTION-RUNTIME-006-V46 | forbidden0中的孤儿目录整体阻claim替换为诊断/该文件读取归属/原worker继续；保留盘点、结构验真和exact absence删除授权 |
+| AGENT LAW-ARCHITECTURE-BOUNDARY-001-V17、LAW-GPT-001-V64、LAW-GPT-002-V31 | 仅TOMBSTONE/PROVIDER-EFFECT/EXACT-POLL段的“全部terminal才能继续”句同步；原Product/Child边界、材料、两门、exact URL/turn/readback、纯取证和输出职责全部保留 |
+| AGENT LAW-LOCAL-BROWSER-SESSION-003-V45、004-V56 | 原历史DISPATCHED阻任意job、prepare全局门、Target/恢复全集门删除；事实查询/WAL持久化保留。004仅旧限流ACK永久资格同步，不删当前exact_present中央preflight |
+| AGENT LAW-LOCAL-BROWSER-SESSION-006-V45 | 原clearSlot只准commitACK/网站删单片区增加§6合法拒收/无fact处置；forbidden2第九许可仅同步旧clearance非当前资格、新incident必须真实落账的窄规则；原fact/ACK精确字段、认证/hash、strict decoder、单WAL、当前物理串行保留 |
+| AGENT LAW-AGENT-PRODUCTION-RUNTIME-003-V45 | forbidden1/3及summary已写死17/34，窄替换为Website唯一18/40；保留40 routes/48 parameter types、精确唯一生成、全部material/relation/unknown拒绝及无metadata WebP原几何中性义务。版本、分母不是Product专业规则的新Owner |
+| 其它 | LOG001/003、Website AI002及八字/奇门/合婚/起名/商业专业义务不改；依赖引用闭包必须精确继任，不能借引用变更重构主题 |
 
-| 修改源头（均为功能法案.md中的精确lawId） | 删除/移出内容 | 独立保留与接管位置 |
+TOMBSTONE-RECOVERY-AUTHORITY-001、FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT-001、FROZEN-EXACT-TARGET-POLL-RESULT-REVISION-001要求明确解冻与双仓同步；此前用户对这些恢复片区的反复规范授权及明确废除阻断持续有效，未来同次amendment落实“解冻→窄替换→重冻结”。它们没有要求用户逐字报冻结名，不再人为增加批准流程。EXISTENCE-PROOF、ARCHITECTURE-BOUNDARY-002 Target排除、附件/提交两门、Website exact启动、Workbench ingress、corepurpose和SEO exact purge要求的精确冻结条款全部不触碰。
+
+
+母本§14.7要求dependsOnLawIds只能指当前active ID，§14/§40要求依赖义务变化按同lawKey+1。当前AGENT九条直接语义修订的传递引用闭包另命中Runtime002-V11、004-V44、005-V42、007-V46、008-V47、Capability001-V18、002-V4、Security001-V14：各只继任实际depends引用并按现役+1/精确supersedes，不复制或放宽原正文。这不是新专业法，也不能以“原正文未改”保留失效ID。Website本次八条直接修订的同一现役depends图没有额外传递命中。规范完成时以同一候选重新计算，所有实际命中的spec lawIds、Blueprint、Manifest、inspector/Exam/Dynamic法ID引用随原Owner同步；无命中不扩大。registry只能原builder生成，不手改。
+
+先原law-record删除被替换句并检索不存在，再写入后继版，不加并存例外绕过旧门。版本按施工时已核现役+1；重建唯一registry，同步现役Manifest/check/Blueprint/spec引用。现役gatekeeper Skill §6的“未决不给新输入/旧冷却先停无关claim”政策副本是直接消费者，源头对齐后在该现有Skill相应片区删除旧副本，引用对应现役law/spec；不把本方案升级为Skill里的第二恢复法。冻结CI-FULL/闭环Skill禁止改。
+
+## 6. 唯一合同与原Owner落点
+
+### 6.1 过去未知与现在许可分开
+
+旧command未来不能继续串发，靠现役permit/session/lease/fence及Runtime原source seal，而不是证明旧操作没发生。原Actor的assertActive绑定socket/session/deadline；Debugger每一个真实DOM/CDP/native输入前必须同步调用该原guard。删除executeRegisteredCommand/acquire入口的默认空guard，所有生产调用显式提供；原当前handler/native promise真实结束前保持当前物理串行。socket撤权使旧handler后续输入被拒，不能把promise超时当终止。
+
+旧worker消失后不再要求它生产“我已经停止”的新证明。新Actor的当前许可只授新命令；旧DISPATCHED过去可能发生/迟到的外部后果，保留unknown并纳入网站新revision的风险授权。新session/Target缺席、getContexts、detach或等待时间不证明旧zero/terminal；方案不新增quiescence kind/证明生产者。当前可观测native仍在途属于真实占用，不能冒称历史垃圾；故障仅影响该当前物理资源，交付、网站读回和其它无需该资源的合法工作继续。
+
+### 6.2 Extension ↔ WAL：protocol9升级唯一protocol10
+
+保留唯一MUTATION_RECEIPT控制通道、现有AES认证/单调frame sequence/单槽/heartbeat；没有新队列、timer、持久化表或Browser权限。protocol规范内容变动由原schema/generator同步revision10和固定build身份，旧9执行端不双接收。
+
+原type=fact与type=ack字段/terminal v1/receiptHash算法不改：fact严格解码、绑定原command identity、同一WAL事务CAS并readback后才ACK。合法同hash重送即幂等readback再ACK。合法未ACK槽不覆盖；同effect不能复用新command id绕过历史。
+
+同一通道增加一个处置请求/响应对，仅用于问题5：
+- 请求type=dispose，请求exact字段为type、commandId、receiptBindingHash、rejectedFact、rejectedFactHash；rejectedFact为原单槽保留的完整JSON fact，真实fact不存在为null；非null时rejectedFactHash为SHA256(canonical完整rejectedFact)，null时hash也必须null。沿现役frame大小上限，不新增raw持久化；无默认值，禁止unknown field。Actor沿原单槽保留handler返回的原JSON候选再作strict校验，不能先验证抛错把候选丢掉；不另设坏回执槽。只有原handler和native调用退出后才能将该单槽置为待处置，不能在执行中请求释放。
+- 响应type=disposed，exact字段为type、commandId、receiptBindingHash、rejectedFactHash、reasonCode。reasonCode只复用唯一错误源中BROWSER_RECONCILIATION_RECEIPT_INVALID、BROWSER_COMMAND_RECEIPT_MISSING、BROWSER_MUTATION_STATE_CONFLICT三个既有规范码，分别表示非法、缺失、与原已commit结果冲突；不是terminal ACK，不设置WAL结果，不给Provider zero证据。
+- Node由原Supervisor现役callback接线调用原BrowserMutationStore读取/CAS；transport仍不写WAL，禁止加第二writer。Node必须在当前认证通道解析可绑定的原command/binding；读取原durable WAL精确行并重算binding。bad fact由请求携带的rejectedFact重算canonical rejectedFactHash，并按原WAL identity执行唯一strict terminal校验；不得仅凭hash声称知道坏raw。合法fact尚未commit则仍原CAS→ACK，已commit同hash则原readback→ACK，不能转disposed。null请求表示受认证原Actor在handler退出后没有fact，不证明输入没发生，原WAL仍unknown；不能由Node伪称独立证明旧没有结果。不存在/跨job/binding错/认证错，不签处置，撤相应通道，Actor保留槽事实并在合法重连提交原绑定请求。
+- 非法/缺失情况下原DISPATCHED仍原样unknown；冲突保留第一份已经commit的合法terminal。只有原durable行确实存在且Node读回后才响应。不得把坏raw写入Forensics或新失败表；原WAL身份和typed诊断足以证明该拒收，并保留真实sink故障。
+- Actor验当前认证frame、三个原slot身份字段/hash完全匹配且handler已退后才清槽。处置丢失由原heartbeat重送同请求，Node原WAL读回签同处置；迟到response不得清新slot。若其间原真实fact到达，先strict CAS；此后处置只按实际row出ACK/CONFLICT，不能伪说未执行。
+
+身份本身坏到不能形成受认证处置请求时，不伪签任何ACK；Actor原捕获permit/slot绑定可形成合法dispose，不依赖坏fact内自报身份。新的command只在当前物理空闲且单槽可接收事实时进入；这是现役单槽可靠交付流控，历史WAL未决不再参与。事实接收/ACK、dispose不占Provider输入lane。
+
+问题6删除lastMutationDeliveryKey，不新增替代缓存。heartbeat最多发送该单槽一次新认证frame；绝不重发现实COMMAND、过期REPLY或伪重跑Provider。
+
+### 6.3 Runtime → Website source：provider44升级唯一45，body不改shape
+
+source identity spine：job_id+source_attempt_id+冻结source_task_hash+first_fact_raw_hash；完整job历史browser_history_hash、call/effect set hash；原seal_hash。Target/Document不进入跨仓恢复授权。所有原required/nullable字段、最多64 calls及每call64 effects、去重、顺序、canonical hash、exact-negative/checkpoint/unaddressable结构不改；不会为旧坏回执或旧producer造新证明。
+
+45同shape的资格规则改变：input_quiescence_proof仍required字段，可为null；zero仍必须null；possible/unknown允许null。非null仍只能是现役真实terminal_wal，严格核原hash、全集及hash([])，它是可消费的历史完整收尾证据；不能将未决hash强写为空。删除“非zero一定要求非null”和所有用此proof/旧unresolved_count当新资格的消费条件。旧强证明本身继续合法，较弱null绝不被解释为zero，恢复风险决定只来自网站指定grant。
+
+AGENT原类型source-readback-contract、validV44SourceHandoff及所有seal/issued/readAccepted/acceptTask事务校验改为唯一provider45语义，原函数若含V44命名在片区重构后仅保留一份非代际别名的canonical校验；不保留V44/V45双reader。Website validSourceEvidenceShapeV6/readSignedSourceLineage/原grant校验同步。body没有version discriminator、字段删增或hash算法变动，已接收V44 exact body+seal按同一45校验仍有效：zero/null和nonzero/真实terminal_wal都是45的严格合法子集。不改签、重hash、backfill历史、不引入archive转换writer。
+
+现存16份pre44 body早已不符合当前44 exact字段，不能借本轮加legacy decoder。切换盘点须沿未完成job的issued祖先实际读回，明确它们是否为当前consumer所需；可达且违反当前canonical/hash时，仅该job保留原SOURCE_HANDOFF_CONFLICT及下一动作，阻止它发危险输入，不能扩大为全局启动/claim门。不得假装历史无效数据已经自动恢复；若要变更该独立历史schema，必须另有实证和独立批准，本方案不扩大12项至历史迁移。
+
+source生产顺序固定：原stage/Outbox成果优先；完整WAL分类；trusted锚点原有限exact读取，缺锚点原unaddressable；已有checkpoint验原artifact；单job当前执行已退出/撤后续许可；原Store同SQL事务stage-vs-seal CAS；签body。旧业务结果未知不要求terminal补齐。网站原job行锁验原snapshot/first fact/call/effect/readback/seal；source valid不等于允许无授权重放，原grant只能签原规定的新attempt或指定revision/call风险。source请求响应丢失沿原request/event/receipt读回；同seal重复幂等，变body拒绝。
+
+只有target_local旧DISPATCHED且经过完整WAL验真、provider_effect历史确证zero时，保留target_local旧unknown而沿原ordinary source；Provider zero不等于所有现实输入zero。WAL来源本身unverified的unknown不能套用unaddressable，仅该job保留来源错误并由原Owner补核，不签风险捷径。
+
+Runtime当前attempt zero须先分三种具体出口，不能把本attempt zero改写possible以讨grant：
+1. 已接受risk的原source、grant、settlement及其覆盖的历史Provider effect集合与绑定未变：在原canResumeRiskGrantAfterZeroInputFailure读issued source/原签grant，验当前attempt零输入、同task/attempt/revision/指定call/effect/grant和全历史覆盖，前后完整WAL hash一致、原settlement严格成立；仅删除历史unresolved全集门。沿网站same_accepted_attempt原grant/new fence回接，不产新source、新revision或纯historical_settled来源，不能只凭current zero放行。 这里的完整WAL前后相等指本次裁决的双快照；新当前attempt已验证的零Provider输入准备行可以增加历史行数，不要求它们使旧source的全job快照hash恒定。原授权的旧Provider effect绑定若未变，不能仅因新target-local准备行增加就废弃原risk授权；旧effect绑定变化仍必须进入下一分支。当前attempt已有真实Provider输入或旧grant不覆盖历史均拒此支。
+2. 旧terminal迟到等使原sourceEffectSetHash/WAL/anchor绑定变化且历史仍possible/unknown：assertOldEffectGrant保留严格重算等值，旧grant必须拒；同job typed失败→本轮原有界exact读回→当前attempt原seal→Website指定新revision。source-readback-proofs仅对本轮需要重新授权且旧risk绑定失配的effect让当前exact-negative/checkpoint/unaddressable优先，旧risk不能免除本轮读回；有效的旧rejection/checkpoint settlements继续严格消费。先实际读回再拼proof，不封全historical_settled且无可复用checkpoint的非法来源。browser_input_state仍如实表达source attempt，完整job历史由原replay_calls/readback_proofs表达。
+
+原readback_only_calls是恢复执行中的零Provider输入限制：若已签risk的当前attempt为zero、旧source绑定变化而需重新授权，在Runtime原failure reconciliation按完整验真WAL及原issued source指定call筛出未获当前读回证明的trusted effect，传递其精确source attempt/revision/effect/WAL身份给原GPT readConfirmedSubmit入口。该入口只能调用原Browser readSourceConfirmedProviderEffect验真旧CONFIRMED terminal和canonical锚点；禁止将未知terminal改成CONFIRMED。原当前lease/Target/Document控制有限exact checkpoint，原Source Reader每次重验旧WAL身份；只读input不能转为新的submit。原checkpoint/negative观察按真实旧source身份写当前attempt原observation；下一轮原preflight封source，仍先Website指定新revision才可重放。没有trusted可验terminal的effect只走原unaddressable或保留局部来源错误，不添加Child、Writer、外部字段、兼容decoder或第二恢复链。 同call多旧effect保留现役完整分母，每批按原WAL顺序选择一个尚无当前有效证明的精确effect；negative写入后下批推进，合法结果优先交付，不以effect数量当作身份多义。有限checkpoint沿原Forensics按旧source attempt命名空间追加当前唯一checkpoint exact hash的新artifact，保持source45中source_attempt_id与原Source Artifact Reader一致，不覆盖任何旧artifact；执行租约、Target、日志仍属于当前attempt。 未sealed的原source_checkpoint观察，仅当同effect的原source attempt/revision不变且WAL/source effect set绑定变化，才可沿原SourceReader/Forensics重新验真后替换原观察；相同绑定不同proof仍拒绝，旧artifact、WAL与已sealed source逐字节保持。
+3. 迟到合法REJECTED/no/physical_input_count=0等使完整job Provider历史真zero：Producer逐原WAL行验来源、状态、真no-input，完整job快照前后相等、replay_calls=[]，当前输入已退出、无可交成果，再原stage-vs-seal CAS封ordinary attempt_handoff/zero/null；Target-local旧unknown不充Provider输入。Website原verifyPriorRejectedRevisionHandoff对已签risk lineage窄验同job/task、父事件issued current attempt、原source seal、指定call集合/call+grant hashes与新zero source/first fact/完整history hash；原租约空后由原job行锁撤旧risk资格、签唯一ordinary新attempt/revision，其delivery_priority_replay_grant必须null。不删prior risk历史、不宽松忽略祖先、不放宽Browser UNNEEDED，不以默认count=0/缺行当真zero。新ordinary source沿现役认证Runtime对完整WAL的封存事实，Website不查询私有WAL、不新增字段/zero证明生产者。
+
+45同shape合同删除delivery_priority_replay的“zero必须payload_slot_conflict非null”条件：zero且历史calls非空必须完整proof，至少一个replay_exhausted才可风险签新revision；全部settled_reusable只准取原checkpoint且零Provider输入，不能给新的输入资格。无payload_slot_conflict须沿readSignedSourceLineage/已签risk证明这些是原risk来源指定调用，完整source_task_hash、call keys和effect覆盖，无额外call，才签calls=[]。缺此已签来源不套任意checkpoint继承，继续原当前attempt零输入成果/读回链。原verifyZeroSubmitAncestor仅消费原payload_slot_conflict非null且全部settled的继承分支，原父grant.calls=[]及proof/hash检查不减，不强套历史未决的新来源。均用一份45 decoder，不加kind/字段/版本reader；旧44合法shape仍为45子集。 同call旧risk_authorized/rejection_settled与新checkpoint可合法共存；settled_reusable iff至少一个真实checkpoint，Store只收集真实checkpoint子集，保留其余已接纳历史血缘，不能要求每个历史effect都有checkpoint。 连续合法零提交来源可在不同seal保留同一checkpoint；原消费者仅对同effect、同kind且完整checkpoint/WAL/anchor内容完全相等的祖先重复事实正常读回，保留每个seal及历史，内容冲突仍拒绝。
+
+旧terminal在source seal、Website grant、new prepare间迟到，原WAL CAS仍只改旧row一次，sealed body/hash不可改签。seal已赢时先原bytes交付取得指定新attempt，再由该当前attempt按上述三支处理新事实；不能重封immutable旧source或等旧seal重新有效。stage先赢则先交成果。
+
+封存历史readback proof不能因serverNow滚动24小时永久过期：provider45在原assertSourceReadbackProofsV6删除serverNow-86_400_000下限，保留canonical ISO、first_observed_at≤observed_at、未来≤serverNow+30秒和原proof/body/seal/hash/身份。它证明封存时历史读回，不代替此刻session/lease/fence/permit；网站仍当前认证、旧租约撤权后签grant。断联>24h原seal原bytes重交/读原event receipt，不能刷新timestamp/hash、重seal或造第二来源链；已接受祖先用同一严格decoder。
+
+已有结果可重消费优先，不增加Provider输入。网站Consumer拒绝而原结果仍可合法消费时只重消费原结果；确需新Provider结果时仍由原领域rejection合同或风险grant明确授权，Runtime不自判。原payload-slot conflict且全部settled时保留calls=[]的zero-submit授权。
+
+### 6.4 冷却：provider45语义；notice/receipt.v7字段和历史hash不改
+
+历史receipt的claim_gate_open仅是网站签发时投影，不能由新政策重新演算后认定旧签回执损坏。双方继续strict exact字段、类型、request/payload/incident/device/dialog/observation、counts等式和canonical receipt_hash；Website verifiedProviderCooldownReceipt删除“用当前decide重算历史claim_gate_open必须相等”片区。原receipt bytes不改、不签第二版本；当前eligibility由原claim/attestation/heartbeat响应的server clock/reason_codes裁决，不把旧bool当当前权威。
+
+当前decide逻辑唯一：pristine按原规则；真实device状态/receipt缺失或不一致仍故障；serverNow未过cooldown_until则原冷却；过期但当前cohort未闭合仍原受限恢复/清算；过期且cohort闭合可领取fresh，不要求历史clearance为confirmed_absent。clearance pending_unknown/not_cleared如实保留，不伪造absence，不抹N惩罚；容量恢复仍N=1、cohort闭合、6小时稳定和原baseline。
+
+Runtime区分新事故事实和旧清理确认，不能整体删除undelivered后凭事故前grant+fresh absent继续：
+- 新phase=incident仍先原Outbox durable enqueue并停本次及受当前事故影响的危险Provider输入；原exact request/payload/incident/device/dialog/observation receipt经strict验证持久，或原幂等请求同identity Website落账readback，才证明Website已按该事故降N/设cooldown。丢ACK只续交原bytes/readback，不本地冒收。尚未落账允许session/heartbeat、结果交付、零输入读回和请求当前claim判定，但事故前grant或较新serverNow单独不能恢复危险输入。
+- 事故已Website落账后，过期/cohort及当前网站authority决定资格；响应属于当前device/session、时序不早于该incident持久回执，当前N/cooldown已收敛。原clearance pending_unknown/not_cleared/ACK丢失如实保留，不永久堵claim/submit；每次危险输入仍Browser中央preflight，exact_present生成真实新incident，mismatch拒。fresh absent只表达当前页面，不补历史absence。
+- 原reconcilePendingIntents/pendingProviderCooldownRequestIds按既有有限列表逐incident处理，未带clearance的初始incident也可原bytes续交；同incident保持incident→clearance顺序。旧已落账事故clearance失败留原Outbox/typed原因，继续本轮其它incident、当前authority查询和其它合法job；新incident未落账仍限制受其影响危险输入。共享凭证/Store真故障按原Owner处理，不空catch、不建队列/timer/账本。 原catch只允许已记录的单incident typed故障进入firstFailure/下一项；401/403或raw共享故障立即外抛，不发送后续incident，不允许更早503遮蔽鉴权失败。原worker先确认已SENT结果；sink不可写时本轮停止后续尚未发出的恢复云写/claim，仍走原finally清理，不造成功span。 同链GPT旧incident循环亦消费现有Runtime-owned ProviderRateLimitControlPort新增的assertIncidentFailureIsolated(error)；Runtime唯一判HTTP/凭证和Outbox故障范围，GPT不导入私有classifier、不自制HTTP清单。只能证明归属的transport/receipt/incident局部故障可保留firstFailure；Store结构/未知typed故障仍外抛。
+- Website原assertPreviousIncidentCleared及applyProviderCooldownNoticeState调用删除“上次confirmed_absent才可下一事故”门；复用原device锁、本次known dialog/observation/identity校验、服务器活动cooldown窗口409、同incident幂等/N只扣一次、原cohort冻结/合并。旧ACK缺失但当前资格允许后再遇真实事故，应正常记新incident、递增level/降N，不能覆盖活动事故或重复惩罚。Website AI003/004及对应BP后续事故片区同步。
+
+### 6.5 结果与业务终点
+
+原stage+terminal intent同事务，sealed旧completion不能再写，stage先赢先交付，seal先赢拒旧迟到完成，first fact raw不可变，current_reason不参与CAS/N/恢复资格。SENT或网站已签收/admitted的原结果读取与本地确认不因日志sink坏而停止；未SENT新云写、new claim/new mutation仍守现役日志法。hydrate缺artifacts保留原typed诊断，不新增“本地artifact待确认”状态/投影/恢复承诺，不挡已admitted→complete和N清理，也不宣称本地artifact完整。
+
+九产品未来沿当前唯一18 route格式生产；历史17结果只沿它原冻结身份及原Owner合法readback，不凭新版更改旧body/hash。18接纳能力不能保证所有17未完成任务可重驱，具体限制见§6.7。不得再写“只是dependency机械对齐、Product代码不必改”或“source修订自然不挡一切旧结果”。
+
+### 6.6 九产品接力：现役资料、原消费者与精确重构
+
+Website《八字排盘零事故封口-完整实现方案》§32.13是本次交接输入，§32的Website carrier建设仍由其原Owner负责；本文件是AGENT恢复及消费者接力的唯一施工设计，不建立第二ZIP方案。经授权联系《打通国际支付全链路》，其确认18尚在源码建设、没有安装/重启，AGENT仍17；另有原九SKILL正在该聊天修改，本执行者只读保护其overlay，先接线并核残留而不覆盖对方Skill。
+
+权威保持Website当前唯一task-result18：40 routes、48 parameter types、40 result contracts；task/result envelope仍1，Capability4不变，V6恢复另由§6.3规划44→45。原34格式保留，加六个Qimen/Hehun/Naming现役canonical格式；result_schema_version不因ZIP或descriptor升版，review和报告翻译原材料不改。材料是事实，不下发Skill/Prompt/模型Profile；九primary/followup全部may_issue_instruction=false。
+
+| 单独验收的Product/route | 当前18原序材料与资料定位 | Product内删除片区、唯一格式来源和必须保留 |
 |---|---|---|
-| Website LAW-AI-ACCEPTANCE-001-V7、LAW-AI-ACCEPTANCE-004-V32 | 删除001 forbidden:0独立边界副本；从004移出重复生命周期/恢复命令，删除terminal全集/未决为空才可风险恢复的不可达条件 | 001独立边界直接使用既有010/AI-BOUNDARY-003及003机械禁令，不追加副本；后继001唯一明确“成果优先、旧执行停止与旧结果未知正交、风险由网站签发、有限下一动作、不连坐”；004仅管fresh grant选择，不改变五阶容量递补 |
-| Website LAW-AI-ACCEPTANCE-002-V35、LAW-AI-ACCEPTANCE-012-V45、LAW-AI-ACCEPTANCE-013-V29 | TOMBSTONE/Provider效果及terminal-only恢复政策副本 | 各自保留边界、失败事实/来源合同、恢复授权/回执机械验证；业务决定依赖001 |
-| Website LAW-AI-BOUNDARY-006-V10 | 整个active block、Manifest引用及check.ts中只为006存在的outputAssertions分支退役 | 恢复归001；私有执行位置禁令已由现役LAW-AI-BOUNDARY-003-V8 forbidden:2覆盖，跨业务八字continuation由002-V9 forbidden:1及003-V8 forbidden:1覆盖，直接使用这些唯一检查；不新造006继任空壳 |
-| Website LAW-PUBLIC-KNOWLEDGE-CONTENT-005-V45 | summary及多处forbidden内抄入的通用Browser终态/风险授权门 | SEO独有run、准备截止、入库、Work Order exact purge保持；引用001，不再定义 Browser放行条件 |
-| Website LAW-LOCALIZATION-020-V27 | 旧job恢复中重复的全WAL terminal要求 | source/policy/cohort/冻结材料和current译文激活、控制室只读、ensure唯一性保持 |
-| Website LAW-BAZI-007-V6、LAW-HEHUN-011-V6 | accepted AI job通用恢复/新attempt算法 | 保留领域材料、consent、不可变报告身份；合婚尚未创建AI job的前置材料失败是独立职责 |
-| Website LAW-COMMERCIAL-FULFILLMENT-DELIVERY-007-V5、LAW-COMMERCIAL-ORDER-MANAGEMENT-008-V3、LAW-COMMERCIAL-ORDER-MANAGEMENT-009-V3 | 同一AI job恢复算法副本 | 保留不二次付款、原订单权益、订单投影、履约intent独立约束；引用001 |
-| AGENT LAW-ARCHITECTURE-BOUNDARY-001-V17 | TOMBSTONE中通用恢复条件与算法；架构层发号施令 | 只守Product/Capability/import边界、无第二链，恢复行为消费唯一provider合同 |
-| AGENT LAW-GPT-001-V64、LAW-GPT-002-V31 | FROZEN-JOB-ATTEMPT-PROVIDER-EFFECT及poll冻结段混入的Website恢复政策/terminal-only条件 | Child回答、材料、纯读取、Provider调用及轮询机械合同保留；由Browser证明物理事实、Website裁决恢复 |
-| AGENT LAW-LOCAL-BROWSER-SESSION-003-V45、LAW-LOCAL-BROWSER-SESSION-004-V56、LAW-LOCAL-BROWSER-SESSION-006-V45 | 历史DISPATCHED阻所有job；全部原terminal才可建立新Target/恢复；Browser自定风险资格与必须旧ACK才能清除事故的规则 | Browser保留当前物理输入许可、唯一lane/WAL、完整事实、effect去重、真实回执和可验证当前dispatch收束 |
-| AGENT LAW-AGENT-PRODUCTION-RUNTIME-001-V75、LAW-AGENT-PRODUCTION-RUNTIME-006-V46 | 001内terminal-only与原ACK不可得的全局恢复门；006 forbidden:0以孤儿目录一律阻claim的条款 | 001只运输/验证上游授权与本地事实；006保留盘点、exact absence清算和损坏防护，孤儿事实不替代原worker |
-| AGENT LAW-AGENT-PRODUCTION-RUNTIME-003-V45、LAW-AGENT-PRODUCTION-RUNTIME-004-V44、LAW-AGENT-PRODUCTION-RUNTIME-007-V46 | 不修改法条：分别是单一provider/机械投影、admission验真和Manifest/静态证据责任，并没有本次要删的恢复算法 | dependency/spec、实际import与现役检查随合同修订；没有规范变化不递增law版本，也不删独立机械义务 |
-| AGENT LAW-RUNTIME-LOG-SPINE-001-V7、LAW-RUNTIME-LOG-SPINE-003-V6 | 不修改法条：001 forbidden:5已经要求已SENT动作继续确认/清理，003只保存真事实与日志完整性 | G7是Runtime调用方先require日志导致的实现问题；在R1修调用次序，不借本次归拢改日志法或放弃脱敏/日志完整性 |
+| Z-BZ05 bazi_chart_interpretation/produce | ordinal0 ready_corpus_archive 八字古籍资料.zip；1 bazi_formal_input 八字命盘资料.zip。私有根八字命盘资料；01身份/02候选政策/03命盘字段/04PDF语义页；07交付约束 | product-turn.runTurn旧0=formal/1=result_contract门、Prompt旧附件指令删除后重构；route.result_contract原Bazi v4格式一次投影；保留完整L0/L1、全部候选/occurrence、BZ02 Manifest与逐原典，自主L2双层伴读，不改已合法Product Profile |
+| Z-BZ03 bazi_ai_full_analysis/produce | 0八字古籍ready_corpus_archive；1八字命盘bazi_formal_input。05问题/获准经历、06父报告来源身份与正文；按实际目录遍历获准经历原页 | flow原JSON.parse整体及旧两role门替换为ZIP父身份/完整正文机械验真；product-turn.promptFor消除旧result_contract附件要求，保留现役route内初次问答v1格式。consultation_root及Website direct-parent不变，fresh chat不是续聊 |
+| Z-BZ04 bazi_report_followup/followup | 0八字古籍ready_corpus_archive；1八字命盘bazi_input_bundle。01冻结新问题、02命盘、06父报告 | flow.hasFollowupIdentity/readParentReport旧role和JSON整体解析删除重构；原followup父三元组/parameters/hash仍精确，Prompt由route Followup v1格式一次投影；不从项目latest猜父 |
+| Z-QM03 qimen_professional_answer/produce | 0ready_corpus_archive 奇门古籍资料.zip；1qimen_business_input 奇门问事资料.zip。01身份约束/02全部候选/03原问题/04逐候选规则矩阵/05语义清单/07交付约束 | 自有flow.promptFor删除result_contract附件指令，投影当前canonical QM03 v8；完整question/候选/anchor/READY receipt分母、原安全约束、单答案和原Profile保留，不偷选候选/重排局 |
+| Z-QM04 qimen_report_followup/followup | 0奇门古籍ready_corpus_archive；1奇门问事qimen_followup_input，增加06完整父报告 | 自有flow.promptFor同次替换为canonical QM04 v2和实际archive导航；direct parent/new question锁不减，fresh/单submit/readConfirmedSubmit不变 |
+| Z-HH02 hehun_ai_analysis/produce | 0八字古籍ready_corpus_archive；1hehun_input_bundle 合婚资料.zip。01案卷/双授权；02甲/03乙命盘；04各一份共两份BZ05；05问题/依据/case_manifest；06来源映射 | 自有flow.promptFor旧附件格式引用删除，直接投影canonical HH02 v4与原来源导航；角色隔离、双授权、双方完整证据、双层正文/隐私/禁评分保留；不建两个job或改步骤数 |
+| Z-HH03 hehun_report_followup/followup | 0八字古籍ready_corpus_archive；1hehun_followup_input 合婚追问资料.zip。含原root材料/08根报告/09全部祖先QA/10新问题与父身份 | 自有flow.promptFor替换为canonical HH03 v2；精确root/所有祖先/当前新问题的原值、source和privacy规则保留，不能只读最近QA或复用旧执行位置 |
+| Z-NM01 naming_bazi_analysis_and_naming/produce | 0八字古籍ready_corpus_archive；1bazi_input_bundle 起名联合资料.zip；没有独立naming_business_input附件。01八字/02命盘/03逐人物上下文及已有报告/04完整Brief反馈/05需求Manifest/06PDFManifest | 自有flow.promptFor旧三材料/result_contract附件假设删除，投影canonical combined v1（Bazi naming-basis v1 + Naming v2）；主体alias原证据与独立人物授权、同轮一次联合submit、两份结果分别Domain接纳/PDF必须保留 |
+| Z-NM02 naming_from_existing_bazi_report/produce | 唯一ordinal0 naming_context_package 起名资料.zip，无古籍空包/独立Brief/result_contract。01完整人物及已有报告；04需求原文/反馈；05需求Manifest | 自有flow.promptFor旧分开材料指令删除，投影canonical Naming v2；精确复用已授权已交付Bazi版本/hash/Manifest，完整原文/HARD要求/反馈，不能另做BZ05或设固定名字数量 |
 
-这是修改/删除分母，不是本轮已删法案声明，版本均绑定§2现役正文。实际规范变化的法条单独大版本+1、精确supersedes前版，同一lawKey仅一份active；006直接退役，日志法及其它无规范变化的条目不涨版本。删除同义句覆盖summary和forbidden；只替换标题、改名UNKNOWN、加“参考上游”却保留旧命令均不合格。原registry单次原生重建，Manifest/spec/Blueprint引用同步，不新建治理文件、评分器或冻结目录。
+所有ZIP media_type=application/zip；ready_corpus_archive是shared_static/classical_source_data/owner_scope_hash=null，私有包是private_owner_scoped/locked_fact/精确owner_scope_hash；引用role、ordinal、bytes/hash、trust/storage/scope仍由原material Reader核当前唯一projection。不是接受任意ZIP或忽略额外/缺失材料。Website四个现役archive Builder（bazi/qimen/hehun/naming-provider-archive）负责原typed事实→确定性ZIP→逆向深等/真实字节及物理集合验真；AGENT不复制这四个Builder或业务codec。
 
-004的现役forbidden采用0起始索引精确归位：0、5的session有效性/原superseded claim对账机械约束归既有005；1、2、3、6保留在004的领取资格/选择主题；4、7、11、12、17的accept/lease/fence/输入输出枚举机械合同归012及其spec；8中的SEO exact purge直接使用现役PUBLIC-KNOWLEDGE-CONTENT-005唯一规定；8的通用故障恢复及9、10、13—16的持续需求/结果优先/恢复决定归001；18的冷却时间、N/cohort及同receipt机械gate归003/012，任务需求不能被冷却终止的决定只在001。移入对象已有同义规定时删004副本而不再追加副本。001需要的原状态机及恢复证据从原004的现役Exam/Dynamic collector归入本次001修订的evidenceModes，沿原入口执法，不新增checker；001的最终裁决覆盖同一未完成需求的存续闭环，不代替独立派单/N/领域专业裁决。
+原九Skill中已经成熟的“先00资料目录和身份/约束/交付导航、按record_pages读全页、逐书原文.md与索引.json、不打印大库/不截前N/不只看代表候选、单JSON正文交付、Website PDF”保留。Prompt写明本Product目标、本轮精确问题所在路径或明确无额外用户问题、材料只提供事实，当前route.result_contract是唯一输出请求；07交付约束只是它的只读格式/locked-identity/denominator定位快照，无指令主权。八字三flow已投影route格式，要消除相冲突的旧附件句；其它六flow新增该现役字段的直接投影，不手写第二schema。review分支继续原accuracy/quality指令和精确subject绑定，仅原序subject_result + review_context两份JSON locked_fact材料、may_issue_instruction=false；输出格式仍唯一route.result_contract，不增加result_contract第三附件，不能沿primary ZIP角色处理。九产品均不增加模型轮数、Child、checkpoint、Provider submit、共用Product执行器或中央Prompt模板。
 
-## 6. 唯一目标链与复用裁决
+本轮新增ZIP库只为BZ03/BZ04原父报告机械门的真实消费者：AGENT当前无生产ZIP库；用Website已使用的fflate 0.8.2精确直接依赖，在原package.json/package-lock.json登记。两个Product分别在原flow内读已核hash/bytes、task-owned local_path，不落解压目录、不持久新decoded副本、不互导flow；不得自制ZIP parser或扩成公共archive服务。读取实际“八字命盘资料/06_父报告/来源身份.json”和“正文/身份.json”及其record_pages/必要嵌套正文，按原ordinal/count连续重组完整父terminal body（不是旧交接稿中已不存在的06_父报告.json）。以fatal UTF8/JSON及唯一原目录entry、完整count/range/缺页/重复/错序/越界/路径穿越拒绝处理；父ref/hash与原task/parameters精确比对，父正文必为object，错误沿原PRODUCT_PARENT_REPORT_MATERIAL_INVALID，零Provider输入。只读取本机械门必需的分支，不重建整套Bazi业务解码器。其余七Product直接由route/static资料导航和原task.parameters组织Prompt，不为它们新增无必需机械Consumer的Node解包器；模型读取全包，实际完整阅读义务由Skill和模型/独立质量流程承担，测试不能冒称证明模型已读全书。
 
-```text
-Website原job当前需求/授权
- → Runtime durable任务、先核原stage/Outbox
- → 有成果：原结果身份交付 → Website原Domain Consumer → admission/readback
- → 无成果：Browser完整effect事实分类；可证zero沿原null-proof，非zero新风险分支核dispatch收束
- → Runtime原source seal（封旧完成端口，保留所有历史事实）
- → Website原job行锁/原claim/event/receipt唯一决定
- → 原effect零submit读回，或原授权普通新attempt，或精确新revision风险grant
- → 当前Product第一入口、原Child、唯一Browser lane/WAL
- → 原结果链
-```
+九个现役result-contract.ts的业务schema/字段/锁定规则没有因ZIP改变。已比对当前Website canonical top fields，原Bazi/Qimen/Hehun机械parser与Naming允许原扩展字段的原值保留，不新增自然语言评分/关键词/字数门，不把Naming未知字段丢弃或改为拒收。Provider格式/身份合格结果原样走现役stage/Outbox/Domain Consumer；网站保留其原canonical/PDF/Manifest/商业终点裁决。没有业务规范变化的纯parser不重构。
 
-DISPATCHED 不再是“业务状态/全系统开关”。现有 WAL 的已dispatch但terminal未知字段是原动作取证，不能抹掉、更名成UNKNOWN再继续做全局门、或默认解释为零输入。本轮优先不迁移WAL schema及历史 authority hash；若用户要求连原取证字面值也移除，则需要另行证明离线合同迁移不会破坏已签source/effect hash，不能把删除控制门冒称完成历史schema删除。
+输入ZIP不能修复已生成JSON文件卡片而没有semanticText正文的结果回收断裂。本方案在现役冻结两门内要求九Product直接返回一个完整JSON对象正文，不下载文件、不接受ZIP结果、sandbox链接或“已完成文件”作合格checkpoint；原exact checkpoint/readback先行，不能盲重发。如果需求改为回收既有文件bytes，将实质改变FROZEN-GPT-TEXT-RESPONSE-TWO-GATES-001，当前没有该精确解冻授权，仍设计阻断，不能借本次ZIP输入或恢复授权偷偷新增下载器/Child。原风险授权可在本方案§6.3合法条件成立后签新revision；存在文件不证明旧操作zero，也不能以新正文追认旧hash。
 
-| 单元 / 唯一Owner | 真消费者、权威输出 | 删除反事实 / 最短裁决 |
+### 6.7 网站侧旧工单清理与生产切换交接
+
+用户于2026-10-10明确：旧工单删除并让网站重新派发；随后明确这项操作由网站侧负责，要求本聊天立即建设既定恢复与消费者方案。本聊天不修改付费工单删除入口、不删除数据库旧job、不为旧17补兼容读者、不等待旧Provider答案。十二项未来故障仍沿同一job自动恢复；行政删除后的新任务创建权仍唯一属于Website，不建立第二恢复链。
+
+九类分析产品现有一个未完成旧BZ05：aiprod_17f6beeadc1c87804b9ba49b723de59d，source_task bazi-analysis:67559940c8a74f6d5fdf82dd33b851ea，原order_def0368c-798d-49f4-9df0-630cedef8fff、fulfillment_6d97251314eb12a3c514125a70db57a7，权益active、processor_payment_succeeded，金额5500 minor units，无商业Delivery/报告/结果link。旧冻结两JSON不能原位改为18两ZIP；网站侧保留原付款/权益、主体、同源BZ02 PDF及已交付成果，由原商业Owner清理旧未完成执行子图并派发不同任务身份。原Runtime仅消费Website exact absence并执行现役同job清理，不自行创建replacement job。其它1770张未完成任务不自动归入九产品删除范围。
+
+Website现役Blueprint§A/九产品边界的全部40route清算、旧durable writer零在途、exact backup、匹配双仓及新session epoch仍是生产切换门；它不阻止本轮法案、施工图、代码、质检及CHANGE/READY建设。网站侧提供旧业务处置及何时开放新单的原Owner证据；没有部署门证据只停止切换，不停止本轮建设。本聊天不新增删单接口、删除队列或相关付费重派代码。
+
+
+## 7. 删除审判与结构承载
+
+对受影响图的实际结构按“必要性/GAP/直接Consumer/唯一Owner/删除反事实/更短复用/旧路零残留”裁决：
+
+| 单元 | 当前必要性、真实Consumer/Owner；删除的具体后果 | 最短裁决与旧路删除 |
 |---|---|---|
-| Browser单WAL、receipt validator、CAS/readback | Runtime/Website消费完整effect事实；ACK消费可信终态 | 无法证明同effect至多一次/原事实；保留现有schema、payload加密、hash、decoder，不建新表或复制writer |
-| 当前Extension handler集合/原连接generation/permit及lane | Browser执行者消费此刻动作许可 | 删除会有物理并发或旧执行迟到输入；复用当前资源Owner，新增证明只在原链产出，不能从“新会话”猜事实 |
-| 单槽终态交付+ACK | 原WAL writer消费真实fact；原worker消费commit ACK | 删除会丢真实终态；保留单槽，区分receipt交付与handler运行；有效fact必须commit，不新增receipt队列 |
-| Runtime三表/原worker/session/Source seal | Website原claim消费来源，原Outbox消费immutable结果 | 删除会失去接回/幂等交付；直接复用，不建recovery manager、第二worker/Outbox/store |
-| Website001+原claim/event/receipt | AGENT消费当前授权，网站领域消费者消费结果 | 删除会出现自签风险/无人管需求；唯一上游规定恢复，下游规范副本删除 |
-| Product、GPT、Forensics独立职责 | Product自有Flow、原Child及exact checkpoint消费者 | 无这些不能产生/归还原答案；原实现直接复用，禁止把旧完整Flow从Git恢复冒充重构 |
-| 当前惩罚/冷却事实 | Website设备同行、AGENT原cooldown consumer | 删除会重现真实限流；保留时钟/N/cohort，替换旧ACK不可得导致的永久门 |
-| 原Storage inventory | 原Owner检查路径/来源和exact清理授权 | 删除会误删/串任务；目录孤儿仅事实，不在Store完整时停所有job，不建quarantine目录 |
-| 原Ctrl+C收尾 | RuntimeHandle.close、Supervisor/HTTP实际close | 删除会再留下残次；先独立出原收尾实现直接调用，保留唯一来源，明确是经论证保留 |
-| 原native quality、Owner Exam | 各仓唯一质量入口 | 删除会无执法；更新原断言/反例，禁止保留旧global-block断言迫新代码迁就旧法 |
+| 原单WAL/receipt CAS/完整history | Runtime/Website需要effect事实和hash；Browser Owner。删除会允许同effect盲发、丢unknown | 保留schema/原writer，删全局DISPATCHED资格SQL；无新表 |
+| 原Actor单槽/handler/guard/heartbeat | 原Node消费合法fact与绑定处置，实际Debugger消费当前guard；Browser Owner。删除会覆盖未ACK结果/旧handler续发 | 保留可靠单槽，重构处置/重交片区；删lastDeliveryKey与坏fact永久门 |
+| type dispose/disposed | Node拒收坏fact无法commit，Actor需合法释放；真实Consumer双方原通道。删除即问题5永久占槽 | 不存在可复用的合法negative ACK，原commitACK不能冒用；在原协议增加此必要分支，protocol9旧分支同次替换，无第二接口 |
+| 原source seal/readback/Website claim/event/receipt | Website原grant和Runtimeaccept消费，源头身份分别由原Owner输出；删除会无风险授权或双完成 | 保留原结构，删terminal全集资格条件；无新proof/恢复状态机 |
+| 原三表/worker/Outbox/current N/recoverable selector | Product/Consumer/原worker直接用，分别Runtime/Website Owner。删除会丢durability/幂等/seat | 原位片区重构；不加WAIT释放接口、名额表、第二worker或队列 |
+| 原inventory/日志/清理/关闭 | 文件读取、业务receipt、Target释放和现有shutdown直接消费；各原Owner | 保留事实和真实close，删全局门/错误顺序/pending[0]；不新增runtime-shutdown模块 |
+| 原九Product Prompt/ZIP父机械门/唯一route生成器 | GPT和原Product父身份是直接Consumer，分别各Product/Runtime原Owner；删父门会串任务，留旧JSON门则新包进不了执行 | 仅两个既有父门使用必要fflate；九Prompt各自投影原格式，七Product不新增无消费者解包层，纯parser/原Skill专业正文保留 |
+| 新恢复总法/迁移18条/整条006退役/统一图/台账 | 没有本轮不可替代Consumer；12项用原Owner足够 | 从方案物理删除相关安排；不改领域专业法、不新增治理文件 |
 
-新增证明不是新恢复Owner、状态机或持久化；不存在真实生产者时禁止凭空加字段。原startup整文件重构不可分割地需要独立保留收尾，确定使用唯一runtime-shutdown.ts；直接消费者为新RuntimeHandle.close、blocked handle的finishShutdown和原session-rotation验收，没有旧入口转发/兼容，内容是提前裁决保留的成熟独立职责，不能报告“全部重新建设”。其余新增模块、表、队列、registry、API、timer和抽象均不进入方案。
+当前实数：Actor364行、Debugger366行、Supervisor385行、runtime-startup369行、runtime-loops349行、source-handoff282行、Store mutation490行、Website receipt186行、source proof288行、claim selection304行。均先删除被替换片区再重构，不向500行边界文件堆叠新层。源码AGENT预算500行/函数75行/参数7/返回8/嵌套5/复杂度16/await10及import声明28/source24/exports24必须由原检查核实；Website按它自己的原生预算，不借AGENT数字硬套。
 
-## 7. 合同handoff与设计阻断
+Store490行接近红线，B5删原全局SQL片区后减少行数；B2复用public readCommand和原verifyBrowserMutationTerminalFact，由Supervisor现有Owner内处理拒收，不向Store增堆新的处置writer/框架。预计Actor/Supervisor只在原文件重构单槽和回调，写后仍必须≤500行，各函数预算同上。slot处置复用Actor/Node已有单槽、WAL、传输，不新建receipt manager；函数放原Owner文件并有原heartbeat/handler/receiver直接调用。新guard只替换现有默认空函数，不加生命周期服务。cleanup用现有pending列表，不加轮转台账；逐job失败用原typed failure、current_reason及现有下一轮，不加重试队列。原startup关闭函数保持原位，避免为只删inventory门扩成全文件重建。拟改函数碰结构红线时在同一Owner/工单内删除重复判断，必要的同文件直接调用函数拆为真实独立责任；不得增加无消费者包装层。
 
-Identity spine：job_id + 冻结task/request hash；当前 accepted attempt_id/result_revision；lease/fence/session只授当前动作，不改业务身份。Provider effect仍为 job_id+result_revision+product_step_id+call_id+child_id+request_hash+payload_hash。来源seal、rejection、risk grant、staged payload、artifact、admission各按原canonical hash绑定，不能相互冒充。
+## 8. 原子工单、片区与依赖
 
-| handoff | 当前合同与保留条件 | 目标/阻断 |
+统一施工纪律：先保存本次相关合法事实及用户overlay边界；只删除下表明确片区/旧关联断言，实际检索旧条件或符号ABSENT；再重建一条现役链。成熟未触碰函数不删。不得只加or/例外继续保留历史主门，不通过换名UNKNOWN、复制旧函数、兼容壳/双实现混过ABSENT。每工单完成必须有对应§4分支的输出/读回及§10正反例；失败保留原事实、停该工单危险写，修复后从原Owner接回。
+
+前置A-B、A-R、A-W、A-G只承担各Owner自身法案/Blueprint/spec/原audit引用对齐决定，分别由Browser、Runtime、Website、现有gatekeeper维护Owner执行；不能把双仓所有法条一次mega-work-order。每条实际law revision独立验收registry忠实投影；全部相关权威对齐且主审两遍无finding后才开始B/R/W代码工单。
+
+| 工单 | 仓库/唯一Owner、精确片区 | 独立输出/验收、依赖和失败回接 |
 |---|---|---|
-| Extension→Browser | protocol9，commandId/receiptBindingHash/完整terminalReceipt/receiptHash；unknown keys严格拒绝；完全重复fact只ACK；commit前失败不ACK | G2只分离当前运行与交付，不改可信终态。若新增dispatch收束wire事实，原协议单版本升级，不把它装进mutation terminal |
-| Browser→Runtime→Website | V44的Provider输入zero接受null证明；非zero只接受terminal_wal且unresolved hash=hash([])；Browser private WAL/URL不跨仓，Runtime只公开reader | Q1：非zero回执丢失分支必须由Browser原执行Owner提供“旧dispatch不能继续”的真实认证事实，并与完整旧command集合绑定；当前代码没有可直接证明lost-worker分支的完整producer。已有zero路线直接复用，不新增条件 |
-| Runtime→Website claim | provider ai-acceptance.xuanxue-ai-production-v6@44；source最多64call，effects最多64，nullable首事实，readback_proofs、source seal与原event，receipt回复未知只读原身份 | Q2：Website原canonical provider需要新版本替换terminal-only语义，AGENT只升级dependency及消费投影；不得V44/V45 union或复制新合同 |
-| 原结果/Outbox→Website | task-result@17、原job+attempt+result_hash，同bytes重投；新fence只授发送，旧fence拒绝；领域admission事务唯一完成 | 直接复用，不能让Q1/Q2挡住已存在的合法结果 |
-| 限流事实→Website→AGENT | 当前notice.v7与原verified receipt/write_order、targetless事故hash、原cohort | Q3：原ACK不可得时，当前真实absence如何绑定同原incident，须由原Browser及Website合同Owner闭合；当前absent不能冒充旧ACK成功 |
+| B1 枚举 | AGENT Browser：browser/protocol/browser-errors.json、generate-browser-protocol.mjs的唯一投影、generated文件；websocket-actor-crypto.browserCommandErrorCode与terminal decoder有关枚举 | real producer code闭合strict consumer；未知码仍拒；先A-B，不改附件selector/Child |
+| B2 槽处置 | AGENT Browser：chrome-extension/websocket-actor.ts原slot/close/handler/fact处理；transport/browser-authority-websocket.ts原receipt receiver；protocol schema、transport/browser-authority-frame-payload.ts原控制消息decoder及browser-observation-receipt.ts原fact定义；infrastructure/browser-infrastructure-supervisor.ts原回调接线→原WAL绑定readback | §6.2请求响应精确、handler在途不清、bad/null释放、wrong identity不清、WALunknown不变；先B1/协议10规范，重连按原heartbeat回接 |
+| B3 重交 | AGENT Browser：Actor flushMutationReceipt、lastMutationDeliveryKey和原heartbeat回调 | 移除同连接抑制；合法重复同hash重新ACK，丢ACK恢复；先B2合同/原CAS；不新增timer |
+| B4 lane | AGENT Browser：infrastructure/browser-lane-coordinator.ts readState/nextWaiter/scheduleWake的历史门 | FIFO/单lane/cadence不变，Aunknown不挡B；先A-B。真正当前action仍串行，不编新无输入证明 |
+| B6 当前许可 | AGENT Browser：chrome-extension/debugger-runtime.ts send/create/activate原guard消费；extension-target-authority.ts executeRegisteredCommand/acquire原默认空guard片区及其直接生产调用 | 每次native输入必须原有效guard，旧permit撤权后后续native拒；关闭/删除精确Target的既有清理授权不冒充Provider permit。先A-B；当前native未结束保持真实串行 |
+| B5 prepare | AGENT Browser：exact-target/browser-mutation-store.ts prepare事务的全局DISPATCHED查询及只有它的错误断言 | 不同合法effect可prepare；同effect/exact/logical mutation历史仍拒；先A-B/B4，schema/历史hash不改 |
+| R1 source生产 | AGENT Runtime：production/runtime-source-handoff.ts terminalWriterQuiescence/prepareOneSourceHandoff及preflight历史门；source-readback-contract.ts和runtime-source-readback-proofs.ts原effect事实拼接 | §6.3同shape45生产，unchanged原risk同attempt回接、迟到仍possible、迟到全history zero、>24h原seal重交均有确定输出；先A-R和W1规范，交原R9 seal；旧receipt丢失不等待terminal |
+| R9 source封存 | AGENT Runtime：production/store-source-settlement.ts唯一shape/历史settlement读回、store-source-readback.ts原seal/issued/readAccepted校验 | 单一45 validator、原body/hash祖先验真、stage-vs-seal原事务竞争；先R1/规范W1；seal原行读回，失败不改签或迁移数据 |
+| R10 接受新grant | AGENT Runtime：production/store-task-state.ts sourceHandoffManifestValid/acceptTaskAfterSourceHandoff原SQLite接纳事务；runtime-claim-operations.ts requireSourceGrantSeal/acceptClaim/reusableCallsFor原消费 | 已封source与Websitegrant绑定后才切current attempt，readback原accepted身份；先R9/W1，原durable accept/旧completion封口不减 |
+| R2 next_action | AGENT Runtime：production/runtime-claim.ts及runtime-claim-recovery.ts canResumeRiskGrantAfterZeroInputFailure/WAIT分支；runtime-claim-operations.ts原grant seal验证/接纳 | 按网站该job current动作，旧WAL门ABSENT；sameeffect无grant仍拒。先R1/W1；Websitegrant拒绝只停本job并原readback |
+| R3 单job隔离 | AGENT Runtime：runtime-loops.ts reconcileUnfinishedExecutionsWithoutReceipt、runtime-source-handoff.ts prepareSourceHandoffs及同一批次failure对账入口 | A remote失败本轮B/C仍运行；该job typed失败有原下一轮；共享凭证/Store坏不装正常。先R1/R2相关类型，error不得被catch空吞 | 完整单job处理均在原隔离范围：首次GET、next_action、Target release、后续结果admission读回；不能仅包第一GET。
+| R4 startup | AGENT Runtime：runtime-startup.ts inventory门；runtime-storage-inventory.ts原root盘点与task树读取，maintenance原完整dry-run消费者 | orphan保持诊断，正常Store启动原worker；task树递归原typed失败由原inventory Owner携exact jobId交接，startup仅该局部型记录原诊断并继续；root/Store/未知raw失败仍关闭。maintenance完整盘点失败不输出假完整DTO、不把未知bytes填0；损坏Store/无凭证、exact absence删除反例不减。先A-R，关闭代码原位复用 |
+| W1 source授权 | Website ai-acceptance：packages/ai-contracts/src/production-control/v6-source-readback-proof.ts及v6-contract.ts/v6-write-assertions.ts原source/grant断言；services/api/src/ai-production/job-claim-source-lineage.ts、job-claim-authority.ts及原同identity事件/receipt事务 | §6.3唯一45解码、删历史proof滚动24h下限、risk转真zero的prior lineage窄验→原job行锁→指定calls/calls=[]或真zero普通null grant→receipt读回。先A-W/A-R，风险只由Website签；原body历史不转换 | 真全历史zero的risk→ordinary新attempt及regrant沿原签发Owner输出revision0/null rejection/null risk grant；只在latest risk精确同source attempt且原祖先窄验通过时归零，原签发event记录同grant result_revision供regrant真实消费。成熟current零输入+historical rejection仍原非零revision/prior_result_rejection，全部历史计数保持。必须验证旧21层拒收继承及新普通授权实际producer→AGENT decoder→Browser，不得只验lineage。
+| W2 当前冷却 | Website ai-acceptance：provider-cooldown-receipt.ts decide/verified/readGate、provider-cooldown-claim-policy.ts原decision消费；原repository写receipt及assertPreviousIncidentCleared/applyProviderCooldownNoticeState片区 | §6.4历史receipt不重演当前政策、current device/server/cohort资格唯一；旧clearance ACK不可得仍可合法恢复及记下一真实incident；新incident落账/活动窗口/单次N处罚仍成立。先A-W，原v7字节不改 |
+| R5 冷却消费 | AGENT Runtime：production/provider-rate-limit-control.ts constructor/assertProviderSubmitAllowed/canRequestClaimAuthority/observeWebsiteAuthority；runtime-loops原notice处理顺序、store-cooldown/provider-cooldown-receipt原签回执消费 | 删旧clearance永久gate、保留新incident Website exact落账因果门；原pending列表逐incident有限续交/typed失败隔离，初始incident不依赖clearance存在才续交；当前authority+中央preflight；先W2，不用事故前grant绕N |
+| R6 cleanup | AGENT Runtime：runtime-loops.reconcileCompletedBrowserTargets | 每job自己的Outbox资格；原pending快照逐个一次，A失败B/C读回完成，真实release才settle；先B2/B4/R2，原单lane |
+| R7 SENT收尾 | AGENT Runtime：runtime-loops.reconcilePendingBusinessAdmissions及其原日志顺序；runtime-business-admission原readback/complete消费 | 已SENT/admitted日志坏仍确认；新云写/newclaim/mutation仍拒；先A-R/R6；原日志fail不伪span，待恢复原Outbox续交 | 独立session heartbeat亦停新turn；原WorkerSession以必填sink许可在queued认证后、physical fetch前核尚未发出的云mutation，open/heartbeat/claim/Outbox均守同门。GET读回及已发送回复继续，原session close为已有会话清理沿原精确close路径保留，不加通用绕过参数。未发heartbeat因sink拒绝不得清空原credential、触发resync或冒改sequence。
+| W3 N验收 | Website ai-acceptance：job-claim-repository.selectAndGrantClaimJobs、job-claim-selection.selectV6ClaimableJobs、job-lifecycle原seat投影 | **复用现役不重写**：recoverableLimit与newLimit独立、满N原seat接回、admission后fresh。若验收显示这些原符号确有违约才回设计，禁止先造release API；先W1/W2 |
+| R8 N接回 | AGENT Runtime：runtime-loops workerIteration/claimReusesExistingBusinessSlot/businessInFlightJobIds/launchClaimJobs现役路径 | 复用已存在的recoveryOnlyClaim；只删R2/R3/R5导致不可达条件。现役网站heartbeat的claim_eligible不以N满为false，cooldown仅给reason，不需新增attestation字段。N满failed也请求原recovery authority，samejob不计两座/不越N；先R1—R3/R5/R10/W3 |
+| Z-R 唯一18投影 | AGENT Runtime：原dependency、唯一route generator/route-policy及contract-inspection；原agent-route-contract.acceptance和Manifest引用 | 17/34旧判断ABSENT→18/40精确匹配；40/48、旧34+新六全等；generated JSON由原generator生成，禁止手写/双表。先A-R窄Runtime003及依赖闭包；不改中性下载/hash/上传算法 |
+| Z-BZ05/BZ03/BZ04/Z-QM03/QM04/Z-HH02/HH03/Z-NM01/NM02 | 各Product唯一Owner，§6.6九行分别一工单；原九SKILL overlay只读核对，必要残留先与其Owner对接；实际flow/product-turn与BZ05/BZ03 product-identity已列source | 每Product旧附件/JSON-only片区删→ABSENT→唯一18 Prompt/父门；七无需解包的不建读者；必要fflate package/lock由原dependency Owner单独登记。现役Profile/调用数量/readConfirmedSubmit/review不减；Z-R和法案/BP双主审先行 |
+| Z-Q 每Product验收 | AGENT scripts/acceptance/product-plugins九个同名suite分别归对应Product；architecture原边界Owner核注册/QA，Runtime原suite核机械合同 | 原fixture只会JSON.stringify：在现有product-plugin-test-runtime的材料输入增加通用Uint8Array支持， bytes/hash从实际bytes算，不嵌业务包/步骤/格式。九suite各自构造真ZIP/保留review JSON，不新增中央Product格式/执行器。先对应Z工单 |
+| Q-B/Q-R/Q-W | 各原Owner的现有Exam、Static、Dynamic collector/Manifest，精确路径见§10 | 随对应工单删除旧global-block期待并重建对照；唯一原生质量入口，不加总恢复checker/verdict |
 
-Q1的明确要求仅用于非zero历史输入需新风险授权的分支：先撤旧操作许可、收束原handler/dispatch tail，并证明旧执行路径不能再发出新CDP命令；证明只说明未来dispatch能力，不说明旧命令已经零输入、旧答案不存在或原terminal成立。原worker仍在时必须实际await；worker已丢失时必须取得能证明原执行资格/活动生命周期已终止的Browser权威事实，不能用空集合、socket断线、elapsed time或新nonce替代。在同一job该风险动作前核证明与当前原WAL命令集合一致；迟到真实terminal使集合/hash变化则重新取事实、重新seal，不能假清未决。其它job只验当前真实物理lane/授权和自己的effect事实，不能先要求这条旧job满足Q1。
+路径以§2 realpath为根，表中browser=src/lib/browser，production=src/lib/local-runtime/production。原法案/schema/generator不可分割的现有投影同步才可修改，不根据目录相似扩大写面。source accept存储、Browser receipt事务、Website risk签发三个原子责任分别原Owner，不跨Owner代写；九个Product接收/Prompt改动必要性只来自§6.6的实际断裂；Website专业规则与纯parser保持。
 
-Q2目标仅替换既有非zero input_quiescence_proof语义，zero/null原正交分类不变；由provider定义exact shape/version、required/null/default、完整集合hash、认证来源与hash vectors，新版本不同时接terminal_wal作为第二资格路径。原连接/许可世代只在Browser内部验真，跨仓body及派生hash不含Target/Document/原浏览器坐标或这些字段的派生身份；不得让新session/Target成为恢复资格，遵守冻结ARCHITECTURE-BOUNDARY-002-V2。browser_input_state的zero只指完整历史可证零Provider输入，possible/unknown原样保留；target_local未知不能消耗Provider effect，非法scope/来源保持unknown。D4的“未知”是已验真possible输入但结果/locator未知，不能把provenance失败的unknown封成合法attempt_handoff或风险输入；后者由原Browser Owner有界重核/修复且不挡合法旧结果。旧Provider无locator出typed unaddressable；可信locator有界exact读回沿原Proof，不扫Tab/标题。网站只有原三种next_action和原风险grant，不能增第四状态。
+## 9. 双仓无桥切换与回退
 
-Q3目标复用同原incident/设备/cohort和唯一receipt链：旧ACK收据真有就原路交付；旧ACK handler实际收束、当前精确页面fresh证实absence及Website原incident同锁核验后才取得当前clearance，不回填旧ACK/终态。只有确实另有非zero危险操作需要风险授权时才核Q1，target_local ACK丢失不能被扩大为Provider输入证明门。惩罚窗口和cohort规则保留，时间到不能单独开门；再次exact_present仍按原事故规则。需要的canonical notice/receipt新版本与字段必须由原Owner确定并冻结，没有该合同禁止删本地gate先上线。
+设计可施工不自动批准执行切换。未来执行Codex重绑权限/dirty/HEAD/active版本后，按上述先法案/Blueprint两遍主审，再原子工单，再主审至少两遍及只读子审实际代码，不以方案旧放行代替建设审计。随后使用冻结ci-full-governance执行用户届时授权的原生质量等级。
 
-Q1、Q2、Q3均是实质设计GAP，不能由文字“有界”“原链”“事实恢复”代替解决。Website仅法案引用去重不能填Q2/Q3，Agent仅删全局布尔条件不能填Q1。Website固定派单与task-result@17均不应改变。关闭上述GAP前，本文件不能标可施工或声称100%根治。
+部署窗口内只停新claim和新的现实输入，旧结果/receipt/网站readback允许完成；原成熟drain收束当前handler/native/send tail，不以历史DISPATCHED=0作窗口门。版本9现役合法slot先通过原fact通道（必要时原重连flush）全部commit/readback，才能停止其worker；ACK丢失但原WAL同hash已commit也属于已交付事实，不要求再产生旧ACK证明输入没发生。坏fact已由原strict拒收，原WAL command/binding保留unknown；无fact也unknown。收束后停止原9worker，更换固定同build Extension10和Node10，旧内存不转成新持久化、不桥接旧frame，不假称9能发送dispose。新版同生命周期出现的坏/null slot才走§6.2 dispose。升级终止旧worker不代表旧结果zero；不能借reload抹去未commit合法fact。任何无法完成合法fact交付或真实handler收束的情况停止部署，不删除工单/SQLite或默默丢有效事实。
 
-## 8. 有限分母、终态和回接
+task-result18的切换须另先满足§6.7原全部40route业务排空门；旧unknown允许作为历史诊断保留不代表旧job已经admitted。该门约束生产部署，不阻断当前获授权的法案、施工图、代码及质检建设；旧任务由网站侧按§6.7负责。冻结provider45 canonical合同和两仓引用；先两仓各自规范/类型生成及测试完成（不同时运行不兼容binaries），再先Website唯一45 provider，再AGENT唯一45 consumer/Node协议10与同build Extension10。无桥窗口不允许旧Runtime请求新授予、新Node接旧9执行；只读网站已入库成果不靠新Browser。打开权限前核版本/build/currentsession/N及source/currentreceipt向量一致，执行一个同身份canary的stage→domain admission→业务对象readback，不能只测health。
 
-每行终态是本次决定的输出；job只有原failed/completed，unknown不新增业务状态。各行均接回§6，工单见§9。
+shape44→45是同字段严格语义扩展，44已有合法body是45合法子集；历史v7 receipt只验原不可变hash/identity，不重算新policy。WAL schema/oldpayload、签过source/effect/grant/result/admission hash均不迁移。若active未完成祖先违反当前canonical、合法slot无法drain或相关candidate有无法归属的overlay，停止切换、报告具体job/事实；不添加兼容reader或假证明。
 
-| 分支 | Owner/权威输入→输出 | consumer/readback；失败/恢复 |
+回退点：
+- 新45未签任何grant/receipt/source前：所有现实输入仍冻结，两仓及同build扩展可整体回到已验证前版，保留durable事实；不能先单仓开放旧权限。
+- 一旦45新source非zero/null、新政策receipt或新版dispose已存在：禁止降回旧语义重新执行/重hash。先冻结新危险输入，保留原Outbox/Websitereadback，用当前45链修复前进；只有证明旧版对全部待消费事实仍合法且整组回退后不会重放，才允许整体二进制回退。没有此证明的回退点就是安全停止，不能伪承诺可随时downgrade。
+- 取消施工：保留已完成阶段与未知事实，不启动新attempt；仅授权的规范/代码差异按原候选回退，用户overlay不动，运行数据不以Git回滚处理。
+
+## 10. 验收：每一项单独过，最终一起跑
+
+当前审查对象是 AGENT 实际建设与现役原生验收代码，逐项核对下列设计要求。局部测试和子审不能替代原生 CHANGE、READY；生产 Dynamic Proof 尚未执行，不据此宣称自动恢复或业务入库已实测完成。Website 验收映射保留供其 Owner 接力，不作为本轮 AGENT 执行范围。
+
+现役AGENT Static：scripts/audit/domains/local-browser-session/browser-mutation-settlement-inspection.ts、target-claim-inspection.ts；agent-production-runtime/worker-loop-inspection.ts及各原Manifest/check。Exam复用scripts/acceptance/browser-lane-fifo.acceptance.ts、local-browser-provider-effect-recovery.acceptance.ts、local-browser-mutation-receipt-support.ts、agent-production-runtime-recovery-contract.acceptance.ts及其support、agent-production-runtime-proof-boundary.acceptance.ts、local-app-shell.acceptance.ts、runtime-log-spine-failure-matrix.acceptance.ts。Website复用scripts/audit/domains/ai-acceptance/check.ts/manifest、原observation/012检查，tests/exam/ai-production-v6-contract.test.ts、ai-production-v20-observation.test.ts；同时核AI-boundary原check/Manifest，禁止删除整条006检查。所有新增case进入现有Owner suite，不新建十二个checker。
+
+| 验收编号 | 必须可复放的正向证据 | 必须拒绝的反例/成熟防回归 |
 |---|---|---|
-| D1 原worker活着且有terminal | Browser authenticated fact→CAS commit/ACK | 原WAL真实终态读回；重复只ACK，不重发输入；B1/B2 |
-| D2 原worker丢失、target_local未知 | Browser保旧WAL、核完整Provider历史分类；Website current grant | Provider可证zero直接复用现役null-proof source交接并从第一入口重建准备，不伪造旧click结果；非zero按D3/D4。证据缺失有限对账，其它无关job不连坐；B1/R1 |
-| D3 Provider可能已输入、有locator | Browser原effect/URL→零submit exact读回 | 原Forensics/结果链；缺页按现役URL重建当前Target，不盲发；B2/R1 |
-| D4 已验真Provider possible，但结果/locator未知 | Browser typed unaddressable+Q1；Runtime seal | Website原job持久签指定新revision风险grant后一次输入；无grant仅当前危险动作不执行；provenance unknown不伪handoff；Q1/Q2未闭合为设计阻断；B2/R1 |
-| D5 原结果可持久读回 | Runtime原stage/Outbox→同bytes交付 | WebsiteConsumer/admission/业务对象；日志正常时原hash幂等查询/重投。日志坏时仅只读确认已SENT/已Website staged/admitted身份及必要清理；未SENT保持durable，原logger恢复后发送，不撤销/重跑Provider；R1 |
-| D6 ACK丢失、Store已commit | 原worker同fact→原writer幂等ACK | 原行/原hash不改；原heartbeat/重连交付机制须有界再交，不建第二timer；B1 |
-| D7 terminal冲突/伪造 | Browser拒绝，不ACK不伪结算 | 原typed原因与WAL保留；原handler停止后按Q1/Q2由Website决定，不能全局永久停车；B1/B2 |
-| D8 一个job远端读取失败 | Runtime该job原typed原因+原退避 | 同iteration继续其它eligible job，下一现役iteration对该job再核；R1 |
-| D9 source seal与结果迟到竞争 | Runtime原SQLite事务互斥→Website行锁fence校验 | 先有stage则继续结果；先seal则旧completion拒绝；未知提交只读回相同seal；R1 |
-| D10 真限流active | Browser exact_present→原incident，Website原惩罚/cohort | 冷却中原effect读回/交付/renew继续；禁止新危险submit，按C1同incident核当前clearance |
-| D11 旧ACK不可得/冷却到期 | 原ACK handler收束及fresh当前absence→Q3原receipt | 时间alone不放行，当前clearance与旧ACK分开；Q3未闭合不伪成功，不向target_local ACK强加Q1；C1 |
-| D12 孤儿目录、权威Store完整 | inventory只读+原job对应来源核验 | 原worker继续合法工作；原Owner exact授权才删目录，读取unknown不当absence；R2 |
-| D13 Store完整性/认证真实失败 | 原Owner拒绝危险写入，保diagnosis | 外部依赖修复后原startup接回；不忽略坏Store继续new effects；R2 |
-| D14 已admitted但cleanup失败 | Runtime本job清理pending事实 | 不撤销completed，不挡其它结果；原lane可用后继续原exact清理、轮换pending；R1 |
-| D15 Ctrl+C/永久撤权 | Runtime立即draining；Website原终止Owner | 在途步骤网站接受或明确失败接收+release后收束实际服务；未知保留异常退出；exactabsence才按原job清理；B1/R1/R2 |
+| T1 | 有fact→commit→ACK；producer已丢仅oldunknown→有界readback→新risk revision→domain入库 | 没原fact不补terminal；同旧effect重发拒；prepared未发与dispatched未知区别 |
+| T2 | A历史unknown，B/C合法操作及读回继续，FIFO/一lane/节拍成立 | 正在native输入仍不物理并发；复制旧门到health/prepare/WAIT或换名UNKNOWN应失败 |
+| T3 | 原proof→riskgrant；unchanged accepted risk+currentzero→sameattempt/grant、不产source；迟到仍possible→本轮读回/newsource/newrevision；迟到全history真zero→ordinary source/newattempt/null replay grant；封存>24h原bytes可交付 | 三支分别读source/grant/accept/prepare及domain终点；null≠zero；缺行/未验WAL/旧fence/未来或倒序time拒；无replay_exhausted/checkpoint的纯historical_settled source拒；stage先赢只交成果，seal先赢迟到stage拒；immutable seal/hash不刷新；原zero-submit祖先完整验真不减 |
+| T4 | 对每个实际producer异常码构造真实decoder路径，枚举/generator/producer/consumer完全闭合 | 任意string/unknown field/错hash仍拒，不能catch默认合法码掩盖未定义producer |
+| T5 | badcode/badshape及factnull、disconnect/reconnect、disposed丢失分别释放同槽；原WALunknown/hash保留；B可执行 | handler/native活、跨command/binding/rawhash、迟到response不清新槽；badfact不能冒commitACK |
+| T6 | 同连接丢第一次ACK，heartbeat同fact新frame→同WAL行幂等→ACK→清槽→下一job | 非单调sequence、不同facthash、重发COMMAND/REPLY拒；不创建第二timer/队列 |
+| T7 | 三job快照A读失败，B/C本轮完成合法阶段，A留typed原因下一轮再查；source单项失败同样 | exact absence与普通网络错区分；共享credential/store坏停相应危险动作，不吞错报告成功 |
+| T8 | 合法Store/凭证+孤儿目录→worker有真实下一动作；该目录保留，可由网站exactabsence清算 | 损坏DB/符号链接/无凭证不发危险输入；没有网站absence不删目录/共享blob |
+| T9 | old clearance已落账而ACK丢失→clock过期/cohort闭合/current authority回接；旧clearance续交失败仍查authority/其它job；初始incident可续交；下次真实exact_present落账并level递增/降N | 新incident未Website落账时事故前grant+fresh absent/较新serverNow也不输入；ACK丢exact续交/readback才收敛；活动cooldown409、同incident只惩罚一次、错identity拒；原N/cohort/6小时/v7hash不改 |
+| T10 | Aunsent只限制A；Acleanup失败本轮B/C可释放；下一轮仍接A | 未admitted/自己的Outbox未确认不得settle；exacttarget/absence错身份拒，单lane不并行 |
+| T11 | sink坏而原result已SENT/网站admitted→读回→complete→清理；sink恢复未SENT续原bytes | sink坏仍禁止新claim/new mutation/未发云写；无admission不假complete、不造成功span |
+| T12 | N=3三个failed，fresh=0仍原recoverable接回samejob；逐个入库释放资格，再领取fresh；cohort恢复同样 | leaseclear不假seat释放、同job不占两座、不得超N、不靠删单/新释放API；现役五阶/keyset仍通过 |
 
-D4及D2的非zero风险分支不能承诺在Q1没有生产者时自动放行；D2可证zero直接复用原合同。同一job结果无效不能无条件当业务成功；领域拒收仍用原rejection身份签合法后继。永久取消/删除后Provider自有内容不能宣称本系统可物理清除。
+九Product Z验收每条独立：真实ZIP bytes/hash/media/trust/scope/原序材料，BZ03/BZ04正确父ref/hash/完整正文与缺页/篡改/重复拒绝；九Prompt包含唯一current route JSON、正确问题/无额外问题和实际导航，无旧result_contract附件要求；同effect确认恢复零physicalSubmitDispatches，初次只1次；review两action仍仅subject_result + review_context两JSON原序材料/原route输出、额外第三材料拒绝；Naming Provider扩展字段原样保留；NM01两报告分别入库/PDF，NM02已授权原解读不重做，HH03覆盖所有祖先。原九suite各自有完整原页/首尾/跨页的夹具及反例；机械测试只证明格式/导航/字节，不把fixture页数或模型自称已读当语义阅读证明。现役14产品矩阵与真实Domain/商业终点仍是最终Dynamic分母。
 
-## 9. 原子工单与删除建设纪律
+集成Dynamic Proof用**新建且经授权的真实任务身份**，不能复活此前已删三个job。在旧未知事实可保留的同一生产链中注入上述故障、逐项T1—T12证据，再同批混合执行：A遇旧未知/坏回执、B已有可交成果、C正常任务，N=3，现役一lane，确认B/C完成且A自动接回并领域入库。进一步运行网站要求的14产品矩阵，每产品核冻结输入→Product→原结果→对应Domain持久化/admission，不能用其中一个产品通过覆盖14个。生产操作需独立执行授权，本轮不运行。
 
-法案/施工图先行：主Codex至少两遍审对齐，不能以98%自评分代替具体finding清零。主Codex写代码，子智能体只审查实际建设，不并发编码。各工单分开Owner/仓库/权威输出，不能跨仓mega工单。
+每仓原生CHANGE针对实际差异；READY需要clean commit、全部active Static/Exam及完整原生报告；RELEASE执行各active法声明Dynamic Proof及必要provider participant/version核验。报告仍逐law/evidenceMode一个分母；T1—T12是本任务验收映射，不替代全仓法案分母，不生第二总PASS。
 
-L-W、L-A是顺序施工批次名称，不是跨Owner原子工单，更不是新队列/台账。精确规范写面为各仓功能法案.md的§5指定block、该域现役Manifest/inspector及已列Blueprint/spec；其它block/用户overlay不碰。下表每行是一个独立验收动作，全部放在本唯一方案中，不新建工单文件。
+## 11. 本轮建设与审查边界
 
-| 工单 / 仓库 / 唯一Owner | 唯一输出与精确范围 | 依赖、完成与失败恢复 |
-|---|---|---|
-| W-P / Website / ai-acceptance | 001成为持续需求/恢复唯一政策；按§5迁移004的既有独立义务，删除002/012/013的政策副本；只改本域指定block/Manifest/原check | 输入现役corpus及§5；依赖各原Owner现有边界。源头唯一、无悬空依赖，五阶/N/task-result不变；失败停本域未部署diff |
-| W-S / Website / ai-acceptance | Q2新source证明canonical shape/向量/原producer-consumer机械合同 | 依赖Q1真实Browser producer裁决；source seal、zero/null、拒收变异及旧seal单版本承接必须闭合，缺项设计阻断，不改已签旧body |
-| W-C / Website / ai-acceptance | Q3同incident当前clearance唯一notice/receipt合同与向量 | 原incident/设备/cohort读回为输入；当前absence不伪原ACK，惩罚不变；旧notice承接不闭合则不切换，不另签事故 |
-| W-B / Website / ai-boundary | 整条006退役、删除本域Manifest引用/原check独占分支 | 依赖W-P；002/003继续直接执法且所有006引用零残留；无独立接管证据则不删 |
-| W-SEO / Website / public-knowledge-content | 005-V44中通用恢复副本删除，SEO独立约束保留 | 依赖W-P；原run/入库/purge验收不变，恢复只引用001；失败保原完成闭包 |
-| W-L / Website / localization | 020-V27中通用恢复副本删除 | 依赖W-P；冻结source/policy/cohort及current译文消费者完整，失败不激活坏译文 |
-| W-BZ / Website / bazi | 007-V6中通用AI job恢复副本删除 | 依赖W-P；原主体/材料/报告消费者不变，失败不改报告身份 |
-| W-H / Website / hehun | 011-V6中已accepted AI job恢复副本删除 | 依赖W-P；前置材料失败、consent与报告仍由本域裁决，失败不伪建AI job |
-| W-F / Website / commercial-fulfillment-delivery | 007-V5中通用恢复副本删除 | 依赖W-P；原权益/履约intent和不二次付款验收不变，失败不造新订单 |
-| W-O / Website / commercial-order-management | 008/009-V3中恢复算法移除，订单事实投影保留 | 依赖W-P；订单只读原任务事实/领域接纳，失败不自建恢复状态 |
-| A-A / AGENT / architecture-boundary | 001-V17政策副本删除，仅保既有架构边界 | 输入W-P及新provider引用；002-V2冻结字节不变；失败不进入代码 |
-| A-G / AGENT / gpt | 001/002指定冻结段内恢复政策副本删除，GPT Blueprint落位同步 | 依赖W-P/W-S；两门/附件OR/精确轮询/节拍等原Child合同不变；失败不重写专业Flow |
-| A-B / AGENT / local-browser-session | 003/004/006的历史全局门与原ACK永久门规范删除；Browser Blueprint明确只产物理事实 | 依赖W-S/W-C及Q1；现役机械证明/唯一lane/WAL保留，风险只消费provider；失败不假结算旧行 |
-| A-R / AGENT / agent-production-runtime | 001/006规范副本/孤儿全局门删除；唯一dependency与Runtime Blueprint同步消费新provider | 依赖W-S/W-C及A-B；001只运输/事实，003/004/007和日志独立法不误改；失败不运行新版代码 |
+授权人已要求执行既定十二项恢复修复及九Product合同18消费者接力。旧付费工单删除与原订单重派由网站聊天负责，不新增本方案的删单入口；§6.7排空及唯一版本窗口是部署条件，不能把未完成旧任务重新提升为代码建设门。此前设计审查发现的两项review材料和旧出口Consumer绑定问题已经回本方案纠正。旧候选审查只证明当时方案，不替代当前实际建设审查。
 
-L-W顺序为W-P→各域独立删除与W-S/W-C合同建设→同一次规范amendment的引用/registry闭合；L-A在Website唯一canonical已冻结后执行。W-S和W-C是同一V6 provider的不同字段责任，统一冻结一个新版本，不能各发布竞争spec或union。每仓由其既有唯一builder在本批全部引用闭合后重建registry；中间规范diff不产生质量PASS，不启动生产。共同验收是§5单一源头及各行独立消费者均闭合；单行失败只停止该行和其下游，不撤其它作者overlay。这里没有跨仓总verdict，也不代跑Website READY。
+建设先完成双仓法案/施工图对齐，由主Codex至少两轮审查后才进入实际代码；该阶段禁止子智能体。代码和原有质检按§8逐Owner物理删除片区、核验ABSENT后重构；成熟Owner、原合法历史bytes和原生唯一质量入口保持，禁止桥、第二链路或新增总恢复设施。重要实现步骤由只读子智能体协同审查，写入均由主Codex完成。
 
-B1：local-browser-session，唯一动作是当前执行能力及原回执交付收束。整文件删除重建 websocket-actor.ts、browser-lane-coordinator.ts；若Q1需要协议事实，protocol schema/生成投影、transport及Supervisor只处理该明确合同，不能额外改Target authority业务。保留pairing/crypto/TargetAuthority/heartbeat/receipt verifier为直接唯一来源。删除前用独立职责清单核所有公开入口，随后物理删除两文件→确认路径及旧实现缺席→从当前输入输出合同重新实现认证、单lane、当前handler串行和单槽交付；禁止读旧文件改字符串后删写回。有效fact必须原writer commit后ACK，不能overwrite；原fact暂缺或错不能推定旧no。Q1未证分支不能假发收束证明。验收D1/D2/D6/D7/D15及G2：旧job未知不挡其它合法job；当前真handler仍串行；ACK丢失恢复、终态存活与lost-worker区分；未终止handler不能发证明。失败保留原WAL/真实fact，不盲回放。
+建设后主Codex至少两轮核对实际代码与§6—10、现役法案及闭环Skill，再由只读子智能体审查同一实际建设候选：十二项与九Product是否全部完成、是否吻合闭环Skill、是否吻合法案。未解决finding不得以旧方案审查放行。最后用冻结ci-full-governance执行原生质量流程，等级结论以各仓唯一quality:check及其当前原生候选为准。
 
-B2：local-browser-session，唯一持久决定是按当前合法授权创建一个effect command。整文件删除重建 browser-mutation-store.ts，保留schema、row/authority hash、receipt/payload/既有evidence模块直接使用；新的Store仍唯一writer，不能恢复旧Store骨架。删除全局历史select gate，prepare只能机械验当前permit/Q1适用事实、完整同effect历史、同grant输入总次数；不同job旧事实不是拒绝条件。同effect已可能输入仍禁止普通重发，新风险revision只核Website精确grant；原零输入rebind/REJECTED no回执原事实保留。evidence.ts只修改公开事实职责，不能再向lane提供历史→全局stop authority。验收D1—D4/D7/D9：默认count0不转zero、未知不结算、错误effect/grant拒绝、唯一WAL/原terminal immutable，跨job当前合法输入可达。同grant任何已可能输入仍不能再dispatch。失败不改旧行。
+## 12. 历史设计候选绑定（不作为当前质量候选）
 
-R1：agent-production-runtime，唯一动作是每job原worker reconciliation→网站下一动作/旧结果交付。整文件删除重建 runtime-claim.ts、runtime-source-handoff.ts、runtime-loops.ts；保留runtime-business-admission、来源readback/proof、Store三表、原session/transport/Outbox/Forensics为唯一独立来源，不复制领域或Product逻辑。先成果，再各job来源；移除WAIT全局unknown门、first-null遗漏和整批head-of-line throw，错误落该job并有限回查，已存在worker不用新队列。source seal仍原事务封旧completion，Q1只经公开Browser reader，Q2新合同唯一decoder。cleanup按本job状态判断，不读其它job未送Outbox作全局门；每现役iteration最多一次物理清理并在原pending集合轮换，失败不恒选第一项，不新增timer/queue。日志不可写时停止新claim/新外部mutation，只读确认已SENT/已Website staged或admitted身份并必要清理；未SENT结果durable待交付，logger恢复后沿原链发相同bytes，不新artifact/terminal POST、不撤stage或重跑Provider、不伪日志成功。验收D3—D9/D14/D15及G1/G3/G6/G7，真实Store+函数fixture与原native入口执行；旧结果存在时Product调用0，SENT边界与恢复后同hash发送均验证；单job故障其余job仍进原循环。未完成任务不得退出容量分母，Website原WAIT才释槽。
+| 仓库 | realpath/branch | HEAD / origin/main缓存（未fetch） | scoped SHA256 / 数量 |
+|---|---|---|---|
+| AGENT | /Users/nexgen/Documents/AGENT / main | 787577e055c9d40899114543b1d7d69d9ebd544f / de810406719e769d3adbe81e89177ab38a569025 | 526cce1bc35c24a94d3c0603828ed896bc56e76525304db2337ef382d85deba1 / 132 |
+| Website | /Users/nexgen/Documents/xuanxue-web / main | 2c400957204bbdc1784ee132421dc4d0eb142936 / 2a22a286345d8082c72291d82a200399096de576 | ba9a9d90a84b1d0c158f60c9817826731d525792b11c44ae09e08bb6caa05646 / 54 |
 
-R2：agent-production-runtime，唯一动作是startup将真实可运行Store接回原worker。先将经论证保留的shutdownRuntime、inspectTaskFailureAtShutdown、inspectDrainedTasks、finishShutdown移入唯一runtime-shutdown.ts，原RuntimeState输入、drainPass与Promise输出不变；新RuntimeHandle.close/blocked close直接调用，session-rotation-support的shutdownRuntime import直接改到新唯一来源，runtime-startup旧定义/旧export缺席、无转发，此项如实报“经论证保留”。随后整文件删除runtime-startup.ts→缺席→按初始化/完整性/credential/session/原handle合同重新建设。inventory孤儿不是全局永久停车依据；不要自动删除未知目录。实际Store坏/凭据缺失保持真实拒绝并给原Owner修复位置。验收D12/D13/D15：孤儿仅事实、合法任务继续；损坏不得写；Ctrl+C立即停新claim、在途及接纳/失败收尾、未决不报完整成功、实际连接/进程close证明均保留。不得把blockedRuntimeHandle改成假ready或加自动迁移。
+设计阶段的两份共享 overlay 中，WEBSITE-AGENT-V6-BLUEPRINT.md 已纳入本轮直接关联的规范对齐，九个 SKILL 已纳入消费者建设；AI生产派单金字塔优先级排序-完整实现方案.md 的他人改动继续原样保护。用户要求删除分支后，旧 recovery-plan-design 工作树及分支已删除；main 合并787577e05只记录已被后继承接的旧分支。唯一方案及建设保留在 main，不从备份恢复旧门。上表仅记录历史设计基线；当前 CHANGE 使用 HEAD 到工作树实际差异，READY 绑定届时 clean 原生 commit 和唯一原生报告。
 
-C1：agent-production-runtime（Browser提供物理事实），唯一动作是原cooldown同incident原Outbox/receipt收敛。整文件删除重建provider-rate-limit-control.ts；复用store-cooldown/provider-cooldown-receipt/session、中央限流观察与原ACK Child，不另建探测Child/selector/timer。先完成Q3，再按新单版本notice接纳当前clearance；非zero风险输入才另核Q1。未送旧notice保持原顺序/身份，错误不阻旧业务成果，不能靠时间、本地bool或未知原ACK永久决定需求。Website惩罚/N/cohort继续唯一Owner。验收D10/D11：原ACK存在、ACK丢失、worker丢失、当前absence、mismatch/仍present、notice回复未知、旧cohort完成与合法撤权，逐原incident读回；无真实clearance不open、旧unknown不伪造。失败保留原notice/body/receipt，不另签incident绕过。
+Website scoped candidate补齐五个直接决定§6.7旧合法出口及18拒收边界的现役Consumer：ai-production/business-result-domain-dispatch.ts、job-device-status-repository.ts、website-agent-result-reader.ts、website-agent-result-payload-contract.ts，以及commercial/hehun-followup-fulfillment.ts；它们是只读事实绑定，不新增施工对象或兼容机制。Website18 archive/route/原QA由另一聊天在建；本稿绑定其当前实际bytes，不把另一轮CHANGE视作本稿可施工或部署证明。相关source发生实际漂移则重核受影响片区、重新绑定再子审；不能用旧hash或对方未完成候选强宣PASS。文中任务数据库快照另有明确UTC时点，不进入Git candidate，不等部署证据。
 
-QA：各原Owner更新原inspector和Exam，不新建总checker。target-claim-inspection、mutation-settlement、opaque-proof与原Browser/Runtime恢复验收中terminal-only/global-block断言必须随对应新法退休，替为当前真实占用/同effect不重发/不同job不连坐反例；worker-loop-inspection的delivery-before-cleanup当前强制全局pendingBusinessAdmissions().some(hasUnsentOutbox)前置，也须改为本job结果交付/当前lane的生产AST证据，保留单worker有界循环与一次cleanup落位断言。源头放行前禁止只删测试制造通过。新proof、cooldown由各仓canonical向量和拒收变异验证。现有dirty两个验收文件先保留并与作者diff区分；不能覆盖它们，也不能新增竞争测试入口绕过。
+AGENT source candidate（仓库相对路径）：
 
-承载：当前文件行数Store490、evidence404、lane219、actor364、loops349、source-handoff282、startup369、claim307、cooldown208。原生红线文件≤500、函数≤75、参数≤7、return≤8、嵌套≤5、复杂度≤16、await≤10，不以本方案自定预算替代。Store通过删除全局和重复政策逻辑缩短，不能堆入新恢复planner；上述整文件重建须按必要机械职责设计短函数，在写入前核原生结构算法，不把可预见拆分拖到READY失败后。Q1 wire producer落位与预算未闭合之前B1不施工。
+- .agents/skills/agent-flow-boundary-gatekeeper/SKILL.md
+- .github/instructions/agent-rules/功能法案.md
+- .github/instructions/agent-rules/基础法案.md
+- AGENTS.md
+- docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md
+- docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md
+- docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md
+- docs/governance/法案系统建设说明书-冻结定稿版.md
+- docs/specs/agent-production-runtime/agent-route-capability-manifest.provider.spec.json
+- docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json
+- docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json
+- package-lock.json
+- package.json
+- scripts/acceptance/agent-production-runtime-proof-boundary.acceptance.ts
+- scripts/acceptance/agent-production-runtime-recovery-boundary.acceptance-support.ts
+- scripts/acceptance/agent-production-runtime-recovery-contract.acceptance.ts
+- scripts/acceptance/agent-production-runtime-session-rotation-support.ts
+- scripts/acceptance/agent-route-contract.acceptance.ts
+- scripts/acceptance/browser-lane-fifo.acceptance.ts
+- scripts/acceptance/local-app-shell.acceptance.ts
+- scripts/acceptance/local-browser-auto-pairing-support.ts
+- scripts/acceptance/local-browser-mutation-receipt-support.ts
+- scripts/acceptance/local-browser-provider-effect-recovery.acceptance.ts
+- scripts/acceptance/product-plugin-test-runtime.ts
+- scripts/acceptance/product-plugins/bazi-ai-full-analysis.acceptance.ts
+- scripts/acceptance/product-plugins/bazi-chart-interpretation.acceptance.ts
+- scripts/acceptance/product-plugins/bazi-report-followup.acceptance.ts
+- scripts/acceptance/product-plugins/hehun-ai-analysis.acceptance.ts
+- scripts/acceptance/product-plugins/hehun-report-followup.acceptance.ts
+- scripts/acceptance/product-plugins/naming-bazi-analysis-and-naming.acceptance.ts
+- scripts/acceptance/product-plugins/naming-from-existing-bazi-report.acceptance.ts
+- scripts/acceptance/product-plugins/qimen-professional-answer.acceptance.ts
+- scripts/acceptance/product-plugins/qimen-report-followup.acceptance.ts
+- scripts/acceptance/runtime-log-spine-failure-matrix.acceptance.ts
+- scripts/audit/domains/agent-production-runtime/authority-inspection.ts
+- scripts/audit/domains/agent-production-runtime/contract-inspection.ts
+- scripts/audit/domains/agent-production-runtime/manifest.json
+- scripts/audit/domains/agent-production-runtime/session-output.ts
+- scripts/audit/domains/agent-production-runtime/worker-loop-inspection.ts
+- scripts/audit/domains/architecture-boundary/components/scan-plugin-capability-boundaries.ts
+- scripts/audit/domains/architecture-boundary/components/scan-product-acceptance-boundaries.ts
+- scripts/audit/domains/code-purity/components/scan-structural-budgets.ts
+- scripts/audit/domains/local-browser-session/browser-mutation-settlement-inspection.ts
+- scripts/audit/domains/local-browser-session/manifest.json
+- scripts/audit/domains/local-browser-session/target-claim-inspection.ts
+- scripts/audit/generated/law-registry.generated.json
+- scripts/generate/sync-website-agent-route-policy-projection.ts
+- scripts/startup/lib/production-contract-preflight.ts
+- src/lib/browser/chrome-extension/command-permit-validator.ts
+- src/lib/browser/chrome-extension/debugger-runtime.ts
+- src/lib/browser/chrome-extension/exact-target-runtime.ts
+- src/lib/browser/chrome-extension/extension-command-runtime.ts
+- src/lib/browser/chrome-extension/extension-heartbeat.ts
+- src/lib/browser/chrome-extension/extension-runtime-types.ts
+- src/lib/browser/chrome-extension/extension-target-authority.ts
+- src/lib/browser/chrome-extension/extension-target-release.ts
+- src/lib/browser/chrome-extension/gpt-rate-limit-dialog.ts
+- src/lib/browser/chrome-extension/websocket-actor-crypto.ts
+- src/lib/browser/chrome-extension/websocket-actor.ts
+- src/lib/browser/exact-target/browser-gpt-rate-limit-preflight.ts
+- src/lib/browser/exact-target/browser-mutation-evidence.ts
+- src/lib/browser/exact-target/browser-mutation-receipt.ts
+- src/lib/browser/exact-target/browser-mutation-replay-evidence.ts
+- src/lib/browser/exact-target/browser-mutation-schema.ts
+- src/lib/browser/exact-target/browser-mutation-store.ts
+- src/lib/browser/exact-target/browser-observation-receipt.ts
+- src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts
+- src/lib/browser/infrastructure/browser-lane-coordinator.ts
+- src/lib/browser/protocol/browser-errors.json
+- src/lib/browser/protocol/browser-protocol.schema.json
+- src/lib/browser/protocol/generate-browser-protocol.mjs
+- src/lib/browser/protocol/generated/browser-protocol.generated.ts
+- src/lib/browser/transport/browser-authority-frame-payload.ts
+- src/lib/browser/transport/browser-authority-websocket.ts
+- src/lib/local-runtime/production/contracts.ts
+- src/lib/local-runtime/production/provider-cooldown-receipt.ts
+- src/lib/local-runtime/production/provider-rate-limit-control.ts
+- src/lib/local-runtime/production/route-policy.ts
+- src/lib/local-runtime/production/runtime-business-admission.ts
+- src/lib/local-runtime/production/runtime-claim-operations.ts
+- src/lib/local-runtime/production/runtime-claim-recovery.ts
+- src/lib/local-runtime/production/runtime-claim.ts
+- src/lib/local-runtime/production/runtime-contract.ts
+- src/lib/local-runtime/production/runtime-logging.ts
+- src/lib/local-runtime/production/runtime-loops.ts
+- src/lib/local-runtime/production/runtime-source-handoff.ts
+- src/lib/local-runtime/production/runtime-source-readback-proofs.ts
+- src/lib/local-runtime/production/runtime-startup.ts
+- src/lib/local-runtime/production/runtime-state.ts
+- src/lib/local-runtime/production/runtime-storage-inventory.ts
+- src/lib/local-runtime/production/source-readback-contract.ts
+- src/lib/local-runtime/production/store-cooldown.ts
+- src/lib/local-runtime/production/store-foundation.ts
+- src/lib/local-runtime/production/store-outbox.ts
+- src/lib/local-runtime/production/store-source-readback.ts
+- src/lib/local-runtime/production/store-source-settlement.ts
+- src/lib/local-runtime/production/store-task-state.ts
+- src/lib/local-runtime/production/store.ts
+- src/lib/local-runtime/production/website-agent-route-policies.v1.json
+- src/lib/local-runtime/workbench-browser-authority-support.ts
+- src/plugins/bazi-ai-full-analysis/SKILL.md
+- src/plugins/bazi-ai-full-analysis/flow.ts
+- src/plugins/bazi-ai-full-analysis/product-identity.ts
+- src/plugins/bazi-ai-full-analysis/product-turn.ts
+- src/plugins/bazi-ai-full-analysis/result-contract.ts
+- src/plugins/bazi-chart-interpretation/SKILL.md
+- src/plugins/bazi-chart-interpretation/flow.ts
+- src/plugins/bazi-chart-interpretation/product-identity.ts
+- src/plugins/bazi-chart-interpretation/product-turn.ts
+- src/plugins/bazi-chart-interpretation/result-contract.ts
+- src/plugins/bazi-report-followup/SKILL.md
+- src/plugins/bazi-report-followup/flow.ts
+- src/plugins/bazi-report-followup/product-turn.ts
+- src/plugins/bazi-report-followup/result-contract.ts
+- src/plugins/hehun-ai-analysis/SKILL.md
+- src/plugins/hehun-ai-analysis/flow.ts
+- src/plugins/hehun-ai-analysis/result-contract.ts
+- src/plugins/hehun-report-followup/SKILL.md
+- src/plugins/hehun-report-followup/flow.ts
+- src/plugins/hehun-report-followup/result-contract.ts
+- src/plugins/naming-bazi-analysis-and-naming/SKILL.md
+- src/plugins/naming-bazi-analysis-and-naming/flow.ts
+- src/plugins/naming-bazi-analysis-and-naming/result-contract.ts
+- src/plugins/naming-from-existing-bazi-report/SKILL.md
+- src/plugins/naming-from-existing-bazi-report/flow.ts
+- src/plugins/naming-from-existing-bazi-report/result-contract.ts
+- src/plugins/qimen-professional-answer/SKILL.md
+- src/plugins/qimen-professional-answer/flow.ts
+- src/plugins/qimen-professional-answer/result-contract.ts
+- src/plugins/qimen-report-followup/SKILL.md
+- src/plugins/qimen-report-followup/flow.ts
+- src/plugins/qimen-report-followup/result-contract.ts
 
-全部工单共有失败门：当前相关candidate漂移只重算命中部分；授权/合同/真实消费者不闭合则不写生产代码。完成后主Codex至少两遍审实际代码与本文件差异，再启动只读子审；同时验旧链消失、新合同、真实保留/重建/局部改动分类、无旧骨架恢复/兼容桥。子审未放行不能结束建设。READY不能替代删除纪律验收。
+Website source candidate（仓库相对路径）：
 
-## 10. 无兼容桥的切换与回退
-
-1. L-W明确源头修订及Q1/Q2/Q3原Owner合同，L-A对齐；冻结new provider版本、wire版本及精确向量，不能在active中并列旧新资格。
-2. 停新claim/新危险输入，沿成熟Ctrl+C等待已发操作、原Outbox和领域接纳；原facts未知诚实保留，不能要求所有历史terminal才允许进行受控离线建设。确实仍在执行的handler和现实服务必须真实收束，不能“timeout后当停止”。
-3. 按exact job/attempt/incident盘点旧sealed source与cooldown待交付；已持久旧body不能改成新版本body或自签hash。先由原Owner收完可达旧回执。没有合法单版本承接旧待交付身份的canonical合同，cutover保持关闭；不得批量删账或写V44/V45双读桥。
-4. Website Owner完成自己的原生CHANGE及独立候选；AGENT重建并完成本仓CHANGE/clean main READY。停机窗口内Website新canonical先部署，AGENT匹配版本和固定扩展匹配artifact随后切换；所有阶段旧runtime不得发请求，协议/contract不匹配明确失败，不能自动回退旧路径。
-5. 同一身份读回新当前授权、旧effect未知仍在、当前dispatch收束、原result/receipt，才启动原入口。Website派单选择代码和tier映射不改，不能用站外新claim/recovery API接回。
-
-切换前失败只撤本工单diff并保留共享改动/原存储。切换后已有新source/revision/receipt事实时，不能直接回旧provider或旧AGENT单端代码；停止新输入、保留结果交付，沿原Owner修复同一canonical版本。无新事实且两端均停时，才可恢复同一完整已验证旧版本组合；仍承认旧global故障未解决。旧数据/schema不改，不能从Git恢复旧根因片区冒充重构或删云工单换绿灯。
-
-## 11. 分层验收和当前完成边界
-
-Static：源头规范唯一、Owner/引用/版本/方向正确，旧全局历史gate不可达、无新增第二链，结构与冻结边界保留。必须跨summary/forbidden、Blueprint/spec、实现、inspector/Exam反查；简单rg命中数不能独立证明删除。
-
-Exam：D1—D15及每工单正向和拒收反例，调用实际生产函数、真实SQLite fixture和原canonical向量；故意恢复global gate、伪Q1、把unknown归zero、错grant、旧fence、跨job清除和stage回退Provider均使对应原入口失败。所有仍适用成熟回归保留；旧全局禁令断言依法退休，不是削弱安全分母。
-
-Dynamic：另有实际执行授权后，对当前现场同job读取Browser事实、Website当前授权、Product调用、原Outbox、Domain Consumer/admission与业务对象hash；再观察一个无关合法job不被历史未知阻断。限流用同incident真实clearance与原cohort读回；Ctrl+C以实际process/socket/DB close与网站中间步骤接收或明确失败接收证明。没有这些不能称DYNAMIC PROVEN或客户已完成。
-
-各仓只用自己的唯一quality:check。Agent后续施工按冻结ci-full-governance Skill实际执行native CHANGE、clean main READY；若授权范围包含RELEASE，必须满足全部active law Dynamic Proof和当前候选，不自动以READY冒充发布。用户此前推云仓要求仅在届时READY真实通过后执行，本轮方案文档不commit/push。Website本执行者只提供准确依赖，不代跑其READY。法案系统修订是否触发母本79独立治理审查按届时实际native事实判定，不能用本次普通子审替代。
-
-## 12. 方案审计与执行重绑定
-
-本轮主Codex按三个不同分母审计：源头唯一/授权/下游独立职责；现役实现/前轮连续性/所有handoff与有限分支；删除反事实/切换/失败恢复/证据等级。发现问题须修正文档，再由只读子智能体对当前文档、真实law/spec/代码及闭环Skill核差异。子审放行只是准确的方案审查，不是native质量、可施工、建设完成或生产成功。
-
-主审三轮已实际完成并修正：第一轮将唯一恢复源改为001，004移出重复职责，006明确整条退役，日志及Runtime独立机械法条不误改；第二轮核真实调用/Provider范围，复用zero/null既有分支，补入原cleanup检查的全局门及57/21路径candidate；第三轮反向核D1—D15、成熟保留、物理删除、无桥切换与证据等级，消除向zero/target_local ACK强加Q1的方案内部重复门。只读子审另指出并已修正四项：corpus与law-record混称、001独立边界漏裁、多Owner批次冒充原子工单、日志故障下SENT/未SENT边界不清。子审实际核源头/代码/spec/Manifest及只读SQLite，文稿审查与可施工分开；最终复核绑定当时文档SHA，不把旧版本审查结论移给漂移版本。当前Q1非zero producer、Q2/Q3 canonical新合同及旧待交付单版本承接仍是实际设计阻断，不算已解决。
-
-执行者必须在动代码前重新绑定main HEAD、上述路径hash、dirty overlay和真实Owner。Q1完整producer、Q2单一canonical新合同、Q3原incident新clearance、旧待交付单版本承接以及跨仓必要Skill/主权门全部闭合后，重做受影响主审/子审，本文件才可由设计阻断转可施工。不能另建v2/final方案或旧骨架恢复；独立Ctrl+C保留、原模块复用、真正全文件重建和局部消费修改分别汇报。
+- .github/instructions/agent-rules/功能法案.md
+- .github/instructions/agent-rules/基础法案.md
+- AGENTS.md
+- docs/blueprints/domains/ai-acceptance/AI-ACCEPTANCE-BLUEPRINT.md
+- docs/governance/法案系统建设说明书-冻结定稿版.md
+- docs/specs/ai-acceptance/website-agent-task-result.provider.spec.json
+- docs/specs/ai-acceptance/xuanxue-ai-production-v6.contract.spec.json
+- docs/项目方案/八字排盘零事故封口-完整实现方案.md
+- package.json
+- packages/ai-contracts/src/agent-task/website-agent-route-policies.v1.json
+- packages/ai-contracts/src/agent-task/website-agent-route-policy.ts
+- packages/ai-contracts/src/agent-task/website-agent-task-result.ts
+- packages/ai-contracts/src/domains/bazi/output-contracts.ts
+- packages/ai-contracts/src/domains/hehun/terminal-output-contracts.ts
+- packages/ai-contracts/src/domains/naming/terminal-output-contracts.ts
+- packages/ai-contracts/src/domains/qimen/terminal-output-contracts.ts
+- packages/ai-contracts/src/production-control/v6-contract.ts
+- packages/ai-contracts/src/production-control/v6-source-readback-proof.ts
+- packages/ai-contracts/src/production-control/v6-write-assertions.ts
+- scripts/audit/domains/ai-acceptance/check.ts
+- scripts/audit/domains/ai-acceptance/manifest.json
+- scripts/audit/domains/ai-acceptance/route-result-contract-inspection.ts
+- scripts/audit/domains/ai-boundary/check.ts
+- scripts/audit/domains/ai-boundary/manifest.json
+- scripts/audit/generated/law-registry.generated.json
+- services/api/src/ai-production/business-result-consumer.ts
+- services/api/src/ai-production/business-result-domain-dispatch.ts
+- services/api/src/ai-production/job-claim-authority.ts
+- services/api/src/ai-production/job-claim-observation.ts
+- services/api/src/ai-production/job-claim-repository.ts
+- services/api/src/ai-production/job-claim-selection.ts
+- services/api/src/ai-production/job-claim-source-lineage.ts
+- services/api/src/ai-production/job-device-status-repository.ts
+- services/api/src/ai-production/job-lifecycle-repository.ts
+- services/api/src/ai-production/provider-cooldown-claim-policy.ts
+- services/api/src/ai-production/provider-cooldown-receipt.ts
+- services/api/src/ai-production/provider-cooldown-repository.ts
+- services/api/src/ai-production/website-agent-result-payload-contract.ts
+- services/api/src/ai-production/website-agent-result-reader.ts
+- services/api/src/ai-production/website-agent-task-repository.ts
+- services/api/src/ai-production/worker-session-repository.ts
+- services/api/src/bazi-agent-result-consumer.ts
+- services/api/src/bazi-business-completion.ts
+- services/api/src/bazi-provider-archives.ts
+- services/api/src/commercial/hehun-followup-agent-result-consumer.ts
+- services/api/src/commercial/hehun-followup-fulfillment.ts
+- services/api/src/hehun/hehun-agent-result-consumer.ts
+- services/api/src/hehun/hehun-provider-archives.ts
+- services/api/src/naming/naming-agent-result-consumer.ts
+- services/api/src/naming/naming-provider-archive.ts
+- services/api/src/qimen/qimen-agent-result-consumer.ts
+- services/api/src/qimen/qimen-provider-archives.ts
+- tests/exam/ai-production-v20-observation.test.ts
+- tests/exam/ai-production-v6-contract.test.ts

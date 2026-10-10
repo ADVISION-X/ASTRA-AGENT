@@ -1,7 +1,7 @@
 {
   "schema_version": "website-agent-route-policies.v1",
   "contract_id": "ai-acceptance.website-agent-task-result",
-  "contract_version": 17,
+  "contract_version": 18,
   "parameter_types": {
     "admitted_identity_catalog_hash": "sha256",
     "analysis_kind": "bazi_analysis_kind",
@@ -70,21 +70,21 @@
       ],
       "material_roles": [
         {
+          "role": "ready_corpus_archive",
+          "trust_class": "classical_source_data",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/zip"
+          ],
+          "storage_class": "shared_static",
+          "owner_scope_policy": "forbidden"
+        },
+        {
           "role": "bazi_formal_input",
           "trust_class": "locked_fact",
           "may_issue_instruction": false,
           "media_types": [
-            "application/json"
-          ],
-          "storage_class": "private_owner_scoped",
-          "owner_scope_policy": "required"
-        },
-        {
-          "role": "result_contract",
-          "trust_class": "instruction",
-          "may_issue_instruction": true,
-          "media_types": [
-            "application/json"
+            "application/zip"
           ],
           "storage_class": "private_owner_scoped",
           "owner_scope_policy": "required"
@@ -133,8 +133,8 @@
           ],
           "denominator_kind": "bazi_pdf_semantic_manifest"
         },
-        "locked_identity_source": "bazi_formal_input",
-        "coverage_denominator_source": "bazi_formal_input.ordered_semantic_anchors"
+        "locked_identity_source": "bazi_formal_input::八字命盘资料/01_身份与来源.json",
+        "coverage_denominator_source": "bazi_formal_input::八字命盘资料/04_PDF语义清单/清单身份.json#/ordered_semantic_anchors_pages"
       },
       "relation_kind": "primary"
     },
@@ -156,21 +156,21 @@
       ],
       "material_roles": [
         {
+          "role": "ready_corpus_archive",
+          "trust_class": "classical_source_data",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/zip"
+          ],
+          "storage_class": "shared_static",
+          "owner_scope_policy": "forbidden"
+        },
+        {
           "role": "bazi_formal_input",
           "trust_class": "locked_fact",
           "may_issue_instruction": false,
           "media_types": [
-            "application/json"
-          ],
-          "storage_class": "private_owner_scoped",
-          "owner_scope_policy": "required"
-        },
-        {
-          "role": "result_contract",
-          "trust_class": "instruction",
-          "may_issue_instruction": true,
-          "media_types": [
-            "application/json"
+            "application/zip"
           ],
           "storage_class": "private_owner_scoped",
           "owner_scope_policy": "required"
@@ -220,8 +220,8 @@
           ],
           "denominator_kind": "frozen_question_units"
         },
-        "locked_identity_source": "bazi_formal_input",
-        "coverage_denominator_source": "bazi_formal_input.ordered_question_units"
+        "locked_identity_source": "bazi_formal_input::八字命盘资料/01_身份与来源.json",
+        "coverage_denominator_source": "bazi_formal_input::八字命盘资料/05_问题与获准经历.json#/ordered_question_units"
       },
       "relation_kind": "followup"
     },
@@ -245,21 +245,21 @@
       ],
       "material_roles": [
         {
+          "role": "ready_corpus_archive",
+          "trust_class": "classical_source_data",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/zip"
+          ],
+          "storage_class": "shared_static",
+          "owner_scope_policy": "forbidden"
+        },
+        {
           "role": "bazi_input_bundle",
           "trust_class": "locked_fact",
           "may_issue_instruction": false,
           "media_types": [
-            "application/json"
-          ],
-          "storage_class": "private_owner_scoped",
-          "owner_scope_policy": "required"
-        },
-        {
-          "role": "result_contract",
-          "trust_class": "instruction",
-          "may_issue_instruction": true,
-          "media_types": [
-            "application/json"
+            "application/zip"
           ],
           "storage_class": "private_owner_scoped",
           "owner_scope_policy": "required"
@@ -311,8 +311,8 @@
           ],
           "denominator_kind": "new_frozen_question_units"
         },
-        "locked_identity_source": "bazi_input_bundle",
-        "coverage_denominator_source": "bazi_input_bundle.ordered_question_units"
+        "locked_identity_source": "bazi_input_bundle::八字命盘资料/01_身份与来源.json",
+        "coverage_denominator_source": "bazi_input_bundle::八字命盘资料/01_身份与来源.json#/ordered_question_units"
       },
       "relation_kind": "followup"
     },
@@ -328,28 +328,234 @@
       ],
       "material_roles": [
         {
+          "role": "ready_corpus_archive",
+          "trust_class": "classical_source_data",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/zip"
+          ],
+          "storage_class": "shared_static",
+          "owner_scope_policy": "forbidden"
+        },
+        {
           "role": "qimen_business_input",
           "trust_class": "locked_fact",
           "may_issue_instruction": false,
           "media_types": [
-            "application/json"
-          ],
-          "storage_class": "private_owner_scoped",
-          "owner_scope_policy": "required"
-        },
-        {
-          "role": "result_contract",
-          "trust_class": "instruction",
-          "may_issue_instruction": true,
-          "media_types": [
-            "application/json"
+            "application/zip"
           ],
           "storage_class": "private_owner_scoped",
           "owner_scope_policy": "required"
         }
       ],
       "result_schema_version": "qimen-professional-answer-output.v8",
-      "relation_kind": "primary"
+      "relation_kind": "primary",
+      "result_contract": {
+        "schema_version": "qimen-professional-answer-contract.v8",
+        "output_schema_version": "qimen-professional-answer-output.v8",
+        "exact_top_level_fields": [
+          "schema_version",
+          "question_snapshot",
+          "answer_summary",
+          "answer_blocks",
+          "citations",
+          "uncertainties",
+          "limitations",
+          "safety_notes",
+          "index_review_receipts",
+          "covered_question_unit_refs",
+          "covered_candidate_refs"
+        ],
+        "exact_question_snapshot_fields": [
+          "question_ref",
+          "original_text",
+          "unit_refs"
+        ],
+        "exact_dual_layer_fields": [
+          "professional_markdown",
+          "reader_explanation_markdown"
+        ],
+        "exact_answer_block_fields": [
+          "block_id",
+          "reasoning_kind",
+          "candidate_scope",
+          "semantic_anchor_refs",
+          "evidence_refs",
+          "citation_ids",
+          "question_unit_refs",
+          "professional_markdown",
+          "reader_explanation_markdown"
+        ],
+        "exact_citation_fields": [
+          "citation_id",
+          "source_kind",
+          "evidence_relation",
+          "candidate_refs",
+          "source_ref",
+          "locator",
+          "title",
+          "quote",
+          "source_identity_hashes"
+        ],
+        "exact_index_review_fields": [
+          "book_id",
+          "index_hash",
+          "macro_entry_count",
+          "navigation_node_count",
+          "semantic_entry_count",
+          "review_status",
+          "applicability_note"
+        ],
+        "enum_constraints": {
+          "reasoning_kind": [
+            "direct_observation",
+            "synthesis",
+            "recommendation",
+            "limitation"
+          ],
+          "source_kind": [
+            "chart_fact",
+            "reviewed_rule",
+            "classical_text",
+            "user_input"
+          ],
+          "evidence_relation": [
+            "observes",
+            "supports",
+            "contextualizes",
+            "conflicts",
+            "limits"
+          ],
+          "review_status": [
+            "complete"
+          ]
+        },
+        "union_constraints": {
+          "candidate_scope": {
+            "variants": [
+              "literal:all",
+              "array:locked_candidate_ref"
+            ],
+            "array_rules": [
+              "nonempty",
+              "unique",
+              "subset_of_locked_candidate_set"
+            ]
+          }
+        },
+        "exact_citation_identity_hash_keys": {
+          "chart_fact": [
+            "chart_content_hash",
+            "fact_hash"
+          ],
+          "reviewed_rule": [
+            "rule_catalog_hash",
+            "rule_evaluation_set_hash",
+            "evaluation_hash"
+          ],
+          "classical_text": [
+            "source_hash",
+            "book_hash",
+            "index_hash",
+            "exact_span_text_hash"
+          ],
+          "user_input": [
+            "question_snapshot_hash"
+          ]
+        },
+        "exact_citation_value_constraints": {
+          "chart_fact": {
+            "source_ref": "exact_frozen_chart_fact_anchor_source_ref",
+            "locator": "same_as_resolved_chart_fact_source_ref",
+            "quote": "canonical_json_of_frozen_typed_value",
+            "candidate_refs": "subset_of_resolved_anchor_scope"
+          },
+          "reviewed_rule": {
+            "source_ref": "exact_frozen_rule_evaluation_anchor_source_ref",
+            "locator": "same_as_resolved_rule_evaluation_source_ref",
+            "quote": "exact_frozen_evaluation_state",
+            "candidate_refs": "subset_of_resolved_anchor_scope"
+          },
+          "classical_text": {
+            "source_ref": "exact_frozen_ready_book_id",
+            "locator": "unique_locator_in_that_frozen_ready_book",
+            "quote": "verified_inside_exact_locator_span",
+            "candidate_refs": "subset_of_locked_candidate_set"
+          },
+          "user_input": {
+            "source_ref": "exact_frozen_question_ref",
+            "locator": "exact_frozen_question_unit_ref",
+            "quote": "exact_frozen_original_text",
+            "candidate_refs": "subset_of_locked_candidate_set"
+          }
+        },
+        "required_nonempty_collections": [
+          "answer_blocks",
+          "safety_notes",
+          "index_review_receipts",
+          "covered_question_unit_refs",
+          "covered_candidate_refs"
+        ],
+        "required_nonempty_strings": [
+          "question_snapshot.question_ref",
+          "question_snapshot.original_text",
+          "answer_summary.professional_markdown",
+          "answer_summary.reader_explanation_markdown",
+          "answer_blocks[].block_id",
+          "answer_blocks[].professional_markdown",
+          "answer_blocks[].reader_explanation_markdown",
+          "citations[].citation_id",
+          "citations[].source_ref",
+          "citations[].locator",
+          "citations[].title",
+          "citations[].quote",
+          "index_review_receipts[].book_id",
+          "index_review_receipts[].index_hash",
+          "index_review_receipts[].applicability_note"
+        ],
+        "required_unique_nonempty_string_collections": [
+          "question_snapshot.unit_refs",
+          "answer_blocks[].semantic_anchor_refs",
+          "answer_blocks[].evidence_refs",
+          "answer_blocks[].citation_ids",
+          "answer_blocks[].question_unit_refs",
+          "covered_question_unit_refs",
+          "covered_candidate_refs"
+        ],
+        "string_item_collections": [
+          "uncertainties",
+          "limitations",
+          "safety_notes"
+        ],
+        "allow_empty_unique_nonempty_string_collections": [
+          "citations[].candidate_refs"
+        ],
+        "exact_scalar_constraints": {
+          "index_review_receipts[].macro_entry_count": "nonnegative_safe_integer",
+          "index_review_receipts[].navigation_node_count": "nonnegative_safe_integer",
+          "index_review_receipts[].semantic_entry_count": "nonnegative_safe_integer",
+          "index_review_receipts[].index_hash": "sha256_lower_hex",
+          "citations[].source_identity_hashes.*": "sha256_lower_hex"
+        },
+        "unique_id_fields": [
+          "answer_blocks.block_id",
+          "citations.citation_id",
+          "index_review_receipts.book_id"
+        ],
+        "reference_constraints": {
+          "answer_blocks.citation_ids": "all_exist_in_citations_and_all_citations_are_used",
+          "answer_blocks.semantic_anchor_refs": "all_exist_in_locked_anchor_manifest",
+          "answer_blocks.evidence_refs": "all_exist_in_locked_anchor_manifest_or_citations",
+          "answer_blocks.question_unit_refs": "subset_and_union_equal_frozen_question_units",
+          "answer_blocks.candidate_scope": "expanded_union_equals_locked_candidate_set"
+        },
+        "denominator_kinds": [
+          "frozen_question_units",
+          "locked_candidate_set",
+          "frozen_ready_books",
+          "frozen_semantic_anchors"
+        ]
+      }
     },
     {
       "product_id": "qimen_report_followup",
@@ -362,28 +568,239 @@
       ],
       "material_roles": [
         {
+          "role": "ready_corpus_archive",
+          "trust_class": "classical_source_data",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/zip"
+          ],
+          "storage_class": "shared_static",
+          "owner_scope_policy": "forbidden"
+        },
+        {
           "role": "qimen_followup_input",
           "trust_class": "locked_fact",
           "may_issue_instruction": false,
           "media_types": [
-            "application/json"
-          ],
-          "storage_class": "private_owner_scoped",
-          "owner_scope_policy": "required"
-        },
-        {
-          "role": "result_contract",
-          "trust_class": "instruction",
-          "may_issue_instruction": true,
-          "media_types": [
-            "application/json"
+            "application/zip"
           ],
           "storage_class": "private_owner_scoped",
           "owner_scope_policy": "required"
         }
       ],
       "result_schema_version": "qimen-followup-answer-output.v2",
-      "relation_kind": "followup"
+      "relation_kind": "followup",
+      "result_contract": {
+        "schema_version": "qimen-followup-answer-contract.v2",
+        "output_schema_version": "qimen-followup-answer-output.v2",
+        "exact_top_level_fields": [
+          "schema_version",
+          "parent_report_ref",
+          "parent_raw_output_hash",
+          "new_question_snapshot",
+          "answer_summary",
+          "answer_blocks",
+          "citations",
+          "uncertainties",
+          "limitations",
+          "safety_notes",
+          "index_review_receipts",
+          "covered_question_unit_refs",
+          "covered_candidate_refs"
+        ],
+        "exact_question_snapshot_fields": [
+          "question_ref",
+          "original_text",
+          "unit_refs"
+        ],
+        "exact_dual_layer_fields": [
+          "professional_markdown",
+          "reader_explanation_markdown"
+        ],
+        "exact_answer_block_fields": [
+          "block_id",
+          "reasoning_kind",
+          "candidate_scope",
+          "semantic_anchor_refs",
+          "evidence_refs",
+          "citation_ids",
+          "question_unit_refs",
+          "professional_markdown",
+          "reader_explanation_markdown"
+        ],
+        "exact_citation_fields": [
+          "citation_id",
+          "source_kind",
+          "evidence_relation",
+          "candidate_refs",
+          "source_ref",
+          "locator",
+          "title",
+          "quote",
+          "source_identity_hashes"
+        ],
+        "exact_index_review_fields": [
+          "book_id",
+          "index_hash",
+          "macro_entry_count",
+          "navigation_node_count",
+          "semantic_entry_count",
+          "review_status",
+          "applicability_note"
+        ],
+        "enum_constraints": {
+          "reasoning_kind": [
+            "direct_observation",
+            "synthesis",
+            "recommendation",
+            "limitation"
+          ],
+          "source_kind": [
+            "chart_fact",
+            "reviewed_rule",
+            "classical_text",
+            "user_input"
+          ],
+          "evidence_relation": [
+            "observes",
+            "supports",
+            "contextualizes",
+            "conflicts",
+            "limits"
+          ],
+          "review_status": [
+            "complete"
+          ]
+        },
+        "union_constraints": {
+          "candidate_scope": {
+            "variants": [
+              "literal:all",
+              "array:locked_candidate_ref"
+            ],
+            "array_rules": [
+              "nonempty",
+              "unique",
+              "subset_of_locked_candidate_set"
+            ]
+          }
+        },
+        "exact_citation_identity_hash_keys": {
+          "chart_fact": [
+            "chart_content_hash",
+            "fact_hash"
+          ],
+          "reviewed_rule": [
+            "rule_catalog_hash",
+            "rule_evaluation_set_hash",
+            "evaluation_hash"
+          ],
+          "classical_text": [
+            "source_hash",
+            "book_hash",
+            "index_hash",
+            "exact_span_text_hash"
+          ],
+          "user_input": [
+            "question_snapshot_hash"
+          ]
+        },
+        "exact_citation_value_constraints": {
+          "chart_fact": {
+            "source_ref": "exact_frozen_chart_fact_anchor_source_ref",
+            "locator": "same_as_resolved_chart_fact_source_ref",
+            "quote": "canonical_json_of_frozen_typed_value",
+            "candidate_refs": "subset_of_resolved_anchor_scope"
+          },
+          "reviewed_rule": {
+            "source_ref": "exact_frozen_rule_evaluation_anchor_source_ref",
+            "locator": "same_as_resolved_rule_evaluation_source_ref",
+            "quote": "exact_frozen_evaluation_state",
+            "candidate_refs": "subset_of_resolved_anchor_scope"
+          },
+          "classical_text": {
+            "source_ref": "exact_frozen_ready_book_id",
+            "locator": "unique_locator_in_that_frozen_ready_book",
+            "quote": "verified_inside_exact_locator_span",
+            "candidate_refs": "subset_of_locked_candidate_set"
+          },
+          "user_input": {
+            "source_ref": "exact_frozen_question_ref",
+            "locator": "exact_frozen_question_unit_ref",
+            "quote": "exact_frozen_original_text",
+            "candidate_refs": "subset_of_locked_candidate_set"
+          }
+        },
+        "required_nonempty_collections": [
+          "answer_blocks",
+          "safety_notes",
+          "index_review_receipts",
+          "covered_question_unit_refs",
+          "covered_candidate_refs"
+        ],
+        "required_nonempty_strings": [
+          "new_question_snapshot.question_ref",
+          "new_question_snapshot.original_text",
+          "answer_summary.professional_markdown",
+          "answer_summary.reader_explanation_markdown",
+          "answer_blocks[].block_id",
+          "answer_blocks[].professional_markdown",
+          "answer_blocks[].reader_explanation_markdown",
+          "citations[].citation_id",
+          "citations[].source_ref",
+          "citations[].locator",
+          "citations[].title",
+          "citations[].quote",
+          "index_review_receipts[].book_id",
+          "index_review_receipts[].index_hash",
+          "index_review_receipts[].applicability_note",
+          "parent_report_ref",
+          "parent_raw_output_hash"
+        ],
+        "required_unique_nonempty_string_collections": [
+          "new_question_snapshot.unit_refs",
+          "answer_blocks[].semantic_anchor_refs",
+          "answer_blocks[].evidence_refs",
+          "answer_blocks[].citation_ids",
+          "answer_blocks[].question_unit_refs",
+          "covered_question_unit_refs",
+          "covered_candidate_refs"
+        ],
+        "string_item_collections": [
+          "uncertainties",
+          "limitations",
+          "safety_notes"
+        ],
+        "allow_empty_unique_nonempty_string_collections": [
+          "citations[].candidate_refs"
+        ],
+        "exact_scalar_constraints": {
+          "index_review_receipts[].macro_entry_count": "nonnegative_safe_integer",
+          "index_review_receipts[].navigation_node_count": "nonnegative_safe_integer",
+          "index_review_receipts[].semantic_entry_count": "nonnegative_safe_integer",
+          "index_review_receipts[].index_hash": "sha256_lower_hex",
+          "citations[].source_identity_hashes.*": "sha256_lower_hex",
+          "parent_raw_output_hash": "sha256_lower_hex"
+        },
+        "unique_id_fields": [
+          "answer_blocks.block_id",
+          "citations.citation_id",
+          "index_review_receipts.book_id"
+        ],
+        "reference_constraints": {
+          "answer_blocks.citation_ids": "all_exist_in_citations_and_all_citations_are_used",
+          "answer_blocks.semantic_anchor_refs": "all_exist_in_locked_anchor_manifest",
+          "answer_blocks.evidence_refs": "all_exist_in_locked_anchor_manifest_or_citations",
+          "answer_blocks.question_unit_refs": "subset_and_union_equal_frozen_question_units",
+          "answer_blocks.candidate_scope": "expanded_union_equals_locked_candidate_set"
+        },
+        "denominator_kinds": [
+          "new_frozen_question_units",
+          "locked_candidate_set",
+          "frozen_ready_books",
+          "frozen_semantic_anchors"
+        ]
+      }
     },
     {
       "product_id": "hehun_ai_analysis",
@@ -396,28 +813,274 @@
       ],
       "material_roles": [
         {
+          "role": "ready_corpus_archive",
+          "trust_class": "classical_source_data",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/zip"
+          ],
+          "storage_class": "shared_static",
+          "owner_scope_policy": "forbidden"
+        },
+        {
           "role": "hehun_input_bundle",
           "trust_class": "locked_fact",
           "may_issue_instruction": false,
           "media_types": [
-            "application/json"
-          ],
-          "storage_class": "private_owner_scoped",
-          "owner_scope_policy": "required"
-        },
-        {
-          "role": "result_contract",
-          "trust_class": "instruction",
-          "may_issue_instruction": true,
-          "media_types": [
-            "application/json"
+            "application/zip"
           ],
           "storage_class": "private_owner_scoped",
           "owner_scope_policy": "required"
         }
       ],
       "result_schema_version": "hehun-relationship-report-output.v4",
-      "relation_kind": "primary"
+      "relation_kind": "primary",
+      "result_contract": {
+        "exact_dual_layer_fields": [
+          "professional_markdown",
+          "reader_explanation_markdown"
+        ],
+        "exact_question_snapshot_fields": [
+          "question_ref",
+          "original_text",
+          "unit_refs"
+        ],
+        "exact_citation_fields": [
+          "citation_id",
+          "source_kind",
+          "source_ref",
+          "locator",
+          "candidate_refs"
+        ],
+        "source_kind_enum": [
+          "chart_fact",
+          "classical_text",
+          "user_input",
+          "prior_report"
+        ],
+        "string_array_rules": "Every element is a nonempty unique string.",
+        "question_snapshot_rule": "Exact question_ref, original_text bytes and ordered unit_refs from locked_identity.",
+        "coverage_rule": "covered_question_unit_refs and union of block question_unit_refs each equal the frozen denominator.",
+        "block_rule": "Nonempty blocks and citations; unique block_id/citation_id; every block has nonempty question_unit_refs and citation_ids; all references resolve.",
+        "evidence_rule": "Each evidence_ref names a source_map source_ref, READY book_id or current question_ref; HH03 also permits root or exact ancestor report_ref.",
+        "private_byte_rule": "Public original question, summary, block text/balance, uncertainties, limitations and safety_notes must not contain any nonempty exact private string from private_string_sources. Sources are frozen root materials and, for HH03, the current input plus root and every direct ancestor's report, envelope, execution, anchors, coverage and capacity proof. Reject without redaction or alteration; no language scoring. Valid citation identities remain governed by the reference contract.",
+        "private_string_sources": {
+          "request": [
+            "request_id",
+            "requester_actor_ref",
+            "intake_ref",
+            "case_ref",
+            "case_hash",
+            "party_a_chart_ref",
+            "party_b_chart_ref",
+            "party_a_consent_ref",
+            "party_b_consent_ref"
+          ],
+          "authorization": [
+            "entitlement_ref",
+            "subject_bundle_ref",
+            "system_credential_ref"
+          ],
+          "binding": [
+            "person_ref",
+            "source_actor_ref",
+            "source_user_id",
+            "chart_ref",
+            "chart_version_ref",
+            "chart_hash",
+            "chart_root_ref",
+            "chart_root_hash",
+            "candidate_set_hash",
+            "chart_consent_ref",
+            "chart_consent_hash",
+            "source_task_ref",
+            "source_subject_bundle_ref",
+            "source_subject_bundle_hash",
+            "report_ref",
+            "report_hash",
+            "raw_output_hash",
+            "delivery_manifest_ref",
+            "delivery_manifest_hash",
+            "canonical_object_ref",
+            "canonical_object_hash",
+            "canonical_object_version",
+            "canonical_object_etag"
+          ],
+          "artifacts": [
+            "artifact_ref",
+            "object_ref",
+            "object_version",
+            "object_etag",
+            "sha256"
+          ],
+          "material_authorization": [
+            "entitlement_ref",
+            "consent_ref",
+            "consent_hash"
+          ],
+          "admitted_result": [
+            "task_ref",
+            "result_ref",
+            "result_hash",
+            "admission_receipt_hash"
+          ],
+          "root_bundle": [
+            "bundle_hash"
+          ],
+          "followup": [
+            "owner_actor_ref",
+            "followup_id",
+            "case_file_ref",
+            "case_file_hash",
+            "parent_task_ref",
+            "history_hash",
+            "bundle_hash"
+          ],
+          "parent_result": [
+            "parent_task_ref",
+            "parent_result_ref",
+            "parent_result_hash"
+          ],
+          "report": [
+            "agent_job_ref",
+            "report_hash",
+            "parent_raw_output_hash"
+          ],
+          "execution": [
+            "job_id",
+            "result_payload_ref",
+            "result_payload_hash",
+            "execution_receipt_hash"
+          ],
+          "envelope": [
+            "owner_actor_ref",
+            "subject_ref",
+            "canonical_input_hash",
+            "raw_output_hash",
+            "canonical_report_hash",
+            "agent_execution_ref",
+            "agent_execution_receipt_hash",
+            "anchor_registry_ref",
+            "coverage_proof_ref"
+          ],
+          "anchors": [
+            "registry_ref",
+            "registry_hash"
+          ],
+          "anchor": [
+            "anchor_ref",
+            "source_ref",
+            "source_hash"
+          ],
+          "coverage": [
+            "denominator_ref",
+            "denominator_hash",
+            "proof_hash"
+          ],
+          "capacity": [
+            "required_material_set_hash",
+            "agent_execution_receipt_hash",
+            "proof_ref",
+            "proof_hash"
+          ]
+        },
+        "exact_citation_value_constraints": {
+          "chart_fact": {
+            "source_ref": "source_map entry source_ref",
+            "locator": "bundle-absolute RFC6901 pointer at or below that entry content_pointer",
+            "candidate_refs": "exact enclosing candidate_ref/candidate_scope within that role source_map scope; invariant facts use empty; all uses the complete entry candidate_refs"
+          },
+          "prior_report": {
+            "source_ref": "frozen BZ05 report_ref; HH03 also permits root or exact ancestor report_ref",
+            "locator": "report-local RFC6901 pointer in the selected report terminal body, never bundle-absolute; source_map content_pointer selects BZ05 body only",
+            "candidate_refs": "exact enclosing candidate_scope within report role candidates; all uses complete report role candidate set; invariant passages use empty",
+            "ancestor_allowed_terminal_top_level_fields": {
+              "HH02": [
+                "schema_version",
+                "case_manifest_ref",
+                "case_manifest_hash",
+                "question_snapshot",
+                "relationship_summary",
+                "relationship_blocks",
+                "citations",
+                "uncertainties",
+                "limitations",
+                "safety_notes",
+                "covered_question_unit_refs"
+              ],
+              "HH03": [
+                "schema_version",
+                "parent_report_ref",
+                "parent_raw_output_hash",
+                "new_question_snapshot",
+                "answer_summary",
+                "answer_blocks",
+                "citations",
+                "uncertainties",
+                "limitations",
+                "safety_notes",
+                "covered_question_unit_refs"
+              ]
+            },
+            "private_wrapper_fields_forbidden": true
+          },
+          "classical_text": {
+            "source_ref": "exact READY book_id",
+            "locator": "existing macro/semantic locator or navigation node_id",
+            "candidate_refs": "empty"
+          },
+          "user_input": {
+            "source_ref": "exact current question_ref",
+            "locator": "member of its frozen unit_refs",
+            "candidate_refs": "empty"
+          }
+        },
+        "required_nonempty_text_fields": [
+          "professional_markdown",
+          "reader_explanation_markdown",
+          "party_balance_boundary"
+        ],
+        "required_nonempty_collections": [
+          "limitations",
+          "safety_notes"
+        ],
+        "uncertainties_rule": "May be empty; entries are nonempty unique strings.",
+        "scoring_fields_forbidden": true,
+        "forbidden_field_names": [
+          "compatibility_score",
+          "compatibilityScore",
+          "stability_score",
+          "claim_disposition",
+          "method_profile_refs",
+          "rule_catalog_ref",
+          "consensus"
+        ],
+        "schema_version": "hehun-relationship-report-contract.v4",
+        "output_schema_version": "hehun-relationship-report-output.v4",
+        "exact_top_level_fields": [
+          "schema_version",
+          "case_manifest_ref",
+          "case_manifest_hash",
+          "question_snapshot",
+          "relationship_summary",
+          "relationship_blocks",
+          "citations",
+          "uncertainties",
+          "limitations",
+          "safety_notes",
+          "covered_question_unit_refs"
+        ],
+        "exact_relationship_block_fields": [
+          "block_id",
+          "question_unit_refs",
+          "party_balance_boundary",
+          "evidence_refs",
+          "citation_ids",
+          "professional_markdown",
+          "reader_explanation_markdown"
+        ],
+        "denominator_kind": "hehun_case_frozen_question_units"
+      }
     },
     {
       "product_id": "hehun_report_followup",
@@ -430,28 +1093,274 @@
       ],
       "material_roles": [
         {
+          "role": "ready_corpus_archive",
+          "trust_class": "classical_source_data",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/zip"
+          ],
+          "storage_class": "shared_static",
+          "owner_scope_policy": "forbidden"
+        },
+        {
           "role": "hehun_followup_input",
           "trust_class": "locked_fact",
           "may_issue_instruction": false,
           "media_types": [
-            "application/json"
-          ],
-          "storage_class": "private_owner_scoped",
-          "owner_scope_policy": "required"
-        },
-        {
-          "role": "result_contract",
-          "trust_class": "instruction",
-          "may_issue_instruction": true,
-          "media_types": [
-            "application/json"
+            "application/zip"
           ],
           "storage_class": "private_owner_scoped",
           "owner_scope_policy": "required"
         }
       ],
       "result_schema_version": "hehun-followup-answer-output.v2",
-      "relation_kind": "followup"
+      "relation_kind": "followup",
+      "result_contract": {
+        "exact_dual_layer_fields": [
+          "professional_markdown",
+          "reader_explanation_markdown"
+        ],
+        "exact_question_snapshot_fields": [
+          "question_ref",
+          "original_text",
+          "unit_refs"
+        ],
+        "exact_citation_fields": [
+          "citation_id",
+          "source_kind",
+          "source_ref",
+          "locator",
+          "candidate_refs"
+        ],
+        "source_kind_enum": [
+          "chart_fact",
+          "classical_text",
+          "user_input",
+          "prior_report"
+        ],
+        "string_array_rules": "Every element is a nonempty unique string.",
+        "question_snapshot_rule": "Exact question_ref, original_text bytes and ordered unit_refs from locked_identity.",
+        "coverage_rule": "covered_question_unit_refs and union of block question_unit_refs each equal the frozen denominator.",
+        "block_rule": "Nonempty blocks and citations; unique block_id/citation_id; every block has nonempty question_unit_refs and citation_ids; all references resolve.",
+        "evidence_rule": "Each evidence_ref names a source_map source_ref, READY book_id or current question_ref; HH03 also permits root or exact ancestor report_ref.",
+        "private_byte_rule": "Public original question, summary, block text/balance, uncertainties, limitations and safety_notes must not contain any nonempty exact private string from private_string_sources. Sources are frozen root materials and, for HH03, the current input plus root and every direct ancestor's report, envelope, execution, anchors, coverage and capacity proof. Reject without redaction or alteration; no language scoring. Valid citation identities remain governed by the reference contract.",
+        "private_string_sources": {
+          "request": [
+            "request_id",
+            "requester_actor_ref",
+            "intake_ref",
+            "case_ref",
+            "case_hash",
+            "party_a_chart_ref",
+            "party_b_chart_ref",
+            "party_a_consent_ref",
+            "party_b_consent_ref"
+          ],
+          "authorization": [
+            "entitlement_ref",
+            "subject_bundle_ref",
+            "system_credential_ref"
+          ],
+          "binding": [
+            "person_ref",
+            "source_actor_ref",
+            "source_user_id",
+            "chart_ref",
+            "chart_version_ref",
+            "chart_hash",
+            "chart_root_ref",
+            "chart_root_hash",
+            "candidate_set_hash",
+            "chart_consent_ref",
+            "chart_consent_hash",
+            "source_task_ref",
+            "source_subject_bundle_ref",
+            "source_subject_bundle_hash",
+            "report_ref",
+            "report_hash",
+            "raw_output_hash",
+            "delivery_manifest_ref",
+            "delivery_manifest_hash",
+            "canonical_object_ref",
+            "canonical_object_hash",
+            "canonical_object_version",
+            "canonical_object_etag"
+          ],
+          "artifacts": [
+            "artifact_ref",
+            "object_ref",
+            "object_version",
+            "object_etag",
+            "sha256"
+          ],
+          "material_authorization": [
+            "entitlement_ref",
+            "consent_ref",
+            "consent_hash"
+          ],
+          "admitted_result": [
+            "task_ref",
+            "result_ref",
+            "result_hash",
+            "admission_receipt_hash"
+          ],
+          "root_bundle": [
+            "bundle_hash"
+          ],
+          "followup": [
+            "owner_actor_ref",
+            "followup_id",
+            "case_file_ref",
+            "case_file_hash",
+            "parent_task_ref",
+            "history_hash",
+            "bundle_hash"
+          ],
+          "parent_result": [
+            "parent_task_ref",
+            "parent_result_ref",
+            "parent_result_hash"
+          ],
+          "report": [
+            "agent_job_ref",
+            "report_hash",
+            "parent_raw_output_hash"
+          ],
+          "execution": [
+            "job_id",
+            "result_payload_ref",
+            "result_payload_hash",
+            "execution_receipt_hash"
+          ],
+          "envelope": [
+            "owner_actor_ref",
+            "subject_ref",
+            "canonical_input_hash",
+            "raw_output_hash",
+            "canonical_report_hash",
+            "agent_execution_ref",
+            "agent_execution_receipt_hash",
+            "anchor_registry_ref",
+            "coverage_proof_ref"
+          ],
+          "anchors": [
+            "registry_ref",
+            "registry_hash"
+          ],
+          "anchor": [
+            "anchor_ref",
+            "source_ref",
+            "source_hash"
+          ],
+          "coverage": [
+            "denominator_ref",
+            "denominator_hash",
+            "proof_hash"
+          ],
+          "capacity": [
+            "required_material_set_hash",
+            "agent_execution_receipt_hash",
+            "proof_ref",
+            "proof_hash"
+          ]
+        },
+        "exact_citation_value_constraints": {
+          "chart_fact": {
+            "source_ref": "source_map entry source_ref",
+            "locator": "bundle-absolute RFC6901 pointer at or below that entry content_pointer",
+            "candidate_refs": "exact enclosing candidate_ref/candidate_scope within that role source_map scope; invariant facts use empty; all uses the complete entry candidate_refs"
+          },
+          "prior_report": {
+            "source_ref": "frozen BZ05 report_ref; HH03 also permits root or exact ancestor report_ref",
+            "locator": "report-local RFC6901 pointer in the selected report terminal body, never bundle-absolute; source_map content_pointer selects BZ05 body only",
+            "candidate_refs": "exact enclosing candidate_scope within report role candidates; all uses complete report role candidate set; invariant passages use empty",
+            "ancestor_allowed_terminal_top_level_fields": {
+              "HH02": [
+                "schema_version",
+                "case_manifest_ref",
+                "case_manifest_hash",
+                "question_snapshot",
+                "relationship_summary",
+                "relationship_blocks",
+                "citations",
+                "uncertainties",
+                "limitations",
+                "safety_notes",
+                "covered_question_unit_refs"
+              ],
+              "HH03": [
+                "schema_version",
+                "parent_report_ref",
+                "parent_raw_output_hash",
+                "new_question_snapshot",
+                "answer_summary",
+                "answer_blocks",
+                "citations",
+                "uncertainties",
+                "limitations",
+                "safety_notes",
+                "covered_question_unit_refs"
+              ]
+            },
+            "private_wrapper_fields_forbidden": true
+          },
+          "classical_text": {
+            "source_ref": "exact READY book_id",
+            "locator": "existing macro/semantic locator or navigation node_id",
+            "candidate_refs": "empty"
+          },
+          "user_input": {
+            "source_ref": "exact current question_ref",
+            "locator": "member of its frozen unit_refs",
+            "candidate_refs": "empty"
+          }
+        },
+        "required_nonempty_text_fields": [
+          "professional_markdown",
+          "reader_explanation_markdown",
+          "party_balance_boundary"
+        ],
+        "required_nonempty_collections": [
+          "limitations",
+          "safety_notes"
+        ],
+        "uncertainties_rule": "May be empty; entries are nonempty unique strings.",
+        "scoring_fields_forbidden": true,
+        "forbidden_field_names": [
+          "compatibility_score",
+          "compatibilityScore",
+          "stability_score",
+          "claim_disposition",
+          "method_profile_refs",
+          "rule_catalog_ref",
+          "consensus"
+        ],
+        "schema_version": "hehun-followup-answer-contract.v2",
+        "output_schema_version": "hehun-followup-answer-output.v2",
+        "exact_top_level_fields": [
+          "schema_version",
+          "parent_report_ref",
+          "parent_raw_output_hash",
+          "new_question_snapshot",
+          "answer_summary",
+          "answer_blocks",
+          "citations",
+          "uncertainties",
+          "limitations",
+          "safety_notes",
+          "covered_question_unit_refs"
+        ],
+        "exact_answer_block_fields": [
+          "block_id",
+          "question_unit_refs",
+          "party_balance_boundary",
+          "evidence_refs",
+          "citation_ids",
+          "professional_markdown",
+          "reader_explanation_markdown"
+        ],
+        "denominator_kind": "new_frozen_question_units"
+      }
     },
     {
       "product_id": "naming_bazi_analysis_and_naming",
@@ -471,38 +1380,107 @@
       ],
       "material_roles": [
         {
+          "role": "ready_corpus_archive",
+          "trust_class": "classical_source_data",
+          "may_issue_instruction": false,
+          "media_types": [
+            "application/zip"
+          ],
+          "storage_class": "shared_static",
+          "owner_scope_policy": "forbidden"
+        },
+        {
           "role": "bazi_input_bundle",
           "trust_class": "locked_fact",
           "may_issue_instruction": false,
           "media_types": [
-            "application/json"
-          ],
-          "storage_class": "private_owner_scoped",
-          "owner_scope_policy": "required"
-        },
-        {
-          "role": "naming_business_input",
-          "trust_class": "locked_fact",
-          "may_issue_instruction": false,
-          "media_types": [
-            "application/json"
-          ],
-          "storage_class": "private_owner_scoped",
-          "owner_scope_policy": "required"
-        },
-        {
-          "role": "result_contract",
-          "trust_class": "instruction",
-          "may_issue_instruction": true,
-          "media_types": [
-            "application/json"
+            "application/zip"
           ],
           "storage_class": "private_owner_scoped",
           "owner_scope_policy": "required"
         }
       ],
       "result_schema_version": "naming-bazi-analysis-and-naming-result.v1",
-      "relation_kind": "primary"
+      "relation_kind": "primary",
+      "result_contract": {
+        "schema_version": "naming-bazi-analysis-and-naming-result.v1",
+        "required_fields": [
+          "schema_version",
+          "bazi_analysis",
+          "naming"
+        ],
+        "bazi_analysis_schema_version": "bazi-naming-basis-report-output.v1",
+        "naming_schema_version": "naming-report-output.v2",
+        "bazi_analysis_contract": {
+          "schema_version": "bazi-naming-basis-report-contract.v1",
+          "output_schema_version": "bazi-naming-basis-report-output.v1",
+          "exact_top_level_fields": [
+            "schema_version",
+            "chart_ref",
+            "chart_version",
+            "chart_hash",
+            "bazi_pdf_semantic_manifest_ref",
+            "manifest_hash",
+            "naming_requirement_manifest_ref",
+            "naming_requirement_manifest_hash",
+            "report_summary",
+            "interpretation_blocks",
+            "citations",
+            "uncertainties",
+            "limitations",
+            "safety_notes",
+            "covered_semantic_anchor_refs",
+            "covered_requirement_anchor_refs"
+          ],
+          "exact_dual_layer_fields": [
+            "professional_markdown",
+            "reader_explanation_markdown"
+          ],
+          "exact_interpretation_block_fields": [
+            "block_id",
+            "semantic_anchor_refs",
+            "candidate_scope",
+            "evidence_refs",
+            "citation_ids",
+            "professional_markdown",
+            "reader_explanation_markdown"
+          ],
+          "denominator_kind": "bazi_pdf_semantic_manifest_plus_naming_requirement_manifest"
+        },
+        "naming_contract": {
+          "schema_version": "naming-report-contract.v2",
+          "output_schema_version": "naming-report-output.v2",
+          "exact_top_level_fields": [
+            "schema_version",
+            "requirement_manifest_ref",
+            "requirement_manifest_hash",
+            "naming_rationale",
+            "candidates",
+            "comparison_or_selection_rationale",
+            "uncertainties",
+            "limitations",
+            "safety_notes",
+            "covered_requirement_anchor_refs"
+          ],
+          "exact_dual_layer_fields": [
+            "professional_markdown",
+            "reader_explanation_markdown"
+          ],
+          "exact_candidate_fields": [
+            "candidate_id",
+            "name",
+            "source_anchor_refs",
+            "cautions",
+            "external_verification_items",
+            "professional_markdown",
+            "reader_explanation_markdown"
+          ],
+          "denominator_kind": "naming_requirement_manifest",
+          "source_relation_owner": "deterministic_report_lineage",
+          "deterministic_scoring_forbidden": true,
+          "fixed_candidate_count": null
+        }
+      }
     },
     {
       "product_id": "naming_from_existing_bazi_report",
@@ -520,34 +1498,47 @@
           "trust_class": "locked_fact",
           "may_issue_instruction": false,
           "media_types": [
-            "application/json"
-          ],
-          "storage_class": "private_owner_scoped",
-          "owner_scope_policy": "required"
-        },
-        {
-          "role": "naming_requirement_brief",
-          "trust_class": "user_provided_data",
-          "may_issue_instruction": false,
-          "media_types": [
-            "application/json"
-          ],
-          "storage_class": "private_owner_scoped",
-          "owner_scope_policy": "required"
-        },
-        {
-          "role": "result_contract",
-          "trust_class": "instruction",
-          "may_issue_instruction": true,
-          "media_types": [
-            "application/json"
+            "application/zip"
           ],
           "storage_class": "private_owner_scoped",
           "owner_scope_policy": "required"
         }
       ],
       "result_schema_version": "naming-report-output.v2",
-      "relation_kind": "primary"
+      "relation_kind": "primary",
+      "result_contract": {
+        "schema_version": "naming-report-contract.v2",
+        "output_schema_version": "naming-report-output.v2",
+        "exact_top_level_fields": [
+          "schema_version",
+          "requirement_manifest_ref",
+          "requirement_manifest_hash",
+          "naming_rationale",
+          "candidates",
+          "comparison_or_selection_rationale",
+          "uncertainties",
+          "limitations",
+          "safety_notes",
+          "covered_requirement_anchor_refs"
+        ],
+        "exact_dual_layer_fields": [
+          "professional_markdown",
+          "reader_explanation_markdown"
+        ],
+        "exact_candidate_fields": [
+          "candidate_id",
+          "name",
+          "source_anchor_refs",
+          "cautions",
+          "external_verification_items",
+          "professional_markdown",
+          "reader_explanation_markdown"
+        ],
+        "denominator_kind": "naming_requirement_manifest",
+        "source_relation_owner": "deterministic_report_lineage",
+        "deterministic_scoring_forbidden": true,
+        "fixed_candidate_count": null
+      }
     },
     {
       "product_id": "public_knowledge_article_pipeline",

@@ -92,7 +92,9 @@ const createGateHarness = (input: Readonly<{ expectedMethod?: string; rejectMeth
 
 const exerciseMutationMethod = async (method: string): Promise<void> => {
   const harness = createGateHarness({ expectedMethod: method });
-  await harness.runtime.send(106, method, {});
+  await harness.runtime.withProviderInputGuard({ started: false, physicalInputCount: 0, mutationKind: method },
+    () => { assert.equal(harness.runtime.isAttached(106), true); },
+    () => harness.runtime.send(106, method, {}));
   const freshRead = harness.runtime.send(106, "DOM.getDocument", { depth: 0 });
   await freshRead;
   assert.equal(harness.actionCount(), 1, `${method} must execute exactly once`);
@@ -102,7 +104,9 @@ const exerciseMutationMethod = async (method: string): Promise<void> => {
 
 const exerciseTabCreation = async (): Promise<void> => {
   const harness = createGateHarness();
-  await harness.runtime.createProductionTab("https://chatgpt.com/");
+  await harness.runtime.withProviderInputGuard({ started: false, physicalInputCount: 0, mutationKind: "create" },
+    () => { assert.equal(harness.runtime.isAttached(106), true); },
+    () => harness.runtime.createProductionTab("https://chatgpt.com/"));
   const freshTab = harness.runtime.readTab(706);
   await freshTab;
   assert.equal(harness.actionCount(), 1);
@@ -123,7 +127,9 @@ const exerciseTabRemoval = async (): Promise<void> => {
 const exerciseRejectedMutation = async (): Promise<void> => {
   const harness = createGateHarness({ expectedMethod: "Input.insertText", rejectMethod: "Input.insertText" });
   let failureObservedAt = Number.NaN;
-  const rejectedAction = harness.runtime.send(106, "Input.insertText", {})
+  const rejectedAction = harness.runtime.withProviderInputGuard({ started: false, physicalInputCount: 0, mutationKind: "fill" },
+    () => { assert.equal(harness.runtime.isAttached(106), true); },
+    () => harness.runtime.send(106, "Input.insertText", {}))
     .then(() => null, (error: unknown) => {
       failureObservedAt = globalThis.performance.now();
       return error;
@@ -137,7 +143,9 @@ const exerciseChooserMismatch = async (): Promise<void> => {
   const harness = createGateHarness({ expectedMethod: "Input.dispatchMouseEvent" });
   let mismatchObservedAt = Number.NaN;
   const mismatch = harness.runtime.captureFileChooserOpened(106, 5_000, async () => {
-    await harness.runtime.send(106, "Input.dispatchMouseEvent", { type: "mouseReleased" });
+    await harness.runtime.withProviderInputGuard({ started: false, physicalInputCount: 0, mutationKind: "click" },
+      () => { assert.equal(harness.runtime.isAttached(106), true); },
+      () => harness.runtime.send(106, "Input.dispatchMouseEvent", { type: "mouseReleased" }));
     harness.chooserListener()({ tabId: 106 }, "Page.fileChooserOpened", { backendNodeId: "invalid" });
   }, async () => undefined).then(() => null, (error: unknown) => {
     mismatchObservedAt = globalThis.performance.now();
@@ -157,6 +165,12 @@ export const exerciseUniversalPostActionReadGate = async (): Promise<void> => {
     exerciseChooserMismatch(),
     exerciseRevokedInputGuards(),
   ]);
+  const unguarded = createGateHarness();
+  for (const attempt of [() => unguarded.runtime.send(106, "DOM.focus", {}),
+    () => unguarded.runtime.createProductionTab("https://chatgpt.com/"), () => unguarded.runtime.activateTab(106)]) {
+    await assert.rejects(attempt(), /BROWSER_COMMAND_PERMIT_INVALID/u);
+    assert.equal(unguarded.actionCount(), 0, "missing input guards permit no native action");
+  }
   const unknown = createGateHarness();
   await assert.rejects(unknown.runtime.send(106, "Future.unclassifiedMethod"),
     /BROWSER_UNREGISTERED_DEVTOOLS_METHOD/u,

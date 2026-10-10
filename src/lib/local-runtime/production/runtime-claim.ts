@@ -8,6 +8,7 @@ import {
   executionFailure,
   executionFailureMetadata,
   failureCode,
+  typedExecutionFailure,
 } from "../../execution-failure.js";
 import { classifyAttemptFailure, serializeTerminalFailureTransport } from "./terminal-failure.js";
 import {
@@ -21,6 +22,7 @@ import {
   type RemoteProductionDeviceJobStatus,
 } from "./cloud-reconciliation-client.js";
 import { ProductionRuntimeBoundaryError } from "./runtime-execution-heartbeat.js";
+import { typedRuntimeTransportFailure } from "./transport-failure.js";
 import type { ClaimedProductionTask } from "./transport-protocol.js";
 import { releaseLeaseWithLog, terminalSpanFailure } from "./runtime-logging.js";
 import {
@@ -106,11 +108,38 @@ export const reconcilePendingAttemptFailures = async (state: RuntimeState): Prom
         "INVALID_FIRST_FACT_RECONCILIATION_PENDING");
       continue;
     }
-    let remote: RemoteProductionDeviceJobStatus;
     try {
-      remote = await readProductionDeviceJobStatus(state.session, task.task.job_id);
+      const remote = await readProductionDeviceJobStatus(state.session, task.task.job_id);
+      if (pendingFailureConflicts(state, task, remote, failure)) continue;
+      if (!releaseReceiptMatches(remote, failure) && !remoteFailureMatches(remote, failure)) continue;
+      if (remote.next_action_code === "WAIT_NEW_ATTEMPT"
+        || remote.next_action_code === "CONSUME_CURRENT_RESULT") {
+        await applyRemoteFailureDisposition(state, task, remote);
+        continue;
+      }
+      if (remote.next_action_code !== "ACTIVE_ATTEMPT") {
+        throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_NEXT_ACTION_MISMATCH");
+      }
+      const disposition = classifyAttemptFailure(failure.failure_core);
+      if (disposition !== "same_attempt_provider_readback") {
+        state.store.setCurrentReason(task.task.job_id, "SOURCE_HANDOFF_RECONCILIATION_PENDING");
+        continue;
+      }
     } catch (error) {
-      if (!websiteJobAbsent(error)) throw error;
+      if (!websiteJobAbsent(error)) {
+        const transport = typedRuntimeTransportFailure(error);
+        const code = failureCode(error);
+        const local = transport !== null || code === "CLOUD_TRANSPORT_UNAVAILABLE"
+          || (typedExecutionFailure(error) !== null && ((code.startsWith("BROWSER_") && code !== "BROWSER_REPAIR_REQUIRED")
+            || ["PRODUCTION_ATTEMPT_FAILURE_NEXT_ACTION_MISMATCH", "PRODUCTION_ATTEMPT_FAILURE_RESULT_AUTHORITY_MISSING",
+              "PRODUCTION_ATTEMPT_FAILURE_RECEIPT_CONFLICT", "BUSINESS_ADMISSION_RESULT_HASH_MISMATCH",
+              "BUSINESS_ADMISSION_ATTEMPT_IDENTITY_MISSING"].includes(code)));
+        if (!local || (transport && [401, 403].includes(transport.httpStatus))) throw error;
+        state.lastErrorCode = failureCode(error, "ATTEMPT_RELEASE_READBACK_FAILED");
+        state.lastErrorReason = safeReason(error);
+        state.store.setCurrentReason(task.task.job_id, state.lastErrorCode);
+        continue;
+      }
       const active = state.activeAbort?.get(task.task.job_id);
       if (active) {
         active.abort("WEBSITE_JOB_ABSENT");
@@ -122,23 +151,6 @@ export const reconcilePendingAttemptFailures = async (state: RuntimeState): Prom
         state.store.setCurrentReason(task.task.job_id,
           failureCode(purgeError, "PRODUCTION_JOB_PURGE_FAILED"));
       }
-      continue;
-    }
-    if (pendingFailureConflicts(state, task, remote, failure)) continue;
-    if (!releaseReceiptMatches(remote, failure) && !remoteFailureMatches(remote, failure)) continue;
-    if (remote.next_action_code === "WAIT_NEW_ATTEMPT"
-      || remote.next_action_code === "CONSUME_CURRENT_RESULT") {
-      if (remote.next_action_code === "WAIT_NEW_ATTEMPT"
-        && state.browserAuthority.hasUnresolvedBrowserMutation()) continue;
-      await applyRemoteFailureDisposition(state, task, remote);
-      continue;
-    }
-    if (remote.next_action_code !== "ACTIVE_ATTEMPT") {
-      throw executionFailure("failed", "PRODUCTION_ATTEMPT_FAILURE_NEXT_ACTION_MISMATCH");
-    }
-    const disposition = classifyAttemptFailure(failure.failure_core);
-    if (disposition !== "same_attempt_provider_readback") {
-      state.store.setCurrentReason(task.task.job_id, "SOURCE_HANDOFF_RECONCILIATION_PENDING");
       continue;
     }
   }

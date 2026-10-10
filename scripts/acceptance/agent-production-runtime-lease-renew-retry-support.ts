@@ -69,7 +69,7 @@ const renewSessionFetch = (
     const url = String(input);
     if (url.endsWith("/sessions/open")) return successfulJsonResponse({
       session: { device_id: validDeviceCredential.device_id, worker_session_id: "worker-session:renew-retry",
-        worker_session_epoch: 1, control_contract_version: 44, attestation_seq: 0 },
+        worker_session_epoch: 1, control_contract_version: 45, attestation_seq: 0 },
       session_credential: {
         schema_version: "xuanxue-ai-worker-session-credential.v6",
         worker_session_id: "worker-session:renew-retry", worker_session_epoch: 1,
@@ -94,7 +94,7 @@ const openedSession = async (): Promise<ProductionWorkerSession> => {
     DeviceCredentialSchema.parse(validDeviceCredential),
     () => ({ agent_attested_in_flight: 0, browser_action_in_flight: 0, browser_authority_state: "present",
       browser_target_state: "absent", browser_lane_state: "idle", drain_state: "open", ledger_reconciled: true }),
-    HASH_B, "worker-instance:renew-retry",
+    HASH_B, () => true, "worker-instance:renew-retry",
   );
   await session.open();
   return session;
@@ -255,7 +255,44 @@ const exerciseAbortDuringWaitStopsFurtherRequests = async (): Promise<void> => {
   });
 };
 
+const exerciseBadSinkSessionBoundary = async (): Promise<void> => {
+  const priorFetch = globalThis.fetch;
+  let writable = true, calls = 0;
+  const openFetch = renewSessionFetch([], []);
+  globalThis.fetch = async (url, init) => {
+    calls += 1;
+    if (String(url).endsWith("/sessions/open")) return openFetch(url, init);
+    return successfulJsonResponse({ readback: true });
+  };
+  const session = new ProductionWorkerSession(DeviceCredentialSchema.parse(validDeviceCredential),
+    () => ({ agent_attested_in_flight: 0, browser_action_in_flight: 0, browser_authority_state: "present",
+      browser_target_state: "absent", browser_lane_state: "idle", drain_state: "open", ledger_reconciled: true }),
+    HASH_B, () => writable, "worker:sink");
+  try {
+    await session.open(); const identity = session.workerSessionId;
+    const queued = session.request("/internal/ai-production/v6/jobs/test/provider-cooldown", { method: "POST", body: "{}" });
+    writable = false;
+    await assert.rejects(queued, /RUNTIME_LOG_SINK_WRITE_FAILED/u);
+    await assert.rejects(session.heartbeat(), /RUNTIME_LOG_SINK_WRITE_FAILED/u);
+    assert.equal(calls, 1); assert.equal(session.workerSessionId, identity);
+    assert.equal(Reflect.get(session, "sequence"), 0);
+    assert.deepEqual(await session.request("/exact-readback", { method: "GET" }), { readback: true });
+    assert.equal(calls, 2);
+    writable = true;
+    let reply!: (response: Response) => void;
+    globalThis.fetch = async () => { calls += 1; return new Promise<Response>(resolve => { reply = resolve; }); };
+    const sent = session.request("/existing-send", { method: "POST", body: "{}" });
+    while (!reply) await Promise.resolve();
+    writable = false; reply(successfulJsonResponse({ readback: true }));
+    assert.deepEqual(await sent, { readback: true }, "a dispatched response still completes when the sink fails");
+    globalThis.fetch = async () => { calls += 1; return successfulJsonResponse({}); };
+    await session.close(); assert.equal(calls, 4, "exact existing session close remains cleanup");
+    await assert.rejects(session.open(), /RUNTIME_LOG_SINK_WRITE_FAILED/u); assert.equal(calls, 4);
+  } finally { globalThis.fetch = priorFetch; }
+};
+
 export const exerciseLeaseRenewRetry = async (): Promise<void> => {
+  await exerciseBadSinkSessionBoundary();
   await exerciseSingleTransientRecovery();
   await exerciseNonJsonGatewayFailureRetries();
   await exerciseFenceStaleAbortsImmediately();

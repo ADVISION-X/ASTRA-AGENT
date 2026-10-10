@@ -110,7 +110,7 @@ const inspectPhysicalInput = (s: Sources, findings: InspectorFinding[], lawId: s
 };
 
 const inspectRateLimitGate = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
-  if (lawId !== "LAW-LOCAL-BROWSER-SESSION-004-V56") return;
+  if (lawId !== "LAW-LOCAL-BROWSER-SESSION-004-V57") return;
   requireContract(has(s.access.getText(), ["CHATGPT_LOGICAL_ACCESS_INTERVAL_MS = 1_500",
     "private lastAccessStartedAt = performance.now()", "this.lastAccessStartedAt + CHATGPT_LOGICAL_ACCESS_INTERVAL_MS",
     "this.tail = entered.then(() => undefined, () => undefined)"])

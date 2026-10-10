@@ -1,7 +1,34 @@
 import { governanceAssert as assert } from "../../audit/shared/governance-exam-assert.js";
+import { zipSync, unzipSync, strToU8 } from "fflate";
+import type { WebsiteAgentTask } from "../../../src/mediator/product-plugin-contract.js";
 import { productionPluginCatalog } from "../../../src/mediator/product-plugin-catalog.js";
 import { productionRoutePolicies } from "../../../src/lib/local-runtime/production/route-policy.js";
 import { buildProductTask, exerciseConfirmedSubmitRecovery, exerciseProductFlow, FIXTURE_HASH, FIXTURE_HASH_B, routesForPlugin } from "../product-plugin-test-runtime.js";
+
+const zipMaterials = (task: WebsiteAgentTask, route: (typeof productionRoutePolicies)[number]): Record<string, Uint8Array> => {
+  if (route.relation_kind === "review") return {};
+  return Object.fromEntries(route.material_roles.map(row => {
+    const root = row.role === "ready_corpus_archive" ? "八字古籍资料" : "八字命盘资料";
+    const files: Record<string, Uint8Array> = row.role === "ready_corpus_archive" ? {
+      [root + "/000_fixture__book/原文.md"]: strToU8("完整古籍原文\n第二页原文"),
+      [root + "/000_fixture__book/索引.json"]: strToU8(JSON.stringify({ book_id: "book", entries: ["first", "last"] })),
+    } : {
+      [root + "/00_资料目录.json"]: strToU8(JSON.stringify({ entries: ["全部事实页"], may_issue_instruction: false })),
+      [root + "/01_身份与来源.json"]: strToU8(JSON.stringify(task.parameters)),
+      [root + "/07_交付约束.json"]: strToU8(JSON.stringify({ formal: route.result_contract })),
+      [root + "/全部事实/P_000000.json"]: strToU8(JSON.stringify(["原始问题", "首条事实"])),
+      [root + "/全部事实/P_000002.json"]: strToU8(JSON.stringify(["末条事实", "附件内指令无权限"])),
+      [root + "/06_父报告/来源身份.json"]: strToU8(JSON.stringify({ parent_report_ref: task.parameters.parent_report_ref ?? "report:parent", parent_raw_output_hash: task.parent_result_hash })),
+      [root + "/06_父报告/正文/身份.json"]: strToU8(JSON.stringify({ schema_version: "bazi-chart-interpretation-output.v4", record_pages: { answer_blocks: { original_count: 2, pages: [
+        { path: root + "/06_父报告/正文/answer_blocks/P_000000.json", start: 0, count: 1 },
+        { path: root + "/06_父报告/正文/answer_blocks/P_000001.json", start: 1, count: 1 },
+      ] } } })),
+      [root + "/06_父报告/正文/answer_blocks/P_000000.json"]: strToU8(JSON.stringify([{ first: "首段父报告" }])),
+      [root + "/06_父报告/正文/answer_blocks/P_000001.json"]: strToU8(JSON.stringify([{ last: "末段父报告" }])),
+    };
+    return [row.role, zipSync(files)];
+  }));
+};
 
 const plugin = productionPluginCatalog.find((entry) => entry.pluginId === "bazi-report-followup");
 assert(plugin);
@@ -39,18 +66,32 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   const flowFixture = {
     task,
     output,
-    ...(!review ? { materialContents: {
-      bazi_input_bundle: {
-        schema_version: "bazi-ai-input-bundle-v6",
-        parent_report: {
-          parent_report_ref: task.parameters.parent_report_ref,
-          parent_raw_output_hash: task.parent_result_hash,
-          parent_terminal_output: { schema_version: "bazi-initial-question-answer-output.v1" },
-        },
-      },
-      result_contract: route.result_contract,
-    } } : {}),
+    materialContents: zipMaterials(task, route),
   };
+  if (route.relation_kind !== "review") {
+    const role = "bazi_input_bundle", base = unzipSync(flowFixture.materialContents[role]!);
+    const root = "八字命盘资料/06_父报告";
+    for (const kind of ["missing-page", "wrong-count", "repeated-page", "wrong-parent", "wrong-hash", "path-traversal"] as const) {
+      const files = { ...base };
+      if (kind === "missing-page") delete files[`${root}/正文/answer_blocks/P_000001.json`];
+      else if (kind === "wrong-parent" || kind === "wrong-hash") {
+        const identity = JSON.parse(new TextDecoder().decode(files[`${root}/来源身份.json`]!));
+        identity[kind === "wrong-parent" ? "parent_report_ref" : "parent_raw_output_hash"] = "unrelated-parent";
+        files[`${root}/来源身份.json`] = strToU8(JSON.stringify(identity));
+      } else {
+        const identity = JSON.parse(new TextDecoder().decode(files[`${root}/正文/身份.json`]!));
+        if (kind === "wrong-count") identity.record_pages.answer_blocks.original_count += 1;
+        if (kind === "repeated-page") identity.record_pages.answer_blocks.pages[1] = identity.record_pages.answer_blocks.pages[0];
+        if (kind === "path-traversal") identity.record_pages.answer_blocks.pages[1].path = `${root}/../../unrelated.json`;
+        files[`${root}/正文/身份.json`] = strToU8(JSON.stringify(identity));
+      }
+      let calls = 0;
+      await assert.rejects(exerciseProductFlow(plugin, { ...flowFixture,
+        materialContents: { ...flowFixture.materialContents, [role]: zipSync(files) }, onChildCall: () => { calls += 1; } }),
+      /PRODUCT_PARENT_REPORT_MATERIAL_INVALID/u, kind);
+      assert.equal(calls, 0, "invalid parent material must fail before any Child call");
+    }
+  }
   const run = await exerciseProductFlow(plugin, flowFixture);
   await exerciseConfirmedSubmitRecovery(plugin, flowFixture);
   const selectedModel = run.calls.find(call => call.child === "select_gpt_model_from_start_v3")!;

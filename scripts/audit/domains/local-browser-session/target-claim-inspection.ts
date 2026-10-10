@@ -209,10 +209,11 @@ const inspectPhysicalReleaseProof = (s: Sources, context: InspectorContext, find
     && lease.includes("pendingMutationCount: () => this.commandActor.pendingMutationCommandIds(this.executionBinding).length")
     && admission.includes('value.kind !== "park-target"') && !lease.includes("close: async") && !close
     && ordered(lifecycle, ["finally", "this.active = false"])
-    && includesAll(lane, ["this.hasUnresolvedMutation()", 'waiter.kind === "acquire"', "countDispatched(waiter.jobId)",
-      'waiter.releaseAuthority !== "website-admin-deletion"', "index += 1"])
+    && includesAll(lane, ["index += 1", "waiter.eligibleAt", "observationNotBefore"])
+    && !body(s.lane, "BrowserLaneCoordinator", "nextWaiter").includes("hasUnresolvedMutation")
+    && !body(s.lane, "BrowserLaneCoordinator", "nextWaiter").includes("countDispatched")
     && !/settleRetiredTargetLocal|allDispatchedTargetsSettled|website-permanent-revocation/u.test(lane),
-  findings, lawId, paths.manager, "Product settlement must park without closing; unresolved WAL blocks all new physical work except authorized Website deletion.");
+  findings, lawId, paths.manager, "Product settlement must park without closing; historical unresolved WAL must not block FIFO eligibility or independent job release.");
   const continuation = `${s.lease.getText()}\n${s.lane.getText()}\n${s.store.getText()}\n${s.evidence.getText()}`;
   requireContract(includesAll(continuation, ["parentAttemptId?: never", "parentAttemptId: wait.parentAttemptId", "parentAttemptId: string",
     "waiter.parentAttemptId!, waiter.binding.productStepId", "where job_id=? and attempt_id=? and product_step_id=?",

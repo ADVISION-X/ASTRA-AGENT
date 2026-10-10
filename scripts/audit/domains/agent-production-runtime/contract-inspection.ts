@@ -6,14 +6,14 @@ import type { InspectorContext, InspectorFinding } from "../../shared/inspector-
 import { producerClaimRoutesFor } from "../../shared/proof-observation.js";
 
 export const LAWS = {
-  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V75",
-  credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V11",
-  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V45",
-  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V44",
-  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V42",
-  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V46",
-  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V46",
-  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V47",
+  core: "LAW-AGENT-PRODUCTION-RUNTIME-001-V76",
+  credential: "LAW-AGENT-PRODUCTION-RUNTIME-002-V12",
+  route: "LAW-AGENT-PRODUCTION-RUNTIME-003-V46",
+  admission: "LAW-AGENT-PRODUCTION-RUNTIME-004-V45",
+  database: "LAW-AGENT-PRODUCTION-RUNTIME-005-V43",
+  storage: "LAW-AGENT-PRODUCTION-RUNTIME-006-V47",
+  staticQuality: "LAW-AGENT-PRODUCTION-RUNTIME-007-V47",
+  dynamicProof: "LAW-AGENT-PRODUCTION-RUNTIME-008-V48",
 } as const;
 export const ALL_LAWS = Object.values(LAWS);
 export const RUNTIME_ROOT = "src/lib/local-runtime/production";
@@ -233,8 +233,8 @@ const inspectAdmission = (context: InspectorContext, findings: InspectorFinding[
 
 const inspectDependencies = (context: InspectorContext, findings: InspectorFinding[]): void => {
   for (const [name, id, version] of [
-    ["website-agent-task-result", "ai-acceptance.website-agent-task-result", 17],
-    ["xuanxue-ai-production-v6", "ai-acceptance.xuanxue-ai-production-v6", 44],
+    ["website-agent-task-result", "ai-acceptance.website-agent-task-result", 18],
+    ["xuanxue-ai-production-v6", "ai-acceptance.xuanxue-ai-production-v6", 45],
   ] as const) {
     const path = `docs/specs/agent-production-runtime/${name}.dependency.spec.json`;
     const dependency = JSON.parse(read(context, path)) as { contract: Record<string, unknown>; lawIds: string[] };
@@ -250,15 +250,15 @@ const inspectDependencies = (context: InspectorContext, findings: InspectorFindi
     parameter_types: Record<string, unknown>; routes: { product_id: string; action_id: string; relation_kind: string;
       result_contract?: unknown; material_roles: { role: string }[]; required_parameter_keys: string[] }[] };
   const identities = projection.routes.map((route) => `${route.product_id}\0${route.action_id}`);
-  const currentRoutes = projection.contract_version === 17 && projection.routes.length === 40
+  const currentRoutes = projection.contract_version === 18 && projection.routes.length === 40
     && Object.keys(projection.parameter_types).length === 48
-    && projection.routes.filter((route) => route.result_contract !== undefined).length === 34
+    && projection.routes.filter((route) => route.result_contract !== undefined).length === 40
     && new Set(identities).size === 40
     && projection.routes.every((route) => route.relation_kind !== "reservation"
       && !route.material_roles.some((role) => role.role === "bazi_private_base_input"))
     && projection.routes.every((route) => new Set(route.required_parameter_keys).size === route.required_parameter_keys.length);
   reject(findings, LAWS.route, "static.contract", projectionPath, "current-route-projection", currentRoutes,
-    "Projection must carry task-result v17 and the exact 40/48/34/0 provider denominators without a private base.");
+    "Projection must carry task-result v18 and the exact 40/48/40/0 provider denominators without a private base.");
   inspectProviderGenerator(context, findings);
 };
 const providerProjectionDecodesOriginalBytes = (generator: SourceFile): boolean => {
@@ -287,7 +287,7 @@ const inspectProviderGenerator = (context: InspectorContext, findings: Inspector
   const generator = sourceFor(context, generatorPath);
   reject(findings, LAWS.route, "static.contract", generatorPath, "provider-generator",
     providerBytesComeFromWebsite(generator) && generator.getVariableDeclaration("resultContractRoutes") === undefined
-    && compare(generator, "contracts", SyntaxKind.ExclamationEqualsEqualsToken, "34")
+    && compare(generator, "contracts", SyntaxKind.ExclamationEqualsEqualsToken, "40")
     && compare(generator, "identities.size", SyntaxKind.ExclamationEqualsEqualsToken, "40")
     && compare(generator, "used.size", SyntaxKind.ExclamationEqualsEqualsToken, "48")
     && calls(generator, "writeFile").some((call) => call.getArguments()[0]?.getText() === "pending"

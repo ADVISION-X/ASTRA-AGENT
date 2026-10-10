@@ -350,13 +350,15 @@ try {
     "confirmed submit payload survives Browser restart for the same effect readback");
   assert.equal(restartedOutcome?.providerEffectIdentityHash, first.logicalMutationId,
     "the public typed outcome carries the Browser-owned provider effect identity");
-  assert.throws(() => restarted.prepare({ ...identity("attempt:2", 1),
-    domainRejectionRevision: true }), /BROWSER_MUTATION_UNSETTLED/u,
-  "an unresolved physical input blocks even a Website-authorized new revision");
-  restarted.settleTerminalReceipt(terminalFact(restarted.readCommand(unresolvedParent.commandId)!.identity, { terminal: "rejected", resultHash: hash("terminal-no-input"), mutationOutcome: "no" }));
+  const unrelatedUnknown = restarted.readCommand(unresolvedParent.commandId);
   assert.doesNotThrow(() => restarted.prepare({ ...identity("attempt:2", 1),
     domainRejectionRevision: true }),
-    "a new revision may proceed only after the old writer has a reliable terminal");
+    "an unrelated unresolved writer must not block the exact Website-authorized new revision");
+  assert.deepEqual(restarted.readCommand(unresolvedParent.commandId), unrelatedUnknown);
+  restarted.settleTerminalReceipt(terminalFact(restarted.readCommand(unresolvedParent.commandId)!.identity, { terminal: "rejected", resultHash: hash("terminal-no-input"), mutationOutcome: "no" }));
+  assert.throws(() => restarted.prepare({ ...identity("attempt:2", 1),
+    domainRejectionRevision: true }), /BROWSER_PROVIDER_EFFECT_REPLAY_FORBIDDEN/u,
+    "settling an unrelated writer cannot authorize a second preparation of the same provider effect");
   const rejectedNoInput = { ...identity("attempt:1", 2), domainRejectionRevision: true };
   restarted.prepare(rejectedNoInput);
   restarted.markDispatched(rejectedNoInput.commandId);
@@ -422,8 +424,8 @@ try {
   assert.deepEqual(grantRows().map((row) => row.command_id), [rebound.commandId]);
   afterCrash.markDispatched(rebound.commandId);
   assert.throws(() => afterCrash.prepare({ ...rebound, commandId: "command:risk-unsettled" }),
-    /BROWSER_MUTATION_UNSETTLED/u,
-    "an unresolved dispatch cannot obtain a second Provider command");
+    /BROWSER_REPLAY_GRANT_CONSUMED/u,
+    "an unresolved dispatch still consumes its exact risk grant and cannot obtain a second Provider command");
   afterCrash.settleTerminalReceipt(terminalFact(afterCrash.readCommand(rebound.commandId)!.identity, { terminal: "rejected", resultHash: hash("risk-zero-input-proof"), mutationOutcome: "no", failureCode: "BROWSER_TARGET_NOT_INTERACTIVE", nativeCauseCode: null, physicalInputCount: 0 }));
   const firstZeroAuthorityHash = afterCrash.authorityHash(rebound.commandId);
   const afterNoInput = { ...rebound, commandId: "command:risk-after-no-input",
@@ -487,7 +489,7 @@ try {
 }
 process.stdout.write("LOCAL_BROWSER_ATTEMPT_FENCE_ACCEPTANCE_PASS\n");
 emitQualityProofObservation({
-  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V56", evidenceMode: "exam.golden",
+  lawId: "LAW-LOCAL-BROWSER-SESSION-004-V57", evidenceMode: "exam.golden",
   clauses: ["forbidden:0", "forbidden:3", "forbidden:4", "forbidden:5"],
   locator: "acceptance:local-browser-provider-effect-recovery:risk-grant",
   observedValue: "original Provider effect sets remain in WAL; a risk grant rebinds only proven zero-input PREPARED and retries only proven REJECTED/no commands until one physical input",

@@ -15,9 +15,10 @@ import type {
 import { assertBrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
 import { requireRuntimeLogWrite, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { executionFailure } from "../../lib/execution-failure.js";
-import type { GptProductionExecutionInput } from "./production-ports.js";
+import type { GptProductionBrowserAuthority, GptProductionExecutionInput } from "./production-ports.js";
 
 type GptBrowserLeaseAuthority = Readonly<{
+  readSourceConfirmedProviderEffect?: GptProductionBrowserAuthority["readSourceConfirmedProviderEffect"];
   acquireJobBoundTargetLease(
     binding: BrowserExecutionBinding,
     ownerId: string,
@@ -43,6 +44,7 @@ export type ProductionGptBrowserCall = {
     submitIdentity: BrowserAtomicStepIdentity;
     canonicalConversationUrl: string;
     userTurnId: string;
+    sourceReadback?: NonNullable<NonNullable<GptProductionExecutionInput["readbackOnlyCalls"]>[number]["source"]>;
   }>) | null;
   settledResultPayloadHash: GptHash | null;
   recoverySelectionRequired: boolean;
@@ -60,17 +62,30 @@ const ATOMIC_BROWSER_COMMANDS = new Set<PropertyKey>([
   "park",
 ]);
 
-const assertConfirmedProviderReadback = (active: ProductionGptBrowserCall): void => {
+const assertConfirmedProviderReadback = (active: ProductionGptBrowserCall,
+  browserAuthority: GptBrowserLeaseAuthority, jobId: string): void => {
   const confirmed = active.confirmedProviderEffect;
-  const prior = confirmed ? active.browser.readAtomicStepOutcome(confirmed.submitIdentity) : null;
-  const payload = prior?.terminalPayload;
+  if (!confirmed) throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
+  const source = confirmed.sourceReadback;
+  if (source && !browserAuthority.readSourceConfirmedProviderEffect) {
+    throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
+  }
+  const old = source ? browserAuthority.readSourceConfirmedProviderEffect!({
+    jobId, ...source, productStepId: confirmed.submitIdentity.productStepId,
+    callId: confirmed.submitIdentity.callId, childCapabilityId: confirmed.submitIdentity.childCapabilityId,
+  }) : null;
+  const prior = source ? null : active.browser.readAtomicStepOutcome(confirmed.submitIdentity);
+  const payload = old?.terminalPayload ?? prior?.terminalPayload;
   const record = payload && typeof payload === "object" && !Array.isArray(payload)
     ? payload as Readonly<Record<string, unknown>> : null;
-  const identityMatches = prior?.providerEffectIdentityHash === confirmed?.providerEffectIdentityHash
-    && prior?.mutationOutcome === confirmed?.mutationOutcome;
-  const payloadMatches = record?.canonicalConversationUrl === confirmed?.canonicalConversationUrl
-    && record?.userTurnId === confirmed?.userTurnId;
-  if (!confirmed || prior?.state !== "confirmed" || !identityMatches || !payloadMatches) {
+  const identityMatches = old ? old.exactCallIdentityHash === confirmed.exactCallIdentityHash
+    && old.authorityHash === confirmed.evidenceHash && old.authorityRef === confirmed.evidenceRef
+    && old.actionOrdinal === confirmed.submitIdentity.actionOrdinal && old.inputHash === confirmed.submitIdentity.inputHash
+    && source?.effectIdentityHash === confirmed.providerEffectIdentityHash
+    : prior?.state === "confirmed" && prior.providerEffectIdentityHash === confirmed.providerEffectIdentityHash
+      && prior.mutationOutcome === confirmed.mutationOutcome;
+  if (!identityMatches || record?.canonicalConversationUrl !== confirmed.canonicalConversationUrl
+    || record?.userTurnId !== confirmed.userTurnId) {
     throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
   }
 };
@@ -236,7 +251,7 @@ export class ProductionGptBrowserLifecycle {
     if (active.browser.pendingMutationCount() > 0) {
       throw executionFailure("failed", "BROWSER_NORMAL_PROVIDER_WAIT_WITH_PENDING_MUTATION");
     }
-    assertConfirmedProviderReadback(active);
+    assertConfirmedProviderReadback(active, this.browserAuthority, this.execution.jobId);
     const eligibleAt = Date.now() + PROVIDER_OBSERVATION_MIN_INTERVAL_MS;
     if (eligibleAt > observationDeadlineAt) return "deadline";
     this.emitProviderWaitLog(active, productStepId, callId, childCapabilityId, reason);

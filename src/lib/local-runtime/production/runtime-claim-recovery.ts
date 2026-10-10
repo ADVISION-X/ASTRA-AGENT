@@ -4,7 +4,7 @@ import { buildProductionLeaseRelease } from "./cloud-client.js";
 import { classifyAttemptFailure, type AttemptFailureFirstFact } from "./terminal-failure.js";
 import { attemptFailureAuthorityConflict, firstFact, postFailureAndReadback,
   releaseReceiptMatches, remoteFailureMatches } from "./runtime-attempt-failure-readback.js";
-import { historicalEffectsSettled } from "./runtime-source-readback-proofs.js";
+import { historicalEffectsSettled, sourceReadbackProofs } from "./runtime-source-readback-proofs.js";
 import type { RuntimeState } from "./runtime-state.js";
 import type { ClaimedProductionTask } from "./transport-protocol.js";
 import type { RemoteProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
@@ -15,7 +15,7 @@ type RemoteDisposition = (state: RuntimeState, task: StoredProductionTask,
 type Recovery = Readonly<{
   reconciledFailure: AttemptFailureFirstFact | null; stopBeforeProduct: boolean;
   readbackOnlyCalls: readonly Readonly<{ productStepId: string; callId: string;
-    childCapabilityId: "submit_exact_gpt_turn_once" }>[] | null;
+    childCapabilityId: "submit_exact_gpt_turn_once"; source?: Readonly<{ sourceAttemptId: string; sourceResultRevision: number; effectIdentityHash: `sha256:${string}`; walAuthorityHash: `sha256:${string}` }> }>[] | null;
 }>;
 
 function grantAwaitsSourceSwitch(state: RuntimeState, job: ClaimedProductionTask,
@@ -96,8 +96,7 @@ function canResumeRiskGrantAfterZeroInputFailure(
     && core.mutation_outcome === "no" && core.provider_effect_identity_hash !== null;
   if (completeProviderZero && !provenZeroInputCallMatches(state, job, failure, grant)) return false;
   const before = state.browserAuthority.readJobBrowserHistoryEvidence(job.job_id);
-  if (!before.walHistoryVerified || before.unresolvedCommandCount !== 0
-    || before.unresolvedCommandSetHash !== hashCanonical([])
+  if (!before.walHistoryVerified
     || before.replayEffects.some(effect => effect.attemptId === job.grant.attempt_id)) return false;
   const source = state.store.readIssuedSourceHandoff(job.job_id, job.grant.attempt_id, grant.source_seal_hash);
   if (source?.kind !== "delivery_priority_replay") return false;
@@ -106,6 +105,42 @@ function canResumeRiskGrantAfterZeroInputFailure(
   const after = state.browserAuthority.readJobBrowserHistoryEvidence(job.job_id);
   return settled && hashCanonical(after) === hashCanonical(before)
     && state.browserAuthority.readAttemptPhysicalInputState(job.job_id, job.grant.attempt_id) === "zero";
+}
+
+function changedRiskSourceReadbacks(state: RuntimeState, job: ClaimedProductionTask): Recovery["readbackOnlyCalls"] {
+  const grant = job.grant.delivery_priority_replay_grant;
+  if (!job.grant.same_accepted_attempt || !grant
+    || state.browserAuthority.readAttemptPhysicalInputState(job.job_id, job.grant.attempt_id) !== "zero") return null;
+  const source = state.store.readIssuedSourceHandoff(job.job_id, job.grant.attempt_id, grant.source_seal_hash);
+  const before = state.browserAuthority.readJobBrowserHistoryEvidence(job.job_id);
+  if (source?.kind !== "delivery_priority_replay" || source.source_attempt_id !== grant.source_attempt_id
+    || !before.walHistoryVerified || before.historyHash === source.browser_history_hash) return null;
+  const observations = state.store.readSourceReadbackObservations(job.job_id, job.grant.attempt_id);
+  const settled = state.store.readAcceptedSourceSettlements(job.job_id);
+  const calls: NonNullable<Recovery["readbackOnlyCalls"]>[number][] = [];
+  for (const call of before.replayCalls) {
+    if (call.childCapabilityId !== "submit_exact_gpt_turn_once") continue;
+    const authorized = source.readback_proofs.find((proof) => proof.product_step_id === call.productStepId
+      && proof.call_id === call.callId && proof.child_capability_id === call.childCapabilityId);
+    if (!authorized) continue;
+    const effects = before.replayEffects.filter((effect) => effect.attemptId !== job.grant.attempt_id
+      && effect.productStepId === call.productStepId && effect.callId === call.callId
+      && effect.childCapabilityId === call.childCapabilityId
+      && authorized.effects.some((old) => old.effect_identity_hash === effect.effectIdentityHash)
+      && effect.anchorState === "trusted" && effect.state === "CONFIRMED"
+      && effect.mutationOutcome === "confirmed" && effect.physicalInputCount === 1
+      && sourceReadbackProofs({ ...before, replayCalls: [call], replayEffects: [effect] }, observations, settled) === null);
+    const effect = effects[0];
+    if (effect) calls.push(Object.freeze({ productStepId: call.productStepId, callId: call.callId,
+      childCapabilityId: "submit_exact_gpt_turn_once", source: Object.freeze({
+        sourceAttemptId: effect.attemptId, sourceResultRevision: effect.resultRevision,
+        effectIdentityHash: effect.effectIdentityHash, walAuthorityHash: effect.walAuthorityHash }) }));
+  }
+  if (hashCanonical(state.browserAuthority.readJobBrowserHistoryEvidence(job.job_id)) !== hashCanonical(before)
+    || state.browserAuthority.readAttemptPhysicalInputState(job.job_id, job.grant.attempt_id) !== "zero") {
+    throw executionFailure("failed", "PRODUCTION_SOURCE_EFFECT_IDENTITY_AMBIGUOUS");
+  }
+  return calls.length ? Object.freeze(calls) : null;
 }
 
 export const reconcileClaimAttemptFailure = async (
@@ -121,7 +156,8 @@ export const reconcileClaimAttemptFailure = async (
     throw executionFailure("failed", "PRODUCTION_FIRST_FACT_OPAQUE_RECONCILIATION_REQUIRED");
   }
   assertLocalFailureAuthority(local ?? null, job, remote);
-  if (!failure) return Object.freeze({ reconciledFailure: null, stopBeforeProduct: false, readbackOnlyCalls: null });
+  if (!failure) return Object.freeze({ reconciledFailure: null, stopBeforeProduct: false,
+    readbackOnlyCalls: changedRiskSourceReadbacks(state, job) });
   const reconciled = await reconcileRelease(state, job, remote, failure, parentSpanId, applyRemoteFailureDisposition);
   if (reconciled.stopBeforeProduct) return reconciled;
   if (remote.next_action_code !== "ACTIVE_ATTEMPT") {
@@ -129,6 +165,8 @@ export const reconcileClaimAttemptFailure = async (
   }
   const effective = reconciled.reconciledFailure!;
   if (canResumeRiskGrantAfterZeroInputFailure(state, job, effective)) return reconciled;
+  const sourceReadbacks = changedRiskSourceReadbacks(state, job);
+  if (sourceReadbacks) return Object.freeze({ ...reconciled, readbackOnlyCalls: sourceReadbacks });
   const disposition = classifyAttemptFailure(effective.failure_core);
   if (disposition === "fail_closed") throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_REQUIRED");
   const sameAttempt = local!.current_attempt_id === job.grant.attempt_id;

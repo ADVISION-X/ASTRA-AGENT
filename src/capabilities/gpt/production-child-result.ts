@@ -82,6 +82,7 @@ export const persistGptChildOutcome = async (input: Readonly<{
   intent: GptAnyChildCapabilityIntent; execution: ExecutionInput;
   browsers: ProductionGptBrowserLifecycle; browserCall: ProductionGptBrowserCall | undefined;
   browserAtomicIdentity?: BrowserAtomicStepIdentity; evidenceStore: GptEvidenceStorePort;
+  confirmedSubmission?: ProductionGptBrowserCall["confirmedProviderEffect"];
 }>): Promise<Readonly<{ evidenceRef: string; evidenceHash: GptHash; artifactRefs: readonly string[] }>> => {
   const { result, execution } = input;
   if (result.status !== "success" && result.failureCode === "BROWSER_KNOWN_GPT_RATE_LIMIT") {
@@ -92,7 +93,8 @@ export const persistGptChildOutcome = async (input: Readonly<{
     input.browsers, input.browserCall, input.browserAtomicIdentity);
   const artifactRefs = await persistGptEvidenceArtifacts({
     result, intent: input.intent, evidenceStore: input.evidenceStore,
-    jobId: execution.jobId, attemptId: execution.attemptId,
+    jobId: execution.jobId,
+    attemptId: input.confirmedSubmission?.sourceReadback?.sourceAttemptId ?? execution.attemptId,
     exactCallIdentityHash: gptExactCallIdentityHash(input.intent),
   });
   return Object.freeze({ artifactRefs, evidenceHash: result.proof.evidenceHash,

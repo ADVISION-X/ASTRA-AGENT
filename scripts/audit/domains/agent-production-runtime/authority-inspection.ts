@@ -200,16 +200,17 @@ const inspectCooldown = (context: InspectorContext, findings: InspectorFinding[]
   const returnHandle = begin?.getDescendantsOfKind(SyntaxKind.ReturnStatement)[0];
   const loops = sourceFor(context, runtimePath("runtime-loops"));
   const valid = enqueue !== undefined && returnHandle !== undefined && enqueue.getStart() < returnHandle.getStart()
-    && hasCall(gate, "this.store.hasUndeliveredProviderCooldown")
+    && gate?.getBodyText()?.trim() === "return true;"
     && hasCall(owner?.getMethod("assertProviderSubmitAllowed"), "this.store.hasUndeliveredProviderCooldown")
-    && hasCall(observe, "this.store.latestProviderCooldownClearance")
+    && hasCall(observe, "this.store.latestProviderCooldownServerNow")
+    && !hasCall(observe, "this.store.latestProviderCooldownClearance")
     && compare(observe, "Date.parse(input.serverNow)", SyntaxKind.LessThanToken, "Date.parse(latestIncidentServerNow)")
     && calls(source, "Date.now").length === 0
     && hasCall(loops, "state.providerRateLimitControl.canRequestClaimAuthority")
     && hasCall(loops, "state.providerRateLimitControl.observeWebsiteAuthority")
     && hasCall(owner?.getMethod("reconcilePendingIntents"), "this.store.deliverOutbox");
   reject(findings, LAWS.core, "static.ast", path, "provider-cooldown-durable-authority", valid,
-    "A durable intent must close claim/submit before acknowledgement, and only Website clearance may reopen it.");
+    "A new undelivered incident must close dangerous submit; claim reads current Website eligibility without a historical clearance gate.");
   const receipt = bodyFor(sourceFor(context, runtimePath("provider-cooldown-receipt")), "parseProviderCooldownReceipt");
   reject(findings, LAWS.database, "static.ast", runtimePath("provider-cooldown-receipt"), "cooldown-receipt-full-hash",
     compare(receipt, "receiptHash", SyntaxKind.ExclamationEqualsEqualsToken, "hashCanonical(core)"),
@@ -238,8 +239,10 @@ const inspectStorage = (context: InspectorContext, findings: InspectorFinding[])
   reject(findings, LAWS.storage, "static.ast", path, "readonly-inventory-startup-gate",
     writes.length === 0 && calls(startup, "readProductionRuntimeStorageInventory").length > 0
     && calls(startup, "store.storageResponsibilities").length > 0
-    && errors(startup).includes("PRODUCTION_ORPHAN_STORAGE_RECONCILIATION_REQUIRED"),
-    "Storage inventory must remain read-only and block new execution on orphan or ambiguous ownership.");
+    && !errors(startup).includes("PRODUCTION_ORPHAN_STORAGE_RECONCILIATION_REQUIRED")
+    && !startup.getText().includes("orphan_directory_count")
+    && calls(startup, "store.assertStartupDataIntegrity").length > 0,
+    "Storage inventory must remain read-only; orphan diagnostics cannot block the original worker, and shared Store integrity stays enforced.");
   const source = sourceFor(context, runtimePath("runtime-business-admission"));
   const absent = bodyFor(source, "websiteJobAbsent");
   const purge = bodyFor(source, "purgeDeletedJob");

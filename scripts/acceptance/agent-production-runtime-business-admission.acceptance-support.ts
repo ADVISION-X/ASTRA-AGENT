@@ -356,16 +356,14 @@ const exerciseCompletedAdmissionCleanup = async (
   }
   assert.equal(releaseCalls, 1, "one blocked cleanup cannot prevent the other admissions");
   assert.equal(store.pendingBrowserCleanupJobIds().length, 3);
-  rejectCleanup(new Error("BROWSER_TARGET_CLEANUP_FAILED")); await blockedCleanup;
+  rejectCleanup(executionFailure("failed", "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE")); await blockedCleanup;
   assert.equal(store.pendingBrowserCleanupJobIds().length, 3);
   let retried = 0;
-  for (let remaining = 3; remaining > 0; remaining -= 1) {
-    await reconcileCompletedBrowserTargets({ store, abort,
-      browserAuthority: { releaseJobBoundTarget: async () => { retried += 1; } },
-    } as never);
-    assert.equal(store.pendingBrowserCleanupJobIds().length, remaining - 1,
-      "one iteration settles only one original cleanup marker");
-  }
+  await reconcileCompletedBrowserTargets({ store, abort,
+    browserAuthority: { releaseJobBoundTarget: async () => { retried += 1; } },
+  } as never);
+  assert.equal(store.pendingBrowserCleanupJobIds().length, 0,
+    "one finite iteration settles every eligible original cleanup marker");
   await reconcileCompletedBrowserTargets({ store, abort,
     browserAuthority: { releaseJobBoundTarget: async () => { throw new Error("DUPLICATE_CLEANUP"); } },
   } as never);

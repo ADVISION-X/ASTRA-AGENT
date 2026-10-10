@@ -88,7 +88,7 @@ const until = async (condition: () => boolean): Promise<void> => { const deadlin
   while (!condition()) { if (Date.now() >= deadline) throw new Error("FIXTURE_CONDITION_TIMEOUT"); await new Promise<void>(resolve => setTimeout(resolve, 1)); } };
 const waitForCreatedTab = (id: number) => until(() => state.nextId > id);
 const job = `sha256:${"a".repeat(64)}` as const;
-const first = authority.acquireJobBoundChatGptTarget("fresh", job); await waitForCreatedTab(3);
+const first = authority.acquireJobBoundChatGptTarget("fresh", job, undefined, () => { assert.match(job, /^sha256:[a-f0-9]{64}$/u); }); await waitForCreatedTab(3);
 assert.deepEqual(attached, []); assert.deepEqual([...frames], []);
 tabUpdated(3, { status: "complete" }, { id: 3, url: "https://chatgpt.com/" }); await first;
 assert.deepEqual(attached, [3]); assert.ok(state.physicalTargetsReads > 0); assert.deepEqual(state.created, { active: true, url: "https://chatgpt.com/" });
@@ -97,7 +97,7 @@ assert.equal(frames[0]!.body.claimOrigin, "https://chatgpt.com"); const initialC
 const targetRef = String(initialClaim.targetRef), documentRef = String(initialClaim.documentRef), target = authority.resolve(targetRef, documentRef);
 const execute = async (command: Parameters<ExtensionTargetAuthority["executeRegisteredCommand"]>[0], current = target,
   kind: Parameters<ExtensionTargetAuthority["executeRegisteredCommand"]>[2] = "mutation") => {
-  const result = await authority.executeRegisteredCommand(command, current, kind, `sha256:${"e".repeat(64)}`);
+  const result = await authority.executeRegisteredCommand(command, current, kind, `sha256:${"e".repeat(64)}`, () => { assert.deepEqual(authority.resolve(current.targetRef, current.documentRef), current); });
   const row = result as Record<string, unknown>; return row?.schemaVersion === "grasseye.browser.command-preflight.v1" ? row.commandResult : result;
 };
 await exerciseAuthenticatedMedia({ authority, targetRef, documentRef, setRuntime: callback => { state.runtime = callback; } }); assert.deepEqual(activated, []);
@@ -154,21 +154,21 @@ const currentClaim = frames.at(-1)!.body, current = authority.resolve(String(cur
 const removedBefore = removed.length; await authority.retireInvalidCommandTarget({ message: "BROWSER_DOCUMENT_INVALID" },
   { ...permit("unknown-cause"), targetRef: current.targetRef, documentRef: current.documentRef }, "click"); assert.equal(removed.length, removedBefore);
 await authority.parkActiveTarget(); assert.equal(frames.at(-1)?.kind, "TARGET_REVOKE"); assert.deepEqual(detached, []);
-await authority.acquireJobBoundChatGptTarget("confirmed-readback", job); assert.deepEqual(attached, [3]); assert.equal(state.nextId, 4);
+await authority.acquireJobBoundChatGptTarget("confirmed-readback", job, undefined, () => { assert.match(job, /^sha256:[a-f0-9]{64}$/u); }); assert.deepEqual(attached, [3]); assert.equal(state.nextId, 4);
 assert.equal(frames.at(-1)?.body.targetRef, targetRef); assert.equal(methods.includes("Page.bringToFront"), false); await authority.releaseActiveTarget(false); assert.deepEqual(detached, []);
-await exerciseLocalBrowserDomIntent(); const beforeFresh = state.navigationCount; await authority.acquireJobBoundChatGptTarget("fresh", job);
+await exerciseLocalBrowserDomIntent(); const beforeFresh = state.navigationCount; await authority.acquireJobBoundChatGptTarget("fresh", job, undefined, () => { assert.match(job, /^sha256:[a-f0-9]{64}$/u); });
 assert.equal(state.navigationCount, beforeFresh + 1); assert.equal(state.nextId, 4); assert.equal(frames.at(-1)?.body.targetRef, targetRef);
 assert.notEqual(frames.at(-1)?.body.documentRef, documentRef);
 failureOrder.length = 0; detach({ tabId: 3 }, "target_closed"); await new Promise<void>(resolve => setTimeout(resolve, 0));
 assert.deepEqual(failureOrder, ["DIAGNOSTIC", "TARGET_REVOKE"]); assert.equal(failures.at(-1)?.nativeCauseCode, "CHROME_DEBUGGER_TARGET_CLOSED");
-const replacement = authority.acquireJobBoundChatGptTarget("confirmed-readback", job); await waitForCreatedTab(4);
+const replacement = authority.acquireJobBoundChatGptTarget("confirmed-readback", job, undefined, () => { assert.match(job, /^sha256:[a-f0-9]{64}$/u); }); await waitForCreatedTab(4);
 tabUpdated(4, { status: "complete" }, { id: 4, url: "https://chatgpt.com/" }); await replacement; assert.equal(frames.at(-1)?.body.targetRef, "target-tab-4");
 const replacementClaim = frames.at(-1)!.body; await select("https://chatgpt.com/c/replacement-readback", authority.resolve(String(replacementClaim.targetRef), String(replacementClaim.documentRef)));
 assert.equal(state.nextId, 5); assert.equal(state.activeId, 4); detach({ tabId: 4 }, "canceled_by_user"); await new Promise<void>(resolve => setTimeout(resolve, 0));
 assert.equal(failures.at(-1)?.reasonCode, "BROWSER_DEVTOOLS_CONFLICT"); assert.equal(failures.at(-1)?.nativeCauseCode, "CHROME_DEBUGGER_CANCELED_BY_USER");
 for (const bad of ["origin", "debugger"] as const) {
   const id = state.nextId; if (bad === "debugger") state.attachFailure = id;
-  const attempt = authority.acquireJobBoundChatGptTarget("fresh", job); await waitForCreatedTab(id);
+  const attempt = authority.acquireJobBoundChatGptTarget("fresh", job, undefined, () => { assert.match(job, /^sha256:[a-f0-9]{64}$/u); }); await waitForCreatedTab(id);
   if (bad === "origin") urls.set(id, "https://example.com/");
   tabUpdated(id, { status: "complete" }, { id, url: urls.get(id) ?? "https://chatgpt.com/" });
   await assert.rejects(attempt, new RegExp(bad === "origin" ? "BROWSER_ORIGIN_REJECTED" : "BROWSER_DEVTOOLS_CONFLICT", "u"));

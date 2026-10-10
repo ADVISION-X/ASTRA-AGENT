@@ -56,7 +56,7 @@ const closeRotatedTargets = async (input: Readonly<{
   input.setRemoveFailureTabId(7);
   await assert.rejects(input.authority.releaseJobBoundChatGptTarget(input.hashes[0]!, "business-admitted", async () => undefined));
   assert.equal(input.removedTabs.includes(7), false);
-  await input.authority.acquireJobBoundChatGptTarget("bound-observation", input.hashes[1]!);
+  await input.authority.acquireJobBoundChatGptTarget("bound-observation", input.hashes[1]!, undefined, () => { assert.match(input.hashes[1]!, /^sha256:[a-f0-9]{64}$/u); });
   assert.equal(input.targetFrames.at(-1)?.body.targetRef, input.targetRefs[1],
     "closing job A must preserve job B's exact bound Tab");
   await input.authority.parkActiveTarget();
@@ -79,7 +79,7 @@ export const exerciseTargetRotation = async (input: Readonly<{
   );
   const targetRefs: string[] = [];
   for (const [index, hash] of hashes.entries()) {
-    const acquisition = input.authority.acquireJobBoundChatGptTarget("fresh", hash);
+    const acquisition = input.authority.acquireJobBoundChatGptTarget("fresh", hash, undefined, () => { assert.match(hash, /^sha256:[a-f0-9]{64}$/u); });
     const tabId = 7 + index;
     await input.waitForCreatedTab(tabId);
     input.targetTabUpdated(tabId, { status: "complete" }, {
@@ -91,7 +91,7 @@ export const exerciseTargetRotation = async (input: Readonly<{
   }
   const navigationBaseline = input.debuggerMethods.filter((method) => method === "Page.navigate").length;
   for (const index of [0, 1, 2, 0]) {
-    await input.authority.acquireJobBoundChatGptTarget("bound-observation", hashes[index]!);
+    await input.authority.acquireJobBoundChatGptTarget("bound-observation", hashes[index]!, undefined, () => { assert.match(hashes[index]!, /^sha256:[a-f0-9]{64}$/u); });
     assert.equal(input.targetFrames.at(-1)?.body.targetRef, targetRefs[index]);
     await input.authority.parkActiveTarget();
   }
@@ -119,9 +119,7 @@ export const exerciseAuthorizedContinuation = async (input: Readonly<{
   const url = "https://chatgpt.com/c/article-a";
   const navigationBaseline = input.debuggerMethods.filter((method) => method === "Page.navigate").length;
   const frameBaseline = input.targetFrames.length;
-  const acquisition = input.authority.acquireJobBoundChatGptTarget(
-    "authorized-continuation", hash, url,
-  );
+  const acquisition = input.authority.acquireJobBoundChatGptTarget("authorized-continuation", hash, url, () => { assert.match(hash, /^sha256:[a-f0-9]{64}$/u); });
   await input.waitForCreatedTab(input.nextCreatedTabId);
   input.targetTabUpdated(input.nextCreatedTabId, { status: "complete" }, {
     id: input.nextCreatedTabId, url: "https://chatgpt.com/", title: "ChatGPT",
@@ -139,12 +137,12 @@ export const exerciseAuthorizedContinuation = async (input: Readonly<{
     "the parent conversation URL must remain absent from Target claim transport");
   await input.authority.parkActiveTarget();
   const parkedBaseline = input.debuggerMethods.filter((method) => method === "Page.navigate").length;
-  await input.authority.acquireJobBoundChatGptTarget("authorized-continuation", hash, url);
+  await input.authority.acquireJobBoundChatGptTarget("authorized-continuation", hash, url, () => { assert.match(hash, /^sha256:[a-f0-9]{64}$/u); });
   assert.equal(input.debuggerMethods.filter((method) => method === "Page.navigate").length,
     parkedBaseline, "a parked current-job Target must be revalidated without re-navigation");
   await input.authority.parkActiveTarget();
   input.mainFrameUrlByTab.set(input.nextCreatedTabId, "https://chatgpt.com/c/article-b");
-  await assert.rejects(input.authority.acquireJobBoundChatGptTarget("authorized-continuation", hash, url),
+  await assert.rejects(input.authority.acquireJobBoundChatGptTarget("authorized-continuation", hash, url, () => { assert.match(hash, /^sha256:[a-f0-9]{64}$/u); }),
     /BROWSER_POSTCONDITION_FAILED/u,
     "a parked Target from article B must fail before article A can claim it");
   assert.equal(input.debuggerMethods.filter((method) => method === "Page.navigate").length,
@@ -163,7 +161,7 @@ export const exerciseClosedParkedTabRecovery = async (input: Readonly<{
 }>): Promise<void> => {
   const closedJob = `sha256:${"f".repeat(64)}` as const;
   const closedTabId = input.readNextCreatedTabId();
-  const firstClosedTabClaim = input.authority.acquireJobBoundChatGptTarget("fresh", closedJob);
+  const firstClosedTabClaim = input.authority.acquireJobBoundChatGptTarget("fresh", closedJob, undefined, () => { assert.match(closedJob, /^sha256:[a-f0-9]{64}$/u); });
   await input.waitForCreatedTab(closedTabId);
   input.targetTabUpdated(closedTabId, { status: "complete" }, {
     id: closedTabId, url: "https://chatgpt.com/", title: "ChatGPT",
@@ -175,13 +173,13 @@ export const exerciseClosedParkedTabRecovery = async (input: Readonly<{
   const replacementTabId = input.readNextCreatedTabId();
   const failuresBeforeClosedTabRecovery = input.targetFailures.length;
   await assert.rejects(
-    input.authority.acquireJobBoundChatGptTarget("bound-observation", closedJob),
+    input.authority.acquireJobBoundChatGptTarget("bound-observation", closedJob, undefined, () => { assert.match(closedJob, /^sha256:[a-f0-9]{64}$/u); }),
     /BROWSER_EXACT_TARGET_PHYSICALLY_ABSENT/u,
     "a stale bound observation must not replace its missing current Tab",
   );
   assert.equal(input.readNextCreatedTabId(), replacementTabId,
     "a missing bound observation must not create a new system Tab");
-  const replacement = input.authority.acquireJobBoundChatGptTarget("confirmed-readback", closedJob);
+  const replacement = input.authority.acquireJobBoundChatGptTarget("confirmed-readback", closedJob, undefined, () => { assert.match(closedJob, /^sha256:[a-f0-9]{64}$/u); });
   await input.waitForCreatedTab(replacementTabId);
   input.targetTabUpdated(replacementTabId, { status: "complete" }, {
     id: replacementTabId, url: "https://chatgpt.com/", title: "ChatGPT",

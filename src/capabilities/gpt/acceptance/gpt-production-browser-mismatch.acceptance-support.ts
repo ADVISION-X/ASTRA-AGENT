@@ -43,7 +43,7 @@ const logger = (name: string) => createRuntimeLogger({ producer: name, owner: "p
   terminalEnabled: false, fileSink: { directoryPath: path.join(temporary, name) } });
 const noArtifacts = { appendArtifact: async () => { throw new Error("FORBIDDEN_ARTIFACT_WRITE"); },
   readArtifact: async () => ({ status: "failed" as const, failureReason: "FORENSICS_ARTIFACT_NOT_FOUND" }) };
-const noControl = { assertProviderSubmitAllowed: () => {}, pendingIncidents: () => [],
+const noControl = { assertProviderSubmitAllowed: () => {}, assertIncidentFailureIsolated: (error: unknown) => { throw error; }, pendingIncidents: () => [],
   beginIncident: async (): Promise<never> => { throw new Error("FORBIDDEN_COOLDOWN_INCIDENT"); } };
 type Preflight = Awaited<ReturnType<typeof detectedKnownGptRateLimitExactFact>>;
 const dialogFailure = (fact: Preflight, code: "BROWSER_KNOWN_GPT_RATE_LIMIT" | "BROWSER_GPT_DIALOG_UNRECOGNIZED") =>
@@ -158,7 +158,7 @@ try {
   let exactFact = await detectedKnownGptRateLimitExactFact();
   const controls = {
     assertProviderSubmitAllowed: () => { if (gateClosed) throw executionFailure("failed", "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE"); },
-    pendingIncidents: () => [], beginIncident: async () => {
+    assertIncidentFailureIsolated: (error: unknown) => { throw error; }, pendingIncidents: () => [], beginIncident: async () => {
       incidents += 1; if (persistenceFails) throw executionFailure("failed", "PROVIDER_COOLDOWN_OUTBOX_WRITE_FAILED");
       gateClosed = true; return { incidentRequestId: `aipcooldown_${"7".repeat(40)}`,
         deliver: async (receipt: { clearance: string }) => { assert.equal(receipt.clearance, "not_cleared"); clearances += 1; } };
@@ -201,7 +201,7 @@ try {
       executeDomIntent: async () => { throw dialogFailure(freshFact, "BROWSER_KNOWN_GPT_RATE_LIMIT"); }, park: async () => {} }),
   } as never, logger("fresh-exact"), {
     assertProviderSubmitAllowed: () => { if (freshGate) throw executionFailure("failed", "PROVIDER_RATE_LIMIT_COOLDOWN_ACTIVE"); },
-    pendingIncidents: () => [], beginIncident: async () => { freshIncidents += 1; freshGate = true;
+    assertIncidentFailureIsolated: (error: unknown) => { throw error; }, pendingIncidents: () => [], beginIncident: async () => { freshIncidents += 1; freshGate = true;
       return { incidentRequestId: `aipcooldown_${"9".repeat(40)}`, deliver: async () => { freshClearances += 1; } }; },
   }).createExecution(execution("job:fresh-exact"));
   const freshError = typedGptExecutionFailure(await captureFailure(() => fresh.tools.execute(prepareCall)));
@@ -219,7 +219,7 @@ try {
   }, { readProviderEffectStepCallFact: () => null, countProviderTurnDispatches: () => 0,
     acquireJobBoundTargetLease: async () => { throw dialogFailure(mismatchFact, "BROWSER_GPT_DIALOG_UNRECOGNIZED"); },
   } as never, logger("fresh-mismatch"), {
-    assertProviderSubmitAllowed: () => { mismatchControl += 1; }, pendingIncidents: () => { mismatchControl += 1; return []; },
+    assertProviderSubmitAllowed: () => { mismatchControl += 1; }, assertIncidentFailureIsolated: (error: unknown) => { throw error; }, pendingIncidents: () => { mismatchControl += 1; return []; },
     beginIncident: async (): Promise<never> => { mismatchControl += 1; throw new Error("FORBIDDEN_INCIDENT"); },
   }).createExecution(execution("job:fresh-mismatch"));
   const freshMismatchError = typedGptExecutionFailure(await captureFailure(() => freshMismatch.tools.execute(prepareCall)));

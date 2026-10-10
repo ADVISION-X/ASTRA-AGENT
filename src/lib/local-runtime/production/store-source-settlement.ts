@@ -63,7 +63,7 @@ type Call = SourceAttemptHandoff["replay_calls"][number];
 type Checkpoint = Extract<SourceReadbackEffectProof, { settled_checkpoint: object }>;
 type SignedManifest = SourceAttemptHandoff;
 type SignedCallProof = SourceReadbackCallProof;
-const v44HandoffKeys = "browser_history_hash|browser_input_state|browser_row_count|first_fact_raw_hash|input_quiescence_proof|job_id|kind|outbox_candidate_count|outbox_history_hash|payload_slot_conflict|readback_exhaustion_hash|readback_proofs|rejected_call|replay_calls|seal_hash|source_attempt_id|source_task_hash";
+const sourceHandoffKeys = "browser_history_hash|browser_input_state|browser_row_count|first_fact_raw_hash|input_quiescence_proof|job_id|kind|outbox_candidate_count|outbox_history_hash|payload_slot_conflict|readback_exhaustion_hash|readback_proofs|rejected_call|replay_calls|seal_hash|source_attempt_id|source_task_hash";
 const isObject = (value: unknown): value is object =>
   !!value && typeof value === "object" && !Array.isArray(value);
 const hasKeys = (value: object, keys: string): boolean => Object.keys(value).sort().join("|") === keys;
@@ -90,15 +90,15 @@ const validQuiescenceProof = (manifest: SignedManifest): boolean => {
       .map((call) => call.source_effect_set_hash).sort())
     && proofHash === hashCanonical(body);
 };
-export const validV44SourceHandoff = (value: unknown): value is SourceAttemptHandoff => {
-  if (!isObject(value) || !hasKeys(value, v44HandoffKeys)) return false;
+export const validSourceHandoff = (value: unknown): value is SourceAttemptHandoff => {
+  if (!isObject(value) || !hasKeys(value, sourceHandoffKeys)) return false;
   const manifest = value as SourceAttemptHandoff;
   if (!["attempt_handoff", "delivery_priority_replay"].includes(manifest.kind)
     || !["zero", "possible", "unknown"].includes(manifest.browser_input_state)
     || !Array.isArray(manifest.replay_calls) || !Array.isArray(manifest.readback_proofs)
     || !manifest.replay_calls.every(validReplayCallShape)
     || !manifest.readback_proofs.every(validReadbackProofShape)
-    || (manifest.browser_input_state === "zero") !== (manifest.input_quiescence_proof === null)) {
+    || manifest.browser_input_state === "zero" && manifest.input_quiescence_proof !== null) {
     return false;
   }
   return validQuiescenceProof(manifest);
@@ -130,9 +130,7 @@ const checkpointSettlements = (row: Row, manifest: SignedManifest): AcceptedSour
   for (const proof of manifest.readback_proofs) {
     const call = matchingCall(manifest, proof);
     const checkpoints = proof.effects.filter((effect) => effect.settled_checkpoint !== undefined);
-    if (!call || (proof.disposition === "settled_reusable")
-      !== (checkpoints.length === proof.effects.length && checkpoints.length > 0)
-      || checkpoints.length > 0 && checkpoints.length !== proof.effects.length) {
+    if (!call || (proof.disposition === "settled_reusable") !== (checkpoints.length > 0)) {
       throw executionFailure("failed", "PRODUCTION_SOURCE_REPLAY_INVALID");
     }
     for (const effect of checkpoints) {
@@ -252,15 +250,23 @@ const indexByIssuedAttempt = (rows: readonly Row[]): Map<string, Row> => {
   return byIssued;
 };
 
-/** Parse one stored source manifest and prove it is this row's signed V44 handoff for the job. */
+export const parseSourceHandoffJson = (json: string): SourceAttemptHandoff => {
+  let raw: unknown;
+  try { raw = JSON.parse(json); }
+  catch (error) { throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT", { cause: error }); }
+  if (!validSourceHandoff(raw)) throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
+  return raw as SourceAttemptHandoff;
+};
+
+/** Parse one stored source manifest and prove it is this row's signed source handoff for the job. */
 const signedRowManifest = (row: Row, jobId: string): SignedManifest => {
-  const raw: unknown = row.source_manifest_json ? JSON.parse(row.source_manifest_json) : null;
+  const raw: unknown = row.source_manifest_json ? parseSourceHandoffJson(row.source_manifest_json) : null;
   if (!raw || typeof raw !== "object") throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
   const manifest = raw as SignedManifest;
   const { seal_hash: sealHash, ...body } = manifest;
   if (sealHash !== row.seal_hash || hashCanonical(body) !== sealHash
     || manifest.job_id !== jobId || manifest.source_attempt_id !== row.source_attempt_id
-    || !validV44SourceHandoff(raw)) {
+    || !validSourceHandoff(raw)) {
     throw executionFailure("failed", "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
   }
   return manifest;
