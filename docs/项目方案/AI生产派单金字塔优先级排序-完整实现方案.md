@@ -111,7 +111,7 @@ AGENT 只机械执行 Website 已签 grant：
 1. 删除 fresh 分支中的全局 `min(open tier)` 子查询。
 2. 保留当前 claimable 条件、source evidence、delivery-only、material/capability 当前复核和 `FOR UPDATE SKIP LOCKED`；稳定 capability、material、隐私 Owner 排除先下推 SQL，避免逐行锁住整个队列后再淘汰。
 3. selector 分为两个有界阶段：先 accepted recovery，再 fresh；fresh 按静态 tier 升序，最后按 `created_at,job_id`。
-4. recovery 使用 `(created_at,job_id)` 游标，fresh 使用固定大小的 `(tier,created_at,job_id)` 游标；整个事务最多检查 32 个已由 SQL 判为候选的行。
+4. recovery 使用 `(created_at,job_id)` 游标，fresh 使用固定大小的 `(tier,created_at,job_id)` 游标；每段最多检查 32 个已由 SQL 判为候选的行，单次事务合计上限 64，recovery 的并发失效不得耗尽 fresh 的检查预算。
 5. `selectedNew` 达到上游传入的 `newLimit` 后停止；不得另造 tier quota。
 6. 新增唯一表达式索引支持固定 tier、`created_at,job_id` 读取；不得新增 tier 列、表、状态或第二映射。
 
