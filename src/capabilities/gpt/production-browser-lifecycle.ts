@@ -62,6 +62,20 @@ const ATOMIC_BROWSER_COMMANDS = new Set<PropertyKey>([
   "park",
 ]);
 
+const confirmedReadbackIdentityMatches = (
+  confirmed: NonNullable<ProductionGptBrowserCall["confirmedProviderEffect"]>,
+  old: ReturnType<NonNullable<GptBrowserLeaseAuthority["readSourceConfirmedProviderEffect"]>> | null,
+  prior: ReturnType<BrowserTargetLease["readAtomicStepOutcome"]> | null,
+): boolean => {
+  const source = confirmed.sourceReadback;
+  return old ? old.exactCallIdentityHash === confirmed.exactCallIdentityHash
+    && old.authorityHash === confirmed.evidenceHash && old.authorityRef === confirmed.evidenceRef
+    && old.actionOrdinal === confirmed.submitIdentity.actionOrdinal && old.inputHash === confirmed.submitIdentity.inputHash
+    && source?.effectIdentityHash === confirmed.providerEffectIdentityHash
+    : prior?.state === "confirmed" && prior.providerEffectIdentityHash === confirmed.providerEffectIdentityHash
+      && prior.mutationOutcome === confirmed.mutationOutcome;
+};
+
 const assertConfirmedProviderReadback = (active: ProductionGptBrowserCall,
   browserAuthority: GptBrowserLeaseAuthority, jobId: string): void => {
   const confirmed = active.confirmedProviderEffect;
@@ -78,12 +92,7 @@ const assertConfirmedProviderReadback = (active: ProductionGptBrowserCall,
   const payload = old?.terminalPayload ?? prior?.terminalPayload;
   const record = payload && typeof payload === "object" && !Array.isArray(payload)
     ? payload as Readonly<Record<string, unknown>> : null;
-  const identityMatches = old ? old.exactCallIdentityHash === confirmed.exactCallIdentityHash
-    && old.authorityHash === confirmed.evidenceHash && old.authorityRef === confirmed.evidenceRef
-    && old.actionOrdinal === confirmed.submitIdentity.actionOrdinal && old.inputHash === confirmed.submitIdentity.inputHash
-    && source?.effectIdentityHash === confirmed.providerEffectIdentityHash
-    : prior?.state === "confirmed" && prior.providerEffectIdentityHash === confirmed.providerEffectIdentityHash
-      && prior.mutationOutcome === confirmed.mutationOutcome;
+  const identityMatches = confirmedReadbackIdentityMatches(confirmed, old, prior);
   if (!identityMatches || record?.canonicalConversationUrl !== confirmed.canonicalConversationUrl
     || record?.userTurnId !== confirmed.userTurnId) {
     throw executionFailure("failed", "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");

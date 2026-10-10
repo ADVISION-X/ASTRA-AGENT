@@ -93,6 +93,27 @@ const historyReadbackAvailable = (
     && !observations.some((item) => item.effect_identity_hash === effect.effectIdentityHash
       && (item.path === "exact_conversation" || item.kind === "settled_checkpoint"))));
 
+const readExactRejectedProviderCall = (beforeRelease: BrowserHistory, attemptId: string, rejected: Rejected | undefined) => {
+  const rejectedEffect = beforeRelease.replayEffects.find((effect) =>
+    effect.effectIdentityHash === rejected?.provider_effect_identity_hash);
+  const rejectedCall = rejectedEffect && beforeRelease?.replayCalls.find((call) =>
+    call.productStepId === rejectedEffect.productStepId
+    && call.callId === rejectedEffect.callId
+    && call.childCapabilityId === rejectedEffect.childCapabilityId);
+  const valid = !!rejected && rejectedEffectMatches(
+    beforeRelease, attemptId, rejected, rejectedEffect || undefined, rejectedCall || undefined,
+  );
+  return valid ? rejectedCall : null;
+};
+
+const inheritedReplayAlreadySettled = (
+  browserInput: string, historicalInput: string,
+  priorHandoff: ReturnType<RuntimeState["store"]["readIssuedSourceHandoffForAttempt"]>,
+  inheritedZeroSubmit: boolean, beforeRelease: BrowserHistory, settledHistory: Settlements, attemptId: string,
+): boolean => browserInput === "zero" && historicalInput !== "zero"
+  && priorHandoff?.kind === "delivery_priority_replay" && !inheritedZeroSubmit
+  && historicalEffectsSettled(beforeRelease.replayEffects, settledHistory, attemptId);
+
 const preflightSourceHandoff = (state: RuntimeState, task: Task, attemptId: string) => {
   const jobId = task.task.job_id;
   const outbox = state.store.readResultOutboxHistoryEvidence(jobId, attemptId);
@@ -110,18 +131,10 @@ const preflightSourceHandoff = (state: RuntimeState, task: Task, attemptId: stri
   if (inheritedZeroSubmit && inheritedPayloadConflict === null) return null;
   const historicalRejection = historicalRejectionSettled(
     priorHandoff, !!inheritedZeroSubmit, beforeRelease, settledHistory, attemptId);
-  if (browserInput === "zero" && historicalInput !== "zero"
-    && priorHandoff?.kind === "delivery_priority_replay" && !inheritedZeroSubmit
-    && historicalEffectsSettled(beforeRelease.replayEffects, settledHistory, attemptId)) return null;
-  const rejectedEffect = rejectedResult && beforeRelease?.replayEffects.find((effect) =>
-    effect.effectIdentityHash === rejected?.provider_effect_identity_hash);
-  const rejectedCall = rejectedEffect && beforeRelease?.replayCalls.find((call) =>
-    call.productStepId === rejectedEffect.productStepId
-    && call.callId === rejectedEffect.callId
-    && call.childCapabilityId === rejectedEffect.childCapabilityId);
-  if (rejectedResult && (!rejected || !rejectedEffectMatches(
-    beforeRelease, attemptId, rejected, rejectedEffect || undefined, rejectedCall || undefined,
-  ))) return null;
+  if (inheritedReplayAlreadySettled(browserInput, historicalInput, priorHandoff,
+    !!inheritedZeroSubmit, beforeRelease, settledHistory, attemptId)) return null;
+  const rejectedCall = rejectedResult && readExactRejectedProviderCall(beforeRelease, attemptId, rejected);
+  if (rejectedResult && !rejectedCall) return null;
   if (!historyReadbackAvailable(historicalInput === "zero" ? null : beforeRelease, rejectedResult, !!historicalRejection,
     observations, settledHistory)) return null;
   return { task, attemptId, outbox, browserInput, observations, settledHistory,

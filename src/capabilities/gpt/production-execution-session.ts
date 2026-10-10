@@ -26,6 +26,19 @@ type SubmittedStep = Readonly<{
   terminalAt: string | null; settledResultPayloadHash: GptHash | null;
 }>;
 
+const confirmedSubmissionFor = (submit: SubmittedStep | undefined): ProductionGptBrowserCall["confirmedProviderEffect"] => {
+  return submit?.submitIdentity ? Object.freeze({
+      exactCallIdentityHash: submit.submitExactCallIdentityHash,
+      childCapabilityId: "submit_exact_gpt_turn_once" as const,
+      effectScope: "provider_effect" as const, browserOutcome: "CONFIRMED" as const,
+      mutationOutcome: "confirmed" as const, providerEffectIdentityHash: submit.providerEffectIdentityHash,
+      evidenceRef: submit.browserAuthorityRef, evidenceHash: submit.browserAuthorityHash,
+      terminalAt: submit.terminalAt, submitIdentity: submit.submitIdentity,
+      canonicalConversationUrl: submit.canonicalConversationUrl, userTurnId: submit.userTurnId,
+      ...(submit.sourceReadback ? { sourceReadback: submit.sourceReadback } : {}),
+    }) : null;
+};
+
 /** Per-attempt GPT order and readback state; the Browser remains the sole effect Owner. */
 export class ProductionGptExecutionSession {
   private readonly source: ProductionGptSourceReuse;
@@ -206,16 +219,7 @@ export class ProductionGptExecutionSession {
       || call.child === "checkpoint_gpt_generated_image";
     this.assertCheckpointReadback(call, checkpoint);
     const submit = this.submittedByStep.get(`${call.sessionKey}\u0000${call.productStepId}`);
-    const confirmedSubmission = submit?.submitIdentity ? Object.freeze({
-      exactCallIdentityHash: submit.submitExactCallIdentityHash,
-      childCapabilityId: "submit_exact_gpt_turn_once" as const,
-      effectScope: "provider_effect" as const, browserOutcome: "CONFIRMED" as const,
-      mutationOutcome: "confirmed" as const, providerEffectIdentityHash: submit.providerEffectIdentityHash,
-      evidenceRef: submit.browserAuthorityRef, evidenceHash: submit.browserAuthorityHash,
-      terminalAt: submit.terminalAt, submitIdentity: submit.submitIdentity,
-      canonicalConversationUrl: submit.canonicalConversationUrl, userTurnId: submit.userTurnId,
-      ...(submit.sourceReadback ? { sourceReadback: submit.sourceReadback } : {}),
-    }) : null;
+    const confirmedSubmission = confirmedSubmissionFor(submit);
     let submitIdentity: BrowserAtomicStepIdentity | null = null;
     const result = await this.executeOne(call, this.recordConfirmedProviderEffectReadback, {
       confirmedSubmission: checkpoint ? confirmedSubmission : null,

@@ -21,6 +21,28 @@ const SOCKET_URL = "ws://127.0.0.1:4173/browser-authority/v1", AUTH_EPOCH = 1;
 type SocketState = "IDLE" | "CONNECTING" | "PAIRING" | "CONNECTED" | "CLOSED";
 const canAttemptAutomaticPairing = (state: SocketState): boolean => !["CONNECTING", "PAIRING", "CONNECTED"].includes(state);
 
+const assertMutationAckShape = (response: Record<string, unknown>): boolean => {
+  const disposed = response.type === "disposed";
+  const expected = disposed ? "commandId|reasonCode|receiptBindingHash|rejectedFactHash|type" : "commandId|receiptBindingHash|receiptHash|type";
+  if (Object.keys(response).sort().join("|") !== expected || !["ack", "disposed"].includes(String(response.type))
+    || typeof response.commandId !== "string" || !response.commandId
+    || typeof response.receiptBindingHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(response.receiptBindingHash)
+    || disposed && !["BROWSER_RECONCILIATION_RECEIPT_INVALID", "BROWSER_COMMAND_RECEIPT_MISSING", "BROWSER_MUTATION_STATE_CONFLICT"].includes(String(response.reasonCode))) {
+    throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+  }
+  return disposed;
+};
+
+const assertMutationSlotHash = async (response: Record<string, unknown>, slot: Readonly<{ fact: unknown }>,
+  disposed: boolean): Promise<void> => {
+  if (disposed) {
+    const hash = slot.fact === null ? null : await hashBrowserExtensionText(canonicalizeBrowserAuthorityValue(slot.fact));
+    if (response.rejectedFactHash !== hash) throw new Error("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
+  } else if (!browserMutationTerminalFactShapeValid(slot.fact) || response.receiptHash !== slot.fact.receiptHash) {
+    throw new Error("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
+  }
+};
+
 /** Delivery retains the original slot until ACK; target retirement consumes the delivered fact. */
 export class ExtensionWebSocketActor {
   private readonly connection = { socket: null as WebSocket | null, state: "IDLE" as SocketState,
@@ -178,28 +200,19 @@ export class ExtensionWebSocketActor {
   private async acceptMutationAck(socket: WebSocket, frame: BrowserAuthorityFrame): Promise<void> {
     const session = this.connection.session;
     if (!session || !this.connection.commandReady || frame.epoch !== AUTH_EPOCH) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    const currentSession = (): boolean => socket === this.connection.socket
+      && this.connection.session?.serverToClientKey === session.serverToClientKey;
     const response = await decrypt(session.serverToClientKey, "server-to-client", frame);
-    if (socket !== this.connection.socket || this.connection.session?.serverToClientKey !== session.serverToClientKey) return;
+    if (!currentSession()) return;
     this.acceptServerSequence(frame);
-    const disposed = response.type === "disposed";
-    const expected = disposed ? "commandId|reasonCode|receiptBindingHash|rejectedFactHash|type" : "commandId|receiptBindingHash|receiptHash|type";
-    if (Object.keys(response).sort().join("|") !== expected || !["ack", "disposed"].includes(String(response.type))
-      || typeof response.commandId !== "string" || !response.commandId
-      || typeof response.receiptBindingHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(response.receiptBindingHash)
-      || disposed && !["BROWSER_RECONCILIATION_RECEIPT_INVALID", "BROWSER_COMMAND_RECEIPT_MISSING", "BROWSER_MUTATION_STATE_CONFLICT"].includes(String(response.reasonCode))) {
-      throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-    }
+    const disposed = assertMutationAckShape(response);
     const slot = this.commandDelivery.mutationSlot;
     if (!slot || response.commandId !== slot.commandId) return;
     if (response.receiptBindingHash !== slot.receiptBindingHash) throw new Error("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
-    if (disposed) {
-      const hash = slot.fact === null ? null : await hashBrowserExtensionText(canonicalizeBrowserAuthorityValue(slot.fact));
-      if (response.rejectedFactHash !== hash) throw new Error("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
-      if (this.commandDelivery.mutationSlot !== slot || this.commandDelivery.pendingCommandHandlers.size > 0
-        || this.commandDelivery.pendingTargetHandlers.size > 0 || this.commandDelivery.disconnectedDrain !== null) return;
-    } else {
-      if (!browserMutationTerminalFactShapeValid(slot.fact) || response.receiptHash !== slot.fact.receiptHash) throw new Error("BROWSER_RECONCILIATION_IDENTITY_MISMATCH");
-    }
+    await assertMutationSlotHash(response, slot, disposed);
+    if (!currentSession() || this.commandDelivery.mutationSlot !== slot) return;
+    if (disposed && (this.commandDelivery.pendingCommandHandlers.size > 0
+      || this.commandDelivery.pendingTargetHandlers.size > 0 || this.commandDelivery.disconnectedDrain !== null)) return;
     this.commandDelivery.mutationSlot = null;
   }
   private async acceptTargetAcquire(socket: WebSocket, frame: BrowserAuthorityFrame): Promise<void> {

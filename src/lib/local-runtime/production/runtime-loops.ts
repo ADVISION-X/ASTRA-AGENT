@@ -40,22 +40,22 @@ export const claimReusesExistingBusinessSlot = (
 };
 
 /** A typed-sealed source attempt or an attempt whose result the Website refused releases its slot for the next attempt. */
-const businessInFlightJobIds = (state: RuntimeState): ReadonlySet<string> => new Set([
-  ...state.active.keys(),
-  ...state.store.taskAuthorities()
-    .filter((row) => {
-      if (row.status !== "failed" || row.current_attempt_id === null) return false;
-      try {
-        return state.store.readSealedSourceHandoff(row.task.job_id, row.current_attempt_id) === null
-          && !state.store.attemptClosedByWebsite(row.task.job_id, row.current_attempt_id);
-      } catch (error) {
-        if (typedExecutionFailure(error)?.code !== "PRODUCTION_SOURCE_HANDOFF_CONFLICT") throw error;
-        state.store.setCurrentReason(row.task.job_id, "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
-        return true;
-      }
-    })
-    .map((row) => row.task.job_id),
-]);
+const businessInFlightJobIds = (state: RuntimeState): ReadonlySet<string> => {
+  const occupied = new Set(state.active.keys());
+  for (const row of state.store.taskAuthorities()) {
+    if (row.status !== "failed" || row.current_attempt_id === null) continue;
+    let retained = true;
+    try {
+      retained = state.store.readSealedSourceHandoff(row.task.job_id, row.current_attempt_id) === null
+        && !state.store.attemptClosedByWebsite(row.task.job_id, row.current_attempt_id);
+    } catch (error) {
+      if (typedExecutionFailure(error)?.code !== "PRODUCTION_SOURCE_HANDOFF_CONFLICT") throw error;
+      state.store.setCurrentReason(row.task.job_id, "PRODUCTION_SOURCE_HANDOFF_CONFLICT");
+    }
+    if (retained) occupied.add(row.task.job_id);
+  }
+  return occupied;
+};
 
 export const businessInFlightCount = (state: RuntimeState): number =>
   businessInFlightJobIds(state).size;

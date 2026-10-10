@@ -86,6 +86,9 @@ const inspectTerminalOwner = (s: Sources, findings: InspectorFinding[], lawId: s
     && has(s.evidence.getText(), ["readMutationOutcome", "requireMutationOutcome", "mutationOutcome: requireMutationOutcome(row.mutation_outcome)", "terminalFailureFields", "nativeFailureCode"])
     && !/legacyMutationOutcome|settleRetiredTargetLocal|BROWSER_TARGET_LOCAL_EXECUTION_RETIRED/u.test(`${s.store.getText()}\n${s.evidence.getText()}`),
     findings, lawId, paths.evidence, "Terminal outcome/count/native cause must come from current immutable WAL facts, with no retired-target settlement or legacy fallback.");
+};
+
+const inspectTerminalTransport = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
   const send = method(s.transport, "BrowserAuthorityWebSocket", "send"), normal = method(s.transport, "BrowserAuthorityWebSocket", "acceptReply");
   check(order(send, ["onDispatched?.()", "active.socket.send"])
     && order(normal, ["parseBrowserCommandReply(", "this.settleMutationReceipt(socket, parsed.fact)", "this.removeReply(sequence)"])
@@ -116,6 +119,9 @@ const inspectReceiptConsumer = (s: Sources, findings: InspectorFinding[], lawId:
     && has(s.actor.getText(), ["else this.authorityGuard.assertCurrentAuthority(permit)", "this.authorityGuard.assertCurrentAuthority(permit)", "assertValidCommandPermit(permit)"])
     && s.manager.getText().includes("this.commandActor.pendingMutationCommandIds(this.executionBinding).length"),
     findings, lawId, paths.actor, "Mutation consumers must read the authenticated original terminal fact without a retired live-claim gate; observations and new input retain authority guards.");
+};
+
+const inspectReceiptDelivery = (s: Sources, findings: InspectorFinding[], lawId: string): void => {
   const execute = method(s.worker, "ExtensionWebSocketActor", "executeCommand");
   const worker = s.worker.getClass("ExtensionWebSocketActor"), sender = worker?.getMethod("sendEncrypted")?.getName();
   const senderReferences = worker?.getMethod("executeCommand")?.getDescendants().filter(node =>
@@ -129,6 +135,8 @@ const inspectReceiptConsumer = (s: Sources, findings: InspectorFinding[], lawId:
   const terminalCalls = delivery?.getFinallyBlock()?.getStatements().map(statement => statement.asKind(SyntaxKind.ExpressionStatement)
     ?.getExpression().asKind(SyntaxKind.AwaitExpression)?.getExpression().asKind(SyntaxKind.CallExpression)) ?? [];
   const ack = method(s.worker, "ExtensionWebSocketActor", "acceptMutationAck");
+  const ackShape = text(s.worker, "assertMutationAckShape");
+  const slotHash = text(s.worker, "assertMutationSlotHash");
   const flush = method(s.worker, "ExtensionWebSocketActor", "flushMutationReceipt");
   check(order(execute, ["this.commandDelivery.mutationSlot =", "await executeExtensionCommandReply(", "slot.fact = fact",
     'this.sendEncrypted(socket, "DIAGNOSTIC"', 'await this.sendEncrypted(socket, "REPLY", reply.body)', "retireInvalidCommandTarget("])
@@ -137,13 +145,20 @@ const inspectReceiptConsumer = (s: Sources, findings: InspectorFinding[], lawId:
     && JSON.stringify(terminalCalls[0]?.getArguments().map(argument => argument.asKind(SyntaxKind.StringLiteral)?.getLiteralValue() ?? argument.getText())) === JSON.stringify(["socket", "REPLY", "reply.body"])
     && has(execute, ["slot?.commandId !== permit.commandId", "slot.receiptBindingHash !== receiptBindingHash",
       "socket !== this.connection.socket", "session.serverToClientKey", "Date.now() >= deadline"])
-    && has(ack, ['"commandId|receiptBindingHash|receiptHash|type"', '"commandId|reasonCode|receiptBindingHash|rejectedFactHash|type"',
+    && has(ackShape, ['"commandId|receiptBindingHash|receiptHash|type"', '"commandId|reasonCode|receiptBindingHash|rejectedFactHash|type"',
+      'Object.keys(response).sort().join("|") !== expected', '["ack", "disposed"].includes(String(response.type))',
+      'typeof response.commandId !== "string"', 'typeof response.receiptBindingHash !== "string"',
+      'disposed && !["BROWSER_RECONCILIATION_RECEIPT_INVALID", "BROWSER_COMMAND_RECEIPT_MISSING", "BROWSER_MUTATION_STATE_CONFLICT"]'])
+    && has(ack, ["assertMutationAckShape(response)",
       "response.commandId !== slot.commandId", "response.receiptBindingHash !== slot.receiptBindingHash",
-      "browserMutationTerminalFactShapeValid(slot.fact)", "response.receiptHash !== slot.fact.receiptHash",
-      "canonicalizeBrowserAuthorityValue(slot.fact)", "response.rejectedFactHash !== hash",
-      "this.commandDelivery.mutationSlot !== slot", "this.commandDelivery.pendingCommandHandlers.size > 0",
+      "await assertMutationSlotHash(response, slot, disposed)",
+      "if (!currentSession() || this.commandDelivery.mutationSlot !== slot) return",
+      "socket === this.connection.socket", "this.connection.session?.serverToClientKey === session.serverToClientKey",
+      "this.commandDelivery.pendingCommandHandlers.size > 0",
       "this.commandDelivery.pendingTargetHandlers.size > 0 || this.commandDelivery.disconnectedDrain !== null",
       "this.commandDelivery.mutationSlot = null"])
+    && has(slotHash, ["if (disposed)", "slot.fact === null ? null", "canonicalizeBrowserAuthorityValue(slot.fact)",
+      "response.rejectedFactHash !== hash", "browserMutationTerminalFactShapeValid(slot.fact)", "response.receiptHash !== slot.fact.receiptHash"])
     && has(flush, ["this.commandDelivery.pendingCommandHandlers.size > 0", "this.commandDelivery.pendingTargetHandlers.size > 0",
       "canonicalizeBrowserAuthorityValue(slot.fact)", "this.commandDelivery.mutationSlot !== slot",
       "this.connection.session?.clientToServerKey !== key", 'this.sendEncrypted(socket, "MUTATION_RECEIPT", { type: "dispose"',
@@ -228,6 +243,6 @@ export const inspectBrowserMutationSettlement = (context: InspectorContext, find
   const entries = Object.entries(paths).map(([name, path]) => [name, requireSource(context, findings, lawId, path)] as const);
   if (entries.some(([, source]) => source === null)) return;
   const sources = Object.fromEntries(entries) as Sources;
-  inspectTerminalOwner(sources, findings, lawId); inspectReceiptConsumer(sources, findings, lawId);
+  inspectTerminalOwner(sources, findings, lawId); inspectTerminalTransport(sources, findings, lawId); inspectReceiptConsumer(sources, findings, lawId); inspectReceiptDelivery(sources, findings, lawId);
   inspectMechanicalQualification(sources, findings, lawId); inspectReadGate(sources, context, findings, lawId);
 };

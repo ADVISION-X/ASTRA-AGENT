@@ -344,11 +344,11 @@ test("each Dynamic mode authenticates its native object, clause binding, and obs
   } as const;
   const routes = {
     browser: { lawId: "LAW-LOCAL-BROWSER-SESSION-001-V4", clauses: ["forbidden:6"] },
-    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V75", clauses: ["summary"] },
-    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V75", clauses: ["forbidden:0", "forbidden:2"] },
-    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V75", clauses: ["forbidden:2"] },
-    provider: { lawId: "LAW-GPT-001-V64", clauses: ["forbidden:0", "forbidden:3", "forbidden:7"] },
-    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V11", clauses: ["forbidden:1", "forbidden:2"] },
+    service: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V76", clauses: ["summary"] },
+    database: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V76", clauses: ["forbidden:0", "forbidden:2"] },
+    storage: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-001-V76", clauses: ["forbidden:2"] },
+    provider: { lawId: "LAW-GPT-001-V65", clauses: ["forbidden:0", "forbidden:3", "forbidden:7"] },
+    authorization: { lawId: "LAW-AGENT-PRODUCTION-RUNTIME-002-V12", clauses: ["forbidden:1", "forbidden:2"] },
     recovery: { lawId: "LAW-RUNTIME-LOG-SPINE-001-V7", clauses: ["summary"] },
   } as const;
   for (const [kind, observation] of Object.entries(observations)) {
@@ -1120,8 +1120,8 @@ test("provider contracts reject malformed payloads before identity matching", ()
   )) as unknown;
   assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
     new Map([
-      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V75", "agent-production-runtime"],
-      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V45", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-001-V76", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V46", "agent-production-runtime"],
     ]),
     (path) => path === "src/lib/local-runtime/production/catalog.ts"));
 });
@@ -1362,7 +1362,7 @@ test("every active law scope is deterministic, owned, unique, and includes all c
 
 test("active mutation inspectors use one DISPATCHED chain inside each law scope", () => {
   const registry = buildRegistry();
-  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V75");
+  const agentLaw = registry.laws.find((law) => law.lawId === "LAW-AGENT-PRODUCTION-RUNTIME-001-V76");
   assert.ok(agentLaw);
   const agentTargets = computeTargetPaths(agentLaw, registry);
   const crossOwnerPaths = [
@@ -1503,12 +1503,17 @@ test("Browser reply inspection rejects mixed transport and permit identities", (
     [path, "budget + (permit.mutationClass === \"mutation\" ? MUTATION_TERMINAL_REPLY_GRACE_MS : 0)", "budget + MUTATION_TERMINAL_REPLY_GRACE_MS"],
     [path, "budget + (permit.mutationClass === \"mutation\" ? MUTATION_TERMINAL_REPLY_GRACE_MS : 0)", "budget"],
     [path, "budget + (permit.mutationClass === \"mutation\" ? MUTATION_TERMINAL_REPLY_GRACE_MS : 0)", "budget + (permit.mutationClass !== \"mutation\" ? MUTATION_TERMINAL_REPLY_GRACE_MS : 0)"],
+    [path, 'if (disposed) { this.sendControlFrame(socket, "MUTATION_RECEIPT", disposed); return; }', 'if (false) { this.sendControlFrame(socket, "MUTATION_RECEIPT", disposed); return; }'],
+    [path, 'const fact = message.type === "fact" ? message : message.rejectedFact;', 'const fact = message;'],
+    [path, 'if (!browserMutationTerminalFactShapeValid(fact))', 'if (false)'],
+    [path, 'receiptHash: fact.receiptHash', 'receiptHash: fact.receiptBindingHash'],
+    [path, 'this.active.keys !== keys', 'false'],
   ]);
 });
 
 test("Browser receipt inspection rejects raw caller facts and unbound WAL readback", () => {
   const path = "src/lib/browser/exact-target/browser-command-actor.ts";
-  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-004-V56", inspectProviderEffectAttemptGuard, [
+  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-004-V57", inspectProviderEffectAttemptGuard, [
     [path, "verifyNormalBrowserMutationReply(permit, command, { result: reply.result, mutationReceipt: reply.mutationReceipt })", "reply.mutationReceipt!"],
     [path, "receipt.terminal === \"confirmed\" ? \"CONFIRMED\" : \"REJECTED\"", "\"CONFIRMED\""],
     [path, "private completeMutation(permit: BrowserCommandPermit, command: BrowserGovernedCommand, reply: BrowserCommandReply,\n    span: ReturnType<typeof startBrowserCommandSpan>, state: BrowserCommandExecutionState): void", "private async completeMutation(permit: BrowserCommandPermit, command: BrowserGovernedCommand, reply: BrowserCommandReply,\n    span: ReturnType<typeof startBrowserCommandSpan>, state: BrowserCommandExecutionState): Promise<void>"],
@@ -1556,7 +1561,7 @@ test("Extension command failure preserves its original redacted intent identity"
 });
 test("Browser media inspection rejects alternate identities, missing guards and duplicate input", () => {
   const path = "src/lib/browser/chrome-extension/extension-command-runtime.ts";
-  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-006-V45", inspectOpaqueAuthorityBoundary, [
+  verifyBrowserBoundaryMutants("LAW-LOCAL-BROWSER-SESSION-006-V46", inspectOpaqueAuthorityBoundary, [
     [path, 'case "authenticated-media": return', 'case "other-media": return'],
     [path, "switch (command.kind) {", 'switch ("never-media") {'],
     [path, "switch (command.kind) {", "if (false) switch (command.kind) {"],
@@ -1704,7 +1709,7 @@ test("GPT001 native AST and contract routes reject text settlement and attachmen
     ["--import", "tsx", resolve("scripts/audit/shared/quality-inspector-worker.ts")],
     { encoding: "utf8", maxBuffer: 10 * 1024 * 1024, env: { ...process.env,
       GOVERNANCE_SEALED_ROOT: root, GOVERNANCE_INSPECTION_REQUEST: requestPath } }), "gpt")
-    .lawResults.find(law => law.lawId === "LAW-GPT-001-V64")!;
+    .lawResults.find(law => law.lawId === "LAW-GPT-001-V65")!;
   const ownModes = (law: ReturnType<typeof inspect>) => law.assertions
     .filter(assertion => ["static.ast", "static.contract"].includes(assertion.evidenceMode))
     .map(assertion => assertion.passed);
@@ -1871,7 +1876,7 @@ test("Dynamic Proof routes are separated by native Owner", () => {
     ".catch(() => undefined)", "cleanupVerified: true", "dynamic.recovery",
     "old_attempt_after_restart_rejected", "new_attempt_fresh_started",
   ]) assert.equal(proof.includes(forbidden), false, forbidden);
-  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V75", "runtime_schema_exact", "runtime_orphan_directory_count",
+  for (const token of ["LAW-AGENT-PRODUCTION-RUNTIME-001-V76", "runtime_schema_exact", "runtime_orphan_directory_count",
     "AGENT_RUNTIME_OWNER_ISOLATED_RELEASE_PROOF_NOT_ADMITTED"]) assert.ok(proof.includes(token), token);
   for (const adjacentPrefix of ["LAW-GPT-", "LAW-LOCAL-BROWSER-SESSION-", "LAW-RUNTIME-LOG-SPINE-"]) {
     assert.equal(proof.includes(adjacentPrefix), false, adjacentPrefix);

@@ -32,22 +32,34 @@ export const assertGptExactTargetSourceShape = (baseUrl: string): void => {
   const project = new Project({ useInMemoryFileSystem: true });
   const tools = project.createSourceFile("tools.ts", read("../production-child-tools.ts"));
   const support = project.createSourceFile("support.ts", read("../production-child-support.ts"));
-  const execute = tools.getClassOrThrow("ProductionGptChildTools").getMethodOrThrow("executeOne");
-  const closureCalls = execute.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .filter(call => call.getExpression().getText() === "this.closeKnownRateLimitAndReadGate");
+  const owner = tools.getClassOrThrow("ProductionGptChildTools");
+  const execute = owner.getMethodOrThrow("executeOne"), settlement = owner.getMethodOrThrow("settleChildOutcome");
+  const calls = (method: typeof execute, name: string) => method.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter(call => call.getExpression().getText() === name);
+  const handoff = calls(execute, "this.settleChildOutcome");
+  assert.equal(handoff.length, 1, "one execution has one settlement consumer");
+  assert.equal(execute.getStatements().at(-1)?.getText(),
+    "return this.settleChildOutcome({ execution, browsers, call, options, intent, span, browserCall, result });",
+    "settlement receives the original call/result/span once, outside normalization");
+  assert.equal(handoff[0]!.getFirstAncestorByKind(SyntaxKind.CatchClause), undefined);
+  assert.equal(calls(execute, "this.closeKnownRateLimitAndReadGate").length, 0);
+  assert.equal(calls(execute, "terminalizeGptChildResult").length, 0);
+  const closureCalls = calls(settlement, "this.closeKnownRateLimitAndReadGate");
   assert.equal(closureCalls.length, 1, "one Child result has one incident closure boundary");
   assert.equal(closureCalls[0]!.getFirstAncestorByKind(SyntaxKind.CatchClause), undefined,
     "a closure failure cannot re-enter the normalization catch");
+  const persistence = calls(settlement, "persistGptChildOutcome"), terminal = calls(settlement, "terminalizeGptChildResult");
+  assert.equal(persistence.length, 1); assert.equal(terminal.length, 1);
+  assert.ok(closureCalls[0]!.getEnd() < persistence[0]!.getStart() && persistence[0]!.getEnd() < terminal[0]!.getStart(),
+    "incident closure precedes evidence persistence and the one terminalization");
   const catchBody = execute.getDescendantsOfKind(SyntaxKind.CatchClause)[0]!.getText();
   assert.match(catchBody, /handleGptChildExecutionError/u);
-  assert.doesNotMatch(catchBody, /terminalizeGptChildResult|closeKnownRateLimitAndReadGate/u);
+  assert.doesNotMatch(catchBody, /terminalizeGptChildResult|closeKnownRateLimitAndReadGate|settleChildOutcome/u);
   const normalize = support.getVariableDeclarationOrThrow("handleGptChildExecutionError").getInitializerOrThrow().getText();
   assert.match(normalize, /BROWSER_GPT_DIALOG_UNRECOGNIZED/u);
   assert.match(normalize, /BROWSER_KNOWN_GPT_RATE_LIMIT/u);
   assert.match(normalize, /failedGptChildExecutionResult/u);
   assert.doesNotMatch(normalize, /closeKnownRateLimit|terminalizeGptChildResult/u);
-  assert.equal(execute.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .filter(call => call.getExpression().getText() === "terminalizeGptChildResult").length, 1);
   assert.match(read("../../../lib/browser/chrome-extension/dom-pointer-intent-runtime.ts"),
     /preClickExactOutgoingTurn !== undefined\)[\s\S]*return prepareExactOutgoingClick/u);
   assertAttachmentInspectorCounterexamples(baseUrl);
@@ -108,7 +120,7 @@ const assertAttachmentInspectorCounterexamples = (baseUrl: string): void => {
   files.push("src/lib/browser/chrome-extension/extension-file-input-runtime.ts",
     "src/lib/browser/exact-target/browser-target-lease.ts");
   for (const path of files) project.createSourceFile(resolve(root, path), readFileSync(resolve(root, path), "utf8"));
-  const lawId = "LAW-GPT-002-V31", context: InspectorContext = { project, sealedRoot: root, selectedLawId: lawId,
+  const lawId = "LAW-GPT-002-V32", context: InspectorContext = { project, sealedRoot: root, selectedLawId: lawId,
     targetPaths: files, targetSet: { queryRef: "gpt-attachment-helper-counterexamples", count: files.length },
     lawRequirements: [], generatedPlan: [], planEntry: { capabilityDomain: "gpt", executionGroup: "domain", lawIds: [lawId],
       manifestPath: "scripts/audit/domains/gpt/manifest.json", ownerInspectorPath: "scripts/audit/domains/gpt/inspector.ts" } };

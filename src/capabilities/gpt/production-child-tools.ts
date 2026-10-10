@@ -170,6 +170,16 @@ export class ProductionGptChildTools {
         span, childCapabilityId: call.child,
       });
     }
+    return this.settleChildOutcome({ execution, browsers, call, options, intent, span, browserCall, result });
+  }
+
+  private async settleChildOutcome<K extends GptChildCapabilityId>(input: Readonly<{
+    execution: ExecutionInput; browsers: ProductionGptBrowserLifecycle;
+    call: ProductGptCallInput<K> & Readonly<{ sessionKey: string }>; options: ExecuteOptions;
+    intent: GptChildCapabilityIntent<K>; span: RuntimeSpanHandle;
+    browserCall: ProductionGptBrowserCall | undefined; result: GptChildCapabilityResult;
+  }>): Promise<ProductGptChildResult<K>> {
+    const { execution, browsers, call, options, intent, span, browserCall, result } = input;
     const confirmedEffect = browserCall?.confirmedProviderEffect ?? options.confirmedSubmission ?? null;
     const closureError = await this.closeKnownRateLimitAndReadGate(execution, browsers, call, result);
     if (closureError) return terminalizeGptChildError(span, closureError, confirmedEffect);

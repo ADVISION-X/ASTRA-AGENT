@@ -105,7 +105,7 @@ const inspectAdmission = (s: Sources, findings: InspectorFinding[], lawId: strin
   findings, lawId, paths.acquirer, "One queued operation must bind the absolute deadline before dispatch; lease request classification stays private to the one lane.");
   requireContract(includesAll(s.supervisor.getText(), ["shouldRestoreBrowserHostVisibility",
     'reasonCode === "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"', '"peer_close", "tcp_close", "tcp_error"',
-    'this.issuer.current().kind === "PRESENT"', "void this.restoreBrowserHostVisibility()",
+    'this.issuer.current().kind === "PRESENT"', "if (restoreBrowserHost) void (async () => {", "await this.options.restoreBrowserHostVisibility?.()",
     '"BROWSER_HOST_UNAVAILABLE", "browser-host-restore"']) && !s.lease.getText().includes("attempt-replaced"),
   findings, lawId, paths.supervisor, "Only the authenticated transport terminal may invoke the host restoration callback.");
 };
@@ -199,6 +199,10 @@ const inspectPhysicalReleaseProof = (s: Sources, context: InspectorContext, find
       "await context.debuggerRuntime.readTargets()", 'if (!tabAbsent || after.some(', 'targetRef: bound.targetRef, jobRefHash, releaseOutcome: "released"'])
     && release.includes("context.targets.findByJobRefHash(jobRefHash) !== bound"), findings, lawId, paths.release,
   "Only fresh physical close readback may emit released; both absent producers must emit a null reference.");
+  inspectProductReleaseIsolation(s, context, findings, lawId);
+};
+
+const inspectProductReleaseIsolation = (s: Sources, context: InspectorContext, findings: InspectorFinding[], lawId: string): void => {
   const lease = body(s.manager, "BrowserTargetLeaseManager", "createTargetLease");
   const admission = body(s.manager, "BrowserTargetLeaseManager", "assertCommandAdmission");
   const lifecycle = body(s.lane, "BrowserLaneCoordinator", "withLifecycle");

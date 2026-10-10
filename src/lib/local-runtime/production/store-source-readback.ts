@@ -16,13 +16,7 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
       where job_id=? and source_attempt_id=?
         and (seal_hash is not null or sealed_at is not null)`).get(jobId, attemptId));
   }
-  public recordSourceReadbackObservation(
-    jobId: string, attemptId: string, observation: SourceReadbackObservation,
-  ): void {
-    if (!validSourceReadbackObservation(observation)) {
-      throw executionFailure("failed", "PRODUCTION_SOURCE_READBACK_PROOF_INVALID");
-    }
-    this.database.transaction(() => {
+  private assertSourceReadbackWriter(jobId: string, attemptId: string, observation: SourceReadbackObservation): void {
       const current = this.readTask(jobId);
       if (!current || current.current_attempt_id !== attemptId
         || observation.kind !== "settled_checkpoint" && current.status !== "failed"
@@ -30,6 +24,15 @@ export abstract class ProductionStoreSourceReadback extends ProductionStoreFound
         || current.staged_result !== null || this.sourceAttemptClosed(jobId, attemptId)) {
         throw executionFailure("failed", "PRODUCTION_SOURCE_READBACK_CONFLICT");
       }
+  }
+  public recordSourceReadbackObservation(
+    jobId: string, attemptId: string, observation: SourceReadbackObservation,
+  ): void {
+    if (!validSourceReadbackObservation(observation)) {
+      throw executionFailure("failed", "PRODUCTION_SOURCE_READBACK_PROOF_INVALID");
+    }
+    this.database.transaction(() => {
+      this.assertSourceReadbackWriter(jobId, attemptId, observation);
       const existing = this.database.prepare(`select readback_observations_json
         from production_attempt_handoffs where job_id=? and source_attempt_id=?`).get(
         jobId, attemptId,

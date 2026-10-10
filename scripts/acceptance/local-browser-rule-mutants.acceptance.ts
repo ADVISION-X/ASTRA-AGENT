@@ -12,18 +12,11 @@ import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser
 import { assertBrowserDomIntent } from "../../src/lib/browser/exact-target/browser-dom-intent.js";
 
 const hash = (digit: string): `sha256:${string}` => `sha256:${digit.repeat(64)}`;
-const exerciseInspectors = (): void => {
-  const project = new Project({ tsConfigFilePath: "tsconfig.json" }), lawId = "LAW-LOCAL-BROWSER-SESSION-004-V57";
-  const paths = project.getSourceFiles().map(source => source.getFilePath().slice(process.cwd().length + 1));
-  const context: InspectorContext = { project, sealedRoot: process.cwd(), selectedLawId: lawId, targetPaths: paths,
-    targetSet: { queryRef: "terminal-owner-mutants", count: paths.length }, lawRequirements: [{ lawId, forbiddenCount: 24,
-      requiredStaticModes: ["static.ast"], targetPaths: paths, targetSet: { queryRef: "terminal-owner-mutants", count: paths.length } }],
-    planEntry: { capabilityDomain: "local-browser-session", executionGroup: "domain", lawIds: [lawId],
-      manifestPath: "scripts/audit/domains/local-browser-session/manifest.json", ownerInspectorPath: "scripts/audit/domains/local-browser-session/inspector.ts" }, generatedPlan: [] };
-  const inspect = (): InspectorFinding[] => { const findings: InspectorFinding[] = [];
-    inspectBrowserMutationSettlement(context, findings, lawId); inspectTargetClaimGuards(context, findings, lawId); inspectInteractionReadiness(context, findings, lawId); return findings; };
-  assert.deepEqual(inspect(), [], "Actual native Owner chain must be accepted before negative mutations.");
-  const mutants = [
+const TERMINAL_RULE_MUTANTS = [
+    ["src/lib/browser/chrome-extension/websocket-actor.ts", "if (!currentSession() || this.commandDelivery.mutationSlot !== slot) return;", "if (false) return;"],
+    ["src/lib/browser/chrome-extension/websocket-actor.ts", "this.connection.session?.serverToClientKey === session.serverToClientKey", "true"],
+    ["src/lib/browser/chrome-extension/websocket-actor.ts", "await assertMutationSlotHash(response, slot, disposed)", "await Promise.resolve()"],
+    ["src/lib/browser/chrome-extension/websocket-actor.ts", "assertMutationAckShape(response)", "false"],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", "    if (receiptBindingHash !== null) {\n      const fact = reply.body.mutationReceipt", '    await (this.valueOf() as ExtensionWebSocketActor)[`sendEncrypted`](socket, "REPLY", reply.body);\n    if (receiptBindingHash !== null) {\n      const fact = reply.body.mutationReceipt'],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", "slot.fact = fact;", "void fact;"],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", "    if (receiptBindingHash !== null) {\n      const fact = reply.body.mutationReceipt", '    await this.sendEncrypted(socket, "REPLY", reply.body);\n    if (receiptBindingHash !== null) {\n      const fact = reply.body.mutationReceipt'],
@@ -41,7 +34,7 @@ const exerciseInspectors = (): void => {
     ["src/lib/browser/chrome-extension/websocket-actor.ts", 'await this.sendEncrypted(socket, "REPLY", reply.body);', 'await this.targetAuthority.retireInvalidCommandTarget(reply.body, permit, null);\n      await this.sendEncrypted(socket, "REPLY", reply.body);'],
     ["src/lib/browser/transport/browser-authority-websocket.ts", "this.settleMutationReceipt(socket, parseBrowserMutationReceiptMessage(body))", "this.options.onHeartbeat()"],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", "response.rejectedFactHash !== hash", "false"],
-    ["src/lib/browser/chrome-extension/websocket-actor.ts", "this.commandDelivery.disconnectedDrain !== null) return;", "false) return;"],
+    ["src/lib/browser/chrome-extension/websocket-actor.ts", "this.commandDelivery.disconnectedDrain !== null)) return;", "false)) return;"],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", "this.commandDelivery.pendingTargetHandlers.size > 0 || this.commandDelivery.disconnectedDrain", "false || this.commandDelivery.disconnectedDrain"],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", 'await this.sendEncrypted(socket, "HEARTBEAT", {}); await this.flushMutationReceipt();', 'await this.sendEncrypted(socket, "HEARTBEAT", {});'],
     ["src/lib/browser/transport/browser-authority-frame-payload.ts", "hash !== request.rejectedFactHash", "false"],
@@ -74,7 +67,19 @@ const exerciseInspectors = (): void => {
     ["src/lib/browser/chrome-extension/extension-target-authority.ts", 'if (mutationClass === "observation") return ',
       'if (mutationClass === "observation") await this.interactionReadiness.executeObservation(target, execute, assertCommandActive); if (mutationClass === "observation") return '],
   ] as const;
-  for (const [path, original, replacement] of mutants) {
+
+const exerciseInspectors = (): void => {
+  const project = new Project({ tsConfigFilePath: "tsconfig.json" }), lawId = "LAW-LOCAL-BROWSER-SESSION-004-V57";
+  const paths = project.getSourceFiles().map(source => source.getFilePath().slice(process.cwd().length + 1));
+  const context: InspectorContext = { project, sealedRoot: process.cwd(), selectedLawId: lawId, targetPaths: paths,
+    targetSet: { queryRef: "terminal-owner-mutants", count: paths.length }, lawRequirements: [{ lawId, forbiddenCount: 24,
+      requiredStaticModes: ["static.ast"], targetPaths: paths, targetSet: { queryRef: "terminal-owner-mutants", count: paths.length } }],
+    planEntry: { capabilityDomain: "local-browser-session", executionGroup: "domain", lawIds: [lawId],
+      manifestPath: "scripts/audit/domains/local-browser-session/manifest.json", ownerInspectorPath: "scripts/audit/domains/local-browser-session/inspector.ts" }, generatedPlan: [] };
+  const inspect = (): InspectorFinding[] => { const findings: InspectorFinding[] = [];
+    inspectBrowserMutationSettlement(context, findings, lawId); inspectTargetClaimGuards(context, findings, lawId); inspectInteractionReadiness(context, findings, lawId); return findings; };
+  assert.deepEqual(inspect(), [], "Actual native Owner chain must be accepted before negative mutations.");
+  for (const [path, original, replacement] of TERMINAL_RULE_MUTANTS) {
     const source = project.getSourceFileOrThrow(path), before = source.getFullText(); assert.ok(before.includes(original), original);
     let after = before.replace(original, replacement);
     if (path.endsWith("debugger-runtime.ts")) after = after.replace("const DEVTOOLS_CONTROL_METHODS = new Set([", 'const DEVTOOLS_CONTROL_METHODS = new Set([\n  "Page.navigate",');

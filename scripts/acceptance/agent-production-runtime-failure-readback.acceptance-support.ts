@@ -210,7 +210,7 @@ const verifySuccessfulFailureReadbackIsolation = async (): Promise<void> => {
   }
 };
 
-const verifyAdmissionLogFailureAndReadbackIsolation = async (): Promise<void> => {
+const loadAdmissionIsolationApi = async (): Promise<Record<string, (state: unknown) => Promise<unknown>>> => {
   const source = await readFile(new URL("../../src/lib/local-runtime/production/runtime-loops.ts", import.meta.url), "utf8");
   const admission = source.slice(source.indexOf("const reconcilePendingBusinessAdmissions ="),
     source.indexOf("export const reconcileCompletedBrowserTargets ="));
@@ -226,6 +226,11 @@ const verifyAdmissionLogFailureAndReadbackIsolation = async (): Promise<void> =>
     reconcileBusinessAdmission, readProductionDeviceJobStatus, websiteJobAbsent, purgeDeletedJob,
     safeReason: (error: Error) => error.message,
     reconcileCompletedBrowserTargets: async (state: { cleanups: number }) => { state.cleanups++; } });
+  return api;
+};
+
+const verifyAdmissionLogFailureAndReadbackIsolation = async (): Promise<void> => {
+  const api = await loadAdmissionIsolationApi();
   const root = await mkdtemp(join(tmpdir(), "admission-log-isolation-")), store = new RuntimeStore(root);
   try {
     const jobs = ["A", "B", "C"].map(id => task({ jobId: `job:sink-${id}`,

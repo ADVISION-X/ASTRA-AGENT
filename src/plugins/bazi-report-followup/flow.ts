@@ -34,6 +34,21 @@ const parentArchiveReport = (context: SharedExecutionContext, role: string): Rec
     const value: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(data!));
     return isRecord(value) ? value : fail();
   };
+  const readPages = (path: string, key: string, spec: Record<string, unknown>): unknown[] => {
+      const records: unknown[] = [];
+      for (const page of spec.pages as unknown[]) {
+        if (!isRecord(page)) fail();
+        const p = page as Record<string, unknown>;
+        const entry = `${path}/${key}/P_${String(records.length).padStart(6, "0")}.json`;
+        if (p.path !== entry || p.start !== records.length || !Number.isSafeInteger(p.count)
+          || Number(p.count) <= 0 || !files[entry] || used.has(entry)) fail();
+        const values: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(files[entry]!));
+        if (!Array.isArray(values) || values.length !== p.count) fail();
+        used.add(entry); records.push(...values as unknown[]);
+      }
+      if (records.length !== spec.original_count) fail();
+      return records;
+  };
   const readReport = (path: string): Record<string, unknown> => {
     const identity = read(`${path}/身份.json`);
     const { record_pages: pages, ...report } = identity;
@@ -45,19 +60,7 @@ const parentArchiveReport = (context: SharedExecutionContext, role: string): Rec
       if (!allowed.includes(key) || Object.hasOwn(report, key) || !isRecord(spec)
         || !Number.isSafeInteger(spec.original_count) || Number(spec.original_count) < 0
         || !Array.isArray(spec.pages)) fail();
-      const records: unknown[] = [];
-      for (const page of (spec as Record<string, unknown>).pages as unknown[]) {
-        if (!isRecord(page)) fail();
-        const p = page as Record<string, unknown>;
-        const entry = `${path}/${key}/P_${String(records.length).padStart(6, "0")}.json`;
-        if (p.path !== entry || p.start !== records.length || !Number.isSafeInteger(p.count)
-          || Number(p.count) <= 0 || !files[entry] || used.has(entry)) fail();
-        const values: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(files[entry]!));
-        if (!Array.isArray(values) || values.length !== p.count) fail();
-        used.add(entry); records.push(...values as unknown[]);
-      }
-      if (records.length !== (spec as Record<string, unknown>).original_count) fail();
-      report[key] = records;
+      report[key] = readPages(path, key, spec as Record<string, unknown>);
     }
     if (files[`${path}/正式正文/身份.json`]) report.terminal_output = readReport(`${path}/正式正文`);
     if (files[`${path}/语义注册表/身份.json`]) report.anchor_registry = readReport(`${path}/语义注册表`);

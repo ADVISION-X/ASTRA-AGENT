@@ -100,6 +100,18 @@ const pendingFailureConflicts = (
   return true;
 };
 
+const attemptReadbackFailureIsLocal = (error: unknown): boolean => {
+  const transport = typedRuntimeTransportFailure(error);
+  if (transport) return ![401, 403].includes(transport.httpStatus);
+  const code = failureCode(error);
+  if (code === "CLOUD_TRANSPORT_UNAVAILABLE") return true;
+  if (typedExecutionFailure(error) === null) return false;
+  return code.startsWith("BROWSER_") && code !== "BROWSER_REPAIR_REQUIRED"
+    || ["PRODUCTION_ATTEMPT_FAILURE_NEXT_ACTION_MISMATCH", "PRODUCTION_ATTEMPT_FAILURE_RESULT_AUTHORITY_MISSING",
+      "PRODUCTION_ATTEMPT_FAILURE_RECEIPT_CONFLICT", "BUSINESS_ADMISSION_RESULT_HASH_MISMATCH",
+      "BUSINESS_ADMISSION_ATTEMPT_IDENTITY_MISSING"].includes(code);
+};
+
 export const reconcilePendingAttemptFailures = async (state: RuntimeState): Promise<void> => {
   for (const task of state.store.pendingAttemptFailures()) {
     const failure = task.attempt_failure;
@@ -127,14 +139,7 @@ export const reconcilePendingAttemptFailures = async (state: RuntimeState): Prom
       }
     } catch (error) {
       if (!websiteJobAbsent(error)) {
-        const transport = typedRuntimeTransportFailure(error);
-        const code = failureCode(error);
-        const local = transport !== null || code === "CLOUD_TRANSPORT_UNAVAILABLE"
-          || (typedExecutionFailure(error) !== null && ((code.startsWith("BROWSER_") && code !== "BROWSER_REPAIR_REQUIRED")
-            || ["PRODUCTION_ATTEMPT_FAILURE_NEXT_ACTION_MISMATCH", "PRODUCTION_ATTEMPT_FAILURE_RESULT_AUTHORITY_MISSING",
-              "PRODUCTION_ATTEMPT_FAILURE_RECEIPT_CONFLICT", "BUSINESS_ADMISSION_RESULT_HASH_MISMATCH",
-              "BUSINESS_ADMISSION_ATTEMPT_IDENTITY_MISSING"].includes(code)));
-        if (!local || (transport && [401, 403].includes(transport.httpStatus))) throw error;
+        if (!attemptReadbackFailureIsLocal(error)) throw error;
         state.lastErrorCode = failureCode(error, "ATTEMPT_RELEASE_READBACK_FAILED");
         state.lastErrorReason = safeReason(error);
         state.store.setCurrentReason(task.task.job_id, state.lastErrorCode);

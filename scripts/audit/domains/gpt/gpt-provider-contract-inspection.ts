@@ -69,7 +69,7 @@ export const inspectGptProviderProbeOwnerContract = (context: InspectorContext, 
       'productStepId, callId, observationDeadlineAt, "confirmed-readback", eligibleAt',
       "canonicalConversationUrl: active.confirmedProviderEffect!.canonicalConversationUrl", 'mode: "product-call-settlement"'].every(token => waitText.includes(token))
     && before(waitText, 'if (eligibleAt > observationDeadlineAt) return "deadline"', "await active.facade.park(")
-    && before(waitText, "assertConfirmedProviderReadback(active)", "await active.facade.park(")
+    && before(waitText, "assertConfirmedProviderReadback(active, this.browserAuthority, this.execution.jobId)", "await active.facade.park(")
     && before(waitText, "await active.facade.park(", "await this.acquireBrowserLease(")
     && before(waitText, "await this.acquireBrowserLease(", 'kind: "selectExactGptConversation"')
     && settlement?.getText().includes('mode: "product-call-settlement"') === true

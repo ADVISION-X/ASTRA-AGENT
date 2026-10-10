@@ -10,9 +10,6 @@ import { verifyBrowserMutationTerminalFact } from "../exact-target/browser-mutat
 import { BrowserSessionWorkspace, type SessionWorkspaceBindingV6 } from "../exact-target/browser-session-workspace.js";
 import { requireGptWebClaimOrigin } from "../exact-target/browser-site-policy-registry.js";
 import { BrowserTargetLeaseManager, type BrowserExactTargetAcquisition } from "../exact-target/browser-target-lease-manager.js";
-import type { BrowserProfileConfig } from "../profile/browser-profile-config.js";
-import type { BrowserProfileState } from "../profile/browser-profile-state.js";
-import type { UnpackedExtensionReleaseIdentity } from "../release/unpacked-extension-release-identity.js";
 import type { BrowserAuthorityTargetClaim, BrowserAuthorityTargetRevoke } from
   "../transport/browser-authority-frame-payload.js";
 import { BrowserAuthorityWebSocket, type BrowserAuthorityWebSocketOptions } from
@@ -41,9 +38,9 @@ export type BrowserHealthSnapshot = Readonly<Record<BrowserHealthComponent, Read
 export type BrowserInfrastructureSupervisorOptions = Readonly<{
   dataDir: string;
   sourceFingerprint: string;
-  profileConfig: BrowserProfileConfig;
-  enrolledProfile: BrowserProfileState;
-  releaseIdentity: UnpackedExtensionReleaseIdentity;
+  profileConfig: Parameters<typeof commitBrowserAuthentication>[0]["profileConfig"];
+  enrolledProfile: Parameters<typeof commitBrowserAuthentication>[0]["enrolledProfile"];
+  releaseIdentity: Parameters<typeof commitBrowserAuthentication>[0]["releaseIdentity"];
   runtimeLogger: RuntimeLogger;
   restoreBrowserHostVisibility?: (() => Promise<void>) | undefined;
 }>;
@@ -228,17 +225,10 @@ export class BrowserInfrastructureSupervisor {
     this.disconnectTransport(normalizeBrowserDisconnectReason(reasonCode));
     emitInfrastructureFailure(this.options, this.state, reasonCode,
       extensionFailure ? "extension-runtime" : "authority-revoked");
-    if (restoreBrowserHost) void this.restoreBrowserHostVisibility();
-  }
-
-  private async restoreBrowserHostVisibility(): Promise<void> {
-    try {
-      await this.options.restoreBrowserHostVisibility?.();
-    } catch {
-      emitInfrastructureFailure(
-        this.options, this.state, "BROWSER_HOST_UNAVAILABLE", "browser-host-restore",
-      );
-    }
+    if (restoreBrowserHost) void (async () => {
+      try { await this.options.restoreBrowserHostVisibility?.(); }
+      catch { emitInfrastructureFailure(this.options, this.state, "BROWSER_HOST_UNAVAILABLE", "browser-host-restore"); }
+    })();
   }
 
   public async start(): Promise<void> {
