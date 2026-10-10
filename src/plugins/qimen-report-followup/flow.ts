@@ -24,9 +24,9 @@ const PLUGIN_ID = "qimen-report-followup";
 const PRODUCT_INSTRUCTION = "根据本次已入场的父报告与盘局材料回答新的冻结问题，保持父报告、候选集与证据边界。";
 const WAIT_TIMEOUT_MS = 3_600_000;
 const MODEL_PROFILE = buildGptExecutionProfile({
-  profileRef: `${PLUGIN_ID}:gpt-5.6-sol-pro-standard`,
-  startModelDisplayName: "GPT-5.6 Sol",
-  requestedReasoningValue: 5,
+  profileRef: `${PLUGIN_ID}:chatgpt-latest-reasoning-4`,
+  startModelDisplayName: "最新",
+  requestedReasoningValue: 4,
   executorIdentityRef: PLUGIN_ID,
   acceptanceRef: `${PLUGIN_ID}:production`,
   acceptanceVersion: "v1",

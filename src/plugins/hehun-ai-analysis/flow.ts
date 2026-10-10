@@ -20,9 +20,9 @@ const PLUGIN_ID = "hehun-ai-analysis";
 const PRODUCT_INSTRUCTION = "围绕已授权双人案卷完成合婚分析，严格隔离双方事实与隐私，并说明比较依据、条件、反证、时序和现实边界。";
 const WAIT_TIMEOUT_MS = 3_600_000;
 const MODEL_PROFILE = buildGptExecutionProfile({
-  profileRef: `${PLUGIN_ID}:gpt-5.6-sol-pro-standard`,
-  startModelDisplayName: "GPT-5.6 Sol",
-  requestedReasoningValue: 5,
+  profileRef: `${PLUGIN_ID}:chatgpt-latest-reasoning-4`,
+  startModelDisplayName: "最新",
+  requestedReasoningValue: 4,
   executorIdentityRef: PLUGIN_ID,
   acceptanceRef: `${PLUGIN_ID}:production`,
   acceptanceVersion: "v1",

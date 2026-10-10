@@ -40,6 +40,15 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   };
   const run = await exerciseProductFlow(plugin, { task, output, productSkillText: skillText });
   await exerciseConfirmedSubmitRecovery(plugin, { task, output, productSkillText: skillText });
+  const selectedModel = run.calls.find(call => call.child === "select_gpt_model_from_start_v3")!;
+  const selectedReasoning = run.calls.find(call => call.child === "select_gpt_reasoning_from_start_v3")!;
+  assert.deepEqual({ profileRef: selectedModel.input.profile.profileRef,
+    startModelDisplayName: selectedModel.input.profile.startModelDisplayName,
+    requestedReasoningValue: selectedReasoning.input.profile.requestedReasoningValue }, {
+    profileRef: "qimen-professional-answer:chatgpt-latest-reasoning-4",
+    startModelDisplayName: "最新", requestedReasoningValue: 4,
+  });
+  assert.deepEqual(selectedModel.input.profile, selectedReasoning.input.profile);
   assert.deepEqual(run.calls.map((call) => call.child), initial);
   const prompt = String(run.calls.find((call) => call.child === "write_exact_gpt_prompt")?.input.prompt);
   assert.match(prompt, /当前 Product Plugin：qimen-professional-answer/u);

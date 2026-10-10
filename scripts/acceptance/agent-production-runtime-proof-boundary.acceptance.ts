@@ -10,8 +10,13 @@ import { readHealth } from "../../src/lib/local-runtime/production/runtime-loops
 import { readProductionOperationsSnapshot } from "../../src/lib/local-runtime/production/operations-snapshot.js";
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
 import { BrowserLaneCoordinator } from "../../src/lib/browser/infrastructure/browser-lane-coordinator.js";
+import { BrowserAuthorityBroker } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
+import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
+import { createBrowserInfrastructureState } from "../../src/lib/browser/infrastructure/browser-infrastructure-state.js";
+import { BrowserAuthorityWebSocket } from "../../src/lib/browser/transport/browser-authority-websocket.js";
+import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { identity, terminalFact } from "./local-browser-mutation-store-support.js";
-import { HASH_A, resultFor, stageResultForAcceptance, task } from "./agent-production-runtime-fixtures.js";
+import { HASH_A, resultFor, shutdownRuntimeFixture, stageResultForAcceptance, task } from "./agent-production-runtime-fixtures.js";
 import { hashCanonical } from "../../src/lib/local-runtime/production/contracts.js";
 
 const temporary = await mkdtemp(path.join(tmpdir(), "agent-production-proof-boundary-"));
@@ -48,24 +53,35 @@ const healthDirectory = await mkdtemp(path.join(tmpdir(), "agent-health-projecti
 const runtimeStore = new ProductionRuntimeStore(healthDirectory);
 const mutationStore = new BrowserMutationStore(path.join(healthDirectory, "browser"));
 mutationStore.verifyRuntimeTaskProvenance(null);
-const lane = new BrowserLaneCoordinator(() => ({} as never), {} as never, {} as never,
-  { mutationState: mutationStore } as never);
+const forbiddenAction = (): never => { throw new Error("HEALTH_READ_MUTATION"); };
+const issuer = new BrowserAuthorityIssuer();
+const broker = new BrowserAuthorityBroker(issuer, forbiddenAction, forbiddenAction);
+const websocket = new BrowserAuthorityWebSocket({
+  pairingSecret: null, onPairingStarted: forbiddenAction, onHeartbeat: forbiddenAction,
+  onAuthenticated: forbiddenAction, onMutationReceipt: forbiddenAction,
+  onTargetClaim: forbiddenAction, onTargetRevoke: forbiddenAction,
+  onDiagnostic: forbiddenAction, onRevoked: forbiddenAction,
+});
+const infrastructure = createBrowserInfrastructureState();
+infrastructure.mutationState = mutationStore;
+const lane = new BrowserLaneCoordinator(() => broker, websocket, issuer, infrastructure);
 let authority: "present" | "absent" = "present";
 let target: "claimed" | "absent" = "absent";
 let sink: "ready" | "failed" | "capacity_blocked" = "ready";
-const browser = {
-  readProductionRuntimeState: () => ({ browserAuthorityState: authority, browserTargetState: target }),
-  readBrowserLaneState: () => lane.readState(),
-  hasBrowserMutationForJob: mutationStore.hasMutationForJob.bind(mutationStore),
-  hasUnresolvedBrowserMutation: () => mutationStore.countDispatched() > 0,
-};
-const state = { active: new Map(), store: runtimeStore, browserAuthority: browser,
-  runtimeLogger: { isWritable: () => sink === "ready", getSinkState: () => sink },
-  session: { controlContractVersion: 44 }, stopped: false, draining: false,
-  ledgerReconciled: true, lastErrorCode: null, lastErrorReason: null, lastHeartbeat: null,
-} as unknown as Parameters<typeof readHealth>[0];
+const runtimeLogger = Object.assign(createRuntimeLogger({
+  producer: "health-projection-exam", owner: "production-runtime", component: "health-projection",
+  terminalEnabled: false, fileSink: { directoryPath: path.join(healthDirectory, "logs") },
+}), { isWritable: () => sink === "ready", getSinkState: () => sink });
+const state = shutdownRuntimeFixture({ store: runtimeStore, dataDir: healthDirectory, runtimeLogger,
+  browser: {
+    readProductionRuntimeState: () => ({ browserAuthorityState: authority, browserTargetState: target }),
+    readBrowserLaneState: () => lane.readState(),
+    hasBrowserMutationForJob: mutationStore.hasMutationForJob.bind(mutationStore),
+    hasUnresolvedBrowserMutation: () => mutationStore.countDispatched() > 0,
+  },
+});
 const snapshot = (health = readHealth(state)) => readProductionOperationsSnapshot({
-  dataDir: healthDirectory, store: runtimeStore, browser: browser as never,
+  dataDir: healthDirectory, store: runtimeStore, browser: state.browserAuthority,
   health: () => health, session: null, jobId: undefined,
 });
 const executionRow = async (health = readHealth(state)) => {

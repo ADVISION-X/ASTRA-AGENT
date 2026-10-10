@@ -22,6 +22,15 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
     const flowFixture = { task, output: { decision: "no_issue", issues: [] } };
     const run = await exerciseProductFlow(plugin, flowFixture);
     await exerciseConfirmedSubmitRecovery(plugin, flowFixture);
+    const selectedModel = run.calls.find(call => call.child === "select_gpt_model_from_start_v3")!;
+    const selectedReasoning = run.calls.find(call => call.child === "select_gpt_reasoning_from_start_v3")!;
+    assert.deepEqual({ profileRef: selectedModel.input.profile.profileRef,
+      startModelDisplayName: selectedModel.input.profile.startModelDisplayName,
+      requestedReasoningValue: selectedReasoning.input.profile.requestedReasoningValue }, {
+      profileRef: "bazi-ai-full-analysis:chatgpt-latest-reasoning-4",
+      startModelDisplayName: "最新", requestedReasoningValue: 4,
+    });
+    assert.deepEqual(selectedModel.input.profile, selectedReasoning.input.profile);
     assert.deepEqual(run.calls.map((call) => call.child), reviewSequence);
     continue;
   }
@@ -51,6 +60,15 @@ for (const route of routesForPlugin(plugin, productionRoutePolicies)) {
   const run = await exerciseProductFlow(plugin, flowFixture);
   await exerciseConfirmedSubmitRecovery(plugin, flowFixture);
   assert.equal(run.physicalSubmitDispatches, 1);
+  const selectedModel = run.calls.find(call => call.child === "select_gpt_model_from_start_v3")!;
+  const selectedReasoning = run.calls.find(call => call.child === "select_gpt_reasoning_from_start_v3")!;
+  assert.deepEqual({ profileRef: selectedModel.input.profile.profileRef,
+    startModelDisplayName: selectedModel.input.profile.startModelDisplayName,
+    requestedReasoningValue: selectedReasoning.input.profile.requestedReasoningValue }, {
+    profileRef: "bazi-ai-full-analysis:chatgpt-latest-reasoning-4",
+    startModelDisplayName: "最新", requestedReasoningValue: 4,
+  });
+  assert.deepEqual(selectedModel.input.profile, selectedReasoning.input.profile);
   assert.deepEqual(run.calls.map((call) => call.child), reviewSequence);
 
   assert.throws(

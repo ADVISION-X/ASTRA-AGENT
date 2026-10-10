@@ -10,6 +10,13 @@ import { getHealthReport } from "../../src/lib/local-runtime/workbench-status.js
 import { readHealth } from "../../src/lib/local-runtime/production/runtime-loops.js";
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
 import { BrowserLaneCoordinator } from "../../src/lib/browser/infrastructure/browser-lane-coordinator.js";
+import { BrowserAuthorityBroker } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
+import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
+import { createBrowserInfrastructureState } from "../../src/lib/browser/infrastructure/browser-infrastructure-state.js";
+import { BrowserAuthorityWebSocket } from "../../src/lib/browser/transport/browser-authority-websocket.js";
+import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
+import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
+import { HASH_A, shutdownRuntimeFixture } from "./agent-production-runtime-fixtures.js";
 import { identity, terminalFact } from "./local-browser-mutation-store-support.js";
 
 const paths = [
@@ -84,26 +91,40 @@ assert.deepEqual(inspectLocalAppShellProject(fixture()), [], "the current owner 
 }
 
 const healthDirectory = mkdtempSync(path.join(tmpdir(), "local-shell-health-"));
-const mutationStore = new BrowserMutationStore(healthDirectory);
+const runtimeStore = new ProductionRuntimeStore(healthDirectory);
+const mutationStore = new BrowserMutationStore(path.join(healthDirectory, "browser"));
 mutationStore.verifyRuntimeTaskProvenance(null);
-const lane = new BrowserLaneCoordinator(() => ({} as never), {} as never, {} as never,
-  { mutationState: mutationStore } as never);
+let actions = 0;
+const forbiddenAction = (): never => { actions += 1; throw new Error("HEALTH_READ_MUTATION"); };
+const issuer = new BrowserAuthorityIssuer();
+const broker = new BrowserAuthorityBroker(issuer, forbiddenAction, forbiddenAction);
+const websocket = new BrowserAuthorityWebSocket({
+  pairingSecret: null, onPairingStarted: forbiddenAction, onHeartbeat: forbiddenAction,
+  onAuthenticated: forbiddenAction, onMutationReceipt: forbiddenAction,
+  onTargetClaim: forbiddenAction, onTargetRevoke: forbiddenAction,
+  onDiagnostic: forbiddenAction, onRevoked: forbiddenAction,
+});
+const infrastructure = createBrowserInfrastructureState();
+infrastructure.mutationState = mutationStore;
+const lane = new BrowserLaneCoordinator(() => broker, websocket, issuer, infrastructure);
 let authority: "present" | "absent" = "present";
 let writable = true;
-let actions = 0;
-const forbiddenAction = () => { actions += 1; throw new Error("HEALTH_READ_MUTATION"); };
-const state = { active: new Map(), store: { isLedgerConsistent: () => true, pendingOutboxCount: () => 0 },
-  session: { controlContractVersion: 44, request: forbiddenAction },
-  browserAuthority: { readProductionRuntimeState: () => ({ browserAuthorityState: authority,
-    browserTargetState: "absent" }), readBrowserLaneState: () => lane.readState(),
-    acquireProductionBrowserTarget: forbiddenAction, pair: forbiddenAction },
-  runtimeLogger: { isWritable: () => writable, getSinkState: () => writable ? "ready" : "failed" },
-  stopped: false, draining: false, ledgerReconciled: true,
-  lastErrorCode: null, lastErrorReason: null, lastHeartbeat: null,
-} as unknown as Parameters<typeof readHealth>[0];
-const report = () => getHealthReport({ browserAuthority: { broker: {
-  currentStatus: () => ({ kind: "AVAILABLE", certificateHash: "sha256:current-authority" }),
-} } } as never, { status: "ready", failureReason: null }, readHealth(state));
+const runtimeLogger = Object.assign(createRuntimeLogger({
+  producer: "shell-health-exam", owner: "production-runtime", component: "shell-health",
+  terminalEnabled: false, fileSink: { directoryPath: path.join(healthDirectory, "logs") },
+}), { isWritable: () => writable, getSinkState: (): "ready" | "failed" => writable ? "ready" : "failed" });
+const state = shutdownRuntimeFixture({ store: runtimeStore, dataDir: healthDirectory, runtimeLogger,
+  browser: {
+    broker: { currentStatus: () => ({ kind: "AVAILABLE", certificateHash: HASH_A,
+      authorityRefHash: HASH_A, channelSessionHash: HASH_A }) },
+    readProductionRuntimeState: () => ({ browserAuthorityState: authority, browserTargetState: "absent" }),
+    readBrowserLaneState: () => lane.readState(),
+    acquireJobBoundTargetLease: forbiddenAction, acceptBrowserAuthoritySocket: forbiddenAction,
+  },
+});
+state.session.request = forbiddenAction;
+const report = () => getHealthReport({ browserAuthority: state.browserAuthority },
+  { status: "ready", failureReason: null }, readHealth(state));
 try {
   for (const busy of [false, true]) {
     Reflect.set(lane, "active", busy);
@@ -148,7 +169,7 @@ try {
   assert.equal(actions, 0, "diagnostic reading must not pair, claim, acquire or write to the Website");
   assert.equal(mutationStore.countDispatched(), 0);
 } finally {
-  mutationStore.close(); rmSync(healthDirectory, { recursive: true, force: true });
+  mutationStore.close(); runtimeStore.close(); rmSync(healthDirectory, { recursive: true, force: true });
 }
 
 console.log("local-app-shell-acceptance-ok");

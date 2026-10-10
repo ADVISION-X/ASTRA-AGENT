@@ -21,9 +21,9 @@ const PLUGIN_ID = "qimen-professional-answer";
 const PRODUCT_INSTRUCTION = "围绕原始问事完成奇门专业回答，覆盖全部锁定候选、盘面依据、条件、反证、时效与现实边界。";
 const WAIT_TIMEOUT_MS = 3_600_000;
 const MODEL_PROFILE = buildGptExecutionProfile({
-  profileRef: `${PLUGIN_ID}:gpt-5.6-sol-pro-standard`,
-  startModelDisplayName: "GPT-5.6 Sol",
-  requestedReasoningValue: 5,
+  profileRef: `${PLUGIN_ID}:chatgpt-latest-reasoning-4`,
+  startModelDisplayName: "最新",
+  requestedReasoningValue: 4,
   executorIdentityRef: PLUGIN_ID,
   acceptanceRef: `${PLUGIN_ID}:production`,
   acceptanceVersion: "v1",

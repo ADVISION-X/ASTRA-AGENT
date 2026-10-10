@@ -68,6 +68,15 @@ for (const route of routesForPlugin(original, productionRoutePolicies)) {
   const fixture = { task, output, materialContents, productSkillText: skill };
   await assert.rejects(exerciseProductFlow(original, fixture), /PRODUCT_TEXT_CHECKPOINT_INVALID/);
   const plugin = checkpointFixture(), run = await exerciseProductFlow(plugin, fixture);
+  const selectedModel = run.calls.find(call => call.child === "select_gpt_model_from_start_v3")!;
+  const selectedReasoning = run.calls.find(call => call.child === "select_gpt_reasoning_from_start_v3")!;
+  assert.deepEqual({ profileRef: selectedModel.input.profile.profileRef,
+    startModelDisplayName: selectedModel.input.profile.startModelDisplayName,
+    requestedReasoningValue: selectedReasoning.input.profile.requestedReasoningValue }, {
+    profileRef: "naming-bazi-analysis-and-naming:chatgpt-latest-reasoning-4",
+    startModelDisplayName: "最新", requestedReasoningValue: 4,
+  });
+  assert.deepEqual(selectedModel.input.profile, selectedReasoning.input.profile);
   assert.deepEqual(run.calls.map(call => call.child), sequence);
   assert.deepEqual(run.completed.payload, output);
   assert.equal(run.physicalSubmitDispatches, 1);

@@ -23,9 +23,9 @@ const PLUGIN_ID = "hehun-report-followup";
 const PRODUCT_INSTRUCTION = "根据本次已入场的父报告材料回答新的冻结问题，保持双人案卷、隐私、父报告与证据边界。";
 const WAIT_TIMEOUT_MS = 3_600_000;
 const MODEL_PROFILE = buildGptExecutionProfile({
-  profileRef: `${PLUGIN_ID}:gpt-5.6-sol-pro-standard`,
-  startModelDisplayName: "GPT-5.6 Sol",
-  requestedReasoningValue: 5,
+  profileRef: `${PLUGIN_ID}:chatgpt-latest-reasoning-4`,
+  startModelDisplayName: "最新",
+  requestedReasoningValue: 4,
   executorIdentityRef: PLUGIN_ID,
   acceptanceRef: `${PLUGIN_ID}:production`,
   acceptanceVersion: "v1",

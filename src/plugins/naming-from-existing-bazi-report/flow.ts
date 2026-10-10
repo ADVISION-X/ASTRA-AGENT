@@ -7,8 +7,8 @@ import { executionFailure } from "../../lib/execution-failure.js";
 import { parseProductResult } from "./result-contract.js";
 
 const plugin = "naming-from-existing-bazi-report";
-const model = buildGptExecutionProfile({ profileRef: `${plugin}:gpt-5.6-sol-pro-standard`,
-  startModelDisplayName: "GPT-5.6 Sol", requestedReasoningValue: 5, executorIdentityRef: plugin,
+const model = buildGptExecutionProfile({ profileRef: `${plugin}:chatgpt-latest-reasoning-4`,
+  startModelDisplayName: "最新", requestedReasoningValue: 4, executorIdentityRef: plugin,
   acceptanceRef: `${plugin}:production`, acceptanceVersion: "v1" });
 type Run = (call: ProductGptAnyCallInput) => Promise<ProductGptChildResult>;
 function instruction(task: WebsiteAgentTask): string {

@@ -7,8 +7,8 @@ import { executionFailure } from "../../lib/execution-failure.js";
 import { parseProductResult } from "./result-contract.js";
 
 const identity = "naming-bazi-analysis-and-naming";
-const profile = buildGptExecutionProfile({ profileRef: `${identity}:gpt-5.6-sol-pro-standard`,
-  startModelDisplayName: "GPT-5.6 Sol", requestedReasoningValue: 5,
+const profile = buildGptExecutionProfile({ profileRef: `${identity}:chatgpt-latest-reasoning-4`,
+  startModelDisplayName: "最新", requestedReasoningValue: 4,
   executorIdentityRef: identity, acceptanceRef: `${identity}:production`, acceptanceVersion: "v1" });
 function prompt(task: WebsiteAgentTask, context: SharedExecutionContext, marker: string): string {
   const attachments = [...context.materials].sort((a, b) => a.ordinal - b.ordinal).map((material) => ({
