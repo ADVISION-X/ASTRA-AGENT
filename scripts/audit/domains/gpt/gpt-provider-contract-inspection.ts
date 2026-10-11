@@ -75,6 +75,37 @@ export const inspectGptProviderProbeOwnerContract = (context: InspectorContext, 
     && settlement?.getText().includes('mode: "product-call-settlement"') === true
     && lifecycleOwner?.getMethod("settle")?.getText().includes("this.parkActive(") === true,
   "gpt/provider-observation-park-readback", LIFECYCLE, "Pending observations verify the original effect, park once and reacquire the same conversation after the Browser gate.", findings, finding);
+  const tries = wait?.getDescendantsOfKind(SyntaxKind.TryStatement) ?? [];
+  const acquisition = tries.find(node => calls(node.getTryBlock(), "this.acquireBrowserLease").length === 1);
+  const pendingPark = tries.find(node => calls(node.getTryBlock(), "active.facade.park").length === 1);
+  const selection = calls(wait, "active.facade.executeDomIntent")[0];
+  const registered = wait?.getBody()?.getChildrenOfKind(SyntaxKind.ExpressionStatement).find(statement => {
+    const node = statement.getExpression();
+    return Node.isBinaryExpression(node) && node.getOperatorToken().getKind() === SyntaxKind.EqualsToken
+      && node.getLeft().getText() === "this.activeBrowser" && node.getRight().getText() === "current";
+  });
+  const retired = (node: Node | undefined): boolean => {
+    const statements = Node.isBlock(node) ? node.getStatements() : [];
+    const gate = statements[0];
+    return statements.length === 1 && Node.isIfStatement(gate)
+      && gate.getExpression().getText() === "this.activeBrowser === current"
+      && gate.getThenStatement().getText() === "this.activeBrowser = null;";
+  };
+  const acquisitionCatch = acquisition?.getCatchClause()?.getText() ?? "";
+  const leaseHandoffIsSafe = (): boolean => !!acquisition && !!selection && !!registered && selection.getStart() > registered.getEnd()
+    && registered.getStart() > acquisition.getEnd()
+    && calls(acquisition, "active.facade.executeDomIntent").length === 0
+    && calls(wait, "active.browser.executeDomIntent").length === 0
+    && retired(pendingPark?.getFinallyBlock())
+    && retired(settlement?.getDescendantsOfKind(SyntaxKind.TryStatement)[0]?.getFinallyBlock())
+    && waitText.includes("if (!current || current.call !== active)")
+    && acquisitionCatch.includes('failureCode(error) === "V6_DEADLINE_BUDGET_EXHAUSTED"')
+    && acquisitionCatch.includes("!this.execution.abortSignal.aborted && Date.now() >= observationDeadlineAt")
+    && calls(acquisition?.getCatchClause(), "failureCode").length === 1
+    && acquisition?.getCatchClause()?.getDescendantsOfKind(SyntaxKind.ThrowStatement).length === 1;
+  check(leaseHandoffIsSafe(),
+  "gpt/provider-observation-park-readback", LIFECYCLE,
+  "Lease handoff retires exactly its owner even on failure; selection retains the new lease and Child identity for settlement.", findings, finding);
   check(lifecycleText.includes("active.browser.readAtomicStepOutcome(confirmed.submitIdentity)")
     && lifecycleText.includes('recoverySelectionRequired: targetMode === "confirmed-readback"') && lifecycleText.includes('"bound-observation"')
     && lifecycleText.includes("parentAttemptId: this.execution.providerContinuationParent!.acceptedAttemptId"),

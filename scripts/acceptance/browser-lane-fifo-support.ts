@@ -123,6 +123,7 @@ const intentionalClose = async (): Promise<void> => {
 };
 export const runBrowserLaneTargetClaimAcceptance = async (): Promise<void> => {
   await releaseBudgetPhases();
+  await queuedAcquireDeadlines();
   await releaseThroughWire(); delayedRevocation(); await delayedChromeCallbacks(); await intentionalClose();
 };
 
@@ -200,4 +201,113 @@ const releaseBudgetPhases = async (): Promise<void> => {
       await holding.park({ reason: "fixture-complete", mode: "product-call-settlement" });
     }; await dispatchFailures();
   } finally { Date.now = original.now; globalThis.setTimeout = original.setTimeout; globalThis.clearTimeout = original.clearTimeout; }
+};
+
+
+const queuedAcquireDeadlines = async (): Promise<void> => {
+  const original = { now: Date.now, setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout };
+  let now = Date.parse("2026-10-11T00:00:00.000Z"), timerId = 0;
+  const timers = new Map<number, { at: number; run: () => void }>();
+  const tick = async () => { for (let step = 0; step < 40; step += 1) await Promise.resolve(); };
+  Date.now = () => now;
+  globalThis.setTimeout = ((run: () => void, ms: number) => {
+    const key = ++timerId; timers.set(key, { at: now + ms, run }); return key;
+  }) as never;
+  globalThis.clearTimeout = ((key: number) => { timers.delete(key); }) as never;
+  const advance = async (ms: number) => {
+    now += ms;
+    for (const [key, timer] of [...timers]) if (timer.at <= now) { timers.delete(key); timer.run(); }
+    await tick();
+  };
+  try {
+    let claimed: string | null = null, dispatches = 0, reply = true;
+    const state = { pendingJobBoundTargetAcquisition: null,
+      mutationState: { latestProviderInputTerminalAt: () => null, assertRuntimeTaskProvenance: () => undefined } };
+    const broker = { currentOperatorTargetJobRefHash: () => claimed,
+      acquireOperatorClaimedTargetLease: async () => ({ get document() { return { documentRef: claimed }; },
+        park: async () => { claimed = null; } }) };
+    const lane = new BrowserLaneCoordinator(() => broker as never, {
+      requestPreauthorizedTargetAcquisition: (_mode: string, job: string) => {
+        dispatches += 1;
+        if (reply) queueMicrotask(() => { claimed = job; lane.resolvePending("acquire", job); }); return dispatches;
+      },
+    } as never, { current: () => ({ kind: "PRESENT", authority: { authorityEpoch: 1 } }) } as never, state as never);
+    const controller = new AbortController();
+    const holding = await lane.acquire(binding("a") as never, "owner", { targetMode: "fresh", eligibleAt: now,
+      remainingMs: () => 100_000, signal: controller.signal });
+    const heldHash = Reflect.get(lane, "activeJobRefHash"), baseline = dispatches;
+    await expireAcquireModes(lane, holding, controller, { now: () => now, advance, tick, timers,
+      dispatches: () => dispatches, baseline, heldHash });
+    assert.equal(lane.readState(), "idle");
+    for (const failure of ["native-timeout", "extension-diagnostic"] as const) {
+      reply = false;
+      const failed = lane.acquire(binding("b") as never, "owner", { targetMode: "fresh", eligibleAt: now,
+        remainingMs: () => 50, signal: controller.signal }).then(() => null, error => error);
+      await tick(); assert.equal(lane.readState(), "busy"); assert.ok(state.pendingJobBoundTargetAcquisition);
+      if (failure === "native-timeout") await advance(50);
+      else {
+        const refs = { jobRefHash: binding("b").jobRefHash, failedFrameSequence: String(dispatches) };
+        lane.rejectPending("BROWSER_TARGET_ACQUISITION_TIMEOUT", { ...refs, jobRefHash: binding("e").jobRefHash });
+        lane.rejectPending("BROWSER_TARGET_ACQUISITION_TIMEOUT", { ...refs, failedFrameSequence: "0" });
+        assert.ok(state.pendingJobBoundTargetAcquisition, "foreign diagnostics cannot reject the active Target operation");
+        lane.rejectPending("BROWSER_TARGET_ACQUISITION_TIMEOUT", refs);
+      }
+      assert.match((await failed).message, /BROWSER_TARGET_ACQUISITION_TIMEOUT/u);
+      assert.equal(lane.readState(), "idle"); assert.equal(state.pendingJobBoundTargetAcquisition, null);
+      reply = true;
+      const next = await lane.acquire(binding("c") as never, "owner", { targetMode: "fresh", eligibleAt: now,
+        remainingMs: () => 1_000, signal: controller.signal });
+      assert.equal(next.document.documentRef, binding("c").jobRefHash);
+      await next.park({ reason: "fixture-complete", mode: "product-call-settlement" });
+    }
+    assert.equal(timers.size, 0); assert.equal(getEventListeners(controller.signal, "abort").length, 0);
+    const aborted = new AbortController(); aborted.abort();
+    await assert.rejects(lane.acquire(binding("d") as never, "owner", { targetMode: "fresh", eligibleAt: now,
+      remainingMs: () => 1_000, signal: aborted.signal }), /BROWSER_WAIT_ABORTED/u);
+    await assert.rejects(lane.acquire(binding("d") as never, "owner", { targetMode: "fresh", eligibleAt: now,
+      remainingMs: () => 0, signal: controller.signal }), /V6_DEADLINE_BUDGET_EXHAUSTED/u);
+    assert.equal(timers.size, 0);
+  } finally { Date.now = original.now; globalThis.setTimeout = original.setTimeout; globalThis.clearTimeout = original.clearTimeout; }
+};
+
+const expireAcquireModes = async (lane: BrowserLaneCoordinator,
+  holding: Awaited<ReturnType<BrowserLaneCoordinator["acquire"]>>, controller: AbortController,
+  clock: Readonly<{ now(): number; advance(ms: number): Promise<void>; tick(): Promise<void>;
+    timers: Map<number, { at: number; run: () => void }>; dispatches(): number; baseline: number; heldHash: unknown }>,
+): Promise<void> => {
+  let expiry = clock.now() + 25;
+  const renewed = lane.acquire(binding("d") as never, "owner", { targetMode: "bound-observation", eligibleAt: clock.now() - 1,
+    remainingMs: () => expiry - clock.now(), signal: controller.signal }).then(lease => lease, error => error);
+  expiry += 75;
+  const modes = ["fresh", "bound-observation", "confirmed-readback", "authorized-continuation"] as const;
+  const controllers = modes.map(() => new AbortController());
+  const pending = modes.map((targetMode, index) => {
+    const until = clock.now() + 30 + index * 10;
+    return lane.acquire(binding("b") as never, "owner", { targetMode, eligibleAt: clock.now() - 1,
+      remainingMs: () => until - clock.now(), signal: controllers[index]!.signal,
+      ...(targetMode === "authorized-continuation" ? { parentJobId: "parent", parentAttemptId: "parent-attempt" } : {}) } as never)
+      .then(() => null, error => error);
+  });
+  assert.equal(clock.timers.size, 1); await clock.advance(25);
+  assert.equal(lane.readState(), "busy"); assert.equal(Reflect.get(lane, "activeJobRefHash"), clock.heldHash);
+  assert.equal(clock.timers.size, 1, "renewed remainingMs must be reread instead of falsely expiring the waiter");
+  for (let index = 0; index < modes.length; index += 1) {
+    await clock.advance(index === 0 ? 5 : 10);
+    assert.match((await pending[index]).message, /V6_DEADLINE_BUDGET_EXHAUSTED/u);
+    assert.equal(getEventListeners(controllers[index]!.signal, "abort").length, 0);
+    assert.equal(lane.readState(), "busy"); assert.equal(Reflect.get(lane, "activeJobRefHash"), clock.heldHash);
+    assert.equal(clock.dispatches(), clock.baseline);
+  }
+  const cancelled = new AbortController();
+  const abort = lane.acquire(binding("b") as never, "owner", { targetMode: "fresh", eligibleAt: clock.now(),
+    remainingMs: () => 1_000, signal: cancelled.signal }).then(() => null, error => error);
+  cancelled.abort(); assert.match((await abort).message, /BROWSER_WAIT_ABORTED/u);
+  assert.equal(getEventListeners(cancelled.signal, "abort").length, 0);
+  assert.equal(clock.timers.size, 1); assert.equal([...clock.timers.values()][0]!.at, expiry);
+  await holding.park({ reason: "fixture-complete", mode: "product-call-settlement" });
+  const next = await renewed;
+  assert.equal(lane.readState(), "busy"); assert.equal(Reflect.get(lane, "activeJobRefHash"), binding("d").jobRefHash);
+  assert.equal(clock.dispatches(), clock.baseline + 1); assert.equal(clock.timers.size, 0);
+  await next.park({ reason: "fixture-complete", mode: "product-call-settlement" }); await clock.tick();
+  assert.equal(getEventListeners(controller.signal, "abort").length, 0);
 };

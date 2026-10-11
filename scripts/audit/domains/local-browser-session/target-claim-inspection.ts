@@ -218,6 +218,39 @@ const inspectProductReleaseIsolation = (s: Sources, context: InspectorContext, f
     && !body(s.lane, "BrowserLaneCoordinator", "nextWaiter").includes("countDispatched")
     && !/settleRetiredTargetLocal|allDispatchedTargetsSettled|website-permanent-revocation/u.test(lane),
   findings, lawId, paths.manager, "Product settlement must park without closing; historical unresolved WAL must not block FIFO eligibility or independent job release.");
+  const owner = s.lane.getClass("BrowserLaneCoordinator");
+  const pumpBody = owner?.getMethod("pump")?.getBody();
+  const busyPump = Node.isBlock(pumpBody) ? pumpBody.getStatements()[0] : undefined;
+  const expiry = owner?.getMethod("expireQueuedWaiters"), wake = owner?.getMethod("scheduleWake");
+  const expiryLoop = expiry?.getDescendantsOfKind(SyntaxKind.ForOfStatement)[0];
+  const wakeLoop = wake?.getDescendantsOfKind(SyntaxKind.ForOfStatement)[0];
+  const expiryBody = expiryLoop?.getStatement(), wakeBody = wakeLoop?.getStatement();
+  const busy = Node.isBlock(wakeBody) ? wakeBody.getStatements()[1] : undefined;
+  const busyBody = Node.isIfStatement(busy) ? busy.getThenStatement() : undefined;
+  const writesActive = expiry?.getDescendantsOfKind(SyntaxKind.BinaryExpression).some(node =>
+    ["this.active", "this.activeJobRefHash"].includes(node.getLeft().getText())) ?? false;
+  const queuedExpiryIsSafe = (): boolean => !!expiryLoop && Node.isBlock(expiryBody)
+    && Node.isIfStatement(busy) && Node.isBlock(busyBody) && [
+    expiryLoop.getExpression().getText() === "[...this.queue]",
+    expiryBody.getStatements().length === 4,
+    expiryBody.getStatements()[0]?.getText() === "const code = waiterExpiryCode(waiter);",
+    expiryBody.getStatements()[1]?.getText() === "if (!code) continue;",
+    !writesActive,
+    !expiry?.getText().includes("waiter.kind"),
+    expiry?.getDescendantsOfKind(SyntaxKind.CallExpression).every(call =>
+      ["waiterExpiryCode", "this.queue.splice", "this.queue.indexOf", "waiter.reject", "browserExecutionFailure"].includes(call.getExpression().getText())),
+    busy.getExpression().getText() === "this.active",
+    busyBody.getStatements().length === 2,
+    busyBody.getStatements()[0]?.getText() === "nextAt = Math.min(nextAt, expiry);",
+    Node.isContinueStatement(busyBody.getStatements()[1]),
+    wake?.getText().includes('waiter.kind === "release" ? waiter.queueDeadlineAt : now + Math.max(0, waiter.remainingMs())'),
+    wake?.getDescendantsOfKind(SyntaxKind.CallExpression).filter(call => call.getExpression().getText() === "setTimeout").length === 1,
+    busyPump?.getText()
+      === "if (this.active) { this.expireQueuedWaiters(); this.scheduleWake(); return; }",
+    !owner?.getMethod("expireQueuedReleases"),
+  ].every(Boolean);
+  requireContract(queuedExpiryIsSafe(),
+  findings, lawId, paths.lane, "The original single wake expires all still-queued waiters while busy without changing active ownership or dispatching.");
   const continuation = `${s.lease.getText()}\n${s.lane.getText()}\n${s.store.getText()}\n${s.evidence.getText()}`;
   requireContract(includesAll(continuation, ["parentAttemptId?: never", "parentAttemptId: wait.parentAttemptId", "parentAttemptId: string",
     "waiter.parentAttemptId!, waiter.binding.productStepId", "where job_id=? and attempt_id=? and product_step_id=?",

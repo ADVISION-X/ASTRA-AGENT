@@ -19,6 +19,7 @@ try {
   let selections = 0;
   let parks = 0;
   let pendingMutations = 0;
+  let providerInputs = 0;
   const lifecycleEvents: string[] = [];
   const atomicCommandIdentities: Array<BrowserAtomicStepIdentity | null> = [];
   const atomicCommandLeases: number[] = [];
@@ -32,7 +33,7 @@ try {
     };
     return {
       target: { targetRef: "target:provider-wait" },
-      document: { documentRef: "document:provider-wait" },
+      get document() { return { documentRef: `document:provider-wait:${leaseNumber}` }; },
       pendingMutationCount: () => pendingMutations,
       runAtomicStep: async <T>(identity: BrowserAtomicStepIdentity, action: () => Promise<T>) => {
         assert.equal(physicalAtomicIdentity, null);
@@ -46,7 +47,12 @@ try {
           userTurnId: "00000000-0000-4000-8000-000000000001",
         },
       }),
-      executeDomIntent: async () => { selections += 1; },
+      executeDomIntent: async (intent: { kind: string; canonicalConversationUrl?: string }) => {
+        if (intent.kind !== "selectExactGptConversation") providerInputs += 1;
+        assert.deepEqual(intent, { kind: "selectExactGptConversation", canonicalConversationUrl: "https://chatgpt.com/c/provider-wait" });
+        captureCommandIdentity(); selections += 1;
+      },
+      attachFile: async () => { providerInputs += 1; throw new Error("UNEXPECTED_PROVIDER_FILE_INPUT"); },
       observeCapability: async () => { captureCommandIdentity(); },
       readAuthenticatedMedia: async () => {
         captureCommandIdentity();
@@ -64,6 +70,7 @@ try {
       },
     };
   };
+
   type TestBrowserLease = ReturnType<typeof createBrowserLease>;
   const lifecycle = new ProductionGptBrowserLifecycle(
     { acquireJobBoundTargetLease: async (_binding: unknown, _ownerId: string, _wait: {
@@ -140,10 +147,10 @@ try {
     ), "reobserve");
     await active.facade.observeCapability({ capabilityId: "browser.dom.inspect.v1" });
   });
-  assert.deepEqual(atomicCommandIdentities.slice(0, 5), Array(5).fill(checkpointIdentity),
-    "every text observation and park across two new physical leases must retain the full identity");
-  assert.deepEqual(atomicCommandLeases.slice(0, 5), [1, 1, 2, 2, 3],
-    "the text fixture must prove that facade commands use two distinct reacquired leases");
+  assert.deepEqual(atomicCommandIdentities.slice(0, 7), Array(7).fill(checkpointIdentity),
+    "each text observation, park and selection retains the original Child identity");
+  assert.deepEqual(atomicCommandLeases.slice(0, 7), [1, 1, 2, 2, 2, 3, 3]);
+  assert.equal(active.facade.document.documentRef, "document:provider-wait:3", "facade keeps the new lease live view");
   const imageIdentity = {
     ...checkpointIdentity, callId: "image-wait",
     childCapabilityId: "checkpoint_gpt_generated_image", actionOrdinal: 3,
@@ -173,10 +180,9 @@ try {
       userTurnId: "00000000-0000-4000-8000-000000000001", semanticMediaId: "gpt-generated-image-main",
     });
   });
-  assert.deepEqual(atomicCommandIdentities.slice(5, 10), Array(5).fill(imageIdentity),
-    "every image read and park across two new physical leases must retain the full identity");
-  assert.deepEqual(atomicCommandLeases.slice(5, 10), [3, 3, 4, 4, 5],
-    "the image fixture must prove that facade commands use two distinct reacquired leases");
+  assert.deepEqual(atomicCommandIdentities.slice(7, 14), Array(7).fill(imageIdentity),
+    "each image read, park and selection retains the original Child identity");
+  assert.deepEqual(atomicCommandLeases.slice(7, 14), [3, 3, 4, 4, 4, 5, 5]);
   assert.deepEqual([acquisitions, selections, parks], [5, 4, 4],
     "normal pending must park immediately and reacquire its exact Target through the one lane");
   assert.equal(observationWaits.at(-1)?.targetMode, "confirmed-readback");
@@ -214,6 +220,7 @@ try {
   await lifecycle.settle(new Error("UNRESOLVED_BROWSER_EFFECT"));
   assert.deepEqual([acquisitions, parks], [8, 8],
     "historical DISPATCHED permits zero-input park and retains its facts independently of current acquisition");
+  assert.equal(providerInputs, 0, "confirmed observations perform zero fill, file input or submit");
   const waitEvents = (await readFile(runtimeLogger.currentSegmentPath()!, "utf8")).trim().split("\n")
     .map((line) => JSON.parse(line) as Readonly<Record<string, unknown>>)
     .filter((event) => String(event.code).startsWith("GPT_PROVIDER_WAIT_"));

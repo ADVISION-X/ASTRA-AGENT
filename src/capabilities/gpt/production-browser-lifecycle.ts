@@ -14,7 +14,7 @@ import type {
 } from "../../lib/browser/browser-authority-api.js";
 import { assertBrowserAtomicStepIdentity } from "../../lib/browser/browser-authority-api.js";
 import { requireRuntimeLogWrite, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
-import { executionFailure } from "../../lib/execution-failure.js";
+import { executionFailure, failureCode } from "../../lib/execution-failure.js";
 import type { GptProductionBrowserAuthority, GptProductionExecutionInput } from "./production-ports.js";
 
 type GptBrowserLeaseAuthority = Readonly<{
@@ -256,6 +256,10 @@ export class ProductionGptBrowserLifecycle {
       throw executionFailure("failed", "GPT_PROVIDER_PROBE_CHILD_INVALID");
     }
     if (!Number.isFinite(observationDeadlineAt)) throw executionFailure("failed", "GPT_PROVIDER_OBSERVATION_DEADLINE_INVALID");
+    const current = this.activeBrowser;
+    if (!current || current.call !== active) {
+      throw executionFailure("failed", "GPT_BROWSER_SESSION_TRANSITION_UNSETTLED");
+    }
     if (Date.now() >= observationDeadlineAt) return "deadline";
     if (active.browser.pendingMutationCount() > 0) {
       throw executionFailure("failed", "BROWSER_NORMAL_PROVIDER_WAIT_WITH_PENDING_MUTATION");
@@ -264,22 +268,24 @@ export class ProductionGptBrowserLifecycle {
     const eligibleAt = Date.now() + PROVIDER_OBSERVATION_MIN_INTERVAL_MS;
     if (eligibleAt > observationDeadlineAt) return "deadline";
     this.emitProviderWaitLog(active, productStepId, callId, childCapabilityId, reason);
-    await active.facade.park({
-      reason: "gpt-provider-observation-wait",
-      mode: "product-call-settlement",
-    });
+    try {
+      await active.facade.park({ reason: "gpt-provider-observation-wait", mode: "product-call-settlement" });
+    } finally {
+      if (this.activeBrowser === current) this.activeBrowser = null;
+    }
     try {
       active.browser = await this.acquireBrowserLease(
         productStepId, callId, observationDeadlineAt, "confirmed-readback", eligibleAt,
       );
-      await active.browser.executeDomIntent({ kind: "selectExactGptConversation",
-        canonicalConversationUrl: active.confirmedProviderEffect!.canonicalConversationUrl });
-      return "reobserve";
     } catch (error) {
-      if (this.activeBrowser?.call === active) this.activeBrowser = null;
-      if (Date.now() >= observationDeadlineAt) return "deadline";
+      if (failureCode(error) === "V6_DEADLINE_BUDGET_EXHAUSTED"
+        && !this.execution.abortSignal.aborted && Date.now() >= observationDeadlineAt) return "deadline";
       throw error;
     }
+    this.activeBrowser = current;
+    await active.facade.executeDomIntent({ kind: "selectExactGptConversation",
+      canonicalConversationUrl: active.confirmedProviderEffect!.canonicalConversationUrl });
+    return "reobserve";
   }
 
   private emitProviderWaitLog(
@@ -353,12 +359,10 @@ export class ProductionGptBrowserLifecycle {
   private async parkActive(reason: string): Promise<void> {
     const current = this.activeBrowser;
     if (!current) return;
-    let released = false;
     try {
       await current.call.browser.park({ reason, mode: "product-call-settlement" });
-      released = true;
     } finally {
-      if (released) this.activeBrowser = null;
+      if (this.activeBrowser === current) this.activeBrowser = null;
     }
   }
 

@@ -4,7 +4,7 @@ import { ProductionGptBrowserLifecycle } from "../production-browser-lifecycle.j
 import { ProductionGptChildTools } from "../production-child-tools.js";
 import { createRuntimeLogger } from "../../../lib/runtime-logs/index.js";
 import { HASH_A, HASH_B } from "../../../../scripts/acceptance/agent-production-runtime-fixtures.js";
-import { typedExecutionFailure } from "../../../lib/execution-failure.js";
+import { executionFailure, typedExecutionFailure } from "../../../lib/execution-failure.js";
 
 const verifySecondConfirmedReadback = async (
   lifecycle: ProductionGptBrowserLifecycle,
@@ -103,6 +103,7 @@ export const verifyConfirmedReadbackLease = async (temporary: string): Promise<v
     ["confirmed-readback", 1, 1],
     "confirmed-effect recovery may acquire once and select the exact canonical URL once");
   await verifySecondConfirmedReadback(lifecycle, active, selectedUrls);
+  await verifyLeaseFailureLifecycle(temporary);
 };
 
 export const verifyNoPriorProviderEffect = async (temporary: string): Promise<void> => {
@@ -171,4 +172,148 @@ export const verifyHistoricalReadbackOnlyCall = async (temporary: string): Promi
     input: {} as never,
   }), (error: unknown) => typedExecutionFailure(error)?.code === "GPT_CONFIRMED_SUBMIT_READBACK_INVALID");
   assert.equal(browserReads, 1, "an absent original effect must not become a fresh submission");
+};
+const leaseFailureFixture = async (temporary: string) => {
+  const controller = new AbortController();
+  const control = { acquireError: null as Error | null, parkFailure: 0,
+    selectError: null as Error | null, onAcquire: () => {}, onSelect: () => {} };
+  const counts = { acquire: 0, park: 0, select: 0, occupied: 0, providerInputs: 0 };
+  const identities: Array<Readonly<{ lease: number; identity: unknown }>> = [];
+  const authority = { acquireJobBoundTargetLease: async () => {
+    control.onAcquire();
+    if (control.acquireError) throw control.acquireError;
+    const lease = ++counts.acquire; counts.occupied = lease;
+    let identity: unknown = null;
+    return {
+      get document() { return { documentRef: `document:failure:${lease}` }; },
+      pendingMutationCount: () => 0,
+      runAtomicStep: async <T>(current: unknown, action: () => Promise<T>) => {
+        identity = current; try { return await action(); } finally { identity = null; }
+      },
+      readAtomicStepOutcome: () => ({ state: "confirmed", mutationOutcome: "confirmed",
+        providerEffectIdentityHash: HASH_A, terminalPayload: {
+          canonicalConversationUrl: "https://chatgpt.com/c/lease-failure",
+          userTurnId: "00000000-0000-4000-8000-000000000001", promptHash: HASH_B,
+        } }),
+      executeDomIntent: async (intent: { kind: string; canonicalConversationUrl?: string }) => {
+        if (intent.kind !== "selectExactGptConversation") counts.providerInputs += 1;
+        assert.deepEqual(intent, { kind: "selectExactGptConversation", canonicalConversationUrl: "https://chatgpt.com/c/lease-failure" });
+        identities.push({ lease, identity }); counts.select += 1; control.onSelect();
+        if (control.selectError) throw control.selectError;
+      },
+      attachFile: async () => { counts.providerInputs += 1; throw new Error("UNEXPECTED_PROVIDER_FILE_INPUT"); },
+      park: async () => {
+        counts.park += 1;
+        try { if (control.parkFailure === lease) throw executionFailure("failed", "BROWSER_TARGET_LIFECYCLE_UNSETTLED"); }
+        finally { counts.occupied = 0; }
+      },
+    };
+  } };
+  const lifecycle = new ProductionGptBrowserLifecycle(authority as never,
+    createRuntimeLogger({ producer: "lease-failure", owner: "production-runtime", component: "gpt-child",
+      terminalEnabled: false, fileSink: { directoryPath: path.join(temporary, "lease-failure-logs") } }), HASH_A, {
+      jobId: "job:lease-failure", attemptId: "attempt:lease-failure", resultRevision: 0,
+      deviceId: "device:1", leaseVersion: 1, executionFenceHash: HASH_A,
+      capabilityManifestHash: HASH_B, expiresAtMonotonic: performance.now() + 300_000,
+      commandTtlMs: 1_000, abortSignal: controller.signal,
+    });
+  const active = await lifecycle.browserFor("session:lease-failure", "observe", "turn-submit");
+  await lifecycle.recordConfirmedProviderEffect(active, {
+    exactCallIdentityHash: HASH_B, providerEffectIdentityHash: HASH_A,
+    childCapabilityId: "submit_exact_gpt_turn_once", effectScope: "provider_effect",
+    browserOutcome: "CONFIRMED", mutationOutcome: "confirmed", terminalAt: "2026-10-11T00:00:00.000Z",
+    evidenceRef: "browser-mutation:lease-failure", evidenceHash: HASH_B,
+  }, { resultRevision: 0, productStepId: "observe", callId: "turn-submit",
+    childCapabilityId: "submit_exact_gpt_turn_once", inputHash: HASH_B,
+    actionOrdinal: 1, replayPolicy: "provider-effect-once" },
+  "https://chatgpt.com/c/lease-failure", "00000000-0000-4000-8000-000000000001");
+  return { lifecycle, active, controller, control, counts, identities, authority };
+};
+
+const verifySelectionFailureLease = async (temporary: string): Promise<void> => {
+  for (const child of ["checkpoint_gpt_text_response", "checkpoint_gpt_generated_image"] as const) {
+    for (const code of ["BROWSER_COMMAND_RECEIPT_MISSING", "BROWSER_KNOWN_GPT_RATE_LIMIT", "BROWSER_WAIT_ABORTED"] as const) {
+      const f = await leaseFailureFixture(temporary), confirmed = f.active.confirmedProviderEffect;
+      const failure = executionFailure("failed", code), deadline = Date.now() + 200_000;
+      f.control.selectError = failure;
+      const now = Date.now;
+      f.control.onSelect = () => { Date.now = () => deadline + 1; if (code === "BROWSER_WAIT_ABORTED") f.controller.abort(); };
+      const identity = { resultRevision: 0, productStepId: "observe", callId: "checkpoint", childCapabilityId: child,
+        inputHash: HASH_B, actionOrdinal: 2, replayPolicy: "observation-only" as const };
+      try {
+        await assert.rejects(f.active.facade.runAtomicStep(identity, () => f.lifecycle.waitForProviderObservation(
+          f.active, "observe", "checkpoint", child, deadline,
+          child === "checkpoint_gpt_text_response" ? "stop-present" : "generated-image-source-pending")),
+        (error: unknown) => error === failure);
+      } finally { Date.now = now; }
+      assert.deepEqual(f.identities, [{ lease: 2, identity }]);
+      assert.equal(f.active.confirmedProviderEffect, confirmed);
+      assert.deepEqual(f.active.browser.readAtomicStepOutcome(confirmed!.submitIdentity)?.terminalPayload, {
+        canonicalConversationUrl: "https://chatgpt.com/c/lease-failure",
+        userTurnId: "00000000-0000-4000-8000-000000000001", promptHash: HASH_B,
+      });
+      assert.equal(f.counts.providerInputs, 0);
+      assert.equal(f.counts.occupied, 2);
+      f.control.parkFailure = code === "BROWSER_COMMAND_RECEIPT_MISSING" ? 2 : 0;
+      if (f.control.parkFailure) await assert.rejects(f.lifecycle.settle(failure), /GPT_BROWSER_LIFECYCLE_FAILED/u);
+      else await f.lifecycle.settle(failure);
+      await f.lifecycle.settle(failure);
+      assert.deepEqual([f.counts.acquire, f.counts.park, f.counts.select, f.counts.occupied], [2, 2, 1, 0]);
+    }
+  }
+};
+
+const verifyOldParkFailureLease = async (temporary: string): Promise<void> => {
+  const old = await leaseFailureFixture(temporary); old.control.parkFailure = 1;
+  await assert.rejects(old.lifecycle.waitForProviderObservation(old.active, "observe", "checkpoint",
+    "checkpoint_gpt_text_response", Date.now() + 200_000, "stop-present"), /BROWSER_TARGET_LIFECYCLE_UNSETTLED/u);
+  const sibling = await old.authority.acquireJobBoundTargetLease();
+  await old.lifecycle.settle(null); await old.lifecycle.settle(null);
+  assert.deepEqual([old.counts.park, old.counts.occupied], [1, 2], "old settlement cannot park the later owner's lease");
+  await assert.rejects(old.lifecycle.waitForProviderObservation(old.active, "observe", "checkpoint",
+    "checkpoint_gpt_text_response", Date.now() + 200_000, "stop-present"), /GPT_BROWSER_SESSION_TRANSITION_UNSETTLED/u);
+  assert.equal(old.counts.providerInputs, 0);
+  assert.equal(old.counts.park, 1); await sibling.park();
+};
+
+const verifyAcquireFailureLease = async (temporary: string): Promise<void> => {
+  for (const mode of ["acquire-rejected", "abort", "execution-deadline", "observation-deadline"] as const) {
+    const f = await leaseFailureFixture(temporary), deadline = Date.now() + 200_000, now = Date.now;
+    const failure = executionFailure("failed", mode === "acquire-rejected" ? "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"
+      : mode === "abort" ? "BROWSER_WAIT_ABORTED" : "V6_DEADLINE_BUDGET_EXHAUSTED");
+    f.control.acquireError = failure;
+    f.control.onAcquire = () => {
+      if (mode === "abort") { f.controller.abort(); Date.now = () => deadline + 1; }
+      if (mode === "observation-deadline") Date.now = () => deadline + 1;
+    };
+    try {
+      const wait = f.lifecycle.waitForProviderObservation(f.active, "observe", "checkpoint",
+        "checkpoint_gpt_text_response", deadline, "stop-present");
+      if (mode === "observation-deadline") assert.equal(await wait, "deadline");
+      else await assert.rejects(wait, (error: unknown) => error === failure);
+    } finally { Date.now = now; }
+    await f.lifecycle.settle(failure);
+    assert.deepEqual([f.counts.acquire, f.counts.park, f.counts.select], [1, 1, 0]);
+    assert.equal(f.counts.providerInputs, 0);
+  }
+};
+
+const verifyRecoverySelectionFailureLease = async (temporary: string): Promise<void> => {
+  const recovery = await leaseFailureFixture(temporary);
+  await recovery.lifecycle.settle(null);
+  const active = await recovery.lifecycle.browserForConfirmedReadback("new-session", "observe", "turn-submit");
+  recovery.control.selectError = executionFailure("failed", "BROWSER_COMMAND_RECEIPT_MISSING");
+  const fact = recovery.active.confirmedProviderEffect!;
+  await assert.rejects(recovery.lifecycle.recordConfirmedProviderEffect(active, fact, fact.submitIdentity,
+    fact.canonicalConversationUrl, fact.userTurnId), /BROWSER_COMMAND_RECEIPT_MISSING/u);
+  await recovery.lifecycle.settle(recovery.control.selectError); await recovery.lifecycle.settle(null);
+  assert.equal(recovery.counts.providerInputs, 0);
+  assert.deepEqual([recovery.counts.acquire, recovery.counts.park, recovery.counts.occupied], [2, 2, 0]);
+};
+
+const verifyLeaseFailureLifecycle = async (temporary: string): Promise<void> => {
+  await verifySelectionFailureLease(temporary);
+  await verifyOldParkFailureLease(temporary);
+  await verifyAcquireFailureLease(temporary);
+  await verifyRecoverySelectionFailureLease(temporary);
 };

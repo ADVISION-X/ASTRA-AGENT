@@ -144,9 +144,8 @@ export class BrowserLaneCoordinator {
     return null;
   }
 
-  private expireQueuedReleases(): void {
+  private expireQueuedWaiters(): void {
     for (const waiter of [...this.queue]) {
-      if (waiter.kind !== "release") continue;
       const code = waiterExpiryCode(waiter);
       if (!code) continue;
       this.queue.splice(this.queue.indexOf(waiter), 1);
@@ -155,7 +154,7 @@ export class BrowserLaneCoordinator {
   }
 
   private async pump(): Promise<void> {
-    if (this.active) { this.expireQueuedReleases(); this.scheduleWake(); return; }
+    if (this.active) { this.expireQueuedWaiters(); this.scheduleWake(); return; }
     if (this.wakeTimer) clearTimeout(this.wakeTimer);
     this.wakeTimer = null;
     const waiter = this.nextWaiter();
@@ -216,11 +215,8 @@ export class BrowserLaneCoordinator {
     const now = Date.now();
     let nextAt = Number.POSITIVE_INFINITY;
     for (const waiter of this.queue) {
-      if (this.active) {
-        if (waiter.kind === "release") nextAt = Math.min(nextAt, waiter.queueDeadlineAt);
-        continue;
-      }
       const expiry = waiter.kind === "release" ? waiter.queueDeadlineAt : now + Math.max(0, waiter.remainingMs());
+      if (this.active) { nextAt = Math.min(nextAt, expiry); continue; }
       const eligibility = waiter.kind === "acquire" && waiter.requestKind === "provider-observation"
         ? Math.max(waiter.eligibleAt, this.observationNotBefore) : waiter.eligibleAt;
       nextAt = Math.min(nextAt, expiry, eligibility);
@@ -228,6 +224,5 @@ export class BrowserLaneCoordinator {
     if (!Number.isFinite(nextAt)) return;
     this.wakeTimer = setTimeout(() => { this.wakeTimer = null; void this.pump(); }, Math.max(1, Math.ceil(nextAt - now)));
   }
-
 
 }
