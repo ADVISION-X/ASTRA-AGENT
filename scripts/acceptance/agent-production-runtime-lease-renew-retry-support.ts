@@ -295,6 +295,48 @@ const exerciseBadSinkSessionBoundary = async (): Promise<void> => {
   } finally { globalThis.fetch = priorFetch; }
 };
 
+const exerciseExecutorRejectDuringRenew = async (tick: () => Promise<void>, advance: (ms: number) => Promise<void>,
+  timers: Readonly<{ size: number }>): Promise<void> => {
+  const controller = new AbortController(), j = job(), failure = new Error("EXECUTOR_DURING_RENEW");
+  let rejectExecutor!: () => void, replyRenew!: (reply: Response) => void, calls = 0, finished = false;
+  const first = renewSessionFetch([], []), unhandled: unknown[] = [];
+  const onUnhandled = (reason: unknown) => { unhandled.push(reason); };
+  globalThis.fetch = async (url, init) => {
+    if (String(url).endsWith("/sessions/open")) return first(url, init);
+    calls += 1; return new Promise<Response>(resolve => { replyRenew = resolve; });
+  };
+  const session = await openedSession();
+  const state = { session, runtimeLogger: { startSpan: () => ({ ok: true,
+    event: { terminal: () => ({ ok: true, event: { eventId: "event:executor-reject" } }) } }) } };
+  process.on("unhandledRejection", onUnhandled);
+  try {
+    const outcome = heartbeatWhileRunning({ state: state as never, job: j, budget: budgetWithLeftMs(60_000),
+      abort: controller, parentSpanId: "span:executor-reject", execute: async () => {
+        await new Promise<void>(resolve => { rejectExecutor = resolve; }); throw failure;
+      } }).then(() => { throw new Error("EXECUTOR_REJECTION_MUST_NOT_SUCCEED"); },
+        error => { finished = true; return error; });
+    await tick(); await advance(20_000); assert.equal(calls, 1);
+    rejectExecutor(); await tick(); await new Promise<void>(resolve => setImmediate(resolve));
+    assert.equal(finished, false, "executor failure must still join the actual in-flight renew");
+    assert.deepEqual(unhandled, []); assert.equal(calls, 1);
+    replyRenew(successfulJsonResponse(renewReceipt({ job: j })));
+    assert.equal(await outcome, failure, "the sole settlement consumer must throw the exact original error");
+    assert.equal(controller.signal.aborted, false); assert.equal(timers.size, 0);
+    assert.equal(getEventListeners(controller.signal, "abort").length, 0); assert.deepEqual(unhandled, []);
+  } finally { process.removeListener("unhandledRejection", onUnhandled); }
+  for (const mode of ["synchronous-callback", "executor-failure", "abort"] as const) {
+    const controller = new AbortController();
+    const outcome = heartbeatWhileRunning({ state: {} as never, job: job(), budget: budgetWithLeftMs(60_000),
+      abort: controller, parentSpanId: "span:sync", execute: async stop => {
+        if (mode === "abort") controller.abort("PRODUCTION_RUNTIME_STOPPED");
+        if (mode === "executor-failure") throw new Error("EXECUTOR_FAILED");
+        await stop(); await stop(); return 1;
+      } }).then(() => true, () => false);
+    assert.equal(await outcome, mode === "synchronous-callback"); assert.equal(timers.size, 0);
+    assert.equal(getEventListeners(controller.signal, "abort").length, 0);
+  }
+};
+
 const exerciseSessionRequestBudget = async (tick: () => Promise<void>, advance: (ms: number) => Promise<void>,
   timers: Readonly<{ size: number }>): Promise<void> => {
   for (const mode of ["fetch-hung", "body-hung", "caller-abort", "pre-abort"] as const) {
@@ -376,18 +418,8 @@ const exerciseRenewalCompletionJoin = async (): Promise<void> => {
       cleanup(); const result = await outcome;
       assert.equal("value" in result, success); assert.equal(calls, mode === "retry" ? 2 : 1);
     }
+    await exerciseExecutorRejectDuringRenew(tick, advance, timers);
     await exerciseSessionRequestBudget(tick, advance, timers);
-    for (const mode of ["synchronous-callback", "executor-failure", "abort"] as const) {
-      const controller = new AbortController();
-      const outcome = heartbeatWhileRunning({ state: {} as never, job: job(), budget: budgetWithLeftMs(60_000),
-        abort: controller, parentSpanId: "span:sync", execute: async stop => {
-          if (mode === "abort") controller.abort("PRODUCTION_RUNTIME_STOPPED");
-          if (mode === "executor-failure") throw new Error("EXECUTOR_FAILED");
-          await stop(); await stop(); return 1;
-        } }).then(() => true, () => false);
-      assert.equal(await outcome, mode === "synchronous-callback"); assert.equal(timers.size, 0);
-      assert.equal(getEventListeners(controller.signal, "abort").length, 0);
-    }
   } finally {
     globalThis.fetch = original.fetch; globalThis.setTimeout = original.setTimeout;
     globalThis.clearTimeout = original.clearTimeout; Date.now = original.now;

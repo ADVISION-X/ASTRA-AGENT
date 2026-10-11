@@ -53,7 +53,7 @@ export class ProductionRuntimeBoundaryError extends Error {
 }
 
 type ExecutionTracker<T> = Readonly<{
-  promise: Promise<T>;
+  promise: Promise<{ status: "fulfilled"; value: T } | { status: "rejected"; reason: unknown }>;
   settledBeforeAbort: () => boolean;
 }>;
 
@@ -66,27 +66,25 @@ const runtimeOwnedAbortReason = (signal: AbortSignal): string | null => {
 const trackExecution = <T>(execution: Promise<T>, signal: AbortSignal, onSettled: () => void): ExecutionTracker<T> => {
   let beforeAbort = false;
   const record = () => { beforeAbort = !signal.aborted; onSettled(); };
-  return { promise: execution.then(value => { record(); return value; }, (error: unknown) => { record(); throw error; }),
+  return { promise: execution.then(value => { record(); return { status: "fulfilled" as const, value }; },
+    (reason: unknown) => { record(); return { status: "rejected" as const, reason }; }),
     settledBeforeAbort: () => beforeAbort };
 };
 
 const settleTrackedExecution = async <T>(tracker: ExecutionTracker<T>, signal: AbortSignal): Promise<T> => {
-  const runtimeReason = runtimeOwnedAbortReason(signal);
-  let value: T;
-  try {
-    value = await tracker.promise;
-  } catch (error) {
+  const runtimeReason = runtimeOwnedAbortReason(signal), settled = await tracker.promise;
+  if (settled.status === "rejected") {
     if (runtimeReason && !tracker.settledBeforeAbort()) {
       throw new ProductionRuntimeBoundaryError(executionFailure("failed", runtimeReason, {
-        cause: new Error(safeReason(error)),
+        cause: new Error(safeReason(settled.reason)),
       }));
     }
-    throw error;
+    throw settled.reason;
   }
   if (runtimeReason && !tracker.settledBeforeAbort()) {
     throw new ProductionRuntimeBoundaryError(executionFailure("failed", runtimeReason));
   }
-  return value;
+  return settled.value;
 };
 
 type RenewalLifetime = {
@@ -152,8 +150,6 @@ export const heartbeatWhileRunning = async <T>(input: HeartbeatInput<T>): Promis
       runtimeOwnedAbortReason(input.abort.signal) ?? "PRODUCTION_RUNTIME_STOPPED"));
   };
   const tracker = trackExecution(Promise.resolve().then(() => input.execute(stopAndJoinRenewal)), input.abort.signal, stop);
-  // Observe executor rejection immediately; the original outer boundary still returns its result.
-  void tracker.promise.catch(() => undefined);
   try {
     while (!lifetime.stopped && !input.abort.signal.aborted) {
       await waitForRenewal(input.abort.signal, 20_000, lifetime);
@@ -165,7 +161,7 @@ export const heartbeatWhileRunning = async <T>(input: HeartbeatInput<T>): Promis
   } catch (error) {
     stop();
     input.abort.abort("LEASE_RENEW_FAILED");
-    await Promise.allSettled([tracker.promise]);
+    await tracker.promise;
     throw error;
   } finally { stop(); }
   return settleTrackedExecution(tracker, input.abort.signal);

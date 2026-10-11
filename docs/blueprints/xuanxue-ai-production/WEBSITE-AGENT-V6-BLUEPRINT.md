@@ -75,6 +75,8 @@ Website claim + lease/grant/fence
 
 原 heartbeat 在当前调用内启动唯一 executor，completed callback 完成同身份 stage + terminal intent 后，先同步关闭新续租并 await 原在途续租，再调用原 deliverTerminalProductionIntent；不在 completeClaim 再首发。停止动作不等待 executor 自身，不 abort 正常 Product；原 20 秒等待仅一个调用期 timer，停止、abort、executor settled 和超时均清 timer 与临时监听。真实在途续租继续原预算内重试、receipt/control/fence 校验；失败先结算续租，再由外层收束 executor，不自等待。失效或日志失败保留原 durable result/Outbox，实际发送仍核当前授权。Executor 错误/清理出口核同 request、accepted attempt 与 callback envelope/hash；同身份 staged_result 或 completed.result 保留，不凭 status 吞异身份故障，不重跑 Provider。
 
+原 executor tracker 只承载该次执行唯一的 fulfilled/rejected 结算值及原异常（unknown），由原 settleTrackedExecution 唯一消费：fulfilled 返回原结果，rejected 抛出同一异常；原 settled-before-abort 和 Runtime boundary 转换保留。不得用旁路 catch 吞错、伪成功或第二结果观察器防止未处理拒绝；executor 提前失败时也由同一结算链等待在途续租真实收束，原错误身份、stage/Outbox 及 timer/listener 清理不丢失。
+
 stop-and-join 在真实续租结算后还须核原 Product signal；已收到 control intent 或其它真实 abort 时，以原 Runtime boundary failure 退出当前首次发送，保留同身份 stage/Outbox，下一动作仍由 Website 原授权决定。取消不能由测试自带 guard 代替生产边界；验收须把真实 heartbeat 与 executeAndUpload 组合，证明在途 control receipt 后 terminal physical request 为零，不伪造结果或清槽。
 
 原逐 job cleanup 只捕获 release 调用的公开 typedBrowserExecutionFailure；局部闭集为 V6_DEADLINE_BUDGET_EXHAUSTED、BROWSER_TARGET_ACQUISITION_TIMEOUT、BROWSER_EXTENSION_CHANNEL_UNAVAILABLE、BROWSER_BACKPRESSURE、BROWSER_TARGET_INVALID、BROWSER_TARGET_CLEANUP_FAILED。记录原诊断并续下一项；abort 退出快照。Store settle 在 catch 外，Store/sink/共享权威、认证矛盾及未知错误外抛，不用错误名前缀猜类别，不假 settle，不建第二错误 registry 或清理队列。
