@@ -10,23 +10,25 @@ import { awaitBrowserPostSubmitQuiet } from "../exact-target/browser-command-pos
 
 type LaneWaiterBase = Readonly<{
   jobRefHash: `sha256:${string}`; eligibleAt: number; signal: AbortSignal;
-  remainingMs(): number; stopAbortMonitor(): void;
+  stopAbortMonitor(): void;
   complete(lease?: BrowserTargetLease): void; reject(error: Error): void;
 }>;
 type AcquireLaneWaiter = LaneWaiterBase & Readonly<{
+  remainingMs(): number;
   kind: "acquire"; binding: BrowserExecutionBinding; ownerId: string;
   targetMode: BrowserTargetLeaseWait["targetMode"]; parentJobId?: string; parentAttemptId?: string;
   requestKind: "interaction" | "provider-observation";
 }>;
 type ReleaseLaneWaiter = LaneWaiterBase & Readonly<{
-  kind: "release"; jobId: string; releaseAuthority: BrowserTargetReleaseAuthority;
+  kind: "release"; jobId: string; releaseAuthority: BrowserTargetReleaseAuthority; queueDeadlineAt: number;
 }>;
 type LaneWaiter = AcquireLaneWaiter | ReleaseLaneWaiter;
 type LaneState = ReturnType<typeof createBrowserInfrastructureState>;
 const PROVIDER_OBSERVATION_MIN_INTERVAL_MS = 70_000;
 const PROVIDER_OBSERVATION_RANDOM_SPAN_MS = 20_001;
 const waiterExpiryCode = (waiter: LaneWaiter): string | null => waiter.signal.aborted
-  ? "BROWSER_WAIT_ABORTED" : waiter.remainingMs() < 1 ? "V6_DEADLINE_BUDGET_EXHAUSTED" : null;
+  ? "BROWSER_WAIT_ABORTED" : (waiter.kind === "release" ? waiter.queueDeadlineAt - Date.now()
+    : waiter.remainingMs()) < 1 ? "V6_DEADLINE_BUDGET_EXHAUSTED" : null;
 
 /** One FIFO admission and one global Provider observation cadence. */
 export class BrowserLaneCoordinator {
@@ -72,7 +74,7 @@ export class BrowserLaneCoordinator {
 
   public releaseJobBoundTarget(jobId: string, releaseAuthority: BrowserTargetReleaseAuthority, signal: AbortSignal): Promise<void> {
     if (this.queue.length >= 10) return Promise.reject(browserExecutionFailure(new Error("BROWSER_BACKPRESSURE")));
-    const deadlineAt = Date.now() + 30_000;
+    const queueDeadlineAt = Date.now() + 30_000;
     return new Promise<void>((resolve, reject) => {
       let settled = false;
       const abort = (): void => this.expireWaiter(waiter);
@@ -82,9 +84,9 @@ export class BrowserLaneCoordinator {
         signal.removeEventListener("abort", abort);
         if (error) reject(error); else resolve();
       };
-      const waiter: ReleaseLaneWaiter = { kind: "release", jobId, releaseAuthority,
+      const waiter: ReleaseLaneWaiter = { kind: "release", jobId, releaseAuthority, queueDeadlineAt,
         jobRefHash: `sha256:${createHash("sha256").update(jobId).digest("hex")}`, eligibleAt: Date.now(), signal,
-        remainingMs: () => deadlineAt - Date.now(), stopAbortMonitor: () => signal.removeEventListener("abort", abort),
+        stopAbortMonitor: () => signal.removeEventListener("abort", abort),
         complete: () => finish(), reject: error => finish(error) };
       this.queue.push(waiter);
       signal.addEventListener("abort", abort, { once: true });
@@ -142,21 +144,32 @@ export class BrowserLaneCoordinator {
     return null;
   }
 
+  private expireQueuedReleases(): void {
+    for (const waiter of [...this.queue]) {
+      if (waiter.kind !== "release") continue;
+      const code = waiterExpiryCode(waiter);
+      if (!code) continue;
+      this.queue.splice(this.queue.indexOf(waiter), 1);
+      waiter.reject(browserExecutionFailure(new Error(code)));
+    }
+  }
+
   private async pump(): Promise<void> {
-    if (this.active) return;
+    if (this.active) { this.expireQueuedReleases(); this.scheduleWake(); return; }
     if (this.wakeTimer) clearTimeout(this.wakeTimer);
     this.wakeTimer = null;
     const waiter = this.nextWaiter();
     if (!waiter) { this.scheduleWake(); return; }
     this.active = true;
     this.activeJobRefHash = waiter.jobRefHash;
+    this.scheduleWake();
     try {
       const mutations = this.infrastructure.mutationState;
       if (mutations) await awaitBrowserPostSubmitQuiet(() => mutations.latestProviderInputTerminalAt());
-      const code = waiterExpiryCode(waiter);
+      const code = waiter.kind === "release" ? (waiter.signal.aborted ? "BROWSER_WAIT_ABORTED" : null) : waiterExpiryCode(waiter);
       if (code) throw new Error(code);
       if (waiter.kind === "release") {
-        await this.targetAcquirer.releaseJobBoundTarget(waiter.remainingMs(), waiter.jobRefHash, waiter.releaseAuthority);
+        await this.targetAcquirer.releaseJobBoundTarget(30_000, waiter.jobRefHash, waiter.releaseAuthority);
         waiter.complete(); this.active = false; this.activeJobRefHash = null; void this.pump();
       } else await this.serveAcquire(waiter);
     } catch (error) {
@@ -198,17 +211,23 @@ export class BrowserLaneCoordinator {
   }
 
   private scheduleWake(): void {
-    if (this.active || this.queue.length === 0) return;
+    if (this.wakeTimer) clearTimeout(this.wakeTimer);
+    this.wakeTimer = null;
     const now = Date.now();
     let nextAt = Number.POSITIVE_INFINITY;
-    try {
-      for (const waiter of this.queue) {
-        const expiry = now + Math.max(0, waiter.remainingMs());
-        const eligibility = waiter.kind === "acquire" && waiter.requestKind === "provider-observation"
-          ? Math.max(waiter.eligibleAt, this.observationNotBefore) : waiter.eligibleAt;
-        nextAt = Math.min(nextAt, expiry, eligibility);
+    for (const waiter of this.queue) {
+      if (this.active) {
+        if (waiter.kind === "release") nextAt = Math.min(nextAt, waiter.queueDeadlineAt);
+        continue;
       }
-    } catch { nextAt = now + PROVIDER_OBSERVATION_MIN_INTERVAL_MS; }
+      const expiry = waiter.kind === "release" ? waiter.queueDeadlineAt : now + Math.max(0, waiter.remainingMs());
+      const eligibility = waiter.kind === "acquire" && waiter.requestKind === "provider-observation"
+        ? Math.max(waiter.eligibleAt, this.observationNotBefore) : waiter.eligibleAt;
+      nextAt = Math.min(nextAt, expiry, eligibility);
+    }
+    if (!Number.isFinite(nextAt)) return;
     this.wakeTimer = setTimeout(() => { this.wakeTimer = null; void this.pump(); }, Math.max(1, Math.ceil(nextAt - now)));
   }
+
+
 }

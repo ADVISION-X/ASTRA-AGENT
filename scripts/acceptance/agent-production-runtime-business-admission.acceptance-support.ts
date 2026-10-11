@@ -1,3 +1,4 @@
+import { browserExecutionFailure } from "../../src/lib/browser/browser-authority-api.js";
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -356,7 +357,7 @@ const exerciseCompletedAdmissionCleanup = async (
   }
   assert.equal(releaseCalls, 1, "one blocked cleanup cannot prevent the other admissions");
   assert.equal(store.pendingBrowserCleanupJobIds().length, 3);
-  rejectCleanup(executionFailure("failed", "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE")); await blockedCleanup;
+  rejectCleanup(browserExecutionFailure(new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"))); await blockedCleanup;
   assert.equal(store.pendingBrowserCleanupJobIds().length, 3);
   let retried = 0;
   await reconcileCompletedBrowserTargets({ store, abort,

@@ -278,6 +278,15 @@ const changedFailure: RuntimeSpanTerminalEvent = { ...terminalEvent,
   outcome: "failed", failure: { ...terminalEvent.failure!, code: "BROWSER_TARGET_NOT_INTERACTIVE" } };
 assert.equal(shouldProjectRuntimeEvent(changedFailure, "FLOW"), true);
 
+const secondInvocation: RuntimeSpanFailureEvent = { ...terminalEvent, spanId: "second-independent-invocation" };
+assert.equal(shouldProjectRuntimeEvent(secondInvocation, "FLOW"), true, "same job/code with a new atomic span must be visible");
+assert.equal(shouldProjectRuntimeEvent(secondInvocation, "FLOW"), false, "a resident invocation retransmission is suppressed");
+for (let index = 0; index < 4096; index += 1) {
+  assert.equal(shouldProjectRuntimeEvent({ ...secondInvocation, spanId: `eviction-invocation-${index}` }, "FLOW"), true);
+}
+assert.equal(shouldProjectRuntimeEvent(secondInvocation, "FLOW"), true, "eviction permits redisplay without persistent deduplication");
+assert.equal(shouldProjectRuntimeEvent(secondInvocation, "TRACE"), true);
+
 const redacted = redactRuntimeLogRecord({
   code: "SAFE_CODE",
   prompt: "secret prompt",

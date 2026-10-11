@@ -14,6 +14,8 @@ Website 已以精确 `RESULT_SETTLED_UNUSABLE` 或 `GPT_RESPONSE_STOPPED_EMPTY` 
 
 Browser 只拥有现实页面资源：已获 grant且未闭环 job与 system Target的一对一进程内绑定、实时 current Document、一条 FIFO、一条物理 lane、一个全局 Provider observation节拍、Provider/控件 mutation的唯一 WAL，以及页面生命周期动作后的 fresh readback。它不理解 Product步骤、不保存 GPT回答、不决定 retry或当前 N，也不拥有 Website task。
 
+原 release 的预算分三相：仍 queued 时原 30 秒期限有限退出；nextWaiter 出队即退休队列期限，完整等待原 40 秒提交静默；quiet 后重核 signal，再由原 Acquirer 原 timer 建立完整 30 秒 dispatch 预算。acquire 调用方预算不变。原唯一 wakeTimer 在 active lane 期间只按 queued release 最早 expiry 唤醒并 typed reject 到期项，不使用已过去的 eligibility 忙循环，不 dispatch、不改 active/jobRef、不取消当前 native；无 queued release 不设 wake。idle 继续原 FIFO，队列变化重算，reset/结算清 timer/listeners，不建 per-waiter timer 或第二 lane。超时保留 pending cleanup，不把 Promise 退出当物理释放；1.5/2.5/40/70—90 秒各门不减。
+
 活动 job—Target 执行绑定只在当前 Browser Authority live registry。Target/Document/epoch/fence/permit只决定当前物理位置，原WAL target_ref/document_ref仅历史取证；持久Target claim/旧Tab恢复registry为零。历史DISPATCHED不参与跨job acquisition/lane/prepare资格；当前操作只取唯一FIFO/lane、有效permit与每次native前的真实guard，真实仍在途native不并行。旧终态只能原事实CAS，未知不伪成零输入，旧tabId不得猜删操作者Tab。
 
 Browser 另在同一 FIFO/lane 内唯一拥有 `chatgptPageAccessNotBefore`：任意两个不属于同一 coherent 原子周期的 chatgpt.com 普通逻辑 DOM observation、Tab/page activation、navigation 或页面 mutation，其起始单调时间差至少1.5秒，且该门跨job、Tab、Product共享；进程或扩展重启后的第一次普通访问也先等待1.5秒。一次coherent observation内部的CDP primitives不拆分，菜单、菜单项、fill、Enter仍是不同逻辑访问；deadline剩余不足1.5秒时不再读取DOM，返回最后事实的typed timeout。50ms、25—250ms及亚1.5秒尾读路径必须物理退出；2.5秒动作读回、40秒提交静默、Browser每轮一次抽取的70—90秒全局Provider observation间隔与业务backoff取更长者。

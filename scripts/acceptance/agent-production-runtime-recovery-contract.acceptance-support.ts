@@ -1,16 +1,13 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 import { mkdir } from "node:fs/promises";
-import { readFileSync } from "node:fs";
-import { runInNewContext } from "node:vm";
-import { transpileModule, ModuleKind } from "typescript";
+import { exerciseFirstTerminalBeforeProducerCleanup } from "./agent-production-runtime-failure-transport.acceptance-support.js";
 import path from "node:path";
 import Database from "better-sqlite3";
 
+import { browserExecutionFailure } from "../../src/lib/browser/browser-authority-api.js";
 import { executionFailure, typedExecutionFailure } from "../../src/lib/execution-failure.js";
 import { ProductionRuntimeStore } from "../../src/lib/local-runtime/production/store.js";
 import { acceptClaim } from "../../src/lib/local-runtime/production/runtime-claim-operations.js";
-import { buildTerminalProductionIntent, deliverTerminalProductionIntent } from "../../src/lib/local-runtime/production/cloud-terminal-intent.js";
-import { ProductionRuntimeBoundaryError } from "../../src/lib/local-runtime/production/runtime-execution-heartbeat.js";
 import type { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { requireRuntimeLogWrite } from "../../src/lib/runtime-logs/index.js";
 import { businessInFlightCount, reconcileCompletedBrowserTargets } from "../../src/lib/local-runtime/production/runtime-loops.js";
@@ -325,6 +322,7 @@ export const verifyOutboxRegrantFenceAndReadbackProof = async (
   exerciseNegativeReadbackProofInterval(store, fixture, providerEffectHash);
   await exerciseAdmittedOutboxLateWrites(store, providerEffectHash);
   await exerciseFirstTerminalBeforeProducerCleanup(store);
+  await exerciseCleanupFailureIsolation();
 };
 
 /** Real SQLite: each original late writer must preserve pending/settled cleanup authority. */
@@ -387,7 +385,7 @@ const exerciseAdmittedOutboxLateWrites = async (store: ProductionRuntimeStore, h
   let failFirst = true;
   const state = { store, abort: new AbortController(), browserAuthority: { releaseJobBoundTarget: async (jobId: string) => {
     attempted.push(jobId);
-    if (failFirst && jobId === eligible[0]) throw executionFailure("failed", "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
+    if (failFirst && jobId === eligible[0]) throw browserExecutionFailure(new Error("V6_DEADLINE_BUDGET_EXHAUSTED"));
   } } };
   await reconcileCompletedBrowserTargets(state as never);
   assert.deepEqual(attempted, eligible, "a failed first cleanup must leave later eligible jobs reachable");
@@ -405,64 +403,32 @@ const exerciseAdmittedOutboxLateWrites = async (store: ProductionRuntimeStore, h
 };
 
 /** Execute the original claim-operation source against native SQLite/Outbox with controlled transport. */
-const exerciseFirstTerminalBeforeProducerCleanup = async (store: ProductionRuntimeStore): Promise<void> => {
-  const source = readFileSync(new URL("../../src/lib/local-runtime/production/runtime-claim-operations.ts", import.meta.url), "utf8");
-  const code = transpileModule(source.slice(source.indexOf("const sendStagedTerminal =")), {
-    compilerOptions: { module: ModuleKind.CommonJS },
-  }).outputText;
-  for (const mode of ["completed-race", "send-unknown", "stage-failure", "foreign-attempt", "foreign-result"] as const) {
-    const job = task({ jobId: `job:first-send-${mode}`, productId: "payment_screenshot_observation", actionId: "observe" });
-    const claim = claimTask(job), result = resultFor(job), order: string[] = [];
-    const envelopeHash = hashCanonical("fixture:envelope");
-    const receipts = [{ role: "result_payload", receipt_hash: result.result_object_receipt.receipt_hash },
-      { role: "result_envelope", receipt_hash: envelopeHash }];
-    store.acceptTask(job, claim.grant.attempt_id);
-    let terminalId: string | undefined;
-    const state = { lastErrorCode: null, lastErrorReason: null,
-      store: new Proxy(store, { get: (target, key) => key === "stageResultAndEnqueueTerminal" ?
-        (input: Parameters<typeof store.stageResultAndEnqueueTerminal>[0]) => {
-          if (mode === "stage-failure") throw executionFailure("failed", "PRODUCTION_STAGED_RESULT_TERMINAL_CONFLICT");
-          store.stageResultAndEnqueueTerminal({ ...input, websiteStagedArtifactReceipts: receipts });
-          terminalId = input.terminal.idempotency_key; order.push("stage");
-        } : typeof Reflect.get(target, key) === "function" ? Reflect.get(target, key).bind(target) : Reflect.get(target, key) }),
-      runtimeLogger: { startSpan: () => ({ ok: true, event: { spanId: "span:fixture" } }) },
-      session: { workerSessionId: "session:fixture", workerSessionEpoch: 1, request: async () => {
-        order.push("send"); assert.equal(order.includes("cleanup"), false);
-        assert.deepEqual(store.readTask(job.job_id)?.staged_result, result);
-        assert.equal(store.readOutboxAuthority(terminalId!)?.kind, "terminal");
-        if (mode === "send-unknown") throw executionFailure("failed", "CLOUD_TRANSPORT_UNAVAILABLE");
-        store.completeTask(job.job_id, result);
-        return { schema_version: "xuanxue-ai-terminal-receipt.v6", job_id: job.job_id, terminal_status: "completed",
-          payload_hash: hashCanonical(result), failure: null, first_terminal: true, device_id: "device:1", device_epoch: 1,
-          worker_session_id: "session:fixture", worker_session_epoch: 1, runtime_attestation_receipt_hash: envelopeHash };
-      } },
-      executor: { execute: async (_task: unknown, _materials: unknown, _budget: unknown, _parent: unknown,
-        complete: (output: unknown) => Promise<unknown>) => {
-        await complete({ payload: {}, evidence_refs: ["evidence:original"] }); order.push("cleanup");
-        const db = Reflect.get(store, "database") as Database.Database;
-        if (mode === "foreign-attempt") db.prepare("update production_tasks set current_attempt_id='attempt:foreign' where job_id=?").run(job.job_id);
-        if (mode === "foreign-result") db.prepare("update production_tasks set result_json=? where job_id=?").run(
-          JSON.stringify({ ...result, execution_receipt_hash: envelopeHash }), job.job_id);
-        if (mode !== "send-unknown") throw executionFailure("failed", "LATE_PRODUCER_CLEANUP_FAILED");
-        return { record: store.readTask(job.job_id), result, providerEffectReadbackProof: null };
-      } },
-    };
-    const api: Record<string, (input: unknown) => Promise<{ execution: { result: unknown } }>> = {};
-    runInNewContext(code, { exports: api, heartbeatWhileRunning: ({ execution }: { execution: Promise<unknown> }) => execution,
-      uploadProductionResult: async () => ({ envelope: result, artifact_receipts: receipts }),
-      buildTerminalProductionIntent, deliverTerminalProductionIntent, hashCanonical, executionFailure, ProductionRuntimeBoundaryError,
-      requireRuntimeLogWrite: (write: { event: unknown }) => write.event, runRuntimeSpan: ({ action }: { action: () => unknown }) => action(),
-      jobIdentity: () => ({}), failureCode: (error: { code?: string }, fallback: string) => error.code ?? fallback,
-      safeReason: (error: Error) => error.message, isResultTransportBoundary: () => false,
-    });
-    const execution = api.executeAndUpload!({ state, job: claim, task: job, budget: {}, materials: [], abort: new AbortController(), jobSpan: { spanId: "span:fixture" } });
-    if (mode === "stage-failure" || mode.startsWith("foreign-")) await assert.rejects(execution);
-    else assert.deepEqual((await execution).execution.result, result);
-    assert.deepEqual(order, mode === "stage-failure" ? [] : ["stage", "send", "cleanup"]);
-    if (mode === "stage-failure") assert.equal(store.readTask(job.job_id)?.staged_result, null);
-    if (mode === "send-unknown") { assert.deepEqual(store.readTask(job.job_id)?.staged_result, result);
-      assert.equal(store.readOutboxAuthority(terminalId!)?.lastError, "CLOUD_TRANSPORT_UNAVAILABLE"); }
-    if (mode === "completed-race") { assert.equal(store.readTask(job.job_id)?.current_reason, null);
-      assert.equal(store.readOutboxAuthority(terminalId!)?.lastError, "BROWSER_CLEANUP_PENDING"); }
+const exerciseCleanupFailureIsolation = async (): Promise<void> => {
+  for (const code of ["V6_DEADLINE_BUDGET_EXHAUSTED", "BROWSER_TARGET_ACQUISITION_TIMEOUT",
+    "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", "BROWSER_BACKPRESSURE", "BROWSER_TARGET_INVALID", "BROWSER_TARGET_CLEANUP_FAILED"]) {
+    const visits: string[] = [], settled: string[] = [];
+    const state = { abort: new AbortController(), store: {
+      pendingBrowserCleanupJobIds: () => ["a", "b", "c", "unsent"], hasUnsentOutbox: (job: string) => job === "unsent",
+      settleBrowserCleanup: (job: string) => { settled.push(job); },
+    }, browserAuthority: { releaseJobBoundTarget: async (job: string) => {
+      visits.push(job); if (job === "a") throw browserExecutionFailure(new Error(code));
+    } } };
+    await reconcileCompletedBrowserTargets(state as never);
+    assert.deepEqual(visits, ["a", "b", "c"]); assert.deepEqual(settled, ["b", "c"]);
   }
+  for (const error of [new Error("BROWSER_TARGET_INVALID"), browserExecutionFailure(new Error("BROWSER_REPAIR_REQUIRED")),
+    browserExecutionFailure(new Error("BROWSER_MUTATION_STATE_UNAVAILABLE")), executionFailure("failed", "RUNTIME_LOG_SINK_WRITE_FAILED")]) {
+    await assert.rejects(reconcileCompletedBrowserTargets({ abort: new AbortController(), store: {
+      pendingBrowserCleanupJobIds: () => ["a", "b"], hasUnsentOutbox: () => false,
+      settleBrowserCleanup: () => { throw new Error("MUST_NOT_SETTLE"); },
+    }, browserAuthority: { releaseJobBoundTarget: async () => { throw error; } } } as never), candidate => candidate === error);
+  }
+  const storeFailure = browserExecutionFailure(new Error("BROWSER_TARGET_INVALID"));
+  await assert.rejects(reconcileCompletedBrowserTargets({ abort: new AbortController(), store: {
+    pendingBrowserCleanupJobIds: () => ["a", "b"], hasUnsentOutbox: () => false,
+    settleBrowserCleanup: () => { throw storeFailure; },
+  }, browserAuthority: { releaseJobBoundTarget: async () => undefined } } as never), error => error === storeFailure);
+  const aborted = new AbortController(); aborted.abort();
+  await reconcileCompletedBrowserTargets({ abort: aborted, store: { pendingBrowserCleanupJobIds: () => ["a"] },
+    browserAuthority: { releaseJobBoundTarget: async () => { throw new Error("ABORT_MUST_NOT_DISPATCH"); } } } as never);
 };

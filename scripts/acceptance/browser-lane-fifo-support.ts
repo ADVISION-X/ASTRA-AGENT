@@ -5,6 +5,8 @@ import { ExtensionExactTargetRegistry } from "../../src/lib/browser/chrome-exten
 import { ExtensionTargetLoss } from "../../src/lib/browser/chrome-extension/extension-target-loss.js";
 import { releaseJobBoundTarget } from "../../src/lib/browser/chrome-extension/extension-target-release.js";
 import { parseBrowserAuthorityTargetRevoke } from "../../src/lib/browser/transport/browser-authority-frame-payload.js";
+import { BrowserLaneCoordinator } from "../../src/lib/browser/infrastructure/browser-lane-coordinator.js";
+import { getEventListeners } from "node:events";
 
 export const hash = (digit: string): `sha256:${string}` => `sha256:${digit.repeat(64)}`;
 export const binding = (digit: string) => ({ kind: "production" as const, jobId: `job-${digit}`, resultRevision: 0,
@@ -120,5 +122,82 @@ const intentionalClose = async (): Promise<void> => {
   assert.deepEqual(reports, []); assert.equal(revokes.length, 1); assert.equal(registry.findByTabId(23), null);
 };
 export const runBrowserLaneTargetClaimAcceptance = async (): Promise<void> => {
+  await releaseBudgetPhases();
   await releaseThroughWire(); delayedRevocation(); await delayedChromeCallbacks(); await intentionalClose();
+};
+
+const releaseBudgetPhases = async (): Promise<void> => {
+  const original = { now: Date.now, setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout };
+  let now = Date.parse("2026-10-11T00:00:00.000Z"), id = 0;
+  const timers = new Map<number, { run: () => void; ms: number }>();
+  const tick = async () => { for (let step = 0; step < 30; step += 1) await Promise.resolve(); };
+  const advance = async (ms: number) => {
+    const found = [...timers].find(([, timer]) => timer.ms === ms); assert.ok(found);
+    timers.delete(found![0]); now += ms; found![1].run(); await tick();
+  };
+  Date.now = () => now;
+  globalThis.setTimeout = ((run: () => void, ms: number) => {
+    const key = ++id; timers.set(key, { run, ms }); return key;
+  }) as never;
+  globalThis.clearTimeout = ((key: number) => { timers.delete(key); }) as never;
+  try {
+    let latest: string | null = new Date(now).toISOString(), dispatches = 0, budget = 0, reply = true;
+    const infrastructure = { pendingJobBoundTargetAcquisition: null,
+      mutationState: { latestProviderInputTerminalAt: () => latest, assertRuntimeTaskProvenance: () => undefined } };
+    const broker = { currentOperatorTargetJobRefHash: () => binding("a").jobRefHash,
+      acquireOperatorClaimedTargetLease: async () => ({ park: async () => undefined }) };
+    const lane = new BrowserLaneCoordinator(() => broker as never, {
+      requestPreauthorizedTargetRelease: (job: string, _authority: string, deadline: number) => {
+        dispatches += 1; budget = deadline - now;
+        if (reply) queueMicrotask(() => lane.resolvePending("release", job)); return 1;
+      },
+    } as never, { current: () => ({ kind: "PRESENT", authority: { authorityEpoch: 1 } }) } as never, infrastructure as never);
+    const controller = new AbortController();
+    const quietRelease = lane.releaseJobBoundTarget("quiet", "business-admitted", controller.signal);
+    await tick(); assert.equal(dispatches, 0); await advance(40_000); await quietRelease;
+    assert.equal(budget, 30_000, "the full quiet gate cannot consume dispatch budget");
+    assert.equal(timers.size, 0); assert.equal(getEventListeners(controller.signal, "abort").length, 0);
+    const queuedExpiry = async () => {
+      const active = await lane.acquire(binding("a") as never, "owner", { targetMode: "fresh", eligibleAt: now,
+        remainingMs: () => 60_000, signal: controller.signal });
+      const activeHash = Reflect.get(lane, "activeJobRefHash"), queuedAbort = new AbortController();
+      const cancelled = lane.releaseJobBoundTarget("queued-cancel", "business-admitted", queuedAbort.signal).then(() => null, error => error);
+      now += 1_000;
+      const first = lane.releaseJobBoundTarget("queued-a", "business-admitted", controller.signal).then(() => null, error => error);
+      now += 1_000;
+      const second = lane.releaseJobBoundTarget("queued-b", "business-admitted", controller.signal).then(() => null, error => error);
+      assert.equal(timers.size, 1, "queued releases share the existing wake timer");
+      queuedAbort.abort(); assert.match((await cancelled).message, /BROWSER_WAIT_ABORTED/u);
+      assert.equal(getEventListeners(queuedAbort.signal, "abort").length, 0); assert.equal(timers.size, 1);
+      assert.equal([...timers.values()][0]!.ms, 29_000, "queued abort recalculates the sole wake for the next release");
+      assert.equal(lane.readState(), "busy"); assert.equal(Reflect.get(lane, "activeJobRefHash"), activeHash); assert.equal(dispatches, 1);
+      await advance(29_000); assert.match((await first).message, /V6_DEADLINE_BUDGET_EXHAUSTED/u);
+      assert.equal(lane.readState(), "busy"); assert.equal(Reflect.get(lane, "activeJobRefHash"), activeHash);
+      assert.equal(dispatches, 1); assert.equal(timers.size, 1);
+      assert.equal([...timers.values()][0]!.ms, 1_000, "active expiry cannot spin on past eligibility");
+      await advance(1_000); assert.match((await second).message, /V6_DEADLINE_BUDGET_EXHAUSTED/u);
+      assert.equal(timers.size, 0); assert.equal(dispatches, 1);
+      await active.park({ reason: "fixture-complete", mode: "product-call-settlement" });
+      assert.equal(lane.readState(), "idle");
+    }; await queuedExpiry();
+    const dispatchFailures = async () => {
+      reply = false;
+      const timed = lane.releaseJobBoundTarget("dispatch-timeout", "business-admitted", controller.signal).then(() => null, error => error);
+      await tick(); assert.equal(budget, 30_000); await advance(30_000);
+      assert.match((await timed).message, /BROWSER_TARGET_ACQUISITION_TIMEOUT/u); assert.equal(timers.size, 0);
+      const aborted = new AbortController(); latest = new Date(now).toISOString();
+      const denied = lane.releaseJobBoundTarget("quiet-abort", "business-admitted", aborted.signal).then(() => null, error => error);
+      const before = dispatches; aborted.abort(); await advance(40_000);
+      assert.match((await denied).message, /BROWSER_WAIT_ABORTED/u); assert.equal(dispatches, before);
+      latest = null;
+      const holding = await lane.acquire(binding("a") as never, "owner", { targetMode: "fresh", eligibleAt: now,
+        remainingMs: () => 60_000, signal: controller.signal });
+      const queued = Array.from({ length: 10 }, (_, index) => lane.releaseJobBoundTarget(`reset-${index}`, "business-admitted", controller.signal)
+        .then(() => null, error => error));
+      await assert.rejects(lane.releaseJobBoundTarget("eleventh", "business-admitted", controller.signal), /BROWSER_BACKPRESSURE/u);
+      lane.reset("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE"); await Promise.all(queued);
+      assert.equal(timers.size, 0); assert.equal(getEventListeners(controller.signal, "abort").length, 0);
+      await holding.park({ reason: "fixture-complete", mode: "product-call-settlement" });
+    }; await dispatchFailures();
+  } finally { Date.now = original.now; globalThis.setTimeout = original.setTimeout; globalThis.clearTimeout = original.clearTimeout; }
 };

@@ -254,79 +254,71 @@ const sendStagedTerminal = async (input: Readonly<{ state: RuntimeState; job: Cl
   }
 };
 
-export const executeAndUpload = async (input: Readonly<{
-  state: RuntimeState;
-  job: ClaimedProductionTask;
-  task: WebsiteAgentTask;
+type ExecuteAndUploadInput = Readonly<{
+  state: RuntimeState; job: ClaimedProductionTask; task: WebsiteAgentTask;
   budget: ProductionExecutionLease;
   materials: Awaited<ReturnType<typeof downloadProductionMaterials>>;
-  abort: AbortController;
-  jobSpan: RuntimeSpanHandle;
-}>) => {
-  let uploaded: Awaited<ReturnType<typeof uploadProductionResult>> | undefined;
-  let terminalIntent: ReturnType<typeof buildTerminalProductionIntent> | undefined;
+  abort: AbortController; jobSpan: RuntimeSpanHandle;
+}>;
+
+const uploadAndStageResult = async (input: ExecuteAndUploadInput,
+  output: Parameters<typeof uploadProductionResult>[0]["output"],
+  priorArtifactReceipts: Awaited<ReturnType<typeof uploadProductionGeneratedImage>>["transportReceipt"][]) => {
+  const span = requireRuntimeLogWrite(input.state.runtimeLogger.startSpan({
+    traceId: input.job.job_id, parentSpanId: input.jobSpan.spanId, owner: "production-runtime",
+    component: "production-result", operation: "result.upload", typedIdentity: jobIdentity(input.job),
+  }));
+  const uploaded = await runRuntimeSpan({ span, failureCode: "RESULT_UPLOAD_FAILED",
+    action: () => uploadProductionResult({ session: input.state.session, store: input.state.store,
+      job: input.job, output, priorArtifactReceipts }),
+  });
+  const terminalIntent = buildTerminalProductionIntent(input.state.session, input.job, {
+    status: "completed", payload_hash: hashCanonical(uploaded.envelope),
+    result_receipt_hashes: uploaded.artifact_receipts.map(receipt => receipt.receipt_hash),
+    terminal_source_first_fact_raw: input.state.store.readAttemptFailureRaw(input.job.job_id),
+  });
+  input.state.store.stageResultAndEnqueueTerminal({ jobId: input.job.job_id,
+    attemptId: input.job.grant.attempt_id, result: uploaded.envelope, terminal: terminalIntent.write });
+  return { uploaded, terminalIntent };
+};
+
+export const executeAndUpload = async (input: ExecuteAndUploadInput) => {
+  let staged: Awaited<ReturnType<typeof uploadAndStageResult>> | undefined;
   let uploadBoundaryFailure: unknown | undefined;
   const generatedImageReceipts: Awaited<ReturnType<typeof uploadProductionGeneratedImage>>["transportReceipt"][] = [];
   let execution: Awaited<ReturnType<RuntimeState["executor"]["execute"]>>;
   try {
-    execution = await heartbeatWhileRunning({
-      state: input.state, job: input.job, budget: input.budget,
-      execution: input.state.executor.execute(input.task, input.materials, input.budget, input.jobSpan.spanId,
-        async (output) => {
-        const span = requireRuntimeLogWrite(input.state.runtimeLogger.startSpan({
-          traceId: input.job.job_id, parentSpanId: input.jobSpan.spanId, owner: "production-runtime",
-          component: "production-result", operation: "result.upload", typedIdentity: jobIdentity(input.job),
-        }));
-        try {
-          uploaded = await runRuntimeSpan({
-            span, failureCode: "RESULT_UPLOAD_FAILED", action: () => uploadProductionResult({
-              session: input.state.session, store: input.state.store, job: input.job,
-              output,
-              priorArtifactReceipts: generatedImageReceipts,
-            }),
-          });
-          terminalIntent = buildTerminalProductionIntent(input.state.session, input.job, {
-            status: "completed", payload_hash: hashCanonical(uploaded.envelope),
-            result_receipt_hashes: uploaded.artifact_receipts.map((receipt) => receipt.receipt_hash),
-            terminal_source_first_fact_raw: input.state.store.readAttemptFailureRaw(input.job.job_id),
-          });
-          input.state.store.stageResultAndEnqueueTerminal({
-            jobId: input.job.job_id, attemptId: input.job.grant.attempt_id,
-            result: uploaded.envelope, terminal: terminalIntent.write,
-          });
-        } catch (error) {
-          if (isResultTransportBoundary(error)) uploadBoundaryFailure = error;
-          throw error;
-        }
-        await sendStagedTerminal({ state: input.state, job: input.job, jobSpan: input.jobSpan, terminalIntent });
-        return uploaded.envelope;
-        },
-        async (artifact) => {
-          const uploadedImage = await uploadProductionGeneratedImage(
-            input.state.session, input.state.store, input.job, artifact,
-          );
-          generatedImageReceipts.push(uploadedImage.transportReceipt);
-          return uploadedImage.receipt;
+    execution = await heartbeatWhileRunning({ state: input.state, job: input.job, budget: input.budget,
+      execute: stopAndJoinRenewal => input.state.executor.execute(input.task, input.materials, input.budget, input.jobSpan.spanId,
+        async output => {
+          try { staged = await uploadAndStageResult(input, output, generatedImageReceipts); }
+          catch (error) { if (isResultTransportBoundary(error)) uploadBoundaryFailure = error; throw error; }
+          await stopAndJoinRenewal();
+          await sendStagedTerminal({ state: input.state, job: input.job, jobSpan: input.jobSpan,
+            terminalIntent: staged.terminalIntent });
+          return staged.uploaded.envelope;
+        }, async artifact => {
+          const image = await uploadProductionGeneratedImage(input.state.session, input.state.store, input.job, artifact);
+          generatedImageReceipts.push(image.transportReceipt);
+          return image.receipt;
         }),
       abort: input.abort, parentSpanId: input.jobSpan.spanId,
     });
   } catch (error) {
     const durable = input.state.store.readTask(input.job.job_id);
     const result = durable?.staged_result ?? (durable?.status === "completed" ? durable.result : null);
-    const authority = terminalIntent ? input.state.store.readOutboxAuthority(terminalIntent.requestId) : null;
-    if (uploaded && terminalIntent && durable && result && authority?.jobId === input.job.job_id
+    const authority = staged ? input.state.store.readOutboxAuthority(staged.terminalIntent.requestId) : null;
+    if (staged && durable && result && authority?.jobId === input.job.job_id
       && durable.task.request_hash === input.task.request_hash && durable.current_attempt_id === input.job.grant.attempt_id
-      && hashCanonical(result) === hashCanonical(uploaded.envelope)) {
+      && hashCanonical(result) === hashCanonical(staged.uploaded.envelope)) {
       execution = { record: durable, result, providerEffectReadbackProof: null };
     } else {
-    if (uploadBoundaryFailure !== undefined) {
-      throw new ProductionRuntimeBoundaryError(uploadBoundaryFailure);
-    }
-    throw error;
+      if (uploadBoundaryFailure !== undefined) throw new ProductionRuntimeBoundaryError(uploadBoundaryFailure);
+      throw error;
     }
   }
-  if (!uploaded || !terminalIntent) throw new Error("PLUGIN_RESULT_UPLOAD_MISSING");
-  return { execution, uploaded, terminalIntent };
+  if (!staged) throw new Error("PLUGIN_RESULT_UPLOAD_MISSING");
+  return { execution, ...staged };
 };
 
 export const completeClaim = async (input: Readonly<{

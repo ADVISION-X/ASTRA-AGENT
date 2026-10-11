@@ -25,10 +25,11 @@ const terminalProjectionState = new Map<string, string>();
 const MAX_TERMINAL_PROJECTION_KEYS = 4_096;
 
 const projectionIdentity = (event: RuntimeLogEventV2): string => {
+  if (event.kind === "span.terminal" && event.outcome === "failed" && event.failure?.impact === "BLOCKING") return event.spanId;
   if (!("typedIdentity" in event)) return event.traceId;
   const identity = Object.entries(event.typedIdentity);
   const stable = ["jobId", "attemptId", "outboxId", "commandId", "producerId"]
-    .flatMap((key) => identity.flatMap(([field, value]) =>
+    .flatMap(key => identity.flatMap(([field, value]) =>
       field === key && typeof value === "string" ? [`${key}:${value}`] : []));
   return stable.length > 0 ? stable.join("|") : String(event.typedIdentity.kind);
 };

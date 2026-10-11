@@ -1,9 +1,11 @@
 import { governanceAssert as assert } from "../audit/shared/governance-exam-assert.js";
 
 import type { ProductionExecutionLease } from "../../src/lib/local-runtime/production/contracts.js";
+import { getEventListeners } from "node:events";
 import {
   renewFailureRetryable,
   renewWithinBudget,
+  heartbeatWhileRunning,
 } from "../../src/lib/local-runtime/production/runtime-execution-heartbeat.js";
 import { typedRuntimeTransportFailure } from "../../src/lib/local-runtime/production/transport-failure.js";
 import {
@@ -47,8 +49,9 @@ const withFakeClock = async <T>(run: () => Promise<T>): Promise<T> => {
   Date.now = () => base + now;
   performance.now = () => now;
   globalThis.setTimeout = ((handler: (...args: unknown[]) => void, ms?: number) => {
+    if ((ms ?? 0) >= 30_000) return originalSetTimeout(handler, ms);
     now += typeof ms === "number" ? ms : 0;
-    handler();
+    queueMicrotask(handler);
     return originalSetTimeout(() => undefined, 0);
   }) as typeof setTimeout;
   try {
@@ -237,9 +240,10 @@ const exerciseAbortDuringWaitStopsFurtherRequests = async (): Promise<void> => {
     const session = await openedSession();
     const controller = new AbortController();
     const originalSetTimeout = globalThis.setTimeout;
-    globalThis.setTimeout = ((handler: (...args: unknown[]) => void) => {
+    globalThis.setTimeout = ((handler: (...args: unknown[]) => void, ms?: number) => {
+      if ((ms ?? 0) >= 30_000) return originalSetTimeout(handler, ms);
       controller.abort("PRODUCTION_RUNTIME_STOPPED");
-      handler();
+      queueMicrotask(handler);
       return originalSetTimeout(() => undefined, 0);
     }) as typeof setTimeout;
     try {
@@ -291,7 +295,107 @@ const exerciseBadSinkSessionBoundary = async (): Promise<void> => {
   } finally { globalThis.fetch = priorFetch; }
 };
 
+const exerciseSessionRequestBudget = async (tick: () => Promise<void>, advance: (ms: number) => Promise<void>,
+  timers: Readonly<{ size: number }>): Promise<void> => {
+  for (const mode of ["fetch-hung", "body-hung", "caller-abort", "pre-abort"] as const) {
+    globalThis.fetch = renewSessionFetch([], []);
+    const session = await openedSession(), controller = new AbortController();
+    let physicalSignal: AbortSignal | undefined, requests = 0;
+    globalThis.fetch = async (_url, init) => {
+      requests++; physicalSignal = init?.signal ?? undefined;
+      if (mode === "body-hung") return { ok: true, status: 200,
+        json: () => new Promise(() => undefined) } as Response;
+      return new Promise(() => undefined);
+    };
+    if (mode === "pre-abort") controller.abort("CALLER_STOPPED");
+    const outcome = session.request("/renew-request-budget", { method: "POST", signal: controller.signal })
+      .then(() => { throw new Error("UNKNOWN_REQUEST_MUST_NOT_SUCCEED"); }, error => error);
+    await tick();
+    if (mode === "caller-abort") controller.abort("CALLER_STOPPED");
+    else if (mode !== "pre-abort") await advance(30_000);
+    const failure = await outcome;
+    assert.equal(failure.code, "CLOUD_TRANSPORT_UNAVAILABLE");
+    assert.equal(requests, mode === "pre-abort" ? 0 : 1);
+    if (physicalSignal) assert.equal(physicalSignal.aborted, true);
+    assert.equal(timers.size, 0);
+    assert.equal(getEventListeners(controller.signal, "abort").length, 0);
+  }
+};
+
+const exerciseRenewalCompletionJoin = async (): Promise<void> => {
+  const original = { fetch: globalThis.fetch, setTimeout: globalThis.setTimeout,
+    clearTimeout: globalThis.clearTimeout, now: Date.now };
+  const timers = new Map<number, { run: () => void; ms: number }>();
+  let id = 0, now = Date.parse("2026-09-03T00:00:00.000Z");
+  const tick = async () => { for (let turn = 0; turn < 60; turn += 1) await Promise.resolve(); };
+  const advance = async (ms: number) => {
+    const timer = [...timers].find(([, entry]) => entry.ms === ms);
+    assert.ok(timer, `missing actual timer:${ms}`);
+    timers.delete(timer![0]); now += ms; timer![1].run(); await tick();
+  };
+  Date.now = () => now;
+  globalThis.setTimeout = ((run: () => void, ms: number) => {
+    const key = ++id; timers.set(key, { run, ms }); return key;
+  }) as never;
+  globalThis.clearTimeout = ((key: number) => { timers.delete(key); }) as never;
+  try {
+    for (const mode of ["success", "retry", "fence", "schema", "control", "budget"] as const) {
+      const controller = new AbortController(), j = job();
+      const responses: ((value: Response) => void)[] = [];
+      let calls = 0, stage!: () => void, cleanup!: () => void, sent = false;
+      const first = renewSessionFetch([], []);
+      globalThis.fetch = async (url, init) => {
+        if (String(url).endsWith("/sessions/open")) return first(url, init);
+        calls += 1; return new Promise<Response>(resolve => { responses.push(resolve); });
+      };
+      const session = await openedSession();
+      const state = { session, runtimeLogger: { startSpan: () => ({ ok: true,
+        event: { terminal: () => ({ ok: true, event: { eventId: "event:renew-join" } }) } }) } };
+      const outcome = heartbeatWhileRunning({ state: state as never, job: j, budget: budgetWithLeftMs(60_000),
+        abort: controller, parentSpanId: "span:join",
+        execute: async stop => {
+          try { await new Promise<void>(resolve => { stage = resolve; }); await stop();
+            sent = true;
+          } finally { await new Promise<void>(resolve => { cleanup = resolve; }); }
+          return "original-result";
+        },
+      }).then(value => ({ value }), error => ({ error }));
+      await tick(); await advance(20_000); assert.equal(calls, 1);
+      stage(); await tick(); assert.equal(sent, false, "terminal cannot pass the actual in-flight renew");
+      if (mode === "retry") { responses.shift()!(typedErrorResponse(500, "AI_PRODUCTION_UPSTREAM_TRANSIENT"));
+        await tick(); await advance(5_000); assert.equal(calls, 2); }
+      const receipt = renewReceipt({ job: j });
+      if (mode === "control") receipt.control_intent = { ...receipt.control_intent, intent: "cancel_requested" as never };
+      if (mode === "budget") receipt.lease_expires_at = "2026-09-03T00:00:20.000Z";
+      responses.shift()!(mode === "fence" ? typedErrorResponse(409, "AI_LEASE_FENCE_STALE")
+        : successfulJsonResponse(mode === "schema" ? { invalid: true } : receipt));
+      await tick(); assert.ok(cleanup); assert.equal(timers.size, 0, "stopped renewal owns no pending timer");
+      assert.equal(getEventListeners(controller.signal, "abort").length, 0);
+      const success = mode === "success" || mode === "retry";
+      assert.equal(sent, success); assert.equal(controller.signal.aborted, !success);
+      cleanup(); const result = await outcome;
+      assert.equal("value" in result, success); assert.equal(calls, mode === "retry" ? 2 : 1);
+    }
+    await exerciseSessionRequestBudget(tick, advance, timers);
+    for (const mode of ["synchronous-callback", "executor-failure", "abort"] as const) {
+      const controller = new AbortController();
+      const outcome = heartbeatWhileRunning({ state: {} as never, job: job(), budget: budgetWithLeftMs(60_000),
+        abort: controller, parentSpanId: "span:sync", execute: async stop => {
+          if (mode === "abort") controller.abort("PRODUCTION_RUNTIME_STOPPED");
+          if (mode === "executor-failure") throw new Error("EXECUTOR_FAILED");
+          await stop(); await stop(); return 1;
+        } }).then(() => true, () => false);
+      assert.equal(await outcome, mode === "synchronous-callback"); assert.equal(timers.size, 0);
+      assert.equal(getEventListeners(controller.signal, "abort").length, 0);
+    }
+  } finally {
+    globalThis.fetch = original.fetch; globalThis.setTimeout = original.setTimeout;
+    globalThis.clearTimeout = original.clearTimeout; Date.now = original.now;
+  }
+};
+
 export const exerciseLeaseRenewRetry = async (): Promise<void> => {
+  await exerciseRenewalCompletionJoin();
   await exerciseBadSinkSessionBoundary();
   await exerciseSingleTransientRecovery();
   await exerciseNonJsonGatewayFailureRetries();

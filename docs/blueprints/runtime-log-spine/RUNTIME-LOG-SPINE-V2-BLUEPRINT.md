@@ -110,7 +110,8 @@ Browser mutation 事件必须在 WAL durable write 之后产生，并绑定 `pro
 
 ## 5. 终端投影
 
-持久化与终端显示严格分离：事件先完整写入唯一 JSONL，之后才决定是否镜像 stdout。默认终端只显示启动/停止边界、状态事实变化和新独立故障；相同 claim outcome/reason、heartbeat 成功及其它无状态变化的重复成功请求不再次输出。任一失败 code、Owner、authority/evidence identity 变化都必须立即可见。该去重只存在于当前进程内的显示投影，不落库、不影响 event sequence/hash，也不改变 TRACE 显式诊断模式。
+事件先完整写入唯一 JSONL，再决定 stdout。默认只显示启停、事实变化和新独立故障；BLOCKING failed span.terminal 使用原 spanId 区分每个原子调用，同 key 在当前进程原 4096 项窗口驻留时重复事件去重，驱逐或重启可重显。spanId 不裁决底层根因数量；诊断仍按原 Owner/code/operation/authority/evidence 归并。error 与其它 impact 保留原身份算法，重复成功 claim/heartbeat 保持低噪声。原 visibility、TRACE、cause、脱敏、序号和 hash 不变，不加事件字段、关联缓存或持久去重。
+
 
 ## 6. 片区删除与验收
 

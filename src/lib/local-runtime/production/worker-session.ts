@@ -234,24 +234,36 @@ export class ProductionWorkerSession {
     await this.open();
     const headers = { ...(await this.authorizationHeaders({ "content-type": "application/json" })),
       ...(init.headers ?? {}) };
-    // Recheck after all queued authentication work, immediately before physical fetch.
-    if (pathname === "/internal/ai-production/v6/jobs/claim"
-      && this.runtimeState().drain_state === "draining") {
+    if (pathname === "/internal/ai-production/v6/jobs/claim" && this.runtimeState().drain_state === "draining") {
       throw executionFailure("failed", "PRODUCTION_CLAIM_STOPPED");
     }
     const method = (init.method ?? "GET").toUpperCase();
     const existingSessionClose = method === "POST" && init.body === "{}" && this.credential !== null
       && pathname === `/internal/ai-production/v6/sessions/${encodeURIComponent(this.workerSessionId)}/close`;
     if (!["GET", "HEAD"].includes(method) && !existingSessionClose) this.assertCloudMutationAllowed();
-    let response: Response;
+    const controller = new AbortController();
+    let rejectBudget!: (reason: unknown) => void;
+    const interrupted = new Promise<never>((_resolve, reject) => { rejectBudget = reject; });
+    const stop = (reason: unknown) => { rejectBudget(reason); controller.abort(reason); };
+    const abort = () => stop(init.signal?.reason);
+    const timer = setTimeout(() => stop(new Error("CLOUD_REQUEST_TIMEOUT")), CLOUD_REQUEST_TIMEOUT_MS);
+    init.signal?.addEventListener("abort", abort, { once: true });
     try {
-      response = await fetch(`${this.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {
-        ...init, headers, signal: init.signal ?? AbortSignal.timeout(CLOUD_REQUEST_TIMEOUT_MS),
-      });
+      if (init.signal?.aborted) throw init.signal.reason;
+      const request = async () => {
+        const response = await fetch(`${this.device.server_base_url.replace(/\/+$/u, "")}${pathname}`, {
+          ...init, headers, signal: controller.signal,
+        });
+        return parseCloudResponse(response);
+      };
+      return await Promise.race([request(), interrupted]);
     } catch (cause) {
+      if (typedRuntimeTransportFailure(cause)) throw cause;
       throw executionFailure("failed", "CLOUD_TRANSPORT_UNAVAILABLE", { cause });
+    } finally {
+      clearTimeout(timer);
+      init.signal?.removeEventListener("abort", abort);
     }
-    return parseCloudResponse(response);
   }
 
   public async close(): Promise<void> {

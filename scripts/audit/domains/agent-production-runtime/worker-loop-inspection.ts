@@ -112,6 +112,18 @@ export const inspectWorkerLoopLiveness = (
     && node.getThenStatement().getKind() === SyntaxKind.ContinueStatement);
   const globalAdmissionRead = cleanup?.getDescendantsOfKind(SyntaxKind.CallExpression).some(node =>
     node.getExpression().getText() === "state.store.pendingBusinessAdmissions");
+  const releaseTry = cleanup?.getDescendantsOfKind(SyntaxKind.TryStatement).find(node =>
+    node.getTryBlock().getDescendantsOfKind(SyntaxKind.CallExpression).some(call =>
+      call.getExpression().getText() === "state.browserAuthority.releaseJobBoundTarget"));
+  const catchesPublicBrowserFailure = releaseTry?.getCatchClause()?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some(call => call.getExpression().getText() === "typedBrowserExecutionFailure");
+  const settlesInsideReleaseCatch = releaseTry?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some(call => call.getExpression().getText() === "state.store.settleBrowserCleanup");
+  if (!releaseTry || !catchesPublicBrowserFailure || settlesInsideReleaseCatch) {
+    findings.push(createFinding({ evidenceMode: "static.ast", lawId: LAWS.core,
+      clauseId: `${LAWS.core.toLowerCase()}-requirement`, checkId: "agent-production-runtime/cleanup-typed-local-boundary",
+      filePath: RUNTIME_LOOPS, message: "Cleanup must catch the public typed Browser release failure and settle Store outside that catch." }));
+  }
   if (calls.length !== 1 || !calls[0]?.getFirstAncestorByKind(SyntaxKind.TryStatement)?.getFinallyBlock()?.containsRange(
     calls[0].getStart(), calls[0].getEnd()) || !sweep || !guard || globalAdmissionRead) {
     findings.push(createFinding({ evidenceMode: "static.ast", lawId: LAWS.core,

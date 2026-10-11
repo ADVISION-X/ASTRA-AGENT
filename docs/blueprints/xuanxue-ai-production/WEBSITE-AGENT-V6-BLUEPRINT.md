@@ -66,13 +66,19 @@ Website claim + lease/grant/fence
   -> 命中的 Product Plugin 按自身 Product runtime authority 执行
   -> exact mechanically valid result + artifact receipts
   -> one SQLite transaction: staged result + terminal Outbox intent
+  -> 当前 job 停止后续续租准入并等待真实在途续租收束
   -> 当前 grant/fence 下立即由原 Outbox 首次交付原 terminal body
   -> Website 实际领域 commit + admission receipt
   -> Runtime 原 receipt/hash 读回并同身份 local completed
   -> 释放业务席位；原唯一 worker 按原标记收束 completed Target cleanup
 ```
 
-stage 事务及读回成功后的 completed callback 先调用原 deliverTerminalProductionIntent，随后才返回 Executor 进入 finally；不在 completeClaim 再首发。未知回执/运输故障保留原 durable result/Outbox，仍经原同身份读回/regrant，不转成 Product 拒收或重跑 Provider。Executor 三个错误/清理出口核同 request、accepted attempt 与原 callback envelope/hash：同身份 staged_result 或 completed.result 均是不可撤销的既成成功，不凭 status 或 completed 布尔吞掉异身份故障。completed 后不重写 BUSINESS_ADMISSION_PENDING，不补造日志成功覆盖原真实故障。
+原 heartbeat 在当前调用内启动唯一 executor，completed callback 完成同身份 stage + terminal intent 后，先同步关闭新续租并 await 原在途续租，再调用原 deliverTerminalProductionIntent；不在 completeClaim 再首发。停止动作不等待 executor 自身，不 abort 正常 Product；原 20 秒等待仅一个调用期 timer，停止、abort、executor settled 和超时均清 timer 与临时监听。真实在途续租继续原预算内重试、receipt/control/fence 校验；失败先结算续租，再由外层收束 executor，不自等待。失效或日志失败保留原 durable result/Outbox，实际发送仍核当前授权。Executor 错误/清理出口核同 request、accepted attempt 与 callback envelope/hash；同身份 staged_result 或 completed.result 保留，不凭 status 吞异身份故障，不重跑 Provider。
+
+stop-and-join 在真实续租结算后还须核原 Product signal；已收到 control intent 或其它真实 abort 时，以原 Runtime boundary failure 退出当前首次发送，保留同身份 stage/Outbox，下一动作仍由 Website 原授权决定。取消不能由测试自带 guard 代替生产边界；验收须把真实 heartbeat 与 executeAndUpload 组合，证明在途 control receipt 后 terminal physical request 为零，不伪造结果或清槽。
+
+原逐 job cleanup 只捕获 release 调用的公开 typedBrowserExecutionFailure；局部闭集为 V6_DEADLINE_BUDGET_EXHAUSTED、BROWSER_TARGET_ACQUISITION_TIMEOUT、BROWSER_EXTENSION_CHANNEL_UNAVAILABLE、BROWSER_BACKPRESSURE、BROWSER_TARGET_INVALID、BROWSER_TARGET_CLEANUP_FAILED。记录原诊断并续下一项；abort 退出快照。Store settle 在 catch 外，Store/sink/共享权威、认证矛盾及未知错误外抛，不用错误名前缀猜类别，不假 settle，不建第二错误 registry 或清理队列。
+
 
 原 Outbox 的 regrant headers、markOutboxSent、hydrate 与 recordDeliveryFailure 四处写者仍写真实 receipt/response/sent；已 business admitted/completed 的 BUSINESS_ADMITTED、BROWSER_CLEANUP_PENDING、BROWSER_CLEANUP_SETTLED 不被迟到运输事实覆盖，只有原 cleanup Owner 推进。真实未接纳的同 attempt 失败清除与 FROZEN-SAME-ATTEMPT-RESULT-REDELIVERY-001 保持。admission loop 完成本地接纳后不 await Browser release；reconcileCompletedBrowserTargets 是唯一清理入口，当前 iteration 优先核可推进 terminal/admission 后最多一次清理，旧快照不能使新 stage 等清理。清理安全门、1—30秒未知结果再检查及业务完成权威不变；不新增 worker/store/表/列或完成 Owner。
 
@@ -174,6 +180,8 @@ credential + contract preflight
 ```
 
 同一 worker session 的 heartbeat 换代与 claim 必须由现有 `ProductionWorkerSession` 在一条 session-authority 串行边界内闭合。Runtime 从读取新鲜 attestation、冻结与其同代的 credential/receipt hash，到 Website 返回该 claim 的持久回执之前，不得让另一次 heartbeat 推进 token generation 或 latest attestation；定时 heartbeat 与即时 freshness refresh 必须共用该边界。`activeHeartbeat` 只能合并同一 heartbeat，不能代替 claim 临界区。出现 `ATTESTATION_STALE_OR_MISMATCHED` 必须失败关闭并保留原生 reason，禁止接受 previous attestation、延长 TTL、blind retry、fallback、dual-read 或第二 session controller。
+
+原 Session request 的 CLOUD_REQUEST_TIMEOUT_MS=30秒覆盖 fetch 与 response body 解析，不被传入 Product signal 替代；调用期同时消费调用方 abort，结算后清原 timer/listener。超时保留 CLOUD_TRANSPORT_UNAVAILABLE/结果未知，不证明服务端停止，不放行完成 terminal。续租保留原lease预算内重试及4xx/schema拒绝；周期与重试等待各结束即清本调用监听，不修改全局 wait，不增加另一个请求/计时 Owner。
 
 Runtime 自身代码保持 production 目录内的直接模块关系。不得新增 manager、facade、adapter、workflow engine、scheduler、recovery graph、第二 store 或通用 helper 层；拆分只允许把独立且有真实消费者的同一 Runtime 职责移到窄模块。credential、session、grant、fence、业务准入与 durable authorization 在进入 Mediator 前已由 Runtime 闭合；Mediator 只做 Product identity resolution 与完成本次 Owner 归位不可分割的单次 dispatch，不准备 transport、不保存业务恢复状态、不调用 Product parser/assembly，也不建立第二 registry、第二 executor 或通用工作流。Runtime 把现有产品中性 GPT 工具、materials、completion 与 artifact upload 端口作为本次单次 dispatch 的 context 传入；Product 在该调用内取得 typed receipt、完成自身解析和组装，再只把 data-only final output 交回 Runtime。任何 Product 专属类型、reason、Prompt 或 reconstruction 不得进入 startup、credential、schema、inventory 与 Runtime quality；GPT 不保存跨业务任务的 conversation、checkpoint、frontier 或其它 opaque state。
 

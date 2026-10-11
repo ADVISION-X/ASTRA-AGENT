@@ -58,7 +58,7 @@ try {
   assert.equal(next(), waiter); assert.equal((coordinator.queue as unknown[]).length, 0);
   const readbackWaiter = { ...waiter, targetMode: "confirmed-readback", requestKind: "provider-observation" };
   coordinator.queue = [readbackWaiter]; assert.equal(next(), readbackWaiter);
-  const sameRelease = { ...waiter, kind: "release", jobId: original.jobId, releaseAuthority: "business-admitted" };
+  const sameRelease = { ...waiter, kind: "release", queueDeadlineAt: Date.now() + 30_000, jobId: original.jobId, releaseAuthority: "business-admitted" };
   const otherRelease = { ...sameRelease, jobId: "other-job" }, adminRelease = { ...sameRelease, releaseAuthority: "website-admin-deletion" };
   coordinator.queue = [sameRelease, otherRelease]; assert.equal(next(), sameRelease); assert.equal(next(), otherRelease);
   coordinator.queue = [sameRelease, adminRelease]; assert.equal(next(), sameRelease); assert.equal(next(), adminRelease);

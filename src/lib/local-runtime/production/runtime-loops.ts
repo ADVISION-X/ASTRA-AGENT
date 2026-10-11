@@ -9,6 +9,7 @@ import {
   type RuntimeSpanHandle,
 } from "../../runtime-logs/index.js";
 import { failureCode, typedExecutionFailure } from "../../execution-failure.js";
+import { typedBrowserExecutionFailure } from "../../browser/browser-authority-api.js";
 import { claimProductionTasks } from "./cloud-client.js";
 import { readProductionDeviceJobStatus } from "./cloud-reconciliation-client.js";
 import { productionCatalogHash } from "./catalog.js";
@@ -228,17 +229,24 @@ const reconcilePendingBusinessAdmissions = async (state: RuntimeState): Promise<
 
 export const reconcileCompletedBrowserTargets = async (state: RuntimeState): Promise<void> => {
   for (const jobId of state.store.pendingBrowserCleanupJobIds()) {
+    if (state.abort.signal.aborted) break;
     if (state.store.hasUnsentOutbox(jobId)) continue;
     try {
-      await state.browserAuthority.releaseJobBoundTarget(
-        jobId, "business-admitted", state.abort.signal,
-      );
-      state.store.settleBrowserCleanup(jobId);
+      await state.browserAuthority.releaseJobBoundTarget(jobId, "business-admitted", state.abort.signal);
     } catch (error) {
-      if (!failureCode(error).startsWith("BROWSER_")) throw error;
-      state.lastErrorCode = failureCode(error, "BROWSER_ADMITTED_TARGET_CLEANUP_PENDING");
+      const failure = typedBrowserExecutionFailure(error);
+      if (state.abort.signal.aborted && failure?.code === "BROWSER_WAIT_ABORTED") break;
+      if (!failure || ![
+        "V6_DEADLINE_BUDGET_EXHAUSTED", "BROWSER_TARGET_ACQUISITION_TIMEOUT",
+        "BROWSER_EXTENSION_CHANNEL_UNAVAILABLE", "BROWSER_BACKPRESSURE",
+        "BROWSER_TARGET_INVALID", "BROWSER_TARGET_CLEANUP_FAILED",
+      ].includes(failure.code)) throw error;
+      if (state.abort.signal.aborted) break;
+      state.lastErrorCode = failure.code;
       state.lastErrorReason = safeReason(error);
+      continue;
     }
+    state.store.settleBrowserCleanup(jobId);
   }
 };
 

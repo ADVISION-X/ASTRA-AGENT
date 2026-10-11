@@ -278,7 +278,7 @@ const inspectLeaseRenewal = (context: InspectorContext, findings: InspectorFindi
   const path = runtimePath("runtime-execution-heartbeat"), source = sourceFor(context, path);
   const retryable = bodyFor(source, "renewFailureRetryable"), renew = bodyFor(source, "renewWithinBudget");
   const call = calls(renew, "renewProductionLease")[0];
-  const waitCall = calls(renew, "wait")[0];
+  const waitCall = calls(renew, "waitForRenewal")[0], wait = bodyFor(source, "waitForRenewal");
   const budget = renew?.getDescendantsOfKind(SyntaxKind.BinaryExpression).some((binary) =>
     binary.getOperatorToken().getKind() === SyntaxKind.MinusToken
     && binary.getLeft().getText() === "input.budget.expires_at_monotonic"
@@ -287,9 +287,10 @@ const inspectLeaseRenewal = (context: InspectorContext, findings: InspectorFindi
     renewalRetryPolicyIsTransportOnly(retryable)
     && call?.getArguments().map((argument) => argument.getText()).join(",") === "input.session,input.job,undefined,input.signal"
     && budget === true && compare(renew, "waitMs", SyntaxKind.LessThanEqualsToken, "0")
-    && waitCall?.getArguments().map((argument) => argument.getText()).join(",") === "waitMs,input.signal"
+    && waitCall?.getArguments().map((argument) => argument.getText()).join(",") === "input.signal,waitMs"
+    && calls(wait, "clearTimeout").length === 1 && calls(wait, "signal.removeEventListener").length === 1
     && calls(renew, "renewFailureRetryable").length === 1,
-    "Only retryable transport/5xx may renew the same lease within its monotonic budget; 4xx or invalid schema must stop immediately.");
+    "Only transport/5xx may renew the same lease within its monotonic budget; all retry waits release their timer/listener, and 4xx or invalid schema stops immediately.");
 };
 const inspectFirstFailure = (context: InspectorContext, findings: InspectorFinding[]): void => {
   const claim = sourceFor(context, runtimePath("runtime-claim"));
