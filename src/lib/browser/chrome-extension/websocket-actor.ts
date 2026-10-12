@@ -218,42 +218,50 @@ export class ExtensionWebSocketActor {
   private async acceptTargetAcquire(socket: WebSocket, frame: BrowserAuthorityFrame): Promise<void> {
     const session = this.connection.session;
     if (!session || socket !== this.connection.socket || !this.connection.commandReady || frame.epoch !== AUTH_EPOCH) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
+    const currentSession = (): boolean => socket === this.connection.socket
+      && this.connection.session?.serverToClientKey === session.serverToClientKey
+      && this.connection.session?.clientToServerKey === session.clientToServerKey;
     const request = await decrypt(session.serverToClientKey, "server-to-client", frame);
-    if (socket !== this.connection.socket || this.connection.session?.serverToClientKey !== session.serverToClientKey) return;
+    if (!currentSession()) return;
     this.acceptServerSequence(frame);
     const operation = targetOperationFrom(request), deadline = Date.parse(frame.deadline);
-    if (operation.action === "release") {
-      this.commandDelivery.commandAdmissionSuspended = true;
-      const handler = this.targetAuthority.releaseJobBoundChatGptTarget(operation.jobRefHash, operation.releaseAuthority, async () => {
-        const slot = this.commandDelivery.mutationSlot;
-        if (operation.releaseAuthority !== "website-admin-deletion" || !slot || await hashBrowserExtensionText(slot.jobId) !== operation.jobRefHash) return;
-        if (this.commandDelivery.mutationSlot !== slot) return;
-        this.commandDelivery.mutationSlot = null;
-      });
-      this.commandDelivery.pendingTargetHandlers.add(handler);
-      void handler.then(() => {
-        this.commandDelivery.pendingTargetHandlers.delete(handler);
-        if (socket === this.connection.socket && this.commandDelivery.pendingTargetHandlers.size === 0) {
-          this.commandDelivery.commandAdmissionSuspended = false; return this.flushMutationReceipt();
-        }
-      }).catch(error => {
-        this.commandDelivery.pendingTargetHandlers.delete(handler);
-        this.reportRuntimeFailure(error, "job-bound-target-acquisition", frame.sequence, { jobRefHash: operation.jobRefHash });
-      }); return;
+    if (this.commandDelivery.pendingTargetHandlers.size > 0 || this.commandDelivery.disconnectedDrain !== null) {
+      this.reportRuntimeFailure(new Error("BROWSER_BACKPRESSURE"), "job-bound-target-acquisition", frame.sequence, { jobRefHash: operation.jobRefHash }); return;
     }
-    if (this.commandDelivery.commandAdmissionSuspended || this.commandDelivery.mutationSlot !== null || this.commandDelivery.pendingCommandHandlers.size > 0) throw new Error("BROWSER_COMMAND_ADMISSION_SUSPENDED");
-    const handler = this.targetAuthority.acquireJobBoundChatGptTarget(operation.targetMode, operation.jobRefHash, operation.parentConversationUrl, () => {
-      if (this.commandDelivery.commandAdmissionSuspended) throw new Error("BROWSER_COMMAND_ADMISSION_SUSPENDED");
-      if (socket !== this.connection.socket || !this.connection.commandReady || this.connection.session?.serverToClientKey !== session.serverToClientKey) throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
-      if (Date.now() >= deadline) throw new Error("BROWSER_COMMAND_PERMIT_EXPIRED");
-    }, deadline);
+    if (operation.action === "acquire" && (this.commandDelivery.commandAdmissionSuspended
+      || this.commandDelivery.mutationSlot !== null || this.commandDelivery.pendingCommandHandlers.size > 0)) {
+      this.reportRuntimeFailure(new Error("BROWSER_COMMAND_ADMISSION_SUSPENDED"), "job-bound-target-acquisition", frame.sequence, { jobRefHash: operation.jobRefHash }); return;
+    }
+    const handler = (async (): Promise<void> => {
+      if (operation.action === "release") {
+        this.commandDelivery.commandAdmissionSuspended = true;
+        const result = await this.targetAuthority.releaseJobBoundChatGptTarget(operation.jobRefHash, operation.releaseAuthority, async () => {
+          const slot = this.commandDelivery.mutationSlot;
+          if (operation.releaseAuthority !== "website-admin-deletion" || !slot || await hashBrowserExtensionText(slot.jobId) !== operation.jobRefHash) return;
+          if (this.commandDelivery.mutationSlot === slot) this.commandDelivery.mutationSlot = null;
+        });
+        if (currentSession()) await this.sendEncrypted(socket, "TARGET_REVOKE", { ...result, requestSequence: frame.sequence });
+        return;
+      }
+      await this.targetAuthority.acquireJobBoundChatGptTarget(operation.targetMode, operation.jobRefHash, operation.parentConversationUrl, () => {
+        if (this.commandDelivery.commandAdmissionSuspended) throw new Error("BROWSER_COMMAND_ADMISSION_SUSPENDED");
+        if (!currentSession() || !this.connection.commandReady) throw new Error("BROWSER_EXTENSION_CHANNEL_UNAVAILABLE");
+        if (Date.now() >= deadline) throw new Error("BROWSER_COMMAND_PERMIT_EXPIRED");
+      }, deadline);
+    })();
     this.commandDelivery.pendingTargetHandlers.add(handler);
-    void handler.then(() => {
+    const retire = async (failed: boolean, error?: unknown): Promise<void> => {
       this.commandDelivery.pendingTargetHandlers.delete(handler);
-      if (socket === this.connection.socket && this.commandDelivery.pendingTargetHandlers.size === 0) this.commandDelivery.commandAdmissionSuspended = false;
-    }, error => {
-      this.commandDelivery.pendingTargetHandlers.delete(handler);
-      this.reportRuntimeFailure(error, "job-bound-target-acquisition", frame.sequence, { jobRefHash: operation.jobRefHash });
+      if (!currentSession()) return;
+      if (this.connection.commandReady && this.commandDelivery.pendingTargetHandlers.size === 0
+        && this.commandDelivery.pendingCommandHandlers.size === 0 && this.commandDelivery.disconnectedDrain === null) {
+        this.commandDelivery.commandAdmissionSuspended = false;
+      }
+      if (failed) this.reportRuntimeFailure(error, "job-bound-target-acquisition", frame.sequence, { jobRefHash: operation.jobRefHash });
+      await this.flushMutationReceipt();
+    };
+    void handler.then(() => retire(false), error => retire(true, error)).catch(error => {
+      if (currentSession()) this.reportRuntimeFailure(error, "job-bound-target-acquisition", frame.sequence, { jobRefHash: operation.jobRefHash });
     });
   }
   private async acceptCommand(socket: WebSocket, frame: BrowserAuthorityFrame): Promise<void> {

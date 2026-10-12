@@ -10,6 +10,9 @@ import { exerciseCapturedCoherentObservationPointerFunction } from
   "./local-browser-dom-function-support.js";
 import { mutationInfrastructureReply } from "./local-browser-dom-runtime-fixture.js";
 import { exactConversationFixtureUrl } from "./local-browser-exact-assistant-turn-support.js";
+import { verifyClickPostcondition, observationReceiptEvidence } from "../../src/lib/browser/chrome-extension/dom-mutation-postcondition.js";
+import { bindBrowserMutationObservation, browserObservationPacketRevisionBytes } from "../../src/lib/browser/exact-target/browser-observation-receipt.js";
+import { createHash } from "node:crypto";
 
 const noPageReadBarrier = async (): Promise<void> => undefined;
 export const coherentPostconditionQueries = [
@@ -174,4 +177,60 @@ export const exerciseCoherentClickPostcondition = async (): Promise<void> => {
   "a URL change after a stable O1 DOM read must not return the new conversation result");
   assert.equal(driftedDuringO1.pointerEvents(), 3,
     "an O1 identity race must preserve the single already-dispatched click");
+  await exerciseExactOutgoingPostcondition();
+};
+
+export const exerciseExactOutgoingPostcondition = async (): Promise<void> => {
+  const hash = `sha256:${"a".repeat(64)}` as const;
+  const postClickObservation = { queries: [
+    { queryId: "turn", selector: "[data-turn-key]", fields: ["turnKey", "exactGptUserPromptHash"] as const,
+      maxMatches: 1, latestGptUserTurn: true as const, expectedEligibleCount: 1 },
+    { queryId: "composer", selector: "composer[contenteditable='true']:has(> p[data-empty-paragraph='true'] > br.ProseMirror-trailingBreak)", fields: [] as const, maxMatches: 1, expectedEligibleCount: 1 }], timeoutMs: 1_500 };
+  const intent = { kind: "click" as const, selector: "button", expectedMatches: 1, postClickObservation,
+    preClickExactOutgoingTurn: { composerSelector: "composer", composerFormSelector: "form", attachmentSelector: "attachment",
+      userTurnSelector: "[data-turn-key]", expectedPromptHash: hash, expectedAttachmentLabels: [] } };
+  const command = { kind: "dom-intent" as const, intent };
+  for (const [url, mismatch, promptHash, expectedCause] of [
+    ["https://chatgpt.com/", -1, hash, "BROWSER_DOM_CANDIDATE_MISSING"],
+    ["https://chatgpt.com/c/legal%20opaque", -1, hash, "BROWSER_DOM_CANDIDATE_MISSING"],
+    ["https://chatgpt.com/c/exact", -1, hash, null],
+    ["https://chatgpt.com/c/exact", -1, `sha256:${"b".repeat(64)}`, "BROWSER_DOM_CANDIDATE_MISSING"],
+    ["https://chatgpt.com/", 0, hash, "BROWSER_POSTCONDITION_Q0__BROWSER_DOM_CANDIDATE_MISSING"],
+    ["https://chatgpt.com/", 1, hash, "BROWSER_POSTCONDITION_Q1__BROWSER_DOM_CANDIDATE_MISSING"],
+    ["https://chatgpt.com/", 2, hash, "BROWSER_POSTCONDITION_Q0__BROWSER_DOM_CANDIDATE_MISSING"],
+  ] as const) {
+    const packet = { currentUrl: url, observedAt: "2026-09-04T00:00:00.000Z", queries: postClickObservation.queries.map((query, index) => ({
+      queryId: query.queryId, scopeRawCount: 1, scopeEligibleCount: 1, rawCount: (index === mismatch || mismatch === 2) ? 0 : 1,
+      eligibleCount: (index === mismatch || mismatch === 2) ? 0 : 1, matches: (index === mismatch || mismatch === 2) ? [] : [{ candidateIndex: 0,
+        ...(index === 0 ? { turnKey: "00000000-0000-4000-8000-000000000001", exactGptUserPromptHash: promptHash } : {}) }],
+      scopeRejections: [], rejections: [], nativeCauseCode: null, nativeCauseCount: 0, nativeStage: "runtime-call-function-on" })) };
+    const runtime = { awaitPageReadPermission: noPageReadBarrier, send: async (_tab: number, method: string, params?: Readonly<Record<string, unknown>>) =>
+      method === "Runtime.callFunctionOn" ? { result: { value: packet } } : mutationInfrastructureReply(method, params) } as ExtensionDebuggerRuntime;
+    const producer = await verifyClickPostcondition(runtime, { tabId: 125, targetRef: "target", documentRef: "document" } as never, intent, 0);
+    assert.equal(producer.verified, expectedCause === null); assert.equal(producer.observation?.nativeCauseCode, expectedCause);
+    const row = { clicked: true, candidateCount: 1, identityRevalidated: true, mutationCount: 1,
+      postconditionVerified: producer.verified, ...observationReceiptEvidence(producer.observation!),
+      ...(producer.verified ? {} : { failureCode: "BROWSER_POSTCONDITION_FAILED" }) };
+    const observation = producer.observation!.observation;
+    const bound = bindBrowserMutationObservation(command, row, { exactCallIdentityHash: hash,
+      targetRefHash: observation.targetRefHash as typeof hash, documentRefHash: observation.documentRefHash as typeof hash,
+      observationRevisionHash: observation.observationRevisionHash }) as Readonly<Record<string, unknown>>;
+    const receipt = decodeBrowserMutationReceipt(command, bound, null);
+    assert.equal(receipt.physicalInputCount, 1); assert.equal(receipt.nativeCauseCode, expectedCause);
+    assert.equal(receipt.terminal, producer.verified ? "confirmed" : "rejected");
+    for (const currentUrl of ["https://evil.example/", "https://chatgpt.com/c/exact?q=secret", "https://chatgpt.com/c/exact#fragment",
+      "https://u:p@chatgpt.com/", "http://chatgpt.com/", "https://chatgpt.com/c/one/two", "https://chatgpt.com/c/", `https://chatgpt.com/c/${"x".repeat(257)}`]) {
+      const badPacket = { ...observation, currentUrl };
+      assert.throws(() => decodeBrowserMutationReceipt(command, { ...bound, postconditionObservation: {
+        ...(bound.postconditionObservation as object), currentUrl } }, null), /BROWSER_AUTH_TRANSCRIPT_INVALID/u);
+      const revision = `sha256:${createHash("sha256").update(browserObservationPacketRevisionBytes(badPacket)).digest("hex")}` as const;
+      const badBound = bindBrowserMutationObservation(command, { ...row, postconditionObservation: { ...badPacket, observationRevisionHash: revision } },
+        { exactCallIdentityHash: hash, targetRefHash: observation.targetRefHash as typeof hash,
+          documentRefHash: observation.documentRefHash as typeof hash, observationRevisionHash: revision });
+      assert.throws(() => decodeBrowserMutationReceipt(command, badBound, null), /BROWSER_AUTH_TRANSCRIPT_INVALID/u);
+      const badRuntime = { ...runtime, send: async (_tab: number, method: string, params?: Readonly<Record<string, unknown>>) =>
+        method === "Runtime.callFunctionOn" ? { result: { value: { ...packet, currentUrl } } } : mutationInfrastructureReply(method, params) } as ExtensionDebuggerRuntime;
+      await assert.rejects(verifyClickPostcondition(badRuntime, { tabId: 125, targetRef: "target", documentRef: "document" } as never, intent, 0), /BROWSER_DOM_READ_INVALID/u);
+    }
+  }
 };

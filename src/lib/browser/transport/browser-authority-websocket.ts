@@ -146,8 +146,8 @@ export class BrowserAuthorityWebSocket implements BrowserCommandPort {
     }, deadlineAt);
   }
   public requestPreauthorizedTargetRelease(jobRefHash: `sha256:${string}`,
-    releaseAuthority: BrowserTargetReleaseAuthority, deadlineAt: number): void {
-    this.sendControlFrame(this.active?.socket ?? null, "TARGET_ACQUIRE", { action: "release", jobRefHash, releaseAuthority }, deadlineAt);
+    releaseAuthority: BrowserTargetReleaseAuthority, deadlineAt: number): number {
+    return this.sendControlFrame(this.active?.socket ?? null, "TARGET_ACQUIRE", { action: "release", jobRefHash, releaseAuthority }, deadlineAt);
   }
 
   private acceptHello(socket: BrowserAuthoritySocket, frame: BrowserAuthorityFrame): void {

@@ -43,7 +43,7 @@ const chromeFixture = () => {
 };
 type Delivery = { pendingCommandHandlers: Set<Promise<void>>; pendingTargetHandlers: Set<Promise<void>>; commandAdmissionSuspended: boolean;
   mutationSlot: { jobId: string; commandId: string; receiptBindingHash: string; fact: unknown } | null };
-const workerFixture = async (chrome: ExtensionChromeApi) => {
+export const workerFixture = async (chrome: ExtensionChromeApi) => {
   Reflect.set(globalThis, "__GRASSEYE_RELEASE_BUILD_ID__", "build-receipt-acceptance");
   const actor = new ExtensionWebSocketActor(chrome), key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
   const signing = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
@@ -287,8 +287,8 @@ const withdrawalRaces = async (chrome: ExtensionChromeApi): Promise<void> => {
   const command = new Promise<void>(resolve => { finishCommand = resolve; }); fixture.delivery.pendingCommandHandlers.add(command);
   void command.then(() => fixture.delivery.pendingCommandHandlers.delete(command));
   await operation(fixture, { action: "release", jobRefHash: job, releaseAuthority: "website-admin-deletion" }, 3);
-  assert.throws(guard, /BROWSER_COMMAND_ADMISSION_SUSPENDED/u); const handlers = [...fixture.delivery.pendingTargetHandlers]; finishAcquire(); await nextTick();
-  assert.equal(fixture.delivery.commandAdmissionSuspended, true); finishCommand(); await Promise.all(handlers);
+  assert.doesNotThrow(guard); assert.equal(fixture.delivery.pendingTargetHandlers.size, 1); const handlers = [...fixture.delivery.pendingTargetHandlers]; finishAcquire(); await nextTick();
+  assert.equal(fixture.delivery.commandAdmissionSuspended, false); finishCommand(); await Promise.all(handlers);
   await assert.rejects(operation(fixture, { action: "release", jobRefHash: job }, 4), /BROWSER_AUTH_TRANSCRIPT_INVALID/u);
   await reconnectedWithdrawal(chrome, job);
 };
@@ -313,7 +313,8 @@ const verifyWithdrawalDrain = async (old: Awaited<ReturnType<typeof workerFixtur
 };
 const reconnectedWithdrawal = async (chrome: ExtensionChromeApi, job: `sha256:${string}`): Promise<void> => {
   for (const sameJob of [true, false]) {
-    const old = await workerFixture(chrome), fact = terminalFact(identity("reconnected", "attempt")), registry = new ExtensionExactTargetRegistry();
+    const [old, other] = await Promise.all([workerFixture(chrome), hashBrowserExtensionText("another")]);
+    const fact = terminalFact(identity("reconnected", "attempt")), registry = new ExtensionExactTargetRegistry();
     const bound = registry.claimOperatorTarget(23, job, "loader", "chrome-23"); let finish!: () => void, finishRead!: () => void,
       finishRemove!: () => void, startedRemove!: () => void, open = true;
     const removed = new Promise<void>(resolve => { finishRemove = resolve; }), started = new Promise<void>(resolve => { startedRemove = resolve; });
@@ -326,13 +327,15 @@ const reconnectedWithdrawal = async (chrome: ExtensionChromeApi, job: `sha256:${
         readTab: async () => { if (!open) throw new Error("ABSENT"); return { id: 23 }; },
         removeTab: async () => { startedRemove(); await removed; open = false; } } });
     const drain = old.invoke("drainDisconnectedHandlers"); await operation(old, { action: "release",
-      jobRefHash: sameJob ? job : await hashBrowserExtensionText("another"), releaseAuthority: "website-admin-deletion" });
-    const releases = [...old.delivery.pendingTargetHandlers]; finish(); await nextTick(); assert.equal(old.delivery.commandAdmissionSuspended, true);
-    finishRead(); await drain;
+      jobRefHash: sameJob ? job : other, releaseAuthority: "website-admin-deletion" });
+    assert.equal(old.delivery.pendingTargetHandlers.size, 0, "old drain rejects new release without creating a handler"); finish(); await nextTick(); assert.equal(old.delivery.commandAdmissionSuspended, true);
+    finishRead(); await drain; const deliveredBeforeRelease = old.frames.length;
+    await operation(old, { action: "release", jobRefHash: sameJob ? job : other, releaseAuthority: "website-admin-deletion" }, 3);
+    const releases = [...old.delivery.pendingTargetHandlers];
     if (sameJob) { await started; assert.equal(old.delivery.commandAdmissionSuspended, true); assert.equal(old.delivery.mutationSlot?.fact, fact); finishRemove(); }
     await verifyWithdrawalDrain(old, releases, sameJob);
     await old.invoke("flushMutationReceipt");
-    await verifyWithdrawalReceipts(old, sameJob, fact);
+    await verifyWithdrawalReceipts({ ...old, frames: old.frames.slice(deliveredBeforeRelease) }, sameJob, fact);
   }
 };
 

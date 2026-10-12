@@ -1,25 +1,26 @@
 import { ExtensionCreatedTarget } from "./extension-created-target.js";
 import { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
+import type { BrowserAuthorityTargetRevoke } from "../transport/browser-authority-frame-payload.js";
 import { ExtensionExactTargetRegistry } from "./exact-target-runtime.js";
 
 type ReleaseContext = Readonly<{ targets: ExtensionExactTargetRegistry; debuggerRuntime: ExtensionDebuggerRuntime;
   createdTarget: ExtensionCreatedTarget; readActiveJobRefHash: () => string | null;
-  awaitOldCommandHandlers: () => Promise<void>; sendRevoke: (body: Record<string, unknown>) => Promise<void> }>;
+  awaitOldCommandHandlers: () => Promise<void> }>;
 
 /** Only the current registry can authorize closing an exact system Target. */
-export const releaseJobBoundTarget = async (context: ReleaseContext, jobRefHash: `sha256:${string}`): Promise<void> => {
+export const releaseJobBoundTarget = async (context: ReleaseContext, jobRefHash: `sha256:${string}`): Promise<Omit<Extract<BrowserAuthorityTargetRevoke, { releaseOutcome: string }>, "requestSequence">> => {
   if (!/^sha256:[a-f0-9]{64}$/u.test(jobRefHash)) throw new Error("BROWSER_TARGET_INVALID");
   await context.awaitOldCommandHandlers();
   await context.debuggerRuntime.awaitPageReadPermission();
   if (context.createdTarget.isPending() || context.readActiveJobRefHash() === jobRefHash) throw new Error("BROWSER_TARGET_INVALID");
   const bound = context.targets.findByJobRefHash(jobRefHash);
-  if (!bound) { await context.sendRevoke({ targetRef: null, jobRefHash, releaseOutcome: "absent" }); return; }
+  if (!bound) return { targetRef: null, jobRefHash, releaseOutcome: "absent" };
   const live = await context.debuggerRuntime.readTargets();
   if (context.targets.findByJobRefHash(jobRefHash) !== bound) throw new Error("BROWSER_TARGET_INVALID");
   if (!live.some(target => target.tabId === bound.tabId && target.id === bound.chromeTargetId)) {
     context.targets.invalidateTab(bound.tabId);
     context.debuggerRuntime.forgetAttached(bound.tabId);
-    await context.sendRevoke({ targetRef: null, jobRefHash, releaseOutcome: "absent" }); return;
+    return { targetRef: null, jobRefHash, releaseOutcome: "absent" };
   }
   context.targets.invalidateTab(bound.tabId);
   try {
@@ -30,5 +31,5 @@ export const releaseJobBoundTarget = async (context: ReleaseContext, jobRefHash:
     if (!tabAbsent || after.some(target => target.tabId === bound.tabId && target.id === bound.chromeTargetId)) throw new Error("BROWSER_TARGET_CLEANUP_FAILED");
   } catch (error) { context.targets.restore(bound); throw error; }
   context.debuggerRuntime.forgetAttached(bound.tabId);
-  await context.sendRevoke({ targetRef: bound.targetRef, jobRefHash, releaseOutcome: "released" });
+  return { targetRef: bound.targetRef, jobRefHash, releaseOutcome: "released" };
 };

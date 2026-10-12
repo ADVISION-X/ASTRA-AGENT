@@ -1,4 +1,22 @@
 import type { BrowserDomObservationQuery } from "./browser-dom-intent.js";
+import { GPT_WEB_ORIGIN, requireCanonicalGptConversationUrl } from "./browser-site-policy-registry.js";
+
+export const GPT_CONVERSATION_SEGMENT_MAX_CHARS = 256;
+export const sanitizeCurrentUrl = (value: string): string => {
+  let url: URL;
+  try { url = new URL(value); } catch { throw new Error("BROWSER_DOM_READ_INVALID"); }
+  const segments = url.pathname.split("/");
+  const root = url.pathname === "/";
+  const conversation = segments.length === 3 && segments[0] === "" && segments[1] === "c"
+    && segments[2]!.length > 0 && segments[2]!.length <= GPT_CONVERSATION_SEGMENT_MAX_CHARS;
+  if (url.protocol !== "https:" || url.origin !== GPT_WEB_ORIGIN || url.username !== "" || url.password !== ""
+    || (!root && !conversation) || url.search !== "" || url.hash !== "") {
+    throw new Error("BROWSER_DOM_READ_INVALID");
+  }
+  return `${url.origin}${url.pathname}`;
+};
+
+
 import type { BrowserMutationIdentity } from "./browser-mutation-types.js";
 import { canonicalizeBrowserAuthorityValue } from "../transport/browser-authority-frame-codec.js";
 import { knownGptRateLimitPreflightFactShapeValid } from "./browser-gpt-rate-limit-preflight.js";
@@ -35,7 +53,7 @@ const coherentRowShapeValid = (
 const coherentRowResult = (
   candidate: unknown,
   spec: Readonly<{ queryId: string; expectedEligibleCount: number }>,
-  queryIndex: number | undefined,
+  queryIndex: number,
 ): Readonly<{ valid: boolean; cause: string | null }> => {
   if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
     return { valid: false, cause: null };
@@ -51,7 +69,7 @@ const coherentRowResult = (
     ? "BROWSER_DOM_CANDIDATE_AMBIGUOUS"
     : (firstReason as BrowserPostconditionBaseCause | null) ?? "BROWSER_DOM_CANDIDATE_MISSING";
   return { valid: true,
-    cause: queryIndex === undefined ? baseCause : browserPostconditionNativeCause(queryIndex, baseCause) };
+    cause: browserPostconditionNativeCause(queryIndex, baseCause) };
 };
 
 const postconditionPacket = (
@@ -67,17 +85,35 @@ const postconditionPacket = (
 };
 
 const exactOutgoingPostconditionVerified = (
-  command: BrowserGovernedCommand,
+  expectedPromptHash: string | undefined,
   packet: Readonly<Record<string, unknown>>,
 ): boolean => {
-  if (command.kind !== "dom-intent" || command.intent.kind !== "click") return false;
-  const exactOutgoing = command.intent.preClickExactOutgoingTurn;
-  if (exactOutgoing === undefined) return true;
+  if (expectedPromptHash === undefined) return true;
   const firstQuery = (packet.queries as readonly Readonly<Record<string, unknown>>[])[0];
   const firstMatch = Array.isArray(firstQuery?.matches) ? firstQuery.matches[0] : undefined;
   const match = firstMatch && typeof firstMatch === "object" && !Array.isArray(firstMatch)
     ? firstMatch as Readonly<Record<string, unknown>> : null;
-  return match?.exactGptUserPromptHash === exactOutgoing.expectedPromptHash;
+  try { return match?.exactGptUserPromptHash === expectedPromptHash
+    && requireCanonicalGptConversationUrl(packet.currentUrl as string) === packet.currentUrl; }
+  catch { return false; }
+};
+
+export const browserObservationPostconditionDecision = (
+  specs: readonly Readonly<{ queryId: string; expectedEligibleCount: number }>[],
+  packet: Readonly<Record<string, unknown>>,
+  expectedPromptHash?: string,
+): Readonly<{ valid: boolean; verified: boolean; nativeCauseCode: string | null }> => {
+  const invalid = { valid: false, verified: false, nativeCauseCode: null };
+  try {
+    if (typeof packet.currentUrl !== "string" || sanitizeCurrentUrl(packet.currentUrl) !== packet.currentUrl
+      || !Array.isArray(packet.queries) || packet.queries.length !== specs.length) return invalid;
+    const rows = packet.queries.map((candidate, index) => coherentRowResult(candidate, specs[index]!, index));
+    if (!rows.every(row => row.valid)) return invalid;
+    const queryCause = rows.find(row => row.cause !== null)?.cause ?? null;
+    const nativeCauseCode = queryCause ?? (exactOutgoingPostconditionVerified(expectedPromptHash, packet)
+      ? null : "BROWSER_DOM_CANDIDATE_MISSING");
+    return { valid: true, verified: nativeCauseCode === null, nativeCauseCode };
+  } catch { return invalid; }
 };
 
 export const observationPostconditionEvidenceValid = (
@@ -88,18 +124,11 @@ export const observationPostconditionEvidenceValid = (
   if (!observed) return false;
   const { postcondition, packet } = observed;
   if (!coherentPacketHeaderValid(packet, postcondition.queries.length)) return false;
-  const exactOutgoing = command.kind === "dom-intent" && command.intent.kind === "click"
-    ? command.intent.preClickExactOutgoingTurn : undefined;
-  const rows = (packet.queries as readonly unknown[]).map((candidate, index) =>
-    coherentRowResult(candidate, postcondition.queries[index]!, exactOutgoing === undefined ? index : undefined));
-  const rowsValid = rows.every((row) => row.valid);
-  const ordinaryCause = rows.find((row) => row.cause !== null)?.cause ?? null;
-  const exactVerified = exactOutgoingPostconditionVerified(command, packet);
-  const verified = ordinaryCause === null && exactVerified;
-  const expectedCause = exactOutgoing !== undefined && !exactVerified
-    ? "BROWSER_DOM_CANDIDATE_MISSING" : ordinaryCause;
-  return rowsValid && value.postconditionVerified === verified
-    && (verified ? value.nativeCauseCode === undefined : value.nativeCauseCode === expectedCause);
+  const expectedHash = command.kind === "dom-intent" && command.intent.kind === "click"
+    ? command.intent.preClickExactOutgoingTurn?.expectedPromptHash : undefined;
+  const decision = browserObservationPostconditionDecision(postcondition.queries, packet, expectedHash);
+  return decision.valid && value.postconditionVerified === decision.verified
+    && (decision.verified ? value.nativeCauseCode === undefined : value.nativeCauseCode === decision.nativeCauseCode);
 };
 
 export type BrowserMutationTerminalReceipt = Readonly<{

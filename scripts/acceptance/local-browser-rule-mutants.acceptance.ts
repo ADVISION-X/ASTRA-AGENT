@@ -10,9 +10,24 @@ import type { InspectorContext, InspectorFinding } from "../audit/shared/inspect
 import { terminalFact } from "./local-browser-mutation-store-support.js";
 import { BrowserMutationStore } from "../../src/lib/browser/exact-target/browser-mutation-store.js";
 import { assertBrowserDomIntent } from "../../src/lib/browser/exact-target/browser-dom-intent.js";
+import { inspectDomMechanicalFacts } from "../audit/domains/local-browser-session/dom-mechanical-facts-inspection.js";
 
 const hash = (digit: string): `sha256:${string}` => `sha256:${digit.repeat(64)}`;
 const TERMINAL_RULE_MUTANTS = [
+    ["src/lib/browser/chrome-extension/websocket-actor.ts", "pendingTargetHandlers.size > 0 || this.commandDelivery.disconnectedDrain !== null", "false || this.commandDelivery.disconnectedDrain !== null"],
+    ["src/lib/browser/chrome-extension/websocket-actor.ts", "this.connection.session?.clientToServerKey === session.clientToServerKey;", "true;"],
+    ["src/lib/browser/chrome-extension/websocket-actor.ts", "this.commandDelivery.pendingCommandHandlers.size === 0 && this.commandDelivery.disconnectedDrain === null", "true"],
+    ["src/lib/browser/chrome-extension/websocket-actor.ts", "if (failed) this.reportRuntimeFailure(error", "this.reportRuntimeFailure(error"],
+    ["src/lib/browser/chrome-extension/websocket-actor.ts", 'if (currentSession()) await this.sendEncrypted(socket, "TARGET_REVOKE", { ...result, requestSequence: frame.sequence })', 'await this.sendEncrypted(socket, "TARGET_REVOKE", { ...result, requestSequence: frame.sequence })'],
+    ["src/lib/browser/transport/browser-authority-websocket.ts", 'return this.sendControlFrame(this.active?.socket ?? null, "TARGET_ACQUIRE", { action: "release"', 'this.sendControlFrame(this.active?.socket ?? null, "TARGET_ACQUIRE", { action: "release"'],
+    ["src/lib/browser/infrastructure/browser-target-acquirer.ts", "requestSequence: sequence", "requestSequence: 1"],
+    ["src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts", "pending.requestSequence !== input.requestSequence", "false"],
+    ["src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts", "if (input.targetRef !== null) this.broker.revokeOperatorTargetClaim({ targetRef: input.targetRef, jobRefHash: input.jobRefHash });\n        return;", "this.broker.revokeOperatorTargetClaim();\n        return;"],
+    ["src/lib/browser/exact-target/browser-observation-receipt.ts", "requireCanonicalGptConversationUrl(packet.currentUrl as string)", "String(packet.currentUrl)"],
+    ["src/lib/browser/exact-target/browser-observation-receipt.ts", "queryCause ?? (exactOutgoingPostconditionVerified", "null ?? (exactOutgoingPostconditionVerified"],
+    ["src/lib/browser/exact-target/browser-observation-receipt.ts", 'url.search !== ""', "false"],
+    ["src/lib/browser/chrome-extension/dom-coherent-observation.ts", "sanitizeCurrentUrl(packet.currentUrl) !== packet.currentUrl", "false"],
+    ["src/lib/browser/chrome-extension/dom-mutation-postcondition.ts", "browserObservationPostconditionDecision(postcondition.queries, observation, exactOutgoing?.expectedPromptHash)", "browserObservationPostconditionDecision(postcondition.queries, observation)"],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", "if (!currentSession() || this.commandDelivery.mutationSlot !== slot) return;", "if (false) return;"],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", "this.connection.session?.serverToClientKey === session.serverToClientKey", "true"],
     ["src/lib/browser/chrome-extension/websocket-actor.ts", "await assertMutationSlotHash(response, slot, disposed)", "await Promise.resolve()"],
@@ -77,7 +92,8 @@ const exerciseInspectors = (): void => {
     planEntry: { capabilityDomain: "local-browser-session", executionGroup: "domain", lawIds: [lawId],
       manifestPath: "scripts/audit/domains/local-browser-session/manifest.json", ownerInspectorPath: "scripts/audit/domains/local-browser-session/inspector.ts" }, generatedPlan: [] };
   const inspect = (): InspectorFinding[] => { const findings: InspectorFinding[] = [];
-    inspectBrowserMutationSettlement(context, findings, lawId); inspectTargetClaimGuards(context, findings, lawId); inspectInteractionReadiness(context, findings, lawId); return findings; };
+    inspectBrowserMutationSettlement(context, findings, lawId); inspectTargetClaimGuards(context, findings, lawId); inspectInteractionReadiness(context, findings, lawId);
+    inspectDomMechanicalFacts(context, findings, lawId); return findings; };
   assert.deepEqual(inspect(), [], "Actual native Owner chain must be accepted before negative mutations.");
   for (const [path, original, replacement] of TERMINAL_RULE_MUTANTS) {
     const source = project.getSourceFileOrThrow(path), before = source.getFullText(); assert.ok(before.includes(original), original);

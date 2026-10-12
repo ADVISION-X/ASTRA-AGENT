@@ -161,7 +161,7 @@ const exerciseAdmissionDeletion = async (
     { requestPreauthorizedTargetRelease: (jobRefHash: string, authority: string) => {
       assert.equal(jobRefHash, exactHash(pending.job_id)); assert.equal(authority, "website-admin-deletion");
       deletionReleaseAuthority = authority;
-      queueMicrotask(() => Reflect.get(lane, "targetAcquirer").resolvePending("release", jobRefHash));
+      queueMicrotask(() => Reflect.get(lane, "targetAcquirer").resolvePending("release", jobRefHash)); return 1;
     } } as never, { current: () => ({ kind: "PRESENT", authority: { authorityEpoch: 1 } }) } as never,
     { mutationState: browserStore, pendingJobBoundTargetAcquisition: null } as never);
   await purgeDeletedJob({ store, dataDir: admissionTemporary,

@@ -42,7 +42,7 @@ export class BrowserTargetAcquirer {
 
   private async awaitTargetOperation(
     budgetMs: number, action: "acquire" | "release", jobRefHash: `sha256:${string}`,
-    dispatch: (deadlineAt: number) => number | void,
+    dispatch: (deadlineAt: number) => number,
   ): Promise<void> {
     const current = this.issuer.current();
     if (current.kind === "ABSENT") throw new Error(current.reasonCode);
@@ -65,7 +65,7 @@ export class BrowserTargetAcquirer {
       try {
         const sequence = dispatch(deadlineAt);
         const pending = this.infrastructure.pendingJobBoundTargetAcquisition;
-        if (sequence !== undefined && pending) this.infrastructure.pendingJobBoundTargetAcquisition = {
+        if (pending) this.infrastructure.pendingJobBoundTargetAcquisition = {
           ...pending, requestSequence: sequence,
         };
       } catch (error) {

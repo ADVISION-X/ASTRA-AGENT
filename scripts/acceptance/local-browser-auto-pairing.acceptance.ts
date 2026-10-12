@@ -7,7 +7,7 @@ import { exerciseLocalBrowserDomIntent } from "./local-browser-dom-intent-suppor
 import { emitLocalBrowserAutoPairingProofs } from "./local-browser-proof-support.js";
 import { browserDomFacts } from "./local-browser-dom-runtime-fixture.js";
 import { exerciseAutomaticPairing } from "./local-browser-auto-pairing-support.js";
-import { exerciseAuthorizedContinuation, exerciseClaimBroker, exerciseClosedParkedTabRecovery, exerciseLogicalPageAccessPriority,
+import { exerciseAuthenticatedTargetIsolation, exerciseAuthorizedContinuation, exerciseClaimBroker, exerciseClosedParkedTabRecovery, exerciseLogicalPageAccessPriority,
   exerciseTargetRotation } from "./local-browser-target-lifecycle-support.js";
 import { rateLimitDetectorCdpResult, verifyKnownGptRateLimitDetector } from "./local-browser-rate-limit-detector.acceptance-support.js";
 import { verifyRateLimitCommandAdmission } from "./local-browser-rate-limit-command.acceptance-support.js";
@@ -15,6 +15,7 @@ import { permit } from "./local-browser-terminal-fixture.js";
 import { hashBrowserExtensionText } from "../../src/lib/browser/chrome-extension/websocket-actor-crypto.js";
 
 const chrome = await exerciseAutomaticPairing(); await verifyKnownGptRateLimitDetector();
+await exerciseAuthenticatedTargetIsolation(chrome);
 const state = { nextId: 3, activeId: 99, navigationCount: 0, physicalTargetsReads: 0, pointer: false,
   holdNavigation: false, frameNavigationDuringNavigate: false, switchBeforeInput: false, switchAfterInput: false,
   switchReadCountdown: 0, switchDuringTargets: null as "away" | "away-back" | null, attachFailure: null as number | null, removeFailure: null as number | null,

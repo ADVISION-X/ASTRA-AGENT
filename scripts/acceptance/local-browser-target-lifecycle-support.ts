@@ -10,6 +10,11 @@ import { BrowserAuthorityBroker } from
   "../../src/lib/browser/infrastructure/browser-authority-broker.js";
 import { BrowserAuthorityIssuer } from
   "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
+import { workerFixture } from "./local-browser-auto-pairing-support.js";
+import { decrypt, hashBrowserExtensionText } from "../../src/lib/browser/chrome-extension/websocket-actor-crypto.js";
+import { decodeBrowserAuthorityFrame, encodeBrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
+import { parseBrowserAuthorityDiagnostic, } from "../../src/lib/browser/transport/browser-authority-diagnostic.js";
+import { releaseWireFixture } from "./browser-lane-fifo-support.js";
 
 type TargetFrame = Readonly<{
   kind: "TARGET_CLAIM" | "TARGET_REVOKE";
@@ -226,4 +231,93 @@ export const exerciseClaimBroker = async (input: Readonly<{
     "the interaction gate must never activate an operator Tab");
   assert.equal(new Set<number>(input.removedTabs).has(99), false,
     "the production owner must never remove an operator Tab");
+};
+
+const deliverTarget = async (worker: Awaited<ReturnType<typeof workerFixture>>, sequence: number,
+  body: Record<string, unknown>): Promise<void> => {
+  await worker.invoke("onMessage", worker.socket, encodeBrowserAuthorityFrame(await worker.frame("TARGET_ACQUIRE", sequence, body)));
+  await flushTargetCallbacks(worker);
+};
+const flushTargetCallbacks = async (worker: Awaited<ReturnType<typeof workerFixture>>): Promise<void> => {
+  await new Promise<void>(resolve => setImmediate(resolve));
+  await Reflect.get(Reflect.get(worker.actor, "commandDelivery"), "sendTail");
+};
+const authenticatedBackpressure = async (chrome: ExtensionChromeApi): Promise<void> => {
+  let fail!: (error: Error) => void, started!: () => void, creates = 0;
+  const start = new Promise<void>(resolve => { started = resolve; });
+  const creation = new Promise<{ id: number }>((_resolve, reject) => { fail = reject; });
+  const [worker, job, sibling, third] = await Promise.all([workerFixture({ ...chrome, tabs: { ...chrome.tabs, create: async () => {
+    creates += 1; if (creates === 1) { started(); return creation; } throw new Error("BROWSER_TARGET_CLEANUP_FAILED"); } } }),
+    hashBrowserExtensionText("backpressure-job"), hashBrowserExtensionText("sibling"), hashBrowserExtensionText("third")]);
+  await Promise.all([deliverTarget(worker, 2, { action: "acquire", jobRefHash: job, targetMode: "fresh" }), start]);
+  for (const [sequence, body] of [[3, { action: "acquire", targetMode: "fresh", jobRefHash: sibling }],
+    [4, { action: "release", releaseAuthority: "website-admin-deletion", jobRefHash: third }]] as const) {
+    await deliverTarget(worker, sequence, body);
+    assert.equal(worker.delivery.pendingTargetHandlers.size, 1); assert.equal(creates, 1); assert.equal(worker.closes(), 0);
+    assert.equal(worker.delivery.mutationSlot, null);
+    const diagnostic = await decrypt(worker.session.clientToServerKey, "client-to-server", decodeBrowserAuthorityFrame(worker.frames.at(-1)!));
+    const parsed = parseBrowserAuthorityDiagnostic(diagnostic);
+    assert.equal(parsed.reasonCode, "BROWSER_BACKPRESSURE"); assert.equal(parsed.refs.failedFrameSequence, String(sequence));
+    assert.equal(parsed.refs.jobRefHash, body.jobRefHash);
+  }
+  const handlers = [...worker.delivery.pendingTargetHandlers]; fail(new Error("BROWSER_TARGET_CLEANUP_FAILED"));
+  await Promise.allSettled(handlers); await flushTargetCallbacks(worker);
+  assert.equal(worker.delivery.pendingTargetHandlers.size, 0); assert.equal(worker.delivery.commandAdmissionSuspended, false);
+  await deliverTarget(worker, 5, { action: "acquire", jobRefHash: sibling, targetMode: "fresh" });
+  await Promise.allSettled([...worker.delivery.pendingTargetHandlers]); await flushTargetCallbacks(worker);
+  assert.equal(creates, 2, "the next legal acquire must enter the real Chrome create after the old handler exits");
+  assert.equal(worker.delivery.pendingTargetHandlers.size, 0); assert.equal(worker.closes(), 0);
+};
+const releaseFailureRetirement = async (chrome: ExtensionChromeApi): Promise<void> => {
+  let creates = 0;
+  const worker = await workerFixture({ ...chrome, debugger: { ...chrome.debugger,
+    getTargets: async () => { throw new Error("BROWSER_TARGET_CLEANUP_FAILED"); } }, tabs: { ...chrome.tabs,
+      create: async () => { creates += 1; throw new Error("BROWSER_TARGET_CLEANUP_FAILED"); } } });
+  const [job, other] = await Promise.all([hashBrowserExtensionText("failed-release"), hashBrowserExtensionText("next-acquire")]);
+  const registry = Reflect.get(worker.authority, "targets") as { claimOperatorTarget(...args: unknown[]): unknown; findByJobRefHash(hash: string): unknown };
+  const bound = registry.claimOperatorTarget(23, job, "loader", "chrome-23");
+  await deliverTarget(worker, 2, { action: "release", jobRefHash: job, releaseAuthority: "business-admitted" });
+  await Promise.allSettled([...worker.delivery.pendingTargetHandlers]); await flushTargetCallbacks(worker);
+  assert.equal(worker.delivery.commandAdmissionSuspended, false); assert.equal(worker.delivery.pendingTargetHandlers.size, 0);
+  assert.equal(registry.findByJobRefHash(job), bound); assert.equal(worker.closes(), 0);
+  await deliverTarget(worker, 3, { action: "acquire", jobRefHash: other, targetMode: "fresh" });
+  await Promise.allSettled([...worker.delivery.pendingTargetHandlers]); await flushTargetCallbacks(worker);
+  assert.equal(creates, 1, "release failure retirement must reopen the real acquire path without touching the old registry");
+  assert.equal(registry.findByJobRefHash(job), bound); assert.equal(worker.closes(), 0);
+};
+const rotatedTargetCallbacks = async (chrome: ExtensionChromeApi): Promise<void> => {
+  for (const rotation of ["socket", "server-key", "client-key"] as const) for (const outcome of ["acquire-failed", "release-failed", "release-absent"] as const) {
+    let finish!: () => void, fail!: (error: Error) => void, started!: () => void;
+    const start = new Promise<void>(resolve => { started = resolve; });
+    const native = new Promise<never[]>((resolve, reject) => { finish = () => resolve([]); fail = reject; });
+    const [old, job] = await Promise.all([workerFixture({ ...chrome,
+      tabs: { ...chrome.tabs, create: async () => { started(); await native; throw new Error("UNEXPECTED_CREATE_SUCCESS"); } },
+      debugger: { ...chrome.debugger, getTargets: () => { started(); return native; } } }), hashBrowserExtensionText("rotated-release")]);
+    const registry = Reflect.get(old.authority, "targets") as { claimOperatorTarget(...args: unknown[]): unknown; findByJobRefHash(hash: string): unknown };
+    const bound = outcome === "acquire-failed" ? null : registry.claimOperatorTarget(23, job, "loader", "chrome-23");
+    await Promise.all([deliverTarget(old, 2, outcome === "acquire-failed" ? { action: "acquire", jobRefHash: job, targetMode: "fresh" }
+      : { action: "release", jobRefHash: job, releaseAuthority: "business-admitted" }), start]);
+    const handlers = [...old.delivery.pendingTargetHandlers], current = await workerFixture(chrome);
+    const session = { ...old.session, serverToClientKey: rotation === "server-key" ? current.session.serverToClientKey : old.session.serverToClientKey,
+      clientToServerKey: rotation === "client-key" ? current.session.clientToServerKey : old.session.clientToServerKey };
+    const socket = rotation === "socket" ? current.socket : old.socket;
+    Object.assign(old.connection, { socket, session }); old.delivery.commandAdmissionSuspended = true;
+    const slot = { jobId: "rotated-release", commandId: "kept", receiptBindingHash: job, fact: null }; old.delivery.mutationSlot = slot;
+    const [serverToClient, clientToServer] = await Promise.all([crypto.subtle.exportKey("raw", session.serverToClientKey), crypto.subtle.exportKey("raw", session.clientToServerKey)]);
+    const node = releaseWireFixture({ serverToClient: Buffer.from(serverToClient), clientToServer: Buffer.from(clientToServer), commandPermit: Buffer.alloc(32, 9) }, 2);
+    const originalSend = socket.send.bind(socket); Reflect.set(socket, "send", (value: string) => { originalSend(value); node.receive(value); });
+    const waiting = node.acquirer.releaseJobBoundTarget(10_000, job, "website-admin-deletion");
+    const pending = node.state.pendingJobBoundTargetAcquisition; assert.equal(pending?.requestSequence, 2);
+    if (outcome === "release-absent") finish(); else fail(new Error("BROWSER_TARGET_CLEANUP_FAILED"));
+    await Promise.allSettled(handlers); await flushTargetCallbacks(old);
+    assert.equal(old.delivery.pendingTargetHandlers.size, 0); assert.equal(old.delivery.commandAdmissionSuspended, true);
+    assert.equal(old.delivery.mutationSlot, slot); assert.equal(node.state.pendingJobBoundTargetAcquisition, pending);
+    assert.equal(node.closes(), 0); assert.equal(current.frames.length, 0); assert.equal(old.frames.length, 0);
+    assert.equal(registry.findByJobRefHash(job), outcome === "release-absent" ? null : bound);
+    node.deliver({ targetRef: null, jobRefHash: job, releaseOutcome: "absent", requestSequence: 2 }); await waiting;
+    assert.equal(node.state.pendingJobBoundTargetAcquisition, null); assert.equal(node.closes(), 0);
+  }
+};
+export const exerciseAuthenticatedTargetIsolation = async (chrome: ExtensionChromeApi): Promise<void> => {
+  await authenticatedBackpressure(chrome); await releaseFailureRetirement(chrome); await rotatedTargetCallbacks(chrome);
 };

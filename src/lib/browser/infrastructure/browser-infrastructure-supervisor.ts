@@ -180,8 +180,10 @@ export class BrowserInfrastructureSupervisor {
   private onTargetRevoke(input: BrowserAuthorityTargetRevoke): void {
     if (input.releaseOutcome) {
       const pending = this.state.pendingJobBoundTargetAcquisition;
-      if (!pending || pending.action !== "release" || pending.jobRefHash !== input.jobRefHash) {
-        throw new Error("BROWSER_TARGET_INVALID");
+      if (!pending || pending.action !== "release" || pending.jobRefHash !== input.jobRefHash
+        || pending.requestSequence !== input.requestSequence) {
+        if (input.targetRef !== null) this.broker.revokeOperatorTargetClaim({ targetRef: input.targetRef, jobRefHash: input.jobRefHash });
+        return;
       }
       const currentJob = this.broker.currentOperatorTargetJobRefHash();
       if (input.targetRef !== null) {

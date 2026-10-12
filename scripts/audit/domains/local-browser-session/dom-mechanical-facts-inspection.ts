@@ -154,7 +154,7 @@ const inspectAtomicObservationPointer = (
   );
 };
 
-const inspectCoherentRuntime = (runtimeText: string, findings: InspectorFinding[], lawId: string): void => {
+const inspectCoherentRuntime = (runtimeText: string, receiptText: string, findings: InspectorFinding[], lawId: string): void => {
   requireTokens(runtimeText, ["COHERENT_OBSERVATION_FUNCTION", "arguments: [{ value: specs }]",
     "canonicalizeBrowserAuthorityValue", "observationRevisionHash", "mainFrameLoaderId",
     "executeExactAssistantTurnRead",
@@ -163,7 +163,6 @@ const inspectCoherentRuntime = (runtimeText: string, findings: InspectorFinding[
     'observedUrl.protocol !== "https:"', 'observedUrl.origin !== "${GPT_ORIGIN}"',
     'observedUrl.username !== ""', 'observedUrl.password !== ""',
     'segments.length === 3', 'segments[1] === "c"', "GPT_CONVERSATION_SEGMENT_MAX_CHARS",
-    'url.search !== ""', 'url.hash !== ""',
     "sanitizeCurrentUrl", "awaitPromise: true",
     "resolveCoherentMutationCandidate", "requireKeyboardActionTarget", "eligibilityReasons",
     "scopeRejections", "rejections", "observedCandidateCount", "candidateIndex",
@@ -171,6 +170,13 @@ const inspectCoherentRuntime = (runtimeText: string, findings: InspectorFinding[
     "DISCONNECTED", "DISPLAY_HIDDEN", "VISIBILITY_HIDDEN", "OPACITY_HIDDEN", "HTML_HIDDEN",
     "ARIA_HIDDEN", "INERT", "TEXT_MISMATCH"], findings, lawId, domCoherentObservationPath,
   "The one-command DOM observation/action path is missing");
+  requireTokens(receiptText, ["export const sanitizeCurrentUrl", "GPT_CONVERSATION_SEGMENT_MAX_CHARS = 256",
+    'url.protocol !== "https:"', 'url.origin !== GPT_WEB_ORIGIN', 'url.username !== ""', 'url.password !== ""',
+    'url.search !== ""', 'url.hash !== ""', 'segments.length === 3', 'segments[1] === "c"', "!root && !conversation"],
+  findings, lawId, OBSERVATION_RECEIPT_PATH, "The original shared URL sanitizer must preserve every hygiene boundary");
+  if (runtimeText.includes("const sanitizeCurrentUrl") || !runtimeText.includes('GPT_CONVERSATION_SEGMENT_MAX_CHARS, sanitizeCurrentUrl } from "../exact-target/browser-observation-receipt.js"')
+    || !runtimeText.includes("sanitizeCurrentUrl(packet.currentUrl) !== packet.currentUrl")) finding(findings, lawId,
+    domCoherentObservationPath, "The Extension decoder must call the single receipt Owner sanitizer, without a second definition.");
   if (runtimeText.includes("BrowserDomObservationPacketV1")
     || runtimeText.includes("grasseye.browser.dom-observation.v1")) {
     finding(findings, lawId, domCoherentObservationPath,
@@ -330,10 +336,16 @@ const inspectPostconditionEvidence = (
     "postconditionEligibleCount", "postconditionRejections", "POSTCONDITION_REJECTION_REASONS",
     '"ARIA_HIDDEN"'], findings, lawId, OBSERVATION_RECEIPT_PATH,
   "The Browser mutation receipt is not validating exact postcondition rejection evidence");
-  requireTokens(input.postconditionText, ["queries.findIndex((query, index) =>",
-    "browserPostconditionNativeCause(evidenceIndex", "mismatch!.eligibleCount > expected!"],
+  requireTokens(input.postconditionText, ["browserObservationPostconditionDecision(postcondition.queries, observation, exactOutgoing?.expectedPromptHash)"],
   findings, lawId, domMutationPostconditionPath,
   "The first failed postcondition query must produce its indexed native cause");
+  requireTokens(input.observationReceiptText, ["browserObservationPostconditionDecision(postcondition.queries, packet, expectedHash)",
+    "coherentRowResult(candidate, specs[index]!, index)", "browserPostconditionNativeCause(queryIndex, baseCause)",
+    "queryCause ?? (exactOutgoingPostconditionVerified", "requireCanonicalGptConversationUrl(packet.currentUrl as string)",
+    "sanitizeCurrentUrl(packet.currentUrl) !== packet.currentUrl"], findings, lawId, OBSERVATION_RECEIPT_PATH,
+  "Both postcondition consumers must use the same decision with query cause priority and canonical exact locator");
+  if (input.postconditionText.includes("const exactOutgoingTurnVerified") || input.observationReceiptText.includes("queryIndex === undefined"))
+    finding(findings, lawId, OBSERVATION_RECEIPT_PATH, "Retired exact-outgoing exemption and duplicate producer decision must be absent.");
   requireTokens(input.nativeCauseText, ["BROWSER_POSTCONDITION_QUERY_INDEX_MAX = 19",
     "BROWSER_POSTCONDITION_NATIVE_CAUSES", "browserPostconditionNativeCauseValid"],
   findings, lawId, NATIVE_CAUSE_PATH, "Indexed postcondition causes must stay in the closed set");
@@ -405,7 +417,7 @@ export const inspectDomMechanicalFacts = (
     candidateText, runtime.getFullText(), findings, lawId,
   );
   const runtimeText = `${runtime.getFullText()}\n${observation.getFullText()}\n${candidateText}`;
-  inspectCoherentRuntime(runtimeText, findings, lawId);
+  inspectCoherentRuntime(runtimeText, observationReceipt.getFullText(), findings, lawId);
   inspectPostconditionEvidence({ postconditionText: postcondition.getFullText(),
     receiptText: mutationReceipt.getFullText(), observationReceiptText: observationReceipt.getFullText(), nativeCauseText: nativeCause.getFullText(),
     runtimeText: runtime.getFullText(), fileInputText: fileInput.getFullText() }, findings, lawId);

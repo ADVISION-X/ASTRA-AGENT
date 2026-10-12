@@ -7,6 +7,14 @@ import { releaseJobBoundTarget } from "../../src/lib/browser/chrome-extension/ex
 import { parseBrowserAuthorityTargetRevoke } from "../../src/lib/browser/transport/browser-authority-frame-payload.js";
 import { BrowserLaneCoordinator } from "../../src/lib/browser/infrastructure/browser-lane-coordinator.js";
 import { getEventListeners } from "node:events";
+import { BrowserAuthorityBroker } from "../../src/lib/browser/infrastructure/browser-authority-broker.js";
+import { BrowserAuthorityIssuer } from "../../src/lib/browser/infrastructure/browser-authority-issuer.js";
+import { BrowserTargetAcquirer } from "../../src/lib/browser/infrastructure/browser-target-acquirer.js";
+import { BrowserAuthorityWebSocket } from "../../src/lib/browser/transport/browser-authority-websocket.js";
+import { canonicalizeBrowserAuthorityValue, encodeBrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-frame-codec.js";
+import { encryptBrowserAuthorityFrame } from "../../src/lib/browser/transport/browser-authority-session-crypto.js";
+import { BROWSER_PROTOCOL_REVISION } from "../../src/lib/browser/protocol/generated/browser-protocol.generated.js";
+import type { createBrowserInfrastructureState } from "../../src/lib/browser/infrastructure/browser-infrastructure-state.js";
 
 export const hash = (digit: string): `sha256:${string}` => `sha256:${digit.repeat(64)}`;
 export const binding = (digit: string) => ({ kind: "production" as const, jobId: `job-${digit}`, resultRevision: 0,
@@ -23,7 +31,7 @@ const releaseThroughWire = async (): Promise<void> => {
     const bodies: Record<string, unknown>[] = [];
     let claim = bound;
     const supervisor = Object.create(BrowserInfrastructureSupervisor.prototype) as Record<string, unknown>;
-    Object.assign(supervisor, { state: { pendingJobBoundTargetAcquisition: { action: "release", jobRefHash: hash("a") } },
+    Object.assign(supervisor, { state: { pendingJobBoundTargetAcquisition: { action: "release", jobRefHash: hash("a"), requestSequence: 7 } },
       broker: { currentOperatorTargetJobRefHash: () => claim?.jobRefHash ?? null,
         revokeOperatorTargetClaim: (identity?: { targetRef: string; jobRefHash: string }) => {
           if (!identity || identity.targetRef === claim?.targetRef && identity.jobRefHash === claim.jobRefHash) claim = null;
@@ -41,22 +49,22 @@ const releaseThroughWire = async (): Promise<void> => {
         forgetAttached: () => undefined, removeTab: async () => {
           removals += 1; if (mode === "remove-failed") throw new Error("REMOVE_FAILED");
           if (mode !== "close-unproven") tabOpen = false;
-        } } as never, sendRevoke: async body => { bodies.push(body); invoke(body); } }, hash("a"));
+        } } as never }, hash("a"));
     if (mode.endsWith("failed") || mode === "close-unproven") {
       await assert.rejects(release()); assert.equal(registry.findByJobRefHash(hash("a")), bound);
       assert.equal(claim, bound); assert.deepEqual(bodies, []); assert.equal(resolutions, 0); continue;
     }
-    await release();
+    const result = await release(); bodies.push({ ...result, requestSequence: 7 }); invoke(bodies[0]!);
     const released = mode === "live";
     assert.deepEqual(bodies, [{ targetRef: released ? bound!.targetRef : null, jobRefHash: hash("a"),
-      releaseOutcome: released ? "released" : "absent" }]);
+      releaseOutcome: released ? "released" : "absent", requestSequence: 7 }]);
     assert.equal(removals, released ? 1 : 0); assert.equal(resolutions, 1); assert.equal(claim, null);
     assert.equal(registry.findByJobRefHash(hash("a")), null);
     for (const invalid of [ { ...bodies[0], releaseOutcome: released ? "absent" : "released" },
       { ...bodies[0], documentRef: "foreign-document" } ]) assert.throws(() => parseBrowserAuthorityTargetRevoke(invalid));
-    assert.throws(() => invoke({ targetRef: null, jobRefHash: hash("b"), releaseOutcome: "absent" }));
+    assert.doesNotThrow(() => invoke({ targetRef: null, jobRefHash: hash("b"), releaseOutcome: "absent", requestSequence: 6 }));
     (supervisor.state as { pendingJobBoundTargetAcquisition: unknown }).pendingJobBoundTargetAcquisition = { action: "acquire", jobRefHash: hash("a") };
-    assert.throws(() => invoke(bodies[0]!)); assert.equal(resolutions, 1);
+    assert.doesNotThrow(() => invoke(bodies[0]!)); assert.equal(resolutions, 1);
   }
 };
 
@@ -65,7 +73,7 @@ const delayedRevocation = (): void => {
     targetRef: "target-tab-19", jobRefHash: hash("a"), documentRef: "document-new" };
   let resolved = 0;
   const supervisor = Object.create(BrowserInfrastructureSupervisor.prototype) as Record<string, unknown>;
-  Object.assign(supervisor, { state: { pendingJobBoundTargetAcquisition: { action: "release", jobRefHash: hash("b") } },
+  Object.assign(supervisor, { state: { pendingJobBoundTargetAcquisition: { action: "release", jobRefHash: hash("b"), requestSequence: 7 } },
     broker: { currentOperatorTargetJobRefHash: () => claim?.jobRefHash ?? null,
       revokeOperatorTargetClaim: (identity?: { targetRef: string; jobRefHash: string; documentRef?: string }) => {
         if (!identity || claim?.targetRef === identity.targetRef && claim.jobRefHash === identity.jobRefHash
@@ -74,7 +82,7 @@ const delayedRevocation = (): void => {
   const deliver = (body: Record<string, unknown>): void =>
     (supervisor.onTargetRevoke as (value: unknown) => void).call(supervisor, parseBrowserAuthorityTargetRevoke(body));
   deliver({ targetRef: "target-tab-19", jobRefHash: hash("b"), documentRef: "document-old" });
-  deliver({ targetRef: null, jobRefHash: hash("b"), releaseOutcome: "absent" });
+  deliver({ targetRef: null, jobRefHash: hash("b"), releaseOutcome: "absent", requestSequence: 7 });
   assert.equal(claim?.jobRefHash, hash("a")); assert.equal(resolved, 1);
   deliver({ targetRef: "target-tab-19", jobRefHash: hash("a"), documentRef: "document-old" });
   assert.equal(claim?.documentRef, "document-new");
@@ -115,16 +123,72 @@ const intentionalClose = async (): Promise<void> => {
     readTargets: async () => open ? [{ id: "chrome-a", tabId: 23, attached: true }] : [], forgetAttached: () => undefined };
   const loss = new ExtensionTargetLoss({ debuggerRuntime: runtime as never, targets: registry, createdTarget: { markTabRemoved: () => undefined } as never,
     readActiveTabId: () => null, clearActiveTarget: () => undefined, reportTargetFailure: async input => { reports.push(input); }, sendRevoke: async body => { revokes.push(body); } });
-  await releaseJobBoundTarget({ targets: registry, createdTarget: { isPending: () => false } as never, readActiveJobRefHash: () => null,
+  const result = await releaseJobBoundTarget({ targets: registry, createdTarget: { isPending: () => false } as never, readActiveJobRefHash: () => null,
     awaitOldCommandHandlers: async () => undefined, debuggerRuntime: { ...runtime, removeTab: async () => {
       open = false; await loss.consumeTabRemoval(23, bound); await loss.consumeDebuggerDetach(23, "target_closed", bound);
-    } } as never, sendRevoke: async body => { revokes.push(parseBrowserAuthorityTargetRevoke(body)); } }, hash("a"));
+    } } as never }, hash("a"));
+  revokes.push(parseBrowserAuthorityTargetRevoke({ ...result, requestSequence: 7 }));
   assert.deepEqual(reports, []); assert.equal(revokes.length, 1); assert.equal(registry.findByTabId(23), null);
 };
 export const runBrowserLaneTargetClaimAcceptance = async (): Promise<void> => {
   await releaseBudgetPhases();
   await queuedAcquireDeadlines();
   await releaseThroughWire(); delayedRevocation(); await delayedChromeCallbacks(); await intentionalClose();
+  await authenticatedReleaseCorrelation();
+};
+
+export const releaseWireFixture = (keys = { serverToClient: Buffer.alloc(32, 7), clientToServer: Buffer.alloc(32, 8), commandPermit: Buffer.alloc(32, 9) }, nextServerSequence = 9) => {
+  const issuer = new BrowserAuthorityIssuer(); Reflect.set(issuer, "slot", { kind: "PRESENT", authority: { authorityEpoch: 1 } });
+  const broker = new BrowserAuthorityBroker(issuer, () => undefined, () => { throw new Error("UNUSED_LEASE"); });
+  const state: Pick<ReturnType<typeof createBrowserInfrastructureState>, "pendingJobBoundTargetAcquisition"> = { pendingJobBoundTargetAcquisition: null };
+  const supervisor = Object.create(BrowserInfrastructureSupervisor.prototype);
+  let closes = 0, clientSequence = 1;
+  const socket = { send: (_value: string) => undefined, close: () => { closes += 1; } };
+  const transport = new BrowserAuthorityWebSocket({ pairingSecret: null, onPairingStarted: () => undefined, onHeartbeat: () => undefined,
+    onAuthenticated: () => { throw new Error("ALREADY_AUTHENTICATED"); }, onMutationReceipt: () => { throw new Error("NO_MUTATION"); },
+    onTargetClaim: () => { throw new Error("NO_CLAIM"); }, onTargetRevoke: input => Reflect.get(supervisor, "onTargetRevoke").call(supervisor, input),
+    onDiagnostic: (code, refs) => { if (refs.runtimeEventType === "job-bound-target-acquisition") acquirer.rejectPending(code, refs); }, onRevoked: () => undefined });
+  Reflect.set(transport, "active", { socket, keys, lastClientSequence: 0, nextServerSequence, lastHeartbeatAt: Date.now(), replies: new Map() });
+  const acquirer = new BrowserTargetAcquirer(() => broker, transport, issuer, state as never);
+  Object.assign(supervisor, { state, broker, lane: acquirer });
+  const deliver = (body: Record<string, unknown>, corrupt = false): void => {
+    const header = { protocolVersion: BROWSER_PROTOCOL_REVISION, kind: "TARGET_REVOKE" as const, epoch: 1, sequence: clientSequence++,
+      deadline: new Date(Date.now() + 10_000).toISOString() };
+    const encrypted = encryptBrowserAuthorityFrame({ key: keys.clientToServer, direction: "client-to-server", epoch: 1,
+      sequence: header.sequence, aad: canonicalizeBrowserAuthorityValue(header), plaintext: canonicalizeBrowserAuthorityValue(body) });
+    transport.receive(socket, encodeBrowserAuthorityFrame({ ...header, body: { encrypted: corrupt ? { ...encrypted, nonce: "bad" } : encrypted } }));
+  };
+  return { broker, state, acquirer, transport, deliver, receive: (value: string) => transport.receive(socket, value), closes: () => closes };
+};
+const authenticatedReleaseCorrelation = async (): Promise<void> => {
+  const old = { targetRef: "old-target", jobRefHash: hash("a"), releaseOutcome: "released", requestSequence: 9 };
+  const absent = { ...old, targetRef: null, releaseOutcome: "absent" };
+  for (const mode of ["none", "sibling", "same-job", "acquire"] as const) {
+    const f = releaseWireFixture(); let resolves = 0;
+    f.broker.registerOperatorTargetClaim({ authorityEpoch: 1, targetRef: "new-target", documentRef: "new-document", navigationEpoch: 0,
+      claimOrigin: "https://chatgpt.com", jobRefHash: hash("a") });
+    Reflect.set(f.state, "pendingJobBoundTargetAcquisition", mode === "none" ? null : { action: mode === "acquire" ? "acquire" : "release",
+      jobRefHash: mode === "sibling" ? hash("b") : hash("a"), requestSequence: 10, resolve: () => { resolves += 1; }, timeout: setTimeout(() => undefined, 1) });
+    f.deliver(absent); f.deliver(old);
+    assert.equal(f.closes(), 0); assert.equal(resolves, 0); assert.equal(f.broker.currentOperatorTargetJobRefHash(), hash("a"));
+    f.broker.revokeOperatorTargetClaim();
+    f.broker.registerOperatorTargetClaim({ authorityEpoch: 1, targetRef: "old-target", documentRef: "old-document", navigationEpoch: 0,
+      claimOrigin: "https://chatgpt.com", jobRefHash: hash("a") });
+    f.deliver(old); assert.equal(f.broker.currentOperatorTargetJobRefHash(), null); assert.equal(resolves, 0);
+  }
+  const f = releaseWireFixture(), first = f.acquirer.releaseJobBoundTarget(5, hash("a"), "business-admitted");
+  assert.equal((Reflect.get(f.state, "pendingJobBoundTargetAcquisition") as { requestSequence: number }).requestSequence, 9);
+  await assert.rejects(first, /BROWSER_TARGET_ACQUISITION_TIMEOUT/u);
+  const current = f.acquirer.releaseJobBoundTarget(1_000, hash("a"), "website-admin-deletion");
+  f.acquirer.rejectPending("BROWSER_BACKPRESSURE", { jobRefHash: hash("a"), failedFrameSequence: "9" });
+  f.deliver(absent); assert.ok(f.state.pendingJobBoundTargetAcquisition); assert.equal(f.closes(), 0);
+  f.deliver({ ...absent, requestSequence: 10 }); await current; assert.equal(f.state.pendingJobBoundTargetAcquisition, null);
+  for (const requestSequence of [undefined, 0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, "9"]) {
+    const bad = { ...absent, requestSequence }; if (requestSequence === undefined) delete (bad as Record<string, unknown>).requestSequence;
+    assert.throws(() => parseBrowserAuthorityTargetRevoke(bad), /BROWSER_AUTH_TRANSCRIPT_INVALID/u);
+  }
+  assert.throws(() => parseBrowserAuthorityTargetRevoke({ ...absent, unexpected: true }));
+  f.deliver(absent, true); assert.equal(f.closes(), 1, "invalid encryption retains whole-connection fail-close");
 };
 
 const releaseBudgetPhases = async (): Promise<void> => {

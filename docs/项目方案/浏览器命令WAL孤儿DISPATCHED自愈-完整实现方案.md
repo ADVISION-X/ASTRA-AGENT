@@ -1,276 +1,287 @@
-# AGENT 浏览器占用泄漏与排队期限失效专项修复完整实现方案
+# AGENT 浏览器重复超时、释放暂停残留与提交回执失配完整实现方案
 
-状态：可施工（方案准入，实际施工另行授权）。日期：2026-10-11（Asia/Dubai）。
-唯一方案沿用本路径；需求 Owner 为 local-browser-session，GPT 只负责自己取得的调用期 lease 引用。
-本轮交付等级为 CHANGE，写入仅本方案；生产代码、法案、施工图、数据库、进程、Browser 页面均未改变。本方案不取得施工、重启、READY、RELEASE 或生产故障注入授权。
+状态：可施工（仅方案内部设计准入，不代表已获本轮施工授权）。日期：2026-10-12（Asia/Dubai）。需求 Owner：AGENT / local-browser-session。
+沿用唯一方案路径，替换前轮施工正文并保留已落地不变量；不建立竞争方案。
 
-## 1. 目标、终点和范围
+## 1. 目标、终点与授权
 
-专项目标：一张工单在重新取得 Browser 后精确选会话失败，必须沿原错误与收尾链退出；已移交给 Browser 的释放尝试不能再次释放下一张工单的占用；所有仍排队的请求在自己的取消或期限到达时必须有限返回，不能因 lane 正忙而永久悬挂。
+本轮修复设计覆盖四个已证伪的直接缺陷：A1 旧 Target handler 未退出时重复接入并积压，及失败诊断的请求归属断链；A2 release 失败退出后遗留接入暂停；R1 迟到释放成功回执无请求关联，撤掉整个连接或错完成新释放；S1 exact-outgoing 后置回执两端判据不一致。目标为故障调用有限退出、真实旧操作结束后原链接回、兄弟任务不受遗留暂停或旧回执连坐、原提交事实可合法记账。
 
-成功终点有两层，不能混用：本地修复终点是原执行 Promise 和续租真实收束、其它合格工单仍可推进；业务完成终点仍是 Product result → Runtime 原 stage/Outbox → Website 领域接纳及 admission receipt → 原同身份 completed readback。故障工单继续由 Website 当前授权自动接回，不能靠人工删单、抹掉未知事实或重新发同一 effect。
+本轮交付仅方案文档 CHANGE，只在本地 main 更新本文件。没有法案、Blueprint、代码、数据库、Chrome、扩展或生产写入；不删单、不重启、不提交/推送、不执行 READY/RELEASE。未来施工须另有覆盖§6精确路径的授权，旧授权、前轮子审及旧 READY 不替代本轮授权或验收。
 
-施工方案只有 G1（GPT lease 引用生命周期）与 B1（Browser queued 请求期限维护）两个原子责任及其直接质检。不改变 Product Flow/Prompt/模型、DOM selector、文本回答两门、图片 source 等待、限流关闭策略、全局 observation 节拍、N、Website 恢复状态/合同/数据库。网站侧只读核合同边界，没有网站施工工单。禁止新 watchdog、lease manager、per-job timer、第四 next action、第二队列、第二恢复链、兼容桥或备用通道。
+尚未查明事故中每笔 Target 超时的最初 Chrome 原因。真实 native 一直不返回时，仍为 Browser Owner 管理的结果未知：业务等待有限失败，保留原操作/事实，不增加扩展 Target handler；当前真实物理动作仍必须串行。本方案没有自动强杀、同 build 重载、诊断断连或通用取消链，不声称永久 native 卡死已根治。
 
-## 2. 事故证据与第一直接断裂
+权威业务终点仍是 Product 结果→Runtime durable result/terminal Outbox→Website 领域事务及 admission readback→Runtime local completed。N=3 是 Website 业务容量；一条 Browser 物理 FIFO/lane不变。三个 Tab、GPT出字、HTTP 200、普通测试或旧质量证据均不是业务完成。
 
-原始事件文件：.grasseye-local/runtime-logs/agent/696bda18-c97d-4b90-a07a-dacc32d9ecff-0001.jsonl，1823 条。下列时间统一 Dubai UTC+4，producerSeq 是原事件序号：
+## 2. 当前证据与第一直接断裂
 
-- 第5张 aiprod_0d568a9f-adc2-436a-a433-43f48e0d06ab / attempt 479410bf-85e1-4e46-bd02-7fce7ac9d65e：19:00:18 已 CONFIRMED submit；随后第一次 pending park 成功。19:05:48.333 的 producerSeq=1034 发出 selectExactGptConversation，command bded3389-c8b3-4cef-95f8-973810a1464e；1042/1043 在19:06:20记录 BROWSER_COMMAND_RECEIPT_MISSING，1044/1047/1049 将同一失败传播至 Child/Plugin/job。同 job/attempt 在19:07:16重授 leaseVersion=2 后再次进入 checkpoint，未收尾。
-- 第6张 aiprod_945dc9fe-2874-4f4f-96e5-5df75d9ae6ba / attempt 68ce033c-d8eb-44b9-a0be-a6d44dada584：19:03:09 已提交并进入 checkpoint；第7张 aiprod_a923d4f5-136a-4a73-8e05-9293d983a893 / attempt baacc271-d40e-496c-83e9-1c323cbb6ffb：19:07:52进入 prepare，此后没有现实 Provider 输入。两者等待未收尾。
-- 在19:06后没有新的 Browser command，三个执行却持续成功 renew；Website 后续容量为零是三个未结算席位的下游表现。19:16:29 用户看到停滞才关停，不能把用户关停写成故障起因，也无证据将停滞归于网站 READY。
-- 这些事件证明停滞与选择失败相关；导致最初选择回执缺失的 Extension/native 底层原因仍未证实。本轮修复的是已重现的故障放大链，不声称根治所有回执缺失。
+输入附件：/Users/nexgen/.codex/attachments/1891d578-4ec0-464a-a0b3-75c0a4d0e5e7/已粘贴的文本.txt。
+原日志：.grasseye-local/runtime-logs/agent/eec017d8-7396-4084-9444-487e5959fa65-0001.jsonl；固定取证截止2026-10-12T17:59:37.676Z。原窗口按唯一失败Child span/event identity去重为12次Target超时、6个job，附件截止更早，不能混用分母或按多层传播计数。这批为localization_static_catalog / zh-HK，不能称为十四种专业产品。
 
-当前两个直接断裂：
+| GAP | 第一直接断裂与应有事实 | 本轮可声称的证据 |
+| --- | --- | --- |
+| A1 | websocket-actor.ts#acceptTargetAcquire（218–258）不检查现役pendingTargetHandlers，Node caller超时后又发请求，扩展继续把handler塞进原logical queue；应仅拒绝新请求自身，不增加真实旧handler后的Target等待。迟到拒绝还必须归属原会话和原请求，不能连坐后续合法请求 | 真实Actor/Authority/DebuggerRuntime，模拟Chrome tabs.create延迟返回：3个认证请求→pendingTargetHandlers=3、真实create=1；真实退出和原清理后handlers=0、CONNECTED、close=0，下一请求create=2。证明放大链，不证明生产首因。子审补证：真实transport的release wire sequence=9、pending.requestSequence缺席，旧sequence=8诊断错拒新release；真实旧Actor handler失败通过新key发送旧job/sequence=2，原Node Acquirer错拒同job/sequence=2的新acquire |
+| A2 | 同方法release成功解除暂停，失败仅删handler/report，留下commandAdmissionSuspended=true；应在真实退出且没有其他当前暂停责任时退休本次暂停 | 真实扩展release入口、原releaseJobBoundTarget，已登记精确bound Target，模拟getTargets拒绝后两个handler集合均空、slot=null、CONNECTED；下一合法acquire仍被ADMISSION_SUSPENDED拒绝。确定代码缺陷，尚无该分支的生产触发证明 |
+| R1 | 原releaseOutcome只有job/target/outcome；Authority晚成功仍用当前会话发送，Supervisor无matching pending时throw，同job新release时却可错resolve。应保留真实物理退休，但只有当前原请求能完成等待 | 真实Supervisor→原WebSocket/AEAD/parser三例：无pending旧成功→close=1；兄弟pending→close=1且兄弟被reject；同job新pending→错误resolve=1。原release无caller deadline/session绑定，真实调用图可到这些分支；未把该反例归因给某笔生产job |
+| S1 | dom-mutation-postcondition.ts#exactOutgoingTurnVerified检查hash+canonical URL，browser-observation-receipt.ts#exactOutgoingPostconditionVerified只检查hash；首页同包生产者拒绝、接收者要求成功→AUTH_INVALID；应一致判为合法后置失败并保留已知点击 | 真实verifyClickPostcondition→原packet binding→原decoder：首页/两query合格/hash正确稳定复现拒收，canonical包成功。job045ec3a6、command23da3f77于17:16:21.194Z有AUTH_INVALID/dispatched/count=1，但无历史DOM包，不能断言该次就是S1 |
 
-| 责任/源头 | 实际错误 | 必须得到的输出 |
-|---|---|---|
-| GPT：src/capabilities/gpt/production-browser-lifecycle.ts#waitForProviderObservation（246–283） | acquisition 已成功，selection 抛错后统一 catch 提前清 activeBrowser；Executor finally → Session.settle → lifecycle.settle → parkActive 因空引用而跳过 park | 新 lease 从取得到本次 park 结算始终有唯一可收尾引用；选择错误保留原 typed cause/confirmed effect |
-| Browser：src/lib/browser/infrastructure/browser-lane-coordinator.ts#pump/#expireQueuedReleases/#scheduleWake（146–230） | active 时只到期 queued release，忽略 queued acquire 的 remainingMs | 同一 wakeTimer 维护全部 queued 请求期限，拒绝到期项而不触碰当前 active lease/native |
+S1另有下级权威冲突：Browser Blueprint第27行豁免exact-outgoing query索引原因；现役LAW-LOCAL-BROWSER-SESSION-004-V57对observation query失配没有该豁免。按冻结说明书§4.2修下级：query失配一律首个Q<i>原因；全部query合格但exact hash/locator不完整才用既有非索引MISSING。不修改active law。
 
-连坐补证：GPT 的 parkActive 仅成功后清引用（353–362）；pending park 失败也保留旧引用。Browser withLifecycle 的 park 无论成功失败都在 finally 释放该次 lane。旧引用随后再次 park，会再次执行全局 finally，从而清掉后来工单的 active。修复必须同时退休“失败后旧引用继续可 park”的路径。
+子审定位的两个关联断裂已由主Codex真实代码反例复核：requestPreauthorizedTargetRelease丢掉原sendControlFrame返回序号，Acquirer的可选dispatch返回值因此漏登记release序号；旧Target失败回调直接调用reportRuntimeFailure，在回调时捕获新socket/key，把旧诊断重新加密进新会话。均为A1/A2的原请求归属链，纳入原位重构，不增协议字段、状态或Node第二接收链。两个反例只mock Chrome/native/WebSocket叶端点，未改生产代码。
 
-2026-10-11 主 Codex 已在内存中调用上述现役两个类，外部动作=0、文件写入=0，得到：
-1. 新 lease 选择失败 → settle 后 acquisitions=2、selections=1、parks=1、lane=busy；两个25ms预算的 queued acquire 在100ms后仍0个结算。
-2. 旧 lease park 失败 → B取得新 lease，lane=busy → 旧 lifecycle.settle 再次 park，parks=2、lane错误变idle。
+R1是对子审成功分支追查的必要补全，不能靠上述失败诊断修正关闭。三字段成功回执不足以区分同job旧business释放和新admin释放；发送前deadline检查挡不住已发出的迟交付；挪用client frame sequence会破坏现役AEAD单调序号。因此仅此成功控制回执新增必填原requestSequence，唯一Browser协议10→11；不是新增恢复状态、历史请求账本或第二通道。LAW006的三字段限定仍原样约束TARGET_ACQUIRE请求；响应原数值序号不携敏感内容，LAW001/005的单协议/同端切换保持。
 
-此反例只在 stub admission 将 eligibleAt 提前以避免等70秒；没有改生产代码、没有证明节拍或真实 Chrome 运行，不是 Dynamic Proof。正式防回归仍须按§7测试现役责任与原70秒门。
+6f16c621于17:35:57.062Z的reasoning后置失败有count=1/confirmed/MISSING，但无失败DOM包，不改selector或延长等待。较早run的canceled_by_user没有操作者身份，不证明扩展冲突；126/123秒外层耗时不证明电脑负载首因。后来正常取得回答的ADJACENT_ASSISTANT_MISSING属于现役pending，不另立修复单。
 
-### 最新运行日志补证与误伤裁决
+官方接口核验：[tabs.create](https://developer.chrome.com/docs/extensions/reference/api/tabs#method-create)与[debugger.sendCommand](https://developer.chrome.com/docs/extensions/reference/api/debugger#method-sendCommand)参数未声明通用AbortSignal。只能推断未发现直接可用的通用取消接口，不能据此授权强制重启或断言所有平台行为。
 
-用户追加附件：/Users/nexgen/.codex/attachments/6a309bd6-17ec-477f-b8ea-6f9b51f3fba2/已粘贴的文本.txt，完整232行、224个JSON事件，SHA256=0b83a39d45006e521eb0715c7101d237683c3cadf46fae4c10dd738a6d6231d7。其220个agent事件逐eventId/全文与原始f53bf120-3572-4313-8984-ef3be5b2db5f-0001.jsonl相等；另外4个为startup producer事件。主Codex完整解析该原始run截至producerSeq=2473的2473条记录，固定Dubai19:50:19—20:25:41窗口；这段原始JSONL bytes SHA256=b3c8c76ce5e7426a33f4f5650537b6b4460945db7b0ae4a9a7d897a5824009f0，后续增长不计入本次结论。当前方案未施工，该运行不能成为G1/B1修复的Dynamic Proof。
+## 3. 四维对齐及前轮连续性
 
-| 新日志事实/固定序号 | 对方案与连坐的裁决 |
-|---|---|
-| 18个不同job中，15个已分别出现result.upload、job.terminal、job.execute succeeded；这些job最后还出现website.v6-request succeeded | 此窗口没有重现19:06后的整体静默。成功请求日志本身不证明Website已business-admitted/completed，最终仍须§7同身份领域读回；不能据15条成功把原硬卡死反例取消 |
-| 原第5/6张0d568a9f、945dc9fe保留原attempt；submit Child在seq39/42启动后用已有事实返回；本run实际Browser命令只有会话选择、checkpoint观察及park，无fill/file-input/submit | 19:54:07（259）/19:56:27（431）已执行成功，零再次Provider输入。必须保留原CONFIRMED/Forensics/WAL读回及Website授权，不为G1/B1清旧事实或重发 |
-| a923d4f5：67的BROWSER_DOM_CANDIDATE_MISSING定位open_gpt_model_selector_v3；69/70真实park成功，74失败、77lease release成功；后续新attempt在101入场，613执行成功 | 这是模型菜单Child的失败，不能归到截图JSON答案或attachment selector。原单job失败传播/收尾/新attempt接回能工作；本轮不改该Child，也不得使park成功路径退化 |
-| 07df49e1：1884→1912在prepare_clean_gpt_chat发生BROWSER_TARGET_ACQUISITION_TIMEOUT；1914执行失败、1916lease release成功；1925新attempt入场，2238于20:21:46执行成功 | Target获取失败已有有限退出与Website新attempt接回；其间其它job继续上传。保留原Acquirer/pump失败出口、原heartbeat收束、恢复grant，不能加全局阻断或擅自扩大为Target机制重写 |
-| eccf3719、b519cc3e、a1f39855：2242/2420/2444也在prepare_clean_gpt_chat报同一Target超时；2244/2422/2446执行失败，2246/2424/2448lease release成功；2257/2453/2454为同job新attempt。截止点eccf在checkpoint，b519在prepare，a1已prepare成功并进入profile | 三者尚无本窗口结果终态，记为已接回、仍处理中；截止时未结算不等于永久卡死或已完成。20:24:35其它job的2415成功及后续新grant证实这些失败没有让全部工单停止 |
-| 1918/2248/2427/2450另有Browser infrastructure同码事件，身份只有job-bound-target-acquisition producer | 按五个失败执行计：一次模型菜单缺项、四次prepare Target超时；Child/Plugin/job多层传播不重复计事故。四条infra没有exact job/requestSequence关联，不仅凭相邻时间补造因果；Acquirer本地deadline或Extension diagnostic都能产生该码，原触发原因仍待exact发送/Target/Extension证据 |
+主Codex本轮已完整读取AGENT两份active law各两遍、闭环Skill全文两遍，截断段补齐；frozen-spec-index与本仓母本适用全文章节已核。39条active law仍为原生分母，以下专项映射不缩减分母。回归筛查命中反复迭代，使用深度：真实AEAD入口→handler/native→claim/revoke/diagnostic→Node pending→GPT失败→Runtime/Website恢复边界，并反查receipt producer→strict verifier→WAL/ACK。仅查此图和必要Git历史。
 
-本补证支持“保留已工作的失败恢复，专项修复故障放大链”的范围。新run未出现BROWSER_COMMAND_RECEIPT_MISSING、旧park失败或已知限流，不能把它当成G1危险分支的修复证据；G1成立依据仍是当前源码和两个现役类反例。B1 queued expiry应是V6_DEADLINE_BUDGET_EXHAUSTED，四次BROWSER_TARGET_ACQUISITION_TIMEOUT不证明B1是其根因，也不授权延长/取消现役Target native期限。新日志所见成功、有限失败和新attempt接回均成为§7必须保留的防误伤反例；不新增工单、公开合同、状态或第二恢复链。
+| 维度 | 现役权威、落点与裁决 |
+| --- | --- |
+| 法案 | LAW-CODE-PURITY-001-V6、LAW-CODE-PURITY-002-V2、LAW-CODE-PURITY-003-V3；LAW-CAPABILITY-GOVERNANCE-001-V19；LAW-ARCHITECTURE-BOUNDARY-001-V18、LAW-ARCHITECTURE-BOUNDARY-002-V2；LAW-AGENT-PRODUCTION-RUNTIME-001-V76、LAW-AGENT-PRODUCTION-RUNTIME-005-V43；LAW-GPT-001-V65、LAW-GPT-002-V32；LAW-LOCAL-BROWSER-SESSION-001-V4、LAW-LOCAL-BROWSER-SESSION-002-V6、LAW-LOCAL-BROWSER-SESSION-003-V46、LAW-LOCAL-BROWSER-SESSION-004-V57、LAW-LOCAL-BROWSER-SESSION-005-V6、LAW-LOCAL-BROWSER-SESSION-006-V46；LAW-RUNTIME-LOG-SPINE-001-V7、LAW-RUNTIME-LOG-SPINE-002-V4、LAW-RUNTIME-LOG-SPINE-003-V6。当前native串行、唯一Owner/WAL/FIFO、effect禁重放、Website唯一恢复、closed wire、日志仅诊断保持，无active law修改 |
+| Blueprint | Browser V56接入/退出、exact豁免及第86/90行单协议/释放回执片区需先重构；GPT V69所消费submit同包locator/失败事实对齐。Runtime WEBSITE-AGENT-V6、Log V3、质量evidence ownership直接复用；不新增第三submit门 |
+| 实现 | 原ExtensionWebSocketActor拥有接入/handler暂停责任，原Authority/DebuggerRuntime拥有物理动作/guard；原Acquirer/Coordinator拥有caller/FIFO。现役browser-observation-receipt.ts承载后置机械决定，实际严格同义消费者为扩展verifyClickPostcondition与Node observationPostconditionEvidenceValid |
+| 质检 | package.json唯一quality:check；Browser原target-claim/dom-mechanical inspector与acceptance、原mutation/WAL verifier。不新增checker、verdict或存储 |
 
-## 3. 权威、现役实现和前轮连续性
+前轮commit 2a8e08d47的G1/B1已在现役HEAD落地，保持，不重做：
+- GPT waitForProviderObservation/parkActive的新lease引用、旧park一次移交且失败退休、reacquire/selection经原facade重入同atomic identity；文本/图片、限流first cause与零提交读回不变。
+- Coordinator全部queued acquire/release到期/abort有限退出；原动态remainingMs、唯一wake timer、队列上限10、公平性。queued到期不取消active/native；release仍排队30秒→静默40秒→dispatch30秒。
+- 前轮L1请求全寿命/stage stop-and-join、C2逐job cleanup隔离、日志原span/4096有界去重和durable-fact后ACK继续。
+- 前轮E1初始Target超时未确诊，扩展接入未改；Node-only反例未覆盖真实扩展积压及release失败暂停。本轮补已证实分支，不宣称此前全部回退。
+- 普通Q<i>机制保留，exact-outgoing下级旧豁免按当前上级义务删除。旧方案子审只对应当时G1/B1，不作本轮放行。
 
-源头入口为本仓 AGENTS.md、冻结说明书§0/4/35/36–38/41–44/46–47/22–25/48/51–54/78–79，以及两份 active law。主 Codex 本轮实际完整遍历《基础法案》《功能法案》各两遍，闭环 Skill 全文两遍；截断处分别补齐。冻结 Skill 不修改。全部39条现役法案仍为分母，不能因专项范围删法或缩减 READY 检查。
+反向调用补核：dom-pointer-intent-runtime.ts#prepareClick在exact-outgoing存在时先进入prepareExactOutgoingClick，不进入ordinary observationPointerAction的zero-action路径；页内coherent candidate的预点击计数判定用于原子候选准备，与点击后/Node回执验证的时间和输出不同，保留而不合并。W3不删预提交prompt/附件门，也不把普通零动作路径扩大为submit确认。
 
-| 四维映射 | G1 | B1 |
-|---|---|---|
-| 法案 | LAW-GPT-001-V65、LAW-GPT-002-V32、LAW-CAPABILITY-GOVERNANCE-001-V19；LAW-AGENT-PRODUCTION-RUNTIME-001-V76的有限下一动作 | LAW-LOCAL-BROWSER-SESSION-003-V46、LAW-LOCAL-BROWSER-SESSION-004-V57、LAW-LOCAL-BROWSER-SESSION-006-V46；同Runtime隔离义务 |
-| 施工图 | docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md V69，“需要真实观察”及“Browser边界” | docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md V56，“原release预算”段 |
-| 真实 Owner/实现 | GPT 当前 call/facade/confirmed fact 与 activeBrowser；唯一 Session/Executor finally 消费 settle | local-browser-session 原 FIFO、nextWaiter、withLifecycle、唯一 wakeTimer/Acquirer |
-| 原生质检 | gpt-provider-contract-inspection.ts 原观察/settlement规则；GPT现役 lifecycle/wait/recovery Exam | target-claim-inspection.ts 原lease/lane规则；browser-lane-fifo.acceptance.ts/support |
+## 4. 唯一主链与合同handoff
 
-LAW-CODE-PURITY-001-V6、LAW-CODE-PURITY-002-V2、LAW-CODE-PURITY-003-V3、LAW-ARCHITECTURE-BOUNDARY-001-V18、LAW-ARCHITECTURE-BOUNDARY-002-V2及当前日志法案继续约束结构、公开边界、身份和失败证据。
+A1/A2只重建现役接入/退出责任；R1只补原释放成功的请求关联；S1只在同一coherent packet上决定后置事实。业务恢复、新attempt/revision/risk仍由Website.ai-acceptance签发，不加AGENT恢复循环。
 
-无 active law 修改必要。Browser Blueprint “active期间只按 queued release expiry、无queued release不设wake”与本轮完整期限要求存在下级欠缺，未来施工必须先物理删除重构这个段落为全部 queued 请求期限；GPT Blueprint 同步明确 lease 引用的取得、移交、退休、重新登记与 selection失败收尾。只改这两个准确段落及直接验收，保留现有 machine block 的Owner/law/edge，不改无语义变化的版本/拓扑。Runtime Blueprint V66 §1/5/8仍复用，不扩大成续租或恢复系统再重构。
+| handoff | 合同与唯一决定 |
+| --- | --- |
+| Node→Extension | 当前Browser protocol10；目标唯一11由原schema→原generator生成，当前AEAD连接/递增sequence、同absolute deadline。acquire exact action/targetMode/jobRefHash，authorized-continuation才有parentConversationUrl；release exact action/jobRefHash/releaseAuthority三字段不变。unknown fields拒收；无取消/重启/进度载荷 |
+| 普通Target拒绝→Node | 复用DIAGNOSTIC：extension-runtime、job-bound-target-acquisition、failedFrameSequence、jobRefHash、既有code。目标实现：原transport的acquire/release均返回原frame sequence，Acquirer在同一同步dispatch中登记原requestSequence，只有匹配当前pending的job/sequence才消费有请求引用的诊断；旧Actor handler只有捕获socket/双向key仍属当前会话才报告旧请求诊断。背压BROWSER_BACKPRESSURE、其他原接入拒绝BROWSER_COMMAND_ADMISSION_SUSPENDED；合法拒绝不抛入onMessage的REVOKE/close，畸形/认证错仍fail-close。当前release尚未满足此目标，不把应建合同写成现役事实 |
+| 释放成功→Node | revision11仅TARGET_REVOKE.releaseOutcome分支闭集targetRef/jobRefHash/releaseOutcome/requestSequence，原requestSequence safe integer≥1；普通revoke仍targetRef/documentRef/jobRefHash三字段，禁止加序号。Actor在原tracked handler内消费Authority真实物理结果，按捕获原会话发送原请求序号；Node只有pending.action=release且job/sequence同时相等才resolve。迟到released非null只调用原broker精确targetRef+job退休，迟到absent/null无精确旧claim身份必须零claim动作；两者不完成新pending、不purge、不清槽/WAL、不撤连接。非法shape/cipher/sequence原fail-close |
+| 后置回执→Node | 原dom-observation.v2的同包currentUrl/queries/observedAt/target-document hashes/revision hash；扩展与Node共用一个机械决定。Node原header/binding/hash strict、canonical bytes、unknown-field闭集保持；其当前header未核清洗URL，W3复用并迁移原sanitizeCurrentUrl至receipt Owner供原Extension decoder与后置决定共用。包合法性保持原opaque segment规则；CONFIRMED locator另用原canonical规则，不混成一个门 |
+| terminal→WAL/ACK | 原command/exact-call/receiptBindingHash及immutable WAL identity；合法失败也strict verifier→terminal CAS/readback→ACK。旧count/unknown不造零输入；无完整submit证明不造CONFIRMED locator。坏/null只原dispose/disposed |
+| GPT→Runtime→Website | 原Child/effect/source/attempt/lease/fence；Target或新attempt不授重发effect。task-result18/control45无字段或版本delta；旧已输入/未知只同effect有限零提交读回，必要风险输入仅Website新grant |
+| 业务终点 | 本事故staticCatalog由原business-result-consumer#staticCatalog在同事务finalizeConsumptionWithClient+writeStaticCatalogAdmission/writeStaticCurrentLocale，以精确result_payload_hash/business_consumption_hash及适用current entries核权威存储；Runtime reconcileBusinessAdmission读回后才local completed |
 
-连续性裁决：
+caller超时只结束等待；Node readState=idle表示本地lane调用占用，不是Chrome native退出证明，不得据此并行输入。扩展现役handler/drain与原DebuggerRuntime guard继续承担当前物理安全；接入fence不读取历史DISPATCHED，也不增加状态真相。
 
-| 前轮/真实落点 | 仍适用不变量与本轮决定 |
-|---|---|
-| 2026-09-14《N 标签工单独占轮巡模式方案》§20.3 R2；现役 facade 的 runAtomicStep closure/live getter | 原 Child 原子身份跨多次 lease 保持；必须保留 call/facade/identity/confirmed事实，不以清物理lease引用丢掉Child身份。G1文本/图片跨换lease各验收 |
-| 2026-09-16《十小时连续运行事故分组根治》§19 R1 | 当时静默机制未证实；原历史 mayCrossUnresolved不再是现役路径，当前nextWaiter无历史WAL门，不能恢复旧门或借历史假说添加watchdog。其唯一FIFO/计时Owner继续保留；本轮用当前两个反例替代对本事故的猜因 |
-| 《GPT等待原因可观测性》 | 原五个文本原因/图片等待码与节流仅作观察，不成为deadline/lane/恢复资格；原逻辑不改 |
-| 本路径前轮 L1/C1/C2/D1，现役5554299代码 | L1真实stage后stop-and-join/请求全寿命超时；C1 release queued30秒→quiet40秒→dispatch完整30秒；C2 typed局部release隔离、Store/sink/unknown外抛；D1原spanId、有界4096投影去重均保留。B1只补acquire期限，不回退C1 |
-| 本路径更早12项恢复/9个ZIP对齐 | Website唯一恢复、旧结果先交付、有限零输入读回、原source/risk授权、同job独立席位、单job隔离、原合同18/45继续；G1/B1不得退回全局DISPATCHED门或重发策略 |
+## 5. 有限分母和连坐验收
 
-旧E1 Target获取超时、E2交互状态、E3回执缺失底层、E4网站HTTP500、E5健康误归因仍为独立只读证据缺口；当前公开health已作状态投影，本轮不新建健康合同或归因缓存。最初selection回执缺失只有首拒码，没有Extension退出/发送事实，本轮不给它猜修工单。旧八字单物理删除由网站Owner负责，仅网站exact absence进入AGENT既有清理，不在本轮删单或派单。这些历史未知不阻断本次已证明的两项修复，也不能冒充已解决。
+| 分支 | Owner、终态/readback、恢复接回与验收 |
+| --- | --- |
+| 无旧handler/drain，合法acquire | 原Actor接一个handler→原Authority claim/ACK→Node lease→原GPT/Runtime；A1正向 |
+| 旧Target handler或drain未退，新acquire/release | Actor在鉴权/shape/sequence后仅返回新请求精确背压；handler/Authority调用数不增长，旧slot/claim/drain不变、close=0。Node有限失败，Website下一动作；A1 |
+| acquire native迟到返回/拒绝、加载超时、claim ACK失败 | 原deadline/session guard阻止不合格输入，原exact cleanup/orphan管理继续，真实handler退出才退休；同会话late diagnostic按job/sequence不拒兄弟或同job的新pending；原失败/配对/FIFO接回；A1 |
+| 同会话旧release诊断迟到，新release已dispatch | transport返回原sequence→Acquirer登记原字段；同job但旧sequence不等则忽略旧诊断，新pending保持至自己的真实终态/期限。当前帧的失败照常有限退出；A1序号反例 |
+| native一直不返回 | Browser保留唯一真实handler/未知事实，Target backlog不增长；caller与queued waiter有限退出。真正退出后原清理/FIFO接回；无自动强杀出口，不计永久native恢复成效；A1 |
+| release成功 | 原物理释放/缺席证明→releaseOutcome→Node resolve；Actor退休本次暂停、原flush其他合法fact；A2 |
+| caller已timeout，原release随后真成功并迟交付 | R1原请求序号不匹配：非null仅按原targetRef+job精确退休旧claim；null不得按同job无参清新claim；兄弟/同job新pending均保留，close=0、resolve=0、WAL/槽不由迟到包清除。原Website下一轮当前授权release重新取得自己的物理缺席证明才收尾 |
+| 原release真成功时已换会话 | 原physical registry退休和仅admin精确清原同job槽保持；Actor旧handler不发成功控制包到新key，原completion/drain退休，不误删新Target；新会话由原当前授权release fresh证明缺席，不伪造旧控制成功。immutable terminal补交仍允许当前认证连接；R1 |
+| release拒绝/清理失败已真正返回 | 原失败diagnostic、不补releaseOutcome、不清slot/WAL；自己退出且无其他当前责任后退休本次暂停，新job可进入原门，Website原链处理失败job；A2 |
+| 旧回调与换连接、drain、新handler重叠 | 仅删自己handler，不解新责任暂停，不清新槽、不误删其他Target；旧socket或任一捕获方向key不同即不发旧请求diagnostic，包含同job/同numeric sequence的新会话碰撞。原drain/新handler完成接回；A2竞争反例 |
+| website-admin-deletion | 原exact absence→Runtime abort→lane→加入自身前快照排空→同job park/物理缺席证明→仅同job清槽→revoke→WAL/Runtime purge。真实旧Target忙只背压、失败保槽/WAL；原授权下一轮接回；A1/A2防误伤 |
+| packet shape/identity/hash/cause伪造，或未清洗/非法URL | 原verifier AUTH_INVALID，真实已知/未知输入保持，原fact/dispose及Website恢复；URL有效性先按原清洗规则，不解释opaque segment内部格式；S1负向 |
+| 任一query计数失配 | 首个mismatch index与closed C，exact也使用Q<i>；Node同包重算一致才接受失败terminal，后续query/hash/URL不覆盖首因；S1 |
+| 全query合格、exact hash不等或clean URL缺canonical locator | 首页以及按原清洗规则合法但未满足原canonical locator的opaque路径，均postcondition=false/MISSING；合法后置失败而非AUTH错误、不补locator、不再点击。原decoder真实计数/结果分类保持，Website按原effect恢复；S1 |
+| 全query合格、exact hash相等、canonical URL | 同一判定true；完整原submitRecoveryPayload/Child合同成立才CONFIRMED；原结果交付与业务readback；S1正向 |
+| abort/lease/fence失效、已知限流、unknown dialog、Outbox已有完整结果 | 原guard关闭当前危险动作，原完整结果优先交付、effect有限零输入读回、Website必要grant。旧事故不成兄弟永久门；原G1/B1/Runtime验收保持 |
 
-## 4. 唯一目标链、身份与合同 handoff
+有限闭环含Owner管理的未知；无遗漏不等于未知首因已查明。四个GAP代码反例、生产实际归因、业务完成分别验证。原acquire的claim ACK失败/配对fail-close继续按原身份链处理，不把释放结果的被动退休扩大为任意Target claim拒错豁免。
 
-原CONFIRMED submit/WAL事实 → 原pending判定 → park本次lease一次并退休该lease引用 → 保留原call/facade/不可变原子identity，在唯一FIFO按eligibleAt及原remainingMs排队 → acquire成功时立即重新登记新lease引用 → 通过原active.facade.executeDomIntent精确canonical URL选择，使新lease的该命令也进入原Child的runAtomicStep(identity) → 原两门/图片source观察。selection或观察失败仍经原Child分类、原限流关闭Owner及Executor finally调用同一个settle；settle只park本次真正持有的lease一次。没有得到新lease就不park旧lease。
+## 6. 原子工单与顺序
 
-Browser仍由一个物理lane串行；queued expiry只退出等待Promise，不终止任何已派发native、不证明Target已释放、WAL零输入或页面安全。真实native/handler未知仍服从现役transport撤权、Extension排空及每次native guard；认证恢复只能原自动配对后重新入原FIFO。
+未来精确授权后先W0并完成主Codex两轮权威/Blueprint审查，无finding才W1/W2/W3/W4。W1/W2/W4在同一候选共同关闭Target整条因果链，不单端交付。主Codex唯一写手，子智能体只审。每批准片区实际delete→确认旧定义/判据ABSENT→同路径唯一rebuild；禁止覆盖写、别名、兼容壳、第二链路。
 
-identity spine：
-- 业务与授权：job_id → result_revision → product_step_id/call_id/child_capability_id → attempt_id/lease_version/fence；attempt/fence只为当前授权，不重新定义旧Provider effect。
-- 原副作用/locator：唯一 Browser WAL 的provider_effect_identity_hash、submitIdentity原actionOrdinal/inputHash、canonical URL/user turn与source/evidence。
-- 当前资源：本次 leaseRef、current Target/Document、当前authority；只存在调用期，不保存跨进程lease状态。
-- 完成：原artifact/result hash → 原Outbox immutable body → Website admission receipt/result_payload_hash → 原completed。
+### W0：Blueprint对齐（代码前门）
 
-| Producer → consumer | 当前合同与所需语义 | 本轮决定 |
-|---|---|---|
-| GPT → Browser acquisition | BrowserTargetLeaseWait discriminated union；signal、remainingMs函数、finite eligibleAt；fresh/bound/confirmed-readback，authorized-continuation附exact父job/attempt | 字段/可选never规则、父来源、顺序和identity不变；不发明默认值、公共phase或epoch |
-| Browser → GPT | BrowserTargetLease live document getter、park(mode=product-call-settlement)、原typedBrowserExecutionFailure；一次native返回/失败 | park Promise成功/失败继续如实传播；GPT只退休已移交本次park的引用，不伪造physical release证明 |
-| GPT → Session → Executor | 原settle(error)；Session finally清submittedByStep；Executor preserve primary cause并结合cleanup failure | 复用唯一消费者；有已stage/completed同身份结果时清理错误不撤销成功，无结果则原失败出口 |
-| Runtime → Website → Runtime | control45/task-result18严格合同、原source/claim/grant/fence、原结果admission | no contract delta；不写Provider locator入跨仓body，不改required/null/unknown-field/hash/CAS、三种next action或重放资格 |
-| Browser wire/WAL | protocol10、原认证seq、receipt/CAS/ACK/dispose与事实槽 | no wire/schema/WAL delta；回执不明原unknown保留，期限退出不补terminal、不清槽 |
+允许仅Browser的LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md中Target接入/handler暂停退出、第27行后置判据、第86/90行单协议切换/释放请求回执；GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md中submit消费同包失败/真实计数/locator语义。路径见§10。
 
-## 5. 有限故障分母和连坐边界
+物理删除对应旧片区后重构：query mismatch不豁免exact；真实旧handler/drain忙只局部拒绝新Target请求；acquire/release原请求序号完整交付；旧handler不得向新会话发送旧请求失败或成功控制；release失败退出退休自身暂停；清理失败不证明释放。单Browser协议11的releaseOutcome必填原requestSequence，只匹配原请求才完成等待，迟到null不清新claim。后置包先复用原URL清洗规则判合法，再独立判断canonical locator；不缩窄opaque segment。原两项submit条件、四targetMode、限流、Owner、Website45/18不改。无需修active law、冻结说明书、registry/Manifest。两个Blueprint对齐且两轮主审无finding才进代码，不用98%自评分冒充条款闭合。
 
-| 分支/入口 | 唯一决定与终态/readback | 原恢复接回与工单 |
-|---|---|---|
-| 正常pending、旧lease park成功、新lease取得、selection成功 | GPT登记新引用，reobserve；Browser仍busy直到该leasepark；原Child当前身份/回答读回 | 原checkpoint循环；G1/B1，文本和图片正向 |
-| stale call与当前调用期owner记录不一致 | GPT在park前用原GPT_BROWSER_SESSION_TRANSITION_UNSETTLED拒绝，物理动作0，不清当前其它引用 | 当前合法call仍走原链；G1负向，不新增公开状态 |
-| 剩余observation预算不足70秒，或调用前已deadline | acquisition/park增量0，沿既有deadline退出；有原effect仍CONFIRMED | 原失败→Website同effect授权，不新submit；G1原反例保留 |
-| 旧lease park拒绝 | 原typed失败外抛；该次park已移交Browser，GPT引用在finally退休；不得再次park旧lease | 原Executor结算/renew停止/Website重授；G1同时验下一lease仍busy |
-| 旧park已结算但acquire失败/取消/排队到期 | 无新lease，无旧lease再park；原错误/fact不丢；queue项/listener移除 | 原执行失败和Websitebounded next action；G1/B1 |
-| acquisition成功但selection失败或取消 | 保留新引用给唯一settle；park该lease一次，收尾失败仍传播并退休其引用 | 原CONFIRMED effect零提交恢复；G1 |
-| selection产生已知限流 | 原code/proof/confirmed fact不被deadline改写；Child唯一关闭Owner先原Outbox事故落账/ack，再原失败收束 | 原Website当前冷却资格；G1已有rate-limit Exam回归，不新增关闭Owner |
-| observation结束/Content缺席/pending、停止空回答、已有Forensics缓存 | 两门/20分钟窗口/图片5秒source/缓存先读保持；缓存命中acquisition0 | 原Child返回、pending再排队或现役精确终态；G1回归，不改判据 |
-| active真实lease占用，任意queued acquire或release到期/取消 | Browser原wake只删该queued项，typed失败；active/jobRef/current native均不变，剩余队列重算 | 对应调用有限退出，原Runtime/Website下一动作；B1 |
-| idle队列、Provider observation尚不合eligible/global clock | 原FIFO在具资格项间服务；expiry仍可先退出；不以过去eligibleAt在busy时1ms循环 | 原samejob/同effect等待，无第二计时者；B1 |
-| release出队、quiet中、dispatch后 | 出队不再用queueDeadline；quiet后复核signal，原Acquirer独立完整30秒deadline | 原cleanup失败保pending，下轮处理；B1保C1/C2 |
-| queue满10、预先aborted、到期0、reset/stop/通道不可用 | 原typed拒绝、listener/wake按现役责任收束；不吞Store/sink/provenance/raw异常、不假业务成功 | 原认证恢复/worker重授，不强行reset busy；B1 |
-| stage/Outbox存在、或Website已admitted而settle失败 | 原唯一结果交付/readback与completed优先，原清理标记保持 | 原Outbox/cleanup loop；G1/B1负向，不改Runtime |
-| 执行真正settled后/真实abort/正常shutdown | 原heartbeat.stop/在途renew结算、原tracker结算、原shutdown等待能有限收束；旧unknown存储不变 | 原startup及Website授权；G1/B1验收，不改shutdown顺序 |
+### W1：Target接入有限拒绝
 
-“100%”只指上述真实有限分母每项有Owner、终态、消费者和验收，不作98%/100%主观评分，不承诺所有Provider异常永不发生。最初回执缺失的历史底层触发未知不影响已经证明的错误引用/队列转换裁决。
+Owner：local-browser-session / 原Actor及其Node transport/Acquirer消费者。src/lib/browser/chrome-extension/websocket-actor.ts#acceptTargetAcquire接入片区依赖W0，与W2同完整方法delete/ABSENT后一次重建；不可分割地纳入src/lib/browser/transport/browser-authority-websocket.ts#requestPreauthorizedTargetRelease和src/lib/browser/infrastructure/browser-target-acquirer.ts#awaitTargetOperation。后两者原定义delete/ABSENT后重建：release直接return原sendControlFrame的number；dispatch返回合同由number|void收敛为number，同步返回后必登记既有requestSequence。acquire原返回、absolute deadline、原字段/超时/resolve/reject及全连接撤权语义保持；不新建state或接收Owner。
 
-## 6. 两张原子施工工单
+顺序：鉴权/decrypt→当前socket/key重验→严格sequence消费→strict targetOperationFrom→读现役pendingTargetHandlers/disconnectedDrain；真实未退出责任存在则精确BROWSER_BACKPRESSURE diagnostic并return。acquire/release均不构造第二Target handler、不调用Authority、不变旧slot/claim/WAL。普通acquire的原暂停/slot/pendingCommandHandlers拒绝也原code diagnostic/return，不进入全连接撤权。非法帧仍原认证fail-close，不能降级背压。
 
-### G1：GPT真实lease引用一次移交和选择失败收尾
+release保留合法排空pendingCommandHandlers的责任和加入自身前快照、捕获旧drain防自等待；不是把合法release的旧command drain删掉。不得增加本地retry。完成片区由W2承担。
 
-Owner：gpt；文件src/capabilities/gpt/production-browser-lifecycle.ts，仅waitForProviderObservation和parkActive两块，直接测试/审计见§7。主Codex写代码；不得改变browserForMode的回合切换、recordConfirmedProviderEffect的先保存事实后恢复选择、Facade identity closure或public ports。
+验收：真实Node Acquirer/Coordinator/transport与真实Actor/Authority、仅mock Chrome/native/WebSocket端点；3job请求在旧native延迟/非返回时Target handler=1、nativecreate=1；两个后来请求各有限失败、close=0、旧slot/claim/WAL不变；旧操作真退出/原cleanup后下一合法请求进入。覆盖late diagnostic跨job/sequence，以及同job的旧release序号不拒新release；当前匹配的失败正常退出，acquire/release实际wire sequence必须等于各自pending字段。signal、release排空、claim/fact ACK及heartbeat不断。失败保持真实操作/事实，不reset计数、改N/延时或重载遮盖。
 
-前置：新的专项施工授权明确覆盖上述冻结非Skill片区；两个Blueprint先对齐并主Codex完成两遍权威自检，未对齐不得进入代码。按物理删除两个旧方法完整片区→检查这两个定义及旧catch/成功才清引用逻辑ABSENT→在同Owner重构；保留调用方不增wrapper、alias、新字段或转发文件。
+### W2：Target handler退出退休自身暂停
 
-重构决定：
-1. pending park前核当前activeBrowser记录的call就是active；不等以原GPT_BROWSER_SESSION_TRANSITION_UNSETTLED零物理动作拒绝。保留该记录，调用原active.facade.park一次，等待该原Promise成功/失败；finally仅退休同一owner记录，不删除active call内的confirmed fact、facade或atomicIdentity。park失败原样抛出，不能再次由settle重试旧lease。
-2. 旧lease引用退休后才进入原acquire。仅acquisition的try/catch处理“没有取得lease”的情况；实际observation deadline到达且原错误是V6_DEADLINE_BUDGET_EXHAUSTED、原signal未abort时才沿原deadline返回。执行lease期限早于observation期限、真实abort、channel/identity/known-rate-limit错误原样抛；不凭Date.now过期覆盖任意错误。
-3. acquisition成功后，先替换active.browser并恢复同一activeBrowser记录，再通过原active.facade.executeDomIntent执行selection；物理退休旧active.browser.executeDomIntent直呼。selection不进入“acquire失败清引用”的catch。当前call/facade与原Child identity贯穿不变，每个新lease的selection也必须按同一productStepId/callId/childCapabilityId/inputHash/actionOrdinal进入runAtomicStep；这兑现GPT Blueprint原第84行及Browser Blueprint原第69行，不新建身份或WAL。
-4. parkActive取得当前记录后向Browser移交本次lease的一次park，finally仅清同一记录，即使park失败也不能将该引用留给第二次settle。原Browser失败、主异常/cleanup AggregateError与已stage保护由原消费者处理；引用退休不写WAL/no、不产生Target已释放凭证。
-5. 单次execution原串行调用责任不变；合法API消费者的重复settle必须零第二次park。失败后B持有lease时，A再次settle不得改变B的lane/active hash/dispatch。禁止加全局epoch/token/state-machine，现有调用期记录足以闭合。
+Owner同W1；仅同方法完成片区。物理删除release success-only解除、failed-only-delete及acquire重复退出分支，与W1同候选重建一个方法内完成closure，不增加类成员、状态或生命周期器。
 
-完成门：§5/G1所有分支native Exam成立；引用在持有新lease期间不丢、无新lease不park旧lease、每个移交的lease最多一次park；原source/effect/identity/hash不变。失败则停止该片区交付，不增加重试或降低guard，恢复接回仍原Executor/Website。
+只对已settled原handler删自身：socket/捕获双向session key仍同一、commandReady、pendingTargetHandlers/pendingCommandHandlers为空、disconnectedDrain=null才退休本次commandAdmissionSuspended。它退休接入暂停，不宣称所有Chrome native退出；原native barrier与逐次input guard继续约束。老回调不解新连接/其他handler/drain责任。
 
-结构余量：当前文件428行、imports7、class members15；wait38行/复杂度10/6参/3await，parkActive11行/复杂度3。主Codex已在内存AST按上述两阶段控制流测得目标复杂度13，非已建设证据。目标留同文件，两个方法各≤75行/复杂度16/await10/返回8/深度5；不往69行的browserForMode加分支、不拆出新管理层。以原生预算裁决，若目标预计越界应在同片区用更短两阶段控制流重写，禁止先堆再豁免。
+成功业务输出不改、原flush继续。失败如实保留code/slot/registry；发送原job/failedFrameSequence diagnostic前必须重验捕获socket和双向key仍同会话且ready，旧回调不调用会捕获新会话的reportRuntimeFailure。同会话原诊断发送与原flush补交其他合法fact继续；换会话只退休自身handler，原单槽经当前会话原heartbeat/flush补交原fact。原sendEncrypted内部捕获会话的后续await重验保持；无新epoch字段或诊断缓存。发送失败原transport路径，不吞错、不撤已记账事实、不等待自身/ACK。解除暂停不授风险输入。
 
-### B1：唯一FIFO内全部queued请求有限期限
+验收：实际release getTargets拒绝、remove/absence失败、失败保槽、新旧socket/key、drain/新handler竞争、同一handler一次退休。真实Actor旧acquire/release失败→新key原transport decoder→原Acquirer，构造同job且numeric sequence相等；旧回调不发送到新会话，新pending不被错拒，同会话当前失败仍正确记账。无其他责任时下一正常acquire可进入；真实native未退仍零额外输入；失败不能清同job槽/WAL或伪报释放/完成。失败job沿原Runtime/Website当前授权接回。
 
-Owner：local-browser-session；文件src/lib/browser/infrastructure/browser-lane-coordinator.ts。完整删除expireQueuedReleases、pump、scheduleWake三块→核旧三个定义及release-only expiry过滤ABSENT→重构这些现有职责。允许原expiry私有方法更名为expireQueuedWaiters；它直接替代旧职责，不是兼容壳，旧名引用归零。acquire/release公共接口、nextWaiter/serveAcquire/withLifecycle/reset、TargetAcquirer与当前wire保持原语义。
+### W3：同包后置事实一个机械决定
 
-1. busy pump用现有waiterExpiryCode检查queue内两种waiter；到期/已abort只从queue移除并原typed reject，原finish清abort listener。不检查或拒绝已出队inflight项，不变active/jobRef，不dispatch、不reset。
-2. 原唯一scheduleWake对所有queued项计算其deadline；busy仅选最早expiry，不取eligibleAt/global observation clock，避免past eligibility的1ms循环。idle继续取min(expiry,原eligibility)，Provider observation仍取max(eligibleAt,observationNotBefore)。
-3. acquire期限只消费原remainingMs函数，不能在入队冻结一份副本；lease renew合法延长时既有timer到时重读尚未expired则重算，早timer不得假超时。release queued期限仍原queueDeadlineAt，出队后退休；两相不混。
-4. enqueue调用原pump、expiry/abort/出队/park/reset后重算原wake；队列为空清wake。唯一timer不得跟随每waiter增加，也不能因一个waiter退出清空其余。
-5. quiet和真实command dispatch仍原串行事实；40秒quiet后的release获得原30秒dispatch，signal撤销则不dispatch。仅排队期限有有限出口不能声称native取消、真实lane空闲或cleanup完成。
+Owner：local-browser-session / browser-observation-receipt.ts。仅该文件coherentRowResult/exactOutgoingPostconditionVerified/observationPostconditionEvidenceValid及dom-mutation-postcondition.ts的exactOutgoingTurnVerified/waitForObservation；直接关联dom-coherent-observation.ts的sanitizeCurrentUrl/固定segment上限及其decodeObservationCall调用/import。将原清洗函数和原上限原位迁移至receipt Owner，Extension decoder直接复用，旧定义ABSENT；serialized页内location.href采集剥离query/fragment属于另一输入边界，保持现役行为，不误并或误删。
 
-完成门：§5/B1所有分支及C1/C2回归成立；busy下acquire真正按期typed退出，B/C仍active安全；queue/listener/wake清理无残留。失败保原pending与typed异常、停该片区交付，不能以忽略expiry、取消active或重做Provider掩盖。
-结构余量：文件233行/imports9/class members28（上限30）；旧expiry9行/复杂度4，pump24行/复杂度10，wake18行/复杂度9。只替换三个方法，不新增class成员、抽象或依赖；全部原生代码预算守住。
+物理删除重复exact规则与exact覆盖首因分支，ABSENT后重建。现役receipt文件承载一个局部机械决定，两个现役严格同义消费者直接使用。输入原postClickObservation、可选preClickExactOutgoingTurn、同一个raw/bound coherent packet；Node header/binding/hash原strict校验继续，扩展不调用未bind header校验；无Node-only依赖或新跨域validator。
 
-依赖顺序：Blueprint两遍主审 → G1与其局部防回归 → B1与其局部防回归 → 同候选联合反查。B1可独立证明队列有限性，不能代替G1释放持有引用；G1不能代替B1在认证缺席/其它真实占用时的有限退出。
+唯一顺序：
+1. 已有shape/identity/hash不合法仍拒绝；同一原sanitizeCurrentUrl必须返回与包currentUrl逐字相等，protocol=https、固定origin、无credentials/query/fragment、pathname仅`/`或`/c/<opaque segment>`（非空且≤原256上限），缺失/非法整包拒收。原清洗函数抛BROWSER_DOM_READ_INVALID时，Node evidence verifier须映射为invalid，由原接收边界产生AUTH_INVALID，不能裸抛绕过该边界；Extension decoder保原DOM_READ_INVALID。不得解释opaque内部格式；此处不使用canonical locator regex，不能把非法包算合法pending。
+2. query按合同顺序，首个eligible失配产生原closed Q<i>__C；exact无豁免，0..19和原原因集合不扩张。
+3. query全合格，未要求exact则原ordinary成功；要求exact时首query原match prompt hash相等且同包currentUrl经原requireCanonicalGptConversationUrl等于自身才成功。
+4. query全合格、包合法但hash/locator不成立为false/MISSING，含合法首页或未满足canonical规则的合法opaque路径；非法/未清洗URL已在第1步整包拒收。合法后置失败不AUTH、不推零输入、不再点submit。
+5. Node比较postconditionVerified/nativeCause与同一决定；原clicked、mutationCount、identityRevalidated、binding、revision hash、submitRecoveryPayload其他严格校验继续。
 
-## 7. 质检落点、反例和最终业务验收
+普通1.5秒、动作2.5秒、submit静默40秒、Provider70–90秒、两段瞬态确认、单匹配后置/known limit不改，不新增Child第三门。已输入缺locator走原effect/Website有限恢复，不补点击或第二GPT回合。
 
-直接允许修改的质检仅：
-- GPT现役src/capabilities/gpt/acceptance/gpt-production-browser-wait.acceptance-support.ts、gpt-production-browser-recovery.acceptance-support.ts，原gpt-production-browser-lifecycle.acceptance.ts入口复用。
-- Browser现役scripts/acceptance/browser-lane-fifo.acceptance.ts与browser-lane-fifo-support.ts，复用真实Coordinator/Acquirer。
-- scripts/audit/domains/gpt/gpt-provider-contract-inspection.ts原inspectGptProviderProbeOwnerContract，补AST控制流证明“acquire失败catch不包含selection、登记新lease早于facade selection、禁止此处直呼active.browser selection、park成功失败皆退休同一引用”；scripts/audit/domains/local-browser-session/target-claim-inspection.ts原inspectProductReleaseIsolation，核queue两种expiry/唯一wake及active不被queued expiry改写。
-不新增checker、测试registry、专用quality入口或放行分数；旧AST规则同步表达现役方法，不只搜索token/方法名宣称安全。反例在原普通测试入口执行，不能删测试或缩小law/evidence分母。
+验收：真实producer→bind→decoder→原fact/WAL/CAS/ACK链，用独立外部期望表，不由新函数生成期望。覆盖首页/canonical/合法opaque路径/hash不等、query0/后续首错及多错优先级、multi-match。非法URL分为只篡改URL破坏原revision/hash、以及用正确重新绑定hash但携http/foreign origin/credentials/query/fragment/非法pathname的整包，两类均拒，并断言Node准确AUTH_INVALID、Extension decoder原DOM_READ_INVALID；合法首页/opaque只缺locator则合法后置失败。伪cause/hash/header、普通20个index与closed原因拒伪造保留，失败原strict fail-close，不宽正则/旧规则fallback，不把未知补零。
 
-G1普通Exam：真实Lifecycle调用公开Browser端口stub控制三阶段（park/acquire/select），禁止selection永远成功的单一fixture作为充分证据。原wait fixture的executeDomIntent须实际captureCommandIdentity，验证文本/图片每次选择、成功或失败的命令均带同一checkpoint identity和新lease编号；旧只记录观察/park的数组断言按真实新增选择序列重建，不能删身份断言。覆盖正常换lease与live getter；选择报BROWSER_COMMAND_RECEIPT_MISSING、known-rate-limit、abort、超过deadline后仍保原错误；old park失败后重复settle零第二park，B当前lease/hash保持；acquire reject/到期/abort无新lease则park计数不变；newlease的park失败仍typed失败且引用退休；recordConfirmedProviderEffect恢复选择失败同样有一次收尾；缓存命中与短预算零acquisition。验证原CONFIRMED/evidence/原promptHash及Provider input delta=0。
+### W4：原释放成功按原请求收口
 
-B1普通Exam：真实Coordinator锁住A lease；fresh/bound-observation/confirmed-readback/authorized-continuation与queued release分别受signal/期限约束。一个项到期不影响A active/hash/native，其它queued仍可在A park后服务；多个项异时到期；remainingMs延长、预先abort、到期0、queue10背压；park/abort/reset后原timer/listener正确收束；busy没有eligible忙循环；idleeligible/原随机唯一clock/跨job公平与live getter不变。原release queued30→quiet40→dispatch30及signal/timeout/跨job cleanup全部保留。
+Owner仍local-browser-session。仅原extension-target-release.ts#releaseJobBoundTarget/ReleaseContext、extension-target-authority.ts#releaseJobBoundChatGptTarget、Actor同一acceptTargetAcquire的release执行/发送片区、browser-authority-frame-payload.ts#BrowserAuthorityTargetRevoke/#parseBrowserAuthorityTargetRevoke、browser-infrastructure-supervisor.ts#onTargetRevoke；以及原browser-protocol.schema.json的revision=11与原generator生成browser-protocol.generated.ts。上述旧定义/回调发送分支delete→ABSENT→同路径重构，生成物只能原generate-browser-protocol.mjs生成，不手写；errors.json版号是错误目录自身，原样保持。
 
-最新日志防误伤验收继续落在以上原Exam：Browser真实Coordinator配原Acquirer时，出队后的Target操作超时/Extension同码拒绝必须沿原BROWSER_TARGET_ACQUISITION_TIMEOUT拒绝当前项、清本次pump占用，下一合法项仍可取得lease；此时原native deadline、待Target认证与pending exact匹配规则均保持。与之对照，仍queued项到期必须发原V6_DEADLINE_BUDGET_EXHAUSTED、Target dispatch增量0且不清其它active；不能混为同一种超时。GPT原prepare/模型菜单失败仍由原finally收尾，不新增这些Child修复；原confirmed读回继续零fill/file-input/submit。Runtime原失败→停止本attempt renew/lease release→Website新grant→同job新attempt执行的公开消费者验收保持独立；已有upload/terminal成功仍待原admission/completed读回，不把请求succeeded当最终完成。
+物理helper在原三条真实终点返回typed targetRef/jobRefHash/releaseOutcome：两个absent仍null，一次released仍精确bound targetRef；原readTargets/removeTab/readTab/readTargets、registry身份重验、失败throw/restore保持。删除context.sendRevoke的输出副作用，由原Authority await该结果→原onReleased（仅获admin且精确槽身份才清）→返回原typed结果。Actor的原tracked Promise<void>覆盖整个native/physical proof、onReleased、同捕获socket+双向key下sendEncrypted(TARGET_REVOKE,{...真实结果,requestSequence:frame.sequence})；不以Promise<result>强转或提前settled wrapper藏真实在途。换会话不发送旧成功，但原已证明退休不还原、不伪失败事实。
 
-联合反查通过各Owner原普通Exam与一次设计用内存反例重放交叉核对；不建立共享生产journey或Dynamic proof bus。Runtime只验其公开typed结果消费者：执行失败真正结算后原heartbeat不再续租，在途renew先结算；已有stage/Outbox/admission不被cleanup撤销。原Runtime Exam保持独立，不将完整Product/GPT/Browser流程塞入Runtime质检。
+parser对release分支严格四字段和safe integer≥1，缺序号/旧三字段/未知字段拒收；普通documentRef revoke仍原三字段。Supervisor匹配pending.action/job/requestSequence后走原精确claim退休、fence校验和resolve；不匹配时只有非null结果可调用原broker.revokeOperatorTargetClaim({targetRef,jobRefHash})，原broker已只匹配才退；迟到absent不得调用无参revoke，任何迟到结果不得清槽/WAL或解决新pending。无需新pending字段、历史请求账本、receipt缓存或恢复Owner；pending先建立再同步dispatch，原requestSequence仍可选作初始化，不给缺序号的回执匹配资格。没有历史账本就不声称能识别所有格式合法但不匹配的正整数是伪造还是迟到，只限定其动作/结算权为零或原精确claim退休。原WebSocket认证、deadline、monotonic client sequence和全局非法帧fail-close不放宽。
 
-实际建设后的唯一质量入口：npm run quality:check -- CHANGE；按冻结ci-full-governance执行 CHANGE通过→授权clean commit→推送→READY通过→再次推送。冻结Skill不修改，原生失败按其要求处理；RELEASE需另有用户明确要求，方案和READY均不启动生产RELEASE。当前方案阶段不运行代码修复测试或READY，不伪报这些未来验收已通过。
+验收在真实Actor/Authority/physical helper→原encrypted frame/strict parser→真实Supervisor/Acquirer完成：①当前匹配成功；②caller超时后用新鲜回执deadline迟交付，无pending/兄弟pending/同job新pending均close=0且不resolve；③旧business释放对新admin释放不能授purge或清槽；④新同job不同Target+late absent零claim动作，late released只退休精确旧claim；⑤换key旧成功不发，新会话原fresh release可证明absence接回；⑥失败保槽/registry、管理员原精确清槽先于自己成功回执、跨job/操作者Tab零触碰；⑦缺/零/负/小数/非安全整数/未知字段/不等nonce/坏cipher及旧protocol10全部原fail-close。物理结果不能由timeout/连接断开编造。
 
-生产成效验收只在另获操作授权后执行：
-- 由各Owner现役Dynamic Proof独立取得本域law证据，不能共享job/journey/assertion-map代替各自证明，也不在生产对真实订单破坏性注入错误。
-- 对本事故故障job按Website当前grant接回；已有结果优先交付，否则原confirmed/source零提交读回，确证不可得再由Website原风险授权。A的失败不是永久demand终点；B/C在合法资格/认证恢复后各抵达自己领域入库。
-- 真实日志核每job执行有限终态/renew收束，Browser不再无现实动作却漏占lane；Website领域对象、admission receipt、result_payload_hash和原Runtime completed逐身份读回。原N=1..4、14产品及9个ZIP既有验证义务不减。
-- 缺少原答案、授权、认证或领域接纳证据时如实记具体pending/typed失败及原下一动作；不能以打开3个Tab、HTTP200、局部Exam或旧READY判成业务完成。
+## 7. 结构预算、质检与分层完成
 
-## 8. 删除反事实、切换与失败停止
+原生AST现值：Actor393行/15imports/15sources/类成员30，已到上限；acceptTargetAcquire41行/2params/2returns/1await/nest1/complexity11。禁止加Actor成员或helper成员，W1/W2用原方法/局部closure，类仍30；每函数≤75行/7params/8returns/10await/nest5/complexity16，文件≤500、imports≤28/sources≤24。
 
-| 单元/真实消费者 | 删除会造成的具体失败/较短方案裁决 | 物理退休对象 |
-|---|---|---|
-| GPT现有call/facade与调用期activeBrowser，checkpoint/settle直接消费 | 删call会丢原effect/Child身份；删持有记录使selection失败不能park。最短是两个原方法的引用生命周期重构，selection复用原facade，无新manager/phase字段 | selection失败提前清引用catch；park失败后旧引用可再次park；pending reacquire后绕facade直呼selection |
-| Browser原queue/active/唯一wake，acquire/release消费 | 删queue会并发现实动作；删wake使busy queued acquire无出口。最短复用waiterExpiryCode和原timer；不能另建watchdog | expireQueuedReleases旧名/过滤；busy只计算release expiry旧分支 |
-| 原Acquirer及native guard/transport撤权 | 删除会将Promise期限误作物理安全，可能放出仍在途native；没有更短合法替代 | 不删除、不修改；park未知不伪成功 |
-| 原WAL/Forensics/stage/Outbox/Websitegrant | 删除会丢答案、抹未知或重发Provider；各Owner正交真相被真实consumer使用 | 不合并；无新表/receipt/恢复状态 |
-| 原heartbeat/tracker/cleanup/日志投影 | 删除合法运行续租或既有效结果收尾；引用/期限修正后原链即可真实收束，无需再造机制 | 保留L1/C1/C2/D1成熟实现；旧日志status不作资格 |
-| 两个既有Blueprint/两个既有inspector/领域Exam | 删除会留下错结构或漏掉这两个真实故障分支；已有入口足够 | 原错误段落/规则在同候选同步替换，无第二verdict |
-| 新epoch/token、每waiter timer、capacity-release API、状态表/health缓存、兼容链 | 全部删除仍可沿既有Owner闭合本分母，不能证明必要 | 不设计、不预留、不建设 |
+dom-mutation-postcondition303行/9imports/8sources/10exports，waitForObservation55行/6params/3await/nest3/complexity9，删除12行重复exact helper再承载。receipt302行/6imports/6sources/15exports，coherentRowResult21行/complexity14、exact13行/complexity8、verifier21行/complexity12；不把新判定堆进complexity14函数，原Owner删除重构局部决定，每函数同红线、exports≤24，不新建文件。
 
-每次施工只物理删除上列批准的精确片区，保留不涉及GAP的成熟结构和消费者；主Codex现场核ABSENT，再同路径重构。审计更新只因真实finding发生，不增加全仓大重写。没有“代码更少就算提升”的退化验收：正向两个反例修复和成熟防回归必须同候选同时成立。
+新增关联片区实测：transport297行/10imports/10sources/27类成员，release4行/3params/complexity2；Acquirer95行/6imports/6sources/6成员，awaitTargetOperation33行/4params/complexity6。仅原返回/dispatch登记链重构，不增成员。dom-coherent-observation485行/7imports/7sources，原sanitizeCurrentUrl13行/complexity14/nest1迁出后缩减；receipt新增原函数/常量导出仍≤24，清洗/判定各函数独立守原预算。
 
-本轮无协议/合同/数据库/扩展变更，只有AGENT单仓代码build切换，无双仓不兼容窗口。将来切换必须另获重启/部署授权，原Runtime先停新claim并核真实在途/结果交付；卡死旧进程的内存引用不能被源码更新热修，未真正退出不宣称drained。不发明强杀/接管接口，不按端口猜杀进程，不用历史DISPATCHED=0作切换门，不操作用户Tab或人工删单。无法通过原启动/停止入口证明确切旧Owner已退出时，停止运行切换并返回具体进程事实及操作授权缺口。
+R1原值：Supervisor407行/23imports/23sources/类成员30，onTargetRevoke24行/complexity9/nest3；禁止新增成员，原方法内匹配/被动精确退休即可。Authority257行/21imports/21sources/28成员，release9行/complexity1；physical helper35行/3sources，release25行/complexity11；frame-payload93行/8sources/13exports，parseTargetRevoke14行/complexity10/nest2。typed物理结果直接复用原合同类型投影，不另建spec；只原位返回/消费，原结构红线不减。
 
-回退点是同一已核AGENT完整build；回退只回代码，不撤已写WAL/Forensics/Outbox/receipt/source，不复活旧fence。退回会重新暴露本次缺陷时保持停止新输入，再修正此唯一链；不能启用备用通道、重试旧park或新flag绕过。代码改动/审计/质量期间相关source漂移只重核受影响片区，用户overlay不可覆盖、stash、移走或顺手提交。
+未来直接质检修改仅原路径：
+- scripts/acceptance/local-browser-target-lifecycle-support.ts（230行）/local-browser-auto-pairing.acceptance.ts：真实认证Actor接入/退出及原Node consumer反例，只mock叶端点，不mock被测方法。原local-browser-auto-pairing-support.ts（371行、24sources已满）复用并导出原workerFixture给上述consumer，不再添import来源；原withdrawalRaces/authorizedWithdrawal消费新背压及typed结果，保原admin精确排空/清槽/失败保槽分母，不用假Authority方法替代根因验收。新反例落target-lifecycle-support守500行/24sources/函数预算。原agent-production-runtime-business-admission.acceptance-support.ts（481行）只同步现役release叶stub返回序号，保留管理员删除全量断言。
+- 原browser-lane-fifo-support.ts（314行、9sources）的releaseThroughWire/delayedRevocation/intentionalClose同步物理返回结果和releaseOutcome四字段；原release dispatch fixture已return1，保持。生命周期closeRotatedTargets/continuation/closed-tab recovery保留跨job轮转/精确Tab不误删；当前回执匹配正例及合法迟到的零动作负例替换原throw断言，shape伪造/失败restore/readback/absence不减。
+- local-browser-dom-coherent-click-support.ts（178行）/local-browser-mutation-receipt-support.ts（111行）/local-browser-terminal-contract.acceptance.ts：S1真实producer/consumer与原WAL-ACK，独立期望。
+- scripts/audit/domains/local-browser-session/target-claim-inspection.ts#inspectAcquisitionWire/#inspectWire/#inspectRelease/#inspectPhysicalReleaseProof：删除旧字符串/发送节点判定形态，原位证明fence顺序/本次handler退休/原socket-key诊断及成功归属、acquire/release原sequence登记与释放成功四字段/parser/匹配消费。原三条真实物理输出从context.sendRevoke节点改核真实typed返回→Authority onReleased→Actor tracked发送，保两条null absent/一次exact released、失败throw/restore、fresh物理readback先后；不可因改返回形式让断言空转。
+- 同现役dom-mechanical-facts-inspection.ts#inspectPostconditionEvidence/#inspectCoherentRuntime：证明两后置消费者同判定、Extension decoder从原receipt Owner import/call原清洗函数及其原卫生门/上限；页内producer物理丢弃query/fragment断言保留，不只删迁走token或降分母。原rule-mutants覆盖漏gate、盲清暂停、并行native、丢release序号、旧session诊断/成功、新admin错resolve、迟到null清新claim、URL伪造、只查函数名的反例，原旧sendRevoke token按唯一新物理返回链重建。必要新增反例仅落原local-browser-rule-mutants.acceptance.ts。
 
-## 9. 主审、子审与执行者重绑定
+保留原G1/B1/FIFO、logical priority/native barrier、跨job Target轮转、管理员exact释放、自等待/断线drain、ACK丢失重投/dispose、日志失败仍ACK、索引20×原因、限流、文本/图片marker读取。原检查器/law/evidence分母不能删减，原质量Owner/入口不扩张。
 
-方案主审必须三轮、按真实finding修订后再复核：第一轮authority/Owner/合同/冻结边界；第二轮本分母失败时序及跨job连坐攻击；第三轮前轮连续性、删除反事实、结构预算、四维验收与source candidate。三轮完成后才启动子智能体，子智能体只读比较本方案与当前源头、法案及双遍完整Skill；不是代码写手，不执行Browser或生产动作。子审未明确放行不能把状态改为可施工。
+当前只有设计反例，不宣称修复代码Exam已通过。建设后主Codex两轮实际diff自检→实际建设与方案/法案/Skill差异子审放行→唯一quality:check CHANGE；经授权clean commit/推送→READY/再次推送，按冻结ci-full-governance，不改Skill、不并行多套质量链。RELEASE/Dynamic Proof另需明确要求，方案子审不替建设子审。
 
-执行Codex须先重绑定§10的当前源头，重读冻结索引与本项目现役权威，确认新的专项授权精确覆盖G1/B1及两个Blueprint/质检；本轮方案授权不构成非Skill基础设施施工授权。完成Blueprint法案对齐和两遍主审后才进入代码；代码建设后主Codex至少两遍自检，再由审计子智能体实际比建设与本方案的差异，全部放行才进入原生CI-FULL。设计子审签字不能代替代码子审、quality verdict或业务readback。
+生产成效另获运行取证授权后：故障job和两个兄弟job各查Website admission/适用领域存储/Runtime completed；原结果先交、原effect有界零提交读回、必要Website风险grant顺序保持。永久native未知继续记未知，不能把背压换码当业务成功；无首因证明不能宣布全部Target超时根治。
 
-主Codex方案三轮自审已完成：
-1. 权威/四维审计：核39条active law、全部显式lawId引用、两个Manifest唯一Owner、公开合同45/18/10无delta及专项授权。将法案表缩写替换为完整lawId；纠正前稿旧CI链，RELEASE不随READY自动执行。无需修法，两个Blueprint欠缺必须在施工前修正。
-2. 连坐/失败反向攻击：以现役两个类重现selection漏释放和旧park重试清掉新lease两个反例；将park失败后的引用退休、无新lease不park旧lease、selection错误不能被墙钟覆盖和known-rate-limit保持列为必须验收；补stale call拒绝及remainingMs合法延长反例。没有强制取消active、历史WAL门或重复Provider输入路径。
-3. 连续性/删除/结构审计：原Child跨lease identity、C1三相release预算、L1/C2/D1与Website唯一恢复保留；当前方法预算及目标AST复杂度13可承载，删除所有新增manager/timer/状态表/备用链。复核每项分母均落到G1/B1及原消费者，source候选无漂移，产物仅本唯一方案。文档尾空行已去除，待子审实际复核。
-以上是设计审查，不是原生quality PASS或已修复生产。
+## 8. 删除反事实与切换
 
-两位独立审计子智能体实际全文双遍读取闭环Skill，比较本方案与现役源码、法案/Blueprint后均明确放行，无未解决finding。法案/误伤专审提出F-LAW-1：pending reacquire的selection原直呼绕过facade，原fixture又未捕捉selection身份。主Codex据GPT Blueprint原第84行、Browser Blueprint原第69行核证并修正§4/G1/§7/删除表，两位子审均读回复核放行。直接兼容核验：selection仍为lifecycle与既有browser.dom.click.v1，BrowserCommandActor的mutation闭集不含selection；通过原facade携checkpoint observation-only identity不产生新WAL、receiptBindingHash或提交资格，原permit/Extension接收兼容，无需wire改动。两人同时核G1旧park失败后一次引用退休、B1 queued期限不改active/native及原三相预算；闭环质检独立重算两仓原scoped hash相等。最后Website无关商业订单证据模式漂移按§10重绑定，法案专审再次独立核新hash及AI恢复/合同/Provider不变，明确前次放行保持。主Codex最后核重绑定source一致、AGENT仅此文档dirty、diff check无错误。此放行不授权施工、不代替代码子审、原生quality或生产readback。
+| 单元、Owner/真实消费者 | 必需GAP、删除具体失败、更短裁决及旧路退出 |
+| --- | --- |
+| 原Actor handler集合/暂停；Node请求与drain消费接入/失败事实 | A1/A2删除会积压或遗留暂停。复用原集合/flag，删无真实责任的暂停；W1/W2旧方法/两套退休分支delete→ABSENT→rebuild，不加状态 |
+| 原DebuggerRuntime logical cycle/native guard/barrier；Authority消费物理许可 | 删除会在真实在途动作后读/输入，原反例可证。直接复用，不加watchdog/reset计数 |
+| 原Node pending/Coordinator FIFO；GPT和claim/revoke消费lease/typed失败 | 删除丢身份/期限/公平性。原transport与Acquirer序号登记断链按W1原定义delete→ABSENT→rebuild，扩展接入关闭A1积压；不加物理租约真相/第二队列或历史DISPATCHED门 |
+| 原receipt Owner的一次机械决定/原URL清洗；扩展/Node消费者 | 删任一消费无法产生/验证事实，留两份决定重现S1。复用原Owner比新模块更短，W3退休producer重复helper及consumer hash-only语义，原sanitize函数迁入同Owner、旧定义退出，不增第二清洗规则 |
+| 原physical release结果/Actor发送/strict parser/原Supervisor消费者 | 删除实际物理结果或关联不能合法证明释放；保三字段旧response会错resolve新admin或撤兄弟连接。仅加原requestSequence比重用deadline或新增历史账本更短；W4旧发送/解析/匹配片区delete→ABSENT→唯一重建，单协议11，零第二状态/存储 |
+| 原WAL/slot/ACK/dispose及Website恢复；各原Owner输出effect/receipt/grant | 删除会丢未知并重放；直接复用，背压或解除暂停不能清旧事实，零新store/retry/恢复Owner |
+| 原Blueprint/inspector/acceptance；施工者/唯一quality消费 | 本轮冲突与反例需改对应片区，删验收失去四个GAP及成熟不变量证明；更新原对象，零新治理文件/registry/Manifest/checker/verdict |
 
-最新日志补证已完成三轮主核：第一轮逐eventId/完整对象与原始固定窗口、job/attempt/lease/Child身份核对；第二轮核零Provider输入、原失败收尾/新grant接回与其它job继续完成，并区分Target操作超时和queued expiry；第三轮核G1/B1施工面、成熟验收及两仓scoped source均未改变，实际差异只有本方案。随后法案/连坐专审与闭环/连续性专审各自完整解析附件与固定原始窗口，独立重算日志及source hash、读回§2/§7/§10，均明确补证放行，无未解决finding，前次方案准入保持。仅补充证据与原Exam防误伤要求，没有生产修复或动态通过结论。
+未通过必要性/安全证明的native进度协议、诊断缓存、新枚举/状态库、自动断连/重载/强杀、第二恢复队列、延时放大、全Product重做均从目标方案删除。
+
+切换只AGENT Node+唯一Extension固定artifact，目标唯一wire11（旧10物理退出），Website45/18/DB不变，无双仓施工。原schema→原generator派生唯一protocol revision/hash，原candidate生成唯一releaseBuildId；实际启用另获原启动/停止授权，先停新claim、继续结果/receipt交付、证明旧真实handler/native退出，再旧worker退出/Node与同build Extension一起启用，无fallback或兼容桥。原startup policyHashes/build releaseRecord/hash消费者直接复用，不扩写生成机制。历史未知WAL不要求清零；native未退不能虚报drained，不自行强杀。回退仅完整已核Node/Extension候选，不撤事实/复活fence或混新旧模块；不接纳旧10或单端旧response。
+
+## 9. 三轮主审、子审与执行者重绑定
+
+本轮三轮主审和两位子审已完成；可施工仅是设计准入，未来执行授权及实际建设验收仍按§1/§6/§7。三轮主审分别核：①authority/Owner/授权与下级冲突；②有限分支/失败时序/跨job连坐；③前轮连续性、删除反事实、结构预算、可取得验收与candidate drift。三轮无finding才启动子审，子智能体只读对比当前方案、源头、法案和完整双遍闭环Skill；未明确放行不得结束方案建设。
+
+主审第1轮已核active39条及全部显式lawId、下级exact豁免冲突、原Owner/wire10/45/18、冻结非Skill施工授权门。修正法案缩写为完整identity，补入直接rule-mutants/submit consumer及反向pointer/coherent准备调用的candidate范围；没有法案弱化或施工越权。
+
+主审第2轮按§5逐分支反向攻击：真实native未退不假释放；晚诊断跨job/sequence不误拒；release失败保槽/registry、旧回调不解除新drain；管理员快照在自身加入前；S1首query原因不被hash/URL覆盖、合法失败保真实计数/原ACK、非法包不放宽；已CONFIRMED同effect零重发。分母各有原Owner/终态/回接，不新增永久native自动恢复声明。
+
+初稿主审第3轮核前轮G1/B1已落地符号与防回归验收、预点击/点击后判定的不同职责、Actor30成员红线与各函数预算、同包唯一决定的两个消费者、原Static/Exam落点/删除反事实、业务终点及未来授权/切换门；初稿绑定为47+7文件。该轮结论不是后续补全候选的放行。
+
+子审发现的release序号丢失、旧session失败诊断、迟到释放成功的连坐，主Codex已用真实原类/认证解码反例逐项复核，分别纳入W1/W2/W4；原URL清洗与canonical locator职责混用的风险纳入W3，不缩窄合法opaque包。原物理typed返回→Authority→Actor完整tracked发送、成功四字段/唯一11、现役fixture/inspector的直接消费及原分母均纳入本方案，不留口头补丁。
+
+补全稿主审第1轮重新匹配冻结说明书§24/25/37/38/81–83/B.3，核19个显式现役lawId、LAW006请求三字段与响应序号的不同责任、单协议/同候选、原类型主权及URL合法性，未发现需修改active law或冻结规范。第2轮反向核W1–W4的失败与成功会话归属、真实handler退休、同job/跨job/新管理员请求、迟到null零claim动作、非法包准确原因、永久native未知及原effect/Website接回，未发现新增连坐或虚假物理完成。第3轮全文核原检查器/fixtures/质量分母、Actor与Supervisor各30成员预算、原sanitize唯一迁移、物理删除/ABSENT验收及前轮连续性；独立重算55+7文件hash与§10相等，两仓scope均无overlay、19个lawId均在现役源头、三份Skill hash未变，本方案独占AGENT差异且diff check无错误。补全稿三轮主审完成。
+
+本轮子审audit_plan_law_target_20261012与audit_plan_closure_target_20261012均全文读回同一补全稿，独立核55+7绑定并明确“方案放行”，无未闭合finding；共同审查稿SHA256=5d3b98a9cd209a274897a411e75395d6be5bae334f728883604748d33c88b6cf。放行后本段及状态只记录审计结果，不改变目标合同或施工动作。子审只做只读审查；结论仅设计准入，不替代代码建设、CHANGE、READY或生产证明。
+
+未来执行Codex重新核§10 HEAD/overlay/hash及现役Skill，确认专项授权；W0两轮主审无finding才代码，各批准片区实际delete→ABSENT→唯一rebuild，重要步骤子审只审；代码后两轮主检及实际建设子审放行才CI-FULL。不把本轮设计授权/审查升格为施工或READY/生产完成。
 
 ## 10. Scoped source candidate
 
-方案文件自身不进入source hash。各仓路径按UTF-8 bytes排序，连接每个path + NUL + 文件内容SHA256十六进制 + LF，再SHA256。文档hash最终交付另报，不递归写入自己。本轮初次写前两仓overlay均空，保持main；AGENT后续仅本方案dirty。子审后写前复核发现Website他人overlay：商业订单LAW-COMMERCIAL-ORDER-MANAGEMENT-008-V5→V6仅升级证据模式、版本与supersedes，summary/forbidden不变，另有SYSTEM-BLUEPRINT、商业订单checker及独立方案改动。主Codex重核本范围内只有功能法案文件bytes改变，LAW-AI-ACCEPTANCE-002-V37/004-V33、45/18合同与Provider实现均不变；按该文件新bytes重绑定以下Website scoped hash，所有他人overlay原样保留，不扩大施工或网站质检。
+算法：路径按UTF-8 bytes排序，连接path+NUL+内容SHA256hex+LF，再SHA256；本方案自身排除，文档hash交付另报。AGENT初始全工作区clean；Website有他人无关overlay，以下只读scope clean，原样保留，不纳入AGENT提交。相关漂移只重核受影响片区。
 
-/Users/nexgen/Documents/AGENT：branch=main，HEAD=5554299631b2820b58a9ce18b6365474ed90756d，tracking=refs/remotes/origin/main（5554299631b2820b58a9ce18b6365474ed90756d）；42文件scoped hash=93c69dadd29fb99cf5b5065f12f711811bbe825a5e683606466abf6662c5425d。
+AGENT realpath=/Users/nexgen/Documents/AGENT；main；HEAD=bd04fb6a903e4514472d81e629334738c80dd14b；tracking=origin/main；55文件source hash=5ccacc27b5caf69b9a6711b2326d47fb4bd85b2843686971ced6d3fdaffc3e8a。
 
 ```text
-.agents/skills/agent-flow-boundary-gatekeeper/SKILL.md
-.github/instructions/agent-rules/功能法案.md
-.github/instructions/agent-rules/基础法案.md
 AGENTS.md
-docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md
-docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md
-docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md
+.github/instructions/agent-rules/基础法案.md
+.github/instructions/agent-rules/功能法案.md
 docs/governance/法案系统建设说明书-冻结定稿版.md
-docs/specs/agent-production-runtime/website-agent-task-result.dependency.spec.json
-docs/specs/agent-production-runtime/xuanxue-ai-production-v6.dependency.spec.json
-docs/项目方案/GPT等待原因可观测性-完整实现方案.md
-docs/项目方案/N 标签工单独占轮巡模式方案.md
-docs/项目方案/十小时连续运行事故分组根治-完整实现方案.md
-package.json
+docs/blueprints/local-browser-session/LOCAL-BROWSER-AUTO-PAIRING-AND-EXACT-CHATGPT-CLAIM-V2-BLUEPRINT.md
+docs/blueprints/gpt/GPT-CAPABILITY-GROUP-V2-BLUEPRINT.md
+docs/blueprints/runtime-log-spine/RUNTIME-LOG-SPINE-V2-BLUEPRINT.md
+docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md
+docs/blueprints/code-purity/QUALITY-EVIDENCE-OWNERSHIP-V1-BLUEPRINT.md
+src/lib/browser/chrome-extension/websocket-actor.ts
+src/lib/browser/chrome-extension/extension-target-authority.ts
+src/lib/browser/chrome-extension/extension-target-acquisition.ts
+src/lib/browser/chrome-extension/extension-target-release.ts
+src/lib/browser/chrome-extension/extension-created-target.ts
+src/lib/browser/chrome-extension/debugger-runtime.ts
+src/lib/browser/chrome-extension/dom-mutation-postcondition.ts
+src/lib/browser/chrome-extension/dom-pointer-intent-runtime.ts
+src/lib/browser/chrome-extension/dom-coherent-candidate.ts
+src/lib/browser/chrome-extension/dom-coherent-candidate-readback.ts
+src/lib/browser/chrome-extension/dom-coherent-observation.ts
+src/lib/browser/chrome-extension/extension-command-runtime.ts
+src/lib/browser/chrome-extension/websocket-actor-diagnostics.ts
+src/lib/browser/chrome-extension/websocket-target-claim-awaiter.ts
+src/lib/browser/exact-target/browser-observation-receipt.ts
+src/lib/browser/exact-target/browser-mutation-receipt.ts
+src/lib/browser/exact-target/browser-interaction-native-cause.ts
+src/lib/browser/exact-target/browser-site-policy-registry.ts
+src/lib/browser/infrastructure/browser-target-acquirer.ts
+src/lib/browser/infrastructure/browser-infrastructure-state.ts
+src/lib/browser/infrastructure/browser-authority-broker.ts
+src/lib/browser/infrastructure/browser-lane-coordinator.ts
+src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts
+src/lib/browser/transport/browser-authority-websocket.ts
+src/lib/browser/transport/browser-authority-frame-payload.ts
+src/lib/browser/transport/browser-authority-diagnostic.ts
+src/lib/browser/protocol/browser-protocol.schema.json
+src/lib/browser/protocol/generate-browser-protocol.mjs
+src/lib/browser/protocol/generated/browser-protocol.generated.ts
+src/lib/local-runtime/production/runtime-business-admission.ts
+src/capabilities/gpt/production-browser-lifecycle.ts
+src/capabilities/gpt/children/submit_exact_gpt_turn_once/handler.ts
+scripts/acceptance/local-browser-target-lifecycle-support.ts
+scripts/acceptance/local-browser-auto-pairing.acceptance.ts
+scripts/acceptance/local-browser-auto-pairing-support.ts
+scripts/acceptance/agent-production-runtime-business-admission.acceptance-support.ts
+scripts/acceptance/local-browser-dom-coherent-click-support.ts
+scripts/acceptance/local-browser-mutation-receipt-support.ts
+scripts/acceptance/local-browser-terminal-contract.acceptance.ts
+scripts/acceptance/local-browser-rule-mutants.acceptance.ts
 scripts/acceptance/browser-lane-fifo-support.ts
-scripts/acceptance/browser-lane-fifo.acceptance.ts
-scripts/audit/domains/code-purity/components/structural-metrics.ts
-scripts/audit/domains/gpt/gpt-provider-contract-inspection.ts
-scripts/audit/domains/gpt/manifest.json
 scripts/audit/domains/local-browser-session/manifest.json
 scripts/audit/domains/local-browser-session/target-claim-inspection.ts
-scripts/audit/generated/law-registry.generated.json
-src/capabilities/gpt/acceptance/gpt-production-browser-lifecycle.acceptance.ts
-src/capabilities/gpt/acceptance/gpt-production-browser-recovery.acceptance-support.ts
-src/capabilities/gpt/acceptance/gpt-production-browser-wait.acceptance-support.ts
-src/capabilities/gpt/production-browser-lifecycle.ts
-src/capabilities/gpt/production-child-tools.ts
-src/capabilities/gpt/production-execution-session.ts
-src/lib/browser/browser-authority-api.ts
-src/lib/browser/browser-failure.ts
-src/lib/browser/exact-target/browser-command-actor.ts
-src/lib/browser/exact-target/browser-target-lease-manager.ts
-src/lib/browser/exact-target/browser-target-lease.ts
-src/lib/browser/infrastructure/browser-authority-broker.ts
-src/lib/browser/infrastructure/browser-infrastructure-supervisor.ts
-src/lib/browser/infrastructure/browser-lane-coordinator.ts
-src/lib/browser/infrastructure/browser-target-acquirer.ts
-src/lib/local-runtime/production/executor.ts
-src/lib/local-runtime/production/runtime-business-admission.ts
-src/lib/local-runtime/production/runtime-execution-heartbeat.ts
-src/lib/local-runtime/production/runtime-loops.ts
-src/lib/local-runtime/production/runtime-startup.ts
+scripts/audit/domains/local-browser-session/dom-mechanical-facts-inspection.ts
+scripts/audit/domains/code-purity/components/structural-metrics.ts
+package.json
 ```
 
-/Users/nexgen/Documents/xuanxue-web（只读参与，零施工）：branch=main，HEAD=60ae5569da4ed1957232c909b19f4e7b406bcfed，tracking=refs/remotes/origin/main（60ae5569da4ed1957232c909b19f4e7b406bcfed）；8文件scoped hash=b3076611511873656e0688f5cb8b660a06da34f9d0b983878a09c6b619924961。
+Website仅只读合同/终点边界：realpath=/Users/nexgen/Documents/xuanxue-web；main；HEAD=8b34a80db29e6f65a92ecbb47d676be41491fa58；tracking=origin/main；7文件source hash=0a1aca5f4e547ea5660b026e4385b6181e5f3eb7c83a45eac2370c28da705453。网站侧其他工作形成新commit，7文件bytes未变，重新绑定HEAD；零Website规范/实现/质量写入，不宣称Website READY。
 
 ```text
-.github/instructions/agent-rules/功能法案.md
-AGENTS.md
-docs/governance/法案系统建设说明书-冻结定稿版.md
 docs/specs/ai-acceptance/website-agent-task-result.provider.spec.json
 docs/specs/ai-acceptance/xuanxue-ai-production-v6.contract.spec.json
-packages/ai-contracts/src/agent-task/website-agent-task-result.ts
-packages/ai-contracts/src/production-control/xuanxue-ai-production-v6.manifest.json
 services/api/src/ai-production/job-terminal-repository.ts
+services/api/src/ai-production/business-result-consumer.ts
+services/api/src/ai-production/business-result-domain-dispatch.ts
+services/api/src/localization/localization-static-catalog-consumer.ts
+services/api/src/localization/localization-static-current.ts
 ```
+
+设计指令来源：/Users/nexgen/.codex/skills/closed-loop-implementation-design/SKILL.md SHA256=db5ce193cdc32b1c3b0fbd25f8961a354572966dd9a7c01658d0fd5b79e3b1b2；/Users/nexgen/.codex/skills/frozen-spec-index/SKILL.md SHA256=1ad041234e0a514ab2bca3ad11d4abc787985ff2952fc442aff3477fc12c6694；/Users/nexgen/Documents/AGENT/.agents/skills/agent-flow-boundary-gatekeeper/SKILL.md SHA256=baa2458a5f1ec2fc22308afbc3cebf88461db0547411f99145b481d90a317a68。输入附件SHA256=9f03f54c29b42666a110b07e9ebd7b65b2f1068ebfbb8a98a4375861f476fbbb。

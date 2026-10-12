@@ -10,10 +10,10 @@ import { BROWSER_MECHANICAL_FACTS_READER_SOURCE } from "./dom-mechanical-facts.j
 import { BROWSER_EXACT_EDITABLE_TEXT_READER_SOURCE } from "./dom-exact-editable-text.js";
 import { BROWSER_CANONICAL_SEMANTIC_TEXT_READER_SOURCE } from "./dom-semantic-text.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
+import { GPT_CONVERSATION_SEGMENT_MAX_CHARS, sanitizeCurrentUrl } from "../exact-target/browser-observation-receipt.js";
 
 type BrowserRecord = Record<string, unknown>;
 const GPT_ORIGIN = "https://chatgpt.com";
-const GPT_CONVERSATION_SEGMENT_MAX_CHARS = 256;
 const GPT_TURN_KEY = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u;
 const GPT_USER_PROMPT_CONTENT_SELECTOR = "[data-testid='collapsible-user-message-content']";
 const GPT_SHORT_USER_PROMPT_CONTENT_SELECTOR = ".whitespace-pre-wrap";
@@ -376,20 +376,6 @@ const decodeObservationCall = (
     observedAt: packet.observedAt,
     queries,
   });
-};
-
-const sanitizeCurrentUrl = (value: string): string => {
-  let url: URL;
-  try { url = new URL(value); } catch { throw new Error("BROWSER_DOM_READ_INVALID"); }
-  const segments = url.pathname.split("/");
-  const root = url.pathname === "/";
-  const conversation = segments.length === 3 && segments[0] === "" && segments[1] === "c"
-    && segments[2]!.length > 0 && segments[2]!.length <= GPT_CONVERSATION_SEGMENT_MAX_CHARS;
-  if (url.protocol !== "https:" || url.origin !== GPT_ORIGIN || url.username !== "" || url.password !== ""
-    || (!root && !conversation) || url.search !== "" || url.hash !== "") {
-    throw new Error("BROWSER_DOM_READ_INVALID");
-  }
-  return `${url.origin}${url.pathname}`;
 };
 
 const mainFrameLoaderId = async (

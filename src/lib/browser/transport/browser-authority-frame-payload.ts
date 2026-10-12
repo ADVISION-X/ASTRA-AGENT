@@ -11,7 +11,7 @@ export type BrowserAuthorityTargetClaim = Readonly<{ targetRef: string; document
   claimOrigin: "https://chatgpt.com"; jobRefHash: `sha256:${string}` }>;
 export type BrowserAuthorityTargetRevoke = Readonly<{ targetRef: string; documentRef: string;
   jobRefHash: `sha256:${string}`; releaseOutcome?: never }>
-  | Readonly<{ targetRef: string | null; jobRefHash: `sha256:${string}`; releaseOutcome: "released" | "absent" }>;
+  | Readonly<{ targetRef: string | null; jobRefHash: `sha256:${string}`; releaseOutcome: "released" | "absent"; requestSequence: number }>;
 export const authorityRecord = (value: unknown): Record<string, unknown> | null =>
   typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : null;
 export const canonicalBrowserAuthorityPlaintext = (value: unknown): string => canonicalizeBrowserAuthorityValue(value);
@@ -57,11 +57,11 @@ export const parseBrowserAuthorityTargetRevoke = (body: Readonly<Record<string, 
     return { jobRefHash: jobRefHash as `sha256:${string}`, targetRef: stringField(body, "targetRef"), documentRef: stringField(body, "documentRef") };
   }
   const targetRef = body.targetRef, releaseOutcome = body.releaseOutcome;
-  if (Object.keys(body).sort().join("|") !== "jobRefHash|releaseOutcome|targetRef"
+  if (Object.keys(body).sort().join("|") !== "jobRefHash|releaseOutcome|requestSequence|targetRef"
     || (targetRef !== null && (typeof targetRef !== "string" || targetRef.length === 0))
     || !["released", "absent"].includes(String(releaseOutcome))
     || (releaseOutcome === "absent") !== (targetRef === null)) throw new Error("BROWSER_AUTH_TRANSCRIPT_INVALID");
-  return { targetRef: targetRef as string | null, jobRefHash: jobRefHash as `sha256:${string}`, releaseOutcome: releaseOutcome as "released" | "absent" };
+  return { targetRef: targetRef as string | null, jobRefHash: jobRefHash as `sha256:${string}`, releaseOutcome: releaseOutcome as "released" | "absent", requestSequence: integerField(body, "requestSequence", 1) };
 };
 export const parseBrowserMutationReceiptMessage = (body: unknown): BrowserMutationTerminalFact | BrowserMutationDisposeRequest => {
   if (browserMutationTerminalFactShapeValid(body)) return body;

@@ -7,7 +7,6 @@ import type {
   BrowserDomReadEligibility,
 } from "../exact-target/browser-dom-intent.js";
 import {
-  browserPostconditionNativeCause,
   type BrowserPostconditionNativeCause,
 } from "../exact-target/browser-interaction-native-cause.js";
 import type { ExtensionDebuggerRuntime } from "./debugger-runtime.js";
@@ -15,8 +14,7 @@ import { executeCoherentObservation } from "./dom-coherent-observation.js";
 import { attribute, describeNode, documentState, queryAll, queryCandidateSet,
   queryVisibleTextMatches } from "./dom-query-runtime.js";
 import type { ExtensionExactTarget } from "./exact-target-runtime.js";
-import { requireCanonicalGptConversationUrl } from
-  "../exact-target/browser-site-policy-registry.js";
+import { browserObservationPostconditionDecision } from "../exact-target/browser-observation-receipt.js";
 import {
   currentGptPageIdentity,
   readWithTransientDomConfirmation,
@@ -60,19 +58,6 @@ const matchStillTransient = (
   if (eligibleCount >= expectedMatches || rawCount > expectedMatches) return false;
   return rawCount === 0 || rejections.every((entry) =>
     entry.reasons.every((reason) => TRANSIENT_REJECTION_REASONS.has(reason)));
-};
-
-const exactOutgoingTurnVerified = (
-  observation: Awaited<ReturnType<typeof executeCoherentObservation>>,
-  expected: NonNullable<ClickIntent["preClickExactOutgoingTurn"]>,
-): boolean => {
-  const matches = observation.queries[0]?.matches;
-  const match = Array.isArray(matches) ? matches[0] : undefined;
-  if (!match || typeof match !== "object" || Array.isArray(match)) return false;
-  try { return (match as Readonly<Record<string, unknown>>).exactGptUserPromptHash
-    === expected.expectedPromptHash
-    && requireCanonicalGptConversationUrl(observation.currentUrl) === observation.currentUrl; }
-  catch { return false; }
 };
 
 export const matchReceiptEvidence = (readback: MatchReadback): Readonly<Record<string, unknown>> => ({
@@ -185,18 +170,13 @@ const waitForObservation = async (
     const queries = observation.queries as BrowserDomObservationPacketV2["queries"];
     const mismatchIndex = queries.findIndex((query, index) =>
       query.eligibleCount !== postcondition.queries[index]!.expectedEligibleCount);
-    const verified = mismatchIndex === -1
-      && (exactOutgoing === undefined || exactOutgoingTurnVerified(observation, exactOutgoing));
+    const decision = browserObservationPostconditionDecision(postcondition.queries, observation, exactOutgoing?.expectedPromptHash);
+    if (!decision.valid) throw new Error("BROWSER_DOM_READ_INVALID");
     const evidenceIndex = mismatchIndex === -1 ? 0 : mismatchIndex;
-    const mismatch = verified ? undefined : queries[evidenceIndex];
-    const expected = verified ? undefined : postcondition.queries[evidenceIndex]!.expectedEligibleCount;
-    const firstRejection = mismatch?.rejections[0]?.reasons[0];
-    const nativeCauseCode = verified ? null : exactOutgoing !== undefined
-      ? "BROWSER_DOM_CANDIDATE_MISSING" as const
-      : browserPostconditionNativeCause(evidenceIndex, mismatch!.eligibleCount > expected!
-        ? "BROWSER_DOM_CANDIDATE_AMBIGUOUS" as const
-        : firstRejection ?? "BROWSER_DOM_CANDIDATE_MISSING" as const);
-    const readback = Object.freeze({ verified, observation, nativeCauseCode });
+    const mismatch = decision.verified ? undefined : queries[evidenceIndex];
+    const expected = decision.verified ? undefined : postcondition.queries[evidenceIndex]!.expectedEligibleCount;
+    const readback: ObservationReadback = Object.freeze({ verified: decision.verified, observation,
+      nativeCauseCode: decision.nativeCauseCode as ObservationReadback["nativeCauseCode"] });
     const transient = mismatch !== undefined && matchStillTransient(
       mismatch.rawCount, mismatch.eligibleCount, expected!, mismatch.rejections,
     );

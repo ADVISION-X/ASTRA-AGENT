@@ -47,9 +47,18 @@ const inspectWire = (sources: Sources, findings: InspectorFinding[], lawId: stri
     && sources.parser.getText().includes('integerField(body, "permitSequence", 1)'),
   findings, lawId, paths.parser, "Claim URLs are forbidden; command and permit sequences must remain strictly positive.");
   const revoke = declaration(sources.parser, "parseBrowserAuthorityTargetRevoke");
-  requireContract(includesAll(revoke, ['"jobRefHash|releaseOutcome|targetRef"',
-    '(releaseOutcome === "absent") !== (targetRef === null)', '"documentRef|jobRefHash|targetRef"']),
+  requireContract(includesAll(revoke, ['"jobRefHash|releaseOutcome|requestSequence|targetRef"',
+    'integerField(body, "requestSequence", 1)', '(releaseOutcome === "absent") !== (targetRef === null)', '"documentRef|jobRefHash|targetRef"']),
   findings, lawId, paths.parser, "Release absence requires null targetRef; physical release requires the original targetRef.");
+  const releaseDispatch = sources.channel.getClass("BrowserAuthorityWebSocket")?.getMethod("requestPreauthorizedTargetRelease");
+  const releaseReturn = releaseDispatch?.getDescendantsOfKind(SyntaxKind.ReturnStatement)[0]?.getExpression();
+  const operation = body(sources.acquirer, "BrowserTargetAcquirer", "awaitTargetOperation");
+  requireContract(Node.isCallExpression(releaseReturn) && releaseReturn.getExpression().getText() === "this.sendControlFrame"
+    && releaseDispatch?.getReturnType().getText() === "number"
+    && includesAll(operation, ["const sequence = dispatch(deadlineAt)", "requestSequence: sequence"])
+    && !operation.includes("sequence !== undefined"), findings, lawId, paths.channel,
+  "Release must return the original synchronous wire sequence and the original waiter must register it.");
+
 };
 const inspectAcquisitionWire = (sources: Sources, findings: InspectorFinding[], lawId: string): void => {
   const transportAcquire = sources.channel.getClass("BrowserAuthorityWebSocket")?.getMethod("requestPreauthorizedTargetAcquisition");
@@ -70,6 +79,15 @@ const inspectAcquisitionWire = (sources: Sources, findings: InspectorFinding[], 
   "Acquisition carries the same absolute deadline through the authenticated encrypted frame.");
   const ready = body(sources.worker, "ExtensionWebSocketActor", "acceptPairingFrame");
   const acquire = body(sources.worker, "ExtensionWebSocketActor", "acceptTargetAcquire");
+  requireContract(ordered(acquire, ["await decrypt(", "this.acceptServerSequence(frame)", "targetOperationFrom(request)",
+    "pendingTargetHandlers.size > 0 || this.commandDelivery.disconnectedDrain !== null", 'new Error("BROWSER_BACKPRESSURE")',
+    "const handler =", "pendingTargetHandlers.add(handler)"])
+    && includesAll(acquire, ["this.connection.session?.serverToClientKey === session.serverToClientKey",
+      "this.connection.session?.clientToServerKey === session.clientToServerKey",
+      "if (!currentSession()) return", "pendingCommandHandlers.size === 0", "disconnectedDrain === null",
+      'if (failed) this.reportRuntimeFailure(error, "job-bound-target-acquisition", frame.sequence', "await this.flushMutationReceipt()"])
+    && !acquire.includes('throw new Error("BROWSER_COMMAND_ADMISSION_SUSPENDED");\n    const handler'),
+  findings, lawId, paths.worker, "Authenticated target backpressure is local; handler retirement and diagnostics must preserve the captured session and actual drain responsibility.");
   requireContract(ordered(ready, ["readServerReadyPermit(", "this.connection.commandReady = true"])
     && !ready.includes("acquireJobBoundChatGptTarget")
     && ordered(acquire, ["await decrypt(", "this.targetAuthority.acquireJobBoundChatGptTarget(", "pendingTargetHandlers.add(handler)"])
@@ -168,7 +186,7 @@ const inspectRelease = (s: Sources, context: InspectorContext, findings: Inspect
   const release = declaration(s.release, "releaseJobBoundTarget");
   const delegate = body(s.authority, "ExtensionTargetAuthority", "releaseJobBoundChatGptTarget");
   requireContract(includesAll(delegate, ["await this.awaitOldCommandHandlers()", 'releaseAuthority === "website-admin-deletion"',
-    "await this.parkActiveTarget()", 'await onReleased(); await this.send("TARGET_REVOKE", body)'])
+    "await this.parkActiveTarget()", "const result = await releaseJobBoundTarget", "await onReleased(); return result"])
     && ordered(release, ["await context.awaitOldCommandHandlers()", "await context.debuggerRuntime.awaitPageReadPermission()",
       "findByJobRefHash(jobRefHash)", "await context.debuggerRuntime.readTargets()", "await context.debuggerRuntime.removeTab(bound.tabId)"])
     && includesAll(release, ['targetRef: null', 'releaseOutcome: "absent"', 'releaseOutcome: "released"',
@@ -179,9 +197,9 @@ const inspectRelease = (s: Sources, context: InspectorContext, findings: Inspect
 const inspectPhysicalReleaseProof = (s: Sources, context: InspectorContext, findings: InspectorFinding[], lawId: string): void => {
   const release = declaration(s.release, "releaseJobBoundTarget");
   const producer = s.release.getVariableDeclaration("releaseJobBoundTarget")?.getInitializer();
-  const revokes = producer?.getDescendantsOfKind(SyntaxKind.CallExpression).filter(call => call.getExpression().getText() === "context.sendRevoke") ?? [];
+  const revokes = producer?.getDescendantsOfKind(SyntaxKind.ReturnStatement) ?? [];
   const pairs = revokes.map(call => {
-    const argument = call.getArguments()[0];
+    const argument = call.getExpression();
     if (!Node.isObjectLiteralExpression(argument)) return "";
     const value = (name: string): string => {
       const property = argument.getProperty(name);
@@ -199,6 +217,14 @@ const inspectPhysicalReleaseProof = (s: Sources, context: InspectorContext, find
       "await context.debuggerRuntime.readTargets()", 'if (!tabAbsent || after.some(', 'targetRef: bound.targetRef, jobRefHash, releaseOutcome: "released"'])
     && release.includes("context.targets.findByJobRefHash(jobRefHash) !== bound"), findings, lawId, paths.release,
   "Only fresh physical close readback may emit released; both absent producers must emit a null reference.");
+  const actor = body(s.worker, "ExtensionWebSocketActor", "acceptTargetAcquire");
+  const receiver = body(s.supervisor, "BrowserInfrastructureSupervisor", "onTargetRevoke");
+  requireContract(!release.includes("sendRevoke") && ordered(actor, ["const handler = (async (): Promise<void>",
+    "const result = await this.targetAuthority.releaseJobBoundChatGptTarget", 'if (currentSession()) await this.sendEncrypted(socket, "TARGET_REVOKE", { ...result, requestSequence: frame.sequence })',
+    "pendingTargetHandlers.add(handler)"])
+    && includesAll(receiver, ["pending.action", "pending.jobRefHash", "pending.requestSequence !== input.requestSequence",
+      'if (input.targetRef !== null) this.broker.revokeOperatorTargetClaim({ targetRef: input.targetRef, jobRefHash: input.jobRefHash });\n        return;']),
+  findings, lawId, paths.worker, "A typed physical result is sent inside the original tracked handler; unmatched release can only retire an exact non-null claim.");
   inspectProductReleaseIsolation(s, context, findings, lawId);
 };
 
