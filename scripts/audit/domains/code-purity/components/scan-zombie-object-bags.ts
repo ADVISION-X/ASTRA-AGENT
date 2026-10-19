@@ -4,8 +4,9 @@ import {
   type ZombieObjectBag,
 } from "./zombie-object-bag-liveness.js";
 import { collectZombieObjectBagUsage } from "./zombie-registry-bag-usage.js";
+import { requiresProductionConsumer } from "./scan-zombie-reference-surfaces.js";
 import { pushZombieFinding } from "./zombie-surface-shared.js";
-import type { ZombieModuleGraph } from "./zombie-module-graph.js";
+import type { ZombieModuleGraph, ZombieReachability } from "./zombie-module-graph.js";
 import type { ZombieSymbolGraph } from "./zombie-symbol-graph.js";
 
 const resolveUnusedEntryCheckId = (bag: ZombieObjectBag): string =>
@@ -18,6 +19,8 @@ export const scanZombieObjectBags = (input: {
   collector: InventoryFindingCollector;
   liveExportSymbolIds: ReadonlySet<string>;
   moduleGraph: ZombieModuleGraph;
+  reachability: ZombieReachability;
+  productionReachability: ZombieReachability;
   symbolGraph: ZombieSymbolGraph;
   zombieLawId: string;
 }): void => {
@@ -26,7 +29,9 @@ export const scanZombieObjectBags = (input: {
     moduleGraph: input.moduleGraph,
     symbolGraph: input.symbolGraph,
   })) {
-    const usage = collectZombieObjectBagUsage({ bag });
+    const consumerFiles = (requiresProductionConsumer(bag.governedFile.repoPath)
+      ? input.productionReachability : input.reachability).reachableFiles;
+    const usage = collectZombieObjectBagUsage({ bag, consumerFiles });
 
     for (const dynamicUsage of usage.dynamicUsages) {
       pushZombieFinding(input.collector, {

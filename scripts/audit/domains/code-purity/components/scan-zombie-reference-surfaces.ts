@@ -107,7 +107,7 @@ const collectExportReferenceState = (
   };
 };
 
-const requiresProductionConsumer = (filePath: string): boolean =>
+export const requiresProductionConsumer = (filePath: string): boolean =>
   (filePath.startsWith("src/") && !filePath.includes("/acceptance/"))
   || filePath.startsWith("scripts/startup/")
   || filePath.startsWith("scripts/maintenance/");

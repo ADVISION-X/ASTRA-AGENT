@@ -1121,7 +1121,7 @@ test("provider contracts reject malformed payloads before identity matching", ()
   assert.doesNotThrow(() => validateProviderContractSpec(current, "ADVISION-X/AGENT",
     new Map([
       ["LAW-AGENT-PRODUCTION-RUNTIME-001-V76", "agent-production-runtime"],
-      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V46", "agent-production-runtime"],
+      ["LAW-AGENT-PRODUCTION-RUNTIME-003-V47", "agent-production-runtime"],
     ]),
     (path) => path === "src/lib/local-runtime/production/catalog.ts"));
 });

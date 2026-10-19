@@ -170,7 +170,7 @@ const inspectProductAcceptanceIdentity = (input: FindingContext & Readonly<{
   filePath: string;
 }>): void => {
   if (!input.filePath.endsWith(".acceptance.ts") || !input.acceptancePluginId) return;
-  if (input.embeddedPluginIds.length === 1 && input.embeddedPluginIds[0] === input.acceptancePluginId) return;
+  if (!input.embeddedPluginIds.some((pluginId) => pluginId !== input.acceptancePluginId)) return;
   push({ ...input, checkId: "architecture/product-acceptance-identity-drift",
     evidence: input.embeddedPluginIds.join(","),
     message: `${input.filePath} must contain only its own Product Plugin identity.` });

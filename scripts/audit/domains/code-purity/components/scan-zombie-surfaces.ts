@@ -169,6 +169,8 @@ export const scanZombieSurfaces = (
   });
   scanZombieObjectBags({
     collector,
+    reachability: state.reachability,
+    productionReachability: state.productionReachability,
     liveExportSymbolIds: referenceSummary.liveExportSymbolIds,
     moduleGraph: state.moduleGraph,
     symbolGraph: state.symbolGraph,

@@ -206,7 +206,7 @@ Website领域冻结需求/资料来源与合法权益 → 原 createWebsiteAgent
 
 1. 做什么：先消除G1旧规范与G2—G7旧指导冲突，输出唯一现役规范，不改业务源头。
 2. 不做什么：不改两仓母本、五蓝图、TOMBSTONE-RECOVERY-AUTHORITY-001、FROZEN-EXISTENCE-PROOF-001、Browser/GPT/Forensics冻结语义、Runtime008独立证明边界；不扩产品分母。
-3. Owner/路径：agent-production-runtime；`功能法案.md#LAW-AGENT-PRODUCTION-RUNTIME-003-V46`及同文件引用它的law-record；`docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md`的18/48、旧NM01、旧接收段；`docs/specs/agent-production-runtime/{website-agent-task-result.dependency,xuanxue-ai-production-v6.dependency,agent-route-capability-manifest.provider}.spec.json`、`scripts/audit/domains/agent-production-runtime/{manifest.json,contract-inspection.ts}`、`scripts/acceptance/agent-route-contract.acceptance.ts`中的该lawId引用。规范版本依母本递增，不能同lawId改正文。这里只更新law引用，合同内容及执行断言由A1施工。
+3. Owner/路径：agent-production-runtime；`功能法案.md#LAW-AGENT-PRODUCTION-RUNTIME-003-V46`及同文件引用它的law-record；`docs/blueprints/xuanxue-ai-production/WEBSITE-AGENT-V6-BLUEPRINT.md`的18/48、旧NM01、旧接收段；`docs/specs/agent-production-runtime/{website-agent-task-result.dependency,xuanxue-ai-production-v6.dependency,agent-route-capability-manifest.provider}.spec.json`、`scripts/audit/domains/agent-production-runtime/{manifest.json,contract-inspection.ts}`、`scripts/acceptance/agent-route-contract.acceptance.ts`中的该lawId引用；`tests/governance/quality-contract.test.ts`真实Provider正向子例的同一lawDomains引用只作机械同步，保留全部正反例，不从被测spec生成合法法条表。规范版本依母本递增，不能同lawId改正文。这里只更新law引用，合同内容及执行断言由A1施工。
 4. 保留：Runtime003的唯一provider、最小dependency、exact投影、图片机械身份、参数值不复判；全体恢复和receipt不变量。Manifest保留原路径归属及Product运行决策不归治理Owner。
 5. 删除：图中已退休的18/48/联合起名/strict接收现役口径及旧lawId活动引用；指导文档由独立W-D处理，本单不跨Owner执行。
 6. 建设：原法条原位版本化修订为21/40/43/40；原图指向完整事实与新商业命名；无新法案主题、registry、Blueprint、spec类别。registry只能原生成器生成。
@@ -261,6 +261,30 @@ Website领域冻结需求/资料来源与合法权益 → 原 createWebsiteAgent
 7. 顺序：A0/A1、P9源码及自有验收就绪→删除旧登记→核缺席→唯一新登记→实际capability对照；无线上中途重载。
 8. 验收：12Plugin/14primary/26review/40唯一route、旧联合unsupported、新商业3route有唯一消费；将实际Manifest交Website实际validator接受，篡改/丢/重复拒绝；纪律核零alias、零第二map、零业务步骤。
 9. 失败：F；不默认宣称新route支持。
+
+### W-Q1：删除自有验收的额外字符串存在门
+
+1. 做什么：原生READY候选`36d7efe04dfbc7dd1fe8b6a66ecbed075f778db8`报告商业验收identity drift；实际正确导入/执行本Product，却仅因缺少独立自身Plugin名字面量被拒。原三法官复核后均裁删该额外存在要求，不立案清退，不新建正向身份体系。
+2. 不做什么：不改正确商业Product或其验收来迎合检查器，不添加占位字符串，不改法案、施工图、Catalog、跨仓身份或质量入口。
+3. Owner/路径：architecture-boundary；`scripts/audit/domains/architecture-boundary/components/scan-product-acceptance-boundaries.ts#inspectProductAcceptanceIdentity`仅退休“未出现自身精确字面量也须失败”的条件；`tests/governance/code-purity-governance.test.ts`增加对真实检查器的对应回归。
+4. 保留：已有外来Plugin身份识别、resolved import跨Plugin/跨Product helper检查、中央身份表禁止项、原Catalog与独立验收目录一一对应。原生中央入口仍实际执行每个Product自有行为验收，字符串不能替代它。
+5. 删除：上述无依据的自身字符串存在条件，先物理删除该条件并即时核缺席；保留该函数其他职责和消费者，不整文件删除，不复制旧谓词重建替代门。
+6. 建设：无新生产机制；原函数只对已发现的其它Plugin身份保留原有拒绝。回归以真实自有导入且无独立自身字符串为正例，错误跨Plugin导入及已有外来身份为反例；不把空字符串或固定PASS当证明。
+7. 顺序：本工单规范/边界由主Codex两遍核对→删除条件/核缺席→有限原位收口→普通治理测试和原架构入口→原庭核销→CI-FULL重走。
+8. 验收：正确直接导入不再误报；原错误导入/helper/中央一对一保护仍成立；旧额外存在条件零残留。纪律按本单有限删除、局部修改分别报告，不冒称整个检查器重建。
+9. 失败：F；新事实影响必要性或范围回原庭，不修改正确业务对象安抚检查器。
+
+### W-Q2：属性活性接回原消费者范围
+
+1. 做什么：同一READY报告的两条object-bag dynamic finding归并一个根因：导出层已选择生产/全合法可达范围，属性层丢失该事实并重新扫全项目。真实商业Plugin三字段均被生产Catalog消费；附加verification spread/传参既不应反向否决它，也不能给生产死字段补活性。原庭三票裁修、中度；原J1只读取证，J2/J3独立核原件后同意下列有限边界。
+2. 不做什么：不改正确Product/验收/Catalog，不修改冻结存在证明、法案或施工图；不建第二scope、路径豁免、allowlist、注册表、Owner、兼容机制或通用数据流层，不删除真实生产动态访问及死属性保护。
+3. Owner/路径：code-purity；`scripts/audit/domains/code-purity/components/scan-zombie-surfaces.ts#scanZombieSurfaces`只传原两份reachability；`scan-zombie-reference-surfaces.ts#requiresProductionConsumer`原语义原位直接复用、仅导出供属性层使用；`scan-zombie-object-bags.ts#scanZombieObjectBags`选择同一范围；`zombie-registry-bag-usage.ts`整体退休后独立建设范围内属性消费收集；`tests/governance/code-purity-governance.test.ts`补真实范围行为回归。
+4. 保留：原entrypoint用途分类、module/symbol图、两种reachability、liveExportSymbolIds、bag discovery、逐字段/handler未用检查、原dynamic发报及唯一quality路由；生产字段只认生产消费者，验证工具本身仍按全合法图检查。原固定数组、typed Catalog/Map、total typed registry例外按实际属性读取与lookup保留，不靠类型或测试单独证明生产活性。
+5. 删除：旧`zombie-registry-bag-usage.ts`整文件物理删除并即时读回缺席，再独立建设；不保存旧体换字符串写回。其它三处仅为原事实传递/唯一判定的机械接缝修改，不冒称重建整个活性系统。
+6. 建设：唯一链仍是`scanZombieSurfaces→scanZombieObjectBags→collectZombieObjectBagUsage`。原`requiresProductionConsumer`决定用原生产集合还是全合法集合；该同一集合约束外层引用，以及contextual type、数组成员、map/for-of、total typed registry内部全部引用查询。import binding/re-export/纯类型不得冒充属性读取；静态属性与合法既有结构形成usedPropertyNames，剩余真实dynamic仍产生原finding。原输出类型/消费者保持，不新增状态或持久化。
+7. 顺序：主Codex先对本工单两遍规范自检→核目标Git与真实消费者→机械接缝→旧collector删除/当场缺席核验→按合同独立重建→局部真实行为与原矩阵→原庭核销→原生CHANGE/提交首推/完整READY。
+8. 验收：保留原`code-purity-zombie-deep.acceptance.ts`的动态key、Object.keys、伪lawful声明、死属性/handler反例，以及fixed-array、typed-catalog、typed-spread正例。新增回归在现有普通治理文件中使用内存Project，repoPath必须真实为根`src/**`与`scripts/acceptance/**`/审计工具；由原entrypoint和原可达算法形成不同集合，不能沿旧`tmp/.../src`夹具假称生产分支。逐项核：生产全字段+额外verification spread/传参接受；生产缺字段、verification或不可达读取不能补证；生产对象仅验证消费仍拒；验证工具自身没有豁免，合法和非法属性消费仍按原检查执行。必须覆盖内部contextual type/array/typed lookup的同一集合，不只过滤最终发报。
+9. 失败：F；同一范围的正负证明或原保护承接不完整即回本单和原庭，不以忽略finding、改路径/alias或降冻结义务解决。
 
 ### Product工单共用的保留与结构预算
 

@@ -1,9 +1,9 @@
-import { Node, SyntaxKind, type Node as MorphNode } from "ts-morph";
+import { Node, SyntaxKind, type Node as AstNode } from "ts-morph";
 
-import { astIdentifierName } from "../../../shared/ast-node-identity.js";
 import { toRepoPath } from "../../../shared/paths.js";
 import type { ZombieObjectBag } from "./zombie-object-bag-liveness.js";
-import { classifyZombieReferenceUsage } from "./zombie-symbol-usage.js";
+import { classifyZombieReferenceUsage, isZombieRuntimeUsage } from "./zombie-symbol-usage.js";
+import { isZombieTypePosition } from "./zombie-type-runtime-classifier.js";
 
 export type ZombieObjectBagDynamicUsage = {
   consumerFilePath: string;
@@ -16,215 +16,108 @@ export type ZombieObjectBagUsage = {
   usedPropertyNames: Set<string>;
 };
 
-const collectPropertyReads = (nameNode: MorphNode | undefined): Set<string> => {
-  const properties = new Set<string>();
-  if (!nameNode || !Node.isIdentifier(nameNode)) return properties;
-  for (const reference of nameNode.findReferencesAsNodes()) {
-    const parent = reference.getParent();
-    if (parent && Node.isPropertyAccessExpression(parent) && parent.getExpression() === reference) {
-      properties.add(parent.getName());
+const runtimeReferences = (name: AstNode | undefined, consumerFiles: ReadonlySet<string>): AstNode[] => {
+  if (!name || !Node.isIdentifier(name)) return [];
+  return name.findReferencesAsNodes().filter((reference) => reference !== name
+    && consumerFiles.has(toRepoPath(reference.getSourceFile().getFilePath()))
+    && !isZombieTypePosition(reference)
+    && isZombieRuntimeUsage(classifyZombieReferenceUsage(reference)));
+};
+
+const propertyReads = (name: AstNode | undefined, consumerFiles: ReadonlySet<string>): string[] =>
+  runtimeReferences(name, consumerFiles).flatMap((reference) => {
+    const access = reference.getParent();
+    return access && Node.isPropertyAccessExpression(access) && access.getExpression() === reference
+      ? [access.getName()] : [];
+  });
+
+const contextualReads = (bag: ZombieObjectBag, consumerFiles: ReadonlySet<string>): string[] => {
+  const variable = bag.nameNode.getParent();
+  const literal = variable && Node.isVariableDeclaration(variable) ? variable.getInitializer() : undefined;
+  if (!literal || !Node.isObjectLiteralExpression(literal)) return [];
+  const shape = literal.getContextualType();
+  return bag.entries.filter((entry) => shape?.getProperty(entry.propertyName)?.getDeclarations().some((declaration) =>
+    runtimeReferences(declaration.getFirstDescendantByKind(SyntaxKind.Identifier), consumerFiles).some((reference) => {
+      const access = reference.getParent();
+      return access && Node.isPropertyAccessExpression(access) && access.getNameNode() === reference;
+    }))).map((entry) => entry.propertyName);
+};
+
+const arrayMemberReads = (reference: AstNode, consumerFiles: ReadonlySet<string>): string[] => {
+  const array = reference.getFirstAncestorByKind(SyntaxKind.ArrayLiteralExpression);
+  const variable = array?.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
+  if (!variable) return [];
+  return runtimeReferences(variable.getNameNode(), consumerFiles).flatMap((use) => {
+    const parent = use.getParent();
+    if (parent && Node.isForOfStatement(parent) && parent.getExpression() === use) {
+      return propertyReads(parent.getInitializer().getFirstDescendantByKind(SyntaxKind.Identifier), consumerFiles);
     }
-  }
-  return properties;
+    if (!parent || !Node.isPropertyAccessExpression(parent) || parent.getExpression() !== use
+      || parent.getName() !== "map") return [];
+    const call = parent.getParent();
+    const callback = call && Node.isCallExpression(call) ? call.getArguments()[0] : undefined;
+    return callback && (Node.isArrowFunction(callback) || Node.isFunctionExpression(callback))
+      ? propertyReads(callback.getParameters()[0]?.getNameNode(), consumerFiles) : [];
+  });
 };
 
-const addProperties = (target: Set<string>, source: ReadonlySet<string>): void => {
-  for (const property of source) target.add(property);
-};
-
-const contextualTypePropertyReads = (bag: ZombieObjectBag): Set<string> => {
-  const properties = new Set<string>();
-  const declaration = bag.nameNode.getParent();
-  if (!declaration || !Node.isVariableDeclaration(declaration)) return properties;
-  const initializer = declaration.getInitializer();
-  if (!initializer || !Node.isObjectLiteralExpression(initializer)) return properties;
-  const contextualType = initializer.getContextualType();
-  if (!contextualType) return properties;
-  for (const entry of bag.entries) {
-    const propertySymbol = contextualType.getProperty(entry.propertyName);
-    const hasRuntimeRead = propertySymbol?.getDeclarations().some((propertyDeclaration) => {
-      const propertyName = propertyDeclaration.getFirstDescendantByKind(SyntaxKind.Identifier);
-      return propertyName?.findReferencesAsNodes().some((reference) => {
-        const parent = reference.getParent();
-        return Boolean(parent && Node.isPropertyAccessExpression(parent)
-          && parent.getNameNode() === reference);
-      });
-    }) ?? false;
-    if (hasRuntimeRead) properties.add(entry.propertyName);
-  }
-  return properties;
-};
-
-const forOfElementPropertyReads = (reference: MorphNode): Set<string> => {
-  const parent = reference.getParent();
-  if (!parent || !Node.isForOfStatement(parent) || parent.getExpression() !== reference) return new Set();
-  return collectPropertyReads(parent.getInitializer().getFirstDescendantByKind(SyntaxKind.Identifier));
-};
-
-const mapElementPropertyReads = (reference: MorphNode): Set<string> => {
-  const property = reference.getParent();
-  if (!property || !Node.isPropertyAccessExpression(property) || property.getExpression() !== reference
-    || property.getName() !== "map") return new Set();
-  const call = property.getParent();
-  if (!call || !Node.isCallExpression(call)) return new Set();
-  const callback = call.getArguments()[0];
-  if (!callback || (!Node.isArrowFunction(callback) && !Node.isFunctionExpression(callback))) return new Set();
-  return collectPropertyReads(callback.getParameters()[0]?.getNameNode());
-};
-
-const arrayElementPropertyReads = (referenceNode: MorphNode): Set<string> => {
-  const properties = new Set<string>();
-  const array = referenceNode.getFirstAncestorByKind(SyntaxKind.ArrayLiteralExpression);
-  const declaration = array?.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
-  const nameNode = declaration?.getNameNode();
-  if (!array || !nameNode || !Node.isIdentifier(nameNode)) return properties;
-  for (const reference of nameNode.findReferencesAsNodes()) {
-    addProperties(properties, forOfElementPropertyReads(reference));
-    addProperties(properties, mapElementPropertyReads(reference));
-  }
-  return properties;
-};
-
-const isTotalTypedRegistrySpread = (referenceNode: MorphNode): boolean => {
-  const spread = referenceNode.getParent();
+const typedRegistryLookup = (reference: AstNode, consumerFiles: ReadonlySet<string>): boolean => {
+  const spread = reference.getParent();
   if (!spread || !Node.isSpreadAssignment(spread)) return false;
-  const object = spread.getParent();
-  const declaration = object?.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
-  const nameNode = declaration?.getNameNode();
-  if (!object || !Node.isObjectLiteralExpression(object)
-    || !declaration?.getInitializer()?.getText().includes("satisfies Record<")
-    || !nameNode || !Node.isIdentifier(nameNode)) return false;
-  return nameNode.findReferencesAsNodes().some((reference) => {
-    const parent = reference.getParent();
-    if (!parent || !Node.isElementAccessExpression(parent) || parent.getExpression() !== reference) return false;
-    const key = parent.getArgumentExpression();
+  const literal = spread.getParent();
+  const variable = literal?.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
+  if (!literal || !Node.isObjectLiteralExpression(literal)
+    || !variable?.getInitializer()?.getText().includes("satisfies Record<")) return false;
+  return runtimeReferences(variable.getNameNode(), consumerFiles).some((use) => {
+    const access = use.getParent();
+    if (!access || !Node.isElementAccessExpression(access) || access.getExpression() !== use) return false;
+    const key = access.getArgumentExpression();
     return Boolean(key && !Node.isStringLiteral(key) && !Node.isNoSubstitutionTemplateLiteral(key));
   });
 };
 
-const terminalObjectProperty = (
-  referenceNode: Parameters<typeof classifyZombieReferenceUsage>[0],
-): boolean => {
-  let valueNode = referenceNode;
-  const binary = valueNode.getParent();
-  if (binary && Node.isBinaryExpression(binary)
-    && binary.getOperatorToken().getKindName() === "QuestionQuestionToken") {
-    valueNode = binary;
-  }
-  const property = valueNode.getParent();
-  if (!property || !Node.isPropertyAssignment(property) || property.getInitializer() !== valueNode) {
-    return false;
-  }
-  const objectLiteral = property.getParent();
-  const call = objectLiteral?.getParent();
-  return Boolean(objectLiteral && Node.isObjectLiteralExpression(objectLiteral)
-    && call && Node.isCallExpression(call) && call.getArguments().includes(objectLiteral));
-};
-
-const isDynamicObjectUtilityCall = (referenceNode: Parameters<typeof classifyZombieReferenceUsage>[0]): boolean => {
-  const parent = referenceNode.getParent();
-  if (!parent || !Node.isCallExpression(parent)) {
-    return false;
-  }
-  const callee = parent.getExpression();
-  if (!Node.isPropertyAccessExpression(callee) || !Node.isIdentifier(callee.getExpression())
-    || astIdentifierName(callee.getExpression()) !== "Object") {
-    return false;
-  }
-  const methodName = callee.getName();
-  return ["entries", "keys", "values"].includes(methodName) && parent.getArguments()[0] === referenceNode;
-};
-
-const isDynamicBagUsage = (referenceNode: Parameters<typeof classifyZombieReferenceUsage>[0]): boolean => {
-  const parent = referenceNode.getParent();
-  if (!parent) {
-    return true;
-  }
-  if (Node.isElementAccessExpression(parent) && parent.getExpression() === referenceNode) {
-    const argument = parent.getArgumentExpression();
-    return !(argument && (Node.isStringLiteral(argument) || Node.isNoSubstitutionTemplateLiteral(argument)));
-  }
-  if (isDynamicObjectUtilityCall(referenceNode)) {
-    return true;
-  }
-  if (Node.isForInStatement(parent) && parent.getExpression() === referenceNode) {
-    return true;
-  }
-  return !Node.isPropertyAccessExpression(parent);
-};
-
-const markStaticPropertyUsage = (
-  referenceNode: Parameters<typeof classifyZombieReferenceUsage>[0],
-  usedPropertyNames: Set<string>,
-): boolean => {
-  const parent = referenceNode.getParent();
-  if (parent && Node.isPropertyAccessExpression(parent) && parent.getExpression() === referenceNode) {
-    usedPropertyNames.add(parent.getName());
-    return true;
-  }
-  if (parent && Node.isElementAccessExpression(parent) && parent.getExpression() === referenceNode) {
-    const argument = parent.getArgumentExpression();
-    if (argument && (Node.isStringLiteral(argument) || Node.isNoSubstitutionTemplateLiteral(argument))) {
-      usedPropertyNames.add(argument.getLiteralValue());
-      return true;
-    }
-  }
-  return false;
-};
-
-const buildDynamicUsage = (
-  referenceNode: Parameters<typeof classifyZombieReferenceUsage>[0],
-  consumerFilePath: string,
-): ZombieObjectBagDynamicUsage | null => {
-  if (!isDynamicBagUsage(referenceNode)) {
-    return null;
-  }
-  return {
-    consumerFilePath,
-    line: referenceNode.getStartLineNumber(),
-    sourceText: referenceNode.getParent()?.getText() ?? referenceNode.getText(),
-  };
+const terminalArgumentProperty = (reference: AstNode): boolean => {
+  let value = reference;
+  const expression = value.getParent();
+  if (expression && Node.isBinaryExpression(expression)
+    && expression.getOperatorToken().getKind() === SyntaxKind.QuestionQuestionToken) value = expression;
+  const property = value.getParent();
+  if (!property || !Node.isPropertyAssignment(property) || property.getInitializer() !== value) return false;
+  const literal = property.getParent();
+  const call = literal?.getParent();
+  return Boolean(literal && Node.isObjectLiteralExpression(literal)
+    && call && Node.isCallExpression(call) && call.getArguments().includes(literal));
 };
 
 export const collectZombieObjectBagUsage = (input: {
   bag: ZombieObjectBag;
+  consumerFiles: ReadonlySet<string>;
 }): ZombieObjectBagUsage => {
-  const usedPropertyNames = contextualTypePropertyReads(input.bag);
+  const usedPropertyNames = new Set(contextualReads(input.bag, input.consumerFiles));
   const dynamicUsages: ZombieObjectBagDynamicUsage[] = [];
-
-  for (const referenceNode of input.bag.nameNode.findReferencesAsNodes()) {
-    if (referenceNode === input.bag.nameNode) {
+  for (const reference of runtimeReferences(input.bag.nameNode, input.consumerFiles)) {
+    const indirect = arrayMemberReads(reference, input.consumerFiles);
+    if (indirect.length > 0) {
+      for (const property of indirect) usedPropertyNames.add(property);
       continue;
     }
-    const usageKind = classifyZombieReferenceUsage(referenceNode);
-    if (usageKind === "import-binding" || usageKind === "re-export") {
-      continue;
-    }
-    if (isTotalTypedRegistrySpread(referenceNode)) {
+    if (typedRegistryLookup(reference, input.consumerFiles) || terminalArgumentProperty(reference)) {
       for (const entry of input.bag.entries) usedPropertyNames.add(entry.propertyName);
       continue;
     }
-    const arrayProperties = arrayElementPropertyReads(referenceNode);
-    if (arrayProperties.size > 0) {
-      for (const property of arrayProperties) usedPropertyNames.add(property);
+    const access = reference.getParent();
+    if (access && Node.isPropertyAccessExpression(access) && access.getExpression() === reference) {
+      usedPropertyNames.add(access.getName());
       continue;
     }
-    if (terminalObjectProperty(referenceNode)) {
-      for (const entry of input.bag.entries) usedPropertyNames.add(entry.propertyName);
+    const key = access && Node.isElementAccessExpression(access) && access.getExpression() === reference
+      ? access.getArgumentExpression() : undefined;
+    if (key && (Node.isStringLiteral(key) || Node.isNoSubstitutionTemplateLiteral(key))) {
+      usedPropertyNames.add(key.getLiteralValue());
       continue;
     }
-    if (markStaticPropertyUsage(referenceNode, usedPropertyNames)) {
-      continue;
-    }
-    const consumerFilePath = toRepoPath(referenceNode.getSourceFile().getFilePath());
-    const dynamicUsage = buildDynamicUsage(referenceNode, consumerFilePath);
-    if (dynamicUsage) {
-      dynamicUsages.push(dynamicUsage);
-    }
+    dynamicUsages.push({ consumerFilePath: toRepoPath(reference.getSourceFile().getFilePath()),
+      line: reference.getStartLineNumber(), sourceText: access?.getText() ?? reference.getText() });
   }
-
-  return {
-    dynamicUsages,
-    usedPropertyNames,
-  };
+  return { dynamicUsages, usedPropertyNames };
 };
