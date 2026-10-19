@@ -105,19 +105,19 @@ export const collectZombieObjectBagUsage = (input: {
       for (const entry of input.bag.entries) usedPropertyNames.add(entry.propertyName);
       continue;
     }
-    const access = reference.getParent();
-    if (access && Node.isPropertyAccessExpression(access) && access.getExpression() === reference) {
+    const access = reference.getParentOrThrow();
+    if (Node.isPropertyAccessExpression(access) && access.getExpression() === reference) {
       usedPropertyNames.add(access.getName());
       continue;
     }
-    const key = access && Node.isElementAccessExpression(access) && access.getExpression() === reference
+    const key = Node.isElementAccessExpression(access) && access.getExpression() === reference
       ? access.getArgumentExpression() : undefined;
     if (key && (Node.isStringLiteral(key) || Node.isNoSubstitutionTemplateLiteral(key))) {
       usedPropertyNames.add(key.getLiteralValue());
       continue;
     }
     dynamicUsages.push({ consumerFilePath: toRepoPath(reference.getSourceFile().getFilePath()),
-      line: reference.getStartLineNumber(), sourceText: access?.getText() ?? reference.getText() });
+      line: reference.getStartLineNumber(), sourceText: access.getText() });
   }
   return { dynamicUsages, usedPropertyNames };
 };
